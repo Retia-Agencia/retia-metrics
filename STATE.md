@@ -1,6 +1,6 @@
 # Estado del proyecto
 Ultima fase completada: 0 — Esqueleto, login y deploy
-Fecha: 2026-08-18
+Fecha: 2026-08-18 (login real verificado)
 
 ## Que existe ya
 
@@ -26,6 +26,10 @@ Fecha: 2026-08-18
 - `app/api/admin/ping` (gerente), `app/api/me` (cualquiera autenticado), `app/api/health` (publico).
 - `lib/nav.ts`: navegacion declarativa por rol + `rutaInicial(rol)`. `lib/format.ts`: formato numerico colombiano.
 
+**Configuracion**
+- `scripts/configurar-env.sh` (`npm run setup`): pide los valores de forma interactiva, lee los secretos sin eco (no quedan en pantalla ni en el historial del shell), valida la forma de cada uno, rechaza los de ejemplo, genera `AUTH_SECRET` solo y respalda el archivo anterior.
+- `scripts/load-env.ts`: carga `.env.local` antes que cualquier otro modulo.
+
 **Tests** — 11 pasando (`npm test`)
 - `tests/roles.test.ts`: sin herencia de roles, sin rol no pasa nada, el closer no ve items de gerente.
 - `tests/guards.test.ts`: invoca los route handlers reales con sesion mockeada — closer en endpoint de gerente = 403, sin sesion = 401, gerente = 200.
@@ -33,6 +37,9 @@ Fecha: 2026-08-18
 ## Decisiones tomadas que no estan en PROJECT.md
 
 - **npm en vez de pnpm.** No se pudo instalar pnpm global (npm prefix `/usr/local`, requiere sudo). Los scripts son los mismos.
+- **`.env.local` se carga a mano en las herramientas de linea de comandos.** Next.js lo hace solo; `drizzle-kit` y `tsx` no. La carga vive en `scripts/load-env.ts` y va como PRIMER import de todo script, porque los imports se evaluan en orden y `lib/db` lee `DATABASE_URL` en cuanto se importa.
+- **El proyecto de Google Cloud vive dentro de la organizacion `retiagrowth.com`.** La cuenta no puede crear proyectos fuera de ella. Ventaja: la cuenta de servicio de la Fase 1 sera interna al dominio, asi que compartirle las hojas no choca con restricciones de compartir fuera del dominio.
+- **Pantalla de consentimiento OAuth: External, publicada** (estado "En produccion"). Permite que un closer entre con Gmail personal si hiciera falta. Quien controla quien entra es la tabla `users`, no Google.
 - **Next 16.3.1 en vez de 15.** `create-next-app@latest` ya entrega 16. Se acepto y se documento.
 - **`proxy.ts` en vez de `middleware.ts`.** Next 16 deprecó el nombre viejo; el build avisa y sugiere el codemod.
 - **Sesiones JWT, sin adapter de base de datos.** El allowlist lo controlamos nosotros contra `users`; no hacen falta tablas de sesiones/cuentas. El rol se revalida contra la DB en cada emision de token.
@@ -42,8 +49,9 @@ Fecha: 2026-08-18
 
 ## Deuda / TODOs abiertos
 
-- **No se ha probado el login real con Google** — faltan las credenciales OAuth y la base de datos Neon. Todo lo demas de la barrera de auth si esta verificado en runtime.
-- **No se ha desplegado a Vercel** — falta el repo remoto y las variables de entorno.
+- **No se ha desplegado a Vercel** — falta el repo remoto (privado) y cargar las variables de entorno. Al desplegar hay que agregar el dominio de produccion a los URIs autorizados del cliente OAuth y generar un `AUTH_SECRET` distinto.
+- **El unico usuario es `administrativa@retiagrowth.com`, con rol gerente.** Si resulta ser un buzon compartido, cualquiera con acceso a ese correo entra como gerente y ve caja, CAC, ROAS y el comparativo de closers. Revisar antes de sumar al equipo.
+- **Todavia no hay pantalla para administrar usuarios** — se agregan con `npm run db:studio`. Llega en una fase posterior.
 - `lib/sheets/` y `lib/metrics/` estan vacias (Fase 1 y Fase 2).
 - Las paginas de programa son placeholders (Fase 2). `/mi-dia` es placeholder (Fase 4). `/documentos` es placeholder (Fase 5). `/ajustes` es placeholder (Fase 1).
 - No hay pantallas de error ni estados vacios propios todavia (Fase 7).
@@ -53,8 +61,7 @@ Fecha: 2026-08-18
 
 ```bash
 npm install
-cp .env.example .env.local     # y llenar los valores reales
-npm run db:generate            # ya generado; solo si cambias el schema
+npm run setup                  # configura .env.local de forma interactiva
 npm run db:migrate             # aplica la migracion a Neon
 npm run seed:users             # crea el primer gerente
 npm run dev                    # http://localhost:3000
@@ -63,3 +70,10 @@ npm run typecheck
 npm test
 npm run build
 ```
+
+## Verificado en esta fase
+
+- `npm run build`, `npm run typecheck` y `npm run lint` pasan en limpio.
+- 11 tests de Vitest pasando, incluida la barrera de roles sobre los route handlers reales.
+- Barrera de auth probada con peticiones reales: `/` redirige a `/login`, las APIs responden 401 JSON, `/api/health` responde 200, y `/login?error=AccessDenied` muestra el mensaje de correo no autorizado.
+- **Login real con Google verificado end-to-end** contra Neon y el cliente OAuth de produccion.
