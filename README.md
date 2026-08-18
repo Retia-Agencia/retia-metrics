@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Retia Metrics
 
-## Getting Started
+Dashboard comercial interno de Retia para los programas **Comunicarte** y **Tactical Investor**.
+Lee las BBDD de Google Sheets, calcula el embudo, proyecta el corte y deja que los closers
+registren sus llamadas.
 
-First, run the development server:
+El contexto de negocio y las reglas que no se pueden violar estan en [`PROJECT.md`](./PROJECT.md).
+El estado de avance por fase esta en [`STATE.md`](./STATE.md).
+
+> Acceso restringido. La app maneja datos personales de leads y cifras comerciales:
+> no hay ninguna vista publica y no existe el auto-registro.
+
+## Requisitos
+
+- Node 20 o superior (probado en 25.9)
+- Una base de datos [Neon Postgres](https://neon.tech)
+- Credenciales de Google OAuth
+
+El gestor de paquetes es **npm**.
+
+## Setup local
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Llena `.env.local`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | De donde sale |
+|---|---|
+| `DATABASE_URL` | Neon > tu proyecto > Connection string (con `?sslmode=require`) |
+| `AUTH_SECRET` | `npx auth secret` |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google Cloud Console > APIs y servicios > Credenciales > ID de cliente OAuth (tipo *Aplicacion web*) |
+| `SEED_GERENTE_EMAIL` | Tu correo de Google. Es el primer y unico usuario que existira al arrancar. |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+URIs de redireccion autorizadas en Google Cloud:
 
-## Learn More
+```
+http://localhost:3000/api/auth/callback/google
+https://<tu-dominio-de-vercel>/api/auth/callback/google
+```
 
-To learn more about Next.js, take a look at the following resources:
+Luego:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run db:migrate    # crea la tabla users en Neon
+npm run seed:users    # te inserta como gerente
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Comandos
 
-## Deploy on Vercel
+| Comando | Que hace |
+|---|---|
+| `npm run dev` | Servidor de desarrollo |
+| `npm run build` | Build de produccion |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Tests (Vitest) |
+| `npm run db:generate` | Genera migracion a partir del schema |
+| `npm run db:migrate` | Aplica migraciones |
+| `npm run db:studio` | Explorador de la base de datos |
+| `npm run seed:users` | Crea o promueve al gerente de `SEED_GERENTE_EMAIL` |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deploy a Vercel
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Sube el repo a GitHub.
+2. En Vercel: **Add New > Project** y selecciona el repo. El framework se detecta solo.
+3. Carga las variables de entorno de `.env.example` con los valores de produccion.
+   `AUTH_SECRET` debe ser distinto al de local.
+4. Despliega, copia el dominio y agrega su callback en Google Cloud.
+5. Corre `npm run db:migrate` apuntando a la base de produccion.
+
+## Como se agrega alguien al equipo
+
+No hay registro abierto: quien no este en la tabla `users` con `activo = true` recibe un
+error de acceso denegado aunque su cuenta de Google sea valida.
+
+Por ahora se agrega con `npm run db:studio` (insertar fila con `email`, `nombre`, `rol` y,
+si es closer, el `closer_id` con el que aparece en la BBDD de Sheets). La pantalla para
+hacerlo desde la app llega en una fase posterior.
+
+Para revocar a alguien: `activo = false`. Surte efecto en la siguiente emision de token.
+
+## Roles
+
+| | gerente | closer |
+|---|---|---|
+| Dashboards de programa | si | no |
+| Comparativo entre closers, caja, pauta | si | no |
+| Su propia cola y sus propias llamadas | si | si |
+| Documentos | si (sube) | si (lee) |
+| Ajustes | si | no |
+
+No hay herencia: son conjuntos disjuntos y la validacion es de servidor, en cada ruta.
+Esconder un boton no es seguridad.

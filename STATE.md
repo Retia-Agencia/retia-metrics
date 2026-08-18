@@ -1,0 +1,65 @@
+# Estado del proyecto
+Ultima fase completada: 0 — Esqueleto, login y deploy
+Fecha: 2026-08-18
+
+## Que existe ya
+
+**Autenticacion y roles**
+- `lib/auth/roles.ts`: logica pura de roles (`puedeAcceder`, `esRolValido`) y los errores tipados `AuthenticationError` (401) y `AuthorizationError` (403). Sin DB, sin next-auth — se testea aislada.
+- `lib/auth/config.ts`: config de Auth.js apta para edge (sin DB). La usa `proxy.ts`. Incluye el callback `session` que mapea claims del token.
+- `lib/auth/index.ts`: instancia completa de Auth.js (runtime Node). Callback `signIn` con allowlist estricta contra la tabla `users`; callback `jwt` que revalida rol contra la DB al iniciar sesion y en `update`, y vacia el token si el usuario fue desactivado.
+- `lib/auth/guards.ts`: `requireSession`, `requireRole(...roles)`, `requireGerente` y `respuestaDeError` para route handlers. **Este es el helper que exige el plan.**
+- `lib/auth/page-guards.ts`: `paginaConSesion` / `paginaConRol` para paginas — redirigen en vez de tirar 500.
+- `types/next-auth.d.ts`: augmentacion de `Session` y de `JWT` (sobre `@auth/core/jwt`).
+
+**Base de datos**
+- `lib/db/schema.ts`: enum `rol` + tabla `users` (id uuid, email unico, nombre, rol, closer_id, activo, created_at).
+- `lib/db/index.ts`: cliente Drizzle sobre `@neondatabase/serverless`. Falla ruidosamente si falta `DATABASE_URL`.
+- `drizzle/0000_pink_changeling.sql`: migracion inicial generada.
+- `scripts/seed-users.ts`: inserta o promueve al primer gerente desde `SEED_GERENTE_EMAIL`.
+
+**Rutas y UI**
+- `proxy.ts`: protege todo salvo `/login`, `/api/auth/*` y `/api/health`. Paginas -> redirect a `/login?desde=`; APIs -> 401 JSON.
+- `app/login/page.tsx`: server action con `signIn("google")`, mensajes de error legibles (incluye `AccessDenied`).
+- `app/(app)/layout.tsx` + `components/app-sidebar.tsx`: shell con sidebar filtrado por rol, selector de programa, menu de usuario y toggle claro/oscuro.
+- Paginas placeholder con su guarda de rol puesta: `/comunicarte`, `/tactical-investor`, `/ajustes` (gerente), `/mi-dia` (closer), `/documentos` (ambos).
+- `app/api/admin/ping` (gerente), `app/api/me` (cualquiera autenticado), `app/api/health` (publico).
+- `lib/nav.ts`: navegacion declarativa por rol + `rutaInicial(rol)`. `lib/format.ts`: formato numerico colombiano.
+
+**Tests** — 11 pasando (`npm test`)
+- `tests/roles.test.ts`: sin herencia de roles, sin rol no pasa nada, el closer no ve items de gerente.
+- `tests/guards.test.ts`: invoca los route handlers reales con sesion mockeada — closer en endpoint de gerente = 403, sin sesion = 401, gerente = 200.
+
+## Decisiones tomadas que no estan en PROJECT.md
+
+- **npm en vez de pnpm.** No se pudo instalar pnpm global (npm prefix `/usr/local`, requiere sudo). Los scripts son los mismos.
+- **Next 16.3.1 en vez de 15.** `create-next-app@latest` ya entrega 16. Se acepto y se documento.
+- **`proxy.ts` en vez de `middleware.ts`.** Next 16 deprecó el nombre viejo; el build avisa y sugiere el codemod.
+- **Sesiones JWT, sin adapter de base de datos.** El allowlist lo controlamos nosotros contra `users`; no hacen falta tablas de sesiones/cuentas. El rol se revalida contra la DB en cada emision de token.
+- **Sin herencia de roles.** `gerente` no es "closer con extras": son conjuntos disjuntos. Un endpoint marcado `requireRole("gerente")` rechaza al closer y viceversa. Esta decision esta testeada.
+- **`/api/health` es publico** para que Vercel pueda sondear el despliegue. No expone ningun dato del negocio.
+- **`.env.local` local tiene valores placeholder** para que `next build` corra. Hay que reemplazarlos con los reales.
+
+## Deuda / TODOs abiertos
+
+- **No se ha probado el login real con Google** — faltan las credenciales OAuth y la base de datos Neon. Todo lo demas de la barrera de auth si esta verificado en runtime.
+- **No se ha desplegado a Vercel** — falta el repo remoto y las variables de entorno.
+- `lib/sheets/` y `lib/metrics/` estan vacias (Fase 1 y Fase 2).
+- Las paginas de programa son placeholders (Fase 2). `/mi-dia` es placeholder (Fase 4). `/documentos` es placeholder (Fase 5). `/ajustes` es placeholder (Fase 1).
+- No hay pantallas de error ni estados vacios propios todavia (Fase 7).
+- El test de cobertura de permisos que recorre TODOS los endpoints es de la Fase 7; hoy se cubren los dos que existen.
+
+## Como correr
+
+```bash
+npm install
+cp .env.example .env.local     # y llenar los valores reales
+npm run db:generate            # ya generado; solo si cambias el schema
+npm run db:migrate             # aplica la migracion a Neon
+npm run seed:users             # crea el primer gerente
+npm run dev                    # http://localhost:3000
+
+npm run typecheck
+npm test
+npm run build
+```
