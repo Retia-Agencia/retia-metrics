@@ -52,9 +52,9 @@ Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 
 ## Deuda / TODOs abiertos
 
-- **El unico usuario es `administrativa@retiagrowth.com`, con rol gerente — y NO es la cuenta de Michael.** Al iniciar sesion, la app muestra el perfil como "Alejandro Carvajal Parra". Consecuencias: quien tenga la clave de ese buzon entra como gerente y ve caja, CAC, ROAS y el comparativo de closers; los registros de llamada de la Fase 4 quedarian atribuidos a Alejandro; y si le quitan ese buzon a Michael, se queda sin acceso. **Pendiente: insertar el correo propio de Michael como gerente.**
+- **Decidido, no pendiente:** el gerente del sistema es `administrativa@retiagrowth.com` (el perfil de Google aparece como "Alejandro Carvajal Parra"). Michael lo confirmo el 18 de agosto tras plantearsele dos veces el riesgo. Implicacion a tener presente al construir la Fase 4: los registros de llamada quedan atribuidos a ese usuario, no a una persona individual.
 - **`Production` y `Preview` comparten la misma base de datos en Vercel.** Hoy da igual porque no hay ramas de preview. Antes de trabajar fases con previews, separarlas para que un experimento no escriba sobre datos reales.
-- **Falta borrar el secreto viejo de OAuth en Google Cloud.** Hay dos secretos activos en el cliente `Retia Metrics Web`; el nuevo ya esta en uso en local y produccion.
+- **Falta la cuenta de servicio de Google** para la Fase 1: habilitar Sheets API y Drive API, crear la cuenta, generar la llave JSON y compartir las dos BBDD con ella como **editor**. Usar `npm run cuenta-servicio` para cargar la llave sin manipularla a mano.
 - **Todavia no hay pantalla para administrar usuarios** — se agregan con `npm run db:studio`. Llega en una fase posterior.
 - `lib/sheets/` y `lib/metrics/` estan vacias (Fase 1 y Fase 2).
 - Las paginas de programa son placeholders (Fase 2). `/mi-dia` es placeholder (Fase 4). `/documentos` es placeholder (Fase 5). `/ajustes` es placeholder (Fase 1).
