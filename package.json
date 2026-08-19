@@ -19,7 +19,9 @@
     "cuenta-servicio": "bash scripts/cargar-cuenta-servicio.sh",
     "descubrir": "tsx scripts/descubrir-hojas.ts",
     "inspeccionar": "tsx scripts/inspeccionar-pestana.ts",
-    "comparar": "tsx scripts/comparar-pestanas.ts"
+    "comparar": "tsx scripts/comparar-pestanas.ts",
+    "seed:datos": "tsx scripts/seed-datos.ts",
+    "sync": "tsx scripts/sincronizar.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

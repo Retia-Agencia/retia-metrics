@@ -33,8 +33,8 @@ async function main() {
         dateTimeRenderOption: "FORMATTED_STRING",
       });
       valores = (res.data.values ?? []) as string[][];
-    } catch (e: any) {
-      console.log(`  No se pudo leer: ${e?.message ?? e}`);
+    } catch (e: unknown) {
+      console.log(`  No se pudo leer: ${e instanceof Error ? e.message : e}`);
       continue;
     }
 
@@ -68,4 +68,4 @@ async function main() {
   console.log("");
 }
 
-main().catch((e) => { console.error("Fallo:", e?.message ?? e); process.exit(1); });
+main().catch((e) => { console.error("Fallo:", e instanceof Error ? e.message : e); process.exit(1); });

@@ -51,14 +51,14 @@ async function main() {
           `    · ${String(p.title).padEnd(34)} ${String(g.rowCount).padStart(6)} filas x ${String(g.columnCount).padStart(3)} col`,
         );
       }
-    } catch (e: any) {
-      console.log(`  No se pudo leer la estructura: ${e?.message ?? e}`);
+    } catch (e: unknown) {
+      console.log(`  No se pudo leer la estructura: ${e instanceof Error ? e.message : e}`);
     }
     console.log("");
   }
 }
 
 main().catch((e) => {
-  console.error("\nFallo:", e?.message ?? e);
+  console.error("\nFallo:", e instanceof Error ? e.message : e);
   process.exit(1);
 });
