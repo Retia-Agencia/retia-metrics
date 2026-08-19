@@ -1,6 +1,8 @@
 # Estado del proyecto
 Ultima fase completada: 0 — Esqueleto, login y deploy
-Fecha: 2026-08-18 (login real verificado)
+Fecha: 2026-08-18 (desplegada en produccion y verificada)
+Produccion: https://retia-metrics.vercel.app
+Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 
 ## Que existe ya
 
@@ -45,12 +47,14 @@ Fecha: 2026-08-18 (login real verificado)
 - **Sesiones JWT, sin adapter de base de datos.** El allowlist lo controlamos nosotros contra `users`; no hacen falta tablas de sesiones/cuentas. El rol se revalida contra la DB en cada emision de token.
 - **Sin herencia de roles.** `gerente` no es "closer con extras": son conjuntos disjuntos. Un endpoint marcado `requireRole("gerente")` rechaza al closer y viceversa. Esta decision esta testeada.
 - **`/api/health` es publico** para que Vercel pueda sondear el despliegue. No expone ningun dato del negocio.
-- **`.env.local` local tiene valores placeholder** para que `next build` corra. Hay que reemplazarlos con los reales.
+- **Manejo de credenciales: nunca se abre `.env.local` en un editor.** El 18 de agosto una captura de pantalla del archivo abierto en TextEdit expuso la contrasena de Neon, el secreto de OAuth y el `AUTH_SECRET`. Las tres se rotaron el mismo dia. Desde entonces la configuracion se hace con `npm run setup` y `npm run rotar`, que leen los secretos sin eco, y en Vercel con `Import .env` desde el selector de archivos — en ningun paso el valor aparece en pantalla.
+- **`AUTH_SECRET` es distinto entre local y produccion**, para que filtrar uno no permita falsificar sesiones en el otro.
 
 ## Deuda / TODOs abiertos
 
-- **No se ha desplegado a Vercel** — falta el repo remoto (privado) y cargar las variables de entorno. Al desplegar hay que agregar el dominio de produccion a los URIs autorizados del cliente OAuth y generar un `AUTH_SECRET` distinto.
-- **El unico usuario es `administrativa@retiagrowth.com`, con rol gerente.** Si resulta ser un buzon compartido, cualquiera con acceso a ese correo entra como gerente y ve caja, CAC, ROAS y el comparativo de closers. Revisar antes de sumar al equipo.
+- **El unico usuario es `administrativa@retiagrowth.com`, con rol gerente — y NO es la cuenta de Michael.** Al iniciar sesion, la app muestra el perfil como "Alejandro Carvajal Parra". Consecuencias: quien tenga la clave de ese buzon entra como gerente y ve caja, CAC, ROAS y el comparativo de closers; los registros de llamada de la Fase 4 quedarian atribuidos a Alejandro; y si le quitan ese buzon a Michael, se queda sin acceso. **Pendiente: insertar el correo propio de Michael como gerente.**
+- **`Production` y `Preview` comparten la misma base de datos en Vercel.** Hoy da igual porque no hay ramas de preview. Antes de trabajar fases con previews, separarlas para que un experimento no escriba sobre datos reales.
+- **Falta borrar el secreto viejo de OAuth en Google Cloud.** Hay dos secretos activos en el cliente `Retia Metrics Web`; el nuevo ya esta en uso en local y produccion.
 - **Todavia no hay pantalla para administrar usuarios** — se agregan con `npm run db:studio`. Llega en una fase posterior.
 - `lib/sheets/` y `lib/metrics/` estan vacias (Fase 1 y Fase 2).
 - Las paginas de programa son placeholders (Fase 2). `/mi-dia` es placeholder (Fase 4). `/documentos` es placeholder (Fase 5). `/ajustes` es placeholder (Fase 1).
@@ -77,3 +81,9 @@ npm run build
 - 11 tests de Vitest pasando, incluida la barrera de roles sobre los route handlers reales.
 - Barrera de auth probada con peticiones reales: `/` redirige a `/login`, las APIs responden 401 JSON, `/api/health` responde 200, y `/login?error=AccessDenied` muestra el mensaje de correo no autorizado.
 - **Login real con Google verificado end-to-end** contra Neon y el cliente OAuth de produccion.
+
+## Desplegado
+
+- **Produccion:** https://retia-metrics.vercel.app — verificada de punta a punta el 18 de agosto: raiz redirige a `/login`, las APIs responden 401 sin sesion, el endpoint de gerente responde 401, el callback de Google coincide con el autorizado, y el login real funciona.
+- **Repo:** privado en GitHub. Los tres gates previos al push (ningun `.env` versionado, sin secretos en los archivos rastreados, `.env.example` si versionado) pasaron.
+- **Credenciales rotadas el 18 de agosto:** contrasena de Neon, secreto de OAuth de Google y `AUTH_SECRET`. Los respaldos de `.env.local` que contenian las viejas fueron borrados.

@@ -14,7 +14,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "seed:users": "tsx scripts/seed-users.ts",
-    "setup": "bash scripts/configurar-env.sh"
+    "setup": "bash scripts/configurar-env.sh",
+    "rotar": "bash scripts/rotar-secretos.sh"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
