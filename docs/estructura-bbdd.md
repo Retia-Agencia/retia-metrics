@@ -35,8 +35,8 @@ Regenerar en cualquier momento con `npm run descubrir`.
 
 | Pestana | Filas | Col | Para que sirve |
 |---|---|---|---|
-| `New form` | 1243 | 42 | **Formulario actual.** Fuente de `people` |
-| `Forms viejo` | 1000 | 26 | Formulario anterior. **Sin resolver:** confirmar si los 1.100 leads de C1 del analisis salen de aca, de `New form`, o de los dos |
+| `New form` | 1253 | 18 | **Formulario actual.** Fuente de `people`. Del 23-jul a hoy. 1.195 personas unicas (58 duplicados) |
+| `Forms viejo` | 67 | 17 | Formulario anterior, del 20 al 22-jul. **Tambien hay que leerlo:** 58 de sus 65 personas NO estan en `New form` |
 | `Registro de llamadas` | 997 | 26 | **Fuente de `calls`.** Sin filas nuevas desde el 14 de agosto — el hueco #1 del negocio |
 | `Estudiantes Agosto` | 998 | 43 | Matriculados. **Las 3 ventas de C2 viven aca**, bajo una fila de texto "Septiembre", no en pestana propia |
 | `📞 Setteo No Calificados` | 1000 | 26 | Cola de setteo — los 259 calificados que nunca agendaron |
@@ -52,5 +52,21 @@ Regenerar en cualquier momento con `npm run descubrir`.
 1. **Hay emojis en los nombres de pestana** (`📞`, `🗑️`). Los rangos de la API van con el titulo entre comillas simples: `'📞 Setteo No Calificados'!A1:Z`.
 2. **Los conteos de filas son del grid, no de datos.** Una pestana de 1000 filas puede tener 200 con contenido. Hay que leer y recortar por filas vacias.
 3. **Las pestanas que empiezan con `_` y las de Dashboard son derivadas.** Leerlas duplicaria datos y romperia el dedup.
-4. **Comunicarte tiene dos formularios.** Antes de calcular tasas de C1 hay que resolver cual es la fuente canonica, o unificar ambos con dedup por correo.
+4. **Comunicarte tiene dos formularios y hay que leer los dos.** Resuelto el 19 de agosto con `npm run comparar`: son secuenciales, no duplicados. `Forms viejo` cubre del 20 al 22 de julio (65 personas unicas) y `New form` arranca el 23 de julio. Solo 7 personas aparecen en ambos; **58 de `Forms viejo` no estan en `New form`**. Ignorarlo perderia el arranque del embudo de C1. Union deduplicada: **1.253 personas**.
+
+   Los dos tienen el mismo esquema de 17-18 columnas, asi que un solo mapeo sirve para ambos. La unica diferencia: `New form` agrega la columna `Estado`.
 5. **Los respaldos `BK_` de Tactical Investor son de julio.** Si se leen, inflan los conteos.
+
+
+---
+
+## Tasa de duplicados por programa
+
+Medida el 19 de agosto sobre los formularios reales:
+
+| Programa | Filas | Personas unicas | Duplicados |
+|---|---|---|---|
+| Comunicarte (`New form` + `Forms viejo`) | 1.320 | **1.253** | 5,1% |
+| Tactical Investor | 2.954 | *pendiente de medir* | ~37,8% segun el analisis del 17-ago |
+
+La diferencia entre programas es enorme y **no se puede asumir una tasa comun**. El dedup se aplica igual en los dos, pero al validar los conteos hay que usar el numero de cada uno.

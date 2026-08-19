@@ -17,7 +17,9 @@
     "setup": "bash scripts/configurar-env.sh",
     "rotar": "bash scripts/rotar-secretos.sh",
     "cuenta-servicio": "bash scripts/cargar-cuenta-servicio.sh",
-    "descubrir": "tsx scripts/descubrir-hojas.ts"
+    "descubrir": "tsx scripts/descubrir-hojas.ts",
+    "inspeccionar": "tsx scripts/inspeccionar-pestana.ts",
+    "comparar": "tsx scripts/comparar-pestanas.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
