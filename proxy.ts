@@ -17,7 +17,9 @@ export default auth((req) => {
   const esRutaPublica =
     pathname === "/login" ||
     pathname.startsWith("/api/auth/") ||
-    pathname === "/api/health";
+    pathname === "/api/health" ||
+    // El cron no tiene sesion: se autentica con CRON_SECRET en el propio handler.
+    pathname === "/api/cron/sync";
 
   if (esRutaPublica) return NextResponse.next();
 

@@ -1,6 +1,6 @@
 # Estado del proyecto
-Ultima fase completada: 0 — Esqueleto, login y deploy
-Fecha: 2026-08-18 (desplegada en produccion y verificada)
+Ultima fase completada: 1 — Modelo de datos, sincronizacion con Sheets y bitacora de cambios
+Fecha: 2026-08-19
 Produccion: https://retia-metrics.vercel.app
 Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 
@@ -14,8 +14,11 @@ Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 - `lib/auth/page-guards.ts`: `paginaConSesion` / `paginaConRol` para paginas — redirigen en vez de tirar 500.
 - `types/next-auth.d.ts`: augmentacion de `Session` y de `JWT` (sobre `@auth/core/jwt`).
 
-**Base de datos**
-- `lib/db/schema.ts`: enum `rol` + tabla `users` (id uuid, email unico, nombre, rol, closer_id, activo, created_at).
+**Base de datos** — 10 tablas
+- `lib/db/schema.ts`: `users`, `programs`, `cohorts`, `sources`, `people`, `calls`, `sales`, `ad_spend`, `sync_runs`, `change_log`.
+- `people` tiene indice unico `(program_id, email_normalizado)`: el dedup esta garantizado por la base, no solo por el codigo.
+- `calls`, `sales` y `ad_spend` tienen indice unico sobre `(program_id, huella_fila)` para que un re-sync no duplique registros.
+- `scripts/seed-datos.ts` (`npm run seed:datos`): siembra los dos programas, sus cuatro cortes y las diez fuentes. Idempotente.
 - `lib/db/index.ts`: cliente Drizzle sobre `@neondatabase/serverless`. Falla ruidosamente si falta `DATABASE_URL`.
 - `drizzle/0000_pink_changeling.sql`: migracion inicial generada.
 - `scripts/seed-users.ts`: inserta o promueve al primer gerente desde `SEED_GERENTE_EMAIL`.
@@ -32,9 +35,25 @@ Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 - `scripts/configurar-env.sh` (`npm run setup`): pide los valores de forma interactiva, lee los secretos sin eco (no quedan en pantalla ni en el historial del shell), valida la forma de cada uno, rechaza los de ejemplo, genera `AUTH_SECRET` solo y respalda el archivo anterior.
 - `scripts/load-env.ts`: carga `.env.local` antes que cualquier otro modulo.
 
-**Tests** — 11 pasando (`npm test`)
+**Sincronizacion con Google Sheets**
+- `lib/sheets/auth.ts`: cliente JWT desde la llave de la cuenta de servicio en base64.
+- `lib/sheets/leer.ts`: lee una pestana. El titulo va entre comillas simples porque hay emojis en los nombres.
+- `lib/sheets/mapeo.ts`: resuelve columnas **por texto del encabezado, no por posicion**, ignorando acentos y mayusculas. `MAPEO_FORMULARIO` sirve para los tres formularios pese a que la redaccion de las preguntas cambia entre programas. Si falta un campo obligatorio lanza `MapeoInvalidoError` con lo que busco y los encabezados reales. Incluye `parsearFecha`, que lee el formato colombiano d/m/yyyy — `new Date()` lo interpreta como m/d y produce fechas equivocadas en silencio.
+- `lib/sheets/dedup.ts`: dedup puro por correo, sin base de datos. Conserva la fecha de primera aplicacion mas antigua, no deja que una aplicacion posterior con campos vacios borre lo que ya se sabia, y cuenta `numAplicaciones`.
+- `lib/sheets/sync.ts`: el motor. Lee, deduplica, hace upsert y escribe la bitacora.
+- `scripts/sincronizar.ts` (`npm run sync [slug]`): corre el sync desde la terminal.
+- `scripts/descubrir-hojas.ts` (`npm run descubrir`), `inspeccionar-pestana.ts` (`npm run inspeccionar`) y `comparar-pestanas.ts` (`npm run comparar`): herramientas de diagnostico. **Ninguna imprime datos personales** — solo estructura, conteos y rangos de fecha.
+
+**Rutas y UI de la Fase 1**
+- `POST /api/sync/[programa]`: dispara la sincronizacion. Solo gerente. Un error de mapeo devuelve 422 con el mensaje completo, para que se pueda arreglar sin abrir logs.
+- `GET /api/cron/sync`: sincronizacion programada cada 15 minutos (`vercel.json`). Se autentica con `CRON_SECRET`, no con sesion. **Falla cerrado**: si la variable no esta configurada devuelve 500 y no corre.
+- `/ajustes/fuentes`: tarjetas con personas, aplicaciones y tasa de duplicados por programa; lista de fuentes con su ultima sincronizacion; boton "Sincronizar ahora"; e historial de las ultimas ocho corridas.
+
+**Tests** — 33 pasando (`npm test`)
 - `tests/roles.test.ts`: sin herencia de roles, sin rol no pasa nada, el closer no ve items de gerente.
 - `tests/guards.test.ts`: invoca los route handlers reales con sesion mockeada — closer en endpoint de gerente = 403, sin sesion = 401, gerente = 200.
+- `tests/dedup.test.ts`: la fecha colombiana no se lee como estadounidense; el mismo mapeo resuelve los dos programas; falta de campo obligatorio lanza error en vez de adivinar; el dedup reproduce el ratio real de Tactical Investor (2.954 filas -> 1.825 personas, ~38%).
+- `tests/sync-permisos.test.ts`: un closer no dispara el sync; el cron rechaza sin secreto, con secreto equivocado, y no corre si `CRON_SECRET` no existe.
 
 ## Decisiones tomadas que no estan en PROJECT.md
 
@@ -54,7 +73,9 @@ Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 
 - **Decidido, no pendiente:** el gerente del sistema es `administrativa@retiagrowth.com` (el perfil de Google aparece como "Alejandro Carvajal Parra"). Michael lo confirmo el 18 de agosto tras plantearsele dos veces el riesgo. Implicacion a tener presente al construir la Fase 4: los registros de llamada quedan atribuidos a ese usuario, no a una persona individual.
 - **`Production` y `Preview` comparten la misma base de datos en Vercel.** Hoy da igual porque no hay ramas de preview. Antes de trabajar fases con previews, separarlas para que un experimento no escriba sobre datos reales.
-- **Falta la cuenta de servicio de Google** para la Fase 1: habilitar Sheets API y Drive API, crear la cuenta, generar la llave JSON y compartir las dos BBDD con ella como **editor**. Usar `npm run cuenta-servicio` para cargar la llave sin manipularla a mano.
+- **`CRON_SECRET` falta en Vercel.** Existe en `.env.local` y el cron esta probado en local, pero en produccion no correra hasta cargarlo y redesplegar. Mientras tanto la sincronizacion solo funciona con el boton manual.
+- **La pantalla de fuentes es de solo lectura.** El plan de la Fase 1 pedia poder editar el mapeo de columnas desde la UI; hoy el mapeo se cambia en `scripts/seed-datos.ts` y se vuelve a sembrar. Se dejo asi a proposito: los tres formularios comparten un unico mapeo que ya funciona, y una UI de edicion sin necesidad real habria sido trabajo muerto. **Es una desviacion declarada, no un olvido.**
+- **Solo estan activas las fuentes de personas.** Las de `calls`, `sales` y `ad_spend` estan sembradas pero inactivas: sus encabezados todavia no se han inspeccionado, y el plan prohibe adivinar mapeos. Inspeccionarlas con `npm run inspeccionar <sheetId> "<pestana>"` es el primer paso de la Fase 2.
 - **Todavia no hay pantalla para administrar usuarios** — se agregan con `npm run db:studio`. Llega en una fase posterior.
 - `lib/sheets/` y `lib/metrics/` estan vacias (Fase 1 y Fase 2).
 - Las paginas de programa son placeholders (Fase 2). `/mi-dia` es placeholder (Fase 4). `/documentos` es placeholder (Fase 5). `/ajustes` es placeholder (Fase 1).
@@ -87,3 +108,21 @@ npm run build
 - **Produccion:** https://retia-metrics.vercel.app — verificada de punta a punta el 18 de agosto: raiz redirige a `/login`, las APIs responden 401 sin sesion, el endpoint de gerente responde 401, el callback de Google coincide con el autorizado, y el login real funciona.
 - **Repo:** privado en GitHub. Los tres gates previos al push (ningun `.env` versionado, sin secretos en los archivos rastreados, `.env.example` si versionado) pasaron.
 - **Credenciales rotadas el 18 de agosto:** contrasena de Neon, secreto de OAuth de Google y `AUTH_SECRET`. Los respaldos de `.env.local` que contenian las viejas fueron borrados.
+
+
+## Fase 1 — verificado contra datos reales
+
+| | Filas leidas | Personas unicas | Duplicados |
+|---|---|---|---|
+| Comunicarte (`New form` + `Forms viejo`) | 1.320 | 1.253 | 5,1% |
+| Tactical Investor | 2.965 | 1.839 | 38,0% |
+
+`PROJECT.md` documentaba 2.932 filas -> 1.825 personas (37,8%) para Tactical Investor al
+17 de agosto. Las hojas crecieron desde entonces y la tasa se mantuvo. **El motor reproduce
+el ratio documentado sobre datos reales.**
+
+Ademas:
+- **Idempotencia:** la segunda corrida deja `change_log` intacto — 0 nuevas, 0 actualizadas, 0 cambios.
+- **Bitacora:** alterar un campo a mano en la base y re-sincronizar produce **exactamente una** fila de bitacora, con valor anterior y nuevo.
+- **Carga en frio:** 1.253 personas en 4,0 segundos. Con inserciones fila por fila tardaba 161 segundos, por encima del limite de una funcion de Vercel; se paso a lotes de 200.
+- **Cron probado de punta a punta** en local: autoriza con el secreto correcto, sincroniza los dos programas y responde 401 con un secreto equivocado.
