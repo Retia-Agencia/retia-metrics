@@ -41,6 +41,29 @@ describe("POST /api/sync/[programa]", () => {
     expect(res.status).toBe(401);
     expect(sincronizarPersonas).not.toHaveBeenCalled();
   });
+
+  it("el gerente si dispara la sincronizacion", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    select.mockReturnValue({
+      from: () => ({ where: () => ({ limit: async () => [{ id: "p-1", slug: "comunicarte" }] }) }),
+    });
+    sincronizarPersonas.mockResolvedValue({ programa: "comunicarte", personasEnHoja: 1253 });
+    const { POST } = await import("@/app/api/sync/[programa]/route");
+    const res = await POST(new Request("http://x"), { params });
+    expect(res.status).toBe(200);
+    expect(sincronizarPersonas).toHaveBeenCalledWith("p-1");
+  });
+
+  it("un programa inexistente da 404, no 500", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    select.mockReturnValue({
+      from: () => ({ where: () => ({ limit: async () => [] }) }),
+    });
+    const { POST } = await import("@/app/api/sync/[programa]/route");
+    const res = await POST(new Request("http://x"), { params });
+    expect(res.status).toBe(404);
+    expect(sincronizarPersonas).not.toHaveBeenCalled();
+  });
 });
 
 describe("GET /api/cron/sync", () => {

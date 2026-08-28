@@ -76,11 +76,19 @@ npm run dev
 No hay registro abierto: quien no este en la tabla `users` con `activo = true` recibe un
 error de acceso denegado aunque su cuenta de Google sea valida.
 
-Por ahora se agrega con `npm run db:studio` (insertar fila con `email`, `nombre`, `rol` y,
-si es closer, el `closer_id` con el que aparece en la BBDD de Sheets). La pantalla para
-hacerlo desde la app llega en una fase posterior.
+```bash
+npm run usuarios                                          # quien puede entrar hoy
+npm run usuarios -- agregar ana@retiagrowth.com gerente   # agrega un gerente
+npm run usuarios -- agregar dana@retiagrowth.com closer "Dana"   # agrega un closer
+npm run usuarios -- quitar ana@retiagrowth.com            # desactiva, no borra
+```
 
-Para revocar a alguien: `activo = false`. Surte efecto en la siguiente emision de token.
+El tercer argumento de un closer es su **`closer_id`**: el nombre exacto con el que aparece
+en la columna de closer de la BBDD (`Juanjo`, `Dana`, `Andrea`). Sin eso sus llamadas no se
+cruzan con su usuario en la Fase 4.
+
+Quitar a alguien lo desactiva, no lo borra: el rastro de quien registro que se conserva.
+El script se niega a desactivar al ultimo gerente activo.
 
 ## Roles
 

@@ -21,7 +21,8 @@
     "inspeccionar": "tsx scripts/inspeccionar-pestana.ts",
     "comparar": "tsx scripts/comparar-pestanas.ts",
     "seed:datos": "tsx scripts/seed-datos.ts",
-    "sync": "tsx scripts/sincronizar.ts"
+    "sync": "tsx scripts/sincronizar.ts",
+    "usuarios": "tsx scripts/usuarios.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
