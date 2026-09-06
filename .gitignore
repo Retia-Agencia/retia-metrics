@@ -42,3 +42,11 @@ next-env.d.ts
 
 # ...pero .env.example SI se versiona
 !.env.example
+
+# imagenes sueltas en la raiz: nunca al repo.
+# Ver docs/revision-2026-08-29.md (S-01): 19 capturas con secretos de produccion
+# entraron en a78bc8a con un git add .
+*.png
+*.jpg
+*.jpeg
+!public/**
