@@ -880,8 +880,30 @@ git add lib/sheets/mapeo.ts tests/dedup.test.ts
 git commit -m "sync: fechas con desplazamiento -05:00 explicito, no el del proceso (F-05)"
 ```
 
-> **Nota:** las fechas ya guardadas siguen mezcladas. Se corrigen en la re-sincronización de la
-> Tarea 2.9, no acá.
+> **Correccion al plan (6-sep).** Escribi que las fechas ya guardadas se corrigen solas en la
+> re-sincronizacion de la Tarea 2.9. **Es falso.** `CAMPOS_COMPARABLES` (`sync.ts:20-31`) no
+> incluye las fechas, asi que `compararCampos` devuelve cero diffs cuando lo unico que difiere es
+> el instante, y `sync.ts:141` (`if (diffs.length === 0) continue`) salta la actualizacion. Un
+> `npm run sync` normal deja cada persona con la zona horaria de quien la inserto primero.
+>
+> **Decidido con Mani el 6-sep: agregar `fechaPrimeraAplicacion` y `fechaUltimaAplicacion` a
+> `CAMPOS_COMPARABLES`.** Un instante que cambia pasa a contar como cambio, la re-sincronizacion
+> repara las filas sola y queda registrada en la bitacora. Efecto de una vez: ~3.100 filas de
+> `change_log` el dia de la migracion. Efecto permanente: el sync tambien vigila las fechas, que
+> es defendible porque una fecha que cambia si es un cambio.
+>
+> **Dos detalles de implementacion que hay que respetar al hacerlo** (van con la Tarea 2.5, que es
+> donde `compararCampos` se muda a `planificar.ts`):
+>
+> 1. `compararCampos` compara con `String(a) !== String(b)`. Sobre un `Date` eso da
+>    `"Thu Aug 07 2026 14:30:00 GMT-0500 (...)"`, que depende de la zona del proceso. Para la
+>    comparacion da igual (los dos lados se formatean igual dentro del mismo proceso), pero ese
+>    string es el que termina escrito en `change_log.valorAnterior` / `valorNuevo`. **Formatear las
+>    fechas con `toISOString()` antes de comparar y de guardar**, o la bitacora del embudo queda
+>    llena de strings de locale ilegibles.
+> 2. Con las fechas adentro, el test de idempotencia ("un sync sin novedades no escribe nada")
+>    pasa a ser mas estricto: cualquier deriva de zona lo rompe. Es exactamente lo que queremos que
+>    vigile.
 
 ### Tarea 2.3: F-09 — Coincidencia exacta antes que parcial, y avisar si hay ambigüedad
 
