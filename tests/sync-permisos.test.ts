@@ -122,6 +122,40 @@ describe("GET /api/cron/sync", () => {
     expect(res.status).toBe(401);
   });
 
+  /**
+   * S-07: esta ruta esta en la lista de publicas de proxy.ts, y el cuerpo incluia
+   * e.message. Un MapeoInvalidoError imprime por diseno todos los encabezados
+   * reales de la hoja, o sea las preguntas del formulario de aplicacion, saliendo
+   * por una ruta sin sesion.
+   */
+  it("no devuelve el mensaje de error del sync en el cuerpo", async () => {
+    select.mockReturnValue({
+      from: () => ({ where: async () => [{ id: "p-1", slug: "comunicarte", activo: true }] }),
+    });
+    sincronizarPersonas.mockRejectedValue(
+      new MapeoInvalidoError("estado", ["estado"], ["Cuanto ganas mensualmente", "Por que aplicaste"]),
+    );
+    const espia = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const { GET } = await import("@/app/api/cron/sync/route");
+    const res = await GET(
+      new Request("http://x", { headers: { authorization: "Bearer secreto-de-prueba" } }),
+    );
+    const cuerpo = await res.json();
+
+    expect(JSON.stringify(cuerpo)).not.toContain("Cuanto ganas");
+    expect(cuerpo).toEqual({ ok: false, programas: 1, sincronizados: 0, fallidos: 1 });
+    espia.mockRestore();
+  });
+
+  it("un secreto del mismo largo pero distinto tampoco pasa", async () => {
+    const { GET } = await import("@/app/api/cron/sync/route");
+    const res = await GET(
+      new Request("http://x", { headers: { authorization: "Bearer secreto-de-pruebA" } }),
+    );
+    expect(res.status).toBe(401);
+  });
+
   it("no corre si CRON_SECRET no esta configurado, en vez de quedar abierto", async () => {
     delete process.env.CRON_SECRET;
     const { GET } = await import("@/app/api/cron/sync/route");
