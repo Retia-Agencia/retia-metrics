@@ -58,7 +58,7 @@ Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 ## Decisiones tomadas que no estan en PROJECT.md
 
 - **npm en vez de pnpm.** No se pudo instalar pnpm global (npm prefix `/usr/local`, requiere sudo). Los scripts son los mismos.
-- **`.env.local` se carga a mano en las herramientas de linea de comandos.** Next.js lo hace solo; `drizzle-kit` y `tsx` no. La carga vive en `scripts/load-env.ts` y va como PRIMER import de todo script, porque los imports se evaluan en orden y `lib/db` lee `DATABASE_URL` en cuanto se importa.
+- **`.env.local` se carga a mano en las herramientas de linea de comandos.** Next.js lo hace solo; `drizzle-kit` y `tsx` no. La carga vive en `scripts/load-env.ts`. **Ya no tiene que ir como primer import** (B-05, 6-sep): `lib/db` crea el cliente de forma perezosa, en el primer query y no al importarse, asi que el orden de los imports dejo de importar. Los scripts lo siguen importando primero porque no habia razon para reordenarlos, pero si alguien agrega un import mas arriba ya no se rompe nada.
 - **El proyecto de Google Cloud vive dentro de la organizacion `retiagrowth.com`.** La cuenta no puede crear proyectos fuera de ella. Ventaja: la cuenta de servicio de la Fase 1 sera interna al dominio, asi que compartirle las hojas no choca con restricciones de compartir fuera del dominio.
 - **Pantalla de consentimiento OAuth: External, publicada** (estado "En produccion"). Permite que un closer entre con Gmail personal si hiciera falta. Quien controla quien entra es la tabla `users`, no Google.
 - **Next 16.3.1 en vez de 15.** `create-next-app@latest` ya entrega 16. Se acepto y se documento.
