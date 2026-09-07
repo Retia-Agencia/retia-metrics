@@ -49,7 +49,7 @@ Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 - `GET /api/cron/sync`: sincronizacion programada cada 15 minutos (`vercel.json`). Se autentica con `CRON_SECRET`, no con sesion. **Falla cerrado**: si la variable no esta configurada devuelve 500 y no corre.
 - `/ajustes/fuentes`: tarjetas con personas, aplicaciones y tasa de duplicados por programa; lista de fuentes con su ultima sincronizacion; boton "Sincronizar ahora"; e historial de las ultimas ocho corridas.
 
-**Tests** — 33 pasando (`npm test`)
+**Tests** — 35 pasando (`npm test`)
 - `tests/roles.test.ts`: sin herencia de roles, sin rol no pasa nada, el closer no ve items de gerente.
 - `tests/guards.test.ts`: invoca los route handlers reales con sesion mockeada — closer en endpoint de gerente = 403, sin sesion = 401, gerente = 200.
 - `tests/dedup.test.ts`: la fecha colombiana no se lee como estadounidense; el mismo mapeo resuelve los dos programas; falta de campo obligatorio lanza error en vez de adivinar; el dedup reproduce el ratio real de Tactical Investor (2.954 filas -> 1.825 personas, ~38%).
@@ -96,10 +96,10 @@ npm test
 npm run build
 ```
 
-## Verificado en esta fase
+## Verificado en la Fase 0
 
 - `npm run build`, `npm run typecheck` y `npm run lint` pasan en limpio.
-- 11 tests de Vitest pasando, incluida la barrera de roles sobre los route handlers reales.
+- 11 tests de Vitest pasando al cerrar la Fase 0, incluida la barrera de roles sobre los route handlers reales. (Hoy son 35: ver la seccion de tests de arriba.)
 - Barrera de auth probada con peticiones reales: `/` redirige a `/login`, las APIs responden 401 JSON, `/api/health` responde 200, y `/login?error=AccessDenied` muestra el mensaje de correo no autorizado.
 - **Login real con Google verificado end-to-end** contra Neon y el cliente OAuth de produccion.
 
