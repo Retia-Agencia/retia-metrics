@@ -20,7 +20,14 @@ export default async function LoginPage({ searchParams }: { searchParams: Busque
 
   const params = await searchParams;
   const error = typeof params.error === "string" ? params.error : undefined;
-  const desde = typeof params.desde === "string" ? params.desde : undefined;
+  const desdeCrudo = typeof params.desde === "string" ? params.desde : undefined;
+  // Solo rutas internas. Hoy el callback `redirect` por defecto de Auth.js ya
+  // descarta otro origen, pero esa proteccion es invisible: desaparece el dia que
+  // alguien defina un callback `redirect` propio para manejar el callbackUrl, sin
+  // tocar esta linea. Ojo con "//evil.com": empezar por "/" no alcanza, porque el
+  // navegador lo resuelve como dominio externo.
+  const desde =
+    desdeCrudo?.startsWith("/") && !desdeCrudo.startsWith("//") ? desdeCrudo : undefined;
 
   return (
     <main className="flex flex-1 items-center justify-center p-6">
