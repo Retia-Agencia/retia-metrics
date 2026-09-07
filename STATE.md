@@ -9,7 +9,7 @@ Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 **Autenticacion y roles**
 - `lib/auth/roles.ts`: logica pura de roles (`puedeAcceder`, `esRolValido`) y los errores tipados `AuthenticationError` (401) y `AuthorizationError` (403). Sin DB, sin next-auth — se testea aislada.
 - `lib/auth/config.ts`: config de Auth.js apta para edge (sin DB). La usa `proxy.ts`. Incluye el callback `session` que mapea claims del token.
-- `lib/auth/index.ts`: instancia completa de Auth.js (runtime Node). Callback `signIn` con allowlist estricta contra la tabla `users`; callback `jwt` que revalida rol contra la DB al iniciar sesion y en `update`, y vacia el token si el usuario fue desactivado.
+- `lib/auth/index.ts`: instancia completa de Auth.js (runtime Node). Callback `signIn` con allowlist estricta contra la tabla `users`; callback `jwt` que revalida rol contra la DB en **cada emision de token**, y vacia el token si el usuario fue desactivado.
 - `lib/auth/guards.ts`: `requireSession`, `requireRole(...roles)`, `requireGerente` y `respuestaDeError` para route handlers. **Este es el helper que exige el plan.**
 - `lib/auth/page-guards.ts`: `paginaConSesion` / `paginaConRol` para paginas — redirigen en vez de tirar 500.
 - `types/next-auth.d.ts`: augmentacion de `Session` y de `JWT` (sobre `@auth/core/jwt`).
@@ -63,7 +63,7 @@ Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 - **Pantalla de consentimiento OAuth: External, publicada** (estado "En produccion"). Permite que un closer entre con Gmail personal si hiciera falta. Quien controla quien entra es la tabla `users`, no Google.
 - **Next 16.3.1 en vez de 15.** `create-next-app@latest` ya entrega 16. Se acepto y se documento.
 - **`proxy.ts` en vez de `middleware.ts`.** Next 16 deprecó el nombre viejo; el build avisa y sugiere el codemod.
-- **Sesiones JWT, sin adapter de base de datos.** El allowlist lo controlamos nosotros contra `users`; no hacen falta tablas de sesiones/cuentas. El rol se revalida contra la DB en cada emision de token.
+- **Sesiones JWT, sin adapter de base de datos.** El allowlist lo controlamos nosotros contra `users`; no hacen falta tablas de sesiones/cuentas. El rol se revalida contra la DB en cada emision de token, y la sesion dura 8 horas (`maxAge`).
 - **Sin herencia de roles.** `gerente` no es "closer con extras": son conjuntos disjuntos. Un endpoint marcado `requireRole("gerente")` rechaza al closer y viceversa. Esta decision esta testeada.
 - **`/api/health` es publico** para que Vercel pueda sondear el despliegue. No expone ningun dato del negocio.
 - **Manejo de credenciales: nunca se abre `.env.local` en un editor.** El 18 de agosto una captura de pantalla del archivo abierto en TextEdit expuso la contrasena de Neon, el secreto de OAuth y el `AUTH_SECRET`. Las tres se rotaron el mismo dia. Desde entonces la configuracion se hace con `npm run setup` y `npm run rotar`, que leen los secretos sin eco, y en Vercel con `Import .env` desde el selector de archivos — en ningun paso el valor aparece en pantalla.

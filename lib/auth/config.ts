@@ -8,7 +8,9 @@ import { esRolValido } from "./roles";
  */
 export const authConfig = {
   providers: [Google],
-  session: { strategy: "jwt" },
+  // 8 horas = una jornada. Sin maxAge rige el default de Auth.js, que son 30 dias:
+  // desactivar a alguien no lo sacaba de la app durante un mes.
+  session: { strategy: "jwt", maxAge: 8 * 60 * 60 },
   pages: {
     signIn: "/login",
     error: "/login",

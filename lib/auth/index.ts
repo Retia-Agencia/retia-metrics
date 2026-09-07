@@ -25,24 +25,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     /**
-     * Mete rol, id y closerId en el token la primera vez, y los revalida contra la base
-     * de datos cuando la sesion se actualiza — asi revocar a alguien surte efecto sin
-     * esperar a que expire el JWT.
+     * Mete rol, id y closerId en el token y los revalida contra la base de datos en
+     * CADA emision, no solo al iniciar sesion. Es lo que hace que `npm run usuarios
+     * -- quitar` surta efecto de inmediato en vez de esperar a que expire el JWT.
+     *
+     * Costo: con estrategia JWT este callback corre en cada lectura de sesion del
+     * lado servidor, asi que es una consulta por indice unico sobre una tabla de
+     * menos de diez filas por request que llame a auth(). A este tamano de equipo es
+     * despreciable. El proxy no paga nada: usa authConfig, que no toca la base.
+     *
+     * ponytail: si el equipo crece, el paso siguiente es `sessionVersion int` en
+     * users, metido en el token y comparado en el callback `session`, que revoca sin
+     * consultar en cada refresco.
      */
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
       const email = (user?.email ?? token.email)?.toLowerCase().trim();
       if (!email) return token;
 
-      if (user || trigger === "update" || !token.rol) {
-        const registro = await buscarUsuario(email);
-        if (!registro || !registro.activo) {
-          // Usuario desactivado despues de haber iniciado sesion: se vacia el token.
-          return { ...token, usuarioId: undefined, rol: undefined, closerId: undefined };
-        }
-        token.usuarioId = registro.id;
-        token.rol = esRolValido(registro.rol) ? registro.rol : "closer";
-        token.closerId = registro.closerId;
+      const registro = await buscarUsuario(email);
+      if (!registro || !registro.activo) {
+        // Usuario desactivado despues de haber iniciado sesion: se vacia el token.
+        return { ...token, usuarioId: undefined, rol: undefined, closerId: undefined };
       }
+      token.usuarioId = registro.id;
+      token.rol = esRolValido(registro.rol) ? registro.rol : "closer";
+      token.closerId = registro.closerId;
 
       return token;
     },
