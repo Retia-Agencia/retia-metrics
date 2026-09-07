@@ -56,6 +56,26 @@ describe("parsearFecha", () => {
 });
 
 describe("resolverColumnas", () => {
+  /**
+   * F-09: ganaba el PRIMER encabezado que CONTUVIERA el patron. La mayoria de los
+   * patrones son largos y especificos, pero `estado: "estado"` es una sola palabra:
+   * con "Estado" y "Estado de la llamada" en la misma hoja, el mapeo agarraba el
+   * que estuviera mas a la izquierda y nadie se enteraba. Es justo la columna de la
+   * que depende el embudo.
+   */
+  it("prefiere el encabezado exacto sobre el que solo contiene el patron", () => {
+    const i = resolverColumnas(
+      ["Estado de la llamada", "Correo electronico", "Estado"],
+      { estado: "estado", emailNormalizado: "correo electronico" },
+    );
+    expect(i.estado).toBe(2);
+  });
+
+  it("sigue cayendo a coincidencia parcial cuando no hay exacta", () => {
+    const i = resolverColumnas(["¿Cual es tu nombre completo?"], { nombre: "nombre completo" });
+    expect(i.nombre).toBe(0);
+  });
+
   const encabezadosComunicarte = [
     "¿Cuál es tu nombre completo?",
     "¿Cuál es tu correo electrónico?",

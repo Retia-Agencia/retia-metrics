@@ -54,7 +54,13 @@ export function resolverColumnas(
 
   for (const [campo, patron] of Object.entries(mapeo)) {
     const buscados = (Array.isArray(patron) ? patron : [patron]).map(normalizarTexto);
-    const i = normalizados.findIndex((h) => h !== "" && buscados.some((b) => h.includes(b)));
+
+    // Exacto primero, parcial despues. Con solo `includes`, un patron de una sola
+    // palabra como "estado" agarra "estado de la llamada" nada mas que por estar
+    // mas a la izquierda, y el error es invisible.
+    let i = normalizados.findIndex((h) => h !== "" && buscados.includes(h));
+    if (i < 0) i = normalizados.findIndex((h) => h !== "" && buscados.some((b) => h.includes(b)));
+
     if (i >= 0) indices[campo] = i;
     else if (obligatorios.includes(campo)) {
       throw new MapeoInvalidoError(campo, buscados, encabezados);
