@@ -5,11 +5,17 @@ Leida el 19 de agosto de 2026 con `npm run descubrir`, via la cuenta de servicio
 
 Regenerar en cualquier momento con `npm run descubrir`.
 
+> **Los IDs completos no van en el repo** (S-13). No son credenciales —quien tenga el ID sigue
+> necesitando permiso de Google— pero son la direccion exacta de las dos BBDD con todos los leads,
+> y el permiso de una hoja es una casilla que alguien puede cambiar a "cualquiera con el enlace"
+> sin enterarse de que el enlace ya esta publicado. Viven en `.env.local` como
+> `SHEET_ID_COMUNICARTE` y `SHEET_ID_TACTICAL`; el prefijo de aca alcanza para saber cual es cual.
+
 ---
 
 ## Tactical Investor
 
-**ID:** `1DBKL4zwWWeJppe-6mzpJ4jT1G6MdEmT1Dd_uMiNBNwc`
+**ID:** `1DBKL4zw…` (completo en `SHEET_ID_TACTICAL`, ver `.env.example`)
 **Nombre:** Aplicación De Cero a Tactical Investor
 
 | Pestana | Filas | Col | Para que sirve |
@@ -30,7 +36,7 @@ Regenerar en cualquier momento con `npm run descubrir`.
 
 ## Comunicarte
 
-**ID:** `1NN6rlZXJJcgvWXYsbP99vLt9aj7FXVPd6ep4ULAcK54`
+**ID:** `1NN6rlZX…` (completo en `SHEET_ID_COMUNICARTE`, ver `.env.example`)
 **Nombre:** Aplicación Comunicarte BBDD
 
 | Pestana | Filas | Col | Para que sirve |

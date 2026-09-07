@@ -94,6 +94,36 @@ describe("POST /api/sync/[programa]", () => {
     expect((await res.json()).error).toContain("emailNormalizado");
   });
 
+  /**
+   * B-03: el patron de validacion del proyecto. Un slug malformado es una peticion
+   * invalida (400), no un recurso que no existe (404). La distincion importa cuando
+   * la Fase 4 empiece a recibir cuerpos POST.
+   */
+  it("un programa malformado da 400, no 404 ni 500", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const { POST } = await import("@/app/api/sync/[programa]/route");
+    const res = await POST(new Request("http://x"), {
+      params: Promise.resolve({ programa: "../../etc/passwd" }),
+    });
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toContain("slug");
+    expect(sincronizarPersonas).not.toHaveBeenCalled();
+  });
+
+  it("un programa inexistente pero bien formado sigue dando 404", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    select.mockReturnValue({
+      from: () => ({ where: () => ({ limit: async () => [] }) }),
+    });
+    const { POST } = await import("@/app/api/sync/[programa]/route");
+    const res = await POST(new Request("http://x"), {
+      params: Promise.resolve({ programa: "programa-que-no-existe" }),
+    });
+
+    expect(res.status).toBe(404);
+  });
+
   it("un programa inexistente da 404, no 500", async () => {
     auth.mockResolvedValue(sesionGerente);
     select.mockReturnValue({

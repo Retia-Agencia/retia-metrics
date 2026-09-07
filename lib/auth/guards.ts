@@ -1,4 +1,5 @@
 import type { Session } from "next-auth";
+import { ZodError } from "zod";
 import { ErrorDeApp } from "@/lib/errors";
 import { auth } from "./index";
 import {
@@ -43,6 +44,12 @@ export const requireGerente = () => requireRole("gerente");
 export function respuestaDeError(error: unknown): Response {
   if (error instanceof ErrorDeApp) {
     return Response.json({ error: error.message }, { status: error.status });
+  }
+  // Entrada invalida = 400. Se manda el mensaje del primer problema y no el arbol
+  // completo de issues: alcanza para corregir la peticion y no describe la forma
+  // interna del esquema.
+  if (error instanceof ZodError) {
+    return Response.json({ error: error.issues[0]?.message ?? "Peticion invalida." }, { status: 400 });
   }
   console.error("[error no controlado]", error);
   return Response.json({ error: "Error interno." }, { status: 500 });

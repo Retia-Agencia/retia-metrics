@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { programs } from "@/lib/db/schema";
@@ -7,6 +8,23 @@ import { sincronizarPersonas } from "@/lib/sheets/sync";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
+/**
+ * Patron de validacion del proyecto: un esquema por ruta, parseado en el borde del
+ * handler, y el error traducido a 400 por respuestaDeError.
+ *
+ * Hoy el unico parametro es un slug que va a un `eq()` parametrizado de Drizzle, asi
+ * que esto no tapa ninguna inyeccion. Se fija ahora, con el endpoint que ya existe,
+ * porque la Fase 4 recibe el formulario de registro de llamadas (un POST con cuerpo)
+ * y la Fase 5 recibe archivos subidos: es mas barato que cada una invente su forma.
+ */
+const paramsSchema = z.object({
+  programa: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z0-9-]+$/, "El programa debe ser un slug: minusculas, numeros y guiones."),
+});
+
 /** Dispara la sincronizacion de un programa. Solo gerente. */
 export async function POST(
   _req: Request,
@@ -14,7 +32,7 @@ export async function POST(
 ) {
   try {
     await requireRole("gerente");
-    const { programa } = await params;
+    const { programa } = paramsSchema.parse(await params);
 
     const [p] = await db.select().from(programs).where(eq(programs.slug, programa)).limit(1);
     if (!p) return Response.json({ error: `No existe el programa "${programa}".` }, { status: 404 });
