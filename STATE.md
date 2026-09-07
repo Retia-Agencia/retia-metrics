@@ -40,7 +40,7 @@ Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 - `lib/sheets/leer.ts`: lee una pestana. El titulo va entre comillas simples porque hay emojis en los nombres.
 - `lib/sheets/mapeo.ts`: resuelve columnas **por texto del encabezado, no por posicion**, ignorando acentos y mayusculas. `MAPEO_FORMULARIO` sirve para los tres formularios pese a que la redaccion de las preguntas cambia entre programas. Si falta un campo obligatorio lanza `MapeoInvalidoError` con lo que busco y los encabezados reales. Incluye `parsearFecha`, que lee el formato colombiano d/m/yyyy — `new Date()` lo interpreta como m/d y produce fechas equivocadas en silencio.
 - `lib/sheets/dedup.ts`: dedup puro por correo, sin base de datos. Conserva la fecha de primera aplicacion mas antigua, no deja que una aplicacion posterior con campos vacios borre lo que ya se sabia, y cuenta `numAplicaciones`.
-- `lib/sheets/sync.ts`: el motor. Lee, deduplica, hace upsert y escribe la bitacora.
+- `lib/sheets/sync.ts`: el motor. Lee, deduplica, **inserta por lotes y actualiza fila por fila** (no es un upsert: eso es F-03/F-04, pendiente) y escribe la bitacora.
 - `scripts/sincronizar.ts` (`npm run sync [slug]`): corre el sync desde la terminal.
 - `scripts/descubrir-hojas.ts` (`npm run descubrir`), `inspeccionar-pestana.ts` (`npm run inspeccionar`) y `comparar-pestanas.ts` (`npm run comparar`): herramientas de diagnostico. **Ninguna imprime datos personales** — solo estructura, conteos y rangos de fecha.
 
@@ -49,11 +49,14 @@ Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 - `GET /api/cron/sync`: sincronizacion programada cada 15 minutos (`vercel.json`). Se autentica con `CRON_SECRET`, no con sesion. **Falla cerrado**: si la variable no esta configurada devuelve 500 y no corre.
 - `/ajustes/fuentes`: tarjetas con personas, aplicaciones y tasa de duplicados por programa; lista de fuentes con su ultima sincronizacion; boton "Sincronizar ahora"; e historial de las ultimas ocho corridas.
 
-**Tests** — 55 pasando (`npm test`)
+**Tests** — 68 pasando (`npm test`)
 - `tests/roles.test.ts`: sin herencia de roles, sin rol no pasa nada, el closer no ve items de gerente.
 - `tests/guards.test.ts`: invoca los route handlers reales con sesion mockeada — closer en endpoint de gerente = 403, sin sesion = 401, gerente = 200.
 - `tests/dedup.test.ts`: la fecha colombiana no se lee como estadounidense; el mismo mapeo resuelve los dos programas; falta de campo obligatorio lanza error en vez de adivinar; el dedup reproduce el ratio real de Tactical Investor (2.954 filas -> 1.825 personas, ~38%).
-- `tests/sync-permisos.test.ts`: un closer no dispara el sync; el cron rechaza sin secreto, con secreto equivocado, y no corre si `CRON_SECRET` no existe.
+- `tests/sync-permisos.test.ts`: un closer no dispara el sync; el cron rechaza sin secreto, con secreto equivocado, con uno del mismo largo, y no corre si `CRON_SECRET` no existe; un error interno del sync no sale al cliente y el cron no filtra los encabezados de la hoja.
+- `tests/errores.test.ts`: `respuestaDeError` es el unico que decide que sale al cliente; un error interno no se filtra ni aunque traiga la propiedad `status`.
+- `tests/paginas.test.ts`: se invocan las paginas reales — un closer no entra a las cuatro de gerente, un gerente no entra a `/mi-dia`, y una sesion con `id` vacio va al login.
+- `tests/leer.test.ts`: el apostrofo del nombre de pestana se escapa duplicandolo.
 
 ## Decisiones tomadas que no estan en PROJECT.md
 
@@ -77,7 +80,7 @@ Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 - **La pantalla de fuentes es de solo lectura.** El plan de la Fase 1 pedia poder editar el mapeo de columnas desde la UI; hoy el mapeo se cambia en `scripts/seed-datos.ts` y se vuelve a sembrar. Se dejo asi a proposito: los tres formularios comparten un unico mapeo que ya funciona, y una UI de edicion sin necesidad real habria sido trabajo muerto. **Es una desviacion declarada, no un olvido.**
 - **Solo estan activas las fuentes de personas.** Las de `calls`, `sales` y `ad_spend` estan sembradas pero inactivas: sus encabezados todavia no se han inspeccionado, y el plan prohibe adivinar mapeos. Inspeccionarlas con `npm run inspeccionar <sheetId> "<pestana>"` es el primer paso de la Fase 2.
 - **Todavia no hay pantalla para administrar usuarios** — se agregan con `npm run db:studio`. Llega en una fase posterior.
-- `lib/sheets/` y `lib/metrics/` estan vacias (Fase 1 y Fase 2).
+- `lib/metrics/` todavia no existe (Fase 2). `lib/sheets/` **si existe y tiene cinco archivos**: es el corazon de la Fase 1.
 - Las paginas de programa son placeholders (Fase 2). `/mi-dia` es placeholder (Fase 4). `/documentos` es placeholder (Fase 5). `/ajustes` es placeholder (Fase 1).
 - No hay pantallas de error ni estados vacios propios todavia (Fase 7).
 - El test de cobertura de permisos que recorre TODOS los endpoints es de la Fase 7; hoy se cubren los dos que existen.
@@ -147,6 +150,13 @@ parte en 26 tareas y cuatro tandas. Los tests pasaron de 35 a 55.
   de solo conteos), S-05 (cuatro cabeceras de seguridad), S-10, S-11.
 - **Tanda 2, parcial** — F-02 (una fila sin fecha solo rellena huecos), F-05 (fechas con
   `-05:00` explicito), F-09 (coincidencia exacta antes que parcial), F-08 (apostrofo escapado).
+- **Tanda 3, lo que no necesita credenciales** — B-05 (cliente de base perezoso: `npm run build`
+  ya no necesita `.env.local`), B-07 + B-08 + S-08 + S-09 (los cuatro de los scripts de shell,
+  con `scripts/lib-env.sh` y `npm run limpiar-respaldos`), S-13 (IDs de las hojas por variable de
+  entorno, y truncados tambien en `docs/estructura-bbdd.md`), B-03 (patron de zod en el borde,
+  `ZodError` a 400), B-10 (tests de permisos sobre las cuatro paginas de gerente y la de closer),
+  B-02 (paso de relectura obligatorio en `AGENTS.md`, y las cuatro afirmaciones falsas
+  corregidas).
 - **S-01 / B-09** — las 19 capturas fuera del arbol, `.gitignore` para imagenes en la raiz, y
   los seis secretos rotados el 6 de septiembre.
 
@@ -159,7 +169,7 @@ parte en 26 tareas y cuatro tandas. Los tests pasaron de 35 a 55.
 | B-01, F-03, F-04, F-07 (Tanda 2) | Falta `.env.local` para verificar de punta a punta con `npm run sync` |
 | F-01 (Tanda 2) | Michael: valores reales de la columna `Estado` y su mapeo al enum; que hacer con `agenda` y `capacidadInvertir` |
 | F-06 (Tanda 3) | Michael: si las filas se borran o se mueven de pestana |
-| Tanda 3 completa | — |
+| Tanda 3: S-06 + B-06 (retencion y PII), S-12 (Server Actions, va con la Fase 4), S-14 (rama de Neon para preview) | Decisiones de negocio y acceso a Vercel |
 
 **Ojo al recibir un `.env.local` de antes del 6 de septiembre:** le faltan dos variables nuevas,
 `SHEET_ID_COMUNICARTE` y `SHEET_ID_TACTICAL` (S-13). Sin ellas `npm run seed:datos` falla con un

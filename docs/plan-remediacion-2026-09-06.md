@@ -37,6 +37,22 @@ Copiadas de `PROJECT.md` y `AGENTS.md`. Aplican a **todas** las tareas:
 
 ---
 
+## Estado de ejecucion (6 de septiembre)
+
+**Cerrado:** Tanda 0 · Tanda 1 completa (S-02, S-03, S-04, B-04, F-10, S-05, S-07, S-10, S-11) ·
+Tanda 2 parcial (F-02, F-05, F-08, F-09) · Tanda 3 sin bloqueo (B-02, B-03, B-05, B-07, B-08,
+B-10, S-08, S-09, S-13). Tests de 35 a 68.
+
+**Bloqueado por el `.env.local`:** Tareas 2.5 (B-01), 2.6 (F-03, F-04), 2.8 (F-07) y la migracion
+de fechas ya decidida. No se toca el unico camino que escribe en la base sin poder correrlo una
+vez contra Neon.
+
+**Bloqueado por Michael:** Tarea 2.7 (F-01) y Tarea 3.6 (F-06).
+**Bloqueado por acceso a Vercel:** `AUTH_URL` (S-10) y la rama de preview de Neon (S-14).
+**Pendiente de decision de negocio:** Tarea 3.5 (S-06 + B-06). **Va con la Fase 4:** S-12.
+
+---
+
 ## Correcciones de la auditoría al informe
 
 Verifiqué los 33 hallazgos contra el código de `main` (`aa4bdf8`). **31 están exactos.** Dos
