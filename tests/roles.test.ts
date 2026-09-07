@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { puedeAcceder, esRolValido } from "@/lib/auth/roles";
 import { navParaRol, rutaInicial } from "@/lib/nav";
+import { authConfig } from "@/lib/auth/config";
 
 describe("puedeAcceder", () => {
   it("deja pasar al rol permitido", () => {
@@ -37,5 +38,50 @@ describe("navegacion por rol", () => {
   it("el gerente no aterriza en la vista del closer", () => {
     expect(rutaInicial("gerente")).toBe("/comunicarte");
     expect(rutaInicial("closer")).toBe("/mi-dia");
+  });
+});
+
+/**
+ * S-03: el callback `session` traducia un token vaciado a rol "closer". La app
+ * quedaba segura por el `id` vacio, no por el rol, y cualquier codigo futuro que
+ * decidiera sobre `rol` sin mirar antes el `id` habria tratado a un token vaciado
+ * como a un closer legitimo.
+ */
+describe("callback session", () => {
+  const sesion = () =>
+    ({ user: { id: "x", rol: "closer", closerId: null }, expires: "" }) as never;
+
+  const llamar = (token: Record<string, unknown>) =>
+    // El callback es sincrono y puro; el cast evita armar el union de parametros
+    // completo de Auth.js, que no aporta nada a lo que se esta probando.
+    (authConfig.callbacks.session as (p: never) => { user: { id: string; rol: string | null } })(
+      { session: sesion(), token } as never,
+    );
+
+  it("un token vaciado deja el rol nulo, no closer", () => {
+    const s = llamar({});
+    expect(s.user.rol).toBeNull();
+    expect(s.user.id).toBe("");
+  });
+
+  it("un rol que no esta en el enum tampoco degrada a closer", () => {
+    const s = llamar({ usuarioId: "u1", rol: "admin" });
+    expect(s.user.rol).toBeNull();
+  });
+
+  it("un token valido conserva su rol", () => {
+    const s = llamar({ usuarioId: "u1", rol: "gerente" });
+    expect(s.user.rol).toBe("gerente");
+    expect(s.user.id).toBe("u1");
+  });
+});
+
+describe("fallar cerrado sin rol", () => {
+  it("no se muestra ningun item de navegacion", () => {
+    expect(navParaRol(null)).toEqual([]);
+  });
+
+  it("no hay destino dentro de la app: va al login", () => {
+    expect(rutaInicial(null)).toBe("/login");
   });
 });

@@ -19,7 +19,7 @@ const ICONOS: Record<ItemNav["icono"], typeof LineChart> = {
 };
 
 type Props = {
-  rol: Rol;
+  rol: Rol | null;
   nombre: string;
   email: string;
   imagen?: string | null;

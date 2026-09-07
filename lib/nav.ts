@@ -20,12 +20,18 @@ export const ITEMS_NAV: readonly ItemNav[] = [
   { href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["gerente"] },
 ];
 
-export function navParaRol(rol: Rol): ItemNav[] {
+/** Sin rol no se muestra ningun item: falla cerrado, igual que puedeAcceder. */
+export function navParaRol(rol: Rol | null): ItemNav[] {
+  if (!rol) return [];
   return ITEMS_NAV.filter((item) => item.roles.includes(rol));
 }
 
-/** A donde mandar a alguien que entra a "/" segun su rol. */
-export function rutaInicial(rol: Rol): string {
+/**
+ * A donde mandar a alguien que entra a "/" segun su rol.
+ * Sin rol no hay destino valido dentro de la app: va al login.
+ */
+export function rutaInicial(rol: Rol | null): string {
+  if (!rol) return "/login";
   return rol === "gerente" ? "/comunicarte" : "/mi-dia";
 }
 

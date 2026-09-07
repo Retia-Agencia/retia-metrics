@@ -20,7 +20,11 @@ export const authConfig = {
     session({ session, token }) {
       if (session.user) {
         session.user.id = token.usuarioId ?? "";
-        session.user.rol = esRolValido(token.rol) ? token.rol : "closer";
+        // Un token sin rol NO es un closer: es nadie. La app no tiene herencia de
+        // roles, y un rol ausente no puede degradar al rol menor. Antes esto
+        // traducia un token vaciado a "closer" y la app quedaba segura solo por
+        // el `id` vacio, no por el rol.
+        session.user.rol = esRolValido(token.rol) ? token.rol : null;
         session.user.closerId = token.closerId ?? null;
       }
       return session;

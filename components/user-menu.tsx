@@ -18,7 +18,7 @@ type Props = {
   nombre: string;
   email: string;
   imagen?: string | null;
-  rol: "gerente" | "closer";
+  rol: "gerente" | "closer" | null;
 };
 
 export function UserMenu({ nombre, email, imagen, rol }: Props) {
@@ -41,7 +41,7 @@ export function UserMenu({ nombre, email, imagen, rol }: Props) {
         <span className="min-w-0 flex-1 text-left">
           <span className="block truncate text-sm font-medium">{nombre}</span>
           <span className="block truncate text-xs text-muted-foreground">
-            {rol === "gerente" ? "Gerencia comercial" : "Closer"}
+            {rol === "gerente" ? "Gerencia comercial" : rol === "closer" ? "Closer" : "Sin rol"}
           </span>
         </span>
       </DropdownMenuTrigger>
@@ -50,7 +50,7 @@ export function UserMenu({ nombre, email, imagen, rol }: Props) {
           <span className="block truncate text-sm font-medium">{nombre}</span>
           <span className="block truncate text-xs text-muted-foreground">{email}</span>
           <Badge variant="secondary" className="mt-2">
-            {rol}
+            {rol ?? "sin rol"}
           </Badge>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
