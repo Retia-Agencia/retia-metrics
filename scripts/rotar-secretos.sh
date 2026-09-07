@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Rota AUTH_GOOGLE_SECRET y regenera AUTH_SECRET, sin tocar el resto de .env.local.
 # El secreto se lee sin eco: no aparece en pantalla ni en el historial del shell.
-set -uo pipefail
+set -euo pipefail
 
 cd "$(dirname "$0")/.."
+# shellcheck source=scripts/lib-env.sh
+source "$(dirname "$0")/lib-env.sh"
 ARCHIVO=".env.local"
 
 [[ -f "$ARCHIVO" ]] || { echo "  No existe $ARCHIVO. Corre primero: npm run setup"; exit 1; }
@@ -31,7 +33,10 @@ while true; do
   echo ""
 done
 
-anterior="$(grep -E '^AUTH_GOOGLE_SECRET=' "$ARCHIVO" | cut -d= -f2- | tr -d '"')"
+# El || true es deliberado: si la variable no esta en el archivo, `anterior` queda
+# vacio y la comparacion de abajo simplemente no coincide. Con set -e y pipefail,
+# sin esto el grep sin resultados abortaria el script.
+anterior="$(grep -E '^AUTH_GOOGLE_SECRET=' "$ARCHIVO" | cut -d= -f2- | tr -d '"' || true)"
 if [[ "$nuevo" == "$anterior" ]]; then
   echo ""
   echo "  ⚠ Ese es el MISMO secreto que ya estaba. No se cambio nada."
@@ -39,18 +44,24 @@ if [[ "$nuevo" == "$anterior" ]]; then
   exit 1
 fi
 
-RESPALDO="${ARCHIVO}.bak-$(date +%Y%m%d-%H%M%S)"
-cp "$ARCHIVO" "$RESPALDO"
+respaldar_env "$ARCHIVO"
 
 nuevo_auth_secret="$(openssl rand -base64 32)"
 
 umask 077
-python3 - "$ARCHIVO" "$nuevo" "$nuevo_auth_secret" <<'PY'
-import sys, re
-archivo, google, sesion = sys.argv[1], sys.argv[2], sys.argv[3]
+# Los secretos van por el entorno del proceso hijo, no como argumentos: los
+# argumentos de un proceso son visibles en `ps aux` para cualquier usuario de la
+# maquina mientras el script corre.
+GOOGLE_NUEVO="$nuevo" SESION_NUEVA="$nuevo_auth_secret" \
+python3 - "$ARCHIVO" <<'PY'
+import os, sys, re
+archivo = sys.argv[1]
+google, sesion = os.environ["GOOGLE_NUEVO"], os.environ["SESION_NUEVA"]
 with open(archivo) as f: s = f.read()
-s = re.sub(r'^AUTH_GOOGLE_SECRET=.*$', f'AUTH_GOOGLE_SECRET="{google}"', s, flags=re.M)
-s = re.sub(r'^AUTH_SECRET=.*$',        f'AUTH_SECRET="{sesion}"',        s, flags=re.M)
+# El reemplazo va como funcion: el string de reemplazo de re.sub interpreta \1,
+# \g<1> y \n, asi que un secreto con backslash se escribiria mutilado y sin error.
+s = re.sub(r'^AUTH_GOOGLE_SECRET=.*$', lambda _: f'AUTH_GOOGLE_SECRET="{google}"', s, flags=re.M)
+s = re.sub(r'^AUTH_SECRET=.*$',        lambda _: f'AUTH_SECRET="{sesion}"',        s, flags=re.M)
 with open(archivo, "w") as f: f.write(s)
 PY
 chmod 600 "$ARCHIVO"

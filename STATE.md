@@ -32,7 +32,7 @@ Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 - `lib/nav.ts`: navegacion declarativa por rol + `rutaInicial(rol)`. `lib/format.ts`: formato numerico colombiano.
 
 **Configuracion**
-- `scripts/configurar-env.sh` (`npm run setup`): pide los valores de forma interactiva, lee los secretos sin eco (no quedan en pantalla ni en el historial del shell), valida la forma de cada uno, rechaza los de ejemplo, genera `AUTH_SECRET` solo y respalda el archivo anterior.
+- `scripts/configurar-env.sh` (`npm run setup`): pide los valores de forma interactiva, lee los secretos sin eco (no quedan en pantalla ni en el historial del shell), valida la forma de cada uno, rechaza los de ejemplo, genera `AUTH_SECRET` solo y respalda el archivo anterior (**un solo respaldo**, con permisos 600: los anteriores se borran).
 - `scripts/load-env.ts`: carga `.env.local` antes que cualquier otro modulo.
 
 **Sincronizacion con Google Sheets**
@@ -87,6 +87,7 @@ Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 ```bash
 npm install
 npm run setup                  # configura .env.local de forma interactiva
+npm run limpiar-respaldos      # borra los .env.local.bak-* que hayan quedado
 npm run db:migrate             # aplica la migracion a Neon
 npm run seed:users             # crea el primer gerente
 npm run dev                    # http://localhost:3000

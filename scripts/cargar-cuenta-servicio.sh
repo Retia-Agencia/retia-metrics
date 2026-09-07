@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 # Carga la llave JSON de la cuenta de servicio de Google en .env.local, en base64.
 # Nunca imprime el contenido. Borra el archivo original al terminar.
-set -uo pipefail
+set -euo pipefail
 
 cd "$(dirname "$0")/.."
+# shellcheck source=scripts/lib-env.sh
+source "$(dirname "$0")/lib-env.sh"
 ARCHIVO=".env.local"
+
+# Antes esto no se verificaba: el `cp` de respaldo fallaba, el script seguia y
+# python reventaba despues con un error mucho menos claro que este (B-07).
+[[ -f "$ARCHIVO" ]] || { echo "  No existe $ARCHIVO. Corre primero: npm run setup"; exit 1; }
 
 echo ""
 echo "  Cuenta de servicio de Google"
@@ -40,15 +46,19 @@ read -r r
 
 B64="$(base64 -i "$LLAVE" | tr -d '\n')"
 
-cp "$ARCHIVO" "${ARCHIVO}.bak-$(date +%Y%m%d-%H%M%S)"
+respaldar_env "$ARCHIVO"
 umask 077
-python3 - "$ARCHIVO" "$B64" <<'PY'
-import sys, re
-archivo, val = sys.argv[1], sys.argv[2]
+# La llave privada completa en base64 iba como argumento, visible en `ps aux`.
+LLAVE_B64="$B64" python3 - "$ARCHIVO" <<'PY'
+import os, sys, re
+archivo = sys.argv[1]
+val = os.environ["LLAVE_B64"]
 with open(archivo) as f: s = f.read()
 linea = f'GOOGLE_SERVICE_ACCOUNT_JSON_B64="{val}"'
 if re.search(r'^#?\s*GOOGLE_SERVICE_ACCOUNT_JSON_B64=.*$', s, flags=re.M):
-    s = re.sub(r'^#?\s*GOOGLE_SERVICE_ACCOUNT_JSON_B64=.*$', linea, s, flags=re.M)
+    # Funcion como reemplazo: base64 no trae backslashes hoy, pero si alguna vez
+    # los trajera, re.sub los interpretaria y escribiria la llave mutilada.
+    s = re.sub(r'^#?\s*GOOGLE_SERVICE_ACCOUNT_JSON_B64=.*$', lambda _: linea, s, flags=re.M)
 else:
     s = s.rstrip("\n") + "\n" + linea + "\n"
 with open(archivo, "w") as f: f.write(s)

@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Configura .env.local de forma interactiva.
 # Los secretos se leen sin eco: no aparecen en pantalla ni en el historial del shell.
-set -uo pipefail
+set -euo pipefail
 
 cd "$(dirname "$0")/.."
+# shellcheck source=scripts/lib-env.sh
+source "$(dirname "$0")/lib-env.sh"
 ARCHIVO=".env.local"
 
 echo ""
@@ -88,9 +90,9 @@ echo ""
 # --- Respaldo del archivo anterior ------------------------------------------
 
 if [[ -f "$ARCHIVO" ]]; then
-  RESPALDO="${ARCHIVO}.bak-$(date +%Y%m%d-%H%M%S)"
-  cp "$ARCHIVO" "$RESPALDO"
+  respaldar_env "$ARCHIVO"
   echo "  Respaldo del archivo anterior: $RESPALDO"
+  echo "  (queda uno solo, con permisos 600; borralo con: npm run limpiar-respaldos)"
 fi
 
 # --- Escritura --------------------------------------------------------------
