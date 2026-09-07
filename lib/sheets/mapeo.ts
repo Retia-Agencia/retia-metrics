@@ -112,9 +112,14 @@ export function parsearFecha(v: unknown): Date | null {
   );
   if (m) {
     const [, d, mes, a, h = "0", min = "0", seg = "0"] = m;
+    const p2 = (n: string) => n.padStart(2, "0");
+    // El desplazamiento va explicito, no se lo deja al entorno. El constructor de
+    // componentes (new Date(a, m, d, ...)) los interpreta en la zona local del
+    // proceso: en la maquina de Michael eso es UTC-5 y en una funcion de Vercel es
+    // UTC, asi que la misma fila producia dos instantes distintos sobre una columna
+    // timestamptz. Colombia no tiene horario de verano: siempre es -05:00.
     const f = new Date(
-      Number(a), Number(mes) - 1, Number(d),
-      Number(h), Number(min), Number(seg),
+      `${a}-${p2(mes)}-${p2(d)}T${p2(h)}:${p2(min)}:${p2(seg)}-05:00`,
     );
     return Number.isNaN(f.getTime()) ? null : f;
   }

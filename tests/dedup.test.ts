@@ -20,21 +20,35 @@ describe("normalizarEmail", () => {
   });
 });
 
+/**
+ * Las aserciones van sobre toISOString y no sobre getDate()/getMonth(), que son
+ * getters locales: con esos, el mismo test pasa o falla segun la zona de la maquina
+ * que lo corre, que es justo el defecto que F-05 arregla.
+ */
 describe("parsearFecha", () => {
-  it("lee el formato colombiano d/m/yyyy, no m/d", () => {
-    // 7 de agosto, no 8 de julio
-    const f = parsearFecha("7/8/2026 14:30:00")!;
-    expect(f.getDate()).toBe(7);
-    expect(f.getMonth()).toBe(7); // agosto
+  it("lee el formato colombiano d/m/yyyy en hora de Colombia, no m/d", () => {
+    // 7 de agosto 14:30 en Bogota (UTC-5) = 19:30 UTC. No 8 de julio.
+    expect(parsearFecha("7/8/2026 14:30:00")!.toISOString()).toBe("2026-08-07T19:30:00.000Z");
   });
+
   it("distingue dias que serian ambiguos", () => {
-    const f = parsearFecha("3/12/2026")!;
-    expect(f.getDate()).toBe(3);
-    expect(f.getMonth()).toBe(11); // diciembre
+    // 3 de diciembre 00:00 en Bogota = 05:00 UTC del 3. No 12 de marzo.
+    expect(parsearFecha("3/12/2026")!.toISOString()).toBe("2026-12-03T05:00:00.000Z");
   });
+
+  it("no depende de la zona horaria del proceso", () => {
+    // F-05: la maquina de Michael es UTC-5 y una funcion de Vercel es UTC. El mismo
+    // texto tiene que dar el mismo instante en las dos, porque la columna destino es
+    // timestamptz y "ritmo por dia habil" es una de las metricas centrales.
+    // Una aplicacion de las 19:30 cae en el dia siguiente en UTC: es el caso que
+    // movia un lead de dia habil.
+    expect(parsearFecha("12/8/2026 19:30:00")!.toISOString()).toBe("2026-08-13T00:30:00.000Z");
+  });
+
   it("acepta ISO", () => {
-    expect(parsearFecha("2026-08-19")!.getFullYear()).toBe(2026);
+    expect(parsearFecha("2026-08-19")!.getUTCFullYear()).toBe(2026);
   });
+
   it("devuelve null en vez de una fecha inventada", () => {
     expect(parsearFecha("")).toBeNull();
     expect(parsearFecha("no es fecha")).toBeNull();
