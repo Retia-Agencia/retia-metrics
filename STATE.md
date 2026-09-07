@@ -161,6 +161,11 @@ parte en 26 tareas y cuatro tandas. Los tests pasaron de 35 a 55.
 | F-06 (Tanda 3) | Michael: si las filas se borran o se mueven de pestana |
 | Tanda 3 completa | — |
 
+**Ojo al recibir un `.env.local` de antes del 6 de septiembre:** le faltan dos variables nuevas,
+`SHEET_ID_COMUNICARTE` y `SHEET_ID_TACTICAL` (S-13). Sin ellas `npm run seed:datos` falla con un
+mensaje que dice exactamente que hacer. Los valores estan en la URL de cada hoja, entre `/d/` y
+`/edit`, y tambien en `docs/estructura-bbdd.md`.
+
 **Prueba manual que falta hacer con credenciales:** que `npm run usuarios -- quitar <correo>`
 saque a la persona en el siguiente request. Es lo que demuestra S-02, y el callback `jwt` no
 es testeable sin extraerlo de la instancia de Auth.js.

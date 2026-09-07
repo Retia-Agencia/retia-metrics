@@ -9,8 +9,27 @@ import { MAPEO_FORMULARIO } from "../lib/sheets/mapeo";
  * Idempotente: correrlo dos veces no duplica nada.
  */
 
-const SHEET_COMUNICARTE = "1NN6rlZXJJcgvWXYsbP99vLt9aj7FXVPd6ep4ULAcK54";
-const SHEET_TACTICAL = "1DBKL4zwWWeJppe-6mzpJ4jT1G6MdEmT1Dd_uMiNBNwc";
+/**
+ * Los IDs de las hojas van por variable de entorno, no escritos aca.
+ *
+ * No son credenciales —quien tenga el ID sigue necesitando permiso de Google— pero
+ * son la direccion exacta de las dos BBDD con todos los leads, y el permiso de una
+ * hoja es una casilla que alguien puede cambiar a "cualquiera con el enlace" sin
+ * enterarse de que el enlace ya esta publicado en un repo.
+ */
+function idDeHoja(variable: string): string {
+  const v = process.env[variable];
+  if (!v) {
+    throw new Error(
+      `Falta ${variable} en .env.local. Los IDs de las hojas ya no estan en el codigo: ` +
+        `copialos de la URL de cada Google Sheet (la parte entre /d/ y /edit).`,
+    );
+  }
+  return v;
+}
+
+const SHEET_COMUNICARTE = idDeHoja("SHEET_ID_COMUNICARTE");
+const SHEET_TACTICAL = idDeHoja("SHEET_ID_TACTICAL");
 
 async function main() {
   // ── Programas ───────────────────────────────────────────────
