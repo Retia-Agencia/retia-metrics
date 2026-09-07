@@ -49,7 +49,7 @@ Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
 - `GET /api/cron/sync`: sincronizacion programada cada 15 minutos (`vercel.json`). Se autentica con `CRON_SECRET`, no con sesion. **Falla cerrado**: si la variable no esta configurada devuelve 500 y no corre.
 - `/ajustes/fuentes`: tarjetas con personas, aplicaciones y tasa de duplicados por programa; lista de fuentes con su ultima sincronizacion; boton "Sincronizar ahora"; e historial de las ultimas ocho corridas.
 
-**Tests** — 35 pasando (`npm test`)
+**Tests** — 55 pasando (`npm test`)
 - `tests/roles.test.ts`: sin herencia de roles, sin rol no pasa nada, el closer no ve items de gerente.
 - `tests/guards.test.ts`: invoca los route handlers reales con sesion mockeada — closer en endpoint de gerente = 403, sin sesion = 401, gerente = 200.
 - `tests/dedup.test.ts`: la fecha colombiana no se lee como estadounidense; el mismo mapeo resuelve los dos programas; falta de campo obligatorio lanza error en vez de adivinar; el dedup reproduce el ratio real de Tactical Investor (2.954 filas -> 1.825 personas, ~38%).
@@ -126,3 +126,40 @@ Ademas:
 - **Bitacora:** alterar un campo a mano en la base y re-sincronizar produce **exactamente una** fila de bitacora, con valor anterior y nuevo.
 - **Carga en frio:** 1.253 personas en 4,0 segundos. Con inserciones fila por fila tardaba 161 segundos, por encima del limite de una funcion de Vercel; se paso a lotes de 200.
 - **Cron probado de punta a punta** en local: autoriza con el secreto correcto, sincroniza los dos programas y responde 401 con un secreto equivocado.
+
+
+---
+
+## Remediacion de la revision del 29 de agosto — en curso
+
+Plan completo en [`docs/plan-remediacion-2026-09-06.md`](docs/plan-remediacion-2026-09-06.md),
+que audita [`docs/revision-2026-08-29.md`](docs/revision-2026-08-29.md) contra el codigo y lo
+parte en 26 tareas y cuatro tandas. Los tests pasaron de 35 a 55.
+
+**Cerrado**
+
+- **Tanda 0** — linea base: `npm test` (55), `npm run typecheck` y `npm run lint` en verde.
+- **Tanda 1 completa** — S-02 (rol revalidado en cada emision, sesion de 8h), S-03 (token
+  vaciado deja rol nulo y los cuatro consumidores fallan cerrado), S-04 + B-04 + F-10 (clase
+  base `ErrorDeApp` en `lib/errors.ts`; `respuestaDeError` decide por tipo y no por forma, y es
+  el unico lugar que decide que sale al cliente), S-07 (cron con `timingSafeEqual` y respuesta
+  de solo conteos), S-05 (cuatro cabeceras de seguridad), S-10, S-11.
+- **Tanda 2, parcial** — F-02 (una fila sin fecha solo rellena huecos), F-05 (fechas con
+  `-05:00` explicito), F-09 (coincidencia exacta antes que parcial), F-08 (apostrofo escapado).
+- **S-01 / B-09** — las 19 capturas fuera del arbol, `.gitignore` para imagenes en la raiz, y
+  los seis secretos rotados el 6 de septiembre.
+
+**Pendiente, con su bloqueo**
+
+| Que | Bloqueado por |
+|---|---|
+| `AUTH_URL` en las variables de produccion (S-10) | Manuel no es colaborador del proyecto de Vercel |
+| Migrar las fechas ya guardadas (F-05) | Decision: `compararCampos` no ve las fechas, asi que un `npm run sync` normal NO repara las filas existentes |
+| B-01, F-03, F-04, F-07 (Tanda 2) | Falta `.env.local` para verificar de punta a punta con `npm run sync` |
+| F-01 (Tanda 2) | Michael: valores reales de la columna `Estado` y su mapeo al enum; que hacer con `agenda` y `capacidadInvertir` |
+| F-06 (Tanda 3) | Michael: si las filas se borran o se mueven de pestana |
+| Tanda 3 completa | — |
+
+**Prueba manual que falta hacer con credenciales:** que `npm run usuarios -- quitar <correo>`
+saque a la persona en el siguiente request. Es lo que demuestra S-02, y el callback `jwt` no
+es testeable sin extraerlo de la instancia de Auth.js.
