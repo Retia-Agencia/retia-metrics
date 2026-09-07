@@ -11,6 +11,8 @@
  * Nunca se adivina.
  */
 
+import { ErrorDeApp } from "@/lib/errors";
+
 export type MapeoColumnas = Record<string, string | string[]>;
 
 /** Quita acentos y baja a minusculas, para comparar encabezados sin sorpresas. */
@@ -22,17 +24,19 @@ export function normalizarTexto(v: unknown): string {
     .trim();
 }
 
-export class MapeoInvalidoError extends Error {
+export class MapeoInvalidoError extends ErrorDeApp {
   constructor(
     readonly campo: string,
     readonly buscado: string[],
     readonly encabezados: string[],
   ) {
+    // 422: el mensaje dice que columna falto y que encabezados venian, y eso es
+    // exactamente lo que hace falta para arreglar el mapeo sin abrir los logs.
     super(
       `No encontre columna para "${campo}". Busque: ${buscado.join(" | ")}. ` +
         `Encabezados reales: ${encabezados.filter(Boolean).join(" · ")}`,
+      422,
     );
-    this.name = "MapeoInvalidoError";
   }
 }
 

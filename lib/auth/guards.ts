@@ -1,4 +1,5 @@
 import type { Session } from "next-auth";
+import { ErrorDeApp } from "@/lib/errors";
 import { auth } from "./index";
 import {
   AuthenticationError,
@@ -40,7 +41,7 @@ export const requireGerente = () => requireRole("gerente");
  * Uso: `try { await requireRole("gerente") } catch (e) { return respuestaDeError(e) }`
  */
 export function respuestaDeError(error: unknown): Response {
-  if (error instanceof AuthorizationError || error instanceof AuthenticationError) {
+  if (error instanceof ErrorDeApp) {
     return Response.json({ error: error.message }, { status: error.status });
   }
   console.error("[error no controlado]", error);

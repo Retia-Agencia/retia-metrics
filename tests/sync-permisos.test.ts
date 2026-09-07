@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MapeoInvalidoError } from "@/lib/sheets/mapeo";
 
 /**
  * La ruta de sincronizacion mueve datos reales: tiene que estar cerrada
@@ -52,6 +53,45 @@ describe("POST /api/sync/[programa]", () => {
     const res = await POST(new Request("http://x"), { params });
     expect(res.status).toBe(200);
     expect(sincronizarPersonas).toHaveBeenCalledWith("p-1");
+  });
+
+  /**
+   * S-04: el catch filtraba por "el error no tiene status" en vez de por tipo, asi
+   * que cualquier excepcion interna —el driver de Neon trae host y endpoint,
+   * googleapis trae el spreadsheetId— salia entera al navegador con un 422.
+   */
+  it("un error interno del sync no sale al cliente", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    select.mockReturnValue({
+      from: () => ({ where: () => ({ limit: async () => [{ id: "p-1", slug: "comunicarte" }] }) }),
+    });
+    sincronizarPersonas.mockRejectedValue(
+      new Error("connect ECONNREFUSED ep-cool-boat-123.us-east-2.aws.neon.tech:5432"),
+    );
+    const espia = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const { POST } = await import("@/app/api/sync/[programa]/route");
+    const res = await POST(new Request("http://x"), { params });
+
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: "Error interno." });
+    espia.mockRestore();
+  });
+
+  it("pero el mapeo invalido si llega completo: es lo que hace falta para arreglarlo", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    select.mockReturnValue({
+      from: () => ({ where: () => ({ limit: async () => [{ id: "p-1", slug: "comunicarte" }] }) }),
+    });
+    sincronizarPersonas.mockRejectedValue(
+      new MapeoInvalidoError("emailNormalizado", ["correo electronico"], ["Nombre", "Telefono"]),
+    );
+
+    const { POST } = await import("@/app/api/sync/[programa]/route");
+    const res = await POST(new Request("http://x"), { params });
+
+    expect(res.status).toBe(422);
+    expect((await res.json()).error).toContain("emailNormalizado");
   });
 
   it("un programa inexistente da 404, no 500", async () => {

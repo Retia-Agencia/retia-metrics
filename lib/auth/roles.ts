@@ -1,3 +1,5 @@
+import { ErrorDeApp } from "@/lib/errors";
+
 /**
  * Logica de roles pura — sin base de datos, sin next-auth.
  * Se testea aislada y la usan tanto el servidor como el proxy.
@@ -7,20 +9,16 @@ export const ROLES = ["gerente", "closer"] as const;
 export type Rol = (typeof ROLES)[number];
 
 /** Error de autorizacion. Los route handlers lo traducen a 403. */
-export class AuthorizationError extends Error {
-  readonly status = 403;
+export class AuthorizationError extends ErrorDeApp {
   constructor(mensaje = "No tienes permiso para ver esto.") {
-    super(mensaje);
-    this.name = "AuthorizationError";
+    super(mensaje, 403);
   }
 }
 
 /** Error de autenticacion. Los route handlers lo traducen a 401. */
-export class AuthenticationError extends Error {
-  readonly status = 401;
+export class AuthenticationError extends ErrorDeApp {
   constructor(mensaje = "Necesitas iniciar sesion.") {
-    super(mensaje);
-    this.name = "AuthenticationError";
+    super(mensaje, 401);
   }
 }
 

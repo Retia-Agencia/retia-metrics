@@ -22,11 +22,8 @@ export async function POST(
     const resultado = await sincronizarPersonas(p.id);
     return Response.json({ ok: true, resultado });
   } catch (error) {
-    if (error instanceof Error && !("status" in error)) {
-      // Errores del sync (mapeo invalido, hoja inaccesible) se reportan tal cual:
-      // el mensaje dice que columna falto y que encabezados venian.
-      return Response.json({ error: error.message }, { status: 422 });
-    }
+    // Todo pasa por respuestaDeError. MapeoInvalidoError ya sabe que es un 422;
+    // cualquier otra excepcion sale como "Error interno." y se registra aca.
     return respuestaDeError(error);
   }
 }
