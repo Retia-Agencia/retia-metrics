@@ -109,8 +109,13 @@ export function deduplicarPorCorreo(filas: FilaCruda[]): {
       }
     }
 
+    // Sin fecha parseable NO se asume que la fila es la mas reciente: solo rellena
+    // huecos (la rama `existente[c] === null` de abajo). Al reves, una celda de
+    // fecha en blanco pisaba en silencio los datos de la aplicacion buena anterior,
+    // y la bitacora lo registraba como un cambio legitimo del sync.
     const esMasReciente =
-      !fecha || !existente.fechaUltimaAplicacion || fecha >= existente.fechaUltimaAplicacion;
+      fecha != null &&
+      (existente.fechaUltimaAplicacion == null || fecha >= existente.fechaUltimaAplicacion);
 
     for (const c of CAMPOS_TEXTO) {
       const v = limpiar(fila[c]);

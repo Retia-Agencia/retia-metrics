@@ -131,6 +131,31 @@ describe("deduplicarPorCorreo", () => {
     expect(personas[0].cargo).toBe("Gerente");
   });
 
+  /**
+   * F-02: `esMasReciente` empezaba con `!fecha ||`, o sea "si esta fila no tiene
+   * fecha parseable, tratala como la mas reciente". Sus valores pisaban los de la
+   * aplicacion buena anterior. parsearFecha devuelve null para una celda vacia, un
+   * numero de serie de Sheets o "19 ago 2026", y fechaAplicacion es obligatoria a
+   * nivel de columna pero no de valor, asi que la fila entra igual.
+   */
+  it("una fila sin fecha parseable no pisa lo que ya se sabia", () => {
+    const { personas } = deduplicarPorCorreo([
+      { emailNormalizado: "a@x.com", fechaAplicacion: "1/8/2026", telefono: "300111", cargo: "Gerente" },
+      { emailNormalizado: "a@x.com", fechaAplicacion: "", telefono: "999999", cargo: "Otro" },
+    ]);
+    expect(personas[0].telefono).toBe("300111");
+    expect(personas[0].cargo).toBe("Gerente");
+  });
+
+  it("pero una fila sin fecha si rellena un hueco que estaba vacio", () => {
+    const { personas } = deduplicarPorCorreo([
+      { emailNormalizado: "a@x.com", fechaAplicacion: "1/8/2026", telefono: "300111" },
+      { emailNormalizado: "a@x.com", fechaAplicacion: "", cargo: "Analista" },
+    ]);
+    expect(personas[0].telefono).toBe("300111");
+    expect(personas[0].cargo).toBe("Analista");
+  });
+
   it("un valor nuevo mas reciente si reemplaza al anterior", () => {
     const { personas } = deduplicarPorCorreo([
       { emailNormalizado: "a@x.com", fechaAplicacion: "1/8/2026", cargo: "Analista" },
