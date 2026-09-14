@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 /**
  * B-10: los route handlers ya tenian cobertura de permisos, pero ninguna PAGINA la
  * tenia, y `paginaConRol` es lo unico que protege los dashboards con las cifras de
- * caja, la pauta y el comparativo entre closers. `PROJECT.md` regla 6 dice que eso
+ * caja, la pauta y el comparativo entre closers. La constitucion de `AGENTS.md` dice que eso
  * es politica de la empresa, no preferencia de UI.
  *
  * Se invoca el componente de pagina real. Si alguien afloja una guarda, esto falla.

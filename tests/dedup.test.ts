@@ -209,7 +209,8 @@ describe("deduplicarPorCorreo", () => {
   });
 
   it("reproduce el ratio real de Tactical Investor: 2.954 filas -> 1.825 personas", () => {
-    // Fixture sintetico con la distribucion descrita en PROJECT.md:
+    // Fixture sintetico con la distribucion de Tactical Investor C1
+    // (ver docs/agents/handoff.md, datos de validacion):
     // un correo con 12 aplicaciones, otro con 8, y el resto repartido.
     const filas: { emailNormalizado: string; fechaAplicacion: string }[] = [];
     const push = (email: string, veces: number) => {

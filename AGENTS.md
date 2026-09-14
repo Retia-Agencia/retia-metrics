@@ -8,34 +8,127 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-<!-- BEGIN:retia -->
+# Retia Metrics
 
-# Proyecto Retia Metrics
+Dashboard comercial interno de Retia para los programas Comunicarte y Tactical Investor.
+Lee las BBDD de Google Sheets, deduplica los leads, calcula el embudo y proyecta el corte.
+Uso restringido: no hay ninguna vista publica y no existe el auto-registro.
 
-Antes de escribir codigo lee, en este orden:
+## Agent skills
 
-1. `PROJECT.md` — contexto de negocio, vocabulario, reglas que no se pueden violar, stack y
-   las trampas del entorno (npm y no pnpm, `proxy.ts` y no `middleware.ts`, `@base-ui/react`).
-2. `STATE.md` — que existe ya, que decisiones se tomaron y que queda pendiente.
-3. El spec de la fase que te toca.
+This repo is set up for agentic engineering. Read these before working:
 
-Nada mas. No explores el codebase completo al arrancar: `STATE.md` te dice donde quedo todo.
-Una fase por sesion.
+- **Spec** (`docs/spec.md`, or one per domain in `docs/specs/`) — what this MVP does and does not do, in 7 blocks (built by `/spec`). The product contract; read it before planning or building. When the product spans several bounded domains there is one spec per domain, and those files also draw the domain boundaries. Anything uncertain lives in its *supuestos por validar* block, never invented as fact.
+- **Plan + tickets** (`docs/plan.md`, `docs/tasks/`) — the ordered build derived from the spec, decomposed into small tickets (built by `/plan`). `plan.md` carries a mermaid flow diagram of how the MVP works. Each ticket is sized to a clean context window and cites the acceptance criterion it serves. Never jump from spec straight to code.
+- **Handoff** (`docs/agents/handoff.md`) — session memory + roadmap. Read at the start of every session to recover state; update it at the end. Tracks which tickets are done; references ticket ids, doesn't duplicate them. This is how the next agent (or future you) avoids starting from zero.
+- **Context** (`docs/agents/context.md`) — the domain glossary (ubiquitous language). Read it before naming variables, functions, or files, and before discussing the domain. Sharpen it with `/grill-with-docs`.
+- **ADRs** (`docs/adr/`) — architecture decisions and why they were made. Read the relevant ones before changing a decided area; don't re-litigate them. Add new ones via `/grill-with-docs` or `/improve-codebase`.
 
-## Al cerrar la fase
+Hay un quinto documento propio de este proyecto: **`docs/estructura-bbdd.md`**, el mapa real de
+las dos hojas de Google Sheets. Leelo antes de tocar `lib/sheets/`: dice que pestana es fuente,
+cuales son vistas derivadas que romperian el dedup, y cuales son respaldos viejos que inflan los
+conteos. Eso no se deduce del codigo ni lo devuelve `npm run descubrir`.
 
-1. Corre los criterios de aceptacion del spec y reporta el resultado **real**. Si algo falla,
-   dilo; no declares terminado lo que no verificaste.
-2. **Relee `STATE.md` completo y corrige lo que ya no sea cierto.** No solo agregues lo nuevo.
-   Este paso es obligatorio y es el que faltaba.
-3. Detente.
+Available skills (the pipeline is **spec → plan → build**): `/spec` (interview → `docs/spec.md`, or `docs/specs/*.md` one per domain), `/plan` (spec → `docs/plan.md` + tickets), `/grill-me`, `/grill-with-docs` (align + document before building), `/tdd` (red-green-refactor), `/diagnose` (disciplined debugging), `/improve-codebase` (deepen modules), `/handoff` (compact a session).
 
-Por que el paso 2 existe: estas instrucciones convierten a `STATE.md` en la unica fuente de
-verdad de la proxima sesion, asi que una afirmacion falsa ahi no se corrige, **se hereda**. La
-revision del 29 de agosto encontro cuatro heredadas asi: que el rol se revalidaba en cada
-peticion (no lo hacia), que `lib/sheets/` estaba vacia (tenia cinco archivos y era el corazon de
-la Fase 1), que `sync.ts` hacia upsert (hacia insert y update por separado, que es justo el
-origen de F-03 y F-04), y dos conteos de tests distintos en el mismo documento. Ninguna era
-mentira cuando se escribio: todas quedaron viejas y nadie las releyo.
+Keep this file current yourself: when a feedback-loop command turns out wrong or missing, or a durable convention emerges that no linter enforces, update the relevant section below directly rather than letting it drift.
 
-<!-- END:retia -->
+## Restricciones no-negociables
+
+Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
+
+**Integridad de los datos**
+
+- **Dedup obligatorio por correo.** Toda tasa se calcula sobre personas, nunca sobre filas. La
+  BBDD de Tactical Investor tiene ~2.950 filas que son ~1.840 personas, y hay un correo con 12
+  aplicaciones. Calcular sobre filas infla las tasas ~60% y toda decision de presupuesto sale
+  mal. La garantia vive en un indice unico de la base, no solo en el codigo (ADR 0005).
+- **Caja recaudada y ventas cerradas son dos metricas separadas.** Los montos de la columna
+  Precio son adelantos parciales, no precios finales. Nunca inferir una de la otra.
+- **Nunca convertir moneda en silencio.** Tickets en USD, pauta en COP, sin TRM historica unica.
+  Siempre mostrar la moneda al lado del numero.
+- **Solo dias habiles, y los festivos cuentan como habiles.** Regla de Retia, no del calendario
+  colombiano: solo se excluyen sabados y domingos.
+
+**Seguridad y privacidad**
+
+- **El rol se enforza en el servidor, en cada ruta.** Esconder un boton no es seguridad. Todo
+  route handler y toda pagina pasa por `requireRole` / `paginaConRol`.
+- **`gerente` y `closer` son conjuntos disjuntos, sin herencia.** Un closer nunca ve el
+  comparativo entre closers, ni ranking, ni caja, ni pauta. Es politica de la empresa, no una
+  preferencia de UI (ADR 0003).
+- **Nada de la app es publico.** Sin sesion no se ve ni una cifra. Unica excepcion:
+  `/api/health`, que no expone ningun dato del negocio.
+- **Ningun dato personal en URLs ni en query strings.** Los identificadores en rutas son ids
+  opacos, nunca correos.
+- **Secretos solo en `.env.local` y en Vercel.** Nunca en el repo, nunca abiertos en un editor
+  (ver la seccion de incidentes en `docs/agents/handoff.md`).
+
+**Arquitectura**
+
+- **Google Sheets es la fuente de verdad; la app refleja y proyecta.** Cuando la app escribe de
+  vuelta, escribe en Sheets y re-lee para confirmar. Ante conflicto, gana Sheets (ADR 0004).
+- **Un mapeo de columnas que no cuadra falla ruidosamente.** Nunca adivinar una columna: se
+  resuelve por texto del encabezado, no por posicion, y si falta un campo obligatorio se lanza
+  `MapeoInvalidoError` con lo que se buscaba y los encabezados reales.
+
+**Rendimiento y escala** — observados en produccion, no decididos en una reunion. Trata cualquier
+cambio que los rompa como una regresion, y cualquier crecimiento que los supere como una senal de
+que hay que re-pensar el diseno:
+
+- **El sync completo cabe en el limite de una funcion de Vercel.** Con inserciones fila por fila
+  tardaba 161 segundos y se pasaba; con lotes de 200 tarda 4,0 segundos para 1.253 personas.
+  Cualquier operacion nueva sobre el set completo se escribe por lotes desde el principio.
+- **Escala real hoy: ~3.000 filas por hoja, dos programas, 5 usuarios concurrentes.** No es un
+  sistema de alto trafico y no hay que disenarlo como si lo fuera. Si el volumen se multiplica
+  por diez, revisar la estrategia de lectura completa de la hoja.
+
+## Contratos
+
+Estandares transversales que todo output debe cumplir, sin importar la fase.
+
+| Contract | Standard / where it lives | How it's enforced |
+|---|---|---|
+| Permisos de rol | `lib/auth/guards.ts` (APIs) y `lib/auth/page-guards.ts` (paginas) | `tests/guards.test.ts`, `tests/paginas.test.ts`, `tests/roles.test.ts` invocan los handlers y las paginas reales |
+| Errores hacia el cliente | `lib/errors.ts` + `respuestaDeError` | `tests/errores.test.ts`: un error interno no se filtra ni aunque traiga la propiedad `status` |
+| Validacion en el borde | `zod` en todo route handler y cron que reciba input | Patron fijado en B-03; `ZodError` sale como 400 |
+| Formato de numero | `lib/format.ts` (punto de miles, coma decimal) | Revision manual |
+
+## Feedback loops
+
+The agent should run these to get fast signal on whether code works. Keep them current.
+
+- **Test:** `npm test` (Vitest, 68 pasando hoy)
+- **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
+- **Run:** `npm run dev` (http://localhost:3000)
+
+`npm run build` no necesita `.env.local`: el cliente de la base se crea de forma perezosa.
+
+## Conventions
+
+- **El gestor de paquetes es `npm`, no `pnpm`** (ADR 0001). Donde una instruccion diga `pnpm X`,
+  corre `npm run X`.
+- **Next 16 renombro `middleware.ts` a `proxy.ts`.** El archivo vive en la raiz con ese nombre.
+- **shadcn/ui corre sobre `@base-ui/react`, no sobre Radix.** Se usa `render={<Componente />}` en
+  vez de `asChild`, y `onClick` en vez de `onSelect` en los items de menu.
+- **`next-auth/jwt` solo re-exporta `@auth/core/jwt`.** La augmentacion de `JWT` tiene que
+  declararse sobre `@auth/core/jwt` o no aplica (ver `types/next-auth.d.ts`).
+- **`LayoutProps` / `PageProps` los genera `next build`.** No dependas de ellos: tipa las props a
+  mano para que `tsc --noEmit` corra limpio sin build previo.
+- **Un paquete no se instala antes del codigo que lo usa.** Instalar por adelantado es
+  abstraccion especulativa (ADR 0006).
+- **Idioma:** UI en espanol. Nombres de variables, tablas y archivos sin acentos, consistentes.
+  Mensajes de commit en espanol.
+
+## Permissions
+
+The agent runs with a permission floor so it can work autonomously without deleting things. Destructive commands are denied in `.claude/settings.json` (Claude Code); other tools keep their own config. Widen the allow-list per project; keep the destructive deny-list.
+
+## Agents & local skills
+
+This repo can grow its own automation when a need repeats — not required, and there are no placeholder files or folders. When it earns its place:
+
+- **Local skills** → `.claude/skills/<name>/` — a repeatable procedure you want deterministic (built with skill-creator).
+- **Local agents** → `.claude/agents/<name>/` — a role with its way of working embedded: `AGENT.md` (what it does) + `MEMORY.md` (what it learned about this codebase) + optional `templates/`, `scripts/`, and references to skills (e.g. a UI agent references `impeccable`). Write it by hand once the need is proven; there is no generator to run, and an agent built before the need is real is worse than none. When a trigger applies, launch the subagent automatically, not only on manual command — the override still holds.
+
+**Review principle (portable, every tool):** the review is done by a *different model/session than the one that wrote the code* — it validates the output against the spec and the architecture before the commit. This is the "cadenero". The reviewer is not tied to a fixed model; any strong reasoner in a fresh session works. Whoever builds it as an agent leaves the frontmatter without a pinned `model:` and states the rule in the body.

@@ -4,8 +4,11 @@ Dashboard comercial interno de Retia para los programas **Comunicarte** y **Tact
 Lee las BBDD de Google Sheets, calcula el embudo, proyecta el corte y deja que los closers
 registren sus llamadas.
 
-El contexto de negocio y las reglas que no se pueden violar estan en [`PROJECT.md`](./PROJECT.md).
-El estado de avance por fase esta en [`STATE.md`](./STATE.md).
+El contrato para trabajar en este repo esta en [`AGENTS.md`](./AGENTS.md): las reglas que no se
+pueden violar, las convenciones y los comandos de verificacion. El vocabulario del negocio esta en
+[`docs/agents/context.md`](./docs/agents/context.md), el estado y lo que sigue en
+[`docs/agents/handoff.md`](./docs/agents/handoff.md), y las decisiones de arquitectura en
+[`docs/adr/`](./docs/adr/).
 
 > Acceso restringido. La app maneja datos personales de leads y cifras comerciales:
 > no hay ninguna vista publica y no existe el auto-registro.
