@@ -1,12 +1,22 @@
 /** Formato colombiano: punto de miles, coma decimal. La moneda SIEMPRE visible. */
 
 const numeroCO = new Intl.NumberFormat("es-CO");
+const formatosPorDecimales = new Map<number, Intl.NumberFormat>();
+
+function formatoCon(decimales: number): Intl.NumberFormat {
+  let formato = formatosPorDecimales.get(decimales);
+  if (!formato) {
+    formato = new Intl.NumberFormat("es-CO", {
+      minimumFractionDigits: decimales,
+      maximumFractionDigits: decimales,
+    });
+    formatosPorDecimales.set(decimales, formato);
+  }
+  return formato;
+}
 
 export function num(valor: number, decimales = 0): string {
-  return new Intl.NumberFormat("es-CO", {
-    minimumFractionDigits: decimales,
-    maximumFractionDigits: decimales,
-  }).format(valor);
+  return formatoCon(decimales).format(valor);
 }
 
 export function cop(valor: number): string {
