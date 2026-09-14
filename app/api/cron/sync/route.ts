@@ -21,7 +21,9 @@ function secretoValido(enviado: string | null, esperado: string): boolean {
 }
 
 /**
- * Sincronizacion programada. La dispara Vercel Cron cada 15 minutos.
+ * Sincronizacion programada. La dispara Vercel Cron una vez al dia (12:00 UTC / 7am
+ * Colombia) porque el plan Hobby no permite crons mas frecuentes. El boton manual
+ * de sync sigue disponible para forzarla fuera de ese horario.
  *
  * Se autentica con CRON_SECRET, no con sesion de usuario: no hay nadie
  * conectado cuando corre. Vercel manda el secreto en Authorization.

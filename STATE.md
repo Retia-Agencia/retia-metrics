@@ -46,7 +46,7 @@ Repo: https://github.com/Retia-Agencia/retia-metrics (privado)
 
 **Rutas y UI de la Fase 1**
 - `POST /api/sync/[programa]`: dispara la sincronizacion. Solo gerente. Un error de mapeo devuelve 422 con el mensaje completo, para que se pueda arreglar sin abrir logs.
-- `GET /api/cron/sync`: sincronizacion programada cada 15 minutos (`vercel.json`). Se autentica con `CRON_SECRET`, no con sesion. **Falla cerrado**: si la variable no esta configurada devuelve 500 y no corre.
+- `GET /api/cron/sync`: sincronizacion programada una vez al dia, 12:00 UTC / 7am Colombia (`vercel.json`). Se cambio de cada 15 minutos a diaria porque el plan Hobby de Vercel no permite crons mas frecuentes que uno por dia; el boton manual de sync sigue disponible para forzarla. Se autentica con `CRON_SECRET`, no con sesion. **Falla cerrado**: si la variable no esta configurada devuelve 500 y no corre.
 - `/ajustes/fuentes`: tarjetas con personas, aplicaciones y tasa de duplicados por programa; lista de fuentes con su ultima sincronizacion; boton "Sincronizar ahora"; e historial de las ultimas ocho corridas.
 
 **Tests** — 68 pasando (`npm test`)
