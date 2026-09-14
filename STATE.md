@@ -1,8 +1,8 @@
 # Estado del proyecto
 Ultima fase completada: 1 — Modelo de datos, sincronizacion con Sheets y bitacora de cambios
 Fecha: 2026-08-19
-Produccion: https://retia-metrics.vercel.app
-Repo: https://github.com/michaelcast533-cell/retia-metrics (privado)
+Produccion: sin desplegar en esta copia todavia (fork independiente, sin deployment de Vercel propio)
+Repo: https://github.com/Retia-Agencia/retia-metrics (privado)
 
 ## Que existe ya
 
@@ -109,9 +109,10 @@ npm run build
 
 ## Desplegado
 
-- **Produccion:** https://retia-metrics.vercel.app — verificada de punta a punta el 18 de agosto: raiz redirige a `/login`, las APIs responden 401 sin sesion, el endpoint de gerente responde 401, el callback de Google coincide con el autorizado, y el login real funciona.
+- **Historial (repo original bajo Michael):** produccion en `https://retia-metrics.vercel.app`, verificada de punta a punta el 18 de agosto. Ese deployment y ese proyecto de Vercel no pertenecen a esta copia y no se heredan.
+- **Este fork (Retia-Agencia/retia-metrics):** sin deployment propio todavia. Al importar el repo a una cuenta de Vercel se crea un proyecto nuevo e independiente; hay que cargar las variables de entorno desde cero (ver `.env.example`).
 - **Repo:** privado en GitHub. Los tres gates previos al push (ningun `.env` versionado, sin secretos en los archivos rastreados, `.env.example` si versionado) pasaron.
-- **Credenciales rotadas el 18 de agosto:** contrasena de Neon, secreto de OAuth de Google y `AUTH_SECRET`. Los respaldos de `.env.local` que contenian las viejas fueron borrados.
+- **Credenciales rotadas el 18 de agosto (en el repo original):** contrasena de Neon, secreto de OAuth de Google y `AUTH_SECRET`. No aplican a este fork — hay que generar credenciales propias.
 
 
 ## Fase 1 — verificado contra datos reales
@@ -164,7 +165,7 @@ parte en 26 tareas y cuatro tandas. Los tests pasaron de 35 a 55.
 
 | Que | Bloqueado por |
 |---|---|
-| `AUTH_URL` en las variables de produccion (S-10) | Manuel no es colaborador del proyecto de Vercel |
+| `AUTH_URL` en las variables de produccion (S-10) | No aplica a este fork: no hay proyecto de Vercel propio todavia |
 | Migrar las fechas ya guardadas (F-05) | Decision: `compararCampos` no ve las fechas, asi que un `npm run sync` normal NO repara las filas existentes |
 | B-01, F-03, F-04, F-07 (Tanda 2) | Falta `.env.local` para verificar de punta a punta con `npm run sync` |
 | F-01 (Tanda 2) | Michael: valores reales de la columna `Estado` y su mapeo al enum; que hacer con `agenda` y `capacidadInvertir` |
