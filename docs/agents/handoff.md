@@ -7,6 +7,52 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-15 — Sesion de diseno: se creo `docs/design.md`** (vista de diseno del CRM que faltaba:
+  actores, servicios por rol, propuesta de valor, layout de 3 capas, C4, secuencia por actor). Es un
+  BORRADOR vivo, voz de Mani como principal, con etiquetas 🎯 MVP / 🔮 futuro / ⚔️ choca-con-ADR.
+  Partio del raw de ideas de Mani (recuperado tras un incidente: el agente sobrescribio el archivo
+  con `create` sin releer — leccion guardada, no repetir).
+
+  **Decisiones de negocio nuevas tomadas por Mani en esta sesion (aun NO bajadas a spec/ADR/tickets):**
+  1. **PDF -> snapshot.** El dashboard es el reporte en vivo; se permite un snapshot descargable a
+     demanda (refleja, no re-calcula). YA aplicado en `docs/spec.md` §2. Reemplaza la restriccion
+     anterior de "ningun reporte exportable". Formato (PDF/PNG/CSV) y quien lo toma: sin decidir.
+  2. **Tercer rol: Developer.** All-around user (ve todo, cambia de vista, salud de la herramienta,
+     settings dev). El ROL entra al MVP; las CAPACIDADES son post-scaffold. Requiere ampliar
+     `rolEnum` (hoy `["gerente","closer"]`) + guards + tests + nav -> **actualiza ADR 0003
+     conscientemente** (no re-litigar en silencio). Sin ticket aun.
+  3. **Cuentas (cierra el bloqueante que tenia el registro por closer):** cada CLOSER entra con su
+     propia cuenta Google (asi `closerId` se copia limpio de la sesion, ADR 0011 funciona); los
+     MANAGERS comparten `administrativa@retiagrowth.com`; los DEVELOPERS usan cualquier cuenta.
+  4. **Comprobante como archivo:** ademas de los datos de venta, ofrecer subir el comprobante como
+     archivo. Recomendacion: Vercel Blob (`sales.comprobanteUrl` + endpoint upload) si el deadline
+     lo permite; si aprieta, cae a post-lanzamiento. No bloquea el registro de la venta. Sin ticket.
+  5. **Ambicion:** el CRM REEMPLAZA la operacion (estandarizar + automatizar + persistir), no es
+     solo un dashboard de lectura.
+  6. **Futuro (🔮) validado, fuera de MVP:** intake automatico por DTO+crontab desde Typeform/
+     Calendly/Kapso; mapeo enriquecido de leads (perfil, notas, estado frio/caliente); calendar
+     view en la pestana Calls del gerente; cambio de vista del developer.
+
+  **Insumos guardados en el repo esta sesion:**
+  - `docs/insumos/fleeting/2026-09-14-reunion-jefes-retia.md` — notas crudas de la reunion.
+  - `docs/insumos/historico-c2/comunicarte-c2-consolidado.md` y `…/tactical-investor-c2-consolidado.md`
+    — los dos MD historicos de Michael (backlog hasta que se inyecten; NO son insumo limpio 1:1,
+    ver `docs/spec.md` §7).
+
+  **Lo que este diseno DESTAPO y falta hacer (deuda de reconciliacion):** el diseno introduce un
+  rol y 3 features que el spec/plan/tickets actuales NO cubren. Antes de codear hay que reconciliar:
+  - **Ticket 008** (falta escribir): snapshot descargable. Decidir formato y permiso primero.
+  - **Ticket 009** (falta escribir): comprobante como archivo (Vercel Blob).
+  - **Ticket 010** (falta escribir): rol Developer (enum + guards + tests + nav) + actualizar ADR 0003.
+  - **`docs/spec.md`**: sumar Developer, snapshot (ya), comprobante; mover a §2/§7 lo que sea futuro.
+  - **Pendiente de negocio:** Maico va a mandar ejemplos de reportes reales para alimentar la
+    pestana de metricas del gerente. Sin recibir.
+
+  **Decisiones abiertas** (ver `docs/design.md` §8): formato del snapshot; quien lo toma; comprobante
+  en MVP o post; + los supuestos que ya venian en `docs/spec.md` §7 (todos-ven-todo sin confirmar por
+  Michael, import historico con discrepancias, lead que no esta en el sync, marco regulatorio de
+  datos financieros, Calendly individual vs compartido).
+
 - **2026-09-14/15 — Se definio que se construye: el repo se convierte en el Retia CRM.** Reunion
   de Tech Retia del 14 sep (Michael Castellanos, Alejandro Carvajal, Alejandro Davila, via Granola)
   detono el cambio: los closers dejan WhatsApp y el calendario compartido, y registran llamadas y

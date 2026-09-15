@@ -20,7 +20,12 @@ calendario compartido y el second brain personal de Mike como el lugar donde viv
 
 - No reemplaza el sync de leads desde Google Sheets: los leads (formulario de aplicación) siguen
   entrando por ahí, como hoy. ADR 0004 se mantiene para leads.
-- No genera PDF ni ningún reporte exportable: el dashboard en pantalla es el reporte.
+- El dashboard en pantalla es el reporte y la fuente en vivo. No hay un pipeline de generación de
+  PDF a la Mike (revisar WhatsApp, contrastar comprobantes, armar el documento a mano). Lo que sí
+  se permite es tomar un **snapshot descargable del estado actual del dashboard** a demanda, para
+  quien necesite compartirlo fuera de la app: refleja lo que ya se ve en pantalla, no re-calcula ni
+  agrega nada nuevo. Decidido con Mani el 15-sep: reemplaza la restricción anterior de "ningún
+  reporte exportable".
 - No permite crear un comprador que no exista ya como lead sincronizado. Toda llamada se vincula a
   una persona ya deduplicada por el sync.
 - No incluye el lead magnet de Juan Pablo ni el newsletter de SendGrid. Son iniciativas separadas
