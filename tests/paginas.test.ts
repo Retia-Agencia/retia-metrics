@@ -2,9 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * B-10: los route handlers ya tenian cobertura de permisos, pero ninguna PAGINA la
- * tenia, y `paginaConRol` es lo unico que protege los dashboards con las cifras de
- * caja, la pauta y el comparativo entre closers. La constitucion de `AGENTS.md` dice que eso
- * es politica de la empresa, no preferencia de UI.
+ * tenia, y `paginaConRol` es lo unico que protege las rutas de administracion.
+ *
+ * Desde ADR 0009 (15 sep 2026), `/comunicarte` y `/tactical-investor` dejaron de ser
+ * exclusivas de gerente: un closer tambien ve ahi caja, pauta y el comparativo entre
+ * closers ("todos ven todo"). Lo que sigue siendo exclusivo de gerente es la
+ * administracion del sistema: `/ajustes` y `/ajustes/fuentes`.
  *
  * Se invoca el componente de pagina real. Si alguien afloja una guarda, esto falla.
  */
@@ -48,10 +51,13 @@ async function destinoDe(ruta: string): Promise<string | null> {
 }
 
 const PAGINAS_DE_GERENTE = [
-  ["/comunicarte", "@/app/(app)/comunicarte/page"],
-  ["/tactical-investor", "@/app/(app)/tactical-investor/page"],
   ["/ajustes", "@/app/(app)/ajustes/page"],
   ["/ajustes/fuentes", "@/app/(app)/ajustes/fuentes/page"],
+] as const;
+
+const PAGINAS_COMPARTIDAS = [
+  ["/comunicarte", "@/app/(app)/comunicarte/page"],
+  ["/tactical-investor", "@/app/(app)/tactical-investor/page"],
 ] as const;
 
 describe("paginas de gerente", () => {
@@ -59,6 +65,25 @@ describe("paginas de gerente", () => {
     it(`${nombre} rechaza a un closer y lo manda a su vista`, async () => {
       auth.mockResolvedValue(sesionCloser);
       expect(await destinoDe(ruta)).toBe("/mi-dia");
+    });
+
+    it(`${nombre} manda al login a quien no tiene sesion`, async () => {
+      auth.mockResolvedValue(null);
+      expect(await destinoDe(ruta)).toBe("/login");
+    });
+  }
+});
+
+describe("paginas compartidas entre gerente y closer (ADR 0009)", () => {
+  for (const [nombre, ruta] of PAGINAS_COMPARTIDAS) {
+    it(`${nombre} deja pasar a un gerente`, async () => {
+      auth.mockResolvedValue(sesionGerente);
+      expect(await destinoDe(ruta)).toBeNull();
+    });
+
+    it(`${nombre} deja pasar a un closer`, async () => {
+      auth.mockResolvedValue(sesionCloser);
+      expect(await destinoDe(ruta)).toBeNull();
     });
 
     it(`${nombre} manda al login a quien no tiene sesion`, async () => {

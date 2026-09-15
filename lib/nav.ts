@@ -14,8 +14,8 @@ export type ItemNav = {
  */
 export const ITEMS_NAV: readonly ItemNav[] = [
   { href: "/mi-dia", etiqueta: "Mi día", icono: "midia", roles: ["closer"] },
-  { href: "/comunicarte", etiqueta: "Comunicarte", icono: "comunicarte", roles: ["gerente"] },
-  { href: "/tactical-investor", etiqueta: "Tactical Investor", icono: "tactical", roles: ["gerente"] },
+  { href: "/comunicarte", etiqueta: "Comunicarte", icono: "comunicarte", roles: ["gerente", "closer"] },
+  { href: "/tactical-investor", etiqueta: "Tactical Investor", icono: "tactical", roles: ["gerente", "closer"] },
   { href: "/documentos", etiqueta: "Documentos", icono: "documentos", roles: ["gerente", "closer"] },
   { href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["gerente"] },
 ];

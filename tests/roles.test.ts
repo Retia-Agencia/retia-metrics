@@ -27,12 +27,16 @@ describe("puedeAcceder", () => {
 });
 
 describe("navegacion por rol", () => {
-  it("el closer no ve ningun item de gerente", () => {
+  it("el closer no ve las rutas de administracion exclusivas de gerente", () => {
     const rutas = navParaRol("closer").map((i) => i.href);
-    expect(rutas).not.toContain("/comunicarte");
-    expect(rutas).not.toContain("/tactical-investor");
     expect(rutas).not.toContain("/ajustes");
     expect(rutas).toContain("/mi-dia");
+  });
+
+  it("el closer si ve los dashboards de programa, desde ADR 0009", () => {
+    const rutas = navParaRol("closer").map((i) => i.href);
+    expect(rutas).toContain("/comunicarte");
+    expect(rutas).toContain("/tactical-investor");
   });
 
   it("el gerente no aterriza en la vista del closer", () => {

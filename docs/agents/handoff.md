@@ -7,6 +7,35 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-14/15 — Se definio que se construye: el repo se convierte en el Retia CRM.** Reunion
+  de Tech Retia del 14 sep (Michael Castellanos, Alejandro Carvajal, Alejandro Davila, via Granola)
+  detono el cambio: los closers dejan WhatsApp y el calendario compartido, y registran llamadas y
+  ventas directo en la app. `docs/spec.md` (primer spec del repo) documenta el alcance: registro de
+  llamada+venta en una pantalla, dashboard en vivo sin PDF, "todos ven todo" (comparativo, caja y
+  pauta visibles para cualquier closer, no solo gerente).
+
+  `/grill-with-docs` encontro y resolvio dos contradicciones reales entre el codigo y lo que se
+  estaba especificando: `calls`/`sales` ya existian pero disenadas solo para filas de Sheets
+  (`huellaFila`, `closerId` de texto), y `resultadoLlamadaEnum` ya era un unico estado cuando el
+  spec pedia dos casillas (show/cierre) por separado. Se resolvio a favor del codigo existente.
+  Cuatro ADR nuevos documentan las decisiones: **0008** (Sheets deja de ser fuente de
+  llamadas/ventas, sigue siendolo para leads), **0009** (el dashboard abre a closer lo que ADR 0003
+  prohibia — cambio ya aplicado en codigo: `AGENTS.md`, `lib/nav.ts`, ambas paginas de programa y
+  sus tests), **0010** (se reusan `calls`/`sales` con `origen="app"`, no tablas nuevas), **0011**
+  (`closerId` en escrituras nativas se copia de `session.user.closerId`, no un FK nuevo). El
+  glosario (`docs/agents/context.md`) ya refleja el nuevo lenguaje.
+
+  `/plan` produjo `docs/plan.md` (arquitectura, diagrama de flujo, modelo de datos) y 7 tickets en
+  `docs/tasks/` (001 a 007), del campo de plataforma de pago que falta hasta el onboarding de
+  `closerId` para Andrea/Maru/Jero. Deadline de negocio: antes de que cierren los C2 actuales
+  (Comunicarte 22 sep, Tactical 29 sep de 2026).
+
+  **Supuestos sin validar con el negocio** (ver `docs/spec.md` §7): "todos ven todo" no lo confirmo
+  Michael ni Alejandro Carvajal directamente; el import historico (dos MD consolidados que Michael
+  ya paso, en Downloads al momento de escribir esto) tiene discrepancias documentadas entre si y
+  necesita una decision de reconciliacion antes de migrarse; Calendly individual vs cuenta
+  compartida, sin confirmar.
+
 - **2026-09-14 — Repo scaffolded.** Se borro la documentacion heredada (los siete prompts de
   fase del master prompt original, el informe de revision externa y su plan de remediacion,
   2.670 lineas entre los dos, y `DEPENDENCIES.md`) y el conocimiento que valia se destilo a esta
@@ -47,15 +76,23 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now (ready — no unmet dependencies)
 
-- [ ] **Definir que se construye.** No hay spec. El plan anterior se descarto por ser el metodo
-      de otra persona. Correr `/spec` para escribir `docs/spec.md` (o uno por dominio) antes de
-      tocar codigo nuevo.
+- [ ] **Ticket 001 · Migracion: `plataformaPago` en `sales`.** Ver `docs/tasks/001-*.md`.
+- [ ] **Ticket 007 · Onboarding: `closerId` de Andrea, Maru y Jero.** No depende de ningun otro
+      ticket; puede hacerse en paralelo. Ver `docs/tasks/007-*.md`.
 - [ ] **F-05 · Migrar las fechas ya guardadas.** El codigo ya escribe con `-05:00` explicito,
       pero las filas viejas quedaron en la zona del servidor y `compararCampos` no mira fechas,
       asi que un `npm run sync` normal **no** las repara. Decidir entre migracion puntual o
       re-sync forzado.
 
 ### Next (blocked until a "Now" item lands)
+
+Cadena del CRM, bloqueada por el ticket 001 (y entre si, en cadena):
+
+- [ ] **Ticket 002** — `corteActivo()` + `lib/mutations/registro.ts`. Bloqueado por 001.
+- [ ] **Ticket 003** — Pantalla de `/mi-dia` (buscar persona, registrar resultado). Bloqueado por 002.
+- [ ] **Ticket 004** — Consultas del dashboard (`lib/queries/dashboard.ts`). Bloqueado por 001.
+- [ ] **Ticket 005** — Dashboard real en `/comunicarte` y `/tactical-investor`. Bloqueado por 004.
+- [ ] **Ticket 006** — Historial de llamadas de una persona. Bloqueado por 005.
 
 Los cinco de abajo estan bloqueados por lo mismo: **falta un `.env.local` con credenciales** para
 verificar de punta a punta con `npm run sync`.
@@ -98,6 +135,9 @@ Bloqueados por una decision de negocio (hay que preguntarle a Michael):
 
 ### Done
 
+- [x] 2026-09-14/15 — Definido que se construye: `/spec` (`docs/spec.md`), `/grill-with-docs`
+      (ADR 0008-0011, `context.md` actualizado, `AGENTS.md` y tests de roles/paginas ya aplicados
+      en codigo) y `/plan` (`docs/plan.md`, tickets 001-007 en `docs/tasks/`).
 - [x] 2026-09-14 — Repo scaffolded: documentacion heredada borrada, conocimiento destilado.
 - [x] 2026-09-14 — Auditoria de dependencias: fuera `@types/pg` (huerfano), `shadcn` movido a
       `devDependencies`. Fuera tres componentes de shadcn sin usar (`input`, `label`, `table`).

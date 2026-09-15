@@ -4,7 +4,7 @@ import { ProgramSwitcher } from "@/components/program-switcher";
 import { ProximaFase } from "@/components/proxima-fase";
 
 export default async function TacticalInvestorPage() {
-  await paginaConRol("gerente");
+  await paginaConRol("gerente", "closer");
   return (
     <PageShell
       titulo="Tactical Investor"

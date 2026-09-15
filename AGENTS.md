@@ -54,9 +54,12 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
 
 - **El rol se enforza en el servidor, en cada ruta.** Esconder un boton no es seguridad. Todo
   route handler y toda pagina pasa por `requireRole` / `paginaConRol`.
-- **`gerente` y `closer` son conjuntos disjuntos, sin herencia.** Un closer nunca ve el
-  comparativo entre closers, ni ranking, ni caja, ni pauta. Es politica de la empresa, no una
-  preferencia de UI (ADR 0003).
+- **`gerente` y `closer` son conjuntos disjuntos, sin herencia.** Un closer nunca entra a una ruta
+  exclusiva de gerente como `/ajustes` (ADR 0003). Excepcion explicita desde el 15 de septiembre de
+  2026: en el dashboard del CRM (`/comunicarte`, `/tactical-investor`) un closer SI ve el
+  comparativo entre closers, la caja y la pauta, igual que un gerente — es la politica "todos ven
+  todo" (ADR 0009). Ambas reglas conviven: la disjuncion de roles sigue rigiendo el acceso a rutas
+  de administracion, pero ya no rige la visibilidad de datos dentro del dashboard.
 - **Nada de la app es publico.** Sin sesion no se ve ni una cifra. Unica excepcion:
   `/api/health`, que no expone ningun dato del negocio.
 - **Ningun dato personal en URLs ni en query strings.** Los identificadores en rutas son ids
@@ -98,7 +101,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 68 pasando hoy)
+- **Test:** `npm test` (Vitest, 71 pasando hoy)
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Run:** `npm run dev` (http://localhost:3000)
 

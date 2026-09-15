@@ -57,10 +57,17 @@ Persona que agendo una llamada por Calendly.
 La cita agendada en si.
 
 **Show**:
-La persona se presento a la llamada.
+La persona se presento a la llamada. Es una etapa del embudo de la persona, no un campo que se
+marca aparte: se deriva de que su ultima llamada tenga resultado `show` o `cerrada`.
 
 **Cierre**:
-La persona compro.
+La persona compro. Se deriva de que su ultima llamada tenga resultado `cerrada`.
+
+**Resultado de llamada**:
+El estado de una llamada puntual, un unico valor entre: agendada, show, no_show, reagendada,
+cerrada, perdida. No son dos preguntas independientes (show si/no, cierre si/no): una llamada
+`cerrada` implica que hubo show, y una llamada no puede ser `cerrada` sin haber sido `show`.
+_Avoid_: tratar show y cierre como dos casillas separadas de la misma llamada.
 
 ### Las metricas
 
@@ -88,13 +95,18 @@ personas distintas.
 
 **Closer**:
 El vendedor que toma la llamada de postulacion. Su `closer_id` es el nombre exacto con el que
-aparece en la columna de closer de la BBDD.
+aparece en la columna de closer de la BBDD, y es el mismo valor que se copia a sus registros
+nativos del CRM cuando esta logueado (ADR 0011): un closer no elige ni escribe su propio
+`closer_id`, ya vive en su cuenta. Desde ADR 0009 ve el mismo dashboard que un gerente (cierres,
+caja, pauta y comparativo entre closers de cualquier programa), pero sigue sin poder entrar a
+rutas exclusivas de gerente como `/ajustes/fuentes` (ADR 0003 sigue rigiendo el acceso).
 
 **BDR**:
 Quien agenda y rescata pipeline. No cierra en frio.
 
 **Gerente**:
-El rol que ve todo: dashboards de programa, comparativo entre closers, caja, pauta, ajustes.
+El rol que ademas del dashboard (compartido con closer desde ADR 0009) administra el sistema:
+fuentes de sync, ajustes, alta de usuarios.
 
 ### Comercial
 
