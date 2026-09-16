@@ -20,19 +20,20 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   - **S-14:** la base de `.env.local` resulto ser el proyecto Neon `retia-metrics-crm`
     (org Retia-Agencia, creado el 15-sep), del fork y casi vacio (0 personas, 1 usuario). Se
     creo la rama `dev` y `.env.local` ya apunta a ella (ADR 0018). `neonctl` quedo autenticado
-    en esta maquina (`npx neonctl ...`). **Falta Vercel:** el deployment esta en otra cuenta de
-    Vercel no conectada; la CLI local es `manigreeen` (equipo Manigreen, sin este proyecto).
-    Camino recomendado: que inviten a `manigreeen` al equipo de ese proyecto, luego `vercel link`.
+    en esta maquina (`npx neonctl ...`). Vercel quedo resuelto al cierre (primera viñeta).
   - **CRON_SECRET:** `npm run rotar` no lo genera (el handoff decia lo contrario, corregido).
-    Nuevo `npm run cron-secret` (sin eco, con respaldo); ya esta en `.env.local`. Para Vercel:
-    `npm run cron-secret -- --vercel` una vez enlazado el proyecto, y redeploy.
+    Nuevo `npm run cron-secret` (sin eco, con respaldo); ya esta en `.env.local` y, con
+    `-- --vercel` (sube por la API de Vercel), en Production.
   - **B-01 hecho:** la decision del sync vive en `lib/sheets/plan-sync.ts` (`planificarSync`,
     pura) y `sync.ts` solo escribe. 6 tests, verificados con mutaciones. 77 tests en total.
   - **F-03 NO hecho:** con `neon-http` no hay advisory locks de sesion. Diseno completo en el
     tracker; necesita migracion (va a `dev`), y conviene juntarla con F-07.
-  - **Mensaje para Michael:** redactado en la sesion, sin enviar (Mani lo revisa).
+  - **Mensaje para Michael:** borrador en `docs/insumos/mensaje-michael-2026-09-16.md`, **sin
+    enviar** (Mani lo revisa). Tarea de Notion del CRM actualizada con el estado y los pendientes.
   - El respaldo `.env.local.bak-*` que dejo el cambio de URL se borro con
     `npm run limpiar-respaldos` al cerrar.
+  - **Siguiente sesion, en orden:** cuenta de servicio de Google → `AUTH_URL` (S-10) → redeploy
+    y probar el cron → confirmar la base de Production → F-03 + F-07 en `dev` → tickets 008 y 009.
 
 - **2026-09-16 — Overview del CRM, contrato de extension y re-plan completo en 5 fases.**
   Se reviso el repo entero, los grupos de WhatsApp "Ventas ComunicArte" y "Ventas JP Vieira", y

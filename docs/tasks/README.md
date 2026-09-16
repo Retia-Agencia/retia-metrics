@@ -61,6 +61,8 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 
 ## Decisiones pendientes (bloquean o condicionan tickets)
 
+Las de Michael están redactadas en [mensaje-michael-2026-09-16.md](../insumos/mensaje-michael-2026-09-16.md) (sin enviar al 16-sep).
+
 | Decisión | A quién | Afecta |
 |---|---|---|
 | Formato del snapshot y quién lo toma | Mani / Michael | 021 |
