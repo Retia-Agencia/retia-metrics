@@ -29,6 +29,13 @@
       "when": 1789591296328,
       "tag": "0003_catalogo_plataformas_pago",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789602837256,
+      "tag": "0004_catalogos_motivos_origenes",
+      "breakpoints": true
     }
   ]
 }

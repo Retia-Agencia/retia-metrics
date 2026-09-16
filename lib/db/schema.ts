@@ -310,6 +310,38 @@ export const plataformasPago = pgTable(
   (t) => [uniqueIndex("plataformas_pago_nombre_idx").on(sql`lower(${t.nombre})`)],
 );
 
+/**
+ * Motivos de perdida de una llamada (dinero, horario, sin fit, ...). Catalogo del
+ * molde (ADR 0012, ADR 0015): el equipo los descubre sobre la marcha y el reporte
+ * los agrupa, asi que son instancia editable, no un enum.
+ */
+export const motivos = pgTable(
+  "motivos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nombre: text("nombre").notNull(),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("motivos_nombre_idx").on(sql`lower(${t.nombre})`)],
+);
+
+/**
+ * Origenes del lead (agenda del dia, follow-up, referido, ...). Catalogo del molde
+ * (ADR 0012): el codigo no decide nada segun su valor, asi que vive como fila
+ * editable desde la app.
+ */
+export const origenes = pgTable(
+  "origenes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nombre: text("nombre").notNull(),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("origenes_nombre_idx").on(sql`lower(${t.nombre})`)],
+);
+
 // ─────────────────────────────────────────────────────────── tipos
 
 export type Usuario = typeof users.$inferSelect;
@@ -325,3 +357,5 @@ export type Pauta = typeof adSpend.$inferSelect;
 export type CorridaSync = typeof syncRuns.$inferSelect;
 export type Cambio = typeof changeLog.$inferSelect;
 export type PlataformaPago = typeof plataformasPago.$inferSelect;
+export type Motivo = typeof motivos.$inferSelect;
+export type Origen = typeof origenes.$inferSelect;

@@ -7,6 +7,13 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-16 (cierre) — ADR 0021 y tickets F0 en curso.**
+  - `/grill-with-docs` sobre el responsable: **ADR 0021** (responsable y alta manual viven en el
+    CRM; las hojas no tienen columna de closer), ticket nuevo **026** (depende de 015, bloquea 003).
+  - **012** hecho: catalogos `motivos` y `origenes` sobre el molde, tests de catalogo
+    parametrizados (108 tests). Migracion `0004_*` **generada, sin aplicar** en `dev` ni en
+    `production`: espera ok de Mani.
+
 - **2026-09-16 (noche) — F0 arranca: tickets 008-011 hechos, migraciones en las dos ramas, Google
   Cloud y login pasados a Retia, respuestas de Michael bajadas.**
 

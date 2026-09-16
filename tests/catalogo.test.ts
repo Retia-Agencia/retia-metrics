@@ -6,12 +6,19 @@ import { fileURLToPath } from "node:url";
 import { ZodError } from "zod";
 import { changeLog, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import type { Catalogo } from "@/lib/catalogo/molde";
 import { ErrorDeApp } from "@/lib/errors";
 import { plataformasDePago } from "@/lib/catalogo/plataformas";
+import { motivos } from "@/lib/catalogo/motivos";
+import { origenes } from "@/lib/catalogo/origenes";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
 /**
- * Ticket 011 — el molde de catalogo, estrenado con plataformas de pago.
+ * Ticket 011 estreno el molde con plataformas de pago; el ticket 012 agrega los
+ * catalogos `motivos` y `origenes`. Los tres cumplen el mismo contrato (ADR 0012),
+ * asi que las conductas se prueban una sola vez, parametrizadas por catalogo. Si
+ * un catalogo nuevo entra al molde, se agrega una fila a `CATALOGOS` y hereda toda
+ * la bateria, sin copiar tests.
  *
  * Base PGlite NUEVA por test (beforeEach/afterEach): cada caso mira `change_log` y
  * conteos sembrados, asi que compartir base filtraria filas entre tests y volveria
@@ -37,43 +44,134 @@ afterEach(async () => {
   await cerrar();
 });
 
-/** Filas de change_log de una plataforma concreta. */
+/** Filas de change_log de un registro concreto. */
 async function logDe(registroId: string) {
   return db.select().from(changeLog).where(eq(changeLog.registroId, registroId));
 }
 
-describe("molde de catalogo — plataformas de pago", () => {
-  it("a. la migracion deja sembradas las 7 plataformas activas", async () => {
-    const cat = plataformasDePago(db);
+/** Cada catalogo del molde, con lo minimo que cambia entre uno y otro. */
+interface CasoCatalogo {
+  /** Titulo legible del bloque describe. */
+  titulo: string;
+  /** Fabrica del catalogo; recibe la base de prueba. */
+  fabrica: (db: Db) => Catalogo<{ nombre: string }>;
+  /** Nombre real de la tabla, como llega a change_log.tabla. */
+  nombreTabla: string;
+  /** Semillas que la migracion deja activas. */
+  semillas: string[];
+  /** Fragmento del mensaje de error 409 ("una plataforma de pago"). */
+  entidad: string;
+  /** Una semilla existente, para probar el choque de nombre sin distinguir case. */
+  semillaExistente: string;
+  /** La misma semilla en otra caja, que debe chocar por el indice lower(nombre). */
+  semillaEnOtraCaja: string;
+  /** Nombres nuevos que no chocan con ninguna semilla, para crear/editar. */
+  nuevos: { crear: string; duplicable: string; editarA: string; desactivar: string };
+}
+
+const CATALOGOS: CasoCatalogo[] = [
+  {
+    titulo: "plataformas de pago",
+    fabrica: plataformasDePago,
+    nombreTabla: "plataformas_pago",
+    semillas: [
+      "PayPal",
+      "MercadoPago",
+      "Zelle",
+      "DollarApp",
+      "Bancolombia",
+      "Global66",
+      "Hotmart",
+    ],
+    entidad: "una plataforma de pago",
+    semillaExistente: "PayPal",
+    semillaEnOtraCaja: "paypal",
+    nuevos: {
+      crear: "Wise",
+      duplicable: "Payoneer",
+      editarA: "Payoneer Global",
+      desactivar: "Skrill",
+    },
+  },
+  {
+    titulo: "motivos",
+    fabrica: motivos,
+    nombreTabla: "motivos",
+    semillas: [
+      "Dinero",
+      "Horario",
+      "Sin fit",
+      "Viaje",
+      "Otro programa",
+      "Decisión de un tercero",
+      "Sin respuesta",
+      "Sin motivo",
+    ],
+    entidad: "un motivo",
+    semillaExistente: "Dinero",
+    semillaEnOtraCaja: "dinero",
+    nuevos: {
+      crear: "Miedo",
+      duplicable: "Indeciso",
+      editarA: "Muy indeciso",
+      desactivar: "Distancia",
+    },
+  },
+  {
+    titulo: "origenes",
+    fabrica: origenes,
+    nombreTabla: "origenes",
+    semillas: [
+      "Agenda del día",
+      "Follow-up",
+      "Cola de descartados",
+      "Cola de setteo",
+      "Masivos",
+      "Lanzamiento",
+      "Referido",
+    ],
+    entidad: "un origen",
+    semillaExistente: "Referido",
+    semillaEnOtraCaja: "referido",
+    nuevos: {
+      crear: "Webinar",
+      duplicable: "Evento",
+      editarA: "Evento presencial",
+      desactivar: "Podcast",
+    },
+  },
+];
+
+describe.each(CATALOGOS)("molde de catalogo — $titulo", (caso) => {
+  it("a. la migracion deja sembradas las semillas activas", async () => {
+    const cat = caso.fabrica(db);
     const filas = await cat.listar();
-    expect(filas).toHaveLength(7);
+    expect(filas).toHaveLength(caso.semillas.length);
     expect(filas.every((f) => f.activo)).toBe(true);
-    expect(filas.map((f) => f.nombre).sort()).toEqual(
-      ["Bancolombia", "DollarApp", "Global66", "Hotmart", "MercadoPago", "PayPal", "Zelle"].sort(),
-    );
+    expect(filas.map((f) => f.nombre).sort()).toEqual([...caso.semillas].sort());
   });
 
-  it("b. crear agrega una plataforma y deja change_log con origen app, userId y etiqueta", async () => {
-    const cat = plataformasDePago(db);
-    const creada = await cat.crear(userId, { nombre: "Wise" });
+  it("b. crear agrega una fila y deja change_log con origen app, userId y etiqueta", async () => {
+    const cat = caso.fabrica(db);
+    const creada = await cat.crear(userId, { nombre: caso.nuevos.crear });
 
-    expect(creada.nombre).toBe("Wise");
+    expect(creada.nombre).toBe(caso.nuevos.crear);
     expect(creada.activo).toBe(true);
-    expect(await cat.listar()).toHaveLength(8);
+    expect(await cat.listar()).toHaveLength(caso.semillas.length + 1);
 
     const log = await logDe(creada.id);
     expect(log).toHaveLength(1);
     expect(log[0].campo).toBe("nombre");
     expect(log[0].valorAnterior).toBeNull();
-    expect(log[0].valorNuevo).toBe("Wise");
+    expect(log[0].valorNuevo).toBe(caso.nuevos.crear);
     expect(log[0].origen).toBe("app");
     expect(log[0].userId).toBe(userId);
-    expect(log[0].etiqueta).toBe("Wise");
-    expect(log[0].tabla).toBe("plataformas_pago");
+    expect(log[0].etiqueta).toBe(caso.nuevos.crear);
+    expect(log[0].tabla).toBe(caso.nombreTabla);
   });
 
   it("c. crear rechaza input invalido (solo espacios) con ZodError y no escribe nada", async () => {
-    const cat = plataformasDePago(db);
+    const cat = caso.fabrica(db);
     const antes = await cat.listar();
 
     await expect(cat.crear(userId, { nombre: "   " })).rejects.toBeInstanceOf(ZodError);
@@ -84,39 +182,41 @@ describe("molde de catalogo — plataformas de pago", () => {
   });
 
   it("d. crear rechaza un nombre duplicado sin distinguir mayusculas con ErrorDeApp 409", async () => {
-    const cat = plataformasDePago(db);
-    // 'paypal' choca con la semilla 'PayPal' por el indice lower(nombre).
-    const error = await cat.crear(userId, { nombre: "paypal" }).catch((e) => e);
+    const cat = caso.fabrica(db);
+    // La semilla en otra caja choca con la existente por el indice lower(nombre).
+    const error = await cat.crear(userId, { nombre: caso.semillaEnOtraCaja }).catch((e) => e);
 
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(409);
-    expect((error as ErrorDeApp).message).toBe("Ya existe una plataforma de pago con ese nombre.");
+    expect((error as ErrorDeApp).message).toBe(`Ya existe ${caso.entidad} con ese nombre.`);
     // No se agrego nada.
-    expect(await cat.listar()).toHaveLength(7);
+    expect(await cat.listar()).toHaveLength(caso.semillas.length);
   });
 
   it("e. editar registra solo los campos que cambiaron; sin cambios no escribe", async () => {
-    const cat = plataformasDePago(db);
-    const creada = await cat.crear(userId, { nombre: "Payoneer" });
+    const cat = caso.fabrica(db);
+    const creada = await cat.crear(userId, { nombre: caso.nuevos.duplicable });
     const logTrasCrear = (await logDe(creada.id)).length;
 
     // Editar con el MISMO nombre: no cambia nada, no escribe en change_log.
-    await cat.editar(userId, creada.id, { nombre: "Payoneer" });
+    await cat.editar(userId, creada.id, { nombre: caso.nuevos.duplicable });
     expect(await logDe(creada.id)).toHaveLength(logTrasCrear);
 
     // Editar con un nombre distinto: registra solo el campo 'nombre'.
-    const editada = await cat.editar(userId, creada.id, { nombre: "Payoneer Global" });
-    expect(editada.nombre).toBe("Payoneer Global");
+    const editada = await cat.editar(userId, creada.id, { nombre: caso.nuevos.editarA });
+    expect(editada.nombre).toBe(caso.nuevos.editarA);
 
     const log = await logDe(creada.id);
-    const cambioNombre = log.filter((l) => l.campo === "nombre" && l.valorAnterior === "Payoneer");
+    const cambioNombre = log.filter(
+      (l) => l.campo === "nombre" && l.valorAnterior === caso.nuevos.duplicable,
+    );
     expect(cambioNombre).toHaveLength(1);
-    expect(cambioNombre[0].valorNuevo).toBe("Payoneer Global");
+    expect(cambioNombre[0].valorNuevo).toBe(caso.nuevos.editarA);
     expect(cambioNombre[0].userId).toBe(userId);
   });
 
   it("f. editar un id inexistente lanza ErrorDeApp 404", async () => {
-    const cat = plataformasDePago(db);
+    const cat = caso.fabrica(db);
     const error = await cat
       .editar(userId, "00000000-0000-0000-0000-000000000000", { nombre: "X" })
       .catch((e) => e);
@@ -125,8 +225,8 @@ describe("molde de catalogo — plataformas de pago", () => {
   });
 
   it("g. desactivar no borra la fila, la marca inactiva y registra activo true->false; dos veces no duplica", async () => {
-    const cat = plataformasDePago(db);
-    const creada = await cat.crear(userId, { nombre: "Skrill" });
+    const cat = caso.fabrica(db);
+    const creada = await cat.crear(userId, { nombre: caso.nuevos.desactivar });
 
     await cat.desactivar(userId, creada.id);
 

@@ -3,7 +3,7 @@ id: 012
 fase: F0
 serves: "ADR 0015 (motivos); spec §1 pilar 1 (origen del lead)"
 depends: [011]
-status: todo
+status: done
 ---
 
 # 012 — Catálogos de motivos y orígenes del lead
@@ -21,4 +21,4 @@ reportes diarios.
 - Fuera: la pantalla (013) y las columnas en `calls` (018).
 
 ## Done cuando
-- [ ] Ambos catálogos pasan los mismos tests que plataformas, sin código nuevo en el molde.
+- [x] Ambos catálogos pasan los mismos tests que plataformas, sin código nuevo en el molde.
