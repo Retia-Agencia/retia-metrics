@@ -65,6 +65,7 @@ Las de Michael están redactadas en [mensaje-michael-2026-09-16.md](../insumos/m
 
 | Decisión | A quién | Afecta |
 |---|---|---|
+| **Alcance: ¿los leads se sincronizan desde Sheets o se manejan a mano en el CRM?** Condiciona ADR 0004 y toda la deuda del sync | Michael | F-01, F-03, F-04, F-06, F-07, 016, 003 |
 | Formato del snapshot y quién lo toma | Mani / Michael | 021 |
 | ¿"Todos ven todo" confirmado por negocio? | Michael, Alejandro Carvajal | acceso real de closers |
 | ¿Closers pueden crear plataformas y recursos? (hoy: no) | Mani | 013, 023 |
