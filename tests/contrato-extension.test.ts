@@ -90,14 +90,14 @@ function buscarViolaciones(dirs: readonly string[], raiz: string): string[] {
 }
 
 describe("contrato de extension (ADR 0012)", () => {
-  // NACE ROJO A PROPOSITO (TDD). Hoy el codigo aun tiene programas escritos a mano
-  // (`lib/nav.ts`, las dos paginas fijas, `app/layout.tsx`, comentarios en
-  // `lib/sheets/*`, iconos en el sidebar). El ticket 010 elimina esas violaciones
-  // —rutas por parametro `/programas/[slug]`, programas desde la base— y al hacerlo
-  // quita este `.fails`, dejando el guardian activo. Mientras tanto `it.fails`
-  // mantiene el CI verde sin ocultar la deuda: si alguien la arregla antes de tiempo,
-  // este test empezara a fallar por pasar y avisara que hay que quitar el `.fails`.
-  it.fails("ningun slug ni nombre de programa vive en lib/, app/ ni components/", () => {
+  // El ticket 010 elimino las violaciones que este guardian nacio vigilando: los
+  // programas ya no viven a mano en `lib/nav.ts` ni en dos paginas fijas, sino que
+  // salen de la base y entran como dato; el dashboard vive en `/programas/[slug]`;
+  // los comentarios de `lib/sheets/*`, `app/layout.tsx` y los iconos del sidebar ya
+  // no nombran ningun programa. Con eso el `.fails` desaparece y el guardian queda
+  // activo: si alguien vuelve a escribir un programa a mano en lib/, app/ o
+  // components/, este test falla y lo señala.
+  it("ningun slug ni nombre de programa vive en lib/, app/ ni components/", () => {
     const violaciones = buscarViolaciones(["lib", "app", "components"], RAIZ);
     expect(
       violaciones,

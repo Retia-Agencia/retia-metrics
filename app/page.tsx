@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
-import { paginaConSesion } from "@/lib/auth/page-guards";
-import { rutaInicial } from "@/lib/nav";
+import { paginaConSesion, destinoInicial } from "@/lib/auth/page-guards";
 
 export default async function Home() {
   const session = await paginaConSesion();
-  redirect(rutaInicial(session.user.rol));
+  redirect(await destinoInicial(session.user.rol));
 }

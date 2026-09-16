@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarCheck, FileText, LineChart, MessagesSquare, Settings } from "lucide-react";
+import { CalendarCheck, FileText, LineChart, Settings } from "lucide-react";
 import { navParaRol, type ItemNav } from "@/lib/nav";
 import type { Rol } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
@@ -11,8 +11,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 
 const ICONOS: Record<ItemNav["icono"], typeof LineChart> = {
-  comunicarte: MessagesSquare,
-  tactical: LineChart,
+  programa: LineChart,
   documentos: FileText,
   ajustes: Settings,
   midia: CalendarCheck,
@@ -23,12 +22,13 @@ type Props = {
   nombre: string;
   email: string;
   imagen?: string | null;
+  programas: readonly { slug: string; nombre: string }[];
 };
 
-export function AppSidebar({ rol, nombre, email, imagen }: Props) {
+export function AppSidebar({ rol, nombre, email, imagen, programas }: Props) {
   const pathname = usePathname();
   // La lista viene filtrada por rol. Esconder no es seguridad: cada ruta valida en servidor.
-  const items = navParaRol(rol);
+  const items = navParaRol(rol, programas);
 
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">

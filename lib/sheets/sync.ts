@@ -10,8 +10,8 @@ import { planificarSync } from "./plan-sync";
  * Motor de sincronizacion.
  *
  * Decision de diseno importante: **las personas se sincronizan por PROGRAMA, no por
- * fuente.** Comunicarte tiene dos formularios (`New form` y `Forms viejo`) y 58 de las
- * 65 personas del viejo no estan en el nuevo. Si cada fuente se sincronizara por
+ * fuente.** Un programa tiene dos formularios (`New form` y `Forms viejo`) y 58 de
+ * las 65 personas del viejo no estan en el nuevo. Si cada fuente se sincronizara por
  * separado, `numAplicaciones` dependeria del orden de ejecucion y no habria forma de
  * que correr el sync dos veces diera el mismo resultado. Leyendo todas las fuentes de
  * personas juntas y recalculando desde cero, el resultado es el mismo siempre.

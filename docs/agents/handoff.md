@@ -23,6 +23,16 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     que decia el ticket: tambien comentarios en `lib/sheets/{dedup,mapeo,sync}.ts` y los iconos
     de `components/app-sidebar.tsx`. Marcado `it.fails` hasta que 010 lo ponga en verde. Un
     segundo test prueba el detector sobre un arbol temporal.
+  - **010 hecho.** Los programas salen de la tabla `programs`: `lib/queries/programas.ts`
+    (`programasActivos`, `programaActivoPorSlug`), dashboard en `app/(app)/programas/[slug]`
+    (guard primero, 404 si el slug no existe o esta inactivo), `lib/nav.ts` puro
+    (`navParaRol(rol, programas)`, `rutaInicial(rol, primerPrograma)`) y `destinoInicial(rol)`
+    async en `lib/auth/page-guards.ts`, que solo consulta la base para el gerente. Las rutas
+    viejas `/comunicarte` y `/tactical-investor` redirigen (308) desde `next.config.ts`. El
+    guardian del 009 quedo en verde. La descripcion del dashboard ya no trae la fecha de cierre
+    de C2 (estaba escrita a mano); vuelve cuando exista `cohorteActiva()` (ticket 002).
+    **Pendiente de Mani:** insertar un programa en la rama `dev` y confirmar con login real que
+    aparece en el sidebar y su ruta responde.
 
 - **2026-09-16 (tarde) — Sesion de riesgos: S-14, CRON_SECRET, B-01, decisiones de negocio.**
 

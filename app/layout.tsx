@@ -10,7 +10,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: "Retia Metrics",
-  description: "Dashboard comercial de Tactical Investor y Comunicarte.",
+  description: "CRM y dashboard comercial de Retia.",
   robots: { index: false, follow: false },
 };
 

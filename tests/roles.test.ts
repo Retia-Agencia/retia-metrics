@@ -27,21 +27,44 @@ describe("puedeAcceder", () => {
 });
 
 describe("navegacion por rol", () => {
+  // Programas de prueba: slugs inventados, nunca los reales. La nav recibe los
+  // programas como dato (salen de la base), no los conoce de antemano.
+  const PROGRAMAS = [
+    { slug: "programa-a", nombre: "Programa A" },
+    { slug: "programa-b", nombre: "Programa B" },
+  ] as const;
+
   it("el closer no ve las rutas de administracion exclusivas de gerente", () => {
-    const rutas = navParaRol("closer").map((i) => i.href);
+    const rutas = navParaRol("closer", PROGRAMAS).map((i) => i.href);
     expect(rutas).not.toContain("/ajustes");
     expect(rutas).toContain("/mi-dia");
   });
 
   it("el closer si ve los dashboards de programa, desde ADR 0009", () => {
-    const rutas = navParaRol("closer").map((i) => i.href);
-    expect(rutas).toContain("/comunicarte");
-    expect(rutas).toContain("/tactical-investor");
+    const rutas = navParaRol("closer", PROGRAMAS).map((i) => i.href);
+    expect(rutas).toContain("/programas/programa-a");
+    expect(rutas).toContain("/programas/programa-b");
+  });
+
+  it("el gerente tambien ve los dashboards de programa", () => {
+    const rutas = navParaRol("gerente", PROGRAMAS).map((i) => i.href);
+    expect(rutas).toContain("/programas/programa-a");
+    expect(rutas).toContain("/programas/programa-b");
+  });
+
+  it("un programa insertado en la lista aparece en la nav", () => {
+    const conNuevo = [...PROGRAMAS, { slug: "programa-c", nombre: "Programa C" }];
+    const rutas = navParaRol("gerente", conNuevo).map((i) => i.href);
+    expect(rutas).toContain("/programas/programa-c");
   });
 
   it("el gerente no aterriza en la vista del closer", () => {
-    expect(rutaInicial("gerente")).toBe("/comunicarte");
-    expect(rutaInicial("closer")).toBe("/mi-dia");
+    expect(rutaInicial("gerente", "programa-a")).toBe("/programas/programa-a");
+    expect(rutaInicial("closer", "programa-a")).toBe("/mi-dia");
+  });
+
+  it("un gerente sin programas activos aterriza en ajustes", () => {
+    expect(rutaInicial("gerente", null)).toBe("/ajustes");
   });
 });
 
@@ -82,10 +105,10 @@ describe("callback session", () => {
 
 describe("fallar cerrado sin rol", () => {
   it("no se muestra ningun item de navegacion", () => {
-    expect(navParaRol(null)).toEqual([]);
+    expect(navParaRol(null, [])).toEqual([]);
   });
 
   it("no hay destino dentro de la app: va al login", () => {
-    expect(rutaInicial(null)).toBe("/login");
+    expect(rutaInicial(null, null)).toBe("/login");
   });
 });

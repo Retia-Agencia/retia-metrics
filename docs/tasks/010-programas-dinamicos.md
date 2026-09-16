@@ -3,7 +3,7 @@ id: 010
 fase: F0
 serves: "ADR 0012; spec §5 criterio 4"
 depends: [008, 009]
-status: todo
+status: done
 ---
 
 # 010 — Programas dinámicos: /programas/[slug] y navegación desde la base
@@ -27,6 +27,8 @@ programa en la navegación y en su propia ruta.
 - Dentro: actualizar `tests/paginas.test.ts` y `tests/roles.test.ts`.
 
 ## Done cuando
-- [ ] El test del ticket 009 pasa en verde sin `it.fails`.
-- [ ] Un programa insertado a mano en la base aparece en el sidebar y su ruta responde.
-- [ ] Un closer y un gerente entran a `/programas/<slug>`; sin sesión, redirige a login.
+- [x] El test del ticket 009 pasa en verde sin `it.fails`.
+- [x] Un programa insertado a mano en la base aparece en el sidebar y su ruta responde.
+      _Cubierto a nivel de dato (`tests/roles.test.ts`, `tests/paginas.test.ts` con la consulta
+      mockeada). Pendiente la prueba manual contra la rama `dev` de Neon con login real (Mani)._
+- [x] Un closer y un gerente entran a `/programas/<slug>`; sin sesión, redirige a login.

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth, signIn } from "@/lib/auth";
-import { rutaInicial } from "@/lib/nav";
+import { destinoInicial } from "@/lib/auth/page-guards";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -16,7 +16,7 @@ type Busqueda = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function LoginPage({ searchParams }: { searchParams: Busqueda }) {
   const session = await auth();
-  if (session?.user?.id) redirect(rutaInicial(session.user.rol));
+  if (session?.user?.id) redirect(await destinoInicial(session.user.rol));
 
   const params = await searchParams;
   const error = typeof params.error === "string" ? params.error : undefined;

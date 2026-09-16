@@ -3,8 +3,8 @@ import { normalizarEmail, limpiar, parsearFecha } from "./mapeo";
 /**
  * Dedup por correo. Es la pieza mas critica del sistema.
  *
- * La BBDD de Tactical Investor tiene 2.954 filas que son ~1.825 personas: un 37,8%
- * de duplicados, con un correo que aplico 12 veces. Comunicarte, en cambio, tiene
+ * Uno de los programas tiene ~2.950 filas que son ~1.825 personas: un 37,8% de
+ * duplicados, con un correo que aplico 12 veces. Otro programa, en cambio, tiene
  * apenas 5,1%. Calcular tasas sobre filas infla la conversion y toda decision de
  * presupuesto sale mal.
  *

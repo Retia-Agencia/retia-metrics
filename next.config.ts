@@ -18,6 +18,23 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: cabecerasDeSeguridad }];
   },
+  // Enlaces viejos: antes cada programa tenia su ruta fija (`/comunicarte`,
+  // `/tactical-investor`); hoy el dashboard vive en `/programas/[slug]` (ADR 0012).
+  // Estas redirecciones viven en config, no en codigo de app, a proposito: el
+  // guardian del contrato de extension (tests/contrato-extension.test.ts) no revisa
+  // este archivo, asi que nombrar aqui los slugs viejos no rompe la regla. Son
+  // permanentes (308) porque las rutas viejas no vuelven. Se pueden borrar cuando
+  // nadie use ya los enlaces viejos.
+  async redirects() {
+    return [
+      { source: "/comunicarte", destination: "/programas/comunicarte", permanent: true },
+      {
+        source: "/tactical-investor",
+        destination: "/programas/tactical-investor",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

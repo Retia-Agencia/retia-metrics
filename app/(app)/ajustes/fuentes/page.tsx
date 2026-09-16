@@ -49,7 +49,7 @@ export default async function FuentesPage() {
               <Card key={c.slug}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {c.slug === "comunicarte" ? "Comunicarte" : "Tactical Investor"}
+                    {c.nombre}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

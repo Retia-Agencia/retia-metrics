@@ -3,9 +3,9 @@
  *
  * El mapeo se guarda por fuente en `sources.mapeoColumnas` y se resuelve **por
  * coincidencia de texto en el encabezado**, no por posicion. Los tres formularios
- * (Comunicarte New form, Comunicarte Forms viejo y Tactical Investor) tienen el
- * mismo esquema pero redaccion distinta en las preguntas, asi que buscar por
- * fragmento aguanta esas diferencias sin un mapeo por hoja.
+ * de personas (uno de los programas aporta dos, el otro uno) tienen el mismo
+ * esquema pero redaccion distinta en las preguntas, asi que buscar por fragmento
+ * aguanta esas diferencias sin un mapeo por hoja.
  *
  * Si un campo obligatorio no encuentra columna, el sync falla ruidosamente.
  * Nunca se adivina.

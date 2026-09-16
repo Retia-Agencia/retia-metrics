@@ -22,12 +22,13 @@ export async function estadoDeFuentes() {
     db
       .select({
         slug: programs.slug,
+        nombre: programs.nombre,
         personas: sql<number>`count(${people.id})::int`,
         aplicaciones: sql<number>`coalesce(sum(${people.numAplicaciones}),0)::int`,
       })
       .from(programs)
       .leftJoin(people, eq(people.programId, programs.id))
-      .groupBy(programs.slug),
+      .groupBy(programs.slug, programs.nombre),
     db.select().from(syncRuns).orderBy(desc(syncRuns.iniciado)).limit(8),
     db.select({ cambios: sql<number>`count(*)::int` }).from(changeLog),
   ]);
