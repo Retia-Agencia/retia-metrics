@@ -10,7 +10,9 @@ status: todo
 
 ## Objetivo
 Un gerente da de alta a un closer (correo, nombre, rol, `closerId`, correo de Calendly,
-programas donde vende) y ese closer empieza a contar en las métricas, sin CLI.
+programas donde vende) y ese closer empieza a contar en las métricas, sin CLI. Lo mismo para
+otro gerente (Mani, 16-sep: closers **y** managers se agregan desde la UI; así se da de alta
+a todos los usuarios reales al salir a producción).
 
 ## Alcance
 - Dentro: columna `users.calendlyEmail` y tabla `miembros_programa` (`userId`, `programId`,
@@ -25,5 +27,6 @@ programas donde vende) y ese closer empieza a contar en las métricas, sin CLI.
 
 ## Done cuando
 - [ ] Un closer creado desde la pantalla puede entrar y ve sus programas.
+- [ ] Un gerente creado desde la pantalla puede entrar y ve `/ajustes`.
 - [ ] Un gerente no puede quitarse a sí mismo el rol (evita quedar sin administradores).
 - [ ] Cada cambio de rol queda en `change_log`.

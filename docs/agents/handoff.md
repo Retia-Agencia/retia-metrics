@@ -68,8 +68,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
      tracker, a la spec y a los tickets 003, 007, 018 y 019. Lo mas grande: todo lead tiene un
      closer responsable y el closer lo asigna en el CRM, que choca con ADR 0004. **Hacer
      `/grill-with-docs` sobre eso antes del ticket 003.** F-01 quedo desbloqueado con los valores
-     reales de `Estado`. Siguen abiertos: correos de Andrea y Maru, si Jerónimo sigue activo,
-     quien convierte COP a USD, y el formato del snapshot.
+     reales de `Estado`. Mani cerro el resto: los usuarios reales se cargan desde la UI (015) al
+     salir a produccion, el closer convierte COP a USD al registrar, y el snapshot va de ultimo.
   1d. **`production` no tiene programas ni fuentes sembrados** (probablemente: al crear `dev`
      tenia 0 personas; no se reviso). Sin eso el cron no tiene que leer. Sembrarla con la URL de
      `production` cargada solo para ese comando, como la migracion, y despues probar

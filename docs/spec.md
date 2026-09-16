@@ -122,11 +122,12 @@ donde vive esta información.
 - [ ] Qué pasa si el closer no encuentra al lead (llegó por WhatsApp directo o por masivos sin
       aplicar). **Michael, 16-sep:** todo lead tiene un closer responsable y el closer lo asigna en
       la plataforma, "como en Kapso". Falta decidir cómo convive con ADR 0004 (`/grill-with-docs`).
-- [ ] Formato del snapshot (PDF, PNG o CSV) y quién puede tomarlo.
+- [ ] Formato del snapshot (PDF, PNG o CSV) y quién puede tomarlo. Va de último; idea inicial:
+      parecido al reporte diario que el equipo ya comparte.
 - [ ] Si los closers pueden agregar recursos o solo verlos. Por defecto: solo gerentes editan.
 - [ ] Si las plataformas de pago las puede crear un closer (como los productos) o solo un
       gerente. Por defecto: solo gerente.
-- [x] Moneda de los abonos: **todo en USD (Michael, 16-sep).** Queda abierto quién convierte un
-      pago que entra en COP y con qué TRM; el sistema no convierte solo.
+- [x] Moneda de los abonos: **todo en USD (Michael, 16-sep).** Si el pago entra en COP, el closer
+      lo convierte al registrarlo (Mani, 16-sep); el sistema no convierte solo.
 - [ ] Calendly individual por closer o cuenta compartida (afecta la integración futura).
 - [ ] Marco regulatorio de datos financieros, sin validar con nadie de Retia.

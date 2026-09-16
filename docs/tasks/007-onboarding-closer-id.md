@@ -25,6 +25,8 @@ y sus programas asignados, cargados desde la pantalla del ticket 015.
 ## Notas
 **Michael, 16-sep:** los closers activos son Andrea y Maru. Jerónimo aparece como responsable de
 leads en otra respuesta: confirmar si sigue activo. Los correos de Google faltan.
+**Mani, 16-sep:** la lista final de usuarios (closers y managers) y sus correos se cargan desde
+la pantalla del 015 justo antes de salir a producción. Este ticket se hace en ese momento.
 
 Operación, no código. Juanito tiene su propio mapeo de closers de Calendly; cuando exista la
 integración, lo leerá de aquí.

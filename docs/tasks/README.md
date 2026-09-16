@@ -65,12 +65,10 @@ Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje
 
 | Decisión | A quién | Afecta |
 |---|---|---|
-| Formato del snapshot y quién lo toma (Michael no respondió) | Mani / Michael | 021 |
+| Formato del snapshot y quién lo toma. **Va de último** (Mani, 16-sep); idea: parecido al reporte diario actual | Mani | 021 |
 | ¿Closers pueden crear plataformas y recursos? (hoy: no) | Mani | 013, 023 |
 | Qué se reconcilia y qué se descarta del histórico de C2 (importar: **sí**) | Mani | ticket futuro |
 | **Alcance nuevo:** todo lead tiene un closer responsable, y el closer crea o se asigna leads en el CRM ("como en Kapso"). Choca con ADR 0004: pasar por `/grill-with-docs` | Mani | 003, 015, ticket nuevo |
-| Correos de Google de Andrea y Maru; ¿Jerónimo sigue activo? | Michael | 007 |
-| Quién pasa a USD un pago que entra en COP, y con qué TRM | Michael | 019 |
 | Confirmar el mapeo de `Estado` al enum (propuesta en F-01) | Mani | F-01 |
 
 ### Resueltas
@@ -79,7 +77,10 @@ Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje
   Las hojas no se estandarizan: cada programa declara su plantilla de lead (ADR 0019, ticket 016).
 - 16-sep · **"Todos ven todo": sí** (Mani). ADR 0009 firme.
 - 16-sep · **Closers activos: Andrea y Maru** (Michael; Jerónimo aparece como responsable de leads, sin confirmar).
-- 16-sep · **Abonos siempre en USD** (Michael). La columna `moneda` se mantiene y vale `USD`.
+- 16-sep · **Abonos siempre en USD** (Michael). La columna `moneda` se mantiene y vale `USD`. Un
+  pago en COP lo convierte el closer al registrarlo (Mani).
+- 16-sep · **Usuarios reales (closers y managers) se cargan desde la UI al salir a producción**
+  (Mani). No hace falta la lista ahora; el 015 debe permitir crear ambos roles.
 - 16-sep · **`Estado` es la clasificación del lead** (Michael): decide a qué pestaña derivada se copia la fila.
 - 16-sep · **Importar el histórico de C2: sí** (Mani). Falta el detalle de reconciliación.
 

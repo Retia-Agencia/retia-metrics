@@ -12,6 +12,9 @@ status: bloqueado
 Quien lo necesite descarga lo que ve en el dashboard para compartirlo fuera de la app.
 
 ## Bloqueado por
+**Mani, 16-sep: va de último.** Idea inicial: un formato parecido al reporte diario que el equipo
+ya comparte hoy (los reportes de Mike). Se decide al llegar aquí.
+
 Decisión de formato (PDF, PNG o CSV) y de quién puede tomarlo (`docs/spec.md` §7). CSV no
 necesita dependencias; PDF/PNG sí (ADR 0006).
 
