@@ -210,6 +210,15 @@ mismo valor que se copia a sus registros nativos del CRM cuando esta logueado (A
 ADR 0009 ve el mismo dashboard que un gerente, pero sigue sin poder entrar a rutas exclusivas de
 gerente como `/ajustes/fuentes` (ADR 0003).
 
+**Responsable**:
+El closer a cargo de una persona. Lo asigna el CRM, no la hoja, y una persona puede estar sin
+responsable mientras nadie la toma.
+_Avoid_: "dueno del lead", "asignado".
+
+**Alta manual**:
+Una persona que un closer crea en el CRM porque llego sin pasar por el formulario (WhatsApp,
+masivos). Cuenta como persona del programa, pero no como lead de pauta.
+
 **BDR**:
 Quien agenda y rescata pipeline. No cierra en frio.
 

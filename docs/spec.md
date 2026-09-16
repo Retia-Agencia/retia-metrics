@@ -119,9 +119,9 @@ donde vive esta información.
       documentadas: qué se reconcilia y qué se descarta se define al abrir el ticket.
 - [x] Los leads se sincronizan desde Sheets (**confirmado por Michael el 16-sep**, ADR 0004 queda
       firme). Cada fuente declara sus columnas; no se exige que las hojas tengan la misma forma.
-- [ ] Qué pasa si el closer no encuentra al lead (llegó por WhatsApp directo o por masivos sin
-      aplicar). **Michael, 16-sep:** todo lead tiene un closer responsable y el closer lo asigna en
-      la plataforma, "como en Kapso". Falta decidir cómo convive con ADR 0004 (`/grill-with-docs`).
+- [x] Qué pasa si el closer no encuentra al lead (llegó por WhatsApp directo o por masivos sin
+      aplicar). **Resuelto 16-sep (ADR 0021):** el closer lo crea en el CRM y queda como su
+      responsable; toda persona puede tener un responsable que se asigna en la app (ticket 026).
 - [ ] Formato del snapshot (PDF, PNG o CSV) y quién puede tomarlo. Va de último; idea inicial:
       parecido al reporte diario que el equipo ya comparte.
 - [ ] Si los closers pueden agregar recursos o solo verlos. Por defecto: solo gerentes editan.

@@ -254,8 +254,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 1. [ ] **Probar el login con una cuenta real** en local y en produccion; despues borrar el
        cliente OAuth **web** viejo de `google-workspace-mcp` (el de escritorio es del MCP de Mani).
-2. [ ] **`/grill-with-docs`: responsable del lead y alta manual de leads** (Michael, 16-sep) contra
-       ADR 0004. Sale un ADR y, si hace falta, un ticket nuevo. Bloquea el 003.
+2. [x] **`/grill-with-docs`: responsable del lead y alta manual** — hecho 16-sep: ADR 0021 y
+       ticket 026 (depende de 015, bloquea 003).
 3. [ ] **Probar `/api/cron/sync` en produccion** con el `CRON_SECRET` (`production` ya esta
        sembrada; esto escribe leads reales, pedir ok). Sembrar tambien `dev`
        (`npm run seed:datos`) y hacer la prueba manual del 010 (programas en el sidebar).

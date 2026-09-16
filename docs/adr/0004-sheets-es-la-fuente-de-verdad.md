@@ -16,3 +16,6 @@ El costo es real y hay que asumirlo: toda la complejidad del mapeo de columnas, 
 bitacora de cambios y la cola de escritura existe por esta decision. La alternativa (la app como
 duena de los datos, con Sheets como export) seria mucho mas simple de construir y es exactamente
 lo que el equipo no usaria.
+
+**Acotado por ADR 0021 (16-sep-2026):** esta decision cubre lo que captura el formulario. El
+responsable de una persona y las altas manuales son del CRM.

@@ -32,7 +32,8 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [ ] | 018 | [Esquema del registro + abonos](./018-esquema-registro-y-abonos.md) | 012, 017 | todo |
 | [ ] | 002 | [cohorteActiva + registrarLlamada](./002-cohorte-activa-y-mutacion-registro.md) | 018 | todo |
 | [ ] | 019 | [Registrar abono](./019-registrar-abono.md) | 018 | todo |
-| [ ] | 003 | [Pantalla /mi-dia](./003-pantalla-mi-dia-registro.md) | 002, 019, 015 | todo |
+| [ ] | 026 | [Responsable + alta manual](./026-responsable-y-alta-manual.md) (ADR 0021) | 015 | todo |
+| [ ] | 003 | [Pantalla /mi-dia](./003-pantalla-mi-dia-registro.md) | 002, 019, 015, 026 | todo |
 | [ ] | 007 | [Alta de los closers reales](./007-onboarding-closer-id.md) | 015 | todo · operación |
 
 ## F2 · Métricas
@@ -68,11 +69,13 @@ Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje
 | Formato del snapshot y quién lo toma. **Va de último** (Mani, 16-sep); idea: parecido al reporte diario actual | Mani | 021 |
 | ¿Closers pueden crear plataformas y recursos? (hoy: no) | Mani | 013, 023 |
 | Qué se reconcilia y qué se descarta del histórico de C2 (importar: **sí**) | Mani | ticket futuro |
-| **Alcance nuevo:** todo lead tiene un closer responsable, y el closer crea o se asigna leads en el CRM ("como en Kapso"). Choca con ADR 0004: pasar por `/grill-with-docs` | Mani | 003, 015, ticket nuevo |
 | Confirmar el mapeo de `Estado` al enum (propuesta en F-01) | Mani | F-01 |
 
 ### Resueltas
 
+- 16-sep · **Responsable y alta manual viven en el CRM** (Mani, `/grill-with-docs`; ADR 0021, ticket 026).
+  ADR 0004 cubre solo lo que captura el formulario. Closer toma personas libres, gerente reasigna;
+  "sin responsable" es válido; las personas manuales cuentan en el embudo pero no en el CPL.
 - 16-sep · **Leads por sync con Sheets: sí** (Michael). ADR 0004 firme; la deuda del sync sigue vigente.
   Las hojas no se estandarizan: cada programa declara su plantilla de lead (ADR 0019, ticket 016).
 - 16-sep · **"Todos ven todo": sí** (Mani). ADR 0009 firme.

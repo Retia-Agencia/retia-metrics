@@ -168,6 +168,8 @@ flowchart LR
     T002 --> T003["003 /mi-dia"]
     T019 --> T003
     T015 --> T003
+    T015 --> T026["026 responsable + alta manual"]
+    T026 --> T003
     T015 --> T007["007 onboarding closers reales"]
     T008 --> T020["020 días hábiles + meta dinámica"]
     T018 --> T004["004 consultas dashboard"]

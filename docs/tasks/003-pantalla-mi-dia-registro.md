@@ -2,7 +2,7 @@
 id: 003
 fase: F1
 serves: "spec §4 pasos 1-4; criterio 1"
-depends: [002, 019, 015]
+depends: [002, 019, 015, 026]
 status: todo
 ---
 
@@ -32,6 +32,6 @@ venta con su primer abono; también puede registrar un abono nuevo sobre una ven
 ## Notas
 Los montos se muestran con su moneda al lado.
 
-**Michael, 16-sep:** todo lead tiene un closer responsable, y el closer crea o se asigna el lead
-en la plataforma ("como en Kapso"). Eso agrega "crear lead" y "asignar responsable" a esta
-pantalla, pero choca con ADR 0004: se define en `/grill-with-docs` antes de construir 003.
+**Responsable y alta manual (ADR 0021, ticket 026):** esta pantalla agrega "tomar persona"
+(asignarse una sin responsable), "crear persona" (alta manual) y muestra el responsable de cada
+resultado del buscador. La lógica vive en 026; aquí solo va la UI.
