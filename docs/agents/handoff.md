@@ -47,7 +47,10 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
   **Siguiente sesion, en orden:**
   1. ~~Migraciones 0002 y 0003 en `dev`~~ **aplicadas y verificadas el 16-sep** (4 migraciones,
-     `trm_cohorte`, `estado_cohorte`, `change_log.user_id`, 7 plataformas). Falta `production`.
+     `trm_cohorte`, `estado_cohorte`, `change_log.user_id`, 7 plataformas). **`production` tambien,
+     el 16-sep**, desde el SQL Editor de Neon en una sola transaccion, registrando las dos filas
+     en `drizzle.__drizzle_migrations` con los mismos hash que `dev` (verificado: 4 migraciones,
+     7 plataformas). Sigue sin confirmar que la `DATABASE_URL` de Vercel Production sea esa rama.
      Detalle original: Mani aplica las migraciones 0002 y 0003 en la rama `dev` (`npm run db:migrate` con el
      `.env.local` actual), prueba la app y despues las lleva a `production` (ADR 0018). Hasta
      entonces el codigo nuevo no corre contra ninguna base desplegada: `main` despliega a
