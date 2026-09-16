@@ -22,8 +22,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   - **F-03 NO hecho:** con `neon-http` no hay advisory locks de sesion. Diseno completo en el
     tracker; necesita migracion (va a `dev`), y conviene juntarla con F-07.
   - **Mensaje para Michael:** redactado en la sesion, sin enviar (Mani lo revisa).
-  - Queda un `.env.local.bak-*` con la URL vieja de `production`: es el respaldo unico de
-    `lib-env.sh`, a proposito.
+  - El respaldo `.env.local.bak-*` que dejo el cambio de URL se borro con
+    `npm run limpiar-respaldos` al cerrar.
 
 - **2026-09-16 — Overview del CRM, contrato de extension y re-plan completo en 5 fases.**
   Se reviso el repo entero, los grupos de WhatsApp "Ventas ComunicArte" y "Ventas JP Vieira", y
