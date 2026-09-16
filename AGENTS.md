@@ -114,7 +114,8 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 77 pasando hoy)
+- **Test:** `npm test` (Vitest, 93 pasando hoy). Los tests que necesitan base usan PGlite en
+  memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Run:** `npm run dev` (http://localhost:3000)
 

@@ -3,7 +3,7 @@ id: 011
 fase: F0
 serves: "ADR 0012 — el molde; reemplaza el ticket 001"
 depends: [008]
-status: todo
+status: done
 ---
 
 # 011 — El molde de catálogo, estrenado con plataformas de pago
@@ -25,6 +25,6 @@ la primera entidad que la usa es `plataformas_pago`.
 - Fuera: la pantalla (013).
 
 ## Done cuando
-- [ ] Ninguna función del molde hace `DELETE`.
-- [ ] El molde no conoce ninguna entidad concreta (genérico sobre tabla + esquema).
-- [ ] La migración se genera pero **no se aplica** contra Neon sin Mani.
+- [x] Ninguna función del molde hace `DELETE`.
+- [x] El molde no conoce ninguna entidad concreta (genérico sobre tabla + esquema).
+- [x] La migración se genera pero **no se aplica** contra Neon sin Mani.

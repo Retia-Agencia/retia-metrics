@@ -22,6 +22,13 @@
       "when": 1789593600000,
       "tag": "0002_renombrar_corte_a_cohorte",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789591296328,
+      "tag": "0003_catalogo_plataformas_pago",
+      "breakpoints": true
     }
   ]
 }

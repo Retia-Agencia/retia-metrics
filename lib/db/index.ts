@@ -39,3 +39,4 @@ export const db = new Proxy({} as DB, {
 });
 
 export { schema };
+export type { Db } from "./tipos";

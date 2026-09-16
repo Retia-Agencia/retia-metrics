@@ -16,11 +16,11 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 008 | [Renombrar Corte a Cohorte](./008-renombrar-corte-a-cohorte.md) | — | done · 16-sep (migración 0002 sin aplicar) |
 | [x] | 009 | [Test guardián de slugs](./009-test-guardian-de-slugs.md) | — | done · 16-sep (`it.fails` hasta 010) |
 | [x] | 010 | [Programas dinámicos](./010-programas-dinamicos.md) | 008, 009 | done · 16-sep (prueba manual en base real pendiente) |
-| [ ] | 011 | [Molde de catálogo + plataformas de pago](./011-molde-de-catalogo-y-plataformas.md) | 008 | todo · **listo** |
-| [ ] | 012 | [Catálogos de motivos y orígenes](./012-catalogos-motivos-y-origenes.md) | 011 | todo |
-| [ ] | 013 | [Pantalla de catálogos](./013-pantalla-de-catalogos.md) | 011 | todo |
-| [ ] | 014 | [Administrar programas y cohortes](./014-administrar-programas-y-cohortes.md) | 010, 011 | todo |
-| [ ] | 015 | [Administrar usuarios y closers](./015-administrar-usuarios-y-closers.md) | 011 | todo |
+| [x] | 011 | [Molde de catálogo + plataformas de pago](./011-molde-de-catalogo-y-plataformas.md) | 008 | done · 16-sep (migración 0003 sin aplicar; ADR 0020) |
+| [ ] | 012 | [Catálogos de motivos y orígenes](./012-catalogos-motivos-y-origenes.md) | 011 | todo · **listo** |
+| [ ] | 013 | [Pantalla de catálogos](./013-pantalla-de-catalogos.md) | 011 | todo · **listo** |
+| [ ] | 014 | [Administrar programas y cohortes](./014-administrar-programas-y-cohortes.md) | 010, 011 | todo · **listo** |
+| [ ] | 015 | [Administrar usuarios y closers](./015-administrar-usuarios-y-closers.md) | 011 | todo · **listo** |
 | [ ] | 016 | [Plantilla de lead + fuentes configurables](./016-fuentes-configurables.md) (ADR 0019) | 014 | todo · puede esperar |
 
 ## F1 · Llamadas y ventas
@@ -28,7 +28,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 001 | [plataformaPago como enum](./001-reemplazado-plataforma-pago.md) | — | reemplazado por 011 |
-| [ ] | 017 | [Productos por programa](./017-productos-por-programa.md) | 011 | todo |
+| [ ] | 017 | [Productos por programa](./017-productos-por-programa.md) | 011 | todo · **listo** |
 | [ ] | 018 | [Esquema del registro + abonos](./018-esquema-registro-y-abonos.md) | 012, 017 | todo |
 | [ ] | 002 | [cohorteActiva + registrarLlamada](./002-cohorte-activa-y-mutacion-registro.md) | 018 | todo |
 | [ ] | 019 | [Registrar abono](./019-registrar-abono.md) | 018 | todo |
@@ -39,7 +39,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 020 | [Días hábiles + meta dinámica](./020-dias-habiles-y-meta-dinamica.md) | 008 | todo |
+| [ ] | 020 | [Días hábiles + meta dinámica](./020-dias-habiles-y-meta-dinamica.md) | 008 | todo · **listo** |
 | [ ] | 004 | [Consultas del dashboard](./004-consultas-dashboard.md) | 018, 020 | todo |
 | [ ] | 005 | [Dashboard en /programas/[slug]](./005-dashboard-real-programas.md) | 004, 010 | todo |
 | [ ] | 006 | [Historial de una persona](./006-historial-persona.md) | 005 | todo |

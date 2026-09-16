@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgEnum,
   pgTable,
@@ -276,9 +277,37 @@ export const changeLog = pgTable(
     valorNuevo: text("valor_nuevo"),
     detectadoEn: timestamp("detectado_en", { withTimezone: true }).notNull().defaultNow(),
     origen: origenCambioEnum("origen").notNull().default("sync"),
+    /**
+     * Quien hizo el cambio desde la app. Nullable a proposito: en los cambios del
+     * sync no hay usuario (`null`). El molde de catalogo (ADR 0012) lo llena, y
+     * ADR 0016 lo necesita porque los closers crean productos y hay que poder
+     * auditar quien creo cada uno. `set null` para no perder la bitacora si algun
+     * dia se desactiva/borra al usuario.
+     */
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
     syncRunId: uuid("sync_run_id").references(() => syncRuns.id, { onDelete: "set null" }),
   },
   (t) => [index("change_log_detectado_idx").on(t.detectadoEn)],
+);
+
+// ─────────────────────────────────────────────────────────── catalogos
+
+/**
+ * Plataformas de pago (PayPal, MercadoPago, ...). Primera entidad del molde de
+ * catalogo (ADR 0012): instancia editable desde la app, nunca un enum. El codigo
+ * no decide nada segun su valor, asi que vive como fila.
+ */
+export const plataformasPago = pgTable(
+  "plataformas_pago",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nombre: text("nombre").notNull(),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  // Unicidad del nombre SIN distinguir mayusculas: 'Paypal' y 'PayPal' no pueden
+  // partir las metricas en dos plataformas distintas.
+  (t) => [uniqueIndex("plataformas_pago_nombre_idx").on(sql`lower(${t.nombre})`)],
 );
 
 // ─────────────────────────────────────────────────────────── tipos
@@ -295,3 +324,4 @@ export type Venta = typeof sales.$inferSelect;
 export type Pauta = typeof adSpend.$inferSelect;
 export type CorridaSync = typeof syncRuns.$inferSelect;
 export type Cambio = typeof changeLog.$inferSelect;
+export type PlataformaPago = typeof plataformasPago.$inferSelect;

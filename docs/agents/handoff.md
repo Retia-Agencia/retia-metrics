@@ -33,6 +33,29 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     de C2 (estaba escrita a mano); vuelve cuando exista `cohorteActiva()` (ticket 002).
     **Pendiente de Mani:** insertar un programa en la rama `dev` y confirmar con login real que
     aparece en el sidebar y su ruta responde.
+  - **011 hecho.** Molde en `lib/catalogo/molde.ts` (`moldeDeCatalogo`, generico: `listar`,
+    `crear`, `editar`, `desactivar`, cada escritura con su `change_log` y nunca `DELETE`) y
+    `lib/catalogo/plataformas.ts` (esquema zod unico + `plataformasDePago(db?)`). Tabla
+    `plataformas_pago` con nombre unico sin distinguir mayusculas y `change_log.user_id`.
+    Migracion `drizzle/0003_catalogo_plataformas_pago.sql` con la semilla de 7 plataformas,
+    **sin aplicar**. La base se recibe por parametro; `lib/db/ejecutar-juntas.ts` agrupa
+    escrituras con `batch` (neon-http) o `transaction` (PGlite).
+  - **ADR 0020 (decision de Mani):** los tests de base corren contra PGlite en memoria
+    (`@electric-sql/pglite` 0.5.8, devDependency). `tests/helpers/base-de-prueba.ts` aplica todas
+    las migraciones, asi que `npm test` tambien prueba que 0000-0003 aplican en Postgres real.
+    93 tests en ~4 s.
+
+  **Siguiente sesion, en orden:**
+  1. Mani aplica las migraciones 0002 y 0003 en la rama `dev` (`npm run db:migrate` con el
+     `.env.local` actual), prueba la app y despues las lleva a `production` (ADR 0018). Hasta
+     entonces el codigo nuevo no corre contra ninguna base desplegada: `main` despliega a
+     produccion, asi que **no hacer push antes de migrar production**.
+  2. Prueba manual del 010: insertar un programa en `dev` y verlo en el sidebar con login real.
+  3. Listos ahora: 012, 013, 014, 015, 017 y 020. Orden sugerido por el plan: 012 → 013 → 015 →
+     014 → 017. Los pendientes de la sesion anterior (cuenta de servicio, S-10, F-03 + F-07)
+     siguen abiertos.
+  4. Deuda chica del 011: `leerFila` con un id que no es uuid revienta en Postgres (22P02 →
+     500). Validar el id con zod en el borde cuando exista la pantalla (013).
 
 - **2026-09-16 (tarde) — Sesion de riesgos: S-14, CRON_SECRET, B-01, decisiones de negocio.**
 
