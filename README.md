@@ -1,7 +1,7 @@
 # Retia Metrics
 
 Dashboard comercial interno de Retia para los programas **Comunicarte** y **Tactical Investor**.
-Lee las BBDD de Google Sheets, calcula el embudo, proyecta el corte y deja que los closers
+Lee las BBDD de Google Sheets, calcula el embudo, proyecta la cohorte y deja que los closers
 registren sus llamadas.
 
 El contrato para trabajar en este repo esta en [`AGENTS.md`](./AGENTS.md): las reglas que no se

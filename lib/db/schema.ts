@@ -43,7 +43,7 @@ export const resultadoLlamadaEnum = pgEnum("resultado_llamada", [
   "perdida",
 ]);
 
-export const estadoCorteEnum = pgEnum("estado_corte", ["cerrado", "activo", "futuro"]);
+export const estadoCohorteEnum = pgEnum("estado_cohorte", ["cerrado", "activo", "futuro"]);
 export const tipoFuenteEnum = pgEnum("tipo_fuente", ["google_sheet", "upload"]);
 export const estadoSyncEnum = pgEnum("estado_sync", ["corriendo", "ok", "error"]);
 export const origenCambioEnum = pgEnum("origen_cambio", ["sync", "app", "upload"]);
@@ -61,7 +61,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-// ─────────────────────────────────────────────────────────── programas y cortes
+// ─────────────────────────────────────────────────────────── programas y cohortes
 
 export const programs = pgTable("programs", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -82,11 +82,11 @@ export const cohorts = pgTable(
     metaCupos: integer("meta_cupos").notNull(),
     precioUsd: numeric("precio_usd", { precision: 10, scale: 2 }).notNull(),
     fechaInicioClases: date("fecha_inicio_clases").notNull(),
-    /** Cada corte se vende hasta el mismo dia en que arranca clases, inclusive. */
+    /** Cada cohorte se vende hasta el mismo dia en que arranca clases, inclusive. */
     fechaCierreVentas: date("fecha_cierre_ventas").notNull(),
-    /** Editable por corte. Los links de pago se generan manualmente segun la TRM del momento. */
-    trmCorte: numeric("trm_corte", { precision: 10, scale: 2 }).notNull().default("4000"),
-    estado: estadoCorteEnum("estado").notNull().default("futuro"),
+    /** Editable por cohorte. Los links de pago se generan manualmente segun la TRM del momento. */
+    trmCohorte: numeric("trm_cohorte", { precision: 10, scale: 2 }).notNull().default("4000"),
+    estado: estadoCohorteEnum("estado").notNull().default("futuro"),
     notas: text("notas"),
   },
   (t) => [uniqueIndex("cohorts_programa_codigo_idx").on(t.programId, t.codigo)],
@@ -286,7 +286,7 @@ export const changeLog = pgTable(
 export type Usuario = typeof users.$inferSelect;
 export type NuevoUsuario = typeof users.$inferInsert;
 export type Programa = typeof programs.$inferSelect;
-export type Corte = typeof cohorts.$inferSelect;
+export type Cohorte = typeof cohorts.$inferSelect;
 export type Fuente = typeof sources.$inferSelect;
 export type Persona = typeof people.$inferSelect;
 export type NuevaPersona = typeof people.$inferInsert;

@@ -15,6 +15,13 @@
       "when": 1787160592909,
       "tag": "0001_productive_alex_power",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789593600000,
+      "tag": "0002_renombrar_corte_a_cohorte",
+      "breakpoints": true
     }
   ]
 }

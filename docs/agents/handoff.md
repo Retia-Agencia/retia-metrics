@@ -7,6 +7,17 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-16 (noche) — Arranca la implementacion de F0 (tickets 008 → 009 → 010 → 011).**
+  Cada ticket lo implementa Kiro en segundo plano con TDD; se revisa contra su "Done cuando"
+  antes de cerrarlo, y va en un commit propio.
+
+  - **008 hecho.** Corte → Cohorte en schema, UI, seed y README; test
+    `tests/esquema-cohorte.test.ts`. Migracion `drizzle/0002_renombrar_corte_a_cohorte.sql`
+    escrita a mano (solo `RENAME`), snapshot coherente (`drizzle-kit check` limpio y `generate`
+    no ve cambios). **Sin aplicar**: la aplica Mani en la rama `dev` de Neon y despues en
+    `production` (ADR 0018). Ojo: `npm run seed:datos` falla contra una base sin esta migracion
+    (el seed ya escribe `trm_cohorte`).
+
 - **2026-09-16 (tarde) — Sesion de riesgos: S-14, CRON_SECRET, B-01, decisiones de negocio.**
 
   **Siguiente sesion, en orden:**

@@ -5,7 +5,7 @@ import { programs, cohorts, sources } from "../lib/db/schema";
 import { MAPEO_FORMULARIO } from "../lib/sheets/mapeo";
 
 /**
- * Siembra programas, cortes y fuentes con los datos reales.
+ * Siembra programas, cohortes y fuentes con los datos reales.
  * Idempotente: correrlo dos veces no duplica nada.
  */
 
@@ -62,8 +62,8 @@ async function main() {
     }
   }
 
-  // ── Cortes ──────────────────────────────────────────────────
-  const defsCortes = [
+  // ── Cohortes ──────────────────────────────────────────────────
+  const defsCohortes = [
     {
       programa: "comunicarte", codigo: "C1", metaCupos: 30, precioUsd: "697.00",
       fechaInicioClases: "2026-08-11", fechaCierreVentas: "2026-08-11", estado: "cerrado" as const,
@@ -86,17 +86,17 @@ async function main() {
     },
   ];
 
-  for (const { programa, ...d } of defsCortes) {
+  for (const { programa, ...d } of defsCohortes) {
     const programId = idPrograma[programa];
     const [existe] = await db
       .select().from(cohorts)
       .where(and(eq(cohorts.programId, programId), eq(cohorts.codigo, d.codigo))).limit(1);
     if (existe) {
       await db.update(cohorts).set({ ...d, programId }).where(eq(cohorts.id, existe.id));
-      console.log(`  = corte ${programa} ${d.codigo}`);
+      console.log(`  = cohorte ${programa} ${d.codigo}`);
     } else {
       await db.insert(cohorts).values({ ...d, programId });
-      console.log(`  + corte ${programa} ${d.codigo}`);
+      console.log(`  + cohorte ${programa} ${d.codigo}`);
     }
   }
 

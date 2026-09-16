@@ -8,7 +8,7 @@ export default async function ComunicartePage() {
   return (
     <PageShell
       titulo="Comunicarte"
-      descripcion="Corte C2 — arranca y cierra ventas el 22 de septiembre de 2026."
+      descripcion="Cohorte C2 — arranca y cierra ventas el 22 de septiembre de 2026."
       acciones={<ProgramSwitcher />}
     >
       <ProximaFase

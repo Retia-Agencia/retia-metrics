@@ -3,7 +3,7 @@ id: 008
 fase: F0
 serves: "ADR 0014"
 depends: []
-status: todo
+status: done
 ---
 
 # 008 — Renombrar Corte a Cohorte en código y base
@@ -23,6 +23,6 @@ No queda la palabra "corte" en el código, la UI ni la base (salvo insumos hist�
   aplica Mani a mano con `npm run db:migrate`.
 
 ## Done cuando
-- [ ] `grep -rni corte lib app components scripts tests` no devuelve nada.
-- [ ] La migración no borra ni recrea nada (solo `RENAME`).
-- [ ] `npm test`, `npm run typecheck` y `npm run lint` limpios.
+- [x] `grep -rni corte lib app components scripts tests` no devuelve nada.
+- [x] La migración no borra ni recrea nada (solo `RENAME`).
+- [x] `npm test`, `npm run typecheck` y `npm run lint` limpios.
