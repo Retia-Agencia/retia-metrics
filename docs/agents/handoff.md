@@ -7,7 +7,16 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
-- **2026-09-16 (tarde) — Sesion de riesgos: S-14 local, CRON_SECRET local, B-01.**
+- **2026-09-16 (tarde) — Sesion de riesgos: S-14, CRON_SECRET, B-01.**
+  - **Vercel (cierre de la sesion):** el proyecto es `agencia-dani/retia-metrics`, cuenta de
+    Daniel (`danieltovartech-4302`, la CLI de esta maquina quedo logueada con ella; para volver a
+    `manigreeen`: `vercel logout` + `vercel login`). Repo enlazado (`.vercel/repo.json`). Preview
+    ya usa la rama `dev`; Production conserva su `DATABASE_URL` (valor no verificable, ver ADR
+    0018); `CRON_SECRET` cargado en Production, **falta redeploy** para que aplique. Mientras,
+    `/api/cron/sync` responde 500 (falla cerrado, esperado). Faltan
+    `GOOGLE_SERVICE_ACCOUNT_JSON_B64` y `AUTH_URL` (S-10).
+  - El commit `f98a1b0` aparecio en `origin/main` y se desplego a produccion sin que el agente
+    hiciera push. Origen sin aclarar.
   - **S-14:** la base de `.env.local` resulto ser el proyecto Neon `retia-metrics-crm`
     (org Retia-Agencia, creado el 15-sep), del fork y casi vacio (0 personas, 1 usuario). Se
     creo la rama `dev` y `.env.local` ya apunta a ella (ADR 0018). `neonctl` quedo autenticado
@@ -179,8 +188,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 - [ ] **Ticket 008 · Renombrar Corte a Cohorte** (F0). Sin dependencias.
 - [ ] **Ticket 009 · Test guardian de slugs** (F0). Sin dependencias.
-- [ ] **S-14 · Vercel** — local ya separado (ADR 0018). Falta conectar la cuenta de Vercel del
-      deployment y dejar Production → `production`, Preview → `dev`.
+- [ ] **Redeploy de produccion** para que tome `CRON_SECRET`, y cargar
+      `GOOGLE_SERVICE_ACCOUNT_JSON_B64` y `AUTH_URL` (S-10) antes o junto con ese deploy.
 - [ ] **F-05 · Migrar las fechas ya guardadas.** El codigo ya escribe con `-05:00` explicito,
       pero las filas viejas quedaron en la zona del servidor y `compararCampos` no mira fechas,
       asi que un `npm run sync` normal **no** las repara. Decidir entre migracion puntual o
@@ -215,13 +224,11 @@ Bloqueados por una decision de negocio (hay que preguntarle a Michael):
 
 ### Later (someday / not yet scoped)
 
-- [ ] **S-14** — Ver "Now": falta solo la parte de Vercel.
-- [ ] **S-10** — Fijar `AUTH_URL` en produccion. No aplica hasta que este fork tenga su propio
-      proyecto de Vercel.
+- [x] **S-14** — resuelto el 16-sep (ADR 0018).
+- [ ] **S-10** — Fijar `AUTH_URL=https://retia-metrics-seven.vercel.app` en Production.
 - [ ] **S-12** — Los route handlers dependen de `SameSite=Lax`, sin CSRF propio. Se resuelve
       migrando las mutaciones a Server Actions.
-- [ ] **`CRON_SECRET`** — en `.env.local` desde el 16-sep (`npm run cron-secret`). Falta
-      cargarlo en Vercel con `npm run cron-secret -- --vercel`.
+- [x] **`CRON_SECRET`** — en `.env.local` y en Vercel Production desde el 16-sep.
 - [x] **Pantalla para administrar usuarios.** Pasa a ser el ticket 015.
 - [ ] **Las fuentes de `calls`, `sales` y `ad_spend`** estan sembradas pero inactivas: sus
       encabezados no se han inspeccionado y esta prohibido adivinar mapeos. Empezar con

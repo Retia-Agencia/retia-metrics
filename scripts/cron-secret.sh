@@ -46,8 +46,20 @@ else
 fi
 
 if $vercel; then
-  [[ -f .vercel/project.json ]] || { echo "  ✗ Este repo no esta enlazado a Vercel. Corre: vercel link"; exit 1; }
-  grep -E '^CRON_SECRET=' "$ARCHIVO" | cut -d= -f2- | tr -d '"\n' \
-    | vercel env add CRON_SECRET production --force --sensitive >/dev/null
+  # La CLI actual enlaza con .vercel/repo.json; las versiones viejas con project.json.
+  enlace="$(python3 -c 'import json,os
+for f in (".vercel/repo.json", ".vercel/project.json"):
+    if os.path.exists(f):
+        d = json.load(open(f)); p = d["projects"][0] if "projects" in d else d
+        print(p["projectId"] if "projectId" in p else p["id"], p["orgId"]); break' 2>/dev/null || true)"
+  [[ -n "$enlace" ]] || { echo "  ✗ Este repo no esta enlazado a Vercel. Corre: vercel link"; exit 1; }
+  read -r proyecto equipo <<<"$enlace"
+  # Por la API y no con `vercel env add`: la CLI pide confirmaciones que un script no puede
+  # responder. upsert=true reemplaza el valor si la variable ya existe.
+  python3 -c 'import re,json,sys
+s = open(sys.argv[1]).read()
+v = re.search(r"^CRON_SECRET=\"?([^\"\n]+)", s, re.M).group(1)
+print(json.dumps({"key": "CRON_SECRET", "value": v, "type": "sensitive", "target": ["production"]}))' "$ARCHIVO" \
+    | vercel api "/v10/projects/$proyecto/env?teamId=$equipo&upsert=true" -X POST --input - --silent
   echo "  ✓ CRON_SECRET cargado en Vercel (Production). Hace falta un redeploy para que aplique."
 fi

@@ -89,11 +89,14 @@ Detalle en [docs/agents/handoff.md](../agents/handoff.md), sección Roadmap.
 - [ ] F-07 · Corrida de sync atribuida a la primera fuente
 - [x] B-01 · `lib/sheets/sync.ts` sin tests → decisión extraída a `lib/sheets/plan-sync.ts`, 6 tests (16-sep)
 - [ ] S-06 + B-06 · Retención de PII y `people.raw` sin techo
-- [ ] S-14 · Producción y preview comparten base. **Local resuelto 16-sep** (ADR 0018: rama Neon
-      `dev`, `.env.local` apunta ahí; las migraciones de F0 ya pueden ir a `dev`). Falta en Vercel
-      (cuenta aún no conectada): Production → rama `production`, Preview → rama `dev`.
-- [ ] `CRON_SECRET`: **en `.env.local` desde el 16-sep** (`npm run cron-secret`). Falta Vercel:
-      `vercel link` al proyecto real y `npm run cron-secret -- --vercel`.
+- [x] S-14 · Producción y preview comparten base → resuelto 16-sep (ADR 0018): local y Preview en
+      la rama `dev`, Production en `production`. Queda verificar el valor de Production (ver ADR).
+- [x] `CRON_SECRET` en `.env.local` y en Vercel Production (16-sep, `npm run cron-secret`).
+      Aplica en el próximo deploy de producción.
+- [ ] `GOOGLE_SERVICE_ACCOUNT_JSON_B64` falta en `.env.local` y en Vercel: sin ella el cron corre
+      pero falla al leer las hojas. `npm run cuenta-servicio` con el JSON de Google Cloud.
+- [ ] S-10 · Fijar `AUTH_URL=https://retia-metrics-seven.vercel.app` en Production y confirmar ese
+      callback en el OAuth de Google.
 - [ ] Prueba manual de S-02 (quitar usuario)
 
 ## Futuro (validado, fuera del MVP)

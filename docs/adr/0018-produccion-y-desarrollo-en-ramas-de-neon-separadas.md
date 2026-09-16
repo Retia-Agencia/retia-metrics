@@ -1,6 +1,6 @@
 # 0018 — Produccion y desarrollo usan ramas de Neon separadas
 
-**Fecha:** 2026-09-16 · **Estado:** aceptado. Local aplicado el 16-sep; falta Vercel (S-14)
+**Fecha:** 2026-09-16 · **Estado:** aceptado y aplicado el 16-sep (S-14)
 
 Hasta hoy un solo `DATABASE_URL` servia a todo: produccion en Vercel, los previews y el
 `.env.local` de desarrollo. Cualquier `npm run db:migrate` o `npm run seed:datos` corrido en local
@@ -39,6 +39,10 @@ que el riesgo deja de ser teorico.
 - Al crear `dev`, `production` tenia 0 personas, 1 usuario y las migraciones 0000-0001.
 - `.env.local` ya apunta a `dev`. Para ver o cambiar ramas: `npx neonctl branches list
   --project-id calm-frog-89494611` (login con `npx neonctl auth`).
-- **Falta:** el deployment vive en una cuenta de Vercel que no esta conectada a esta maquina.
-  Ahi hay que dejar Production con la URL de `production` y Preview con la de `dev`. Hasta
-  verificar eso, las migraciones de F0 se aplican solo a `dev`.
+- Vercel: proyecto `agencia-dani/retia-metrics` (`prj_7XSmQuw14kAiqB8B6IP4V9ITqVU8`, cuenta de
+  Daniel, dominio `retia-metrics-seven.vercel.app`). El 16-sep la `DATABASE_URL` compartida quedo
+  solo en Production y se creo otra solo para Preview con la URL de `dev`.
+- **Sin verificar:** el valor de la `DATABASE_URL` de Production es un secreto que Vercel no deja
+  leer. Todo indica que es la rama `production` (Neon y Vercel se configuraron la misma noche),
+  pero no se comprobo. Antes de la primera migracion a produccion, confirmarlo o volver a
+  cargarla explicitamente con la URL de `production`.
