@@ -1,132 +1,130 @@
-# spec — Retia CRM: registro de llamadas y ventas, sin WhatsApp
+# spec — Retia CRM: llamadas, ventas, métricas y recursos, sin WhatsApp
 
-> Un closer necesita registrar su llamada y su venta apenas cuelga, y logra que gerencia vea el
-> embudo del corte en tiempo real, sin WhatsApp, sin calendario compartido y sin pasar por el
-> Claude personal de Mike.
+> Un closer necesita registrar su llamada, su venta y cada abono apenas pasa, y encontrar el
+> brochure o el link de pago correcto sin preguntar en un grupo; gerencia necesita ver el embudo
+> de cada cohorte en vivo; y el negocio necesita agregar programas, closers y productos sin
+> esperar a un desarrollador.
+
+Última revisión: 16-sep-2026 (ADR 0012 a 0017). La versión anterior, centrada solo en el
+registro de llamadas, está en el historial de git.
 
 ## 1. Qué hace
 
-CRM interno de Retia donde los closers de Comunicarte y Tactical Investor registran cada llamada
-(un único resultado: agendada, show, no_show, reagendada, cerrada o perdida, más notas) y, cuando
-el resultado es cerrada, los datos de la venta en la misma pantalla (caja recaudada, precio del
-contrato, tipo de pago, plataforma de pago), contra un lead ya sincronizado desde Google Sheets. Cualquier closer o gerente puede entrar al
-perfil de una persona y ver el historial completo de sus llamadas, en orden. Un dashboard central,
-visible para cualquier closer o gerente (política "todos ven todo": incluye el comparativo entre
-closers), muestra en tiempo real cierres, tasas y caja por closer, por programa y por fecha (hoy,
-esta semana, o cualquier rango), sin generar ni depender de un PDF. Reemplaza WhatsApp, el
-calendario compartido y el second brain personal de Mike como el lugar donde vive esta información.
+CRM interno de Retia con cuatro pilares, construidos en este orden:
+
+0. **Contrato de extensión (la base).** Programas, cohortes, closers, productos, plataformas de
+   pago, motivos, orígenes del lead, fuentes y recursos son **instancias** que se crean y editan
+   desde la app. El código solo conoce **tipos** (ADR 0012). Un gerente agrega un programa
+   nuevo, con su hoja de Sheets, su Calendly, su web y sus recursos, sin tocar código; un closer
+   nuevo empieza a contar en las métricas apenas se le da de alta.
+1. **Llamadas y ventas de los closers.** El closer registra cada llamada contra un lead ya
+   sincronizado, con un único resultado (agendada, show, no_show, cancelada, reagendada,
+   compromiso_pago, cerrada, perdida; ADR 0015), una nota, el origen del lead y, según el
+   resultado, fecha de seguimiento o motivo. Si cerró, en la misma pantalla registra la venta
+   (producto, precio del contrato, plataforma) y su primer **abono**. Los pagos posteriores de
+   una venta se registran como abonos nuevos (ADR 0013). El comprobante es un link opcional
+   (ADR 0017).
+2. **Métricas para gerentes.** Un dashboard por programa, visible para cualquier closer o
+   gerente ("todos ven todo", ADR 0009), muestra por día, semana, cohorte y mes: agendas,
+   llamadas realizadas, % de show, ventas, % de cierre, caja recaudada, meta y meta dinámica,
+   por closer y por origen del lead. Se puede entrar al historial de cualquier persona. Se puede
+   descargar un snapshot de lo que se ve en pantalla.
+3. **Recursos centralizados.** Una pantalla con los links que el equipo usa a diario (brochures,
+   web del programa, guiones, formulario del RUT) y los enlaces de pago por monto y plataforma,
+   filtrables por programa, con marca de vigente e historial.
+4. **Nerd Stats para developers.** Un rol developer que ve todo y una vista de salud de la
+   herramienta: corridas de sync y sus errores, cambios recientes de configuración, versión
+   desplegada y estado del cron.
+
+Reemplaza WhatsApp, el calendario compartido y el second brain personal de Mike como el lugar
+donde vive esta información.
 
 ## 2. Qué NO hace
 
-- No reemplaza el sync de leads desde Google Sheets: los leads (formulario de aplicación) siguen
-  entrando por ahí, como hoy. ADR 0004 se mantiene para leads.
-- El dashboard en pantalla es el reporte y la fuente en vivo. No hay un pipeline de generación de
-  PDF a la Mike (revisar WhatsApp, contrastar comprobantes, armar el documento a mano). Lo que sí
-  se permite es tomar un **snapshot descargable del estado actual del dashboard** a demanda, para
-  quien necesite compartirlo fuera de la app: refleja lo que ya se ve en pantalla, no re-calcula ni
-  agrega nada nuevo. Decidido con Mani el 15-sep: reemplaza la restricción anterior de "ningún
-  reporte exportable".
-- No permite crear un comprador que no exista ya como lead sincronizado. Toda llamada se vincula a
-  una persona ya deduplicada por el sync.
-- No incluye el lead magnet de Juan Pablo ni el newsletter de SendGrid. Son iniciativas separadas
-  que salieron en la misma reunión, fuera de este alcance.
-- No migra retroactivamente el historial completo como parte del MVP. El import de los dos
-  consolidados de Michael (Comunicarte y Tactical) es una tarea de migración aparte, no bloqueante
-  para el lanzamiento (ver supuestos).
-- No redefine caja recaudada ni ventas cerradas: el CRM las captura con la misma definición que ya
-  rige el proyecto, no las cambia.
-- No conecta Calendly todavía. Cada closer podría en el futuro generar su propio token de Calendly
-  (confirmado: un token de un usuario individual solo trae los eventos de ese usuario) para que sus
-  llamadas agendadas aparezcan solas. Se deja para una segunda fase, no bloquea este MVP.
-- No conecta Kapso (WhatsApp) ni ninguna herramienta externa. La idea de mandar alertas o eventos a
-  Kapso queda anotada como dirección futura validada, no como trabajo de este spec.
-- No expone una API propia para que herramientas externas se conecten al CRM. Construir esa puerta
-  antes de que exista una herramienta real esperando del otro lado sería trabajo especulativo (ver
-  ADR 0006). Se construye cuando Calendly, Kapso o cualquier otra integración concreta la necesite.
-- No incluye recordatorios de seguimiento ("esto te toca hoy"). Los datos reales muestran que el
-  equipo ya sobrevive hoy a mano con estos follow-ups; se decidió no sumarlo a esta entrega por el
-  plazo del 22 de septiembre. Candidato claro para la siguiente iteración.
-- No incluye una vista tipo kanban del embudo. La prioridad fijada en la reunión fue velocidad
-  sobre estética, números y tablas primero; el kanban es una mejora visual, no una que resuelva un
-  problema nuevo.
+- No reemplaza el sync de leads desde Google Sheets: los leads siguen entrando por ahí
+  (ADR 0004 y 0008).
+- No genera el PDF narrativo de Mike. El dashboard es el reporte; lo único exportable es un
+  **snapshot** de lo que ya se ve en pantalla (decidido el 15-sep).
+- No permite crear un comprador que no exista ya como lead sincronizado.
+- No sube archivos: recursos y comprobantes son links (ADR 0017).
+- No convierte monedas: cada monto va con su moneda y la caja se suma por moneda.
+- No incluye el lead magnet de Juan Pablo ni el newsletter de SendGrid.
+- No migra el historial completo como parte del MVP (ver supuestos).
+- No conecta Calendly, Kapso, Typeform ni Addi todavía. El alta de un closer sí guarda su correo
+  de Calendly para que esa integración futura no requiera código.
+- No expone una API propia para herramientas externas (ADR 0006).
+- No envía recordatorios de seguimiento. Sí guarda la fecha de seguimiento, que es el dato que
+  esa función futura va a necesitar.
+- No incluye vista kanban ni calendario.
+- No gestiona el onboarding posterior a la venta (el Excel de Daniel Rincón).
 
 ## 3. Usuario
 
-Dos usuarios, dos momentos de tensión:
-
-- **Closer** (Andrea, Maru, Jero, y quien se sume): su momento de mayor tensión es justo al colgar
-  una llamada, cerró una venta o no. Hoy tiene que salir de ese momento a escribir un mensaje de
-  WhatsApp con el comprobante en vez de seguir con la siguiente llamada. El CRM le ahorra ese
-  cambio de contexto.
-- **Gerente** (Alejandro Carvajal, Daniel Tovar, Michael): su momento de mayor tensión es cuando
-  necesita saber "cómo vamos" del corte y hoy depende de que Mike arme el PDF a mano desde su
-  Claude. No puede consultarlo él mismo ni verificar los números.
+- **Closer** (Andrea, Maru, Jero, y quien se sume): su momento de mayor tensión es al colgar una
+  llamada. Hoy sale de ese momento a mandar un screenshot al grupo o a pedir un link de PayPal.
+- **Gerente** (Alejandro Carvajal, Daniel Tovar, Michael): su momento de mayor tensión es
+  preguntar en el grupo "¿cuántas calls, cuántos no-show, cuántas ventas hoy?" y depender de que
+  Mike arme el PDF.
+- **Developer** (Mani y quien mantenga la herramienta): necesita saber si el sync corrió, qué
+  falló y qué cambió en la configuración sin abrir la base a mano.
 
 ## 4. Flujo (5 pasos)
 
-1. El closer termina una llamada y entra al CRM con su cuenta (mismo login y roles que ya existen).
-2. Busca y selecciona el lead correspondiente entre los ya sincronizados desde Sheets. El corte
-   (cohorte) se asigna solo, según el corte activo del programa: el closer no lo elige.
-3. Registra el resultado de la llamada (agendada, show, no_show, reagendada, cerrada o perdida) y
-   una nota libre. Si el resultado es cerrada, en la misma pantalla aparecen los campos de venta:
-   caja recaudada, precio del contrato, tipo de pago (total/parcial) y plataforma de pago (lista
-   fija con opción "otro").
-4. El registro queda visible de inmediato en el dashboard central, sin pasos intermedios. El closer
-   que lo hizo queda identificado solo, tomado de su propia cuenta.
-5. Cualquier closer o gerente abre el dashboard y ve cierres, tasas y caja por closer, por
-   programa y por fecha, filtrando el rango que necesite.
+1. El closer termina una llamada y entra al CRM con su cuenta de Google.
+2. Busca al lead entre los ya sincronizados. La cohorte se asigna sola (la activa del programa).
+3. Registra resultado, origen y nota. Según el resultado aparece fecha de seguimiento, motivo, o
+   los campos de venta (producto, precio, plataforma, primer abono, link del comprobante). Si
+   falta un producto o una plataforma, la crea ahí mismo (productos) o se la pide a un gerente
+   (plataformas).
+4. El registro aparece de inmediato en el dashboard, atribuido al closer de la sesión.
+5. Cualquier closer o gerente abre el dashboard del programa, filtra por fecha y closer, y ve la
+   operación del día, la semana, la cohorte y el mes.
 
-## 5. Criterios de aceptación (3, verificables)
+## 5. Criterios de aceptación
 
-1. Dado un closer autenticado que acaba de colgar una llamada, cuando registra el resultado y (si
-   fue cerrada) los datos de la venta contra un lead ya sincronizado, entonces el registro queda
-   guardado con su closer, su corte y su programa correctos, y aparece en el dashboard sin usar
-   WhatsApp ni calendario compartido.
-2. Dado un cierre ya registrado por cualquier closer, cuando otro closer o un gerente abre el
-   dashboard, entonces ambos ven el mismo dato: monto de caja recaudada, precio del contrato,
-   closer y programa (política "todos ven todo").
-3. Dado que un gerente quiere saber el estado del corte, cuando abre el dashboard y filtra por
-   programa y rango de fechas, entonces ve cierres, tasas y caja calculados desde los registros
-   del CRM, sin que Mike tenga que generar nada a mano.
+1. Dado un closer autenticado, cuando registra una llamada cerrada con su venta y su primer
+   abono, entonces quedan guardados con su closer, cohorte, programa y producto correctos, y
+   aparecen en el dashboard sin usar WhatsApp.
+2. Dado un cierre registrado por cualquier closer, cuando otro closer o un gerente abre el
+   dashboard, entonces ambos ven el mismo dato (ADR 0009).
+3. Dado un gerente que filtra por programa y rango de fechas, entonces ve agendas, show, ventas,
+   % de cierre y caja recaudada calculados desde los registros, con la caja sumando los abonos
+   de ese rango (aunque la venta sea de antes).
+4. Dado un gerente que crea un programa nuevo con su cohorte, su fuente y sus recursos desde
+   `/ajustes`, entonces el programa aparece en la navegación, su dashboard funciona y sus leads
+   sincronizan, sin ningún cambio de código.
+5. Dado un gerente que da de alta un closer nuevo y lo asigna a un programa, entonces ese closer
+   puede registrar llamadas y aparece en las métricas del programa.
+6. Dado un closer que necesita un brochure o un link de pago, cuando entra a Recursos y filtra
+   por programa, entonces encuentra la versión vigente y la copia en un clic.
 
 ## 6. Datos
 
-- **Identidad del comprador/lead**: nombre y correo, ya capturados hoy por el sync de Sheets desde
-  el formulario de aplicación. El CRM los lee, no los vuelve a pedir. El consentimiento de esa
-  captura queda cubierto por el flujo de Sheets existente, fuera de este spec.
-- **Datos de la llamada** (los pide el closer, en el momento de colgar): un único resultado
-  (agendada, show, no_show, reagendada, cerrada, perdida) y una nota libre. Son observación del
-  equipo comercial sobre el lead, no datos que el lead entrega directamente.
-- **Datos de la venta** (los pide el closer, en el momento del cierre): caja recaudada, precio del
-  contrato, tipo de pago, plataforma de pago. Son datos financieros operativos de la empresa, no
-  del comprador. No se pide número de tarjeta, cuenta bancaria completa ni ningún dato que
-  identifique un instrumento de pago.
-- **Marco regulatorio**: no se discutió en la reunión ni se validó con nadie de Retia si registrar
-  datos de compra (monto, plataforma) de personas colombianas o de otros países requiere un
-  tratamiento particular bajo habeas data (Ley 1581 de 2012) más allá del consentimiento que ya
-  cubre el formulario de aplicación. Va a supuestos.
+- **Identidad del lead**: nombre, correo y teléfono, capturados por el sync de Sheets.
+- **Datos de la llamada**: resultado, nota, origen, fecha de seguimiento, motivo. Son
+  observación del equipo comercial.
+- **Datos de la venta y abonos**: producto, precio del contrato, plataforma, monto, moneda, fecha
+  y link del comprobante. Son datos financieros operativos de la empresa. No se pide número de
+  tarjeta, cuenta bancaria ni ningún dato que identifique un instrumento de pago.
+- **Configuración**: programas, cohortes, metas, productos, catálogos, fuentes, recursos,
+  enlaces de pago. Toda alta o cambio queda en `change_log`.
+- **Marco regulatorio**: no validado si registrar montos de compra requiere tratamiento
+  particular bajo habeas data (Ley 1581 de 2012). Va a supuestos.
 
 ## 7. Supuestos por validar
 
-- [ ] La política "todos ven todo" (incluida caja recaudada y pauta) reemplaza, para este
-      dashboard, la restricción que citó ADR 0003 (ver ADR 0009). No la confirmó directamente
-      Michael ni Alejandro Carvajal — confirmar antes de dar acceso real a los closers.
-- [ ] Import histórico: existen `Comunicarte-C2-Consolidado-v2.md` y
-      `Tactical-Investor-C2-Consolidado.md` (en Downloads al momento de escribir este spec), pero
-      son reportes narrativos reconciliados a mano. Cada uno documenta discrepancias conocidas
-      entre la BBDD de Sheets y los reportes de WhatsApp del equipo (ventas sin nombre, fechas que
-      no cuadran). No son un insumo limpio para importar 1:1. Falta decidir con Mani/Michael qué
-      se importa literal, qué se reconcilia y qué se descarta.
-- [ ] Fecha exacta de entrega del MVP: se confirmó "antes de que cierren los C2 actuales"
-      (Comunicarte 22 sep, Tactical 29 sep) como deadline, pero no una fecha de entrega específica
-      dentro de esa ventana.
-- [ ] Onboarding de closers: cuántos closers activos hay hoy (Andrea, Maru y Jero aparecen en los
-      datos reales) y si ya tienen cuenta en la tabla `users` o hay que darlos de alta.
-- [ ] Qué pasa si un closer no encuentra el lead en el sync, por ejemplo alguien que llegó por la
-      cola de setteo o por WhatsApp directo y nunca aplicó por el formulario. Este spec asume que
-      siempre existe un lead sincronizado; eso no se confirmó contra la operación real.
-- [ ] Marco regulatorio de datos financieros (ver bloque 6), no validado con nadie de Retia.
-- [ ] Para la futura integración con Calendly: no se confirmó si cada closer agenda desde su propia
-      cuenta individual de Calendly o si el equipo comparte una sola cuenta con round robin. Un
-      token personal solo sirve si la cuenta es individual; si es compartida, la integración futura
-      necesita otro diseño.
+- [ ] "Todos ven todo" (caja incluida) no lo confirmó directamente Michael ni Alejandro Carvajal
+      (ADR 0009). Confirmar antes de dar acceso real a los closers.
+- [ ] Import histórico: los dos consolidados de Michael (`docs/insumos/historico-c2/`) tienen
+      discrepancias documentadas. Falta decidir qué se importa, qué se reconcilia y qué se
+      descarta.
+- [ ] Qué pasa si el closer no encuentra al lead (llegó por WhatsApp directo o por masivos sin
+      aplicar). Hoy el spec asume que siempre existe.
+- [ ] Formato del snapshot (PDF, PNG o CSV) y quién puede tomarlo.
+- [ ] Si los closers pueden agregar recursos o solo verlos. Por defecto: solo gerentes editan.
+- [ ] Si las plataformas de pago las puede crear un closer (como los productos) o solo un
+      gerente. Por defecto: solo gerente.
+- [ ] Moneda de los abonos: los reportes hablan en USD, pero hay pagos por Bancolombia y
+      MercadoPago que podrían entrar en COP. Por defecto: se guarda la moneda real del abono.
+- [ ] Calendly individual por closer o cuenta compartida (afecta la integración futura).
+- [ ] Marco regulatorio de datos financieros, sin validar con nadie de Retia.

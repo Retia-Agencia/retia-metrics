@@ -10,8 +10,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Retia Metrics
 
-Dashboard comercial interno de Retia para los programas Comunicarte y Tactical Investor.
-Lee las BBDD de Google Sheets, deduplica los leads, calcula el embudo y proyecta el corte.
+CRM y dashboard comercial interno de Retia para sus programas (hoy Comunicarte y Tactical
+Investor). Lee los leads de Google Sheets, deduplica, registra llamadas, ventas y abonos,
+calcula el embudo y proyecta la cohorte.
 Uso restringido: no hay ninguna vista publica y no existe el auto-registro.
 
 ## Agent skills
@@ -19,7 +20,7 @@ Uso restringido: no hay ninguna vista publica y no existe el auto-registro.
 This repo is set up for agentic engineering. Read these before working:
 
 - **Spec** (`docs/spec.md`, or one per domain in `docs/specs/`) — what this MVP does and does not do, in 7 blocks (built by `/spec`). The product contract; read it before planning or building. When the product spans several bounded domains there is one spec per domain, and those files also draw the domain boundaries. Anything uncertain lives in its *supuestos por validar* block, never invented as fact.
-- **Plan + tickets** (`docs/plan.md`, `docs/tasks/`) — the ordered build derived from the spec, decomposed into small tickets (built by `/plan`). `plan.md` carries a mermaid flow diagram of how the MVP works. Each ticket is sized to a clean context window and cites the acceptance criterion it serves. Never jump from spec straight to code.
+- **Plan + tickets** (`docs/plan.md`, `docs/tasks/`) — the ordered build derived from the spec, decomposed into small tickets (built by `/plan`). `plan.md` carries a mermaid flow diagram of how the MVP works. Each ticket is sized to a clean context window and cites the acceptance criterion it serves. Never jump from spec straight to code. **`docs/tasks/README.md` is the single progress tracker**: pick a ticket whose dependencies are all `done`, and when you close it tick its box there and set `status: done` in the ticket file.
 - **Handoff** (`docs/agents/handoff.md`) — session memory + roadmap. Read at the start of every session to recover state; update it at the end. Tracks which tickets are done; references ticket ids, doesn't duplicate them. This is how the next agent (or future you) avoids starting from zero.
 - **Context** (`docs/agents/context.md`) — the domain glossary (ubiquitous language). Read it before naming variables, functions, or files, and before discussing the domain. Sharpen it with `/grill-with-docs`.
 - **ADRs** (`docs/adr/`) — architecture decisions and why they were made. Read the relevant ones before changing a decided area; don't re-litigate them. Add new ones via `/grill-with-docs` or `/improve-codebase`.
@@ -44,7 +45,8 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   aplicaciones. Calcular sobre filas infla las tasas ~60% y toda decision de presupuesto sale
   mal. La garantia vive en un indice unico de la base, no solo en el codigo (ADR 0005).
 - **Caja recaudada y ventas cerradas son dos metricas separadas.** Los montos de la columna
-  Precio son adelantos parciales, no precios finales. Nunca inferir una de la otra.
+  Precio son adelantos parciales, no precios finales. Nunca inferir una de la otra. La caja es
+  la suma de `abonos` por fecha del abono; las ventas son el conteo de `sales` (ADR 0013).
 - **Nunca convertir moneda en silencio.** Tickets en USD, pauta en COP, sin TRM historica unica.
   Siempre mostrar la moneda al lado del numero.
 - **Solo dias habiles, y los festivos cuentan como habiles.** Regla de Retia, no del calendario
@@ -56,10 +58,12 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   route handler y toda pagina pasa por `requireRole` / `paginaConRol`.
 - **`gerente` y `closer` son conjuntos disjuntos, sin herencia.** Un closer nunca entra a una ruta
   exclusiva de gerente como `/ajustes` (ADR 0003). Excepcion explicita desde el 15 de septiembre de
-  2026: en el dashboard del CRM (`/comunicarte`, `/tactical-investor`) un closer SI ve el
-  comparativo entre closers, la caja y la pauta, igual que un gerente — es la politica "todos ven
-  todo" (ADR 0009). Ambas reglas conviven: la disjuncion de roles sigue rigiendo el acceso a rutas
-  de administracion, pero ya no rige la visibilidad de datos dentro del dashboard.
+  2026: en el dashboard del CRM (`/programas/[slug]`, antes `/comunicarte` y
+  `/tactical-investor`) un closer SI ve el comparativo entre closers, la caja y la pauta, igual
+  que un gerente: es la politica "todos ven todo" (ADR 0009). Ambas reglas conviven: la
+  disjuncion de roles sigue rigiendo el acceso a rutas de administracion, pero ya no rige la
+  visibilidad de datos dentro del dashboard. Los productos (`/productos`) los editan ambos roles
+  (ADR 0016); es la unica configuracion que un closer puede tocar.
 - **Nada de la app es publico.** Sin sesion no se ve ni una cifra. Unica excepcion:
   `/api/health`, que no expone ningun dato del negocio.
 - **Ningun dato personal en URLs ni en query strings.** Los identificadores en rutas son ids
@@ -69,8 +73,16 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
 
 **Arquitectura**
 
-- **Google Sheets es la fuente de verdad; la app refleja y proyecta.** Cuando la app escribe de
-  vuelta, escribe en Sheets y re-lee para confirmar. Ante conflicto, gana Sheets (ADR 0004).
+- **Las instancias viven en la base, los tipos viven en el codigo (ADR 0012).** Si el codigo no
+  toma una decision segun un valor (un programa, una cohorte, un closer, un producto, una
+  plataforma, un motivo, un origen, un recurso), ese valor es una fila editable desde la app,
+  nunca un literal, un enum ni una ruta fija. Toda entidad configurable sigue el molde de
+  `lib/catalogo/`: tabla con `activo`, un solo esquema zod, pantalla con guard, nunca se borra, y
+  cada cambio va a `change_log`. Ningun slug de programa aparece en `lib/`, `app/` ni
+  `components/`.
+- **Google Sheets es la fuente de verdad de los leads; el CRM lo es de llamadas, ventas y
+  abonos.** El sync de leads no cambia (ADR 0004). Las llamadas y ventas se registran nativas en
+  la app (ADR 0008) sobre las mismas tablas, con `origen = "app"` (ADR 0010).
 - **Un mapeo de columnas que no cuadra falla ruidosamente.** Nunca adivinar una columna: se
   resuelve por texto del encabezado, no por posicion, y si falta un campo obligatorio se lanza
   `MapeoInvalidoError` con lo que se buscaba y los encabezados reales.
@@ -96,6 +108,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Errores hacia el cliente | `lib/errors.ts` + `respuestaDeError` | `tests/errores.test.ts`: un error interno no se filtra ni aunque traiga la propiedad `status` |
 | Validacion en el borde | `zod` en todo route handler y cron que reciba input | Patron fijado en B-03; `ZodError` sale como 400 |
 | Formato de numero | `lib/format.ts` (punto de miles, coma decimal) | Revision manual |
+| Contrato de extension | ADR 0012; molde en `lib/catalogo/` | `tests/contrato-extension.test.ts` (ticket 009): ningun programa escrito en el codigo; tests del molde (ticket 011): nunca `DELETE`, siempre `change_log` |
 
 ## Feedback loops
 

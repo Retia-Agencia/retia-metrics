@@ -7,6 +7,37 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-16 — Overview del CRM, contrato de extension y re-plan completo en 5 fases.**
+  Se reviso el repo entero, los grupos de WhatsApp "Ventas ComunicArte" y "Ventas JP Vieira", y
+  los 5 reportes diarios de Mike (1 al 15 de sep, en Downloads). Hallazgos que cambiaron el
+  modelo: una venta puede tener varios pagos (Maryce pago USD 750 el 15-sep sobre un cupo del
+  31-ago); las plataformas de pago crecen (Zelle, DollarApp, Addi); los links de pago y los
+  brochures se pierden en el chat; Juanito tiene closers de Calendly escritos en su codigo;
+  Andrea vende en los dos programas; el reporte gira sobre origen del cierre, motivos,
+  compromisos de pago con fecha y meta dinamica; hay mas de un producto por programa.
+
+  **Decisiones de Mani (16-sep), ya bajadas a ADR:** 0012 contrato de extension (instancias en
+  base, tipos en codigo; reemplaza el ticket 001), 0013 abonos separados de ventas, 0014 "Corte"
+  pasa a "Cohorte" en todo, 0015 resultado ampliado (`compromiso_pago`, `cancelada`) y motivos
+  como catalogo, 0016 productos por programa que crean gerentes **y** closers, 0017 recursos y
+  comprobantes solo como links (descarta Vercel Blob de `docs/design.md`).
+
+  **Documentos reescritos:** `docs/spec.md` (4 pilares + contrato, 6 criterios), `docs/plan.md`
+  (fases F0-F4, modelo de datos, grafo de tickets), `docs/agents/context.md` (Cohorte, Abono,
+  Producto, Recurso, Catalogo, Instancia/Tipo...), `AGENTS.md` (restriccion y contrato nuevos).
+  Tickets 001-007 actualizados y 008-025 creados. **Tracker unico: `docs/tasks/README.md`.**
+  Orden acordado: F0 contrato → F1 llamadas y ventas → F2 metricas → F3 recursos → F4 Nerd Stats.
+
+  **Pendientes de negocio para Michael** (en el tracker): lista y correos de closers activos,
+  moneda de los abonos por Bancolombia/MercadoPago, lead que no esta en el sync, formato del
+  snapshot, confirmacion de "todos ven todo", que importar del historico C2.
+  **Propuestas de Notion sin aplicar** (Mani no las aprobo aun): enlazar el tracker en la tarea
+  del CRM y cerrar "Pedirle a Michael el .env.local" (el archivo ya existe).
+
+  **No se toco codigo en esta sesion.** Siguiente paso: tickets 008 y 009 (listos). Ojo con S-14
+  antes de aplicar cualquier migracion. Tarea de Notion asociada: "Definir arquitectura y
+  construir dashboard CRM para closers de Retia".
+
 - **2026-09-15 — Sesion de diseno: se creo `docs/design.md`** (vista de diseno del CRM que faltaba:
   actores, servicios por rol, propuesta de valor, layout de 3 capas, C4, secuencia por actor). Es un
   BORRADOR vivo, voz de Mani como principal, con etiquetas 🎯 MVP / 🔮 futuro / ⚔️ choca-con-ADR.
@@ -41,6 +72,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
   **Lo que este diseno DESTAPO y falta hacer (deuda de reconciliacion):** el diseno introduce un
   rol y 3 features que el spec/plan/tickets actuales NO cubren. Antes de codear hay que reconciliar:
+  _(Nota del 16-sep: estos numeros se reasignaron. Snapshot = ticket 021; comprobante como
+  archivo = descartado por ADR 0017, queda como link; rol Developer = ticket 024.)_
   - **Ticket 008** (falta escribir): snapshot descargable. Decidir formato y permiso primero.
   - **Ticket 009** (falta escribir): comprobante como archivo (Vercel Blob).
   - **Ticket 010** (falta escribir): rol Developer (enum + guards + tests + nav) + actualizar ADR 0003.
@@ -120,11 +153,16 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ## Roadmap
 
+> **El avance de los tickets del CRM (F0 a F4) se marca en
+> [`docs/tasks/README.md`](../tasks/README.md)**, no aqui. Esta seccion solo resume lo listo y
+> guarda la deuda heredada.
+
 ### Now (ready — no unmet dependencies)
 
-- [ ] **Ticket 001 · Migracion: `plataformaPago` en `sales`.** Ver `docs/tasks/001-*.md`.
-- [ ] **Ticket 007 · Onboarding: `closerId` de Andrea, Maru y Jero.** No depende de ningun otro
-      ticket; puede hacerse en paralelo. Ver `docs/tasks/007-*.md`.
+- [ ] **Ticket 008 · Renombrar Corte a Cohorte** (F0). Sin dependencias.
+- [ ] **Ticket 009 · Test guardian de slugs** (F0). Sin dependencias.
+- [ ] **S-14 · Separar la base de preview/produccion** (rama de Neon). Hacerlo **antes** de
+      aplicar la primera migracion de F0: hoy cualquier `db:migrate` pega en produccion.
 - [ ] **F-05 · Migrar las fechas ya guardadas.** El codigo ya escribe con `-05:00` explicito,
       pero las filas viejas quedaron en la zona del servidor y `compararCampos` no mira fechas,
       asi que un `npm run sync` normal **no** las repara. Decidir entre migracion puntual o
@@ -132,16 +170,10 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Next (blocked until a "Now" item lands)
 
-Cadena del CRM, bloqueada por el ticket 001 (y entre si, en cadena):
+Cadena del CRM: ver el grafo en `docs/plan.md` y el estado en `docs/tasks/README.md`.
 
-- [ ] **Ticket 002** — `corteActivo()` + `lib/mutations/registro.ts`. Bloqueado por 001.
-- [ ] **Ticket 003** — Pantalla de `/mi-dia` (buscar persona, registrar resultado). Bloqueado por 002.
-- [ ] **Ticket 004** — Consultas del dashboard (`lib/queries/dashboard.ts`). Bloqueado por 001.
-- [ ] **Ticket 005** — Dashboard real en `/comunicarte` y `/tactical-investor`. Bloqueado por 004.
-- [ ] **Ticket 006** — Historial de llamadas de una persona. Bloqueado por 005.
-
-Los cinco de abajo estan bloqueados por lo mismo: **falta un `.env.local` con credenciales** para
-verificar de punta a punta con `npm run sync`.
+Los cinco de abajo se pueden verificar ahora: desde el 15-sep ya hay un `.env.local` con
+`DATABASE_URL` y los IDs de las hojas (verificado el 16-sep, solo nombres de variables).
 
 - [ ] **F-03 (alto)** — Dos sincronizaciones simultaneas se pisan y dejan la base a medias. Falta
       un candado por programa.
@@ -172,9 +204,9 @@ Bloqueados por una decision de negocio (hay que preguntarle a Michael):
       proyecto de Vercel.
 - [ ] **S-12** — Los route handlers dependen de `SameSite=Lax`, sin CSRF propio. Se resuelve
       migrando las mutaciones a Server Actions.
-- [ ] **`CRON_SECRET` en Vercel.** Existe en `.env.local` y el cron esta probado en local, pero en
-      produccion no correra hasta cargarlo y redesplegar.
-- [ ] **Pantalla para administrar usuarios.** Hoy se hace con `npm run usuarios` y `db:studio`.
+- [ ] **`CRON_SECRET`.** Al 16-sep **no esta** en el `.env.local` actual (el de este fork) ni en
+      Vercel. Generarlo con `npm run rotar` y cargarlo en ambos.
+- [x] **Pantalla para administrar usuarios.** Pasa a ser el ticket 015.
 - [ ] **Las fuentes de `calls`, `sales` y `ad_spend`** estan sembradas pero inactivas: sus
       encabezados no se han inspeccionado y esta prohibido adivinar mapeos. Empezar con
       `npm run inspeccionar <sheetId> "<pestana>"`.

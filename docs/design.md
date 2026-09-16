@@ -5,6 +5,12 @@
 > `docs/spec.md`, `docs/plan.md` y los ADR 0008–0011 y los hace explícitos como vista de diseño
 > (actores, servicios, propuesta de valor, componentes). Todo lo marcado `❓ ABIERTO` es una
 > decisión pendiente, no un hecho. Cuando se cierre, baja a `docs/adr/` o al spec, no se queda aquí.
+>
+> **Actualización 16-sep-2026:** varias decisiones abiertas de este borrador ya bajaron a ADR 0012
+> a 0017 y al plan en fases F0-F4. Donde este documento y esos ADR difieran, mandan los ADR. En
+> particular: "corte" ahora es "cohorte" (0014), el comprobante es un link y no un archivo en
+> Vercel Blob (0017), y los tickets "008/009/010" que se mencionan abajo se renumeraron (ver
+> `docs/tasks/README.md`: snapshot = 021, developer = 024).
 
 ---
 

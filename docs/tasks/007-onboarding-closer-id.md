@@ -1,25 +1,27 @@
 ---
 id: 007
-serves: "spec §7 supuestos — onboarding de closers; precondición de ADR 0011"
+fase: F1
+serves: "spec §5 criterio 5; precondición de ADR 0011"
+depends: [015]
 status: todo
 ---
 
-# 007 — Cargar closerId en las cuentas de los closers activos
+# 007 — Dar de alta a los closers reales
 
 ## Objetivo
-Andrea, Maru y Jero (y cualquier closer activo hoy) tienen su cuenta en `users` con `closerId`
-cargado, para que ADR 0011 funcione desde el primer registro.
+Andrea, Maru y Jero (y cualquier closer activo) tienen cuenta con `closerId`, correo de Calendly
+y sus programas asignados, cargados desde la pantalla del ticket 015.
 
 ## Alcance
-- Dentro: confirmar o crear la cuenta de cada closer activo en `users`, con `closerId` igual al
-  texto exacto que usan en la BBDD de Sheets.
-- Fuera: no crea un flujo de auto-registro. `users` se administra por `npm run usuarios`, como hoy.
+- Dentro: confirmar con Michael la lista de closers activos, sus correos de Google y el texto
+  exacto de su nombre en la BBDD; cargarlos desde `/ajustes/usuarios`.
+- Dentro: dar de alta a los gerentes (`administrativa@retiagrowth.com`) y developers.
+- Fuera: auto-registro (no existe, por regla).
 
 ## Done cuando
-- [ ] Cada closer activo (mínimo Andrea, Maru, Jero) tiene fila en `users` con `rol="closer"` y
-      `closerId` no nulo.
-- [ ] `registrarLlamada` (ticket 002) probado contra una cuenta real de closer.
+- [ ] Cada closer activo tiene `rol="closer"`, `closerId` no nulo y al menos un programa.
+- [ ] `registrarLlamada` probado con una cuenta real de closer.
 
 ## Notas
-Bloquea el uso real del MVP, aunque no bloquea el desarrollo de los tickets 001-006 (se puede
-probar con datos de prueba mientras tanto).
+Operación, no código. Juanito tiene su propio mapeo de closers de Calendly; cuando exista la
+integración, lo leerá de aquí.
