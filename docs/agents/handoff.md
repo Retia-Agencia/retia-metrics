@@ -55,6 +55,15 @@ _Estado actual del trabajo. Lo mas reciente arriba._
      `.env.local` actual), prueba la app y despues las lleva a `production` (ADR 0018). Hasta
      entonces el codigo nuevo no corre contra ninguna base desplegada: `main` despliega a
      produccion, asi que **no hacer push antes de migrar production**.
+  1b. **Cuenta de servicio lista (16-sep):** proyecto de Google Cloud nuevo `retia-growth`, cuenta
+     `retia-metrics-sync@retia-growth.iam.gserviceaccount.com`, llave en `.env.local` y en Vercel
+     Production, las dos hojas compartidas como Editor. `npm run descubrir` ve las dos y ambos
+     `SHEET_ID_*` coinciden. `npm run cuenta-servicio -- <ruta>` ya acepta la ruta de la llave.
+     Falta: `AUTH_URL` en Vercel Production (S-10) y redesplegar para que tome las variables.
+     **Ojo:** la hoja de Tactical tiene pestanas que `docs/estructura-bbdd.md` no documenta
+     (`🚨 Urgencias`, `_urg_data`, `Leads interesados en prox. Cohort`, `Lead Magnet Ruta` y los
+     respaldos `BK_*_20260905_1650`). El sync solo lee las pestanas configuradas, asi que no
+     rompe nada hoy, pero hay que documentarlas antes de tocar fuentes (ticket 016).
   2. Prueba manual del 010: insertar un programa en `dev` y verlo en el sidebar con login real.
   3. Listos ahora: 012, 013, 014, 015, 017 y 020. Orden sugerido por el plan: 012 → 013 → 015 →
      014 → 017. Los pendientes de la sesion anterior (cuenta de servicio, S-10, F-03 + F-07)
