@@ -17,6 +17,12 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     no ve cambios). **Sin aplicar**: la aplica Mani en la rama `dev` de Neon y despues en
     `production` (ADR 0018). Ojo: `npm run seed:datos` falla contra una base sin esta migracion
     (el seed ya escribe `trm_cohorte`).
+  - **009 hecho.** `tests/contrato-extension.test.ts` recorre `lib/`, `app/` y `components/`
+    buscando `comunicarte`, `tactical` y `vieira` en contenido **y en rutas** (la carpeta
+    `app/(app)/comunicarte/` tambien cuenta). Hoy lista 20 violaciones en 9 archivos, mas de las
+    que decia el ticket: tambien comentarios en `lib/sheets/{dedup,mapeo,sync}.ts` y los iconos
+    de `components/app-sidebar.tsx`. Marcado `it.fails` hasta que 010 lo ponga en verde. Un
+    segundo test prueba el detector sobre un arbol temporal.
 
 - **2026-09-16 (tarde) — Sesion de riesgos: S-14, CRON_SECRET, B-01, decisiones de negocio.**
 

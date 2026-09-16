@@ -14,8 +14,8 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 008 | [Renombrar Corte a Cohorte](./008-renombrar-corte-a-cohorte.md) | — | done · 16-sep (migración 0002 sin aplicar) |
-| [ ] | 009 | [Test guardián de slugs](./009-test-guardian-de-slugs.md) | — | todo · **listo** |
-| [ ] | 010 | [Programas dinámicos](./010-programas-dinamicos.md) | 008, 009 | todo |
+| [x] | 009 | [Test guardián de slugs](./009-test-guardian-de-slugs.md) | — | done · 16-sep (`it.fails` hasta 010) |
+| [ ] | 010 | [Programas dinámicos](./010-programas-dinamicos.md) | 008, 009 | todo · **listo** |
 | [ ] | 011 | [Molde de catálogo + plataformas de pago](./011-molde-de-catalogo-y-plataformas.md) | 008 | todo · **listo** |
 | [ ] | 012 | [Catálogos de motivos y orígenes](./012-catalogos-motivos-y-origenes.md) | 011 | todo |
 | [ ] | 013 | [Pantalla de catálogos](./013-pantalla-de-catalogos.md) | 011 | todo |

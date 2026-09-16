@@ -3,7 +3,7 @@ id: 009
 fase: F0
 serves: "ADR 0012 — regla verificable: ningún programa escrito a mano"
 depends: []
-status: todo
+status: done
 ---
 
 # 009 — Test guardián: ningún programa escrito en el código
@@ -21,7 +21,7 @@ Un test falla si alguien escribe el slug o el nombre de un programa en `lib/`, `
   verde (TDD).
 
 ## Done cuando
-- [ ] El test existe, corre con `npm test` y hoy lista las violaciones conocidas
+- [x] El test existe, corre con `npm test` y hoy lista las violaciones conocidas
       (`lib/nav.ts`, `app/(app)/ajustes/fuentes/page.tsx`, las dos páginas fijas, `app/layout.tsx`).
-- [ ] Se marca `it.fails` o equivalente hasta que 010 cierre, para no romper el CI mientras tanto,
+- [x] Se marca `it.fails` o equivalente hasta que 010 cierre, para no romper el CI mientras tanto,
       con un comentario que lo explique.
