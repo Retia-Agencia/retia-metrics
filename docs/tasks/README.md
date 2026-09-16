@@ -21,7 +21,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [ ] | 013 | [Pantalla de catálogos](./013-pantalla-de-catalogos.md) | 011 | todo |
 | [ ] | 014 | [Administrar programas y cohortes](./014-administrar-programas-y-cohortes.md) | 010, 011 | todo |
 | [ ] | 015 | [Administrar usuarios y closers](./015-administrar-usuarios-y-closers.md) | 011 | todo |
-| [ ] | 016 | [Fuentes configurables](./016-fuentes-configurables.md) | 014 | todo · puede esperar |
+| [ ] | 016 | [Plantilla de lead + fuentes configurables](./016-fuentes-configurables.md) (ADR 0019) | 014 | todo · puede esperar |
 
 ## F1 · Llamadas y ventas
 
@@ -61,19 +61,24 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 
 ## Decisiones pendientes (bloquean o condicionan tickets)
 
-Las de Michael están redactadas en [mensaje-michael-2026-09-16.md](../insumos/mensaje-michael-2026-09-16.md) (sin enviar al 16-sep).
+Las de Michael que siguen abiertas están en [mensaje-michael-2026-09-16.md](../insumos/mensaje-michael-2026-09-16.md).
 
 | Decisión | A quién | Afecta |
 |---|---|---|
-| **Alcance: ¿los leads se sincronizan desde Sheets o se manejan a mano en el CRM?** Condiciona ADR 0004 y toda la deuda del sync | Michael | F-01, F-03, F-04, F-06, F-07, 016, 003 |
 | Formato del snapshot y quién lo toma | Mani / Michael | 021 |
-| ¿"Todos ven todo" confirmado por negocio? | Michael, Alejandro Carvajal | acceso real de closers |
 | ¿Closers pueden crear plataformas y recursos? (hoy: no) | Mani | 013, 023 |
-| ¿Qué se importa del histórico de C2? | Mani / Michael | ticket futuro |
+| Qué se reconcilia y qué se descarta del histórico de C2 (importar: **sí**) | Mani | ticket futuro |
 | Lead que no está en el sync (WhatsApp directo, masivos) | Michael | 003 |
 | Moneda de los abonos por Bancolombia / MercadoPago | Michael | 018, 019 |
 | Lista y correos de closers activos | Michael | 007 |
 | F-01 · valores reales de la columna `Estado` y su mapeo | Michael | F-01, métricas |
+
+### Resueltas
+
+- 16-sep · **Leads por sync con Sheets: sí** (Michael). ADR 0004 firme; la deuda del sync sigue vigente.
+  Las hojas no se estandarizan: cada programa declara su plantilla de lead (ADR 0019, ticket 016).
+- 16-sep · **"Todos ven todo": sí** (Mani). ADR 0009 firme.
+- 16-sep · **Importar el histórico de C2: sí** (Mani). Falta el detalle de reconciliación.
 
 ## Deuda técnica heredada (no bloquea F0-F4)
 

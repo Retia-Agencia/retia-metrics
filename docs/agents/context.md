@@ -195,6 +195,12 @@ origenes del lead).
 **Fuente**:
 Una pestana de Google Sheets con su mapeo de columnas, de la que entran los leads de un programa.
 
+**Plantilla de lead**:
+El mapeo de columnas de un programa: en que encabezado de su hoja esta cada campo del lead
+(nombre, correo, WhatsApp...). Cada fuente del programa la hereda y solo ajusta lo que su hoja
+redacta distinto. No inventa campos: los campos son fijos en el codigo y lo demas va a `raw`
+(ADR 0019). _Evitar_: "estandarizar las hojas", "esquema del sheet".
+
 ### El equipo
 
 **Closer**:

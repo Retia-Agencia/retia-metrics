@@ -113,11 +113,12 @@ donde vive esta información.
 
 ## 7. Supuestos por validar
 
-- [ ] "Todos ven todo" (caja incluida) no lo confirmó directamente Michael ni Alejandro Carvajal
-      (ADR 0009). Confirmar antes de dar acceso real a los closers.
-- [ ] Import histórico: los dos consolidados de Michael (`docs/insumos/historico-c2/`) tienen
-      discrepancias documentadas. Falta decidir qué se importa, qué se reconcilia y qué se
-      descarta.
+- [x] "Todos ven todo" (caja incluida): **confirmado por Mani el 16-sep** (ADR 0009 queda firme).
+- [ ] Import histórico: **sí se importa el histórico de C2 (confirmado por Mani el 16-sep).** Los
+      dos consolidados de Michael (`docs/insumos/historico-c2/`) tienen discrepancias
+      documentadas: qué se reconcilia y qué se descarta se define al abrir el ticket.
+- [x] Los leads se sincronizan desde Sheets (**confirmado por Michael el 16-sep**, ADR 0004 queda
+      firme). Cada fuente declara sus columnas; no se exige que las hojas tengan la misma forma.
 - [ ] Qué pasa si el closer no encuentra al lead (llegó por WhatsApp directo o por masivos sin
       aplicar). Hoy el spec asume que siempre existe.
 - [ ] Formato del snapshot (PDF, PNG o CSV) y quién puede tomarlo.

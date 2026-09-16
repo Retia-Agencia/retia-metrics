@@ -29,12 +29,14 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   - **F-03 NO hecho:** con `neon-http` no hay advisory locks de sesion. Diseno completo en el
     tracker; necesita migracion (va a `dev`), y conviene juntarla con F-07.
   - **Mensaje para Michael:** borrador en `docs/insumos/mensaje-michael-2026-09-16.md`, **sin
-    enviar**. Mani lo reviso: agrego como primera pregunta el alcance (sync con Sheets o manejo
-    manual). **No invertir mas en el sync (F-03, F-04, estandarizar hojas) hasta esa respuesta.** Tarea de Notion del CRM actualizada con el estado y los pendientes.
+    enviar**. Respondidas el 16-sep: sync con Sheets **si** (Michael), "todos ven todo" **si** e historico
+    C2 **si** (Mani); quedan 5 preguntas. Idea de Mani convertida en ADR 0019: plantilla de lead por
+    programa, heredada y ajustable por fuente, con campos fijos en codigo y extras a `raw`. Se
+    construye en el ticket 016 (necesita migracion). Las hojas **no** se estandarizan. Tarea de Notion del CRM actualizada con el estado y los pendientes.
   - El respaldo `.env.local.bak-*` que dejo el cambio de URL se borro con
     `npm run limpiar-respaldos` al cerrar.
   - **Siguiente sesion, en orden:** cuenta de servicio de Google → `AUTH_URL` (S-10) → redeploy
-    y probar el cron → confirmar la base de Production → enviar el mensaje a Michael → F-03 + F-07 en `dev` (solo si confirma Sheets) → tickets 008 y 009.
+    y probar el cron → confirmar la base de Production → enviar el mensaje a Michael → F-03 + F-07 en `dev` → tickets 008 y 009.
 
 - **2026-09-16 — Overview del CRM, contrato de extension y re-plan completo en 5 fases.**
   Se reviso el repo entero, los grupos de WhatsApp "Ventas ComunicArte" y "Ventas JP Vieira", y
