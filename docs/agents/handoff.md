@@ -46,7 +46,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     93 tests en ~4 s.
 
   **Siguiente sesion, en orden:**
-  1. Mani aplica las migraciones 0002 y 0003 en la rama `dev` (`npm run db:migrate` con el
+  1. ~~Migraciones 0002 y 0003 en `dev`~~ **aplicadas y verificadas el 16-sep** (4 migraciones,
+     `trm_cohorte`, `estado_cohorte`, `change_log.user_id`, 7 plataformas). Falta `production`.
+     Detalle original: Mani aplica las migraciones 0002 y 0003 en la rama `dev` (`npm run db:migrate` con el
      `.env.local` actual), prueba la app y despues las lleva a `production` (ADR 0018). Hasta
      entonces el codigo nuevo no corre contra ninguna base desplegada: `main` despliega a
      produccion, asi que **no hacer push antes de migrar production**.
