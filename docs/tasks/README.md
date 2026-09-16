@@ -117,7 +117,8 @@ Detalle en [docs/agents/handoff.md](../agents/handoff.md), sección Roadmap.
       nuevo del proyecto `retia-growth`, que reemplaza al que vivia en el proyecto personal de Mani.
 - [ ] Probar el login con una cuenta real (local y producción) y borrar el cliente web viejo de
       `google-workspace-mcp`.
-- [ ] Sembrar programas y fuentes en `production` y probar `/api/cron/sync` de punta a punta.
+- [x] Sembrar programas, cohortes y fuentes en `production` (16-sep).
+- [ ] Probar `/api/cron/sync` de punta a punta en producción.
 - [ ] Prueba manual de S-02 (quitar usuario)
 
 ## Futuro (validado, fuera del MVP)

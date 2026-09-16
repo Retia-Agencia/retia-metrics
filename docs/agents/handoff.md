@@ -41,6 +41,10 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     `google-workspace-mcp`); Google acepta las URIs de produccion y `localhost:3000`, y
     `.env.local` y el deploy de produccion usan el mismo cliente. `AUTH_URL` en Production.
   - Produccion desplegada y sana (`/api/health` 200, redirecciones 308 ok).
+  - **`production` sembrada** (`seed:datos`): 2 programas, 4 cohortes, 10 fuentes (3 activas).
+    Estaba vacia.
+  - **Enmienda al ADR 0018 (Mani):** la URL de `production` vive en `.env.local` como
+    `DB_PROD`. Ningun codigo la lee; lectura libre, escritura solo con ok de Mani.
 
   **Decisiones de negocio** (detalle en `docs/insumos/mensaje-michael-2026-09-16.md` y el
   tracker): closers activos Andrea y Maru; los usuarios reales (closers y managers) se cargan
@@ -252,9 +256,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
        cliente OAuth **web** viejo de `google-workspace-mcp` (el de escritorio es del MCP de Mani).
 2. [ ] **`/grill-with-docs`: responsable del lead y alta manual de leads** (Michael, 16-sep) contra
        ADR 0004. Sale un ADR y, si hace falta, un ticket nuevo. Bloquea el 003.
-3. [ ] **Sembrar `production`** (programas, cohortes, fuentes) con la URL de `production` cargada
-       solo para ese comando, y probar `/api/cron/sync` con el `CRON_SECRET`. Sembrar tambien
-       `dev` (`npm run seed:datos`) y hacer la prueba manual del 010 (programas en el sidebar).
+3. [ ] **Probar `/api/cron/sync` en produccion** con el `CRON_SECRET` (`production` ya esta
+       sembrada; esto escribe leads reales, pedir ok). Sembrar tambien `dev`
+       (`npm run seed:datos`) y hacer la prueba manual del 010 (programas en el sidebar).
 4. [ ] **Tickets F0 listos** (estado en `docs/tasks/README.md`): 012 → 013 → 015 → 014 → 017, y 020.
 5. [ ] **F-03 + F-07** juntos, con migracion (diseno en el tracker); primero `dev`, luego
        `production`.

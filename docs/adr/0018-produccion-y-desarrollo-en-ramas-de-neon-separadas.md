@@ -1,6 +1,7 @@
 # 0018 — Produccion y desarrollo usan ramas de Neon separadas
 
-**Fecha:** 2026-09-16 · **Estado:** aceptado y aplicado el 16-sep (S-14)
+**Fecha:** 2026-09-16 · **Estado:** aceptado y aplicado el 16-sep (S-14) · **Enmendado** el 16-sep
+(ver "Enmienda" al final: la URL de `production` vive en `.env.local` como `DB_PROD`)
 
 Hasta hoy un solo `DATABASE_URL` servia a todo: produccion en Vercel, los previews y el
 `.env.local` de desarrollo. Cualquier `npm run db:migrate` o `npm run seed:datos` corrido en local
@@ -24,7 +25,7 @@ que el riesgo deja de ser teorico.
 
 - **Una migracion se prueba primero en `dev`** (`npm run db:migrate` con el `.env.local`) y solo
   despues se aplica a `production`, de forma explicita y con la URL de produccion cargada solo para ese
-  comando. Nunca se deja la URL de `production` en `.env.local`.
+  comando. ~~Nunca se deja la URL de `production` en `.env.local`.~~ (reemplazado por la enmienda)
 - `dev` contiene PII real copiada de produccion. Mismas reglas que `production`: la URL es un secreto.
 - La base se creo desde la consola de Neon, no con la integracion de Vercel, asi que Vercel no
   inyecta `DATABASE_URL` por su cuenta: se carga a mano por entorno. Si algun dia se conecta la
@@ -46,3 +47,28 @@ que el riesgo deja de ser teorico.
   leer. Todo indica que es la rama `production` (Neon y Vercel se configuraron la misma noche),
   pero no se comprobo. Antes de la primera migracion a produccion, confirmarlo o volver a
   cargarla explicitamente con la URL de `production`.
+
+## Enmienda del 16-sep: la URL de `production` vive en `.env.local` como `DB_PROD`
+
+**Decision de Mani.** Pegar la URL a mano en cada verificacion o siembra de `production` era lento
+y dependia de que Mani estuviera presente. Desde el 16-sep, `.env.local` guarda la URL de la rama
+`production` en la variable **`DB_PROD`**.
+
+Por que sigue siendo seguro:
+
+- **Ningun codigo lee `DB_PROD`.** La app, `drizzle.config.ts` y los scripts solo leen
+  `DATABASE_URL`, que sigue apuntando a `dev`. Para tocar `production` hay que nombrar `DB_PROD`
+  a proposito en el comando. Un `npm run db:migrate` o un `npm run seed:datos` a secas sigue yendo
+  a `dev`.
+- **Uso explicito:** `DATABASE_URL="$(grep '^DB_PROD=' .env.local | cut -d= -f2- | tr -d '"')" npm run <script>`.
+  La configuracion de dotenv no reemplaza una variable que ya viene en el comando.
+- **Lectura libre, escritura con permiso.** Un agente puede usar `DB_PROD` para **consultas de
+  solo lectura** (conteos, estado de migraciones). Toda **escritura** en `production` (migracion,
+  siembra, cambio de datos) necesita el ok de Mani en esa conversacion, y antes se comprueba que el
+  host empiece por `ep-jolly-silence`.
+- Nada cambia en Vercel: Production sigue con su `DATABASE_URL` propia.
+
+Riesgo que se acepta: quien tenga `.env.local` tiene acceso de escritura a `production`. El
+archivo ya tenia secretos de igual peso (`AUTH_SECRET`, la llave de la cuenta de servicio), tiene
+permisos `600` y nunca se sube al repo.
+

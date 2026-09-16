@@ -138,7 +138,9 @@ The agent should run these to get fast signal on whether code works. Keep them c
   consulta es una peticion HTTP aparte, asi que `pg_advisory_lock` y `SET` de sesion no sirven.
   La exclusion mutua se hace con un indice unico en la base (ver F-03 en el tracker).
 - **Local y previews usan la rama `dev` de Neon; produccion usa `production`** (ADR 0018). Una
-  migracion se prueba en `dev` antes de tocar `production`.
+  migracion se prueba en `dev` antes de tocar `production`. La URL de `production` esta en
+  `.env.local` como `DB_PROD`: ningun codigo la lee, se usa solo nombrandola en el comando.
+  Consultas de solo lectura, libres; **toda escritura en `production` pide el ok de Mani**.
 - **`CRON_SECRET` se genera con `npm run cron-secret`**, no con `npm run rotar` (ese solo rota
   `AUTH_GOOGLE_SECRET` y `AUTH_SECRET`).
 - **Idioma:** UI en espanol. Nombres de variables, tablas y archivos sin acentos, consistentes.
