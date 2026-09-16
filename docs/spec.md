@@ -120,12 +120,13 @@ donde vive esta información.
 - [x] Los leads se sincronizan desde Sheets (**confirmado por Michael el 16-sep**, ADR 0004 queda
       firme). Cada fuente declara sus columnas; no se exige que las hojas tengan la misma forma.
 - [ ] Qué pasa si el closer no encuentra al lead (llegó por WhatsApp directo o por masivos sin
-      aplicar). Hoy el spec asume que siempre existe.
+      aplicar). **Michael, 16-sep:** todo lead tiene un closer responsable y el closer lo asigna en
+      la plataforma, "como en Kapso". Falta decidir cómo convive con ADR 0004 (`/grill-with-docs`).
 - [ ] Formato del snapshot (PDF, PNG o CSV) y quién puede tomarlo.
 - [ ] Si los closers pueden agregar recursos o solo verlos. Por defecto: solo gerentes editan.
 - [ ] Si las plataformas de pago las puede crear un closer (como los productos) o solo un
       gerente. Por defecto: solo gerente.
-- [ ] Moneda de los abonos: los reportes hablan en USD, pero hay pagos por Bancolombia y
-      MercadoPago que podrían entrar en COP. Por defecto: se guarda la moneda real del abono.
+- [x] Moneda de los abonos: **todo en USD (Michael, 16-sep).** Queda abierto quién convierte un
+      pago que entra en COP y con qué TRM; el sistema no convierte solo.
 - [ ] Calendly individual por closer o cuenta compartida (afecta la integración futura).
 - [ ] Marco regulatorio de datos financieros, sin validar con nadie de Retia.

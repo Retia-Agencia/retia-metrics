@@ -20,6 +20,8 @@ La base puede guardar todo lo que el registro de llamadas y ventas necesita.
   (`programId`, `fecha`) y por `saleId`.
 - Dentro: en la misma migración, cada `sales` con `montoAbonado` no nulo genera un abono
   (contar antes: probablemente 0 filas, porque las fuentes de ventas están inactivas).
+- Dentro: `abonos.moneda` vale `USD` por decisión de Michael (16-sep). Se mantiene la columna para
+  que la moneda siga visible al lado del número; el esquema zod solo acepta `USD` por ahora.
 - Dentro: decidir y documentar si `sales.esPagoCompleto` se elimina o queda como cache (ADR 0013).
 - Dentro: actualizar `docs/agents/context.md` si aparece un término nuevo.
 - Fuera: las funciones que escriben (002, 019).

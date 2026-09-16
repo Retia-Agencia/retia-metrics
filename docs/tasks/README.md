@@ -61,30 +61,39 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 
 ## Decisiones pendientes (bloquean o condicionan tickets)
 
-Las de Michael que siguen abiertas se le **enviaron el 16-sep** ([mensaje-michael-2026-09-16.md](../insumos/mensaje-michael-2026-09-16.md)); esperando respuesta.
+Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje-michael-2026-09-16.md), con su respuesta al final).
 
 | Decisión | A quién | Afecta |
 |---|---|---|
-| Formato del snapshot y quién lo toma | Mani / Michael | 021 |
+| Formato del snapshot y quién lo toma (Michael no respondió) | Mani / Michael | 021 |
 | ¿Closers pueden crear plataformas y recursos? (hoy: no) | Mani | 013, 023 |
 | Qué se reconcilia y qué se descarta del histórico de C2 (importar: **sí**) | Mani | ticket futuro |
-| Lead que no está en el sync (WhatsApp directo, masivos) | Michael | 003 |
-| Moneda de los abonos por Bancolombia / MercadoPago | Michael | 018, 019 |
-| Lista y correos de closers activos | Michael | 007 |
-| F-01 · valores reales de la columna `Estado` y su mapeo | Michael | F-01, métricas |
+| **Alcance nuevo:** todo lead tiene un closer responsable, y el closer crea o se asigna leads en el CRM ("como en Kapso"). Choca con ADR 0004: pasar por `/grill-with-docs` | Mani | 003, 015, ticket nuevo |
+| Correos de Google de Andrea y Maru; ¿Jerónimo sigue activo? | Michael | 007 |
+| Quién pasa a USD un pago que entra en COP, y con qué TRM | Michael | 019 |
+| Confirmar el mapeo de `Estado` al enum (propuesta en F-01) | Mani | F-01 |
 
 ### Resueltas
 
 - 16-sep · **Leads por sync con Sheets: sí** (Michael). ADR 0004 firme; la deuda del sync sigue vigente.
   Las hojas no se estandarizan: cada programa declara su plantilla de lead (ADR 0019, ticket 016).
 - 16-sep · **"Todos ven todo": sí** (Mani). ADR 0009 firme.
+- 16-sep · **Closers activos: Andrea y Maru** (Michael; Jerónimo aparece como responsable de leads, sin confirmar).
+- 16-sep · **Abonos siempre en USD** (Michael). La columna `moneda` se mantiene y vale `USD`.
+- 16-sep · **`Estado` es la clasificación del lead** (Michael): decide a qué pestaña derivada se copia la fila.
 - 16-sep · **Importar el histórico de C2: sí** (Mani). Falta el detalle de reconciliación.
 
 ## Deuda técnica heredada (no bloquea F0-F4)
 
 Detalle en [docs/agents/handoff.md](../agents/handoff.md), sección Roadmap.
 
-- [ ] F-01 · El sync descarta `estado` de la hoja (bloqueado: preguntar a Michael)
+- [ ] F-01 · El sync descarta `estado` de la hoja. **Desbloqueado 16-sep.** Valores reales:
+      Comunicarte `New form`: `🗑️ Descartado` 928 · `📞 Setteo No Calificado` 786 · `📅 Con Calendly` 286
+      (`Forms viejo` no tiene la columna). Tactical: `🗑️ Descartado` 2.031 · `📞 Setteo No Calificado`
+      1.447 · `📅 Con Calendly (Juanito)` 316 · `Cerrado` 1 · vacío 1. Mapeo propuesto (sin confirmar):
+      Descartado → `descartado`, Setteo No Calificado → `cola_setteo`, Con Calendly → `invitado`,
+      Cerrado → `cierre`. Se compara sin emoji ni sufijo entre paréntesis. Ojo: `New form` devuelve
+      exactamente 2.000 filas (eran 1.320 el 19-ago); verificar que no sean filas vacías con fórmula.
 - [ ] F-03 · Dos sync simultáneos se pisan (falta candado por programa). **Diagnóstico 16-sep:**
       `pg_advisory_lock` no sirve con `drizzle-orm/neon-http` (cada consulta es su propia sesión).
       Diseño: columna `sync_runs.program_id` + índice único parcial `WHERE estado = 'corriendo'`;
@@ -101,10 +110,11 @@ Detalle en [docs/agents/handoff.md](../agents/handoff.md), sección Roadmap.
       la rama `dev`, Production en `production`. Queda verificar el valor de Production (ver ADR).
 - [x] `CRON_SECRET` en `.env.local` y en Vercel Production (16-sep, `npm run cron-secret`).
       Aplica en el próximo deploy de producción.
-- [ ] `GOOGLE_SERVICE_ACCOUNT_JSON_B64` falta en `.env.local` y en Vercel: sin ella el cron corre
-      pero falla al leer las hojas. `npm run cuenta-servicio` con el JSON de Google Cloud.
-- [ ] S-10 · Fijar `AUTH_URL=https://retia-metrics-seven.vercel.app` en Production y confirmar ese
-      callback en el OAuth de Google.
+- [x] `GOOGLE_SERVICE_ACCOUNT_JSON_B64` en `.env.local` y en Vercel Production (16-sep, proyecto
+      `retia-growth`; las dos hojas compartidas y verificadas con `npm run descubrir`).
+- [x] S-10 · `AUTH_URL` en Vercel Production (16-sep). Falta confirmar el callback
+      `https://retia-metrics-seven.vercel.app/api/auth/callback/google` en el OAuth de Google.
+- [ ] Sembrar programas y fuentes en `production` y probar `/api/cron/sync` de punta a punta.
 - [ ] Prueba manual de S-02 (quitar usuario)
 
 ## Futuro (validado, fuera del MVP)

@@ -23,5 +23,8 @@ y sus programas asignados, cargados desde la pantalla del ticket 015.
 - [ ] `registrarLlamada` probado con una cuenta real de closer.
 
 ## Notas
+**Michael, 16-sep:** los closers activos son Andrea y Maru. Jerónimo aparece como responsable de
+leads en otra respuesta: confirmar si sigue activo. Los correos de Google faltan.
+
 Operación, no código. Juanito tiene su propio mapeo de closers de Calendly; cuando exista la
 integración, lo leerá de aquí.

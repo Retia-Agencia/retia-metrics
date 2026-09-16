@@ -1,4 +1,4 @@
-# Mensaje para Michael — decisiones pendientes (ENVIADO el 16-sep, esperando respuesta)
+# Mensaje para Michael — decisiones pendientes (ENVIADO y RESPONDIDO el 16-sep)
 
 Redactado el 16-sep en la sesion de riesgos y enviado por Mani ese mismo dia. Cuando llegue la
 respuesta, bajar cada decision al tracker (`docs/tasks/README.md`, "Decisiones pendientes") y a
@@ -28,3 +28,17 @@ Con esto puedo dejar listo el registro de llamadas y ventas. ¡Gracias!
 
 Ya respondidas el 16-sep (no se preguntan): sync con Sheets **sí** (Michael), "todos ven todo"
 **sí** e importar el histórico de C2 **sí** (Mani).
+
+---
+
+## Respuesta de Michael (WhatsApp, 16-sep, 3:14-3:18 p. m.)
+
+Resumen fiel del chat; lo que es interpretacion va marcado.
+
+| # | Respondio | Lectura y lo que queda abierto |
+|---|---|---|
+| 1 | "Andrés y Maru, ya tienes la info de ellas" | Closers activos: **Andrea** (interpretacion: "Andrés" es Andrea, dice "ellas") **y Maru**. Los correos de Google **no** estan en el repo ni en el vault: pedirselos a Michael o buscarlos. En la respuesta 3 tambien nombra a **Jerónimo**: confirmar si sigue activo. |
+| 2 | "Manejar todo en USD" | Los abonos se registran siempre en USD, aunque el pago entre por Bancolombia o MercadoPago. Abierto: quien pasa el monto de COP a USD y con que TRM (el sistema no convierte solo). |
+| 3 | "Se le registran a Andrea, Maru o Jerónimo. Cada lead tiene su responsable siempre. Que se lo asigne el closer en la plataforma, como en Kapso" | Dos cosas nuevas: (a) **todo lead tiene un closer responsable**, y (b) el closer lo crea o se lo asigna **en el CRM**, no en la hoja. Choca con ADR 0004 (Sheets es la fuente de los leads): pasar por `/grill-with-docs` antes de construir. |
+| 4 | Sin respuesta | Formato y permisos del snapshot siguen abiertos (ticket 021 bloqueado). |
+| 5 | "Es la clasificacion, a donde va cada lead. Si dice descartado va a la hoja de descartados y asi" | `Estado` es la clasificacion del lead y decide a que pestana derivada se copia. Valores reales contados el 16-sep: ver `docs/tasks/README.md` (F-01). |

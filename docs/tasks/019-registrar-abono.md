@@ -21,7 +21,8 @@ nuevo.
 ## Done cuando
 - [ ] Rechaza un abono que deje la venta con saldo negativo, salvo confirmación explícita (se
       registra la nota del sobrepago).
-- [ ] Rechaza una moneda distinta a la de la venta sin conversión silenciosa.
+- [ ] Rechaza una moneda distinta a la de la venta sin conversión silenciosa. Todo abono es en
+      USD (Michael, 16-sep); falta saber quién convierte un pago que entró en COP.
 - [ ] `closerId` sale de la sesión; puede ser distinto al closer de la venta (se guarda quién
       registró).
 - [ ] Tests: abono normal, abono que completa, sobrepago, moneda distinta.

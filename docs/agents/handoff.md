@@ -64,6 +64,16 @@ _Estado actual del trabajo. Lo mas reciente arriba._
      (`🚨 Urgencias`, `_urg_data`, `Leads interesados en prox. Cohort`, `Lead Magnet Ruta` y los
      respaldos `BK_*_20260905_1650`). El sync solo lee las pestanas configuradas, asi que no
      rompe nada hoy, pero hay que documentarlas antes de tocar fuentes (ticket 016).
+  1c. **Michael respondio (16-sep)**, bajado a `docs/insumos/mensaje-michael-2026-09-16.md`, al
+     tracker, a la spec y a los tickets 003, 007, 018 y 019. Lo mas grande: todo lead tiene un
+     closer responsable y el closer lo asigna en el CRM, que choca con ADR 0004. **Hacer
+     `/grill-with-docs` sobre eso antes del ticket 003.** F-01 quedo desbloqueado con los valores
+     reales de `Estado`. Siguen abiertos: correos de Andrea y Maru, si Jerónimo sigue activo,
+     quien convierte COP a USD, y el formato del snapshot.
+  1d. **`production` no tiene programas ni fuentes sembrados** (probablemente: al crear `dev`
+     tenia 0 personas; no se reviso). Sin eso el cron no tiene que leer. Sembrarla con la URL de
+     `production` cargada solo para ese comando, como la migracion, y despues probar
+     `/api/cron/sync` con el `CRON_SECRET`.
   2. Prueba manual del 010: insertar un programa en `dev` y verlo en el sidebar con login real.
   3. Listos ahora: 012, 013, 014, 015, 017 y 020. Orden sugerido por el plan: 012 → 013 → 015 →
      014 → 017. Los pendientes de la sesion anterior (cuenta de servicio, S-10, F-03 + F-07)
@@ -293,8 +303,9 @@ Los cinco de abajo se pueden verificar ahora: desde el 15-sep ya hay un `.env.lo
 Bloqueados por una decision de negocio (hay que preguntarle a Michael):
 
 - [ ] **F-01 (alto)** — El sync lee `estado` de la hoja y lo descarta, asi que el embudo se queda
-      sin datos para calcularse. Falta: los valores reales de la columna `Estado` y su mapeo al
-      enum, y que hacer con `agenda` y `capacidadInvertir`.
+      sin datos para calcularse. **Desbloqueado 16-sep:** valores reales y mapeo propuesto en
+      `docs/tasks/README.md`. Falta confirmar el mapeo y que hacer con `agenda` y
+      `capacidadInvertir`.
 - [ ] **F-06 (medio)** — Nadie detecta a la persona que desaparece de la hoja. Falta saber si las
       filas se borran o solo se mueven de pestana.
 - [ ] **S-06 + B-06 (medio)** — La PII queda duplicada sin retencion ni control de acceso, y
@@ -303,7 +314,8 @@ Bloqueados por una decision de negocio (hay que preguntarle a Michael):
 ### Later (someday / not yet scoped)
 
 - [x] **S-14** — resuelto el 16-sep (ADR 0018).
-- [ ] **S-10** — Fijar `AUTH_URL=https://retia-metrics-seven.vercel.app` en Production.
+- [x] **S-10** — `AUTH_URL` en Vercel Production desde el 16-sep (falta confirmar el callback en
+      el cliente OAuth de Google).
 - [ ] **S-12** — Los route handlers dependen de `SameSite=Lax`, sin CSRF propio. Se resuelve
       migrando las mutaciones a Server Actions.
 - [x] **`CRON_SECRET`** — en `.env.local` y en Vercel Production desde el 16-sep.

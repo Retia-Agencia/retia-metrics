@@ -31,3 +31,7 @@ venta con su primer abono; también puede registrar un abono nuevo sobre una ven
 
 ## Notas
 Los montos se muestran con su moneda al lado.
+
+**Michael, 16-sep:** todo lead tiene un closer responsable, y el closer crea o se asigna el lead
+en la plataforma ("como en Kapso"). Eso agrega "crear lead" y "asignar responsable" a esta
+pantalla, pero choca con ADR 0004: se define en `/grill-with-docs` antes de construir 003.
