@@ -22,5 +22,5 @@ fi
 
 borrar_respaldos "$ARCHIVO"
 echo "  ✓ $encontrados respaldo(s) borrado(s)."
-echo "    Recorda que en SSD la sobrescritura es best-effort: lo que cierra el"
+echo "    Recuerda que en SSD la sobrescritura es best-effort: lo que cierra el"
 echo "    riesgo de verdad es que los secretos viejos esten rotados."
