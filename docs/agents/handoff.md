@@ -15,8 +15,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     0018); `CRON_SECRET` cargado en Production, **falta redeploy** para que aplique. Mientras,
     `/api/cron/sync` responde 500 (falla cerrado, esperado). Faltan
     `GOOGLE_SERVICE_ACCOUNT_JSON_B64` y `AUTH_URL` (S-10).
-  - El commit `f98a1b0` aparecio en `origin/main` y se desplego a produccion sin que el agente
-    hiciera push. Origen sin aclarar.
+  - Los push a `origin/main` los hace Mani a mano. Ojo: `main` despliega a produccion en Vercel
+    (`f98a1b0` se desplego a las 14:17 del 16-sep).
   - **S-14:** la base de `.env.local` resulto ser el proyecto Neon `retia-metrics-crm`
     (org Retia-Agencia, creado el 15-sep), del fork y casi vacio (0 personas, 1 usuario). Se
     creo la rama `dev` y `.env.local` ya apunta a ella (ADR 0018). `neonctl` quedo autenticado
