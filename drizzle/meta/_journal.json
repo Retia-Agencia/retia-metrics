@@ -19,7 +19,7 @@
     {
       "idx": 2,
       "version": "7",
-      "when": 1789593600000,
+      "when": 1789590000000,
       "tag": "0002_renombrar_corte_a_cohorte",
       "breakpoints": true
     },

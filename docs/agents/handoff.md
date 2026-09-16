@@ -54,7 +54,10 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   3. Listos ahora: 012, 013, 014, 015, 017 y 020. Orden sugerido por el plan: 012 → 013 → 015 →
      014 → 017. Los pendientes de la sesion anterior (cuenta de servicio, S-10, F-03 + F-07)
      siguen abiertos.
-  4. Deuda chica del 011: `leerFila` con un id que no es uuid revienta en Postgres (22P02 →
+  4. Bug corregido antes de migrar: el `when` de 0002 en el journal era mayor que el de 0003, y
+     el migrador habria saltado 0003 en silencio si se aplicaban por separado.
+     `tests/migraciones.test.ts` exige que el journal crezca en orden.
+  5. Deuda chica del 011: `leerFila` con un id que no es uuid revienta en Postgres (22P02 →
      500). Validar el id con zod en el borde cuando exista la pantalla (013).
 
 - **2026-09-16 (tarde) — Sesion de riesgos: S-14, CRON_SECRET, B-01, decisiones de negocio.**
