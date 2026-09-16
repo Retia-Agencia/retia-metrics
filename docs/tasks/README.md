@@ -70,21 +70,30 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | Lead que no está en el sync (WhatsApp directo, masivos) | Michael | 003 |
 | Moneda de los abonos por Bancolombia / MercadoPago | Michael | 018, 019 |
 | Lista y correos de closers activos | Michael | 007 |
+| F-01 · valores reales de la columna `Estado` y su mapeo | Michael | F-01, métricas |
 
 ## Deuda técnica heredada (no bloquea F0-F4)
 
 Detalle en [docs/agents/handoff.md](../agents/handoff.md), sección Roadmap.
 
 - [ ] F-01 · El sync descarta `estado` de la hoja (bloqueado: preguntar a Michael)
-- [ ] F-03 · Dos sync simultáneos se pisan (falta candado por programa)
+- [ ] F-03 · Dos sync simultáneos se pisan (falta candado por programa). **Diagnóstico 16-sep:**
+      `pg_advisory_lock` no sirve con `drizzle-orm/neon-http` (cada consulta es su propia sesión).
+      Diseño: columna `sync_runs.program_id` + índice único parcial `WHERE estado = 'corriendo'`;
+      el insert de la corrida es el candado (violación única → 409). Antes de insertar, marcar
+      como `error` las corridas `corriendo` de más de 10 min (función caída). Comparte migración
+      con F-07. Requiere migración: se prueba en la rama `dev` (ADR 0018).
 - [ ] F-04 · Updates del sync fila por fila
 - [ ] F-05 · Fechas viejas en la zona del servidor
 - [ ] F-06 · Persona que desaparece de la hoja
 - [ ] F-07 · Corrida de sync atribuida a la primera fuente
-- [ ] B-01 · `lib/sheets/sync.ts` sin tests
+- [x] B-01 · `lib/sheets/sync.ts` sin tests → decisión extraída a `lib/sheets/plan-sync.ts`, 6 tests (16-sep)
 - [ ] S-06 + B-06 · Retención de PII y `people.raw` sin techo
-- [ ] S-14 · Producción y preview comparten base (**antes de aplicar las migraciones de F0**)
-- [ ] `CRON_SECRET` no está en `.env.local` ni en Vercel
+- [ ] S-14 · Producción y preview comparten base. **Local resuelto 16-sep** (ADR 0018: rama Neon
+      `dev`, `.env.local` apunta ahí; las migraciones de F0 ya pueden ir a `dev`). Falta en Vercel
+      (cuenta aún no conectada): Production → rama `production`, Preview → rama `dev`.
+- [ ] `CRON_SECRET`: **en `.env.local` desde el 16-sep** (`npm run cron-secret`). Falta Vercel:
+      `vercel link` al proyecto real y `npm run cron-secret -- --vercel`.
 - [ ] Prueba manual de S-02 (quitar usuario)
 
 ## Futuro (validado, fuera del MVP)

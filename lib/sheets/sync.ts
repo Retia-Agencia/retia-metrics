@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { people, sources, syncRuns, changeLog, programs } from "@/lib/db/schema";
 import { leerPestana } from "./leer";
 import { resolverColumnas, MAPEO_FORMULARIO, OBLIGATORIOS_FORMULARIO, type MapeoColumnas } from "./mapeo";
-import { deduplicarPorCorreo, filasDesdeMatriz, type PersonaDeducida } from "./dedup";
+import { deduplicarPorCorreo, filasDesdeMatriz } from "./dedup";
+import { planificarSync } from "./plan-sync";
 
 /**
  * Motor de sincronizacion.
@@ -15,20 +16,6 @@ import { deduplicarPorCorreo, filasDesdeMatriz, type PersonaDeducida } from "./d
  * que correr el sync dos veces diera el mismo resultado. Leyendo todas las fuentes de
  * personas juntas y recalculando desde cero, el resultado es el mismo siempre.
  */
-
-/** Campos que se comparan para detectar cambios y escribir en la bitacora. */
-const CAMPOS_COMPARABLES = [
-  "nombre",
-  "telefono",
-  "cargo",
-  "ingresoDeclarado",
-  "urgencia",
-  "porQueAplico",
-  "utmSource",
-  "utmMedium",
-  "utmCampaign",
-  "numAplicaciones",
-] as const;
 
 export type ResultadoSync = {
   programa: string;
@@ -121,44 +108,20 @@ export async function sincronizarPersonas(programId: string): Promise<ResultadoS
       for (const f of filas) existentes.set(f.emailNormalizado, f);
     }
 
-    // 4. Insertar las nuevas y actualizar las que cambiaron, dejando bitacora
-    const cambios: (typeof changeLog.$inferInsert)[] = [];
-    const aInsertar: (typeof people.$inferInsert)[] = [];
+    // 4. Decidir (plan-sync.ts, probado sin base) y luego escribir, dejando bitacora
+    const { aInsertar, aActualizar, cambios } = planificarSync(personas, existentes, {
+      programId,
+      syncRunId: corrida.id,
+    });
+    resultado.nuevas = aInsertar.length;
+    resultado.actualizadas = aActualizar.length;
 
-    for (const p of personas) {
-      const previo = existentes.get(p.emailNormalizado);
-
-      if (!previo) {
-        // En lote: una insercion por persona tardaba ~160s en la carga inicial,
-        // por encima del limite de una funcion de Vercel.
-        aInsertar.push(aRegistro(p, programId));
-        resultado.nuevas++;
-        continue;
-      }
-
-      const diffs = compararCampos(previo, p);
-      if (diffs.length === 0) continue;
-
-      await db
-        .update(people)
-        .set({ ...aRegistro(p, programId), updatedAt: new Date() })
-        .where(eq(people.id, previo.id));
-      resultado.actualizadas++;
-
-      for (const d of diffs) {
-        cambios.push({
-          tabla: "people",
-          registroId: previo.id,
-          etiqueta: previo.nombre ?? p.emailNormalizado,
-          campo: d.campo,
-          valorAnterior: d.anterior,
-          valorNuevo: d.nuevo,
-          origen: "sync",
-          syncRunId: corrida.id,
-        });
-      }
+    for (const { id, valores } of aActualizar) {
+      await db.update(people).set({ ...valores, updatedAt: new Date() }).where(eq(people.id, id));
     }
 
+    // En lote: una insercion por persona tardaba ~160s en la carga inicial,
+    // por encima del limite de una funcion de Vercel.
     for (let i = 0; i < aInsertar.length; i += 200) {
       await db.insert(people).values(aInsertar.slice(i, i + 200));
     }
@@ -189,39 +152,4 @@ export async function sincronizarPersonas(programId: string): Promise<ResultadoS
       .where(eq(syncRuns.id, corrida.id));
     throw e;
   }
-}
-
-function aRegistro(p: PersonaDeducida, programId: string) {
-  return {
-    programId,
-    emailNormalizado: p.emailNormalizado,
-    nombre: p.nombre,
-    telefono: p.telefono,
-    cargo: p.cargo,
-    ingresoDeclarado: p.ingresoDeclarado,
-    urgencia: p.urgencia,
-    porQueAplico: p.porQueAplico,
-    utmSource: p.utmSource,
-    utmMedium: p.utmMedium,
-    utmCampaign: p.utmCampaign,
-    fechaPrimeraAplicacion: p.fechaPrimeraAplicacion,
-    fechaUltimaAplicacion: p.fechaUltimaAplicacion,
-    numAplicaciones: p.numAplicaciones,
-    raw: p.raw as Record<string, unknown>,
-  };
-}
-
-/** Devuelve solo los campos que realmente cambiaron. Un sync sin novedades no escribe nada. */
-function compararCampos(previo: typeof people.$inferSelect, nuevo: PersonaDeducida) {
-  const diffs: { campo: string; anterior: string | null; nuevo: string | null }[] = [];
-  const antes = previo as Record<string, unknown>;
-  const ahora = nuevo as unknown as Record<string, unknown>;
-  for (const campo of CAMPOS_COMPARABLES) {
-    const a = antes[campo];
-    const b = ahora[campo];
-    const sa = a === null || a === undefined ? null : String(a);
-    const sb = b === null || b === undefined ? null : String(b);
-    if (sa !== sb) diffs.push({ campo, anterior: sa, nuevo: sb });
-  }
-  return diffs;
 }

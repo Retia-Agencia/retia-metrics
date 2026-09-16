@@ -7,6 +7,24 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-16 (tarde) — Sesion de riesgos: S-14 local, CRON_SECRET local, B-01.**
+  - **S-14:** la base de `.env.local` resulto ser el proyecto Neon `retia-metrics-crm`
+    (org Retia-Agencia, creado el 15-sep), del fork y casi vacio (0 personas, 1 usuario). Se
+    creo la rama `dev` y `.env.local` ya apunta a ella (ADR 0018). `neonctl` quedo autenticado
+    en esta maquina (`npx neonctl ...`). **Falta Vercel:** el deployment esta en otra cuenta de
+    Vercel no conectada; la CLI local es `manigreeen` (equipo Manigreen, sin este proyecto).
+    Camino recomendado: que inviten a `manigreeen` al equipo de ese proyecto, luego `vercel link`.
+  - **CRON_SECRET:** `npm run rotar` no lo genera (el handoff decia lo contrario, corregido).
+    Nuevo `npm run cron-secret` (sin eco, con respaldo); ya esta en `.env.local`. Para Vercel:
+    `npm run cron-secret -- --vercel` una vez enlazado el proyecto, y redeploy.
+  - **B-01 hecho:** la decision del sync vive en `lib/sheets/plan-sync.ts` (`planificarSync`,
+    pura) y `sync.ts` solo escribe. 6 tests, verificados con mutaciones. 77 tests en total.
+  - **F-03 NO hecho:** con `neon-http` no hay advisory locks de sesion. Diseno completo en el
+    tracker; necesita migracion (va a `dev`), y conviene juntarla con F-07.
+  - **Mensaje para Michael:** redactado en la sesion, sin enviar (Mani lo revisa).
+  - Queda un `.env.local.bak-*` con la URL vieja de `production`: es el respaldo unico de
+    `lib-env.sh`, a proposito.
+
 - **2026-09-16 — Overview del CRM, contrato de extension y re-plan completo en 5 fases.**
   Se reviso el repo entero, los grupos de WhatsApp "Ventas ComunicArte" y "Ventas JP Vieira", y
   los 5 reportes diarios de Mike (1 al 15 de sep, en Downloads). Hallazgos que cambiaron el
@@ -161,8 +179,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 - [ ] **Ticket 008 · Renombrar Corte a Cohorte** (F0). Sin dependencias.
 - [ ] **Ticket 009 · Test guardian de slugs** (F0). Sin dependencias.
-- [ ] **S-14 · Separar la base de preview/produccion** (rama de Neon). Hacerlo **antes** de
-      aplicar la primera migracion de F0: hoy cualquier `db:migrate` pega en produccion.
+- [ ] **S-14 · Vercel** — local ya separado (ADR 0018). Falta conectar la cuenta de Vercel del
+      deployment y dejar Production → `production`, Preview → `dev`.
 - [ ] **F-05 · Migrar las fechas ya guardadas.** El codigo ya escribe con `-05:00` explicito,
       pero las filas viejas quedaron en la zona del servidor y `compararCampos` no mira fechas,
       asi que un `npm run sync` normal **no** las repara. Decidir entre migracion puntual o
@@ -176,9 +194,8 @@ Los cinco de abajo se pueden verificar ahora: desde el 15-sep ya hay un `.env.lo
 `DATABASE_URL` y los IDs de las hojas (verificado el 16-sep, solo nombres de variables).
 
 - [ ] **F-03 (alto)** — Dos sincronizaciones simultaneas se pisan y dejan la base a medias. Falta
-      un candado por programa.
-- [ ] **B-01 (alto)** — `lib/sheets/sync.ts`, lo mas riesgoso del repo, no tiene tests. Hay que
-      separar la decision de la escritura para poder probarla.
+      un candado por programa. Diseno (indice unico parcial, no advisory lock) en el tracker.
+- [x] **B-01 (alto)** — hecho el 16-sep: `lib/sheets/plan-sync.ts` + `tests/plan-sync.test.ts`.
 - [ ] **F-04 (medio)** — Las actualizaciones van fila por fila; la proxima carga grande se pasa
       del limite de la funcion. Falta upsert por lotes.
 - [ ] **F-07 (medio)** — La corrida de sync se atribuye a la primera fuente y no guarda la mitad
@@ -198,14 +215,13 @@ Bloqueados por una decision de negocio (hay que preguntarle a Michael):
 
 ### Later (someday / not yet scoped)
 
-- [ ] **S-14** — `Production` y `Preview` comparten base de datos en Vercel. Separarlas con una
-      rama de Neon antes de trabajar con previews.
+- [ ] **S-14** — Ver "Now": falta solo la parte de Vercel.
 - [ ] **S-10** — Fijar `AUTH_URL` en produccion. No aplica hasta que este fork tenga su propio
       proyecto de Vercel.
 - [ ] **S-12** — Los route handlers dependen de `SameSite=Lax`, sin CSRF propio. Se resuelve
       migrando las mutaciones a Server Actions.
-- [ ] **`CRON_SECRET`.** Al 16-sep **no esta** en el `.env.local` actual (el de este fork) ni en
-      Vercel. Generarlo con `npm run rotar` y cargarlo en ambos.
+- [ ] **`CRON_SECRET`** — en `.env.local` desde el 16-sep (`npm run cron-secret`). Falta
+      cargarlo en Vercel con `npm run cron-secret -- --vercel`.
 - [x] **Pantalla para administrar usuarios.** Pasa a ser el ticket 015.
 - [ ] **Las fuentes de `calls`, `sales` y `ad_spend`** estan sembradas pero inactivas: sus
       encabezados no se han inspeccionado y esta prohibido adivinar mapeos. Empezar con
