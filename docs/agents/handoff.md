@@ -186,8 +186,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   en un editor**.
 
 - **Este repo es un fork independiente.** El deployment original (`retia-metrics.vercel.app`,
-  bajo Michael) no se hereda: no hay proyecto de Vercel propio todavia y las credenciales hay que
-  generarlas desde cero a partir de `.env.example`.
+  bajo Michael) no se hereda. Desde el 14-sep el fork se despliega en `agencia-dani/retia-metrics`
+  (`retia-metrics-seven.vercel.app`) con su propia base Neon (ADR 0018).
 
 ## Roadmap
 
