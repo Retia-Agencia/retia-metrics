@@ -113,8 +113,10 @@ Detalle en [docs/agents/handoff.md](../agents/handoff.md), sección Roadmap.
       Aplica en el próximo deploy de producción.
 - [x] `GOOGLE_SERVICE_ACCOUNT_JSON_B64` en `.env.local` y en Vercel Production (16-sep, proyecto
       `retia-growth`; las dos hojas compartidas y verificadas con `npm run descubrir`).
-- [x] S-10 · `AUTH_URL` en Vercel Production (16-sep). Falta confirmar el callback
-      `https://retia-metrics-seven.vercel.app/api/auth/callback/google` en el OAuth de Google.
+- [x] S-10 · `AUTH_URL` en Vercel Production (16-sep). Callback confirmado en el cliente OAuth
+      nuevo del proyecto `retia-growth`, que reemplaza al que vivia en el proyecto personal de Mani.
+- [ ] Probar el login con una cuenta real (local y producción) y borrar el cliente web viejo de
+      `google-workspace-mcp`.
 - [ ] Sembrar programas y fuentes en `production` y probar `/api/cron/sync` de punta a punta.
 - [ ] Prueba manual de S-02 (quitar usuario)
 

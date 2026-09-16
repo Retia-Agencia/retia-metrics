@@ -70,6 +70,13 @@ _Estado actual del trabajo. Lo mas reciente arriba._
      `/grill-with-docs` sobre eso antes del ticket 003.** F-01 quedo desbloqueado con los valores
      reales de `Estado`. Mani cerro el resto: los usuarios reales se cargan desde la UI (015) al
      salir a produccion, el closer convierte COP a USD al registrar, y el snapshot va de ultimo.
+  1c2. **Login movido a Retia (16-sep).** El cliente OAuth del login vivia en el proyecto personal
+     de Mani `google-workspace-mcp` (numero `811976579112`). Ahora es un cliente web del proyecto
+     `retia-growth` (numero `159195382731`), con pantalla de consentimiento Externa y las URIs de
+     produccion y `localhost:3000`. Verificado: Google acepta las dos, y `.env.local` y el deploy
+     de produccion usan el mismo cliente nuevo. Falta: entrar con una cuenta real en local y en
+     produccion, y despues borrar el cliente **web** viejo de `google-workspace-mcp` (el de
+     escritorio es del MCP de Mani: no se toca). Preview no se verifico.
   1d. **`production` no tiene programas ni fuentes sembrados** (probablemente: al crear `dev`
      tenia 0 personas; no se reviso). Sin eso el cron no tiene que leer. Sembrarla con la URL de
      `production` cargada solo para ese comando, como la migracion, y despues probar
@@ -362,6 +369,9 @@ ya no describen la realidad. Se recalculan cuando haga falta. Estan en
 
 ### Detalles del entorno que cuestan tiempo si se olvidan
 
+- **Google Cloud (16-sep):** todo lo de la app vive en el proyecto `retia-growth`: la cuenta de
+  servicio del sync y el cliente OAuth del login. `google-workspace-mcp` es el proyecto personal
+  de Mani para su MCP y no debe tener nada de la app.
 - **El proyecto de Google Cloud vive dentro de la organizacion `retiagrowth.com`** y la cuenta no
   puede crear proyectos fuera de ella. Ventaja: la cuenta de servicio es interna al dominio, asi
   que compartirle las hojas no choca con restricciones de compartir hacia afuera.
