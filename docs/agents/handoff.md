@@ -7,36 +7,43 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
-- **2026-09-16 (tarde) — Sesion de riesgos: S-14, CRON_SECRET, B-01.**
-  - **Vercel (cierre de la sesion):** el proyecto es `agencia-dani/retia-metrics`, cuenta de
-    Daniel (`danieltovartech-4302`, la CLI de esta maquina quedo logueada con ella; para volver a
-    `manigreeen`: `vercel logout` + `vercel login`). Repo enlazado (`.vercel/repo.json`). Preview
-    ya usa la rama `dev`; Production conserva su `DATABASE_URL` (valor no verificable, ver ADR
-    0018); `CRON_SECRET` cargado en Production, **falta redeploy** para que aplique. Mientras,
-    `/api/cron/sync` responde 500 (falla cerrado, esperado). Faltan
-    `GOOGLE_SERVICE_ACCOUNT_JSON_B64` y `AUTH_URL` (S-10).
-  - Los push a `origin/main` los hace Mani a mano. Ojo: `main` despliega a produccion en Vercel
-    (`f98a1b0` se desplego a las 14:17 del 16-sep).
-  - **S-14:** la base de `.env.local` resulto ser el proyecto Neon `retia-metrics-crm`
-    (org Retia-Agencia, creado el 15-sep), del fork y casi vacio (0 personas, 1 usuario). Se
-    creo la rama `dev` y `.env.local` ya apunta a ella (ADR 0018). `neonctl` quedo autenticado
-    en esta maquina (`npx neonctl ...`). Vercel quedo resuelto al cierre (primera viñeta).
-  - **CRON_SECRET:** `npm run rotar` no lo genera (el handoff decia lo contrario, corregido).
-    Nuevo `npm run cron-secret` (sin eco, con respaldo); ya esta en `.env.local` y, con
-    `-- --vercel` (sube por la API de Vercel), en Production.
-  - **B-01 hecho:** la decision del sync vive en `lib/sheets/plan-sync.ts` (`planificarSync`,
-    pura) y `sync.ts` solo escribe. 6 tests, verificados con mutaciones. 77 tests en total.
-  - **F-03 NO hecho:** con `neon-http` no hay advisory locks de sesion. Diseno completo en el
-    tracker; necesita migracion (va a `dev`), y conviene juntarla con F-07.
-  - **Mensaje para Michael:** borrador en `docs/insumos/mensaje-michael-2026-09-16.md`, **sin
-    enviar**. Respondidas el 16-sep: sync con Sheets **si** (Michael), "todos ven todo" **si** e historico
-    C2 **si** (Mani); quedan 5 preguntas. Idea de Mani convertida en ADR 0019: plantilla de lead por
-    programa, heredada y ajustable por fuente, con campos fijos en codigo y extras a `raw`. Se
-    construye en el ticket 016 (necesita migracion). Las hojas **no** se estandarizan. Tarea de Notion del CRM actualizada con el estado y los pendientes.
-  - El respaldo `.env.local.bak-*` que dejo el cambio de URL se borro con
-    `npm run limpiar-respaldos` al cerrar.
-  - **Siguiente sesion, en orden:** cuenta de servicio de Google → `AUTH_URL` (S-10) → redeploy
-    y probar el cron → confirmar la base de Production → enviar el mensaje a Michael → F-03 + F-07 en `dev` → tickets 008 y 009.
+- **2026-09-16 (tarde) — Sesion de riesgos: S-14, CRON_SECRET, B-01, decisiones de negocio.**
+
+  **Siguiente sesion, en orden:**
+  1. Cargar `GOOGLE_SERVICE_ACCOUNT_JSON_B64` (`npm run cuenta-servicio`, necesita el JSON de
+     Google Cloud) en `.env.local` y en Vercel Production.
+  2. S-10: `AUTH_URL=https://retia-metrics-seven.vercel.app` en Production + callback en Google OAuth.
+  3. Redeploy de produccion y probar `/api/cron/sync` (hoy responde 500: falta `CRON_SECRET` en el
+     deploy activo, falla cerrado, esperado).
+  4. Confirmar que la `DATABASE_URL` de Production es la rama `production` (ADR 0018).
+  5. F-03 + F-07 juntos, con migracion en `dev` (diseno en el tracker).
+  6. Tickets 008 y 009. Cuando Michael responda, bajar sus respuestas al tracker y los tickets.
+
+  **Hecho:**
+  - **S-14 (ADR 0018):** la base de `.env.local` es el proyecto Neon `retia-metrics-crm` (org
+    Retia-Agencia, creado el 15-sep), del fork y casi vacio (0 personas, 1 usuario). Rama `dev`
+    creada; `.env.local` y Vercel Preview la usan; Production conserva su `DATABASE_URL`.
+    `neonctl` quedo autenticado en esta maquina (`npx neonctl ...`).
+  - **Vercel:** proyecto `agencia-dani/retia-metrics` (cuenta de Daniel, dominio
+    `retia-metrics-seven.vercel.app`). La CLI de esta maquina quedo logueada como
+    `danieltovartech-4302`; para volver a `manigreeen`: `vercel logout` + `vercel login`. Repo
+    enlazado con `.vercel/repo.json`.
+  - **CRON_SECRET:** `npm run rotar` no lo genera (se corrigio esa instruccion). Nuevo
+    `npm run cron-secret` (sin eco, con respaldo, `-- --vercel` sube por la API). Esta en
+    `.env.local` y en Vercel Production; aplica con el proximo deploy.
+  - **B-01:** la decision del sync vive en `lib/sheets/plan-sync.ts` (`planificarSync`, pura) y
+    `sync.ts` solo escribe. 6 tests verificados con mutaciones; 77 en total.
+  - **F-03 no se hizo:** con `neon-http` no hay advisory locks de sesion; necesita indice unico
+    parcial (migracion).
+  - **Decisiones:** sync de leads con Sheets **si** (Michael); "todos ven todo" **si** e importar
+    el historico de C2 **si** (Mani). Idea de Mani convertida en ADR 0019: plantilla de lead por
+    programa, heredada y ajustable por fuente, campos fijos en codigo y extras a `raw`; se
+    construye en el ticket 016. Las hojas **no** se estandarizan.
+  - **Mensaje a Michael** (`docs/insumos/mensaje-michael-2026-09-16.md`): **enviado por Mani el
+    16-sep**, esperando respuesta sobre closers y correos, moneda de abonos, leads fuera del
+    formulario, formato del snapshot y valores de `Estado`.
+  - Tarea de Notion del CRM actualizada con el estado. El respaldo `.env.local.bak-*` se borro.
+  - Los push a `origin/main` los hace Mani a mano; `main` despliega a produccion en Vercel.
 
 - **2026-09-16 — Overview del CRM, contrato de extension y re-plan completo en 5 fases.**
   Se reviso el repo entero, los grupos de WhatsApp "Ventas ComunicArte" y "Ventas JP Vieira", y

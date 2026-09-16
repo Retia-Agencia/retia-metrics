@@ -1,6 +1,6 @@
-# Mensaje para Michael — decisiones pendientes (borrador, SIN ENVIAR)
+# Mensaje para Michael — decisiones pendientes (ENVIADO el 16-sep, esperando respuesta)
 
-Redactado el 16-sep en la sesion de riesgos. Mani lo revisa antes de enviarlo. Cuando llegue la
+Redactado el 16-sep en la sesion de riesgos y enviado por Mani ese mismo dia. Cuando llegue la
 respuesta, bajar cada decision al tracker (`docs/tasks/README.md`, "Decisiones pendientes") y a
 los tickets que afecta.
 

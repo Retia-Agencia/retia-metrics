@@ -61,7 +61,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 
 ## Decisiones pendientes (bloquean o condicionan tickets)
 
-Las de Michael que siguen abiertas están en [mensaje-michael-2026-09-16.md](../insumos/mensaje-michael-2026-09-16.md).
+Las de Michael que siguen abiertas se le **enviaron el 16-sep** ([mensaje-michael-2026-09-16.md](../insumos/mensaje-michael-2026-09-16.md)); esperando respuesta.
 
 | Decisión | A quién | Afecta |
 |---|---|---|
