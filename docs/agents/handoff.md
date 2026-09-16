@@ -7,93 +7,60 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
-- **2026-09-16 (noche) — Arranca la implementacion de F0 (tickets 008 → 009 → 010 → 011).**
-  Cada ticket lo implementa Kiro en segundo plano con TDD; se revisa contra su "Done cuando"
-  antes de cerrarlo, y va en un commit propio.
+- **2026-09-16 (noche) — F0 arranca: tickets 008-011 hechos, migraciones en las dos ramas, Google
+  Cloud y login pasados a Retia, respuestas de Michael bajadas.**
 
-  - **008 hecho.** Corte → Cohorte en schema, UI, seed y README; test
-    `tests/esquema-cohorte.test.ts`. Migracion `drizzle/0002_renombrar_corte_a_cohorte.sql`
-    escrita a mano (solo `RENAME`), snapshot coherente (`drizzle-kit check` limpio y `generate`
-    no ve cambios). **Sin aplicar**: la aplica Mani en la rama `dev` de Neon y despues en
-    `production` (ADR 0018). Ojo: `npm run seed:datos` falla contra una base sin esta migracion
-    (el seed ya escribe `trm_cohorte`).
-  - **009 hecho.** `tests/contrato-extension.test.ts` recorre `lib/`, `app/` y `components/`
-    buscando `comunicarte`, `tactical` y `vieira` en contenido **y en rutas** (la carpeta
-    `app/(app)/comunicarte/` tambien cuenta). Hoy lista 20 violaciones en 9 archivos, mas de las
-    que decia el ticket: tambien comentarios en `lib/sheets/{dedup,mapeo,sync}.ts` y los iconos
-    de `components/app-sidebar.tsx`. Marcado `it.fails` hasta que 010 lo ponga en verde. Un
-    segundo test prueba el detector sobre un arbol temporal.
-  - **010 hecho.** Los programas salen de la tabla `programs`: `lib/queries/programas.ts`
-    (`programasActivos`, `programaActivoPorSlug`), dashboard en `app/(app)/programas/[slug]`
-    (guard primero, 404 si el slug no existe o esta inactivo), `lib/nav.ts` puro
-    (`navParaRol(rol, programas)`, `rutaInicial(rol, primerPrograma)`) y `destinoInicial(rol)`
-    async en `lib/auth/page-guards.ts`, que solo consulta la base para el gerente. Las rutas
-    viejas `/comunicarte` y `/tactical-investor` redirigen (308) desde `next.config.ts`. El
-    guardian del 009 quedo en verde. La descripcion del dashboard ya no trae la fecha de cierre
-    de C2 (estaba escrita a mano); vuelve cuando exista `cohorteActiva()` (ticket 002).
-    **Pendiente de Mani:** insertar un programa en la rama `dev` y confirmar con login real que
-    aparece en el sidebar y su ruta responde.
-  - **011 hecho.** Molde en `lib/catalogo/molde.ts` (`moldeDeCatalogo`, generico: `listar`,
-    `crear`, `editar`, `desactivar`, cada escritura con su `change_log` y nunca `DELETE`) y
-    `lib/catalogo/plataformas.ts` (esquema zod unico + `plataformasDePago(db?)`). Tabla
-    `plataformas_pago` con nombre unico sin distinguir mayusculas y `change_log.user_id`.
-    Migracion `drizzle/0003_catalogo_plataformas_pago.sql` con la semilla de 7 plataformas,
-    **sin aplicar**. La base se recibe por parametro; `lib/db/ejecutar-juntas.ts` agrupa
-    escrituras con `batch` (neon-http) o `transaction` (PGlite).
-  - **ADR 0020 (decision de Mani):** los tests de base corren contra PGlite en memoria
-    (`@electric-sql/pglite` 0.5.8, devDependency). `tests/helpers/base-de-prueba.ts` aplica todas
-    las migraciones, asi que `npm test` tambien prueba que 0000-0003 aplican en Postgres real.
-    93 tests en ~4 s.
+  **Codigo** (Kiro implementa con TDD en segundo plano; cada ticket se reviso contra su "Done
+  cuando" y va en su propio commit; 94 tests, typecheck y lint limpios):
+  - **008** Corte → Cohorte. Migracion `drizzle/0002_*` escrita a mano, solo `RENAME`.
+  - **009** `tests/contrato-extension.test.ts`: falla si un programa aparece escrito en `lib/`,
+    `app/` o `components/` (contenido **y** rutas).
+  - **010** Programas desde la base: `app/(app)/programas/[slug]`, `lib/queries/programas.ts`,
+    `lib/nav.ts` puro, `destinoInicial()` en `lib/auth/page-guards.ts`; las rutas viejas
+    redirigen desde `next.config.ts`. La descripcion del dashboard ya no trae la fecha de C2;
+    vuelve con `cohorteActiva()` (002).
+  - **011** Molde `lib/catalogo/molde.ts` (listar/crear/editar/desactivar, `change_log` con
+    `userId`, nunca `DELETE`) estrenado con `lib/catalogo/plataformas.ts`. Migracion `0003_*`
+    con 7 plataformas. La base entra por parametro; `lib/db/ejecutar-juntas.ts` usa `batch`
+    (neon-http) o `transaction` (PGlite). Deuda: un id que no es uuid da 500 (validar en 013).
+  - **ADR 0020 (Mani):** tests de base con PGlite en memoria; `tests/helpers/base-de-prueba.ts`
+    aplica todas las migraciones.
+  - **Bug evitado:** el `when` de 0002 en el journal era mayor que el de 0003 y el migrador se
+    habria saltado 0003. Corregido; `tests/migraciones.test.ts` lo vigila.
+  - `npm run cuenta-servicio -- <ruta>` acepta la ruta de la llave.
 
-  **Siguiente sesion, en orden:**
-  1. ~~Migraciones 0002 y 0003 en `dev`~~ **aplicadas y verificadas el 16-sep** (4 migraciones,
-     `trm_cohorte`, `estado_cohorte`, `change_log.user_id`, 7 plataformas). **`production` tambien,
-     el 16-sep**, desde el SQL Editor de Neon en una sola transaccion, registrando las dos filas
-     en `drizzle.__drizzle_migrations` con los mismos hash que `dev` (verificado: 4 migraciones,
-     7 plataformas). Sigue sin confirmar que la `DATABASE_URL` de Vercel Production sea esa rama.
-     Detalle original: Mani aplica las migraciones 0002 y 0003 en la rama `dev` (`npm run db:migrate` con el
-     `.env.local` actual), prueba la app y despues las lleva a `production` (ADR 0018). Hasta
-     entonces el codigo nuevo no corre contra ninguna base desplegada: `main` despliega a
-     produccion, asi que **no hacer push antes de migrar production**.
-  1b. **Cuenta de servicio lista (16-sep):** proyecto de Google Cloud nuevo `retia-growth`, cuenta
-     `retia-metrics-sync@retia-growth.iam.gserviceaccount.com`, llave en `.env.local` y en Vercel
-     Production, las dos hojas compartidas como Editor. `npm run descubrir` ve las dos y ambos
-     `SHEET_ID_*` coinciden. `npm run cuenta-servicio -- <ruta>` ya acepta la ruta de la llave.
-     Falta: `AUTH_URL` en Vercel Production (S-10) y redesplegar para que tome las variables.
-     **Ojo:** la hoja de Tactical tiene pestanas que `docs/estructura-bbdd.md` no documenta
-     (`🚨 Urgencias`, `_urg_data`, `Leads interesados en prox. Cohort`, `Lead Magnet Ruta` y los
-     respaldos `BK_*_20260905_1650`). El sync solo lee las pestanas configuradas, asi que no
-     rompe nada hoy, pero hay que documentarlas antes de tocar fuentes (ticket 016).
-  1c. **Michael respondio (16-sep)**, bajado a `docs/insumos/mensaje-michael-2026-09-16.md`, al
-     tracker, a la spec y a los tickets 003, 007, 018 y 019. Lo mas grande: todo lead tiene un
-     closer responsable y el closer lo asigna en el CRM, que choca con ADR 0004. **Hacer
-     `/grill-with-docs` sobre eso antes del ticket 003.** F-01 quedo desbloqueado con los valores
-     reales de `Estado`. Mani cerro el resto: los usuarios reales se cargan desde la UI (015) al
-     salir a produccion, el closer convierte COP a USD al registrar, y el snapshot va de ultimo.
-  1c2. **Login movido a Retia (16-sep).** El cliente OAuth del login vivia en el proyecto personal
-     de Mani `google-workspace-mcp` (numero `811976579112`). Ahora es un cliente web del proyecto
-     `retia-growth` (numero `159195382731`), con pantalla de consentimiento Externa y las URIs de
-     produccion y `localhost:3000`. Verificado: Google acepta las dos, y `.env.local` y el deploy
-     de produccion usan el mismo cliente nuevo. Falta: entrar con una cuenta real en local y en
-     produccion, y despues borrar el cliente **web** viejo de `google-workspace-mcp` (el de
-     escritorio es del MCP de Mani: no se toca). Preview no se verifico.
-  1d. **`production` no tiene programas ni fuentes sembrados** (probablemente: al crear `dev`
-     tenia 0 personas; no se reviso). Sin eso el cron no tiene que leer. Sembrarla con la URL de
-     `production` cargada solo para ese comando, como la migracion, y despues probar
-     `/api/cron/sync` con el `CRON_SECRET`.
-  2. Prueba manual del 010: insertar un programa en `dev` y verlo en el sidebar con login real.
-  3. Listos ahora: 012, 013, 014, 015, 017 y 020. Orden sugerido por el plan: 012 → 013 → 015 →
-     014 → 017. Los pendientes de la sesion anterior (cuenta de servicio, S-10, F-03 + F-07)
-     siguen abiertos.
-  4. Bug corregido antes de migrar: el `when` de 0002 en el journal era mayor que el de 0003, y
-     el migrador habria saltado 0003 en silencio si se aplicaban por separado.
-     `tests/migraciones.test.ts` exige que el journal crezca en orden.
-  5. Deuda chica del 011: `leerFila` con un id que no es uuid revienta en Postgres (22P02 →
-     500). Validar el id con zod en el borde cuando exista la pantalla (013).
+  **Infraestructura (verificado):**
+  - Migraciones 0002 y 0003 aplicadas en `dev` (`npm run db:migrate`) y en `production` (SQL
+    Editor de Neon, una transaccion, con las filas de `drizzle.__drizzle_migrations` y los mismos
+    hash que `dev`). Ambas: 4 migraciones, 7 plataformas.
+  - `DATABASE_URL` de Vercel Production recargada por Mani con la rama `production`.
+  - Google Cloud: todo lo de la app vive en el proyecto **`retia-growth`**. Cuenta de servicio
+    `retia-metrics-sync@retia-growth.iam.gserviceaccount.com` en `.env.local` y Vercel
+    Production; las dos hojas compartidas y `npm run descubrir` las ve. El **login** se movio a
+    un cliente OAuth web de `retia-growth` (antes vivia en el proyecto personal
+    `google-workspace-mcp`); Google acepta las URIs de produccion y `localhost:3000`, y
+    `.env.local` y el deploy de produccion usan el mismo cliente. `AUTH_URL` en Production.
+  - Produccion desplegada y sana (`/api/health` 200, redirecciones 308 ok).
+
+  **Decisiones de negocio** (detalle en `docs/insumos/mensaje-michael-2026-09-16.md` y el
+  tracker): closers activos Andrea y Maru; los usuarios reales (closers y managers) se cargan
+  desde la UI del 015 al salir a produccion; abonos siempre en USD y el closer convierte al
+  registrar; snapshot de ultimo, parecido al reporte diario actual; `Estado` es la clasificacion
+  del lead (valores contados y mapeo propuesto en F-01). **Alcance nuevo:** todo lead tiene un
+  closer responsable que se asigna en el CRM, y eso choca con ADR 0004.
+
+  **Hallazgos:** la hoja de Tactical tiene pestanas que `docs/estructura-bbdd.md` no documenta
+  (`🚨 Urgencias`, `_urg_data`, `Leads interesados en prox. Cohort`, `Lead Magnet Ruta`,
+  `BK_*_20260905_1650`). `New form` devuelve justo 2.000 filas (eran 1.320 el 19-ago): revisar
+  si son filas vacias con formula.
+
+  **Siguiente sesion, en orden:** ver **Now** abajo.
+  Skills sugeridas: `/grill-with-docs` (responsable del lead vs ADR 0004), `/tdd` por ticket
+  delegando a Kiro.
 
 - **2026-09-16 (tarde) — Sesion de riesgos: S-14, CRON_SECRET, B-01, decisiones de negocio.**
 
-  **Siguiente sesion, en orden:**
+  **Siguiente sesion, en orden** (_todo resuelto en la sesion de la noche salvo F-03 + F-07_):
   1. Cargar `GOOGLE_SERVICE_ACCOUNT_JSON_B64` (`npm run cuenta-servicio`, necesita el JSON de
      Google Cloud) en `.env.local` y en Vercel Production.
   2. S-10: `AUTH_URL=https://retia-metrics-seven.vercel.app` en Production + callback en Google OAuth.
@@ -281,14 +248,23 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now (ready — no unmet dependencies)
 
-- [ ] **Ticket 008 · Renombrar Corte a Cohorte** (F0). Sin dependencias.
-- [ ] **Ticket 009 · Test guardian de slugs** (F0). Sin dependencias.
-- [ ] **Redeploy de produccion** para que tome `CRON_SECRET`, y cargar
-      `GOOGLE_SERVICE_ACCOUNT_JSON_B64` y `AUTH_URL` (S-10) antes o junto con ese deploy.
-- [ ] **F-05 · Migrar las fechas ya guardadas.** El codigo ya escribe con `-05:00` explicito,
-      pero las filas viejas quedaron en la zona del servidor y `compararCampos` no mira fechas,
-      asi que un `npm run sync` normal **no** las repara. Decidir entre migracion puntual o
-      re-sync forzado.
+1. [ ] **Probar el login con una cuenta real** en local y en produccion; despues borrar el
+       cliente OAuth **web** viejo de `google-workspace-mcp` (el de escritorio es del MCP de Mani).
+2. [ ] **`/grill-with-docs`: responsable del lead y alta manual de leads** (Michael, 16-sep) contra
+       ADR 0004. Sale un ADR y, si hace falta, un ticket nuevo. Bloquea el 003.
+3. [ ] **Sembrar `production`** (programas, cohortes, fuentes) con la URL de `production` cargada
+       solo para ese comando, y probar `/api/cron/sync` con el `CRON_SECRET`. Sembrar tambien
+       `dev` (`npm run seed:datos`) y hacer la prueba manual del 010 (programas en el sidebar).
+4. [ ] **Tickets F0 listos** (estado en `docs/tasks/README.md`): 012 → 013 → 015 → 014 → 017, y 020.
+5. [ ] **F-03 + F-07** juntos, con migracion (diseno en el tracker); primero `dev`, luego
+       `production`.
+6. [ ] **F-01:** confirmar el mapeo de `Estado` propuesto en el tracker e implementarlo.
+7. [ ] **Documentar las pestanas nuevas** en `docs/estructura-bbdd.md` y revisar las 2.000 filas
+       de `New form`.
+8. [ ] **F-05 · Migrar las fechas ya guardadas.** El codigo ya escribe con `-05:00` explicito,
+       pero las filas viejas quedaron en la zona del servidor y `compararCampos` no mira fechas,
+       asi que un `npm run sync` normal **no** las repara. Decidir entre migracion puntual o
+       re-sync forzado.
 
 ### Next (blocked until a "Now" item lands)
 
@@ -297,13 +273,9 @@ Cadena del CRM: ver el grafo en `docs/plan.md` y el estado en `docs/tasks/README
 Los cinco de abajo se pueden verificar ahora: desde el 15-sep ya hay un `.env.local` con
 `DATABASE_URL` y los IDs de las hojas (verificado el 16-sep, solo nombres de variables).
 
-- [ ] **F-03 (alto)** — Dos sincronizaciones simultaneas se pisan y dejan la base a medias. Falta
-      un candado por programa. Diseno (indice unico parcial, no advisory lock) en el tracker.
 - [x] **B-01 (alto)** — hecho el 16-sep: `lib/sheets/plan-sync.ts` + `tests/plan-sync.test.ts`.
 - [ ] **F-04 (medio)** — Las actualizaciones van fila por fila; la proxima carga grande se pasa
       del limite de la funcion. Falta upsert por lotes.
-- [ ] **F-07 (medio)** — La corrida de sync se atribuye a la primera fuente y no guarda la mitad
-      de sus conteos.
 - [ ] **Prueba manual de S-02** — que `npm run usuarios -- quitar <correo>` saque a la persona en
       el siguiente request. El callback `jwt` no es testeable sin extraerlo de Auth.js.
 
@@ -321,8 +293,8 @@ Bloqueados por una decision de negocio (hay que preguntarle a Michael):
 ### Later (someday / not yet scoped)
 
 - [x] **S-14** — resuelto el 16-sep (ADR 0018).
-- [x] **S-10** — `AUTH_URL` en Vercel Production desde el 16-sep (falta confirmar el callback en
-      el cliente OAuth de Google).
+- [x] **S-10** — `AUTH_URL` en Vercel Production y callback en el cliente OAuth de `retia-growth`
+      (16-sep).
 - [ ] **S-12** — Los route handlers dependen de `SameSite=Lax`, sin CSRF propio. Se resuelve
       migrando las mutaciones a Server Actions.
 - [x] **`CRON_SECRET`** — en `.env.local` y en Vercel Production desde el 16-sep.
@@ -333,6 +305,10 @@ Bloqueados por una decision de negocio (hay que preguntarle a Michael):
 
 ### Done
 
+- [x] 2026-09-16 (noche) — Tickets 008-011 (F0), ADR 0020, migraciones 0002-0003 en `dev` y
+      `production`, cuenta de servicio y login en `retia-growth`, `AUTH_URL`, respuestas de
+      Michael bajadas a los docs.
+- [x] 2026-09-16 (tarde) — S-14 (ADR 0018), `CRON_SECRET`, B-01, mensaje a Michael.
 - [x] 2026-09-14/15 — Definido que se construye: `/spec` (`docs/spec.md`), `/grill-with-docs`
       (ADR 0008-0011, `context.md` actualizado, `AGENTS.md` y tests de roles/paginas ya aplicados
       en codigo) y `/plan` (`docs/plan.md`, tickets 001-007 en `docs/tasks/`).
