@@ -16,17 +16,23 @@ echo ""
 echo "  Cuenta de servicio de Google"
 echo "  ─────────────────────────────────────────────"
 
-# Busca el JSON mas reciente en Descargas que parezca una llave de cuenta de servicio.
-LLAVE=""
-while IFS= read -r f; do
-  if grep -q '"type"[[:space:]]*:[[:space:]]*"service_account"' "$f" 2>/dev/null; then
-    LLAVE="$f"; break
-  fi
-done < <(ls -t "$HOME/Downloads"/*.json 2>/dev/null)
+es_llave() { grep -q '"type"[[:space:]]*:[[:space:]]*"service_account"' "$1" 2>/dev/null; }
+
+# Uso: npm run cuenta-servicio [-- <ruta al JSON>]
+# Con ruta, usa ese archivo. Sin ruta, busca el JSON mas reciente en Descargas.
+LLAVE="${1:-}"
+if [[ -n "$LLAVE" ]]; then
+  es_llave "$LLAVE" || { echo "  $LLAVE no existe o no es una llave de cuenta de servicio."; exit 1; }
+else
+  while IFS= read -r f; do
+    if es_llave "$f"; then LLAVE="$f"; break; fi
+  done < <(ls -t "$HOME/Downloads"/*.json 2>/dev/null)
+fi
 
 if [[ -z "$LLAVE" ]]; then
   echo "  No encontre ninguna llave de cuenta de servicio en ~/Downloads."
-  echo "  Descargala primero desde Google Cloud (IAM > Cuentas de servicio > Claves > JSON)."
+  echo "  Descargala primero desde Google Cloud (IAM > Cuentas de servicio > Claves > JSON),"
+  echo "  o pasa la ruta: npm run cuenta-servicio -- \"/ruta/a/la/llave.json\""
   exit 1
 fi
 
