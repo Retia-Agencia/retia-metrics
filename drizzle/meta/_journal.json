@@ -71,6 +71,13 @@
       "when": 1789674040431,
       "tag": "0009_ventana_de_venta_cohorte",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789675156648,
+      "tag": "0010_responsable_y_entrada_persona",
+      "breakpoints": true
     }
   ]
 }

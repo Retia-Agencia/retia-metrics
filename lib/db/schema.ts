@@ -47,6 +47,8 @@ export const resultadoLlamadaEnum = pgEnum("resultado_llamada", [
   "perdida",
 ]);
 
+/** Por donde entro una persona al CRM (ADR 0021). */
+export const entradaPersonaEnum = pgEnum("entrada_persona", ["formulario", "crm"]);
 export const estadoCohorteEnum = pgEnum("estado_cohorte", ["cerrado", "activo", "futuro"]);
 export const tipoFuenteEnum = pgEnum("tipo_fuente", ["google_sheet", "upload"]);
 export const estadoSyncEnum = pgEnum("estado_sync", ["corriendo", "ok", "error"]);
@@ -201,6 +203,19 @@ export const people = pgTable(
     /** Cuantas veces aplico la misma persona. Senal de intensidad, no personas distintas. */
     numAplicaciones: integer("num_aplicaciones").notNull().default(1),
     estado: estadoPersonaEnum("estado").notNull().default("cola_setteo"),
+    /**
+     * Closer responsable de la persona (ADR 0021). Lo escribe solo la app: el sync
+     * nunca lo lee ni lo pisa. Es el mismo `closerId` en texto de ADR 0011, no una
+     * relacion a `users`. "Sin responsable" es un estado valido.
+     */
+    responsableCloserId: text("responsable_closer_id"),
+    /**
+     * Por donde entro la persona (ADR 0021): por el formulario de la hoja o creada
+     * a mano en el CRM. Es un tipo, no una fila: el codigo decide segun su valor
+     * (el CPL usa solo las del formulario, y el sync pasa una persona de `crm` a
+     * `formulario` cuando la encuentra).
+     */
+    entrada: entradaPersonaEnum("entrada").notNull().default("formulario"),
     motivoDescarte: text("motivo_descarte"),
     cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "set null" }),
     /** Fila original tal como vino de la hoja, para auditar sin volver a Sheets. */
