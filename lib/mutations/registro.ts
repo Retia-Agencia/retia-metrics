@@ -2,18 +2,13 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Session } from "next-auth";
 import { db as dbDeLaApp } from "@/lib/db";
-import {
-  abonos,
-  calls,
-  plataformasPago,
-  productos,
-  resultadoLlamadaEnum,
-  sales,
-} from "@/lib/db/schema";
+import { abonos, calls, productos, resultadoLlamadaEnum, sales } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
 import { esquemaAbono } from "@/lib/abonos/esquema";
+import { exigirPlataformaActiva } from "@/lib/abonos/plataforma";
+import { closerDeLaSesion } from "@/lib/auth/closer";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 
 /**
@@ -125,15 +120,7 @@ export async function registrarLlamada(
   db: Db = dbDeLaApp,
 ): Promise<ResultadoRegistro> {
   // a) El closerId se COPIA de la cuenta, el closer nunca lo escribe (ADR 0011).
-  //    Sin el, sus registros no se cruzan con su usuario: es un error de onboarding,
-  //    un 400 con mensaje claro, no un 500.
-  const closerId = session.user.closerId;
-  if (!closerId) {
-    throw new ErrorDeApp(
-      "Tu cuenta no tiene cargado el identificador de closer. Pídele a un gerente que te lo asigne antes de registrar llamadas.",
-      400,
-    );
-  }
+  const closerId = closerDeLaSesion(session, "registrar llamadas");
 
   // b) Validacion del borde. El ZodError sale tal cual: `respuestaDeError` lo vuelve
   //    un 400 con el mensaje del primer issue.
@@ -171,21 +158,7 @@ export async function registrarLlamada(
       );
     }
 
-    if (datos.venta.plataformaId) {
-      const [plataforma] = await db
-        .select({ id: plataformasPago.id })
-        .from(plataformasPago)
-        .where(
-          and(
-            eq(plataformasPago.id, datos.venta.plataformaId),
-            eq(plataformasPago.activo, true),
-          ),
-        )
-        .limit(1);
-      if (!plataforma) {
-        throw new ErrorDeApp("La plataforma de pago no existe o no está activa.", 400);
-      }
-    }
+    await exigirPlataformaActiva(datos.venta.plataformaId, db);
   }
 
   // e) Ids generados ANTES: `ejecutarJuntas` usa `batch` sobre neon-http, que no deja
