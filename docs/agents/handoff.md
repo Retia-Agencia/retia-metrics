@@ -7,6 +7,42 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-17 — Tickets 018 y 027, ADR 0022, migraciones 0008-0010, y tres sesiones en paralelo.**
+
+  **Siguiente sesion:** revisar los commits de las tres sesiones paralelas (002, 004, 026) contra
+  su "Done cuando", aplicar la 0010 en `production` con ok de Mani, y seguir con 019 y 003.
+
+  **Codigo** (Kiro con TDD, un commit por ticket; 253 tests, typecheck y lint limpios):
+  - **018** esquema del registro y abonos: `resultado_llamada` a 8 valores, `calls` con
+    `fechaSeguimiento`/`motivoId`/`origenId`, `sales` con `productoId`, tabla `abonos` con
+    `onDelete: restrict` sobre la venta, y `lib/abonos/esquema.ts` (solo USD). **Decision de Mani:
+    `sales.esPagoCompleto` se elimina**, no queda como cache: todo derivado se calcula (enmienda
+    en el ADR 0013). La migracion 0008 copia cada `montoAbonado` viejo a un abono; habia 0 ventas.
+  - **027** ventana de venta por cohorte (**ADR 0022**, sale de `/grill-with-docs`). Los reportes
+    diarios desmienten las dos reglas que el glosario daba por buenas: el inicio no se deduce del
+    cierre de la cohorte anterior (Comunicarte C2 arranca 14-ago, no 12-ago) y el cierre no se
+    deduce del inicio de clases (un programa cierra el mismo dia, el otro la vispera). Ahora
+    `cohorts.fechaInicioVentas` es dato editable y un `CHECK` impide una cohorte activa sin el.
+    El cierre de Comunicarte C2 se corrigio a 21-sep en las dos ramas. Verificado contra el
+    reporte: 27 habiles y el 15-sep es el dia 23; Tactical 30 y dia 20.
+  - **026** (en curso, sesion paralela): el **esquema y la migracion 0010 ya estan commiteados**
+    (`people.responsableCloserId`, `people.entrada`); falta la logica.
+  - `vitest.config.mts`: `testTimeout` a 20s. Los tests con PGlite aplican todas las migraciones y
+    con 24 archivos en paralelo no caben en los 5s por defecto; el fallo era del reloj, no del codigo.
+
+  **Base de datos:** `dev` en 11 migraciones (0008, 0009 y 0010), `production` en 10 (falta la
+  0010, que espera la revision del 026). Las dos con las mismas cohortes y fechas de venta.
+
+  **Proceso, dos reglas nuevas:**
+  - **Las migraciones las genera y aplica la sesion principal, nunca un subagente** (`AGENTS.md`).
+    `drizzle-kit generate` es interactivo: pregunta si una columna es un renombre y dejo a Kiro
+    colgado 12 minutos. Se responde con `expect` desde la sesion principal.
+  - **Tres sesiones en paralelo el 17-sep** (002, 004, 026; una en otra cuenta de Claude). Se
+    reparten por ARCHIVOS, no solo por el grafo de dependencias: los puntos de choque son las
+    migraciones (journal + snapshot + `schema.ts`), el tracker, el handoff y los commits. Regla:
+    nadie corre `drizzle-kit`, nadie edita el tracker ni el handoff, y cada sesion commitea
+    nombrando sus archivos (nunca `git add -A`). El coordinador revisa, marca y migra.
+
 - **2026-09-16 (cierre) — ADR 0021, tickets 012, 013, 015, 014, 017 y 020, migraciones
   0004-0007 en las dos ramas, incidente de `.env.local` resuelto.**
 
@@ -300,10 +336,11 @@ Por partes y en este orden:
 1. [ ] **Probar el login con una cuenta real** (local contra `dev`, y produccion) y con eso las
        pantallas nuevas: `/ajustes/catalogos`, `/ajustes/usuarios`, `/ajustes/programas`,
        `/productos`. Despues borrar el cliente OAuth **web** viejo de `google-workspace-mcp`.
-2. [ ] **Ticket 018** (esquema del registro + abonos). Luego, en el orden del tracker: 002, 019,
-       026 y 003. Migraciones: primero `dev`, luego `production` con ok de Mani.
-3. [ ] **Decidir la ventana de venta de una cohorte** (tracker, decisiones pendientes). Tiene que
-       estar antes de 004.
+2. [ ] **Revisar las tres sesiones paralelas** (002 registrar llamada, 004 consultas del
+       dashboard, 026 responsable y alta manual) contra su "Done cuando", marcar el tracker y
+       aplicar la 0010 en `production` con ok de Mani.
+3. [ ] **Seguir la cadena de F1:** 019 (abonos, va despues del 002 porque comparten el insert) y
+       luego 003 (`/mi-dia`). Despues 005 (dashboard en pantalla) sobre el 004.
 4. [ ] **Preparar `production` para los usuarios reales** (con ok de Mani, junto con el 007):
        sembrar productos (`seed:datos` con `DB_PROD`), cargar `administrativa@retiagrowth.com`
        como gerente y dar de alta a Andrea y Maru desde `/ajustes/usuarios`.
@@ -317,7 +354,8 @@ Por partes y en este orden:
        pero las filas viejas quedaron en la zona del servidor y `compararCampos` no mira fechas,
        asi que un `npm run sync` normal **no** las repara. Decidir entre migracion puntual o
        re-sync forzado.
-10. [ ] **016** (plantilla de lead) y **022** (recursos) estan listos pero pueden esperar.
+10. [ ] **016** (plantilla de lead) y **022** (recursos) estan listos pero pueden esperar. Los dos
+       necesitan migracion, asi que no van en paralelo entre si.
 
 ### Next (blocked until a "Now" item lands)
 
@@ -360,6 +398,8 @@ Bloqueados por una decision de negocio (hay que preguntarle a Michael):
 
 ### Done
 
+- [x] 2026-09-17 — Tickets 018 y 027, ADR 0022, migraciones 0008-0010 (la 0010 solo en `dev`),
+      regla de migraciones en `AGENTS.md` y tres sesiones en paralelo.
 - [x] 2026-09-16 (cierre) — ADR 0021 + ticket 026; tickets 012, 013, 015, 014, 017, 020;
       migraciones 0004-0007 en `dev` y `production`; `.env.local` corregido.
 - [x] 2026-09-16 (noche) — Tickets 008-011 (F0), ADR 0020, migraciones 0002-0003 en `dev` y
