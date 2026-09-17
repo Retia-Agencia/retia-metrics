@@ -3,7 +3,7 @@ id: 004
 fase: F2
 serves: "spec §5 criterios 2 y 3"
 depends: [018, 020]
-status: todo
+status: done
 ---
 
 # 004 — Consultas del dashboard
@@ -23,8 +23,8 @@ Retia, listas para pintar.
 - Fuera: la UI (005).
 
 ## Done cuando
-- [ ] Un abono de hoy sobre una venta del mes pasado suma a la caja de hoy y no suma una venta.
-- [ ] Filas `origen="sheets"` y `origen="app"` se suman sin lógica especial.
-- [ ] Nunca se suman programas distintos entre sí.
-- [ ] Tests con datos de prueba para "hoy", "esta semana" y un rango custom. Los números de C1 de
+- [x] Un abono de hoy sobre una venta del mes pasado suma a la caja de hoy y no suma una venta.
+- [x] Filas `origen="sheets"` y `origen="app"` se suman sin lógica especial.
+- [x] Nunca se suman programas distintos entre sí.
+- [x] Tests con datos de prueba para "hoy", "esta semana" y un rango custom. Los números de C1 de
       `docs/agents/handoff.md` sirven de validación donde apliquen.
