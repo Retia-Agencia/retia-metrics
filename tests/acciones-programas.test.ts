@@ -78,6 +78,7 @@ const cohorteValida = {
   metaLeadsDia: 10,
   precioUsd: "797.00",
   fechaInicioClases: "2026-08-11",
+  fechaInicioVentas: "2026-08-11",
   fechaCierreVentas: "2026-08-11",
   trmCohorte: "4000",
   estado: "activo" as const,

@@ -33,6 +33,7 @@ export default async function CohortesPage({ params }: Props) {
     metaLeadsDia: c.metaLeadsDia ?? null,
     precioUsd: String(c.precioUsd),
     fechaInicioClases: c.fechaInicioClases,
+    fechaInicioVentas: c.fechaInicioVentas ?? null,
     fechaCierreVentas: c.fechaCierreVentas,
     trmCohorte: String(c.trmCohorte),
     estado: c.estado,

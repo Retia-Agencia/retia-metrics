@@ -36,6 +36,7 @@ export interface CohorteVista {
   metaLeadsDia: number | null;
   precioUsd: string;
   fechaInicioClases: string;
+  fechaInicioVentas: string | null;
   fechaCierreVentas: string;
   trmCohorte: string;
   estado: Estado;
@@ -47,6 +48,7 @@ interface Borrador {
   metaLeadsDia: string;
   precioUsd: string;
   fechaInicioClases: string;
+  fechaInicioVentas: string;
   fechaCierreVentas: string;
   trmCohorte: string;
   estado: Estado;
@@ -58,6 +60,7 @@ const BORRADOR_VACIO: Borrador = {
   metaLeadsDia: "",
   precioUsd: "",
   fechaInicioClases: "",
+  fechaInicioVentas: "",
   fechaCierreVentas: "",
   trmCohorte: "4000",
   estado: "futuro",
@@ -70,6 +73,7 @@ function aBorrador(c: CohorteVista): Borrador {
     metaLeadsDia: c.metaLeadsDia === null ? "" : String(c.metaLeadsDia),
     precioUsd: c.precioUsd,
     fechaInicioClases: c.fechaInicioClases,
+    fechaInicioVentas: c.fechaInicioVentas ?? "",
     fechaCierreVentas: c.fechaCierreVentas,
     trmCohorte: c.trmCohorte,
     estado: c.estado,
@@ -220,6 +224,7 @@ function aEntrada(b: Borrador, programId: string) {
     metaLeadsDia: b.metaLeadsDia === "" ? null : b.metaLeadsDia,
     precioUsd: b.precioUsd,
     fechaInicioClases: b.fechaInicioClases,
+    fechaInicioVentas: b.fechaInicioVentas === "" ? null : b.fechaInicioVentas,
     fechaCierreVentas: b.fechaCierreVentas,
     trmCohorte: b.trmCohorte,
     estado: b.estado,
@@ -344,6 +349,18 @@ function FormularioCohorte({
               required
               className={claseInput}
               aria-label="Fecha de inicio de clases"
+            />
+          </label>
+
+          <label className="block space-y-1 text-sm">
+            <span className="text-muted-foreground">Inicio de ventas</span>
+            <input
+              type="date"
+              value={borrador.fechaInicioVentas}
+              onChange={(e) => setBorrador({ ...borrador, fechaInicioVentas: e.target.value })}
+              required={borrador.estado === "activo"}
+              className={claseInput}
+              aria-label="Fecha de inicio de ventas"
             />
           </label>
 

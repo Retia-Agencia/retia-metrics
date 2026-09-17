@@ -172,6 +172,7 @@ describe("desactivar y reactivar programa", () => {
       metaLeadsDia: 10,
       precioUsd: "797.00",
       fechaInicioClases: "2026-08-11",
+      fechaInicioVentas: "2026-08-11",
       fechaCierreVentas: "2026-08-11",
       trmCohorte: "4000",
       estado: "activo",
@@ -223,10 +224,18 @@ const cohorteBase = {
   metaLeadsDia: 12,
   precioUsd: "797.00",
   fechaInicioClases: "2026-08-11",
+  fechaInicioVentas: "2026-08-11",
   fechaCierreVentas: "2026-08-11",
   trmCohorte: "4000",
   estado: "futuro" as const,
 };
+
+/** `cohorteBase` sin `fechaInicioVentas`, para probar la regla del ADR 0022. */
+function sinInicioVentas() {
+  const copia = { ...cohorteBase };
+  delete (copia as Partial<typeof cohorteBase>).fechaInicioVentas;
+  return copia;
+}
 
 describe("esquema de cohorte", () => {
   it("acepta una cohorte valida", () => {
@@ -251,6 +260,50 @@ describe("esquema de cohorte", () => {
         estado: "inventado",
       }).success,
     ).toBe(false);
+  });
+
+  // ADR 0022: la ventana de venta es dato por cohorte. El inicio es opcional para
+  // cohortes cerradas o futuras, pero OBLIGATORIO cuando el estado es activo.
+  it("una cohorte activa SIN inicio de ventas no valida (ADR 0022)", () => {
+    const res = esquemaCohorte.safeParse({
+      ...sinInicioVentas(),
+      programId: "00000000-0000-0000-0000-000000000000",
+      estado: "activo",
+    });
+    expect(res.success).toBe(false);
+  });
+
+  it("una cohorte activa CON inicio de ventas valida y normaliza la fecha", () => {
+    const res = esquemaCohorte.safeParse({
+      ...cohorteBase,
+      programId: "00000000-0000-0000-0000-000000000000",
+      estado: "activo",
+      fechaInicioVentas: "2026-08-14",
+      fechaCierreVentas: "2026-09-21",
+    });
+    expect(res.success).toBe(true);
+    if (res.success) expect(res.data.fechaInicioVentas).toBe("2026-08-14");
+  });
+
+  it("una cohorte cerrada o futura puede quedar sin inicio de ventas (las dos C1)", () => {
+    const cerrada = esquemaCohorte.safeParse({
+      ...sinInicioVentas(),
+      programId: "00000000-0000-0000-0000-000000000000",
+      estado: "cerrado",
+    });
+    expect(cerrada.success).toBe(true);
+    if (cerrada.success) expect(cerrada.data.fechaInicioVentas).toBeNull();
+  });
+
+  it("el cierre de ventas anterior al inicio no valida", () => {
+    const res = esquemaCohorte.safeParse({
+      ...cohorteBase,
+      programId: "00000000-0000-0000-0000-000000000000",
+      estado: "activo",
+      fechaInicioVentas: "2026-09-21",
+      fechaCierreVentas: "2026-08-14",
+    });
+    expect(res.success).toBe(false);
   });
 });
 
@@ -353,6 +406,32 @@ describe("cohortes de un programa", () => {
 
   it("un id que no es uuid es un 400", async () => {
     const error = await activarCohorte(db, gerenteId, "no-uuid").catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(400);
+  });
+
+  // ── Ventana de venta (ADR 0022) ────────────────────────────────
+  it("crear una cohorte activa sin inicio de ventas falla con 400 (zod)", async () => {
+    const error = await crearCohorte(db, gerenteId, {
+      ...sinInicioVentas(),
+      estado: "activo",
+      programId,
+    }).catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(400);
+  });
+
+  it("si la validacion se salta, el CHECK de la base rechaza y sale como 400 (23514)", async () => {
+    // Se crea una cohorte futura sin inicio de ventas: pasa zod (opcional para
+    // futura). Activarla no re-valida el esquema: llega directo al UPDATE y choca
+    // con el CHECK cohorts_activa_con_inicio_ventas, que debe traducirse a 400.
+    const futura = await crearCohorte(db, gerenteId, {
+      ...sinInicioVentas(),
+      codigo: "CF",
+      estado: "futuro",
+      programId,
+    });
+    const error = await activarCohorte(db, gerenteId, futura.id).catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(400);
   });

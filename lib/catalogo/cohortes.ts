@@ -60,9 +60,40 @@ export const esquemaCohorte = z.object({
     .transform((v) => (v === undefined ? null : v)),
   precioUsd: monto("El precio"),
   fechaInicioClases: fechaIso("La fecha de inicio de clases"),
+  /**
+   * Primer dia de la ventana de venta (ADR 0022). Opcional en base y aca, pero
+   * OBLIGATORIO cuando la cohorte esta activa (regla dura en la base como CHECK; el
+   * `superRefine` de abajo da el 400 amable antes de tocarla). Vacio ("") o
+   * ausente se normaliza a null.
+   */
+  fechaInicioVentas: fechaIso("La fecha de inicio de ventas")
+    .or(z.literal(""))
+    .nullable()
+    .optional()
+    .transform((v) => (v === undefined || v === "" ? null : v)),
   fechaCierreVentas: fechaIso("La fecha de cierre de ventas"),
   trmCohorte: monto("La TRM"),
   estado: z.enum(estadoCohorteEnum.enumValues),
+}).superRefine((datos, ctx) => {
+  // Una cohorte activa no puede quedar sin inicio de ventas (ADR 0022).
+  if (datos.estado === "activo" && datos.fechaInicioVentas === null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["fechaInicioVentas"],
+      message: "Una cohorte activa necesita fecha de inicio de ventas.",
+    });
+  }
+  // El cierre no puede ser anterior al inicio de ventas.
+  if (
+    datos.fechaInicioVentas !== null &&
+    datos.fechaCierreVentas < datos.fechaInicioVentas
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["fechaCierreVentas"],
+      message: "El cierre de ventas no puede ser anterior al inicio de ventas.",
+    });
+  }
 });
 
 /** Entrada validada de una cohorte (lo que el llamador escribe). */
@@ -84,6 +115,23 @@ function esViolacionUnica(error: unknown): boolean {
   let actual: unknown = error;
   for (let i = 0; i < 5 && actual != null; i++) {
     if (typeof actual === "object" && (actual as { code?: unknown }).code === "23505") {
+      return true;
+    }
+    actual = (actual as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
+/**
+ * Detecta la violacion de un CHECK de Postgres (23514), mirando `cause` anidada.
+ * El unico CHECK de esta tabla es `cohorts_activa_con_inicio_ventas` (ADR 0022):
+ * una cohorte no puede quedar activa sin inicio de ventas. Se busca el codigo
+ * igual que 23505; el nombre del constraint no siempre viaja igual entre drivers.
+ */
+function esViolacionCheck(error: unknown): boolean {
+  let actual: unknown = error;
+  for (let i = 0; i < 5 && actual != null; i++) {
+    if (typeof actual === "object" && (actual as { code?: unknown }).code === "23514") {
       return true;
     }
     actual = (actual as { cause?: unknown }).cause;
@@ -119,6 +167,15 @@ async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
       // indice parcial de cohorte activa o el de (program_id, codigo).
       throw new ErrorDeApp(
         "Ya hay una cohorte activa en este programa, o el código ya existe. Cierra la activa antes de activar otra.",
+        400,
+      );
+    }
+    if (esViolacionCheck(error)) {
+      // El CHECK cohorts_activa_con_inicio_ventas (ADR 0022): una cohorte no puede
+      // quedar activa sin inicio de ventas. La garantia vive en la base; aca se
+      // traduce a un 400 claro, igual que se hace con el indice unico (23505).
+      throw new ErrorDeApp(
+        "Una cohorte activa necesita fecha de inicio de ventas.",
         400,
       );
     }

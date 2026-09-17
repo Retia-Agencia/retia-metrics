@@ -64,6 +64,13 @@
       "when": 1789659399362,
       "tag": "0008_registro_y_abonos",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789674040431,
+      "tag": "0009_ventana_de_venta_cohorte",
+      "breakpoints": true
     }
   ]
 }

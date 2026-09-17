@@ -41,7 +41,8 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 020 | [Días hábiles + meta dinámica](./020-dias-habiles-y-meta-dinamica.md) | 008 | done · 16-sep |
-| [ ] | 004 | [Consultas del dashboard](./004-consultas-dashboard.md) | 018, 020 | todo |
+| [x] | 027 | [Ventana de venta de la cohorte](./027-ventana-de-venta-de-la-cohorte.md) (ADR 0022) | 014 | done · 17-sep (migración 0009 en `dev` y `production`) |
+| [ ] | 004 | [Consultas del dashboard](./004-consultas-dashboard.md) | 018, 020, 027 | todo · **listo** |
 | [ ] | 005 | [Dashboard en /programas/[slug]](./005-dashboard-real-programas.md) | 004, 010 | todo |
 | [ ] | 006 | [Historial de una persona](./006-historial-persona.md) | 005 | todo |
 | [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) | 005 + decisión | bloqueado |
@@ -70,10 +71,13 @@ Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje
 | ¿Closers pueden crear plataformas y recursos? (hoy: no) | Mani | 013, 023 |
 | Qué se reconcilia y qué se descarta del histórico de C2 (importar: **sí**) | Mani | ticket futuro |
 | Confirmar el mapeo de `Estado` al enum (propuesta en F-01) | Mani | F-01 |
-| **Ventana de venta de una cohorte.** El reporte usa para Comunicarte C2 14-ago a 21-sep (27 hábiles, termina el día antes de clases); la semilla dice cierre 22-sep y el inicio sale implícito del cierre de C1 (12-ago). TI C2 sí coincide (19-ago a 29-sep, 30). `cohorts` no guarda inicio de ventas: ¿se agrega la columna y cuál ventana vale? | Mani / Michael | 004 |
 
 ### Resueltas
 
+- 17-sep · **La ventana de venta es dato por cohorte** (Mani, `/grill-with-docs`; ADR 0022, ticket
+  027). `cohorts` suma `fechaInicioVentas`; el cierre se respeta como esta guardado y el de
+  Comunicarte C2 se corrige a 21-sep. Ni el inicio se deduce del cierre de la cohorte anterior ni
+  el cierre del inicio de clases: el reporte de Mike desmiente las dos reglas.
 - 16-sep · **Responsable y alta manual viven en el CRM** (Mani, `/grill-with-docs`; ADR 0021, ticket 026).
   ADR 0004 cubre solo lo que captura el formulario. Closer toma personas libres, gerente reasigna;
   "sin responsable" es válido; las personas manuales cuentan en el embudo pero no en el CPL.

@@ -32,10 +32,15 @@ la reserva de cupo, la mentoria 1:1. Gerentes y closers los crean cuando los nec
 ### El ciclo
 
 **Cohorte**:
-El ciclo de venta de un programa que termina el mismo dia en que arrancan clases, inclusive. Se
-nombran C1, C2, C3. La siguiente cohorte arranca al dia siguiente, sin pausa, y hay como maximo
-una cohorte activa por programa.
+El ciclo de venta de un programa, con su propia meta de cupos, su precio y su ventana de venta. Se
+nombran C1, C2, C3, y hay como maximo una cohorte activa por programa.
 _Avoid_: "corte" (nombre anterior, reemplazado el 16-sep-2026).
+
+**Ventana de venta**:
+Los dos dias entre los que una cohorte vende, inclusive: el inicio y el cierre de ventas. Los
+declara el negocio por cohorte, no salen de una regla (ADR 0022): ni el inicio se deduce del
+cierre de la cohorte anterior, ni el cierre del inicio de clases. Sobre esta ventana se cuentan
+los dias habiles de la cohorte y la meta dinamica.
 
 **Cohorte activa**:
 La cohorte de un programa que esta vendiendo hoy. Toda llamada y venta registrada en la app se

@@ -116,3 +116,18 @@ describe("metaLineal", () => {
     expect(metaLineal({ meta: 30, diasHabilesTotales: 0 })).toBe(0);
   });
 });
+
+describe("ventanas de venta de las cohortes C2 (ADR 0022, numeros del reporte)", () => {
+  // Estas dos ventanas son datos por cohorte (fechaInicioVentas / fechaCierreVentas),
+  // no reglas del codigo. Anclamos los numeros exactos del reporte diario de Retia
+  // para que un cambio silencioso en lib/dias-habiles los rompa aqui.
+  it("Comunicarte C2 (14-ago a 21-sep): 27 habiles y el 15-sep es el dia 23", () => {
+    expect(diasHabilesEntre("2026-08-14", "2026-09-21")).toBe(27);
+    expect(diaHabilDe("2026-09-15", "2026-08-14", "2026-09-21")).toEqual({ dia: 23, total: 27 });
+  });
+
+  it("Tactical C2 (19-ago a 29-sep): 30 habiles y el 15-sep es el dia 20", () => {
+    expect(diasHabilesEntre("2026-08-19", "2026-09-29")).toBe(30);
+    expect(diaHabilDe("2026-09-15", "2026-08-19", "2026-09-29")).toEqual({ dia: 20, total: 30 });
+  });
+});

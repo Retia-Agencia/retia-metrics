@@ -12,6 +12,7 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  check,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -114,7 +115,18 @@ export const cohorts = pgTable(
     metaLeadsDia: integer("meta_leads_dia"),
     precioUsd: numeric("precio_usd", { precision: 10, scale: 2 }).notNull(),
     fechaInicioClases: date("fecha_inicio_clases").notNull(),
-    /** Cada cohorte se vende hasta el mismo dia en que arranca clases, inclusive. */
+    /**
+     * Primer dia de la ventana de venta (ADR 0022). Lo declara el negocio por
+     * cohorte: no se deduce del cierre de la cohorte anterior. Nullable solo para
+     * las cohortes cerradas cuyo inicio real nadie sabe; el CHECK de abajo impide
+     * que una cohorte quede activa sin el.
+     */
+    fechaInicioVentas: date("fecha_inicio_ventas"),
+    /**
+     * Ultimo dia de la ventana de venta, inclusive. Es un dato de la cohorte, no
+     * una regla: hay programas que venden hasta el mismo dia en que arrancan
+     * clases y otros hasta la vispera (ADR 0022).
+     */
     fechaCierreVentas: date("fecha_cierre_ventas").notNull(),
     /** Editable por cohorte. Los links de pago se generan manualmente segun la TRM del momento. */
     trmCohorte: numeric("trm_cohorte", { precision: 10, scale: 2 }).notNull().default("4000"),
@@ -130,6 +142,13 @@ export const cohorts = pgTable(
     uniqueIndex("cohorts_una_activa_por_programa_idx")
       .on(t.programId)
       .where(sql`${t.estado} = 'activo'`),
+    // La cohorte que esta vendiendo necesita su inicio de ventas para poder contar
+    // dias habiles y meta dinamica (ADR 0022). Igual que el indice de arriba, la
+    // garantia vive en la base (ADR 0005) y no solo en la validacion zod.
+    check(
+      "cohorts_activa_con_inicio_ventas",
+      sql`${t.estado} <> 'activo' OR ${t.fechaInicioVentas} IS NOT NULL`,
+    ),
   ],
 );
 
