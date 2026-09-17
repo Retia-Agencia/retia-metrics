@@ -18,6 +18,19 @@ export async function programasActivos(): Promise<{ slug: string; nombre: string
 }
 
 /**
+ * Programas activos con su id, para asignar closers a programas (ticket 015). La
+ * membresia guarda el `programId` (uuid), asi que la pantalla necesita el id, no el
+ * slug. Los programas salen de la base (ADR 0012): ningun literal en el codigo.
+ */
+export async function programasActivosParaAsignar(): Promise<{ id: string; nombre: string }[]> {
+  return db
+    .select({ id: programs.id, nombre: programs.nombre })
+    .from(programs)
+    .where(eq(programs.activo, true))
+    .orderBy(asc(programs.nombre));
+}
+
+/**
  * Un programa por su slug, solo si esta activo. Devuelve `null` si no existe o
  * esta inactivo: la ruta lo traduce a un 404 y no filtra que slugs existen.
  */

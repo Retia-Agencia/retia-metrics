@@ -3,7 +3,7 @@ id: 015
 fase: F0
 serves: "spec §5 criterio 5; ADR 0011"
 depends: [011]
-status: todo
+status: done
 ---
 
 # 015 — Administrar usuarios y closers desde /ajustes
@@ -26,7 +26,16 @@ a todos los usuarios reales al salir a producción).
 - Fuera: el rol developer (024).
 
 ## Done cuando
-- [ ] Un closer creado desde la pantalla puede entrar y ve sus programas.
-- [ ] Un gerente creado desde la pantalla puede entrar y ve `/ajustes`.
-- [ ] Un gerente no puede quitarse a sí mismo el rol (evita quedar sin administradores).
-- [ ] Cada cambio de rol queda en `change_log`.
+- [x] Un closer creado desde la pantalla puede entrar y ve sus programas.
+- [x] Un gerente creado desde la pantalla puede entrar y ve `/ajustes`.
+- [x] Un gerente no puede quitarse a sí mismo el rol (evita quedar sin administradores).
+- [x] Cada cambio de rol queda en `change_log`.
+
+## Notas (cierre 16-sep)
+- Migración `0005_*` generada, sin aplicar.
+- Los dos primeros criterios están cubiertos por tests de guards y de membresías, no por un
+  login real: probarlos en `dev` junto con el login.
+- Deuda: la fila del usuario y sus membresías van en dos lotes (no atómico), y un uuid de
+  programa inexistente sale como "Error interno." en vez de 400.
+- El CLI de emergencia valida con el mismo esquema y ahora pide uuids de programa para un
+  closer; no desactiva membresías ni escribe `change_log` (la pantalla es la vía completa).

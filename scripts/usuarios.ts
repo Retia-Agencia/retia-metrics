@@ -1,23 +1,29 @@
 import "./load-env";
 import { eq } from "drizzle-orm";
+import { ZodError } from "zod";
 import { db } from "../lib/db";
-import { users } from "../lib/db/schema";
+import { miembrosPrograma, users } from "../lib/db/schema";
+import { parsearEntradaUsuario } from "../lib/catalogo/usuarios";
 
 /**
  * Administra quien puede entrar a la app. No hay auto-registro: quien no este
  * en esta tabla con activo=true recibe "correo no autorizado" aunque su cuenta
  * de Google sea valida.
  *
- *   npm run usuarios                                  lista
- *   npm run usuarios -- agregar <correo> <rol> [id]   agrega o reactiva
- *   npm run usuarios -- quitar <correo>               desactiva (no borra)
+ * Es el ACCESO DE EMERGENCIA (ticket 015): la via normal es `/ajustes/usuarios`.
+ * Valida por el MISMO esquema zod que la pantalla (`parsearEntradaUsuario`), asi
+ * que un closer necesita su closer_id y al menos un programa (uuid), igual que en
+ * la app.
  *
- * `rol` es gerente o closer. `id` es el closer_id: el nombre exacto con el que
- * la persona aparece en la columna de closer de la BBDD (Juanjo, Dana, Andrea).
+ *   npm run usuarios                                          lista
+ *   npm run usuarios -- agregar <correo> <rol> [id] [prog...] agrega o reactiva
+ *   npm run usuarios -- quitar <correo>                       desactiva (no borra)
+ *
+ * `rol` es gerente o closer. `id` es el closer_id: el nombre exacto con el que la
+ * persona aparece en la columna de closer de la BBDD (Juanjo, Dana, Andrea). `prog`
+ * son uuids de programa (los da `npm run db:studio`): un closer necesita al menos
+ * uno.
  */
-
-const ROLES = ["gerente", "closer"] as const;
-type Rol = (typeof ROLES)[number];
 
 async function listar() {
   const filas = await db.select().from(users).orderBy(users.email);
@@ -35,36 +41,71 @@ async function listar() {
   console.log(`\n  ${filas.filter((u) => u.activo).length} activo(s), ${gerentes} con rol gerente.\n`);
 }
 
-async function agregar(email: string, rol: string, closerId?: string) {
-  const correo = email.toLowerCase().trim();
-  if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(correo)) {
-    console.error(`\n  "${email}" no parece un correo.\n`);
-    process.exit(1);
-  }
-  if (!ROLES.includes(rol as Rol)) {
-    console.error(`\n  Rol invalido: "${rol}". Tiene que ser gerente o closer.\n`);
-    process.exit(1);
-  }
-  if (rol === "closer" && !closerId) {
-    console.error(
-      "\n  Un closer necesita su closer_id: el nombre exacto con el que aparece\n" +
-      "  en la columna de closer de la BBDD. Sin eso sus llamadas no se cruzan.\n" +
-      `  Uso: npm run usuarios -- agregar ${correo} closer "Andrea"\n`,
-    );
-    process.exit(1);
+async function agregar(email: string, rol: string, closerId?: string, ...programas: string[]) {
+  // Se valida con el MISMO esquema zod que la pantalla: correo normalizado, y un
+  // closer con su closer_id y al menos un programa. Cualquier fallo sale como el
+  // mensaje del esquema, no como una regla duplicada aca.
+  let datos;
+  try {
+    datos = parsearEntradaUsuario({
+      email,
+      rol,
+      closerId: closerId ?? "",
+      programas,
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      console.error(`\n  ${error.issues[0]?.message ?? "Entrada invalida."}`);
+      console.error(
+        `  Uso: npm run usuarios -- agregar ${email} ${rol} ${
+          rol === "closer" ? '"CloserId" <uuid-programa> [<uuid-programa>...]' : ""
+        }\n`,
+      );
+      process.exit(1);
+    }
+    throw error;
   }
 
-  const [existe] = await db.select().from(users).where(eq(users.email, correo)).limit(1);
+  const [existe] = await db.select().from(users).where(eq(users.email, datos.email)).limit(1);
+  let userId: string;
   if (existe) {
     await db
       .update(users)
-      .set({ rol: rol as Rol, closerId: closerId ?? existe.closerId, activo: true })
+      .set({ rol: datos.rol, closerId: datos.closerId, activo: true })
       .where(eq(users.id, existe.id));
-    console.log(`\n  Actualizado: ${correo} queda como ${rol}, activo.\n`);
+    userId = existe.id;
+    console.log(`\n  Actualizado: ${datos.email} queda como ${datos.rol}, activo.`);
   } else {
-    await db.insert(users).values({ email: correo, rol: rol as Rol, closerId: closerId ?? null, activo: true });
-    console.log(`\n  Agregado: ${correo} como ${rol}.\n`);
+    const [creado] = await db
+      .insert(users)
+      .values({
+        email: datos.email,
+        rol: datos.rol,
+        closerId: datos.closerId,
+        calendlyEmail: datos.calendlyEmail,
+        nombre: datos.nombre,
+        activo: true,
+      })
+      .returning();
+    userId = creado.id;
+    console.log(`\n  Agregado: ${datos.email} como ${datos.rol}.`);
   }
+
+  // Sincroniza membresias: activa/inserta las elegidas (nunca borra). El CLI de
+  // emergencia no desactiva membresias viejas; para eso esta la pantalla.
+  for (const programId of datos.programas) {
+    await db
+      .insert(miembrosPrograma)
+      .values({ userId, programId, activo: true })
+      .onConflictDoUpdate({
+        target: [miembrosPrograma.userId, miembrosPrograma.programId],
+        set: { activo: true },
+      });
+  }
+  if (datos.programas.length > 0) {
+    console.log(`  ${datos.programas.length} programa(s) asignado(s).`);
+  }
+  console.log("");
 }
 
 async function quitar(email: string) {
@@ -93,12 +134,12 @@ async function quitar(email: string) {
 async function main() {
   const [accion, ...resto] = process.argv.slice(2);
   if (!accion || accion === "listar") return listar();
-  if (accion === "agregar") return agregar(resto[0], resto[1], resto[2]);
+  if (accion === "agregar") return agregar(resto[0], resto[1], resto[2], ...resto.slice(3));
   if (accion === "quitar") return quitar(resto[0]);
   console.error(
     "\n  Uso:\n" +
     "    npm run usuarios\n" +
-    "    npm run usuarios -- agregar <correo> <gerente|closer> [closer_id]\n" +
+    "    npm run usuarios -- agregar <correo> <gerente|closer> [closer_id] [uuid-programa...]\n" +
     "    npm run usuarios -- quitar <correo>\n",
   );
   process.exit(1);

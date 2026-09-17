@@ -83,6 +83,7 @@ const PAGINAS_DE_GERENTE = [
   ["/ajustes", "@/app/(app)/ajustes/page"],
   ["/ajustes/fuentes", "@/app/(app)/ajustes/fuentes/page"],
   ["/ajustes/catalogos", "@/app/(app)/ajustes/catalogos/page"],
+  ["/ajustes/usuarios", "@/app/(app)/ajustes/usuarios/page"],
 ] as const;
 
 /**

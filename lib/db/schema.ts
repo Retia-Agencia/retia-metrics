@@ -58,9 +58,32 @@ export const users = pgTable("users", {
   rol: rolEnum("rol").notNull().default("closer"),
   /** Identificador con el que este closer aparece en la BBDD de Google Sheets. */
   closerId: text("closer_id"),
+  /** Correo de la cuenta de Calendly del closer, para cruzar sus agendamientos. */
+  calendlyEmail: text("calendly_email"),
   activo: boolean("activo").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * En que programas vende cada usuario (ticket 015). Un closer cuenta en las
+ * metricas de un programa solo si tiene una membresia activa ahi.
+ *
+ * Como todo lo del molde de catalogo (ADR 0012): nunca se borra una fila, se
+ * desactiva (`activo = false`), y cada cambio va a `change_log`. El indice unico
+ * por par `(userId, programId)` deja reactivar la misma membresia en vez de
+ * duplicarla.
+ */
+export const miembrosPrograma = pgTable(
+  "miembros_programa",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("miembros_programa_par_idx").on(t.userId, t.programId)],
+);
 
 // ─────────────────────────────────────────────────────────── programas y cohortes
 
@@ -346,6 +369,7 @@ export const origenes = pgTable(
 
 export type Usuario = typeof users.$inferSelect;
 export type NuevoUsuario = typeof users.$inferInsert;
+export type MiembroPrograma = typeof miembrosPrograma.$inferSelect;
 export type Programa = typeof programs.$inferSelect;
 export type Cohorte = typeof cohorts.$inferSelect;
 export type Fuente = typeof sources.$inferSelect;

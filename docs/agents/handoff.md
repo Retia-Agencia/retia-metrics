@@ -15,6 +15,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     `production`: espera ok de Mani.
   - **013** hecho: `/ajustes/catalogos` sobre `lib/catalogo/registro.ts` (un catalogo nuevo =
     una linea); el molde gano `reactivar`; id no-uuid da 400.
+  - **015** hecho: `/ajustes/usuarios`, `users.calendlyEmail`, `miembros_programa` (migracion
+    `0005_*` sin aplicar), `lib/catalogo/usuarios.ts` con el esquema que tambien usa el CLI.
+    Quedan listos 026 y 007. Deuda anotada en el ticket.
 
 - **2026-09-16 (noche) — F0 arranca: tickets 008-011 hechos, migraciones en las dos ramas, Google
   Cloud y login pasados a Retia, respuestas de Michael bajadas.**
