@@ -3,7 +3,7 @@ id: 024
 fase: F4
 serves: "spec §1 pilar 4; docs/design.md §2"
 depends: [010]
-status: en curso
+status: todo
 ---
 
 # 024 — Rol developer
@@ -24,7 +24,7 @@ Existe el rol `developer`, que entra a todas las rutas.
 - [ ] Un developer entra a `/mi-dia`, `/ajustes/*`, `/programas/*` y `/nerd-stats`.
 - [ ] Ningún test existente de disjunción gerente/closer cambia de resultado.
 
-## Notas (16-sep, sesión pausada)
+## Notas (16-sep): se retoma en su turno (F4)
 Mani pidió que `manuelmejiaarana@gmail.com` sea developer (hoy es `gerente` en `dev` y `production`).
 Kiro arrancó el ticket y se detuvo a mitad por cierre de sesión; su avance sin revisar está en
 `git stash list` → "wip 024 rol developer" (migración `0008_rol_developer`, roles, guards, nav y

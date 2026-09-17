@@ -7,46 +7,48 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
-- **2026-09-16 (madrugada) — Migraciones 0004-0007 en `production` e incidente de `.env.local`.**
-  - **Incidente:** `DATABASE_URL` de `.env.local` es la misma URL que `DB_PROD` (rama
-    `production`, `br-withered-mud-b4cvvg80`). Todo lo local escribe en `production`; la rama
-    `dev` quedo sin verificar (Vercel no deja leer su URL y no hay `neonctl`). Hallazgo completo
-    en el ADR 0018; regla nueva en `AGENTS.md`: comprobar `neon.branch_id` antes de escribir.
-  - **Migraciones 0004-0007 aplicadas directo a `production`** (decision de Mani, sin paso por
-    `dev`): antes se confirmo que ningun programa tenia dos cohortes activas. Despues: 8
-    migraciones, 7 plataformas, 8 motivos, 7 origenes, columnas e indices nuevos. Productos
-    **sin sembrar** en `production`.
-  - **Resuelto:** Mani arreglo `.env.local`; `DATABASE_URL` es `dev` (verificado con
-    `neon.branch_id`). `dev` al dia: 8 migraciones + `seed:datos`. En las dos ramas el unico
-    usuario es Mani (`gerente`); `administrativa@retiagrowth.com` **no** esta cargado en
-    `production` aunque es el gerente del sistema.
-  - **024 en pausa:** Mani pidio ser `developer`; el rol no existe aun. Kiro empezo el ticket y
-    se detuvo al cerrar la sesion. Avance sin revisar en `git stash` ("wip 024 rol developer");
-    detalle y siguientes pasos en el ticket 024.
-  - Respuestas a Mani anotadas en el ticket 015: el CLI ahora pide uuid de programa para un
-    closer; usuario (cuenta que entra: closer o gerente) y membresias se guardan en dos lotes.
+- **2026-09-16 (cierre) — ADR 0021, tickets 012, 013, 015, 014, 017 y 020, migraciones
+  0004-0007 en las dos ramas, incidente de `.env.local` resuelto.**
 
-- **2026-09-16 (cierre) — ADR 0021 y tickets 012, 013, 015, 014, 017 y 020 hechos.**
+  **Siguiente sesion:** seguir **Now** en orden, por partes. El 024 (rol developer) **no** va
+  ahora: es de F4 y espera su turno (su avance parcial esta en un stash, ver abajo).
 
-  **Siguiente sesion, en orden:** ver **Now**. (Las migraciones 0004-0007 se aplicaron despues, ver arriba.)
-  - `/grill-with-docs` sobre el responsable: **ADR 0021** (responsable y alta manual viven en el
-    CRM; las hojas no tienen columna de closer), ticket nuevo **026** (depende de 015, bloquea 003).
-  - **012** hecho: catalogos `motivos` y `origenes` sobre el molde, tests de catalogo
-    parametrizados (108 tests). Migracion `0004_*` (aplicada despues en `production`).
-  - **013** hecho: `/ajustes/catalogos` sobre `lib/catalogo/registro.ts` (un catalogo nuevo =
-    una linea); el molde gano `reactivar`; id no-uuid da 400.
-  - **015** hecho: `/ajustes/usuarios`, `users.calendlyEmail`, `miembros_programa` (migracion
-    `0005_*`), `lib/catalogo/usuarios.ts` con el esquema que tambien usa el CLI.
-    Quedan listos 026 y 007. Deuda anotada en el ticket.
-  - **014** hecho: `/ajustes/programas` y `/ajustes/programas/[slug]`; indice unico parcial
-    "una cohorte activa por programa" (migracion `0006_*`). 182 tests.
-  - **020** hecho: `lib/dias-habiles.ts` (dias habiles en Bogota, meta dinamica y lineal), casos
-    del reporte del 15-sep. 235 tests.
-  - **Hallazgo:** la ventana de Comunicarte C2 del reporte no coincide con la semilla (tracker,
-    decisiones pendientes). Afecta 004.
-  - **017** hecho: `/productos` para gerente y closer (el closer solo en sus programas), tabla
-    `productos` (migracion `0007_*`), semillas en `seed-datos.ts` que no pisan
-    ediciones. Quedan listos 018 y 022. 215 tests.
+  **Codigo** (Kiro con TDD, cada ticket revisado contra su "Done cuando", un commit por ticket;
+  235 tests, typecheck y lint limpios):
+  - `/grill-with-docs` sobre el responsable del lead: **ADR 0021** (responsable y alta manual
+    viven en el CRM; las hojas no tienen columna de closer). Ticket nuevo **026** (depende de 015,
+    bloquea 003). Glosario: Responsable, Alta manual.
+  - **012** catalogos `motivos` y `origenes` (migracion 0004).
+  - **013** `/ajustes/catalogos` sobre `lib/catalogo/registro.ts` (un catalogo nuevo = una
+    linea); el molde gano `reactivar`; un id no-uuid da 400.
+  - **015** `/ajustes/usuarios`, `users.calendlyEmail`, `miembros_programa` (migracion 0005).
+    Un solo esquema para la pantalla y el CLI. Deuda y respuestas a Mani en el ticket: el CLI
+    ahora pide uuid de programa para un closer; "usuario" es la cuenta que entra (closer o
+    gerente, no un lead) y su fila y sus programas se guardan en dos lotes (no atomico).
+  - **014** `/ajustes/programas` y `/ajustes/programas/[slug]`; indice unico parcial "una
+    cohorte activa por programa" (migracion 0006). Cerrar una cohorte es su "desactivar".
+  - **017** `/productos` para gerente y closer (el closer solo en sus programas), tabla
+    `productos` (migracion 0007). Semillas en `seed-datos.ts`, solo insertan lo que falta.
+  - **020** `lib/dias-habiles.ts`: dias habiles en Bogota, meta dinamica y lineal.
+
+  **Base de datos (verificado con `neon.branch_id`):**
+  - **Incidente:** `DATABASE_URL` de `.env.local` era la misma URL que `DB_PROD`, asi que todo lo
+    local escribia en `production`. Mani lo arreglo: hoy `DATABASE_URL` = `dev`
+    (`br-withered-sun-b439zjof`) y `DB_PROD` = `production` (`br-withered-mud-b4cvvg80`).
+    Detalle en el ADR 0018; regla nueva en `AGENTS.md`: comprobar la rama antes de escribir.
+  - 0004-0007 aplicadas a `production` (por decision de Mani, antes de arreglar `dev`) y luego a
+    `dev`. Las dos ramas: 8 migraciones, 7 plataformas, 8 motivos, 7 origenes.
+  - `dev` sembrada (2 programas, 4 cohortes, 3 productos, 10 fuentes). `production` **sin
+    productos**. En las dos, el unico usuario es Mani como `gerente`;
+    `administrativa@retiagrowth.com` no esta cargado.
+
+  **Hallazgo:** la ventana de venta de Comunicarte C2 del reporte (14-ago a 21-sep) no coincide
+  con la semilla (inicio implicito 12-ago, cierre 22-sep). Decision pendiente en el tracker;
+  bloquea 004.
+
+  **Pausado:** Mani pidio ser `developer`, pero ese rol es el ticket 024 (F4). Kiro alcanzo a
+  empezarlo y se detuvo; su avance **sin revisar** esta en `git stash` ("wip 024 rol developer").
+  No se aplico nada en ninguna base. Retomarlo cuando le toque (notas en el ticket).
 
 - **2026-09-16 (noche) — F0 arranca: tickets 008-011 hechos, migraciones en las dos ramas, Google
   Cloud y login pasados a Retia, respuestas de Michael bajadas.**
@@ -293,29 +295,29 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now (ready — no unmet dependencies)
 
-1. [x] **Arreglar `.env.local`** — hecho: `DATABASE_URL` apunta a `dev` y `dev` esta al dia.
-1a. [ ] **Terminar el 024 (rol developer)** desde el stash; luego 0008 en `dev`, Mani como
-       `developer` en `dev`, y en `production` con ok. Ver notas del ticket.
-1b. [ ] **Cargar `administrativa@retiagrowth.com`** como gerente en `production` (confirmar con
-       Mani): hoy el unico usuario es Mani.
-1c. [ ] **Sembrar productos en `production`** (`seed:datos` con `DB_PROD`, pedir ok): la tabla
-       existe pero esta vacia.
-2. [ ] **Probar el login con una cuenta real** en local y en produccion, y con eso las pantallas
-       nuevas (`/ajustes/catalogos`, `/ajustes/usuarios`, `/ajustes/programas`, `/productos`);
-       despues borrar el cliente OAuth **web** viejo de `google-workspace-mcp`.
-3. [ ] **Decidir la ventana de venta de una cohorte** (tracker, decisiones pendientes). Bloquea 004.
-4. [ ] **Tickets listos** (estado en `docs/tasks/README.md`): 018 → 026, 022, 016; 007 es
-       operacion (alta de Andrea y Maru desde `/ajustes/usuarios`).
+Por partes y en este orden:
+
+1. [ ] **Probar el login con una cuenta real** (local contra `dev`, y produccion) y con eso las
+       pantallas nuevas: `/ajustes/catalogos`, `/ajustes/usuarios`, `/ajustes/programas`,
+       `/productos`. Despues borrar el cliente OAuth **web** viejo de `google-workspace-mcp`.
+2. [ ] **Ticket 018** (esquema del registro + abonos). Luego, en el orden del tracker: 002, 019,
+       026 y 003. Migraciones: primero `dev`, luego `production` con ok de Mani.
+3. [ ] **Decidir la ventana de venta de una cohorte** (tracker, decisiones pendientes). Tiene que
+       estar antes de 004.
+4. [ ] **Preparar `production` para los usuarios reales** (con ok de Mani, junto con el 007):
+       sembrar productos (`seed:datos` con `DB_PROD`), cargar `administrativa@retiagrowth.com`
+       como gerente y dar de alta a Andrea y Maru desde `/ajustes/usuarios`.
 5. [ ] **Probar `/api/cron/sync` en produccion** con el `CRON_SECRET` (escribe leads reales, pedir ok).
 6. [ ] **F-03 + F-07** juntos, con migracion (diseno en el tracker); primero `dev`, luego
        `production`.
 7. [ ] **F-01:** confirmar el mapeo de `Estado` propuesto en el tracker e implementarlo.
-8. [ ] **Documentar las pestanas nuevas** en `docs/estructura-bbdd.md` y revisar las 2.000 filas
-       de `New form` (el 16-sep devolvio 2.007 filas con datos).
+8. [ ] **Documentar las pestanas nuevas** en `docs/estructura-bbdd.md` y revisar las filas de
+       `New form` (el 16-sep devolvio 2.007 filas con datos; eran 1.320 el 19-ago).
 9. [ ] **F-05 · Migrar las fechas ya guardadas.** El codigo ya escribe con `-05:00` explicito,
        pero las filas viejas quedaron en la zona del servidor y `compararCampos` no mira fechas,
        asi que un `npm run sync` normal **no** las repara. Decidir entre migracion puntual o
        re-sync forzado.
+10. [ ] **016** (plantilla de lead) y **022** (recursos) estan listos pero pueden esperar.
 
 ### Next (blocked until a "Now" item lands)
 
@@ -343,6 +345,8 @@ Bloqueados por una decision de negocio (hay que preguntarle a Michael):
 
 ### Later (someday / not yet scoped)
 
+- [ ] **024 · Rol developer (F4)** — Mani quiere ser `developer`. Avance parcial sin revisar en
+      `git stash` ("wip 024 rol developer"); retomarlo en su turno. Notas en el ticket.
 - [x] **S-14** — resuelto el 16-sep (ADR 0018).
 - [x] **S-10** — `AUTH_URL` en Vercel Production y callback en el cliente OAuth de `retia-growth`
       (16-sep).
@@ -356,8 +360,8 @@ Bloqueados por una decision de negocio (hay que preguntarle a Michael):
 
 ### Done
 
-- [x] 2026-09-16 (madrugada) — Migraciones 0004-0007 en `production`; incidente de `.env.local` documentado.
-- [x] 2026-09-16 (cierre) — ADR 0021 + ticket 026; tickets 012, 013, 015, 014, 017, 020.
+- [x] 2026-09-16 (cierre) — ADR 0021 + ticket 026; tickets 012, 013, 015, 014, 017, 020;
+      migraciones 0004-0007 en `dev` y `production`; `.env.local` corregido.
 - [x] 2026-09-16 (noche) — Tickets 008-011 (F0), ADR 0020, migraciones 0002-0003 en `dev` y
       `production`, cuenta de servicio y login en `retia-growth`, `AUTH_URL`, respuestas de
       Michael bajadas a los docs.

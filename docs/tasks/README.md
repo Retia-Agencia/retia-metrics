@@ -57,7 +57,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 024 | [Rol developer](./024-rol-developer.md) | 010 | en curso · avance parcial en `git stash` ("wip 024 rol developer") |
+| [ ] | 024 | [Rol developer](./024-rol-developer.md) | 010 | todo · en su turno (hay avance parcial sin revisar en `git stash` "wip 024 rol developer") |
 | [ ] | 025 | [Nerd Stats](./025-nerd-stats.md) | 024 | todo |
 
 ## Decisiones pendientes (bloquean o condicionan tickets)
@@ -98,7 +98,7 @@ el ADR 0018 y en el handoff.
 
 - [x] Mani pegó en `DATABASE_URL` la URL de la rama `dev` (verificado con `neon.branch_id`: `br-withered-sun-b439zjof`).
 - [x] `dev` al día: 8 migraciones y `seed:datos` (2 programas, 4 cohortes, 3 productos, 10 fuentes).
-- [ ] Sembrar productos en `production` (pedir ok).
+- [ ] Sembrar productos en `production` (pedir ok; va con el 007, ver handoff).
 
 ## Deuda técnica heredada (no bloquea F0-F4)
 
