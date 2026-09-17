@@ -72,3 +72,26 @@ Riesgo que se acepta: quien tenga `.env.local` tiene acceso de escritura a `prod
 archivo ya tenia secretos de igual peso (`AUTH_SECRET`, la llave de la cuenta de servicio), tiene
 permisos `600` y nunca se sube al repo.
 
+## Hallazgo del 16-sep (noche): `.env.local` no apuntaba a `dev`
+
+Al preparar las migraciones 0004-0007 se comprobó (comparando las URLs sin imprimirlas y
+consultando `neon.branch_id`) que **`DATABASE_URL` y `DB_PROD` de `.env.local` son la misma URL**,
+la de `production` (`br-withered-mud-b4cvvg80`, `ep-jolly-silence`). La linea de arriba que dice
+"`.env.local` ya apunta a `dev`" dejo de ser cierta en algun momento del 16-sep (el archivo se
+modifico a las 17:05). Consecuencias:
+
+- Todo lo que se corrio en local desde entonces (`npm run dev`, `seed:datos`, `db:migrate`)
+  escribio en `production`. Lo que el handoff registra como "0002 y 0003 aplicadas en `dev`" muy
+  probablemente fue `production`.
+- La rama `dev` no se pudo revisar: Vercel guarda la `DATABASE_URL` de Preview como variable
+  sensible y `vercel env pull` no devuelve su valor, y `neonctl` no esta instalado.
+- Con ok de Mani, 0004-0007 se aplicaron **directo a `production`** (eran solo aditivas y ya
+  corren en PGlite en cada test). Verificado despues: 8 migraciones, catalogos sembrados,
+  columnas e indices nuevos.
+
+**Resuelto el mismo dia:** Mani puso en `DATABASE_URL` la URL de `dev` (verificado:
+`br-withered-sun-b439zjof`, `ep-mute-shadow`). `dev` tenia 4 migraciones y 0 programas; se le
+aplicaron 0004-0007 y `seed:datos`. Las dos ramas quedaron con 8 migraciones.
+
+**Regla que sale de esto:** antes de cualquier escritura con `DATABASE_URL`, comprobar la rama
+(`select setting from pg_settings where name = 'neon.branch_id'`), no solo el nombre de la variable.

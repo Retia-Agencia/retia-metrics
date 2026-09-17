@@ -13,14 +13,14 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [x] | 008 | [Renombrar Corte a Cohorte](./008-renombrar-corte-a-cohorte.md) | — | done · 16-sep (migración 0002 sin aplicar) |
+| [x] | 008 | [Renombrar Corte a Cohorte](./008-renombrar-corte-a-cohorte.md) | — | done · 16-sep (migración 0002 en `production`) |
 | [x] | 009 | [Test guardián de slugs](./009-test-guardian-de-slugs.md) | — | done · 16-sep (`it.fails` hasta 010) |
 | [x] | 010 | [Programas dinámicos](./010-programas-dinamicos.md) | 008, 009 | done · 16-sep (prueba manual en base real pendiente) |
-| [x] | 011 | [Molde de catálogo + plataformas de pago](./011-molde-de-catalogo-y-plataformas.md) | 008 | done · 16-sep (migración 0003 sin aplicar; ADR 0020) |
-| [x] | 012 | [Catálogos de motivos y orígenes](./012-catalogos-motivos-y-origenes.md) | 011 | done · 16-sep (migración 0004 sin aplicar) |
+| [x] | 011 | [Molde de catálogo + plataformas de pago](./011-molde-de-catalogo-y-plataformas.md) | 008 | done · 16-sep (migración 0003 en `production`; ADR 0020) |
+| [x] | 012 | [Catálogos de motivos y orígenes](./012-catalogos-motivos-y-origenes.md) | 011 | done · 16-sep (migración 0004 en `production`) |
 | [x] | 013 | [Pantalla de catálogos](./013-pantalla-de-catalogos.md) | 011 | done · 16-sep (id no-uuid ya da 400) |
-| [x] | 014 | [Administrar programas y cohortes](./014-administrar-programas-y-cohortes.md) | 010, 011 | done · 16-sep (migración 0006 sin aplicar) |
-| [x] | 015 | [Administrar usuarios y closers](./015-administrar-usuarios-y-closers.md) | 011 | done · 16-sep (migración 0005 sin aplicar; login real pendiente) |
+| [x] | 014 | [Administrar programas y cohortes](./014-administrar-programas-y-cohortes.md) | 010, 011 | done · 16-sep (migración 0006 en `production`) |
+| [x] | 015 | [Administrar usuarios y closers](./015-administrar-usuarios-y-closers.md) | 011 | done · 16-sep (migración 0005 en `production`; login real pendiente) |
 | [ ] | 016 | [Plantilla de lead + fuentes configurables](./016-fuentes-configurables.md) (ADR 0019) | 014 | todo · **listo** · puede esperar |
 
 ## F1 · Llamadas y ventas
@@ -28,7 +28,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 001 | [plataformaPago como enum](./001-reemplazado-plataforma-pago.md) | — | reemplazado por 011 |
-| [x] | 017 | [Productos por programa](./017-productos-por-programa.md) | 011 | done · 16-sep (migración 0007 sin aplicar) |
+| [x] | 017 | [Productos por programa](./017-productos-por-programa.md) | 011 | done · 16-sep (migración 0007 en `dev` y `production`; productos sin sembrar en `production`) |
 | [ ] | 018 | [Esquema del registro + abonos](./018-esquema-registro-y-abonos.md) | 012, 017 | todo · **listo** |
 | [ ] | 002 | [cohorteActiva + registrarLlamada](./002-cohorte-activa-y-mutacion-registro.md) | 018 | todo |
 | [ ] | 019 | [Registrar abono](./019-registrar-abono.md) | 018 | todo |
@@ -57,7 +57,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 024 | [Rol developer](./024-rol-developer.md) | 010 | todo |
+| [ ] | 024 | [Rol developer](./024-rol-developer.md) | 010 | en curso · avance parcial en `git stash` ("wip 024 rol developer") |
 | [ ] | 025 | [Nerd Stats](./025-nerd-stats.md) | 024 | todo |
 
 ## Decisiones pendientes (bloquean o condicionan tickets)
@@ -87,6 +87,18 @@ Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje
   (Mani). No hace falta la lista ahora; el 015 debe permitir crear ambos roles.
 - 16-sep · **`Estado` es la clasificación del lead** (Michael): decide a qué pestaña derivada se copia la fila.
 - 16-sep · **Importar el histórico de C2: sí** (Mani). Falta el detalle de reconciliación.
+
+## Incidente del 16-sep (noche): `.env.local` apunta a `production`
+
+`DATABASE_URL` y `DB_PROD` de `.env.local` son la misma URL: la rama `production`
+(`br-withered-mud-b4cvvg80`). Todo lo local (`npm run dev`, `seed:datos`, `db:migrate`) escribe en
+`production`, y la rama `dev` (`br-withered-sun-b439zjof`) quedó sin verificar. Las migraciones
+0004-0007 se aplicaron **directo a `production`** con ok de Mani (sin paso por `dev`). Detalle en
+el ADR 0018 y en el handoff.
+
+- [x] Mani pegó en `DATABASE_URL` la URL de la rama `dev` (verificado con `neon.branch_id`: `br-withered-sun-b439zjof`).
+- [x] `dev` al día: 8 migraciones y `seed:datos` (2 programas, 4 cohortes, 3 productos, 10 fuentes).
+- [ ] Sembrar productos en `production` (pedir ok).
 
 ## Deuda técnica heredada (no bloquea F0-F4)
 

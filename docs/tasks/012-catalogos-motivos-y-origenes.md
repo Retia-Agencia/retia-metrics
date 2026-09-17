@@ -22,3 +22,6 @@ reportes diarios.
 
 ## Done cuando
 - [x] Ambos catálogos pasan los mismos tests que plataformas, sin código nuevo en el molde.
+
+## Notas (cierre 16-sep)
+Migración `0004_*` aplicada en `production` el 16-sep: 8 motivos y 7 orígenes.

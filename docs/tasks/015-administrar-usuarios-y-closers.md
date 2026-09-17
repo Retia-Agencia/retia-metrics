@@ -32,10 +32,15 @@ a todos los usuarios reales al salir a producción).
 - [x] Cada cambio de rol queda en `change_log`.
 
 ## Notas (cierre 16-sep)
-- Migración `0005_*` generada, sin aplicar.
+- Migración `0005_*` aplicada en `production` el 16-sep (sin paso por `dev`, ver incidente en el tracker).
 - Los dos primeros criterios están cubiertos por tests de guards y de membresías, no por un
   login real: probarlos en `dev` junto con el login.
-- Deuda: la fila del usuario y sus membresías van en dos lotes (no atómico), y un uuid de
-  programa inexistente sale como "Error interno." en vez de 400.
-- El CLI de emergencia valida con el mismo esquema y ahora pide uuids de programa para un
-  closer; no desactiva membresías ni escribe `change_log` (la pantalla es la vía completa).
+- Deuda: la fila del usuario (con su `change_log`) la escribe el molde en un lote propio y las
+  membresías van en un segundo lote, porque el molde no acepta escrituras extra y `neon-http` no
+  tiene transacciones interactivas. Si el segundo lote falla, un closer queda creado sin
+  programas: ve el sidebar pero no cuenta en ningún programa. Arreglo propuesto: que el molde
+  acepte escrituras adicionales dentro de su mismo `ejecutarJuntas`.
+- Deuda: un uuid de programa inexistente sale como "Error interno." en vez de 400.
+- El CLI de emergencia valida con el mismo esquema, así que dar de alta un closer ahora exige al
+  menos un uuid de programa: `npm run usuarios -- agregar <correo> closer "Andrea" <uuid>` (antes
+  bastaba el `closer_id`). Los uuids salen de `npm run db:studio`. Un gerente no los necesita; no desactiva membresías ni escribe `change_log` (la pantalla es la vía completa).

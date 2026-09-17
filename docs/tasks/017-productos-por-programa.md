@@ -29,7 +29,8 @@ reserva, 1:1...) para usarlos al registrar una venta.
 - [x] Precio validado: positivo y con moneda.
 
 ## Notas (cierre 16-sep)
-- Migración `0007_*` generada, sin aplicar. Las semillas viven en `scripts/seed-datos.ts` (no en la
+- Migración `0007_*` aplicada en `production` el 16-sep. Los productos **no** se han sembrado ahí
+  (`seed:datos` es una escritura aparte). Las semillas viven en `scripts/seed-datos.ts` (no en la
   migración: en una base nueva los programas no existen aún) y solo insertan lo que falta.
 - "Las ventas viejas lo siguen mostrando": `productoPorId` devuelve también inactivos; la columna
   `sales.productoId` llega en 018.

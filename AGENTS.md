@@ -141,6 +141,8 @@ The agent should run these to get fast signal on whether code works. Keep them c
   migracion se prueba en `dev` antes de tocar `production`. La URL de `production` esta en
   `.env.local` como `DB_PROD`: ningun codigo la lee, se usa solo nombrandola en el comando.
   Consultas de solo lectura, libres; **toda escritura en `production` pide el ok de Mani**.
+  Antes de escribir, comprobar la rama real (`neon.branch_id`), no el nombre de la variable: el
+  16-sep `DATABASE_URL` resulto apuntar a `production` (ver el hallazgo en el ADR 0018).
 - **`CRON_SECRET` se genera con `npm run cron-secret`**, no con `npm run rotar` (ese solo rota
   `AUTH_GOOGLE_SECRET` y `AUTH_SECRET`).
 - **Idioma:** UI en espanol. Nombres de variables, tablas y archivos sin acentos, consistentes.

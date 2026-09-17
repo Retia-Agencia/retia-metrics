@@ -30,8 +30,8 @@ de cupos, meta de leads por día, precio de referencia, TRM, estado) sin tocar c
 - [x] Desactivar un programa lo saca de la navegación sin borrar sus datos.
 
 ## Notas (cierre 16-sep)
-- Migración `0006_*` generada, sin aplicar. Antes de aplicarla en `production`, confirmar que no
-  hay dos cohortes `activo` en un mismo programa (la semilla tiene una por programa).
+- Migración `0006_*` aplicada en `production` el 16-sep, tras confirmar que ningún programa tenía
+  dos cohortes `activo`.
 - Cerrar una cohorte (`estado = cerrado`) es su "desactivar": `cohorts` no tiene `activo`.
 - `lib/catalogo/cohortes.ts` no usa el molde: tiene dos índices únicos con mensajes distintos y el
   molde traduce todo 23505 a uno solo. Escribe con `ejecutarJuntas` + `change_log` igual.
