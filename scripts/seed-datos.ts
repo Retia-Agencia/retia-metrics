@@ -7,6 +7,12 @@ import { MAPEO_FORMULARIO } from "../lib/sheets/mapeo";
 /**
  * Siembra programas, cohortes y fuentes con los datos reales.
  * Idempotente: correrlo dos veces no duplica nada.
+ *
+ * SOLO ES LA SEMILLA INICIAL (ADR 0012, ticket 014). El dia a dia —crear un
+ * programa, editar sus URLs, abrir o cerrar una cohorte, cambiar la meta o la TRM—
+ * se hace desde `/ajustes/programas` sin tocar codigo ni correr este script. Este
+ * archivo existe para arrancar una base vacia (local, `dev` o produccion la primera
+ * vez), no para administrar el catalogo despues.
  */
 
 /**

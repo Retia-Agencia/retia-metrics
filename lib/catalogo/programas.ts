@@ -1,0 +1,160 @@
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { db as dbDeLaApp } from "@/lib/db";
+import { programs } from "@/lib/db/schema";
+import type { Db } from "@/lib/db/tipos";
+import { ErrorDeApp } from "@/lib/errors";
+import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
+
+/**
+ * Programas (ticket 014, ADR 0012), sobre el molde de catalogo.
+ *
+ * Un programa es una instancia editable: el gerente lo crea desde /ajustes sin
+ * tocar codigo. La tabla `programs` ya tiene `id` y `activo`, asi que el molde
+ * maneja crear/editar/desactivar/reactivar + `change_log` por campo que cambia. Lo
+ * que el molde NO expresa vive aca:
+ *
+ *  - **El slug no se puede cambiar despues de creado.** Las URLs guardadas (y las
+ *    rutas `/programas/[slug]`) dependen de el; editarlo con otro slug es un 400.
+ *  - **Un solo esquema zod** valida el alta y la edicion: nombre, slug con formato
+ *    `^[a-z0-9-]+$`, ticket en USD y las dos URLs opcionales.
+ *
+ * La base se recibe por inyeccion (por defecto la de la app) para correr los tests
+ * sobre PGlite sin Neon. Este archivo NO lleva `"use server"`: es logica pura que
+ * las server actions envuelven, igual que `lib/catalogo/usuarios.ts`.
+ */
+
+/** id de un programa: uuid o error de validacion (400). */
+const esquemaId = z.string().uuid("El identificador no es válido.");
+
+/** Una URL opcional: vacia o nula se guarda como null; si viene, debe ser una URL valida. */
+const urlOpcional = z
+  .string()
+  .trim()
+  .url("La URL no es válida.")
+  .nullable()
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => (v && v.length > 0 ? v : null));
+
+/**
+ * El unico esquema zod de un programa. Lo usan la pantalla, las server actions y
+ * cualquier codigo: una sola validacion de la misma entidad.
+ *
+ * El slug se restringe a `^[a-z0-9-]+$` (minusculas, digitos y guion): es lo que
+ * cabe en una URL sin escapar y lo que la ruta `/programas/[slug]` espera.
+ */
+export const esquemaPrograma = z.object({
+  nombre: z.string().trim().min(1, "El nombre es obligatorio.").max(120, "Máximo 120 caracteres."),
+  slug: z
+    .string()
+    .trim()
+    .min(1, "El slug es obligatorio.")
+    .max(60, "Máximo 60 caracteres.")
+    .regex(/^[a-z0-9-]+$/, "El slug solo admite minúsculas, números y guiones."),
+  ticketUsd: z
+    .string()
+    .trim()
+    .regex(/^\d+(\.\d{1,2})?$/, "El ticket debe ser un monto en USD (por ejemplo 797 o 797.00)."),
+  webUrl: urlOpcional,
+  calendlyUrl: urlOpcional,
+});
+
+/** Entrada validada de un programa (lo que el llamador escribe). */
+export type EntradaPrograma = z.input<typeof esquemaPrograma>;
+/** Programa ya validado y normalizado. */
+export type ProgramaValidado = z.output<typeof esquemaPrograma>;
+
+/** Valida el id como uuid; un id invalido sale como ErrorDeApp 400, nunca como 500. */
+function idValido(id: string): string {
+  const parsed = esquemaId.safeParse(id);
+  if (!parsed.success) {
+    throw new ErrorDeApp(parsed.error.issues[0]?.message ?? "Identificador inválido.", 400);
+  }
+  return parsed.data;
+}
+
+/** Traduce un `ZodError` a un `ErrorDeApp` 400 con el primer mensaje. */
+async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (error instanceof ErrorDeApp) throw error;
+    if (error instanceof z.ZodError) {
+      throw new ErrorDeApp(error.issues[0]?.message ?? "Petición inválida.", 400);
+    }
+    throw error;
+  }
+}
+
+/** Molde sobre `programs`. Recibe la base por inyeccion. */
+function moldePrograma(db: Db) {
+  return moldeDeCatalogo<ProgramaValidado>(
+    {
+      tabla: programs,
+      nombreTabla: "programs",
+      esquema: esquemaPrograma as unknown as z.ZodType<ProgramaValidado>,
+      etiqueta: (fila) => String(fila.nombre),
+      nombreEntidad: "un programa",
+    },
+    db,
+  );
+}
+
+/** Lista todos los programas (activos e inactivos). */
+export async function listarProgramas(db: Db = dbDeLaApp): Promise<FilaCatalogo[]> {
+  return moldePrograma(db).listar();
+}
+
+/** Crea un programa. La entrada se valida con el esquema compartido. */
+export async function crearPrograma(
+  db: Db,
+  actorId: string,
+  input: EntradaPrograma,
+): Promise<FilaCatalogo> {
+  return normalizando(() => moldePrograma(db).crear(actorId, esquemaPrograma.parse(input)));
+}
+
+/**
+ * Edita un programa. Valida id (uuid) y entrada. El slug es inmutable: editarlo con
+ * uno distinto al guardado es un 400 con mensaje claro. El molde solo ve el slug
+ * actual, asi que nunca lo reescribe.
+ */
+export async function editarPrograma(
+  db: Db,
+  actorId: string,
+  id: string,
+  input: EntradaPrograma,
+): Promise<FilaCatalogo> {
+  return normalizando(async () => {
+    const objetivoId = idValido(id);
+    const datos = esquemaPrograma.parse(input);
+    const [actual] = await db.select().from(programs).where(eq(programs.id, objetivoId));
+    if (!actual) throw new ErrorDeApp("No existe un programa con ese id.", 404);
+    if (datos.slug !== actual.slug) {
+      throw new ErrorDeApp(
+        "El slug de un programa no se puede cambiar: las URLs guardadas dependen de él.",
+        400,
+      );
+    }
+    return moldePrograma(db).editar(actorId, objetivoId, datos);
+  });
+}
+
+/** Desactiva un programa (no lo borra). Lo saca de la navegacion, conserva sus datos. */
+export async function desactivarPrograma(
+  db: Db,
+  actorId: string,
+  id: string,
+): Promise<FilaCatalogo> {
+  return normalizando(() => moldePrograma(db).desactivar(actorId, idValido(id)));
+}
+
+/** Reactiva un programa desactivado. */
+export async function reactivarPrograma(
+  db: Db,
+  actorId: string,
+  id: string,
+): Promise<FilaCatalogo> {
+  return normalizando(() => moldePrograma(db).reactivar(actorId, idValido(id)));
+}

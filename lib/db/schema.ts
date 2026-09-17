@@ -92,6 +92,10 @@ export const programs = pgTable("programs", {
   slug: text("slug").notNull().unique(),
   nombre: text("nombre").notNull(),
   ticketUsd: numeric("ticket_usd", { precision: 10, scale: 2 }).notNull(),
+  /** Pagina de venta del programa. Editable desde /ajustes/programas (ticket 014). */
+  webUrl: text("web_url"),
+  /** Calendly del programa, para cruzar agendamientos. Editable desde /ajustes/programas (ticket 014). */
+  calendlyUrl: text("calendly_url"),
   /** Maximo historico de personas por dia habil. Marca cuando una meta es inalcanzable por volumen. */
   recordPersonasPorDiaHabil: integer("record_personas_por_dia_habil"),
   activo: boolean("activo").notNull().default(true),
@@ -104,6 +108,8 @@ export const cohorts = pgTable(
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
     codigo: text("codigo").notNull(),
     metaCupos: integer("meta_cupos").notNull(),
+    /** Meta de leads por dia habil de la cohorte. Editable desde /ajustes (ticket 014). */
+    metaLeadsDia: integer("meta_leads_dia"),
     precioUsd: numeric("precio_usd", { precision: 10, scale: 2 }).notNull(),
     fechaInicioClases: date("fecha_inicio_clases").notNull(),
     /** Cada cohorte se vende hasta el mismo dia en que arranca clases, inclusive. */
@@ -113,7 +119,16 @@ export const cohorts = pgTable(
     estado: estadoCohorteEnum("estado").notNull().default("futuro"),
     notas: text("notas"),
   },
-  (t) => [uniqueIndex("cohorts_programa_codigo_idx").on(t.programId, t.codigo)],
+  (t) => [
+    uniqueIndex("cohorts_programa_codigo_idx").on(t.programId, t.codigo),
+    // Maximo una cohorte activa por programa (ADR 0005: la garantia vive en la base,
+    // no solo en codigo). Indice unico PARCIAL: solo las filas en estado 'activo'
+    // compiten por la unicidad; 'cerrado' y 'futuro' no. Un segundo intento de
+    // activar choca con 23505, que `lib/catalogo/cohortes.ts` traduce a un 400 claro.
+    uniqueIndex("cohorts_una_activa_por_programa_idx")
+      .on(t.programId)
+      .where(sql`${t.estado} = 'activo'`),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────── fuentes de datos

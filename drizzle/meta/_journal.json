@@ -43,6 +43,13 @@
       "when": 1789603633333,
       "tag": "0005_usuarios_calendly_y_miembros_programa",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789604296798,
+      "tag": "0006_programas_cohortes_urls_meta_leads_una_activa",
+      "breakpoints": true
     }
   ]
 }

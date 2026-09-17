@@ -29,7 +29,17 @@ vi.mock("next/navigation", () => ({ redirect, notFound }));
 // "existentes" y null para el resto, imitando "no existe o esta inactivo".
 const programaActivoPorSlug = vi.fn();
 const programasActivos = vi.fn();
-vi.mock("@/lib/queries/programas", () => ({ programaActivoPorSlug, programasActivos }));
+const programaPorSlug = vi.fn();
+vi.mock("@/lib/queries/programas", () => ({
+  programaActivoPorSlug,
+  programasActivos,
+  programaPorSlug,
+}));
+
+// La pagina de cohortes lee las cohortes del programa; sin base en los tests, se
+// mockea la lectura para que la guarda sea lo unico bajo prueba.
+const listarCohortes = vi.fn();
+vi.mock("@/lib/catalogo/cohortes", () => ({ listarCohortes }));
 
 /** El `redirect` real interrumpe el render lanzando. El mock imita eso. */
 class Redireccion extends Error {
@@ -54,6 +64,9 @@ beforeEach(() => {
   notFound.mockReset();
   programaActivoPorSlug.mockReset();
   programasActivos.mockReset();
+  programaPorSlug.mockReset();
+  listarCohortes.mockReset();
+  listarCohortes.mockResolvedValue([]);
   // Por defecto, un gerente rechazado de una pagina de closer aterriza en su primer
   // programa activo. `destinoInicial("gerente")` consulta esta lista.
   programasActivos.mockResolvedValue([{ slug: "programa-a", nombre: "Programa A" }]);
@@ -84,6 +97,7 @@ const PAGINAS_DE_GERENTE = [
   ["/ajustes/fuentes", "@/app/(app)/ajustes/fuentes/page"],
   ["/ajustes/catalogos", "@/app/(app)/ajustes/catalogos/page"],
   ["/ajustes/usuarios", "@/app/(app)/ajustes/usuarios/page"],
+  ["/ajustes/programas", "@/app/(app)/ajustes/programas/page"],
 ] as const;
 
 /**
@@ -158,6 +172,49 @@ describe("dashboard de programa /programas/[slug] (ADR 0009 + 0012)", () => {
     auth.mockResolvedValue(sesionGerente);
     programaActivoPorSlug.mockResolvedValue(null);
     expect(await correrPrograma(SLUG_NO_EXISTE)).toBe("notFound");
+  });
+});
+
+describe("cohortes de un programa /ajustes/programas/[slug] (ticket 014)", () => {
+  const RUTA_COHORTES = "@/app/(app)/ajustes/programas/[slug]/page";
+  const SLUG = "programa-a";
+
+  async function correrCohortes(slug: string): Promise<"paso" | "login" | "midia" | "notFound"> {
+    const modulo = (await import(/* @vite-ignore */ RUTA_COHORTES)) as {
+      default: (props: { params: Promise<{ slug: string }> }) => Promise<unknown>;
+    };
+    try {
+      await modulo.default({ params: Promise.resolve({ slug }) });
+      return "paso";
+    } catch (e) {
+      if (e instanceof NoEncontrado) return "notFound";
+      if (e instanceof Redireccion) return e.destino === "/login" ? "login" : "midia";
+      throw e;
+    }
+  }
+
+  it("rechaza a un closer y lo manda a su vista (solo gerente, ADR 0003)", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
+    expect(await correrCohortes(SLUG)).toBe("midia");
+  });
+
+  it("manda al login a quien no tiene sesion, aun con un slug existente", async () => {
+    auth.mockResolvedValue(null);
+    programaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
+    expect(await correrCohortes(SLUG)).toBe("login");
+  });
+
+  it("deja pasar a un gerente con un slug existente", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    programaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
+    expect(await correrCohortes(SLUG)).toBe("paso");
+  });
+
+  it("un slug inexistente, con sesion de gerente, es 404", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    programaPorSlug.mockResolvedValue(null);
+    expect(await correrCohortes("no-existe")).toBe("notFound");
   });
 });
 

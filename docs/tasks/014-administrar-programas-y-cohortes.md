@@ -3,7 +3,7 @@ id: 014
 fase: F0
 serves: "spec §5 criterio 4"
 depends: [010, 011]
-status: todo
+status: done
 ---
 
 # 014 — Administrar programas y cohortes desde /ajustes
@@ -25,6 +25,14 @@ de cupos, meta de leads por día, precio de referencia, TRM, estado) sin tocar c
 - Fuera: fuentes (016), recursos (023).
 
 ## Done cuando
-- [ ] Crear un programa desde la pantalla lo hace aparecer en el sidebar (010) sin despliegue.
-- [ ] Activar una segunda cohorte en el mismo programa falla con un mensaje claro.
-- [ ] Desactivar un programa lo saca de la navegación sin borrar sus datos.
+- [x] Crear un programa desde la pantalla lo hace aparecer en el sidebar (010) sin despliegue.
+- [x] Activar una segunda cohorte en el mismo programa falla con un mensaje claro.
+- [x] Desactivar un programa lo saca de la navegación sin borrar sus datos.
+
+## Notas (cierre 16-sep)
+- Migración `0006_*` generada, sin aplicar. Antes de aplicarla en `production`, confirmar que no
+  hay dos cohortes `activo` en un mismo programa (la semilla tiene una por programa).
+- Cerrar una cohorte (`estado = cerrado`) es su "desactivar": `cohorts` no tiene `activo`.
+- `lib/catalogo/cohortes.ts` no usa el molde: tiene dos índices únicos con mensajes distintos y el
+  molde traduce todo 23505 a uno solo. Escribe con `ejecutarJuntas` + `change_log` igual.
+- El primer criterio está cubierto por test sobre `programasActivos()`, no por navegador.

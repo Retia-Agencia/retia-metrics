@@ -18,6 +18,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   - **015** hecho: `/ajustes/usuarios`, `users.calendlyEmail`, `miembros_programa` (migracion
     `0005_*` sin aplicar), `lib/catalogo/usuarios.ts` con el esquema que tambien usa el CLI.
     Quedan listos 026 y 007. Deuda anotada en el ticket.
+  - **014** hecho: `/ajustes/programas` y `/ajustes/programas/[slug]`; indice unico parcial
+    "una cohorte activa por programa" (migracion `0006_*` sin aplicar). 182 tests.
 
 - **2026-09-16 (noche) — F0 arranca: tickets 008-011 hechos, migraciones en las dos ramas, Google
   Cloud y login pasados a Retia, respuestas de Michael bajadas.**

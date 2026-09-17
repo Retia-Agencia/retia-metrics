@@ -19,9 +19,9 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 011 | [Molde de catálogo + plataformas de pago](./011-molde-de-catalogo-y-plataformas.md) | 008 | done · 16-sep (migración 0003 sin aplicar; ADR 0020) |
 | [x] | 012 | [Catálogos de motivos y orígenes](./012-catalogos-motivos-y-origenes.md) | 011 | done · 16-sep (migración 0004 sin aplicar) |
 | [x] | 013 | [Pantalla de catálogos](./013-pantalla-de-catalogos.md) | 011 | done · 16-sep (id no-uuid ya da 400) |
-| [ ] | 014 | [Administrar programas y cohortes](./014-administrar-programas-y-cohortes.md) | 010, 011 | todo · **listo** |
+| [x] | 014 | [Administrar programas y cohortes](./014-administrar-programas-y-cohortes.md) | 010, 011 | done · 16-sep (migración 0006 sin aplicar) |
 | [x] | 015 | [Administrar usuarios y closers](./015-administrar-usuarios-y-closers.md) | 011 | done · 16-sep (migración 0005 sin aplicar; login real pendiente) |
-| [ ] | 016 | [Plantilla de lead + fuentes configurables](./016-fuentes-configurables.md) (ADR 0019) | 014 | todo · puede esperar |
+| [ ] | 016 | [Plantilla de lead + fuentes configurables](./016-fuentes-configurables.md) (ADR 0019) | 014 | todo · **listo** · puede esperar |
 
 ## F1 · Llamadas y ventas
 
