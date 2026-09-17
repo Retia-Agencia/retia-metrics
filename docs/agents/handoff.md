@@ -13,6 +13,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   - **012** hecho: catalogos `motivos` y `origenes` sobre el molde, tests de catalogo
     parametrizados (108 tests). Migracion `0004_*` **generada, sin aplicar** en `dev` ni en
     `production`: espera ok de Mani.
+  - **013** hecho: `/ajustes/catalogos` sobre `lib/catalogo/registro.ts` (un catalogo nuevo =
+    una linea); el molde gano `reactivar`; id no-uuid da 400.
 
 - **2026-09-16 (noche) — F0 arranca: tickets 008-011 hechos, migraciones en las dos ramas, Google
   Cloud y login pasados a Retia, respuestas de Michael bajadas.**

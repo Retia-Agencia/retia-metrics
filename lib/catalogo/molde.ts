@@ -11,8 +11,8 @@ import { ErrorDeApp } from "@/lib/errors";
  * El molde de toda entidad configurable (ADR 0012).
  *
  * Dada una tabla de Drizzle (que DEBE tener columnas `id` y `activo`) y un unico
- * esquema zod, devuelve las cuatro operaciones del contrato: `listar`, `crear`,
- * `editar`, `desactivar`. El molde no conoce ninguna entidad concreta: no hay
+ * esquema zod, devuelve las operaciones del contrato: `listar`, `crear`, `editar`,
+ * `desactivar` y `reactivar`. El molde no conoce ninguna entidad concreta: no hay
  * literales de programa, plataforma ni nada del negocio aca dentro.
  *
  * Toda escritura deja rastro en `change_log` (una fila por campo que cambia) con
@@ -21,7 +21,7 @@ import { ErrorDeApp } from "@/lib/errors";
  */
 
 /** Forma minima de una fila de catalogo: el molde solo asume estas dos columnas. */
-interface FilaCatalogo {
+export interface FilaCatalogo {
   id: string;
   activo: boolean;
   [columna: string]: unknown;
@@ -47,6 +47,7 @@ export interface Catalogo<Entrada extends Record<string, unknown>> {
   crear: (userId: string, input: Entrada) => Promise<FilaCatalogo>;
   editar: (userId: string, id: string, input: Entrada) => Promise<FilaCatalogo>;
   desactivar: (userId: string, id: string) => Promise<FilaCatalogo>;
+  reactivar: (userId: string, id: string) => Promise<FilaCatalogo>;
 }
 
 /**
@@ -196,6 +197,34 @@ export function moldeDeCatalogo<Entrada extends Record<string, unknown>>(
           campo: "activo",
           valorAnterior: "true",
           valorNuevo: "false",
+          origen: "app" as const,
+          userId,
+        }),
+      ]);
+
+      return (await leerFila(id))!;
+    },
+
+    async reactivar(userId, id) {
+      const actual = await leerFila(id);
+      if (!actual) throw new ErrorDeApp(`No existe ${nombreEntidad} con ese id.`, 404);
+      // Ya estaba activa: no se escribe nada (ni fila ni change_log). Simetrico a
+      // `desactivar`: reactivar es la misma operacion en el otro sentido.
+      if (actual.activo) return actual;
+
+      const etiquetaFila = etiqueta(actual);
+      await ejecutarJuntas(db, (tx) => [
+        (tx as Db)
+          .update(tabla as never)
+          .set({ activo: true } as never)
+          .where(eq(idCol, id)),
+        (tx as Db).insert(changeLog).values({
+          tabla: nombreTabla,
+          registroId: id,
+          etiqueta: etiquetaFila,
+          campo: "activo",
+          valorAnterior: "false",
+          valorNuevo: "true",
           origen: "app" as const,
           userId,
         }),

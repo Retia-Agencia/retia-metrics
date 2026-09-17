@@ -3,7 +3,7 @@ id: 013
 fase: F0
 serves: "ADR 0012 — pieza 3 del molde"
 depends: [011]
-status: todo
+status: done
 ---
 
 # 013 — Pantalla de administración de catálogos
@@ -21,6 +21,11 @@ Un gerente agrega, renombra y desactiva plataformas, motivos y orígenes desde
 - Fuera: productos (017, tiene su propia pantalla porque también la usan closers).
 
 ## Done cuando
-- [ ] Agregar un catálogo nuevo a esta pantalla es una línea de configuración.
-- [ ] Un closer que entra a `/ajustes/catalogos` es redirigido (test de páginas).
-- [ ] Cada cambio aparece en `change_log`.
+- [x] Agregar un catálogo nuevo a esta pantalla es una línea de configuración.
+- [x] Un closer que entra a `/ajustes/catalogos` es redirigido (test de páginas).
+- [x] Cada cambio aparece en `change_log`.
+
+## Notas
+El molde ganó `reactivar` (simétrico a `desactivar`). Un id que no es uuid sale como 400
+(deuda del 011 saldada en `lib/catalogo/operaciones.ts`). Las pestañas y el campo de texto son
+nativos con los tokens del tema, sin instalar `tabs`/`input` de shadcn.
