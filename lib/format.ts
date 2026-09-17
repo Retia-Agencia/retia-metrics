@@ -42,3 +42,23 @@ export function monto(valor: number, moneda: string): string {
   if (moneda === "COP") return cop(valor);
   return `${moneda} ${num(valor, valor % 1 === 0 ? 0 : 2)}`;
 }
+
+/** Los meses como los escribe el negocio: tres letras, sin punto. */
+const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+/**
+ * Una fecha de calendario 'YYYY-MM-DD' escrita para leer: "14 ago 2026".
+ *
+ * Se parte el string, no se construye un `Date`: la fecha es un DIA de calendario, no
+ * un instante, y pasarla por `Date` la correria un dia segun la zona del servidor
+ * (Vercel corre en UTC y el equipo esta en Bogota). Lo que no tenga forma de fecha se
+ * devuelve tal cual, sin inventar un dia.
+ */
+export function fecha(iso: string): string {
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!partes) return iso;
+  const [, anio, mes, dia] = partes;
+  const nombre = MESES[Number(mes) - 1];
+  if (!nombre) return iso;
+  return `${Number(dia)} ${nombre} ${anio}`;
+}

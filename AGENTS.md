@@ -47,6 +47,11 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
 - **Caja recaudada y ventas cerradas son dos metricas separadas.** Los montos de la columna
   Precio son adelantos parciales, no precios finales. Nunca inferir una de la otra. La caja es
   la suma de `abonos` por fecha del abono; las ventas son el conteo de `sales` (ADR 0013).
+- **La meta es de la cohorte y no se reparte entre closers.** Un closer tiene contribucion
+  (sus ventas de la cohorte), no meta propia: el reparto no existe en la base y seria un numero
+  inventado con el que se mide a personas (ADR 0023). Lo mismo con la meta de leads por dia.
+  Y los leads de un closer son las personas de las que es responsable, asi que la suma de los
+  closers **no** da el total del programa: la pantalla lo dice en vez de cuadrarlo a la fuerza.
 - **Nunca convertir moneda en silencio.** Tickets en USD, pauta en COP, sin TRM historica unica.
   Siempre mostrar la moneda al lado del numero.
 - **Solo dias habiles, y los festivos cuentan como habiles.** Regla de Retia, no del calendario
@@ -63,7 +68,10 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   que un gerente: es la politica "todos ven todo" (ADR 0009). Ambas reglas conviven: la
   disjuncion de roles sigue rigiendo el acceso a rutas de administracion, pero ya no rige la
   visibilidad de datos dentro del dashboard. Los productos (`/productos`) los editan ambos roles
-  (ADR 0016); es la unica configuracion que un closer puede tocar.
+  (ADR 0016); es la unica configuracion que un closer puede tocar. El filtro del dashboard sale
+  de la URL y nunca de la sesion (ADR 0023): un closer sin filtro ve el programa completo, y el
+  comparativo entre closers no se puede acotar ni queriendo, porque el tipo de la consulta no lo
+  admite.
 - **Nada de la app es publico.** Sin sesion no se ve ni una cifra. Unica excepcion:
   `/api/health`, que no expone ningun dato del negocio.
 - **Ningun dato personal en URLs ni en query strings.** Los identificadores en rutas son ids
@@ -114,7 +122,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 235 pasando hoy). Los tests que necesitan base usan PGlite en
+- **Test:** `npm test` (Vitest, 350 pasando hoy). Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Run:** `npm run dev` (http://localhost:3000)

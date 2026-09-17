@@ -169,6 +169,16 @@ Llamadas con show divididas entre llamadas agendadas en el rango.
 **% de cierre**:
 Cierres divididos entre llamadas realizadas (con show).
 
+**Contribucion**:
+Las ventas de una cohorte que hizo un closer. Es lo que el dashboard muestra al filtrar por un
+closer, y va siempre al lado de la meta de la cohorte, nunca de una meta suya: **no existe meta
+individual** (ADR 0023). _Evitar_: "meta del closer", "cuota".
+
+**Rango**:
+El par de fechas que contesta el dashboard, inclusive en los dos extremos: hoy, esta semana
+(lunes a hoy), este mes (dia 1 a hoy), la cohorte (su ventana de venta hasta hoy) o uno
+personalizado. Vive en la URL, no en la sesion.
+
 **Num. aplicaciones**:
 Cuantas veces aplico la misma persona. Se guarda como senal de intensidad de interes, nunca como
 personas distintas.

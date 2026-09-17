@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { diaDeCalendario } from "@/lib/dias-habiles";
+import { fecha } from "@/lib/format";
 import { programaActivoPorSlug, programasActivos } from "@/lib/queries/programas";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { PageShell } from "@/components/page-shell";
@@ -48,6 +49,8 @@ export default async function ProgramaPage({ params, searchParams }: Props) {
 
   const programas = await programasActivos();
   const { desde, hasta } = vista.seleccion.rango;
+  // Un solo dia se escribe una sola vez: "15 sep 2026", no "15 sep 2026 a 15 sep 2026".
+  const rangoLegible = desde === hasta ? fecha(desde) : `${fecha(desde)} a ${fecha(hasta)}`;
 
   return (
     <PageShell
@@ -57,8 +60,8 @@ export default async function ProgramaPage({ params, searchParams }: Props) {
       // codigo (ADR 0012).
       descripcion={
         vista.cohorte
-          ? `Cohorte ${vista.cohorte.codigo} · ${desde} a ${hasta}`
-          : `Sin cohorte activa · ${desde} a ${hasta}`
+          ? `Cohorte ${vista.cohorte.codigo} · ${rangoLegible}`
+          : `Sin cohorte activa · ${rangoLegible}`
       }
       acciones={<ProgramSwitcher programas={programas} />}
     >

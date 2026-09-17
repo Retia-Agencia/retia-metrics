@@ -55,5 +55,10 @@ El filtro sale de la URL y nunca de la sesión: un closer que entra sin filtro v
 completo. `armarVistaDelDashboard` no recibe rol ni sesión, así que no hay dónde esconder una
 diferencia entre lo que ve un gerente y lo que ve un closer.
 
-**Fuera:** pauta (no hay consulta del 004 que la lea) y formato humano de fechas (se muestran en
-ISO).
+Las fechas se muestran como "14 ago 2026" (`fecha()` en `lib/format.ts`, mes en tres letras como
+los escribe el negocio). No se usa `Intl`: en es-CO devuelve "14 de ago de 2026" y "sept".
+
+**Fuera:** la pauta (ninguna consulta del 004 la lee, aunque el texto viejo del `ProximaFase` la
+prometía) y las gráficas.
+
+**Decisiones documentadas en el ADR 0023.**

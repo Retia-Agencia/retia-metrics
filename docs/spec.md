@@ -27,7 +27,9 @@ CRM interno de Retia con cuatro pilares, construidos en este orden:
 2. **Métricas para gerentes.** Un dashboard por programa, visible para cualquier closer o
    gerente ("todos ven todo", ADR 0009), muestra por día, semana, cohorte y mes: agendas,
    llamadas realizadas, % de show, ventas, % de cierre, caja recaudada, meta y meta dinámica,
-   por closer y por origen del lead. Se puede entrar al historial de cualquier persona. Se puede
+   con desglose por closer y por origen del lead. El desglose por closer llega hasta sus
+   métricas y su contribución a la cohorte: **la meta y la meta dinámica son de la cohorte y no
+   se reparten entre closers** (ADR 0023). Se puede entrar al historial de cualquier persona. Se puede
    descargar un snapshot de lo que se ve en pantalla.
 3. **Recursos centralizados.** Una pantalla con los links que el equipo usa a diario (brochures,
    web del programa, guiones, formulario del RUT) y los enlaces de pago por monto y plataforma,

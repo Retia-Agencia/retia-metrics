@@ -7,6 +7,55 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-17 (tarde) — Ticket 005: el dashboard real en pantalla, con metricas individuales por
+  closer. ADR 0023. Sin migracion.**
+
+  **Siguiente sesion:** **003** (`/mi-dia`), que ya tiene todo lo que necesitaba (002, 019, 015,
+  026). Despues **006** (historial de persona), que dependia del 005. Y sigue pendiente la prueba
+  de login real, que es lo unico que no se puede verificar desde aca.
+
+  **Codigo** (350 tests, typecheck, lint y `npm run build` limpios; un solo commit):
+  - **005** `/programas/[slug]` deja de ser un `ProximaFase`: tarjetas (caja por moneda, ventas,
+    llamadas y % show, % cierre, leads contra meta, compromisos), cohorte con su dia habil y su
+    meta dinamica, comparativo entre closers, motivos y origenes. `components/dashboard-programa.tsx`
+    no calcula ni consulta nada, y `components/filtro-dashboard.tsx` solo escribe en la URL.
+  - **Decision de Mani que cambio el diseno a mitad de camino (ADR 0023):** el filtro por closer
+    NO se queda en el comparativo. Baja hasta `lib/queries/dashboard.ts`, que pasa de
+    `(programId, rango, db)` a `Alcance = { programId, rango, closerId? }`. Con eso quedan
+    individuales tambien los leads (por `people.responsableCloserId`), los compromisos, los
+    motivos, los origenes y la contribucion a la cohorte. Se descarto el modulo aparte
+    (`dashboard-por-closer.ts`) para no tener dos implementaciones del anclaje de fecha en Bogota
+    y del agrupado por moneda.
+  - **Lo que NO se invento:** no hay meta individual. `vistaDeCohorteActiva` suma
+    `vendidosDelCloser` como contribucion y deja la meta, la meta dinamica y el cumplimiento
+    medidos contra la cohorte completa (ADR 0022). Y como "sin responsable" es valido (ADR 0021),
+    la suma de leads de los closers no da el total del programa: la pantalla lo dice.
+  - **El comparativo no se puede filtrar y lo impide el compilador:** el alcance de
+    `embudoPorCloser` es `Omit<Alcance, "closerId">`. Es la garantia de "todos ven todo" (ADR
+    0009) escrita en el tipo, no en un comentario.
+  - `lib/rangos.ts` (puro, 11 tests): hoy, semana (lunes a hoy), mes (dia 1 a hoy), cohorte (su
+    ventana de venta hasta hoy, sin pasarse del cierre) y personalizado. Un preset imposible cae a
+    "hoy" **y el selector muestra "hoy"**: nunca dice que estas viendo algo distinto de lo que ves.
+  - `lib/format.ts`: `monto(valor, moneda)` (la moneda siempre al lado, la caja una linea por
+    moneda) y `fecha(iso)` → "14 ago 2026" (se parte el string, no se construye un `Date`, porque
+    la fecha es un dia de calendario y no un instante). `Intl` en es-CO daba "14 de ago de 2026" y
+    "sept", que no es como escribe el negocio.
+  - `lib/dias-habiles.ts`: el helper privado `isoBogota` se exporto como `diaDeCalendario`. Es la
+    unica definicion de "que dia es hoy" del proyecto; la pagina la usa sobre `new Date()` para no
+    depender de la zona del servidor (Vercel corre en UTC).
+  - **El filtro vive en la URL, nunca en la sesion.** `armarVistaDelDashboard` no recibe rol ni
+    sesion, y `tests/paginas.test.ts` corre la pagina como gerente y como closer y compara con que
+    argumentos pide la vista. Si alguien mete una diferencia por rol, ese test falla.
+
+  **Base de datos:** sin cambios. Ninguna migracion nueva, ninguna escritura en `production`.
+
+  **Verificado / no verificado:** tests, typecheck, lint y build, mas un render del componente a
+  HTML con datos de forma real (dos monedas, tasas nulas, cohorte con ventana, fila "sin closer").
+  **No** se abrio en el navegador: la pagina exige sesion de Google y eso lo tiene que probar Mani.
+
+  **Fuera del 005 a proposito:** la pauta (ninguna consulta del 004 la lee, aunque el texto viejo
+  del `ProximaFase` la prometia) y las graficas.
+
 - **2026-09-17 — Seis tickets cerrados (018, 027, 002, 026, 004 + esquema del 026), ADR 0022,
   migraciones 0008-0010 en las dos ramas, y la primera tanda de sesiones en paralelo.**
 
@@ -357,9 +406,9 @@ Por partes y en este orden:
 1. [ ] **Probar el login con una cuenta real** (local contra `dev`, y produccion) y con eso las
        pantallas nuevas: `/ajustes/catalogos`, `/ajustes/usuarios`, `/ajustes/programas`,
        `/productos`. Despues borrar el cliente OAuth **web** viejo de `google-workspace-mcp`.
-2. [ ] **019** (registrar abono) y **005** (dashboard en pantalla). No chocan entre si: uno vive
-       en `lib/mutations/abonos.ts` y `lib/queries/ventas.ts`, el otro en la pantalla del
-       programa. Despues **003** (`/mi-dia`), que necesita 002, 019 y 026.
+2. [x] **019** (registrar abono) y **005** (dashboard en pantalla), los dos cerrados el 17-sep.
+3. [ ] **003** (`/mi-dia`), que ya tiene sus cuatro dependencias listas (002, 019, 015, 026), y
+       despues **006** (historial de persona), destrabado por el 005.
 4. [ ] **Preparar `production` para los usuarios reales** (con ok de Mani, junto con el 007):
        sembrar productos (`seed:datos` con `DB_PROD`), cargar `administrativa@retiagrowth.com`
        como gerente y dar de alta a Andrea y Maru desde `/ajustes/usuarios`.

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { monto, num, pct } from "@/lib/format";
+import { fecha, monto, num, pct } from "@/lib/format";
 import type { CajaPorMoneda } from "@/lib/queries/dashboard";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 
@@ -176,7 +176,8 @@ export function DashboardPrograma({ vista }: { vista: VistaDelDashboard }) {
 
               {cohorte.ventana ? (
                 <p className="text-xs text-muted-foreground">
-                  Vende del {cohorte.ventana.inicio} al {cohorte.ventana.cierre}, inclusive.
+                  Vende del {fecha(cohorte.ventana.inicio)} al {fecha(cohorte.ventana.cierre)},
+                  inclusive.
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">
