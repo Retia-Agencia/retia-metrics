@@ -3,7 +3,7 @@ id: 026
 fase: F1
 serves: "ADR 0021; spec §7 (lead que no pasó por el formulario)"
 depends: [015]
-status: todo
+status: done
 ---
 
 # 026 — Responsable de la persona y alta manual
@@ -29,13 +29,13 @@ persona que llegó sin formulario (WhatsApp, masivos), quedando como su responsa
   separación por entrada en el dashboard van en 004/005; reparto automático (descartado en ADR 0021).
 
 ## Done cuando
-- [ ] Un closer toma una persona sin responsable; intentar tomar una ajena falla con 403.
-- [ ] Un gerente reasigna una persona a otro closer del programa; a un closer inactivo o de otro
+- [x] Un closer toma una persona sin responsable; intentar tomar una ajena falla con 403.
+- [x] Un gerente reasigna una persona a otro closer del programa; a un closer inactivo o de otro
       programa falla con 400.
-- [ ] Un closer crea una persona manual y queda como responsable; repetir el correo no duplica.
-- [ ] Un sync sobre una persona con responsable lo conserva (test en `plan-sync`).
-- [ ] Un sync sobre una persona manual la pasa a entrada `formulario` sin perder el responsable.
-- [ ] Toda asignación y alta queda en `change_log` con `userId`.
+- [x] Un closer crea una persona manual y queda como responsable; repetir el correo no duplica.
+- [x] Un sync sobre una persona con responsable lo conserva (test en `plan-sync`).
+- [x] Un sync sobre una persona manual la pasa a entrada `formulario` sin perder el responsable.
+- [x] Toda asignación y alta queda en `change_log` con `userId`.
 
 ## Notas
 El gerente no crea personas manuales: registrar trabajo de venta es del closer (ADR 0003).
