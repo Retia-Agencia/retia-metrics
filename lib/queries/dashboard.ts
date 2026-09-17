@@ -1,4 +1,5 @@
 import { and, between, eq, sql } from "drizzle-orm";
+import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
 import { abonos, calls, motivos, origenes, people, sales } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -36,6 +37,27 @@ export interface Rango {
   hasta: string;
 }
 
+/**
+ * A que pregunta responde una consulta del dashboard: un programa, y opcionalmente
+ * un closer. Es UN concepto (el alcance de la pregunta), por eso va como objeto y
+ * no como lista de argumentos posicionales.
+ *
+ * `closerId` ausente o `null` = todo el programa. Cuando trae un valor, la consulta
+ * responde por ese closer solo (ticket 005). Es el texto copiado del closer
+ * logueado (ADR 0011), no un id de `users`.
+ *
+ * Lo que el filtro NO hace es partir las metas: la meta de cupos y la de leads/dia
+ * son de la cohorte (ADR 0022) y no existe reparto por closer en la base.
+ */
+export interface AlcanceDePrograma {
+  programId: string;
+  closerId?: string | null;
+}
+
+export interface Alcance extends AlcanceDePrograma {
+  rango: Rango;
+}
+
 export interface CajaPorMoneda {
   moneda: string;
   total: number;
@@ -53,7 +75,13 @@ export interface EmbudoDelRango {
 export interface VistaDeCohorte {  cohorteId: string;
   codigo: string;
   meta: number;
+  /** Ventas de la cohorte completa. La meta se mide siempre contra este numero. */
   vendidos: number;
+  /**
+   * Ventas de la cohorte hechas por el closer del alcance: su contribucion. `null`
+   * cuando el alcance no trae closer. NO existe meta individual (ADR 0022).
+   */
+  vendidosDelCloser: number | null;
   faltan: number;
   /** null cuando la cohorte no tiene fechaInicioVentas declarada (ADR 0022): se dice, no se inventa. */
   ventana: {
@@ -93,6 +121,15 @@ function fechaAnclaCall() {
   return sql<string>`(coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada}) AT TIME ZONE 'America/Bogota')::date`;
 }
 
+/**
+ * Condicion opcional de closer. `and()` de drizzle descarta los `undefined`, asi que
+ * sin closer la consulta queda exactamente igual que antes del ticket 005: el filtro
+ * no puede cambiar el total del programa.
+ */
+function delCloser(columna: PgColumn, closerId: string | null | undefined) {
+  return closerId == null ? undefined : eq(columna, closerId);
+}
+
 /** Tasa que nunca divide por cero: `null` cuando el denominador es 0. */
 function tasa(numerador: number, denominador: number): number | null {
   return denominador === 0 ? null : numerador / denominador;
@@ -104,8 +141,7 @@ function tasa(numerador: number, denominador: number): number | null {
  * devuelve una fila por moneda presente en el rango.
  */
 export async function cajaRecaudada(
-  programId: string,
-  rango: Rango,
+  { programId, rango, closerId }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<CajaPorMoneda[]> {
   return db
@@ -118,6 +154,7 @@ export async function cajaRecaudada(
       and(
         eq(abonos.programId, programId),
         between(abonos.fecha, rango.desde, rango.hasta),
+        delCloser(abonos.closerId, closerId),
       ),
     )
     .groupBy(abonos.moneda);
@@ -131,7 +168,7 @@ export async function cajaRecaudada(
  * la venta por `sales.personId = calls.personId` dentro del mismo programa.
  */
 export async function compromisosAbiertos(
-  programId: string,
+  { programId, closerId }: AlcanceDePrograma,
   db: Db = dbDeLaApp,
 ): Promise<number> {
   const yaVendio = db
@@ -147,6 +184,10 @@ export async function compromisosAbiertos(
         eq(calls.programId, programId),
         eq(calls.resultado, "compromiso_pago"),
         sql`not exists (${yaVendio})`,
+        // El filtro acota QUIEN tomo el compromiso, no la venta que lo cierra: si
+        // otro closer cerro a esa persona, el compromiso dejo de estar abierto para
+        // todos. Por eso `yaVendio` de arriba nunca lleva closer.
+        delCloser(calls.closerId, closerId),
       ),
     );
 
@@ -159,8 +200,7 @@ export async function compromisosAbiertos(
  * conteo de `sales` por `sales.fecha` (ADR 0013): NO es el numerador de ninguna tasa.
  */
 export async function embudoDelRango(
-  programId: string,
-  rango: Rango,
+  { programId, rango, closerId }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<EmbudoDelRango> {
   const ancla = fechaAnclaCall();
@@ -171,7 +211,13 @@ export async function embudoDelRango(
       cierres: sql<number>`count(*) filter (where ${calls.resultado} = 'cerrada')::int`,
     })
     .from(calls)
-    .where(and(eq(calls.programId, programId), between(ancla, rango.desde, rango.hasta)));
+    .where(
+      and(
+        eq(calls.programId, programId),
+        between(ancla, rango.desde, rango.hasta),
+        delCloser(calls.closerId, closerId),
+      ),
+    );
 
   const [ventasFila] = await db
     .select({ n: sql<number>`count(*)::int` })
@@ -180,6 +226,7 @@ export async function embudoDelRango(
       and(
         eq(sales.programId, programId),
         between(sales.fecha, rango.desde, rango.hasta),
+        delCloser(sales.closerId, closerId),
       ),
     );
 
@@ -205,8 +252,7 @@ export async function embudoDelRango(
  * como todo el embudo de llamadas. Ordenado de mas a menos llamadas.
  */
 export async function llamadasPorMotivo(
-  programId: string,
-  rango: Rango,
+  { programId, rango, closerId }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<{ motivo: string; llamadas: number }[]> {
   const ancla = fechaAnclaCall();
@@ -217,7 +263,13 @@ export async function llamadasPorMotivo(
     })
     .from(calls)
     .innerJoin(motivos, eq(motivos.id, calls.motivoId))
-    .where(and(eq(calls.programId, programId), between(ancla, rango.desde, rango.hasta)))
+    .where(
+      and(
+        eq(calls.programId, programId),
+        between(ancla, rango.desde, rango.hasta),
+        delCloser(calls.closerId, closerId),
+      ),
+    )
     .groupBy(motivos.nombre)
     .orderBy(sql`count(*) desc`);
 }
@@ -231,10 +283,13 @@ export async function llamadasPorMotivo(
  * por ese texto: un closer que en el rango solo tiene abonos (ningun call ni venta)
  * igual aparece en la lista, con su caja y ceros en el embudo. Los conteos por closer
  * suman el total del programa.
+ *
+ * Es el comparativo entre closers, y por eso su alcance NO admite `closerId`: filtrarlo
+ * lo dejaria en una fila y el comparativo es justo lo que "todos ven todo" garantiza
+ * (ADR 0009). El tipo lo impide; no es una convencion que haya que recordar.
  */
 export async function embudoPorCloser(
-  programId: string,
-  rango: Rango,
+  { programId, rango }: Omit<Alcance, "closerId">,
   db: Db = dbDeLaApp,
 ): Promise<(EmbudoDelRango & { closerId: string | null; caja: CajaPorMoneda[] })[]> {
   const ancla = fechaAnclaCall();
@@ -327,8 +382,7 @@ export async function embudoPorCloser(
  * embudo. Los conteos por origen suman el total de llamadas del programa.
  */
 export async function embudoPorOrigen(
-  programId: string,
-  rango: Rango,
+  { programId, rango, closerId }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<
   {
@@ -351,7 +405,13 @@ export async function embudoPorOrigen(
     .from(calls)
     // leftJoin para no perder las llamadas sin origenId: caen en el grupo null.
     .leftJoin(origenes, eq(origenes.id, calls.origenId))
-    .where(and(eq(calls.programId, programId), between(ancla, rango.desde, rango.hasta)))
+    .where(
+      and(
+        eq(calls.programId, programId),
+        between(ancla, rango.desde, rango.hasta),
+        delCloser(calls.closerId, closerId),
+      ),
+    )
     .groupBy(origenes.nombre);
 
   return filas.map((f) => ({
@@ -364,12 +424,20 @@ export async function embudoPorOrigen(
   }));
 }
 
-/** Conteo de `sales` de una cohorte entera (no del rango): los vendidos de la cohorte. */
-async function ventasDeCohorte(cohorteId: string, db: Db): Promise<number> {
+/**
+ * Conteo de `sales` de una cohorte entera (no del rango): los vendidos de la cohorte.
+ * Con `closerId` cuenta solo los de ese closer, que es su CONTRIBUCION a la cohorte;
+ * la meta sigue siendo la de la cohorte.
+ */
+async function ventasDeCohorte(
+  cohorteId: string,
+  db: Db,
+  closerId?: string | null,
+): Promise<number> {
   const [fila] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(sales)
-    .where(eq(sales.cohortId, cohorteId));
+    .where(and(eq(sales.cohortId, cohorteId), delCloser(sales.closerId, closerId)));
   return fila?.n ?? 0;
 }
 
@@ -384,7 +452,7 @@ async function ventasDeCohorte(cohorteId: string, db: Db): Promise<number> {
  * inventa ningun dia habil.
  */
 export async function vistaDeCohorteActiva(
-  programId: string,
+  { programId, closerId }: AlcanceDePrograma,
   hoy: string,
   db: Db = dbDeLaApp,
 ): Promise<VistaDeCohorte | null> {
@@ -392,7 +460,12 @@ export async function vistaDeCohorteActiva(
   if (!cohorte) return null;
 
   const meta = cohorte.metaCupos;
+  // `vendidos` es SIEMPRE el de la cohorte completa: toda la matematica de meta
+  // (dinamica, lineal, esperado, cumplimiento) se mide contra la cohorte, nunca
+  // contra un closer. Lo del closer va aparte, como contribucion.
   const vendidos = await ventasDeCohorte(cohorte.id, db);
+  const vendidosDelCloser =
+    closerId == null ? null : await ventasDeCohorte(cohorte.id, db, closerId);
   const faltan = Math.max(meta - vendidos, 0);
 
   const base: VistaDeCohorte = {
@@ -400,6 +473,7 @@ export async function vistaDeCohorteActiva(
     codigo: cohorte.codigo,
     meta,
     vendidos,
+    vendidosDelCloser,
     faltan,
     ventana: null,
   };
@@ -445,8 +519,7 @@ export async function vistaDeCohorteActiva(
  * nunca divide por cero (null si no hay meta o es 0).
  */
 export async function leadsDelRango(
-  programId: string,
-  rango: Rango,
+  { programId, rango, closerId }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<LeadsDelRango> {
   const anclaLead = sql<string>`(${people.fechaPrimeraAplicacion} AT TIME ZONE 'America/Bogota')::date`;
@@ -458,6 +531,10 @@ export async function leadsDelRango(
         eq(people.programId, programId),
         eq(people.entrada, "formulario"),
         between(anclaLead, rango.desde, rango.hasta),
+        // Con closer, los leads suyos son de los que es RESPONSABLE (ADR 0021). Ojo:
+        // "sin responsable" es un estado valido, asi que la suma de los closers no
+        // tiene por que dar el total del programa. La pantalla lo dice.
+        delCloser(people.responsableCloserId, closerId),
       ),
     );
   const leads = fila?.n ?? 0;

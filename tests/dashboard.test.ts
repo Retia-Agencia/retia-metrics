@@ -50,10 +50,10 @@ describe("caja y ventas son metricas separadas (ADR 0013)", () => {
 
     const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
 
-    const caja = await cajaRecaudada(programaA, rango, db);
+    const caja = await cajaRecaudada({ programId: programaA, rango: rango }, db);
     expect(caja).toEqual([{ moneda: "USD", total: 750 }]);
 
-    const embudo = await embudoDelRango(programaA, rango, db);
+    const embudo = await embudoDelRango({ programId: programaA, rango: rango }, db);
     expect(embudo.ventas).toBe(0);
   });
 
@@ -73,7 +73,7 @@ describe("caja y ventas son metricas separadas (ADR 0013)", () => {
       { saleId: ventaCop.id, programId: programaA, fecha: "2026-09-15", monto: "2000000.00", moneda: "COP" },
     ]);
 
-    const caja = await cajaRecaudada(programaA, { desde: "2026-09-15", hasta: "2026-09-15" }, db);
+    const caja = await cajaRecaudada({ programId: programaA, rango: { desde: "2026-09-15", hasta: "2026-09-15" } }, db);
     const porMoneda = Object.fromEntries(caja.map((c) => [c.moneda, c.total]));
     expect(porMoneda).toEqual({ USD: 750, COP: 2_000_000 });
   });
@@ -104,11 +104,11 @@ describe("sheets y app se suman sin logica especial", () => {
       { saleId: vApp.id, programId: programaA, fecha: "2026-09-15", monto: "200.00", moneda: "USD", origen: "app" },
     ]);
 
-    const embudo = await embudoDelRango(programaA, rango, db);
+    const embudo = await embudoDelRango({ programId: programaA, rango: rango }, db);
     expect(embudo.agendas).toBe(2);
     expect(embudo.ventas).toBe(2);
 
-    const caja = await cajaRecaudada(programaA, rango, db);
+    const caja = await cajaRecaudada({ programId: programaA, rango: rango }, db);
     expect(caja).toEqual([{ moneda: "USD", total: 300 }]);
   });
 });
@@ -149,15 +149,15 @@ describe("nunca se suman programas distintos", () => {
       .insert(abonos)
       .values({ saleId: ventaB.id, programId: programaB, fecha: "2026-09-15", monto: "999.00", moneda: "USD" });
 
-    const embudoA = await embudoDelRango(programaA, rango, db);
+    const embudoA = await embudoDelRango({ programId: programaA, rango: rango }, db);
     expect(embudoA.agendas).toBe(1);
     expect(embudoA.ventas).toBe(1);
-    expect(await cajaRecaudada(programaA, rango, db)).toEqual([{ moneda: "USD", total: 100 }]);
+    expect(await cajaRecaudada({ programId: programaA, rango: rango }, db)).toEqual([{ moneda: "USD", total: 100 }]);
 
-    const embudoB = await embudoDelRango(programaB, rango, db);
+    const embudoB = await embudoDelRango({ programId: programaB, rango: rango }, db);
     expect(embudoB.agendas).toBe(3);
     expect(embudoB.ventas).toBe(2);
-    expect(await cajaRecaudada(programaB, rango, db)).toEqual([{ moneda: "USD", total: 999 }]);
+    expect(await cajaRecaudada({ programId: programaB, rango: rango }, db)).toEqual([{ moneda: "USD", total: 999 }]);
   });
 });
 
@@ -177,7 +177,7 @@ describe("% de show y % de cierre", () => {
       { programId: programaA, fechaAgenda: fecha, resultado: "no_show" },
     ]);
 
-    const embudo = await embudoDelRango(programaA, rango, db);
+    const embudo = await embudoDelRango({ programId: programaA, rango: rango }, db);
     expect(embudo.agendas).toBe(4);
     expect(embudo.llamadasConShow).toBe(3);
     expect(embudo.cierres).toBe(1);
@@ -186,7 +186,7 @@ describe("% de show y % de cierre", () => {
   });
 
   it("con 0 agendas las tasas son null, no NaN", async () => {
-    const embudo = await embudoDelRango(programaA, { desde: "2026-09-15", hasta: "2026-09-15" }, db);
+    const embudo = await embudoDelRango({ programId: programaA, rango: { desde: "2026-09-15", hasta: "2026-09-15" } }, db);
     expect(embudo.agendas).toBe(0);
     expect(embudo.pctShow).toBeNull();
     expect(embudo.pctCierre).toBeNull();
@@ -204,10 +204,10 @@ describe("anclaje de fechas en Bogota", () => {
       resultado: "agendada",
     });
 
-    const del15 = await embudoDelRango(programaA, { desde: "2026-09-15", hasta: "2026-09-15" }, db);
+    const del15 = await embudoDelRango({ programId: programaA, rango: { desde: "2026-09-15", hasta: "2026-09-15" } }, db);
     expect(del15.agendas).toBe(1);
 
-    const del16 = await embudoDelRango(programaA, { desde: "2026-09-16", hasta: "2026-09-16" }, db);
+    const del16 = await embudoDelRango({ programId: programaA, rango: { desde: "2026-09-16", hasta: "2026-09-16" } }, db);
     expect(del16.agendas).toBe(0);
   });
 });
@@ -240,19 +240,19 @@ describe("rangos: hoy, esta semana y custom", () => {
 
     // "Hoy" = 15-sep.
     const hoy = { desde: "2026-09-15", hasta: "2026-09-15" };
-    expect((await embudoDelRango(programaA, hoy, db)).agendas).toBe(1);
-    expect((await embudoDelRango(programaA, hoy, db)).ventas).toBe(1);
-    expect(await cajaRecaudada(programaA, hoy, db)).toEqual([{ moneda: "USD", total: 200 }]);
+    expect((await embudoDelRango({ programId: programaA, rango: hoy }, db)).agendas).toBe(1);
+    expect((await embudoDelRango({ programId: programaA, rango: hoy }, db)).ventas).toBe(1);
+    expect(await cajaRecaudada({ programId: programaA, rango: hoy }, db)).toEqual([{ moneda: "USD", total: 200 }]);
 
     // "Esta semana" = lunes 14 a domingo 20. Cae la del sabado 19 tambien.
     const semana = { desde: "2026-09-14", hasta: "2026-09-20" };
-    expect((await embudoDelRango(programaA, semana, db)).agendas).toBe(4);
-    expect((await embudoDelRango(programaA, semana, db)).ventas).toBe(2);
-    expect(await cajaRecaudada(programaA, semana, db)).toEqual([{ moneda: "USD", total: 300 }]);
+    expect((await embudoDelRango({ programId: programaA, rango: semana }, db)).agendas).toBe(4);
+    expect((await embudoDelRango({ programId: programaA, rango: semana }, db)).ventas).toBe(2);
+    expect(await cajaRecaudada({ programId: programaA, rango: semana }, db)).toEqual([{ moneda: "USD", total: 300 }]);
 
     // Rango custom: 14 al 15.
     const custom = { desde: "2026-09-14", hasta: "2026-09-15" };
-    expect((await embudoDelRango(programaA, custom, db)).agendas).toBe(2);
+    expect((await embudoDelRango({ programId: programaA, rango: custom }, db)).agendas).toBe(2);
   });
 });
 
@@ -293,7 +293,7 @@ describe("vista de cohorte activa con ventana declarada (ADR 0022)", () => {
       fechaCierreVentas: "2026-09-21",
     });
 
-    const vista = await vistaDeCohorteActiva(programaA, "2026-09-15", db);
+    const vista = await vistaDeCohorteActiva({ programId: programaA }, "2026-09-15", db);
     expect(vista).not.toBeNull();
     expect(vista!.codigo).toBe("C2");
     expect(vista!.ventana).not.toBeNull();
@@ -313,7 +313,7 @@ describe("vista de cohorte activa con ventana declarada (ADR 0022)", () => {
       fechaCierreVentas: "2026-09-29",
     });
 
-    const vista = await vistaDeCohorteActiva(programaB, "2026-09-15", db);
+    const vista = await vistaDeCohorteActiva({ programId: programaB }, "2026-09-15", db);
     expect(vista!.ventana!.total).toBe(30);
     expect(vista!.ventana!.dia).toBe(20);
   });
@@ -339,7 +339,7 @@ describe("cohorte sin fechaInicioVentas no inventa dias habiles (ADR 0022)", () 
       estado: "cerrado",
     });
 
-    const vista = await vistaDeCohorteActiva(programaA, "2026-09-15", db);
+    const vista = await vistaDeCohorteActiva({ programId: programaA }, "2026-09-15", db);
     expect(vista).toBeNull();
   });
 });
@@ -359,14 +359,14 @@ describe("meta dinamica no divide por cero", () => {
     for (let i = 0; i < 5; i++) {
       await db.insert(sales).values({
         programId: programaA,
-        cohortId: (await vistaDeCohorteActiva(programaA, "2026-09-15", db))!.cohorteId,
+        cohortId: (await vistaDeCohorteActiva({ programId: programaA }, "2026-09-15", db))!.cohorteId,
         fecha: "2026-09-01",
         moneda: "USD",
       });
     }
 
     // hoy despues del cierre: 22-sep. habilesRestantes = 0.
-    const vista = await vistaDeCohorteActiva(programaA, "2026-09-22", db);
+    const vista = await vistaDeCohorteActiva({ programId: programaA }, "2026-09-22", db);
     expect(vista!.ventana!.habilesRestantes).toBe(0);
     expect(Number.isNaN(vista!.ventana!.metaDinamica)).toBe(false);
     expect(vista!.ventana!.metaDinamica).toBe(25);
@@ -378,6 +378,7 @@ describe("meta dinamica no divide por cero", () => {
 async function crearPersona(programId: string, email: string, extra?: {
   entrada?: "formulario" | "crm";
   fechaPrimeraAplicacion?: Date | null;
+  responsableCloserId?: string | null;
 }): Promise<string> {
   const [p] = await db
     .insert(people)
@@ -386,6 +387,7 @@ async function crearPersona(programId: string, email: string, extra?: {
       emailNormalizado: email,
       entrada: extra?.entrada ?? "formulario",
       fechaPrimeraAplicacion: extra?.fechaPrimeraAplicacion ?? null,
+      responsableCloserId: extra?.responsableCloserId ?? null,
     })
     .returning();
   return p.id;
@@ -421,7 +423,7 @@ describe("compromisos de pago abiertos", () => {
     });
 
     // El rango no acota los compromisos abiertos: son un pendiente operativo.
-    const abiertos = await compromisosAbiertos(programaA, db);
+    const abiertos = await compromisosAbiertos({ programId: programaA }, db);
     expect(abiertos).toBe(1);
   });
 });
@@ -455,7 +457,7 @@ describe("leadsDelRango", () => {
     });
 
     const hoy = { desde: "2026-09-15", hasta: "2026-09-15" };
-    const leads = await leadsDelRango(programaA, hoy, db);
+    const leads = await leadsDelRango({ programId: programaA, rango: hoy }, db);
     expect(leads.leads).toBe(2);
     expect(leads.diasHabiles).toBe(1);
     expect(leads.metaLeadsDia).toBe(10);
@@ -483,7 +485,7 @@ describe("llamadasPorMotivo", () => {
       { programId: programaA, fechaAgenda: fecha, resultado: "perdida", motivoPerdida: "sin fit libre" },
     ]);
 
-    const porMotivo = await llamadasPorMotivo(programaA, rango, db);
+    const porMotivo = await llamadasPorMotivo({ programId: programaA, rango: rango }, db);
     const mapa = Object.fromEntries(porMotivo.map((m) => [m.motivo, m.llamadas]));
     expect(mapa).toEqual({ Dinero: 2, Horario: 1 });
     expect(porMotivo.some((m) => m.motivo === "sin fit libre")).toBe(false);
@@ -521,8 +523,8 @@ describe("embudoPorCloser y embudoPorOrigen suman lo mismo que el total", () => 
       .insert(abonos)
       .values({ saleId: ventaVieja.id, programId: programaA, closerId: "Caro", fecha: "2026-09-15", monto: "50.00", moneda: "USD" });
 
-    const total = await embudoDelRango(programaA, rango, db);
-    const porCloser = await embudoPorCloser(programaA, rango, db);
+    const total = await embudoDelRango({ programId: programaA, rango: rango }, db);
+    const porCloser = await embudoPorCloser({ programId: programaA, rango: rango }, db);
 
     // Los conteos por closer suman el total del programa.
     const suma = (k: "agendas" | "llamadasConShow" | "cierres" | "ventas") =>
@@ -539,7 +541,7 @@ describe("embudoPorCloser y embudoPorOrigen suman lo mismo que el total", () => 
     expect(caro!.caja).toEqual([{ moneda: "USD", total: 50 }]);
 
     // La caja por closer suma la caja total del programa.
-    const cajaTotal = await cajaRecaudada(programaA, rango, db);
+    const cajaTotal = await cajaRecaudada({ programId: programaA, rango: rango }, db);
     const usdTotal = cajaTotal.find((c) => c.moneda === "USD")!.total;
     const usdPorCloser = porCloser
       .flatMap((c) => c.caja)
@@ -561,8 +563,8 @@ describe("embudoPorCloser y embudoPorOrigen suman lo mismo que el total", () => 
       { programId: programaA, fechaAgenda: fecha, resultado: "no_show" },
     ]);
 
-    const total = await embudoDelRango(programaA, rango, db);
-    const porOrigen = await embudoPorOrigen(programaA, rango, db);
+    const total = await embudoDelRango({ programId: programaA, rango: rango }, db);
+    const porOrigen = await embudoPorOrigen({ programId: programaA, rango: rango }, db);
 
     const sumaAgendas = porOrigen.reduce((acc, o) => acc + o.agendas, 0);
     expect(sumaAgendas).toBe(total.agendas);
@@ -571,5 +573,188 @@ describe("embudoPorCloser y embudoPorOrigen suman lo mismo que el total", () => 
     const grupoNull = porOrigen.find((o) => o.origen === null);
     expect(grupoNull).toBeDefined();
     expect(grupoNull!.agendas).toBe(1);
+  });
+});
+
+// ─────────────────────────────────────── 15. alcance individual por closer (ticket 005)
+
+/**
+ * Ticket 005: el dashboard tiene un selector de closer y "todas las metricas a nivel
+ * individual" (decision de Mani, 17-sep). El filtro vive en el `Alcance`, no en un
+ * modulo aparte, para que la regla de fecha (Bogota) y el agrupado por moneda tengan
+ * UNA sola implementacion.
+ *
+ * Lo que un closer NO tiene es meta propia: la meta de cupos y la de leads/dia son de
+ * la cohorte (ADR 0022) y repartirlas entre closers seria inventar el numero contra el
+ * que se mide a la gente.
+ */
+describe("alcance acotado a un closer", () => {
+  const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
+  const fecha = new Date("2026-09-15T14:00:00Z");
+
+  async function sembrarDosClosers() {
+    await db.insert(calls).values([
+      { programId: programaA, closerId: "Ana", fechaAgenda: fecha, resultado: "show" },
+      { programId: programaA, closerId: "Ana", fechaAgenda: fecha, resultado: "cerrada" },
+      { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "no_show" },
+      { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "cerrada" },
+    ]);
+    const [ventaAna] = await db
+      .insert(sales)
+      .values({ programId: programaA, closerId: "Ana", fecha: "2026-09-15", moneda: "USD" })
+      .returning();
+    const [ventaBeto] = await db
+      .insert(sales)
+      .values({ programId: programaA, closerId: "Beto", fecha: "2026-09-15", moneda: "USD" })
+      .returning();
+    await db.insert(abonos).values([
+      { saleId: ventaAna.id, programId: programaA, closerId: "Ana", fecha: "2026-09-15", monto: "100.00", moneda: "USD" },
+      { saleId: ventaBeto.id, programId: programaA, closerId: "Beto", fecha: "2026-09-15", monto: "250.00", moneda: "USD" },
+    ]);
+  }
+
+  it("el embudo y la caja de un closer son solo suyos; sin closer sale el total del programa", async () => {
+    await sembrarDosClosers();
+
+    const total = await embudoDelRango({ programId: programaA, rango }, db);
+    expect(total.agendas).toBe(4);
+    expect(total.ventas).toBe(2);
+
+    const ana = await embudoDelRango({ programId: programaA, rango, closerId: "Ana" }, db);
+    expect(ana.agendas).toBe(2);
+    expect(ana.llamadasConShow).toBe(2);
+    expect(ana.cierres).toBe(1);
+    expect(ana.ventas).toBe(1);
+
+    expect(await cajaRecaudada({ programId: programaA, rango, closerId: "Ana" }, db)).toEqual([
+      { moneda: "USD", total: 100 },
+    ]);
+    expect(await cajaRecaudada({ programId: programaA, rango, closerId: "Beto" }, db)).toEqual([
+      { moneda: "USD", total: 250 },
+    ]);
+  });
+
+  it("un closerId sin actividad en el rango da ceros, no revienta", async () => {
+    await sembrarDosClosers();
+
+    const nadie = await embudoDelRango({ programId: programaA, rango, closerId: "Zoe" }, db);
+    expect(nadie.agendas).toBe(0);
+    expect(nadie.ventas).toBe(0);
+    expect(nadie.pctShow).toBeNull();
+    expect(await cajaRecaudada({ programId: programaA, rango, closerId: "Zoe" }, db)).toEqual([]);
+  });
+});
+
+describe("leads y cohorte acotados a un closer", () => {
+  const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
+
+  it("los leads del closer son las personas de las que es responsable (ADR 0021), y sin responsable no se le cuelgan a nadie", async () => {
+    await crearCohorteActiva({
+      programId: programaA,
+      codigo: "C2",
+      metaCupos: 30,
+      fechaInicioVentas: "2026-08-14",
+      fechaCierreVentas: "2026-09-21",
+      metaLeadsDia: 10,
+    });
+    await crearPersona(programaA, "deana@x.com", {
+      fechaPrimeraAplicacion: new Date("2026-09-15T14:00:00Z"),
+      responsableCloserId: "Ana",
+    });
+    await crearPersona(programaA, "debeto@x.com", {
+      fechaPrimeraAplicacion: new Date("2026-09-15T15:00:00Z"),
+      responsableCloserId: "Beto",
+    });
+    // Nadie la ha tomado todavia: "sin responsable" es un estado valido (ADR 0021).
+    await crearPersona(programaA, "libre@x.com", {
+      fechaPrimeraAplicacion: new Date("2026-09-15T16:00:00Z"),
+    });
+
+    const programa = await leadsDelRango({ programId: programaA, rango }, db);
+    expect(programa.leads).toBe(3);
+
+    const ana = await leadsDelRango({ programId: programaA, rango, closerId: "Ana" }, db);
+    expect(ana.leads).toBe(1);
+    // La meta de leads/dia es de la cohorte, no del closer: no se reparte.
+    expect(ana.metaLeadsDia).toBe(10);
+    expect(ana.metaDelRango).toBe(10);
+  });
+
+  it("con closer, la cohorte muestra su contribucion sin tocar la meta ni la ventana", async () => {
+    const cohorteId = await crearCohorteActiva({
+      programId: programaA,
+      codigo: "C2",
+      metaCupos: 30,
+      fechaInicioVentas: "2026-08-14",
+      fechaCierreVentas: "2026-09-21",
+    });
+    await db.insert(sales).values([
+      { programId: programaA, cohortId: cohorteId, closerId: "Ana", fecha: "2026-09-10", moneda: "USD" },
+      { programId: programaA, cohortId: cohorteId, closerId: "Ana", fecha: "2026-09-11", moneda: "USD" },
+      { programId: programaA, cohortId: cohorteId, closerId: "Beto", fecha: "2026-09-12", moneda: "USD" },
+    ]);
+
+    const programa = await vistaDeCohorteActiva({ programId: programaA }, "2026-09-15", db);
+    expect(programa!.vendidos).toBe(3);
+    expect(programa!.vendidosDelCloser).toBeNull();
+
+    const ana = await vistaDeCohorteActiva({ programId: programaA, closerId: "Ana" }, "2026-09-15", db);
+    // Su contribucion es suya; la meta, los vendidos de la cohorte y la ventana no cambian.
+    expect(ana!.vendidosDelCloser).toBe(2);
+    expect(ana!.vendidos).toBe(3);
+    expect(ana!.meta).toBe(30);
+    expect(ana!.faltan).toBe(27);
+    expect(ana!.ventana!.dia).toBe(programa!.ventana!.dia);
+    expect(ana!.ventana!.metaDinamica).toBe(programa!.ventana!.metaDinamica);
+  });
+});
+
+describe("pendientes y desgloses acotados a un closer", () => {
+  const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
+  const fecha = new Date("2026-09-15T14:00:00Z");
+
+  it("los compromisos abiertos de un closer son los suyos, y siguen cerrados si otro closer vendio a esa persona", async () => {
+    const deAna = await crearPersona(programaA, "deana@x.com");
+    const deBeto = await crearPersona(programaA, "debeto@x.com");
+    const cerradaPorOtro = await crearPersona(programaA, "cerrada@x.com");
+
+    await db.insert(calls).values([
+      { programId: programaA, closerId: "Ana", personId: deAna, fechaAgenda: fecha, resultado: "compromiso_pago" },
+      { programId: programaA, closerId: "Beto", personId: deBeto, fechaAgenda: fecha, resultado: "compromiso_pago" },
+      { programId: programaA, closerId: "Ana", personId: cerradaPorOtro, fechaAgenda: fecha, resultado: "compromiso_pago" },
+    ]);
+    // Beto cerro a la persona con la que Ana tenia el compromiso: ya no es un pendiente.
+    await db.insert(sales).values({
+      programId: programaA,
+      closerId: "Beto",
+      personId: cerradaPorOtro,
+      fecha: "2026-09-16",
+      moneda: "USD",
+    });
+
+    expect(await compromisosAbiertos({ programId: programaA }, db)).toBe(2);
+    expect(await compromisosAbiertos({ programId: programaA, closerId: "Ana" }, db)).toBe(1);
+    expect(await compromisosAbiertos({ programId: programaA, closerId: "Beto" }, db)).toBe(1);
+  });
+
+  it("los motivos de perdida y los origenes se acotan al closer", async () => {
+    const catalogoMotivos = await db.select().from(motivos);
+    const dinero = catalogoMotivos.find((m) => m.nombre === "Dinero")!;
+    const catalogoOrigenes = await db.select().from(origenes);
+    const origen = catalogoOrigenes[0];
+
+    await db.insert(calls).values([
+      { programId: programaA, closerId: "Ana", fechaAgenda: fecha, resultado: "perdida", motivoId: dinero.id, origenId: origen.id },
+      { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "perdida", motivoId: dinero.id, origenId: origen.id },
+      { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "show", origenId: origen.id },
+    ]);
+
+    const motivosDeAna = await llamadasPorMotivo({ programId: programaA, rango, closerId: "Ana" }, db);
+    expect(motivosDeAna).toEqual([{ motivo: "Dinero", llamadas: 1 }]);
+
+    const origenesDeBeto = await embudoPorOrigen({ programId: programaA, rango, closerId: "Beto" }, db);
+    expect(origenesDeBeto).toHaveLength(1);
+    expect(origenesDeBeto[0].agendas).toBe(2);
+    expect(origenesDeBeto[0].llamadasConShow).toBe(1);
   });
 });

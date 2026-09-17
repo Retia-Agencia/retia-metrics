@@ -38,6 +38,11 @@ vi.mock("@/lib/queries/programas", () => ({
   programasGestionablesPorUsuario,
 }));
 
+// El dashboard (ticket 005) arma su vista con `armarVistaDelDashboard`; sin base en
+// los tests se mockea para poder mirar CON QUE lo llama cada rol.
+const armarVistaDelDashboard = vi.fn();
+vi.mock("@/lib/queries/vista-dashboard", () => ({ armarVistaDelDashboard }));
+
 // La pagina de cohortes lee las cohortes del programa; sin base en los tests, se
 // mockea la lectura para que la guarda sea lo unico bajo prueba.
 const listarCohortes = vi.fn();
@@ -78,6 +83,8 @@ beforeEach(() => {
   programasGestionablesPorUsuario.mockResolvedValue([]);
   listarProductos.mockReset();
   listarProductos.mockResolvedValue([]);
+  armarVistaDelDashboard.mockReset();
+  armarVistaDelDashboard.mockResolvedValue(VISTA_VACIA);
   // Por defecto, un gerente rechazado de una pagina de closer aterriza en su primer
   // programa activo. `destinoInicial("gerente")` consulta esta lista.
   programasActivos.mockResolvedValue([{ slug: "programa-a", nombre: "Programa A" }]);
@@ -88,6 +95,21 @@ beforeEach(() => {
     throw new NoEncontrado();
   });
 });
+
+/** Una vista sin datos, suficiente para que la pagina renderice en los tests. */
+const VISTA_VACIA = {
+  seleccion: { preset: "hoy", rango: { desde: "2026-09-15", hasta: "2026-09-15" } },
+  closerId: null,
+  closers: [],
+  embudo: { agendas: 0, llamadasConShow: 0, pctShow: null, cierres: 0, ventas: 0, pctCierre: null },
+  caja: [],
+  leads: { leads: 0, diasHabiles: 1, metaLeadsDia: null, metaDelRango: null, cumplimiento: null },
+  cohorte: null,
+  compromisos: 0,
+  motivos: [],
+  origenes: [],
+  comparativo: [],
+};
 
 /** Devuelve a donde redirigio la pagina, o null si dejo pasar. */
 async function destinoDe(ruta: string): Promise<string | null> {
@@ -122,12 +144,19 @@ const RUTA_PROGRAMA = "@/app/(app)/programas/[slug]/page";
 /** Ejecuta la pagina de programa con un slug y devuelve que hizo. */
 async function correrPrograma(
   slug: string,
+  busqueda: Record<string, string> = {},
 ): Promise<"paso" | "login" | "midia" | "notFound"> {
   const modulo = (await import(/* @vite-ignore */ RUTA_PROGRAMA)) as {
-    default: (props: { params: Promise<{ slug: string }> }) => Promise<unknown>;
+    default: (props: {
+      params: Promise<{ slug: string }>;
+      searchParams: Promise<Record<string, string | string[] | undefined>>;
+    }) => Promise<unknown>;
   };
   try {
-    await modulo.default({ params: Promise.resolve({ slug }) });
+    await modulo.default({
+      params: Promise.resolve({ slug }),
+      searchParams: Promise.resolve(busqueda),
+    });
     return "paso";
   } catch (e) {
     if (e instanceof NoEncontrado) return "notFound";
@@ -183,6 +212,55 @@ describe("dashboard de programa /programas/[slug] (ADR 0009 + 0012)", () => {
     auth.mockResolvedValue(sesionGerente);
     programaActivoPorSlug.mockResolvedValue(null);
     expect(await correrPrograma(SLUG_NO_EXISTE)).toBe("notFound");
+  });
+});
+
+describe("el dashboard no depende del rol (ADR 0009, ticket 005)", () => {
+  const SLUG = "programa-a";
+  const BUSQUEDA = { rango: "semana", closer: "Ana" };
+
+  beforeEach(() => {
+    programaActivoPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A" });
+  });
+
+  it("un closer y un gerente piden exactamente la misma vista", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    expect(await correrPrograma(SLUG, BUSQUEDA)).toBe("paso");
+    const comoGerente = armarVistaDelDashboard.mock.calls.at(-1);
+
+    auth.mockResolvedValue(sesionCloser);
+    expect(await correrPrograma(SLUG, BUSQUEDA)).toBe("paso");
+    const comoCloser = armarVistaDelDashboard.mock.calls.at(-1);
+
+    // Sin esto, una pagina que no arme ninguna vista pasaria el test con dos
+    // `undefined` iguales.
+    expect(comoGerente).toBeDefined();
+    expect(comoCloser).toBeDefined();
+
+    // Mismos argumentos = mismos numeros. La vista no recibe rol ni sesion, asi que
+    // no hay donde esconder una diferencia.
+    expect(comoCloser).toEqual(comoGerente);
+  });
+
+  it("el closer logueado no se cuela como filtro: se filtra por lo que diga la URL", async () => {
+    // Un closer que abre el dashboard sin filtro ve el programa entero, no lo suyo.
+    auth.mockResolvedValue(sesionCloser);
+    expect(await correrPrograma(SLUG)).toBe("paso");
+    expect(armarVistaDelDashboard.mock.calls.at(-1)![0]).toMatchObject({
+      programId: "p-1",
+      closerId: null,
+    });
+  });
+
+  it("el filtro de la URL llega a la vista", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    expect(await correrPrograma(SLUG, { rango: "custom", desde: "2026-09-01", hasta: "2026-09-10", closer: "Beto" })).toBe("paso");
+    expect(armarVistaDelDashboard.mock.calls.at(-1)![0]).toMatchObject({
+      preset: "custom",
+      desde: "2026-09-01",
+      hasta: "2026-09-10",
+      closerId: "Beto",
+    });
   });
 });
 

@@ -24,8 +24,13 @@ const partesEnBogota = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
-/** Dia de calendario en Bogota como 'YYYY-MM-DD', venga string ISO o Date. */
-function isoBogota(fecha: FechaCalendario): string {
+/**
+ * Dia de calendario en Bogota como 'YYYY-MM-DD', venga string ISO o Date. Es la
+ * unica definicion de "que dia es" del proyecto: el dashboard la usa sobre `new
+ * Date()` para saber que es hoy sin depender de la zona del servidor (Vercel corre
+ * en UTC, asi que a las 19:00 de Bogota ya seria manana).
+ */
+export function diaDeCalendario(fecha: FechaCalendario): string {
   if (typeof fecha === "string") return fecha.slice(0, 10);
   return partesEnBogota.format(fecha); // en-CA formatea como YYYY-MM-DD
 }
@@ -34,7 +39,7 @@ const MS_POR_DIA = 86_400_000;
 
 /** Numero de dia UTC (dias enteros desde epoch) del dia de calendario, sin sesgo de zona. */
 function numeroDeDia(fecha: FechaCalendario): number {
-  const [anio, mes, dia] = isoBogota(fecha).split("-").map(Number);
+  const [anio, mes, dia] = diaDeCalendario(fecha).split("-").map(Number);
   return Math.floor(Date.UTC(anio, mes - 1, dia) / MS_POR_DIA);
 }
 
