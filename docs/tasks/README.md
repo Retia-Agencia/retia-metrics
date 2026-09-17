@@ -32,7 +32,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 018 | [Esquema del registro + abonos](./018-esquema-registro-y-abonos.md) | 012, 017 | done · 17-sep (migración 0008 en `dev` y `production`) |
 | [x] | 002 | [cohorteActiva + registrarLlamada](./002-cohorte-activa-y-mutacion-registro.md) | 018 | done · 17-sep (sesión paralela A) |
 | [ ] | 019 | [Registrar abono](./019-registrar-abono.md) | 018 | todo · **listo** (002 ya cerrado) |
-| [x] | 026 | [Responsable + alta manual](./026-responsable-y-alta-manual.md) (ADR 0021) | 015 | done · 17-sep (sesión paralela C; migración 0010 en `dev`) |
+| [x] | 026 | [Responsable + alta manual](./026-responsable-y-alta-manual.md) (ADR 0021) | 015 | done · 17-sep (sesión paralela C; migración 0010 en `dev` y `production`) |
 | [ ] | 003 | [Pantalla /mi-dia](./003-pantalla-mi-dia-registro.md) | 002, 019, 015, 026 | todo |
 | [ ] | 007 | [Alta de los closers reales](./007-onboarding-closer-id.md) | 015 | todo · operación · **listo** |
 

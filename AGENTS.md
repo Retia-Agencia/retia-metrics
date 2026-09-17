@@ -147,6 +147,17 @@ The agent should run these to get fast signal on whether code works. Keep them c
   Un agente delegado (Kiro, Codex) implementa codigo y tests, pero no corre `db:generate` ni
   `db:migrate`. `drizzle-kit generate` es interactivo: si una columna se va y otra llega en el
   mismo cambio pregunta si es un renombre, y un agente sin terminal se queda colgado ahi.
+- **Un `CHECK` nuevo se crea despues de arreglar los datos**, en la misma migracion. El de la
+  0009 habria fallado con las cohortes activas que estaban sin inicio de ventas.
+- **Trabajo en paralelo: el reparto se hace por ARCHIVOS, no por el grafo de dependencias**
+  (17-sep, tres sesiones sin choques). Los puntos de colision son las migraciones (journal +
+  snapshot + `schema.ts`), `docs/tasks/README.md`, `docs/agents/handoff.md` y los commits. Cada
+  sesion commitea nombrando sus archivos (nunca `git add -A`), nadie toca el tracker ni el
+  handoff, y un coordinador revisa contra el "Done cuando", marca y migra. No van juntos dos
+  tickets que escriben la misma logica ni dos que necesiten migracion.
+- **Un fallo de `npm test` por timeout no es una regresion.** Los tests con PGlite aplican todas
+  las migraciones; con varias sesiones compitiendo por la maquina el suite se cae en cascada por
+  el reloj. Re-corre el archivo solo antes de investigar (`testTimeout` y `hookTimeout` en 20s).
 - **`CRON_SECRET` se genera con `npm run cron-secret`**, no con `npm run rotar` (ese solo rota
   `AUTH_GOOGLE_SECRET` y `AUTH_SECRET`).
 - **Idioma:** UI en espanol. Nombres de variables, tablas y archivos sin acentos, consistentes.
