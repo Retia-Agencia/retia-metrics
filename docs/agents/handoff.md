@@ -7,7 +7,9 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
-- **2026-09-16 (cierre) — ADR 0021 y tickets F0 en curso.**
+- **2026-09-16 (cierre) — ADR 0021 y tickets 012, 013, 015, 014, 017 y 020 hechos.**
+
+  **Siguiente sesion, en orden:** ver **Now**. Migraciones 0004-0007 generadas y sin aplicar.
   - `/grill-with-docs` sobre el responsable: **ADR 0021** (responsable y alta manual viven en el
     CRM; las hojas no tienen columna de closer), ticket nuevo **026** (depende de 015, bloquea 003).
   - **012** hecho: catalogos `motivos` y `origenes` sobre el molde, tests de catalogo
@@ -20,6 +22,10 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     Quedan listos 026 y 007. Deuda anotada en el ticket.
   - **014** hecho: `/ajustes/programas` y `/ajustes/programas/[slug]`; indice unico parcial
     "una cohorte activa por programa" (migracion `0006_*` sin aplicar). 182 tests.
+  - **020** hecho: `lib/dias-habiles.ts` (dias habiles en Bogota, meta dinamica y lineal), casos
+    del reporte del 15-sep. 235 tests.
+  - **Hallazgo:** la ventana de Comunicarte C2 del reporte no coincide con la semilla (tracker,
+    decisiones pendientes). Afecta 004.
   - **017** hecho: `/productos` para gerente y closer (el closer solo en sus programas), tabla
     `productos` (migracion `0007_*` sin aplicar), semillas en `seed-datos.ts` que no pisan
     ediciones. Quedan listos 018 y 022. 215 tests.
@@ -269,20 +275,22 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now (ready — no unmet dependencies)
 
-1. [ ] **Probar el login con una cuenta real** en local y en produccion; despues borrar el
-       cliente OAuth **web** viejo de `google-workspace-mcp` (el de escritorio es del MCP de Mani).
-2. [x] **`/grill-with-docs`: responsable del lead y alta manual** — hecho 16-sep: ADR 0021 y
-       ticket 026 (depende de 015, bloquea 003).
-3. [ ] **Probar `/api/cron/sync` en produccion** con el `CRON_SECRET` (`production` ya esta
-       sembrada; esto escribe leads reales, pedir ok). Sembrar tambien `dev`
-       (`npm run seed:datos`) y hacer la prueba manual del 010 (programas en el sidebar).
-4. [ ] **Tickets F0 listos** (estado en `docs/tasks/README.md`): 012 → 013 → 015 → 014 → 017, y 020.
-5. [ ] **F-03 + F-07** juntos, con migracion (diseno en el tracker); primero `dev`, luego
+1. [ ] **Aplicar las migraciones 0004-0007** (con ok de Mani): primero `dev` (`npm run db:migrate`),
+       despues `production`. Antes de la 0006 en `production`, confirmar que ningun programa tiene
+       dos cohortes `activo`. Re-sembrar `dev` (`npm run seed:datos`) para tener productos.
+2. [ ] **Probar el login con una cuenta real** en local y en produccion, y con eso las pantallas
+       nuevas (`/ajustes/catalogos`, `/ajustes/usuarios`, `/ajustes/programas`, `/productos`);
+       despues borrar el cliente OAuth **web** viejo de `google-workspace-mcp`.
+3. [ ] **Decidir la ventana de venta de una cohorte** (tracker, decisiones pendientes). Bloquea 004.
+4. [ ] **Tickets listos** (estado en `docs/tasks/README.md`): 018 → 026, 022, 016; 007 es
+       operacion (alta de Andrea y Maru desde `/ajustes/usuarios`).
+5. [ ] **Probar `/api/cron/sync` en produccion** con el `CRON_SECRET` (escribe leads reales, pedir ok).
+6. [ ] **F-03 + F-07** juntos, con migracion (diseno en el tracker); primero `dev`, luego
        `production`.
-6. [ ] **F-01:** confirmar el mapeo de `Estado` propuesto en el tracker e implementarlo.
-7. [ ] **Documentar las pestanas nuevas** en `docs/estructura-bbdd.md` y revisar las 2.000 filas
-       de `New form`.
-8. [ ] **F-05 · Migrar las fechas ya guardadas.** El codigo ya escribe con `-05:00` explicito,
+7. [ ] **F-01:** confirmar el mapeo de `Estado` propuesto en el tracker e implementarlo.
+8. [ ] **Documentar las pestanas nuevas** en `docs/estructura-bbdd.md` y revisar las 2.000 filas
+       de `New form` (el 16-sep devolvio 2.007 filas con datos).
+9. [ ] **F-05 · Migrar las fechas ya guardadas.** El codigo ya escribe con `-05:00` explicito,
        pero las filas viejas quedaron en la zona del servidor y `compararCampos` no mira fechas,
        asi que un `npm run sync` normal **no** las repara. Decidir entre migracion puntual o
        re-sync forzado.
@@ -326,6 +334,7 @@ Bloqueados por una decision de negocio (hay que preguntarle a Michael):
 
 ### Done
 
+- [x] 2026-09-16 (cierre) — ADR 0021 + ticket 026; tickets 012, 013, 015, 014, 017, 020.
 - [x] 2026-09-16 (noche) — Tickets 008-011 (F0), ADR 0020, migraciones 0002-0003 en `dev` y
       `production`, cuenta de servicio y login en `retia-growth`, `AUTH_URL`, respuestas de
       Michael bajadas a los docs.

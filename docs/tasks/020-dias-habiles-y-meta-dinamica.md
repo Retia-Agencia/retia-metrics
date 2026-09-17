@@ -3,7 +3,7 @@ id: 020
 fase: F2
 serves: "spec §1 pilar 2 — meta y meta dinámica"
 depends: [008]
-status: todo
+status: done
 ---
 
 # 020 — Días hábiles y meta dinámica
@@ -19,6 +19,10 @@ hay que vender por día para llegar a la meta?".
 - Fuera: consultas a la base (004).
 
 ## Done cuando
-- [ ] TDD. Los casos salen del reporte del 15-sep: "día 11 de 22 hábiles" en septiembre,
+- [x] TDD. Los casos salen del reporte del 15-sep: "día 11 de 22 hábiles" en septiembre,
       "TI C2 20 de 30", "Comunicarte C2 23 de 27", meta 2,8 cupos con 28 faltantes en 10 días.
-- [ ] Con 0 días restantes no divide por cero.
+- [x] Con 0 días restantes no divide por cero.
+
+## Notas (cierre 16-sep)
+`lib/dias-habiles.ts`. La ventana de Comunicarte C2 del reporte (14-ago a 21-sep) no coincide con
+la semilla (inicio implícito 12-ago, cierre 22-sep): decisión pendiente en el tracker, afecta 004.
