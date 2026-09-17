@@ -30,16 +30,23 @@ vi.mock("next/navigation", () => ({ redirect, notFound }));
 const programaActivoPorSlug = vi.fn();
 const programasActivos = vi.fn();
 const programaPorSlug = vi.fn();
+const programasGestionablesPorUsuario = vi.fn();
 vi.mock("@/lib/queries/programas", () => ({
   programaActivoPorSlug,
   programasActivos,
   programaPorSlug,
+  programasGestionablesPorUsuario,
 }));
 
 // La pagina de cohortes lee las cohortes del programa; sin base en los tests, se
 // mockea la lectura para que la guarda sea lo unico bajo prueba.
 const listarCohortes = vi.fn();
 vi.mock("@/lib/catalogo/cohortes", () => ({ listarCohortes }));
+
+// La pagina de productos (ADR 0016) lee los productos de cada programa; sin base en
+// los tests, se mockea la lectura para probar solo las guardas.
+const listarProductos = vi.fn();
+vi.mock("@/lib/catalogo/productos", () => ({ listarProductos }));
 
 /** El `redirect` real interrumpe el render lanzando. El mock imita eso. */
 class Redireccion extends Error {
@@ -67,6 +74,10 @@ beforeEach(() => {
   programaPorSlug.mockReset();
   listarCohortes.mockReset();
   listarCohortes.mockResolvedValue([]);
+  programasGestionablesPorUsuario.mockReset();
+  programasGestionablesPorUsuario.mockResolvedValue([]);
+  listarProductos.mockReset();
+  listarProductos.mockResolvedValue([]);
   // Por defecto, un gerente rechazado de una pagina de closer aterriza en su primer
   // programa activo. `destinoInicial("gerente")` consulta esta lista.
   programasActivos.mockResolvedValue([{ slug: "programa-a", nombre: "Programa A" }]);
@@ -215,6 +226,25 @@ describe("cohortes de un programa /ajustes/programas/[slug] (ticket 014)", () =>
     auth.mockResolvedValue(sesionGerente);
     programaPorSlug.mockResolvedValue(null);
     expect(await correrCohortes("no-existe")).toBe("notFound");
+  });
+});
+
+describe("pagina de productos /productos (ADR 0016)", () => {
+  const RUTA = "@/app/(app)/productos/page";
+
+  it("deja pasar a un gerente", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    expect(await destinoDe(RUTA)).toBeNull();
+  });
+
+  it("deja pasar a un closer (ambos roles la administran)", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    expect(await destinoDe(RUTA)).toBeNull();
+  });
+
+  it("manda al login a quien no tiene sesion", async () => {
+    auth.mockResolvedValue(null);
+    expect(await destinoDe(RUTA)).toBe("/login");
   });
 });
 

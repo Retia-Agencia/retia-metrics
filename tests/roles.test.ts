@@ -52,6 +52,13 @@ describe("navegacion por rol", () => {
     expect(rutas).toContain("/programas/programa-b");
   });
 
+  it("ambos roles ven /productos (los closers tambien los administran, ADR 0016)", () => {
+    const rutasCloser = navParaRol("closer", PROGRAMAS).map((i) => i.href);
+    const rutasGerente = navParaRol("gerente", PROGRAMAS).map((i) => i.href);
+    expect(rutasCloser).toContain("/productos");
+    expect(rutasGerente).toContain("/productos");
+  });
+
   it("un programa insertado en la lista aparece en la nav", () => {
     const conNuevo = [...PROGRAMAS, { slug: "programa-c", nombre: "Programa C" }];
     const rutas = navParaRol("gerente", conNuevo).map((i) => i.href);

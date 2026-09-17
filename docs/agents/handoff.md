@@ -20,6 +20,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     Quedan listos 026 y 007. Deuda anotada en el ticket.
   - **014** hecho: `/ajustes/programas` y `/ajustes/programas/[slug]`; indice unico parcial
     "una cohorte activa por programa" (migracion `0006_*` sin aplicar). 182 tests.
+  - **017** hecho: `/productos` para gerente y closer (el closer solo en sus programas), tabla
+    `productos` (migracion `0007_*` sin aplicar), semillas en `seed-datos.ts` que no pisan
+    ediciones. Quedan listos 018 y 022. 215 tests.
 
 - **2026-09-16 (noche) — F0 arranca: tickets 008-011 hechos, migraciones en las dos ramas, Google
   Cloud y login pasados a Retia, respuestas de Michael bajadas.**

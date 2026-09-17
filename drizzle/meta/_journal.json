@@ -50,6 +50,13 @@
       "when": 1789604296798,
       "tag": "0006_programas_cohortes_urls_meta_leads_una_activa",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789605169992,
+      "tag": "0007_productos_por_programa",
+      "breakpoints": true
     }
   ]
 }

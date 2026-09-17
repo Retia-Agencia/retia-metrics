@@ -3,7 +3,7 @@ import type { Rol } from "@/lib/auth/roles";
 export type ItemNav = {
   href: string;
   etiqueta: string;
-  icono: "programa" | "documentos" | "ajustes" | "midia";
+  icono: "programa" | "documentos" | "ajustes" | "midia" | "productos";
   roles: readonly Rol[];
 };
 
@@ -36,6 +36,10 @@ export function navParaRol(
       roles: ["gerente", "closer"],
     });
   }
+
+  // Productos: ambos roles los administran (ADR 0016). Es la unica configuracion que
+  // un closer puede tocar; su acceso por programa se enforza en el servidor.
+  items.push({ href: "/productos", etiqueta: "Productos", icono: "productos", roles: ["gerente", "closer"] });
 
   // Documentos: ambos roles.
   items.push({ href: "/documentos", etiqueta: "Documentos", icono: "documentos", roles: ["gerente", "closer"] });

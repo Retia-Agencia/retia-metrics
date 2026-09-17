@@ -380,6 +380,37 @@ export const origenes = pgTable(
   (t) => [uniqueIndex("origenes_nombre_idx").on(sql`lower(${t.nombre})`)],
 );
 
+/**
+ * Productos que se venden dentro de un programa (ticket 017, ADR 0016): el programa
+ * completo, la reserva de cupo, la mentoria 1:1... Cada uno con su precio de lista y
+ * su moneda. Instancia editable del molde (ADR 0012): tabla con `activo`, un solo
+ * esquema zod, nunca se borra, cada cambio a `change_log`.
+ *
+ * A diferencia de los catalogos globales (plataformas, motivos, origenes), un
+ * producto cuelga de un programa (`programId`), asi que la unicidad del nombre es
+ * POR programa y sin distinguir mayusculas: dos programas pueden tener cada uno un
+ * "Programa completo", pero un mismo programa no puede repetirlo.
+ *
+ * La moneda vive al lado del precio y nunca se convierte en silencio (restriccion
+ * dura de AGENTS.md): USD o COP, sin TRM historica unica.
+ */
+export const productos = pgTable(
+  "productos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
+    nombre: text("nombre").notNull(),
+    precioLista: numeric("precio_lista", { precision: 10, scale: 2 }).notNull(),
+    moneda: text("moneda").notNull().default("USD"),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  // Unicidad del nombre POR programa y SIN distinguir mayusculas, como los indices
+  // `lower(nombre)` de los demas catalogos: 'Programa completo' y 'programa completo'
+  // no pueden partir el catalogo del mismo programa en dos.
+  (t) => [uniqueIndex("productos_programa_nombre_idx").on(t.programId, sql`lower(${t.nombre})`)],
+);
+
 // ─────────────────────────────────────────────────────────── tipos
 
 export type Usuario = typeof users.$inferSelect;
@@ -398,3 +429,4 @@ export type Cambio = typeof changeLog.$inferSelect;
 export type PlataformaPago = typeof plataformasPago.$inferSelect;
 export type Motivo = typeof motivos.$inferSelect;
 export type Origen = typeof origenes.$inferSelect;
+export type Producto = typeof productos.$inferSelect;

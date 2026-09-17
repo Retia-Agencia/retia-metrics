@@ -28,8 +28,8 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 001 | [plataformaPago como enum](./001-reemplazado-plataforma-pago.md) | — | reemplazado por 011 |
-| [ ] | 017 | [Productos por programa](./017-productos-por-programa.md) | 011 | todo · **listo** |
-| [ ] | 018 | [Esquema del registro + abonos](./018-esquema-registro-y-abonos.md) | 012, 017 | todo |
+| [x] | 017 | [Productos por programa](./017-productos-por-programa.md) | 011 | done · 16-sep (migración 0007 sin aplicar) |
+| [ ] | 018 | [Esquema del registro + abonos](./018-esquema-registro-y-abonos.md) | 012, 017 | todo · **listo** |
 | [ ] | 002 | [cohorteActiva + registrarLlamada](./002-cohorte-activa-y-mutacion-registro.md) | 018 | todo |
 | [ ] | 019 | [Registrar abono](./019-registrar-abono.md) | 018 | todo |
 | [ ] | 026 | [Responsable + alta manual](./026-responsable-y-alta-manual.md) (ADR 0021) | 015 | todo · **listo** |
@@ -50,7 +50,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 022 | [Recursos + enlaces de pago](./022-recursos-y-enlaces-de-pago.md) | 011, 017 | todo |
+| [ ] | 022 | [Recursos + enlaces de pago](./022-recursos-y-enlaces-de-pago.md) | 011, 017 | todo · **listo** |
 | [ ] | 023 | [Pantalla de Recursos](./023-pantalla-de-recursos.md) | 022 | todo |
 
 ## F4 · Nerd Stats

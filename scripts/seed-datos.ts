@@ -1,7 +1,7 @@
 import "./load-env";
 import { eq, and } from "drizzle-orm";
 import { db } from "../lib/db";
-import { programs, cohorts, sources } from "../lib/db/schema";
+import { programs, cohorts, sources, productos } from "../lib/db/schema";
 import { MAPEO_FORMULARIO } from "../lib/sheets/mapeo";
 
 /**
@@ -103,6 +103,32 @@ async function main() {
     } else {
       await db.insert(cohorts).values({ ...d, programId });
       console.log(`  + cohorte ${programa} ${d.codigo}`);
+    }
+  }
+
+  // ── Productos ─────────────────────────────────────────────────
+  // Semilla inicial de productos por programa (ticket 017, ADR 0016). El dia a dia
+  // —crear, editar, desactivar— se hace desde /productos sin tocar este script.
+  // Los slugs literales estan permitidos aqui: el contrato de extension (ADR 0012)
+  // solo cubre lib/, app/ y components/, no scripts/.
+  const defsProductos = [
+    { programa: "comunicarte", nombre: "Programa completo", precioLista: "797.00", moneda: "USD" },
+    { programa: "comunicarte", nombre: "Reserva de cupo", precioLista: "400.00", moneda: "USD" },
+    { programa: "tactical-investor", nombre: "Programa completo", precioLista: "1500.00", moneda: "USD" },
+  ];
+
+  for (const { programa, ...d } of defsProductos) {
+    const programId = idPrograma[programa];
+    const [existe] = await db
+      .select().from(productos)
+      .where(and(eq(productos.programId, programId), eq(productos.nombre, d.nombre))).limit(1);
+    // Solo inserta lo que falta: un producto existente se edita desde /productos y
+    // re-sembrar no debe pisar esos cambios (quedarian fuera de change_log).
+    if (existe) {
+      console.log(`  = producto ${programa} / ${d.nombre} (ya existe, no se toca)`);
+    } else {
+      await db.insert(productos).values({ ...d, programId });
+      console.log(`  + producto ${programa} / ${d.nombre}`);
     }
   }
 

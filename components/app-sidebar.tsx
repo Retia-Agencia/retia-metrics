@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarCheck, FileText, LineChart, Settings } from "lucide-react";
+import { CalendarCheck, FileText, LineChart, Settings, Tag } from "lucide-react";
 import { navParaRol, type ItemNav } from "@/lib/nav";
 import type { Rol } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ const ICONOS: Record<ItemNav["icono"], typeof LineChart> = {
   documentos: FileText,
   ajustes: Settings,
   midia: CalendarCheck,
+  productos: Tag,
 };
 
 type Props = {

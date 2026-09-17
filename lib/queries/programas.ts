@@ -1,6 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
-import { programs } from "@/lib/db/schema";
+import { miembrosPrograma, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 
 /**
@@ -76,4 +76,37 @@ export async function programaPorSlug(
     .limit(1);
 
   return programa ?? null;
+}
+
+/**
+ * Programas activos que un usuario puede gestionar en `/productos` (ticket 017,
+ * ADR 0016). Un gerente los ve todos; un closer solo aquellos donde tiene una
+ * membresia ACTIVA. Devuelve id + nombre (la pantalla agrupa los productos por
+ * programa y necesita el id para crear). Los programas salen de la base: ningun
+ * literal en el codigo.
+ */
+export async function programasGestionablesPorUsuario(
+  userId: string,
+  rol: "gerente" | "closer",
+  db: Db = dbDeLaApp,
+): Promise<{ id: string; nombre: string }[]> {
+  if (rol === "gerente") {
+    return db
+      .select({ id: programs.id, nombre: programs.nombre })
+      .from(programs)
+      .where(eq(programs.activo, true))
+      .orderBy(asc(programs.nombre));
+  }
+  return db
+    .select({ id: programs.id, nombre: programs.nombre })
+    .from(programs)
+    .innerJoin(miembrosPrograma, eq(miembrosPrograma.programId, programs.id))
+    .where(
+      and(
+        eq(programs.activo, true),
+        eq(miembrosPrograma.userId, userId),
+        eq(miembrosPrograma.activo, true),
+      ),
+    )
+    .orderBy(asc(programs.nombre));
 }
