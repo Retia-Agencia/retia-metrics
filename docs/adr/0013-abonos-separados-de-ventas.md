@@ -26,3 +26,13 @@ separadas"): ahora cada una tiene su propia tabla.
   migran a un abono cada una en la misma migracion del ticket 018.
 - Registrar una venta crea la venta **y su primer abono** en la misma transaccion (ticket 002).
 - Existe una accion aparte para registrar un abono sobre una venta ya existente (ticket 019).
+
+## Enmienda 2026-09-17 (ticket 018): `sales.esPagoCompleto` se elimina
+
+El ticket 018 resolvio la pregunta que este ADR habia dejado abierta: **`sales.esPagoCompleto` se
+elimina, no queda como cache.** Todo derivado es un calculo (la venta esta pagada completa cuando
+la suma de sus abonos llega al precio del contrato), nunca una columna cache que se pueda
+desincronizar. Al momento del cambio habia 0 filas en las ramas `dev` y `production` y ningun
+codigo de la app leia la columna. La migracion 0008 la borra (`DROP COLUMN es_pago_completo`) y,
+en el mismo paso, copia cada `sales.montoAbonado` no nulo a un abono (`origen = 'sheets'`,
+INSERT...SELECT idempotente).

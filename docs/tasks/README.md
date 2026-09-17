@@ -29,9 +29,9 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 |---|---|---|---|---|
 | [x] | 001 | [plataformaPago como enum](./001-reemplazado-plataforma-pago.md) | — | reemplazado por 011 |
 | [x] | 017 | [Productos por programa](./017-productos-por-programa.md) | 011 | done · 16-sep (migración 0007 en `dev` y `production`; productos sin sembrar en `production`) |
-| [ ] | 018 | [Esquema del registro + abonos](./018-esquema-registro-y-abonos.md) | 012, 017 | todo · **listo** |
-| [ ] | 002 | [cohorteActiva + registrarLlamada](./002-cohorte-activa-y-mutacion-registro.md) | 018 | todo |
-| [ ] | 019 | [Registrar abono](./019-registrar-abono.md) | 018 | todo |
+| [x] | 018 | [Esquema del registro + abonos](./018-esquema-registro-y-abonos.md) | 012, 017 | done · 17-sep (migración 0008 en `dev`; `production` pendiente de ok) |
+| [ ] | 002 | [cohorteActiva + registrarLlamada](./002-cohorte-activa-y-mutacion-registro.md) | 018 | todo · **listo** |
+| [ ] | 019 | [Registrar abono](./019-registrar-abono.md) | 018 | todo · **listo** |
 | [ ] | 026 | [Responsable + alta manual](./026-responsable-y-alta-manual.md) (ADR 0021) | 015 | todo · **listo** |
 | [ ] | 003 | [Pantalla /mi-dia](./003-pantalla-mi-dia-registro.md) | 002, 019, 015, 026 | todo |
 | [ ] | 007 | [Alta de los closers reales](./007-onboarding-closer-id.md) | 015 | todo · operación · **listo** |

@@ -39,7 +39,9 @@ export const resultadoLlamadaEnum = pgEnum("resultado_llamada", [
   "agendada",
   "show",
   "no_show",
+  "cancelada",
   "reagendada",
+  "compromiso_pago",
   "cerrada",
   "perdida",
 ]);
@@ -210,6 +212,12 @@ export const calls = pgTable(
     fechaLlamada: timestamp("fecha_llamada", { withTimezone: true }),
     resultado: resultadoLlamadaEnum("resultado").notNull().default("agendada"),
     motivoPerdida: text("motivo_perdida"),
+    /** Fecha prometida de un compromiso de pago o nueva cita de una reagendada (ADR 0015). */
+    fechaSeguimiento: timestamp("fecha_seguimiento", { withTimezone: true }),
+    /** Motivo de perdida como catalogo (ADR 0015). `motivoPerdida` queda solo para filas viejas de Sheets. */
+    motivoId: uuid("motivo_id").references(() => motivos.id, { onDelete: "restrict" }),
+    /** Origen del lead como catalogo (ADR 0015). */
+    origenId: uuid("origen_id").references(() => origenes.id, { onDelete: "restrict" }),
     notas: text("notas"),
     origen: text("origen").notNull().default("sheets"),
     /** Huella de la fila de origen, para no duplicar en cada sync. */
@@ -236,17 +244,18 @@ export const sales = pgTable(
     closerId: text("closer_id"),
     emailComprador: text("email_comprador"),
     fecha: date("fecha"),
+    /** Producto vendido (ADR 0016). Nullable para las filas viejas de Sheets. */
+    productoId: uuid("producto_id").references(() => productos.id, { onDelete: "restrict" }),
     precioListaUsd: numeric("precio_lista_usd", { precision: 10, scale: 2 }),
     precioAplicadoUsd: numeric("precio_aplicado_usd", { precision: 10, scale: 2 }),
     becaAplicada: boolean("beca_aplicada").notNull().default(false),
     /**
-     * Ojo: los montos de la BBDD son ADELANTOS PARCIALES, no precios finales.
-     * `caja_recaudada` se suma de aca; `ventas_cerradas` se cuenta aparte.
-     * Nunca inferir una de la otra.
+     * Filas viejas de Sheets: un solo adelanto parcial por venta. Se deja de
+     * escribir desde la app (ADR 0013): la caja recaudada sale de la suma de
+     * `abonos.monto`, nunca de aca. Nunca inferir ventas cerradas de este monto.
      */
     montoAbonado: numeric("monto_abonado", { precision: 12, scale: 2 }),
     moneda: text("moneda").notNull().default("USD"),
-    esPagoCompleto: boolean("es_pago_completo").notNull().default(false),
     huellaFila: text("huella_fila"),
     raw: jsonb("raw"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -254,6 +263,47 @@ export const sales = pgTable(
   (t) => [
     index("sales_cohorte_idx").on(t.cohortId),
     uniqueIndex("sales_huella_idx").on(t.programId, t.huellaFila),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────── abonos
+
+/**
+ * Un pago recibido sobre una venta (ADR 0013). Una venta puede tener varios abonos;
+ * la **caja recaudada** es la suma de `monto` por fecha del abono, y es una metrica
+ * distinta de las ventas cerradas (nunca se deriva una de la otra).
+ *
+ * `onDelete: "restrict"` en `saleId`: no se puede borrar una venta que ya tiene
+ * abonos registrados, para no perder caja huerfana.
+ *
+ * `moneda` vive al lado del monto para que nunca se convierta en silencio
+ * (restriccion dura de AGENTS.md). Por decision de Michael (16-sep) hoy solo entra
+ * `USD`; la columna se mantiene para que la moneda siga visible y el esquema zod
+ * (`lib/abonos/esquema.ts`) la restringe.
+ *
+ * `closerId` es texto copiado del closer logueado, no una relacion a `users`
+ * (ADR 0011). `origen` distingue los abonos migrados de Sheets ('sheets') de los
+ * nativos de la app ('app', ADR 0010).
+ */
+export const abonos = pgTable(
+  "abonos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    saleId: uuid("sale_id").notNull().references(() => sales.id, { onDelete: "restrict" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
+    fecha: date("fecha").notNull(),
+    monto: numeric("monto", { precision: 12, scale: 2 }).notNull(),
+    moneda: text("moneda").notNull().default("USD"),
+    plataformaId: uuid("plataforma_id").references(() => plataformasPago.id, { onDelete: "restrict" }),
+    comprobanteUrl: text("comprobante_url"),
+    /** Nombre del closer que registro el abono, copiado de su cuenta (ADR 0011). */
+    closerId: text("closer_id"),
+    origen: text("origen").notNull().default("app"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("abonos_programa_fecha_idx").on(t.programId, t.fecha),
+    index("abonos_venta_idx").on(t.saleId),
   ],
 );
 
@@ -423,6 +473,8 @@ export type Persona = typeof people.$inferSelect;
 export type NuevaPersona = typeof people.$inferInsert;
 export type Llamada = typeof calls.$inferSelect;
 export type Venta = typeof sales.$inferSelect;
+export type Abono = typeof abonos.$inferSelect;
+export type NuevoAbono = typeof abonos.$inferInsert;
 export type Pauta = typeof adSpend.$inferSelect;
 export type CorridaSync = typeof syncRuns.$inferSelect;
 export type Cambio = typeof changeLog.$inferSelect;
