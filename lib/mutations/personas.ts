@@ -1,0 +1,278 @@
+import { and, eq } from "drizzle-orm";
+import { z } from "zod";
+import { changeLog, miembrosPrograma, people, users } from "@/lib/db/schema";
+import type { Db } from "@/lib/db/tipos";
+import { ErrorDeApp } from "@/lib/errors";
+import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
+import type { Rol } from "@/lib/auth/roles";
+import type { Persona } from "@/lib/db/schema";
+
+/**
+ * Responsable de una persona y alta manual (ticket 026, ADR 0021, 0011, 0005, 0003).
+ *
+ * A diferencia de `lib/catalogo/*`, `people` NO tiene columna `activo`, asi que esto
+ * no usa `moldeDeCatalogo`: escribe directo, pero con el mismo estilo — la base entra
+ * por inyeccion (para testear con PGlite), sin `"use server"`, errores via
+ * `ErrorDeApp`, y toda escritura atomica con `ejecutarJuntas` dejando rastro en
+ * `change_log` con `origen = "app"` y el `userId` del actor.
+ *
+ * El `closerId` que se guarda como responsable se copia SIEMPRE de la cuenta
+ * logueada; el closer nunca lo elige (ADR 0011). El sync nunca lee ni pisa este
+ * campo (ADR 0021): eso vive en `lib/sheets/plan-sync.ts`.
+ */
+
+/** Quien realiza la operacion: su id (para `change_log`), su rol y su closerId (ADR 0011). */
+export interface Actor {
+  id: string;
+  rol: Rol;
+  closerId: string | null;
+}
+
+/** Entrada de `asignarResponsable`. El id de la persona y el closer destino en texto. */
+export const esquemaAsignacion = z.object({
+  personaId: z.string().uuid("El identificador no es válido."),
+  closerId: z.string().trim().min(1, "Debes indicar un closer."),
+});
+
+/** Entrada de `crearPersonaManual`. El correo es obligatorio y se normaliza. */
+export const esquemaPersonaManual = z.object({
+  programId: z.string().uuid("Programa inválido."),
+  correo: z.string().trim().toLowerCase().email("Correo inválido."),
+  nombre: z.string().trim().max(120, "Máximo 120 caracteres.").optional(),
+  telefono: z.string().trim().max(40, "Máximo 40 caracteres.").optional(),
+});
+
+export type EntradaAsignacion = z.input<typeof esquemaAsignacion>;
+export type EntradaPersonaManual = z.input<typeof esquemaPersonaManual>;
+
+/** Traduce un `ZodError` a un `ErrorDeApp` 400 con el primer mensaje. */
+async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (error instanceof ErrorDeApp) throw error;
+    if (error instanceof z.ZodError) {
+      throw new ErrorDeApp(error.issues[0]?.message ?? "Petición inválida.", 400);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Detecta la violacion de indice unico de Postgres (code `23505`), mirando tambien
+ * la `cause` anidada como hace `esViolacionUnica` en `lib/catalogo/molde.ts`.
+ */
+function esViolacionUnica(error: unknown): boolean {
+  let actual: unknown = error;
+  for (let i = 0; i < 5 && actual != null; i++) {
+    if (typeof actual === "object" && (actual as { code?: unknown }).code === "23505") {
+      return true;
+    }
+    actual = (actual as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
+/** Lee una persona por id. */
+async function leerPersona(db: Db, id: string): Promise<Persona | undefined> {
+  const [fila] = await db.select().from(people).where(eq(people.id, id)).limit(1);
+  return fila as Persona | undefined;
+}
+
+/** Lee una persona por (programa, correo normalizado): la llave del dedup (ADR 0005). */
+async function leerPorCorreo(
+  db: Db,
+  programId: string,
+  emailNormalizado: string,
+): Promise<Persona | undefined> {
+  const [fila] = await db
+    .select()
+    .from(people)
+    .where(and(eq(people.programId, programId), eq(people.emailNormalizado, emailNormalizado)))
+    .limit(1);
+  return fila as Persona | undefined;
+}
+
+/**
+ * Un closer es destino valido en un programa solo si tiene un `users` con
+ * `rol = "closer"`, `activo = true`, ese `closerId`, Y una membresia ACTIVA en el
+ * programa. Una sola regla que impide que un closer de otro programa se robe
+ * personas ajenas y que un gerente asigne a un closer que no vende ahi.
+ */
+async function esCloserValidoEnPrograma(
+  db: Db,
+  closerId: string,
+  programId: string,
+): Promise<boolean> {
+  const [fila] = await db
+    .select({ id: users.id })
+    .from(users)
+    .innerJoin(miembrosPrograma, eq(miembrosPrograma.userId, users.id))
+    .where(
+      and(
+        eq(users.closerId, closerId),
+        eq(users.rol, "closer"),
+        eq(users.activo, true),
+        eq(miembrosPrograma.programId, programId),
+        eq(miembrosPrograma.activo, true),
+      ),
+    )
+    .limit(1);
+  return Boolean(fila);
+}
+
+/** El closer logueado debe tener su `closerId` cargado (precondicion del ADR 0011). */
+function exigirCloserIdCargado(actor: Actor): string {
+  const closerId = actor.closerId?.trim();
+  if (!closerId) {
+    throw new ErrorDeApp("Tu cuenta no tiene closerId cargado.", 400);
+  }
+  return closerId;
+}
+
+/**
+ * Asigna (o reasigna) el closer responsable de una persona.
+ *
+ * Un closer solo se asigna a si mismo una persona SIN responsable; un gerente asigna
+ * o cambia a cualquiera. En ambos casos el closer destino tiene que vender en el
+ * programa de la persona y estar activo. Cada cambio real va a `change_log`; si el
+ * valor no cambia no se escribe nada (igual que `molde.editar`).
+ */
+export async function asignarResponsable(
+  db: Db,
+  actor: Actor,
+  input: EntradaAsignacion,
+): Promise<Persona> {
+  return normalizando(async () => {
+    const datos = esquemaAsignacion.parse(input);
+
+    const persona = await leerPersona(db, datos.personaId);
+    if (!persona) throw new ErrorDeApp("No existe una persona con ese id.", 404);
+
+    if (actor.rol === "closer") {
+      // Primero la precondicion del ADR 0011: una cuenta sin closerId no puede ser
+      // responsable de nada. Va antes de la comparacion de abajo porque si no, un
+      // closerId nulo saldria como "no es tuya" y el mensaje mandaria a la persona
+      // equivocada a arreglar el problema.
+      exigirCloserIdCargado(actor);
+      if (datos.closerId !== actor.closerId) {
+        throw new ErrorDeApp("Solo puedes asignarte personas a ti mismo.", 403);
+      }
+      if (persona.responsableCloserId) {
+        throw new ErrorDeApp(
+          "Esta persona ya tiene responsable; pídele a un gerente que la reasigne.",
+          403,
+        );
+      }
+    }
+
+    // El closer destino tiene que vender en el programa de la persona y estar activo.
+    if (!(await esCloserValidoEnPrograma(db, datos.closerId, persona.programId))) {
+      throw new ErrorDeApp("Ese closer no vende en este programa o está inactivo.", 400);
+    }
+
+    // Sin cambio real: no se toca la fila ni se escribe change_log (como molde.editar).
+    if (persona.responsableCloserId === datos.closerId) return persona;
+
+    await ejecutarJuntas(db, (tx) => [
+      (tx as Db)
+        .update(people)
+        .set({ responsableCloserId: datos.closerId, updatedAt: new Date() })
+        .where(eq(people.id, persona.id)),
+      (tx as Db).insert(changeLog).values({
+        tabla: "people",
+        registroId: persona.id,
+        etiqueta: persona.nombre ?? persona.emailNormalizado,
+        campo: "responsableCloserId",
+        valorAnterior: persona.responsableCloserId,
+        valorNuevo: datos.closerId,
+        origen: "app" as const,
+        userId: actor.id,
+      }),
+    ]);
+
+    return (await leerPersona(db, persona.id))!;
+  });
+}
+
+/**
+ * Crea a mano una persona que no paso por el formulario (WhatsApp, masivos), solo un
+ * closer, que queda como su responsable. Entra por el CRM (`entrada = "crm"`); es la
+ * entrada, no otro campo, lo que la separa en las metricas (ADR 0021).
+ *
+ * Dedup (ADR 0005): si ya existe una persona con ese `(programId, correo)` no crea ni
+ * modifica nada, devuelve la existente. La misma garantia esta en el indice unico de
+ * la base, asi que una carrera entre dos closers se resuelve releyendo tras el choque.
+ */
+export async function crearPersonaManual(
+  db: Db,
+  actor: Actor,
+  input: EntradaPersonaManual,
+): Promise<Persona> {
+  return normalizando(async () => {
+    if (actor.rol !== "closer") {
+      throw new ErrorDeApp("Registrar trabajo de venta es del closer.", 403);
+    }
+    const closerId = exigirCloserIdCargado(actor);
+    const datos = esquemaPersonaManual.parse(input);
+
+    // El closer debe vender en el programa donde crea la persona.
+    if (!(await esCloserValidoEnPrograma(db, closerId, datos.programId))) {
+      throw new ErrorDeApp("No puedes crear personas en un programa donde no vendes.", 403);
+    }
+
+    // Dedup: si ya existe, se devuelve sin tocar el responsable ni escribir bitacora.
+    const existente = await leerPorCorreo(db, datos.programId, datos.correo);
+    if (existente) return existente;
+
+    // El id se genera en codigo para meter el alta y su change_log en el mismo lote.
+    const id = crypto.randomUUID();
+    const etiqueta = datos.nombre ?? datos.correo;
+    // `numAplicaciones` va en 0 EXPLICITO: una persona creada a mano nunca aplico al
+    // formulario, y dejarla en el default 1 afirmaria una aplicacion que no existio
+    // (ADR 0005). `estado` si queda con el default de la base.
+    const valores = {
+      id,
+      programId: datos.programId,
+      emailNormalizado: datos.correo,
+      nombre: datos.nombre ?? null,
+      telefono: datos.telefono ?? null,
+      responsableCloserId: closerId,
+      entrada: "crm" as const,
+      numAplicaciones: 0,
+    };
+    // Una fila de bitacora por campo escrito, como `molde.crear`. El `id` no es un
+    // campo del alta (ya es `registroId`) y lo que llego vacio no se registra.
+    const aBitacora = Object.entries(valores).filter(
+      ([campo, valor]) => campo !== "id" && valor !== null,
+    );
+
+    try {
+      await ejecutarJuntas(db, (tx) => [
+        (tx as Db).insert(people).values(valores),
+        ...aBitacora.map(([campo, valor]) =>
+          (tx as Db).insert(changeLog).values({
+            tabla: "people",
+            registroId: id,
+            etiqueta,
+            campo,
+            valorAnterior: null,
+            valorNuevo: String(valor),
+            origen: "app" as const,
+            userId: actor.id,
+          }),
+        ),
+      ]);
+    } catch (error) {
+      // Carrera con otro closer sobre el indice unico (programId, emailNormalizado):
+      // se relee y se devuelve la existente en vez de propagar el error.
+      if (esViolacionUnica(error)) {
+        const yaCreada = await leerPorCorreo(db, datos.programId, datos.correo);
+        if (yaCreada) return yaCreada;
+      }
+      throw error;
+    }
+
+    return (await leerPersona(db, id))!;
+  });
+}

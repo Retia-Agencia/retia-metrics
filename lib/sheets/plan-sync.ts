@@ -5,6 +5,12 @@ import type { PersonaDeducida } from "./dedup";
  * La decision del sync, sin base de datos (B-01). Recibe lo que vino de la hoja y lo
  * que ya esta guardado, y dice que insertar, que actualizar y que va a la bitacora.
  * `sync.ts` solo escribe lo que este plan le dice.
+ *
+ * El sync NUNCA lee ni escribe `responsableCloserId` (ADR 0021): el registro que se
+ * arma para la hoja no lo incluye, asi que el update de `sync.ts` no lo pisa. Y toda
+ * fila de la hoja entra como `entrada = "formulario"`: si una persona estaba en
+ * "crm" (creada a mano en el CRM) y reaparece en el formulario, el diff la pasa a
+ * "formulario" dejando rastro en la bitacora.
  */
 
 /** Campos que se comparan para detectar cambios y escribir en la bitacora. */
@@ -19,6 +25,7 @@ const CAMPOS_COMPARABLES = [
   "utmMedium",
   "utmCampaign",
   "numAplicaciones",
+  "entrada",
 ] as const;
 
 type PersonaGuardada = typeof people.$inferSelect;
@@ -39,16 +46,17 @@ export function planificarSync(
 
   for (const p of personas) {
     const previo = existentes.get(p.emailNormalizado);
+    const registro = aRegistro(p, programId);
 
     if (!previo) {
-      plan.aInsertar.push(aRegistro(p, programId));
+      plan.aInsertar.push(registro);
       continue;
     }
 
-    const diffs = compararCampos(previo, p);
+    const diffs = compararCampos(previo, registro);
     if (diffs.length === 0) continue;
 
-    plan.aActualizar.push({ id: previo.id, valores: aRegistro(p, programId) });
+    plan.aActualizar.push({ id: previo.id, valores: registro });
     for (const d of diffs) {
       plan.cambios.push({
         tabla: "people",
@@ -82,17 +90,22 @@ function aRegistro(p: PersonaDeducida, programId: string): PersonaNueva {
     fechaPrimeraAplicacion: p.fechaPrimeraAplicacion,
     fechaUltimaAplicacion: p.fechaUltimaAplicacion,
     numAplicaciones: p.numAplicaciones,
+    // La hoja siempre es formulario (ADR 0021). No se incluye responsableCloserId:
+    // ese campo lo escribe solo la app y el update de sync.ts no debe pisarlo.
+    entrada: "formulario" as const,
     raw: p.raw as Record<string, unknown>,
   };
 }
 
 /** Devuelve solo los campos que realmente cambiaron. Un sync sin novedades no escribe nada. */
-function compararCampos(previo: PersonaGuardada, nuevo: PersonaDeducida) {
+function compararCampos(previo: PersonaGuardada, registro: PersonaNueva) {
   const diffs: { campo: string; anterior: string | null; nuevo: string | null }[] = [];
   const antes = previo as Record<string, unknown>;
-  const ahora = nuevo as unknown as Record<string, unknown>;
+  const ahora = registro as Record<string, unknown>;
   for (const campo of CAMPOS_COMPARABLES) {
-    const a = antes[campo];
+    // `entrada` es NOT NULL con default "formulario" en la base: una fila guardada
+    // sin ese valor cuenta como "formulario", no como un cambio.
+    const a = campo === "entrada" ? (antes[campo] ?? "formulario") : antes[campo];
     const b = ahora[campo];
     const sa = a === null || a === undefined ? null : String(a);
     const sb = b === null || b === undefined ? null : String(b);
