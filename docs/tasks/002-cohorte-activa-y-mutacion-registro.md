@@ -3,7 +3,7 @@ id: 002
 fase: F1
 serves: "spec §5 criterio 1"
 depends: [018]
-status: todo
+status: done
 ---
 
 # 002 — cohorteActiva() y la mutación de registro nativo
@@ -25,13 +25,13 @@ llamada escrita por un closer autenticado y, si cerró, su venta y su primer abo
 - Fuera: la UI (003) y el enforcement de rol, que hace quien la invoque con `requireRole`.
 
 ## Done cuando
-- [ ] `cohorteActiva` devuelve `null` si no hay cohorte activa, sin reventar; `registrarLlamada`
+- [x] `cohorteActiva` devuelve `null` si no hay cohorte activa, sin reventar; `registrarLlamada`
       rechaza con mensaje claro en ese caso.
-- [ ] Rechaza si `session.user.closerId` es null.
-- [ ] Rechaza `reagendada` o `compromiso_pago` sin `fechaSeguimiento`, y `perdida` sin `motivoId`.
-- [ ] Si el resultado no es `cerrada`, no toca `sales` ni `abonos`.
-- [ ] Si falla el insert del abono, no queda ni la venta ni la llamada (transacción).
-- [ ] Tests: llamada sin cierre, con cierre y abono, closer sin `closerId`, validaciones por
+- [x] Rechaza si `session.user.closerId` es null.
+- [x] Rechaza `reagendada` o `compromiso_pago` sin `fechaSeguimiento`, y `perdida` sin `motivoId`.
+- [x] Si el resultado no es `cerrada`, no toca `sales` ni `abonos`.
+- [x] Si falla el insert del abono, no queda ni la venta ni la llamada (transacción).
+- [x] Tests: llamada sin cierre, con cierre y abono, closer sin `closerId`, validaciones por
       resultado, sin cohorte activa.
 
 ## Notas
