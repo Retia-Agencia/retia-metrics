@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { usd } from "@/lib/format";
 import {
   crearProgramaAccion,
   desactivarProgramaAccion,
@@ -143,7 +144,7 @@ export function ProgramasAdmin({ programas }: { programas: ProgramaVista[] }) {
                       ) : null}
                     </span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      /{p.slug} · ticket USD {p.ticketUsd}
+                      /{p.slug} · ticket {usd(Number(p.ticketUsd))}
                     </span>
                   </div>
                   <span className="flex items-center gap-1">

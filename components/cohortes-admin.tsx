@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { num, usd } from "@/lib/format";
 import {
   activarCohorteAccion,
   crearCohorteAccion,
@@ -167,7 +168,7 @@ export function CohortesAdmin({
                       </Badge>
                     </span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      meta {c.metaCupos} · precio USD {c.precioUsd} · TRM {c.trmCohorte} ·{" "}
+                      meta {c.metaCupos} · precio {usd(Number(c.precioUsd))} · TRM {num(Number(c.trmCohorte), 2)} ·{" "}
                       {c.fechaInicioClases} → {c.fechaCierreVentas}
                     </span>
                   </div>

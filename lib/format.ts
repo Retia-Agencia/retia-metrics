@@ -96,6 +96,21 @@ const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "o
  * (Vercel corre en UTC y el equipo esta en Bogota). Lo que no tenga forma de fecha se
  * devuelve tal cual, sin inventar un dia.
  */
+/**
+ * El dia de HOY en Bogota, como 'YYYY-MM-DD' (lo que espera un `<input type="date">`).
+ *
+ * NO es `new Date().toISOString().slice(0, 10)`: eso da el dia en UTC, y Bogota va
+ * cinco horas atras, asi que **de 7pm a medianoche prellenaria el dia siguiente**. Un
+ * abono registrado a las 9 de la noche quedaria fechado manana y caeria en otro rango
+ * del dashboard. `en-CA` se usa porque su formato corto ES `YYYY-MM-DD`.
+ *
+ * Vive aca y no en cada formulario porque lo preguntan los dos formularios de abono de
+ * `/mi-dia` (el del cierre y el suelto): una sola respuesta para una sola pregunta.
+ */
+export function hoyEnBogota(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
+}
+
 export function fecha(iso: string): string {
   const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!partes) return iso;

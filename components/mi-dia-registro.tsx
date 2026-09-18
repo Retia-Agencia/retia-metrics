@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { fecha as formatoFecha, monto as formatoMonto, saldoLegible } from "@/lib/format";
+import {
+  fecha as formatoFecha,
+  hoyEnBogota,
+  monto as formatoMonto,
+  saldoLegible,
+} from "@/lib/format";
 import { ProductoCrearEnLinea } from "@/components/producto-crear-en-linea";
 import type { PersonaEncontrada, VentaDePersona } from "@/lib/queries/personas";
 import { AnularRegistro } from "@/components/anular-registro";
@@ -384,7 +389,10 @@ function FormularioLlamada({
   // Venta (solo en cerrada).
   const [productoId, setProductoId] = useState("");
   const [precioAplicado, setPrecioAplicado] = useState("");
-  const [fechaAbono, setFechaAbono] = useState("");
+  // Prellenadas con hoy en Bogota (Mani, 18-sep): el abono de un cierre se registra
+  // el dia que ocurre, asi que escribir la fecha a mano en cada venta era trabajo
+  // repetido. Sigue siendo editable para el caso de cargar algo de ayer.
+  const [fechaAbono, setFechaAbono] = useState(hoyEnBogota);
   const [montoAbono, setMontoAbono] = useState("");
   const [plataformaId, setPlataformaId] = useState("");
   const [comprobanteUrl, setComprobanteUrl] = useState("");
@@ -530,7 +538,17 @@ function FormularioLlamada({
             <Campo etiqueta="Producto">
               <select
                 value={productoId}
-                onChange={(e) => setProductoId(e.target.value)}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setProductoId(id);
+                  // Elegir el producto prellena el PRECIO APLICADO con su precio de
+                  // lista (Mani, 18-sep). Queda editable a proposito: el precio
+                  // aplicado no siempre es el de lista —la C2 respeta el anterior a
+                  // quien ya lo tenia cotizado— pero el caso normal es que coincidan y
+                  // hacerlo escribir siempre era trabajo repetido.
+                  const elegido = productos.find((p) => p.id === id);
+                  setPrecioAplicado(elegido ? elegido.precioLista : "");
+                }}
                 required
                 className={claseInput}
                 aria-label="Producto"
@@ -701,7 +719,7 @@ function FormularioAbono({
   contexto: ContextoMiDia;
   alGuardar: () => void;
 }) {
-  const [fecha, setFecha] = useState("");
+  const [fecha, setFecha] = useState(hoyEnBogota);
   const [montoTxt, setMontoTxt] = useState("");
   const [plataformaId, setPlataformaId] = useState("");
   const [comprobanteUrl, setComprobanteUrl] = useState("");
