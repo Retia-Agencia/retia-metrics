@@ -11,9 +11,11 @@ import {
   productos,
   programs,
   sales,
+  users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ABONADO, SALDO } from "./saldo";
+import { incluyendoAnulados, vigente } from "./vigente";
 
 /**
  * Lecturas sobre una persona (ADR 0021, 0023, 0011, 0013, 0015). Solo SELECT: lo
@@ -115,6 +117,21 @@ export interface PersonaDelHistorial {
   estado: string;
 }
 
+/**
+ * Lo que hay que saber de un registro anulado (ADR 0026 punto 1): quien, cuando y
+ * por que. `null` cuando el registro sigue vigente.
+ *
+ * Los tres datos viajan juntos y no como tres campos sueltos porque juntos van en la
+ * base (el CHECK `*_anulacion_completa`) y juntos se muestran: "anulada" sin motivo
+ * ni autor es el estado que el ADR descarta.
+ */
+export interface Anulacion {
+  fecha: Date;
+  /** Nombre (o correo) de quien anulo, ya resuelto. Nunca el uuid. */
+  porNombre: string;
+  motivo: string;
+}
+
 /** Una llamada como la muestra el historial (tabla del ADR 0015). */
 export interface LlamadaDelHistorial {
   id: string;
@@ -130,6 +147,8 @@ export interface LlamadaDelHistorial {
   fechaSeguimiento: Date | null;
   /** De donde salio el registro: 'sheets' la fila migrada, 'app' la nativa (ADR 0010). */
   origen: string;
+  /** Anulada (ADR 0026): se muestra tachada, no se esconde, y no cuenta en nada. */
+  anulacion: Anulacion | null;
 }
 
 /** Un abono como lo muestra el historial, bajo su venta. */
@@ -142,12 +161,16 @@ export interface AbonoDelHistorial {
   plataformaNombre: string | null;
   closerId: string | null;
   origen: string;
+  /** Anulado (ADR 0026). Un abono anulado NO suma a `abonado` ni a la caja. */
+  anulacion: Anulacion | null;
 }
 
 /** Una venta con el detalle de los abonos que la pagaron. */
 export interface VentaDelHistorial extends VentaDePersona {
   /** Del mas viejo al mas reciente: es el orden en que se pago. */
   abonos: AbonoDelHistorial[];
+  /** Anulada (ADR 0026). Anular una venta anula sus abonos en la misma escritura. */
+  anulacion: Anulacion | null;
 }
 
 /** El historial completo de una persona: quien es, sus llamadas y sus ventas. */
@@ -201,20 +224,28 @@ export async function historialDePersona(
       origenNombre: origenes.nombre,
       fechaSeguimiento: calls.fechaSeguimiento,
       origen: calls.origen,
+      anuladoEn: calls.anuladoEn,
+      anuladoPor: calls.anuladoPor,
+      motivoAnulacion: calls.motivoAnulacion,
     })
     .from(calls)
     .leftJoin(motivos, eq(motivos.id, calls.motivoId))
     .leftJoin(origenes, eq(origenes.id, calls.origenId))
-    .where(eq(calls.personId, personId))
+    // El historial SI muestra lo anulado, tachado (ADR 0026 punto 4): "aqui hubo una
+    // llamada que se anulo porque se registro al lead equivocado" es informacion.
+    // Fuera de las metricas, dentro del historial.
+    .where(and(eq(calls.personId, personId), incluyendoAnulados(calls)))
     // `createdAt` desempata: dos llamadas del mismo dia sin hora quedarian en
     // orden arbitrario, y un historial que cambia de orden entre recargas no se
     // puede leer.
     .orderBy(desc(calls.fechaLlamada), desc(calls.createdAt));
 
-  // Las ventas con su saldo salen de `ventasDePersona`: el calculo del dinero en
-  // SQL vive en un solo lugar. Duplicarlo aca dejaria dos definiciones de "saldo"
-  // que se desincronizan sin que nadie lo note.
-  const ventas = await ventasDePersona(personId, db);
+  // Las ventas salen de `ventasParaHistorial`, NO de `ventasDePersona`: son dos
+  // preguntas distintas que hoy dan casi el mismo SQL (AGENTS.md). El historial
+  // muestra las anuladas tachadas; `/mi-dia` no puede ofrecer registrar un abono
+  // sobre una venta anulada. El calculo del dinero sigue viviendo en un solo lugar
+  // (`ABONADO`/`SALDO` de `saldo.ts`), que es lo que no se puede duplicar.
+  const ventas = await ventasParaHistorial(personId, db);
 
   // Los abonos de todas esas ventas en UNA consulta, no una por venta: el numero
   // de consultas no depende de cuantas ventas tenga la persona.
@@ -230,18 +261,38 @@ export async function historialDePersona(
           plataformaNombre: plataformasPago.nombre,
           closerId: abonos.closerId,
           origen: abonos.origen,
+          anuladoEn: abonos.anuladoEn,
+          anuladoPor: abonos.anuladoPor,
+          motivoAnulacion: abonos.motivoAnulacion,
         })
         .from(abonos)
         .leftJoin(plataformasPago, eq(plataformasPago.id, abonos.plataformaId))
-        .where(inArray(abonos.saleId, ids))
+        // Tambien tachados, por la misma razon: un abono devuelto explica por que la
+        // caja de ese dia bajo. Lo que NO hace es sumar — de eso se encarga el
+        // `vigente(abonos)` del agregado en `ventasParaHistorial`.
+        .where(and(inArray(abonos.saleId, ids), incluyendoAnulados(abonos)))
         .orderBy(asc(abonos.fecha), asc(abonos.createdAt))
     : [];
 
+  // Quien anulo se resuelve a nombre en UNA consulta para las tres listas, en vez
+  // de tres `leftJoin` a `users`: dos de esas tres consultas son agregados con
+  // `groupBy(sales.id)`, donde una columna de otra tabla obliga a envolverla en un
+  // `max(...)`, y ademas `users.nombre` chocaria con `productos.nombre` dentro de la
+  // plantilla `sql`, que NO califica las columnas (AGENTS.md).
+  const nombres = await nombresDeQuienAnulo(
+    [...llamadas, ...ventas, ...filasDeAbonos].map((f) => f.anuladoPor),
+    db,
+  );
+
   return {
     persona,
-    llamadas,
-    ventas: ventas.map((venta) => ({
+    llamadas: llamadas.map(({ anuladoEn, anuladoPor, motivoAnulacion, ...llamada }) => ({
+      ...llamada,
+      anulacion: anulacionDe({ anuladoEn, anuladoPor, motivoAnulacion }, nombres),
+    })),
+    ventas: ventas.map(({ anuladoEn, anuladoPor, motivoAnulacion, ...venta }) => ({
       ...venta,
+      anulacion: anulacionDe({ anuladoEn, anuladoPor, motivoAnulacion }, nombres),
       abonos: filasDeAbonos
         .filter((fila) => fila.saleId === venta.saleId)
         .map((fila) => ({
@@ -252,8 +303,53 @@ export async function historialDePersona(
           plataformaNombre: fila.plataformaNombre,
           closerId: fila.closerId,
           origen: fila.origen,
+          anulacion: anulacionDe(fila, nombres),
         })),
     })),
+  };
+}
+
+/** Las tres columnas de anulacion tal como salen de la base. */
+interface ColumnasDeAnulacion {
+  anuladoEn: Date | null;
+  anuladoPor: string | null;
+  motivoAnulacion: string | null;
+}
+
+/**
+ * Nombre (o correo, si la cuenta no tiene nombre) de cada usuario que anulo algo.
+ * Los `null` y los repetidos se descartan antes de consultar.
+ */
+async function nombresDeQuienAnulo(
+  ids: readonly (string | null)[],
+  db: Db,
+): Promise<Map<string, string>> {
+  const unicos = [...new Set(ids.filter((id): id is string => id !== null))];
+  if (unicos.length === 0) return new Map();
+  const filas = await db
+    .select({ id: users.id, nombre: users.nombre, email: users.email })
+    .from(users)
+    .where(inArray(users.id, unicos));
+  return new Map(filas.map((f) => [f.id, f.nombre ?? f.email]));
+}
+
+/**
+ * Arma la anulacion de un registro, o `null` si sigue vigente.
+ *
+ * Los tres campos van juntos por el CHECK de la base, asi que basta con mirar
+ * `anuladoEn`. El `??` sobre el nombre no puede pasar en la practica —`anulado_por`
+ * es una FK con `restrict`, asi que el usuario no puede desaparecer— y esta ahi para
+ * no tener que mentir en el tipo.
+ */
+function anulacionDe(
+  { anuladoEn, anuladoPor, motivoAnulacion }: ColumnasDeAnulacion,
+  nombres: Map<string, string>,
+): Anulacion | null {
+  if (anuladoEn === null) return null;
+  return {
+    fecha: anuladoEn,
+    porNombre: (anuladoPor && nombres.get(anuladoPor)) || "desconocido",
+    motivo: motivoAnulacion ?? "",
   };
 }
 
@@ -285,22 +381,61 @@ export async function ventasDePersona(
   db: Db = dbDeLaApp,
 ): Promise<VentaDePersona[]> {
   const filas = await db
-    .select({
-      saleId: sales.id,
-      fecha: sales.fecha,
-      productoId: sales.productoId,
-      moneda: sales.moneda,
-      precioAplicadoUsd: sales.precioAplicadoUsd,
-      abonado: ABONADO,
-      saldo: SALDO,
-      productoNombre: sql<string | null>`max(${productos.nombre})`,
-    })
+    .select(COLUMNAS_DE_VENTA)
     .from(sales)
-    .leftJoin(abonos, eq(abonos.saleId, sales.id))
+    .leftJoin(abonos, and(eq(abonos.saleId, sales.id), vigente(abonos)))
     .leftJoin(productos, eq(productos.id, sales.productoId))
-    .where(eq(sales.personId, personId))
+    // Una venta anulada no se puede abonar: ofrecerla seria invitar al closer a
+    // meter plata en un registro que no cuenta en ninguna metrica (ADR 0026).
+    .where(and(eq(sales.personId, personId), vigente(sales)))
     .groupBy(sales.id)
     .orderBy(asc(sales.fecha));
 
   return filas;
 }
+
+/**
+ * Las ventas de una persona **incluidas las anuladas**, para el historial de
+ * `/personas/[id]` (ADR 0026 punto 4).
+ *
+ * Es una funcion aparte y no un parametro de `ventasDePersona` a proposito: son dos
+ * preguntas distintas ("¿sobre cual puedo registrar un abono?" y "¿que le paso a
+ * esta persona?") que hoy comparten casi todo el SQL. Un booleano las volveria una
+ * sola con dos comportamientos, y el dia que una cambie habria que acordarse de la
+ * otra.
+ *
+ * Lo que NO cambia entre las dos es el dinero: el `leftJoin` lleva `vigente(abonos)`
+ * igual, porque un abono anulado no suma a lo abonado ni aqui ni alla.
+ */
+export async function ventasParaHistorial(personId: string, db: Db = dbDeLaApp) {
+  return db
+    .select({
+      ...COLUMNAS_DE_VENTA,
+      anuladoEn: sales.anuladoEn,
+      anuladoPor: sales.anuladoPor,
+      motivoAnulacion: sales.motivoAnulacion,
+    })
+    .from(sales)
+    .leftJoin(abonos, and(eq(abonos.saleId, sales.id), vigente(abonos)))
+    .leftJoin(productos, eq(productos.id, sales.productoId))
+    .where(and(eq(sales.personId, personId), incluyendoAnulados(sales)))
+    .groupBy(sales.id)
+    .orderBy(asc(sales.fecha));
+}
+
+/**
+ * Las columnas de una venta con su dinero ya resuelto, compartidas por las dos
+ * preguntas de arriba. El `max(...)` sobre el nombre del producto es obligado por el
+ * `groupBy(sales.id)`: Postgres deja proyectar las columnas de `sales` porque
+ * dependen de su clave, pero no las de una tabla unida.
+ */
+const COLUMNAS_DE_VENTA = {
+  saleId: sales.id,
+  fecha: sales.fecha,
+  productoId: sales.productoId,
+  moneda: sales.moneda,
+  precioAplicadoUsd: sales.precioAplicadoUsd,
+  abonado: ABONADO,
+  saldo: SALDO,
+  productoNombre: sql<string | null>`max(${productos.nombre})`,
+} as const;

@@ -2,6 +2,7 @@ import { desc, eq, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { abonos, calls, changeLog, people, programs, sales, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { vigente } from "./vigente";
 
 /**
  * Lecturas de `/nerd-stats` (ticket 025): la salud de la herramienta, no del negocio.
@@ -43,6 +44,10 @@ export async function conteosPorPrograma(db: Db = dbDeLaApp) {
     db
       .select({ programId: columna, total: sql<number>`count(*)::int` })
       .from(tabla)
+      // `vigente` acepta tambien las tablas que no se anulan (`people`), donde no
+      // filtra nada. Por eso el helper generico puede aplicarlo sin preguntar cual
+      // de las cuatro tablas le toco: si es anulable, excluye; si no, todas cuentan.
+      .where(vigente(tabla))
       .groupBy(columna);
 
   const [lista, personas, llamadas, ventas, pagos] = await Promise.all([
@@ -86,6 +91,7 @@ export async function conteosPorOrigen(db: Db = dbDeLaApp) {
     db
       .select({ origen: calls.origen, total: sql<number>`count(*)::int` })
       .from(calls)
+      .where(vigente(calls))
       .groupBy(calls.origen),
     // `sales` no tiene columna `origen`, a diferencia de `calls`. No se inventa una:
     // el invariante ya existe y es el del dedup (ADR 0010) — una venta registrada en
@@ -97,6 +103,7 @@ export async function conteosPorOrigen(db: Db = dbDeLaApp) {
         total: sql<number>`count(*)::int`,
       })
       .from(sales)
+      .where(vigente(sales))
       .groupBy(sql`case when ${sales.huellaFila} is null then 'app' else 'sheets' end`),
   ]);
   return { llamadas, ventas };

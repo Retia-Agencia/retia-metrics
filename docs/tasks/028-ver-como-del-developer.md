@@ -74,9 +74,32 @@ control de edición.
 - También la guarda: la simulación es fiel, y es segura porque estrechar nunca otorga privilegio.
   La salida es el selector del menú de usuario, que no depende de la vista.
 
-**Recomendación: que estreche también la guarda.** Cambia la frase central del ADR 0025 ("el
+**DECIDIDO el 18-sep (Mani lo pidió, la sesión lo argumentó): la vista estrecha también la
+guarda.** Tres razones: estrechar nunca otorga (si el rol de sesión no es `developer` el valor de
+vista se ignora entero, así que el único efecto posible es que un developer PIERDA acceso); si solo
+estrechara la proyección no sería una vista sino una etiqueta, porque el developer seguiría viendo
+Ajustes y Nerd Stats en el nav; y hay salida, porque el selector no depende de la vista.
+
+**Recomendación original, que es la que se aceptó:** Cambia la frase central del ADR 0025 ("el
 developer pasa toda guarda"), así que la enmienda tiene que decirlo explícito: *pasa toda guarda
 con la vista en `todo`, que es el valor por defecto.*
+
+## Adelantado por el ticket 029 (18-sep)
+
+Dos piezas de este ticket ya están en `main`, porque el 029 se topó con ellas:
+
+- **`trabajaLeads(rol)` en `lib/auth/roles.ts`**, la tercera pregunta de la familia que este
+  ticket pedía ("¿puede ser responsable de un lead?"). La cumplen closer y developer, no el
+  gerente. Con test en `tests/roles.test.ts`.
+- **`/ajustes/usuarios` ya deja cargarle el `closer_id` y las membresías a un developer.**
+  Preguntaba `rol === "closer"` a mano, así que **este ticket daba por hecho algo que no existía**:
+  su criterio "con el closerId cargado" era imposible desde la app. Encontrado al intentar
+  registrar una llamada como developer en el recorrido del 18-sep.
+
+Lo que sigue pendiente es el corazón del ticket: `rolDeVista(session)`, la cookie, el selector en
+el menú de usuario, y que `/mi-dia`, `/recursos` y `/productos` dejen de comparar `session.user.rol`
+a mano. Y `esCloserValidoEnPrograma` en `lib/mutations/personas.ts`, que sigue filtrando
+`eq(users.rol, "closer")` contra la base: ahí es donde `trabajaLeads` todavía no se usa.
 
 ## Done cuando
 

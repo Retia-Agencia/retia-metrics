@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { fecha as formatoFecha, monto as formatoMonto, saldoLegible } from "@/lib/format";
 import { ProductoCrearEnLinea } from "@/components/producto-crear-en-linea";
 import type { PersonaEncontrada, VentaDePersona } from "@/lib/queries/personas";
+import { AnularRegistro } from "@/components/anular-registro";
 import {
   buscarPersonasAccion,
   crearPersonaAccion,
@@ -673,6 +674,16 @@ function AbonosDePersona({
                 {saldo.etiqueta.toLowerCase()}: {saldo.valor}
               </div>
               <FormularioAbono venta={v} contexto={contexto} alGuardar={cargar} />
+              {/* Anular una venta mal registrada sin salir de la pantalla de captura
+                  (ADR 0026). Al recargar desaparece de esta lista —ya no se le puede
+                  abonar— y pasa a verse tachada en el historial de la persona. */}
+              <AnularRegistro
+                tipo="venta"
+                id={v.saleId}
+                queEs="esta venta y sus abonos"
+                texto="Anular la venta"
+                alAnular={cargar}
+              />
             </li>
           );
         })}

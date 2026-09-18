@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { ABONADO, SALDO, estaPagadaCompleta } from "./saldo";
+import { vigente } from "./vigente";
 import { abonos, sales } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 
@@ -51,8 +52,14 @@ export async function saldoDeVenta(
       saldo: SALDO,
     })
     .from(sales)
-    .leftJoin(abonos, eq(abonos.saleId, sales.id))
-    .where(eq(sales.id, saleId))
+    // Un abono anulado no cuenta contra el precio: si contara, la reja del sobrepago
+    // bloquearia un pago legitimo por plata que ya se devolvio.
+    .leftJoin(abonos, and(eq(abonos.saleId, sales.id), vigente(abonos)))
+    // Una venta anulada devuelve `null`, igual que una que no existe. Es lo correcto
+    // para la reja: no se registra un abono sobre algo que no cuenta en ninguna
+    // metrica. El formulario tampoco la ofrece (`ventasDePersona` ya la excluye), asi
+    // que llegar aca con una venta anulada es una pestana vieja.
+    .where(and(eq(sales.id, saleId), vigente(sales)))
     .groupBy(sales.id)
     .limit(1);
 

@@ -340,6 +340,10 @@ describe("registrarLlamada", () => {
     );
 
     expect(llamada.resultado).toBe("cerrada");
+    // De cual llamada nacio la venta (ADR 0026 punto 2). Sin esta referencia, anular
+    // la llamada no encontraria la venta que arrastrar, y la cascada fallaria EN
+    // SILENCIO: la llamada quedaria anulada y la venta viva, sumando al embudo.
+    expect(venta?.callId).toBe(llamada.id);
     expect(venta?.cohortId).toBe(cohortId);
     expect(venta?.productoId).toBe(productoId);
     expect(venta?.precioAplicadoUsd).toBe("797.00");

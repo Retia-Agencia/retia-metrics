@@ -258,12 +258,39 @@ export const calls = pgTable(
     /** Huella de la fila de origen, para no duplicar en cada sync. */
     huellaFila: text("huella_fila"),
     raw: jsonb("raw"),
+    /**
+     * Anulacion (ADR 0026). **No es un booleano a proposito:** cuando el dinero no
+     * cuadra, la pregunta no es "¿esto esta anulado?" sino "¿quien lo anulo, cuando
+     * y por que?". Un booleano tira esa respuesta a la basura.
+     *
+     * `anuladoPor` es una FK a `users` con `restrict`, no texto copiado como
+     * `closerId` (ADR 0011): quien anula es siempre una cuenta de la app, nunca una
+     * fila importada de la hoja, y perder la atribucion vaciaria la mitad del valor
+     * de conservar el registro. El `restrict` es la misma regla del ADR 0026 punto 5:
+     * no se borra lo que ya se uso.
+     *
+     * Lo anulado desaparece de toda metrica por UN predicado (`lib/queries/vigente.ts`),
+     * nunca escribiendo `is null` a mano, y sigue viendose tachado en el historial de
+     * la persona.
+     */
+    anuladoEn: timestamp("anulado_en", { withTimezone: true }),
+    anuladoPor: uuid("anulado_por").references(() => users.id, { onDelete: "restrict" }),
+    motivoAnulacion: text("motivo_anulacion"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("calls_cohorte_closer_idx").on(t.cohortId, t.closerId),
     index("calls_persona_idx").on(t.personId),
     uniqueIndex("calls_huella_idx").on(t.programId, t.huellaFila),
+    // Sin motivo no hay anulacion (ADR 0026 punto 6), y la garantia vive en la base
+    // y no solo en zod (ADR 0005): los tres campos van juntos o no va ninguno. Una
+    // fila anulada sin quien ni por que es justo el estado que el ADR descarta.
+    check(
+      "calls_anulacion_completa",
+      sql`(${t.anuladoEn} IS NULL AND ${t.anuladoPor} IS NULL AND ${t.motivoAnulacion} IS NULL)
+          OR (${t.anuladoEn} IS NOT NULL AND ${t.anuladoPor} IS NOT NULL
+              AND length(trim(${t.motivoAnulacion})) > 0)`,
+    ),
   ],
 );
 
@@ -277,6 +304,18 @@ export const sales = pgTable(
     cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "set null" }),
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
     closerId: text("closer_id"),
+    /**
+     * La llamada que cerro esta venta (ADR 0026 punto 2). Nace con el ticket 029:
+     * hasta entonces la venta y su llamada se escribian en la misma transaccion sin
+     * ninguna referencia entre ellas, asi que "anular la llamada anula su venta" no
+     * se podia cumplir sin adivinar por persona y fecha.
+     *
+     * Nullable, y lo seguira siendo: las ventas migradas de Sheets son filas de otra
+     * pestana que nunca estuvo enlazada a una llamada, y las que la app escribio
+     * antes de esta columna tampoco lo estan. `restrict` por la misma razon que
+     * `anuladoPor`: una llamada que ya cerro una venta es una llamada que se uso.
+     */
+    callId: uuid("call_id").references((): AnyPgColumn => calls.id, { onDelete: "restrict" }),
     emailComprador: text("email_comprador"),
     fecha: date("fecha"),
     /** Producto vendido (ADR 0016). Nullable para las filas viejas de Sheets. */
@@ -293,11 +332,29 @@ export const sales = pgTable(
     moneda: text("moneda").notNull().default("USD"),
     huellaFila: text("huella_fila"),
     raw: jsonb("raw"),
+    /** Anulacion (ADR 0026). Ver la nota completa en `calls`. */
+    anuladoEn: timestamp("anulado_en", { withTimezone: true }),
+    anuladoPor: uuid("anulado_por").references(() => users.id, { onDelete: "restrict" }),
+    motivoAnulacion: text("motivo_anulacion"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("sales_cohorte_idx").on(t.cohortId),
     uniqueIndex("sales_huella_idx").on(t.programId, t.huellaFila),
+    // Una llamada cierra COMO MUCHO una venta, y la garantia vive en la base
+    // (ADR 0005). Postgres admite varios NULL en un indice unico, asi que las ventas
+    // sin llamada enlazada (Sheets, y las anteriores al ticket 029) no compiten. De
+    // paso, la cascada de la anulacion busca por aca en vez de recorrer la tabla.
+    uniqueIndex("sales_call_idx").on(t.callId),
+    // Sin motivo no hay anulacion (ADR 0026 punto 6), y la garantia vive en la base
+    // y no solo en zod (ADR 0005): los tres campos van juntos o no va ninguno. Una
+    // fila anulada sin quien ni por que es justo el estado que el ADR descarta.
+    check(
+      "sales_anulacion_completa",
+      sql`(${t.anuladoEn} IS NULL AND ${t.anuladoPor} IS NULL AND ${t.motivoAnulacion} IS NULL)
+          OR (${t.anuladoEn} IS NOT NULL AND ${t.anuladoPor} IS NOT NULL
+              AND length(trim(${t.motivoAnulacion})) > 0)`,
+    ),
   ],
 );
 
@@ -334,11 +391,24 @@ export const abonos = pgTable(
     /** Nombre del closer que registro el abono, copiado de su cuenta (ADR 0011). */
     closerId: text("closer_id"),
     origen: text("origen").notNull().default("app"),
+    /** Anulacion (ADR 0026). Ver la nota completa en `calls`. */
+    anuladoEn: timestamp("anulado_en", { withTimezone: true }),
+    anuladoPor: uuid("anulado_por").references(() => users.id, { onDelete: "restrict" }),
+    motivoAnulacion: text("motivo_anulacion"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("abonos_programa_fecha_idx").on(t.programId, t.fecha),
     index("abonos_venta_idx").on(t.saleId),
+    // Sin motivo no hay anulacion (ADR 0026 punto 6), y la garantia vive en la base
+    // y no solo en zod (ADR 0005): los tres campos van juntos o no va ninguno. Una
+    // fila anulada sin quien ni por que es justo el estado que el ADR descarta.
+    check(
+      "abonos_anulacion_completa",
+      sql`(${t.anuladoEn} IS NULL AND ${t.anuladoPor} IS NULL AND ${t.motivoAnulacion} IS NULL)
+          OR (${t.anuladoEn} IS NOT NULL AND ${t.anuladoPor} IS NOT NULL
+              AND length(trim(${t.motivoAnulacion})) > 0)`,
+    ),
   ],
 );
 

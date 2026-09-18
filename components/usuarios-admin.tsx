@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ROLES, type Rol } from "@/lib/auth/roles";
+import { ROLES, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
 import {
   crearUsuarioAccion,
@@ -248,7 +248,10 @@ function FormularioUsuario({
   onGuardar: (borrador: Borrador) => void;
 }) {
   const [borrador, setBorrador] = useState<Borrador>(inicial);
-  const esCloser = borrador.rol === "closer";
+  // NO se pregunta `rol === "closer"` a mano: la respuesta vive en `lib/auth/roles`
+  // para que el developer no quede fuera por olvido (ADR 0025). Un gerente sigue sin
+  // closer_id ni membresias, porque administra pero no registra (ADR 0003).
+  const trabajaConLeads = trabajaLeads(borrador.rol);
 
   const claseInput =
     "h-8 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -321,7 +324,7 @@ function FormularioUsuario({
             </select>
           </label>
 
-          {esCloser ? (
+          {trabajaConLeads ? (
             <label className="block space-y-1 text-sm">
               <span className="text-muted-foreground">closer_id (en la BBDD)</span>
               <input
@@ -329,7 +332,7 @@ function FormularioUsuario({
                 onChange={(e) => setBorrador({ ...borrador, closerId: e.target.value })}
                 maxLength={80}
                 className={claseInput}
-                aria-label="closer_id"
+                aria-label="closer_id (en la BBDD)"
               />
             </label>
           ) : null}
@@ -345,7 +348,7 @@ function FormularioUsuario({
             />
           </label>
 
-          {esCloser ? (
+          {trabajaConLeads ? (
             <fieldset className="space-y-1 text-sm sm:col-span-2">
               <legend className="text-muted-foreground">Programas donde vende</legend>
               {programas.length === 0 ? (

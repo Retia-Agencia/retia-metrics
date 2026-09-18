@@ -272,6 +272,33 @@ distinta de **administrar**, que la cumplen el gerente Y el developer (`esAdmini
 la que usa la salvaguarda del ultimo administrador. Dos preguntas, dos funciones: pasar toda
 guarda no es lo mismo que poder administrar (ADR 0025, enmienda al ADR 0024).
 
+**Trabaja leads**:
+La TERCERA pregunta de la familia de roles (`trabajaLeads`), distinta de **acceso total** y de
+**administrar**: quien tiene `closer_id` propio y membresias de programa, puede ser responsable de
+una persona y registrar llamadas y abonos. La cumplen el closer y el developer; el gerente NO,
+porque administra pero no registra (ADR 0003). Nacio el 18-sep, cuando se vio que
+`/ajustes/usuarios` preguntaba `rol === "closer"` a mano y por eso a un developer no se le podia
+cargar su `closer_id` desde la app.
+
+**Anular**:
+Dejar un registro —una llamada, una venta o un abono— **fuera de toda metrica sin borrarlo**, con
+quien lo anulo, cuando y por que (ADR 0026). Un registro anulado desaparece del embudo, de la caja
+y del comparativo entre closers, y sigue viendose **tachado** en el historial de la persona. La
+regla en una linea: *fuera de las metricas, dentro del historial*.
+_Evitar_: "borrar un registro", "eliminar una venta", "cancelar" — borrar es otra cosa y solo
+aplica al catalogo (ADR 0026 punto 5).
+
+**Vigente**:
+Lo contrario de anulado: el registro cuenta. Es un predicado, no una columna
+(`vigente(tabla)` en `lib/queries/vigente.ts`), y es LA definicion: ninguna consulta escribe
+`is null` a mano y un test guardian recorre todo el codigo para comprobarlo. Una consulta que
+quiere ver lo anulado lo dice con su nombre (`incluyendoAnulados`), nunca omitiendo el filtro.
+
+**Cascada de la anulacion**:
+Lo que una anulacion arrastra (ADR 0026 punto 2): una **venta** se lleva sus abonos; una **llamada
+cerrada** se lleva su venta y los abonos de esa venta; un **abono** no se lleva nada, porque una
+venta puede tener un pago devuelto y seguir viva. Todo en una sola escritura atomica.
+
 **Nerd Stats**:
 La vista del developer sobre la salud de la HERRAMIENTA, no del negocio: corridas de sync,
 cambios recientes hechos desde la app, conteos por programa y por origen, usuarios activos por

@@ -57,6 +57,15 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   responden la MISMA pregunta, la respuesta vive en un modulo y los dos la importan — la proyeccion
   es del llamador, el predicado es del modulo (asi se consolido `programasActivos`). Dos preguntas
   distintas que hoy dan el mismo SQL siguen siendo dos funciones.
+- **Un registro anulado no cuenta en NINGUNA metrica, y eso lo garantiza un predicado y un
+  guardian (ADR 0026, ADR 0027).** Llamadas, ventas y abonos se anulan (nunca se borran) con
+  quien, cuando y por que. Toda lectura de `calls`, `sales` o `abonos` —en `lib/`, `app/`,
+  `components/` o `scripts/`, no solo en `lib/queries/`— pasa por `vigente(tabla)` de
+  `lib/queries/vigente.ts`; la que quiere ver lo anulado lo dice con `incluyendoAnulados(tabla)`.
+  `tests/vigencia-centralizada.test.ts` recorre el codigo cadena por cadena y falla si una consulta
+  lee esas tablas sin decidir. **El riesgo no es escribir la anulacion: es olvidar una consulta**,
+  porque una cifra inflada se ve creible y no lanza ningun error.
+
 - **La meta es de la cohorte y no se reparte entre closers.** Un closer tiene contribucion
   (sus ventas de la cohorte), no meta propia: el reparto no existe en la base y seria un numero
   inventado con el que se mide a personas (ADR 0023). Lo mismo con la meta de leads por dia.
@@ -78,7 +87,11 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   olvidaria de el. Y pasar la guarda no es tener una pantalla util: lo que la pagina proyecta
   adentro sigue decidiendose por rol (`/mi-dia` y `/productos` le dan la union de programas, no la
   de un closer sin membresias). "Administrar" es OTRA pregunta: `esAdministrador` la cumplen el
-  gerente y el developer, y es la que usa la salvaguarda del ultimo administrador.
+  gerente y el developer, y es la que usa la salvaguarda del ultimo administrador. Y hay una
+  TERCERA, `trabajaLeads`: quien tiene `closer_id`, membresias, puede ser responsable de una
+  persona y registrar. La cumplen el closer y el developer, **no el gerente** (ADR 0003). Son tres
+  preguntas y tres funciones: una pantalla que pregunte `rol === "closer"` a mano deja al developer
+  afuera, que es justo como `/ajustes/usuarios` quedo sin poder cargarle su `closer_id` (18-sep).
 - **`gerente` y `closer` son conjuntos disjuntos, sin herencia.** Un closer nunca entra a una ruta
   exclusiva de gerente como `/ajustes` (ADR 0003). Excepcion explicita desde el 15 de septiembre de
   2026: en el dashboard del CRM (`/programas/[slug]`, antes `/comunicarte` y
@@ -138,13 +151,14 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Formato de numero | `lib/format.ts` (punto de miles, coma decimal; el USD SIEMPRE con dos decimales) | `tests/format.test.ts` |
 | Como se escribe un saldo | `saldoLegible` en `lib/format.ts`: decide la ETIQUETA y el valor juntos, porque un saldo negativo es un **sobrepago** y no una deuda | `tests/format.test.ts` |
 | Mensajes de validacion del navegador | `components/validacion-en-espanol.tsx`, montado una vez en el layout raiz: traduce los globos nativos, que salen en el idioma del navegador y no en el del `lang` de la pagina | Revision manual |
+| Que registros cuentan | `vigente(tabla)` / `incluyendoAnulados(tabla)` en `lib/queries/vigente.ts` (ADR 0026) | `tests/vigencia-centralizada.test.ts`: recorre `lib/`, `app/`, `components/` y `scripts/` cadena de drizzle por cadena, y falla si una lee `calls`, `sales` o `abonos` sin aplicar el predicado |
 | Contrato de extension | ADR 0012, enmendado por el 0026; molde en `lib/catalogo/` | `tests/contrato-extension.test.ts` (ticket 009): ningun programa escrito en el codigo; tests del molde (ticket 011): siempre `change_log`, y **nunca `DELETE` sobre una fila con referencias** (hasta el ticket 030 el molde no borra nunca) |
 
 ## Feedback loops
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 477 pasando hoy). Los tests que necesitan base usan PGlite en
+- **Test:** `npm test` (Vitest, 495 pasando hoy). Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Run:** `npm run dev` (http://localhost:3000)
@@ -155,6 +169,13 @@ The agent should run these to get fast signal on whether code works. Keep them c
 
 - **El gestor de paquetes es `npm`, no `pnpm`** (ADR 0001). Donde una instruccion diga `pnpm X`,
   corre `npm run X`.
+- **`revalidatePath` NO refresca la pantalla que acaba de escribir.** Una server action que muta
+  y quiere que la vista actual cambie llama `router.refresh()` en el cliente; `revalidatePath`
+  sirve para las OTRAS rutas cuyo cache de ruta quedaria viejo. Y en una ruta dinamica se invalida
+  por su **patron** con el tipo (`revalidatePath("/personas/[id]", "page")`), no por un path
+  concreto ni con `"layout"` sobre un segmento que no tiene layout propio: eso no coincide con
+  nada y **no falla, simplemente no invalida**. Costo un falso "no funciona" en el recorrido del
+  18-sep, con la escritura correcta en la base y la pantalla mostrando el total anterior.
 - **Next 16 renombro `middleware.ts` a `proxy.ts`.** El archivo vive en la raiz con ese nombre.
 - **shadcn/ui corre sobre `@base-ui/react`, no sobre Radix.** Se usa `render={<Componente />}` en
   vez de `asChild`, y `onClick` en vez de `onSelect` en los items de menu.

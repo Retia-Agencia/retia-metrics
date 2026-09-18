@@ -2,14 +2,21 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { fecha as formatoFecha, monto as formatoMonto, saldoLegible } from "@/lib/format";
-import type { HistorialDePersona } from "@/lib/queries/personas";
+import type { Anulacion, HistorialDePersona } from "@/lib/queries/personas";
+import { AnularRegistro } from "@/components/anular-registro";
 
 /**
- * Historial de una persona (ticket 006, ADR 0013, 0015, 0021).
+ * Historial de una persona (ticket 006, ADR 0013, 0015, 0021, 0026).
  *
- * Es de SOLO LECTURA: editar o borrar registros pasados esta fuera del alcance del
- * ticket, asi que no hay componente cliente ni server action. No consulta ni
- * calcula nada; recibe el historial ya armado por `historialDePersona`.
+ * Dejo de ser de solo lectura en el ticket 029: cada registro vigente trae su boton
+ * de anular (`AnularRegistro`, que si es cliente). Sigue sin consultar ni calcular
+ * nada; recibe el historial ya armado por `historialDePersona`.
+ *
+ * **Lo anulado se ve, tachado, con quien lo anulo, cuando y por que** (ADR 0026
+ * punto 4). Esconderlo aqui convertiria la anulacion en un borrado con otro nombre, y
+ * "esta venta se anulo el 19 de septiembre porque el pago se cayo" es justo lo que
+ * alguien necesita saber cuando la caja de ese dia no cuadra. La regla es: fuera de
+ * las metricas, dentro del historial.
  *
  * Los montos salen con su moneda al lado (`monto`) y las fechas por `fecha`. Un
  * timestamp se pasa antes por `diaDeCalendario`, la unica definicion de "que dia
@@ -33,6 +40,25 @@ const ETIQUETA_RESULTADO: Record<string, string> = {
 function diaLegible(valor: Date | string | null): string | null {
   if (!valor) return null;
   return formatoFecha(diaDeCalendario(valor));
+}
+
+/**
+ * El sello de una anulacion. Los tres datos van juntos porque juntos se guardaron
+ * (el CHECK `*_anulacion_completa` de la base): "anulada" sin quien ni por que es el
+ * estado que el ADR 0026 descarta.
+ */
+function SelloAnulacion({ anulacion, etiqueta }: { anulacion: Anulacion; etiqueta: string }) {
+  return (
+    <p className="mt-2 border-t pt-2 text-sm text-muted-foreground">
+      <span className="font-medium text-destructive">{etiqueta}</span> el{" "}
+      {diaLegible(anulacion.fecha)} por {anulacion.porNombre} · {anulacion.motivo}
+    </p>
+  );
+}
+
+/** Tachado y apagado para lo que ya no cuenta. */
+function claseAnulada(anulada: boolean): string {
+  return anulada ? " opacity-60" : "";
 }
 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
@@ -76,9 +102,12 @@ export function HistorialPersona({ historial }: { historial: HistorialDePersona 
         ) : (
           <ul className="space-y-2">
             {llamadas.map((llamada) => (
-              <li key={llamada.id} className="rounded-md border p-3">
+              <li
+                key={llamada.id}
+                className={`rounded-md border p-3${claseAnulada(llamada.anulacion !== null)}`}
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-medium">
+                  <span className={`font-medium${llamada.anulacion ? " line-through" : ""}`}>
                     {ETIQUETA_RESULTADO[llamada.resultado] ?? llamada.resultado}
                   </span>
                   <span className="text-sm text-muted-foreground">
@@ -92,6 +121,11 @@ export function HistorialPersona({ historial }: { historial: HistorialDePersona 
                   <Dato etiqueta="Seguimiento" valor={diaLegible(llamada.fechaSeguimiento)} />
                   <Dato etiqueta="Nota" valor={llamada.notas} />
                 </div>
+                {llamada.anulacion ? (
+                  <SelloAnulacion anulacion={llamada.anulacion} etiqueta="Anulada" />
+                ) : (
+                  <AnularRegistro tipo="llamada" id={llamada.id} queEs="esta llamada" />
+                )}
               </li>
             ))}
           </ul>
@@ -110,9 +144,14 @@ export function HistorialPersona({ historial }: { historial: HistorialDePersona 
               // como una deuda del cliente (ADR 0024).
               const saldo = saldoLegible(venta.saldo, venta.moneda);
               return (
-              <li key={venta.saleId} className="rounded-md border p-3">
+              <li
+                key={venta.saleId}
+                className={`rounded-md border p-3${claseAnulada(venta.anulacion !== null)}`}
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-medium">{venta.productoNombre ?? "Sin producto"}</span>
+                  <span className={`font-medium${venta.anulacion ? " line-through" : ""}`}>
+                    {venta.productoNombre ?? "Sin producto"}
+                  </span>
                   <span className="text-sm text-muted-foreground">
                     {venta.fecha ? formatoFecha(venta.fecha) : "Sin fecha"}
                   </span>
@@ -130,28 +169,55 @@ export function HistorialPersona({ historial }: { historial: HistorialDePersona 
                     etiqueta="Abonado"
                     valor={formatoMonto(Number(venta.abonado), venta.moneda)}
                   />
-                  <Dato etiqueta={saldo.etiqueta} valor={saldo.valor} />
+                  {/* Una venta anulada NO muestra saldo. El precio y lo abonado son
+                      hechos de lo que paso; el saldo es una AFIRMACION sobre lo que
+                      alguien debe, y una venta anulada no reclama nada. Visto en el
+                      navegador el 18-sep: una venta tachada decia "Saldo pendiente:
+                      USD 797,00", que se lee como una deuda viva. Es el mismo error
+                      que el "Saldo pendiente: USD -103" del recorrido anterior. */}
+                  {venta.anulacion ? null : (
+                    <Dato etiqueta={saldo.etiqueta} valor={saldo.valor} />
+                  )}
                 </div>
 
                 {venta.abonos.length > 0 ? (
                   <ul className="mt-2 space-y-1 border-t pt-2">
                     {venta.abonos.map((abono) => (
-                      <li
-                        key={abono.id}
-                        className="flex flex-wrap items-center justify-between gap-2 text-sm"
-                      >
-                        <span className="tabular-nums">
-                          {formatoMonto(Number(abono.monto), abono.moneda)}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {formatoFecha(abono.fecha)}
-                          {abono.plataformaNombre ? ` · ${abono.plataformaNombre}` : ""}
-                          {abono.closerId ? ` · ${abono.closerId}` : ""}
-                        </span>
+                      <li key={abono.id} className={`text-sm${claseAnulada(abono.anulacion !== null)}`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span
+                            className={`tabular-nums${abono.anulacion ? " line-through" : ""}`}
+                          >
+                            {formatoMonto(Number(abono.monto), abono.moneda)}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {formatoFecha(abono.fecha)}
+                            {abono.plataformaNombre ? ` · ${abono.plataformaNombre}` : ""}
+                            {abono.closerId ? ` · ${abono.closerId}` : ""}
+                          </span>
+                        </div>
+                        {abono.anulacion ? (
+                          <SelloAnulacion anulacion={abono.anulacion} etiqueta="Anulado" />
+                        ) : venta.anulacion ? null : (
+                          // Un abono de una venta anulada no ofrece anular: la venta
+                          // ya se llevo sus abonos por delante.
+                          <AnularRegistro tipo="abono" id={abono.id} queEs="este abono" />
+                        )}
                       </li>
                     ))}
                   </ul>
                 ) : null}
+
+                {venta.anulacion ? (
+                  <SelloAnulacion anulacion={venta.anulacion} etiqueta="Anulada" />
+                ) : (
+                  <AnularRegistro
+                    tipo="venta"
+                    id={venta.saleId}
+                    queEs="esta venta y sus abonos"
+                    texto="Anular la venta"
+                  />
+                )}
               </li>
               );
             })}

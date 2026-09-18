@@ -3,7 +3,7 @@ id: 029
 fase: F1
 serves: "ADR 0026 puntos 1-4 y 6; carencia destapada en el recorrido visual del 18-sep"
 depends: [003, 019]
-status: todo
+status: done
 ---
 
 # 029 — Anular una llamada, una venta o un abono
@@ -47,18 +47,35 @@ Decision y razones completas en el **ADR 0026**.
 
 ## Done cuando
 
-- [ ] Anular una venta anula sus abonos en la misma escritura; la caja recaudada del dia baja en
+- [x] Anular una venta anula sus abonos en la misma escritura; la caja recaudada del dia baja en
       el monto correcto.
-- [ ] Anular una llamada `cerrada` anula su venta y sus abonos.
-- [ ] Anular un abono NO anula la venta, y el saldo se recalcula solo (sale de `saldo.ts`).
-- [ ] El test guardian falla si se agrega una consulta sobre esas tablas sin el predicado.
+- [x] Anular una llamada `cerrada` anula su venta y sus abonos.
+- [x] Anular un abono NO anula la venta, y el saldo se recalcula solo (sale de `saldo.ts`).
+- [x] El test guardian falla si se agrega una consulta sobre esas tablas sin el predicado.
       **Escribirlo ANTES de tocar las consultas** y verlo en rojo: es el unico que demuestra que
       no quedo ninguna sin filtrar.
-- [ ] `/personas/[id]` muestra lo anulado tachado, con motivo, quien y cuando.
-- [ ] Un closer no puede anular un registro de otro closer, ni uno de una cohorte cerrada.
-- [ ] Sin `motivo_anulacion` no se anula.
-- [ ] `/nerd-stats` y el dashboard dan las mismas cifras entre si despues de una anulacion.
-- [ ] Ningun test existente cambia de resultado.
+- [x] `/personas/[id]` muestra lo anulado tachado, con motivo, quien y cuando.
+- [x] Un closer no puede anular un registro de otro closer, ni uno de una cohorte cerrada.
+- [x] Sin `motivo_anulacion` no se anula.
+- [x] `/nerd-stats` y el dashboard dan las mismas cifras entre si despues de una anulacion.
+- [x] Ningun test existente cambia de resultado.
+
+## Como quedo (18-sep)
+
+- Migraciones **0013** (las tres tablas suman `anulado_en`, `anulado_por`, `motivo_anulacion`, con
+  un `CHECK` por tabla que exige los tres juntos) y **0014** (`sales.call_id`, ver ADR 0027).
+  Aplicadas en `dev`. **`production` sigue sin ellas.**
+- El guardian resulto cubrir mas de lo que pedia el ticket: mira `lib/`, `app/`, `components/` y
+  `scripts/`, no solo `lib/queries/`. Ensancharlo destapo **cuatro lecturas en `lib/mutations/`**
+  que el alcance original habria dejado fuera.
+- **Hueco del ticket, resuelto con ADR 0027:** `sales` no sabia de que llamada nacio, asi que la
+  cascada "llamada cerrada → su venta" no se podia cumplir. Se agrego la columna y el caso de las
+  filas viejas se rechaza con mensaje en vez de adivinar.
+- **`ventasDePersona` se partio en dos** (`ventasDePersona` para `/mi-dia`, `ventasParaHistorial`
+  para `/personas/[id]`): son dos preguntas distintas desde que existe la anulacion.
+- Recorrido visual hecho el 18-sep. Tres hallazgos, los tres arreglados: la pantalla no se
+  refrescaba tras anular (`revalidatePath` que no coincidia con nada), tres botones "Anular"
+  identicos apilados bajo cada venta, y una venta anulada que seguia mostrando "Saldo pendiente".
 
 ## Notas
 

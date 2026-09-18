@@ -7,6 +7,109 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-18 (CIERRE 2 del mismo día) — Ticket 029 cerrado: anular registros. ADR 0027 nuevo.
+  Migraciones 0013 y 0014 en `dev`. Recorrido visual de la anulación hecho, 3 hallazgos, los 3
+  arreglados. 495 tests.**
+
+  **PARA QUIEN ABRA LA PRÓXIMA SESIÓN, leer esto primero:**
+
+  - **`production` NO tiene las migraciones 0013 ni 0014.** `dev` va en 15, `production` en 13.
+    Nada de lo del 029 existe allá todavía: la app desplegada no sabe anular. **Aplicarlas es una
+    escritura en `production` y necesita el ok explícito de Mani** (ADR 0018).
+  - **El 029 está commiteado en `main`** (31 archivos, incluidas las dos migraciones y estos
+    docs). Árbol limpio; typecheck, lint, build y 495 tests, todos limpios.
+  - **En `dev` se gastaron los datos de prueba del recorrido anterior.** Las dos ventas de
+    Ana Prueba y sus tres abonos quedaron anulados, más una venta nueva que se creó y se anuló para
+    probar la cascada. Queda viva una llamada de compromiso de pago. Si hace falta ver
+    `/personas/[id]` con contenido vigente, hay que registrar algo nuevo desde `/mi-dia`.
+  - **A Mani se le cargó `closer_id = 'Mani'` en `dev`.** Estaba en `null` desde que volvió a
+    `developer`, y sin eso `/mi-dia` rechaza cualquier registro. En `production` sigue sin cargar.
+
+  **Qué es el 029, en una línea:** una llamada, una venta o un abono se ANULAN con motivo, dejan de
+  contar en toda métrica, y siguen viéndose tachados en el historial de la persona.
+
+  🎯 **LA LECCIÓN DE LA SESIÓN, y no es sobre anular: `revalidatePath` no refresca la pantalla que
+  acaba de escribir.** Al anular un abono la base quedaba perfecta —anulado, con motivo, autor y su
+  fila en `change_log`— y **la pantalla seguía mostrando el total anterior**. Escritura correcta y
+  pantalla mintiendo, que es peor que fallar: quien lo viera volvería a anular "porque no funcionó".
+  La causa: `revalidatePath("/personas", "layout")` no coincidía con nada (ruta dinámica, y
+  `personas/` no tiene layout propio), así que esa línea parecía trabajo y no invalidaba nada, **sin
+  error**. El arreglo es `router.refresh()` en el cliente para la ruta actual, y `revalidatePath`
+  por PATRÓN (`"/personas/[id]", "page"`) para las otras. Está en AGENTS.md. **Ningún test lo
+  habría cogido nunca**: es exactamente lo que el recorrido visual existe para encontrar.
+
+  **Lo que se construyó:**
+
+  - **`lib/queries/vigente.ts`** — `vigente(tabla)` es LA definición de "este registro cuenta", e
+    `incluyendoAnulados(tabla)` es la marca explícita de que una consulta quiere ver lo anulado (el
+    historial, ADR 0026 punto 4). Las 21 lecturas del embudo pasan por ahí.
+  - **`tests/vigencia-centralizada.test.ts`** — el guardián, escrito ANTES y visto en rojo. La
+    unidad de análisis es la **cadena de drizzle**, no el archivo ni el statement: dentro de una
+    función no hay ningún `;` a profundidad cero, así que cortar por statements mete el archivo
+    entero en una unidad y el guardián deja de poder señalar CUÁL consulta falla.
+  - **`lib/mutations/anulaciones.ts`** — la cascada del ADR 0026 punto 2 en una escritura atómica,
+    los permisos del punto 6 y una fila de `change_log` por registro anulado.
+  - **UI**: `/personas/[id]` dejó de ser de solo lectura, y `/mi-dia` puede anular una venta desde
+    la lista.
+
+  **Tres cosas que el ticket NO pedía y que hubo que hacer:**
+
+  1. 🩸 **`sales` no sabía de qué llamada nació**, así que la cascada "llamada cerrada → su venta"
+     del ADR 0026 **no se podía cumplir**. Se agregó `sales.call_id` con índice único (una llamada
+     cierra como mucho una venta, garantizado en la base) → **ADR 0027**. Las filas viejas y las de
+     Sheets no tienen enlace: ahí se RECHAZA con mensaje en vez de adivinar por persona y fecha.
+  2. **El guardián acabó mirando todo el código, no solo `lib/queries/`.** Ensancharlo destapó
+     cuatro lecturas de esas tablas viviendo en `lib/mutations/`, fuera del alcance original.
+  3. **`ventasDePersona` respondía dos preguntas distintas** con el mismo SQL: "¿sobre cuál puedo
+     registrar un abono?" (`/mi-dia`) y "¿qué le pasó a esta persona?" (historial). Con la
+     anulación dejan de tener la misma respuesta. Partida en dos funciones, sin un booleano.
+
+  **Del 028, adelantado sin querer:** `trabajaLeads(rol)` (la tercera pregunta de la familia de
+  roles) y **`/ajustes/usuarios` ya deja cargarle el `closer_id` y las membresías a un developer**.
+  Preguntaba `rol === "closer"` a mano, así que el criterio del 028 "con el closerId cargado" era
+  **imposible desde la app**. Y quedó DECIDIDO: **la vista del developer estrecha también la
+  guarda**, no solo la proyección (razones en el ticket 028).
+
+  **Los 3 hallazgos del recorrido visual de la anulación, todos arreglados:**
+  1. 🔴 El refresco (arriba). El grande.
+  2. **Tres botones "Anular" idénticos apilados** bajo cada venta: dos de abonos y uno que se lleva
+     la venta entera. Ahora el de la venta dice "Anular la venta".
+  3. **"Saldo pendiente: USD 797,00" en una venta anulada.** Tachada y aun así afirmando una deuda
+     viva. El precio y lo abonado son hechos; el saldo es una afirmación sobre lo que alguien debe,
+     y una venta anulada no reclama nada. Es el primo del "Saldo pendiente: USD -103" del cierre 1.
+
+  **Lo que se verificó en vivo** (no solo en tests): la cascada con enlace real (toast *"Se anuló la
+  llamada, su venta y 1 abono"*), la rama legacy de punta a punta (rechaza → anulas la venta → ahora
+  sí), que un abono ya anulado **conserva su motivo original** cuando después se anula la venta, que
+  `saldoLegible` pasó sola de "Sobrepago" a "Saldo pendiente", y que dashboard, `/mi-dia` y el
+  historial cuentan la misma realidad después de anular.
+
+  **Sigue pendiente de Mani, sin cambios:** cargar los 5 enlaces de PayPal, decidir el 021, el 007
+  (⚠️ `production` tiene 0 productos, así que ningún closer podrá registrar una venta cerrada hasta
+  que alguien los cargue), y mirar `/nerd-stats` contra `production`, que nunca se ha visto allá.
+
+  **MINI PROMPT PARA LA PRÓXIMA SESIÓN** (copiar tal cual):
+
+  > Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y la entrada "CIERRE 2" del 18-sep
+  > en docs/agents/handoff.md.
+  >
+  > Contexto: el ticket 029 (anular registros) está terminado, con ADR 0027. 495 tests verdes,
+  > typecheck, lint y build limpios. Las migraciones 0013 y 0014 están SOLO en `dev` (15) y
+  > `production` sigue en 13.
+  >
+  > Primero dime qué me recomiendas hacer con `production`: aplicar las dos migraciones ahora o
+  > esperar. Argumenta el riesgo en los dos sentidos; la decisión la tomo yo y sin mi ok no
+  > escribes nada allá.
+  >
+  > Después, en este orden: (1) `/nerd-stats` contra production, que nunca se ha mirado allá —
+  > deben salir 1.923 y 2.574 personas, y si salen ceros es la subconsulta correlacionada del 025
+  > volviendo; (2) el 007, dar de alta al equipo, ojo que production tiene 0 productos y sin eso
+  > ningún closer puede registrar una venta cerrada; (3) cargar los enlaces de PayPal.
+  >
+  > El 028 está listo para codear y ya tiene decidido que la vista estrecha también la guarda; el
+  > 029 le adelantó `trabajaLeads` y el closer_id del developer en /ajustes/usuarios. El 016, el
+  > 021 y el 030 pueden esperar.
+
 - **2026-09-18 (CIERRE DE SESIÓN) — Se hizo el recorrido visual de `/mi-dia` de punta a punta.
   7 hallazgos, los 7 arreglados. Dos decisiones nuevas de Mani: "ver como" del developer (028) y
   poder anular/borrar desde la app (ADR 0026, tickets 029 y 030).**
@@ -97,7 +200,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   `production` tiene 0 productos**, así que cuando entre el equipo ningún closer va a poder
   registrar una venta cerrada hasta que alguien los cargue.
 
-  **MINI PROMPT PARA LA PRÓXIMA SESIÓN** (copiar tal cual):
+  ~~**MINI PROMPT PARA LA PRÓXIMA SESIÓN**~~ **OBSOLETO: ya se ejecutó.** El 029 se cerró el mismo
+  18-sep; el mini prompt vigente es el de la entrada de arriba (CIERRE 2). Se deja el texto porque
+  el razonamiento del orden sigue valiendo.
 
   > Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y la entrada "CIERRE DE SESIÓN"
   > del 18-sep en docs/agents/handoff.md.
@@ -998,10 +1103,15 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now (ready — no unmet dependencies)
 
-> Actualizado el 18-sep 01:10. **F0 a F4 estan cerradas en codigo**, pero el recorrido visual de
-> ese mismo dia abrio tres tickets nuevos: **028** (ver como del developer), **029** (anular un
-> registro) y **030** (borrar del catalogo). Siguen ahi el **016** (puede esperar), el **007**
-> (operacion) y el **021** (bloqueado por decision de Mani).
+> Actualizado el 18-sep 01:35. **F0 a F4 estan cerradas en codigo** y el **029 ya esta cerrado**
+> (anular registros, ADR 0026 + 0027). De los tres tickets que abrio el recorrido visual quedan el
+> **028** (ver como del developer, listo para codear y con su decision tomada) y el **030** (borrar
+> del catalogo). Siguen ahi el **016** (puede esperar), el **007** (operacion) y el **021**
+> (bloqueado por decision de Mani).
+>
+> 🔴 **Lo primero de la lista ya no es codigo: `production` va en 13 migraciones y `dev` en 15.**
+> Las 0013 y 0014 son del 029, asi que la app desplegada todavia no sabe anular. Aplicarlas es una
+> escritura en `production` y necesita el ok de Mani (ADR 0018).
 
 Por partes y en este orden:
 
@@ -1013,12 +1123,15 @@ Por partes y en este orden:
        correlacionada del 025 volviendo) y `/recursos` con contenido, que esta vacia en las dos
        ramas. De paso sigue pendiente: borrar el cliente OAuth **web** viejo de
        `google-workspace-mcp`.
-1b.[ ] 🔴 **029 · Anular un registro** (ADR 0026). Es lo que destapo el recorrido: hoy no hay
-       `.delete(` en ninguna parte y una venta registrada por error es permanente. El riesgo del
-       ticket no es la anulacion, es olvidar una consulta del embudo: el test guardian va primero
-       y en rojo. Necesita migracion.
-1c.[ ] **028 · "Ver como" del developer.** Espera UNA decision de Mani, escrita en el ticket: si
-       la vista estrecha tambien la guarda o solo la proyeccion.
+1b.[x] ~~🔴 **029 · Anular un registro**~~ — **HECHO el 18-sep** (ADR 0026 + ADR 0027 nuevo).
+       Predicado central, guardian sobre todo el codigo, cascada atomica, permisos, UI y recorrido
+       visual con 3 hallazgos arreglados. Migraciones **0013 y 0014 SOLO en `dev`**.
+1b'.[ ] 🔴 **Aplicar 0013 y 0014 en `production`** (pide ok de Mani). Hasta que no esten, anular no
+       existe en la app desplegada y el codigo de `main` asume columnas que alla no hay.
+1c.[ ] **028 · "Ver como" del developer.** Decision TOMADA el 18-sep: la vista estrecha tambien la
+       guarda. El 029 ya adelanto `trabajaLeads` y el `closer_id` del developer en
+       `/ajustes/usuarios`; falta `rolDeVista`, la cookie, el selector y quitar las tres
+       comparaciones a mano de `session.user.rol`.
 2. [ ] **Cargar los 5 enlaces de PayPal.** Solo Mani: `scripts/cargar-enlaces-pago.ts` los lee de
        `ENLACES_PAGO_JSON`, un archivo fuera del repo. Ningun link real vive en git.
 3. [ ] **Decidir el 021** (snapshot del dashboard), que sigue bloqueado esperando esa decision.

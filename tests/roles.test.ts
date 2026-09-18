@@ -1,7 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { puedeAcceder, esRolValido } from "@/lib/auth/roles";
+import { puedeAcceder, esRolValido, trabajaLeads } from "@/lib/auth/roles";
 import { navParaRol, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
+
+describe("trabajaLeads", () => {
+  // Las tres preguntas de la familia son distintas y hay que poder contestarlas
+  // distinto. Si alguien "simplifica" esta a `esAdministrador`, un gerente pasaria a
+  // tener closer_id y membresias, y eso contradice el ADR 0003.
+  it("el closer y el developer trabajan leads; el gerente no", () => {
+    expect(trabajaLeads("closer")).toBe(true);
+    expect(trabajaLeads("developer")).toBe(true);
+    expect(trabajaLeads("gerente")).toBe(false);
+  });
+
+  it("sin rol no trabaja leads", () => {
+    expect(trabajaLeads(null)).toBe(false);
+    expect(trabajaLeads(undefined)).toBe(false);
+  });
+});
 
 describe("puedeAcceder", () => {
   it("deja pasar al rol permitido", () => {

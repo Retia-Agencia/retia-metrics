@@ -1,10 +1,11 @@
-import { and, between, eq, sql } from "drizzle-orm";
+import { and, between, eq, isNotNull, notInArray, sql } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
 import { abonos, calls, motivos, origenes, people, sales } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaHabilDe, diasHabilesEntre, metaDinamica, metaLineal } from "@/lib/dias-habiles";
 import { cohorteActiva } from "@/lib/queries/cohortes";
+import { vigente } from "@/lib/queries/vigente";
 
 /**
  * Consultas del dashboard (ticket 004). Todo lo que pide el reporte diario de Retia
@@ -155,6 +156,7 @@ export async function cajaRecaudada(
         eq(abonos.programId, programId),
         between(abonos.fecha, rango.desde, rango.hasta),
         delCloser(abonos.closerId, closerId),
+        vigente(abonos),
       ),
     )
     .groupBy(abonos.moneda);
@@ -171,10 +173,16 @@ export async function compromisosAbiertos(
   { programId, closerId }: AlcanceDePrograma,
   db: Db = dbDeLaApp,
 ): Promise<number> {
-  const yaVendio = db
-    .select({ uno: sql`1` })
+  // Las personas que YA vendieron en el programa. Antes esto era un `not exists`
+  // correlacionado contra `calls.personId`; se reescribio como subconsulta
+  // independiente porque una correlacion mezcla en una sola consulta dos decisiones
+  // de vigencia distintas (la de la venta, que es de aca, y la de la llamada, que es
+  // de la consulta externa) y deja de poder leerse. `isNotNull` es obligatorio: un
+  // `not in` contra una lista con un `null` no devuelve NINGUNA fila, en silencio.
+  const personasQueYaVendieron = db
+    .select({ personId: sales.personId })
     .from(sales)
-    .where(and(eq(sales.programId, programId), eq(sales.personId, calls.personId)));
+    .where(and(eq(sales.programId, programId), isNotNull(sales.personId), vigente(sales)));
 
   const [fila] = await db
     .select({ n: sql<number>`count(*)::int` })
@@ -183,10 +191,11 @@ export async function compromisosAbiertos(
       and(
         eq(calls.programId, programId),
         eq(calls.resultado, "compromiso_pago"),
-        sql`not exists (${yaVendio})`,
+        notInArray(calls.personId, personasQueYaVendieron),
+        vigente(calls),
         // El filtro acota QUIEN tomo el compromiso, no la venta que lo cierra: si
         // otro closer cerro a esa persona, el compromiso dejo de estar abierto para
-        // todos. Por eso `yaVendio` de arriba nunca lleva closer.
+        // todos. Por eso `personasQueYaVendieron` de arriba nunca lleva closer.
         delCloser(calls.closerId, closerId),
       ),
     );
@@ -216,6 +225,7 @@ export async function embudoDelRango(
         eq(calls.programId, programId),
         between(ancla, rango.desde, rango.hasta),
         delCloser(calls.closerId, closerId),
+        vigente(calls),
       ),
     );
 
@@ -227,6 +237,7 @@ export async function embudoDelRango(
         eq(sales.programId, programId),
         between(sales.fecha, rango.desde, rango.hasta),
         delCloser(sales.closerId, closerId),
+        vigente(sales),
       ),
     );
 
@@ -268,6 +279,7 @@ export async function llamadasPorMotivo(
         eq(calls.programId, programId),
         between(ancla, rango.desde, rango.hasta),
         delCloser(calls.closerId, closerId),
+        vigente(calls),
       ),
     )
     .groupBy(motivos.nombre)
@@ -303,7 +315,13 @@ export async function embudoPorCloser(
         cierres: sql<number>`count(*) filter (where ${calls.resultado} = 'cerrada')::int`,
       })
       .from(calls)
-      .where(and(eq(calls.programId, programId), between(ancla, rango.desde, rango.hasta)))
+      .where(
+        and(
+          eq(calls.programId, programId),
+          between(ancla, rango.desde, rango.hasta),
+          vigente(calls),
+        ),
+      )
       .groupBy(calls.closerId),
     db
       .select({
@@ -311,7 +329,13 @@ export async function embudoPorCloser(
         ventas: sql<number>`count(*)::int`,
       })
       .from(sales)
-      .where(and(eq(sales.programId, programId), between(sales.fecha, rango.desde, rango.hasta)))
+      .where(
+        and(
+          eq(sales.programId, programId),
+          between(sales.fecha, rango.desde, rango.hasta),
+          vigente(sales),
+        ),
+      )
       .groupBy(sales.closerId),
     db
       .select({
@@ -320,7 +344,13 @@ export async function embudoPorCloser(
         total: sql<number>`sum(${abonos.monto})::float8`,
       })
       .from(abonos)
-      .where(and(eq(abonos.programId, programId), between(abonos.fecha, rango.desde, rango.hasta)))
+      .where(
+        and(
+          eq(abonos.programId, programId),
+          between(abonos.fecha, rango.desde, rango.hasta),
+          vigente(abonos),
+        ),
+      )
       .groupBy(abonos.closerId, abonos.moneda),
   ]);
 
@@ -410,6 +440,7 @@ export async function embudoPorOrigen(
         eq(calls.programId, programId),
         between(ancla, rango.desde, rango.hasta),
         delCloser(calls.closerId, closerId),
+        vigente(calls),
       ),
     )
     .groupBy(origenes.nombre);
@@ -437,7 +468,7 @@ async function ventasDeCohorte(
   const [fila] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(sales)
-    .where(and(eq(sales.cohortId, cohorteId), delCloser(sales.closerId, closerId)));
+    .where(and(eq(sales.cohortId, cohorteId), delCloser(sales.closerId, closerId), vigente(sales)));
   return fila?.n ?? 0;
 }
 

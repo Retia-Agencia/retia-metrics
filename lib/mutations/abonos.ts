@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Session } from "next-auth";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
@@ -11,6 +11,7 @@ import { exigirPlataformaActiva } from "@/lib/abonos/plataforma";
 import { closerDeLaSesion } from "@/lib/auth/closer";
 import { usd } from "@/lib/format";
 import { saldoDeVenta } from "@/lib/queries/ventas";
+import { vigente } from "@/lib/queries/vigente";
 
 /**
  * Registro de un abono sobre una venta que YA existe (ticket 019, ADR 0013). El
@@ -123,7 +124,14 @@ export async function registrarAbono(
     return consultas;
   });
 
-  const [fila] = await db.select().from(abonos).where(eq(abonos.id, abonoId)).limit(1);
+  // Ver la nota de `lib/mutations/registro.ts`: es una relectura por clave primaria
+  // de lo que se acaba de escribir, y el predicado va igual porque toda lectura de
+  // estas tres tablas tiene que decir que decidio sobre lo anulado.
+  const [fila] = await db
+    .select()
+    .from(abonos)
+    .where(and(eq(abonos.id, abonoId), vigente(abonos)))
+    .limit(1);
   return fila!;
 }
 

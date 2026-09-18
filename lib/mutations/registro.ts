@@ -10,6 +10,7 @@ import { esquemaAbono } from "@/lib/abonos/esquema";
 import { exigirPlataformaActiva } from "@/lib/abonos/plataforma";
 import { closerDeLaSesion } from "@/lib/auth/closer";
 import { cohorteActiva } from "@/lib/queries/cohortes";
+import { vigente } from "@/lib/queries/vigente";
 
 /**
  * Registro nativo de una llamada escrita por un closer logueado (ticket 002, ADR
@@ -199,6 +200,9 @@ export async function registrarLlamada(
         (tx as Db).insert(sales).values({
           id: saleId!,
           personId: datos.personId,
+          // De cual llamada nacio esta venta (ADR 0026 punto 2): sin esta referencia,
+          // anular la llamada no sabria a que venta arrastrar.
+          callId,
           cohortId: cohorte.id,
           programId: datos.programId,
           closerId,
@@ -232,12 +236,34 @@ export async function registrarLlamada(
 
   // f) Se leen las filas por id despues del lote atomico: `batch` no devuelve las
   //    filas insertadas encadenadas, asi que se releen para devolver lo escrito.
-  const [llamada] = await db.select().from(calls).where(eq(calls.id, callId)).limit(1);
+  // El `vigente(...)` de estas relecturas no filtra nada en la practica: son lecturas
+  // por clave primaria de filas insertadas microsegundos antes, cuyo id todavia no ha
+  // salido del servidor, asi que nadie pudo anularlas. Va igual porque deja escrita
+  // la invariante —lo que esta funcion devuelve son registros que cuentan— y porque
+  // el guardian de `tests/vigencia-centralizada.test.ts` exige que TODA lectura de
+  // estas tres tablas diga que decidio, tambien las de `lib/mutations/`.
+  const [llamada] = await db
+    .select()
+    .from(calls)
+    .where(and(eq(calls.id, callId), vigente(calls)))
+    .limit(1);
   const ventaInsertada = saleId
-    ? (await db.select().from(sales).where(eq(sales.id, saleId)).limit(1))[0] ?? null
+    ? (
+        await db
+          .select()
+          .from(sales)
+          .where(and(eq(sales.id, saleId), vigente(sales)))
+          .limit(1)
+      )[0] ?? null
     : null;
   const abonoInsertado = abonoId
-    ? (await db.select().from(abonos).where(eq(abonos.id, abonoId)).limit(1))[0] ?? null
+    ? (
+        await db
+          .select()
+          .from(abonos)
+          .where(and(eq(abonos.id, abonoId), vigente(abonos)))
+          .limit(1)
+      )[0] ?? null
     : null;
 
   return { llamada: llamada!, venta: ventaInsertada, abono: abonoInsertado };
