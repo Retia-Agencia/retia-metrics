@@ -128,6 +128,19 @@ contrato.
 **Abono**:
 Un pago recibido, con su fecha, monto, moneda y plataforma. Una venta puede tener varios abonos.
 
+**Saldo pendiente**:
+El precio del contrato de una venta menos todo lo que se le ha abonado. Es `null`, no cero, cuando
+la venta no tiene precio del contrato (filas viejas de Sheets): sin precio no hay contra que restar.
+Tiene una sola definicion, en `lib/queries/saldo.ts` (ADR 0024).
+_Avoid_: calcularlo aparte en cada consulta; decir "saldo cero" cuando no hay precio.
+
+**Sobrepago**:
+Un abono que dejaria la venta con saldo negativo. Se rechaza salvo que el closer lo confirme
+explicitamente, y la confirmacion queda en `change_log`.
+
+**Historial de una persona**:
+Sus llamadas, ventas y abonos en orden, en `/personas/[id]`. Es de solo lectura.
+
 **Caja recaudada**:
 La suma de los abonos recibidos en un rango de fechas.
 _Avoid_: calcularla como ventas por ticket, o inferirla de las ventas cerradas.

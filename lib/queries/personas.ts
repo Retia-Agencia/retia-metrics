@@ -13,6 +13,7 @@ import {
   sales,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { ABONADO, SALDO } from "./saldo";
 
 /**
  * Lecturas sobre una persona (ADR 0021, 0023, 0011, 0013, 0015). Solo SELECT: lo
@@ -290,10 +291,8 @@ export async function ventasDePersona(
       productoId: sales.productoId,
       moneda: sales.moneda,
       precioAplicadoUsd: sales.precioAplicadoUsd,
-      abonado: sql<string>`coalesce(sum(${abonos.monto}), 0)::text`,
-      saldo: sql<
-        string | null
-      >`(${sales.precioAplicadoUsd} - coalesce(sum(${abonos.monto}), 0))::text`,
+      abonado: ABONADO,
+      saldo: SALDO,
       productoNombre: sql<string | null>`max(${productos.nombre})`,
     })
     .from(sales)

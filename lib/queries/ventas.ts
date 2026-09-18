@@ -1,5 +1,6 @@
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
+import { ABONADO, SALDO, estaPagadaCompleta } from "./saldo";
 import { abonos, sales } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 
@@ -46,10 +47,8 @@ export async function saldoDeVenta(
       programId: sales.programId,
       moneda: sales.moneda,
       precioContrato: sales.precioAplicadoUsd,
-      abonado: sql<string>`coalesce(sum(${abonos.monto}), 0)::text`,
-      saldo: sql<
-        string | null
-      >`(${sales.precioAplicadoUsd} - coalesce(sum(${abonos.monto}), 0))::text`,
+      abonado: ABONADO,
+      saldo: SALDO,
     })
     .from(sales)
     .leftJoin(abonos, eq(abonos.saleId, sales.id))
@@ -66,7 +65,6 @@ export async function saldoDeVenta(
     precioContrato: fila.precioContrato,
     abonado: fila.abonado,
     saldo: fila.saldo,
-    // Sin precio del contrato no se puede afirmar que este pagada completa.
-    pagadaCompleta: fila.saldo !== null && Number(fila.saldo) <= 0,
+    pagadaCompleta: estaPagadaCompleta(fila.saldo),
   };
 }

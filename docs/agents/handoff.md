@@ -7,6 +7,50 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-17 (cierre) — ADR 0024: el saldo estaba escrito dos veces. Centralizado. Sin
+  migracion.**
+
+  **Siguiente sesión:** F1 y F2 cerradas salvo el **007** (operación, no código). Con código lo
+  siguiente es **F3**: el **022** está listo, y detrás el **023**. El **021** sigue bloqueado.
+
+  **Lo que lo destapó:** al cerrar el 006 se reportó que `historialDePersona` "compone
+  `ventasDePersona` en vez de repetir el SQL del saldo". Mani respondió la regla general (no dejar
+  que el saldo se desincronice; priorizar bajo acoplamiento y centralización). Al revisarlo con eso
+  en mente salió que la composición del 006 evitó una **tercera** copia, pero **ya había dos**, con
+  el SQL idéntico palabra por palabra: `saldoDeVenta` (la reja que bloquea un sobrepago) y
+  `ventasDePersona` (lo que el closer ve en pantalla). Una pantalla y una reja discrepando sobre el
+  mismo número no se descubre hasta que el dinero no cuadra.
+
+  **Código** (392 tests, typecheck, lint y build limpios):
+  - `lib/queries/saldo.ts` nuevo: `ABONADO`, `SALDO` y `estaPagadaCompleta`, la única definición.
+    `lib/queries/ventas.ts` y `lib/queries/personas.ts` ahora la importan; ninguna consulta escribe
+    `sum(abonos.monto)` a mano.
+  - `tests/saldo-centralizado.test.ts`: lee la misma venta por los dos caminos y exige que
+    coincidan, con abonos parciales, sin abonos, sin precio de contrato y con sobrepago. **Un
+    comentario pidiendo no separarlos no falla nunca; este test sí.**
+  - Refactor sin cambio observable: misma salida, mismas columnas, ninguna migración.
+
+  **ADR 0024** lo deja escrito, y la regla subió a `AGENTS.md` (Restricciones no-negociables):
+  si dos lugares tienen que dar la misma cifra, la cifra vive en un módulo y los dos la importan.
+  Es el mismo error que el ADR 0023 ya había evitado por otro lado (descartar
+  `dashboard-por-closer.ts` para no duplicar el anclaje de fecha en Bogotá); ahora tiene nombre.
+
+  **Glosario:** entraron *Saldo pendiente*, *Sobrepago* e *Historial de una persona*.
+
+  **Pendiente que dejó abierto:** nadie ha verificado `lib/queries/dashboard.ts` contra esta regla.
+  Hoy no parece duplicado, pero es una revisión que no se hizo, no una garantía.
+
+  **Dudas de Mani resueltas en esta sesión** (quedan acá porque volverán a aparecer):
+  - *"¿Cómo así que no lista personas?"* — **Persona** = un lead deduplicado por correo, el ser
+    humano. El dashboard muestra **cuentas** (agendas, cierres, caja, comparativo), no nombres: no
+    hay ninguna fila con un nombre en la que se pueda hacer clic. Por eso el enlace al historial
+    salió del buscador de `/mi-dia`. Darle una lista de personas al dashboard es trabajo real
+    (¿qué personas?, ¿del rango?, ¿paginadas?) y merece su propio ticket si se quiere.
+  - *"¿Las dos decisiones son para atacar 500 y 404?"* — Solo una. **Quién ve la página** es
+    permisos (gerente y closer, ADR 0009), no errores. **El guard de uuid** sí es de errores: un
+    correo en la URL contra una columna uuid revienta en Postgres y saldría como **500**, que
+    insinúa que el id existe y esconde que el problema era la URL; el **404** dice la verdad.
+
 - **2026-09-17 (noche) — Ticket 006: `/personas/[id]`, el historial de una persona. Sin
   migración.**
 

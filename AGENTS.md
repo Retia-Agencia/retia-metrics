@@ -47,6 +47,13 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
 - **Caja recaudada y ventas cerradas son dos metricas separadas.** Los montos de la columna
   Precio son adelantos parciales, no precios finales. Nunca inferir una de la otra. La caja es
   la suma de `abonos` por fecha del abono; las ventas son el conteo de `sales` (ADR 0013).
+- **Todo dinero derivado tiene UNA definicion (ADR 0024).** Lo abonado y el saldo viven en
+  `lib/queries/saldo.ts`; ninguna consulta vuelve a escribir `sum(abonos.monto)` a mano. La regla
+  general: si dos lugares tienen que dar la misma cifra, la cifra vive en un modulo y los dos la
+  importan. Estuvo copiada en `saldoDeVenta` (la reja que bloquea un sobrepago) y en
+  `ventasDePersona` (lo que el closer ve): una pantalla y una reja discrepando sobre el mismo
+  numero no se descubre hasta que el dinero no cuadra. `tests/saldo-centralizado.test.ts` compara
+  las dos salidas y falla si alguien las separa.
 - **La meta es de la cohorte y no se reparte entre closers.** Un closer tiene contribucion
   (sus ventas de la cohorte), no meta propia: el reparto no existe en la base y seria un numero
   inventado con el que se mide a personas (ADR 0023). Lo mismo con la meta de leads por dia.
@@ -122,7 +129,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 350 pasando hoy). Los tests que necesitan base usan PGlite en
+- **Test:** `npm test` (Vitest, 392 pasando hoy). Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Run:** `npm run dev` (http://localhost:3000)
