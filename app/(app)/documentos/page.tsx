@@ -1,18 +1,11 @@
-import { paginaConSesion } from "@/lib/auth/page-guards";
-import { PageShell } from "@/components/page-shell";
-import { ProximaFase } from "@/components/proxima-fase";
+import { permanentRedirect } from "next/navigation";
 
-export default async function DocumentosPage() {
-  await paginaConSesion();
-  return (
-    <PageShell
-      titulo="Documentos"
-      descripcion="Playbook, guías y pipelines vigentes."
-    >
-      <ProximaFase
-        fase={5}
-        entrega="Repositorio con versiones, marca de vigente e histórico, visor en línea y descarga."
-      />
-    </PageShell>
-  );
+/**
+ * `/documentos` se renombro a `/recursos` (ticket 023). No queda nada que conservar
+ * de la pantalla vieja (era solo un `ProximaFase`), asi que la ruta redirige de forma
+ * PERMANENTE: cualquier enlace o marcador viejo aterriza en la pantalla nueva y los
+ * buscadores/navegadores actualizan la URL. El guard de rol lo pone `/recursos`.
+ */
+export default function DocumentosPage() {
+  permanentRedirect("/recursos");
 }

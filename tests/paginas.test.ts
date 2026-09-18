@@ -21,8 +21,9 @@ const auth = vi.fn();
 vi.mock("@/lib/auth", () => ({ auth }));
 
 const redirect = vi.fn();
+const permanentRedirect = vi.fn();
 const notFound = vi.fn();
-vi.mock("next/navigation", () => ({ redirect, notFound }));
+vi.mock("next/navigation", () => ({ redirect, permanentRedirect, notFound }));
 
 // La pagina dinamica de programa lee la base; en los tests no hay base, asi que se
 // mockea la query. `programaActivoPorSlug` devuelve un programa para los slugs
@@ -31,17 +32,30 @@ const programaActivoPorSlug = vi.fn();
 const programasActivos = vi.fn();
 const programaPorSlug = vi.fn();
 const programasGestionablesPorUsuario = vi.fn();
+const programasParaRecursos = vi.fn();
 vi.mock("@/lib/queries/programas", () => ({
   programaActivoPorSlug,
   programasActivos,
   programaPorSlug,
   programasGestionablesPorUsuario,
+  programasParaRecursos,
 }));
 
 // El historial de una persona (ticket 006) lee la base; sin base en los tests se
 // mockea la query para que las guardas y el 404 sean lo unico bajo prueba.
 const historialDePersona = vi.fn();
 vi.mock("@/lib/queries/personas", () => ({ historialDePersona }));
+
+// La pagina de recursos (ticket 023) lee la base; sin base en los tests se mockean
+// las lecturas para que las guardas sean lo unico bajo prueba.
+const recursosVigentes = vi.fn();
+const enlacesDePagoVigentes = vi.fn();
+const historialDeRecurso = vi.fn();
+vi.mock("@/lib/queries/recursos", () => ({
+  recursosVigentes,
+  enlacesDePagoVigentes,
+  historialDeRecurso,
+}));
 
 // El dashboard (ticket 005) arma su vista con `armarVistaDelDashboard`; sin base en
 // los tests se mockea para poder mirar CON QUE lo llama cada rol.
@@ -81,6 +95,12 @@ vi.mock("@/lib/catalogo/plataformas", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/catalogo/plataformas")>()),
   plataformasDePago: () => ({ listar: listarVacio }),
 }));
+// La pagina de recursos (ticket 023) ofrece las categorias ACTIVAS en su formulario;
+// se mockea `.listar()` preservando el esquema zod que el resto del modulo exporta.
+vi.mock("@/lib/catalogo/categorias-recurso", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/catalogo/categorias-recurso")>()),
+  categoriasDeRecurso: () => ({ listar: listarVacio }),
+}));
 
 /** El `redirect` real interrumpe el render lanzando. El mock imita eso. */
 class Redireccion extends Error {
@@ -102,10 +122,13 @@ const sesionCloser = { user: { id: "u-2", email: "closer@retia.co", rol: "closer
 beforeEach(() => {
   auth.mockReset();
   redirect.mockReset();
+  permanentRedirect.mockReset();
   notFound.mockReset();
   programaActivoPorSlug.mockReset();
   programasActivos.mockReset();
   programaPorSlug.mockReset();
+  programasParaRecursos.mockReset();
+  programasParaRecursos.mockResolvedValue([]);
   listarCohortes.mockReset();
   listarCohortes.mockResolvedValue([]);
   programasGestionablesPorUsuario.mockReset();
@@ -117,12 +140,23 @@ beforeEach(() => {
   listarVacio.mockClear();
   historialDePersona.mockReset();
   historialDePersona.mockResolvedValue(HISTORIAL_VACIO);
+  recursosVigentes.mockReset();
+  recursosVigentes.mockResolvedValue([]);
+  enlacesDePagoVigentes.mockReset();
+  enlacesDePagoVigentes.mockResolvedValue([]);
+  historialDeRecurso.mockReset();
+  historialDeRecurso.mockResolvedValue([]);
   armarVistaDelDashboard.mockReset();
   armarVistaDelDashboard.mockResolvedValue(VISTA_VACIA);
   // Por defecto, un gerente rechazado de una pagina de closer aterriza en su primer
   // programa activo. `destinoInicial("gerente")` consulta esta lista.
   programasActivos.mockResolvedValue([{ slug: "programa-a", nombre: "Programa A" }]);
   redirect.mockImplementation((destino: string) => {
+    throw new Redireccion(destino);
+  });
+  // `permanentRedirect` corta el render igual que `redirect`; se reconoce por el
+  // mismo destino para que `destinoDe` lo reporte (documentos -> recursos).
+  permanentRedirect.mockImplementation((destino: string) => {
     throw new Redireccion(destino);
   });
   notFound.mockImplementation(() => {
@@ -357,6 +391,66 @@ describe("pagina de productos /productos (ADR 0016)", () => {
   it("manda al login a quien no tiene sesion", async () => {
     auth.mockResolvedValue(null);
     expect(await destinoDe(RUTA)).toBe("/login");
+  });
+});
+
+describe("pagina de recursos /recursos (ticket 023)", () => {
+  const RUTA = "@/app/(app)/recursos/page";
+
+  /** La pagina de recursos recibe `searchParams` (filtro por URL, ADR 0023). */
+  async function correrRecursos(
+    busqueda: Record<string, string> = {},
+  ): Promise<string | null> {
+    const modulo = (await import(/* @vite-ignore */ RUTA)) as {
+      default: (props: {
+        searchParams: Promise<Record<string, string | string[] | undefined>>;
+      }) => Promise<unknown>;
+    };
+    try {
+      await modulo.default({ searchParams: Promise.resolve(busqueda) });
+      return null;
+    } catch (e) {
+      if (e instanceof Redireccion) return e.destino;
+      throw e;
+    }
+  }
+
+  it("deja pasar a un gerente (lee y administra)", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    expect(await correrRecursos()).toBeNull();
+  });
+
+  it("deja pasar a un closer (ambos roles leen, ADR 0009)", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    expect(await correrRecursos()).toBeNull();
+  });
+
+  it("manda al login a quien no tiene sesion", async () => {
+    auth.mockResolvedValue(null);
+    expect(await correrRecursos()).toBe("/login");
+  });
+
+  it("el filtro de la URL (programa y titulo) llega a la consulta", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    programasParaRecursos.mockResolvedValue([
+      { id: "p-1", slug: "comunicarte", nombre: "Comunicarte" },
+    ]);
+    expect(await correrRecursos({ programa: "comunicarte", q: "brochure" })).toBeNull();
+    expect(recursosVigentes).toHaveBeenCalled();
+    // El slug se resolvio al uuid del programa y ambos filtros llegaron a la consulta.
+    expect(recursosVigentes.mock.calls.at(-1)![0]).toMatchObject({
+      programId: "p-1",
+      q: "brochure",
+    });
+  });
+});
+
+describe("pagina de documentos /documentos redirige a /recursos (ticket 023)", () => {
+  const RUTA = "@/app/(app)/documentos/page";
+
+  it("redirige permanentemente a /recursos", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    expect(await destinoDe(RUTA)).toBe("/recursos");
   });
 });
 

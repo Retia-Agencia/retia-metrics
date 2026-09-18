@@ -24,6 +24,21 @@ export async function programasActivos(
 }
 
 /**
+ * Programas activos con id, slug y nombre, para la pantalla de recursos (ticket 023).
+ * El slug va a la URL del filtro (id opaco, ADR 0023) y el uuid lo usan los
+ * formularios de creacion. Los programas salen de la base (ADR 0012).
+ */
+export async function programasParaRecursos(
+  db: Db = dbDeLaApp,
+): Promise<{ id: string; slug: string; nombre: string }[]> {
+  return db
+    .select({ id: programs.id, slug: programs.slug, nombre: programs.nombre })
+    .from(programs)
+    .where(eq(programs.activo, true))
+    .orderBy(asc(programs.nombre));
+}
+
+/**
  * Programas activos con su id, para asignar closers a programas (ticket 015). La
  * membresia guarda el `programId` (uuid), asi que la pantalla necesita el id, no el
  * slug. Los programas salen de la base (ADR 0012): ningun literal en el codigo.

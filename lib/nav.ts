@@ -3,7 +3,7 @@ import type { Rol } from "@/lib/auth/roles";
 export type ItemNav = {
   href: string;
   etiqueta: string;
-  icono: "programa" | "documentos" | "ajustes" | "midia" | "productos";
+  icono: "programa" | "recursos" | "ajustes" | "midia" | "productos";
   roles: readonly Rol[];
 };
 
@@ -41,8 +41,9 @@ export function navParaRol(
   // un closer puede tocar; su acceso por programa se enforza en el servidor.
   items.push({ href: "/productos", etiqueta: "Productos", icono: "productos", roles: ["gerente", "closer"] });
 
-  // Documentos: ambos roles.
-  items.push({ href: "/documentos", etiqueta: "Documentos", icono: "documentos", roles: ["gerente", "closer"] });
+  // Recursos: ambos roles leen (brochures y links de pago vigentes). Solo el gerente
+  // ve los controles de edicion, y eso se decide en el servidor (ticket 023).
+  items.push({ href: "/recursos", etiqueta: "Recursos", icono: "recursos", roles: ["gerente", "closer"] });
 
   // Ajustes: solo el gerente.
   if (rol === "gerente") {

@@ -59,6 +59,15 @@ describe("navegacion por rol", () => {
     expect(rutasGerente).toContain("/productos");
   });
 
+  it("ambos roles ven /recursos y ya no /documentos (ticket 023)", () => {
+    const rutasCloser = navParaRol("closer", PROGRAMAS).map((i) => i.href);
+    const rutasGerente = navParaRol("gerente", PROGRAMAS).map((i) => i.href);
+    expect(rutasCloser).toContain("/recursos");
+    expect(rutasGerente).toContain("/recursos");
+    expect(rutasCloser).not.toContain("/documentos");
+    expect(rutasGerente).not.toContain("/documentos");
+  });
+
   it("un programa insertado en la lista aparece en la nav", () => {
     const conNuevo = [...PROGRAMAS, { slug: "programa-c", nombre: "Programa C" }];
     const rutas = navParaRol("gerente", conNuevo).map((i) => i.href);

@@ -7,6 +7,52 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-17 (cierre 3) — Ticket 023: la pantalla `/recursos`. F3 cerrada. Sin migracion.**
+
+  **Siguiente sesión:** con esto F1, F2 y F3 quedan cerradas salvo el **007** (operación) y el
+  **021** (bloqueado por decisión). Lo siguiente con código es **F4**: el **024** (rol developer),
+  que tiene avance parcial **sin revisar** en `git stash` ("wip 024 rol developer"), y detrás el
+  **025**. También sigue abierto el **016**, que puede esperar.
+
+  **Código** (444 tests, typecheck, lint y build limpios). Lo implementó Kiro; la sesión principal
+  revisó y corrió los cuatro loops:
+  - `/recursos` con filtro por programa (incluye "Todos") y búsqueda por título, enlaces de pago
+    agrupados por programa y producto, copiar/abrir e historial desplegable.
+  - `/documentos` pasa a ser un `permanentRedirect` a `/recursos`; no había nada que conservar (era
+    un `ProximaFase`). El ítem del sidebar se renombró a "Recursos" en `lib/nav.ts`, y con él la
+    clave del icono en `components/app-sidebar.tsx`.
+  - `lib/queries/recursos.ts` (solo SELECT) con los nombres de categoría y programa ya resueltos, y
+    el historial por la cadena de `reemplazaA`.
+
+  **Decisiones:**
+  - **El filtro VA en la URL, al contrario que el buscador de `/mi-dia`.** No es incoherencia: allá
+    lo que se teclea es el nombre o correo de un lead (dato personal, prohibido en query strings por
+    `AGENTS.md`); el título de un brochure no lo es, así que aquí gana que el filtro sea compartible
+    y recargable (ADR 0023). El programa viaja por **slug**, no por uuid.
+  - **Leer lo pueden los dos roles; escribir solo el gerente.** No es como `/productos` (ADR 0016,
+    específico de productos). Las seis acciones pasan por `requireRole("gerente")` y hay test de que
+    un closer recibe `ok:false` en las seis: la barrera es de servidor, no un botón escondido.
+  - Un recurso global (`programId` nulo) aparece con cualquier filtro de programa, con test.
+
+  **Lo que NO se verificó, y es un criterio del ticket:** "en celular se usa sin scroll horizontal".
+  El marcado se construyó mobile-first (sin tablas, sin anchos fijos, URLs con `break-all`) y se
+  revisó por inspección, pero **nadie lo abrió en un teléfono**. Queda marcado `[~]` en el ticket,
+  no `[x]`. Un test no ve un layout roto.
+
+  **Nota de proceso:** Kiro notificó **tres veces**; las dos primeras sin reporte (avisos vacíos) y
+  la tercera con el reporte completo, ya terminada la verificación de la sesión principal. Y siguió
+  editando después de la primera notificación: un `npm run lint` corrido en ese momento reportó un
+  warning (`plataformas` sin usar) que minutos después ya no existía, porque Kiro estaba cambiando
+  ese formulario. **Una notificación no es señal de que el árbol esté quieto: hay que confirmar que
+  el agente está `completed` antes de verificar**, o se verifica un estado que todavía se mueve. La
+  verificación independiente de la sesión principal coincidió con el reporte cuando este llegó.
+
+  **Deuda menor detectada, no arreglada:** `lib/queries/programas.ts` tiene ya tres funciones que
+  significan "programas activos" y solo difieren en las columnas que proyectan (`programasActivos`,
+  `programasActivosParaAsignar`, `programasParaRecursos`). No es un riesgo de corrección —no hay
+  ninguna cifra derivada que se pueda desincronizar, que es lo que cubre el ADR 0024— pero es
+  propenso a seguir creciendo. Candidato a consolidar en una sola con proyección explícita.
+
 - **2026-09-17 (cierre 2) — Ticket 022: recursos y enlaces de pago. Migracion 0011 en `dev` Y en
   `production`.**
 

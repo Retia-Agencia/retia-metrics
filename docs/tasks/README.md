@@ -52,7 +52,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 022 | [Recursos + enlaces de pago](./022-recursos-y-enlaces-de-pago.md) | 011, 017 | done · 17-sep (migración 0011 en `dev` y `production`; enlaces reales sin cargar) |
-| [ ] | 023 | [Pantalla de Recursos](./023-pantalla-de-recursos.md) | 022 | todo |
+| [x] | 023 | [Pantalla de Recursos](./023-pantalla-de-recursos.md) | 022 | done · 17-sep (`/recursos`; `/documentos` redirige; sin migración; falta revisión visual en celular) |
 
 ## F4 · Nerd Stats
 
