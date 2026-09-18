@@ -7,6 +7,62 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-17 (noche) — Ticket 003: `/mi-dia` deja de ser un `ProximaFase`. Sin migración,
+  sin mutaciones nuevas.**
+
+  **Siguiente sesión:** **006** (historial de una persona), que ya tenía su dependencia (005)
+  cerrada. Sigue pendiente la prueba de login real, lo único que no se puede verificar desde acá.
+
+  **Código** (371 tests, typecheck y lint limpios; un solo commit). Lo implementó Kiro con TDD; la
+  sesión principal revisó contra el "Done cuando" y corrió los tres loops:
+  - **La pantalla no escribe nada por su cuenta.** Todo lo que toca la base ya existía: 002
+    (`registrarLlamada`), 019 (`registrarAbono`), 026 (`asignarResponsable`, `crearPersonaManual`).
+    El ticket aportó lectura, UI y server actions. `lib/db/schema.ts` y `lib/mutations/*` quedaron
+    intactos.
+  - `lib/queries/personas.ts` (solo SELECT): `buscarPersonas` acotada a los programas donde el
+    closer tiene membresía **activa** (mismo join que `programasGestionablesPorUsuario`), ILIKE
+    sobre nombre y correo con los comodines escapados, mínimo 2 caracteres y tope de 20 filas;
+    `ventasDePersona` con lo abonado y el saldo **calculados en SQL sobre `numeric`** y devueltos
+    como texto, igual que `saldoDeVenta` (el dinero nunca pasa por un float de JS).
+  - `app/(app)/mi-dia/acciones.ts`: seis acciones, **todas con `requireRole("closer")`**, incluida
+    la de tomar persona. `asignarResponsable` acepta gerente, pero esta pantalla es del closer
+    (ADR 0003) y la barrera se declara en la ruta. Resultado serializable, nunca se lanza al
+    cliente (patrón de `productos/acciones.ts`).
+  - `components/mi-dia-registro.tsx`: buscador, alta manual, formulario con los campos
+    condicionales de la tabla del ADR 0015, y abonos sobre las ventas existentes. Reusa
+    `ProductoCrearEnLinea` tal cual (se escribió en el 017 pensando en esta pantalla). Los montos
+    salen por `monto(valor, moneda)` y las fechas por `fecha(iso)`: nada formateado a mano.
+
+  **Dos decisiones que tomó la sesión principal antes de delegar, para que no se inventaran:**
+  - **El texto del buscador NO va a la URL.** Un correo o un nombre en un query string viola
+    "ningún dato personal en URLs" de `AGENTS.md`. La búsqueda es una server action con el texto
+    en estado local. No contradice el ADR 0023 (el filtro del dashboard sí vive en la URL): allá
+    lo que viaja es un `closerId` y un preset de rango, no el dato de un lead.
+  - **Las fechas del formulario se anclan al MEDIODÍA de Bogotá** (`T12:00:00-05:00`), en la
+    acción y no en la mutación (que pide `z.date()` y no se toca). Con `new Date('2026-09-20')`
+    —medianoche UTC— el día se lee como 19 en Bogotá y un compromiso de pago quedaría registrado
+    un día antes del prometido. Hay test que lo fija leyendo la fila en `America/Bogota`.
+
+  **Base de datos:** sin cambios. Ninguna migración nueva, ninguna escritura en `production`.
+
+  **Verificado / no verificado:** `npm test` (371), typecheck y lint, corridos por la sesión
+  principal además de por Kiro. **No** se abrió en el navegador: la página exige sesión de Google.
+
+  **Dos costuras conocidas, ninguna introducida por este ticket:**
+  - El botón de confirmar sobrepago se activa detectando la palabra "sobrepago" en el mensaje de
+    error de `registrarAbono`. Si alguien reescribe ese mensaje, el flujo de confirmación
+    desaparece sin que nada falle. Se hizo así porque la mutación devuelve un string y este ticket
+    no podía tocarla; el día que moleste, la mutación necesita un código de error, no la UI otra
+    regex.
+  - `ventasDePersonaAccion` y `registrarAbonoAccion` reciben un id y no comprueban membresía en el
+    programa. Es exactamente lo que ya hacen el dashboard (`/programas/[slug]` abre a cualquier
+    closer, ADR 0009) y `registrarAbono` desde el 019: es la política vigente, no un hueco nuevo.
+    Si alguna vez se decide acotar por membresía, se decide para los tres a la vez.
+
+  **Fuera del 003 a propósito:** seleccionar automáticamente el producto recién creado en línea.
+  `crearProductoAccion` no devuelve el id del producto nuevo y cambiarla estaba fuera de alcance;
+  hoy se refresca la lista y el closer lo elige.
+
 - **2026-09-17 (tarde) — Ticket 005: el dashboard real en pantalla, con metricas individuales por
   closer. ADR 0023. Sin migracion.**
 

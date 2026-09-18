@@ -3,7 +3,7 @@ id: 003
 fase: F1
 serves: "spec §4 pasos 1-4; criterio 1"
 depends: [002, 019, 015, 026]
-status: todo
+status: done
 ---
 
 # 003 — Pantalla de /mi-dia: buscar persona, registrar llamada, venta y abonos
@@ -23,11 +23,11 @@ venta con su primer abono; también puede registrar un abono nuevo sobre una ven
 - Fuera: dashboard (005), historial completo (006), recordatorios.
 
 ## Done cuando
-- [ ] El closer encuentra una persona sincronizada de sus programas.
-- [ ] Cada resultado muestra solo sus campos (tabla del ADR 0015).
-- [ ] Guarda vía server action con `requireRole("closer")` (el gerente no registra, ADR 0003).
-- [ ] Solo muestra productos, plataformas, motivos y orígenes activos.
-- [ ] Tras guardar, el formulario se limpia y confirma.
+- [x] El closer encuentra una persona sincronizada de sus programas.
+- [x] Cada resultado muestra solo sus campos (tabla del ADR 0015).
+- [x] Guarda vía server action con `requireRole("closer")` (el gerente no registra, ADR 0003).
+- [x] Solo muestra productos, plataformas, motivos y orígenes activos.
+- [x] Tras guardar, el formulario se limpia y confirma.
 
 ## Notas
 Los montos se muestran con su moneda al lado.

@@ -49,9 +49,33 @@ const listarCohortes = vi.fn();
 vi.mock("@/lib/catalogo/cohortes", () => ({ listarCohortes }));
 
 // La pagina de productos (ADR 0016) lee los productos de cada programa; sin base en
-// los tests, se mockea la lectura para probar solo las guardas.
+// los tests, se mockea la lectura para probar solo las guardas. `/mi-dia` (ticket
+// 003) tambien lee `productosActivos` del mismo modulo.
 const listarProductos = vi.fn();
-vi.mock("@/lib/catalogo/productos", () => ({ listarProductos }));
+const productosActivos = vi.fn();
+vi.mock("@/lib/catalogo/productos", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/catalogo/productos")>()),
+  listarProductos,
+  productosActivos,
+}));
+
+// `/mi-dia` (ticket 003) ofrece solo los catalogos ACTIVOS. Sin base en los tests se
+// mockea `.listar()` de cada catalogo para que la guarda de rol sea lo unico bajo
+// prueba, pero se preservan los demas exports (esquemas zod) que otras paginas
+// (`/ajustes/catalogos`) importan del mismo modulo.
+const listarVacio = vi.fn(async () => []);
+vi.mock("@/lib/catalogo/motivos", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/catalogo/motivos")>()),
+  motivos: () => ({ listar: listarVacio }),
+}));
+vi.mock("@/lib/catalogo/origenes", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/catalogo/origenes")>()),
+  origenes: () => ({ listar: listarVacio }),
+}));
+vi.mock("@/lib/catalogo/plataformas", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/catalogo/plataformas")>()),
+  plataformasDePago: () => ({ listar: listarVacio }),
+}));
 
 /** El `redirect` real interrumpe el render lanzando. El mock imita eso. */
 class Redireccion extends Error {
@@ -83,6 +107,9 @@ beforeEach(() => {
   programasGestionablesPorUsuario.mockResolvedValue([]);
   listarProductos.mockReset();
   listarProductos.mockResolvedValue([]);
+  productosActivos.mockReset();
+  productosActivos.mockResolvedValue([]);
+  listarVacio.mockClear();
   armarVistaDelDashboard.mockReset();
   armarVistaDelDashboard.mockResolvedValue(VISTA_VACIA);
   // Por defecto, un gerente rechazado de una pagina de closer aterriza en su primer
@@ -336,6 +363,13 @@ describe("pagina de closer", () => {
   it("/mi-dia manda al login a quien no tiene sesion", async () => {
     auth.mockResolvedValue(null);
     expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/login");
+  });
+
+  it("/mi-dia deja pasar a un closer (ticket 003)", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    // Un closer con un programa donde vende: la pagina arma su contexto y renderiza.
+    programasGestionablesPorUsuario.mockResolvedValue([{ id: "p-1", nombre: "Programa A" }]);
+    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBeNull();
   });
 });
 
