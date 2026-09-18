@@ -17,9 +17,17 @@ import path from "node:path";
  * lo dijo, pero se sostenia solo en la revision. Este guardian lo recorre.
  *
  * **DOS formas de la misma falta:**
- *   A. Comparar el rol de la sesion con un literal: `session.user.rol === "closer"`
- *      (`===`, `!==`, `==`, `!=`, en cualquier orden). Es la forma de las tres copias
- *      viejas ya arregladas.
+ *   A. **Comparar CUALQUIER rol con un literal**: `session.user.rol === "closer"`,
+ *      pero tambien `actor.rol === "closer"`, `u.rol === "gerente"` o `fila.rol !=
+ *      "developer"` (`===`, `!==`, `==`, `!=`, en cualquier orden). Antes esta forma
+ *      exigia `.user` antes de `.rol`, razonando que un rol ya proyectado por
+ *      `rolDeVista` era inocuo. **Era el tercer punto ciego del guardian en un dia**
+ *      (ticket 032): venir proyectado dice de DONDE salio el valor, no si compararlo
+ *      con un literal excluye al developer, que es exactamente lo que el ADR 0025
+ *      punto 5 prohibe. El bug de `crearPersonaManual` (`actor.rol !== "closer"`
+ *      dejaba al developer en vista `todo` sin poder crear) paso por ese hueco. Ahora
+ *      CUALQUIER `.rol` comparado con un literal de rol es forma A; los pocos usos
+ *      legitimos van en `EXCEPCIONES_FORMA_A`, nombrados y justificados.
  *   B. **Pasar `session.user.rol` SIN PROYECTAR como valor** (a una funcion que decide
  *      alcance/permiso —`buscarPersonas`, `esAdministrador`, un `actorDe`—, o
  *      devolverlo). No es una comparacion literal, es usar el valor crudo. Es la clase
@@ -28,20 +36,23 @@ import path from "node:path";
  *
  * Como casi todo el codigo proyectado usa `rolDeVista(session)` (que NO menciona
  * `.user.rol`), la forma B se detecta simplemente: cualquier `.user.rol` en el codigo
- * de `app/` o `lib/` es sospechoso, salvo las EXCEPCIONES EXPLICITAS de abajo. Esto es
- * mas amplio que "pasarlo a una funcion" a proposito: tambien caza asignarlo, guardarlo
- * en una variable o devolverlo, que son las mismas maneras de saltarse la proyeccion.
+ * de `app/`, `lib/` o `scripts/` es sospechoso, salvo las EXCEPCIONES EXPLICITAS de
+ * abajo. Esto es mas amplio que "pasarlo a una funcion" a proposito: tambien caza
+ * asignarlo, guardarlo en una variable o devolverlo, que son las mismas maneras de
+ * saltarse la proyeccion.
  *
  * Mismo molde que el guardian de slugs (`tests/contrato-extension.test.ts`) y el de
  * vigencia (`tests/vigencia-centralizada.test.ts`): analisis de texto sobre el arbol
- * real —con los comentarios y las cadenas borrados, para no gritar por la prosa que
- * menciona `session.user.rol`—, mas una prueba aparte de que el detector no es trivial.
+ * real. La forma A se busca sobre la fuente SIN COMENTARIOS pero CON cadenas (el
+ * literal de rol es justo lo que hay que ver); la forma B, sobre la fuente con
+ * comentarios Y cadenas borrados (para no gritar por la prosa que menciona
+ * `session.user.rol`). Mas una prueba aparte de que el detector no es trivial.
  */
 
 const RAIZ = fileURLToPath(new URL("../", import.meta.url));
 
-/** Se recorren `app/` (paginas y acciones) Y `lib/` (mutaciones y queries). */
-const DIRECTORIOS = ["app", "lib"];
+/** Se recorren `app/` (paginas y acciones), `lib/` (mutaciones y queries) Y `scripts/`. */
+const DIRECTORIOS = ["app", "lib", "scripts"];
 
 const EXTENSIONES = new Set([".ts", ".tsx"]);
 
@@ -95,6 +106,28 @@ const EXCEPCIONES: Record<string, string> = {
 };
 
 /**
+ * EXCEPCIONES DE LA FORMA A: los unicos sitios donde comparar un `.rol` (de la
+ * variable que sea, no solo `session.user.rol`) contra un literal de rol es legitimo,
+ * cada uno nombrado y justificado. Una comparacion literal NO tiene lectura inocente
+ * por defecto —excluir al developer es justo lo que el ADR 0025 punto 5 prohibe—, asi
+ * que lo que caiga aca tiene que argumentar por que NO le quita nada al developer.
+ *
+ * Es un mapa aparte del de la forma B a proposito: leer `session.user.rol` como
+ * identidad (forma B) y comparar un rol proyectado con un literal (forma A) son faltas
+ * distintas y se justifican distinto, y el detector de forma A se prueba sobre un arbol
+ * de mentira sin estas excepciones.
+ */
+const EXCEPCIONES_FORMA_A: Record<string, string> = {
+  // Validacion de FORMULARIO, no autorizacion de un actor: el esquema zod de usuarios
+  // pregunta si el rol que se le ESTA ASIGNANDO a una cuenta nueva exige closer_id y
+  // programa. `datos.rol` es el rol que entra por el formulario, no el de una sesion
+  // que actua; la rama no le niega nada al developer (a el se le cargan sus datos por
+  // otra via, ticket 028). Es una definicion de que campos pide cada rol, no una reja.
+  [path.join("lib", "catalogo", "usuarios.ts")]:
+    "validacion de formulario: que campos exige el rol que se asigna, no autorizacion de un actor",
+};
+
+/**
  * Reemplaza comentarios y cadenas por espacios, conservando saltos de linea (para que
  * los numeros de linea sigan siendo los del archivo). Necesario porque este repo
  * comenta en espanol y `session.user.rol` aparece en la prosa por todas partes.
@@ -142,20 +175,75 @@ function limpiar(fuente: string): string {
 }
 
 /**
- * Forma A: comparacion del ROL DE LA SESION contra un literal de rol. Exige `.user`
- * antes de `.rol` (`session.user.rol`, `session?.user?.rol`): asi NO confunde
- * `actor.rol === "closer"` —donde `actor` ya lo armo la accion con `rolDeVista`, es
- * un rol ya proyectado— ni `datos.rol` de un formulario de usuarios, que no es la
- * sesion. La regla es sobre el rol crudo de la sesion, no sobre cualquier `.rol`.
+ * Como `limpiar`, pero CONSERVA las cadenas: solo borra los comentarios. La forma A
+ * necesita ver el literal de rol (`"closer"`) para reconocer la comparacion, asi que
+ * no se puede correr sobre la fuente con las cadenas blanqueadas; pero SI hay que
+ * borrar los comentarios, o cualquier prosa que escriba `actor.rol === "closer"` (como
+ * la que documenta este mismo guardian y las mutaciones de personas) saldria como
+ * violacion. Antes la forma A corria sobre el crudo porque exigia `.user.rol` y esa
+ * cadena casi no aparece en prosa; al abrirla a cualquier `.rol` (ticket 032) hay que
+ * quitar los comentarios de verdad.
  */
-function comparacionesLiteral(crudo: string): number[] {
+function sinComentarios(fuente: string): string {
+  const salida: string[] = [];
+  let estado: "codigo" | "linea" | "bloque" | "simple" | "doble" | "template" = "codigo";
+  let i = 0;
+  const blanco = (c: string) => (c === "\n" ? "\n" : " ");
+
+  while (i < fuente.length) {
+    const c = fuente[i];
+    const par = fuente.slice(i, i + 2);
+
+    if (estado === "codigo") {
+      if (par === "//") { estado = "linea"; salida.push(" ", " "); i += 2; continue; }
+      if (par === "/*") { estado = "bloque"; salida.push(" ", " "); i += 2; continue; }
+      if (c === "'") { estado = "simple"; salida.push(c); i += 1; continue; }
+      if (c === '"') { estado = "doble"; salida.push(c); i += 1; continue; }
+      if (c === "`") { estado = "template"; salida.push(c); i += 1; continue; }
+      salida.push(c); i += 1; continue;
+    }
+    if (estado === "linea") {
+      if (c === "\n") estado = "codigo";
+      salida.push(blanco(c)); i += 1; continue;
+    }
+    if (estado === "bloque") {
+      if (par === "*/") { estado = "codigo"; salida.push(" ", " "); i += 2; continue; }
+      salida.push(blanco(c)); i += 1; continue;
+    }
+    // Dentro de una cadena las conservamos tal cual (incluido lo que parezca un
+    // comentario): un `//` dentro de un string no abre un comentario.
+    if (estado === "simple" || estado === "doble") {
+      if (c === "\\") { salida.push(c, fuente[i + 1] ?? ""); i += 2; continue; }
+      if ((estado === "simple" && c === "'") || (estado === "doble" && c === '"')) estado = "codigo";
+      salida.push(c); i += 1; continue;
+    }
+    // template
+    if (c === "\\") { salida.push(c, fuente[i + 1] ?? ""); i += 2; continue; }
+    if (c === "`") { estado = "codigo"; }
+    salida.push(c); i += 1;
+  }
+  return salida.join("");
+}
+
+/**
+ * Forma A: comparacion de CUALQUIER `.rol` contra un literal de rol —`session.user.rol
+ * === "closer"`, pero tambien `actor.rol === "closer"`, `u.rol === "gerente"`,
+ * `fila.rol != "developer"`— en cualquiera de los dos ordenes. Ya NO exige `.user`:
+ * venir de un rol proyectado por `rolDeVista` no vuelve inocua la comparacion literal
+ * (ticket 032). `datos.rol` de un formulario tambien cae, y por eso hay
+ * `EXCEPCIONES_FORMA_A` para el unico caso legitimo. Se corre sobre la fuente sin
+ * comentarios (pero con cadenas), asi que la prosa no dispara.
+ */
+function comparacionesLiteral(sinComs: string): number[] {
   const rolLit = ROLES.join("|");
-  const usuario = `[A-Za-z_$][\\w$]*\\s*\\??\\s*\\.\\s*user\\s*\\??\\s*\\.\\s*rol`;
+  // Un acceso a `.rol` sobre cualquier cadena de identificadores/propiedades, con `?.`
+  // opcional: `x.rol`, `session.user.rol`, `session?.user?.rol`, `fila?.rol`.
+  const acceso = `[A-Za-z_$][\\w$]*(?:\\s*\\??\\s*\\.\\s*[A-Za-z_$][\\w$]*)*\\s*\\??\\s*\\.\\s*rol`;
   const patrones = [
-    new RegExp(`${usuario}\\s*(===|!==|==|!=)\\s*["'](${rolLit})["']`),
-    new RegExp(`["'](${rolLit})["']\\s*(===|!==|==|!=)\\s*${usuario}`),
+    new RegExp(`${acceso}\\s*(===|!==|==|!=)\\s*["'](${rolLit})["']`),
+    new RegExp(`["'](${rolLit})["']\\s*(===|!==|==|!=)\\s*${acceso}`),
   ];
-  const lineas = crudo.split("\n");
+  const lineas = sinComs.split("\n");
   const hits: number[] = [];
   lineas.forEach((linea, i) => {
     if (patrones.some((p) => p.test(linea))) hits.push(i + 1);
@@ -190,25 +278,31 @@ function archivosDeCodigo(dir: string): string[] {
 }
 
 /**
- * Recorre `app/` y `lib/` y devuelve las violaciones: comparaciones literales (forma A)
- * y usos crudos de `session.user.rol` (forma B) que no esten en las excepciones.
- * Las excepciones se pasan aparte para poder probar el detector sobre un arbol de
- * mentira sin las excepciones reales.
+ * Recorre `app/`, `lib/` y `scripts/` y devuelve las violaciones: comparaciones
+ * literales (forma A) y usos crudos de `session.user.rol` (forma B) que no esten en
+ * sus respectivas excepciones. Las dos tablas de excepciones se pasan aparte para
+ * poder probar el detector sobre un arbol de mentira sin las excepciones reales.
  */
-function violaciones(raiz: string, excepciones: Record<string, string>): string[] {
+function violaciones(
+  raiz: string,
+  excepciones: Record<string, string>,
+  excepcionesFormaA: Record<string, string>,
+): string[] {
   const fuera: string[] = [];
   for (const dir of DIRECTORIOS) {
     for (const archivo of archivosDeCodigo(path.join(raiz, dir))) {
       const ruta = path.relative(raiz, archivo);
       const eximido = ruta in excepciones;
+      const eximidoFormaA = ruta in excepcionesFormaA;
       const crudo = fs.readFileSync(archivo, "utf8");
       const limpio = limpiar(crudo);
 
-      // Forma A no se exime NUNCA: una comparacion literal no tiene lectura legitima.
-      // Se detecta sobre el CRUDO: el literal de rol (`"closer"`) es justo lo que
-      // `limpiar` borraria, y la comparacion `.rol === "closer"` es inequivoca aunque
-      // aparezca en una linea que tambien tiene prosa (raro, y del lado seguro).
-      const lineasFormaA = new Set(comparacionesLiteral(crudo));
+      // Forma A: se detecta sobre la fuente SIN COMENTARIOS pero CON cadenas (hay que
+      // ver el literal `"closer"`). Se exime solo por `EXCEPCIONES_FORMA_A`, nombradas:
+      // una comparacion literal no es inocente por venir de un rol proyectado (032).
+      const lineasFormaA = new Set(
+        eximidoFormaA ? [] : comparacionesLiteral(sinComentarios(crudo)),
+      );
       for (const linea of lineasFormaA) {
         fuera.push(`${ruta}:${linea}: compara el rol con un literal (forma A)`);
       }
@@ -232,21 +326,25 @@ describe("rol de vista centralizado (ticket 028, ADR 0028)", () => {
     expect(typeof modulo.rolDeVista).toBe("function");
   });
 
-  it("nadie en app/ ni lib/ decide por session.user.rol crudo (salvo excepciones nombradas)", () => {
-    const fuera = violaciones(RAIZ, EXCEPCIONES);
+  it("nadie en app/, lib/ ni scripts/ decide por session.user.rol crudo ni compara un rol con un literal (salvo excepciones nombradas)", () => {
+    const fuera = violaciones(RAIZ, EXCEPCIONES, EXCEPCIONES_FORMA_A);
     expect(
       fuera,
-      `El ticket 028 exige decidir con rolDeVista, no con session.user.rol crudo ` +
-        `(fue la causa del hueco de /recursos y de tres mas). Arregla, o si es un uso ` +
-        `de identidad legitimo, agregalo a EXCEPCIONES con su justificacion:\n` +
+      `El ticket 028 exige decidir con rolDeVista, no con session.user.rol crudo, y el ` +
+        `032 prohibe comparar CUALQUIER .rol con un literal (fue el bug del developer ` +
+        `sin poder crear persona). Arregla usando un predicado de lib/auth/roles.ts, o ` +
+        `si es un uso legitimo agregalo a EXCEPCIONES (identidad) o EXCEPCIONES_FORMA_A ` +
+        `(comparacion) con su justificacion:\n` +
         fuera.join("\n"),
     ).toEqual([]);
   });
 
   it("las excepciones nombradas existen y estan justificadas", () => {
-    for (const [ruta, motivo] of Object.entries(EXCEPCIONES)) {
-      expect(fs.existsSync(path.join(RAIZ, ruta)), `la excepcion ${ruta} ya no existe`).toBe(true);
-      expect(motivo.length, `la excepcion ${ruta} necesita justificacion`).toBeGreaterThan(10);
+    for (const mapa of [EXCEPCIONES, EXCEPCIONES_FORMA_A]) {
+      for (const [ruta, motivo] of Object.entries(mapa)) {
+        expect(fs.existsSync(path.join(RAIZ, ruta)), `la excepcion ${ruta} ya no existe`).toBe(true);
+        expect(motivo.length, `la excepcion ${ruta} necesita justificacion`).toBeGreaterThan(10);
+      }
     }
   });
 
@@ -259,19 +357,31 @@ describe("rol de vista centralizado (ticket 028, ADR 0028)", () => {
     fs.rmSync(tmp, { recursive: true, force: true });
   });
 
-  it("detecta forma A y forma B, respeta rolDeVista, las excepciones y la prosa", () => {
+  it("detecta forma A (cualquier .rol) y forma B, respeta rolDeVista, ambas excepciones, scripts/ y la prosa", () => {
     const app = path.join(tmp, "app");
     const lib = path.join(tmp, "lib");
+    const scripts = path.join(tmp, "scripts");
     fs.mkdirSync(app, { recursive: true });
     fs.mkdirSync(lib, { recursive: true });
+    fs.mkdirSync(scripts, { recursive: true });
 
-    // Forma A: comparacion literal (dos variantes de orden).
+    // Forma A: comparacion literal, dos variantes de orden, y —lo nuevo del 032— NO
+    // solo `session.user.rol`: tambien `actor.rol` (rol ya proyectado) y `u.rol`.
     fs.writeFileSync(
       path.join(app, "forma-a.ts"),
       [
         'const a = session.user.rol === "closer" ? "closer" : "gerente";',
         'const b = "developer" !== session.user.rol;',
+        'if (actor.rol === "closer") registrar();',
+        'const d = u.rol != "gerente";',
       ].join("\n"),
+    );
+
+    // Forma A en scripts/: el guardian ahora recorre ese directorio (hallazgo del 032,
+    // la salvaguarda del ultimo administrador comparaba `u.rol === "gerente"`).
+    fs.writeFileSync(
+      path.join(scripts, "cli.ts"),
+      ['if (existe.rol === "gerente") frenar();'].join("\n"),
     );
 
     // Forma B: uso crudo pasado a una funcion o devuelto.
@@ -284,42 +394,61 @@ describe("rol de vista centralizado (ticket 028, ADR 0028)", () => {
       ].join("\n"),
     );
 
-    // Limpio: usa rolDeVista y variables ya proyectadas. Nada de esto es `.user.rol`.
+    // Limpio: usa rolDeVista, predicados y variables ya proyectadas. `rol === "closer"`
+    // (sin `.rol`) NO es forma A: no hay acceso a la propiedad `.rol`. `esAdministrador`
+    // y `trabajaLeads` son la forma correcta de preguntar por capacidad.
     fs.writeFileSync(
       path.join(app, "limpio.ts"),
       [
         "const rol = await rolDeVista(session);",
         'const c = rol === "closer" ? "closer" : "gerente";',
         "const admin = esAdministrador(rol);",
+        "if (!trabajaLeads(actor.rol)) throw new Error();",
       ].join("\n"),
     );
 
-    // Prosa/cadena: menciona session.user.rol en un comentario y en un string. No es
-    // codigo, no puede aparecer como violacion.
+    // Prosa/cadena: menciona una comparacion de rol en un comentario y en un string,
+    // incluida la forma nueva `actor.rol === "closer"`. Nada de esto es codigo: ni la
+    // forma A (se corre sin comentarios) ni un literal citado dentro de un string
+    // pueden aparecer como violacion.
     fs.writeFileSync(
       path.join(lib, "prosa.ts"),
       [
-        "// ojo: no leas session.user.rol crudo, usa rolDeVista",
-        'const MSG = "el session.user.rol === closer viejo se elimino";',
+        '// ojo: no escribas actor.rol === "closer" a mano, usa trabajaLeads',
+        "// tampoco leas session.user.rol crudo, usa rolDeVista",
+        'const MSG = "el actor.rol === closer viejo se elimino";',
       ].join("\n"),
     );
 
-    // Una excepcion de mentira: sin ella, `identidad.ts` gritaria por forma B.
+    // Una excepcion de identidad (forma B) de mentira: sin ella `identidad.ts` gritaria.
     fs.writeFileSync(
       path.join(app, "identidad.ts"),
       ["return session.user.rol; // identidad"].join("\n"),
     );
 
+    // Una excepcion de forma A de mentira: una validacion de formulario que compara el
+    // rol ENTRANTE con un literal. Sin la excepcion, gritaria como forma A.
+    fs.writeFileSync(
+      path.join(lib, "validacion.ts"),
+      ['if (datos.rol === "closer") pedirCloserId();'].join("\n"),
+    );
+
     const excepcionesDePrueba = {
       [path.join("app", "identidad.ts")]: "identidad de prueba, justificada aqui",
     };
+    const excepcionesFormaADePrueba = {
+      [path.join("lib", "validacion.ts")]: "validacion de formulario de prueba, justificada aqui",
+    };
 
-    expect(violaciones(tmp, excepcionesDePrueba)).toEqual([
+    expect(violaciones(tmp, excepcionesDePrueba, excepcionesFormaADePrueba)).toEqual([
       `${path.join("app", "forma-a.ts")}:1: compara el rol con un literal (forma A)`,
       `${path.join("app", "forma-a.ts")}:2: compara el rol con un literal (forma A)`,
+      `${path.join("app", "forma-a.ts")}:3: compara el rol con un literal (forma A)`,
+      `${path.join("app", "forma-a.ts")}:4: compara el rol con un literal (forma A)`,
       `${path.join("lib", "forma-b.ts")}:1: usa session.user.rol crudo sin rolDeVista (forma B)`,
       `${path.join("lib", "forma-b.ts")}:2: usa session.user.rol crudo sin rolDeVista (forma B)`,
       `${path.join("lib", "forma-b.ts")}:3: usa session.user.rol crudo sin rolDeVista (forma B)`,
+      `${path.join("scripts", "cli.ts")}:1: compara el rol con un literal (forma A)`,
     ]);
   });
 });

@@ -121,11 +121,15 @@ async function quitar(email: string) {
   }
 
   const activos = await db.select().from(users).where(eq(users.activo, true));
-  const gerentesActivos = activos.filter((u) => u.rol === "gerente");
-  if (existe.rol === "gerente" && existe.activo && gerentesActivos.length === 1) {
+  // La salvaguarda es de ADMINISTRADORES, no de gerentes: desde el ADR 0025 el
+  // developer tambien administra, asi que cuenta para no dejar la app sin nadie que
+  // pueda administrarla. Antes era `u.rol === "gerente"` a mano, que ignoraba al
+  // developer (ticket 032). `esAdministrador` es la unica fuente de esa pregunta.
+  const administradoresActivos = activos.filter((u) => esAdministrador(u.rol));
+  if (esAdministrador(existe.rol) && existe.activo && administradoresActivos.length === 1) {
     console.error(
-      "\n  Es el unico gerente activo. Desactivarlo dejaria la app sin nadie que\n" +
-      "  pueda administrarla ni ver los dashboards. Agrega otro gerente primero.\n",
+      "\n  Es el unico administrador activo. Desactivarlo dejaria la app sin nadie que\n" +
+      "  pueda administrarla ni ver los dashboards. Agrega otro administrador primero.\n",
     );
     process.exit(1);
   }

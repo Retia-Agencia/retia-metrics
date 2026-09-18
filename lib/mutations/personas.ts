@@ -5,7 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import type { Rol } from "@/lib/auth/roles";
-import { trabajaLeads } from "@/lib/auth/roles";
+import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
 import type { Persona } from "@/lib/db/schema";
 
 /**
@@ -166,7 +166,19 @@ export async function asignarResponsable(
     const persona = await leerPersona(db, datos.personaId);
     if (!persona) throw new ErrorDeApp("No existe una persona con ese id.", 404);
 
-    if (actor.rol === "closer") {
+    // Quien NO administra (el closer, y el developer proyectado a vista `closer`)
+    // solo se asigna a si mismo una persona SIN responsable. Quien administra
+    // (gerente, o developer en vista `todo`/`gerente`) reasigna a cualquiera.
+    //
+    // Es un predicado POSITIVO, no un `actor.rol === "closer"` a mano (ticket 032):
+    // el literal habria FUNCIONADO igual porque el rol ya viene proyectado por
+    // `rolDeVista`, pero comparar contra un literal para APLICAR una restriccion
+    // deja la pregunta escrita como un rol en vez de como una capacidad, que es la
+    // forma que el ADR 0025 punto 5 senala como bug. `esAdministrador` da la
+    // respuesta correcta en las cuatro combinaciones: developer en `todo` administra
+    // (asigna libre, MAS que un closer, nunca menos), developer en vista `closer`
+    // no (cae aca y se somete a las reglas del closer, que es lo que la vista pide).
+    if (!esAdministrador(actor.rol)) {
       // Primero la precondicion del ADR 0011: una cuenta sin closerId no puede ser
       // responsable de nada. Va antes de la comparacion de abajo porque si no, un
       // closerId nulo saldria como "no es tuya" y el mensaje mandaria a la persona
@@ -233,7 +245,13 @@ export async function crearPersonaManual(
   input: EntradaPersonaManual,
 ): Promise<ResultadoAltaManual> {
   return normalizando(async () => {
-    if (actor.rol !== "closer") {
+    // Puede crear quien TRABAJA LEADS (closer o developer, `trabajaLeads`), NO el
+    // gerente (ADR 0003). Antes era `actor.rol !== "closer"` a mano, y por eso un
+    // developer en vista `todo` —la mas ancha— no podia crear pero en vista `closer`
+    // si: la comparacion literal excluia al developer, que es justo el bug que el
+    // ADR 0025 punto 5 prohibe. La excepcion del developer vive en `roles.ts`, no
+    // aca (ticket 032).
+    if (!trabajaLeads(actor.rol)) {
       throw new ErrorDeApp("Registrar trabajo de venta es del closer.", 403);
     }
     const closerId = exigirCloserIdCargado(actor);

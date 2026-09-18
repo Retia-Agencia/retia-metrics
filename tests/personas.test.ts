@@ -338,3 +338,74 @@ describe("crearPersonaManual", () => {
     expect((error as ErrorDeApp).status).toBe(400);
   });
 });
+
+// ────────────────────────────── vista `todo` ⊇ vista `closer` (ticket 032)
+
+/**
+ * Ticket 032 — LA propiedad que el bug violaba: **lo que se puede hacer en vista
+ * `closer` se tiene que poder hacer en vista `todo`.** La vista `todo` es la
+ * proyeccion mas ANCHA del developer; si fuera menos capaz que una estrecha,
+ * "estrechar" (ADR 0028) dejaria de significar algo.
+ *
+ * En la capa de mutaciones eso se ve asi: el MISMO developer, con los MISMOS datos,
+ * proyectado como `developer` (vista `todo`) y como `closer` (vista `closer`), obtiene
+ * el MISMO resultado en `crearPersonaManual` y `asignarResponsable`. El bug era que
+ * `crearPersonaManual` comparaba `actor.rol !== "closer"` a mano y rechazaba al
+ * developer en vista `todo` con un 403, mientras la vista `closer` lo dejaba pasar.
+ *
+ * Sembramos un developer con su `closerId` y una membresia activa en A (que es lo que
+ * `/ajustes/usuarios` le carga, ticket 028). `actorDev` es su actor en vista `todo`;
+ * `actorDevComoCloser` el mismo en vista `closer` (mismo id y closerId, solo cambia el
+ * rol proyectado por `rolDeVista`).
+ */
+describe("vista `todo` es un superconjunto de vista `closer` (ticket 032)", () => {
+  let devUserId: string;
+  const actorDev = () => ({ id: devUserId, rol: "developer" as const, closerId: "Dev" });
+  const actorDevComoCloser = () => ({ id: devUserId, rol: "closer" as const, closerId: "Dev" });
+
+  beforeEach(async () => {
+    const [dev] = await db
+      .insert(users)
+      .values({ email: "dev@retiagrowth.com", rol: "developer", nombre: "Dev", closerId: "Dev" })
+      .returning();
+    devUserId = dev.id;
+    await db
+      .insert(miembrosPrograma)
+      .values({ userId: devUserId, programId: programaA, activo: true });
+  });
+
+  it("crear persona funciona en vista `todo`, igual que en vista `closer` (el bug del 032)", async () => {
+    // Vista `todo`: es justo lo que antes fallaba con 403 "es del closer".
+    const enTodo = await crearPersonaManual(db, actorDev(), {
+      programId: programaA,
+      correo: "dev-todo@correo.co",
+      nombre: "Creada en todo",
+    });
+    expect(enTodo.creada).toBe(true);
+    expect(enTodo.persona.entrada).toBe("crm");
+    expect(enTodo.persona.responsableCloserId).toBe("Dev");
+
+    // Vista `closer`: el mismo developer, misma operacion, otro correo. Mismo desenlace.
+    const enCloser = await crearPersonaManual(db, actorDevComoCloser(), {
+      programId: programaA,
+      correo: "dev-closer@correo.co",
+      nombre: "Creada en closer",
+    });
+    expect(enCloser.creada).toBe(true);
+    expect(enCloser.persona.entrada).toBe("crm");
+    expect(enCloser.persona.responsableCloserId).toBe("Dev");
+  });
+
+  it("tomar una persona sin responsable funciona en vista `todo` igual que en vista `closer`", async () => {
+    const p1 = await sembrarPersona(programaA, { emailNormalizado: "a1@correo.co" });
+    const enTodo = await asignarResponsable(db, actorDev(), { personaId: p1, closerId: "Dev" });
+    expect(enTodo.responsableCloserId).toBe("Dev");
+
+    const p2 = await sembrarPersona(programaA, { emailNormalizado: "a2@correo.co" });
+    const enCloser = await asignarResponsable(db, actorDevComoCloser(), {
+      personaId: p2,
+      closerId: "Dev",
+    });
+    expect(enCloser.responsableCloserId).toBe("Dev");
+  });
+});

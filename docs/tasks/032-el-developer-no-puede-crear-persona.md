@@ -3,10 +3,27 @@ id: 032
 fase: F4
 serves: "ADR 0025 punto 5 (al developer no se le restringe nada); cierra un hueco del 028"
 depends: [028]
-status: todo
+status: done
 ---
 
 # 032 — La vista `todo` es MENOS capaz que la vista `closer`
+
+> **CERRADO el 18-sep.** 545 tests, typecheck y lint limpios. Verificado en el navegador: como
+> developer en vista `todo` (badge "Desarrollo") crear persona ahora responde **"Persona creada"**,
+> que es el caso exacto que fallaba. Y el guardián se probó MORDIENDO las dos formas que antes se
+> le escapaban: `actor.rol !== "closer"` bajo `lib/`, y un `u.rol === "gerente"` bajo `scripts/`,
+> el directorio que ni siquiera recorría. Señaló archivo, línea y forma en las dos.
+>
+> **`asignarResponsable` (línea 169) se quedó, reescrito como predicado positivo**
+> `!esAdministrador(actor.rol)` en vez de literal o excepción. El literal habría funcionado igual
+> —el rol ya viene proyectado— pero el predicado dice CAPACIDAD en vez de ROL, que es lo que el ADR
+> 0025 punto 5 pide. Da la respuesta correcta en las cuatro combinaciones: developer en vista
+> `todo`/`gerente` asigna libre, en vista `closer` se somete a las reglas del closer, el gerente
+> administra y el closer no.
+>
+> **Un sitio quedó como excepción NOMBRADA, no como violación:** `lib/catalogo/usuarios.ts:80`
+> (`datos.rol === "closer"`) es validación de formulario —qué campos exige el rol que se está
+> asignando—, no autorización de un actor, y no le niega nada al developer.
 
 ## El sintoma, reproducido en el navegador el 18-sep
 
@@ -79,9 +96,9 @@ documento, y el guardian **no recorre `scripts/`**.
 
 ## Done cuando
 
-- [ ] Como developer en vista `todo`, crear persona en `/mi-dia` funciona.
-- [ ] El guardian falla ante `actor.rol === "closer"` salvo excepcion nombrada y justificada.
-- [ ] El guardian recorre `scripts/`.
-- [ ] `scripts/usuarios.ts` usa `esAdministrador` para la salvaguarda.
-- [ ] Un test fija que vista `todo` ⊇ vista `closer` en lo que permite.
-- [ ] Ningun test de disjuncion gerente/closer cambia de resultado.
+- [x] Como developer en vista `todo`, crear persona en `/mi-dia` funciona.
+- [x] El guardian falla ante `actor.rol === "closer"` salvo excepcion nombrada y justificada.
+- [x] El guardian recorre `scripts/`.
+- [x] `scripts/usuarios.ts` usa `esAdministrador` para la salvaguarda.
+- [x] Un test fija que vista `todo` ⊇ vista `closer` en lo que permite.
+- [x] Ningun test de disjuncion gerente/closer cambia de resultado.
