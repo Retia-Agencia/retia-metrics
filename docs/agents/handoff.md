@@ -8,40 +8,146 @@
 > Copiar y pegar tal cual. Escrito el 18-sep al cerrar el día.
 
 ```
-Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y las entradas "CIERRE 9", "CIERRE 8"
-y "CIERRE 7" del 18-sep en docs/agents/handoff.md.
+Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y las entradas "CIERRE 10" y "CIERRE 9"
+del 18-sep en docs/agents/handoff.md.
 
-Estado: 545 tests, typecheck y lint limpios, arbol limpio, main pusheado en 5113b08. Cerrados hoy
-el 028 (rolDeVista + selector "ver como") y el 032 (la vista `todo` volvio a ser un superconjunto
-de la `closer`). El recorrido de INTERACCIONES esta hecho y documentado: se probo clic por clic
-registrar una llamada cerrada con venta y abono, anular, el sobrepago, reemplazar un recurso y las
-guardas de las tres vistas. Comprueba `git ls-remote origin main` antes de asumir que esta
-desplegado, y ojo que `/api/health` en 200 solo prueba que la funcion arranca, no que las consultas
-corran.
+Estado: 556 tests, typecheck y lint limpios. Cerrado el 031 (perfil propio) y el ADR 0029 (una fila
+de catalogo se crea por el molde, tambien desde un script). COMPROBADO que 848edee esta vivo en
+produccion: la CLI de Vercel SI funciona en esta maquina (`vercel ls` + `vercel inspect`), aunque el
+conector MCP pida OAuth. Ojo que `/api/health` devuelve un JSON constante y no toca la base: un 200
+ahi no prueba ninguna consulta.
 
 Delega a Kiro (kiro-rescue) lo grueso o repetitivo. Kiro NO corre db:generate ni db:migrate. Para
 una segunda opinion o una implementacion paralela, codex:codex-rescue.
 
-Arranca por lo que desbloquea a los closers reales, y es casi todo dato mio:
-(1) mi correo de Google de Andrea, que es el UNICO dato que falta para tener los dos closers
-    activos en production (su closer_id ya se sabe: `Andrea`, 317 de las 424 llamadas historicas);
-(2) registrar la primera llamada REAL en production, que cierra los criterios 1 y 5 de la spec
-    (hoy production tiene 0 llamadas, 0 ventas y 0 abonos);
-(3) crear el primer recurso en production desde /recursos, que ya tiene sus 6 categorias.
+El 031 ya tiene recorrido en navegador completo (Mani se logueo y la sesion lo probo clic por
+clic, incluida la server action invocada a mano saltandose la UI). No hay nada pendiente ahi.
 
-Pendiente mio, no tuyo: rotar la contrasena de PayPal de Retia, que sigue publicada en texto plano
-en el grupo de WhatsApp "Ventas JP Vieira" desde el 18-ago.
+Arranca por lo que desbloquea a los closers reales:
+(1) cargarme mi closer_id en production desde /ajustes/usuarios. ES EL BLOQUEO REAL de la primera
+    llamada: mi usuario es developer con closer_id = null. No necesito el 031 para esto, porque
+    developer cumple esAdministrador. De paso prueba que las consultas contra production corren.
+(2) registrar la primera llamada REAL en production (hoy: 0 llamadas, 0 ventas, 0 abonos).
+(3) crear el primer recurso en production desde /recursos (las 6 categorias ya estan, 0 recursos).
+(4) dar de alta a Andrea Machado cuando me confirme su cuenta de Google. El candidato es
+    andrea.machado@30x.com, pero Maru entra con un Gmail personal, asi que el correo corporativo
+    no es el patron de la casa. Su closer_id es `Andrea`.
 
-Decisiones abiertas que necesito cerrar: el 031 (quien puede editarse su propio closer_id; la
-recomendacion es que solo quien administra), el 021 (snapshot del dashboard) y si un script de
-semilla debe escribir en change_log.
+Pendiente mio, no tuyo: rotar la contrasena de PayPal de Retia, publicada en texto plano en el
+grupo "Ventas JP Vieira" desde el 18-ago.
 
-Despues: el 030 y el 016 pueden esperar. La deuda F-03 + F-07 va junta y necesita migracion.
+Despues: el 030 y el 016 pueden esperar. El 021 quedo en PDF y sigue de ultimo. F-03 + F-07 van
+juntas y necesitan migracion.
 ```
+
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-18 (CIERRE 10) — Tres decisiones cerradas, el 031 hecho, y el deploy dejo de ser
+  inverificable.**
+
+  **PARA QUIEN ABRA LA PROXIMA SESION, leer esto primero:**
+
+  - ✅ **`848edee` ESTA VIVO en produccion, y ahora se sabe como comprobarlo.** El CIERRE 7 dejo
+    escrito "no se pudo confirmar que commit quedo vivo" porque el conector MCP de Vercel pide
+    OAuth. **La CLI de esta maquina si esta logueada** (`vercel whoami` -> `danieltovartech-4302`)
+    y alcanza `agencia-dani/retia-metrics`, cuyo alias de produccion es
+    `retia-metrics-seven.vercel.app`. El deploy se crea segundos despues del commit, asi que
+    `vercel inspect` + `git log --format='%h %ci'` identifican el commit vivo: `848edee` a las
+    11:59:07 -05 <-> deploy creado 11:59:10 -05.
+    🎯 **La leccion de metodo: "el conector no arranca" no es lo mismo que "no es verificable".**
+    Se dio por imposible una comprobacion por el primer camino que fallo, y quedo escrita como un
+    hecho del entorno durante un dia entero.
+  - ⚠️ **`/api/health` no prueba absolutamente nada de las consultas.** Leido el codigo: devuelve
+    un JSON constante y no toca la base. Un 200 ahi dice que la funcion arranca. Nada mas.
+
+  - 🩸 **EL HALLAZGO QUE CAMBIA EL ORDEN DE ARRANQUE: el bloqueo de la primera llamada real no
+    es Andrea, es el usuario de Mani.** En `production`, `manuelmejiaarana@gmail.com` es
+    `developer` con **`closer_id = null` y cero membresias**. `registrarLlamada` copia el closerId
+    de la sesion (`closerDeLaSesion`, ADR 0011) y sin el tira 400 seco. **Aunque Andrea se diera de
+    alta hoy, la primera llamada la tiene que registrar Mani o Maru.** Y no necesita el 031:
+    `developer` cumple `esAdministrador`, asi que ya puede cargarselo desde `/ajustes/usuarios`.
+    Detalle aparte que va a morder despues: para ASIGNARSE como responsable de una persona,
+    `esCloserValidoEnPrograma` exige membresia activa en el programa. Registrar una llamada no.
+
+  - **Estado real de `production` al 18-sep** (lectura, rama `br-withered-mud-b4cvvg80`, distinta
+    de la de `DATABASE_URL`): 4.599 personas (2.622 tactical · 1.977 comunicarte), **0 llamadas,
+    0 ventas, 0 abonos, 0 recursos**, 6 categorias de recurso, 5 enlaces de pago (todos
+    ComunicArte), 2 productos (los reales; los 3 de la semilla ya no estan), 3 usuarios, 4
+    cohortes. `people.responsable_closer_id` esta en null en las 4.599.
+
+  - ✅ **031 CERRADO (Kiro implemento, esta sesion reviso). Decision: opcion 1.** Solo quien cumple
+    `esAdministrador` edita su `closerId`; un closer lo ve en lectura. **Por que no la opcion 2
+    ("cualquiera, pero solo si esta vacio"): el momento de riesgo es el PRIMER valor, no el
+    cambio.** Una cuenta recien creada con el campo vacio es exactamente la situacion de quien
+    quisiera escribir `Andrea` y heredar sus 317 llamadas. Poner la reja despues de ese momento es
+    ponerla donde no pasa nada. Y la opcion 2 haria que «¿puede este actor?» dependiera de si una
+    columna esta en `null`: autorizacion mezclada con estado de la fila, justo lo que el ADR 0025
+    empuja a no hacer. La 1 ademas no necesita predicado nuevo. 556 tests.
+    `editarCloserIdPropio` **reusa el molde** en vez de duplicar el `db.update`, asi que el
+    `change_log` sale por el mismo camino que un alta.
+    ⚠️ **Y quedo con CERO clics humanos.** Ver el punto de metodo abajo.
+
+  - 🎯 **ADR 0029 nuevo: una fila de catalogo se crea por el molde, tambien desde un script.**
+    La pregunta que venia del CIERRE 7 —*¿un script de semilla debe dejar rastro?*— estaba mal
+    planteada: mete en la misma bolsa sembrar una base **vacia** y meter cinco filas de negocio en
+    una base **viva**. **La linea no es "script o pantalla", es si la base ya esta viva.**
+    `cargar-enlaces-pago.ts` ahora llama `crearEnlacePago` en vez de `db.insert`, y el "quien" lo
+    da `actorDelScript()` en `scripts/actor.ts` (`SCRIPT_ACTOR_EMAIL`), en un solo lugar, negandose
+    a arrancar sin el. Excepciones nombradas: sembrar una base vacia y `npm run usuarios`, que
+    existe justo para cuando no hay administrador con quien actuar.
+    **Lo que NO se hizo, a proposito: no se les fabrico `change_log` a los 5 enlaces que ya estan
+    en `production`.** Un rastro de auditoria inventado se ve identico al de verdad.
+    **Y lo que queda sin decidir:** `seed-datos.ts` sobre una base viva sigue pudiendo insertar de
+    mas (asi nacieron los 3 productos duplicados). La reja natural -cada seccion se niega a tocar
+    una tabla que ya tiene filas que la semilla no puso— choca con un uso real: la seccion de
+    `sources` **actualiza** filas existentes a proposito, y re-sembrar es como se ajusta el plan de
+    sync en `dev`. Es su propia decision y no se tomo de paso.
+
+  - **021: el formato es PDF** (decision de Mani, contra la recomendacion de la sesion, que era
+    texto copiable por cero dependencias). Sigue de ultimo. Lo que arrastra esta escrito en el
+    ticket: es el unico de los cuatro formatos que obliga a dependencia nueva (va DENTRO del
+    ticket, ADR 0006), y el PDF **recibe el mismo objeto que pinto el dashboard**, no recalcula.
+
+  - ✅ **RECORRIDO EN NAVEGADOR HECHO, y no se quedo en cargar pantallas.** Mani se logueo a
+    mitad de sesion y se probo clic por clic contra `dev`. **El menu de usuario abre sin tumbar el
+    layout y sin un solo error en consola**, que era el riesgo real: el bug de
+    `MenuGroupContext is missing` del CIERRE 7 vivio dias con 543 tests en verde. "Mi perfil"
+    navega, la escritura real (`Mani` -> `Mani Prueba`) dio su toast y dejo **exactamente UNA**
+    fila en `change_log` (`campo: closerId`, `origen: app`, con su `userId`), y en vista `closer`
+    el input desaparece y queda texto plano.
+
+  - 🎯 **LA PIEZA DE METODO DEL DIA: se probo que el SERVIDOR rechaza, no solo que el input
+    no se pinta.** Hasta hoy, "el rol se enforza en el servidor" y "esconder un boton no es
+    seguridad" eran contratos escritos que ningun recorrido habia medido: los recorridos miraban
+    que el control no apareciera, que es justo lo que un atacante no hace.
+    **Como se hizo, y sirve para el proximo:** se envuelve `window.fetch` en la pagina para
+    capturar la cabecera `Next-Action` al enviar el formulario una vez; con ese id se invoca la
+    server action **a mano, saltandose la interfaz entera**, desde la vista que NO deberia poder.
+    Se mando `closerId: "Andrea"` en vista `closer` (literalmente el ataque que describe el ticket
+    031) y el servidor devolvio
+    `{"ok":false,"error":"Solo un administrador puede editar el closer_id..."}` con la base
+    intacta. Segunda mitad: se metieron un `id` y un `userId` ajenos en el cuerpo y **se ignoraron
+    los dos**, porque el esquema zod solo admite `closerId` y la accion pasa `session.user.id`.
+    🎯 **Un contrato que nadie mordio es una creencia.** Haceselo al proximo.
+    Los cambios de prueba en `dev` quedaron revertidos (`closer_id` volvio a `Mani`).
+
+  - 🔍 **Andrea: candidato `andrea.machado@30x.com`**, encontrado en el Workspace de 30X (aparece
+    en las listas de all-hands) y corroborado en WhatsApp ("Closer Andrea Machado" /
+    "Andrea Machado ComunicArte"; el puente de Juanito la nombra en un push de Tactical Investor).
+    **No se dio de alta: decision de Mani de confirmarselo a ella primero**, porque Maru entra con
+    un Gmail personal, asi que el correo corporativo no es el patron de la casa y un usuario mal
+    creado no puede loguearse. No hay ningun `@retiagrowth.com` humano para ella.
+
+  - **No se pudo mirar como es el reporte diario de Mike** (el que el PDF del 021 viene a
+    reemplazar): el clasificador de permisos bloqueo la lectura del grupo *Ventas ComunicArte*, con
+    razon, porque esos grupos tienen credenciales. Queda anotado en el ticket 021: sin ese formato
+    a la vista, el PDF se va a inventar una estructura y el equipo va a seguir mandando el de Mike.
+
+  - 🔴 **Sigue sin resolver, y es de Mani:** la contrasena de la cuenta de PayPal de Retia sigue
+    publicada en texto plano en *Ventas JP Vieira* desde el 18-ago.
 
 - **2026-09-18 (CIERRE 9) — Recorrido de interacciones TERMINADO (lo que faltaba del CIERRE 8).
   Un hallazgo de formato, arreglado. Prellenado de precio y fecha, pedido de Mani.**

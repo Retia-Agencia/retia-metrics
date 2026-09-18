@@ -95,6 +95,26 @@ export const esquemaUsuario = z
     }
   });
 
+/**
+ * El `closerId` como campo suelto, con la MISMA normalizacion que dentro de
+ * `esquemaUsuario` (trim, maximo 80, vacio → null). Lo usa el perfil propio
+ * (ticket 031), que edita solo esa columna sin exigir el resto de la fila. Vive aca,
+ * junto al esquema completo, para que la definicion del campo no se duplique: si un
+ * dia cambia el limite, cambia en un solo lugar (ADR 0024).
+ */
+export const esquemaCloserIdPropio = z.object({
+  closerId: z
+    .string()
+    .trim()
+    .max(80, "Máximo 80 caracteres.")
+    .optional()
+    .default("")
+    .transform((v) => (v && v.length > 0 ? v : null)),
+});
+
+/** Entrada del perfil propio: solo el `closerId`. */
+export type EntradaCloserIdPropio = z.input<typeof esquemaCloserIdPropio>;
+
 /** Entrada validada de un usuario (lo que el llamador escribe). */
 export type EntradaUsuario = z.input<typeof esquemaUsuario>;
 /** Usuario ya validado y normalizado. */
@@ -339,6 +359,20 @@ export async function listarUsuarios(db: Db = dbDeLaApp): Promise<UsuarioConProg
   }));
 }
 
+/**
+ * Un usuario por su id, con sus programas activos (o `null` si no existe). Lo usa el
+ * perfil propio (ticket 031) para mostrar el `closerId` de la sesion. Reusa
+ * `listarUsuarios` para no duplicar el armado de programas.
+ */
+export async function usuarioPorId(
+  id: string,
+  db: Db = dbDeLaApp,
+): Promise<UsuarioConProgramas | null> {
+  const objetivoId = idValido(id);
+  const todos = await listarUsuarios(db);
+  return todos.find((u) => u.id === objetivoId) ?? null;
+}
+
 /** Crea un usuario y sus membresias. La entrada se valida con el esquema compartido. */
 export async function crearUsuario(
   db: Db,
@@ -371,6 +405,50 @@ export async function editarUsuario(
     const { campos, programas } = separar(datos);
     const fila = await moldeUsuarios(db).editar(actorId, objetivoId, campos);
     await sincronizarMembresias(db, actorId, objetivoId, campos.email, programas);
+    return {
+      ...(fila as UsuarioConProgramas),
+      programas: await programasDe(db, objetivoId),
+    };
+  });
+}
+
+/**
+ * Edita SOLO el `closerId` de una fila de `users` (ticket 031, perfil propio).
+ *
+ * A diferencia de `editarUsuario`, no pide el set completo de la fila ni la regla de
+ * rol de `esquemaUsuario` (que exigiria closerId + programas a un closer): el perfil
+ * propio toca una sola columna. Pero NO duplica la escritura: reusa el molde de
+ * catalogo (`moldeUsuarios(...).editar`), que es quien decide el diff y escribe una
+ * fila en `change_log` por campo que cambia (ADR 0012, ADR 0024). Se le pasan los
+ * campos actuales de la fila con el `closerId` nuevo encima, asi que el molde detecta
+ * que solo cambio `closer_id` y registra solo eso.
+ *
+ * La AUTORIZACION (quien puede escribirlo, `esAdministrador`) NO vive aca: es del
+ * llamador (la server action), igual que `requireRole` vive fuera del molde. Lo que
+ * este modulo garantiza es que el id del objetivo es un uuid valido y que el cambio
+ * queda en `change_log`. El id lo elige el llamador desde la sesion, nunca el
+ * formulario.
+ */
+export async function editarCloserIdPropio(
+  db: Db,
+  actorId: string,
+  userId: string,
+  input: EntradaCloserIdPropio,
+): Promise<UsuarioConProgramas> {
+  return normalizando(async () => {
+    const objetivoId = idValido(userId);
+    const { closerId } = esquemaCloserIdPropio.parse(input);
+
+    const [actual] = await db.select().from(users).where(eq(users.id, objetivoId));
+    if (!actual) throw new ErrorDeApp("No existe un usuario con ese id.", 404);
+
+    const fila = await moldeUsuarios(db).editar(actorId, objetivoId, {
+      email: actual.email,
+      nombre: actual.nombre,
+      rol: actual.rol,
+      closerId,
+      calendlyEmail: actual.calendlyEmail,
+    });
     return {
       ...(fila as UsuarioConProgramas),
       programas: await programasDe(db, objetivoId),

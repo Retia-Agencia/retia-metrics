@@ -136,6 +136,19 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   con cero referencias se borra de verdad, una con referencias solo se desactiva y la app dice
   cuantas tiene. Lo que no puede pasar es que la app diga "borrado" habiendo desactivado.
   Ningun slug de programa aparece en `lib/`, `app/` ni `components/`.
+- **Una fila de catalogo se crea por el molde, tambien desde un script (ADR 0029).** La linea no
+  es "script o pantalla": es **si la base ya esta viva**. Un script que mete filas de negocio en
+  una base con datos reales hace lo mismo que un humano en una pantalla, asi que llama a la
+  funcion de `lib/catalogo/` y nunca a `db.insert` en crudo. De ahi salen gratis la validacion y
+  el `change_log`: **no hay que acordarse de registrar, no hay forma de crear la fila sin que
+  quede registrada.** El "quien" lo da `actorDelScript()` de `scripts/actor.ts`
+  (`SCRIPT_ACTOR_EMAIL`), en UN solo lugar, y el script **se niega a arrancar sin el**. Excepciones
+  nombradas, no un permiso general: sembrar una base VACIA (`seed:datos`) y el acceso de
+  emergencia (`npm run usuarios`), que existe justo para cuando no hay administrador con quien
+  actuar. 🩸 Salio de los 5 enlaces de PayPal cargados en `production` el 18-sep: `change_log` de
+  `enlaces_pago` quedo en **0**. **Omitir un rastro no lanza ningun error**, y dentro de tres
+  meses "¿quien puso estos links?" no tiene respuesta en la base. Esos 5 siguen sin rastro a
+  proposito: un historial de auditoria fabricado se ve igual que el de verdad.
 - **Google Sheets es la fuente de verdad de los leads; el CRM lo es de llamadas, ventas y
   abonos.** El sync de leads no cambia (ADR 0004). Las llamadas y ventas se registran nativas en
   la app (ADR 0008) sobre las mismas tablas, con `origen = "app"` (ADR 0010).
@@ -188,6 +201,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Mensajes de validacion del navegador | `components/validacion-en-espanol.tsx`, montado una vez en el layout raiz: traduce los globos nativos, que salen en el idioma del navegador y no en el del `lang` de la pagina | Revision manual |
 | Que registros cuentan | `vigente(tabla)` / `incluyendoAnulados(tabla)` en `lib/queries/vigente.ts` (ADR 0026) | `tests/vigencia-centralizada.test.ts`: recorre `lib/`, `app/`, `components/` y `scripts/` cadena de drizzle por cadena, y falla si una lee `calls`, `sales` o `abonos` sin aplicar el predicado |
 | Con que rol actua una sesion | `rolDeVista(session)` en `lib/auth/vista.ts` (ADR 0028): la vista solo ESTRECHA, nunca ensancha | `tests/rol-de-vista-centralizado.test.ts`: recorre `app/` y `lib/` y falla si alguien decide alcance o permiso leyendo `session.user.rol` crudo; las lecturas de IDENTIDAD van como excepciones nombradas |
+| Quien crea una fila de catalogo, y desde donde | `lib/catalogo/` siempre (ADR 0029); el actor de un script, `actorDelScript()` en `scripts/actor.ts` | Revision manual: un `db.insert` sobre una tabla de catalogo en `scripts/` es el olor. Las dos excepciones estan en la tabla del ADR 0029 |
 | Contrato de extension | ADR 0012, enmendado por el 0026; molde en `lib/catalogo/` | `tests/contrato-extension.test.ts` (ticket 009): ningun programa escrito en el codigo; tests del molde (ticket 011): siempre `change_log`, y **nunca `DELETE` sobre una fila con referencias** (hasta el ticket 030 el molde no borra nunca) |
 
 ## Feedback loops
@@ -224,6 +238,16 @@ The agent should run these to get fast signal on whether code works. Keep them c
   rompe en Base UI son las INTERACCIONES: abrir un menu, desplegar un select, abrir un dialogo.
   Ningun test de este repo ve un error de contexto de React en tiempo de ejecucion. Cuando revises
   una pantalla, **hace clic en todo lo que se abre**, y mira la consola del navegador.
+- **Y para una regla de PERMISO, hacer clic tampoco alcanza: hay que forjar la peticion.** Mirar
+  que el boton no aparezca prueba lo unico que un atacante no hace. Las dos reglas duras de arriba
+  —"el rol se enforza en el servidor" y "esconder un boton no es seguridad"— estuvieron escritas
+  meses sin que ningun recorrido las midiera. **Como se muerde una server action** (hecho el 18-sep
+  con el 031): envolves `window.fetch` en la pagina para capturar la cabecera `Next-Action` al
+  enviar el formulario UNA vez desde la vista que si puede; con ese id invocas la accion a mano,
+  saltandote la interfaz entera, desde la vista que NO deberia poder. Se espera el mensaje de 403 y
+  **la base sin moverse**. En el mismo viaje se prueba la otra mitad: meterle al cuerpo un `id`
+  ajeno y comprobar que se ignora, porque el objetivo sale de la sesion y no del input.
+  **Un contrato que nadie mordio es una creencia.**
 - **`next-auth/jwt` solo re-exporta `@auth/core/jwt`.** La augmentacion de `JWT` tiene que
   declararse sobre `@auth/core/jwt` o no aplica (ver `types/next-auth.d.ts`).
 - **`LayoutProps` / `PageProps` los genera `next build`.** No dependas de ellos: tipa las props a

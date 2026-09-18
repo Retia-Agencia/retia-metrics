@@ -47,7 +47,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 004 | [Consultas del dashboard](./004-consultas-dashboard.md) | 018, 020, 027 | done · 17-sep (sesión paralela B) |
 | [x] | 005 | [Dashboard en /programas/[slug]](./005-dashboard-real-programas.md) | 004, 010 | done · 17-sep (filtro por closer dentro de las consultas del 004; sin migración) |
 | [x] | 006 | [Historial de una persona](./006-historial-persona.md) | 005 | done · 17-sep (`/personas/[id]` de solo lectura; se entra desde el buscador de `/mi-dia`; sin migración) |
-| [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) | 005 + decisión | bloqueado |
+| [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) | 005 | bloqueado · **formato decidido 18-sep: PDF** (Mani). Sigue de último; falta decidir quién puede tomarlo y mirar el reporte diario de Mike antes de codear |
 
 ## F3 · Recursos
 
@@ -63,7 +63,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 024 | [Rol developer](./024-rol-developer.md) | 010 | done · 17-sep (ADR 0025; migración 0012 en `dev` y `production`; stash de Kiro rescatado y cerrado) |
 | [x] | 025 | [Nerd Stats](./025-nerd-stats.md) | 024 | done · 17-sep (`/nerd-stats`, primera ruta exclusiva de developer; sin migración) |
 | [x] | 028 | ["Ver como" del developer](./028-ver-como-del-developer.md) (ADR 0028) | 024 | done · 18-sep · `rolDeVista` + cookie + selector + guardián sobre `app/` y `lib/`. 543 tests. **Sin migración.** La primera entrega dejó 3 sitios pasando el rol crudo que el guardián no veía: ver la nota del ticket |
-| [ ] | 031 | [Perfil propio: el closerId sin pasar por /ajustes/usuarios](./031-perfil-propio.md) | 028 | todo · pedido de Mani 18-sep · **tiene una decisión abierta**: quién puede editar su propio `closer_id` (es la llave que ata a la historia de las hojas) |
+| [x] | 031 | [Perfil propio: el closerId sin pasar por /ajustes/usuarios](./031-perfil-propio.md) | 028 | done · 18-sep · decisión cerrada (**opción 1**: solo `esAdministrador` edita; un closer lo ve en lectura). `/perfil` nuevo, mutación por el molde, el id sale SIEMPRE de la sesión. 556 tests. ✅ **recorrido en navegador hecho**: el menú abre sin tumbar el layout, escritura real con su fila en `change_log`, y la server action **invocada a mano saltándose la UI** devuelve 403 en vista `closer` |
 | [x] | 032 | [La vista `todo` es MENOS capaz que la vista `closer`](./032-el-developer-no-puede-crear-persona.md) | 028 | done · 18-sep · `trabajaLeads` en vez del literal, guardián ampliado a cualquier `.rol` y a `scripts/`, y un test que fija **vista `todo` ⊇ vista `closer`**. 545 tests |
 
 ## Decisiones pendientes (bloquean o condicionan tickets)
@@ -72,13 +72,25 @@ Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje
 
 | Decisión | A quién | Afecta |
 |---|---|---|
-| Formato del snapshot y quién lo toma. **Va de último** (Mani, 16-sep); idea: parecido al reporte diario actual | Mani | 021 |
+| ~~Formato del snapshot~~ **cerrado 18-sep: PDF**. Queda abierto solo QUIÉN puede tomarlo | Mani | 021 |
 | ¿Closers pueden crear plataformas y recursos? (hoy: no) | Mani | 013, 023 |
 | Qué se reconcilia y qué se descarta del histórico de C2 (importar: **sí**) | Mani | ticket futuro |
 | Confirmar el mapeo de `Estado` al enum (propuesta en F-01) | Mani | F-01 |
 
 ### Resueltas
 
+- 18-sep · **El closerId propio solo lo edita quien administra** (Mani; ticket 031, opción 1). Un
+  closer lo ve en lectura. La opción "cualquiera, pero solo si está vacío" se descartó porque el
+  momento de riesgo es el PRIMER valor, no el cambio: una cuenta nueva con el campo vacío es
+  exactamente la situación de quien quisiera heredar las 317 llamadas de otra closer.
+- 18-sep · **Una fila de catálogo se crea por el molde, también desde un script** (Mani; ADR 0029).
+  La línea no es "script o pantalla", es **si la base ya está viva**. `cargar-enlaces-pago` pasa a
+  `crearEnlacePago` y el actor lo da `SCRIPT_ACTOR_EMAIL`. Excepciones nombradas: sembrar una base
+  vacía y el acceso de emergencia. Salió de que los 5 enlaces de PayPal entraron a `production`
+  con `change_log` en 0.
+- 18-sep · **El snapshot del dashboard se baja en PDF** (Mani; ticket 021). Es el único formato que
+  obliga a dependencia nueva, así que la instalación va DENTRO del ticket (ADR 0006), y el PDF
+  recibe el mismo objeto que pintó la pantalla en vez de recalcular (ADR 0024). Sigue de último.
 - 17-sep · **La ventana de venta es dato por cohorte** (Mani, `/grill-with-docs`; ADR 0022, ticket
   027). `cohorts` suma `fechaInicioVentas`; el cierre se respeta como esta guardado y el de
   Comunicarte C2 se corrige a 21-sep. Ni el inicio se deduce del cierre de la cohorte anterior ni

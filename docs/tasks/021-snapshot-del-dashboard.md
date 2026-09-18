@@ -12,11 +12,36 @@ status: bloqueado
 Quien lo necesite descarga lo que ve en el dashboard para compartirlo fuera de la app.
 
 ## Bloqueado por
-**Mani, 16-sep: va de último.** Idea inicial: un formato parecido al reporte diario que el equipo
-ya comparte hoy (los reportes de Mike). Se decide al llegar aquí.
+**Mani, 16-sep: va de último.** Sigue siendo el último de la fila; lo que se cerró es el FORMATO,
+no la prioridad.
 
-Decisión de formato (PDF, PNG o CSV) y de quién puede tomarlo (`docs/spec.md` §7). CSV no
-necesita dependencias; PDF/PNG sí (ADR 0006).
+## ✅ Formato decidido por Mani el 18-sep: **PDF**
+
+Descartados en el mismo momento: texto copiable (la recomendación de la sesión, por cero
+dependencias), PNG y CSV.
+
+**Lo que esta decisión arrastra, y hay que aceptarlo con los ojos abiertos:**
+
+- **Es el único formato de los cuatro que obliga a una dependencia nueva.** El ADR 0006 dice que
+  un paquete no se instala antes del código que lo usa, así que la instalación va DENTRO de este
+  ticket, no antes. Nada de dejar la librería puesta "para cuando llegue".
+- **Es el que más trabajo da para cumplir el primer "Done cuando"** (*refleja exactamente los
+  números en pantalla, sin recalcular*). Un PDF se dibuja aparte de la pantalla, así que la
+  tentación va a ser recalcular en el generador. **No se recalcula: el PDF recibe el mismo objeto
+  que ya pintó el dashboard.** Si dos lugares tienen que dar la misma cifra, la cifra vive en un
+  módulo y los dos la importan (ADR 0024).
+- **El formato de cada número pasa por `lib/format.ts`**, igual que la pantalla. El PDF es otra
+  presentación, no otra definición. Es exactamente la enfermedad que se destapó en el CIERRE 9 con
+  las dos pantallas de `/ajustes` escribiendo el dinero en crudo.
+- **Queda pendiente de decidir quién puede tomarlo** (`docs/spec.md` §7). Al llegar acá, recordar
+  que dentro del dashboard rige "todos ven todo" (ADR 0009), así que lo más probable es que la
+  respuesta sea "cualquiera que pueda ver el dashboard", pero se escribe, no se asume.
+
+Queda una pregunta sin responder que conviene resolver ANTES de codear: **cómo es el reporte
+diario de Mike que este PDF viene a reemplazar.** La sesión del 18-sep no lo pudo mirar (el
+clasificador de permisos bloqueó la lectura del grupo *Ventas ComunicArte*, con razón: esos grupos
+tienen credenciales). Sin ese formato a la vista, el PDF se va a inventar una estructura y el
+equipo va a seguir mandando el de Mike.
 
 ## Done cuando
 - [ ] Refleja exactamente los números en pantalla, sin recalcular.

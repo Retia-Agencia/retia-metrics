@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut, Eye } from "lucide-react";
+import { LogOut, Eye, User } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { signOut } from "next-auth/react";
@@ -154,6 +155,15 @@ export function UserMenu({
           </>
         ) : null}
         <DropdownMenuSeparator />
+        {/*
+         * "Mi perfil" (ticket 031): todo usuario ve su closerId; solo un administrador
+         * lo edita. La guarda real esta en la pagina y la server action, no aca. Base UI
+         * quiere `render` para que el item sea un enlace, no `asChild`.
+         */}
+        <DropdownMenuItem render={<Link href="/perfil" />}>
+          <User className="size-4" />
+          Mi perfil
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => signOut({ redirectTo: "/login" })}>
           <LogOut className="size-4" />
           Cerrar sesión

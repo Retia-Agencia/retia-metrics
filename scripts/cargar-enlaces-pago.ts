@@ -4,7 +4,8 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../lib/db";
 import { enlacesPago, plataformasPago, productos, programs } from "../lib/db/schema";
-import { esquemaEnlacePago } from "../lib/catalogo/enlaces-pago";
+import { crearEnlacePago, esquemaEnlacePago } from "../lib/catalogo/enlaces-pago";
+import { actorDelScript } from "./actor";
 
 /**
  * Carga los enlaces de pago (ADR 0017, ticket 022). NO escribe ningun link en el
@@ -32,9 +33,14 @@ import { esquemaEnlacePago } from "../lib/catalogo/enlaces-pago";
  *     }
  *   ]
  *
- * Cada fila se valida con el MISMO esquema zod de la entidad (`esquemaEnlacePago`),
- * una vez resueltos los ids. Es idempotente: una fila que ya existe (mismo
- * programa, plataforma, monto, moneda y url, vigente y activa) no se duplica.
+ * Cada fila se crea con la MISMA funcion que usa la pantalla (`crearEnlacePago`),
+ * no con un `db.insert` en crudo (ADR 0029). De ahi salen gratis la validacion con
+ * el esquema zod de la entidad y la fila de `change_log` con quien y cuando. El
+ * "quien" lo da `SCRIPT_ACTOR_EMAIL` (ver `scripts/actor.ts`): un script que
+ * escribe en una base viva tiene que decir quien esta actuando.
+ *
+ * Es idempotente: una fila que ya existe (mismo programa, plataforma, monto, moneda
+ * y url, vigente y activa) no se duplica.
  */
 
 /** Forma de cada fila en el JSON externo, antes de resolver los ids. */
@@ -114,6 +120,9 @@ async function yaExiste(datos: {
 
 async function main() {
   const ruta = rutaDelJson();
+  // Antes de leer nada: si no hay a quien atribuirle los cambios, el script no
+  // arranca. Falla aca y no a mitad de la carga, con filas ya escritas.
+  const userId = await actorDelScript();
 
   let crudo: unknown;
   try {
@@ -157,10 +166,12 @@ async function main() {
       continue;
     }
 
-    await db.insert(enlacesPago).values({
+    // Por el molde, no por `db.insert`: valida, crea la fila vigente y deja el
+    // rastro en `change_log` igual que si alguien la hubiera creado desde la app.
+    await crearEnlacePago(db, userId, {
       programId,
       plataformaId,
-      productoId: datos.productoId ?? null,
+      productoId: datos.productoId,
       monto: datos.monto,
       moneda: datos.moneda,
       url: datos.url,

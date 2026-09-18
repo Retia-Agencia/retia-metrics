@@ -3,7 +3,7 @@ id: 031
 fase: F4
 serves: "spec §5 criterio 5 (precondición operativa); enmienda al ADR 0011"
 depends: [028]
-status: todo
+status: done
 ---
 
 # 031 — Perfil propio: el closerId se carga sin pasar por /ajustes/usuarios
@@ -25,7 +25,7 @@ Hoy el único camino es `/ajustes/usuarios`, que es la pantalla de administrar A
 **Cargarse cosas a uno mismo y administrar a terceros son dos preguntas distintas** y hoy
 comparten una sola pantalla.
 
-## ⚠️ La decisión que hay que tomar antes de codear, y no es cosmética
+## ✅ La decisión, CERRADA por Mani el 18-sep: opción 1
 
 **`closerId` no es una preferencia: es la llave que ata un usuario a su historia.** El
 comparativo entre closers agrupa `calls` / `sales` / `abonos` por `closer_id`, y esos valores
@@ -50,6 +50,31 @@ Las opciones, sin elegir por Mani:
 `esAdministrador` / `trabajaLeads`, no en el archivo de la pantalla** (ADR 0025). Y nunca se
 escribe el literal `"developer"` en la guarda.
 
+### Veredicto: **opción 1 — solo lo edita quien tiene acceso total (`esAdministrador`)**
+
+Un closer ve su `closerId` en el perfil, en modo lectura, con la indicación de a quién pedírselo.
+
+Por qué esta y no la 2 (*"cualquiera, pero solo si está vacío"*):
+
+1. **La 2 guarda el caso barato y deja abierto el caro.** El momento de riesgo no es cambiar un
+   `closerId` ya cargado: es el PRIMERO. Una cuenta recién creada con el campo vacío es
+   exactamente la situación de quien quisiera escribir `Andrea` y heredar sus 317 llamadas.
+   Poner la reja después de ese momento es ponerla donde no pasa nada.
+2. **La 2 mezcla autorización con estado de la fila.** "¿Puede este actor hacer esto?" pasaría a
+   depender de si una columna está en `null`, no de una capacidad. Eso obliga a un predicado
+   nuevo cuya verdad cambia con los datos, y es justo lo que el ADR 0025 empuja a no hacer.
+3. **La 1 no necesita nada nuevo.** `esAdministrador` ya existe en `lib/auth/roles.ts` y ya
+   significa "gerente o developer". Cero predicados, cero literales.
+4. **Resuelve el caso que originó el pedido.** Mani es `developer`, o sea `esAdministrador`: se
+   carga su propio `closerId` desde el perfil sin pasar por la pantalla de administrar a otros.
+5. **No cuesta operación.** Hay 3 usuarios en `production` y el alta de un closer ya pasa por
+   alguien que administra. Nadie queda esperando.
+
+**Ojo con el alcance real de este ticket: NO es el bloqueo para registrar la primera llamada.**
+Medido en `production` el 18-sep: el usuario de Mani es `developer` con `closer_id = null`, y
+como `developer` cumple `esAdministrador`, **ya puede cargárselo hoy desde `/ajustes/usuarios`**.
+Este ticket es ergonomía (no pasar por la pantalla de administrar a terceros), no un desbloqueo.
+
 ## Alcance
 
 - Dentro: una pantalla de perfil propio (`/perfil` o equivalente) donde se ve y, según la
@@ -66,13 +91,59 @@ escribe el literal `"developer"` en la guarda.
 
 ## Done cuando
 
-- [ ] La decisión de arriba está tomada y escrita (aquí o en un ADR).
-- [ ] Un developer sin `closerId` puede cargárselo sin entrar a `/ajustes/usuarios`.
-- [ ] Un closer NO puede atribuirse un `closerId` que no le corresponde (test negativo).
-- [ ] El cambio aparece en `change_log`.
-- [ ] `/ajustes/usuarios` sigue funcionando igual para administrar a terceros.
+- [x] La decisión de arriba está tomada y escrita (opción 1, arriba, 18-sep).
+- [x] Un developer sin `closerId` puede cargárselo sin entrar a `/ajustes/usuarios` (`/perfil`).
+- [x] Un closer NO puede atribuirse un `closerId` que no le corresponde (`tests/acciones-perfil.test.ts`, incluido el developer proyectado a vista `closer`).
+- [x] El cambio aparece en `change_log` (la mutación reusa el molde, no hace `db.update` a mano).
+- [x] `/ajustes/usuarios` sigue funcionando igual para administrar a terceros (sus tests siguen en verde).
 
 ## Notas
 
 Depende del 028 porque comparte el menú de usuario y porque `rolDeVista` tiene que existir
 antes de decidir dónde vive el selector.
+
+## Estado al cerrar (18-sep)
+
+Implementado por Kiro, revisado por la sesión principal. 556 tests, typecheck y lint limpios.
+
+- `app/(app)/perfil/` (página + server action), `components/perfil-propio.tsx`.
+- `lib/catalogo/usuarios.ts` suma `editarCloserIdPropio`, que **reusa el mismo molde**
+  (`moldeUsuarios(db).editar`) en vez de duplicar el `db.update`: lee la fila, le pone el
+  `closerId` nuevo encima, y el molde escribe una sola entrada en `change_log`. No se reusó
+  `editarUsuario` tal cual porque exige el set completo de campos y su `superRefine` le pediría
+  programas a un closer.
+- La autorización vive en la server action (`esAdministrador(rolDeVista(session))`), no en el
+  módulo de catálogo, igual que `requireRole` vive fuera del molde.
+- El selector "ver como" **no se movió ni se duplicó**: sigue solo en el menú de usuario.
+
+✅ **Recorrido en navegador HECHO** (18-sep, contra `dev`, con Mani logueado). No solo se cargó
+la pantalla: se hizo clic en todo lo que abre, que es lo que rompe en Base UI.
+
+- **El menú de usuario abre sin tumbar el layout** y sin un solo error en consola. Era el riesgo
+  real: el bug de `MenuGroupContext is missing` del CIERRE 7 vivió días con 543 tests en verde.
+  Se ve la cabecera, el grupo "Ver como" con sus tres radios, "Mi perfil" y "Cerrar sesión".
+- **"Mi perfil" navega a `/perfil`** y la pantalla renderiza identidad (nombre, correo) + el
+  `closer_id` con su explicación.
+- **Escritura real:** `Mani` → `Mani Prueba` → toast *"closer_id actualizado"* → en la base quedó
+  el valor nuevo y **exactamente UNA fila** en `change_log` (`campo: closerId`, `origen: app`, con
+  el `userId` de quien lo hizo). El molde hizo lo que promete: solo registra la columna que cambió.
+- **En vista `closer` el input desaparece** y queda texto plano con *"Solo un administrador puede
+  cambiarlo. Pídeselo a tu gerente."*, y el nav pierde Nerd Stats y Ajustes.
+
+🎯 **Y se probó lo que de verdad importa, que NO es que el input no se pinte.** Se capturó el id de
+la server action interceptando `fetch` en la página, se cambió la vista a `closer`, y se invocó la
+acción **a mano, saltándose la interfaz entera**, mandando `closerId: "Andrea"` (literalmente el
+ataque que describe este ticket). El servidor respondió:
+
+> `{"ok":false,"error":"Solo un administrador puede editar el closer_id. Pídeselo a tu gerente."}`
+
+y la base no se movió. **Esconder el input no era la seguridad; la seguridad estaba en el servidor,
+y ahora está medido en vez de supuesto.**
+
+Segunda mitad de la propiedad, también forjada: se mandó el cuerpo con un `id` y un `userId`
+ajenos metidos a mano. **Se ignoraron los dos** y la escritura cayó en la propia fila, porque el
+esquema zod solo admite `closerId` y la acción pasa `session.user.id`. No hay camino para que el
+objetivo venga del input.
+
+Los tres cambios de prueba en `dev` quedaron revertidos (`closer_id` volvió a `Mani`); las 4 filas
+de `change_log` que generaron se dejan porque son historia real de la base de pruebas.
