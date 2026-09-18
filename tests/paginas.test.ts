@@ -38,6 +38,11 @@ vi.mock("@/lib/queries/programas", () => ({
   programasGestionablesPorUsuario,
 }));
 
+// El historial de una persona (ticket 006) lee la base; sin base en los tests se
+// mockea la query para que las guardas y el 404 sean lo unico bajo prueba.
+const historialDePersona = vi.fn();
+vi.mock("@/lib/queries/personas", () => ({ historialDePersona }));
+
 // El dashboard (ticket 005) arma su vista con `armarVistaDelDashboard`; sin base en
 // los tests se mockea para poder mirar CON QUE lo llama cada rol.
 const armarVistaDelDashboard = vi.fn();
@@ -110,6 +115,8 @@ beforeEach(() => {
   productosActivos.mockReset();
   productosActivos.mockResolvedValue([]);
   listarVacio.mockClear();
+  historialDePersona.mockReset();
+  historialDePersona.mockResolvedValue(HISTORIAL_VACIO);
   armarVistaDelDashboard.mockReset();
   armarVistaDelDashboard.mockResolvedValue(VISTA_VACIA);
   // Por defecto, un gerente rechazado de una pagina de closer aterriza en su primer
@@ -378,5 +385,73 @@ describe("token vaciado", () => {
     // Es lo que deja el callback jwt cuando el usuario fue desactivado (S-02/S-03).
     auth.mockResolvedValue({ user: { id: "", email: "x@y.co", rol: null, closerId: null } });
     expect(await destinoDe("@/app/(app)/ajustes/page")).toBe("/login");
+  });
+});
+
+/** Un historial minimo, suficiente para que la pagina renderice en los tests. */
+const HISTORIAL_VACIO = {
+  persona: {
+    id: "per-1",
+    nombre: "Lead de Prueba",
+    emailNormalizado: "lead@correo.co",
+    telefono: null,
+    programId: "p-1",
+    programaNombre: "Programa A",
+    responsableCloserId: null,
+    entrada: "formulario",
+    estado: "cola_setteo",
+  },
+  llamadas: [],
+  ventas: [],
+};
+
+/**
+ * Historial de una persona `/personas/[id]` (ticket 006). Lo ven gerente y closer,
+ * igual que el dashboard del que se entra (ADR 0009). Un id que no existe es 404,
+ * y la guarda corre ANTES de mirar el id: sin sesion va al login aunque el id sea
+ * basura, sin filtrar que ids existen.
+ */
+async function correrHistorial(id: string): Promise<"paso" | "login" | "midia" | "notFound"> {
+  const modulo = (await import(/* @vite-ignore */ "@/app/(app)/personas/[id]/page")) as {
+    default: (props: { params: Promise<{ id: string }> }) => Promise<unknown>;
+  };
+  try {
+    await modulo.default({ params: Promise.resolve({ id }) });
+    return "paso";
+  } catch (e) {
+    if (e instanceof NoEncontrado) return "notFound";
+    if (e instanceof Redireccion) return e.destino === "/login" ? "login" : "midia";
+    throw e;
+  }
+}
+
+describe("historial de una persona /personas/[id] (ticket 006)", () => {
+  const ID = "3f8a1c2e-0000-4000-8000-000000000001";
+
+  it("deja pasar a un gerente", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    expect(await correrHistorial(ID)).toBe("paso");
+  });
+
+  it("deja pasar a un closer (se entra desde el dashboard, ADR 0009)", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    expect(await correrHistorial(ID)).toBe("paso");
+  });
+
+  it("manda al login a quien no tiene sesion", async () => {
+    auth.mockResolvedValue(null);
+    expect(await correrHistorial(ID)).toBe("login");
+  });
+
+  it("una persona que no existe es 404", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    historialDePersona.mockResolvedValue(null);
+    expect(await correrHistorial(ID)).toBe("notFound");
+  });
+
+  it("un id que no es uuid es 404 y nunca llega a la base", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    expect(await correrHistorial("lead@correo.co")).toBe("notFound");
+    expect(historialDePersona).not.toHaveBeenCalled();
   });
 });

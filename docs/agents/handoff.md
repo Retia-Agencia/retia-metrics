@@ -7,6 +7,45 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-17 (noche) — Ticket 006: `/personas/[id]`, el historial de una persona. Sin
+  migración.**
+
+  **Siguiente sesión:** F1 y F2 quedan cerradas salvo el **007** (alta de los closers reales, es
+  operación, no código). Lo siguiente con código es **F3**: **022** (recursos + enlaces de pago),
+  que está listo, y detrás el **023**. El **021** sigue bloqueado esperando decisión. Y sigue
+  pendiente la prueba manual de `/mi-dia` y de esta pantalla con login real.
+
+  **Código** (385 tests, typecheck, lint y build limpios; hecho en la sesión principal con TDD,
+  rojo-verde-refactor de a un comportamiento):
+  - `historialDePersona` en `lib/queries/personas.ts`: persona + llamadas + ventas con sus abonos.
+    **Compone `ventasDePersona` (del 003) en vez de repetir el SQL del saldo**: el dinero se resta
+    en un solo lugar, porque dos definiciones de "saldo" se desincronizan sin que nadie lo note.
+    Los abonos de todas las ventas salen en UNA consulta con `inArray`, así el número de consultas
+    no depende de cuántas ventas tenga la persona.
+  - `app/(app)/personas/[id]/page.tsx` y `components/historial-persona.tsx`: **solo lectura**, sin
+    componente cliente ni server action, porque editar o borrar registros pasados está fuera del
+    alcance. Los motivos, orígenes y plataformas salen resueltos a su nombre (nunca el uuid), y los
+    montos con su moneda al lado.
+  - Los timestamps se pasan por `diaDeCalendario` antes de formatear: es la única definición de
+    "qué día es" del proyecto, y Vercel corre en UTC mientras el equipo está en Bogotá.
+
+  **Tres decisiones, con su argumento:**
+  - **El enlace sale del buscador de `/mi-dia`, no del dashboard.** El objetivo del ticket decía
+    "desde el dashboard, entrar a una persona", pero **el dashboard no lista personas**: muestra
+    agregados. La puerta que el ticket suponía no existía. Ponerla ahí exigía agregarle una lista
+    de personas al dashboard, que es una feature nueva. El buscador del 003 es hoy el único lugar
+    donde se listan personas.
+  - **La ven gerente y closer**, igual que el dashboard desde el que se entra (ADR 0009). Ningún
+    ADR pide restringirla más, así que no se inventó una restricción.
+  - **Un id que no es uuid es 404 sin tocar la base.** `where id = 'lead@correo.co'` sobre una
+    columna uuid revienta en Postgres y saldría como 500, que además insinuaría que el id existe.
+    Hay test de que en ese caso la query ni se llama.
+
+  **Base de datos:** sin cambios. Ninguna migración nueva.
+
+  **Verificado / no verificado:** `npm test` (385), typecheck, lint y `npm run build`. **No** se
+  abrió en el navegador: la página exige sesión de Google.
+
 - **2026-09-17 (noche) — Ticket 003: `/mi-dia` deja de ser un `ProximaFase`. Sin migración,
   sin mutaciones nuevas.**
 

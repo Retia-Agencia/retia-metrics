@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -201,6 +202,11 @@ function Buscador({
                   Tomar persona
                 </Button>
               )}
+              {/* La URL lleva el id opaco, NUNCA el correo (ticket 006): ningun
+                  dato personal viaja en una ruta. */}
+              <Button size="sm" variant="outline" render={<Link href={`/personas/${p.id}`} />}>
+                Historial
+              </Button>
               <Button size="sm" onClick={() => onSeleccionar(p)}>
                 Registrar
               </Button>
