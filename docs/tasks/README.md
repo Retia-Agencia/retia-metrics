@@ -35,7 +35,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 019 | [Registrar abono](./019-registrar-abono.md) | 018 | done · 17-sep (`registrarAbono` + `saldoDeVenta`, sin migración) |
 | [x] | 026 | [Responsable + alta manual](./026-responsable-y-alta-manual.md) (ADR 0021) | 015 | done · 17-sep (sesión paralela C; migración 0010 en `dev` y `production`) |
 | [x] | 003 | [Pantalla /mi-dia](./003-pantalla-mi-dia-registro.md) | 002, 019, 015, 026 | done · 17-sep (buscador, registro y abonos sobre las mutaciones de 002/019/026; sin migración) |
-| [ ] | 007 | [Alta de los closers reales](./007-onboarding-closer-id.md) | 015 | todo · operación · **listo** |
+| [ ] | 007 | [Alta de los closers reales](./007-onboarding-closer-id.md) | 015 | **en curso** · 18-sep: en `production` ya están el gerente, Maru (`closer_id: Maru`, 2 programas) y los 2 productos. Falta el correo de Andrea (su `closer_id` ya se sabe: `Andrea`) y **probar `registrarLlamada` con una cuenta real de closer**, que es el otro criterio |
 | [x] | 029 | [Anular un registro](./029-anular-registros.md) (ADR 0026, ADR 0027) | 003, 019 | done · 18-sep (migraciones 0013 y 0014 en `dev` y `production`; desplegado; recorrido visual hecho, 3 hallazgos arreglados) |
 
 ## F2 · Métricas
