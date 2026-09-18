@@ -92,6 +92,39 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     `juanse` y Sebastian **no se dan de alta**. Quedan solo como `closer_id` histórico: siguen
     apareciendo como closer asignado en las métricas, pero sin cuenta. Anotado en el ticket 007.
 
+  - 🩸 **EL BUG QUE MÁS ENSEÑA DE TODO EL DÍA: el menú de usuario tumbaba el layout entero al
+    ABRIRLO, y estaba roto DESDE ANTES del 028.** `DropdownMenuLabel` es `Menu.GroupLabel` de Base
+    UI, que exige vivir dentro de un `Menu.Group` o un `Menu.RadioGroup`. La cabecera (nombre,
+    correo, badge) estaba suelta → `MenuGroupContext is missing` → como el menú vive en el sidebar,
+    o sea dentro del layout, **el error se llevaba puesta la página completa**.
+    **543 tests en verde con el bug adentro.** Es un error de contexto de React en tiempo de
+    ejecución: no existe test de este repo que lo vea. `git show 75b2201:components/user-menu.tsx`
+    tiene el mismo label suelto, así que **el menú nunca se había abierto en un navegador**, ni en
+    el "recorrido visual" del CIERRE 5. Se descubrió el 18-sep al hacerle clic por primera vez.
+    🎯 **La lección, y es de método:** un recorrido visual que solo CARGA pantallas no es un
+    recorrido visual. Lo que rompe son las interacciones —abrir un menú, desplegar un select— y
+    esas no se ejercitan mirando. El 028 agregó un segundo label con el mismo defecto, así que
+    arreglar uno no alcanzaba. Y esto es lo que **desbloqueó** el criterio del 028 "el selector se
+    ve siempre": estaba escrito y era literalmente inalcanzable.
+
+  - ✅ **Los 3 productos de la semilla BORRADOS de `production`** (con ok de Mani). Quedan los 2
+    reales. Confirmación de la causa raíz: la misma semilla corrida contra `dev` **no duplicó nada**
+    (`= ya existe, no se toca`), porque allá los productos SÍ habían nacido de la semilla y los
+    nombres coincidían. El problema nunca fue el script: fue reconciliar por un campo que cambió.
+
+  - 🧪 **`dev` está listo para el recorrido de Mani** (decisión suya: probarlo todo él antes de
+    entregárselo al equipo). Su usuario allá ya es `developer` con `closer_id = "Mani"` y los DOS
+    programas, hay cohortes C2 activas, productos, 8 motivos y 7 orígenes, y se le sembraron las 6
+    categorías de recurso que faltaban. Solo hay 2 personas: para practicar la búsqueda conviene
+    crear más desde el "Crear persona" de `/mi-dia`.
+
+  - **El correo de Andrea queda PENDIENTE por decisión de Mani** (18-sep), no por olvido. Sin él,
+    `production` sigue con un solo closer activo (Maru).
+
+  - 🚀 **Desplegado:** `main` pusheado hasta `677cf19`. `/api/health` responde 200 y la raíz da 307
+    a login (nada público). ⚠️ **No se pudo confirmar QUÉ COMMIT quedó vivo:** el conector de
+    Vercel pide OAuth y la sesión no lo tenía. Eso se mira en el dashboard.
+
   - 🆕 **Ticket 031 nuevo, pedido de Mani:** cargarse el `closerId` propio desde el perfil, sin pasar
     por `/ajustes/usuarios` (que es la pantalla de administrar A OTROS). **Tiene una decisión abierta
     que NO es cosmética:** `closerId` es la llave que ata un usuario a su historia, así que un closer
@@ -1429,23 +1462,29 @@ Por partes y en este orden:
 1b'.[x] ~~🔴 **Aplicar 0013 y 0014 en `production`**~~ — **HECHO el 18-sep** con ok de Mani, ANTES
        del push, que es el orden correcto: una migracion aditiva no rompe el codigo viejo, pero
        codigo nuevo contra un esquema viejo revienta con *column does not exist*.
-1b''.[ ] **Abrir el dashboard desplegado con sesion** (solo Mani). El build pasa y `/api/health`
-       responde, pero las consultas nuevas contra `production` no se han ejercitado. De paso,
-       `/nerd-stats` alla: el total de personas ronda 4.600 y **sube con cada sync**, asi que no se
-       compara contra un numero fijo; lo que importa es que los conteos por programa no sean cero.
+1b''.[ ] **Abrir el dashboard desplegado con sesion** (solo Mani). Sigue pendiente. El 18-sep se
+       pusheo hasta `677cf19` y `/api/health` responde 200, pero **eso no prueba que las consultas
+       corran**: solo que la funcion arranca. De paso `/nerd-stats` alla: los conteos por programa
+       NO deben dar cero (un cero es la subconsulta correlacionada del 025 volviendo); el total de
+       personas ronda 4.600 y sube con cada sync, asi que no se compara contra un numero fijo.
+       ⚠️ **Y no se pudo verificar QUE COMMIT quedo desplegado**: el conector de Vercel pide OAuth.
 1c.[x] ~~**028 · "Ver como" del developer**~~ — **HECHO el 18-sep** (ADR 0028). `rolDeVista` +
        cookie + selector + guardián sobre `app/` y `lib/`. 543 tests, sin migración. La primera
        entrega dejó 3 sitios pasando el rol crudo que el guardián no veía: ver el CIERRE 7.
-1d.[ ] 🔴 **BORRAR LOS 3 PRODUCTOS que `seed:datos` insertó en `production` el 18-sep.** Es lo más
-       urgente de esta lista por el cierre de ventas del 21-sep: mientras estén, el desplegable de
-       producto al registrar una venta muestra 5 opciones y un closer va a elegir mal.
-       `DATABASE_URL="$(grep '^DB_PROD=' .env.local | cut -d= -f2- | tr -d '"')" npx tsx scripts/_limpiar-productos-semilla.ts -- --escribir`
-       Después borrar ese script, es temporal. Detalle del incidente en el CIERRE 7.
+1d.[x] ~~🔴 **Borrar los 3 productos que `seed:datos` insertó en `production`**~~ — **HECHO el
+       18-sep** con ok de Mani. Quedan los 2 reales. El script temporal
+       `scripts/_limpiar-productos-semilla.ts` ya cumplió y se puede borrar.
 2. [x] ~~**Cargar los 5 enlaces de PayPal**~~ — **HECHO el 18-sep** para ComunicArte (797, 697,
        400, 300, 200 USD; vigentes, activos, sin producto). Salieron del grupo de WhatsApp
        *Ventas ComunicArte*. **Tactical queda vacío a propósito** (decisión de Mani): allá los
        links se generan uno por venta, no hay catálogo. Y las **6 categorías de recurso** también
        quedaron sembradas, que era el bloqueo real de `/recursos`.
+2a.[ ] 🔴 **RECORRIDO DE INTERACCIONES (no de carga).** El "recorrido visual" del CIERRE 5 cargo
+       pantallas y dio por buenas las que se veian bien; el menu de usuario llevaba roto desde
+       antes y **tumbaba el layout entero al abrirlo**, con 543 tests en verde. Falta pasar por
+       cada elemento que se ABRE o se DESPLIEGA: los selects de `/mi-dia` (programa, producto,
+       motivo, origen, plataforma), el registro de llamada de punta a punta, el flujo de anular,
+       los desplegables de `/ajustes` y de `/productos`. **Cargar una pantalla no es probarla.**
 2b.[ ] **Crear el primer recurso desde `/recursos`** (solo Mani; no hay camino de script y está
        bien que no lo haya: el criterio 6 es sobre USAR la pantalla). Candidato: la carpeta de
        Drive de ComunicArte que Michael compartió el 16-sep, categoría Drive.

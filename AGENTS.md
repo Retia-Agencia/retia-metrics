@@ -214,7 +214,16 @@ The agent should run these to get fast signal on whether code works. Keep them c
   18-sep, con la escritura correcta en la base y la pantalla mostrando el total anterior.
 - **Next 16 renombro `middleware.ts` a `proxy.ts`.** El archivo vive en la raiz con ese nombre.
 - **shadcn/ui corre sobre `@base-ui/react`, no sobre Radix.** Se usa `render={<Componente />}` en
-  vez de `asChild`, y `onClick` en vez de `onSelect` en los items de menu.
+  vez de `asChild`, y `onClick` en vez de `onSelect` en los items de menu. **Y Base UI es ESTRICTO
+  con la composicion: una parte fuera de su contenedor lanza en tiempo de ejecucion, no en
+  compilacion.** `DropdownMenuLabel` es `Menu.GroupLabel` y exige vivir dentro de un `Menu.Group` o
+  un `Menu.RadioGroup`; suelto tira `MenuGroupContext is missing`. Eso paso de verdad (18-sep) y
+  como el menu de usuario vive en el sidebar, **el error se llevaba puesta la pagina entera al
+  ABRIR el menu**, con 543 tests en verde. Estuvo roto varios dias.
+- **Cargar una pantalla no es probarla, y un "recorrido visual" que solo carga no sirve.** Lo que
+  rompe en Base UI son las INTERACCIONES: abrir un menu, desplegar un select, abrir un dialogo.
+  Ningun test de este repo ve un error de contexto de React en tiempo de ejecucion. Cuando revises
+  una pantalla, **hace clic en todo lo que se abre**, y mira la consola del navegador.
 - **`next-auth/jwt` solo re-exporta `@auth/core/jwt`.** La augmentacion de `JWT` tiene que
   declararse sobre `@auth/core/jwt` o no aplica (ver `types/next-auth.d.ts`).
 - **`LayoutProps` / `PageProps` los genera `next build`.** No dependas de ellos: tipa las props a
