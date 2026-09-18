@@ -3,6 +3,42 @@
 > Session memory + roadmap. Read at session start, update at session end.
 > The roadmap is a DAG: a task is only **ready** when its dependencies are done.
 
+## Prompt para arrancar la próxima sesión
+
+> Copiar y pegar tal cual. Escrito el 18-sep al cerrar el día.
+
+```
+Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y las entradas "CIERRE 9", "CIERRE 8"
+y "CIERRE 7" del 18-sep en docs/agents/handoff.md.
+
+Estado: 545 tests, typecheck y lint limpios, arbol limpio, main pusheado en 5113b08. Cerrados hoy
+el 028 (rolDeVista + selector "ver como") y el 032 (la vista `todo` volvio a ser un superconjunto
+de la `closer`). El recorrido de INTERACCIONES esta hecho y documentado: se probo clic por clic
+registrar una llamada cerrada con venta y abono, anular, el sobrepago, reemplazar un recurso y las
+guardas de las tres vistas. Comprueba `git ls-remote origin main` antes de asumir que esta
+desplegado, y ojo que `/api/health` en 200 solo prueba que la funcion arranca, no que las consultas
+corran.
+
+Delega a Kiro (kiro-rescue) lo grueso o repetitivo. Kiro NO corre db:generate ni db:migrate. Para
+una segunda opinion o una implementacion paralela, codex:codex-rescue.
+
+Arranca por lo que desbloquea a los closers reales, y es casi todo dato mio:
+(1) mi correo de Google de Andrea, que es el UNICO dato que falta para tener los dos closers
+    activos en production (su closer_id ya se sabe: `Andrea`, 317 de las 424 llamadas historicas);
+(2) registrar la primera llamada REAL en production, que cierra los criterios 1 y 5 de la spec
+    (hoy production tiene 0 llamadas, 0 ventas y 0 abonos);
+(3) crear el primer recurso en production desde /recursos, que ya tiene sus 6 categorias.
+
+Pendiente mio, no tuyo: rotar la contrasena de PayPal de Retia, que sigue publicada en texto plano
+en el grupo de WhatsApp "Ventas JP Vieira" desde el 18-ago.
+
+Decisiones abiertas que necesito cerrar: el 031 (quien puede editarse su propio closer_id; la
+recomendacion es que solo quien administra), el 021 (snapshot del dashboard) y si un script de
+semilla debe escribir en change_log.
+
+Despues: el 030 y el 016 pueden esperar. La deuda F-03 + F-07 va junta y necesita migracion.
+```
+
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
