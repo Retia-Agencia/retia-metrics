@@ -22,14 +22,22 @@ pantalla?" hoy está contestada a mano en tres sitios, con tres expresiones dist
 
 ```
 /mi-dia    →  session.user.rol === "closer" ? "closer" : "gerente"
-/recursos  →  session.user.rol === "gerente"
+/recursos  →  esAdministrador(session.user.rol)     ← ya no es `rol === "gerente"`
 /productos →  su propia inversión
 ```
 
-Eso es el ADR 0024 incumplido, y **es la causa de que el hueco de `/recursos` sobreviviera al
+Eso es el ADR 0024 incumplido, y **fue la causa de que el hueco de `/recursos` sobreviviera al
 024**: se invirtieron dos de los tres y el tercero no avisó. Una cuarta pantalla habría agregado
-una cuarta copia. Verificado en vivo el 18-sep: como developer, `/recursos` no muestra ni un
-control de edición.
+una cuarta copia.
+
+> **Actualización 18-sep (CIERRE 5): el hueco de `/recursos` YA SE ARREGLÓ** aparte de este
+> ticket. La prop pasó de `esGerente` a `puedeEditar`, desde `esAdministrador`, así que como
+> developer la pantalla ya muestra los controles. **Esto NO cierra el 028 ni le quita sentido:**
+> lo que se arregló es el síntoma en una pantalla; lo que el 028 arregla es que la pregunta siga
+> contestada a mano en tres expresiones distintas, que es lo que deja que el síntoma vuelva en la
+> cuarta pantalla. Sigue habiendo tres copias, solo que ahora las tres dan la respuesta correcta.
+> El criterio de abajo sobre `/recursos` pasa a ser una regresión que hay que *conservar*, no un
+> arreglo que hay que *lograr*.
 
 ## Alcance
 
@@ -107,9 +115,11 @@ a mano. Y `esCloserValidoEnPrograma` en `lib/mutations/personas.ts`, que sigue f
       compara `session.user.rol` a mano. Un test lo guarda (como el guardián de slugs del 009).
 - [ ] Como developer en vista `gerente`, `/recursos` muestra los controles de edición.
 - [ ] Como developer en vista `closer`, `/mi-dia` deja buscar, crear persona, tomarla y registrar
-      llamada y abono de punta a punta (con el `closerId` cargado **y membresía activa en el
-      programa**: el buscador se filtra por membresía, no por rol — verificado el 18-sep, un
-      developer con membresías sí encuentra personas).
+      llamada y abono de punta a punta, con el `closerId` cargado. *Actualizado el 18-sep
+      (CIERRE 5): el buscador ya NO se filtra siempre por membresía — el alcance lo decide el rol,
+      y quien administra ve todos los programas activos. Así que un developer en vista `todo`
+      encuentra personas sin membresías. Ojo con el caso de este criterio: en vista `closer` la
+      proyección se estrecha, y ahí la membresía vuelve a importar.*
 - [ ] Como developer en vista `gerente`, `/mi-dia` vuelve a negar el registro (ADR 0003).
 - [ ] Un gerente o un closer con la cookie de vista puesta a mano no cambian de proyección.
 - [ ] El selector se ve siempre, incluso en la vista que esconde Ajustes y Nerd Stats.
