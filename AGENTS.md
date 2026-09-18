@@ -92,6 +92,19 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   persona y registrar. La cumplen el closer y el developer, **no el gerente** (ADR 0003). Son tres
   preguntas y tres funciones: una pantalla que pregunte `rol === "closer"` a mano deja al developer
   afuera, que es justo como `/ajustes/usuarios` quedo sin poder cargarle su `closer_id` (18-sep).
+- 👑 **El developer es el DUEÑO: no se le restringe NADA, en lo absoluto** (Mani, 18-sep; ADR 0025
+  punto 5). La proyeccion por rol existe para que una pantalla no le salga vacia, **nunca para
+  darle menos** que a un gerente o un closer. De ahi la regla que se aplica al revisar codigo:
+  **todo `rol === "..."` escrito a mano que excluya al developer es un bug, no una decision.** La
+  respuesta vive en `lib/auth/roles.ts` (`esAccesoTotal` · `esAdministrador` · `trabajaLeads`); si
+  ninguna de las tres encaja, la pregunta nueva se agrega ahi y no en el archivo que la necesita.
+  **Y no aplica solo a las guardas de ruta:** `puedeAcceder` ya cerro ese frente, y el agujero que
+  quedo fue el de las **reglas de datos** en `lib/catalogo/` y `lib/mutations/` ("¿este actor puede
+  tocar esta fila?"). `exigirAccesoAlPrograma` preguntaba `rol === "gerente"` y le negaba al
+  developer crear un producto con un 403 que ademas mentia ("un programa donde no vendes": el
+  developer no vende en ninguno). Se destapo cargando los productos reales de `production`, no en
+  un test. ⚠️ **Incumplimiento conocido:** `app/(app)/recursos/page.tsx` decide `esGerente` con
+  `rol === "gerente"` y le esconde la creacion; es del ticket 028.
 - **`gerente` y `closer` son conjuntos disjuntos, sin herencia.** Un closer nunca entra a una ruta
   exclusiva de gerente como `/ajustes` (ADR 0003). Excepcion explicita desde el 15 de septiembre de
   2026: en el dashboard del CRM (`/programas/[slug]`, antes `/comunicarte` y

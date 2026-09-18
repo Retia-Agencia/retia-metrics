@@ -34,7 +34,34 @@ programas activos, como el gerente. Con la proyeccion de closer, un developer (q
 de ningun programa) entraria a una pantalla vacia. **Cada pantalla que se agregue a una ruta
 exclusiva de closer tiene que decidir esto explicitamente.**
 
-**5. "Administrar" y "pasar toda guarda" son dos preguntas, no una.** `esAccesoTotal` la cumple
+**5. El developer es el DUEÑO: no se le restringe nada, en lo absoluto** (Mani, 18-sep, enmienda
+al punto 4). El punto 4 decia que cada pantalla decide su proyeccion "explicitamente", y eso se
+leyo como que cada pantalla podia decidir *cualquier cosa*, incluso dejarlo afuera. No. La
+proyeccion existe para que una pantalla no le salga VACIA (darle la union en vez de la de un
+closer sin membresias); nunca para darle menos de lo que puede hacer un gerente o un closer.
+
+De ahi sale una regla operativa, y es la que hay que aplicar al revisar codigo:
+
+> **Cualquier `rol === "..."` escrito a mano que excluya al developer es un bug, no una decision.**
+> La respuesta vive en `lib/auth/roles.ts` y son tres preguntas con tres funciones: `esAccesoTotal`
+> (¿pasa toda guarda?), `esAdministrador` (¿administra? gerente + developer), `trabajaLeads`
+> (¿puede ser responsable y registrar? closer + developer). Si ninguna encaja, la respuesta nueva
+> se agrega ahi, no en el archivo que la necesita.
+
+Esto NO es solo de las guardas de ruta. El punto 3 cerro ese frente con `puedeAcceder`, y el
+agujero que quedo fue el de las **reglas de datos**: funciones que preguntan "¿este actor puede
+tocar esta fila?" y que viven en `lib/catalogo/` y `lib/mutations/`, lejos de `puedeAcceder`.
+`exigirAccesoAlPrograma` en `lib/catalogo/productos.ts` preguntaba `actor.rol === "gerente"`, asi
+que un developer caia al chequeo de membresia y recibia un **403 que ademas mentia**: "no puedes
+gestionar productos de un programa donde no vendes", cuando el developer no vende en ninguno por
+definicion. Se destapo el 18-sep cargando los productos reales de `production`, no en un test.
+
+**Incumplimientos conocidos al 18-sep** (se dejan anotados en vez de fingir que la regla ya se
+cumple entera): `app/(app)/recursos/page.tsx` decide `esGerente` con `rol === "gerente"`, asi que
+al developer le esconde la creacion de recursos y enlaces. Cae dentro del ticket **028**, que
+convierte "¿con que rol proyecto esta pantalla?" en `rolDeVista` y la contesta en un solo lugar.
+
+**6. "Administrar" y "pasar toda guarda" son dos preguntas, no una.** `esAccesoTotal` la cumple
 solo el developer; `esAdministrador` la cumplen el gerente y el developer. Hoy la salvaguarda del
 ticket 015 usa la segunda: un administrador no puede desactivarse ni bajarse a `closer` a si
 mismo, pero pasar de `gerente` a `developer` (o al reves) si se permite, porque no se pierde
@@ -56,6 +83,11 @@ es otro ticket y otra decision.
   suya: el dashboard del CRM abre esos datos a todos los roles desde el ADR 0009.
 - Es un rol con acceso total: **quien lo tenga puede hacer todo lo que la app permite**, y por eso
   no se reparte. La auditoria de quien lo tiene es la lista de `/ajustes/usuarios`.
+
+El punto 5 lo cubre `tests/productos.test.ts` ("un developer sin membresias crea un producto en
+cualquier programa"), escrito en rojo antes del arreglo. Es un test por caso, no un guardian: hoy
+no hay nada que recorra el codigo buscando `rol === "..."` a mano, como si lo hay para la vigencia
+(`tests/vigencia-centralizada.test.ts`). Mientras no lo haya, esta regla se sostiene en la revision.
 
 Testeado en `tests/roles.test.ts`, `tests/guards.test.ts`, `tests/paginas.test.ts`,
 `tests/usuarios.test.ts` y `tests/migracion-developer.test.ts`.

@@ -7,6 +7,79 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-18 (CIERRE 3 del mismo día) — Verificación del 029 contra `production` HECHA y pasada.
+  Equipo y productos dados de alta en `production`. Un bug de rol encontrado y arreglado.
+  Dos hallazgos nuevos sin tocar, uno de ellos grave. 496 tests.**
+
+  **PARA QUIEN ABRA LA PRÓXIMA SESIÓN, leer esto primero:**
+
+  - 👑 **REGLA NUEVA DE MANI, y gobierna todo: el developer es el DUEÑO, no se le restringe NADA.**
+    Está en AGENTS.md y en el ADR 0025 punto 5. Operativamente: **todo `rol === "..."` escrito a
+    mano que excluya al developer es un bug, no una decisión.** La proyección por rol existe para
+    que una pantalla no le salga vacía, nunca para darle menos.
+  - **El pendiente del 029 está cerrado.** Se corrieron contra `production` las MISMAS funciones
+    que llaman las páginas (`conteosPorPrograma`, `armarVistaDelDashboard` ×4, `historialDePersona`),
+    con el cliente apuntado allá. Ninguna reventó; 470 a 740 ms. **`conteosPorPrograma` da 1.977 y
+    2.622, no cero: la subconsulta correlacionada del 025 no volvió.** Se eligió ese camino en vez
+    de apuntar el dev server a `production` porque contesta lo mismo y **no puede escribir**.
+  - **`production` ya tiene equipo y productos** (escrituras con el ok de Mani, rama comprobada
+    antes de cada una):
+
+    | quién | rol | closer_id | programas |
+    |---|---|---|---|
+    | `administrativa@retiagrowth.com` | gerente | — | — |
+    | `manuelmejiaarana@gmail.com` | developer | — (no lo quiere) | — |
+    | `soymarumarquez@gmail.com` | closer | `Maru` | los dos |
+
+    Productos: **Método ComunicArte** 797 USD (Comunicarte) y **De Cero a Tactical Investor**
+    1500 USD (Tactical). Precios = los de la cohorte C2 activa, aprobado por Mani.
+  - 🔑 **El `closer_id` NO se inventa ni se le pregunta a nadie: está en la columna "Closer" de la
+    pestaña "Registro de llamadas" de cada hoja.** Valores reales: `Andrea` (125 Tactical + 192
+    Comunicarte), `Maru` (1 + 10), y además `Dana`, `Alejo`, `juanse` (minúscula, ojo) y
+    `Sebastian`, 96 llamadas entre los cuatro, que Michael no listó como activos. **Falta el correo
+    de Andrea y nada más**: su `closer_id` ya se sabe.
+  - **Mani NO quiere `closer_id` ni membresías.** Como developer solo quiere ver, y para ver no
+    hace falta ninguna de las dos: los dashboards y `/nerd-stats` no filtran por usuario.
+
+  🔴 **HALLAZGO GRAVE, SIN TOCAR: 1.034 de las 2.622 personas de Tactical Investor (39%) tienen
+  `fecha_primera_aplicacion` en el año 1, así que NO cuentan como lead en ninguna pantalla.**
+  Comunicarte está limpio. La hoja de Tactical trae literalmente `1/1/0001 0:00:00` como centinela
+  de "vacío"; `parsearFecha` lo lee **correctamente** como el 1 de enero del año 1, porque es una
+  fecha válida, y no avisa. Peor: el dedup conserva la fecha **más antigua**
+  (`lib/sheets/dedup.ts:103`), y el año 1 le gana a cualquier fecha real, así que **una sola fila
+  envenenada le borra la fecha buena a alguien que sí tiene filas buenas**: 704 de los 1.034 son
+  personas con 2+ aplicaciones. **Y no se cura solo:** `fechaPrimeraAplicacion` se escribe en el
+  update pero NO está en `CAMPOS_COMPARABLES` (`lib/sheets/plan-sync.ts:17`) y el plan descarta a
+  quien no tenga ningún diff (`plan-sync.ts:57`), así que arreglar el parser no repara lo escrito.
+  Arreglo en tres piezas: piso de plausibilidad en `parsearFecha` (año 1 → `null`, y el dedup lo
+  ignora solo), backfill desde `raw`, y decidir si `fechaPrimeraAplicacion` debe ser comparable.
+
+  🐛 **EL BUG ARREGLADO, y la lección es que apareció fuera de los tests.** `exigirAccesoAlPrograma`
+  en `lib/catalogo/productos.ts` preguntaba `actor.rol === "gerente"`, así que un developer caía al
+  chequeo de membresía y recibía un **403 que además mentía**: *"no puedes gestionar productos de un
+  programa donde no vendes"*, cuando el developer no vende en ninguno por definición. Se destapó
+  **intentando cargar los productos reales de `production`**, no en un test. Arreglo: una línea,
+  `esAdministrador(actor.rol)`, predicado que el repo ya tenía sin usar acá. Test de regresión con
+  un developer **sin membresías**, visto en rojo con el mensaje exacto del bug antes de tocar nada.
+  Los productos se cargaron **con la cuenta de developer**, que es la prueba real del arreglo.
+
+  ⚠️ **Incumplimiento conocido de la regla nueva, sin tocar:** `app/(app)/recursos/page.tsx:41`
+  decide `esGerente` con `rol === "gerente"` y le esconde al developer la creación de recursos y
+  enlaces. Es del ticket **028**, que convierte esa pregunta en `rolDeVista`.
+
+  🕳️ **HUECO DE DISEÑO, sin tocar: un gerente no puede abrir el historial de NINGÚN lead.** El
+  único enlace a `/personas/[id]` está dentro del buscador de `/mi-dia`
+  (`components/mi-dia-registro.tsx:216`), `buscarPersonas` filtra por membresía y `/mi-dia` es
+  exclusiva de closer (ADR 0003). El gerente no tiene ruta. No es config, es diseño.
+
+  **Corrección a algo que se creía:** en `/nerd-stats`, "Últimos cambios desde la app" **vacío era
+  lo correcto** en `production`: filtra por `origen = "app"` y las 80 filas de `change_log` de allá
+  eran todas del sync. Ya no: las altas de esta sesión dejaron 12 filas con `origen: app`.
+
+  **Sigue pendiente de Mani:** el correo de Andrea, los 5 enlaces de PayPal (el script los lee de un
+  JSON fuera del repo vía `ENLACES_PAGO_JSON`, ADR 0017), decidir el 021, y los dos hallazgos de
+  arriba. El 028 está listo para codear. ⏰ **Comunicarte C2 cierra ventas el 21-sep.**
+
 - **2026-09-18 (CIERRE 2 del mismo día) — Ticket 029 cerrado: anular registros. ADR 0027 nuevo.
   Migraciones 0013 y 0014 en `dev` Y en `production`. Commiteado, pusheado y desplegado.
   Recorrido visual de la anulación hecho, 3 hallazgos, los 3 arreglados. 495 tests.**

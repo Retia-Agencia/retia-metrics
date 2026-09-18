@@ -3,7 +3,7 @@ import { z } from "zod";
 import { miembrosPrograma, productos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
-import type { Rol } from "@/lib/auth/roles";
+import { esAdministrador, type Rol } from "@/lib/auth/roles";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
 /**
@@ -123,13 +123,20 @@ function moldeProductos(db: Db) {
 }
 
 /**
- * Enforza la regla de datos del ADR 0016: un gerente entra a cualquier programa; un
- * closer solo a los programas donde tiene una membresia ACTIVA. Un closer que toca
- * el producto de otro programa recibe un 403 (aparte de la barrera de rol de la
- * ruta). No es seguridad de UI: se verifica aqui, en el servidor, contra la base.
+ * Enforza la regla de datos del ADR 0016: quien ADMINISTRA entra a cualquier
+ * programa; un closer solo a los programas donde tiene una membresia ACTIVA. Un
+ * closer que toca el producto de otro programa recibe un 403 (aparte de la barrera
+ * de rol de la ruta). No es seguridad de UI: se verifica aqui, en el servidor,
+ * contra la base.
+ *
+ * "Administrar" es `esAdministrador`, no `rol === "gerente"`: el developer tambien
+ * administra (ADR 0025) y no es miembro de ningun programa, asi que el chequeo a
+ * mano lo mandaba al camino de la membresia y le negaba con un 403 que ademas
+ * mentia ("donde no vendes": el developer no vende en ninguno). Misma forma del
+ * bug que el ticket 029 arreglo en `/ajustes/usuarios`.
  */
 async function exigirAccesoAlPrograma(db: Db, actor: Actor, programId: string): Promise<void> {
-  if (actor.rol === "gerente") return;
+  if (esAdministrador(actor.rol)) return;
   const [membresia] = await db
     .select({ id: miembrosPrograma.id })
     .from(miembrosPrograma)

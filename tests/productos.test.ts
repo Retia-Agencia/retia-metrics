@@ -34,11 +34,13 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let gerenteId: string;
 let closerId: string;
+let developerId: string;
 let programaA: string;
 let programaB: string;
 
 const actorGerente = () => ({ id: gerenteId, rol: "gerente" as const });
 const actorCloser = () => ({ id: closerId, rol: "closer" as const });
+const actorDeveloper = () => ({ id: developerId, rol: "developer" as const });
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
@@ -54,6 +56,14 @@ beforeEach(async () => {
     .values({ email: "closer@retiagrowth.com", rol: "closer", nombre: "Ana", closerId: "Ana" })
     .returning();
   closerId = c.id;
+
+  // Developer SIN membresias, a proposito: pasa toda guarda por el ADR 0025 y no
+  // es miembro de ningun programa. Es el caso que el chequeo a mano dejaba afuera.
+  const [d] = await db
+    .insert(users)
+    .values({ email: "dev@retiagrowth.com", rol: "developer", nombre: "Dev" })
+    .returning();
+  developerId = d.id;
 
   const [a] = await db
     .insert(programs)
@@ -171,6 +181,21 @@ describe("crear producto", () => {
     const enB = await crearProducto(db, actorGerente(), productoValido(programaB));
     expect(enA.programId).toBe(programaA);
     expect(enB.programId).toBe(programaB);
+  });
+
+  // ADR 0025: el developer administra igual que el gerente, y NO es miembro de
+  // ningun programa. Preguntar `rol === "gerente"` a mano lo mandaba al chequeo de
+  // membresia y le devolvia 403 "no vendes en este programa", que ademas es falso:
+  // el developer no vende en ninguno. La respuesta vive en `esAdministrador`.
+  it("un developer sin membresias crea un producto en cualquier programa (ADR 0025)", async () => {
+    const enA = await crearProducto(db, actorDeveloper(), productoValido(programaA));
+    const enB = await crearProducto(db, actorDeveloper(), productoValido(programaB));
+    expect(enA.programId).toBe(programaA);
+    expect(enB.programId).toBe(programaB);
+
+    // Y queda firmado por el developer, no por nadie mas.
+    const log = await logDe(enA.id);
+    expect(log.every((l) => l.userId === developerId)).toBe(true);
   });
 
   it("un precio <= 0 es un 400", async () => {
