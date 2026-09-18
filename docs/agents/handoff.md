@@ -7,6 +7,69 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-18 (CIERRE 9) — Recorrido de interacciones TERMINADO (lo que faltaba del CIERRE 8).
+  Un hallazgo de formato, arreglado. Prellenado de precio y fecha, pedido de Mani.**
+
+  **PARA QUIEN ABRA LA PRÓXIMA SESIÓN, leer esto primero:**
+
+  - 🟡 **HALLAZGO, arreglado: dos pantallas de `/ajustes` escribían el dinero en crudo.**
+    `/ajustes/programas` mostraba *"ticket USD 797.00"* y *"USD 1500.00"* —punto decimal, sin
+    separador de miles— y `/ajustes/programas/[slug]` lo mismo con el precio de la cohorte y la
+    TRM. Salían del string de la base **sin pasar por `lib/format.ts`**, mientras TODAS las demás
+    pantallas muestran "USD 1.500,00". Incumplía el contrato de formato de AGENTS.md.
+    🎯 **Por qué importa más de lo que parece:** es la misma enfermedad del ADR 0024 pero en
+    presentación. La respuesta a "¿cómo se escribe un monto?" vive en un módulo, y dos pantallas
+    la contestaron por su cuenta. Nadie lo vio porque **no falla: se ve casi bien.**
+    Arreglado: `usd(Number(...))` y `num(Number(...), 2)` para la TRM.
+  - ✅ **Prellenado (pedido de Mani, 18-sep).** Elegir el producto prellena *Precio aplicado* con su
+    precio de lista, y las dos *Fecha del abono* (la del cierre y la del abono suelto) nacen con
+    hoy. Ambos siguen editables a propósito: el precio aplicado no siempre es el de lista (la C2
+    respeta el anterior a quien ya lo tenía cotizado) y a veces se carga un abono de ayer.
+    ⚠️ **La fecha NO es `toISOString().slice(0,10)`**, que da el día en UTC: Bogotá va cinco horas
+    atrás, así que **de 7pm a medianoche prellenaría mañana** y el abono caería en otro rango del
+    dashboard. Vive en `hoyEnBogota()` en `lib/format.ts`, una sola definición para los dos
+    formularios que la piden.
+
+  - ✅ **"Copiar link" FUNCIONA** (Mani lo probó con un clic real, 18-sep). En el CIERRE 8 quedó
+    como inconcluso porque en el panel automatizado el permiso `clipboard-write` sale `denied`, y
+    la app respondía *"No se pudo copiar el link"*. **No era un bug: era el entorno.**
+    🎯 **La lección de método, que vale para el próximo recorrido automatizado:** hay cosas que un
+    agente NO puede concluir —portapapeles, descargas, notificaciones, cámara, cualquier cosa que
+    dependa de un permiso del navegador o de un gesto humano real—. Cuando una de esas falle,
+    **compruébalo con `navigator.permissions.query` antes de escribirla como hallazgo**, y si el
+    permiso está denegado, pásasela a un humano en vez de reportar un bug que no existe.
+
+  - ✅ **032 CERRADO el mismo día, y el arreglo de verdad fue el guardián.** `crearPersonaManual`
+    decide con `trabajaLeads`; `asignarResponsable` quedó como predicado POSITIVO
+    (`!esAdministrador`) en vez de literal —habría funcionado igual porque el rol ya viene
+    proyectado, pero el predicado dice CAPACIDAD en vez de ROL, que es lo que pide el ADR 0025—; y
+    `scripts/usuarios.ts` cuenta administradores con `esAdministrador`, no gerentes.
+    **El guardián ahora caza cualquier `.rol` comparado con un literal, no solo
+    `session.user.rol`, y recorre `scripts/`.** Se probó mordiendo las dos formas que antes se le
+    escapaban y señaló archivo, línea y forma en las dos. Verificado además en el navegador: en
+    vista `todo` crear persona responde "Persona creada". 545 tests.
+    🎯 **Y hay un test nuevo que es el que impide que vuelva:** `vista "todo" es un superconjunto
+    de vista "closer"`. No prueba un caso, prueba una PROPIEDAD. Los tres puntos ciegos del día
+    salieron porque cada arreglo fijaba el caso concreto; esto fija la regla.
+    Quedó UNA excepción nombrada, `lib/catalogo/usuarios.ts:80`, que es validación de formulario
+    (qué campos exige el rol que se ASIGNA), no autorización de un actor.
+
+  **LO QUE FALTABA RECORRER, y pasó todo:**
+
+  - `/personas`: busca y encuentra gente de LOS DOS programas (el arreglo del CIERRE 5).
+  - Dashboard de Tactical: estados vacíos manejados sin romperse ni mostrar NaN.
+  - `/ajustes/catalogos`: las cuatro pestañas cambian, y las 6 categorías de recurso están.
+  - `/ajustes/fuentes`: explica las fuentes "sin mapeo" inactivas y ofrece sincronizar.
+  - **Reemplazar un recurso**: crea la versión nueva vigente y aparece *"Historial (1)"* con la URL
+    anterior guardada. El versionado del ADR 0017 cumple.
+  - **Abono suelto** sobre una venta existente, con su fecha ya prellenada.
+  - 🎯 **La reja de sobrepago, que es la mejor pieza que vi hoy:** un abono de 1.000 sobre un saldo
+    de 797 se BLOQUEA con el número exacto —*"deja la venta con un sobrepago de USD 203,00: el
+    saldo pendiente es USD 797,00. Confirma el sobrepago si el pago entró de verdad."*— y ofrece
+    confirmarlo. Al confirmar, la etiqueta CAMBIA: *"Abonado: USD 1.000,00 · **sobrepago**: USD
+    203,00"*, no "saldo pendiente de -203". Es `saldoLegible` haciendo exactamente lo que su
+    comentario promete.
+
 - **2026-09-18 (CIERRE 8) — RECORRIDO DE INTERACCIONES hecho contra `dev`, clic por clic. Casi
   todo pasa; sale UN bug real y el tercer punto ciego del mismo guardián.**
 
@@ -1556,8 +1619,7 @@ Por partes y en este orden:
 2b.[ ] **Crear el primer recurso en `production`** desde `/recursos` (solo Mani). En `dev` ya se
        hizo y el flujo entero pasa, asi que esto es carga de dato real, no prueba. Candidato: la
        carpeta de Drive de ComunicArte que Michael compartio el 16-sep, categoria Drive.
-       De paso: **probar "Copiar link" con un clic humano**, que en el panel automatizado no se
-       puede concluir (el permiso de portapapeles sale `denied`).
+       ("Copiar link" ya se probó con un clic humano el 18-sep y funciona.)
 2c.[ ] 🔴 **Rotar la contraseña de PayPal de Retia y borrar el mensaje**: está en texto plano en el
        grupo *Ventas JP Vieira* desde el 18-ago. Decisión de Mani.
 2d.[ ] **Decidir si un script de semilla debe escribir en `change_log`.** `cargar-enlaces-pago.ts`
