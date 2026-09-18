@@ -64,6 +64,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 025 | [Nerd Stats](./025-nerd-stats.md) | 024 | done · 17-sep (`/nerd-stats`, primera ruta exclusiva de developer; sin migración) |
 | [x] | 028 | ["Ver como" del developer](./028-ver-como-del-developer.md) (ADR 0028) | 024 | done · 18-sep · `rolDeVista` + cookie + selector + guardián sobre `app/` y `lib/`. 543 tests. **Sin migración.** La primera entrega dejó 3 sitios pasando el rol crudo que el guardián no veía: ver la nota del ticket |
 | [ ] | 031 | [Perfil propio: el closerId sin pasar por /ajustes/usuarios](./031-perfil-propio.md) | 028 | todo · pedido de Mani 18-sep · **tiene una decisión abierta**: quién puede editar su propio `closer_id` (es la llave que ata a la historia de las hojas) |
+| [ ] | 032 | [La vista `todo` es MENOS capaz que la vista `closer`](./032-el-developer-no-puede-crear-persona.md) | 028 | todo · 🔴 **bug reproducido 18-sep** en el recorrido de interacciones: un developer en vista `todo` no puede crear persona y en vista `closer` sí. El guardián del 028 lo exime a propósito (tercer punto ciego) |
 
 ## Decisiones pendientes (bloquean o condicionan tickets)
 

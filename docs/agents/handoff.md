@@ -7,6 +7,76 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-18 (CIERRE 8) — RECORRIDO DE INTERACCIONES hecho contra `dev`, clic por clic. Casi
+  todo pasa; sale UN bug real y el tercer punto ciego del mismo guardián.**
+
+  **PARA QUIEN ABRA LA PRÓXIMA SESIÓN, leer esto primero:**
+
+  - 🔴 **EL HALLAZGO: la vista `todo` es MENOS capaz que la vista `closer`.** Como developer en
+    vista `todo` (la de por defecto, la más ancha), crear persona en `/mi-dia` falla con *"Registrar
+    trabajo de venta es del closer."*; la misma acción con los mismos datos **funciona en vista
+    `closer`**. Se probó seguido, en el navegador. Causa: `lib/mutations/personas.ts:236` compara
+    `actor.rol !== "closer"` a mano, cuando la pregunta ya tiene función (`trabajaLeads`).
+    **Es un bug por dos razones, y la segunda es la grave:** AGENTS.md dice que todo `rol === "..."`
+    a mano que excluya al developer es un bug; y **invierte el modelo del 028**, porque si la
+    proyección más ancha no es un superconjunto de las estrechas, "estrechar" dejó de significar
+    algo. Ticket **032**.
+  - 🩸 **TERCER punto ciego del guardián del 028, en un solo día.** Los dos anteriores (solo cazaba
+    comparaciones literales; no recorría `lib/`) se arreglaron hoy. Este es distinto y **es una
+    exención escrita a propósito**: el guardián exige `.user` antes de `.rol` para NO marcar
+    `actor.rol === "closer"`, razonando que ese rol "ya viene proyectado". **Venir proyectado dice
+    de dónde salió el valor, no si compararlo excluye al developer.** Y lo excluye.
+    🎯 **La lección: un guardián se prueba mordiendo, y su lista de exenciones es donde se esconde
+    lo que no caza.** Cada exención hay que leerla como una afirmación que puede ser falsa.
+  - **Hermano, sin ticket propio (va dentro del 032):** `scripts/usuarios.ts:124-125` calcula la
+    salvaguarda del último administrador con `rol === "gerente"`, pero AGENTS.md dice que esa
+    pregunta es `esAdministrador` (gerente Y developer). Conservador, no abre hueco, pero
+    contradice el documento. Y **el guardián no recorre `scripts/`**.
+
+  **LO QUE PASÓ, y es la mayoría** (todo verificado clic a clic, no leyendo código):
+
+  - ✅ **Criterio 1 de la spec, completo:** llamada cerrada + venta + primer abono en un solo
+    registro, y en la base quedó con closer `Mani`, cohorte **C2**, programa y producto correctos.
+    `calls` guarda bien las DOS cosas que se llaman origen: `origen = "app"` (procedencia, ADR 0010)
+    y `origen_id → "Agenda del día"` (el catálogo). No se pisan.
+  - ✅ **Criterio 6, completo:** recurso creado desde `/recursos` con categoría Drive, y aparece con
+    Copiar / Abrir / Reemplazar / Desactivar. Una URL `http://` se rechaza con *"La URL debe empezar
+    por https://."* (ADR 0017).
+  - ✅ **Anulación (ADR 0026) verificada en vivo:** al anular el abono, *Abonado* pasó de USD 400,00
+    a USD 0,00 y el saldo de 397,00 a 797,00 **en el acto**, y el abono siguió visible con quién,
+    cuándo y por qué. Fuera de las métricas, dentro del historial.
+  - ✅ **ADR 0013 confirmado en el dashboard:** con el abono anulado quedó *Caja recaudada* en "—"
+    y *Ventas cerradas* en **1**. La anulación tocó la caja y no la venta: son dos métricas y se
+    comportan como dos.
+  - ✅ **El 028 funciona de verdad, en los dos sentidos.** Vista `closer`: el nav pierde Nerd Stats
+    y Ajustes, y `/recursos` esconde los controles de creación. Vista `gerente`: **estando en
+    `/mi-dia` la guarda expulsa** a `/programas/comunicarte`, y entrar por URL directa a `/mi-dia`
+    o `/nerd-stats` también redirige. La vista estrecha la guarda, no solo el nav.
+  - ✅ `/nerd-stats`: los conteos por programa **no dan cero** (el bug del 025 no volvió), los
+    abonos figuran en 0 porque el único está anulado (o sea `vigente()` cumple), y la bitácora
+    registró los 4 campos del recurso con quién y cuándo.
+  - ✅ `/ajustes/usuarios` muestra y edita el `closer_id` de un developer (lo que el 029 arregló).
+  - ✅ Todos los desplegables abren con datos: resultado (8), origen (7), producto, plataforma (7),
+    categoría (6), y los tres comboboxes Base UI del dashboard.
+
+  **DOS COSAS QUE NO SON BUGS PERO HAY QUE DECIDIR:**
+
+  - Elegir un producto **no prellena** "Precio aplicado", y "Fecha del abono" no trae la de hoy.
+    Probablemente deliberado (el precio aplicado puede diferir del de lista, ADR de la C2), pero
+    son dos campos que el closer escribe a mano en cada venta.
+  - **"Copiar link" falló, y NO se puede concluir que sea un bug:** el permiso `clipboard-write`
+    está **denegado en el panel automatizado** (se comprobó: `permissions.query` devuelve `denied`).
+    La app degradó bien, con *"No se pudo copiar el link"*. **Esto necesita un clic humano.**
+
+  **LO QUE NO SE RECORRIÓ** (para que nadie lo dé por probado): `/personas` como pantalla propia,
+  el dashboard de Tactical, `/ajustes/catalogos`, `/ajustes/fuentes`, `/ajustes/programas`,
+  "Reemplazar" un recurso, el alta de abono suelto sobre una venta existente, y la reja de
+  sobrepago.
+
+  **Datos de prueba que quedaron en `dev`** (no en `production`): la persona
+  `prueba.recorrido@ejemplo.com` con su llamada, venta y abono anulado, y el recurso "Carpeta Drive
+  ComunicArte". Inofensivos; borrarlos si estorban.
+
 - **2026-09-18 (CIERRE 7 del mismo día) — El 028 cerrado (543 tests, sin migración), los 5 enlaces
   de PayPal y las 6 categorías cargados en `production`, y un incidente propio con `seed:datos`
   que hay que terminar de limpiar.**
@@ -1479,15 +1549,15 @@ Por partes y en este orden:
        *Ventas ComunicArte*. **Tactical queda vacío a propósito** (decisión de Mani): allá los
        links se generan uno por venta, no hay catálogo. Y las **6 categorías de recurso** también
        quedaron sembradas, que era el bloqueo real de `/recursos`.
-2a.[ ] 🔴 **RECORRIDO DE INTERACCIONES (no de carga).** El "recorrido visual" del CIERRE 5 cargo
-       pantallas y dio por buenas las que se veian bien; el menu de usuario llevaba roto desde
-       antes y **tumbaba el layout entero al abrirlo**, con 543 tests en verde. Falta pasar por
-       cada elemento que se ABRE o se DESPLIEGA: los selects de `/mi-dia` (programa, producto,
-       motivo, origen, plataforma), el registro de llamada de punta a punta, el flujo de anular,
-       los desplegables de `/ajustes` y de `/productos`. **Cargar una pantalla no es probarla.**
-2b.[ ] **Crear el primer recurso desde `/recursos`** (solo Mani; no hay camino de script y está
-       bien que no lo haya: el criterio 6 es sobre USAR la pantalla). Candidato: la carpeta de
-       Drive de ComunicArte que Michael compartió el 16-sep, categoría Drive.
+2a.[x] ~~🔴 **RECORRIDO DE INTERACCIONES (no de carga)**~~ — **HECHO el 18-sep** contra `dev`,
+       clic por clic. Casi todo pasa; salio el ticket **032** (la vista `todo` es menos capaz que
+       la `closer`) y el tercer punto ciego del guardian del 028. Detalle en el CIERRE 8, incluida
+       la lista de lo que NO se recorrio, que no hay que dar por probado.
+2b.[ ] **Crear el primer recurso en `production`** desde `/recursos` (solo Mani). En `dev` ya se
+       hizo y el flujo entero pasa, asi que esto es carga de dato real, no prueba. Candidato: la
+       carpeta de Drive de ComunicArte que Michael compartio el 16-sep, categoria Drive.
+       De paso: **probar "Copiar link" con un clic humano**, que en el panel automatizado no se
+       puede concluir (el permiso de portapapeles sale `denied`).
 2c.[ ] 🔴 **Rotar la contraseña de PayPal de Retia y borrar el mensaje**: está en texto plano en el
        grupo *Ventas JP Vieira* desde el 18-ago. Decisión de Mani.
 2d.[ ] **Decidir si un script de semilla debe escribir en `change_log`.** `cargar-enlaces-pago.ts`
