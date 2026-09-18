@@ -44,9 +44,18 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     un día antes del prometido. Hay test que lo fija leyendo la fila en `America/Bogota`.
 
   **Base de datos:** sin cambios. Ninguna migración nueva, ninguna escritura en `production`.
+  Las 11 migraciones siguen siendo las del 17-sep; "aplicar el 003 en producción" no tocó la base
+  porque el ticket no trajo esquema.
 
-  **Verificado / no verificado:** `npm test` (371), typecheck y lint, corridos por la sesión
-  principal además de por Kiro. **No** se abrió en el navegador: la página exige sesión de Google.
+  **Desplegado:** commit `47e2413` empujado a `main` el 17-sep en la noche, con `npm run build`
+  limpio antes del push. `main` es la rama de producción en Vercel, así que el push dispara el
+  deploy. **El resultado del deploy no se verificó desde la sesión** (el MCP de Vercel pide
+  autorización y la sesión era no interactiva): queda por confirmar en el panel.
+
+  **Verificado / no verificado:** `npm test` (371), typecheck, lint y `npm run build`, corridos por
+  la sesión principal además de por Kiro. **No** se abrió en el navegador: la página exige sesión
+  de Google. `/mi-dia` salió a producción sin que ningún humano la haya visto renderizada; es una
+  pantalla de captura del closer, así que la primera pasada manual es la prueba que falta.
 
   **Dos costuras conocidas, ninguna introducida por este ticket:**
   - El botón de confirmar sobrepago se activa detectando la palabra "sobrepago" en el mensaje de
