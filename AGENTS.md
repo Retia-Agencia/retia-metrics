@@ -103,9 +103,11 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   toma una decision segun un valor (un programa, una cohorte, un closer, un producto, una
   plataforma, un motivo, un origen, un recurso), ese valor es una fila editable desde la app,
   nunca un literal, un enum ni una ruta fija. Toda entidad configurable sigue el molde de
-  `lib/catalogo/`: tabla con `activo`, un solo esquema zod, pantalla con guard, nunca se borra, y
-  cada cambio va a `change_log`. Ningun slug de programa aparece en `lib/`, `app/` ni
-  `components/`.
+  `lib/catalogo/`: tabla con `activo`, un solo esquema zod, pantalla con guard, y cada cambio va a
+  `change_log`. **No se borra lo que YA SE USO** (enmienda del ADR 0026 al 0012, 18-sep): una fila
+  con cero referencias se borra de verdad, una con referencias solo se desactiva y la app dice
+  cuantas tiene. Lo que no puede pasar es que la app diga "borrado" habiendo desactivado.
+  Ningun slug de programa aparece en `lib/`, `app/` ni `components/`.
 - **Google Sheets es la fuente de verdad de los leads; el CRM lo es de llamadas, ventas y
   abonos.** El sync de leads no cambia (ADR 0004). Las llamadas y ventas se registran nativas en
   la app (ADR 0008) sobre las mismas tablas, con `origen = "app"` (ADR 0010).
@@ -133,14 +135,16 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Permisos de rol | `lib/auth/guards.ts` (APIs) y `lib/auth/page-guards.ts` (paginas) | `tests/guards.test.ts`, `tests/paginas.test.ts`, `tests/roles.test.ts` invocan los handlers y las paginas reales |
 | Errores hacia el cliente | `lib/errors.ts` + `respuestaDeError` | `tests/errores.test.ts`: un error interno no se filtra ni aunque traiga la propiedad `status` |
 | Validacion en el borde | `zod` en todo route handler y cron que reciba input | Patron fijado en B-03; `ZodError` sale como 400 |
-| Formato de numero | `lib/format.ts` (punto de miles, coma decimal) | Revision manual |
-| Contrato de extension | ADR 0012; molde en `lib/catalogo/` | `tests/contrato-extension.test.ts` (ticket 009): ningun programa escrito en el codigo; tests del molde (ticket 011): nunca `DELETE`, siempre `change_log` |
+| Formato de numero | `lib/format.ts` (punto de miles, coma decimal; el USD SIEMPRE con dos decimales) | `tests/format.test.ts` |
+| Como se escribe un saldo | `saldoLegible` en `lib/format.ts`: decide la ETIQUETA y el valor juntos, porque un saldo negativo es un **sobrepago** y no una deuda | `tests/format.test.ts` |
+| Mensajes de validacion del navegador | `components/validacion-en-espanol.tsx`, montado una vez en el layout raiz: traduce los globos nativos, que salen en el idioma del navegador y no en el del `lang` de la pagina | Revision manual |
+| Contrato de extension | ADR 0012, enmendado por el 0026; molde en `lib/catalogo/` | `tests/contrato-extension.test.ts` (ticket 009): ningun programa escrito en el codigo; tests del molde (ticket 011): siempre `change_log`, y **nunca `DELETE` sobre una fila con referencias** (hasta el ticket 030 el molde no borra nunca) |
 
 ## Feedback loops
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 444 pasando hoy). Los tests que necesitan base usan PGlite en
+- **Test:** `npm test` (Vitest, 477 pasando hoy). Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Run:** `npm run dev` (http://localhost:3000)

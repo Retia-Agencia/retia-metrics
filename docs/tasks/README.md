@@ -22,6 +22,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 014 | [Administrar programas y cohortes](./014-administrar-programas-y-cohortes.md) | 010, 011 | done · 16-sep (migración 0006 en `production`) |
 | [x] | 015 | [Administrar usuarios y closers](./015-administrar-usuarios-y-closers.md) | 011 | done · 16-sep (migración 0005 en `production`; login real pendiente) |
 | [ ] | 016 | [Plantilla de lead + fuentes configurables](./016-fuentes-configurables.md) (ADR 0019) | 014 | todo · **listo** · puede esperar |
+| [ ] | 030 | [Borrar del catálogo lo que nunca se usó](./030-borrar-del-catalogo.md) (ADR 0026) | 011 | todo · **listo** · enmienda acotada al ADR 0012 |
 
 ## F1 · Llamadas y ventas
 
@@ -35,6 +36,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 026 | [Responsable + alta manual](./026-responsable-y-alta-manual.md) (ADR 0021) | 015 | done · 17-sep (sesión paralela C; migración 0010 en `dev` y `production`) |
 | [x] | 003 | [Pantalla /mi-dia](./003-pantalla-mi-dia-registro.md) | 002, 019, 015, 026 | done · 17-sep (buscador, registro y abonos sobre las mutaciones de 002/019/026; sin migración) |
 | [ ] | 007 | [Alta de los closers reales](./007-onboarding-closer-id.md) | 015 | todo · operación · **listo** |
+| [ ] | 029 | [Anular un registro](./029-anular-registros.md) (ADR 0026) | 003, 019 | todo · **listo** · migración · destapado por el recorrido visual del 18-sep |
 
 ## F2 · Métricas
 
@@ -60,6 +62,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 |---|---|---|---|---|
 | [x] | 024 | [Rol developer](./024-rol-developer.md) | 010 | done · 17-sep (ADR 0025; migración 0012 en `dev` y `production`; stash de Kiro rescatado y cerrado) |
 | [x] | 025 | [Nerd Stats](./025-nerd-stats.md) | 024 | done · 17-sep (`/nerd-stats`, primera ruta exclusiva de developer; sin migración) |
+| [ ] | 028 | ["Ver como" del developer](./028-ver-como-del-developer.md) | 024 | todo · **listo** · sacado de Futuro el 18-sep; consolida `rolDeVista` (ADR 0024) y enmienda el ADR 0025 |
 
 ## Decisiones pendientes (bloquean o condicionan tickets)
 
@@ -145,4 +148,6 @@ Detalle en [docs/agents/handoff.md](../agents/handoff.md), sección Roadmap.
 
 Integración con Calendly (usa `users.calendlyEmail`), Kapso, Typeform, Addi; recordatorios de
 seguimiento (usa `calls.fechaSeguimiento`); import histórico; mapeo enriquecido de leads; vista
-kanban y calendario; "ver como" del developer; subida de archivos (ADR 0017).
+kanban y calendario; subida de archivos (ADR 0017).
+
+("Ver como" del developer salió de aquí el 18-sep: es el ticket 028.)

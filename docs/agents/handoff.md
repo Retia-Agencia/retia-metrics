@@ -7,7 +7,116 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
-- **2026-09-18 (CIERRE DE SESIÓN) — F4 cerrada, todo desplegado y vivo. Lo que falta NO es
+- **2026-09-18 (CIERRE DE SESIÓN) — Se hizo el recorrido visual de `/mi-dia` de punta a punta.
+  7 hallazgos, los 7 arreglados. Dos decisiones nuevas de Mani: "ver como" del developer (028) y
+  poder anular/borrar desde la app (ADR 0026, tickets 029 y 030).**
+
+  **PARA QUIEN ABRA LA PRÓXIMA SESIÓN, leer esto primero:**
+
+  - **El recorrido visual de `/mi-dia` YA SE HIZO y pasó.** Era el pendiente número uno del cierre
+    anterior. Lo que sigue sin mirarse: `/nerd-stats` **contra production** (en local sí se vio, y
+    ahí los números no significan nada), y `/recursos` con contenido (está vacía en las dos ramas).
+  - **Árbol limpio, todo en `origin/main`.** 477 tests, typecheck, lint y build limpios.
+  - **Mani volvió a `developer` en `dev`**, pero le quedaron **las dos membresías de programa
+    activas**. Eso no es basura: el buscador de `/mi-dia` se filtra por MEMBRESÍA, no por rol, así
+    que como developer en `dev` la búsqueda ahora sí devuelve resultados. En `production` no tiene
+    membresías, así que allá sí daría 0.
+  - **En `dev` quedaron datos de prueba a propósito:** 2 personas ("Ana Prueba" en Comunicarte,
+    "Ana En Tactical"), 2 llamadas, 1 venta de USD 797 y 2 abonos (400 + 500, con sobrepago
+    confirmado). Sirven para mirar `/personas/[id]` con contenido. No se borran porque **no hay
+    forma de borrarlos**, que es justo el hallazgo que originó el 029.
+
+  🔴 **LO QUE DESTAPÓ EL RECORRIDO Y ES LO MÁS IMPORTANTE DE LA SESIÓN: no existe ni un solo
+  `.delete(` en `lib/`, `app/` ni `scripts/`.** Un closer que le da a "Cerrada" por error inventa
+  una venta permanente que cuenta en el embudo, en la caja y en el comparativo entre closers, para
+  siempre. La única salida hoy es entrar a la base a mano. Mani decidió que eso se arregla:
+  **ADR 0026**, tickets **029** (anular registros) y **030** (borrar del catálogo lo no usado).
+
+  **Los 7 hallazgos del recorrido, todos arreglados y verificados en el navegador:**
+  1. 🟠 **"Persona creada" mentía cuando en realidad fue dedup.** El mismo toast verde en un alta
+     real y en un correo repetido, con el nombre recién escrito descartado en silencio.
+     `crearPersonaManual` ahora devuelve `{ persona, creada }` y el toast dice "Esa persona ya
+     existía". El tipo `ResultadoAltaManual` obliga a distinguirlos.
+  2. 🟠 **Al abono posterior le faltaba el campo Comprobante.** El estado y el envío a la acción
+     existían, pero no había input: el soporte del primer pago se adjuntaba y el de los siguientes
+     no. Estado muerto colgando.
+  3. **404 en inglés** ("This page could not be found") en una app en español. Ahora hay
+     `app/not-found.tsx` (raíz, sin sesión) y `app/(app)/not-found.tsx` (dentro del shell, con
+     sidebar y salida).
+  4. **Error de Base UI en consola** por `render={<Link/>}` con `nativeButton` en true: se pierde
+     la semántica nativa de botón. Arreglado en `mi-dia-registro.tsx` y en `programas-admin.tsx`,
+     que tenía el mismo patrón.
+  5. **Mensajes de validación del navegador en inglés.** Se resolvió con
+     `components/validacion-en-espanol.tsx`, montado UNA vez en el layout raíz, en vez de decorar
+     los 32 inputs `required` repartidos en 7 componentes. Listener en fase de CAPTURA porque
+     `invalid` no burbujea, y limpieza del mensaje al escribir o el campo queda inválido para
+     siempre.
+  6. **El dólar salía sin decimales** ("USD 797"). Ahora `usd` siempre lleva dos. El peso NO
+     cambia: en Colombia no se cobra con centavos. Era una convención **testeada a propósito**, así
+     que se cambió el test, no se rodeó.
+  7. **"Saldo pendiente: USD -103"** tras confirmar un sobrepago, que le dice al closer que el
+     cliente debe plata cuando pagó de más. `saldoLegible` en `lib/format.ts` devuelve **etiqueta y
+     valor juntos** (un sobrepago cambia las dos) y lo importan las dos pantallas que lo preguntan.
+
+  **Lo que el recorrido CONFIRMÓ que funciona** (nada de esto se había visto correr nunca):
+  - 🎯 **La zona horaria.** Compromiso de pago con fecha 19 → `2026-09-19 17:00:00+00` (mediodía de
+    Bogotá) → el historial dice "19 sep 2026". De punta a punta sin correrse un día.
+  - 🎯 **La reja del sobrepago.** Rechaza con la cifra exacta, ofrece "Confirmar sobrepago" y al
+    confirmar escribe. Era la garantía del ADR 0024 que nadie había ejercitado.
+  - El dedup por (programa, correo) no duplica, no pisa el nombre existente y no ensucia
+    `change_log`; el mismo correo en otro programa sí es otra persona.
+  - El buscador: mínimo 2 caracteres, ILIKE, `%` escapado (con `%%` da "Sin resultados", no la base
+    entera) y **el texto buscado nunca llega a la URL**.
+  - `entrada: crm`, `num_aplicaciones: 0` explícito, responsable copiado de la sesión, cohorte
+    activa asignada sola, `origen: app`, y venta+abono+llamada en una escritura atómica.
+  - `/personas/[id]` da 404 limpio con id basura, **con un correo en la URL** y con uuid
+    inexistente. Ningún 500.
+  - El rol se relee de la base en cada emisión del token: cambiarlo surte efecto sin cerrar sesión.
+
+  **Las dos decisiones nuevas de Mani (18-sep):**
+  - **028 · "Ver como" del developer.** Estaba en "Futuro" y se sacó. La cookie guarda la vista y
+    `rolDeVista(session)` pasa a ser LA definición de con qué rol se proyecta cada pantalla. Hoy esa
+    pregunta está contestada a mano en tres sitios distintos (`/mi-dia`, `/recursos`, `/productos`),
+    **y eso es exactamente por qué el hueco de `/recursos` sobrevivió al ticket 024**. El developer
+    SÍ escribe cuando está en vista closer, con su propio `closerId` (decisión explícita de Mani);
+    el truco para no tocar las mutaciones es que `actorDe` construya el actor con `rolDeVista`.
+    **Queda UNA decisión abierta dentro del ticket:** si la vista estrecha también la GUARDA o solo
+    la proyección. Recomendación escrita ahí: que estreche la guarda.
+  - **ADR 0026 · anular y borrar.** Registros se ANULAN (soft, con quién/cuándo/motivo, nunca un
+    booleano) y lo anulado desaparece de toda métrica pero se ve tachado en el historial. Del
+    catálogo se BORRA de verdad solo lo que tiene cero referencias; lo demás se desactiva y la app
+    dice por qué. Enmienda acotada al ADR 0012, ya reflejada en AGENTS.md.
+
+  ⚠️ **El riesgo del 029, escrito para que nadie lo subestime:** lo difícil no es escribir la
+  anulación, es **olvidar una consulta**. Una cifra inflada se ve creíble y no lanza ningún error.
+  Por eso el predicado "está vigente" vive en un solo módulo y hay un test guardián que se escribe
+  ANTES y se ve en rojo. Es la misma lección que la subconsulta correlacionada del 025.
+
+  **Sigue pendiente de Mani, sin cambios:** cargar los 5 enlaces de PayPal, decidir el 021, y el
+  007 (dar de alta al equipo en `production`). ⚠️ **Y un hallazgo nuevo para el 007:
+  `production` tiene 0 productos**, así que cuando entre el equipo ningún closer va a poder
+  registrar una venta cerrada hasta que alguien los cargue.
+
+  **MINI PROMPT PARA LA PRÓXIMA SESIÓN** (copiar tal cual):
+
+  > Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y la entrada "CIERRE DE SESIÓN"
+  > del 18-sep en docs/agents/handoff.md.
+  >
+  > Contexto: el recorrido visual de /mi-dia ya se hizo y pasó; los 7 hallazgos están arreglados.
+  > Árbol limpio, todo en origin/main, 477 tests verdes. Soy `developer` en las dos ramas de Neon.
+  >
+  > Arranca por el ticket 029 (anular un registro, ADR 0026). Antes de tocar consultas, escribe el
+  > test guardián de `lib/queries/vigente.ts` y muéstramelo en rojo: el riesgo del ticket no es la
+  > anulación, es que se te escape una consulta del embudo y las cifras queden infladas sin error.
+  > La migración la generas y aplicas tú en `dev`, nunca un subagente, y `production` solo con mi ok.
+  >
+  > Antes de empezar dime qué decides del 028: si la vista del developer estrecha también la guarda
+  > o solo la proyección (tu recomendación quedó escrita en el ticket).
+  >
+  > Después: /nerd-stats contra production (nunca se ha mirado allá), cargar los enlaces de PayPal,
+  > el 007 (ojo: production tiene 0 productos), decidir el 021. El 016 y el 030 pueden esperar.
+
+- **2026-09-18 (cierre anterior, mismo día) — F4 cerrada, todo desplegado y vivo. Lo que falta NO es
   código: es abrir la app y mirarla.**
 
   **PARA QUIEN ABRA LA PRÓXIMA SESIÓN, leer esto primero:**
@@ -55,7 +164,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     correlacionada devuelve **0 sin lanzar error**. Está en `AGENTS.md`. Costó la primera versión
     de los conteos del 025 y lo destapó un test, no una revisión.
 
-  **MINI PROMPT PARA LA PRÓXIMA SESIÓN** (copiar tal cual):
+  ~~**MINI PROMPT PARA LA PRÓXIMA SESIÓN**~~ **OBSOLETO: ya se ejecutó.** El recorrido visual que
+  pedía se hizo el mismo 18-sep. El mini prompt vigente es el de la entrada de arriba. Se deja el
+  texto porque el razonamiento del orden sigue valiendo.
 
   > Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y la entrada "CIERRE DE SESIÓN"
   > de docs/agents/handoff.md.
@@ -887,20 +998,27 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now (ready — no unmet dependencies)
 
-> Actualizado el 18-sep 00:10. **F0 a F4 estan cerradas en codigo**: no queda ticket del CRM
-> pendiente salvo el **016** (que puede esperar), el **007** (operacion) y el **021** (bloqueado
-> por decision de Mani). Lo que sigue NO es construir, es verificar y operar.
+> Actualizado el 18-sep 01:10. **F0 a F4 estan cerradas en codigo**, pero el recorrido visual de
+> ese mismo dia abrio tres tickets nuevos: **028** (ver como del developer), **029** (anular un
+> registro) y **030** (borrar del catalogo). Siguen ahi el **016** (puede esperar), el **007**
+> (operacion) y el **021** (bloqueado por decision de Mani).
 
 Por partes y en este orden:
 
-1. [ ] 🔴 **RECORRIDO VISUAL DE LO CONSTRUIDO, con sesion y checklist.** Es el pendiente numero
-       uno y lleva acumulandose desde el 17-sep. **Cuatro pantallas estan en produccion y
-       ninguna la ha abierto un humano:** `/mi-dia`, `/personas/[id]`, `/recursos` y
-       `/nerd-stats`. Mani ya es `developer` en `production` y el deploy con las dos esta live,
-       asi que una sola cuenta las ve todas. **`/mi-dia` es la que mas urge**: es la pantalla de
-       captura que alimenta todas las metricas, y un campo roto ahi ensucia la base antes de que
-       el dashboard lo delate. De paso: borrar el cliente OAuth **web** viejo de
+1. [x] ~~🔴 **RECORRIDO VISUAL DE LO CONSTRUIDO**~~ — **HECHO el 18-sep** para `/mi-dia`,
+       `/personas/[id]` y `/recursos` (local, rama `dev`), y `/nerd-stats` en local. 7 hallazgos,
+       los 7 arreglados y verificados en el navegador. Detalle completo en la entrada de cierre
+       del 18-sep. **Falta la parte que solo tiene sentido en production:** `/nerd-stats` alla
+       (los conteos deben dar 1.923 y 2.574 personas; si salen ceros es la subconsulta
+       correlacionada del 025 volviendo) y `/recursos` con contenido, que esta vacia en las dos
+       ramas. De paso sigue pendiente: borrar el cliente OAuth **web** viejo de
        `google-workspace-mcp`.
+1b.[ ] 🔴 **029 · Anular un registro** (ADR 0026). Es lo que destapo el recorrido: hoy no hay
+       `.delete(` en ninguna parte y una venta registrada por error es permanente. El riesgo del
+       ticket no es la anulacion, es olvidar una consulta del embudo: el test guardian va primero
+       y en rojo. Necesita migracion.
+1c.[ ] **028 · "Ver como" del developer.** Espera UNA decision de Mani, escrita en el ticket: si
+       la vista estrecha tambien la guarda o solo la proyeccion.
 2. [ ] **Cargar los 5 enlaces de PayPal.** Solo Mani: `scripts/cargar-enlaces-pago.ts` los lee de
        `ENLACES_PAGO_JSON`, un archivo fuera del repo. Ningun link real vive en git.
 3. [ ] **Decidir el 021** (snapshot del dashboard), que sigue bloqueado esperando esa decision.
@@ -908,6 +1026,9 @@ Por partes y en este orden:
        sembrar productos (`seed:datos` con `DB_PROD`), cargar `administrativa@retiagrowth.com`
        como gerente y dar de alta a Andrea y Maru desde `/ajustes/usuarios`. Hoy `production`
        tiene UN solo usuario: Mani.
+       ⚠️ **Verificado el 18-sep: `production` tiene CERO productos.** Sin productos, un closer no
+       puede registrar una venta cerrada: el desplegable sale vacio. Sembrarlos es requisito del
+       007, no un extra.
 5. [ ] **Probar `/api/cron/sync` en produccion** con el `CRON_SECRET` (escribe leads reales, pedir ok).
 6. [ ] **F-03 + F-07** juntos, con migracion (diseno en el tracker); primero `dev`, luego
        `production`.

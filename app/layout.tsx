@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
+import { ValidacionEnEspanol } from "@/components/validacion-en-espanol";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -24,6 +25,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <Providers>{children}</Providers>
         <Toaster />
+        {/* Traduce los globos de validacion nativos del navegador, que vienen en el
+            idioma del navegador y no en el del `lang` de la pagina. */}
+        <ValidacionEnEspanol />
       </body>
     </html>
   );

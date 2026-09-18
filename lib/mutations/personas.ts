@@ -34,6 +34,16 @@ export const esquemaAsignacion = z.object({
   closerId: z.string().trim().min(1, "Debes indicar un closer."),
 });
 
+/**
+ * Lo que devuelve un alta manual: la persona, y si ESTA llamada fue la que la creo.
+ * `creada: false` significa que el correo ya existia en ese programa y se devolvio la
+ * fila de siempre, sin tocar nada (dedup del ADR 0005).
+ */
+export interface ResultadoAltaManual {
+  persona: Persona;
+  creada: boolean;
+}
+
 /** Entrada de `crearPersonaManual`. El correo es obligatorio y se normaliza. */
 export const esquemaPersonaManual = z.object({
   programId: z.string().uuid("Programa inválido."),
@@ -203,12 +213,18 @@ export async function asignarResponsable(
  * Dedup (ADR 0005): si ya existe una persona con ese `(programId, correo)` no crea ni
  * modifica nada, devuelve la existente. La misma garantia esta en el indice unico de
  * la base, asi que una carrera entre dos closers se resuelve releyendo tras el choque.
+ *
+ * **Devuelve tambien si la creo o si ya existia**, y no es un adorno: son dos cosas
+ * distintas que el llamador tiene que poder distinguir. Hasta el 18-sep devolvia solo
+ * la persona y `/mi-dia` confirmaba "Persona creada" en los dos casos, asi que un
+ * closer que reescribia un nombre sobre un correo ya existente veia un toast verde y
+ * se iba creyendo que lo habia guardado. El nombre se descartaba en silencio.
  */
 export async function crearPersonaManual(
   db: Db,
   actor: Actor,
   input: EntradaPersonaManual,
-): Promise<Persona> {
+): Promise<ResultadoAltaManual> {
   return normalizando(async () => {
     if (actor.rol !== "closer") {
       throw new ErrorDeApp("Registrar trabajo de venta es del closer.", 403);
@@ -223,7 +239,7 @@ export async function crearPersonaManual(
 
     // Dedup: si ya existe, se devuelve sin tocar el responsable ni escribir bitacora.
     const existente = await leerPorCorreo(db, datos.programId, datos.correo);
-    if (existente) return existente;
+    if (existente) return { persona: existente, creada: false };
 
     // El id se genera en codigo para meter el alta y su change_log en el mismo lote.
     const id = crypto.randomUUID();
@@ -267,12 +283,14 @@ export async function crearPersonaManual(
       // Carrera con otro closer sobre el indice unico (programId, emailNormalizado):
       // se relee y se devuelve la existente en vez de propagar el error.
       if (esViolacionUnica(error)) {
+        // La creo el OTRO closer, no esta llamada: `creada: false` es correcto y es
+        // justo lo que hace que la pantalla no afirme un alta que no hizo.
         const yaCreada = await leerPorCorreo(db, datos.programId, datos.correo);
-        if (yaCreada) return yaCreada;
+        if (yaCreada) return { persona: yaCreada, creada: false };
       }
       throw error;
     }
 
-    return (await leerPersona(db, id))!;
+    return { persona: (await leerPersona(db, id))!, creada: true };
   });
 }

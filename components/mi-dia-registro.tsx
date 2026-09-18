@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { fecha as formatoFecha, monto as formatoMonto } from "@/lib/format";
+import { fecha as formatoFecha, monto as formatoMonto, saldoLegible } from "@/lib/format";
 import { ProductoCrearEnLinea } from "@/components/producto-crear-en-linea";
 import type { PersonaEncontrada, VentaDePersona } from "@/lib/queries/personas";
 import {
@@ -203,8 +203,17 @@ function Buscador({
                 </Button>
               )}
               {/* La URL lleva el id opaco, NUNCA el correo (ticket 006): ningun
-                  dato personal viaja en una ruta. */}
-              <Button size="sm" variant="outline" render={<Link href={`/personas/${p.id}`} />}>
+                  dato personal viaja en una ruta.
+                  `nativeButton={false}` porque esto se renderiza como <a>, no como
+                  <button>: sin eso Base UI avisa en consola que se pierde la
+                  semantica nativa de boton (accesibilidad, y el <a> no participa en
+                  el form). */}
+              <Button
+                size="sm"
+                variant="outline"
+                nativeButton={false}
+                render={<Link href={`/personas/${p.id}`} />}
+              >
                 Historial
               </Button>
               <Button size="sm" onClick={() => onSeleccionar(p)}>
@@ -244,9 +253,18 @@ function CrearPersona({ contexto }: { contexto: ContextoMiDia }) {
         nombre: nombre.trim() || undefined,
         telefono: telefono.trim() || undefined,
       });
-      if (res.ok) {
+      if (res.ok && res.creada) {
         toast.success("Persona creada");
         limpiar();
+      } else if (res.ok) {
+        // Dedup (ADR 0005): la persona YA existia y no se toco nada, ni el nombre que
+        // se acaba de escribir. Confirmar "Persona creada" aqui mandaria al closer a
+        // seguir su dia creyendo que guardo algo. Se deja el formulario como esta
+        // para que vea con que datos se quedo.
+        toast.warning("Esa persona ya existía", {
+          description:
+            "Ese correo ya estaba en el programa. No se creó ni se modificó nada: búscala para registrar sobre ella.",
+        });
       } else {
         toast.error("No se pudo crear", { description: res.error });
       }
@@ -638,27 +656,26 @@ function AbonosDePersona({
       ) : null}
 
       <ul className="space-y-3">
-        {(ventas ?? []).map((v) => (
-          <li key={v.saleId} className="rounded-md border p-3 text-sm">
-            <div className="flex flex-wrap justify-between gap-2">
-              <span className="font-medium">{v.productoNombre ?? "Venta sin producto"}</span>
-              <span className="text-muted-foreground">
-                {v.fecha ? formatoFecha(v.fecha) : "sin fecha"}
-              </span>
-            </div>
-            <div className="mt-1 text-muted-foreground">
-              Abonado: {formatoMonto(Number(v.abonado), v.moneda)} ·{" "}
-              {v.saldo === null
-                ? "saldo: — (venta sin precio de contrato)"
-                : `saldo: ${formatoMonto(Number(v.saldo), v.moneda)}`}
-            </div>
-            <FormularioAbono
-              venta={v}
-              contexto={contexto}
-              alGuardar={cargar}
-            />
-          </li>
-        ))}
+        {(ventas ?? []).map((v) => {
+          // La etiqueta la decide `saldoLegible`, no esta pantalla: un saldo negativo
+          // es un SOBREPAGO, no una deuda del cliente (ADR 0024).
+          const saldo = saldoLegible(v.saldo, v.moneda);
+          return (
+            <li key={v.saleId} className="rounded-md border p-3 text-sm">
+              <div className="flex flex-wrap justify-between gap-2">
+                <span className="font-medium">{v.productoNombre ?? "Venta sin producto"}</span>
+                <span className="text-muted-foreground">
+                  {v.fecha ? formatoFecha(v.fecha) : "sin fecha"}
+                </span>
+              </div>
+              <div className="mt-1 text-muted-foreground">
+                Abonado: {formatoMonto(Number(v.abonado), v.moneda)} ·{" "}
+                {saldo.etiqueta.toLowerCase()}: {saldo.valor}
+              </div>
+              <FormularioAbono venta={v} contexto={contexto} alGuardar={cargar} />
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -755,6 +772,17 @@ function FormularioAbono({
             </option>
           ))}
         </select>
+      </Campo>
+      {/* El comprobante del segundo abono en adelante. Faltaba: el estado y el envio
+          a la accion ya existian, pero no habia campo, asi que el soporte del primer
+          pago se podia adjuntar y el de los siguientes no. */}
+      <Campo etiqueta="Comprobante (URL, opcional)">
+        <input
+          value={comprobanteUrl}
+          onChange={(e) => setComprobanteUrl(e.target.value)}
+          className={claseInput}
+          aria-label="Comprobante del abono"
+        />
       </Campo>
       <Button type="submit" size="sm" disabled={pendiente || !montoTxt.trim() || !fecha}>
         Registrar abono

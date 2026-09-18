@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fecha, monto } from "@/lib/format";
+import { fecha, monto, saldoLegible } from "@/lib/format";
 
 /**
  * Ticket 005 — la moneda va SIEMPRE al lado del numero y nunca se convierte
@@ -9,7 +9,10 @@ import { fecha, monto } from "@/lib/format";
  */
 describe("monto con su moneda", () => {
   it("formatea USD y COP con el formato de cada uno", () => {
-    expect(monto(750, "USD")).toBe("USD 750");
+    // El dolar SIEMPRE con dos decimales (cambio del 18-sep): son montos de dinero y
+    // con decimales variables la columna no alinea. El peso NO los lleva: en Colombia
+    // no se cobra con centavos.
+    expect(monto(750, "USD")).toBe("USD 750,00");
     expect(monto(1234.5, "USD")).toBe("USD 1.234,50");
     expect(monto(2_000_000, "COP")).toBe("COP 2.000.000");
   });
@@ -17,7 +20,45 @@ describe("monto con su moneda", () => {
   it("una moneda que el codigo no conoce igual se muestra con su codigo, nunca sin el", () => {
     // El dia que el negocio registre un abono en otra moneda, el numero no puede
     // salir desnudo ni convertido a USD.
-    expect(monto(10, "EUR")).toBe("EUR 10");
+    expect(monto(10, "EUR")).toBe("EUR 10,00");
+  });
+});
+
+/**
+ * Lo que falta por pagar tiene TRES estados y cada uno se escribe distinto. El caso
+ * que motivo esto salio del recorrido visual del 18-sep: tras confirmar un sobrepago,
+ * el historial decia "Saldo pendiente: USD -103", que le dice al closer que el cliente
+ * debe plata cuando en realidad pago de mas.
+ */
+describe("saldo legible", () => {
+  it("un saldo negativo cambia la ETIQUETA a sobrepago, no solo el signo del numero", () => {
+    // "Saldo pendiente: USD -103" le dice al closer que el cliente debe plata.
+    expect(saldoLegible("-103", "USD")).toEqual({
+      etiqueta: "Sobrepago",
+      valor: "USD 103,00",
+    });
+    expect(saldoLegible(-103, "USD")).toEqual({
+      etiqueta: "Sobrepago",
+      valor: "USD 103,00",
+    });
+  });
+
+  it("sin precio de contrato no se inventa un numero", () => {
+    expect(saldoLegible(null, "USD")).toEqual({
+      etiqueta: "Saldo pendiente",
+      valor: "sin precio de contrato registrado",
+    });
+  });
+
+  it("un saldo normal sale tal cual, con su moneda", () => {
+    expect(saldoLegible("397.00", "USD")).toEqual({
+      etiqueta: "Saldo pendiente",
+      valor: "USD 397,00",
+    });
+    expect(saldoLegible("0", "USD")).toEqual({
+      etiqueta: "Saldo pendiente",
+      valor: "USD 0,00",
+    });
   });
 });
 

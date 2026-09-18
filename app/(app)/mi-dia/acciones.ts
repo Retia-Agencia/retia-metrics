@@ -31,6 +31,11 @@ import { buscarPersonas, ventasDePersona, type PersonaEncontrada, type VentaDePe
  */
 
 export type ResultadoAccion = { ok: true } | { ok: false; error: string };
+/**
+ * El alta manual dice ademas si CREO la persona o si el correo ya existia. El error
+ * es la misma forma que `ResultadoAccion`, asi que `aResultado` sirve sin cambios.
+ */
+export type ResultadoAlta = { ok: true; creada: boolean } | { ok: false; error: string };
 export type ResultadoBusqueda =
   | { ok: true; personas: PersonaEncontrada[] }
   | { ok: false; error: string };
@@ -163,15 +168,21 @@ export async function tomarPersonaAccion(personaId: string): Promise<ResultadoAc
   }
 }
 
-/** Crea a mano una persona que no paso por el formulario (WhatsApp, masivos). */
+/**
+ * Crea a mano una persona que no paso por el formulario (WhatsApp, masivos).
+ *
+ * Devuelve `creada` para que la pantalla NO confirme un alta que no ocurrio: si el
+ * correo ya existia en ese programa, el dedup devuelve la fila de siempre sin tocar
+ * nada, y decir "Persona creada" ahi haria creer al closer que su nombre se guardo.
+ */
 export async function crearPersonaAccion(
   input: EntradaPersonaManual,
-): Promise<ResultadoAccion> {
+): Promise<ResultadoAlta> {
   try {
     const session = await requireRole("closer");
-    await crearPersonaManual(db, actorDe(session), input);
+    const { creada } = await crearPersonaManual(db, actorDe(session), input);
     revalidatePath("/mi-dia");
-    return { ok: true };
+    return { ok: true, creada };
   } catch (error) {
     return aResultado(error);
   }

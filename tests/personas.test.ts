@@ -205,13 +205,14 @@ describe("asignarResponsable", () => {
 
 describe("crearPersonaManual", () => {
   it("un closer crea una persona manual: entrada 'crm', el closer como responsable, change_log con su userId", async () => {
-    const persona = await crearPersonaManual(db, actorAna(), {
+    const { persona, creada } = await crearPersonaManual(db, actorAna(), {
       programId: programaA,
       correo: "Nuevo@Correo.CO",
       nombre: "Nuevo Lead",
       telefono: "3001112233",
     });
 
+    expect(creada).toBe(true);
     expect(persona.entrada).toBe("crm");
     expect(persona.responsableCloserId).toBe("Ana");
     expect(persona.emailNormalizado).toBe("nuevo@correo.co");
@@ -226,19 +227,23 @@ describe("crearPersonaManual", () => {
   });
 
   it("repetir el mismo correo (con mayusculas y espacios) no duplica: devuelve la existente y no agrega change_log", async () => {
-    const primera = await crearPersonaManual(db, actorAna(), {
-      programId: programaA,
-      correo: "dup@correo.co",
-      nombre: "Uno",
-    });
+    const { persona: primera, creada: primeraCreada } = await crearPersonaManual(
+      db,
+      actorAna(),
+      { programId: programaA, correo: "dup@correo.co", nombre: "Uno" },
+    );
+    expect(primeraCreada).toBe(true);
     const logInicial = await logDe(primera.id);
 
-    const segunda = await crearPersonaManual(db, actorAna(), {
-      programId: programaA,
-      correo: "  DUP@Correo.CO ",
-      nombre: "Dos",
-    });
+    const { persona: segunda, creada: segundaCreada } = await crearPersonaManual(
+      db,
+      actorAna(),
+      { programId: programaA, correo: "  DUP@Correo.CO ", nombre: "Dos" },
+    );
 
+    // `creada: false` es lo que deja a la pantalla decir "ya existia" en vez de
+    // confirmar un alta que no ocurrio (hallazgo del recorrido visual, 18-sep).
+    expect(segundaCreada).toBe(false);
     expect(segunda.id).toBe(primera.id);
     expect(segunda.nombre).toBe("Uno"); // no se modifico
 

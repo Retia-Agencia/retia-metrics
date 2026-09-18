@@ -149,9 +149,13 @@ export function ProgramasAdmin({ programas }: { programas: ProgramaVista[] }) {
                   <span className="flex items-center gap-1">
                     {p.activo ? (
                       <>
+                        {/* `nativeButton={false}`: se renderiza como <a>, no como
+                            <button>. Sin eso Base UI avisa en consola que se pierde
+                            la semantica nativa de boton. */}
                         <Button
                           size="sm"
                           variant="ghost"
+                          nativeButton={false}
                           disabled={pendiente}
                           render={<Link href={`/ajustes/programas/${p.slug}`}>Cohortes</Link>}
                         />

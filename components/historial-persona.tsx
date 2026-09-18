@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { diaDeCalendario } from "@/lib/dias-habiles";
-import { fecha as formatoFecha, monto as formatoMonto } from "@/lib/format";
+import { fecha as formatoFecha, monto as formatoMonto, saldoLegible } from "@/lib/format";
 import type { HistorialDePersona } from "@/lib/queries/personas";
 
 /**
@@ -104,7 +104,12 @@ export function HistorialPersona({ historial }: { historial: HistorialDePersona 
           <p className="text-sm text-muted-foreground">Todavía no tiene ventas registradas.</p>
         ) : (
           <ul className="space-y-2">
-            {ventas.map((venta) => (
+            {ventas.map((venta) => {
+              // La etiqueta y el valor salen JUNTOS: sin precio de contrato no se
+              // inventa un numero, y un saldo negativo se anuncia como SOBREPAGO y no
+              // como una deuda del cliente (ADR 0024).
+              const saldo = saldoLegible(venta.saldo, venta.moneda);
+              return (
               <li key={venta.saleId} className="rounded-md border p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-medium">{venta.productoNombre ?? "Sin producto"}</span>
@@ -125,16 +130,7 @@ export function HistorialPersona({ historial }: { historial: HistorialDePersona 
                     etiqueta="Abonado"
                     valor={formatoMonto(Number(venta.abonado), venta.moneda)}
                   />
-                  {/* Sin precio del contrato (filas viejas de Sheets) no hay saldo
-                      que calcular: se dice, no se inventa un numero. */}
-                  <Dato
-                    etiqueta="Saldo pendiente"
-                    valor={
-                      venta.saldo === null
-                        ? "Sin precio de contrato registrado"
-                        : formatoMonto(Number(venta.saldo), venta.moneda)
-                    }
-                  />
+                  <Dato etiqueta={saldo.etiqueta} valor={saldo.valor} />
                 </div>
 
                 {venta.abonos.length > 0 ? (
@@ -157,7 +153,8 @@ export function HistorialPersona({ historial }: { historial: HistorialDePersona 
                   </ul>
                 ) : null}
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </section>
