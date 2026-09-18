@@ -274,6 +274,55 @@ describe("proteccion del ultimo administrador", () => {
     expect(u.activo).toBe(true);
   });
 
+  it("un gerente SI puede pasarse a si mismo a developer (ADR 0025)", async () => {
+    // No es una degradacion: developer tambien administra, asi que no se pierde
+    // administracion y la salvaguarda no tiene por que bloquearlo.
+    const editado = await editarUsuario(db, gerenteId, gerenteId, {
+      email: "gerente@retiagrowth.com",
+      nombre: "Gerencia",
+      rol: "developer",
+      closerId: "",
+      programas: [programaAId],
+    });
+    expect(editado.rol).toBe("developer");
+  });
+
+  it("un developer no puede bajarse a si mismo a closer (ADR 0025)", async () => {
+    await editarUsuario(db, gerenteId, gerenteId, {
+      email: "gerente@retiagrowth.com",
+      nombre: "Gerencia",
+      rol: "developer",
+      closerId: "",
+      programas: [programaAId],
+    });
+    const error = await editarUsuario(db, gerenteId, gerenteId, {
+      email: "gerente@retiagrowth.com",
+      nombre: "Gerencia",
+      rol: "closer",
+      closerId: "Gerencia",
+      programas: [programaAId],
+    }).catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(400);
+    const [u] = await db.select().from(users).where(eq(users.id, gerenteId));
+    expect(u.rol).toBe("developer");
+  });
+
+  it("un developer tampoco puede desactivarse a si mismo (ADR 0025)", async () => {
+    await editarUsuario(db, gerenteId, gerenteId, {
+      email: "gerente@retiagrowth.com",
+      nombre: "Gerencia",
+      rol: "developer",
+      closerId: "",
+      programas: [programaAId],
+    });
+    const error = await desactivarUsuario(db, gerenteId, gerenteId).catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(400);
+    const [u] = await db.select().from(users).where(eq(users.id, gerenteId));
+    expect(u.activo).toBe(true);
+  });
+
   it("un gerente si puede degradar a OTRO gerente si no es el mismo", async () => {
     const otro = await crearUsuario(db, gerenteId, {
       email: "otro@retiagrowth.com",

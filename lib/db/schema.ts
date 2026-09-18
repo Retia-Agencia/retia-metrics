@@ -26,7 +26,7 @@ import {
 
 // ─────────────────────────────────────────────────────────── enums
 
-export const rolEnum = pgEnum("rol", ["gerente", "closer"]);
+export const rolEnum = pgEnum("rol", ["gerente", "closer", "developer"]);
 
 export const estadoPersonaEnum = pgEnum("estado_persona", [
   "descartado",

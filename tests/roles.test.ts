@@ -14,6 +14,15 @@ describe("puedeAcceder", () => {
     expect(puedeAcceder("gerente", ["closer"])).toBe(false);
   });
 
+  it("el developer es la unica excepcion a la disjuncion: pasa toda ruta (ADR 0025)", () => {
+    // Rutas exclusivas de gerente, exclusivas de closer y compartidas: en todas pasa.
+    expect(puedeAcceder("developer", ["gerente"])).toBe(true);
+    expect(puedeAcceder("developer", ["closer"])).toBe(true);
+    expect(puedeAcceder("developer", ["gerente", "closer"])).toBe(true);
+    // Aun sin permitidos declarados, un developer entra (acceso total).
+    expect(puedeAcceder("developer", [])).toBe(true);
+  });
+
   it("sin rol no pasa nada", () => {
     expect(puedeAcceder(undefined, ["gerente", "closer"])).toBe(false);
     expect(puedeAcceder(null, ["closer"])).toBe(false);
@@ -21,6 +30,7 @@ describe("puedeAcceder", () => {
 
   it("valida el rol que viene del token", () => {
     expect(esRolValido("gerente")).toBe(true);
+    expect(esRolValido("developer")).toBe(true);
     expect(esRolValido("admin")).toBe(false);
     expect(esRolValido(undefined)).toBe(false);
   });
@@ -81,6 +91,22 @@ describe("navegacion por rol", () => {
 
   it("un gerente sin programas activos aterriza en ajustes", () => {
     expect(rutaInicial("gerente", null)).toBe("/ajustes");
+  });
+
+  it("el developer ve la union de items: mi-dia, dashboards, productos, recursos y ajustes (ADR 0025)", () => {
+    const rutas = navParaRol("developer", PROGRAMAS).map((i) => i.href);
+    expect(rutas).toContain("/mi-dia");
+    expect(rutas).toContain("/programas/programa-a");
+    expect(rutas).toContain("/programas/programa-b");
+    expect(rutas).toContain("/productos");
+    expect(rutas).toContain("/recursos");
+    expect(rutas).toContain("/ajustes");
+  });
+
+  it("el developer aterriza en el primer programa, como el gerente (destino documentado)", () => {
+    expect(rutaInicial("developer", "programa-a")).toBe("/programas/programa-a");
+    // Sin programas activos, cae en ajustes: tiene acceso total de administracion.
+    expect(rutaInicial("developer", null)).toBe("/ajustes");
   });
 });
 

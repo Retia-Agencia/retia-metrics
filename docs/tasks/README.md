@@ -58,7 +58,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 024 | [Rol developer](./024-rol-developer.md) | 010 | todo · en su turno (hay avance parcial sin revisar en `git stash` "wip 024 rol developer") |
+| [x] | 024 | [Rol developer](./024-rol-developer.md) | 010 | done · 17-sep (ADR 0025; migración 0012 en `dev`, **falta `production`**; stash de Kiro rescatado y cerrado) |
 | [ ] | 025 | [Nerd Stats](./025-nerd-stats.md) | 024 | todo |
 
 ## Decisiones pendientes (bloquean o condicionan tickets)
@@ -101,7 +101,7 @@ Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje
 el ADR 0018 y en el handoff.
 
 - [x] Mani pegó en `DATABASE_URL` la URL de la rama `dev` (verificado con `neon.branch_id`: `br-withered-sun-b439zjof`).
-- [x] `dev` al día: 8 migraciones y `seed:datos` (2 programas, 4 cohortes, 3 productos, 10 fuentes).
+- [x] `dev` al día: 13 migraciones y `seed:datos` (2 programas, 4 cohortes, 3 productos, 10 fuentes).
 - [ ] Sembrar productos en `production` (pedir ok; va con el 007, ver handoff).
 
 ## Deuda técnica heredada (no bloquea F0-F4)

@@ -5,7 +5,7 @@ import { changeLog, miembrosPrograma, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
-import { ROLES } from "@/lib/auth/roles";
+import { esAdministrador, ROLES } from "@/lib/auth/roles";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
 /**
@@ -278,9 +278,15 @@ async function programasDe(db: Db, userId: string): Promise<string[]> {
 }
 
 /**
- * Impide que el gerente logueado se degrade o se desactive a si mismo: es la
+ * Impide que un administrador logueado se degrade o se desactive a si mismo: es la
  * salvaguarda contra quedarse sin administradores. Solo aplica cuando el objetivo
  * es el propio actor.
+ *
+ * Administrador son hoy dos roles, `gerente` y `developer` (ADR 0025), asi que la
+ * pregunta se le hace a `esAdministrador` y no a un literal: pasar de uno al otro es
+ * legitimo (no se pierde administracion) y se permite; lo que se bloquea es caer a
+ * `closer` o desactivarse, que son las dos formas de cerrarse la puerta desde
+ * adentro.
  */
 async function protegerAdministrador(
   db: Db,
@@ -290,13 +296,13 @@ async function protegerAdministrador(
 ): Promise<void> {
   if (actorId !== objetivoId) return;
   const [actor] = await db.select().from(users).where(eq(users.id, actorId));
-  if (!actor || actor.rol !== "gerente") return;
+  if (!actor || !esAdministrador(actor.rol)) return;
 
   if (opciones.desactivando) {
     throw new ErrorDeApp("No puedes desactivarte a ti mismo.", 400);
   }
-  if (opciones.rolNuevo && opciones.rolNuevo !== "gerente") {
-    throw new ErrorDeApp("No puedes quitarte a ti mismo el rol de gerente.", 400);
+  if (opciones.rolNuevo && !esAdministrador(opciones.rolNuevo)) {
+    throw new ErrorDeApp("No puedes quitarte a ti mismo el rol de administrador.", 400);
   }
 }
 

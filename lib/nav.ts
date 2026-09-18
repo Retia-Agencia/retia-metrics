@@ -1,4 +1,5 @@
 import type { Rol } from "@/lib/auth/roles";
+import { esAccesoTotal } from "@/lib/auth/roles";
 
 export type ItemNav = {
   href: string;
@@ -21,8 +22,8 @@ export function navParaRol(
 
   const items: ItemNav[] = [];
 
-  // Mi dia: solo el closer.
-  if (rol === "closer") {
+  // Mi dia: el closer, y el developer que ve la union de todo (ADR 0025).
+  if (rol === "closer" || esAccesoTotal(rol)) {
     items.push({ href: "/mi-dia", etiqueta: "Mi día", icono: "midia", roles: ["closer"] });
   }
 
@@ -45,8 +46,8 @@ export function navParaRol(
   // ve los controles de edicion, y eso se decide en el servidor (ticket 023).
   items.push({ href: "/recursos", etiqueta: "Recursos", icono: "recursos", roles: ["gerente", "closer"] });
 
-  // Ajustes: solo el gerente.
-  if (rol === "gerente") {
+  // Ajustes: el gerente, y el developer con acceso total (ADR 0025).
+  if (rol === "gerente" || esAccesoTotal(rol)) {
     items.push({ href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["gerente"] });
   }
 
@@ -57,7 +58,10 @@ export function navParaRol(
  * A donde mandar a alguien que entra a "/" segun su rol.
  * Sin rol no hay destino valido dentro de la app: va al login.
  * El gerente aterriza en el primer programa activo; si no hay ninguno, en ajustes.
- * El primer programa se resuelve fuera (contra la base) y entra como dato.
+ * El developer (ADR 0025) aterriza igual que el gerente: es el mismo trabajo de
+ * administracion, y un dashboard de programa es un mejor punto de partida que la
+ * vista de closer. El primer programa se resuelve fuera (contra la base) y entra
+ * como dato.
  */
 export function rutaInicial(rol: Rol | null, primerPrograma: string | null): string {
   if (!rol) return "/login";

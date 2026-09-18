@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ROLES, type Rol } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
 import {
   crearUsuarioAccion,
@@ -34,7 +35,7 @@ export interface UsuarioVista {
   id: string;
   email: string;
   nombre: string | null;
-  rol: "gerente" | "closer";
+  rol: Rol;
   closerId: string | null;
   calendlyEmail: string | null;
   activo: boolean;
@@ -44,7 +45,7 @@ export interface UsuarioVista {
 interface Borrador {
   email: string;
   nombre: string;
-  rol: "gerente" | "closer";
+  rol: Rol;
   closerId: string;
   calendlyEmail: string;
   programas: string[];
@@ -311,8 +312,12 @@ function FormularioUsuario({
               className={claseInput}
               aria-label="Rol"
             >
-              <option value="closer">closer</option>
-              <option value="gerente">gerente</option>
+              {/* Las opciones salen de ROLES: sumar un rol no vuelve a tocar esta pantalla. */}
+              {ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
             </select>
           </label>
 

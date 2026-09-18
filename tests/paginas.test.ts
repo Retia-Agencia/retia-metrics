@@ -116,6 +116,7 @@ class NoEncontrado extends Error {
 
 const sesionGerente = { user: { id: "u-1", email: "gerente@retia.co", rol: "gerente", closerId: null } };
 const sesionCloser = { user: { id: "u-2", email: "closer@retia.co", rol: "closer", closerId: "andrea" } };
+const sesionDeveloper = { user: { id: "u-3", email: "dev@retia.co", rol: "developer", closerId: null } };
 
 beforeEach(() => {
   auth.mockReset();
@@ -243,6 +244,37 @@ describe("paginas de gerente", () => {
   }
 });
 
+/**
+ * El developer (ADR 0025) pasa TODA guarda de pagina. No se afirma renderizando
+ * cada pagina (varias leen la base y aqui no hay base), sino sobre `paginaConRol`,
+ * que es lo unico que la pagina evalua para decidir el acceso: si la guarda no
+ * redirige, la pagina entra. Se cubre una guarda exclusiva de gerente y una
+ * exclusiva de closer; el mecanismo es el mismo para todas.
+ */
+describe("developer pasa toda guarda de pagina (ADR 0025)", () => {
+  it("no lo redirige una guarda exclusiva de gerente", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
+    const { paginaConRol } = await import("@/lib/auth/page-guards");
+    const session = await paginaConRol("gerente");
+    expect(session.user.rol).toBe("developer");
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("no lo redirige una guarda exclusiva de closer", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
+    const { paginaConRol } = await import("@/lib/auth/page-guards");
+    const session = await paginaConRol("closer");
+    expect(session.user.rol).toBe("developer");
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("a un gerente SI lo redirige una guarda exclusiva de closer (disjuncion, ADR 0003)", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const { paginaConRol } = await import("@/lib/auth/page-guards");
+    await expect(paginaConRol("closer")).rejects.toBeInstanceOf(Redireccion);
+  });
+});
+
 describe("dashboard de programa /programas/[slug] (ADR 0009 + 0012)", () => {
   const SLUG_EXISTE = "programa-a";
   const SLUG_NO_EXISTE = "no-existe";
@@ -255,6 +287,12 @@ describe("dashboard de programa /programas/[slug] (ADR 0009 + 0012)", () => {
 
   it("deja pasar a un closer con un slug existente", async () => {
     auth.mockResolvedValue(sesionCloser);
+    programaActivoPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
+    expect(await correrPrograma(SLUG_EXISTE)).toBe("paso");
+  });
+
+  it("deja pasar a un developer con un slug existente (ADR 0025)", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
     programaActivoPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
     expect(await correrPrograma(SLUG_EXISTE)).toBe("paso");
   });
@@ -364,6 +402,12 @@ describe("cohortes de un programa /ajustes/programas/[slug] (ticket 014)", () =>
     expect(await correrCohortes(SLUG)).toBe("paso");
   });
 
+  it("deja pasar a un developer con un slug existente (ADR 0025)", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
+    programaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
+    expect(await correrCohortes(SLUG)).toBe("paso");
+  });
+
   it("un slug inexistente, con sesion de gerente, es 404", async () => {
     auth.mockResolvedValue(sesionGerente);
     programaPorSlug.mockResolvedValue(null);
@@ -381,6 +425,11 @@ describe("pagina de productos /productos (ADR 0016)", () => {
 
   it("deja pasar a un closer (ambos roles la administran)", async () => {
     auth.mockResolvedValue(sesionCloser);
+    expect(await destinoDe(RUTA)).toBeNull();
+  });
+
+  it("deja pasar a un developer (acceso total, ADR 0025)", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
     expect(await destinoDe(RUTA)).toBeNull();
   });
 
@@ -465,6 +514,14 @@ describe("pagina de closer", () => {
   it("/mi-dia deja pasar a un closer (ticket 003)", async () => {
     auth.mockResolvedValue(sesionCloser);
     // Un closer con un programa donde vende: la pagina arma su contexto y renderiza.
+    programasGestionablesPorUsuario.mockResolvedValue([{ id: "p-1", nombre: "Programa A" }]);
+    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBeNull();
+  });
+
+  it("/mi-dia deja pasar a un developer (acceso total, ADR 0025)", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
+    // Un developer no es miembro de ningun programa, pero ve la union: la pagina le
+    // pide los programas con la proyeccion de gerente, no con la de closer.
     programasGestionablesPorUsuario.mockResolvedValue([{ id: "p-1", nombre: "Programa A" }]);
     expect(await destinoDe("@/app/(app)/mi-dia/page")).toBeNull();
   });

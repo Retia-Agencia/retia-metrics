@@ -17,7 +17,9 @@ export const dynamic = "force-dynamic";
  */
 export default async function ProductosPage() {
   const session = await paginaConRol("gerente", "closer");
-  const rol = session.user.rol === "gerente" ? "gerente" : "closer";
+  // Un developer tiene acceso total (ADR 0025): ve los productos de todos los
+  // programas, igual que un gerente. Solo el closer queda acotado a los suyos.
+  const rol = session.user.rol === "closer" ? "closer" : "gerente";
 
   const programasBase = await programasGestionablesPorUsuario(session.user.id, rol, db);
 

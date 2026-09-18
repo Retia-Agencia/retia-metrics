@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import { db } from "../lib/db";
 import { miembrosPrograma, users } from "../lib/db/schema";
 import { parsearEntradaUsuario } from "../lib/catalogo/usuarios";
+import { esAdministrador } from "../lib/auth/roles";
 
 /**
  * Administra quien puede entrar a la app. No hay auto-registro: quien no este
@@ -19,7 +20,8 @@ import { parsearEntradaUsuario } from "../lib/catalogo/usuarios";
  *   npm run usuarios -- agregar <correo> <rol> [id] [prog...] agrega o reactiva
  *   npm run usuarios -- quitar <correo>                       desactiva (no borra)
  *
- * `rol` es gerente o closer. `id` es el closer_id: el nombre exacto con el que la
+ * `rol` es gerente, closer o developer (ADR 0025: el developer entra a todas las
+ * rutas). `id` es el closer_id: el nombre exacto con el que la
  * persona aparece en la columna de closer de la BBDD (Juanjo, Dana, Andrea). `prog`
  * son uuids de programa (los da `npm run db:studio`): un closer necesita al menos
  * uno.
@@ -37,8 +39,10 @@ async function listar() {
     const closer = u.closerId ? `  closer_id: ${u.closerId}` : "";
     console.log(`    ${estado}  ${u.rol.padEnd(8)}  ${u.email}${closer}`);
   }
-  const gerentes = filas.filter((u) => u.activo && u.rol === "gerente").length;
-  console.log(`\n  ${filas.filter((u) => u.activo).length} activo(s), ${gerentes} con rol gerente.\n`);
+  // Se cuentan ADMINISTRADORES, no gerentes: desde el ADR 0025 el developer tambien
+  // administra, y este script existe justamente para no quedarse sin ninguno.
+  const admins = filas.filter((u) => u.activo && esAdministrador(u.rol)).length;
+  console.log(`\n  ${filas.filter((u) => u.activo).length} activo(s), ${admins} con rol de administracion.\n`);
 }
 
 async function agregar(email: string, rol: string, closerId?: string, ...programas: string[]) {

@@ -7,6 +7,53 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-17 (cierre 5) — Ticket 024: rol `developer`. ADR 0025, migración 0012 en `dev`.
+  El `git stash` de Kiro quedó cerrado.**
+
+  **El stash ya no existe.** Se decidió (Mani) **rescatar el código y descartar la migración**. Por
+  qué: estaba basado en `cc40d4e`, **26 commits atrás**, y su migración pedía el slot `0008`, que
+  desde entonces ocupa `0008_registro_y_abonos`; el ADR que proponía como `0022` también quedó
+  ocupado (ventana de venta). Un `git stash pop` ni siquiera era posible: colisionaban
+  `_journal.json` y `0008_snapshot.json`. Se extrajo archivo por archivo (`git checkout stash@{0} --`
+  para los cuatro que no se habían movido, `git apply -3` para los que sí), se regeneró la migración
+  como **0012** y el ADR como **0025**, y se hizo `git stash drop`.
+
+  **El código de Kiro era bueno y su decisión de diseño se conservó:** el "pasa todo" vive en un
+  solo `puedeAcceder` (vía `esAccesoTotal`) y no repetido en cada guarda. Pero era ~60% del ticket.
+  **Tres huecos que no cubría:**
+  1. **`/mi-dia` quedaba inservible para el developer.** Pasaba la guarda, pero la página seguía
+     con `programasGestionablesPorUsuario(..., "closer", ...)` hardcodeado: un developer no es
+     miembro de ningún programa, así que entraba a una pantalla vacía. Kiro hizo esta misma
+     inversión en `/productos` y se le olvidó aquí. **El test solo miraba la guarda.** De ahí salió
+     el punto 4 del ADR 0025: *una guarda que se pasa no es una pantalla que sirve*.
+  2. **`protegerAdministrador` (015) le impedía a un gerente ponerse developer a sí mismo.** Ahora
+     pregunta por `esAdministrador`: gerente ↔ developer se permite (no se pierde administración),
+     bajar a `closer` o desactivarse no.
+  3. **Había una TERCERA definición del union de roles**, escrita a mano en `types/next-auth.d.ts`.
+     La destapó `tsc`, no un test: la sesión y el token seguían creyendo que había dos roles. Es
+     exactamente el ADR 0024 y estaba escondida en un `.d.ts`, que es donde nadie mira.
+
+  **De paso dejaron de tener literales de rol** `/ajustes/usuarios` (opciones desde `ROLES`), el
+  menú de usuario (`Record<Rol, string>` exhaustivo: un rol nuevo sin etiqueta rompe el typecheck) y
+  el CLI de emergencia (cuenta administradores, no gerentes).
+
+  **Base:** migración **0012 aplicada en `dev`** (`br-withered-sun-b439zjof`, verificado por
+  `neon.branch_id` antes de escribir), 13 migraciones. `manuelmejiaarana@gmail.com` quedó
+  **developer en `dev`**.
+  🔴 **`production` sigue con 12 migraciones y Mani sigue de `gerente` allá.** Las dos cosas
+  necesitan el ok explícito de Mani; no se tocaron.
+
+  **Loops:** 462 tests (eran 444), typecheck, lint y build limpios. Ningún test de disjunción
+  gerente/closer cambió de resultado, que era el segundo criterio del "Done cuando".
+
+  **Lo siguiente en F4 es el 025 (Nerd Stats)**, que ya está desbloqueado. `/nerd-stats` va a nacer
+  con el developer cubierto sin escribir una línea para eso, porque la excepción vive en
+  `puedeAcceder`.
+
+  **Sigue pendiente de Mani, sin cambios:** cargar los 5 enlaces de PayPal, abrir `/mi-dia`,
+  `/personas/[id]` y `/recursos` en un navegador, y decidir el 021. **El rol developer hace la
+  segunda más fácil:** con una sola cuenta ya se ven las pantallas de los dos roles.
+
 - **2026-09-17 (CIERRE DE SESIÓN) — Cuatro tickets (003, 006, 022, 023), dos refactors, ADR 0024.
   Estado del repo para no chocar en la próxima sesión.**
 
@@ -15,7 +62,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   - **El árbol está limpio y todo está en `origin/main`** (último commit `bc95e46`). No hay trabajo
     a medias en el working tree, no hay ramas sueltas, no hay subagentes corriendo. Se puede
     arrancar cualquier cosa sin heredar nada.
-  - **HAY UN `git stash` VIVO: `stash@{0}` "wip 024 rol developer".** Es avance de Kiro del 16-sep
+  - ~~**HAY UN `git stash` VIVO: `stash@{0}` "wip 024 rol developer".**~~ **RESUELTO el 17-sep
+    en el cierre 5: rescatado y dropeado.** Se deja el texto por el razonamiento. Es avance de Kiro del 16-sep
     **sin revisar por nadie**, de un ticket que entonces no tocaba. Quien arranque el **024** tiene
     que decidir explícitamente si lo hace `pop` o lo descarta y empieza de cero. **No lo dejes ahí
     otra sesión más**: un stash sin dueño es la forma más fácil de perder trabajo o de re-hacerlo.

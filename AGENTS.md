@@ -71,6 +71,14 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
 
 - **El rol se enforza en el servidor, en cada ruta.** Esconder un boton no es seguridad. Todo
   route handler y toda pagina pasa por `requireRole` / `paginaConRol`.
+- **Hay un tercer rol, `developer`, y es la unica excepcion a la disjuncion (ADR 0025).** Pasa
+  toda guarda: exclusiva de gerente, exclusiva de closer o compartida. La excepcion vive en UN
+  solo lugar, `esAccesoTotal` dentro de `puedeAcceder`: **nunca se escribe `"developer"` en un
+  `requireRole` ni en un `paginaConRol`**, o la ruta que alguien agregue el mes que viene se
+  olvidaria de el. Y pasar la guarda no es tener una pantalla util: lo que la pagina proyecta
+  adentro sigue decidiendose por rol (`/mi-dia` y `/productos` le dan la union de programas, no la
+  de un closer sin membresias). "Administrar" es OTRA pregunta: `esAdministrador` la cumplen el
+  gerente y el developer, y es la que usa la salvaguarda del ultimo administrador.
 - **`gerente` y `closer` son conjuntos disjuntos, sin herencia.** Un closer nunca entra a una ruta
   exclusiva de gerente como `/ajustes` (ADR 0003). Excepcion explicita desde el 15 de septiembre de
   2026: en el dashboard del CRM (`/programas/[slug]`, antes `/comunicarte` y

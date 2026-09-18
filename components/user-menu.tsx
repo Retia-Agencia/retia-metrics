@@ -14,11 +14,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import type { Rol } from "@/lib/auth/roles";
+
+/**
+ * Como se nombra cada rol en la interfaz. Es un `Record<Rol, string>` a proposito:
+ * al sumar un rol a `ROLES`, el typecheck exige nombrarlo aca en vez de dejar que
+ * caiga en silencio a "Sin rol".
+ */
+const ETIQUETA_ROL: Record<Rol, string> = {
+  gerente: "Gerencia comercial",
+  closer: "Closer",
+  developer: "Desarrollo",
+};
+
 type Props = {
   nombre: string;
   email: string;
   imagen?: string | null;
-  rol: "gerente" | "closer" | null;
+  rol: Rol | null;
 };
 
 export function UserMenu({ nombre, email, imagen, rol }: Props) {
@@ -41,7 +54,7 @@ export function UserMenu({ nombre, email, imagen, rol }: Props) {
         <span className="min-w-0 flex-1 text-left">
           <span className="block truncate text-sm font-medium">{nombre}</span>
           <span className="block truncate text-xs text-muted-foreground">
-            {rol === "gerente" ? "Gerencia comercial" : rol === "closer" ? "Closer" : "Sin rol"}
+            {rol ? ETIQUETA_ROL[rol] : "Sin rol"}
           </span>
         </span>
       </DropdownMenuTrigger>

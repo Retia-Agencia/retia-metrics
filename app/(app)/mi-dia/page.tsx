@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
 /**
  * Pantalla `/mi-dia` del closer (ticket 003, ADR 0003, 0015, 0016, 0021).
  *
- * Guard de servidor primero: es del closer y el gerente NO entra (ADR 0003). Carga
+ * Guard de servidor primero: es del closer y el gerente NO entra (ADR 0003); el
+ * developer si, porque pasa toda guarda (ADR 0025). Carga
  * en el servidor el contexto que la pantalla necesita —los programas donde el closer
  * vende, y por programa sus productos activos, mas los motivos, origenes y
  * plataformas ACTIVOS— y lo pasa por props al componente cliente. Solo se ofrecen
@@ -23,7 +24,13 @@ export const dynamic = "force-dynamic";
 export default async function MiDiaPage() {
   const session = await paginaConRol("closer");
 
-  const programasBase = await programasGestionablesPorUsuario(session.user.id, "closer", db);
+  // Solo un closer o un developer llegan aca (la guarda no deja a nadie mas). El
+  // developer no es miembro de ningun programa, asi que con la proyeccion de closer
+  // veria la pantalla vacia: se le da la del gerente, la union de programas activos
+  // (ADR 0025). Es la misma inversion que hace `/productos`.
+  const rol = session.user.rol === "closer" ? "closer" : "gerente";
+
+  const programasBase = await programasGestionablesPorUsuario(session.user.id, rol, db);
 
   // Solo VALORES ACTIVOS: un producto, motivo, origen o plataforma desactivado no se
   // ofrece para un registro nuevo (criterio del "Done cuando").
