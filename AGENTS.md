@@ -152,9 +152,16 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   hoja, preguntale lo mismo: ¿cual es el valor que esta fuente escribe cuando no sabe?** Y ojo con
   el efecto de segundo orden, que fue el peor: el dedup conserva la fecha mas antigua, asi que el
   ano 1 le ganaba a las buenas y **una sola fila envenenada le borraba la fecha real a alguien que
-  si la tenia** (839 de las 1.034). Tests en `tests/dedup.test.ts`; la reparacion de lo ya escrito
-  es `npm run backfill-fechas` (simula; `-- --escribir` aplica), que no se puede hacer desde
-  `people.raw` porque `raw` guarda UNA fila del correo y no todas.
+  si la tenia** (839 de las 1.034). Tests en `tests/dedup.test.ts`.
+- **Las fechas de aplicacion SI se comparan en el sync** (Mani, 18-sep). `fechaPrimeraAplicacion` y
+  `fechaUltimaAplicacion` estan en `CAMPOS_COMPARABLES` (`lib/sheets/plan-sync.ts`), asi que un
+  centinela reparado por el parser produce un diff y **el sync se auto-repara** en la corrida
+  siguiente, con bitacora. Antes estaban fuera, y por eso arreglar el parser no reparaba lo ya
+  escrito: sin diff no hay `aActualizar`. `npm run backfill-fechas` queda como herramienta de una
+  sola vez (ya ejecutada), no como pieza del diseno. **El riesgo de comparar una fecha tiene test
+  propio** en `tests/plan-sync.test.ts`: si una fecha leida de la base y la misma recien parseada
+  dejaran de dar la misma cadena, el sync reescribiria la base entera cada dia sin fallar. Medido
+  contra `production` el 18-sep: de 4.599 personas, el plan actualiza 6 filas y ninguna por fecha.
 
 **Rendimiento y escala** — observados en produccion, no decididos en una reunion. Trata cualquier
 cambio que los rompa como una regresion, y cualquier crecimiento que los supere como una senal de

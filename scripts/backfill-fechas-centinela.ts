@@ -14,11 +14,15 @@ import { deduplicarPorCorreo, filasDesdeMatriz } from "../lib/sheets/dedup";
 /**
  * Repara las fechas de aplicacion que entraron como el CENTINELA del ano 1.
  *
- * Por que hace falta un script y no basta con arreglar `parsearFecha`: el sync solo
- * actualiza a quien tenga algun diff, y `fechaPrimeraAplicacion` NO esta en
- * `CAMPOS_COMPARABLES` (`lib/sheets/plan-sync.ts`), exclusion que es deliberada y
- * esta testeada. Asi que una persona cuyo unico campo malo es la fecha nunca entra a
- * `aActualizar` y el dano se queda escrito para siempre.
+ * ⚠️ HERRAMIENTA DE UNA SOLA VEZ, YA EJECUTADA. Se deja por si vuelve a aparecer un
+ * centinela, pero **el camino normal ya no es este**: desde el 18-sep las fechas de
+ * aplicacion SI estan en `CAMPOS_COMPARABLES` (`lib/sheets/plan-sync.ts`), asi que un
+ * centinela reparado por `parsearFecha` produce un diff y el propio sync lo corrige
+ * solo en la siguiente corrida, con su fila de bitacora.
+ *
+ * Por que hizo falta cuando se escribio: el sync solo actualiza a quien tenga algun
+ * diff, y las fechas no se comparaban, asi que una persona cuyo unico campo malo era
+ * la fecha nunca entraba a `aActualizar` y el dano se quedaba escrito para siempre.
  *
  * Por que no se puede reparar desde `people.raw`: `raw` guarda UNA fila de la hoja,
  * no todas las del correo. Para una persona con varias aplicaciones, la primera

@@ -104,12 +104,75 @@ describe("planificarSync", () => {
     expect(plan.aActualizar).toEqual([]);
   });
 
-  it("cambiar un campo que no se compara (estado, fechas) no dispara escritura", () => {
+  it("cambiar `estado`, que no se compara, no dispara escritura", () => {
     const antes = persona();
-    const ahora = persona({ estado: "descartado", fechaUltimaAplicacion: new Date("2026-09-01") });
+    const ahora = persona({ estado: "descartado" });
     const plan = planificarSync([ahora], new Map([[antes.emailNormalizado, guardada(antes)]]), ctx);
 
-    // Hoy es asi a proposito (F-01 y F-05 siguen abiertos). Si cambia, que sea consciente.
+    // `estado` sigue fuera a proposito (F-01 abierto). Si cambia, que sea consciente.
+    expect(plan.aActualizar).toEqual([]);
+  });
+
+  /**
+   * 18-sep, decision de Mani: las fechas de aplicacion SI se comparan.
+   *
+   * Antes no, y ese era el motivo de que arreglar `parsearFecha` no reparara lo ya
+   * escrito: una persona cuyo unico campo malo era la fecha no tenia ningun diff, no
+   * entraba a `aActualizar` y el dano se quedaba para siempre. De ahi salio
+   * `npm run backfill-fechas`. Con las fechas dentro, el sync se auto-repara y ese
+   * script pasa a ser una herramienta de una sola vez, no una pieza del diseno.
+   */
+  it("una fecha de aplicacion que cambia SI dispara escritura y deja bitacora", () => {
+    const antes = persona({ fechaPrimeraAplicacion: new Date("2026-06-17T05:00:00Z") });
+    const ahora = persona({ fechaPrimeraAplicacion: new Date("2026-06-10T05:00:00Z") });
+    const plan = planificarSync([ahora], new Map([[antes.emailNormalizado, guardada(antes)]]), ctx);
+
+    expect(plan.aActualizar).toHaveLength(1);
+    expect(plan.cambios).toEqual([
+      expect.objectContaining({ campo: "fechaPrimeraAplicacion", origen: "sync" }),
+    ]);
+  });
+
+  it("un centinela reparado a null tambien dispara escritura", () => {
+    // El caso real: la base tiene el ano 1 y el parser arreglado devuelve null.
+    const antes = persona({ fechaPrimeraAplicacion: new Date("0001-01-01T05:00:00Z") });
+    const ahora = persona({ fechaPrimeraAplicacion: null });
+    const plan = planificarSync([ahora], new Map([[antes.emailNormalizado, guardada(antes)]]), ctx);
+
+    expect(plan.aActualizar).toHaveLength(1);
+    expect(plan.cambios[0]).toMatchObject({ campo: "fechaPrimeraAplicacion", valorNuevo: null });
+  });
+
+  /**
+   * EL RIESGO DE ESTE CAMBIO, y por eso tiene test propio. `compararCampos` compara
+   * `String(valor)`. Si una fecha leida de la base y la misma fecha recien parseada
+   * de la hoja no dieran la MISMA cadena, cada sync veria un diff falso en cada
+   * persona y reescribiria la base entera —4.599 filas y 4.599 de bitacora— todos los
+   * dias, sin que nada fallara. Dos `Date` del mismo instante si dan la misma cadena;
+   * este test es el que se entera si eso deja de ser cierto.
+   */
+  it("la MISMA fecha no produce un diff falso (si no, el sync reescribe todo cada dia)", () => {
+    const instante = new Date("2026-08-20T23:58:12-05:00");
+    const antes = persona({
+      fechaPrimeraAplicacion: instante,
+      fechaUltimaAplicacion: instante,
+    });
+    // Otro objeto Date, el mismo instante: es lo que pasa en cada corrida real.
+    const ahora = persona({
+      fechaPrimeraAplicacion: new Date(instante.getTime()),
+      fechaUltimaAplicacion: new Date(instante.getTime()),
+    });
+    const plan = planificarSync([ahora], new Map([[antes.emailNormalizado, guardada(antes)]]), ctx);
+
+    expect(plan.aActualizar).toEqual([]);
+    expect(plan.cambios).toEqual([]);
+  });
+
+  it("dos nulls tampoco producen un diff falso", () => {
+    const antes = persona({ fechaPrimeraAplicacion: null, fechaUltimaAplicacion: null });
+    const ahora = persona({ fechaPrimeraAplicacion: null, fechaUltimaAplicacion: null });
+    const plan = planificarSync([ahora], new Map([[antes.emailNormalizado, guardada(antes)]]), ctx);
+
     expect(plan.aActualizar).toEqual([]);
   });
 });

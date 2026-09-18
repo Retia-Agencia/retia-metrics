@@ -7,6 +7,35 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-18 (CIERRE 6 del mismo día) — Las fechas de aplicación entran a `CAMPOS_COMPARABLES`:
+  el sync se auto-repara. 511 tests. Verificado contra `production` sin escribir.**
+
+  **PARA QUIEN ABRA LA PRÓXIMA SESIÓN, leer esto primero:**
+
+  - **Decisión de Mani, cerrada:** `fechaPrimeraAplicacion` **y** `fechaUltimaAplicacion` están en
+    `CAMPOS_COMPARABLES` (`lib/sheets/plan-sync.ts`). Van las dos y no solo la primera: son el
+    mismo concepto, las escribe el mismo dedup y las corrompió el mismo centinela; dejar una fuera
+    sería la clase de asimetría que se ve bien y falla sola.
+  - **Qué cambia en la práctica:** un centinela reparado por `parsearFecha` ahora produce un diff, así
+    que **el sync lo corrige solo** en la corrida siguiente, con su fila de bitácora.
+    `npm run backfill-fechas` queda como herramienta de una sola vez (ya ejecutada), **no como pieza
+    del diseño**. Su encabezado lo dice, para que nadie lo lea como el camino normal.
+  - ⚠️ **EL RIESGO DE ESTE CAMBIO, y tiene test propio porque no falla, miente.** `compararCampos`
+    compara `String(valor)`. Si una fecha leída de la base y la misma recién parseada de la hoja
+    dejaran de dar la MISMA cadena, **cada sync vería un diff falso en cada persona y reescribiría
+    la base entera —4.599 filas y 4.599 de bitácora— todos los días, sin que nada fallara.** El test
+    "la MISMA fecha no produce un diff falso" en `tests/plan-sync.test.ts` es el que se entera.
+  - 🎯 **Y se midió contra `production`, no solo en tests:** se corrió `planificarSync` con los datos
+    reales de las dos hojas **sin escribir**. Resultado: de 4.599 personas el próximo sync
+    actualizaría **6 filas, y ninguna por fecha** (3 `ingresoDeclarado`, 2 `nombre`, 2 `urgencia`,
+    cambios de verdad en la hoja). Si la comparación fuera inestable, ahí saldrían miles. **Esa
+    simulación es la forma de comprobar cualquier cambio futuro a `CAMPOS_COMPARABLES`.**
+  - **Un test cambió de significado a conciencia:** el que decía *"cambiar un campo que no se compara
+    (estado, fechas) no dispara escritura"* se partió en dos. `estado` sigue fuera (F-01 abierto);
+    las fechas ahora sí disparan. El comentario *"si cambia, que sea consciente"* cumplió su función
+    exactamente como estaba pensado: frenó a la sesión anterior, que lo dejó como decisión de Mani
+    en vez de voltearlo por su cuenta.
+
 - **2026-09-18 (CIERRE 5 del mismo día) — Los dos huecos de rol cerrados: nace `/personas` y
   `/recursos` deja de esconderle la edición al developer. 507 tests. Recorrido visual hecho.**
 
@@ -79,8 +108,10 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     dentro de `lib/`. Tenía razón dos veces: por la regla y por el fondo, el centinela es un
     problema de formato de datos y no de un programa. Los números concretos viven en este handoff.
 
-  🔓 **DECISIÓN ABIERTA, deliberadamente no tomada: ¿`fechaPrimeraAplicacion` debe estar en
-  `CAMPOS_COMPARABLES`?** Hoy no está (`lib/sheets/plan-sync.ts:17`), así que el sync **nunca**
+  ✅ **DECISIÓN CERRADA el mismo día (Mani): SÍ entran a `CAMPOS_COMPARABLES`.** Ver el CIERRE 6
+  arriba. Lo que sigue es el planteamiento tal como quedó cuando estaba abierta:
+
+  🔓 **~~DECISIÓN ABIERTA~~: ¿`fechaPrimeraAplicacion` debe estar en `CAMPOS_COMPARABLES`?** Hoy no está (`lib/sheets/plan-sync.ts:17`), así que el sync **nunca**
   actualiza una fecha por sí sola: una persona cuyo único campo malo es la fecha no entra a
   `aActualizar`. Por eso hizo falta el script. Eso NO se cambió porque
   `tests/plan-sync.test.ts` dice explícitamente que la exclusión es a propósito (*"Hoy es así a

@@ -14,6 +14,27 @@ import type { PersonaDeducida } from "./dedup";
  */
 
 /** Campos que se comparan para detectar cambios y escribir en la bitacora. */
+/**
+ * Que campos se comparan para decidir si una persona se actualiza. Lo que no esta
+ * aca se escribe igual cuando la fila entra a `aActualizar` por otro motivo, pero
+ * **por si solo nunca dispara una escritura**.
+ *
+ * Las FECHAS DE APLICACION entran desde el 18-sep (decision de Mani). Antes no, y esa
+ * exclusion era la razon de que arreglar `parsearFecha` no reparara lo ya escrito: una
+ * persona cuyo unico campo malo era la fecha no tenia ningun diff, no entraba a
+ * `aActualizar`, y el centinela del ano 1 se quedaba en la base para siempre. De ahi
+ * salio `npm run backfill-fechas`. Con las fechas dentro, el sync se auto-repara y ese
+ * script pasa a ser una herramienta de una sola vez, no una pieza del diseno.
+ *
+ * `fechaUltimaAplicacion` va junto a la primera a proposito: son el mismo concepto,
+ * las escribe el mismo dedup y las corrompio el mismo centinela. Dejar una fuera seria
+ * la clase de asimetria que se ve bien y falla sola.
+ *
+ * `estado` sigue fuera (F-01 abierto). El riesgo de meter una fecha esta cubierto por
+ * `tests/plan-sync.test.ts`: si una fecha leida de la base y la misma recien parseada
+ * dejaran de dar la misma cadena, el sync reescribiria la base entera cada dia sin que
+ * nada fallara.
+ */
 const CAMPOS_COMPARABLES = [
   "nombre",
   "telefono",
@@ -26,6 +47,8 @@ const CAMPOS_COMPARABLES = [
   "utmCampaign",
   "numAplicaciones",
   "entrada",
+  "fechaPrimeraAplicacion",
+  "fechaUltimaAplicacion",
 ] as const;
 
 type PersonaGuardada = typeof people.$inferSelect;
