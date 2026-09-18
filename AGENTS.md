@@ -160,6 +160,14 @@ The agent should run these to get fast signal on whether code works. Keep them c
   mano para que `tsc --noEmit` corra limpio sin build previo.
 - **Un paquete no se instala antes del codigo que lo usa.** Instalar por adelantado es
   abstraccion especulativa (ADR 0006).
+- **Dentro de una plantilla `sql` de drizzle, las columnas salen SIN calificar.**
+  `sql`select count(*) from ${people} where ${people.programId} = ${programs.id}`` se renderiza como
+  `select count(*) from "people" where "program_id" = "id"`: ese `"id"` resuelve a la columna de la
+  tabla interna, la comparacion siempre da falso y **el conteo devuelve 0 sin lanzar ningun error**.
+  Descubierto en el ticket 025, con un test que ya estaba escrito; sin ese test la pantalla habria
+  mostrado ceros crebles. **No escribas subconsultas correlacionadas con la plantilla `sql`**: agrupa
+  aparte y une en memoria, que a esta escala es gratis y se lee correcto. Dentro de una consulta de
+  UNA sola tabla la plantilla es segura, porque no hay ambiguedad que resolver.
 - **La base se usa por `drizzle-orm/neon-http`: sin sesion ni transacciones interactivas.** Cada
   consulta es una peticion HTTP aparte, asi que `pg_advisory_lock` y `SET` de sesion no sirven.
   La exclusion mutua se hace con un indice unico en la base (ver F-03 en el tracker).

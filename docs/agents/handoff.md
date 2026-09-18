@@ -7,6 +7,71 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-17 (cierre 6) — Ticket 025: `/nerd-stats`. F4 cerrada. Sin migración.**
+
+  **F4 queda cerrada.** Con el 024 y el 025 no queda ticket de F4 pendiente. Lo que sigue
+  abierto en todo el plan es el **016** (fuentes configurables, puede esperar), el **007**
+  (operación, no código) y el **021** (bloqueado esperando decisión de Mani).
+
+  **Qué es `/nerd-stats`:** la salud de la herramienta sin abrir la base. Seis bloques:
+  despliegue (entorno, commit, `CRON_SECRET` como sí/no y nunca su valor), usuarios activos
+  por rol, registros por origen (hoja vs app — el canario de si el equipo está usando el CRM),
+  conteos por programa, últimas corridas de sync y últimos cambios desde la app. Se renderiza
+  entera en el servidor: es solo lectura, así que no hay componente cliente ni JS que enviar.
+
+  **Es la primera ruta EXCLUSIVA del developer**, y salió gratis: `paginaConRol("developer")`
+  cierra a gerente y closer por la misma función central que le abre todo lo demás al
+  developer. El test la mira por el lado que faltaba, el restrictivo: gerente y closer,
+  disjuntos entre sí, quedan los DOS afuera de la misma ruta.
+
+  🩸 **El hallazgo de la sesión, y no estaba en el alcance: drizzle renderiza las columnas SIN
+  CALIFICAR dentro de una plantilla `sql`.** La primera versión de `conteosPorPrograma` usaba
+  subconsultas correlacionadas y se convertía en
+  `select count(*) from "people" where "program_id" = "id"`. Ese `"id"` resuelve a la columna
+  de la tabla INTERNA, así que compara una fila consigo misma: **todos los conteos devolvían 0
+  y no lanzaba ningún error.** Una pantalla entera de ceros creíbles. Lo destapó el test de
+  PGlite, que ya estaba escrito antes de correr nada. Reescrita con cinco consultas agrupadas
+  unidas en memoria, que a esta escala es gratis y se lee obviamente correcto. **La trampa
+  quedó en `AGENTS.md`** porque ningún linter la ve, y la lección general es la de siempre
+  aquí: un número mudo en cero es peor que uno que revienta.
+
+  **Dos consolidaciones por ADR 0024, ninguna pedida por el ticket:**
+  - **"Últimas corridas de sync" ya existía** dentro de `estadoDeFuentes`. Dos pantallas
+    (`/ajustes/fuentes` y `/nerd-stats`) haciendo la misma pregunta: se sacó a
+    `ultimasCorridasDeSync` en `lib/queries/fuentes.ts` y las dos la importan. De paso ese
+    módulo ganó inyección de base, que no tenía.
+  - **`haceCuanto`** vivía suelto dentro de la página de fuentes; ahora está en
+    `lib/format.ts` y lo importan las dos.
+
+  **Privacidad, que era criterio de aceptación:** `ultimosCambiosDesdeLaApp` **no proyecta**
+  `etiqueta` ni los valores, que es justo donde `lib/mutations/personas.ts` escribe el nombre
+  y el correo de un lead. No es cuidado al pintar, es que la consulta no los pide: falla
+  cerrado. El test siembra una fila de bitácora con datos de lead y verifica sobre la fila
+  entera serializada, no columna por columna, así que una columna nueva con datos personales
+  también lo rompe.
+
+  **Rendimiento, el otro criterio:** medido contra `production` (4.497 personas), las cinco
+  lecturas en paralelo tardan **356 ms**, contra **347 ms** que cuesta un `select 1` vacío
+  desde la misma máquina. El trabajo de base son ~9 ms. **Salvedad honesta:** el primer golpe
+  después de que el compute de Neon se duerme tarda ~1,4 s, y eso es Neon despertando.
+
+  **Loops:** 474 tests (eran 462), typecheck, lint y build limpios. `/nerd-stats` aparece en
+  el build.
+
+  🔴 **Nada de esto está desplegado todavía.** Los dos commits de hoy (024 y 025) están solo
+  en local: Mani decidió dejar TODA la verificación visual para el final, con la app ya live.
+  Lo que falta, en este orden: **pushear** → esperar el deploy → **poner a Mani `developer` en
+  `production`** (la base ya lo acepta, las 13 migraciones están aplicadas en las dos ramas) →
+  **sesión de recorrido de las cinco pantallas sin mirar**: `/mi-dia`, `/personas/[id]`,
+  `/recursos` y `/nerd-stats`, más los enlaces de PayPal cuando los cargue.
+  **El orden importa y no es negociable:** con el código viejo desplegado, un usuario con rol
+  `developer` en la base cae en `esRolValido` → false → `token.rol = "closer"`, y Mani entraría
+  como closer sin programas, o sea a una app vacía.
+
+  ⚠️ **El riesgo que Mani ya aceptó por escrito:** acumular verificación es lo que produjo el
+  estado actual, con pantallas en producción que nadie ha abierto. Ahora son cuatro. La sesión
+  de recorrido merece checklist, no una pasada rápida.
+
 - **2026-09-17 (cierre 5) — Ticket 024: rol `developer`. ADR 0025, migración 0012 en `dev`.
   El `git stash` de Kiro quedó cerrado.**
 

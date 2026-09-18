@@ -62,3 +62,19 @@ export function fecha(iso: string): string {
   if (!nombre) return iso;
   return `${Number(dia)} ${nombre} ${anio}`;
 }
+
+/**
+ * Hace cuanto paso un instante, en palabras. Vive aca y no dentro de una pantalla
+ * porque lo preguntan dos (`/ajustes/fuentes` y `/nerd-stats`) y la respuesta tiene
+ * que ser la misma (ADR 0024). Es un INSTANTE (timestamp), no un dia de calendario:
+ * por eso pasa por `Date` y `fecha()` no.
+ */
+export function haceCuanto(d: Date | string | null | undefined): string {
+  if (!d) return "nunca";
+  const min = Math.round((Date.now() - new Date(d).getTime()) / 60000);
+  if (min < 1) return "hace segundos";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  return `hace ${Math.round(h / 24)} d`;
+}

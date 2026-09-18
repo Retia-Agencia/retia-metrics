@@ -100,6 +100,22 @@ vi.mock("@/lib/catalogo/categorias-recurso", async (importOriginal) => ({
   categoriasDeRecurso: () => ({ listar: listarVacio }),
 }));
 
+// `/nerd-stats` (ticket 025) lee la base por dos modulos; sin base en los tests se
+// mockean para que la guarda sea lo unico bajo prueba. `@/lib/queries/fuentes` se
+// mockea entero: las paginas de gerente solo se prueban por rechazo, asi que nadie
+// mas depende de su implementacion real aca.
+const ultimasCorridasDeSync = vi.fn(async () => []);
+vi.mock("@/lib/queries/fuentes", () => ({
+  ultimasCorridasDeSync,
+  estadoDeFuentes: vi.fn(async () => ({ fuentes: [], conteos: [], corridas: [], cambios: 0 })),
+}));
+vi.mock("@/lib/queries/nerd-stats", () => ({
+  conteosPorPrograma: vi.fn(async () => []),
+  conteosPorOrigen: vi.fn(async () => ({ llamadas: [], ventas: [] })),
+  ultimosCambiosDesdeLaApp: vi.fn(async () => []),
+  usuariosActivosPorRol: vi.fn(async () => []),
+}));
+
 /** El `redirect` real interrumpe el render lanzando. El mock imita eso. */
 class Redireccion extends Error {
   constructor(readonly destino: string) {
@@ -524,6 +540,36 @@ describe("pagina de closer", () => {
     // pide los programas con la proyeccion de gerente, no con la de closer.
     programasGestionablesPorUsuario.mockResolvedValue([{ id: "p-1", nombre: "Programa A" }]);
     expect(await destinoDe("@/app/(app)/mi-dia/page")).toBeNull();
+  });
+});
+
+/**
+ * `/nerd-stats` es la PRIMERA ruta exclusiva del developer (ticket 025, ADR 0025).
+ * Hasta aqui la excepcion solo se habia probado por el lado permisivo (el developer
+ * entra donde entran otros); esto prueba el lado restrictivo: gerente y closer, que
+ * entre ellos son disjuntos, quedan los DOS afuera de la misma ruta.
+ */
+describe("pagina de developer /nerd-stats (ticket 025)", () => {
+  const RUTA = "@/app/(app)/nerd-stats/page";
+
+  it("deja pasar a un developer", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
+    expect(await destinoDe(RUTA)).toBeNull();
+  });
+
+  it("rechaza a un gerente y lo manda a su primer programa", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    expect(await destinoDe(RUTA)).toBe("/programas/programa-a");
+  });
+
+  it("rechaza a un closer y lo manda a su vista", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    expect(await destinoDe(RUTA)).toBe("/mi-dia");
+  });
+
+  it("manda al login a quien no tiene sesion", async () => {
+    auth.mockResolvedValue(null);
+    expect(await destinoDe(RUTA)).toBe("/login");
   });
 });
 

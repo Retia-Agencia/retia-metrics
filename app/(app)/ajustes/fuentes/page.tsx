@@ -1,6 +1,7 @@
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { estadoDeFuentes } from "@/lib/queries/fuentes";
 import { PageShell } from "@/components/page-shell";
+import { haceCuanto } from "@/lib/format";
 import { BotonSincronizar } from "@/components/boton-sincronizar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,16 +15,6 @@ const DESTINOS: Record<string, string> = {
   sales: "Ventas",
   ad_spend: "Pauta",
 };
-
-function haceCuanto(d: Date | null) {
-  if (!d) return "nunca";
-  const min = Math.round((Date.now() - new Date(d).getTime()) / 60000);
-  if (min < 1) return "hace segundos";
-  if (min < 60) return `hace ${min} min`;
-  const h = Math.round(min / 60);
-  if (h < 24) return `hace ${h} h`;
-  return `hace ${Math.round(h / 24)} d`;
-}
 
 export default async function FuentesPage() {
   await paginaConRol("gerente");

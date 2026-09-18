@@ -103,6 +103,12 @@ describe("navegacion por rol", () => {
     expect(rutas).toContain("/ajustes");
   });
 
+  it("Nerd Stats es SOLO del developer: ni gerente ni closer lo ven (ticket 025)", () => {
+    expect(navParaRol("developer", PROGRAMAS).map((i) => i.href)).toContain("/nerd-stats");
+    expect(navParaRol("gerente", PROGRAMAS).map((i) => i.href)).not.toContain("/nerd-stats");
+    expect(navParaRol("closer", PROGRAMAS).map((i) => i.href)).not.toContain("/nerd-stats");
+  });
+
   it("el developer aterriza en el primer programa, como el gerente (destino documentado)", () => {
     expect(rutaInicial("developer", "programa-a")).toBe("/programas/programa-a");
     // Sin programas activos, cae en ajustes: tiene acceso total de administracion.

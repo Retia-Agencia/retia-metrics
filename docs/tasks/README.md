@@ -59,7 +59,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 024 | [Rol developer](./024-rol-developer.md) | 010 | done · 17-sep (ADR 0025; migración 0012 en `dev`, **falta `production`**; stash de Kiro rescatado y cerrado) |
-| [ ] | 025 | [Nerd Stats](./025-nerd-stats.md) | 024 | todo |
+| [x] | 025 | [Nerd Stats](./025-nerd-stats.md) | 024 | done · 17-sep (`/nerd-stats`, primera ruta exclusiva de developer; sin migración) |
 
 ## Decisiones pendientes (bloquean o condicionan tickets)
 

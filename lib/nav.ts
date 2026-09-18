@@ -4,7 +4,7 @@ import { esAccesoTotal } from "@/lib/auth/roles";
 export type ItemNav = {
   href: string;
   etiqueta: string;
-  icono: "programa" | "recursos" | "ajustes" | "midia" | "productos";
+  icono: "programa" | "recursos" | "ajustes" | "midia" | "productos" | "nerdstats";
   roles: readonly Rol[];
 };
 
@@ -45,6 +45,12 @@ export function navParaRol(
   // Recursos: ambos roles leen (brochures y links de pago vigentes). Solo el gerente
   // ve los controles de edicion, y eso se decide en el servidor (ticket 023).
   items.push({ href: "/recursos", etiqueta: "Recursos", icono: "recursos", roles: ["gerente", "closer"] });
+
+  // Nerd Stats: SOLO el developer. Es la unica ruta exclusiva suya (ticket 025), y
+  // por eso es la unica que pregunta por `esAccesoTotal` sin un rol al lado.
+  if (esAccesoTotal(rol)) {
+    items.push({ href: "/nerd-stats", etiqueta: "Nerd Stats", icono: "nerdstats", roles: ["developer"] });
+  }
 
   // Ajustes: el gerente, y el developer con acceso total (ADR 0025).
   if (rol === "gerente" || esAccesoTotal(rol)) {
