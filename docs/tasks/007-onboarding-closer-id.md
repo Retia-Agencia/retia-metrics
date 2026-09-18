@@ -39,8 +39,11 @@ y sus programas asignados, cargados desde la pantalla del ticket 015.
 | `juanse` (minuscula) | 9 | — |
 | `Sebastian` | 8 | — |
 
-Los cuatro ultimos tienen historia pero Michael no los listo como activos: confirmar antes de
-darlos de alta o de descartarlos. La cadena es literal y distingue mayusculas.
+**DECIDIDO por Mani el 18-sep: Dana, Alejo, `juanse` y Sebastian NO se dan de alta.** Quedan
+solo como `closer_id` historico en los registros que ya existen: siguen apareciendo como closer
+asignado en las metricas y en el comparativo, pero no tienen cuenta y no entran al dashboard
+porque ya no estan activos. **No hace falta volver a preguntarlo.** La cadena es literal y
+distingue mayusculas, asi que `juanse` en minuscula se conserva tal cual.
 
 ## Notas
 **Michael, 16-sep:** los closers activos son Andrea y Maru. Jerónimo aparece como responsable de

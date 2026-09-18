@@ -7,6 +7,97 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-18 (CIERRE 7 del mismo día) — El 028 cerrado (543 tests, sin migración), los 5 enlaces
+  de PayPal y las 6 categorías cargados en `production`, y un incidente propio con `seed:datos`
+  que hay que terminar de limpiar.**
+
+  **PARA QUIEN ABRA LA PRÓXIMA SESIÓN, leer esto primero:**
+
+  - ✅ **`main` SÍ está pusheado.** `git ls-remote origin main` y `git rev-parse main` daban lo
+    mismo al abrir la sesión. **La advertencia del CIERRE 5 ("SIGUE SIN PUSHEAR") está vencida**;
+    no la creas sin comprobar, el fenómeno es intermitente y hay que medirlo cada vez.
+
+  - 🩸 **EL INCIDENTE, y es el que más importa: `npm run seed:datos` NO es un no-op sobre una base
+    viva.** Se corrió contra `production` para crear las 6 categorías de recurso (que faltaban) y
+    **de paso insertó 3 productos** que duplican los 2 que el equipo había creado a mano desde
+    `/productos` esa misma mañana: la semilla los busca **por nombre**, y sus nombres genéricos
+    ("Programa completo", "Reserva de cupo") no coinciden con los reales ("Método ComunicArte",
+    "De Cero a Tactical Investor"), así que no los reconoció y los agregó al lado.
+    **La sesión verificó `programs`, `sources` y las cuatro ventanas de venta de las cohortes
+    —las cinco coincidían exactamente— y NO verificó `productos`.** Afirmó que sería un no-op y no
+    lo era. La lección no es "revisá mejor": es que **un script de semilla reconcilia por un campo
+    que puede haber cambiado**, y sobre una base que ya vive eso inserta en vez de reconocer.
+    ⚠️ **QUEDA PENDIENTE BORRAR ESOS 3.** El script está en `scripts/_limpiar-productos-semilla.ts`
+    (TEMPORAL, borrarlo después de correrlo; simula por defecto, `-- --escribir` aplica, y solo
+    toca filas con cero referencias). Los ids están dentro. **Mientras no se corra, el desplegable
+    de producto al registrar una venta muestra 5 opciones y un closer va a elegir mal.** El borrado
+    directo desde la sesión lo bloqueó el clasificador de permisos, correctamente.
+
+  - 🎯 **028 cerrado, y la lección es sobre el GUARDIÁN, no sobre el selector.** La primera entrega
+    arregló las tres comparaciones literales (`/mi-dia`, `/recursos`, `/productos`), escribió un
+    guardián y se declaró completa. **Pero tres sitios más seguían pasando `session.user.rol` crudo
+    a una función que decide alcance**, y el guardián no los veía porque solo cazaba comparaciones
+    contra un literal: `personas/acciones.ts` (un developer en vista closer seguía buscando en
+    TODOS los programas, incumpliendo un criterio explícito del ticket), el **segundo `actorDe`**
+    de `productos/acciones.ts` (había dos funciones con el mismo nombre y solo se arregló una), y
+    `anulaciones.ts`, que **tenía un comentario del autor del 029 pidiendo justo ese cambio** y
+    quedó mintiendo. **La forma que sobrevive no es la que el guardián conoce.** El guardián final
+    recorre `app/` Y `lib/`, borra comentarios y cadenas antes de analizar, caza las dos formas
+    (comparación literal y valor crudo), y sus 7 excepciones están nombradas con su porqué.
+    **Se probó adversarialmente:** se metió una violación real en un archivo nuevo bajo
+    `lib/queries/`, el guardián falló señalando archivo, línea y forma, y se borró el archivo. Un
+    guardián que no se prueba mordiendo es confianza falsa. **Hacé eso con el próximo.**
+
+  - **La propiedad de seguridad del 028 se sostiene:** `proyectarRol` ignora la cookie entera si el
+    rol no es de acceso total, así que un closer con una cookie `gerente` puesta a mano sigue siendo
+    closer. El único efecto posible de la vista es que un developer PIERDA acceso. Sin migración:
+    la cookie no es esquema.
+
+  - **Los dos `actorDe` quedaron separados a conciencia.** Contestan la misma pregunta pero devuelven
+    tipos distintos (el de personas lleva `closerId` por ADR 0011, el de productos no). Lo que se
+    unificó fue la FUENTE del rol. Forzar una función con dos formas de retorno habría sido el error
+    opuesto al que advierte el ADR 0024.
+
+  - 💳 **Los 5 enlaces de PayPal de ComunicArte están cargados en `production`** (797, 697, 400, 300
+    y 200 USD), vigentes, activos y **sin producto** (decisión de Mani: los tres montos bajos son
+    abonos parciales, no productos distintos). Salieron del grupo de WhatsApp *Ventas ComunicArte*,
+    publicados por Michael el 10-sep bajo el rótulo "LINKS PAYPAL COMUNICARTE".
+    ⚠️ **El JSON quedó en el scratchpad de la sesión, que es efímero.** Si se necesita de nuevo,
+    darle una casa estable fuera del repo y apuntar ahí `ENLACES_PAGO_JSON`. Ningún link vive en git.
+
+  - 🔍 **Tactical Investor NO tiene catálogo de links, y eso rompe un supuesto de la spec.** Se
+    revisó *Ventas JP Vieira* del 18-ago al 18-sep: **los links se generan uno por venta y a pedido**
+    (1000 USD para Jero, 1500 para un correo puntual de Andrea), desde una cuenta compartida. La
+    entidad `enlaces_pago` modela un catálogo durable; la operación de Tactical es ad-hoc.
+    **Decisión de Mani: dejarlo vacío por ahora.** El criterio 6 se cierra solo con ComunicArte.
+
+  - 🔴 **HALLAZGO DE SEGURIDAD SIN RESOLVER: la contraseña de la cuenta de PayPal de Retia está
+    publicada en texto plano** en el grupo *Ventas JP Vieira*, desde el 18-ago, con el mensaje "con
+    esta cuenta tenemos acceso al paypal de JP Vieira". No se copió a ningún archivo. Rotarla y
+    borrar el mensaje sigue pendiente, es decisión de Mani.
+
+  - ⚠️ **`scripts/cargar-enlaces-pago.ts` hace `db.insert` en crudo y NO escribe en `change_log`**,
+    saltándose el molde de catálogo. `crearEnlacePago` sí cumple el contrato del ADR 0012; el script
+    no. Los 5 enlaces entraron sin rastro de auditoría (verificado: `change_log` de `enlaces_pago`
+    está en 0). No falla, solo omite. Tampoco tiene alias en `package.json`: se corre con `npx tsx`.
+    **Pregunta de diseño abierta: ¿un script de semilla debe dejar rastro, o no?** Hoy ninguno lo
+    hace, así que la respuesta debe valer para todos, no solo para este.
+
+  - **No hay camino de línea de comandos para crear un recurso**: el único que llama `crearRecurso`
+    es la server action de la pantalla. **Y está bien que así sea**: el criterio 6 es sobre alguien
+    USANDO `/recursos`, así que insertar la fila por detrás poblaría el dato sin probar el criterio.
+    Ahora que las 6 categorías existen, crear el primer recurso desde la pantalla es la prueba.
+
+  - **DECISIÓN DE MANI sobre los closers inactivos (cerrada, no volver a preguntar):** Dana, Alejo,
+    `juanse` y Sebastian **no se dan de alta**. Quedan solo como `closer_id` histórico: siguen
+    apareciendo como closer asignado en las métricas, pero sin cuenta. Anotado en el ticket 007.
+
+  - 🆕 **Ticket 031 nuevo, pedido de Mani:** cargarse el `closerId` propio desde el perfil, sin pasar
+    por `/ajustes/usuarios` (que es la pantalla de administrar A OTROS). **Tiene una decisión abierta
+    que NO es cosmética:** `closerId` es la llave que ata un usuario a su historia, así que un closer
+    que pudiera editarse el suyo se atribuiría las 317 llamadas de Andrea escribiendo su nombre en un
+    campo de texto. Sin error y sin cifra rara. Las tres opciones están planteadas en el ticket.
+
 - **2026-09-18 (CIERRE 6 del mismo día) — Las fechas de aplicación entran a `CAMPOS_COMPARABLES`:
   el sync se auto-repara. 511 tests. Verificado contra `production` sin escribir.**
 
@@ -1342,20 +1433,44 @@ Por partes y en este orden:
        responde, pero las consultas nuevas contra `production` no se han ejercitado. De paso,
        `/nerd-stats` alla: el total de personas ronda 4.600 y **sube con cada sync**, asi que no se
        compara contra un numero fijo; lo que importa es que los conteos por programa no sean cero.
-1c.[ ] **028 · "Ver como" del developer.** Decision TOMADA el 18-sep: la vista estrecha tambien la
-       guarda. El 029 ya adelanto `trabajaLeads` y el `closer_id` del developer en
-       `/ajustes/usuarios`; falta `rolDeVista`, la cookie, el selector y quitar las tres
-       comparaciones a mano de `session.user.rol`.
-2. [ ] **Cargar los 5 enlaces de PayPal.** Solo Mani: `scripts/cargar-enlaces-pago.ts` los lee de
-       `ENLACES_PAGO_JSON`, un archivo fuera del repo. Ningun link real vive en git.
+1c.[x] ~~**028 · "Ver como" del developer**~~ — **HECHO el 18-sep** (ADR 0028). `rolDeVista` +
+       cookie + selector + guardián sobre `app/` y `lib/`. 543 tests, sin migración. La primera
+       entrega dejó 3 sitios pasando el rol crudo que el guardián no veía: ver el CIERRE 7.
+1d.[ ] 🔴 **BORRAR LOS 3 PRODUCTOS que `seed:datos` insertó en `production` el 18-sep.** Es lo más
+       urgente de esta lista por el cierre de ventas del 21-sep: mientras estén, el desplegable de
+       producto al registrar una venta muestra 5 opciones y un closer va a elegir mal.
+       `DATABASE_URL="$(grep '^DB_PROD=' .env.local | cut -d= -f2- | tr -d '"')" npx tsx scripts/_limpiar-productos-semilla.ts -- --escribir`
+       Después borrar ese script, es temporal. Detalle del incidente en el CIERRE 7.
+2. [x] ~~**Cargar los 5 enlaces de PayPal**~~ — **HECHO el 18-sep** para ComunicArte (797, 697,
+       400, 300, 200 USD; vigentes, activos, sin producto). Salieron del grupo de WhatsApp
+       *Ventas ComunicArte*. **Tactical queda vacío a propósito** (decisión de Mani): allá los
+       links se generan uno por venta, no hay catálogo. Y las **6 categorías de recurso** también
+       quedaron sembradas, que era el bloqueo real de `/recursos`.
+2b.[ ] **Crear el primer recurso desde `/recursos`** (solo Mani; no hay camino de script y está
+       bien que no lo haya: el criterio 6 es sobre USAR la pantalla). Candidato: la carpeta de
+       Drive de ComunicArte que Michael compartió el 16-sep, categoría Drive.
+2c.[ ] 🔴 **Rotar la contraseña de PayPal de Retia y borrar el mensaje**: está en texto plano en el
+       grupo *Ventas JP Vieira* desde el 18-ago. Decisión de Mani.
+2d.[ ] **Decidir si un script de semilla debe escribir en `change_log`.** `cargar-enlaces-pago.ts`
+       inserta en crudo y no deja rastro (los 5 enlaces entraron sin auditoría). Hoy NINGÚN script
+       de semilla lo hace, así que la respuesta vale para todos, no solo para ese.
 3. [ ] **Decidir el 021** (snapshot del dashboard), que sigue bloqueado esperando esa decision.
-4. [ ] **Preparar `production` para los usuarios reales** (con ok de Mani, junto con el 007):
-       sembrar productos (`seed:datos` con `DB_PROD`), cargar `administrativa@retiagrowth.com`
-       como gerente y dar de alta a Andrea y Maru desde `/ajustes/usuarios`. Hoy `production`
-       tiene UN solo usuario: Mani.
-       ⚠️ **Verificado el 18-sep: `production` tiene CERO productos.** Sin productos, un closer no
-       puede registrar una venta cerrada: el desplegable sale vacio. Sembrarlos es requisito del
-       007, no un extra.
+4. [ ] **Terminar de preparar `production` para los usuarios reales** (con ok de Mani, junto con
+       el 007). **Al 18-sep ya está casi:** hay 3 usuarios (`administrativa@retiagrowth.com` como
+       gerente, Maru como closer con `closer_id="Maru"` y los 2 programas, y Mani como developer),
+       hay productos y hay 6 categorías de recurso. **Lo que falta es UNA cosa: el correo de Google
+       de Andrea.** Su `closer_id` ya se sabe (`Andrea`, 317 de las 424 llamadas históricas); sin el
+       correo no se la puede dar de alta. Dana, Alejo, `juanse` y Sebastian NO se dan de alta
+       (decisión cerrada de Mani, 18-sep; ver el ticket 007).
+4b.[ ] **Registrar la primera llamada REAL en `production`** (criterios 1 y 5 de la spec; hoy hay
+       0 llamadas, 0 ventas y 0 abonos allá). Dos caminos y NO son equivalentes:
+       **(a)** un closer real (Maru o Andrea) lo hace → cierra el criterio 5, que es literalmente
+       "un closer dado de alta puede registrar";
+       **(b)** Mani como developer → cierra el criterio 1 pero **NO el 5**. Le faltan dos
+       precondiciones: su usuario tiene `closer_id = null` y cero membresías, así que
+       `exigirCloserIdCargado` le tira un 400. Se cargan desde `/ajustes/usuarios` (el 029 lo
+       habilitó para developers). Usar un `closer_id` NUEVO, nunca `Andrea` ni `Maru`, o se le
+       atribuye la llamada a ellas. Desde el 029 la llamada se puede anular, así que es reversible.
 5. [ ] **Probar `/api/cron/sync` en produccion** con el `CRON_SECRET` (escribe leads reales, pedir ok).
 6. [ ] **F-03 + F-07** juntos, con migracion (diseno en el tracker); primero `dev`, luego
        `production`.

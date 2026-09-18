@@ -62,7 +62,8 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 |---|---|---|---|---|
 | [x] | 024 | [Rol developer](./024-rol-developer.md) | 010 | done · 17-sep (ADR 0025; migración 0012 en `dev` y `production`; stash de Kiro rescatado y cerrado) |
 | [x] | 025 | [Nerd Stats](./025-nerd-stats.md) | 024 | done · 17-sep (`/nerd-stats`, primera ruta exclusiva de developer; sin migración) |
-| [ ] | 028 | ["Ver como" del developer](./028-ver-como-del-developer.md) | 024 | todo · **listo** · decidido 18-sep: la vista estrecha TAMBIÉN la guarda. El 029 ya adelantó `trabajaLeads` y el `closer_id` del developer en `/ajustes/usuarios`; falta `rolDeVista` + cookie + selector |
+| [x] | 028 | ["Ver como" del developer](./028-ver-como-del-developer.md) (ADR 0028) | 024 | done · 18-sep · `rolDeVista` + cookie + selector + guardián sobre `app/` y `lib/`. 543 tests. **Sin migración.** La primera entrega dejó 3 sitios pasando el rol crudo que el guardián no veía: ver la nota del ticket |
+| [ ] | 031 | [Perfil propio: el closerId sin pasar por /ajustes/usuarios](./031-perfil-propio.md) | 028 | todo · pedido de Mani 18-sep · **tiene una decisión abierta**: quién puede editar su propio `closer_id` (es la llave que ata a la historia de las hojas) |
 
 ## Decisiones pendientes (bloquean o condicionan tickets)
 
