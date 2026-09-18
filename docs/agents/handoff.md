@@ -8,14 +8,29 @@
 _Estado actual del trabajo. Lo mas reciente arriba._
 
 - **2026-09-18 (CIERRE 2 del mismo día) — Ticket 029 cerrado: anular registros. ADR 0027 nuevo.
-  Migraciones 0013 y 0014 en `dev`. Recorrido visual de la anulación hecho, 3 hallazgos, los 3
-  arreglados. 495 tests.**
+  Migraciones 0013 y 0014 en `dev` Y en `production`. Commiteado, pusheado y desplegado.
+  Recorrido visual de la anulación hecho, 3 hallazgos, los 3 arreglados. 495 tests.**
 
   **PARA QUIEN ABRA LA PRÓXIMA SESIÓN, leer esto primero:**
 
-  - **`production` NO tiene las migraciones 0013 ni 0014.** `dev` va en 15, `production` en 13.
-    Nada de lo del 029 existe allá todavía: la app desplegada no sabe anular. **Aplicarlas es una
-    escritura en `production` y necesita el ok explícito de Mani** (ADR 0018).
+  - **Las DOS ramas de Neon van en 15 migraciones.** `dev` (`br-withered-sun-b439zjof`) y
+    `production` (`br-withered-mud-b4cvvg80`). Las 0013 y 0014 se aplicaron en `production` con el
+    ok explícito de Mani, comprobando `neon.branch_id` antes de escribir (ADR 0018) y pasando la
+    URL por el entorno del proceso, nunca por la línea de comandos.
+  - **`main` está pusheado y desplegado.** Commit `8eff647`, verificado contra el remoto real con
+    `git ls-remote`. Deploy de producción `Ready`; `/api/health` responde 200 y el dashboard sin
+    sesión redirige al login con 307.
+  - ⚠️ **El orden importó y quedó bien por poco.** El código de `main` consulta `anulado_en` y
+    `sales.call_id` en cada consulta del embudo. Si se hubiera pusheado ANTES de migrar, el
+    dashboard, `/mi-dia`, el historial y `/nerd-stats` habrían reventado con *column does not
+    exist*. **Migrar primero y desplegar después es la regla**: las migraciones aditivas no rompen
+    el código viejo (las columnas sobran hasta que llega quien las use), al revés sí.
+  - **Forma de los datos de `production` (18-sep):** ~4.600 personas y **cero llamadas, cero
+    ventas, cero abonos**. Solo leads. Por eso la anulación allá todavía no tiene nada que tocar, y
+    por eso un dashboard en ceros allá es lo correcto, no un síntoma.
+  - 🤔 **Algo pusheó `main` antes de que yo corriera `git push`**, que respondió "Everything
+    up-to-date". No hay hooks de git en el repo. Sospecha: la integración del escritorio. No está
+    confirmado; se deja anotado por si vuelve a pasar y confunde a alguien.
   - **El 029 está commiteado en `main`** (31 archivos, incluidas las dos migraciones y estos
     docs). Árbol limpio; typecheck, lint, build y 495 tests, todos limpios.
   - **En `dev` se gastaron los datos de prueba del recorrido anterior.** Las dos ventas de
@@ -93,22 +108,28 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   > Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y la entrada "CIERRE 2" del 18-sep
   > en docs/agents/handoff.md.
   >
-  > Contexto: el ticket 029 (anular registros) está terminado, con ADR 0027. 495 tests verdes,
-  > typecheck, lint y build limpios. Las migraciones 0013 y 0014 están SOLO en `dev` (15) y
-  > `production` sigue en 13.
+  > Contexto: el ticket 029 (anular registros) está cerrado, commiteado (`8eff647`), pusheado y
+  > desplegado. Las dos ramas de Neon van en 15 migraciones. 495 tests verdes, typecheck, lint y
+  > build limpios.
   >
-  > Primero dime qué me recomiendas hacer con `production`: aplicar las dos migraciones ahora o
-  > esperar. Argumenta el riesgo en los dos sentidos; la decisión la tomo yo y sin mi ok no
-  > escribes nada allá.
+  > Lo único que quedó sin comprobar del 029: **abrir el dashboard desplegado con mi sesión.** El
+  > build pasa y la app arranca, pero que las consultas nuevas corran bien contra la base de
+  > `production` solo se ve pidiendo la página con sesión, y el login es mío. Dime exactamente qué
+  > mirar y en qué orden; con `production` en cero llamadas y cero ventas, lo esperable es un
+  > dashboard en ceros, no un error.
   >
-  > Después, en este orden: (1) `/nerd-stats` contra production, que nunca se ha mirado allá —
-  > deben salir 1.923 y 2.574 personas, y si salen ceros es la subconsulta correlacionada del 025
-  > volviendo; (2) el 007, dar de alta al equipo, ojo que production tiene 0 productos y sin eso
-  > ningún closer puede registrar una venta cerrada; (3) cargar los enlaces de PayPal.
+  > Y de paso `/nerd-stats` contra production, que nunca se ha visto allá. El total de personas
+  > debe rondar 4.600 y SUBE con cada corrida del cron, así que no compares contra un número fijo:
+  > lo que importa es que los conteos por programa NO sean cero. Un cero ahí es la subconsulta
+  > correlacionada del 025 volviendo.
   >
-  > El 028 está listo para codear y ya tiene decidido que la vista estrecha también la guarda; el
-  > 029 le adelantó `trabajaLeads` y el closer_id del developer en /ajustes/usuarios. El 016, el
-  > 021 y el 030 pueden esperar.
+  > Después, en este orden: (1) el **007**, dar de alta al equipo en production — ojo que
+  > `production` tiene **0 productos** y sin eso ningún closer puede registrar una venta cerrada;
+  > (2) cargar los 5 enlaces de PayPal; (3) decidir el **021**.
+  >
+  > El **028** está listo para codear y ya tiene decidido que la vista estrecha también la guarda;
+  > el 029 le adelantó `trabajaLeads` y el `closer_id` del developer en `/ajustes/usuarios`. El
+  > 016 y el 030 pueden esperar.
 
 - **2026-09-18 (CIERRE DE SESIÓN) — Se hizo el recorrido visual de `/mi-dia` de punta a punta.
   7 hallazgos, los 7 arreglados. Dos decisiones nuevas de Mani: "ver como" del developer (028) y
@@ -1109,9 +1130,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 > del catalogo). Siguen ahi el **016** (puede esperar), el **007** (operacion) y el **021**
 > (bloqueado por decision de Mani).
 >
-> 🔴 **Lo primero de la lista ya no es codigo: `production` va en 13 migraciones y `dev` en 15.**
-> Las 0013 y 0014 son del 029, asi que la app desplegada todavia no sabe anular. Aplicarlas es una
-> escritura en `production` y necesita el ok de Mani (ADR 0018).
+> ✅ **Las dos ramas de Neon van en 15 migraciones** y `main` esta desplegado. Lo que queda del 029
+> no es codigo: **abrir el dashboard desplegado con sesion**, que es lo unico que prueba que las
+> consultas nuevas corren contra la base de `production`.
 
 Por partes y en este orden:
 
@@ -1119,15 +1140,23 @@ Por partes y en este orden:
        `/personas/[id]` y `/recursos` (local, rama `dev`), y `/nerd-stats` en local. 7 hallazgos,
        los 7 arreglados y verificados en el navegador. Detalle completo en la entrada de cierre
        del 18-sep. **Falta la parte que solo tiene sentido en production:** `/nerd-stats` alla
-       (los conteos deben dar 1.923 y 2.574 personas; si salen ceros es la subconsulta
+       (el chequeo es que los conteos por programa NO den cero; un cero es la subconsulta
        correlacionada del 025 volviendo) y `/recursos` con contenido, que esta vacia en las dos
        ramas. De paso sigue pendiente: borrar el cliente OAuth **web** viejo de
        `google-workspace-mcp`.
+       ⚠️ **Los conteos de `/nerd-stats` ya no son 1.923 y 2.574**: el cron de sync sigue
+       importando leads (4.497 → 4.599 en una hora el 18-sep). El chequeo es "no da cero", no un
+       numero exacto.
 1b.[x] ~~🔴 **029 · Anular un registro**~~ — **HECHO el 18-sep** (ADR 0026 + ADR 0027 nuevo).
        Predicado central, guardian sobre todo el codigo, cascada atomica, permisos, UI y recorrido
        visual con 3 hallazgos arreglados. Migraciones **0013 y 0014 SOLO en `dev`**.
-1b'.[ ] 🔴 **Aplicar 0013 y 0014 en `production`** (pide ok de Mani). Hasta que no esten, anular no
-       existe en la app desplegada y el codigo de `main` asume columnas que alla no hay.
+1b'.[x] ~~🔴 **Aplicar 0013 y 0014 en `production`**~~ — **HECHO el 18-sep** con ok de Mani, ANTES
+       del push, que es el orden correcto: una migracion aditiva no rompe el codigo viejo, pero
+       codigo nuevo contra un esquema viejo revienta con *column does not exist*.
+1b''.[ ] **Abrir el dashboard desplegado con sesion** (solo Mani). El build pasa y `/api/health`
+       responde, pero las consultas nuevas contra `production` no se han ejercitado. De paso,
+       `/nerd-stats` alla: el total de personas ronda 4.600 y **sube con cada sync**, asi que no se
+       compara contra un numero fijo; lo que importa es que los conteos por programa no sean cero.
 1c.[ ] **028 · "Ver como" del developer.** Decision TOMADA el 18-sep: la vista estrecha tambien la
        guarda. El 029 ya adelanto `trabajaLeads` y el `closer_id` del developer en
        `/ajustes/usuarios`; falta `rolDeVista`, la cookie, el selector y quitar las tres

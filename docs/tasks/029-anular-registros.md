@@ -64,7 +64,9 @@ Decision y razones completas en el **ADR 0026**.
 
 - Migraciones **0013** (las tres tablas suman `anulado_en`, `anulado_por`, `motivo_anulacion`, con
   un `CHECK` por tabla que exige los tres juntos) y **0014** (`sales.call_id`, ver ADR 0027).
-  Aplicadas en `dev`. **`production` sigue sin ellas.**
+  Aplicadas en **`dev` y `production`** (las dos ramas en 15), y en ese orden: primero la
+  migracion, despues el push. Al reves el despliegue habria reventado con *column does not exist*,
+  porque cada consulta del embudo ya filtra por `anulado_en`.
 - El guardian resulto cubrir mas de lo que pedia el ticket: mira `lib/`, `app/`, `components/` y
   `scripts/`, no solo `lib/queries/`. Ensancharlo destapo **cuatro lecturas en `lib/mutations/`**
   que el alcance original habria dejado fuera.
@@ -73,6 +75,9 @@ Decision y razones completas en el **ADR 0026**.
   filas viejas se rechaza con mensaje en vez de adivinar.
 - **`ventasDePersona` se partio en dos** (`ventasDePersona` para `/mi-dia`, `ventasParaHistorial`
   para `/personas/[id]`): son dos preguntas distintas desde que existe la anulacion.
+- **`production` tiene ~4.600 personas y cero llamadas, ventas y abonos**, asi que alla la
+  anulacion todavia no tiene nada que tocar. Lo unico del ticket que no se ejercito contra esa base
+  es abrir el dashboard desplegado con sesion; el login es de Mani.
 - Recorrido visual hecho el 18-sep. Tres hallazgos, los tres arreglados: la pantalla no se
   refrescaba tras anular (`revalidatePath` que no coincidia con nada), tres botones "Anular"
   identicos apilados bajo cada venta, y una venta anulada que seguia mostrando "Saldo pendiente".
