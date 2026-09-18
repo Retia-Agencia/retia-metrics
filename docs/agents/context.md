@@ -240,7 +240,8 @@ El vendedor que toma la llamada de postulacion. Puede vender en varios programas
 `closer_id` es el nombre exacto con el que aparece en la columna de closer de la BBDD, y es el
 mismo valor que se copia a sus registros nativos del CRM cuando esta logueado (ADR 0011). Desde
 ADR 0009 ve el mismo dashboard que un gerente, pero sigue sin poder entrar a rutas exclusivas de
-gerente como `/ajustes/fuentes` (ADR 0003).
+gerente como `/ajustes/fuentes` (ADR 0003). Esa disjuncion entre gerente y closer no se toco al
+sumar el **developer**: la excepcion es solo suya (ADR 0025).
 
 **Responsable**:
 El closer a cargo de una persona. Lo asigna el CRM, no la hoja, y una persona puede estar sin
@@ -259,8 +260,20 @@ El rol que ademas del dashboard administra el sistema: programas, cohortes, fuen
 recursos y usuarios.
 
 **Developer**:
-El rol que ve todo el sistema y su salud tecnica (Nerd Stats). Aun no existe en el codigo.
+El rol de quien construye la app. Es la UNICA excepcion a la disjuncion de roles (ADR 0025):
+pasa toda guarda, sea exclusiva de gerente, exclusiva de closer o compartida. Existe desde el
+ticket 024 (17-sep) y hoy lo tiene una sola cuenta. No es "gerente + closer": es una excepcion
+declarada en un solo lugar del codigo.
+_Evitar_: "admin", "superusuario", "root".
+
+**Acceso total**:
+La propiedad de pasar toda guarda de rol. Solo la tiene el developer (`esAccesoTotal`). Es
+distinta de **administrar**, que la cumplen el gerente Y el developer (`esAdministrador`) y es
+la que usa la salvaguarda del ultimo administrador. Dos preguntas, dos funciones: pasar toda
+guarda no es lo mismo que poder administrar (ADR 0025, enmienda al ADR 0024).
 
 **Nerd Stats**:
-La vista del developer sobre la salud de la herramienta: corridas de sync, errores, cambios
-recientes, version desplegada.
+La vista del developer sobre la salud de la HERRAMIENTA, no del negocio: corridas de sync,
+cambios recientes hechos desde la app, conteos por programa y por origen, usuarios activos por
+rol y el commit desplegado. Es la unica ruta exclusiva del developer (ticket 025). Solo conteos
+y metadatos: por diseno no puede mostrar un dato personal.

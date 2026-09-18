@@ -53,8 +53,11 @@ typecheck) y el CLI de emergencia (cuenta administradores, no gerentes).
 
 **Estado de la base:** migración 0012 aplicada en `dev` (`br-withered-sun-b439zjof`, verificado por
 `neon.branch_id`), 13 migraciones. `manuelmejiaarana@gmail.com` es **developer en `dev`**.
-**`production` sigue con 12 migraciones y Mani sigue de `gerente` allá:** ambas cosas necesitan el ok
-explícito de Mani.
+**`production` quedó igual el 18-sep**, con el ok explícito de Mani: 0012 aplicada (13 migraciones,
+rama `br-withered-mud-b4cvvg80` verificada por `neon.branch_id`) y `manuelmejiaarana@gmail.com` como
+`developer`. El orden importó y quedó como regla: **primero el deploy del código, después el cambio
+de rol.** Con el código viejo desplegado, una fila con rol `developer` cae en `esRolValido` → false y
+el token la degrada a `"closer"`.
 
 ## Notas (16-sep): se retoma en su turno (F4)
 Mani pidió que `manuelmejiaarana@gmail.com` sea developer (hoy es `gerente` en `dev` y `production`).

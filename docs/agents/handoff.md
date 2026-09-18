@@ -7,6 +7,72 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-18 (CIERRE DE SESIÓN) — F4 cerrada, todo desplegado y vivo. Lo que falta NO es
+  código: es abrir la app y mirarla.**
+
+  **PARA QUIEN ABRA LA PRÓXIMA SESIÓN, leer esto primero:**
+
+  - **El árbol está limpio y todo está en `origin/main`** (`f8aac63`). Sin ramas sueltas, sin
+    stash, sin subagentes corriendo. El stash "wip 024 rol developer" que llevaba dos sesiones
+    ahí **ya no existe**: se rescató el código y se descartó su migración (cierre 5).
+  - **DESPLEGADO Y VERIFICADO.** Deploy de producción `Ready` el 17-sep 23:59, con el alias
+    `retia-metrics-seven.vercel.app`. Verificado con la CLI de Vercel
+    (`npx vercel ls retia-metrics --scope agencia-dani`), que en esta máquina está logueada como
+    `danieltovartech-4302`. **Eso es nuevo y útil: la CLI SÍ sirve para leer deploys**, aunque el
+    conector MCP de Vercel pida OAuth y no funcione en sesión no interactiva.
+  - **Las dos ramas de Neon están idénticas: 13 migraciones cada una**, `dev`
+    (`br-withered-sun-b439zjof`) y `production` (`br-withered-mud-b4cvvg80`), verificado por
+    `neon.branch_id` y no por el nombre de la variable.
+  - **Mani es `developer` en LAS DOS ramas.** Con eso una sola cuenta ve las pantallas de todos
+    los roles, sin cambiarse el rol en la base entre una y otra.
+  - **`production` tiene UN solo usuario** (Mani). El equipo todavía no entra: eso es el 007.
+
+  **Qué se cerró hoy:** **024** (rol developer, ADR 0025, migración 0012) y **025**
+  (`/nerd-stats`). **Con eso F4 queda cerrada, y con ella F0–F4 completas en código.** Lo único
+  abierto del CRM es el **016** (puede esperar), el **007** (operación) y el **021** (bloqueado
+  por decisión de Mani). Detalle de cada uno en los cierres 5 y 6, abajo.
+
+  🔴 **EL PENDIENTE NÚMERO UNO NO ES CÓDIGO.** Hay **cuatro pantallas en producción que nadie ha
+  abierto nunca**: `/mi-dia`, `/personas/[id]`, `/recursos` y `/nerd-stats`. Mani decidió
+  explícitamente acumular toda la verificación para el final, con la advertencia sobre la mesa
+  de que acumularla es lo que produjo este estado. Ahora todo está live y no hay nada que
+  esperar. **`/mi-dia` es la que más urge:** es la pantalla de captura que alimenta todas las
+  métricas, y un campo roto ahí ensucia la base antes de que el dashboard lo delate; ahí el
+  arreglo ya no es solo de código. La sesión de recorrido merece checklist, no una pasada.
+
+  **Tres cosas que sigue debiendo Mani y que nadie más puede hacer:**
+  1. **El recorrido visual de las cuatro pantallas** (arriba).
+  2. **Cargar los 5 enlaces de PayPal** (`scripts/cargar-enlaces-pago.ts` los lee de
+     `ENLACES_PAGO_JSON`, fuera del repo; ningún link real vive en git).
+  3. **Decidir el 021.**
+
+  **Dos reglas nuevas que gobiernan de aquí en adelante:**
+  - **ADR 0025:** `developer` es la única excepción a la disjunción de roles, y la excepción vive
+    en UN solo lugar (`esAccesoTotal` dentro de `puedeAcceder`). **Nunca escribas `"developer"`
+    en un `requireRole` ni en un `paginaConRol`.** Y pasar la guarda no es tener una pantalla
+    útil: lo que la página proyecta adentro sigue decidiéndose por rol.
+  - **La plantilla `sql` de drizzle no califica las columnas**, así que una subconsulta
+    correlacionada devuelve **0 sin lanzar error**. Está en `AGENTS.md`. Costó la primera versión
+    de los conteos del 025 y lo destapó un test, no una revisión.
+
+  **MINI PROMPT PARA LA PRÓXIMA SESIÓN** (copiar tal cual):
+
+  > Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y la entrada "CIERRE DE SESIÓN"
+  > de docs/agents/handoff.md.
+  >
+  > Contexto: F0 a F4 cerradas en código. Todo está en origin/main (f8aac63), árbol limpio, sin
+  > stash ni subagentes. Desplegado y vivo en retia-metrics-seven.vercel.app. Las dos ramas de
+  > Neon con 13 migraciones, y yo soy `developer` en las dos.
+  >
+  > No arranques código. Lo primero es el recorrido visual: hay cuatro pantallas en producción
+  > que nadie ha abierto nunca (/mi-dia, /personas/[id], /recursos y /nerd-stats). Ármame un
+  > checklist por pantalla, campo por campo, empezando por /mi-dia, que es la de captura.
+  > Levanta el server local si hace falta (npm run dev, hay .claude/launch.json) y avísame qué
+  > mirar; el login lo hago yo.
+  >
+  > Después de eso: cargar los enlaces de PayPal, decidir el 021, y el 007 (dar de alta al
+  > equipo en production, que hoy tiene un solo usuario). El 016 puede esperar.
+
 - **2026-09-17 (cierre 6) — Ticket 025: `/nerd-stats`. F4 cerrada. Sin migración.**
 
   **F4 queda cerrada.** Con el 024 y el 025 no queda ticket de F4 pendiente. Lo que sigue
@@ -58,8 +124,11 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   **Loops:** 474 tests (eran 462), typecheck, lint y build limpios. `/nerd-stats` aparece en
   el build.
 
-  🔴 **Nada de esto está desplegado todavía.** Los dos commits de hoy (024 y 025) están solo
-  en local: Mani decidió dejar TODA la verificación visual para el final, con la app ya live.
+  ~~🔴 **Nada de esto está desplegado todavía.**~~ **RESUELTO el 18-sep: pusheado y desplegado
+  (`f8aac63`, deploy `Ready` 23:59, alias de producción), y Mani ya es `developer` en
+  `production`.** Se deja el texto por el razonamiento del orden, que sigue siendo la regla si
+  algún día se agrega otro rol. Cuando se escribió, los dos commits de hoy (024 y 025) estaban
+  solo en local: Mani decidió dejar TODA la verificación visual para el final, con la app ya live.
   Lo que falta, en este orden: **pushear** → esperar el deploy → **poner a Mani `developer` en
   `production`** (la base ya lo acepta, las 13 migraciones están aplicadas en las dos ramas) →
   **sesión de recorrido de las cinco pantallas sin mirar**: `/mi-dia`, `/personas/[id]`,
@@ -105,8 +174,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   **Base:** migración **0012 aplicada en `dev`** (`br-withered-sun-b439zjof`, verificado por
   `neon.branch_id` antes de escribir), 13 migraciones. `manuelmejiaarana@gmail.com` quedó
   **developer en `dev`**.
-  🔴 **`production` sigue con 12 migraciones y Mani sigue de `gerente` allá.** Las dos cosas
-  necesitan el ok explícito de Mani; no se tocaron.
+  ~~🔴 **`production` sigue con 12 migraciones y Mani sigue de `gerente` allá.**~~ **RESUELTO el
+  18-sep, con ok de Mani: 0012 aplicada en `production` (13 migraciones) y Mani es
+  `developer` allá.** Ver la entrada de CIERRE DE SESIÓN arriba.
 
   **Loops:** 462 tests (eran 444), typecheck, lint y build limpios. Ningún test de disjunción
   gerente/closer cambió de resultado, que era el segundo criterio del "Done cuando".
@@ -817,17 +887,27 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now (ready — no unmet dependencies)
 
+> Actualizado el 18-sep 00:10. **F0 a F4 estan cerradas en codigo**: no queda ticket del CRM
+> pendiente salvo el **016** (que puede esperar), el **007** (operacion) y el **021** (bloqueado
+> por decision de Mani). Lo que sigue NO es construir, es verificar y operar.
+
 Por partes y en este orden:
 
-1. [ ] **Probar el login con una cuenta real** (local contra `dev`, y produccion) y con eso las
-       pantallas nuevas: `/ajustes/catalogos`, `/ajustes/usuarios`, `/ajustes/programas`,
-       `/productos`. Despues borrar el cliente OAuth **web** viejo de `google-workspace-mcp`.
-2. [x] **019** (registrar abono) y **005** (dashboard en pantalla), los dos cerrados el 17-sep.
-3. [ ] **003** (`/mi-dia`), que ya tiene sus cuatro dependencias listas (002, 019, 015, 026), y
-       despues **006** (historial de persona), destrabado por el 005.
+1. [ ] 🔴 **RECORRIDO VISUAL DE LO CONSTRUIDO, con sesion y checklist.** Es el pendiente numero
+       uno y lleva acumulandose desde el 17-sep. **Cuatro pantallas estan en produccion y
+       ninguna la ha abierto un humano:** `/mi-dia`, `/personas/[id]`, `/recursos` y
+       `/nerd-stats`. Mani ya es `developer` en `production` y el deploy con las dos esta live,
+       asi que una sola cuenta las ve todas. **`/mi-dia` es la que mas urge**: es la pantalla de
+       captura que alimenta todas las metricas, y un campo roto ahi ensucia la base antes de que
+       el dashboard lo delate. De paso: borrar el cliente OAuth **web** viejo de
+       `google-workspace-mcp`.
+2. [ ] **Cargar los 5 enlaces de PayPal.** Solo Mani: `scripts/cargar-enlaces-pago.ts` los lee de
+       `ENLACES_PAGO_JSON`, un archivo fuera del repo. Ningun link real vive en git.
+3. [ ] **Decidir el 021** (snapshot del dashboard), que sigue bloqueado esperando esa decision.
 4. [ ] **Preparar `production` para los usuarios reales** (con ok de Mani, junto con el 007):
        sembrar productos (`seed:datos` con `DB_PROD`), cargar `administrativa@retiagrowth.com`
-       como gerente y dar de alta a Andrea y Maru desde `/ajustes/usuarios`.
+       como gerente y dar de alta a Andrea y Maru desde `/ajustes/usuarios`. Hoy `production`
+       tiene UN solo usuario: Mani.
 5. [ ] **Probar `/api/cron/sync` en produccion** con el `CRON_SECRET` (escribe leads reales, pedir ok).
 6. [ ] **F-03 + F-07** juntos, con migracion (diseno en el tracker); primero `dev`, luego
        `production`.
@@ -838,8 +918,7 @@ Por partes y en este orden:
        pero las filas viejas quedaron en la zona del servidor y `compararCampos` no mira fechas,
        asi que un `npm run sync` normal **no** las repara. Decidir entre migracion puntual o
        re-sync forzado.
-10. [ ] **016** (plantilla de lead) y **022** (recursos) estan listos pero pueden esperar. Los dos
-       necesitan migracion, asi que no van en paralelo entre si.
+10. [ ] **016** (plantilla de lead por fuente) esta listo pero puede esperar. Necesita migracion.
 
 ### Next (blocked until a "Now" item lands)
 
