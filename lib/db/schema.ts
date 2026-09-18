@@ -13,6 +13,7 @@ import {
   index,
   uniqueIndex,
   check,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -495,6 +496,113 @@ export const productos = pgTable(
   (t) => [uniqueIndex("productos_programa_nombre_idx").on(t.programId, sql`lower(${t.nombre})`)],
 );
 
+// ─────────────────────────────────────────────────────────── recursos y enlaces de pago
+
+/**
+ * Categoria de un recurso (Brochure, Pagina web, Guion, ...). Es un catalogo mas
+ * sobre el molde (ADR 0012): agregar una categoria es una fila, nunca un literal.
+ */
+export const categoriasRecurso = pgTable(
+  "categorias_recurso",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nombre: text("nombre").notNull(),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("categorias_recurso_nombre_idx").on(sql`lower(${t.nombre})`)],
+);
+
+/**
+ * Un link del equipo: brochure, pagina web, guion, formulario, Calendly, Drive
+ * (ADR 0017). Se guarda el LINK, nunca el archivo: los archivos ya viven en Drive y
+ * duplicarlos crea dos versiones que se desincronizan.
+ *
+ * `vigente` y `activo` son cosas distintas y las dos hacen falta:
+ * - `vigente` marca cual es la version de hoy entre el historial. Reemplazar un
+ *   brochure crea una fila nueva vigente y deja la anterior no vigente, pero la
+ *   anterior sigue ahi: el historial es el punto (ADR 0017).
+ * - `activo` es el borrado suave del molde de catalogo (ADR 0012): nunca se borra.
+ *
+ * `programId` nulo significa GLOBAL (sirve para todos los programas).
+ */
+export const recursos = pgTable(
+  "recursos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Nulo = recurso global, no atado a un programa. */
+    programId: uuid("program_id").references(() => programs.id, { onDelete: "cascade" }),
+    categoriaId: uuid("categoria_id")
+      .notNull()
+      .references(() => categoriasRecurso.id, { onDelete: "restrict" }),
+    titulo: text("titulo").notNull(),
+    url: text("url").notNull(),
+    vigente: boolean("vigente").notNull().default(true),
+    /** La fila que este recurso reemplaza. Encadena el historial de versiones. */
+    reemplazaA: uuid("reemplaza_a").references((): AnyPgColumn => recursos.id, {
+      onDelete: "set null",
+    }),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    /**
+     * Una sola version VIGENTE por (programa, categoria, titulo). La garantia vive
+     * en la base y no solo en el codigo (ADR 0005), igual que la cohorte activa.
+     *
+     * Dos detalles que no son adorno:
+     * - Indice PARCIAL: solo compiten las filas vigentes y activas. El historial
+     *   (vigente = false) y lo desactivado no ocupan el cupo.
+     * - `coalesce` sobre `program_id`: un recurso global lo tiene NULL, y Postgres
+     *   considera dos NULL como DISTINTOS, asi que un indice ingenuo dejaria pasar
+     *   dos recursos globales vigentes con el mismo titulo. El uuid de ceros no es
+     *   un programa real, es el valor con el que se colapsan los nulos.
+     */
+    uniqueIndex("recursos_vigente_idx")
+      .on(
+        sql`coalesce(${t.programId}, '00000000-0000-0000-0000-000000000000'::uuid)`,
+        t.categoriaId,
+        sql`lower(${t.titulo})`,
+      )
+      .where(sql`${t.vigente} = true and ${t.activo} = true`),
+    index("recursos_programa_idx").on(t.programId),
+  ],
+);
+
+/**
+ * Un link de pago ya generado (PayPal y demas), con el monto y la moneda que cobra
+ * (ADR 0017). La moneda vive al lado del monto y nunca se convierte en silencio
+ * (restriccion dura de AGENTS.md): los links se generan a mano segun la TRM del
+ * momento, asi que el monto es el que cobra ese link y nada mas.
+ *
+ * `productoId` nulo = el link no corresponde a un producto del catalogo (un abono
+ * suelto, un monto pactado). `vigente` y `activo` significan lo mismo que en
+ * `recursos`.
+ */
+export const enlacesPago = pgTable(
+  "enlaces_pago",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => programs.id, { onDelete: "cascade" }),
+    productoId: uuid("producto_id").references(() => productos.id, { onDelete: "restrict" }),
+    plataformaId: uuid("plataforma_id")
+      .notNull()
+      .references(() => plataformasPago.id, { onDelete: "restrict" }),
+    monto: numeric("monto", { precision: 12, scale: 2 }).notNull(),
+    moneda: text("moneda").notNull().default("USD"),
+    url: text("url").notNull(),
+    vigente: boolean("vigente").notNull().default(true),
+    reemplazaA: uuid("reemplaza_a").references((): AnyPgColumn => enlacesPago.id, {
+      onDelete: "set null",
+    }),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("enlaces_pago_programa_idx").on(t.programId)],
+);
+
 // ─────────────────────────────────────────────────────────── tipos
 
 export type Usuario = typeof users.$inferSelect;
@@ -516,3 +624,6 @@ export type PlataformaPago = typeof plataformasPago.$inferSelect;
 export type Motivo = typeof motivos.$inferSelect;
 export type Origen = typeof origenes.$inferSelect;
 export type Producto = typeof productos.$inferSelect;
+export type CategoriaRecurso = typeof categoriasRecurso.$inferSelect;
+export type Recurso = typeof recursos.$inferSelect;
+export type EnlacePago = typeof enlacesPago.$inferSelect;

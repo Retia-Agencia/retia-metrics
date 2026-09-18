@@ -1,7 +1,7 @@
 import "./load-env";
 import { eq, and } from "drizzle-orm";
 import { db } from "../lib/db";
-import { programs, cohorts, sources, productos } from "../lib/db/schema";
+import { programs, cohorts, sources, productos, categoriasRecurso } from "../lib/db/schema";
 import { MAPEO_FORMULARIO } from "../lib/sheets/mapeo";
 
 /**
@@ -175,6 +175,23 @@ async function main() {
     } else {
       await db.insert(sources).values({ ...d, programId });
       console.log(`  + fuente ${programa} / ${d.tab}${d.activo ? "" : "  (inactiva)"}`);
+    }
+  }
+
+  // ── Categorias de recurso ─────────────────────────────────────
+  // Catalogo del ticket 022 (ADR 0017, ADR 0012). Solo la semilla inicial: el dia a
+  // dia se administra desde /ajustes/catalogos. Idempotente: solo inserta lo que
+  // falta, comparando sin distinguir mayusculas (el indice unico es sobre lower()).
+  const defsCategoriasRecurso = ["Brochure", "Pagina web", "Guion", "Formulario", "Calendly", "Drive"];
+
+  const categoriasExistentes = await db.select().from(categoriasRecurso);
+  const nombresExistentes = new Set(categoriasExistentes.map((c) => c.nombre.toLowerCase()));
+  for (const nombre of defsCategoriasRecurso) {
+    if (nombresExistentes.has(nombre.toLowerCase())) {
+      console.log(`  = categoria de recurso ${nombre} (ya existe, no se toca)`);
+    } else {
+      await db.insert(categoriasRecurso).values({ nombre });
+      console.log(`  + categoria de recurso ${nombre}`);
     }
   }
 

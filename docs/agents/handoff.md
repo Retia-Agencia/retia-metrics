@@ -7,6 +7,51 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-17 (cierre 2) — Ticket 022: recursos y enlaces de pago. Migracion 0011 en `dev` Y en
+  `production`.**
+
+  **Siguiente sesión:** **023** (pantalla `/recursos`), que el 022 acaba de destrabar. Queda el
+  **007** (operación) y el **021** bloqueado. Y dos cosas que solo puede hacer Mani: cargar los 5
+  enlaces de PayPal, y abrir en el navegador `/mi-dia` y `/personas/[id]`.
+
+  **Base de datos:** la **0011** está aplicada en las **dos** ramas, verificado por `neon.branch_id`
+  y no por el nombre de la variable: `dev` (`br-withered-sun-b439zjof`) y `production`
+  (`br-withered-mud-b4cvvg80`), las dos con 12 migraciones y las tres tablas nuevas. Se aplicó
+  primero a `dev` y después a `production`, con el ok explícito de Mani. Es una migración
+  puramente aditiva (tres `CREATE TABLE`): ningún código lee todavía esas tablas, así que
+  aplicarla antes de que exista la pantalla no rompe nada.
+
+  **Esquema (lo escribió la sesión principal; `drizzle-kit` no se delega):** `categorias_recurso`
+  como catálogo del molde, `recursos` (link, no archivo) y `enlaces_pago` con monto y moneda al lado.
+  - **Un recurso global tiene `program_id` NULL y Postgres considera dos NULL como DISTINTOS.** Un
+    índice único ingenuo habría dejado pasar dos recursos globales vigentes con el mismo título, que
+    es exactamente lo que el ticket prohíbe. `nullsNotDistinct` **no existe en drizzle 0.45**
+    (verificado en `node_modules`), así que el índice va sobre
+    `coalesce(program_id, <uuid de ceros>)`, y es PARCIAL para que el historial no ocupe cupo.
+  - `vigente` (cuál es la versión de hoy) y `activo` (borrado suave del molde) son distintos y los
+    dos hacen falta: una versión reemplazada queda `vigente = false` pero `activo = true`.
+
+  **Código de Kiro** (420 tests, typecheck, lint y build limpios; revisado por la sesión principal):
+  - `lib/catalogo/versionar.ts` con `reemplazarVersionado`, compartido por recursos y enlaces de
+    pago **citando el ADR 0024**: las dos hacen lo mismo, así que lo hace un módulo y las dos lo
+    importan. **El orden de las escrituras no es opcional:** primero el UPDATE que baja la vigente
+    (libera el cupo del índice), después el INSERT de la nueva; al revés Postgres tira un `23505`
+    que parece aleatorio.
+  - `lib/catalogo/{categorias-recurso,recursos,enlaces-pago}.ts` sobre el molde, zod exigiendo
+    `https://` (ADR 0017), y una línea en `lib/catalogo/registro.ts` para que las categorías salgan
+    en `/ajustes/catalogos`.
+  - Un duplicado sale como **409**, no 400: es lo que el molde ya hacía desde el ticket 011. El
+    prompt de delegación decía 400; Kiro siguió el repo, que es lo correcto.
+
+  **Los 5 enlaces de PayPal NO están cargados.** `scripts/cargar-enlaces-pago.ts` los lee de
+  `ENLACES_PAGO_JSON` (archivo fuera del repo) y falla con mensaje explícito si falta. Ningún link
+  real ni placeholder vive en el repo: son datos de pago y no van a git.
+
+  **Permisos:** `.claude/settings.json` ahora **permite** `drizzle-kit generate` y `migrate`, y
+  **deniega** `push` y `drop`. `push` aplica el esquema directo sin dejar archivo de migración: se
+  salta el historial y la revisión, que es la disciplina que este repo enforza. La denegación es
+  deliberada, no un olvido.
+
 - **2026-09-17 (cierre) — ADR 0024: el saldo estaba escrito dos veces. Centralizado. Sin
   migracion.**
 

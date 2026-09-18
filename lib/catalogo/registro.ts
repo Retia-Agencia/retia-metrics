@@ -4,6 +4,7 @@ import type { Catalogo } from "./molde";
 import { esquemaPlataformaPago, plataformasDePago } from "./plataformas";
 import { esquemaMotivo, motivos } from "./motivos";
 import { esquemaOrigen, origenes } from "./origenes";
+import { categoriasDeRecurso, esquemaCategoriaRecurso } from "./categorias-recurso";
 
 /**
  * Registro de catalogos de la pantalla `/ajustes/catalogos` (ticket 013, ADR 0012).
@@ -48,6 +49,12 @@ export const REGISTRO_CATALOGOS: readonly DefinicionCatalogo[] = [
     nombre: "Orígenes del lead",
     esquema: esquemaOrigen,
     fabrica: origenes,
+  },
+  {
+    slug: "categorias-recurso",
+    nombre: "Categorías de recurso",
+    esquema: esquemaCategoriaRecurso,
+    fabrica: categoriasDeRecurso,
   },
 ];
 

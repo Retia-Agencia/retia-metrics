@@ -1,11 +1,19 @@
 {
   "permissions": {
+    "allow": [
+      "Bash(npx drizzle-kit generate:*)",
+      "Bash(npx drizzle-kit migrate:*)",
+      "Bash(npm run db:generate:*)",
+      "Bash(npm run db:migrate:*)"
+    ],
     "deny": [
       "Bash(rm -rf:*)",
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
       "Bash(git reset --hard:*)",
-      "Bash(git clean -fd:*)"
+      "Bash(git clean -fd:*)",
+      "Bash(npx drizzle-kit push:*)",
+      "Bash(npx drizzle-kit drop:*)"
     ]
   }
 }

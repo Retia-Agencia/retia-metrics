@@ -129,7 +129,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 392 pasando hoy). Los tests que necesitan base usan PGlite en
+- **Test:** `npm test` (Vitest, 420 pasando hoy). Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Run:** `npm run dev` (http://localhost:3000)
@@ -162,6 +162,10 @@ The agent should run these to get fast signal on whether code works. Keep them c
   Un agente delegado (Kiro, Codex) implementa codigo y tests, pero no corre `db:generate` ni
   `db:migrate`. `drizzle-kit generate` es interactivo: si una columna se va y otra llega en el
   mismo cambio pregunta si es un renombre, y un agente sin terminal se queda colgado ahi.
+- **`drizzle-kit generate` y `migrate` estan permitidos en `.claude/settings.json`; `push` y `drop`
+  estan DENEGADOS.** `push` aplica el esquema directo contra la base sin dejar archivo de
+  migracion: se salta el historial, el journal y la revision, que es justo la disciplina que este
+  repo enforza. `drop` borra migraciones. Ninguno de los dos se usa aqui.
 - **Un `CHECK` nuevo se crea despues de arreglar los datos**, en la misma migracion. El de la
   0009 habria fallado con las cohortes activas que estaban sin inicio de ventas.
 - **Trabajo en paralelo: el reparto se hace por ARCHIVOS, no por el grafo de dependencias**

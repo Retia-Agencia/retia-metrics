@@ -3,7 +3,7 @@ id: 022
 fase: F3
 serves: "ADR 0017; spec §5 criterio 6"
 depends: [011, 017]
-status: todo
+status: done
 ---
 
 # 022 — Tablas de recursos y enlaces de pago
@@ -27,5 +27,26 @@ La base guarda los links del equipo con su programa, categoría, versión vigent
 - Fuera: la pantalla (023).
 
 ## Done cuando
-- [ ] Reemplazar un brochure deja una sola versión vigente por (programa, categoría, título).
-- [ ] Tests de reemplazo e historial.
+- [x] Reemplazar un brochure deja una sola versión vigente por (programa, categoría, título).
+- [x] Tests de reemplazo e historial.
+
+## Notas de cierre (17-sep)
+
+**Un recurso global tiene `programId` NULL y Postgres considera dos NULL como DISTINTOS**, así que
+un índice único ingenuo habría dejado pasar dos recursos globales vigentes con el mismo título, que
+es justo lo que el "Done cuando" prohíbe. `nullsNotDistinct` no existe en drizzle 0.45 (verificado),
+así que el índice va sobre `coalesce(program_id, <uuid de ceros>)` y es PARCIAL: solo compiten las
+filas vigentes y activas, para que el historial no ocupe cupo.
+
+**El orden de las dos escrituras de `reemplazar` no es opcional:** primero el UPDATE que baja la
+vigente anterior (libera el cupo del índice), después el INSERT de la nueva. Al revés, Postgres
+rechaza con un `23505` que parece aleatorio. Vive en `lib/catalogo/versionar.ts`, compartido por las
+dos entidades (ADR 0024).
+
+**`vigente` y `activo` son distintos:** `vigente` marca la versión de hoy entre el historial;
+`activo` es el borrado suave del molde. Una versión reemplazada queda `vigente = false` pero
+`activo = true`: sigue ahí, que es el punto del ADR 0017.
+
+**Los 5 enlaces de PayPal NO están cargados.** `scripts/cargar-enlaces-pago.ts` los lee de
+`ENLACES_PAGO_JSON` (ruta a un archivo fuera del repo) y falla con mensaje explícito si no está
+configurada. Ningún link real ni placeholder vive en el repo. Cargarlos es una tarea de Mani.
