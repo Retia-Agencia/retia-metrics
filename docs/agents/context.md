@@ -205,6 +205,10 @@ Puede ser de un programa o de todos.
 **Vigente**:
 La version de un recurso o enlace que se debe usar hoy. Las anteriores se conservan como
 historial.
+_No confundir con **activo**_: `vigente` dice cual es la version de hoy entre el historial;
+`activo` es el borrado suave del molde de catalogo (nunca se borra una fila). Una version
+reemplazada queda `vigente = false` pero `activo = true`: sigue ahi, que es justo el punto.
+La base solo exige una version vigente por (programa, categoria, titulo), no una activa.
 
 ### La configuracion
 

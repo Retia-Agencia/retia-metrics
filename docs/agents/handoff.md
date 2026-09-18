@@ -7,6 +7,63 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-17 (CIERRE DE SESIÓN) — Cuatro tickets (003, 006, 022, 023), dos refactors, ADR 0024.
+  Estado del repo para no chocar en la próxima sesión.**
+
+  **PARA QUIEN ABRA LA PRÓXIMA SESIÓN, leer esto primero:**
+
+  - **El árbol está limpio y todo está en `origin/main`** (último commit `bc95e46`). No hay trabajo
+    a medias en el working tree, no hay ramas sueltas, no hay subagentes corriendo. Se puede
+    arrancar cualquier cosa sin heredar nada.
+  - **HAY UN `git stash` VIVO: `stash@{0}` "wip 024 rol developer".** Es avance de Kiro del 16-sep
+    **sin revisar por nadie**, de un ticket que entonces no tocaba. Quien arranque el **024** tiene
+    que decidir explícitamente si lo hace `pop` o lo descarta y empieza de cero. **No lo dejes ahí
+    otra sesión más**: un stash sin dueño es la forma más fácil de perder trabajo o de re-hacerlo.
+  - **La base está al día en las DOS ramas:** 12 migraciones en `dev`
+    (`br-withered-sun-b439zjof`) y en `production` (`br-withered-mud-b4cvvg80`), verificado por
+    `neon.branch_id`. Ninguna migración pendiente de aplicar.
+  - **Archivos que se movieron mucho HOY** (si otra sesión corre en paralelo, que no los toque):
+    `lib/queries/{personas,recursos,programas,saldo,ventas}.ts`, `lib/catalogo/{recursos,
+    enlaces-pago,categorias-recurso,versionar,registro}.ts`, `lib/db/schema.ts`, `lib/nav.ts`,
+    `app/(app)/{mi-dia,personas,recursos,documentos}/`, `components/{mi-dia-registro,
+    historial-persona,recursos-pantalla,app-sidebar}.tsx`, y los tests de todos ellos.
+  - **Sigue rigiendo el reparto por ARCHIVOS, no por el grafo de dependencias**, y las colisiones
+    siguen siendo las mismas: migraciones (journal + snapshot + `schema.ts`),
+    `docs/tasks/README.md`, este handoff y los commits.
+
+  **Qué se cerró hoy:** **003** (`/mi-dia`), **006** (`/personas/[id]`), **022** (tablas de recursos
+  y enlaces de pago + migración 0011) y **023** (pantalla `/recursos`). Con eso **F1, F2 y F3 quedan
+  cerradas** salvo el **007**, que es operación y no código. Detalle de cada uno en las entradas de
+  abajo.
+
+  **Lo que NO es código y nadie más puede hacer (tres cosas de Mani):**
+  1. **Cargar los 5 enlaces de PayPal.** `scripts/cargar-enlaces-pago.ts` los lee de
+     `ENLACES_PAGO_JSON` (archivo fuera del repo). Ningún link real vive en git y así debe seguir.
+  2. **Abrir en un navegador `/mi-dia`, `/personas/[id]` y `/recursos`.** Las tres salieron a
+     producción y **ninguna ha sido vista por un humano**: exigen sesión de Google. `/mi-dia` es la
+     que más urge, porque es la pantalla de captura que alimenta todas las métricas: si tiene un
+     campo roto, ensucia la base antes de que el dashboard lo delate. Y el criterio de celular del
+     023 está marcado `[~]`, no `[x]`, justo por esto.
+  3. **Decidir el 021** (snapshot del dashboard), que sigue bloqueado esperando esa decisión.
+
+  **Dos reglas nuevas que gobiernan de aquí en adelante:**
+  - **ADR 0024 (con su enmienda del mismo día):** si dos lugares responden la MISMA pregunta, la
+    respuesta vive en un módulo y los dos la importan. Nació del saldo (que estaba escrito dos
+    veces: en la reja del sobrepago y en la pantalla) y se generalizó con los programas activos
+    (que estaban escritos tres veces). **El matiz importa:** dos preguntas distintas que hoy dan el
+    mismo SQL siguen siendo dos funciones — por eso `programasGestionablesPorUsuario` no se fusionó.
+  - **`drizzle-kit generate` y `migrate` están permitidos en `.claude/settings.json`; `push` y
+    `drop` están DENEGADOS a propósito.** `push` aplica el esquema sin dejar migración y se salta
+    todo el historial.
+
+  **Lección de proceso con subagentes, que costó tiempo hoy:** Kiro notificó "terminado" **antes**
+  de estarlo y siguió editando archivos. Un `npm run lint` corrido en esa ventana reportó un
+  warning que minutos después ya no existía, y casi se reporta como defecto un archivo a medio
+  guardar. **Confirmar que el agente está `completed` (con `ListAgents`) antes de verificar nada.**
+  Además dejó un proceso de polling vivo que siguió re-notificando con resultados vacíos; hubo que
+  matarlo a mano. La verificación independiente de la sesión principal coincidió con su reporte
+  cuando por fin llegó, así que el resultado es sólido — pero por poco.
+
 - **2026-09-17 (cierre 3) — Ticket 023: la pantalla `/recursos`. F3 cerrada. Sin migracion.**
 
   **Siguiente sesión:** con esto F1, F2 y F3 quedan cerradas salvo el **007** (operación) y el
