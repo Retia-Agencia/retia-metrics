@@ -12,23 +12,24 @@ import type { Db } from "@/lib/db/tipos";
  * tests sobre PGlite sin Neon, igual que el molde de catalogo.
  */
 
-/** Programas activos, para pintar la navegacion. Ordenados por nombre. */
-export async function programasActivos(
-  db: Db = dbDeLaApp,
-): Promise<{ slug: string; nombre: string }[]> {
-  return db
-    .select({ slug: programs.slug, nombre: programs.nombre })
-    .from(programs)
-    .where(eq(programs.activo, true))
-    .orderBy(asc(programs.nombre));
-}
-
 /**
- * Programas activos con id, slug y nombre, para la pantalla de recursos (ticket 023).
- * El slug va a la URL del filtro (id opaco, ADR 0023) y el uuid lo usan los
- * formularios de creacion. Los programas salen de la base (ADR 0012).
+ * LA definicion de "programa activo" del proyecto: activo = true, ordenados por
+ * nombre (ADR 0024). Devuelve id, slug y nombre, y cada pantalla toma lo que
+ * necesita: el slug para la navegacion y las URLs (id opaco), el uuid para los
+ * formularios que escriben.
+ *
+ * Estuvo partida en tres funciones que solo se diferenciaban en las columnas que
+ * proyectaban (`programasActivos`, `programasActivosParaAsignar`,
+ * `programasParaRecursos`). Ninguna cifra derivada corria peligro, pero cambiar que
+ * cuenta como "activo" obligaba a acordarse de las tres, y la cuarta pantalla
+ * habria agregado una cuarta. Una sola consulta, varias proyecciones en el
+ * llamador.
+ *
+ * `programasGestionablesPorUsuario` NO se fusiono aca: no responde "cuales estan
+ * activos" sino "cuales puede tocar esta persona", que es una regla de negocio
+ * distinta (la membresia activa) y no una proyeccion.
  */
-export async function programasParaRecursos(
+export async function programasActivos(
   db: Db = dbDeLaApp,
 ): Promise<{ id: string; slug: string; nombre: string }[]> {
   return db
@@ -38,20 +39,7 @@ export async function programasParaRecursos(
     .orderBy(asc(programs.nombre));
 }
 
-/**
- * Programas activos con su id, para asignar closers a programas (ticket 015). La
- * membresia guarda el `programId` (uuid), asi que la pantalla necesita el id, no el
- * slug. Los programas salen de la base (ADR 0012): ningun literal en el codigo.
- */
-export async function programasActivosParaAsignar(
-  db: Db = dbDeLaApp,
-): Promise<{ id: string; nombre: string }[]> {
-  return db
-    .select({ id: programs.id, nombre: programs.nombre })
-    .from(programs)
-    .where(eq(programs.activo, true))
-    .orderBy(asc(programs.nombre));
-}
+
 
 /**
  * Un programa por su slug, solo si esta activo. Devuelve `null` si no existe o

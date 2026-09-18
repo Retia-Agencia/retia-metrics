@@ -53,7 +53,10 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   importan. Estuvo copiada en `saldoDeVenta` (la reja que bloquea un sobrepago) y en
   `ventasDePersona` (lo que el closer ve): una pantalla y una reja discrepando sobre el mismo
   numero no se descubre hasta que el dinero no cuadra. `tests/saldo-centralizado.test.ts` compara
-  las dos salidas y falla si alguien las separa.
+  las dos salidas y falla si alguien las separa. **La regla no es solo del dinero:** si dos lugares
+  responden la MISMA pregunta, la respuesta vive en un modulo y los dos la importan — la proyeccion
+  es del llamador, el predicado es del modulo (asi se consolido `programasActivos`). Dos preguntas
+  distintas que hoy dan el mismo SQL siguen siendo dos funciones.
 - **La meta es de la cohorte y no se reparte entre closers.** Un closer tiene contribucion
   (sus ventas de la cohorte), no meta propia: el reparto no existe en la base y seria un numero
   inventado con el que se mide a personas (ADR 0023). Lo mismo con la meta de leads por dia.

@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { categoriasDeRecurso } from "@/lib/catalogo/categorias-recurso";
 import { plataformasDePago } from "@/lib/catalogo/plataformas";
-import { programasParaRecursos } from "@/lib/queries/programas";
+import { programasActivos } from "@/lib/queries/programas";
 import {
   enlacesDePagoVigentes,
   historialDeRecurso,
@@ -46,7 +46,7 @@ export default async function RecursosPage({ searchParams }: Props) {
 
   // Los programas activos con id, slug y nombre: el filtro usa el slug (va a la URL,
   // id opaco) y los formularios de creacion usan el uuid.
-  const programas = await programasParaRecursos(db);
+  const programas = await programasActivos(db);
 
   // El slug de la URL se traduce a un uuid; un slug que no cuadra cae a "Todos".
   const programaFiltro = slug ? programas.find((p) => p.slug === slug) : undefined;

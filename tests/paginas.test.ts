@@ -32,13 +32,11 @@ const programaActivoPorSlug = vi.fn();
 const programasActivos = vi.fn();
 const programaPorSlug = vi.fn();
 const programasGestionablesPorUsuario = vi.fn();
-const programasParaRecursos = vi.fn();
 vi.mock("@/lib/queries/programas", () => ({
   programaActivoPorSlug,
   programasActivos,
   programaPorSlug,
   programasGestionablesPorUsuario,
-  programasParaRecursos,
 }));
 
 // El historial de una persona (ticket 006) lee la base; sin base en los tests se
@@ -127,8 +125,6 @@ beforeEach(() => {
   programaActivoPorSlug.mockReset();
   programasActivos.mockReset();
   programaPorSlug.mockReset();
-  programasParaRecursos.mockReset();
-  programasParaRecursos.mockResolvedValue([]);
   listarCohortes.mockReset();
   listarCohortes.mockResolvedValue([]);
   programasGestionablesPorUsuario.mockReset();
@@ -432,7 +428,7 @@ describe("pagina de recursos /recursos (ticket 023)", () => {
 
   it("el filtro de la URL (programa y titulo) llega a la consulta", async () => {
     auth.mockResolvedValue(sesionGerente);
-    programasParaRecursos.mockResolvedValue([
+    programasActivos.mockResolvedValue([
       { id: "p-1", slug: "comunicarte", nombre: "Comunicarte" },
     ]);
     expect(await correrRecursos({ programa: "comunicarte", q: "brochure" })).toBeNull();

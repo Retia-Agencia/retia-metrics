@@ -47,11 +47,18 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   el agente está `completed` antes de verificar**, o se verifica un estado que todavía se mueve. La
   verificación independiente de la sesión principal coincidió con el reporte cuando este llegó.
 
-  **Deuda menor detectada, no arreglada:** `lib/queries/programas.ts` tiene ya tres funciones que
-  significan "programas activos" y solo difieren en las columnas que proyectan (`programasActivos`,
-  `programasActivosParaAsignar`, `programasParaRecursos`). No es un riesgo de corrección —no hay
-  ninguna cifra derivada que se pueda desincronizar, que es lo que cubre el ADR 0024— pero es
-  propenso a seguir creciendo. Candidato a consolidar en una sola con proyección explícita.
+  **Deuda detectada Y arreglada en la misma sesión (Mani lo pidió al leer el reporte):**
+  `lib/queries/programas.ts` tenía tres funciones que significaban "programas activos" y solo
+  diferían en las columnas proyectadas. Quedaron en **una** `programasActivos` que devuelve id, slug
+  y nombre; cada pantalla toma lo que necesita. El diff resta más de lo que suma (40 líneas fuera,
+  24 dentro) y los 444 tests siguen verdes.
+  - **`programasGestionablesPorUsuario` NO se fusionó**, aunque el SQL se parezca: no responde
+    "cuáles están activos" sino "cuáles puede tocar esta persona" (membresía activa). Son dos
+    preguntas distintas, y juntarlas por parecido sintáctico sería el error opuesto al que se estaba
+    arreglando.
+  - **El ADR 0024 se enmendó** con esto: la regla no era del dinero, era de las preguntas repetidas.
+    Si dos lugares responden la misma pregunta, la respuesta vive en un módulo; la proyección es del
+    llamador, el predicado es del módulo.
 
 - **2026-09-17 (cierre 2) — Ticket 022: recursos y enlaces de pago. Migracion 0011 en `dev` Y en
   `production`.**

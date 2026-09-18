@@ -1,4 +1,7 @@
-# 0024 — Todo dinero derivado tiene UNA definicion, y vive en un solo modulo
+# 0024 — Una sola definicion por pregunta: el dinero derivado primero, y despues cualquier otra
+
+> El nombre del archivo dice "dinero derivado" porque asi nacio. La enmienda del mismo dia lo
+> generalizo; el archivo no se renombro para no romper los enlaces que ya lo citan.
 
 **Fecha:** 2026-09-17 · **Estado:** aceptado (Mani, al cerrar el ticket 006)
 
@@ -42,6 +45,28 @@ a que alguien "arregle" una sola: un comentario que pida no separarlas no falla 
 **4. El dinero sigue sin pasar por un `float`.** Las expresiones centralizadas mantienen la suma y
 la resta en SQL sobre `numeric`, devueltas como texto (ADR 0013). Centralizar no aflojo eso; lo
 dejo en un solo sitio donde se puede verificar de una mirada.
+
+## Enmienda (17-sep, mismo dia): la regla no es solo del dinero
+
+Al cerrar el ticket 023 aparecio el mismo patron sin dinero de por medio:
+`lib/queries/programas.ts` tenia **tres** funciones que significaban "programas activos" y solo se
+diferenciaban en las columnas que proyectaban (`programasActivos`, `programasActivosParaAsignar`,
+`programasParaRecursos`), una por pantalla que las necesito. Ninguna cifra derivada corria peligro,
+asi que no era el caso del saldo; pero cambiar **que cuenta como activo** obligaba a acordarse de
+las tres, y la cuarta pantalla habria agregado una cuarta.
+
+Se consolidaron en una sola `programasActivos` que devuelve id, slug y nombre, y cada pantalla toma
+lo que necesita. **La proyeccion es del llamador; el predicado es del modulo.**
+
+No se fusiono `programasGestionablesPorUsuario`: no responde "cuales estan activos" sino "cuales
+puede tocar esta persona", que es una regla de negocio distinta (la membresia activa), no una
+proyeccion. Consolidar por parecido sintactico dos preguntas que no son la misma seria el error
+opuesto.
+
+**La regla, entonces, se enuncia asi:** si dos lugares tienen que responder la MISMA pregunta, la
+respuesta vive en un modulo y los dos la importan. Que la respuesta sea un numero (el saldo) o un
+conjunto de filas (los programas activos) no cambia nada. Lo que sí importa es que sea la misma
+pregunta: dos preguntas distintas que hoy dan el mismo SQL siguen siendo dos funciones.
 
 ## Consecuencias
 

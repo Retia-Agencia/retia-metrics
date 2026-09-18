@@ -19,7 +19,7 @@ import {
   esquemaCohorte,
   listarCohortes,
 } from "@/lib/catalogo/cohortes";
-import { programasActivos, programasActivosParaAsignar } from "@/lib/queries/programas";
+import { programasActivos } from "@/lib/queries/programas";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
 /**
@@ -196,7 +196,7 @@ describe("desactivar y reactivar programa", () => {
     const creado = await crearPrograma(db, gerenteId, programaValido);
     await desactivarPrograma(db, gerenteId, creado.id);
     await reactivarPrograma(db, gerenteId, creado.id);
-    const activos = await programasActivosParaAsignar(db);
+    const activos = await programasActivos(db);
     expect(activos.some((p) => p.id === creado.id)).toBe(true);
   });
 });

@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { UsuariosAdmin, type UsuarioVista } from "@/components/usuarios-admin";
 import { listarUsuarios } from "@/lib/catalogo/usuarios";
-import { programasActivosParaAsignar } from "@/lib/queries/programas";
+import { programasActivos } from "@/lib/queries/programas";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,7 @@ export default async function UsuariosPage() {
 
   const [usuarios, programas] = await Promise.all([
     listarUsuarios(db),
-    programasActivosParaAsignar(),
+    programasActivos(),
   ]);
 
   const vista: UsuarioVista[] = usuarios.map((u) => ({
