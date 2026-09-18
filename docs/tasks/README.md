@@ -65,6 +65,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 028 | ["Ver como" del developer](./028-ver-como-del-developer.md) (ADR 0028) | 024 | done · 18-sep · `rolDeVista` + cookie + selector + guardián sobre `app/` y `lib/`. 543 tests. **Sin migración.** La primera entrega dejó 3 sitios pasando el rol crudo que el guardián no veía: ver la nota del ticket |
 | [x] | 031 | [Perfil propio: el closerId sin pasar por /ajustes/usuarios](./031-perfil-propio.md) | 028 | done · 18-sep · decisión cerrada (**opción 1**: solo `esAdministrador` edita; un closer lo ve en lectura). `/perfil` nuevo, mutación por el molde, el id sale SIEMPRE de la sesión. 556 tests. ✅ **recorrido en navegador hecho**: el menú abre sin tumbar el layout, escritura real con su fila en `change_log`, y la server action **invocada a mano saltándose la UI** devuelve 403 en vista `closer` |
 | [x] | 032 | [La vista `todo` es MENOS capaz que la vista `closer`](./032-el-developer-no-puede-crear-persona.md) | 028 | done · 18-sep · `trabajaLeads` en vez del literal, guardián ampliado a cualquier `.rol` y a `scripts/`, y un test que fija **vista `todo` ⊇ vista `closer`**. 545 tests |
+| [x] | 033 | [`Mani` y `mani` no pueden ser dos closers](./033-identidad-del-closer-sin-mayusculas.md) (ADR 0030) | 028 | done · 18-sep · salio del primer recorrido en `production`. `lib/closers/identidad.ts` + indice unico sobre la forma normalizada (migracion **0015**, aplicada en `dev` y `production`) + guardian. 570 tests |
 
 ## Decisiones pendientes (bloquean o condicionan tickets)
 
@@ -79,6 +80,10 @@ Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje
 
 ### Resueltas
 
+- 18-sep · **La comparacion de `closerId` ignora mayusculas y espacios; el almacenamiento no**
+  (Mani; ADR 0030, ticket 033). La ortografia de la hoja es suya (ADR 0004), asi que no se
+  reescribe: lo que cambia es que preguntar "¿son el mismo closer?" deje de mirar las mayusculas, y
+  esa pregunta vive en un modulo con un indice unico detras.
 - 18-sep · **El closerId propio solo lo edita quien administra** (Mani; ticket 031, opción 1). Un
   closer lo ve en lectura. La opción "cualquiera, pero solo si está vacío" se descartó porque el
   momento de riesgo es el PRIMER valor, no el cambio: una cuenta nueva con el campo vacío es

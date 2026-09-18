@@ -6,6 +6,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import type { Rol } from "@/lib/auth/roles";
 import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
+import { igualCloser, mismoCloser } from "@/lib/closers/identidad";
 import type { Persona } from "@/lib/db/schema";
 
 /**
@@ -128,7 +129,8 @@ async function esCloserValidoEnPrograma(
     .innerJoin(miembrosPrograma, eq(miembrosPrograma.userId, users.id))
     .where(
       and(
-        eq(users.closerId, closerId),
+        // Sin distinguir mayusculas (ADR 0030).
+        igualCloser(users.closerId, closerId),
         eq(users.activo, true),
         eq(miembrosPrograma.programId, programId),
         eq(miembrosPrograma.activo, true),
@@ -184,7 +186,7 @@ export async function asignarResponsable(
       // closerId nulo saldria como "no es tuya" y el mensaje mandaria a la persona
       // equivocada a arreglar el problema.
       exigirCloserIdCargado(actor);
-      if (datos.closerId !== actor.closerId) {
+      if (!mismoCloser(datos.closerId, actor.closerId)) {
         throw new ErrorDeApp("Solo puedes asignarte personas a ti mismo.", 403);
       }
       if (persona.responsableCloserId) {
@@ -201,7 +203,7 @@ export async function asignarResponsable(
     }
 
     // Sin cambio real: no se toca la fila ni se escribe change_log (como molde.editar).
-    if (persona.responsableCloserId === datos.closerId) return persona;
+    if (mismoCloser(persona.responsableCloserId, datos.closerId)) return persona;
 
     await ejecutarJuntas(db, (tx) => [
       (tx as Db)

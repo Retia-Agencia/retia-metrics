@@ -8,42 +8,103 @@
 > Copiar y pegar tal cual. Escrito el 18-sep al cerrar el día.
 
 ```
-Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y las entradas "CIERRE 10" y "CIERRE 9"
+Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y las entradas "CIERRE 11" y "CIERRE 10"
 del 18-sep en docs/agents/handoff.md.
 
-Estado: 556 tests, typecheck y lint limpios. Cerrado el 031 (perfil propio) y el ADR 0029 (una fila
-de catalogo se crea por el molde, tambien desde un script). COMPROBADO que 848edee esta vivo en
-produccion: la CLI de Vercel SI funciona en esta maquina (`vercel ls` + `vercel inspect`), aunque el
-conector MCP pida OAuth. Ojo que `/api/health` devuelve un JSON constante y no toca la base: un 200
-ahi no prueba ninguna consulta.
+Estado: 570 tests, typecheck y lint limpios. El recorrido REAL contra production esta hecho de
+punta a punta (criterios 1, 5 y 6 ejercidos: llamada + venta + abono + recurso). Cerrados hoy el
+031 (perfil propio), el 033 (`Mani` y `mani` son el mismo closer, ADR 0030) y el ADR 0029 (una fila
+de catalogo se crea por el molde, tambien desde un script). Migracion 0015 aplicada en dev y en
+production.
+
+Lo PRIMERO, y es un comando que el clasificador de permisos no me deja correr a mi:
+
+  npx tsx scripts/_limpiar-recorrido-prod.ts -- --escribir
+
+Borra las 6 filas de prueba que dejo el recorrido en production (2 llamadas, 1 venta, 1 abono, 1
+persona `hola@test.com`, 1 recurso "Test") mas sus 11 filas de change_log. Simula por defecto, y
+cada fila va por su uuid exacto. **Despues de correrlo, borrar el script**: es temporal.
+Hasta que eso corra, el dashboard de Tactical muestra una venta de 1.500 USD y una caja de 800 que
+no existen.
 
 Delega a Kiro (kiro-rescue) lo grueso o repetitivo. Kiro NO corre db:generate ni db:migrate. Para
 una segunda opinion o una implementacion paralela, codex:codex-rescue.
 
-El 031 ya tiene recorrido en navegador completo (Mani se logueo y la sesion lo probo clic por
-clic, incluida la server action invocada a mano saltandose la UI). No hay nada pendiente ahi.
-
-Arranca por lo que desbloquea a los closers reales:
-(1) cargarme mi closer_id en production desde /ajustes/usuarios. ES EL BLOQUEO REAL de la primera
-    llamada: mi usuario es developer con closer_id = null. No necesito el 031 para esto, porque
-    developer cumple esAdministrador. De paso prueba que las consultas contra production corren.
-(2) registrar la primera llamada REAL en production (hoy: 0 llamadas, 0 ventas, 0 abonos).
-(3) crear el primer recurso en production desde /recursos (las 6 categorias ya estan, 0 recursos).
-(4) dar de alta a Andrea Machado cuando me confirme su cuenta de Google. El candidato es
-    andrea.machado@30x.com, pero Maru entra con un Gmail personal, asi que el correo corporativo
-    no es el patron de la casa. Su closer_id es `Andrea`.
+Despues:
+(1) dar de alta a Andrea Machado cuando confirme su cuenta de Google. Candidato:
+    andrea.machado@30x.com; su closer_id es `Andrea`, CAPITALIZADO (ya no rompe nada si alguien lo
+    escribe distinto, pero la convencion de la casa es la ortografia de la hoja).
+(2) el 030 y el 016 pueden esperar. El 021 quedo en PDF y sigue de ultimo.
+(3) F-03 + F-07 van juntas y necesitan migracion.
 
 Pendiente mio, no tuyo: rotar la contrasena de PayPal de Retia, publicada en texto plano en el
 grupo "Ventas JP Vieira" desde el 18-ago.
-
-Despues: el 030 y el 016 pueden esperar. El 021 quedo en PDF y sigue de ultimo. F-03 + F-07 van
-juntas y necesitan migracion.
 ```
+
 
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-18 (CIERRE 11) — El recorrido REAL en production destapo que `Mani` y `mani` eran
+  dos closers. ADR 0030, migracion 0015 y un guardian. Queda un borrado por correr.**
+
+  **PARA QUIEN ABRA LA PROXIMA SESION, leer esto primero:**
+
+  - 🔴 **HAY UN COMANDO PENDIENTE, y mientras no corra el dashboard MIENTE.**
+    `npx tsx scripts/_limpiar-recorrido-prod.ts -- --escribir` borra las 6 filas de prueba del
+    recorrido (2 llamadas, 1 venta de 1.500 USD, 1 abono de 800, la persona `hola@test.com` "Thisa
+    Test" y el recurso "Test") mas sus 11 filas de `change_log`. **El clasificador de permisos
+    bloqueo el borrado desde la sesion, correctamente** (igual que en el CIERRE 7). Simula por
+    defecto y cada fila va por su uuid exacto, leido de la base. **Borrar el script despues.**
+
+  - ✅ **EL RECORRIDO REAL CONTRA `production` ESTA HECHO, y las consultas corren.** Mani cargo
+    su `closer_id`, activo sus dos membresias, creo una persona a mano, registro una llamada `show`,
+    luego una `cerrada` con venta (1.500 USD, producto real) y abono (800 USD, PayPal), y creo un
+    recurso desde `/recursos`. **Criterios 1, 5 y 6 de la spec ejercidos contra la base de
+    verdad.** Eso es lo que `/api/health` nunca pudo decir: devuelve un JSON constante.
+
+  - 🩸 **EL HALLAZGO: el `closer_id` quedo en `mani` y el de la otra closer es `Maru`.**
+    `closerId` se comparaba como texto crudo en cuatro sitios, asi que `Mani` y `mani` eran **dos
+    closers en todas las metricas**: el comparativo mostraba dos filas donde hay una persona, el
+    filtro devolvia la mitad de sus llamadas, `esCloserValidoEnPrograma` habria negado un programa
+    donde si vende, y la reja de la anulacion le habria dicho *"la registro otro closer"* a quien la
+    registro. **Ninguna de las cuatro lanza un error.** Es la familia del centinela del ano 1.
+    Cerrado con el **ticket 033 / ADR 0030**: `lib/closers/identidad.ts` es la unica respuesta a
+    "¿son el mismo closer?", el texto se sigue guardando como se escribio (la ortografia de la hoja
+    es suya, ADR 0004), y un **indice unico sobre la forma normalizada** (migracion `0015`, aplicada
+    en `dev` y `production`) impide dos cuentas reclamando el mismo closer. `users.closer_id` de
+    Mani corregido a `Mani` en `production`, por el molde.
+
+  - 🎯 **LA TRAMPA QUE CASI ENTRA, y es la leccion mas transferible del dia: un regex dentro
+    de una plantilla `sql` pasa por DOS capas de escape.** La primera version normalizaba con
+    `'\s+'` escrito en un template literal de JavaScript, que **se cocina a `'s+'`**: el regex que
+    llegaba a Postgres colapsaba las **eses**, no los espacios. `Jose` se habria normalizado a
+    `jo e` y `Vanessa` a `vane a`. Y peor: el indice y la consulta viven en archivos distintos y
+    quedaron con escapes **distintos**, o sea el indice habria protegido una cosa y la consulta
+    agrupado otra, que es la divergencia exacta que el modulo existe para impedir.
+    Se atajo antes de aplicar nada. La expresion final es `'[[:space:]]+'` (sin backslash, nada que
+    cocinar) y hay un test que **ejecuta** las dos normalizaciones contra Postgres y las compara en
+    vez de leer los dos textos y darlos por iguales.
+
+  - 🎯 **El guardian nuevo mordio mi propio arreglo, y eso mejoro el diseno.** La primera
+    version marcaba `groupBy(claveDeCloserSql(calls.closerId))`, que es justo lo que el ADR pide.
+    En vez de poner una excepcion —donde se esconde lo que no caza (ticket 028)— se hicieron dos
+    cosas: el guardian borra las formas AUTORIZADAS antes de buscar las prohibidas, y **el
+    comparativo paso a agrupar por la clave normalizada en SQL** en vez de agrupar por texto crudo y
+    unir en memoria. Lo segundo funcionaba, pero dejaba el footgun puesto para la proxima consulta.
+    El guardian se prueba mordiendo **en los dos sentidos**: que caza las cuatro formas malas y que
+    **no marca la solucion**. Eso ultimo es nuevo y conviene copiarlo al resto.
+
+  - **Dos cosas que parecian hallazgos y NO lo son**, comprobadas en el codigo antes de reportarlas:
+    `sales.precio_lista_usd` en `null` esta fuera de alcance a proposito
+    (`lib/mutations/registro.ts:217`), y un `recursos.program_id` en `null` significa **recurso
+    global**, que aparece con cualquier filtro (`lib/queries/recursos.ts:77`). El criterio 6 se
+    cumple igual.
+
+  - **Lo que sigue pendiente de Andrea:** su alta. Candidato `andrea.machado@30x.com`, sin
+    confirmar por ella. Su `closer_id` es `Andrea`.
 
 - **2026-09-18 (CIERRE 10) — Tres decisiones cerradas, el 031 hecho, y el deploy dejo de ser
   inverificable.**

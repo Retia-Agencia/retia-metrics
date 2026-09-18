@@ -57,18 +57,40 @@ export const origenCambioEnum = pgEnum("origen_cambio", ["sync", "app", "upload"
 
 // ─────────────────────────────────────────────────────────── usuarios
 
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  email: text("email").notNull().unique(),
-  nombre: text("nombre"),
-  rol: rolEnum("rol").notNull().default("closer"),
-  /** Identificador con el que este closer aparece en la BBDD de Google Sheets. */
-  closerId: text("closer_id"),
-  /** Correo de la cuenta de Calendly del closer, para cruzar sus agendamientos. */
-  calendlyEmail: text("calendly_email"),
-  activo: boolean("activo").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull().unique(),
+    nombre: text("nombre"),
+    rol: rolEnum("rol").notNull().default("closer"),
+    /** Identificador con el que este closer aparece en la BBDD de Google Sheets. */
+    closerId: text("closer_id"),
+    /** Correo de la cuenta de Calendly del closer, para cruzar sus agendamientos. */
+    calendlyEmail: text("calendly_email"),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    /**
+     * Dos cuentas no pueden reclamar el mismo closer (ADR 0030). La comparacion de
+     * `closerId` ignora mayusculas y espacios, asi que la UNICIDAD tiene que
+     * ignorarlos igual: si no, `Mani` y `mani` conviven como dos filas y las dos
+     * "son" el mismo closer, que es peor que el problema original.
+     *
+     * Va en la base y no solo en zod por la razon del ADR 0005: una garantia que
+     * vive solo en el codigo se rompe el dia que alguien escribe por otro camino
+     * (el CLI de emergencia, un script, una migracion). La expresion es la misma de
+     * `claveDeCloserSql` en `lib/closers/identidad.ts`.
+     *
+     * Parcial: `closer_id` nulo es un estado valido y frecuente (un gerente no
+     * tiene), y varios nulos no chocan entre si.
+     */
+    uniqueIndex("users_closer_id_normalizado_idx")
+      .on(sql`regexp_replace(btrim(lower(${t.closerId})), '[[:space:]]+', ' ', 'g')`)
+      .where(sql`${t.closerId} is not null`),
+  ],
+);
 
 /**
  * En que programas vende cada usuario (ticket 015). Un closer cuenta en las

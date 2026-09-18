@@ -242,6 +242,11 @@ mismo valor que se copia a sus registros nativos del CRM cuando esta logueado (A
 ADR 0009 ve el mismo dashboard que un gerente, pero sigue sin poder entrar a rutas exclusivas de
 gerente como `/ajustes/fuentes` (ADR 0003). Esa disjuncion entre gerente y closer no se toco al
 sumar el **developer**: la excepcion es solo suya (ADR 0025).
+Desde el ADR 0030, **`Mani` y `mani` son el mismo closer**: el texto se guarda como se escribio,
+pero la pregunta "¿son el mismo?" ignora mayusculas y espacios y la contesta
+`lib/closers/identidad.ts`, nunca una comparacion suelta. Un indice unico sobre esa forma
+normalizada impide que dos cuentas reclamen el mismo closer.
+_Evitar_: comparar `closerId` con `===` o con `eq()` a pelo.
 
 **Responsable**:
 El closer a cargo de una persona. Lo asigna el CRM, no la hoja, y una persona puede estar sin

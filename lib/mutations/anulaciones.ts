@@ -9,6 +9,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { esAdministrador } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { closerDeLaSesion } from "@/lib/auth/closer";
+import { mismoCloser } from "@/lib/closers/identidad";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { usd } from "@/lib/format";
@@ -304,7 +305,7 @@ async function exigirPermiso(session: Session, objetivo: Objetivo, db: Db): Prom
   if (esAdministrador(await rolDeVista(session))) return;
 
   const closerId = closerDeLaSesion(session, "anular registros");
-  if (objetivo.closerId !== closerId) {
+  if (!mismoCloser(objetivo.closerId, closerId)) {
     throw new ErrorDeApp(
       `No puedes anular ${objetivo.queEs}: la registró otro closer. Pídeselo a un gerente.`,
       403,

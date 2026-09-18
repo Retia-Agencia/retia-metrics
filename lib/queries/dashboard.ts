@@ -4,6 +4,7 @@ import { db as dbDeLaApp } from "@/lib/db";
 import { abonos, calls, motivos, origenes, people, sales } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaHabilDe, diasHabilesEntre, metaDinamica, metaLineal } from "@/lib/dias-habiles";
+import { claveDeCloser, claveDeCloserSql, igualCloser } from "@/lib/closers/identidad";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { vigente } from "@/lib/queries/vigente";
 
@@ -128,7 +129,9 @@ function fechaAnclaCall() {
  * no puede cambiar el total del programa.
  */
 function delCloser(columna: PgColumn, closerId: string | null | undefined) {
-  return closerId == null ? undefined : eq(columna, closerId);
+  // Sin distinguir mayusculas (ADR 0030): `Mani` y `mani` son el mismo closer, y
+  // la respuesta a eso vive en `lib/closers/identidad.ts`, no aca.
+  return closerId == null ? undefined : igualCloser(columna, closerId);
 }
 
 /** Tasa que nunca divide por cero: `null` cuando el denominador es 0. */
@@ -309,7 +312,10 @@ export async function embudoPorCloser(
   const [llamadasPorCloser, ventasPorCloser, abonosPorCloser] = await Promise.all([
     db
       .select({
-        closerId: calls.closerId,
+        // Se agrupa por la clave NORMALIZADA (ADR 0030) y se devuelve un
+        // representante real de la ortografia con `min(...)`: la identidad es la
+        // clave, lo que se pinta es una de las formas en que esta escrito.
+        closerId: sql<string | null>`min(${calls.closerId})`,
         agendas: sql<number>`count(*)::int`,
         llamadasConShow: sql<number>`count(*) filter (where ${calls.resultado} in ('show','compromiso_pago','cerrada'))::int`,
         cierres: sql<number>`count(*) filter (where ${calls.resultado} = 'cerrada')::int`,
@@ -322,10 +328,10 @@ export async function embudoPorCloser(
           vigente(calls),
         ),
       )
-      .groupBy(calls.closerId),
+      .groupBy(claveDeCloserSql(calls.closerId)),
     db
       .select({
-        closerId: sales.closerId,
+        closerId: sql<string | null>`min(${sales.closerId})`,
         ventas: sql<number>`count(*)::int`,
       })
       .from(sales)
@@ -336,10 +342,10 @@ export async function embudoPorCloser(
           vigente(sales),
         ),
       )
-      .groupBy(sales.closerId),
+      .groupBy(claveDeCloserSql(sales.closerId)),
     db
       .select({
-        closerId: abonos.closerId,
+        closerId: sql<string | null>`min(${abonos.closerId})`,
         moneda: abonos.moneda,
         total: sql<number>`sum(${abonos.monto})::float8`,
       })
@@ -351,12 +357,16 @@ export async function embudoPorCloser(
           vigente(abonos),
         ),
       )
-      .groupBy(abonos.closerId, abonos.moneda),
+      .groupBy(claveDeCloserSql(abonos.closerId), abonos.moneda),
   ]);
 
-  // Clave estable para agrupar por closer, distinguiendo `null` (sin closer) del
-  // texto vacio. Se guarda el valor original para devolverlo.
-  const claveDe = (c: string | null) => (c === null ? "\u0000null" : c);
+  // Clave estable para agrupar por closer. Es la NORMALIZADA (ADR 0030): las tres
+  // agregaciones vienen agrupadas por el texto crudo, asi que si una hoja trae
+  // `Mani` y la app escribio `mani`, es esta union en memoria la que los junta en
+  // una sola fila. Se conserva el texto original de la primera fila que llega para
+  // mostrarlo: la identidad es la clave, la ortografia que se pinta es un
+  // representante.
+  const claveDe = claveDeCloser;
 
   const porClave = new Map<
     string,

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "users_closer_id_normalizado_idx" ON "users" USING btree (regexp_replace(btrim(lower("closer_id")), '[[:space:]]+', ' ', 'g')) WHERE "users"."closer_id" is not null;

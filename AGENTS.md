@@ -136,6 +136,22 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   con cero referencias se borra de verdad, una con referencias solo se desactiva y la app dice
   cuantas tiene. Lo que no puede pasar es que la app diga "borrado" habiendo desactivado.
   Ningun slug de programa aparece en `lib/`, `app/` ni `components/`.
+- **`Mani` y `mani` son el MISMO closer (ADR 0030).** `closerId` es texto copiado (ADR 0011) que
+  producen dos fuentes que no se hablan: la columna Closer de las hojas, escrita a mano, y el
+  formulario de la app. **El texto se guarda como se escribio** —la ortografia de la hoja es suya,
+  ADR 0004—, pero la pregunta "¿son el mismo closer?" la contesta `lib/closers/identidad.ts` y
+  nadie mas: `mismoCloser` en memoria, `igualCloser` en SQL, `claveDeCloser`/`claveDeCloserSql`
+  para agrupar. Que no haya dos cuentas reclamando el mismo closer lo garantiza un **indice unico
+  sobre la forma normalizada** (migracion 0015), no el codigo (ADR 0005). 🩸 Salio del primer
+  recorrido real en `production`: el `closer_id` quedo en `mani` mientras el de la otra closer era
+  `Maru`, y con comparacion cruda eso son **dos closers en todas las metricas, sin un solo error**
+  — el comparativo muestra dos filas, el filtro devuelve la mitad, y la reja de la anulacion le
+  dice "la registro otro closer" a quien la registro.
+  ⚠️ **Y ojo con el regex dentro de una plantilla `sql`: pasa por DOS capas de escape.** `'\s+'`
+  escrito en un template literal de JS se cocina a `'s+'` y colapsa las **eses**: `Jose` habria
+  quedado `jo e`. Por eso la expresion usa `'[[:space:]]+'`, que no lleva backslash, y hay un test
+  que compara la normalizacion de SQL contra la de JavaScript **ejecutandolas**. Si escribes un
+  regex con backslash dentro de `sql`, pruebalo contra el motor.
 - **Una fila de catalogo se crea por el molde, tambien desde un script (ADR 0029).** La linea no
   es "script o pantalla": es **si la base ya esta viva**. Un script que mete filas de negocio en
   una base con datos reales hace lo mismo que un humano en una pantalla, asi que llama a la
@@ -201,6 +217,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Mensajes de validacion del navegador | `components/validacion-en-espanol.tsx`, montado una vez en el layout raiz: traduce los globos nativos, que salen en el idioma del navegador y no en el del `lang` de la pagina | Revision manual |
 | Que registros cuentan | `vigente(tabla)` / `incluyendoAnulados(tabla)` en `lib/queries/vigente.ts` (ADR 0026) | `tests/vigencia-centralizada.test.ts`: recorre `lib/`, `app/`, `components/` y `scripts/` cadena de drizzle por cadena, y falla si una lee `calls`, `sales` o `abonos` sin aplicar el predicado |
 | Con que rol actua una sesion | `rolDeVista(session)` en `lib/auth/vista.ts` (ADR 0028): la vista solo ESTRECHA, nunca ensancha | `tests/rol-de-vista-centralizado.test.ts`: recorre `app/` y `lib/` y falla si alguien decide alcance o permiso leyendo `session.user.rol` crudo; las lecturas de IDENTIDAD van como excepciones nombradas |
+| Cuando dos textos son el mismo closer | `lib/closers/identidad.ts` (ADR 0030) + indice unico sobre `lower()` en `users` | `tests/closer-identidad.test.ts`: guardian sobre `lib/`, `app/` y `components/`, probado mordiendo en los dos sentidos (caza lo malo y **no** marca la solucion) |
 | Quien crea una fila de catalogo, y desde donde | `lib/catalogo/` siempre (ADR 0029); el actor de un script, `actorDelScript()` en `scripts/actor.ts` | Revision manual: un `db.insert` sobre una tabla de catalogo en `scripts/` es el olor. Las dos excepciones estan en la tabla del ADR 0029 |
 | Contrato de extension | ADR 0012, enmendado por el 0026; molde en `lib/catalogo/` | `tests/contrato-extension.test.ts` (ticket 009): ningun programa escrito en el codigo; tests del molde (ticket 011): siempre `change_log`, y **nunca `DELETE` sobre una fila con referencias** (hasta el ticket 030 el molde no borra nunca) |
 
