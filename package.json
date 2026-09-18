@@ -24,7 +24,8 @@
     "seed:datos": "tsx scripts/seed-datos.ts",
     "sync": "tsx scripts/sincronizar.ts",
     "usuarios": "tsx scripts/usuarios.ts",
-    "cron-secret": "bash scripts/cron-secret.sh"
+    "cron-secret": "bash scripts/cron-secret.sh",
+    "backfill-fechas": "tsx scripts/backfill-fechas-centinela.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

@@ -140,6 +140,19 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
 - **Un mapeo de columnas que no cuadra falla ruidosamente.** Nunca adivinar una columna: se
   resuelve por texto del encabezado, no por posicion, y si falta un campo obligatorio se lanza
   `MapeoInvalidoError` con lo que se buscaba y los encabezados reales.
+- **Un CENTINELA no es un dato, y el que se cuela no falla: miente** (18-sep). La regla de arriba
+  ataja lo que no se puede leer; el agujero que quedaba era lo que SI se lee y no significa nada.
+  Una hoja traia `1/1/0001 0:00:00` como "vacio", `parsearFecha` lo leia sin un solo error como el
+  1 de enero del ano 1, y esas personas caian fuera de todo rango de fechas: dejaban de contar como
+  lead **sin error, sin cifra rara y sin nada que revisar**. Era el 39% de un programa. Por eso
+  `parsearFecha` tiene un piso de plausibilidad (`ANO_MINIMO_PLAUSIBLE`, ano 2000) y devuelve
+  `null`, que es lo que el centinela de verdad significa. **Cuando entre otro tipo de dato desde una
+  hoja, preguntale lo mismo: ¿cual es el valor que esta fuente escribe cuando no sabe?** Y ojo con
+  el efecto de segundo orden, que fue el peor: el dedup conserva la fecha mas antigua, asi que el
+  ano 1 le ganaba a las buenas y **una sola fila envenenada le borraba la fecha real a alguien que
+  si la tenia** (839 de las 1.034). Tests en `tests/dedup.test.ts`; la reparacion de lo ya escrito
+  es `npm run backfill-fechas` (simula; `-- --escribir` aplica), que no se puede hacer desde
+  `people.raw` porque `raw` guarda UNA fila del correo y no todas.
 
 **Rendimiento y escala** — observados en produccion, no decididos en una reunion. Trata cualquier
 cambio que los rompa como una regresion, y cualquier crecimiento que los supere como una senal de

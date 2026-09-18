@@ -7,6 +7,44 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-18 (CIERRE 4 del mismo día) — El centinela del año 1 ARREGLADO y reparado en
+  `production`: 0 filas dañadas, 839 fechas reales recuperadas. 500 tests.**
+
+  **PARA QUIEN ABRA LA PRÓXIMA SESIÓN, leer esto primero:**
+
+  - **El hallazgo del CIERRE 3 está cerrado.** `parsearFecha` tiene piso de plausibilidad
+    (`ANO_MINIMO_PLAUSIBLE`, año 2000) y devuelve `null` ante un centinela. Los 3 tests se vieron en
+    rojo antes. La reparación de lo ya escrito es `npm run backfill-fechas` (simula por defecto;
+    `-- --escribir` aplica), **idempotente**: solo toca filas bajo el piso.
+  - **Resultado real en `production`:** 1.034 afectadas → **839 recuperaron su fecha verdadera**,
+    195 quedan en `null` porque TODAS sus filas traían centinela. Cero filas dañadas hoy.
+  - ⚠️ **Y esto es lo que hay que entender antes de celebrar: el dashboard casi no se movió.**
+    Los leads de la cohorte C2 de Tactical pasaron de 798 a **801**, +3. Lo recuperado es casi todo
+    de junio y julio (julio: 327 → 1.017), o sea ANTES de la ventana de la C2. El arreglo importa
+    para la verdad del dato y para cualquier mirada histórica o de C1, **no** para la cifra que se
+    está mirando hoy. Quien espere un salto en el dashboard se va a confundir.
+  - 🎯 **La lección, y no es sobre fechas:** la regla vieja ("un mapeo que no cuadra falla
+    ruidosamente") ataja lo que NO se puede leer. El agujero era lo que **sí se lee y no significa
+    nada**. `1/1/0001` es sintácticamente una fecha perfecta. No hubo error, no hubo cifra rara, no
+    hubo nada que revisar, y el 39% de un programa llevaba días invisible. Está en AGENTS.md como
+    regla: **cuando entre un tipo de dato nuevo desde una hoja, preguntar cuál es el valor que esa
+    fuente escribe cuando no sabe.**
+  - 🩸 **El efecto de segundo orden fue peor que el directo.** El dedup conserva la fecha más
+    antigua, así que el año 1 le ganaba siempre: **una sola fila envenenada le borraba la fecha real
+    a alguien que sí la tenía.** 839 de las 1.034 eran eso, no filas genuinamente sin fecha.
+  - 🧱 **El guardián del ADR 0012 cazó los comentarios del arreglo**, porque nombraban un programa
+    dentro de `lib/`. Tenía razón dos veces: por la regla y por el fondo, el centinela es un
+    problema de formato de datos y no de un programa. Los números concretos viven en este handoff.
+
+  🔓 **DECISIÓN ABIERTA, deliberadamente no tomada: ¿`fechaPrimeraAplicacion` debe estar en
+  `CAMPOS_COMPARABLES`?** Hoy no está (`lib/sheets/plan-sync.ts:17`), así que el sync **nunca**
+  actualiza una fecha por sí sola: una persona cuyo único campo malo es la fecha no entra a
+  `aActualizar`. Por eso hizo falta el script. Eso NO se cambió porque
+  `tests/plan-sync.test.ts` dice explícitamente que la exclusión es a propósito (*"Hoy es así a
+  propósito (F-01 y F-05 siguen abiertos). Si cambia, que sea consciente"*), y voltearla sin que
+  Mani lo decida sería justo lo que ese comentario pide no hacer. **Si se mete a la comparación, el
+  sync se auto-repara y el script sobra; si no, todo centinela futuro necesita backfill a mano.**
+
 - **2026-09-18 (CIERRE 3 del mismo día) — Verificación del 029 contra `production` HECHA y pasada.
   Equipo y productos dados de alta en `production`. Un bug de rol encontrado y arreglado.
   Dos hallazgos nuevos sin tocar, uno de ellos grave. 496 tests.**

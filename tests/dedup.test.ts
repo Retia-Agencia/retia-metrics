@@ -53,6 +53,31 @@ describe("parsearFecha", () => {
     expect(parsearFecha("")).toBeNull();
     expect(parsearFecha("no es fecha")).toBeNull();
   });
+
+  /**
+   * 18-sep: la hoja de Tactical trae `1/1/0001 0:00:00` como centinela de "vacio".
+   * Es una fecha SINTACTICAMENTE valida, asi que se parseaba sin error y entraba a
+   * la base como el 1 de enero del ano 1. Resultado: 1.034 de 2.622 personas (39%)
+   * fuera de todo rango de fechas, invisibles como lead, sin que nada fallara.
+   *
+   * Un centinela no es una fecha: es la ausencia de una. El piso son dos ordenes de
+   * magnitud mas holgado que el dato real mas viejo (2026-06-17), asi que no puede
+   * descartar nada legitimo, y ataja tambien el cero de las hojas de calculo
+   * (30/12/1899), que es el otro centinela de la familia.
+   */
+  it("un centinela de 'vacio' es null, no una fecha del ano 1", () => {
+    expect(parsearFecha("1/1/0001 0:00:00")).toBeNull();
+    expect(parsearFecha("1/1/0001")).toBeNull();
+    expect(parsearFecha("0001-01-01T00:00:00")).toBeNull();
+    // El cero de Excel y de Google Sheets.
+    expect(parsearFecha("30/12/1899")).toBeNull();
+  });
+
+  it("el piso no se come ninguna fecha real", () => {
+    // La mas vieja de la base real es 2026-06-17; el piso esta en el ano 2000.
+    expect(parsearFecha("17/6/2026")!.getUTCFullYear()).toBe(2026);
+    expect(parsearFecha("1/1/2000")!.getUTCFullYear()).toBe(2000);
+  });
 });
 
 describe("resolverColumnas", () => {
@@ -154,6 +179,38 @@ describe("deduplicarPorCorreo", () => {
     ]);
     expect(personas[0].fechaPrimeraAplicacion!.getDate()).toBe(3);
     expect(personas[0].fechaUltimaAplicacion!.getDate()).toBe(20);
+  });
+
+  /**
+   * El dano real del centinela, y es peor que el caso de arriba: "la mas antigua
+   * gana" hace que el ano 1 le gane SIEMPRE a una fecha de verdad. Una sola fila
+   * envenenada le borraba la primera aplicacion a una persona que si tenia filas
+   * buenas. En `production` eso le paso a 704 personas con 2+ aplicaciones, de las
+   * 1.034 afectadas en total.
+   *
+   * No hace falta tocar el dedup: con `parsearFecha` devolviendo null, la fila
+   * envenenada pasa a ser "una fila sin fecha", que es un caso que el dedup ya
+   * resuelve bien desde F-02.
+   */
+  it("una fila con centinela no le borra la primera aplicacion a quien si la tiene", () => {
+    const { personas } = deduplicarPorCorreo([
+      { emailNormalizado: "a@x.com", fechaAplicacion: "20/8/2026" },
+      { emailNormalizado: "a@x.com", fechaAplicacion: "1/1/0001 0:00:00" },
+      { emailNormalizado: "a@x.com", fechaAplicacion: "3/8/2026" },
+    ]);
+    expect(personas[0].fechaPrimeraAplicacion!.getFullYear()).toBe(2026);
+    expect(personas[0].fechaPrimeraAplicacion!.getDate()).toBe(3);
+    expect(personas[0].fechaUltimaAplicacion!.getDate()).toBe(20);
+    // Sigue contando como aplicacion: lo que falta es la fecha, no la solicitud.
+    expect(personas[0].numAplicaciones).toBe(3);
+  });
+
+  it("si TODAS sus filas traen centinela, se queda sin fecha (null), no en el ano 1", () => {
+    const { personas } = deduplicarPorCorreo([
+      { emailNormalizado: "a@x.com", fechaAplicacion: "1/1/0001 0:00:00" },
+    ]);
+    expect(personas[0].fechaPrimeraAplicacion).toBeNull();
+    expect(personas[0].numAplicaciones).toBe(1);
   });
 
   it("una aplicacion posterior con campos vacios no borra lo que ya se sabia", () => {

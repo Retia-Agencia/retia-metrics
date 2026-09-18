@@ -105,9 +105,29 @@ export function limpiar(v: unknown): string | null {
 }
 
 /**
+ * Piso de plausibilidad. Una fecha anterior a esto no es una fecha: es un CENTINELA
+ * de "vacio" que alguna herramienta escribio en la celda.
+ *
+ * No es un numero al azar. Los dos centinelas de la familia son `1/1/0001` (el que
+ * aparecio en una hoja real) y `30/12/1899` (el cero de Excel y de Google Sheets), y
+ * el dato legitimo mas viejo de la base es de mediados de 2026. El ano 2000 queda a
+ * mas de dos decadas del dato real mas antiguo y a un siglo del centinela mas nuevo:
+ * no hay forma de que descarte algo real ni de que deje pasar uno de los dos.
+ */
+const ANO_MINIMO_PLAUSIBLE = 2000;
+
+/**
  * Las hojas entregan fechas en formato colombiano: d/m/yyyy hh:mm:ss.
  * `new Date()` las lee como mes/dia y produce fechas equivocadas en silencio,
  * que es peor que fallar.
+ *
+ * Y un centinela de "vacio" tampoco es una fecha (18-sep). `1/1/0001 0:00:00` es
+ * sintacticamente valido, asi que se parseaba sin un solo error y entraba a la base
+ * como el 1 de enero del ano 1. Esas filas caen fuera de TODO rango, asi que dejan
+ * de contar como lead sin que nada falle y sin que la cifra se vea rara: en un
+ * programa de `production` eran el 39% de las personas. Un centinela se devuelve
+ * como `null`, que es lo que de verdad significa, y el dedup ya sabe tratar una fila
+ * sin fecha (F-02). El detalle del incidente esta en `docs/agents/handoff.md`.
  */
 export function parsearFecha(v: unknown): Date | null {
   const s = String(v ?? "").trim();
@@ -127,14 +147,20 @@ export function parsearFecha(v: unknown): Date | null {
     const f = new Date(
       `${a}-${p2(mes)}-${p2(d)}T${p2(h)}:${p2(min)}:${p2(seg)}-05:00`,
     );
-    return Number.isNaN(f.getTime()) ? null : f;
+    return plausible(f);
   }
 
   // ISO u otros formatos que Date si entiende sin ambiguedad
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
     const f = new Date(s);
-    return Number.isNaN(f.getTime()) ? null : f;
+    return plausible(f);
   }
 
   return null;
+}
+
+/** Una fecha invalida o anterior al piso no es una fecha. Ver `ANO_MINIMO_PLAUSIBLE`. */
+function plausible(f: Date): Date | null {
+  if (Number.isNaN(f.getTime())) return null;
+  return f.getUTCFullYear() < ANO_MINIMO_PLAUSIBLE ? null : f;
 }
