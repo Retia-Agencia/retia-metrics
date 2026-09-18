@@ -15,7 +15,9 @@ Estado: 570 tests, typecheck y lint limpios. El recorrido REAL contra production
 punta a punta (criterios 1, 5 y 6 ejercidos: llamada + venta + abono + recurso). Cerrados hoy el
 031 (perfil propio), el 033 (`Mani` y `mani` son el mismo closer, ADR 0030) y el ADR 0029 (una fila
 de catalogo se crea por el molde, tambien desde un script). Migracion 0015 aplicada en dev y en
-production.
+production. `main` desplegado y vivo en 021f668 (comprobado con `vercel ls` + `vercel inspect`:
+la CLI de esta maquina si funciona, aunque el conector MCP pida OAuth). Ojo que `/api/health`
+devuelve un JSON constante y no toca la base: un 200 ahi no prueba ninguna consulta.
 
 production quedo LIMPIA y verificada: 0 llamadas, 0 ventas, 0 abonos, 0 recursos, 0 personas del
 CRM, con las 4.599 personas reales y toda la configuracion intactas. Los dos closers activos son
@@ -24,7 +26,7 @@ CRM, con las 4.599 personas reales y toda la configuracion intactas. Los dos clo
 Delega a Kiro (kiro-rescue) lo grueso o repetitivo. Kiro NO corre db:generate ni db:migrate. Para
 una segunda opinion o una implementacion paralela, codex:codex-rescue.
 
-Despues:
+Arranca por:
 (1) dar de alta a Andrea Machado cuando confirme su cuenta de Google. Candidato:
     andrea.machado@30x.com; su closer_id es `Andrea`, CAPITALIZADO (ya no rompe nada si alguien lo
     escribe distinto, pero la convencion de la casa es la ortografia de la hoja).
