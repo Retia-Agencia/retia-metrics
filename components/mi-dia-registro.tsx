@@ -8,8 +8,8 @@ import { fecha as formatoFecha, monto as formatoMonto, saldoLegible } from "@/li
 import { ProductoCrearEnLinea } from "@/components/producto-crear-en-linea";
 import type { PersonaEncontrada, VentaDePersona } from "@/lib/queries/personas";
 import { AnularRegistro } from "@/components/anular-registro";
+import { buscarPersonasAccion } from "@/app/(app)/personas/acciones";
 import {
-  buscarPersonasAccion,
   crearPersonaAccion,
   registrarAbonoAccion,
   registrarLlamadaAccion,

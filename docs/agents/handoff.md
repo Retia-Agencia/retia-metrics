@@ -7,6 +7,49 @@
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-18 (CIERRE 5 del mismo día) — Los dos huecos de rol cerrados: nace `/personas` y
+  `/recursos` deja de esconderle la edición al developer. 507 tests. Recorrido visual hecho.**
+
+  **PARA QUIEN ABRA LA PRÓXIMA SESIÓN, leer esto primero:**
+
+  - 🆕 **Existe `/personas`**, una ruta nueva: buscar un lead por nombre o correo y abrir su
+    historial. La ven gerente y closer (ADR 0009) y ya está en el sidebar. **No es una pantalla de
+    trabajo**: no toma personas ni registra, para eso sigue `/mi-dia`.
+  - **Por qué nació:** `/personas/[id]` existía y su guarda dejaba entrar al gerente, pero el ÚNICO
+    enlace hacia allá vivía dentro del buscador de `/mi-dia`, que es exclusiva de closer. **Faltaba
+    la ruta, no el permiso.** Un gerente no podía abrir el historial de ningún lead.
+  - 🩸 **Y debajo había un bug de la misma familia que los dos de ayer:** `buscarPersonas` filtraba
+    SIEMPRE por membresía, sin mirar el rol. Un gerente no necesita membresías → no encontraba a
+    nadie, nunca. **La pregunta era del rol y se contestaba con la membresía**, igual que
+    `exigirAccesoAlPrograma` en productos. Ahora el alcance lo decide el rol: `esAdministrador` ve
+    todos los programas activos, el closer sus membresías.
+  - ⚠️ **Un test afirmaba el hueco como si fuera regla** (*"un gerente no puede buscar personas"*).
+    Se cambió a conciencia y con el porqué escrito: lo que el ADR 0003 prohíbe es que el gerente
+    REGISTRE, no que mire. **Cuidado con los tests que documentan un bug: se ven idénticos a los que
+    documentan una decisión.**
+  - **`buscarPersonasAccion` se MOVIÓ** de `mi-dia/acciones.ts` a `personas/acciones.ts`, con
+    `requireRole("gerente","closer")`. La comparten las dos pantallas y la regla de quién puede
+    buscar tiene que ser una sola, igual que la anulación que ya vivía ahí.
+  - **`/recursos` arreglado:** la prop pasó de `esGerente` (`rol === "gerente"`) a `puedeEditar`
+    (`esAdministrador`). El developer YA podía escribir —las server actions pasan por
+    `puedeAcceder`— pero la pantalla no le ofrecía los controles: **podía hacerlo y no tenía cómo.**
+  - 🎯 **La lección, y es reutilizable: el nombre de la variable era el bug.** `esGerente` para
+    decidir un permiso ya contestó mal la pregunta, porque la pregunta nunca fue de qué rol es
+    alguien sino de qué puede hacer. **Cuando una variable de permiso se llame como un rol,
+    sospecha.** Está en AGENTS.md.
+  - **Verificado en el navegador, no solo en tests:** `/personas` busca y devuelve gente de LOS DOS
+    programas (antes, como developer sin membresías, habría dado cero), el botón Historial abre
+    `/personas/[id]` con las anulaciones tachadas, `/recursos` ya muestra "Nuevo recurso" y "Nuevo
+    enlace de pago", y la consola sale limpia.
+  - **Los tres incumplimientos de la regla "al developer no se le restringe nada" quedaron
+    cerrados** (productos, recursos, buscador). El **028** sigue valiendo, pero por su razón propia:
+    unificar "¿con qué rol proyecto esta pantalla?" en `rolDeVista`, no tapar un agujero.
+
+  ⚠️ **SIGUE SIN PUSHEAR.** Los commits de hoy están solo en local: el harness bloquea `git push`
+  desde la sesión. Y ojo: una vez `main` apareció pusheado sin que nadie corriera el comando y otra
+  vez no, así que el fenómeno es intermitente. **Comprobar `git ls-remote origin main` antes de
+  asumir cualquier cosa sobre qué está desplegado.**
+
 - **2026-09-18 (CIERRE 4 del mismo día) — El centinela del año 1 ARREGLADO y reparado en
   `production`: 0 filas dañadas, 839 fechas reales recuperadas. 500 tests.**
 

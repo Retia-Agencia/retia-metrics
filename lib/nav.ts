@@ -4,7 +4,7 @@ import { esAccesoTotal } from "@/lib/auth/roles";
 export type ItemNav = {
   href: string;
   etiqueta: string;
-  icono: "programa" | "recursos" | "ajustes" | "midia" | "productos" | "nerdstats";
+  icono: "programa" | "recursos" | "ajustes" | "midia" | "productos" | "nerdstats" | "personas";
   roles: readonly Rol[];
 };
 
@@ -38,12 +38,18 @@ export function navParaRol(
     });
   }
 
+  // Personas: la puerta al historial de un lead. Ambos roles, como el dashboard
+  // (ADR 0009). Antes solo se llegaba desde el buscador de /mi-dia, asi que un
+  // gerente no tenia NINGUNA forma de abrir un historial (18-sep).
+  items.push({ href: "/personas", etiqueta: "Personas", icono: "personas", roles: ["gerente", "closer"] });
+
   // Productos: ambos roles los administran (ADR 0016). Es la unica configuracion que
   // un closer puede tocar; su acceso por programa se enforza en el servidor.
   items.push({ href: "/productos", etiqueta: "Productos", icono: "productos", roles: ["gerente", "closer"] });
 
-  // Recursos: ambos roles leen (brochures y links de pago vigentes). Solo el gerente
-  // ve los controles de edicion, y eso se decide en el servidor (ticket 023).
+  // Recursos: ambos roles leen (brochures y links de pago vigentes). Solo quien
+  // ADMINISTRA ve los controles de edicion (`esAdministrador`, ADR 0025 punto 5), y
+  // eso se decide en el servidor (ticket 023).
   items.push({ href: "/recursos", etiqueta: "Recursos", icono: "recursos", roles: ["gerente", "closer"] });
 
   // Nerd Stats: SOLO el developer. Es la unica ruta exclusiva suya (ticket 025), y

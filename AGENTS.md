@@ -103,8 +103,10 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   tocar esta fila?"). `exigirAccesoAlPrograma` preguntaba `rol === "gerente"` y le negaba al
   developer crear un producto con un 403 que ademas mentia ("un programa donde no vendes": el
   developer no vende en ninguno). Se destapo cargando los productos reales de `production`, no en
-  un test. ⚠️ **Incumplimiento conocido:** `app/(app)/recursos/page.tsx` decide `esGerente` con
-  `rol === "gerente"` y le esconde la creacion; es del ticket 028.
+  un test. El otro incumplimiento, `/recursos` escondiendole la creacion, quedo arreglado el mismo
+  dia: la prop se llama `puedeEditar` y sale de `esAdministrador`. **El nombre viejo, `esGerente`,
+  era el bug en si**: la pregunta nunca fue de que rol es alguien, sino de que puede hacer. Cuando
+  una variable de permiso se llame como un rol, sospecha.
 - **`gerente` y `closer` son conjuntos disjuntos, sin herencia.** Un closer nunca entra a una ruta
   exclusiva de gerente como `/ajustes` (ADR 0003). Excepcion explicita desde el 15 de septiembre de
   2026: en el dashboard del CRM (`/programas/[slug]`, antes `/comunicarte` y

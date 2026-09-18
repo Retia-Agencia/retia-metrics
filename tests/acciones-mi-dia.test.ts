@@ -95,15 +95,32 @@ async function acciones() {
   return import("@/app/(app)/mi-dia/acciones");
 }
 
+/** La busqueda vive en `personas/`: la comparten `/mi-dia` y `/personas`. */
+async function accionesPersonas() {
+  return import("@/app/(app)/personas/acciones");
+}
+
 // ─────────────────────────────────────────────── barrera de rol (ADR 0003)
 
 describe("la pantalla es del closer: el gerente no registra (ADR 0003)", () => {
   beforeEach(() => auth.mockResolvedValue(sesionGerente));
 
-  it("un gerente no puede buscar personas", async () => {
-    const { buscarPersonasAccion } = await acciones();
-    const res = await buscarPersonasAccion("juan");
-    expect(res.ok).toBe(false);
+  /**
+   * 18-sep: este test afirmaba que un gerente NO puede buscar personas, y eso no era
+   * una regla sino un hueco escrito como si lo fuera. `/personas/[id]` solo se alcanza
+   * desde el buscador, asi que un gerente no tenia ninguna forma de abrir el historial
+   * de un lead. Lo que el ADR 0003 prohibe es que el gerente REGISTRE (los tests de
+   * abajo), no que mire. Se cambio a conciencia.
+   */
+  it("un gerente SI puede buscar personas (ve todos los programas activos)", async () => {
+    await db
+      .insert(people)
+      .values({ programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" });
+
+    const { buscarPersonasAccion } = await accionesPersonas();
+    const res = await buscarPersonasAccion("Juan");
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.personas).toHaveLength(1);
   });
 
   it("un gerente no puede registrar una llamada", async () => {
@@ -136,7 +153,7 @@ describe("sin sesion no pasa nada", () => {
   beforeEach(() => auth.mockResolvedValue(null));
 
   it("buscar sin sesion falla", async () => {
-    const { buscarPersonasAccion } = await acciones();
+    const { buscarPersonasAccion } = await accionesPersonas();
     const res = await buscarPersonasAccion("juan");
     expect(res.ok).toBe(false);
   });
@@ -160,7 +177,7 @@ describe("un closer registra en su programa", () => {
       .insert(people)
       .values({ programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" });
 
-    const { buscarPersonasAccion } = await acciones();
+    const { buscarPersonasAccion } = await accionesPersonas();
     const res = await buscarPersonasAccion("Juan");
     expect(res.ok).toBe(true);
     if (res.ok) {

@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import {
   abonos,
   changeLog,
@@ -97,17 +98,63 @@ async function sembrarPersona(
 // ─────────────────────────────────────────────────────────── buscarPersonas
 
 describe("buscarPersonas", () => {
+  /**
+   * El hueco del 18-sep: el alcance era SIEMPRE la membresia, sin mirar el rol. Un
+   * gerente no necesita membresias, asi que no encontraba a nadie nunca, y como
+   * `/personas/[id]` solo se alcanza desde el buscador, no tenia NINGUNA forma de
+   * abrir el historial de un lead. La pregunta era del rol y se contestaba con la
+   * membresia, misma familia que el bug de `/productos`.
+   */
+  it("un gerente busca en TODOS los programas activos, sin membresias", async () => {
+    await sembrarPersona(programaA, { nombre: "Persona de A", emailNormalizado: "a@correo.co" });
+    await sembrarPersona(programaB, { nombre: "Persona de B", emailNormalizado: "b@correo.co" });
+
+    // El gerente no tiene ni una fila en miembros_programa, a proposito.
+    const [g] = await db
+      .insert(users)
+      .values({ email: "gerente@retiagrowth.com", rol: "gerente", nombre: "Gerencia" })
+      .returning();
+
+    const resultados = await buscarPersonas(g.id, "gerente", "Persona", db);
+    expect(resultados).toHaveLength(2);
+    expect(resultados.map((r) => r.programaNombre).sort()).toEqual(["Programa A", "Programa B"]);
+  });
+
+  it("un developer tambien: no se le restringe nada (ADR 0025 punto 5)", async () => {
+    await sembrarPersona(programaA, { nombre: "Persona de A", emailNormalizado: "a@correo.co" });
+    await sembrarPersona(programaB, { nombre: "Persona de B", emailNormalizado: "b@correo.co" });
+
+    const [d] = await db
+      .insert(users)
+      .values({ email: "dev@retiagrowth.com", rol: "developer", nombre: "Dev" })
+      .returning();
+
+    expect(await buscarPersonas(d.id, "developer", "Persona", db)).toHaveLength(2);
+  });
+
+  it("un programa INACTIVO no sale, ni siquiera para quien administra", async () => {
+    await sembrarPersona(programaB, { nombre: "Persona de B", emailNormalizado: "b@correo.co" });
+    await db.update(programs).set({ activo: false }).where(eq(programs.id, programaB));
+
+    const [g] = await db
+      .insert(users)
+      .values({ email: "g2@retiagrowth.com", rol: "gerente", nombre: "G2" })
+      .returning();
+
+    expect(await buscarPersonas(g.id, "gerente", "Persona", db)).toHaveLength(0);
+  });
+
   it("no cruza a programas donde el closer no vende", async () => {
     await sembrarPersona(programaB, { nombre: "Persona de B", emailNormalizado: "b@correo.co" });
 
-    const resultados = await buscarPersonas(anaUserId, "Persona", db);
+    const resultados = await buscarPersonas(anaUserId, "closer", "Persona", db);
     expect(resultados).toHaveLength(0);
   });
 
   it("encuentra por nombre (insensible a mayusculas)", async () => {
     await sembrarPersona(programaA, { nombre: "Juan Pérez", emailNormalizado: "juan@correo.co" });
 
-    const resultados = await buscarPersonas(anaUserId, "juan", db);
+    const resultados = await buscarPersonas(anaUserId, "closer", "juan", db);
     expect(resultados).toHaveLength(1);
     expect(resultados[0].nombre).toBe("Juan Pérez");
     expect(resultados[0].programId).toBe(programaA);
@@ -117,7 +164,7 @@ describe("buscarPersonas", () => {
   it("encuentra por correo (insensible a mayusculas)", async () => {
     await sembrarPersona(programaA, { nombre: "Sin nombre útil", emailNormalizado: "buscame@correo.co" });
 
-    const resultados = await buscarPersonas(anaUserId, "BUSCAME", db);
+    const resultados = await buscarPersonas(anaUserId, "closer", "BUSCAME", db);
     expect(resultados).toHaveLength(1);
     expect(resultados[0].emailNormalizado).toBe("buscame@correo.co");
   });
@@ -125,9 +172,9 @@ describe("buscarPersonas", () => {
   it("texto de menos de 2 caracteres no devuelve nada", async () => {
     await sembrarPersona(programaA, { nombre: "Ana", emailNormalizado: "a@correo.co" });
 
-    expect(await buscarPersonas(anaUserId, "a", db)).toHaveLength(0);
-    expect(await buscarPersonas(anaUserId, "", db)).toHaveLength(0);
-    expect(await buscarPersonas(anaUserId, "  ", db)).toHaveLength(0);
+    expect(await buscarPersonas(anaUserId, "closer", "a", db)).toHaveLength(0);
+    expect(await buscarPersonas(anaUserId, "closer", "", db)).toHaveLength(0);
+    expect(await buscarPersonas(anaUserId, "closer", "  ", db)).toHaveLength(0);
   });
 
   it("expone el responsable de la persona", async () => {
@@ -141,10 +188,10 @@ describe("buscarPersonas", () => {
       emailNormalizado: "libre@correo.co",
     });
 
-    const conResp = await buscarPersonas(anaUserId, "resp@correo.co", db);
+    const conResp = await buscarPersonas(anaUserId, "closer", "resp@correo.co", db);
     expect(conResp[0].responsableCloserId).toBe("Ana");
 
-    const sinResp = await buscarPersonas(anaUserId, "libre@correo.co", db);
+    const sinResp = await buscarPersonas(anaUserId, "closer", "libre@correo.co", db);
     expect(sinResp[0].responsableCloserId).toBeNull();
   });
 
@@ -155,7 +202,7 @@ describe("buscarPersonas", () => {
         emailNormalizado: `lead${i}@correo.co`,
       });
     }
-    const resultados = await buscarPersonas(anaUserId, "Lead numero", db);
+    const resultados = await buscarPersonas(anaUserId, "closer", "Lead numero", db);
     expect(resultados.length).toBeLessThanOrEqual(20);
   });
 });

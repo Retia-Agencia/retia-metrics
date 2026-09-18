@@ -15,7 +15,7 @@ import {
   type Actor,
   type EntradaPersonaManual,
 } from "@/lib/mutations/personas";
-import { buscarPersonas, ventasDePersona, type PersonaEncontrada, type VentaDePersona } from "@/lib/queries/personas";
+import { ventasDePersona, type VentaDePersona } from "@/lib/queries/personas";
 
 /**
  * Server actions de la pantalla `/mi-dia` (ticket 003, ADR 0003, 0011, 0015, 0021).
@@ -36,9 +36,6 @@ export type ResultadoAccion = { ok: true } | { ok: false; error: string };
  * es la misma forma que `ResultadoAccion`, asi que `aResultado` sirve sin cambios.
  */
 export type ResultadoAlta = { ok: true; creada: boolean } | { ok: false; error: string };
-export type ResultadoBusqueda =
-  | { ok: true; personas: PersonaEncontrada[] }
-  | { ok: false; error: string };
 export type ResultadoVentas =
   | { ok: true; ventas: VentaDePersona[] }
   | { ok: false; error: string };
@@ -84,24 +81,6 @@ export interface EntradaRegistroLlamadaUI
   fechaAgenda?: string;
   fechaLlamada?: string;
   fechaSeguimiento?: string;
-}
-
-/**
- * Busca personas por nombre o correo (ticket 003).
- *
- * El texto NO va a la URL: es un dato personal (correo, nombre) y AGENTS.md prohibe
- * datos personales en URLs y query strings. Por eso la busqueda es una server action
- * invocada desde el componente cliente con el texto en estado local, y los resultados
- * viajan en el payload, no en la barra de direcciones.
- */
-export async function buscarPersonasAccion(texto: string): Promise<ResultadoBusqueda> {
-  try {
-    const session = await requireRole("closer");
-    const personas = await buscarPersonas(session.user.id, texto, db);
-    return { ok: true, personas };
-  } catch (error) {
-    return aResultado(error);
-  }
 }
 
 /** Registra una llamada (y su venta + primer abono si cerro). */

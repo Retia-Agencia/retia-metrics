@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, CalendarCheck, Library, LineChart, Settings, Tag } from "lucide-react";
+import { Activity, CalendarCheck, Library, LineChart, Settings, Tag, Users } from "lucide-react";
 import { navParaRol, type ItemNav } from "@/lib/nav";
 import type { Rol } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ const ICONOS: Record<ItemNav["icono"], typeof LineChart> = {
   midia: CalendarCheck,
   productos: Tag,
   nerdstats: Activity,
+  personas: Users,
 };
 
 type Props = {

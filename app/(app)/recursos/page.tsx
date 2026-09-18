@@ -1,4 +1,5 @@
 import { paginaConRol } from "@/lib/auth/page-guards";
+import { esAdministrador } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { categoriasDeRecurso } from "@/lib/catalogo/categorias-recurso";
@@ -25,9 +26,16 @@ function texto(valor: string | string[] | undefined): string | undefined {
 /**
  * Pantalla de recursos (ticket 023, ADR 0017): brochures y links de pago vigentes.
  *
- * La ven gerente y closer (ADR 0009: "todos ven todo" en el CRM). Solo el gerente ve
- * los controles de edicion, y eso se decide con el rol de la SESION en el servidor,
- * no escondiendo un boton (ADR 0003): las server actions vuelven a exigir gerente.
+ * La ven gerente y closer (ADR 0009: "todos ven todo" en el CRM). Solo quien
+ * ADMINISTRA ve los controles de edicion, y eso se decide con el rol de la SESION en
+ * el servidor, no escondiendo un boton (ADR 0003): las server actions vuelven a
+ * exigir el rol.
+ *
+ * La pregunta es `esAdministrador`, no `rol === "gerente"` (ADR 0025 punto 5). El
+ * developer administra y SI podia escribir —las acciones pasan por `puedeAcceder`,
+ * que lo deja entrar— pero la pantalla no le ofrecia los controles: podia hacerlo y
+ * no tenia como. El nombre viejo de la variable, `esGerente`, era el bug en si: la
+ * pregunta nunca fue de que rol es, sino si puede editar.
  *
  * El filtro por programa y la busqueda por titulo viven en la URL (`?programa=&q=`),
  * como el dashboard (ADR 0023) y a diferencia de `/mi-dia`: el titulo de un brochure
@@ -38,7 +46,7 @@ function texto(valor: string | string[] | undefined): string | undefined {
  */
 export default async function RecursosPage({ searchParams }: Props) {
   const session = await paginaConRol("gerente", "closer");
-  const esGerente = session.user.rol === "gerente";
+  const puedeEditar = esAdministrador(session.user.rol);
 
   const busqueda = await searchParams;
   const slug = texto(busqueda.programa);
@@ -56,8 +64,8 @@ export default async function RecursosPage({ searchParams }: Props) {
     recursosVigentes({ programId, q }, db),
     enlacesDePagoVigentes({ programId }, db),
     // Los catalogos del formulario solo hacen falta para el gerente (unico que crea).
-    esGerente ? categoriasDeRecurso(db).listar({ soloActivos: true }) : Promise.resolve([]),
-    esGerente ? plataformasDePago(db).listar({ soloActivos: true }) : Promise.resolve([]),
+    puedeEditar ? categoriasDeRecurso(db).listar({ soloActivos: true }) : Promise.resolve([]),
+    puedeEditar ? plataformasDePago(db).listar({ soloActivos: true }) : Promise.resolve([]),
   ]);
 
   // El historial de cada recurso se resuelve en el servidor: el desplegable ya trae
@@ -76,7 +84,7 @@ export default async function RecursosPage({ searchParams }: Props) {
       descripcion="Brochures, guiones y links de pago vigentes. Encuéntralos y cópialos en un clic."
     >
       <RecursosPantalla
-        esGerente={esGerente}
+        puedeEditar={puedeEditar}
         slugPrograma={slug ?? null}
         q={q ?? null}
         programas={programas.map((p) => ({ id: p.id, slug: p.slug, nombre: p.nombre }))}

@@ -85,6 +85,14 @@ describe("navegacion por rol", () => {
     expect(rutasGerente).toContain("/productos");
   });
 
+  it("los tres roles ven /personas, la puerta al historial (18-sep)", () => {
+    // El gerente es el caso que motivo la ruta: podia abrir `/personas/[id]` y no
+    // tenia como llegar, porque el unico enlace vivia en `/mi-dia`.
+    for (const rol of ["gerente", "closer", "developer"] as const) {
+      expect(navParaRol(rol, PROGRAMAS).map((i) => i.href)).toContain("/personas");
+    }
+  });
+
   it("ambos roles ven /recursos y ya no /documentos (ticket 023)", () => {
     const rutasCloser = navParaRol("closer", PROGRAMAS).map((i) => i.href);
     const rutasGerente = navParaRol("gerente", PROGRAMAS).map((i) => i.href);

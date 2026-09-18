@@ -41,7 +41,7 @@ import {
  * personal, asi que —a diferencia de `/mi-dia`— si conviene que viaje en la URL. El
  * programa viaja como SLUG (id opaco, nunca un dato personal).
  *
- * `esGerente` decide quien ve los controles de edicion, pero NO es la barrera de
+ * `puedeEditar` decide quien ve los controles de edicion, pero NO es la barrera de
  * seguridad: cada server action vuelve a exigir gerente en el servidor (ADR 0003).
  */
 
@@ -85,7 +85,7 @@ export interface PlataformaOpcion {
 }
 
 interface Props {
-  esGerente: boolean;
+  puedeEditar: boolean;
   slugPrograma: string | null;
   q: string | null;
   programas: ProgramaOpcion[];
@@ -99,7 +99,7 @@ const claseInput =
   "h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 export function RecursosPantalla({
-  esGerente,
+  puedeEditar,
   slugPrograma,
   q,
   programas,
@@ -178,7 +178,7 @@ export function RecursosPantalla({
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground">Recursos</h2>
 
-        {esGerente ? (
+        {puedeEditar ? (
           <CrearRecurso
             categorias={categorias}
             programas={programas}
@@ -197,7 +197,7 @@ export function RecursosPantalla({
               <RecursoItem
                 key={r.id}
                 recurso={r}
-                esGerente={esGerente}
+                puedeEditar={puedeEditar}
                 pendiente={pendiente}
                 onReemplazar={(nuevaUrl, reset) =>
                   correr(() => reemplazarRecursoAccion(r.id, nuevaUrl), "Recurso reemplazado", reset)
@@ -215,7 +215,7 @@ export function RecursosPantalla({
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground">Enlaces de pago</h2>
 
-        {esGerente ? (
+        {puedeEditar ? (
           <CrearEnlace
             programas={programas}
             plataformas={plataformas}
@@ -244,7 +244,7 @@ export function RecursosPantalla({
                           <EnlaceItem
                             key={e.id}
                             enlace={e}
-                            esGerente={esGerente}
+                            puedeEditar={puedeEditar}
                             pendiente={pendiente}
                             onReemplazar={(nuevaUrl, reset) =>
                               correr(
@@ -347,13 +347,13 @@ function FormularioReemplazar({
 
 function RecursoItem({
   recurso,
-  esGerente,
+  puedeEditar,
   pendiente,
   onReemplazar,
   onDesactivar,
 }: {
   recurso: RecursoUI;
-  esGerente: boolean;
+  puedeEditar: boolean;
   pendiente: boolean;
   onReemplazar: (nuevaUrl: string, reset: () => void) => void;
   onDesactivar: () => void;
@@ -402,7 +402,7 @@ function RecursoItem({
             <ChevronDown className={cn("size-4 transition-transform", verHistorial && "rotate-180")} />
           </Button>
         ) : null}
-        {esGerente ? (
+        {puedeEditar ? (
           <>
             <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => setReemplazando((v) => !v)}>
               Reemplazar
@@ -414,7 +414,7 @@ function RecursoItem({
         ) : null}
       </div>
 
-      {reemplazando && esGerente ? (
+      {reemplazando && puedeEditar ? (
         <FormularioReemplazar
           pendiente={pendiente}
           etiqueta="Nueva URL del recurso"
@@ -450,13 +450,13 @@ function RecursoItem({
 
 function EnlaceItem({
   enlace,
-  esGerente,
+  puedeEditar,
   pendiente,
   onReemplazar,
   onDesactivar,
 }: {
   enlace: EnlaceUI;
-  esGerente: boolean;
+  puedeEditar: boolean;
   pendiente: boolean;
   onReemplazar: (nuevaUrl: string, reset: () => void) => void;
   onDesactivar: () => void;
@@ -488,7 +488,7 @@ function EnlaceItem({
         <AccionesEnlace url={enlace.url} />
       </div>
 
-      {esGerente ? (
+      {puedeEditar ? (
         <div className="mt-2 flex flex-wrap items-center gap-1">
           <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => setReemplazando((v) => !v)}>
             Reemplazar
@@ -499,7 +499,7 @@ function EnlaceItem({
         </div>
       ) : null}
 
-      {reemplazando && esGerente ? (
+      {reemplazando && puedeEditar ? (
         <FormularioReemplazar
           pendiente={pendiente}
           etiqueta="Nueva URL del enlace de pago"

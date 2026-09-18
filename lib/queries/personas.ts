@@ -14,6 +14,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { esAdministrador, type Rol } from "@/lib/auth/roles";
 import { ABONADO, SALDO } from "./saldo";
 import { incluyendoAnulados, vigente } from "./vigente";
 
@@ -57,8 +58,16 @@ const MINIMO_TEXTO = 2;
 const MAXIMO_FILAS = 20;
 
 /**
- * Busca personas por nombre O por correo, insensible a mayusculas (ILIKE), limitada
- * a los programas donde el closer tiene membresia activa.
+ * Busca personas por nombre O por correo, insensible a mayusculas (ILIKE), dentro de
+ * los programas que ESE usuario trabaja.
+ *
+ * Y "que trabaja" depende del rol, que es lo que este buscador no preguntaba (18-sep):
+ * quien ADMINISTRA busca en todos los programas activos, un closer solo donde tiene
+ * membresia activa. Antes el filtro era siempre la membresia, sin mirar el rol, y como
+ * un gerente no necesita membresias, **un gerente no encontraba a nadie, nunca**. No
+ * era un buscador vacio y ya: `/personas/[id]` solo se alcanza desde aqui, asi que un
+ * gerente no tenia NINGUNA forma de abrir el historial de un lead. Misma familia que el
+ * bug de `/productos`: la pregunta era del rol y se contesto con la membresia.
  *
  * Con texto vacio o de menos de 2 caracteres devuelve un arreglo vacio sin tocar la
  * base: un buscador que ante "a" devuelve la base entera no sirve y filtra datos
@@ -66,6 +75,7 @@ const MAXIMO_FILAS = 20;
  */
 export async function buscarPersonas(
   userId: string,
+  rol: Rol | null,
   texto: string,
   db: Db = dbDeLaApp,
 ): Promise<PersonaEncontrada[]> {
@@ -76,17 +86,34 @@ export async function buscarPersonas(
   // no se lea como comodin de LIKE.
   const patron = `%${termino.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
-  const filas = await db
-    .select({
-      id: people.id,
-      nombre: people.nombre,
-      emailNormalizado: people.emailNormalizado,
-      telefono: people.telefono,
-      programId: people.programId,
-      programaNombre: programs.nombre,
-      responsableCloserId: people.responsableCloserId,
-      entrada: people.entrada,
-    })
+  const columnas = {
+    id: people.id,
+    nombre: people.nombre,
+    emailNormalizado: people.emailNormalizado,
+    telefono: people.telefono,
+    programId: people.programId,
+    programaNombre: programs.nombre,
+    responsableCloserId: people.responsableCloserId,
+    entrada: people.entrada,
+  };
+  const coincide = or(ilike(people.nombre, patron), ilike(people.emailNormalizado, patron));
+  const orden = [asc(people.nombre), asc(people.emailNormalizado)] as const;
+
+  // Quien administra ve todos los programas activos. El developer entra por aca
+  // (ADR 0025 punto 5: no se le restringe nada), no por el camino de la membresia,
+  // donde no tiene ninguna y encontraria cero.
+  if (esAdministrador(rol)) {
+    return db
+      .select(columnas)
+      .from(people)
+      .innerJoin(programs, eq(programs.id, people.programId))
+      .where(and(eq(programs.activo, true), coincide))
+      .orderBy(...orden)
+      .limit(MAXIMO_FILAS);
+  }
+
+  return db
+    .select(columnas)
     .from(people)
     .innerJoin(programs, eq(programs.id, people.programId))
     .innerJoin(miembrosPrograma, eq(miembrosPrograma.programId, people.programId))
@@ -95,13 +122,11 @@ export async function buscarPersonas(
         eq(miembrosPrograma.userId, userId),
         eq(miembrosPrograma.activo, true),
         eq(programs.activo, true),
-        or(ilike(people.nombre, patron), ilike(people.emailNormalizado, patron)),
+        coincide,
       ),
     )
-    .orderBy(asc(people.nombre), asc(people.emailNormalizado))
+    .orderBy(...orden)
     .limit(MAXIMO_FILAS);
-
-  return filas;
 }
 
 /** La persona tal como la muestra su historial (ticket 006). */

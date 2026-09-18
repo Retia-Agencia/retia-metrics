@@ -56,10 +56,19 @@ que un developer caia al chequeo de membresia y recibia un **403 que ademas ment
 gestionar productos de un programa donde no vendes", cuando el developer no vende en ninguno por
 definicion. Se destapo el 18-sep cargando los productos reales de `production`, no en un test.
 
-**Incumplimientos conocidos al 18-sep** (se dejan anotados en vez de fingir que la regla ya se
-cumple entera): `app/(app)/recursos/page.tsx` decide `esGerente` con `rol === "gerente"`, asi que
-al developer le esconde la creacion de recursos y enlaces. Cae dentro del ticket **028**, que
-convierte "¿con que rol proyecto esta pantalla?" en `rolDeVista` y la contesta en un solo lugar.
+**Los dos incumplimientos que se encontraron el 18-sep quedaron arreglados el mismo dia.** El de
+`productos` (arriba) y el de `app/(app)/recursos/page.tsx`, que decidia `esGerente` con
+`rol === "gerente"` y le escondia al developer la creacion de recursos y enlaces: lo podia hacer
+—las server actions pasan por `puedeAcceder`— y la pantalla no se lo ofrecia. Ahora la prop se
+llama `puedeEditar` y sale de `esAdministrador`. **El nombre viejo era el bug en si:** una variable
+de permiso que se llama como un rol ya decidio mal la pregunta. El ticket **028** sigue valiendo,
+pero por otra razon: unificar "¿con que rol proyecto esta pantalla?" en `rolDeVista`, no tapar un
+agujero.
+
+Un tercer caso, de la misma familia pero no de rutas: `buscarPersonas` filtraba SIEMPRE por
+membresia sin mirar el rol. Un gerente no necesita membresias, asi que no encontraba a nadie, y
+como `/personas/[id]` solo se alcanzaba desde ese buscador, **un gerente no tenia ninguna forma de
+abrir el historial de un lead**. Se arreglo dando el alcance por rol y abriendo la ruta `/personas`.
 
 **6. "Administrar" y "pasar toda guarda" son dos preguntas, no una.** `esAccesoTotal` la cumple
 solo el developer; `esAdministrador` la cumplen el gerente y el developer. Hoy la salvaguarda del

@@ -506,6 +506,43 @@ describe("pagina de recursos /recursos (ticket 023)", () => {
   });
 });
 
+describe("pagina de personas /personas (18-sep: la puerta al historial)", () => {
+  const RUTA = "@/app/(app)/personas/page";
+
+  async function correrPersonas(): Promise<string | null> {
+    const modulo = (await import(/* @vite-ignore */ RUTA)) as {
+      default: () => Promise<unknown>;
+    };
+    try {
+      await modulo.default();
+      return null;
+    } catch (e) {
+      if (e instanceof Redireccion) return e.destino;
+      throw e;
+    }
+  }
+
+  /**
+   * El punto entero de esta pagina: `/personas/[id]` ya dejaba entrar al gerente,
+   * pero el unico enlace hacia alla vivia en `/mi-dia`, exclusiva de closer, asi que
+   * el gerente no tenia ruta al historial de ningun lead.
+   */
+  it("deja pasar a un gerente, que antes no tenia ruta al historial", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    expect(await correrPersonas()).toBeNull();
+  });
+
+  it("deja pasar a un closer (ADR 0009)", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    expect(await correrPersonas()).toBeNull();
+  });
+
+  it("manda al login a quien no tiene sesion", async () => {
+    auth.mockResolvedValue(null);
+    expect(await correrPersonas()).toBe("/login");
+  });
+});
+
 describe("pagina de documentos /documentos redirige a /recursos (ticket 023)", () => {
   const RUTA = "@/app/(app)/documentos/page";
 
