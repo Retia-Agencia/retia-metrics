@@ -17,15 +17,9 @@ punta a punta (criterios 1, 5 y 6 ejercidos: llamada + venta + abono + recurso).
 de catalogo se crea por el molde, tambien desde un script). Migracion 0015 aplicada en dev y en
 production.
 
-Lo PRIMERO, y es un comando que el clasificador de permisos no me deja correr a mi:
-
-  npx tsx scripts/_limpiar-recorrido-prod.ts -- --escribir
-
-Borra las 6 filas de prueba que dejo el recorrido en production (2 llamadas, 1 venta, 1 abono, 1
-persona `hola@test.com`, 1 recurso "Test") mas sus 11 filas de change_log. Simula por defecto, y
-cada fila va por su uuid exacto. **Despues de correrlo, borrar el script**: es temporal.
-Hasta que eso corra, el dashboard de Tactical muestra una venta de 1.500 USD y una caja de 800 que
-no existen.
+production quedo LIMPIA y verificada: 0 llamadas, 0 ventas, 0 abonos, 0 recursos, 0 personas del
+CRM, con las 4.599 personas reales y toda la configuracion intactas. Los dos closers activos son
+`Mani` y `Maru`, capitalizados. No hay nada pendiente de limpieza.
 
 Delega a Kiro (kiro-rescue) lo grueso o repetitivo. Kiro NO corre db:generate ni db:migrate. Para
 una segunda opinion o una implementacion paralela, codex:codex-rescue.
@@ -52,12 +46,17 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
   **PARA QUIEN ABRA LA PROXIMA SESION, leer esto primero:**
 
-  - 🔴 **HAY UN COMANDO PENDIENTE, y mientras no corra el dashboard MIENTE.**
-    `npx tsx scripts/_limpiar-recorrido-prod.ts -- --escribir` borra las 6 filas de prueba del
-    recorrido (2 llamadas, 1 venta de 1.500 USD, 1 abono de 800, la persona `hola@test.com` "Thisa
-    Test" y el recurso "Test") mas sus 11 filas de `change_log`. **El clasificador de permisos
-    bloqueo el borrado desde la sesion, correctamente** (igual que en el CIERRE 7). Simula por
-    defecto y cada fila va por su uuid exacto, leido de la base. **Borrar el script despues.**
+  - ✅ **LOS DATOS DE PRUEBA DEL RECORRIDO YA NO ESTAN.** Mani corrio
+    `scripts/_limpiar-recorrido-prod.ts -- --escribir` (el clasificador de permisos bloqueo el
+    borrado desde la sesion, correctamente, igual que en el CIERRE 7). Se fueron 6 filas de negocio
+    —2 llamadas, la venta de 1.500 USD, el abono de 800, la persona `hola@test.com` "Thisa Test" y
+    el recurso "Test"— mas sus 11 filas de `change_log`. Cada una por su uuid exacto, no por un
+    `where origen = 'app'` que se habria llevado tambien lo que el equipo registre manana.
+    **Verificado despues por una consulta aparte**, no por la salida del script: `production` queda
+    en 0 llamadas / 0 ventas / 0 abonos / 0 recursos / 0 personas del CRM, con las **4.599 personas
+    reales** y toda la configuracion intactas (6 categorias, 5 enlaces de pago, 2 productos, 4
+    cohortes), y el `change_log` conservando solo lo que es configuracion de verdad.
+    El script era TEMPORAL y ya se borro del repo.
 
   - ✅ **EL RECORRIDO REAL CONTRA `production` ESTA HECHO, y las consultas corren.** Mani cargo
     su `closer_id`, activo sus dos membresias, creo una persona a mano, registro una llamada `show`,
