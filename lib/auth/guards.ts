@@ -8,6 +8,7 @@ import {
   puedeAcceder,
   type Rol,
 } from "./roles";
+import { rolDeVista } from "./vista";
 
 /**
  * Guardas de servidor. TODO route handler y server action pasa por aca.
@@ -26,7 +27,12 @@ export async function requireSession(): Promise<Session> {
  */
 export async function requireRole(...permitidos: Rol[]): Promise<Session> {
   const session = await requireSession();
-  if (!puedeAcceder(session.user.rol, permitidos)) {
+  // Se evalua contra el ROL DE VISTA (ticket 028): un developer en vista `closer` es
+  // un closer para el servidor, y en vista `gerente` vuelve a tener prohibido lo del
+  // closer (ADR 0003). Estrechar nunca otorga: un no-developer ignora la cookie y
+  // `rolDeVista` le devuelve su rol real, asi que la disjuncion no cambia.
+  const rol = await rolDeVista(session);
+  if (!puedeAcceder(rol, permitidos)) {
     throw new AuthorizationError(
       `Esta vista es solo para: ${permitidos.join(", ")}.`,
     );

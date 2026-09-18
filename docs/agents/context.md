@@ -280,6 +280,24 @@ porque administra pero no registra (ADR 0003). Nacio el 18-sep, cuando se vio qu
 `/ajustes/usuarios` preguntaba `rol === "closer"` a mano y por eso a un developer no se le podia
 cargar su `closer_id` desde la app.
 
+**Vista** (y **rol de vista**):
+Con que rol se PROYECTA y se GUARDA una pantalla, que no siempre es el rol real de la sesion
+(ADR 0028, ticket 028). Un developer puede ponerse en vista `gerente` o `closer` y usar la app
+como la ve ese rol, sin cambiarse el rol en la base. Hay tres vistas: `todo` (la mas ancha, por
+defecto), `gerente` y `closer`; `todo` **no es un rol**, es un valor de la cookie.
+
+La regla que la hace segura: **la vista solo puede ESTRECHAR, nunca ensanchar.** Si el rol de la
+sesion no es de acceso total, el valor de la cookie se ignora entero. Un closer que se ponga a
+mano una cookie de vista `gerente` sigue siendo closer. El unico efecto posible de la vista es
+que un developer PIERDA acceso.
+
+`rolDeVista(session)` en `lib/auth/vista.ts` es LA definicion, y contesta la pregunta *"¿con que
+rol actua esta sesion ahora?"*. Es distinta de **acceso total**, **administrar** y **trabaja
+leads**, que preguntan por el rol REAL. Un test guardian recorre `app/` y `lib/` y falla si
+alguien decide alcance o permiso leyendo `session.user.rol` crudo; las pocas lecturas legitimas
+—las de IDENTIDAD, como `/api/me` o el destino al entrar— van como excepciones nombradas.
+_Evitar_: "modo", "simular rol", "impersonar" — no se suplanta a nadie, se estrecha la propia.
+
 **Anular**:
 Dejar un registro —una llamada, una venta o un abono— **fuera de toda metrica sin borrarlo**, con
 quien lo anulo, cuando y por que (ADR 0026). Un registro anulado desaparece del embudo, de la caja

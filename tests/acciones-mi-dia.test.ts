@@ -27,6 +27,25 @@ import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 const auth = vi.fn();
 vi.mock("@/lib/auth", () => ({ auth }));
 
+/**
+ * La cookie de vista (ticket 028) la lee `rolDeVista` via `next/headers`, que fuera de
+ * un request real lanza. Se mockea con un store controlable: `ponerVista` fija el
+ * valor para un test; por defecto no hay cookie (vista `todo`). Solo importa para el
+ * developer: un gerente o closer nunca llegan a leerla.
+ */
+let cookieDeVista: string | undefined;
+function ponerVista(v: string | undefined) {
+  cookieDeVista = v;
+}
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (nombre: string) =>
+      nombre === "vista" && cookieDeVista !== undefined
+        ? { name: nombre, value: cookieDeVista }
+        : undefined,
+  }),
+}));
+
 let db: Db;
 vi.mock("@/lib/db", () => ({
   get db() {
@@ -39,7 +58,9 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 let cerrar: () => Promise<void>;
 let gerenteId: string;
 let closerId: string;
+let developerId: string;
 let programaA: string;
+let programaB: string;
 
 const sesionGerente = {
   user: { id: "", email: "gerente@retiagrowth.com", rol: "gerente", closerId: null },
@@ -47,9 +68,13 @@ const sesionGerente = {
 const sesionCloser = {
   user: { id: "", email: "closer@retiagrowth.com", rol: "closer", closerId: "Ana" },
 };
+const sesionDeveloper = {
+  user: { id: "", email: "dev@retiagrowth.com", rol: "developer", closerId: "Dev" },
+};
 
 beforeEach(async () => {
   auth.mockReset();
+  cookieDeVista = undefined;
   ({ db, cerrar } = await crearBaseDePrueba());
 
   const [g] = await db
@@ -66,13 +91,28 @@ beforeEach(async () => {
   closerId = c.id;
   sesionCloser.user.id = closerId;
 
+  const [dev] = await db
+    .insert(users)
+    .values({ email: "dev@retiagrowth.com", rol: "developer", nombre: "Dev", closerId: "Dev" })
+    .returning();
+  developerId = dev.id;
+  sesionDeveloper.user.id = developerId;
+
   const [a] = await db
     .insert(programs)
     .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
     .returning();
   programaA = a.id;
 
+  const [b] = await db
+    .insert(programs)
+    .values({ slug: "programa-b", nombre: "Programa B", ticketUsd: "1500.00" })
+    .returning();
+  programaB = b.id;
+
   await db.insert(miembrosPrograma).values({ userId: closerId, programId: programaA, activo: true });
+  // El developer es miembro SOLO de A: en vista closer no debe encontrar leads de B.
+  await db.insert(miembrosPrograma).values({ userId: developerId, programId: programaA, activo: true });
 
   // Cohorte activa para poder registrar llamadas (registrarLlamada la exige).
   await db.insert(cohorts).values({
@@ -235,7 +275,43 @@ describe("un closer registra en su programa", () => {
   });
 });
 
-// ─────────────────────────────── conversion de fecha anclada en Bogota
+// ─────────────────────────────── ver como (ticket 028): la vista estrecha el alcance
+
+describe("developer con 'ver como' (ticket 028)", () => {
+  beforeEach(() => auth.mockResolvedValue(sesionDeveloper));
+
+  it("en vista 'closer' busca SOLO en sus membresias, no en todos los programas", async () => {
+    // Un lead en A (donde el developer es miembro) y otro en B (donde no lo es).
+    await db.insert(people).values([
+      { programId: programaA, emailNormalizado: "en-a@correo.co", nombre: "Ana En A" },
+      { programId: programaB, emailNormalizado: "en-b@correo.co", nombre: "Ana En B" },
+    ]);
+    ponerVista("closer");
+
+    const { buscarPersonasAccion } = await accionesPersonas();
+    const res = await buscarPersonasAccion("Ana");
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      // En vista closer la membresia vuelve a importar: solo el lead de A.
+      expect(res.personas.map((p) => p.nombre)).toEqual(["Ana En A"]);
+    }
+  });
+
+  it("en vista 'todo' (por defecto) busca en TODOS los programas activos", async () => {
+    await db.insert(people).values([
+      { programId: programaA, emailNormalizado: "en-a@correo.co", nombre: "Ana En A" },
+      { programId: programaB, emailNormalizado: "en-b@correo.co", nombre: "Ana En B" },
+    ]);
+    // Sin cookie: vista `todo`, el developer administra y ve todo.
+
+    const { buscarPersonasAccion } = await accionesPersonas();
+    const res = await buscarPersonasAccion("Ana");
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.personas).toHaveLength(2);
+  });
+});
+
+
 
 describe("la fecha del formulario se ancla al mediodia de Bogota, no corre el dia", () => {
   beforeEach(() => auth.mockResolvedValue(sesionCloser));

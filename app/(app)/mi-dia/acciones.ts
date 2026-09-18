@@ -5,6 +5,7 @@ import type { Session } from "next-auth";
 import { ZodError } from "zod";
 import { requireRole } from "@/lib/auth/guards";
 import { esRolValido } from "@/lib/auth/roles";
+import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import { registrarLlamada, type EntradaRegistroLlamada } from "@/lib/mutations/registro";
@@ -49,9 +50,17 @@ function aResultado(error: unknown): { ok: false; error: string } {
   return { ok: false, error: "Error interno." };
 }
 
-/** Arma el actor de las mutaciones de personas desde la sesion ya validada. */
-function actorDe(session: Session): Actor {
-  const rol = session.user.rol;
+/**
+ * Arma el actor de las mutaciones de personas desde la sesion ya validada.
+ *
+ * El rol del actor sale de `rolDeVista`, NO de `session.user.rol` (ticket 028): un
+ * developer en vista `closer` ES un closer para la capa de mutaciones —crea persona,
+ * la toma, registra— y en vista `gerente` vuelve a tener prohibido registrar
+ * (ADR 0003), porque `requireRole("closer")` ya lo habria rechazado antes de llegar
+ * aca. El `closerId` sigue saliendo de la sesion (ADR 0011): la vista no lo inventa.
+ */
+async function actorDe(session: Session): Promise<Actor> {
+  const rol = await rolDeVista(session);
   if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
   return { id: session.user.id, rol, closerId: session.user.closerId };
 }
@@ -135,7 +144,7 @@ export async function registrarAbonoAccion(
 export async function tomarPersonaAccion(personaId: string): Promise<ResultadoAccion> {
   try {
     const session = await requireRole("closer");
-    const actor = actorDe(session);
+    const actor = await actorDe(session);
     if (!actor.closerId) {
       throw new ErrorDeApp("Tu cuenta no tiene closerId cargado.", 400);
     }
@@ -159,7 +168,7 @@ export async function crearPersonaAccion(
 ): Promise<ResultadoAlta> {
   try {
     const session = await requireRole("closer");
-    const { creada } = await crearPersonaManual(db, actorDe(session), input);
+    const { creada } = await crearPersonaManual(db, await actorDe(session), input);
     revalidatePath("/mi-dia");
     return { ok: true, creada };
   } catch (error) {

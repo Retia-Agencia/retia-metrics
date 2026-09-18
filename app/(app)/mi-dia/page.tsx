@@ -1,4 +1,5 @@
 import { paginaConRol } from "@/lib/auth/page-guards";
+import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { MiDiaRegistro, type ContextoMiDia } from "@/components/mi-dia-registro";
@@ -24,11 +25,14 @@ export const dynamic = "force-dynamic";
 export default async function MiDiaPage() {
   const session = await paginaConRol("closer");
 
-  // Solo un closer o un developer llegan aca (la guarda no deja a nadie mas). El
-  // developer no es miembro de ningun programa, asi que con la proyeccion de closer
-  // veria la pantalla vacia: se le da la del gerente, la union de programas activos
-  // (ADR 0025). Es la misma inversion que hace `/productos`.
-  const rol = session.user.rol === "closer" ? "closer" : "gerente";
+  // Con que rol se proyecta la pantalla lo decide `rolDeVista`, no `session.user.rol`
+  // a mano (ticket 028, ADR 0024). Un developer en vista `todo` ve la union de
+  // programas activos (como el gerente), porque no es miembro de ninguno y con la
+  // proyeccion de closer veria la pantalla vacia (ADR 0025 punto 5); en vista `closer`
+  // la proyeccion se estrecha y la membresia vuelve a importar. Solo el closer
+  // (real o proyectado) queda acotado a los suyos.
+  const rolVista = await rolDeVista(session);
+  const rol = rolVista === "closer" ? "closer" : "gerente";
 
   const programasBase = await programasGestionablesPorUsuario(session.user.id, rol, db);
 

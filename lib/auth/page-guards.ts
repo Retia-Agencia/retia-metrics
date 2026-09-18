@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { Session } from "next-auth";
 import { auth } from "./index";
 import { esAccesoTotal, puedeAcceder, type Rol } from "./roles";
+import { rolDeVista } from "./vista";
 import { rutaInicial } from "@/lib/nav";
 import { programasActivos } from "@/lib/queries/programas";
 
@@ -34,8 +35,15 @@ export async function paginaConSesion(): Promise<Session> {
 
 export async function paginaConRol(...permitidos: Rol[]): Promise<Session> {
   const session = await paginaConSesion();
-  if (!puedeAcceder(session.user.rol, permitidos)) {
-    redirect(await destinoInicial(session.user.rol));
+  // La guarda se evalua contra el ROL DE VISTA, no contra el rol de la sesion: un
+  // developer en vista `closer` no entra a `/ajustes` (la vista estrecha tambien la
+  // guarda, ticket 028). Estrechar nunca otorga: un no-developer ignora la cookie y
+  // `rolDeVista` le devuelve su rol real, asi que la disjuncion del ADR 0003 no se
+  // toca. La salida cuando la vista esconde una ruta es el selector del menu de
+  // usuario, que no depende de la vista.
+  const rol = await rolDeVista(session);
+  if (!puedeAcceder(rol, permitidos)) {
+    redirect(await destinoInicial(rol));
   }
   return session;
 }

@@ -1,6 +1,8 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { LogOut, Eye } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { signOut } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +12,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cambiarVista } from "@/app/(app)/acciones-vista";
+import { VISTAS, type Vista } from "@/lib/auth/vista";
 
 import type { Rol } from "@/lib/auth/roles";
 
@@ -27,20 +33,51 @@ const ETIQUETA_ROL: Record<Rol, string> = {
   developer: "Desarrollo",
 };
 
+/** Como se nombra cada VISTA del "ver como" (ticket 028). */
+const ETIQUETA_VISTA: Record<Vista, string> = {
+  todo: "Todo (desarrollo)",
+  gerente: "Como gerente",
+  closer: "Como closer",
+};
+
 type Props = {
   nombre: string;
   email: string;
   imagen?: string | null;
   rol: Rol | null;
+  /**
+   * Si el usuario REAL es developer (por rol de sesion, no por vista): solo el
+   * developer ve el selector de "ver como". Se decide en el servidor con
+   * `esAccesoTotal` y llega como prop.
+   */
+  puedeCambiarVista: boolean;
+  /** La vista marcada hoy en la cookie, para pintar el radio. */
+  vista: Vista;
 };
 
-export function UserMenu({ nombre, email, imagen, rol }: Props) {
+export function UserMenu({ nombre, email, imagen, rol, puedeCambiarVista, vista }: Props) {
+  const router = useRouter();
+  const [pendiente, iniciar] = useTransition();
+
   const iniciales = nombre
     .split(" ")
     .slice(0, 2)
     .map((p) => p[0])
     .join("")
     .toUpperCase();
+
+  /**
+   * Cambia la vista: escribe la cookie (server action) y luego `router.refresh()`,
+   * porque la vista cambia lo que TODA pantalla proyecta y `revalidatePath` no
+   * refresca la pantalla actual (AGENTS.md).
+   */
+  function elegirVista(valor: string) {
+    if (valor === vista) return;
+    iniciar(async () => {
+      await cambiarVista(valor as Vista);
+      router.refresh();
+    });
+  }
 
   return (
     <DropdownMenu>
@@ -66,6 +103,27 @@ export function UserMenu({ nombre, email, imagen, rol }: Props) {
             {rol ?? "sin rol"}
           </Badge>
         </DropdownMenuLabel>
+        {/*
+         * El selector de "ver como" se renderiza SIEMPRE que el usuario sea developer,
+         * independiente de la vista activa: es la unica salida cuando la vista `closer`
+         * esconde Ajustes y Nerd Stats (ticket 028). No depende del nav.
+         */}
+        {puedeCambiarVista ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="flex items-center gap-1.5 text-muted-foreground">
+              <Eye className="size-3.5" />
+              Ver como
+            </DropdownMenuLabel>
+            <DropdownMenuRadioGroup value={vista} onValueChange={elegirVista}>
+              {VISTAS.map((v) => (
+                <DropdownMenuRadioItem key={v} value={v} disabled={pendiente}>
+                  {ETIQUETA_VISTA[v]}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </>
+        ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => signOut({ redirectTo: "/login" })}>
           <LogOut className="size-4" />

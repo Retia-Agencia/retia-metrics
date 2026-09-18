@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Activity, CalendarCheck, Library, LineChart, Settings, Tag, Users } from "lucide-react";
 import { navParaRol, type ItemNav } from "@/lib/nav";
 import type { Rol } from "@/lib/auth/roles";
+import type { Vista } from "@/lib/auth/vista";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -21,16 +22,30 @@ const ICONOS: Record<ItemNav["icono"], typeof LineChart> = {
 };
 
 type Props = {
+  /** El rol DE VISTA (ya proyectado): la nav se estrecha con el (ticket 028). */
   rol: Rol | null;
   nombre: string;
   email: string;
   imagen?: string | null;
   programas: readonly { slug: string; nombre: string }[];
+  /** Si el usuario REAL es developer: solo el ve el selector de "ver como". */
+  puedeCambiarVista: boolean;
+  /** La vista marcada hoy en la cookie. */
+  vista: Vista;
 };
 
-export function AppSidebar({ rol, nombre, email, imagen, programas }: Props) {
+export function AppSidebar({
+  rol,
+  nombre,
+  email,
+  imagen,
+  programas,
+  puedeCambiarVista,
+  vista,
+}: Props) {
   const pathname = usePathname();
-  // La lista viene filtrada por rol. Esconder no es seguridad: cada ruta valida en servidor.
+  // La lista viene filtrada por el ROL DE VISTA. Esconder no es seguridad: cada ruta
+  // valida en servidor, tambien contra el rol de vista (ticket 028).
   const items = navParaRol(rol, programas);
 
   return (
@@ -71,7 +86,14 @@ export function AppSidebar({ rol, nombre, email, imagen, programas }: Props) {
       <Separator />
 
       <div className="p-2">
-        <UserMenu nombre={nombre} email={email} imagen={imagen} rol={rol} />
+        <UserMenu
+          nombre={nombre}
+          email={email}
+          imagen={imagen}
+          rol={rol}
+          puedeCambiarVista={puedeCambiarVista}
+          vista={vista}
+        />
       </div>
     </aside>
   );

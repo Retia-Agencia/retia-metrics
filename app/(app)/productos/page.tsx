@@ -1,4 +1,5 @@
 import { paginaConRol } from "@/lib/auth/page-guards";
+import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { ProductosAdmin, type ProgramaConProductos } from "@/components/productos-admin";
@@ -17,9 +18,12 @@ export const dynamic = "force-dynamic";
  */
 export default async function ProductosPage() {
   const session = await paginaConRol("gerente", "closer");
-  // Un developer tiene acceso total (ADR 0025): ve los productos de todos los
-  // programas, igual que un gerente. Solo el closer queda acotado a los suyos.
-  const rol = session.user.rol === "closer" ? "closer" : "gerente";
+  // Con que rol se proyecta lo decide `rolDeVista`, no `session.user.rol` a mano
+  // (ticket 028, ADR 0024). Un developer (vista `todo`) ve los productos de todos los
+  // programas, igual que un gerente; en vista `closer` queda acotado a los suyos.
+  // Solo el closer (real o proyectado) se acota.
+  const rolVista = await rolDeVista(session);
+  const rol = rolVista === "closer" ? "closer" : "gerente";
 
   const programasBase = await programasGestionablesPorUsuario(session.user.id, rol, db);
 

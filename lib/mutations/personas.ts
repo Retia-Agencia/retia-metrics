@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import type { Rol } from "@/lib/auth/roles";
+import { trabajaLeads } from "@/lib/auth/roles";
 import type { Persona } from "@/lib/db/schema";
 
 /**
@@ -104,10 +105,17 @@ async function leerPorCorreo(
 }
 
 /**
- * Un closer es destino valido en un programa solo si tiene un `users` con
- * `rol = "closer"`, `activo = true`, ese `closerId`, Y una membresia ACTIVA en el
- * programa. Una sola regla que impide que un closer de otro programa se robe
- * personas ajenas y que un gerente asigne a un closer que no vende ahi.
+ * Es destino valido de un lead en un programa quien TRABAJA LEADS (closer o
+ * developer, `trabajaLeads` en `lib/auth/roles.ts`), esta activo, tiene ese `closerId`
+ * Y una membresia ACTIVA en el programa. Una sola regla que impide que un closer de
+ * otro programa se robe personas ajenas y que un gerente asigne a alguien que no
+ * vende ahi.
+ *
+ * Antes filtraba `eq(users.rol, "closer")` contra la base, asi que un developer no
+ * pasaba ni con la vista `closer` puesta (ticket 028). El filtro por rol se relaja
+ * usando `trabajaLeads`, NO escribiendo `"developer"` en la consulta: la excepcion del
+ * developer vive en un solo lugar (ADR 0025). Se lee la columna `rol` y se decide en
+ * memoria; a esta escala (una fila por closerId) es gratis.
  */
 async function esCloserValidoEnPrograma(
   db: Db,
@@ -115,20 +123,19 @@ async function esCloserValidoEnPrograma(
   programId: string,
 ): Promise<boolean> {
   const [fila] = await db
-    .select({ id: users.id })
+    .select({ rol: users.rol })
     .from(users)
     .innerJoin(miembrosPrograma, eq(miembrosPrograma.userId, users.id))
     .where(
       and(
         eq(users.closerId, closerId),
-        eq(users.rol, "closer"),
         eq(users.activo, true),
         eq(miembrosPrograma.programId, programId),
         eq(miembrosPrograma.activo, true),
       ),
     )
     .limit(1);
-  return Boolean(fila);
+  return Boolean(fila) && trabajaLeads(fila.rol as Rol);
 }
 
 /** El closer logueado debe tener su `closerId` cargado (precondicion del ADR 0011). */

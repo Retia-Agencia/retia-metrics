@@ -1,5 +1,6 @@
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { esAdministrador } from "@/lib/auth/roles";
+import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { categoriasDeRecurso } from "@/lib/catalogo/categorias-recurso";
@@ -46,7 +47,11 @@ function texto(valor: string | string[] | undefined): string | undefined {
  */
 export default async function RecursosPage({ searchParams }: Props) {
   const session = await paginaConRol("gerente", "closer");
-  const puedeEditar = esAdministrador(session.user.rol);
+  // Quien ve los controles de edicion lo decide `esAdministrador` sobre el ROL DE
+  // VISTA, no sobre `session.user.rol` a mano (ticket 028, ADR 0024): un developer en
+  // vista `closer` NO los ve (un closer no administra), en vista `gerente` o `todo` SI.
+  // La decision es de servidor y las server actions vuelven a exigir el rol (ADR 0003).
+  const puedeEditar = esAdministrador(await rolDeVista(session));
 
   const busqueda = await searchParams;
   const slug = texto(busqueda.programa);

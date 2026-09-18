@@ -3,7 +3,7 @@ id: 028
 fase: F4
 serves: "continuación del 024 (su 'Fuera: ver como'); enmienda al ADR 0025"
 depends: [024]
-status: todo
+status: done
 ---
 
 # 028 — "Ver como" del developer
@@ -104,6 +104,22 @@ Dos piezas de este ticket ya están en `main`, porque el 029 se topó con ellas:
   su criterio "con el closerId cargado" era imposible desde la app. Encontrado al intentar
   registrar una llamada como developer en el recorrido del 18-sep.
 
+> **CERRADO el 18-sep.** Todo lo de abajo esta hecho y verificado (543 tests, typecheck y lint
+> limpios). Dos apuntes para quien lea esto despues:
+>
+> - **La afirmacion sobre `esCloserValidoEnPrograma` ya estaba vencida cuando se escribio este
+>   parrafo:** el 029 la habia pasado a `trabajaLeads` antes. Un ticket que describe el codigo
+>   envejece sin avisar; verificar contra el arbol antes de creerle.
+> - **El corazon no fue el selector ni los tres sitios, fue el guardian.** La primera entrega
+>   arreglo las tres comparaciones literales y marco el ticket como cubierto, pero TRES sitios mas
+>   seguian pasando `session.user.rol` crudo a una funcion que decide alcance
+>   (`personas/acciones.ts`, el segundo `actorDe` de `productos/acciones.ts`, y `anulaciones.ts`,
+>   que ademas tenia un comentario del 029 pidiendo justo ese cambio). **El guardian de la primera
+>   entrega no los veia**, porque solo cazaba comparaciones contra un literal. La forma nueva
+>   —pasar el valor sin proyectar— es la que sobrevive. El guardian final recorre `app/` y `lib/`,
+>   borra comentarios y cadenas antes de analizar, caza las dos formas, y sus 7 excepciones estan
+>   nombradas una por una con su justificacion.
+
 Lo que sigue pendiente es el corazón del ticket: `rolDeVista(session)`, la cookie, el selector en
 el menú de usuario, y que `/mi-dia`, `/recursos` y `/productos` dejen de comparar `session.user.rol`
 a mano. Y `esCloserValidoEnPrograma` en `lib/mutations/personas.ts`, que sigue filtrando
@@ -111,19 +127,19 @@ a mano. Y `esCloserValidoEnPrograma` en `lib/mutations/personas.ts`, que sigue f
 
 ## Done cuando
 
-- [ ] `rolDeVista` es la única función que contesta con qué rol se proyecta; ninguna página
+- [x] `rolDeVista` es la única función que contesta con qué rol se proyecta; ninguna página
       compara `session.user.rol` a mano. Un test lo guarda (como el guardián de slugs del 009).
-- [ ] Como developer en vista `gerente`, `/recursos` muestra los controles de edición.
-- [ ] Como developer en vista `closer`, `/mi-dia` deja buscar, crear persona, tomarla y registrar
+- [x] Como developer en vista `gerente`, `/recursos` muestra los controles de edición.
+- [x] Como developer en vista `closer`, `/mi-dia` deja buscar, crear persona, tomarla y registrar
       llamada y abono de punta a punta, con el `closerId` cargado. *Actualizado el 18-sep
       (CIERRE 5): el buscador ya NO se filtra siempre por membresía — el alcance lo decide el rol,
       y quien administra ve todos los programas activos. Así que un developer en vista `todo`
       encuentra personas sin membresías. Ojo con el caso de este criterio: en vista `closer` la
       proyección se estrecha, y ahí la membresía vuelve a importar.*
-- [ ] Como developer en vista `gerente`, `/mi-dia` vuelve a negar el registro (ADR 0003).
-- [ ] Un gerente o un closer con la cookie de vista puesta a mano no cambian de proyección.
-- [ ] El selector se ve siempre, incluso en la vista que esconde Ajustes y Nerd Stats.
-- [ ] Ningún test existente de disjunción gerente/closer cambia de resultado.
+- [x] Como developer en vista `gerente`, `/mi-dia` vuelve a negar el registro (ADR 0003).
+- [x] Un gerente o un closer con la cookie de vista puesta a mano no cambian de proyección.
+- [x] El selector se ve siempre, incluso en la vista que esconde Ajustes y Nerd Stats.
+- [x] Ningún test existente de disjunción gerente/closer cambia de resultado.
 
 ## Notas
 

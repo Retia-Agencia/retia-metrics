@@ -199,6 +199,53 @@ describe("asignarResponsable", () => {
     // que la persona es de otro closer.
     expect((error as ErrorDeApp).message).toContain("closerId");
   });
+
+  /**
+   * Ticket 028: `esCloserValidoEnPrograma` deja de filtrar `eq(users.rol, "closer")`
+   * y usa `trabajaLeads` (closer + developer). Un developer con su `closerId` y una
+   * membresia activa ES destino valido de un lead — es lo que hace posible que un
+   * developer en vista `closer` registre y tome personas de punta a punta. El literal
+   * "developer" NO vive en la consulta: la excepcion sigue en `roles.ts` (ADR 0025).
+   */
+  it("un developer con closerId y membresia activa es responsable valido", async () => {
+    const [dev] = await db
+      .insert(users)
+      .values({
+        email: "dev@retiagrowth.com",
+        rol: "developer",
+        nombre: "Dev",
+        closerId: "Dev",
+      })
+      .returning();
+    await db
+      .insert(miembrosPrograma)
+      .values({ userId: dev.id, programId: programaA, activo: true });
+
+    const personaId = await sembrarPersona(programaA);
+    const persona = await asignarResponsable(
+      db,
+      { id: dev.id, rol: "developer", closerId: "Dev" },
+      { personaId, closerId: "Dev" },
+    );
+    expect(persona.responsableCloserId).toBe("Dev");
+  });
+
+  it("un gerente NO es destino valido aunque tuviera membresia (no trabaja leads)", async () => {
+    // El gerente no trabaja leads (ADR 0003): aunque se le forzara una membresia, no
+    // puede quedar como responsable de una persona. `esCloserValidoEnPrograma` lo
+    // rechaza porque `trabajaLeads("gerente")` es false, con el 400 de "no vende aqui".
+    await db
+      .insert(miembrosPrograma)
+      .values({ userId: gerenteId, programId: programaA, activo: true });
+    const personaId = await sembrarPersona(programaA);
+    const error = await asignarResponsable(
+      db,
+      actorGerente(),
+      { personaId, closerId: "Gerencia" },
+    ).catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(400);
+  });
 });
 
 // ─────────────────────────────────────────────────────────── crearPersonaManual

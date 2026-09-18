@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import type { Session } from "next-auth";
 import {
@@ -35,7 +35,27 @@ import { conteosPorPrograma } from "@/lib/queries/nerd-stats";
 let base: BaseDePrueba;
 let db: Db;
 
+/**
+ * La cookie de vista (ticket 028) la lee `rolDeVista` dentro de `exigirPermiso`, via
+ * `next/headers`, que fuera de un request real lanza. Se mockea con un store
+ * controlable; por defecto no hay cookie (vista `todo`). Solo el developer llega a
+ * leerla: un gerente o closer se resuelven por su rol real sin tocar la cookie.
+ */
+let cookieDeVista: string | undefined;
+function ponerVista(v: string | undefined) {
+  cookieDeVista = v;
+}
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (nombre: string) =>
+      nombre === "vista" && cookieDeVista !== undefined
+        ? { name: nombre, value: cookieDeVista }
+        : undefined,
+  }),
+}));
+
 async function limpiar(): Promise<void> {
+  cookieDeVista = undefined;
   await db.delete(changeLog);
   await db.delete(abonos);
   await db.delete(sales);
@@ -358,6 +378,35 @@ describe("quien puede anular (ADR 0026 punto 6)", () => {
 
     const [venta] = await db.select().from(sales).where(eq(sales.id, saleId));
     expect(venta.anuladoEn).toBeNull();
+  });
+
+  /**
+   * Ver como (ticket 028): `exigirPermiso` usa `rolDeVista(session)`, no
+   * `session.user.rol` crudo. Un developer en vista `closer` queda sujeto a las dos
+   * reglas del closer —solo lo suyo, solo cohorte activa—; en vista `todo` administra
+   * y anula cualquier cosa.
+   */
+  it("un developer en vista 'closer' NO puede anular lo de otro closer", async () => {
+    const ctx = await sembrarEscenario();
+    const { saleId } = await sembrarCierreCompleto(ctx, "Dana");
+    // El developer tiene su propio closerId "Dev", distinto del de la venta ("Dana").
+    const dev = await sesion("developer", "Dev", "Dev");
+    ponerVista("closer");
+
+    await expect(
+      anularRegistro(dev, { tipo: "venta", id: saleId, motivo: "No es mia" }, db),
+    ).rejects.toThrow(/otro closer/i);
+  });
+
+  it("un developer en vista 'todo' (por defecto) SI anula lo de cualquier closer", async () => {
+    const ctx = await sembrarEscenario();
+    const { saleId } = await sembrarCierreCompleto(ctx, "Dana");
+    const dev = await sesion("developer", "Dev", "Dev");
+    // Sin cookie: vista `todo`, el developer administra y anula sin limite.
+
+    await expect(
+      anularRegistro(dev, { tipo: "venta", id: saleId, motivo: "Limpieza de prueba" }, db),
+    ).resolves.toMatchObject({ ventas: 1 });
   });
 });
 

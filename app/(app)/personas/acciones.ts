@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 import { requireRole } from "@/lib/auth/guards";
+import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import { anularRegistro, type EntradaAnulacion } from "@/lib/mutations/anulaciones";
@@ -87,6 +88,11 @@ export type ResultadoBusqueda =
  * programas busca (administrador: todos los activos; closer: sus membresias). La
  * accion solo dice quien puede entrar.
  *
+ * El rol que se le pasa es el ROL DE VISTA, no `session.user.rol` crudo (ticket 028):
+ * un developer en vista `closer` busca SOLO en sus membresias, no en todos los
+ * programas. En vista `todo` o `gerente` (administrador) sigue viendo todos los
+ * activos. Estrechar nunca ensancha: un closer real ignora la vista.
+ *
  * El texto NO va a la URL: es un dato personal (correo, nombre) y AGENTS.md prohibe
  * datos personales en URLs y query strings. Por eso la busqueda es una server action
  * invocada desde el componente cliente con el texto en estado local, y los resultados
@@ -95,7 +101,7 @@ export type ResultadoBusqueda =
 export async function buscarPersonasAccion(texto: string): Promise<ResultadoBusqueda> {
   try {
     const session = await requireRole("gerente", "closer");
-    const personas = await buscarPersonas(session.user.id, session.user.rol, texto, db);
+    const personas = await buscarPersonas(session.user.id, await rolDeVista(session), texto, db);
     return { ok: true, personas };
   } catch (error) {
     if (error instanceof ErrorDeApp) return { ok: false, error: error.message };

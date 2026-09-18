@@ -7,6 +7,7 @@ import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
 import { esAdministrador } from "@/lib/auth/roles";
+import { rolDeVista } from "@/lib/auth/vista";
 import { closerDeLaSesion } from "@/lib/auth/closer";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -288,17 +289,19 @@ async function abonosVigentesDe(saleIds: string[], db: Db): Promise<Marcado[]> {
 /**
  * Quien puede anular (ADR 0026 punto 6).
  *
- * - Gerente (y developer, que es quien ADMINISTRA la app segun `esAdministrador`):
- *   cualquier registro, sin limite de cohorte.
+ * - Administrador —gerente y developer, `esAdministrador`—: cualquier registro, sin
+ *   limite de cohorte.
  * - Closer: solo lo suyo, y solo mientras la cohorte siga activa. Es el caso real —
  *   se equivoco y lo ve en el momento—, no reescribir un trimestre cerrado.
  *
- * El rol sale de la sesion. Cuando entre el ticket 028 ("ver como" del developer)
- * esto pasa a leer `rolDeVista(session)` y un developer en vista closer queda sujeto
- * a las mismas dos reglas que un closer, que es justo lo que ese ticket busca.
+ * El rol sale de `rolDeVista(session)`, NO de `session.user.rol` crudo (ticket 028):
+ * un developer en vista `closer` queda sujeto a las mismas dos reglas que un closer
+ * —solo lo suyo, solo cohorte activa—, que es justo lo que ese ticket busca. En vista
+ * `todo`/`gerente` administra y anula cualquier cosa. Estrechar nunca ensancha: un
+ * closer real ignora la vista y sigue acotado.
  */
 async function exigirPermiso(session: Session, objetivo: Objetivo, db: Db): Promise<void> {
-  if (esAdministrador(session.user.rol)) return;
+  if (esAdministrador(await rolDeVista(session))) return;
 
   const closerId = closerDeLaSesion(session, "anular registros");
   if (objetivo.closerId !== closerId) {

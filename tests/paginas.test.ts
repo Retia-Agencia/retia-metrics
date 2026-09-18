@@ -20,6 +20,24 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const auth = vi.fn();
 vi.mock("@/lib/auth", () => ({ auth }));
 
+/**
+ * La cookie de vista (ticket 028) la lee `rolDeVista` via `next/headers`, que fuera de
+ * un request real lanza. Se mockea con un store controlable: `ponerVista` fija el
+ * valor de la cookie para un test; por defecto no hay cookie (vista `todo`).
+ */
+let cookieDeVista: string | undefined;
+function ponerVista(v: string | undefined) {
+  cookieDeVista = v;
+}
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (nombre: string) =>
+      nombre === "vista" && cookieDeVista !== undefined
+        ? { name: nombre, value: cookieDeVista }
+        : undefined,
+  }),
+}));
+
 const redirect = vi.fn();
 const permanentRedirect = vi.fn();
 const notFound = vi.fn();
@@ -136,6 +154,7 @@ const sesionDeveloper = { user: { id: "u-3", email: "dev@retia.co", rol: "develo
 
 beforeEach(() => {
   auth.mockReset();
+  cookieDeVista = undefined;
   redirect.mockReset();
   permanentRedirect.mockReset();
   notFound.mockReset();
@@ -476,6 +495,24 @@ describe("pagina de recursos /recursos (ticket 023)", () => {
     }
   }
 
+  /**
+   * La prop `puedeEditar` que la pagina le pasa a `<RecursosPantalla>` (ticket 028):
+   * es lo que decide si se ven los controles de edicion. La pagina devuelve
+   * `<PageShell><RecursosPantalla puedeEditar=.../></PageShell>`, asi que se lee del
+   * hijo del elemento devuelto. No se renderiza: se inspecciona el arbol de elementos.
+   */
+  async function puedeEditarDeRecursos(
+    busqueda: Record<string, string> = {},
+  ): Promise<boolean | undefined> {
+    const modulo = (await import(/* @vite-ignore */ RUTA)) as {
+      default: (props: {
+        searchParams: Promise<Record<string, string | string[] | undefined>>;
+      }) => Promise<{ props: { children: { props: { puedeEditar: boolean } } } }>;
+    };
+    const elemento = await modulo.default({ searchParams: Promise.resolve(busqueda) });
+    return elemento.props.children.props.puedeEditar;
+  }
+
   it("deja pasar a un gerente (lee y administra)", async () => {
     auth.mockResolvedValue(sesionGerente);
     expect(await correrRecursos()).toBeNull();
@@ -503,6 +540,44 @@ describe("pagina de recursos /recursos (ticket 023)", () => {
       programId: "p-1",
       q: "brochure",
     });
+  });
+
+  /**
+   * El criterio central del ticket 028 sobre `/recursos`: un developer VE los
+   * controles de edicion segun su VISTA, no segun su rol de sesion. En vista `todo` o
+   * `gerente` los ve (`puedeEditar` true); en vista `closer` NO (un closer no
+   * administra). Se captura la prop `puedeEditar` que la pagina le pasa a la pantalla.
+   */
+  it("developer en vista 'gerente' VE los controles de edicion", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
+    ponerVista("gerente");
+    expect(await puedeEditarDeRecursos()).toBe(true);
+  });
+
+  it("developer en vista 'todo' (por defecto) VE los controles de edicion", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
+    ponerVista("todo");
+    expect(await puedeEditarDeRecursos()).toBe(true);
+  });
+
+  it("developer en vista 'closer' NO ve los controles de edicion", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
+    ponerVista("closer");
+    expect(await puedeEditarDeRecursos()).toBe(false);
+  });
+
+  it("un closer real con cookie 'gerente' a mano NO ensancha: sigue sin controles", async () => {
+    // Estrechar nunca otorga (ticket 028): la vista se ignora para un no-developer.
+    auth.mockResolvedValue(sesionCloser);
+    ponerVista("gerente");
+    expect(await puedeEditarDeRecursos()).toBe(false);
+  });
+
+  it("un gerente sigue viendo los controles, con o sin cookie", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    ponerVista("closer");
+    // La cookie 'closer' no lo estrecha: no es developer.
+    expect(await puedeEditarDeRecursos()).toBe(true);
   });
 });
 
@@ -576,6 +651,22 @@ describe("pagina de closer", () => {
     // Un developer no es miembro de ningun programa, pero ve la union: la pagina le
     // pide los programas con la proyeccion de gerente, no con la de closer.
     programasGestionablesPorUsuario.mockResolvedValue([{ id: "p-1", nombre: "Programa A" }]);
+    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBeNull();
+  });
+
+  it("/mi-dia niega el registro a un developer en vista 'gerente' (ADR 0003 recuperado, ticket 028)", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
+    ponerVista("gerente");
+    // En vista gerente, `paginaConRol("closer")` lo estrecha a gerente y lo rechaza,
+    // igual que a un gerente de verdad: aterriza en su primer programa.
+    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/programas/programa-a");
+  });
+
+  it("/mi-dia deja pasar a un developer en vista 'closer'", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
+    ponerVista("closer");
+    // En vista closer se proyecta como closer: acotado a sus programas por membresia.
+    programasGestionablesPorUsuario.mockResolvedValue([]);
     expect(await destinoDe("@/app/(app)/mi-dia/page")).toBeNull();
   });
 });

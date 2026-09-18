@@ -19,6 +19,24 @@ import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 const auth = vi.fn();
 vi.mock("@/lib/auth", () => ({ auth }));
 
+/**
+ * La cookie de vista (ticket 028) la lee `rolDeVista` via `next/headers`. Se mockea
+ * con un store controlable; por defecto no hay cookie (vista `todo`). Solo importa
+ * para el developer.
+ */
+let cookieDeVista: string | undefined;
+function ponerVista(v: string | undefined) {
+  cookieDeVista = v;
+}
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (nombre: string) =>
+      nombre === "vista" && cookieDeVista !== undefined
+        ? { name: nombre, value: cookieDeVista }
+        : undefined,
+  }),
+}));
+
 let db: Db;
 vi.mock("@/lib/db", () => ({
   get db() {
@@ -31,6 +49,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 let cerrar: () => Promise<void>;
 let gerenteId: string;
 let closerId: string;
+let developerId: string;
 let programaA: string;
 let programaB: string;
 
@@ -40,9 +59,13 @@ const sesionGerente = {
 const sesionCloser = {
   user: { id: "", email: "closer@retiagrowth.com", rol: "closer", closerId: "Ana" },
 };
+const sesionDeveloper = {
+  user: { id: "", email: "dev@retiagrowth.com", rol: "developer", closerId: "Dev" },
+};
 
 beforeEach(async () => {
   auth.mockReset();
+  cookieDeVista = undefined;
   ({ db, cerrar } = await crearBaseDePrueba());
 
   const [g] = await db
@@ -59,6 +82,13 @@ beforeEach(async () => {
   closerId = c.id;
   sesionCloser.user.id = closerId;
 
+  const [dev] = await db
+    .insert(users)
+    .values({ email: "dev@retiagrowth.com", rol: "developer", nombre: "Dev", closerId: "Dev" })
+    .returning();
+  developerId = dev.id;
+  sesionDeveloper.user.id = developerId;
+
   const [a] = await db
     .insert(programs)
     .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
@@ -72,6 +102,8 @@ beforeEach(async () => {
 
   // El closer solo es miembro activo del programa A.
   await db.insert(miembrosPrograma).values({ userId: closerId, programId: programaA, activo: true });
+  // El developer, tambien miembro SOLO de A: en vista closer se acota a A.
+  await db.insert(miembrosPrograma).values({ userId: developerId, programId: programaA, activo: true });
 });
 
 afterEach(async () => {
@@ -136,5 +168,38 @@ describe("acciones de productos — el gerente entra a cualquier programa", () =
     const [p] = await db.select().from(productos).where(eq(productos.programId, programaA));
     expect((await desactivarProductoAccion(p.id)).ok).toBe(true);
     expect((await reactivarProductoAccion(p.id)).ok).toBe(true);
+  });
+});
+
+/**
+ * Ver como (ticket 028): `actorDe` arma el actor con `rolDeVista`, no con
+ * `session.user.rol` crudo. `actorDe` no se exporta, asi que se prueba por su efecto
+ * observable: `exigirAccesoAlPrograma` en `lib/catalogo/productos` acota al closer a
+ * sus membresias. Si el actor saliera con rol `developer`, un developer crearia en
+ * cualquier programa; si sale con rol `closer` (proyectado), queda acotado a A.
+ */
+describe("acciones de productos — developer con 'ver como' (ticket 028)", () => {
+  beforeEach(() => auth.mockResolvedValue(sesionDeveloper));
+
+  it("en vista 'closer' el actor es closer: NO crea en un programa donde no vende", async () => {
+    ponerVista("closer");
+    const { crearProductoAccion } = await acciones();
+    // El developer es miembro de A, no de B: como closer, B le queda vedado.
+    const res = await crearProductoAccion(productoValido(programaB));
+    expect(res.ok).toBe(false);
+  });
+
+  it("en vista 'closer' el actor closer SI crea en su programa (A)", async () => {
+    ponerVista("closer");
+    const { crearProductoAccion } = await acciones();
+    const res = await crearProductoAccion(productoValido(programaA));
+    expect(res.ok).toBe(true);
+  });
+
+  it("en vista 'todo' (por defecto) el actor administra: crea en cualquier programa", async () => {
+    // Sin cookie: el developer es administrador y no queda acotado por membresia.
+    const { crearProductoAccion } = await acciones();
+    const res = await crearProductoAccion(productoValido(programaB));
+    expect(res.ok).toBe(true);
   });
 });
