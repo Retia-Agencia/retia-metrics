@@ -137,16 +137,21 @@ Detalle en [docs/agents/handoff.md](../agents/handoff.md), sección Roadmap.
       Descartado → `descartado`, Setteo No Calificado → `cola_setteo`, Con Calendly → `invitado`,
       Cerrado → `cierre`. Se compara sin emoji ni sufijo entre paréntesis. Ojo: `New form` devuelve
       exactamente 2.000 filas (eran 1.320 el 19-ago); verificar que no sean filas vacías con fórmula.
-- [ ] F-03 · Dos sync simultáneos se pisan (falta candado por programa). **Diagnóstico 16-sep:**
-      `pg_advisory_lock` no sirve con `drizzle-orm/neon-http` (cada consulta es su propia sesión).
-      Diseño: columna `sync_runs.program_id` + índice único parcial `WHERE estado = 'corriendo'`;
-      el insert de la corrida es el candado (violación única → 409). Antes de insertar, marcar
-      como `error` las corridas `corriendo` de más de 10 min (función caída). Comparte migración
-      con F-07. Requiere migración: se prueba en la rama `dev` (ADR 0018).
+- [x] F-03 · Dos sync simultáneos se pisan → **hecho 19-sep** (ADR 0031, migraciones 0016 y 0017).
+      El diseño de septiembre se implementó tal cual: `sync_runs.program_id` + índice único parcial
+      `WHERE estado = 'corriendo'`, el INSERT de la corrida ES el candado (23505 → `SyncEnCursoError`,
+      409), y un reaper cierra como `error` las corridas colgadas más de 10 min (= 2x el
+      `maxDuration` de las rutas) antes de intentar. El reaper y el insert van **fuera** del try
+      grande: adentro, un sync rechazado habría marcado como error la corrida viva de otro.
+      Mordido contra Neon de verdad, no solo contra PGlite.
 - [ ] F-04 · Updates del sync fila por fila
 - [ ] F-05 · Fechas viejas en la zona del servidor
 - [ ] F-06 · Persona que desaparece de la hoja
-- [ ] F-07 · Corrida de sync atribuida a la primera fuente
+- [x] F-07 · Corrida de sync atribuida a la primera fuente → **hecho 19-sep** (ADR 0031, misma
+      migración que F-03). Era el mismo bug que F-03: la corrida colgaba de `fuentes[0]`, así que en
+      un programa con dos formularios activos quedaba atribuida al viejo habiendo leído los dos.
+      Ahora la corrida es del programa y `sync_runs.fuentes_leidas` guarda **todas** las fuentes con
+      sus conteos; las corridas anteriores muestran `—`, no un nombre inventado.
 - [x] B-01 · `lib/sheets/sync.ts` sin tests → decisión extraída a `lib/sheets/plan-sync.ts`, 6 tests (16-sep)
 - [ ] S-06 + B-06 · Retención de PII y `people.raw` sin techo
 - [x] S-14 · Producción y preview comparten base → resuelto 16-sep (ADR 0018): local y Preview en

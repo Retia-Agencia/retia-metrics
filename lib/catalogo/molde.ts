@@ -6,6 +6,7 @@ import { changeLog } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
+import { esViolacionUnica } from "@/lib/db/errores";
 
 /**
  * El molde de toda entidad configurable (ADR 0012).
@@ -48,22 +49,6 @@ export interface Catalogo<Entrada extends Record<string, unknown>> {
   editar: (userId: string, id: string, input: Entrada) => Promise<FilaCatalogo>;
   desactivar: (userId: string, id: string) => Promise<FilaCatalogo>;
   reactivar: (userId: string, id: string) => Promise<FilaCatalogo>;
-}
-
-/**
- * Detecta la violacion de indice unico de Postgres (code `23505`). Drizzle 0.45
- * envuelve el error del driver, asi que hay que mirar tanto el error como su
- * `cause` (posiblemente anidada).
- */
-function esViolacionUnica(error: unknown): boolean {
-  let actual: unknown = error;
-  for (let i = 0; i < 5 && actual != null; i++) {
-    if (typeof actual === "object" && (actual as { code?: unknown }).code === "23505") {
-      return true;
-    }
-    actual = (actual as { cause?: unknown }).cause;
-  }
-  return false;
 }
 
 /** Convierte un valor de columna a texto para `change_log` (que guarda todo como texto). */

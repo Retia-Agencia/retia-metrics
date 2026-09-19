@@ -132,12 +132,18 @@ export default async function NerdStatsPage() {
               <p className="text-sm text-muted-foreground">Todavía no ha corrido ningún sync.</p>
             ) : (
               <Tabla
-                encabezados={["Cuándo", "Fuente", "Estado", "Duración", "Filas", "Nuevas", "Actualizadas"]}
+                encabezados={["Cuándo", "Programa", "Fuentes", "Estado", "Duración", "Filas", "Nuevas", "Actualizadas"]}
                 filas={corridas.map((c) => ({
                   clave: c.id,
                   celdas: [
                     haceCuanto(c.iniciado),
-                    c.fuenteNombre ?? "fuente borrada",
+                    c.programaNombre ?? "programa borrado",
+                    // Las fuentes que leyo la corrida, formateadas aca (el formato es
+                    // del que presenta). `null` = corrida anterior a la migracion, sin
+                    // el dato: se muestra "—", no un nombre inventado (F-07).
+                    c.fuentesLeidas === null
+                      ? "—"
+                      : c.fuentesLeidas.map((f) => `${f.nombre} (${num(f.filas)})`).join(" + "),
                     <Badge key="e" variant={c.estado === "error" ? "outline" : "secondary"}>
                       {c.estado}
                     </Badge>,

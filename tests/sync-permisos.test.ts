@@ -10,7 +10,12 @@ const auth = vi.fn();
 vi.mock("@/lib/auth", () => ({ auth }));
 
 const sincronizarPersonas = vi.fn();
-vi.mock("@/lib/sheets/sync", () => ({ sincronizarPersonas }));
+// Se re-exporta la clase real de error: el cron hace `instanceof SyncEnCursoError`
+// para contar los omitidos aparte, asi que el mock debe traerla o el import revienta.
+vi.mock("@/lib/sheets/sync", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/sheets/sync")>();
+  return { sincronizarPersonas, SyncEnCursoError: actual.SyncEnCursoError };
+});
 
 const select = vi.fn();
 vi.mock("@/lib/db", () => ({ db: { select } }));
@@ -174,7 +179,7 @@ describe("GET /api/cron/sync", () => {
     const cuerpo = await res.json();
 
     expect(JSON.stringify(cuerpo)).not.toContain("Cuanto ganas");
-    expect(cuerpo).toEqual({ ok: false, programas: 1, sincronizados: 0, fallidos: 1 });
+    expect(cuerpo).toEqual({ ok: false, programas: 1, sincronizados: 0, fallidos: 1, omitidos: 0 });
     espia.mockRestore();
   });
 

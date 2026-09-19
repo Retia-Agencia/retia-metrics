@@ -3,6 +3,7 @@ import { z } from "zod";
 import { changeLog, miembrosPrograma, people, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
+import { esViolacionUnica } from "@/lib/db/errores";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import type { Rol } from "@/lib/auth/roles";
 import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
@@ -68,21 +69,6 @@ async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
     }
     throw error;
   }
-}
-
-/**
- * Detecta la violacion de indice unico de Postgres (code `23505`), mirando tambien
- * la `cause` anidada como hace `esViolacionUnica` en `lib/catalogo/molde.ts`.
- */
-function esViolacionUnica(error: unknown): boolean {
-  let actual: unknown = error;
-  for (let i = 0; i < 5 && actual != null; i++) {
-    if (typeof actual === "object" && (actual as { code?: unknown }).code === "23505") {
-      return true;
-    }
-    actual = (actual as { cause?: unknown }).cause;
-  }
-  return false;
 }
 
 /** Lee una persona por id. */

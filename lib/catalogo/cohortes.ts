@@ -4,6 +4,7 @@ import { changeLog, cohorts, estadoCohorteEnum } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
+import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
 
 /**
  * Cohortes (ticket 014, ADR 0012 + ADR 0005), sobre las mismas piezas del molde.
@@ -110,34 +111,12 @@ function idValido(id: string): string {
   return parsed.data;
 }
 
-/** Detecta la violacion de indice unico de Postgres (23505), mirando `cause` anidada. */
-function esViolacionUnica(error: unknown): boolean {
-  let actual: unknown = error;
-  for (let i = 0; i < 5 && actual != null; i++) {
-    if (typeof actual === "object" && (actual as { code?: unknown }).code === "23505") {
-      return true;
-    }
-    actual = (actual as { cause?: unknown }).cause;
-  }
-  return false;
-}
-
 /**
- * Detecta la violacion de un CHECK de Postgres (23514), mirando `cause` anidada.
- * El unico CHECK de esta tabla es `cohorts_activa_con_inicio_ventas` (ADR 0022):
- * una cohorte no puede quedar activa sin inicio de ventas. Se busca el codigo
- * igual que 23505; el nombre del constraint no siempre viaja igual entre drivers.
+ * Detecta la violacion de indice unico (23505) y la de un CHECK (23514). Las dos
+ * viven en `lib/db/errores.ts` y se importan aca. El unico CHECK de esta tabla es
+ * `cohorts_activa_con_inicio_ventas` (ADR 0022): una cohorte no puede quedar activa
+ * sin inicio de ventas.
  */
-function esViolacionCheck(error: unknown): boolean {
-  let actual: unknown = error;
-  for (let i = 0; i < 5 && actual != null; i++) {
-    if (typeof actual === "object" && (actual as { code?: unknown }).code === "23514") {
-      return true;
-    }
-    actual = (actual as { cause?: unknown }).cause;
-  }
-  return false;
-}
 
 /** Convierte un valor de columna a texto para `change_log`. */
 function aTexto(valor: unknown): string | null {

@@ -458,11 +458,19 @@ export const adSpend = pgTable(
 
 // ─────────────────────────────────────────────────────────── sincronizacion
 
+/**
+ * Una corrida de sync es de un PROGRAMA, no de una fuente. Es la misma razon que
+ * ya gobierna `lib/sheets/sync.ts`: un programa tiene varios formularios, se leen
+ * TODOS juntos y se deduplica sobre el conjunto, porque si no `numAplicaciones`
+ * dependeria del orden de ejecucion. Colgar la corrida de una fuente obligaba a
+ * elegir una a dedo (`fuentes[0]`), y en un programa con dos formularios activos
+ * eso atribuia cada corrida a UNO de ellos, el viejo de 65 personas (F-07).
+ */
 export const syncRuns = pgTable(
   "sync_runs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    sourceId: uuid("source_id").references(() => sources.id, { onDelete: "cascade" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
     iniciado: timestamp("iniciado", { withTimezone: true }).notNull().defaultNow(),
     terminado: timestamp("terminado", { withTimezone: true }),
     estado: estadoSyncEnum("estado").notNull().default("corriendo"),
@@ -470,9 +478,28 @@ export const syncRuns = pgTable(
     personasNuevas: integer("personas_nuevas").notNull().default(0),
     personasActualizadas: integer("personas_actualizadas").notNull().default(0),
     registrosNuevos: integer("registros_nuevos").notNull().default(0),
+    /**
+     * Que fuentes leyo la corrida y cuantas filas trajo cada una:
+     * `[{ nombre, tab, filas }]`. Reemplaza al `source_id` unico, que solo podia
+     * nombrar una de varias. El `tab` va aparte del `nombre` porque la pestana es
+     * lo que se abre en Sheets cuando hay que revisar por que vino vacia.
+     */
+    fuentesLeidas: jsonb("fuentes_leidas"),
     errores: jsonb("errores"),
   },
-  (t) => [index("sync_runs_fuente_idx").on(t.sourceId, t.iniciado)],
+  (t) => [
+    index("sync_runs_programa_idx").on(t.programId, t.iniciado),
+    // El candado de F-03. Con `drizzle-orm/neon-http` cada consulta es su propia
+    // sesion HTTP, asi que `pg_advisory_lock` no sirve: la exclusion mutua vive en
+    // la base (ADR 0005). Indice unico PARCIAL, del mismo molde que
+    // `cohorts_una_activa_por_programa_idx`: solo las filas 'corriendo' compiten,
+    // y las 'ok'/'error' historicas no. El INSERT de la corrida ES el candado; un
+    // segundo sync simultaneo choca con 23505 y `lib/sheets/sync.ts` lo traduce a
+    // un 409 claro.
+    uniqueIndex("sync_runs_una_corriendo_por_programa_idx")
+      .on(t.programId)
+      .where(sql`${t.estado} = 'corriendo'`),
+  ],
 );
 
 /**

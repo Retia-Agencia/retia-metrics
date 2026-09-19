@@ -1,6 +1,9 @@
-import { and, eq, inArray } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { and, eq, inArray, lt } from "drizzle-orm";
+import { db as dbDeLaApp } from "@/lib/db";
+import type { Db } from "@/lib/db/tipos";
 import { people, sources, syncRuns, changeLog, programs } from "@/lib/db/schema";
+import { ErrorDeApp } from "@/lib/errors";
+import { esViolacionUnica } from "@/lib/db/errores";
 import { leerPestana } from "./leer";
 import { resolverColumnas, MAPEO_FORMULARIO, OBLIGATORIOS_FORMULARIO, type MapeoColumnas } from "./mapeo";
 import { deduplicarPorCorreo, filasDesdeMatriz } from "./dedup";
@@ -15,11 +18,52 @@ import { planificarSync } from "./plan-sync";
  * separado, `numAplicaciones` dependeria del orden de ejecucion y no habria forma de
  * que correr el sync dos veces diera el mismo resultado. Leyendo todas las fuentes de
  * personas juntas y recalculando desde cero, el resultado es el mismo siempre.
+ *
+ * La corrida se guarda colgada del PROGRAMA (`syncRuns.programId`), no de una fuente
+ * elegida a dedo. Antes se guardaba `sources[0].id`, y en un programa con dos
+ * formularios activos eso atribuia cada corrida a UNO de ellos (el viejo, de 65
+ * personas) habiendo leido los dos (F-07). Ahora la corrida lista TODAS las fuentes
+ * que leyo en `fuentesLeidas`.
  */
+
+/** Una fuente leida por una corrida, con cuantas filas trajo. Lo guarda `syncRuns.fuentesLeidas`. */
+export type FuenteLeida = {
+  nombre: string;
+  tab: string;
+  filas: number;
+};
+
+/**
+ * Una corrida abandonada mas vieja que esto (en minutos) la marca el reaper como
+ * `error` antes de arrancar la siguiente. El 10 no es arbitrario: las dos rutas de
+ * sync declaran `maxDuration = 300`, o sea 5 minutos, asi que una corrida que lleva
+ * mas de eso en Vercel esta muerta con certeza (la funcion ya se cayo). 10 es 2x ese
+ * techo, margen de sobra. (`npm run sync` desde la terminal no tiene ese limite, pero
+ * el sync completo tarda ~4 segundos, asi que tampoco se acerca.)
+ */
+const MINUTOS_ANTES_DE_DAR_POR_MUERTA = 10;
+
+/**
+ * Ya hay una sincronizacion corriendo para este programa. La lanza el INSERT de la
+ * corrida cuando choca con el indice unico parcial `sync_runs_una_corriendo_por_programa_idx`
+ * (F-03): con `drizzle-orm/neon-http` cada consulta es su propia sesion HTTP, asi que
+ * la exclusion mutua no puede ser un lock de sesion y vive en la base (ADR 0005). Es un
+ * 409 porque no es un fallo del servidor: el candado esta funcionando. Vive aca, igual
+ * que `MapeoInvalidoError` vive en `lib/sheets/mapeo.ts`.
+ */
+export class SyncEnCursoError extends ErrorDeApp {
+  constructor() {
+    super(
+      "Ya hay una sincronizacion corriendo para este programa. Espera a que termine " +
+        "o revisa si quedo colgada.",
+      409,
+    );
+  }
+}
 
 export type ResultadoSync = {
   programa: string;
-  fuentesLeidas: string[];
+  fuentesLeidas: FuenteLeida[];
   filasLeidas: number;
   sinCorreo: number;
   personasEnHoja: number;
@@ -29,7 +73,10 @@ export type ResultadoSync = {
   errores: string[];
 };
 
-export async function sincronizarPersonas(programId: string): Promise<ResultadoSync> {
+export async function sincronizarPersonas(
+  programId: string,
+  db: Db = dbDeLaApp,
+): Promise<ResultadoSync> {
   const [programa] = await db.select().from(programs).where(eq(programs.id, programId)).limit(1);
   if (!programa) throw new Error(`No existe el programa ${programId}`);
 
@@ -42,15 +89,53 @@ export async function sincronizarPersonas(programId: string): Promise<ResultadoS
     throw new Error(`El programa ${programa.slug} no tiene fuentes de personas activas.`);
   }
 
-  const [corrida] = await db
-    .insert(syncRuns)
-    .values({ sourceId: fuentes[0].id, estado: "corriendo" })
-    .returning();
+  // Reaper: antes de tomar el candado, libera las corridas de ESTE programa que se
+  // quedaron `corriendo` mas de MINUTOS_ANTES_DE_DAR_POR_MUERTA (una funcion de Vercel
+  // que se cayo sin cerrar su corrida). Va FUERA del try grande y ANTES del insert: si
+  // no, la corrida viva de otro proceso bloquea el candado para siempre. Marcarlas como
+  // `error` con su motivo las saca de en medio y libera el indice unico parcial.
+  const limite = new Date(Date.now() - MINUTOS_ANTES_DE_DAR_POR_MUERTA * 60_000);
+  await db
+    .update(syncRuns)
+    .set({
+      estado: "error",
+      terminado: new Date(),
+      errores: [
+        `Corrida abandonada: supero los ${MINUTOS_ANTES_DE_DAR_POR_MUERTA} minutos sin terminar; ` +
+          "lo normal es que la funcion se haya caido.",
+      ],
+    })
+    .where(
+      and(
+        eq(syncRuns.programId, programId),
+        eq(syncRuns.estado, "corriendo"),
+        lt(syncRuns.iniciado, limite),
+      ),
+    );
+
+  // El INSERT es el candado (F-03). Si otra corrida del mismo programa sigue viva, el
+  // indice unico parcial `sync_runs_una_corriendo_por_programa_idx` lo rechaza con 23505,
+  // que traducimos al 409 de `SyncEnCursoError`. Va FUERA del try grande a proposito: ese
+  // try termina marcando `corrida.id` como `error`, y si el 409 se lanzara desde adentro
+  // marcaria como error la corrida VIVA de otro proceso, que es lo contrario de lo que el
+  // candado existe para hacer. Aqui `corrida` todavia no existe, asi que no hay nada que
+  // marcar.
+  let corrida: typeof syncRuns.$inferSelect;
+  try {
+    [corrida] = await db
+      .insert(syncRuns)
+      .values({ programId, estado: "corriendo" })
+      .returning();
+  } catch (e: unknown) {
+    if (esViolacionUnica(e)) throw new SyncEnCursoError();
+    throw e;
+  }
 
   const errores: string[] = [];
+  const fuentesLeidas: FuenteLeida[] = [];
   const resultado: ResultadoSync = {
     programa: programa.slug,
-    fuentesLeidas: [],
+    fuentesLeidas,
     filasLeidas: 0,
     sinCorreo: 0,
     personasEnHoja: 0,
@@ -85,7 +170,9 @@ export async function sincronizarPersonas(programId: string): Promise<ResultadoS
 
       const filas = filasDesdeMatriz(matriz.slice(1), indices);
       todas.push(...filas);
-      resultado.fuentesLeidas.push(`${f.tab} (${filas.length})`);
+      // El resultado guarda datos, no formato: el `nombre (filas)` lo arma quien
+      // presenta (la consola de scripts, la pantalla de /nerd-stats), nunca aca.
+      fuentesLeidas.push({ nombre: f.nombre, tab: f.tab, filas: filas.length });
       resultado.filasLeidas += filas.length;
 
       await db.update(sources).set({ ultimaSync: new Date() }).where(eq(sources.id, f.id));
@@ -139,6 +226,7 @@ export async function sincronizarPersonas(programId: string): Promise<ResultadoS
         filasLeidas: resultado.filasLeidas,
         personasNuevas: resultado.nuevas,
         personasActualizadas: resultado.actualizadas,
+        fuentesLeidas,
         errores: errores.length ? errores : null,
       })
       .where(eq(syncRuns.id, corrida.id));
@@ -148,7 +236,7 @@ export async function sincronizarPersonas(programId: string): Promise<ResultadoS
     const msg = e instanceof Error ? e.message : String(e);
     await db
       .update(syncRuns)
-      .set({ terminado: new Date(), estado: "error", errores: [msg] })
+      .set({ terminado: new Date(), estado: "error", fuentesLeidas, errores: [msg] })
       .where(eq(syncRuns.id, corrida.id));
     throw e;
   }

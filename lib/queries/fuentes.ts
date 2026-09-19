@@ -2,6 +2,7 @@ import { desc, eq, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { sources, programs, syncRuns, people, changeLog } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import type { FuenteLeida } from "@/lib/sheets/sync";
 
 /**
  * Lecturas de las corridas de sync y del estado de las fuentes.
@@ -14,7 +15,7 @@ import type { Db } from "@/lib/db/tipos";
  * llamador.
  */
 
-/** Una corrida con la fuente y el programa ya resueltos, y su duracion en segundos. */
+/** Una corrida con el programa ya resuelto, sus fuentes leidas y su duracion en segundos. */
 export async function ultimasCorridasDeSync(limite = 8, db: Db = dbDeLaApp) {
   return db
     .select({
@@ -27,7 +28,11 @@ export async function ultimasCorridasDeSync(limite = 8, db: Db = dbDeLaApp) {
       personasActualizadas: syncRuns.personasActualizadas,
       registrosNuevos: syncRuns.registrosNuevos,
       errores: syncRuns.errores,
-      fuenteNombre: sources.nombre,
+      // Que fuentes leyo la corrida y cuantas filas trajo cada una. Reemplaza al
+      // `fuenteNombre` unico de antes, que nombraba UNA de varias y por eso mentia
+      // en un programa con dos formularios (F-07). `null` en las corridas anteriores
+      // a la migracion.
+      fuentesLeidas: sql<FuenteLeida[] | null>`${syncRuns.fuentesLeidas}`,
       programaNombre: programs.nombre,
       // Segundos entre inicio y fin. Null mientras la corrida sigue corriendo: una
       // duracion inventada para algo que no ha terminado seria peor que no mostrarla.
@@ -37,8 +42,7 @@ export async function ultimasCorridasDeSync(limite = 8, db: Db = dbDeLaApp) {
              else round(extract(epoch from ${syncRuns.terminado} - ${syncRuns.iniciado}))::int end`,
     })
     .from(syncRuns)
-    .leftJoin(sources, eq(sources.id, syncRuns.sourceId))
-    .leftJoin(programs, eq(programs.id, sources.programId))
+    .leftJoin(programs, eq(programs.id, syncRuns.programId))
     .orderBy(desc(syncRuns.iniciado))
     .limit(limite);
 }

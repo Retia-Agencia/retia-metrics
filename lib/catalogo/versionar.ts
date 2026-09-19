@@ -4,6 +4,7 @@ import { changeLog } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
+import { esViolacionUnica } from "@/lib/db/errores";
 
 /**
  * La operacion `reemplazar` de las entidades versionadas (recursos y enlaces de
@@ -47,18 +48,6 @@ export interface OpcionesReemplazo {
   id: string;
   /** La URL nueva, ya validada como https:// por el esquema de la entidad. */
   nuevaUrl: string;
-}
-
-/** Detecta la violacion de indice unico de Postgres (code `23505`). */
-function esViolacionUnica(error: unknown): boolean {
-  let actual: unknown = error;
-  for (let i = 0; i < 5 && actual != null; i++) {
-    if (typeof actual === "object" && (actual as { code?: unknown }).code === "23505") {
-      return true;
-    }
-    actual = (actual as { cause?: unknown }).cause;
-  }
-  return false;
 }
 
 /**

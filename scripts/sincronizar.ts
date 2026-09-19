@@ -15,7 +15,11 @@ async function main() {
     console.log(`\n${"═".repeat(66)}\n  ${p.nombre}\n${"═".repeat(66)}`);
     const t0 = Date.now();
     const r = await sincronizarPersonas(p.id);
-    console.log(`  fuentes leidas    : ${r.fuentesLeidas.join(" + ")}`);
+    // `fuentesLeidas` ahora trae datos, no formato: se arma aca `nombre (filas)`.
+    // Se usa `nombre` (no `tab`) para que la consola diga lo mismo que /nerd-stats;
+    // el `tab` sigue disponible en el objeto si algun dia hace falta para diagnosticar.
+    const fuentes = r.fuentesLeidas.map((f) => `${f.nombre} (${f.filas})`).join(" + ");
+    console.log(`  fuentes leidas    : ${fuentes}`);
     console.log(`  filas leidas      : ${r.filasLeidas}`);
     console.log(`  filas sin correo  : ${r.sinCorreo}`);
     console.log(`  personas unicas   : ${r.personasEnHoja}`);

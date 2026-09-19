@@ -227,6 +227,13 @@ origenes del lead).
 **Fuente**:
 Una pestana de Google Sheets con su mapeo de columnas, de la que entran los leads de un programa.
 
+**Corrida de sync**:
+Una pasada del sincronizador sobre UN programa. Lee todas las fuentes de personas de ese programa
+juntas y deduplica sobre el conjunto, asi que **no es "la corrida de una fuente"**: guarda de que
+fuentes leyo y cuantas filas trajo cada una (ADR 0031). Solo puede haber una corriendo por
+programa a la vez, y eso lo garantiza un indice unico parcial, no el codigo. _Evitar_: "el sync de
+la pestana X", "la corrida del formulario".
+
 **Plantilla de lead**:
 El mapeo de columnas de un programa: en que encabezado de su hoja esta cada campo del lead
 (nombre, correo, WhatsApp...). Cada fuente del programa la hereda y solo ajusta lo que su hoja

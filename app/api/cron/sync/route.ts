@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { db } from "@/lib/db";
 import { programs } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { sincronizarPersonas } from "@/lib/sheets/sync";
+import { sincronizarPersonas, SyncEnCursoError } from "@/lib/sheets/sync";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -41,12 +41,21 @@ export async function GET(req: Request) {
   const activos = await db.select().from(programs).where(eq(programs.activo, true));
   let sincronizados = 0;
   let fallidos = 0;
+  let omitidos = 0;
 
   for (const p of activos) {
     try {
       await sincronizarPersonas(p.id);
       sincronizados++;
     } catch (e) {
+      // Un SyncEnCursoError no es un fallo: es el candado (F-03) funcionando —ya hay
+      // un sync corriendo para ese programa—. Se cuenta aparte y no grita en el log,
+      // para no confundir "el candado hizo su trabajo" con "algo se rompio".
+      if (e instanceof SyncEnCursoError) {
+        omitidos++;
+        console.warn(`[cron] ${p.slug} omitido: ya hay un sync corriendo`);
+        continue;
+      }
       // Un programa que falla no debe impedir que el otro se sincronice.
       fallidos++;
       console.error(`[cron] fallo la sincronizacion de ${p.slug}`, e);
@@ -57,5 +66,11 @@ export async function GET(req: Request) {
   // no tiene sesion, y el mensaje de un MapeoInvalidoError imprime los encabezados
   // reales de la hoja, o sea las preguntas del formulario. El detalle queda en
   // sync_runs.errores, que existe justamente para eso.
-  return Response.json({ ok: fallidos === 0, programas: activos.length, sincronizados, fallidos });
+  return Response.json({
+    ok: fallidos === 0,
+    programas: activos.length,
+    sincronizados,
+    fallidos,
+    omitidos,
+  });
 }

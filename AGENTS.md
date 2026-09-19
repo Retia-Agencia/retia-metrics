@@ -165,6 +165,16 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   `enlaces_pago` quedo en **0**. **Omitir un rastro no lanza ningun error**, y dentro de tres
   meses "¿quien puso estos links?" no tiene respuesta en la base. Esos 5 siguen sin rastro a
   proposito: un historial de auditoria fabricado se ve igual que el de verdad.
+- **Una corrida de sync es de un PROGRAMA, no de una fuente (ADR 0031).** Las personas se
+  sincronizan leyendo TODAS las fuentes del programa juntas y deduplicando sobre el conjunto, asi
+  que colgar la corrida de una fuente obligaba a elegir una a dedo (`fuentes[0]`) y **atribuia cada
+  corrida al formulario equivocado en un programa con dos formularios activos** (F-07). Lo que se
+  leyo se guarda como dato en `sync_runs.fuentes_leidas`, no como llave foranea, y las corridas
+  viejas que no lo tienen muestran `—` en vez de un nombre inventado. Y solo puede haber UNA
+  corriendo por programa (F-03): lo garantiza el indice unico parcial, no el codigo. Una corrida
+  colgada mas de `MINUTOS_ANTES_DE_DAR_POR_MUERTA` (10 = 2x el `maxDuration` de las rutas) la cierra
+  el reaper antes de arrancar la siguiente, o el candado pasaria de proteger a bloquear para
+  siempre. **Chocar con el candado no es un fallo**: es 409 y el cron lo cuenta como `omitidos`.
 - **Google Sheets es la fuente de verdad de los leads; el CRM lo es de llamadas, ventas y
   abonos.** El sync de leads no cambia (ADR 0004). Las llamadas y ventas se registran nativas en
   la app (ADR 0008) sobre las mismas tablas, con `origen = "app"` (ADR 0010).
@@ -217,6 +227,8 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Mensajes de validacion del navegador | `components/validacion-en-espanol.tsx`, montado una vez en el layout raiz: traduce los globos nativos, que salen en el idioma del navegador y no en el del `lang` de la pagina | Revision manual |
 | Que registros cuentan | `vigente(tabla)` / `incluyendoAnulados(tabla)` en `lib/queries/vigente.ts` (ADR 0026) | `tests/vigencia-centralizada.test.ts`: recorre `lib/`, `app/`, `components/` y `scripts/` cadena de drizzle por cadena, y falla si una lee `calls`, `sales` o `abonos` sin aplicar el predicado |
 | Con que rol actua una sesion | `rolDeVista(session)` en `lib/auth/vista.ts` (ADR 0028): la vista solo ESTRECHA, nunca ensancha | `tests/rol-de-vista-centralizado.test.ts`: recorre `app/` y `lib/` y falla si alguien decide alcance o permiso leyendo `session.user.rol` crudo; las lecturas de IDENTIDAD van como excepciones nombradas |
+| Cuando puede arrancar una corrida de sync | El indice unico parcial `sync_runs_una_corriendo_por_programa_idx` + `SyncEnCursoError` (409) y el reaper, en `lib/sheets/sync.ts` (ADR 0031) | `tests/sync-candado.test.ts`: dos corridas simultaneas, el rechazo **sin tocar la corrida viva**, el reaper, y que las fuentes leidas queden guardadas. Mordido ademas contra Neon de verdad el 19-sep, no solo contra PGlite |
+| Si un error del driver es de un codigo de Postgres | `lib/db/errores.ts`: `esViolacionUnica` (23505) y `esViolacionCheck` (23514) sobre `esCodigoPostgres`, que camina la cadena de `cause` | Revision manual: una copia local de ese bucle en cualquier modulo es el olor. Vivia duplicado byte a byte en 4 modulos hasta el 19-sep |
 | Cuando dos textos son el mismo closer | `lib/closers/identidad.ts` (ADR 0030) + indice unico sobre `lower()` en `users` | `tests/closer-identidad.test.ts`: guardian sobre `lib/`, `app/` y `components/`, probado mordiendo en los dos sentidos (caza lo malo y **no** marca la solucion) |
 | Quien crea una fila de catalogo, y desde donde | `lib/catalogo/` siempre (ADR 0029); el actor de un script, `actorDelScript()` en `scripts/actor.ts` | Revision manual: un `db.insert` sobre una tabla de catalogo en `scripts/` es el olor. Las dos excepciones estan en la tabla del ADR 0029 |
 | Contrato de extension | ADR 0012, enmendado por el 0026; molde en `lib/catalogo/` | `tests/contrato-extension.test.ts` (ticket 009): ningun programa escrito en el codigo; tests del molde (ticket 011): siempre `change_log`, y **nunca `DELETE` sobre una fila con referencias** (hasta el ticket 030 el molde no borra nunca) |
@@ -225,7 +237,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 543 pasando al 18-sep). Los tests que necesitan base usan PGlite en
+- **Test:** `npm test` (Vitest, 577 pasando al 19-sep). Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Run:** `npm run dev` (http://localhost:3000)
@@ -279,9 +291,19 @@ The agent should run these to get fast signal on whether code works. Keep them c
   mostrado ceros crebles. **No escribas subconsultas correlacionadas con la plantilla `sql`**: agrupa
   aparte y une en memoria, que a esta escala es gratis y se lee correcto. Dentro de una consulta de
   UNA sola tabla la plantilla es segura, porque no hay ambiguedad que resolver.
+  **Afinado el 19-sep midiendolo, porque la regla de arriba esta escrita mas ancha de lo que es:**
+  lo que desactiva la calificacion es meter una TABLA en la plantilla (`${people}`), no la plantilla
+  en si. Una plantilla que solo referencia columnas las sigue calificando —`sql`${syncRuns.fuentesLeidas}``
+  dentro de un select con join se renderiza `"sync_runs"."fuentes_leidas"`, comprobado con
+  `.toSQL()`—. La conducta practica no cambia (**nada de subconsultas correlacionadas**), pero no
+  hay que desconfiar de un cast de tipo sobre una columna ni "arreglarlo" a ciegas. Si dudas,
+  imprime `query.toSQL().sql`: cuesta un comando y responde de verdad.
 - **La base se usa por `drizzle-orm/neon-http`: sin sesion ni transacciones interactivas.** Cada
   consulta es una peticion HTTP aparte, asi que `pg_advisory_lock` y `SET` de sesion no sirven.
-  La exclusion mutua se hace con un indice unico en la base (ver F-03 en el tracker).
+  La exclusion mutua se hace con un indice unico en la base. **Hecho en el sync (ADR 0031):** el
+  INSERT de la corrida ES el candado, contra un indice unico parcial `WHERE estado = 'corriendo'`.
+  Si necesitas exclusion mutua en otra parte, ese es el molde: no hay candado que pedir ni que
+  acordarse de soltar.
 - **Local y previews usan la rama `dev` de Neon; produccion usa `production`** (ADR 0018). Una
   migracion se prueba en `dev` antes de tocar `production`. La URL de `production` esta en
   `.env.local` como `DB_PROD`: ningun codigo la lee, se usa solo nombrandola en el comando.
