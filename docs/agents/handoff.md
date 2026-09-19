@@ -5,43 +5,130 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Escrito el 18-sep al cerrar el día.
+> Copiar y pegar tal cual. Escrito el 19-sep al cerrar el día.
 
 ```
-Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y las entradas "CIERRE 11" y "CIERRE 10"
-del 18-sep en docs/agents/handoff.md.
+Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y la entrada "CIERRE 12" del 19-sep en
+docs/agents/handoff.md (y la "CIERRE 11" del 18-sep si necesitas el contexto del recorrido real).
 
-Estado: 570 tests, typecheck y lint limpios. El recorrido REAL contra production esta hecho de
-punta a punta (criterios 1, 5 y 6 ejercidos: llamada + venta + abono + recurso). Cerrados hoy el
-031 (perfil propio), el 033 (`Mani` y `mani` son el mismo closer, ADR 0030) y el ADR 0029 (una fila
-de catalogo se crea por el molde, tambien desde un script). Migracion 0015 aplicada en dev y en
-production. `main` desplegado y vivo en 021f668 (comprobado con `vercel ls` + `vercel inspect`:
-la CLI de esta maquina si funciona, aunque el conector MCP pida OAuth). Ojo que `/api/health`
-devuelve un JSON constante y no toca la base: un 200 ahi no prueba ninguna consulta.
+Estado: 577 tests, typecheck y lint limpios. F-03 y F-07 cerradas: eran el mismo bug (la corrida de
+sync colgaba de una fuente en vez del programa). ADR 0031, migraciones 0016 y 0017 aplicadas en dev
+y en production y verificadas contra un snapshot tomado antes. El candado es un indice unico
+parcial y esta mordido contra Neon de verdad, no solo contra PGlite. Ojo que `/api/health` devuelve
+un JSON constante y no toca la base: un 200 ahi no prueba ninguna consulta.
 
-production quedo LIMPIA y verificada: 0 llamadas, 0 ventas, 0 abonos, 0 recursos, 0 personas del
-CRM, con las 4.599 personas reales y toda la configuracion intactas. Los dos closers activos son
-`Mani` y `Maru`, capitalizados. No hay nada pendiente de limpieza.
+production: 4.688 personas (el cron sigue importando), 6 corridas de sync historicas con su
+programa, 0 llamadas / 0 ventas / 0 abonos / 0 recursos, configuracion intacta. Los dos closers
+activos son `Mani` y `Maru`, capitalizados.
 
-Delega a Kiro (kiro-rescue) lo grueso o repetitivo. Kiro NO corre db:generate ni db:migrate. Para
-una segunda opinion o una implementacion paralela, codex:codex-rescue.
+Delega a Kiro (kiro-rescue) lo grueso o repetitivo. Kiro NO corre db:generate ni db:migrate, y el
+19-sep cerro una vez sin reportar: corre la verificacion por tu cuenta antes de creerle. Para una
+segunda opinion o una implementacion paralela, codex:codex-rescue.
 
 Arranca por:
 (1) dar de alta a Andrea Machado cuando confirme su cuenta de Google. Candidato:
-    andrea.machado@30x.com; su closer_id es `Andrea`, CAPITALIZADO (ya no rompe nada si alguien lo
-    escribe distinto, pero la convencion de la casa es la ortografia de la hoja).
-(2) el 030 y el 016 pueden esperar. El 021 quedo en PDF y sigue de ultimo.
-(3) F-03 + F-07 van juntas y necesitan migracion.
+    andrea.machado@30x.com; su closer_id es `Andrea`, CAPITALIZADO.
+(2) F-01: confirmar con Michael el mapeo de `Estado` (propuesto en el tracker) e implementarlo. Es
+    lo que le falta al embudo para calcularse.
+(3) el 030 y el 016 pueden esperar. El 021 quedo en PDF y sigue de ultimo.
 
 Pendiente mio, no tuyo: rotar la contrasena de PayPal de Retia, publicada en texto plano en el
 grupo "Ventas JP Vieira" desde el 18-ago.
 ```
 
-
-
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-19 (CIERRE 12) — F-03 y F-07 eran el MISMO bug, y el enunciado de la deuda estaba
+  mal escrito desde agosto. ADR 0031, migraciones 0016 y 0017 en `dev` y `production`.**
+
+  **PARA QUIEN ABRA LA PROXIMA SESION, leer esto primero:**
+
+  - ✅ **F-03 y F-07 cerradas, con migracion aplicada en las DOS ramas.** Estaban anotadas como
+    deudas sueltas y son la misma: `lib/sheets/sync.ts` documentaba desde siempre que las personas
+    se sincronizan **por programa** (se leen todas las fuentes juntas y se deduplica sobre el
+    conjunto), pero la corrida se guardaba colgada de `fuentes[0].id`. De ahi salen las dos: no
+    habia llave por programa sobre la cual poner un candado (F-03) y la bitacora nombraba una
+    fuente de varias (F-07). Una columna, `sync_runs.program_id`, cierra las dos.
+
+  - 🩸 **EL HALLAZGO, y sale de mirar las filas de `production` en vez de releer el ticket:**
+    F-07 estaba escrita como *"corrida atribuida a la primera fuente"*, y eso **no era cierto**.
+    La consulta de fuentes **no tiene `ORDER BY`** —el `sort` por `orden` ocurre despues, solo para
+    leer— asi que `fuentes[0]` era la fila que Postgres devolviera de primera: **la atribucion era
+    NO DETERMINISTA**. En `production`, de las 3 corridas de Comunicarte una quedo bajo un
+    formulario y dos bajo el otro, sin que nada hubiera cambiado. Yo mismo repeti el enunciado malo
+    en dos mensajes antes de abrir los datos.
+    🎯 **La leccion: el enunciado de un bug viejo es una hipotesis, no un hecho. Lee las filas
+    antes de repetirlo.** "La primera" sonaba a una regla; no habia ninguna regla.
+
+  - 🎯 **El candado es el INSERT, no un lock.** Indice unico parcial
+    `sync_runs_una_corriendo_por_programa_idx ... WHERE estado = 'corriendo'`, mismo molde que
+    `cohorts_una_activa_por_programa_idx`. Con `neon-http` no hay locks de sesion (ADR 0018), asi
+    que la exclusion mutua vive en la base (ADR 0005). **No hay candado que pedir ni que acordarse
+    de soltar:** la fila que dice "estoy corriendo" ES el candado. 23505 → `SyncEnCursoError` (409),
+    que el cron cuenta como `omitidos` y no como `fallidos`: contar el candado funcionando como una
+    rotura haria que el numero dejara de significar algo el dia que algo se rompa de verdad.
+
+  - ⚠️ **El reaper es la mitad que no se puede olvidar.** Sin el, una funcion que se cae deja la
+    fila `corriendo` para siempre y **el candado pasa de proteger a bloquear**: el sync no vuelve a
+    correr nunca y nadie se entera. Cierra como `error` las corridas de mas de
+    `MINUTOS_ANTES_DE_DAR_POR_MUERTA` (10 = 2x el `maxDuration = 300` de las rutas, no un numero
+    de gusto).
+
+  - 🎯 **LA TRAMPA, que es la pieza mas transferible: un guardia que escribe en el recurso que
+    protege tiene que probar que NO lo toca cuando rechaza.** El `try/catch` grande de
+    `sincronizarPersonas` termina marcando `corrida.id` como `error`. Meter el candado adentro
+    parece lo natural y hace lo contrario de lo que el candado existe para hacer: un sync rechazado
+    **marcaria como error la corrida VIVA de otro proceso**. El reaper y el insert van fuera, y hay
+    un test que lo muerde (despues del 409 la primera sigue `corriendo` y sin `errores`).
+
+  - ✅ **Mordido contra Neon de verdad, no solo contra PGlite.** Dos `sincronizarPersonas` en
+    paralelo sobre el mismo programa: una devolvio 2.053 personas y la otra un 409, con **una sola
+    fila** en `sync_runs` (la rechazada no creo nada, la viva no se marco). Y un zombi insertado a
+    mano con 30 minutos quedo cerrado como `error` con su motivo mientras la corrida nueva
+    arrancaba. La corrida guardo **las dos** fuentes con sus conteos: `Formulario anterior (67)` +
+    `Formulario actual (2.176)` — F-07 vista de frente, porque con el codigo viejo esa corrida se
+    habria etiquetado con UNA de las dos.
+
+  - 🎯 **Afinada una regla de AGENTS.md midiendola, porque estaba escrita mas ancha de lo que es.**
+    "Dentro de una plantilla `sql` las columnas salen SIN calificar" no es general: **lo que
+    desactiva la calificacion es meter una TABLA en la plantilla** (`${people}`). Una plantilla que
+    solo referencia columnas las sigue calificando — `sql`${syncRuns.fuentesLeidas}`` dentro de un
+    select con join se renderiza `"sync_runs"."fuentes_leidas"`, comprobado con `.toSQL()`. La
+    conducta no cambia (nada de subconsultas correlacionadas) pero no hay que desconfiar de un cast
+    de tipo sobre una columna. **`query.toSQL().sql` cuesta un comando y responde de verdad.**
+
+  - 🩸 **El guardian del ADR 0012 me mordio a MI.** El docblock que escribi en `lib/db/schema.ts`
+    nombraba "Comunicarte", y `tests/contrato-extension.test.ts` prohibe nombres de programa en
+    `lib/`, `app/` y `components/`. Lo detecto Kiro al correr el suite. Reformulado a "un programa
+    con dos formularios activos". El guardian funciona incluso contra quien lo respeta de memoria.
+
+  - ⚠️ **Esta migracion NO es aditiva, y por eso la regla del CIERRE 10 no alcanza.** `program_id`
+    entra NOT NULL y `source_id` se va, asi que hay una ventana en la que el esquema y el codigo
+    desplegado no se entienden **en cualquiera de los dos ordenes**. Se asumio con el radio medido:
+    lo unico que toca `sync_runs` son `/nerd-stats` (developer) y `/ajustes/fuentes` (gerente) mas
+    el sync; **ninguna pantalla de closer** (`/mi-dia`, `/programas/[slug]`, `/personas/[id]`,
+    `/recursos`) lee esa tabla, y un sync que falla no deja nada a medias porque el insert de la
+    corrida falla antes de escribir una sola persona y el siguiente recalcula desde cero.
+    🎯 **Para la proxima migracion destructiva: la pregunta no es "¿migro antes o despues?", es
+    "¿que pantallas leen esta tabla y quien las usa?".**
+
+  - ✅ **`production` verificada DESPUES de migrar, contra el snapshot tomado ANTES:** 18
+    migraciones, `source_id` fuera, `program_id` NOT NULL, el candado existe, las 6 corridas
+    historicas conservan su programa exacto (3 comunicarte + 3 tactical, identico al snapshot),
+    cero huerfanas, 4.688 personas. Migrar sin tomar el snapshot antes habria dejado el backfill
+    sin nada contra que comprobarse.
+
+  - **Dos tareas de Notion cerradas** por el chequeo del embudo, las dos con trabajo terminado y
+    tarea abierta: *ticket 028 "ver como" del developer* (hecho el 18-sep) y *Pedirle a Michael el
+    .env.local* (hecho el 16-sep). El patron del CLAUDE.md otra vez: **trabajo terminado que no
+    cierra su tarea se ve identico al pendiente.**
+
+  - **Kiro implemento el codigo y los tests; las migraciones las genero y aplico esta sesion**
+    (regla de AGENTS.md). Ojo: **Kiro cerro sin reportar la primera vez** ("tengo tareas en
+    background"), asi que la verificacion la corrio esta sesion por su cuenta antes de creerle;
+    despues si llego su reporte y coincidio. **577 tests, typecheck y lint limpios.**
 
 - **2026-09-18 (CIERRE 11) — El recorrido REAL en production destapo que `Mani` y `mani` eran
   dos closers. ADR 0030, migracion 0015 y un guardian. Queda un borrado por correr.**
@@ -1847,8 +1934,8 @@ Por partes y en este orden:
        habilitó para developers). Usar un `closer_id` NUEVO, nunca `Andrea` ni `Maru`, o se le
        atribuye la llamada a ellas. Desde el 029 la llamada se puede anular, así que es reversible.
 5. [ ] **Probar `/api/cron/sync` en produccion** con el `CRON_SECRET` (escribe leads reales, pedir ok).
-6. [ ] **F-03 + F-07** juntos, con migracion (diseno en el tracker); primero `dev`, luego
-       `production`.
+6. [x] ~~**F-03 + F-07** juntos, con migracion~~ — **HECHO el 19-sep** (ADR 0031, migraciones
+       0016 y 0017 en `dev` y en `production`). Eran el mismo bug. Ver el CIERRE 12.
 7. [ ] **F-01:** confirmar el mapeo de `Estado` propuesto en el tracker e implementarlo.
 8. [ ] **Documentar las pestanas nuevas** en `docs/estructura-bbdd.md` y revisar las filas de
        `New form` (el 16-sep devolvio 2.007 filas con datos; eran 1.320 el 19-ago).

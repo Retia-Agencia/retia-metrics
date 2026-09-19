@@ -168,7 +168,9 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
 - **Una corrida de sync es de un PROGRAMA, no de una fuente (ADR 0031).** Las personas se
   sincronizan leyendo TODAS las fuentes del programa juntas y deduplicando sobre el conjunto, asi
   que colgar la corrida de una fuente obligaba a elegir una a dedo (`fuentes[0]`) y **atribuia cada
-  corrida al formulario equivocado en un programa con dos formularios activos** (F-07). Lo que se
+  corrida a uno de los formularios de forma NO DETERMINISTA** cuando el programa tiene dos (esa
+  consulta no lleva `ORDER BY`), o sea la bitacora podia decir cosas distintas de corridas
+  identicas (F-07). Lo que se
   leyo se guarda como dato en `sync_runs.fuentes_leidas`, no como llave foranea, y las corridas
   viejas que no lo tienen muestran `—` en vez de un nombre inventado. Y solo puede haber UNA
   corriendo por programa (F-03): lo garantiza el indice unico parcial, no el codigo. Una corrida

@@ -149,7 +149,9 @@ Detalle en [docs/agents/handoff.md](../agents/handoff.md), sección Roadmap.
 - [ ] F-06 · Persona que desaparece de la hoja
 - [x] F-07 · Corrida de sync atribuida a la primera fuente → **hecho 19-sep** (ADR 0031, misma
       migración que F-03). Era el mismo bug que F-03: la corrida colgaba de `fuentes[0]`, así que en
-      un programa con dos formularios activos quedaba atribuida al viejo habiendo leído los dos.
+      un programa con dos formularios activos quedaba bajo uno de ellos habiendo leído los dos — y
+      como esa consulta no lleva `ORDER BY`, **cuál de los dos era no determinista** (verificado en
+      los datos de `production`: 1 corrida bajo un formulario, 2 bajo el otro).
       Ahora la corrida es del programa y `sync_runs.fuentes_leidas` guarda **todas** las fuentes con
       sus conteos; las corridas anteriores muestran `—`, no un nombre inventado.
 - [x] B-01 · `lib/sheets/sync.ts` sin tests → decisión extraída a `lib/sheets/plan-sync.ts`, 6 tests (16-sep)

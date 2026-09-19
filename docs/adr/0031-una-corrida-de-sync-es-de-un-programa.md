@@ -20,11 +20,19 @@ una fuente:
 
 De ahi salen las dos:
 
-- **F-07.** Comunicarte tiene dos fuentes de personas activas: `Formulario anterior` (orden 1) y
-  `Formulario actual` (orden 2). `fuentes[0]` es la de orden menor, asi que **toda corrida de
-  Comunicarte quedaba atribuida al formulario VIEJO**, el de 65 personas, habiendo leido los dos.
-  `/nerd-stats` pintaba ese nombre en una columna llamada "Fuente". No falla, no avisa: **miente, y
-  se ve creible** — la familia del centinela del ano 1 (ADR 0030).
+- **F-07, y es peor que "se atribuye a la primera".** Un programa puede tener dos formularios
+  activos, y la corrida quedaba colgada de `fuentes[0]`. **Esa consulta no tiene `ORDER BY`**: el
+  `sort` por `orden` ocurre despues, solo para leer. Asi que `fuentes[0]` era la fila que Postgres
+  devolviera de primera, y **la atribucion era NO DETERMINISTA: la misma corrida del mismo programa
+  podia quedar bajo un formulario o el otro segun el dia.** Comprobado en los datos de
+  `production` el 19-sep: de las tres corridas del programa de dos formularios, una quedo bajo uno
+  y dos bajo el otro, sin que nada hubiera cambiado. `/nerd-stats` pintaba ese nombre en una
+  columna llamada "Fuente". No falla, no avisa: **miente, y se ve creible** — la familia del
+  centinela del ano 1 (ADR 0030).
+
+  🎯 **La leccion de metodo: la deuda estaba escrita desde agosto como "atribuida a la primera
+  fuente", y esa redaccion me hizo describirla mal hasta que mire las filas.** "La primera" suena
+  a una regla; no habia regla. Lee los datos antes de repetir el enunciado de un bug.
 - **F-03.** No habia ninguna llave por programa sobre la cual poner un candado. Y el camino
   habitual estaba cerrado: con `drizzle-orm/neon-http` cada consulta es su propia peticion HTTP, o
   sea su propia sesion, asi que `pg_advisory_lock` **no sirve** (diagnosticado el 16-sep).
