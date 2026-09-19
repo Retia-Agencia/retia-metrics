@@ -110,8 +110,13 @@ donde vive esta información.
   tarjeta, cuenta bancaria ni ningún dato que identifique un instrumento de pago.
 - **Configuración**: programas, cohortes, metas, productos, catálogos, fuentes, recursos,
   enlaces de pago. Toda alta o cambio queda en `change_log`.
-- **Marco regulatorio**: no validado si registrar montos de compra requiere tratamiento
-  particular bajo habeas data (Ley 1581 de 2012). Va a supuestos.
+- **Marco regulatorio**: **resuelto el 19-sep.** Mani lo consultó con el equipo: no hay
+  obligaciones extra. Son datos que los leads entregaron por su cuenta en el formulario, y de los
+  pagos solo se guardan montos y plataforma, nada que identifique un instrumento de pago. Todo es
+  de y para Retia.
+- **Retención**: **para siempre (Mani, 19-sep).** No se borra ni el lead ni `people.raw`. Eso
+  convierte el crecimiento en una pregunta de escala, no de política: ver la entrada de
+  escalabilidad en el roadmap del handoff, con las cifras medidas.
 
 ## 7. Supuestos por validar
 
@@ -119,17 +124,33 @@ donde vive esta información.
 - [ ] Import histórico: **sí se importa el histórico de C2 (confirmado por Mani el 16-sep).** Los
       dos consolidados de Michael (`docs/insumos/historico-c2/`) tienen discrepancias
       documentadas: qué se reconcilia y qué se descarta se define al abrir el ticket.
+      **Prioridad fijada el 19-sep (Mani): es lo ÚLTIMO que se revisa.** Queda anotado a propósito,
+      no olvidado: no se abre ticket ni se toca hasta que todo lo demás esté cerrado.
 - [x] Los leads se sincronizan desde Sheets (**confirmado por Michael el 16-sep**, ADR 0004 queda
       firme). Cada fuente declara sus columnas; no se exige que las hojas tengan la misma forma.
 - [x] Qué pasa si el closer no encuentra al lead (llegó por WhatsApp directo o por masivos sin
       aplicar). **Resuelto 16-sep (ADR 0021):** el closer lo crea en el CRM y queda como su
       responsable; toda persona puede tener un responsable que se asigna en la app (ticket 026).
-- [ ] Formato del snapshot (PDF, PNG o CSV) y quién puede tomarlo. Va de último; idea inicial:
-      parecido al reporte diario que el equipo ya comparte.
-- [ ] Si los closers pueden agregar recursos o solo verlos. Por defecto: solo gerentes editan.
-- [ ] Si las plataformas de pago las puede crear un closer (como los productos) o solo un
-      gerente. Por defecto: solo gerente.
+- [x] Formato del snapshot y quién puede tomarlo: **PDF (Mani, 18-sep) y lo toman los dos roles,
+      igual que el dashboard (Mani, 19-sep).** Coherente con el ADR 0009: si un closer ya ve la caja
+      y el comparativo en pantalla, impedirle bajar en PDF lo que tiene enfrente es una reja que no
+      protege nada, y el PDF recibe el mismo objeto que pintó la pantalla (ADR 0024), así que no
+      expone nada nuevo. El 021 deja de estar bloqueado; sigue siendo el último de la fila.
+- [x] Si los closers pueden agregar recursos: **sí (Mani, 19-sep).** Se aplica el molde del ADR
+      0016 que ya rige los productos: quien administra entra a cualquier programa, un closer solo
+      a los programas donde tiene membresía ACTIVA. **Supuesto declarado, no preguntado:** un
+      closer NO puede crear un recurso global (`program_id` nulo), porque un recurso sin programa
+      no es de ninguno suyo.
+- [x] Si las plataformas de pago las puede crear un closer: **sí (Mani, 19-sep).** Ojo a la
+      asimetría con los recursos, que se le planteó al decidir: una plataforma NO tiene programa,
+      así que no hay membresía que acote el alcance — un closer que crea una plataforma la crea
+      para todos los programas. Se acepta a sabiendas.
 - [x] Moneda de los abonos: **todo en USD (Michael, 16-sep).** Si el pago entra en COP, el closer
       lo convierte al registrarlo (Mani, 16-sep); el sistema no convierte solo.
 - [ ] Calendly individual por closer o cuenta compartida (afecta la integración futura).
-- [ ] Marco regulatorio de datos financieros, sin validar con nadie de Retia.
+- [x] Marco regulatorio de datos financieros: **cerrado el 19-sep.** Mani habló con el equipo y no
+      hay obligaciones extra bajo habeas data: la información la dieron los leads por su cuenta y
+      los pagos no guardan datos delicados (solo monto y plataforma, nunca un instrumento de pago).
+- [x] Retención de datos personales: **para siempre (Mani, 19-sep).** Ni el lead ni `people.raw`
+      se borran. Lo que queda abierto no es la política sino la **escalabilidad**, que Mani pidió
+      atacar en su propia sesión.

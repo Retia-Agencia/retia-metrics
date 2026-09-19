@@ -21,7 +21,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 013 | [Pantalla de catálogos](./013-pantalla-de-catalogos.md) | 011 | done · 16-sep (id no-uuid ya da 400) |
 | [x] | 014 | [Administrar programas y cohortes](./014-administrar-programas-y-cohortes.md) | 010, 011 | done · 16-sep (migración 0006 en `production`) |
 | [x] | 015 | [Administrar usuarios y closers](./015-administrar-usuarios-y-closers.md) | 011 | done · 16-sep (migración 0005 en `production`; login real pendiente) |
-| [ ] | 016 | [Plantilla de lead + fuentes configurables](./016-fuentes-configurables.md) (ADR 0019) | 014 | todo · **listo** · puede esperar |
+| [x] | 016 | [Plantilla de lead + fuentes configurables](./016-fuentes-configurables.md) (ADR 0019) | 014 | done · 19-sep (migración 0018 en `dev`; `/ajustes/fuentes` deja de ser solo lectura; mapeo combinado campo por campo; una fuente ACTIVA siempre cuadra) |
 | [ ] | 030 | [Borrar del catálogo lo que nunca se usó](./030-borrar-del-catalogo.md) (ADR 0026) | 011 | todo · **listo** · enmienda acotada al ADR 0012 |
 
 ## F1 · Llamadas y ventas
@@ -47,7 +47,8 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 004 | [Consultas del dashboard](./004-consultas-dashboard.md) | 018, 020, 027 | done · 17-sep (sesión paralela B) |
 | [x] | 005 | [Dashboard en /programas/[slug]](./005-dashboard-real-programas.md) | 004, 010 | done · 17-sep (filtro por closer dentro de las consultas del 004; sin migración) |
 | [x] | 006 | [Historial de una persona](./006-historial-persona.md) | 005 | done · 17-sep (`/personas/[id]` de solo lectura; se entra desde el buscador de `/mi-dia`; sin migración) |
-| [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) | 005 | bloqueado · **formato decidido 18-sep: PDF** (Mani). Sigue de último; falta decidir quién puede tomarlo y mirar el reporte diario de Mike antes de codear |
+| [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) | 005 | todo · **desbloqueado 19-sep**: formato PDF y lo toman los dos roles. Sigue de último |
+| [ ] | 034 | [Categorías de lead dinámicas](./034-categorias-de-lead-dinamicas.md) (ADR 0032) | 016 | todo · **el más grande que queda** · cierra F-01 y F-06 · Mani lo quiere en sesión propia · necesita migración |
 
 ## F3 · Recursos
 
@@ -73,12 +74,20 @@ Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje
 
 | Decisión | A quién | Afecta |
 |---|---|---|
-| ~~Formato del snapshot~~ **cerrado 18-sep: PDF**. Queda abierto solo QUIÉN puede tomarlo | Mani | 021 |
-| ¿Closers pueden crear plataformas y recursos? (hoy: no) | Mani | 013, 023 |
 | Qué se reconcilia y qué se descarta del histórico de C2 (importar: **sí**) | Mani | ticket futuro |
 | Confirmar el mapeo de `Estado` al enum (propuesta en F-01) | Mani | F-01 |
 
 ### Resueltas
+
+- 19-sep · **El snapshot en PDF lo toman los dos roles** (Mani). El 021 **deja de estar bloqueado**;
+  sigue siendo el último de la fila. Razón: si un closer ya ve la caja y el comparativo en pantalla
+  (ADR 0009), impedirle bajar lo que tiene enfrente no protege nada, y el PDF recibe el mismo
+  objeto que pintó la pantalla (ADR 0024).
+- 19-sep · **Los closers pueden agregar recursos y crear plataformas de pago** (Mani). Se aplica el
+  molde del ADR 0016 (productos): administra cualquiera, el closer solo en programas con membresía
+  activa. **Dos asimetrías declaradas:** un closer NO crea un recurso global (`program_id` nulo), y
+  una plataforma de pago no tiene programa, así que ahí no hay nada que acote el alcance.
+  Desbloquea los tickets 013 y 023, que quedan con una enmienda pendiente cada uno.
 
 - 18-sep · **La comparacion de `closerId` ignora mayusculas y espacios; el almacenamiento no**
   (Mani; ADR 0030, ticket 033). La ortografia de la hoja es suya (ADR 0004), asi que no se
@@ -130,13 +139,21 @@ el ADR 0018 y en el handoff.
 
 Detalle en [docs/agents/handoff.md](../agents/handoff.md), sección Roadmap.
 
-- [ ] F-01 · El sync descarta `estado` de la hoja. **Desbloqueado 16-sep.** Valores reales:
-      Comunicarte `New form`: `🗑️ Descartado` 928 · `📞 Setteo No Calificado` 786 · `📅 Con Calendly` 286
-      (`Forms viejo` no tiene la columna). Tactical: `🗑️ Descartado` 2.031 · `📞 Setteo No Calificado`
-      1.447 · `📅 Con Calendly (Juanito)` 316 · `Cerrado` 1 · vacío 1. Mapeo propuesto (sin confirmar):
-      Descartado → `descartado`, Setteo No Calificado → `cola_setteo`, Con Calendly → `invitado`,
-      Cerrado → `cierre`. Se compara sin emoji ni sufijo entre paréntesis. Ojo: `New form` devuelve
-      exactamente 2.000 filas (eran 1.320 el 19-ago); verificar que no sean filas vacías con fórmula.
+- [ ] F-01 · El sync descarta `estado` de la hoja. **Dirección CAMBIADA el 19-sep (Mani), ya no
+      es el mapeo a enum que se había propuesto:** `estado` es la columna que CATEGORIZA los leads y
+      se mantiene tal cual viene. El sistema **lee qué valores existen hoy en esa columna y agrupa
+      por ellos**, sin lista fija en el código, y ofrece **combinar** dos valores cuando son la
+      misma categoría escrita distinto (el problema del ADR 0030, pero resuelto a mano por un
+      humano en vez de por normalización, porque aquí las variantes no son de mayúsculas).
+      ⚠️ **Implicación que hay que resolver antes de codear: hoy `people.estado` es un `pgEnum`**
+      (`descartado · cola_setteo · invitado · show · cierre · perdido`), o sea un TIPO en el código.
+      La decisión de Mani lo convierte en una INSTANCIA, que es justo lo que manda el ADR 0012.
+      Eso pide migración (enum → texto + catálogo de categorías) y su propio ADR.
+      Valores reales observados el 16-sep, para dimensionar:
+      Comunicarte `New form`: `🗑️ Descartado` 928 · `📞 Setteo No Calificado` 786 · `📅 Con Calendly` 286.
+      Tactical: `🗑️ Descartado` 2.031 · `📞 Setteo No Calificado` 1.447 · `📅 Con Calendly (Juanito)` 316 ·
+      `Cerrado` 1 · vacío 1. Ojo: `New form` devolvió exactamente 2.000 filas; verificar que no sean
+      filas vacías con fórmula.
 - [x] F-03 · Dos sync simultáneos se pisan → **hecho 19-sep** (ADR 0031, migraciones 0016 y 0017).
       El diseño de septiembre se implementó tal cual: `sync_runs.program_id` + índice único parcial
       `WHERE estado = 'corriendo'`, el INSERT de la corrida ES el candado (23505 → `SyncEnCursoError`,
@@ -144,9 +161,29 @@ Detalle en [docs/agents/handoff.md](../agents/handoff.md), sección Roadmap.
       `maxDuration` de las rutas) antes de intentar. El reaper y el insert van **fuera** del try
       grande: adentro, un sync rechazado habría marcado como error la corrida viva de otro.
       Mordido contra Neon de verdad, no solo contra PGlite.
-- [ ] F-04 · Updates del sync fila por fila
-- [ ] F-05 · Fechas viejas en la zona del servidor
-- [ ] F-06 · Persona que desaparece de la hoja
+- [x] F-04 · Updates del sync fila por fila → **hecho 19-sep.** Los UPDATE pasan por
+      `ejecutarJuntas` en lotes de `TAMANO_DE_LOTE` (200), o sea **una petición HTTP por lote** en
+      vez de una por persona; en PGlite cae a una transacción. No se usó `UPDATE ... FROM (VALUES
+      ...)` a propósito: habría necesitado una plantilla `sql` con una tabla adentro, que es justo
+      el footgun de las columnas sin calificar. Cada lote queda atómico, que es mejor que antes.
+      **Verificado contra Neon, no solo contra PGlite:** se ensuciaron 250 nombres en `dev` y el
+      sync reparó 247 en 6,3 s (los 3 restantes son personas `entrada: crm`, que no están en la
+      hoja — el sync hace bien en no tocarlas).
+- [x] F-05 · Fechas viejas en la zona del servidor → **VERIFICADA MUERTA el 19-sep, sin escribir
+      una línea de código.** Se re-parseó con el parser de hoy (que ya escribe `-05:00` explícito)
+      el `raw.fechaAplicacion` de las **3.369** personas de `production` con UNA sola aplicación y
+      se comparó contra `fecha_primera_aplicacion`: **3.369 coinciden exacto al milisegundo, 0
+      difieren, 0 dan null**. Como lo guardado es lo que produce el parser correcto, lo guardado es
+      correcto. Se auto-reparó sola cuando las fechas entraron en `CAMPOS_COMPARABLES` el 18-sep.
+      **Alcance honesto de la medición:** cubre las de una aplicación; en las de varias,
+      `fecha_primera_aplicacion` es el mínimo entre filas y `raw` guarda solo una, así que no son
+      comparables por este camino — pero es el mismo parser, y el plan de sync del 18-sep no
+      reportó ninguna fila a actualizar por fecha sobre las 4.599.
+- [ ] F-06 · Persona que desaparece de la hoja → **DESBLOQUEADA 19-sep (Mani): nunca se borra.**
+      Un lead solo cambia de estado; jamás se borra una fila de `people`. Eso deja de depender de
+      la respuesta de Michael («¿las filas se borran o se mueven de pestaña?»): pase lo que pase en
+      la hoja, el CRM no borra. Lo que queda por construir es la DETECCIÓN — que el sync note que
+      una persona dejó de venir en la hoja y lo deje visible — no el borrado.
 - [x] F-07 · Corrida de sync atribuida a la primera fuente → **hecho 19-sep** (ADR 0031, misma
       migración que F-03). Era el mismo bug que F-03: la corrida colgaba de `fuentes[0]`, así que en
       un programa con dos formularios activos quedaba bajo uno de ellos habiendo leído los dos — y
@@ -155,7 +192,11 @@ Detalle en [docs/agents/handoff.md](../agents/handoff.md), sección Roadmap.
       Ahora la corrida es del programa y `sync_runs.fuentes_leidas` guarda **todas** las fuentes con
       sus conteos; las corridas anteriores muestran `—`, no un nombre inventado.
 - [x] B-01 · `lib/sheets/sync.ts` sin tests → decisión extraída a `lib/sheets/plan-sync.ts`, 6 tests (16-sep)
-- [ ] S-06 + B-06 · Retención de PII y `people.raw` sin techo
+- [x] S-06 + B-06 · Retención de PII y `people.raw` sin techo → **decidido 19-sep (Mani): se
+      guarda TODO para siempre.** No se borra ni el lead ni `raw`. La deuda deja de ser de política
+      y se convierte en una de **escalabilidad**, que Mani pidió atacar en sesión propia. Cifras
+      medidas ese día en `production`: base completa **15 MB**, `people` 5.104 kB / 4.688 filas,
+      `people.raw` 2.520 kB (**551 bytes por persona**, la mitad de la tabla), `change_log` 600 kB.
 - [x] S-14 · Producción y preview comparten base → resuelto 16-sep (ADR 0018): local y Preview en
       la rama `dev`, Production en `production`. Queda verificar el valor de Production (ver ADR).
 - [x] `CRON_SECRET` en `.env.local` y en Vercel Production (16-sep, `npm run cron-secret`).

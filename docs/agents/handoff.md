@@ -8,29 +8,30 @@
 > Copiar y pegar tal cual. Escrito el 19-sep al cerrar el día.
 
 ```
-Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y la entrada "CIERRE 12" del 19-sep en
-docs/agents/handoff.md (y la "CIERRE 11" del 18-sep si necesitas el contexto del recorrido real).
+Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y las entradas "CIERRE 13" y "CIERRE 12"
+del 19-sep en docs/agents/handoff.md.
 
-Estado: 577 tests, typecheck y lint limpios. F-03 y F-07 cerradas: eran el mismo bug (la corrida de
-sync colgaba de una fuente en vez del programa). ADR 0031, migraciones 0016 y 0017 aplicadas en dev
-y en production y verificadas contra un snapshot tomado antes. El candado es un indice unico
-parcial y esta mordido contra Neon de verdad, no solo contra PGlite. Ojo que `/api/health` devuelve
-un JSON constante y no toca la base: un 200 ahi no prueba ninguna consulta.
-
-production: 4.688 personas (el cron sigue importando), 6 corridas de sync historicas con su
-programa, 0 llamadas / 0 ventas / 0 abonos / 0 recursos, configuracion intacta. Los dos closers
-activos son `Mani` y `Maru`, capitalizados.
-
-Delega a Kiro (kiro-rescue) lo grueso o repetitivo. Kiro NO corre db:generate ni db:migrate, y el
-19-sep cerro una vez sin reportar: corre la verificacion por tu cuenta antes de creerle. Para una
-segunda opinion o una implementacion paralela, codex:codex-rescue.
+Estado: 598 tests, typecheck y lint limpios. Cerrados el 016 (fuentes configurables, criterio 4 de
+la spec), F-03 + F-07 (ADR 0031), F-04 (updates del sync por lotes) y F-05 (verificada muerta, sin
+codigo). Migraciones 0016 y 0017 aplicadas en dev y production; la 0018 (plantilla_lead) SOLO en
+dev, falta en production. main desplegado hasta el commit de F-03/F-07.
 
 Arranca por:
-(1) dar de alta a Andrea Machado cuando confirme su cuenta de Google. Candidato:
-    andrea.machado@30x.com; su closer_id es `Andrea`, CAPITALIZADO.
-(2) F-01: confirmar con Michael el mapeo de `Estado` (propuesto en el tracker) e implementarlo. Es
-    lo que le falta al embudo para calcularse.
-(3) el 030 y el 016 pueden esperar. El 021 quedo en PDF y sigue de ultimo.
+(1) aplicar la migracion 0018 en production y desplegar lo que quedo sin pushear (016 + F-04).
+(2) el ticket 034 (categorias de lead dinamicas, ADR 0032): cierra F-01 y F-06, necesita migracion
+    y Mani lo quiere en sesion propia. Es el mas grande que queda. El dato de la hoja YA esta en
+    people.raw para 4.633 personas, asi que el backfill no necesita re-sincronizar.
+(3) las enmiendas de permisos de los tickets 013 y 023 (closers agregan recursos y crean
+    plataformas de pago; decidido el 19-sep, SIN implementar). Un closer NO crea un recurso global.
+(4) dar de alta a Andrea Machado cuando confirme su cuenta de Google (closer_id `Andrea`).
+(5) el 021 quedo desbloqueado (PDF, lo toman los dos roles) pero sigue de ultimo.
+
+Sesiones propias que Mani pidio aparte: escalabilidad (ver el item 11 del roadmap, con las cifras
+medidas) y el fix de CSRF (S-12).
+
+Delega a Kiro (kiro-rescue) lo grueso o repetitivo. Kiro NO corre db:generate ni db:migrate, y el
+19-sep cerro DOS veces sin reportar teniendo trabajo real en disco: verifica por tu cuenta y mira
+`git status` antes de darlo por muerto. Para una segunda opinion, codex:codex-rescue.
 
 Pendiente mio, no tuyo: rotar la contrasena de PayPal de Retia, publicada en texto plano en el
 grupo "Ventas JP Vieira" desde el 18-ago.
@@ -39,6 +40,74 @@ grupo "Ventas JP Vieira" desde el 18-ago.
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-19 (CIERRE 13) — El 016 cerrado, F-04 y F-05 tachadas, y siete decisiones de Mani
+  que convierten F-01 en el ticket 034. 598 tests.**
+
+  **PARA QUIEN ABRA LA PROXIMA SESION, leer esto primero:**
+
+  - ✅ **016 CERRADO** (Kiro implemento, esta sesion reviso y completo). `/ajustes/fuentes` deja de
+    ser de solo lectura: se crean, editan, prueban y activan fuentes desde la pantalla, y el mapeo
+    efectivo se combina **campo por campo** —fuente gana sobre la plantilla del programa, la
+    plantilla sobre el defecto del codigo— en `lib/sheets/plantilla-lead.ts` (ADR 0019).
+    Migracion **0018** (`programs.plantilla_lead`) aplicada en `dev`, **falta en `production`**.
+    **Es lo que sostiene el criterio 4 de la spec**, el unico de los 6 que nunca se ha ejercido.
+
+  - 🎯 **El hueco que dejo mi propio diseno, y lo encontro Kiro.** Yo decidi "probar al activar, sin
+    bandera" justo para evitar estado rancio... y el estado rancio volvio por la otra puerta:
+    **editarle el mapeo a una fuente ya activa la dejaba activa y rota.** El arreglo no es
+    re-probar y desactivar, es **rechazar el cambio**: asi el invariante deja de ser "se probo al
+    activar" y pasa a ser **"una fuente ACTIVA siempre tiene un mapeo que cuadra"**, que es mas
+    fuerte y no tiene estado que envejecer. La edicion legitima (la hoja cambio un encabezado y el
+    mapeo se ajusta) pasa la prueba, asi que la reja no estorba. Mordido en los dos sentidos y
+    **probado quitando el arreglo para ver el test caerse**.
+
+  - ✅ **F-04 hecha.** Los UPDATE del sync pasan por `ejecutarJuntas` en lotes de 200: **una
+    peticion HTTP por lote** en vez de una por persona. No era un bug activo —una corrida normal
+    actualiza ~6 filas— era una bomba: el dia que un ajuste de mapeo tocara a las 4.700 serian
+    4.700 viajes y ~235s contra un techo de 300s.
+    **No se uso `UPDATE ... FROM (VALUES ...)`**: habria necesitado una plantilla `sql` con una
+    tabla adentro, que es el footgun de las columnas sin calificar. `ejecutarJuntas` ya existia.
+    ✅ **Verificado contra Neon, no solo contra PGlite** (son caminos DISTINTOS: batch vs
+    transaccion): se ensuciaron 250 nombres en `dev` y el sync reparo 247 en 6,3s.
+    🩸 **Y de paso me mordio a mi:** los 3 que no reparo son personas `entrada: crm`, que no estan
+    en la hoja — el sync hace bien en no tocarlas—, pero yo ya les habia pisado el nombre sin
+    forma de restaurarlo. **Me salvo `change_log`**, que tenia los tres nombres originales. Eran
+    datos de prueba de recorridos viejos, asi que no se perdio nada real. **Leccion: ensuciar datos
+    para probar algo exige saber de antemano como se restauran.**
+
+  - ✅ **F-05 VERIFICADA MUERTA sin escribir codigo.** Se re-parseo con el parser de hoy el
+    `raw.fechaAplicacion` de las 3.369 personas de `production` con una sola aplicacion: **3.369
+    coinciden exacto, 0 difieren**. Se auto-reparo el 18-sep al entrar las fechas en
+    `CAMPOS_COMPARABLES`. 🎯 **Una deuda vieja se VERIFICA antes de trabajarla.**
+
+  - 🎯 **F-01 cambio de direccion y se convirtio en el ticket 034 + ADR 0032.** La propuesta que
+    dormia en el tracker era traducir los valores de la hoja a nuestro enum. **Mani la rechazo:
+    "no debe haber nada hard coded".** Lo que se midio para decidirlo: `people.estado` es un
+    `pgEnum` **decorativo** —las 4.688 personas estan en el default y **ningun `if` del codigo
+    depende de su valor**—, y el dato de la hoja **ya esta en `people.raw` para 4.633 personas**,
+    asi que no hace falta re-sincronizar para poblarlo. El caso que justifica "combinar" aparecio
+    solo en los datos: `📅 Con Calendly` y `📅 Con Calendly (Juanito)` son la misma categoria en
+    dos programas. **Mani lo quiere en su propia sesion.**
+
+  - **Decisiones de Mani del 19-sep, todas ya escritas donde corresponde:**
+    (1) F-01 sin nada hardcoded, en sesion propia → ticket 034 + ADR 0032.
+    (2) F-04 de una → hecha.
+    (3) **Todas las fechas son de Bogota** → regla dura nueva en AGENTS.md.
+    (4) F-06: "desaparecio de la hoja" es una categoria mas → entra en el 034; **nunca se borra**.
+    (5) Retencion: **para siempre**, ni el lead ni `raw`. La deuda pasa a ser de ESCALA (abajo).
+    (6) CSRF: si, pero como fix rapido en sesion propia.
+    (7) **Habeas data cerrado**: Mani hablo con el equipo, no hay obligaciones extra.
+
+  - **Dos supuestos mas cerrados:** el snapshot en PDF lo toman **los dos roles** (el 021 deja de
+    estar bloqueado, sigue de ultimo), y los closers **si** agregan recursos y crean plataformas de
+    pago, con dos asimetrias declaradas (un closer no crea un recurso GLOBAL; una plataforma no
+    tiene programa, asi que ahi no hay membresia que acote). **Las enmiendas a los tickets 013 y
+    023 quedan SIN implementar.**
+
+  - ⚠️ **Kiro cerro sin reportar DOS veces hoy** ("tengo tareas en background corriendo"), y las dos
+    veces habia trabajo real en disco. La segunda si entrego reporte completo despues. **Verifica
+    por tu cuenta antes de creerle, y antes de darlo por muerto revisa `git status`.**
 
 - **2026-09-19 (CIERRE 12) — F-03 y F-07 eran el MISMO bug, y el enunciado de la deuda estaba
   mal escrito desde agosto. ADR 0031, migraciones 0016 y 0017 en `dev` y `production`.**
@@ -1939,11 +2008,28 @@ Por partes y en este orden:
 7. [ ] **F-01:** confirmar el mapeo de `Estado` propuesto en el tracker e implementarlo.
 8. [ ] **Documentar las pestanas nuevas** en `docs/estructura-bbdd.md` y revisar las filas de
        `New form` (el 16-sep devolvio 2.007 filas con datos; eran 1.320 el 19-ago).
-9. [ ] **F-05 · Migrar las fechas ya guardadas.** El codigo ya escribe con `-05:00` explicito,
+9. [x] ~~**F-05 · Migrar las fechas ya guardadas.**~~ — **NO HAY NADA QUE MIGRAR** (verificado el
+       19-sep contra `production`: 3.369 de 3.369 personas comparables coinciden exacto con el
+       parser de hoy). Se reparo sola al entrar las fechas en `CAMPOS_COMPARABLES` el 18-sep.
+       🎯 **Leccion: una deuda vieja se verifica antes de trabajarla.** Estaba en la lista desde
+       agosto y costaba un comando comprobar que ya no existia. Lo que sigue del texto original,
+       como registro de lo que fue: El codigo ya escribe con `-05:00` explicito,
        pero las filas viejas quedaron en la zona del servidor y `compararCampos` no mira fechas,
        asi que un `npm run sync` normal **no** las repara. Decidir entre migracion puntual o
        re-sync forzado.
 10. [ ] **016** (plantilla de lead por fuente) esta listo pero puede esperar. Necesita migracion.
+
+11. [ ] 🔭 **ESCALABILIDAD, en sesion propia (Mani, 19-sep).** Nace de decidir que la retencion es
+       "para siempre": si nada se borra y la hoja nunca para de crecer, ¿hasta donde aguanta?
+       **Medido en `production` el 19-sep, para no partir de una opinion:** base completa **15 MB**,
+       `people` 5.104 kB / 4.688 filas, `people.raw` 2.520 kB (**551 bytes por persona**, la mitad
+       de la tabla), `change_log` 600 kB / 2.250 filas.
+       **Lectura honesta: el almacenamiento NO es el problema** —a 551 bytes por persona, un millon
+       de leads son ~550 MB y Postgres ni se inmuta—. Los techos reales son otros y hay que
+       mirarlos en esa sesion: **(a)** el sync lee la hoja COMPLETA en cada corrida y deduplica en
+       memoria (a 3.000 filas tarda 4s; la API de Sheets y la memoria de la funcion son el limite,
+       no la base), **(b)** `change_log` crece con cada cambio y nadie lo poda, **(c)** el plan de
+       Neon. Ver tambien la seccion "Rendimiento y escala" de AGENTS.md.
 
 ### Next (blocked until a "Now" item lands)
 
@@ -1976,7 +2062,7 @@ Bloqueados por una decision de negocio (hay que preguntarle a Michael):
 - [x] **S-14** — resuelto el 16-sep (ADR 0018).
 - [x] **S-10** — `AUTH_URL` en Vercel Production y callback en el cliente OAuth de `retia-growth`
       (16-sep).
-- [ ] **S-12** — Los route handlers dependen de `SameSite=Lax`, sin CSRF propio. Se resuelve
+- [ ] **S-12** — **19-sep (Mani): si, pero como fix rapido en su propia sesion, por debajo de F-01 y F-06.** Los route handlers dependen de `SameSite=Lax`, sin CSRF propio. Se resuelve
       migrando las mutaciones a Server Actions.
 - [x] **`CRON_SECRET`** — en `.env.local` y en Vercel Production desde el 16-sep.
 - [x] **Pantalla para administrar usuarios.** Pasa a ser el ticket 015.
@@ -2043,10 +2129,13 @@ ya no describen la realidad. Se recalculan cuando haga falta. Estan en
   "Alejandro Carvajal Parra"). Michael lo confirmo el 18 de agosto tras plantearsele el riesgo dos
   veces. **Implicacion:** los registros de llamada van a quedar atribuidos a esa cuenta compartida,
   no a una persona individual. Tenerlo presente al construir el registro de llamadas.
-- **`/ajustes/fuentes` es de solo lectura, a proposito.** El plan original pedia editar el mapeo de
-  columnas desde la UI; hoy se cambia en `scripts/seed-datos.ts` y se vuelve a sembrar. Los tres
-  formularios comparten un unico mapeo que ya funciona, asi que una UI de edicion sin necesidad
-  real habria sido trabajo muerto. **Es una desviacion declarada, no un olvido.**
+- **`/ajustes/fuentes` YA NO es de solo lectura** (ticket 016, 19-sep). Lo fue mientras los dos
+  programas compartieron un mapeo que funcionaba, y estaba escrito aqui como desviacion declarada.
+  El 016 la revirtio porque es lo que sostiene el criterio 4 de la spec (crear un programa nuevo
+  sin tocar codigo). Hoy se crean, editan, prueban y activan fuentes desde la pantalla, y el mapeo
+  efectivo se combina **campo por campo**: la fuente gana sobre la plantilla del programa y la
+  plantilla sobre el defecto del codigo (`lib/sheets/plantilla-lead.ts`, ADR 0019). El mapeo ya NO
+  se cambia en `scripts/seed-datos.ts`.
 
 ### Ojo al arrancar
 

@@ -3,7 +3,7 @@ id: 016
 fase: F0
 serves: "ADR 0012, ADR 0019 — una fuente se prueba antes de activarse; spec §5 criterio 4"
 depends: [014]
-status: todo
+status: done
 ---
 
 # 016 — Plantilla de lead y fuentes configurables, con prueba antes de activar

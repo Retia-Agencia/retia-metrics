@@ -73,6 +73,14 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   closers **no** da el total del programa: la pantalla lo dice en vez de cuadrarlo a la fuerza.
 - **Nunca convertir moneda en silencio.** Tickets en USD, pauta en COP, sin TRM historica unica.
   Siempre mostrar la moneda al lado del numero.
+- **TODA fecha de este sistema es de Bogota, Colombia (Mani, 19-sep).** No existe "la zona del
+  entorno": la maquina de quien corre un script y una funcion de Vercel no son la misma, y sobre
+  una columna `timestamptz` eso produce instantes distintos para la MISMA fila. Colombia no tiene
+  horario de verano, asi que siempre es `-05:00` y va **explicito**. Dos lugares lo implementan y
+  no debe haber un tercero: `parsearFecha` en `lib/sheets/mapeo.ts` (lo que entra desde las hojas)
+  y `hoyEnBogota()` en `lib/format.ts` (lo que la app prellena). `new Date(a, m, d)` y
+  `toISOString().slice(0,10)` estan PROHIBIDOS para una fecha de negocio: el primero usa la zona
+  del proceso y el segundo da el dia en UTC, que de 7pm a medianoche ya es manana.
 - **Solo dias habiles, y los festivos cuentan como habiles.** Regla de Retia, no del calendario
   colombiano: solo se excluyen sabados y domingos.
 
@@ -229,6 +237,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Mensajes de validacion del navegador | `components/validacion-en-espanol.tsx`, montado una vez en el layout raiz: traduce los globos nativos, que salen en el idioma del navegador y no en el del `lang` de la pagina | Revision manual |
 | Que registros cuentan | `vigente(tabla)` / `incluyendoAnulados(tabla)` en `lib/queries/vigente.ts` (ADR 0026) | `tests/vigencia-centralizada.test.ts`: recorre `lib/`, `app/`, `components/` y `scripts/` cadena de drizzle por cadena, y falla si una lee `calls`, `sales` o `abonos` sin aplicar el predicado |
 | Con que rol actua una sesion | `rolDeVista(session)` en `lib/auth/vista.ts` (ADR 0028): la vista solo ESTRECHA, nunca ensancha | `tests/rol-de-vista-centralizado.test.ts`: recorre `app/` y `lib/` y falla si alguien decide alcance o permiso leyendo `session.user.rol` crudo; las lecturas de IDENTIDAD van como excepciones nombradas |
+| Cuando una fuente puede estar ACTIVA | Una fuente activa SIEMPRE tiene un mapeo que cuadra: `activarFuente` prueba contra los encabezados reales en ese momento, y `editarFuente` vuelve a probar si la fuente ya esta activa (ticket 016) | `tests/fuentes.test.ts`, mordido en los dos sentidos: editar una ACTIVA a un mapeo roto se rechaza con 422 **sin tocar la fila**, y editar una INACTIVA a lo mismo se permite. **No se guarda bandera de "ultima prueba ok"**: envejeceria |
 | Cuando puede arrancar una corrida de sync | El indice unico parcial `sync_runs_una_corriendo_por_programa_idx` + `SyncEnCursoError` (409) y el reaper, en `lib/sheets/sync.ts` (ADR 0031) | `tests/sync-candado.test.ts`: dos corridas simultaneas, el rechazo **sin tocar la corrida viva**, el reaper, y que las fuentes leidas queden guardadas. Mordido ademas contra Neon de verdad el 19-sep, no solo contra PGlite |
 | Si un error del driver es de un codigo de Postgres | `lib/db/errores.ts`: `esViolacionUnica` (23505) y `esViolacionCheck` (23514) sobre `esCodigoPostgres`, que camina la cadena de `cause` | Revision manual: una copia local de ese bucle en cualquier modulo es el olor. Vivia duplicado byte a byte en 4 modulos hasta el 19-sep |
 | Cuando dos textos son el mismo closer | `lib/closers/identidad.ts` (ADR 0030) + indice unico sobre `lower()` en `users` | `tests/closer-identidad.test.ts`: guardian sobre `lib/`, `app/` y `components/`, probado mordiendo en los dos sentidos (caza lo malo y **no** marca la solucion) |
@@ -239,7 +248,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 577 pasando al 19-sep). Los tests que necesitan base usan PGlite en
+- **Test:** `npm test` (Vitest, 598 pasando al 19-sep). Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Run:** `npm run dev` (http://localhost:3000)
