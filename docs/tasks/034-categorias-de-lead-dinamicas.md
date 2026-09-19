@@ -67,6 +67,14 @@ misma categoria en dos programas.
   decide **con la pantalla delante**.
 - Que pasa con un valor que nadie ha clasificado: lo natural es que aparezca como su propio grupo
   sin pedir permiso, y que combinarlo sea opcional.
+- 🔴 **El ORDEN de las categorias, y esto es lo que agrupar dinamicamente NO resuelve.** Agrupar
+  da *cuantos hay en cada categoria*; un embudo necesita ademas **en que orden van**, y eso no se
+  deduce leyendo los valores: nadie puede inferir del texto que `📅 Con Calendly` va antes que un
+  cierre. **Y la pregunta que mas pesa:** ¿`📞 Setteo No Calificado` es una ETAPA por la que se
+  pasa o una SALIDA? De eso depende si esas 2.071 personas siguen vivas en el embudo o ya estan
+  fuera, y con ello si la conversion lead→venta da ~0,9% o ~2,6%. **Es lo unico que sobrevive de
+  la pregunta vieja a Michael** ("como se representa el estado del embudo en las hojas"): la
+  traduccion murio con la decision de Mani, el orden y el significado no.
 - **¿Las categorias son por programa o globales?** Los datos sugieren por programa (cada hoja tiene
   su redaccion), pero eso choca con querer un embudo comparable entre programas. No se decide de
   paso.

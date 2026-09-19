@@ -3,7 +3,7 @@ id: 021
 fase: F2
 serves: "spec §2 — snapshot descargable"
 depends: [005]
-status: bloqueado
+status: todo
 ---
 
 # 021 — Snapshot descargable del dashboard
@@ -11,9 +11,15 @@ status: bloqueado
 ## Objetivo
 Quien lo necesite descarga lo que ve en el dashboard para compartirlo fuera de la app.
 
-## Bloqueado por
-**Mani, 16-sep: va de último.** Sigue siendo el último de la fila; lo que se cerró es el FORMATO,
-no la prioridad.
+## Ya NO está bloqueado (19-sep)
+
+Lo que lo bloqueaba era **quién puede tomarlo**, y Mani lo cerró el 19-sep: **los dos roles, igual
+que el dashboard**. Coherente con el ADR 0009 ("todos ven todo"): si un closer ya ve la caja y el
+comparativo en pantalla, impedirle bajar en PDF lo que tiene enfrente es una reja que no protege
+nada, y el PDF recibe el mismo objeto que pintó la pantalla (ADR 0024), así que no expone nada
+nuevo.
+
+**Sigue siendo el último de la fila por prioridad, no por bloqueo** (Mani, 16-sep).
 
 ## ✅ Formato decidido por Mani el 18-sep: **PDF**
 

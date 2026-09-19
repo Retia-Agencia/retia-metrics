@@ -18,7 +18,9 @@ aquí): ADR 0008 a 0011 y ADR 0012 a 0017 (16-sep-2026).
 **Sobre el plazo:** Comunicarte C2 cierra el 22-sep (4 días hábiles desde el 16). F0 y F1
 completas no caben ahí. La meta realista es tener F1 usable para el cierre de Tactical C2
 (29-sep) y para la cohorte C3 de Comunicarte desde el primer día. Si hay que recortar, se
-recorta dentro de F0 (el ticket 016 puede esperar), no se salta la fase.
+recorta dentro de F0, no se salta la fase. _(Nota del 19-sep: el 016, que era el candidato a
+recortar, quedó hecho. Las dos fechas de este párrafo ya pasaron; se conserva como registro de con
+qué presión se ordenó el plan.)_
 
 ## Arquitectura: qué se agrega
 

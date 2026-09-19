@@ -13,18 +13,19 @@ del 19-sep en docs/agents/handoff.md.
 
 Estado: 598 tests, typecheck y lint limpios. Cerrados el 016 (fuentes configurables, criterio 4 de
 la spec), F-03 + F-07 (ADR 0031), F-04 (updates del sync por lotes) y F-05 (verificada muerta, sin
-codigo). Migraciones 0016 y 0017 aplicadas en dev y production; la 0018 (plantilla_lead) SOLO en
-dev, falta en production. main desplegado hasta el commit de F-03/F-07.
+codigo). **Las migraciones 0016, 0017 y 0018 estan aplicadas en dev Y en production (19 en total),
+y `main` esta desplegado y vivo en f1085fa** (comprobado con `vercel ls` + `vercel inspect`).
+production: 4.688 personas, 0 llamadas / 0 ventas / 0 abonos / 0 recursos. NO queda nada por
+desplegar ni por migrar.
 
 Arranca por:
-(1) aplicar la migracion 0018 en production y desplegar lo que quedo sin pushear (016 + F-04).
-(2) el ticket 034 (categorias de lead dinamicas, ADR 0032): cierra F-01 y F-06, necesita migracion
+(1) el ticket 034 (categorias de lead dinamicas, ADR 0032): cierra F-01 y F-06, necesita migracion
     y Mani lo quiere en sesion propia. Es el mas grande que queda. El dato de la hoja YA esta en
     people.raw para 4.633 personas, asi que el backfill no necesita re-sincronizar.
-(3) las enmiendas de permisos de los tickets 013 y 023 (closers agregan recursos y crean
+(2) las enmiendas de permisos de los tickets 013 y 023 (closers agregan recursos y crean
     plataformas de pago; decidido el 19-sep, SIN implementar). Un closer NO crea un recurso global.
-(4) dar de alta a Andrea Machado cuando confirme su cuenta de Google (closer_id `Andrea`).
-(5) el 021 quedo desbloqueado (PDF, lo toman los dos roles) pero sigue de ultimo.
+(3) dar de alta a Andrea Machado cuando confirme su cuenta de Google (closer_id `Andrea`).
+(4) el 021 quedo desbloqueado (PDF, lo toman los dos roles) pero sigue de ultimo.
 
 Sesiones propias que Mani pidio aparte: escalabilidad (ver el item 11 del roadmap, con las cifras
 medidas) y el fix de CSRF (S-12).
@@ -104,6 +105,18 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     pago, con dos asimetrias declaradas (un closer no crea un recurso GLOBAL; una plataforma no
     tiene programa, asi que ahi no hay membresia que acote). **Las enmiendas a los tickets 013 y
     023 quedan SIN implementar.**
+
+  - ✅ **TODO QUEDO EN `production` Y DESPLEGADO.** La 0018 se aplico con el ok de Mani **despues
+    del push**, y ese orden importo: el codigo del 016 lee `programs.plantilla_lead`, y
+    `sincronizarPersonas` selecciona TODAS las columnas de `programs`, asi que entre el push y la
+    migracion **el sync de production habria reventado con *column does not exist***. No paso
+    nada porque el cron corre a las 7am y la ventana fueron minutos, pero es la misma leccion de
+    la 0016/0017 en la otra direccion.
+    🎯 **La regla general que queda: una migracion aditiva se puede aplicar antes O despues del
+    deploy, pero si el codigo nuevo LEE la columna, "despues" tiene una ventana. Mira que lee el
+    codigo que estas desplegando, no solo si la migracion agrega o quita.**
+    Verificado despues: 19 migraciones, `plantilla_lead` nullable, los dos programas en `null`
+    (heredan el defecto), 4.688 personas intactas, deploy `f1085fa` vivo.
 
   - ⚠️ **Kiro cerro sin reportar DOS veces hoy** ("tengo tareas en background corriendo"), y las dos
     veces habia trabajo real en disco. La segunda si entrego reporte completo despues. **Verifica
