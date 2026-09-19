@@ -84,3 +84,30 @@ export async function estadoDeFuentes(db: Db = dbDeLaApp) {
 }
 
 export type Fuentes = Awaited<ReturnType<typeof estadoDeFuentes>>;
+
+/**
+ * Todo lo que necesita la administracion de fuentes (ticket 016): por programa, sus
+ * datos completos (hoja, pestana, mapeo) y su plantilla de lead. A diferencia de
+ * `estadoDeFuentes`, esto SI trae el `sheetId` y el `mapeoColumnas` porque la
+ * pantalla los edita; el `sheetId` se trunca al pintar (S-13), nunca aca.
+ */
+export async function fuentesParaAdmin(db: Db = dbDeLaApp) {
+  const programas = await db
+    .select({
+      id: programs.id,
+      slug: programs.slug,
+      nombre: programs.nombre,
+      plantillaLead: programs.plantillaLead,
+    })
+    .from(programs)
+    .orderBy(programs.slug);
+
+  const fuentes = await db
+    .select()
+    .from(sources)
+    .orderBy(sources.programId, sources.orden, sources.nombre);
+
+  return { programas, fuentes };
+}
+
+export type FuentesParaAdmin = Awaited<ReturnType<typeof fuentesParaAdmin>>;

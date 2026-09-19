@@ -1,0 +1,11 @@
+-- Plantilla de lead por programa (ADR 0019, ticket 016).
+--
+-- Aditiva y nullable a proposito: nula significa "este programa no ajusta nada y
+-- sus fuentes heredan el defecto del codigo", que es el estado de los dos programas
+-- de hoy. Por eso NO necesita backfill ni la ventana de despliegue de la 0016/0017:
+-- el codigo viejo ignora la columna y el nuevo la lee como nula.
+--
+-- Medido antes de escribirla: las tres fuentes de personas activas mapean los mismos
+-- 14 campos que `MAPEO_FORMULARIO`, sin huecos ni extras, asi que pasar de "todo o
+-- nada" a combinar campo por campo es un no-op para los datos que existen.
+ALTER TABLE "programs" ADD COLUMN "plantilla_lead" jsonb;

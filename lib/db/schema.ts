@@ -126,6 +126,20 @@ export const programs = pgTable("programs", {
   calendlyUrl: text("calendly_url"),
   /** Maximo historico de personas por dia habil. Marca cuando una meta es inalcanzable por volumen. */
   recordPersonasPorDiaHabil: integer("record_personas_por_dia_habil"),
+  /**
+   * Plantilla de lead del programa (ADR 0019, ticket 016): en que encabezado de SU
+   * hoja esta cada campo. Misma forma que `sources.mapeoColumnas`.
+   *
+   * Existe porque un programa puede tener varias hojas que preguntan lo mismo con
+   * otra redaccion: la plantilla se escribe UNA vez en el programa y cada fuente
+   * solo ajusta los campos que su hoja redacta distinto. El mapeo efectivo se
+   * combina campo por campo —fuente gana sobre programa, programa sobre el defecto
+   * del codigo— en `lib/sheets/plantilla-lead.ts`.
+   *
+   * Nula = el programa no ajusta nada y sus fuentes heredan el defecto. No inventa
+   * campos: los campos son fijos en el codigo y lo demas va a `people.raw`.
+   */
+  plantillaLead: jsonb("plantilla_lead"),
   activo: boolean("activo").notNull().default(true),
 });
 

@@ -1,9 +1,11 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
-import { programs } from "@/lib/db/schema";
+import { changeLog, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
+import type { MapeoColumnas } from "@/lib/sheets/mapeo";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
 /**
@@ -157,4 +159,79 @@ export async function reactivarPrograma(
   id: string,
 ): Promise<FilaCatalogo> {
   return normalizando(() => moldePrograma(db).reactivar(actorId, idValido(id)));
+}
+
+// ─────────────────────────────────────────────── plantilla de lead (ADR 0019, 016)
+
+/**
+ * El esquema de la plantilla de lead: un record de campo → patron (texto o lista),
+ * igual que el mapeo de una fuente. Vacio = el programa no ajusta nada y sus fuentes
+ * heredan el defecto del codigo. Que los patrones cuadren con encabezados reales lo
+ * decide la prueba de la fuente, no zod.
+ */
+const esquemaPlantillaLead: z.ZodType<MapeoColumnas> = z.record(
+  z.string(),
+  z.union([z.string(), z.array(z.string())]),
+);
+
+export type EntradaPlantillaLead = z.input<typeof esquemaPlantillaLead>;
+
+/** Convierte un valor a texto para `change_log` (que guarda todo como texto). */
+function aTextoLog(valor: unknown): string | null {
+  if (valor === null || valor === undefined) return null;
+  const s = JSON.stringify(valor);
+  return s === "{}" ? null : s;
+}
+
+/**
+ * Edita la plantilla de lead de un programa (ADR 0019, ticket 016). Vive aparte del
+ * esquema del programa a proposito: `esquemaPrograma` no la incluye para que
+ * `editarPrograma` nunca la pise por accidente, y esta operacion nunca toca los
+ * demas campos.
+ *
+ * NO usa el molde generico porque la plantilla no es una fila propia sino una
+ * columna del programa; pero respeta el contrato del ADR 0012 igual: valida con un
+ * solo esquema y escribe `change_log` (una fila para el campo `plantilla_lead`) en
+ * el mismo lote atomico. Si nada cambia, no escribe. Una plantilla vacia se guarda
+ * como `null` (el programa no ajusta nada).
+ */
+export async function editarPlantillaLead(
+  db: Db,
+  actorId: string,
+  id: string,
+  input: EntradaPlantillaLead,
+): Promise<FilaCatalogo> {
+  return normalizando(async () => {
+    const objetivoId = idValido(id);
+    const plantilla = esquemaPlantillaLead.parse(input);
+    const valor: MapeoColumnas | null = Object.keys(plantilla).length ? plantilla : null;
+
+    const [actual] = await db.select().from(programs).where(eq(programs.id, objetivoId));
+    if (!actual) throw new ErrorDeApp("No existe un programa con ese id.", 404);
+
+    const antes = aTextoLog(actual.plantillaLead);
+    const ahora = aTextoLog(valor);
+    // Nada cambio: no se toca la fila ni se escribe en change_log.
+    if (antes === ahora) return actual as FilaCatalogo;
+
+    await ejecutarJuntas(db, (tx) => [
+      (tx as Db)
+        .update(programs)
+        .set({ plantillaLead: valor })
+        .where(eq(programs.id, objetivoId)),
+      (tx as Db).insert(changeLog).values({
+        tabla: "programs",
+        registroId: objetivoId,
+        etiqueta: String(actual.nombre),
+        campo: "plantilla_lead",
+        valorAnterior: antes,
+        valorNuevo: ahora,
+        origen: "app" as const,
+        userId: actorId,
+      }),
+    ]);
+
+    const [fila] = await db.select().from(programs).where(eq(programs.id, objetivoId));
+    return fila as FilaCatalogo;
+  });
 }

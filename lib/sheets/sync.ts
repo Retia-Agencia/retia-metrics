@@ -4,8 +4,10 @@ import type { Db } from "@/lib/db/tipos";
 import { people, sources, syncRuns, changeLog, programs } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { esViolacionUnica } from "@/lib/db/errores";
+import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { leerPestana } from "./leer";
-import { resolverColumnas, MAPEO_FORMULARIO, OBLIGATORIOS_FORMULARIO, type MapeoColumnas } from "./mapeo";
+import { resolverColumnas, OBLIGATORIOS_FORMULARIO, type MapeoColumnas } from "./mapeo";
+import { combinarMapeo } from "./plantilla-lead";
 import { deduplicarPorCorreo, filasDesdeMatriz } from "./dedup";
 import { planificarSync } from "./plan-sync";
 
@@ -42,6 +44,14 @@ export type FuenteLeida = {
  * el sync completo tarda ~4 segundos, asi que tampoco se acerca.)
  */
 const MINUTOS_ANTES_DE_DAR_POR_MUERTA = 10;
+
+/**
+ * Cuantas filas van en cada viaje a la base. El numero salio de la carga inicial:
+ * insertando de a una tardaba ~161 segundos, por encima del techo de 300s de una
+ * funcion de Vercel; por lotes de 200 tarda 4,0 segundos para 1.253 personas.
+ * Lo usan las tres escrituras masivas del sync, que responden la misma pregunta.
+ */
+const TAMANO_DE_LOTE = 200;
 
 /**
  * Ya hay una sincronizacion corriendo para este programa. La lanza el INSERT de la
@@ -161,9 +171,13 @@ export async function sincronizarPersonas(
       }
 
       const encabezados = matriz[0].map((h) => String(h ?? "").trim());
-      const mapeo = (Object.keys(f.mapeoColumnas ?? {}).length
-        ? (f.mapeoColumnas as MapeoColumnas)
-        : MAPEO_FORMULARIO);
+      // Mapeo efectivo campo por campo (ADR 0019): la fuente gana sobre la plantilla
+      // del programa, y la plantilla sobre el defecto del codigo. Antes era un
+      // ternario de todo-o-nada; ver `lib/sheets/plantilla-lead.ts`.
+      const { mapeo } = combinarMapeo(
+        f.mapeoColumnas as MapeoColumnas | null,
+        programa.plantillaLead as MapeoColumnas | null,
+      );
 
       // Si el mapeo no cuadra, esto lanza y detiene el sync. No se adivina.
       const indices = resolverColumnas(encabezados, mapeo, OBLIGATORIOS_FORMULARIO);
@@ -203,18 +217,35 @@ export async function sincronizarPersonas(
     resultado.nuevas = aInsertar.length;
     resultado.actualizadas = aActualizar.length;
 
-    for (const { id, valores } of aActualizar) {
-      await db.update(people).set({ ...valores, updatedAt: new Date() }).where(eq(people.id, id));
+    // Por lotes, no fila por fila (F-04). Un UPDATE por persona es una peticion HTTP
+    // por persona, porque `neon-http` no tiene sesion: hoy no se nota —una corrida
+    // normal actualiza ~6 filas— pero el dia que un ajuste de mapeo toque a las 4.700
+    // son 4.700 viajes, y ahi se roza el techo de 300s y la corrida muere a la mitad.
+    // No era un bug activo: era una bomba de tiempo, y la misma que ya se desactivo
+    // del lado de los inserts.
+    //
+    // `ejecutarJuntas` manda el lote en UNA peticion (o una transaccion en PGlite),
+    // asi que no hace falta una plantilla `sql` con un UPDATE ... FROM (VALUES ...) —
+    // que ademas caeria justo en el footgun de las columnas sin calificar. Cada lote
+    // es atomico, que es mejor que antes: ya no puede quedar media actualizacion.
+    // `ahora` se calcula UNA vez por lote a proposito: las filas de un mismo lote se
+    // escriben juntas, asi que comparten `updated_at`.
+    for (let i = 0; i < aActualizar.length; i += TAMANO_DE_LOTE) {
+      const lote = aActualizar.slice(i, i + TAMANO_DE_LOTE);
+      const ahora = new Date();
+      await ejecutarJuntas(db, (tx) =>
+        lote.map(({ id, valores }) =>
+          tx.update(people).set({ ...valores, updatedAt: ahora }).where(eq(people.id, id)),
+        ),
+      );
     }
 
-    // En lote: una insercion por persona tardaba ~160s en la carga inicial,
-    // por encima del limite de una funcion de Vercel.
-    for (let i = 0; i < aInsertar.length; i += 200) {
-      await db.insert(people).values(aInsertar.slice(i, i + 200));
+    for (let i = 0; i < aInsertar.length; i += TAMANO_DE_LOTE) {
+      await db.insert(people).values(aInsertar.slice(i, i + TAMANO_DE_LOTE));
     }
 
-    for (let i = 0; i < cambios.length; i += 200) {
-      await db.insert(changeLog).values(cambios.slice(i, i + 200));
+    for (let i = 0; i < cambios.length; i += TAMANO_DE_LOTE) {
+      await db.insert(changeLog).values(cambios.slice(i, i + TAMANO_DE_LOTE));
     }
     resultado.cambiosRegistrados = cambios.length;
 

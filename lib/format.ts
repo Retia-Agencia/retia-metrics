@@ -89,6 +89,18 @@ export function saldoLegible(
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 /**
+ * El ID de una hoja de Google recortado para la pantalla (S-13). El ID completo no
+ * es un secreto, pero tampoco tiene por que estar entero en una pantalla: el prefijo
+ * alcanza para saber cual es cual, igual que en `docs/estructura-bbdd.md`
+ * (`1DBKL4zw…`). Se muestran los primeros 8 caracteres y un puntos suspensivos.
+ */
+export function truncarId(id: string | null | undefined, visibles = 8): string {
+  const s = String(id ?? "").trim();
+  if (!s) return "—";
+  return s.length <= visibles ? s : `${s.slice(0, visibles)}…`;
+}
+
+/**
  * Una fecha de calendario 'YYYY-MM-DD' escrita para leer: "14 ago 2026".
  *
  * Se parte el string, no se construye un `Date`: la fecha es un DIA de calendario, no
