@@ -118,6 +118,22 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     Verificado despues: 19 migraciones, `plantilla_lead` nullable, los dos programas en `null`
     (heredan el defecto), 4.688 personas intactas, deploy `f1085fa` vivo.
 
+  - 🔭 **PIPELINE DE ETAPAS: sesion propia, y es mas grande de lo que parecia** (Mani, 19-sep, al
+    cerrar el dia). La pregunta que quedo del embudo —¿en que ORDEN van las categorias, y
+    `📞 Setteo No Calificado` es una etapa o una salida?— **no se responde improvisando**: Mani
+    quiere mirar como HubSpot modela etapas y pipelines y copiar el modelo probado, para que un
+    closer vea exactamente donde esta cada lead y lo pueda mover. Tarea de Notion creada con
+    prioridad 1; **bloquea el ticket 034**.
+    ⚠️ **Al escribir esa tarea se destapo una tension de arquitectura que nadie habia visto:**
+    el ADR 0004 dice que **Sheets es la fuente de verdad de los leads**, y el 034 asume que la hoja
+    es la duena de `estado`. Un pipeline donde el CLOSER mueve el lead hace que el CRM sea el dueno
+    de la etapa. Las dos a la vez son **dos escritores sobre el mismo campo**, la forma exacta de
+    bug que este repo ya conoce: cifras que no cuadran **sin lanzar un solo error**. Hay que
+    decidir quien manda antes de codear el 034.
+    🎯 **Sale de una regla que vale para todo: cuando una funcion nueva implica que alguien
+    ESCRIBA lo que hoy solo se LEE de una fuente externa, la pregunta "¿quien es el dueno del
+    campo?" hay que hacerla antes, no cuando los numeros discrepen.**
+
   - ⚠️ **Kiro cerro sin reportar DOS veces hoy** ("tengo tareas en background corriendo"), y las dos
     veces habia trabajo real en disco. La segunda si entrego reporte completo despues. **Verifica
     por tu cuenta antes de creerle, y antes de darlo por muerto revisa `git status`.**

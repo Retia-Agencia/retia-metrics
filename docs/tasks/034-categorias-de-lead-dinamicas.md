@@ -67,6 +67,20 @@ misma categoria en dos programas.
   decide **con la pantalla delante**.
 - Que pasa con un valor que nadie ha clasificado: lo natural es que aparezca como su propio grupo
   sin pedir permiso, y que combinarlo sea opcional.
+- 🔴 **EL ORDEN Y LAS ETAPAS SE DISENAN EN SESION PROPIA, ANTES QUE ESTE TICKET** (Mani, 19-sep).
+  Lo que sigue quedo escrito aqui para no perderlo, pero **la decision NO se toma en este ticket**:
+  Mani quiere mirar como HubSpot modela etapas y pipelines y **copiar el modelo probado en vez de
+  improvisarlo**, con el objetivo de que un closer vea exactamente donde esta cada lead y lo pueda
+  mover. Hay tarea de Notion propia (prioridad 1) y **bloquea este ticket**.
+
+  ⚠️ **Y la tension de arquitectura que hay que resolver alli, porque si nadie la mira se decide
+  sola:** hoy **Google Sheets es la fuente de verdad de los leads (ADR 0004)** y este ticket asume
+  que la hoja es la duena de `estado`. Un pipeline donde **el closer mueve el lead** hace que el
+  CRM pase a ser el dueno de la etapa. Las dos cosas a la vez son **dos escritores sobre el mismo
+  campo**, que es justo lo que produce cifras que no cuadran sin lanzar un solo error. Hay que
+  decidir quien manda: la hoja, el CRM, o un reparto explicito (p.ej. la hoja aporta la
+  clasificacion inicial y el CRM manda desde que un closer la toca).
+
 - 🔴 **El ORDEN de las categorias, y esto es lo que agrupar dinamicamente NO resuelve.** Agrupar
   da *cuantos hay en cada categoria*; un embudo necesita ademas **en que orden van**, y eso no se
   deduce leyendo los valores: nadie puede inferir del texto que `📅 Con Calendly` va antes que un
