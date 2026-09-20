@@ -4,11 +4,14 @@ import {
   abonos,
   calls,
   cohorts,
+  miembrosPrograma,
   motivos,
+  people,
   plataformasPago,
   productos,
   programs,
   sales,
+  users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba, type BaseDePrueba } from "./helpers/base-de-prueba";
@@ -46,9 +49,12 @@ async function limpiar(): Promise<void> {
   await db.delete(abonos);
   await db.delete(sales);
   await db.delete(calls);
+  await db.delete(people);
   await db.delete(cohorts);
   await db.delete(productos);
   await db.delete(programs);
+  await db.delete(miembrosPrograma);
+  await db.delete(users);
   await db.delete(plataformasPago);
   await db.delete(motivos);
 }
@@ -64,6 +70,14 @@ afterAll(async () => {
   await base.cerrar();
 });
 beforeEach(limpiar);
+beforeEach(async () => {
+  await db.insert(users).values({
+    id: CLOSER_USER_ID,
+    email: "closer@ejemplo.com",
+    rol: "closer",
+    closerId: "Dana",
+  });
+});
 
 /** Siembra un programa y devuelve su id. */
 async function sembrarPrograma(slug = "comunicarte"): Promise<string> {
@@ -71,6 +85,7 @@ async function sembrarPrograma(slug = "comunicarte"): Promise<string> {
     .insert(programs)
     .values({ slug, nombre: slug, ticketUsd: "797" })
     .returning();
+  await db.insert(miembrosPrograma).values({ userId: CLOSER_USER_ID, programId: prog.id });
   return prog.id;
 }
 
@@ -117,10 +132,12 @@ async function sembrarPlataforma({ activo = true, nombre = "PayPal" } = {}): Pro
   return plat.id;
 }
 
+const CLOSER_USER_ID = "00000000-0000-4000-8000-000000000001";
+
 /** Sesion de un closer logueado. `closerId` null = cuenta sin onboarding (ADR 0011). */
 function sesionCloser(closerId: string | null): Session {
   return {
-    user: { id: crypto.randomUUID(), rol: "closer", closerId },
+    user: { id: CLOSER_USER_ID, rol: "closer", closerId },
     expires: "2099-01-01T00:00:00Z",
   } as Session;
 }
@@ -172,6 +189,61 @@ describe("registrarLlamada", () => {
     await expect(registrarLlamada(sesionCloser("Dana"), input, db)).rejects.toThrow(
       /cohorte activa/i,
     );
+  });
+
+  it("rechaza si la cuenta no tiene membresía activa en el programa", async () => {
+    const [programaSinMembresia] = await db
+      .insert(programs)
+      .values({ slug: "sin-membresia", nombre: "Sin membresía", ticketUsd: "797" })
+      .returning();
+    await sembrarCohorte(programaSinMembresia.id, "activo");
+
+    await expect(
+      registrarLlamada(
+        sesionCloser("Dana"),
+        { programId: programaSinMembresia.id, resultado: "show" },
+        db,
+      ),
+    ).rejects.toThrow(/membresía activa/i);
+    expect(await db.select().from(calls)).toHaveLength(0);
+  });
+
+  it("rechaza un personId inexistente", async () => {
+    const programId = await sembrarPrograma();
+    await sembrarCohorte(programId, "activo");
+
+    await expect(
+      registrarLlamada(
+        sesionCloser("Dana"),
+        { programId, personId: crypto.randomUUID(), resultado: "show" },
+        db,
+      ),
+    ).rejects.toThrow(/persona no existe/i);
+    expect(await db.select().from(calls)).toHaveLength(0);
+  });
+
+  it("rechaza un personId de otro programa aunque emailLead apunte a ese lead", async () => {
+    const programId = await sembrarPrograma();
+    await sembrarCohorte(programId, "activo");
+    const otroProgramId = await sembrarPrograma("otro-programa");
+    const [personaAjena] = await db
+      .insert(people)
+      .values({ programId: otroProgramId, emailNormalizado: "lead@ajeno.co" })
+      .returning();
+
+    await expect(
+      registrarLlamada(
+        sesionCloser("Dana"),
+        {
+          programId,
+          personId: personaAjena.id,
+          emailLead: "lead@ajeno.co",
+          resultado: "show",
+        },
+        db,
+      ),
+    ).rejects.toThrow(/no pertenece a este programa/i);
+    expect(await db.select().from(calls)).toHaveLength(0);
   });
 
   it("rechaza 'reagendada' sin fechaSeguimiento", async () => {

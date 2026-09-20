@@ -1,4 +1,4 @@
-import { and, asc, eq, ilike, isNull, or } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import {
   categoriasRecurso,
@@ -27,8 +27,8 @@ import type { Db } from "@/lib/db/tipos";
  * sobrevive a una edicion: si a un recurso se le corrige el titulo o la categoria con
  * `editarRecurso`, la clave cambia y agrupar por clave partiria el historial en dos,
  * mientras que la cadena de punteros sigue intacta. La cadena es corta (una version
- * por reemplazo manual), asi que caminarla con una consulta por eslabon es barato a
- * la escala de este sistema (~3.000 filas por hoja, restriccion de AGENTS.md).
+ * por reemplazo manual) y los historiales de la pantalla se cargan en bulk para no
+ * convertir una lista de recursos en un N+1.
  */
 
 /** Filtro de la pantalla: programa (opcional) y texto del titulo (opcional). */
@@ -157,6 +157,62 @@ export interface VersionDeRecurso {
   createdAt: Date;
 }
 
+type FilaDeHistorial = {
+  id: string;
+  url: string;
+  createdAt: Date;
+  reemplazaA: string | null;
+};
+
+/** Carga los historiales pedidos en una sola consulta y sigue las cadenas en memoria. */
+export async function historialesDeRecursos(
+  ids: string[],
+  db: Db = dbDeLaApp,
+): Promise<Map<string, VersionDeRecurso[]>> {
+  const resultado = new Map<string, VersionDeRecurso[]>();
+  if (ids.length === 0) return resultado;
+
+  const porId = new Map<string, FilaDeHistorial>();
+  let pendientes = new Set(ids);
+  while (pendientes.size > 0) {
+    const filas = await db
+      .select({
+        id: recursos.id,
+        url: recursos.url,
+        createdAt: recursos.createdAt,
+        reemplazaA: recursos.reemplazaA,
+      })
+      .from(recursos)
+      .where(inArray(recursos.id, [...pendientes]));
+    const siguientes = new Set<string>();
+    for (const fila of filas) {
+      porId.set(fila.id, fila);
+      if (fila.reemplazaA && !porId.has(fila.reemplazaA)) {
+        siguientes.add(fila.reemplazaA);
+      }
+    }
+    if (filas.length === 0) break;
+    pendientes = siguientes;
+  }
+
+  for (const id of ids) {
+    const versiones: VersionDeRecurso[] = [];
+    let siguiente = porId.get(id)?.reemplazaA ?? null;
+    const vistos = new Set<string>();
+
+    while (siguiente && !vistos.has(siguiente)) {
+      vistos.add(siguiente);
+      const fila = porId.get(siguiente);
+      if (!fila) break;
+      versiones.push({ id: fila.id, url: fila.url, createdAt: fila.createdAt });
+      siguiente = fila.reemplazaA;
+    }
+    resultado.set(id, versiones);
+  }
+
+  return resultado;
+}
+
 /**
  * Las versiones ANTERIORES de un recurso, de la mas reciente a la mas vieja, caminando
  * la cadena de `reemplazaA` desde el id dado. No incluye la version consultada.
@@ -170,26 +226,5 @@ export async function historialDeRecurso(
   id: string,
   db: Db = dbDeLaApp,
 ): Promise<VersionDeRecurso[]> {
-  const [actual] = await db
-    .select({ reemplazaA: recursos.reemplazaA })
-    .from(recursos)
-    .where(eq(recursos.id, id));
-  if (!actual) return [];
-
-  const versiones: VersionDeRecurso[] = [];
-  let siguiente = actual.reemplazaA;
-  const vistos = new Set<string>();
-
-  while (siguiente && !vistos.has(siguiente)) {
-    vistos.add(siguiente);
-    const [fila] = await db
-      .select({ id: recursos.id, url: recursos.url, createdAt: recursos.createdAt, reemplazaA: recursos.reemplazaA })
-      .from(recursos)
-      .where(eq(recursos.id, siguiente));
-    if (!fila) break;
-    versiones.push({ id: fila.id, url: fila.url, createdAt: fila.createdAt });
-    siguiente = fila.reemplazaA;
-  }
-
-  return versiones;
+  return (await historialesDeRecursos([id], db)).get(id) ?? [];
 }

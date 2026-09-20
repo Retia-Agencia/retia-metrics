@@ -1,16 +1,16 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { Session } from "next-auth";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
-import { abonos, changeLog } from "@/lib/db/schema";
+import { abonos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
 import { esquemaAbono } from "@/lib/abonos/esquema";
 import { exigirPlataformaActiva } from "@/lib/abonos/plataforma";
 import { closerDeLaSesion } from "@/lib/auth/closer";
 import { usd } from "@/lib/format";
 import { saldoDeVenta } from "@/lib/queries/ventas";
+import { sumaAbonos } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
 
 /**
@@ -68,61 +68,98 @@ export async function registrarAbono(
 
   await exigirPlataformaActiva(datos.plataformaId, db);
 
-  // El sobrepago se mide contra el saldo pendiente. Si la venta no tiene precio del
-  // contrato (filas viejas de Sheets) no hay contra que comparar y no se inventa un
-  // limite: se registra el abono.
-  const sobrepago = venta.saldo === null ? 0 : aCentavos(datos.monto) - aCentavos(venta.saldo);
-  if (sobrepago > 0 && !datos.confirmarSobrepago) {
+  // La reja definitiva se evalua dentro de la sentencia bloqueada. Esta comprobacion
+  // temprana solo conserva el mensaje detallado para el caso no concurrente.
+  const sobrepagoInicial =
+    venta.saldo === null ? 0 : aCentavos(datos.monto) - aCentavos(venta.saldo);
+  if (sobrepagoInicial > 0 && !datos.confirmarSobrepago) {
     throw new ErrorDeApp(
       `Este abono de ${usd(Number(datos.monto))} deja la venta con un sobrepago de ${usd(
-        sobrepago / 100,
+        sobrepagoInicial / 100,
       )}: el saldo pendiente es ${usd(Number(venta.saldo))}. Confirma el sobrepago si el pago entro de verdad.`,
       400,
     );
   }
 
   const abonoId = crypto.randomUUID();
-  await ejecutarJuntas(db, (tx) => {
-    const consultas: Promise<unknown>[] = [
-      (tx as Db).insert(abonos).values({
-        id: abonoId,
-        saleId: datos.saleId,
-        // El programa y el closer no los manda el cliente: salen de la venta y de la
-        // sesion (ADR 0011).
-        programId: venta.programId,
-        fecha: datos.fecha,
-        monto: datos.monto,
-        moneda: datos.moneda,
-        plataformaId: datos.plataformaId,
-        comprobanteUrl: datos.comprobanteUrl,
-        closerId,
-        origen: "app",
-      }),
-    ];
-
-    // Un sobrepago confirmado deja nota en `change_log`, la bitacora que ya usa toda
-    // la app: sin ella, una venta con saldo negativo aparece en la caja sin que nadie
-    // pueda decir quien la confirmo ni por que. La nota va en el mismo lote atomico
-    // que el abono para que no exista uno sin la otra.
-    if (sobrepago > 0) {
-      consultas.push(
-        (tx as Db).insert(changeLog).values({
-          tabla: "abonos",
-          registroId: abonoId,
-          etiqueta: `Abono de ${usd(Number(datos.monto))} del ${datos.fecha}`,
-          campo: "sobrepago",
-          valorAnterior: venta.saldo,
-          valorNuevo: `Sobrepago confirmado de ${usd(sobrepago / 100)} sobre un saldo pendiente de ${usd(
-            Number(venta.saldo),
-          )}.`,
-          origen: "app" as const,
-          userId: session.user.id,
-        }),
+  const comprobante = datos.comprobanteUrl == null ? sql`null` : sql`${datos.comprobanteUrl}`;
+  const plataforma = datos.plataformaId == null ? sql`null` : sql`${datos.plataformaId}`;
+  const resultado = await db.execute(sql`
+    with venta_bloqueada as materialized (
+      select id, program_id, moneda, precio_aplicado_usd
+      from sales
+      where id = ${datos.saleId} and anulado_en is null
+      for update
+    ),
+    saldo_actual as materialized (
+      select v.id, v.program_id, v.moneda, v.precio_aplicado_usd,
+        ${sumaAbonos(sql`a.monto`)} as abonado,
+        case
+          when v.precio_aplicado_usd is null then null
+          else v.precio_aplicado_usd - ${sumaAbonos(sql`a.monto`)}
+        end as saldo_pendiente,
+        case
+          when v.precio_aplicado_usd is null then 0
+          else ${datos.monto} - (v.precio_aplicado_usd - ${sumaAbonos(sql`a.monto`)} )
+        end as sobrepago
+      from venta_bloqueada v
+      left join abonos a on a.sale_id = v.id and a.anulado_en is null
+      group by v.id, v.program_id, v.moneda, v.precio_aplicado_usd
+    ),
+    insertado as (
+      insert into abonos (
+        id, sale_id, program_id, fecha, monto, moneda, plataforma_id,
+        comprobante_url, closer_id, origen
+      )
+      select
+        ${abonoId}, id, program_id, ${datos.fecha}, ${datos.monto}, ${datos.moneda},
+        ${plataforma}, ${comprobante}, ${closerId}, 'app'
+      from saldo_actual
+      where moneda = ${datos.moneda}
+        and (
+          precio_aplicado_usd is null
+          or saldo_pendiente >= ${datos.monto}
+          or ${datos.confirmarSobrepago}
+        )
+      returning id
+    ),
+    bitacora as (
+      insert into change_log (
+        tabla, registro_id, etiqueta, campo, valor_anterior, valor_nuevo, origen, user_id
+      )
+      select
+        'abonos',
+        insertado.id,
+        ${`Abono de ${usd(Number(datos.monto))} del ${datos.fecha}`},
+        'sobrepago',
+        saldo_pendiente::text,
+        ('Sobrepago confirmado de USD ' || to_char(sobrepago, 'FM999999990.00') ||
+          ' sobre un saldo pendiente de USD ' ||
+          to_char(saldo_pendiente, 'FM999999990.00')),
+        'app',
+        ${session.user.id}
+      from saldo_actual
+      inner join insertado on insertado.id = ${abonoId}
+      where saldo_actual.sobrepago > 0
+      returning registro_id
+    )
+    select id from insertado
+  `);
+  const filas = (Array.isArray(resultado) ? resultado : resultado.rows) as { id: string }[];
+  if (filas.length === 0) {
+    const saldoActual = await saldoDeVenta(datos.saleId, db);
+    if (!saldoActual) throw new ErrorDeApp("La venta no existe.", 404);
+    if (saldoActual.moneda !== datos.moneda) {
+      throw new ErrorDeApp(
+        `La venta esta en ${saldoActual.moneda} y el abono en ${datos.moneda}. El sistema no convierte moneda: registra el abono en ${saldoActual.moneda}.`,
+        400,
       );
     }
-
-    return consultas;
-  });
+    throw new ErrorDeApp(
+      "Este abono deja la venta con un sobrepago. Confirma el sobrepago si el pago entro de verdad.",
+      400,
+    );
+  }
 
   // Ver la nota de `lib/mutations/registro.ts`: es una relectura por clave primaria
   // de lo que se acaba de escribir, y el predicado va igual porque toda lectura de

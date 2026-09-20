@@ -7,6 +7,7 @@ import {
   changeLog,
   cohorts,
   people,
+  miembrosPrograma,
   plataformasPago,
   productos,
   programs,
@@ -429,6 +430,7 @@ describe("de punta a punta, sobre lo que escribe /mi-dia", () => {
       .values({ nombre: "PayPal" })
       .returning();
     const kevin = await sesion("closer", "Kevin");
+    await db.insert(miembrosPrograma).values({ userId: kevin.user.id, programId: ctx.programId });
 
     const { llamada } = await registrarLlamada(
       kevin,

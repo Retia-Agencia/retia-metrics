@@ -14,6 +14,7 @@ import { crearEnlacePago } from "@/lib/catalogo/enlaces-pago";
 import {
   enlacesDePagoVigentes,
   historialDeRecurso,
+  historialesDeRecursos,
   recursosVigentes,
 } from "@/lib/queries/recursos";
 
@@ -198,6 +199,7 @@ describe("historialDeRecurso — versiones anteriores en orden tras dos reemplaz
       titulo: "Brochure",
       url: "https://drive.google.com/v1",
     });
+
     const v2 = await reemplazarRecurso(db, userId, v1.id, "https://drive.google.com/v2");
     const v3 = await reemplazarRecurso(db, userId, v2.id, "https://drive.google.com/v3");
 
@@ -207,6 +209,30 @@ describe("historialDeRecurso — versiones anteriores en orden tras dos reemplaz
       "https://drive.google.com/v2",
       "https://drive.google.com/v1",
     ]);
+  });
+
+  it("carga varios historiales con una sola consulta", async () => {
+    const v1 = await crearRecurso(db, userId, {
+      programId: programaA,
+      categoriaId: categoriaBrochure,
+      titulo: "Brochure",
+      url: "https://drive.google.com/v1",
+    });
+    const v2 = await reemplazarRecurso(db, userId, v1.id, "https://drive.google.com/v2");
+    const v3 = await reemplazarRecurso(db, userId, v2.id, "https://drive.google.com/v3");
+    const otro = await crearRecurso(db, userId, {
+      programId: programaA,
+      categoriaId: categoriaGuion,
+      titulo: "Guion",
+      url: "https://drive.google.com/guion",
+    });
+
+    const historiales = await historialesDeRecursos([v3.id, otro.id], db);
+    expect(historiales.get(v3.id)?.map((h) => h.url)).toEqual([
+      "https://drive.google.com/v2",
+      "https://drive.google.com/v1",
+    ]);
+    expect(historiales.get(otro.id)).toEqual([]);
   });
 
   it("un recurso sin reemplazos tiene historial vacio", async () => {

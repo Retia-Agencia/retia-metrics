@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fecha, monto, saldoLegible } from "@/lib/format";
+import { fecha, fechaDeInstanteEnBogota, monto, saldoLegible } from "@/lib/format";
 
 /**
  * Ticket 005 — la moneda va SIEMPRE al lado del numero y nunca se convierte
@@ -75,6 +75,12 @@ describe("fecha de calendario legible", () => {
     expect(fecha("2026-08-14")).toBe("14 ago 2026");
     expect(fecha("2026-09-01")).toBe("1 sep 2026");
     expect(fecha("2026-12-31")).toBe("31 dic 2026");
+  });
+
+  describe("fecha de instante en Bogota", () => {
+    it("usa el dia de Bogota aunque el instante ya sea el dia siguiente en UTC", () => {
+      expect(fechaDeInstanteEnBogota("2026-09-20T04:30:00.000Z")).toBe("2026-09-19");
+    });
   });
 
   it("no corre la fecha un dia por la zona horaria del servidor", () => {

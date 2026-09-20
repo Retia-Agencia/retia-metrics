@@ -123,6 +123,13 @@ export function hoyEnBogota(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 }
 
+/** Fecha de calendario de un instante, observada en Bogota. */
+export function fechaDeInstanteEnBogota(instante: Date | string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(
+    new Date(instante),
+  );
+}
+
 export function fecha(iso: string): string {
   const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!partes) return iso;

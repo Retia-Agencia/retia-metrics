@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { sql, type SQLWrapper } from "drizzle-orm";
 import { abonos, sales } from "@/lib/db/schema";
 
 /**
@@ -25,7 +25,12 @@ import { abonos, sales } from "@/lib/db/schema";
  * Sale como texto y no como numero porque Postgres es exacto con `numeric` y
  * JavaScript no: el dinero nunca pasa por un `float` (restriccion dura de AGENTS.md).
  */
-export const ABONADO = sql<string>`coalesce(sum(${abonos.monto}), 0)::text`;
+/** Suma numérica reutilizable para consultas que necesitan comparar dentro de SQL. */
+export function sumaAbonos(monto: SQLWrapper): SQLWrapper {
+  return sql`coalesce(sum(${monto}), 0)`;
+}
+
+export const ABONADO = sql<string>`${sumaAbonos(abonos.monto)}::text`;
 
 /**
  * El saldo pendiente: el precio del contrato menos lo abonado.
@@ -35,7 +40,7 @@ export const ABONADO = sql<string>`coalesce(sum(${abonos.monto}), 0)::text`;
  */
 export const SALDO = sql<
   string | null
->`(${sales.precioAplicadoUsd} - coalesce(sum(${abonos.monto}), 0))::text`;
+> `(${sales.precioAplicadoUsd} - ${sumaAbonos(abonos.monto)})::text`;
 
 /**
  * Una venta esta pagada completa cuando sus abonos alcanzaron el precio (ADR 0013).

@@ -19,6 +19,12 @@ import {
   type ResultadoAccion,
 } from "@/app/(app)/ajustes/fuentes/acciones";
 import type { ColumnaResuelta } from "@/lib/sheets/probar-fuente";
+import {
+  aMapeo,
+  aPares,
+  type MapeoColumnas,
+  type ParMapeo,
+} from "@/components/admin/mapeo-fuentes";
 
 /**
  * Administracion de fuentes por programa (ticket 016, ADR 0019). Antes esta pantalla
@@ -40,8 +46,6 @@ const DESTINOS: { valor: string; etiqueta: string }[] = [
   { valor: "sales", etiqueta: "Ventas" },
   { valor: "ad_spend", etiqueta: "Pauta" },
 ];
-
-type MapeoColumnas = Record<string, string | string[]>;
 
 export interface FuenteVista {
   id: string;
@@ -66,11 +70,6 @@ export interface ProgramaConFuentes {
   fuentes: FuenteVista[];
 }
 
-interface ParMapeo {
-  campo: string;
-  patron: string;
-}
-
 interface Borrador {
   nombre: string;
   sheetId: string;
@@ -88,30 +87,6 @@ const BORRADOR_VACIO: Borrador = {
   destino: "people",
   mapeo: [],
 };
-
-/** Un mapeo guardado (objeto) a pares editables. Una lista se une con " | ". */
-function aPares(mapeo: MapeoColumnas): ParMapeo[] {
-  return Object.entries(mapeo).map(([campo, patron]) => ({
-    campo,
-    patron: Array.isArray(patron) ? patron.join(" | ") : String(patron),
-  }));
-}
-
-/** Los pares editables a un mapeo. Un patron con "|" se parte en lista. */
-function aMapeo(pares: ParMapeo[]): MapeoColumnas {
-  const mapeo: MapeoColumnas = {};
-  for (const { campo, patron } of pares) {
-    const c = campo.trim();
-    if (!c) continue;
-    const partes = patron
-      .split("|")
-      .map((p) => p.trim())
-      .filter(Boolean);
-    if (partes.length === 0) continue;
-    mapeo[c] = partes.length === 1 ? partes[0] : partes;
-  }
-  return mapeo;
-}
 
 function aBorrador(f: FuenteVista): Borrador {
   return {

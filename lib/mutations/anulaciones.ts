@@ -12,7 +12,7 @@ import { closerDeLaSesion } from "@/lib/auth/closer";
 import { mismoCloser } from "@/lib/closers/identidad";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
-import { usd } from "@/lib/format";
+import { fechaDeInstanteEnBogota, usd } from "@/lib/format";
 
 /**
  * Anular una llamada, una venta o un abono (ADR 0026, ticket 029).
@@ -336,7 +336,7 @@ function exigirVigente(
 
 function etiquetaDeLlamada(llamada: typeof calls.$inferSelect): string {
   const fecha = llamada.fechaLlamada ?? llamada.fechaAgenda;
-  return `Llamada ${llamada.resultado}${fecha ? ` del ${fecha.toISOString().slice(0, 10)}` : ""}`;
+  return `Llamada ${llamada.resultado}${fecha ? ` del ${fechaDeInstanteEnBogota(fecha)}` : ""}`;
 }
 
 function etiquetaDeVenta(venta: typeof sales.$inferSelect): string {

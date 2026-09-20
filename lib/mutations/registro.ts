@@ -2,13 +2,23 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Session } from "next-auth";
 import { db as dbDeLaApp } from "@/lib/db";
-import { abonos, calls, productos, resultadoLlamadaEnum, sales } from "@/lib/db/schema";
+import {
+  abonos,
+  calls,
+  miembrosPrograma,
+  people,
+  productos,
+  resultadoLlamadaEnum,
+  sales,
+  users,
+} from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
 import { esquemaAbono } from "@/lib/abonos/esquema";
 import { exigirPlataformaActiva } from "@/lib/abonos/plataforma";
 import { closerDeLaSesion } from "@/lib/auth/closer";
+import { igualCloser } from "@/lib/closers/identidad";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { vigente } from "@/lib/queries/vigente";
 
@@ -127,7 +137,41 @@ export async function registrarLlamada(
   //    un 400 con el mensaje del primer issue.
   const datos = esquemaRegistroLlamada.parse(input);
 
-  // c) Toda llamada nativa se asigna a la cohorte activa sin que el closer la elija.
+  // c) El alcance sale de la cuenta, nunca del input: solo puede registrar en un
+  // programa donde su usuario esta activo y tiene membresia activa. El join tambien
+  // evita que una cuenta desactivada conserve capacidad de escritura.
+  const [membresia] = await db
+    .select({ id: miembrosPrograma.id })
+    .from(miembrosPrograma)
+    .innerJoin(users, eq(users.id, miembrosPrograma.userId))
+    .where(
+      and(
+        eq(miembrosPrograma.userId, session.user.id),
+        eq(miembrosPrograma.programId, datos.programId),
+        eq(miembrosPrograma.activo, true),
+        eq(users.activo, true),
+        igualCloser(users.closerId, closerId),
+      ),
+    )
+    .limit(1);
+  if (!membresia) {
+    throw new ErrorDeApp("No tienes una membresía activa en este programa.", 403);
+  }
+
+  // La persona tambien se valida en servidor: el correo es solo informativo y no
+  // puede apuntar la llamada a otra persona ni cruzar programas.
+  if (datos.personId) {
+    const [persona] = await db
+      .select({ id: people.id })
+      .from(people)
+      .where(and(eq(people.id, datos.personId), eq(people.programId, datos.programId)))
+      .limit(1);
+    if (!persona) {
+      throw new ErrorDeApp("La persona no existe o no pertenece a este programa.", 400);
+    }
+  }
+
+  // d) Toda llamada nativa se asigna a la cohorte activa sin que el closer la elija.
   //    Sin cohorte activa no hay donde colgarla: 400 amable, no un insert huerfano.
   const cohorte = await cohorteActiva(datos.programId, db);
   if (!cohorte) {
@@ -137,7 +181,7 @@ export async function registrarLlamada(
     );
   }
 
-  // d) Si cerro, el producto y la plataforma deben existir, estar activos y (el
+  // e) Si cerro, el producto y la plataforma deben existir, estar activos y (el
   //    producto) pertenecer a este programa. Se valida antes de escribir para dar un
   //    400 claro en vez de un fallo de FK opaco.
   if (datos.venta) {
@@ -162,7 +206,7 @@ export async function registrarLlamada(
     await exigirPlataformaActiva(datos.venta.plataformaId, db);
   }
 
-  // e) Ids generados ANTES: `ejecutarJuntas` usa `batch` sobre neon-http, que no deja
+  // f) Ids generados ANTES: `ejecutarJuntas` usa `batch` sobre neon-http, que no deja
   //    encadenar el id recien insertado (ver lib/db/ejecutar-juntas.ts). Asi el abono
   //    puede apuntar a la venta dentro del mismo lote atomico.
   const callId = crypto.randomUUID();
@@ -234,7 +278,7 @@ export async function registrarLlamada(
     return consultas;
   });
 
-  // f) Se leen las filas por id despues del lote atomico: `batch` no devuelve las
+  // g) Se leen las filas por id despues del lote atomico: `batch` no devuelve las
   //    filas insertadas encadenadas, asi que se releen para devolver lo escrito.
   // El `vigente(...)` de estas relecturas no filtra nada en la practica: son lecturas
   // por clave primaria de filas insertadas microsegundos antes, cuyo id todavia no ha
