@@ -66,11 +66,11 @@ vi.mock("@/lib/queries/personas", () => ({ historialDePersona }));
 // las lecturas para que las guardas sean lo unico bajo prueba.
 const recursosVigentes = vi.fn();
 const enlacesDePagoVigentes = vi.fn();
-const historialDeRecurso = vi.fn();
+const historialesDeRecursos = vi.fn();
 vi.mock("@/lib/queries/recursos", () => ({
   recursosVigentes,
   enlacesDePagoVigentes,
-  historialDeRecurso,
+  historialesDeRecursos,
 }));
 
 // El dashboard (ticket 005) arma su vista con `armarVistaDelDashboard`; sin base en
@@ -176,8 +176,8 @@ beforeEach(() => {
   recursosVigentes.mockResolvedValue([]);
   enlacesDePagoVigentes.mockReset();
   enlacesDePagoVigentes.mockResolvedValue([]);
-  historialDeRecurso.mockReset();
-  historialDeRecurso.mockResolvedValue([]);
+  historialesDeRecursos.mockReset();
+  historialesDeRecursos.mockResolvedValue(new Map());
   armarVistaDelDashboard.mockReset();
   armarVistaDelDashboard.mockResolvedValue(VISTA_VACIA);
   // Por defecto, un gerente rechazado de una pagina de closer aterriza en su primer

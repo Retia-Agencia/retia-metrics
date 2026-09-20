@@ -26,6 +26,21 @@ import {
   reemplazarRecursoAccion,
   type ResultadoAccion,
 } from "@/app/(app)/recursos/acciones";
+import { agruparEnlaces, GLOBAL, TODOS } from "@/components/resources/helpers";
+import type {
+  CategoriaOpcion,
+  EnlaceUI,
+  PlataformaOpcion,
+  ProgramaOpcion,
+  RecursoUI,
+} from "@/components/resources/types";
+export type {
+  CategoriaOpcion,
+  EnlaceUI,
+  PlataformaOpcion,
+  ProgramaOpcion,
+  RecursoUI,
+} from "@/components/resources/types";
 
 /**
  * Pantalla de recursos (ticket 023, ADR 0017): lista los brochures y links de pago
@@ -44,45 +59,6 @@ import {
  * `puedeEditar` decide quien ve los controles de edicion, pero NO es la barrera de
  * seguridad: cada server action vuelve a exigir gerente en el servidor (ADR 0003).
  */
-
-const TODOS = "todos";
-const GLOBAL = "__global__";
-
-export interface RecursoUI {
-  id: string;
-  titulo: string;
-  url: string;
-  categoriaNombre: string | null;
-  programaNombre: string | null;
-  /** Versiones anteriores, de la mas reciente a la mas vieja. */
-  historial: { id: string; url: string }[];
-}
-
-export interface EnlaceUI {
-  id: string;
-  url: string;
-  monto: string;
-  moneda: string;
-  programaNombre: string | null;
-  productoNombre: string | null;
-  plataformaNombre: string | null;
-}
-
-export interface ProgramaOpcion {
-  id: string;
-  slug: string;
-  nombre: string;
-}
-
-export interface CategoriaOpcion {
-  id: string;
-  nombre: string;
-}
-
-export interface PlataformaOpcion {
-  id: string;
-  nombre: string;
-}
 
 interface Props {
   puedeEditar: boolean;
@@ -784,21 +760,4 @@ function CrearEnlace({
       </div>
     </form>
   );
-}
-
-/** Agrupa los enlaces por programa y, dentro, por producto (o "Sin producto"). */
-function agruparEnlaces(enlaces: EnlaceUI[]) {
-  const porPrograma = new Map<string, Map<string, EnlaceUI[]>>();
-  for (const e of enlaces) {
-    const programa = e.programaNombre ?? "Sin programa";
-    const producto = e.productoNombre ?? "Sin producto";
-    if (!porPrograma.has(programa)) porPrograma.set(programa, new Map());
-    const productos = porPrograma.get(programa)!;
-    if (!productos.has(producto)) productos.set(producto, []);
-    productos.get(producto)!.push(e);
-  }
-  return [...porPrograma.entries()].map(([programa, productos]) => ({
-    programa,
-    productos: [...productos.entries()].map(([producto, enlaces]) => ({ producto, enlaces })),
-  }));
 }

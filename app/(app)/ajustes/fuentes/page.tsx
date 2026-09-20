@@ -6,7 +6,7 @@ import { BotonSincronizar } from "@/components/boton-sincronizar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num, pct } from "@/lib/format";
-import { FuentesAdmin, type ProgramaConFuentes } from "@/components/fuentes-admin";
+import { FuentesAdmin, type ProgramaConFuentes } from "@/components/admin/fuentes-admin";
 
 export const dynamic = "force-dynamic";
 

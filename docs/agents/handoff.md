@@ -42,6 +42,16 @@ grupo "Ventas JP Vieira" desde el 18-ago.
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-19 (CIERRE 14) — Cambios de auditoria aplicados y validados.** Se cerro el alcance
+  servidor de `registrarLlamada`: usuario activo, membresia activa y `personId` perteneciente al
+  programa. `/recursos` dejo de hacer N+1 al cargar historiales, y las etiquetas de anulacion de
+  llamadas usan el dia de Bogota. `registrarAbono` ahora bloquea la venta y calcula/valida/inserta
+  el abono en una sola sentencia SQL, con la bitacora del sobrepago dentro de la misma operacion;
+  se corrigieron los valores nulos opcionales para que se emitan como `NULL` valido. Se agregaron
+  fixtures y pruebas de regresion. **603 tests pasan, typecheck y lint limpios.**
+  Sigue pendiente el ticket 034/ADR 0032 (ownership y categorias dinamicas del pipeline), la
+  reorganizacion estructural de componentes grandes y una prueba de concurrencia contra Neon.
+
 - **2026-09-19 (CIERRE 13) — El 016 cerrado, F-04 y F-05 tachadas, y siete decisiones de Mani
   que convierten F-01 en el ticket 034. 598 tests.**
 

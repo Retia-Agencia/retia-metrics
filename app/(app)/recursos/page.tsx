@@ -8,10 +8,10 @@ import { plataformasDePago } from "@/lib/catalogo/plataformas";
 import { programasActivos } from "@/lib/queries/programas";
 import {
   enlacesDePagoVigentes,
-  historialDeRecurso,
+  historialesDeRecursos,
   recursosVigentes,
 } from "@/lib/queries/recursos";
-import { RecursosPantalla } from "@/components/recursos-pantalla";
+import { RecursosPantalla } from "@/components/resources/recursos-pantalla";
 
 export const dynamic = "force-dynamic";
 
@@ -75,12 +75,10 @@ export default async function RecursosPage({ searchParams }: Props) {
 
   // El historial de cada recurso se resuelve en el servidor: el desplegable ya trae
   // sus versiones anteriores, sin un ida y vuelta de cliente.
-  const historiales = await Promise.all(
-    recursos.map((r) => historialDeRecurso(r.id, db)),
-  );
-  const conHistorial = recursos.map((r, i) => ({
+  const historiales = await historialesDeRecursos(recursos.map((r) => r.id), db);
+  const conHistorial = recursos.map((r) => ({
     ...r,
-    historial: historiales[i].map((v) => ({ id: v.id, url: v.url })),
+    historial: (historiales.get(r.id) ?? []).map((v) => ({ id: v.id, url: v.url })),
   }));
 
   return (
