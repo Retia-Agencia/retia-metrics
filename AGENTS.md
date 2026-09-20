@@ -135,6 +135,19 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
 
 **Arquitectura**
 
+- **La estructura se organiza por dominio, no por tamaño ni por tipo técnico.** Las pantallas,
+  tipos y helpers que pertenecen a un mismo límite viven juntos: por ejemplo,
+  `components/resources/` y `components/admin/`. Las rutas en `app/` coordinan; las consultas y
+  mutaciones de negocio viven en `lib/`; un componente de pantalla no debe importar la
+  implementación interna de otro dominio para reutilizar un tipo o helper. Extraer una pieza solo
+  cuando tenga una responsabilidad y contrato propios, conservar imports públicos durante la
+  migración y añadir un test de su comportamiento puro. No hacer movimientos masivos ni crear
+  carpetas genéricas (`shared`, `common`, `utils`) para esconder acoplamiento. Ver ADR 0033.
+- **El crecimiento se mide antes de reorganizar.** Un módulo grande no se divide por contar líneas:
+  se identifica una frontera de dominio, se extraen primero tipos/helpers puros, se conserva el
+  comportamiento, y se valida con typecheck, lint y tests del dominio más la suite completa.
+  Las extracciones posteriores de `mi-dia-registro`, `dashboard` y `schema` deben seguir el mismo
+  orden; si no hay frontera estable, se deja el módulo en su lugar y se documenta la deuda.
 - **Las instancias viven en la base, los tipos viven en el codigo (ADR 0012).** Si el codigo no
   toma una decision segun un valor (un programa, una cohorte, un closer, un producto, una
   plataforma, un motivo, un origen, un recurso), ese valor es una fila editable desde la app,
