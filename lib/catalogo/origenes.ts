@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { origenes as tablaOrigenes } from "@/lib/db/schema";
+import { calls, origenes as tablaOrigenes } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { moldeDeCatalogo } from "./molde";
 
@@ -25,6 +25,8 @@ export function origenes(db?: Db) {
       esquema: esquemaOrigen,
       etiqueta: (fila) => String(fila.nombre),
       nombreEntidad: "un origen",
+      // Quien apunta a un origen: la columna `origen_id` de las llamadas (ADR 0026).
+      dependientes: [{ tabla: calls, columna: calls.origenId }],
     },
     db,
   );

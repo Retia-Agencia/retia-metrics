@@ -496,10 +496,10 @@ describe("pagina de recursos /recursos (ticket 023)", () => {
   }
 
   /**
-   * La prop `puedeEditar` que la pagina le pasa a `<RecursosPantalla>` (ticket 028):
-   * es lo que decide si se ven los controles de edicion. La pagina devuelve
-   * `<PageShell><RecursosPantalla puedeEditar=.../></PageShell>`, asi que se lee del
-   * hijo del elemento devuelto. No se renderiza: se inspecciona el arbol de elementos.
+   * La prop `esAdmin` que la pagina le pasa a `<RecursosPantalla>` (ticket 028): decide
+   * si se ven los controles de edicion de TODO (globales + cualquier programa). La
+   * pagina devuelve `<PageShell><RecursosPantalla esAdmin=.../></PageShell>`, asi que se
+   * lee del hijo del elemento devuelto. No se renderiza: se inspecciona el arbol.
    */
   async function puedeEditarDeRecursos(
     busqueda: Record<string, string> = {},
@@ -507,10 +507,10 @@ describe("pagina de recursos /recursos (ticket 023)", () => {
     const modulo = (await import(/* @vite-ignore */ RUTA)) as {
       default: (props: {
         searchParams: Promise<Record<string, string | string[] | undefined>>;
-      }) => Promise<{ props: { children: { props: { puedeEditar: boolean } } } }>;
+      }) => Promise<{ props: { children: { props: { esAdmin: boolean } } } }>;
     };
     const elemento = await modulo.default({ searchParams: Promise.resolve(busqueda) });
-    return elemento.props.children.props.puedeEditar;
+    return elemento.props.children.props.esAdmin;
   }
 
   it("deja pasar a un gerente (lee y administra)", async () => {

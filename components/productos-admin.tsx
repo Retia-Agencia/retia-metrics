@@ -12,6 +12,7 @@ import { num } from "@/lib/format";
 import { MONEDAS } from "@/lib/catalogo/productos";
 import { ProductoCrearEnLinea } from "@/components/producto-crear-en-linea";
 import {
+  borrarProductoAccion,
   desactivarProductoAccion,
   editarProductoAccion,
   reactivarProductoAccion,
@@ -63,6 +64,35 @@ export function ProductosAdmin({ programas }: { programas: ProgramaConProductos[
         router.refresh();
       } else {
         toast.error("No se pudo guardar", { description: res.error });
+      }
+    });
+  }
+
+  /**
+   * Borrar es la unica operacion IRREVERSIBLE (ADR 0026 punto 5), asi que pide
+   * confirmacion explicita. Y usa dos verbos segun lo que de verdad paso: si el
+   * producto tiene ventas NO se borra —se avisa cuantas lo referencian y se sugiere
+   * desactivar—, y solo cuando se borro de verdad se dice "borrado". Nunca se dice
+   * "borrado" habiendo desactivado.
+   */
+  function borrar(id: string, nombre: string) {
+    if (!window.confirm(`¿Borrar "${nombre}" para siempre? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    startTransition(async () => {
+      const res = await borrarProductoAccion(id);
+      if (!res.ok) {
+        toast.error("No se pudo borrar", { description: res.error });
+        return;
+      }
+      if (res.borrado) {
+        toast.success("Producto borrado");
+        router.refresh();
+      } else {
+        // NO se borro: tiene referencias. Se dice la verdad y se sugiere desactivar.
+        toast.info("No se puede borrar", {
+          description: `Tiene ${res.referencias} venta(s) que lo referencian. Desactívalo en vez de borrarlo.`,
+        });
       }
     });
   }
@@ -163,19 +193,37 @@ export function ProductosAdmin({ programas }: { programas: ProgramaConProductos[
                                 >
                                   Desactivar
                                 </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={pendiente}
+                                  onClick={() => borrar(p.id, p.nombre)}
+                                >
+                                  Borrar
+                                </Button>
                               </>
                             ) : (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={pendiente}
-                                onClick={() =>
-                                  correr(() => reactivarProductoAccion(p.id), "Producto reactivado")
-                                }
-                              >
-                                <RotateCcw className="size-4" />
-                                Reactivar
-                              </Button>
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={pendiente}
+                                  onClick={() =>
+                                    correr(() => reactivarProductoAccion(p.id), "Producto reactivado")
+                                  }
+                                >
+                                  <RotateCcw className="size-4" />
+                                  Reactivar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={pendiente}
+                                  onClick={() => borrar(p.id, p.nombre)}
+                                >
+                                  Borrar
+                                </Button>
+                              </>
                             )}
                           </span>
                         </div>

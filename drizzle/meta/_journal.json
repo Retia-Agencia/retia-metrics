@@ -134,6 +134,13 @@
       "when": 1789853237345,
       "tag": "0018_plantilla_de_lead_por_programa",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789925935067,
+      "tag": "0019_foamy_gamora",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@ id: 030
 fase: F0
 serves: "ADR 0026 punto 5 (enmienda acotada al ADR 0012)"
 depends: [011]
-status: todo
+status: en curso
 ---
 
 # 030 — Borrar del catalogo lo que nunca se uso
@@ -46,15 +46,36 @@ Decision en el **ADR 0026 punto 5**.
 
 ## Done cuando
 
-- [ ] Un producto recien creado y sin ventas se borra y desaparece de la tabla.
-- [ ] Un producto con al menos una venta NO se borra: se desactiva y la pantalla dice cuantas
+- [x] Un producto recien creado y sin ventas se borra y desaparece de la tabla.
+- [x] Un producto con al menos una venta NO se borra: se desactiva y la pantalla dice cuantas
       ventas lo referencian.
-- [ ] Un `DELETE` que igual choque contra una FK `restrict` (carrera: alguien lo uso entre el
+- [x] Un `DELETE` que igual choque contra una FK `restrict` (carrera: alguien lo uso entre el
       conteo y el borrado) sale como un 400 legible, no como un 500.
-- [ ] La confirmacion es explicita y el verbo del boton coincide con lo que va a pasar.
-- [ ] El borrado queda en `change_log`.
-- [ ] Los tests del molde que hoy exigen "nunca `DELETE`" se ajustan a la regla nueva **sin
+- [x] La confirmacion es explicita y el verbo del boton coincide con lo que va a pasar.
+- [x] El borrado queda en `change_log`.
+- [x] Los tests del molde que hoy exigen "nunca `DELETE`" se ajustan a la regla nueva **sin
       aflojarla**: siguen exigiendo que no haya `DELETE` cuando hay referencias.
+- [ ] **Criterio agregado el 20-sep, porque faltaba y por eso el ticket parecia cerrado:** los
+      SEIS catalogos del objetivo se borran desde la app, no solo productos.
+
+## ⚠️ Por que sigue `en curso` (revision del 20-sep)
+
+El backend esta **completo y probado para los seis**: `borrarSiNoSeUso` vive en el molde, los seis
+catalogos declaran sus dependientes, y la carrera contra la FK sale como 400.
+
+Lo que falta es **la UI de borrado en cinco de los seis**. Solo productos tiene el boton. Los otros
+cinco (motivos, origenes, plataformas, categorias de recurso y recursos) viven en
+`/ajustes/catalogos`, y esta sesion le **prohibio explicitamente** a quien implemento tocar esa
+pantalla, porque estaba en medio del rediseno de plataformas (enmienda del 013). **Fue una
+decision de esta sesion, no un descuido de quien implemento**, y quedo declarada en su reporte.
+
+🎯 **El ticket se marco `done` con sus seis casillas en `[x]`, y las seis eran CIERTAS.** El
+problema estaba en los criterios, no en el trabajo: los seis hablan de *un producto*, cuando el
+**Objetivo** del ticket dice *"un producto, categoria, motivo, origen, plataforma o recurso"*.
+Unos criterios mas estrechos que el objetivo dejan pasar un ticket a medias **sin que nadie mienta
+en ningun paso**. Por eso se agrego el criterio de arriba en vez de solo destildar casillas.
+
+**Se cierra junto con la enmienda del ticket 013**, que es la que abre `/ajustes/catalogos`.
 
 ## Notas
 

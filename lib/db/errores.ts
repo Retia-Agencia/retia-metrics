@@ -36,3 +36,23 @@ export function esViolacionUnica(error: unknown): boolean {
 export function esViolacionCheck(error: unknown): boolean {
   return esCodigoPostgres(error, "23514");
 }
+
+/**
+ * Violacion de una llave foranea al borrar: quedan filas que apuntan a esta
+ * (SQLSTATE `23503` foreign_key_violation, o `23001` restrict_violation).
+ *
+ * Es el codigo que la base devuelve cuando un `DELETE` choca contra una FK con accion
+ * `restrict`. En el borrado del catalogo (ADR 0026 punto 5) es la RED del caso de
+ * carrera: `borrarSiNoSeUso` cuenta las referencias y solo borra si son cero, pero
+ * entre el conteo y el `DELETE` alguien pudo usar la fila. Sin este detector esa
+ * carrera sale como 500; con el, como el 400 legible que pide el criterio del ticket
+ * 030.
+ *
+ * Se reconocen los DOS codigos a proposito: Postgres/Neon lanza `23503`, pero PGlite
+ * —la base de los tests— reporta `23001` para la misma situacion (`RESTRICT`). Los dos
+ * significan lo mismo: hay filas que dependen de esta y no se puede borrar. Vive aca,
+ * sobre `esCodigoPostgres`, y no como una copia local del bucle de `cause`.
+ */
+export function esViolacionForanea(error: unknown): boolean {
+  return esCodigoPostgres(error, "23503") || esCodigoPostgres(error, "23001");
+}

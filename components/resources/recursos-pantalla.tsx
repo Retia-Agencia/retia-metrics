@@ -56,12 +56,18 @@ export type {
  * personal, asi que —a diferencia de `/mi-dia`— si conviene que viaje en la URL. El
  * programa viaja como SLUG (id opaco, nunca un dato personal).
  *
- * `puedeEditar` decide quien ve los controles de edicion, pero NO es la barrera de
- * seguridad: cada server action vuelve a exigir gerente en el servidor (ADR 0003).
+ * `esAdmin` + `programasEditables` deciden quien ve los controles de edicion, pero
+ * NO son la barrera de seguridad: cada server action vuelve a exigir el rol y el
+ * acceso por programa en el servidor (ADR 0003). Un administrador (gerente o
+ * developer) edita todo, incluido lo global; un closer solo los recursos y enlaces de
+ * los programas donde tiene membresia activa, y NUNCA un recurso global.
  */
 
 interface Props {
-  puedeEditar: boolean;
+  /** Administra todo: cualquier programa y los recursos globales (gerente/developer). */
+  esAdmin: boolean;
+  /** Programas (uuids) que un closer puede editar. Vacio para quien no edita nada. */
+  programasEditables: string[];
   slugPrograma: string | null;
   q: string | null;
   programas: ProgramaOpcion[];
@@ -75,7 +81,8 @@ const claseInput =
   "h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 export function RecursosPantalla({
-  puedeEditar,
+  esAdmin,
+  programasEditables,
   slugPrograma,
   q,
   programas,
@@ -88,6 +95,26 @@ export function RecursosPantalla({
   const pathname = usePathname();
   const busqueda = useSearchParams();
   const [pendiente, startTransition] = useTransition();
+
+  // ¿Puede el usuario CREAR algo? Un admin siempre; un closer si tiene algun programa
+  // editable. Los programas que puede elegir al crear: todos si es admin, solo los
+  // suyos si es closer. Un closer NUNCA ve la opcion "Global" (asimetria de Mani).
+  const editables = new Set(programasEditables);
+  const puedeCrear = esAdmin || programasEditables.length > 0;
+  const programasParaCrear = esAdmin
+    ? programas
+    : programas.filter((p) => editables.has(p.id));
+
+  /** ¿Puede el usuario editar/desactivar/reemplazar este recurso? */
+  function puedeEditarRecurso(r: RecursoUI): boolean {
+    if (esAdmin) return true;
+    return r.programId !== null && editables.has(r.programId);
+  }
+
+  /** ¿Puede el usuario editar/desactivar/reemplazar este enlace de pago? */
+  function puedeEditarEnlace(e: EnlaceUI): boolean {
+    return esAdmin || editables.has(e.programId);
+  }
 
   function navegar(cambios: Record<string, string | null>) {
     const params = new URLSearchParams(busqueda.toString());
@@ -154,10 +181,11 @@ export function RecursosPantalla({
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground">Recursos</h2>
 
-        {puedeEditar ? (
+        {puedeCrear ? (
           <CrearRecurso
             categorias={categorias}
-            programas={programas}
+            programas={programasParaCrear}
+            permitirGlobal={esAdmin}
             pendiente={pendiente}
             onCrear={(entrada, reset) =>
               correr(() => crearRecursoAccion(entrada), "Recurso creado", reset)
@@ -173,7 +201,7 @@ export function RecursosPantalla({
               <RecursoItem
                 key={r.id}
                 recurso={r}
-                puedeEditar={puedeEditar}
+                puedeEditar={puedeEditarRecurso(r)}
                 pendiente={pendiente}
                 onReemplazar={(nuevaUrl, reset) =>
                   correr(() => reemplazarRecursoAccion(r.id, nuevaUrl), "Recurso reemplazado", reset)
@@ -191,9 +219,9 @@ export function RecursosPantalla({
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground">Enlaces de pago</h2>
 
-        {puedeEditar ? (
+        {puedeCrear && programasParaCrear.length > 0 ? (
           <CrearEnlace
-            programas={programas}
+            programas={programasParaCrear}
             plataformas={plataformas}
             pendiente={pendiente}
             onCrear={(entrada, reset) =>
@@ -220,7 +248,7 @@ export function RecursosPantalla({
                           <EnlaceItem
                             key={e.id}
                             enlace={e}
-                            puedeEditar={puedeEditar}
+                            puedeEditar={puedeEditarEnlace(e)}
                             pendiente={pendiente}
                             onReemplazar={(nuevaUrl, reset) =>
                               correr(
@@ -492,15 +520,18 @@ function EnlaceItem({
   );
 }
 
-/** Formulario en linea para crear un recurso (solo gerente). */
+/** Formulario en linea para crear un recurso (gerente, developer o closer). */
 function CrearRecurso({
   categorias,
   programas,
+  permitirGlobal,
   pendiente,
   onCrear,
 }: {
   categorias: CategoriaOpcion[];
   programas: ProgramaOpcion[];
+  /** Solo un administrador puede crear un recurso global; un closer, no (asimetria). */
+  permitirGlobal: boolean;
   pendiente: boolean;
   onCrear: (
     entrada: { programId: string | null; categoriaId: string; titulo: string; url: string },
@@ -511,20 +542,27 @@ function CrearRecurso({
   const [titulo, setTitulo] = useState("");
   const [url, setUrl] = useState("");
   const [categoriaId, setCategoriaId] = useState(categorias[0]?.id ?? "");
-  // GLOBAL = recurso global (sin programa). El resto es el uuid del programa.
-  const [programId, setProgramId] = useState<string>(GLOBAL);
+  // GLOBAL = recurso global (sin programa). El resto es el uuid del programa. Un
+  // closer no puede crear globales, asi que arranca en su primer programa.
+  const programIdInicial = permitirGlobal ? GLOBAL : (programas[0]?.id ?? "");
+  const [programId, setProgramId] = useState<string>(programIdInicial);
 
   function reset() {
     setTitulo("");
     setUrl("");
-    setProgramId(GLOBAL);
+    setProgramId(programIdInicial);
     setCategoriaId(categorias[0]?.id ?? "");
     setAbierto(false);
   }
 
   if (!abierto) {
     return (
-      <Button size="sm" variant="outline" onClick={() => setAbierto(true)} disabled={categorias.length === 0}>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => setAbierto(true)}
+        disabled={categorias.length === 0 || (!permitirGlobal && programas.length === 0)}
+      >
         Nuevo recurso
       </Button>
     );
@@ -593,7 +631,8 @@ function CrearRecurso({
           className={cn(claseInput, "sm:w-44")}
           aria-label="Programa"
         >
-          <option value={GLOBAL}>Global (todos)</option>
+          {/* Solo un administrador puede crear un recurso global (asimetria de Mani). */}
+          {permitirGlobal ? <option value={GLOBAL}>Global (todos)</option> : null}
           {programas.map((p) => (
             <option key={p.id} value={p.id}>
               {p.nombre}

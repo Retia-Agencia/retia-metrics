@@ -250,10 +250,43 @@ describe.each(CATALOGOS)("molde de catalogo — $titulo", (caso) => {
     await cat.desactivar(userId, creada.id);
     expect((await logDe(creada.id)).filter((l) => l.campo === "activo")).toHaveLength(1);
   });
+
+  it("h. borrarSiNoSeUso borra de verdad una fila sin referencias y lo deja en change_log", async () => {
+    const cat = caso.fabrica(db);
+    const creada = await cat.crear(userId, { nombre: caso.nuevos.duplicable });
+    const idCreada = creada.id;
+
+    const resultado = await cat.borrarSiNoSeUso(userId, idCreada);
+    expect(resultado).toEqual({ borrado: true });
+
+    // Desaparecio de verdad: ya no esta en el listado (a diferencia de desactivar).
+    const todas = await cat.listar();
+    expect(todas.find((f) => f.id === idCreada)).toBeUndefined();
+
+    // La unica huella que queda es la fila de change_log del borrado.
+    const log = await logDe(idCreada);
+    const borrado = log.filter((l) => l.campo === "borrado");
+    expect(borrado).toHaveLength(1);
+    expect(borrado[0].valorAnterior).toBe(caso.nuevos.duplicable);
+    expect(borrado[0].valorNuevo).toBeNull();
+    expect(borrado[0].etiqueta).toBe(caso.nuevos.duplicable);
+    expect(borrado[0].userId).toBe(userId);
+    expect(borrado[0].tabla).toBe(caso.nombreTabla);
+  });
 });
 
-describe("guardian estatico — el molde nunca borra", () => {
-  it("h. ningun archivo de lib/catalogo/ contiene .delete( ni delete from", () => {
+/**
+ * El guardian estatico del ticket 011 exigia que el molde NUNCA borrara. El ticket 030
+ * lo enmienda (ADR 0026 punto 5): el molde SI borra, pero SOLO por `borrarSiNoSeUso` y
+ * SOLO cuando no hay referencias. La garantia que protege el historial se conserva
+ * afinada, no aflojada: (1) el unico archivo de `lib/catalogo/` que contiene un DELETE
+ * es `molde.ts` —ningun catalogo concreto borra a mano—, y (2) ese DELETE vive dentro
+ * de `borrarSiNoSeUso`, que cuenta referencias antes. El "no hay DELETE cuando hay
+ * referencias" se prueba ademas contra la base en `tests/productos.test.ts`, donde un
+ * producto con una venta NO se borra.
+ */
+describe("guardian estatico — el molde solo borra por borrarSiNoSeUso", () => {
+  it("h2. el unico archivo de lib/catalogo/ con un DELETE es molde.ts", () => {
     const dir = fileURLToPath(new URL("../lib/catalogo", import.meta.url));
     const archivos = fs
       .readdirSync(dir, { withFileTypes: true })
@@ -263,9 +296,34 @@ describe("guardian estatico — el molde nunca borra", () => {
     expect(archivos.length).toBeGreaterThan(0);
 
     for (const archivo of archivos) {
+      const base = path.basename(archivo);
       const contenido = fs.readFileSync(archivo, "utf8").toLowerCase();
-      expect(contenido, `${path.basename(archivo)} no puede borrar`).not.toContain(".delete(");
-      expect(contenido, `${path.basename(archivo)} no puede borrar`).not.toContain("delete from");
+      const borra = contenido.includes(".delete(") || contenido.includes("delete from");
+      if (base === "molde.ts") {
+        // El molde SI borra, pero ese DELETE tiene que estar dentro de borrarSiNoSeUso.
+        //
+        // 🩸 La primera version de esta rama solo pedia que el archivo CONTUVIERA la
+        // cadena "borrarsinoseuso", y eso no probaba nada: el archivo la contiene
+        // siempre, porque ahi se define la funcion. Se comprobo inyectando un
+        // `db.delete()` clandestino en otro metodo del molde y el guardian paso en
+        // verde. Un guardian que no se puede hacer fallar es decoracion.
+        //
+        // Ahora se exige lo que de verdad importa: UN solo DELETE en todo el archivo,
+        // y que caiga DESPUES del comienzo de `borrarSiNoSeUso`. Cualquier borrado
+        // nuevo en otro metodo rompe una de las dos.
+        const cuantosDelete = contenido.split(".delete(").length - 1;
+        expect(cuantosDelete, "el molde debe tener exactamente UN .delete(").toBe(1);
+        expect(contenido, "el molde no usa SQL crudo para borrar").not.toContain("delete from");
+
+        const inicioDeLaFuncion = contenido.indexOf("async borrarsinoseuso");
+        expect(inicioDeLaFuncion, "borrarSiNoSeUso debe existir en el molde").toBeGreaterThan(-1);
+        expect(
+          contenido.indexOf(".delete("),
+          "el DELETE del molde esta FUERA de borrarSiNoSeUso",
+        ).toBeGreaterThan(inicioDeLaFuncion);
+      } else {
+        expect(borra, `${base} no puede borrar a mano; el borrado vive en el molde`).toBe(false);
+      }
     }
   });
 });

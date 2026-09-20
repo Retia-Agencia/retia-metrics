@@ -5,30 +5,128 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Escrito el 19-sep al cerrar el día.
+> Copiar y pegar tal cual. Escrito el 20-sep al cerrar.
 
 ```
-Retomamos el Retia CRM. Lee AGENTS.md, ADR 0033 y las entradas "CIERRE 15" y "CIERRE 14"
-de docs/agents/handoff.md.
+Retomamos el Retia CRM. Lee AGENTS.md y la entrada "CIERRE 16" de docs/agents/handoff.md.
 
-Estado: 605 tests, typecheck y lint limpios. El PR #3 ya esta fusionado en `main` con commit
-3887a8e y el preview de Vercel paso. El refactor estructural inicial ya esta hecho: las pantallas
-de recursos y administracion de fuentes viven en `components/resources/` y `components/admin/`;
-sus tipos y helpers puros viven junto al dominio. No mover archivos masivamente: seguir ADR 0033.
+Estado: 637 tests, typecheck y lint limpios. `production` esta al dia: 20 migraciones, la 0019
+aplicada y verificada, y el cron de sync corriendo solo todos los dias a las 07:52 de Bogota.
 
-Arranca por:
-(1) el ticket 034 / ADR 0032: categorias de lead dinamicas y ownership del pipeline;
-(2) las enmiendas de permisos de los tickets 013 y 023;
-(3) dar de alta a Andrea cuando confirme su cuenta de Google;
-(4) el 021 de snapshot PDF, que sigue de ultimo.
+Lo que quedo a medias y por que, en orden de como atacarlo:
 
-Las extracciones futuras de `mi-dia-registro`, dashboard y schema requieren una frontera de
-dominio estable, tests y validacion completa; no se hacen por numero de lineas.
+(1) UI DE PLATAFORMAS + resto del 030. Es UN solo frente, no dos: los cinco catalogos que
+    todavia no tienen boton de borrar viven en /ajustes/catalogos, la misma pantalla que hay que
+    abrir para las plataformas. Ver el ticket 013 (enmienda) y el 030. La tabla
+    `plataformas_programa` ya existe y esta poblada; falta el codigo que la use.
+
+(2) TICKET 035, comprobante por link o foto. Antes de codear hay que responder DOS preguntas con
+    datos: cuanto crece el almacenamiento por mes, y quien puede ver el comprobante de un abono
+    ajeno. La segunda NO la resuelve el ADR 0009.
+
+(3) SESION DE DISENO DEL PIPELINE (HubSpot). BLOQUEA al ticket 034. Mani aclaro el 20-sep que son
+    DOS campos: `estado` lo escribe la hoja y no se mueve; `etapa` la escribe el CRM y si se
+    mueve. Eso ya desarmo la tension de "dos escritores". Lo que falta es el ORDEN de las etapas,
+    y confirmar con el playbook de closers si "Setteo No Calificado" es etapa o salida: de eso
+    depende si la conversion da 0,9% o 2,6%.
+
+(4) TICKET 021, PDF. Ya NO esta a ciegas: los seis reportes reales de Mike estan en el second
+    brain de Mani, en 02 Projects/retia/notebook/reportes-diarios-mike/, y el ticket 021 tiene la
+    estructura desarmada y el alcance acotado.
+
+(5) Andrea y la prueba de llamada real: Mani los dejo para cuando el CRM salga a produccion full.
+
+🎯 LA LECCION DEL 20-SEP, y vale mas que cualquiera de los tickets: de seis deudas que el tracker
+daba por pendientes, TRES ya estaban resueltas y nadie lo habia mirado (la concurrencia contra
+Neon, el cron corriendo solo, y S-02 cuya "imposibilidad" describia su propio arreglo). Antes de
+trabajar una deuda vieja, VERIFICALA. Cuesta un comando y a veces cuesta cero trabajo.
 ```
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-20 (CIERRE 16) — Barrida de pendientes: 4 cerrados, 3 de ellos por VERIFICACION y no
+  por codigo. 637 tests. `production` al dia.**
+
+  **PARA QUIEN ABRA LA PROXIMA SESION, leer esto primero:**
+
+  - 🎯 **DE SEIS DEUDAS QUE EL TRACKER DABA POR PENDIENTES, TRES YA ESTABAN RESUELTAS.** Es el
+    hallazgo de la sesion y se repitio tres veces el mismo dia:
+    1. **La prueba de concurrencia contra Neon** la listaba el CIERRE 14 como pendiente y el
+       CIERRE 13 del MISMO dia la reportaba hecha, con numeros. Dos entradas del mismo dia
+       contradiciendose.
+    2. **`/api/cron/sync`** decia "falta probarlo de punta a punta" y llevaba **tres dias
+       corriendo solo y bien** a las 07:52 de Bogota, seis corridas, las seis `ok`. Lo unico que
+       faltaba era abrir la tabla.
+    3. **S-02** decia *"el callback `jwt` no es testeable sin extraerlo de Auth.js"*. Esa frase
+       **describia el arreglo** y se leyo dos semanas como un impedimento.
+    **Una deuda fantasma cuesta lo mismo que una real.** Verificar antes de trabajar.
+
+  - ✅ **S-12 (CSRF) cerrado, y resulto ser DIEZ LINEAS.** La deuda decia "migrar las mutaciones a
+    Server Actions" y esa migracion ya habia pasado: se conto y queda **UN** handler que muta,
+    `POST /api/sync/[programa]`. `exigirMismoOrigen` en `lib/auth/origen.ts`, 4 tests.
+    **Una deuda descrita mas grande de lo que es no se ataca nunca.**
+
+  - ✅ **S-02 cerrado en sus dos mitades.** La operativa contra `dev` (usuario desechable:
+    `activo` → `quitar` → `INACTIVO`, la fila NO se borra) y la de codigo extrayendo el callback a
+    `lib/auth/revalidacion.ts`, 11 tests, **mordidos quitando el arreglo para verlos caerse**.
+
+  - ✅ **`/api/cron/sync` disparado de verdad contra produccion.** 401 sin secreto; con secreto,
+    2 programas sincronizados en 3,18s. Personas 4.765 → 4.791, 0 corridas colgadas. **Y la
+    corrida de Comunicarte guardo LAS DOS fuentes con sus conteos** (67 + 2.238): F-07 / ADR 0031
+    visto en produccion, no en un test.
+
+  - ⚠️ **TICKET 030: entregado como `done` y lo devolvi a `en curso`.** Kiro implemento bien y
+    declaro el pendiente en su reporte, pero marco el ticket cerrado con **las seis casillas de
+    "Done cuando" en `[x]`, y las seis eran CIERTAS**. El problema eran los criterios: los seis
+    dicen *"un producto"* cuando el **Objetivo** dice *"un producto, categoria, motivo, origen,
+    plataforma o recurso"*. El backend sirve a los seis; la UI solo esta en productos.
+    🎯 **Unos criterios mas estrechos que el objetivo dejan pasar un ticket a medias sin que nadie
+    mienta en ningun paso.** Se agrego el criterio que faltaba en vez de solo destildar casillas.
+    (Y la UI faltante fue decision MIA: le prohibi tocar `/ajustes/catalogos` por el rediseno de
+    plataformas.)
+
+  - 🩸 **EL GUARDIAN DEL MOLDE ERA DECORACION, Y SE COMPROBO INYECTANDO EL BUG.** La conversion
+    del test "el molde nunca borra" → "solo borra por `borrarSiNoSeUso`" dejo la rama de
+    `molde.ts` comprobando unicamente que el archivo **contuviera** la cadena `borrarsinoseuso`.
+    El archivo la contiene siempre: ahi se define la funcion. Se le metio un `db.delete()`
+    clandestino en otro metodo del molde y **el guardian paso en verde**.
+    Ahora exige UN solo `.delete(` en el archivo y que caiga DESPUES del inicio de
+    `borrarSiNoSeUso`. Mordido en tres sentidos: no marca el codigo bueno, caza el DELETE
+    clandestino, y caza un catalogo borrando a mano.
+    **Un guardian que no se puede hacer fallar es decoracion, y se ve identico a uno que funciona.**
+
+  - ✅ **Extraido `exigirAccesoAlPrograma` a `lib/catalogo/acceso-programa.ts`.** Estaba privado
+    dentro de `productos.ts` y recursos lo necesitaba. Lo importan productos, recursos y
+    enlaces-pago, con el mensaje de 403 parametrizado (a un brochure no se le dice "un programa
+    donde no vendes").
+
+  - **Decisiones de Mani del 20-sep, todas ya escritas donde corresponde:**
+    1. **Plataformas de pago por TABLA PUENTE** (ADR 0034, migracion 0019). Y ojo con el camino
+       descartado: meterle `program_id` a `plataformas_pago` obligaba a aflojar el indice unico
+       sobre `lower(nombre)`, o sea **PayPal pasaba a ser dos filas** y una consulta de caja por
+       plataforma mostraria dos medios de pago donde hay uno, sin lanzar un error.
+    2. **Una plataforma SI puede existir sin programa** (queda invisible). Lo que no puede existir
+       sin programa es el METODO de pago, o sea el ENLACE, **y eso ya se cumplia** desde el 022.
+       Mani corrigio mi mala lectura el mismo dia; el ADR 0034 lleva la correccion escrita.
+    3. **La tabla puente se gana su lugar por los abonos SIN enlace** (transferencia, Zelle). Si
+       todo cobro pasara por un link, el vinculo se derivaria de `enlaces_pago` y la tabla
+       sobraria.
+    4. **`/ajustes` deja de ser exclusivo de gerente**; la guarda baja a cada subpagina.
+    5. **`estado` y `etapa` son DOS campos** (ver el ticket 034). Desarma la tension de "dos
+       escritores sobre el mismo campo" sin negociar nada.
+    6. **Comprobante por link Y por foto** → ticket 035, con el analisis de crecimiento y de
+       control de acceso ANTES de codear.
+    7. Andrea y la prueba de llamada real se posponen a la salida a produccion full.
+
+  - **La migracion 0019 se aplico a `production` con el ok de Mani** y el backfill va DENTRO de la
+    misma migracion: una plataforma sin vinculos es invisible, asi que entre crear la tabla y
+    llenarla **los selectores de plataforma saldrian vacios en toda la app**. Y asocia todas con
+    todas a proposito: derivar de `enlaces_pago` habria dejado PayPal solo en `comunicarte` y
+    **Tactical Investor perderia PayPal sin que nadie lo decidiera**. Una migracion preserva el
+    comportamiento de hoy; la decision de negocio la toma un humano en la pantalla.
+
 
 - **2026-09-19 (CIERRE 15) — Documentacion de arquitectura sincronizada.** El PR #3 fue fusionado
   en `main` (commit `3887a8e`) y dejo **605 tests**, typecheck y lint limpios. Se agrego ADR 0033 y
@@ -47,7 +145,13 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   fixtures y pruebas de regresion. **603 tests pasan, typecheck y lint limpios.** El cierre 15
   actualiza el conteo y documenta la reorganizacion inicial aplicada después.
   Sigue pendiente el ticket 034/ADR 0032 (ownership y categorias dinamicas del pipeline), las
-  enmiendas de permisos de 013/023, el snapshot 021 y una prueba de concurrencia contra Neon.
+  enmiendas de permisos de 013/023 y el snapshot 021.
+  ⚠️ **Corregido el 20-sep:** esta entrada listaba tambien "una prueba de concurrencia contra
+  Neon" como pendiente, y **estaba vieja**: el CIERRE 13 del MISMO dia ya la reporta hecha, con
+  numeros (dos `sincronizarPersonas` en paralelo sobre el mismo programa, una devolvio 2.053
+  personas y la otra un 409, UNA sola fila en `sync_runs`, y el zombi de 30 minutos cerrado por
+  el reaper). Dos entradas del mismo dia se contradecian. **Una deuda fantasma cuesta lo mismo
+  que una real**, asi que se verifica antes de re-trabajarla.
 
 - **2026-09-19 (CIERRE 13) — El 016 cerrado, F-04 y F-05 tachadas, y siete decisiones de Mani
   que convierten F-01 en el ticket 034. 598 tests.**
@@ -2075,21 +2179,30 @@ Los cinco de abajo se pueden verificar ahora: desde el 15-sep ya hay un `.env.lo
 `DATABASE_URL` y los IDs de las hojas (verificado el 16-sep, solo nombres de variables).
 
 - [x] **B-01 (alto)** — hecho el 16-sep: `lib/sheets/plan-sync.ts` + `tests/plan-sync.test.ts`.
-- [ ] **F-04 (medio)** — Las actualizaciones van fila por fila; la proxima carga grande se pasa
-      del limite de la funcion. Falta upsert por lotes.
-- [ ] **Prueba manual de S-02** — que `npm run usuarios -- quitar <correo>` saque a la persona en
-      el siguiente request. El callback `jwt` no es testeable sin extraerlo de Auth.js.
+- [x] **F-04** — hecha el 19-sep (lotes de 200 por `ejecutarJuntas`). Esta entrada quedo
+      destildada por descuido; corregida el 20-sep. Ver el CIERRE 13 y el tracker.
+- [x] **S-02 — probado el 20-sep.** La mitad operativa contra `dev` (usuario desechable:
+      `activo` -> `quitar` -> `INACTIVO`, la fila NO se borra, los administradores bajan de 2 a 1),
+      y la de codigo extrayendo el callback a `lib/auth/revalidacion.ts` + 11 tests en
+      `tests/revalidacion-sesion.test.ts`, mordidos quitando el arreglo.
+      🎯 **"El callback `jwt` no es testeable sin extraerlo de Auth.js" era cierto y tambien era
+      la solucion.** La frase describia el arreglo y se leyo durante dos semanas como un
+      impedimento. Extraerlo no cambio una sola regla. Detalle completo en `docs/tasks/README.md`.
 
-Bloqueados por una decision de negocio (hay que preguntarle a Michael):
+Ya no estan bloqueados por Michael (actualizado 20-sep): las tres se resolvieron con decisiones
+de Mani y hoy son alcance de tickets, no preguntas abiertas.
 
-- [ ] **F-01 (alto)** — El sync lee `estado` de la hoja y lo descarta, asi que el embudo se queda
-      sin datos para calcularse. **Desbloqueado 16-sep:** valores reales y mapeo propuesto en
-      `docs/tasks/README.md`. Falta confirmar el mapeo y que hacer con `agenda` y
-      `capacidadInvertir`.
-- [ ] **F-06 (medio)** — Nadie detecta a la persona que desaparece de la hoja. Falta saber si las
-      filas se borran o solo se mueven de pestana.
-- [ ] **S-06 + B-06 (medio)** — La PII queda duplicada sin retencion ni control de acceso, y
-      `people.raw` guarda la fila entera y crece sin techo. Falta la politica de retencion.
+- [ ] **F-01 (alto)** — Es el **ticket 034** desde el 19-sep (ADR 0032). El mapeo a enum murio:
+      nada hardcoded. **Bloqueado por la sesion de diseno del pipeline (HubSpot)**, no por
+      Michael. Mani aclaro el 20-sep que `estado` (de la hoja, estatico) y `etapa` (del CRM, se
+      mueve) son DOS campos, lo que ya cerro el problema de los dos escritores.
+- [ ] **F-06 (medio)** — Entra dentro del **ticket 034**. Desbloqueada el 19-sep: **nunca se
+      borra una persona**, "desaparecio de la hoja" es una categoria mas. Ya no depende de la
+      respuesta de Michael; lo que falta construir es la DETECCION.
+- [x] **S-06 + B-06** — la politica se decidio el 19-sep (se guarda todo para siempre). Lo que
+      queda es de ESCALA y Mani lo quiere en sesion propia: base 15 MB, `people.raw` 2.520 kB
+      (551 bytes por persona). ⚠️ **El ticket 035 lo multiplica**: una foto de comprobante pesa
+      1-5 MB, o sea **20 comprobantes pesan mas que toda la base de hoy**.
 
 ### Later (someday / not yet scoped)
 
@@ -2098,8 +2211,25 @@ Bloqueados por una decision de negocio (hay que preguntarle a Michael):
 - [x] **S-14** — resuelto el 16-sep (ADR 0018).
 - [x] **S-10** — `AUTH_URL` en Vercel Production y callback en el cliente OAuth de `retia-growth`
       (16-sep).
-- [ ] **S-12** — **19-sep (Mani): si, pero como fix rapido en su propia sesion, por debajo de F-01 y F-06.** Los route handlers dependen de `SameSite=Lax`, sin CSRF propio. Se resuelve
-      migrando las mutaciones a Server Actions.
+- [x] **S-12 — hecho el 20-sep, y result ser DIEZ LINEAS, no una migracion.**
+      🎯 **La deuda estaba descrita mas grande de lo que era.** Decia "se resuelve migrando las
+      mutaciones a Server Actions", y esa migracion **ya habia pasado**: se fueron a contar los
+      handlers que mutan bajo `app/api/` y queda **UNO SOLO**, `POST /api/sync/[programa]`. Todo
+      lo demas es GET o lo maneja Auth.js, y cada Server Action ya trae el chequeo de origen que
+      Next hace por su cuenta.
+      El arreglo es `exigirMismoOrigen` en `lib/auth/origen.ts`, llamado antes que `requireRole`.
+      Compara `Origin` contra `X-Forwarded-Host` (el dominio real detras de Vercel) y cae al
+      `Host` si no esta. **Deja pasar la peticion SIN `Origin`** a proposito, igual que Next: la
+      amenaza es un formulario de otro sitio enviado por el navegador de alguien con sesion, y en
+      ese caso el navegador siempre manda la cabecera. Sin ella no viene de un navegador y no
+      arrastra la cookie de nadie; lo que la protege ahi es `requireRole`.
+      4 tests nuevos en `tests/sync-permisos.test.ts`, incluido el de `x-forwarded-host`: comparar
+      contra el host equivocado **rechazaria peticiones legitimas en produccion sin romper un solo
+      test**, que es la forma silenciosa de este bug.
+      **Impacto real, sin inflarlo:** lo peor que lograba un atacante era que el navegador de un
+      gerente disparara un sync. No leia la respuesta (no hay CORS), no escribia datos de negocio
+      y el candado del ADR 0031 ya impedia que se apilaran. Se arreglo porque era barato, no
+      porque estuviera ardiendo.
 - [x] **`CRON_SECRET`** — en `.env.local` y en Vercel Production desde el 16-sep.
 - [x] **Pantalla para administrar usuarios.** Pasa a ser el ticket 015.
 - [ ] **Las fuentes de `calls`, `sales` y `ad_spend`** estan sembradas pero inactivas: sus

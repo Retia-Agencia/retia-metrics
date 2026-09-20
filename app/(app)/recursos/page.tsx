@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { categoriasDeRecurso } from "@/lib/catalogo/categorias-recurso";
 import { plataformasDePago } from "@/lib/catalogo/plataformas";
-import { programasActivos } from "@/lib/queries/programas";
+import { programasActivos, programasGestionablesPorUsuario } from "@/lib/queries/programas";
 import {
   enlacesDePagoVigentes,
   historialesDeRecursos,
@@ -47,11 +47,21 @@ function texto(valor: string | string[] | undefined): string | undefined {
  */
 export default async function RecursosPage({ searchParams }: Props) {
   const session = await paginaConRol("gerente", "closer");
-  // Quien ve los controles de edicion lo decide `esAdministrador` sobre el ROL DE
-  // VISTA, no sobre `session.user.rol` a mano (ticket 028, ADR 0024): un developer en
-  // vista `closer` NO los ve (un closer no administra), en vista `gerente` o `todo` SI.
-  // La decision es de servidor y las server actions vuelven a exigir el rol (ADR 0003).
-  const puedeEditar = esAdministrador(await rolDeVista(session));
+  // Con que rol se proyecta la pantalla lo decide el ROL DE VISTA, no `session.user.rol`
+  // a mano (ticket 028, ADR 0024). Un administrador (gerente o developer) edita todo,
+  // incluido lo global; un closer solo los programas donde tiene membresia activa, y
+  // nunca un recurso global. La decision es de servidor y las server actions vuelven a
+  // exigir el rol y el acceso por programa (ADR 0003).
+  const rolVista = await rolDeVista(session);
+  const esAdmin = esAdministrador(rolVista);
+  // Los programas que un closer puede editar: sus membresias activas. Para un admin no
+  // importa (edita todo), asi que solo se consulta cuando es closer.
+  const programasEditables =
+    !esAdmin && rolVista === "closer"
+      ? (await programasGestionablesPorUsuario(session.user.id, "closer", db)).map((p) => p.id)
+      : [];
+  // Ve los formularios de creacion quien administra o quien tiene algun programa editable.
+  const puedeCrear = esAdmin || programasEditables.length > 0;
 
   const busqueda = await searchParams;
   const slug = texto(busqueda.programa);
@@ -68,16 +78,21 @@ export default async function RecursosPage({ searchParams }: Props) {
   const [recursos, enlaces, categorias, plataformas] = await Promise.all([
     recursosVigentes({ programId, q }, db),
     enlacesDePagoVigentes({ programId }, db),
-    // Los catalogos del formulario solo hacen falta para el gerente (unico que crea).
-    puedeEditar ? categoriasDeRecurso(db).listar({ soloActivos: true }) : Promise.resolve([]),
-    puedeEditar ? plataformasDePago(db).listar({ soloActivos: true }) : Promise.resolve([]),
+    // Los catalogos del formulario solo hacen falta para quien puede crear.
+    puedeCrear ? categoriasDeRecurso(db).listar({ soloActivos: true }) : Promise.resolve([]),
+    puedeCrear ? plataformasDePago(db).listar({ soloActivos: true }) : Promise.resolve([]),
   ]);
 
   // El historial de cada recurso se resuelve en el servidor: el desplegable ya trae
   // sus versiones anteriores, sin un ida y vuelta de cliente.
   const historiales = await historialesDeRecursos(recursos.map((r) => r.id), db);
   const conHistorial = recursos.map((r) => ({
-    ...r,
+    id: r.id,
+    titulo: r.titulo,
+    url: r.url,
+    categoriaNombre: r.categoriaNombre,
+    programId: r.programId,
+    programaNombre: r.programaNombre,
     historial: (historiales.get(r.id) ?? []).map((v) => ({ id: v.id, url: v.url })),
   }));
 
@@ -87,7 +102,8 @@ export default async function RecursosPage({ searchParams }: Props) {
       descripcion="Brochures, guiones y links de pago vigentes. Encuéntralos y cópialos en un clic."
     >
       <RecursosPantalla
-        puedeEditar={puedeEditar}
+        esAdmin={esAdmin}
+        programasEditables={programasEditables}
         slugPrograma={slug ?? null}
         q={q ?? null}
         programas={programas.map((p) => ({ id: p.id, slug: p.slug, nombre: p.nombre }))}
@@ -99,6 +115,7 @@ export default async function RecursosPage({ searchParams }: Props) {
           url: e.url,
           monto: e.monto,
           moneda: e.moneda,
+          programId: e.programId,
           programaNombre: e.programaNombre,
           productoNombre: e.productoNombre,
           plataformaNombre: e.plataformaNombre,

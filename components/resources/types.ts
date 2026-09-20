@@ -5,6 +5,8 @@ export interface RecursoUI {
   titulo: string;
   url: string;
   categoriaNombre: string | null;
+  /** Nulo = recurso global. Decide si un closer puede editarlo (solo sus programas). */
+  programId: string | null;
   programaNombre: string | null;
   /** Versiones anteriores, de la mas reciente a la mas vieja. */
   historial: { id: string; url: string }[];
@@ -15,6 +17,8 @@ export interface EnlaceUI {
   url: string;
   monto: string;
   moneda: string;
+  /** Siempre presente (la columna es NOT NULL). Decide si un closer puede editarlo. */
+  programId: string;
   programaNombre: string | null;
   productoNombre: string | null;
   plataformaNombre: string | null;

@@ -1,10 +1,11 @@
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { miembrosPrograma, productos } from "@/lib/db/schema";
+import { enlacesPago, productos, sales } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
-import { esAdministrador, type Rol } from "@/lib/auth/roles";
-import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
+import { type Rol } from "@/lib/auth/roles";
+import { moldeDeCatalogo, type FilaCatalogo, type ResultadoBorrado } from "./molde";
+import { exigirAccesoAlPrograma } from "./acceso-programa";
 
 /**
  * Productos por programa (ticket 017, ADR 0016, ADR 0012), sobre el molde de catalogo.
@@ -117,40 +118,29 @@ function moldeProductos(db: Db) {
       esquema: esquemaProducto as unknown as z.ZodType<CamposProducto>,
       etiqueta: (fila) => String(fila.nombre),
       nombreEntidad: "un producto",
+      // Quien apunta a un producto por FK `restrict`: las ventas (`producto_id`) y los
+      // enlaces de pago (`producto_id`). Se cuentan ambas para `borrarSiNoSeUso`
+      // (ADR 0026 punto 5): un producto vendido —aunque la venta este anulada— o con
+      // un enlace de pago que lo usa NO se borra, se desactiva.
+      dependientes: [
+        { tabla: sales, columna: sales.productoId },
+        { tabla: enlacesPago, columna: enlacesPago.productoId },
+      ],
     },
     db,
   );
 }
 
+/** Mensaje 403 propio de productos: "vender" si aplica al producto de un programa. */
+const NEGADO_PRODUCTOS = "No puedes gestionar productos de un programa donde no vendes.";
+
 /**
- * Enforza la regla de datos del ADR 0016: quien ADMINISTRA entra a cualquier
- * programa; un closer solo a los programas donde tiene una membresia ACTIVA. Un
- * closer que toca el producto de otro programa recibe un 403 (aparte de la barrera
- * de rol de la ruta). No es seguridad de UI: se verifica aqui, en el servidor,
- * contra la base.
- *
- * "Administrar" es `esAdministrador`, no `rol === "gerente"`: el developer tambien
- * administra (ADR 0025) y no es miembro de ningun programa, asi que el chequeo a
- * mano lo mandaba al camino de la membresia y le negaba con un 403 que ademas
- * mentia ("donde no vendes": el developer no vende en ninguno). Misma forma del
- * bug que el ticket 029 arreglo en `/ajustes/usuarios`.
+ * Enlaza la regla de acceso compartida (`exigirAccesoAlPrograma`) con el mensaje
+ * propio de productos. La logica vive en `lib/catalogo/acceso-programa.ts`; aca solo
+ * se fija el texto, que es lo unico que cambia entre productos y recursos.
  */
-async function exigirAccesoAlPrograma(db: Db, actor: Actor, programId: string): Promise<void> {
-  if (esAdministrador(actor.rol)) return;
-  const [membresia] = await db
-    .select({ id: miembrosPrograma.id })
-    .from(miembrosPrograma)
-    .where(
-      and(
-        eq(miembrosPrograma.userId, actor.id),
-        eq(miembrosPrograma.programId, programId),
-        eq(miembrosPrograma.activo, true),
-      ),
-    )
-    .limit(1);
-  if (!membresia) {
-    throw new ErrorDeApp("No puedes gestionar productos de un programa donde no vendes.", 403);
-  }
+function exigirAcceso(db: Db, actor: Actor, programId: string): Promise<void> {
+  return exigirAccesoAlPrograma(db, actor, programId, NEGADO_PRODUCTOS);
 }
 
 /** Lee una fila de producto por id (sin filtrar por activo). */
@@ -209,7 +199,7 @@ export async function crearProducto(
 ): Promise<ProductoVista> {
   return normalizando(async () => {
     const datos = esquemaProducto.parse(input);
-    await exigirAccesoAlPrograma(db, actor, datos.programId);
+    await exigirAcceso(db, actor, datos.programId);
     const fila = await moldeProductos(db).crear(actor.id, datos);
     return fila as ProductoVista;
   });
@@ -231,8 +221,8 @@ export async function editarProducto(
     const datos = esquemaProducto.parse(input);
     const actual = await leerProducto(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe un producto con ese id.", 404);
-    await exigirAccesoAlPrograma(db, actor, actual.programId);
-    await exigirAccesoAlPrograma(db, actor, datos.programId);
+    await exigirAcceso(db, actor, actual.programId);
+    await exigirAcceso(db, actor, datos.programId);
     const fila = await moldeProductos(db).editar(actor.id, objetivoId, datos);
     return fila as ProductoVista;
   });
@@ -248,7 +238,7 @@ export async function desactivarProducto(
     const objetivoId = idValido(id);
     const actual = await leerProducto(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe un producto con ese id.", 404);
-    await exigirAccesoAlPrograma(db, actor, actual.programId);
+    await exigirAcceso(db, actor, actual.programId);
     const fila = await moldeProductos(db).desactivar(actor.id, objetivoId);
     return fila as ProductoVista;
   });
@@ -264,8 +254,28 @@ export async function reactivarProducto(
     const objetivoId = idValido(id);
     const actual = await leerProducto(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe un producto con ese id.", 404);
-    await exigirAccesoAlPrograma(db, actor, actual.programId);
+    await exigirAcceso(db, actor, actual.programId);
     const fila = await moldeProductos(db).reactivar(actor.id, objetivoId);
     return fila as ProductoVista;
+  });
+}
+
+/**
+ * Borra un producto SOLO si nadie lo uso (ADR 0026 punto 5): cero ventas y cero
+ * enlaces de pago que lo referencien → `DELETE` de verdad; una o mas → no borra y
+ * devuelve el conteo para que la pantalla desactive y lo explique. Requiere acceso
+ * al programa del producto, igual que desactivar.
+ */
+export async function borrarProductoSiNoSeUso(
+  db: Db,
+  actor: Actor,
+  id: string,
+): Promise<ResultadoBorrado> {
+  return normalizando(async () => {
+    const objetivoId = idValido(id);
+    const actual = await leerProducto(db, objetivoId);
+    if (!actual) throw new ErrorDeApp("No existe un producto con ese id.", 404);
+    await exigirAcceso(db, actor, actual.programId);
+    return moldeProductos(db).borrarSiNoSeUso(actor.id, objetivoId);
   });
 }

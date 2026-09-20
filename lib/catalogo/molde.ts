@@ -1,12 +1,13 @@
-import { eq } from "drizzle-orm";
-import type { PgTable } from "drizzle-orm/pg-core";
+import { and, eq, sql } from "drizzle-orm";
+import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import type { ZodType } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
 import { changeLog } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
-import { esViolacionUnica } from "@/lib/db/errores";
+import { esViolacionForanea, esViolacionUnica } from "@/lib/db/errores";
+import { incluyendoAnulados } from "@/lib/queries/vigente";
 
 /**
  * El molde de toda entidad configurable (ADR 0012).
@@ -28,6 +29,37 @@ export interface FilaCatalogo {
   [columna: string]: unknown;
 }
 
+/**
+ * Una tabla que apunta a este catalogo por una FK `restrict`, declarada JUNTO AL
+ * catalogo y no dentro del molde (ADR 0026 punto 5).
+ *
+ * El molde NO puede saber quien apunta a quien sin volverse un registro de llaves
+ * foraneas escrito a mano que se desactualiza solo: cuando alguien agregue una tabla
+ * que referencie un catalogo, el sitio donde lo recordaria es el archivo del catalogo,
+ * no este. Por eso cada catalogo pasa sus dependientes y el molde solo los cuenta.
+ *
+ * Se cuentan TODAS las referencias, incluidas las anuladas (`incluyendoAnulados`): la
+ * FK `restrict` de la base no distingue una venta viva de una anulada —las dos
+ * bloquean el `DELETE`—, y ademas una fila referenciada por una venta anulada SI se
+ * uso, asi que no debe poder borrarse. Contar solo lo vigente daria cero y ofreceria
+ * borrar algo que la base no deja.
+ */
+export interface Dependiente {
+  /** La tabla que referencia este catalogo. */
+  tabla: PgTable;
+  /** La columna FK de esa tabla que apunta al `id` de este catalogo. */
+  columna: PgColumn;
+}
+
+/**
+ * Resultado de `borrarSiNoSeUso`: o se borro de verdad, o no se borro porque hay
+ * referencias y se dice cuantas para que la pantalla lo explique. Nunca se dice
+ * "borrado" habiendo desactivado (ADR 0026).
+ */
+export type ResultadoBorrado =
+  | { borrado: true }
+  | { borrado: false; referencias: number };
+
 export interface OpcionesMolde<Entrada extends Record<string, unknown>> {
   /** La tabla de Drizzle. Debe tener columnas `id` (uuid) y `activo` (boolean). */
   tabla: PgTable;
@@ -39,6 +71,12 @@ export interface OpcionesMolde<Entrada extends Record<string, unknown>> {
   etiqueta: (fila: FilaCatalogo) => string;
   /** Nombre de la entidad en singular, para los mensajes de error ("plataforma de pago"). */
   nombreEntidad: string;
+  /**
+   * Las tablas que referencian este catalogo por FK `restrict`. Solo hace falta para
+   * `borrarSiNoSeUso` (ADR 0026 punto 5): un catalogo sin dependientes declarados no
+   * cuenta nada y siempre borra. Se declara aca, junto al catalogo, no en el molde.
+   */
+  dependientes?: readonly Dependiente[];
 }
 
 export interface Catalogo<Entrada extends Record<string, unknown>> {
@@ -49,6 +87,13 @@ export interface Catalogo<Entrada extends Record<string, unknown>> {
   editar: (userId: string, id: string, input: Entrada) => Promise<FilaCatalogo>;
   desactivar: (userId: string, id: string) => Promise<FilaCatalogo>;
   reactivar: (userId: string, id: string) => Promise<FilaCatalogo>;
+  /**
+   * Borra la fila SOLO si nadie la ha usado (ADR 0026 punto 5). Cuenta las referencias
+   * primero: cero → `DELETE` de verdad + `change_log`; una o mas → no borra y devuelve
+   * el conteo para que la pantalla lo explique. La pantalla debe desactivar en ese
+   * caso; borrar y desactivar son dos operaciones que se nombran distinto.
+   */
+  borrarSiNoSeUso: (userId: string, id: string) => Promise<ResultadoBorrado>;
 }
 
 /** Convierte un valor de columna a texto para `change_log` (que guarda todo como texto). */
@@ -61,7 +106,7 @@ export function moldeDeCatalogo<Entrada extends Record<string, unknown>>(
   opciones: OpcionesMolde<Entrada>,
   db: Db = dbDeLaApp,
 ): Catalogo<Entrada> {
-  const { tabla, nombreTabla, esquema, etiqueta, nombreEntidad } = opciones;
+  const { tabla, nombreTabla, esquema, etiqueta, nombreEntidad, dependientes } = opciones;
 
   // La tabla es generica; internamente sacamos de ella las columnas id y activo
   // para construir where/update sin conocer la entidad.
@@ -216,6 +261,59 @@ export function moldeDeCatalogo<Entrada extends Record<string, unknown>>(
       ]);
 
       return (await leerFila(id))!;
+    },
+
+    async borrarSiNoSeUso(userId, id) {
+      const actual = await leerFila(id);
+      if (!actual) throw new ErrorDeApp(`No existe ${nombreEntidad} con ese id.`, 404);
+
+      // 1) Contar referencias PRIMERO (ADR 0026 punto 5). Se suman todas las
+      // dependientes declaradas por el catalogo, incluidas las anuladas: la FK
+      // `restrict` no distingue una fila viva de una anulada, y una fila que alguna
+      // vez se uso no debe poder borrarse.
+      let referencias = 0;
+      for (const dep of dependientes ?? []) {
+        const filas = (await db
+          .select({ n: sql<number>`count(*)::int` })
+          .from(dep.tabla as never)
+          .where(and(eq(dep.columna, id as never), incluyendoAnulados(dep.tabla)))) as {
+          n: number;
+        }[];
+        referencias += Number(filas[0]?.n ?? 0);
+      }
+
+      // 2) Una o mas → NO se borra. La pantalla desactiva y explica el conteo.
+      if (referencias > 0) return { borrado: false, referencias };
+
+      // 3) Cero → DELETE de verdad + change_log con la etiqueta (unica huella que
+      // queda). La carrera (alguien la uso entre el conteo y el borrado) la ataja la
+      // FK `restrict`: sale como 23503 y se traduce a un 400 legible, nunca un 500.
+      const etiquetaFila = etiqueta(actual);
+      try {
+        await ejecutarJuntas(db, (tx) => [
+          (tx as Db).delete(tabla as never).where(eq(idCol, id)),
+          (tx as Db).insert(changeLog).values({
+            tabla: nombreTabla,
+            registroId: id,
+            etiqueta: etiquetaFila,
+            campo: "borrado",
+            valorAnterior: etiquetaFila,
+            valorNuevo: null,
+            origen: "app" as const,
+            userId,
+          }),
+        ]);
+      } catch (error) {
+        if (esViolacionForanea(error)) {
+          throw new ErrorDeApp(
+            `No se puede borrar ${nombreEntidad}: se usó mientras se intentaba borrar. Desactívalo.`,
+            400,
+          );
+        }
+        throw error;
+      }
+
+      return { borrado: true };
     },
   };
 }

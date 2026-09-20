@@ -93,6 +93,44 @@ misma categoria en dos programas.
   su redaccion), pero eso choca con querer un embudo comparable entre programas. No se decide de
   paso.
 
+## 🎯 Mani, 20-sep: son DOS campos, no uno. `estado` y `etapa`
+
+Esto **desarma la tension de "dos escritores sobre el mismo campo"** que este ticket tenia
+escrita arriba, y hay que leerlo antes de disenar nada.
+
+> *"`estado` es lo que llega desde el forms (lo que la calificacion de sus respuestas les pone
+> de llegada). Ese campo deberia ser estatico y el que se mueve es la `etapa`."* (Mani, textual)
+
+| campo | quien lo escribe | se mueve | de donde sale |
+|---|---|---|---|
+| `estado` | la hoja / el formulario | **NO** | la calificacion automatica de las respuestas del lead |
+| `etapa` | el CRM (el closer) | **SI** | el pipeline de vida del lead |
+
+Con eso **cada campo tiene un solo dueno** y la regla del ADR 0004 (Sheets es la fuente de verdad
+de los leads) sigue intacta: la hoja manda sobre `estado` y nadie mas lo toca; el CRM manda sobre
+`etapa` y la hoja no la conoce. **No hay reparto que negociar**, que era el riesgo real.
+
+Lo que este ticket construye sigue siendo lo mismo para `estado`: leerlo tal cual, agrupar
+dinamicamente y poder combinar dos redacciones. Lo que cambia es que **`estado` deja de ser el
+embudo**: es la clasificacion de entrada.
+
+### Lectura de Mani de lo que significa hoy cada valor (POR VERIFICAR con el playbook de closers)
+
+- `📞 Setteo No Calificado` → se vuelve a contactar para ver si se agenda llamada. **No es una
+  salida: sigue vivo.**
+- `🗑️ Descartado` → se queda almacenado.
+- `📅 Con Calendly` → ya tiene llamada, solo falta cerrar.
+
+⚠️ **Esto NO esta confirmado y cambia la conversion casi por el triple** (0,9% contra 2,6%
+segun si las 2.071 personas en "Setteo No Calificado" siguen en el embudo). Mani lo marco
+explicitamente como "toca verificar cuando se tenga el playbook de Closers". **No se codea una
+metrica sobre esta lectura hasta que el playbook la confirme.**
+
+### Lo que queda por definir, y sigue siendo sesion propia
+
+**Las etapas de vida del lead.** Mani confirmo el 20-sep que hay que **traer el modelo de
+HubSpot** y copiar el modelo probado en vez de improvisarlo. Sigue bloqueando este ticket.
+
 ## Done cuando
 
 - [ ] No queda ningun valor de `estado` escrito en `lib/`, `app/` ni `components/`.

@@ -567,6 +567,43 @@ export const plataformasPago = pgTable(
 );
 
 /**
+ * Que programas sirve cada plataforma de pago (ADR 0034). Tabla puente, no una
+ * columna `program_id` en `plataformas_pago`, y la razon no es de estilo:
+ *
+ * `plataformas_pago` tiene un indice unico sobre `lower(nombre)` para que 'Paypal'
+ * y 'PayPal' no partan las metricas en dos plataformas distintas. Una columna
+ * `program_id` obligaria a aflojar ese indice a unico POR programa, y PayPal pasaria
+ * a ser dos filas con dos ids: el dia que una consulta agrupe caja por plataforma
+ * mostraria dos medios de pago donde hay uno, **sin lanzar ningun error**. Con la
+ * tabla puente el indice queda intacto y PayPal sirviendo a los dos programas son
+ * dos vinculos.
+ *
+ * Sin columna `activo`, a diferencia de `miembros_programa`: alli existe porque una
+ * membresia se suspende sin perder el historial y `exigirAccesoAlPrograma` la
+ * consulta. Aqui no hay nada que preguntar: una plataforma que deja de servir a un
+ * programa simplemente no tiene el vinculo, y la fila no la referencia nadie.
+ *
+ * ⚠️ Lo que esta tabla NO puede garantizar: que toda plataforma tenga al menos un
+ * vinculo (ADR 0034 punto 2). Al insertar la plataforma todavia no hay vinculo y
+ * `neon-http` no da transacciones interactivas para diferir la comprobacion, asi que
+ * esa cardinalidad minima vive en `lib/catalogo/plataformas.ts` y su esquema zod,
+ * igual que `parsearEntradaUsuario` ya exige que un closer traiga al menos un
+ * programa. La UNICIDAD si la garantiza la base, que es lo que manda el ADR 0005.
+ */
+export const plataformasPrograma = pgTable(
+  "plataformas_programa",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    plataformaId: uuid("plataforma_id")
+      .notNull()
+      .references(() => plataformasPago.id, { onDelete: "cascade" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("plataformas_programa_par_idx").on(t.plataformaId, t.programId)],
+);
+
+/**
  * Motivos de perdida de una llamada (dinero, horario, sin fit, ...). Catalogo del
  * molde (ADR 0012, ADR 0015): el equipo los descubre sobre la marcha y el reporte
  * los agrupa, asi que son instancia editable, no un enum.
@@ -754,6 +791,7 @@ export type Pauta = typeof adSpend.$inferSelect;
 export type CorridaSync = typeof syncRuns.$inferSelect;
 export type Cambio = typeof changeLog.$inferSelect;
 export type PlataformaPago = typeof plataformasPago.$inferSelect;
+export type PlataformaPrograma = typeof plataformasPrograma.$inferSelect;
 export type Motivo = typeof motivos.$inferSelect;
 export type Origen = typeof origenes.$inferSelect;
 export type Producto = typeof productos.$inferSelect;
