@@ -8,6 +8,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import {
+  borrarProductoSiNoSeUso,
   crearProducto,
   desactivarProducto,
   editarProducto,
@@ -103,5 +104,35 @@ export async function reactivarProductoAccion(id: string): Promise<ResultadoAcci
     return { ok: true };
   } catch (error) {
     return aResultado(error);
+  }
+}
+
+/**
+ * Resultado del borrado: la pantalla lo usa para elegir el VERBO (ADR 0026 punto 5).
+ * `borrado: true` → se borro de verdad; `borrado: false` con `referencias` → NO se
+ * borro (hay que desactivar) y se dice cuantas lo referencian. Nunca se dice "borrado"
+ * habiendo desactivado.
+ */
+export type ResultadoBorradoAccion =
+  | { ok: true; borrado: true }
+  | { ok: true; borrado: false; referencias: number }
+  | { ok: false; error: string };
+
+/**
+ * Borra un producto SOLO si nadie lo uso. Es la unica operacion irreversible de la
+ * app, asi que la pantalla pide confirmacion explicita antes de llamarla. Si tiene
+ * referencias, no borra: devuelve el conteo para que la pantalla ofrezca desactivar.
+ */
+export async function borrarProductoAccion(id: string): Promise<ResultadoBorradoAccion> {
+  try {
+    const session = await requireRole("gerente", "closer");
+    const res = await borrarProductoSiNoSeUso(db, await actorDe(session), id);
+    revalidatePath("/productos");
+    return res.borrado
+      ? { ok: true, borrado: true }
+      : { ok: true, borrado: false, referencias: res.referencias };
+  } catch (error) {
+    const r = aResultado(error);
+    return r.ok ? { ok: true, borrado: true } : r;
   }
 }

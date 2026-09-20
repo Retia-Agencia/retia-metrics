@@ -5,7 +5,7 @@ import { z } from "zod";
 import { db } from "../lib/db";
 import { enlacesPago, plataformasPago, productos, programs } from "../lib/db/schema";
 import { crearEnlacePago, esquemaEnlacePago } from "../lib/catalogo/enlaces-pago";
-import { actorDelScript } from "./actor";
+import { actorConRolDelScript } from "./actor";
 
 /**
  * Carga los enlaces de pago (ADR 0017, ticket 022). NO escribe ningun link en el
@@ -121,8 +121,10 @@ async function yaExiste(datos: {
 async function main() {
   const ruta = rutaDelJson();
   // Antes de leer nada: si no hay a quien atribuirle los cambios, el script no
-  // arranca. Falla aca y no a mitad de la carga, con filas ya escritas.
-  const userId = await actorDelScript();
+  // arranca. Falla aca y no a mitad de la carga, con filas ya escritas. Se trae el
+  // rol ademas del id: los enlaces de pago ahora exigen `{ id, rol }` (acceso por
+  // programa, ADR 0016). El id es lo que queda en `change_log` (ADR 0029).
+  const actor = await actorConRolDelScript();
 
   let crudo: unknown;
   try {
@@ -168,7 +170,7 @@ async function main() {
 
     // Por el molde, no por `db.insert`: valida, crea la fila vigente y deja el
     // rastro en `change_log` igual que si alguien la hubiera creado desde la app.
-    await crearEnlacePago(db, userId, {
+    await crearEnlacePago(db, actor, {
       programId,
       plataformaId,
       productoId: datos.productoId,

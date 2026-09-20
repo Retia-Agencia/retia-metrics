@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { categoriasRecurso } from "@/lib/db/schema";
+import { categoriasRecurso, recursos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { moldeDeCatalogo } from "./molde";
 
@@ -26,6 +26,9 @@ export function categoriasDeRecurso(db?: Db) {
       esquema: esquemaCategoriaRecurso,
       etiqueta: (fila) => String(fila.nombre),
       nombreEntidad: "una categoria de recurso",
+      // Quien apunta a una categoria: la columna `categoria_id` de los recursos
+      // (incluidos el historial y lo desactivado, que tambien la referencian).
+      dependientes: [{ tabla: recursos, columna: recursos.categoriaId }],
     },
     db,
   );

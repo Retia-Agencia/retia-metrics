@@ -27,7 +27,7 @@ import {
 
 let db: Db;
 let cerrar: () => Promise<void>;
-let userId: string;
+let actor: { id: string; rol: "gerente" };
 let programaA: string;
 let programaB: string;
 let categoriaBrochure: string;
@@ -41,7 +41,7 @@ beforeEach(async () => {
     .insert(users)
     .values({ email: "gerente@retiagrowth.com", rol: "gerente", nombre: "Gerencia" })
     .returning();
-  userId = u.id;
+  actor = { id: u.id, rol: "gerente" };
 
   const [a] = await db
     .insert(programs)
@@ -73,19 +73,19 @@ afterEach(async () => {
 
 describe("recursosVigentes — filtro por programa incluye los globales", () => {
   it("un filtro por programa trae los del programa Y los globales", async () => {
-    await crearRecurso(db, userId, {
+    await crearRecurso(db, actor, {
       programId: programaA,
       categoriaId: categoriaBrochure,
       titulo: "Brochure Comunicarte",
       url: "https://drive.google.com/comunicarte",
     });
-    await crearRecurso(db, userId, {
+    await crearRecurso(db, actor, {
       programId: programaB,
       categoriaId: categoriaBrochure,
       titulo: "Brochure Tactical",
       url: "https://drive.google.com/tactical",
     });
-    await crearRecurso(db, userId, {
+    await crearRecurso(db, actor, {
       programId: null,
       categoriaId: categoriaGuion,
       titulo: "Guion global",
@@ -100,13 +100,13 @@ describe("recursosVigentes — filtro por programa incluye los globales", () => 
   });
 
   it("sin filtro de programa trae todos, con el nombre de categoria y programa resueltos", async () => {
-    await crearRecurso(db, userId, {
+    await crearRecurso(db, actor, {
       programId: programaA,
       categoriaId: categoriaBrochure,
       titulo: "Brochure Comunicarte",
       url: "https://drive.google.com/comunicarte",
     });
-    await crearRecurso(db, userId, {
+    await crearRecurso(db, actor, {
       programId: null,
       categoriaId: categoriaGuion,
       titulo: "Guion global",
@@ -123,13 +123,13 @@ describe("recursosVigentes — filtro por programa incluye los globales", () => 
   });
 
   it("la busqueda por titulo encuentra sin distinguir mayusculas", async () => {
-    await crearRecurso(db, userId, {
+    await crearRecurso(db, actor, {
       programId: programaA,
       categoriaId: categoriaBrochure,
       titulo: "Brochure Comunicarte",
       url: "https://drive.google.com/comunicarte",
     });
-    await crearRecurso(db, userId, {
+    await crearRecurso(db, actor, {
       programId: programaA,
       categoriaId: categoriaGuion,
       titulo: "Guion de ventas",
@@ -141,13 +141,13 @@ describe("recursosVigentes — filtro por programa incluye los globales", () => 
   });
 
   it("solo devuelve las versiones vigentes, no el historial", async () => {
-    const creado = await crearRecurso(db, userId, {
+    const creado = await crearRecurso(db, actor, {
       programId: programaA,
       categoriaId: categoriaBrochure,
       titulo: "Brochure",
       url: "https://drive.google.com/v1",
     });
-    await reemplazarRecurso(db, userId, creado.id, "https://drive.google.com/v2");
+    await reemplazarRecurso(db, actor, creado.id, "https://drive.google.com/v2");
 
     const filas = await recursosVigentes({ programId: programaA }, db);
     expect(filas).toHaveLength(1);
@@ -162,7 +162,7 @@ describe("enlacesDePagoVigentes — con programa, producto, plataforma, monto y 
       .values({ programId: programaA, nombre: "Programa completo", precioLista: "797.00", moneda: "USD" })
       .returning();
 
-    await crearEnlacePago(db, userId, {
+    await crearEnlacePago(db, actor, {
       programId: programaA,
       productoId: prod.id,
       plataformaId: plataforma,
@@ -170,7 +170,7 @@ describe("enlacesDePagoVigentes — con programa, producto, plataforma, monto y 
       moneda: "USD",
       url: "https://paypal.com/con-producto",
     });
-    await crearEnlacePago(db, userId, {
+    await crearEnlacePago(db, actor, {
       programId: programaA,
       plataformaId: plataforma,
       monto: "500000",
@@ -193,15 +193,15 @@ describe("enlacesDePagoVigentes — con programa, producto, plataforma, monto y 
 
 describe("historialDeRecurso — versiones anteriores en orden tras dos reemplazos", () => {
   it("devuelve las versiones anteriores, de la mas reciente a la mas vieja", async () => {
-    const v1 = await crearRecurso(db, userId, {
+    const v1 = await crearRecurso(db, actor, {
       programId: programaA,
       categoriaId: categoriaBrochure,
       titulo: "Brochure",
       url: "https://drive.google.com/v1",
     });
 
-    const v2 = await reemplazarRecurso(db, userId, v1.id, "https://drive.google.com/v2");
-    const v3 = await reemplazarRecurso(db, userId, v2.id, "https://drive.google.com/v3");
+    const v2 = await reemplazarRecurso(db, actor, v1.id, "https://drive.google.com/v2");
+    const v3 = await reemplazarRecurso(db, actor, v2.id, "https://drive.google.com/v3");
 
     // El vigente es v3; su historial son v2 y v1, en ese orden.
     const historial = await historialDeRecurso(v3.id, db);
@@ -212,15 +212,15 @@ describe("historialDeRecurso — versiones anteriores en orden tras dos reemplaz
   });
 
   it("carga varios historiales con una sola consulta", async () => {
-    const v1 = await crearRecurso(db, userId, {
+    const v1 = await crearRecurso(db, actor, {
       programId: programaA,
       categoriaId: categoriaBrochure,
       titulo: "Brochure",
       url: "https://drive.google.com/v1",
     });
-    const v2 = await reemplazarRecurso(db, userId, v1.id, "https://drive.google.com/v2");
-    const v3 = await reemplazarRecurso(db, userId, v2.id, "https://drive.google.com/v3");
-    const otro = await crearRecurso(db, userId, {
+    const v2 = await reemplazarRecurso(db, actor, v1.id, "https://drive.google.com/v2");
+    const v3 = await reemplazarRecurso(db, actor, v2.id, "https://drive.google.com/v3");
+    const otro = await crearRecurso(db, actor, {
       programId: programaA,
       categoriaId: categoriaGuion,
       titulo: "Guion",
@@ -236,7 +236,7 @@ describe("historialDeRecurso — versiones anteriores en orden tras dos reemplaz
   });
 
   it("un recurso sin reemplazos tiene historial vacio", async () => {
-    const v1 = await crearRecurso(db, userId, {
+    const v1 = await crearRecurso(db, actor, {
       programId: programaA,
       categoriaId: categoriaBrochure,
       titulo: "Solo uno",

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { programs } from "@/lib/db/schema";
 import { requireRole, respuestaDeError } from "@/lib/auth/guards";
+import { exigirMismoOrigen } from "@/lib/auth/origen";
 import { sincronizarPersonas } from "@/lib/sheets/sync";
 
 export const runtime = "nodejs";
@@ -27,10 +28,13 @@ const paramsSchema = z.object({
 
 /** Dispara la sincronizacion de un programa. Solo gerente. */
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ programa: string }> },
 ) {
   try {
+    // Antes que nada: es el unico handler que muta sin pasar por el chequeo de
+    // origen que Next hace solo en las Server Actions (S-12). Ver lib/auth/origen.ts.
+    exigirMismoOrigen(req);
     await requireRole("gerente");
     const { programa } = paramsSchema.parse(await params);
 

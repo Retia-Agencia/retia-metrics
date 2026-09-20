@@ -48,6 +48,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 005 | [Dashboard en /programas/[slug]](./005-dashboard-real-programas.md) | 004, 010 | done · 17-sep (filtro por closer dentro de las consultas del 004; sin migración) |
 | [x] | 006 | [Historial de una persona](./006-historial-persona.md) | 005 | done · 17-sep (`/personas/[id]` de solo lectura; se entra desde el buscador de `/mi-dia`; sin migración) |
 | [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) | 005 | todo · **desbloqueado 19-sep**: formato PDF y lo toman los dos roles. Sigue de último |
+| [ ] | 035 | [Comprobante: link **o** foto subida](./035-comprobante-link-o-foto.md) | 019 | todo · **nuevo 20-sep** (Mani) · enmienda PARCIAL al ADR 0017: los recursos siguen siendo links · pide analisis de crecimiento y de control de acceso antes de codear |
 | [ ] | 034 | [Categorías de lead dinámicas](./034-categorias-de-lead-dinamicas.md) (ADR 0032) | 016 | todo · **el más grande que queda** · cierra F-01 y F-06 · Mani lo quiere en sesión propia · necesita migración |
 
 ## F3 · Recursos
@@ -208,8 +209,55 @@ Detalle en [docs/agents/handoff.md](../agents/handoff.md), sección Roadmap.
 - [ ] Probar el login con una cuenta real (local y producción) y borrar el cliente web viejo de
       `google-workspace-mcp`.
 - [x] Sembrar programas, cohortes y fuentes en `production` (16-sep).
-- [ ] Probar `/api/cron/sync` de punta a punta en producción.
-- [ ] Prueba manual de S-02 (quitar usuario)
+- [x] **`/api/cron/sync` probado de punta a punta en produccion el 20-sep.**
+      Disparado contra `https://retia-metrics-seven.vercel.app`: sin el secreto da **401**; con el
+      secreto, `{"ok":true,"programas":2,"sincronizados":2,"fallidos":0,"omitidos":0}` en **3,18s**.
+      En la base: tactical-investor 3.950 filas / 2 nuevas / 1,13s, comunicarte 2.305 filas / 24
+      nuevas / 1 actualizada / 1,40s. Personas 4.765 → 4.791. **0 corridas colgadas en
+      `corriendo`.**
+      🎯 **Y la corrida de Comunicarte guardo LAS DOS fuentes con sus conteos** (`Formulario
+      anterior` 67 + `Formulario actual` 2.238): es el arreglo de F-07 (ADR 0031) visto en
+      produccion, no en un test. Antes esa corrida habria quedado etiquetada con uno de los dos
+      formularios, elegido de forma no determinista.
+      ⚠️ **Y algo que ya era cierto y nadie habia mirado:** el cron **ya venia corriendo solo y
+      bien** todos los dias a las 07:52 de Bogota (18, 19 y 20-sep, los seis `ok`). La deuda decia
+      "falta probarlo" cuando lo unico que faltaba era **abrir la tabla y ver**.
+- [x] **S-02 (quitar usuario) — probado el 20-sep, en sus DOS mitades.**
+      **La operativa, contra la rama `dev`:** se creo un usuario desechable, `npm run usuarios`
+      lo mostro `activo`, `npm run usuarios -- quitar` lo dejo `INACTIVO` **sin borrar la fila**, y
+      el conteo de administradores bajo de 2 a 1. (La fila desechable quedo inactiva en `dev`; se
+      borra de verdad cuando aterrice el ticket 030, que es justo la funcion para eso.)
+      **La de codigo:** el callback `jwt` estaba escrito como funcion anonima dentro de
+      `NextAuth({...})`, y por eso el handoff lo daba por "no testeable" desde el 6-sep. Se movio
+      **sin cambiar una regla** a `lib/auth/revalidacion.ts` (`revalidarToken` y
+      `puedeIniciarSesion`) y ahora tiene `tests/revalidacion-sesion.test.ts`, 11 tests,
+      **mordido quitando el arreglo para verlo caerse**. 🎯 Lo unico que volvia intocable esa
+      garantia era donde estaba escrita, no su dificultad.
+      ⚠️ **Lo que sigue sin cubrir un test, dicho de frente:** que Auth.js LLAME al callback en
+      cada emision. Es conducta documentada de la estrategia `jwt` y solo lo comprueba un
+      recorrido real con sesion abierta.
+
+## Ideas de Mani sin decidir (20-sep)
+
+No son deuda ni tickets: son direcciones que Mani dejo anotadas para no perderlas. **Ninguna se
+implementa sin decidirla primero.**
+
+- 🔵 **Cambiar la FUENTE de la que se traen los leads** (Mani, 20-sep, textual: *"creo que quiero
+  cambiar la fuente de la cual se traen los leads, puede ser mas facil solo traer de la pagina a
+  la cual llegan los leads crudos y todo lo demas se maneja desde el CRM"*).
+  **Toca el ADR 0004 de frente**, que es la decision mas vieja y mas cara del proyecto: hoy Sheets
+  es la fuente de verdad de los leads y el sync lee TODAS las fuentes de un programa y deduplica
+  sobre el conjunto (ADR 0031). Traer solo la pestana de leads crudos significa que las pestanas
+  derivadas dejan de leerse, que es justo lo que `docs/estructura-bbdd.md` dice que **romperia el
+  dedup** si se hiciera al reves.
+  **Lo que hay que medir antes de decidir**, no opinar: que pestana recibe hoy los leads crudos de
+  cada programa, si esa pestana sola cubre a las 4.688 personas o si hay gente que solo existe en
+  una derivada, y que pasa con las personas `entrada: crm` que no estan en ninguna hoja. Mientras
+  tanto el sync se queda como esta.
+  Se cruza con el ticket 034: si el CRM pasa a manejar "todo lo demas", `etapa` es del CRM y eso
+  ya quedo decidido alli.
+
+- 🔵 **Plataformas de pago con programa** (Mani, 20-sep). Ver la enmienda del ticket 013.
 
 ## Futuro (validado, fuera del MVP)
 

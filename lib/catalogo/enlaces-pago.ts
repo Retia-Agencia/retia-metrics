@@ -1,10 +1,12 @@
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 import { enlacesPago } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 import { esquemaUrlHttps } from "./recursos";
 import { reemplazarVersionado, type FilaVersionada } from "./versionar";
+import { exigirAccesoAlPrograma, type ActorConAcceso } from "./acceso-programa";
 
 /**
  * Enlaces de pago como links (ADR 0017, ADR 0012), sobre el molde de catalogo.
@@ -106,54 +108,88 @@ function moldeEnlaces(db: Db) {
   );
 }
 
-/** Crea un enlace de pago vigente. */
+/** Quien realiza la operacion: su id (para `change_log`) y su rol de vista (ADR 0028). */
+export type Actor = ActorConAcceso;
+
+/** Mensaje 403 propio de los enlaces de pago. */
+const NEGADO_ENLACE = "No puedes gestionar enlaces de pago de un programa donde no vendes.";
+
+/** Enlaza la regla de acceso compartida con el mensaje propio de los enlaces de pago. */
+function exigirAcceso(db: Db, actor: Actor, programId: string): Promise<void> {
+  return exigirAccesoAlPrograma(db, actor, programId, NEGADO_ENLACE);
+}
+
+/** Lee un enlace de pago por id (sin filtrar por activo), para conocer su programa. */
+async function leerEnlace(db: Db, id: string): Promise<EnlacePagoVista | undefined> {
+  const [fila] = await db.select().from(enlacesPago).where(eq(enlacesPago.id, id)).limit(1);
+  return fila as EnlacePagoVista | undefined;
+}
+
+/**
+ * Crea un enlace de pago vigente. El actor debe poder gestionar el programa destino
+ * (administrador siempre; closer solo en sus programas activos). Un enlace de pago
+ * SIEMPRE es de un programa (no hay global), asi que no aplica la asimetria del
+ * recurso global.
+ */
 export async function crearEnlacePago(
   db: Db,
-  userId: string,
+  actor: Actor,
   input: EntradaEnlacePago,
 ): Promise<EnlacePagoVista> {
   return normalizando(async () => {
     const datos = esquemaEnlacePago.parse(input);
-    const fila = await moldeEnlaces(db).crear(userId, datos as unknown as CamposEnlacePago);
+    await exigirAcceso(db, actor, datos.programId);
+    const fila = await moldeEnlaces(db).crear(actor.id, datos as unknown as CamposEnlacePago);
     return fila as EnlacePagoVista;
   });
 }
 
-/** Edita un enlace de pago. Un cambio de URL puntual va mejor por `reemplazar`. */
+/**
+ * Edita un enlace de pago. Un cambio de URL puntual va mejor por `reemplazar`. Se
+ * exige acceso al programa GUARDADO y al de la ENTRADA (un closer no lo saca hacia
+ * otro programa donde no vende).
+ */
 export async function editarEnlacePago(
   db: Db,
-  userId: string,
+  actor: Actor,
   id: string,
   input: EntradaEnlacePago,
 ): Promise<EnlacePagoVista> {
   return normalizando(async () => {
     const objetivoId = idValido(id);
     const datos = esquemaEnlacePago.parse(input);
-    const fila = await moldeEnlaces(db).editar(userId, objetivoId, datos as unknown as CamposEnlacePago);
+    const actual = await leerEnlace(db, objetivoId);
+    if (!actual) throw new ErrorDeApp("No existe un enlace de pago con ese id.", 404);
+    await exigirAcceso(db, actor, actual.programId);
+    await exigirAcceso(db, actor, datos.programId);
+    const fila = await moldeEnlaces(db).editar(actor.id, objetivoId, datos as unknown as CamposEnlacePago);
     return fila as EnlacePagoVista;
   });
 }
 
 /**
  * Reemplaza la URL de un enlace de pago conservando el historial (ADR 0017). Misma
- * logica que un recurso; vive en `versionar.ts`.
+ * logica que un recurso; vive en `versionar.ts`. Requiere acceso al programa.
  */
 export async function reemplazarEnlacePago(
   db: Db,
-  userId: string,
+  actor: Actor,
   id: string,
   nuevaUrl: string,
 ): Promise<EnlacePagoVista> {
   return normalizando(async () => {
     const objetivoId = idValido(id);
     const url = esquemaUrlHttps.parse(nuevaUrl);
+    const actual = await leerEnlace(db, objetivoId);
+    if (!actual) throw new ErrorDeApp("No existe un enlace de pago con ese id.", 404);
+    await exigirAcceso(db, actor, actual.programId);
     const fila = await reemplazarVersionado({
       db,
       tabla: enlacesPago,
       nombreTabla: "enlaces_pago",
       nombreEntidad: "un enlace de pago",
       etiqueta: (f: FilaVersionada) => `${f.monto} ${f.moneda}`,
-      userId,
+      userId: actor.id,
       id: objetivoId,
       nuevaUrl: url,
     });
@@ -161,26 +197,34 @@ export async function reemplazarEnlacePago(
   });
 }
 
-/** Desactiva un enlace de pago (no lo borra). */
+/** Desactiva un enlace de pago (no lo borra). Requiere acceso al programa. */
 export async function desactivarEnlacePago(
   db: Db,
-  userId: string,
+  actor: Actor,
   id: string,
 ): Promise<EnlacePagoVista> {
   return normalizando(async () => {
-    const fila = await moldeEnlaces(db).desactivar(userId, idValido(id));
+    const objetivoId = idValido(id);
+    const actual = await leerEnlace(db, objetivoId);
+    if (!actual) throw new ErrorDeApp("No existe un enlace de pago con ese id.", 404);
+    await exigirAcceso(db, actor, actual.programId);
+    const fila = await moldeEnlaces(db).desactivar(actor.id, objetivoId);
     return fila as EnlacePagoVista;
   });
 }
 
-/** Reactiva un enlace de pago desactivado. */
+/** Reactiva un enlace de pago desactivado. Requiere acceso al programa. */
 export async function reactivarEnlacePago(
   db: Db,
-  userId: string,
+  actor: Actor,
   id: string,
 ): Promise<EnlacePagoVista> {
   return normalizando(async () => {
-    const fila = await moldeEnlaces(db).reactivar(userId, idValido(id));
+    const objetivoId = idValido(id);
+    const actual = await leerEnlace(db, objetivoId);
+    if (!actual) throw new ErrorDeApp("No existe un enlace de pago con ese id.", 404);
+    await exigirAcceso(db, actor, actual.programId);
+    const fila = await moldeEnlaces(db).reactivar(actor.id, objetivoId);
     return fila as EnlacePagoVista;
   });
 }

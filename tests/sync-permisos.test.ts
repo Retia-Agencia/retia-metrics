@@ -141,6 +141,84 @@ describe("POST /api/sync/[programa]", () => {
   });
 });
 
+/**
+ * S-12 (CSRF). Las mutaciones de esta app son Server Actions, y Next ya compara
+ * `Origin` contra el host en cada una. `POST /api/sync/[programa]` es el UNICO
+ * handler que muta y no pasa por ahi, asi que es el unico que necesita el chequeo
+ * a mano. Ver lib/auth/origen.ts.
+ *
+ * Los tests de arriba usan `new Request("http://x")`, o sea SIN cabecera `Origin`,
+ * y siguen pasando a proposito: una peticion sin `Origin` no viene de un navegador
+ * y no arrastra la cookie de nadie. Lo que la protege es `requireRole`.
+ */
+describe("POST /api/sync/[programa] — chequeo de origen (S-12)", () => {
+  const conSesionDeGerente = () => {
+    auth.mockResolvedValue(sesionGerente);
+    select.mockReturnValue({
+      from: () => ({ where: () => ({ limit: async () => [{ id: "p-1", slug: "comunicarte" }] }) }),
+    });
+    sincronizarPersonas.mockResolvedValue({ programa: "comunicarte", personasEnHoja: 1253 });
+  };
+
+  it("un formulario de otro sitio con la sesion del gerente abierta es rechazado con 403", async () => {
+    conSesionDeGerente();
+    const { POST } = await import("@/app/api/sync/[programa]/route");
+    const res = await POST(
+      new Request("http://retia.app", {
+        headers: { origin: "https://sitio-del-atacante.com", host: "retia.app" },
+      }),
+      { params },
+    );
+    expect(res.status).toBe(403);
+    expect(sincronizarPersonas).not.toHaveBeenCalled();
+  });
+
+  it("el mismo origen si pasa", async () => {
+    conSesionDeGerente();
+    const { POST } = await import("@/app/api/sync/[programa]/route");
+    const res = await POST(
+      new Request("http://retia.app", {
+        headers: { origin: "https://retia.app", host: "retia.app" },
+      }),
+      { params },
+    );
+    expect(res.status).toBe(200);
+    expect(sincronizarPersonas).toHaveBeenCalledWith("p-1");
+  });
+
+  /**
+   * Detras de Vercel el `Host` que ve la funcion no siempre es el dominio que
+   * escribio el navegador. Comparar contra el equivocado rechazaria peticiones
+   * legitimas, que es una forma de romper la app sin romper ningun test.
+   */
+  it("compara contra x-forwarded-host, que es el dominio real detras de Vercel", async () => {
+    conSesionDeGerente();
+    const { POST } = await import("@/app/api/sync/[programa]/route");
+    const res = await POST(
+      new Request("http://interno", {
+        headers: {
+          origin: "https://metricas.retia.co",
+          host: "interno-de-vercel.local",
+          "x-forwarded-host": "metricas.retia.co",
+        },
+      }),
+      { params },
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("un Origin que no es una URL no se cuela", async () => {
+    conSesionDeGerente();
+    const { POST } = await import("@/app/api/sync/[programa]/route");
+    const res = await POST(
+      new Request("http://retia.app", { headers: { origin: "null", host: "retia.app" } }),
+      { params },
+    );
+    expect(res.status).toBe(403);
+    expect(sincronizarPersonas).not.toHaveBeenCalled();
+  });
+});
+
 describe("GET /api/cron/sync", () => {
   const original = process.env.CRON_SECRET;
   beforeEach(() => { process.env.CRON_SECRET = "secreto-de-prueba"; });

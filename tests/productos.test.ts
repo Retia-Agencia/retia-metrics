@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { changeLog, miembrosPrograma, programs, users } from "@/lib/db/schema";
+import { changeLog, miembrosPrograma, productos, programs, sales, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import {
+  borrarProductoSiNoSeUso,
   crearProducto,
   desactivarProducto,
   editarProducto,
@@ -13,6 +14,7 @@ import {
   productosActivos,
   reactivarProducto,
 } from "@/lib/catalogo/productos";
+import { moldeDeCatalogo } from "@/lib/catalogo/molde";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
 /**
@@ -331,5 +333,108 @@ describe("desactivar y listados", () => {
     const error = await productoPorId(db, "no-uuid").catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(400);
+  });
+});
+
+// ─────────────────────────────────────── borrar del catalogo (ticket 030)
+
+describe("borrar un producto (ADR 0026 punto 5)", () => {
+  /** Inserta una venta minima que referencia al producto (opcionalmente anulada). */
+  async function sembrarVenta(productoId: string, anulada = false) {
+    await db.insert(sales).values({
+      programId: programaA,
+      productoId,
+      ...(anulada
+        ? {
+            anuladoEn: new Date(),
+            anuladoPor: gerenteId,
+            motivoAnulacion: "prueba de borrado",
+          }
+        : {}),
+    });
+  }
+
+  it("un producto sin ventas se borra de verdad y desaparece", async () => {
+    const creado = await crearProducto(db, actorGerente(), productoValido(programaA));
+    const res = await borrarProductoSiNoSeUso(db, actorGerente(), creado.id);
+    expect(res).toEqual({ borrado: true });
+
+    const [fila] = await db.select().from(productos).where(eq(productos.id, creado.id));
+    expect(fila).toBeUndefined();
+
+    // Queda el rastro del borrado en change_log con la etiqueta.
+    const borrado = await db
+      .select()
+      .from(changeLog)
+      .where(eq(changeLog.registroId, creado.id));
+    expect(borrado.some((l) => l.campo === "borrado" && l.etiqueta === "Programa completo")).toBe(
+      true,
+    );
+  });
+
+  it("un producto con una venta NO se borra: se conserva y devuelve el conteo", async () => {
+    const creado = await crearProducto(db, actorGerente(), productoValido(programaA));
+    await sembrarVenta(creado.id);
+
+    const res = await borrarProductoSiNoSeUso(db, actorGerente(), creado.id);
+    expect(res).toEqual({ borrado: false, referencias: 1 });
+
+    // La fila sigue existiendo (no DELETE): la pantalla debe DESACTIVAR, no borrar.
+    const [fila] = await db.select().from(productos).where(eq(productos.id, creado.id));
+    expect(fila).toBeDefined();
+    // Y no se escribio ningun "borrado" en change_log.
+    const log = await db.select().from(changeLog).where(eq(changeLog.registroId, creado.id));
+    expect(log.some((l) => l.campo === "borrado")).toBe(false);
+  });
+
+  it("una venta ANULADA tambien cuenta: el producto NO se borra", async () => {
+    // La FK `restrict` no distingue una venta viva de una anulada, y una fila que ya
+    // se uso no debe poder borrarse aunque la venta se haya anulado despues.
+    const creado = await crearProducto(db, actorGerente(), productoValido(programaA));
+    await sembrarVenta(creado.id, true);
+
+    const res = await borrarProductoSiNoSeUso(db, actorGerente(), creado.id);
+    expect(res).toEqual({ borrado: false, referencias: 1 });
+    const [fila] = await db.select().from(productos).where(eq(productos.id, creado.id));
+    expect(fila).toBeDefined();
+  });
+
+  it("la carrera (una venta llega entre el conteo y el DELETE) sale como 400, no como 500", async () => {
+    // Se simula la carrera con un molde SIN dependientes declarados: el conteo da cero
+    // (como si la venta aun no existiera), pero la venta YA esta en la base para cuando
+    // corre el DELETE. Asi `borrarSiNoSeUso` intenta el DELETE de verdad, choca con la
+    // FK `restrict` de `sales.productoId` y debe traducir el error del driver a un 400
+    // legible (ErrorDeApp 400), nunca dejarlo salir como un 500.
+    const creado = await crearProducto(db, actorGerente(), productoValido(programaA));
+    await sembrarVenta(creado.id);
+
+    // Molde sobre la MISMA tabla real, pero ciego a las referencias: reproduce el
+    // estado del conteo un instante antes de que llegara la venta.
+    const moldeCiego = moldeDeCatalogo(
+      {
+        tabla: productos,
+        nombreTabla: "productos",
+        esquema: esquemaProducto as never,
+        etiqueta: (f) => String(f.nombre),
+        nombreEntidad: "un producto",
+        // dependientes: [] a proposito — el conteo dara 0 y se ira al DELETE.
+      },
+      db,
+    );
+
+    const error = await moldeCiego.borrarSiNoSeUso(gerenteId, creado.id).catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(400);
+
+    // El producto sigue ahi: el DELETE no paso, la carrera se ataja sin romper nada.
+    const [fila] = await db.select().from(productos).where(eq(productos.id, creado.id));
+    expect(fila).toBeDefined();
+  });
+
+  it("un closer NO puede borrar un producto de otro programa (403)", async () => {
+    const enB = await crearProducto(db, actorGerente(), productoValido(programaB));
+    const error = await borrarProductoSiNoSeUso(db, actorCloser(), enB.id).catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(403);
   });
 });

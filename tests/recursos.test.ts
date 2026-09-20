@@ -30,6 +30,9 @@ let programaA: string;
 let catBrochure: string;
 let catGuion: string;
 
+/** El actor gerente (id + rol). Los recursos ahora reciben `{ id, rol }` (ADR 0016). */
+let actorGerente: { id: string; rol: "gerente" };
+
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
 
@@ -40,6 +43,7 @@ beforeEach(async () => {
     .values({ email: "gerente@retiagrowth.com", rol: "gerente", nombre: "Gerencia" })
     .returning();
   gerenteId = u.id;
+  actorGerente = { id: gerenteId, rol: "gerente" };
 
   const [a] = await db
     .insert(programs)
@@ -99,7 +103,7 @@ describe("esquema de recurso", () => {
 
 describe("crear recurso", () => {
   it("crea un recurso vigente y lo deja en change_log", async () => {
-    const creado = await crearRecurso(db, gerenteId, recursoValido());
+    const creado = await crearRecurso(db, actorGerente, recursoValido());
     expect(creado.vigente).toBe(true);
     expect(creado.activo).toBe(true);
     expect(creado.reemplazaA).toBeNull();
@@ -112,7 +116,7 @@ describe("crear recurso", () => {
   });
 
   it("una URL http:// al crear es un 400, no un 500", async () => {
-    const error = await crearRecurso(db, gerenteId, recursoValido({ url: "http://x.com/y" })).catch(
+    const error = await crearRecurso(db, actorGerente, recursoValido({ url: "http://x.com/y" })).catch(
       (e) => e,
     );
     expect(error).toBeInstanceOf(ErrorDeApp);
@@ -120,10 +124,10 @@ describe("crear recurso", () => {
   });
 
   it("dos recursos globales (programId nulo) vigentes con mismo titulo y categoria chocan con 400", async () => {
-    await crearRecurso(db, gerenteId, recursoValido({ programId: null, titulo: "Guia" }));
+    await crearRecurso(db, actorGerente, recursoValido({ programId: null, titulo: "Guia" }));
     const error = await crearRecurso(
       db,
-      gerenteId,
+      actorGerente,
       recursoValido({ programId: null, titulo: "guia" }),
     ).catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
@@ -137,9 +141,9 @@ describe("crear recurso", () => {
 
 describe("reemplazar recurso", () => {
   it("reemplazar deja UNA sola version vigente y encadena el historial", async () => {
-    const v1 = await crearRecurso(db, gerenteId, recursoValido());
-    const v2 = await reemplazarRecurso(db, gerenteId, v1.id, "https://drive.google.com/v2");
-    const v3 = await reemplazarRecurso(db, gerenteId, v2.id, "https://drive.google.com/v3");
+    const v1 = await crearRecurso(db, actorGerente, recursoValido());
+    const v2 = await reemplazarRecurso(db, actorGerente, v1.id, "https://drive.google.com/v2");
+    const v3 = await reemplazarRecurso(db, actorGerente, v2.id, "https://drive.google.com/v3");
 
     // Exactamente una fila vigente para (programa, categoria, titulo).
     const vigentes = await db
@@ -174,7 +178,7 @@ describe("reemplazar recurso", () => {
   });
 
   it("cada paso mantiene exactamente una vigente (nunca 23505 al insertar la nueva)", async () => {
-    const v1 = await crearRecurso(db, gerenteId, recursoValido());
+    const v1 = await crearRecurso(db, actorGerente, recursoValido());
     const cuenta = async () =>
       (
         await db
@@ -189,13 +193,13 @@ describe("reemplazar recurso", () => {
           )
       ).length;
     expect(await cuenta()).toBe(1);
-    await reemplazarRecurso(db, gerenteId, v1.id, "https://drive.google.com/v2");
+    await reemplazarRecurso(db, actorGerente, v1.id, "https://drive.google.com/v2");
     expect(await cuenta()).toBe(1);
   });
 
   it("reemplazar deja rastro en change_log de la url nueva", async () => {
-    const v1 = await crearRecurso(db, gerenteId, recursoValido());
-    const v2 = await reemplazarRecurso(db, gerenteId, v1.id, "https://drive.google.com/v2");
+    const v1 = await crearRecurso(db, actorGerente, recursoValido());
+    const v2 = await reemplazarRecurso(db, actorGerente, v1.id, "https://drive.google.com/v2");
     const log = await logDe(v2.id);
     expect(log.some((l) => l.campo === "url" && l.valorNuevo === "https://drive.google.com/v2")).toBe(
       true,
@@ -204,8 +208,8 @@ describe("reemplazar recurso", () => {
   });
 
   it("una URL http:// al reemplazar es un 400", async () => {
-    const v1 = await crearRecurso(db, gerenteId, recursoValido());
-    const error = await reemplazarRecurso(db, gerenteId, v1.id, "http://x.com/y").catch((e) => e);
+    const v1 = await crearRecurso(db, actorGerente, recursoValido());
+    const error = await reemplazarRecurso(db, actorGerente, v1.id, "http://x.com/y").catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(400);
   });
@@ -213,7 +217,7 @@ describe("reemplazar recurso", () => {
   it("reemplazar un id inexistente es un 404", async () => {
     const error = await reemplazarRecurso(
       db,
-      gerenteId,
+      actorGerente,
       crypto.randomUUID(),
       "https://x.com/y",
     ).catch((e) => e);
@@ -222,7 +226,7 @@ describe("reemplazar recurso", () => {
   });
 
   it("un id que no es uuid al reemplazar es un 400", async () => {
-    const error = await reemplazarRecurso(db, gerenteId, "no-uuid", "https://x.com/y").catch(
+    const error = await reemplazarRecurso(db, actorGerente, "no-uuid", "https://x.com/y").catch(
       (e) => e,
     );
     expect(error).toBeInstanceOf(ErrorDeApp);
@@ -234,8 +238,8 @@ describe("reemplazar recurso", () => {
 
 describe("desactivar y reactivar recurso (nunca DELETE)", () => {
   it("desactivar no borra la fila y queda en change_log", async () => {
-    const creado = await crearRecurso(db, gerenteId, recursoValido());
-    await desactivarRecurso(db, gerenteId, creado.id);
+    const creado = await crearRecurso(db, actorGerente, recursoValido());
+    await desactivarRecurso(db, actorGerente, creado.id);
 
     const [fila] = await db.select().from(recursos).where(eq(recursos.id, creado.id));
     expect(fila).toBeDefined();
@@ -246,23 +250,23 @@ describe("desactivar y reactivar recurso (nunca DELETE)", () => {
   });
 
   it("reactivar vuelve a dejar el recurso activo", async () => {
-    const creado = await crearRecurso(db, gerenteId, recursoValido());
-    await desactivarRecurso(db, gerenteId, creado.id);
-    const react = await reactivarRecurso(db, gerenteId, creado.id);
+    const creado = await crearRecurso(db, actorGerente, recursoValido());
+    await desactivarRecurso(db, actorGerente, creado.id);
+    const react = await reactivarRecurso(db, actorGerente, creado.id);
     expect(react.activo).toBe(true);
   });
 
   it("un recurso global desactivado libera el cupo del indice para uno nuevo", async () => {
     const g1 = await crearRecurso(
       db,
-      gerenteId,
+      actorGerente,
       recursoValido({ programId: null, titulo: "Global" }),
     );
-    await desactivarRecurso(db, gerenteId, g1.id);
+    await desactivarRecurso(db, actorGerente, g1.id);
     // Ahora crear otro global con el mismo titulo NO choca (el anterior no es activo).
     const g2 = await crearRecurso(
       db,
-      gerenteId,
+      actorGerente,
       recursoValido({ programId: null, titulo: "Global" }),
     );
     expect(g2.id).not.toBe(g1.id);

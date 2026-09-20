@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db as dbDeLaApp } from "../lib/db";
 import { users } from "../lib/db/schema";
 import type { Db } from "../lib/db/tipos";
+import { esRolValido, type Rol } from "../lib/auth/roles";
 
 /**
  * Quien ACTUA cuando la escritura la hace un script y no una pantalla (ADR 0029).
@@ -52,4 +53,28 @@ export async function actorDelScript(db: Db = dbDeLaApp): Promise<string> {
   }
 
   return fila.id;
+}
+
+/**
+ * El actor de un script CON su rol, para las funciones de catalogo que ya no reciben
+ * solo un `userId` sino un `{ id, rol }` (recursos y enlaces de pago, tras la enmienda
+ * del 19-sep que abrio su creacion al closer con la regla de acceso por programa del
+ * ADR 0016).
+ *
+ * El `id` sigue siendo el que queda en `change_log` (ADR 0029). El `rol` solo decide
+ * el acceso por programa: un script de carga masiva lo corre quien administra, asi que
+ * su rol real (gerente o developer) pasa la regla para todos los programas. Si algun
+ * dia lo corriera un closer, quedaria acotado a sus programas, que es lo correcto.
+ */
+export async function actorConRolDelScript(
+  db: Db = dbDeLaApp,
+): Promise<{ id: string; rol: Rol }> {
+  const id = await actorDelScript(db);
+  const [fila] = await db.select({ rol: users.rol }).from(users).where(eq(users.id, id)).limit(1);
+  if (!fila || !esRolValido(fila.rol)) {
+    throw new Error(
+      "El actor del script tiene un rol no reconocido. Revisa la fila en `users`.",
+    );
+  }
+  return { id, rol: fila.rol };
 }

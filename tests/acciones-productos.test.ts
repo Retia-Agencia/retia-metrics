@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { miembrosPrograma, productos, programs, users } from "@/lib/db/schema";
+import { miembrosPrograma, productos, programs, sales, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
@@ -201,5 +201,39 @@ describe("acciones de productos — developer con 'ver como' (ticket 028)", () =
     const { crearProductoAccion } = await acciones();
     const res = await crearProductoAccion(productoValido(programaB));
     expect(res.ok).toBe(true);
+  });
+});
+
+/**
+ * Ticket 030: `borrarProductoAccion` da un resultado con el VERBO (ADR 0026 punto 5):
+ * `borrado:true` si se borro de verdad, o `borrado:false` + `referencias` si no se
+ * pudo (hay que desactivar). La pantalla usa eso para no decir nunca "borrado" habiendo
+ * desactivado.
+ */
+describe("acciones de productos — borrar (ticket 030)", () => {
+  beforeEach(() => auth.mockResolvedValue(sesionGerente));
+
+  it("un producto sin ventas se borra de verdad (borrado:true) y desaparece", async () => {
+    const { crearProductoAccion, borrarProductoAccion } = await acciones();
+    await crearProductoAccion(productoValido(programaA));
+    const [p] = await db.select().from(productos).where(eq(productos.programId, programaA));
+
+    const res = await borrarProductoAccion(p.id);
+    expect(res).toEqual({ ok: true, borrado: true });
+    const filas = await db.select().from(productos).where(eq(productos.id, p.id));
+    expect(filas).toHaveLength(0);
+  });
+
+  it("un producto con una venta NO se borra: borrado:false con el conteo", async () => {
+    const { crearProductoAccion, borrarProductoAccion } = await acciones();
+    await crearProductoAccion(productoValido(programaA));
+    const [p] = await db.select().from(productos).where(eq(productos.programId, programaA));
+    await db.insert(sales).values({ programId: programaA, productoId: p.id });
+
+    const res = await borrarProductoAccion(p.id);
+    expect(res).toEqual({ ok: true, borrado: false, referencias: 1 });
+    // Sigue en la base: la pantalla debe DESACTIVAR, no borrar.
+    const filas = await db.select().from(productos).where(eq(productos.id, p.id));
+    expect(filas).toHaveLength(1);
   });
 });

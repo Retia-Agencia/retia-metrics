@@ -40,10 +40,18 @@ export function vigente(tabla: PgTable): SQL {
  * pago se cayo" es informacion, no ruido. Esconderlo ahi convertiria la anulacion en
  * un borrado con otro nombre.
  *
- * La regla es **fuera de las metricas, dentro del historial**, asi que este es el
- * unico caso legitimo. Escrito asi, "incluir lo anulado" es una decision visible en
- * el diff y en el grep, no un filtro que alguien olvido: es justo lo que el guardian
- * existe para distinguir.
+ * La regla es **fuera de las metricas, dentro del historial**. Escrito asi, "incluir
+ * lo anulado" es una decision visible en el diff y en el grep, no un filtro que
+ * alguien olvido: es justo lo que el guardian existe para distinguir.
+ *
+ * **Segundo uso legitimo, agregado el 20-sep (ticket 030):** contar referencias antes
+ * de borrar una fila de catalogo. Esta nota estaba escrita como "este es el unico caso
+ * legitimo" y dejo de ser cierta, asi que se corrige en vez de dejar que el comentario
+ * mienta. La razon es buena y no afloja nada: la FK `restrict` de la base **no
+ * distingue una venta viva de una anulada** —las dos bloquean el `DELETE`—, asi que
+ * contar solo lo vigente daria cero y la app ofreceria borrar algo que la base va a
+ * rechazar. Ademas una fila referenciada por un registro anulado SI se uso. Aqui no se
+ * esta midiendo nada: se esta preguntando si alguien apunta a esta fila.
  */
 export function incluyendoAnulados(tabla: PgTable): SQL {
   // El argumento no se usa: esta para que la consulta diga SOBRE QUE tabla tomo la

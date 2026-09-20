@@ -153,10 +153,16 @@ Una venta cuyos abonos ya suman el precio del contrato.
 
 **Plataforma de pago**:
 Por donde entra un abono: PayPal, MercadoPago, Zelle, DollarApp, Bancolombia... Es una lista que
-el equipo amplia.
+el equipo amplia. _Sirve a uno o varios programas, y sin ninguno queda invisible (ADR 0034)._
+
+**Metodo de pago**:
+Como cobra de verdad un programa. Es el **enlace de pago**, no la plataforma: un metodo de pago
+nunca existe sin programa, una plataforma si. _La distincion la fijo Mani el 20-sep y es la que
+evita confundir "PayPal" con "el link de PayPal por USD 797 de Comunicarte"._
 
 **Enlace de pago**:
 Un link de cobro ya generado para un monto y una plataforma, por ejemplo "PayPal 797 USD".
+Siempre pertenece a un programa.
 
 **Beca**:
 El unico descuento autorizado: USD 100 sobre el precio de lista, y solo por dificultad real de

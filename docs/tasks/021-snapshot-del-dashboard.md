@@ -52,3 +52,49 @@ equipo va a seguir mandando el de Mike.
 ## Done cuando
 - [ ] Refleja exactamente los números en pantalla, sin recalcular.
 - [ ] Lleva fecha, programa y rango en el nombre y en el contenido.
+
+---
+
+## ✅ El reporte de Mike YA SE PUEDE MIRAR (20-sep)
+
+La pregunta que este ticket marcaba como "conviene resolver ANTES de codear" esta resuelta.
+Mani entrego **seis reportes diarios reales** (1, 4, 8, 9, 14 y 15 de septiembre de 2026),
+guardados en su second brain en
+`02 Projects/retia/notebook/reportes-diarios-mike/` con una nota que explica la estructura.
+
+**No tiene que quedar igual.** Mani lo dijo explicito: es un punto de partida.
+
+### Estructura del reporte
+
+Encabezado: fecha, dia de la semana habil, dia del mes habil, dia del corte por programa, y la
+meta proyectada a 50 cupos **recalculada cada dia** (lo que falta dividido por los dias habiles
+que quedan).
+
+1. **El dia** — meta vs real vs cumplimiento (cupos y leads por programa); narrativa de los cupos
+   con nombre, monto y de donde salio cada uno; caja del dia; tabla agendas / llamadas / show /
+   ventas / % cierre por programa; **la misma tabla por closer**; y el detalle agenda por agenda.
+2. **Los masivos** — tandas de WhatsApp, enviados, no entregados por el limite de Meta, respuestas
+   clasificadas por objecion, ventas del canal.
+3. **La semana** — meta de la semana, meta a la fecha, real, cumplimiento; y "meta para llegar a
+   50" con cupos que faltan, dias habiles restantes y meta diaria.
+4. **El corte** — meta, vendidos, faltan, dias habiles restantes, cumplimiento contra meta lineal.
+5. **El mes** — leads, cupos, cumplimiento contra meta lineal.
+6. **Planes de accion** — tabla plan / estado / nota.
+
+### 🎯 Lo que esto acota, y es el hallazgo que importa
+
+**El CRM puede generar las secciones 1 (sin la narrativa), 3, 4 y 5.** Todas salen de consultas
+que ya existen: agendas, llamadas, show, ventas, caja, dias habiles, meta dinamica (ticket 020) y
+ventana de la cohorte (ADR 0022). Incluso el comparativo por closer, que ya esta en el dashboard.
+
+**El CRM NO tiene:**
+- **La seccion 2, los masivos.** Es data de WhatsApp/Kapso. Hoy esta en "Futuro" de la spec.
+- **La seccion 6, planes de accion.** Es una bitacora humana; no hay tabla que la guarde.
+- **La narrativa de la seccion 1** (quien cerro, de donde salio, por que no entro). El CRM tiene
+  los motivos de perdida como catalogo, no el parrafo.
+
+**Consecuencia para el alcance:** este PDF reemplaza el **esqueleto numerico** del reporte, no el
+reporte entero. Quien lo mande sigue escribiendo la narrativa y los masivos aparte. Decirlo ahora
+evita la trampa que el propio ticket senalaba: *"el PDF se va a inventar una estructura y el
+equipo va a seguir mandando el de Mike"*. Va a seguir mandando **parte** del de Mike, y eso esta
+bien siempre que se decida a proposito.

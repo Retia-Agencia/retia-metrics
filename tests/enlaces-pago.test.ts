@@ -27,6 +27,9 @@ let gerenteId: string;
 let programaA: string;
 let plataformaPaypal: string;
 
+/** El actor gerente (id + rol). Los enlaces de pago ahora reciben `{ id, rol }`. */
+let actorGerente: { id: string; rol: "gerente" };
+
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
 
@@ -37,6 +40,7 @@ beforeEach(async () => {
     .values({ email: "gerente@retiagrowth.com", rol: "gerente", nombre: "Gerencia" })
     .returning();
   gerenteId = u.id;
+  actorGerente = { id: gerenteId, rol: "gerente" };
 
   const [a] = await db
     .insert(programs)
@@ -99,7 +103,7 @@ describe("esquema de enlace de pago", () => {
 
 describe("crear enlace de pago", () => {
   it("crea un enlace vigente y lo deja en change_log", async () => {
-    const creado = await crearEnlacePago(db, gerenteId, enlaceValido());
+    const creado = await crearEnlacePago(db, actorGerente, enlaceValido());
     expect(creado.vigente).toBe(true);
     expect(creado.activo).toBe(true);
     expect(String(creado.monto)).toBe("797.00");
@@ -111,7 +115,7 @@ describe("crear enlace de pago", () => {
   });
 
   it("una URL http:// al crear es un 400", async () => {
-    const error = await crearEnlacePago(db, gerenteId, enlaceValido({ url: "http://x.com/y" })).catch(
+    const error = await crearEnlacePago(db, actorGerente, enlaceValido({ url: "http://x.com/y" })).catch(
       (e) => e,
     );
     expect(error).toBeInstanceOf(ErrorDeApp);
@@ -123,9 +127,9 @@ describe("crear enlace de pago", () => {
 
 describe("reemplazar enlace de pago", () => {
   it("reemplazar deja UNA sola version vigente y encadena el historial", async () => {
-    const v1 = await crearEnlacePago(db, gerenteId, enlaceValido());
-    const v2 = await reemplazarEnlacePago(db, gerenteId, v1.id, "https://paypal.com/checkout/v2");
-    const v3 = await reemplazarEnlacePago(db, gerenteId, v2.id, "https://paypal.com/checkout/v3");
+    const v1 = await crearEnlacePago(db, actorGerente, enlaceValido());
+    const v2 = await reemplazarEnlacePago(db, actorGerente, v1.id, "https://paypal.com/checkout/v2");
+    const v3 = await reemplazarEnlacePago(db, actorGerente, v2.id, "https://paypal.com/checkout/v3");
 
     const vigentes = await db
       .select()
@@ -146,8 +150,8 @@ describe("reemplazar enlace de pago", () => {
   });
 
   it("una URL http:// al reemplazar es un 400", async () => {
-    const v1 = await crearEnlacePago(db, gerenteId, enlaceValido());
-    const error = await reemplazarEnlacePago(db, gerenteId, v1.id, "http://x.com/y").catch((e) => e);
+    const v1 = await crearEnlacePago(db, actorGerente, enlaceValido());
+    const error = await reemplazarEnlacePago(db, actorGerente, v1.id, "http://x.com/y").catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(400);
   });
@@ -155,7 +159,7 @@ describe("reemplazar enlace de pago", () => {
   it("reemplazar un id inexistente es un 404", async () => {
     const error = await reemplazarEnlacePago(
       db,
-      gerenteId,
+      actorGerente,
       crypto.randomUUID(),
       "https://x.com/y",
     ).catch((e) => e);
@@ -168,8 +172,8 @@ describe("reemplazar enlace de pago", () => {
 
 describe("desactivar y reactivar enlace de pago (nunca DELETE)", () => {
   it("desactivar no borra la fila y queda en change_log", async () => {
-    const creado = await crearEnlacePago(db, gerenteId, enlaceValido());
-    await desactivarEnlacePago(db, gerenteId, creado.id);
+    const creado = await crearEnlacePago(db, actorGerente, enlaceValido());
+    await desactivarEnlacePago(db, actorGerente, creado.id);
 
     const [fila] = await db.select().from(enlacesPago).where(eq(enlacesPago.id, creado.id));
     expect(fila).toBeDefined();
@@ -180,9 +184,9 @@ describe("desactivar y reactivar enlace de pago (nunca DELETE)", () => {
   });
 
   it("reactivar vuelve a dejar el enlace activo", async () => {
-    const creado = await crearEnlacePago(db, gerenteId, enlaceValido());
-    await desactivarEnlacePago(db, gerenteId, creado.id);
-    const react = await reactivarEnlacePago(db, gerenteId, creado.id);
+    const creado = await crearEnlacePago(db, actorGerente, enlaceValido());
+    await desactivarEnlacePago(db, actorGerente, creado.id);
+    const react = await reactivarEnlacePago(db, actorGerente, creado.id);
     expect(react.activo).toBe(true);
   });
 });
