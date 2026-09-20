@@ -8,39 +8,35 @@
 > Copiar y pegar tal cual. Escrito el 19-sep al cerrar el día.
 
 ```
-Retomamos el Retia CRM (retia-metrics-mani). Lee AGENTS.md y las entradas "CIERRE 13" y "CIERRE 12"
-del 19-sep en docs/agents/handoff.md.
+Retomamos el Retia CRM. Lee AGENTS.md, ADR 0033 y las entradas "CIERRE 15" y "CIERRE 14"
+de docs/agents/handoff.md.
 
-Estado: 598 tests, typecheck y lint limpios. Cerrados el 016 (fuentes configurables, criterio 4 de
-la spec), F-03 + F-07 (ADR 0031), F-04 (updates del sync por lotes) y F-05 (verificada muerta, sin
-codigo). **Las migraciones 0016, 0017 y 0018 estan aplicadas en dev Y en production (19 en total),
-y `main` esta desplegado y vivo en f1085fa** (comprobado con `vercel ls` + `vercel inspect`).
-production: 4.688 personas, 0 llamadas / 0 ventas / 0 abonos / 0 recursos. NO queda nada por
-desplegar ni por migrar.
+Estado: 605 tests, typecheck y lint limpios. El PR #3 ya esta fusionado en `main` con commit
+3887a8e y el preview de Vercel paso. El refactor estructural inicial ya esta hecho: las pantallas
+de recursos y administracion de fuentes viven en `components/resources/` y `components/admin/`;
+sus tipos y helpers puros viven junto al dominio. No mover archivos masivamente: seguir ADR 0033.
 
 Arranca por:
-(1) el ticket 034 (categorias de lead dinamicas, ADR 0032): cierra F-01 y F-06, necesita migracion
-    y Mani lo quiere en sesion propia. Es el mas grande que queda. El dato de la hoja YA esta en
-    people.raw para 4.633 personas, asi que el backfill no necesita re-sincronizar.
-(2) las enmiendas de permisos de los tickets 013 y 023 (closers agregan recursos y crean
-    plataformas de pago; decidido el 19-sep, SIN implementar). Un closer NO crea un recurso global.
-(3) dar de alta a Andrea Machado cuando confirme su cuenta de Google (closer_id `Andrea`).
-(4) el 021 quedo desbloqueado (PDF, lo toman los dos roles) pero sigue de ultimo.
+(1) el ticket 034 / ADR 0032: categorias de lead dinamicas y ownership del pipeline;
+(2) las enmiendas de permisos de los tickets 013 y 023;
+(3) dar de alta a Andrea cuando confirme su cuenta de Google;
+(4) el 021 de snapshot PDF, que sigue de ultimo.
 
-Sesiones propias que Mani pidio aparte: escalabilidad (ver el item 11 del roadmap, con las cifras
-medidas) y el fix de CSRF (S-12).
-
-Delega a Kiro (kiro-rescue) lo grueso o repetitivo. Kiro NO corre db:generate ni db:migrate, y el
-19-sep cerro DOS veces sin reportar teniendo trabajo real en disco: verifica por tu cuenta y mira
-`git status` antes de darlo por muerto. Para una segunda opinion, codex:codex-rescue.
-
-Pendiente mio, no tuyo: rotar la contrasena de PayPal de Retia, publicada en texto plano en el
-grupo "Ventas JP Vieira" desde el 18-ago.
+Las extracciones futuras de `mi-dia-registro`, dashboard y schema requieren una frontera de
+dominio estable, tests y validacion completa; no se hacen por numero de lineas.
 ```
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-19 (CIERRE 15) — Documentacion de arquitectura sincronizada.** El PR #3 fue fusionado
+  en `main` (commit `3887a8e`) y dejo **605 tests**, typecheck y lint limpios. Se agrego ADR 0033 y
+  la regla durable en `AGENTS.md`: la estructura se organiza por dominio, no por tipo tecnico ni
+  por cantidad de lineas; los tipos/helpers puros viven junto al dominio; las extracciones son
+  incrementales, conservan contratos y requieren tests. El primer paso ya aplicado agrupa
+  `components/admin/` y `components/resources/`. Quedan como deuda separada las fronteras de
+  `mi-dia-registro`, dashboard y schema, que no deben moverse sin una frontera verificable.
 
 - **2026-09-19 (CIERRE 14) — Cambios de auditoria aplicados y validados.** Se cerro el alcance
   servidor de `registrarLlamada`: usuario activo, membresia activa y `personId` perteneciente al
@@ -48,9 +44,10 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   llamadas usan el dia de Bogota. `registrarAbono` ahora bloquea la venta y calcula/valida/inserta
   el abono en una sola sentencia SQL, con la bitacora del sobrepago dentro de la misma operacion;
   se corrigieron los valores nulos opcionales para que se emitan como `NULL` valido. Se agregaron
-  fixtures y pruebas de regresion. **603 tests pasan, typecheck y lint limpios.**
-  Sigue pendiente el ticket 034/ADR 0032 (ownership y categorias dinamicas del pipeline), la
-  reorganizacion estructural de componentes grandes y una prueba de concurrencia contra Neon.
+  fixtures y pruebas de regresion. **603 tests pasan, typecheck y lint limpios.** El cierre 15
+  actualiza el conteo y documenta la reorganizacion inicial aplicada después.
+  Sigue pendiente el ticket 034/ADR 0032 (ownership y categorias dinamicas del pipeline), las
+  enmiendas de permisos de 013/023, el snapshot 021 y una prueba de concurrencia contra Neon.
 
 - **2026-09-19 (CIERRE 13) — El 016 cerrado, F-04 y F-05 tachadas, y siete decisiones de Mani
   que convierten F-01 en el ticket 034. 598 tests.**
