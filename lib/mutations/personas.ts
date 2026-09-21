@@ -7,8 +7,8 @@ import { normalizando } from "@/lib/errors-zod";
 import { esViolacionUnica } from "@/lib/db/errores";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import type { Rol } from "@/lib/auth/roles";
-import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
-import { igualCloser, mismoCloser } from "@/lib/closers/identidad";
+import { trabajaLeads } from "@/lib/auth/roles";
+import { igualCloser } from "@/lib/closers/identidad";
 import type { Lead } from "@/lib/db/schema";
 
 /**
@@ -32,12 +32,6 @@ export interface Actor {
   closerId: string | null;
 }
 
-/** Entrada de `asignarResponsable`. El id de la persona y el closer destino en texto. */
-export const esquemaAsignacion = z.object({
-  personaId: z.string().uuid("El identificador no es válido."),
-  closerId: z.string().trim().min(1, "Debes indicar un closer."),
-});
-
 /**
  * Lo que devuelve un alta manual: la persona, y si ESTA llamada fue la que la creo.
  * `creada: false` significa que el correo ya existia en ese programa y se devolvio la
@@ -56,7 +50,6 @@ export const esquemaPersonaManual = z.object({
   telefono: z.string().trim().max(40, "Máximo 40 caracteres.").optional(),
 });
 
-export type EntradaAsignacion = z.input<typeof esquemaAsignacion>;
 export type EntradaPersonaManual = z.input<typeof esquemaPersonaManual>;
 
 /** Lee una persona por id. */
@@ -124,85 +117,8 @@ function exigirCloserIdCargado(actor: Actor): string {
 }
 
 /**
- * Asigna (o reasigna) el closer responsable de una persona.
- *
- * Un closer solo se asigna a si mismo una persona SIN responsable; un gerente asigna
- * o cambia a cualquiera. En ambos casos el closer destino tiene que vender en el
- * programa de la persona y estar activo. Cada cambio real va a `change_log`; si el
- * valor no cambia no se escribe nada (igual que `molde.editar`).
- */
-export async function asignarResponsable(
-  db: Db,
-  actor: Actor,
-  input: EntradaAsignacion,
-): Promise<Lead> {
-  return normalizando(async () => {
-    const datos = esquemaAsignacion.parse(input);
-
-    const persona = await leerPersona(db, datos.personaId);
-    if (!persona) throw new ErrorDeApp("No existe una persona con ese id.", 404);
-
-    // Quien NO administra (el closer, y el developer proyectado a vista `closer`)
-    // solo se asigna a si mismo una persona SIN responsable. Quien administra
-    // (gerente, o developer en vista `todo`/`gerente`) reasigna a cualquiera.
-    //
-    // Es un predicado POSITIVO, no un `actor.rol === "closer"` a mano (ticket 032):
-    // el literal habria FUNCIONADO igual porque el rol ya viene proyectado por
-    // `rolDeVista`, pero comparar contra un literal para APLICAR una restriccion
-    // deja la pregunta escrita como un rol en vez de como una capacidad, que es la
-    // forma que el ADR 0025 punto 5 senala como bug. `esAdministrador` da la
-    // respuesta correcta en las cuatro combinaciones: developer en `todo` administra
-    // (asigna libre, MAS que un closer, nunca menos), developer en vista `closer`
-    // no (cae aca y se somete a las reglas del closer, que es lo que la vista pide).
-    if (!esAdministrador(actor.rol)) {
-      // Primero la precondicion del ADR 0011: una cuenta sin closerId no puede ser
-      // responsable de nada. Va antes de la comparacion de abajo porque si no, un
-      // closerId nulo saldria como "no es tuya" y el mensaje mandaria a la persona
-      // equivocada a arreglar el problema.
-      exigirCloserIdCargado(actor);
-      if (!mismoCloser(datos.closerId, actor.closerId)) {
-        throw new ErrorDeApp("Solo puedes asignarte personas a ti mismo.", 403);
-      }
-      if (persona.responsableCloserId) {
-        throw new ErrorDeApp(
-          "Esta persona ya tiene responsable; pídele a un gerente que la reasigne.",
-          403,
-        );
-      }
-    }
-
-    // El closer destino tiene que vender en el programa de la persona y estar activo.
-    if (!(await esCloserValidoEnPrograma(db, datos.closerId, persona.programId))) {
-      throw new ErrorDeApp("Ese closer no vende en este programa o está inactivo.", 400);
-    }
-
-    // Sin cambio real: no se toca la fila ni se escribe change_log (como molde.editar).
-    if (mismoCloser(persona.responsableCloserId, datos.closerId)) return persona;
-
-    await ejecutarJuntas(db, (tx) => [
-      (tx as Db)
-        .update(leads)
-        .set({ responsableCloserId: datos.closerId, updatedAt: new Date() })
-        .where(eq(leads.id, persona.id)),
-      (tx as Db).insert(changeLog).values({
-        tabla: "leads",
-        registroId: persona.id,
-        etiqueta: persona.nombre ?? persona.emailNormalizado,
-        campo: "responsableCloserId",
-        valorAnterior: persona.responsableCloserId,
-        valorNuevo: datos.closerId,
-        origen: "app" as const,
-        userId: actor.id,
-      }),
-    ]);
-
-    return (await leerPersona(db, persona.id))!;
-  });
-}
-
-/**
  * Crea a mano una persona que no paso por el formulario (WhatsApp, masivos), solo un
- * closer, que queda como su responsable. Entra por el CRM (`entrada = "crm"`); es la
+ * closer. Entra por el CRM (`entrada = "crm"`); es la
  * entrada, no otro campo, lo que la separa en las metricas (ADR 0021).
  *
  * Dedup (ADR 0005): si ya existe una persona con ese `(programId, correo)` no crea ni
@@ -238,7 +154,7 @@ export async function crearPersonaManual(
       throw new ErrorDeApp("No puedes crear personas en un programa donde no vendes.", 403);
     }
 
-    // Dedup: si ya existe, se devuelve sin tocar el responsable ni escribir bitacora.
+    // Dedup: si ya existe, se devuelve sin tocar nada ni escribir bitacora.
     const existente = await leerPorCorreo(db, datos.programId, datos.correo);
     if (existente) return { persona: existente, creada: false };
 
@@ -254,7 +170,6 @@ export async function crearPersonaManual(
       emailNormalizado: datos.correo,
       nombre: datos.nombre ?? null,
       telefono: datos.telefono ?? null,
-      responsableCloserId: closerId,
       entrada: "crm" as const,
       numAplicaciones: 0,
     };

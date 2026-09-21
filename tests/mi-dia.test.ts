@@ -177,24 +177,6 @@ describe("buscarPersonas", () => {
     expect(await buscarPersonas(anaUserId, "closer", "  ", db)).toHaveLength(0);
   });
 
-  it("expone el responsable de la persona", async () => {
-    await sembrarPersona(programaA, {
-      nombre: "Con responsable",
-      emailNormalizado: "resp@correo.co",
-      responsableCloserId: "Ana",
-    });
-    await sembrarPersona(programaA, {
-      nombre: "Sin responsable",
-      emailNormalizado: "libre@correo.co",
-    });
-
-    const conResp = await buscarPersonas(anaUserId, "closer", "resp@correo.co", db);
-    expect(conResp[0].responsableCloserId).toBe("Ana");
-
-    const sinResp = await buscarPersonas(anaUserId, "closer", "libre@correo.co", db);
-    expect(sinResp[0].responsableCloserId).toBeNull();
-  });
-
   it("devuelve a lo sumo 20 filas", async () => {
     for (let i = 0; i < 25; i++) {
       await sembrarPersona(programaA, {

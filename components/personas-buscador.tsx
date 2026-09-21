@@ -88,12 +88,7 @@ export function PersonasBuscador() {
           >
             <div className="min-w-0">
               <div className="truncate font-medium">{p.nombre ?? p.emailNormalizado}</div>
-              <div className="truncate text-sm text-muted-foreground">
-                {p.programaNombre} ·{" "}
-                {p.responsableCloserId
-                  ? `Responsable: ${p.responsableCloserId}`
-                  : "sin responsable"}
-              </div>
+              <div className="truncate text-sm text-muted-foreground">{p.programaNombre}</div>
             </div>
             {/* La URL lleva el id opaco, NUNCA el correo (ticket 006).
                 `nativeButton={false}` porque se renderiza como <a>: sin eso Base UI

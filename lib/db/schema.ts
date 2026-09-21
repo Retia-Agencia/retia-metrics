@@ -243,12 +243,6 @@ export const leads = pgTable(
      */
     estado: text("estado").notNull().default("cola_setteo"),
     /**
-     * Closer responsable de la persona (ADR 0021). Lo escribe solo la app: el sync
-     * nunca lo lee ni lo pisa. Es el mismo `closerId` en texto de ADR 0011, no una
-     * relacion a `users`. "Sin responsable" es un estado valido.
-     */
-    responsableCloserId: text("responsable_closer_id"),
-    /**
      * Por donde entro la persona (ADR 0021): por el formulario de la hoja o creada
      * a mano en el CRM. Es un tipo, no una fila: el codigo decide segun su valor
      * (el CPL usa solo las del formulario, y el sync pasa una persona de `crm` a

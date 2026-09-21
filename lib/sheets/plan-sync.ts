@@ -6,7 +6,8 @@ import type { PersonaDeducida } from "./dedup";
  * que ya esta guardado, y dice que insertar, que actualizar y que va a la bitacora.
  * `sync.ts` solo escribe lo que este plan le dice.
  *
- * El sync NUNCA lee ni escribe `responsableCloserId` (ADR 0021): el registro que se
+ * El sync NUNCA toca la atribucion a un closer (ADR 0021, hoy `deals.owner_user_id`
+ * por el ADR 0037): el registro que se
  * arma para la hoja no lo incluye, asi que el update de `sync.ts` no lo pisa. Y toda
  * fila de la hoja entra como `entrada = "formulario"`: si una persona estaba en
  * "crm" (creada a mano en el CRM) y reaparece en el formulario, el diff la pasa a
@@ -113,7 +114,7 @@ function aRegistro(p: PersonaDeducida, programId: string): PersonaNueva {
     fechaPrimeraAplicacion: p.fechaPrimeraAplicacion,
     fechaUltimaAplicacion: p.fechaUltimaAplicacion,
     numAplicaciones: p.numAplicaciones,
-    // La hoja siempre es formulario (ADR 0021). No se incluye responsableCloserId:
+    // La hoja siempre es formulario (ADR 0021). No se incluye ninguna atribucion:
     // ese campo lo escribe solo la app y el update de sync.ts no debe pisarlo.
     entrada: "formulario" as const,
     raw: p.raw as Record<string, unknown>,

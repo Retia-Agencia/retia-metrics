@@ -172,16 +172,6 @@ describe("la pantalla es del closer: el gerente no registra (ADR 0003)", () => {
     expect(filas).toHaveLength(0);
   });
 
-  it("un gerente no puede tomar una persona", async () => {
-    const [p] = await db
-      .insert(leads)
-      .values({ programId: programaA, emailNormalizado: "libre@correo.co" })
-      .returning();
-    const { tomarPersonaAccion } = await acciones();
-    const res = await tomarPersonaAccion(p.id);
-    expect(res.ok).toBe(false);
-  });
-
   it("un gerente no puede crear una persona manual", async () => {
     const { crearPersonaAccion } = await acciones();
     const res = await crearPersonaAccion({ programId: programaA, correo: "x@correo.co" });
@@ -245,20 +235,7 @@ describe("un closer registra en su programa", () => {
     expect(filas[0].closerId).toBe("Ana");
   });
 
-  it("toma una persona sin responsable y queda como responsable", async () => {
-    const [p] = await db
-      .insert(leads)
-      .values({ programId: programaA, emailNormalizado: "libre@correo.co" })
-      .returning();
-
-    const { tomarPersonaAccion } = await acciones();
-    const res = await tomarPersonaAccion(p.id);
-    expect(res.ok).toBe(true);
-    const [fila] = await db.select().from(leads).where(eq(leads.id, p.id));
-    expect(fila.responsableCloserId).toBe("Ana");
-  });
-
-  it("crea una persona manual con el closer como responsable", async () => {
+  it("crea una persona manual con entrada 'crm'", async () => {
     const { crearPersonaAccion } = await acciones();
     const res = await crearPersonaAccion({
       programId: programaA,
@@ -270,7 +247,6 @@ describe("un closer registra en su programa", () => {
       .select()
       .from(leads)
       .where(and(eq(leads.programId, programaA), eq(leads.emailNormalizado, "nuevo@correo.co")));
-    expect(fila.responsableCloserId).toBe("Ana");
     expect(fila.entrada).toBe("crm");
   });
 });

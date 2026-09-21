@@ -46,8 +46,6 @@ export interface PersonaEncontrada {
   telefono: string | null;
   programId: string;
   programaNombre: string;
-  /** Closer responsable en texto (ADR 0011), o `null` si no tiene ("sin responsable"). */
-  responsableCloserId: string | null;
   /** Por donde entro la persona (formulario o crm). */
   entrada: string;
 }
@@ -93,7 +91,6 @@ export async function buscarPersonas(
     telefono: leads.telefono,
     programId: leads.programId,
     programaNombre: programs.nombre,
-    responsableCloserId: leads.responsableCloserId,
     entrada: leads.entrada,
   };
   const coincide = or(ilike(leads.nombre, patron), ilike(leads.emailNormalizado, patron));
@@ -137,7 +134,6 @@ export interface PersonaDelHistorial {
   telefono: string | null;
   programId: string;
   programaNombre: string;
-  responsableCloserId: string | null;
   entrada: string;
   estado: string;
 }
@@ -224,8 +220,7 @@ export async function historialDePersona(
       telefono: leads.telefono,
       programId: leads.programId,
       programaNombre: programs.nombre,
-      responsableCloserId: leads.responsableCloserId,
-      entrada: leads.entrada,
+        entrada: leads.entrada,
       estado: leads.estado,
     })
     .from(leads)

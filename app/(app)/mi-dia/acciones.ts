@@ -11,7 +11,6 @@ import { ErrorDeApp } from "@/lib/errors";
 import { registrarLlamada, type EntradaRegistroLlamada } from "@/lib/mutations/registro";
 import { registrarAbono, type EntradaRegistroAbono } from "@/lib/mutations/abonos";
 import {
-  asignarResponsable,
   crearPersonaManual,
   type Actor,
   type EntradaPersonaManual,
@@ -130,25 +129,6 @@ export async function registrarAbonoAccion(
   try {
     const session = await requireRole("closer");
     await registrarAbono(session, input, db);
-    revalidatePath("/mi-dia");
-    return { ok: true };
-  } catch (error) {
-    return aResultado(error);
-  }
-}
-
-/**
- * Toma una persona sin responsable: el closer logueado queda como su responsable.
- * El `closerId` se copia de la sesion (ADR 0011); el closer nunca lo elige.
- */
-export async function tomarPersonaAccion(personaId: string): Promise<ResultadoAccion> {
-  try {
-    const session = await requireRole("closer");
-    const actor = await actorDe(session);
-    if (!actor.closerId) {
-      throw new ErrorDeApp("Tu cuenta no tiene closerId cargado.", 400);
-    }
-    await asignarResponsable(db, actor, { personaId, closerId: actor.closerId });
     revalidatePath("/mi-dia");
     return { ok: true };
   } catch (error) {

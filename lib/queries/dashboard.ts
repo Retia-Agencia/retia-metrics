@@ -100,7 +100,20 @@ export interface VistaDeCohorte {  cohorteId: string;
 }
 
 export interface LeadsDelRango {
-  leads: number;
+  /**
+   * `null` cuando el dashboard viene filtrado por closer. **No es "cero leads":
+   * es "esta pregunta no tiene respuesta todavia"**, y por eso no es un numero.
+   *
+   * Un lead se atribuia a un closer por `leads.responsableCloserId`, que se fue con
+   * el ADR 0035. Su reemplazo es `deals.owner_user_id` (ADR 0037), que existe desde
+   * el ticket 037 pero no tiene una sola fila hasta que el sync de la etapa 3 cree
+   * deals. Devolver el conteo del programa entero bajo el nombre de un closer seria
+   * justo la familia de bug de la que este repo ya sangro tres veces: una cifra
+   * creible, equivocada, que no lanza ningun error. La pantalla muestra un guion.
+   *
+   * Lo reescribe E5-1 sobre deals.
+   */
+  leads: number | null;
   diasHabiles: number;
   metaLeadsDia: number | null;
   metaDelRango: number | null;
@@ -564,21 +577,21 @@ export async function leadsDelRango(
   db: Db = dbDeLaApp,
 ): Promise<LeadsDelRango> {
   const anclaLead = sql<string>`(${leads.fechaPrimeraAplicacion} AT TIME ZONE 'America/Bogota')::date`;
-  const [fila] = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(leads)
-    .where(
-      and(
-        eq(leads.programId, programId),
-        eq(leads.entrada, "formulario"),
-        between(anclaLead, rango.desde, rango.hasta),
-        // Con closer, los leads suyos son de los que es RESPONSABLE (ADR 0021). Ojo:
-        // "sin responsable" es un estado valido, asi que la suma de los closers no
-        // tiene por que dar el total del programa. La pantalla lo dice.
-        delCloser(leads.responsableCloserId, closerId),
-      ),
-    );
-  const conteoLeads = fila?.n ?? 0;
+  // Filtrado por closer no hay a que preguntarle: la atribucion vivia en
+  // `responsableCloserId` y se fue con el ADR 0035. Ver la nota de `LeadsDelRango`.
+  const [fila] = closerId
+    ? [undefined]
+    : await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(leads)
+        .where(
+          and(
+            eq(leads.programId, programId),
+            eq(leads.entrada, "formulario"),
+            between(anclaLead, rango.desde, rango.hasta),
+          ),
+        );
+  const conteoLeads = closerId ? null : (fila?.n ?? 0);
 
   const diasHabiles = diasHabilesEntre(rango.desde, rango.hasta);
 
@@ -586,7 +599,9 @@ export async function leadsDelRango(
   const metaLeadsDia = cohorte?.metaLeadsDia ?? null;
   const metaDelRango = metaLeadsDia === null ? null : metaLeadsDia * diasHabiles;
   const cumplimiento =
-    metaDelRango === null || metaDelRango === 0 ? null : conteoLeads / metaDelRango;
+    conteoLeads === null || metaDelRango === null || metaDelRango === 0
+      ? null
+      : conteoLeads / metaDelRango;
 
   return { leads: conteoLeads, diasHabiles, metaLeadsDia, metaDelRango, cumplimiento };
 }

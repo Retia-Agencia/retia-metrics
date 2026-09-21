@@ -89,9 +89,6 @@ export function HistorialPersona({ historial }: { historial: HistorialDePersona 
           <Dato etiqueta="Correo" valor={persona.emailNormalizado} />
           <Dato etiqueta="Teléfono" valor={persona.telefono} />
           <Dato etiqueta="Programa" valor={persona.programaNombre} />
-          {/* "Sin responsable" es un estado valido (ADR 0021), asi que se dice en
-              vez de dejar el renglon vacio. */}
-          <Dato etiqueta="Responsable" valor={persona.responsableCloserId ?? "Sin responsable"} />
         </CardContent>
       </Card>
 

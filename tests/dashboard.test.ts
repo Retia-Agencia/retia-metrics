@@ -378,7 +378,6 @@ describe("meta dinamica no divide por cero", () => {
 async function crearPersona(programId: string, email: string, extra?: {
   entrada?: "formulario" | "crm";
   fechaPrimeraAplicacion?: Date | null;
-  responsableCloserId?: string | null;
 }): Promise<string> {
   const [p] = await db
     .insert(leads)
@@ -387,7 +386,6 @@ async function crearPersona(programId: string, email: string, extra?: {
       emailNormalizado: email,
       entrada: extra?.entrada ?? "formulario",
       fechaPrimeraAplicacion: extra?.fechaPrimeraAplicacion ?? null,
-      responsableCloserId: extra?.responsableCloserId ?? null,
     })
     .returning();
   return p.id;
@@ -648,7 +646,12 @@ describe("alcance acotado a un closer", () => {
 describe("leads y cohorte acotados a un closer", () => {
   const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
 
-  it("los leads del closer son las personas de las que es responsable (ADR 0021), y sin responsable no se le cuelgan a nadie", async () => {
+  it("filtrado por closer los leads son `null`, no el conteo del programa", async () => {
+    // La atribucion de un lead a un closer vivia en `responsableCloserId` y se fue
+    // con el ADR 0035; su reemplazo (`deals.owner_user_id`, ADR 0037) no tiene una
+    // sola fila hasta la etapa 3. Devolver aqui el conteo del programa entero bajo
+    // el nombre de un closer seria una cifra creible y equivocada, que es la familia
+    // de bug de la que este repo ya sangro tres veces. `null` dice la verdad.
     await crearCohorteActiva({
       programId: programaA,
       codigo: "C2",
@@ -659,13 +662,10 @@ describe("leads y cohorte acotados a un closer", () => {
     });
     await crearPersona(programaA, "deana@x.com", {
       fechaPrimeraAplicacion: new Date("2026-09-15T14:00:00Z"),
-      responsableCloserId: "Ana",
     });
     await crearPersona(programaA, "debeto@x.com", {
       fechaPrimeraAplicacion: new Date("2026-09-15T15:00:00Z"),
-      responsableCloserId: "Beto",
     });
-    // Nadie la ha tomado todavia: "sin responsable" es un estado valido (ADR 0021).
     await crearPersona(programaA, "libre@x.com", {
       fechaPrimeraAplicacion: new Date("2026-09-15T16:00:00Z"),
     });
@@ -674,8 +674,10 @@ describe("leads y cohorte acotados a un closer", () => {
     expect(programa.leads).toBe(3);
 
     const ana = await leadsDelRango({ programId: programaA, rango, closerId: "Ana" }, db);
-    expect(ana.leads).toBe(1);
-    // La meta de leads/dia es de la cohorte, no del closer: no se reparte.
+    expect(ana.leads).toBeNull();
+    // Sin conteo no hay cumplimiento, pero la meta SIGUE siendo la de la cohorte:
+    // no se reparte entre closers (ADR 0023) y eso no cambio.
+    expect(ana.cumplimiento).toBeNull();
     expect(ana.metaLeadsDia).toBe(10);
     expect(ana.metaDelRango).toBe(10);
   });

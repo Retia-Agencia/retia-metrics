@@ -18,7 +18,6 @@ import {
   crearPersonaAccion,
   registrarAbonoAccion,
   registrarLlamadaAccion,
-  tomarPersonaAccion,
   ventasDePersonaAccion,
   type EntradaRegistroLlamadaUI,
   type ResultadoAccion,
@@ -166,18 +165,6 @@ function Buscador({
     });
   }
 
-  function tomar(p: PersonaEncontrada) {
-    startTransition(async () => {
-      const res = await tomarPersonaAccion(p.id);
-      if (res.ok) {
-        toast.success("Persona asignada a ti");
-        buscar();
-      } else {
-        toast.error("No se pudo tomar la persona", { description: res.error });
-      }
-    });
-  }
-
   return (
     <section className="space-y-3 rounded-md border p-4">
       <h2 className="text-sm font-semibold">Buscar persona</h2>
@@ -213,24 +200,9 @@ function Buscador({
             <div>
               <div className="font-medium">{p.nombre ?? "Sin nombre"}</div>
               <div className="text-muted-foreground">{p.emailNormalizado}</div>
-              <div className="text-xs text-muted-foreground">
-                {p.programaNombre} ·{" "}
-                {p.responsableCloserId
-                  ? `Responsable: ${p.responsableCloserId}`
-                  : "sin responsable"}
-              </div>
+              <div className="text-xs text-muted-foreground">{p.programaNombre}</div>
             </div>
             <div className="flex items-center gap-1">
-              {p.responsableCloserId ? null : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={pendiente}
-                  onClick={() => tomar(p)}
-                >
-                  Tomar persona
-                </Button>
-              )}
               {/* La URL lleva el id opaco, NUNCA el correo (ticket 006): ningun
                   dato personal viaja en una ruta.
                   `nativeButton={false}` porque esto se renderiza como <a>, no como
