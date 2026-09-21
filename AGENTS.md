@@ -253,6 +253,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Cuando una fuente puede estar ACTIVA | Una fuente activa SIEMPRE tiene un mapeo que cuadra: `activarFuente` prueba contra los encabezados reales en ese momento, y `editarFuente` vuelve a probar si la fuente ya esta activa (ticket 016) | `tests/fuentes.test.ts`, mordido en los dos sentidos: editar una ACTIVA a un mapeo roto se rechaza con 422 **sin tocar la fila**, y editar una INACTIVA a lo mismo se permite. **No se guarda bandera de "ultima prueba ok"**: envejeceria |
 | Cuando puede arrancar una corrida de sync | El indice unico parcial `sync_runs_una_corriendo_por_programa_idx` + `SyncEnCursoError` (409) y el reaper, en `lib/sheets/sync.ts` (ADR 0031) | `tests/sync-candado.test.ts`: dos corridas simultaneas, el rechazo **sin tocar la corrida viva**, el reaper, y que las fuentes leidas queden guardadas. Mordido ademas contra Neon de verdad el 19-sep, no solo contra PGlite |
 | Si un error del driver es de un codigo de Postgres | `lib/db/errores.ts`: `esViolacionUnica` (23505) y `esViolacionCheck` (23514) sobre `esCodigoPostgres`, que camina la cadena de `cause` | Revision manual: una copia local de ese bucle en cualquier modulo es el olor. Vivia duplicado byte a byte en 4 modulos hasta el 19-sep |
+| Como sale una entrada invalida hacia el cliente | `normalizando` en `lib/errors-zod.ts`: traduce un `ZodError` al `ErrorDeApp` 400 del contrato | Revision manual: un `catch` local que haga `instanceof z.ZodError` es el olor. Vivia duplicado byte a byte en **9** modulos hasta el 20-sep. `lib/catalogo/cohortes.ts` es la unica excepcion legitima y **no se aplano**: ademas traduce 23505 y 23514, asi que compone. Esa parte suya SI tiene test: `tests/cohortes-errores-driver.test.ts`, donde el choque lo produce el indice y el CHECK de verdad, no un error fabricado con `{ code: "23505" }` |
 | Cuando dos textos son el mismo closer | `lib/closers/identidad.ts` (ADR 0030) + indice unico sobre `lower()` en `users` | `tests/closer-identidad.test.ts`: guardian sobre `lib/`, `app/` y `components/`, probado mordiendo en los dos sentidos (caza lo malo y **no** marca la solucion) |
 | Quien crea una fila de catalogo, y desde donde | `lib/catalogo/` siempre (ADR 0029); el actor de un script, `actorDelScript()` en `scripts/actor.ts` | Revision manual: un `db.insert` sobre una tabla de catalogo en `scripts/` es el olor. Las dos excepciones estan en la tabla del ADR 0029 |
 | Contrato de extension | ADR 0012, enmendado por el 0026; molde en `lib/catalogo/` | `tests/contrato-extension.test.ts` (ticket 009): ningun programa escrito en el codigo; tests del molde (ticket 011): siempre `change_log`, y **nunca `DELETE` sobre una fila con referencias** |
@@ -268,7 +269,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 598 pasando al 19-sep). Los tests que necesitan base usan PGlite en
+- **Test:** `npm test` (Vitest, 677 pasando al 20-sep). Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Run:** `npm run dev` (http://localhost:3000)
