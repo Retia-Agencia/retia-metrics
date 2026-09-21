@@ -75,3 +75,27 @@ nunca cierran.
 **No enlazar y quitar la cascada del ADR 0026.** Deja al closer que se equivoco teniendo que anular
 tres cosas por separado y acordarse de las tres. Anular la llamada y olvidar la venta es
 exactamente la cifra inflada que el ticket 029 existe para evitar.
+
+## Enmienda 2026-09-21 (plan v2, ADR 0037): `sales.call_id` desaparece con `sales`
+
+**La tabla `sales` se elimina** (ADR 0037): un deal tiene una sola venta, asi que la venta **es** el
+deal. Con ella se va `sales.call_id` y su indice unico.
+
+**La pregunta que este ADR resolvia deja de existir.** "¿Que venta nacio de esta llamada?" se
+contesta por estructura: la llamada cuelga del deal (`calls.deal_id`) y el deal es la venta. No hay
+FK que acordarse de escribir, asi que tampoco hay forma de olvidarla — que era el riesgo real que
+este ADR ataja.
+
+**Lo que se conserva es la leccion, y sigue siendo de las mas importantes del repo:**
+
+- **Nada de emparejar por heuristica.** Persona + cohorte + cercania de `createdAt` acierta casi
+  siempre y, cuando falla, **anula la cosa equivocada sin avisar**. Si dos hechos estan
+  relacionados, la relacion se **escribe**.
+- **Conservador a proposito.** Rechazar de mas cuesta un paso que la app explica; anular de menos
+  deja una cifra inflada que nadie nota.
+- **La cascada de la anulacion se mantiene y cambia de raiz:** anular un deal anula sus calls y sus
+  abonos (ADR 0038). Y al reves no: anular un abono no anula el deal, pero **si obliga a recalcular
+  la etapa** por el motor del ADR 0037, o quedaria un Student que no pago.
+- El caso "una llamada cerrada sin venta enlazada" se vuelve imposible por construccion en todo lo
+  que escriba la app. Lo que entre por la **migracion one-time** (etapa 7) sigue siendo el terreno
+  raro, y ahi vale la misma regla: lo que no se pueda clasificar queda **visible**, no adivinado.

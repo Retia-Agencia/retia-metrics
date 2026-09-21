@@ -89,3 +89,29 @@ fila que dice "este valor pertenece a esta categoria"), nunca como una funcion d
 - Si las categorias son por programa o globales. Los datos de arriba sugieren **por programa**
   (cada hoja tiene su redaccion), pero eso choca con querer un embudo comparable entre programas.
   **No se decide de paso.**
+
+## Enmienda 2026-09-21 (plan v2, ADR 0035 y 0037): se conserva entero; cambia CUANDO y de que lado
+
+Esta decision **no se toca en su contenido** y por fin se aplica: el ticket 034 quedo absorbido por
+el plan v2 (su alcance ES el insumo §2.2) y `estado` pasa a texto **dentro del corte de la etapa 1**,
+no en una migracion propia. Que era barato lo confirma la medicion del 21-sep: **4.791 de 4.791**
+personas siguen en el default `cola_setteo`; el enum nunca guardo un dato real.
+
+Los cinco puntos se conservan: se guarda **como viene**, agrupamiento dinamico, **combinar** como
+acto humano guardado como dato, y "desaparecio de la hoja" como una categoria mas (F-06).
+
+**Los dos cambios, los dos del plan v2:**
+
+1. ❌ **El backfill desde `people.raw` ya NO aplica.** Este ADR contaba con que el dato ya estaba en
+   `raw` para 4.633 personas y que la migracion no necesitaba re-sincronizar. Con el modelo nuevo,
+   **`submissions` se reconstruye desde la hoja en el primer sync v2** (ADR 0036), y de ahi sale el
+   `estado` de cada envio. Rellenar desde `raw` daria **una** aplicacion por persona donde hubo
+   6.233 envios: un historial completo y equivocado.
+2. ✅ **`lead.estado` y `deal.etapa` son dos columnas distintas, y esa es la frontera.** El `estado`
+   es de la **hoja** y clasifica la llegada; la `etapa` es del **CRM** y es texto ninguno: es un
+   `pgEnum` de diez valores porque el codigo decide con ella (ADR 0037). Que una sea texto y la
+   otra enum no es una incoherencia con el ADR 0012 — **es el ADR 0012**: nadie decide con el
+   `estado`, todo decide con la `etapa`.
+
+Y la pregunta que este ADR dejaba abierta —**si las categorias son por programa o globales**— sigue
+abierta a proposito. Se decide con la pantalla del embudo delante (etapa 5), no de paso.

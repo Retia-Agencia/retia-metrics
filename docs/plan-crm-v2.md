@@ -1,7 +1,8 @@
 ---
 titulo: Plan CRM v2 — modelo HubSpot
 creado: 2026-09-21
-estado: aprobado por Mani el 21-sep · D1 a D6 cerradas · etapa 0 sin arrancar
+estado: aprobado por Mani el 21-sep · D1 a D6 cerradas · **etapa 0 CERRADA el 21-sep**
+  (ADR 0035-0042 escritos, spec enmendada, 7 ADR anotados, tickets 036-082 creados)
 reemplaza: no reemplaza a docs/plan.md (ese es el plan del MVP, ya ejecutado). Este abre la epoca siguiente.
 ---
 
@@ -333,7 +334,11 @@ limpios.** Y las migraciones las genera y aplica la sesión principal, nunca un 
 
 ---
 
-### Etapa 0 · Enmiendas y ADRs
+### Etapa 0 · Enmiendas y ADRs — ✅ **CERRADA el 21-sep**
+
+> Resultado: **ADR 0035 a 0042** escritos · `docs/spec.md` enmendada · enmienda anotada en los ADR
+> 0004, 0007, 0015, 0019, 0021, 0027 y 0032 · **47 tickets, 036 a 082**, creados y registrados en
+> `docs/tasks/README.md`. Detalle en el CIERRE 18 del handoff.
 
 **Sin una línea de código.** Deja el terreno para que la etapa 1 sea un corte y no una serie de
 remiendos.
@@ -565,7 +570,7 @@ El último vigente es el **0034**. Los nuevos arrancan en 0035.
 | **0035** | El Lead y sus contactos | `people` → `leads` (D1); la llave `(programa, correo)` se conserva; `lead_contactos`; unión por teléfono **marcada**, nunca ciega |
 | **0036** | El Envío y todas las columnas sin plantilla | `submissions`; ~10 promovidas + `respuestas jsonb` **sin repetir** (opción A'); enmienda al ADR 0019 |
 | **0037** | El Deal y las diez etapas | el deal como objeto; las etapas como tipos; el motor único; `sales` se disuelve; enmienda a los ADR 0021 y 0027 |
-| **0038** | Anular no es Cierre Perdido | D3, pendiente de que Mani confirme. Amplía el ADR 0026 a `deals` |
+| **0038** | Anular no es Cierre Perdido | D3, **confirmada por Mani el 21-sep**. Amplía el ADR 0026 a `deals` |
 | **0039** | Un programa, una fuente de leads | D2, con las 55 personas de `Forms viejo` y su ruta por la etapa 7 |
 | **0040** | El sync se dispara por capas | D4, plan Hobby medido; enmienda al ADR 0007 |
 | **0041** | Las cuotas pactadas son filas | D5, con el argumento de la cuota desigual |
@@ -601,11 +606,19 @@ Salen de heridas que este repo ya tiene documentadas. Van aquí para que no haya
 
 ## 10. Lo que sigue abierto
 
-### 🟡 Mani (no bloquea arrancar la etapa 0)
+### ✅ Mani — cerrado el 21-sep, ya no queda nada abierto de su lado
 
-1. **E1-4**: qué pasa con las 5 filas de `sources` con `destino != people` (Estudiantes, Pauta,
-   Registro de llamadas). ¿Se borran, o `destino` sobrevive y el índice único de D2 es parcial? El
-   caso incómodo es `ad_spend`, que el insumo §8 quiere de vuelta para el ROAS.
+1. ~~**E1-4**: qué pasa con las filas de `sources` con `destino != people`.~~ **Contestada el
+   mismo 21-sep** (textual): *"Borrar todas. Porque eso era solo para la migración inicial ya que
+   todo se manejaba manual en Sheets... cuando el CRM se vuelva el centro, las llamadas solo van a
+   vivir aquí. Lo único que va a entrar de afuera son Leads crudos que llenan un forms de un
+   programa."* Y sobre la pauta: *"el costo de una campaña... sí toca indicarlo manualmente o
+   traerlo de los Paid Traffickers; las pautas deben poderse asignar un costo."*
+   → `sources` pasa a significar **solo el intake de leads**, la columna `destino` desaparece, y
+   **`ad_spend` sobrevive pero deja de entrar por Sheets: se captura en el CRM**. Argumentos en el
+   **ADR 0039**; lo ejecutan los tickets **039** (el corte) y **067** (la captura y el ROAS).
+   ⚠️ **Corrección medida:** son **7** filas con `destino != people`, no 5. Este documento contó
+   las 5 de ComunicArte, que incluyen 2 de leads. Verificado contra `dev` el 21-sep.
 
 *(D3 y D5 quedaron confirmadas el 21-sep y ya no están abiertas.)*
 

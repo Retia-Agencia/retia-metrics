@@ -7,13 +7,151 @@ cambiar `status: done` en su archivo y anotar la fecha.
 Estados: `todo` · `en curso` · `done` · `bloqueado` · `reemplazado`.
 Un ticket está **listo** cuando todos los de su columna "Depende de" están en `done`.
 
-Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md).
+Orden y porqué: **[docs/plan-crm-v2.md](../plan-crm-v2.md)** para la época viva; [docs/plan.md](../plan.md)
+para el MVP ya ejecutado. Alcance: [docs/spec.md](../spec.md).
 
 > ⚠️ **21-sep: se abrió la época siguiente.** El CRM pasa al modelo HubSpot (Lead, Envío,
 > Deal, diez etapas). El plan de ejecución, con el estado medido de `production` y el impacto
 > sobre los tickets de abajo, está en **[docs/plan-crm-v2.md](../plan-crm-v2.md)**. Léelo antes
 > de tomar cualquier ticket: el **034 queda absorbido**, el **021 congelado**, el **007 partido**
 > y el **035 se muda a la etapa 4**.
+>
+> **El trabajo vivo son las etapas E1 a E7 (tickets 036 a 082), abajo.** Las fases F0 a F4 son el
+> MVP, ya ejecutado: se conservan como historia y porque tres de sus tickets siguen abiertos
+> (007, 021, 035). Decisiones: **ADR 0035 a 0042**, más las enmiendas del 21-sep en los ADR
+> 0004, 0007, 0015, 0019, 0021, 0027 y 0032.
+
+# Época v2 — modelo HubSpot (tickets 036 a 082)
+
+Orden y porqué: **[docs/plan-crm-v2.md](../plan-crm-v2.md)**. El diseño del que sale vive fuera del
+repo y **manda sobre el plan en todo lo que sea diseño**:
+`mani_vault/02 Projects/retia/notebook/crm-retia-modelo-hubspot-scaffold.md`.
+
+**Regla que rige todas las etapas:** una etapa no se cierra sin `npm test`, `npm run typecheck` y
+`npm run lint` limpios. **Las migraciones las genera y aplica la sesión principal, nunca un
+subagente** (AGENTS.md).
+
+## E0 · Enmiendas y ADRs — **done · 21-sep**
+
+Sin una línea de código. Deja el terreno para que la etapa 1 sea un corte y no una serie de
+remiendos.
+
+| ✓ | Tarea | Estado |
+|---|---|---|
+| [x] | E0-1 · ADR **0035 a 0042** | done · 21-sep |
+| [x] | E0-2 · `docs/spec.md` enmendada (insumo §11) | done · 21-sep · kanban entra, `onboarded_at` entra, comisión entra, cédula no, Calendly con PAT por programa, el histórico de C2 crece a migración one-time |
+| [x] | E0-3 · Enmienda anotada en los ADR 0004, 0007, 0015, 0019, 0021, 0027, 0032 | done · 21-sep |
+| [x] | E0-4 · Ticket 034 reescrito (absorbido) y 021 congelado | done · 21-sep |
+| [x] | E0-5 · `docs/agents/context.md` con el vocabulario nuevo | done · 21-sep |
+| [x] | E0-6 · Tickets 036 a 082 creados y registrados aquí | done · 21-sep |
+
+🎯 **Decisión de Mani del 21-sep que cerró E1-4:** `sources` pasa a significar **solo** el intake
+de leads crudos. Las **7** filas con `destino != people` se borran (eran insumo de la migración
+inicial) y la pauta deja de entrar por Sheets: **el costo de una campaña se captura en el CRM**
+(ADR 0039, tickets 039 y 067). El plan v2 §10 decía 5 filas; medido son 7.
+
+## E1 · El esquema, de un solo corte
+
+**Una rama y UNA migración (`0020`) para los siete.** Ninguno se fusiona a `main` por separado.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 036 | [`people` → `leads`, `estado` a texto, responsable fuera](./036-renombrar-people-a-leads.md) (E1-1) | — | todo |
+| [ ] | 037 | [Las seis tablas del modelo nuevo](./037-las-tablas-del-modelo-nuevo.md) (E1-2) | 036 | todo |
+| [ ] | 038 | [`calls` y `abonos` cuelgan del deal; `sales` se elimina](./038-calls-y-abonos-cuelgan-del-deal.md) (E1-3) | 037 | todo |
+| [ ] | 039 | [Una sola fuente de leads por programa](./039-una-sola-fuente-de-leads-por-programa.md) (E1-4) | 036 | todo |
+| [ ] | 040 | [`vigente()` cubre `deals`](./040-vigente-cubre-deals.md) (E1-5) | 037 | todo |
+| [ ] | 041 | [`change_log` en las tablas operativas](./041-change-log-en-las-tablas-operativas.md) (E1-7) | 037, 038 | todo |
+| [ ] | 042 | [Migración `0020`: `dev`, y `production` con el ok de Mani](./042-migracion-0020-del-corte.md) (E1-6) | 036-041 | todo |
+
+## E2 · El motor de etapas
+
+El corazón del sistema, y la razón de que vaya **antes** que el sync.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 043 | [Las diez etapas y la tabla de transiciones](./043-enum-de-etapas-y-tabla-de-transiciones.md) (E2-1) | 042 | todo |
+| [ ] | 044 | [Requisitos de entrada por etapa](./044-requisitos-de-entrada-por-etapa.md) (E2-2) | 043 | todo |
+| [ ] | 045 | [`moverEtapa()` y su historial](./045-mover-etapa-y-su-historial.md) (E2-3) | 043, 044 | todo |
+| [ ] | 046 | [Guardián: nadie escribe `deals.etapa` fuera del motor](./046-guardian-del-motor-de-etapas.md) (E2-4) | 045 | todo |
+| [ ] | 047 | [Saltos permitidos y retroceso con motivo](./047-saltos-permitidos-y-retroceso.md) (E2-5) | 045 | todo |
+
+## E3 · Sync v2
+
+Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 048 | [Una sola función de ingesta](./048-una-sola-funcion-de-ingesta.md) (E3-1) | 042 | todo |
+| [ ] | 049 | [El Envío con todas las columnas](./049-el-envio-con-todas-las-columnas.md) (E3-2) | 048 | todo |
+| [ ] | 050 | [Identidad del Lead: el teléfono une **y marca**](./050-identidad-del-lead.md) (E3-3) | 048 | todo |
+| [ ] | 051 | [`lead.estado` desde el envío completo más reciente](./051-el-estado-del-lead-desde-el-envio.md) (E3-4) | 049, 050 | todo |
+| [ ] | 052 | [La regla de creación y movimiento de deals](./052-regla-de-creacion-y-movimiento-de-deals.md) (E3-5) | 051, 045 | todo |
+| [ ] | 053 | [Zona horaria por fuente](./053-zona-horaria-por-fuente.md) (E3-6) | 039, 049 | todo |
+| [ ] | 054 | [Configurar una fuente sin adivinar](./054-configurar-una-fuente-de-verdad.md) (E3-7) | 039 | todo |
+| [ ] | 055 | [Alertas: una fuente se rompe, no se apaga](./055-alertas-y-fuente-rota.md) (E3-8) | 054 | todo |
+| [ ] | 056 | [El sync se dispara por capas](./056-disparo-del-sync-por-capas.md) (E3-9) | 048 | todo |
+
+## E4 · Calls, dinero y Students
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 057 | [Las Calls cuelgan del deal](./057-calls-colgadas-del-deal.md) (E4-1) | 052 | todo |
+| [ ] | 058 | [Pegar el Grain = la llamada sucedió](./058-grain-significa-que-la-llamada-sucedio.md) (E4-2) | 057 | todo |
+| [ ] | 059 | [`no_show` y `cancelada` van a Re-agenda](./059-no-show-y-cancelada-van-a-reagenda.md) (E4-3) | 057 | todo |
+| [ ] | 060 | [Abonos sobre el deal](./060-abonos-sobre-el-deal.md) (E4-4) | 057, 045 | todo |
+| [ ] | 061 | [Cuotas pactadas y cartera vencida](./061-cuotas-pactadas-y-cartera-vencida.md) (E4-5) | 060 | todo |
+| [ ] | 062 | [La comisión se calcula, nunca se guarda](./062-comision-calculada.md) (E4-6) | 060 | todo |
+| [ ] | 063 | [`onboarded_at` y cambio de cohorte](./063-onboarded-at-y-cambio-de-cohorte.md) (E4-7) | 060 | todo |
+| [ ] | 035 | [Comprobante: link **o** foto](./035-comprobante-link-o-foto.md) (E4-8) | 060 | todo · **aterriza aquí**, colgando de `abonos.deal_id`. Siguen debiéndose los dos análisis |
+
+## E5 · Lectura y reporting
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 064 | [Dashboard sobre deals](./064-dashboard-sobre-deals.md) (E5-1) | 060 | todo |
+| [ ] | 065 | [Conversión etapa a etapa y tiempo en etapa](./065-funnel-por-etapa.md) (E5-2) | 064 | todo |
+| [ ] | 066 | [Réplica de `🚨 Urgencias` con desglose UTM](./066-replica-de-urgencias.md) (E5-3) | 064 | todo |
+| [ ] | 067 | [ROAS por cohorte y captura de pauta](./067-roas-por-cohorte-y-captura-de-pauta.md) (E5-4) | 064 | todo |
+| [ ] | 068 | [`nerd-stats` reescrito](./068-nerd-stats-reescrito.md) (E5-5) | 064 | todo |
+| [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) (E5-6) | 064, 065, 066, 067 | **congelado hasta aquí** · se descongela con el dashboard nuevo, no antes |
+
+## E6 · UI
+
+⚠️ **Antes de abrir esta etapa hay que decidir la garantía** (ticket 075): o entran tests de
+componente, o la garantía sigue siendo el recorrido visual a mano **haciendo clic en todo lo que
+se abre**. Este repo no tiene tests de componentes y el 20-sep dos bugs pasaron con 669 en verde.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 069 | [Kanban por programa](./069-kanban-por-programa.md) (E6-1) | 065 | todo |
+| [ ] | 070 | [Pendiente Setteo y Unclaimed](./070-pendiente-setteo-y-unclaimed.md) (E6-2) | 069 | todo |
+| [ ] | 071 | [Mis deals · mis Calls de hoy · cartera vencida](./071-mi-dia-del-closer.md) (E6-3) | 069, 061 | todo |
+| [ ] | 072 | [Base de Leads con filtros](./072-base-de-leads-con-filtros.md) (E6-4) | 069 | todo |
+| [ ] | 073 | [Ficha del Lead, con el diff entre envíos](./073-ficha-del-lead.md) (E6-5) | 072 | todo |
+| [ ] | 074 | [Ficha del Deal](./074-ficha-del-deal.md) (E6-6) | 073 | todo |
+| [ ] | 075 | [Revisión profunda de TODA la UI](./075-revision-profunda-de-la-ui.md) (E6-8) | 069-074 | todo |
+| [ ] | 076 | [Bitácora en Nerd Stats](./076-bitacora-en-nerd-stats.md) (E6-7) | 068, 041 | todo · es la **pantalla** de un rastro que se escribe desde E1 |
+
+## E7 · Migración one-time
+
+Va de último, con el scaffold completo. Absorbe el "histórico de C2" de la spec §7 con más alcance.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 077 | [Barrer las pestañas de gestión](./077-barrer-las-pestanas-de-gestion.md) (E7-1) | 075 | todo |
+| [ ] | 078 | [Pasa por la MISMA ingesta, nunca inserts crudos](./078-la-migracion-pasa-por-la-misma-ingesta.md) (E7-2) | 077 | todo |
+| [ ] | 079 | [Recuperar las 55 de `Forms viejo`](./079-recuperar-las-55-de-forms-viejo.md) (E7-3) | 078 | todo |
+| [ ] | 080 | [Los casos raros de la migración](./080-los-casos-raros-de-la-migracion.md) (E7-4) | 078 | todo |
+| [ ] | 081 | [COP → USD a la tasa del día](./081-cop-a-usd-en-la-migracion.md) (E7-5) | 078 | todo |
+| [ ] | 082 | [Apagar las pestañas de gestión](./082-apagar-las-pestanas-de-gestion.md) (E7-6) | 079, 080, 081 | todo · lo hace Mani |
+
+---
+
+# Época MVP (tickets 001 a 035) — ejecutada
+
+Se conserva como historia. **Tres siguen abiertos:** 007 (partido), 021 (congelado hasta E5) y
+035 (se muda a E4).
 
 ## F0 · Contrato de extensión
 

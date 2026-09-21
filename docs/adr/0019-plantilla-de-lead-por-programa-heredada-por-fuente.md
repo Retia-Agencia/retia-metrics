@@ -37,3 +37,28 @@ persona.
   defecto) y el boton "Probar" valida con el mapeo combinado.
 - No hace falta estandarizar las hojas de ComunicArte y Tactical Investor.
 - `people.raw` crece con las columnas extra: refuerza S-06 + B-06 (retencion y techo de `raw`).
+
+## Enmienda 2026-09-21 (plan v2, ADR 0036): la plantilla se encoge a los ~10 campos promovidos
+
+**Lo que se conserva:** el mecanismo de tres niveles (fuente → programa → codigo), la resolucion
+por **texto del encabezado** y nunca por posicion, `MapeoInvalidoError` cuando falta un
+obligatorio, y la razon de fondo: **las hojas no se estandarizan**, cada programa trae su
+formulario con su redaccion.
+
+**Lo que cambia:** la plantilla ya **no cubre todos los campos, solo los ~10 promovidos** (correo,
+fecha, estado, token, los cinco UTM, telefono). Las demas columnas **dejan de necesitar mapeo
+porque dejan de necesitar destino**: entran completas a `submissions.respuestas` (`jsonb`) con el
+texto del encabezado como llave, y una columna nueva aparece sola sin tocar nada.
+
+La frase *"toda columna que no mapea queda completa en `people.raw`"* se sustituye por: **toda
+columna que no se promueve queda en `submissions.respuestas`, por ENVIO y no por persona**. Esa es
+la diferencia que importa: `raw` guardaba la ultima aplicacion de cada persona y pisaba las
+anteriores; medido el 21-sep, **1.146 personas tienen mas de una aplicacion** y habia **6.233
+envios** donde el CRM guardaba 4.791 filas.
+
+**Y la consecuencia de este ADR que se cae:** *"`people.raw` crece con las columnas extra"* deja de
+aplicar. `raw` desaparece con el modelo viejo; el peso se muda a `submissions.respuestas`, que
+crece por envio. Sigue siendo la misma pregunta de escala (S-06 + B-06), con otro dueno.
+
+Ademas, por el **ADR 0039**, la plantilla ya solo se resuelve para **una** fuente por programa: la
+del intake de leads crudos.

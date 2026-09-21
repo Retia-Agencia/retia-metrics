@@ -8,6 +8,18 @@
 Última revisión: 16-sep-2026 (ADR 0012 a 0017). La versión anterior, centrada solo en el
 registro de llamadas, está en el historial de git.
 
+> ⚠️ **Enmienda del 21-sep-2026 (plan v2, insumo §11).** El CRM pasa al **modelo HubSpot**:
+> `persona → llamada → venta → abonos` se convierte en **Lead → Deal → Calls / Abonos**, con diez
+> etapas y un motor único que las mueve. El orden de construcción está en
+> [docs/plan-crm-v2.md](./plan-crm-v2.md) y las decisiones, en los **ADR 0035 a 0042**.
+>
+> **Qué sigue vigente de este documento:** el usuario (§3), los criterios de aceptación (§5) salvo
+> donde digan "venta" —que ahora es un Deal en etapa Abonado o Completo—, los datos y su marco
+> regulatorio (§6), y todo el pilar 0 (el contrato de extensión).
+> **Qué queda desactualizado:** la forma de los pilares 1 y 2 y el flujo de §4, que describen la
+> época anterior. Donde este documento y un ADR de la serie 0035-0042 discrepen, **mandan los
+> ADR**, y las cinco enmiendas puntuales del insumo §11 están marcadas ⚠️ abajo.
+
 ## 1. Qué hace
 
 CRM interno de Retia con cuatro pilares, construidos en este orden:
@@ -53,12 +65,19 @@ donde vive esta información.
 - No incluye el lead magnet de Juan Pablo ni el newsletter de SendGrid.
 - No migra el historial completo como parte del MVP (ver supuestos).
 - No conecta Calendly, Kapso, Typeform ni Addi todavía. El alta de un closer sí guarda su correo
-  de Calendly para que esa integración futura no requiera código.
+  de Calendly para que esa integración futura no requiera código. ⚠️ **21-sep:** sigue sin
+  conectarse, pero la forma ya está decidida y deja de ser una pregunta abierta: el Personal Access
+  Token es **por programa**, no por closer (cada programa tiene su Calendly como tiene su
+  formulario). Mientras tanto la fecha de la llamada la pone el closer.
 - No expone una API propia para herramientas externas (ADR 0006).
 - No envía recordatorios de seguimiento. Sí guarda la fecha de seguimiento, que es el dato que
   esa función futura va a necesitar.
-- No incluye vista kanban ni calendario.
-- No gestiona el onboarding posterior a la venta (el Excel de Daniel Rincón).
+- ⚠️ **El kanban ENTRA (21-sep).** Era la línea *"No incluye vista kanban ni calendario"*. El
+  Kanban por programa con las diez etapas es la vista principal del closer (ADR 0037, etapa 6 del
+  plan v2). **El calendario sigue fuera.**
+- ⚠️ **Del onboarding entra UN dato y nada más (21-sep):** `onboarded_at` en el deal, un
+  timestamp para saber **cuándo** se hizo. El Excel de Daniel Rincón, los accesos, los bonos y la
+  factura siguen fuera.
 
 ## 3. Usuario
 
@@ -108,8 +127,15 @@ donde vive esta información.
 - **Datos de la venta y abonos**: producto, precio del contrato, plataforma, monto, moneda, fecha
   y link del comprobante. Son datos financieros operativos de la empresa. No se pide número de
   tarjeta, cuenta bancaria ni ningún dato que identifique un instrumento de pago.
+- ⚠️ **Comisión (21-sep): entra.** Es `tasa_del_programa × precio del producto`, **calculada y
+  nunca guardada** (ADR 0024), visible en el dashboard por closer. La tasa vive en el programa como
+  instancia (🩸 hoy 80/697 en ComunicArte y 100/1.500 en Tactical).
+- ⚠️ **Cédula (21-sep): NO se guarda.** Aparece en la pestaña `Estudiantes Septiembre` de
+  ComunicArte y no entra al CRM, salvo que el equipo lo pida explícitamente.
 - **Configuración**: programas, cohortes, metas, productos, catálogos, fuentes, recursos,
-  enlaces de pago. Toda alta o cambio queda en `change_log`.
+  enlaces de pago. Toda alta o cambio queda en `change_log`. ⚠️ **21-sep:** el rastro deja de ser
+  solo de la configuración y cubre también las tablas operativas (deals, calls, abonos,
+  actividades), desde el primer día (ADR 0042).
 - **Marco regulatorio**: **resuelto el 19-sep.** Mani lo consultó con el equipo: no hay
   obligaciones extra. Son datos que los leads entregaron por su cuenta en el formulario, y de los
   pagos solo se guardan montos y plataforma, nada que identifique un instrumento de pago. Todo es
@@ -126,6 +152,12 @@ donde vive esta información.
       documentadas: qué se reconcilia y qué se descarta se define al abrir el ticket.
       **Prioridad fijada el 19-sep (Mani): es lo ÚLTIMO que se revisa.** Queda anotado a propósito,
       no olvidado: no se abre ticket ni se toca hasta que todo lo demás esté cerrado.
+      ⚠️ **21-sep: crece de alcance y se convierte en la migración one-time (etapa 7 del plan
+      v2).** Ya no es solo el histórico de estudiantes de C2: barre también las pestañas de
+      `Setteo`, `Registro de llamadas` y `Forms viejo` de las dos hojas. **Sigue siendo lo último**
+      —se hace con el scaffold completo— y pasa por **la misma función de ingesta** que el sync,
+      nunca por inserts crudos, dejando su rastro en `change_log` (ADR 0029). Los cobros en COP se
+      convierten a la tasa del día de la migración.
 - [x] Los leads se sincronizan desde Sheets (**confirmado por Michael el 16-sep**, ADR 0004 queda
       firme). Cada fuente declara sus columnas; no se exige que las hojas tengan la misma forma.
 - [x] Qué pasa si el closer no encuentra al lead (llegó por WhatsApp directo o por masivos sin
@@ -147,7 +179,10 @@ donde vive esta información.
       para todos los programas. Se acepta a sabiendas.
 - [x] Moneda de los abonos: **todo en USD (Michael, 16-sep).** Si el pago entra en COP, el closer
       lo convierte al registrarlo (Mani, 16-sep); el sistema no convierte solo.
-- [ ] Calendly individual por closer o cuenta compartida (afecta la integración futura).
+- [x] Calendly individual por closer o cuenta compartida: **resuelto el 21-sep.** Ni lo uno ni lo
+      otro: **un Personal Access Token por programa**, porque cada programa tiene su Calendly igual
+      que tiene su formulario. Eso trae la fecha real, el closer del Round Robin y las
+      cancelaciones. La integración sigue fuera del alcance; lo que se cerró es su forma.
 - [x] Marco regulatorio de datos financieros: **cerrado el 19-sep.** Mani habló con el equipo y no
       hay obligaciones extra bajo habeas data: la información la dieron los leads por su cuenta y
       los pagos no guardan datos delicados (solo monto y plataforma, nunca un instrumento de pago).

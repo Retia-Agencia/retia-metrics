@@ -8,39 +8,82 @@
 > Copiar y pegar tal cual. Escrito el 20-sep al cerrar.
 
 ```
-Arrancamos el CRM v2 de Retia. Lee AGENTS.md y luego docs/plan-crm-v2.md COMPLETO: ese es el
-plan y ya esta aprobado. El diseno del que sale vive fuera del repo, en
+Arrancamos la ETAPA 1 del CRM v2 de Retia. Lee AGENTS.md, luego docs/plan-crm-v2.md §6 etapa 1,
+y los ADR 0035 a 0042 (son nuevos, del 21-sep: ahi esta el modelo entero argumentado). El diseno
+del que sale todo vive fuera del repo, en
 /Users/mani/Documents/mani_vault/02 Projects/retia/notebook/crm-retia-modelo-hubspot-scaffold.md
 y manda sobre el plan en todo lo que sea diseno.
 
-Estado: 677 tests, typecheck y lint limpios, 20 migraciones, `production` al dia. Y el dato que
-ordena todo el plan: `calls`, `sales` y `abonos` tienen CERO filas en production (medido el
-21-sep). El CRM tiene 4.791 leads y ni un registro operativo, asi que disolver `sales` y colgar
-todo del deal es un cambio de esquema sobre tablas vacias, no una migracion de datos.
+La etapa 0 quedo CERRADA el 21-sep: 8 ADR nuevos, la spec enmendada, 7 ADR vigentes anotados y
+los 47 tickets (036 a 082) creados y registrados en docs/tasks/README.md. No hay decisiones
+abiertas de Mani que bloqueen: E1-4 la contesto el 21-sep (ADR 0039).
 
-Tu trabajo es la ETAPA 0 del plan (§6), que no tiene una sola linea de codigo:
+Estado: 677 tests, typecheck y lint limpios, 20 migraciones, `production` al dia. El dato que
+ordena el plan sigue vigente: `calls`, `sales` y `abonos` tienen CERO filas en production.
 
-  E0-1  Escribir los ADR 0035 a 0042 (la tabla esta en §8 del plan; las decisiones ya
-        argumentadas viven en §3 como D1 a D6, solo hay que promoverlas)
-  E0-2  Enmendar docs/spec.md segun el insumo §11
-  E0-3  Anotar la enmienda en los ADR vigentes que cambian: 0004, 0007, 0015, 0019, 0021,
-        0027, 0032
-  E0-4  Ya hecho el 21-sep: 034 absorbido, 021 congelado, 007 partido, 035 mudado
-  E0-5  Ya hecho el 21-sep: vocabulario v2 en docs/agents/context.md
-  E0-6  Crear los tickets de las etapas 1 a 7 en docs/tasks/ y registrarlos en el tracker
+Tu trabajo son los tickets 036 a 042, que son UN SOLO CORTE:
 
-Queda UNA decision abierta y es de Mani, no bloquea empezar: E1-4, que pasa con las 5 filas de
-`sources` con destino != people (Estudiantes, Pauta, Registro de llamadas). Se borran, o
-`destino` sobrevive y el indice unico de D2 es parcial. El caso incomodo es `ad_spend`, que el
-insumo §8 quiere de vuelta para el ROAS.
+  - van en SU PROPIA RAMA y en UNA sola migracion (`0020`). Ninguno se fusiona suelto
+  - los tests van a caer en masa: es esperado, no es una regresion
+  - 036 (el rename mecanico de ~39 archivos) es lo unico delegable a Kiro
+  - 042 es la migracion: la genera y la aplica ESTA sesion, nunca un subagente, y
+    `production` solo con el ok explicito de Mani (ADR 0018)
 
-Trabajo delegable a Kiro a partir de la etapa 1; la etapa 0 es criterio, hazla tu.
-Las migraciones las genera y aplica la sesion principal, nunca un subagente.
+Ojo con el orden dentro de 039: hay que desactivar `Forms viejo` ANTES de crear el indice unico
+parcial de `sources`, o falla (ComunicArte tiene dos fuentes de leads activas hoy).
 ```
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-21 (CIERRE 18) — Etapa 0 del plan v2 CERRADA. Sigue sin haber una linea de codigo:
+  677 tests intactos, esquema sin tocar.**
+
+  **PARA QUIEN ABRA LA PROXIMA SESION:** arranca la etapa 1 (tickets 036 a 042). Todo lo que
+  necesitas esta en el repo; **ya no hace falta abrir el insumo del vault** para reconstruir el
+  modelo, que era el "done cuando" de esta etapa.
+
+  - **E0-1 · Ocho ADR nuevos, 0035 a 0042.** Promueven D1 a D6 del plan a decisiones registradas:
+    0035 el Lead y sus contactos (`people` → `leads`, el telefono **une y marca**, nunca fusiona);
+    0036 el Envio con todas las columnas y el `jsonb` que **no repite** las promovidas;
+    0037 el Deal, las diez etapas como tipo y el **motor unico** (`sales` se disuelve);
+    0038 anular ≠ Cierre Perdido; 0039 un programa, una fuente de leads; 0040 el sync por capas;
+    0041 las cuotas pactadas son filas; 0042 todo movimiento deja rastro **desde el dia uno**.
+
+  - **E0-2 · `docs/spec.md` enmendada** con las cinco del insumo §11 + dos: el kanban ENTRA, del
+    onboarding entra solo `onboarded_at`, la comision entra, la cedula no, el Calendly se cierra
+    en **PAT por programa** (era un supuesto abierto), y el "historico de C2" crece hasta ser la
+    migracion one-time. La cabecera dice que secciones quedaron desactualizadas y que **mandan los
+    ADR 0035-0042** donde discrepen: una spec a medias que no avisa es peor que una vieja.
+
+  - **E0-3 · Siete ADR vigentes anotados** (0004, 0007, 0015, 0019, 0021, 0027, 0032), cada uno
+    con su seccion `## Enmienda 2026-09-21` diciendo **que se conserva** y que cambia. Ninguno
+    queda `superseded`: el 0007, por ejemplo, no se reemplaza, **se rodea**.
+
+  - **E0-6 · 47 tickets nuevos, 036 a 082**, uno por cada tarea E1-1 a E7-6 del plan, mas los dos
+    que ya existian y aterrizan en sus etapas (035 en E4, 021 en E5). El tracker se reorganizo en
+    dos epocas: **E1 a E7 es el trabajo vivo**, F0 a F4 queda como historia.
+
+  - 🎯 **Mani cerro E1-4, la unica decision abierta** (textual): *"Borrar todas. Porque eso era
+    solo para la migracion inicial ya que todo se manejaba manual en Sheets... cuando el CRM se
+    vuelva el centro, las llamadas solo van a vivir aqui. Lo unico que va a entrar de afuera son
+    Leads crudos que llenan un forms de un programa."* Y la asimetria de la pauta: *"el costo de
+    una campana... si toca indicarlo manualmente o traerlo de los Paid Traffickers; las pautas
+    deben poderse asignar un costo."* O sea: `sources` = solo intake, la columna `destino`
+    desaparece, y **`ad_spend` sobrevive pero deja de entrar por Sheets: se captura en el CRM**
+    (ADR 0039, tickets 039 y 067).
+
+  - ⚠️ **Y una correccion medida al propio plan:** el plan v2 §10 dice "las 5 filas de `sources`
+    con destino != people". **Son 7**, verificado contra `dev` con una consulta de solo lectura
+    (el plan conto las 5 filas de ComunicArte, que incluyen 2 de leads). No cambia la decision,
+    pero la migracion del ticket 039 borra 7 y no 5. Es la regla de siempre: **antes de trabajar
+    un dato heredado, verificalo; cuesta un comando.**
+
+  - ⚠️ **Lo que la etapa 1 no puede olvidar**, escrito en los tickets: `Forms viejo` **se desactiva
+    pero NO se borra** (sus 55 personas y sus envios de la etapa 7 necesitan una fuente a la que
+    apuntar), y el indice unico parcial de `sources` se crea **despues** de desactivarlo, en la
+    misma migracion. Al reves falla: hoy ComunicArte tiene dos fuentes de leads activas.
 
 - **2026-09-21 (CIERRE 17) — Se abrio la epoca v2: el CRM pasa al modelo HubSpot. Sesion de
   planeacion, cero codigo. 677 tests intactos.**

@@ -29,3 +29,28 @@ personas creadas a mano son del CRM, igual que las llamadas y ventas desde ADR 0
 Se descartaron dos alternativas. Escribir el responsable tambien en la hoja cumplia la letra de
 ADR 0004, pero exigia escritura a Sheets y dejaba una columna editable a mano: dos verdades. Una
 columna que el equipo llena en la hoja contradecia el pedido de Michael de asignarlo en la app.
+
+## Enmienda 2026-09-21 (plan v2, ADR 0037): el responsable se muda al Deal y se llama owner
+
+**Lo que se conserva, entero:** este dato es del **CRM y no de Sheets** (el sync nunca lo lee ni lo
+pisa, y la app no lo escribe de vuelta a la hoja); **"sin responsable" sigue siendo valido**; no hay
+reparto automatico ni backfill; **el alta manual sigue existiendo** con correo obligatorio y su
+marca de entrada; y las personas manuales **cuentan en el embudo pero no en el CPL**, porque la
+pauta solo paga las del formulario.
+
+**Lo que cambia, y por que:**
+
+- De `people.responsable_closer_id` (texto copiado, ADR 0011) a **`deals.owner_user_id`, FK real a
+  `users`**. El responsable era de la **persona**; el owner es de la **oportunidad**. Una persona
+  puede tener dos deals cerrados por dos closers distintos en dos cohortes, y con el campo sobre la
+  persona eso no se puede representar sin mentir.
+- Al ser FK a `users` deja de ser texto libre, y con eso desaparece por este flanco el riesgo del
+  ADR 0011 (`Andre` en vez de `Andrea`). ADR 0011 sobrevive **solo** para lo historico que entre
+  por la migracion one-time de la etapa 7, donde la hoja escribio un nombre y no hay usuario al que
+  apuntar.
+- **El reclamo reemplaza a la asignacion.** Los deals nacen sin owner: **Pendiente Setteo** es una
+  tabla donde el closer reclama, y **Unclaimed** son los Agendados sin owner. Un gerente sigue
+  pudiendo asignar y reasignar, y cada cambio sigue yendo a `change_log`. La rotacion ciega del
+  script desaparece.
+- 🩸 Que este campo se podia mover sin dolor lo dice la medicion del 21-sep: **0 personas** tienen
+  responsable. La funcion existe desde el ticket 026 y nunca se uso.
