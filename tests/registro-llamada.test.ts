@@ -6,7 +6,7 @@ import {
   cohorts,
   miembrosPrograma,
   motivos,
-  people,
+  leads,
   plataformasPago,
   productos,
   programs,
@@ -49,7 +49,7 @@ async function limpiar(): Promise<void> {
   await db.delete(abonos);
   await db.delete(sales);
   await db.delete(calls);
-  await db.delete(people);
+  await db.delete(leads);
   await db.delete(cohorts);
   await db.delete(productos);
   await db.delete(programs);
@@ -227,7 +227,7 @@ describe("registrarLlamada", () => {
     await sembrarCohorte(programId, "activo");
     const otroProgramId = await sembrarPrograma("otro-programa");
     const [personaAjena] = await db
-      .insert(people)
+      .insert(leads)
       .values({ programId: otroProgramId, emailNormalizado: "lead@ajeno.co" })
       .returning();
 

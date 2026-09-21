@@ -41,7 +41,7 @@ import {
  */
 
 const DESTINOS: { valor: string; etiqueta: string }[] = [
-  { valor: "people", etiqueta: "Personas" },
+  { valor: "leads", etiqueta: "Personas" },
   { valor: "calls", etiqueta: "Llamadas" },
   { valor: "sales", etiqueta: "Ventas" },
   { valor: "ad_spend", etiqueta: "Pauta" },

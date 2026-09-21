@@ -1,6 +1,6 @@
 import { desc, eq, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
-import { abonos, calls, changeLog, people, programs, sales, users } from "@/lib/db/schema";
+import { abonos, calls, changeLog, leads, programs, sales, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { vigente } from "./vigente";
 
@@ -38,13 +38,13 @@ export async function conteosPorPrograma(db: Db = dbDeLaApp) {
   // A esta escala (dos programas, ~3.000 filas por hoja — AGENTS.md) cinco consultas
   // por indice son gratis, y el resultado es obviamente correcto al leerlo.
   const porPrograma = (
-    columna: typeof people.programId | typeof calls.programId | typeof sales.programId | typeof abonos.programId,
-    tabla: typeof people | typeof calls | typeof sales | typeof abonos,
+    columna: typeof leads.programId | typeof calls.programId | typeof sales.programId | typeof abonos.programId,
+    tabla: typeof leads | typeof calls | typeof sales | typeof abonos,
   ) =>
     db
       .select({ programId: columna, total: sql<number>`count(*)::int` })
       .from(tabla)
-      // `vigente` acepta tambien las tablas que no se anulan (`people`), donde no
+      // `vigente` acepta tambien las tablas que no se anulan (`leads`), donde no
       // filtra nada. Por eso el helper generico puede aplicarlo sin preguntar cual
       // de las cuatro tablas le toco: si es anulable, excluye; si no, todas cuentan.
       .where(vigente(tabla))
@@ -55,7 +55,7 @@ export async function conteosPorPrograma(db: Db = dbDeLaApp) {
       .select({ id: programs.id, slug: programs.slug, nombre: programs.nombre, activo: programs.activo })
       .from(programs)
       .orderBy(programs.nombre),
-    porPrograma(people.programId, people),
+    porPrograma(leads.programId, leads),
     porPrograma(calls.programId, calls),
     porPrograma(sales.programId, sales),
     porPrograma(abonos.programId, abonos),

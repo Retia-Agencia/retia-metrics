@@ -7,7 +7,7 @@ import {
   motivos,
   origenes,
   plataformasPago,
-  people,
+  leads,
   productos,
   programs,
   sales,
@@ -87,17 +87,17 @@ export async function buscarPersonas(
   const patron = `%${termino.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
   const columnas = {
-    id: people.id,
-    nombre: people.nombre,
-    emailNormalizado: people.emailNormalizado,
-    telefono: people.telefono,
-    programId: people.programId,
+    id: leads.id,
+    nombre: leads.nombre,
+    emailNormalizado: leads.emailNormalizado,
+    telefono: leads.telefono,
+    programId: leads.programId,
     programaNombre: programs.nombre,
-    responsableCloserId: people.responsableCloserId,
-    entrada: people.entrada,
+    responsableCloserId: leads.responsableCloserId,
+    entrada: leads.entrada,
   };
-  const coincide = or(ilike(people.nombre, patron), ilike(people.emailNormalizado, patron));
-  const orden = [asc(people.nombre), asc(people.emailNormalizado)] as const;
+  const coincide = or(ilike(leads.nombre, patron), ilike(leads.emailNormalizado, patron));
+  const orden = [asc(leads.nombre), asc(leads.emailNormalizado)] as const;
 
   // Quien administra ve todos los programas activos. El developer entra por aca
   // (ADR 0025 punto 5: no se le restringe nada), no por el camino de la membresia,
@@ -105,8 +105,8 @@ export async function buscarPersonas(
   if (esAdministrador(rol)) {
     return db
       .select(columnas)
-      .from(people)
-      .innerJoin(programs, eq(programs.id, people.programId))
+      .from(leads)
+      .innerJoin(programs, eq(programs.id, leads.programId))
       .where(and(eq(programs.activo, true), coincide))
       .orderBy(...orden)
       .limit(MAXIMO_FILAS);
@@ -114,9 +114,9 @@ export async function buscarPersonas(
 
   return db
     .select(columnas)
-    .from(people)
-    .innerJoin(programs, eq(programs.id, people.programId))
-    .innerJoin(miembrosPrograma, eq(miembrosPrograma.programId, people.programId))
+    .from(leads)
+    .innerJoin(programs, eq(programs.id, leads.programId))
+    .innerJoin(miembrosPrograma, eq(miembrosPrograma.programId, leads.programId))
     .where(
       and(
         eq(miembrosPrograma.userId, userId),
@@ -218,19 +218,19 @@ export async function historialDePersona(
 ): Promise<HistorialDePersona | null> {
   const [persona] = await db
     .select({
-      id: people.id,
-      nombre: people.nombre,
-      emailNormalizado: people.emailNormalizado,
-      telefono: people.telefono,
-      programId: people.programId,
+      id: leads.id,
+      nombre: leads.nombre,
+      emailNormalizado: leads.emailNormalizado,
+      telefono: leads.telefono,
+      programId: leads.programId,
       programaNombre: programs.nombre,
-      responsableCloserId: people.responsableCloserId,
-      entrada: people.entrada,
-      estado: people.estado,
+      responsableCloserId: leads.responsableCloserId,
+      entrada: leads.entrada,
+      estado: leads.estado,
     })
-    .from(people)
-    .innerJoin(programs, eq(programs.id, people.programId))
-    .where(eq(people.id, personId))
+    .from(leads)
+    .innerJoin(programs, eq(programs.id, leads.programId))
+    .where(eq(leads.id, personId))
     .limit(1);
 
   if (!persona) return null;

@@ -31,7 +31,7 @@ function persona(extra: Partial<PersonaDeducida> = {}): PersonaDeducida {
   };
 }
 
-/** Lo que ya esta guardado, con la forma de una fila de `people`. */
+/** Lo que ya esta guardado, con la forma de una fila de `leads`. */
 function guardada(p: PersonaDeducida, extra: Record<string, unknown> = {}) {
   return {
     id: "per-1",

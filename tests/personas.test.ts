@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { changeLog, miembrosPrograma, people, programs, users } from "@/lib/db/schema";
+import { changeLog, miembrosPrograma, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { asignarResponsable, crearPersonaManual } from "@/lib/mutations/personas";
@@ -11,7 +11,7 @@ import { crearBaseDePrueba } from "./helpers/base-de-prueba";
  *
  * La base recibe por inyeccion PGlite. beforeEach siembra un gerente, dos closers
  * con su `closerId` cargado, dos programas y las membresias: Ana vende en A, Beto
- * en B. Cada caso mira `people` y `change_log`.
+ * en B. Cada caso mira `leads` y `change_log`.
  */
 
 let db: Db;
@@ -79,7 +79,7 @@ async function sembrarPersona(
   extra: Record<string, unknown> = {},
 ): Promise<string> {
   const [p] = await db
-    .insert(people)
+    .insert(leads)
     .values({ programId, emailNormalizado: "lead@correo.co", ...extra } as never)
     .returning();
   return p.id as string;
@@ -99,7 +99,7 @@ describe("asignarResponsable", () => {
     expect(log[0].campo).toBe("responsableCloserId");
     expect(log[0].origen).toBe("app");
     expect(log[0].userId).toBe(anaUserId);
-    expect(log[0].tabla).toBe("people");
+    expect(log[0].tabla).toBe("leads");
     expect(log[0].valorNuevo).toBe("Ana");
   });
 
@@ -270,7 +270,7 @@ describe("crearPersonaManual", () => {
     expect(log.length).toBeGreaterThan(0);
     expect(log.every((l) => l.origen === "app")).toBe(true);
     expect(log.every((l) => l.userId === anaUserId)).toBe(true);
-    expect(log.every((l) => l.tabla === "people")).toBe(true);
+    expect(log.every((l) => l.tabla === "leads")).toBe(true);
   });
 
   it("repetir el mismo correo (con mayusculas y espacios) no duplica: devuelve la existente y no agrega change_log", async () => {
@@ -294,7 +294,7 @@ describe("crearPersonaManual", () => {
     expect(segunda.id).toBe(primera.id);
     expect(segunda.nombre).toBe("Uno"); // no se modifico
 
-    const filas = await db.select().from(people).where(eq(people.emailNormalizado, "dup@correo.co"));
+    const filas = await db.select().from(leads).where(eq(leads.emailNormalizado, "dup@correo.co"));
     expect(filas).toHaveLength(1);
 
     const logFinal = await logDe(primera.id);

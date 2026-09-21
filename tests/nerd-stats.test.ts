@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, changeLog, people, programs, sales, users } from "@/lib/db/schema";
+import { abonos, calls, changeLog, leads, programs, sales, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
   conteosPorOrigen,
@@ -56,7 +56,7 @@ beforeEach(async () => {
   programaB = b.id;
 
   const [persona] = await db
-    .insert(people)
+    .insert(leads)
     .values({
       programId: programaA,
       emailNormalizado: CORREO_LEAD,
@@ -182,7 +182,7 @@ describe("ultimosCambiosDesdeLaApp", () => {
     // Asi es EXACTAMENTE como `lib/mutations/personas.ts` escribe la bitacora al
     // asignar responsable: la etiqueta es el nombre o el correo de la persona.
     await db.insert(changeLog).values({
-      tabla: "people",
+      tabla: "leads",
       registroId: personaId,
       etiqueta: NOMBRE_LEAD,
       campo: "responsableCloserId",
@@ -195,7 +195,7 @@ describe("ultimosCambiosDesdeLaApp", () => {
     const filas = await ultimosCambiosDesdeLaApp(15, db);
     expect(filas).toHaveLength(1);
     // Lo que si sale: metadatos.
-    expect(filas[0]).toMatchObject({ tabla: "people", campo: "responsableCloserId" });
+    expect(filas[0]).toMatchObject({ tabla: "leads", campo: "responsableCloserId" });
     // Lo que no puede salir, mirado sobre la fila entera y no columna por columna:
     // una columna nueva con datos del lead tambien haria fallar esto.
     const serializada = JSON.stringify(filas[0]);

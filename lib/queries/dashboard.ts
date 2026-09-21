@@ -1,7 +1,7 @@
 import { and, between, eq, isNotNull, notInArray, sql } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
-import { abonos, calls, motivos, origenes, people, sales } from "@/lib/db/schema";
+import { abonos, calls, motivos, origenes, leads, sales } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaHabilDe, diasHabilesEntre, metaDinamica, metaLineal } from "@/lib/dias-habiles";
 import { claveDeCloser, claveDeCloserSql, igualCloser } from "@/lib/closers/identidad";
@@ -552,7 +552,7 @@ export async function vistaDeCohorteActiva(
  * `leads` cuenta SOLO personas con `entrada = 'formulario'` (decision de Mani,
  * ADR 0021): las creadas a mano en el CRM (`entrada = 'crm'`) no son leads del
  * formulario y no cuentan contra `metaLeadsDia`. Se anclan por
- * `people.fechaPrimeraAplicacion`, que es `timestamp with time zone`: se convierte a
+ * `leads.fechaPrimeraAplicacion`, que es `timestamp with time zone`: se convierte a
  * fecha de calendario en Bogota antes de comparar, como el embudo de llamadas.
  *
  * `metaLeadsDia` sale de la cohorte activa; `null` si no hay cohorte activa o si no
@@ -563,22 +563,22 @@ export async function leadsDelRango(
   { programId, rango, closerId }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<LeadsDelRango> {
-  const anclaLead = sql<string>`(${people.fechaPrimeraAplicacion} AT TIME ZONE 'America/Bogota')::date`;
+  const anclaLead = sql<string>`(${leads.fechaPrimeraAplicacion} AT TIME ZONE 'America/Bogota')::date`;
   const [fila] = await db
     .select({ n: sql<number>`count(*)::int` })
-    .from(people)
+    .from(leads)
     .where(
       and(
-        eq(people.programId, programId),
-        eq(people.entrada, "formulario"),
+        eq(leads.programId, programId),
+        eq(leads.entrada, "formulario"),
         between(anclaLead, rango.desde, rango.hasta),
         // Con closer, los leads suyos son de los que es RESPONSABLE (ADR 0021). Ojo:
         // "sin responsable" es un estado valido, asi que la suma de los closers no
         // tiene por que dar el total del programa. La pantalla lo dice.
-        delCloser(people.responsableCloserId, closerId),
+        delCloser(leads.responsableCloserId, closerId),
       ),
     );
-  const leads = fila?.n ?? 0;
+  const conteoLeads = fila?.n ?? 0;
 
   const diasHabiles = diasHabilesEntre(rango.desde, rango.hasta);
 
@@ -586,7 +586,7 @@ export async function leadsDelRango(
   const metaLeadsDia = cohorte?.metaLeadsDia ?? null;
   const metaDelRango = metaLeadsDia === null ? null : metaLeadsDia * diasHabiles;
   const cumplimiento =
-    metaDelRango === null || metaDelRango === 0 ? null : leads / metaDelRango;
+    metaDelRango === null || metaDelRango === 0 ? null : conteoLeads / metaDelRango;
 
-  return { leads, diasHabiles, metaLeadsDia, metaDelRango, cumplimiento };
+  return { leads: conteoLeads, diasHabiles, metaLeadsDia, metaDelRango, cumplimiento };
 }

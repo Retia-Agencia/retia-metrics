@@ -6,7 +6,7 @@ import {
   abonos,
   calls,
   miembrosPrograma,
-  people,
+  leads,
   productos,
   resultadoLlamadaEnum,
   sales,
@@ -162,9 +162,9 @@ export async function registrarLlamada(
   // puede apuntar la llamada a otra persona ni cruzar programas.
   if (datos.personId) {
     const [persona] = await db
-      .select({ id: people.id })
-      .from(people)
-      .where(and(eq(people.id, datos.personId), eq(people.programId, datos.programId)))
+      .select({ id: leads.id })
+      .from(leads)
+      .where(and(eq(leads.id, datos.personId), eq(leads.programId, datos.programId)))
       .limit(1);
     if (!persona) {
       throw new ErrorDeApp("La persona no existe o no pertenece a este programa.", 400);

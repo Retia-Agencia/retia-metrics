@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, cohorts, motivos, origenes, people, programs, sales } from "@/lib/db/schema";
+import { abonos, calls, cohorts, motivos, origenes, leads, programs, sales } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { cajaRecaudada, compromisosAbiertos, embudoDelRango, embudoPorCloser, embudoPorOrigen, leadsDelRango, llamadasPorMotivo, vistaDeCohorteActiva } from "@/lib/queries/dashboard";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -381,7 +381,7 @@ async function crearPersona(programId: string, email: string, extra?: {
   responsableCloserId?: string | null;
 }): Promise<string> {
   const [p] = await db
-    .insert(people)
+    .insert(leads)
     .values({
       programId,
       emailNormalizado: email,

@@ -4,7 +4,7 @@ import {
   calls,
   cohorts,
   miembrosPrograma,
-  people,
+  leads,
   programs,
   users,
 } from "@/lib/db/schema";
@@ -154,7 +154,7 @@ describe("la pantalla es del closer: el gerente no registra (ADR 0003)", () => {
    */
   it("un gerente SI puede buscar personas (ve todos los programas activos)", async () => {
     await db
-      .insert(people)
+      .insert(leads)
       .values({ programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" });
 
     const { buscarPersonasAccion } = await accionesPersonas();
@@ -174,7 +174,7 @@ describe("la pantalla es del closer: el gerente no registra (ADR 0003)", () => {
 
   it("un gerente no puede tomar una persona", async () => {
     const [p] = await db
-      .insert(people)
+      .insert(leads)
       .values({ programId: programaA, emailNormalizado: "libre@correo.co" })
       .returning();
     const { tomarPersonaAccion } = await acciones();
@@ -214,7 +214,7 @@ describe("un closer registra en su programa", () => {
 
   it("busca personas de su programa y las recibe en el payload", async () => {
     await db
-      .insert(people)
+      .insert(leads)
       .values({ programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" });
 
     const { buscarPersonasAccion } = await accionesPersonas();
@@ -228,7 +228,7 @@ describe("un closer registra en su programa", () => {
 
   it("registra un show sobre una persona", async () => {
     const [p] = await db
-      .insert(people)
+      .insert(leads)
       .values({ programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" })
       .returning();
 
@@ -247,14 +247,14 @@ describe("un closer registra en su programa", () => {
 
   it("toma una persona sin responsable y queda como responsable", async () => {
     const [p] = await db
-      .insert(people)
+      .insert(leads)
       .values({ programId: programaA, emailNormalizado: "libre@correo.co" })
       .returning();
 
     const { tomarPersonaAccion } = await acciones();
     const res = await tomarPersonaAccion(p.id);
     expect(res.ok).toBe(true);
-    const [fila] = await db.select().from(people).where(eq(people.id, p.id));
+    const [fila] = await db.select().from(leads).where(eq(leads.id, p.id));
     expect(fila.responsableCloserId).toBe("Ana");
   });
 
@@ -268,8 +268,8 @@ describe("un closer registra en su programa", () => {
     expect(res.ok).toBe(true);
     const [fila] = await db
       .select()
-      .from(people)
-      .where(and(eq(people.programId, programaA), eq(people.emailNormalizado, "nuevo@correo.co")));
+      .from(leads)
+      .where(and(eq(leads.programId, programaA), eq(leads.emailNormalizado, "nuevo@correo.co")));
     expect(fila.responsableCloserId).toBe("Ana");
     expect(fila.entrada).toBe("crm");
   });
@@ -282,7 +282,7 @@ describe("developer con 'ver como' (ticket 028)", () => {
 
   it("en vista 'closer' busca SOLO en sus membresias, no en todos los programas", async () => {
     // Un lead en A (donde el developer es miembro) y otro en B (donde no lo es).
-    await db.insert(people).values([
+    await db.insert(leads).values([
       { programId: programaA, emailNormalizado: "en-a@correo.co", nombre: "Ana En A" },
       { programId: programaB, emailNormalizado: "en-b@correo.co", nombre: "Ana En B" },
     ]);
@@ -298,7 +298,7 @@ describe("developer con 'ver como' (ticket 028)", () => {
   });
 
   it("en vista 'todo' (por defecto) busca en TODOS los programas activos", async () => {
-    await db.insert(people).values([
+    await db.insert(leads).values([
       { programId: programaA, emailNormalizado: "en-a@correo.co", nombre: "Ana En A" },
       { programId: programaB, emailNormalizado: "en-b@correo.co", nombre: "Ana En B" },
     ]);
@@ -318,7 +318,7 @@ describe("la fecha del formulario se ancla al mediodia de Bogota, no corre el di
 
   it("un compromiso_pago con fechaSeguimiento YYYY-MM-DD guarda ese mismo dia en Bogota", async () => {
     const [p] = await db
-      .insert(people)
+      .insert(leads)
       .values({ programId: programaA, emailNormalizado: "compromiso@correo.co", nombre: "Compromiso" })
       .returning();
 

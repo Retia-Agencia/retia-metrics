@@ -320,7 +320,7 @@ function consultasSinPredicado(raiz: string): string[] {
         const sospechosas = new Set<string>();
 
         for (const arg of tablasDeFromYJoins(texto)) {
-          // Un nombre del esquema que no es anulable (people, programs, users…) no
+          // Un nombre del esquema que no es anulable (leads, programs, users…) no
           // tiene nada que excluir. Todo lo demas si: una anulable, o una tabla que
           // llega por parametro y podria ser cualquiera.
           const conocida = NOMBRES_DEL_ESQUEMA.has(arg);

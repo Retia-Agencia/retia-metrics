@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { changeLog, miembrosPrograma, people, users } from "@/lib/db/schema";
+import { changeLog, miembrosPrograma, leads, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
@@ -9,12 +9,12 @@ import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import type { Rol } from "@/lib/auth/roles";
 import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
 import { igualCloser, mismoCloser } from "@/lib/closers/identidad";
-import type { Persona } from "@/lib/db/schema";
+import type { Lead } from "@/lib/db/schema";
 
 /**
  * Responsable de una persona y alta manual (ticket 026, ADR 0021, 0011, 0005, 0003).
  *
- * A diferencia de `lib/catalogo/*`, `people` NO tiene columna `activo`, asi que esto
+ * A diferencia de `lib/catalogo/*`, `leads` NO tiene columna `activo`, asi que esto
  * no usa `moldeDeCatalogo`: escribe directo, pero con el mismo estilo — la base entra
  * por inyeccion (para testear con PGlite), sin `"use server"`, errores via
  * `ErrorDeApp`, y toda escritura atomica con `ejecutarJuntas` dejando rastro en
@@ -44,7 +44,7 @@ export const esquemaAsignacion = z.object({
  * fila de siempre, sin tocar nada (dedup del ADR 0005).
  */
 export interface ResultadoAltaManual {
-  persona: Persona;
+  persona: Lead;
   creada: boolean;
 }
 
@@ -60,9 +60,9 @@ export type EntradaAsignacion = z.input<typeof esquemaAsignacion>;
 export type EntradaPersonaManual = z.input<typeof esquemaPersonaManual>;
 
 /** Lee una persona por id. */
-async function leerPersona(db: Db, id: string): Promise<Persona | undefined> {
-  const [fila] = await db.select().from(people).where(eq(people.id, id)).limit(1);
-  return fila as Persona | undefined;
+async function leerPersona(db: Db, id: string): Promise<Lead | undefined> {
+  const [fila] = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
+  return fila as Lead | undefined;
 }
 
 /** Lee una persona por (programa, correo normalizado): la llave del dedup (ADR 0005). */
@@ -70,13 +70,13 @@ async function leerPorCorreo(
   db: Db,
   programId: string,
   emailNormalizado: string,
-): Promise<Persona | undefined> {
+): Promise<Lead | undefined> {
   const [fila] = await db
     .select()
-    .from(people)
-    .where(and(eq(people.programId, programId), eq(people.emailNormalizado, emailNormalizado)))
+    .from(leads)
+    .where(and(eq(leads.programId, programId), eq(leads.emailNormalizado, emailNormalizado)))
     .limit(1);
-  return fila as Persona | undefined;
+  return fila as Lead | undefined;
 }
 
 /**
@@ -135,7 +135,7 @@ export async function asignarResponsable(
   db: Db,
   actor: Actor,
   input: EntradaAsignacion,
-): Promise<Persona> {
+): Promise<Lead> {
   return normalizando(async () => {
     const datos = esquemaAsignacion.parse(input);
 
@@ -181,11 +181,11 @@ export async function asignarResponsable(
 
     await ejecutarJuntas(db, (tx) => [
       (tx as Db)
-        .update(people)
+        .update(leads)
         .set({ responsableCloserId: datos.closerId, updatedAt: new Date() })
-        .where(eq(people.id, persona.id)),
+        .where(eq(leads.id, persona.id)),
       (tx as Db).insert(changeLog).values({
-        tabla: "people",
+        tabla: "leads",
         registroId: persona.id,
         etiqueta: persona.nombre ?? persona.emailNormalizado,
         campo: "responsableCloserId",
@@ -266,10 +266,10 @@ export async function crearPersonaManual(
 
     try {
       await ejecutarJuntas(db, (tx) => [
-        (tx as Db).insert(people).values(valores),
+        (tx as Db).insert(leads).values(valores),
         ...aBitacora.map(([campo, valor]) =>
           (tx as Db).insert(changeLog).values({
-            tabla: "people",
+            tabla: "leads",
             registroId: id,
             etiqueta,
             campo,

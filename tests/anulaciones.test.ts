@@ -6,7 +6,7 @@ import {
   calls,
   changeLog,
   cohorts,
-  people,
+  leads,
   miembrosPrograma,
   plataformasPago,
   productos,
@@ -61,7 +61,7 @@ async function limpiar(): Promise<void> {
   await db.delete(abonos);
   await db.delete(sales);
   await db.delete(calls);
-  await db.delete(people);
+  await db.delete(leads);
   await db.delete(cohorts);
   await db.delete(productos);
   await db.delete(programs);
@@ -100,7 +100,7 @@ async function sembrarEscenario({ estado = "activo" as "activo" | "cerrado" } = 
     })
     .returning();
   const [persona] = await db
-    .insert(people)
+    .insert(leads)
     .values({ programId: programa.id, emailNormalizado: "lead@correo.com" })
     .returning();
   return { programId: programa.id, cohortId: cohorte.id, personId: persona.id };

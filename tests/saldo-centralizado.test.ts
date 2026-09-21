@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, people, programs, sales } from "@/lib/db/schema";
+import { abonos, leads, programs, sales } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba, type BaseDePrueba } from "./helpers/base-de-prueba";
 import { saldoDeVenta } from "@/lib/queries/ventas";
@@ -35,7 +35,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await db.delete(abonos);
   await db.delete(sales);
-  await db.delete(people);
+  await db.delete(leads);
   await db.delete(programs);
 
   const [p] = await db
@@ -45,7 +45,7 @@ beforeEach(async () => {
   programaId = p.id;
 
   const [persona] = await db
-    .insert(people)
+    .insert(leads)
     .values({ programId: programaId, emailNormalizado: "lead@correo.co" })
     .returning();
   personId = persona.id;

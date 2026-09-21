@@ -1,4 +1,4 @@
-import type { changeLog, people } from "@/lib/db/schema";
+import type { changeLog, leads } from "@/lib/db/schema";
 import type { PersonaDeducida } from "./dedup";
 
 /**
@@ -51,8 +51,8 @@ const CAMPOS_COMPARABLES = [
   "fechaUltimaAplicacion",
 ] as const;
 
-type PersonaGuardada = typeof people.$inferSelect;
-type PersonaNueva = typeof people.$inferInsert;
+type PersonaGuardada = typeof leads.$inferSelect;
+type PersonaNueva = typeof leads.$inferInsert;
 
 export type PlanSync = {
   aInsertar: PersonaNueva[];
@@ -82,7 +82,7 @@ export function planificarSync(
     plan.aActualizar.push({ id: previo.id, valores: registro });
     for (const d of diffs) {
       plan.cambios.push({
-        tabla: "people",
+        tabla: "leads",
         registroId: previo.id,
         etiqueta: previo.nombre ?? p.emailNormalizado,
         campo: d.campo,

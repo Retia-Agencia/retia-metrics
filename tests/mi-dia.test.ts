@@ -4,7 +4,7 @@ import {
   abonos,
   changeLog,
   miembrosPrograma,
-  people,
+  leads,
   plataformasPago,
   productos,
   programs,
@@ -41,7 +41,7 @@ async function limpiar(): Promise<void> {
   await db.delete(abonos);
   await db.delete(sales);
   await db.delete(productos);
-  await db.delete(people);
+  await db.delete(leads);
   await db.delete(miembrosPrograma);
   await db.delete(programs);
   await db.delete(plataformasPago);
@@ -89,7 +89,7 @@ async function sembrarPersona(
   extra: Record<string, unknown> = {},
 ): Promise<string> {
   const [p] = await db
-    .insert(people)
+    .insert(leads)
     .values({ programId, emailNormalizado: "lead@correo.co", ...extra } as never)
     .returning();
   return p.id as string;

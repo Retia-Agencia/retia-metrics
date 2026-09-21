@@ -20,22 +20,13 @@ import {
  * Modelo de datos de Retia Metrics.
  *
  * Regla que atraviesa todo el esquema: **toda tasa se calcula sobre personas,
- * nunca sobre filas**. Por eso `people` tiene un unico registro por correo
+ * nunca sobre filas**. Por eso `leads` tiene un unico registro por correo
  * normalizado y guarda `numAplicaciones` como senal, no como filas separadas.
  */
 
 // ─────────────────────────────────────────────────────────── enums
 
 export const rolEnum = pgEnum("rol", ["gerente", "closer", "developer"]);
-
-export const estadoPersonaEnum = pgEnum("estado_persona", [
-  "descartado",
-  "cola_setteo",
-  "invitado",
-  "show",
-  "cierre",
-  "perdido",
-]);
 
 export const resultadoLlamadaEnum = pgEnum("resultado_llamada", [
   "agendada",
@@ -137,7 +128,7 @@ export const programs = pgTable("programs", {
    * del codigo— en `lib/sheets/plantilla-lead.ts`.
    *
    * Nula = el programa no ajusta nada y sus fuentes heredan el defecto. No inventa
-   * campos: los campos son fijos en el codigo y lo demas va a `people.raw`.
+   * campos: los campos son fijos en el codigo y lo demas va a `leads.raw`.
    */
   plantillaLead: jsonb("plantilla_lead"),
   activo: boolean("activo").notNull().default(true),
@@ -216,8 +207,8 @@ export const sources = pgTable("sources", {
 
 // ─────────────────────────────────────────────────────────── personas
 
-export const people = pgTable(
-  "people",
+export const leads = pgTable(
+  "leads",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
@@ -239,7 +230,18 @@ export const people = pgTable(
     fechaUltimaAplicacion: timestamp("fecha_ultima_aplicacion", { withTimezone: true }),
     /** Cuantas veces aplico la misma persona. Senal de intensidad, no personas distintas. */
     numAplicaciones: integer("num_aplicaciones").notNull().default(1),
-    estado: estadoPersonaEnum("estado").notNull().default("cola_setteo"),
+    /**
+     * El estado con el que la hoja clasifica al lead (ADR 0032). Es TEXTO y no un
+     * enum porque **el codigo no decide nada segun su valor**: lo escribe el sync
+     * copiandolo del formulario y lo lee una pantalla. Un enum obligaria a una
+     * migracion cada vez que el negocio agregue una casilla al formulario, que es
+     * justo lo que el ADR 0012 manda evitar cuando el valor es una instancia.
+     *
+     * Es la direccion contraria a `deals.etapa`, que SI es enum: ahi todo decide
+     * con el valor. No se contradicen; contestan la misma pregunta sobre datos
+     * distintos.
+     */
+    estado: text("estado").notNull().default("cola_setteo"),
     /**
      * Closer responsable de la persona (ADR 0021). Lo escribe solo la app: el sync
      * nunca lo lee ni lo pisa. Es el mismo `closerId` en texto de ADR 0011, no una
@@ -261,9 +263,9 @@ export const people = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex("people_programa_email_idx").on(t.programId, t.emailNormalizado),
-    index("people_programa_estado_idx").on(t.programId, t.estado),
-    index("people_cohorte_idx").on(t.cohortId),
+    uniqueIndex("leads_programa_email_idx").on(t.programId, t.emailNormalizado),
+    index("leads_programa_estado_idx").on(t.programId, t.estado),
+    index("leads_cohorte_idx").on(t.cohortId),
   ],
 );
 
@@ -273,7 +275,7 @@ export const calls = pgTable(
   "calls",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    personId: uuid("person_id").references(() => people.id, { onDelete: "cascade" }),
+    personId: uuid("person_id").references(() => leads.id, { onDelete: "cascade" }),
     cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "set null" }),
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
     /** Nombre del closer tal como aparece en la hoja. Se cruza contra users.closerId. */
@@ -336,7 +338,7 @@ export const sales = pgTable(
   "sales",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    personId: uuid("person_id").references(() => people.id, { onDelete: "set null" }),
+    personId: uuid("person_id").references(() => leads.id, { onDelete: "set null" }),
     cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "set null" }),
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
     closerId: text("closer_id"),
@@ -781,8 +783,8 @@ export type MiembroPrograma = typeof miembrosPrograma.$inferSelect;
 export type Programa = typeof programs.$inferSelect;
 export type Cohorte = typeof cohorts.$inferSelect;
 export type Fuente = typeof sources.$inferSelect;
-export type Persona = typeof people.$inferSelect;
-export type NuevaPersona = typeof people.$inferInsert;
+export type Lead = typeof leads.$inferSelect;
+export type NuevoLead = typeof leads.$inferInsert;
 export type Llamada = typeof calls.$inferSelect;
 export type Venta = typeof sales.$inferSelect;
 export type Abono = typeof abonos.$inferSelect;
