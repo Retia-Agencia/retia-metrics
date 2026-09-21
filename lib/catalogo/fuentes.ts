@@ -3,6 +3,7 @@ import { z } from "zod";
 import { programs, sources } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
+import { esViolacionUnica } from "@/lib/db/errores";
 import { normalizando } from "@/lib/errors-zod";
 import { esAdministrador, type Rol } from "@/lib/auth/roles";
 import type { MapeoColumnas } from "@/lib/sheets/mapeo";
@@ -39,8 +40,6 @@ import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
 const esquemaId = z.string().uuid("El identificador no es válido.");
 
-/** Destinos que una fuente puede alimentar. Instancia NO: es un tipo fijo del codigo. */
-export const DESTINOS_FUENTE = ["people", "calls", "sales", "ad_spend"] as const;
 /** Tipos de fuente. Hoy solo hoja de calculo; `upload` existe en el enum pero no se usa. */
 export const TIPOS_FUENTE = ["google_sheet", "upload"] as const;
 
@@ -71,7 +70,6 @@ export const esquemaFuente = z.object({
   sheetId: z.string().trim().min(1, "El ID de la hoja es obligatorio."),
   tab: z.string().trim().min(1, "La pestaña es obligatoria."),
   rango: z.string().trim().min(1).default("A1:BZ"),
-  destino: z.enum(DESTINOS_FUENTE).default("people"),
   mapeoColumnas: esquemaMapeo.default({}),
   activo: z.boolean().default(false),
 });
@@ -93,7 +91,6 @@ export interface FuenteVista extends FilaCatalogo {
   sheetId: string | null;
   tab: string | null;
   rango: string;
-  destino: string;
   mapeoColumnas: MapeoColumnas;
   ultimaSync: Date | null;
   orden: number;
@@ -115,7 +112,6 @@ type CamposFuente = {
   sheetId: string;
   tab: string;
   rango: string;
-  destino: string;
   mapeoColumnas: MapeoColumnas;
   activo: boolean;
 };
@@ -309,8 +305,25 @@ export async function activarFuente(
       },
       plantilla,
     );
-    const fila = await moldeFuentes(db).reactivar(actor.id, objetivoId);
-    return fila as FuenteVista;
+    try {
+      const fila = await moldeFuentes(db).reactivar(actor.id, objetivoId);
+      return fila as FuenteVista;
+    } catch (error) {
+      // El indice `sources_una_activa_por_programa_idx` (ADR 0039) deja UNA sola
+      // fuente activa por programa. Sin esta traduccion el choque sale como 500 y
+      // el gerente ve "Error interno" en vez de la regla que acaba de tocar.
+      //
+      // La reja vive en la base y no en un `select` previo a proposito (ADR 0005):
+      // entre la comprobacion y la escritura cabe otra activacion, y una regla que
+      // se puede ganar en una carrera no es una garantia.
+      if (esViolacionUnica(error)) {
+        throw new ErrorDeApp(
+          "Ese programa ya tiene una fuente de leads activa. Desactívala primero: solo puede haber una.",
+          409,
+        );
+      }
+      throw error;
+    }
   });
 }
 

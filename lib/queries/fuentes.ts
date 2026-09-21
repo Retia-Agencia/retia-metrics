@@ -57,7 +57,6 @@ export async function estadoDeFuentes(db: Db = dbDeLaApp) {
         id: sources.id,
         nombre: sources.nombre,
         tab: sources.tab,
-        destino: sources.destino,
         activo: sources.activo,
         ultimaSync: sources.ultimaSync,
         programaSlug: programs.slug,

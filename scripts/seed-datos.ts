@@ -146,22 +146,22 @@ async function main() {
   }
 
   // ── Fuentes ─────────────────────────────────────────────────
-  // Solo las de personas quedan activas: son las unicas con mapeo verificado.
-  // Las de llamadas, ventas y pauta entran cuando se inspeccionen sus encabezados.
+  // Una fuente es el INTAKE DE LEADS del programa y nada mas (ADR 0039). Las filas
+  // de llamadas, ventas y pauta se fueron con la columna `destino`: en el modelo v2
+  // esos hechos NACEN en el CRM (ADR 0037) y no entran de una hoja.
+  //
+  // ⚠️ `Formulario anterior` nace INACTIVA. No es un detalle de siembra: el indice
+  // `sources_una_activa_por_programa_idx` deja UNA sola fuente activa por programa,
+  // asi que sembrarla activa haria fallar el seed. Se conserva como fila porque la
+  // etapa 7 recupera sus 55 personas con sus envios, y esos `submissions.source_id`
+  // necesitan apuntar a algo que diga la verdad.
   const defsFuentes = [
     // Comunicarte
-    { programa: "comunicarte", nombre: "Formulario actual", sheetId: SHEET_COMUNICARTE, tab: "New form", destino: "people", orden: 2, activo: true, mapeoColumnas: MAPEO_FORMULARIO },
-    { programa: "comunicarte", nombre: "Formulario anterior", sheetId: SHEET_COMUNICARTE, tab: "Forms viejo", destino: "people", orden: 1, activo: true, mapeoColumnas: MAPEO_FORMULARIO },
-    { programa: "comunicarte", nombre: "Registro de llamadas", sheetId: SHEET_COMUNICARTE, tab: "Registro de llamadas", destino: "calls", orden: 3, activo: false, mapeoColumnas: {} },
-    { programa: "comunicarte", nombre: "Estudiantes", sheetId: SHEET_COMUNICARTE, tab: "Estudiantes Agosto", destino: "sales", orden: 4, activo: false, mapeoColumnas: {} },
-    { programa: "comunicarte", nombre: "Pauta", sheetId: SHEET_COMUNICARTE, tab: "ROAS ESTUDIASTES AGOSTO", destino: "ad_spend", orden: 5, activo: false, mapeoColumnas: {} },
+    { programa: "comunicarte", nombre: "Formulario actual", sheetId: SHEET_COMUNICARTE, tab: "New form", orden: 2, activo: true, mapeoColumnas: MAPEO_FORMULARIO },
+    { programa: "comunicarte", nombre: "Formulario anterior", sheetId: SHEET_COMUNICARTE, tab: "Forms viejo", orden: 1, activo: false, mapeoColumnas: MAPEO_FORMULARIO },
 
     // Tactical Investor
-    { programa: "tactical-investor", nombre: "Formulario", sheetId: SHEET_TACTICAL, tab: "De Cero a Tactical Investor", destino: "people", orden: 1, activo: true, mapeoColumnas: MAPEO_FORMULARIO },
-    { programa: "tactical-investor", nombre: "Registro de llamadas", sheetId: SHEET_TACTICAL, tab: "Registro de llamadas", destino: "calls", orden: 2, activo: false, mapeoColumnas: {} },
-    { programa: "tactical-investor", nombre: "Estudiantes C1", sheetId: SHEET_TACTICAL, tab: "Estudiantes Cohort Julio", destino: "sales", orden: 3, activo: false, mapeoColumnas: {} },
-    { programa: "tactical-investor", nombre: "Estudiantes C2", sheetId: SHEET_TACTICAL, tab: "Septiembre Estudiantes Cohort", destino: "sales", orden: 4, activo: false, mapeoColumnas: {} },
-    { programa: "tactical-investor", nombre: "Pauta C1", sheetId: SHEET_TACTICAL, tab: "ROAS COHORT JULIO", destino: "ad_spend", orden: 5, activo: false, mapeoColumnas: {} },
+    { programa: "tactical-investor", nombre: "Formulario", sheetId: SHEET_TACTICAL, tab: "De Cero a Tactical Investor", orden: 1, activo: true, mapeoColumnas: MAPEO_FORMULARIO },
   ];
 
   for (const { programa, ...d } of defsFuentes) {

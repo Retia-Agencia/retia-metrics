@@ -90,13 +90,17 @@ export async function sincronizarPersonas(
   const [programa] = await db.select().from(programs).where(eq(programs.id, programId)).limit(1);
   if (!programa) throw new Error(`No existe el programa ${programId}`);
 
+  // Toda fuente activa es un intake de leads desde el ADR 0039, asi que ya no hay
+  // que filtrar por destino: la columna desaparecio con las 7 filas que la usaban.
+  // Y el indice `sources_una_activa_por_programa_idx` garantiza que sea UNA sola,
+  // de modo que `fuentes` tiene como mucho un elemento en el caso normal.
   const fuentes = await db
     .select()
     .from(sources)
-    .where(and(eq(sources.programId, programId), eq(sources.activo, true), eq(sources.destino, "people")));
+    .where(and(eq(sources.programId, programId), eq(sources.activo, true)));
 
   if (fuentes.length === 0) {
-    throw new Error(`El programa ${programa.slug} no tiene fuentes de personas activas.`);
+    throw new Error(`El programa ${programa.slug} no tiene una fuente de leads activa.`);
   }
 
   // Reaper: antes de tomar el candado, libera las corridas de ESTE programa que se

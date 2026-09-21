@@ -40,13 +40,6 @@ import {
  * alternativas (se parte al guardar). El ID de la hoja se muestra truncado (S-13).
  */
 
-const DESTINOS: { valor: string; etiqueta: string }[] = [
-  { valor: "leads", etiqueta: "Personas" },
-  { valor: "calls", etiqueta: "Llamadas" },
-  { valor: "sales", etiqueta: "Ventas" },
-  { valor: "ad_spend", etiqueta: "Pauta" },
-];
-
 export interface FuenteVista {
   id: string;
   programId: string;
@@ -55,7 +48,6 @@ export interface FuenteVista {
   sheetId: string | null;
   tab: string | null;
   rango: string;
-  destino: string;
   mapeoColumnas: MapeoColumnas;
   activo: boolean;
   ultimaSync: string | null;
@@ -75,7 +67,6 @@ interface Borrador {
   sheetId: string;
   tab: string;
   rango: string;
-  destino: string;
   mapeo: ParMapeo[];
 }
 
@@ -84,7 +75,6 @@ const BORRADOR_VACIO: Borrador = {
   sheetId: "",
   tab: "",
   rango: "A1:BZ",
-  destino: "people",
   mapeo: [],
 };
 
@@ -94,7 +84,6 @@ function aBorrador(f: FuenteVista): Borrador {
     sheetId: f.sheetId ?? "",
     tab: f.tab ?? "",
     rango: f.rango,
-    destino: f.destino,
     mapeo: aPares(f.mapeoColumnas ?? {}),
   };
 }
@@ -239,7 +228,6 @@ function FilaFuente({
 }) {
   const [probando, startProbar] = useTransition();
   const [prueba, setPrueba] = useState<ColumnaResuelta[] | null>(null);
-  const destino = DESTINOS.find((d) => d.valor === fuente.destino)?.etiqueta ?? fuente.destino;
 
   function probar() {
     startProbar(async () => {
@@ -265,7 +253,6 @@ function FilaFuente({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline">{destino}</Badge>
           {fuente.activo ? (
             <Badge variant="secondary">activa</Badge>
           ) : (
@@ -323,7 +310,6 @@ function aEntrada(b: Borrador, programId: string) {
     sheetId: b.sheetId,
     tab: b.tab,
     rango: b.rango,
-    destino: b.destino as "people" | "calls" | "sales" | "ad_spend",
     mapeoColumnas: aMapeo(b.mapeo),
   };
 }
@@ -384,22 +370,6 @@ function FormularioFuente({
                 className={CLASE_INPUT}
                 aria-label="Nombre"
               />
-            </label>
-
-            <label className="block space-y-1 text-sm">
-              <span className="text-muted-foreground">Destino</span>
-              <select
-                value={borrador.destino}
-                onChange={(e) => setBorrador({ ...borrador, destino: e.target.value })}
-                className={CLASE_INPUT}
-                aria-label="Destino"
-              >
-                {DESTINOS.map((d) => (
-                  <option key={d.valor} value={d.valor}>
-                    {d.etiqueta}
-                  </option>
-                ))}
-              </select>
             </label>
 
             <label className="block space-y-1 text-sm">

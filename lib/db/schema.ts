@@ -90,6 +90,13 @@ export const entradaPersonaEnum = pgEnum("entrada_persona", ["formulario", "crm"
 export const estadoCohorteEnum = pgEnum("estado_cohorte", ["cerrado", "activo", "futuro"]);
 export const tipoFuenteEnum = pgEnum("tipo_fuente", ["google_sheet", "upload"]);
 export const estadoSyncEnum = pgEnum("estado_sync", ["corriendo", "ok", "error"]);
+/**
+ * Salud de una fuente (ADR 0039, lo usa el ticket 055). **No es lo mismo que
+ * `activo`**: una fuente ROTA sigue activa. Es la diferencia entre "esta hoja
+ * cambio y hay que mirarla" y "esta hoja ya no se lee", y fundirlas haria que un
+ * encabezado renombrado apagara el intake del programa en silencio.
+ */
+export const estadoFuenteEnum = pgEnum("estado_fuente", ["activa", "rota"]);
 export const origenCambioEnum = pgEnum("origen_cambio", ["sync", "app", "upload"]);
 
 // ─────────────────────────────────────────────────────────── usuarios
@@ -230,26 +237,86 @@ export const cohorts = pgTable(
 
 // ─────────────────────────────────────────────────────────── fuentes de datos
 
-export const sources = pgTable("sources", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
-  nombre: text("nombre").notNull(),
-  tipo: tipoFuenteEnum("tipo").notNull().default("google_sheet"),
-  sheetId: text("sheet_id"),
-  tab: text("tab"),
-  rango: text("rango").notNull().default("A1:BZ"),
-  /**
-   * Que columna de la hoja alimenta que campo. Configurable a proposito:
-   * si el mapeo no cuadra con los encabezados reales, el sync falla ruidosamente
-   * en vez de adivinar.
-   */
-  mapeoColumnas: jsonb("mapeo_columnas").notNull().default({}),
-  /** Que alimenta esta fuente: personas, llamadas, ventas o pauta. */
-  destino: text("destino").notNull().default("people"),
-  ultimaSync: timestamp("ultima_sync", { withTimezone: true }),
-  activo: boolean("activo").notNull().default(true),
-  orden: integer("orden").notNull().default(0),
-});
+/**
+ * El INTAKE DE LEADS CRUDOS de un programa, y nada mas (ADR 0039).
+ *
+ * Hasta el ticket 039 esta tabla significaba "pestana que el CRM lee, con un
+ * destino", y por eso guardaba cuatro clases de cosas mezcladas: formularios,
+ * estudiantes, pauta y registros de llamadas. Eso tenia sentido en la epoca en que
+ * todo se gestionaba a mano en Sheets. En el modelo v2 las llamadas, las ventas y
+ * los abonos NACEN en el CRM (ADR 0037), asi que lo unico que entra de afuera son
+ * leads crudos que llenan un formulario.
+ *
+ * Por eso la columna `destino` desaparece con las 7 filas que la usaban: cuando
+ * todas las filas valen lo mismo, la columna no informa, y una columna que no
+ * informa es una invitacion a volver a meter otra clase de cosa aqui.
+ */
+export const sources = pgTable(
+  "sources",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
+    nombre: text("nombre").notNull(),
+    tipo: tipoFuenteEnum("tipo").notNull().default("google_sheet"),
+    sheetId: text("sheet_id"),
+    tab: text("tab"),
+    rango: text("rango").notNull().default("A1:BZ"),
+    /**
+     * Que columna de la hoja alimenta que campo. Configurable a proposito:
+     * si el mapeo no cuadra con los encabezados reales, el sync falla ruidosamente
+     * en vez de adivinar.
+     */
+    mapeoColumnas: jsonb("mapeo_columnas").notNull().default({}),
+    /**
+     * En que zona horaria escribe las fechas ESTA fuente (ticket 053). Bogota por
+     * defecto, que es la regla dura del proyecto.
+     *
+     * 🩸 Es configurable porque no es cierto para las hojas de hoy: las dos vienen
+     * de Typeform y escriben en **UTC**. Interpretar una fecha de la hoja como si
+     * fuera de Bogota corre el dia de 7pm a medianoche, y eso no lanza ningun
+     * error: manda un lead al dia equivocado del embudo.
+     */
+    tzFechas: text("tz_fechas").notNull().default("America/Bogota"),
+    /**
+     * Salud de la fuente (ticket 055). Una fuente rota SIGUE ACTIVA y sigue siendo
+     * el intake del programa: lo que cambia es que la app avisa. Apagarla por un
+     * encabezado renombrado dejaria al programa sin entrada de leads sin que nadie
+     * lo pidiera.
+     */
+    estado: estadoFuenteEnum("estado").notNull().default("activa"),
+    ultimaSync: timestamp("ultima_sync", { withTimezone: true }),
+    activo: boolean("activo").notNull().default(true),
+    orden: integer("orden").notNull().default(0),
+  },
+  (t) => [
+    /**
+     * **Un solo intake ACTIVO por programa** (ADR 0039 punto 2, insumo §2.10). La
+     * garantia vive en la base y no en el codigo (ADR 0005), mismo molde que
+     * `cohorts_una_activa_por_programa_idx`.
+     *
+     * PARCIAL y no unico a secas, por dos razones que no son comodidad:
+     * - `Forms viejo` se queda como fuente INACTIVA, no se borra. Sus 55 personas
+     *   exclusivas las recupera la etapa 7 **con sus envios**, y esos
+     *   `submissions.source_id` necesitan apuntar a algo que diga la verdad sobre
+     *   de donde salieron. Apuntarlos al formulario actual seria escribir un origen
+     *   falso.
+     * - Un formulario se reemplaza alguna vez (Typeform → Dapta). Con un unico a
+     *   secas, cambiar de formulario obligaria a destruir el registro del anterior
+     *   en el mismo movimiento.
+     *
+     * Lo que nunca puede existir son DOS intakes activos en el mismo programa: eso
+     * duplica la superficie del dedup y es lo que hacia ambigua la atribucion de una
+     * corrida (F-07, ADR 0031).
+     *
+     * ⚠️ En la migracion este indice se crea DESPUES de desactivar `Forms viejo`.
+     * Medido contra `dev` el 21-sep: ComunicArte tiene HOY dos fuentes de leads
+     * activas, asi que al reves falla. Misma leccion que el `CHECK` de la 0009.
+     */
+    uniqueIndex("sources_una_activa_por_programa_idx")
+      .on(t.programId)
+      .where(sql`${t.activo} = true`),
+  ],
+);
 
 // ─────────────────────────────────────────────────────────── personas
 
@@ -1073,6 +1140,7 @@ export type MiembroPrograma = typeof miembrosPrograma.$inferSelect;
 export type Programa = typeof programs.$inferSelect;
 export type Cohorte = typeof cohorts.$inferSelect;
 export type Fuente = typeof sources.$inferSelect;
+export type EstadoFuente = (typeof estadoFuenteEnum.enumValues)[number];
 export type Lead = typeof leads.$inferSelect;
 export type NuevoLead = typeof leads.$inferInsert;
 export type LeadContacto = typeof leadContactos.$inferSelect;
