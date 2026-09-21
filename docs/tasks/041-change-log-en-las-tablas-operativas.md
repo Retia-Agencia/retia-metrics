@@ -3,7 +3,7 @@ id: 041
 etapa: E1
 serves: "plan v2 §6 etapa 1 · tarea E1-7 · ADR 0042 (D6), molde del ADR 0029"
 depends: [037, 038]
-status: todo
+status: done
 ---
 
 # 041 — `change_log` cubre las tablas operativas, desde el primer dia

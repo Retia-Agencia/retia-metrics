@@ -198,6 +198,18 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   colgada mas de `MINUTOS_ANTES_DE_DAR_POR_MUERTA` (10 = 2x el `maxDuration` de las rutas) la cierra
   el reaper antes de arrancar la siguiente, o el candado pasaria de proteger a bloquear para
   siempre. **Chocar con el candado no es un fallo**: es 409 y el cron lo cuenta como `omitidos`.
+- **El Deal es el objeto central, y `sales` ya no existe (ADR 0037).** Una venta es un deal en
+  **Abonado o Completo**, nunca un deal a secas: contar todos los deals infla las ventas y **no
+  lanza ningun error**. `deal.etapa` es un `pgEnum` de diez valores porque el codigo decide con
+  ella (embudo, Students, cartera, movimientos automaticos); `lead.estado` es texto porque nadie
+  decide con el (ADR 0032). No se contradicen: contestan la misma pregunta sobre datos distintos.
+  **`deals.etapa` no se escribe a mano desde ninguna parte**: el unico camino es `moverEtapa()`
+  (etapa 2), que valida y escribe `deal_etapa_historial`.
+- **Anular NO es Cierre Perdido, y por eso anulado no es una etapa (ADR 0038).** Cierre Perdido es
+  un resultado del negocio y CUENTA en el embudo; anulado es una correccion de tecleo y no cuenta
+  en ninguna metrica. 🩸 Si se funden, un error de dedo se convierte en una venta perdida y la
+  tasa de conversion miente. Y como es una marca ortogonal, anular no borra el dato de en que
+  etapa estaba el deal cuando se descubrio el error.
 - **Google Sheets es la fuente de verdad de los leads; el CRM lo es de llamadas, ventas y
   abonos.** El sync de leads no cambia (ADR 0004). Las llamadas y ventas se registran nativas en
   la app (ADR 0008) sobre las mismas tablas, con `origen = "app"` (ADR 0010).
@@ -248,7 +260,10 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Formato de numero | `lib/format.ts` (punto de miles, coma decimal; el USD SIEMPRE con dos decimales) | `tests/format.test.ts` |
 | Como se escribe un saldo | `saldoLegible` en `lib/format.ts`: decide la ETIQUETA y el valor juntos, porque un saldo negativo es un **sobrepago** y no una deuda | `tests/format.test.ts` |
 | Mensajes de validacion del navegador | `components/validacion-en-espanol.tsx`, montado una vez en el layout raiz: traduce los globos nativos, que salen en el idioma del navegador y no en el del `lang` de la pagina | Revision manual |
-| Que registros cuentan | `vigente(tabla)` / `incluyendoAnulados(tabla)` en `lib/queries/vigente.ts` (ADR 0026) | `tests/vigencia-centralizada.test.ts`: recorre `lib/`, `app/`, `components/` y `scripts/` cadena de drizzle por cadena, y falla si una lee `calls`, `sales` o `abonos` sin aplicar el predicado |
+| Que registros cuentan | `vigente(tabla)` / `incluyendoAnulados(tabla)` en `lib/queries/vigente.ts` (ADR 0026, ampliado a `deals` por el ADR 0038) | `tests/vigencia-centralizada.test.ts`: recorre `lib/`, `app/`, `components/` y `scripts/` cadena de drizzle por cadena, y falla si una lee `calls`, `deals` o `abonos` sin aplicar el predicado. 🩸 Cazo TRES lecturas reales el 22-sep, escritas horas antes por la misma sesion. **Ojo con izar el predicado a una variable**: el guardian lee CADENA por cadena, y una condicion escondida en un `const` le pasa por debajo — y al lector de la consulta tambien |
+| Que toda escritura del CRM deje rastro | `crearConRastro` / `editarConRastro` en `lib/crm/rastro.ts` (ADR 0042): la escritura y su fila de `change_log` en la MISMA operacion, sobre `deals`, `calls`, `abonos` y `deal_actividades`. En un `update` se registran **los campos tocados**, uno por fila; si nada cambio no se escribe nada | `tests/rastro-operativo.test.ts`: guardian sobre `lib/`, `app/`, `components/` y `scripts/`, mordido en los dos sentidos. **Hoy no hay ni una escritura que vigilar y eso es el punto**: tiene que existir ANTES que las mutaciones de las etapas 2 y 4, porque omitir un rastro no lanza ningun error |
+| Cuantos intakes de leads tiene un programa | UNO activo: `sources_una_activa_por_programa_idx`, unico PARCIAL `WHERE activo` (ADR 0039). `activarFuente` traduce el 23505 a un 409 que dice la regla | `tests/sync-candado.test.ts` y `tests/fuentes.test.ts`, mordidos en los dos sentidos. La reja vive en la base y **no en un `select` previo**: entre comprobar y escribir cabe otra activacion |
+| Cuando un deal ocupa el cupo de su lead | `deals_uno_abierto_por_lead_y_programa_idx`: unico parcial `WHERE etapa NOT IN (completo, cierre_perdido) AND anulado_en IS NULL` (ADR 0037, ADR 0038) | `tests/modelo-crm-indices.test.ts`. 🩸 La mitad del `anulado_en` no es un detalle: sin ella, quien registra un deal sobre el lead equivocado y lo anula **no puede crear el correcto** — la base se lo rechaza por un registro que la app ya declaro inexistente |
 | Con que rol actua una sesion | `rolDeVista(session)` en `lib/auth/vista.ts` (ADR 0028): la vista solo ESTRECHA, nunca ensancha | `tests/rol-de-vista-centralizado.test.ts`: recorre `app/` y `lib/` y falla si alguien decide alcance o permiso leyendo `session.user.rol` crudo; las lecturas de IDENTIDAD van como excepciones nombradas |
 | Cuando una fuente puede estar ACTIVA | Una fuente activa SIEMPRE tiene un mapeo que cuadra: `activarFuente` prueba contra los encabezados reales en ese momento, y `editarFuente` vuelve a probar si la fuente ya esta activa (ticket 016) | `tests/fuentes.test.ts`, mordido en los dos sentidos: editar una ACTIVA a un mapeo roto se rechaza con 422 **sin tocar la fila**, y editar una INACTIVA a lo mismo se permite. **No se guarda bandera de "ultima prueba ok"**: envejeceria |
 | Cuando puede arrancar una corrida de sync | El indice unico parcial `sync_runs_una_corriendo_por_programa_idx` + `SyncEnCursoError` (409) y el reaper, en `lib/sheets/sync.ts` (ADR 0031) | `tests/sync-candado.test.ts`: dos corridas simultaneas, el rechazo **sin tocar la corrida viva**, el reaper, y que las fuentes leidas queden guardadas. Mordido ademas contra Neon de verdad el 19-sep, no solo contra PGlite |
@@ -350,6 +365,20 @@ The agent should run these to get fast signal on whether code works. Keep them c
   Consultas de solo lectura, libres; **toda escritura en `production` pide el ok de Mani**.
   Antes de escribir, comprobar la rama real (`neon.branch_id`), no el nombre de la variable: el
   16-sep `DATABASE_URL` resulto apuntar a `production` (ver el hallazgo en el ADR 0018).
+- 🩸 **El SQL que genera `drizzle-kit` se LEE antes de aplicarlo, siempre.** Medido en la 0020
+  (22-sep): de los cuatro defectos que traia, dos eran destructivos y dos la hacian fallar.
+  (1) Expresaba el renombre `people` -> `leads` como `DROP TABLE ... CASCADE` + `CREATE TABLE`,
+  que habria borrado 2.059 leads en `dev` y 4.791 en `production`; (2) ponia los `DROP CONSTRAINT`
+  DESPUES del `DROP TABLE ... CASCADE` que ya se los habia llevado; (3) creaba el indice unico
+  parcial de `sources` ANTES de desactivar la fuente vieja, con dos activas en la base; (4) dejaba
+  las 271 filas de `change_log` hablando de una tabla que ya no existe. **Un `generate` es un
+  borrador, no una migracion.** Reescribirla a mano no rompe el snapshot: el snapshot describe el
+  esquema FINAL, no el camino.
+- **Cuando `drizzle-kit generate` pregunta si algo es un renombre, la opcion por defecto (la
+  primera) es SIEMPRE `create`.** Contestar eso en todo y arreglar el SQL despues es mas seguro que
+  intentar acertar el rename en el prompt: un rename mal contestado escribe un `ALTER` que parece
+  correcto. Si la sesion no tiene TTY, `generate` **falla en vez de colgarse** (lo dice
+  explicito) — hay que darle un pty.
 - **Las migraciones las genera y aplica la sesion principal, nunca un subagente** (Mani, 17-sep).
   Un agente delegado (Kiro, Codex) implementa codigo y tests, pero no corre `db:generate` ni
   `db:migrate`. `drizzle-kit generate` es interactivo: si una columna se va y otra llega en el

@@ -37,6 +37,10 @@ async function limpiar(): Promise<void> {
   await db.delete(changeLog);
   await db.delete(abonos);
   await db.delete(calls);
+  // `deals` va ANTES que `leads`: la FK es `restrict` (ADR 0037), porque borrar un
+  // lead con deals perderia su historial. El orden de este helper es el orden de
+  // las llaves foraneas, no una lista alfabetica.
+  await db.delete(deals);
   await db.delete(productos);
   await db.delete(leads);
   await db.delete(cohorts);

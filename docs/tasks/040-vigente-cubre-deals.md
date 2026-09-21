@@ -3,7 +3,7 @@ id: 040
 etapa: E1
 serves: "plan v2 §6 etapa 1 · tarea E1-5 · ADR 0038, amplia el ADR 0026"
 depends: [037]
-status: todo
+status: done
 ---
 
 # 040 — `vigente()` y su guardian cubren `deals`

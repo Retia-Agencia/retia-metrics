@@ -1,9 +1,10 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
 import { changeLog } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
+import { incluyendoAnulados } from "@/lib/queries/vigente";
 
 /**
  * TODA escritura del CRM deja rastro, y el rastro se escribe desde el dia uno
@@ -145,10 +146,15 @@ export async function editarConRastro(
   const columnas = tabla as unknown as Record<string, unknown>;
   const idCol = columnas.id as never;
 
+  // `incluyendoAnulados` y no `vigente`: esto NO es una metrica, es "dame la fila
+  // que estoy a punto de escribir", y se busca por clave primaria. Tiene que verla
+  // este como este — si un registro anulado se puede editar o no es una regla del
+  // llamador (hoy: no se edita, se corrige el vivo), no de la lectura que arma el
+  // diff. Escribirlo con su nombre deja la decision en el grep y no en la memoria.
   const [actual] = (await db
     .select()
-    .from(tabla as never)
-    .where(eq(idCol, id))) as Record<string, unknown>[];
+    .from(tabla)
+    .where(and(eq(idCol, id), incluyendoAnulados(tabla)))) as Record<string, unknown>[];
   if (!actual) throw new ErrorDeApp("No existe el registro que se quiere editar.", 404);
 
   const cambiados = Object.entries(valores).filter(

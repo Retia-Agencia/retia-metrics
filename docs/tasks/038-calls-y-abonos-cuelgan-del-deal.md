@@ -3,7 +3,7 @@ id: 038
 etapa: E1
 serves: "plan v2 §6 etapa 1 · tarea E1-3 · ADR 0037, enmienda a los ADR 0027, 0010, 0015"
 depends: [037]
-status: todo
+status: done
 ---
 
 # 038 — `calls` y `abonos` cuelgan del deal, y `sales` se elimina

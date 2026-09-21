@@ -308,9 +308,10 @@ export const sources = pgTable(
      * duplica la superficie del dedup y es lo que hacia ambigua la atribucion de una
      * corrida (F-07, ADR 0031).
      *
-     * ⚠️ En la migracion este indice se crea DESPUES de desactivar `Forms viejo`.
-     * Medido contra `dev` el 21-sep: ComunicArte tiene HOY dos fuentes de leads
-     * activas, asi que al reves falla. Misma leccion que el `CHECK` de la 0009.
+     * ⚠️ En la migracion este indice se crea DESPUES de desactivar la fuente
+     * vieja. Medido contra `dev` el 21-sep: uno de los dos programas tiene HOY
+     * dos fuentes de leads activas, asi que al reves falla. Misma leccion que el
+     * `CHECK` de la migracion 0009.
      */
     uniqueIndex("sources_una_activa_por_programa_idx")
       .on(t.programId)
