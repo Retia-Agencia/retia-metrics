@@ -1,6 +1,6 @@
 import { desc, eq, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
-import { abonos, calls, changeLog, leads, programs, sales, users } from "@/lib/db/schema";
+import { abonos, calls, changeLog, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { vigente } from "./vigente";
 
@@ -38,8 +38,12 @@ export async function conteosPorPrograma(db: Db = dbDeLaApp) {
   // A esta escala (dos programas, ~3.000 filas por hoja — AGENTS.md) cinco consultas
   // por indice son gratis, y el resultado es obviamente correcto al leerlo.
   const porPrograma = (
-    columna: typeof leads.programId | typeof calls.programId | typeof sales.programId | typeof abonos.programId,
-    tabla: typeof leads | typeof calls | typeof sales | typeof abonos,
+    columna:
+      | typeof leads.programId
+      | typeof calls.programId
+      | typeof deals.programId
+      | typeof abonos.programId,
+    tabla: typeof leads | typeof calls | typeof deals | typeof abonos,
   ) =>
     db
       .select({ programId: columna, total: sql<number>`count(*)::int` })
@@ -50,14 +54,14 @@ export async function conteosPorPrograma(db: Db = dbDeLaApp) {
       .where(vigente(tabla))
       .groupBy(columna);
 
-  const [lista, personas, llamadas, ventas, pagos] = await Promise.all([
+  const [lista, personas, llamadas, dealsPorPrograma, pagos] = await Promise.all([
     db
       .select({ id: programs.id, slug: programs.slug, nombre: programs.nombre, activo: programs.activo })
       .from(programs)
       .orderBy(programs.nombre),
     porPrograma(leads.programId, leads),
     porPrograma(calls.programId, calls),
-    porPrograma(sales.programId, sales),
+    porPrograma(deals.programId, deals),
     porPrograma(abonos.programId, abonos),
   ]);
 
@@ -65,7 +69,7 @@ export async function conteosPorPrograma(db: Db = dbDeLaApp) {
     new Map(filas.map((f) => [f.programId, f.total]));
   const dePersonas = mapa(personas);
   const deLlamadas = mapa(llamadas);
-  const deVentas = mapa(ventas);
+  const deDeals = mapa(dealsPorPrograma);
   const deAbonos = mapa(pagos);
 
   // Un programa sin movimiento sale en cero, no se omite: un programa que desaparece
@@ -76,37 +80,33 @@ export async function conteosPorPrograma(db: Db = dbDeLaApp) {
     activo: p.activo,
     personas: dePersonas.get(p.id) ?? 0,
     llamadas: deLlamadas.get(p.id) ?? 0,
-    ventas: deVentas.get(p.id) ?? 0,
+    // Son DEALS, no ventas: una venta es un deal en Abonado o Completo (ADR 0037) y
+    // llamar "ventas" a todos los deals inflaria la cifra sin lanzar un error. El
+    // desglose por etapa es de E5-2; aqui el conteo dice lo que cuenta.
+    deals: deDeals.get(p.id) ?? 0,
     abonos: deAbonos.get(p.id) ?? 0,
   }));
 }
 
 /**
- * Cuantas llamadas y ventas entraron por la hoja y cuantas se registraron en la app
+ * Cuantas llamadas entraron por la hoja y cuantas se registraron en la app
  * (ADR 0010: los registros nativos reusan las mismas tablas con `origen = "app"`).
  * Es el canario de si el equipo esta usando el CRM o sigue viviendo en la hoja.
+ *
+ * ⚠️ El desglose de las VENTAS se fue con `sales` (ticket 038) y no se reemplaza
+ * por uno sobre deals: `sales` delataba su origen por `huellaFila` (nula = la
+ * escribio la app), y un deal no nace de una fila de hoja, asi que no hay nada
+ * equivalente que leer. Inventarlo seria afirmar un origen que la base no sabe.
  */
 export async function conteosPorOrigen(db: Db = dbDeLaApp) {
-  const [llamadas, ventas] = await Promise.all([
+  const [llamadas] = await Promise.all([
     db
       .select({ origen: calls.origen, total: sql<number>`count(*)::int` })
       .from(calls)
       .where(vigente(calls))
       .groupBy(calls.origen),
-    // `sales` no tiene columna `origen`, a diferencia de `calls`. No se inventa una:
-    // el invariante ya existe y es el del dedup (ADR 0010) — una venta registrada en
-    // la app deja `huellaFila` en null a proposito, para no chocar con el indice
-    // unico de las filas de Sheets, que siempre la traen. Eso ES el origen.
-    db
-      .select({
-        origen: sql<string>`case when ${sales.huellaFila} is null then 'app' else 'sheets' end`,
-        total: sql<number>`count(*)::int`,
-      })
-      .from(sales)
-      .where(vigente(sales))
-      .groupBy(sql`case when ${sales.huellaFila} is null then 'app' else 'sheets' end`),
   ]);
-  return { llamadas, ventas };
+  return { llamadas };
 }
 
 /**

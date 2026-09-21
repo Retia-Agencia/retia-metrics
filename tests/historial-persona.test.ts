@@ -3,6 +3,7 @@ import {
   abonos,
   calls,
   changeLog,
+  deals,
   cohorts,
   miembrosPrograma,
   motivos,
@@ -11,7 +12,6 @@ import {
   plataformasPago,
   productos,
   programs,
-  sales,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -36,7 +36,6 @@ let programaA: string;
 async function limpiar(): Promise<void> {
   await db.delete(changeLog);
   await db.delete(abonos);
-  await db.delete(sales);
   await db.delete(calls);
   await db.delete(productos);
   await db.delete(leads);
@@ -65,6 +64,16 @@ beforeEach(async () => {
     .returning();
   programaA = a.id;
 });
+
+/**
+ * Siembra el deal de un lead y devuelve su id. Una llamada cuelga del DEAL desde el
+ * ADR 0037, asi que para que el historial de un lead tenga llamadas su deal tiene
+ * que existir primero.
+ */
+async function sembrarDeal(leadId: string): Promise<string> {
+  const [d] = await db.insert(deals).values({ leadId, programId: programaA }).returning();
+  return d.id;
+}
 
 /** Siembra una persona y devuelve su id. */
 async function sembrarPersona(extra: Record<string, unknown> = {}): Promise<string> {
@@ -98,15 +107,16 @@ describe("historialDePersona", () => {
 
   it("trae las llamadas de la persona, de la mas reciente a la mas vieja", async () => {
     const id = await sembrarPersona();
+    const dealId = await sembrarDeal(id);
     await db.insert(calls).values([
       {
-        personId: id,
+        dealId,
         programId: programaA,
         resultado: "no_show",
         fechaLlamada: new Date("2026-09-10T15:00:00Z"),
       },
       {
-        personId: id,
+        dealId,
         programId: programaA,
         resultado: "show",
         fechaLlamada: new Date("2026-09-15T15:00:00Z"),
@@ -120,9 +130,10 @@ describe("historialDePersona", () => {
 
   it("resuelve el motivo de perdida a su nombre, no a su uuid", async () => {
     const id = await sembrarPersona();
+    const dealId = await sembrarDeal(id);
     const [motivo] = await db.insert(motivos).values({ nombre: "Sin presupuesto" }).returning();
     await db.insert(calls).values({
-      personId: id,
+      dealId,
       programId: programaA,
       resultado: "perdida",
       motivoId: motivo.id,
@@ -137,8 +148,9 @@ describe("historialDePersona", () => {
   it("las llamadas de otra persona no se cuelan", async () => {
     const id = await sembrarPersona();
     const otra = await sembrarPersona({ emailNormalizado: "otra@correo.co" });
+    const dealDeOtra = await sembrarDeal(otra);
     await db.insert(calls).values({
-      personId: otra,
+      dealId: dealDeOtra,
       programId: programaA,
       resultado: "show",
       fechaLlamada: new Date("2026-09-15T15:00:00Z"),
@@ -147,95 +159,5 @@ describe("historialDePersona", () => {
     const historial = await historialDePersona(id, db);
 
     expect(historial?.llamadas).toEqual([]);
-  });
-});
-
-describe("las ventas del historial (Done cuando: saldo pendiente de cada venta)", () => {
-  /** Siembra una venta de la persona y devuelve su id. */
-  async function sembrarVenta(
-    personId: string,
-    extra: Record<string, unknown> = {},
-  ): Promise<string> {
-    const [v] = await db
-      .insert(sales)
-      .values({
-        personId,
-        programId: programaA,
-        fecha: "2026-09-15",
-        precioAplicadoUsd: "1000.00",
-        moneda: "USD",
-        ...extra,
-      } as never)
-      .returning();
-    return v.id as string;
-  }
-
-  it("el saldo es el precio del contrato menos lo abonado", async () => {
-    const id = await sembrarPersona();
-    const saleId = await sembrarVenta(id);
-    await db.insert(abonos).values([
-      { saleId, programId: programaA, fecha: "2026-09-15", monto: "400.00", moneda: "USD" },
-      { saleId, programId: programaA, fecha: "2026-09-20", monto: "250.00", moneda: "USD" },
-    ] as never);
-
-    const historial = await historialDePersona(id, db);
-
-    expect(historial?.ventas).toHaveLength(1);
-    expect(Number(historial?.ventas[0]?.abonado)).toBe(650);
-    expect(Number(historial?.ventas[0]?.saldo)).toBe(350);
-  });
-
-  it("cada venta trae sus abonos en detalle, del mas viejo al mas reciente", async () => {
-    const id = await sembrarPersona();
-    const saleId = await sembrarVenta(id);
-    const [plataforma] = await db
-      .insert(plataformasPago)
-      .values({ nombre: "Stripe" })
-      .returning();
-    await db.insert(abonos).values([
-      {
-        saleId,
-        programId: programaA,
-        fecha: "2026-09-20",
-        monto: "250.00",
-        moneda: "USD",
-        plataformaId: plataforma.id,
-      },
-      { saleId, programId: programaA, fecha: "2026-09-15", monto: "400.00", moneda: "USD" },
-    ] as never);
-
-    const historial = await historialDePersona(id, db);
-
-    const abonosDeLaVenta = historial?.ventas[0]?.abonos ?? [];
-    expect(abonosDeLaVenta.map((a) => a.fecha)).toEqual(["2026-09-15", "2026-09-20"]);
-    expect(abonosDeLaVenta[1]?.plataformaNombre).toBe("Stripe");
-    expect(abonosDeLaVenta[0]?.plataformaNombre).toBeNull();
-  });
-
-  it("una venta sin precio de contrato tiene saldo null: no se inventa un numero", async () => {
-    const id = await sembrarPersona();
-    const saleId = await sembrarVenta(id, { precioAplicadoUsd: null });
-    await db
-      .insert(abonos)
-      .values({
-        saleId,
-        programId: programaA,
-        fecha: "2026-09-15",
-        monto: "400.00",
-        moneda: "USD",
-      } as never);
-
-    const historial = await historialDePersona(id, db);
-
-    expect(historial?.ventas[0]?.saldo).toBeNull();
-    expect(Number(historial?.ventas[0]?.abonado)).toBe(400);
-  });
-
-  it("una persona sin ventas trae una lista vacia, no null", async () => {
-    const id = await sembrarPersona();
-
-    const historial = await historialDePersona(id, db);
-
-    expect(historial?.ventas).toEqual([]);
   });
 });

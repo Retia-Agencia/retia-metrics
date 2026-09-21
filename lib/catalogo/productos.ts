@@ -1,6 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { enlacesPago, productos, sales } from "@/lib/db/schema";
+import { deals, enlacesPago, productos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
@@ -106,12 +106,13 @@ function moldeProductos(db: Db) {
       esquema: esquemaProducto as unknown as z.ZodType<CamposProducto>,
       etiqueta: (fila) => String(fila.nombre),
       nombreEntidad: "un producto",
-      // Quien apunta a un producto por FK `restrict`: las ventas (`producto_id`) y los
-      // enlaces de pago (`producto_id`). Se cuentan ambas para `borrarSiNoSeUso`
-      // (ADR 0026 punto 5): un producto vendido —aunque la venta este anulada— o con
-      // un enlace de pago que lo usa NO se borra, se desactiva.
+      // Quien apunta a un producto por FK `restrict`: los DEALS (`producto_id`, que
+      // es donde vive la venta desde el ADR 0037) y los enlaces de pago
+      // (`producto_id`). Se cuentan ambas para `borrarSiNoSeUso` (ADR 0026 punto 5):
+      // un producto vendido —aunque el deal este anulado— o con un enlace de pago
+      // que lo usa NO se borra, se desactiva.
       dependientes: [
-        { tabla: sales, columna: sales.productoId },
+        { tabla: deals, columna: deals.productoId },
         { tabla: enlacesPago, columna: enlacesPago.productoId },
       ],
     },

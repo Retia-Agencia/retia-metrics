@@ -615,7 +615,16 @@ export const calls = pgTable(
   "calls",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    personId: uuid("person_id").references(() => leads.id, { onDelete: "cascade" }),
+    /**
+     * La llamada cuelga del DEAL, no de la persona (ADR 0037, enmienda al ADR 0010).
+     * Una llamada es trabajo sobre una oportunidad concreta, y colgarla de la
+     * persona hacia imposible saber a cual de sus deals pertenecia.
+     *
+     * Nullable mientras la etapa 4 no reescriba el registro y la etapa 7 no migre
+     * lo historico: las llamadas de la hoja vieja pueden no tener deal al que
+     * apuntar. `restrict` porque borrar un deal con llamadas perderia historia.
+     */
+    dealId: uuid("deal_id").references((): AnyPgColumn => deals.id, { onDelete: "restrict" }),
     cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "set null" }),
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
     /** Nombre del closer tal como aparece en la hoja. Se cruza contra users.closerId. */
@@ -658,7 +667,7 @@ export const calls = pgTable(
   },
   (t) => [
     index("calls_cohorte_closer_idx").on(t.cohortId, t.closerId),
-    index("calls_persona_idx").on(t.personId),
+    index("calls_deal_idx").on(t.dealId),
     uniqueIndex("calls_huella_idx").on(t.programId, t.huellaFila),
     // Sin motivo no hay anulacion (ADR 0026 punto 6), y la garantia vive en la base
     // y no solo en zod (ADR 0005): los tres campos van juntos o no va ninguno. Una
@@ -672,78 +681,14 @@ export const calls = pgTable(
   ],
 );
 
-// ─────────────────────────────────────────────────────────── ventas
-
-export const sales = pgTable(
-  "sales",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    personId: uuid("person_id").references(() => leads.id, { onDelete: "set null" }),
-    cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "set null" }),
-    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
-    closerId: text("closer_id"),
-    /**
-     * La llamada que cerro esta venta (ADR 0026 punto 2). Nace con el ticket 029:
-     * hasta entonces la venta y su llamada se escribian en la misma transaccion sin
-     * ninguna referencia entre ellas, asi que "anular la llamada anula su venta" no
-     * se podia cumplir sin adivinar por persona y fecha.
-     *
-     * Nullable, y lo seguira siendo: las ventas migradas de Sheets son filas de otra
-     * pestana que nunca estuvo enlazada a una llamada, y las que la app escribio
-     * antes de esta columna tampoco lo estan. `restrict` por la misma razon que
-     * `anuladoPor`: una llamada que ya cerro una venta es una llamada que se uso.
-     */
-    callId: uuid("call_id").references((): AnyPgColumn => calls.id, { onDelete: "restrict" }),
-    emailComprador: text("email_comprador"),
-    fecha: date("fecha"),
-    /** Producto vendido (ADR 0016). Nullable para las filas viejas de Sheets. */
-    productoId: uuid("producto_id").references(() => productos.id, { onDelete: "restrict" }),
-    precioListaUsd: numeric("precio_lista_usd", { precision: 10, scale: 2 }),
-    precioAplicadoUsd: numeric("precio_aplicado_usd", { precision: 10, scale: 2 }),
-    becaAplicada: boolean("beca_aplicada").notNull().default(false),
-    /**
-     * Filas viejas de Sheets: un solo adelanto parcial por venta. Se deja de
-     * escribir desde la app (ADR 0013): la caja recaudada sale de la suma de
-     * `abonos.monto`, nunca de aca. Nunca inferir ventas cerradas de este monto.
-     */
-    montoAbonado: numeric("monto_abonado", { precision: 12, scale: 2 }),
-    moneda: text("moneda").notNull().default("USD"),
-    huellaFila: text("huella_fila"),
-    raw: jsonb("raw"),
-    /** Anulacion (ADR 0026). Ver la nota completa en `calls`. */
-    anuladoEn: timestamp("anulado_en", { withTimezone: true }),
-    anuladoPor: uuid("anulado_por").references(() => users.id, { onDelete: "restrict" }),
-    motivoAnulacion: text("motivo_anulacion"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [
-    index("sales_cohorte_idx").on(t.cohortId),
-    uniqueIndex("sales_huella_idx").on(t.programId, t.huellaFila),
-    // Una llamada cierra COMO MUCHO una venta, y la garantia vive en la base
-    // (ADR 0005). Postgres admite varios NULL en un indice unico, asi que las ventas
-    // sin llamada enlazada (Sheets, y las anteriores al ticket 029) no compiten. De
-    // paso, la cascada de la anulacion busca por aca en vez de recorrer la tabla.
-    uniqueIndex("sales_call_idx").on(t.callId),
-    // Sin motivo no hay anulacion (ADR 0026 punto 6), y la garantia vive en la base
-    // y no solo en zod (ADR 0005): los tres campos van juntos o no va ninguno. Una
-    // fila anulada sin quien ni por que es justo el estado que el ADR descarta.
-    check(
-      "sales_anulacion_completa",
-      sql`(${t.anuladoEn} IS NULL AND ${t.anuladoPor} IS NULL AND ${t.motivoAnulacion} IS NULL)
-          OR (${t.anuladoEn} IS NOT NULL AND ${t.anuladoPor} IS NOT NULL
-              AND length(trim(${t.motivoAnulacion})) > 0)`,
-    ),
-  ],
-);
-
 // ─────────────────────────────────────────────────────────── abonos
 
 /**
- * Un pago recibido sobre una venta (ADR 0013). Una venta puede tener varios abonos;
+ * Un pago recibido sobre un deal (ADR 0013, ADR 0037). Un deal puede tener varios abonos;
  * la **caja recaudada** es la suma de `monto` por fecha del abono, y es una metrica
  * distinta de las ventas cerradas (nunca se deriva una de la otra).
  *
- * `onDelete: "restrict"` en `saleId`: no se puede borrar una venta que ya tiene
+ * `onDelete: "restrict"` en `dealId`: no se puede borrar un deal que ya tiene
  * abonos registrados, para no perder caja huerfana.
  *
  * `moneda` vive al lado del monto para que nunca se convierta en silencio
@@ -759,7 +704,12 @@ export const abonos = pgTable(
   "abonos",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    saleId: uuid("sale_id").notNull().references(() => sales.id, { onDelete: "restrict" }),
+    /**
+     * El abono cuelga del DEAL: el deal ES la venta (ADR 0037 punto 5), asi que el
+     * vinculo dejo de necesitar una tabla intermedia. `restrict` por la misma razon
+     * de siempre: no se borra un deal que ya recibio plata.
+     */
+    dealId: uuid("deal_id").notNull().references((): AnyPgColumn => deals.id, { onDelete: "restrict" }),
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
     fecha: date("fecha").notNull(),
     monto: numeric("monto", { precision: 12, scale: 2 }).notNull(),
@@ -777,7 +727,7 @@ export const abonos = pgTable(
   },
   (t) => [
     index("abonos_programa_fecha_idx").on(t.programId, t.fecha),
-    index("abonos_venta_idx").on(t.saleId),
+    index("abonos_deal_idx").on(t.dealId),
     // Sin motivo no hay anulacion (ADR 0026 punto 6), y la garantia vive en la base
     // y no solo en zod (ADR 0005): los tres campos van juntos o no va ninguno. Una
     // fila anulada sin quien ni por que es justo el estado que el ADR descarta.
@@ -1136,7 +1086,6 @@ export type MovimientoDeEtapa = typeof dealEtapaHistorial.$inferSelect;
 export type ActividadDeDeal = typeof dealActividades.$inferSelect;
 export type CuotaPactada = typeof cuotasPactadas.$inferSelect;
 export type Llamada = typeof calls.$inferSelect;
-export type Venta = typeof sales.$inferSelect;
 export type Abono = typeof abonos.$inferSelect;
 export type NuevoAbono = typeof abonos.$inferInsert;
 export type Pauta = typeof adSpend.$inferSelect;

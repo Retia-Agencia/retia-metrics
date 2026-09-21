@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
-  calls,
   cohorts,
   miembrosPrograma,
   leads,
@@ -163,15 +162,6 @@ describe("la pantalla es del closer: el gerente no registra (ADR 0003)", () => {
     if (res.ok) expect(res.personas).toHaveLength(1);
   });
 
-  it("un gerente no puede registrar una llamada", async () => {
-    const { registrarLlamadaAccion } = await acciones();
-    const res = await registrarLlamadaAccion({ programId: programaA, resultado: "show" });
-    expect(res.ok).toBe(false);
-    // No se escribio nada.
-    const filas = await db.select().from(calls);
-    expect(filas).toHaveLength(0);
-  });
-
   it("un gerente no puede crear una persona manual", async () => {
     const { crearPersonaAccion } = await acciones();
     const res = await crearPersonaAccion({ programId: programaA, correo: "x@correo.co" });
@@ -186,14 +176,6 @@ describe("sin sesion no pasa nada", () => {
     const { buscarPersonasAccion } = await accionesPersonas();
     const res = await buscarPersonasAccion("juan");
     expect(res.ok).toBe(false);
-  });
-
-  it("registrar sin sesion falla y no escribe", async () => {
-    const { registrarLlamadaAccion } = await acciones();
-    const res = await registrarLlamadaAccion({ programId: programaA, resultado: "show" });
-    expect(res.ok).toBe(false);
-    const filas = await db.select().from(calls);
-    expect(filas).toHaveLength(0);
   });
 });
 
@@ -214,25 +196,6 @@ describe("un closer registra en su programa", () => {
       expect(res.personas).toHaveLength(1);
       expect(res.personas[0].nombre).toBe("Juan");
     }
-  });
-
-  it("registra un show sobre una persona", async () => {
-    const [p] = await db
-      .insert(leads)
-      .values({ programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" })
-      .returning();
-
-    const { registrarLlamadaAccion } = await acciones();
-    const res = await registrarLlamadaAccion({
-      programId: programaA,
-      personId: p.id,
-      resultado: "show",
-    });
-    expect(res.ok).toBe(true);
-    const filas = await db.select().from(calls);
-    expect(filas).toHaveLength(1);
-    expect(filas[0].resultado).toBe("show");
-    expect(filas[0].closerId).toBe("Ana");
   });
 
   it("crea una persona manual con entrada 'crm'", async () => {
@@ -284,39 +247,5 @@ describe("developer con 'ver como' (ticket 028)", () => {
     const res = await buscarPersonasAccion("Ana");
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.personas).toHaveLength(2);
-  });
-});
-
-
-
-describe("la fecha del formulario se ancla al mediodia de Bogota, no corre el dia", () => {
-  beforeEach(() => auth.mockResolvedValue(sesionCloser));
-
-  it("un compromiso_pago con fechaSeguimiento YYYY-MM-DD guarda ese mismo dia en Bogota", async () => {
-    const [p] = await db
-      .insert(leads)
-      .values({ programId: programaA, emailNormalizado: "compromiso@correo.co", nombre: "Compromiso" })
-      .returning();
-
-    const { registrarLlamadaAccion } = await acciones();
-    const res = await registrarLlamadaAccion({
-      programId: programaA,
-      personId: p.id,
-      resultado: "compromiso_pago",
-      fechaSeguimiento: "2026-09-20",
-    });
-    expect(res.ok).toBe(true);
-
-    const [fila] = await db.select().from(calls);
-    expect(fila.fechaSeguimiento).not.toBeNull();
-    // El dia en Bogota debe seguir siendo el 20, no el 19. Con new Date('2026-09-20')
-    // (medianoche UTC) en Bogota (UTC-5) el dia se leeria como 19.
-    const enBogota = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Bogota",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(fila.fechaSeguimiento as Date);
-    expect(enBogota).toBe("2026-09-20");
   });
 });

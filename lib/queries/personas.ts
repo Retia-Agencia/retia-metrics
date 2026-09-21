@@ -1,28 +1,24 @@
-import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import {
-  abonos,
   calls,
   miembrosPrograma,
   motivos,
   origenes,
-  plataformasPago,
+  deals,
   leads,
-  productos,
   programs,
-  sales,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { esAdministrador, type Rol } from "@/lib/auth/roles";
-import { ABONADO, SALDO } from "./saldo";
-import { incluyendoAnulados, vigente } from "./vigente";
+import { incluyendoAnulados } from "./vigente";
 
 /**
  * Lecturas sobre una persona (ADR 0021, 0023, 0011, 0013, 0015). Solo SELECT: lo
  * que escribe ya vive en `lib/mutations/*`. La base entra por inyeccion (por
  * defecto la de la app) para correr los tests sobre PGlite sin Neon, igual que
- * `lib/queries/ventas.ts` y `lib/queries/programas.ts`.
+ * `lib/queries/programas.ts`.
  *
  * Dos pantallas se sirven de aca:
  * - `/mi-dia` (ticket 003): `buscarPersonas` y `ventasDePersona`.
@@ -186,20 +182,17 @@ export interface AbonoDelHistorial {
   anulacion: Anulacion | null;
 }
 
-/** Una venta con el detalle de los abonos que la pagaron. */
-export interface VentaDelHistorial extends VentaDePersona {
-  /** Del mas viejo al mas reciente: es el orden en que se pago. */
-  abonos: AbonoDelHistorial[];
-  /** Anulada (ADR 0026). Anular una venta anula sus abonos en la misma escritura. */
-  anulacion: Anulacion | null;
-}
-
-/** El historial completo de una persona: quien es, sus llamadas y sus ventas. */
+/**
+ * El historial de una persona: quien es y sus llamadas.
+ *
+ * ⚠️ Las ventas se fueron con `sales` (ticket 038). Vuelven como DEALS en la
+ * etapa 6, que es donde se define la ficha del Lead completa (envios con diff,
+ * contactos, deals abiertos y cerrados).
+ */
 export interface HistorialDePersona {
   persona: PersonaDelHistorial;
   /** De la mas reciente a la mas vieja: el historial se lee de arriba hacia abajo. */
   llamadas: LlamadaDelHistorial[];
-  ventas: VentaDelHistorial[];
 }
 
 /**
@@ -249,58 +242,26 @@ export async function historialDePersona(
       motivoAnulacion: calls.motivoAnulacion,
     })
     .from(calls)
+    // Una llamada cuelga del DEAL, no del lead (ADR 0037), asi que se llega a ella
+    // por sus deals. `innerJoin` y no `leftJoin` a proposito: una llamada sin deal
+    // no es de ningun lead y colarla aqui seria adivinar de quien es.
+    .innerJoin(deals, eq(deals.id, calls.dealId))
     .leftJoin(motivos, eq(motivos.id, calls.motivoId))
     .leftJoin(origenes, eq(origenes.id, calls.origenId))
     // El historial SI muestra lo anulado, tachado (ADR 0026 punto 4): "aqui hubo una
     // llamada que se anulo porque se registro al lead equivocado" es informacion.
     // Fuera de las metricas, dentro del historial.
-    .where(and(eq(calls.personId, personId), incluyendoAnulados(calls)))
+    .where(and(eq(deals.leadId, personId), incluyendoAnulados(calls)))
     // `createdAt` desempata: dos llamadas del mismo dia sin hora quedarian en
     // orden arbitrario, y un historial que cambia de orden entre recargas no se
     // puede leer.
     .orderBy(desc(calls.fechaLlamada), desc(calls.createdAt));
 
-  // Las ventas salen de `ventasParaHistorial`, NO de `ventasDePersona`: son dos
-  // preguntas distintas que hoy dan casi el mismo SQL (AGENTS.md). El historial
-  // muestra las anuladas tachadas; `/mi-dia` no puede ofrecer registrar un abono
-  // sobre una venta anulada. El calculo del dinero sigue viviendo en un solo lugar
-  // (`ABONADO`/`SALDO` de `saldo.ts`), que es lo que no se puede duplicar.
-  const ventas = await ventasParaHistorial(personId, db);
-
-  // Los abonos de todas esas ventas en UNA consulta, no una por venta: el numero
-  // de consultas no depende de cuantas ventas tenga la persona.
-  const ids = ventas.map((v) => v.saleId);
-  const filasDeAbonos = ids.length
-    ? await db
-        .select({
-          id: abonos.id,
-          saleId: abonos.saleId,
-          fecha: abonos.fecha,
-          monto: abonos.monto,
-          moneda: abonos.moneda,
-          plataformaNombre: plataformasPago.nombre,
-          closerId: abonos.closerId,
-          origen: abonos.origen,
-          anuladoEn: abonos.anuladoEn,
-          anuladoPor: abonos.anuladoPor,
-          motivoAnulacion: abonos.motivoAnulacion,
-        })
-        .from(abonos)
-        .leftJoin(plataformasPago, eq(plataformasPago.id, abonos.plataformaId))
-        // Tambien tachados, por la misma razon: un abono devuelto explica por que la
-        // caja de ese dia bajo. Lo que NO hace es sumar — de eso se encarga el
-        // `vigente(abonos)` del agregado en `ventasParaHistorial`.
-        .where(and(inArray(abonos.saleId, ids), incluyendoAnulados(abonos)))
-        .orderBy(asc(abonos.fecha), asc(abonos.createdAt))
-    : [];
-
-  // Quien anulo se resuelve a nombre en UNA consulta para las tres listas, en vez
-  // de tres `leftJoin` a `users`: dos de esas tres consultas son agregados con
-  // `groupBy(sales.id)`, donde una columna de otra tabla obliga a envolverla en un
-  // `max(...)`, y ademas `users.nombre` chocaria con `productos.nombre` dentro de la
+  // Quien anulo se resuelve a nombre en UNA consulta, en vez de un `leftJoin` a
+  // `users`: `users.nombre` chocaria con las otras columnas `nombre` dentro de la
   // plantilla `sql`, que NO califica las columnas (AGENTS.md).
   const nombres = await nombresDeQuienAnulo(
-    [...llamadas, ...ventas, ...filasDeAbonos].map((f) => f.anuladoPor),
+    llamadas.map((f) => f.anuladoPor),
     db,
   );
 
@@ -309,22 +270,6 @@ export async function historialDePersona(
     llamadas: llamadas.map(({ anuladoEn, anuladoPor, motivoAnulacion, ...llamada }) => ({
       ...llamada,
       anulacion: anulacionDe({ anuladoEn, anuladoPor, motivoAnulacion }, nombres),
-    })),
-    ventas: ventas.map(({ anuladoEn, anuladoPor, motivoAnulacion, ...venta }) => ({
-      ...venta,
-      anulacion: anulacionDe({ anuladoEn, anuladoPor, motivoAnulacion }, nombres),
-      abonos: filasDeAbonos
-        .filter((fila) => fila.saleId === venta.saleId)
-        .map((fila) => ({
-          id: fila.id,
-          fecha: fila.fecha,
-          monto: fila.monto,
-          moneda: fila.moneda,
-          plataformaNombre: fila.plataformaNombre,
-          closerId: fila.closerId,
-          origen: fila.origen,
-          anulacion: anulacionDe(fila, nombres),
-        })),
     })),
   };
 }
@@ -372,90 +317,3 @@ function anulacionDe(
     motivo: motivoAnulacion ?? "",
   };
 }
-
-/** Una venta de la persona con lo que lleva pagado. */
-export interface VentaDePersona {
-  saleId: string;
-  fecha: string | null;
-  productoId: string | null;
-  productoNombre: string | null;
-  moneda: string;
-  /** Precio del contrato (`sales.precioAplicadoUsd`). `null` en filas viejas de Sheets. */
-  precioAplicadoUsd: string | null;
-  /** Suma de los abonos de la venta. "0" si no tiene ninguno. */
-  abonado: string;
-  /** Precio del contrato menos lo abonado. `null` si la venta no tiene precio. */
-  saldo: string | null;
-}
-
-/**
- * Las ventas de una persona con su producto, precio, lo abonado y el saldo, para
- * ofrecer "registrar abono" sobre cada una (ticket 019, ADR 0013).
- *
- * El dinero se suma y se resta en SQL sobre `numeric` y sale como texto —igual que
- * `saldoDeVenta` en `lib/queries/ventas.ts`—: Postgres es exacto con decimales y
- * JavaScript no, asi que el dinero nunca pasa por un `float`.
- */
-export async function ventasDePersona(
-  personId: string,
-  db: Db = dbDeLaApp,
-): Promise<VentaDePersona[]> {
-  const filas = await db
-    .select(COLUMNAS_DE_VENTA)
-    .from(sales)
-    .leftJoin(abonos, and(eq(abonos.saleId, sales.id), vigente(abonos)))
-    .leftJoin(productos, eq(productos.id, sales.productoId))
-    // Una venta anulada no se puede abonar: ofrecerla seria invitar al closer a
-    // meter plata en un registro que no cuenta en ninguna metrica (ADR 0026).
-    .where(and(eq(sales.personId, personId), vigente(sales)))
-    .groupBy(sales.id)
-    .orderBy(asc(sales.fecha));
-
-  return filas;
-}
-
-/**
- * Las ventas de una persona **incluidas las anuladas**, para el historial de
- * `/personas/[id]` (ADR 0026 punto 4).
- *
- * Es una funcion aparte y no un parametro de `ventasDePersona` a proposito: son dos
- * preguntas distintas ("¿sobre cual puedo registrar un abono?" y "¿que le paso a
- * esta persona?") que hoy comparten casi todo el SQL. Un booleano las volveria una
- * sola con dos comportamientos, y el dia que una cambie habria que acordarse de la
- * otra.
- *
- * Lo que NO cambia entre las dos es el dinero: el `leftJoin` lleva `vigente(abonos)`
- * igual, porque un abono anulado no suma a lo abonado ni aqui ni alla.
- */
-export async function ventasParaHistorial(personId: string, db: Db = dbDeLaApp) {
-  return db
-    .select({
-      ...COLUMNAS_DE_VENTA,
-      anuladoEn: sales.anuladoEn,
-      anuladoPor: sales.anuladoPor,
-      motivoAnulacion: sales.motivoAnulacion,
-    })
-    .from(sales)
-    .leftJoin(abonos, and(eq(abonos.saleId, sales.id), vigente(abonos)))
-    .leftJoin(productos, eq(productos.id, sales.productoId))
-    .where(and(eq(sales.personId, personId), incluyendoAnulados(sales)))
-    .groupBy(sales.id)
-    .orderBy(asc(sales.fecha));
-}
-
-/**
- * Las columnas de una venta con su dinero ya resuelto, compartidas por las dos
- * preguntas de arriba. El `max(...)` sobre el nombre del producto es obligado por el
- * `groupBy(sales.id)`: Postgres deja proyectar las columnas de `sales` porque
- * dependen de su clave, pero no las de una tabla unida.
- */
-const COLUMNAS_DE_VENTA = {
-  saleId: sales.id,
-  fecha: sales.fecha,
-  productoId: sales.productoId,
-  moneda: sales.moneda,
-  precioAplicadoUsd: sales.precioAplicadoUsd,
-  abonado: ABONADO,
-  saldo: SALDO,
-  productoNombre: sql<string | null>`max(${productos.nombre})`,
-} as const;

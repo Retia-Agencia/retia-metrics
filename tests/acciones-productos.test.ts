@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { miembrosPrograma, productos, programs, sales, users } from "@/lib/db/schema";
+import { deals, leads, miembrosPrograma, productos, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
@@ -51,6 +51,7 @@ let gerenteId: string;
 let closerId: string;
 let developerId: string;
 let programaA: string;
+let leadA: string;
 let programaB: string;
 
 const sesionGerente = {
@@ -94,6 +95,13 @@ beforeEach(async () => {
     .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
     .returning();
   programaA = a.id;
+
+  // Un deal necesita su lead: la FK es `notNull` (ADR 0037).
+  const [lead] = await db
+    .insert(leads)
+    .values({ programId: programaA, emailNormalizado: "lead@correo.co" })
+    .returning();
+  leadA = lead.id;
   const [b] = await db
     .insert(programs)
     .values({ slug: "programa-b", nombre: "Programa B", ticketUsd: "1500.00" })
@@ -228,7 +236,7 @@ describe("acciones de productos — borrar (ticket 030)", () => {
     const { crearProductoAccion, borrarProductoAccion } = await acciones();
     await crearProductoAccion(productoValido(programaA));
     const [p] = await db.select().from(productos).where(eq(productos.programId, programaA));
-    await db.insert(sales).values({ programId: programaA, productoId: p.id });
+    await db.insert(deals).values({ leadId: leadA, programId: programaA, productoId: p.id });
 
     const res = await borrarProductoAccion(p.id);
     expect(res).toEqual({ ok: true, borrado: false, referencias: 1 });

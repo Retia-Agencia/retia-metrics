@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, changeLog, leads, programs, sales, users } from "@/lib/db/schema";
+import { abonos, calls, changeLog, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
   conteosPorOrigen,
@@ -72,26 +72,33 @@ afterEach(async () => {
 
 describe("conteosPorPrograma", () => {
   it("cuenta cada entidad por separado, sin inflarse entre si", async () => {
-    // Dos llamadas y dos ventas en el MISMO programa: con joins en vez de
+    // Dos llamadas y dos deals en el MISMO programa: con joins en vez de
     // subconsultas, cada conteo saldria en 4.
-    await db.insert(calls).values([
-      { programId: programaA, personId: personaId, origen: "app" },
-      { programId: programaA, personId: personaId, origen: "sheets", huellaFila: "h1" },
-    ]);
-    const ventas = await db
-      .insert(sales)
+    //
+    // Los dos deals del mismo lead solo pueden coexistir si uno esta CERRADO: el
+    // indice unico parcial del ADR 0037 deja un solo deal abierto por lead y
+    // programa, y eso lo muerde `tests/modelo-crm-indices.test.ts`.
+    const dealsSembrados = await db
+      .insert(deals)
       .values([
-        { programId: programaA, personId: personaId },
-        { programId: programaA, personId: personaId, huellaFila: "v1" },
+        { leadId: personaId, programId: programaA },
+        { leadId: personaId, programId: programaA, etapa: "cierre_perdido" as const },
       ])
       .returning();
-    await db
-      .insert(abonos)
-      .values({ saleId: ventas[0].id, programId: programaA, fecha: "2026-09-17", monto: "100.00" });
+    await db.insert(calls).values([
+      { programId: programaA, dealId: dealsSembrados[0].id, origen: "app" },
+      { programId: programaA, dealId: dealsSembrados[0].id, origen: "sheets", huellaFila: "h1" },
+    ]);
+    await db.insert(abonos).values({
+      dealId: dealsSembrados[0].id,
+      programId: programaA,
+      fecha: "2026-09-17",
+      monto: "100.00",
+    });
 
     const filas = await conteosPorPrograma(db);
     const a = filas.find((f) => f.slug === "programa-a")!;
-    expect(a).toMatchObject({ personas: 1, llamadas: 2, ventas: 2, abonos: 1 });
+    expect(a).toMatchObject({ personas: 1, llamadas: 2, deals: 2, abonos: 1 });
   });
 
   it("un programa sin nada sale en cero, no se omite", async () => {
@@ -99,7 +106,7 @@ describe("conteosPorPrograma", () => {
     expect(filas.find((f) => f.slug === "programa-b")).toMatchObject({
       personas: 0,
       llamadas: 0,
-      ventas: 0,
+      deals: 0,
       abonos: 0,
     });
     expect(programaB).toBeTruthy();
@@ -113,18 +120,11 @@ describe("conteosPorOrigen", () => {
       { programId: programaA, origen: "sheets", huellaFila: "h1" },
       { programId: programaA, origen: "sheets", huellaFila: "h2" },
     ]);
-    // Una venta de la app no trae `huellaFila`; una de la hoja siempre la trae
-    // (ADR 0010). Ese invariante ES el origen de la venta.
-    await db.insert(sales).values([
-      { programId: programaA },
-      { programId: programaA, huellaFila: "v1" },
-    ]);
-
-    const { llamadas, ventas } = await conteosPorOrigen(db);
+    // El desglose de VENTAS por origen se fue con `sales` (ticket 038): delataba
+    // su origen por `huellaFila`, y un deal no nace de una fila de hoja.
+    const { llamadas } = await conteosPorOrigen(db);
     expect(llamadas.find((l) => l.origen === "app")?.total).toBe(1);
     expect(llamadas.find((l) => l.origen === "sheets")?.total).toBe(2);
-    expect(ventas.find((v) => v.origen === "app")?.total).toBe(1);
-    expect(ventas.find((v) => v.origen === "sheets")?.total).toBe(1);
   });
 });
 
@@ -185,7 +185,7 @@ describe("ultimosCambiosDesdeLaApp", () => {
       tabla: "leads",
       registroId: personaId,
       etiqueta: NOMBRE_LEAD,
-      campo: "responsableCloserId",
+      campo: "nombre",
       valorAnterior: null,
       valorNuevo: CORREO_LEAD,
       origen: "app",
@@ -195,7 +195,7 @@ describe("ultimosCambiosDesdeLaApp", () => {
     const filas = await ultimosCambiosDesdeLaApp(15, db);
     expect(filas).toHaveLength(1);
     // Lo que si sale: metadatos.
-    expect(filas[0]).toMatchObject({ tabla: "leads", campo: "responsableCloserId" });
+    expect(filas[0]).toMatchObject({ tabla: "leads", campo: "nombre" });
     // Lo que no puede salir, mirado sobre la fila entera y no columna por columna:
     // una columna nueva con datos del lead tambien haria fallar esto.
     const serializada = JSON.stringify(filas[0]);

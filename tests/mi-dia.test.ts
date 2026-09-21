@@ -8,12 +8,11 @@ import {
   plataformasPago,
   productos,
   programs,
-  sales,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba, type BaseDePrueba } from "./helpers/base-de-prueba";
-import { buscarPersonas, ventasDePersona } from "@/lib/queries/personas";
+import { buscarPersonas } from "@/lib/queries/personas";
 
 /**
  * Ticket 003 — lecturas de la pantalla `/mi-dia` (ADR 0021, 0023, 0011, 0005, 0013).
@@ -39,7 +38,6 @@ let programaB: string;
 async function limpiar(): Promise<void> {
   await db.delete(changeLog);
   await db.delete(abonos);
-  await db.delete(sales);
   await db.delete(productos);
   await db.delete(leads);
   await db.delete(miembrosPrograma);
@@ -186,71 +184,5 @@ describe("buscarPersonas", () => {
     }
     const resultados = await buscarPersonas(anaUserId, "closer", "Lead numero", db);
     expect(resultados.length).toBeLessThanOrEqual(20);
-  });
-});
-
-// ─────────────────────────────────────────────────────────── ventasDePersona
-
-describe("ventasDePersona", () => {
-  /** Siembra una venta de una persona y devuelve su id. */
-  async function sembrarVenta(
-    personId: string,
-    programId: string,
-    { precio = "797" as string | null, moneda = "USD" } = {},
-  ): Promise<string> {
-    const [venta] = await db
-      .insert(sales)
-      .values({
-        personId,
-        programId,
-        closerId: "Ana",
-        fecha: "2026-08-31",
-        precioAplicadoUsd: precio,
-        moneda,
-      })
-      .returning();
-    return venta.id;
-  }
-
-  async function sembrarAbono(saleId: string, programId: string, monto: string): Promise<void> {
-    await db
-      .insert(abonos)
-      .values({ saleId, programId, fecha: "2026-08-31", monto, closerId: "Ana" });
-  }
-
-  it("da el saldo correcto (precio menos lo abonado)", async () => {
-    const personId = await sembrarPersona(programaA, { emailNormalizado: "compra@correo.co" });
-    const saleId = await sembrarVenta(personId, programaA, { precio: "797" });
-    await sembrarAbono(saleId, programaA, "300");
-    await sembrarAbono(saleId, programaA, "200");
-
-    const ventas = await ventasDePersona(personId, db);
-    expect(ventas).toHaveLength(1);
-    expect(Number(ventas[0].precioAplicadoUsd)).toBe(797);
-    expect(Number(ventas[0].abonado)).toBe(500);
-    expect(Number(ventas[0].saldo)).toBe(297);
-    expect(ventas[0].moneda).toBe("USD");
-  });
-
-  it("una venta sin precio de contrato tiene saldo null (fila vieja de Sheets)", async () => {
-    const personId = await sembrarPersona(programaA, { emailNormalizado: "vieja@correo.co" });
-    const saleId = await sembrarVenta(personId, programaA, { precio: null });
-    await sembrarAbono(saleId, programaA, "100");
-
-    const ventas = await ventasDePersona(personId, db);
-    expect(ventas).toHaveLength(1);
-    expect(ventas[0].precioAplicadoUsd).toBeNull();
-    expect(ventas[0].saldo).toBeNull();
-    expect(Number(ventas[0].abonado)).toBe(100);
-  });
-
-  it("una venta sin abonos tiene abonado 0 y saldo = precio", async () => {
-    const personId = await sembrarPersona(programaA, { emailNormalizado: "sinabono@correo.co" });
-    await sembrarVenta(personId, programaA, { precio: "500" });
-
-    const ventas = await ventasDePersona(personId, db);
-    expect(ventas).toHaveLength(1);
-    expect(Number(ventas[0].abonado)).toBe(0);
-    expect(Number(ventas[0].saldo)).toBe(500);
   });
 });

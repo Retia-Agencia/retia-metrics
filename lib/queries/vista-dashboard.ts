@@ -3,7 +3,6 @@ import type { Db } from "@/lib/db/tipos";
 import { resolverRango, type SeleccionDeRango } from "@/lib/rangos";
 import {
   cajaRecaudada,
-  compromisosAbiertos,
   embudoDelRango,
   embudoPorCloser,
   embudoPorOrigen,
@@ -54,7 +53,6 @@ export interface VistaDelDashboard {
   caja: CajaPorMoneda[];
   leads: LeadsDelRango;
   cohorte: VistaDeCohorte | null;
-  compromisos: number;
   motivos: { motivo: string; llamadas: number }[];
   origenes: Awaited<ReturnType<typeof embudoPorOrigen>>;
   comparativo: Awaited<ReturnType<typeof embudoPorCloser>>;
@@ -73,11 +71,10 @@ export async function armarVistaDelDashboard(
 
   const alcance = { programId, rango, closerId };
 
-  const [embudo, caja, leads, compromisos, motivos, origenes, comparativo] = await Promise.all([
+  const [embudo, caja, leads, motivos, origenes, comparativo] = await Promise.all([
     embudoDelRango(alcance, db),
     cajaRecaudada(alcance, db),
     leadsDelRango(alcance, db),
-    compromisosAbiertos({ programId, closerId }, db),
     llamadasPorMotivo(alcance, db),
     embudoPorOrigen(alcance, db),
     embudoPorCloser({ programId, rango }, db),
@@ -99,7 +96,6 @@ export async function armarVistaDelDashboard(
     caja,
     leads,
     cohorte,
-    compromisos,
     motivos,
     origenes,
     comparativo,
