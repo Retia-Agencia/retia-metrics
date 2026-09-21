@@ -6,8 +6,8 @@ import path from "node:path";
 import * as schema from "@/lib/db/schema";
 
 /**
- * ADR 0026 punto 3 — regla verificable: **ninguna consulta lee `calls`, `sales` o
- * `abonos` sin excluir lo anulado**, y la exclusion no se escribe a mano: viene de
+ * ADR 0026 punto 3, ampliado por el ADR 0038 — regla verificable: **ninguna consulta
+ * lee `calls`, `deals` o `abonos` sin excluir lo anulado**, y la exclusion no se escribe a mano: viene de
  * `vigente(tabla)` en `lib/queries/vigente.ts` (ADR 0024, una sola definicion).
  *
  * Por que un guardian y no cuidado al escribir: si una consulta del embudo se olvida
@@ -27,8 +27,7 @@ import * as schema from "@/lib/db/schema";
  * **Mira TODO el codigo, no solo `lib/queries/`.** El ADR dice "toda consulta sobre
  * esas tres tablas", y una metrica escrita dentro de una pagina o de una mutacion
  * cuenta igual. Acotarlo a un directorio habria dejado el agujero justo donde nadie
- * lo busca: cuatro lecturas de `calls`, `sales` y `abonos` viven hoy en
- * `lib/mutations/`.
+ * lo busca.
  *
  * Mismo molde que el guardian de slugs del ticket 009 (`tests/contrato-extension.test.ts`):
  * analisis de texto sobre el arbol real, y una prueba aparte de que el detector no es
@@ -37,8 +36,14 @@ import * as schema from "@/lib/db/schema";
 
 const RAIZ = fileURLToPath(new URL("../", import.meta.url));
 
-/** Las tres tablas que ganan `anulado_en` en el ticket 029. */
-const TABLAS_ANULABLES = ["calls", "sales", "abonos"] as const;
+/**
+ * Las tres tablas que se anulan. `sales` salio con el ticket 038 (se disolvio en el
+ * Deal) y `deals` entro con el 040: un deal anulado no cuenta en NINGUNA metrica
+ * (ADR 0038), y el riesgo es exactamente el mismo que el de las otras dos — no es
+ * escribir la anulacion, es OLVIDAR una consulta, porque una cifra inflada se ve
+ * perfectamente creible y no lanza ningun error.
+ */
+const TABLAS_ANULABLES = ["calls", "deals", "abonos"] as const;
 
 /** El unico modulo autorizado a saber como se escribe "esta vigente". */
 const MODULO_DEL_PREDICADO = path.join("lib", "queries", "vigente.ts");
@@ -50,7 +55,7 @@ const DIRECTORIOS = ["lib", "app", "components", "scripts"];
 const EXTENSIONES = new Set([".ts", ".tsx"]);
 
 /**
- * Todo lo que exporta el esquema. Sirve para distinguir `.from(sales)` —una tabla
+ * Todo lo que exporta el esquema. Sirve para distinguir `.from(deals)` —una tabla
  * que el guardian conoce— de `.from(tabla)`, donde la tabla entra por parametro y el
  * texto no alcanza a decir cual es. Ese segundo caso NO se deja pasar: una funcion
  * generica que recibe la tabla puede recibir una anulable, asi que tiene que aplicar
@@ -94,7 +99,7 @@ const METODOS_CON_TABLA = ["from", "leftJoin", "innerJoin", "rightJoin", "fullJo
  * linea (para que los numeros de linea sigan siendo los del archivo real).
  *
  * Hay que borrarlos antes de mirar nada: este repo comenta en espanol y las palabras
- * "abonos", "sales" y "calls" aparecen en prosa por todas partes. Lo que SI se
+ * "abonos", "deals" y "calls" aparecen en prosa por todas partes. Lo que SI se
  * conserva es el interior de los templates `sql`, porque ahi `${abonos.monto}` es una
  * lectura de verdad.
  */
@@ -348,7 +353,7 @@ describe("vigencia centralizada (ADR 0026)", () => {
     expect(typeof modulo.vigente).toBe("function");
   });
 
-  it("ninguna consulta del repo lee calls, sales o abonos sin vigente(tabla)", () => {
+  it("ninguna consulta del repo lee calls, deals o abonos sin vigente(tabla)", () => {
     const violaciones = consultasSinPredicado(RAIZ);
     expect(
       violaciones,
@@ -372,6 +377,9 @@ describe("vigencia centralizada (ADR 0026)", () => {
     fs.mkdirSync(dir, { recursive: true });
 
     // Limpia: filtra las dos tablas que lee, una en el where y otra en el join.
+    // 🎯 La mitad del "mordido en los dos sentidos" que se olvida: el guardian NO
+    // marca la solucion correcta. Un guardian que solo se prueba cazando lo malo
+    // puede estar cazando todo, y eso se descubre el dia que alguien lo apaga.
     fs.writeFileSync(
       path.join(dir, "limpia.ts"),
       [
@@ -379,14 +387,14 @@ describe("vigencia centralizada (ADR 0026)", () => {
         "  return db",
         "    .select({ total: sql`sum(${abonos.monto})` })",
         "    .from(abonos)",
-        "    .leftJoin(sales, and(eq(sales.id, abonos.saleId), vigente(sales)))",
+        "    .leftJoin(deals, and(eq(deals.id, abonos.dealId), vigente(deals)))",
         "    .where(and(eq(abonos.programId, p), vigente(abonos)));",
         "}",
       ].join("\n"),
     );
 
     // Sucia: dos consultas en la MISMA funcion. La primera esta bien; la segunda
-    // filtra `sales` pero se olvida de `abonos` en el join — EL error que este
+    // filtra `deals` pero se olvida de `abonos` en el join — EL error que este
     // guardian existe para atrapar: la caja seguiria sumando abonos anulados.
     fs.writeFileSync(
       path.join(dir, "sucia.ts"),
@@ -397,10 +405,10 @@ describe("vigencia centralizada (ADR 0026)", () => {
         "    .from(calls)",
         "    .where(and(eq(calls.programId, p), vigente(calls)));",
         "  const filas = await db",
-        "    .select({ id: sales.id, abonado: ABONADO })",
-        "    .from(sales)",
-        "    .leftJoin(abonos, eq(abonos.saleId, sales.id))",
-        "    .where(vigente(sales));",
+        "    .select({ id: deals.id, abonado: ABONADO })",
+        "    .from(deals)",
+        "    .leftJoin(abonos, eq(abonos.dealId, deals.id))",
+        "    .where(vigente(deals));",
         "  return { llamadas, filas };",
         "}",
       ].join("\n"),
@@ -423,7 +431,19 @@ describe("vigencia centralizada (ADR 0026)", () => {
         "  return db",
         "    .select({ id: calls.id })",
         "    .from(calls)",
-        "    .where(and(eq(calls.personId, id), incluyendoAnulados(calls)));",
+        "    .where(and(eq(calls.dealId, id), incluyendoAnulados(calls)));",
+        "}",
+      ].join("\n"),
+    );
+
+    // Un DEAL leido sin predicado, solo. Es la mitad nueva del ticket 040 y va en su
+    // propio archivo para que la asercion diga que el guardian lo caza POR SI mismo,
+    // no arrastrado por el `abonos` de `sucia.ts`.
+    fs.writeFileSync(
+      path.join(dir, "deals-sin-filtro.ts"),
+      [
+        "export async function vendidos(db: Db) {",
+        "  return db.select({ n: count() }).from(deals).where(eq(deals.cohortId, c));",
         "}",
       ].join("\n"),
     );
@@ -433,10 +453,10 @@ describe("vigencia centralizada (ADR 0026)", () => {
     fs.writeFileSync(
       path.join(dir, "ruido.ts"),
       [
-        "// La caja recaudada suma abonos; las ventas cerradas cuentan sales.",
+        "// La caja recaudada suma abonos; las ventas cerradas cuentan deals.",
         "/* calls no se lee aqui: este modulo no consulta nada. */",
-        "export const ETIQUETA = 'abonos del dia, sin calls ni sales';",
-        "export interface Fila { total: typeof sales.precioAplicadoUsd }",
+        "export const ETIQUETA = 'abonos del dia, sin calls ni deals';",
+        "export interface Fila { total: typeof deals.etapa }",
         // Dos `.from(` que no son consultas. Sin distinguirlos, el guardian pide
         // vigencia sobre una variable local — y uno que grita por cosas que no son
         // consultas se apaga a la tercera falsa alarma.
@@ -446,6 +466,7 @@ describe("vigencia centralizada (ADR 0026)", () => {
     );
 
     expect(consultasSinPredicado(tmp)).toEqual([
+      `${path.join("lib", "queries", "deals-sin-filtro.ts")}:2: lee 'deals' sin vigente(deals)`,
       `${path.join("lib", "queries", "generica.ts")}:2: lee 'tabla' sin vigente(tabla)`,
       `${path.join("lib", "queries", "sucia.ts")}:6: lee 'abonos' sin vigente(abonos)`,
     ]);

@@ -245,7 +245,13 @@ export async function historialDePersona(
     // Una llamada cuelga del DEAL, no del lead (ADR 0037), asi que se llega a ella
     // por sus deals. `innerJoin` y no `leftJoin` a proposito: una llamada sin deal
     // no es de ningun lead y colarla aqui seria adivinar de quien es.
-    .innerJoin(deals, eq(deals.id, calls.dealId))
+    //
+    // `incluyendoAnulados(deals)` y no `vigente(deals)`: el historial muestra lo
+    // anulado tachado (ADR 0026 punto 4). Las llamadas de un deal que se anulo por
+    // error de tecleo ocurrieron de verdad, y esconderlas convertiria la anulacion
+    // en un borrado con otro nombre. La regla es fuera de las metricas, dentro del
+    // historial.
+    .innerJoin(deals, and(eq(deals.id, calls.dealId), incluyendoAnulados(deals)))
     .leftJoin(motivos, eq(motivos.id, calls.motivoId))
     .leftJoin(origenes, eq(origenes.id, calls.origenId))
     // El historial SI muestra lo anulado, tachado (ADR 0026 punto 4): "aqui hubo una

@@ -442,19 +442,22 @@ async function ventasDeCohorte(
   const deLaCohorte = and(
     eq(deals.cohortId, cohorteId),
     inArray(deals.etapa, [...ETAPAS_VENDIDAS]),
-    vigente(deals),
   );
   const conteo = { n: sql<number>`count(*)::int` };
 
-  // Sin closer no hace falta el join: `deals` solo, que ademas incluye los Unclaimed.
+  // `vigente(deals)` va DENTRO de cada cadena y no izado a `deLaCohorte`, aunque
+  // repetirlo se vea redundante: el guardian de `tests/vigencia-centralizada.test.ts`
+  // lee cadena por cadena, y una condicion escondida en una variable le pasa por
+  // debajo. Quien lee la consulta tiene que ver la decision ahi mismo.
   const [fila] =
     closerId == null
-      ? await db.select(conteo).from(deals).where(deLaCohorte)
+      // Sin closer no hace falta el join: `deals` solo, que incluye los Unclaimed.
+      ? await db.select(conteo).from(deals).where(and(deLaCohorte, vigente(deals)))
       : await db
           .select(conteo)
           .from(deals)
           .innerJoin(users, eq(users.id, deals.ownerUserId))
-          .where(and(deLaCohorte, igualCloser(users.closerId, closerId)));
+          .where(and(deLaCohorte, vigente(deals), igualCloser(users.closerId, closerId)));
 
   return fila?.n ?? 0;
 }

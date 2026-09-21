@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { deals, leadContactos, leads, programs } from "@/lib/db/schema";
+import { deals, leadContactos, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { esViolacionUnica } from "@/lib/db/errores";
+import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
 /**
@@ -92,6 +92,37 @@ describe("un deal ABIERTO por lead y programa (ADR 0037)", () => {
     await expect(
       db.insert(deals).values({ leadId: leadA, programId: programaA }),
     ).rejects.toSatisfy(esViolacionUnica);
+  });
+
+  it("🩸 un deal ANULADO libera el cupo: se puede crear el correcto", async () => {
+    // El caso que hace falta de verdad: un closer registra el deal sobre el lead
+    // equivocado, lo anula, y crea el bueno. Sin `AND anulado_en IS NULL` en el
+    // indice, la base le rechaza el segundo por un registro que la app ya declaro
+    // INEXISTENTE (ADR 0038) — y el mensaje diria que ya tiene un deal abierto,
+    // que es justo lo que el closer acaba de deshacer.
+    const [quienAnula] = await db
+      .insert(users)
+      .values({ email: "gerente@retiagrowth.com", rol: "gerente" })
+      .returning();
+    await db.insert(deals).values({
+      leadId: leadA,
+      programId: programaA,
+      anuladoEn: new Date(),
+      anuladoPor: quienAnula.id,
+      motivoAnulacion: "lead equivocado",
+    });
+
+    await db.insert(deals).values({ leadId: leadA, programId: programaA });
+
+    expect(await db.select().from(deals)).toHaveLength(2);
+  });
+
+  it("sin motivo no hay anulacion: los tres campos van juntos o no va ninguno", async () => {
+    // ADR 0026 punto 6, y la garantia vive en la base (ADR 0005). Una fila anulada
+    // sin quien ni por que es justo el estado que el ADR descarta.
+    await expect(
+      db.insert(deals).values({ leadId: leadA, programId: programaA, anuladoEn: new Date() }),
+    ).rejects.toSatisfy(esViolacionCheck);
   });
 
   it("el mismo lead en OTRO programa no choca", async () => {

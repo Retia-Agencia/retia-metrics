@@ -556,6 +556,22 @@ export const deals = pgTable(
      * que la ausencia.
      */
     creadoPor: uuid("creado_por").references(() => users.id, { onDelete: "restrict" }),
+    /**
+     * Anulacion (ADR 0026, extendido a `deals` por el ADR 0038). **Anular NO es
+     * Cierre Perdido y por eso no es una etapa numero 11.**
+     *
+     * Son dos hechos distintos: Cierre Perdido es un resultado del negocio (el lead
+     * dijo que no) y CUENTA en el embudo; anulado es una correccion de tecleo (el
+     * registro nunca debio existir) y no cuenta en NINGUNA metrica.
+     *
+     * 🩸 Si se fundieran, un error de dedo se convertiria en una venta perdida y la
+     * tasa de conversion mentiria. Y como es una marca ORTOGONAL y no una etapa, al
+     * anular no se pierde el dato de en que etapa estaba el deal cuando se descubrio
+     * el error.
+     */
+    anuladoEn: timestamp("anulado_en", { withTimezone: true }),
+    anuladoPor: uuid("anulado_por").references(() => users.id, { onDelete: "restrict" }),
+    motivoAnulacion: text("motivo_anulacion"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -570,16 +586,27 @@ export const deals = pgTable(
      * intentarlo en la cohorte siguiente" pasa a ser un hecho contable en vez de
      * una sobreescritura.
      *
-     * ⚠️ El ticket 040 le agrega `AND anulado_en IS NULL`: un deal anulado es un
-     * registro que nunca debio existir, asi que no puede seguir ocupando el cupo
-     * del lead e impedir que se cree el correcto.
+     * 🎯 Y lleva `AND anulado_en IS NULL`, que NO es un detalle: un deal anulado es
+     * un registro que nunca debio existir (ADR 0038), asi que no puede seguir
+     * ocupando el cupo del lead. Sin esa mitad, un closer que se equivoca de lead y
+     * anula el deal **no puede crear el correcto**: la base se lo rechaza por un
+     * registro que la app ya declaro inexistente.
      */
     uniqueIndex("deals_uno_abierto_por_lead_y_programa_idx")
       .on(t.leadId, t.programId)
-      .where(sql`${t.etapa} not in ('completo', 'cierre_perdido')`),
+      .where(sql`${t.etapa} not in ('completo', 'cierre_perdido') and ${t.anuladoEn} is null`),
     index("deals_programa_etapa_idx").on(t.programId, t.etapa),
     index("deals_owner_idx").on(t.ownerUserId),
     index("deals_cohorte_idx").on(t.cohortId),
+    // Sin motivo no hay anulacion (ADR 0026 punto 6), y la garantia vive en la base
+    // y no solo en zod (ADR 0005): los tres campos van juntos o no va ninguno. Una
+    // fila anulada sin quien ni por que es justo el estado que el ADR descarta.
+    check(
+      "deals_anulacion_completa",
+      sql`(${t.anuladoEn} IS NULL AND ${t.anuladoPor} IS NULL AND ${t.motivoAnulacion} IS NULL)
+          OR (${t.anuladoEn} IS NOT NULL AND ${t.anuladoPor} IS NOT NULL
+              AND length(trim(${t.motivoAnulacion})) > 0)`,
+    ),
   ],
 );
 
