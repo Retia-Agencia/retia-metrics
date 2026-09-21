@@ -8,43 +8,109 @@
 > Copiar y pegar tal cual. Escrito el 20-sep al cerrar.
 
 ```
-Retomamos el Retia CRM. Lee AGENTS.md y la entrada "CIERRE 16" de docs/agents/handoff.md.
+Arrancamos el CRM v2 de Retia. Lee AGENTS.md y luego docs/plan-crm-v2.md COMPLETO: ese es el
+plan y ya esta aprobado. El diseno del que sale vive fuera del repo, en
+/Users/mani/Documents/mani_vault/02 Projects/retia/notebook/crm-retia-modelo-hubspot-scaffold.md
+y manda sobre el plan en todo lo que sea diseno.
 
-Estado: 637 tests, typecheck y lint limpios. `production` esta al dia: 20 migraciones, la 0019
-aplicada y verificada, y el cron de sync corriendo solo todos los dias a las 07:52 de Bogota.
+Estado: 677 tests, typecheck y lint limpios, 20 migraciones, `production` al dia. Y el dato que
+ordena todo el plan: `calls`, `sales` y `abonos` tienen CERO filas en production (medido el
+21-sep). El CRM tiene 4.791 leads y ni un registro operativo, asi que disolver `sales` y colgar
+todo del deal es un cambio de esquema sobre tablas vacias, no una migracion de datos.
 
-Lo que quedo a medias y por que, en orden de como atacarlo:
+Tu trabajo es la ETAPA 0 del plan (§6), que no tiene una sola linea de codigo:
 
-(1) UI DE PLATAFORMAS + resto del 030. Es UN solo frente, no dos: los cinco catalogos que
-    todavia no tienen boton de borrar viven en /ajustes/catalogos, la misma pantalla que hay que
-    abrir para las plataformas. Ver el ticket 013 (enmienda) y el 030. La tabla
-    `plataformas_programa` ya existe y esta poblada; falta el codigo que la use.
+  E0-1  Escribir los ADR 0035 a 0042 (la tabla esta en §8 del plan; las decisiones ya
+        argumentadas viven en §3 como D1 a D6, solo hay que promoverlas)
+  E0-2  Enmendar docs/spec.md segun el insumo §11
+  E0-3  Anotar la enmienda en los ADR vigentes que cambian: 0004, 0007, 0015, 0019, 0021,
+        0027, 0032
+  E0-4  Ya hecho el 21-sep: 034 absorbido, 021 congelado, 007 partido, 035 mudado
+  E0-5  Ya hecho el 21-sep: vocabulario v2 en docs/agents/context.md
+  E0-6  Crear los tickets de las etapas 1 a 7 en docs/tasks/ y registrarlos en el tracker
 
-(2) TICKET 035, comprobante por link o foto. Antes de codear hay que responder DOS preguntas con
-    datos: cuanto crece el almacenamiento por mes, y quien puede ver el comprobante de un abono
-    ajeno. La segunda NO la resuelve el ADR 0009.
+Queda UNA decision abierta y es de Mani, no bloquea empezar: E1-4, que pasa con las 5 filas de
+`sources` con destino != people (Estudiantes, Pauta, Registro de llamadas). Se borran, o
+`destino` sobrevive y el indice unico de D2 es parcial. El caso incomodo es `ad_spend`, que el
+insumo §8 quiere de vuelta para el ROAS.
 
-(3) SESION DE DISENO DEL PIPELINE (HubSpot). BLOQUEA al ticket 034. Mani aclaro el 20-sep que son
-    DOS campos: `estado` lo escribe la hoja y no se mueve; `etapa` la escribe el CRM y si se
-    mueve. Eso ya desarmo la tension de "dos escritores". Lo que falta es el ORDEN de las etapas,
-    y confirmar con el playbook de closers si "Setteo No Calificado" es etapa o salida: de eso
-    depende si la conversion da 0,9% o 2,6%.
-
-(4) TICKET 021, PDF. Ya NO esta a ciegas: los seis reportes reales de Mike estan en el second
-    brain de Mani, en 02 Projects/retia/notebook/reportes-diarios-mike/, y el ticket 021 tiene la
-    estructura desarmada y el alcance acotado.
-
-(5) Andrea y la prueba de llamada real: Mani los dejo para cuando el CRM salga a produccion full.
-
-🎯 LA LECCION DEL 20-SEP, y vale mas que cualquiera de los tickets: de seis deudas que el tracker
-daba por pendientes, TRES ya estaban resueltas y nadie lo habia mirado (la concurrencia contra
-Neon, el cron corriendo solo, y S-02 cuya "imposibilidad" describia su propio arreglo). Antes de
-trabajar una deuda vieja, VERIFICALA. Cuesta un comando y a veces cuesta cero trabajo.
+Trabajo delegable a Kiro a partir de la etapa 1; la etapa 0 es criterio, hazla tu.
+Las migraciones las genera y aplica la sesion principal, nunca un subagente.
 ```
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-21 (CIERRE 17) — Se abrio la epoca v2: el CRM pasa al modelo HubSpot. Sesion de
+  planeacion, cero codigo. 677 tests intactos.**
+
+  **PARA QUIEN ABRA LA PROXIMA SESION:** el plan completo esta en `docs/plan-crm-v2.md` y esta
+  **aprobado**. No lo re-discutas: ejecuta la etapa 0.
+
+  - 🎯 **EL HALLAZGO QUE ORDENA TODO EL PLAN: `calls`, `sales` y `abonos` tienen CERO filas en
+    `production`.** El CRM lleva 4.791 leads sincronizados y **ni un solo registro operativo**;
+    ningun closer lo ha usado nunca. Eso convierte disolver `sales`, colgar `calls` del deal y
+    mover `abonos` en **cambios de esquema sobre tablas vacias**, no en migraciones de datos. El
+    costo esta entero en el codigo (27 archivos mencionan `sales`). Y significa que **esta es la
+    ventana mas barata que va a existir**: con 300 llamadas encima, el mismo corte es un
+    strangler de semanas. Salio de abrir la tabla, que es la leccion del CIERRE 16 aplicada.
+
+  - 🎯 **Mas cosas muertas que nadie habia mirado, todas medidas el 21-sep:** `people.estado` esta
+    en el default `cola_setteo` en **4.791 de 4.791** filas (el `pgEnum` no carga un bit, confirma
+    F-01); **0** personas tienen responsable; **0** entraron por `crm`. Y **Vercel es plan
+    `hobby`** (team `agencia-dani`, verificado por API), asi que el cron solo puede correr **una
+    vez al dia**: los 15 minutos del insumo no existen sin pagar Pro.
+
+  - 🩸 **Una contradiccion del insumo, cazada midiendo.** El insumo §2.10 pide un indice unico
+    sobre `sources.program_id` ("un programa, una hoja"). **Ese indice no se puede crear hoy:**
+    ComunicArte tiene 5 filas con el mismo `program_id`, dos de ellas fuentes ACTIVAS de leads
+    sobre el mismo archivo de Sheets. Mani decidio una sola fuente por programa (D2) y se midio
+    lo que cuesta leyendo las dos pestanas: `New form` 2.258 filas / 2.070 personas, VIVA;
+    `Forms viejo` 67 filas / 65 personas, **muerta desde el 22/7**; de esas 65, **55 no estan en
+    New form**. No se pierden (el CRM nunca borra un lead): se recuperan en la etapa 7, que es
+    donde el insumo ya pone las pestanas viejas.
+
+  - **Seis decisiones de Mani, argumentadas en `plan-crm-v2.md` §3 (D1 a D6).** Todavia NO son
+    ADRs: la etapa 0 las promueve. En corto:
+    1. **D1** `people` → `leads`. Se hace ahora porque con las tablas operativas vacias cuesta
+       casi cero y despues es caro.
+    2. **D2** un programa, una fuente de leads. Enmienda medida al insumo §2.10.
+    3. **D3** **anular NO es Cierre Perdido.** Cierre Perdido es un resultado del negocio y
+       cuenta en el embudo; anular es una correccion de tecleo y no cuenta en ninguna metrica.
+       Fundirlos haria que un error de dedo se vuelva una venta perdida y **la conversion
+       mentiria sin lanzar un error**. `anulado` es marca ortogonal a la etapa, no una etapa 11.
+    4. **D4** el sync se dispara por capas: `onChange` de Apps Script como mecanismo principal,
+       perezoso, manual, y el cron diario de red. Webhook propio despues.
+    5. **D5** cuotas en tabla, no dos campos en el deal. `valor_cuota = saldo / num_cuotas`
+       **asume cuotas iguales**, y el dia que un plan real no lo sea el numero es falso y no falla.
+    6. **D6** un deal se edita cuando haga falta, y todo movimiento del CRM deja rastro.
+       ⚠️ **Con una correccion a lo que pidio Mani:** lo que va de ultimo es la PANTALLA en Nerd
+       Stats, **no el rastro**. El rastro se escribe desde la etapa 1, por la razon del ADR 0029.
+       Retrofitearlo al final deja sin historia todo lo escrito antes, y **un historial de
+       auditoria fabricado se ve identico al de verdad** (los 5 enlaces de PayPal con
+       `change_log` en 0 siguen ahi de testigo).
+
+  - **Los cuatro tickets abiertos se reordenaron:** **034 reemplazado** (absorbido por el plan;
+    su backfill desde `people.raw` ya no aplica porque `submissions` lo reconstruye el sync v2),
+    **021 congelado** hasta la etapa 5, **007 partido** (cargar a Andrea sigue vivo; probar
+    `registrarLlamada` queda obsoleto), **035 mudado** a la etapa 4.
+
+  - **Lo que Mani debe decidir y no bloquea:** E1-4, las 5 filas de `sources` con
+    `destino != people`. El caso incomodo es `ad_spend`, que el reporting va a necesitar.
+
+  - **Pendiente transversal nuevo: la REVISION PROFUNDA DE LA UI** (Mani, 21-sep), `plan-crm-v2`
+    §11. No es la etapa 6: es una pasada completa sobre la app entera, **despues** de la etapa 5.
+    Razon: la UI de hoy se construyo ticket por ticket sobre el modelo viejo, asi que tras la
+    etapa 5 va a estar corriendo sobre deals **con la forma de la epoca anterior**. Y nunca ha
+    existido un criterio de UI escrito en este repo: hay ADRs para el dinero, los roles y el
+    catalogo, para la interfaz ninguno. Cubre navegacion, primera vez, estados vacios, errores,
+    el dia completo de un closer, **el celular**, y consistencia entre pantallas.
+
+  - **Notion al dia (21-sep):** se cerro *"Disenar el pipeline de etapas del lead en el CRM
+    (modelo HubSpot)"* (el diseno quedo consolidado, lo que sigue es construir) y se abrieron
+    tres: **CRM v2 etapa 0** (p1, next), **CRM v2 etapa 1** (p2, next) y **Revision profunda de
+    la UI** (p3, someday).
 
 - **2026-09-20 (CIERRE 16) — Barrida de pendientes: 4 cerrados, 3 de ellos por VERIFICACION y no
   por codigo. 637 tests. `production` al dia.**

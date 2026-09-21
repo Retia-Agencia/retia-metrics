@@ -340,3 +340,46 @@ La vista del developer sobre la salud de la HERRAMIENTA, no del negocio: corrida
 cambios recientes hechos desde la app, conteos por programa y por origen, usuarios activos por
 rol y el commit desplegado. Es la unica ruta exclusiva del developer (ticket 025). Solo conteos
 y metadatos: por diseno no puede mostrar un dato personal.
+
+---
+
+### Vocabulario del modelo v2 (21-sep)
+
+> Terminos que entran con [plan-crm-v2](../plan-crm-v2.md). **Todavia no existen en el codigo**:
+> se construyen a partir de la etapa 1. Estan aqui para que nadie invente un nombre paralelo.
+> Definicion completa en el insumo original, `crm-retia-modelo-hubspot-scaffold.md` §2.
+
+**Lead**:
+Una persona dentro de un programa. Es `people` renombrado. La misma persona en dos programas son
+_dos Leads_ y no se deduplican entre si.
+
+**Envio** (`submission`):
+Cada vez que alguien lleno el formulario, parcial o completo. Un Lead tiene uno o varios envios;
+son su historial de llegada. Su llave es el Token del formulario.
+
+**Deal**:
+La oportunidad de venderle un programa a un Lead. Tiene owner, etapa, producto y cohorte. Un Lead
+puede tener como maximo un deal abierto por programa; los cerrados quedan.
+
+**Etapa**:
+En cual de los diez pasos del pipeline esta un Deal. La escribe el CRM. _No confundir con
+**estado**, que es la clasificacion de llegada que escribe la hoja y el CRM solo trae._
+
+**Owner**:
+El closer responsable de un Deal. Reemplaza al responsable que vivia sobre la persona: los deals
+nacen sin owner y un closer los _reclama_.
+
+**Unclaimed**:
+Un Deal en etapa Agendado que todavia no tiene owner.
+
+**Cuota pactada**:
+Un pago prometido: su numero, su monto y su fecha. Cuando entra, se enlaza con el abono que la
+cumplio.
+
+**Student**:
+Un Deal en etapa Abonado o Completo. Es una vista, no una tabla.
+
+**Anulado**:
+Marca de que un registro nunca debio existir, por error de digitacion. _No es lo mismo que Cierre
+Perdido_, que es un resultado real del negocio: lo anulado no cuenta en ninguna metrica, lo
+perdido si.

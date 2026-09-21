@@ -8,6 +8,12 @@ status: en curso
 
 # 007 — Dar de alta a los closers reales
 
+> ⚠️ **21-sep: partido por [plan-crm-v2](../plan-crm-v2.md).** El criterio 1 sigue vivo: carga a
+> Andrea cuando tengas su correo. El criterio 2 queda **obsoleto**, `registrarLlamada` se reescribe
+> en la etapa 4. Y el `closer_id` de texto deja de colgar de la persona: pasa a ser **owner del
+> deal** (`owner_user_id`, FK real a `users`). El ADR 0011 sobrevive solo para lo historico que
+> entre por la migracion one-time (etapa 7).
+
 ## Objetivo
 Andrea, Maru y Jero (y cualquier closer activo) tienen cuenta con `closerId`, correo de Calendly
 y sus programas asignados, cargados desde la pantalla del ticket 015.

@@ -8,6 +8,11 @@ status: todo
 
 # 035 — El comprobante de un abono: link **o** foto subida
 
+> ⚠️ **21-sep: se muda a la etapa 4 de [plan-crm-v2](../plan-crm-v2.md).** Lo unico que cambia es
+> que colgara de `abonos.deal_id` en vez de `abonos.sale_id`. **Siguen debiendose los dos analisis
+> que Mani exigio antes de codear**: cuanto crece el almacenamiento por mes, y quien puede ver el
+> comprobante de un abono ajeno (esa segunda NO la contesta el ADR 0009).
+
 > **Mani, 20-sep:** *"Quiero que permita links y/o fotos de comprobantes."* Y sobre el costo:
 > *"toca analizar el pedo de archivos y cómo crece con el tiempo."*
 

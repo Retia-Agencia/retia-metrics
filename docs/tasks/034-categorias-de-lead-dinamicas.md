@@ -3,10 +3,18 @@ id: 034
 fase: F2
 serves: "ADR 0032 · cierra F-01 y F-06 · spec §5 criterio 3 (la parte de arriba del embudo)"
 depends: [016]
-status: todo
+status: reemplazado
 ---
 
 # 034 — Las categorias del lead salen de la hoja, no del codigo
+
+> ⛔ **21-sep: ABSORBIDO por [plan-crm-v2](../plan-crm-v2.md), deja de existir como ticket.**
+> Su alcance es el §2.2 del insumo original. Dos correcciones sobre lo que decia abajo:
+> **(a)** el backfill desde `people.raw` **ya no aplica**, porque `submissions` lo reconstruye el
+> primer sync v2 desde la hoja (`raw` guarda una fila por persona, no una por envio: 4.791 raw para
+> 6.233 envios); **(b)** `people.estado` de `pgEnum` a texto pasa a ser parte del corte de esquema
+> de la etapa 1, no una migracion propia. El resto del analisis de abajo sigue siendo valido y es
+> el insumo del ADR 0036.
 
 > **Mani lo quiere en su propia sesion** (19-sep). Es el ticket mas grande que queda: toca una
 > columna con 4.688 filas y pide migracion.

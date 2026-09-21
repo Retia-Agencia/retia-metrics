@@ -9,6 +9,12 @@ Un ticket está **listo** cuando todos los de su columna "Depende de" están en 
 
 Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md).
 
+> ⚠️ **21-sep: se abrió la época siguiente.** El CRM pasa al modelo HubSpot (Lead, Envío,
+> Deal, diez etapas). El plan de ejecución, con el estado medido de `production` y el impacto
+> sobre los tickets de abajo, está en **[docs/plan-crm-v2.md](../plan-crm-v2.md)**. Léelo antes
+> de tomar cualquier ticket: el **034 queda absorbido**, el **021 congelado**, el **007 partido**
+> y el **035 se muda a la etapa 4**.
+
 ## F0 · Contrato de extensión
 
 | ✓ | # | Ticket | Depende de | Estado |
@@ -35,7 +41,7 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 019 | [Registrar abono](./019-registrar-abono.md) | 018 | done · 17-sep (`registrarAbono` + `saldoDeVenta`, sin migración) |
 | [x] | 026 | [Responsable + alta manual](./026-responsable-y-alta-manual.md) (ADR 0021) | 015 | done · 17-sep (sesión paralela C; migración 0010 en `dev` y `production`) |
 | [x] | 003 | [Pantalla /mi-dia](./003-pantalla-mi-dia-registro.md) | 002, 019, 015, 026 | done · 17-sep (buscador, registro y abonos sobre las mutaciones de 002/019/026; sin migración) |
-| [ ] | 007 | [Alta de los closers reales](./007-onboarding-closer-id.md) | 015 | **en curso** · 18-sep: en `production` ya están el gerente, Maru (`closer_id: Maru`, 2 programas) y los 2 productos. Falta el correo de Andrea (su `closer_id` ya se sabe: `Andrea`) y **probar `registrarLlamada` con una cuenta real de closer**, que es el otro criterio |
+| [ ] | 007 | [Alta de los closers reales](./007-onboarding-closer-id.md) | 015 | **en curso · PARTIDO el 21-sep** por el plan v2: el criterio 1 (cargar a Andrea) sigue vivo e independiente; el criterio 2 (`registrarLlamada` con cuenta real) queda **obsoleto**, esa mutacion se reescribe en la etapa 4. Nota previa: · 18-sep: en `production` ya están el gerente, Maru (`closer_id: Maru`, 2 programas) y los 2 productos. Falta el correo de Andrea (su `closer_id` ya se sabe: `Andrea`) y **probar `registrarLlamada` con una cuenta real de closer**, que es el otro criterio |
 | [x] | 029 | [Anular un registro](./029-anular-registros.md) (ADR 0026, ADR 0027) | 003, 019 | done · 18-sep (migraciones 0013 y 0014 en `dev` y `production`; desplegado; recorrido visual hecho, 3 hallazgos arreglados) |
 
 ## F2 · Métricas
@@ -47,9 +53,9 @@ Orden y porqué: [docs/plan.md](../plan.md). Alcance: [docs/spec.md](../spec.md)
 | [x] | 004 | [Consultas del dashboard](./004-consultas-dashboard.md) | 018, 020, 027 | done · 17-sep (sesión paralela B) |
 | [x] | 005 | [Dashboard en /programas/[slug]](./005-dashboard-real-programas.md) | 004, 010 | done · 17-sep (filtro por closer dentro de las consultas del 004; sin migración) |
 | [x] | 006 | [Historial de una persona](./006-historial-persona.md) | 005 | done · 17-sep (`/personas/[id]` de solo lectura; se entra desde el buscador de `/mi-dia`; sin migración) |
-| [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) | 005 | todo · **desbloqueado 19-sep**: formato PDF y lo toman los dos roles. Sigue de último |
-| [ ] | 035 | [Comprobante: link **o** foto subida](./035-comprobante-link-o-foto.md) | 019 | todo · **nuevo 20-sep** (Mani) · enmienda PARCIAL al ADR 0017: los recursos siguen siendo links · pide analisis de crecimiento y de control de acceso antes de codear |
-| [ ] | 034 | [Categorías de lead dinámicas](./034-categorias-de-lead-dinamicas.md) (ADR 0032) | 016 | todo · **el más grande que queda** · cierra F-01 y F-06 · Mani lo quiere en sesión propia · necesita migración |
+| [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) | 005 | **CONGELADO hasta la etapa 5** del plan v2 (21-sep): el dashboard que fotografiaria esta por ganar funnel por etapa, Urgencias y ROAS; hacerlo antes es hacerlo dos veces. Nota previa: desbloqueado 19-sep: formato PDF y lo toman los dos roles. Sigue de último |
+| [ ] | 035 | [Comprobante: link **o** foto subida](./035-comprobante-link-o-foto.md) | 019 | todo · **se muda a la etapa 4** del plan v2 (21-sep): colgara de `abonos.deal_id`. Siguen debiendose los dos analisis. Nota previa: nuevo 20-sep (Mani) · enmienda PARCIAL al ADR 0017: los recursos siguen siendo links · pide analisis de crecimiento y de control de acceso antes de codear |
+| [x] | 034 | [Categorías de lead dinámicas](./034-categorias-de-lead-dinamicas.md) (ADR 0032) | 016 | **reemplazado · 21-sep** · absorbido por [plan-crm-v2](../plan-crm-v2.md): su alcance ES el insumo §2.2. El backfill desde `people.raw` ya NO aplica (el primer sync v2 reconstruye los envios desde la hoja) y `estado` enum→texto pasa al corte de la etapa 1. Nota previa: el más grande que queda · cierra F-01 y F-06 · Mani lo quiere en sesión propia · necesita migración |
 
 ## F3 · Recursos
 
