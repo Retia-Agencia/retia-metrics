@@ -13,9 +13,9 @@ Seguimos con el CRM v2 de Retia. Lee AGENTS.md, docs/plan-crm-v2.md §6 etapa 2,
 /Users/mani/Documents/mani_vault/02 Projects/retia/notebook/crm-retia-modelo-hubspot-scaffold.md
 y manda sobre el plan en todo lo que sea diseno.
 
-La ETAPA 1 esta CERRADA en la rama `etapa-1-esquema-crm-v2` (tickets 036 a 042, 7 commits).
-Falta UNA cosa antes de fusionar: aplicar la migracion 0020 en `production`, que necesita el ok
-explicito de Mani (ADR 0018). En `dev` ya esta aplicada y verificada contra `neon.branch_id`.
+La ETAPA 1 esta CERRADA Y FUSIONADA A MAIN (tickets 036 a 042). La migracion 0020 esta aplicada
+y verificada en las DOS ramas de Neon. Estado: 611 tests en 54 archivos, typecheck y lint
+limpios, 21 migraciones, `production` con 4.823 leads.
 
 Lo que existe ahora y antes no:
   - `leads` (era `people`), con `estado` en texto y sin `responsable_closer_id`
@@ -47,9 +47,17 @@ Ojo:
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
-- **2026-09-22 (CIERRE 19) — Etapa 1 CERRADA en `etapa-1-esquema-crm-v2`: el esquema del modelo
-  HubSpot, de un solo corte.** Siete tickets (036 a 042) en 7 commits, una sola migracion. La
-  rama NO esta fusionada y le falta `production`.
+- **2026-09-22 (CIERRE 19) — Etapa 1 CERRADA y fusionada a `main`: el esquema del modelo HubSpot,
+  de un solo corte.** Siete tickets (036 a 042) en 8 commits, una sola migracion, aplicada y
+  verificada en `dev` (2.059 leads) y en `production` (4.823 leads, el mismo numero que antes
+  porque `people` se RENOMBRA y no se re-crea). 611 tests en 54 archivos.
+
+  ⚠️ **La ventana que el ticket 042 no nombraba, y que la proxima migracion de este tipo va a
+  volver a abrir:** migrar `production` ANTES de desplegar deja la app viva consultando tablas que
+  ya no existen, o sea **rota entre el `migrate` y el deploy**. No es evitable en el otro orden —el
+  codigo nuevo necesita `leads`, que no existe hasta migrar—, asi que lo unico que se puede hacer
+  es acortarla: migrar y desplegar seguido. Medida el 22-sep: se migro con el ok de Mani y se
+  fusiono/desplego en la misma sesion.
 
   Lo que se decidio sobre la marcha, que no estaba escrito en los tickets:
   - **Mani, 21-sep:** amputar todo camino de escritura de ventas en vez de reapuntarlo. Razon:

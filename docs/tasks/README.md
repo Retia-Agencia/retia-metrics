@@ -62,7 +62,7 @@ inicial) y la pauta deja de entrar por Sheets: **el costo de una campaña se cap
 | [x] | 039 | [Una sola fuente de leads por programa](./039-una-sola-fuente-de-leads-por-programa.md) (E1-4) | 036 | done · 22-sep |
 | [x] | 040 | [`vigente()` cubre `deals`](./040-vigente-cubre-deals.md) (E1-5) | 037 | done · 22-sep |
 | [x] | 041 | [`change_log` en las tablas operativas](./041-change-log-en-las-tablas-operativas.md) (E1-7) | 037, 038 | done · 22-sep |
-| [~] | 042 | [Migración `0020`: `dev`, y `production` con el ok de Mani](./042-migracion-0020-del-corte.md) (E1-6) | 036-041 | **aplicada en `dev` · 22-sep**; `production` pendiente del ok de Mani |
+| [x] | 042 | [Migración `0020`: `dev` y `production`](./042-migracion-0020-del-corte.md) (E1-6) | 036-041 | done · 22-sep · **aplicada en las dos ramas** |
 
 ## E2 · El motor de etapas
 
