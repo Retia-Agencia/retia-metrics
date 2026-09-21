@@ -32,7 +32,7 @@ nativos con los tokens del tema, sin instalar `tabs`/`input` de shadcn.
 
 ---
 
-## Enmienda pendiente (Mani, 19 y 20-sep) — SIN IMPLEMENTAR
+## Enmienda (Mani, 19 y 20-sep) — IMPLEMENTADA el 20-sep (segunda sesion)
 
 ### Lo que Mani decidio
 
@@ -98,15 +98,34 @@ negocio la toma un humano mirando, no una migracion adivinando con cinco filas.
       **backfill en la MISMA migracion**: entre crear la tabla y llenarla, todos los selectores de
       plataforma de la app saldrian VACIOS.
 - [x] Aplicada en `dev` y verificada: 7 plataformas x 2 programas, **0 huerfanas**.
-- [ ] Aplicar en `production` (pide el ok de Mani).
-- [ ] `lib/catalogo/plataformas.ts`: asociar y desasociar programas (sin minimo), y
-      `exigirAccesoAlPrograma` para que un closer solo asocie donde vende.
-- [ ] Crear un enlace de pago crea el vinculo plataforma-programa si falta, en la misma
-      operacion, o el dato propio se desincroniza de `enlaces_pago`.
-- [ ] Crear una plataforma nueva desde el formulario del enlace de pago.
-- [ ] Acotar los selectores: `components/mi-dia-registro.tsx` (venta y abono) y
-      `components/resources/recursos-pantalla.tsx` (crear enlace de pago).
-- [ ] `/ajustes` proyectado por rol + guarda bajada a las subpaginas.
+- [x] **Aplicada en `production` y VERIFICADA** el 20-sep: 20 migraciones, `plataformas_programa`
+      con 14 vinculos (7 plataformas x 2 programas) y **0 plataformas huerfanas**. Esta casilla
+      estuvo sin marcar mientras la migracion ya estaba viva: el prompt de arranque del handoff lo
+      decia y la ficha no. 🎯 **Una casilla sin marcar no prueba que algo falte; verificar cuesta
+      un comando.**
+- [x] `lib/catalogo/plataformas.ts`: `asociarPrograma` / `desasociarPrograma` (idempotentes, sin
+      minimo), `vinculosDePlataformas` (todos los vinculos en UNA consulta, nunca N+1) y
+      `plataformasDelPrograma` (lo que ve un selector). Con `exigirAccesoAlPrograma`: un closer
+      solo asocia donde vende. Cada cambio va a `change_log` con el nombre del programa.
+- [x] Crear un enlace de pago crea el vinculo si falta (`crearEnlacePago` llama `asociarPrograma`).
+      Sin esto, el closer carga el link de cobro y **esa plataforma no le sale en el selector del
+      abono del mismo programa**, sin que nada falle. 3 tests, mordidos quitando la llamada.
+- [x] Crear una plataforma nueva desde el formulario del enlace de pago
+      (`crearPlataformaDesdeRecursosAccion`), sin salir de `/recursos` ni perder lo escrito. Usa
+      la MISMA funcion que la pantalla de catalogos (`crearPlataformaConProgramas`), no una copia.
+- [x] Selectores acotados en los tres sitios: venta y abono de `mi-dia-registro.tsx` (por el
+      programa de la persona) y el formulario de enlace de `recursos-pantalla.tsx` (por el programa
+      elegido, con el valor cayendo a la primera plataforma valida al cambiar de programa).
+      **Es PROYECCION, no una reja**: el servidor no rechaza un abono por una plataforma sin
+      vincular, y hace bien — bloquear un cobro real por un dato de configuracion seria peor que
+      mostrar una opcion de mas. Por lo mismo, sin programa conocido se muestran todas.
+- [x] `/ajustes` proyectado por rol: el indice pasa a `paginaConRol("gerente","closer")` y filtra
+      sus tarjetas con `esAdministrador(rolDeVista)`; las subpaginas conservan su
+      `paginaConRol("gerente")`. `/ajustes/catalogos` tambien abre al closer y le proyecta solo las
+      pestañas `compartidoConClosers` (hoy, plataformas).
+      **Y el enlace de `/ajustes` entro a la nav de los tres roles** (`lib/nav.ts`): sin eso el
+      closer tenia el permiso y ninguna forma de llegar. Tests de guarda actualizados en
+      `tests/paginas.test.ts` y `tests/roles.test.ts`.
 
 ### Lo que arrastra el punto 3 (`/ajustes`)
 
@@ -119,6 +138,21 @@ Y dentro de `/ajustes/catalogos`: motivos y origenes **siguen siendo solo de adm
 pantalla tiene una pestana por catalogo, asi que a un closer se le proyecta unicamente la de
 plataformas. No se escribe `rol === "closer"` a mano: sale de las funciones de `lib/auth/roles.ts`
 (ADR 0025), o el developer se queda afuera de su propia app.
+
+### Que puede hacer un closer con una plataforma (decidido por Mani el 20-sep)
+
+**Crear y asociar a SUS programas.** Renombrar, desactivar y borrar quedan para gerente y
+developer: cambiarle el nombre a PayPal toca las metricas de los DOS programas.
+
+Y crear va SIEMPRE con al menos un programa cuando no administra: una plataforma sin vinculo nace
+**invisible** en todos los selectores, asi que crearla sola seria trabajo perdido que ademas no
+avisa. `crearPlataformaConProgramas` lo hace en una sola llamada y **verifica el acceso ANTES de
+crear** — al reves quedaria la fila huerfana que la funcion existe para evitar (hay un test que
+muerde justo ese orden).
+
+El registro de catalogos declara las dos cosas por separado: `compartidoConClosers` (quien lo
+administra) y `vinculadoAProgramas` (que forma tiene). Hoy las dos apuntan al mismo catalogo, pero
+son dos preguntas distintas.
 
 ### Supuesto aplicado mientras tanto
 

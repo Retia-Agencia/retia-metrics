@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { enlacesPago } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
+import { asociarPrograma } from "./plataformas";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 import { esquemaUrlHttps } from "./recursos";
 import { reemplazarVersionado, type FilaVersionada } from "./versionar";
@@ -140,6 +141,11 @@ export async function crearEnlacePago(
     const datos = esquemaEnlacePago.parse(input);
     await exigirAcceso(db, actor, datos.programId);
     const fila = await moldeEnlaces(db).crear(actor.id, datos as unknown as CamposEnlacePago);
+    // El vinculo plataforma-programa es dato propio, no derivado de esta tabla
+    // (ADR 0034), asi que crear un enlace lo escribe si falta: si no, la plataforma
+    // que el closer acaba de usar para cobrar NO le saldria en el selector del abono
+    // de ese mismo programa. `asociarPrograma` es idempotente y ya verifico el acceso.
+    await asociarPrograma(db, actor, datos.plataformaId, datos.programId);
     return fila as EnlacePagoVista;
   });
 }

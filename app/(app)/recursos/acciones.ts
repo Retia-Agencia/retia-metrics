@@ -8,12 +8,14 @@ import { ErrorDeApp } from "@/lib/errors";
 import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import {
+  borrarRecursoSiNoSeUso,
   crearRecurso,
   desactivarRecurso,
   reemplazarRecurso,
   type Actor,
   type EntradaRecurso,
 } from "@/lib/catalogo/recursos";
+import { crearPlataformaConProgramas } from "@/lib/catalogo/plataformas";
 import {
   crearEnlacePago,
   desactivarEnlacePago,
@@ -95,6 +97,38 @@ export async function desactivarRecursoAccion(id: string): Promise<ResultadoAcci
   }
 }
 
+/**
+ * Resultado del borrado: la pantalla lo usa para elegir el VERBO (ADR 0026 punto 5).
+ * `borrado: true` → se borro de verdad; `borrado: false` con `referencias` → NO se
+ * borro (hay que desactivar) y se dice cuantas lo referencian. Nunca se dice "borrado"
+ * habiendo desactivado.
+ */
+export type ResultadoBorradoAccion =
+  | { ok: true; borrado: true }
+  | { ok: true; borrado: false; referencias: number }
+  | { ok: false; error: string };
+
+/**
+ * Borra un recurso SOLO si nadie lo uso. Es irreversible, asi que la pantalla pide
+ * confirmacion explicita antes de llamarla. Un recurso con historial (otro recurso lo
+ * reemplazo) no se borra: devuelve el conteo para que la pantalla ofrezca desactivar.
+ * El acceso al programa lo sigue enforzando `lib/catalogo/recursos`, no la pantalla.
+ */
+export async function borrarRecursoAccion(id: string): Promise<ResultadoBorradoAccion> {
+  try {
+    const session = await requireRole("gerente", "closer");
+    const res = await borrarRecursoSiNoSeUso(db, await actorDe(session), id);
+    revalidatePath("/recursos");
+    return res.borrado
+      ? { ok: true, borrado: true }
+      : { ok: true, borrado: false, referencias: res.referencias };
+  } catch (error) {
+    if (error instanceof ErrorDeApp) return { ok: false, error: error.message };
+    console.error("[recursos] error no controlado", error);
+    return { ok: false, error: "Error interno." };
+  }
+}
+
 // ─────────────────────────────────────────────────────────── enlaces de pago
 
 export async function crearEnlacePagoAccion(input: EntradaEnlacePago): Promise<ResultadoAccion> {
@@ -127,6 +161,35 @@ export async function desactivarEnlacePagoAccion(id: string): Promise<ResultadoA
     const session = await requireRole("gerente", "closer");
     await desactivarEnlacePago(db, await actorDe(session), id);
     revalidatePath("/recursos");
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+
+/**
+ * Crea una plataforma de pago sin salir de `/recursos` (enmienda del ticket 013).
+ *
+ * Es el momento en que hace falta: el closer esta cargando el link de un medio de
+ * cobro que todavia no existe en el catalogo, y mandarlo a `/ajustes/catalogos` a
+ * mitad del formulario es perder lo que llevaba escrito. Nace asociada al programa
+ * del enlace, que es la unica forma de que la vea enseguida en el selector.
+ *
+ * La logica es la MISMA de la pantalla de catalogos —una sola funcion en
+ * `lib/catalogo/plataformas`—, no una copia: dos caminos para crear lo mismo son dos
+ * reglas que se desincronizan.
+ */
+export async function crearPlataformaDesdeRecursosAccion(
+  nombre: string,
+  programId: string,
+): Promise<ResultadoAccion> {
+  try {
+    const session = await requireRole("gerente", "closer");
+    await crearPlataformaConProgramas(db, await actorDe(session), { nombre }, [programId]);
+    revalidatePath("/recursos");
+    revalidatePath("/ajustes/catalogos");
+    revalidatePath("/mi-dia");
     return { ok: true };
   } catch (error) {
     return aResultado(error);

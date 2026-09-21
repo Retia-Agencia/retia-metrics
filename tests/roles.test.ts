@@ -62,8 +62,18 @@ describe("navegacion por rol", () => {
 
   it("el closer no ve las rutas de administracion exclusivas de gerente", () => {
     const rutas = navParaRol("closer", PROGRAMAS).map((i) => i.href);
-    expect(rutas).not.toContain("/ajustes");
+    // `/nerd-stats` es la unica ruta exclusiva que queda en la nav (ticket 025).
+    expect(rutas).not.toContain("/nerd-stats");
     expect(rutas).toContain("/mi-dia");
+  });
+
+  it("los tres roles ven /ajustes desde el 20-sep (enmienda del ticket 013)", () => {
+    // Dejo de ser exclusivo del gerente cuando el closer paso a administrar las
+    // plataformas de pago: sin la puerta tendria el permiso y ninguna forma de
+    // llegar. Lo que el closer ve ADENTRO lo acota el indice, no la nav.
+    for (const rol of ["gerente", "closer", "developer"] as const) {
+      expect(navParaRol(rol, PROGRAMAS).map((i) => i.href)).toContain("/ajustes");
+    }
   });
 
   it("el closer si ve los dashboards de programa, desde ADR 0009", () => {

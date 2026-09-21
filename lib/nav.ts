@@ -58,10 +58,12 @@ export function navParaRol(
     items.push({ href: "/nerd-stats", etiqueta: "Nerd Stats", icono: "nerdstats", roles: ["developer"] });
   }
 
-  // Ajustes: el gerente, y el developer con acceso total (ADR 0025).
-  if (rol === "gerente" || esAccesoTotal(rol)) {
-    items.push({ href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["gerente"] });
-  }
+  // Ajustes: los tres roles desde el 20-sep (enmienda del ticket 013). Dejo de ser
+  // exclusivo del gerente cuando un closer paso a administrar las plataformas de
+  // pago: sin la puerta tendria el permiso y ninguna forma de llegar. El INDICE
+  // proyecta por rol (un closer solo ve la tarjeta de catalogos) y cada subpagina
+  // conserva su propia guarda, que es donde vive la seguridad.
+  items.push({ href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["gerente", "closer"] });
 
   return items;
 }

@@ -285,6 +285,15 @@ describe.each(CATALOGOS)("molde de catalogo — $titulo", (caso) => {
  * referencias" se prueba ademas contra la base en `tests/productos.test.ts`, donde un
  * producto con una venta NO se borra.
  */
+/**
+ * Las tablas PUENTE cuyo borrado se permite fuera del molde, en minusculas (el
+ * guardian lee el archivo en minusculas). Una puente no es una fila de catalogo: no
+ * la referencia nadie y su unico contenido es "estos dos estan vinculados", asi que
+ * quitar el vinculo es la operacion, no una perdida de historial. Agregar una tabla
+ * a esta lista es una decision consciente, no un descuido que pasa en silencio.
+ */
+const TABLAS_PUENTE_BORRABLES = ["plataformasprograma"];
+
 describe("guardian estatico — el molde solo borra por borrarSiNoSeUso", () => {
   it("h2. el unico archivo de lib/catalogo/ con un DELETE es molde.ts", () => {
     const dir = fileURLToPath(new URL("../lib/catalogo", import.meta.url));
@@ -321,8 +330,28 @@ describe("guardian estatico — el molde solo borra por borrarSiNoSeUso", () => 
           contenido.indexOf(".delete("),
           "el DELETE del molde esta FUERA de borrarSiNoSeUso",
         ).toBeGreaterThan(inicioDeLaFuncion);
-      } else {
-        expect(borra, `${base} no puede borrar a mano; el borrado vive en el molde`).toBe(false);
+      } else if (borra) {
+        // La UNICA excepcion, nombrada: una TABLA PUENTE (ADR 0034). Desasociar una
+        // plataforma de un programa borra la fila puente, y eso es honesto: nadie la
+        // referencia —ninguna venta ni abono apunta a un vinculo—, asi que no hay
+        // historial que proteger, que es lo que el "nunca se borra" del ADR 0012
+        // cuida. El rastro queda en change_log.
+        //
+        // La regla NO se afloja a "plataformas.ts puede borrar": se exige que CADA
+        // DELETE del archivo caiga sobre una tabla puente de la lista. Un
+        // `.delete(plataformasPago)` clandestino en el mismo archivo sigue cayendo,
+        // que es el bug que este guardian existe para atajar.
+        expect(contenido, `${base} no usa SQL crudo para borrar`).not.toContain("delete from");
+        const objetivos = [...contenido.matchAll(/\.delete\(\s*([a-z0-9_]+)/g)].map((m) => m[1]);
+        expect(objetivos.length, `${base}: no se pudo leer el objetivo del DELETE`).toBeGreaterThan(
+          0,
+        );
+        for (const objetivo of objetivos) {
+          expect(
+            TABLAS_PUENTE_BORRABLES,
+            `${base} borra ${objetivo}, que no es una tabla puente; el borrado de un catalogo vive en el molde`,
+          ).toContain(objetivo);
+        }
       }
     }
   });

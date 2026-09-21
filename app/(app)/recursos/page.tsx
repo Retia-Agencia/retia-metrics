@@ -4,7 +4,7 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { categoriasDeRecurso } from "@/lib/catalogo/categorias-recurso";
-import { plataformasDePago } from "@/lib/catalogo/plataformas";
+import { plataformasDePago, vinculosDePlataformas } from "@/lib/catalogo/plataformas";
 import { programasActivos, programasGestionablesPorUsuario } from "@/lib/queries/programas";
 import {
   enlacesDePagoVigentes,
@@ -83,6 +83,10 @@ export default async function RecursosPage({ searchParams }: Props) {
     puedeCrear ? plataformasDePago(db).listar({ soloActivos: true }) : Promise.resolve([]),
   ]);
 
+  // Que programas sirve cada plataforma (ADR 0034), en UNA consulta: el formulario
+  // del enlace ofrece solo las del programa elegido.
+  const vinculos = puedeCrear ? await vinculosDePlataformas(db) : new Map<string, string[]>();
+
   // El historial de cada recurso se resuelve en el servidor: el desplegable ya trae
   // sus versiones anteriores, sin un ida y vuelta de cliente.
   const historiales = await historialesDeRecursos(recursos.map((r) => r.id), db);
@@ -108,7 +112,11 @@ export default async function RecursosPage({ searchParams }: Props) {
         q={q ?? null}
         programas={programas.map((p) => ({ id: p.id, slug: p.slug, nombre: p.nombre }))}
         categorias={categorias.map((c) => ({ id: String(c.id), nombre: String(c.nombre) }))}
-        plataformas={plataformas.map((p) => ({ id: String(p.id), nombre: String(p.nombre) }))}
+        plataformas={plataformas.map((p) => ({
+          id: String(p.id),
+          nombre: String(p.nombre),
+          programas: vinculos.get(String(p.id)) ?? [],
+        }))}
         recursos={conHistorial}
         enlaces={enlaces.map((e) => ({
           id: e.id,

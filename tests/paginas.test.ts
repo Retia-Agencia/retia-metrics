@@ -110,6 +110,7 @@ vi.mock("@/lib/catalogo/origenes", async (importOriginal) => ({
 vi.mock("@/lib/catalogo/plataformas", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/catalogo/plataformas")>()),
   plataformasDePago: () => ({ listar: listarVacio }),
+  vinculosDePlataformas: vi.fn(async () => new Map<string, string[]>()),
 }));
 // La pagina de recursos (ticket 023) ofrece las categorias ACTIVAS en su formulario;
 // se mockea `.listar()` preservando el esquema zod que el resto del modulo exporta.
@@ -226,11 +227,21 @@ async function destinoDe(ruta: string): Promise<string | null> {
 }
 
 const PAGINAS_DE_GERENTE = [
-  ["/ajustes", "@/app/(app)/ajustes/page"],
   ["/ajustes/fuentes", "@/app/(app)/ajustes/fuentes/page"],
-  ["/ajustes/catalogos", "@/app/(app)/ajustes/catalogos/page"],
   ["/ajustes/usuarios", "@/app/(app)/ajustes/usuarios/page"],
   ["/ajustes/programas", "@/app/(app)/ajustes/programas/page"],
+] as const;
+
+/**
+ * `/ajustes` y `/ajustes/catalogos` dejaron de ser exclusivas de gerente el 20-sep
+ * (enmienda del ticket 013): un closer administra las plataformas de pago, asi que
+ * entra a las dos. La guarda baja a cada SUBPAGINA — las de arriba siguen rebotandolo—
+ * y lo que el closer ve adentro es una PROYECCION, no un permiso: las server actions
+ * vuelven a exigir el rol.
+ */
+const PAGINAS_COMPARTIDAS_CON_CLOSER = [
+  ["/ajustes", "@/app/(app)/ajustes/page"],
+  ["/ajustes/catalogos", "@/app/(app)/ajustes/catalogos/page"],
 ] as const;
 
 /**
@@ -264,6 +275,27 @@ async function correrPrograma(
     throw e;
   }
 }
+
+describe("paginas de ajustes compartidas con el closer (enmienda 013, 20-sep)", () => {
+  for (const [nombre, ruta] of PAGINAS_COMPARTIDAS_CON_CLOSER) {
+    it(`${nombre} DEJA entrar a un closer (ya no lo rebota)`, async () => {
+      auth.mockResolvedValue(sesionCloser);
+      programasGestionablesPorUsuario.mockResolvedValue([]);
+      expect(await destinoDe(ruta)).toBeNull();
+    });
+
+    it(`${nombre} deja entrar al developer, que administra (ADR 0025)`, async () => {
+      auth.mockResolvedValue(sesionDeveloper);
+      programasActivos.mockResolvedValue([]);
+      expect(await destinoDe(ruta)).toBeNull();
+    });
+
+    it(`${nombre} manda al login a quien no tiene sesion`, async () => {
+      auth.mockResolvedValue(null);
+      expect(await destinoDe(ruta)).toBe("/login");
+    });
+  }
+});
 
 describe("paginas de gerente", () => {
   for (const [nombre, ruta] of PAGINAS_DE_GERENTE) {

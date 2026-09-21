@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, Copy, ExternalLink, History, X } from "lucide-react";
+import { Check, ChevronDown, Copy, ExternalLink, History, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -18,7 +18,9 @@ import { cn } from "@/lib/utils";
 import { monto as formatoMonto } from "@/lib/format";
 import { MONEDAS } from "@/lib/catalogo/enlaces-pago";
 import {
+  borrarRecursoAccion,
   crearEnlacePagoAccion,
+  crearPlataformaDesdeRecursosAccion,
   crearRecursoAccion,
   desactivarEnlacePagoAccion,
   desactivarRecursoAccion,
@@ -139,6 +141,37 @@ export function RecursosPantalla({
     });
   }
 
+  /**
+   * Borrar es la unica operacion IRREVERSIBLE de la pantalla (ADR 0026 punto 5), asi
+   * que pide confirmacion explicita. El verbo del mensaje sale de lo que de verdad
+   * paso: un recurso con historial NO se borra —se dice cuantas versiones lo
+   * encadenan y se ofrece desactivar— y solo cuando se borro se dice "borrado".
+   */
+  function borrarRecurso(recurso: RecursoUI) {
+    if (
+      !window.confirm(
+        `¿Borrar "${recurso.titulo}" para siempre? Esta acción no se puede deshacer.`,
+      )
+    ) {
+      return;
+    }
+    startTransition(async () => {
+      const res = await borrarRecursoAccion(recurso.id);
+      if (!res.ok) {
+        toast.error("No se pudo borrar", { description: res.error });
+        return;
+      }
+      if (res.borrado) {
+        toast.success("Recurso borrado");
+        router.refresh();
+      } else {
+        toast.info("No se puede borrar", {
+          description: `Tiene ${res.referencias} versión(es) en su historial. Desactívalo en vez de borrarlo.`,
+        });
+      }
+    });
+  }
+
   const enlacesAgrupados = useMemo(() => agruparEnlaces(enlaces), [enlaces]);
 
   return (
@@ -209,6 +242,7 @@ export function RecursosPantalla({
                 onDesactivar={() =>
                   correr(() => desactivarRecursoAccion(r.id), "Recurso desactivado")
                 }
+                onBorrar={() => borrarRecurso(r)}
               />
             ))}
           </ul>
@@ -226,6 +260,13 @@ export function RecursosPantalla({
             pendiente={pendiente}
             onCrear={(entrada, reset) =>
               correr(() => crearEnlacePagoAccion(entrada), "Enlace de pago creado", reset)
+            }
+            onCrearPlataforma={(nombre, programId, alTerminar) =>
+              correr(
+                () => crearPlataformaDesdeRecursosAccion(nombre, programId),
+                "Plataforma creada",
+                alTerminar,
+              )
             }
           />
         ) : null}
@@ -355,12 +396,14 @@ function RecursoItem({
   pendiente,
   onReemplazar,
   onDesactivar,
+  onBorrar,
 }: {
   recurso: RecursoUI;
   puedeEditar: boolean;
   pendiente: boolean;
   onReemplazar: (nuevaUrl: string, reset: () => void) => void;
   onDesactivar: () => void;
+  onBorrar: () => void;
 }) {
   const [verHistorial, setVerHistorial] = useState(false);
   const [reemplazando, setReemplazando] = useState(false);
@@ -413,6 +456,16 @@ function RecursoItem({
             </Button>
             <Button size="sm" variant="ghost" disabled={pendiente} onClick={onDesactivar}>
               Desactivar
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={pendiente}
+              onClick={onBorrar}
+              aria-label={`Borrar ${recurso.titulo}`}
+            >
+              <Trash2 className="size-4" />
+              Borrar
             </Button>
           </>
         ) : null}
@@ -658,6 +711,7 @@ function CrearEnlace({
   plataformas,
   pendiente,
   onCrear,
+  onCrearPlataforma,
 }: {
   programas: ProgramaOpcion[];
   plataformas: PlataformaOpcion[];
@@ -672,19 +726,32 @@ function CrearEnlace({
     },
     reset: () => void,
   ) => void;
+  onCrearPlataforma: (nombre: string, programId: string, alTerminar: () => void) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
   // El enlace de pago SIEMPRE es de un programa (columna NOT NULL); no hay opcion
   // global. La plataforma sale del catalogo activo (ADR 0012), no se escribe a mano.
   const [programId, setProgramId] = useState<string>(programas[0]?.id ?? "");
-  const [plataformaId, setPlataformaId] = useState(plataformas[0]?.id ?? "");
+  const [plataformaId, setPlataformaId] = useState("");
+  const [plataformaNueva, setPlataformaNueva] = useState<string | null>(null);
   const [montoValor, setMontoValor] = useState("");
   const [moneda, setMoneda] = useState<(typeof MONEDAS)[number]>("USD");
   const [url, setUrl] = useState("");
 
+  // Solo las plataformas del programa elegido (ADR 0034): al registrar un cobro de un
+  // programa no tiene por que aparecer el medio de pago del otro.
+  const plataformasDelPrograma = plataformas.filter((p) => p.programas.includes(programId));
+  // El valor efectivo cae a la primera del programa: cambiar de programa no puede
+  // dejar seleccionada una plataforma que ya no esta en la lista.
+  const plataformaElegida =
+    plataformasDelPrograma.find((p) => p.id === plataformaId)?.id ??
+    plataformasDelPrograma[0]?.id ??
+    "";
+
   function reset() {
     setProgramId(programas[0]?.id ?? "");
-    setPlataformaId(plataformas[0]?.id ?? "");
+    setPlataformaId("");
+    setPlataformaNueva(null);
     setMontoValor("");
     setMoneda("USD");
     setUrl("");
@@ -697,7 +764,7 @@ function CrearEnlace({
         size="sm"
         variant="outline"
         onClick={() => setAbierto(true)}
-        disabled={programas.length === 0 || plataformas.length === 0}
+        disabled={programas.length === 0}
       >
         Nuevo enlace de pago
       </Button>
@@ -710,7 +777,13 @@ function CrearEnlace({
       onSubmit={(e) => {
         e.preventDefault();
         onCrear(
-          { programId, plataformaId, monto: montoValor.trim(), moneda, url: url.trim() },
+          {
+            programId,
+            plataformaId: plataformaElegida,
+            monto: montoValor.trim(),
+            moneda,
+            url: url.trim(),
+          },
           reset,
         );
       }}
@@ -733,19 +806,72 @@ function CrearEnlace({
       </label>
       <label className="block space-y-1 text-sm">
         <span className="text-muted-foreground">Plataforma</span>
-        <select
-          value={plataformaId}
-          onChange={(e) => setPlataformaId(e.target.value)}
-          required
-          className={cn(claseInput, "sm:w-44")}
-          aria-label="Plataforma de pago"
-        >
-          {plataformas.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}
-            </option>
-          ))}
-        </select>
+        {/* Crear la plataforma aca y no mandar al usuario a /ajustes/catalogos: el
+            medio de cobro que falta se descubre justo al cargar el link, y salir del
+            formulario pierde lo escrito. Nace asociada a ESTE programa. */}
+        {plataformaNueva === null ? (
+          <span className="flex gap-1">
+            <select
+              value={plataformaElegida}
+              onChange={(e) => setPlataformaId(e.target.value)}
+              required
+              className={cn(claseInput, "sm:w-44")}
+              aria-label="Plataforma de pago"
+            >
+              {plataformasDelPrograma.length === 0 ? (
+                <option value="">Ninguna en este programa</option>
+              ) : null}
+              {plataformasDelPrograma.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="outline"
+              disabled={pendiente}
+              onClick={() => setPlataformaNueva("")}
+              aria-label="Crear una plataforma nueva"
+            >
+              <Plus className="size-4" />
+            </Button>
+          </span>
+        ) : (
+          <span className="flex gap-1">
+            <input
+              value={plataformaNueva}
+              onChange={(e) => setPlataformaNueva(e.target.value)}
+              placeholder="Nombre de la plataforma"
+              aria-label="Nombre de la plataforma nueva"
+              maxLength={80}
+              autoFocus
+              className={cn(claseInput, "sm:w-44")}
+            />
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="secondary"
+              disabled={pendiente || !plataformaNueva.trim()}
+              onClick={() =>
+                onCrearPlataforma(plataformaNueva.trim(), programId, () => setPlataformaNueva(null))
+              }
+              aria-label="Guardar la plataforma nueva"
+            >
+              <Check className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              onClick={() => setPlataformaNueva(null)}
+              aria-label="Cancelar la plataforma nueva"
+            >
+              <X className="size-4" />
+            </Button>
+          </span>
+        )}
       </label>
       <label className="block space-y-1 text-sm">
         <span className="text-muted-foreground">Monto</span>

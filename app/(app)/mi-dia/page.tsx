@@ -7,7 +7,7 @@ import { programasGestionablesPorUsuario } from "@/lib/queries/programas";
 import { productosActivos } from "@/lib/catalogo/productos";
 import { motivos } from "@/lib/catalogo/motivos";
 import { origenes } from "@/lib/catalogo/origenes";
-import { plataformasDePago } from "@/lib/catalogo/plataformas";
+import { plataformasDePago, vinculosDePlataformas } from "@/lib/catalogo/plataformas";
 
 export const dynamic = "force-dynamic";
 
@@ -54,17 +54,24 @@ export default async function MiDiaPage() {
     }),
   );
 
-  const [motivosActivos, origenesActivos, plataformasActivas] = await Promise.all([
+  const [motivosActivos, origenesActivos, plataformasActivas, vinculos] = await Promise.all([
     motivos(db).listar({ soloActivos: true }),
     origenes(db).listar({ soloActivos: true }),
     plataformasDePago(db).listar({ soloActivos: true }),
+    // Que programas sirve cada plataforma (ADR 0034), en UNA consulta: el selector
+    // del abono muestra solo las del programa de la venta.
+    vinculosDePlataformas(db),
   ]);
 
   const contexto: ContextoMiDia = {
     programas,
     motivos: motivosActivos.map((m) => ({ id: m.id, nombre: String(m.nombre) })),
     origenes: origenesActivos.map((o) => ({ id: o.id, nombre: String(o.nombre) })),
-    plataformas: plataformasActivas.map((p) => ({ id: p.id, nombre: String(p.nombre) })),
+    plataformas: plataformasActivas.map((p) => ({
+      id: p.id,
+      nombre: String(p.nombre),
+      programas: vinculos.get(p.id) ?? [],
+    })),
   };
 
   return (

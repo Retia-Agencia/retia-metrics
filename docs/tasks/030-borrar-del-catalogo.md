@@ -3,7 +3,7 @@ id: 030
 fase: F0
 serves: "ADR 0026 punto 5 (enmienda acotada al ADR 0012)"
 depends: [011]
-status: en curso
+status: done
 ---
 
 # 030 — Borrar del catalogo lo que nunca se uso
@@ -55,10 +55,30 @@ Decision en el **ADR 0026 punto 5**.
 - [x] El borrado queda en `change_log`.
 - [x] Los tests del molde que hoy exigen "nunca `DELETE`" se ajustan a la regla nueva **sin
       aflojarla**: siguen exigiendo que no haya `DELETE` cuando hay referencias.
-- [ ] **Criterio agregado el 20-sep, porque faltaba y por eso el ticket parecia cerrado:** los
+- [x] **Criterio agregado el 20-sep, porque faltaba y por eso el ticket parecia cerrado:** los
       SEIS catalogos del objetivo se borran desde la app, no solo productos.
 
-## ⚠️ Por que sigue `en curso` (revision del 20-sep)
+## ✅ Cerrado el 20-sep (segunda sesion)
+
+La UI que faltaba ya esta: los cuatro catalogos de `/ajustes/catalogos` (plataformas, motivos,
+origenes y categorias de recurso) borran por `borrarItemSiNoSeUso` en `lib/catalogo/operaciones.ts`
++ `borrarAccion`, y los recursos por `borrarRecursoAccion` en `/recursos`. Con productos, que ya
+estaba, son los SEIS del objetivo.
+
+🩸 **Y el backend NO estaba tan probado como decia esta misma ficha.** `borrarRecursoSiNoSeUso`
+existia en `lib/catalogo/recursos.ts` desde el 20-sep y **no la llamaba ni la probaba nadie**: cero
+tests. La frase "el backend esta completo y probado para los seis" era cierta para el molde y falsa
+para recursos, y nadie lo habria notado porque una funcion que nadie llama no falla nunca.
+**Un `grep` de los llamadores cuesta un comando y responde lo que una ficha no.**
+
+Los 8 tests nuevos (`tests/acciones-catalogos.test.ts`, `tests/acciones-recursos.test.ts`) se
+mordieron quitando el arreglo: sin el dependiente declarado, la plataforma con un enlace de pago
+**se borraba**; sin `exigirAccesoAlRecurso`, un closer borraba un recurso de un programa ajeno.
+
+**Falta el recorrido visual** (cargar una pantalla no es probarla): hacer clic en Borrar en las
+cuatro pestañas y en un recurso, con y sin referencias.
+
+## ⚠️ Por que estuvo `en curso` (revision del 20-sep)
 
 El backend esta **completo y probado para los seis**: `borrarSiNoSeUso` vive en el molde, los seis
 catalogos declaran sus dependientes, y la carrera contra la FK sale como 400.

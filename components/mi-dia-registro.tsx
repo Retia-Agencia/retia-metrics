@@ -56,12 +56,35 @@ interface OpcionCtx {
   id: string;
   nombre: string;
 }
+/**
+ * Una plataforma de pago con los programas a los que sirve (ADR 0034). El selector
+ * muestra solo las del programa de la venta: es lo que Mani pidio el 20-sep.
+ */
+interface PlataformaCtx extends OpcionCtx {
+  programas: string[];
+}
 
 export interface ContextoMiDia {
   programas: ProgramaCtx[];
   motivos: OpcionCtx[];
   origenes: OpcionCtx[];
-  plataformas: OpcionCtx[];
+  plataformas: PlataformaCtx[];
+}
+
+/**
+ * Las plataformas que se le ofrecen a un programa.
+ *
+ * Es PROYECCION, no una reja: el servidor no rechaza un abono por una plataforma sin
+ * vincular, y hace bien — bloquear un cobro real por un dato de configuracion seria
+ * peor que mostrar una opcion de mas. Por lo mismo, si el programa no se conoce se
+ * muestran todas en vez de dejar el selector vacio.
+ */
+function plataformasDelPrograma(
+  plataformas: PlataformaCtx[],
+  programId: string | undefined,
+): PlataformaCtx[] {
+  if (!programId) return plataformas;
+  return plataformas.filter((p) => p.programas.includes(programId));
 }
 
 /** Los 8 resultados del enum (ADR 0015), con su etiqueta legible. */
@@ -606,7 +629,7 @@ function FormularioLlamada({
                 aria-label="Plataforma"
               >
                 <option value="">Sin especificar</option>
-                {contexto.plataformas.map((p) => (
+                {plataformasDelPrograma(contexto.plataformas, persona.programId).map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.nombre}
                   </option>
@@ -691,7 +714,12 @@ function AbonosDePersona({
                 Abonado: {formatoMonto(Number(v.abonado), v.moneda)} ·{" "}
                 {saldo.etiqueta.toLowerCase()}: {saldo.valor}
               </div>
-              <FormularioAbono venta={v} contexto={contexto} alGuardar={cargar} />
+              <FormularioAbono
+                venta={v}
+                contexto={contexto}
+                programId={persona.programId}
+                alGuardar={cargar}
+              />
               {/* Anular una venta mal registrada sin salir de la pantalla de captura
                   (ADR 0026). Al recargar desaparece de esta lista —ya no se le puede
                   abonar— y pasa a verse tachada en el historial de la persona. */}
@@ -713,10 +741,13 @@ function AbonosDePersona({
 function FormularioAbono({
   venta,
   contexto,
+  programId,
   alGuardar,
 }: {
   venta: VentaDePersona;
   contexto: ContextoMiDia;
+  /** El programa de la persona duena de la venta: acota el selector de plataforma. */
+  programId: string;
   alGuardar: () => void;
 }) {
   const [fecha, setFecha] = useState(hoyEnBogota);
@@ -795,7 +826,7 @@ function FormularioAbono({
           aria-label="Plataforma del abono"
         >
           <option value="">Sin especificar</option>
-          {contexto.plataformas.map((p) => (
+          {plataformasDelPrograma(contexto.plataformas, programId).map((p) => (
             <option key={p.id} value={p.id}>
               {p.nombre}
             </option>

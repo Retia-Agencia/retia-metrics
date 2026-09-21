@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import {
   categoriasRecurso,
   enlacesPago,
+  plataformasPrograma,
   miembrosPrograma,
   plataformasPago,
   programs,
@@ -265,5 +266,103 @@ describe("acciones de recursos — el developer es el dueno (ADR 0025)", () => {
     expect((await crearRecursoAccion(recursoEn(programaB))).ok).toBe(false);
     expect((await crearRecursoAccion(recursoEn(null))).ok).toBe(false);
     expect((await crearRecursoAccion(recursoEn(programaA))).ok).toBe(true);
+  });
+});
+
+/**
+ * Ticket 030 (ADR 0026 punto 5) para recursos: un recurso creado por error, que nadie
+ * reemplazo todavia, se borra de verdad. Uno con historial NO se borra —el historial
+ * es justo el punto del ticket 023— y el acceso por programa sigue siendo del servidor:
+ * un closer no borra en un programa donde no vende, ni un recurso GLOBAL.
+ */
+describe("acciones de recursos — borrar solo lo que nunca se uso (ticket 030)", () => {
+  it("un gerente borra un recurso sin historial y desaparece de la base", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const { crearRecursoAccion, borrarRecursoAccion } = await acciones();
+    await crearRecursoAccion(recursoEn(programaA));
+    const [creado] = await db.select().from(recursos);
+
+    const res = await borrarRecursoAccion(creado.id);
+    expect(res).toEqual({ ok: true, borrado: true });
+    expect(await db.select().from(recursos)).toHaveLength(0);
+  });
+
+  it("un recurso YA reemplazado no se borra: devuelve el conteo y la fila sigue", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const { crearRecursoAccion, reemplazarRecursoAccion, borrarRecursoAccion } = await acciones();
+    await crearRecursoAccion(recursoEn(programaA));
+    const [original] = await db.select().from(recursos);
+    await reemplazarRecursoAccion(original.id, "https://drive.google.com/brochure-v2");
+
+    const res = await borrarRecursoAccion(original.id);
+    expect(res).toEqual({ ok: true, borrado: false, referencias: 1 });
+
+    // El historial se conserva entero: ni la version vieja ni la nueva se tocaron.
+    const enBase = await db.select().from(recursos).where(eq(recursos.id, original.id));
+    expect(enBase).toHaveLength(1);
+  });
+
+  it("un closer NO puede borrar un recurso de un programa donde no vende (B)", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const { crearRecursoAccion } = await acciones();
+    await crearRecursoAccion(recursoEn(programaB));
+    const [ajeno] = await db.select().from(recursos);
+
+    auth.mockResolvedValue(sesionCloser);
+    const { borrarRecursoAccion } = await acciones();
+    const res = await borrarRecursoAccion(ajeno.id);
+    expect(res.ok).toBe(false);
+    expect(await db.select().from(recursos).where(eq(recursos.id, ajeno.id))).toHaveLength(1);
+  });
+
+  it("un closer NO puede borrar un recurso GLOBAL", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const { crearRecursoAccion } = await acciones();
+    await crearRecursoAccion(recursoEn(null));
+    const [global] = await db.select().from(recursos);
+
+    auth.mockResolvedValue(sesionCloser);
+    const { borrarRecursoAccion } = await acciones();
+    const res = await borrarRecursoAccion(global.id);
+    expect(res.ok).toBe(false);
+    expect(await db.select().from(recursos).where(eq(recursos.id, global.id))).toHaveLength(1);
+  });
+});
+
+/**
+ * ADR 0034: el vinculo plataforma-programa es dato propio, no derivado de
+ * `enlaces_pago`. Por eso crear un enlace tiene que ESCRIBIRLO: sin esto, el closer
+ * carga el link de cobro y despues no encuentra esa plataforma en el selector del
+ * abono del mismo programa, sin que nada falle.
+ */
+describe("crear un enlace de pago vincula la plataforma con el programa (ADR 0034)", () => {
+  it("el vinculo no existia y queda creado", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    expect(await db.select().from(plataformasPrograma)).toHaveLength(0);
+
+    const { crearEnlacePagoAccion } = await acciones();
+    expect((await crearEnlacePagoAccion(enlaceEn(programaA))).ok).toBe(true);
+
+    const vinculos = await db.select().from(plataformasPrograma);
+    expect(vinculos).toHaveLength(1);
+    expect(vinculos[0].plataformaId).toBe(plataforma);
+    expect(vinculos[0].programId).toBe(programaA);
+  });
+
+  it("dos enlaces de la misma plataforma y programa no duplican el vinculo", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    const { crearEnlacePagoAccion } = await acciones();
+    await crearEnlacePagoAccion(enlaceEn(programaA));
+    await crearEnlacePagoAccion({ ...enlaceEn(programaA), url: "https://paypal.com/otro" });
+
+    expect(await db.select().from(plataformasPrograma)).toHaveLength(1);
+    expect(await db.select().from(enlacesPago)).toHaveLength(2);
+  });
+
+  it("un enlace rechazado por acceso no deja vinculo (el closer no vende en B)", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    const { crearEnlacePagoAccion } = await acciones();
+    expect((await crearEnlacePagoAccion(enlaceEn(programaB))).ok).toBe(false);
+    expect(await db.select().from(plataformasPrograma)).toHaveLength(0);
   });
 });

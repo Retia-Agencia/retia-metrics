@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { changeLog, users } from "@/lib/db/schema";
+import { changeLog, enlacesPago, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -153,5 +153,80 @@ describe("operaciones de catalogos — el gerente administra", () => {
     const error = await crearItem(db, "inventado", { nombre: "X" }).catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(400);
+  });
+});
+
+/**
+ * Ticket 030 (ADR 0026 punto 5): borrar de verdad lo que nunca se uso, desde la
+ * pantalla de catalogos y no solo desde productos. La regla que protege el historial
+ * no se afloja: con una sola referencia NO se borra, se devuelve el conteo y la fila
+ * sigue en la base para que la pantalla ofrezca desactivar.
+ */
+describe("operaciones de catalogos — borrar solo lo que nunca se uso (ticket 030)", () => {
+  it("un closer no puede borrar (403), igual que en el resto de operaciones", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    const { borrarItemSiNoSeUso } = await ops();
+    const error = await borrarItemSiNoSeUso(db, "plataformas", UUID_INEXISTENTE).catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(403);
+  });
+
+  it("un id que NO es uuid se rechaza como validacion (400), no como error interno", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const { borrarItemSiNoSeUso } = await ops();
+    const error = await borrarItemSiNoSeUso(db, "plataformas", "no-es-uuid").catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(400);
+  });
+
+  it("borra de verdad una fila sin referencias y deja la huella en change_log", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const { crearItem, listarItems, borrarItemSiNoSeUso } = await ops();
+    const creada = await crearItem(db, "motivos", { nombre: "Error de dedo" });
+
+    expect(await borrarItemSiNoSeUso(db, "motivos", creada.id)).toEqual({ borrado: true });
+
+    const items = await listarItems(db, "motivos");
+    expect(items.find((i) => i.id === creada.id)).toBeUndefined();
+
+    const borrado = (
+      await db.select().from(changeLog).where(eq(changeLog.registroId, creada.id))
+    ).filter((l) => l.campo === "borrado");
+    expect(borrado).toHaveLength(1);
+    expect(borrado[0].valorAnterior).toBe("Error de dedo");
+    expect(borrado[0].valorNuevo).toBeNull();
+    expect(borrado[0].userId).toBe(userId);
+  });
+
+  it("NO borra una plataforma que un enlace de pago referencia: devuelve el conteo y la fila sigue", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const { crearItem, borrarItemSiNoSeUso } = await ops();
+    const creada = await crearItem(db, "plataformas", { nombre: "Wise" });
+
+    const [programa] = await db
+      .insert(programs)
+      .values({ slug: "comunicarte", nombre: "Comunicarte", ticketUsd: "797.00" })
+      .returning();
+    await db.insert(enlacesPago).values({
+      programId: programa.id,
+      plataformaId: creada.id,
+      monto: "797.00",
+      moneda: "USD",
+      url: "https://wise.com/pago",
+    });
+
+    expect(await borrarItemSiNoSeUso(db, "plataformas", creada.id)).toEqual({
+      borrado: false,
+      referencias: 1,
+    });
+
+    // Lo que importa: la fila NO se toco. Un conteo correcto con la fila borrada
+    // seria el mismo bug con mejor cara.
+    const enBase = await db
+      .select()
+      .from(plataformasPago)
+      .where(eq(plataformasPago.id, creada.id));
+    expect(enBase).toHaveLength(1);
+    expect(enBase[0].activo).toBe(true);
   });
 });

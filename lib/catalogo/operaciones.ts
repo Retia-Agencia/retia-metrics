@@ -2,7 +2,7 @@ import { z, ZodError } from "zod";
 import { requireRole } from "@/lib/auth/guards";
 import { ErrorDeApp } from "@/lib/errors";
 import type { Db } from "@/lib/db/tipos";
-import type { FilaCatalogo } from "./molde";
+import type { FilaCatalogo, ResultadoBorrado } from "./molde";
 import { catalogoPorSlug, type EntradaCatalogo } from "./registro";
 
 /**
@@ -61,10 +61,18 @@ async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-/** Lista los items de un catalogo (activos e inactivos). Solo gerente. */
+/**
+ * Lista los items de un catalogo (activos e inactivos).
+ *
+ * Un catalogo COMPARTIDO (hoy solo las plataformas de pago) lo lee tambien un closer;
+ * el resto sigue siendo de administracion. La pregunta se le hace al registro, no se
+ * escribe un rol a mano en la pantalla: asi el developer entra por `requireRole`
+ * (ADR 0025) y agregar un catalogo compartido no toca este archivo.
+ */
 export async function listarItems(db: Db, slug: string): Promise<FilaCatalogo[]> {
-  await requireRole("gerente");
   const def = catalogoODescartar(slug);
+  if (def.compartidoConClosers) await requireRole("gerente", "closer");
+  else await requireRole("gerente");
   return def.fabrica(db).listar();
 }
 
@@ -103,4 +111,22 @@ export async function reactivarItem(db: Db, slug: string, id: string): Promise<F
   const session = await requireRole("gerente");
   const def = catalogoODescartar(slug);
   return normalizando(() => def.fabrica(db).reactivar(session.user.id, idValido(id)));
+}
+
+/**
+ * Borra un item SOLO si nadie lo uso (ADR 0026 punto 5). Solo gerente. Valida id (uuid).
+ *
+ * No decide nada por su cuenta: el molde cuenta las referencias declaradas por el
+ * catalogo y responde `{ borrado: true }` o `{ borrado: false, referencias }`. La
+ * pantalla usa ese resultado para elegir el verbo — nunca se dice "borrado" habiendo
+ * desactivado.
+ */
+export async function borrarItemSiNoSeUso(
+  db: Db,
+  slug: string,
+  id: string,
+): Promise<ResultadoBorrado> {
+  const session = await requireRole("gerente");
+  const def = catalogoODescartar(slug);
+  return normalizando(() => def.fabrica(db).borrarSiNoSeUso(session.user.id, idValido(id)));
 }

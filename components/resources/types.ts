@@ -38,4 +38,6 @@ export interface CategoriaOpcion {
 export interface PlataformaOpcion {
   id: string;
   nombre: string;
+  /** Los programas a los que sirve (ADR 0034). El selector se acota con esto. */
+  programas: string[];
 }
