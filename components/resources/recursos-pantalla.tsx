@@ -915,7 +915,13 @@ function CrearEnlace({
         <Button
           type="submit"
           size="sm"
-          disabled={pendiente || !programId || !plataformaId || !montoValor.trim() || !url.trim()}
+          // `plataformaElegida`, NO `plataformaId`: el estado crudo arranca vacio y solo
+          // se llena si el usuario TOCA el select, asi que mirarlo a el dejaba el boton
+          // deshabilitado con el formulario entero bien lleno. Lo encontro el recorrido
+          // visual; los 669 tests estaban en verde.
+          disabled={
+            pendiente || !programId || !plataformaElegida || !montoValor.trim() || !url.trim()
+          }
         >
           Crear
         </Button>

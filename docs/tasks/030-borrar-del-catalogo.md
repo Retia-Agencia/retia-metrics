@@ -75,8 +75,29 @@ Los 8 tests nuevos (`tests/acciones-catalogos.test.ts`, `tests/acciones-recursos
 mordieron quitando el arreglo: sin el dependiente declarado, la plataforma con un enlace de pago
 **se borraba**; sin `exigirAccesoAlRecurso`, un closer borraba un recurso de un programa ajeno.
 
-**Falta el recorrido visual** (cargar una pantalla no es probarla): hacer clic en Borrar en las
-cuatro pestañas y en un recurso, con y sin referencias.
+### Recorrido visual hecho el 20-sep, y encontro DOS bugs con 669 tests en verde
+
+1. 🩸 **El boton "Crear" del enlace de pago quedo muerto.** La condicion de `disabled` miraba
+   `plataformaId` (el estado crudo, que ahora arranca vacio) en vez del valor efectivo
+   `plataformaElegida`, asi que el formulario se podia llenar entero y el boton no se habilitaba
+   hasta tocar el select a mano. **Ningun test lo vio: en este repo no hay tests de componentes.**
+2. 🩸 **Borrar un recurso con historial SI lo borraba, y decapitaba la cadena.** El dependiente
+   declarado es `recursos.reemplazaA`, que cuenta *"quien me reemplazo a MI"*: la version
+   **VIGENTE** —la unica que el usuario ve y toca— nunca es reemplazada por nadie, asi que
+   contaba CERO. Y como la FK es `set null`, el `DELETE` no fallaba: se llevaba la cabeza de la
+   cadena, dejaba las versiones viejas huerfanas y el recurso **desaparecia de la pantalla sin
+   salir de la base**. Arreglado en `borrarRecursoSiNoSeUso`: si el recurso reemplazo a alguien,
+   tambien tiene historial. Test nuevo, mordido quitando el arreglo.
+
+   🎯 **El bug llevaba ahi desde que se escribio la funcion, y era invisible porque nadie la
+   llamaba.** Conectarla a un boton fue lo que lo destapo.
+
+Lo verificado clic por clic contra `dev`: las 4 pestañas, borrar PayPal con 5 referencias (no
+borra, dice el conteo, la fila no se toca), crear y borrar una plataforma de verdad, los chips de
+programa en los dos sentidos, el selector filtrado por programa (una plataforma de Comunicarte NO
+sale en Tactical), crear una plataforma desde el formulario del enlace, y la vista `closer` del
+developer (solo la pestaña de plataformas, sin renombrar/desactivar/borrar). Sin un solo error de
+consola.
 
 ## ⚠️ Por que estuvo `en curso` (revision del 20-sep)
 

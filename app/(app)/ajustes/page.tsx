@@ -42,6 +42,11 @@ const ENLACES = [
     titulo: "Catálogos",
     descripcion:
       "Plataformas de pago, motivos de pérdida y orígenes del lead: se agregan, renombran y desactivan sin tocar código.",
+    // Lo que el closer ve ADENTRO es solo la pestaña de plataformas, asi que la
+    // descripcion de arriba le prometeria dos catalogos que no puede tocar. Lo
+    // encontro el recorrido visual en vista `closer`.
+    descripcionSinAdministrar:
+      "Las plataformas de pago con las que cobras, y en qué programas aparece cada una.",
     soloAdministradores: false,
   },
   {
@@ -62,14 +67,18 @@ export default async function AjustesPage() {
   return (
     <PageShell titulo="Ajustes" descripcion="Fuentes de datos, usuarios y parámetros de cohorte.">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {visibles.map(({ href, icono: Icono, titulo, descripcion }) => (
+        {visibles.map(({ href, icono: Icono, titulo, descripcion, ...resto }) => (
           <Link key={href} href={href} className="block">
             <Card className="h-full transition-colors hover:bg-accent/40">
               <CardHeader className="flex-row items-center gap-2 space-y-0">
                 <Icono className="size-4 text-muted-foreground" />
                 <CardTitle className="text-base">{titulo}</CardTitle>
               </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">{descripcion}</CardContent>
+              <CardContent className="text-sm text-muted-foreground">
+                {!esAdmin && "descripcionSinAdministrar" in resto
+                  ? resto.descripcionSinAdministrar
+                  : descripcion}
+              </CardContent>
             </Card>
           </Link>
         ))}

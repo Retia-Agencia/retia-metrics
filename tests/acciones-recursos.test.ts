@@ -302,6 +302,29 @@ describe("acciones de recursos — borrar solo lo que nunca se uso (ticket 030)"
     expect(enBase).toHaveLength(1);
   });
 
+  it("la version VIGENTE de un recurso con historial TAMPOCO se borra", async () => {
+    // 🩸 El caso que el recorrido visual destapo y que este archivo no cubria. El
+    // molde cuenta quien me apunta con `reemplaza_a` ("quien me reemplazo a MI"), y
+    // la version vigente nunca es reemplazada por nadie: contaba CERO y se borraba
+    // con cinco versiones detras. La FK es `set null`, asi que no fallaba — se
+    // llevaba la cabeza de la cadena y el recurso desaparecia de la pantalla sin
+    // salir de la base. Es el caso que el usuario toca, porque es el unico que ve.
+    auth.mockResolvedValue(sesionGerente);
+    const { crearRecursoAccion, reemplazarRecursoAccion, borrarRecursoAccion } = await acciones();
+    await crearRecursoAccion(recursoEn(programaA));
+    const [original] = await db.select().from(recursos);
+    await reemplazarRecursoAccion(original.id, "https://drive.google.com/brochure-v2");
+
+    const [vigente] = await db.select().from(recursos).where(eq(recursos.vigente, true));
+    expect(vigente.id).not.toBe(original.id);
+
+    const res = await borrarRecursoAccion(vigente.id);
+    expect(res).toEqual({ ok: true, borrado: false, referencias: 1 });
+
+    // Las DOS filas siguen: el historial no se decapita.
+    expect(await db.select().from(recursos)).toHaveLength(2);
+  });
+
   it("un closer NO puede borrar un recurso de un programa donde no vende (B)", async () => {
     auth.mockResolvedValue(sesionGerente);
     const { crearRecursoAccion } = await acciones();

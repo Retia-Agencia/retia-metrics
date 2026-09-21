@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { recursos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
@@ -279,6 +279,28 @@ export async function borrarRecursoSiNoSeUso(
     const actual = await leerRecurso(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe un recurso con ese id.", 404);
     await exigirAccesoAlRecurso(db, actor, actual.programId);
+
+    // 🩸 El historial encadena en UNA sola direccion, y el molde solo mira esa.
+    // `dependientes` cuenta quien me apunta con `reemplaza_a`, o sea "quien me
+    // reemplazo a MI": la version VIGENTE, que es justo la que el usuario ve y toca,
+    // nunca es reemplazada por nadie, asi que contaba CERO y se borraba aunque
+    // tuviera cinco versiones detras. Y como la FK es `set null`, no fallaba: se
+    // llevaba la cabeza de la cadena, dejaba las viejas huerfanas y el recurso
+    // desaparecia de la pantalla (que solo muestra vigentes) sin salir de la base.
+    //
+    // La otra mitad de la pregunta es esta: si YO reemplace a alguien, tengo
+    // historial. Un recurso solo se borra cuando no lo referencia nadie Y el no
+    // referencia a nadie — que es lo que "creado por error y nunca usado" significa.
+    // Lo destapo el recorrido visual; ningun test lo veia porque nadie llamaba a
+    // esta funcion.
+    if (actual.reemplazaA !== null) {
+      const anteriores = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(recursos)
+        .where(eq(recursos.id, actual.reemplazaA));
+      return { borrado: false, referencias: Number(anteriores[0]?.n ?? 0) || 1 };
+    }
+
     return moldeRecursos(db).borrarSiNoSeUso(actor.id, objetivoId);
   });
 }

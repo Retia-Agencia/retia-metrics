@@ -294,6 +294,14 @@ The agent should run these to get fast signal on whether code works. Keep them c
   un `Menu.RadioGroup`; suelto tira `MenuGroupContext is missing`. Eso paso de verdad (18-sep) y
   como el menu de usuario vive en el sidebar, **el error se llevaba puesta la pagina entera al
   ABRIR el menu**, con 543 tests en verde. Estuvo roto varios dias.
+- 🩸 **El recorrido visual del 20-sep encontro DOS bugs con 669 tests en verde**, y los dos son
+  del mismo tipo: **codigo que ningun test podia ver**. En este repo NO hay tests de componentes,
+  asi que una condicion de `disabled` mal escrita deja un boton muerto sin que nada falle. Y una
+  funcion de `lib/` **que nadie llama** puede estar mal desde el dia que se escribio: el conteo de
+  referencias de un recurso miraba solo `reemplazaA` ("quien me reemplazo a MI"), asi que la
+  version VIGENTE —la unica que el usuario toca— contaba CERO y se borraba, decapitando su
+  historial con una FK `set null` que no protesta. **Antes de dar por probada una funcion de `lib/`,
+  mira quien la llama: `grep` cuesta un comando.**
 - **Cargar una pantalla no es probarla, y un "recorrido visual" que solo carga no sirve.** Lo que
   rompe en Base UI son las INTERACCIONES: abrir un menu, desplegar un select, abrir un dialogo.
   Ningun test de este repo ve un error de contexto de React en tiempo de ejecucion. Cuando revises
