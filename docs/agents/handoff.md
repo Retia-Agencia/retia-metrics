@@ -5,47 +5,212 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Escrito el 22-sep al cerrar la etapa 1.
+> Copiar y pegar tal cual. Reescrito el 21-sep, tras la reunión con Alejo Carvajal y las
+> decisiones que abrieron la etapa **E1b**.
 
 ```
-Seguimos con el CRM v2 de Retia. Lee AGENTS.md, docs/plan-crm-v2.md §6 etapa 2, y los ADR 0035 a
-0042. El diseno vive fuera del repo, en
+Seguimos con el CRM v2 de Retia. Lee AGENTS.md, docs/plan-crm-v2.md (sobre todo la §12) y los
+ADR 0043, 0044, 0045 y 0046, que son nuevos. El diseno base vive fuera del repo, en
 /Users/mani/Documents/mani_vault/02 Projects/retia/notebook/crm-retia-modelo-hubspot-scaffold.md
-y manda sobre el plan en todo lo que sea diseno.
+y manda sobre el plan en todo lo que sea diseno; la §12 del plan lo ENMIENDA con lo que salio de
+la reunion con Alejo del 21-sep.
 
-La ETAPA 1 esta CERRADA Y FUSIONADA A MAIN (tickets 036 a 042). La migracion 0020 esta aplicada
-y verificada en las DOS ramas de Neon. Estado: 611 tests en 54 archivos, typecheck y lint
-limpios, 21 migraciones, `production` con 4.823 leads.
+Estado: etapa 1 CERRADA y fusionada (tickets 036 a 042), migracion 0020 aplicada en las dos ramas
+de Neon. 611 tests, typecheck y lint limpios, `production` con 4.823 leads.
 
-Lo que existe ahora y antes no:
-  - `leads` (era `people`), con `estado` en texto y sin `responsable_closer_id`
-  - `deals` y las diez etapas como pgEnum, `lead_contactos`, `submissions`,
-    `deal_etapa_historial`, `deal_actividades`, `cuotas_pactadas`
-  - `calls.deal_id` y `abonos.deal_id`; `sales` ya no existe
-  - `sources` con un solo intake activo por programa, garantizado por indice
-  - `lib/crm/rastro.ts`, el rastro obligatorio de las cuatro tablas operativas
+El 21-sep se abrio una etapa NUEVA, E1b, que va ANTES de la etapa 2 en el tracker pero es
+independiente de ella: el esquema del origen y la atribucion. Tickets 083, 084, 085 y 092, con una
+sola migracion, la 0021.
 
-Lo que se AMPUTO a proposito en el 038 y renace mas adelante: registrar llamada, venta y abono
-(etapa 4), anular (etapa 4), la pantalla de /mi-dia (etapa 6, y se llamara distinto: es un inbox
-de Leads y Deals con reclamo), `lib/queries/saldo.ts` (etapa 4, E4-4 lo tiene como criterio),
-y cuatro metricas del dashboard (E5-1). Ninguna se puede reconstruir con criterio antes de que
-exista el motor de etapas.
+Por que existe E1b, en dos frases:
+  - El numero que pidio Gerencia ("cantidad de leads por area") hoy mostraria COMERCIAL EN CERO,
+    porque un lead que trae un closer no deja rastro en ningun UTM. No falla: miente.
+  - El costo de la pauta y el origen de un lead NO se pueden cortar con la misma llave, porque
+    `ad_spend` guarda la campana en TEXTO LIBRE y el lead trae `submissions.utm_*`. Unirlos es
+    comparar cadenas entre dos sistemas que no se hablan (la herida del ADR 0030).
 
-Tu trabajo es la ETAPA 2, el motor de etapas (tickets 043 a 047). Es el corazon del sistema y por
-eso va antes que el sync. `lib/deals/etapas.ts` contesta dos preguntas y nada mas: si un deal
-puede pasar de A a B, y que requisito le falta si no puede.
+Tu trabajo es E1b, en este orden:
+  083 · catalogo de `areas`, molde lib/catalogo/. El area NO se guarda en leads: se DERIVA.
+  084 · `campanas` y `utm_patron`, con TRES campos de patron (source, medium, campaign).
+        NO hay pgEnum `nivel_utm` y NO hay conjuntos ni anuncios: se quitaron el 21-sep.
+  092 · `programs.form_url` y el generador de links. Ojo: destapa que `programs` NO TIENE la
+        URL publica del formulario — el CRM sabe donde CAEN las respuestas (`sources.sheet_id`),
+        no donde la gente LLENA. Sin ese dato no se puede calcular NINGUN link, ni el de la
+        campana ni el del closer (086).
+  085 · el emparejador determinista en lib/atribucion/emparejar.ts, con guardian.
 
-Ojo:
-  - el pgEnum de las diez etapas YA EXISTE (se adelanto en el 037). El 043 es la tabla de
-    transiciones y los requisitos, no el enum
-  - `moverEtapa()` tiene que ser el UNICO camino para escribir `deals.etapa`, con guardian
-    mordido en los dos sentidos (molde: tests/vigencia-centralizada.test.ts)
-  - registrar un abono mueve la etapa, y anular un abono la RECALCULA (ADR 0038 punto 5)
+Ojo, y esto es lo que se rompe en silencio si se hace mal:
+  - Un patron apunta a UN destino: campana XOR user XOR area. El area se DERIVA del destino.
+    Guardarla ademas permite escribir "patron de area Media apuntando a campana de Pauta".
+  - El emparejamiento tiene que ser DETERMINISTA: gana el mas especifico (mas campos UTM no
+    nulos), y un empate es un ERROR VISIBLE, no una eleccion silenciosa. Si un envio casa con dos
+    campanas, el lead se cuenta en las dos y el CPL de ambas sale mal SIN ERROR. Es el
+    `fuentes[0]` sin ORDER BY del ADR 0031, ahora con dinero encima. La reja va en un INDICE
+    UNICO, no en el codigo.
+  - El estandar de UTM son TRES campos: source, medium, campaign. `utm_term` y `utm_content`
+    quedaron FUERA DE ALCANCE (no pendientes): sus columnas existen en `submissions`, vacias y
+    deliberadamente sin leer. Cablearlas no tapa ningun hueco porque no hay hueco.
+  - `submissions.utm_*` NO se reescribe nunca (ADR 0004).
+  - 🎯 Hay DOS categorias de huerfano y NO se funden: "sin UTM" (llego sin origen: problema de
+    CAPTACION, irrecuperable, hoy 726 de 4.823 = 15%, Tactical 26% vs ComunicArte 1%) y
+    "(sin clasificar)" (trae UTM pero no casa: problema de CONFIGURACION, se arregla con una fila
+    y repara hacia atras). Un cubo unico esconde cual de los dos problemas tiene el negocio.
+    "Sin UTM" NO es un estado de error: es un hecho del lead, tan valido como facebook/cpc.
+  - El PROGRAMA es frontera, no filtro (ADR 0043). Ninguna consulta nueva puede cruzarlos, y se
+    enforza en el TIPO, no en la revision.
+  - Lo que no casa cae en `(sin clasificar)` y SE MUESTRA con su conteo.
+  - Crear una campana escribe SU PATRON en la misma operacion (molde de crearConRastro). Ese es
+    el punto entero del 092: con macros de Meta hay DOS actos que tienen que coincidir; asi hay
+    UNO solo y no pueden discrepar. El test que lo prueba: el patron reconoce el link que el
+    generador acaba de producir.
+  - `ad_spend` cuelga de la CAMPANA. (Hubo una correccion intermedia que lo bajaba al anuncio;
+    se revirtio al quitar ese nivel.)
+
+La migracion 0021 la genera y aplica la SESION PRINCIPAL, nunca un subagente, y se LEE linea por
+linea antes de aplicarla: en la 0020 el generate traia cuatro defectos, dos de ellos destructivos.
+
+⚡ Y hay UN ticket sin dependencias que entrega valor HOY, el 093: filtrar el dashboard por
+`utm_source/medium/campaign`, que YA son columnas de `leads` con 85% de cobertura (4.097 de 4.823).
+No necesita E1b ni E3. Si quieres una victoria rapida antes de abrir la migracion, es ese.
+Ahi "sin UTM" va como CATEGORIA propia, no como residuo: son 726 leads (15%) y en Tactical 26%.
+Y deals/calls/abonos/submissions/ad_spend estan
+TODOS en cero, asi que hoy solo se puede contestar "cuantos registros trae cada canal": ninguna
+tasa tiene numerador todavia.
+
+Despues de E1b siguen la etapa 2 (motor de etapas, 043 a 047) y la 3, donde viven los tickets 086
+y 087 (el origen humano y el CPL). Esos dos tienen VENTANA: el origen lo escribe la ingesta del
+ticket 048, y lo que entre antes no se puede reconstruir.
 ```
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-21 (CIERRE 20) — La reunion con Alejo Carvajal abre la etapa E1b: el origen y la
+  atribucion.** Sesion sin una linea de codigo: extraccion, medicion, tres ADR y nueve tickets.
+
+  **De donde salio.** Primera reunion de stakeholder del rol de Ops. ⚠️ **Sin transcript** (el plan
+  de Granola es gratuito y no los sirve), asi que se trabajo sobre las notas privadas de Mani —que
+  se cortan a mitad de frase— y el resumen automatico. De las siete preguntas preparadas, solo dos
+  dejaron rastro; cuatro mas las contesto Mani despues por chat. Insumo crudo en
+  `docs/insumos/fleeting/2026-09-21-reunion-alejo-areas-y-utms.md`.
+
+  🩸 **El hallazgo que ordeno todo.** Retia se organiza en cuatro areas (Gerencial, Comercial,
+  Pauta, Media) y el dolor de Gerencia es *"cantidad de leads por area"*. `grep` sobre `docs/`
+  devolvia **cero** para "area". Y el numero pedido, calculado hoy, **mostraria Comercial en cero**:
+  un lead que trae un closer no deja rastro en ningun UTM. **No falla: miente**, que es la clase de
+  bug de la que este repo ya sangro tres veces.
+
+  🩸 **El segundo hallazgo, medido contra el esquema.** `ad_spend` guarda la campana en **texto
+  libre** y el lead trae `submissions.utm_*`. **No se pueden cortar con la misma llave**, asi que no
+  hay CPL rebanado sin comparar cadenas entre dos sistemas que no se hablan — el ADR 0030 otra vez.
+
+  🩸 **El tercero, medido contra los consolidados C2 de Michael.** `utm_content` significa
+  **anuncio** en ComunicArte y **conjunto** en Tactical. Cualquier codigo que escriba "utm_content
+  es el anuncio" esta bien en un programa y mal en el otro, **sin lanzar un error**.
+
+  **Lo que se midio en vez de opinar.** Mani pregunto si convenia normalizar `(correo, programa)`
+  con una tabla `personas`. Consulta de solo lectura contra `production` (rama
+  `br-withered-mud-b4cvvg80`, verificada por `neon.branch_id`): **4.823 filas, 4.818 correos
+  distintos, y solo 5 correos en los dos programas (0,1%)**. Se descarto: normalizar costaria una
+  junta en cada consulta, reabriria la identidad a escala de empresa —la regla del telefono del
+  ADR 0035 empezaria a cruzar programas— y **construiria el puente por el que un `join` cruza la
+  frontera**, todo para modelar cinco filas. La visibilidad cruzada se da con una **proyeccion**
+  (`otrosProgramasDelCorreo`, ticket 091) que **ninguna metrica usa**.
+
+  **Decisiones de Mani, todas del 21-sep:** el area entra al CRM y agrupa leads **y** deals; el
+  origen acepta que un lead llegue por humano; a los closers se les ensena el CRM completo **sobre
+  el modelo, no sobre la app** (la UI que corre es la del MVP, sobre el modelo que se reemplaza); el
+  enlace de captacion es por closer **y programa**; el lead traido **no se auto-asigna**; y el
+  significado de cada campo UTM **se estandariza**, igual para todos los programas.
+
+  **Lo que se escribio:** **ADR 0043** (el area agrupa, el programa es frontera, y por que no se
+  normaliza), **ADR 0044** (el origen humano, el enlace, y el CPL deja de preguntar por `entrada`),
+  **ADR 0045** (la campana, el patron con su nivel, y el emparejamiento determinista). Tickets
+  **083 a 091** y la etapa **E1b** en el tracker. `AGENTS.md` gana dos restricciones no-negociables
+  y tres filas de Contratos. `docs/agents/context.md` gana la seccion *El origen y la atribucion*
+  y marca como **superadas** las definiciones v1 de Lead y Persona, que contradecian al modelo v2.
+
+  ⚠️ **Enmiendas a tickets vivos:** el **067** ya no decide el grano de `ad_spend` (lo fija el 084) y
+  el **070** gana el origen a la vista, sin lo cual la regla de "el closer revisa el UTM antes de
+  reclamar" es inaplicable.
+
+  ⏳ **La ventana que hay que respetar:** los tickets **086 y 087 son de la etapa 3**, no de la 5. El
+  origen lo escribe la ingesta (ticket 048) y **lo que entre antes no se puede reconstruir**, porque
+  *"este lead lo trajo Maru"* no esta escrito hoy en ninguna parte. No es que este mal guardado: no
+  existe.
+
+  🟡 **Queda abierto, y es de negocio, no de codigo:** ¿un lead que trae un closer cuenta distinto
+  para su comision o su meta? Y le faltan a Alejo los **success floors** (sin umbral, el tablero de
+  Gerencia no puede pasar de tabla a estado) y el **mapeo UTM → area**.
+
+  🩸 **Apendice del mismo dia: Mani encontro un hueco en el ADR 0044 preguntando por otra cosa.** Al
+  proponer que el CRM cree campanas, conjuntos y anuncios para generar links, salio que **la URL
+  publica del formulario no existe en el esquema**: `programs` tiene `calendly_url` y `web_url`, y
+  `sources` tiene `sheet_id` y `tab` — o sea **donde CAEN las respuestas, no donde la gente LLENA**.
+  `grep` de `typeform|formUrl|form_url` sobre `lib/`, `app/` y el esquema: **cero**. El enlace de
+  captacion del ADR 0044 **no se puede calcular hoy**: el diseno era correcto y le faltaba el dato.
+
+  🎯 **Y la propuesta arregla el agujero que el 0045 habia dejado abierto.** Ahi se escribio que el CRM
+  **no puede** imponer el estandar de UTM porque las macros se configuran en Meta. Si el CRM **genera
+  el link** y el trafficker lo pega, **si puede**. El beneficio de fondo es mayor que el estandar: con
+  macros hay **dos actos independientes que tienen que coincidir** (configurar Meta, escribir el
+  patron); con el link generado hay **uno solo**, porque crear el anuncio produce el link **y** su
+  patron de la misma fila. **No pueden discrepar por construccion**, que es el molde de
+  `crearConRastro`.
+
+  **Y obligo a corregir el 0045 otra vez:** `ad_spend` cuelga de la **pieza**, no de la campana. Meta
+  reporta gasto por anuncio; con el gasto en la campana y los leads en el anuncio, **las dos mitades
+  del CPL vuelven a cortarse a distinto nivel**. Nunca se prorratea: con gasto solo de campana, el CPL
+  por anuncio dice **"sin desglose"**.
+
+  **Y la respuesta a "¿va en recursos?" es no:** un recurso es material que un closer le manda a **un
+  lead**; un link de campana es **infraestructura que existe para ser rastreada**. Dos dominios, dos
+  pantallas (ADR 0033). Lo que si se comparte es **el generador**, que es una sola funcion para el link
+  del anuncio y el del closer. → **ADR 0046**, ticket **092**, y el **086** gana la dependencia.
+
+  📊 **Segundo apendice: se midio que se puede hacer HOY y salio un hallazgo que nadie buscaba.** Mani
+  pidio *"analizar los Leads que ya tienen UTM, es solo filtros"*. Medido contra `production`: **si
+  para `utm_source/medium/campaign`**, que ya son columnas de `leads` con **4.097 de 4.823 (85%)** —de
+  ahi el ticket **093, sin dependencias**—; **no para conjunto ni anuncio**, porque `utm_term` y
+  `utm_content` **no existen ni en columna ni en `raw`** (cero filas) y hay que promoverlos en la
+  ingesta (ticket 049). Y el limite duro: **`deals`, `calls`, `abonos`, `submissions` y `ad_spend`
+  estan TODOS en cero**, asi que filtrar hoy contesta *cuantos registros trae cada canal* y nada mas:
+  **ninguna tasa tiene numerador**.
+
+  🎯 **El hallazgo suelto:** la brecha de atribucion es **muy desigual entre programas** — Tactical
+  tiene **703 leads sin UTM de 2.690 (26%)** contra **23 de 2.133 (1%)** en ComunicArte. Uno de cada
+  cuatro leads de Tactical no tiene origen. **No es un bug del dashboard: es una pregunta para Pauta**,
+  de las que valen plata.
+
+  ✂️ **Tercer apendice, y encogio el diseno: Mani quito `utm_term` y `utm_content`.** Textual:
+  *"no es necesario, usemos los otros 3 que tienen mas sentido."* El estandar queda en **source,
+  medium y campaign**, y con eso **se borran tres piezas de maquinaria escritas horas antes**: el
+  `pgEnum nivel_utm`, la tabla `piezas` (conjuntos y anuncios) del ADR 0046, y la regla *"el codigo
+  nunca pregunta que significa `utm_content`"*, que existia solo para reconciliar dos convenciones.
+  Tambien **se revierte** la correccion que bajaba `ad_spend` al anuncio: sin ese nivel, el gasto y
+  los leads cortan igual por campana. **La inconsistencia medida se disolvio en vez de resolverse.**
+
+  **Lo que cuesta, y se dijo una sola vez:** *"que anuncio esta vendiendo"* —que Alejo nombro como
+  metrica de Pauta— **deja de ser contestable**. No es un aplazamiento, es una salida de alcance.
+  Las dos columnas **se quedan vacias y sin leer** en `submissions`, marcadas en el comentario del
+  esquema: borrarlas costaria una migracion sobre una tabla ya en `production` y el dato sigue en la
+  hoja. **Cablearlas no tapa ningun hueco porque no hay hueco.**
+
+  🎯 **Y su ultima frase afino algo que estaba mal planteado:** pidio que *"sin utm"* fuera una
+  categoria propia *"para no perder visibilidad de los que no tuvieron nunca"*. Al escribirlo aparecio
+  que **son DOS huerfanos distintos y fundirlos era el error**: **sin UTM** es un problema de
+  **captacion** —el link no estaba parametrizado, **irrecuperable** para lo que ya entro, hoy 726 de
+  4.823— y **(sin clasificar)** es un problema de **configuracion** —trae UTM pero falta el patron, se
+  arregla con una fila y **repara hacia atras**—. Un tablero que diga *"800 sin atribucion"* no dice
+  cual de los dos problemas tiene el negocio. Las dos van **siempre visibles y separadas**, y **"sin
+  UTM" no es un estado de error**: es un hecho del lead.
+
+  🎯 **El dato mas util de toda la reunion, y cambia un diseno:** Alejo dijo que lo tedioso de su dia
+  es *"no saber que decisiones tomar"*. El dolor **no es recolectar el numero ni leerlo: es que el
+  numero no dice que hacer.** Por eso el ticket 090 es un tablero de **estados con accion**, no una
+  tabla de cifras — y por eso los filtros libres del 089 son la **salida de emergencia** y no la
+  puerta de entrada: un lienzo en blanco le devuelve justo el trabajo que dijo que no sabe hacer.
 
 - **2026-09-22 (CIERRE 19) — Etapa 1 CERRADA y fusionada a `main`: el esquema del modelo HubSpot,
   de un solo corte.** Siete tickets (036 a 042) en 8 commits, una sola migracion, aplicada y
@@ -2229,6 +2394,18 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 > **El avance de los tickets del CRM (F0 a F4) se marca en
 > [`docs/tasks/README.md`](../tasks/README.md)**, no aqui. Esta seccion solo resume lo listo y
 > guarda la deuda heredada.
+
+> 🆕 **21-sep — el frente vivo cambio.** El trabajo listo para tomar **ya no es la etapa 2**: es la
+> **E1b** (tickets **083, 084, 085**), abierta por la reunion con Alejo. Va antes en el tracker pero
+> es **independiente** de la etapa 2, asi que las dos se pueden trabajar en paralelo **si se reparte
+> por archivos** —la regla de `AGENTS.md`— con una salvedad dura: **las dos necesitan migracion**
+> (la 0021 es de E1b), y dos tickets que necesiten migracion **no van juntos**. Si se paralelizan,
+> E1b se lleva la migracion y la etapa 2 se queda sin tocar el esquema.
+>
+> **El orden recomendado, y por que:** E1b primero. No porque sea mas urgente en si, sino porque
+> **el ticket 086 tiene ventana** — el origen humano lo escribe la ingesta del 048, y todo lead que
+> entre antes queda sin origen **de forma irrecuperable**. E1b es su dependencia (086 depende de
+> 084), asi que atrasarla atrasa la unica pieza con reloj.
 
 ### Now (ready — no unmet dependencies)
 

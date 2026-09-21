@@ -16,10 +16,14 @@ para el MVP ya ejecutado. Alcance: [docs/spec.md](../spec.md).
 > de tomar cualquier ticket: el **034 queda absorbido**, el **021 congelado**, el **007 partido**
 > y el **035 se muda a la etapa 4**.
 >
-> **El trabajo vivo son las etapas E1 a E7 (tickets 036 a 082), abajo.** Las fases F0 a F4 son el
+> **El trabajo vivo son las etapas E1 a E7 (tickets 036 a 093), abajo.** Las fases F0 a F4 son el
 > MVP, ya ejecutado: se conservan como historia y porque tres de sus tickets siguen abiertos
 > (007, 021, 035). Decisiones: **ADR 0035 a 0042**, más las enmiendas del 21-sep en los ADR
 > 0004, 0007, 0015, 0019, 0021, 0027 y 0032.
+>
+> 🆕 **21-sep, tras la reunión con Alejo Carvajal: se abrió la etapa E1b** (tickets 083 a 093) con los
+> **ADR 0043, 0044, 0045 y 0046**. El **067** queda enmendado (el grano de `ad_spend` ya no se decide ahí) y
+> el **070** ampliado (el origen va a la vista). Argumento completo: [plan v2 §12](../plan-crm-v2.md).
 
 # Época v2 — modelo HubSpot (tickets 036 a 082)
 
@@ -64,6 +68,25 @@ inicial) y la pauta deja de entrar por Sheets: **el costo de una campaña se cap
 | [x] | 041 | [`change_log` en las tablas operativas](./041-change-log-en-las-tablas-operativas.md) (E1-7) | 037, 038 | done · 22-sep |
 | [x] | 042 | [Migración `0020`: `dev` y `production`](./042-migracion-0020-del-corte.md) (E1-6) | 036-041 | done · 22-sep · **aplicada en las dos ramas** |
 
+## E1b · El esquema del origen y la atribución — **abierto el 21-sep**
+
+Sale de la reunión con **Alejo Carvajal** y de las decisiones de Mani del 21-sep.
+Decisiones: **ADR 0043, 0044 y 0045**. Argumento y medición: [plan v2 §12](../plan-crm-v2.md).
+
+🩸 **Por qué existe:** el número que pidió Gerencia —*"cantidad de leads por área"*— hoy mostraría
+**Comercial en cero**, porque un lead que trae un closer no deja rastro en ningún UTM. Y el costo de
+la pauta y el origen de un lead **no se pueden cortar con la misma llave**, porque `ad_spend` guarda
+la campaña en texto libre. Ninguna de las dos cosas lanza un error.
+
+**Una rama y UNA migración (`0021`) para 083, 084 y 092.** Léela línea por línea antes de aplicarla.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 083 | [El catálogo de áreas](./083-catalogo-de-areas.md) | 042 | todo |
+| [ ] | 084 | [`campanas` y `utm_patron`](./084-campanas-y-el-patron-utm.md) | 083 | todo · **tres** campos de patrón, sin `nivel_utm` |
+| [ ] | 085 | [El emparejador determinista y su guardián](./085-el-emparejador-determinista.md) | 084 | todo |
+| [ ] | 092 | [La URL del formulario y el generador de links](./092-url-del-formulario-y-generador-de-links.md) | 084 | todo · 🩸 **destapa que `programs` no tiene la URL del formulario**, sin la cual el 086 tampoco se puede calcular. Encogió el 21-sep: **sin árbol** |
+
 ## E2 · El motor de etapas
 
 El corazón del sistema, y la razón de que vaya **antes** que el sync.
@@ -91,6 +114,8 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 054 | [Configurar una fuente sin adivinar](./054-configurar-una-fuente-de-verdad.md) (E3-7) | 039 | todo |
 | [ ] | 055 | [Alertas: una fuente se rompe, no se apaga](./055-alertas-y-fuente-rota.md) (E3-8) | 054 | todo |
 | [ ] | 056 | [El sync se dispara por capas](./056-disparo-del-sync-por-capas.md) (E3-9) | 048 | todo |
+| [ ] | 086 | [Origen humano del lead y el enlace de captación](./086-origen-humano-y-enlace-de-captacion.md) | 048, 084 | todo · ⏳ **el dato lo escribe la ingesta; después no se puede reconstruir** |
+| [ ] | 087 | [🩸 El CPL deja de preguntar por `entrada`](./087-el-cpl-deja-de-preguntar-por-entrada.md) | 085, 086 | todo · **va con el 086, nunca después** |
 
 ## E4 · Calls, dinero y Students
 
@@ -114,6 +139,10 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 066 | [Réplica de `🚨 Urgencias` con desglose UTM](./066-replica-de-urgencias.md) (E5-3) | 064 | todo |
 | [ ] | 067 | [ROAS por cohorte y captura de pauta](./067-roas-por-cohorte-y-captura-de-pauta.md) (E5-4) | 064 | todo |
 | [ ] | 068 | [`nerd-stats` reescrito](./068-nerd-stats-reescrito.md) (E5-5) | 064 | todo |
+| [ ] | 093 | [Filtros por UTM con lo que YA hay](./093-filtros-utm-con-lo-que-ya-hay.md) | — | todo · ⚡ **sin dependencias: valor hoy**. Solo `utm_source/medium/campaign`, que ya son columnas |
+| [ ] | 088 | [Registros vs agendas por canal](./088-registros-vs-agendas-por-canal.md) | 049, 052, 085 | todo · la vista de **Media** |
+| [ ] | 089 | [Series con dimensiones, no escalares](./089-series-con-dimensiones.md) | 064 | todo · ⏳ **gratis ahora, reescritura después** |
+| [ ] | 090 | [Rendimiento por área](./090-rendimiento-por-area.md) | 085, 088, 089 | todo · la vista de **Gerencia**. Estados con acción, no una tabla |
 | [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) (E5-6) | 064, 065, 066, 067 | **congelado hasta aquí** · se descongela con el dashboard nuevo, no antes |
 
 ## E6 · UI
@@ -132,6 +161,7 @@ se abre**. Este repo no tiene tests de componentes y el 20-sep dos bugs pasaron 
 | [ ] | 074 | [Ficha del Deal](./074-ficha-del-deal.md) (E6-6) | 073 | todo |
 | [ ] | 075 | [Revisión profunda de TODA la UI](./075-revision-profunda-de-la-ui.md) (E6-8) | 069-074 | todo |
 | [ ] | 076 | [Bitácora en Nerd Stats](./076-bitacora-en-nerd-stats.md) (E6-7) | 068, 041 | todo · es la **pantalla** de un rastro que se escribe desde E1 |
+| [ ] | 091 | [`otrosProgramasDelCorreo`: visibilidad cruzada](./091-otros-programas-del-correo.md) | 073 | todo · una consulta, **no** una tabla. Ninguna métrica la usa |
 
 ## E7 · Migración one-time
 

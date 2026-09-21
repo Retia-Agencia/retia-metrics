@@ -53,6 +53,24 @@ CRM interno de Retia con cuatro pilares, construidos en este orden:
 Reemplaza WhatsApp, el calendario compartido y el second brain personal de Mike como el lugar
 donde vive esta información.
 
+- ⚠️ **ENTRA el 21-sep: la atribución por área.** Todo Lead pertenece a un **área** —Gerencial,
+  Comercial, Pauta, Media— derivada de su origen, y el CRM sabe **qué campaña** y **qué persona** lo
+  trajo. Sale del dolor declarado por Gerencia: *"rendimiento de las áreas · cantidad de leads por
+  área"*. Incluye el **enlace de captación por closer y programa**, que es lo que hace visible al
+  lead traído por un humano, hoy invisible. ADR 0043, 0044 y 0045; etapa **E1b** del plan.
+- ⚠️ **ENTRA el 21-sep: el costo de la pauta cuelga de una campaña.** `ad_spend` pasa a grano
+  **campaña + fecha**, y la campaña es dueña de su patrón UTM. Es lo que permite dividir inversión
+  entre leads **cortando las dos mitades con la misma llave**, o sea CPL, CPI, CAC y ROAS rebanados
+  por **campaña, canal o fecha**.
+- ⚠️ **NO entra, decidido el mismo día: el desglose por conjunto ni por anuncio.** El estándar de UTM
+  son **tres** campos (`utm_source`, `utm_medium`, `utm_campaign`); `utm_term` y `utm_content`
+  quedaron **fuera de alcance**, no pendientes. *"Qué anuncio está vendiendo"* deja de ser una
+  pregunta del producto. Sus columnas existen en `submissions`, vacías y **deliberadamente sin leer**
+  (ADR 0045, enmienda 2).
+- ⚠️ **ENTRA: dos categorías de origen huérfano, y no se funden.** **Sin UTM** (llegó sin origen:
+  problema de captación, irrecuperable) y **(sin clasificar)** (trae UTM pero falta el patrón: se
+  arregla con una fila y repara hacia atrás). Las dos siempre visibles, con conteo y porcentaje.
+
 ## 2. Qué NO hace
 
 - No reemplaza el sync de leads desde Google Sheets: los leads siguen entrando por ahí
@@ -78,6 +96,21 @@ donde vive esta información.
 - ⚠️ **Del onboarding entra UN dato y nada más (21-sep):** `onboarded_at` en el deal, un
   timestamp para saber **cuándo** se hizo. El Excel de Daniel Rincón, los accesos, los bonos y la
   factura siguen fuera.
+- ⚠️ **NO entra (21-sep, dicho por Alejo):** el dashboard de **videos editados y publicados por
+  creador**. Él mismo lo marcó como no prioritario —*"primero ventas"*— y además no es de este
+  producto: es producción de contenido, y pertenece a la herramienta de contenido.
+- ⚠️ **NO entra: ingerir ni analizar transcripts de llamadas.** El CRM guarda **el link de Grain**,
+  que es lo que marca que la llamada sucedió (ticket 058). Analizarlos es sales enablement, otro
+  ciclo y otro calendario.
+- ⚠️ **NO entra: un constructor de consultas.** El dashboard gana filtros **desde la URL** (ADR 0023)
+  y las consultas devuelven series con sus dimensiones, que es lo que hace posible filtrar sin
+  reescribir. Las **vistas guardadas** entran cuando exista la queja de re-armar el filtro, no antes.
+- ⚠️ **NO entra: normalizar los UTM ni reescribir el histórico.** El texto se guarda como llegó
+  (ADR 0004). El estándar de UTM rige **hacia adelante** y se configura en Meta, no en el CRM; el
+  histórico se resuelve porque el patrón declara su **nivel**.
+- ⚠️ **NO entra: unir un Lead de un programa con el del otro.** El programa es **frontera, no
+  filtro**. Lo único cruzado es un aviso de pantalla en la ficha del Lead, que **ninguna métrica
+  usa** (ADR 0043).
 
 ## 3. Usuario
 
@@ -168,6 +201,19 @@ donde vive esta información.
       y el comparativo en pantalla, impedirle bajar en PDF lo que tiene enfrente es una reja que no
       protege nada, y el PDF recibe el mismo objeto que pintó la pantalla (ADR 0024), así que no
       expone nada nuevo. El 021 deja de estar bloqueado; sigue siendo el último de la fila.
+- [ ] ⚠️ **Los success floors de Gerencia (21-sep).** Alejo: *"cuando el CRM ya se tenga, se puede
+      definir lo que muestran las métricas del dash gerencial y el reporte daily."* **Sin umbral, la
+      vista de Gerencia no puede pasar de tabla a estado**, que es lo que su propio dolor pide. Se
+      construye con el slot vacío (ticket 090) y se pide antes de la etapa 5, no después.
+- [ ] ⚠️ **El mapeo UTM → área (21-sep).** Lo nombró Alejo como el trabajo que falta y **es la llave
+      de su propio dolor**. No arranca en hoja en blanco: se le lleva la lista de `utm_source`
+      distintos que hay en la base y se le pide asignar cada uno.
+- [ ] ⚠️ **¿Un lead que trae un closer cuenta distinto para su comisión o su meta?** Es de negocio,
+      no de código, y hoy no tiene respuesta. No bloquea: el dato queda escrito igual (ADR 0044).
+- [ ] ⚠️ **Reconfigurar los UTM en Meta al estándar de tres campos.** Mientras el CRM no genere los
+      links (ticket 092), las macros las escribe el paid trafficker y **es una acción de Ops**, que va
+      al playbook antes que al repo. **Con el link generado deja de depender de él:** pega un link que
+      ya trae los tres UTM correctos (ADR 0046).
 - [x] Si los closers pueden agregar recursos: **sí (Mani, 19-sep).** Se aplica el molde del ADR
       0016 que ya rige los productos: quien administra entra a cualquier programa, un closer solo
       a los programas donde tiene membresía ACTIVA. **Supuesto declarado, no preguntado:** un

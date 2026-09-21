@@ -683,6 +683,916 @@ revisar la usabilidad de pantallas que están por reescribirse es trabajo que se
 
 ---
 
+## 12. Enmienda del 21-sep · La reunión con Alejo Carvajal
+
+**Qué es esto.** El primer stakeholder de la fase 1 del rol de Ops habló, y lo que dijo tiene
+consecuencias sobre este plan. Se escriben aquí y no en una nota aparte porque una implicación que
+vive fuera del plan es una implicación que nadie va a leer cuando tome el ticket.
+
+**Fuente:** `docs/insumos/fleeting/2026-09-21-reunion-alejo-areas-y-utms.md`.
+⚠️ **Son notas, no transcript** (Granola gratuito no sirve transcripts). Lo que no está anotado no
+se sabe si se preguntó.
+
+**Alejo lleva dos sombreros** —Gerencial y Media, según `mapa-retia`— y por eso pidió cosas de los
+dos lados en la misma reunión. Conviene no leerlas como una sola.
+
+---
+
+### 12.1 🩸 El hallazgo que ordena la enmienda: el número que pidió va a dar CERO
+
+Alejo nombró su dolor de gerente textualmente: **"rendimiento de las áreas · cantidad de leads por
+área"**, y agregó el trabajo que falta: *"ahí toca definir qué UTMs pertenecen a cada área"*.
+
+Ese número, construido como está el sistema hoy, **se puede calcular y va a mentir**:
+
+| Área | ¿Trae leads? | ¿Los trae con UTM? | Lo que mostraría la pantalla |
+|---|---|---|---|
+| **Pauta** | sí | sí (`facebook / cpc`) | correcto |
+| **Media** | sí | sí (`instagram / stories / organico`, `tiktok / linktree`) | correcto |
+| **Comercial** | **sí** (un closer trae un referido) | **no** | **cero leads** |
+| **Gerencial** | no aplica | — | — |
+
+**Un closer que trae un lead es invisible**, porque el UTM de hoy solo describe pauta. La pantalla
+no lanzaría ningún error: mostraría a Comercial en 0 y un gerente concluiría que los closers no
+aportan pipeline. Es exactamente la clase de bug de la que este repo ya sangró tres veces (ADR
+0024, ADR 0026, el centinela de `parsearFecha`): **una cifra creíble, equivocada, sin excepción.**
+
+🎯 Mani ya había escrito la extensión que lo arregla, antes de esta reunión y por otro camino
+(`retia-ops/notebook/mi-enfoque-del-rol.md`): **UTM de todo, no solo de campañas — también de
+origen humano.** La reunión con Alejo es la primera evidencia externa de que hace falta. **Es
+barato mientras el CRM se construye y caro después**, y la ventana es la misma que ya justificó el
+corte de la etapa 1: `submissions` todavía no existe con datos propios.
+
+---
+
+### 12.2 El "área" no existe en este repo, y es la unidad con la que Retia se organiza
+
+`grep -rin "área\|gerencial\|paid traffick"` sobre `docs/` devuelve **cero**. El sistema conoce
+programas, cohortes, closers, productos y roles. **No conoce áreas**, y las cuatro áreas —Gerencial,
+Comercial, Pauta, Media— son la manera en que la empresa se mira a sí misma.
+
+**Forma que le corresponde, por el ADR 0012:** el código no decide nada según cuál área sea, así
+que **las áreas son filas, no un enum**. Molde de `lib/catalogo/`: tabla con `activo`, un esquema
+zod, pantalla con guard, `change_log` en cada cambio, y `borrarSiNoSeUso`.
+
+⚠️ **Y la trampa que hay que nombrar antes de que alguien la pise: área NO es rol.** El rol contesta
+*"¿qué puede hacer esta sesión?"* y vive en `lib/auth/roles.ts`. El área contesta *"¿a quién se le
+atribuye este lead?"* y es una dimensión de reporte. Son dos preguntas y van dos módulos. Fundirlas
+repite literalmente el bug que este repo ya bautizó en `AGENTS.md`: *"cuando una variable de permiso
+se llame como un rol, sospecha"*. Un `rol === "closer"` usado para decir "esto es de Comercial"
+dejaría al developer afuera y además sería falso: el gerente no vende y sigue siendo de Gerencial.
+
+---
+
+### 12.3 UTM → área es una CLASIFICACIÓN, no una normalización
+
+El ticket **066** dice explícitamente *"Fuera: normalizar los UTM"*, y esa decisión sigue en pie:
+el texto del UTM se guarda como llegó (ADR 0004, misma lógica que la ortografía del closer). Lo que
+Alejo pidió es otra cosa: **mapear cada UTM a un dueño**, sin tocar el texto.
+
+Molde propuesto, para que la etapa 5 no lo invente a mano:
+
+```
+areas              (id, nombre, activo, ...)              catálogo, ADR 0012
+utm_clasificacion  (id, area_id, utm_source?, utm_medium?, prioridad, activo)
+```
+
+- Se clasifica por **patrón**, no por fila: un `utm_source` nuevo entra mañana y no debe romper nada.
+- Lo que no case cae en **`(sin clasificar)`**, y `(sin clasificar)` **se muestra**, nunca se
+  reparte ni se esconde. Mismo criterio que `(sin atribución)` del ticket 066: un cubo invisible es
+  un cubo que crece hasta que alguien se da cuenta un semestre después.
+- La clasificación es **editable desde la app**, porque el que sabe a qué área pertenece
+  `instagram / rosario` es Alejo, no el código.
+
+🎯 **El dato para el mapeo ya existe y ya está anotado en el repo.** El ticket 066 dejó escrito que
+los `utm_source` de ComunicArte **ya nombran personas** (`instagram rosario`, `instagram milena`).
+Esas personas son Media. El mapeo no arranca en cero: arranca leyendo los `utm_source` distintos
+que hay en `submissions` después del primer sync v2 y pidiéndole a Alejo que asigne cada uno.
+
+---
+
+### 12.4 ✅ Lo que Alejo pidió y el modelo ya sabe contestar
+
+Vale escribirlo, porque es la mitad de la reunión y sería un desperdicio construirlo dos veces.
+
+| Lo que pidió | Dónde ya vive |
+|---|---|
+| Deals con etapas estandarizadas al estilo HubSpot | ADR 0037, etapa 2 completa |
+| Close rate y show rate por closer | `lib/queries/dashboard.ts`, se conservan (E5-1) |
+| Estado del lead por etapa | el embudo por etapa, ticket **065** |
+| Qué anuncios están vendiendo, por fecha y canal | tickets **066** (Urgencias con desglose UTM) y **067** (ROAS) |
+| Inversión por pauta | `ad_spend` capturado en el CRM, ticket **067** (ADR 0039) |
+| % de cierre por closer para Gerencial | ya existe; y sin meta individual, por el ADR 0023 |
+| Centralizar leads crudos de los forms | etapa 3 completa |
+| "Leads perdidos y entradas duplicadas en los sheets" | el dedup por correo es una restricción dura (ADR 0005) y las 55 de `Forms viejo` ya tienen ticket (**079**) |
+
+🎯 **Y el mejor hallazgo de la revisión: "registros vs agendas por canal" —la métrica de Media— ya
+es contestable con el esquema de la etapa 1, sin agregar una columna.**
+
+```
+Registro = una fila de  submissions            (todo el que llenó el Typeform)
+Agenda   = un deal que alcanzó la etapa 4       (Agendado)
+El puente = deals.submission_origen_id          ← ya está en el esquema del ADR 0037
+```
+
+El `deals.submission_origen_id` se puso para saber de qué envío nació un deal. Resulta que es
+exactamente la llave que permite dividir agendas entre registros **por UTM**. No hay que cambiar el
+modelo: **falta la vista**, y hoy no tiene ticket.
+
+⚠️ El detalle que hace que la cuenta sea honesta: el ticket **052** decide que un `estado`
+Descartado o vacío **no crea deal**. Por eso el denominador tiene que salir de `submissions` y no
+de `deals` — si sale de `deals`, la tasa de calificación de TikTok daría 100% y el ejemplo que
+Alejo puso a mano desaparecería de la pantalla.
+
+---
+
+### 12.5 El trabajo, ya como tickets
+
+**Las decisiones se cerraron el 21-sep** (§12.6, §12.8.6, §12.10.2.b) y el trabajo quedó escrito:
+**ADR 0043 a 0046**, tickets **083 a 093**, y una etapa nueva **E1b** en el tracker.
+
+| # | Etapa | Depende de | Qué es |
+|---|---|---|---|
+| **083** | **E1b** | 042 | Catálogo de áreas. Molde `lib/catalogo/`. **El área no se guarda en `leads`: se deriva** |
+| **084** | **E1b** | 083 | `campanas` y `utm_patron`, con **tres** campos de patrón. Migración **0021** |
+| **085** | **E1b** | 084 | El emparejador **determinista** y su guardián |
+| **086** | **E3** | 048, 084 | `leads.traido_por_user_id` + el enlace de captación. ⏳ **lo escribe la ingesta** |
+| **087** | **E3** | 085, 086 | 🩸 El CPL deja de preguntar por `entrada`. **Va con el 086, nunca después** |
+| **088** | **E5** | 049, 052, 085 | Registros vs agendas por canal — la vista de **Media** |
+| **089** | **E5** | 064 | Series con dimensiones, no escalares. ⏳ **gratis ahora, reescritura después** |
+| **090** | **E5** | 085, 088, 089 | Rendimiento por área — la vista de **Gerencia**, estados con acción |
+| **091** | **E6** | 073 | `otrosProgramasDelCorreo`: visibilidad cruzada sin cruzar la frontera |
+| **092** | **E1b** | 084 | La URL del formulario y el **generador de links**. 🩸 Destapa que `programs` **no tiene la URL del formulario** (ADR 0046) |
+| **093** | **E5** | **—** | ⚡ **Sin dependencias.** Filtros por los tres UTM que **ya son columnas** (85% de cobertura). Lo único que entrega valor hoy (§12.14) |
+
+**Dos tickets viejos quedan tocados:** el **067** enmendado —el grano de `ad_spend` ya no se decide
+ahí, lo fija el 084— y el **070** ampliado: el origen va a la vista, o la regla de "el closer revisa
+el UTM antes de reclamar" es inaplicable.
+
+⚠️ **El orden que no es negociable:** 086 y 087 son de la **etapa 3**, no de la 5. El dato del origen
+lo escribe la ingesta (ticket 048); los leads que entren antes **no tienen origen y no se puede
+reconstruir**, porque *"lo trajo Maru"* no está escrito hoy en ninguna parte.
+
+Fuera de este repo, anotado para que no se vuelva a descubrir:
+
+- **Videos editados y publicados por creador.** Alejo lo marcó **explícitamente como no
+  prioritario**. Y no es de este repo: es un dashboard de producción de contenido, que pertenece a
+  la herramienta de contenido (`retia/notebook/herramienta-de-contenido-retia.md`). Meterlo aquí
+  rompería la frontera de dominio del **ADR 0033** — este repo es el CRM comercial. Se anota y se va.
+- **Transcripts de llamadas.** Alejo los nombró como métrica de closer. El CRM ya guarda **el link
+  de Grain**, y el link es la etapa 5 del deal (*"pegar el link de Grain = la llamada sucedió"*,
+  ticket **058**). **Ingerir y analizar el transcript es otro sombrero** —sales enablement, no ops—
+  y el propio consolidado del rol ya advirtió que *"se come la semana sin pedir permiso"*. El
+  enganche queda; el análisis no entra al plan v2.
+
+---
+
+### 12.6 Las decisiones de Mani — tomadas el 21-sep ✅
+
+Las tres quedaron cerradas el mismo día. Se registran con su argumento porque una decisión sin
+registro se ve igual que un olvido.
+
+**Decisión A ✅ · El área entra al CRM.** Textual de Mani: *"Área va dentro como una nueva manera de
+agrupar leads y deals según origen."* Catálogo por el molde del ADR 0012. Lo que la frase agrega a
+lo que este documento proponía: el área **no es solo una dimensión de reporte, es una forma de
+agrupar en la pantalla**, y aplica a `leads` **y a `deals`**, no solo a la métrica de gerencia.
+
+**Decisión B ✅ · El origen acepta que un lead llegue por humano.** Textual: *"el origen debe aceptar
+que un lead llega por humano también, por closers directamente."* El diseño está en §12.8, porque
+la pregunta que Mani hizo al decidir —*"¿toca crearlos manual? ¿cada closer tiene el suyo?"*— tiene
+una respuesta que no es obvia y que toca una regla ya escrita.
+
+**Decisión C ✅ · A los closers se les enseña el CRM completo, no solo las etapas.** Textual: *"se
+les tiene que mostrar cómo van a usar el CRM para manejar sus leads, deals, calls, students,
+cohorts, programas, productos, plataformas, métodos de pago, recursos, etc., desde que llegan hasta
+que cierran. Cómo esos componentes funcionan dentro del CRM."*
+
+Eso **amplía** lo que este documento recomendaba (llevar solo las diez etapas) y no lo contradice
+en lo que importa: **el recorrido se hace sobre el modelo, no sobre la app.** Enseñar la UI del MVP
+—que corre sobre persona → llamada → venta, el modelo que se está reemplazando— compraría
+validación del modelo equivocado. El entregable es un recorrido de punta a punta por los objetos y
+cómo se enganchan, no una demo.
+
+---
+
+### 12.7 Las respuestas de Alejo que llegaron después (21-sep)
+
+Cuatro de las cinco preguntas sin rastro quedaron contestadas fuera de la reunión. Importan porque
+tres de ellas **cambian el diseño**, no solo el contexto.
+
+| Pregunta | Respuesta | Qué cambia |
+|---|---|---|
+| **Success floors** | *"cuando el CRM ya se tenga, se puede definir lo que muestran las métricas del dash gerencial y el reporte daily"* | 🎯 Los umbrales **llegan después**, así que la vista gerencial se construye sin ellos. La consecuencia de diseño: la pantalla tiene que nacer **con el slot del umbral vacío**, no rediseñarse para recibirlo |
+| **¿Cómo sabe si la semana va bien?** | *"ver si las inversiones se convierten en ventas, ver el performance de cada área"* | Confirma que C-2 y C-4 no son un capricho: son literalmente su definición de semana buena. Y la primera mitad es exactamente el ROAS del ticket **067** |
+| **¿La operación ideal?** | *"toda la info centralizada y súper bien organizada, sin perder NADA de visibilidad"* | Es un criterio de diseño, no una métrica. Y coincide palabra por palabra con lo que ya protege el repo: **el CRM nunca borra un lead**, se anula en vez de borrar, y `borrarSiNoSeUso` desactiva lo que tiene referencias |
+| **¿Qué es lo tedioso?** | 🎯 ***"no saber qué decisiones tomar"*** | **El dato más importante de toda la reunión.** Ver abajo |
+
+🎯 **"Lo tedioso es no saber qué decisiones tomar" cambia qué es el dashboard gerencial.**
+
+El dolor declarado **no es recolectar el dato ni leerlo: es que el dato no dice qué hacer.** Una
+tabla de "leads por área" con cuatro números correctos no resuelve nada de lo que Alejo acaba de
+describir; le da el mismo problema con mejor tipografía.
+
+Y esto ya tiene precedente medido, en el análisis del semáforo de 30X que vive en el vault: ahí el
+sistema **detecta perfecto** —umbral, semáforo, accionable escrito, dueño nombrado— y **nadie
+atiende los rojos**, hasta 10 días seguidos con ~$200 diarios quemándose. La conclusión de ese
+análisis fue *"detectar no es actuar"*. La frase de Alejo es la misma herida vista desde el otro
+lado: **para él, ni siquiera está claro qué acción propone el número.**
+
+**Lo que se sigue de ahí, para cuando se diseñe C-4:** la vista de gerencia no es una tabla de
+cifras, es un tablero de **estados con acción**: qué está fuera de umbral, desde cuándo, de quién
+es, y qué se hace. El número es el respaldo de la frase, no el producto. Es el mismo criterio que
+ya rige el resto del repo —`saldoLegible` decide **la etiqueta y el valor juntos**, porque un saldo
+negativo es un sobrepago y no una deuda— aplicado una capa más arriba.
+
+⚠️ **Y no se puede construir todavía**, porque un estado necesita un umbral y los umbrales llegan
+después (fila 1). Lo que sí se puede hacer ahora es **no cerrarse la puerta**: que la consulta
+devuelva el número con su contexto (contra qué se compara, desde cuándo) y no un escalar suelto.
+
+---
+
+### 12.8 El origen humano: cómo se marca un lead que trae un closer
+
+La pregunta exacta de Mani al tomar la decisión B: *"¿será que estos toca crearlos manual para que
+tengan su UTM? ¿Cada closer tiene el suyo? ¿Cómo sería?"*
+
+**Respuesta corta: no toca crearlos manual, y el closer no escribe ningún UTM.** Tiene un enlace, y
+el enlace escribe el UTM por él. Abajo el porqué, que es donde está lo que no es obvio.
+
+#### 12.8.1 Por qué NO se teclea el UTM a mano
+
+Es la opción más directa —que el closer escriba `utm_source = closer maru` al dar de alta— y es la
+que hay que descartar, por tres razones que ya están escritas en este repo:
+
+1. 🩸 **Vuelve el ADR 0030 por la puerta de atrás.** `Maru`, `maru`, `closer maru` y `Maru Marquez`
+   serían **cuatro closers** en el reporte de gerencia, sin un solo error. Ese ADR existe porque
+   pasó de verdad: `mani` y `Maru` produjeron dos filas en el comparativo. Y el ticket **066** dice
+   explícitamente *"Fuera: normalizar los UTM"*, así que ese campo **no tiene quien lo defienda**.
+2. **Ensucia el campo que sirve para reconciliar con Meta.** El `utm_*` es texto copiado de una
+   fuente externa (ADR 0004). Un valor inventado dentro del CRM se mezcla con `facebook`,
+   `instagram` y `tiktok` en toda consulta de pauta, y entra sin avisar a los tres cubos del ROAS
+   del ticket **067**.
+3. **Es texto donde hay una FK disponible.** El closer ya es una fila de `users`. Guardar su nombre
+   en vez de su id es exactamente el error que el ADR 0030 tuvo que remendar con un índice único
+   sobre la forma normalizada.
+
+#### 12.8.2 Lo que sí: un enlace de captación por closer, y el UTM entra solo
+
+El closer no da de alta a nadie: **manda su enlace**, el lead llena el formulario como cualquier
+otro, y el UTM entra por el camino que ya existe.
+
+```
+https://<form del programa>?utm_source=closer&utm_medium=referido&utm_campaign=<closer>
+```
+
+Lo que esto gana, y por eso es la opción correcta y no solo una alternativa:
+
+- **Cero trabajo manual.** Entra por el sync, por la fuente activa del programa. Respeta el ADR 0039
+  sin tocarlo.
+- **El lead trae sus respuestas.** Presupuesto, urgencia, experiencia: lo que el closer necesita
+  para trabajar el deal. Un lead creado a mano **no las tiene**, y esa es la diferencia práctica
+  más grande entre los dos caminos.
+- **Nadie teclea, así que no hay ortografía que defender.** El enlace lo genera el CRM.
+- **No es un mecanismo nuevo: es el que Media ya usa.** `instagram rosario` e `instagram milena`
+  —los `utm_source` reales de ComunicArte— son literalmente esto: un UTM que nombra a una persona.
+  Lo único que falta es hacerlo explícito y para closers.
+
+**El enlace no es una tabla.** Es la URL de la fuente del programa más los parámetros del closer:
+es **derivable**, así que se calcula y se muestra con un botón Copiar, no se guarda. Misma regla que
+la comisión del ADR 0024 (*"calculada, nunca guardada"*) y por la misma razón: un enlace guardado y
+la fuente cambiada son dos verdades.
+
+#### 12.8.3 Dónde vive el dato, y por qué la clasificación es UNA tabla y no dos
+
+```
+leads.traido_por_user_id   uuid NULL  →  users(id)      la FK, no texto
+```
+
+Y la clasificación del §12.3 **contesta las dos preguntas a la vez** en vez de duplicarse:
+
+```
+utm_clasificacion (id, area_id, user_id?, utm_source?, utm_medium?, utm_campaign?, prioridad, activo)
+```
+
+Son la misma pregunta con distinto grano —*"¿de quién es este UTM?"*— y **el área de un closer se
+deduce del closer**, así que partirla en dos tablas obligaría a mantener sincronizado que
+`utm_campaign = maru` es de Comercial y que Maru es de Comercial. Dos lugares con la misma
+respuesta es justo lo que el repo prohíbe.
+
+**Quién escribe `traido_por_user_id`, y quién gana:** lo escribe **la función de ingesta del ticket
+048 y nadie más** —los dos caminos pasan por ahí—, y **el primero que lo escribe gana**. Si Maru lo
+trajo y tres meses después el mismo correo reaplica por una campaña de Meta, el lead sigue siendo
+de Maru: la atribución de quién trajo a una persona se paga una vez. Es el mismo criterio con el
+que el dedup ya conserva la fecha más antigua.
+
+#### 12.8.4 El alta manual sobrevive como respaldo, y NO genera envío
+
+El alta manual ya existe (`leads.entrada = 'crm'`, ADR 0021, **0 filas** hoy) y se queda, porque el
+enlace falla en la vida real todo el tiempo: el lead llegó por WhatsApp, por un evento, por un
+amigo. Ahí el closer lo crea y se marca como quien lo trajo, eligiéndose de un selector.
+
+⚠️ **Lo que ese lead NO tiene es envío, y eso es correcto, no una carencia.** Se verificó contra el
+esquema: `submissions.source_id` es `notNull`, y una `source` nueva de tipo "alta manual" **la
+rechazaría la base** — el índice único parcial `sources_una_activa_por_programa_idx` solo admite
+una fuente activa por programa (ADR 0039). O sea que la idea de fabricarle un envío sintético al
+lead manual **no es una preferencia de diseño: la base no la deja.** El modelo ya lo tenía previsto
+por otro lado: el ADR 0037 admite *"deal manual"* como entrada a Pendiente Setteo y a Compromiso
+Verbal sin pasar por un `estado` de hoja.
+
+#### 12.8.5 🩸 Esto rompe la regla del CPL que ya estaba escrita
+
+**Es la consecuencia que no se ve y hay que arreglar en el mismo movimiento.**
+
+El ADR 0021 dice, y el comentario de `lib/db/schema.ts` lo repite: *"el CPL usa solo las del
+formulario, porque la pauta solo paga esas"*. Esa regla se apoya en `entrada`, que hoy solo tiene
+dos valores: `formulario` y `crm`.
+
+**Con el enlace del closer, un lead de Comercial entra por el formulario.** O sea que a partir de
+ese momento `entrada = 'formulario'` **deja de significar "lo pagó la pauta"**, y el CPL empezaría a
+dividir la inversión de Meta entre leads que Meta no trajo. El costo por lead saldría **más barato
+de lo que es**, y una campaña mala se vería aceptable. No lanzaría ningún error.
+
+**El arreglo, en una línea:** el denominador del CPL deja de preguntar por `entrada` y pasa a
+preguntar por **la clasificación del UTM**: cuenta los leads cuyo UTM cae en el área **Pauta**.
+Queda mejor que antes, porque tampoco estaba contando bien los orgánicos de Media, que también
+entran por el formulario y tampoco los paga la pauta.
+
+→ **Enmienda al ADR 0021 y al ADR 0037** (los dos repiten la regla), más el comentario del esquema.
+Va junto con el candidato **C-2**, nunca después: separadas, la pantalla del CPL y la clasificación
+darían cifras distintas sobre lo mismo, que es la herida del ADR 0024.
+
+#### 12.8.6 Lo decidido sobre el origen (Mani, 21-sep) ✅
+
+**1 · El enlace es por closer Y programa.** ✅ Textual: *"recuerda que los Leads SIEMPRE tienen un
+programa asignado al entrar... el programa es parte de la PK de Leads."*
+
+Es correcto y **el esquema ya lo enforza**, verificado: `leads_programa_email_idx` es único sobre
+`(program_id, email_normalizado)`, no sobre el correo solo. **La misma persona en los dos programas
+son dos leads, y eso no es un duplicado: es el diseño.** Lo mismo en `lead_contactos_valor_idx`,
+`deals_uno_abierto_por_lead_y_programa_idx`, `calls_huella_idx`, `ad_spend_huella_idx`,
+`productos_programa_nombre_idx` y `cohorts_programa_codigo_idx`. Y `lead_contactos.program_id` está
+**denormalizado a propósito** justo para poder hacerlo.
+
+Para el enlace eso sale gratis: como la URL se deriva de la fuente del programa (ADR 0039, una
+fuente activa por programa), **un enlace por closer y programa es lo único que se puede construir**.
+La regla general quedó escrita en `AGENTS.md` como restricción no-negociable, porque Mani la enunció
+como permanente: **el programa no es un filtro, es una frontera**, y se enforza en el tipo de la
+consulta, no en la revisión.
+
+⚠️ **Lo que esto SÍ deja decidir:** las tablas nuevas. `areas` y `utm_clasificacion` son
+**globales**, sin `program_id`, por el mismo molde que `motivos` y `origenes`: contestan *"¿qué es
+este canal?"*, y un canal es un canal en los dos programas. Los nombres de campaña no colisionan
+entre programas (`De_Cero_a_Tactical_Investor_...` vs `Metodo_Comunicarte_...`), así que un patrón
+de un programa simplemente nunca casa con envíos del otro. **La clasificación es global; la
+agregación es siempre por programa.** Son capas distintas y confundirlas es el error.
+
+**2 · El lead traído NO se auto-asigna.** ✅ Textual: *"los Closers definen eso; supongo que deben
+revisar bien el UTM."* Se descarta la excepción que este documento proponía, y el ADR 0021 queda
+intacto: *"sin responsable es un estado válido"*, sin reparto automático.
+
+🎯 **Y la segunda mitad de la frase es un requisito de pantalla, no una suposición.** Si el closer
+tiene que *"revisar bien el UTM"* para decidir si reclama un lead, entonces **el origen tiene que
+estar a la vista en la lista de Unclaimed y Pendiente Setteo**: el área, los UTM, y quién lo trajo
+si se sabe. Hoy esa lista (ticket **070**) no muestra nada de eso. Sin ese cambio, "revisar bien el
+UTM" es imposible de hacer y la regla que Mani acaba de poner no se puede cumplir.
+→ **Entra al alcance del ticket 070.**
+
+**3 · Para Alejo, sin resolver:** ¿un lead que trae un closer cuenta distinto para su comisión o su
+meta que uno que le asignaron? Es de negocio.
+
+---
+
+
+---
+
+### 12.9 ¿Se puede normalizar `(correo, programa)`? Medido, y la respuesta es no
+
+Pregunta de Mani (21-sep): *"¿crees que haya una mejor manera de hacerlo para que quede normalizado
+y simple pero sin perder el objetivo de que todo lead debe tener un programa asignado?"*
+
+Lo que incomoda es real: **la misma persona en los dos programas son dos filas**, con su correo, su
+teléfono y su nombre repetidos. La forma de libro de texto para arreglarlo existe y tiene nombre —
+el split Party/Contact:
+
+```
+personas (id, email_normalizado UNIQUE)              el ser humano, una vez
+leads    (id, persona_id, program_id)  UNIQUE(persona_id, program_id)
+```
+
+**No se hace, y no por gusto: se midió.**
+
+#### 12.9.1 El número
+
+Consulta de solo lectura contra `production` (rama `br-withered-mud-b4cvvg80`, verificada por
+`neon.branch_id` y no por el nombre de la variable, como manda `AGENTS.md`), el 21-sep:
+
+```
+filas en leads .................. 4.823
+correos distintos ............... 4.818
+correos en MAS DE UN programa ....... 5      ← 0,1 %
+
+por programa:  tactical-investor 2.690  ·  comunicarte 2.133
+```
+
+🎯 **Cinco personas.** Toda la redundancia que la normalización eliminaría son **cinco filas de
+4.823**. El repo tiene su propia regla para esto y aplica entera: *"antes de trabajar una deuda
+vieja, verifícala; cuesta un comando"*.
+
+#### 12.9.2 Y lo que costaría, que es lo que decide
+
+Aunque fueran 500, hay tres costos que no dependen del volumen:
+
+1. 🩸 **Reabre el problema de identidad a escala de empresa.** Hoy la llave del dedup es
+   `(program_id, email)`, así que **un merge equivocado hace daño dentro de un programa**. Con una
+   tabla `personas` la llave pasa a ser el correo global, y con ella **la regla del teléfono del
+   ADR 0035** —*"un teléfono que apareció con un correo distinto entra sin confirmar y un gerente
+   decide"*— empieza a cruzar programas. El radio de explosión de una fusión mala pasa de un
+   programa a toda Retia, para ahorrar cinco filas.
+2. **Construye el puente que la restricción del 21-sep quiere que no exista.** Mani no pidió que
+   cruzar programas se desaconseje: pidió que **no sirva de nada y no se pueda**. Un `persona_id`
+   compartido es, literalmente, la columna por la que un `join` cruza la frontera. Hoy **no existe
+   forma de escribir esa consulta sin notarlo**; con `personas` sería un join más.
+3. **Una junta en cada consulta, y un segundo corte encima del primero.** La etapa 1 acaba de
+   cerrar con la migración 0020 y la ingesta (ticket 048) está por escribirse. Meter `personas`
+   ahora es la 0021 y reescribir lo que aún no existe.
+
+**La conclusión que importa:** lo que hay **ya es la forma normalizada de este dominio**. El lead no
+es una persona: es *"una persona en un programa"*, y el programa es parte de su identidad, no un
+atributo suyo. Repetir el correo en dos filas no es desnormalización, es **que son dos hechos
+distintos**. Es exactamente la misma lógica por la que `lead_contactos.program_id` está denormalizado
+a propósito, y el comentario del esquema ya lo decía: *"es la misma redundancia declarada que ya
+tiene `leads.emailNormalizado`"*.
+
+#### 12.9.3 Lo que sí se hace, que cuesta una consulta y no una tabla
+
+El objetivo de fondo de Alejo era *"sin perder NADA de visibilidad"* (§12.7), y para eso no hace
+falta unir las tablas. Hace falta **una proyección de solo lectura**:
+
+> `otrosProgramasDelCorreo(email, programaActual)` en `lib/queries/`, que contesta
+> *"este correo también existe en el otro programa, y va en tal etapa"*.
+
+- Se resuelve con un `select` sobre `leads`, que **ya tiene el correo normalizado**. Cero esquema
+  nuevo, cero migración.
+- Sale en la ficha del Lead como un aviso, no como un dato agregado: **ninguna métrica la usa.**
+- Es la regla que `AGENTS.md` ya tiene escrita: **la proyección es del llamador, el predicado es del
+  módulo.** El predicado "son la misma persona" vive en un lugar; que la pantalla lo muestre no
+  significa que el embudo lo sume.
+
+**Y así la frontera sigue siendo dura donde importa** —nada se une por defecto, ninguna cifra cruza—
+mientras el único hecho cruzado que sirve de verdad, *"a esta ya la conocemos del otro lado"*, se
+entrega **deliberadamente, en un solo sitio y sin poder colarse en un total**.
+
+---
+
+### 12.10 El CPL rebanado, y el dashboard que no es estático
+
+Pedido de Mani (21-sep): *"¿para el CPL se puede por área? Para tener métricas de lo que se invierte
+en pauta vs. lo que convierte. O que el CPL se pueda calcular según distintos filtros. El dash de
+métricas para los Managers... creo que sería bueno si no fuese estático sino que deja crear vistas y
+filtros a gusto."*
+
+#### 12.10.1 🩸 Hoy el costo y los leads NO se pueden cortar con la misma llave
+
+Se midió contra el esquema. Un lead trae su origen en `submissions.utm_source / utm_medium /
+utm_campaign / utm_term / utm_content`. El costo vive en `ad_spend`, y `ad_spend` **no tiene ni una
+columna UTM**: tiene `campana` y `creativo`, **texto libre**, cargados a mano por quien captura la
+pauta.
+
+**Son dos textos que nadie garantiza que coincidan.** Unir uno con otro para calcular un CPL
+rebanado sería comparar cadenas entre dos sistemas que no se hablan — que es, letra por letra, la
+herida del ADR 0030 (`Mani` y `mani` como dos closers), ahora entre la hoja del paid trafficker y
+el Typeform. Y fallaría del modo peor: **no lanzaría ningún error, simplemente el CPL de una
+campaña saldría con menos leads de los que tuvo y por lo tanto más caro**, o al revés.
+
+**El arreglo, y por qué hay que decidirlo ahora:** el costo se captura **con los mismos UTM que
+traen los leads**, no con un nombre libre de campaña. Entonces el CPL de cualquier rebanada es
+
+```
+CPL(rebanada) = Σ ad_spend de esa rebanada  ÷  leads de esa rebanada
+                └──────── las dos mitades cortadas con la MISMA llave ────────┘
+```
+
+y **la misma tabla `utm_clasificacion` del §12.3 corta los dos lados a la vez**, así que "CPL por
+área", "por campaña", "por anuncio" o "por fecha" salen todos del mismo mecanismo en vez de ser
+cuatro consultas.
+
+⏳ **La ventana:** el ticket **067** todavía está en `todo` y dice explícitamente que ahí se decide
+*"si la carga es por campaña/día o un total por cohorte"* y que hay que *"re-pensar el índice
+`ad_spend_huella_idx`, que existía para deduplicar filas de una hoja y ya no tiene sentido como
+llave"*. Esa decisión **es esta**. Tomarla después de que haya pauta cargada significa re-capturar
+a mano el histórico, porque el UTM de un gasto pasado no está escrito en ninguna parte del CRM.
+
+#### 12.10.2 ✅ La campaña es una entidad, y sus UTM son filas (Mani, 21-sep)
+
+Propuesta de Mani: *"al crear campañas deban tener uno o más UTMs asociados, para tener métricas por
+campaña y por UTM."*
+
+**Sí, y es mejor que lo que este documento proponía en §12.10.1** (poner las cinco columnas UTM
+sueltas sobre `ad_spend`). Tres razones, y la tercera es un hallazgo medido:
+
+1. **El juego de UTM de una campaña es estable y se reusa.** Escribirlo en cada fila de gasto diario
+   lo repite cientos de veces e invita al error de tecleo — la misma herida de comparar cadenas,
+   ahora dentro del CRM en vez de entre dos sistemas.
+2. **"Uno o más" es la cardinalidad correcta y Mani la vio bien.** Una campaña tiene varios conjuntos
+   y varios creativos, así que una campaña es **muchos patrones UTM**, no uno.
+3. 🩸 **Y lo que lo vuelve obligatorio: hoy el significado de cada campo UTM NO es el mismo en los
+   dos programas.** Medido contra los consolidados C2 que entregó Michael:
+
+   | | ComunicArte | Tactical Investor |
+   |---|---|---|
+   | `utm_campaign` | campaña | campaña |
+   | `utm_content` | **anuncio** | **conjunto** |
+   | `utm_term` | — | **anuncio** |
+
+   **`utm_content` significa "anuncio" en un programa y "conjunto" en el otro.** Cualquier código
+   que escriba `utm_content = el anuncio` va a estar **bien en un programa y mal en el otro, sin
+   lanzar un error**.
+
+#### 12.10.2.b ✅ El significado de cada campo UTM se ESTANDARIZA (Mani, 21-sep)
+
+Textual: *"toca definir qué significa cada campo `utm_...`; no se puede significar cosas distintas
+para cada programa, eso rompe la estandarización que queremos hacer."*
+
+**Correcto, y corrige lo que este documento decía tres párrafos arriba.** La versión anterior
+proponía tratar el significado como dato de la campaña, o sea **acomodarse al desorden**. Estandarizar
+es mejor, y encaja con el mandato del rol de Ops: *"cuál es el estándar de lo que debería pasar"*.
+
+**El estándar queda así**, y vive en `docs/agents/context.md` y en `estandares.md` del vault:
+
+| Campo | Qué lleva | Macro de Meta |
+|---|---|---|
+| `utm_source` | la plataforma u origen | `facebook`, `instagram`, `tiktok`, `closer` |
+| `utm_medium` | el tipo de tráfico | `cpc`, `organico`, `referido`, `stories` |
+| `utm_campaign` | **la campaña** | `{{campaign.name}}` |
+
+⚠️ **Reducido a tres el mismo 21-sep** (§12.15): `utm_content` y `utm_term` quedaron **fuera de
+alcance**. Lo que sigue de esta subsección sobre el `nivel` del patrón **ya no aplica** y se conserva
+porque explica de dónde salió el estándar.
+
+Se eligió esa asignación y no la contraria porque **es la que ya usa Tactical Investor**, que es el
+programa con más volumen (2.690 de 4.823 leads) y el que tiene los tres niveles poblados. Cambiar el
+que ya está bien para acomodar al que le falta un nivel sería trabajo de más y riesgo de más.
+
+⚠️ **Y hay que ser honestos con lo que el estándar NO arregla, porque es la mitad del asunto:**
+
+1. **El CRM no puede imponerlo: se configura en Meta.** Las macros las escribe el paid trafficker al
+   armar la campaña. **Es una acción de Ops, no un ticket de código**, y va al playbook de paid
+   traffickers antes que a este repo.
+2. **Rige hacia adelante.** Los 4.823 leads que ya están en `production` traen la convención vieja, y
+   `submissions.utm_*` **no se reescribe**: es texto copiado de la fuente y el ADR 0004 manda que se
+   guarde como llegó. Reescribirlo para que "cuadre" es exactamente la clase de arreglo que borra la
+   evidencia de lo que pasó.
+3. **Por eso el patrón declara el NIVEL al que apunta, y el modelo deja de preguntar qué significa
+   un campo.** Un patrón de nivel `anuncio` del histórico de Tactical empareja por `utm_term`; uno
+   del histórico de ComunicArte, por `utm_content`. **El código nunca pregunta "¿qué significa
+   `utm_content`?"** — pregunta *"¿qué patrones de nivel anuncio casan con este envío?"*. Así el
+   histórico se clasifica bien **sin reescribir el crudo y sin un `if programa` en el código**, y el
+   estándar hace que de la fecha del corte en adelante todos los patrones nuevos se escriban igual.
+
+```
+utm_patron (..., nivel: pgEnum('campana','conjunto','anuncio'), ...)
+```
+
+`nivel` es un **`pgEnum` y no catálogo** por la regla del ADR 0012 leída al derecho: **el código
+decide con él** (agrupa el desglose por nivel), igual que `deals.etapa`. Los tres niveles son los de
+Meta y no los inventa Retia.
+
+4. **Lo que no cumpla el estándar se ve, no se adivina.** Un envío cuyos UTM no casan con ningún
+   patrón cae en `(sin clasificar)` **con su conteo a la vista** — que es el mecanismo de detección
+   que esta sección ya tenía, ahora haciendo doble trabajo: además de atrapar canales nuevos,
+   **atrapa campañas mal configuradas en Meta**. Detectar es barato; adivinar el nivel sería una
+   cifra creíble y equivocada.
+
+**La forma, y por qué es UNA tabla de patrones y no dos.** Lo que §12.3 llamó `utm_clasificacion` y
+lo que esta sección necesita **son la misma cosa**: *"un patrón UTM apunta a un dueño"*. Si se parten
+en dos, la misma cadena `facebook / cpc / De_Cero_a_Tactical_...` la resuelven **dos mecanismos que
+pueden discrepar**, que es el olor que este repo prohíbe desde el ADR 0024.
+
+```
+campanas   (id, program_id NOT NULL, nombre, plataforma, cohort_id?, activo)     catálogo, ADR 0012
+ad_spend   (campana_id, fecha, inversion, moneda, ...)                cuelga de la campaña
+utm_patron (id, program_id?, utm_source?, utm_medium?, utm_campaign?,
+            utm_term?, utm_content?,
+            campana_id? XOR user_id? XOR area_id?,  prioridad, activo)
+```
+
+**El área nunca se guarda en el patrón cuando se puede derivar.** Un patrón apunta a **un** destino:
+a una campaña (y la campaña sabe que es de Pauta), a un usuario (y el usuario sabe que es de
+Comercial), o directamente a un área cuando no hay ninguna de las dos — que es el caso del orgánico
+de Media, donde `instagram rosario` no tiene campaña ni dueño en `users`. Un `CHECK` garantiza que
+sea exactamente uno. Guardar el área **además** del destino permitiría escribir la contradicción
+"patrón de área Media apuntando a una campaña de Pauta".
+
+⚠️ **Corrección a lo que decía §12.8.6:** ahí se dijo que la clasificación era *global, sin
+`program_id`*. Con campañas —que sí son de un programa— el patrón lleva `program_id` **nullable**:
+`null` = aplica a todos (los orgánicos, `facebook / cpc`), con valor = acotado a ese programa. Y el
+emparejador solo considera patrones cuyo programa case con el del envío, así que **la frontera del
+21-sep se mantiene dura y además hay menos candidatos que comparar**.
+
+#### 12.10.3 🩸 La regla que hace o rompe todo esto: el emparejamiento tiene que ser DETERMINISTA
+
+**Si un envío casa con dos patrones de campañas distintas, ese lead se cuenta en las dos y el CPL de
+ambas sale mal. Sin un solo error.**
+
+No es hipotético: es literalmente lo que ya pasó en este repo. El ADR 0031 documenta que colgar una
+corrida de sync de `fuentes[0]` —una consulta **sin `ORDER BY`**— atribuía cada corrida a uno de los
+dos formularios **de forma no determinista**, o sea que corridas idénticas podían quedar registradas
+distinto. La misma trampa, un nivel más arriba y con dinero encima.
+
+**Las tres reglas, y ninguna es opcional:**
+
+1. **Un envío resuelve a lo sumo UNA campaña.** No "la primera que aparezca".
+2. **Gana el patrón más específico**, medido como cantidad de campos UTM no nulos. Un patrón de tres
+   campos le gana a uno de dos, siempre, sin importar el orden de la consulta.
+3. **Un empate es un ERROR que la app muestra, no una elección silenciosa.** Dos patrones igual de
+   específicos que casan el mismo envío son una configuración mal hecha, y la respuesta correcta es
+   que alguien la arregle — no que el sistema escoja. La garantía vive en un **índice único sobre la
+   combinación de campos del patrón** dentro del programa, no en el código (ADR 0005).
+
+**Y el corolario que hay que pintar en la pantalla:** un envío que no casa con ningún patrón cae en
+`(sin clasificar)` **y se ve**, con su conteo, para que alguien le asigne dueño. Mismo criterio que
+`(sin atribución)` del ticket 066: un cubo invisible crece hasta que alguien se da cuenta un
+semestre después.
+
+
+#### 12.10.4 ⚠️ "CPL por área" solo significa algo donde hay costo
+
+Y aquí conviene no darle a Mani lo que pidió al pie de la letra, porque al pie de la letra miente:
+
+| Área | ¿Tiene inversión? | Qué daría un "CPL por área" |
+|---|---|---|
+| **Pauta** | sí | el CPL real, útil |
+| **Media** (orgánico) | **no** | **$0**, que se ve espectacular y no significa nada |
+| **Comercial** (referidos) | **no** | **$0**, igual |
+| **Gerencial** | no aplica | — |
+
+Una tabla de CPL por área mostraría a Media y a Comercial **ganándole a Pauta por goleada**, y la
+conclusión obvia —"hay que mover el presupuesto a orgánico"— sería un artefacto de dividir por un
+costo que no existe, no un hallazgo.
+
+**La regla que se sigue, y que el repo ya tiene a medias:** una división solo se muestra si el
+numerador **y** el denominador existen en esa rebanada; si no, la celda dice **"sin pauta"**, no
+`$0`. El precedente está escrito en el propio ticket 067: *"una cohorte sin pauta cargada se ve
+vacía, no se rellena con ceros: un cero parece un dato"*. Esto solo lo extiende a la rebanada.
+
+**Y lo que Mani realmente quiere sí sale, mejor partido en dos:**
+
+1. **Dentro de Pauta**, el costo se rebana por lo que quiera: campaña, anuncio, canal, fecha,
+   cohorte. Ahí viven CPL, CPI, CAC y ROAS, y es literalmente *"lo que se invierte vs. lo que
+   convierte"*.
+2. **Entre áreas**, la comparación no es de costo sino de **aporte y calidad**: cuántos leads trae
+   cada una, qué tasa de calificación tienen, cuántos cierran. Es la misma vista que Alejo pidió
+   para Media (registros vs agendas), aplicada a las cuatro.
+
+Las dos juntas contestan la pregunta de gerencia sin inventar un número.
+
+#### 12.10.5 El dashboard con filtros: qué se decide ahora y qué es YAGNI
+
+**Lo que hay que decidir ahora porque cuesta cero ahora y es una reescritura después:**
+las consultas de `lib/queries/` devuelven **filas con sus dimensiones pegadas** (programa, área,
+canal, closer, cohorte, fecha) en vez de escalares pre-agregados. Un `{ leads: 412 }` no se puede
+filtrar por nada; una serie con sus dimensiones se filtra, se agrupa y se guarda sin tocar la
+consulta. **Es la misma clase de decisión que la del origen humano: gratis mientras la capa de
+lectura se está escribiendo (etapa 5), cara el día después.**
+
+**Lo que NO se construye todavía**, por la escalera de simplicidad:
+
+| | v1 | Después, si lo piden |
+|---|---|---|
+| Filtros | **desde la URL**, que el ADR 0023 ya manda. Compartibles copiando el link, cero almacenamiento | — |
+| Vistas guardadas | no | una tabla por usuario, cuando exista la queja de re-armar el filtro |
+| Constructor de consultas | **no, y probablemente nunca** | — |
+
+⚠️ **Y la tensión que hay que nombrar, porque las dos cosas vienen del mismo stakeholder.** Alejo
+dijo que lo tedioso es *"no saber qué decisiones tomar"* (§12.7). **Un lienzo en blanco de filtros
+es exactamente lo contrario de eso:** le entrega el trabajo de averiguar qué mirar, que es el
+trabajo que dijo que no sabe hacer.
+
+**Se resuelve con el orden, no eligiendo uno:** el dashboard **abre con la vista opinada** —las
+métricas que pidieron, con su estado y su acción— y los filtros son la **salida de emergencia** para
+el día que quiera cavar. Puerta de entrada opinada, techo abierto. Al revés, un constructor como
+pantalla inicial, es un producto que se ve más potente y sirve menos.
+
+🔒 **Y una frontera que no es un filtro:** el **programa**. Por la restricción no-negociable que
+Mani fijó el 21-sep, ninguna vista, guardada o improvisada, puede cruzar ComunicArte con Tactical.
+No basta con no ofrecerlo en la interfaz: **el tipo de la consulta no debe admitirlo**, igual que el
+comparativo entre closers del ADR 0023.
+
+---
+
+### 12.12 El CRM genera los links, y eso arregla el agujero del estándar
+
+Mani (21-sep): *"el CRM debe tener la capacidad de crear nuevas campañas, conjuntos y anuncios para
+generar links para cada programa. Para esto, al crear el programa se le debe asignar el link de su
+forms, su calendly y demás info necesaria... ¿Puede ser parte de recursos?"*
+
+#### 12.12.1 🩸 Lo primero: destapó un prerequisito que falta
+
+Verificado contra el esquema:
+
+| Dato | ¿Existe? | Dónde |
+|---|---|---|
+| Calendly del programa | ✅ | `programs.calendly_url` |
+| Página de venta | ✅ | `programs.web_url` |
+| **URL pública del formulario** | ❌ | **en ninguna parte** |
+| Dónde caen las respuestas | ✅ | `sources.sheet_id` + `sources.tab` |
+
+**El CRM sabe dónde CAEN las respuestas, no dónde la gente LLENA.** Y el ADR 0044 dice que el enlace
+de captación del closer es *"la URL de la fuente del programa más los parámetros"*. **Ese enlace no se
+puede calcular hoy.** El diseño era correcto y le faltaba el dato.
+
+#### 12.12.2 ¿Va en recursos? No, y la prueba es concreta
+
+| | Recurso (ADR 0017) | Link de campaña |
+|---|---|---|
+| Para quién | **un lead**, elegido por un humano | nadie: se pega en Meta o en una bio |
+| Cuándo | en un momento de la conversación | una vez, al crear la pieza |
+| Para qué existe | que el lead lo lea | **que se pueda rastrear** |
+
+La prueba: un closer buscando qué mandarle a un lead **nunca** quiere ver *"anuncio 5 de la campaña de
+junio"*, y un trafficker buscando su link **nunca** lo busca en `/recursos`. Dos dominios, dos
+pantallas (ADR 0033).
+
+**Lo que sí se comparte es el generador.** *"URL del formulario + parámetros UTM"* es **una sola
+función** que sirve al link del closer y al del anuncio. El mecanismo en un módulo, las pantallas
+separadas — que es la regla que `AGENTS.md` ya tiene escrita.
+
+#### 12.12.3 🎯 Y arregla el agujero que el §12.10.2.b había dejado abierto
+
+Ahí se escribió, con razón, que **el CRM no puede imponer el estándar de UTM porque las macros se
+configuran en Meta**. Con el link generado **sí puede**: el trafficker no escribe parámetros, **pega
+un link que ya los trae correctos**.
+
+**Y el beneficio de fondo es más grande que el estándar.** Con macros hay **dos actos independientes
+que tienen que coincidir**: alguien configura `{{ad.name}}` en Meta, y alguien escribe el patrón que
+reconocerá ese texto. Si divergen, el lead cae en `(sin clasificar)` o casa con el patrón equivocado.
+
+Con el link generado hay **un solo acto**: crear el anuncio produce el link **y** el patrón, de la
+misma fila. **No pueden discrepar por construcción.** Mismo molde que `crearConRastro`, que escribe la
+fila y su `change_log` en la misma operación.
+
+#### 12.12.4 🩸 Y obliga a corregir dónde cuelga el gasto
+
+El ADR 0045 decía que `ad_spend` cuelga de la campaña. **Meta reporta gasto por anuncio.** Si el gasto
+cuelga de la campaña y los leads se atribuyen al anuncio, **las dos mitades del CPL vuelven a cortarse
+a distinto nivel** — el problema que el ADR 0045 existía para resolver, ahora un escalón más abajo.
+
+El gasto cuelga de la **pieza**, al nivel más fino que se capture, y la regla del cero decide qué se
+muestra: con gasto solo de campaña, el CPL por anuncio dice **"sin desglose"**. **Nunca se prorratea:**
+un reparto inventado se ve igual que un dato.
+
+#### 12.12.5 Los dos límites honestos
+
+1. **El árbol del CRM puede divergir del de Meta y el CRM no lo sabe.** Si alguien pausa o borra un
+   anuncio allá, acá sigue existiendo. Lo único que se puede decir es *"sin leads desde tal fecha"*, y
+   **eso no distingue un anuncio pausado de uno caro**. Se dice así; no se infiere el estado.
+2. **Un anuncio creado en Meta sin pasar por el CRM sale sin UTM correcto.** La mejora real sobre las
+   macros es que **falla visiblemente** —no hay link que copiar— en vez de silenciosamente. Pero sigue
+   dependiendo de que el trafficker use el CRM primero: **eso es playbook, no código.**
+
+→ **ADR 0046**, ticket **092**, y el **086** gana la dependencia.
+
+---
+
+### 12.14 Lo que se puede hacer HOY, medido
+
+Mani (21-sep): *"los dos límites honestos se solucionan cuando los Paid Traffickers tengan su perfil y
+rol para entrar al CRM. Por ahora toca asegurar que podamos analizar los Leads que ya tienen UTM en el
+dash de métricas, es solo filtros."*
+
+#### 12.14.1 La medición, contra `production`
+
+```
+leads ......................... 4.823
+  con utm_source .............. 4.097   (85%)
+  con utm_medium .............. 4.098
+  con utm_campaign ............ 4.097
+
+utm_term / utm_content ........ 0       ← NO existen, ni en columna ni en raw
+deals · calls · abonos ........ 0
+submissions · ad_spend ........ 0
+
+sin UTM:  tactical-investor 703/2.690 (26%)  ·  comunicarte 23/2.133 (1%)
+```
+
+#### 12.14.2 "Es solo filtros" es cierto para una mitad
+
+✅ **Sí para `utm_source`, `utm_medium` y `utm_campaign`:** ya son **columnas de `leads`** con 85% de
+cobertura. Filtrar y agrupar por ellas **no depende de E1b ni de E3**, así que es el único trabajo de
+esta sesión que entrega valor sin esperar nada. → ticket **093**, sin dependencias.
+
+🩸 **No para conjunto ni anuncio.** `utm_term` y `utm_content` **no existen**: no son columnas de
+`leads` y tampoco están en `raw` (cero filas). El dato está en la hoja y el mapeo **no lo promueve**.
+*"Qué anuncios están vendiendo"* —lo que pidió Pauta— **no es un filtro: son dos columnas más en la
+ingesta**, o sea el ticket 049 (E3).
+
+🩸 **Y el límite que manda sobre todo lo demás: la mitad de abajo del embudo está en CERO.** `deals`,
+`calls`, `abonos`, `submissions` y `ad_spend`: **0 filas**. Filtrar por UTM hoy contesta *cuántos
+registros trae cada canal* y **nada más**. No hay agendas, ni shows, ni ventas, ni costo, así que
+**ninguna tasa tiene numerador**. Eso no lo arregla ninguna pantalla: lo arregla que el equipo empiece
+a usar el CRM.
+
+#### 12.14.3 🎯 Y la medición soltó un hallazgo que nadie buscaba
+
+**La brecha de atribución es muy desigual entre programas:**
+
+| Programa | Leads sin UTM | % |
+|---|---|---|
+| Tactical Investor | **703** de 2.690 | **26%** |
+| ComunicArte | 23 de 2.133 | 1% |
+
+**Uno de cada cuatro leads de Tactical no tiene origen**, contra uno de cada cien en ComunicArte.
+No es un bug del dashboard: es algo que pasa en el intake de Tactical y **es una pregunta para Pauta**,
+de las que valen plata. Va a `preguntas-abiertas`.
+
+#### 12.14.4 El rol de paid trafficker cierra los dos límites, y es una decisión aparte
+
+Mani tiene razón en que los dos límites del ADR 0046 —el árbol que diverge de Meta, y el anuncio
+creado sin pasar por el CRM— **se cierran cuando el trafficker trabaja dentro del CRM**: si arma la
+pauta ahí, no hay dos árboles ni links sin UTM.
+
+⚠️ **Pero es un CUARTO ROL y eso toca la arquitectura de permisos.** Hoy hay tres preguntas en
+`lib/auth/roles.ts` —`esAccesoTotal`, `esAdministrador`, `trabajaLeads`— y **un paid trafficker no
+cumple ninguna**: no vende, no administra el CRM, no trabaja leads. Necesitaría una cuarta
+(`manejaPauta`), y la regla del ADR 0025 sigue mandando: **la pregunta nueva se agrega en
+`lib/auth/roles.ts`, nunca en el archivo que la necesita**, y nunca se escribe un `rol === "..."` a
+mano.
+
+**No se construye ahora** y no bloquea nada: las campañas las puede cargar un gerente hasta que el
+trafficker tenga cuenta. Queda anotado para que no se improvise el día que haga falta.
+
+---
+
+### 12.15 El estándar se reduce a tres UTM, y aparecen DOS categorías de huérfano
+
+Mani (21-sep): *"entonces UTM term y content no es necesario. Usemos los otros 3 que tienen más
+sentido."* Y enseguida: *"una categoría debería ser 'sin utm' para no perder visibilidad de los que no
+tuvieron nunca."*
+
+#### 12.15.1 Lo que la reducción borra
+
+| Se borra | Por qué |
+|---|---|
+| El `pgEnum` **`nivel_utm`** | Con un solo nivel no hay nada que declarar |
+| La tabla **`piezas`** (conjuntos y anuncios) del ADR 0046 | Una campaña tiene **un** juego de UTM y **un** link |
+| La regla *"el código nunca pregunta qué significa `utm_content`"* | Existía para reconciliar dos convenciones; nadie lee el campo |
+| La corrección del ADR 0046 punto 5 | `ad_spend` vuelve a colgar de la **campaña**: sin nivel de anuncio, los dos lados cortan igual |
+
+**Y la inconsistencia medida se disuelve en vez de resolverse.** `utm_content` era el anuncio en
+ComunicArte y el conjunto en Tactical; como **nadie lee ese campo**, deja de importar. El hallazgo se
+conserva escrito porque explica de dónde salió el estándar, no porque haya que arreglarlo.
+
+**Lo que cuesta, dicho una sola vez:** *"qué anuncio está vendiendo"* —que Alejo nombró en la reunión
+como métrica de Pauta— **deja de ser contestable**. No es un aplazamiento: es una salida de alcance. A
+cambio se contesta a nivel **campaña**, que es donde de verdad se mueve presupuesto, y se borran un
+enum, una tabla y una regla de reconciliación.
+
+📌 **Las dos columnas que ya existen se quedan vacías y sin leer.** `submissions.utm_term` y
+`submissions.utm_content` **no se borran**: quitarlas cuesta una migración sobre una tabla ya en
+`production` y volver a ponerlas costaría otra, y el dato sigue en la hoja si algún día se quiere. Van
+**marcadas en el comentario del esquema como deliberadamente no leídas**, para que nadie las cablee
+creyendo que tapa un hueco.
+
+#### 12.15.2 🎯 «Sin UTM» y «sin clasificar» son DOS cosas, y fundirlas sería el error
+
+Mani pidió que *"sin utm"* sea una categoría propia. Al escribirlo aparece que hay **dos** huérfanos
+distintos, y tienen dueño distinto, arreglo distinto y pronóstico distinto:
+
+| | **Sin UTM** | **Sin clasificar** |
+|---|---|---|
+| Qué pasó | el envío llegó **sin origen**: el campo está vacío | el envío **sí trae UTM**, pero no casa con ningún patrón |
+| Qué se sabe | **nada**: nunca se supo de dónde vino | de dónde vino sí; **a qué área pertenece, no** |
+| De quién es el problema | **de la captación**: el link no estaba parametrizado (Pauta · Media) | **de la configuración del CRM**: falta escribir un patrón |
+| Cómo se arregla | **aguas arriba**, y para los que ya entraron **es irrecuperable** | con **una fila**, y **repara hacia atrás**: el UTM crudo sigue ahí |
+| Tamaño hoy | **726 de 4.823 (15%)** — Tactical 26%, ComunicArte 1% | 0, porque todavía no hay patrones |
+
+**Fundirlos en un solo cubo escondería la diferencia que importa:** uno se arregla en un minuto y
+repara el pasado; el otro no se arregla nunca y solo se puede frenar hacia adelante. Un tablero que
+muestre «800 sin atribución» no dice cuál de los dos problemas tiene el negocio.
+
+**Entonces son dos categorías visibles y permanentes**, con su conteo y su porcentaje, en toda vista
+que agrupe por origen. Y **«sin UTM» no es un estado de error**: es un hecho del lead, igual de válido
+que `facebook / cpc`, que responde *"a esta persona no sabemos cómo la conseguimos"*. Ocultarlo
+inflaría todas las demás categorías en proporción — exactamente lo que el repo ya evita con
+`(sin atribución)` del ticket 066.
+
+---
+
+### 12.16 Lo que la reunión no dejó grabado
+
+De las siete preguntas que Mani llevaba preparadas (`retia-ops/notebook/consolidado-rol-devops-2026-09-21.md`
+§9), **las notas solo dejan rastro de dos**. Las otras cinco quedan abiertas en
+`retia-ops/notebook/preguntas-abiertas.md`, sección Alejo: sus success floors, la operación ideal,
+qué mira para saber si la semana va bien, su dashboard del Sheets que no entrega nada, y qué le
+parece tedioso. **Y no se sabe si se preguntaron: no hay transcript.**
+
+Para este plan importa una sola de esas cinco: **sin success floors no hay umbral**, y una pantalla
+de "rendimiento de áreas" sin umbral es una tabla de números que nadie sabe leer. Se puede construir
+sin ellos y se puede pintar el umbral después — pero hay que pedirlos antes de la etapa 5, no
+después.
+
+---
+
 ## Referencias
 
 - **Insumo original (manda sobre este documento en diseño):**

@@ -16,7 +16,7 @@ promovidas adentro**.
 
 ## Las promovidas
 
-`lead_id`, `source_id`, `token`, `es_parcial`, `fecha_envio`, `estado_hoja`, los cinco `utm_*`,
+`lead_id`, `source_id`, `token`, `es_parcial`, `fecha_envio`, `estado_hoja`, los `utm_*` (ver la nota de abajo),
 `posicion_en_hoja`. Un campo se promueve **solo si el codigo decide, filtra, indexa o cruza con
 el**; lo demas es contenido.
 
@@ -53,3 +53,20 @@ envios se decide por `posicion_en_hoja` y nunca por `fecha_envio`.
 ## Kiro
 
 Si, con revision.
+
+---
+
+## ⚠️ Enmienda 2026-09-21 (ADR 0045, enmienda 2): se promueven TRES UTM, no cinco
+
+El estandar de UTM quedo en **`utm_source`, `utm_medium` y `utm_campaign`**. `utm_term` y
+`utm_content` **quedaron fuera de alcance, no pendientes**: sus columnas existen en `submissions`,
+**vacias y deliberadamente sin leer**, y estan marcadas asi en el comentario del esquema.
+
+**Este ticket promueve tres, y no debe promover los otros dos.** Cablearlos no tapa ningun hueco:
+no hay hueco. Si algun dia entran, entran por una decision nueva, no por un arreglo.
+
+🩸 **Y lo que SI tiene que salir bien aca:** un envio **sin UTM** y un envio **con UTM que no casa
+con ningun patron** son **dos cosas distintas**, con dueno distinto y arreglo distinto. La ingesta
+guarda el crudo tal cual (ADR 0004) y **no rellena un vacio con un centinela**: un `utm_source`
+ausente se guarda como `null`, no como `"organico"` ni `"directo"`. Inventarlo convertiria un
+problema de captacion en una atribucion falsa.

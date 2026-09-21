@@ -44,6 +44,40 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   BBDD de Tactical Investor tiene ~2.950 filas que son ~1.840 personas, y hay un correo con 12
   aplicaciones. Calcular sobre filas infla las tasas ~60% y toda decision de presupuesto sale
   mal. La garantia vive en un indice unico de la base, no solo en el codigo (ADR 0005).
+- **El PROGRAMA es parte de la identidad de un lead, y dos programas no se cruzan JAMAS**
+  (Mani, 21-sep). Un lead siempre entra con su programa asignado, y la llave del dedup es
+  `(program_id, email_normalizado)`, no el correo solo: **la misma persona en los dos programas son
+  dos leads**, y eso es correcto, no un duplicado. La base ya lo enforza en todo lo que importa
+  —`leads_programa_email_idx`, `lead_contactos_valor_idx`, `deals_uno_abierto_por_lead_y_programa_idx`,
+  `calls_huella_idx`, `ad_spend_huella_idx`, `productos_programa_nombre_idx`,
+  `cohorts_programa_codigo_idx`— y `lead_contactos.program_id` esta **denormalizado a proposito**
+  para poder hacerlo. **De nada sirve combinar metricas de programas:** ComunicArte y Tactical tienen
+  tickets distintos (USD 797 vs 1.500), economia distinta y umbrales distintos, asi que una cifra
+  que los sume no significa nada y **se ve perfectamente creible**. Consecuencia para toda pantalla
+  nueva: el programa **no es un filtro, es una frontera**. Una vista que cruce programas tiene que
+  ser imposible de construir, no solo desaconsejada — el molde es el del ADR 0023, donde el
+  comparativo entre closers *"no se puede acotar ni queriendo, porque el tipo de la consulta no lo
+  admite"*. Se enforza en el TIPO, no en la revision.
+- **El ORIGEN de un lead tiene dos mitades y ninguna se inventa (ADR 0044, ADR 0045).** De donde vino
+  el clic lo dice el **UTM**, que es texto copiado de la fuente y **no se normaliza ni se reescribe**
+  (ADR 0004). Quien lo trajo lo dice `leads.traido_por_user_id`, que es una **FK real a `users`,
+  nunca texto** — escribirlo como nombre repetiria el ADR 0030 con `Maru`, `maru` y `closer maru`
+  como tres closers. **Un closer no teclea un UTM: tiene un enlace de captacion**, por closer y
+  programa, **calculado y no guardado** (ADR 0024). Y el estandar de UTM son **TRES campos,
+  uno solo para todos los programas** (Mani, 21-sep): `utm_source` la plataforma, `utm_medium` el tipo
+  de trafico, `utm_campaign` la campana. **`utm_term` y `utm_content` quedaron fuera de alcance**: sus
+  columnas existen en `submissions`, vacias y **deliberadamente sin leer** — no se cablean. 🩸 Y el emparejamiento de un
+  envio contra los patrones **tiene que ser determinista**: gana el mas especifico, un empate es un
+  **error visible** y no una eleccion silenciosa, y lo garantiza un indice unico. Un envio que casa
+  con dos campanas se cuenta en las dos y el CPL de ambas sale mal **sin lanzar un error** — es el
+  `fuentes[0]` sin `ORDER BY` del ADR 0031, ahora con dinero encima. 🎯 Y hay **DOS categorias de huerfano, no una, y no se funden**:
+  **sin UTM** es un envio que llego sin origen —problema de **captacion**, **irrecuperable** para lo
+  que ya entro, hoy 726 de 4.823 (15%), con Tactical en 26% y ComunicArte en 1%— y **sin clasificar**
+  es un envio que **si trae UTM** pero no casa con ningun patron —problema de **configuracion**, se
+  arregla con una fila y **repara hacia atras**—. Un tablero que diga *"800 sin atribucion"* no dice
+  cual de los dos problemas tiene el negocio. **Las dos se muestran siempre, con su conteo y su
+  porcentaje**, y **"sin UTM" no es un estado de error**: es un hecho del lead, tan valido como
+  `facebook / cpc`.
 - **Caja recaudada y ventas cerradas son dos metricas separadas.** Los montos de la columna
   Precio son adelantos parciales, no precios finales. Nunca inferir una de la otra. La caja es
   la suma de `abonos` por fecha del abono; las ventas son el conteo de `sales` (ADR 0013).
@@ -278,6 +312,10 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Si un error del driver es una FK violada | `esViolacionForanea` en `lib/db/errores.ts`: 23503 (Neon) **y 23001** (PGlite reporta asi el RESTRICT) | `tests/db-errores.test.ts`. Reconocer solo uno pasa en local y revienta con 500 en produccion |
 | Que un POST de otro sitio no dispare una mutacion | `exigirMismoOrigen` en `lib/auth/origen.ts` (S-12), en el UNICO handler que muta: `POST /api/sync/[programa]`. El resto son Server Actions, que Next ya protege | `tests/sync-permisos.test.ts`, incluido el caso `x-forwarded-host`: comparar contra el host equivocado **rechaza peticiones legitimas en produccion sin romper un test** |
 | Que quitar a alguien lo saque YA | `revalidarToken` en `lib/auth/revalidacion.ts` (S-02): revalida contra `users` en cada emision, no al expirar el JWT | `tests/revalidacion-sesion.test.ts`. Lo que NO cubre un test: que Auth.js llame el callback en cada emision |
+| Como se arma un link de captacion | **UN** generador: `programs.form_url` + los UTM (del arbol de campana, o del closer). **Derivado, nunca guardado** (ADR 0046, ADR 0024) | Revision manual: una segunda concatenacion de "URL mas parametros" es el olor. 🩸 Y el test que importa vive en el ticket 092: **el patron tiene que reconocer el link que el generador acaba de producir** — con macros de Meta son dos actos que pueden divergir; con el link generado es uno solo y no pueden |
+| A quien pertenece un envio (area, campana, persona) | `lib/atribucion/emparejar.ts` (ADR 0045): un envio resuelve a **lo sumo uno**, gana el patron mas especifico, y el empate lo hace **imposible** un indice unico sobre la combinacion del patron dentro del programa | `tests/atribucion-emparejador.test.ts` (ticket 085): guardian sobre `lib/`, `app/`, `components/` y `scripts/`, mordido en los dos sentidos, **mas un test que corre los patrones en distinto orden y exige el mismo resultado**. Sin eso, el orden de la consulta decide la plata |
+| Que significa cada campo UTM | El estandar del ADR 0045, **reducido a TRES el 21-sep**: `utm_source` plataforma · `utm_medium` tipo de trafico · `utm_campaign` campana. Con el link generado (ADR 0046) **el CRM lo impone por construccion**: el trafficker pega un link, no escribe parametros | Revision manual: **cualquier lectura de `utm_term` o `utm_content` es el olor** — sus columnas existen vacias a proposito. Y la inconsistencia que motivo el estandar (medida: `utm_content` es el anuncio en ComunicArte y el conjunto en Tactical) **se disolvio al dejar de leer el campo**, no se resolvio |
+| Si una cifra puede cruzar dos programas | **No puede.** El programa es frontera, no filtro (ADR 0043): la llave de `leads` es `(program_id, email_normalizado)` y la unica visibilidad cruzada es `otrosProgramasDelCorreo`, que es **aviso de pantalla y ninguna metrica la usa** | El **tipo** de la consulta, no la revision: igual que el comparativo entre closers del ADR 0023, que *"no se puede acotar ni queriendo"*. Medido: solo **5 correos de 4.818** estan en los dos programas |
 | Que programas sirve una plataforma de pago | `plataformas_programa`, tabla puente (ADR 0034). **Nunca una columna `program_id`**: obligaria a aflojar el indice `lower(nombre)` y PayPal seria dos filas | La unicidad, por el indice. La cardinalidad minima NO aplica: una plataforma sin programa es valida y queda invisible |
 
 ## Feedback loops

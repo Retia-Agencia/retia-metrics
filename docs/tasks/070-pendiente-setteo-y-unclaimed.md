@@ -2,7 +2,7 @@
 id: 070
 etapa: E6
 serves: "plan v2 §6 etapa 6 · tarea E6-2 · insumo §6, ADR 0021 (enmendado por el 0037)"
-depends: [069]
+depends: [069, 085]
 status: todo
 ---
 
@@ -46,3 +46,20 @@ afuera el 18-sep.
 ## Kiro
 
 Si, con revision visual y de permisos.
+
+---
+
+## ⚠️ Ampliacion 2026-09-21 (ADR 0044 punto 5): el ORIGEN va a la vista
+
+Mani decidio que **un lead traido por un closer NO se auto-asigna**: *"los closers definen eso;
+supongo que deben revisar bien el UTM."*
+
+🎯 **La segunda mitad de esa frase es un requisito de esta pantalla, no una suposicion.** Si el closer
+tiene que revisar el UTM para decidir si reclama un lead, **el origen tiene que estar a la vista aca**:
+
+- el **area** a la que resuelve el envio (via el emparejador, ticket 085),
+- los **UTM** tal como llegaron,
+- **quien lo trajo**, si `traido_por_user_id` esta poblado (ticket 086).
+
+**Sin esto, la regla del ADR 0044 punto 5 es imposible de cumplir** y el closer reclama a ciegas.
+Un envio que cae en `(sin clasificar)` se muestra asi, no en blanco.

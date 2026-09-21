@@ -480,6 +480,17 @@ export const submissions = pgTable(
     utmSource: text("utm_source"),
     utmMedium: text("utm_medium"),
     utmCampaign: text("utm_campaign"),
+    /**
+     * ⚠️ `utmTerm` y `utmContent` existen pero estan DELIBERADAMENTE SIN LEER
+     * (Mani, 21-sep; ADR 0045 enmienda 2). El estandar de UTM son TRES campos:
+     * source, medium y campaign. No hay nivel de conjunto ni de anuncio, asi que
+     * "que anuncio esta vendiendo" quedo FUERA DE ALCANCE, no pendiente.
+     *
+     * No se borran porque quitarlas cuesta una migracion sobre una tabla que ya
+     * esta en `production` y volver a ponerlas costaria otra; el dato sigue en la
+     * hoja si algun dia se quiere. **Cablearlas no tapa ningun hueco: no hay
+     * hueco.** Si alguna vez entran, entran por una decision, no por un arreglo.
+     */
     utmTerm: text("utm_term"),
     utmContent: text("utm_content"),
     /**

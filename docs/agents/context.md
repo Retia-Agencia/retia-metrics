@@ -15,7 +15,9 @@ This file is a **glossary and nothing else** — the project's ubiquitous langua
 **Programa**:
 Una linea de formacion que Retia vende con su propia BBDD de leads, su Calendly, su meta y sus
 recursos. Hoy son dos (Comunicarte y Tactical Investor) y los gerentes pueden crear mas.
-_Nunca se suman ni se promedian entre si._
+_Nunca se suman ni se promedian entre si._ **Es parte de la identidad de un Lead, no un filtro
+sobre el:** la llave es `(program_id, email_normalizado)`, asi que la misma persona en los dos
+programas son **dos Leads** (ADR 0043).
 
 **Comunicarte**:
 Programa de formacion en comunicacion ejecutiva. Programa completo USD 797. Su ICP son gerentes
@@ -28,6 +30,63 @@ declarado de USD 1.000 o mas.
 **Producto**:
 Algo concreto que se vende dentro de un programa, con su precio de lista: el programa completo,
 la reserva de cupo, la mentoria 1:1. Gerentes y closers los crean cuando los necesitan.
+
+
+### El origen y la atribucion
+
+**Area**:
+Una de las cuatro unidades en que Retia se organiza: **Gerencial, Comercial, Pauta** (paid
+traffickers) y **Media** (redes sociales). Agrupa Leads y Deals por su origen. Es una fila editable,
+no un valor del codigo, y **no es un rol**: el rol dice que puede hacer alguien, el area dice a
+quien se le atribuye un Lead (ADR 0043).
+
+**Campana**:
+Una campana de pauta de un programa, con su plataforma y su cohorte. Es la duena de su patron UTM y
+de lo que se invirtio: `ad_spend` cuelga de ella, por fecha. _No tiene niveles debajo: no hay
+conjuntos ni anuncios_ (ADR 0045 enmienda 2, ADR 0046 enmienda).
+
+**Patron UTM**:
+Una regla que dice a quien pertenece una combinacion de los tres UTM. Apunta a **un** destino —una
+Campana, un usuario o un Area—. Es lo unico que traduce el origen crudo de un envio a un dueno.
+
+**Estandar de UTM**:
+La asignacion fija de que lleva cada campo, igual para todos los programas, y son **tres**:
+`utm_source` la plataforma, `utm_medium` el tipo de trafico, `utm_campaign` la campana.
+_`utm_term` y `utm_content` quedaron fuera de alcance el 21-sep: sus columnas existen vacias y no se
+leen._ (ADR 0045, enmienda 2.)
+
+**Sin UTM**:
+Un envio que llego **sin origen**: el campo viene vacio. **No es un estado de error, es un hecho del
+lead** —tan valido como `facebook / cpc`— y contesta *"a esta persona no sabemos como la
+conseguimos"*. Es un problema de **captacion** y para lo que ya entro es **irrecuperable**.
+
+**(sin clasificar)**:
+Un envio que **si trae UTM** pero no casa con ningun patron. Es un problema de **configuracion**: se
+arregla con una fila y **repara hacia atras**, porque el UTM crudo sigue ahi.
+_No se funde con **Sin UTM**: uno se arregla en un minuto y el otro no se arregla nunca. Las dos se
+muestran siempre, con su conteo y su porcentaje._
+
+**Origen humano** (`traido_por`):
+El usuario que trajo a un Lead: un closer con su referido. Es una llave a `users`, nunca texto, la
+escribe solo la ingesta, y **el primero que la escribe gana** (ADR 0044).
+
+**Link de captacion**:
+La URL del formulario de un programa con sus UTM ya puestos. Lo **genera** el CRM y **no se guarda**:
+se calcula. Hay dos clases, la de un anuncio y la de un closer, y **las arma la misma funcion**.
+
+**Enlace de captacion** (el del closer):
+Un **Link de captacion** con los UTM de un closer. Es **por closer y programa**. Es lo que hace que el
+closer no tenga que teclear un UTM.
+
+**Registro** (vocabulario de Media):
+Un **Envio** de formulario: todo el que lleno el Typeform, haya calificado o no. Es el denominador de
+la tasa de calificacion de un canal. _No confundir con el "Registro" del vocabulario v1, que era la
+fila del formulario vista como lead._
+
+**Agenda** (como metrica):
+Un Deal que alcanzo la etapa Agendado. Es el numerador de esa tasa. _Un Registro no es una Agenda: la
+diferencia entre los dos, por canal, es la metrica de Media._ Mas abajo, **Agenda** a secas es la cita
+en si; aca es el conteo.
 
 ### El ciclo
 
@@ -59,11 +118,16 @@ recalculado cada dia.
 
 ### Las etapas del embudo
 
-**Lead** (tambien **Registro**):
-Una fila del formulario de aplicacion. Puede haber varias del mismo ser humano.
-_Avoid_: usar "lead" como sinonimo de persona.
+> ⚠️ **Las dos definiciones que siguen quedaron SUPERADAS el 21-sep por el modelo v2** (ver
+> _Vocabulario del modelo v2_ al final). Se conservan porque describen el vocabulario con el que se
+> escribio el MVP y lo que todavia dice la hoja. **En el modelo nuevo: Lead = la persona en un
+> programa, y la fila del formulario se llama Envio.** Y "Registro", en el vocabulario de Media,
+> significa otra cosa: ver _El origen y la atribucion_.
 
-**Persona**:
+**Lead** ~~(tambien **Registro**)~~ — _v1, superado_:
+Una fila del formulario de aplicacion. Puede haber varias del mismo ser humano.
+
+**Persona** — _v1, superado; hoy es el **Lead**_:
 Un lead deduplicado por correo normalizado. Es la unidad real de conteo: toda tasa se calcula
 sobre personas, nunca sobre filas.
 
@@ -347,6 +411,8 @@ y metadatos: por diseno no puede mostrar un dato personal.
 
 > Terminos que entran con [plan-crm-v2](../plan-crm-v2.md). **Todavia no existen en el codigo**:
 > se construyen a partir de la etapa 1. Estan aqui para que nadie invente un nombre paralelo.
+> Los de **atribucion** (Area, Campana, Patron UTM, Nivel, Origen humano) entran con la etapa **E1b**
+> y viven arriba, en _El origen y la atribucion_, porque son del lenguaje del negocio y no del corte.
 > Definicion completa en el insumo original, `crm-retia-modelo-hubspot-scaffold.md` §2.
 
 **Lead**:

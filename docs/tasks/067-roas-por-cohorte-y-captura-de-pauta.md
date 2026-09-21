@@ -1,8 +1,8 @@
 ---
 id: 067
 etapa: E5
-serves: "plan v2 §6 etapa 5 · tarea E5-4 · ADR 0039 punto 4, insumo §8"
-depends: [064]
+serves: "plan v2 §6 etapa 5 · tarea E5-4 · ADR 0039 punto 4, insumo §8 · ENMENDADO por ADR 0045"
+depends: [064, 084]
 status: todo
 ---
 
@@ -55,3 +55,21 @@ construir la captura; si condiciona como se agrupa el cubo "organico".
 ## Kiro
 
 Si, con revision.
+
+---
+
+## ⚠️ Enmienda 2026-09-21 (ADR 0045): el grano ya NO se decide aqui
+
+Este ticket decia *"decidir aqui, con la pantalla delante, si la carga es por campana/dia o un total
+por cohorte, y re-pensar el indice `ad_spend_huella_idx`"*. **Esa decision ya se tomo**, porque de
+ella dependia poder cruzar costo con leads:
+
+- **El grano es `campana + fecha`**, y `ad_spend` **cuelga de `campanas`** (ticket 084).
+- `ad_spend_huella_idx` **deja de ser la llave**: existia para deduplicar filas de una hoja.
+- Los tres cubos (Meta / organico / sin UTM) **dejan de calcularse a mano**: salen del emparejador
+  del ticket 085, que ya sabe que patron pertenece a que campana y a que area.
+- 🩸 **Una division solo se muestra si numerador y denominador existen en esa rebanada.** La frase
+  que este ticket ya tenia —*"un cero parece un dato"*— se extiende de la cohorte a la rebanada.
+
+**Lo que sigue vivo de este ticket:** la pantalla de captura del costo, la moneda al lado del numero
+(COP vs USD, nunca convertir en silencio), y las preguntas a Michael.

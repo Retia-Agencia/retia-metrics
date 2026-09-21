@@ -62,3 +62,12 @@ crece por envio. Sigue siendo la misma pregunta de escala (S-06 + B-06), con otr
 
 Ademas, por el **ADR 0039**, la plantilla ya solo se resuelve para **una** fuente por programa: la
 del intake de leads crudos.
+
+---
+
+## ⚠️ Enmienda 2026-09-21 (ADR 0045, enmienda 2): son TRES UTM, no cinco
+
+Donde este ADR dice *"los cinco UTM"* entre los campos fijos, hoy son **tres**: `utm_source`,
+`utm_medium` y `utm_campaign`. `utm_term` y `utm_content` quedaron **fuera de alcance**. La forma de
+este ADR no cambia —la plantilla sigue diciendo en que encabezado esta cada campo y no crea campos—;
+cambia cuantos campos fijos hay.
