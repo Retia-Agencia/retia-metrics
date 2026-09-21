@@ -4,6 +4,7 @@ import { changeLog, cohorts, estadoCohorteEnum } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
+import { normalizando as normalizandoZod } from "@/lib/errors-zod";
 import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
 
 /**
@@ -130,36 +131,46 @@ function etiquetaDe(fila: { codigo: string }): string {
 }
 
 /**
- * Traduce un `ZodError` o una violacion del indice de "una cohorte activa" a un
- * `ErrorDeApp` con mensaje claro. Deja pasar cualquier `ErrorDeApp` ya lanzado.
+ * Traduce un `ZodError` (delegando en `normalizandoZod`, que es la misma respuesta
+ * que dan los otros ocho modulos) o una violacion de indice/CHECK propia de las
+ * cohortes a un `ErrorDeApp` con mensaje claro.
+ *
+ * Es el UNICO catalogo que traduce errores del driver, asi que su envoltorio no se
+ * pudo unificar con los demas: lo compartido se importa y lo suyo se queda aca.
+ *
+ * La capa de adentro deja pasar un `ErrorDeApp` ANTES de mirar el codigo SQLSTATE,
+ * igual que hacia la version de una sola capa. No es redundante con la guarda de
+ * `normalizandoZod`: sin ella, un `ErrorDeApp` que algun dia llevara un `cause` del
+ * driver perderia su mensaje y saldria con el de "ya hay una cohorte activa". Hoy
+ * no puede pasar (el constructor solo recibe mensaje y status), y por eso mismo el
+ * dia que cambie nadie se va a acordar de esta rama.
  */
 async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (error) {
-    if (error instanceof ErrorDeApp) throw error;
-    if (error instanceof z.ZodError) {
-      throw new ErrorDeApp(error.issues[0]?.message ?? "Petición inválida.", 400);
+  return normalizandoZod(async () => {
+    try {
+      return await fn();
+    } catch (error) {
+      if (error instanceof ErrorDeApp) throw error;
+      if (esViolacionUnica(error)) {
+        // La unica escritura que puede chocar aca (tras el pre-chequeo) es la del
+        // indice parcial de cohorte activa o el de (program_id, codigo).
+        throw new ErrorDeApp(
+          "Ya hay una cohorte activa en este programa, o el código ya existe. Cierra la activa antes de activar otra.",
+          400,
+        );
+      }
+      if (esViolacionCheck(error)) {
+        // El CHECK cohorts_activa_con_inicio_ventas (ADR 0022): una cohorte no puede
+        // quedar activa sin inicio de ventas. La garantia vive en la base; aca se
+        // traduce a un 400 claro, igual que se hace con el indice unico (23505).
+        throw new ErrorDeApp(
+          "Una cohorte activa necesita fecha de inicio de ventas.",
+          400,
+        );
+      }
+      throw error;
     }
-    if (esViolacionUnica(error)) {
-      // La unica escritura que puede chocar aca (tras el pre-chequeo) es la del
-      // indice parcial de cohorte activa o el de (program_id, codigo).
-      throw new ErrorDeApp(
-        "Ya hay una cohorte activa en este programa, o el código ya existe. Cierra la activa antes de activar otra.",
-        400,
-      );
-    }
-    if (esViolacionCheck(error)) {
-      // El CHECK cohorts_activa_con_inicio_ventas (ADR 0022): una cohorte no puede
-      // quedar activa sin inicio de ventas. La garantia vive en la base; aca se
-      // traduce a un 400 claro, igual que se hace con el indice unico (23505).
-      throw new ErrorDeApp(
-        "Una cohorte activa necesita fecha de inicio de ventas.",
-        400,
-      );
-    }
-    throw error;
-  }
+  });
 }
 
 /** Lee una cohorte por id. */

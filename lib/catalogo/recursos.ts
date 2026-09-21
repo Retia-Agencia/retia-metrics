@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { recursos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
+import { normalizando } from "@/lib/errors-zod";
 import { esAdministrador } from "@/lib/auth/roles";
 import { moldeDeCatalogo, type FilaCatalogo, type ResultadoBorrado } from "./molde";
 import { reemplazarVersionado, type FilaVersionada } from "./versionar";
@@ -71,19 +72,6 @@ type CamposRecurso = {
   titulo: string;
   url: string;
 };
-
-/** Traduce un `ZodError` a un `ErrorDeApp` 400 con el primer mensaje. */
-async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (error) {
-    if (error instanceof ErrorDeApp) throw error;
-    if (error instanceof z.ZodError) {
-      throw new ErrorDeApp(error.issues[0]?.message ?? "Petición inválida.", 400);
-    }
-    throw error;
-  }
-}
 
 /** Valida el id como uuid; un id invalido sale como ErrorDeApp 400, nunca como 500. */
 function idValido(id: string): string {

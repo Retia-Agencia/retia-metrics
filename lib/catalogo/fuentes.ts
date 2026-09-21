@@ -3,6 +3,7 @@ import { z } from "zod";
 import { programs, sources } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
+import { normalizando } from "@/lib/errors-zod";
 import { esAdministrador, type Rol } from "@/lib/auth/roles";
 import type { MapeoColumnas } from "@/lib/sheets/mapeo";
 import { probarMapeoDeFuente, type ResultadoPrueba } from "@/lib/sheets/probar-fuente";
@@ -104,18 +105,6 @@ function idValido(id: string): string {
     throw new ErrorDeApp(parsed.error.issues[0]?.message ?? "Identificador inválido.", 400);
   }
   return parsed.data;
-}
-
-async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (error) {
-    if (error instanceof ErrorDeApp) throw error;
-    if (error instanceof z.ZodError) {
-      throw new ErrorDeApp(error.issues[0]?.message ?? "Petición inválida.", 400);
-    }
-    throw error;
-  }
 }
 
 /** Columnas de `sources` que el molde administra por el esquema. */

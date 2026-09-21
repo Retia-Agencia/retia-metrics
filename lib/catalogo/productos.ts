@@ -3,6 +3,7 @@ import { z } from "zod";
 import { enlacesPago, productos, sales } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
+import { normalizando } from "@/lib/errors-zod";
 import { type Rol } from "@/lib/auth/roles";
 import { moldeDeCatalogo, type FilaCatalogo, type ResultadoBorrado } from "./molde";
 import { exigirAccesoAlPrograma } from "./acceso-programa";
@@ -86,19 +87,6 @@ function idValido(id: string): string {
     throw new ErrorDeApp(parsed.error.issues[0]?.message ?? "Identificador inválido.", 400);
   }
   return parsed.data;
-}
-
-/** Traduce un `ZodError` a un `ErrorDeApp` 400 con el primer mensaje. */
-async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (error) {
-    if (error instanceof ErrorDeApp) throw error;
-    if (error instanceof z.ZodError) {
-      throw new ErrorDeApp(error.issues[0]?.message ?? "Petición inválida.", 400);
-    }
-    throw error;
-  }
 }
 
 /** Columnas de `productos` que el molde administra. */

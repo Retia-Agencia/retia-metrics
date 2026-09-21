@@ -3,6 +3,7 @@ import { z } from "zod";
 import { changeLog, miembrosPrograma, people, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
+import { normalizando } from "@/lib/errors-zod";
 import { esViolacionUnica } from "@/lib/db/errores";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import type { Rol } from "@/lib/auth/roles";
@@ -57,19 +58,6 @@ export const esquemaPersonaManual = z.object({
 
 export type EntradaAsignacion = z.input<typeof esquemaAsignacion>;
 export type EntradaPersonaManual = z.input<typeof esquemaPersonaManual>;
-
-/** Traduce un `ZodError` a un `ErrorDeApp` 400 con el primer mensaje. */
-async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (error) {
-    if (error instanceof ErrorDeApp) throw error;
-    if (error instanceof z.ZodError) {
-      throw new ErrorDeApp(error.issues[0]?.message ?? "Petición inválida.", 400);
-    }
-    throw error;
-  }
-}
 
 /** Lee una persona por id. */
 async function leerPersona(db: Db, id: string): Promise<Persona | undefined> {

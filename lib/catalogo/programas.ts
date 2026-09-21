@@ -5,6 +5,7 @@ import { changeLog, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
+import { normalizando } from "@/lib/errors-zod";
 import type { MapeoColumnas } from "@/lib/sheets/mapeo";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
@@ -74,19 +75,6 @@ function idValido(id: string): string {
     throw new ErrorDeApp(parsed.error.issues[0]?.message ?? "Identificador inválido.", 400);
   }
   return parsed.data;
-}
-
-/** Traduce un `ZodError` a un `ErrorDeApp` 400 con el primer mensaje. */
-async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (error) {
-    if (error instanceof ErrorDeApp) throw error;
-    if (error instanceof z.ZodError) {
-      throw new ErrorDeApp(error.issues[0]?.message ?? "Petición inválida.", 400);
-    }
-    throw error;
-  }
 }
 
 /** Molde sobre `programs`. Recibe la base por inyeccion. */

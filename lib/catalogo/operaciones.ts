@@ -1,6 +1,7 @@
-import { z, ZodError } from "zod";
+import { z } from "zod";
 import { requireRole } from "@/lib/auth/guards";
 import { ErrorDeApp } from "@/lib/errors";
+import { normalizando } from "@/lib/errors-zod";
 import type { Db } from "@/lib/db/tipos";
 import type { FilaCatalogo, ResultadoBorrado } from "./molde";
 import { catalogoPorSlug, type EntradaCatalogo } from "./registro";
@@ -41,24 +42,6 @@ function idValido(id: string): string {
     throw new ErrorDeApp(parsed.error.issues[0]?.message ?? "Identificador inválido.", 400);
   }
   return parsed.data;
-}
-
-/**
- * Corre una operacion del molde normalizando sus errores al contrato de lib/errors:
- * el molde lanza `ZodError` cuando la entrada no valida, que aca se traduce a un
- * `ErrorDeApp` 400. Asi el llamador (la server action y su cliente) recibe siempre
- * un `ErrorDeApp` con `status`, y nunca se filtra un error interno del driver.
- */
-async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (error) {
-    if (error instanceof ErrorDeApp) throw error;
-    if (error instanceof ZodError) {
-      throw new ErrorDeApp(error.issues[0]?.message ?? "Petición inválida.", 400);
-    }
-    throw error;
-  }
 }
 
 /**
