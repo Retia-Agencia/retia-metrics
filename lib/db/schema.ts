@@ -28,6 +28,52 @@ import {
 
 export const rolEnum = pgEnum("rol", ["gerente", "closer", "developer"]);
 
+/**
+ * Las diez etapas del Deal (ADR 0037). Son un `pgEnum` —o sea TIPOS— y no un
+ * catalogo editable, y eso NO contradice al ADR 0012: la regla de ese ADR es "si el
+ * codigo decide segun el valor, es tipo", y aqui **todo** decide segun la etapa (el
+ * embudo, quien es Student, la cartera vencida, los movimientos automaticos).
+ *
+ * Es la direccion contraria a `leads.estado`, que paso a texto por el ADR 0032
+ * porque nadie decide con el. Las dos decisiones contestan la misma pregunta sobre
+ * datos distintos.
+ *
+ * ⚠️ El orden de este arreglo es el de la tabla del ADR 0037 y **no es el orden de
+ * un embudo**: `cierre_perdido` es alcanzable desde cualquier etapa y
+ * `pendiente_reagenda` es un retroceso normal. Ninguna consulta debe comparar
+ * etapas por su posicion.
+ *
+ * Lo adelanta este ticket (037) desde el 043, que es donde el plan lo tenia: una
+ * columna no se puede declarar sin su tipo. La tabla de transiciones permitidas y
+ * `moverEtapa()` siguen siendo de la etapa 2.
+ */
+export const etapaDealEnum = pgEnum("etapa_deal", [
+  "pendiente_setteo",
+  "en_contacto",
+  "pendiente_reagenda",
+  "agendado",
+  "atendido",
+  "compromiso_verbal",
+  "abonado",
+  "completo",
+  "proxima_cohorte",
+  "cierre_perdido",
+]);
+
+/**
+ * Que clase de contacto es una fila de `lead_contactos` (ADR 0035). Es tipo y no
+ * catalogo porque el codigo decide con el: el correo es la llave del dedup y el
+ * telefono solo UNE Y MARCA.
+ */
+export const tipoContactoEnum = pgEnum("tipo_contacto", ["correo", "telefono"]);
+
+/**
+ * Que clase de actividad quedo registrada sobre un deal (ADR 0037). Es tipo porque
+ * el codigo decide con el: un `contacto` con fecha es lo que habilita la entrada a
+ * la etapa En Contacto; una `nota` no mueve nada.
+ */
+export const tipoActividadEnum = pgEnum("tipo_actividad", ["contacto", "nota"]);
+
 export const resultadoLlamadaEnum = pgEnum("resultado_llamada", [
   "agendada",
   "show",
@@ -260,6 +306,306 @@ export const leads = pgTable(
     uniqueIndex("leads_programa_email_idx").on(t.programId, t.emailNormalizado),
     index("leads_programa_estado_idx").on(t.programId, t.estado),
     index("leads_cohorte_idx").on(t.cohortId),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────── contactos del lead
+
+/**
+ * Los correos y telefonos de un Lead (ADR 0035 punto 3). Hoy un lead tenia UN
+ * correo y UN telefono, los de su ultima fila del formulario; las hojas dicen que
+ * eso no alcanza.
+ *
+ * Cada contacto sabe **de que envio llego**, asi que "¿desde cuando tenemos este
+ * numero?" es una consulta y no arqueologia sobre `raw`.
+ *
+ * `programId` esta DENORMALIZADO desde el lead a proposito: el unico de ADR 0035
+ * es `(program_id, tipo, valor)` y un indice unico necesita columnas, no un join.
+ * Es la misma redundancia declarada que ya tiene `leads.emailNormalizado`, y la
+ * escribe solo el sistema.
+ *
+ * 🩸 Por que el unico va por programa y no global: la misma persona en dos
+ * programas son DOS leads y no se deduplican entre si (ADR 0035 punto 2). Un unico
+ * global sobre el telefono haria imposible que existiera en los dos.
+ *
+ * ⚠️ `confirmado` es la marca de "unido por telefono" del ADR 0035 punto 4: un
+ * telefono que aparecio con un correo distinto entra sin confirmar y un gerente
+ * resuelve. **Queda abierto donde se registra QUIEN confirmo**: el ADR lo exige y
+ * este ticket solo crea el esquema. Lo decide E3-3, que es quien escribe la union;
+ * inventar aqui una columna para un flujo que todavia no existe seria abstraccion
+ * especulativa (ADR 0006).
+ */
+export const leadContactos = pgTable(
+  "lead_contactos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
+    tipo: tipoContactoEnum("tipo").notNull(),
+    /** El valor ya normalizado: correo en minusculas, telefono en digitos. */
+    valor: text("valor").notNull(),
+    /**
+     * De que envio llego este contacto. `restrict` porque borrar el envio perderia
+     * la unica respuesta a "¿desde cuando lo tenemos?" (criterio del ADR 0026).
+     * Nulo para los contactos de un lead creado a mano, que no vino de un envio.
+     */
+    submissionId: uuid("submission_id").references((): AnyPgColumn => submissions.id, {
+      onDelete: "restrict",
+    }),
+    esPrincipal: boolean("es_principal").notNull().default(false),
+    confirmado: boolean("confirmado").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("lead_contactos_valor_idx").on(t.programId, t.tipo, t.valor),
+    index("lead_contactos_lead_idx").on(t.leadId),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────── envios
+
+/**
+ * El Envio: una fila por cada vez que alguien lleno el formulario, parcial o
+ * completo (ADR 0036). Es el HECHO; el Lead es la persona que lo produjo.
+ *
+ * Medido el 21-sep: hoy el CRM guarda 4.791 filas donde hubo **6.233 hechos**.
+ * 1.146 personas aplicaron mas de una vez y de todas ellas solo sobrevive la
+ * ultima. Esta tabla es la que recupera ese historial.
+ *
+ * **Las ~10 columnas promovidas NO se repiten dentro de `respuestas`** (opcion A'
+ * del ADR 0036, correccion de Mani sobre la propuesta original): la union de las
+ * dos piezas es la fila completa, nada dos veces. Una copia que nadie declara es
+ * una copia que se desincroniza, y este repo ya tiene un ADR entero sobre eso
+ * (0024).
+ *
+ * Un campo se promueve solo si el codigo decide, filtra, indexa o cruza con el. Lo
+ * demas entra a `respuestas` con el texto del encabezado como llave, asi que una
+ * columna nueva en la hoja **aparece sola** y los envios viejos la tienen ausente.
+ */
+export const submissions = pgTable(
+  "submissions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * 🎯 NULLABLE, y no es un descuido. Typeform escribe una fila cuando alguien
+     * EMPIEZA el formulario, y un parcial abandonado antes de la pregunta del
+     * correo no tiene a que lead colgarse. Ese envio es un hecho real ("alguien
+     * abrio el formulario y se fue"), y con `notNull` el sync tendria que tirarlo
+     * en silencio, que es justo la clase de perdida invisible de la que este repo
+     * ya sangro con el centinela del ano 1.
+     *
+     * `restrict`: un lead con envios no se borra, o se pierde su historial.
+     */
+    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "restrict" }),
+    /**
+     * De que intake salio. `restrict` por el ADR 0039: `Forms viejo` se queda como
+     * fuente INACTIVA justo para que los envios que la etapa 7 recupere apunten a
+     * algo que diga la verdad sobre de donde salieron.
+     */
+    sourceId: uuid("source_id").notNull().references(() => sources.id, { onDelete: "restrict" }),
+    /** El Token de Typeform, o el id del webhook cuando entre Dapta (ADR 0036). */
+    token: text("token").notNull(),
+    esParcial: boolean("es_parcial").notNull().default(false),
+    fechaEnvio: timestamp("fecha_envio", { withTimezone: true }),
+    /** El `estado` tal como lo escribio la hoja, sin interpretar (ADR 0032). */
+    estadoHoja: text("estado_hoja"),
+    utmSource: text("utm_source"),
+    utmMedium: text("utm_medium"),
+    utmCampaign: text("utm_campaign"),
+    utmTerm: text("utm_term"),
+    utmContent: text("utm_content"),
+    /**
+     * 🩸 El orden de los envios se decide por AQUI y no por `fechaEnvio`: los
+     * parciales de Typeform traen una fecha placeholder (la misma familia del
+     * `1/1/0001` que ya envenenó el dedup). La posicion en la hoja no miente.
+     * Nulo para lo que entre por webhook, que no tiene hoja.
+     */
+    posicionEnHoja: integer("posicion_en_hoja"),
+    /** Todas las columnas NO promovidas, con el texto del encabezado como llave. */
+    respuestas: jsonb("respuestas"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    /**
+     * Un envio por token y fuente. Va por `(source_id, token)` y no por `token` a
+     * secas porque quien garantiza la unicidad del token es **la fuente que lo
+     * emite**: dos formularios distintos podrian repetir una cadena y un unico
+     * global rechazaria un envio legitimo. Con la fuente adentro no pueden chocar.
+     */
+    uniqueIndex("submissions_fuente_token_idx").on(t.sourceId, t.token),
+    index("submissions_lead_idx").on(t.leadId),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────── deals
+
+/**
+ * El Deal: la oportunidad de venderle un programa a un Lead (ADR 0037). Es el
+ * objeto central del CRM y **es tambien la venta**: producto, cohorte, owner y
+ * fechas viven aqui, y por eso `sales` se disuelve (ticket 038).
+ *
+ * El ticket lo da el producto (`productoId → productos.precioLista`), sin
+ * `precio_contrato`: 🩸 las hojas muestran ocho precios por descuentos y **cada
+ * precio que el equipo use es un producto del catalogo**, que el equipo crea
+ * (ADR 0016).
+ *
+ * Derivados, nunca almacenados (ADR 0037 punto 6, ADR 0024): `abonado`, `saldo`,
+ * `es_student` (`etapa in (abonado, completo)`) y la comision.
+ *
+ * ⚠️ `etapa` **no se escribe a mano desde ninguna parte**: el unico camino es
+ * `moverEtapa()` de la etapa 2, que valida y escribe `dealEtapaHistorial`. Es la
+ * redundancia declarada del modelo (la etapa frente a la suma de abonos) y solo no
+ * diverge porque la escribe el sistema.
+ */
+export const deals = pgTable(
+  "deals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "restrict" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
+    cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "restrict" }),
+    /**
+     * El dueno de la OPORTUNIDAD (ADR 0037, enmienda al ADR 0021). Es FK real a
+     * `users` y no el texto copiado del ADR 0011: quien trabaja un deal es siempre
+     * una cuenta de la app.
+     *
+     * Nulo = **Unclaimed**, un estado de primera clase: los deals nacen sin dueno y
+     * el closer reclama. El reparto ciego del script desaparece.
+     */
+    ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "restrict" }),
+    etapa: etapaDealEnum("etapa").notNull().default("pendiente_setteo"),
+    productoId: uuid("producto_id").references(() => productos.id, { onDelete: "restrict" }),
+    /** Motivo del Cierre Perdido (catalogo, ADR 0015). Obligatorio al cerrar, no aqui. */
+    motivoId: uuid("motivo_id").references(() => motivos.id, { onDelete: "restrict" }),
+    /** El envio que origino el deal, para atribuir su UTM sin adivinar. */
+    submissionOrigenId: uuid("submission_origen_id").references(
+      (): AnyPgColumn => submissions.id,
+      { onDelete: "restrict" },
+    ),
+    onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
+    /**
+     * Quien lo creo. **Nulo significa el sync**, igual que `changeLog.userId`: en
+     * un movimiento del sistema no hay usuario, y un id inventado ahi seria peor
+     * que la ausencia.
+     */
+    creadoPor: uuid("creado_por").references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    /**
+     * **Maximo un deal ABIERTO por lead y programa** (ADR 0037 punto 1). Indice
+     * unico PARCIAL, mismo molde que `cohorts_una_activa_por_programa_idx`: la
+     * garantia vive en la base y no en el codigo (ADR 0005).
+     *
+     * Los cerrados no compiten, y eso es el punto: reaplicar despues de un Cierre
+     * Perdido **abre un deal nuevo** y la ficha muestra los anteriores. "Volvio a
+     * intentarlo en la cohorte siguiente" pasa a ser un hecho contable en vez de
+     * una sobreescritura.
+     *
+     * ⚠️ El ticket 040 le agrega `AND anulado_en IS NULL`: un deal anulado es un
+     * registro que nunca debio existir, asi que no puede seguir ocupando el cupo
+     * del lead e impedir que se cree el correcto.
+     */
+    uniqueIndex("deals_uno_abierto_por_lead_y_programa_idx")
+      .on(t.leadId, t.programId)
+      .where(sql`${t.etapa} not in ('completo', 'cierre_perdido')`),
+    index("deals_programa_etapa_idx").on(t.programId, t.etapa),
+    index("deals_owner_idx").on(t.ownerUserId),
+    index("deals_cohorte_idx").on(t.cohortId),
+  ],
+);
+
+/**
+ * Todo movimiento de etapa de un deal (ADR 0037 punto 4, ADR 0042).
+ *
+ * 🎯 **Se crea AHORA aunque la pantalla no exista.** El dato es el INSTANTE del
+ * cambio y no se guarda en ninguna otra parte: sin esta tabla no hay conversion
+ * etapa a etapa ni tiempo en etapa, y **no se pueden reconstruir despues**. Es el
+ * mismo argumento del ADR 0029 con los 5 enlaces de PayPal que entraron sin rastro
+ * el 18-sep y siguen sin el a proposito.
+ *
+ * Esto NO va a `change_log` (ADR 0042): no es "un campo cambio de X a Y" sino el
+ * hecho central del que salen las dos metricas de arriba. Duplicarlo en los dos
+ * rastros crearia la divergencia que el invariante 1 del plan prohibe.
+ */
+export const dealEtapaHistorial = pgTable(
+  "deal_etapa_historial",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dealId: uuid("deal_id").notNull().references(() => deals.id, { onDelete: "restrict" }),
+    /** Nulo solo en la primera fila: el deal no venia de ninguna etapa. */
+    de: etapaDealEnum("de"),
+    a: etapaDealEnum("a").notNull(),
+    /** Nulo = lo movio el sistema (el sync, o un abono registrado). */
+    userId: uuid("user_id").references(() => users.id, { onDelete: "restrict" }),
+    /** Obligatorio para un retroceso y para el Cierre Perdido; lo exige el motor. */
+    motivoId: uuid("motivo_id").references(() => motivos.id, { onDelete: "restrict" }),
+    fecha: timestamp("fecha", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("deal_etapa_historial_deal_idx").on(t.dealId, t.fecha)],
+);
+
+/**
+ * Contactos y notas sobre un deal (ADR 0037). Un `contacto` con fecha es lo que
+ * habilita la entrada a En Contacto; una `nota` no mueve nada.
+ *
+ * ⚠️ `canal` es texto por ahora y **esa es una pregunta abierta**: si el equipo
+ * tiene que elegirlo de una lista, pasa a ser catalogo del molde (ADR 0012). Se
+ * decide en la etapa 4, con la pantalla delante; hoy no hay pantalla que lo llene.
+ */
+export const dealActividades = pgTable(
+  "deal_actividades",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dealId: uuid("deal_id").notNull().references(() => deals.id, { onDelete: "restrict" }),
+    tipo: tipoActividadEnum("tipo").notNull(),
+    canal: text("canal"),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+    fecha: timestamp("fecha", { withTimezone: true }).notNull().defaultNow(),
+    nota: text("nota"),
+  },
+  (t) => [index("deal_actividades_deal_idx").on(t.dealId, t.fecha)],
+);
+
+/**
+ * Las cuotas PACTADAS de un deal (ADR 0041). Cada una con SU monto y SU fecha.
+ *
+ * 🩸 Por que filas y no `num_cuotas` + una division: la division asume que las
+ * cuotas son iguales, y en el momento en que un plan real no lo sea el numero **es
+ * falso y no lanza ningun error**. El closer ve "faltan 2 de USD 350" cuando lo
+ * pactado fue una de 500 y una de 200, y persigue la plata equivocada.
+ *
+ * Una cuota es lo **prometido**; un abono es lo **recibido**. No se derivan uno del
+ * otro, igual que caja recaudada y ventas cerradas (ADR 0013). Lo abonado y el
+ * saldo siguen viviendo en `lib/queries/saldo.ts` (ADR 0024).
+ *
+ * El deal NO lleva `num_cuotas`: es `count()` sobre esta tabla.
+ *
+ * `moneda` vive al lado del monto y nunca se convierte en silencio (restriccion
+ * dura de AGENTS.md), igual que en `abonos` y `productos`.
+ */
+export const cuotasPactadas = pgTable(
+  "cuotas_pactadas",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dealId: uuid("deal_id").notNull().references(() => deals.id, { onDelete: "restrict" }),
+    numero: integer("numero").notNull(),
+    monto: numeric("monto", { precision: 12, scale: 2 }).notNull(),
+    moneda: text("moneda").notNull().default("USD"),
+    fechaPactada: date("fecha_pactada").notNull(),
+    /**
+     * El abono que cumplio esta cuota. `set null` y no `restrict`: cuando un abono
+     * se anula (ADR 0026) la cuota vuelve a estar PENDIENTE, que es exactamente lo
+     * que dice el ADR 0041. Aqui la referencia si es opcional de verdad.
+     */
+    abonoId: uuid("abono_id").references((): AnyPgColumn => abonos.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("cuotas_pactadas_numero_idx").on(t.dealId, t.numero),
+    // La cartera vencida pregunta por esto: cuotas con fecha pasada y sin abono.
+    index("cuotas_pactadas_vencimiento_idx").on(t.fechaPactada),
   ],
 );
 
@@ -779,6 +1125,16 @@ export type Cohorte = typeof cohorts.$inferSelect;
 export type Fuente = typeof sources.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
 export type NuevoLead = typeof leads.$inferInsert;
+export type LeadContacto = typeof leadContactos.$inferSelect;
+export type NuevoLeadContacto = typeof leadContactos.$inferInsert;
+export type Envio = typeof submissions.$inferSelect;
+export type NuevoEnvio = typeof submissions.$inferInsert;
+export type Deal = typeof deals.$inferSelect;
+export type NuevoDeal = typeof deals.$inferInsert;
+export type EtapaDeal = (typeof etapaDealEnum.enumValues)[number];
+export type MovimientoDeEtapa = typeof dealEtapaHistorial.$inferSelect;
+export type ActividadDeDeal = typeof dealActividades.$inferSelect;
+export type CuotaPactada = typeof cuotasPactadas.$inferSelect;
 export type Llamada = typeof calls.$inferSelect;
 export type Venta = typeof sales.$inferSelect;
 export type Abono = typeof abonos.$inferSelect;
