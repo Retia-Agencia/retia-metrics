@@ -1,7 +1,7 @@
 import { and, eq, inArray, lt } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
-import { people, sources, syncRuns, changeLog, programs } from "@/lib/db/schema";
+import { leads, sources, syncRuns, changeLog, programs } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { esViolacionUnica } from "@/lib/db/errores";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
@@ -90,13 +90,17 @@ export async function sincronizarPersonas(
   const [programa] = await db.select().from(programs).where(eq(programs.id, programId)).limit(1);
   if (!programa) throw new Error(`No existe el programa ${programId}`);
 
+  // Toda fuente activa es un intake de leads desde el ADR 0039, asi que ya no hay
+  // que filtrar por destino: la columna desaparecio con las 7 filas que la usaban.
+  // Y el indice `sources_una_activa_por_programa_idx` garantiza que sea UNA sola,
+  // de modo que `fuentes` tiene como mucho un elemento en el caso normal.
   const fuentes = await db
     .select()
     .from(sources)
-    .where(and(eq(sources.programId, programId), eq(sources.activo, true), eq(sources.destino, "people")));
+    .where(and(eq(sources.programId, programId), eq(sources.activo, true)));
 
   if (fuentes.length === 0) {
-    throw new Error(`El programa ${programa.slug} no tiene fuentes de personas activas.`);
+    throw new Error(`El programa ${programa.slug} no tiene una fuente de leads activa.`);
   }
 
   // Reaper: antes de tomar el candado, libera las corridas de ESTE programa que se
@@ -199,13 +203,13 @@ export async function sincronizarPersonas(
 
     // 3. Traer lo que ya existe, en lotes para no reventar el limite de parametros
     const correos = personas.map((p) => p.emailNormalizado);
-    const existentes = new Map<string, typeof people.$inferSelect>();
+    const existentes = new Map<string, typeof leads.$inferSelect>();
     for (let i = 0; i < correos.length; i += 500) {
       const lote = correos.slice(i, i + 500);
       const filas = await db
         .select()
-        .from(people)
-        .where(and(eq(people.programId, programId), inArray(people.emailNormalizado, lote)));
+        .from(leads)
+        .where(and(eq(leads.programId, programId), inArray(leads.emailNormalizado, lote)));
       for (const f of filas) existentes.set(f.emailNormalizado, f);
     }
 
@@ -235,13 +239,13 @@ export async function sincronizarPersonas(
       const ahora = new Date();
       await ejecutarJuntas(db, (tx) =>
         lote.map(({ id, valores }) =>
-          tx.update(people).set({ ...valores, updatedAt: ahora }).where(eq(people.id, id)),
+          tx.update(leads).set({ ...valores, updatedAt: ahora }).where(eq(leads.id, id)),
         ),
       );
     }
 
     for (let i = 0; i < aInsertar.length; i += TAMANO_DE_LOTE) {
-      await db.insert(people).values(aInsertar.slice(i, i + TAMANO_DE_LOTE));
+      await db.insert(leads).values(aInsertar.slice(i, i + TAMANO_DE_LOTE));
     }
 
     for (let i = 0; i < cambios.length; i += TAMANO_DE_LOTE) {

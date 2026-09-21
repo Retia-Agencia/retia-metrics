@@ -79,8 +79,15 @@ Bitacora en Nerd Stats: toda escritura del CRM, filtrable por usuario, tabla y r
 - **En contra:** cada mutacion nueva tiene que pasar por la funcion que registra, y eso es una
   friccion real al escribir codigo. Es la friccion correcta: es la misma que impide que exista un
   `db.insert` suelto.
-- **Abierto:** cuanto se guarda del "antes" en un `update` grande. Guardar la fila entera es caro y
-  guardar solo los campos tocados es lo util. Se decide con la primera mutacion, no aqui.
+- **RESUELTO el 22-sep, al implementar el ticket 041:** se guardan **los campos tocados, una fila
+  por campo**, con su valor anterior y el nuevo (`editarConRastro` en `lib/crm/rastro.ts`). La fila
+  entera es cara y, peor, ilegible: la pregunta que alguien hace tres meses despues es *"¿quien
+  cambio el producto de este deal?"*, y una copia completa obliga a diffear a mano para
+  contestarla. Un "se edito" a secas pierde el dato. Ademas es la forma que `change_log` ya tiene
+  desde el ADR 0012, y una segunda forma de decir lo mismo seria la divergencia que el invariante 1
+  del plan prohibe. **Si nada cambio no se toca la fila ni se escribe bitacora**, igual que
+  `molde.editar`: un `update` que no cambia nada no es un hecho, y registrarlo llenaria la bitacora
+  de ruido que esconde los cambios de verdad.
 
 ## Alternativas descartadas
 

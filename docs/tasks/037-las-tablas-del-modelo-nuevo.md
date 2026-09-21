@@ -3,7 +3,7 @@ id: 037
 etapa: E1
 serves: "plan v2 §6 etapa 1 · tarea E1-2 · ADR 0035, 0036, 0037, 0041"
 depends: [036]
-status: todo
+status: done
 ---
 
 # 037 — Las seis tablas del modelo nuevo

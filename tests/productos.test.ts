@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { changeLog, miembrosPrograma, productos, programs, sales, users } from "@/lib/db/schema";
+import { changeLog, deals, leads, miembrosPrograma, productos, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import {
@@ -38,6 +38,7 @@ let gerenteId: string;
 let closerId: string;
 let developerId: string;
 let programaA: string;
+let leadA: string;
 let programaB: string;
 
 const actorGerente = () => ({ id: gerenteId, rol: "gerente" as const });
@@ -72,6 +73,13 @@ beforeEach(async () => {
     .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
     .returning();
   programaA = a.id;
+
+  // Un deal necesita su lead: la FK es `notNull` (ADR 0037).
+  const [lead] = await db
+    .insert(leads)
+    .values({ programId: programaA, emailNormalizado: "lead@correo.co" })
+    .returning();
+  leadA = lead.id;
 
   const [b] = await db
     .insert(programs)
@@ -339,9 +347,10 @@ describe("desactivar y listados", () => {
 // ─────────────────────────────────────── borrar del catalogo (ticket 030)
 
 describe("borrar un producto (ADR 0026 punto 5)", () => {
-  /** Inserta una venta minima que referencia al producto (opcionalmente anulada). */
+  /** Inserta un deal minimo que referencia al producto (opcionalmente anulado). */
   async function sembrarVenta(productoId: string, anulada = false) {
-    await db.insert(sales).values({
+    await db.insert(deals).values({
+      leadId: leadA,
       programId: programaA,
       productoId,
       ...(anulada
@@ -403,7 +412,7 @@ describe("borrar un producto (ADR 0026 punto 5)", () => {
     // Se simula la carrera con un molde SIN dependientes declarados: el conteo da cero
     // (como si la venta aun no existiera), pero la venta YA esta en la base para cuando
     // corre el DELETE. Asi `borrarSiNoSeUso` intenta el DELETE de verdad, choca con la
-    // FK `restrict` de `sales.productoId` y debe traducir el error del driver a un 400
+    // FK `restrict` de `deals.productoId` y debe traducir el error del driver a un 400
     // legible (ErrorDeApp 400), nunca dejarlo salir como un 500.
     const creado = await crearProducto(db, actorGerente(), productoValido(programaA));
     await sembrarVenta(creado.id);

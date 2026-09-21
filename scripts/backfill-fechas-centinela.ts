@@ -1,7 +1,7 @@
 import "./load-env";
 import { and, eq, lt } from "drizzle-orm";
 import { db } from "../lib/db";
-import { changeLog, people, programs, sources } from "../lib/db/schema";
+import { changeLog, leads, programs, sources } from "../lib/db/schema";
 import { leerPestana } from "../lib/sheets/leer";
 import {
   MAPEO_FORMULARIO,
@@ -24,7 +24,7 @@ import { deduplicarPorCorreo, filasDesdeMatriz } from "../lib/sheets/dedup";
  * diff, y las fechas no se comparaban, asi que una persona cuyo unico campo malo era
  * la fecha nunca entraba a `aActualizar` y el dano se quedaba escrito para siempre.
  *
- * Por que no se puede reparar desde `people.raw`: `raw` guarda UNA fila de la hoja,
+ * Por que no se puede reparar desde `leads.raw`: `raw` guarda UNA fila de la hoja,
  * no todas las del correo. Para una persona con varias aplicaciones, la primera
  * fecha real solo se sabe releyendo la hoja completa y volviendo a deduplicar, que
  * es exactamente lo que hace este script: los mismos pasos 1 y 2 del sync, con el
@@ -54,8 +54,8 @@ async function main() {
     // ninguna, ni se lee la hoja.
     const danadas = await db
       .select()
-      .from(people)
-      .where(and(eq(people.programId, programa.id), lt(people.fechaPrimeraAplicacion, PISO)));
+      .from(leads)
+      .where(and(eq(leads.programId, programa.id), lt(leads.fechaPrimeraAplicacion, PISO)));
 
     if (danadas.length === 0) {
       console.log(`\n  ${programa.slug}: sin filas afectadas.`);
@@ -101,15 +101,15 @@ async function main() {
       if (!escribir) continue;
 
       await db
-        .update(people)
+        .update(leads)
         .set({ fechaPrimeraAplicacion: primera, fechaUltimaAplicacion: ultima, updatedAt: new Date() })
-        .where(eq(people.id, guardada.id));
+        .where(eq(leads.id, guardada.id));
 
       // Una fila por campo, igual que el sync. El valor anterior se escribe como el
       // centinela que era, para que la bitacora explique por si sola que paso.
       await db.insert(changeLog).values([
         {
-          tabla: "people",
+          tabla: "leads",
           registroId: guardada.id,
           etiqueta: guardada.nombre ?? guardada.emailNormalizado,
           campo: "fechaPrimeraAplicacion",
@@ -118,7 +118,7 @@ async function main() {
           origen: "sync" as const,
         },
         {
-          tabla: "people",
+          tabla: "leads",
           registroId: guardada.id,
           etiqueta: guardada.nombre ?? guardada.emailNormalizado,
           campo: "fechaUltimaAplicacion",

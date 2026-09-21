@@ -1,10 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
-  calls,
   cohorts,
   miembrosPrograma,
-  people,
+  leads,
   programs,
   users,
 } from "@/lib/db/schema";
@@ -154,32 +153,13 @@ describe("la pantalla es del closer: el gerente no registra (ADR 0003)", () => {
    */
   it("un gerente SI puede buscar personas (ve todos los programas activos)", async () => {
     await db
-      .insert(people)
+      .insert(leads)
       .values({ programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" });
 
     const { buscarPersonasAccion } = await accionesPersonas();
     const res = await buscarPersonasAccion("Juan");
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.personas).toHaveLength(1);
-  });
-
-  it("un gerente no puede registrar una llamada", async () => {
-    const { registrarLlamadaAccion } = await acciones();
-    const res = await registrarLlamadaAccion({ programId: programaA, resultado: "show" });
-    expect(res.ok).toBe(false);
-    // No se escribio nada.
-    const filas = await db.select().from(calls);
-    expect(filas).toHaveLength(0);
-  });
-
-  it("un gerente no puede tomar una persona", async () => {
-    const [p] = await db
-      .insert(people)
-      .values({ programId: programaA, emailNormalizado: "libre@correo.co" })
-      .returning();
-    const { tomarPersonaAccion } = await acciones();
-    const res = await tomarPersonaAccion(p.id);
-    expect(res.ok).toBe(false);
   });
 
   it("un gerente no puede crear una persona manual", async () => {
@@ -197,14 +177,6 @@ describe("sin sesion no pasa nada", () => {
     const res = await buscarPersonasAccion("juan");
     expect(res.ok).toBe(false);
   });
-
-  it("registrar sin sesion falla y no escribe", async () => {
-    const { registrarLlamadaAccion } = await acciones();
-    const res = await registrarLlamadaAccion({ programId: programaA, resultado: "show" });
-    expect(res.ok).toBe(false);
-    const filas = await db.select().from(calls);
-    expect(filas).toHaveLength(0);
-  });
 });
 
 // ─────────────────────────────────────────────── un closer sí registra
@@ -214,7 +186,7 @@ describe("un closer registra en su programa", () => {
 
   it("busca personas de su programa y las recibe en el payload", async () => {
     await db
-      .insert(people)
+      .insert(leads)
       .values({ programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" });
 
     const { buscarPersonasAccion } = await accionesPersonas();
@@ -226,39 +198,7 @@ describe("un closer registra en su programa", () => {
     }
   });
 
-  it("registra un show sobre una persona", async () => {
-    const [p] = await db
-      .insert(people)
-      .values({ programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" })
-      .returning();
-
-    const { registrarLlamadaAccion } = await acciones();
-    const res = await registrarLlamadaAccion({
-      programId: programaA,
-      personId: p.id,
-      resultado: "show",
-    });
-    expect(res.ok).toBe(true);
-    const filas = await db.select().from(calls);
-    expect(filas).toHaveLength(1);
-    expect(filas[0].resultado).toBe("show");
-    expect(filas[0].closerId).toBe("Ana");
-  });
-
-  it("toma una persona sin responsable y queda como responsable", async () => {
-    const [p] = await db
-      .insert(people)
-      .values({ programId: programaA, emailNormalizado: "libre@correo.co" })
-      .returning();
-
-    const { tomarPersonaAccion } = await acciones();
-    const res = await tomarPersonaAccion(p.id);
-    expect(res.ok).toBe(true);
-    const [fila] = await db.select().from(people).where(eq(people.id, p.id));
-    expect(fila.responsableCloserId).toBe("Ana");
-  });
-
-  it("crea una persona manual con el closer como responsable", async () => {
+  it("crea una persona manual con entrada 'crm'", async () => {
     const { crearPersonaAccion } = await acciones();
     const res = await crearPersonaAccion({
       programId: programaA,
@@ -268,9 +208,8 @@ describe("un closer registra en su programa", () => {
     expect(res.ok).toBe(true);
     const [fila] = await db
       .select()
-      .from(people)
-      .where(and(eq(people.programId, programaA), eq(people.emailNormalizado, "nuevo@correo.co")));
-    expect(fila.responsableCloserId).toBe("Ana");
+      .from(leads)
+      .where(and(eq(leads.programId, programaA), eq(leads.emailNormalizado, "nuevo@correo.co")));
     expect(fila.entrada).toBe("crm");
   });
 });
@@ -282,7 +221,7 @@ describe("developer con 'ver como' (ticket 028)", () => {
 
   it("en vista 'closer' busca SOLO en sus membresias, no en todos los programas", async () => {
     // Un lead en A (donde el developer es miembro) y otro en B (donde no lo es).
-    await db.insert(people).values([
+    await db.insert(leads).values([
       { programId: programaA, emailNormalizado: "en-a@correo.co", nombre: "Ana En A" },
       { programId: programaB, emailNormalizado: "en-b@correo.co", nombre: "Ana En B" },
     ]);
@@ -298,7 +237,7 @@ describe("developer con 'ver como' (ticket 028)", () => {
   });
 
   it("en vista 'todo' (por defecto) busca en TODOS los programas activos", async () => {
-    await db.insert(people).values([
+    await db.insert(leads).values([
       { programId: programaA, emailNormalizado: "en-a@correo.co", nombre: "Ana En A" },
       { programId: programaB, emailNormalizado: "en-b@correo.co", nombre: "Ana En B" },
     ]);
@@ -308,39 +247,5 @@ describe("developer con 'ver como' (ticket 028)", () => {
     const res = await buscarPersonasAccion("Ana");
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.personas).toHaveLength(2);
-  });
-});
-
-
-
-describe("la fecha del formulario se ancla al mediodia de Bogota, no corre el dia", () => {
-  beforeEach(() => auth.mockResolvedValue(sesionCloser));
-
-  it("un compromiso_pago con fechaSeguimiento YYYY-MM-DD guarda ese mismo dia en Bogota", async () => {
-    const [p] = await db
-      .insert(people)
-      .values({ programId: programaA, emailNormalizado: "compromiso@correo.co", nombre: "Compromiso" })
-      .returning();
-
-    const { registrarLlamadaAccion } = await acciones();
-    const res = await registrarLlamadaAccion({
-      programId: programaA,
-      personId: p.id,
-      resultado: "compromiso_pago",
-      fechaSeguimiento: "2026-09-20",
-    });
-    expect(res.ok).toBe(true);
-
-    const [fila] = await db.select().from(calls);
-    expect(fila.fechaSeguimiento).not.toBeNull();
-    // El dia en Bogota debe seguir siendo el 20, no el 19. Con new Date('2026-09-20')
-    // (medianoche UTC) en Bogota (UTC-5) el dia se leeria como 19.
-    const enBogota = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Bogota",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(fila.fechaSeguimiento as Date);
-    expect(enBogota).toBe("2026-09-20");
   });
 });

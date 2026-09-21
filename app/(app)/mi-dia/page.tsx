@@ -1,85 +1,37 @@
 import { paginaConRol } from "@/lib/auth/page-guards";
-import { rolDeVista } from "@/lib/auth/vista";
-import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
-import { MiDiaRegistro, type ContextoMiDia } from "@/components/mi-dia-registro";
-import { programasGestionablesPorUsuario } from "@/lib/queries/programas";
-import { productosActivos } from "@/lib/catalogo/productos";
-import { motivos } from "@/lib/catalogo/motivos";
-import { origenes } from "@/lib/catalogo/origenes";
-import { plataformasDePago, vinculosDePlataformas } from "@/lib/catalogo/plataformas";
+import { ProximaFase } from "@/components/proxima-fase";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Pantalla `/mi-dia` del closer (ticket 003, ADR 0003, 0015, 0016, 0021).
+ * Pantalla `/mi-dia` del closer (ticket 003, ADR 0003).
  *
- * Guard de servidor primero: es del closer y el gerente NO entra (ADR 0003); el
- * developer si, porque pasa toda guarda (ADR 0025). Carga
- * en el servidor el contexto que la pantalla necesita —los programas donde el closer
- * vende, y por programa sus productos activos, mas los motivos, origenes y
- * plataformas ACTIVOS— y lo pasa por props al componente cliente. Solo se ofrecen
- * valores activos: es un criterio del "Done cuando". La UI no consulta ni calcula
- * nada; toda escritura pasa por las server actions, que revalidan rol y acceso.
+ * ⚠️ Vaciada por el ticket 038. La pantalla de registro —buscar la persona,
+ * registrar la llamada, la venta y su primer abono— se fue con `sales`: en el
+ * modelo nuevo registrar una venta es crear o mover un DEAL, y eso solo puede
+ * pasar por `moverEtapa()`, que nace en la etapa 2.
+ *
+ * Lo que la reemplaza no es la misma pantalla con otro backend: es un inbox de
+ * Leads y Deals con reclamo (decision de Mani, 21-sep), y se define en la etapa 6
+ * con el motor funcionando delante.
+ *
+ * La GUARDA se queda intacta: la ruta sigue siendo del closer y el gerente no
+ * entra (ADR 0003), el developer si (ADR 0025). Una pantalla vacia no es razon
+ * para aflojar un permiso, y `tests/paginas.test.ts` la sigue midiendo.
  */
 export default async function MiDiaPage() {
-  const session = await paginaConRol("closer");
-
-  // Con que rol se proyecta la pantalla lo decide `rolDeVista`, no `session.user.rol`
-  // a mano (ticket 028, ADR 0024). Un developer en vista `todo` ve la union de
-  // programas activos (como el gerente), porque no es miembro de ninguno y con la
-  // proyeccion de closer veria la pantalla vacia (ADR 0025 punto 5); en vista `closer`
-  // la proyeccion se estrecha y la membresia vuelve a importar. Solo el closer
-  // (real o proyectado) queda acotado a los suyos.
-  const rolVista = await rolDeVista(session);
-  const rol = rolVista === "closer" ? "closer" : "gerente";
-
-  const programasBase = await programasGestionablesPorUsuario(session.user.id, rol, db);
-
-  // Solo VALORES ACTIVOS: un producto, motivo, origen o plataforma desactivado no se
-  // ofrece para un registro nuevo (criterio del "Done cuando").
-  const programas: ContextoMiDia["programas"] = await Promise.all(
-    programasBase.map(async (p) => {
-      const items = await productosActivos(db, p.id);
-      return {
-        id: p.id,
-        nombre: p.nombre,
-        productos: items.map((i) => ({
-          id: i.id,
-          nombre: String(i.nombre),
-          precioLista: String(i.precioLista),
-          moneda: String(i.moneda),
-        })),
-      };
-    }),
-  );
-
-  const [motivosActivos, origenesActivos, plataformasActivas, vinculos] = await Promise.all([
-    motivos(db).listar({ soloActivos: true }),
-    origenes(db).listar({ soloActivos: true }),
-    plataformasDePago(db).listar({ soloActivos: true }),
-    // Que programas sirve cada plataforma (ADR 0034), en UNA consulta: el selector
-    // del abono muestra solo las del programa de la venta.
-    vinculosDePlataformas(db),
-  ]);
-
-  const contexto: ContextoMiDia = {
-    programas,
-    motivos: motivosActivos.map((m) => ({ id: m.id, nombre: String(m.nombre) })),
-    origenes: origenesActivos.map((o) => ({ id: o.id, nombre: String(o.nombre) })),
-    plataformas: plataformasActivas.map((p) => ({
-      id: p.id,
-      nombre: String(p.nombre),
-      programas: vinculos.get(p.id) ?? [],
-    })),
-  };
+  await paginaConRol("closer");
 
   return (
     <PageShell
       titulo="Mi día"
-      descripcion="Busca a la persona, registra el resultado de la llamada y, si cerró, la venta con su primer abono."
+      descripcion="El inbox de leads y deals llega con el motor de etapas."
     >
-      <MiDiaRegistro contexto={contexto} />
+      <ProximaFase
+        fase={6}
+        entrega="Inbox de Leads y Deals con filtros y reclamo. El registro de llamadas, ventas y abonos vuelve en la etapa 4, sobre el motor de etapas."
+      />
     </PageShell>
   );
 }

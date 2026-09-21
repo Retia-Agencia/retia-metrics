@@ -35,7 +35,6 @@ export default async function FuentesPage() {
         sheetId: f.sheetId,
         tab: f.tab,
         rango: f.rango,
-        destino: f.destino,
         mapeoColumnas: (f.mapeoColumnas as MapeoColumnas) ?? {},
         activo: f.activo,
         ultimaSync: f.ultimaSync ? f.ultimaSync.toISOString() : null,

@@ -88,7 +88,6 @@ const entradaBase = () => ({
   nombre: "Formulario",
   sheetId: "sheet-1",
   tab: "Hoja",
-  destino: "people" as const,
   mapeoColumnas: {},
 });
 
@@ -145,6 +144,52 @@ describe("activar corre la prueba en ese momento", () => {
     // La garantia clave: la fuente no se activo.
     const [fila] = await db.select().from(sources).where(eq(sources.id, f.id));
     expect(fila.activo).toBe(false);
+  });
+
+  it("activar una SEGUNDA fuente del programa sale como 409, no como 500 (ADR 0039)", async () => {
+    // Un programa tiene UN intake de leads. La reja es el indice de la base
+    // (ADR 0005), no un `select` previo: entre comprobar y escribir cabe otra
+    // activacion. Lo que se mide aqui es que el choque llegue traducido.
+    filasPorFuente.set("sheet-1|Hoja", [ENCABEZADOS_OK]);
+    filasPorFuente.set("sheet-2|Otra", [ENCABEZADOS_OK]);
+    const primera = await crearFuente(db, actorGerente(), entradaBase());
+    await activarFuente(db, actorGerente(), primera.id);
+
+    const segunda = await crearFuente(db, actorGerente(), {
+      ...entradaBase(),
+      nombre: "Formulario nuevo",
+      sheetId: "sheet-2",
+      tab: "Otra",
+    });
+
+    await expect(activarFuente(db, actorGerente(), segunda.id)).rejects.toMatchObject({
+      status: 409,
+    });
+
+    // Y la primera no se toco: el rechazo no deja al programa sin intake.
+    const [viva] = await db.select().from(sources).where(eq(sources.id, primera.id));
+    expect(viva.activo).toBe(true);
+  });
+
+  it("desactivar la primera deja activar la segunda: el cupo se libera", async () => {
+    filasPorFuente.set("sheet-1|Hoja", [ENCABEZADOS_OK]);
+    filasPorFuente.set("sheet-2|Otra", [ENCABEZADOS_OK]);
+    const primera = await crearFuente(db, actorGerente(), entradaBase());
+    await activarFuente(db, actorGerente(), primera.id);
+    const segunda = await crearFuente(db, actorGerente(), {
+      ...entradaBase(),
+      nombre: "Formulario nuevo",
+      sheetId: "sheet-2",
+      tab: "Otra",
+    });
+
+    await desactivarFuente(db, actorGerente(), primera.id);
+    const activa = await activarFuente(db, actorGerente(), segunda.id);
+
+    expect(activa.activo).toBe(true);
+    // La vieja SIGUE existiendo, inactiva: sus envios tienen donde apuntar (ADR 0039).
+    const [vieja] = await db.select().from(sources).where(eq(sources.id, primera.id));
+    expect(vieja.activo).toBe(false);
   });
 
   it("probar no cambia el estado de la fuente", async () => {

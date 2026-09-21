@@ -3,9 +3,15 @@ import { planificarSync } from "@/lib/sheets/plan-sync";
 import type { PersonaDeducida } from "@/lib/sheets/dedup";
 
 /**
- * Ticket 026 / ADR 0021: el sync NUNCA lee ni escribe el responsable, y cuando
- * encuentra una persona con entrada "crm" la pasa a "formulario" dejando rastro en
- * la bitacora. Puro, sin base — mismo estilo que tests/plan-sync.test.ts.
+ * Ticket 026 / ADR 0021: cuando el sync encuentra un lead con entrada "crm" lo pasa
+ * a "formulario" dejando rastro en la bitacora. Puro, sin base — mismo estilo que
+ * tests/plan-sync.test.ts.
+ *
+ * Hasta el ADR 0035 este archivo probaba ademas que el sync no pisaba
+ * `responsableCloserId`. Esa columna ya no existe (la atribucion pasa a
+ * `deals.owner_user_id`, ADR 0037), asi que esas aserciones se fueron con ella: un
+ * `not.toHaveProperty` sobre un campo inexistente pasa siempre y no prueba nada.
+ * La garantia equivalente para el owner del deal la escribe la etapa 3.
  */
 
 const ctx = { programId: "prog-1", syncRunId: "run-1" };
@@ -31,7 +37,7 @@ function persona(extra: Partial<PersonaDeducida> = {}): PersonaDeducida {
   };
 }
 
-/** Lo que ya esta guardado, con la forma de una fila de `people`. */
+/** Lo que ya esta guardado, con la forma de una fila de `leads`. */
 function guardada(p: PersonaDeducida, extra: Record<string, unknown> = {}) {
   return {
     id: "per-1",
@@ -41,7 +47,6 @@ function guardada(p: PersonaDeducida, extra: Record<string, unknown> = {}) {
     pais: null,
     motivoDescarte: null,
     cohortId: null,
-    responsableCloserId: null,
     entrada: "formulario",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -51,34 +56,16 @@ function guardada(p: PersonaDeducida, extra: Record<string, unknown> = {}) {
   } as Parameters<typeof planificarSync>[1] extends Map<string, infer F> ? F : never;
 }
 
-describe("planificarSync y el responsable (ADR 0021)", () => {
-  it("una persona con responsable que cambia de telefono conserva el responsable y no deja bitacora de ese campo", () => {
-    const antes = persona();
-    const ahora = persona({ telefono: "311" });
-    const plan = planificarSync(
-      [ahora],
-      new Map([[antes.emailNormalizado, guardada(antes, { responsableCloserId: "Ana" })]]),
-      ctx,
-    );
-
-    expect(plan.aActualizar).toHaveLength(1);
-    // El registro a actualizar NO menciona el responsable: el update de sync.ts no lo pisa.
-    expect(plan.aActualizar[0].valores).not.toHaveProperty("responsableCloserId");
-    // Ninguna fila de bitacora habla del responsable.
-    expect(plan.cambios.some((c) => c.campo === "responsableCloserId")).toBe(false);
-  });
-
-  it("una persona con entrada 'crm' y sin otro cambio pasa a 'formulario' y deja UNA fila de bitacora, conservando el responsable", () => {
+describe("planificarSync y la entrada del lead (ADR 0021)", () => {
+  it("una persona con entrada 'crm' y sin otro cambio pasa a 'formulario' y deja UNA fila de bitacora", () => {
     const p = persona();
     const plan = planificarSync(
       [p],
-      new Map([[p.emailNormalizado, guardada(p, { entrada: "crm", responsableCloserId: "Ana" })]]),
+      new Map([[p.emailNormalizado, guardada(p, { entrada: "crm" })]]),
       ctx,
     );
 
     expect(plan.aActualizar).toHaveLength(1);
-    // El responsable no se toca.
-    expect(plan.aActualizar[0].valores).not.toHaveProperty("responsableCloserId");
     expect(plan.cambios).toEqual([
       expect.objectContaining({
         campo: "entrada",
@@ -95,11 +82,10 @@ describe("planificarSync y el responsable (ADR 0021)", () => {
     expect(plan).toEqual({ aInsertar: [], aActualizar: [], cambios: [] });
   });
 
-  it("una persona nueva se inserta con entrada 'formulario' y sin responsable", () => {
+  it("una persona nueva se inserta con entrada 'formulario'", () => {
     const plan = planificarSync([persona()], new Map(), ctx);
 
     expect(plan.aInsertar).toHaveLength(1);
     expect(plan.aInsertar[0]).toMatchObject({ entrada: "formulario" });
-    expect(plan.aInsertar[0]).not.toHaveProperty("responsableCloserId");
   });
 });

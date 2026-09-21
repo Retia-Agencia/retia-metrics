@@ -85,11 +85,6 @@ export function DashboardPrograma({ vista }: { vista: VistaDelDashboard }) {
           nota="suma de abonos por su fecha, por moneda"
         />
         <Tarjeta
-          titulo="Ventas cerradas"
-          valor={num(embudo.ventas)}
-          nota="conteo de ventas, no se deriva de la caja"
-        />
-        <Tarjeta
           titulo="Llamadas"
           valor={`${num(embudo.llamadasConShow)} de ${num(embudo.agendas)}`}
           nota={`${tasa(embudo.pctShow)} de show`}
@@ -101,17 +96,12 @@ export function DashboardPrograma({ vista }: { vista: VistaDelDashboard }) {
         />
         <Tarjeta
           titulo="Leads"
-          valor={num(leads.leads)}
+          valor={leads.leads === null ? "—" : num(leads.leads)}
           nota={
             leads.metaDelRango === null
               ? `${num(leads.diasHabiles)} días hábiles · sin meta de leads en la cohorte`
               : `meta ${num(leads.metaDelRango)} (${num(leads.metaLeadsDia ?? 0)}/día hábil) · ${tasa(leads.cumplimiento)}`
           }
-        />
-        <Tarjeta
-          titulo="Compromisos abiertos"
-          valor={num(vista.compromisos)}
-          nota="sin venta todavía, de cualquier fecha"
         />
       </div>
 
@@ -209,7 +199,7 @@ export function DashboardPrograma({ vista }: { vista: VistaDelDashboard }) {
               Nadie registró actividad en este rango.
             </p>
           ) : (
-            <Tabla cabeceras={["Closer", "Agendas", "Show", "% show", "Cierres", "Ventas", "% cierre", "Caja"]}>
+            <Tabla cabeceras={["Closer", "Agendas", "Show", "% show", "Cierres", "% cierre", "Caja"]}>
               {comparativo.map((c) => (
                 <tr key={c.closerId ?? "sin-closer"} className="tabular-nums">
                   <td className="py-2">
@@ -219,7 +209,6 @@ export function DashboardPrograma({ vista }: { vista: VistaDelDashboard }) {
                   <td className="py-2 text-right">{num(c.llamadasConShow)}</td>
                   <td className="py-2 text-right">{tasa(c.pctShow)}</td>
                   <td className="py-2 text-right">{num(c.cierres)}</td>
-                  <td className="py-2 text-right">{num(c.ventas)}</td>
                   <td className="py-2 text-right">{tasa(c.pctCierre)}</td>
                   <td className="py-2 text-right">
                     <Caja caja={c.caja} />
@@ -285,9 +274,10 @@ export function DashboardPrograma({ vista }: { vista: VistaDelDashboard }) {
 
       {closerId !== null ? (
         <p className="text-xs text-muted-foreground">
-          Filtrado por <span className="font-medium">{closerId}</span>. Sus leads son las
-          personas de las que es responsable: las que nadie ha tomado todavía no se le suman a
-          ningún closer, así que los leads de todos no dan el total del programa.
+          Filtrado por <span className="font-medium">{closerId}</span>. Los leads no se
+          muestran por closer: la atribución pasa a ser el dueño del deal y todavía no hay
+          deals, así que un número aquí sería el del programa entero con el nombre de una
+          persona encima.
         </p>
       ) : null}
     </div>

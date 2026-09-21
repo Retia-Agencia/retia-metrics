@@ -1,6 +1,6 @@
 import { desc, eq, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
-import { sources, programs, syncRuns, people, changeLog } from "@/lib/db/schema";
+import { sources, programs, syncRuns, leads, changeLog } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { FuenteLeida } from "@/lib/sheets/sync";
 
@@ -57,7 +57,6 @@ export async function estadoDeFuentes(db: Db = dbDeLaApp) {
         id: sources.id,
         nombre: sources.nombre,
         tab: sources.tab,
-        destino: sources.destino,
         activo: sources.activo,
         ultimaSync: sources.ultimaSync,
         programaSlug: programs.slug,
@@ -70,11 +69,11 @@ export async function estadoDeFuentes(db: Db = dbDeLaApp) {
       .select({
         slug: programs.slug,
         nombre: programs.nombre,
-        personas: sql<number>`count(${people.id})::int`,
-        aplicaciones: sql<number>`coalesce(sum(${people.numAplicaciones}),0)::int`,
+        personas: sql<number>`count(${leads.id})::int`,
+        aplicaciones: sql<number>`coalesce(sum(${leads.numAplicaciones}),0)::int`,
       })
       .from(programs)
-      .leftJoin(people, eq(people.programId, programs.id))
+      .leftJoin(leads, eq(leads.programId, programs.id))
       .groupBy(programs.slug, programs.nombre),
     ultimasCorridasDeSync(8, db),
     db.select({ cambios: sql<number>`count(*)::int` }).from(changeLog),

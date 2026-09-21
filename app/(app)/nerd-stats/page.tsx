@@ -90,7 +90,6 @@ export default async function NerdStatsPage() {
                 Cuánto entra por la hoja y cuánto se registra en la app (ADR 0010).
               </p>
               <PorOrigen titulo="Llamadas" filas={origenes.llamadas} />
-              <PorOrigen titulo="Ventas" filas={origenes.ventas} />
             </CardContent>
           </Card>
         </div>
@@ -104,7 +103,7 @@ export default async function NerdStatsPage() {
               <p className="text-sm text-muted-foreground">No hay programas.</p>
             ) : (
               <Tabla
-                encabezados={["Programa", "Personas", "Llamadas", "Ventas", "Abonos"]}
+                encabezados={["Programa", "Leads", "Llamadas", "Deals", "Abonos"]}
                 filas={programas.map((p) => ({
                   clave: p.slug,
                   celdas: [
@@ -114,7 +113,7 @@ export default async function NerdStatsPage() {
                     </span>,
                     num(p.personas),
                     num(p.llamadas),
-                    num(p.ventas),
+                    num(p.deals),
                     num(p.abonos),
                   ],
                 }))}

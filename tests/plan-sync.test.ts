@@ -30,7 +30,7 @@ function persona(extra: Partial<PersonaDeducida> = {}): PersonaDeducida {
   };
 }
 
-/** Lo que ya esta guardado, con la forma de una fila de `people`. */
+/** Lo que ya esta guardado, con la forma de una fila de `leads`. */
 function guardada(p: PersonaDeducida, extra: Record<string, unknown> = {}) {
   return {
     id: "per-1",
@@ -79,7 +79,7 @@ describe("planificarSync", () => {
       expect.objectContaining({ campo: "numAplicaciones", valorAnterior: "1", valorNuevo: "2" }),
     ]);
     expect(plan.cambios[0]).toMatchObject({
-      tabla: "people",
+      tabla: "leads",
       registroId: "per-1",
       etiqueta: "Ana",
       origen: "sync",

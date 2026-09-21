@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, cohorts, programs, sales } from "@/lib/db/schema";
+import { abonos, calls, cohorts, deals, leads, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -38,12 +38,16 @@ async function sembrarDosClosers() {
     { programId: programaA, closerId: "Ana", fechaAgenda: fecha, resultado: "cerrada" },
     { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "no_show" },
   ]);
-  const [venta] = await db
-    .insert(sales)
-    .values({ programId: programaA, closerId: "Ana", fecha: HOY, moneda: "USD" })
+  const [lead] = await db
+    .insert(leads)
+    .values({ programId: programaA, emailNormalizado: "ana@correo.co" })
+    .returning();
+  const [deal] = await db
+    .insert(deals)
+    .values({ leadId: lead.id, programId: programaA, etapa: "abonado" })
     .returning();
   await db.insert(abonos).values({
-    saleId: venta.id,
+    dealId: deal.id,
     programId: programaA,
     closerId: "Ana",
     fecha: HOY,

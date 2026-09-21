@@ -5,37 +5,94 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Escrito el 20-sep al cerrar.
+> Copiar y pegar tal cual. Escrito el 22-sep al cerrar la etapa 1.
 
 ```
-Arrancamos la ETAPA 1 del CRM v2 de Retia. Lee AGENTS.md, luego docs/plan-crm-v2.md §6 etapa 1,
-y los ADR 0035 a 0042 (son nuevos, del 21-sep: ahi esta el modelo entero argumentado). El diseno
-del que sale todo vive fuera del repo, en
+Seguimos con el CRM v2 de Retia. Lee AGENTS.md, docs/plan-crm-v2.md §6 etapa 2, y los ADR 0035 a
+0042. El diseno vive fuera del repo, en
 /Users/mani/Documents/mani_vault/02 Projects/retia/notebook/crm-retia-modelo-hubspot-scaffold.md
 y manda sobre el plan en todo lo que sea diseno.
 
-La etapa 0 quedo CERRADA el 21-sep: 8 ADR nuevos, la spec enmendada, 7 ADR vigentes anotados y
-los 47 tickets (036 a 082) creados y registrados en docs/tasks/README.md. No hay decisiones
-abiertas de Mani que bloqueen: E1-4 la contesto el 21-sep (ADR 0039).
+La ETAPA 1 esta CERRADA Y FUSIONADA A MAIN (tickets 036 a 042). La migracion 0020 esta aplicada
+y verificada en las DOS ramas de Neon. Estado: 611 tests en 54 archivos, typecheck y lint
+limpios, 21 migraciones, `production` con 4.823 leads.
 
-Estado: 677 tests, typecheck y lint limpios, 20 migraciones, `production` al dia. El dato que
-ordena el plan sigue vigente: `calls`, `sales` y `abonos` tienen CERO filas en production.
+Lo que existe ahora y antes no:
+  - `leads` (era `people`), con `estado` en texto y sin `responsable_closer_id`
+  - `deals` y las diez etapas como pgEnum, `lead_contactos`, `submissions`,
+    `deal_etapa_historial`, `deal_actividades`, `cuotas_pactadas`
+  - `calls.deal_id` y `abonos.deal_id`; `sales` ya no existe
+  - `sources` con un solo intake activo por programa, garantizado por indice
+  - `lib/crm/rastro.ts`, el rastro obligatorio de las cuatro tablas operativas
 
-Tu trabajo son los tickets 036 a 042, que son UN SOLO CORTE:
+Lo que se AMPUTO a proposito en el 038 y renace mas adelante: registrar llamada, venta y abono
+(etapa 4), anular (etapa 4), la pantalla de /mi-dia (etapa 6, y se llamara distinto: es un inbox
+de Leads y Deals con reclamo), `lib/queries/saldo.ts` (etapa 4, E4-4 lo tiene como criterio),
+y cuatro metricas del dashboard (E5-1). Ninguna se puede reconstruir con criterio antes de que
+exista el motor de etapas.
 
-  - van en SU PROPIA RAMA y en UNA sola migracion (`0020`). Ninguno se fusiona suelto
-  - los tests van a caer en masa: es esperado, no es una regresion
-  - 036 (el rename mecanico de ~39 archivos) es lo unico delegable a Kiro
-  - 042 es la migracion: la genera y la aplica ESTA sesion, nunca un subagente, y
-    `production` solo con el ok explicito de Mani (ADR 0018)
+Tu trabajo es la ETAPA 2, el motor de etapas (tickets 043 a 047). Es el corazon del sistema y por
+eso va antes que el sync. `lib/deals/etapas.ts` contesta dos preguntas y nada mas: si un deal
+puede pasar de A a B, y que requisito le falta si no puede.
 
-Ojo con el orden dentro de 039: hay que desactivar `Forms viejo` ANTES de crear el indice unico
-parcial de `sources`, o falla (ComunicArte tiene dos fuentes de leads activas hoy).
+Ojo:
+  - el pgEnum de las diez etapas YA EXISTE (se adelanto en el 037). El 043 es la tabla de
+    transiciones y los requisitos, no el enum
+  - `moverEtapa()` tiene que ser el UNICO camino para escribir `deals.etapa`, con guardian
+    mordido en los dos sentidos (molde: tests/vigencia-centralizada.test.ts)
+  - registrar un abono mueve la etapa, y anular un abono la RECALCULA (ADR 0038 punto 5)
 ```
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-22 (CIERRE 19) — Etapa 1 CERRADA y fusionada a `main`: el esquema del modelo HubSpot,
+  de un solo corte.** Siete tickets (036 a 042) en 8 commits, una sola migracion, aplicada y
+  verificada en `dev` (2.059 leads) y en `production` (4.823 leads, el mismo numero que antes
+  porque `people` se RENOMBRA y no se re-crea). 611 tests en 54 archivos.
+
+  ⚠️ **La ventana que el ticket 042 no nombraba, y que la proxima migracion de este tipo va a
+  volver a abrir:** migrar `production` ANTES de desplegar deja la app viva consultando tablas que
+  ya no existen, o sea **rota entre el `migrate` y el deploy**. No es evitable en el otro orden —el
+  codigo nuevo necesita `leads`, que no existe hasta migrar—, asi que lo unico que se puede hacer
+  es acortarla: migrar y desplegar seguido. Medida el 22-sep: se migro con el ok de Mani y se
+  fusiono/desplego en la misma sesion.
+
+  Lo que se decidio sobre la marcha, que no estaba escrito en los tickets:
+  - **Mani, 21-sep:** amputar todo camino de escritura de ventas en vez de reapuntarlo. Razon:
+    crear una venta hoy es crear o mover un DEAL, y mover una etapa solo puede pasar por
+    `moverEtapa()`, que nace en la etapa 2. Escribir `deals.etapa` a mano habria sentado el
+    precedente que el guardian de la etapa 2 existe para prohibir.
+  - **Mani, 22-sep:** las filas que hay hoy en `dev` y `production` no importan; al final se hace
+    la migracion y el sync arranca como paso final. Eso NO cambio la migracion a un
+    drop-and-create: una migracion que borra la tabla de leads queda como archivo permanente, y
+    que hoy los datos no importen es comodidad, no razon para dejar un explosivo en el historial.
+  - `submissions.lead_id` es NULLABLE: un parcial de Typeform abandonado antes del correo no
+    tiene lead al que colgarse, y con `notNull` el sync tendria que tirarlo en silencio.
+  - `leadsDelRango` filtrado por closer devuelve `null`, no un numero: sin `responsableCloserId`
+    no hay con que atribuir un lead, y el conteo del programa bajo el nombre de un closer habria
+    sido una cifra creible y equivocada.
+  - El rastro de un `update` guarda **los campos tocados**, uno por fila (ADR 0042, anotado).
+
+  🩸 **Lo que se aprendio midiendo, y que ya esta en AGENTS.md:**
+  - **El SQL de `drizzle-kit generate` es un borrador.** La 0020 salio con cuatro defectos: dos
+    destructivos (expresaba el rename `people`->`leads` como DROP+CREATE, que habria borrado
+    2.059 leads en dev y 4.791 en production; y dejaba 271 filas de `change_log` hablando de una
+    tabla inexistente) y dos que la hacian reventar (DROP CONSTRAINT despues del DROP TABLE
+    CASCADE que ya se los llevo; el indice unico de `sources` antes de desactivar la fuente
+    vieja). Se reescribio a mano. El snapshot describe el esquema FINAL, no el camino, asi que
+    reescribir el SQL no lo rompe.
+  - **`generate` necesita un TTY** y falla explicito sin el. Se le dio un pty propio; la opcion
+    por defecto de cada prompt es `create`, que es la segura.
+  - **El guardian de vigencia cazo TRES lecturas de `deals` sin predicado escritas esa misma
+    sesion**, y una de ellas era una pregunta que me habia saltado (¿las llamadas de un deal
+    anulado salen en la ficha? Si, `incluyendoAnulados`). Es la prueba de por que va en la etapa 1
+    y no despues. **Ojo con izar el predicado a una variable**: el guardian lee cadena por cadena.
+  - **El indice de `deals` necesitaba `AND anulado_en IS NULL`**, que el ticket no pedia. Sin eso,
+    quien registra un deal sobre el lead equivocado y lo anula no puede crear el correcto.
+  - `dev` tenia 4 calls, 3 sales y 5 abonos del recorrido visual (production: 0). Se borraron
+    ANTES de migrar, con guardia de rama, y fuera del archivo de migracion.
 
 - **2026-09-21 (CIERRE 18) — Etapa 0 del plan v2 CERRADA. Sigue sin haber una linea de codigo:
   677 tests intactos, esquema sin tocar.**

@@ -20,7 +20,7 @@ import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 /**
  * Las filas de `tabla` que siguen contando.
  *
- * Acepta tambien tablas que NO se anulan (`people`, `programs`…) y para ellas
+ * Acepta tambien tablas que NO se anulan (`leads`, `programs`…) y para ellas
  * devuelve "verdadero". No es un fallo silencioso: una tabla sin anulacion tiene
  * todas sus filas vigentes, asi que esa es la respuesta correcta a la pregunta. Lo
  * necesita `conteosPorPrograma` en `/nerd-stats`, que recibe la tabla por parametro

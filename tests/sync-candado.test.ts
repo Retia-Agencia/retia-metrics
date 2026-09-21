@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { programs, sources, syncRuns } from "@/lib/db/schema";
+import { esViolacionUnica } from "@/lib/db/errores";
 import type { Db } from "@/lib/db/tipos";
 import { sincronizarPersonas, SyncEnCursoError } from "@/lib/sheets/sync";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -48,7 +49,7 @@ async function sembrarPrograma(slug: string): Promise<string> {
  */
 async function sembrarFuente(
   programId: string,
-  opciones: { nombre: string; tab: string; orden: number; filas: number },
+  opciones: { nombre: string; tab: string; orden: number; filas: number; activo?: boolean },
 ): Promise<string> {
   const sheetId = `sheet-${opciones.nombre}`;
   const [f] = await db
@@ -59,8 +60,8 @@ async function sembrarFuente(
       tipo: "google_sheet",
       sheetId,
       tab: opciones.tab,
-      destino: "people",
       orden: opciones.orden,
+      activo: opciones.activo ?? true,
     })
     .returning();
 
@@ -173,20 +174,57 @@ describe("el reaper de corridas abandonadas", () => {
 });
 
 describe("fuentes_leidas y el programa de la corrida (F-07)", () => {
-  it("guarda nombre, tab y filas de CADA fuente leida (el caso Comunicarte, dos formularios)", async () => {
+  it("guarda nombre, tab y filas de la fuente leida, y la INACTIVA no se lee", async () => {
     const programId = await sembrarPrograma("comunicarte");
-    await sembrarFuente(programId, { nombre: "Formulario anterior", tab: "Anterior", orden: 1, filas: 5 });
+    // El caso Comunicarte de verdad, ya con el ADR 0039 aplicado: el formulario
+    // viejo sigue existiendo como fila —sus envios tienen que poder apuntar a el—
+    // pero INACTIVO, asi que el sync no lo lee. Antes las dos estaban activas y eso
+    // es justo lo que hacia ambigua la atribucion de una corrida (F-07).
+    await sembrarFuente(programId, {
+      nombre: "Formulario anterior",
+      tab: "Anterior",
+      orden: 1,
+      filas: 5,
+      activo: false,
+    });
     await sembrarFuente(programId, { nombre: "Formulario actual", tab: "Actual", orden: 2, filas: 8 });
 
     await sincronizarPersonas(programId, db);
 
     const [corrida] = await db.select().from(syncRuns).where(eq(syncRuns.programId, programId));
     const fuentes = corrida.fuentesLeidas as { nombre: string; tab: string; filas: number }[];
-    // Las dos fuentes, en orden, cada una con SU conteo: ninguna queda fuera (F-07).
-    expect(fuentes).toEqual([
-      { nombre: "Formulario anterior", tab: "Anterior", filas: 5 },
-      { nombre: "Formulario actual", tab: "Actual", filas: 8 },
-    ]);
+    // `fuentes_leidas` sigue siendo una lista y no una llave foranea (ADR 0031): lo
+    // que se leyo se guarda como DATO. Con el indice del ADR 0039 tiene un solo
+    // elemento en el caso normal, y eso no cambia su forma.
+    expect(fuentes).toEqual([{ nombre: "Formulario actual", tab: "Actual", filas: 8 }]);
+  });
+
+  it("una fuente activa y una inactiva del mismo programa conviven", async () => {
+    const programId = await sembrarPrograma("comunicarte");
+    await sembrarFuente(programId, { nombre: "Vieja", tab: "V", orden: 1, filas: 1, activo: false });
+    await sembrarFuente(programId, { nombre: "Nueva", tab: "N", orden: 2, filas: 1 });
+
+    expect(await db.select().from(sources).where(eq(sources.programId, programId))).toHaveLength(2);
+  });
+
+  it("DOS fuentes activas del mismo programa chocan (ADR 0039)", async () => {
+    // La garantia vive en la base, no en el codigo (ADR 0005). Dos intakes activos
+    // duplican la superficie del dedup y vuelven ambigua la atribucion de la corrida.
+    const programId = await sembrarPrograma("comunicarte");
+    await sembrarFuente(programId, { nombre: "Una", tab: "A", orden: 1, filas: 1 });
+
+    await expect(
+      sembrarFuente(programId, { nombre: "Otra", tab: "B", orden: 2, filas: 1 }),
+    ).rejects.toSatisfy(esViolacionUnica);
+  });
+
+  it("dos programas distintos pueden tener cada uno su fuente activa", async () => {
+    const progA = await sembrarPrograma("comunicarte");
+    const progB = await sembrarPrograma("tactical-investor");
+    await sembrarFuente(progA, { nombre: "Form A", tab: "A", orden: 1, filas: 1 });
+    await sembrarFuente(progB, { nombre: "Form B", tab: "B", orden: 1, filas: 1 });
+
+    expect(await db.select().from(sources)).toHaveLength(2);
   });
 
   it("la corrida queda con el program_id del programa sincronizado", async () => {

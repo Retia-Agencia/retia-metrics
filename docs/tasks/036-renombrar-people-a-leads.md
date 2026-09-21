@@ -3,7 +3,7 @@ id: 036
 etapa: E1
 serves: "plan v2 §6 etapa 1 · tarea E1-1 · ADR 0035, ADR 0032"
 depends: []
-status: todo
+status: done
 ---
 
 # 036 — `people` pasa a `leads`, `estado` pasa a texto, `responsable_closer_id` se va

@@ -3,7 +3,7 @@ id: 039
 etapa: E1
 serves: "plan v2 §6 etapa 1 · tarea E1-4 · ADR 0039 (decidido por Mani el 21-sep)"
 depends: [036]
-status: todo
+status: done
 ---
 
 # 039 — `sources` significa una cosa: el intake de leads crudos de un programa

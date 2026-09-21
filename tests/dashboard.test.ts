@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, cohorts, motivos, origenes, people, programs, sales } from "@/lib/db/schema";
+import { abonos, calls, cohorts, deals, motivos, origenes, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { cajaRecaudada, compromisosAbiertos, embudoDelRango, embudoPorCloser, embudoPorOrigen, leadsDelRango, llamadasPorMotivo, vistaDeCohorteActiva } from "@/lib/queries/dashboard";
+import { cajaRecaudada, embudoDelRango, embudoPorCloser, embudoPorOrigen, leadsDelRango, llamadasPorMotivo, vistaDeCohorteActiva } from "@/lib/queries/dashboard";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
 /**
@@ -35,42 +35,66 @@ afterEach(async () => {
   await cerrar();
 });
 
+let secuenciaDeLead = 0;
+
+/**
+ * Siembra un lead nuevo con su deal y devuelve el id del deal.
+ *
+ * Cada llamada crea SU lead: dos deals abiertos del mismo lead y programa chocan
+ * contra el indice unico parcial del ADR 0037, que es justo lo que muerde
+ * `tests/modelo-crm-indices.test.ts`.
+ */
+async function sembrarDeal(
+  programId: string,
+  extra: Record<string, unknown> = {},
+): Promise<string> {
+  secuenciaDeLead += 1;
+  const [lead] = await db
+    .insert(leads)
+    .values({ programId, emailNormalizado: `lead-${secuenciaDeLead}@correo.co` })
+    .returning();
+  const [deal] = await db
+    .insert(deals)
+    .values({ leadId: lead.id, programId, ...extra } as never)
+    .returning();
+  return deal.id;
+}
+
+/** El id de un usuario con ese `closerId`, para poder ser dueno de un deal. */
+async function sembrarCloser(closerId: string): Promise<string> {
+  const [u] = await db
+    .insert(users)
+    .values({ email: `${closerId.toLowerCase()}@retiagrowth.com`, rol: "closer", closerId })
+    .returning();
+  return u.id;
+}
+
 // ─────────────────────────────────────── 1. abono de hoy sobre venta vieja
 
-describe("caja y ventas son metricas separadas (ADR 0013)", () => {
-  it("un abono de hoy sobre una venta del mes pasado suma a la caja de hoy y NO suma una venta", async () => {
-    const [venta] = await db
-      .insert(sales)
-      .values({ programId: programaA, fecha: "2026-08-31", moneda: "USD" })
-      .returning();
+describe("la caja se ancla en la fecha del abono (ADR 0013)", () => {
+  it("un abono de hoy sobre un deal del mes pasado suma a la caja de hoy", async () => {
+    const venta = { id: await sembrarDeal(programaA) };
 
     await db
       .insert(abonos)
-      .values({ saleId: venta.id, programId: programaA, fecha: "2026-09-15", monto: "750.00", moneda: "USD" });
+      .values({ dealId: venta.id, programId: programaA, fecha: "2026-09-15", monto: "750.00", moneda: "USD" });
 
     const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
 
+    // La caja se ancla en la fecha del ABONO, no en la del deal (ADR 0013): son dos
+    // metricas separadas y ninguna se deriva de la otra.
     const caja = await cajaRecaudada({ programId: programaA, rango: rango }, db);
     expect(caja).toEqual([{ moneda: "USD", total: 750 }]);
-
-    const embudo = await embudoDelRango({ programId: programaA, rango: rango }, db);
-    expect(embudo.ventas).toBe(0);
   });
 
   it("la caja se agrupa por moneda y nunca mezcla dos monedas en un solo numero", async () => {
-    const [ventaUsd] = await db
-      .insert(sales)
-      .values({ programId: programaA, fecha: "2026-09-15", moneda: "USD" })
-      .returning();
-    const [ventaCop] = await db
-      .insert(sales)
-      .values({ programId: programaA, fecha: "2026-09-15", moneda: "COP" })
-      .returning();
+    const ventaUsd = { id: await sembrarDeal(programaA) };
+    const ventaCop = { id: await sembrarDeal(programaA) };
 
     await db.insert(abonos).values([
-      { saleId: ventaUsd.id, programId: programaA, fecha: "2026-09-15", monto: "500.00", moneda: "USD" },
-      { saleId: ventaUsd.id, programId: programaA, fecha: "2026-09-15", monto: "250.00", moneda: "USD" },
-      { saleId: ventaCop.id, programId: programaA, fecha: "2026-09-15", monto: "2000000.00", moneda: "COP" },
+      { dealId: ventaUsd.id, programId: programaA, fecha: "2026-09-15", monto: "500.00", moneda: "USD" },
+      { dealId: ventaUsd.id, programId: programaA, fecha: "2026-09-15", monto: "250.00", moneda: "USD" },
+      { dealId: ventaCop.id, programId: programaA, fecha: "2026-09-15", monto: "2000000.00", moneda: "COP" },
     ]);
 
     const caja = await cajaRecaudada({ programId: programaA, rango: { desde: "2026-09-15", hasta: "2026-09-15" } }, db);
@@ -82,7 +106,7 @@ describe("caja y ventas son metricas separadas (ADR 0013)", () => {
 // ─────────────────────────────────────── 3. sheets + app se suman igual
 
 describe("sheets y app se suman sin logica especial", () => {
-  it("cuenta las filas de calls y abonos con origen 'sheets' y 'app' por igual (sales no tiene columna origen)", async () => {
+  it("cuenta las filas de calls y abonos con origen 'sheets' y 'app' por igual", async () => {
     const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
 
     await db.insert(calls).values([
@@ -90,23 +114,16 @@ describe("sheets y app se suman sin logica especial", () => {
       { programId: programaA, fechaAgenda: new Date("2026-09-15T15:00:00Z"), resultado: "agendada", origen: "app" },
     ]);
 
-    const [vSheets] = await db
-      .insert(sales)
-      .values({ programId: programaA, fecha: "2026-09-15", moneda: "USD" })
-      .returning();
-    const [vApp] = await db
-      .insert(sales)
-      .values({ programId: programaA, fecha: "2026-09-15", moneda: "USD" })
-      .returning();
+    const vSheets = { id: await sembrarDeal(programaA) };
+    const vApp = { id: await sembrarDeal(programaA) };
 
     await db.insert(abonos).values([
-      { saleId: vSheets.id, programId: programaA, fecha: "2026-09-15", monto: "100.00", moneda: "USD", origen: "sheets" },
-      { saleId: vApp.id, programId: programaA, fecha: "2026-09-15", monto: "200.00", moneda: "USD", origen: "app" },
+      { dealId: vSheets.id, programId: programaA, fecha: "2026-09-15", monto: "100.00", moneda: "USD", origen: "sheets" },
+      { dealId: vApp.id, programId: programaA, fecha: "2026-09-15", monto: "200.00", moneda: "USD", origen: "app" },
     ]);
 
     const embudo = await embudoDelRango({ programId: programaA, rango: rango }, db);
     expect(embudo.agendas).toBe(2);
-    expect(embudo.ventas).toBe(2);
 
     const caja = await cajaRecaudada({ programId: programaA, rango: rango }, db);
     expect(caja).toEqual([{ moneda: "USD", total: 300 }]);
@@ -126,13 +143,10 @@ describe("nunca se suman programas distintos", () => {
       fechaAgenda: new Date("2026-09-15T14:00:00Z"),
       resultado: "agendada",
     });
-    const [ventaA] = await db
-      .insert(sales)
-      .values({ programId: programaA, fecha: "2026-09-15", moneda: "USD" })
-      .returning();
+    const ventaA = { id: await sembrarDeal(programaA) };
     await db
       .insert(abonos)
-      .values({ saleId: ventaA.id, programId: programaA, fecha: "2026-09-15", monto: "100.00", moneda: "USD" });
+      .values({ dealId: ventaA.id, programId: programaA, fecha: "2026-09-15", monto: "100.00", moneda: "USD" });
 
     // Programa B: 3 agendas, 2 ventas, un abono de 999.
     await db.insert(calls).values([
@@ -140,23 +154,18 @@ describe("nunca se suman programas distintos", () => {
       { programId: programaB, fechaAgenda: new Date("2026-09-15T15:00:00Z"), resultado: "agendada" },
       { programId: programaB, fechaAgenda: new Date("2026-09-15T16:00:00Z"), resultado: "agendada" },
     ]);
-    const [ventaB] = await db
-      .insert(sales)
-      .values({ programId: programaB, fecha: "2026-09-15", moneda: "USD" })
-      .returning();
-    await db.insert(sales).values({ programId: programaB, fecha: "2026-09-15", moneda: "USD" });
+    const ventaB = { id: await sembrarDeal(programaB) };
+    await sembrarDeal(programaB);
     await db
       .insert(abonos)
-      .values({ saleId: ventaB.id, programId: programaB, fecha: "2026-09-15", monto: "999.00", moneda: "USD" });
+      .values({ dealId: ventaB.id, programId: programaB, fecha: "2026-09-15", monto: "999.00", moneda: "USD" });
 
     const embudoA = await embudoDelRango({ programId: programaA, rango: rango }, db);
     expect(embudoA.agendas).toBe(1);
-    expect(embudoA.ventas).toBe(1);
     expect(await cajaRecaudada({ programId: programaA, rango: rango }, db)).toEqual([{ moneda: "USD", total: 100 }]);
 
     const embudoB = await embudoDelRango({ programId: programaB, rango: rango }, db);
     expect(embudoB.agendas).toBe(3);
-    expect(embudoB.ventas).toBe(2);
     expect(await cajaRecaudada({ programId: programaB, rango: rango }, db)).toEqual([{ moneda: "USD", total: 999 }]);
   });
 });
@@ -215,7 +224,7 @@ describe("anclaje de fechas en Bogota", () => {
 // ─────────────────────────────────────── 7. hoy, esta semana, custom
 
 describe("rangos: hoy, esta semana y custom", () => {
-  it("filtra agendas, ventas y caja segun el rango pedido", async () => {
+  it("filtra agendas y caja segun el rango pedido", async () => {
     // Semana del lunes 14 al viernes 18 de septiembre de 2026.
     // Agendas en 3 dias distintos.
     await db.insert(calls).values([
@@ -225,29 +234,21 @@ describe("rangos: hoy, esta semana y custom", () => {
       // Fuera de la semana: sabado 19.
       { programId: programaA, fechaAgenda: new Date("2026-09-19T14:00:00Z"), resultado: "agendada" },
     ]);
-    const [v14] = await db
-      .insert(sales)
-      .values({ programId: programaA, fecha: "2026-09-14", moneda: "USD" })
-      .returning();
-    const [v15] = await db
-      .insert(sales)
-      .values({ programId: programaA, fecha: "2026-09-15", moneda: "USD" })
-      .returning();
+    const v14 = { id: await sembrarDeal(programaA) };
+    const v15 = { id: await sembrarDeal(programaA) };
     await db.insert(abonos).values([
-      { saleId: v14.id, programId: programaA, fecha: "2026-09-14", monto: "100.00", moneda: "USD" },
-      { saleId: v15.id, programId: programaA, fecha: "2026-09-15", monto: "200.00", moneda: "USD" },
+      { dealId: v14.id, programId: programaA, fecha: "2026-09-14", monto: "100.00", moneda: "USD" },
+      { dealId: v15.id, programId: programaA, fecha: "2026-09-15", monto: "200.00", moneda: "USD" },
     ]);
 
     // "Hoy" = 15-sep.
     const hoy = { desde: "2026-09-15", hasta: "2026-09-15" };
     expect((await embudoDelRango({ programId: programaA, rango: hoy }, db)).agendas).toBe(1);
-    expect((await embudoDelRango({ programId: programaA, rango: hoy }, db)).ventas).toBe(1);
     expect(await cajaRecaudada({ programId: programaA, rango: hoy }, db)).toEqual([{ moneda: "USD", total: 200 }]);
 
     // "Esta semana" = lunes 14 a domingo 20. Cae la del sabado 19 tambien.
     const semana = { desde: "2026-09-14", hasta: "2026-09-20" };
     expect((await embudoDelRango({ programId: programaA, rango: semana }, db)).agendas).toBe(4);
-    expect((await embudoDelRango({ programId: programaA, rango: semana }, db)).ventas).toBe(2);
     expect(await cajaRecaudada({ programId: programaA, rango: semana }, db)).toEqual([{ moneda: "USD", total: 300 }]);
 
     // Rango custom: 14 al 15.
@@ -355,14 +356,12 @@ describe("meta dinamica no divide por cero", () => {
       fechaInicioVentas: "2026-08-14",
       fechaCierreVentas: "2026-09-21",
     });
-    // 5 ventas de la cohorte: faltan 25.
+    // 5 ventas de la cohorte: faltan 25. Una venta es un deal en Abonado o Completo
+    // (ADR 0037), no un deal cualquiera.
+    const cohorteDeLaMeta = (await vistaDeCohorteActiva({ programId: programaA }, "2026-09-15", db))!
+      .cohorteId;
     for (let i = 0; i < 5; i++) {
-      await db.insert(sales).values({
-        programId: programaA,
-        cohortId: (await vistaDeCohorteActiva({ programId: programaA }, "2026-09-15", db))!.cohorteId,
-        fecha: "2026-09-01",
-        moneda: "USD",
-      });
+      await sembrarDeal(programaA, { cohortId: cohorteDeLaMeta, etapa: "abonado" });
     }
 
     // hoy despues del cierre: 22-sep. habilesRestantes = 0.
@@ -378,57 +377,18 @@ describe("meta dinamica no divide por cero", () => {
 async function crearPersona(programId: string, email: string, extra?: {
   entrada?: "formulario" | "crm";
   fechaPrimeraAplicacion?: Date | null;
-  responsableCloserId?: string | null;
 }): Promise<string> {
   const [p] = await db
-    .insert(people)
+    .insert(leads)
     .values({
       programId,
       emailNormalizado: email,
       entrada: extra?.entrada ?? "formulario",
       fechaPrimeraAplicacion: extra?.fechaPrimeraAplicacion ?? null,
-      responsableCloserId: extra?.responsableCloserId ?? null,
     })
     .returning();
   return p.id;
 }
-
-describe("compromisos de pago abiertos", () => {
-  it("un compromiso cuya persona YA tiene venta no cuenta; uno cuya persona no tiene venta si, aunque sea viejo", async () => {
-    const conVenta = await crearPersona(programaA, "convento@x.com");
-    const sinVenta = await crearPersona(programaA, "sinventa@x.com");
-
-    // Compromiso de hace tres semanas para cada persona.
-    await db.insert(calls).values([
-      {
-        programId: programaA,
-        personId: conVenta,
-        fechaAgenda: new Date("2026-08-25T14:00:00Z"),
-        resultado: "compromiso_pago",
-      },
-      {
-        programId: programaA,
-        personId: sinVenta,
-        fechaAgenda: new Date("2026-08-25T14:00:00Z"),
-        resultado: "compromiso_pago",
-      },
-    ]);
-
-    // La persona 'conVenta' ya cerro: tiene una fila en sales.
-    await db.insert(sales).values({
-      programId: programaA,
-      personId: conVenta,
-      fecha: "2026-08-26",
-      moneda: "USD",
-    });
-
-    // El rango no acota los compromisos abiertos: son un pendiente operativo.
-    const abiertos = await compromisosAbiertos({ programId: programaA }, db);
-    expect(abiertos).toBe(1);
-  });
-});
-
-// ─────────────────────────────────────── 12. leads del rango
 
 describe("leadsDelRango", () => {
   it("solo cuenta entrada='formulario'; una persona creada en el CRM no suma", async () => {
@@ -506,33 +466,26 @@ describe("embudoPorCloser y embudoPorOrigen suman lo mismo que el total", () => 
       { programId: programaA, closerId: "Ana", fechaAgenda: fecha, resultado: "cerrada" },
       { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "no_show" },
     ]);
-    const [ventaAna] = await db
-      .insert(sales)
-      .values({ programId: programaA, closerId: "Ana", fecha: "2026-09-15", moneda: "USD" })
-      .returning();
+    const ventaAna = { id: await sembrarDeal(programaA) };
     await db
       .insert(abonos)
-      .values({ saleId: ventaAna.id, programId: programaA, closerId: "Ana", fecha: "2026-09-15", monto: "100.00", moneda: "USD" });
+      .values({ dealId: ventaAna.id, programId: programaA, closerId: "Ana", fecha: "2026-09-15", monto: "100.00", moneda: "USD" });
 
     // Caro: SOLO un abono en el rango (sobre una venta vieja sin closer), sin llamadas.
-    const [ventaVieja] = await db
-      .insert(sales)
-      .values({ programId: programaA, fecha: "2026-08-01", moneda: "USD" })
-      .returning();
+    const ventaVieja = { id: await sembrarDeal(programaA) };
     await db
       .insert(abonos)
-      .values({ saleId: ventaVieja.id, programId: programaA, closerId: "Caro", fecha: "2026-09-15", monto: "50.00", moneda: "USD" });
+      .values({ dealId: ventaVieja.id, programId: programaA, closerId: "Caro", fecha: "2026-09-15", monto: "50.00", moneda: "USD" });
 
     const total = await embudoDelRango({ programId: programaA, rango: rango }, db);
     const porCloser = await embudoPorCloser({ programId: programaA, rango: rango }, db);
 
     // Los conteos por closer suman el total del programa.
-    const suma = (k: "agendas" | "llamadasConShow" | "cierres" | "ventas") =>
+    const suma = (k: "agendas" | "llamadasConShow" | "cierres") =>
       porCloser.reduce((acc, c) => acc + c[k], 0);
     expect(suma("agendas")).toBe(total.agendas);
     expect(suma("llamadasConShow")).toBe(total.llamadasConShow);
     expect(suma("cierres")).toBe(total.cierres);
-    expect(suma("ventas")).toBe(total.ventas);
 
     // Caro no tiene llamadas ni ventas pero registro un abono: tiene que aparecer.
     const caro = porCloser.find((c) => c.closerId === "Caro");
@@ -599,17 +552,11 @@ describe("alcance acotado a un closer", () => {
       { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "no_show" },
       { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "cerrada" },
     ]);
-    const [ventaAna] = await db
-      .insert(sales)
-      .values({ programId: programaA, closerId: "Ana", fecha: "2026-09-15", moneda: "USD" })
-      .returning();
-    const [ventaBeto] = await db
-      .insert(sales)
-      .values({ programId: programaA, closerId: "Beto", fecha: "2026-09-15", moneda: "USD" })
-      .returning();
+    const ventaAna = { id: await sembrarDeal(programaA) };
+    const ventaBeto = { id: await sembrarDeal(programaA) };
     await db.insert(abonos).values([
-      { saleId: ventaAna.id, programId: programaA, closerId: "Ana", fecha: "2026-09-15", monto: "100.00", moneda: "USD" },
-      { saleId: ventaBeto.id, programId: programaA, closerId: "Beto", fecha: "2026-09-15", monto: "250.00", moneda: "USD" },
+      { dealId: ventaAna.id, programId: programaA, closerId: "Ana", fecha: "2026-09-15", monto: "100.00", moneda: "USD" },
+      { dealId: ventaBeto.id, programId: programaA, closerId: "Beto", fecha: "2026-09-15", monto: "250.00", moneda: "USD" },
     ]);
   }
 
@@ -618,13 +565,11 @@ describe("alcance acotado a un closer", () => {
 
     const total = await embudoDelRango({ programId: programaA, rango }, db);
     expect(total.agendas).toBe(4);
-    expect(total.ventas).toBe(2);
 
     const ana = await embudoDelRango({ programId: programaA, rango, closerId: "Ana" }, db);
     expect(ana.agendas).toBe(2);
     expect(ana.llamadasConShow).toBe(2);
     expect(ana.cierres).toBe(1);
-    expect(ana.ventas).toBe(1);
 
     expect(await cajaRecaudada({ programId: programaA, rango, closerId: "Ana" }, db)).toEqual([
       { moneda: "USD", total: 100 },
@@ -639,7 +584,6 @@ describe("alcance acotado a un closer", () => {
 
     const nadie = await embudoDelRango({ programId: programaA, rango, closerId: "Zoe" }, db);
     expect(nadie.agendas).toBe(0);
-    expect(nadie.ventas).toBe(0);
     expect(nadie.pctShow).toBeNull();
     expect(await cajaRecaudada({ programId: programaA, rango, closerId: "Zoe" }, db)).toEqual([]);
   });
@@ -648,7 +592,12 @@ describe("alcance acotado a un closer", () => {
 describe("leads y cohorte acotados a un closer", () => {
   const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
 
-  it("los leads del closer son las personas de las que es responsable (ADR 0021), y sin responsable no se le cuelgan a nadie", async () => {
+  it("filtrado por closer los leads son `null`, no el conteo del programa", async () => {
+    // La atribucion de un lead a un closer vivia en `responsableCloserId` y se fue
+    // con el ADR 0035; su reemplazo (`deals.owner_user_id`, ADR 0037) no tiene una
+    // sola fila hasta la etapa 3. Devolver aqui el conteo del programa entero bajo
+    // el nombre de un closer seria una cifra creible y equivocada, que es la familia
+    // de bug de la que este repo ya sangro tres veces. `null` dice la verdad.
     await crearCohorteActiva({
       programId: programaA,
       codigo: "C2",
@@ -659,13 +608,10 @@ describe("leads y cohorte acotados a un closer", () => {
     });
     await crearPersona(programaA, "deana@x.com", {
       fechaPrimeraAplicacion: new Date("2026-09-15T14:00:00Z"),
-      responsableCloserId: "Ana",
     });
     await crearPersona(programaA, "debeto@x.com", {
       fechaPrimeraAplicacion: new Date("2026-09-15T15:00:00Z"),
-      responsableCloserId: "Beto",
     });
-    // Nadie la ha tomado todavia: "sin responsable" es un estado valido (ADR 0021).
     await crearPersona(programaA, "libre@x.com", {
       fechaPrimeraAplicacion: new Date("2026-09-15T16:00:00Z"),
     });
@@ -674,8 +620,10 @@ describe("leads y cohorte acotados a un closer", () => {
     expect(programa.leads).toBe(3);
 
     const ana = await leadsDelRango({ programId: programaA, rango, closerId: "Ana" }, db);
-    expect(ana.leads).toBe(1);
-    // La meta de leads/dia es de la cohorte, no del closer: no se reparte.
+    expect(ana.leads).toBeNull();
+    // Sin conteo no hay cumplimiento, pero la meta SIGUE siendo la de la cohorte:
+    // no se reparte entre closers (ADR 0023) y eso no cambio.
+    expect(ana.cumplimiento).toBeNull();
     expect(ana.metaLeadsDia).toBe(10);
     expect(ana.metaDelRango).toBe(10);
   });
@@ -688,54 +636,37 @@ describe("leads y cohorte acotados a un closer", () => {
       fechaInicioVentas: "2026-08-14",
       fechaCierreVentas: "2026-09-21",
     });
-    await db.insert(sales).values([
-      { programId: programaA, cohortId: cohorteId, closerId: "Ana", fecha: "2026-09-10", moneda: "USD" },
-      { programId: programaA, cohortId: cohorteId, closerId: "Ana", fecha: "2026-09-11", moneda: "USD" },
-      { programId: programaA, cohortId: cohorteId, closerId: "Beto", fecha: "2026-09-12", moneda: "USD" },
-    ]);
+    // El dueno de un deal es una FK a `users` (ADR 0037), no el texto del ADR 0011.
+    // El filtro del dashboard sigue llegando como texto, asi que la contribucion se
+    // resuelve por `users.closerId` con `igualCloser` (ADR 0030).
+    const ana = await sembrarCloser("Ana");
+    const beto = await sembrarCloser("Beto");
+    await sembrarDeal(programaA, { cohortId: cohorteId, ownerUserId: ana, etapa: "abonado" });
+    await sembrarDeal(programaA, { cohortId: cohorteId, ownerUserId: ana, etapa: "completo" });
+    await sembrarDeal(programaA, { cohortId: cohorteId, ownerUserId: beto, etapa: "abonado" });
 
     const programa = await vistaDeCohorteActiva({ programId: programaA }, "2026-09-15", db);
     expect(programa!.vendidos).toBe(3);
     expect(programa!.vendidosDelCloser).toBeNull();
 
-    const ana = await vistaDeCohorteActiva({ programId: programaA, closerId: "Ana" }, "2026-09-15", db);
+    const vistaDeAna = await vistaDeCohorteActiva(
+      { programId: programaA, closerId: "Ana" },
+      "2026-09-15",
+      db,
+    );
     // Su contribucion es suya; la meta, los vendidos de la cohorte y la ventana no cambian.
-    expect(ana!.vendidosDelCloser).toBe(2);
-    expect(ana!.vendidos).toBe(3);
-    expect(ana!.meta).toBe(30);
-    expect(ana!.faltan).toBe(27);
-    expect(ana!.ventana!.dia).toBe(programa!.ventana!.dia);
-    expect(ana!.ventana!.metaDinamica).toBe(programa!.ventana!.metaDinamica);
+    expect(vistaDeAna!.vendidosDelCloser).toBe(2);
+    expect(vistaDeAna!.vendidos).toBe(3);
+    expect(vistaDeAna!.meta).toBe(30);
+    expect(vistaDeAna!.faltan).toBe(27);
+    expect(vistaDeAna!.ventana!.dia).toBe(programa!.ventana!.dia);
+    expect(vistaDeAna!.ventana!.metaDinamica).toBe(programa!.ventana!.metaDinamica);
   });
 });
 
 describe("pendientes y desgloses acotados a un closer", () => {
   const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
   const fecha = new Date("2026-09-15T14:00:00Z");
-
-  it("los compromisos abiertos de un closer son los suyos, y siguen cerrados si otro closer vendio a esa persona", async () => {
-    const deAna = await crearPersona(programaA, "deana@x.com");
-    const deBeto = await crearPersona(programaA, "debeto@x.com");
-    const cerradaPorOtro = await crearPersona(programaA, "cerrada@x.com");
-
-    await db.insert(calls).values([
-      { programId: programaA, closerId: "Ana", personId: deAna, fechaAgenda: fecha, resultado: "compromiso_pago" },
-      { programId: programaA, closerId: "Beto", personId: deBeto, fechaAgenda: fecha, resultado: "compromiso_pago" },
-      { programId: programaA, closerId: "Ana", personId: cerradaPorOtro, fechaAgenda: fecha, resultado: "compromiso_pago" },
-    ]);
-    // Beto cerro a la persona con la que Ana tenia el compromiso: ya no es un pendiente.
-    await db.insert(sales).values({
-      programId: programaA,
-      closerId: "Beto",
-      personId: cerradaPorOtro,
-      fecha: "2026-09-16",
-      moneda: "USD",
-    });
-
-    expect(await compromisosAbiertos({ programId: programaA }, db)).toBe(2);
-    expect(await compromisosAbiertos({ programId: programaA, closerId: "Ana" }, db)).toBe(1);
-    expect(await compromisosAbiertos({ programId: programaA, closerId: "Beto" }, db)).toBe(1);
-  });
 
   it("los motivos de perdida y los origenes se acotan al closer", async () => {
     const catalogoMotivos = await db.select().from(motivos);
