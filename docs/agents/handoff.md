@@ -86,6 +86,38 @@ ticket 048, y lo que entre antes no se puede reconstruir.
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-21 (CIERRE 21) — `docs/insumos/notas-segundo-cerebro/`: el second brain entra al repo
+  como material crudo, sin tocar codigo.** Sesion de documentacion pura, pedida por Mani para que su
+  companero de trabajo tenga el mismo contexto del refactor sin acceso al vault.
+
+  **Que se copio (verbatim, con una nota de procedencia arriba de cada uno):**
+  `crm-retia-modelo-hubspot-scaffold.md` (el diseno consolidado), `crm-explicado-simple.md` (la
+  version para explicarlo sin abrir codigo) y `reunion-alejo-2026-09-21.md` (la nota reconciliada de
+  Mani sobre esa reunion — distinta del insumo crudo de Granola que ya vivia en
+  `docs/insumos/fleeting/2026-09-21-reunion-alejo-areas-y-utms.md`, un nivel menos procesada; no son
+  el mismo archivo).
+
+  **Que se fusiono:** `flujo-de-leads-retia.md` y `flujo-closers-retia-sheets.md` del vault
+  reconstruian lo mismo el mismo dia (2026-09-20, leyendo los dos Sheets y los `.gs` de Apps
+  Script) y se solapaban tanto que Mani pidio juntarlos en uno. Veredicto sobre cual era mas
+  *accurate*: no eran contradictorios, sino de distinta profundidad — donde se solapan,
+  `flujo-closers-retia-sheets` es la mas confiable porque cada afirmacion cita su prueba en el
+  codigo o en los datos (timestamps, conteos, el incidente real de los 462 leads perdidos), y el
+  propio `flujo-de-leads-retia` ya remitia a ella para esa parte. Resultado en
+  `flujo-de-leads-y-closers-retia.md`: la primera nota como columna vertebral (cubre todo el viaje,
+  de anuncio a cartera y atribucion), con la evidencia de la segunda inyectada donde correspondia,
+  sin repetir cifras. **Los originales del vault quedaron intactos** — la fusion vive solo en el
+  repo; si mas adelante Mani quiere que tambien reemplace las dos notas sueltas alla, queda
+  pendiente de que lo pida.
+
+  **Por que en `docs/insumos/` y no una carpeta nueva:** el repo ya tenia esa convencion para
+  material crudo sin reconciliar (`fleeting/`, `historico-c2/`); `notas-segundo-cerebro/` es
+  el mismo patron para las notas de analisis de Mani. `AGENTS.md` gano un sexto documento de
+  referencia explicandolo, para que una sesion futura sepa que existe sin tener que encontrarlo por
+  casualidad.
+
+  Sin cambios de esquema, codigo ni tickets.
+
 - **2026-09-21 (CIERRE 20) — La reunion con Alejo Carvajal abre la etapa E1b: el origen y la
   atribucion.** Sesion sin una linea de codigo: extraccion, medicion, tres ADR y nueve tickets.
 

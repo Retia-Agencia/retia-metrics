@@ -30,6 +30,14 @@ las dos hojas de Google Sheets. Leelo antes de tocar `lib/sheets/`: dice que pes
 cuales son vistas derivadas que romperian el dedup, y cuales son respaldos viejos que inflan los
 conteos. Eso no se deduce del codigo ni lo devuelve `npm run descubrir`.
 
+Y un sexto: **`docs/insumos/`**, material crudo sin reconciliar del que salieron el spec, el plan y
+los ADR — nunca la fuente de verdad, esos documentos lo son. Notas de reunion en `fleeting/`,
+historicos de ventas en `historico-c2/`, y en `notas-segundo-cerebro/` las notas de analisis del
+second brain de Mani sobre el refactor del CRM (el diseno consolidado modelo HubSpot, su version
+explicada simple, la reunion con Alejo Carvajal del 21-sep, y la reconstruccion del flujo actual
+leyendo los Sheets y los `.gs`). Utiles para entender el *por que* de una decision cuando el ADR
+correspondiente no alcanza a explicar el contexto completo.
+
 Available skills (the pipeline is **spec → plan → build**): `/spec` (interview → `docs/spec.md`, or `docs/specs/*.md` one per domain), `/plan` (spec → `docs/plan.md` + tickets), `/grill-me`, `/grill-with-docs` (align + document before building), `/tdd` (red-green-refactor), `/diagnose` (disciplined debugging), `/improve-codebase` (deepen modules), `/handoff` (compact a session).
 
 Keep this file current yourself: when a feedback-loop command turns out wrong or missing, or a durable convention emerges that no linter enforces, update the relevant section below directly rather than letting it drift.
