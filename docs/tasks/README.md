@@ -10,6 +10,11 @@ Un ticket está **listo** cuando todos los de su columna "Depende de" están en 
 Orden y porqué: **[docs/plan-crm-v2.md](../plan-crm-v2.md)** para la época viva; [docs/plan.md](../plan.md)
 para el MVP ya ejecutado. Alcance: [docs/spec.md](../spec.md).
 
+> 🔎 **22-sep: revisión pendiente de decisión.** [docs/auditorias/revision-modelo-hubspot-2026-09-22.md](../auditorias/revision-modelo-hubspot-2026-09-22.md)
+> propone cambios **antes de E2**: el setteo fuera del deal (D1), huecos en la tabla de transiciones del **043** (D2),
+> transacciones reales en vez de `neon-http` para escribir (R1) y el orden operación-antes-que-analítica (P1).
+> **No tomes el 043 ni abras E1b hasta que Mani decida esas fichas.**
+>
 > ⚠️ **21-sep: se abrió la época siguiente.** El CRM pasa al modelo HubSpot (Lead, Envío,
 > Deal, diez etapas). El plan de ejecución, con el estado medido de `production` y el impacto
 > sobre los tickets de abajo, está en **[docs/plan-crm-v2.md](../plan-crm-v2.md)**. Léelo antes
