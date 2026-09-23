@@ -1,4 +1,4 @@
-import { normalizarEmail, limpiar, parsearFecha } from "./mapeo";
+import { normalizarEmail, limpiar, parsearFecha, ZONA_BOGOTA } from "./mapeo";
 
 /**
  * Dedup por correo. Es la pieza mas critica del sistema.
@@ -57,7 +57,10 @@ const CAMPOS_TEXTO = [
  * Las filas sin correo valido se descartan y se devuelven aparte: no se inventan
  * identidades ni se cuentan como personas.
  */
-export function deduplicarPorCorreo(filas: FilaCruda[]): {
+export function deduplicarPorCorreo(
+  filas: FilaCruda[],
+  zonaDe: (fila: FilaCruda) => string = () => ZONA_BOGOTA,
+): {
   personas: PersonaDeducida[];
   sinCorreo: number;
 } {
@@ -71,7 +74,7 @@ export function deduplicarPorCorreo(filas: FilaCruda[]): {
       continue;
     }
 
-    const fecha = parsearFecha(fila.fechaAplicacion);
+    const fecha = parsearFecha(fila.fechaAplicacion, zonaDe(fila));
     const existente = porCorreo.get(email);
 
     if (!existente) {

@@ -6,7 +6,13 @@ import { ErrorDeApp } from "@/lib/errors";
 import { esViolacionUnica } from "@/lib/db/errores";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { leerPestana } from "./leer";
-import { resolverColumnas, OBLIGATORIOS_FORMULARIO, type MapeoColumnas } from "./mapeo";
+import {
+  resolverColumnas,
+  OBLIGATORIOS_FORMULARIO,
+  validarZona,
+  ZONA_BOGOTA,
+  type MapeoColumnas,
+} from "./mapeo";
 import { combinarMapeo } from "./plantilla-lead";
 import { deduplicarPorCorreo, filasDesdeMatriz } from "./dedup";
 import { planificarSync } from "./plan-sync";
@@ -162,6 +168,8 @@ export async function sincronizarPersonas(
   try {
     // 1. Leer TODAS las fuentes de personas del programa y juntar sus filas
     const todas: ReturnType<typeof filasDesdeMatriz> = [];
+    // La zona en que escribe cada fuente (ticket 053), para fechar cada fila con la suya.
+    const zonaDeFila = new WeakMap<object, string>();
 
     for (const f of [...fuentes].sort((a, b) => a.orden - b.orden)) {
       if (!f.sheetId || !f.tab) {
@@ -173,6 +181,9 @@ export async function sincronizarPersonas(
         errores.push(`La pestana "${f.tab}" vino vacia.`);
         continue;
       }
+
+      // Una zona que no existe detiene el sync antes de escribir nada, igual que un mapeo roto.
+      validarZona(f.tzFechas);
 
       const encabezados = matriz[0].map((h) => String(h ?? "").trim());
       // Mapeo efectivo campo por campo (ADR 0019): la fuente gana sobre la plantilla
@@ -187,6 +198,7 @@ export async function sincronizarPersonas(
       const indices = resolverColumnas(encabezados, mapeo, OBLIGATORIOS_FORMULARIO);
 
       const filas = filasDesdeMatriz(matriz.slice(1), indices);
+      for (const fila of filas) zonaDeFila.set(fila, f.tzFechas);
       todas.push(...filas);
       // El resultado guarda datos, no formato: el `nombre (filas)` lo arma quien
       // presenta (la consola de scripts, la pantalla de /nerd-stats), nunca aca.
@@ -197,7 +209,10 @@ export async function sincronizarPersonas(
     }
 
     // 2. Dedup sobre el conjunto completo
-    const { personas, sinCorreo } = deduplicarPorCorreo(todas);
+    const { personas, sinCorreo } = deduplicarPorCorreo(
+      todas,
+      (fila) => zonaDeFila.get(fila) ?? ZONA_BOGOTA,
+    );
     resultado.sinCorreo = sinCorreo;
     resultado.personasEnHoja = personas.length;
 

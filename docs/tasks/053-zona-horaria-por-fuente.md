@@ -48,3 +48,26 @@ Eso corre cada fecha cinco horas: de 7pm a medianoche, el dia cambia.
 ## Kiro
 
 Si, con revision. Es un cambio chico con radio grande.
+
+## Avance 22-sep (status sigue `todo`: falta la mitad que escribe en `production`)
+
+- ✅ **Código:** `parsearFecha(celda, zona)` lee con la zona de la fuente. Bogotá conserva el
+  `-05:00` literal y las demás zonas pasan por `Intl` (con horario de verano). Una zona que no
+  existe lanza `ZonaHorariaInvalidaError` (422) y el sync se detiene antes de escribir. El dedup
+  recibe `zonaDe(fila)` y el sync pasa `sources.tz_fechas` de cada fuente. Tests en
+  `tests/zona-por-fuente.test.ts`: la misma celda en UTC y en Bogotá da cinco horas de
+  diferencia, el default no cambia, hay horario de verano, el centinela sigue siendo null, una zona
+  inválida falla, y el sync se probó de punta a punta sobre PGlite.
+- ✅ **Grep** del "done": no hay `new Date(` con tres argumentos para una fecha de negocio. El
+  `toISOString().slice(0,10)` de `lib/rangos.ts` es aritmética de calendario sobre `Date.UTC`,
+  no un instante, y se deja.
+- 🩸 **El desfase está confirmado por evidencia documentada, no medido en esta sesión** (el
+  checkout no tenía `.env.local`). `flujo-de-leads-y-closers-retia.md:251-256` cita una fila con
+  `Submitted At` 16/9 23:05 sellada por el Apps Script a las 18:08 de Bogotá, y los consolidados
+  C2 solo cuadran con Urgencias restando cinco horas.
+- ⏳ **Falta, y pide el ok de Mani porque escribe en `production`:** poner `tz_fechas = 'UTC'` en
+  las dos fuentes reales. **El código es inerte hasta ese UPDATE.** Después, el sync siguiente
+  corrige solo, con bitácora, las fechas de ~4.800 leads, porque las fechas están en
+  `CAMPOS_COMPARABLES`. Conviene hacerlo primero en `dev` y medir que se muevan exactamente las
+  cinco horas.
+- ⏳ **Falta:** que el botón **Probar** muestre el último envío convertido.

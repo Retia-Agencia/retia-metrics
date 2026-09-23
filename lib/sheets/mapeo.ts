@@ -116,6 +116,79 @@ export function limpiar(v: unknown): string | null {
  */
 const ANO_MINIMO_PLAUSIBLE = 2000;
 
+/** La zona de negocio del proyecto (AGENTS.md) y el default de `sources.tz_fechas`. */
+export const ZONA_BOGOTA = "America/Bogota";
+
+/**
+ * La zona de una fuente no existe. Es configuracion rota, asi que falla ruidosamente
+ * (como `MapeoInvalidoError`): leer la fecha "en alguna zona" la correria sin un error.
+ */
+export class ZonaHorariaInvalidaError extends ErrorDeApp {
+  constructor(readonly zona: string) {
+    super(
+      `La zona horaria "${zona}" de la fuente no existe. Usa un nombre IANA, ` +
+        `por ejemplo "UTC" o "${ZONA_BOGOTA}".`,
+      422,
+    );
+    this.name = "ZonaHorariaInvalidaError";
+  }
+}
+
+// Un formateador por zona: crearlo es lo caro, y una hoja trae miles de filas.
+const formateadores = new Map<string, Intl.DateTimeFormat>();
+
+function formateadorDe(zona: string): Intl.DateTimeFormat {
+  let f = formateadores.get(zona);
+  if (!f) {
+    try {
+      f = new Intl.DateTimeFormat("en-US", {
+        timeZone: zona,
+        hourCycle: "h23",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    } catch {
+      throw new ZonaHorariaInvalidaError(zona);
+    }
+    formateadores.set(zona, f);
+  }
+  return f;
+}
+
+/** Comprueba que la zona exista. Lanza `ZonaHorariaInvalidaError` si no. */
+export function validarZona(zona: string): void {
+  if (zona !== ZONA_BOGOTA) formateadorDe(zona);
+}
+
+/** Cuanto adelanta el reloj de `zona` respecto de UTC en `instante`, en milisegundos. */
+function desfaseMs(zona: string, instante: number): number {
+  const p = Object.fromEntries(
+    formateadorDe(zona)
+      .formatToParts(new Date(instante))
+      .filter((x) => x.type !== "literal")
+      .map((x) => [x.type, Number(x.value)]),
+  );
+  return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - instante;
+}
+
+/**
+ * El instante en que el reloj de `zona` marco esa fecha y hora. Dos pasadas porque el
+ * desfase depende del propio instante cuando la zona tiene horario de verano.
+ */
+function instanteDelReloj(
+  zona: string,
+  a: number, mes: number, d: number, h: number, min: number, seg: number,
+): Date {
+  const comoUtc = Date.UTC(a, mes - 1, d, h, min, seg);
+  let t = comoUtc - desfaseMs(zona, comoUtc);
+  t = comoUtc - desfaseMs(zona, t);
+  return new Date(t);
+}
+
 /**
  * Las hojas entregan fechas en formato colombiano: d/m/yyyy hh:mm:ss.
  * `new Date()` las lee como mes/dia y produce fechas equivocadas en silencio,
@@ -129,7 +202,10 @@ const ANO_MINIMO_PLAUSIBLE = 2000;
  * como `null`, que es lo que de verdad significa, y el dedup ya sabe tratar una fila
  * sin fecha (F-02). El detalle del incidente esta en `docs/agents/handoff.md`.
  */
-export function parsearFecha(v: unknown): Date | null {
+export function parsearFecha(v: unknown, zona: string = ZONA_BOGOTA): Date | null {
+  // La zona se valida antes que la celda: una fuente mal configurada falla aunque la
+  // primera celda venga vacia, en vez de descubrirse a la mitad de la hoja.
+  validarZona(zona);
   const s = String(v ?? "").trim();
   if (!s) return null;
 
@@ -144,10 +220,16 @@ export function parsearFecha(v: unknown): Date | null {
     // proceso: en la maquina de Michael eso es UTC-5 y en una funcion de Vercel es
     // UTC, asi que la misma fila producia dos instantes distintos sobre una columna
     // timestamptz. Colombia no tiene horario de verano: siempre es -05:00.
-    const f = new Date(
-      `${a}-${p2(mes)}-${p2(d)}T${p2(h)}:${p2(min)}:${p2(seg)}-05:00`,
-    );
-    return plausible(f);
+    if (zona === ZONA_BOGOTA) {
+      const f = new Date(
+        `${a}-${p2(mes)}-${p2(d)}T${p2(h)}:${p2(min)}:${p2(seg)}-05:00`,
+      );
+      return plausible(f);
+    }
+    // Ticket 053: otra zona es la de la FUENTE (`sources.tz_fechas`). Typeform escribe
+    // `Submitted At` en UTC, y leerlo como Bogota corria cada fecha cinco horas.
+    const n = (x: string) => Number(x);
+    return plausible(instanteDelReloj(zona, n(a), n(mes), n(d), n(h), n(min), n(seg)));
   }
 
   // ISO u otros formatos que Date si entiende sin ambiguedad
