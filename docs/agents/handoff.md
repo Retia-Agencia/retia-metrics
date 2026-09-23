@@ -51,6 +51,54 @@ Lo que sigue sin esperar decisiones:
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-23 (CIERRE 24): la base se mudo a Supabase y la app tiene sistema de diseno.**
+  Commits `11c563a`, `a95e25a` y `1a45a1f`, sin push. Decisiones del chat con Mani del 22-sep en
+  `docs/auditorias/revision-modelo-hubspot-2026-09-22.md` §5b (S1-S2, T1-T3).
+  1. **Supabase (ADR 0047, reemplaza al 0018).**
+     - Driver: `drizzle-orm/postgres-js` con `prepare: false`. `ejecutarJuntas` es una
+       transaccion real y corre en orden. Sale `@neondatabase/serverless`.
+     - Guardian nuevo `tests/base-portable.test.ts`: nada fuera de `lib/db/` importa el driver.
+     - Proyecto `dev`: ref `hfqmiyiuyqapdsbywrag`, region `us-east-2`, org de Retia en plan
+       gratis.
+       - `DATABASE_URL` va por el pooler en modo transaction (6543).
+       - `DATABASE_URL_DIRECTA` va por el pooler en modo session (5432): la conexion directa es
+         solo IPv6 y no resuelve desde la red de Alejandro.
+       - `.env.local` arma las dos URLs desde `SUPABASE_DB_PASSWORD`.
+     - **Todavia no existe el proyecto de produccion** (`DB_PROD` vacia).
+     - Base VACIA por decision de Mani: 22 migraciones aplicadas; sembrado con `seed:datos` y
+       `seed:users`.
+     - Usuarios: `administrativa@retiagrowth.com` (gerente) y `a.davila0423@gmail.com`
+       (developer). `fdavilaceron@gmail.com` quedo inactivo.
+     - **Faltan los enlaces de pago:** el JSON lo tiene Mani.
+     - 🩸 **Recien migrada, las 25 tablas eran legibles por `anon`** con la llave publica. La 0021
+       las cierra con RLS sin politicas + REVOKE, y `tests/rls-en-todas-las-tablas.test.ts` exige
+       RLS en cualquier tabla futura.
+     - La Data API hay que apagarla a mano en el dashboard: **sin confirmar**.
+     - 🩸 Al cambiar de driver se cayo el build: `recursos-pantalla.tsx` (cliente) importaba
+       `MONEDAS` de un modulo que arrastra `lib/db`. Con Neon (`fetch`) el cliente de la base
+       se empaquetaba en el navegador sin error. `MONEDAS` quedo en `lib/monedas.ts` y dejo de
+       estar escrita dos veces.
+     - Probado de punta a punta: login con Google y dashboards contra Supabase, sin errores de base.
+  2. **Sistema de diseno "Tinta"** (elegido entre Pizarra, Tinta y Cabina; comparacion en
+     https://claude.ai/artifact/KRmpzsKbSk7ry8PuT92rCh).
+     - Contrato en **`docs/design-system.md`**, lectura obligatoria desde AGENTS.md antes de
+       tocar una pantalla.
+     - Tokens en `app/globals.css`.
+     - 🩸 **La app nunca uso Geist:** `--font-sans: var(--font-sans)` era circular y todo caia a
+       la fuente del navegador. Arreglado.
+     - Marco oscuro con `data-zona="marco"`, que redefine los tokens dentro de la barra.
+     - Hoja clara en `PageShell`, tarjeta con `shadow-tarjeta`, `Badge` con cinco tonos de
+       estado, utilidad `cifra`, y la tabla etapa -> tono para el Kanban.
+     - **Las pantallas de administracion no se repasaron una por una:** heredan los tokens.
+  3. **Siguiente (parte 2, T1-T3):**
+     - escritura de la ingesta sobre `lib/ingesta/`;
+     - regla del `Estado` por fuente;
+     - webhook de Typeform (firma, `form_id` -> fuente, excepcion en `proxy.ts`);
+     - traslado desde Sheets.
+     
+     Para el webhook falta **un payload real de Typeform** y confirmar si Typeform manda los
+     envios parciales.
+
 - **2026-09-22 (CIERRE 23) — Lo que se pudo adelantar sin decisiones: verificacion, zona
   horaria, limpieza e ingesta pura.** Commits `a12c43e`, `3331f03`, `b7b18bd`, `b9c99a9`, sin
   push.
