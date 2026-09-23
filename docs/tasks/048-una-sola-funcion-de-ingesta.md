@@ -54,3 +54,14 @@ funcion de Vercel. **Toda operacion sobre el set completo se escribe por lotes d
 ## Kiro
 
 Si, **con revision cercana**: aqui un bug es silencioso.
+
+## Avance 22-sep (status sigue `todo`)
+
+- ✅ **La puerta existe y es pura:** `construirEnvio(entrada)` en `lib/ingesta/envio.ts`, con
+  el tipo `EntradaEnvio` (fuente, zona, posición, columnas crudas, mapeo resuelto y `esParcial`
+  opcional para el webhook). El adaptador de Sheets es `entradasDesdeMatriz` en
+  `lib/ingesta/adaptador-sheets.ts`.
+- ✅ Test: un payload con forma de webhook produce **el mismo Envío** que la fila equivalente
+  (`tests/ingesta-envio.test.ts`).
+- ⏳ **Falta:** que `lib/sheets/sync.ts` use la puerta y escriba por lotes (con el 049). Si se
+  decide R1 (transacciones), esa escritura va sobre el driver nuevo.

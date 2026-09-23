@@ -54,3 +54,24 @@ real a quien si la tenia**. Cualquier regla nueva de union hereda ese riesgo: al
 ## Kiro
 
 Si, **con revision cercana**: es donde un bug es mas silencioso.
+
+## Avance 22-sep (status sigue `todo`)
+
+- ✅ **La decisión, pura y determinista:** `resolverIdentidad(envios, conocidos)` en
+  `lib/ingesta/identidad.ts`. Reglas implementadas:
+  - el correo manda;
+  - un teléfono conocido con un correo distinto **une y marca**, y el correo entra sin confirmar;
+  - si correo y teléfono apuntan a leads distintos, gana el correo y queda un posible duplicado;
+  - sin correo y sin teléfono conocido no hay lead.
+- ✅ **El orden no cambia el resultado:** lo decide la posición en la hoja, y hay test. Lo que
+  llega por webhook va al final, ordenado por token.
+- ✅ También devuelve los `contactosNuevos` (con el token del envío del que llegaron, principal y
+  confirmado) y los `posiblesDuplicados` para el gerente.
+- 📌 **Para quien lo cablee:** `lead_contactos` está vacía en `production`. Hay que pasar como
+  `conocidos` también el correo y el teléfono que hoy viven en `leads`; si no, todo lead existente
+  parecería nuevo.
+- ⏳ **Falta:**
+  - escribir contactos y asignaciones (con el 049);
+  - "separar" y "confirmar", guardando **quién** confirmó (sigue abierto dónde, schema.ts:401);
+  - el test sobre los 37 casos reales de Tactical: hoy es una muestra fabricada (una familia con
+    un número).

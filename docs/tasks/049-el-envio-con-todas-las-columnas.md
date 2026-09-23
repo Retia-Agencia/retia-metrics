@@ -70,3 +70,26 @@ con ningun patron** son **dos cosas distintas**, con dueno distinto y arreglo di
 guarda el crudo tal cual (ADR 0004) y **no rellena un vacio con un centinela**: un `utm_source`
 ausente se guarda como `null`, no como `"organico"` ni `"directo"`. Inventarlo convertiria un
 problema de captacion en una atribucion falsa.
+
+## Avance 22-sep (status sigue `todo`)
+
+- ✅ **La construcción del Envío, pura** (`lib/ingesta/envio.ts`). Promovidas: token, fecha,
+  estado de la hoja y los tres UTM. `utm_term` y `utm_content` **no** se promueven y quedan
+  crudos en `respuestas`. **Nada se repite dentro del jsonb**, y hay test.
+- Hay test para cada una de estas reglas:
+  - un UTM ausente es `null`;
+  - parcial y completa con el mismo token son dos envíos;
+  - una columna nueva entra sola;
+  - se lee hasta el último encabezado no vacío;
+  - **dos encabezados iguales no se pisan** (el segundo queda como "X (2)");
+  - una columna sin encabezado conserva su dato;
+  - una fila sin token se rechaza con motivo, sin inventar una llave.
+- 📌 **Decisión tomada en el código, a revisar:** `correo` y `telefono` **no** son promovidas (no
+  son columnas de `submissions`), así que su texto crudo se queda en `respuestas`. Es el único
+  rastro de qué correo trajo **ese** envío cuando un lead tiene varios.
+- ⚠️ **Supuesto a medir contra `dev`:** un envío es parcial si su fecha es nula (vacía o el
+  placeholder `1/1/0001`). En Tactical se midió que los 1.152 parciales traen ese placeholder;
+  falta confirmar que ninguna fila completa venga sin fecha.
+- ⏳ **Falta:** la escritura por lotes, el conteo de ~6.233 envíos sobre datos reales y el test
+  de "ninguna llave promovida en el jsonb" **sobre datos reales**. Los tests de hoy usan filas
+  fabricadas.
