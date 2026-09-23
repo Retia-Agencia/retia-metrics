@@ -3,6 +3,7 @@ import { auth, signIn } from "@/lib/auth";
 import { destinoInicial } from "@/lib/auth/page-guards";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Marca } from "@/components/marca";
 
 const MENSAJES_ERROR: Record<string, string> = {
   AccessDenied:
@@ -30,10 +31,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Busque
     desdeCrudo?.startsWith("/") && !desdeCrudo.startsWith("//") ? desdeCrudo : undefined;
 
   return (
-    <main className="flex flex-1 items-center justify-center p-6">
-      <Card className="w-full max-w-sm">
+    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-6">
+      <Marca />
+      <Card className="w-full max-w-sm shadow-flotante">
         <CardHeader>
-          <CardTitle>Retia Metrics</CardTitle>
+          <CardTitle className="text-base">Entra con tu cuenta del equipo</CardTitle>
           <CardDescription>
             Acceso restringido al equipo comercial de Retia.
           </CardDescription>
@@ -42,7 +44,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Busque
           {error ? (
             <p
               role="alert"
-              className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+              className="rounded-lg bg-tono-peligro-suave p-3 text-sm text-tono-peligro"
             >
               {MENSAJES_ERROR[error] ?? "No se pudo iniciar sesión. Intenta de nuevo."}
             </p>
@@ -54,7 +56,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Busque
               await signIn("google", { redirectTo: desde ?? "/" });
             }}
           >
-            <Button type="submit" className="w-full">
+            <Button type="submit" size="lg" className="w-full">
               Entrar con Google
             </Button>
           </form>

@@ -30,6 +30,12 @@ las dos hojas de Google Sheets. Leelo antes de tocar `lib/sheets/`: dice que pes
 cuales son vistas derivadas que romperian el dedup, y cuales son respaldos viejos que inflan los
 conteos. Eso no se deduce del codigo ni lo devuelve `npm run descubrir`.
 
+Y un séptimo, **obligatorio antes de tocar cualquier pantalla: `docs/design-system.md`**, el sistema
+de diseño "Tinta" (23-sep). Ninguna pantalla escribe un color, una sombra ni un radio a mano: se usa
+el token de `app/globals.css`, y si falta uno se crea ahí, en claro **y** en oscuro. Un solo acento (el
+verde de marca, que significa avance y nunca va en un botón), cinco tonos de estado por `<Badge variant>`,
+y toda cifra comparable en `cifra`.
+
 Y un sexto: **`docs/insumos/`**, material crudo sin reconciliar del que salieron el spec, el plan y
 los ADR — nunca la fuente de verdad, esos documentos lo son. Notas de reunion en `fleeting/`,
 historicos de ventas en `historico-c2/`, y en `notas-segundo-cerebro/` las notas de analisis del

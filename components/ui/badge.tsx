@@ -19,6 +19,14 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        // Tonos de ESTADO (docs/design-system.md): fondo suave + texto del mismo tono.
+        // Son semanticos, no el acento: dicen "bien / atento / mal / en curso", y una
+        // etapa del deal siempre usa el mismo tono en el Kanban, la ficha y las tablas.
+        neutro: "bg-tono-neutro-suave text-tono-neutro",
+        info: "bg-tono-info-suave text-tono-info",
+        alerta: "bg-tono-alerta-suave text-tono-alerta",
+        exito: "bg-tono-exito-suave text-tono-exito",
+        peligro: "bg-tono-peligro-suave text-tono-peligro",
       },
     },
     defaultVariants: {

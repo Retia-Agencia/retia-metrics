@@ -34,11 +34,11 @@ function Tarjeta({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{titulo}</CardTitle>
+        <CardTitle className="text-xs font-medium tracking-normal text-muted-foreground">{titulo}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-semibold tabular-nums">{valor}</div>
-        {nota ? <p className="text-xs text-muted-foreground">{nota}</p> : null}
+        <div className="cifra text-2xl font-semibold">{valor}</div>
+        {nota ? <p className="mt-1 text-xs text-muted-foreground">{nota}</p> : null}
       </CardContent>
     </Card>
   );
@@ -58,7 +58,7 @@ function Caja({ caja }: { caja: CajaPorMoneda[] }) {
 
 function Tabla({ cabeceras, children }: { cabeceras: string[]; children: ReactNode }) {
   return (
-    <table className="w-full text-sm">
+    <table className="w-full text-sm [&_td:not(:first-child)]:cifra">
       <thead>
         <tr className="border-b text-left text-xs text-muted-foreground">
           {cabeceras.map((c, i) => (
@@ -68,7 +68,7 @@ function Tabla({ cabeceras, children }: { cabeceras: string[]; children: ReactNo
           ))}
         </tr>
       </thead>
-      <tbody className="divide-y">{children}</tbody>
+      <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">{children}</tbody>
     </table>
   );
 }
@@ -126,19 +126,19 @@ export function DashboardPrograma({ vista }: { vista: VistaDelDashboard }) {
               <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
                 <div>
                   <p className="text-xs text-muted-foreground">Vendidos / meta</p>
-                  <p className="text-lg font-semibold tabular-nums">
+                  <p className="text-lg cifra font-semibold">
                     {num(cohorte.vendidos)} / {num(cohorte.meta)}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Faltan</p>
-                  <p className="text-lg font-semibold tabular-nums">{num(cohorte.faltan)}</p>
+                  <p className="text-lg cifra font-semibold">{num(cohorte.faltan)}</p>
                 </div>
                 {cohorte.ventana ? (
                   <>
                     <div>
                       <p className="text-xs text-muted-foreground">Meta dinámica</p>
-                      <p className="text-lg font-semibold tabular-nums">
+                      <p className="text-lg cifra font-semibold">
                         {num(cohorte.ventana.metaDinamica, 1)}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -147,7 +147,7 @@ export function DashboardPrograma({ vista }: { vista: VistaDelDashboard }) {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Esperado a hoy</p>
-                      <p className="text-lg font-semibold tabular-nums">
+                      <p className="text-lg cifra font-semibold">
                         {num(cohorte.ventana.esperado, 1)}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -156,7 +156,7 @@ export function DashboardPrograma({ vista }: { vista: VistaDelDashboard }) {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Cumplimiento</p>
-                      <p className="text-lg font-semibold tabular-nums">
+                      <p className="text-lg cifra font-semibold">
                         {tasa(cohorte.ventana.cumplimiento)}
                       </p>
                     </div>
