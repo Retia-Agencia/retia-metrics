@@ -5,86 +5,112 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito el 21-sep, tras la reunión con Alejo Carvajal y las
-> decisiones que abrieron la etapa **E1b**.
+> Copiar y pegar tal cual. Reescrito el 22-sep tras la revisión del modelo HubSpot. El prompt
+> anterior (el de E1b, del 21-sep) está en el historial de git (`git show fbab8ee:docs/agents/handoff.md`);
+> sus reglas siguen vivas en los ADR 0043-0046 y los tickets 083-093.
 
 ```
-Seguimos con el CRM v2 de Retia. Lee AGENTS.md, docs/plan-crm-v2.md (sobre todo la §12) y los
-ADR 0043, 0044, 0045 y 0046, que son nuevos. El diseno base vive fuera del repo, en
-/Users/mani/Documents/mani_vault/02 Projects/retia/notebook/crm-retia-modelo-hubspot-scaffold.md
-y manda sobre el plan en todo lo que sea diseno; la §12 del plan lo ENMIENDA con lo que salio de
-la reunion con Alejo del 21-sep.
+Seguimos con el CRM v2 de Retia. Lee AGENTS.md y, ANTES que el plan, el documento de revision
+docs/auditorias/revision-modelo-hubspot-2026-09-22.md: propone cambios que van antes de la
+etapa 2, y el tracker dice que no se toma el 043 ni se abre E1b hasta que Mani decida.
 
-Estado: etapa 1 CERRADA y fusionada (tickets 036 a 042), migracion 0020 aplicada en las dos ramas
-de Neon. 611 tests, typecheck y lint limpios, `production` con 4.823 leads.
+Estado: etapa 1 cerrada, migracion 0020 aplicada en dev y production. production tiene 4.823
+leads y CERO deals/calls/abonos/submissions: el CRM hoy solo lee leads; los closers siguen en
+Sheets. Ultimo conteo conocido: 611 tests (no se re-corrieron: este checkout no tenia
+node_modules).
 
-El 21-sep se abrio una etapa NUEVA, E1b, que va ANTES de la etapa 2 en el tracker pero es
-independiente de ella: el esquema del origen y la atribucion. Tickets 083, 084, 085 y 092, con una
-sola migracion, la 0021.
+Decidido el 22-sep:
+  - D1: el setteo VIVE EN EL DEAL. Se conservan las 10 etapas del ADR 0037, sin enmienda.
 
-Por que existe E1b, en dos frases:
-  - El numero que pidio Gerencia ("cantidad de leads por area") hoy mostraria COMERCIAL EN CERO,
-    porque un lead que trae un closer no deja rastro en ningun UTM. No falla: miente.
-  - El costo de la pauta y el origen de un lead NO se pueden cortar con la misma llave, porque
-    `ad_spend` guarda la campana en TEXTO LIBRE y el lead trae `submissions.utm_*`. Unirlos es
-    comparar cadenas entre dos sistemas que no se hablan (la herida del ADR 0030).
+Por decidir (fichas en el documento; el primer paso de la sesion es cerrarlas con Mani):
+  - D2: la tabla de transiciones del 043 tiene huecos: falta 1->4 (el 052 lo exige), nada lleva a
+    Proxima Cohorte (9), falta 3->5 (Grain desde Re-agenda), 8 "terminal" choca con Perdido
+    "desde las nueve", el retroceso del 047 choca con la lista blanca, y "fecha prometida" de
+    Compromiso Verbal no tiene columna. Propuestas del 22-sep para sumar a D2 (ver CIERRE 22):
+      a) Atendido entra con Grain O con el closer marcando "sucedio".
+      b) Proxima Cohorte exige cohorte destino (o fecha de retomar).
+      c) Ninguna regla compara el NUMERO de etapa ("4 o mas"): lista explicita de etapas.
+  - Deals historicos: el primer sync v2 crearia ~2.400 deals en Pendiente Setteo (1.532
+    Tactical + 901 ComunicArte). Decidir si solo leads nuevos desde el corte, o tambien viejos.
+  - R1 + R11: driver estandar node-postgres con Pool (transacciones reales, portable a
+    Supabase). R2: rastro por triggers. R3: Vercel Pro. P1: operacion antes que analitica
+    (E2 -> E3 min -> E4 -> E6 min -> E7, y E1b/E5 despues).
 
-Tu trabajo es E1b, en este orden:
-  083 · catalogo de `areas`, molde lib/catalogo/. El area NO se guarda en leads: se DERIVA.
-  084 · `campanas` y `utm_patron`, con TRES campos de patron (source, medium, campaign).
-        NO hay pgEnum `nivel_utm` y NO hay conjuntos ni anuncios: se quitaron el 21-sep.
-  092 · `programs.form_url` y el generador de links. Ojo: destapa que `programs` NO TIENE la
-        URL publica del formulario — el CRM sabe donde CAEN las respuestas (`sources.sheet_id`),
-        no donde la gente LLENA. Sin ese dato no se puede calcular NINGUN link, ni el de la
-        campana ni el del closer (086).
-  085 · el emparejador determinista en lib/atribucion/emparejar.ts, con guardian.
-
-Ojo, y esto es lo que se rompe en silencio si se hace mal:
-  - Un patron apunta a UN destino: campana XOR user XOR area. El area se DERIVA del destino.
-    Guardarla ademas permite escribir "patron de area Media apuntando a campana de Pauta".
-  - El emparejamiento tiene que ser DETERMINISTA: gana el mas especifico (mas campos UTM no
-    nulos), y un empate es un ERROR VISIBLE, no una eleccion silenciosa. Si un envio casa con dos
-    campanas, el lead se cuenta en las dos y el CPL de ambas sale mal SIN ERROR. Es el
-    `fuentes[0]` sin ORDER BY del ADR 0031, ahora con dinero encima. La reja va en un INDICE
-    UNICO, no en el codigo.
-  - El estandar de UTM son TRES campos: source, medium, campaign. `utm_term` y `utm_content`
-    quedaron FUERA DE ALCANCE (no pendientes): sus columnas existen en `submissions`, vacias y
-    deliberadamente sin leer. Cablearlas no tapa ningun hueco porque no hay hueco.
-  - `submissions.utm_*` NO se reescribe nunca (ADR 0004).
-  - 🎯 Hay DOS categorias de huerfano y NO se funden: "sin UTM" (llego sin origen: problema de
-    CAPTACION, irrecuperable, hoy 726 de 4.823 = 15%, Tactical 26% vs ComunicArte 1%) y
-    "(sin clasificar)" (trae UTM pero no casa: problema de CONFIGURACION, se arregla con una fila
-    y repara hacia atras). Un cubo unico esconde cual de los dos problemas tiene el negocio.
-    "Sin UTM" NO es un estado de error: es un hecho del lead, tan valido como facebook/cpc.
-  - El PROGRAMA es frontera, no filtro (ADR 0043). Ninguna consulta nueva puede cruzarlos, y se
-    enforza en el TIPO, no en la revision.
-  - Lo que no casa cae en `(sin clasificar)` y SE MUESTRA con su conteo.
-  - Crear una campana escribe SU PATRON en la misma operacion (molde de crearConRastro). Ese es
-    el punto entero del 092: con macros de Meta hay DOS actos que tienen que coincidir; asi hay
-    UNO solo y no pueden discrepar. El test que lo prueba: el patron reconoce el link que el
-    generador acaba de producir.
-  - `ad_spend` cuelga de la CAMPANA. (Hubo una correccion intermedia que lo bajaba al anuncio;
-    se revirtio al quitar ese nivel.)
-
-La migracion 0021 la genera y aplica la SESION PRINCIPAL, nunca un subagente, y se LEE linea por
-linea antes de aplicarla: en la 0020 el generate traia cuatro defectos, dos de ellos destructivos.
-
-⚡ Y hay UN ticket sin dependencias que entrega valor HOY, el 093: filtrar el dashboard por
-`utm_source/medium/campaign`, que YA son columnas de `leads` con 85% de cobertura (4.097 de 4.823).
-No necesita E1b ni E3. Si quieres una victoria rapida antes de abrir la migracion, es ese.
-Ahi "sin UTM" va como CATEGORIA propia, no como residuo: son 726 leads (15%) y en Tactical 26%.
-Y deals/calls/abonos/submissions/ad_spend estan
-TODOS en cero, asi que hoy solo se puede contestar "cuantos registros trae cada canal": ninguna
-tasa tiene numerador todavia.
-
-Despues de E1b siguen la etapa 2 (motor de etapas, 043 a 047) y la 3, donde viven los tickets 086
-y 087 (el origen humano y el CPL). Esos dos tienen VENTANA: el origen lo escribe la ingesta del
-ticket 048, y lo que entre antes no se puede reconstruir.
+Lo que se puede hacer SIN esperar decisiones:
+  1. npm install; npm test, npm run typecheck, npm run lint (nadie los corrio desde la 0020 aqui).
+  2. Medir el posible desfase de 5 h: parsearFecha fija -05:00 (lib/sheets/mapeo.ts:147) y las
+     hojas de Typeform vendrian en UTC. Comparar una fila con hora conocida contra la base.
+  3. CI (R4): workflow de GitHub Actions con typecheck, lint y test.
+  4. El 093 (filtros UTM) no tiene dependencias.
 ```
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-22 (CIERRE 22) — Revision del modelo HubSpot, la arquitectura y el plan; D1
+  decidida.** Sesion sin codigo. Entregable:
+  **`docs/auditorias/revision-modelo-hubspot-2026-09-22.md`**, con una ficha por decision
+  (contexto, opciones, recomendacion, que toca, esfuerzo, `Estado`, `Decide`). El tracker lleva un
+  aviso arriba: no tomar el 043 ni abrir E1b hasta cerrar las fichas. Commits `4a86bde`, `9283e0f`,
+  `6e31a61` y el de este cierre, **sin push**.
+
+  **Metodo.** Se leyeron los 46 ADR, la spec, el plan v2, los tickets 036-093 y el codigo. Se leyo
+  **por API y solo en lectura el HubSpot de 30X** (portal 50929115), de donde salieron las 10
+  etapas. La Personal Access Key se canjea en `POST /localdevauth/v1/auth/refresh`, y el token de
+  usuario **no puede** leer pipelines, flows ni forms: las etapas se reconstruyeron de las
+  propiedades `hs_v2_date_entered_*`. Codex no participo porque no tenia cuota. Tests y typecheck
+  **no se corrieron**: este checkout no tiene `node_modules`.
+  ⚠️ La respuesta del canje devolvio la llave y quedo en el log de la sesion: **conviene rotarla**.
+
+  **Lo que ensena 30X.** Tiene 15 pipelines, uno por programa, con ~11 etapas copiadas en cada
+  uno; ~190 propiedades custom con duplicados; el dinero en campos del deal mas un pipeline de
+  Cobranza; cuatro juegos de UTM mas `fbclid` y Ad IDs; y Calendly integrado. Retia acierta con
+  las etapas globales, el dinero en tablas y el `jsonb`.
+
+  ✅ **D1 decidida por Mani: el setteo VIVE EN EL DEAL.** Se conservan las 10 etapas del ADR 0037,
+  sin enmienda. Consecuencias que quedan abiertas:
+  1. El primer sync v2 crearia **~2.400 deals** en Pendiente Setteo (1.532 Tactical + 901
+     ComunicArte). Hay que decidir si solo para leads nuevos desde el corte o tambien historicos.
+  2. El Kanban lleva la etapa 1 como tabla para reclamar, no como columna (070). El embudo reporta
+     la conversion desde Setteo **y** desde Agendado: asi el 0,9% contra 2,6% son dos metricas
+     correctas y no una disputa (065).
+  3. Setteos que nadie toca: decidir si caen solos a Perdido ("sin contacto") despues de X dias.
+  4. Reportar lo Perdido segun **de que etapa venia** (sale de `deal_etapa_historial`, sin etapa
+     nueva).
+
+  **Opinion sobre las etapas (22-sep), para sumar a D2 antes de congelar el pgEnum:**
+  a) **Atendido** no puede depender solo del link de Grain: una llamada por WhatsApp o sin grabar
+     deja el deal trabado. Debe entrar con Grain **o** con el closer marcando "sucedio".
+  b) **Proxima Cohorte** sin cohorte destino (o fecha de retomar) se vuelve un cementerio.
+     Exigirla al entrar, y que el deal reaparezca cuando esa cohorte abra ventas.
+  c) El numero de etapa **no es el orden del embudo** (Re-agenda es la 3 y viene despues de
+     Agendado, la 4). El 052 dice "deal en 4 o mas": comparar numeros da resultados raros sin
+     error. Toda regla nombra la lista explicita de etapas.
+
+  **Sigue por decidir (fichas del documento):**
+  - D2: la tabla del 043 tiene huecos. Falta 1->4, nada lleva a 9, falta 3->5, 8 "terminal" choca
+    con Perdido, el retroceso del 047 choca con la lista blanca, y la "fecha prometida" no tiene
+    columna.
+  - D3: Abonado cuenta como deal "abierto" y bloquea un upsell. La clausula `anulado_en IS NULL`
+    del indice no esta en el ADR 0037.
+  - D4: tabla `estado_hoja -> accion` por programa.
+  - D5: UTM duplicado entre `leads` y `submissions`.
+  - R1 + R11: `node-postgres` con Pool (transacciones reales). Hoy los tests corren
+    `db.transaction` y produccion `db.batch`: el camino de produccion no lo prueba nadie. De paso
+    la base queda portable a Supabase. **Supabase se evaluo y hoy no compensa migrar**; la
+    decision es no cerrarse la puerta.
+  - R2: rastro por triggers. Ojo: `lib/closers/identidad.ts:80` tiene un byte NUL literal que hace
+    que `grep` lo trate como binario.
+  - R3: Vercel Pro. Hobby es de uso no comercial y el cron es diario.
+  - R4: CI. R5: Playwright. R6: capturar `utm_content`/`fbclid` en el formulario aunque no se lean.
+  - R7: webhook de Calendly en E4. R8: la ingesta pensada para el webhook.
+  - P1: operacion antes que analitica. P2: correcciones a E1b (el indice unico **no** impide
+    empates por los NULL). P3: reducir `AGENTS.md` y este handoff.
+
+  🩸 **Posible bug de hoy, sin medir:** `parsearFecha` fija `-05:00` (`lib/sheets/mapeo.ts:147`)
+  y `sources.tz_fechas` no lo lee nadie. Si las hojas de Typeform vienen en UTC (scaffold §5.2),
+  **todas las fechas tienen 5 h de desfase**. Medir contra una fila con hora conocida.
 
 - **2026-09-21 (CIERRE 21) — `docs/insumos/notas-segundo-cerebro/`: el second brain entra al repo
   como material crudo, sin tocar codigo.** Sesion de documentacion pura, pedida por Mani para que su
