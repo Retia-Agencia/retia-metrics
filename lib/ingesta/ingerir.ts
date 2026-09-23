@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "@/lib/db/tipos";
 import { changeLog, leadContactos, leads, sources, submissions } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
+import { calificarEnvio, esquemaCalificacion, type Calificacion, type ConfigCalificacion } from "./calificacion";
 import { construirEnvio, type EntradaEnvio, type Envio } from "./envio";
 import {
   resolverIdentidad,
@@ -29,8 +30,11 @@ import {
  * veces da lo mismo, y cuando llega la completa de una parcial el lead se corrige
  * solo (ADR 0036 punto 4: "el CRM recalcula cuando llega la hermana").
  *
- * Fuera de alcance, a proposito: el `estado` del lead (T2, va despues) y el deal
- * (ticket 052, espera al motor de etapas).
+ * Cada envio se califica y se puntua con la configuracion de SU fuente
+ * (`lib/ingesta/calificacion.ts`, T2 y T4). Un envio que no se pudo calificar entra
+ * igual, sin calificacion, y queda contado en `sinCalificar` con el motivo.
+ *
+ * Fuera de alcance, a proposito: el deal (ticket 052, espera al motor de etapas).
  */
 
 /** Filas por viaje a la base (AGENTS.md: fila por fila no cabe en una funcion de Vercel). */
@@ -50,6 +54,8 @@ export interface ResultadoIngesta {
   /** Para el gerente (etapa 6): uniones por telefono y telefonos de otro lead. */
   posiblesDuplicados: PosibleDuplicado[];
   cambiosRegistrados: number;
+  /** Envios que entraron sin calificacion (o sin puntaje) y por que, agrupado por motivo. */
+  sinCalificar: { motivo: string; envios: number }[];
 }
 
 export interface OpcionesIngesta {
@@ -88,6 +94,7 @@ export async function ingerirEntradas(
     contactosNuevos: 0,
     posiblesDuplicados: [],
     cambiosRegistrados: 0,
+    sinCalificar: [],
   };
   if (entradas.length === 0) return resultado;
 
@@ -96,11 +103,26 @@ export async function ingerirEntradas(
   // registrada, nunca de un campo del formulario (T1).
   const idsDeFuente = [...new Set(entradas.map((e) => e.sourceId))];
   const propias = await db
-    .select({ id: sources.id })
+    .select({ id: sources.id, nombre: sources.nombre, calificacion: sources.calificacion })
     .from(sources)
     .where(and(eq(sources.programId, programId), inArray(sources.id, idsDeFuente)));
   if (propias.length !== idsDeFuente.length) {
     throw new ErrorDeApp("Hay envios de una fuente que no pertenece a este programa.", 422);
+  }
+
+  // Una configuracion guardada que no pasa el esquema detiene la ingesta antes de
+  // escribir: es un error de quien configuro, no algo que se reparte en los leads.
+  const configDe = new Map<string, ConfigCalificacion | null>();
+  for (const f of propias) {
+    if (f.calificacion === null) {
+      configDe.set(f.id, null);
+      continue;
+    }
+    const r = esquemaCalificacion.safeParse(f.calificacion);
+    if (!r.success) {
+      throw new ErrorDeApp(`La calificacion de la fuente "${f.nombre}" esta mal configurada.`, 422);
+    }
+    configDe.set(f.id, r.data);
   }
 
   // 1. Construir. Dos versiones del mismo envio (una parcial que Typeform reescribio)
@@ -125,6 +147,29 @@ export async function ingerirEntradas(
   }
   const envios = [...porLlave.values()];
   if (envios.length === 0) return resultado;
+
+  // 1b. Calificar y puntuar cada envio con la configuracion de su fuente.
+  type Nota = { calificacion: Calificacion | null; puntaje: number | null; versionPuntaje: number | null };
+  const notaDe = new Map<string, Nota>();
+  const motivos = new Map<string, number>();
+  const contar = (motivo: string) => motivos.set(motivo, (motivos.get(motivo) ?? 0) + 1);
+  for (const e of envios) {
+    const config = configDe.get(e.sourceId) ?? null;
+    if (config === null) {
+      contar("la fuente no tiene calificacion configurada");
+      notaDe.set(llaveDeEnvio(e), { calificacion: null, puntaje: null, versionPuntaje: null });
+      continue;
+    }
+    const r = calificarEnvio(e.respuestas, config);
+    if (!r.ok) {
+      contar(`el envio no trae: ${r.faltan.join(" · ")}`);
+      notaDe.set(llaveDeEnvio(e), { calificacion: null, puntaje: null, versionPuntaje: null });
+      continue;
+    }
+    if (r.faltanParaPuntaje.length > 0) contar(`sin puntaje, el envio no trae: ${r.faltanParaPuntaje.join(" · ")}`);
+    notaDe.set(llaveDeEnvio(e), { calificacion: r.calificacion, puntaje: r.puntaje, versionPuntaje: r.versionPuntaje });
+  }
+  resultado.sinCalificar = [...motivos].map(([motivo, n]) => ({ motivo, envios: n }));
 
   return (db as { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> }).transaction(
     async (tx) => {
@@ -197,6 +242,7 @@ export async function ingerirEntradas(
               utmCampaign: e.utmCampaign,
               posicionEnHoja: e.posicionEnHoja,
               respuestas: e.respuestas,
+              ...notaDe.get(llaveDeEnvio(e)),
             })),
           )
           .onConflictDoUpdate({
@@ -210,6 +256,9 @@ export async function ingerirEntradas(
               utmCampaign: sql`excluded."utm_campaign"`,
               posicionEnHoja: sql`excluded."posicion_en_hoja"`,
               respuestas: sql`excluded."respuestas"`,
+              calificacion: sql`excluded."calificacion"`,
+              puntaje: sql`excluded."puntaje"`,
+              versionPuntaje: sql`excluded."version_puntaje"`,
             },
           })
           .returning();
@@ -328,6 +377,8 @@ type Resumen = Pick<
   | "fechaPrimeraAplicacion"
   | "fechaUltimaAplicacion"
   | "numAplicaciones"
+  | "calificacion"
+  | "puntaje"
 >;
 
 const CAMPOS_DEL_RESUMEN = [
@@ -338,11 +389,22 @@ const CAMPOS_DEL_RESUMEN = [
   "fechaPrimeraAplicacion",
   "fechaUltimaAplicacion",
   "numAplicaciones",
+  "calificacion",
+  "puntaje",
 ] as const satisfies readonly (keyof Resumen)[];
 
 type EnvioGuardado = Pick<
   typeof submissions.$inferSelect,
-  "sourceId" | "token" | "fechaEnvio" | "posicionEnHoja" | "utmSource" | "utmMedium" | "utmCampaign"
+  | "sourceId"
+  | "token"
+  | "esParcial"
+  | "fechaEnvio"
+  | "posicionEnHoja"
+  | "utmSource"
+  | "utmMedium"
+  | "utmCampaign"
+  | "calificacion"
+  | "puntaje"
 >;
 
 /**
@@ -353,7 +415,11 @@ type EnvioGuardado = Pick<
  *   gana a una real (🩸 839 de 1.034 personas perdieron su fecha asi);
  * - cada UTM: el valor mas reciente NO vacio. Un envio sin fecha solo rellena huecos;
  * - las aplicaciones: los TOKENS distintos. La parcial y la completa de un token son una
- *   sola aplicacion, no dos.
+ *   sola aplicacion, no dos;
+ * - la calificacion y el puntaje: los del envio COMPLETO mas reciente que tenga
+ *   calificacion. Si solo hay parciales, el de la ultima parcial. Asi, cuando llega la
+ *   completa, el lead deja de estar "incompleto" (la herida del script, que decidia una
+ *   vez), y quien re-aplico con otra respuesta queda con la nueva.
  */
 export function resumirEnvios(envios: EnvioGuardado[], telefonoPrincipal: string | null): Resumen {
   const conFecha = envios
@@ -369,9 +435,20 @@ export function resumirEnvios(envios: EnvioGuardado[], telefonoPrincipal: string
     }
   }
 
+  const calificados = envios.filter((e) => e.calificacion !== null);
+  const porPosicion = (a: EnvioGuardado, b: EnvioGuardado) => (a.posicionEnHoja ?? 0) - (b.posicionEnHoja ?? 0);
+  const completos = conFecha.filter((e) => !e.esParcial && e.calificacion !== null);
+  const decide =
+    completos.at(-1) ??
+    calificados.filter((e) => !e.esParcial).sort(porPosicion).at(-1) ??
+    calificados.sort(porPosicion).at(-1) ??
+    null;
+
   return {
     telefono: telefonoPrincipal,
     ...utm,
+    calificacion: decide?.calificacion ?? null,
+    puntaje: decide?.puntaje ?? null,
     fechaPrimeraAplicacion: conFecha[0]?.fechaEnvio ?? null,
     fechaUltimaAplicacion: conFecha.at(-1)?.fechaEnvio ?? null,
     numAplicaciones: new Set(envios.map((e) => `${e.sourceId}\u0000${e.token}`)).size,
@@ -409,6 +486,9 @@ async function recalcularResumen(
         utmSource: submissions.utmSource,
         utmMedium: submissions.utmMedium,
         utmCampaign: submissions.utmCampaign,
+        esParcial: submissions.esParcial,
+        calificacion: submissions.calificacion,
+        puntaje: submissions.puntaje,
       })
       .from(submissions)
       .where(inArray(submissions.leadId, lote));

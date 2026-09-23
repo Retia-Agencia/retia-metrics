@@ -51,6 +51,26 @@ Lo que sigue sin esperar decisiones:
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-23 (CIERRE 26): calificacion (T2) y motor de scoring (T4).** Sin commit.
+  1. **`lib/ingesta/calificacion.ts`** aplica las cuatro reglas del Apps Script con la
+     configuracion de `sources.calificacion` (por fuente). `ingerirEntradas` califica cada envio y
+     el lead toma la calificacion de su envio completo mas reciente.
+  2. **Validado contra el historico real:** 6.397 de 6.400 envios coinciden con el Estado de la
+     hoja. Las 3 diferencias, todas de Tactical, estan en la ficha T4.
+  3. **Migracion 0023, aplicada en `dev`:** solo agrega columnas.
+     - `sources.calificacion`;
+     - `submissions.calificacion / puntaje / version_puntaje`;
+     - `leads.calificacion / puntaje`;
+     - enum `calificacion_envio`.
+
+     `leads.estado` **no se toca** (D4 sigue abierta).
+  4. **El puntaje no tiene pesos a proposito.** No hay datos de venta con que calibrar; la ficha
+     **T4** en el documento de revision lleva opciones, recomendacion y preguntas para Mani.
+  5. La configuracion real esta en `scripts/seed-datos.ts`. **En `dev` las fuentes siguen sin
+     `calificacion`**, y `esquemaFuente` (`lib/catalogo/fuentes.ts`) todavia no la edita: cargarla
+     por el molde del ADR 0029 es parte del traslado (T3).
+  6. 681 tests en verde; typecheck y lint limpios.
+
 - **2026-09-23 (CIERRE 25): la ingesta ya escribe.** Sin commit.
   1. **`ingerirEntradas`** en `lib/ingesta/ingerir.ts` hace esto, en una transaccion, por lotes
      e idempotente:

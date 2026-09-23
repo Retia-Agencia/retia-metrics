@@ -572,6 +572,80 @@ es que **"todo CRM debe poder tener archivos; lo básico son los comprobantes de
   **que Typeform siga escribiendo en la hoja para las closers hasta que trabajen en el CRM**, aunque
   el CRM ya no la lea.
 
+### T4 · Scoring del lead: el CRM le da un valor a cada lead — por decidir
+
+**Contexto.** Propuesta de Alejandro (23-sep): además de la calificación de T2, que el CRM puntúe
+cada lead con las respuestas del Typeform. El T2 y el T4 se construyeron juntos porque leen las
+mismas respuestas con la misma configuración. Son **dos preguntas distintas** y no se funden:
+
+| | Calificación (T2) | Puntaje (T4) |
+|---|---|---|
+| Qué es | Un hecho: respondió el pago, no tiene recursos, agendó | Una estimación: qué tan bueno es el lead |
+| Para qué | Decide a dónde va el lead | Ordena la cola de setteo |
+| Estado | ✅ Construida y validada | ⚙️ Motor construido; **sin pesos** |
+
+**Lo que ya existe (23-sep, migración 0023):**
+- `sources.calificacion` (jsonb, por fuente). Guarda cuál es la pregunta de pago, qué respuesta
+  descarta, cuál campo trae la agenda y, opcionalmente, los pesos del puntaje con su `version`.
+- `submissions.calificacion / puntaje / version_puntaje` y `leads.calificacion / puntaje`. El
+  valor del lead sale de su envío completo más reciente y se recalcula cuando llega uno nuevo:
+  - la parcial deja al lead en `incompleto` y la completa lo corrige;
+  - quien re-aplica queda con la respuesta nueva, cuando el script lo ignoraba ("Ya estaba").
+- **Validación contra el histórico:** 6.397 de 6.400 envíos dan el mismo Estado que escribió el
+  Apps Script. ComunicArte no tiene ninguna diferencia (2.370 envíos). Tactical tiene 3, las tres
+  al parecer editadas a mano. Para revisar:
+  - fila 381: la hoja dice "Cerrado" y el CRM dice setteo;
+  - fila 1194: la hoja tiene el Estado vacío y el CRM dice sin recursos;
+  - fila 1271: la hoja dice Setteo pero trae link de agenda, y el CRM dice con agenda.
+- **Sin configuración no se califica, y queda reportado.** Tampoco se califica si la configuración
+  no casa con el formulario, ni se puntúa si falta una pregunta de los pesos. En ningún caso se
+  asume una respuesta vacía ni un puntaje de cero: esas cifras se verían creíbles.
+
+**Lo que dicen los datos (medido el 23-sep, sin datos personales):**
+- La cola de setteo está formada, **por construcción**, por quienes quedaron debajo del umbral de
+  Calendly:
+  - en Tactical, de los 1.576 en Setteo solo 25 ganan 3.000 USD o más;
+  - en ComunicArte, el umbral está en ~1.500 USD.
+
+  El puntaje sirve para ordenar **dentro** de esa cola.
+- **ComunicArte mezcla dos escalas de ingreso en la misma columna** ("Menos de $700 / $700–1.500"
+  contra "Menos de $1.000 / $1.000–3.000"): el formulario cambió los rangos. Por eso los pesos van
+  **por texto de respuesta**, nunca interpretando el número.
+- Preguntas cerradas disponibles: ingreso, urgencia (3 opciones), situación profesional (7 opciones)
+  y disposición a pagar (3 opciones). La motivación es texto libre y no entra al puntaje.
+  - En Tactical, la situación profesional está vacía en 2.354 de 4.030 filas: la pregunta se
+    agregó después.
+- 🩸 **No hay con qué calibrar todavía.** Lo que predice una venta está en las pestañas de gestión
+  (etapa 7), no en el intake. Correlacionar con "tiene Calendly" no sirve: el propio Typeform
+  decide quién ve el Calendly según el ingreso, así que se mediría el umbral contra sí mismo.
+
+**Opciones para el "valor":**
+- **A. Categoría (A/B/C)** a partir de cortes sobre el puntaje. Fácil de leer en la cola, y
+  equivocarse en un peso cuesta poco.
+- **B. Puntaje de 0 a 100.** Da más precisión de la que los datos justifican hoy.
+- **C. Valor esperado en USD** (probabilidad de venta × ticket). Es el más útil para priorizar,
+  pero exige tasas de conversión por respuesta que hoy no existen medidas.
+
+**Recomendación.** A por ahora, y C cuando haya histórico. El camino:
+1. En el traslado (T3), cruzar los envíos con las ventas de las pestañas de gestión.
+2. Medir la tasa de agenda y de venta por respuesta de cada pregunta.
+3. Proponer pesos con esa tabla a la vista, como versión 1.
+
+Hasta entonces el puntaje queda **vacío**, no con pesos a ojo.
+
+**Por decidir:**
+1. ¿Qué es el valor: A, B o C?
+2. ¿El puntaje solo ordena la cola, o también puede cambiar a dónde va un lead? Por ejemplo, que
+   un lead de puntaje alto sin Calendly salte al frente del setteo.
+3. ¿Quién fija los pesos y cada cuánto se revisan? Cada cambio sube la `version` y queda en el
+   envío.
+4. **Dapta:** el diseño del 21-sep decía que su scoring nativo entregaría el Estado ya calculado.
+   Con el T2 y el T4 la calificación vive en el CRM, así que conviene un ADR que lo reemplace.
+5. Enlaza con **D4**: `calificacion` es un tipo con el que el código decide, y `leads.estado`
+   sigue siendo el texto del ADR 0032. Conviven por ahora. D4 decide si `estado` se retira.
+
+**Estado:** por decidir. **Decide:** Mani.
+
 ---
 
 ## 6. Checklist de E0′: contradicciones en los documentos y código muerto

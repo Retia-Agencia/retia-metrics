@@ -85,6 +85,22 @@ export const resultadoLlamadaEnum = pgEnum("resultado_llamada", [
   "perdida",
 ]);
 
+/**
+ * La calificacion de un envio (T2, 22-sep): las cuatro reglas del Apps Script de la
+ * hoja, que el CRM aplica desde que los leads entran por webhook. Es TIPO y no texto
+ * porque el codigo decide con ella (el 052 crea deals segun esto). Las reglas y su
+ * configuracion viven en `lib/ingesta/calificacion.ts`.
+ *
+ * ⚠️ No reemplaza a `leads.estado` (texto, ADR 0032): la ficha D4 sigue por decidir.
+ * Convive a proposito, para poder comparar lo que dijo la hoja con lo que dice el CRM.
+ */
+export const calificacionEnvioEnum = pgEnum("calificacion_envio", [
+  "incompleto",
+  "sin_recursos",
+  "con_agenda",
+  "setteo",
+]);
+
 /** Por donde entro una persona al CRM (ADR 0021). */
 export const entradaPersonaEnum = pgEnum("entrada_persona", ["formulario", "crm"]);
 export const estadoCohorteEnum = pgEnum("estado_cohorte", ["cerrado", "activo", "futuro"]);
@@ -278,6 +294,17 @@ export const sources = pgTable(
      */
     tzFechas: text("tz_fechas").notNull().default("America/Bogota"),
     /**
+     * Como se califica y se puntua un envio de ESTA fuente (T2 y T4): que pregunta es
+     * la de pago, que respuesta descarta, que campo trae la agenda y, si Mani los fija,
+     * los pesos del puntaje. Validado por `esquemaCalificacion`. Por fuente y no por
+     * programa porque las preguntas son del formulario: el texto lleva el precio y las
+     * escalas de ingreso cambian entre formularios.
+     *
+     * Nulo = sin configurar: el envio entra igual, SIN calificacion, y la ingesta lo
+     * reporta. Adivinar la pregunta de pago mandaria leads al lugar equivocado sin error.
+     */
+    calificacion: jsonb("calificacion"),
+    /**
      * Salud de la fuente (ticket 055). Una fuente rota SIGUE ACTIVA y sigue siendo
      * el intake del programa: lo que cambia es que la app avisa. Apagarla por un
      * encabezado renombrado dejaria al programa sin entrada de leads sin que nadie
@@ -363,6 +390,13 @@ export const leads = pgTable(
      * `formulario` cuando la encuentra).
      */
     entrada: entradaPersonaEnum("entrada").notNull().default("formulario"),
+    /**
+     * Resumen, igual que las fechas: la calificacion y el puntaje del envio que decide
+     * (el completo mas reciente; si solo hay parciales, el ultimo). Los recalcula la
+     * ingesta desde `submissions`, nunca se teclean.
+     */
+    calificacion: calificacionEnvioEnum("calificacion"),
+    puntaje: integer("puntaje"),
     motivoDescarte: text("motivo_descarte"),
     cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "set null" }),
     /** Fila original tal como vino de la hoja, para auditar sin volver a Sheets. */
@@ -500,6 +534,14 @@ export const submissions = pgTable(
      * Nulo para lo que entre por webhook, que no tiene hoja.
      */
     posicionEnHoja: integer("posicion_en_hoja"),
+    /**
+     * Lo que dice el CRM de este envio (T2). Nulo si la fuente no tiene configuracion o
+     * si la configuracion no casa con el formulario: nunca se rellena con un supuesto.
+     */
+    calificacion: calificacionEnvioEnum("calificacion"),
+    /** El puntaje (T4) y la version de los pesos que lo produjo. Nulos sin pesos. */
+    puntaje: integer("puntaje"),
+    versionPuntaje: integer("version_puntaje"),
     /** Todas las columnas NO promovidas, con el texto del encabezado como llave. */
     respuestas: jsonb("respuestas"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

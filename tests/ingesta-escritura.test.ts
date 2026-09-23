@@ -4,6 +4,7 @@ import { changeLog, leadContactos, leads, programs, sources, submissions } from 
 import type { Db } from "@/lib/db/tipos";
 import type { EntradaEnvio } from "@/lib/ingesta/envio";
 import { ingerirEntradas, resumirEnvios } from "@/lib/ingesta/ingerir";
+import type { ConfigCalificacion } from "@/lib/ingesta/calificacion";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
 /**
@@ -39,6 +40,7 @@ function entrada(o: {
   posicion?: number | null;
   utmSource?: string;
   pregunta?: string;
+  agenda?: string;
   fuente?: string;
 }): EntradaEnvio {
   return {
@@ -54,6 +56,7 @@ function entrada(o: {
       utm_medium: "",
       utm_campaign: "",
       "Cuanto puedes invertir": o.pregunta ?? "",
+      "Agenda aquí tu entrevista": o.agenda ?? "",
     },
     campos: { ...CAMPOS },
   };
@@ -219,8 +222,75 @@ describe("ingerirEntradas", () => {
   });
 });
 
+describe("ingerirEntradas: calificacion y puntaje (T2, T4)", () => {
+  const CONFIG: ConfigCalificacion = {
+    preguntaPago: "Cuanto puedes invertir",
+    respuestasSinRecursos: ["No cuento con los recursos"],
+    campoAgenda: "Agenda aqui tu entrevista",
+    puntaje: { version: 3, reglas: [{ pregunta: "Cuanto puedes invertir", respuesta: "Si", puntos: 10 }] },
+  };
+  const configurar = (c: unknown) => db.update(sources).set({ calificacion: c }).where(eq(sources.id, sourceId));
+
+  it("sin configuracion el envio entra igual, SIN calificacion, y queda reportado", async () => {
+    const r = await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", pregunta: "Si" })]);
+    expect(r.sinCalificar).toEqual([{ motivo: "la fuente no tiene calificacion configurada", envios: 1 }]);
+    const [envio] = await db.select().from(submissions);
+    expect(envio.calificacion).toBeNull();
+  });
+
+  it("la parcial deja al lead incompleto y la completa lo corrige, con su puntaje y version", async () => {
+    await configurar(CONFIG);
+    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", fecha: null, posicion: 2 })]);
+    let [lead] = await db.select().from(leads);
+    expect(lead.calificacion).toBe("incompleto");
+
+    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", posicion: 3, pregunta: "Si" })]);
+    [lead] = await db.select().from(leads);
+    expect(lead.calificacion).toBe("setteo");
+    expect(lead.puntaje).toBe(10);
+    const completa = (await db.select().from(submissions)).find((e) => !e.esParcial)!;
+    expect(completa.versionPuntaje).toBe(3);
+  });
+
+  it("quien re-aplica con otra respuesta queda con la NUEVA (el script lo ignoraba)", async () => {
+    await configurar(CONFIG);
+    await ingerirEntradas(db, programId, [
+      entrada({ token: "t1", correo: "ana@correo.co", fecha: "2026-09-01T10:00:00Z", pregunta: "No cuento con los recursos" }),
+    ]);
+    await ingerirEntradas(db, programId, [
+      entrada({ token: "t2", correo: "ana@correo.co", fecha: "2026-09-10T10:00:00Z", pregunta: "Si", agenda: "https://calendly.com/x" }),
+    ]);
+    const [lead] = await db.select().from(leads);
+    expect(lead.calificacion).toBe("con_agenda");
+  });
+
+  it("una configuracion que no casa con el formulario no califica a nadie como incompleto", async () => {
+    await configurar({ ...CONFIG, preguntaPago: "Pregunta que no existe" });
+    const r = await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", pregunta: "Si" })]);
+    expect(r.sinCalificar[0].motivo).toContain("Pregunta que no existe");
+    const [lead] = await db.select().from(leads);
+    expect(lead.calificacion).toBeNull();
+  });
+
+  it("una configuracion guardada invalida detiene la ingesta sin escribir nada", async () => {
+    await configurar({ preguntaPago: "" });
+    await expect(
+      ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co" })]),
+    ).rejects.toMatchObject({ status: 422 });
+    expect(await db.select().from(submissions)).toHaveLength(0);
+  });
+});
+
 describe("resumirEnvios", () => {
-  const base = { sourceId: "s", utmMedium: null, utmCampaign: null, posicionEnHoja: null };
+  const base = {
+    sourceId: "s",
+    utmMedium: null,
+    utmCampaign: null,
+    posicionEnHoja: null,
+    esParcial: false,
+    calificacion: null,
+    puntaje: null,
+  };
 
   it("una fecha nula nunca le gana a una real, y un UTM vacio no borra el anterior", () => {
     const r = resumirEnvios(

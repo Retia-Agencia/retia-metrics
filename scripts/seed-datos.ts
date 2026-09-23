@@ -155,13 +155,24 @@ async function main() {
   // asi que sembrarla activa haria fallar el seed. Se conserva como fila porque la
   // etapa 7 recupera sus 55 personas con sus envios, y esos `submissions.source_id`
   // necesitan apuntar a algo que diga la verdad.
+  // La calificacion (T2) de los formularios de Typeform de hoy. Validada el 23-sep contra
+  // el historico de las dos hojas: 6.397 de 6.400 envios dan el mismo Estado que escribio el
+  // Apps Script. Sin pesos de puntaje a proposito (T4): los decide Mani con datos, no la
+  // siembra. `Formulario anterior` queda sin configurar: su redaccion es otra y nadie la
+  // midio; la ingesta lo reporta en vez de adivinar.
+  const calificacionTypeform = (precioUsd: string) => ({
+    preguntaPago: `¿Estás dispuesto y en la capacidad de invertir ${precioUsd} USD en ti?`,
+    respuestasSinRecursos: ["No, en este momento no cuento con los recursos"],
+    campoAgenda: "Agenda aquí tu entrevista",
+  });
+
   const defsFuentes = [
     // Comunicarte
-    { programa: "comunicarte", nombre: "Formulario actual", sheetId: SHEET_COMUNICARTE, tab: "New form", orden: 2, activo: true, mapeoColumnas: MAPEO_FORMULARIO },
-    { programa: "comunicarte", nombre: "Formulario anterior", sheetId: SHEET_COMUNICARTE, tab: "Forms viejo", orden: 1, activo: false, mapeoColumnas: MAPEO_FORMULARIO },
+    { programa: "comunicarte", nombre: "Formulario actual", sheetId: SHEET_COMUNICARTE, tab: "New form", orden: 2, activo: true, mapeoColumnas: MAPEO_FORMULARIO, calificacion: calificacionTypeform("697") },
+    { programa: "comunicarte", nombre: "Formulario anterior", sheetId: SHEET_COMUNICARTE, tab: "Forms viejo", orden: 1, activo: false, mapeoColumnas: MAPEO_FORMULARIO, calificacion: null },
 
     // Tactical Investor
-    { programa: "tactical-investor", nombre: "Formulario", sheetId: SHEET_TACTICAL, tab: "De Cero a Tactical Investor", orden: 1, activo: true, mapeoColumnas: MAPEO_FORMULARIO },
+    { programa: "tactical-investor", nombre: "Formulario", sheetId: SHEET_TACTICAL, tab: "De Cero a Tactical Investor", orden: 1, activo: true, mapeoColumnas: MAPEO_FORMULARIO, calificacion: calificacionTypeform("1.500") },
   ];
 
   for (const { programa, ...d } of defsFuentes) {

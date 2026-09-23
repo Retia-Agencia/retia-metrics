@@ -48,3 +48,12 @@ guarda, tal cual viene.
 ## Kiro
 
 Si, con revision.
+
+## Avance 23-sep (status sigue `todo`)
+
+- ✅ **Lo que este ticket pedia ahora lo calcula el CRM, no la hoja** (T2, 22-sep):
+  `leads.calificacion` sale del envio completo mas reciente. Si solo hay parciales, sale de la
+  ultima, y se recalcula cuando llega la hermana (`lib/ingesta/ingerir.ts`, `resumirEnvios`).
+- ⚠️ Va en una columna **nueva** (`calificacion`, enum), no en `leads.estado`: la ficha D4 sigue
+  por decidir. `submissions.estado_hoja` conserva lo que escribio la hoja, para comparar.
+- Ficha nueva **T4** (scoring) en `docs/auditorias/revision-modelo-hubspot-2026-09-22.md`.
