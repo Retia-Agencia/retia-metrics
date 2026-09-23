@@ -12,7 +12,9 @@ import { igualCloser } from "@/lib/closers/identidad";
 import type { Lead } from "@/lib/db/schema";
 
 /**
- * Responsable de una persona y alta manual (ticket 026, ADR 0021, 0011, 0005, 0003).
+ * Alta manual de un lead (ticket 026, ADR 0021, 0011, 0005, 0003). El "responsable"
+ * de una persona salio con la migracion 0020: el dueno vive ahora en `deals.owner_user_id`
+ * (ADR 0037), y reclamarlo es del ticket 070.
  *
  * A diferencia de `lib/catalogo/*`, `leads` NO tiene columna `activo`, asi que esto
  * no usa `moldeDeCatalogo`: escribe directo, pero con el mismo estilo — la base entra
@@ -20,9 +22,9 @@ import type { Lead } from "@/lib/db/schema";
  * `ErrorDeApp`, y toda escritura atomica con `ejecutarJuntas` dejando rastro en
  * `change_log` con `origen = "app"` y el `userId` del actor.
  *
- * El `closerId` que se guarda como responsable se copia SIEMPRE de la cuenta
- * logueada; el closer nunca lo elige (ADR 0011). El sync nunca lee ni pisa este
- * campo (ADR 0021): eso vive en `lib/sheets/plan-sync.ts`.
+ * La identidad del actor se copia SIEMPRE de la sesion; el closer nunca la elige
+ * (ADR 0011). El sync nunca pisa lo que la app escribio (ADR 0021): eso vive en
+ * `lib/sheets/plan-sync.ts`.
  */
 
 /** Quien realiza la operacion: su id (para `change_log`), su rol y su closerId (ADR 0011). */

@@ -22,7 +22,9 @@ Que el dinero entre por el deal y que la etapa la mueva **el sistema**, nunca el
 - **El saldo vive en UN solo modulo**, `lib/queries/saldo.ts` (ADR 0024). Este ticket cambia **de
   donde lee** (del deal y su producto, no de `sales`), **no que significa**.
   `tests/saldo-centralizado.test.ts` tiene que seguir verde: compara la reja que bloquea un
-  sobrepago contra lo que el closer ve.
+  sobrepago contra lo que el closer ve. ⚠️ **(22-sep) El modulo y el test se borraron con `sales`
+  en el corte 0020:** este ticket los RECREA, no los modifica. Recuperalos del historial
+  (`git show 722a47f^:lib/queries/saldo.ts`) como punto de partida.
 - **El ticket lo da el producto** (`deal.producto_id → producto.precio_lista`). No hay
   `precio_contrato`.
 - **Moneda:** USD (spec §7). Si el pago entro en COP, lo convierte el closer al registrarlo; **el

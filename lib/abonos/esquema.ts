@@ -1,8 +1,9 @@
 import { z } from "zod";
 
 /**
- * Esquema zod de un abono (ADR 0013). Solo la validacion del borde: las funciones
- * que escriben abonos viven en el ticket 019.
+ * Esquema zod de un abono (ADR 0013). Solo la validacion del borde. Desde el corte
+ * de la migracion 0020 el abono cuelga del DEAL (`abonos.deal_id`, ADR 0037): `sales`
+ * ya no existe. La funcion que escribe abonos la trae el ticket 060.
  *
  * La moneda vive al lado del monto para que nunca se convierta en silencio
  * (restriccion dura de AGENTS.md). Por decision de Michael (16-sep) hoy solo se
@@ -14,7 +15,7 @@ import { z } from "zod";
  * abono.
  */
 export const esquemaAbono = z.object({
-  saleId: z.string().uuid("Venta inválida."),
+  dealId: z.string().uuid("Deal inválido."),
   programId: z.string().uuid("Programa inválido."),
   fecha: z
     .string()

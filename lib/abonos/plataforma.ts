@@ -11,8 +11,8 @@ import { ErrorDeApp } from "@/lib/errors";
  * Sin `plataformaId` no hay nada que validar: la columna es opcional (un abono puede
  * registrarse sin saber todavia por donde entro).
  *
- * La comparten el primer abono de una venta (ticket 002) y los abonos posteriores
- * (ticket 019).
+ * Hoy no la llama nadie: el registro de abonos salio con el corte de la migracion
+ * 0020 y vuelve, colgado del deal, en el ticket 060, que es quien la usa.
  */
 export async function exigirPlataformaActiva(
   plataformaId: string | undefined,

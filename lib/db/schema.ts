@@ -684,7 +684,8 @@ export const dealActividades = pgTable(
  *
  * Una cuota es lo **prometido**; un abono es lo **recibido**. No se derivan uno del
  * otro, igual que caja recaudada y ventas cerradas (ADR 0013). Lo abonado y el
- * saldo siguen viviendo en `lib/queries/saldo.ts` (ADR 0024).
+ * saldo viven en UN modulo (ADR 0024), `lib/queries/saldo.ts`, que salio con el corte
+ * de la migracion 0020 y lo recrea el ticket 060 sobre el deal.
  *
  * El deal NO lleva `num_cuotas`: es `count()` sobre esta tabla.
  *

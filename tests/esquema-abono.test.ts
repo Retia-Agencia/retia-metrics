@@ -12,7 +12,7 @@ import { esquemaAbono } from "@/lib/abonos/esquema";
  */
 describe("esquema del abono", () => {
   const base = {
-    saleId: "11111111-1111-4111-8111-111111111111",
+    dealId: "11111111-1111-4111-8111-111111111111",
     programId: "22222222-2222-4222-8222-222222222222",
     fecha: "2026-09-15",
     monto: "750",
@@ -42,7 +42,7 @@ describe("esquema del abono", () => {
     expect(() => esquemaAbono.parse({ ...base, monto: "abc" })).toThrow();
   });
 
-  it("rechaza un saleId que no es uuid", () => {
-    expect(() => esquemaAbono.parse({ ...base, saleId: "no-es-uuid" })).toThrow();
+  it("rechaza un dealId que no es uuid", () => {
+    expect(() => esquemaAbono.parse({ ...base, dealId: "no-es-uuid" })).toThrow();
   });
 });

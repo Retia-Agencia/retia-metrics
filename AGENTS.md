@@ -95,7 +95,9 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   importan. Estuvo copiada en `saldoDeVenta` (la reja que bloquea un sobrepago) y en
   `ventasDePersona` (lo que el closer ve): una pantalla y una reja discrepando sobre el mismo
   numero no se descubre hasta que el dinero no cuadra. `tests/saldo-centralizado.test.ts` compara
-  las dos salidas y falla si alguien las separa. **La regla no es solo del dinero:** si dos lugares
+  las dos salidas y falla si alguien las separa. ⚠️ **Hoy el modulo y su test NO EXISTEN:** salieron
+  con `sales` en el corte de la migracion 0020 (22-sep) y los recrea el ticket 060 sobre el deal.
+  Hasta entonces no hay abonos que sumar; la regla sigue vigente para cuando vuelvan. **La regla no es solo del dinero:** si dos lugares
   responden la MISMA pregunta, la respuesta vive en un modulo y los dos la importan — la proyeccion
   es del llamador, el predicado es del modulo (asi se consolido `programasActivos`). Dos preguntas
   distintas que hoy dan el mismo SQL siguen siendo dos funciones.
