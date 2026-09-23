@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
 
 /**
- * La firma de la app: un cuadro verde de marca con la "R" en tinta, y el nombre. Vive
+ * La firma de la app: un cuadro de marca con la "R", y el nombre. Morado con la "R"
+ * blanca sobre fondo claro; lila con la "R" negra dentro del marco o en oscuro. Vive
  * sola porque la usan el marco (la barra lateral) y el login, y tiene que ser la misma
  * en los dos (docs/design-system.md).
  */
@@ -10,7 +11,7 @@ export function Marca({ className, subtitulo }: { className?: string; subtitulo?
     <span className={cn("flex items-center gap-2.5", className)}>
       <span
         aria-hidden
-        className="grid size-7 place-items-center rounded-md bg-marca text-[13px] font-bold text-sidebar"
+        className="grid size-7 place-items-center rounded-md bg-primary text-[13px] font-bold text-primary-foreground"
       >
         R
       </span>

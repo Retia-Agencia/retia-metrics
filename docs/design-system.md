@@ -1,7 +1,8 @@
 # Sistema de diseño "Tinta"
 
 **Estado:** vigente desde el 23-sep-2026 (elegido por Alejandro entre tres direcciones: Pizarra,
-Tinta y Cabina). **Manda sobre cualquier estilo escrito en una pantalla.** Si una pantalla
+Tinta y Cabina). **Paleta de la agencia desde el mismo 23-sep** (Daniel Tovar): blanco, negro y
+morado. El morado es el de Nubank sobre fondo blanco, y un lila más claro sobre fondo negro. **Manda sobre cualquier estilo escrito en una pantalla.** Si una pantalla
 necesita algo que este documento no cubre, se agrega **aquí y en los tokens**, no en la pantalla.
 
 > No confundir con `docs/design.md`, que es el diseño **del producto** (actores, servicios,
@@ -9,8 +10,8 @@ necesita algo que este documento no cubre, se agrega **aquí y en los tokens**, 
 
 ## La idea en una línea
 
-**El marco es tinta, el trabajo es la hoja.** La barra lateral es oscura en los dos temas y se
-lee como el marco; el contenido va sobre un gris azulado claro y cada bloque es una hoja blanca.
+**El marco es tinta, el trabajo es la hoja.** La barra lateral es negra en los dos temas y se
+lee como el marco; el contenido va sobre un gris neutro muy claro y cada bloque es una hoja blanca.
 Es la estructura que el equipo ya conoce de HubSpot, a propósito: es una herramienta de trabajo
 diario y lo familiar se usa más rápido.
 
@@ -28,12 +29,16 @@ diario y lo familiar se usa más rápido.
 
 1. **Ninguna pantalla escribe un color, una sombra ni un radio a mano.** Nada de `#hex`,
    `bg-green-500` ni `shadow-[...]` en `app/` o `components/` fuera de `components/ui/`. Se usa
-   el token: `bg-card`, `text-muted-foreground`, `bg-marca`, `shadow-tarjeta`, `bg-tono-alerta-suave`.
+   el token: `bg-card`, `text-muted-foreground`, `bg-primary`, `shadow-tarjeta`, `bg-tono-alerta-suave`.
    Si falta un token, se crea en `globals.css` con su versión clara **y** oscura.
-2. **Un solo acento: el verde de marca (`marca`).** Es el color de la plata que entra, así que
-   significa **avance**. Se usa para lo seleccionado (el punto del ítem activo en el marco), el
-   foco del teclado, el progreso (barra de la cohorte) y el éxito. **Nunca para un botón**: la
-   acción principal va en tinta (`primary`), para que el verde siga diciendo "avance".
+2. **Un solo acento: el morado de la agencia (`marca` y `primary`).** Es `#820AD1` (el de
+   Nubank) sobre fondo blanco y **lila** `#B57BFF` sobre fondo negro: en el marco y en el tema
+   oscuro. La pantalla no elige cuál: usa el token y el fondo decide. Se usa para la acción
+   principal (`<Button>` por defecto), lo seleccionado (la raya del ítem activo en el marco), el
+   foco del teclado, la firma y, en su versión suave (`secondary`, `accent`, `marca-suave`), el
+   botón secundario, el hover y el resaltado de menús, más el ítem activo del marco. **No para decir "éxito"**: eso es el tono `exito`, que sigue
+   siendo verde porque es un estado, no la marca. Antes del 23-sep el acento era verde y los
+   botones iban en tinta; la paleta de la agencia lo reemplazó.
 3. **Los tonos de estado son semánticos, no decoración.** Cinco, cada uno con su versión suave de
    fondo: `neutro`, `info`, `alerta`, `exito`, `peligro`. Se usan con `<Badge variant="...">`. No
    cuentan como acento.
@@ -56,21 +61,27 @@ diario y lo familiar se usa más rápido.
 9. **Movimiento: 150 ms y solo para estado.** Hover y foco con `transition-colors duration-150`.
    Nada de animaciones de entrada en pantallas que se abren cien veces al día.
 10. **Todo control interactivo tiene hover, foco visible y deshabilitado.** El foco es un anillo
-    `ring` (verde de marca). Sin foco visible no se mergea.
+    `ring` (morado de marca, lila sobre negro). Sin foco visible no se mergea.
 
 ## Paleta
 
 | Token | Claro | Oscuro | Para qué |
 |---|---|---|---|
-| `sidebar` | `#0e1726` | `#070c16` | El marco |
-| `background` | `#f5f7fa` | `#0b1120` | Fondo de trabajo |
-| `card` | `#ffffff` | `#111a2b` | La hoja |
-| `foreground` | `#0e1726` | `#e6eaf0` | Texto principal |
-| `muted-foreground` | `#667085` | `#94a0b4` | Texto secundario, etiquetas |
-| `border` | `#e4e8ee` | blanco 8 % | Divisores |
-| `primary` | `#0e1726` | `#e6eaf0` | Botón principal |
-| `marca` | `#22c38e` | `#3ad6a1` | Avance, selección, foco |
-| `marca-texto` | `#0f7a57` | `#5fe0b2` | Texto verde legible sobre blanco |
+| `sidebar` | `#0a0a0a` | `#050505` | El marco (negro) |
+| `background` | `#f6f4f9` | `#0a0a0a` | Fondo de trabajo (gris con un toque lila) |
+| `card` | `#ffffff` | `#141414` | La hoja |
+| `foreground` | `#0a0a0a` | `#ededed` | Texto principal |
+| `muted-foreground` | `#6b6b6b` | `#a3a3a3` | Texto secundario, etiquetas |
+| `border` | `#e5e5e5` | blanco 8 % | Divisores |
+| `primary` | `#820ad1` | `#b57bff` | Botón principal |
+| `marca` | `#820ad1` | `#b57bff` | Selección, foco, firma |
+| `marca-texto` | `#820ad1` | `#c9a3ff` | Texto morado legible |
+| `secondary` / `accent` | `#f3e8fc` | lila 14 % | Botón secundario, hover, resaltado de menú |
+| `sidebar-primary` | `#b57bff` | `#b57bff` | El lila del marco, en los dos temas |
+
+Contraste medido: blanco sobre `#820ad1` da 7,2:1, y `#b57bff` sobre negro da 6,8:1. Los dos
+pasan AA para texto normal. **El morado oscuro nunca va sobre negro ni el lila sobre blanco**: por
+eso existen los dos.
 
 ## Tipografía
 
@@ -96,7 +107,7 @@ Una etapa se pinta **siempre** igual, en el Kanban, la ficha y cualquier tabla (
 | Atendido | `info` |
 | Compromiso Verbal | `alerta` |
 | Abonado | `exito` |
-| Completo | `exito` (con el verde de marca en el punto) |
+| Completo | `exito` |
 | Próxima Cohorte | `neutro` |
 | Cierre Perdido | `peligro` |
 

@@ -76,11 +76,11 @@ export function AppSidebar({
               className={cn(
                 "group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 activo
-                  ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                  ? "bg-marca-suave font-medium text-marca"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
               )}
             >
-              {/* El punto verde marca DONDE estas: es el unico uso de la marca en el marco. */}
+              {/* El fondo y la raya lila marcan DONDE estas. */}
               <span
                 aria-hidden
                 className={cn(

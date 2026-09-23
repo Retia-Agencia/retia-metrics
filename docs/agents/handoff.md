@@ -51,6 +51,22 @@ Lo que sigue sin esperar decisiones:
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-23 (CIERRE 27): paleta de la agencia.** Daniel Tovar pidio blanco, negro y morado:
+  el morado de Nubank (`#820AD1`) sobre blanco y un lila (`#B57BFF`) sobre negro.
+  - Tokens en `app/globals.css`, contrato en `docs/design-system.md`.
+  - El morado es el unico acento, **incluido el boton principal**: antes era verde y los botones
+    iban en tinta.
+  - La tinta azulada paso a negro neutro.
+  - El verde queda solo como tono `exito`.
+  - Se intensifico un poco a pedido de Alejandro: fondo de trabajo `#f6f4f9`; `secondary` y
+    `accent` en lila suave; el item activo del marco con fondo lila.
+  - **No hubo recorrido visual con clics:** la extension de Chrome no estaba conectada. Alejandro
+    lo reviso en su navegador.
+  - 🩸 El `next dev` de Alejandro, con horas corriendo, murio con "Jest worker encountered 2 child
+    process exceptions" en `/programas/[slug]`, probablemente despues de que se intento levantar
+    un segundo `next dev` sobre la misma `.next`. **Antes de arrancar un servidor, mira si ya hay
+    uno en el 3000.** Si aparece ese error, se reinicia el servidor: no es un error del codigo.
+
 - **2026-09-23 (CIERRE 26): calificacion (T2) y motor de scoring (T4).** Sin commit.
   1. **`lib/ingesta/calificacion.ts`** aplica las cuatro reglas del Apps Script con la
      configuracion de `sources.calificacion` (por fuente). `ingerirEntradas` califica cada envio y

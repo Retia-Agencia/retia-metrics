@@ -3,7 +3,7 @@
 @import "shadcn/tailwind.css";
 
 /*
- * Sistema de diseño "Tinta" (docs/design-system.md). Las decisiones viven en los
+ * Sistema de diseño "Tinta" (docs/design-system.md), con la paleta de la agencia. Las decisiones viven en los
  * TOKENS de abajo, no en las pantallas: una pantalla nunca escribe un color, un radio
  * ni una sombra a mano, usa el token. Así el día que se ajuste la marca se ajusta aquí.
  */
@@ -51,7 +51,7 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  /* La marca: el verde de la plata que entra. Solo para avance, selección y foco. */
+  /* La marca: el morado de la agencia (lila sobre negro). Es el unico acento. */
   --color-marca: var(--marca);
   --color-marca-texto: var(--marca-texto);
   --color-marca-suave: var(--marca-suave);
@@ -78,34 +78,40 @@
 }
 
 /* ---------------------------------------------------------------- claro */
+/*
+ * Paleta de la agencia (Daniel Tovar, 23-sep): blanco, negro y morado. El morado es el
+ * de Nubank (#820AD1) sobre fondo blanco, y un lila mas claro (#B57BFF) sobre fondo
+ * negro. Por eso el marco, que es negro en los dos temas, usa el lila.
+ */
 :root {
-  /* El fondo de trabajo es gris azulado claro: la hoja blanca es la tarjeta. */
-  --background: #f5f7fa;
-  --foreground: #0e1726;
+  /* El fondo de trabajo es gris muy claro con un toque lila: la hoja blanca es la tarjeta. */
+  --background: #f6f4f9;
+  --foreground: #0a0a0a;
   --card: #ffffff;
-  --card-foreground: #0e1726;
+  --card-foreground: #0a0a0a;
   --popover: #ffffff;
-  --popover-foreground: #0e1726;
-  /* La acción principal va en tinta, no en verde: el verde es estado, no botón. */
-  --primary: #0e1726;
+  --popover-foreground: #0a0a0a;
+  /* La accion principal va en morado: es el color de la marca y el unico acento. */
+  --primary: #820ad1;
   --primary-foreground: #ffffff;
-  --secondary: #eef1f5;
-  --secondary-foreground: #0e1726;
-  --muted: #eef1f5;
-  --muted-foreground: #667085;
-  --accent: #eef1f5;
-  --accent-foreground: #0e1726;
+  /* Secundario, hover y resaltado de menu en lila suave: el morado acompana sin gritar. */
+  --secondary: #f3e8fc;
+  --secondary-foreground: #6a08ab;
+  --muted: #f0f0f0;
+  --muted-foreground: #6b6b6b;
+  --accent: #f3e8fc;
+  --accent-foreground: #5c0794;
   --destructive: #c2412d;
-  --border: #e4e8ee;
-  --input: #d6dce5;
-  --ring: #22c38e;
+  --border: #e5e5e5;
+  --input: #d4d4d4;
+  --ring: #820ad1;
 
-  --marca: #22c38e;
-  --marca-texto: #0f7a57;
-  --marca-suave: #e6f8f1;
+  --marca: #820ad1;
+  --marca-texto: #820ad1;
+  --marca-suave: #f3e8fc;
 
-  --tono-neutro: #475467;
-  --tono-neutro-suave: #eef1f5;
+  --tono-neutro: #525252;
+  --tono-neutro-suave: #f0f0f0;
   --tono-info: #2f5bd3;
   --tono-info-suave: #eef4ff;
   --tono-alerta: #9a6400;
@@ -115,57 +121,58 @@
   --tono-peligro: #b4382a;
   --tono-peligro-suave: #fdeeeb;
 
-  --chart-1: #22c38e;
+  --chart-1: #820ad1;
   --chart-2: #2f5bd3;
   --chart-3: #e0a100;
-  --chart-4: #0e1726;
-  --chart-5: #98a2b3;
+  --chart-4: #0a0a0a;
+  --chart-5: #a3a3a3;
 
-  /* Borde hecho con sombra: separa la tarjeta del fondo sin una línea dura. */
-  --sombra-tarjeta: 0 0 0 1px rgb(14 23 38 / 0.06), 0 1px 2px rgb(14 23 38 / 0.06);
-  --sombra-flotante: 0 0 0 1px rgb(14 23 38 / 0.08), 0 8px 24px -6px rgb(14 23 38 / 0.18);
+  /* Borde hecho con sombra: separa la tarjeta del fondo sin una linea dura. */
+  --sombra-tarjeta: 0 0 0 1px rgb(10 10 10 / 0.06), 0 1px 2px rgb(10 10 10 / 0.06);
+  --sombra-flotante: 0 0 0 1px rgb(10 10 10 / 0.08), 0 8px 24px -6px rgb(10 10 10 / 0.18);
 
   /* 8px en botones y campos (`rounded-lg`), 12px en tarjetas (`rounded-xl`). */
   --radius: 0.5rem;
 
-  /* El MARCO (la barra lateral) es tinta en los dos temas. */
-  --sidebar: #0e1726;
-  --sidebar-foreground: #c7cfdb;
-  --sidebar-primary: #22c38e;
-  --sidebar-primary-foreground: #0e1726;
-  --sidebar-accent: #1b2740;
+  /* El MARCO (la barra lateral) es negro en los dos temas, y sobre negro va el lila. */
+  --sidebar: #0a0a0a;
+  --sidebar-foreground: #d4d4d4;
+  --sidebar-primary: #b57bff;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #1f1f1f;
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgb(255 255 255 / 0.08);
-  --sidebar-ring: #22c38e;
-  --sidebar-muted: #7f8aa0;
+  --sidebar-ring: #b57bff;
+  --sidebar-muted: #8a8a8a;
 }
 
 /* ---------------------------------------------------------------- oscuro */
+/* Fondo negro: todo el morado pasa a lila, igual que en el marco. */
 .dark {
-  --background: #0b1120;
-  --foreground: #e6eaf0;
-  --card: #111a2b;
-  --card-foreground: #e6eaf0;
-  --popover: #141e31;
-  --popover-foreground: #e6eaf0;
-  --primary: #e6eaf0;
-  --primary-foreground: #0e1726;
-  --secondary: #1a2436;
-  --secondary-foreground: #e6eaf0;
-  --muted: #1a2436;
-  --muted-foreground: #94a0b4;
-  --accent: #1a2436;
-  --accent-foreground: #e6eaf0;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card: #141414;
+  --card-foreground: #ededed;
+  --popover: #1a1a1a;
+  --popover-foreground: #ededed;
+  --primary: #b57bff;
+  --primary-foreground: #0a0a0a;
+  --secondary: rgb(181 123 255 / 0.14);
+  --secondary-foreground: #d9bfff;
+  --muted: #1f1f1f;
+  --muted-foreground: #a3a3a3;
+  --accent: rgb(181 123 255 / 0.14);
+  --accent-foreground: #e4d2ff;
   --destructive: #f07a66;
   --border: rgb(255 255 255 / 0.08);
   --input: rgb(255 255 255 / 0.14);
-  --ring: #3ad6a1;
+  --ring: #b57bff;
 
-  --marca: #3ad6a1;
-  --marca-texto: #5fe0b2;
-  --marca-suave: rgb(58 214 161 / 0.14);
+  --marca: #b57bff;
+  --marca-texto: #c9a3ff;
+  --marca-suave: rgb(181 123 255 / 0.14);
 
-  --tono-neutro: #b3bccb;
+  --tono-neutro: #b3b3b3;
   --tono-neutro-suave: rgb(255 255 255 / 0.07);
   --tono-info: #9dbcff;
   --tono-info-suave: rgb(110 160 255 / 0.14);
@@ -176,32 +183,32 @@
   --tono-peligro: #ff907f;
   --tono-peligro-suave: rgb(240 122 102 / 0.16);
 
-  --chart-1: #3ad6a1;
+  --chart-1: #b57bff;
   --chart-2: #7ea6ff;
   --chart-3: #f2b43b;
-  --chart-4: #e6eaf0;
-  --chart-5: #5d6b82;
+  --chart-4: #ededed;
+  --chart-5: #6b6b6b;
 
   --sombra-tarjeta: 0 0 0 1px rgb(255 255 255 / 0.06), 0 1px 2px rgb(0 0 0 / 0.4);
   --sombra-flotante: 0 0 0 1px rgb(255 255 255 / 0.08), 0 12px 32px -8px rgb(0 0 0 / 0.7);
 
-  --sidebar: #070c16;
-  --sidebar-foreground: #c7cfdb;
-  --sidebar-primary: #3ad6a1;
-  --sidebar-primary-foreground: #070c16;
-  --sidebar-accent: #141e31;
+  --sidebar: #050505;
+  --sidebar-foreground: #d4d4d4;
+  --sidebar-primary: #b57bff;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #1a1a1a;
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgb(255 255 255 / 0.07);
-  --sidebar-ring: #3ad6a1;
-  --sidebar-muted: #7f8aa0;
+  --sidebar-ring: #b57bff;
+  --sidebar-muted: #8a8a8a;
 }
 
 /*
- * La ZONA MARCO: la barra lateral es oscura en los dos temas, así que dentro de ella
- * los tokens generales se redefinen a su versión sobre tinta. Cualquier componente que
- * viva ahí (un botón ghost, un separador, un texto `muted-foreground`) se ve bien sin
- * tocarlo. Los menús que se abren desde el marco se pintan en un portal, fuera de la
- * zona, con los tokens normales del tema.
+ * La ZONA MARCO: la barra lateral es negra en los dos temas, asi que dentro de ella
+ * los tokens generales se redefinen a su version sobre negro, incluido el morado, que
+ * aqui es lila. Cualquier componente que viva ahi (un boton ghost, un separador, un
+ * texto `muted-foreground`, la firma) se ve bien sin tocarlo. Los menus que se abren
+ * desde el marco se pintan en un portal, fuera de la zona, con los tokens normales.
  */
 [data-zona="marco"] {
   color-scheme: dark;
@@ -214,6 +221,11 @@
   --input: rgb(255 255 255 / 0.14);
   --ring: var(--sidebar-ring);
   --background: var(--sidebar);
+  --primary: var(--sidebar-primary);
+  --primary-foreground: var(--sidebar-primary-foreground);
+  --marca: var(--sidebar-primary);
+  --marca-texto: var(--sidebar-primary);
+  --marca-suave: rgb(181 123 255 / 0.16);
 }
 
 @layer base {
