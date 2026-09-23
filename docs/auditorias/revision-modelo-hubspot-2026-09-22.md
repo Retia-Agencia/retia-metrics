@@ -50,7 +50,7 @@ Tres mensajes:
 
 | # | Decisión | Recomendación | Prioridad | Decide |
 |---|---|---|---|---|
-| D1 | ¿El setteo vive en el deal o antes del deal? | **Antes**: el deal nace en Agendado o cuando alguien lo reclama | P0 | Mani + closers |
+| D1 | ¿El setteo vive en el deal o antes del deal? | ✅ **Decidido (22-sep): en el deal**, se conservan las 10 etapas | P0 | — |
 | D2 | Huecos en la tabla de transiciones del 043 | Corregirla antes de E2 | P0 | Mani |
 | R1 | `neon-http` → driver estándar (`node-postgres`) con transacciones, que además deja la base portable a Supabase (R11) | Sí, antes de E2 | P0 | Mani |
 | R3 | Vercel Hobby → Pro | Sí | P0 | Mani (es plata) |
@@ -113,8 +113,8 @@ solo trabajo real. Hoy no cuesta migración (0 deals).
 **Toca:** ADR 0037 (enmienda), ADR 0021, tickets 043, 044, 052, 065, 069, 070, 071, y
 `deal_actividades`, que necesitaría colgar también del lead (o una `lead_actividades`).
 **Esfuerzo:** 1 sesión de documentos + una migración pequeña (enum y actividades).
-**Estado:** por decidir. **Decide:** Mani, validado con Andrea y Maru.
-**Respuesta:**
+**Estado:** ✅ **decidido el 22-sep: opción A, el setteo vive en el deal.** Se conservan las 10 etapas del ADR 0037; no hace falta enmienda. Queda viva la D2: la tabla de transiciones hay que corregirla igual (1→4, →9, 3→5, 8→10). Las consecuencias de A se manejan en las vistas: el Kanban y el embudo tienen que separar la etapa 1 (ver ticket 065).
+**Respuesta:** "Viven en el deal." (22-sep)
 
 ### D2 · La tabla de transiciones del ticket 043 tiene huecos — P0
 
