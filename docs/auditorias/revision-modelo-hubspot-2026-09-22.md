@@ -486,6 +486,94 @@ sangre" son valiosas, pero su lugar es su ADR.
 
 ---
 
+## 5b. Decisiones del 22-sep por la noche: Supabase y Typeform (chat con Mani)
+
+Salen del chat de Alejandro con Mani (22-sep) y de las respuestas de Alejandro sobre esta revisión.
+**Reemplazan la recomendación de R11** ("quedarse en Neon, portable"): el argumento que la cambia
+es que **"todo CRM debe poder tener archivos; lo básico son los comprobantes de cada venta"**
+(Mani). Con eso, el storage deja de ser opcional.
+
+### S1 · La base se muda a Supabase — ✅ decidido
+
+- **Organización nueva de Retia, todo en plan gratis por ahora:** un proyecto `dev` y uno de
+  producción, en `us-east-1` (junto a las funciones de Vercel).
+- ⚠️ **Riesgo aceptado:** en plan gratis, un proyecto se **pausa tras 7 días sin uso**. Con leads
+  entrando todos los días, producción no debería quedar inactiva. Aun así, **pasar producción a Pro
+  (25 USD/mes) es la primera compra** cuando haya operación real, y Mani ya dijo que "una DB cheta"
+  sí vale la pena.
+- **Driver:** `drizzle-orm/postgres-js` con `prepare: false` contra el pooler (puerto 6543) para
+  la app. `drizzle-kit` usa la conexión directa (5432). Todo pasa a `db.transaction` real, igual
+  en producción y en los tests: **R1 queda resuelto** y `ejecutarJuntas` pierde la rama `batch`.
+- 🩸 **La Data API se apaga, o RLS se activa sin políticas en todas las tablas.** Supabase publica
+  el esquema `public` por REST con la llave anónima; la app no la usa, así que dejarla abierta
+  expone los leads sin ningún beneficio.
+- **Auth sigue siendo Auth.js.** Supabase Auth no entra.
+- **Los archivos (comprobantes, ticket 035)** van a Supabase Storage, en un bucket privado,
+  detrás de una interfaz propia (`lib/archivos/`) y con URLs firmadas desde el servidor.
+- **Toca:** ADR nuevo (sustituye al 0018 en lo de las ramas de Neon), `lib/db/`,
+  `drizzle.config.ts`, `.env.example` y las convenciones de AGENTS.md que hablan de `neon-http`.
+
+### S2 · Se arranca con la base vacía — ✅ decidido (Mani: "vale mierda ahorita")
+
+- No se copian datos de Neon. La base nueva se levanta con las migraciones y se siembra con los
+  scripts que ya existen para eso: `npm run seed:users`, `npm run seed:datos` (programas, cohortes,
+  productos, fuentes, categorías) y `scripts/cargar-enlaces-pago.ts`. Son la excepción nombrada del
+  ADR 0029 para sembrar una base vacía.
+- Se pierden, a sabiendas: el `change_log` (2.334 filas), los usuarios y membresías (se recrean) y
+  los 4.823 leads (vuelven con el traslado desde Sheets, T3).
+
+### T1 · Los leads entran por webhook de Typeform — ✅ decidido
+
+- `POST /api/ingesta/typeform`: verifica la firma `Typeform-Signature` (HMAC-SHA256 sobre el
+  **cuerpo crudo**, patrón de `Retia-Agencia/dapta-forms-sheets`), nunca responde con redirección,
+  y hace *upsert* por `(source_id, token)` con el índice que ya existe. Los reintentos de Typeform
+  no duplican.
+- **"Que no se confunda el programa" (Mani):** cada fuente guarda su `form_id` de Typeform, con un
+  índice único. El programa sale de la **fuente registrada**, nunca de un campo del formulario. Un
+  `form_id` desconocido es un **error visible**, no un lead que cae en cualquier programa.
+- Entra como **un adaptador más** de la puerta única `lib/ingesta/` (ticket 048). Las fechas
+  llegan en ISO con zona: el desfase de 5 horas (053) desaparece para todo lo que entre por aquí.
+- 🩸 **`proxy.ts` exige sesión en todo:** la ruta tiene que ir en su lista pública, o Typeform
+  recibe un redirect a `/login` y cada envío falla sin que nadie lo vea.
+- ⚠️ **Por verificar:** si el webhook de Typeform manda respuestas **parciales** o solo las
+  completas. Hoy los parciales son 1.152 filas en Tactical y 193 correos solo existen como parcial.
+- La primera versión crea **lead + envío + contactos**. El deal llega con el motor de etapas (E2)
+  y la regla del 052.
+
+### T2 · El CRM calcula el `Estado` — ✅ decidido
+
+- Hasta ahora lo escribía el Apps Script de la hoja cada 10 minutos. Con el webhook no hay hoja de
+  por medio, así que el CRM aplica **las mismas reglas**, en el mismo orden, **configuradas por
+  fuente** (ADR 0012: qué campo es la pregunta de pago, qué respuesta descarta, qué campo es el
+  Calendly):
+  1. no respondió la pregunta de pago → `🗑️ Descartado`;
+  2. respondió "no cuento con los recursos" → `🗑️ Descartado`;
+  3. trae link de Calendly → `📅 Con Calendly`;
+  4. todo lo demás → `📞 Setteo No Calificado`.
+- **Enmienda el principio "la hoja califica, el CRM opera"** (scaffold §1.2, ADR 0032): ahora
+  califica el CRM, porque ya no hay hoja en el camino.
+- **Cómo se valida la regla:** corriéndola sobre el histórico de Sheets en el traslado (T3) y
+  comparándola contra el `Estado` que escribió el Apps Script. **Cada diferencia se revisa** antes
+  de dar la regla por buena.
+
+### T3 · Corte directo, y el traslado desde Sheets queda garantizado — ✅ decidido
+
+- El CRM recibe los leads **solo por webhook** desde el primer día. No hay convivencia con el sync
+  de la hoja.
+- **Lo que hay en Sheets se traslada después**, por la **misma puerta**. El adaptador de Sheets de
+  `lib/ingesta/adaptador-sheets.ts` ya existe para eso, así que el traslado no es un segundo camino.
+  Como la llave es `(fuente, token)` en los dos adaptadores, **un envío que llegó por webhook y
+  aparece también en la hoja no se duplica**.
+- Para el histórico se guarda el `Estado` **tal como lo escribió la hoja** (ADR 0004), y la regla
+  del CRM se corre al lado para validarla (T2).
+- 🩸 **Riesgo operativo a manejar fuera del código:** si Typeform deja de escribir en Sheets antes
+  de que las closers operen en el CRM (etapa E6), **se quedan sin ver los leads nuevos**. Cortar la
+  entrada **del CRM** no obliga a desconectar la integración Typeform → Sheets. Recomendación:
+  **que Typeform siga escribiendo en la hoja para las closers hasta que trabajen en el CRM**, aunque
+  el CRM ya no la lea.
+
+---
+
 ## 6. Checklist de E0′: contradicciones en los documentos y código muerto
 
 **Documentos**
