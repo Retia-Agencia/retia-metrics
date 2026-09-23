@@ -1,58 +1,60 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
+import { motivos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
+import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
 /**
- * Cubre la rama de produccion de `ejecutarJuntas`: la base real es
- * `drizzle-orm/neon-http`, que atomiza con `db.batch([...])`, no con transacciones
- * interactivas (ver AGENTS.md). Los tests con PGlite ejercen la OTRA rama
- * (`transaction`), asi que esta quedaba sin cubrir.
- *
- * No usa base real (ni Neon ni PGlite): solo un objeto falso minimo que simula la
- * superficie que `ejecutarJuntas` toca (`batch` y `transaction`). Asi el test es
- * hermetico y prueba SOLO la logica de decision del helper.
+ * `ejecutarJuntas` es una transaccion de verdad (ADR 0047). Con `neon-http` habia dos
+ * caminos —`batch` en produccion, `transaction` en los tests— y este archivo probaba
+ * el de produccion con una base falsa. Con `postgres-js` hay UNO solo, el mismo que
+ * PGlite, asi que se prueba contra la base real de migraciones.
  */
 
-/** Un `Db` de mentira con `batch` y `transaction` espiables. */
-function baseFalsaConBatch() {
-  // `batch` tipado para aceptar la tupla de consultas: asi `mock.calls[0][0]` es
-  // legible sin destructurar una tupla vacia, y sin un parametro sin usar.
-  const batch = vi.fn<(consultas: readonly Promise<unknown>[]) => Promise<unknown[]>>(
-    () => Promise.resolve([]),
-  );
-  const transaction = vi.fn(async () => {});
-  // Cast seguro para el test: NO es una base real, es un fake minimo que solo
-  // expone los dos metodos que `ejecutarJuntas` consulta. El helper nunca toca
-  // nada mas del `Db`, asi que darle la forma completa seria ruido.
-  const db = { batch, transaction } as unknown as Db;
-  return { db, batch, transaction };
-}
+let db: Db;
+let cerrar: () => Promise<void>;
 
-describe("ejecutarJuntas — rama batch (neon-http)", () => {
-  it("con batch disponible, llama batch UNA vez con todas las consultas en orden y no usa transaction", async () => {
-    const { db, batch, transaction } = baseFalsaConBatch();
+beforeEach(async () => {
+  ({ db, cerrar } = await crearBaseDePrueba());
+});
 
-    // Consultas marcadas para poder verificar orden e identidad sin base real.
-    const q0 = Promise.resolve("q0");
-    const q1 = Promise.resolve("q1");
-    const q2 = Promise.resolve("q2");
+afterEach(async () => {
+  await cerrar();
+});
 
-    await ejecutarJuntas(db, () => [q0, q1, q2]);
+describe("ejecutarJuntas", () => {
+  // Las migraciones siembran motivos, asi que se compara contra lo que ya habia.
+  const contar = async () => (await db.select().from(motivos)).length;
 
-    expect(batch).toHaveBeenCalledTimes(1);
-    expect(transaction).not.toHaveBeenCalled();
+  it("todas o ninguna: si una escritura falla, las anteriores se deshacen", async () => {
+    const antes = await contar();
+    const intento = ejecutarJuntas(db, (tx) => [
+      tx.insert(motivos).values({ nombre: "Prueba A" }),
+      tx.insert(motivos).values({ nombre: "Prueba B" }),
+      // Choca con `motivos_nombre_idx` (unico sobre lower(nombre)).
+      tx.insert(motivos).values({ nombre: "prueba a" }),
+    ]);
 
-    // El unico argumento es la tupla con las tres consultas, en orden.
-    const loteRecibido = batch.mock.calls[0][0];
-    expect(loteRecibido).toEqual([q0, q1, q2]);
+    await expect(intento).rejects.toThrow();
+    expect(await contar()).toBe(antes);
   });
 
-  it("con una lista vacia de consultas no llama batch ni transaction", async () => {
-    const { db, batch, transaction } = baseFalsaConBatch();
+  it("corre las escrituras en orden: una puede depender de la anterior", async () => {
+    const id = crypto.randomUUID();
+    await ejecutarJuntas(db, (tx) => [
+      tx.insert(motivos).values({ id, nombre: "Prueba orden" }),
+      // Si corrieran en paralelo o al reves, este update no encontraria la fila.
+      tx.update(motivos).set({ activo: false }).where(eq(motivos.id, id)),
+    ]);
 
+    const [fila] = await db.select().from(motivos).where(eq(motivos.id, id));
+    expect(fila.activo).toBe(false);
+  });
+
+  it("una lista vacia no escribe nada ni falla", async () => {
+    const antes = await contar();
     await ejecutarJuntas(db, () => []);
-
-    expect(batch).not.toHaveBeenCalled();
-    expect(transaction).not.toHaveBeenCalled();
+    expect(await contar()).toBe(antes);
   });
 });

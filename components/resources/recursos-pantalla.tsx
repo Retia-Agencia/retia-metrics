@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { monto as formatoMonto } from "@/lib/format";
-import { MONEDAS } from "@/lib/catalogo/enlaces-pago";
+import { MONEDAS } from "@/lib/monedas";
 import {
   borrarRecursoAccion,
   crearEnlacePagoAccion,

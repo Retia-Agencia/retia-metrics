@@ -9,6 +9,7 @@ import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 import { esquemaUrlHttps } from "./recursos";
 import { reemplazarVersionado, type FilaVersionada } from "./versionar";
 import { exigirAccesoAlPrograma, type ActorConAcceso } from "./acceso-programa";
+import { MONEDAS } from "@/lib/monedas";
 
 /**
  * Enlaces de pago como links (ADR 0017, ADR 0012), sobre el molde de catalogo.
@@ -27,8 +28,12 @@ import { exigirAccesoAlPrograma, type ActorConAcceso } from "./acceso-programa";
  * `lib/abonos/esquema.ts`. Nunca pasa por un float.
  */
 
-/** Monedas admitidas. Instancia NO: el codigo no crece con monedas, son un tipo fijo. */
-export const MONEDAS = ["USD", "COP"] as const;
+/**
+ * Monedas admitidas. Instancia NO: el codigo no crece con monedas, son un tipo fijo.
+ * Viven en `lib/monedas.ts` (una sola definicion, importable desde el cliente) y se
+ * reexportan aca para no romper a quien ya las importaba de este modulo.
+ */
+export { MONEDAS };
 
 /** id: uuid o error de validacion (400). */
 const esquemaId = z.string().uuid("El identificador no es válido.");

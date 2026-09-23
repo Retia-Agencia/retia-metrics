@@ -319,7 +319,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Si un actor puede tocar una fila de un programa | `exigirAccesoAlPrograma` en `lib/catalogo/acceso-programa.ts` (ADR 0016). Administra cualquiera; un closer solo donde tiene membresia ACTIVA | `tests/productos.test.ts` y `tests/acciones-recursos.test.ts`. **Vivia privada dentro de `productos.ts` hasta el 20-sep**: el olor es una segunda copia del `select` sobre `miembros_programa` |
 | Cuando se puede BORRAR una fila de catalogo | `borrarSiNoSeUso` en `lib/catalogo/molde.ts` (ADR 0026 punto 5): cuenta referencias primero, cero borra, una o mas desactiva y devuelve el conteo | `tests/catalogo.test.ts`, guardian endurecido el 20-sep: **UN** solo `.delete(` en `lib/catalogo/`, dentro de `molde.ts` y despues del inicio de `borrarSiNoSeUso`. La version anterior solo pedia que el archivo contuviera el nombre de la funcion y **no cazaba un `DELETE` clandestino**. La UNICA excepcion, nombrada en `TABLAS_PUENTE_BORRABLES`: una tabla PUENTE (hoy `plataformas_programa`) — no la referencia nadie, asi que quitar el vinculo no pierde historial. El guardian exige que CADA `.delete(` de ese archivo caiga sobre una puente de la lista, asi que un `.delete(plataformasPago)` al lado sigue cayendo |
 | Que programas ve un selector de plataforma | `plataformasDelPrograma` / `vinculosDePlataformas` en `lib/catalogo/plataformas.ts` (ADR 0034). Es **proyeccion, no reja**: el servidor NO rechaza un abono por una plataforma sin vincular, porque bloquear un cobro real por un dato de configuracion es peor que ofrecer una opcion de mas | `tests/plataformas-programa.test.ts` (18): idempotencia, el acceso por programa en los dos sentidos, y que crear un enlace de pago ESCRIBA el vinculo (`tests/acciones-recursos.test.ts`) — sin eso, la plataforma con la que el closer acaba de cobrar no le sale en el selector del abono, sin un solo error |
-| Si un error del driver es una FK violada | `esViolacionForanea` en `lib/db/errores.ts`: 23503 (Neon) **y 23001** (PGlite reporta asi el RESTRICT) | `tests/db-errores.test.ts`. Reconocer solo uno pasa en local y revienta con 500 en produccion |
+| Si un error del driver es una FK violada | `esViolacionForanea` en `lib/db/errores.ts`: 23503 (Postgres real, Supabase) **y 23001** (PGlite reporta asi el RESTRICT) | `tests/db-errores.test.ts`. Reconocer solo uno pasa en local y revienta con 500 en produccion |
 | Que un POST de otro sitio no dispare una mutacion | `exigirMismoOrigen` en `lib/auth/origen.ts` (S-12), en el UNICO handler que muta: `POST /api/sync/[programa]`. El resto son Server Actions, que Next ya protege | `tests/sync-permisos.test.ts`, incluido el caso `x-forwarded-host`: comparar contra el host equivocado **rechaza peticiones legitimas en produccion sin romper un test** |
 | Que quitar a alguien lo saque YA | `revalidarToken` en `lib/auth/revalidacion.ts` (S-02): revalida contra `users` en cada emision, no al expirar el JWT | `tests/revalidacion-sesion.test.ts`. Lo que NO cubre un test: que Auth.js llame el callback en cada emision |
 | Como se arma un link de captacion | **UN** generador: `programs.form_url` + los UTM (del arbol de campana, o del closer). **Derivado, nunca guardado** (ADR 0046, ADR 0024) | Revision manual: una segunda concatenacion de "URL mas parametros" es el olor. 🩸 Y el test que importa vive en el ticket 092: **el patron tiene que reconocer el link que el generador acaba de producir** — con macros de Meta son dos actos que pueden divergir; con el link generado es uno solo y no pueden |
@@ -401,18 +401,27 @@ The agent should run these to get fast signal on whether code works. Keep them c
   `.toSQL()`—. La conducta practica no cambia (**nada de subconsultas correlacionadas**), pero no
   hay que desconfiar de un cast de tipo sobre una columna ni "arreglarlo" a ciegas. Si dudas,
   imprime `query.toSQL().sql`: cuesta un comando y responde de verdad.
-- **La base se usa por `drizzle-orm/neon-http`: sin sesion ni transacciones interactivas.** Cada
-  consulta es una peticion HTTP aparte, asi que `pg_advisory_lock` y `SET` de sesion no sirven.
-  La exclusion mutua se hace con un indice unico en la base. **Hecho en el sync (ADR 0031):** el
-  INSERT de la corrida ES el candado, contra un indice unico parcial `WHERE estado = 'corriendo'`.
-  Si necesitas exclusion mutua en otra parte, ese es el molde: no hay candado que pedir ni que
-  acordarse de soltar.
-- **Local y previews usan la rama `dev` de Neon; produccion usa `production`** (ADR 0018). Una
-  migracion se prueba en `dev` antes de tocar `production`. La URL de `production` esta en
-  `.env.local` como `DB_PROD`: ningun codigo la lee, se usa solo nombrandola en el comando.
-  Consultas de solo lectura, libres; **toda escritura en `production` pide el ok de Mani**.
-  Antes de escribir, comprobar la rama real (`neon.branch_id`), no el nombre de la variable: el
-  16-sep `DATABASE_URL` resulto apuntar a `production` (ver el hallazgo en el ADR 0018).
+- **La base es Supabase y se usa por `drizzle-orm/postgres-js`, con transacciones de verdad**
+  (ADR 0047, 22-sep; antes era Neon con `neon-http`, sin transacciones). La app entra por el
+  **pooler en modo transaction (6543)** con `prepare: false`; `drizzle-kit` por la conexion de
+  **5432** (`DATABASE_URL_DIRECTA`). 🩸 Sin `prepare: false` la app revienta **solo en
+  produccion**: PGlite no pasa por ningun pooler, asi que ningun test lo ve. `ejecutarJuntas` es
+  una transaccion real y corre **en orden**; quien necesite leer y decidir dentro de la misma
+  transaccion usa `db.transaction` directo. **La exclusion mutua sigue viviendo en un indice
+  unico**, no en `pg_advisory_lock`: con el pooler en modo transaction un lock de sesion no
+  sobrevive entre consultas. **Hecho en el sync (ADR 0031):** el INSERT de la corrida ES el
+  candado, contra un indice unico parcial `WHERE estado = 'corriendo'`. Si necesitas exclusion
+  mutua en otra parte, ese es el molde: no hay candado que pedir ni que acordarse de soltar.
+  Un script de `scripts/` **sale con `process.exit`**: `postgres-js` deja el pool abierto y el
+  proceso se queda colgado.
+- **Dos proyectos de Supabase, `dev` y produccion** (ADR 0047, reemplaza al 0018). Local y previews
+  apuntan a `dev`. Una migracion se prueba en `dev` antes de tocar produccion. La URL de
+  produccion esta en `.env.local` como `DB_PROD`: ningun codigo la lee, se usa solo nombrandola en
+  el comando. Consultas de solo lectura, libres; **toda escritura en produccion pide el ok de
+  Mani**. Antes de escribir, **mirar el ref del proyecto dentro de la connection string**
+  (`postgres.<ref>@...`), no el nombre de la variable: el 16-sep `DATABASE_URL` resulto apuntar a
+  produccion (hallazgo del ADR 0018). 🩸 **La Data API de Supabase va APAGADA** en los dos proyectos:
+  publica las tablas por REST con una llave anonima y la app no la usa.
 - 🩸 **El SQL que genera `drizzle-kit` se LEE antes de aplicarlo, siempre.** Medido en la 0020
   (22-sep): de los cuatro defectos que traia, dos eran destructivos y dos la hacian fallar.
   (1) Expresaba el renombre `people` -> `leads` como `DROP TABLE ... CASCADE` + `CREATE TABLE`,

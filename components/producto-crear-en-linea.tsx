@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { MONEDAS } from "@/lib/catalogo/productos";
+import { MONEDAS } from "@/lib/monedas";
 import {
   crearProductoAccion,
   type ResultadoAccion,

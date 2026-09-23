@@ -134,7 +134,10 @@ async function main() {
   console.log(escribir ? "  ESCRITO.\n" : "  Simulacion: no se escribio nada. Agrega --escribir para aplicar.\n");
 }
 
-main().catch((e) => {
-  console.error("\n  Fallo:", e instanceof Error ? e.message : e, "\n");
-  process.exit(1);
-});
+// Salida explicita: `postgres-js` deja el pool abierto y el proceso no terminaria solo.
+main()
+  .then(() => process.exit(0))
+  .catch((e) => {
+    console.error("\n  Fallo:", e instanceof Error ? e.message : e, "\n");
+    process.exit(1);
+  });

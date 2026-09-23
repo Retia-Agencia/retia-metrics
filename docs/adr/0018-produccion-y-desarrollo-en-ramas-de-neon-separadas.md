@@ -1,5 +1,10 @@
 # 0018 — Produccion y desarrollo usan ramas de Neon separadas
 
+> ⛔ **REEMPLAZADO el 22-sep por el [ADR 0047](./0047-la-base-se-muda-a-supabase.md):** la base se mudó a
+> Supabase, con dos proyectos (`dev` y producción) en vez de ramas de Neon. Se conserva como historia;
+> sus reglas de disciplina (probar en `dev` primero, `DB_PROD` sin código que la lea, el ok de Mani para
+> escribir en producción) siguen vigentes en el 0047.
+
 **Fecha:** 2026-09-16 · **Estado:** aceptado y aplicado el 16-sep (S-14) · **Enmendado** el 16-sep
 (ver "Enmienda" al final: la URL de `production` vive en `.env.local` como `DB_PROD`)
 

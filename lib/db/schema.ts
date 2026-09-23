@@ -902,9 +902,9 @@ export const syncRuns = pgTable(
   },
   (t) => [
     index("sync_runs_programa_idx").on(t.programId, t.iniciado),
-    // El candado de F-03. Con `drizzle-orm/neon-http` cada consulta es su propia
-    // sesion HTTP, asi que `pg_advisory_lock` no sirve: la exclusion mutua vive en
-    // la base (ADR 0005). Indice unico PARCIAL, del mismo molde que
+    // El candado de F-03. La exclusion mutua vive en la base (ADR 0005), no en un
+    // `pg_advisory_lock`: con el pooler de Supabase en modo transaction un lock de
+    // sesion no sobrevive entre consultas (ADR 0047). Indice unico PARCIAL, del mismo molde que
     // `cohorts_una_activa_por_programa_idx`: solo las filas 'corriendo' compiten,
     // y las 'ok'/'error' historicas no. El INSERT de la corrida ES el candado; un
     // segundo sync simultaneo choca con 23505 y `lib/sheets/sync.ts` lo traduce a
@@ -983,8 +983,7 @@ export const plataformasPago = pgTable(
  * programa simplemente no tiene el vinculo, y la fila no la referencia nadie.
  *
  * ⚠️ Lo que esta tabla NO puede garantizar: que toda plataforma tenga al menos un
- * vinculo (ADR 0034 punto 2). Al insertar la plataforma todavia no hay vinculo y
- * `neon-http` no da transacciones interactivas para diferir la comprobacion, asi que
+ * vinculo (ADR 0034 punto 2). Al insertar la plataforma todavia no hay vinculo, asi que
  * esa cardinalidad minima vive en `lib/catalogo/plataformas.ts` y su esquema zod,
  * igual que `parsearEntradaUsuario` ya exige que un closer traiga al menos un
  * programa. La UNICIDAD si la garantiza la base, que es lo que manda el ADR 0005.

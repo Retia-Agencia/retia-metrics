@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { num } from "@/lib/format";
-import { MONEDAS } from "@/lib/catalogo/productos";
+import { MONEDAS } from "@/lib/monedas";
 import { ProductoCrearEnLinea } from "@/components/producto-crear-en-linea";
 import {
   borrarProductoAccion,

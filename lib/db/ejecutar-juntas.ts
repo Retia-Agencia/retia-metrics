@@ -1,40 +1,33 @@
 import type { Db } from "./tipos";
 
 /**
- * Ejecuta varias escrituras como una sola unidad atomica.
+ * Ejecuta varias escrituras como una sola unidad atomica: todas o ninguna.
  *
- * La base de produccion usa `drizzle-orm/neon-http`, que NO soporta transacciones
- * interactivas (cada consulta es una peticion HTTP aparte; ver AGENTS.md) pero SI
- * `db.batch([...])`, que las manda en una sola transaccion del lado del servidor.
- * PGlite (los tests) es al reves: no tiene `batch`, pero soporta `db.transaction`.
+ * Es una transaccion de verdad, igual en produccion (`postgres-js` sobre Supabase,
+ * ADR 0047) y en los tests (PGlite). Antes, con `neon-http`, produccion usaba
+ * `db.batch` y los tests `db.transaction`, y el camino de produccion no lo probaba
+ * nadie; esa bifurcacion desaparecio con el cambio de driver.
  *
- * Este helper detecta cual tiene delante y usa el mecanismo que corresponde. Por
- * eso el alta de una fila y su registro en `change_log` deben construirse ANTES de
- * llamar aca (con el id generado en codigo con `crypto.randomUUID()`), no depender
- * de leer el id recien insertado: `batch` no deja encadenar resultados.
+ * Las consultas corren EN ORDEN, una tras otra, dentro de la transaccion: hay
+ * llamadores que dependen del orden (por ejemplo `versionar.ts`, que primero retira
+ * la version vigente y despues inserta la nueva, porque un indice unico no deja
+ * convivir a las dos).
+ *
+ * Los ids de las filas nuevas se siguen generando en codigo (`crypto.randomUUID()`)
+ * antes de llamar aca, y eso ya no es una limitacion sino la forma mas simple:
+ * la fila y su registro en `change_log` se arman juntos, sin leer nada de vuelta.
+ * Quien necesite leer y decidir dentro de la misma transaccion (el motor de etapas,
+ * un abono que valida el saldo) usa `db.transaction` directo.
  */
 export async function ejecutarJuntas(
   db: Db,
-  consultas: (tx: Db) => readonly Promise<unknown>[],
+  consultas: (tx: Db) => readonly PromiseLike<unknown>[],
 ): Promise<void> {
-  // neon-http: una sola transaccion via batch.
-  if (tieneBatch(db)) {
-    const lote = consultas(db);
-    // batch exige una tupla no vacia; si no hay nada que hacer, no llamamos.
-    if (lote.length === 0) return;
-    await db.batch(lote as unknown as readonly [Promise<unknown>, ...Promise<unknown>[]]);
-    return;
-  }
-
-  // pglite: transaccion interactiva real.
-  await db.transaction(async (tx) => {
-    await Promise.all(consultas(tx as unknown as Db));
-  });
-}
-
-/** neon-http expone `batch`; pglite no. Es la unica forma de distinguirlos en runtime. */
-function tieneBatch(
-  db: Db,
-): db is Db & { batch(consultas: readonly [Promise<unknown>, ...Promise<unknown>[]]): Promise<unknown> } {
-  return typeof (db as { batch?: unknown }).batch === "function";
+  // El cast une las dos firmas de `transaction` (postgres-js y PGlite), que son
+  // equivalentes pero TypeScript no sabe llamar sobre la union.
+  await (db as { transaction: (fn: (tx: Db) => Promise<void>) => Promise<void> }).transaction(
+    async (tx) => {
+      for (const consulta of consultas(tx)) await consulta;
+    },
+  );
 }

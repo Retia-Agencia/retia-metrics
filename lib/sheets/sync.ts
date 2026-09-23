@@ -62,8 +62,9 @@ const TAMANO_DE_LOTE = 200;
 /**
  * Ya hay una sincronizacion corriendo para este programa. La lanza el INSERT de la
  * corrida cuando choca con el indice unico parcial `sync_runs_una_corriendo_por_programa_idx`
- * (F-03): con `drizzle-orm/neon-http` cada consulta es su propia sesion HTTP, asi que
- * la exclusion mutua no puede ser un lock de sesion y vive en la base (ADR 0005). Es un
+ * (F-03). La exclusion mutua vive en la base (ADR 0005), no en un lock de sesion: nacio
+ * asi porque `neon-http` no tenia sesion, y se conserva con Supabase (ADR 0047) porque
+ * un indice no hay que acordarse de soltarlo si la funcion muere a la mitad. Es un
  * 409 porque no es un fallo del servidor: el candado esta funcionando. Vive aca, igual
  * que `MapeoInvalidoError` vive en `lib/sheets/mapeo.ts`.
  */
@@ -236,15 +237,14 @@ export async function sincronizarPersonas(
     resultado.nuevas = aInsertar.length;
     resultado.actualizadas = aActualizar.length;
 
-    // Por lotes, no fila por fila (F-04). Un UPDATE por persona es una peticion HTTP
-    // por persona, porque `neon-http` no tiene sesion: hoy no se nota —una corrida
+    // Por lotes, no fila por fila (F-04). Un UPDATE por persona es un viaje a la base
+    // por persona: hoy no se nota —una corrida
     // normal actualiza ~6 filas— pero el dia que un ajuste de mapeo toque a las 4.700
     // son 4.700 viajes, y ahi se roza el techo de 300s y la corrida muere a la mitad.
     // No era un bug activo: era una bomba de tiempo, y la misma que ya se desactivo
     // del lado de los inserts.
     //
-    // `ejecutarJuntas` manda el lote en UNA peticion (o una transaccion en PGlite),
-    // asi que no hace falta una plantilla `sql` con un UPDATE ... FROM (VALUES ...) —
+    // `ejecutarJuntas` corre el lote en UNA transaccion (ADR 0047), asi que no hace falta una plantilla `sql` con un UPDATE ... FROM (VALUES ...) —
     // que ademas caeria justo en el footgun de las columnas sin calificar. Cada lote
     // es atomico, que es mejor que antes: ya no puede quedar media actualizacion.
     // `ahora` se calcula UNA vez por lote a proposito: las filas de un mismo lote se

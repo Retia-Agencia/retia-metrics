@@ -7,6 +7,7 @@ import { normalizando } from "@/lib/errors-zod";
 import { type Rol } from "@/lib/auth/roles";
 import { moldeDeCatalogo, type FilaCatalogo, type ResultadoBorrado } from "./molde";
 import { exigirAccesoAlPrograma } from "./acceso-programa";
+import { MONEDAS } from "@/lib/monedas";
 
 /**
  * Productos por programa (ticket 017, ADR 0016, ADR 0012), sobre el molde de catalogo.
@@ -32,8 +33,12 @@ import { exigirAccesoAlPrograma } from "./acceso-programa";
  * las server actions envuelven, igual que `lib/catalogo/programas.ts`.
  */
 
-/** Monedas admitidas. Instancia NO: el codigo no crece con monedas, son un tipo fijo. */
-export const MONEDAS = ["USD", "COP"] as const;
+/**
+ * Monedas admitidas. Instancia NO: el codigo no crece con monedas, son un tipo fijo.
+ * Viven en `lib/monedas.ts` (una sola definicion, importable desde el cliente) y se
+ * reexportan aca para no romper a quien ya las importaba de este modulo.
+ */
+export { MONEDAS };
 
 /** id de un producto o de un programa: uuid o error de validacion (400). */
 const esquemaId = z.string().uuid("El identificador no es válido.");

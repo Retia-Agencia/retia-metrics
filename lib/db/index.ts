@@ -1,5 +1,5 @@
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
 
 type DB = ReturnType<typeof crear>;
@@ -10,10 +10,17 @@ function crear() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error(
-      "Falta DATABASE_URL. Copia .env.example a .env.local y pon la connection string de Neon.",
+      "Falta DATABASE_URL. Copia .env.example a .env.local y pon la connection string del " +
+        "pooler de Supabase (puerto 6543).",
     );
   }
-  return drizzle(neon(connectionString), { schema });
+  // Supabase (ADR 0047). La app entra por el pooler en modo *transaction* (puerto 6543),
+  // que es el que aguanta funciones serverless abriendo y cerrando conexiones. Ese modo
+  // NO admite prepared statements: sin `prepare: false`, la segunda consulta que reuse
+  // un statement revienta con "prepared statement does not exist" — y solo en
+  // produccion, porque PGlite no pasa por ningun pooler.
+  const cliente = postgres(connectionString, { prepare: false });
+  return drizzle(cliente, { schema });
 }
 
 /**
@@ -29,6 +36,9 @@ function crear() {
  * `.env.local`, aunque ninguna pagina llegara a consultar nada.
  *
  * El error sigue llegando en el primer query, que es donde de verdad hace falta.
+ *
+ * ⚠️ `postgres-js` mantiene un pool abierto: un script de terminal que termina sin
+ * `process.exit` se queda colgado esperando. Todos los de `scripts/` salen explicito.
  */
 export const db = new Proxy({} as DB, {
   get(_, prop) {
