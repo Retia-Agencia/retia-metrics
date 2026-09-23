@@ -73,7 +73,7 @@ _Estado actual del trabajo. Lo mas reciente arriba._
      - 🩸 **Recien migrada, las 25 tablas eran legibles por `anon`** con la llave publica. La 0021
        las cierra con RLS sin politicas + REVOKE, y `tests/rls-en-todas-las-tablas.test.ts` exige
        RLS en cualquier tabla futura.
-     - La Data API hay que apagarla a mano en el dashboard: **sin confirmar**.
+     - Data API **apagada** en el dashboard de `dev` (confirmado por Alejandro el 23-sep): segunda cerradura sobre la 0021. Repetir en produccion cuando exista.
      - 🩸 Al cambiar de driver se cayo el build: `recursos-pantalla.tsx` (cliente) importaba
        `MONEDAS` de un modulo que arrastra `lib/db`. Con Neon (`fetch`) el cliente de la base
        se empaquetaba en el navegador sin error. `MONEDAS` quedo en `lib/monedas.ts` y dejo de
