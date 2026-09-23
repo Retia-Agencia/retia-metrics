@@ -148,6 +148,13 @@
       "when": 1790006086830,
       "tag": "0020_gorgeous_firelord",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790166632285,
+      "tag": "0021_rls-sin-politicas",
+      "breakpoints": true
     }
   ]
 }
