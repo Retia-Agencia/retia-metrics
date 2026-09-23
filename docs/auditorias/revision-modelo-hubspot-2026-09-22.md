@@ -52,7 +52,7 @@ Tres mensajes:
 |---|---|---|---|---|
 | D1 | ¿El setteo vive en el deal o antes del deal? | **Antes**: el deal nace en Agendado o cuando alguien lo reclama | P0 | Mani + closers |
 | D2 | Huecos en la tabla de transiciones del 043 | Corregirla antes de E2 | P0 | Mani |
-| R1 | `neon-http` → driver con transacciones para las escrituras | Sí, antes de E2 | P0 | Mani |
+| R1 | `neon-http` → driver estándar (`node-postgres`) con transacciones, que además deja la base portable a Supabase (R11) | Sí, antes de E2 | P0 | Mani |
 | R3 | Vercel Hobby → Pro | Sí | P0 | Mani (es plata) |
 | P1 | Reordenar el plan: operación antes que analítica | Sí | P0 | Mani |
 
@@ -194,7 +194,7 @@ lee `leads.utm_*` con un comentario que lo marca como temporal.
 
 ## 4. Registro de decisiones: arquitectura y herramientas
 
-### R1 · Transacciones reales para las escrituras (`neon-http` → `neon-serverless`) — P0, antes de E2
+### R1 · Transacciones reales con un driver estándar (`neon-http` → `node-postgres`) — P0, antes de E2
 
 **Contexto.**
 - `lib/db/ejecutar-juntas.ts` usa `db.batch` si el driver lo tiene (producción) y `db.transaction`
@@ -210,11 +210,17 @@ lee `leads.utm_*` con un comentario que lo marca como temporal.
   etapa + historial + `change_log`. **Eso es un read-modify-write que necesita `SELECT … FOR UPDATE`.**
 
 **Recomendación.**
-- Las **escrituras** usan `drizzle-orm/neon-serverless` con `Pool`, que da transacciones
-  interactivas sobre WebSocket y funciona en funciones de Vercel si se crea y cierra por petición.
-- Las lecturas pueden seguir en `neon-http`.
-- Un solo módulo nuevo, `lib/db/transaccion.ts`. Con él, `ejecutarJuntas` pasa a ser una
-  transacción de verdad en los dos entornos y los tests corren el mismo camino que producción.
+- Se usa `drizzle-orm/node-postgres` (el `pg` estándar) con un `Pool` contra el endpoint con
+  pooling de Neon. Da transacciones interactivas completas y **no es un driver de Neon**:
+  funciona igual contra cualquier PostgreSQL. Así también queda resuelta la portabilidad (R11).
+  - Ajustado el 22-sep: la primera versión proponía `neon-serverless`, que resuelve lo mismo pero
+    ata el código a Neon.
+- En Vercel, el Pool se registra con `attachDatabasePool` de `@vercel/functions` (Fluid compute),
+  para que las conexiones ociosas se cierren antes de que la función se suspenda.
+- Se agrega un módulo nuevo, `lib/db/transaccion.ts`. Con él:
+  - `ejecutarJuntas` pasa a ser una transacción de verdad en los dos entornos, y los tests corren
+    el mismo camino que producción.
+  - Desaparece la rama `batch`.
 - Enmendar la convención de AGENTS.md ("sin sesión ni transacciones interactivas").
 - El candado del sync (ADR 0031) **se conserva**: un índice único sigue siendo el mejor candado.
 
@@ -332,6 +338,61 @@ Requiere Calendly Standard o superior.
 Sheets es un adaptador que produce `Envio[]`; el webhook es otro. Así el día de Dapta no hay que
 reescribir nada. Se mantienen el aviso `onChange` del Apps Script y el sync perezoso (056) como
 capas.
+**Estado:** por decidir. **Decide:** Mani.
+**Respuesta:**
+
+### R11 · Base portable: la migración a Supabase queda a un cambio de `DATABASE_URL` — P1, va con R1
+
+**Contexto.**
+- Se evaluó migrar a Supabase (22-sep). Hoy **no compensa**:
+  - El problema real, las transacciones, se resuelve sin cambiar de proveedor (R1).
+  - El login ya está hecho y probado con Auth.js.
+  - Las ramas de Neon con copia de datos sostienen el flujo del ADR 0018. Las de Supabase exigen
+    plan Pro y arrancan sin datos.
+  - El plan gratis de Supabase pausa el proyecto tras 7 días sin uso.
+- Supabase podría convenir más adelante si se necesitan juntas sus piezas incluidas: storage para
+  los comprobantes (035), realtime para el Kanban y una API pública.
+- Por eso la decisión no es migrar: es **no cerrarse la puerta**.
+
+**Qué ya es portable.**
+- El esquema y las migraciones: SQL estándar de drizzle en `drizzle/`.
+- Los datos: `pg_dump` de Neon a `pg_restore` en Supabase.
+- El login: Auth.js no depende de la base.
+- Los tests: PGlite.
+
+**Qué ata a Neon hoy.**
+- `lib/db/index.ts`, que usa `neon-http`.
+- `lib/db/ejecutar-juntas.ts`, que depende de `db.batch`.
+- El flujo de ramas: es operación, no código.
+
+**Recomendación: reglas de portabilidad**, para anotar en AGENTS.md como contrato.
+1. **Driver estándar** (`node-postgres`, R1). Ningún import de `@neondatabase/*` fuera de
+   `lib/db/`, y ojalá ninguno en absoluto.
+2. **La conexión vive en un solo archivo** (`lib/db/index.ts`) y solo lee `DATABASE_URL`.
+3. **Solo SQL de PostgreSQL estándar.** Una extensión nueva (`pg_trgm`, `pgcrypto`, etc.) se
+   agrega solo si Supabase también la ofrece, y se anota en el ADR que la introduce.
+4. **Los archivos van detrás de una interfaz propia** cuando entre el 035: `lib/archivos/` con
+   `guardarArchivo()` y `urlDeArchivo()`. Hoy detrás iría Vercel Blob; mañana Supabase Storage,
+   sin tocar las pantallas.
+5. **Los triggers de rastro (R2) son PL/pgSQL estándar** y funcionan igual en los dos.
+
+⚠️ **Trampa para el día de la migración:** el pooler de Supabase en modo *transaction* (puerto
+6543) no admite *prepared statements*. Hay dos salidas:
+- Desactivarlas en el driver.
+- Usar la conexión directa o el modo *session* (puerto 5432) para las transacciones.
+
+Es configuración, no código, pero si no está escrita cuesta una tarde.
+
+**Cómo se prueba que es portable y no solo una promesa.**
+- Un guardián: ningún import de `@neondatabase/*` fuera de `lib/db/`.
+- La suite de integración (la de R1) parametrizada por `DATABASE_URL`, corrida una vez contra la
+  rama `dev` de Neon y otra contra un proyecto gratis de Supabase.
+- Si pasa en los dos, la migración es: dump → restore → cambiar la variable → correr migraciones.
+
+**Toca:** `lib/db/index.ts`, `lib/db/ejecutar-juntas.ts`, `lib/db/tipos.ts`, `package.json` (sale
+`@neondatabase/serverless`, entran `pg` y `@vercel/functions`), AGENTS.md (contrato nuevo) y un
+ADR nuevo, "La base es PostgreSQL, no Neon".
+**Esfuerzo:** casi nulo si se hace junto con R1. El test contra Supabase es media sesión.
 **Estado:** por decidir. **Decide:** Mani.
 **Respuesta:**
 
@@ -493,6 +554,6 @@ sangre" son valiosas, pero su lugar es su ADR.
 - ¿Por qué Tactical tiene 26% de leads sin UTM?
 
 **Mani**
-- D1-D5, R1-R10, P1-P3 de este documento.
+- D1-D5, R1-R11, P1-P3 de este documento.
 - Si una sola fecha de pago alcanza o se usan cuotas desde el inicio (ya resuelto con
   `cuotas_pactadas`, confirmar).
