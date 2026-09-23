@@ -65,3 +65,15 @@ Si, **con revision cercana**: aqui un bug es silencioso.
   (`tests/ingesta-envio.test.ts`).
 - ⏳ **Falta:** que `lib/sheets/sync.ts` use la puerta y escriba por lotes (con el 049). Si se
   decide R1 (transacciones), esa escritura va sobre el driver nuevo.
+
+## Avance 23-sep (status sigue `todo`)
+
+- ✅ **La escritura existe:** `ingerirEntradas(db, programId, entradas)` en `lib/ingesta/ingerir.ts`.
+  Es el unico lugar que escribe `submissions` y `lead_contactos` y crea leads desde un formulario.
+  Corre en UNA transaccion, por lotes de 200, y es idempotente. El webhook (T1) y el traslado
+  desde Sheets (T3) la llaman a ella.
+- ✅ **Frontera de programa:** si una entrada trae una fuente de otro programa, la funcion responde
+  422 y no escribe nada.
+- ⏳ **Falta:** que `lib/sheets/sync.ts` (o el script del traslado, T3) la llame. Tambien falta
+  medir una corrida completa contra `dev`. Con el corte directo (T3), el sync viejo de personas
+  deja de ser la entrada.

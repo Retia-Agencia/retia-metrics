@@ -93,3 +93,23 @@ problema de captacion en una atribucion falsa.
 - ⏳ **Falta:** la escritura por lotes, el conteo de ~6.233 envíos sobre datos reales y el test
   de "ninguna llave promovida en el jsonb" **sobre datos reales**. Los tests de hoy usan filas
   fabricadas.
+
+## Avance 23-sep (status sigue `todo`)
+
+- 🩸 **El indice unico impedia la regla del ticket.** `submissions_fuente_token_idx` era
+  `(source_id, token)`, asi que la parcial y la completa del mismo token chocaban. La migracion
+  **0022** lo cambia a `(source_id, token, es_parcial)`. Ya esta aplicada en `dev`; produccion
+  todavia no existe.
+- ✅ **Escritura por lotes con upsert** sobre esa llave. Dos versiones de la misma parcial se
+  funden en una: gana la de mayor posicion en la hoja. Un reintento actualiza el contenido y
+  **no reasigna el lead** de un envio que ya tenia uno.
+- ✅ **El resumen del lead se recalcula desde sus envios guardados** (`resumirEnvios`), con las
+  reglas del dedup:
+  - fechas: se ignoran las nulas;
+  - UTM: gana el valor mas reciente no vacio;
+  - aplicaciones: se cuentan tokens distintos, asi que parcial y completa son una sola.
+
+  Cuando llega la hermana completa, el lead se corrige solo y queda en `change_log`.
+- ⏳ **Falta:**
+  - el conteo de envios sobre datos reales;
+  - los campos de perfil del lead (nombre, cargo, etc.), que hoy quedan solo en `respuestas`.

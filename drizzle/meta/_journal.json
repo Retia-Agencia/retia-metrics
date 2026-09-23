@@ -155,6 +155,13 @@
       "when": 1790166632285,
       "tag": "0021_rls-sin-politicas",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790170806110,
+      "tag": "0022_envio-parcial-y-completo",
+      "breakpoints": true
     }
   ]
 }

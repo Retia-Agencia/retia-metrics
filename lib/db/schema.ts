@@ -506,12 +506,20 @@ export const submissions = pgTable(
   },
   (t) => [
     /**
-     * Un envio por token y fuente. Va por `(source_id, token)` y no por `token` a
-     * secas porque quien garantiza la unicidad del token es **la fuente que lo
-     * emite**: dos formularios distintos podrian repetir una cadena y un unico
-     * global rechazaria un envio legitimo. Con la fuente adentro no pueden chocar.
+     * Un envio por fuente, token y parcialidad. La fuente va adentro porque quien
+     * garantiza la unicidad del token es **la fuente que lo emite**: dos formularios
+     * distintos podrian repetir una cadena y un unico global rechazaria un envio
+     * legitimo.
+     *
+     * 🩸 `es_parcial` va adentro desde la 0022. Typeform escribe la parcial y la
+     * completa con el MISMO token (880 tokens en uno de los programas, medido el 20-sep), y el
+     * ADR 0036 punto 4 manda guardar las dos. Con `(source_id, token)` la segunda
+     * chocaba con la primera: el traslado desde la hoja habria reventado o, con un
+     * upsert, la completa habria pisado a la parcial y el evento "inicio el form"
+     * desaparecia sin un error. Dos parciales del mismo token son VERSIONES del
+     * mismo envio: la ingesta las funde (gana la ultima), no son dos hechos.
      */
-    uniqueIndex("submissions_fuente_token_idx").on(t.sourceId, t.token),
+    uniqueIndex("submissions_fuente_token_idx").on(t.sourceId, t.token, t.esParcial),
     index("submissions_lead_idx").on(t.leadId),
   ],
 );

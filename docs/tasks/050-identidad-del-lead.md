@@ -75,3 +75,18 @@ Si, **con revision cercana**: es donde un bug es mas silencioso.
   - "separar" y "confirmar", guardando **quién** confirmó (sigue abierto dónde, schema.ts:401);
   - el test sobre los 37 casos reales de Tactical: hoy es una muestra fabricada (una familia con
     un número).
+
+## Avance 23-sep (status sigue `todo`)
+
+- ✅ **Cableado a la base** en `lib/ingesta/ingerir.ts`.
+  - Los conocidos se cargan asi:
+    - los correos de `leads`;
+    - los contactos que casan con el lote;
+    - **todos** los contactos de esos leads. Sin eso, un telefono nuevo entraria como segundo
+      principal.
+  - Los contactos se escriben con el `submission_id` del envio del que llegaron.
+  - Un correo que entro por telefono queda con `confirmado = false`.
+- ⏳ **Falta:**
+  - separar y confirmar (quien confirmo);
+  - guardar los `posiblesDuplicados`: hoy solo los devuelve la funcion;
+  - el test sobre los 37 casos reales.

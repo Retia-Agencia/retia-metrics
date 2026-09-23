@@ -51,6 +51,33 @@ Lo que sigue sin esperar decisiones:
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-23 (CIERRE 25): la ingesta ya escribe.** Sin commit.
+  1. **`ingerirEntradas`** en `lib/ingesta/ingerir.ts` hace esto, en una transaccion, por lotes
+     e idempotente:
+     - construye los envios;
+     - resuelve la identidad;
+     - crea los leads;
+     - hace upsert de los envios;
+     - escribe los contactos con su envio de origen;
+     - **recalcula** el resumen del lead desde sus envios (`change_log` solo para leads que ya
+       existian).
+
+     La frontera de programa se enforza con un 422 y no se escribe nada. Tests:
+     `tests/ingesta-escritura.test.ts` (11). Suite en **666** verdes; typecheck y lint limpios.
+  2. 🩸 **Migracion 0022, aplicada en `dev`.** `submissions_fuente_token_idx` pasa a
+     `(source_id, token, es_parcial)`. Con el indice viejo, la parcial y la completa del mismo
+     token (ADR 0036 punto 4) no podian convivir. Se comprobo el test contra el indice viejo:
+     falla. Produccion todavia no existe; cuando exista, la 0022 entra con las demas.
+  3. **Decisiones tomadas en el codigo, a revisar:**
+     - dos versiones de una misma parcial se funden (gana la ultima posicion);
+     - un reintento no reasigna el lead de un envio que ya tenia uno;
+     - `numAplicaciones` cuenta tokens distintos;
+     - los campos de perfil (nombre, cargo, etc.) **no** se llenan todavia: quedan en `respuestas`.
+  4. **Siguiente:**
+     - T2, la regla del `Estado` por fuente, encima de `ingerirEntradas`;
+     - T1, el webhook: falta el payload real de Typeform;
+     - T3, el script de traslado con `entradasDesdeMatriz` → `ingerirEntradas`.
+
 - **2026-09-23 (CIERRE 24): la base se mudo a Supabase y la app tiene sistema de diseno.**
   Commits `11c563a`, `a95e25a` y `1a45a1f`, sin push. Decisiones del chat con Mani del 22-sep en
   `docs/auditorias/revision-modelo-hubspot-2026-09-22.md` §5b (S1-S2, T1-T3).
