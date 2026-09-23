@@ -36,17 +36,51 @@ Por decidir (fichas en el documento; el primer paso de la sesion es cerrarlas co
     Supabase). R2: rastro por triggers. R3: Vercel Pro. P1: operacion antes que analitica
     (E2 -> E3 min -> E4 -> E6 min -> E7, y E1b/E5 despues).
 
-Lo que se puede hacer SIN esperar decisiones:
-  1. npm install; npm test, npm run typecheck, npm run lint (nadie los corrio desde la 0020 aqui).
-  2. Medir el posible desfase de 5 h: parsearFecha fija -05:00 (lib/sheets/mapeo.ts:147) y las
-     hojas de Typeform vendrian en UTC. Comparar una fila con hora conocida contra la base.
-  3. CI (R4): workflow de GitHub Actions con typecheck, lint y test.
-  4. El 093 (filtros UTM) no tiene dependencias.
+Hecho el 22-sep sin esperar decisiones (CIERRE 23): suite en verde (650), lockfile reparado,
+053 en codigo (inerte hasta poner tz_fechas='UTC', que pide el ok de Mani), limpieza de restos
+del corte, y la parte PURA de 048/049/050 en lib/ingesta/.
+
+Lo que sigue sin esperar decisiones:
+  1. Pedirle a Mani el ok para poner tz_fechas = 'UTC' en las dos fuentes (primero dev, medir
+     que las fechas se muevan exactamente 5 h). Este checkout NO tiene .env.local.
+  2. CI (R4): workflow de GitHub Actions con npm ci, typecheck, lint y test.
+  3. El 093 (filtros UTM) no tiene dependencias.
 ```
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-22 (CIERRE 23) — Lo que se pudo adelantar sin decisiones: verificacion, zona
+  horaria, limpieza e ingesta pura.** Commits `a12c43e`, `3331f03`, `b7b18bd`, `b9c99a9`, sin
+  push.
+  1. **Verificacion.** `npm ci` fallaba: al lock le faltaban los esbuild 0.28.2 opcionales.
+     Reparado con `npm install`, sin cambiar versiones directas. Typecheck y lint limpios. **650
+     tests en verde** (611 + 39 nuevos). En la corrida completa 4 tests dan timeout por carga, pero
+     pasan solos.
+  2. **053, zona horaria por fuente.** `parsearFecha(celda, zona)`; el sync pasa
+     `sources.tz_fechas` fila por fila; una zona inexistente es 422 antes de escribir. 🩸 **El
+     desfase de 5 h esta CONFIRMADO por evidencia documentada**
+     (`flujo-de-leads-y-closers-retia.md:251-256`: `Submitted At` 23:05 sellado a las 18:08 de
+     Bogota), no medido aqui porque **este checkout no tiene `.env.local`**. El codigo es
+     **inerte** hasta poner `tz_fechas='UTC'` en las dos fuentes reales. Eso es escritura en
+     `production` y pide el ok de Mani; despues el sync repara solo, con bitacora, ~4.800 fechas.
+  3. **Limpieza.**
+     - `esquemaAbono` valida `dealId`.
+     - Comentarios que citaban archivos borrados.
+     - El byte NUL de `lib/closers/identidad.ts` pasa a escape: ya no es "binario" para `grep`.
+     - 🩸 **`lib/queries/saldo.ts` y `tests/saldo-centralizado.test.ts` NO EXISTEN desde el corte
+       0020**, aunque AGENTS.md y el ticket 060 hablaban de ellos como vivos. Anotado en los dos:
+       el 060 los **recrea** desde `git show 722a47f^:lib/queries/saldo.ts`.
+  4. **Ingesta pura (048-050), en `lib/ingesta/`.** Todo pasa por `construirEnvio`, que convierte
+     una entrada en un Envio (una fila de hoja y un webhook dan lo mismo);
+     `entradasDesdeMatriz` es el adaptador de Sheets y `resolverIdentidad` decide a que lead va
+     cada envio. **Nada escribe en la base**, y los tres tickets siguen en `todo` con su avance
+     anotado. Decisiones a revisar, escritas en los tickets:
+     - correo y telefono no se promueven y quedan en `respuestas`;
+     - "parcial" = fecha nula;
+     - un telefono con menos de 7 digitos es un centinela;
+     - hay que pasar los contactos que hoy viven en `leads` como `conocidos`.
 
 - **2026-09-22 (CIERRE 22) — Revision del modelo HubSpot, la arquitectura y el plan; D1
   decidida.** Sesion sin codigo. Entregable:
