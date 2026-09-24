@@ -43,7 +43,8 @@ no se usan, asi que **no hay `pgEnum nivel_utm`**: con un solo nivel no hay nada
   usuario o a un area, **nunca a dos**. Guardar el area ademas permitiria escribir la contradiccion
   *"patron de area Media apuntando a una campana de Pauta"*.
 - **`submissions.utm_*` NO se reescribe.** Es texto copiado de la fuente (ADR 0004). El estandar de
-  nombres rige hacia adelante y el historico se clasifica por `nivel`, no reinterpretando el crudo.
+  nombres rige hacia adelante y el historico se clasifica con reglas del catalogo de Canales (ADR
+  0051; el `nivel` se elimino el 21-sep), no reinterpretando el crudo.
 - **`submissions.utm_term` y `submissions.utm_content` se quedan vacias y SIN LEER.** No se borran
   —costaria una migracion sobre una tabla ya en `production`— y **se marcan en el comentario del
   esquema como deliberadamente no leidas**, para que nadie las cablee creyendo que tapa un hueco.
@@ -62,3 +63,14 @@ no se usan, asi que **no hay `pgEnum nivel_utm`**: con un solo nivel no hay nada
 
 Parcial: las tablas y los tests si, con revision. **La migracion la genera y aplica la sesion
 principal, nunca un subagente** (`AGENTS.md`).
+
+---
+
+## Enmienda 2026-09-24 (ADR 0051)
+
+- El patrón se expresa en dos catálogos: **Canal** (`utm_source` + `utm_medium` → área, ticket 101) y
+  **Campaña** (`utm_campaign`). Una campaña cuelga de un canal y de un programa.
+- `submissions.utm_term` y `utm_content` **dejan de ser "deliberadamente sin leer"**: se capturan
+  siempre, y `utm_content` se lee solo en el canal Closer (para `traido_por`).
+- Pendiente de la revisión del 22-sep (P2), sigue vigente: el índice único necesita
+  `NULLS NOT DISTINCT` **y** detección del empate en tiempo de ejecución.

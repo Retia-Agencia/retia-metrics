@@ -40,3 +40,12 @@ alguna vez se normalizan a un catalogo de origen humano, es otro ticket.
 ## Kiro
 
 Si.
+
+---
+
+## Corrección 2026-09-24: son DOS cubetas, no una
+
+El cubo único `(sin atribucion)` de arriba contradice el ADR 0045 y el ticket 085. Se muestran
+**dos**, siempre, con conteo y porcentaje: **sin UTM** (llegó sin origen) y **(sin clasificar)** (trae
+UTM pero no casa con ningún canal ni campaña). Los canales se leen del catálogo de Canales (ticket
+101), y los valores históricos como `instagram rosario / linktree` se clasifican con sus reglas.

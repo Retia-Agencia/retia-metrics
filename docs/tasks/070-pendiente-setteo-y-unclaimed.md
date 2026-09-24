@@ -63,3 +63,12 @@ tiene que revisar el UTM para decidir si reclama un lead, **el origen tiene que 
 
 **Sin esto, la regla del ADR 0044 punto 5 es imposible de cumplir** y el closer reclama a ciegas.
 Un envio que cae en `(sin clasificar)` se muestra asi, no en blanco.
+
+---
+
+## Enmienda 2026-09-24 (ADR 0050): Pendiente Setteo y Unclaimed son secciones del Inbox
+
+Este ticket deja de ser una pantalla propia: sus dos listas son las secciones "sin dueño" del Inbox
+(ticket 071). Con Calendly (ADR 0049), un Agendado cuyo host es un closer registrado **ya nace con
+dueño**; Unclaimed queda para los Agendados cuyo host no está registrado. Todo lo demás de este ticket
+(la reja del reclamo, el origen a la vista) sigue igual.

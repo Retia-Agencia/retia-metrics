@@ -100,3 +100,13 @@ no hay nada que recorra el codigo buscando `rol === "..."` a mano, como si lo ha
 
 Testeado en `tests/roles.test.ts`, `tests/guards.test.ts`, `tests/paginas.test.ts`,
 `tests/usuarios.test.ts` y `tests/migracion-developer.test.ts`.
+
+---
+
+## Nota 2026-09-24: dos preguntas más para `lib/auth/`
+
+- **ADR 0048:** *"¿qué programas ve esta sesión?"* (el closer, los de su membresía activa; el gerente y
+  el developer, todos). Vive en una sola función de `lib/auth/`, como las tres de este ADR.
+- **ADR 0052:** una cuarta pregunta, `manejaPauta`, para el rol nuevo `paid_trafficker`. La cumplen el
+  paid trafficker, el gerente y el developer. Sigue la regla de este ADR: nunca un
+  `rol === "paid_trafficker"` escrito a mano.

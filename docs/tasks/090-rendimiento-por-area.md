@@ -63,3 +63,12 @@ ya decia de la cohorte: *"un cero parece un dato"*.
 ## Kiro
 
 Si, con revision visual obligatoria.
+
+---
+
+## Corrección 2026-09-24
+
+- "Rebanados dentro de Pauta (campana, conjunto, anuncio, fecha)": conjunto y anuncio salieron del
+  alcance el 21-sep (ADR 0045, enmienda 2). Se rebana por **campaña, canal y fecha**.
+- El área sale del catálogo de Canales (ticket 101).
+- 🔴 Qué ve el Paid Trafficker de esta vista lo decide Gerencia (ADR 0052).

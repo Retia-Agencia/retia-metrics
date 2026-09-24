@@ -12,6 +12,13 @@
 > Vercel Blob (0017), y los tickets "008/009/010" que se mencionan abajo se renumeraron (ver
 > `docs/tasks/README.md`: snapshot = 021, developer = 024).
 
+> **Actualización 24-sep-2026:** la navegación de §4 ya no es la vigente. Se decidió navegar **por
+> objetos, como HubSpot** (ADR 0050): tabs Inbox, Dashboard, Leads, Deals, Calls, Students, Campañas,
+> Programs, Products, Resources y Ajustes, con un **selector de programa** arriba. "Mi día" pasa a ser
+> el Inbox y los dashboards por programa pasan a una tab Dashboard. Lo que ve cada rol está en
+> `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §3.5. Y el modelo de §4 (Leads /
+> People, Calls, Sales) es el del MVP: hoy es Lead, Envío, Deal, Calls, Abonos y Cuotas (ADR 0035-0042).
+
 ---
 
 ## 0. Para qué existe este documento
@@ -199,6 +206,9 @@ por defecto; revisar.
 ---
 
 ## 4. Layout general de la app (estructura de Mani: 3 capas)
+
+> ⚠️ **Superado el 24-sep en la capa de Frontend** (ADR 0050, ver la nota de arriba). El principio se
+> conserva y es justo el que guió la decisión: *las pestañas reflejan los objetos del modelo*.
 
 Mani no dibujó diagrama, pero definió el layout en tres capas. Traducido a diagrama:
 

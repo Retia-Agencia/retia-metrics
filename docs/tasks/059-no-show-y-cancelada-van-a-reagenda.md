@@ -39,3 +39,30 @@ dejar el deal donde estaba.
 ## Kiro
 
 Si.
+
+---
+
+## 🟡 Propuesta 2026-09-24: la segunda llamada no hace retroceder
+
+`no_show` y `cancelada` mandan a Re-agenda **solo si el deal está en Agendado**. En una segunda llamada
+sobre un deal ya Atendido, marcan la Call y el deal no retrocede: retroceder contaría dos veces el mismo
+avance e inflaría la conversión Agendado → Atendido. Una Call nueva con fecha sobre un deal Atendido
+tampoco lo devuelve a Agendado.
+
+---
+
+## ✅ Decisión 2026-09-24 (Mani, se valida con los closers): Seguimiento y "un deal, muchas llamadas"
+
+- **Seguimiento es una etapa propia (la 11)**, después de Atendido: la llamada ocurrió y hay que volver a
+  contactarlo. Separa lo que salió bien (Compromiso, pago) de lo que hay que re-contactar. Reemplaza la
+  propuesta anterior de "quedarse en Atendido con fecha". El `pgEnum` gana un valor (migración de la
+  sesión principal). El número no es el orden: va después de Atendido.
+- **Un deal tiene muchas llamadas y nunca se duplica.** Si una llamada falla (no-show, cancelada, u
+  otra llamada necesaria), el deal pasa a Re-agenda **con motivo** (5 → 3 incluido). Una llamada nueva
+  de un lead con deal abierto **se agrega y se avisa al dueño**; en 1, 2, 3, 9 u 11 el deal pasa a
+  Agendado, en 5, 6 o 7 la etapa no cambia.
+- **La conversión cuenta deals distintos** que llegaron a una etapa, no entradas: el ir y volver no infla.
+- Transiciones nuevas: T24 (5 → 11), T25 (11 → 6), T26 (11 → 7 u 8), T27 (11 → 4), T28 (11 → 9), T29
+  (5 → 3 con motivo); T11 queda reemplazada y T15 pasa a 6 → 11. Perdido llega también desde 11. Tabla
+  completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
+- **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".

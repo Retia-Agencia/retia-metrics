@@ -4,6 +4,7 @@ creado: 2026-09-21
 estado: aprobado por Mani el 21-sep · D1 a D6 cerradas · **etapa 0 CERRADA el 21-sep**
   (ADR 0035-0042 escritos, spec enmendada, 7 ADR anotados, tickets 036-082 creados)
 reemplaza: no reemplaza a docs/plan.md (ese es el plan del MVP, ya ejecutado). Este abre la epoca siguiente.
+enmiendas: §12 (21-sep, reunión con Alejo) · §13 (24-sep, dirección de producto y UI, ADR 0048-0052)
 ---
 
 # Plan CRM v2 — modelo HubSpot
@@ -504,6 +505,11 @@ Insumo §8.
 
 ### Etapa 6 · UI
 
+> ⚠️ **24-sep: la forma de la UI ya está decidida** (ADR 0050): tabs por objeto, selector de programa,
+> Inbox en lugar de "Mi día" y una tab Dashboard. La tabla de abajo se lee con la §13: el Kanban es la
+> vista tablero de la tab Deals, E6-2 y E6-3 son el Inbox, y entran las tabs Calls, Students y
+> Programs (tickets 097 a 100).
+
 Decisión de Mani del 21-sep: se define **después** de construir, con el motor funcionando enfrente.
 *"Debe ser lo más amigable y fácil de usar posible, enfocado a utilidad sobre todo."*
 
@@ -607,6 +613,10 @@ Salen de heridas que este repo ya tiene documentadas. Van aquí para que no haya
 ## 10. Lo que sigue abierto
 
 ### ✅ Mani — cerrado el 21-sep, ya no queda nada abierto de su lado
+
+> ⚠️ **Ya no es cierto desde el 21-sep por la tarde:** la §12 y la revisión del 22-sep abrieron
+> preguntas nuevas (D2-D5, R1-R11, P1-P3), y el 24-sep se cerraron varias (§13). Lo abierto hoy está
+> en la tabla "Decisiones pendientes" de `docs/tasks/README.md`.
 
 1. ~~**E1-4**: qué pasa con las filas de `sources` con `destino != people`.~~ **Contestada el
    mismo 21-sep** (textual): *"Borrar todas. Porque eso era solo para la migración inicial ya que
@@ -814,7 +824,7 @@ Alejo puso a mano desaparecería de la pantalla.
 | # | Etapa | Depende de | Qué es |
 |---|---|---|---|
 | **083** | **E1b** | 042 | Catálogo de áreas. Molde `lib/catalogo/`. **El área no se guarda en `leads`: se deriva** |
-| **084** | **E1b** | 083 | `campanas` y `utm_patron`, con **tres** campos de patrón. Migración **0021** |
+| **084** | **E1b** | 083 | `campanas` y `utm_patron`, con **tres** campos de patrón. Migración: la siguiente libre (la **0021** la tomó RLS el 23-sep) |
 | **085** | **E1b** | 084 | El emparejador **determinista** y su guardián |
 | **086** | **E3** | 048, 084 | `leads.traido_por_user_id` + el enlace de captación. ⏳ **lo escribe la ingesta** |
 | **087** | **E3** | 085, 086 | 🩸 El CPL deja de preguntar por `entrada`. **Va con el 086, nunca después** |
@@ -1593,6 +1603,56 @@ después.
 
 ---
 
+## 13. Enmienda del 24-sep · Dirección de producto y UI, antes de la reunión con Comercial
+
+**Documento de referencia:** `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md`. Nació
+como paquete para la reunión con los closers y quedó como **guía del desarrollo** hasta que la
+reunión la corrija. Tiene el flujo de hoy y el propuesto de cada rol, el modelo de datos contra el
+esquema real, la convención de UTM, las pantallas por rol y la tabla de transiciones.
+
+### 13.1 Lo que se decidió (Mani, 24-sep)
+
+| # | Decisión | Dónde quedó |
+|---|---|---|
+| 1 | Un closer ve solo los programas de su membresía activa; dentro, "todos ven todo" | ADR 0048 · ticket 094 |
+| 2 | El Dashboard ofrece "todos los programas" y ahí **solo suma lo sumable** (conteos, caja USD, gasto) | ADR 0048 · ticket 095 |
+| 3 | Toda lista operativa es de un programa, con selector obligatorio | ADR 0048, 0050 · ticket 097 |
+| 4 | Calendly por programa **cuelga llamadas de deals, no los crea**; si hay duda, la llamada queda suelta; el host es dueño si el deal no tiene | ADR 0049 · ticket 096 |
+| 5 | "Mi día" se reemplaza por el **Inbox** | ADR 0050 · ticket 071 |
+| 6 | Los dashboards por programa se reemplazan por una tab **Dashboard** con filtro | ADR 0050 · ticket 095 |
+| 7 | Navegación con **tabs por objeto** tipo HubSpot | ADR 0050 · tickets 097 a 100 |
+| 8 | UTM: tres se leen, dos se capturan (`utm_content`, `utm_term`) | ADR 0051 |
+| 9 | El link del closer lleva su **código** en `utm_content` | ADR 0051 · ticket 086 |
+| 10 | Builder v1: destinos (forms y checkouts), canal, campaña, dos opcionales; rol **Paid Trafficker** | ADR 0051, 0052 · tickets 092, 101, 102 |
+| 11 | Checkouts: destino ya, venta automática después | ADR 0051 punto 7 |
+| 12 | Deals históricos: el sync abre deals solo para leads nuevos desde el corte; los viejos, con la migración | tickets 052, 077, 080 |
+| 13 | La cohorte es por programa y define la lista de estudiantes | ticket 099 |
+| 14 | **Seguimiento es la etapa 11**; un deal tiene muchas llamadas y nunca se duplica; la llamada que falla va a Re-agenda con motivo; la conversión cuenta deals distintos | tickets 043, 059, 065, 096 |
+
+### 13.2 Lo propuesto, que se valida con los closers antes de congelarlo 🟡
+
+- **La tabla de transiciones completa** (T1 a T23, P, R, A1, A2), que cierra los huecos de D2: ticket
+  043 y documento de referencia §2.5.
+- **Qué pasa después de cada llamada:** cinco salidas explícitas (pagó ahora, compromiso, seguimiento,
+  próxima cohorte, perdido); la segunda llamada no hace retroceder; el show se cuenta en llamadas y el
+  cierre en deals. Tickets 044, 058, 059, 065.
+- **Qué cae en el Inbox** y el X de "deal sin actividad en X días". Ticket 071.
+
+### 13.3 Impacto sobre el orden
+
+No cambia el orden de etapas (y **P1 sigue sin decidir**). Los tickets nuevos caen así: **094** no tiene
+dependencias y puede ir antes de E6; **101** y **102** van con E1b (la misma migración); **096** con E4;
+**095** con E5; **097 a 100** con E6.
+
+### 13.4 Lo que sigue abierto
+
+Está en la tabla "Decisiones pendientes" de `docs/tasks/README.md`: lo de los closers (transiciones,
+Inbox, dueño en conflicto de Calendly, estudiante confirmado, onboarding, antigüedad de la migración),
+lo de Gerencia (áreas de cada canal, qué ve el Paid Trafficker, precio de ComunicArte) y lo técnico de
+Mani (webhook o consulta de Calendly, Vercel Pro, CI, D3-D5).
+
+---
+
 ## Referencias
 
 - **Insumo original (manda sobre este documento en diseño):**
@@ -1603,3 +1663,5 @@ después.
 - Memoria de sesiones: `docs/agents/handoff.md`
 - Tracker: `docs/tasks/README.md`
 - Decisiones: `docs/adr/`
+- Dirección del 24-sep (guía del desarrollo hasta la reunión con Comercial):
+  `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md`

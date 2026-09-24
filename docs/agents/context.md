@@ -15,12 +15,14 @@ This file is a **glossary and nothing else** — the project's ubiquitous langua
 **Programa**:
 Una linea de formacion que Retia vende con su propia BBDD de leads, su Calendly, su meta y sus
 recursos. Hoy son dos (Comunicarte y Tactical Investor) y los gerentes pueden crear mas.
-_Nunca se suman ni se promedian entre si._ **Es parte de la identidad de un Lead, no un filtro
-sobre el:** la llave es `(program_id, email_normalizado)`, asi que la misma persona en los dos
+_Sus tasas nunca se combinan; solo se suman conteos y dinero en la misma moneda, en la vista "todos
+los programas" (ADR 0048)._ Un closer ve solo los programas de su membresia. **Es parte de la
+identidad de un Lead, no un filtro sobre el:** la llave es `(program_id, email_normalizado)`, asi que la misma persona en los dos
 programas son **dos Leads** (ADR 0043).
 
 **Comunicarte**:
-Programa de formacion en comunicacion ejecutiva. Programa completo USD 797. Su ICP son gerentes
+Programa de formacion en comunicacion ejecutiva. Programa completo USD 797 _(abierto: las hojas y la
+comision usan 697 como estandar; lo confirma Gerencia)_. Su ICP son gerentes
 y jefes de area con equipo a cargo, de 30 a 50 anos.
 
 **Tactical Investor** (tambien **De Cero a Tactical Investor**, o el programa de JP Vieira):
@@ -38,7 +40,19 @@ la reserva de cupo, la mentoria 1:1. Gerentes y closers los crean cuando los nec
 Una de las cuatro unidades en que Retia se organiza: **Gerencial, Comercial, Pauta** (paid
 traffickers) y **Media** (redes sociales). Agrupa Leads y Deals por su origen. Es una fila editable,
 no un valor del codigo, y **no es un rol**: el rol dice que puede hacer alguien, el area dice a
-quien se le atribuye un Lead (ADR 0043).
+quien se le atribuye un Lead (ADR 0043). Se deriva del **Canal** del envio, nunca se escribe.
+
+**Canal** (el "Origen" del builder):
+Un par `utm_source` + `utm_medium` con su Area: `facebook / cpc` es Pauta, `closer / referido` es
+Comercial. Declara ademas que significa `utm_content` en ese canal (ADR 0051).
+_Evitar_: "origen" a secas, que es el catalogo `origenes` del ADR 0015 y significa otra cosa.
+
+**Destino**:
+Una URL base de un programa hacia la que apunta un link: el formulario o un checkout (ADR 0051).
+
+**Builder** (generador de links):
+La pantalla que arma un link con sus UTM a partir de un Destino, un Canal, una Campana y los dos
+opcionales. El link se calcula, no se guarda. Replica el builder de 30X.
 
 **Campana**:
 Una campana de pauta de un programa, con su plataforma y su cohorte. Es la duena de su patron UTM y
@@ -46,14 +60,15 @@ de lo que se invirtio: `ad_spend` cuelga de ella, por fecha. _No tiene niveles d
 conjuntos ni anuncios_ (ADR 0045 enmienda 2, ADR 0046 enmienda).
 
 **Patron UTM**:
-Una regla que dice a quien pertenece una combinacion de los tres UTM. Apunta a **un** destino —una
-Campana, un usuario o un Area—. Es lo unico que traduce el origen crudo de un envio a un dueno.
+Una regla que dice a quien pertenece una combinacion de los UTM. Desde el ADR 0051 se expresa en dos
+catalogos: el **Canal** (source + medium) y la **Campana** (campaign). Es lo unico que traduce el
+origen crudo de un envio a un dueno.
 
 **Estandar de UTM**:
-La asignacion fija de que lleva cada campo, igual para todos los programas, y son **tres**:
-`utm_source` la plataforma, `utm_medium` el tipo de trafico, `utm_campaign` la campana.
-_`utm_term` y `utm_content` quedaron fuera de alcance el 21-sep: sus columnas existen vacias y no se
-leen._ (ADR 0045, enmienda 2.)
+La asignacion fija de que lleva cada campo, igual para todos los programas. **Tres se leen**:
+`utm_source` la plataforma, `utm_medium` el tipo de trafico, `utm_campaign` la campana. **Dos se
+capturan**: `utm_content` (quien o que pieza, segun el Canal) y `utm_term` (variante libre). Minusculas
+y `snake_case` (ADR 0051, que enmienda la enmienda 2 del ADR 0045).
 
 **Sin UTM**:
 Un envio que llego **sin origen**: el campo viene vacio. **No es un estado de error, es un hecho del
@@ -68,15 +83,20 @@ muestran siempre, con su conteo y su porcentaje._
 
 **Origen humano** (`traido_por`):
 El usuario que trajo a un Lead: un closer con su referido. Es una llave a `users`, nunca texto, la
-escribe solo la ingesta, y **el primero que la escribe gana** (ADR 0044).
+escribe solo la ingesta a partir del **codigo del closer** que viaja en `utm_content`, y **el primero
+que la escribe gana** (ADR 0044, ADR 0051).
 
 **Link de captacion**:
-La URL del formulario de un programa con sus UTM ya puestos. Lo **genera** el CRM y **no se guarda**:
+La URL de un Destino de un programa (formulario o checkout) con sus UTM ya puestos. Lo **genera** el CRM y **no se guarda**:
 se calcula. Hay dos clases, la de un anuncio y la de un closer, y **las arma la misma funcion**.
 
-**Enlace de captacion** (el del closer):
-Un **Link de captacion** con los UTM de un closer. Es **por closer y programa**. Es lo que hace que el
-closer no tenga que teclear un UTM.
+**Enlace de captacion** (el del closer, "Mi link"):
+Un **Link de captacion** con el Canal Closer y el **codigo del closer** en `utm_content`. Es **por
+closer y programa**. Es lo que hace que el closer no tenga que teclear un UTM.
+
+**Codigo del closer**:
+El identificador opaco que el CRM le da a un closer para su link. Nunca es su nombre (ADR 0030, ADR
+0051).
 
 **Registro** (vocabulario de Media):
 Un **Envio** de formulario: todo el que lleno el Typeform, haya calificado o no. Es el denominador de
@@ -166,16 +186,18 @@ La persona se presento, quiere entrar y prometio pagar en una fecha concreta, pe
 venta.
 
 **Fecha de seguimiento**:
-El dia en que el closer debe volver a una persona: la nueva cita de una reagendada o la fecha
-prometida de un compromiso de pago.
+El dia en que el closer debe volver a una persona: la nueva cita de una reagendada, la fecha
+prometida de un compromiso de pago, o 🟡 (propuesta del 24-sep) el dia de volver a un deal que se queda
+en Atendido porque el lead "lo va a pensar".
 
 **Motivo**:
 La razon por la que una llamada no cerro (dinero, horario, sin fit, viaje, otro programa...).
 Es una lista que el equipo amplia.
 
-**Origen del lead**:
+**Origen del lead** (catalogo `origenes`, vocabulario v1):
 De donde salio la oportunidad que termino en llamada o cierre: agenda del dia, follow-up, cola
-de descartados, masivos, lanzamiento. Es una lista que el equipo amplia.
+de descartados, masivos, lanzamiento. Es una lista que el equipo amplia. _No es el **Canal**: el
+Canal sale del UTM; este catalogo lo elegia el closer al registrar una llamada en el MVP._
 
 **Follow-up**:
 Volver a una persona con la que ya hubo una conversacion para cerrarla.
@@ -186,24 +208,26 @@ Envios de WhatsApp en tanda a personas que ya dieron opt-in, hechos con Kapso.
 ### El dinero
 
 **Venta**:
-El registro de que una persona compro un producto, con su closer, su cohorte y el precio del
-contrato.
+Desde el modelo v2 (ADR 0037), un **Deal en Abonado o Completo**; nunca un deal a secas. Su ticket es
+el precio de lista del producto. _La tabla `sales` y el "precio del contrato" eran del MVP y ya no
+existen._
 
 **Abono**:
 Un pago recibido, con su fecha, monto, moneda y plataforma. Una venta puede tener varios abonos.
 
 **Saldo pendiente**:
-El precio del contrato de una venta menos todo lo que se le ha abonado. Es `null`, no cero, cuando
-la venta no tiene precio del contrato (filas viejas de Sheets): sin precio no hay contra que restar.
-Tiene una sola definicion, en `lib/queries/saldo.ts` (ADR 0024).
+El precio de lista del producto del deal menos todo lo que se le ha abonado. Es `null`, no cero, cuando
+no hay precio contra que restar. Tiene una sola definicion, en `lib/queries/saldo.ts` (ADR 0024), que
+**hoy no existe**: salio con `sales` en el corte 0020 y la recrea el ticket 060 sobre el deal.
 _Avoid_: calcularlo aparte en cada consulta; decir "saldo cero" cuando no hay precio.
 
 **Sobrepago**:
 Un abono que dejaria la venta con saldo negativo. Se rechaza salvo que el closer lo confirme
 explicitamente, y la confirmacion queda en `change_log`.
 
-**Historial de una persona**:
-Sus llamadas, ventas y abonos en orden, en `/personas/[id]`. Es de solo lectura.
+**Historial de una persona** (vocabulario v1):
+Sus llamadas, ventas y abonos en orden, en `/personas/[id]`. En el modelo v2 lo reemplazan la ficha del
+Lead y la ficha del Deal (tickets 073 y 074).
 
 **Caja recaudada**:
 La suma de los abonos recibidos en un rango de fechas.
@@ -295,7 +319,9 @@ Una lista de instancias que el equipo amplia desde la app (plataformas de pago, 
 origenes del lead).
 
 **Fuente**:
-Una pestana de Google Sheets con su mapeo de columnas, de la que entran los leads de un programa.
+El intake de leads crudos de un programa, con su mapeo de columnas: hay **una activa por programa**
+(ADR 0039). Desde el 22-sep es el **webhook de Typeform**; antes era una pestana de Google Sheets, que
+se sigue leyendo solo para trasladar lo historico.
 
 **Corrida de sync**:
 Una pasada del sincronizador sobre UN programa. Lee todas las fuentes de personas de ese programa
@@ -316,7 +342,8 @@ redacta distinto. No inventa campos: los campos son fijos en el codigo y lo dema
 El vendedor que toma la llamada de postulacion. Puede vender en varios programas. Su
 `closer_id` es el nombre exacto con el que aparece en la columna de closer de la BBDD, y es el
 mismo valor que se copia a sus registros nativos del CRM cuando esta logueado (ADR 0011). Desde
-ADR 0009 ve el mismo dashboard que un gerente, pero sigue sin poder entrar a rutas exclusivas de
+ADR 0009 ve el mismo dashboard que un gerente **en los programas de su membresia, y solo en esos**
+(ADR 0048), pero sigue sin poder entrar a rutas exclusivas de
 gerente como `/ajustes/fuentes` (ADR 0003). Esa disjuncion entre gerente y closer no se toco al
 sumar el **developer**: la excepcion es solo suya (ADR 0025).
 Desde el ADR 0030, **`Mani` y `mani` son el mismo closer**: el texto se guarda como se escribio,
@@ -325,14 +352,15 @@ pero la pregunta "¿son el mismo?" ignora mayusculas y espacios y la contesta
 normalizada impide que dos cuentas reclamen el mismo closer.
 _Evitar_: comparar `closerId` con `===` o con `eq()` a pelo.
 
-**Responsable**:
-El closer a cargo de una persona. Lo asigna el CRM, no la hoja, y una persona puede estar sin
-responsable mientras nadie la toma.
+**Responsable** (vocabulario v1, superado por **Owner**):
+El closer a cargo de una persona en el MVP. En el modelo v2 el dueno es de la oportunidad, no de la
+persona: ver **Owner** (ADR 0037).
 _Avoid_: "dueno del lead", "asignado".
 
 **Alta manual**:
-Una persona que un closer crea en el CRM porque llego sin pasar por el formulario (WhatsApp,
-masivos). Cuenta como persona del programa, pero no como lead de pauta.
+Un lead que un closer crea en el CRM porque llego sin pasar por el formulario (WhatsApp, masivos,
+referido). No genera envio; su deal nace en Pendiente Setteo, En Contacto o Compromiso Verbal. No
+cuenta en el CPL, porque el CPL cuenta solo los leads del area Pauta (ADR 0044).
 
 **BDR**:
 Quien agenda y rescata pipeline. No cierra en frio.
@@ -340,6 +368,14 @@ Quien agenda y rescata pipeline. No cierra en frio.
 **Gerente** (tambien **Manager**):
 El rol que ademas del dashboard administra el sistema: programas, cohortes, fuentes, catalogos,
 recursos y usuarios.
+
+**Paid Trafficker**:
+El cuarto rol (ADR 0052): el equipo de pauta, que crea las campanas de sus programas y genera sus links
+dentro del CRM. No ve deals, llamadas ni abonos, y no administra.
+
+**Maneja pauta**:
+La CUARTA pregunta de la familia de roles (`manejaPauta`): puede crear campanas, generar links y
+cargar gasto. La cumplen el paid trafficker, el gerente y el developer (ADR 0052).
 
 **Developer**:
 El rol de quien construye la app. Es la UNICA excepcion a la disjuncion de roles (ADR 0025):
@@ -409,10 +445,12 @@ y metadatos: por diseno no puede mostrar un dato personal.
 
 ### Vocabulario del modelo v2 (21-sep)
 
-> Terminos que entran con [plan-crm-v2](../plan-crm-v2.md). **Todavia no existen en el codigo**:
-> se construyen a partir de la etapa 1. Estan aqui para que nadie invente un nombre paralelo.
-> Los de **atribucion** (Area, Campana, Patron UTM, Nivel, Origen humano) entran con la etapa **E1b**
-> y viven arriba, en _El origen y la atribucion_, porque son del lenguaje del negocio y no del corte.
+> Terminos que entran con [plan-crm-v2](../plan-crm-v2.md). **Sus tablas existen desde la etapa 1
+> (migracion 0020, 22-sep); la logica que los mueve llega en las etapas 2 a 6.** Estan aqui para que
+> nadie invente un nombre paralelo. Los de **atribucion** (Area, Canal, Campana, Patron UTM, Origen
+> humano) entran con la etapa **E1b** y viven arriba, en _El origen y la atribucion_, porque son del
+> lenguaje del negocio y no del corte. Los de **pantalla** (Inbox, Llamada suelta, Selector de
+> programa) son del 24-sep (ADR 0049 y 0050).
 > Definicion completa en el insumo original, `crm-retia-modelo-hubspot-scaffold.md` §2.
 
 **Lead**:
@@ -427,23 +465,47 @@ son su historial de llegada. Su llave es el Token del formulario.
 La oportunidad de venderle un programa a un Lead. Tiene owner, etapa, producto y cohorte. Un Lead
 puede tener como maximo un deal abierto por programa; los cerrados quedan.
 
+**Seguimiento** (etapa 11):
+La etapa despues de Atendido para un deal cuya llamada ocurrio y hay que volver a contactar. Separa lo
+que salio bien de lo que hay que re-contactar (Mani, 24-sep).
+
 **Etapa**:
-En cual de los diez pasos del pipeline esta un Deal. La escribe el CRM. _No confundir con
+En cual de los once pasos (diez hasta el 24-sep, mas Seguimiento) del pipeline esta un Deal. La escribe el CRM. _No confundir con
 **estado**, que es la clasificacion de llegada que escribe la hoja y el CRM solo trae._
 
 **Owner**:
 El closer responsable de un Deal. Reemplaza al responsable que vivia sobre la persona: los deals
-nacen sin owner y un closer los _reclama_.
+nacen sin owner y un closer los _reclama_, salvo un Agendado cuyo host de Calendly es un closer
+registrado en el programa, que nace con ese owner (ADR 0049).
 
 **Unclaimed**:
-Un Deal en etapa Agendado que todavia no tiene owner.
+Un Deal en etapa Agendado que todavia no tiene owner (con Calendly, solo cuando el host no esta
+registrado en el programa). Es una seccion del **Inbox**.
 
 **Cuota pactada**:
 Un pago prometido: su numero, su monto y su fecha. Cuando entra, se enlaza con el abono que la
 cumplio.
 
 **Student**:
-Un Deal en etapa Abonado o Completo. Es una vista, no una tabla.
+Un Deal en etapa Abonado o Completo, en la **cohorte** de su deal: la cohorte define la lista de
+estudiantes de un programa. Es una vista, no una tabla. _Abierto: si "estudiante confirmado" empieza
+en el primer abono o con el pago completo._
+
+**Inbox**:
+La pantalla de inicio del closer, que reemplaza "Mi dia": deals sin dueno, llamadas sueltas y lo suyo
+que necesita atencion, siempre de un programa (ADR 0050).
+
+**Llamada suelta**:
+Una llamada que trae Calendly y que el CRM no pudo colgar de un deal **sin duda**. Espera en el Inbox a
+que un closer la asigne. Es la unica Call que existe sin deal (ADR 0049).
+
+**Selector de programa**:
+El control, arriba de la navegacion, que decide sobre que programa trabaja cada tab. Solo ofrece los
+programas que la sesion puede ver (ADR 0048, ADR 0050).
+
+**Todos los programas** (agregado):
+La opcion del Dashboard que suma programas. Solo muestra magnitudes sumables en la misma unidad
+(conteos, caja USD, gasto); las tasas, las metas y la comision van por programa (ADR 0048).
 
 **Anulado**:
 Marca de que un registro nunca debio existir, por error de digitacion. _No es lo mismo que Cierre

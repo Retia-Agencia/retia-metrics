@@ -51,3 +51,13 @@ Maru"* no esta escrito en ninguna parte hoy. No es que este mal guardado — **n
 ## Kiro
 
 Si, con revision. La regla de "el primero gana" es donde un bug es silencioso.
+
+---
+
+## Enmienda 2026-09-24 (ADR 0051): el closer va en `utm_content`
+
+El enlace del closer es: `utm_source=closer`, `utm_medium=referido`, `utm_campaign=<campaña de
+referidos del programa>`, `utm_content=<código opaco del closer>`. El código lo genera el CRM (nunca el
+nombre) y el formulario ya captura `utm_content`: cero cambios en Typeform. Lo lee el emparejador
+(ticket 085) y lo escribe la ingesta en `traido_por_user_id`. Resuelve la ficha P2 de la revisión del
+22-sep.

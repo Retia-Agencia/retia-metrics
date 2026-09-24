@@ -1,7 +1,9 @@
 # Estructura real de las dos BBDD
 
-Leida el 19 de agosto de 2026 con `npm run descubrir`, via la cuenta de servicio
-`retia-metrics-sync@retia-metrics.iam.gserviceaccount.com`.
+Leida el 19 de agosto de 2026 con `npm run descubrir`, via la cuenta de servicio de entonces,
+`retia-metrics-sync@retia-metrics.iam.gserviceaccount.com`. **La vigente desde el 16-sep es
+`retia-metrics-sync@retia-growth.iam.gserviceaccount.com`** (proyecto `retia-growth`): es con la que
+hay que compartir una hoja nueva.
 
 Regenerar en cualquier momento con `npm run descubrir`.
 

@@ -40,3 +40,10 @@ huerfanos (236 en Tactical) **existen aqui o no existen en ninguna parte**.
 ## Kiro
 
 Si, con revision visual.
+
+---
+
+## Enmienda 2026-09-24 (ADR 0050): esta es la tab Leads
+
+Filtros que se suman: canal, área y campaña (ticket 101), y "traído por". Siempre dentro del programa
+del selector (ADR 0048).

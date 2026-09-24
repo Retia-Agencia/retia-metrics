@@ -54,3 +54,18 @@ pauta solo paga las del formulario.
   script desaparece.
 - 🩸 Que este campo se podia mover sin dolor lo dice la medicion del 21-sep: **0 personas** tienen
   responsable. La funcion existe desde el ticket 026 y nunca se uso.
+
+---
+
+## Enmienda 2026-09-21 (ADR 0044): el CPL deja de preguntar por `entrada`
+
+Faltaba escribirla aquí aunque el ADR 0044 la declaró. Con el enlace de captación del closer, un lead de
+Comercial entra por el formulario, así que `entrada = 'formulario'` deja de significar "lo pagó la
+pauta". **La regla "las personas creadas a mano no cuentan en el CPL" se reemplaza por:** el
+denominador del CPL cuenta los leads cuyo canal resuelve al área Pauta (ADR 0044 punto 6, ADR 0051).
+
+## Enmienda 2026-09-24 (ADR 0049): el dueño de un Agendado de Calendly
+
+Si el deal no tiene dueño y el host del Round Robin es un closer registrado en el programa, el host
+queda como dueño sin reclamar. El reclamo sigue siendo el camino para todo lo demás, y "sin dueño"
+sigue siendo un estado válido.

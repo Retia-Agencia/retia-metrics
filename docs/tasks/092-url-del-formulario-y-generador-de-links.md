@@ -57,3 +57,22 @@ Sin ese dato **no se puede calcular ningun link**, ni el de este ticket ni el de
 Parcial. El arbol y el generador si, con revision. **La migracion la genera y aplica la sesion
 principal.** El test del punto 2 del "Done cuando" se disena en la sesion principal: es el que prueba
 que las dos mitades no pueden discrepar.
+
+---
+
+## Enmienda 2026-09-24 (ADR 0051 y ADR 0052): el builder v1
+
+Replica el builder de 30X, adaptado:
+
+| Sección | Qué es |
+|---|---|
+| Destino | catálogo por programa: la URL del formulario **y las URL de checkout** (`programs.form_url` pasa a ser uno de los destinos) |
+| Origen | el **Canal** (ticket 101): fija `utm_source` y `utm_medium` y muestra el área |
+| Campaña | el catálogo de Campañas del programa |
+| Opcional | `utm_content` (según el canal) y `utm_term`, con "usar fecha de hoy" |
+| URL final | se calcula y se copia; no se guarda |
+
+- Reglas de forma: minúsculas, `snake_case`, sin tildes ni espacios; el builder sanitiza.
+- Lo usan el gerente y el **Paid Trafficker** (ticket 102). El closer no usa el builder: ve "Mi link".
+- Fuera de v1: URL libre y el acortador con analítica de clics.
+- Checkouts: el link se genera ya; que la venta vuelva sola al CRM es una integración posterior.

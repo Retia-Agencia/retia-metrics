@@ -49,3 +49,13 @@ error**. Se agrupa aparte y se une en memoria, que a esta escala es gratis. Si d
 ## Kiro
 
 Si.
+
+---
+
+## Enmienda 2026-09-24 (ADR 0048)
+
+- "Todos ven todo" rige **dentro del programa**: un closer solo ve los programas de su membresía
+  (ticket 094).
+- "Los leads de un closer son las personas de las que es responsable": en el modelo v2 el responsable
+  es el **owner del deal**; se lee así.
+- La vista "todos los programas" es el ticket 095.

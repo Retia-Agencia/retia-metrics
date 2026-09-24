@@ -51,6 +51,28 @@ Lo que sigue sin esperar decisiones:
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-24 (CIERRE 25): dirección de producto y UI, solo documentos.** Sin código ni migraciones.
+  Preparación de la reunión con Comercial (closers). Lo que quedó escrito:
+  - **Documento de referencia y guía del desarrollo:**
+    `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` (copia de trabajo de Mani en
+    `~/Downloads`). Está sujeto a cambios después de la reunión.
+  - **ADR 0048 a 0052:**
+    - 0048: un closer ve solo los programas de su membresía, y "todos los programas" en el Dashboard
+      suma solo lo sumable.
+    - 0049: Calendly cuelga cada llamada de su deal; si hay duda, la llamada queda suelta.
+    - 0050: navegación por objetos, con Inbox y una tab Dashboard.
+    - 0051: convención de UTM (tres se leen, dos se capturan, el closer va en `utm_content`) y el
+      builder de links.
+    - 0052: el rol Paid Trafficker.
+    - Enmiendas anotadas en los ADR 0009, 0015, 0021, 0025, 0037, 0039, 0043, 0044, 0045 y 0046.
+  - **Tickets 094 a 102** nuevos, y enmiendas en unos 25 existentes.
+  - **Decisión de Mani del mismo día:** Seguimiento es la etapa 11; un deal tiene muchas llamadas y nunca
+    se duplica; la conversión cuenta deals distintos.
+  - La tabla de transiciones (ticket 043) y el Inbox quedan 🟡 hasta validarlos con los closers.
+  - Actualizados también: spec, plan v2 §13, glosario, tracker, AGENTS.md, la revisión del 22-sep §5c,
+    `design.md`, `design-system.md` y `estructura-bbdd.md`.
+  - **Siguiente:** bajar lo que digan los closers en la reunión (preguntas en el documento §6).
+
 - **2026-09-23 (CIERRE 24): la base se mudo a Supabase y la app tiene sistema de diseno.**
   Commits `11c563a`, `a95e25a` y `1a45a1f`, sin push. Decisiones del chat con Mani del 22-sep en
   `docs/auditorias/revision-modelo-hubspot-2026-09-22.md` §5b (S1-S2, T1-T3).

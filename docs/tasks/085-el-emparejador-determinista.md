@@ -56,3 +56,12 @@ arriba y con dinero encima.
 ## Kiro
 
 Si, con revision cercana. La especificidad es donde un bug es silencioso.
+
+---
+
+## Enmienda 2026-09-24 (ADR 0051)
+
+El emparejador resuelve en dos pasos: el par `utm_source + utm_medium` a un **Canal** (y de ahí el
+área) y `utm_campaign` a una **Campaña**. Es también **el único módulo que lee `utm_content`**, y solo
+cuando el canal es Closer, para convertir el código en el usuario que trajo el lead. El guardián se
+amplía: falla si alguien lee `utm_content` por fuera de este módulo.
