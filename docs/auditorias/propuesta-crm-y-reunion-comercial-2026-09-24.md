@@ -1,21 +1,24 @@
 ---
-tipo: preparacion de reunion
-reunion: Comercial de Retia (closers)
+tipo: direccion de producto (nacio como preparacion de reunion)
+reunion: Comercial de Retia (closers) · hecha el 2026-09-24, 3:35 pm
 fecha: 2026-09-24
 autor: Mani (Operations, Retia)
-fuentes: repo retia-metrics-mani (spec, plan v2, 47 ADR, tickets 036-093, schema real), second brain (retia, retia-ops), Granola (reuniones del 14, 17, 18 y 21 de septiembre)
+fuentes: repo retia-metrics-mani (spec, plan v2, 52 ADR, tickets 036-102, schema real), second brain (retia, retia-ops), Granola (reuniones del 14, 17, 18, 21 y 24 de septiembre)
+estado: la reunion con los closers YA OCURRIO; su resultado esta en §0 y manda sobre el resto
 ---
 
-# CRM de Retia: paquete para la reunión con los closers
+# CRM de Retia: dirección del producto (y lo que dijeron los closers)
 
-**Para qué es esto.** Llevar a la reunión con Comercial una propuesta clara y, sobre todo, salir
-de ahí sabiendo cómo trabajan hoy, qué les duele y qué les ahorraría tiempo. El objetivo no es
-hacer una demo: la app de hoy es la del modelo viejo y la nueva todavía no tiene pantallas.
+**Para qué es esto.** Nació como el paquete para la reunión con Comercial. **La reunión ya pasó
+(24-sep, tarde)** y su resultado está en la **§0**, que manda sobre el resto del documento donde
+choquen. Desde hoy este es el documento que dice **cuál es la verdad del CRM, cuál es el objetivo
+y qué falta**; el track de implementación quedó desbloqueado.
 
 **Cómo está armado.**
 
 | Parte | Para quién | Qué tiene |
 |---|---|---|
+| **0. Resultado de la reunión** 🆕 | **todos, primero** | qué se validó, qué cambió, qué quedó abierto, y por dónde retomar |
 | 1. Resumen | todos | el CRM en una página |
 | 2. Parte comercial | closers y gerentes | flujo de hoy y flujo propuesto, de cada rol |
 | 3. Parte técnica | Mani (referencia) | modelo de datos, convención de UTM, builder, pantallas por rol |
@@ -25,6 +28,125 @@ hacer una demo: la app de hoy es la del modelo viejo y la nueva todavía no tien
 | 7. Preguntas para otros | Mani | Gerencia, Pauta, Michael, Media |
 
 Leyenda: ✅ decidido · 🟡 propuesta, falta validar · 🔴 pendiente · ⚠️ contradicción o riesgo.
+
+---
+
+## 0. Resultado de la reunión con los closers (24-sep, 3:35 pm) 🆕
+
+**Quiénes:** Mani, Andrea, Maru y Jero (unos 30 min). Transcript completo, con quién dijo qué y las
+correcciones del reconocimiento de voz, en
+[`docs/insumos/fleeting/2026-09-24-reunion-closers-crm.md`](../insumos/fleeting/2026-09-24-reunion-closers-crm.md).
+
+**En una frase:** las etapas y el modelo Lead → Deal quedaron validados sin objeciones (*"súper
+intuitivo"*, *"no vi que se saltaran ninguna parte"*). Salieron cuatro cosas nuevas: priorizar el
+Setteo, que registrar después de la llamada sea rápido, que los acuerdos de pago vayan como nota con
+fecha límite, y que los closers **no** traen leads propios. **El track de implementación queda
+desbloqueado.**
+
+### 0.1 Lo que la reunión validó ✅
+
+| Qué | Lo que dijeron | Qué cambia en el diseño |
+|---|---|---|
+| **Las 11 etapas y el Kanban** (§2.5) | se mostraron en orden, con las salidas después de Atendido; nadie pidió quitar ni agregar una | nada. Las etapas pasan de 🟡 a ✅. Las **transiciones** 🟡 de la tabla (T5, T7, T9, T14, T15, T17, T19-T21, T28, A1, A2, destinos de R) no se discutieron una por una: son técnicas y las cierra Mani (§0.5) |
+| **Grain como requisito para Atendido** | *"no te va a dejar mover la carta si no tiene el link de Grain"*: aceptado. **Todas las llamadas se graban** | T10 ✅. La salida "sucedió" sin Grain (T7/T10) pierde urgencia: nadie mencionó llamadas sin grabar. Se deja 🟡 para el caso raro |
+| **Seguimiento como etapa** (la 11) | alguien ya lleva sus etapas en las **etiquetas de WhatsApp Business** ("seguimiento", "pagado") | confirma la etapa 11. Es la evidencia de que el CRM tiene que reemplazar esas etiquetas |
+| **Calendly: cada closer tiene su cuenta y es dueño de sus llamadas** | *"todos tenemos una cuenta y somos los owners"*. **Andrea y Maru tienen dos correos, uno por programa** | confirma el ADR 0049: la cuenta de Calendly vive **en la membresía** (closer × programa), no en el usuario. Ticket 096 ✅ en ese punto |
+| **Reparto del Setteo: el primero que lo ve lo toma** | el turno fijo de la hoja (Maru, Jero, Andrea...) **"está súper desactualizado, toca quitarlo"**; cada una filtra por su nombre | confirma el **Inbox con reclamo** (tickets 070, 071). No hay reparto automático en v1 |
+| **Onboarding: un tracker simple, sí/no** | pasos fuera del CRM: meterlo al grupo y mandarle el correo con los accesos. Lo que falta es *"que sepa cuáles le quedan pendientes"* | alcanza con `deals.onboarded_at` (ticket 063) y una columna en Students por programa y cohorte (ticket 099). **No hay checklist** |
+| **Productos y Recursos** | se mostraron (links de pago, brochures, VSL; productos por programa, incluido el de descuento): sin objeción | nada |
+
+### 0.2 Lo nuevo que salió 🆕
+
+**N1. El Setteo necesita prioridad, y no como filtro sino ya ordenado.** Hoy no hay prioridad
+estándar, pero Jero y Andrea priorizan a mano: primero quien declaró **más de 10.000**, luego **más de
+3.000**, y así bajando; y además **qué tan caliente está**: quien se acaba de registrar cierra mucho
+más. → La sección Pendiente Setteo del Inbox viene **ordenada** por banda de ingreso y, dentro de la
+banda, por recencia del último envío. 🟡 El orden entre los dos criterios es propuesta.
+🔴 Falta saber: **qué pregunta del formulario** es esa cifra, **en qué moneda y periodo** (¿USD al
+mes?) y si las bandas son iguales en los dos programas (el ICP de Tactical arranca en USD 1.000). La
+respuesta vive en `submissions.respuestas` (jsonb), así que la pregunta se configura **por fuente**,
+no se escribe en el código (ADR 0012). Tickets 070 y 071.
+
+**N2. El dolor número uno es registrar después de la llamada.** Maru: *"me cuesta mucho llenar la
+base de una vez, sobre todo cuando tenemos varias llamadas seguidas"*. → El cierre de una llamada
+tiene que costar **pegar el Grain y un clic** ("¿Cómo terminó?", §2.6), y lo que quede sin resultado
+cae al Inbox como *"llamada de hoy sin resultado"* para ponerse al día después, sin perderse. Es el
+criterio con el que se juzga la ficha del deal (074) y la revisión de UI (075).
+
+**N3. Los acuerdos de pago son conversacionales, no cuotas fijas.** No se pacta "tantas cuotas cada
+tanto": se conversa, por ejemplo *"paga el otro 30% en tal fecha y el 20% restante en tal otra"*. La
+regla general: **pagar todo antes del inicio del programa**; como caso extremo, **a la mitad del
+programa**. Hay descuentos, con un límite que no se dijo. → Lo pedido: en el deal, **una nota del
+acuerdo de pago** y **una fecha límite de pago**. 🟡 Propuesta para Mani (§0.5): la fecha límite se
+prellena con el inicio de clases de la cohorte y se edita; **cartera vencida = saldo > 0 con la fecha
+límite pasada**; y las filas de `cuotas_pactadas` (ticket 061) salen de v1, porque piden una
+estructura que el proceso real no tiene y que nadie va a llenar. La tabla ya existe y se queda
+quieta hasta que alguien pida cobrar cuota por cuota.
+
+**N4. Los closers no traen leads propios.** A la pregunta de si invitan gente o buscan leads, la
+respuesta fue no. → El **link de captación del closer** (ADR 0044, 0051; ticket 086) **baja de
+prioridad**: el diseño sigue siendo correcto y no estorba, pero no va antes que el resto. Y que
+Comercial salga en cero en "leads por área" es **un dato real**, no un bug.
+
+**N5. UTM: prioridad altísima, y se cierra con Pauta.** Jero se ofreció a ayudar y a conseguir la
+reunión con el equipo de pauta. La convención (§3.3, ADR 0051) sigue 🟡 hasta esa reunión.
+
+**N6. Juanito (fuera del CRM) falla en los recordatorios.** Maru: si no mandó el push 1, no manda el
+2, solo el 3 antes de la llamada; pide además un **recap** antes de cerrar porque *"los datos están
+en muchos lados"*. Los números "equivocados" no eran de Juanito: el lead usó **un teléfono en el
+formulario y otro en la agenda**. → Para el CRM confirma dos cosas ya decididas: Calendly empareja
+**por correo, nunca por teléfono** (ADR 0049), y la ficha del lead muestra **todos** sus teléfonos
+(`lead_contactos`). El arreglo de Juanito es la tarea de Mani de "activar Juanito", no del repo.
+
+**N7. Los Grain se analizan a mano.** Andrea y Maru solo pegan el link; Jero saca la transcripción y
+la pasa por Claude. Mani propuso, a futuro, algo que prepare el guion de la llamada según lo que
+convierte. **Fuera de v1**, igual que antes ("análisis de transcripts" estaba en lo que no se
+promete).
+
+### 0.3 Lo que no se alcanzó a preguntar 🔴
+
+Siguen abiertas y no bloquean el arranque, porque caen en tickets posteriores:
+
+| Pregunta | Afecta | Cuándo hace falta |
+|---|---|---|
+| De quién es el deal si el lead que trabajaba una closer agenda con otra por Round Robin | 096 | al construir Calendly (E4) |
+| ¿Desde cuándo alguien es "estudiante": primer abono o pago completo? | 099 | al construir Students (E6) |
+| Cómo mandan el comprobante (foto, link, PDF) | 035, 060 | E4 |
+| Qué es una venta sin llamada (Jero: 10 estudiantes, 0 llamadas) | 043 (T4, T5) | ya cubierta por T4/T5; confirmar |
+| Qué pasa con "próxima cohorte" y con los perdidos que se recuperan | 043 (T19-T22, R) | E2 |
+| El límite de los descuentos | Gerencia, productos | cuando se creen productos de descuento |
+| Quién hace el onboarding (el transcript dice "Anis"; Jero nombró a Dani Rincón) | 099 | E6 |
+| Comisión, uso desde el celular, quién prueba primero | 062, 075 | antes de E7 |
+
+### 0.4 Pendientes con personas
+
+- **Jero:** conseguir la reunión con el equipo de Pauta para cerrar la convención de UTM y el builder.
+- **Mani:** decidir lo de §0.5; arreglar los push de Juanito (fuera del repo).
+- **Closers:** las preguntas de §0.3, por chat, cuando llegue el ticket que las necesita.
+
+### 0.5 Por dónde retomar la implementación
+
+**El objetivo no cambió:** el CRM tiene que trackear el camino de cada deal (§1, punto 1) y el origen
+de cada lead (punto 2). La reunión confirmó que el **core es el Kanban de deals por etapas** y que el
+origen depende de la reunión con Pauta. Por eso el orden recomendado es el de P1 (operación antes que
+analítica), que la reunión refuerza:
+
+1. **Tres decisiones cortas de Mani** (antes de tocar código):
+   - las transiciones 🟡 de §2.5: recomendación, **adoptarlas tal cual** (ninguna chocó con lo que
+     dijeron los closers);
+   - el acuerdo de pago (N3): recomendación, **nota + fecha límite en el deal, sin cuotas en v1**
+     (enmienda los tickets 061 y 043: la "fecha prometida" de T12 sería esa fecha);
+   - P1: recomendación, **sí**.
+2. **E2, el motor de etapas:** 043 (incluye la etapa 11, Seguimiento, en el enum), 044, 045, 046, 047.
+   En paralelo y sin dependencias: **094** (alcance del closer por membresía).
+3. **E3 mínimo, la ingesta** (048-052), con la **pregunta de ingreso configurable por fuente** (N1).
+4. **E4, llamadas y dinero:** 057-060 y 063, con la nota y la fecha límite del acuerdo de pago; 096
+   (Calendly) cuando se decida webhook o consulta.
+5. **E6 mínimo:** 097 (navegación), 069 (Kanban), 070 y 071 (Inbox con el Setteo ordenado), 074
+   (ficha del deal con el cierre de llamada en un clic), 099 (Students con onboarding).
+6. **E1b (atribución)** apenas se haga la reunión con Pauta: 083, 084, 092, 101, 102. El 086 (link del
+   closer) va al final (N4).
+7. **E5 (reportes) y E7 (migración)** después.
 
 ---
 
@@ -59,10 +181,13 @@ comprobante nace en un chat, y el ROAS se dejó de calcular sin que nadie lo dec
 
 ## 2. Parte comercial
 
-### 2.1 Cómo trabaja hoy un closer (reconstruido, falta que ellas lo validen)
+### 2.1 Cómo trabaja hoy un closer (reconstruido; la reunión lo corrigió en §0)
 
 Esto salió de leer las dos hojas completas y los scripts de Apps Script (20-sep), no de
-preguntarles. **Es la hipótesis que la reunión tiene que confirmar o corregir.**
+preguntarles. **Correcciones de la reunión del 24-sep:** el reparto por turno está desactualizado y
+nadie lo sigue (el primero que ve el lead lo toma); de una agenda de Calendly se enteran por su
+propia cuenta de Calendly y por los push de Juanito; llevan etapas paralelas en las etiquetas de
+WhatsApp Business. Ver §0.
 
 ```
 Anuncio o contenido orgánico
@@ -167,7 +292,7 @@ flowchart TD
 | Deal en 5, 6 o 7 | la llamada se agrega y **se avisa al dueño**; la etapa no cambia | el closer decide qué significa esa llamada | ✅ Mani · 🟡 validar |
 | Cancelada o no-show reportada por Calendly | T8: el deal pasa a 3 Re-agenda | la cita falló | ✅ |
 | Deal sin dueño y host registrado en el programa | dueño = host del Round Robin | Calendly ya repartió | ✅ 24-sep |
-| Deal con dueño y el host es otro closer | se respeta el dueño y se avisa | 🔴 pregunta para la reunión: ¿de quién es? | 🔴 |
+| Deal con dueño y el host es otro closer | se respeta el dueño y se avisa | 🔴 no se alcanzó a preguntar el 24-sep (§0.3) | 🔴 |
 | Sin la integración todavía | el closer crea la Call con fecha y link a mano | el modelo no depende de Calendly para funcionar | ✅ |
 
 **Un día del closer en el CRM:**
@@ -201,7 +326,7 @@ buscar links en WhatsApp, calcular su comisión.
 4. Registra **campañas** y su gasto; genera los links con UTM (o lo hace Pauta con su rol).
 5. Administra programas, cohortes, productos, usuarios y a qué programas pertenece cada closer.
 
-### 2.5 Las etapas del Deal (para validar con ellas)
+### 2.5 Las etapas del Deal ✅ (validadas con los closers el 24-sep)
 
 Son **once** desde el 24-sep: Mani sumó **Seguimiento** para separar, después de la llamada, lo que
 salió bien (Compromiso o pago) de lo que hay que volver a contactar. **El número es solo un nombre,
@@ -657,9 +782,10 @@ por agenda USD 20, alerta USD 100** (Daniel Tovar).
 - **No es forzosa.** Se cuelga sola solo si el correo del invitado es de un lead del programa con
   un solo deal abierto. **Si hay duda, la llamada queda suelta** en el Inbox y el closer la asigna
   a mano. Una asignación equivocada es peor que una pendiente, porque se ve igual que una correcta.
-- Cada closer registra su cuenta de Calendly **en cada programa** (en su membresía). Si el deal no
+- Cada closer registra su cuenta de Calendly **en cada programa** (en su membresía). ✅ Confirmado el
+  24-sep: cada una tiene su cuenta, y Andrea y Maru tienen un correo distinto por programa. Si el deal no
   tiene dueño y el host está registrado, **el host queda como dueño**. Si el deal ya tiene dueño,
-  se respeta y se avisa (🔴 pregunta de la reunión).
+  se respeta y se avisa (🔴 no se alcanzó a preguntar, §0.3).
 - Sin la integración, el closer crea la llamada con fecha y link a mano: el modelo funciona igual.
 - 🔴 Técnico: webhook (tiempo real, exige plan Standard de Calendly o superior) o consulta
   periódica (depende de pasar Vercel a Pro para un cron cada 15 min); dónde se guarda la
@@ -747,7 +873,7 @@ Hay que bajarlas a ADR y tickets; hasta entonces, los ADR del repo siguen dicien
 11. **Checkouts:** entran como destino ya; la venta automática desde la pasarela, después.
 12. **Deals históricos:** el CRM solo abre deals para leads nuevos desde el corte; los viejos
     entran con la migración de Setteo respetando su estado de gestión.
-13. **Onboarding:** se pregunta en la reunión; hoy solo se guarda `onboarded_at`.
+13. **Onboarding:** tracker simple sí/no con `onboarded_at` (confirmado con los closers, §0.1).
 14. **La cohorte es por programa y define la lista de estudiantes** (Mani, confirmado): un
     estudiante confirmado pertenece a una cohorte de un programa. Ya coincide con el modelo; queda
     por confirmar si "confirmado" empieza en el primer abono o en el pago completo.
@@ -757,9 +883,20 @@ Hay que bajarlas a ADR y tickets; hasta entonces, los ADR del repo siguen dicien
     Re-agenda **con motivo**; si llega una llamada nueva y el lead ya tiene deal, se agrega a ese
     deal y **se avisa al dueño**. La conversión cuenta deals distintos.
 
+**Cerradas en la reunión con los closers (24-sep, tarde), detalle en §0:**
+
+17. **Las 11 etapas y el Kanban quedan validados**, con Grain como requisito para Atendido.
+18. **El Setteo se reclama desde el Inbox**; el reparto por turno de la hoja se retira.
+19. **El Setteo viene ordenado** por ingreso declarado y recencia (🟡 el orden exacto; 🔴 qué pregunta del formulario).
+20. **Acuerdo de pago = nota + fecha límite en el deal** (🟡 que las cuotas pactadas salgan de v1 lo decide Mani).
+21. **Onboarding = `onboarded_at`**, sin checklist.
+22. **El link de captación del closer baja de prioridad**: hoy no traen leads propios.
+
 ---
 
-## 6. Guía de la reunión con los closers
+## 6. Guía de la reunión con los closers (✅ hecha el 24-sep; se conserva como registro)
+
+> Lo que se respondió está en §0; lo que no se alcanzó a preguntar, en §0.3.
 
 **Regla de la reunión:** ellas hablan el 70% del tiempo. La pregunta de fondo no es cómo
 trabajan, es **por qué no diligencian lo que no diligencian**. Empezar por Andrea y Maru, que son

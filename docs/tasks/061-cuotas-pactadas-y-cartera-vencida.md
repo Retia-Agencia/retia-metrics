@@ -48,3 +48,16 @@ vencia el 5 de octubre"*.
 ## Kiro
 
 Si.
+
+## ⚠️ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../insumos/fleeting/2026-09-24-reunion-closers-crm.md), resumen en la propuesta §0): el proceso real no tiene cuotas
+
+Los acuerdos de pago se **conversan**, no se pactan en cuotas fijas (*"paga el otro 30% en tal
+fecha y el 20% restante en tal otra"*). Regla: pagar todo **antes del inicio del programa**, como
+máximo **a la mitad**. Lo que pidieron: **una nota del acuerdo** y **una fecha límite** en el deal.
+
+🟡 **Propuesta, la decide Mani:** este ticket cambia de alcance a
+`deals.acuerdo_pago` (texto) + `deals.fecha_limite_pago` (fecha, prellenada con el inicio de clases
+de la cohorte y editable), y **cartera vencida = saldo > 0 con la fecha límite pasada**. Las filas de
+`cuotas_pactadas` salen de v1: la tabla existe y se queda quieta hasta que alguien pida cobrar cuota
+por cuota. Por qué: una estructura que el proceso no tiene es un campo que nadie llena, y un dato que
+nadie llena miente en la cartera sin lanzar un error. Migración: la sesión principal.

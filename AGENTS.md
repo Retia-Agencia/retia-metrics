@@ -45,11 +45,13 @@ leyendo los Sheets y los `.gs`). Utiles para entender el *por que* de una decisi
 correspondiente no alcanza a explicar el contexto completo.
 
 Y un octavo, **la dirección vigente del producto: `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md`**.
-Nació como paquete para la reunión con los closers y es la **guía del desarrollo** hasta que esa
-reunión la corrija: flujo de hoy y propuesto de cada rol, modelo de datos contra el esquema real,
+Nació como paquete para la reunión con los closers, **que ya se hizo el 24-sep en la tarde**: su
+resultado, lo que cambió y **por dónde retomar la implementación** están en su **§0**, que se lee
+primero y manda sobre el resto del documento. Es la **guía del desarrollo**: flujo de hoy y propuesto de cada rol, modelo de datos contra el esquema real,
 convención de UTM y builder, pantallas por rol (tabs por objeto, Inbox, Dashboard) y la tabla de
 transiciones entre etapas. Sus decisiones ya bajaron a los ADR 0048 a 0052 y a los tickets 094 a 102;
-lo marcado 🟡 es propuesta que se valida con los closers antes de congelarla en código. Al lado vive
+lo que sigue 🟡 después de la reunión es propuesta técnica que cierra Mani, y lo 🔴 son preguntas
+que no se alcanzaron a hacer (§0.3). Al lado vive
 `docs/auditorias/revision-modelo-hubspot-2026-09-22.md`, con las fichas de decisión que siguen abiertas.
 
 Available skills (the pipeline is **spec → plan → build**): `/spec` (interview → `docs/spec.md`, or `docs/specs/*.md` one per domain), `/plan` (spec → `docs/plan.md` + tickets), `/grill-me`, `/grill-with-docs` (align + document before building), `/tdd` (red-green-refactor), `/diagnose` (disciplined debugging), `/improve-codebase` (deepen modules), `/handoff` (compact a session).

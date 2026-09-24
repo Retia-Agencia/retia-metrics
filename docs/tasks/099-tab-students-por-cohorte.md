@@ -33,3 +33,12 @@ lista de estudiantes**: un estudiante confirmado pertenece a una cohorte de un p
 ## Kiro
 
 Sí, con revisión visual.
+
+## ✅ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../insumos/fleeting/2026-09-24-reunion-closers-crm.md), resumen en la propuesta §0): onboarding sin checklist
+
+El onboarding (meterlo al grupo y mandarle el correo con los accesos) pasa fuera del CRM. Lo que
+pidieron es un **tracker sí/no** para que quien lo hace vea qué le falta, por programa y cohorte:
+alcanza con `onboarded_at` (ticket 063) como columna y filtro. **Sin checklist.** Si se aprueba la
+nota + fecha límite del acuerdo de pago (ticket 061), las dos van como columnas aquí.
+🔴 Sigue abierto: si "estudiante" empieza en el primer abono o en el pago completo, y quién hace el
+onboarding (¿Dani Rincón?).

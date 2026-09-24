@@ -10,6 +10,14 @@ Un ticket está **listo** cuando todos los de su columna "Depende de" están en 
 Orden y porqué: **[docs/plan-crm-v2.md](../plan-crm-v2.md)** para la época viva; [docs/plan.md](../plan.md)
 para el MVP ya ejecutado. Alcance: [docs/spec.md](../spec.md).
 
+> ✅ **24-sep, tarde: la reunión con los closers ya se hizo y el track de implementación quedó
+> desbloqueado.** Resultado, qué cambió y **por dónde retomar** en la **§0** de
+> [la propuesta](../auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md); transcript en
+> [`insumos/fleeting/2026-09-24-reunion-closers-crm.md`](../insumos/fleeting/2026-09-24-reunion-closers-crm.md).
+> Las 11 etapas quedan validadas: **el 043 ya no espera a los closers**, solo a que Mani cierre las
+> transiciones 🟡 (recomendación: adoptarlas tal cual). Enmendados los tickets 043, 061, 070, 071, 086,
+> 096 y 099.
+>
 > 🧭 **24-sep: dirección de producto y UI, antes de la reunión con Comercial.** Documento de referencia
 > para el desarrollo (sujeto a cambios después de la reunión):
 > **[docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md](../auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md)**.
@@ -274,10 +282,13 @@ Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje
 | Decisión | A quién | Afecta |
 |---|---|---|
 | Qué se reconcilia y qué se descarta del histórico de C2 (importar: **sí**) | Mani + Michael | 080 |
-| La tabla de transiciones propuesta el 24-sep (T1-T23, P, R, A1, A2) | closers → Mani | 043, 044, 047, 058, 059 |
-| Qué cae en el Inbox, y el X de "deal sin actividad en X días" | closers | 071 |
+| Las transiciones 🟡 de la tabla del 24-sep (las etapas ya están validadas) | Mani · recomendación: adoptarlas | 043, 044, 047, 058, 059 |
+| Acuerdo de pago como nota + fecha límite, y sacar `cuotas_pactadas` de v1 | Mani · recomendación: sí | 061, 043, 099 |
+| Qué pregunta del formulario es el ingreso (moneda, periodo, bandas por programa) | closers / Mani leyendo el form | 070 |
+| El X de "deal sin actividad en X días" | closers | 071 |
 | De quién es el deal si el host de Calendly es otra closer | closers | 096 |
-| "Estudiante confirmado": ¿desde el primer abono o con el pago completo? ¿checklist de onboarding? | closers + Gerencia | 099 |
+| "Estudiante confirmado": ¿desde el primer abono o con el pago completo? Quién hace el onboarding | closers + Gerencia | 099 |
+| La convención de UTM, con el equipo de Pauta (Jero consigue la reunión) | Pauta + Jero + Mani | 083, 084, 092, 101 |
 | Hasta cuántos días atrás se migran los leads de Setteo con deal | closers | 080 |
 | El área de cada canal (catálogo inicial) | Alejo | 101 |
 | Qué ve el Paid Trafficker del Dashboard | Gerencia | 102 |
@@ -286,6 +297,11 @@ Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje
 | Precio de lista de ComunicArte: 797 o 697 | Gerencia | `context.md`, 062 |
 
 ### Resueltas
+
+- 24-sep, tarde · **Reunión con los closers** (Andrea, Maru, Jero): las 11 etapas y el Kanban
+  validados; Grain como requisito de Atendido; Calendly con cuenta por closer y por programa; el
+  Setteo se reclama (el turno fijo se retira) y viene ordenado por ingreso y recencia; onboarding =
+  `onboarded_at`; los closers no traen leads propios (el 086 baja de prioridad). Propuesta §0.
 
 - 24-sep · **Seguimiento es la etapa 11 y un deal tiene muchas llamadas** (Mani, se valida con los
   closers): la llamada que falla va a Re-agenda con motivo, la nueva se agrega al deal y se avisa al

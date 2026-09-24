@@ -63,3 +63,13 @@ Sí, con revisión. El emparejador es donde un bug es silencioso.
   (5 → 3 con motivo); T11 queda reemplazada y T15 pasa a 6 → 11. Perdido llega también desde 11. Tabla
   completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
 - **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".
+
+## ✅ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../insumos/fleeting/2026-09-24-reunion-closers-crm.md), resumen en la propuesta §0)
+
+- **Cada closer tiene su propia cuenta de Calendly y es dueño de sus llamadas.** Andrea y Maru tienen
+  **un correo distinto por programa**: la cuenta vive en la **membresía** (closer × programa), como dice
+  el ADR 0049. El closer la configura en su perfil, por programa.
+- **Todas las llamadas se graban con Grain.**
+- Evidencia a favor de emparejar **solo por correo**: hay leads que ponen **un teléfono en el formulario
+  y otro en la agenda**. Emparejar por teléfono habría colgado llamadas de la persona equivocada.
+- 🔴 Sigue sin preguntarse: de quién es el deal si el host es otra closer.

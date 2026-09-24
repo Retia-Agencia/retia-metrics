@@ -99,3 +99,12 @@ hasta que los closers la validen.** Resumen de lo que cambia:
   (5 → 3 con motivo); T11 queda reemplazada y T15 pasa a 6 → 11. Perdido llega también desde 11. Tabla
   completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
 - **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".
+
+## ✅ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../insumos/fleeting/2026-09-24-reunion-closers-crm.md), resumen en la propuesta §0)
+
+- **Las 11 etapas quedan validadas** (incluida Seguimiento): nadie pidió quitar ni agregar. Ya no
+  hace falta esperar a los closers para tomar este ticket.
+- Las transiciones 🟡 no se discutieron una por una: las cierra Mani. Recomendación: adoptar la tabla
+  propuesta tal cual.
+- Si Mani aprueba el acuerdo de pago como **nota + fecha límite en el deal** (propuesta §0.2 N3), la
+  "fecha prometida" de T12 y T25 es esa fecha límite y no la primera cuota pactada.

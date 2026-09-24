@@ -72,3 +72,15 @@ Este ticket deja de ser una pantalla propia: sus dos listas son las secciones "s
 (ticket 071). Con Calendly (ADR 0049), un Agendado cuyo host es un closer registrado **ya nace con
 dueño**; Unclaimed queda para los Agendados cuyo host no está registrado. Todo lo demás de este ticket
 (la reja del reclamo, el origen a la vista) sigue igual.
+
+## 🆕 Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../insumos/fleeting/2026-09-24-reunion-closers-crm.md), resumen en la propuesta §0): el Setteo viene ORDENADO
+
+- **Reparto:** el primero que ve el lead lo toma. El turno fijo de la hoja está desactualizado y se
+  retira. Reclamar desde el Inbox es exactamente lo que hacen hoy: se confirma.
+- **Prioridad:** hoy priorizan a mano por **ingreso declarado** (más de 10.000, luego más de 3.000, y
+  bajando) y por **recencia** (quien se acaba de registrar cierra más). Lo pidieron *"no como filtro,
+  sino ya priorizado"*. Dentro de este ticket: la sección se ordena por banda de ingreso y, dentro de
+  la banda, por fecha del último envío (🟡 el orden entre los dos).
+- 🔴 **Antes de construirlo:** qué pregunta del formulario es el ingreso, en qué moneda y periodo, y
+  las bandas por programa. La pregunta se **configura por fuente** (vive en `submissions.respuestas`),
+  nunca se escribe en el código (ADR 0012). Las bandas: 🔴 configurables por programa o fijas.

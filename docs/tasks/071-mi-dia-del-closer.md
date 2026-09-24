@@ -66,3 +66,12 @@ Siempre de un programa (el del selector, ADR 0048). Depende también de 096 y 09
   (5 → 3 con motivo); T11 queda reemplazada y T15 pasa a 6 → 11. Perdido llega también desde 11. Tabla
   completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
 - **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".
+
+## 🆕 Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../insumos/fleeting/2026-09-24-reunion-closers-crm.md), resumen en la propuesta §0)
+
+- **El dolor número uno es registrar después de la llamada** cuando hay varias seguidas. El Inbox es
+  la red de seguridad: *"llamada de hoy sin resultado"* tiene que aparecer arriba, para ponerse al día
+  al final del bloque de llamadas sin que se pierda ninguna.
+- El Setteo sin dueño viene **ordenado** por ingreso y recencia (ticket 070).
+- Alguien lleva hoy sus etapas en las **etiquetas de WhatsApp Business**: el Inbox tiene que responder
+  "¿en qué estoy con cada uno?" mejor que esas etiquetas, o las van a seguir usando.
