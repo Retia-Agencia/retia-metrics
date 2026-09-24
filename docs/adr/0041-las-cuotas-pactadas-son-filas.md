@@ -1,5 +1,10 @@
 # 0041 — Las cuotas pactadas son filas, no dos campos en el deal
 
+> ⚠️ **Enmendado por el ADR 0053 (24-sep):** en v1 no hay cuotas. Los closers contaron que los acuerdos
+> de pago se conversan, no se pactan en cuotas fijas; el deal guarda una nota del acuerdo y una fecha
+> límite, y `cuotas_pactadas` se queda quieta. Este ADR sigue siendo la forma correcta **si** algún día
+> se cobra cuota por cuota.
+
 **Fecha:** 2026-09-21 · **Estado:** aceptado (Mani delego la decision y la confirmo el 21-sep;
 **D5** del plan v2) · **Implementacion:** etapa 4 del plan v2 · **Aplica:** ADR 0013, ADR 0024 ·
 **Toca:** ADR 0006 (por que esto no es abstraccion especulativa)

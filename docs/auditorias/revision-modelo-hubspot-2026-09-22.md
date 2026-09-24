@@ -435,7 +435,7 @@ riesgo del CRM propio no es la tecnología sino que tarde en ser operativo.
 
 ## 5. Registro de decisiones: plan y alcance
 
-### P1 · Operación antes que analítica — P0
+### P1 · Operación antes que analítica — P0 · ✅ decidida el 24-sep: sí
 
 **Contexto.** El tracker pone E1b (atribución: áreas, campañas, emparejador) como lo siguiente.
 E5 (dashboard, embudo, ROAS) va antes que E6 (Kanban, mi día). Mientras tanto hay 0 deals y los

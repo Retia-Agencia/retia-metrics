@@ -22,12 +22,12 @@ Validado por los closers: las 11 etapas (con Seguimiento) y el Kanban; Grain obl
 Atendido; cuenta de Calendly por closer y por programa (ADR 0049); el Setteo se reclama desde el
 Inbox; onboarding = onboarded_at, sin checklist.
 
-Primer paso de la sesion: que Mani cierre TRES cosas (recomendacion entre parentesis):
-  1. Las transiciones 🟡 de la tabla del 043 (adoptarlas tal cual).
-  2. Acuerdo de pago = nota + fecha limite en el deal, y cuotas_pactadas fuera de v1 (si). Ticket 061.
-  3. P1, operacion antes que analitica (si).
+Decidido por Mani el 24-sep (adopto las tres recomendaciones): la tabla de transiciones del 043
+completa (D2 cerrada); acuerdo de pago = nota + fecha limite en el deal, sin cuotas en v1 (ADR 0053,
+ticket 061); P1, operacion antes que analitica.
 
-Despues, en este orden: E2 (043 con la etapa 11 en el enum, 044, 045, 046, 047) y el 094 en
+Primer paso: tomar el 043 (E2).
+Orden oficial: E2 (043 con la etapa 11 en el enum, 044, 045, 046, 047) y el 094 en
 paralelo; E3 minimo (048-052) con la pregunta de ingreso configurable por fuente para ordenar el
 Setteo (070); E4 (057-060, 063, 096); E6 minimo (097, 069, 070, 071, 074, 099). E1b (UTM) apenas
 Jero consiga la reunion con Pauta; el 086 (link del closer) al final: no traen leads propios.
@@ -52,7 +52,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     arregla los push de Juanito (fuera del repo).
   - **Actualizados:** propuesta (§0 nueva, §2.1, §2.5, §3.7, §5 puntos 17-22, §6), tracker (banner y
     decisiones pendientes), AGENTS.md, tickets 043, 061, 070, 071, 086, 096 y 099.
-  - **Siguiente:** las tres decisiones de Mani del prompt de arriba, y arrancar E2 por el 043.
+  - **Mani adoptó las tres recomendaciones** el mismo día: tabla de transiciones completa (D2), ADR 0053
+    (acuerdo de pago = nota + fecha límite, enmienda el 0041, ticket 061 reescrito) y P1.
+  - **Siguiente:** arrancar E2 por el 043.
 
 - **2026-09-24 (CIERRE 25): dirección de producto y UI, solo documentos.** Sin código ni migraciones.
   Preparación de la reunión con Comercial (closers). Lo que quedó escrito:

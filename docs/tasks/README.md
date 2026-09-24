@@ -14,9 +14,11 @@ para el MVP ya ejecutado. Alcance: [docs/spec.md](../spec.md).
 > desbloqueado.** Resultado, qué cambió y **por dónde retomar** en la **§0** de
 > [la propuesta](../auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md); transcript en
 > [`insumos/fleeting/2026-09-24-reunion-closers-crm.md`](../insumos/fleeting/2026-09-24-reunion-closers-crm.md).
-> Las 11 etapas quedan validadas: **el 043 ya no espera a los closers**, solo a que Mani cierre las
-> transiciones 🟡 (recomendación: adoptarlas tal cual). Enmendados los tickets 043, 061, 070, 071, 086,
-> 096 y 099.
+> Las 11 etapas quedan validadas y **Mani adoptó las tres recomendaciones el mismo día**: la tabla de
+> transiciones completa (cierra D2), el acuerdo de pago como nota + fecha límite sin cuotas en v1
+> (**ADR 0053**) y **P1** (operación antes que analítica). **El 043 está listo para tomarse.** Orden
+> oficial: E2 → E3 mínimo → E4 → E6 mínimo → E1b → E5 → E7. Enmendados los tickets 043, 061, 070, 071,
+> 086, 096 y 099.
 >
 > 🧭 **24-sep: dirección de producto y UI, antes de la reunión con Comercial.** Documento de referencia
 > para el desarrollo (sujeto a cambios después de la reunión):
@@ -150,7 +152,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 058 | [Pegar el Grain = la llamada sucedió](./058-grain-significa-que-la-llamada-sucedio.md) (E4-2) | 057 | todo |
 | [ ] | 059 | [`no_show` y `cancelada` van a Re-agenda](./059-no-show-y-cancelada-van-a-reagenda.md) (E4-3) | 057 | todo |
 | [ ] | 060 | [Abonos sobre el deal](./060-abonos-sobre-el-deal.md) (E4-4) | 057, 045 | todo |
-| [ ] | 061 | [Cuotas pactadas y cartera vencida](./061-cuotas-pactadas-y-cartera-vencida.md) (E4-5) | 060 | todo |
+| [ ] | 061 | [Acuerdo de pago y cartera vencida](./061-cuotas-pactadas-y-cartera-vencida.md) (E4-5) | 060 | todo · 24-sep, ADR 0053: nota + fecha límite, sin cuotas en v1 · migración de la sesión principal |
 | [ ] | 062 | [La comisión se calcula, nunca se guarda](./062-comision-calculada.md) (E4-6) | 060 | todo |
 | [ ] | 063 | [`onboarded_at` y cambio de cohorte](./063-onboarded-at-y-cambio-de-cohorte.md) (E4-7) | 060 | todo |
 | [ ] | 035 | [Comprobante: link **o** foto](./035-comprobante-link-o-foto.md) (E4-8) | 060 | todo · **aterriza aquí**, colgando de `abonos.deal_id`. Siguen debiéndose los dos análisis. 22-sep: la foto va a Supabase Storage (ADR 0047) |
@@ -282,8 +284,6 @@ Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje
 | Decisión | A quién | Afecta |
 |---|---|---|
 | Qué se reconcilia y qué se descarta del histórico de C2 (importar: **sí**) | Mani + Michael | 080 |
-| Las transiciones 🟡 de la tabla del 24-sep (las etapas ya están validadas) | Mani · recomendación: adoptarlas | 043, 044, 047, 058, 059 |
-| Acuerdo de pago como nota + fecha límite, y sacar `cuotas_pactadas` de v1 | Mani · recomendación: sí | 061, 043, 099 |
 | Qué pregunta del formulario es el ingreso (moneda, periodo, bandas por programa) | closers / Mani leyendo el form | 070 |
 | El X de "deal sin actividad en X días" | closers | 071 |
 | De quién es el deal si el host de Calendly es otra closer | closers | 096 |
@@ -293,10 +293,14 @@ Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje
 | El área de cada canal (catálogo inicial) | Alejo | 101 |
 | Qué ve el Paid Trafficker del Dashboard | Gerencia | 102 |
 | Webhook o consulta periódica para Calendly; plan de Calendly | Mani | 096 |
-| Vercel Pro (R3), CI (R4), Playwright (R5), P1 (orden del plan), D3-D5 | Mani | revisión del 22-sep |
+| Vercel Pro (R3), CI (R4), Playwright (R5), D3-D5 | Mani | revisión del 22-sep |
 | Precio de lista de ComunicArte: 797 o 697 | Gerencia | `context.md`, 062 |
 
 ### Resueltas
+
+- 24-sep · **Mani adopta las tres recomendaciones tras la reunión con los closers:** la tabla de
+  transiciones completa del 043 (cierra D2); el acuerdo de pago es nota + fecha límite en el deal, sin
+  cuotas en v1 (ADR 0053, enmienda el 0041); P1, operación antes que analítica. Tickets 043, 061, 071, 099.
 
 - 24-sep, tarde · **Reunión con los closers** (Andrea, Maru, Jero): las 11 etapas y el Kanban
   validados; Grain como requisito de Atendido; Calendly con cuenta por closer y por programa; el

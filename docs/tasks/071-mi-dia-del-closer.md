@@ -75,3 +75,5 @@ Siempre de un programa (el del selector, ADR 0048). Depende también de 096 y 09
 - El Setteo sin dueño viene **ordenado** por ingreso y recencia (ticket 070).
 - Alguien lleva hoy sus etapas en las **etiquetas de WhatsApp Business**: el Inbox tiene que responder
   "¿en qué estoy con cada uno?" mejor que esas etiquetas, o las van a seguir usando.
+- ✅ ADR 0053: donde este ticket diga "cuota vencida", se lee **"fecha límite de pago vencida con
+  saldo"**. En v1 no hay cuotas.

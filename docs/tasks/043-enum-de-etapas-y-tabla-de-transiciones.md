@@ -104,7 +104,7 @@ hasta que los closers la validen.** Resumen de lo que cambia:
 
 - **Las 11 etapas quedan validadas** (incluida Seguimiento): nadie pidió quitar ni agregar. Ya no
   hace falta esperar a los closers para tomar este ticket.
-- Las transiciones 🟡 no se discutieron una por una: las cierra Mani. Recomendación: adoptar la tabla
-  propuesta tal cual.
-- Si Mani aprueba el acuerdo de pago como **nota + fecha límite en el deal** (propuesta §0.2 N3), la
-  "fecha prometida" de T12 y T25 es esa fecha límite y no la primera cuota pactada.
+- ✅ **Mani adoptó la tabla propuesta tal cual el 24-sep** (cierra D2). La tabla de arriba es la que se
+  construye, incluidos T5, T7, T9, T14, T15, T17, T19-T21, T28, A1, A2 y R hacia 2, 4 o 9.
+- ✅ **ADR 0053:** la "fecha prometida" de T12 y T25 es `deals.fecha_limite_pago`, no la primera cuota
+  pactada. El requisito de Compromiso Verbal es producto + fecha límite de pago.

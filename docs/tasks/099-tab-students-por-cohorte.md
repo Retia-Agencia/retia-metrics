@@ -38,7 +38,7 @@ Sí, con revisión visual.
 
 El onboarding (meterlo al grupo y mandarle el correo con los accesos) pasa fuera del CRM. Lo que
 pidieron es un **tracker sí/no** para que quien lo hace vea qué le falta, por programa y cohorte:
-alcanza con `onboarded_at` (ticket 063) como columna y filtro. **Sin checklist.** Si se aprueba la
-nota + fecha límite del acuerdo de pago (ticket 061), las dos van como columnas aquí.
+alcanza con `onboarded_at` (ticket 063) como columna y filtro. **Sin checklist.** La nota y la fecha
+límite del acuerdo de pago (ADR 0053, ticket 061) van como columnas aquí; las cuotas no.
 🔴 Sigue abierto: si "estudiante" empieza en el primer abono o en el pago completo, y quién hace el
 onboarding (¿Dani Rincón?).

@@ -1640,7 +1640,9 @@ esquema real, la convención de UTM, las pantallas por rol y la tabla de transic
 
 ### 13.3 Impacto sobre el orden
 
-No cambia el orden de etapas (y **P1 sigue sin decidir**). Los tickets nuevos caen así: **094** no tiene
+No cambia el orden de etapas. ✅ **Actualización 24-sep, tarde: P1 decidida (sí).** El orden vigente es
+E2 → E3 mínimo → E4 → E6 mínimo → E1b → E5 → E7 (propuesta del 24-sep §0.5). La tabla de transiciones
+quedó adoptada completa (D2) y el acuerdo de pago cambió a nota + fecha límite (ADR 0053). Los tickets nuevos caen así: **094** no tiene
 dependencias y puede ir antes de E6; **101** y **102** van con E1b (la misma migración); **096** con E4;
 **095** con E5; **097 a 100** con E6.
 

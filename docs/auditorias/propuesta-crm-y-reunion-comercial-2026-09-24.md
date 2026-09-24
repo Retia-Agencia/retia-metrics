@@ -47,7 +47,7 @@ desbloqueado.**
 
 | Qué | Lo que dijeron | Qué cambia en el diseño |
 |---|---|---|
-| **Las 11 etapas y el Kanban** (§2.5) | se mostraron en orden, con las salidas después de Atendido; nadie pidió quitar ni agregar una | nada. Las etapas pasan de 🟡 a ✅. Las **transiciones** 🟡 de la tabla (T5, T7, T9, T14, T15, T17, T19-T21, T28, A1, A2, destinos de R) no se discutieron una por una: son técnicas y las cierra Mani (§0.5) |
+| **Las 11 etapas y el Kanban** (§2.5) | se mostraron en orden, con las salidas después de Atendido; nadie pidió quitar ni agregar una | nada. Las etapas pasan de 🟡 a ✅. Las **transiciones** que quedaban en propuesta no se discutieron una por una; Mani las adoptó tal cual el mismo día (§0.5) |
 | **Grain como requisito para Atendido** | *"no te va a dejar mover la carta si no tiene el link de Grain"*: aceptado. **Todas las llamadas se graban** | T10 ✅. La salida "sucedió" sin Grain (T7/T10) pierde urgencia: nadie mencionó llamadas sin grabar. Se deja 🟡 para el caso raro |
 | **Seguimiento como etapa** (la 11) | alguien ya lleva sus etapas en las **etiquetas de WhatsApp Business** ("seguimiento", "pagado") | confirma la etapa 11. Es la evidencia de que el CRM tiene que reemplazar esas etiquetas |
 | **Calendly: cada closer tiene su cuenta y es dueño de sus llamadas** | *"todos tenemos una cuenta y somos los owners"*. **Andrea y Maru tienen dos correos, uno por programa** | confirma el ADR 0049: la cuenta de Calendly vive **en la membresía** (closer × programa), no en el usuario. Ticket 096 ✅ en ese punto |
@@ -77,11 +77,11 @@ criterio con el que se juzga la ficha del deal (074) y la revisión de UI (075).
 tanto": se conversa, por ejemplo *"paga el otro 30% en tal fecha y el 20% restante en tal otra"*. La
 regla general: **pagar todo antes del inicio del programa**; como caso extremo, **a la mitad del
 programa**. Hay descuentos, con un límite que no se dijo. → Lo pedido: en el deal, **una nota del
-acuerdo de pago** y **una fecha límite de pago**. 🟡 Propuesta para Mani (§0.5): la fecha límite se
+acuerdo de pago** y **una fecha límite de pago**. ✅ Decidido por Mani el mismo día (**ADR 0053**): la fecha límite se
 prellena con el inicio de clases de la cohorte y se edita; **cartera vencida = saldo > 0 con la fecha
 límite pasada**; y las filas de `cuotas_pactadas` (ticket 061) salen de v1, porque piden una
 estructura que el proceso real no tiene y que nadie va a llenar. La tabla ya existe y se queda
-quieta hasta que alguien pida cobrar cuota por cuota.
+quieta hasta que alguien pida cobrar cuota por cuota. Enmienda el ADR 0041.
 
 **N4. Los closers no traen leads propios.** A la pregunta de si invitan gente o buscan leads, la
 respuesta fue no. → El **link de captación del closer** (ADR 0044, 0051; ticket 086) **baja de
@@ -131,12 +131,11 @@ de cada lead (punto 2). La reunión confirmó que el **core es el Kanban de deal
 origen depende de la reunión con Pauta. Por eso el orden recomendado es el de P1 (operación antes que
 analítica), que la reunión refuerza:
 
-1. **Tres decisiones cortas de Mani** (antes de tocar código):
-   - las transiciones 🟡 de §2.5: recomendación, **adoptarlas tal cual** (ninguna chocó con lo que
-     dijeron los closers);
-   - el acuerdo de pago (N3): recomendación, **nota + fecha límite en el deal, sin cuotas en v1**
-     (enmienda los tickets 061 y 043: la "fecha prometida" de T12 sería esa fecha);
-   - P1: recomendación, **sí**.
+1. ✅ **Las tres decisiones de Mani, tomadas el 24-sep** (adoptó las tres recomendaciones):
+   - las transiciones que quedaban en propuesta en §2.5 se adoptan tal cual; D2 queda cerrada;
+   - el acuerdo de pago es **nota + fecha límite en el deal, sin cuotas en v1** (**ADR 0053**, enmienda
+     el 0041; la "fecha prometida" de T12 y T25 es esa fecha límite);
+   - **P1, operación antes que analítica: sí.** El orden de abajo es el oficial.
 2. **E2, el motor de etapas:** 043 (incluye la etapa 11, Seguimiento, en el enum), 044, 045, 046, 047.
    En paralelo y sin dependencias: **094** (alcance del closer por membresía).
 3. **E3 mínimo, la ingesta** (048-052), con la **pregunta de ingreso configurable por fuente** (N1).
@@ -161,7 +160,7 @@ comprobantes, y el PDF que Michael armaba a mano.
 
 1. **El flujo del lead.** Desde que llega con su información, se crea el Deal, hasta que se cierra
    (perdido) o se completa (pagado). Todo Deal carga lo relevante: programa, producto, cohorte,
-   closer, llamadas, link de Grain, abonos, comprobantes, cuotas pactadas y su historial.
+   closer, llamadas, link de Grain, abonos, comprobantes, el acuerdo de pago con su fecha límite y su historial.
 2. **El origen.** Todo lead llega con UTM estandarizado. Cruzado con lo que se invierte en pauta,
    eso dice qué canal, qué campaña y qué closer convierte en deals cerrados y cuál no.
 
@@ -299,13 +298,14 @@ flowchart TD
 
 1. Abre el **Inbox** de su programa: ve lo que no tiene dueño, las **llamadas sueltas** (las que
    Calendly no pudo colgar de un deal sin duda) y lo suyo que necesita atención (llamada de hoy sin
-   resultado, re-agenda pendiente, compromiso vencido, cuota vencida).
+   resultado, re-agenda pendiente, compromiso vencido, fecha límite de pago vencida con saldo).
 2. Reclama lo que va a trabajar y asigna las llamadas sueltas a su deal. Las agendas de Calendly
    le llegan asignadas si él es el host.
 3. Registra cada contacto (canal y nota). Eso reemplaza `Registro 1-5`.
 4. Después de la llamada **pega el link de Grain**: el deal pasa solo a Atendido.
 5. Si cierra: elige producto (el precio ya viene del producto), registra el primer abono con su
-   comprobante (foto o link) y, si paga a cuotas, las cuotas pactadas con monto y fecha.
+   comprobante (foto o link) y, si queda saldo, la **fecha límite de pago** (viene prellenada con el
+   inicio de clases) y una nota con el acuerdo (ADR 0053).
    El deal pasa solo a Abonado, y a Completo cuando el saldo llega a cero.
 6. Si no cierra, elige una salida: Compromiso Verbal, **Seguimiento** (hay que volver a
    contactarlo), otra llamada (Re-agenda, con motivo), Próxima Cohorte o Cierre Perdido con motivo
@@ -394,10 +394,9 @@ timeline
     10 Cierre Perdido : Llega cuando dijo que no, siempre con un motivo : Se puede recuperar si vuelve a interesarse
 ```
 
-Qué está decidido y qué es propuesta: Seguimiento (T24 a T28), la llamada que falla con motivo (T29) y
-"un deal, muchas llamadas" los decidió Mani el 24-sep y se validan con los closers. T5, T7, T9, T14,
-T15, T17, T19, T20, T21, A1, A2 y los destinos de R son propuestas 🟡 (la mayoría cierra los huecos del
-ticket 043). El resto está decidido en el ADR 0037 y en el diseño consolidado. Anular un abono (A1, A2)
+Qué está decidido: **toda la tabla** (✅ 24-sep). Las etapas las validaron los closers en la reunión, y
+Mani adoptó tal cual las transiciones que quedaban en propuesta (T5, T7, T9, T14, T15, T17, T19-T21,
+T28, A1, A2 y los destinos de R); con eso se cierra D2. El resto está decidido en el ADR 0037 y en el diseño consolidado. Anular un abono (A1, A2)
 devuelve el deal a la etapa previa; va en la tabla porque el destino depende del historial.
 
 **Pérdida y recuperación, con flechas.** Un deal se puede perder desde cualquier etapa abierta,
@@ -438,49 +437,49 @@ lo mueve una persona y el CRM exige el requisito antes de aceptar.
 | T2 | 1 → 4 | llega la agenda de Calendly, o el closer crea la Call | sistema / closer | Call con fecha | medido: 9 leads de Setteo agendaron solos y la hoja no lo vio | ✅ · ⚠️ falta en el ticket 043 |
 | T3 | 2 → 4 | el contacto consigue la agenda | sistema / closer | Call con fecha | es el objetivo del setteo: convertir en agenda | ✅ |
 | T4 | 2 → 6 | acepta por chat, sin llamada | closer | producto + fecha prometida | existen ventas sin llamada (Jero: 10 estudiantes, 0 llamadas registradas) | ✅ |
-| T5 | 2 → 7 u 8 | paga por chat de una vez | sistema, al registrar el abono | producto + abono con comprobante | inventar un paso por Compromiso de cero minutos ensucia el tiempo en etapa | 🟡 |
+| T5 | 2 → 7 u 8 | paga por chat de una vez | sistema, al registrar el abono | producto + abono con comprobante | inventar un paso por Compromiso de cero minutos ensucia el tiempo en etapa | ✅ Mani, 24-sep |
 | T6 | 3 → 4 | se crea una Call nueva con fecha | sistema / closer | Call con fecha | la cita fallida se reprogramó | ✅ ticket 059 |
-| T7 | 3 → 5 | se pega el Grain de una llamada que sí ocurrió | sistema | link de Grain (o "sucedió") | corrige un no-show mal marcado; sin esta flecha, pegar el Grain falla | 🟡 D2 |
+| T7 | 3 → 5 | se pega el Grain de una llamada que sí ocurrió | sistema | link de Grain (o "sucedió") | corrige un no-show mal marcado; sin esta flecha, pegar el Grain falla | ✅ Mani, 24-sep |
 | T8 | 4 → 3 | la Call queda en no-show o cancelada | sistema | el resultado de la Call es el motivo | la cita falló y tiene que quedar a la vista para reagendar | ✅ ticket 059 |
-| T9 | 4 → 4 | la cita se mueve antes de ocurrir | sistema | Call vieja `reagendada` + Call nueva con fecha | mover una cita no es avanzar ni retroceder en el embudo | 🟡 |
-| T10 | 4 → 5 | se pega el link de Grain | sistema | link de Grain | pegar el Grain es la prueba de que la llamada ocurrió | ✅ · 🟡 aceptar también "sucedió" para llamadas sin grabar |
+| T9 | 4 → 4 | la cita se mueve antes de ocurrir | sistema | Call vieja `reagendada` + Call nueva con fecha | mover una cita no es avanzar ni retroceder en el embudo | ✅ Mani, 24-sep |
+| T10 | 4 → 5 | se pega el link de Grain | sistema | link de Grain | pegar el Grain es la prueba de que la llamada ocurrió | ✅ · ✅ también "sucedió" para el caso raro sin grabar (Mani, 24-sep) |
 | T11 | ~~5 → 5~~ | reemplazada el 24-sep por la etapa Seguimiento (T24) | · | · | · | reemplazada |
-| T12 | 5 → 6 | dijo que sí, paga después | closer | producto + fecha prometida (primera cuota pactada) | sin fecha no hay compromiso que vigilar | ✅ |
+| T12 | 5 → 6 | dijo que sí, paga después | closer | producto + fecha límite de pago (ADR 0053) | sin fecha no hay compromiso que vigilar | ✅ |
 | T13 | 5 → 7 | pagó en la llamada y queda saldo | sistema, al registrar el abono | producto + abono con comprobante | la etapa la mueve la plata, no el closer | ✅ |
-| T14 | 5 → 8 | pagó todo en la llamada | sistema | abono igual al precio | mismo principio; hoy la tabla no lo permite | 🟡 D2 |
-| T15 | 6 → 11 | el sí se echa para atrás pero sigue interesado | closer | motivo | vuelve a Seguimiento, que es donde se re-contacta | 🟡 |
+| T14 | 5 → 8 | pagó todo en la llamada | sistema | abono igual al precio | mismo principio; hoy la tabla no lo permite | ✅ Mani, 24-sep |
+| T15 | 6 → 11 | el sí se echa para atrás pero sigue interesado | closer | motivo | vuelve a Seguimiento, que es donde se re-contacta | ✅ Mani, 24-sep |
 | T16 | 6 → 7 | primer abono, queda saldo | sistema | abono con comprobante | la plata cumple el compromiso | ✅ |
-| T17 | 6 → 8 | paga todo de una vez | sistema | abono igual al precio | igual que T14 | 🟡 D2 |
+| T17 | 6 → 8 | paga todo de una vez | sistema | abono igual al precio | igual que T14 | ✅ Mani, 24-sep |
 | T18 | 7 → 8 | la suma de abonos llega al precio | sistema | saldo en cero | Completo es un hecho contable, no una decisión | ✅ |
-| T19, T20, T21 | 2, 5 o 6 → 9 | quiere entrar, pero a la siguiente cohorte | closer | **cohorte destino** | hoy "próxima cohorte" es texto libre y su pestaña está vacía; sin cohorte destino, la etapa se vuelve un cementerio | 🟡 D2 (hoy ninguna etapa llega a 9) |
+| T19, T20, T21 | 2, 5 o 6 → 9 | quiere entrar, pero a la siguiente cohorte | closer | **cohorte destino** | hoy "próxima cohorte" es texto libre y su pestaña está vacía; sin cohorte destino, la etapa se vuelve un cementerio | ✅ Mani, 24-sep |
 | T22 | 9 → 2 | la cohorte destino abre ventas y el closer lo recontacta | closer | contacto nuevo | el deal reaparece en el Inbox cuando su cohorte abre | ✅ |
 | T23 | 9 → 4 | agenda para la nueva cohorte | sistema / closer | Call con fecha | igual que T2 | ✅ |
 | T24 | 5 → 11 | la llamada ocurrió y hay que volver a contactarlo | closer | fecha de seguimiento | separa lo que salió bien de lo que hay que re-contactar (Mani) | ✅ Mani · valida closers |
 | T25 | 11 → 6 | en el seguimiento dijo que sí | closer | producto + fecha prometida | igual que T12 | ✅ Mani |
 | T26 | 11 → 7 u 8 | en el seguimiento pagó | sistema, al registrar el abono | abono con comprobante | la etapa la mueve la plata | ✅ Mani |
 | T27 | 11 → 4 | se agenda otra llamada | sistema / closer | Call con fecha | una segunda llamada es parte del mismo deal; se avisa al dueño | ✅ Mani |
-| T28 | 11 → 9 | quiere la siguiente cohorte | closer | cohorte destino | igual que T19 | 🟡 |
+| T28 | 11 → 9 | quiere la siguiente cohorte | closer | cohorte destino | igual que T19 | ✅ Mani, 24-sep |
 | T29 | 5 → 3 | la llamada no alcanzó y hace falta otra | closer | **motivo** | "si falla y no cierra, pasa a Re-agenda con motivo; no se duplica el deal" (Mani) | ✅ Mani |
 | P | 1 a 7, 9 y 11 → 10 | dijo que no, no responde o desistió | closer | **motivo obligatorio** | Cierre Perdido cuenta en el embudo; el motivo explica por qué se pierde | ✅ |
-| R | 10 → 2, 4 o 9 | se recupera un perdido | closer | motivo | decidido: se puede recuperar. Propuesta: solo hacia 2, 4 o 9, porque de 5 a 8 se entra por un evento (Grain, abono) y no a mano | ✅ recuperable · 🟡 destinos |
-| A1 | 7 → la etapa previa | se anula el único abono | sistema | anulación con motivo | la etapa es copia de los abonos: si el abono no existe, Abonado tampoco | 🟡 |
-| A2 | 8 → 7 | se anula un abono y vuelve a quedar saldo | sistema | anulación con motivo | igual que A1 | 🟡 |
+| R | 10 → 2, 4 o 9 | se recupera un perdido | closer | motivo | decidido: se puede recuperar. Propuesta: solo hacia 2, 4 o 9, porque de 5 a 8 se entra por un evento (Grain, abono) y no a mano | ✅ recuperable · ✅ destinos (Mani, 24-sep) |
+| A1 | 7 → la etapa previa | se anula el único abono | sistema | anulación con motivo | la etapa es copia de los abonos: si el abono no existe, Abonado tampoco | ✅ Mani, 24-sep |
+| A2 | 8 → 7 | se anula un abono y vuelve a quedar saldo | sistema | anulación con motivo | igual que A1 | ✅ Mani, 24-sep |
 
 **Reglas generales:**
 
 - **Un deal, muchas llamadas, nunca duplicado** (✅ Mani). Una llamada nueva se agrega al deal abierto
   del lead y se le avisa al dueño.
-- **La conversión cuenta deals distintos** (🟡): un deal que va de Agendado a Re-agenda y vuelve cuenta
+- **La conversión cuenta deals distintos** (✅ Mani, 24-sep): un deal que va de Agendado a Re-agenda y vuelve cuenta
   una sola vez como "llegó a Agendado". Así el ir y volver no infla ninguna tasa.
 - **Re-agenda siempre lleva motivo** (✅ Mani): no-show, cancelada, u otra llamada necesaria.
-- **Completo es terminal** (🟡 D2). No llega a Cierre Perdido: un reembolso es otro flujo (la
-  entrega), no una venta perdida. Hoy hay una contradicción escrita entre "Completo terminal" y
-  "Perdido desde cualquier etapa".
+- **Completo es terminal** (✅ Mani, 24-sep; cierra D2). No llega a Cierre Perdido: un reembolso es otro flujo (la
+  entrega), no una venta perdida. La contradicción con "Perdido desde cualquier etapa" queda resuelta:
+  Perdido sale de las etapas abiertas, y Completo no lo es.
 - **Abonado sí se puede perder** (✅): el estudiante desiste con plata abonada. Esa plata sigue
   contando en la caja recaudada; la venta deja de contar como abierta.
-- **No hay relojes** (✅): Re-agenda, Seguimiento vencido, Compromiso vencido y cuota vencida no se
+- **No hay relojes** (✅): Re-agenda, Seguimiento vencido, Compromiso vencido y fecha límite de pago vencida no se
   mueven solas. Se pintan en rojo y caen al Inbox; el closer decide.
-- **Ninguna regla compara números de etapa** (🟡): "4 o más" no significa nada, porque el número no es
+- **Ninguna regla compara números de etapa** (✅ Mani, 24-sep): "4 o más" no significa nada, porque el número no es
   el orden. Toda regla nombra las etapas una por una.
 - **Todo movimiento queda en el historial** con quién, cuándo y motivo (✅). De ahí salen la
   conversión etapa a etapa y el tiempo en etapa.
@@ -493,7 +492,7 @@ lo decide apenas pega el Grain:
 | Cómo terminó | El deal pasa a | Se exige | Categoría vieja de la hoja | Id |
 |---|---|---|---|---|
 | Pagó en la llamada | 7 Abonado u 8 Completo | producto + abono con comprobante | · | T13, T14 |
-| Dijo que sí, paga después | 6 Compromiso Verbal | producto + fecha prometida | FU con fecha | T12 |
+| Dijo que sí, paga después | 6 Compromiso Verbal | producto + fecha límite de pago | FU con fecha | T12 |
 | Lo va a pensar: hay que volver a contactarlo | **11 Seguimiento** | fecha de seguimiento | FU-1 a FU-5 | T24 |
 | Hace falta otra llamada | 3 Pendiente Re-agenda | motivo | PRA | T29 |
 | Quiere, pero para la siguiente | 9 Próxima Cohorte | cohorte destino | a veces FIN | T20 |
@@ -505,7 +504,7 @@ etapas decide qué significa (ADR 0015, enmendado).
 | Resultado de la Call | Qué significa | Efecto en el deal | Estado |
 |---|---|---|---|
 | `agendada` | hay cita con fecha | pasa a 4 Agendado (T2, T3, T6, T23, T27) | ✅ |
-| `reagendada` | la cita se movió antes de ocurrir | se queda en Agendado y nace una Call nueva (T9) | 🟡 |
+| `reagendada` | la cita se movió antes de ocurrir | se queda en Agendado y nace una Call nueva (T9) | ✅ |
 | `cancelada` | avisó que no llega | pasa a 3 Re-agenda, con ese motivo (T8) | ✅ |
 | `no_show` | no apareció | pasa a 3 Re-agenda, con ese motivo (T8) | ✅ |
 | `show` | ocurrió: se pegó el Grain | pasa a 5 Atendido (T7, T10) | ✅ |
@@ -623,7 +622,7 @@ pertenece a **una** cohorte de **un** programa.
 | Student | un deal en **Abonado o Completo**, en la cohorte de su deal. La tab Students es esa lista, filtrada por cohorte | ✅ vista |
 | Cambio de cohorte | extraordinario, con quién y por qué (ej.: los 12 de ComunicArte que compraron en agosto y pasaron a septiembre). No hace falta que un estudiante esté en dos | ✅ decidido; se guarda en el rastro |
 | La meta es de la cohorte | no se reparte entre closers; el closer tiene **contribución**, no meta propia | ✅ ADR 0023 |
-| Próxima Cohorte (etapa 9) | 🟡 propuesta: exigir la cohorte destino al marcarla, y que el deal reaparezca cuando esa cohorte abra ventas | 🔴 D2 |
+| Próxima Cohorte (etapa 9) | exigir la cohorte destino al marcarla, y que el deal reaparezca cuando esa cohorte abra ventas | ✅ 24-sep (T19-T22) |
 
 🔴 Por confirmar: **¿"estudiante confirmado" es desde el primer abono (Abonado) o solo con el pago
 completo?** El modelo hoy cuenta los dos. Y: una venta que se cierra **después** del cierre de
@@ -718,7 +717,7 @@ con las cifras sumables.
 | **Leads** | la base de personas del programa, con o sin deal | estado de llegada, canal, área, campaña, traído por, parcial, con/sin deal |
 | **Deals** | Kanban por etapas y vista de tabla | etapa, dueño, cohorte, canal, antigüedad, "necesita atención" |
 | **Calls** | llamadas de hoy y próximas, sin resultado, sueltas (sin deal) | closer, resultado, fecha |
-| **Students** | la lista de estudiantes **por cohorte**: deals en Abonado o Completo, con saldo, cuotas, cartera vencida y onboarding | cohorte (por defecto la activa), saldo > 0, cuota vencida |
+| **Students** | la lista de estudiantes **por cohorte**: deals en Abonado o Completo, con saldo, acuerdo de pago, fecha límite, cartera vencida y onboarding | cohorte (por defecto la activa), saldo > 0, cuota vencida |
 | **Campañas** | catálogo de campañas, gasto y builder de links | canal, área, cohorte |
 | **Programs** | ficha del programa: cohortes, destinos, Calendly, fuente, tasa de comisión, equipo | · |
 | **Products** | productos y precios (ya existe) | · |
@@ -738,7 +737,7 @@ queje de rearmar el mismo filtro.
 2. Llamadas sueltas: Calendly no pudo colgarlas de un deal sin duda (el correo no aparece, casa
    con un lead sin deal abierto o con más de uno). El closer las asigna a un deal, o crea el deal.
 3. Lo mío que necesita atención: llamada de hoy sin resultado; Re-agenda sin nueva fecha;
-   Compromiso Verbal con fecha vencida; cuota vencida; deal sin actividad en X días (🔴 X);
+   Compromiso Verbal con fecha vencida; fecha límite de pago vencida con saldo (ADR 0053); deal sin actividad en X días (🔴 X);
    un lead con deal abierto que volvió a llenar el formulario.
 4. Para el gerente: lo mismo de todo el equipo, más leads "unidos por teléfono" para revisar.
 
@@ -817,9 +816,9 @@ por agenda USD 20, alerta USD 100** (Daniel Tovar).
 | Tests | · | 650 en verde (última corrida, 22-sep) | no hay tests de interfaz; decidir antes de la UI |
 | Cron | ✅ capas: perezoso, manual, aviso de la hoja | cron diario (plan Hobby de Vercel) | pasar a Pro (R3, es plata) |
 
-Orden del plan hoy: E0 ✅ · E1 ✅ · E1b (atribución) · E2 (motor) · E3 (ingesta) · E4 (calls y
-dinero) · E5 (reportes) · E6 (UI) · E7 (migración). La revisión del 22-sep propone operación antes
-que analítica (P1): E2 → E3 mínimo → E4 → E6 mínimo → E7, y después E1b y E5. 🔴 Sin decidir.
+Orden del plan: E0 ✅ · E1 ✅ · y desde el 24-sep (**P1 decidida**, operación antes que analítica):
+E2 (motor) → E3 mínimo (ingesta) → E4 (calls y dinero) → E6 mínimo (UI) → E1b (atribución, apenas se
+haga la reunión con Pauta) → E5 (reportes) → E7 (migración). Detalle en §0.5.
 
 ### 4.2 Contradicciones entre documentos (checklist del 22-sep, sigue abierta)
 
@@ -836,13 +835,13 @@ que analítica (P1): E2 → E3 mínimo → E4 → E6 mínimo → E7, y después 
 
 | # | Qué | Recomendación ya escrita |
 |---|---|---|
-| D2 | Huecos de la tabla de transiciones: falta 1→4, 3→5, nada lleva a 9, Completo "terminal" choca con Perdido "desde cualquiera", retroceso vs lista blanca, "fecha prometida" sin columna | la tabla completa propuesta está en §2.5 (T1 a T23, P, R, A1, A2): agrega las transiciones que faltan, pago completo de una vez (T14, T17), retrocesos explícitos con motivo (T15, A1, A2), Atendido con Grain **o** "sucedió", Próxima Cohorte con cohorte destino, Completo terminal, y la fecha prometida vive en la primera cuota pactada |
+| D2 ✅ | **Cerrada el 24-sep: se adoptó la tabla de §2.5.** Huecos que tenía la tabla de transiciones: falta 1→4, 3→5, nada lleva a 9, Completo "terminal" choca con Perdido "desde cualquiera", retroceso vs lista blanca, "fecha prometida" sin columna | la tabla completa propuesta está en §2.5 (T1 a T23, P, R, A1, A2): agrega las transiciones que faltan, pago completo de una vez (T14, T17), retrocesos explícitos con motivo (T15, A1, A2), Atendido con Grain **o** "sucedió", Próxima Cohorte con cohorte destino, Completo terminal, y la fecha prometida vive en la primera cuota pactada |
 | D3 | Abonado ocupa el cupo del lead y bloquea un upsell | depende de si venden una segunda cosa a la misma persona en el mismo programa |
 | D4 | El `Estado` es texto "con el que nadie decide", pero la regla de deals decide con él | tabla `estado → acción` por programa, configurable |
 | D5 | UTM guardado en `leads` y en `submissions` | el origen del lead es el de su primer envío; se borra de `leads` |
 | R3 | Vercel Hobby → Pro | sí (uso comercial y cron cada 15 min) |
 | R4 / R5 | CI y tests de punta a punta (Playwright) | sí, antes de la UI |
-| P1 | Operación antes que analítica | sí |
+| P1 ✅ | Operación antes que analítica | **decidida el 24-sep: sí** |
 
 ---
 
@@ -888,7 +887,9 @@ Hay que bajarlas a ADR y tickets; hasta entonces, los ADR del repo siguen dicien
 17. **Las 11 etapas y el Kanban quedan validados**, con Grain como requisito para Atendido.
 18. **El Setteo se reclama desde el Inbox**; el reparto por turno de la hoja se retira.
 19. **El Setteo viene ordenado** por ingreso declarado y recencia (🟡 el orden exacto; 🔴 qué pregunta del formulario).
-20. **Acuerdo de pago = nota + fecha límite en el deal** (🟡 que las cuotas pactadas salgan de v1 lo decide Mani).
+20. **Acuerdo de pago = nota + fecha límite en el deal**, sin cuotas en v1 (ADR 0053).
+23. **La tabla de transiciones completa de §2.5 queda adoptada** (cierra D2).
+24. **P1: operación antes que analítica.** Orden E2 → E3 mínimo → E4 → E6 mínimo → E1b → E5 → E7.
 21. **Onboarding = `onboarded_at`**, sin checklist.
 22. **El link de captación del closer baja de prioridad**: hoy no traen leads propios.
 
