@@ -51,6 +51,19 @@ Lo que sigue sin esperar decisiones:
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-23 (CIERRE 28): decisiones pendientes enviadas a Mani por WhatsApp.** Sin cambios de
+  codigo. Se le pidio cerrar D2 (transiciones: 1->4, 3->5, 5->9, 6->9, 8->10, retrocesos como
+  segunda lista, donde vive la "fecha prometida"), los deals historicos (~2.400), D3, D4, D5, y un
+  si/no rapido a R2-R5, R7, P1, T4 y `tz_fechas='UTC'` en `dev`. Se le dijo que con D2 + historicos
+  arranca la etapa 2.
+  - **Al llegar la respuesta:** volcarla en las secciones `Respuesta` de
+    `docs/auditorias/revision-modelo-hubspot-2026-09-22.md` y ajustar los tickets 043, 044, 047,
+    052 y 058.
+  - R1/R11 quedaron resueltas de hecho por la mudanza a Supabase (ADR 0047); falta marcarlas asi
+    en el documento.
+  - El tracker va atrasado: 048-050 y T2 estan en codigo pero siguen como `todo`.
+  - Sin esperar a Mani se puede tomar el 093 (filtros UTM) o el CI (R4).
+
 - **2026-09-23 (CIERRE 27): paleta de la agencia.** Daniel Tovar pidio blanco, negro y morado:
   el morado de Nubank (`#820AD1`) sobre blanco y un lila (`#B57BFF`) sobre negro.
   - Tokens en `app/globals.css`, contrato en `docs/design-system.md`.

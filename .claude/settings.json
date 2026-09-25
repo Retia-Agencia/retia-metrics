@@ -8,8 +8,6 @@
     ],
     "deny": [
       "Bash(rm -rf:*)",
-      "Bash(git push --force:*)",
-      "Bash(git push -f:*)",
       "Bash(git reset --hard:*)",
       "Bash(git clean -fd:*)",
       "Bash(npx drizzle-kit push:*)",
