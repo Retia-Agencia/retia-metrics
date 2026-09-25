@@ -1,5 +1,8 @@
 # Revisión del modelo HubSpot, la arquitectura y el plan — 22-sep-2026
 
+> **24-sep:** varias fichas se cerraron o avanzaron con la dirección de producto del 24-sep (§5c y
+> `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md`, ADR 0048 a 0052).
+>
 > **Estado: por decidir.** Este documento no cambia nada todavía. Cada ficha termina en `Estado`
 > y `Decide`. Lo que se decida entra al repo por el camino normal (ADR o enmienda vía
 > `/grill-with-docs`, y tickets en `docs/tasks/`). Hasta entonces, **los ADR, la spec y el plan v2
@@ -136,7 +139,9 @@ hay que agregar 1→4, 5→9, 6→9 y 3→5, y decidir 8→10. En los dos casos:
 - La "fecha prometida" es la primera `cuota_pactada` o una columna, pero tiene un lugar.
 
 **Toca:** 043, 044, 047, 052, 058.
-**Estado:** por decidir. **Decide:** Mani.
+**Estado:** 🟡 **propuesta completa el 24-sep** (tabla T1 a T23, P, R, A1, A2 en el documento del 24-sep
+§2.5 y en el ticket 043). Se valida con los closers antes de congelarla en código. **Decide:** closers,
+luego Mani.
 **Respuesta:**
 
 ### D3 · ¿Abonado cuenta como deal "abierto"? — P1
@@ -308,7 +313,9 @@ de noche o antes de cerrar una etapa.
 `utm_id={{campaign.id}}` y el `fbclid`, y que el formulario (Typeform o Dapta) los guarde como
 hidden fields. Entran solos en `submissions.respuestas` (ADR 0036) sin tocar el estándar ni el
 código. Es una acción de Ops, no un ticket.
-**Estado:** por decidir. **Decide:** Mani + Alejo (Pauta).
+**Estado:** ✅ **decidido en parte el 24-sep (ADR 0051):** `utm_content` y `utm_term` se capturan
+siempre; `utm_content` lleva el `{{ad.id}}` de Meta en los links de Pauta. `utm_id` y `fbclid` siguen
+sin decidir. **Decide:** Mani + Alejo (Pauta).
 **Respuesta:**
 
 ### R7 · Adelantar Calendly (webhook) a E4 — P1
@@ -324,7 +331,10 @@ con el PAT por programa ya decidido. Crea la Call con la **fecha real y el close
 Robin), mueve a Agendado o a Re-agenda sin que nadie toque nada, y registra las cancelaciones.
 Requiere Calendly Standard o superior.
 **Toca:** tickets 052, 057 y 059; spec §2 ("No conecta Calendly").
-**Estado:** por decidir. **Decide:** Mani.
+**Estado:** ✅ **decidido el 24-sep (ADR 0049, ticket 096)**, con un matiz: Calendly **no crea deals**
+(los abre el envío, que ya trae la agenda); solo cuelga cada llamada de su deal, y si hay duda la deja
+suelta para que un closer la asigne. El host es dueño si el deal no tiene. Queda abierto webhook o
+consulta periódica. **Decide:** Mani.
 **Respuesta:**
 
 ### R8 · La ingesta se diseña para el webhook; Sheets es un adaptador — P1
@@ -425,7 +435,7 @@ riesgo del CRM propio no es la tecnología sino que tarde en ser operativo.
 
 ## 5. Registro de decisiones: plan y alcance
 
-### P1 · Operación antes que analítica — P0
+### P1 · Operación antes que analítica — P0 · ✅ decidida el 24-sep: sí
 
 **Contexto.** El tracker pone E1b (atribución: áreas, campañas, emparejador) como lo siguiente.
 E5 (dashboard, embudo, ROAS) va antes que E6 (Kanban, mi día). Mientras tanto hay 0 deals y los
@@ -470,7 +480,11 @@ urgencia a lo "irrecuperable" del ticket 086.
 - **Cardinalidad campaña-patrón:** el ADR 0045 dice "muchos patrones" y el ADR 0046 más el ticket
   092 dicen "un juego de UTM y un link". Hay que elegir una.
 
-**Estado:** por decidir. **Decide:** Mani.
+**Estado:** ✅ **el enlace del closer, decidido el 24-sep (ADR 0051):** `utm_source=closer`,
+`utm_medium=referido`, `utm_campaign=<campaña de referidos>`, `utm_content=<código opaco>`. La
+cardinalidad se resuelve con el Canal: una campaña tiene un canal y un `utm_campaign`, y sus links
+varían solo en los dos opcionales. **Sigue abierto:** `NULLS NOT DISTINCT` y la detección del empate
+en tiempo de ejecución (tickets 084 y 085). **Decide:** Mani.
 
 ### P3 · El costo del proceso — P2
 
@@ -648,33 +662,61 @@ Hasta entonces el puntaje queda **vacío**, no con pesos a ojo.
 
 ---
 
+## 5c. Decisiones del 24-sep: dirección de producto y UI (preparación de la reunión con Comercial)
+
+Documento de referencia: `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md`. Decisiones
+de Mani, ya escritas como ADR y tickets:
+
+| # | Decisión | ADR · tickets |
+|---|---|---|
+| U1 | Un closer ve solo los programas de su membresía; dentro, "todos ven todo" | 0048 · 094 |
+| U2 | "Todos los programas" en el Dashboard, solo con lo sumable | 0048 · 095 |
+| U3 | Listas siempre de un programa, con selector | 0048, 0050 · 097 |
+| U4 | Calendly cuelga llamadas de deals; si hay duda, suelta; host dueño si no hay | 0049 · 096 (cierra R7) |
+| U5 | Navegación por objetos; "Mi día" → Inbox; dashboards → tab Dashboard | 0050 · 071, 095, 097-100 |
+| U6 | UTM: tres leídos y dos capturados; el closer en `utm_content` | 0051 · 084-086 (cierra P2 en parte y R6 en parte) |
+| U7 | Builder v1: destinos (forms y checkouts), canal, campaña, opcionales; checkouts como destino ya | 0051 · 092, 101 |
+| U8 | Rol Paid Trafficker (`manejaPauta`) | 0052 · 102 |
+| U9 | **Deals históricos:** solo leads nuevos desde el corte; los viejos entran con la migración según su estado de gestión | tickets 052, 077, 080 |
+| U10 | La cohorte es por programa y define la lista de estudiantes | 099 |
+| U11 | Seguimiento es la etapa 11; un deal, muchas llamadas; la conversión cuenta deals distintos | 043, 059, 065, 096 |
+
+**Propuesto el 24-sep y pendiente de los closers:** la tabla de transiciones completa (D2), qué pasa
+después de cada llamada (cinco salidas explícitas; la segunda llamada no hace retroceder; show en
+llamadas, cierre en deals) y el contenido del Inbox.
+
+**Sigue abierto de este documento:** D3, D4, D5, R2, R3, R4, R5, R8, P1, P3, y R9-R10 por ratificar.
+R1 y R11 quedaron resueltos el 22-sep con Supabase (§5b, ADR 0047).
+
+---
+
 ## 6. Checklist de E0′: contradicciones en los documentos y código muerto
 
 **Documentos**
-- [ ] El "nivel" UTM sigue vivo aunque se eliminó el 21-sep: `docs/spec.md:110`,
-  `docs/agents/context.md:414`, los tickets 084, 090 y 092, y el encabezado del scaffold.
-- [ ] `ad_spend` cuelga de un lugar distinto según el documento (ADR 0039, 0045, 0046, enmienda
-  del 0045). El ADR 0039 sigue diciendo "lo decide E5-4" sin enmienda.
-- [ ] El ADR 0044 dice que enmienda el 0021 y el 0037, pero ninguno de los dos lo tiene. El 0021
-  sigue diciendo "no cuentan en el CPL".
-- [ ] Huérfanos: el ticket 066 usa un solo cubo `(sin atribución)`; el 085 y el plan §12.15 usan
-  dos que no se funden.
+- [x] El "nivel" UTM sigue vivo aunque se eliminó el 21-sep: `docs/spec.md:110`,
+  `docs/agents/context.md:414`, los tickets 084, 090 y 092, y el encabezado del scaffold. *(24-sep: arreglado en spec, glosario y tickets; el scaffold es insumo crudo y no se edita)*
+- [x] `ad_spend` cuelga de un lugar distinto según el documento (ADR 0039, 0045, 0046, enmienda
+  del 0045). El ADR 0039 sigue diciendo "lo decide E5-4" sin enmienda. *(24-sep: nota en el ADR 0039; cuelga de la campaña)*
+- [x] El ADR 0044 dice que enmienda el 0021 y el 0037, pero ninguno de los dos lo tiene. El 0021
+  sigue diciendo "no cuentan en el CPL". *(24-sep: enmiendas anotadas en los dos)*
+- [x] Huérfanos: el ticket 066 usa un solo cubo `(sin atribución)`; el 085 y el plan §12.15 usan
+  dos que no se funden. *(24-sep: corregido en el 066)*
 - [ ] Precio de ComunicArte: `context.md:23` dice USD 797; el scaffold §2.4 y el ticket 062 dicen
-  697 como estándar (comisión 80/697). Confirmar cuál es el de lista.
-- [ ] `context.md` todavía define "Fuente" como una pestaña, "Responsable" y "raw"; el ticket 064
-  habla del "responsable" de un lead, que ya no existe.
-- [ ] `crm-explicado-simple.md` §3 dice "misma persona en dos programas = dos Deals"; el ADR 0035
-  y el 0043 dicen dos Leads.
-- [ ] El ticket 049 exige cifras de `production` (6.233 envíos, 4.791 leads) sobre `dev` (2.059).
-- [ ] `spec.md` §2 dice "no permite crear un comprador que no sea lead" y "no sube archivos",
+  697 como estándar (comisión 80/697). Confirmar cuál es el de lista. *(24-sep: sigue abierto; marcado en el glosario y en las preguntas para Gerencia)*
+- [x] `context.md` todavía define "Fuente" como una pestaña, "Responsable" y "raw"; el ticket 064
+  habla del "responsable" de un lead, que ya no existe. *(24-sep: Fuente y Responsable redefinidos; `raw` sigue existiendo en `leads`; enmienda en el 064)*
+- [x] `crm-explicado-simple.md` §3 dice "misma persona en dos programas = dos Deals"; el ADR 0035
+  y el 0043 dicen dos Leads. *(24-sep: no se edita, es insumo crudo; la verdad está en el glosario y en los ADR)*
+- [x] El ticket 049 exige cifras de `production` (6.233 envíos, 4.791 leads) sobre `dev` (2.059). *(24-sep: nota en el 049; `dev` es Supabase vacía y las cifras se miden en el traslado)*
+- [x] `spec.md` §2 dice "no permite crear un comprador que no sea lead" y "no sube archivos",
   contra la alta manual (ADR 0021) y el comprobante con foto (035). La spec no cita los ADR
-  0043-0046.
-- [ ] El tracker todavía lista como pendientes decisiones ya tomadas ("mapeo de `Estado` al enum",
-  "cambiar la fuente", "vista kanban" en Futuro).
-- [ ] El plan v2 §10 dice "ya no queda nada abierto de Mani", pero §12.8.6, §12.16 y spec §7
-  abren preguntas nuevas.
-- [ ] `docs/estructura-bbdd.md` tiene el correo de la cuenta de servicio desactualizado
-  (scaffold §5.2).
+  0043-0046. *(24-sep: corregido, junto con Sheets → webhook de Typeform y Calendly)*
+- [x] El tracker todavía lista como pendientes decisiones ya tomadas ("mapeo de `Estado` al enum",
+  "cambiar la fuente", "vista kanban" en Futuro). *(24-sep: corregido)*
+- [x] El plan v2 §10 dice "ya no queda nada abierto de Mani", pero §12.8.6, §12.16 y spec §7
+  abren preguntas nuevas. *(24-sep: nota en §10 y §13 nueva)*
+- [x] `docs/estructura-bbdd.md` tiene el correo de la cuenta de servicio desactualizado
+  (scaffold §5.2). *(24-sep: agregada la vigente)*
 
 **Código**
 - [ ] `lib/abonos/esquema.ts` todavía valida `saleId`; `lib/abonos/plataforma.ts` no lo importa

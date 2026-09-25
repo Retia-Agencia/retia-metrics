@@ -5,51 +5,78 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito el 22-sep tras la revisión del modelo HubSpot. El prompt
-> anterior (el de E1b, del 21-sep) está en el historial de git (`git show fbab8ee:docs/agents/handoff.md`);
-> sus reglas siguen vivas en los ADR 0043-0046 y los tickets 083-093.
+> Copiar y pegar tal cual. Reescrito el 24-sep tras la reunión con los closers. El prompt anterior
+> (el de la revisión del 22-sep) está en el historial de git (`git show 6091c1b:docs/agents/handoff.md`).
 
 ```
-Seguimos con el CRM v2 de Retia. Lee AGENTS.md y, ANTES que el plan, el documento de revision
-docs/auditorias/revision-modelo-hubspot-2026-09-22.md: propone cambios que van antes de la
-etapa 2, y el tracker dice que no se toma el 043 ni se abre E1b hasta que Mani decida.
+Seguimos con el CRM v2 de Retia. El track de implementacion quedo DESBLOQUEADO el 24-sep con la
+reunion con los closers (Andrea, Maru, Jero). Lee AGENTS.md y despues, antes que nada, la §0 de
+docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md: dice que se valido, que cambio,
+que quedo abierto y el ORDEN para retomar. Manda sobre el resto del documento.
 
-Estado: etapa 1 cerrada, migracion 0020 aplicada en dev y production. production tiene 4.823
-leads y CERO deals/calls/abonos/submissions: el CRM hoy solo lee leads; los closers siguen en
-Sheets. Ultimo conteo conocido: 611 tests (no se re-corrieron: este checkout no tenia
-node_modules).
+Estado: etapa 1 cerrada, migracion 0020 aplicada. Supabase dev creado; production en Supabase por
+crear/verificar (ver CIERRE 24). CERO deals/calls/abonos en la base: los closers siguen en Sheets.
+Ultima suite conocida: 650 tests en verde (22-sep).
 
-Decidido el 22-sep:
-  - D1: el setteo VIVE EN EL DEAL. Se conservan las 10 etapas del ADR 0037, sin enmienda.
+Validado por los closers: las 11 etapas (con Seguimiento) y el Kanban; Grain obligatorio para
+Atendido; cuenta de Calendly por closer y por programa (ADR 0049); el Setteo se reclama desde el
+Inbox; onboarding = onboarded_at, sin checklist.
 
-Por decidir (fichas en el documento; el primer paso de la sesion es cerrarlas con Mani):
-  - D2: la tabla de transiciones del 043 tiene huecos: falta 1->4 (el 052 lo exige), nada lleva a
-    Proxima Cohorte (9), falta 3->5 (Grain desde Re-agenda), 8 "terminal" choca con Perdido
-    "desde las nueve", el retroceso del 047 choca con la lista blanca, y "fecha prometida" de
-    Compromiso Verbal no tiene columna. Propuestas del 22-sep para sumar a D2 (ver CIERRE 22):
-      a) Atendido entra con Grain O con el closer marcando "sucedio".
-      b) Proxima Cohorte exige cohorte destino (o fecha de retomar).
-      c) Ninguna regla compara el NUMERO de etapa ("4 o mas"): lista explicita de etapas.
-  - Deals historicos: el primer sync v2 crearia ~2.400 deals en Pendiente Setteo (1.532
-    Tactical + 901 ComunicArte). Decidir si solo leads nuevos desde el corte, o tambien viejos.
-  - R1 + R11: driver estandar node-postgres con Pool (transacciones reales, portable a
-    Supabase). R2: rastro por triggers. R3: Vercel Pro. P1: operacion antes que analitica
-    (E2 -> E3 min -> E4 -> E6 min -> E7, y E1b/E5 despues).
+Decidido por Mani el 24-sep (adopto las tres recomendaciones): la tabla de transiciones del 043
+completa (D2 cerrada); acuerdo de pago = nota + fecha limite en el deal, sin cuotas en v1 (ADR 0053,
+ticket 061); P1, operacion antes que analitica.
 
-Hecho el 22-sep sin esperar decisiones (CIERRE 23): suite en verde (650), lockfile reparado,
-053 en codigo (inerte hasta poner tz_fechas='UTC', que pide el ok de Mani), limpieza de restos
-del corte, y la parte PURA de 048/049/050 en lib/ingesta/.
-
-Lo que sigue sin esperar decisiones:
-  1. Pedirle a Mani el ok para poner tz_fechas = 'UTC' en las dos fuentes (primero dev, medir
-     que las fechas se muevan exactamente 5 h). Este checkout NO tiene .env.local.
-  2. CI (R4): workflow de GitHub Actions con npm ci, typecheck, lint y test.
-  3. El 093 (filtros UTM) no tiene dependencias.
+Primer paso: tomar el 043 (E2).
+Orden oficial: E2 (043 con la etapa 11 en el enum, 044, 045, 046, 047) y el 094 en
+paralelo; E3 minimo (048-052) con la pregunta de ingreso configurable por fuente para ordenar el
+Setteo (070); E4 (057-060, 063, 096); E6 minimo (097, 069, 070, 071, 074, 099). E1b (UTM) apenas
+Jero consiga la reunion con Pauta; el 086 (link del closer) al final: no traen leads propios.
+Las migraciones las genera y aplica la sesion principal.
 ```
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-24 (CIERRE 30): reunión con los closers; el track de implementación queda desbloqueado.**
+  Solo documentos, sin código ni migraciones.
+  - **Reunión:** Mani con Andrea, Maru y Jero, 24-sep 3:35 pm. Transcript (pegado por Mani; el
+    conector de Granola no lo sirve en el plan gratuito) con quién dijo qué en
+    `docs/insumos/fleeting/2026-09-24-reunion-closers-crm.md`.
+  - **Resultado:** propuesta §0. Validado: las 11 etapas, Grain para Atendido, Calendly por closer y
+    programa, Setteo por reclamo, onboarding con `onboarded_at`. Nuevo: el Setteo viene ordenado por
+    ingreso declarado (más de 10.000, más de 3.000...) y recencia; el dolor número uno es registrar
+    después de varias llamadas seguidas; acuerdos de pago conversacionales, pagar todo antes del inicio
+    del programa (máximo a la mitad), piden nota + fecha límite; los closers no traen leads propios.
+  - **Pendientes con personas:** Jero consigue la reunión con Pauta (UTM, prioridad altísima). Mani
+    arregla los push de Juanito (fuera del repo).
+  - **Actualizados:** propuesta (§0 nueva, §2.1, §2.5, §3.7, §5 puntos 17-22, §6), tracker (banner y
+    decisiones pendientes), AGENTS.md, tickets 043, 061, 070, 071, 086, 096 y 099.
+  - **Mani adoptó las tres recomendaciones** el mismo día: tabla de transiciones completa (D2), ADR 0053
+    (acuerdo de pago = nota + fecha límite, enmienda el 0041, ticket 061 reescrito) y P1.
+  - **Siguiente:** arrancar E2 por el 043.
+
+- **2026-09-24 (CIERRE 29): dirección de producto y UI, solo documentos.** Sin código ni migraciones.
+  Preparación de la reunión con Comercial (closers). Lo que quedó escrito:
+  - **Documento de referencia y guía del desarrollo:**
+    `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` (copia de trabajo de Mani en
+    `~/Downloads`). Está sujeto a cambios después de la reunión.
+  - **ADR 0048 a 0052:**
+    - 0048: un closer ve solo los programas de su membresía, y "todos los programas" en el Dashboard
+      suma solo lo sumable.
+    - 0049: Calendly cuelga cada llamada de su deal; si hay duda, la llamada queda suelta.
+    - 0050: navegación por objetos, con Inbox y una tab Dashboard.
+    - 0051: convención de UTM (tres se leen, dos se capturan, el closer va en `utm_content`) y el
+      builder de links.
+    - 0052: el rol Paid Trafficker.
+    - Enmiendas anotadas en los ADR 0009, 0015, 0021, 0025, 0037, 0039, 0043, 0044, 0045 y 0046.
+  - **Tickets 094 a 102** nuevos, y enmiendas en unos 25 existentes.
+  - **Decisión de Mani del mismo día:** Seguimiento es la etapa 11; un deal tiene muchas llamadas y nunca
+    se duplica; la conversión cuenta deals distintos.
+  - La tabla de transiciones (ticket 043) y el Inbox quedan 🟡 hasta validarlos con los closers.
+  - Actualizados también: spec, plan v2 §13, glosario, tracker, AGENTS.md, la revisión del 22-sep §5c,
+    `design.md`, `design-system.md` y `estructura-bbdd.md`.
+  - **Siguiente:** bajar lo que digan los closers en la reunión (preguntas en el documento §6).
 
 - **2026-09-23 (CIERRE 28): decisiones pendientes enviadas a Mani por WhatsApp.** Sin cambios de
   codigo. Se le pidio cerrar D2 (transiciones: 1->4, 3->5, 5->9, 6->9, 8->10, retrocesos como

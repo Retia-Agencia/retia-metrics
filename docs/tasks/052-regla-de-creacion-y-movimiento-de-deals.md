@@ -47,3 +47,16 @@ que el ADR 0037 nombra; si implementa el requisito por su cuenta, diverge del cl
 ## Kiro
 
 Si, con revision.
+
+---
+
+## Enmienda 2026-09-24 (ADR 0049 y decisión de los deals históricos)
+
+- **"Con Calendly" ya no crea la Call sin fecha para que el closer la complete:** el deal nace en
+  Agendado y la Call llega de Calendly con su fecha real (ticket 096). Si la integración no existe
+  todavía, el closer crea la Call a mano.
+- **Deals históricos (decidido por Mani):** esta regla abre deals **solo para leads nuevos desde el
+  corte**. Los leads viejos de Setteo entran con la migración de la etapa 7 respetando su estado de
+  gestión (ticket 080), no como ~2.400 deals iguales en Pendiente Setteo.
+- "Re-envío con deal en 4 o más" se lee con la lista explícita: deal en 4, 5, 6 o 7 (ninguna regla
+  compara números de etapa).

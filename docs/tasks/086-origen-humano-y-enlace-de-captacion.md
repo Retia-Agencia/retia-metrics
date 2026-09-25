@@ -51,3 +51,20 @@ Maru"* no esta escrito en ninguna parte hoy. No es que este mal guardado — **n
 ## Kiro
 
 Si, con revision. La regla de "el primero gana" es donde un bug es silencioso.
+
+---
+
+## Enmienda 2026-09-24 (ADR 0051): el closer va en `utm_content`
+
+El enlace del closer es: `utm_source=closer`, `utm_medium=referido`, `utm_campaign=<campaña de
+referidos del programa>`, `utm_content=<código opaco del closer>`. El código lo genera el CRM (nunca el
+nombre) y el formulario ya captura `utm_content`: cero cambios en Typeform. Lo lee el emparejador
+(ticket 085) y lo escribe la ingesta en `traido_por_user_id`. Resuelve la ficha P2 de la revisión del
+22-sep.
+
+## ⬇️ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../insumos/fleeting/2026-09-24-reunion-closers-crm.md), resumen en la propuesta §0): baja de prioridad
+
+A la pregunta de si invitan gente o buscan leads propios, los closers dijeron que **no**. El diseño
+sigue siendo correcto (y `traido_por_user_id` lo sigue escribiendo la ingesta si llega un link de
+closer), pero el **enlace de captación** va al final de E1b, no antes que el resto. Que Comercial salga
+en cero en "leads por área" es un dato real, no un bug.

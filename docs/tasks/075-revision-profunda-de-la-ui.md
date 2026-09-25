@@ -61,3 +61,10 @@ vale asumir que los tests actuales cubren esto:
 ## Kiro
 
 Parcial. El inventario y los arreglos si; el criterio, no.
+
+---
+
+## Nota 2026-09-24 (ADR 0050)
+
+El criterio de navegación que faltaba ya existe: tabs por objeto, selector de programa, Inbox y
+Dashboard. Esta revisión incluye además las tabs 095, 097, 098, 099 y 100.

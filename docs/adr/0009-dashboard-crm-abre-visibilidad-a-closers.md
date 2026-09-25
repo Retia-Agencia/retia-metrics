@@ -24,3 +24,12 @@ por rol); se tomo en esta sesion de diseno, resolviendo con la opcion mas transp
 Queda marcada como riesgo a confirmar con Michael y Alejandro Carvajal antes de dar acceso real a
 los closers (ver `docs/spec.md`, bloque de supuestos). Si la respuesta cambia, este ADR pasa a
 `superseded` y ADR 0003 vuelve a regir sin excepcion.
+
+---
+
+## ⚠️ Enmienda 2026-09-24 (ADR 0048): "todos ven todo" rige DENTRO del programa
+
+Mani: *"no todos los closers pertenecen a ambos programas; es clave definir el alcance"*. Un closer ve
+**solo los programas donde tiene membresía activa**, en operación y en métricas. Dentro de su programa
+esta política sigue intacta: ve deals, caja, pauta y el comparativo entre closers. El gerente ve todos
+los programas. La implementación es el ticket 094.

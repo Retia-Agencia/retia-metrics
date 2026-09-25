@@ -25,6 +25,14 @@ diario y lo familiar se usa más rápido.
 | Firma de la app | `components/marca.tsx` |
 | Tarjeta, botón, badge, select, menú | `components/ui/*` (shadcn sobre Base UI) |
 
+### El marco desde el 24-sep (ADR 0050)
+
+La navegación pasa a ser **por objetos**: una tab por objeto del modelo (Inbox, Dashboard, Leads,
+Deals, Calls, Students, Campañas, Programs, Products, Resources, Ajustes) y un **selector de programa
+arriba de la barra**, dentro del marco. El grupo "Programas" de hoy desaparece: el programa se elige
+en el selector, no en la lista. El selector sigue las reglas de abajo como cualquier control del
+marco (regla 7), y lo que despliega sale en un portal con los tokens del tema.
+
 ## Las reglas
 
 1. **Ninguna pantalla escribe un color, una sombra ni un radio a mano.** Nada de `#hex`,

@@ -41,3 +41,10 @@ viviendo en `lib/auth/roles.ts` y este ticket no la roza. Un `rol === "closer"` 
 ## Kiro
 
 Si. Es el molde de catalogo, ya hay cuatro ejemplos en el repo.
+
+---
+
+## Nota 2026-09-24 (ADR 0051)
+
+El área de un lead se deriva de su **Canal** (ticket 101), que es el catálogo de pares `utm_source +
+utm_medium` con su área. El mapeo UTM → área que se le iba a pedir a Alejo **es** ese catálogo.

@@ -43,3 +43,13 @@ cercania acierta casi siempre y **cuando falla, mueve la cifra equivocada sin av
 ## Kiro
 
 Si, **con los casos raros revisados uno por uno**.
+
+---
+
+## Enmienda 2026-09-24: el estado de gestión de Setteo decide la etapa
+
+Como los deals históricos nacen en la migración (decisión del 24-sep), la pestaña Setteo se mapea por
+su "Estado gestión": `Pendiente` → Pendiente Setteo, `En proceso` → En Contacto (la duda de arriba
+sigue: ¿sin nota también?), `Agendado` → Agendado, `No interesado` → Cierre Perdido con motivo,
+`Cerrado` → se busca su venta. 🔴 **Pregunta para los closers:** ¿hasta cuántos días atrás vale la pena
+recontactar? Los leads más viejos pueden entrar sin deal.

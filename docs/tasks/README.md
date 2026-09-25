@@ -10,6 +10,25 @@ Un ticket está **listo** cuando todos los de su columna "Depende de" están en 
 Orden y porqué: **[docs/plan-crm-v2.md](../plan-crm-v2.md)** para la época viva; [docs/plan.md](../plan.md)
 para el MVP ya ejecutado. Alcance: [docs/spec.md](../spec.md).
 
+> ✅ **24-sep, tarde: la reunión con los closers ya se hizo y el track de implementación quedó
+> desbloqueado.** Resultado, qué cambió y **por dónde retomar** en la **§0** de
+> [la propuesta](../auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md); transcript en
+> [`insumos/fleeting/2026-09-24-reunion-closers-crm.md`](../insumos/fleeting/2026-09-24-reunion-closers-crm.md).
+> Las 11 etapas quedan validadas y **Mani adoptó las tres recomendaciones el mismo día**: la tabla de
+> transiciones completa (cierra D2), el acuerdo de pago como nota + fecha límite sin cuotas en v1
+> (**ADR 0053**) y **P1** (operación antes que analítica). **El 043 está listo para tomarse.** Orden
+> oficial: E2 → E3 mínimo → E4 → E6 mínimo → E1b → E5 → E7. Enmendados los tickets 043, 061, 070, 071,
+> 086, 096 y 099.
+>
+> 🧭 **24-sep: dirección de producto y UI, antes de la reunión con Comercial.** Documento de referencia
+> para el desarrollo (sujeto a cambios después de la reunión):
+> **[docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md](../auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md)**.
+> Decisiones en los **ADR 0048 a 0052** (alcance del closer y agregado de lo sumable, Calendly, navegación
+> por objetos, convención de UTM y builder, rol Paid Trafficker) y **tickets 094 a 102**. Enmiendas en
+> los tickets 043, 044, 047, 049, 052, 057-059, 064-066, 069-072, 075, 077, 080, 083-086, 090 y 092.
+> 🟡 La **tabla de transiciones** propuesta (ticket 043) y el contenido del **Inbox** se validan con los
+> closers antes de congelarlos.
+>
 > 🔎 **22-sep: revisión pendiente de decisión.** [docs/auditorias/revision-modelo-hubspot-2026-09-22.md](../auditorias/revision-modelo-hubspot-2026-09-22.md)
 > propone cambios **antes de E2**: el setteo fuera del deal (D1), huecos en la tabla de transiciones del **043** (D2),
 > transacciones reales en vez de `neon-http` para escribir (R1) y el orden operación-antes-que-analítica (P1).
@@ -83,14 +102,17 @@ Decisiones: **ADR 0043, 0044 y 0045**. Argumento y medición: [plan v2 §12](../
 la pauta y el origen de un lead **no se pueden cortar con la misma llave**, porque `ad_spend` guarda
 la campaña en texto libre. Ninguna de las dos cosas lanza un error.
 
-**Una rama y UNA migración (`0021`) para 083, 084 y 092.** Léela línea por línea antes de aplicarla.
+**Una rama y UNA migración para 083, 084, 092, 101 y 102.** Ya no es la `0021`: ese número lo tomó
+la de RLS del 23-sep (ADR 0047), así que es **la siguiente libre**. Léela línea por línea antes de aplicarla.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [ ] | 083 | [El catálogo de áreas](./083-catalogo-de-areas.md) | 042 | todo |
 | [ ] | 084 | [`campanas` y `utm_patron`](./084-campanas-y-el-patron-utm.md) | 083 | todo · **tres** campos de patrón, sin `nivel_utm` |
 | [ ] | 085 | [El emparejador determinista y su guardián](./085-el-emparejador-determinista.md) | 084 | todo |
-| [ ] | 092 | [La URL del formulario y el generador de links](./092-url-del-formulario-y-generador-de-links.md) | 084 | todo · 🩸 **destapa que `programs` no tiene la URL del formulario**, sin la cual el 086 tampoco se puede calcular. Encogió el 21-sep: **sin árbol** |
+| [ ] | 092 | [La URL del formulario y el generador de links](./092-url-del-formulario-y-generador-de-links.md) | 084 | todo · 🩸 **destapa que `programs` no tiene la URL del formulario**, sin la cual el 086 tampoco se puede calcular. Encogió el 21-sep: **sin árbol**. **24-sep: es el builder v1** (destinos con checkouts, canal, campaña, dos opcionales; ADR 0051) |
+| [ ] | 101 | [El catálogo de Canales (el "Origen" del builder)](./101-catalogo-de-canales.md) | 083 | todo · 24-sep, ADR 0051 · el mapeo UTM → área **es** este catálogo |
+| [ ] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | todo · 24-sep, ADR 0052 · migración de la sesión principal |
 
 ## E2 · El motor de etapas
 
@@ -130,10 +152,11 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 058 | [Pegar el Grain = la llamada sucedió](./058-grain-significa-que-la-llamada-sucedio.md) (E4-2) | 057 | todo |
 | [ ] | 059 | [`no_show` y `cancelada` van a Re-agenda](./059-no-show-y-cancelada-van-a-reagenda.md) (E4-3) | 057 | todo |
 | [ ] | 060 | [Abonos sobre el deal](./060-abonos-sobre-el-deal.md) (E4-4) | 057, 045 | todo |
-| [ ] | 061 | [Cuotas pactadas y cartera vencida](./061-cuotas-pactadas-y-cartera-vencida.md) (E4-5) | 060 | todo |
+| [ ] | 061 | [Acuerdo de pago y cartera vencida](./061-cuotas-pactadas-y-cartera-vencida.md) (E4-5) | 060 | todo · 24-sep, ADR 0053: nota + fecha límite, sin cuotas en v1 · migración de la sesión principal |
 | [ ] | 062 | [La comisión se calcula, nunca se guarda](./062-comision-calculada.md) (E4-6) | 060 | todo |
 | [ ] | 063 | [`onboarded_at` y cambio de cohorte](./063-onboarded-at-y-cambio-de-cohorte.md) (E4-7) | 060 | todo |
-| [ ] | 035 | [Comprobante: link **o** foto](./035-comprobante-link-o-foto.md) (E4-8) | 060 | todo · **aterriza aquí**, colgando de `abonos.deal_id`. Siguen debiéndose los dos análisis |
+| [ ] | 035 | [Comprobante: link **o** foto](./035-comprobante-link-o-foto.md) (E4-8) | 060 | todo · **aterriza aquí**, colgando de `abonos.deal_id`. Siguen debiéndose los dos análisis. 22-sep: la foto va a Supabase Storage (ADR 0047) |
+| [ ] | 096 | [Calendly: cada llamada a su deal; si hay duda, suelta](./096-calendly-cuelga-llamadas-de-deals.md) | 057, 045 | todo · 24-sep, ADR 0049 · webhook o consulta periódica por decidir |
 
 ## E5 · Lectura y reporting
 
@@ -148,6 +171,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 088 | [Registros vs agendas por canal](./088-registros-vs-agendas-por-canal.md) | 049, 052, 085 | todo · la vista de **Media** |
 | [ ] | 089 | [Series con dimensiones, no escalares](./089-series-con-dimensiones.md) | 064 | todo · ⏳ **gratis ahora, reescritura después** |
 | [ ] | 090 | [Rendimiento por área](./090-rendimiento-por-area.md) | 085, 088, 089 | todo · la vista de **Gerencia**. Estados con acción, no una tabla |
+| [ ] | 095 | [La tab Dashboard: un programa o "todos" solo con lo sumable](./095-dashboard-con-selector-y-todos-los-programas.md) | 064, 089, 094 | todo · 24-sep, ADR 0048 y 0050 · la garantía vive en el tipo |
 | [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) (E5-6) | 064, 065, 066, 067 | **congelado hasta aquí** · se descongela con el dashboard nuevo, no antes |
 
 ## E6 · UI
@@ -158,10 +182,15 @@ se abre**. Este repo no tiene tests de componentes y el 20-sep dos bugs pasaron 
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 069 | [Kanban por programa](./069-kanban-por-programa.md) (E6-1) | 065 | todo |
-| [ ] | 070 | [Pendiente Setteo y Unclaimed](./070-pendiente-setteo-y-unclaimed.md) (E6-2) | 069 | todo |
-| [ ] | 071 | [Mis deals · mis Calls de hoy · cartera vencida](./071-mi-dia-del-closer.md) (E6-3) | 069, 061 | todo |
-| [ ] | 072 | [Base de Leads con filtros](./072-base-de-leads-con-filtros.md) (E6-4) | 069 | todo |
+| [ ] | 094 | [Un closer ve solo sus programas](./094-alcance-del-closer-por-membresia.md) | — | todo · 24-sep, ADR 0048 · **sin dependencias**: puede ir antes de E6 |
+| [ ] | 097 | [Navegación por objetos y selector de programa](./097-navegacion-por-objetos-y-selector-de-programa.md) | 094 | todo · 24-sep, ADR 0050 · reemplaza la barra de hoy |
+| [ ] | 069 | [Kanban por programa](./069-kanban-por-programa.md) (E6-1) | 065 | todo · 24-sep: es la vista tablero de la tab **Deals** |
+| [ ] | 070 | [Pendiente Setteo y Unclaimed](./070-pendiente-setteo-y-unclaimed.md) (E6-2) | 069 | todo · 24-sep: son secciones del **Inbox** |
+| [ ] | 071 | [El Inbox (antes Mis deals)](./071-mi-dia-del-closer.md) (E6-3) | 069, 061, 070, 096, 097 | todo · 24-sep: reemplaza "Mi día"; contenido 🟡 a validar con closers |
+| [ ] | 072 | [Base de Leads con filtros](./072-base-de-leads-con-filtros.md) (E6-4) | 069 | todo · 24-sep: es la tab **Leads** |
+| [ ] | 098 | [La tab Calls](./098-tab-calls.md) | 057, 096, 097 | todo · 24-sep, ADR 0050 · incluye las llamadas sueltas |
+| [ ] | 099 | [La tab Students por cohorte](./099-tab-students-por-cohorte.md) | 060, 061, 097 | todo · 24-sep · la cohorte define la lista de estudiantes |
+| [ ] | 100 | [La tab Programs](./100-tab-programs-ficha-del-programa.md) | 097, 101 | todo · 24-sep · destinos, Calendly, comisión, equipo |
 | [ ] | 073 | [Ficha del Lead, con el diff entre envíos](./073-ficha-del-lead.md) (E6-5) | 072 | todo |
 | [ ] | 074 | [Ficha del Deal](./074-ficha-del-deal.md) (E6-6) | 073 | todo |
 | [ ] | 075 | [Revisión profunda de TODA la UI](./075-revision-profunda-de-la-ui.md) (E6-8) | 069-074 | todo |
@@ -254,10 +283,41 @@ Michael respondió el 16-sep ([mensaje-michael-2026-09-16.md](../insumos/mensaje
 
 | Decisión | A quién | Afecta |
 |---|---|---|
-| Qué se reconcilia y qué se descarta del histórico de C2 (importar: **sí**) | Mani | ticket futuro |
-| Confirmar el mapeo de `Estado` al enum (propuesta en F-01) | Mani | F-01 |
+| Qué se reconcilia y qué se descarta del histórico de C2 (importar: **sí**) | Mani + Michael | 080 |
+| Qué pregunta del formulario es el ingreso (moneda, periodo, bandas por programa) | closers / Mani leyendo el form | 070 |
+| El X de "deal sin actividad en X días" | closers | 071 |
+| De quién es el deal si el host de Calendly es otra closer | closers | 096 |
+| "Estudiante confirmado": ¿desde el primer abono o con el pago completo? Quién hace el onboarding | closers + Gerencia | 099 |
+| La convención de UTM, con el equipo de Pauta (Jero consigue la reunión) | Pauta + Jero + Mani | 083, 084, 092, 101 |
+| Hasta cuántos días atrás se migran los leads de Setteo con deal | closers | 080 |
+| El área de cada canal (catálogo inicial) | Alejo | 101 |
+| Qué ve el Paid Trafficker del Dashboard | Gerencia | 102 |
+| Webhook o consulta periódica para Calendly; plan de Calendly | Mani | 096 |
+| Vercel Pro (R3), CI (R4), Playwright (R5), D3-D5 | Mani | revisión del 22-sep |
+| Precio de lista de ComunicArte: 797 o 697 | Gerencia | `context.md`, 062 |
 
 ### Resueltas
+
+- 24-sep · **Mani adopta las tres recomendaciones tras la reunión con los closers:** la tabla de
+  transiciones completa del 043 (cierra D2); el acuerdo de pago es nota + fecha límite en el deal, sin
+  cuotas en v1 (ADR 0053, enmienda el 0041); P1, operación antes que analítica. Tickets 043, 061, 071, 099.
+
+- 24-sep, tarde · **Reunión con los closers** (Andrea, Maru, Jero): las 11 etapas y el Kanban
+  validados; Grain como requisito de Atendido; Calendly con cuenta por closer y por programa; el
+  Setteo se reclama (el turno fijo se retira) y viene ordenado por ingreso y recencia; onboarding =
+  `onboarded_at`; los closers no traen leads propios (el 086 baja de prioridad). Propuesta §0.
+
+- 24-sep · **Seguimiento es la etapa 11 y un deal tiene muchas llamadas** (Mani, se valida con los
+  closers): la llamada que falla va a Re-agenda con motivo, la nueva se agrega al deal y se avisa al
+  dueño, y la conversión cuenta deals distintos. Tickets 043, 044, 047, 059, 065, 096.
+
+- 24-sep · **Trece decisiones de dirección de producto** (Mani): alcance del closer por membresía,
+  agregado solo de lo sumable, listas de un programa, Calendly para colgar llamadas (si hay duda,
+  suelta), Inbox, tab Dashboard, navegación por objetos, 3 UTM leídos + 2 capturados, el closer en
+  `utm_content`, builder v1, rol Paid Trafficker, checkouts como destino, deals históricos solo desde
+  el corte. ADR 0048-0052 y la revisión del 22-sep §5c.
+- 22-sep · **El mapeo de `Estado` al enum ya no aplica**: `estado` pasó a texto (ADR 0032) y el CRM lo
+  calcula por fuente (T2 de la revisión del 22-sep).
 
 - 19-sep · **El snapshot en PDF lo toman los dos roles** (Mani). El 021 **deja de estar bloqueado**;
   sigue siendo el último de la fila. Razón: si un closer ya ve la caja y el comparativo en pantalla
@@ -421,6 +481,8 @@ Detalle en [docs/agents/handoff.md](../agents/handoff.md), sección Roadmap.
 No son deuda ni tickets: son direcciones que Mani dejo anotadas para no perderlas. **Ninguna se
 implementa sin decidirla primero.**
 
+- ✅ **Resuelta el 22-sep (T1 y T3 de la revisión):** los leads entran por **webhook de Typeform** y lo
+  que hay en Sheets se traslada por la misma puerta. La idea de abajo queda como historia.
 - 🔵 **Cambiar la FUENTE de la que se traen los leads** (Mani, 20-sep, textual: *"creo que quiero
   cambiar la fuente de la cual se traen los leads, puede ser mas facil solo traer de la pagina a
   la cual llegan los leads crudos y todo lo demas se maneja desde el CRM"*).
@@ -436,12 +498,17 @@ implementa sin decidirla primero.**
   Se cruza con el ticket 034: si el CRM pasa a manejar "todo lo demas", `etapa` es del CRM y eso
   ya quedo decidido alli.
 
-- 🔵 **Plataformas de pago con programa** (Mani, 20-sep). Ver la enmienda del ticket 013.
+- ✅ **Plataformas de pago con programa** (Mani, 20-sep): resuelta el mismo día con el ADR 0034 (tabla
+  puente `plataformas_programa`). Ver la enmienda del ticket 013.
 
 ## Futuro (validado, fuera del MVP)
 
-Integración con Calendly (usa `users.calendlyEmail`), Kapso, Typeform, Addi; recordatorios de
-seguimiento (usa `calls.fechaSeguimiento`); import histórico; mapeo enriquecido de leads; vista
-kanban y calendario; subida de archivos (ADR 0017).
+Kapso, Addi; recordatorios de seguimiento (usa `calls.fechaSeguimiento`); mapeo enriquecido de
+leads; calendario; **ventas que vuelven solas desde los checkouts** (webhooks de Hotmart, PayPal,
+MercadoPago; ADR 0051 punto 7); acortador de links con analítica de clics; URL libre en el builder.
+
+Salieron de esta lista porque ya tienen dueño: Calendly (ADR 0049, ticket 096), Typeform (webhook,
+revisión del 22-sep T1), import histórico (etapa 7), vista kanban (ticket 069) y subida de archivos
+(comprobante en Supabase Storage, ADR 0047 y ticket 035).
 
 ("Ver como" del developer salió de aquí el 18-sep: es el ticket 028.)

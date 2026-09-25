@@ -235,3 +235,14 @@ borran un enum, una tabla y una regla de reconciliacion.
 tabla que ya esta en `production`, y volver a ponerlas costaria otra; el dato sigue en la hoja si algun
 dia se quiere. **Van marcadas en el comentario del esquema como deliberadamente no leidas**, para que
 nadie las cablee creyendo que tapa un hueco.
+
+---
+
+## ⚠️ Enmienda 3 · 2026-09-24 (ADR 0051): tres se leen, dos se capturan
+
+- `utm_content` y `utm_term` **vuelven a capturarse** siempre. No se leen en los reportes, con una
+  excepción: `utm_content` se lee **solo en el canal Closer**, para saber quién trajo el lead, y lo lee
+  un único módulo (el emparejador).
+- El patrón se expresa en dos catálogos: el **Canal** (`utm_source` + `utm_medium`, con su área) y la
+  **Campaña** (`utm_campaign`). Las reglas de este ADR siguen: emparejamiento determinista, el empate es
+  un error visible, y las dos cubetas de huérfanos no se funden.

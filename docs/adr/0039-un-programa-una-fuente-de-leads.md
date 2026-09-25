@@ -140,3 +140,11 @@ personas no tienen envio en el modelo nuevo.
 
 **Escribir el indice unico tal cual lo pedia el insumo §2.10.** No se puede crear sobre la tabla
 real, y ese es el tipo de detalle que solo aparece midiendo.
+
+---
+
+## Nota 2026-09-24: de dónde cuelga `ad_spend`, ya resuelto
+
+Este ADR decía que el grano de `ad_spend` lo decidía la etapa 5. Lo decidieron los ADR 0045 y 0046
+(enmienda del 21-sep): **`ad_spend` cuelga de la campaña, por fecha**. El ADR 0051 (24-sep) no lo
+cambia.

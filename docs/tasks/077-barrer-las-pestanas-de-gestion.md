@@ -49,3 +49,11 @@ Traer al CRM lo que vive en las pestanas de gestion: `Setteo`, `Registro de llam
 ## Kiro
 
 Si, **con los casos raros revisados uno por uno**.
+
+---
+
+## Nota 2026-09-24: la migración trae los deals históricos
+
+Por la decisión de Mani del 24-sep, el sync abre deals solo para leads nuevos desde el corte. Los
+deals de los leads viejos de Setteo **nacen aquí**, desde la pestaña Setteo, respetando su "Estado
+gestión" (ver el ticket 080).

@@ -151,3 +151,41 @@ la garantia.
 **Etapas por programa.** Las dos operaciones son la misma y un embudo comparable entre programas
 vale mas que la flexibilidad de tener dos pipelines. Si un programa futuro necesita otro pipeline,
 se abre entonces con su ADR.
+
+---
+
+## Enmiendas posteriores (anotadas el 2026-09-24)
+
+- **ADR 0038 (21-sep), la mitad que faltaba escribir aquí:** el índice
+  `deals_uno_abierto_por_lead_y_programa_idx` lleva `AND anulado_en IS NULL`. Un deal anulado nunca
+  debió existir, así que no ocupa el cupo del lead; sin esa cláusula, quien anula un deal hecho sobre
+  el lead equivocado no puede crear el correcto.
+- **ADR 0044 (21-sep):** el CPL deja de preguntar por `entrada`; cuenta los leads del área Pauta.
+- **ADR 0049 (24-sep):** un Agendado cuyo host de Calendly es un closer registrado en el programa nace
+  **con dueño**, sin reclamo. Y una Call puede existir sin deal solo si es una llamada suelta de
+  Calendly, pendiente de asignar.
+- **🟡 Propuesta del 24-sep (ticket 043):** la tabla de transiciones se completa con los huecos que
+  encontró la revisión del 22-sep (D2): 1→4, 3→5, llegada a Próxima Cohorte desde 2, 5 y 6, pago
+  completo de una vez (5→8, 6→8), retrocesos explícitos con motivo, Completo terminal, y recuperar un
+  perdido solo hacia 2, 4 o 9. Se valida con los closers antes de congelarla.
+- **Decisión del 24-sep sobre los deals históricos:** el CRM abre deals solo para leads nuevos desde el
+  corte. Los leads viejos de Setteo entran con la migración de la etapa 7, respetando su estado de
+  gestión, no como ~2.400 deals iguales en Pendiente Setteo.
+
+---
+
+## ✅ Decisión 2026-09-24 (Mani, se valida con los closers): Seguimiento y "un deal, muchas llamadas"
+
+- **Seguimiento es una etapa propia (la 11)**, después de Atendido: la llamada ocurrió y hay que volver a
+  contactarlo. Separa lo que salió bien (Compromiso, pago) de lo que hay que re-contactar. Reemplaza la
+  propuesta anterior de "quedarse en Atendido con fecha". El `pgEnum` gana un valor (migración de la
+  sesión principal). El número no es el orden: va después de Atendido.
+- **Un deal tiene muchas llamadas y nunca se duplica.** Si una llamada falla (no-show, cancelada, u
+  otra llamada necesaria), el deal pasa a Re-agenda **con motivo** (5 → 3 incluido). Una llamada nueva
+  de un lead con deal abierto **se agrega y se avisa al dueño**; en 1, 2, 3, 9 u 11 el deal pasa a
+  Agendado, en 5, 6 o 7 la etapa no cambia.
+- **La conversión cuenta deals distintos** que llegaron a una etapa, no entradas: el ir y volver no infla.
+- Transiciones nuevas: T24 (5 → 11), T25 (11 → 6), T26 (11 → 7 u 8), T27 (11 → 4), T28 (11 → 9), T29
+  (5 → 3 con motivo); T11 queda reemplazada y T15 pasa a 6 → 11. Perdido llega también desde 11. Tabla
+  completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
+- **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".

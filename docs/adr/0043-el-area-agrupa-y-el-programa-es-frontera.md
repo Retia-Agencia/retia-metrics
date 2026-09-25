@@ -108,3 +108,12 @@ modulo*.
 | El area derivada del rol del usuario | El gerente no vende y sigue siendo de Gerencial. Y dejaria al developer sin area |
 | Tabla `personas` (split Party/Contact) | Medido: 5 filas de 4.823. Punto 5 |
 | El area vive fuera del CRM, en el reporte de Ops | El dato con el que se clasifica (el UTM) ya vive aqui; una clasificacion de afuera se desincroniza el dia que aparezca un `utm_source` nuevo, o sea todas las semanas |
+
+---
+
+## ⚠️ Enmienda 2026-09-24 (ADR 0048): el punto 4 se abre SOLO para sumas en la misma unidad
+
+La frontera se conserva para la identidad del lead, para las listas (siempre de un programa) y para
+las tasas. El Dashboard puede mostrar "todos los programas", y ahí **solo suma magnitudes sumables en
+la misma unidad**: conteos, caja en USD, gasto de pauta. Tasas, meta, meta dinámica, CPL, ROAS y
+comisión van por programa, lado a lado. La garantía sigue en el tipo de la consulta.

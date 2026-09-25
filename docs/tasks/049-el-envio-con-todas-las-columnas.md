@@ -113,3 +113,12 @@ problema de captacion en una atribucion falsa.
 - ⏳ **Falta:**
   - el conteo de envios sobre datos reales;
   - los campos de perfil del lead (nombre, cargo, etc.), que hoy quedan solo en `respuestas`.
+
+---
+
+## Nota 2026-09-24: las cifras del "Done cuando" ya no se pueden medir en `dev`
+
+`dev` es ahora Supabase y arranca vacía (ADR 0047, S2). Las cifras de 6.233 envíos y 4.791 leads son
+de la hoja completa vista el 21-sep; se comprueban cuando se haga el traslado desde Sheets (T3), no
+contra `dev`. Y por el ADR 0051, `utm_content` y `utm_term` **se promueven también**: se capturan
+siempre, aunque solo `utm_content` se lea, y solo en el canal Closer.

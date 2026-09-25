@@ -155,3 +155,13 @@ Con el estandar reducido a tres campos (ADR 0045, enmienda 2), **no hay niveles 
 
 **El ticket 092 encoge:** `programs.form_url` + el generador. Sin arbol, sin tabla nueva mas alla de
 `campanas`.
+
+---
+
+## Enmienda 2026-09-24 (ADR 0051 y ADR 0052)
+
+- **Punto 1:** `programs.form_url` pasa a ser **uno de los destinos** del programa. El builder genera
+  links hacia el formulario y hacia las URL de checkout del programa.
+- **La nota del cuarto rol queda decidida:** el Paid Trafficker entra en el builder v1 (ADR 0052).
+- El builder v1 replica el de 30X: destino, canal (source y medium), campaña y los dos opcionales.
+  Fuera de v1: URL libre y el acortador.

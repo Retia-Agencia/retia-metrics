@@ -116,3 +116,12 @@ LLENA**. `grep` de `typeform|formUrl|form_url` sobre `lib/`, `app/` y el esquema
 El diseno era correcto y le faltaba el dato. Lo agrega el **ADR 0046**: `programs.form_url`, mas **un
 solo generador** de links compartido con el arbol de campana (ticket 092). Este ADR no cambia de
 forma; gana una dependencia.
+
+---
+
+## ⚠️ Enmienda 2026-09-24 (ADR 0051): el closer va en `utm_content`, con un código
+
+El punto 1 ponía el closer en `utm_campaign`, que según el estándar es la campaña. Queda así:
+`utm_source=closer`, `utm_medium=referido`, `utm_campaign=<campaña de referidos del programa>`,
+`utm_content=<código opaco del closer>`. El código lo genera el CRM, nunca es el nombre, y el
+formulario ya captura `utm_content`: cero cambios en Typeform. El resto de este ADR sigue intacto.
