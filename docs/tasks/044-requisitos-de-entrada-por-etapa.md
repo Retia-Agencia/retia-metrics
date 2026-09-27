@@ -3,7 +3,7 @@ id: 044
 etapa: E2
 serves: "plan v2 §6 etapa 2 · tarea E2-2 · ADR 0037, insumo §3"
 depends: [043]
-status: todo
+status: done
 ---
 
 # 044 — Los requisitos de entrada de cada etapa, como predicados puros

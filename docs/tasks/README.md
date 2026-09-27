@@ -97,7 +97,7 @@ El corazón del sistema, y la razón de que vaya **antes** que el sync.
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 043 | [Las once etapas y la tabla de transiciones](./043-enum-de-etapas-y-tabla-de-transiciones.md) (E2-1) | 042 | done · 27-sep · `lib/deals/etapas.ts`, migración 0024 (`seguimiento`) aplicada en `dev` |
-| [ ] | 044 | [Requisitos de entrada por etapa](./044-requisitos-de-entrada-por-etapa.md) (E2-2) | 043 | todo |
+| [x] | 044 | [Requisitos de entrada por etapa](./044-requisitos-de-entrada-por-etapa.md) (E2-2) | 043 | done · 27-sep · `lib/deals/requisitos.ts`, requisito **por flecha** (no por etapa); T22 con requisito (contacto posterior a entrar a Próxima Cohorte) |
 | [ ] | 045 | [`moverEtapa()` y su historial](./045-mover-etapa-y-su-historial.md) (E2-3) | 043, 044 | todo |
 | [ ] | 046 | [Guardián: nadie escribe `deals.etapa` fuera del motor](./046-guardian-del-motor-de-etapas.md) (E2-4) | 045 | todo |
 | [ ] | 047 | [Saltos permitidos y retroceso con motivo](./047-saltos-permitidos-y-retroceso.md) (E2-5) | 045 | todo |

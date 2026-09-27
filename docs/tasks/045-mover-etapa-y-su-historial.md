@@ -51,3 +51,19 @@ renglon de bitacora; falta una conversion.
 ## Kiro
 
 Parcial. Los tests si, con revision. El diseno del contrato, no.
+
+---
+
+## ✅ Decisiones de Mani del 27-sep (al revisar el 044)
+
+El 044 dejó los requisitos como predicados puros sobre `HechosDelDeal` (`lib/deals/requisitos.ts`).
+El 045 decide **dónde vive cada hecho**, y tres respuestas ya están tomadas:
+
+- **A. Próxima Cohorte guarda las dos cohortes**, la de origen y la destino. El deal no "se muda" en
+  silencio: así la conversión de la cohorte de origen no pierde el deal, y se puede leer "de la cohorte 5
+  se pasaron 12 a la 6". Hace falta una columna para la cohorte destino (migración de la sesión principal).
+- **B. La fecha de seguimiento es del DEAL**, no de la llamada: una sola "próxima vez que lo contacto", que
+  es lo que lee el Inbox. `calls.fecha_seguimiento` queda para lo histórico de la hoja.
+- **C. Motivos en listas distintas** para perdido (P), otra llamada (T29) y "se echó para atrás" (T15):
+  sin eso, el reporte de "por qué perdemos" se mezcla con los de re-agenda. El catálogo `motivos` hoy es uno
+  solo y no tiene tipo: hay que decidir si gana una columna de tipo o se parte (molde del ADR 0012).
