@@ -6,8 +6,11 @@ import {
   dealActividades,
   dealEtapaHistorial,
   deals,
+  leads,
   motivos,
 } from "@/lib/db/schema";
+import { crearConRastro } from "@/lib/crm/rastro";
+import { esViolacionUnica } from "@/lib/db/errores";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { saldosDeDeals } from "@/lib/queries/saldo";
@@ -129,6 +132,105 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
     });
 
     return { de, a: mov.a, transicion: t };
+  });
+}
+
+/**
+ * Donde puede NACER un deal, y quien puede abrirlo ahi (ticket 047; `structure.md` §2.1).
+ *
+ * - Una persona abre a mano (el lead que llego por WhatsApp, ADR 0044) en Pendiente
+ *   Setteo, En Contacto o Compromiso Verbal, y el deal nace con ella de dueña.
+ * - El sistema abre en Pendiente Setteo (calificó y no agendó) o en Agendado (llego con
+ *   agenda); lo usan el 052 y el 096.
+ *
+ * Ninguno nace en Atendido, Abonado o Completo: a esas se entra por un hecho (el Grain,
+ * un abono), no por un alta.
+ */
+const NACIMIENTOS: Readonly<Record<Actor["tipo"], readonly EtapaDeal[]>> = {
+  usuario: ["pendiente_setteo", "en_contacto", "compromiso_verbal"],
+  sistema: ["pendiente_setteo", "agendado"],
+};
+
+export interface AltaDeDeal {
+  leadId: string;
+  programId: string;
+  etapa: EtapaDeal;
+  actor: Actor;
+  productoId?: string | null;
+  fechaLimitePago?: string | null;
+  cohortId?: string | null;
+  submissionOrigenId?: string | null;
+  /** Solo el sistema lo pasa (el host de Calendly, ADR 0049). A mano, el dueño es quien crea. */
+  ownerUserId?: string | null;
+}
+
+/**
+ * Abre un deal en su etapa de nacimiento y escribe su PRIMERA fila de historial (`de`
+ * nulo), junto con el rastro de la creacion, en una transaccion. Es el otro escritor de
+ * la etapa, y por eso vive aqui y no en quien lo llama.
+ *
+ * Reaplicar despues de un Cierre Perdido pasa por aqui: abre un deal NUEVO (ADR 0037
+ * punto 1). Si el lead ya tiene un deal abierto en el programa, la base lo rechaza
+ * (`deals_uno_abierto_por_lead_y_programa_idx`) y se devuelve un 409 que lo dice.
+ */
+export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
+  if (!NACIMIENTOS[alta.actor.tipo].includes(alta.etapa)) {
+    const quien = alta.actor.tipo === "usuario" ? "A mano" : "Automáticamente";
+    throw new MovimientoRechazado(`${quien}, un deal no puede nacer en ${NOMBRE_DE_ETAPA[alta.etapa]}.`, [], 422);
+  }
+  if (alta.etapa === "compromiso_verbal") {
+    const faltantes = queLeFalta("en_contacto", "compromiso_verbal", {
+      ...HECHOS_VACIOS,
+      productoId: alta.productoId ?? null,
+      fechaLimitePago: alta.fechaLimitePago ?? null,
+    });
+    if (faltantes.length > 0) {
+      throw new MovimientoRechazado(faltantes.map((f) => f.mensaje).join(" "), faltantes);
+    }
+  }
+
+  return (db as unknown as Transaccion).transaction(async (tx) => {
+    // El programa es frontera (ADR 0043): un deal de un programa sobre un lead de otro
+    // mezclaria las dos economias sin lanzar ningun error.
+    const [lead] = await tx.select().from(leads).where(eq(leads.id, alta.leadId));
+    if (!lead) throw new ErrorDeApp("No existe el lead.", 404);
+    if (lead.programId !== alta.programId) {
+      throw new ErrorDeApp("El lead es de otro programa: el deal tiene que abrirse en el programa del lead.", 422);
+    }
+
+    const usuario = alta.actor.tipo === "usuario" ? alta.actor.userId : null;
+    let id: string;
+    try {
+      id = await crearConRastro(
+        {
+          db: tx,
+          tabla: deals,
+          nombreTabla: "deals",
+          actorId: usuario,
+          etiqueta: lead.nombre ?? lead.emailNormalizado,
+          desdeElMotor: true,
+        },
+        {
+          leadId: alta.leadId,
+          programId: alta.programId,
+          etapa: alta.etapa,
+          ownerUserId: usuario ?? alta.ownerUserId ?? null,
+          productoId: alta.productoId ?? null,
+          fechaLimitePago: alta.fechaLimitePago ?? null,
+          cohortId: alta.cohortId ?? null,
+          submissionOrigenId: alta.submissionOrigenId ?? null,
+          creadoPor: usuario,
+        },
+      );
+    } catch (e) {
+      if (esViolacionUnica(e)) {
+        throw new ErrorDeApp("Este lead ya tiene un deal abierto en el programa: trabaja ese.", 409);
+      }
+      throw e;
+    }
+
+    await tx.insert(dealEtapaHistorial).values({ dealId: id, de: null, a: alta.etapa, userId: usuario });
+    return id;
   });
 }
 

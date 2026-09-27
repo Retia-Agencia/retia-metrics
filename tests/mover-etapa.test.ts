@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import {
   abonos,
   calls,
+  changeLog,
   cohorts,
   dealActividades,
   dealEtapaHistorial,
@@ -15,7 +16,8 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
-import { MovimientoRechazado, moverEtapa, type Actor } from "@/lib/deals/mover-etapa";
+import { MovimientoRechazado, abrirDeal, moverEtapa, type Actor } from "@/lib/deals/mover-etapa";
+import { crearConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
@@ -293,5 +295,110 @@ describe("el saldo (ADR 0024)", () => {
       saldo: null,
       sinSaldoPorque: "moneda_distinta",
     });
+  });
+});
+
+describe("saltos, retrocesos y recuperacion (ticket 047)", () => {
+  it("T4: el cierre por chat salta de En Contacto a Compromiso Verbal con producto y fecha limite", async () => {
+    const dealId = await nuevoDeal("en_contacto");
+    const e = await rechazo(moverEtapa(db, { dealId, a: "compromiso_verbal", actor: comoCloser() }));
+    expect(e.faltantes.map((f) => f.codigo)).toEqual(["producto", "fecha_limite_pago"]);
+
+    await db.update(deals).set({ productoId, fechaLimitePago: "2026-10-30" }).where(eq(deals.id, dealId));
+    await moverEtapa(db, { dealId, a: "compromiso_verbal", actor: comoCloser() });
+    expect(await etapaDe(dealId)).toBe("compromiso_verbal");
+  });
+
+  it("un retroceso (T29, Atendido → Re-agenda) sin motivo se rechaza; con motivo pasa y queda en el historial", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const e = await rechazo(moverEtapa(db, { dealId, a: "pendiente_reagenda", actor: comoCloser() }));
+    expect(e.faltantes.map((f) => f.codigo)).toEqual(["motivo"]);
+
+    await moverEtapa(db, { dealId, a: "pendiente_reagenda", actor: comoCloser(), motivoId: motivoActivo });
+    expect(await historial(dealId)).toMatchObject([{ de: "atendido", a: "pendiente_reagenda", motivoId: motivoActivo }]);
+  });
+
+  it("un perdido se recupera con motivo, y solo hacia En Contacto, Agendado o Proxima Cohorte", async () => {
+    const dealId = await nuevoDeal("cierre_perdido");
+
+    let e = await rechazo(moverEtapa(db, { dealId, a: "atendido", actor: comoCloser(), motivoId: motivoActivo }));
+    expect(e.faltantes.map((f) => f.codigo)).toEqual(["transicion_no_permitida"]);
+    e = await rechazo(moverEtapa(db, { dealId, a: "en_contacto", actor: comoCloser() }));
+    expect(e.faltantes.map((f) => f.codigo)).toEqual(["motivo"]);
+
+    await moverEtapa(db, { dealId, a: "en_contacto", actor: comoCloser(), motivoId: motivoActivo });
+    expect(await historial(dealId)).toMatchObject([{ de: "cierre_perdido", a: "en_contacto", motivoId: motivoActivo }]);
+  });
+});
+
+describe("abrirDeal: donde nace un deal (ticket 047)", () => {
+  it("a mano nace en En Contacto con quien lo crea de dueño, con su primera fila de historial y su rastro", async () => {
+    const dealId = await abrirDeal(db, { leadId, programId, etapa: "en_contacto", actor: comoCloser() });
+
+    const [d] = await db.select().from(deals).where(eq(deals.id, dealId));
+    expect(d).toMatchObject({ etapa: "en_contacto", ownerUserId: closer, creadoPor: closer });
+    expect(await historial(dealId)).toMatchObject([{ de: null, a: "en_contacto", userId: closer }]);
+    const log = await db.select().from(changeLog).where(eq(changeLog.registroId, dealId));
+    expect(log.map((l) => l.campo)).toContain("etapa");
+  });
+
+  it("a mano no nace en Agendado ni despues de la llamada; el sistema no nace en En Contacto", async () => {
+    for (const etapa of ["agendado", "atendido", "abonado", "completo"] as const) {
+      const e = await rechazo(abrirDeal(db, { leadId, programId, etapa, actor: comoCloser() }));
+      expect(e.status, etapa).toBe(422);
+    }
+    const e = await rechazo(abrirDeal(db, { leadId, programId, etapa: "en_contacto", actor: sistema }));
+    expect(e.status).toBe(422);
+    expect(await db.select().from(deals)).toEqual([]);
+  });
+
+  it("el sistema abre en Agendado con el dueño que le dio Calendly", async () => {
+    const dealId = await abrirDeal(db, { leadId, programId, etapa: "agendado", actor: sistema, ownerUserId: closer });
+    expect(await historial(dealId)).toMatchObject([{ de: null, a: "agendado", userId: null }]);
+    const [d] = await db.select().from(deals).where(eq(deals.id, dealId));
+    expect(d.ownerUserId).toBe(closer);
+  });
+
+  it("nacer en Compromiso Verbal exige producto y fecha limite", async () => {
+    const e = await rechazo(abrirDeal(db, { leadId, programId, etapa: "compromiso_verbal", actor: comoCloser(), productoId }));
+    expect(e.faltantes.map((f) => f.codigo)).toEqual(["fecha_limite_pago"]);
+
+    await abrirDeal(db, {
+      leadId,
+      programId,
+      etapa: "compromiso_verbal",
+      actor: comoCloser(),
+      productoId,
+      fechaLimitePago: "2026-10-30",
+    });
+  });
+
+  it("el programa es frontera: no se abre un deal sobre un lead de otro programa", async () => {
+    const [otro] = await db.insert(programs).values({ slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
+    const e = await rechazo(abrirDeal(db, { leadId, programId: otro.id, etapa: "pendiente_setteo", actor: sistema }));
+    expect(e.status).toBe(422);
+    expect(await db.select().from(deals)).toEqual([]);
+  });
+
+  it("un deal abierto por lead: el segundo es 409; reaplicar tras un Cierre Perdido abre uno NUEVO", async () => {
+    const primero = await abrirDeal(db, { leadId, programId, etapa: "pendiente_setteo", actor: sistema });
+    const e = await rechazo(abrirDeal(db, { leadId, programId, etapa: "pendiente_setteo", actor: sistema }));
+    expect(e.status).toBe(409);
+    expect(await historial(primero)).toHaveLength(1);
+
+    await moverEtapa(db, { dealId: primero, a: "cierre_perdido", actor: comoCloser(), motivoId: motivoActivo });
+    const segundo = await abrirDeal(db, { leadId, programId, etapa: "pendiente_setteo", actor: sistema });
+    expect(segundo).not.toBe(primero);
+    expect(await etapaDe(primero)).toBe("cierre_perdido");
+  });
+
+  it("nadie mas crea un deal diciendo su etapa: crearConRastro lo rechaza sin la llave del motor", async () => {
+    await expect(
+      crearConRastro(
+        { db, tabla: deals, nombreTabla: "deals", actorId: closer, etiqueta: "x" },
+        { leadId, programId, etapa: "abonado" },
+      ),
+    ).rejects.toThrow(/abrirDeal\(\)/);
+    expect(await db.select().from(deals)).toEqual([]);
   });
 });

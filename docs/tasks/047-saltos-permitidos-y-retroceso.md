@@ -3,7 +3,7 @@ id: 047
 etapa: E2
 serves: "plan v2 §6 etapa 2 · tarea E2-5 · insumo §3"
 depends: [045]
-status: todo
+status: done
 ---
 
 # 047 — Los saltos permitidos y el retroceso con motivo
@@ -67,3 +67,18 @@ Detalle en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2
   (5 → 3 con motivo); T11 queda reemplazada y T15 pasa a 6 → 11. Perdido llega también desde 11. Tabla
   completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
 - **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".
+
+---
+
+## ✅ Cerrado 2026-09-27
+
+- **Saltos y retrocesos** ya los resolvian la tabla (043) y el motor (045): T4 pide producto + fecha
+  limite, los retrocesos (T15, T29) y las anulaciones (A1, A2) piden motivo, y recuperar un perdido va
+  solo a 2, 4 o 9 y con motivo. Probados de punta a punta contra la base en `tests/mover-etapa.test.ts`.
+- **`abrirDeal()`** en `lib/deals/mover-etapa.ts`: nacer en una etapa es escribir la etapa, asi que vive
+  en el motor. A mano un deal nace en 1, 2 o 6 con quien lo crea de dueño (ADR 0044; en 6 exige producto
+  y fecha limite); el sistema abre en 1 o 4 (para el 052 y el 096). Escribe la **primera fila de
+  historial** (`de` nulo) y el rastro de la creacion en una transaccion. El lead tiene que ser del mismo
+  programa (frontera, ADR 0043). Un segundo deal abierto es 409; reaplicar tras un Cierre Perdido abre
+  uno nuevo.
+- Sin relojes: nada que probar con tiempo.

@@ -60,3 +60,9 @@ Si, con revision.
   gestión (ticket 080), no como ~2.400 deals iguales en Pendiente Setteo.
 - "Re-envío con deal en 4 o más" se lee con la lista explícita: deal en 4, 5, 6 o 7 (ninguna regla
   compara números de etapa).
+
+---
+
+> **27-sep:** crear un deal tambien es escribir su etapa, asi que el sync **abre con `abrirDeal()`**
+> (`lib/deals/mover-etapa.ts`, ticket 047) con actor `sistema`, en Pendiente Setteo o Agendado, y mueve
+> con `moverEtapa()`. `crearConRastro` rechaza un deal con etapa si no viene del motor.
