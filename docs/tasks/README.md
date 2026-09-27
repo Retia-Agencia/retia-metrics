@@ -15,8 +15,8 @@ Cómo está hecho: [`docs/structure.md`](../structure.md).
 > `structure.md`, `operations.md` y los ADR vigentes. Muchos tickets citan documentos que ya no están
 > (spec, plan v2, la propuesta del 24-sep, la revisión del 22-sep, el "insumo"): **`docs/plan.md` §8
 > dice dónde quedó cada referencia vieja**, y un ADR retirado se resuelve en `docs/adr/README.md`.
-> 048, 049, 050, 051 y 053 pasan a `en curso`: tenían código y seguían en `todo`. Dos decisiones nuevas
-> de Mani bloquean la entrada de leads: el Estado lo asigna el formulario (A1) y el webhook estándar (A2).
+> 048, 049, 050, 051 y 053 pasan a `en curso`: tenían código y seguían en `todo`. A1 y A2 se cerraron el
+> mismo día: ADR 0054 (el Estado lo pone el formulario) y ADR 0055 (webhook estándar, track propio).
 >
 > **Historia corta de las épocas:** el MVP (F0 a F4, tickets 001 a 035) se ejecutó del 16 al 20-sep. El
 > 21-sep se abrió la época v2, el modelo tipo HubSpot (Lead, Envío, Deal y etapas: tickets 036 a 093),
@@ -96,7 +96,7 @@ El corazón del sistema, y la razón de que vaya **antes** que el sync.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 043 | [Las diez etapas y la tabla de transiciones](./043-enum-de-etapas-y-tabla-de-transiciones.md) (E2-1) | 042 | todo |
+| [x] | 043 | [Las once etapas y la tabla de transiciones](./043-enum-de-etapas-y-tabla-de-transiciones.md) (E2-1) | 042 | done · 27-sep · `lib/deals/etapas.ts`, migración 0024 (`seguimiento`) aplicada en `dev` |
 | [ ] | 044 | [Requisitos de entrada por etapa](./044-requisitos-de-entrada-por-etapa.md) (E2-2) | 043 | todo |
 | [ ] | 045 | [`moverEtapa()` y su historial](./045-mover-etapa-y-su-historial.md) (E2-3) | 043, 044 | todo |
 | [ ] | 046 | [Guardián: nadie escribe `deals.etapa` fuera del motor](./046-guardian-del-motor-de-etapas.md) (E2-4) | 045 | todo |
@@ -158,7 +158,7 @@ se abre**. Este repo no tiene tests de componentes y el 20-sep dos bugs pasaron 
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 094 | [Un closer ve solo sus programas](./094-alcance-del-closer-por-membresia.md) | — | todo · 24-sep, ADR 0048 · **sin dependencias**: puede ir antes de E6 |
+| [x] | 094 | [Un closer ve solo sus programas](./094-alcance-del-closer-por-membresia.md) | — | done · 27-sep · `lib/auth/alcance.ts`; dashboard, sidebar, buscador y ficha por id lo usan; ajeno = 404 |
 | [ ] | 097 | [Navegación por objetos y selector de programa](./097-navegacion-por-objetos-y-selector-de-programa.md) | 094 | todo · 24-sep, ADR 0050 · reemplaza la barra de hoy |
 | [ ] | 069 | [Kanban por programa](./069-kanban-por-programa.md) (E6-1) | 065 | todo · 24-sep: es la vista tablero de la tab **Deals** |
 | [ ] | 070 | [Pendiente Setteo y Unclaimed](./070-pendiente-setteo-y-unclaimed.md) (E6-2) | 069 | todo · 24-sep: son secciones del **Inbox** |

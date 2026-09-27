@@ -38,7 +38,7 @@ las pestañas de gestión (etapa E7) y su apagado (ticket 082).
 
 ## Lo que queda abierto
 
-🔴 **Quién calcula el `Estado` de llegada** (Descartado, Setteo, Con Calendly). El 22-sep se decidió
+✅ **Cerrado el 27-sep por el ADR 0054** (el formulario manda el Estado y el CRM lo valida; el webhook, ADR 0055). Contexto previo: **Quién calcula el `Estado` de llegada** (Descartado, Setteo, Con Calendly). El 22-sep se decidió
 que lo calcula el CRM con las reglas del Apps Script (T2, construido); el 27-sep Mani pidió que lo
 asigne el formulario con su scoring. Está en `docs/plan.md` §7 (A1). Mientras tanto, el traslado
 guarda el Estado de la hoja tal como vino (`submissions.estado_hoja`) y la calificación del CRM al

@@ -5,30 +5,35 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito el 27-sep, al consolidar el plan. El prompt anterior (el del
+> Copiar y pegar tal cual. Reescrito el 27-sep por la tarde (CIERRE 32). El prompt anterior (el del
 > 24-sep, tras la reunión con los closers) está en el historial de git (`git show da68cdf:docs/agents/handoff.md`).
 
 ```
-Seguimos con el CRM de Retia. Comercial dio luz verde (reunion con los closers del 24-sep) y el
-27-sep la documentacion quedo centralizada. Lee AGENTS.md y despues docs/plan.md completo, antes
-que cualquier otro documento: tiene el norte, los tres tracks (CRM, UI/UX, Integraciones), el orden
-por pasos con hitos (§5) y la lista unica de decisiones abiertas (§7). Lo demas se consulta cuando
-haga falta: docs/overview.md (que es la herramienta y el vocabulario), docs/structure.md (diagramas,
-motor de etapas, arquitectura, modelo de datos, sistema de diseno), docs/operations.md (entornos,
-URLs de los programas, base, scripts) y docs/adr/README.md (decisiones vigentes y retiradas). El
-estado de cada ticket vive solo en docs/tasks/README.md.
+Seguimos con el CRM de Retia. Lee AGENTS.md y despues docs/plan.md completo, antes que cualquier otro
+documento (norte, tracks, orden por pasos en §5, decisiones abiertas en §7). El estado de cada ticket
+vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta: docs/overview.md,
+docs/structure.md (§3 el motor de etapas y su tabla de transiciones), docs/operations.md y
+docs/adr/README.md.
 
-Estado medido el 27-sep: 681 tests en verde, typecheck y lint limpios. OJO: npm ci falla (lock
-desincronizado, ver AGENTS.md feedback loops). 24 migraciones; Supabase dev vacio y sembrado;
-produccion en Supabase NO existe. CERO deals/calls/abonos: los closers siguen en Sheets.
+Estado al cierre del 27-sep por la tarde: 043 (tabla de transiciones, lib/deals/etapas.ts) y 094
+(alcance del closer, lib/auth/alcance.ts) HECHOS, 710 tests en verde, typecheck y lint limpios.
+Migracion 0024 (etapa `seguimiento`) aplicada en `dev`. ⚠️ NADA DE ESO ESTA COMMITEADO: lo primero es
+revisar `git status` y commitear con Mani (nombrando archivos, nunca `git add -A`; `.claude/sdd-cache/`
+es basura de Kiro y no entra).
 
-Antes de codear, mira si Mani ya cerro A1 y A2 del plan §7 (son nuevas del 27-sep):
-- A1: el Estado del lead lo asigna el formulario con su scoring (choca con T2, que ya esta
-  construido y validado). Plan §4.3b.
-- A2: el contrato del webhook estandar para Typeform, Dapta Forms o cualquier formulario. Plan §4.3a.
+A1 y A2 quedaron cerradas: ADR 0054 (el Estado lo pone el formulario con una variable `estado`; T2 se
+queda como validador; el script de las hojas se borra despues del hito B) y ADR 0055 (webhook estandar,
+un track propio: el programa sale de la URL de cada formulario, un adaptador por proveedor, un mapeo por
+fuente, los parciales llegan por partial submission point).
 
-Primer paso que no depende de ellas: el 043 (paso 1, motor de etapas) y el 094 en paralelo.
-Las migraciones las genera y aplica la sesion principal.
+Siguiente:
+1. 044 (requisitos de entrada por etapa): listo, depende solo del 043. Luego 045 -> 046 -> 047.
+2. Crear los tickets del track del webhook (ADR 0055) y del Estado desde el form (ADR 0054). Quedan
+   dos recomendaciones sin decidir en el ADR 0055 (sobre crudo de envios fallidos, alerta de fuente
+   muda): se le preguntan a Mani al crear los tickets.
+3. Fuera del repo: alguien con acceso a Typeform agrega la variable `estado` y el partial submission
+   point en los dos formularios, y se captura un payload real de cada uno.
+Las migraciones las genera y aplica la sesion principal; Kiro implementa codigo y tests.
 ```
 
 ## Memory
@@ -37,6 +42,30 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 > Las entradas anteriores al 27-sep citan documentos que se fundieron ese día (spec, plan v2, propuesta,
 > revisión, glosario, insumos): `docs/plan.md` §8 dice dónde quedó cada uno.
+
+- **2026-09-27 (CIERRE 32): motor de etapas, alcance del closer, y A1/A2 cerradas.** ⚠️ **Sin commit.**
+  - **043 hecho (Kiro, revisado):** `lib/deals/etapas.ts` con la tabla de `structure.md` §3.1 como dato
+    (55 flechas de 121; T11 fuera; P desde las nueve abiertas; R solo a 2, 4 o 9; Completo solo sale
+    por A2). Test de las 121 combinaciones contra una lista escrita a mano
+    (`tests/etapas-transiciones.test.ts`). Corregido a mano: el comentario decía "ocho" abiertas y son
+    nueve (el ticket se escribió antes de Seguimiento). **A1 quedó como cuatro flechas** (de Abonado a
+    las cuatro etapas que llegan a él): el 045 tiene que elegir la correcta mirando el historial.
+  - **Migración 0024** (`ALTER TYPE etapa_deal ADD VALUE 'seguimiento'`), generada y aplicada en `dev`
+    por la sesión principal. Producción no existe todavía.
+  - **094 hecho (Kiro, revisado):** `lib/auth/alcance.ts` (`programasVisibles` y derivados, con
+    `esAdministrador` y el rol de vista). Lo usan el dashboard, el selector, el sidebar,
+    `buscarPersonas` y `historialDePersona`; un programa ajeno es 404. Guardián en
+    `tests/alcance-de-sesion.test.ts`. **Fuera a propósito:** `programasGestionablesPorUsuario` (otra
+    pregunta: dónde se edita) y `/recursos`, que sigue mostrando recursos de todos los programas a un
+    closer (si Mani lo quiere acotar, es ticket aparte).
+  - **Medido:** 710 tests, typecheck y lint limpios, con los dos juntos.
+  - **A1 → ADR 0054.** Leído el Apps Script de las dos hojas (`work/retia/apps-script-sheets/`): las
+    mismas cuatro reglas, no un puntaje. Typeform puede mandar una variable de texto en el webhook
+    (verificado en el payload de ejemplo). Mani: T2 se queda como validador.
+  - **A2 → ADR 0055.** Mani: el programa sale de la URL ("cada programa tiene su forms URL asignado");
+    los parciales llegan con un partial submission point.
+  - **Quedaron abiertos:** los dos puntos recomendados del ADR 0055; la carpeta `.claude/sdd-cache/`
+    (dejada por Kiro, sin tocar).
 
 - **2026-09-27 (CIERRE 31): plan consolidado y documentación centralizada.** Solo documentos (y
   comentarios del código que citaban rutas borradas); sin lógica ni migraciones.
@@ -2675,6 +2704,7 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
-- Decidir A1 y A2 (`docs/plan.md` §7) y bajarlas a ADR con `/grill-with-docs`.
-- Sin esperar: 043 (motor de etapas) y 094 (alcance del closer), en paralelo.
+- Commitear lo del 27-sep por la tarde (043, 094, migración 0024, ADR 0054 y 0055) con Mani.
+- 044 → 045 → 046 → 047 (resto del paso 1).
+- Crear los tickets del track del webhook (ADR 0055) y del Estado desde el form (ADR 0054).
 - Paso 0: reparar el lock y crear Supabase producción (con el ok de Mani).

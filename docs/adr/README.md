@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0054)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0056)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -23,6 +23,8 @@ comentarios; esta tabla es la que los resuelve.
 | [0035](./0035-el-lead-y-sus-contactos.md) | El Lead es una persona en un programa; el correo manda y el teléfono une y marca |
 | [0036](./0036-el-envio-y-todas-las-columnas-sin-plantilla.md) | El Envío guarda todas las columnas; las promovidas no se repiten |
 | [0039](./0039-un-programa-una-fuente-de-leads.md) | Un programa, una fuente de leads activa |
+| [0054](./0054-el-estado-de-llegada-lo-pone-el-formulario.md) | El Estado de llegada lo pone el formulario; el CRM lo valida |
+| [0055](./0055-el-webhook-estandar-de-formularios.md) | Un webhook estándar para cualquier formulario; el programa sale de la URL |
 | [0043](./0043-el-area-agrupa-y-el-programa-es-frontera.md) | El Área agrupa por origen; el Programa es frontera, no filtro |
 
 **El deal y la operación**

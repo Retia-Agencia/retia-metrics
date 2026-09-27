@@ -50,13 +50,14 @@ cuando los closers operan en el CRM y lo histórico ya migró. Los hitos interme
 
 ## 2. Dónde estamos (medido el 27-sep, no copiado)
 
-- `main` en `da68cdf`. **681 tests en verde**, typecheck y lint limpios.
+- `main` en `da68cdf`. **681 tests en verde**, typecheck y lint limpios. **Tarde del 27-sep (sin commit
+  todavía):** 043 y 094 hechos, **710 tests en verde**, migración 0024 (`seguimiento`) aplicada en `dev`.
 - ⚠️ **`npm ci` falla:** `package-lock.json` no está sincronizado con `package.json` (faltan
   `@emnapi/runtime` y `@emnapi/core`). Con `npm install --no-package-lock` todo corre. Bloquea
   cualquier CI (R4) hasta que alguien corra `npm install` y commitee el lock.
 - ⚠️ Un checkout con `node_modules` de antes del 22-sep **falla 46 tests** porque no tiene el driver
   `postgres` (ADR 0047). Es entorno, no regresión: se arregla instalando.
-- **Base:** 24 migraciones (0000 a 0023). Supabase `dev` existe, vacío y sembrado. **El proyecto de
+- **Base:** 25 migraciones (0000 a 0024; la 0024 es del 27-sep por la tarde). Supabase `dev` existe, vacío y sembrado. **El proyecto de
   producción en Supabase no existe** (`DB_PROD` vacía). Vercel producción se desplegó el 23-sep y 🔴 no
   se ha verificado a qué base apunta (`operations.md` §1).
 - **Cero** deals, llamadas y abonos en cualquier base. Los closers siguen en Sheets.
@@ -190,6 +191,11 @@ componente, y el 20-sep dos bugs pasaron con 669 tests en verde.
 
 #### 4.3a El webhook estándar de formularios
 
+> ✅ **Cerrado el 27-sep: ADR 0055** (A2). El programa sale de la URL de cada formulario; un adaptador
+> por proveedor y un mapeo por fuente; los parciales llegan por *partial submission point*. Es un track
+> propio. Lo de abajo es el contexto previo; quedan abiertas solo las 🔴 2 y 4, como recomendación en
+> el ADR.
+
 **Decidido ✅** (22-sep, T1; ADR 0004, 0036, 0039):
 
 - Firma HMAC-SHA256 verificada sobre el **cuerpo crudo**; nunca responde con redirección; la ruta va
@@ -234,6 +240,10 @@ trabajen en el CRM, aunque el CRM ya no lea la hoja, o se quedan sin ver los lea
 El webhook **no tiene ticket todavía**; se crea cuando se cierren las cuatro 🔴.
 
 #### 4.3b El Estado del lead sale del formulario 🆕
+
+> ✅ **Cerrado el 27-sep: ADR 0054** (A1). El form manda `estado` (`sin_recursos` o `califica`) en una
+> variable; "agendó" e "incompleto" los lee el CRM del envío; T2 se queda como validador; el script de
+> la hoja se borra después del hito B. Lo de abajo es el contexto previo.
 
 **Lo que dijo Mani el 27-sep:** *"Ahorita Estado es un campo que llena un script de sheets, pero esto
 debe ser asignado directamente desde el forms según el scoring que les da: toca cambiar el Typeform
@@ -300,7 +310,7 @@ piezas que no tenían ticket (producción, webhook).
 | Paso | Track 1 · CRM | Track 2 · UI/UX | Track 3 · Integraciones | Termina cuando |
 |---|---|---|---|---|
 | **0 · Terreno** | reparar el lock (§2) | · | crear Supabase producción (`operations.md` §4); verificar a qué base apunta Vercel | decisiones A1 a A3 de §7 |
-| **1 · Motor** | 043 → 044 → 045 → 046 → 047 · 094 en paralelo | · | ADR del webhook (§4.3a) y del Estado (§4.3b) | un deal se mueve solo por `moverEtapa()` |
+| **1 · Motor** | 043 → 044 → 045 → 046 → 047 · 094 en paralelo | · | ✅ ADR 0055 (webhook) y ADR 0054 (Estado), 27-sep | un deal se mueve solo por `moverEtapa()` |
 | **2 · Entrada** | 048 · 049 · 050 (en curso) · 051 · 052 | · | webhook + alta de fuente; payload real de Typeform | **Hito A: los leads entran solos al CRM** (primero `dev`, luego producción) |
 | **3 · Llamadas y dinero** | 057 · 058 · 059 · 060 · 061 · 063 · 035 | · | 096 cuando se decida su forma | una llamada y un abono mueven el deal |
 | **4 · Operación** | · | 097 · 069 · 070 · 071 · 074 · 099 | · | **Hito B: los closers operan en el CRM.** Desde aquí Typeform puede dejar de escribir en Sheets |
@@ -348,8 +358,6 @@ cierra, baja a un ADR (con `/grill-with-docs`) o a su ticket, y sale de esta lis
 
 | # | Qué | Bloquea | Cuándo |
 |---|---|---|---|
-| A1 | 🆕 El Estado desde el formulario frente a T2 (§4.3b) | 051, 052, webhook | paso 1 |
-| A2 | 🆕 El contrato del webhook estándar (§4.3a) | ticket del webhook | paso 1 |
 | A3 | Crear Supabase producción; pasarlo a Pro cuando haya operación | hito A en producción | paso 0 |
 | A4 | Garantía de la UI: tests de componente o Playwright (R5); CI (R4) | paso 4 | antes del paso 4 |
 | A5 | Calendly: webhook o consulta; plan de Calendly; Vercel Pro (R3) | 096 | paso 3 |
