@@ -29,7 +29,7 @@ import {
 export const rolEnum = pgEnum("rol", ["gerente", "closer", "developer"]);
 
 /**
- * Las diez etapas del Deal (ADR 0037). Son un `pgEnum` —o sea TIPOS— y no un
+ * Las once etapas del Deal (ADR 0037). Son un `pgEnum` —o sea TIPOS— y no un
  * catalogo editable, y eso NO contradice al ADR 0012: la regla de ese ADR es "si el
  * codigo decide segun el valor, es tipo", y aqui **todo** decide segun la etapa (el
  * embudo, quien es Student, la cartera vencida, los movimientos automaticos).
@@ -38,14 +38,15 @@ export const rolEnum = pgEnum("rol", ["gerente", "closer", "developer"]);
  * porque nadie decide con el. Las dos decisiones contestan la misma pregunta sobre
  * datos distintos.
  *
- * ⚠️ El orden de este arreglo es el de la tabla del ADR 0037 y **no es el orden de
- * un embudo**: `cierre_perdido` es alcanzable desde cualquier etapa y
- * `pendiente_reagenda` es un retroceso normal. Ninguna consulta debe comparar
- * etapas por su posicion.
+ * ⚠️ El orden de este arreglo **no es el orden de un embudo**: `cierre_perdido` es
+ * alcanzable desde casi cualquier etapa y `pendiente_reagenda` es un retroceso
+ * normal. Ninguna consulta debe comparar etapas por su posicion (ADR 0037).
+ * `seguimiento` (la etapa 11) va al final porque Postgres agrega los valores
+ * nuevos al final (migracion 0024), aunque en el camino viva despues de `atendido`:
+ * el numero es un nombre, no el orden.
  *
- * Lo adelanta este ticket (037) desde el 043, que es donde el plan lo tenia: una
- * columna no se puede declarar sin su tipo. La tabla de transiciones permitidas y
- * `moverEtapa()` siguen siendo de la etapa 2.
+ * Que movimiento entre ellas es legal NO vive aca: vive en `lib/deals/etapas.ts`
+ * (ticket 043), como dato.
  */
 export const etapaDealEnum = pgEnum("etapa_deal", [
   "pendiente_setteo",
@@ -58,6 +59,7 @@ export const etapaDealEnum = pgEnum("etapa_deal", [
   "completo",
   "proxima_cohorte",
   "cierre_perdido",
+  "seguimiento",
 ]);
 
 /**

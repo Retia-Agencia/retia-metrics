@@ -3,7 +3,7 @@ id: 043
 etapa: E2
 serves: "plan v2 §6 etapa 2 · tarea E2-1 · ADR 0037, insumo §3"
 depends: [042]
-status: todo
+status: done
 ---
 
 # 043 — Las diez etapas como tipo, y la tabla de transiciones permitidas
@@ -108,3 +108,18 @@ hasta que los closers la validen.** Resumen de lo que cambia:
   construye, incluidos T5, T7, T9, T14, T15, T17, T19-T21, T28, A1, A2 y R hacia 2, 4 o 9.
 - ✅ **ADR 0053:** la "fecha prometida" de T12 y T25 es `deals.fecha_limite_pago`, no la primera cuota
   pactada. El requisito de Compromiso Verbal es producto + fecha límite de pago.
+
+---
+
+## ✅ Cerrado 2026-09-27
+
+- **Enum:** `seguimiento` entra con la migracion **0024** (`ADD VALUE`, queda al final del enum porque
+  asi la aplico `dev`; el orden no importa, ninguna regla compara posiciones). Aplicada en `dev`.
+- **Tabla:** `lib/deals/etapas.ts`, la de `docs/structure.md` §3.1 como dato (`TRANSICIONES`), cada fila
+  con su id (T1-T29 sin T11, P, R, A1, A2), quien la mueve y si exige motivo. Un par duplicado falla al
+  cargar el modulo.
+- **Tests:** `tests/deal-etapas.test.ts` recorre las **121** combinaciones contra una matriz escrita a mano
+  desde el documento (no derivada del codigo), y la base de prueba acepta un deal en Seguimiento.
+- **Lo que queda para despues:** A1 (anular el unico abono) deja las cuatro flechas posibles (7 → 2, 5,
+  6 u 11); cual se toma lo decide `moverEtapa()` leyendo el historial (045, 047). El tono de Seguimiento
+  en el sistema de diseno sigue sin asignar (`structure.md` §3).

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."etapa_deal" ADD VALUE 'seguimiento';
