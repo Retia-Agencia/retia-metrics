@@ -50,26 +50,27 @@ cuando los closers operan en el CRM y lo histórico ya migró. Los hitos interme
 
 ## 2. Dónde estamos (medido el 27-sep, no copiado)
 
-- `main` en `da68cdf`. **681 tests en verde**, typecheck y lint limpios.
-- ⚠️ **`npm ci` falla:** `package-lock.json` no está sincronizado con `package.json` (faltan
-  `@emnapi/runtime` y `@emnapi/core`). Con `npm install --no-package-lock` todo corre. Bloquea
-  cualquier CI (R4) hasta que alguien corra `npm install` y commitee el lock.
+- `main` en `5087b6a` (27-sep, tarde). **852 tests en verde**, typecheck y lint limpios.
+- ✅ **El lock se resincronizó el 27-sep** (`134d293`): le faltaban entradas opcionales de `@emnapi`.
+  `npm ci` pasa con él en una copia limpia. Ojo: en Windows con npm 11 tampoco fallaba con el viejo,
+  así que la falla era de otra versión de npm o de Linux; conviene confirmarlo en el CI (R4).
 - ⚠️ Un checkout con `node_modules` de antes del 22-sep **falla 46 tests** porque no tiene el driver
   `postgres` (ADR 0047). Es entorno, no regresión: se arregla instalando.
-- **Base:** 24 migraciones (0000 a 0023). Supabase `dev` existe, vacío y sembrado. **El proyecto de
+- **Base:** 26 migraciones (0000 a 0025), todas aplicadas en `dev` y verificadas por hash contra el repo. Supabase `dev` existe, vacío y sembrado. **El proyecto de
   producción en Supabase no existe** (`DB_PROD` vacía). Vercel producción se desplegó el 23-sep y 🔴 no
   se ha verificado a qué base apunta (`operations.md` §1).
 - **Cero** deals, llamadas y abonos en cualquier base. Los closers siguen en Sheets.
 
 | Pieza | Estado |
 |---|---|
-| Esquema del modelo (Lead, Envío, Contacto, Deal, historial, actividades, Calls, Abonos) | ✅ migración 0020. El enum de etapas tiene 10 valores: falta **Seguimiento** (043) |
+| Esquema del modelo (Lead, Envío, Contacto, Deal, historial, actividades, Calls, Abonos) | ✅ migración 0020. Las 11 etapas desde la 0024; acuerdo de pago y fecha de seguimiento en el deal desde la 0025 |
 | Ingesta que escribe: `ingerirEntradas` (una transacción, por lotes, idempotente) | ✅ código, sin nadie que la llame todavía |
 | Calificación del envío (T2): las cuatro reglas del Apps Script, por fuente | ✅ código, 6.397 de 6.400 envíos coinciden con la hoja. 🔴 choca con §4.3b |
 | Puntaje del lead (T4) | ⚙️ motor sin pesos, a propósito |
 | RLS en todas las tablas, Data API apagada en `dev` | ✅ |
 | Catálogos, productos, recursos, usuarios, roles, "ver como", sistema de diseño Tinta | ✅ del MVP |
-| Motor de etapas, webhook, Calendly, registro de llamadas y abonos, UI por objetos, atribución, dashboard sobre deals, migración | ❌ |
+| **Motor de etapas (E2, 043-047):** la tabla de transiciones, `queLeFalta`, `moverEtapa()` y `abrirDeal()` con historial, el guardián, y el saldo (`lib/queries/saldo.ts`) | ✅ 27-sep, sin nadie que lo llame todavía |
+| Webhook, Calendly, registro de llamadas y abonos, UI por objetos, atribución, dashboard sobre deals, migración | ❌ |
 
 El tracker iba atrasado: 048, 049, 050, 051 y 053 tenían código y seguían en `todo`. Desde el 27-sep
 figuran `en curso`, con lo que les falta anotado en cada ticket.
