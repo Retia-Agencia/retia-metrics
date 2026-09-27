@@ -23,7 +23,7 @@ Cómo está hecho: [`docs/structure.md`](../structure.md).
 > con la etapa E1b de atribución tras la reunión con Alejo. El 22-sep la revisión del modelo; el 24-sep la
 > dirección de producto (tickets 094 a 102) y la reunión con los closers, tras la cual Mani adoptó la
 > tabla de transiciones, el acuerdo de pago como nota (ADR 0053) y el orden P1: E2 → E3 mínimo → E4 →
-> E6 mínimo → E1b → E5 → E7. **El 043 y el 044 se cerraron el 27-sep; sigue el 045** (y el 094 en paralelo).
+> E6 mínimo → E1b → E5 → E7. **El 043, el 044 y el 045 se cerraron el 27-sep; siguen el 046 y el 047** (y el 094 en paralelo).
 
 # Época v2 — modelo HubSpot (tickets 036 a 082)
 
@@ -98,7 +98,7 @@ El corazón del sistema, y la razón de que vaya **antes** que el sync.
 |---|---|---|---|---|
 | [x] | 043 | [Las once etapas y la tabla de transiciones](./043-enum-de-etapas-y-tabla-de-transiciones.md) (E2-1) | 042 | done · 27-sep · `lib/deals/etapas.ts`, migración 0024 (Seguimiento; aplicada en `dev`) |
 | [x] | 044 | [Requisitos de entrada por etapa](./044-requisitos-de-entrada-por-etapa.md) (E2-2) | 043 | done · 27-sep · `lib/deals/requisitos.ts`, por flecha y no por etapa |
-| [ ] | 045 | [`moverEtapa()` y su historial](./045-mover-etapa-y-su-historial.md) (E2-3) | 043, 044 | todo |
+| [x] | 045 | [`moverEtapa()` y su historial](./045-mover-etapa-y-su-historial.md) (E2-3) | 043, 044 | done · 27-sep · `lib/deals/mover-etapa.ts`, migración 0025 (aplicada en `dev`) |
 | [ ] | 046 | [Guardián: nadie escribe `deals.etapa` fuera del motor](./046-guardian-del-motor-de-etapas.md) (E2-4) | 045 | todo |
 | [ ] | 047 | [Saltos permitidos y retroceso con motivo](./047-saltos-permitidos-y-retroceso.md) (E2-5) | 045 | todo |
 

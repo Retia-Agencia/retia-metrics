@@ -606,6 +606,19 @@ export const deals = pgTable(
     ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "restrict" }),
     etapa: etapaDealEnum("etapa").notNull().default("pendiente_setteo"),
     productoId: uuid("producto_id").references(() => productos.id, { onDelete: "restrict" }),
+    /**
+     * El acuerdo de pago, como lo conversaron (ADR 0053): *"el otro 30% en tal fecha y
+     * el 20% en tal otra"*. Texto libre y opcional: no hay cuotas en v1.
+     */
+    acuerdoPago: text("acuerdo_pago"),
+    /**
+     * La fecha limite de pago (ADR 0053). Es la "fecha prometida" que exige Compromiso
+     * Verbal (T4, T12, T25), y la cartera vencida es saldo > 0 con esta fecha pasada.
+     * Fecha de negocio de Bogota: `date`, sin hora.
+     */
+    fechaLimitePago: date("fecha_limite_pago"),
+    /** Cuando hay que volver a contactarlo: lo exige entrar a Seguimiento (T24). */
+    fechaSeguimiento: date("fecha_seguimiento"),
     /** Motivo del Cierre Perdido (catalogo, ADR 0015). Obligatorio al cerrar, no aqui. */
     motivoId: uuid("motivo_id").references(() => motivos.id, { onDelete: "restrict" }),
     /** El envio que origino el deal, para atribuir su UTM sin adivinar. */

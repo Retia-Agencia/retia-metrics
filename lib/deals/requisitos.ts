@@ -35,7 +35,11 @@ export interface HechosDelDeal {
   productoId: string | null;
   /** La fecha limite de pago del acuerdo (ADR 0053), `YYYY-MM-DD`. */
   fechaLimitePago: string | null;
-  /** La cohorte a la que quiere entrar (Proxima Cohorte). */
+  /**
+   * La cohorte a la que quiere entrar (Proxima Cohorte): la del deal, si es una
+   * cohorte `futuro`. No hay columna aparte: ir a Proxima Cohorte ES pasar el deal a
+   * vender la siguiente cohorte, y el cambio de `cohort_id` queda en `change_log`.
+   */
   cohorteDestinoId: string | null;
   /** Cuando hay que volver a contactarlo (Seguimiento), `YYYY-MM-DD`. */
   fechaSeguimiento: string | null;
@@ -49,8 +53,8 @@ export interface HechosDelDeal {
    * precio contra el cual medir.
    */
   saldo: number | null;
-  /** El motivo que acompaña el movimiento, si lo trae. */
-  motivo: string | null;
+  /** El motivo que acompaña el movimiento (catalogo `motivos`), si lo trae. */
+  motivoId: string | null;
 }
 
 export type CodigoRequisito =
@@ -116,7 +120,7 @@ const CUMPLE: Record<Exclude<CodigoRequisito, "transicion_no_permitida">, Cheque
   saldo_pendiente: (h) => h.saldo != null && h.saldo > 0,
   saldo_en_cero: (h) => h.saldo != null && h.saldo <= 0,
   sin_abonos: (h) => h.abonosVigentes === 0,
-  motivo: (h) => h.motivo != null && h.motivo.trim() !== "",
+  motivo: (h) => h.motivoId != null,
 };
 
 type Requisito = Exclude<CodigoRequisito, "transicion_no_permitida" | "motivo">;

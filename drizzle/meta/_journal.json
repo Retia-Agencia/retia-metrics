@@ -176,6 +176,13 @@
       "when": 1790530130875,
       "tag": "0024_etapa-seguimiento",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790536578450,
+      "tag": "0025_acuerdo-de-pago-y-seguimiento",
+      "breakpoints": true
     }
   ]
 }

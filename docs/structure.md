@@ -318,7 +318,7 @@ UI, zod en el borde, Vitest con PGlite, npm.
 | `lib/catalogo/` | el molde de toda entidad configurable: esquema zod, crear, editar, desactivar, `borrarSiNoSeUso`, `exigirAccesoAlPrograma` | ✅ · faltan áreas, canales, campañas, destinos |
 | `lib/ingesta/` | la puerta única de entrada de leads: `construirEnvio`, `entradasDesdeMatriz` (Sheets), `resolverIdentidad`, `ingerirEntradas`, `calificarEnvio` | ✅ código · falta el adaptador del webhook |
 | `lib/crm/rastro.ts` | escribir con rastro: `crearConRastro`, `editarConRastro` | ✅ |
-| `lib/deals/etapas.ts` | `moverEtapa()`, el único escritor de la etapa | ❌ ticket 045 |
+| `lib/deals/etapas.ts` · `requisitos.ts` · `mover-etapa.ts` | la tabla de transiciones (043), lo que le falta a un deal (044) y `moverEtapa()`, el único escritor de la etapa (045) | ✅ 27-sep |
 | `lib/queries/vigente.ts` | qué registros cuentan: `vigente`, `incluyendoAnulados` | ✅ |
 | `lib/queries/saldo.ts` | lo abonado y el saldo, una sola definición | ❌ lo recrea el 060 |
 | `lib/atribucion/emparejar.ts` | a qué canal, campaña y área pertenece un envío | ❌ ticket 085 |

@@ -63,7 +63,7 @@ const NADA: HechosDelDeal = {
   abonosVigentes: 0,
   abonoConComprobante: false,
   saldo: null,
-  motivo: null,
+  motivoId: null,
 };
 
 /** Como se CUMPLE cada requisito, y como se ROMPE partiendo de un deal que si lo cumplia. */
@@ -82,7 +82,7 @@ const CUMPLIR: Record<Codigo, Partial<HechosDelDeal>> = {
   saldo_pendiente: { saldo: 300 },
   saldo_en_cero: { saldo: 0 },
   sin_abonos: { abonosVigentes: 0 },
-  motivo: { motivo: "no contesta" },
+  motivo: { motivoId: "motivo-1" },
 };
 
 const ROMPER: Record<Codigo, Partial<HechosDelDeal>> = {
@@ -100,7 +100,7 @@ const ROMPER: Record<Codigo, Partial<HechosDelDeal>> = {
   saldo_pendiente: { saldo: 0 },
   saldo_en_cero: { saldo: 300 },
   sin_abonos: { abonosVigentes: 1 },
-  motivo: { motivo: "   " },
+  motivo: { motivoId: null },
 };
 
 const cumpliendo = (codigos: Codigo[]): HechosDelDeal =>

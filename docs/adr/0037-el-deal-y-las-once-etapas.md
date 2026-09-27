@@ -43,7 +43,7 @@ movimientos automáticos). El número es un nombre, **no el orden**:
 El enum de la base tiene hoy diez valores; Seguimiento entra con el ticket 043. **El setteo vive en
 el deal** (decidido el 22-sep): un lead de Setteo abre un deal en la etapa 1.
 
-**4. `moverEtapa()` es el ÚNICO camino para cambiar `deals.etapa`** (`lib/deals/etapas.ts`, ticket
+**4. `moverEtapa()` es el ÚNICO camino para cambiar `deals.etapa`** (`lib/deals/mover-etapa.ts`; la tabla de transiciones, en `lib/deals/etapas.ts`; ticket
 045). Contesta dos preguntas: *¿este deal puede pasar de A a B?* y *si no, ¿qué requisito le falta?*.
 Valida, escribe el historial y devuelve el requisito que falta. Hay tres escritores (la ingesta, el
 closer y el sistema al registrar un abono o una llamada), y si cada uno implementara el requisito
