@@ -34,7 +34,7 @@ lista de estudiantes**: un estudiante confirmado pertenece a una cohorte de un p
 
 Sí, con revisión visual.
 
-## ✅ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../insumos/fleeting/2026-09-24-reunion-closers-crm.md), resumen en la propuesta §0): onboarding sin checklist
+## ✅ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../overview.md), resumen en la propuesta §0): onboarding sin checklist
 
 El onboarding (meterlo al grupo y mandarle el correo con los accesos) pasa fuera del CRM. Lo que
 pidieron es un **tracker sí/no** para que quien lo hace vea qué le falta, por programa y cohorte:

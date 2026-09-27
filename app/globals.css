@@ -3,7 +3,7 @@
 @import "shadcn/tailwind.css";
 
 /*
- * Sistema de diseño "Tinta" (docs/design-system.md), con la paleta de la agencia. Las decisiones viven en los
+ * Sistema de diseño "Tinta" (docs/structure.md §9), con la paleta de la agencia. Las decisiones viven en los
  * TOKENS de abajo, no en las pantallas: una pantalla nunca escribe un color, un radio
  * ni una sombra a mano, usa el token. Así el día que se ajuste la marca se ajusta aquí.
  */

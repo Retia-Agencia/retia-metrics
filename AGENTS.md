@@ -17,44 +17,46 @@ Uso restringido: no hay ninguna vista publica y no existe el auto-registro.
 
 ## Agent skills
 
-This repo is set up for agentic engineering. Read these before working:
+This repo is set up for agentic engineering. **Desde el 27-sep-2026 la documentación vive en un solo
+lugar, sin copias entre documentos.** Léelos en este orden:
 
-- **Spec** (`docs/spec.md`, or one per domain in `docs/specs/`) — what this MVP does and does not do, in 7 blocks (built by `/spec`). The product contract; read it before planning or building. When the product spans several bounded domains there is one spec per domain, and those files also draw the domain boundaries. Anything uncertain lives in its *supuestos por validar* block, never invented as fact.
-- **Plan + tickets** (`docs/plan.md`, `docs/tasks/`) — the ordered build derived from the spec, decomposed into small tickets (built by `/plan`). `plan.md` carries a mermaid flow diagram of how the MVP works. Each ticket is sized to a clean context window and cites the acceptance criterion it serves. Never jump from spec straight to code. **`docs/tasks/README.md` is the single progress tracker**: pick a ticket whose dependencies are all `done`, and when you close it tick its box there and set `status: done` in the ticket file.
-- **Handoff** (`docs/agents/handoff.md`) — session memory + roadmap. Read at the start of every session to recover state; update it at the end. Tracks which tickets are done; references ticket ids, doesn't duplicate them. This is how the next agent (or future you) avoids starting from zero.
-- **Context** (`docs/agents/context.md`) — the domain glossary (ubiquitous language). Read it before naming variables, functions, or files, and before discussing the domain. Sharpen it with `/grill-with-docs`.
-- **ADRs** (`docs/adr/`) — architecture decisions and why they were made. Read the relevant ones before changing a decided area; don't re-litigate them. Add new ones via `/grill-with-docs` or `/improve-codebase`.
+1. **Este archivo** (`AGENTS.md`): las reglas duras, los contratos, los comandos y las convenciones.
+2. **Plan + tickets** (`docs/plan.md`, `docs/tasks/`) — **el punto de entrada del trabajo**: el norte, los
+   tres tracks (CRM, UI/UX, Integraciones), el orden por pasos con hitos, qué paso cumple cada criterio
+   de aceptación y **la lista única de decisiones abiertas**. Cada ticket cabe en una ventana de
+   contexto limpia y cita lo que sirve. Nunca se salta del producto al código sin pasar por un ticket.
+   **`docs/tasks/README.md` es el único tracker de avance**: se toma un ticket cuyas dependencias estén
+   todas en `done`, y al cerrarlo se marca ahí y se pone `status: done` en su archivo.
+3. **`docs/overview.md`** — qué es la herramienta de principio a fin: el problema, los programas, los
+   roles y sus historias de usuario, el recorrido de un lead, las métricas, el alcance, los criterios de
+   aceptación, de dónde salió y **el vocabulario del dominio** (§11). Es el contrato de producto (lo que
+   antes era la spec) y el glosario: léelo antes de nombrar variables, funciones o archivos.
+4. **`docs/structure.md`** — los diagramas y los componentes, técnicos y operacionales: la operación de
+   hoy, los flujos, **el motor de etapas y su tabla de transiciones**, la arquitectura, el modelo de
+   datos, la ingesta, la atribución, las pantallas y quién ve qué, **el sistema de diseño "Tinta"**
+   (§9, **obligatorio antes de tocar cualquier pantalla**: ningún color, sombra ni radio a mano, un solo
+   acento morado, cinco tonos de estado por `<Badge variant>`, toda cifra comparable en `cifra`), **el
+   mapa de las hojas de Sheets** (§10, antes de tocar `lib/sheets/` o el traslado: qué pestaña es
+   fuente, cuáles son vistas derivadas que romperían el dedup y cuáles son respaldos que inflan los
+   conteos) y la migración.
+5. **`docs/operations.md`** — cómo se opera: entornos, las URLs de cada programa, variables, base de
+   datos, scripts, despliegue, secretos, incidentes, deuda y datos de validación.
+6. **ADRs** (`docs/adr/`, índice en `docs/adr/README.md`) — las decisiones vigentes, cada una reescrita
+   para decir lo que se va a construir, y el índice de las retiradas (el código cita sus números).
+   Léelas antes de cambiar un área decidida; no se re-litigan. Una nueva toma el siguiente número libre.
+7. **Handoff** (`docs/agents/handoff.md`) — memoria de sesiones: se lee al arrancar y se actualiza al
+   cerrar. Referencia tickets, no los duplica.
 
-Hay un quinto documento propio de este proyecto: **`docs/estructura-bbdd.md`**, el mapa real de
-las dos hojas de Google Sheets. Leelo antes de tocar `lib/sheets/`: dice que pestana es fuente,
-cuales son vistas derivadas que romperian el dedup, y cuales son respaldos viejos que inflan los
-conteos. Eso no se deduce del codigo ni lo devuelve `npm run descubrir`.
+Los documentos que se fundieron el 27-sep (spec, plan v2, propuesta del 24-sep, revisión del 22-sep,
+diseño, sistema de diseño, glosario, mapa de las hojas, auditoría del 19-sep e insumos) siguen en git
+(`git show da68cdf:<ruta>`). **`docs/plan.md` §8 dice dónde quedó cada referencia vieja** que citen un
+ticket o un comentario del código.
 
-Y un séptimo, **obligatorio antes de tocar cualquier pantalla: `docs/design-system.md`**, el sistema
-de diseño "Tinta" (23-sep). Ninguna pantalla escribe un color, una sombra ni un radio a mano: se usa
-el token de `app/globals.css`, y si falta uno se crea ahí, en claro **y** en oscuro. Un solo acento (el
-morado de la agencia: `#820AD1` sobre blanco, lila `#B57BFF` sobre negro; el token lo resuelve), cinco tonos de estado por `<Badge variant>`,
-y toda cifra comparable en `cifra`.
-
-Y un sexto: **`docs/insumos/`**, material crudo sin reconciliar del que salieron el spec, el plan y
-los ADR — nunca la fuente de verdad, esos documentos lo son. Notas de reunion en `fleeting/`,
-historicos de ventas en `historico-c2/`, y en `notas-segundo-cerebro/` las notas de analisis del
-second brain de Mani sobre el refactor del CRM (el diseno consolidado modelo HubSpot, su version
-explicada simple, la reunion con Alejo Carvajal del 21-sep, y la reconstruccion del flujo actual
-leyendo los Sheets y los `.gs`). Utiles para entender el *por que* de una decision cuando el ADR
-correspondiente no alcanza a explicar el contexto completo.
-
-Y un octavo, **la dirección vigente del producto: `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md`**.
-Nació como paquete para la reunión con los closers, **que ya se hizo el 24-sep en la tarde**: su
-resultado, lo que cambió y **por dónde retomar la implementación** están en su **§0**, que se lee
-primero y manda sobre el resto del documento. Es la **guía del desarrollo**: flujo de hoy y propuesto de cada rol, modelo de datos contra el esquema real,
-convención de UTM y builder, pantallas por rol (tabs por objeto, Inbox, Dashboard) y la tabla de
-transiciones entre etapas. Sus decisiones ya bajaron a los ADR 0048 a 0052 y a los tickets 094 a 102;
-lo que sigue 🟡 después de la reunión es propuesta técnica que cierra Mani, y lo 🔴 son preguntas
-que no se alcanzaron a hacer (§0.3). Al lado vive
-`docs/auditorias/revision-modelo-hubspot-2026-09-22.md`, con las fichas de decisión que siguen abiertas.
-
-Available skills (the pipeline is **spec → plan → build**): `/spec` (interview → `docs/spec.md`, or `docs/specs/*.md` one per domain), `/plan` (spec → `docs/plan.md` + tickets), `/grill-me`, `/grill-with-docs` (align + document before building), `/tdd` (red-green-refactor), `/diagnose` (disciplined debugging), `/improve-codebase` (deepen modules), `/handoff` (compact a session).
+Available skills (the pipeline is **spec → plan → build**): `/spec` (el contrato de producto de este
+repo vive en `docs/overview.md`), `/plan` (`docs/plan.md` + tickets), `/grill-me`, `/grill-with-docs`
+(alinea y documenta antes de construir; aquí escribe ADR en `docs/adr/` y vocabulario en
+`docs/overview.md` §11), `/tdd` (red-green-refactor), `/diagnose` (disciplined debugging),
+`/improve-codebase` (deepen modules), `/handoff` (compact a session).
 
 Keep this file current yourself: when a feedback-loop command turns out wrong or missing, or a durable convention emerges that no linter enforces, update the relevant section below directly rather than letting it drift.
 
@@ -129,7 +131,7 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   es del llamador, el predicado es del modulo (asi se consolido `programasActivos`). Dos preguntas
   distintas que hoy dan el mismo SQL siguen siendo dos funciones.
 - **Un registro anulado no cuenta en NINGUNA metrica, y eso lo garantiza un predicado y un
-  guardian (ADR 0026, ADR 0027).** Llamadas, ventas y abonos se anulan (nunca se borran) con
+  guardian (ADR 0026, ADR 0038).** Llamadas, ventas y abonos se anulan (nunca se borran) con
   quien, cuando y por que. Toda lectura de `calls`, `sales` o `abonos` —en `lib/`, `app/`,
   `components/` o `scripts/`, no solo en `lib/queries/`— pasa por `vigente(tabla)` de
   `lib/queries/vigente.ts`; la que quiere ver lo anulado lo dice con `incluyendoAnulados(tabla)`.
@@ -193,7 +195,7 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   exclusiva de gerente como `/ajustes` (ADR 0003). Excepcion explicita desde el 15 de septiembre de
   2026: en el dashboard del CRM (`/programas/[slug]`, antes `/comunicarte` y
   `/tactical-investor`) un closer SI ve el comparativo entre closers, la caja y la pauta, igual
-  que un gerente: es la politica "todos ven todo" (ADR 0009), **acotada desde el 24-sep a los programas
+  que un gerente: es la politica "todos ven todo" (ADR 0048), **acotada desde el 24-sep a los programas
   donde el closer tiene membresia activa** (ADR 0048, ticket 094): fuera de ellos no ve nada. Ambas reglas conviven: la
   disjuncion de roles sigue rigiendo el acceso a rutas de administracion, pero ya no rige la
   visibilidad de datos dentro del dashboard. Los productos (`/productos`) los editan ambos roles
@@ -233,7 +235,7 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   con cero referencias se borra de verdad, una con referencias solo se desactiva y la app dice
   cuantas tiene. Lo que no puede pasar es que la app diga "borrado" habiendo desactivado.
   Ningun slug de programa aparece en `lib/`, `app/` ni `components/`.
-- **`Mani` y `mani` son el MISMO closer (ADR 0030).** `closerId` es texto copiado (ADR 0011) que
+- **`Mani` y `mani` son el MISMO closer (ADR 0030).** `closerId` es texto copiado (ADR 0030) que
   producen dos fuentes que no se hablan: la columna Closer de las hojas, escrita a mano, y el
   formulario de la app. **El texto se guarda como se escribio** —la ortografia de la hoja es suya,
   ADR 0004—, pero la pregunta "¿son el mismo closer?" la contesta `lib/closers/identidad.ts` y
@@ -262,7 +264,8 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   `enlaces_pago` quedo en **0**. **Omitir un rastro no lanza ningun error**, y dentro de tres
   meses "¿quien puso estos links?" no tiene respuesta en la base. Esos 5 siguen sin rastro a
   proposito: un historial de auditoria fabricado se ve igual que el de verdad.
-- **Una corrida de sync es de un PROGRAMA, no de una fuente (ADR 0031).** Las personas se
+- **Legado, se retira con el corte directo (decisión A6 de `docs/plan.md`): una corrida de sync es
+  de un PROGRAMA, no de una fuente (ADR 0031, retirado; el molde del candado quedó en el ADR 0005).** Las personas se
   sincronizan leyendo TODAS las fuentes del programa juntas y deduplicando sobre el conjunto, asi
   que colgar la corrida de una fuente obligaba a elegir una a dedo (`fuentes[0]`) y **atribuia cada
   corrida a uno de los formularios de forma NO DETERMINISTA** cuando el programa tiene dos (esa
@@ -276,9 +279,10 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   siempre. **Chocar con el candado no es un fallo**: es 409 y el cron lo cuenta como `omitidos`.
 - **El Deal es el objeto central, y `sales` ya no existe (ADR 0037).** Una venta es un deal en
   **Abonado o Completo**, nunca un deal a secas: contar todos los deals infla las ventas y **no
-  lanza ningun error**. `deal.etapa` es un `pgEnum` de diez valores porque el codigo decide con
-  ella (embudo, Students, cartera, movimientos automaticos); `lead.estado` es texto porque nadie
-  decide con el (ADR 0032). No se contradicen: contestan la misma pregunta sobre datos distintos.
+  lanza ningun error**. `deal.etapa` es un `pgEnum` porque el codigo decide con ella (embudo,
+  Students, cartera, movimientos automaticos): son **once** etapas desde el 24-sep (Seguimiento entra
+  con el ticket 043). `lead.estado` es texto; si se retira en favor de `calificacion` es la decision
+  D4 de `docs/plan.md` §7.
   **`deals.etapa` no se escribe a mano desde ninguna parte**: el unico camino es `moverEtapa()`
   (etapa 2), que valida y escribe `deal_etapa_historial`.
 - **Anular NO es Cierre Perdido, y por eso anulado no es una etapa (ADR 0038).** Cierre Perdido es
@@ -286,9 +290,10 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   en ninguna metrica. 🩸 Si se funden, un error de dedo se convierte en una venta perdida y la
   tasa de conversion miente. Y como es una marca ortogonal, anular no borra el dato de en que
   etapa estaba el deal cuando se descubrio el error.
-- **Google Sheets es la fuente de verdad de los leads; el CRM lo es de llamadas, ventas y
-  abonos.** El sync de leads no cambia (ADR 0004). Las llamadas y ventas se registran nativas en
-  la app (ADR 0008) sobre las mismas tablas, con `origen = "app"` (ADR 0010).
+- **El formulario es la fuente de los leads; el CRM lo es de todo lo demas (ADR 0004).** Los leads
+  entran por webhook (corte directo, 22-sep) o por alta manual; lo que hay en Sheets se traslada una
+  sola vez por la misma puerta de ingesta. Deals, llamadas, abonos y dueño nacen y viven en el CRM, y
+  nada se escribe de vuelta a la hoja. Lo que manda una fuente se guarda como llego.
 - **Un mapeo de columnas que no cuadra falla ruidosamente.** Nunca adivinar una columna: se
   resuelve por texto del encabezado, no por posicion, y si falta un campo obligatorio se lanza
   `MapeoInvalidoError` con lo que se buscaba y los encabezados reales.
@@ -342,7 +347,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Cuando un deal ocupa el cupo de su lead | `deals_uno_abierto_por_lead_y_programa_idx`: unico parcial `WHERE etapa NOT IN (completo, cierre_perdido) AND anulado_en IS NULL` (ADR 0037, ADR 0038) | `tests/modelo-crm-indices.test.ts`. 🩸 La mitad del `anulado_en` no es un detalle: sin ella, quien registra un deal sobre el lead equivocado y lo anula **no puede crear el correcto** — la base se lo rechaza por un registro que la app ya declaro inexistente |
 | Con que rol actua una sesion | `rolDeVista(session)` en `lib/auth/vista.ts` (ADR 0028): la vista solo ESTRECHA, nunca ensancha | `tests/rol-de-vista-centralizado.test.ts`: recorre `app/` y `lib/` y falla si alguien decide alcance o permiso leyendo `session.user.rol` crudo; las lecturas de IDENTIDAD van como excepciones nombradas |
 | Cuando una fuente puede estar ACTIVA | Una fuente activa SIEMPRE tiene un mapeo que cuadra: `activarFuente` prueba contra los encabezados reales en ese momento, y `editarFuente` vuelve a probar si la fuente ya esta activa (ticket 016) | `tests/fuentes.test.ts`, mordido en los dos sentidos: editar una ACTIVA a un mapeo roto se rechaza con 422 **sin tocar la fila**, y editar una INACTIVA a lo mismo se permite. **No se guarda bandera de "ultima prueba ok"**: envejeceria |
-| Cuando puede arrancar una corrida de sync | El indice unico parcial `sync_runs_una_corriendo_por_programa_idx` + `SyncEnCursoError` (409) y el reaper, en `lib/sheets/sync.ts` (ADR 0031) | `tests/sync-candado.test.ts`: dos corridas simultaneas, el rechazo **sin tocar la corrida viva**, el reaper, y que las fuentes leidas queden guardadas. Mordido ademas contra Neon de verdad el 19-sep, no solo contra PGlite |
+| Cuando puede arrancar una corrida de sync | El indice unico parcial `sync_runs_una_corriendo_por_programa_idx` + `SyncEnCursoError` (409) y el reaper, en `lib/sheets/sync.ts` (legado del sync de Sheets; el molde vive en el ADR 0005) | `tests/sync-candado.test.ts`: dos corridas simultaneas, el rechazo **sin tocar la corrida viva**, el reaper, y que las fuentes leidas queden guardadas. Mordido ademas contra Neon de verdad el 19-sep, no solo contra PGlite |
 | Si un error del driver es de un codigo de Postgres | `lib/db/errores.ts`: `esViolacionUnica` (23505) y `esViolacionCheck` (23514) sobre `esCodigoPostgres`, que camina la cadena de `cause` | Revision manual: una copia local de ese bucle en cualquier modulo es el olor. Vivia duplicado byte a byte en 4 modulos hasta el 19-sep |
 | Como sale una entrada invalida hacia el cliente | `normalizando` en `lib/errors-zod.ts`: traduce un `ZodError` al `ErrorDeApp` 400 del contrato | Revision manual: un `catch` local que haga `instanceof z.ZodError` es el olor. Vivia duplicado byte a byte en **9** modulos hasta el 20-sep. `lib/catalogo/cohortes.ts` es la unica excepcion legitima y **no se aplano**: ademas traduce 23505 y 23514, asi que compone. Esa parte suya SI tiene test: `tests/cohortes-errores-driver.test.ts`, donde el choque lo produce el indice y el CHECK de verdad, no un error fabricado con `{ code: "23505" }` |
 | Cuando dos textos son el mismo closer | `lib/closers/identidad.ts` (ADR 0030) + indice unico sobre `lower()` en `users` | `tests/closer-identidad.test.ts`: guardian sobre `lib/`, `app/` y `components/`, probado mordiendo en los dos sentidos (caza lo malo y **no** marca la solucion) |
@@ -354,7 +359,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Si un error del driver es una FK violada | `esViolacionForanea` en `lib/db/errores.ts`: 23503 (Postgres real, Supabase) **y 23001** (PGlite reporta asi el RESTRICT) | `tests/db-errores.test.ts`. Reconocer solo uno pasa en local y revienta con 500 en produccion |
 | Que un POST de otro sitio no dispare una mutacion | `exigirMismoOrigen` en `lib/auth/origen.ts` (S-12), en el UNICO handler que muta: `POST /api/sync/[programa]`. El resto son Server Actions, que Next ya protege | `tests/sync-permisos.test.ts`, incluido el caso `x-forwarded-host`: comparar contra el host equivocado **rechaza peticiones legitimas en produccion sin romper un test** |
 | Que quitar a alguien lo saque YA | `revalidarToken` en `lib/auth/revalidacion.ts` (S-02): revalida contra `users` en cada emision, no al expirar el JWT | `tests/revalidacion-sesion.test.ts`. Lo que NO cubre un test: que Auth.js llame el callback en cada emision |
-| Como se arma un link de captacion | **UN** generador: `programs.form_url` + los UTM (del arbol de campana, o del closer). **Derivado, nunca guardado** (ADR 0046, ADR 0024) | Revision manual: una segunda concatenacion de "URL mas parametros" es el olor. 🩸 Y el test que importa vive en el ticket 092: **el patron tiene que reconocer el link que el generador acaba de producir** — con macros de Meta son dos actos que pueden divergir; con el link generado es uno solo y no pueden |
+| Como se arma un link de captacion | **UN** generador: `programs.form_url` + los UTM (de la campana, o del closer). **Derivado, nunca guardado** (ADR 0051, ADR 0024) | Revision manual: una segunda concatenacion de "URL mas parametros" es el olor. 🩸 Y el test que importa vive en el ticket 092: **el patron tiene que reconocer el link que el generador acaba de producir** — con macros de Meta son dos actos que pueden divergir; con el link generado es uno solo y no pueden |
 | A quien pertenece un envio (area, campana, persona) | `lib/atribucion/emparejar.ts` (ADR 0045): un envio resuelve a **lo sumo uno**, gana el patron mas especifico, y el empate lo hace **imposible** un indice unico sobre la combinacion del patron dentro del programa | `tests/atribucion-emparejador.test.ts` (ticket 085): guardian sobre `lib/`, `app/`, `components/` y `scripts/`, mordido en los dos sentidos, **mas un test que corre los patrones en distinto orden y exige el mismo resultado**. Sin eso, el orden de la consulta decide la plata |
 | Que significa cada campo UTM | La convencion del ADR 0051 (24-sep): **tres se leen** (`utm_source` plataforma · `utm_medium` tipo de trafico · `utm_campaign` campana) y **dos se capturan** (`utm_content` quien o que pieza, segun el Canal · `utm_term` variante libre). Minusculas y `snake_case`. Con el builder (ADR 0046, 0051) **el CRM lo impone por construccion**: el trafficker pega un link, no escribe parametros | Revision manual: **cualquier lectura de `utm_term`, o de `utm_content` fuera del emparejador (`lib/atribucion/`), es el olor**. El guardian del ticket 085 lo va a cazar. `utm_content` cambia de significado segun el canal: leerlo sin mirar el canal repite el error medido el 21-sep (anuncio en ComunicArte, conjunto en Tactical) |
 | Quien escribe un envio, un contacto o un lead desde un formulario | `ingerirEntradas` en `lib/ingesta/ingerir.ts`: una transaccion, por lotes, idempotente sobre `(fuente, token, es_parcial)`; el resumen del lead se RECALCULA desde sus envios | `tests/ingesta-escritura.test.ts`. Revision manual: un `insert(submissions)` o `insert(leadContactos)` fuera de ese modulo es el olor — el webhook y el traslado desde Sheets son adaptadores, no escritores |
@@ -368,8 +373,12 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 681 pasando al 23-sep). Los tests que necesitan base usan PGlite en
+- **Test:** `npm test` (Vitest, 681 pasando al 27-sep). Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
+  ⚠️ **27-sep: `npm ci` falla** porque `package-lock.json` no está sincronizado (faltan
+  `@emnapi/runtime` y `@emnapi/core`). Mientras nadie lo repare con `npm install` y un commit del
+  lock, instala con `npm install --no-package-lock`. Si ves 46 tests caídos por `drizzle-orm/postgres-js`,
+  a tu `node_modules` le falta el driver `postgres`: es entorno, no regresión.
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Run:** `npm run dev` (http://localhost:3000)
 
@@ -445,7 +454,7 @@ The agent should run these to get fast signal on whether code works. Keep them c
   una transaccion real y corre **en orden**; quien necesite leer y decidir dentro de la misma
   transaccion usa `db.transaction` directo. **La exclusion mutua sigue viviendo en un indice
   unico**, no en `pg_advisory_lock`: con el pooler en modo transaction un lock de sesion no
-  sobrevive entre consultas. **Hecho en el sync (ADR 0031):** el INSERT de la corrida ES el
+  sobrevive entre consultas. **Hecho en el sync (ADR 0005):** el INSERT de la corrida ES el
   candado, contra un indice unico parcial `WHERE estado = 'corriendo'`. Si necesitas exclusion
   mutua en otra parte, ese es el molde: no hay candado que pedir ni que acordarse de soltar.
   Un script de `scripts/` **sale con `process.exit`**: `postgres-js` deja el pool abierto y el
@@ -456,7 +465,7 @@ The agent should run these to get fast signal on whether code works. Keep them c
   el comando. Consultas de solo lectura, libres; **toda escritura en produccion pide el ok de
   Mani**. Antes de escribir, **mirar el ref del proyecto dentro de la connection string**
   (`postgres.<ref>@...`), no el nombre de la variable: el 16-sep `DATABASE_URL` resulto apuntar a
-  produccion (hallazgo del ADR 0018). 🩸 **La Data API de Supabase va APAGADA** en los dos proyectos:
+  produccion (hallazgo del 16-sep). 🩸 **La Data API de Supabase va APAGADA** en los dos proyectos:
   publica las tablas por REST con una llave anonima y la app no la usa.
 - 🩸 **El SQL que genera `drizzle-kit` se LEE antes de aplicarlo, siempre.** Medido en la 0020
   (22-sep): de los cuatro defectos que traia, dos eran destructivos y dos la hacian fallar.

@@ -1,99 +1,67 @@
-# 0051 — La convención de UTM de Retia y el builder de links
+# 0051 — La convención de UTM de Retia, y el CRM como generador de todos los links
 
-**Fecha:** 2026-09-24 · **Estado:** aceptado (Mani) en la estructura; el catálogo inicial de canales
-y su área se cierran con Pauta, Media y Alejo · **Implementación:** tickets 101, 084, 085, 086, 092 ·
-**Enmienda:** ADR 0044 punto 1 (cómo el link identifica al closer), ADR 0045 enmienda 2 (qué se
-captura), ADR 0046 punto 1 (de dónde sale la URL base) · **Referencia:** el UTM builder de 30X
-(`campaigns.oracle30x.co/utm-builder`) · **Origen:** `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §3.3 y §3.4
+**Fecha:** 2026-09-24 · **Reescrito:** 2026-09-27 (consolida el ADR retirado 0046) · **Estado:**
+aceptado en la estructura; el catálogo inicial de canales y su área se cierran con Pauta y Alejo ·
+**Implementación:** tickets 092, 101, 084, 085, 086 · **Referencia:** el builder de 30X
+(`campaigns.oracle30x.co/utm-builder`)
 
-## El problema
-
-Mani: *"lo más importante es definir claramente las convenciones de UTMs que vamos a trabajar en
-Retia para que TODO quede estándar y tracked"*, y replicar el builder de 30X dentro del CRM. Tres
-puntos del diseño vigente no alcanzaban:
-
-- El link del closer (ADR 0044) ponía el closer en `utm_campaign`, que según el estándar es **la
-  campaña**. Con eso el campo deja de significar lo mismo en todos los links, y el nombre escrito
-  revive `Maru`/`maru` (ADR 0030). La revisión del 22-sep (P2) ya lo había marcado.
-- El estándar de tres campos (ADR 0045, enmienda 2) dejó `utm_content` y `utm_term` **sin capturar**.
-  Lo que no se captura hoy no se recupera nunca (revisión del 22-sep, R6).
-- `programs.form_url` (ADR 0046) solo cubre el formulario; el builder de 30X también apunta a
-  checkouts.
+Mani, 24-sep: *"lo más importante es definir claramente las convenciones de UTMs que vamos a trabajar
+en Retia para que TODO quede estándar y tracked"*. Los closers lo marcaron como prioridad altísima el
+mismo día, y Jero consigue la reunión con Pauta.
 
 ## Decidimos
 
-**1. Cinco parámetros: tres se leen y dos se capturan.**
+**1. Cinco parámetros: tres se leen y dos se capturan.** Iguales para todos los programas; minúsculas,
+`snake_case`, sin tildes ni espacios (`a-z`, `0-9`, `_`).
 
 | Parámetro | Significa | Lo pone | ¿Lo leen los reportes? |
 |---|---|---|---|
 | `utm_source` | la plataforma o lugar del clic | el **Canal** | sí |
 | `utm_medium` | el tipo de tráfico | el **Canal** | sí |
 | `utm_campaign` | la campaña | la **Campaña** del catálogo | sí |
-| `utm_content` | quién o qué pieza, según el canal: en Pauta el anuncio (`{{ad.id}}` de Meta); en Closer el **código del closer**; en Media la cuenta o creadora | el builder, según el canal | **solo en el canal Closer**, para escribir `traido_por`. En los demás se guarda y no se lee todavía |
-| `utm_term` | variante legible libre (`lanzamiento_octubre`, fecha) | opcional | no |
+| `utm_content` | quién o qué pieza, según el canal: en Pauta el anuncio (`{{ad.id}}` de Meta), en Closer el código del closer, en Media la cuenta o creadora | el builder, según el canal | **solo en el canal Closer**, y solo el emparejador, para escribir `traido_por` (ADR 0044) |
+| `utm_term` | variante legible libre (`lanzamiento_octubre`, una fecha) | opcional | no |
 
 ⚠️ `utm_content` cambia de significado según el canal. Es aceptable **solo** porque el canal lo
-declara y **un único módulo** lo interpreta (el emparejador, ticket 085). Leerlo sin mirar el canal
-es el error medido el 21-sep (anuncio en ComunicArte, conjunto en Tactical).
+declara y **un único módulo** lo interpreta. Leerlo sin mirar el canal repite el error medido el 21-sep
+(anuncio en ComunicArte, conjunto en Tactical). Se conserva `facebook` (no `meta`) para no romper el
+histórico; los valores viejos (`instagram rosario / linktree`) se clasifican hacia atrás con reglas del
+canal, no se reescriben (ADR 0004).
 
-**2. El Canal es el "Origen" del builder: un par `utm_source + utm_medium` con su Área.** Es catálogo
-del molde (ADR 0012). Se llama **Canal** en el modelo porque ya existe una tabla `origenes` (catálogo
-del ADR 0015: "agenda del día", "follow-up") con otro significado. El área de un lead **se deriva** del
-canal de su envío (ADR 0043 punto 3), así que el mapeo UTM → área que pidió Alejo **es el catálogo de
-canales**.
+**2. El Canal es el "Origen" del builder:** un par `utm_source + utm_medium` con su Área (ADR 0043).
+Se llama Canal porque ya existe la tabla `origenes`, con otro significado. **El mapeo UTM → área que
+pidió Alejo es este catálogo.**
 
-**3. El link del closer:** `utm_source=closer`, `utm_medium=referido`, `utm_campaign=<campaña de
-referidos del programa>`, `utm_content=<código opaco del closer>`. El código lo genera el CRM (nunca el
-nombre). **Cero cambios en Typeform:** el formulario ya captura `utm_content` como campo oculto.
-Enmienda el ADR 0044 punto 1; el resto de ese ADR (FK real, el primero gana, no auto-asigna) sigue.
+**3. El CRM es el registro y el GENERADOR de los links**, no el administrador de Meta. Cada programa
+tiene sus **destinos**: la URL pública de su formulario (`programs.form_url`, que hoy no existe en el
+esquema) y las URL de sus checkouts. Un link es destino + canal + campaña + los dos opcionales, y es
+**derivado, nunca guardado**: un link guardado y el formulario cambiado son dos verdades. Hay **una sola
+función** que arma links, para las campañas y para el link del closer.
 
-**4. Reglas de forma, que aplica el builder y nadie recuerda:** minúsculas, `snake_case`, sin tildes ni
-espacios, solo `a-z`, `0-9` y `_`. **Ningún link se arma a mano.** Se conserva `facebook` (no `meta`)
-para no romper el histórico, que trae `facebook / cpc`; los valores viejos (`instagram rosario /
-linktree`) se clasifican hacia atrás, no se reescriben (ADR 0004).
+**4. 🎯 Crear una campaña escribe su regla de clasificación en la misma operación.** Con macros de Meta
+hay dos actos independientes que tienen que coincidir (configurar Meta y escribir el patrón); con el
+link generado hay uno solo, y **no pueden discrepar por construcción**. Por eso el estándar deja de
+depender de que alguien lo recuerde: el trafficker pega un link que ya trae los UTM correctos. El
+incumplimiento pasa de detectable a imposible por el camino normal. Sigue siendo detectable, no
+imposible, para lo que el CRM no genera: lo orgánico de Media, el histórico y un link armado a mano.
 
-**5. El builder v1 replica el de 30X, adaptado:**
+**5. El builder v1** replica el de 30X: destino (catálogo del programa), origen (el Canal, que fija
+source y medium y muestra el área), campaña (catálogo del programa), los dos opcionales con "usar fecha
+de hoy", y copiar. Lo usan el gerente y el Paid Trafficker (ADR 0052); el closer tiene "Mi link", ya
+prellenado. **Fuera de v1:** URL libre y el acortador con analítica de clics.
 
-| Sección | En Retia |
-|---|---|
-| Destino | **catálogo por programa**: la URL del formulario y las URL de checkout. Enmienda el ADR 0046 punto 1: `programs.form_url` pasa a ser uno de los destinos del programa |
-| Origen | el **Canal** (fija source y medium, y muestra el área) |
-| Campaña | el catálogo de **Campañas** del programa, creado dentro del CRM |
-| Opcional | `utm_content` y `utm_term`, con "usar fecha de hoy" |
-| URL final | copiar. **El link no se guarda: se calcula** (ADR 0046) |
-
-Fuera de v1: URL libre y el acortador de links con analítica de clics.
-
-**6. Crear una campaña escribe su regla de clasificación en la misma operación** (ADR 0046 punto 3,
-intacto): el link y la regla que lo reconoce no pueden discrepar.
+**6. Los links de campaña no son recursos.** Un recurso (ADR 0017) es material que un closer le manda
+a un lead; un link de campaña es infraestructura de captación que existe para ser rastreada. Dos
+dominios, dos pantallas; lo único compartido es el generador.
 
 **7. Checkouts: destino ya, venta automática después.** El builder genera links a checkouts con UTM.
-Que la venta vuelva sola al CRM (webhook de Hotmart, PayPal, MercadoPago) es una integración posterior;
+Que la venta vuelva sola al CRM (webhooks de Hotmart, PayPal, MercadoPago) es una integración posterior;
 mientras tanto el closer registra el abono.
 
-**8. Las dos cubetas de huérfanos siguen** (ADR 0045): *sin UTM* y *sin clasificar*, siempre visibles,
-nunca juntas.
+## Abierto
 
-## Lo que queda abierto
-
-- El catálogo inicial de canales y el área de cada uno (Lead magnet, WhatsApp masivo, Juanito).
-- Que Pauta adopte el builder y el `{{ad.id}}` en `utm_content`.
+- El catálogo inicial de canales y el área de cada uno (en `docs/structure.md`, con lo que sigue 🔴).
+- Que Pauta adopte el builder y el `{{ad.id}}`; si además se capturan `utm_id` y `fbclid` (R6).
 - Qué checkouts usa Retia hoy y si mandan webhooks.
-
-## Consecuencias
-
-- `utm_patron` (ADR 0045) se expresa como **Canal** (source + medium) y **Campaña** (campaign). Los
-  patrones para valores históricos se conservan como reglas del canal.
-- `submissions.utm_content` y `utm_term` dejan de ser "columnas deliberadamente sin leer": se capturan
-  siempre, y `utm_content` se lee solo en el canal Closer.
-- `AGENTS.md` cambia la regla y el contrato de "qué significa cada campo UTM".
-
-## Alternativas descartadas
-
-| Alternativa | Por qué no |
-|---|---|
-| Solo tres campos, sin capturar los otros dos | Lo que no se captura hoy no se recupera; capturar no obliga a leer |
-| Los cinco campos, todos leídos | Reabre la reconciliación entre programas que la enmienda 2 del ADR 0045 cerró |
-| Parámetro propio `ref=<código>` para el closer | Semántica más limpia, pero exige un campo oculto nuevo en cada formulario |
-| `utm_campaign=<closer>` (ADR 0044 original) | La campaña deja de significar lo mismo en todos los links |
-| Llamar "Origen" al catálogo | Choca con la tabla `origenes` que ya existe con otro significado |
+- ⚠️ El árbol de campañas del CRM puede divergir del de Meta y el CRM no lo sabe: solo puede decir
+  "esta campaña no trae leads desde tal fecha", que no distingue una campaña pausada de una cara.

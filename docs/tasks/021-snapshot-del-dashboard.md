@@ -8,7 +8,7 @@ status: todo
 
 # 021 — Snapshot descargable del dashboard
 
-> ⚠️ **21-sep: CONGELADO hasta la etapa 5 de [plan-crm-v2](../plan-crm-v2.md).** No por bloqueo,
+> ⚠️ **21-sep: CONGELADO hasta la etapa 5 de [plan-crm-v2](../plan.md).** No por bloqueo,
 > por desperdicio: el dashboard que este PDF fotografiaria esta por ganar conversion etapa a etapa,
 > la replica de Urgencias y el ROAS en tres cubos. Hacerlo ahora es hacerlo dos veces.
 

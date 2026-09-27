@@ -8,7 +8,7 @@ status: reemplazado
 
 # 034 — Las categorias del lead salen de la hoja, no del codigo
 
-> ⛔ **21-sep: ABSORBIDO por [plan-crm-v2](../plan-crm-v2.md), deja de existir como ticket.**
+> ⛔ **21-sep: ABSORBIDO por [plan-crm-v2](../plan.md), deja de existir como ticket.**
 > Su alcance es el §2.2 del insumo original. Dos correcciones sobre lo que decia abajo:
 > **(a)** el backfill desde `people.raw` **ya no aplica**, porque `submissions` lo reconstruye el
 > primer sync v2 desde la hoja (`raw` guarda una fila por persona, no una por envio: 4.791 raw para

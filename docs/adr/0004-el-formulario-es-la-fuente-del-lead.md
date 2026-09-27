@@ -1,47 +1,50 @@
-# 0004 — Google Sheets es la fuente de verdad; la app refleja y proyecta
+# 0004 — El formulario es la fuente del lead, y lo que manda una fuente se guarda como llegó
 
-**Fecha:** 2026-08-18
+**Fecha:** 2026-08-18 · **Reescrito:** 2026-09-27 (consolida las decisiones T1 y T3 del 22-sep y los
+ADR retirados 0008 y 0032) · **Estado:** aceptado
 
-El equipo comercial de Retia ya trabaja en Google Sheets todos los dias: ahi caen los formularios
-de aplicacion, ahi esta el registro de llamadas, ahi estan las pestanas de descartados y de cola
-de setteo.
+## De dónde viene
 
-**Decidimos que Sheets sigue siendo la fuente de verdad y la app refleja.** Cuando la app escriba
-de vuelta, escribe en Sheets y luego re-lee para confirmar. Ante conflicto, gana Sheets.
+En agosto Google Sheets era la fuente de verdad de todo: el formulario escribía en la hoja, un Apps
+Script clasificaba, los closers registraban llamadas y ventas a mano en otras pestañas, y el CRM
+solo reflejaba. Se fue estrechando: las llamadas y ventas pasaron al CRM (15-sep), el responsable y
+el alta manual también (16-sep), y el 21-sep Mani lo dijo entero:
 
-Una app que exige abandonar Sheets no se adopta, y una adopcion a medias es peor que ninguna:
-quedarian dos verdades parciales y nadie sabria cual mirar.
-
-El costo es real y hay que asumirlo: toda la complejidad del mapeo de columnas, el dedup, la
-bitacora de cambios y la cola de escritura existe por esta decision. La alternativa (la app como
-duena de los datos, con Sheets como export) seria mucho mas simple de construir y es exactamente
-lo que el equipo no usaria.
-
-**Acotado por ADR 0021 (16-sep-2026):** esta decision cubre lo que captura el formulario. El
-responsable de una persona y las altas manuales son del CRM.
-
-## Enmienda 2026-09-21 (plan v2, ADR 0039): la hoja sigue mandando, pero solo sobre los leads crudos
-
-Esta decision **se conserva** y sigue siendo la mas cara del proyecto. Lo que cambia es **cuanto
-territorio cubre**, y cambia en la direccion de estrecharlo.
-
-**Lo que se conserva, literal:** Google Sheets es la fuente de verdad de los **leads**, la app
-refleja, y ante conflicto en un campo del formulario **gana la hoja**. El `estado` con el que un
-lead llega lo calcula la hoja (hoy el Apps Script, manana el scoring de Dapta) y el CRM **solo lo
-trae**, sin reimplementar esa logica (insumo §1.2, ADR 0032).
-
-**Lo que se estrecha.** Textual de Mani, 21-sep:
-
-> *"cuando el CRM se vuelva el centro, las llamadas, etc. solo van a vivir aqui. Lo unico que va a
+> *"Cuando el CRM se vuelva el centro, las llamadas, etc. solo van a vivir aquí. Lo único que va a
 > entrar de afuera son Leads crudos que llenan un forms de un programa."*
 
-- El ADR 0008 ya habia sacado llamadas y ventas de Sheets. El **ADR 0039** saca lo que quedaba:
-  las pestanas de `Estudiantes`, `Registro de llamadas` y `Pauta` dejan de ser fuentes
-  configuradas. Un programa tiene **una** hoja y **una** pestana de leads crudos.
-- **El reparto de la verdad, en una linea:** la hoja es duena del `estado` de llegada del Lead; el
-  CRM es dueno de la `etapa` del Deal y de todo lo que el closer hace (ADR 0037). Son dos columnas
-  distintas de dos tablas distintas, a proposito: asi no hay ningun dato del que los dos se crean
-  duenos.
-- **El "escribe de vuelta a Sheets" de esta decision nunca se construyo y ya no se va a
-  construir.** Lo que va en la direccion contraria (las pestanas de gestion) se apaga en la etapa 7
-  del plan v2, despues de la migracion one-time.
+El 22-sep se decidió cómo entran esos leads: por webhook, con **corte directo** (sin convivencia con
+el sync de la hoja).
+
+## Decidimos
+
+**1. Un lead entra solo por el formulario de su programa, o por alta manual de un closer.** El
+formulario llega por webhook a la puerta única de ingesta (`lib/ingesta/`). El alta manual es el
+respaldo para el lead que llegó por WhatsApp, un evento o un referido (ADR 0044).
+
+**2. Todo lo demás nace y vive en el CRM:** deals, etapas, dueño, llamadas, abonos, actividades.
+No hay escritura de vuelta a Sheets.
+
+**3. Lo que manda una fuente se guarda como llegó.** El texto de los UTM, los nombres escritos a
+mano en las hojas y las respuestas del formulario no se normalizan ni se reescriben. Cuando hay que
+comparar, se normaliza del lado de la lectura (ADR 0030); cuando hay que clasificar, se hace con
+reglas del catálogo (ADR 0045, 0051), que reparan hacia atrás sin tocar el crudo. Reescribir el
+crudo para que "cuadre" borra la evidencia de lo que pasó.
+
+**4. Lo que hay hoy en Sheets se traslada una sola vez, por la misma puerta.** El adaptador de
+Sheets (`lib/ingesta/adaptador-sheets.ts`) convierte cada fila en el mismo Envío que produciría el
+webhook, así que un envío que llegó por las dos vías no se duplica. Después vienen la migración de
+las pestañas de gestión (etapa E7) y su apagado (ticket 082).
+
+## Lo que queda abierto
+
+🔴 **Quién calcula el `Estado` de llegada** (Descartado, Setteo, Con Calendly). El 22-sep se decidió
+que lo calcula el CRM con las reglas del Apps Script (T2, construido); el 27-sep Mani pidió que lo
+asigne el formulario con su scoring. Está en `docs/plan.md` §7 (A1). Mientras tanto, el traslado
+guarda el Estado de la hoja tal como vino (`submissions.estado_hoja`) y la calificación del CRM al
+lado, para compararlas.
+
+## Riesgo operativo
+
+Typeform tiene que seguir escribiendo en Sheets hasta que los closers trabajen en el CRM, aunque el
+CRM ya no la lea. Si se corta antes, los closers se quedan sin ver los leads nuevos.

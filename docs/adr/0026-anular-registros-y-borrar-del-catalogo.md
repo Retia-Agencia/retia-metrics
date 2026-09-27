@@ -1,126 +1,50 @@
-# 0026 — Anular un registro y borrar del catalogo desde la app
+# 0026 — Un registro se anula, no se borra; del catálogo se borra solo lo que nunca se usó
 
-**Fecha:** 2026-09-18 · **Estado:** aceptado (Mani, tras el recorrido visual de `/mi-dia`)
+**Fecha:** 2026-09-18 · **Reescrito:** 2026-09-27 (la anulación pasa al modelo del deal, ADR 0037 y
+0038) · **Estado:** aceptado
 
-## Contexto
+## El problema
 
-Durante el recorrido visual del 18-sep se registro a proposito un abono con sobrepago para probar
-la reja del ADR 0024. Funciono. Pero al querer deshacer la prueba aparecio que **no se puede**:
-
-```
-$ grep -rn '\.delete(' lib app scripts
-(sin resultados)
-```
-
-No hay **ni un solo `.delete(`** en todo el codigo de la app, `calls` no tiene columna para
-desactivar una fila, y `/personas/[id]` es de solo lectura por decision del ticket 006. Una llamada
-mal registrada queda para siempre, y cuenta en el embudo para siempre.
-
-Eso no es un problema de pruebas. Es un problema de operacion: **un closer que le da a "Cerrada"
-por error inventa una venta que nadie puede quitar**, y esa venta entra en el conteo de ventas
-cerradas, en la caja recaudada por su fecha de abono y en el comparativo entre closers. Hoy la
-unica salida es que alguien entre a la base a mano, que es justo lo que este CRM existe para
-evitar.
-
-Mani lo pidio explicito el 18-sep: *"se debe poder anular un registro y borrar cosas desde la app"*.
-
-El choque: el **ADR 0012** dice que toda entidad configurable **nunca se borra, se desactiva**. Esta
-decision no lo deroga, lo acota.
+En el recorrido del 18-sep apareció que no había forma de deshacer nada: ni un solo `.delete(` en la
+app y ninguna columna para desactivar una llamada. **Un closer que se equivoca inventa un registro
+que nadie puede quitar**, y ese registro cuenta en el embudo, en la caja y en el comparativo para
+siempre. Mani, 18-sep: *"se debe poder anular un registro y borrar cosas desde la app"*.
 
 ## Decidimos
 
-### 1. Un registro (llamada, venta, abono) se ANULA, no se borra
+**1. Deals, llamadas y abonos se ANULAN, no se borran.** Llevan `anulado_en`, `anulado_por` y el
+motivo. No es un booleano: cuando el dinero no cuadra la pregunta es quién lo anuló, cuándo y por
+qué. Borrar de verdad tampoco sirve: se lleva la explicación de por qué la caja de ese día bajó.
 
-Las tres tablas suman `anulado_en timestamptz`, `anulado_por uuid` y `motivo_anulacion text`.
+**2. La anulación se propaga hacia abajo, en una sola escritura atómica.** Anular un deal anula sus
+llamadas y sus abonos. Anular un abono no anula el deal (un pago mal tecleado no hace falsa la
+oportunidad), **pero el motor recalcula la etapa**: si el deal estaba en Completo por ese abono, deja
+de estarlo (transiciones A1 y A2).
 
-**No es un booleano** a proposito: cuando el dinero no cuadra, la pregunta no es "¿esto esta
-anulado?" sino "¿quien lo anulo, cuando y por que?". Un booleano tira esa respuesta a la basura y
-la deja solo en `change_log`, que es una bitacora de campos y no el lugar donde se consulta el
-estado de una venta.
+**3. Lo anulado desaparece de TODA métrica, y eso lo garantiza un predicado y un guardián.** El
+predicado "está vigente" vive en un solo lugar, `vigente(tabla)` en `lib/queries/vigente.ts`; la
+consulta que quiere ver lo anulado lo dice con `incluyendoAnulados(tabla)`.
+`tests/vigencia-centralizada.test.ts` recorre `lib/`, `app/`, `components/` y `scripts/` y falla si
+una lectura de `calls`, `deals` o `abonos` no decide. **El riesgo no es escribir la anulación: es
+olvidar una consulta**, porque una cifra inflada se ve creíble y no lanza ningún error.
 
-Borrar de verdad tampoco sirve: una venta borrada se lleva la explicacion de por que la caja de
-ese dia bajo.
+**4. Lo anulado se ve tachado en la ficha.** *Fuera de las métricas, dentro del historial.*
+Esconderlo ahí convertiría la anulación en un borrado con otro nombre.
 
-### 2. Anular arrastra lo que colgaba del registro, en la misma escritura atomica
+**5. Quién anula:** el closer, lo que registró él mismo mientras la cohorte siga activa; el gerente,
+cualquier registro. El motivo es obligatorio: es la mitad del valor de conservar la fila.
 
-- Anular una **venta** anula sus **abonos**. Un abono vivo bajo una venta anulada seguiria sumando
-  a la caja recaudada, que se calcula desde `abonos` y no desde `sales` (ADR 0013).
-- Anular una llamada **cerrada** anula su venta, y por lo anterior sus abonos. La venta nacio de
-  esa llamada; dejarla viva seria afirmar una venta sin la llamada que la cerro.
-- Anular un **abono** no toca la venta: una venta puede tener un abono devuelto y seguir viva. El
-  saldo se recalcula solo, porque sale de `lib/queries/saldo.ts` (ADR 0024).
+**6. Del catálogo se borra de verdad solo lo que nunca se usó.** Cero referencias: se borra, con
+confirmación y fila en `change_log`. Una o más: se desactiva y la app dice cuántas tiene. Lo que no
+puede pasar es que la app diga "borrado" habiendo desactivado. Lo hace `borrarSiNoSeUso` en
+`lib/catalogo/molde.ts`, y `tests/catalogo.test.ts` exige que sea el único `.delete(` de
+`lib/catalogo/` (salvo tablas puente nombradas, como `plataformas_programa`).
 
-### 3. Lo anulado desaparece de TODA metrica, y eso se garantiza en un solo predicado
+## Descartado
 
-Este es el punto peligroso de la decision. Si una consulta del embudo se olvida de excluir lo
-anulado, **dos pantallas muestran cifras distintas de lo mismo y nadie se entera**: es exactamente
-el fallo que costo la primera version de `/nerd-stats` (conteos en cero sin lanzar error).
-
-Por eso, y siguiendo el ADR 0024: **el predicado "esta vigente" vive en UN modulo**
-(`lib/queries/vigente.ts`) y toda consulta sobre `calls`, `sales` o `abonos` lo importa. Ninguna
-vuelve a escribir `isNull(anuladoEn)` a mano.
-
-Y se **prueba, no se promete**: un test guardian recorre `lib/queries/*.ts` y falla si alguna
-consulta lee esas tablas sin el predicado, igual que el guardian de slugs del ticket 009. La regla
-la enforza un test, no la memoria de quien agregue la cuarta consulta.
-
-### 4. Lo anulado SI se ve en el historial de la persona, tachado
-
-`/personas/[id]` es la bitacora de lo que paso con alguien, y "aqui hubo una venta que se anulo el
-19 de septiembre porque el pago se cayo" es informacion, no ruido. Esconderlo ahi convertiria la
-anulacion en un borrado con otro nombre.
-
-La regla es: **fuera de las metricas, dentro del historial.**
-
-### 5. Del catalogo se BORRA de verdad solo lo que nunca se uso; lo demas se desactiva
-
-Enmienda acotada al ADR 0012. La motivacion de aquel ADR sigue en pie: un motivo de perdida
-referenciado por 300 llamadas no se puede borrar sin romper el historial, y sus FKs son `restrict`
-justamente para impedirlo.
-
-Pero el caso que Mani quiere resolver es otro: **un producto o una categoria creados por error hace
-dos minutos, que nadie ha usado.** Desactivarlos los deja como basura permanente en una lista de
-administracion.
-
-Entonces:
-
-- **Cero referencias** → se borra de verdad (`DELETE`), con confirmacion, y va a `change_log`.
-- **Una o mas** → no se borra: se desactiva, y la app **dice cuantas referencias tiene y por que**.
-
-Lo que NO puede pasar es que la app diga "borrado" y por dentro haya desactivado. Las dos acciones
-existen y se nombran distinto.
-
-### 6. Quien puede anular
-
-- El **closer** anula lo que **el mismo registro** (`closer_id` igual al suyo) mientras la cohorte
-  siga activa. Es el caso real: se equivoco y lo ve en el momento.
-- El **gerente** anula cualquier registro, sin limite de cohorte.
-- Toda anulacion exige `motivo_anulacion` no vacio. Sin motivo no hay anulacion: el motivo es la
-  mitad del valor de conservar la fila.
-
-## Consecuencias
-
-- Migracion sobre `calls`, `sales` y `abonos` (ticket 029). Se prueba en `dev` antes de
-  `production` (ADR 0018).
-- **Toda consulta existente del dashboard, del embudo y de `/nerd-stats` cambia.** No es opcional
-  ni se puede hacer por partes: una consulta sin el predicado da cifras infladas que parecen
-  correctas.
-- El ADR 0012 queda enmendado en su punto de "nunca se borra": ahora es *"no se borra lo que ya se
-  uso"*.
-- Un registro anulado sigue ocupando su lugar en el indice unico `calls_huella_idx`, asi que una
-  fila de Sheets anulada NO se vuelve a importar en el proximo sync. Es lo correcto: anular es una
-  decision del negocio y el sync no debe revertirla.
-
-## Alternativas descartadas
-
-**Borrar de verdad los registros.** Deja la caja de un dia distinta sin ninguna explicacion
-rastreable, y con `origen = "app"` no habria forma de reconstruir que paso.
-
-**Un booleano `anulado`.** Pierde quien y cuando, que es lo que se pregunta cuando el dinero no
-cuadra.
-
-**Editar el registro en vez de anularlo.** Reescribe la historia: el embudo del mes pasado
-cambiaria despues de cerrado. Anular deja la huella; editar la borra.
-
-**Filtrar lo anulado en cada consulta a mano.** Es lo que el ADR 0024 ya prohibio para el dinero
-derivado, por la misma razon y con el mismo final.
+| Alternativa | Por qué no |
+|---|---|
+| Borrar los registros | La caja de un día cambia sin explicación rastreable |
+| Un booleano `anulado` | Pierde quién y cuándo |
+| Editar el registro en vez de anularlo | Reescribe la historia: el embudo del mes pasado cambiaría después de cerrado. Editar sí se puede, pero para corregir un dato (ADR 0042), no para desaparecer un hecho |
+| Filtrar lo anulado a mano en cada consulta | Es la duplicación que el ADR 0024 prohíbe, con el mismo final |

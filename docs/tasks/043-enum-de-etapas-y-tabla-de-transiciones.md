@@ -100,7 +100,7 @@ hasta que los closers la validen.** Resumen de lo que cambia:
   completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
 - **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".
 
-## ✅ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../insumos/fleeting/2026-09-24-reunion-closers-crm.md), resumen en la propuesta §0)
+## ✅ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../overview.md), resumen en la propuesta §0)
 
 - **Las 11 etapas quedan validadas** (incluida Seguimiento): nadie pidió quitar ni agregar. Ya no
   hace falta esperar a los closers para tomar este ticket.

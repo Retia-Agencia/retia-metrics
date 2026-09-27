@@ -64,7 +64,7 @@ Sí, con revisión. El emparejador es donde un bug es silencioso.
   completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
 - **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".
 
-## ✅ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../insumos/fleeting/2026-09-24-reunion-closers-crm.md), resumen en la propuesta §0)
+## ✅ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../overview.md), resumen en la propuesta §0)
 
 - **Cada closer tiene su propia cuenta de Calendly y es dueño de sus llamadas.** Andrea y Maru tienen
   **un correo distinto por programa**: la cuenta vive en la **membresía** (closer × programa), como dice

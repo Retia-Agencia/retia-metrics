@@ -25,9 +25,10 @@ instala junto con el primer codigo que la usa (ticket 011).
   de `npm test` prueba que las migraciones aplican en un Postgres real antes de llevarlas a Neon.
 - El codigo que escribe en la base **recibe la base por parametro**, con la de la app por
   defecto. Asi la app no cambia y los tests pasan la de PGlite.
-- `drizzle-orm/neon-http` no tiene transacciones interactivas pero si `batch`; PGlite tiene
-  transacciones pero no `batch`. Las escrituras que deben ir juntas pasan por un helper
-  (`ejecutarJuntas`) que usa lo que el driver tenga. Los ids se generan en codigo para que la
-  fila y su `change_log` quepan en el mismo lote.
-- PGlite no es Neon: el comportamiento propio del driver HTTP (timeouts, errores de red) no se
-  prueba aqui. Si un bug depende de eso, se reproduce contra la rama `dev`.
+- Desde el ADR 0047 (22-sep) la app usa `postgres-js` con transacciones reales, igual que PGlite:
+  `ejecutarJuntas` es una transaccion en los dos entornos y los tests corren el mismo camino que
+  produccion.
+- PGlite no es Supabase: lo propio del pooler en modo transaction (sin prepared statements, por eso
+  `prepare: false`), los timeouts y los errores de red no se prueban aqui. Si un bug depende de eso,
+  se reproduce contra el proyecto `dev`.
+- Reescrito el 27-sep: el texto original hablaba de Neon y de la rama `dev`; la decision no cambio.

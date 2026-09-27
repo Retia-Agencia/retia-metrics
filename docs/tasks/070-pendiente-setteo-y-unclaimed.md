@@ -73,7 +73,7 @@ Este ticket deja de ser una pantalla propia: sus dos listas son las secciones "s
 dueño**; Unclaimed queda para los Agendados cuyo host no está registrado. Todo lo demás de este ticket
 (la reja del reclamo, el origen a la vista) sigue igual.
 
-## 🆕 Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../insumos/fleeting/2026-09-24-reunion-closers-crm.md), resumen en la propuesta §0): el Setteo viene ORDENADO
+## 🆕 Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../overview.md), resumen en la propuesta §0): el Setteo viene ORDENADO
 
 - **Reparto:** el primero que ve el lead lo toma. El turno fijo de la hoja está desactualizado y se
   retira. Reclamar desde el Inbox es exactamente lo que hacen hoy: se confirma.

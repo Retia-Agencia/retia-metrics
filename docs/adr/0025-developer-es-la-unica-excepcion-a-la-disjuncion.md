@@ -1,6 +1,6 @@
 # 0025 — `developer` es la unica excepcion a la disjuncion de roles
 
-**Fecha:** 2026-09-17 · **Estado:** aceptado (Mani, ticket 024) · **Amplia:** ADR 0003
+**Fecha:** 2026-09-17 · **Reescrito:** 2026-09-27 (las notas del 24-sep pasan al cuerpo) · **Estado:** aceptado (Mani, ticket 024) · **Amplia:** ADR 0003
 
 El ADR 0003 dice que `gerente` y `closer` son conjuntos disjuntos, sin herencia: un endpoint de
 gerente rechaza al closer y uno de closer rechaza al gerente. Esa regla es de negocio y sigue
@@ -77,11 +77,10 @@ mismo, pero pasar de `gerente` a `developer` (o al reves) si se permite, porque 
 administracion. Son dos funciones separadas aunque el developer responda que si a las dos
 (AGENTS.md, enmienda al ADR 0024).
 
-## Lo que queda fuera
+## "Ver como"
 
-**"Ver como" gerente o closer.** Un developer ve la union de la interfaz, no un simulador de la
-experiencia de cada rol. Si algun dia hace falta probar exactamente lo que ve un closer sin serlo,
-es otro ticket y otra decision.
+Pasar la guarda no es simular la experiencia de otro rol. Eso lo resolvio despues el ADR 0028: la
+vista `gerente` o `closer` del developer estrecha la proyeccion y la guarda.
 
 ## Consecuencias
 
@@ -89,21 +88,21 @@ es otro ticket y otra decision.
   un rol de construccion. Se asigna a mano desde `/ajustes/usuarios` y hoy lo tiene una sola
   cuenta.
 - Un developer ve la caja, la pauta y el comparativo entre closers. Eso ya no es una excepcion
-  suya: el dashboard del CRM abre esos datos a todos los roles desde el ADR 0009.
+  suya: el dashboard abre esos datos a todos los roles dentro de sus programas (ADR 0048).
 - Es un rol con acceso total: **quien lo tenga puede hacer todo lo que la app permite**, y por eso
   no se reparte. La auditoria de quien lo tiene es la lista de `/ajustes/usuarios`.
 
 El punto 5 lo cubre `tests/productos.test.ts` ("un developer sin membresias crea un producto en
-cualquier programa"), escrito en rojo antes del arreglo. Es un test por caso, no un guardian: hoy
-no hay nada que recorra el codigo buscando `rol === "..."` a mano, como si lo hay para la vigencia
-(`tests/vigencia-centralizada.test.ts`). Mientras no lo haya, esta regla se sostiene en la revision.
+cualquier programa"), escrito en rojo antes del arreglo. Es un test por caso. Desde el ADR 0028 hay
+ademas un guardian, `tests/rol-de-vista-centralizado.test.ts`, que falla si alguien decide alcance o
+permiso leyendo `session.user.rol` crudo en `app/` o `lib/`.
 
 Testeado en `tests/roles.test.ts`, `tests/guards.test.ts`, `tests/paginas.test.ts`,
 `tests/usuarios.test.ts` y `tests/migracion-developer.test.ts`.
 
 ---
 
-## Nota 2026-09-24: dos preguntas más para `lib/auth/`
+## Las otras preguntas que viven en `lib/auth/`
 
 - **ADR 0048:** *"¿qué programas ve esta sesión?"* (el closer, los de su membresía activa; el gerente y
   el developer, todos). Vive en una sola función de `lib/auth/`, como las tres de este ADR.

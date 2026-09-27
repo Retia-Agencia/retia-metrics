@@ -91,8 +91,8 @@ const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "o
 /**
  * El ID de una hoja de Google recortado para la pantalla (S-13). El ID completo no
  * es un secreto, pero tampoco tiene por que estar entero en una pantalla: el prefijo
- * alcanza para saber cual es cual, igual que en `docs/estructura-bbdd.md`
- * (`1DBKL4zw…`). Se muestran los primeros 8 caracteres y un puntos suspensivos.
+ * alcanza para saber cual es cual (`1DBKL4zw…`). La URL completa vive en
+ * `docs/operations.md` §2, no en la pantalla. Se muestran los primeros 8 caracteres y un puntos suspensivos.
  */
 export function truncarId(id: string | null | undefined, visibles = 8): string {
   const s = String(id ?? "").trim();

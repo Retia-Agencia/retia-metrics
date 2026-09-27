@@ -1,28 +1,29 @@
 # 0016 — Los productos de cada programa los crean y editan gerentes y closers
 
-**Fecha:** 2026-09-16
+**Fecha:** 2026-09-16 · **Reescrito:** 2026-09-27 (el producto es el ticket del deal desde el ADR 0037;
+suma la decisión del 19-sep sobre recursos y plataformas) · **Estado:** aceptado
 
-Un programa no vende una sola cosa. En septiembre aparecieron la "Venta 1:1" de Comunicarte y la
-"reserva de cupo con USD 400" del lanzamiento, ademas del programa completo a USD 797 o 697
-(precio anterior respetado). Hoy el unico precio que conoce el sistema es `programs.ticketUsd` y
-`cohorts.precioUsd`.
+Un programa no vende una sola cosa: el programa completo, la reserva de cupo, la mentoría 1:1, y cada
+precio con descuento que el equipo usa (ComunicArte 797, 697, 627, 557, 397; Tactical 1.500, 1.350,
+1.200, 1.000, 900, 800, 400).
 
-**Decidimos crear la tabla `productos`**, colgada del programa: nombre, precio de lista, moneda,
-activo. Toda venta apunta a un producto (`sales.productoId`).
+## Decidimos
 
-**Quien los maneja:** gerentes **y closers** pueden crear, editar y desactivar productos
-(decision de Mani, 16 de septiembre). Es la unica entidad configurable que un closer puede
-editar: el closer es quien se topa primero con "necesito vender algo que no esta en la lista" en
-medio de una llamada, y esperar a un gerente frena la venta.
+- **`productos` cuelga del programa**, con nombre, precio de lista, moneda y `activo`.
+- **Cada precio que el equipo use es un producto.** El deal apunta a su producto
+  (`deals.producto_id`) y **ese precio es el ticket**: no existe un "precio del contrato" aparte.
+- **Los gestionan gerentes y closers.** El closer es quien se topa primero con "necesito vender algo
+  que no está en la lista" en medio de una llamada, y esperar a un gerente frena la venta. Un closer
+  solo gestiona productos de los programas donde tiene membresía activa
+  (`exigirAccesoAlPrograma`, `lib/catalogo/acceso-programa.ts`); quien administra, de cualquiera.
+- **La misma regla, desde el 19-sep, para recursos y plataformas de pago:** un closer crea recursos
+  de sus programas (nunca uno global, sin programa) y puede crear plataformas de pago, que no tienen
+  programa (ADR 0034).
 
-Esto **no** contradice ADR 0003: la disjuncion de roles decide el acceso a rutas; aqui la ruta de
-productos simplemente declara los dos roles (`requireRole("gerente", "closer")`). Las demas
-pantallas de `/ajustes` siguen siendo solo de gerente.
+**Esto no contradice el ADR 0003:** la disjunción decide el acceso a rutas; la ruta de productos
+simplemente declara los dos roles.
 
 ## Consecuencias
 
-- Como un closer puede crear productos, el `change_log` (molde del ADR 0012) es lo que permite
-  auditar quien creo cada uno.
-- Un producto nunca se borra (ADR 0012): las ventas viejas siguen apuntando a el.
-- `cohorts.precioUsd` se mantiene como referencia de la cohorte; el precio real de una venta es
-  `sales.precioAplicadoUsd`.
+- Como un closer crea productos, `change_log` es lo que permite saber quién creó cada uno.
+- Un producto con deals no se borra, se desactiva (ADR 0026).

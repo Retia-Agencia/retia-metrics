@@ -5,38 +5,71 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito el 24-sep tras la reunión con los closers. El prompt anterior
-> (el de la revisión del 22-sep) está en el historial de git (`git show 6091c1b:docs/agents/handoff.md`).
+> Copiar y pegar tal cual. Reescrito el 27-sep, al consolidar el plan. El prompt anterior (el del
+> 24-sep, tras la reunión con los closers) está en el historial de git (`git show da68cdf:docs/agents/handoff.md`).
 
 ```
-Seguimos con el CRM v2 de Retia. El track de implementacion quedo DESBLOQUEADO el 24-sep con la
-reunion con los closers (Andrea, Maru, Jero). Lee AGENTS.md y despues, antes que nada, la §0 de
-docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md: dice que se valido, que cambio,
-que quedo abierto y el ORDEN para retomar. Manda sobre el resto del documento.
+Seguimos con el CRM de Retia. Comercial dio luz verde (reunion con los closers del 24-sep) y el
+27-sep la documentacion quedo centralizada. Lee AGENTS.md y despues docs/plan.md completo, antes
+que cualquier otro documento: tiene el norte, los tres tracks (CRM, UI/UX, Integraciones), el orden
+por pasos con hitos (§5) y la lista unica de decisiones abiertas (§7). Lo demas se consulta cuando
+haga falta: docs/overview.md (que es la herramienta y el vocabulario), docs/structure.md (diagramas,
+motor de etapas, arquitectura, modelo de datos, sistema de diseno), docs/operations.md (entornos,
+URLs de los programas, base, scripts) y docs/adr/README.md (decisiones vigentes y retiradas). El
+estado de cada ticket vive solo en docs/tasks/README.md.
 
-Estado: etapa 1 cerrada, migracion 0020 aplicada. Supabase dev creado; production en Supabase por
-crear/verificar (ver CIERRE 24). CERO deals/calls/abonos en la base: los closers siguen en Sheets.
-Ultima suite conocida: 650 tests en verde (22-sep).
+Estado medido el 27-sep: 681 tests en verde, typecheck y lint limpios. OJO: npm ci falla (lock
+desincronizado, ver AGENTS.md feedback loops). 24 migraciones; Supabase dev vacio y sembrado;
+produccion en Supabase NO existe. CERO deals/calls/abonos: los closers siguen en Sheets.
 
-Validado por los closers: las 11 etapas (con Seguimiento) y el Kanban; Grain obligatorio para
-Atendido; cuenta de Calendly por closer y por programa (ADR 0049); el Setteo se reclama desde el
-Inbox; onboarding = onboarded_at, sin checklist.
+Antes de codear, mira si Mani ya cerro A1 y A2 del plan §7 (son nuevas del 27-sep):
+- A1: el Estado del lead lo asigna el formulario con su scoring (choca con T2, que ya esta
+  construido y validado). Plan §4.3b.
+- A2: el contrato del webhook estandar para Typeform, Dapta Forms o cualquier formulario. Plan §4.3a.
 
-Decidido por Mani el 24-sep (adopto las tres recomendaciones): la tabla de transiciones del 043
-completa (D2 cerrada); acuerdo de pago = nota + fecha limite en el deal, sin cuotas en v1 (ADR 0053,
-ticket 061); P1, operacion antes que analitica.
-
-Primer paso: tomar el 043 (E2).
-Orden oficial: E2 (043 con la etapa 11 en el enum, 044, 045, 046, 047) y el 094 en
-paralelo; E3 minimo (048-052) con la pregunta de ingreso configurable por fuente para ordenar el
-Setteo (070); E4 (057-060, 063, 096); E6 minimo (097, 069, 070, 071, 074, 099). E1b (UTM) apenas
-Jero consiga la reunion con Pauta; el 086 (link del closer) al final: no traen leads propios.
+Primer paso que no depende de ellas: el 043 (paso 1, motor de etapas) y el 094 en paralelo.
 Las migraciones las genera y aplica la sesion principal.
 ```
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+> Las entradas anteriores al 27-sep citan documentos que se fundieron ese día (spec, plan v2, propuesta,
+> revisión, glosario, insumos): `docs/plan.md` §8 dice dónde quedó cada uno.
+
+- **2026-09-27 (CIERRE 31): plan consolidado y documentación centralizada.** Solo documentos (y
+  comentarios del código que citaban rutas borradas); sin lógica ni migraciones.
+  - **Por qué:** Comercial dio luz verde. Mani pidió el plan completo en un solo lugar, sin inventar
+    nada, y después toda la documentación de `docs/` centralizada, sin perder lo valioso y sin ruido.
+    Granola no tiene reuniones del CRM después del 24-sep; la de ese día ya estaba en el repo.
+  - **Quedó así:** `docs/plan.md` (plan de implementación: tracks, orden §5, criterios §6, decisiones
+    abiertas §7 con las fichas técnicas en §7.1, mapa y equivalencias de referencias viejas §8),
+    `docs/overview.md` (la herramienta de principio a fin, los programas, roles e historias de usuario,
+    métricas, alcance, criterios, historia, vocabulario), `docs/structure.md` (operación de hoy, flujos,
+    motor de etapas con la tabla de transiciones, arquitectura, modelo de datos, ingesta, atribución,
+    pantallas, sistema de diseño Tinta, mapa de las hojas, migración) y `docs/operations.md` (entornos,
+    **URLs de cada programa**, variables, base, scripts, despliegue, secretos, incidentes, deuda, datos
+    de validación). Se fundieron y se borraron: spec, plan v2, diseño, sistema de diseño, mapa de las
+    hojas, glosario, auditorías e insumos (siguen en `git show da68cdf:<ruta>`).
+  - **ADR:** 38 vigentes, reescritos para decir la decisión actual sin capas de enmiendas (0004 y 0037
+    cambiaron de nombre de archivo). 16 retirados; `docs/adr/README.md` es el índice y dice dónde quedó
+    lo vivo de cada uno, porque el código los cita. Mani decidió no empezar de cero: se conservan los
+    números.
+  - 🆕 **Decisiones nuevas de Mani:** el `Estado` lo asigna el formulario con su scoring (A1, choca con
+    T2); el webhook es nuestro y estándar para cualquier formulario (A2); **las URLs de cada programa se
+    guardan completas en el repo** (revierte S-13; las hojas se siguen compartiendo solo con cuentas
+    concretas).
+  - **Medido:** 681 tests en verde, typecheck y lint limpios. 🩸 **`npm ci` falla** (lock sin
+    `@emnapi/*`); un `node_modules` viejo tira 46 tests por falta del driver `postgres`. `DB_PROD` sigue
+    vacía: producción en Supabase no existe.
+  - **Tracker:** solo estado; 048, 049, 050, 051 y 053 pasan a `en curso`. Sus secciones narrativas se
+    movieron a plan, ADR, overview y operations.
+  - ⚠️ **Quedó sin tocar `docs/insumos/notas-segundo-cerebro/retia-crm-reunion-closers-2026-09-24.md`:**
+    no está en git ni en el vault (apareció el 27-sep a las 11:42) y es una versión previa de la
+    propuesta del 24-sep, sin contenido propio. Borrarlo sería irreversible: lo decide Mani.
+  - **Siguiente:** que Mani cierre A1 y A2 (van a ADR con `/grill-with-docs`); con eso se crean los
+    tickets del webhook y del Estado. Sin esperar: el 043 y el 094.
 
 - **2026-09-24 (CIERRE 30): reunión con los closers; el track de implementación queda desbloqueado.**
   Solo documentos, sin código ni migraciones.
@@ -2634,264 +2667,14 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ## Roadmap
 
-> **El avance de los tickets del CRM (F0 a F4) se marca en
-> [`docs/tasks/README.md`](../tasks/README.md)**, no aqui. Esta seccion solo resume lo listo y
-> guarda la deuda heredada.
+> **27-sep: esta sección ya no guarda contenido propio.** Lo que sigue y en qué orden:
+> [`docs/plan.md`](../plan.md) §5 (orden por pasos) y §7 (decisiones abiertas). El estado de cada
+> ticket: [`docs/tasks/README.md`](../tasks/README.md). Lo que vivía aquí (detalles del entorno, datos
+> de validación de C1, deuda heredada, pendientes de seguridad) está en
+> [`docs/operations.md`](../operations.md). El texto anterior: `git show da68cdf:docs/agents/handoff.md`.
 
-> 🆕 **21-sep — el frente vivo cambio.** El trabajo listo para tomar **ya no es la etapa 2**: es la
-> **E1b** (tickets **083, 084, 085**), abierta por la reunion con Alejo. Va antes en el tracker pero
-> es **independiente** de la etapa 2, asi que las dos se pueden trabajar en paralelo **si se reparte
-> por archivos** —la regla de `AGENTS.md`— con una salvedad dura: **las dos necesitan migracion**
-> (la 0021 es de E1b), y dos tickets que necesiten migracion **no van juntos**. Si se paralelizan,
-> E1b se lleva la migracion y la etapa 2 se queda sin tocar el esquema.
->
-> **El orden recomendado, y por que:** E1b primero. No porque sea mas urgente en si, sino porque
-> **el ticket 086 tiene ventana** — el origen humano lo escribe la ingesta del 048, y todo lead que
-> entre antes queda sin origen **de forma irrecuperable**. E1b es su dependencia (086 depende de
-> 084), asi que atrasarla atrasa la unica pieza con reloj.
+### Now
 
-### Now (ready — no unmet dependencies)
-
-> Actualizado el 18-sep 01:35. **F0 a F4 estan cerradas en codigo** y el **029 ya esta cerrado**
-> (anular registros, ADR 0026 + 0027). De los tres tickets que abrio el recorrido visual quedan el
-> **028** (ver como del developer, listo para codear y con su decision tomada) y el **030** (borrar
-> del catalogo). Siguen ahi el **016** (puede esperar), el **007** (operacion) y el **021**
-> (bloqueado por decision de Mani).
->
-> ✅ **Las dos ramas de Neon van en 15 migraciones** y `main` esta desplegado. Lo que queda del 029
-> no es codigo: **abrir el dashboard desplegado con sesion**, que es lo unico que prueba que las
-> consultas nuevas corren contra la base de `production`.
-
-Por partes y en este orden:
-
-1. [x] ~~🔴 **RECORRIDO VISUAL DE LO CONSTRUIDO**~~ — **HECHO el 18-sep** para `/mi-dia`,
-       `/personas/[id]` y `/recursos` (local, rama `dev`), y `/nerd-stats` en local. 7 hallazgos,
-       los 7 arreglados y verificados en el navegador. Detalle completo en la entrada de cierre
-       del 18-sep. **Falta la parte que solo tiene sentido en production:** `/nerd-stats` alla
-       (el chequeo es que los conteos por programa NO den cero; un cero es la subconsulta
-       correlacionada del 025 volviendo) y `/recursos` con contenido, que esta vacia en las dos
-       ramas. De paso sigue pendiente: borrar el cliente OAuth **web** viejo de
-       `google-workspace-mcp`.
-       ⚠️ **Los conteos de `/nerd-stats` ya no son 1.923 y 2.574**: el cron de sync sigue
-       importando leads (4.497 → 4.599 en una hora el 18-sep). El chequeo es "no da cero", no un
-       numero exacto.
-1b.[x] ~~🔴 **029 · Anular un registro**~~ — **HECHO el 18-sep** (ADR 0026 + ADR 0027 nuevo).
-       Predicado central, guardian sobre todo el codigo, cascada atomica, permisos, UI y recorrido
-       visual con 3 hallazgos arreglados. Migraciones **0013 y 0014 SOLO en `dev`**.
-1b'.[x] ~~🔴 **Aplicar 0013 y 0014 en `production`**~~ — **HECHO el 18-sep** con ok de Mani, ANTES
-       del push, que es el orden correcto: una migracion aditiva no rompe el codigo viejo, pero
-       codigo nuevo contra un esquema viejo revienta con *column does not exist*.
-1b''.[ ] **Abrir el dashboard desplegado con sesion** (solo Mani). Sigue pendiente. El 18-sep se
-       pusheo hasta `677cf19` y `/api/health` responde 200, pero **eso no prueba que las consultas
-       corran**: solo que la funcion arranca. De paso `/nerd-stats` alla: los conteos por programa
-       NO deben dar cero (un cero es la subconsulta correlacionada del 025 volviendo); el total de
-       personas ronda 4.600 y sube con cada sync, asi que no se compara contra un numero fijo.
-       ⚠️ **Y no se pudo verificar QUE COMMIT quedo desplegado**: el conector de Vercel pide OAuth.
-1c.[x] ~~**028 · "Ver como" del developer**~~ — **HECHO el 18-sep** (ADR 0028). `rolDeVista` +
-       cookie + selector + guardián sobre `app/` y `lib/`. 543 tests, sin migración. La primera
-       entrega dejó 3 sitios pasando el rol crudo que el guardián no veía: ver el CIERRE 7.
-1d.[x] ~~🔴 **Borrar los 3 productos que `seed:datos` insertó en `production`**~~ — **HECHO el
-       18-sep** con ok de Mani. Quedan los 2 reales. El script temporal
-       `scripts/_limpiar-productos-semilla.ts` ya cumplió y se puede borrar.
-2. [x] ~~**Cargar los 5 enlaces de PayPal**~~ — **HECHO el 18-sep** para ComunicArte (797, 697,
-       400, 300, 200 USD; vigentes, activos, sin producto). Salieron del grupo de WhatsApp
-       *Ventas ComunicArte*. **Tactical queda vacío a propósito** (decisión de Mani): allá los
-       links se generan uno por venta, no hay catálogo. Y las **6 categorías de recurso** también
-       quedaron sembradas, que era el bloqueo real de `/recursos`.
-2a.[x] ~~🔴 **RECORRIDO DE INTERACCIONES (no de carga)**~~ — **HECHO el 18-sep** contra `dev`,
-       clic por clic. Casi todo pasa; salio el ticket **032** (la vista `todo` es menos capaz que
-       la `closer`) y el tercer punto ciego del guardian del 028. Detalle en el CIERRE 8, incluida
-       la lista de lo que NO se recorrio, que no hay que dar por probado.
-2b.[ ] **Crear el primer recurso en `production`** desde `/recursos` (solo Mani). En `dev` ya se
-       hizo y el flujo entero pasa, asi que esto es carga de dato real, no prueba. Candidato: la
-       carpeta de Drive de ComunicArte que Michael compartio el 16-sep, categoria Drive.
-       ("Copiar link" ya se probó con un clic humano el 18-sep y funciona.)
-2c.[ ] 🔴 **Rotar la contraseña de PayPal de Retia y borrar el mensaje**: está en texto plano en el
-       grupo *Ventas JP Vieira* desde el 18-ago. Decisión de Mani.
-2d.[ ] **Decidir si un script de semilla debe escribir en `change_log`.** `cargar-enlaces-pago.ts`
-       inserta en crudo y no deja rastro (los 5 enlaces entraron sin auditoría). Hoy NINGÚN script
-       de semilla lo hace, así que la respuesta vale para todos, no solo para ese.
-3. [ ] **Decidir el 021** (snapshot del dashboard), que sigue bloqueado esperando esa decision.
-4. [ ] **Terminar de preparar `production` para los usuarios reales** (con ok de Mani, junto con
-       el 007). **Al 18-sep ya está casi:** hay 3 usuarios (`administrativa@retiagrowth.com` como
-       gerente, Maru como closer con `closer_id="Maru"` y los 2 programas, y Mani como developer),
-       hay productos y hay 6 categorías de recurso. **Lo que falta es UNA cosa: el correo de Google
-       de Andrea.** Su `closer_id` ya se sabe (`Andrea`, 317 de las 424 llamadas históricas); sin el
-       correo no se la puede dar de alta. Dana, Alejo, `juanse` y Sebastian NO se dan de alta
-       (decisión cerrada de Mani, 18-sep; ver el ticket 007).
-4b.[ ] **Registrar la primera llamada REAL en `production`** (criterios 1 y 5 de la spec; hoy hay
-       0 llamadas, 0 ventas y 0 abonos allá). Dos caminos y NO son equivalentes:
-       **(a)** un closer real (Maru o Andrea) lo hace → cierra el criterio 5, que es literalmente
-       "un closer dado de alta puede registrar";
-       **(b)** Mani como developer → cierra el criterio 1 pero **NO el 5**. Le faltan dos
-       precondiciones: su usuario tiene `closer_id = null` y cero membresías, así que
-       `exigirCloserIdCargado` le tira un 400. Se cargan desde `/ajustes/usuarios` (el 029 lo
-       habilitó para developers). Usar un `closer_id` NUEVO, nunca `Andrea` ni `Maru`, o se le
-       atribuye la llamada a ellas. Desde el 029 la llamada se puede anular, así que es reversible.
-5. [ ] **Probar `/api/cron/sync` en produccion** con el `CRON_SECRET` (escribe leads reales, pedir ok).
-6. [x] ~~**F-03 + F-07** juntos, con migracion~~ — **HECHO el 19-sep** (ADR 0031, migraciones
-       0016 y 0017 en `dev` y en `production`). Eran el mismo bug. Ver el CIERRE 12.
-7. [ ] **F-01:** confirmar el mapeo de `Estado` propuesto en el tracker e implementarlo.
-8. [ ] **Documentar las pestanas nuevas** en `docs/estructura-bbdd.md` y revisar las filas de
-       `New form` (el 16-sep devolvio 2.007 filas con datos; eran 1.320 el 19-ago).
-9. [x] ~~**F-05 · Migrar las fechas ya guardadas.**~~ — **NO HAY NADA QUE MIGRAR** (verificado el
-       19-sep contra `production`: 3.369 de 3.369 personas comparables coinciden exacto con el
-       parser de hoy). Se reparo sola al entrar las fechas en `CAMPOS_COMPARABLES` el 18-sep.
-       🎯 **Leccion: una deuda vieja se verifica antes de trabajarla.** Estaba en la lista desde
-       agosto y costaba un comando comprobar que ya no existia. Lo que sigue del texto original,
-       como registro de lo que fue: El codigo ya escribe con `-05:00` explicito,
-       pero las filas viejas quedaron en la zona del servidor y `compararCampos` no mira fechas,
-       asi que un `npm run sync` normal **no** las repara. Decidir entre migracion puntual o
-       re-sync forzado.
-10. [ ] **016** (plantilla de lead por fuente) esta listo pero puede esperar. Necesita migracion.
-
-11. [ ] 🔭 **ESCALABILIDAD, en sesion propia (Mani, 19-sep).** Nace de decidir que la retencion es
-       "para siempre": si nada se borra y la hoja nunca para de crecer, ¿hasta donde aguanta?
-       **Medido en `production` el 19-sep, para no partir de una opinion:** base completa **15 MB**,
-       `people` 5.104 kB / 4.688 filas, `people.raw` 2.520 kB (**551 bytes por persona**, la mitad
-       de la tabla), `change_log` 600 kB / 2.250 filas.
-       **Lectura honesta: el almacenamiento NO es el problema** —a 551 bytes por persona, un millon
-       de leads son ~550 MB y Postgres ni se inmuta—. Los techos reales son otros y hay que
-       mirarlos en esa sesion: **(a)** el sync lee la hoja COMPLETA en cada corrida y deduplica en
-       memoria (a 3.000 filas tarda 4s; la API de Sheets y la memoria de la funcion son el limite,
-       no la base), **(b)** `change_log` crece con cada cambio y nadie lo poda, **(c)** el plan de
-       Neon. Ver tambien la seccion "Rendimiento y escala" de AGENTS.md.
-
-### Next (blocked until a "Now" item lands)
-
-Cadena del CRM: ver el grafo en `docs/plan.md` y el estado en `docs/tasks/README.md`.
-
-Los cinco de abajo se pueden verificar ahora: desde el 15-sep ya hay un `.env.local` con
-`DATABASE_URL` y los IDs de las hojas (verificado el 16-sep, solo nombres de variables).
-
-- [x] **B-01 (alto)** — hecho el 16-sep: `lib/sheets/plan-sync.ts` + `tests/plan-sync.test.ts`.
-- [x] **F-04** — hecha el 19-sep (lotes de 200 por `ejecutarJuntas`). Esta entrada quedo
-      destildada por descuido; corregida el 20-sep. Ver el CIERRE 13 y el tracker.
-- [x] **S-02 — probado el 20-sep.** La mitad operativa contra `dev` (usuario desechable:
-      `activo` -> `quitar` -> `INACTIVO`, la fila NO se borra, los administradores bajan de 2 a 1),
-      y la de codigo extrayendo el callback a `lib/auth/revalidacion.ts` + 11 tests en
-      `tests/revalidacion-sesion.test.ts`, mordidos quitando el arreglo.
-      🎯 **"El callback `jwt` no es testeable sin extraerlo de Auth.js" era cierto y tambien era
-      la solucion.** La frase describia el arreglo y se leyo durante dos semanas como un
-      impedimento. Extraerlo no cambio una sola regla. Detalle completo en `docs/tasks/README.md`.
-
-Ya no estan bloqueados por Michael (actualizado 20-sep): las tres se resolvieron con decisiones
-de Mani y hoy son alcance de tickets, no preguntas abiertas.
-
-- [ ] **F-01 (alto)** — Es el **ticket 034** desde el 19-sep (ADR 0032). El mapeo a enum murio:
-      nada hardcoded. **Bloqueado por la sesion de diseno del pipeline (HubSpot)**, no por
-      Michael. Mani aclaro el 20-sep que `estado` (de la hoja, estatico) y `etapa` (del CRM, se
-      mueve) son DOS campos, lo que ya cerro el problema de los dos escritores.
-- [ ] **F-06 (medio)** — Entra dentro del **ticket 034**. Desbloqueada el 19-sep: **nunca se
-      borra una persona**, "desaparecio de la hoja" es una categoria mas. Ya no depende de la
-      respuesta de Michael; lo que falta construir es la DETECCION.
-- [x] **S-06 + B-06** — la politica se decidio el 19-sep (se guarda todo para siempre). Lo que
-      queda es de ESCALA y Mani lo quiere en sesion propia: base 15 MB, `people.raw` 2.520 kB
-      (551 bytes por persona). ⚠️ **El ticket 035 lo multiplica**: una foto de comprobante pesa
-      1-5 MB, o sea **20 comprobantes pesan mas que toda la base de hoy**.
-
-### Later (someday / not yet scoped)
-
-- [ ] **024 · Rol developer (F4)** — Mani quiere ser `developer`. Avance parcial sin revisar en
-      `git stash` ("wip 024 rol developer"); retomarlo en su turno. Notas en el ticket.
-- [x] **S-14** — resuelto el 16-sep (ADR 0018).
-- [x] **S-10** — `AUTH_URL` en Vercel Production y callback en el cliente OAuth de `retia-growth`
-      (16-sep).
-- [x] **S-12 — hecho el 20-sep, y result ser DIEZ LINEAS, no una migracion.**
-      🎯 **La deuda estaba descrita mas grande de lo que era.** Decia "se resuelve migrando las
-      mutaciones a Server Actions", y esa migracion **ya habia pasado**: se fueron a contar los
-      handlers que mutan bajo `app/api/` y queda **UNO SOLO**, `POST /api/sync/[programa]`. Todo
-      lo demas es GET o lo maneja Auth.js, y cada Server Action ya trae el chequeo de origen que
-      Next hace por su cuenta.
-      El arreglo es `exigirMismoOrigen` en `lib/auth/origen.ts`, llamado antes que `requireRole`.
-      Compara `Origin` contra `X-Forwarded-Host` (el dominio real detras de Vercel) y cae al
-      `Host` si no esta. **Deja pasar la peticion SIN `Origin`** a proposito, igual que Next: la
-      amenaza es un formulario de otro sitio enviado por el navegador de alguien con sesion, y en
-      ese caso el navegador siempre manda la cabecera. Sin ella no viene de un navegador y no
-      arrastra la cookie de nadie; lo que la protege ahi es `requireRole`.
-      4 tests nuevos en `tests/sync-permisos.test.ts`, incluido el de `x-forwarded-host`: comparar
-      contra el host equivocado **rechazaria peticiones legitimas en produccion sin romper un solo
-      test**, que es la forma silenciosa de este bug.
-      **Impacto real, sin inflarlo:** lo peor que lograba un atacante era que el navegador de un
-      gerente disparara un sync. No leia la respuesta (no hay CORS), no escribia datos de negocio
-      y el candado del ADR 0031 ya impedia que se apilaran. Se arreglo porque era barato, no
-      porque estuviera ardiendo.
-- [x] **`CRON_SECRET`** — en `.env.local` y en Vercel Production desde el 16-sep.
-- [x] **Pantalla para administrar usuarios.** Pasa a ser el ticket 015.
-- [ ] **Las fuentes de `calls`, `sales` y `ad_spend`** estan sembradas pero inactivas: sus
-      encabezados no se han inspeccionado y esta prohibido adivinar mapeos. Empezar con
-      `npm run inspeccionar <sheetId> "<pestana>"`.
-
-### Done
-
-- [x] 2026-09-17 — Tickets 018, 027, 002, 026 y 004; ADR 0022; migraciones 0008-0010 en `dev` y
-      `production`; regla de migraciones en `AGENTS.md`; tres sesiones en paralelo sin choques.
-- [x] 2026-09-16 (cierre) — ADR 0021 + ticket 026; tickets 012, 013, 015, 014, 017, 020;
-      migraciones 0004-0007 en `dev` y `production`; `.env.local` corregido.
-- [x] 2026-09-16 (noche) — Tickets 008-011 (F0), ADR 0020, migraciones 0002-0003 en `dev` y
-      `production`, cuenta de servicio y login en `retia-growth`, `AUTH_URL`, respuestas de
-      Michael bajadas a los docs.
-- [x] 2026-09-16 (tarde) — S-14 (ADR 0018), `CRON_SECRET`, B-01, mensaje a Michael.
-- [x] 2026-09-14/15 — Definido que se construye: `/spec` (`docs/spec.md`), `/grill-with-docs`
-      (ADR 0008-0011, `context.md` actualizado, `AGENTS.md` y tests de roles/paginas ya aplicados
-      en codigo) y `/plan` (`docs/plan.md`, tickets 001-007 en `docs/tasks/`).
-- [x] 2026-09-14 — Repo scaffolded: documentacion heredada borrada, conocimiento destilado.
-- [x] 2026-09-14 — Auditoria de dependencias: fuera `@types/pg` (huerfano), `shadcn` movido a
-      `devDependencies`. Fuera tres componentes de shadcn sin usar (`input`, `label`, `table`).
-- [x] 2026-09-06 al 09-14 — Remediacion de la revision externa del 29 de agosto: se cerraron 21 de
-      33 hallazgos y los tests pasaron de 35 a 68. El informe y el plan completos estan en
-      `git show 269aa6c:docs/revision-2026-08-29.md` y `…:docs/plan-remediacion-2026-09-06.md`.
-- [x] 2026-08-19 — Motor de datos: 10 tablas, sync con Sheets, dedup, bitacora de cambios,
-      verificado contra las hojas reales.
-- [x] 2026-08-18 — Esqueleto desplegado con login de Google, allowlist y roles.
-
-### Datos de validacion — los cortes C1, que ya estan cerrados
-
-Estos numeros salieron de las BBDD reales y **no cambian mas**: C1 esta cerrado. Sirven para
-verificar cualquier motor de metricas que se construya. **No los hardcodees en la app** — la app
-los debe recalcular desde los datos. Si tu codigo produce otra cosa con los mismos insumos, el bug
-es tuyo.
-
-| Comunicarte C1 | Tactical Investor C1 |
-|---|---|
-| Leads 1.100 -> descartados 561 (51,0%) | Filas 2.932 -> personas 1.825 (37,8% duplicados) |
-| Con Calendly 152 (13,8%) -> llamadas 135 | Descartados 741 (40,6%) · cola de setteo 883 (48,4%) |
-| Shows 51 (37,8%) -> cierres 29 (56,9% sobre show) | Agendaron 200 (11,0%) -> llamadas 140 -> shows 72 (51,4%) -> cierres 17 |
-| **Lead a venta 2,64% · invitado a venta 21,5%** | **Lead a venta 0,93% · invitado a venta 8,5%** (bajo el umbral de 15%) |
-| Pauta COP 10.119.796 · CPL COP 9.200 | ROAS motor de llamadas 1,97 · ROAS lanzamiento 9,04 (motores distintos, no se mezclan) |
-| Ritmo sostenido: 73 leads/dia habil | Matriculados finales 31, pero solo 17 pasaron por el registro de llamadas |
-
-Los numeros de los cortes C2 y los seis escenarios de proyeccion del plan original **no se
-migraron a proposito**: eran del 18 de agosto, los dos C2 cierran el 22 y el 29 de septiembre, y
-ya no describen la realidad. Se recalculan cuando haga falta. Estan en
-`git show 269aa6c:PROJECT.md`.
-
-### Detalles del entorno que cuestan tiempo si se olvidan
-
-- **Google Cloud (16-sep):** todo lo de la app vive en el proyecto `retia-growth`: la cuenta de
-  servicio del sync y el cliente OAuth del login. `google-workspace-mcp` es el proyecto personal
-  de Mani para su MCP y no debe tener nada de la app.
-- **El proyecto de Google Cloud vive dentro de la organizacion `retiagrowth.com`** y la cuenta no
-  puede crear proyectos fuera de ella. Ventaja: la cuenta de servicio es interna al dominio, asi
-  que compartirle las hojas no choca con restricciones de compartir hacia afuera.
-- **La pantalla de consentimiento de OAuth es External y esta publicada** ("En produccion"), asi
-  que un closer podria entrar con Gmail personal. Quien controla el acceso es la tabla `users`,
-  no Google.
-- **El gerente del sistema es `administrativa@retiagrowth.com`** (el perfil de Google aparece como
-  "Alejandro Carvajal Parra"). Michael lo confirmo el 18 de agosto tras plantearsele el riesgo dos
-  veces. **Implicacion:** los registros de llamada van a quedar atribuidos a esa cuenta compartida,
-  no a una persona individual. Tenerlo presente al construir el registro de llamadas.
-- **`/ajustes/fuentes` YA NO es de solo lectura** (ticket 016, 19-sep). Lo fue mientras los dos
-  programas compartieron un mapeo que funcionaba, y estaba escrito aqui como desviacion declarada.
-  El 016 la revirtio porque es lo que sostiene el criterio 4 de la spec (crear un programa nuevo
-  sin tocar codigo). Hoy se crean, editan, prueban y activan fuentes desde la pantalla, y el mapeo
-  efectivo se combina **campo por campo**: la fuente gana sobre la plantilla del programa y la
-  plantilla sobre el defecto del codigo (`lib/sheets/plantilla-lead.ts`, ADR 0019). El mapeo ya NO
-  se cambia en `scripts/seed-datos.ts`.
-
-### Ojo al arrancar
-
-**Si recibes un `.env.local` de antes del 6 de septiembre**, le faltan `SHEET_ID_COMUNICARTE` y
-`SHEET_ID_TACTICAL`. Sin ellas `npm run seed:datos` falla con un mensaje que dice exactamente que
-hacer. Los valores estan en la URL de cada hoja, entre `/d/` y `/edit`, y el prefijo de cada uno
-esta en `docs/estructura-bbdd.md`.
+- Decidir A1 y A2 (`docs/plan.md` §7) y bajarlas a ADR con `/grill-with-docs`.
+- Sin esperar: 043 (motor de etapas) y 094 (alcance del closer), en paralelo.
+- Paso 0: reparar el lock y crear Supabase producción (con el ok de Mani).

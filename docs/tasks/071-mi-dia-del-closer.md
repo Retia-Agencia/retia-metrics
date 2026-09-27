@@ -67,7 +67,7 @@ Siempre de un programa (el del selector, ADR 0048). Depende también de 096 y 09
   completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
 - **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".
 
-## 🆕 Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../insumos/fleeting/2026-09-24-reunion-closers-crm.md), resumen en la propuesta §0)
+## 🆕 Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../overview.md), resumen en la propuesta §0)
 
 - **El dolor número uno es registrar después de la llamada** cuando hay varias seguidas. El Inbox es
   la red de seguridad: *"llamada de hoy sin resultado"* tiene que aparecer arriba, para ponerse al día

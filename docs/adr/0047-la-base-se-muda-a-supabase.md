@@ -3,7 +3,7 @@
 **Fecha:** 2026-09-22 · **Estado:** aceptado (Alejandro y Mani, chat del 22-sep) ·
 **Reemplaza:** ADR 0018 (ramas de Neon) · **Enmienda:** ADR 0042 (la razón por la que se
 descartaron los triggers ya no existe), la convención de AGENTS.md sobre `neon-http` ·
-**Origen:** `docs/auditorias/revision-modelo-hubspot-2026-09-22.md`, fichas R1, R11, S1 y S2
+**Origen:** revisión del modelo del 22-sep, fichas R1, R11, S1 y S2
 
 ## Por qué
 

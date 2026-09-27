@@ -1,15 +1,14 @@
 # 0052 — El cuarto rol: Paid Trafficker, y su pregunta `manejaPauta`
 
-**Fecha:** 2026-09-24 · **Estado:** aceptado (Mani: entra en el builder v1) · **Implementación:**
-ticket 102 · **Aplica:** ADR 0025 (las preguntas de rol viven en un solo lugar), ADR 0046 (nota del
-cuarto rol), ADR 0048 (alcance por membresía)
+**Fecha:** 2026-09-24 · **Reescrito:** 2026-09-27 (referencias al dia) · **Estado:** aceptado (Mani: entra en el builder v1) · **Implementación:**
+ticket 102 · **Aplica:** ADR 0025 (las preguntas de rol viven en un solo lugar), ADR 0051 (el CRM genera los
+links), ADR 0048 (alcance por membresía)
 
 ## El problema
 
-El ADR 0046 dejó escrito que los dos límites del link generado (el árbol del CRM puede divergir del de
-Meta, y un anuncio creado en Meta sin pasar por el CRM sale sin UTM correcto) se cierran cuando los
-paid traffickers entran al CRM a crear sus campañas, y que eso era *"un cuarto rol que se decide
-aparte"*. Mani decidió el 24-sep que el rol entra en la primera versión del builder.
+El link generado por el CRM (ADR 0051) tiene dos límites: el árbol de campañas del CRM puede divergir
+del de Meta, y una campaña creada en Meta sin pasar por el CRM sale sin UTM correcto. Los dos se cierran
+cuando los paid traffickers crean sus campañas dentro del CRM. Mani decidió el 24-sep que el rol entra en la primera versión del builder.
 
 Un paid trafficker no cumple ninguna de las tres preguntas que existen hoy en `lib/auth/roles.ts`: no
 tiene acceso total, no administra el CRM y no trabaja leads.
@@ -39,5 +38,5 @@ programas (gasto, registros, agendas, CPL, costo por agenda), sin caja ni compar
 | Alternativa | Por qué no |
 |---|---|
 | Darle rol de gerente | Vería caja, closers y usuarios, y podría administrar |
-| Que las campañas las cargue siempre un gerente | Deja abiertos los dos límites del ADR 0046 |
+| Que las campañas las cargue siempre un gerente | Deja abiertos los dos límites del link generado |
 | Preguntar `rol === "paid_trafficker"` donde haga falta | Es el bug que el ADR 0025 existe para evitar |

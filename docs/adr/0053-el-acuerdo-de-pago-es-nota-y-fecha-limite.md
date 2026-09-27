@@ -1,8 +1,8 @@
 # 0053 — El acuerdo de pago es una nota y una fecha límite, no cuotas
 
-**Fecha:** 2026-09-24 · **Estado:** aceptado (Mani, tras la reunión con los closers) ·
-**Implementación:** etapa 4 del plan v2, ticket 061 · **Enmienda:** ADR 0041 (las cuotas pactadas
-salen de v1) · **Toca:** ADR 0013, ADR 0024, ADR 0037 (la "fecha prometida" de Compromiso Verbal)
+**Fecha:** 2026-09-24 · **Reescrito:** 2026-09-27 (absorbe el ADR retirado 0041) · **Estado:** aceptado (Mani, tras la reunión con los closers) ·
+**Implementación:** ticket 061 (paso 3 de `docs/plan.md`) · **Reemplaza:** ADR 0041 (las cuotas pactadas,
+retirado) · **Toca:** ADR 0013, ADR 0024, ADR 0037 (la "fecha prometida" de Compromiso Verbal)
 
 ## El problema
 
@@ -10,8 +10,7 @@ El ADR 0041 decidió guardar lo prometido como filas de `cuotas_pactadas` (núme
 para que la cartera vencida pudiera decir *"le falta la cuota 2, vencía el 5 de octubre"*. Esa
 decisión se tomó leyendo las hojas, sin preguntarles a los closers cómo pactan.
 
-En la reunión del 24-sep lo contaron
-([transcript](../insumos/fleeting/2026-09-24-reunion-closers-crm.md)):
+En la reunión del 24-sep lo contaron (resumen en `docs/overview.md`):
 
 - **No hay cuotas fijas.** El acuerdo se conversa con cada persona: *"paga el otro 30% en tal fecha y
   el 20% restante en tal otra"*.
@@ -50,8 +49,8 @@ borra, no se escribe y ninguna pantalla la muestra. Vuelve cuando alguien pida c
 - El Inbox (071) muestra "fecha límite vencida con saldo" en vez de "cuota vencida".
 - **Lo que se pierde, dicho:** la cartera no sabe cuánto debía entrar en cada fecha intermedia, solo
   que a la fecha límite no estaba todo. Las fechas intermedias viven en la nota, legibles para el
-  closer y no para una consulta. Si Gerencia pide cobrar por cuota, se vuelve al ADR 0041, que sigue
-  siendo la forma correcta de hacerlo.
+  closer y no para una consulta. Si Gerencia pide cobrar por cuota, la forma correcta es la del ADR 0041
+  (ver abajo).
 - El guardián del rastro (ADR 0042) cubre las dos columnas nuevas sin cambios: viven en `deals`.
 
 ## Alternativas descartadas
@@ -62,3 +61,11 @@ borra, no se escribe y ninguna pantalla la muestra. Vuelve cuando alguien pida c
 | Solo la nota, sin fecha límite | Ninguna consulta puede leer un texto: no habría cartera vencida |
 | `num_cuotas` + fecha | Ya descartado en el ADR 0041: divide el saldo en cuotas iguales que no existen |
 | Fecha límite fija calculada (inicio de clases), sin columna | La regla tiene excepciones (hasta la mitad del programa); un derivado no se puede editar |
+
+## Si algún día se cobra cuota por cuota (lo que decía el ADR 0041)
+
+La forma correcta es **una fila por cuota** en `cuotas_pactadas` (deal, número, monto, fecha pactada y
+el abono que la cumplió), nunca `num_cuotas` y una división: en el primer plan desigual (un abono
+grande y dos cuotas chicas, que es lo normal) la división da un número falso que no lanza ningún error,
+y el closer persigue la plata equivocada. La cartera vencida sería entonces "cuotas con fecha pasada y
+sin abono". Una cuota es lo **prometido**; un abono es lo **recibido**; no se derivan uno del otro.

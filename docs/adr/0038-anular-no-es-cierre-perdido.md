@@ -1,8 +1,8 @@
 # 0038 — Anular no es Cierre Perdido
 
-**Fecha:** 2026-09-21 · **Estado:** aceptado (Mani, 21-sep; decision **D3** del plan v2) ·
-**Implementacion:** etapa 1 del plan v2 · **Amplia:** ADR 0026 (la anulacion llega a `deals`) ·
-**Aplica:** ADR 0027, ADR 0037
+**Fecha:** 2026-09-21 · **Reescrito:** 2026-09-27 (referencias al dia) · **Estado:** aceptado (Mani, 21-sep; decision **D3** del plan del 21-sep) ·
+**Implementacion:** migracion 0020 · **Amplia:** ADR 0026 (la anulacion llega a `deals`) ·
+**Aplica:** ADR 0037
 
 ## El problema
 
@@ -31,12 +31,12 @@ que faltaba era extenderlo al objeto nuevo.
 ## Decidimos
 
 **1. Se conservan las dos, y son ortogonales.** Cierre Perdido es la etapa 10. Anulado es una
-**marca**, no una etapa numero 11.
+**marca**, no una etapa mas (la 11 es Seguimiento, ADR 0037).
 
-**2. `deals` lleva `anulado_por`, `anulado_en`, `anulado_motivo`**, igual que hoy `calls`, `sales`
-y `abonos` (ADR 0026). **Un deal en CUALQUIER etapa puede resultar un error** —sobre todo los
-manuales (ADR 0021)—, asi que la marca no puede vivir dentro del eje de las etapas: si fuera la
-etapa 11, anular un deal borraria el dato de en que etapa estaba cuando se descubrio el error.
+**2. `deals` lleva `anulado_por`, `anulado_en`, `motivo_anulacion`**, igual que `calls` y `abonos`
+(ADR 0026). **Un deal en CUALQUIER etapa puede resultar un error** —sobre todo los
+manuales (ADR 0044)—, asi que la marca no puede vivir dentro del eje de las etapas: si fuera una
+etapa, anular un deal borraria el dato de en que etapa estaba cuando se descubrio el error.
 
 **3. `vigente()` de `lib/queries/vigente.ts` se extiende a `deals`, y su guardian con el.** Toda
 lectura de `deals` en `lib/`, `app/`, `components/` o `scripts/` decide explicitamente: `vigente(deals)`

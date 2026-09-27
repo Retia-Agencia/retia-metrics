@@ -3,7 +3,7 @@ id: 048
 etapa: E3
 serves: "plan v2 §6 etapa 3 · tarea E3-1 · invariante 2 del plan v2, insumo §5.5"
 depends: [042]
-status: todo
+status: en curso
 ---
 
 # 048 — Una sola funcion de ingesta: fila de hoja y payload de webhook entran por la misma puerta

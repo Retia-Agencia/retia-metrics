@@ -8,7 +8,7 @@ type Props = {
 };
 
 /**
- * La HOJA de cada pantalla (sistema "Tinta", docs/design-system.md): una barra de
+ * La HOJA de cada pantalla (sistema "Tinta", docs/structure.md §9): una barra de
  * titulo blanca pegada arriba y el trabajo sobre el fondo gris lila, donde las
  * tarjetas se leen como hojas. Toda pantalla de la app entra por aqui, asi que el
  * encabezado es igual en todas.

@@ -3,7 +3,7 @@
  *
  * Regla de Retia (no del calendario colombiano): un dia habil es cualquier dia que
  * no sea sabado ni domingo. Los festivos CUENTAN como habiles (ver AGENTS.md y
- * docs/agents/context.md, "Dia habil").
+ * docs/overview.md, vocabulario).
  *
  * Las fechas de calendario entran como ISO 'YYYY-MM-DD' (asi vienen
  * cohorts.fechaInicioClases / fechaCierreVentas desde la base) o como Date. Un

@@ -35,7 +35,7 @@ type Props = {
 };
 
 /**
- * El MARCO de la app (sistema "Tinta", docs/design-system.md): oscuro en los dos temas,
+ * El MARCO de la app (sistema "Tinta", docs/structure.md §9): oscuro en los dos temas,
  * para que la navegacion se lea como el marco y el trabajo como la hoja. Declara
  * `data-zona="marco"`, que redefine los tokens (`app/globals.css`), asi que lo que viva
  * aqui dentro se ve bien sin estilos propios.

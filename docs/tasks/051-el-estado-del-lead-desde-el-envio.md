@@ -3,7 +3,7 @@ id: 051
 etapa: E3
 serves: "plan v2 §6 etapa 3 · tarea E3-4 · ADR 0032 (cierra F-01), insumo §2.2"
 depends: [049, 050]
-status: todo
+status: en curso
 ---
 
 # 051 — `lead.estado` sale del envio completo mas reciente **por posicion en la hoja**

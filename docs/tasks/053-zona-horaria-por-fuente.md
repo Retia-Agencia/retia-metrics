@@ -3,7 +3,7 @@ id: 053
 etapa: E3
 serves: "plan v2 §6 etapa 3 · tarea E3-6 · regla dura de fechas (AGENTS.md), insumo §5.2"
 depends: [039, 049]
-status: todo
+status: en curso
 ---
 
 # 053 — Zona horaria por fuente, default Bogota

@@ -1,100 +1,39 @@
-# 0042 — Todo movimiento del CRM deja rastro, y el rastro se escribe desde el dia uno
+# 0042 — Todo movimiento del CRM deja rastro, y el rastro se escribe desde el día uno
 
-**Fecha:** 2026-09-21 · **Estado:** aceptado (Mani, 21-sep; decision **D6** del plan v2) ·
-**Implementacion:** el rastro en la etapa 1; la **pantalla** en la etapa 6 ·
-**Amplia:** ADR 0029 (`change_log` sale del catalogo y llega a las tablas operativas) ·
-**Aplica:** ADR 0026, ADR 0037
+**Fecha:** 2026-09-21 · **Reescrito:** 2026-09-27 (implementado el 22-sep; la alternativa de triggers
+se reabrió con el ADR 0047) · **Estado:** aceptado
 
-## De donde sale
+Mani, 21-sep: *"modificar la info de un Deal se puede hacer cuando sea necesario (para asegurar
+integridad, todo movimiento en el CRM debe quedar en logs en Nerd Stats, trackeado, eso puede ser de
+lo último que configuramos)"*.
 
-Mani, 21-sep, textual:
+## Decidimos
 
-> *"modificar la info de un Deal se puede hacer cuando sea necesario (para asegurar integridad,
-> todo movimiento en el CRM debe quedar en logs en Nerd Stats, trackeado, eso puede ser de lo
-> ultimo que configuramos)"*
+**1. Un deal se edita.** Producto, cohorte, dueño, fechas y motivo se corrigen cuando haga falta. Si
+editar fuera imposible, anular sería el único remedio para un dato mal puesto y terminaría usándose
+para todo (ADR 0038). Lo que **no** se edita a mano es la etapa (solo `moverEtapa()`, ADR 0037).
 
-Son dos mitades y se separan a proposito, porque una es una decision de producto y la otra de
-arquitectura.
+**2. Toda escritura del CRM deja fila con quién, cuándo y qué cambió**, sobre `deals`, `calls`,
+`abonos` y `deal_actividades`, además del catálogo (ADR 0012).
 
-## Mitad 1 · Un Deal se edita
+- La escritura y su fila de `change_log` van **en la misma operación**: `crearConRastro` y
+  `editarConRastro` en `lib/crm/rastro.ts`. No hay que acordarse de registrar.
+- En una edición se guardan **los campos tocados, una fila por campo**, con el valor anterior y el
+  nuevo. Si nada cambió no se escribe nada: un update vacío no es un hecho.
+- El **quién** sale de la sesión, nunca del input; desde un script, de `actorDelScript()` (ADR 0029).
+- `tests/rastro-operativo.test.ts` recorre `lib/`, `app/`, `components/` y `scripts/` y falla si
+  aparece una escritura sobre esas tablas fuera de la función que registra, mordido en los dos
+  sentidos.
+- **El movimiento de etapa no va a `change_log`:** tiene su propia tabla, `deal_etapa_historial`,
+  porque es el hecho del que salen la conversión y el tiempo en etapa.
 
-**Un deal no es inmutable.** Producto, cohorte, owner, fechas y motivo se corrigen cuando haga
-falta.
+**3. Lo que va de último es la PANTALLA** (la bitácora en Nerd Stats, ticket 076), **no el rastro.**
+Si el rastro se retrofitea al final, todo lo escrito antes no tiene historia y no hay manera honesta
+de fabricarla: un historial de auditoría fabricado se ve idéntico al de verdad.
 
-Es coherente con el **ADR 0038**: si editar fuera imposible, **anular seria el unico remedio para
-un dato mal puesto** y terminaria usandose para todo, que es exactamente lo que ese ADR evita. Un
-remedio caro se usa mal; un remedio que borra el hecho se usa para esconder.
+## Abierto
 
-Lo que **no** se edita a mano es la etapa (se mueve por `moverEtapa`, ADR 0037) ni `lead.estado`
-(lo escribe el sync, ADR 0032). Son las dos redundancias declaradas del modelo: en el momento en
-que una persona las edita, pueden divergir de su fuente.
-
-## Mitad 2 · El rastro, y CUANDO se escribe
-
-**Toda escritura del CRM deja fila con quien, cuando, y que cambio de que a que.** No solo el
-catalogo, que es lo que `change_log` cubre hoy, sino **`deals`, `calls`, `abonos` y
-`deal_actividades`**.
-
-⚠️ **Correccion explicita al "eso puede ser de lo ultimo".** Lo que va de ultimo es la
-**pantalla**; el **rastro** se escribe desde la etapa 1.
-
-La razon es la misma del **ADR 0029**, y no es una preferencia: **si se retrofitea al final, todo
-lo escrito antes no tiene historia y no hay manera honesta de fabricarla.** 🩸 Ya paso exacto en
-este repo: los 5 enlaces de PayPal entraron a `production` el 18-sep con `change_log` en **0**, y
-**siguen sin rastro a proposito**, porque un historial de auditoria fabricado se ve identico al de
-verdad. Dentro de tres meses, *"¿quien puso estos links?"* no tiene respuesta en la base.
-
-**La forma, copiada del molde que ya funciona:**
-
-- La escritura y su fila de `change_log` van en **la misma operacion**. No hay forma de escribir
-  sin que quede registrado; **no hay que acordarse de registrar** (ADR 0029).
-- El **quien** sale de la sesion, nunca del input. Desde un script, de `actorDelScript()`
-  (`SCRIPT_ACTOR_EMAIL`), que **se niega a arrancar sin el**.
-- Un **guardian** recorre `lib/`, `app/`, `components/` y `scripts/` y falla si aparece un
-  `insert`/`update` sobre esas tablas fuera de la funcion que registra. Se **muerde en los dos
-  sentidos** antes de darlo por bueno (invariante 3 del plan v2): el guardian del molde de catalogo
-  paso en verde con un `DELETE` clandestino inyectado, y por eso esta regla esta escrita.
-
-**Que NO va a `change_log`:** el movimiento de etapa, que tiene su propia tabla,
-`deal_etapa_historial` (ADR 0037), porque no es "un campo cambio de X a Y" sino el hecho central
-del que salen la conversion y el tiempo en etapa. Son dos rastros con dos formas porque contestan
-dos preguntas; duplicar el movimiento en los dos crearia la divergencia que el invariante 1
-prohibe.
-
-## Mitad 3 · La pantalla (etapa 6, y ahi si de ultimo)
-
-Bitacora en Nerd Stats: toda escritura del CRM, filtrable por usuario, tabla y rango. Es la
-**pantalla** de un rastro que para entonces lleva meses escribiendose. Va de ultimo porque
-**mirar** el historial no urge; **tenerlo** si.
-
-## Consecuencias
-
-- **A favor:** *"¿quien cambio esto?"* tiene respuesta desde el primer dia de uso real, que es el
-  unico dia en que se puede garantizar.
-- **A favor:** editar deja de dar miedo, y por eso anular deja de usarse como goma de borrar.
-- **En contra:** `change_log` crece mucho mas rapido. Hoy tiene 2.340 filas y 600 kB sobre una base
-  de 15 MB (medido el 19 y el 21-sep); con las tablas operativas adentro el ritmo lo marca la
-  operacion diaria, no la configuracion. A la escala de Retia (5 usuarios) no es un problema; se
-  vigila con las cifras de Nerd Stats, no con una politica inventada hoy.
-- **En contra:** cada mutacion nueva tiene que pasar por la funcion que registra, y eso es una
-  friccion real al escribir codigo. Es la friccion correcta: es la misma que impide que exista un
-  `db.insert` suelto.
-- **RESUELTO el 22-sep, al implementar el ticket 041:** se guardan **los campos tocados, una fila
-  por campo**, con su valor anterior y el nuevo (`editarConRastro` en `lib/crm/rastro.ts`). La fila
-  entera es cara y, peor, ilegible: la pregunta que alguien hace tres meses despues es *"¿quien
-  cambio el producto de este deal?"*, y una copia completa obliga a diffear a mano para
-  contestarla. Un "se edito" a secas pierde el dato. Ademas es la forma que `change_log` ya tiene
-  desde el ADR 0012, y una segunda forma de decir lo mismo seria la divergencia que el invariante 1
-  del plan prohibe. **Si nada cambio no se toca la fila ni se escribe bitacora**, igual que
-  `molde.editar`: un `update` que no cambia nada no es un hecho, y registrarlo llenaria la bitacora
-  de ruido que esconde los cambios de verdad.
-
-## Alternativas descartadas
-
-**Triggers de Postgres.** Atrapan **toda** escritura, incluida la de un script suelto, y eso suena
-mejor. Pero el "quien" vive en la sesion de la app y no en la de la base (el driver es
-`neon-http`, sin sesion ni transacciones interactivas), asi que el trigger tendria que leer un
-`SET` que ese driver no puede mantener. Quedaria un rastro sin actor, que es medio rastro.
-
-**Dejar el rastro para el final, como Mani dijo primero.** Rechazado con el precedente de los 5
-enlaces de PayPal, que es el mismo error ya cometido en esta misma base.
+🔴 **R2: que el rastro lo garantice la base con triggers** en vez de un guardián por regex. Se descartó
+porque con `neon-http` el trigger no sabía quién escribía; con las transacciones reales del ADR 0047,
+`SET LOCAL app.user_id` lo resuelve. El guardián de hoy no ve alias de tabla ni `.delete(`. Decide
+Mani (`docs/plan.md` §7).

@@ -52,7 +52,7 @@ vencia el 5 de octubre"*.
 
 Si.
 
-## ⚠️ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../insumos/fleeting/2026-09-24-reunion-closers-crm.md), resumen en la propuesta §0): el proceso real no tiene cuotas
+## ⚠️ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../overview.md), resumen en la propuesta §0): el proceso real no tiene cuotas
 
 Los acuerdos de pago se **conversan**, no se pactan en cuotas fijas (*"paga el otro 30% en tal
 fecha y el 20% restante en tal otra"*). Regla: pagar todo **antes del inicio del programa**, como

@@ -1,6 +1,6 @@
 # 0029 — Una fila de catalogo se crea por el molde, tambien desde un script
 
-**Fecha:** 2026-09-18 · **Estado:** aceptado (Mani, 18-sep) · **Enmienda:** ADR 0012, ADR 0024
+**Fecha:** 2026-09-18 · **Reescrito:** 2026-09-27 (el estado de los scripts pasa a `docs/operations.md`) · **Estado:** aceptado (Mani, 18-sep) · **Enmienda:** ADR 0012, ADR 0024
 
 ## El problema
 
@@ -63,27 +63,22 @@ justamente para el caso en que no hay ningun administrador con quien actuar, asi
 actor lo dejaria inservible el dia que hace falta. Son dos excepciones nombradas, no un permiso
 general para que un script escriba en crudo.
 
-## Estado real hoy, sin adornos
+## Las excepciones y lo que quedo sin decidir
 
-| Script | Escribe en | Pasa por el molde | Deja rastro |
-|---|---|---|---|
-| `scripts/cargar-enlaces-pago.ts` | base viva | **si** (desde este ADR) | **si** |
-| `scripts/seed-datos.ts` | base vacia (excepcion 4) | no | no |
-| `scripts/usuarios.ts` | acceso de emergencia (excepcion 4) | valida con el mismo zod, escribe en crudo | no |
-| `scripts/backfill-fechas-centinela.ts` | reparacion de una sola vez, ya ejecutada | no aplica (no es catalogo) | no |
+| Script | Escribe en | Pasa por el molde |
+|---|---|---|
+| `scripts/cargar-enlaces-pago.ts` | base viva | **si** |
+| `scripts/seed-datos.ts`, `scripts/seed-users.ts` | base vacia (excepcion 4) | no |
+| `scripts/usuarios.ts` | acceso de emergencia (excepcion 4) | valida con el mismo zod, escribe en crudo |
 
-**Lo que NO se arreglo con este ADR, y hay que decirlo:** los 5 enlaces de pago que ya estan en
-`production` siguen sin fila en `change_log`. No se les inventa una con fecha de hoy y un autor
-elegido a dedo: un rastro de auditoria fabricado es peor que su ausencia, porque el de mentira se
-ve igual que el de verdad. Queda escrito aca y en el handoff: esos 5 entraron el 18-sep con el
-script viejo.
+**Sin decidir:** `seed-datos.ts` corrido sobre una base viva puede insertar de mas (asi nacieron 3
+productos duplicados el 18-sep, porque reconcilia por nombre). Cuales secciones son de arranque y
+cuales son configuracion re-corrible es su propia decision. Hasta entonces, **no se corre una semilla
+sobre una base con datos reales**.
 
-**Y queda una cosa sin decidir:** `seed-datos.ts` corrido sobre una base viva sigue pudiendo
-insertar de mas, que es como nacieron los 3 productos duplicados. La reja natural es que cada
-seccion se niegue a tocar una tabla que ya tiene filas que la semilla no puso, pero eso choca con
-un uso real: la seccion de `sources` **actualiza** filas existentes a proposito, y re-sembrar es
-como hoy se ajusta el plan de sync en `dev`. Decidir cuales secciones son de arranque y cuales
-son configuracion re-corrible es su propia decision, y no se toma de paso en este ADR.
+Los 5 enlaces de PayPal que entraron sin rastro el 18-sep vivian en la base de Neon, que se abandono
+el 22-sep (ADR 0047). La leccion se conserva: **un rastro de auditoria fabricado es peor que su
+ausencia**, porque el de mentira se ve igual que el de verdad.
 
 ## Consecuencias
 

@@ -13,7 +13,8 @@ import { crearBaseDePrueba } from "./helpers/base-de-prueba";
  * 🩸 Typeform escribe `Submitted At` en UTC, y se parseaba como si fuera de Bogota:
  * cada fecha quedaba cinco horas corrida, y de 7pm a medianoche el lead caia en el
  * dia siguiente del embudo, sin un solo error. Evidencia en
- * `docs/insumos/notas-segundo-cerebro/flujo-de-leads-y-closers-retia.md` (una fila con
+ * la reconstruccion del flujo del 20-sep (`docs/structure.md` §1; el original en git,
+ * `da68cdf:docs/insumos/notas-segundo-cerebro/flujo-de-leads-y-closers-retia.md`: una fila con
  * `Submitted At` 16/9 23:05 sellada por el Apps Script a las 18:08 de Bogota) y en los
  * consolidados C2, que solo cuadran con la pestana Urgencias restando cinco horas.
  */

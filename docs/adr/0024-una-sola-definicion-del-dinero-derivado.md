@@ -1,9 +1,11 @@
 # 0024 — Una sola definicion por pregunta: el dinero derivado primero, y despues cualquier otra
 
-> El nombre del archivo dice "dinero derivado" porque asi nacio. La enmienda del mismo dia lo
-> generalizo; el archivo no se renombro para no romper los enlaces que ya lo citan.
+**Fecha:** 2026-09-17 · **Reescrito:** 2026-09-27 (la enmienda del mismo dia pasa al cuerpo; `sales` ya no existe) · **Estado:** aceptado (Mani, al cerrar el ticket 006)
 
-**Fecha:** 2026-09-17 · **Estado:** aceptado (Mani, al cerrar el ticket 006)
+> ⚠️ **Hoy `lib/queries/saldo.ts` y `tests/saldo-centralizado.test.ts` NO EXISTEN:** salieron con `sales`
+> en el corte de la migracion 0020 (22-sep). Los recrea el ticket 060 sobre el deal
+> (`git show 722a47f^:lib/queries/saldo.ts`). La regla sigue vigente para cuando vuelvan: el saldo del
+> deal es `precio del producto - suma de abonos vigentes`, definido una sola vez.
 
 Al cerrar el 006 se reporto que `historialDePersona` "compone `ventasDePersona` en vez de repetir
 el SQL del saldo". Mani lo leyo y respondio la regla general: **no podemos dejar que el saldo se
@@ -46,7 +48,7 @@ a que alguien "arregle" una sola: un comentario que pida no separarlas no falla 
 la resta en SQL sobre `numeric`, devueltas como texto (ADR 0013). Centralizar no aflojo eso; lo
 dejo en un solo sitio donde se puede verificar de una mirada.
 
-## Enmienda (17-sep, mismo dia): la regla no es solo del dinero
+## La regla no es solo del dinero
 
 Al cerrar el ticket 023 aparecio el mismo patron sin dinero de por medio:
 `lib/queries/programas.ts` tenia **tres** funciones que significaban "programas activos" y solo se

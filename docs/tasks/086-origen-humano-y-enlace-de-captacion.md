@@ -62,7 +62,7 @@ nombre) y el formulario ya captura `utm_content`: cero cambios en Typeform. Lo l
 (ticket 085) y lo escribe la ingesta en `traido_por_user_id`. Resuelve la ficha P2 de la revisión del
 22-sep.
 
-## ⬇️ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../insumos/fleeting/2026-09-24-reunion-closers-crm.md), resumen en la propuesta §0): baja de prioridad
+## ⬇️ Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../overview.md), resumen en la propuesta §0): baja de prioridad
 
 A la pregunta de si invitan gente o buscan leads propios, los closers dijeron que **no**. El diseño
 sigue siendo correcto (y `traido_por_user_id` lo sigue escribiendo la ingesta si llega un link de

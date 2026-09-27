@@ -1,107 +1,68 @@
 # Retia Metrics
 
-Dashboard comercial interno de Retia para los programas **Comunicarte** y **Tactical Investor**.
-Lee las BBDD de Google Sheets, calcula el embudo, proyecta la cohorte y deja que los closers
-registren sus llamadas.
-
-El contrato para trabajar en este repo esta en [`AGENTS.md`](./AGENTS.md): las reglas que no se
-pueden violar, las convenciones y los comandos de verificacion. El vocabulario del negocio esta en
-[`docs/agents/context.md`](./docs/agents/context.md), el estado y lo que sigue en
-[`docs/agents/handoff.md`](./docs/agents/handoff.md), y las decisiones de arquitectura en
-[`docs/adr/`](./docs/adr/).
+CRM interno de Retia para sus programas (hoy **ComunicArte** y **Tactical Investor**): los leads, los
+deals, las llamadas, los pagos y la plata cobrada, con las métricas calculándose solas encima.
 
 > Acceso restringido. La app maneja datos personales de leads y cifras comerciales:
-> no hay ninguna vista publica y no existe el auto-registro.
+> no hay ninguna vista pública y no existe el auto-registro.
+
+## Dónde está todo
+
+| Documento | Qué tiene |
+|---|---|
+| [`AGENTS.md`](./AGENTS.md) | el contrato para trabajar en este repo: reglas que no se pueden violar, contratos, comandos y convenciones |
+| [`docs/plan.md`](./docs/plan.md) | el plan de implementación: tracks, orden, hitos y decisiones abiertas. **Punto de entrada del trabajo** |
+| [`docs/overview.md`](./docs/overview.md) | qué es la herramienta de principio a fin, y el vocabulario del negocio |
+| [`docs/structure.md`](./docs/structure.md) | diagramas y componentes, técnicos y operacionales, y el sistema de diseño |
+| [`docs/operations.md`](./docs/operations.md) | entornos, URLs de cada programa, variables, base de datos, scripts, despliegue |
+| [`docs/adr/`](./docs/adr/README.md) | las decisiones de arquitectura y por qué |
+| [`docs/tasks/README.md`](./docs/tasks/README.md) | el estado de cada ticket |
+| [`docs/agents/handoff.md`](./docs/agents/handoff.md) | la memoria de sesiones |
 
 ## Requisitos
 
-- Node 20 o superior (probado en 25.9)
-- Una base de datos [Neon Postgres](https://neon.tech)
-- Credenciales de Google OAuth
-
-El gestor de paquetes es **npm**.
+- Node 20 o superior. El gestor de paquetes es **npm**.
+- Una base PostgreSQL en [Supabase](https://supabase.com) (ADR 0047).
+- Credenciales de Google OAuth.
 
 ## Setup local
 
 ```bash
-npm install
-cp .env.example .env.local
-```
-
-Llena `.env.local`:
-
-| Variable | De donde sale |
-|---|---|
-| `DATABASE_URL` | Neon > tu proyecto > Connection string (con `?sslmode=require`) |
-| `AUTH_SECRET` | `npx auth secret` |
-| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google Cloud Console > APIs y servicios > Credenciales > ID de cliente OAuth (tipo *Aplicacion web*) |
-| `SEED_GERENTE_EMAIL` | Tu correo de Google. Es el primer y unico usuario que existira al arrancar. |
-
-URIs de redireccion autorizadas en Google Cloud:
-
-```
-http://localhost:3000/api/auth/callback/google
-https://<tu-dominio-de-vercel>/api/auth/callback/google
-```
-
-Luego:
-
-```bash
-npm run db:migrate    # crea la tabla users en Neon
-npm run seed:users    # te inserta como gerente
+npm run setup      # arma .env.local
+npm run db:migrate # aplica las migraciones a la base de DATABASE_URL_DIRECTA
+npm run seed:users # te inserta como gerente (SEED_GERENTE_EMAIL)
+npm run seed:datos # siembra una base VACÍA: nunca sobre una base con datos reales
 npm run dev
 ```
 
+Qué va en cada variable y de dónde sale: [`docs/operations.md`](./docs/operations.md) §3. Mientras el
+`package-lock.json` no esté reparado, instala con `npm install --no-package-lock` (`npm ci` falla).
+
+Las URIs de redirección autorizadas en Google Cloud son
+`http://localhost:3000/api/auth/callback/google` y `https://<dominio>/api/auth/callback/google`.
+
 ## Comandos
 
-| Comando | Que hace |
+| Comando | Qué hace |
 |---|---|
-| `npm run dev` | Servidor de desarrollo |
-| `npm run build` | Build de produccion |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm test` | Tests (Vitest) |
-| `npm run db:generate` | Genera migracion a partir del schema |
-| `npm run db:migrate` | Aplica migraciones |
-| `npm run db:studio` | Explorador de la base de datos |
-| `npm run seed:users` | Crea o promueve al gerente de `SEED_GERENTE_EMAIL` |
+| `npm run dev` | servidor de desarrollo |
+| `npm test` · `npm run typecheck` · `npm run lint` | los tres chequeos; ninguna etapa se cierra sin los tres limpios |
+| `npm run build` | build de producción |
+| `npm run db:generate` · `npm run db:migrate` | migraciones: **se lee el SQL generado antes de aplicarlo**, y producción pide el ok de Mani |
+| `npm run usuarios` | acceso de emergencia (la vía normal es `/ajustes/usuarios`) |
 
-## Deploy a Vercel
+La lista completa está en [`docs/operations.md`](./docs/operations.md) §5.
 
-1. Sube el repo a GitHub.
-2. En Vercel: **Add New > Project** y selecciona el repo. El framework se detecta solo.
-3. Carga las variables de entorno de `.env.example` con los valores de produccion.
-   `AUTH_SECRET` debe ser distinto al de local.
-4. Despliega, copia el dominio y agrega su callback en Google Cloud.
-5. Corre `npm run db:migrate` apuntando a la base de produccion.
+## Cómo se agrega alguien al equipo
 
-## Como se agrega alguien al equipo
-
-No hay registro abierto: quien no este en la tabla `users` con `activo = true` recibe un
-error de acceso denegado aunque su cuenta de Google sea valida.
-
-```bash
-npm run usuarios                                          # quien puede entrar hoy
-npm run usuarios -- agregar ana@retiagrowth.com gerente   # agrega un gerente
-npm run usuarios -- agregar dana@retiagrowth.com closer "Dana"   # agrega un closer
-npm run usuarios -- quitar ana@retiagrowth.com            # desactiva, no borra
-```
-
-El tercer argumento de un closer es su **`closer_id`**: el nombre exacto con el que aparece
-en la columna de closer de la BBDD (`Juanjo`, `Dana`, `Andrea`). Sin eso sus llamadas no se
-cruzan con su usuario en la Fase 4.
-
-Quitar a alguien lo desactiva, no lo borra: el rastro de quien registro que se conserva.
-El script se niega a desactivar al ultimo gerente activo.
+Desde `/ajustes/usuarios`. No hay registro abierto: quien no esté en la tabla `users` con
+`activo = true` recibe acceso denegado aunque su cuenta de Google sea válida. Un closer necesita al
+menos una membresía de programa: solo ve los programas donde es miembro (ADR 0048). Quitar a alguien
+lo desactiva, no lo borra, y lo saca de inmediato; el sistema no deja desactivar al último
+administrador.
 
 ## Roles
 
-| | gerente | closer |
-|---|---|---|
-| Dashboards de programa | si | no |
-| Comparativo entre closers, caja, pauta | si | no |
-| Su propia cola y sus propias llamadas | si | si |
-| Documentos | si (sube) | si (lee) |
-| Ajustes | si | no |
-
-No hay herencia: son conjuntos disjuntos y la validacion es de servidor, en cada ruta.
-Esconder un boton no es seguridad.
+`closer`, `gerente`, `developer` y, cuando entre, `paid_trafficker`. Qué ve y qué puede cada uno:
+[`docs/structure.md`](./docs/structure.md) §8. Gerente y closer son disjuntos (ADR 0003) y la
+validación es de servidor en cada ruta: esconder un botón no es seguridad.

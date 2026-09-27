@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
  * La firma de la app: un cuadro de marca con la "R", y el nombre. Morado con la "R"
  * blanca sobre fondo claro; lila con la "R" negra dentro del marco o en oscuro. Vive
  * sola porque la usan el marco (la barra lateral) y el login, y tiene que ser la misma
- * en los dos (docs/design-system.md).
+ * en los dos (docs/structure.md §9).
  */
 export function Marca({ className, subtitulo }: { className?: string; subtitulo?: string }) {
   return (

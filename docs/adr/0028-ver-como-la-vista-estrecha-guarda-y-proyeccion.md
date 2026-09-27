@@ -1,6 +1,6 @@
 # 0028 — "Ver como": la vista estrecha la proyeccion Y la guarda
 
-**Fecha:** 2026-09-18 · **Estado:** aceptado (Mani, ticket 028) · **Enmienda:** ADR 0025
+**Fecha:** 2026-09-18 · **Reescrito:** 2026-09-27 (consecuencias al dia) · **Estado:** aceptado (Mani, ticket 028) · **Enmienda:** ADR 0025
 
 El ADR 0025 dejo dos cosas escritas que este ADR toca:
 
@@ -80,15 +80,13 @@ Ahora lee la columna `rol` y decide en memoria con `trabajaLeads` (closer + deve
   compara `session.user.rol` a mano en vez de pasar por `rolDeVista` (mismo molde que el guardian
   de slugs del ticket 009 y el de vigencia del ADR 0026). Cierra el frente que el ADR 0025 punto 5
   dejo abierto: hasta hoy "ningun `rol === "..."` a mano" se sostenia solo en la revision.
-- **⚠️ Las escrituras del developer en vista `closer` son reales y no se pueden anular** (hoy no
-  existe borrado ni anulacion de una llamada, ADR 0026 pendiente). Una llamada de prueba en
-  `production` mete al developer en el comparativo entre closers de forma permanente: **las pruebas
-  del developer van en `dev`**.
+- **⚠️ Las escrituras del developer en vista `closer` son reales.** Se pueden anular (ADR 0026), pero
+  una prueba en produccion mete al developer en el comparativo entre closers: **las pruebas del
+  developer van en `dev`**.
 - Sin migracion: la cookie no es esquema, y el `closerId` del developer se carga desde
   `/ajustes/usuarios`, que ya existe (ticket 015, adelantado por el 029).
 
 ## Lo que queda fuera
 
-- **Anular un registro.** Es una carencia real y otro ticket (toca cada consulta del embudo).
-- Persistir la vista por usuario en la base: una cookie por navegador alcanza para una herramienta
-  de construccion de un solo dueño.
+Persistir la vista por usuario en la base: una cookie por navegador alcanza para una herramienta de
+construccion de un solo dueño.
