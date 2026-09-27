@@ -3,7 +3,7 @@ id: 103
 etapa: E2
 serves: "ADR 0037 · decisiones de Mani del 27-sep (ticket 045, sección ⚠️)"
 depends: [045, 046, 047]
-status: todo
+status: done
 ---
 
 # 103 — El motor de etapas con las decisiones de Mani del 27-sep

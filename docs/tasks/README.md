@@ -101,7 +101,7 @@ El corazón del sistema, y la razón de que vaya **antes** que el sync.
 | [x] | 045 | [`moverEtapa()` y su historial](./045-mover-etapa-y-su-historial.md) (E2-3) | 043, 044 | done · 27-sep · `lib/deals/mover-etapa.ts`, migración 0025 (aplicada en `dev`) |
 | [x] | 046 | [Guardián: nadie escribe `deals.etapa` fuera del motor](./046-guardian-del-motor-de-etapas.md) (E2-4) | 045 | done · 27-sep · `tests/motor-etapas-guardian.test.ts` + reja en `lib/crm/rastro.ts` |
 | [x] | 047 | [Saltos permitidos y retroceso con motivo](./047-saltos-permitidos-y-retroceso.md) (E2-5) | 045 | done · 27-sep · `abrirDeal()`: dónde nace un deal |
-| [ ] | 103 | [El motor con las decisiones de Mani del 27-sep](./103-motor-de-etapas-decisiones-de-mani.md) | 045, 046, 047 | todo · cohorte destino aparte, motivos por tipo, solo dueño y administradores mueven, llamadas desde la entrada a la etapa · migración 0026 de la sesión principal |
+| [x] | 103 | [El motor con las decisiones de Mani del 27-sep](./103-motor-de-etapas-decisiones-de-mani.md) | 045, 046, 047 | done · 27-sep · cohorte destino aparte, motivos por tipo, solo dueño y administradores mueven (el admin también los sin dueño), la llamada que cuenta es la más reciente, motivo al perder, datos en el mismo movimiento · migración 0026 en `dev` |
 
 ## E3 · Sync v2
 

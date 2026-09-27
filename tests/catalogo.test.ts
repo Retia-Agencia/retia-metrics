@@ -160,14 +160,18 @@ describe.each(CATALOGOS)("molde de catalogo — $titulo", (caso) => {
     expect(await cat.listar()).toHaveLength(caso.semillas.length + 1);
 
     const log = await logDe(creada.id);
-    expect(log).toHaveLength(1);
-    expect(log[0].campo).toBe("nombre");
-    expect(log[0].valorAnterior).toBeNull();
-    expect(log[0].valorNuevo).toBe(caso.nuevos.crear);
-    expect(log[0].origen).toBe("app");
-    expect(log[0].userId).toBe(userId);
-    expect(log[0].etiqueta).toBe(caso.nuevos.crear);
-    expect(log[0].tabla).toBe(caso.nombreTabla);
+    // Una fila de change_log por campo parseado no nulo. `motivos` escribe ademas `tipo`
+    // (default `perdida`, ticket 103), asi que aqui se mira la fila de `nombre` en vez de
+    // exigir que sea la unica; el resto de catalogos solo tienen `nombre`.
+    const filaNombre = log.find((l) => l.campo === "nombre");
+    expect(filaNombre).toBeDefined();
+    expect(filaNombre!.valorAnterior).toBeNull();
+    expect(filaNombre!.valorNuevo).toBe(caso.nuevos.crear);
+    expect(filaNombre!.origen).toBe("app");
+    expect(filaNombre!.userId).toBe(userId);
+    expect(filaNombre!.etiqueta).toBe(caso.nuevos.crear);
+    expect(filaNombre!.tabla).toBe(caso.nombreTabla);
+    expect(log.every((l) => l.userId === userId && l.origen === "app")).toBe(true);
   });
 
   it("c. crear rechaza input invalido (solo espacios) con ZodError y no escribe nada", async () => {

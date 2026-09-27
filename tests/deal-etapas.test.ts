@@ -110,6 +110,27 @@ describe("las reglas generales del ADR 0037", () => {
     expect([...conMotivo].sort()).toEqual(["A1", "A2", "P", "R", "T15", "T29"].sort());
   });
 
+  it("cada flecha con lista de motivos (tipoDeMotivo) tiene su lista, y coincide con la decision de Mani (punto 2)", () => {
+    // La flecha decide la lista: P pierde, T29 re-agenda, T15 se echa atras, R recupera.
+    // Las anulaciones (A1, A2) exigen motivo pero no una LISTA (su motivo es la anulacion,
+    // ADR 0026): tipoDeMotivo null, aceptan cualquier motivo activo.
+    const esperado: Record<string, string | null> = {
+      P: "perdida",
+      T29: "reagenda",
+      T15: "retroceso",
+      R: "recuperacion",
+      A1: null,
+      A2: null,
+    };
+    for (const t of TRANSICIONES.filter((t) => t.exigeMotivo)) {
+      expect(t.tipoDeMotivo, `${t.id}`).toBe(esperado[t.id]);
+    }
+    // Y ninguna flecha SIN motivo declara una lista.
+    for (const t of TRANSICIONES.filter((t) => !t.exigeMotivo)) {
+      expect(t.tipoDeMotivo, `${t.id}`).toBeNull();
+    }
+  });
+
   it("la unica flecha sobre si misma es mover una cita de Agendado (T9)", () => {
     const bucles = TRANSICIONES.filter((t) => t.de === t.a);
     expect(bucles.map((t) => t.id)).toEqual(["T9"]);

@@ -36,9 +36,12 @@ export interface HechosDelDeal {
   /** La fecha limite de pago del acuerdo (ADR 0053), `YYYY-MM-DD`. */
   fechaLimitePago: string | null;
   /**
-   * La cohorte a la que quiere entrar (Proxima Cohorte): la del deal, si es una
-   * cohorte `futuro`. No hay columna aparte: ir a Proxima Cohorte ES pasar el deal a
-   * vender la siguiente cohorte, y el cambio de `cohort_id` queda en `change_log`.
+   * La cohorte a la que quiere entrar (Proxima Cohorte): `deals.cohorte_destino_id`
+   * (Mani 27-sep, ticket 103, punto 1). Es una columna APARTE de `cohort_id`, que sigue
+   * siendo la de origen: ir a Proxima Cohorte ya NO muda al deal de cohorte, asi la
+   * conversion de su cohorte de origen no lo pierde. Que sea del mismo programa y
+   * distinta de la de origen lo valida el motor al escribirla; aqui solo se pregunta si
+   * esta puesta.
    */
   cohorteDestinoId: string | null;
   /** Cuando hay que volver a contactarlo (Seguimiento), `YYYY-MM-DD`. */

@@ -17,14 +17,12 @@ docs/adr/README.md.
 
 Estado al cierre del 27-sep en la noche (CIERRE 33): main tiene las dos sesiones del dia fusionadas.
 E2 (043-047) cerrada por Alejandro (lib/deals/etapas.ts, requisitos.ts, mover-etapa.ts, saldo.ts,
-guardian); 094 (alcance del closer) y ADR 0054/0055 (A1 y A2) cerrados por Mani. 26 migraciones
-(0000-0025), todas en dev. Produccion en Supabase NO existe.
+guardian); 094 (alcance del closer), ADR 0054/0055 (A1 y A2) y 103 cerrados por Mani. 27 migraciones
+(0000-0026), todas en dev. 880 tests. Produccion en Supabase NO existe.
 
 Siguiente:
-1. Ticket 103: lo que Mani decidio el 27-sep sobre el motor y que el 045 no tiene (cohorte destino
-   como columna aparte, motivos en cuatro listas por tipo, solo el dueño y los administradores mueven,
-   la "llamada sucedio" mirando solo las llamadas desde que entro a la etapa, deals.motivo_id al
-   perder). Lleva migracion 0026 (la genera y aplica la sesion principal).
+1. El 103 ya esta hecho (27-sep noche): el motor tiene las decisiones de Mani. Siguiente del plan §5:
+   E3 minimo; empezar por el 052 (abrir y mover deals desde la ingesta con abrirDeal/moverEtapa).
 2. Crear los tickets del webhook (ADR 0055) y del Estado desde el form (ADR 0054); preguntarle a Mani
    los dos puntos abiertos del ADR 0055.
 3. Fuera del repo: variable `estado` y partial submission point en los dos Typeform.
@@ -39,6 +37,20 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 > Las entradas anteriores al 27-sep citan documentos que se fundieron ese día (spec, plan v2, propuesta,
 > revisión, glosario, insumos): `docs/plan.md` §8 dice dónde quedó cada uno.
+
+- **2026-09-27 (CIERRE 33): merge de las dos sesiones y el 103.** Sesión de Mani, noche.
+  - **Merge** (`17d279d`): quedó el E2 de Alejandro (está en `dev`); se descartaron el 043 y el 044
+    duplicados de la sesión de Mani; se conservaron el 094 y los ADR 0054/0055. Subido.
+  - **103** (Kiro, revisado): migración **0026** (`deals.cohorte_destino_id`, `motivos.tipo` con cuatro
+    listas; los 8 motivos de `dev` quedaron `perdida`), aplicada en `dev`. El motor: cohorte destino
+    aparte (la de origen no se muda), motivo de la lista de la flecha (P perdida, T29 reagenda, T15
+    retroceso, R recuperación; A1/A2 aceptan cualquiera), solo el dueño o un administrador mueven (el
+    administrador también los sin dueño, confirmado por Mani), "la llamada sucedió" mira la más
+    reciente (bug de la segunda llamada), `deals.motivo_id` al perder, y `datos` escritos en la misma
+    transacción que el movimiento (si se rechaza, no queda nada).
+  - 🩸 **Lección:** dos personas tomaron E2 el mismo día sobre el mismo `main`, sin saberlo. Antes de
+    tomar un ticket: `git fetch` y mirar el tracker de `origin/main`.
+  - **Medido:** 880 tests, typecheck y lint limpios.
 
 - **2026-09-27 (CIERRE 32): E2 cerrada, el motor de etapas existe.** Alejandro, sesión de la tarde.
   Commits `134d293` a `5087b6a`, todos en `main`.

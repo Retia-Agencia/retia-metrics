@@ -8,14 +8,16 @@ import {
   deals,
   leads,
   motivos,
+  productos,
 } from "@/lib/db/schema";
-import { crearConRastro } from "@/lib/crm/rastro";
+import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { esViolacionUnica } from "@/lib/db/errores";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
+import { esAdministrador, type Rol } from "@/lib/auth/roles";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
-import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal, type Transicion } from "./etapas";
+import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal, type TipoMotivo, type Transicion } from "./etapas";
 import { queLeFalta, type HechosDelDeal, type RequisitoFaltante } from "./requisitos";
 
 /**
@@ -41,9 +43,35 @@ import { queLeFalta, type HechosDelDeal, type RequisitoFaltante } from "./requis
 
 /**
  * Quien mueve. El usuario sale SIEMPRE de la sesion (o de `actorDelScript()`), nunca
- * del input: este modulo lo recibe aparte y no lo busca en ningun otro lado.
+ * del input: este modulo lo recibe aparte y no lo busca en ningun otro lado. Trae su
+ * ROL de vista para que el motor —y no quien lo llame— decida si esta persona puede
+ * mover ESTE deal (Mani, 27-sep, ticket 103): "quien puede mover que deal" era la
+ * segunda puerta que alguien olvidaba, asi que vive con la reja y no afuera.
  */
-export type Actor = { tipo: "sistema" } | { tipo: "usuario"; userId: string };
+export type Actor =
+  | { tipo: "sistema" }
+  | { tipo: "usuario"; userId: string; rol: Rol };
+
+/**
+ * Datos que la flecha PIDE y que se escriben en el mismo movimiento (Mani, 27-sep,
+ * ticket 103, punto 6; como en HubSpot). Antes la pantalla tenia que escribir la
+ * fecha —u otro campo— en una operacion y mover en otra: si la segunda fallaba, el
+ * campo quedaba puesto y el deal sin mover. Aqui van juntos en la MISMA transaccion.
+ *
+ * 🎯 **Nada que PRUEBE un hecho entra por aca.** Las llamadas, los contactos y los
+ * abonos se leen de la base, nunca del input: si el llamador pudiera afirmar "ya tiene
+ * abono", la reja no seria una reja (mismo principio que los hechos). Estos son datos
+ * del propio deal (producto, fechas, acuerdo, cohorte destino), no evidencia de un
+ * evento.
+ */
+export interface DatosMovimiento {
+  productoId?: string | null;
+  fechaLimitePago?: string | null;
+  acuerdoPago?: string | null;
+  /** La cohorte a la que quiere entrar (Proxima Cohorte). `deals.cohorte_destino_id`. */
+  cohorteDestinoId?: string | null;
+  fechaSeguimiento?: string | null;
+}
 
 export interface Movimiento {
   dealId: string;
@@ -51,6 +79,11 @@ export interface Movimiento {
   actor: Actor;
   /** Del catalogo `motivos`. Lo exigen las flechas con `exigeMotivo` (043). */
   motivoId?: string | null;
+  /**
+   * Los campos que la flecha pide, escritos en la misma transaccion que el movimiento
+   * (punto 6). Opcional: una flecha que no pide nada no los necesita.
+   */
+  datos?: DatosMovimiento;
 }
 
 /** El movimiento no se hizo, y dice por que con lo que le falta al deal. */
@@ -90,10 +123,19 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
       throw new MovimientoRechazado(faltantes[0].mensaje, faltantes);
     }
 
-    const rechazoPorActor = quienNoPuede(t, mov.actor);
+    // Quien puede tomar la flecha: primero la clase (sistema vs persona), y para una
+    // persona ademas si es el dueño o administra (punto 3). Un 403 sin escribir nada.
+    const rechazoPorActor = quienNoPuede(t, mov.actor, deal);
     if (rechazoPorActor) throw new MovimientoRechazado(rechazoPorActor, [], 403);
 
-    const hechos = await leerHechos(tx, deal, mov.motivoId ?? null);
+    // Punto 6: los datos que la flecha pide se escriben AHORA, en esta transaccion, y
+    // por `editarConRastro` (asi quedan en `change_log`). Se hace ANTES de leer los
+    // hechos para que el requisito se mida contra lo recien escrito, y como todo va en
+    // la misma transaccion, si el requisito falla mas abajo esta escritura tambien se
+    // deshace. La etapa NUNCA se toca aca: la mueve el update de mas abajo.
+    const dealActualizado = await escribirDatos(tx, deal, mov);
+
+    const hechos = await leerHechos(tx, dealActualizado, mov.motivoId ?? null, t.tipoDeMotivo);
     const faltantes = queLeFalta(de, mov.a, hechos);
     if (faltantes.length > 0) {
       throw new MovimientoRechazado(faltantes.map((f) => f.mensaje).join(" "), faltantes);
@@ -114,9 +156,15 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
 
     // La condicion `etapa = de` es la reja contra dos movimientos simultaneos: si otro
     // movio el deal entre la lectura y esta escritura, no se pisa, se rechaza.
+    // Al perder (P) se escribe `deals.motivo_id` en la misma transaccion (punto 5): la
+    // ficha del deal muestra el motivo, no solo el historial.
     const escritas = await tx
       .update(deals)
-      .set({ etapa: mov.a, updatedAt: new Date() })
+      .set({
+        etapa: mov.a,
+        updatedAt: new Date(),
+        ...(mov.a === "cierre_perdido" ? { motivoId: mov.motivoId ?? null } : {}),
+      })
       .where(and(eq(deals.id, deal.id), eq(deals.etapa, de)))
       .returning();
     if (escritas.length === 0) {
@@ -133,6 +181,81 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
 
     return { de, a: mov.a, transicion: t };
   });
+}
+
+/**
+ * Escribe en el deal, dentro de la transaccion del movimiento, los datos que trae el
+ * movimiento (punto 6). No filtra por flecha: quien puede mover el deal (su dueño o
+ * quien administra) tambien puede editarlo, asi que un dato de mas no abre ninguna
+ * puerta; lo que la flecha EXIGE lo sigue midiendo `queLeFalta`. Valida cada uno antes:
+ *  - **producto**: activo y del mismo programa del deal (frontera, ADR 0043).
+ *  - **cohorte destino**: del mismo programa (ADR 0043) y distinta de la de origen
+ *    (`cohort_id`); no se exige estado `futuro` (Mani, 27-sep: no decidido).
+ *
+ * Pasa por `editarConRastro` para que quede en `change_log`, y usa la `tx` como base
+ * asi la escritura vive o muere con el movimiento. Devuelve el deal con los valores ya
+ * aplicados, para que `leerHechos` mida el requisito contra lo recien escrito sin
+ * re-consultar la fila.
+ */
+async function escribirDatos(tx: Db, deal: FilaDeal, mov: Movimiento): Promise<FilaDeal> {
+  const datos = mov.datos;
+  if (!datos) return deal;
+
+  const cambios: Record<string, unknown> = {};
+  const aplicar = <K extends keyof FilaDeal>(campo: K, valor: FilaDeal[K]) => {
+    cambios[campo as string] = valor;
+  };
+
+  if (datos.productoId !== undefined) {
+    if (datos.productoId !== null) {
+      const [prod] = await tx
+        .select({ id: productos.id })
+        .from(productos)
+        .where(and(eq(productos.id, datos.productoId), eq(productos.activo, true), eq(productos.programId, deal.programId)));
+      if (!prod) {
+        throw new MovimientoRechazado("El producto no existe, está inactivo o es de otro programa.", [], 422);
+      }
+    }
+    aplicar("productoId", datos.productoId);
+  }
+  if (datos.fechaLimitePago !== undefined) aplicar("fechaLimitePago", datos.fechaLimitePago);
+  if (datos.acuerdoPago !== undefined) aplicar("acuerdoPago", datos.acuerdoPago);
+  if (datos.fechaSeguimiento !== undefined) aplicar("fechaSeguimiento", datos.fechaSeguimiento);
+  if (datos.cohorteDestinoId !== undefined) {
+    if (datos.cohorteDestinoId !== null) {
+      // El programa es frontera (ADR 0043): la cohorte destino tiene que ser del mismo
+      // programa del deal, o mezclaria dos economias sin lanzar ningun error.
+      const [coh] = await tx
+        .select({ id: cohorts.id })
+        .from(cohorts)
+        .where(and(eq(cohorts.id, datos.cohorteDestinoId), eq(cohorts.programId, deal.programId)));
+      if (!coh) {
+        throw new MovimientoRechazado("La cohorte destino no existe o es de otro programa.", [], 422);
+      }
+      // Mudarse a la MISMA cohorte de origen no es Proxima Cohorte: es un no-op que
+      // dejaria el deal apuntando a si mismo.
+      if (datos.cohorteDestinoId === deal.cohortId) {
+        throw new MovimientoRechazado("La cohorte destino tiene que ser distinta a la de origen.", [], 422);
+      }
+    }
+    aplicar("cohorteDestinoId", datos.cohorteDestinoId);
+  }
+
+  if (Object.keys(cambios).length === 0) return deal;
+
+  await editarConRastro(
+    {
+      db: tx,
+      tabla: deals,
+      nombreTabla: "deals",
+      actorId: mov.actor.tipo === "usuario" ? mov.actor.userId : null,
+      etiqueta: deal.id,
+    },
+    deal.id,
+    cambios,
+  );
+
+  return { ...deal, ...cambios } as FilaDeal;
 }
 
 /**
@@ -239,13 +362,27 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
  * entra un abono); una de closer la toma una persona. Que una persona "mueva a
  * Abonado" sin abono, o que el sistema decida por el closer que alguien dijo que no,
  * es justo lo que la tabla prohibe.
+ *
+ * Y para una PERSONA hay una segunda reja (Mani, 27-sep, punto 3): solo mueve el deal
+ * su dueño o quien administra (`esAdministrador`, ADR 0025 — nunca `rol === "gerente"`
+ * a mano, o el developer quedaria afuera). Un deal sin dueño no lo mueve una persona
+ * que no administra: lo mueve el sistema hasta que alguien lo reclame. La reja vive
+ * aca, en el motor, y no en quien lo llama, que era la puerta que alguien olvidaba.
  */
-function quienNoPuede(t: Transicion, actor: Actor): string | null {
+function quienNoPuede(t: Transicion, actor: Actor, deal: FilaDeal): string | null {
   if (t.quien === "sistema" && actor.tipo === "usuario") {
     return `A ${NOMBRE_DE_ETAPA[t.a]} no se mueve a mano: la mueve el CRM cuando pasa el hecho (${t.id}).`;
   }
   if (t.quien === "closer" && actor.tipo === "sistema") {
     return `A ${NOMBRE_DE_ETAPA[t.a]} lo mueve una persona, no el sistema (${t.id}).`;
+  }
+  if (actor.tipo === "usuario" && !esAdministrador(actor.rol)) {
+    if (deal.ownerUserId == null) {
+      return "Este deal no tiene dueño: hasta que alguien lo reclame, solo lo mueve el sistema.";
+    }
+    if (deal.ownerUserId !== actor.userId) {
+      return "Solo el dueño del deal o un administrador pueden moverlo.";
+    }
   }
   return null;
 }
@@ -276,7 +413,12 @@ const RESULTADOS_FALLIDOS = ["no_show", "cancelada"] as const;
 type FilaDeal = typeof deals.$inferSelect;
 
 /** Los hechos del deal, leidos de la base dentro de la misma transaccion. */
-async function leerHechos(tx: Db, deal: FilaDeal, motivoId: string | null): Promise<HechosDelDeal> {
+async function leerHechos(
+  tx: Db,
+  deal: FilaDeal,
+  motivoId: string | null,
+  tipoEsperado: TipoMotivo | null,
+): Promise<HechosDelDeal> {
   const desde = await entradaALaEtapaActual(tx, deal);
 
   // Un contacto cuenta si se registro DESDE que el deal entro a su etapa actual: el
@@ -307,33 +449,45 @@ async function leerHechos(tx: Db, deal: FilaDeal, motivoId: string | null): Prom
     .orderBy(desc(abonos.createdAt))
     .limit(1);
 
-  const cohorteFutura = deal.cohortId
-    ? await tx
-        .select({ id: cohorts.id })
-        .from(cohorts)
-        .where(and(eq(cohorts.id, deal.cohortId), eq(cohorts.estado, "futuro")))
-    : [];
-
-  // Un motivo que no existe o esta desactivado no es un motivo.
-  const motivoValido = motivoId
-    ? await tx
-        .select({ id: motivos.id })
-        .from(motivos)
-        .where(and(eq(motivos.id, motivoId), eq(motivos.activo, true)))
-    : [];
+  // Un motivo cuenta solo si existe, esta activo y es de la LISTA que la flecha pide
+  // (punto 2, Mani 27-sep): un motivo de perdida no sirve para una re-agenda. Un motivo
+  // inactivo o de otra lista es "no motivo" —el requisito lo reporta como faltante— sin
+  // un error aparte, igual que ya pasaba con el desactivado.
+  const motivoValido =
+    motivoId && tipoEsperado
+      ? await tx
+          .select({ id: motivos.id })
+          .from(motivos)
+          .where(and(eq(motivos.id, motivoId), eq(motivos.activo, true), eq(motivos.tipo, tipoEsperado)))
+      : motivoId
+        ? await tx
+            .select({ id: motivos.id })
+            .from(motivos)
+            .where(and(eq(motivos.id, motivoId), eq(motivos.activo, true)))
+        : [];
 
   const saldo = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
+
+  // La llamada mas reciente (`orderBy createdAt desc`, ya aplicado): "sucedio" mira SOLO
+  // la ultima (punto 4, Mani 27-sep), no `some()` sobre todas. Con "un deal, muchas
+  // llamadas" (ADR 0037), un `show` viejo no puede llevar a Atendido si la ultima
+  // llamada —una agenda nueva— todavia no ocurrio.
+  const ultimaLlamada = llamadas[0];
 
   return {
     tieneDueno: deal.ownerUserId != null,
     tieneContactoRegistrado: contacto != null,
     tieneLlamadaConFecha: llamadas.some((l) => l.resultado === "agendada" && l.fechaAgenda != null),
-    llamadaSucedio: llamadas.some((l) => (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(l.resultado)),
+    llamadaSucedio:
+      ultimaLlamada != null && (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(ultimaLlamada.resultado),
     llamadaFallida:
-      llamadas.length > 0 && (RESULTADOS_FALLIDOS as readonly string[]).includes(llamadas[0].resultado),
+      ultimaLlamada != null && (RESULTADOS_FALLIDOS as readonly string[]).includes(ultimaLlamada.resultado),
     productoId: deal.productoId,
     fechaLimitePago: deal.fechaLimitePago,
-    cohorteDestinoId: cohorteFutura[0]?.id ?? null,
+    // La cohorte destino es la columna aparte (Mani 27-sep, punto 1): `cohort_id` sigue
+    // siendo la de origen y no se toca al ir a Proxima Cohorte, asi la conversion de la
+    // cohorte de origen no pierde el deal. Ya no se exige que sea una cohorte `futuro`.
+    cohorteDestinoId: deal.cohorteDestinoId,
     fechaSeguimiento: deal.fechaSeguimiento,
     abonosVigentes: saldo?.abonosVigentes ?? 0,
     abonoConComprobante: ultimoAbono?.comprobanteUrl != null && ultimoAbono.comprobanteUrl.trim() !== "",

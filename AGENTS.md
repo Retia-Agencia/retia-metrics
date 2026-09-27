@@ -373,7 +373,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 867 pasando al 27-sep, noche, tras fusionar E2 y el 094). Los tests que necesitan base usan PGlite en
+- **Test:** `npm test` (Vitest, 880 pasando al 27-sep, noche, tras el 103). Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
   ⚠️ **27-sep: `npm ci` falla** porque `package-lock.json` no está sincronizado (faltan
   `@emnapi/runtime` y `@emnapi/core`). Mientras nadie lo repare con `npm install` y un commit del

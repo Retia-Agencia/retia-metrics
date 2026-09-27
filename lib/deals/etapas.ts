@@ -1,4 +1,4 @@
-import { etapaDealEnum, type EtapaDeal } from "@/lib/db/schema";
+import { etapaDealEnum, tipoMotivoEnum, type EtapaDeal } from "@/lib/db/schema";
 
 /**
  * Las once etapas del Deal y que movimiento entre ellas es legal (ADR 0037,
@@ -21,6 +21,9 @@ import { etapaDealEnum, type EtapaDeal } from "@/lib/db/schema";
  */
 
 export type { EtapaDeal };
+
+/** Las cuatro listas de motivos (ADR 0012, Mani 27-sep, ticket 103). */
+export type TipoMotivo = (typeof tipoMotivoEnum.enumValues)[number];
 
 /** Todas las etapas, en el orden del enum de la base. */
 export const ETAPAS: readonly EtapaDeal[] = etapaDealEnum.enumValues;
@@ -73,6 +76,14 @@ export interface Transicion {
   readonly quien: QuienMueve;
   /** La flecha solo se toma con un motivo escrito (lo aplica el ticket 047). */
   readonly exigeMotivo: boolean;
+  /**
+   * A que LISTA de motivos pertenece el que exige esta flecha (Mani 27-sep, ticket
+   * 103). La flecha decide la lista: P pierde (`perdida`), T29 re-agenda (`reagenda`),
+   * T15 se echa atras (`retroceso`), R recupera (`recuperacion`). Va aqui, en la tabla,
+   * y no en `requisitos.ts`: es el mismo sitio donde ya vive `exigeMotivo`, asi que la
+   * lista y la exigencia no pueden divergir. `null` cuando la flecha no pide motivo.
+   */
+  readonly tipoDeMotivo: TipoMotivo | null;
 }
 
 type Fila = readonly [
@@ -81,6 +92,7 @@ type Fila = readonly [
   a: EtapaDeal | readonly EtapaDeal[],
   quien: QuienMueve,
   exigeMotivo?: boolean,
+  tipoDeMotivo?: TipoMotivo,
 ];
 
 /**
@@ -123,7 +135,7 @@ const FILAS: readonly Fila[] = [
   ["T12", "atendido", "compromiso_verbal", "closer"],
   ["T13", "atendido", "abonado", "sistema"],
   ["T14", "atendido", "completo", "sistema"],
-  ["T15", "compromiso_verbal", "seguimiento", "closer", true],
+  ["T15", "compromiso_verbal", "seguimiento", "closer", true, "retroceso"],
   ["T16", "compromiso_verbal", "abonado", "sistema"],
   ["T17", "compromiso_verbal", "completo", "sistema"],
   ["T19", "en_contacto", "proxima_cohorte", "closer"],
@@ -137,9 +149,9 @@ const FILAS: readonly Fila[] = [
   ["T26", "seguimiento", ["abonado", "completo"], "sistema"],
   ["T27", "seguimiento", "agendado", "ambos"],
   ["T28", "seguimiento", "proxima_cohorte", "closer"],
-  ["T29", "atendido", "pendiente_reagenda", "closer", true],
-  ["P", ABIERTAS_QUE_SE_PUEDEN_PERDER, "cierre_perdido", "closer", true],
-  ["R", "cierre_perdido", ["en_contacto", "agendado", "proxima_cohorte"], "closer", true],
+  ["T29", "atendido", "pendiente_reagenda", "closer", true, "reagenda"],
+  ["P", ABIERTAS_QUE_SE_PUEDEN_PERDER, "cierre_perdido", "closer", true, "perdida"],
+  ["R", "cierre_perdido", ["en_contacto", "agendado", "proxima_cohorte"], "closer", true, "recuperacion"],
   ["A1", "abonado", ["en_contacto", "atendido", "compromiso_verbal", "seguimiento"], "sistema", true],
   ["A2", "completo", "abonado", "sistema", true],
 ];
@@ -149,10 +161,18 @@ function comoLista(valor: EtapaDeal | readonly EtapaDeal[]): readonly EtapaDeal[
 }
 
 /** Todas las flechas legales, una por par (de, a). */
-export const TRANSICIONES: readonly Transicion[] = FILAS.flatMap(([id, de, a, quien, exigeMotivo]) =>
-  comoLista(de).flatMap((origen) =>
-    comoLista(a).map((destino) => ({ id, de: origen, a: destino, quien, exigeMotivo: exigeMotivo ?? false })),
-  ),
+export const TRANSICIONES: readonly Transicion[] = FILAS.flatMap(
+  ([id, de, a, quien, exigeMotivo, tipoDeMotivo]) =>
+    comoLista(de).flatMap((origen) =>
+      comoLista(a).map((destino) => ({
+        id,
+        de: origen,
+        a: destino,
+        quien,
+        exigeMotivo: exigeMotivo ?? false,
+        tipoDeMotivo: tipoDeMotivo ?? null,
+      })),
+    ),
 );
 
 const clave = (de: EtapaDeal, a: EtapaDeal) => `${de}>${a}`;
@@ -163,6 +183,11 @@ for (const t of TRANSICIONES) {
   // exige motivo, y la que gane dependeria del orden del arreglo. Se falla al cargar.
   if (INDICE.has(clave(t.de, t.a))) {
     throw new Error(`Transicion duplicada ${t.de} → ${t.a} (${INDICE.get(clave(t.de, t.a))!.id} y ${t.id})`);
+  }
+  // Un tipo de motivo sin exigir motivo no significa nada: seria una lista que nadie
+  // pide. Se falla al cargar para que la tabla no diga dos cosas.
+  if (t.tipoDeMotivo != null && !t.exigeMotivo) {
+    throw new Error(`La flecha ${t.id} declara tipo de motivo (${t.tipoDeMotivo}) pero no exige motivo.`);
   }
   INDICE.set(clave(t.de, t.a), t);
 }
