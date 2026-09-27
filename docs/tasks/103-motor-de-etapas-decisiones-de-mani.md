@@ -40,7 +40,7 @@ cifras que se ven creíbles y están mal.
 5. **`deals.motivo_id` se escribe al perder** (P), en la misma transacción. Hoy el motivo queda solo en el
    historial y la ficha del deal no lo tiene.
 
-## 🟡 Recomendación, por confirmar con Mani
+## ✅ Confirmado por Mani el 27-sep
 
 6. **El requisito se llena en el mismo movimiento, como en HubSpot.** Hoy `moverEtapa` solo lee hechos:
    para pasar a Seguimiento, la pantalla primero tiene que escribir la fecha (otra escritura) y después

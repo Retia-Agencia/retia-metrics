@@ -183,6 +183,13 @@
       "when": 1790536578450,
       "tag": "0025_acuerdo-de-pago-y-seguimiento",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790550430782,
+      "tag": "0026_cohorte-destino-y-tipo-de-motivo",
+      "breakpoints": true
     }
   ]
 }

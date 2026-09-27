@@ -76,6 +76,20 @@ export const tipoContactoEnum = pgEnum("tipo_contacto", ["correo", "telefono"]);
  */
 export const tipoActividadEnum = pgEnum("tipo_actividad", ["contacto", "nota"]);
 
+/**
+ * A que lista pertenece un motivo (Mani, 27-sep, ticket 103). Es TIPO y no catalogo
+ * porque el motor decide con el: cada flecha que exige motivo acepta solo los de su
+ * lista (P perdida, T29 reagenda, T15 retroceso, R recuperacion). Sin listas separadas,
+ * el reporte de "por que perdemos" se mezcla con los de re-agenda sin lanzar un error.
+ * Los motivos en si siguen siendo filas editables (ADR 0012).
+ */
+export const tipoMotivoEnum = pgEnum("tipo_motivo", [
+  "perdida",
+  "reagenda",
+  "retroceso",
+  "recuperacion",
+]);
+
 export const resultadoLlamadaEnum = pgEnum("resultado_llamada", [
   "agendada",
   "show",
@@ -628,6 +642,14 @@ export const deals = pgTable(
     ),
     onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
     /**
+     * Proxima Cohorte guarda las DOS cohortes (Mani, 27-sep, ticket 103): `cohortId`
+     * sigue siendo la de origen, asi su conversion no pierde el deal, y esta es a la
+     * que va. Sin ella la etapa 9 es un cementerio (T19-T21, T28).
+     */
+    cohorteDestinoId: uuid("cohorte_destino_id").references(() => cohorts.id, {
+      onDelete: "restrict",
+    }),
+    /**
      * Quien lo creo. **Nulo significa el sync**, igual que `changeLog.userId`: en
      * un movimiento del sistema no hay usuario, y un id inventado ahi seria peor
      * que la ausencia.
@@ -1076,10 +1098,13 @@ export const motivos = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     nombre: text("nombre").notNull(),
+    /** Todos los motivos que existian antes del 27-sep eran de perdida (ADR 0015). */
+    tipo: tipoMotivoEnum("tipo").notNull().default("perdida"),
     activo: boolean("activo").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("motivos_nombre_idx").on(sql`lower(${t.nombre})`)],
+  // El mismo nombre puede vivir en dos listas ("Sin dinero" se pierde o se echa atras).
+  (t) => [uniqueIndex("motivos_tipo_nombre_idx").on(t.tipo, sql`lower(${t.nombre})`)],
 );
 
 /**
