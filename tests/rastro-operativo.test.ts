@@ -282,6 +282,19 @@ describe("crearConRastro y editarConRastro", () => {
     });
   });
 
+  it("la etapa de un deal no entra por la puerta generica: se rechaza sin tocar nada (ticket 046)", async () => {
+    const id = await crearConRastro(ctx(), { leadId: leadA, programId: programaA });
+    await db.delete(changeLog);
+    // En una variable, que es justo lo que el guardian estatico no alcanza a ver.
+    const valores: Record<string, unknown> = { etapa: "completo", ownerUserId: gerente };
+
+    await expect(editarConRastro(ctx(), id, valores)).rejects.toThrow(/moverEtapa\(\)/);
+
+    const [d] = await db.select().from(deals).where(eq(deals.id, id));
+    expect(d).toMatchObject({ etapa: "pendiente_setteo", ownerUserId: null });
+    expect(await db.select().from(changeLog)).toHaveLength(0);
+  });
+
   it("si nada cambio no se toca la fila ni se escribe bitacora", async () => {
     const id = await crearConRastro(ctx(), { leadId: leadA, programId: programaA });
     await db.delete(changeLog);
