@@ -77,6 +77,22 @@ interface Contexto {
    * bitacora. La arma el llamador, que es quien sabe como se nombra su entidad.
    */
   etiqueta: string;
+  /**
+   * Solo lo pasa `abrirDeal()` de `lib/deals/mover-etapa.ts`: es el unico que puede
+   * crear un deal diciendo en que etapa nace, porque escribe tambien su primera fila de
+   * historial. Que no aparezca en otro archivo lo vigila `tests/motor-etapas-guardian.test.ts`.
+   */
+  desdeElMotor?: true;
+}
+
+/** La etapa de un deal solo la escribe el motor (ADR 0037, ticket 046). */
+function exigirQueLaEtapaVengaDelMotor(ctx: Contexto, valores: Record<string, unknown>): void {
+  // Es un error de programacion, no del usuario: sale como 500. Se revisa en tiempo de
+  // ejecucion porque la etapa puede llegar dentro de una variable que el guardian
+  // estatico no ve.
+  if (ctx.nombreTabla === "deals" && "etapa" in valores && !ctx.desdeElMotor) {
+    throw new Error("La etapa de un deal no se escribe aqui: usa moverEtapa() o abrirDeal() de lib/deals/mover-etapa.ts.");
+  }
 }
 
 /**
@@ -91,6 +107,7 @@ export async function crearConRastro(
   valores: Record<string, unknown>,
 ): Promise<string> {
   const { db, tabla, nombreTabla, actorId, etiqueta } = ctx;
+  exigirQueLaEtapaVengaDelMotor(ctx, valores);
   // El id se genera en codigo para meter el alta y su bitacora en el mismo lote:
   // `ejecutarJuntas` no deja encadenar el id recien insertado.
   const id = crypto.randomUUID();
@@ -143,6 +160,8 @@ export async function editarConRastro(
   valores: Record<string, unknown>,
 ): Promise<boolean> {
   const { db, tabla, nombreTabla, actorId, etiqueta } = ctx;
+  // Editar la etapa no tiene excepcion: moverla es `moverEtapa()`, que no pasa por aqui.
+  exigirQueLaEtapaVengaDelMotor({ ...ctx, desdeElMotor: undefined }, valores);
   const columnas = tabla as unknown as Record<string, unknown>;
   const idCol = columnas.id as never;
 

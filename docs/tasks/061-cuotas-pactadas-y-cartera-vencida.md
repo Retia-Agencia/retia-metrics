@@ -81,3 +81,10 @@ nadie llena miente en la cartera sin lanzar un error. Migración: la sesión pri
 - [ ] Un deal anulado no sale en cartera (`vigente`).
 - [ ] La fecha prellenada es la del inicio de clases y se puede cambiar, con su fila de `change_log`.
 - [ ] La cartera no suma abonos a mano: importa el saldo del módulo (ADR 0024).
+
+---
+
+> **27-sep:** las dos columnas del ADR 0053 (`deals.acuerdo_pago`, `deals.fecha_limite_pago`) ya existen:
+> las adelanto la migracion **0025** con el ticket 045, porque el motor de etapas lee la fecha limite
+> para Compromiso Verbal. A este ticket le queda el prellenado con el inicio de clases, la pantalla y la
+> cartera vencida.

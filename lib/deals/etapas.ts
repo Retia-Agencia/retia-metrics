@@ -1,144 +1,183 @@
-import type { EtapaDeal } from "@/lib/db/schema";
+import { etapaDealEnum, type EtapaDeal } from "@/lib/db/schema";
 
 /**
- * La tabla de transiciones de etapa de un deal, como DATO (ADR 0037, structure.md
- * §3.1, adoptada por Mani el 24-sep). Que movimiento entre etapas es legal se lee
- * de esta lista; **no hay una cadena de `if` que lo decida en otra parte**, porque
- * dos lugares respondiendo "¿se puede mover de X a Y?" con reglas distintas es un
- * numero callado que esta mal (la familia del ticket 025 y del centinela del ano 1).
+ * Las once etapas del Deal y que movimiento entre ellas es legal (ADR 0037,
+ * ticket 043).
  *
- * Esto es SOLO la lista blanca. No valida requisitos (ticket 044: que haya producto,
- * fecha o abono), no mueve nada (ticket 045: `moverEtapa()`, el unico que escribe
- * `deals.etapa`). Aca solo vive "¿esta flecha existe en el diagrama?".
+ * La tabla de transiciones es DATO, no una cadena de `if`: vive en `TRANSICIONES`,
+ * se lee, y la copia en prosa es `docs/structure.md` §3.1 (adoptada por Mani el
+ * 24-sep). Cada fila lleva el id de esa tabla (T1 a T29, P, R, A1, A2) para que
+ * una fila del codigo y una fila del documento se puedan cruzar a ojo.
  *
- * Reglas duras que la forma de la tabla tiene que sostener, y que los tests muerden:
- * - `completo` es terminal: la unica flecha que SALE de el es A2 (a `abonado`), y
- *   NUNCA llega a `cierre_perdido` (un reembolso es otro flujo, no una perdida).
- * - `cierre_perdido` (P) llega desde las NUEVE etapas abiertas — 1 a 7, 9 y 11 —,
- *   nunca desde `completo`.
- * - La recuperacion (R) desde `cierre_perdido` va SOLO a `en_contacto`, `agendado` o
- *   `proxima_cohorte`: a 5-8 solo se entra por un evento (Grain, abono), no a mano.
- * - Ninguna regla compara numeros de etapa ni posiciones de arreglo: cada etapa se
- *   nombra una por una. El "numero" de structure.md es un nombre, no un orden
- *   (Re-agenda viene despues de Agendado, Seguimiento despues de Atendido).
+ * Este modulo solo contesta *"¿se puede pasar de A a B?"*. Lo que le falta a un
+ * deal para entrar a una etapa es del ticket 044, escribir el movimiento y su
+ * historial es de `moverEtapa()` (045), y exigir el motivo es del 047. Aqui el
+ * motivo es solo un dato de la fila (`exigeMotivo`), para que el 047 no tenga que
+ * volver a escribir la lista.
+ *
+ * ⚠️ **Ninguna regla compara numeros de etapa** ("4 o mas" no significa nada): el
+ * numero es un nombre, no el orden. Re-agenda (3) viene despues de Agendado (4) y
+ * Seguimiento (11) despues de Atendido (5). Toda regla nombra las etapas una por una.
  */
 
-/** Quien dispara una transicion: el CRM al pasar el evento, una persona, o cualquiera. */
-export type QuienMueve = "sistema" | "closer" | "ambos";
+export type { EtapaDeal };
+
+/** Todas las etapas, en el orden del enum de la base. */
+export const ETAPAS: readonly EtapaDeal[] = etapaDealEnum.enumValues;
 
 /**
- * Que clase de movimiento es. `avance` sigue el camino, `perdida` es P (a Cierre
- * Perdido), `recuperacion` es R (sale de Cierre Perdido) y `reversion` es deshacer
- * un hecho contable (A1, A2) o un sentido (T15 el sí que se echa atras, T29 la
- * llamada que no alcanzo). Las reversiones son una SEGUNDA lista explicita, no una
- * excepcion a la lista blanca: una flecha de reversion sigue siendo una flecha que
- * la tabla enumera, y el test la exige por su id.
+ * El numero con el que Comercial nombra cada etapa. **Es un nombre, no un orden**:
+ * no se ordena ni se compara por el.
  */
-export type ClaseDeMovimiento = "avance" | "perdida" | "recuperacion" | "reversion";
+export const NUMERO_DE_ETAPA: Readonly<Record<EtapaDeal, number>> = {
+  pendiente_setteo: 1,
+  en_contacto: 2,
+  pendiente_reagenda: 3,
+  agendado: 4,
+  atendido: 5,
+  compromiso_verbal: 6,
+  abonado: 7,
+  completo: 8,
+  proxima_cohorte: 9,
+  cierre_perdido: 10,
+  seguimiento: 11,
+};
 
-export type Transicion = {
-  /** El id del diagrama (T1..T29, P, R, A1, A2). T11 quedo reemplazada y no existe. */
-  id: string;
-  de: EtapaDeal;
-  a: EtapaDeal;
-  quien: QuienMueve;
-  clase: ClaseDeMovimiento;
+/** Como se lee cada etapa en pantalla. */
+export const NOMBRE_DE_ETAPA: Readonly<Record<EtapaDeal, string>> = {
+  pendiente_setteo: "Pendiente Setteo",
+  en_contacto: "En Contacto",
+  pendiente_reagenda: "Pendiente Re-agenda",
+  agendado: "Agendado",
+  atendido: "Atendido",
+  seguimiento: "Seguimiento",
+  compromiso_verbal: "Compromiso Verbal",
+  abonado: "Abonado",
+  completo: "Completo",
+  proxima_cohorte: "Próxima Cohorte",
+  cierre_perdido: "Cierre Perdido",
 };
 
 /**
- * La lista blanca completa. Los destinos "u 8" de la tabla (T5, T13/T14, T17, T26)
- * se parten en una fila por destino: `abonado` y `completo` son etapas distintas y
- * la lista no las junta con una barra. Igual T19/T20/T21 (a `proxima_cohorte` desde
- * tres origenes) son tres filas con el mismo id compuesto de la tabla.
- *
- * A1 (`abonado` → la etapa previa) se modela como una fila por cada etapa desde la
- * que un deal pudo entrar a `abonado`: `en_contacto` (T5), `atendido` (T13),
- * `compromiso_verbal` (T16) y `seguimiento` (T26). Se anula el unico abono y el deal
- * vuelve a donde estaba antes de que la plata lo moviera; como esa etapa previa no
- * se guarda en la tabla de transiciones, se admiten las cuatro de las que se pudo
- * llegar y el llamador (ticket 045) sabra a cual volver mirando el historial.
+ * Quien mueve el deal por esta flecha. `sistema`: el CRM, cuando pasa el evento
+ * (se pega el Grain, entra un abono, llega la agenda). `closer`: una persona, y el
+ * motor exige el requisito antes de aceptar. `ambos`: cualquiera de los dos.
  */
-export const TRANSICIONES: readonly Transicion[] = [
-  // Antes de la llamada
-  { id: "T1", de: "pendiente_setteo", a: "en_contacto", quien: "closer", clase: "avance" },
-  { id: "T2", de: "pendiente_setteo", a: "agendado", quien: "ambos", clase: "avance" },
-  { id: "T3", de: "en_contacto", a: "agendado", quien: "ambos", clase: "avance" },
-  { id: "T4", de: "en_contacto", a: "compromiso_verbal", quien: "closer", clase: "avance" },
-  { id: "T5", de: "en_contacto", a: "abonado", quien: "sistema", clase: "avance" },
-  { id: "T5", de: "en_contacto", a: "completo", quien: "sistema", clase: "avance" },
-  { id: "T6", de: "pendiente_reagenda", a: "agendado", quien: "ambos", clase: "avance" },
-  { id: "T7", de: "pendiente_reagenda", a: "atendido", quien: "sistema", clase: "avance" },
-  { id: "T8", de: "agendado", a: "pendiente_reagenda", quien: "sistema", clase: "avance" },
-  // Mover una cita antes de que ocurra no es avanzar ni retroceder: es una self-transicion legal.
-  { id: "T9", de: "agendado", a: "agendado", quien: "sistema", clase: "avance" },
-  { id: "T10", de: "agendado", a: "atendido", quien: "sistema", clase: "avance" },
-  // T11 quedo reemplazada por Seguimiento (T24) el 24-sep: no se incluye.
+export type QuienMueve = "sistema" | "closer" | "ambos";
 
-  // La llamada y el pago
-  { id: "T12", de: "atendido", a: "compromiso_verbal", quien: "closer", clase: "avance" },
-  { id: "T13", de: "atendido", a: "abonado", quien: "sistema", clase: "avance" },
-  { id: "T14", de: "atendido", a: "completo", quien: "sistema", clase: "avance" },
-  // T15: el sí de Compromiso se echa para atras pero sigue interesado — reversion, vuelve a re-contactar.
-  { id: "T15", de: "compromiso_verbal", a: "seguimiento", quien: "closer", clase: "reversion" },
-  { id: "T16", de: "compromiso_verbal", a: "abonado", quien: "sistema", clase: "avance" },
-  { id: "T17", de: "compromiso_verbal", a: "completo", quien: "sistema", clase: "avance" },
-  { id: "T18", de: "abonado", a: "completo", quien: "sistema", clase: "avance" },
-
-  // A Proxima Cohorte desde 2, 5 o 6 (T19, T20, T21)
-  { id: "T19", de: "en_contacto", a: "proxima_cohorte", quien: "closer", clase: "avance" },
-  { id: "T20", de: "atendido", a: "proxima_cohorte", quien: "closer", clase: "avance" },
-  { id: "T21", de: "compromiso_verbal", a: "proxima_cohorte", quien: "closer", clase: "avance" },
-
-  // Proxima Cohorte vuelve al camino cuando su cohorte abre
-  { id: "T22", de: "proxima_cohorte", a: "en_contacto", quien: "closer", clase: "avance" },
-  { id: "T23", de: "proxima_cohorte", a: "agendado", quien: "ambos", clase: "avance" },
-
-  // Seguimiento (la 11), despues de Atendido
-  { id: "T24", de: "atendido", a: "seguimiento", quien: "closer", clase: "avance" },
-  { id: "T25", de: "seguimiento", a: "compromiso_verbal", quien: "closer", clase: "avance" },
-  { id: "T26", de: "seguimiento", a: "abonado", quien: "sistema", clase: "avance" },
-  { id: "T26", de: "seguimiento", a: "completo", quien: "sistema", clase: "avance" },
-  { id: "T27", de: "seguimiento", a: "agendado", quien: "ambos", clase: "avance" },
-  { id: "T28", de: "seguimiento", a: "proxima_cohorte", quien: "closer", clase: "avance" },
-  // T29: la llamada no alcanzo y hace falta otra — reversion de Atendido a Re-agenda, con motivo.
-  { id: "T29", de: "atendido", a: "pendiente_reagenda", quien: "closer", clase: "reversion" },
-
-  // P: Cierre Perdido desde las NUEVE etapas abiertas (1 a 7, 9 y 11). Nunca desde completo.
-  { id: "P", de: "pendiente_setteo", a: "cierre_perdido", quien: "closer", clase: "perdida" },
-  { id: "P", de: "en_contacto", a: "cierre_perdido", quien: "closer", clase: "perdida" },
-  { id: "P", de: "pendiente_reagenda", a: "cierre_perdido", quien: "closer", clase: "perdida" },
-  { id: "P", de: "agendado", a: "cierre_perdido", quien: "closer", clase: "perdida" },
-  { id: "P", de: "atendido", a: "cierre_perdido", quien: "closer", clase: "perdida" },
-  { id: "P", de: "compromiso_verbal", a: "cierre_perdido", quien: "closer", clase: "perdida" },
-  { id: "P", de: "abonado", a: "cierre_perdido", quien: "closer", clase: "perdida" },
-  { id: "P", de: "proxima_cohorte", a: "cierre_perdido", quien: "closer", clase: "perdida" },
-  { id: "P", de: "seguimiento", a: "cierre_perdido", quien: "closer", clase: "perdida" },
-
-  // R: recuperar un perdido, SOLO a 2, 4 o 9
-  { id: "R", de: "cierre_perdido", a: "en_contacto", quien: "closer", clase: "recuperacion" },
-  { id: "R", de: "cierre_perdido", a: "agendado", quien: "closer", clase: "recuperacion" },
-  { id: "R", de: "cierre_perdido", a: "proxima_cohorte", quien: "closer", clase: "recuperacion" },
-
-  // A1: se anula el unico abono y Abonado vuelve a su etapa previa (ver el comentario de arriba).
-  { id: "A1", de: "abonado", a: "en_contacto", quien: "sistema", clase: "reversion" },
-  { id: "A1", de: "abonado", a: "atendido", quien: "sistema", clase: "reversion" },
-  { id: "A1", de: "abonado", a: "compromiso_verbal", quien: "sistema", clase: "reversion" },
-  { id: "A1", de: "abonado", a: "seguimiento", quien: "sistema", clase: "reversion" },
-  // A2: se anula un abono de Completo y reaparece saldo. La UNICA flecha que sale de completo.
-  { id: "A2", de: "completo", a: "abonado", quien: "sistema", clase: "reversion" },
-] as const;
-
-/** La transicion `de → a` si existe en la lista blanca, o `undefined` si esa flecha no existe. */
-export function transicion(de: EtapaDeal, a: EtapaDeal): Transicion | undefined {
-  return TRANSICIONES.find((t) => t.de === de && t.a === a);
+export interface Transicion {
+  /** Id de la fila en `docs/structure.md` §3.1. */
+  readonly id: string;
+  readonly de: EtapaDeal;
+  readonly a: EtapaDeal;
+  readonly quien: QuienMueve;
+  /** La flecha solo se toma con un motivo escrito (lo aplica el ticket 047). */
+  readonly exigeMotivo: boolean;
 }
 
-/** ¿Es legal mover un deal de `de` a `a`? */
-export function transicionPermitida(de: EtapaDeal, a: EtapaDeal): boolean {
-  return transicion(de, a) !== undefined;
+type Fila = readonly [
+  id: string,
+  de: EtapaDeal | readonly EtapaDeal[],
+  a: EtapaDeal | readonly EtapaDeal[],
+  quien: QuienMueve,
+  exigeMotivo?: boolean,
+];
+
+/**
+ * Las etapas de donde se puede caer a Cierre Perdido (P): todas las abiertas.
+ * **Completo no**: es terminal, y un reembolso es otro flujo.
+ */
+const ABIERTAS_QUE_SE_PUEDEN_PERDER: readonly EtapaDeal[] = [
+  "pendiente_setteo",
+  "en_contacto",
+  "pendiente_reagenda",
+  "agendado",
+  "atendido",
+  "seguimiento",
+  "compromiso_verbal",
+  "abonado",
+  "proxima_cohorte",
+];
+
+/**
+ * La tabla de `docs/structure.md` §3.1, fila por fila. Una fila con varias etapas
+ * (T5 "2 → 7 u 8", P "1 a 7, 9 y 11 → 10") se expande a una flecha por par.
+ *
+ * A1 es "7 → la etapa previa" al anular el unico abono: la etapa previa es la que
+ * diga el historial del deal, y solo puede ser una de las que entran a Abonado
+ * (2 por T5, 5 por T13, 6 por T16, 11 por T26). Aqui quedan las cuatro flechas;
+ * cual se toma lo decide `moverEtapa()` leyendo el historial (045, 047).
+ */
+const FILAS: readonly Fila[] = [
+  ["T1", "pendiente_setteo", "en_contacto", "closer"],
+  ["T2", "pendiente_setteo", "agendado", "ambos"],
+  ["T3", "en_contacto", "agendado", "ambos"],
+  ["T4", "en_contacto", "compromiso_verbal", "closer"],
+  ["T5", "en_contacto", ["abonado", "completo"], "sistema"],
+  ["T6", "pendiente_reagenda", "agendado", "ambos"],
+  ["T7", "pendiente_reagenda", "atendido", "sistema"],
+  ["T8", "agendado", "pendiente_reagenda", "sistema"],
+  ["T9", "agendado", "agendado", "sistema"],
+  ["T10", "agendado", "atendido", "sistema"],
+  // T11 se reemplazo el 24-sep por Seguimiento (T24).
+  ["T12", "atendido", "compromiso_verbal", "closer"],
+  ["T13", "atendido", "abonado", "sistema"],
+  ["T14", "atendido", "completo", "sistema"],
+  ["T15", "compromiso_verbal", "seguimiento", "closer", true],
+  ["T16", "compromiso_verbal", "abonado", "sistema"],
+  ["T17", "compromiso_verbal", "completo", "sistema"],
+  ["T19", "en_contacto", "proxima_cohorte", "closer"],
+  ["T20", "atendido", "proxima_cohorte", "closer"],
+  ["T21", "compromiso_verbal", "proxima_cohorte", "closer"],
+  ["T18", "abonado", "completo", "sistema"],
+  ["T22", "proxima_cohorte", "en_contacto", "closer"],
+  ["T23", "proxima_cohorte", "agendado", "ambos"],
+  ["T24", "atendido", "seguimiento", "closer"],
+  ["T25", "seguimiento", "compromiso_verbal", "closer"],
+  ["T26", "seguimiento", ["abonado", "completo"], "sistema"],
+  ["T27", "seguimiento", "agendado", "ambos"],
+  ["T28", "seguimiento", "proxima_cohorte", "closer"],
+  ["T29", "atendido", "pendiente_reagenda", "closer", true],
+  ["P", ABIERTAS_QUE_SE_PUEDEN_PERDER, "cierre_perdido", "closer", true],
+  ["R", "cierre_perdido", ["en_contacto", "agendado", "proxima_cohorte"], "closer", true],
+  ["A1", "abonado", ["en_contacto", "atendido", "compromiso_verbal", "seguimiento"], "sistema", true],
+  ["A2", "completo", "abonado", "sistema", true],
+];
+
+function comoLista(valor: EtapaDeal | readonly EtapaDeal[]): readonly EtapaDeal[] {
+  return typeof valor === "string" ? [valor] : valor;
 }
 
-/** El id de la transicion `de → a` (T1..T29, P, R, A1, A2), o `undefined` si no existe. */
-export function idDeTransicion(de: EtapaDeal, a: EtapaDeal): string | undefined {
-  return transicion(de, a)?.id;
+/** Todas las flechas legales, una por par (de, a). */
+export const TRANSICIONES: readonly Transicion[] = FILAS.flatMap(([id, de, a, quien, exigeMotivo]) =>
+  comoLista(de).flatMap((origen) =>
+    comoLista(a).map((destino) => ({ id, de: origen, a: destino, quien, exigeMotivo: exigeMotivo ?? false })),
+  ),
+);
+
+const clave = (de: EtapaDeal, a: EtapaDeal) => `${de}>${a}`;
+
+const INDICE = new Map<string, Transicion>();
+for (const t of TRANSICIONES) {
+  // Dos filas sobre el mismo par dirian dos cosas distintas sobre quien lo mueve o si
+  // exige motivo, y la que gane dependeria del orden del arreglo. Se falla al cargar.
+  if (INDICE.has(clave(t.de, t.a))) {
+    throw new Error(`Transicion duplicada ${t.de} → ${t.a} (${INDICE.get(clave(t.de, t.a))!.id} y ${t.id})`);
+  }
+  INDICE.set(clave(t.de, t.a), t);
+}
+
+/** La flecha de `de` a `a`, o `null` si ese movimiento no es legal. */
+export function transicion(de: EtapaDeal, a: EtapaDeal): Transicion | null {
+  return INDICE.get(clave(de, a)) ?? null;
+}
+
+/** ¿Se puede pasar de `de` a `a`? */
+export function esTransicionPermitida(de: EtapaDeal, a: EtapaDeal): boolean {
+  return INDICE.has(clave(de, a));
+}
+
+/** Las etapas a las que se puede ir desde `de`, en el orden del enum. */
+export function siguientesDe(de: EtapaDeal): EtapaDeal[] {
+  return ETAPAS.filter((a) => esTransicionPermitida(de, a));
 }

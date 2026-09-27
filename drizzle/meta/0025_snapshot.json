@@ -1,6 +1,6 @@
 {
-  "id": "dab5cf6e-b9cc-47b2-861b-5e9c980f500f",
-  "prevId": "188330ed-9611-428c-8e8e-64e066fb9e8a",
+  "id": "fd6dd509-30c7-40d0-96e8-511d6bb6ce60",
+  "prevId": "dab5cf6e-b9cc-47b2-861b-5e9c980f500f",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1358,6 +1358,24 @@
         "producto_id": {
           "name": "producto_id",
           "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acuerdo_pago": {
+          "name": "acuerdo_pago",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fecha_limite_pago": {
+          "name": "fecha_limite_pago",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fecha_seguimiento": {
+          "name": "fecha_seguimiento",
+          "type": "date",
           "primaryKey": false,
           "notNull": false
         },

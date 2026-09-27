@@ -124,9 +124,9 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   importan. Estuvo copiada en `saldoDeVenta` (la reja que bloquea un sobrepago) y en
   `ventasDePersona` (lo que el closer ve): una pantalla y una reja discrepando sobre el mismo
   numero no se descubre hasta que el dinero no cuadra. `tests/saldo-centralizado.test.ts` compara
-  las dos salidas y falla si alguien las separa. ⚠️ **Hoy el modulo y su test NO EXISTEN:** salieron
-  con `sales` en el corte de la migracion 0020 (22-sep) y los recrea el ticket 060 sobre el deal.
-  Hasta entonces no hay abonos que sumar; la regla sigue vigente para cuando vuelvan. **La regla no es solo del dinero:** si dos lugares
+  las dos salidas y falla si alguien las separa. ⚠️ **El modulo volvio el 27-sep sobre el deal** (`saldosDeDeals`,
+  lo lee el motor de etapas, ticket 045); **su test comparativo todavia NO EXISTE**: salio con `sales`
+  en el corte de la 0020 y lo recrea el ticket 060, cuando exista la reja del abono que comparar. **La regla no es solo del dinero:** si dos lugares
   responden la MISMA pregunta, la respuesta vive en un modulo y los dos la importan — la proyeccion
   es del llamador, el predicado es del modulo (asi se consolido `programasActivos`). Dos preguntas
   distintas que hoy dan el mismo SQL siguen siendo dos funciones.
@@ -373,7 +373,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 710 pasando al 27-sep, tras el 043 y el 094). Los tests que necesitan base usan PGlite en
+- **Test:** `npm test` (Vitest, 867 pasando al 27-sep, noche, tras fusionar E2 y el 094). Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
   ⚠️ **27-sep: `npm ci` falla** porque `package-lock.json` no está sincronizado (faltan
   `@emnapi/runtime` y `@emnapi/core`). Mientras nadie lo repare con `npm install` y un commit del

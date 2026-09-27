@@ -23,7 +23,7 @@ Cómo está hecho: [`docs/structure.md`](../structure.md).
 > con la etapa E1b de atribución tras la reunión con Alejo. El 22-sep la revisión del modelo; el 24-sep la
 > dirección de producto (tickets 094 a 102) y la reunión con los closers, tras la cual Mani adoptó la
 > tabla de transiciones, el acuerdo de pago como nota (ADR 0053) y el orden P1: E2 → E3 mínimo → E4 →
-> E6 mínimo → E1b → E5 → E7. **El 043 está listo para tomarse.**
+> E6 mínimo → E1b → E5 → E7. **E2 (043 a 047) se cerró el 27-sep: el motor de etapas existe.** Sigue E3 mínimo (paso 2 del plan): A1 y A2 ya se cerraron (ADR 0054 y 0055), faltan sus tickets. El 094 también se cerró el 27-sep.
 
 # Época v2 — modelo HubSpot (tickets 036 a 082)
 
@@ -96,11 +96,12 @@ El corazón del sistema, y la razón de que vaya **antes** que el sync.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [x] | 043 | [Las once etapas y la tabla de transiciones](./043-enum-de-etapas-y-tabla-de-transiciones.md) (E2-1) | 042 | done · 27-sep · `lib/deals/etapas.ts`, migración 0024 (`seguimiento`) aplicada en `dev` |
-| [x] | 044 | [Requisitos de entrada por etapa](./044-requisitos-de-entrada-por-etapa.md) (E2-2) | 043 | done · 27-sep · `lib/deals/requisitos.ts`, requisito **por flecha** (no por etapa); T22 con requisito (contacto posterior a entrar a Próxima Cohorte) |
-| [ ] | 045 | [`moverEtapa()` y su historial](./045-mover-etapa-y-su-historial.md) (E2-3) | 043, 044 | todo |
-| [ ] | 046 | [Guardián: nadie escribe `deals.etapa` fuera del motor](./046-guardian-del-motor-de-etapas.md) (E2-4) | 045 | todo |
-| [ ] | 047 | [Saltos permitidos y retroceso con motivo](./047-saltos-permitidos-y-retroceso.md) (E2-5) | 045 | todo |
+| [x] | 043 | [Las once etapas y la tabla de transiciones](./043-enum-de-etapas-y-tabla-de-transiciones.md) (E2-1) | 042 | done · 27-sep · `lib/deals/etapas.ts`, migración 0024 (Seguimiento; aplicada en `dev`) |
+| [x] | 044 | [Requisitos de entrada por etapa](./044-requisitos-de-entrada-por-etapa.md) (E2-2) | 043 | done · 27-sep · `lib/deals/requisitos.ts`, por flecha y no por etapa |
+| [x] | 045 | [`moverEtapa()` y su historial](./045-mover-etapa-y-su-historial.md) (E2-3) | 043, 044 | done · 27-sep · `lib/deals/mover-etapa.ts`, migración 0025 (aplicada en `dev`) |
+| [x] | 046 | [Guardián: nadie escribe `deals.etapa` fuera del motor](./046-guardian-del-motor-de-etapas.md) (E2-4) | 045 | done · 27-sep · `tests/motor-etapas-guardian.test.ts` + reja en `lib/crm/rastro.ts` |
+| [x] | 047 | [Saltos permitidos y retroceso con motivo](./047-saltos-permitidos-y-retroceso.md) (E2-5) | 045 | done · 27-sep · `abrirDeal()`: dónde nace un deal |
+| [ ] | 103 | [El motor con las decisiones de Mani del 27-sep](./103-motor-de-etapas-decisiones-de-mani.md) | 045, 046, 047 | todo · cohorte destino aparte, motivos por tipo, solo dueño y administradores mueven, llamadas desde la entrada a la etapa · migración 0026 de la sesión principal |
 
 ## E3 · Sync v2
 

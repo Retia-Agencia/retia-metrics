@@ -82,3 +82,22 @@ Detalle en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2
   (5 → 3 con motivo); T11 queda reemplazada y T15 pasa a 6 → 11. Perdido llega también desde 11. Tabla
   completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
 - **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".
+
+---
+
+## ✅ Cerrado 2026-09-27
+
+- **`lib/deals/requisitos.ts`:** `queLeFalta(de, a, hechos)` devuelve la **lista** de lo que falta, con
+  codigo y mensaje en español; vacia = puede pasar. Una flecha que no existe devuelve solo ese hecho.
+- **El requisito es de la FLECHA, no de la etapa destino** (la columna "Requisito" de `structure.md`
+  §3.1): volver a En Contacto por A1 no exige contacto; entrar por T1 si. La tabla de arriba "por etapa"
+  queda reemplazada por esa.
+- **El motivo no se repite:** sale de `exigeMotivo` en la tabla de transiciones (043).
+- **Los hechos entran ya resueltos** (`HechosDelDeal`). Tres todavia no tienen columna y las trae quien
+  arme los hechos: `fechaLimitePago` (ADR 0053), `cohorteDestinoId` y `llamadaSucedio` (link de Grain o
+  "sucedio", ticket 058). El saldo entra calculado (ADR 0024), no se recalcula aqui.
+- **Abonado y Completo son complementarios sobre el saldo** (`> 0` y `<= 0`): un sobrepago que se colara
+  cuenta como pagado en vez de trabar el deal.
+- **Fuera:** Pendiente Setteo no tiene flecha de entrada; nace ahi al crearse el deal (052, 047).
+- `tests/deal-requisitos.test.ts`: 132 tests, cada flecha en los dos sentidos contra una lista escrita a
+  mano desde el documento.

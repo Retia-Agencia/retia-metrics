@@ -42,13 +42,20 @@ const DIRECTORIOS = ["lib", "app", "components", "scripts"];
 const EXTENSIONES = new Set([".ts", ".tsx"]);
 
 /**
- * Excepciones explicitas, por ruta relativa. HOY ESTA VACIA A PROPOSITO.
+ * Excepciones explicitas, por ruta relativa, cada una con su razon escrita. Hoy hay
+ * UNA: el motor de etapas, que tiene su propio rastro.
  *
  * Sembrar una base VACIA (`seed:datos`) es la excepcion nombrada del ADR 0029, pero
  * el seed **no escribe ninguna de estas cuatro tablas**: siembra programas, cohortes
  * y fuentes. Si algun dia lo hiciera, entra aqui con su razon escrita.
  */
-const EXCEPCIONES: readonly string[] = [];
+const EXCEPCIONES: readonly string[] = [
+  // El motor de etapas (ADR 0037 punto 4, ticket 045). Escribe `deals.etapa` y su
+  // rastro es `deal_etapa_historial`, en la misma transaccion; duplicarlo en
+  // `change_log` crearia dos historias del mismo hecho (ver `lib/crm/rastro.ts`).
+  // Que solo toque la etapa lo vigila el guardian del ticket 046.
+  path.join("lib", "deals", "mover-etapa.ts"),
+];
 
 /**
  * Reemplaza comentarios y cadenas por espacios, conservando los saltos de linea.
@@ -273,6 +280,19 @@ describe("crearConRastro y editarConRastro", () => {
       valorAnterior: null,
       valorNuevo: gerente,
     });
+  });
+
+  it("la etapa de un deal no entra por la puerta generica: se rechaza sin tocar nada (ticket 046)", async () => {
+    const id = await crearConRastro(ctx(), { leadId: leadA, programId: programaA });
+    await db.delete(changeLog);
+    // En una variable, que es justo lo que el guardian estatico no alcanza a ver.
+    const valores: Record<string, unknown> = { etapa: "completo", ownerUserId: gerente };
+
+    await expect(editarConRastro(ctx(), id, valores)).rejects.toThrow(/moverEtapa\(\)/);
+
+    const [d] = await db.select().from(deals).where(eq(deals.id, id));
+    expect(d).toMatchObject({ etapa: "pendiente_setteo", ownerUserId: null });
+    expect(await db.select().from(changeLog)).toHaveLength(0);
   });
 
   it("si nada cambio no se toca la fila ni se escribe bitacora", async () => {

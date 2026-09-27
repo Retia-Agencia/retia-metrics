@@ -5,8 +5,8 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito el 27-sep por la tarde (CIERRE 32). El prompt anterior (el del
-> 24-sep, tras la reunión con los closers) está en el historial de git (`git show da68cdf:docs/agents/handoff.md`).
+> Copiar y pegar tal cual. Reescrito el 27-sep en la noche, al fusionar las dos sesiones del día (CIERRE 33). El de la mañana (consolidación
+> del plan) está en el historial de git (`git show 8678164:docs/agents/handoff.md`).
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md y despues docs/plan.md completo, antes que cualquier otro
@@ -15,25 +15,22 @@ vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta: docs/
 docs/structure.md (§3 el motor de etapas y su tabla de transiciones), docs/operations.md y
 docs/adr/README.md.
 
-Estado al cierre del 27-sep por la tarde: 043 (tabla de transiciones, lib/deals/etapas.ts) y 094
-(alcance del closer, lib/auth/alcance.ts) HECHOS, 710 tests en verde, typecheck y lint limpios.
-Migracion 0024 (etapa `seguimiento`) aplicada en `dev`. ⚠️ NADA DE ESO ESTA COMMITEADO: lo primero es
-revisar `git status` y commitear con Mani (nombrando archivos, nunca `git add -A`; `.claude/sdd-cache/`
-es basura de Kiro y no entra).
-
-A1 y A2 quedaron cerradas: ADR 0054 (el Estado lo pone el formulario con una variable `estado`; T2 se
-queda como validador; el script de las hojas se borra despues del hito B) y ADR 0055 (webhook estandar,
-un track propio: el programa sale de la URL de cada formulario, un adaptador por proveedor, un mapeo por
-fuente, los parciales llegan por partial submission point).
+Estado al cierre del 27-sep en la noche (CIERRE 33): main tiene las dos sesiones del dia fusionadas.
+E2 (043-047) cerrada por Alejandro (lib/deals/etapas.ts, requisitos.ts, mover-etapa.ts, saldo.ts,
+guardian); 094 (alcance del closer) y ADR 0054/0055 (A1 y A2) cerrados por Mani. 26 migraciones
+(0000-0025), todas en dev. Produccion en Supabase NO existe.
 
 Siguiente:
-1. 044 (requisitos de entrada por etapa): listo, depende solo del 043. Luego 045 -> 046 -> 047.
-2. Crear los tickets del track del webhook (ADR 0055) y del Estado desde el form (ADR 0054). Quedan
-   dos recomendaciones sin decidir en el ADR 0055 (sobre crudo de envios fallidos, alerta de fuente
-   muda): se le preguntan a Mani al crear los tickets.
-3. Fuera del repo: alguien con acceso a Typeform agrega la variable `estado` y el partial submission
-   point en los dos formularios, y se captura un payload real de cada uno.
-Las migraciones las genera y aplica la sesion principal; Kiro implementa codigo y tests.
+1. Ticket 103: lo que Mani decidio el 27-sep sobre el motor y que el 045 no tiene (cohorte destino
+   como columna aparte, motivos en cuatro listas por tipo, solo el dueño y los administradores mueven,
+   la "llamada sucedio" mirando solo las llamadas desde que entro a la etapa, deals.motivo_id al
+   perder). Lleva migracion 0026 (la genera y aplica la sesion principal).
+2. Crear los tickets del webhook (ADR 0055) y del Estado desde el form (ADR 0054); preguntarle a Mani
+   los dos puntos abiertos del ADR 0055.
+3. Fuera del repo: variable `estado` y partial submission point en los dos Typeform.
+Las migraciones las genera y aplica la sesion principal; Kiro implementa codigo y tests. Antes de
+aplicar una migracion en dev, compara drizzle.__drizzle_migrations contra los archivos por hash, y
+antes de tomar un ticket haz git fetch: dos personas trabajan el mismo main.
 ```
 
 ## Memory
@@ -43,7 +40,41 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 > Las entradas anteriores al 27-sep citan documentos que se fundieron ese día (spec, plan v2, propuesta,
 > revisión, glosario, insumos): `docs/plan.md` §8 dice dónde quedó cada uno.
 
-- **2026-09-27 (CIERRE 32): motor de etapas, alcance del closer, y A1/A2 cerradas.** ⚠️ **Sin commit.**
+- **2026-09-27 (CIERRE 32): E2 cerrada, el motor de etapas existe.** Alejandro, sesión de la tarde.
+  Commits `134d293` a `5087b6a`, todos en `main`.
+  - **Lock** resincronizado (`134d293`). No se reprodujo la falla de `npm ci` en Windows con npm 11;
+    el lock nuevo solo agrega entradas opcionales de `@emnapi` y pasa `npm ci` limpio.
+  - **043:** Seguimiento entra al enum (migración **0024**). 🩸 **`dev` ya tenía una 0024 que no estaba
+    en el repo** (`ADD VALUE 'seguimiento'`, aplicada ~12:28 del 27-sep, casi seguro por Mani): la fila de
+    `drizzle.__drizzle_migrations` no casaba con ningún archivo. Se alineó el repo **byte a byte** con lo
+    aplicado (mismo SQL, mismo hash `8fefdd19578a`, mismo `when`), por eso `seguimiento` queda al final del
+    enum. **Si Mani sube su 0024, se conserva una de las dos**: el contenido es idéntico. La tabla de
+    transiciones es dato en `lib/deals/etapas.ts`; su test recorre las 121 combinaciones contra una matriz
+    escrita a mano desde `structure.md` §3.1.
+  - **044:** `queLeFalta(de, a, hechos)` en `lib/deals/requisitos.ts`. El requisito es de la **flecha**, no
+    de la etapa destino (volver a En Contacto por A1 no pide contacto). El motivo es el id del catálogo.
+  - **045:** `moverEtapa()` en `lib/deals/mover-etapa.ts` (no en `etapas.ts`, que se queda pura; ADR 0037
+    corregida). Transacción real; el rastro es `deal_etapa_historial` y **no** `change_log` (lo decía
+    `lib/crm/rastro.ts`), así que el motor es la excepción nombrada del guardián de rastro. Los hechos los
+    lee el motor, nunca el llamador; un `Actor` sistema o usuario (403 si toma una flecha ajena); reja de
+    concurrencia `where etapa = de` (409). Migración **0025**: `deals.acuerdo_pago` y
+    `deals.fecha_limite_pago` (ADR 0053, adelantadas del 061) y `deals.fecha_seguimiento`.
+    `lib/queries/saldo.ts` vuelve (ADR 0024): con monedas mezcladas el saldo es `null`.
+  - **Tres decisiones de la sesión, para que Mani las revise:** (1) cohorte destino **sin columna**:
+    Próxima Cohorte exige que `deals.cohort_id` sea una cohorte `futuro`; (2) "la llamada sucedió" = una
+    llamada vigente con resultado `show`, `compromiso_pago`, `cerrada` o `perdida` mientras `calls` no
+    tenga Grain (058); (3) crear un deal **también** vive en el motor (`abrirDeal`, 047).
+  - **046:** `tests/motor-etapas-guardian.test.ts` caza `update(deals)` con etapa, SQL crudo,
+    `editarConRastro` con etapa y la llave `desdeElMotor: true` fuera del motor; y `lib/crm/rastro.ts`
+    rechaza la etapa de un deal en tiempo de ejecución si no viene del motor. Mordido en los dos sentidos.
+  - **047:** `abrirDeal()`: a mano nace en 1, 2 o 6 con quien lo crea de dueño (6 exige producto + fecha
+    límite); el sistema abre en 1 o 4. Primera fila de historial (`de` nulo) + rastro en una transacción;
+    el lead tiene que ser del mismo programa; un segundo abierto es 409.
+  - **Queda para quien llame al motor:** el 052 (abrir y mover desde el sync), `deals.motivo_id` al perder
+    (hoy el motivo vive solo en el historial) y la reja de permisos por rol en la acción (quién puede mover
+    qué deal).
+  - **Siguiente:** A1 y A2 (Mani) desbloquean E3; sin ellas, el 094.
+- **2026-09-27 (CIERRE 32, sesión de Mani en paralelo): 043, 094 y A1/A2 cerradas.** El 043 y el 044 de esta sesión se descartaron al fusionar (CIERRE 33): quedaron los de Alejandro.
   - **043 hecho (Kiro, revisado):** `lib/deals/etapas.ts` con la tabla de `structure.md` §3.1 como dato
     (55 flechas de 121; T11 fuera; P desde las nueve abiertas; R solo a 2, 4 o 9; Completo solo sale
     por A2). Test de las 121 combinaciones contra una lista escrita a mano

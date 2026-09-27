@@ -3,7 +3,7 @@ id: 045
 etapa: E2
 serves: "plan v2 §6 etapa 2 · tarea E2-3 · ADR 0037, ADR 0042"
 depends: [043, 044]
-status: todo
+status: done
 ---
 
 # 045 — `moverEtapa()`: el unico camino para cambiar `deals.etapa`
@@ -54,7 +54,37 @@ Parcial. Los tests si, con revision. El diseno del contrato, no.
 
 ---
 
-## ✅ Decisiones de Mani del 27-sep (al revisar el 044)
+## ✅ Cerrado 2026-09-27
+
+- **`lib/deals/mover-etapa.ts`**, no `etapas.ts`: la tabla de transiciones se queda pura y el motor que
+  escribe vive aparte (la ADR 0037 y `structure.md` §4.1 ya dicen la ruta nueva).
+- **Transaccion de verdad** (ADR 0047), no el truco de `neon-http` que describe arriba: la etapa y su
+  fila de `deal_etapa_historial` van juntas o no van. Probado haciendo fallar el historial despues del
+  update (FK de un actor que no existe) y, mordido, quitando la transaccion.
+- **El rastro es `deal_etapa_historial`, no `change_log`** (`lib/crm/rastro.ts` lo decia): por eso el
+  motor es la excepcion nombrada de `tests/rastro-operativo.test.ts`.
+- **Los hechos los lee el motor, nunca el llamador.** Quien mueve es un `Actor` (`sistema` o un
+  `usuario` de la sesion) y el motor rechaza con 403 que una persona tome una flecha del sistema (a
+  Atendido, Abonado, Completo) o que el sistema tome una de closer.
+- **Reja de concurrencia en la base:** el update lleva `where etapa = de`; si otro movio el deal entre la
+  lectura y la escritura, 409 en vez de pisarlo.
+- **A1** vuelve a la etapa de donde vino Abonado segun el historial; otro destino es 409.
+- **Migracion 0025** (aplicada en `dev`): `deals.acuerdo_pago` y `deals.fecha_limite_pago` (ADR 0053,
+  adelantadas del 061) y `deals.fecha_seguimiento` (T24).
+- **Cohorte destino sin columna nueva:** Proxima Cohorte exige que `deals.cohort_id` sea una cohorte
+  `futuro`. Ir ahi ES pasar el deal a vender la siguiente cohorte, y el cambio queda en `change_log`.
+- **"La llamada sucedio"**, mientras `calls` no tenga el link de Grain (058): una llamada vigente con
+  resultado `show`, `compromiso_pago`, `cerrada` o `perdida`.
+- **`lib/queries/saldo.ts` vuelve** (ADR 0024): precio del producto menos abonos vigentes; con abonos en
+  otra moneda el saldo es `null`, nunca una conversion en silencio.
+- Pendiente para quien llame (052, 060, UI): la primera fila de historial al crear un deal (`de` nulo),
+  y `deals.motivo_id` al perder (hoy el motivo queda solo en el historial).
+- `tests/mover-etapa.test.ts`: 14 tests.
+
+## ⚠️ Decisiones de Mani del 27-sep que CORRIGEN lo cerrado arriba (van al ticket 103)
+
+Se tomaron en otra sesión, en paralelo, sin saber que el 045 ya estaba cerrado. **Mandan sobre lo de
+arriba** donde chocan: A contradice "cohorte destino sin columna"; C y los permisos no están en el motor.
 
 El 044 dejó los requisitos como predicados puros sobre `HechosDelDeal` (`lib/deals/requisitos.ts`).
 El 045 decide **dónde vive cada hecho**, y tres respuestas ya están tomadas:
@@ -67,3 +97,7 @@ El 045 decide **dónde vive cada hecho**, y tres respuestas ya están tomadas:
 - **C. Motivos en listas distintas** para perdido (P), otra llamada (T29) y "se echó para atrás" (T15):
   sin eso, el reporte de "por qué perdemos" se mezcla con los de re-agenda. El catálogo `motivos` hoy es uno
   solo y no tiene tipo: hay que decidir si gana una columna de tipo o se parte (molde del ADR 0012).
+- **D. Recuperar (R) exige un motivo de una cuarta lista, "recuperación"** (¿por qué volvió?).
+- **E. Mueven el dueño del deal y los administradores**, y lo revisa el motor, no la pantalla. Un deal
+  sin dueño lo mueve solo el sistema hasta que alguien lo reclame.
+- La B coincide con la 0025 (`fecha_seguimiento` en el deal, como `date`).
