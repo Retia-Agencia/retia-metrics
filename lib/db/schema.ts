@@ -29,7 +29,7 @@ import {
 export const rolEnum = pgEnum("rol", ["gerente", "closer", "developer"]);
 
 /**
- * Las diez etapas del Deal (ADR 0037). Son un `pgEnum` —o sea TIPOS— y no un
+ * Las once etapas del Deal (ADR 0037; `seguimiento`, la 11, entro el 24-sep con el ticket 043). Son un `pgEnum` —o sea TIPOS— y no un
  * catalogo editable, y eso NO contradice al ADR 0012: la regla de ese ADR es "si el
  * codigo decide segun el valor, es tipo", y aqui **todo** decide segun la etapa (el
  * embudo, quien es Student, la cartera vencida, los movimientos automaticos).
@@ -58,6 +58,7 @@ export const etapaDealEnum = pgEnum("etapa_deal", [
   "completo",
   "proxima_cohorte",
   "cierre_perdido",
+  "seguimiento",
 ]);
 
 /**

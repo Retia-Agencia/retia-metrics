@@ -3,7 +3,7 @@ id: 043
 etapa: E2
 serves: "plan v2 §6 etapa 2 · tarea E2-1 · ADR 0037, insumo §3"
 depends: [042]
-status: todo
+status: done
 ---
 
 # 043 — Las diez etapas como tipo, y la tabla de transiciones permitidas
