@@ -3,7 +3,7 @@ id: 094
 etapa: E6
 serves: "ADR 0048 punto 1 · propuesta 24-sep §3.1"
 depends: []
-status: todo
+status: done
 ---
 
 # 094 — Un closer ve solo sus programas: una función de alcance y todas las rutas la usan

@@ -2,7 +2,6 @@ import { and, asc, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import {
   calls,
-  miembrosPrograma,
   motivos,
   origenes,
   deals,
@@ -11,7 +10,8 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { esAdministrador, type Rol } from "@/lib/auth/roles";
+import type { Rol } from "@/lib/auth/roles";
+import { idsDeProgramasVisibles, programaEnAlcance } from "@/lib/auth/alcance";
 import { incluyendoAnulados } from "./vigente";
 
 /**
@@ -27,11 +27,14 @@ import { incluyendoAnulados } from "./vigente";
  *   se resta en un solo lugar; dos definiciones de "saldo" se desincronizan sin
  *   que nadie lo note.
  *
- * El buscador se limita a los programas donde el closer tiene membresia ACTIVA: la
- * misma regla que `programasGestionablesPorUsuario(userId, "closer")`, expresada con
- * el mismo join a `miembros_programa` para no cruzar a personas de programas ajenos
- * (ADR 0021). `historialDePersona` NO lleva ese filtro: se entra desde el dashboard,
- * que abre a los dos roles sin mirar membresia (ADR 0009).
+ * El buscador se limita a los programas que ESA sesión ve, y esa pregunta la
+ * contesta `programasVisibles` en `lib/auth/alcance.ts` (ADR 0048, ticket 094): un
+ * closer solo sus membresías activas, quien administra todos los activos. Antes este
+ * módulo tenía su PROPIO join a `miembros_programa` con su propia rama por rol; era
+ * una frontera copiada, y una frontera copiada es una que alguien puede olvidar
+ * cerrar. Ahora importa el alcance como todo lo demás. `historialDePersona` SÍ lo
+ * aplica desde el 094: se entra por id y un lead de un programa fuera del alcance es
+ * un 404, igual que un id inexistente.
  */
 
 /** Una persona como la ve el buscador de `/mi-dia`. */
@@ -53,15 +56,17 @@ const MAXIMO_FILAS = 20;
 
 /**
  * Busca personas por nombre O por correo, insensible a mayusculas (ILIKE), dentro de
- * los programas que ESE usuario trabaja.
+ * los programas que ESA sesión ve.
  *
- * Y "que trabaja" depende del rol, que es lo que este buscador no preguntaba (18-sep):
+ * Y "que ve" depende del rol, que es lo que este buscador no preguntaba (18-sep):
  * quien ADMINISTRA busca en todos los programas activos, un closer solo donde tiene
  * membresia activa. Antes el filtro era siempre la membresia, sin mirar el rol, y como
  * un gerente no necesita membresias, **un gerente no encontraba a nadie, nunca**. No
  * era un buscador vacio y ya: `/personas/[id]` solo se alcanza desde aqui, asi que un
  * gerente no tenia NINGUNA forma de abrir el historial de un lead. Misma familia que el
- * bug de `/productos`: la pregunta era del rol y se contesto con la membresia.
+ * bug de `/productos`: la pregunta era del rol y se contesto con la membresia. Desde el
+ * 094 esa pregunta la contesta una sola funcion, `programasVisibles`, y este buscador
+ * ya no la re-implementa: pide los ids del alcance y filtra por ellos.
  *
  * Con texto vacio o de menos de 2 caracteres devuelve un arreglo vacio sin tocar la
  * base: un buscador que ante "a" devuelve la base entera no sirve y filtra datos
@@ -75,6 +80,12 @@ export async function buscarPersonas(
 ): Promise<PersonaEncontrada[]> {
   const termino = texto.trim();
   if (termino.length < MINIMO_TEXTO) return [];
+
+  // El alcance —qué programas ve esta sesión— sale de la única función que lo
+  // contesta (ADR 0048). Sin programas visibles no hay a quién buscar: se corta antes
+  // de tocar la base.
+  const idsVisibles = await idsDeProgramasVisibles(userId, rol, db);
+  if (idsVisibles.size === 0) return [];
 
   // El `%` se escapa antes de meterlo en el patron para que un texto con `%` o `_`
   // no se lea como comodin de LIKE.
@@ -92,32 +103,16 @@ export async function buscarPersonas(
   const coincide = or(ilike(leads.nombre, patron), ilike(leads.emailNormalizado, patron));
   const orden = [asc(leads.nombre), asc(leads.emailNormalizado)] as const;
 
-  // Quien administra ve todos los programas activos. El developer entra por aca
-  // (ADR 0025 punto 5: no se le restringe nada), no por el camino de la membresia,
-  // donde no tiene ninguna y encontraria cero.
-  if (esAdministrador(rol)) {
-    return db
-      .select(columnas)
-      .from(leads)
-      .innerJoin(programs, eq(programs.id, leads.programId))
-      .where(and(eq(programs.activo, true), coincide))
-      .orderBy(...orden)
-      .limit(MAXIMO_FILAS);
-  }
-
+  // Se filtra por los ids del alcance en memoria: a esta escala (~2 programas) traer
+  // el alcance y usar `inArray` es gratis y evita repetir el join a `miembros_programa`
+  // —cada copia de ese join es una frontera que puede quedar desincronizada—. El join
+  // a `programs` sigue: proyecta el nombre del programa y no cruza nada, porque los
+  // ids ya vienen acotados al alcance.
   return db
     .select(columnas)
     .from(leads)
     .innerJoin(programs, eq(programs.id, leads.programId))
-    .innerJoin(miembrosPrograma, eq(miembrosPrograma.programId, leads.programId))
-    .where(
-      and(
-        eq(miembrosPrograma.userId, userId),
-        eq(miembrosPrograma.activo, true),
-        eq(programs.activo, true),
-        coincide,
-      ),
-    )
+    .where(and(inArray(leads.programId, [...idsVisibles]), coincide))
     .orderBy(...orden)
     .limit(MAXIMO_FILAS);
 }
@@ -196,13 +191,21 @@ export interface HistorialDePersona {
 }
 
 /**
- * El historial de una persona, o `null` si no existe (ticket 006).
+ * El historial de una persona, o `null` si no existe o queda FUERA del alcance de la
+ * sesion (ticket 006, ADR 0048, ticket 094).
  *
  * La pagina traduce el `null` a un 404 en vez de inventar una ficha vacia: un id
- * que no existe y una persona sin actividad son cosas distintas.
+ * que no existe y una persona sin actividad son cosas distintas. Y un lead de un
+ * programa que esta sesion NO ve devuelve el MISMO `null`, para que la ruta responda
+ * 404 exactamente igual que un id inexistente: un closer que teclea el id de una
+ * persona del otro programa no recibe una pista de que existe. Antes no llevaba
+ * filtro de alcance a proposito (se entraba desde el dashboard "todos ven todo", ADR
+ * 0009 retirado); el 094 cierra esa frontera con la misma funcion que todo lo demas.
  */
 export async function historialDePersona(
   personId: string,
+  userId: string,
+  rol: Rol | null,
   db: Db = dbDeLaApp,
 ): Promise<HistorialDePersona | null> {
   const [persona] = await db
@@ -222,6 +225,11 @@ export async function historialDePersona(
     .limit(1);
 
   if (!persona) return null;
+
+  // El programa es una FRONTERA (AGENTS.md): un lead fuera del alcance de esta sesion
+  // responde como si no existiera. Se comprueba contra la unica funcion de alcance
+  // (ADR 0048); nunca un filtro de membresia copiado aca.
+  if (!(await programaEnAlcance(userId, rol, persona.programId, db))) return null;
 
   // Los catalogos entran por `leftJoin`: una llamada vieja de Sheets no tiene
   // motivo ni origen del catalogo, y debe salir igual en el historial.

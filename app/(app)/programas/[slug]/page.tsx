@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
+import { rolDeVista } from "@/lib/auth/vista";
+import { programaVisiblePorSlug, programasVisibles } from "@/lib/auth/alcance";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { fecha } from "@/lib/format";
-import { programaActivoPorSlug, programasActivos } from "@/lib/queries/programas";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { PageShell } from "@/components/page-shell";
 import { ProgramSwitcher } from "@/components/program-switcher";
@@ -23,21 +24,29 @@ function texto(valor: string | string[] | undefined): string | undefined {
 
 export default async function ProgramaPage({ params, searchParams }: Props) {
   // La guarda corre PRIMERO, antes de mirar el slug: sin sesion redirige a login
-  // aunque el programa no exista, y nunca filtra que slugs existen. El dashboard
-  // lo ven gerente y closer por igual (ADR 0009).
-  await paginaConRol("gerente", "closer");
+  // aunque el programa no exista, y nunca filtra que slugs existen. El dashboard lo
+  // ven gerente y closer por igual, pero el CLOSER solo en SUS programas (ADR 0048):
+  // el alcance decide cuales.
+  const session = await paginaConRol("gerente", "closer");
 
   const { slug } = await params;
-  const programa = await programaActivoPorSlug(slug);
-  // No existe o esta inactivo: 404. `notFound()` lanza y corta el render.
+  // El rol de vista, no `session.user.rol` crudo (ADR 0028). El programa se resuelve
+  // DENTRO del alcance de la sesion: un slug de un programa que esta sesion no ve
+  // vuelve `null`, igual que uno inexistente o inactivo (ADR 0048, ticket 094).
+  const rol = await rolDeVista(session);
+  const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
+  // No existe, esta inactivo, o es de otro programa fuera del alcance: 404 en los
+  // tres casos. `notFound()` lanza y corta el render; nunca 403, para no filtrar que
+  // slugs existen.
   if (!programa) notFound();
 
   const busqueda = await searchParams;
   const hoy = diaDeCalendario(new Date());
 
   // El filtro sale de la URL, nunca de la sesion: un closer que entra sin filtro ve
-  // el programa completo, igual que un gerente. Si la sesion decidiera el filtro,
-  // "todos ven todo" duraria hasta el primer descuido.
+  // el programa completo, igual que un gerente (ADR 0048: dentro de su programa, ve
+  // todo). Si la sesion decidiera el filtro, "todos ven todo" duraria hasta el primer
+  // descuido.
   const vista = await armarVistaDelDashboard({
     programId: programa.id,
     hoy,
@@ -47,7 +56,9 @@ export default async function ProgramaPage({ params, searchParams }: Props) {
     closerId: texto(busqueda.closer) ?? null,
   });
 
-  const programas = await programasActivos();
+  // El selector solo ofrece los programas que ESTA sesion ve (ADR 0048): un closer no
+  // ve el otro programa en el switcher. La misma funcion de alcance, no `programasActivos`.
+  const programas = await programasVisibles(session.user.id, rol);
   const { desde, hasta } = vista.seleccion.rango;
   // Un solo dia se escribe una sola vez: "15 sep 2026", no "15 sep 2026 a 15 sep 2026".
   const rangoLegible = desde === hasta ? fecha(desde) : `${fecha(desde)} a ${fecha(hasta)}`;

@@ -57,6 +57,13 @@ vi.mock("@/lib/queries/programas", () => ({
   programasGestionablesPorUsuario,
 }));
 
+// El dashboard de programa y el layout resuelven el programa y el selector contra la
+// funcion de alcance (ADR 0048, ticket 094), no contra `programasActivos`. Se mockea
+// para poder simular "este programa esta / no esta dentro del alcance de la sesion".
+const programaVisiblePorSlug = vi.fn();
+const programasVisibles = vi.fn();
+vi.mock("@/lib/auth/alcance", () => ({ programaVisiblePorSlug, programasVisibles }));
+
 // El historial de una persona (ticket 006) lee la base; sin base en los tests se
 // mockea la query para que las guardas y el 404 sean lo unico bajo prueba.
 const historialDePersona = vi.fn();
@@ -162,6 +169,9 @@ beforeEach(() => {
   programaActivoPorSlug.mockReset();
   programasActivos.mockReset();
   programaPorSlug.mockReset();
+  programaVisiblePorSlug.mockReset();
+  programasVisibles.mockReset();
+  programasVisibles.mockResolvedValue([]);
   listarCohortes.mockReset();
   listarCohortes.mockResolvedValue([]);
   programasGestionablesPorUsuario.mockReset();
@@ -342,54 +352,63 @@ describe("developer pasa toda guarda de pagina (ADR 0025)", () => {
   });
 });
 
-describe("dashboard de programa /programas/[slug] (ADR 0009 + 0012)", () => {
+describe("dashboard de programa /programas/[slug] (ADR 0048 + 0012)", () => {
   const SLUG_EXISTE = "programa-a";
   const SLUG_NO_EXISTE = "no-existe";
 
   it("deja pasar a un gerente con un slug existente", async () => {
     auth.mockResolvedValue(sesionGerente);
-    programaActivoPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
     expect(await correrPrograma(SLUG_EXISTE)).toBe("paso");
   });
 
-  it("deja pasar a un closer con un slug existente", async () => {
+  it("deja pasar a un closer con un slug dentro de su alcance", async () => {
     auth.mockResolvedValue(sesionCloser);
-    programaActivoPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
     expect(await correrPrograma(SLUG_EXISTE)).toBe("paso");
   });
 
   it("deja pasar a un developer con un slug existente (ADR 0025)", async () => {
     auth.mockResolvedValue(sesionDeveloper);
-    programaActivoPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
     expect(await correrPrograma(SLUG_EXISTE)).toBe("paso");
   });
 
   it("manda al login a quien no tiene sesion, aun con un slug existente", async () => {
     auth.mockResolvedValue(null);
-    programaActivoPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
     expect(await correrPrograma(SLUG_EXISTE)).toBe("login");
   });
 
   it("manda al login a quien no tiene sesion, tambien con un slug inexistente", async () => {
     // La guarda corre primero: no se filtra que slugs existen a quien no entro.
     auth.mockResolvedValue(null);
-    programaActivoPorSlug.mockResolvedValue(null);
+    programaVisiblePorSlug.mockResolvedValue(null);
     expect(await correrPrograma(SLUG_NO_EXISTE)).toBe("login");
   });
 
   it("un slug inexistente o inactivo, con sesion, es 404", async () => {
     auth.mockResolvedValue(sesionGerente);
-    programaActivoPorSlug.mockResolvedValue(null);
+    programaVisiblePorSlug.mockResolvedValue(null);
     expect(await correrPrograma(SLUG_NO_EXISTE)).toBe("notFound");
+  });
+
+  it("un closer con el slug de un programa FUERA de su alcance recibe 404, no 403 (ADR 0048, ticket 094)", async () => {
+    // `programaVisiblePorSlug` devuelve null cuando el programa existe pero es de otro
+    // programa que esta sesion no ve: la pagina no lo distingue de un slug inexistente,
+    // asi que no se filtra que slugs existen. Es 404, jamas 403.
+    auth.mockResolvedValue(sesionCloser);
+    programaVisiblePorSlug.mockResolvedValue(null);
+    expect(await correrPrograma("programa-ajeno")).toBe("notFound");
   });
 });
 
-describe("el dashboard no depende del rol (ADR 0009, ticket 005)", () => {
+describe("el dashboard no depende del rol dentro del alcance (ADR 0048, ticket 005)", () => {
   const SLUG = "programa-a";
   const BUSQUEDA = { rango: "semana", closer: "Ana" };
 
   beforeEach(() => {
-    programaActivoPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A" });
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A" });
   });
 
   it("un closer y un gerente piden exactamente la misma vista", async () => {

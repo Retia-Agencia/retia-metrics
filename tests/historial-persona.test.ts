@@ -31,6 +31,13 @@ let base: BaseDePrueba;
 let db: Db;
 
 let programaA: string;
+/**
+ * Un actor que ve el historial. Se usa un GERENTE a proposito: quien administra ve
+ * todos los programas activos sin membresias (ADR 0048), asi que estos tests —que van
+ * sobre lo que trae el historial, no sobre el alcance— no tienen que sembrar
+ * membresias. El alcance por membresia se prueba en `tests/alcance-de-sesion.test.ts`.
+ */
+let gerenteId: string;
 
 /** Vacia en orden de llave foranea. */
 async function limpiar(): Promise<void> {
@@ -67,6 +74,12 @@ beforeEach(async () => {
     .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
     .returning();
   programaA = a.id;
+
+  const [g] = await db
+    .insert(users)
+    .values({ email: "gerente@retiagrowth.com", rol: "gerente", nombre: "Gerencia" })
+    .returning();
+  gerenteId = g.id;
 });
 
 /**
@@ -95,14 +108,14 @@ async function sembrarPersona(extra: Record<string, unknown> = {}): Promise<stri
 
 describe("historialDePersona", () => {
   it("una persona que no existe devuelve null (la pagina lo vuelve 404)", async () => {
-    const historial = await historialDePersona(crypto.randomUUID(), db);
+    const historial = await historialDePersona(crypto.randomUUID(), gerenteId, "gerente", db);
     expect(historial).toBeNull();
   });
 
   it("devuelve la persona con su programa", async () => {
     const id = await sembrarPersona();
 
-    const historial = await historialDePersona(id, db);
+    const historial = await historialDePersona(id, gerenteId, "gerente", db);
 
     expect(historial?.persona.id).toBe(id);
     expect(historial?.persona.emailNormalizado).toBe("lead@correo.co");
@@ -127,7 +140,7 @@ describe("historialDePersona", () => {
       },
     ] as never);
 
-    const historial = await historialDePersona(id, db);
+    const historial = await historialDePersona(id, gerenteId, "gerente", db);
 
     expect(historial?.llamadas.map((l) => l.resultado)).toEqual(["show", "no_show"]);
   });
@@ -144,7 +157,7 @@ describe("historialDePersona", () => {
       fechaLlamada: new Date("2026-09-15T15:00:00Z"),
     } as never);
 
-    const historial = await historialDePersona(id, db);
+    const historial = await historialDePersona(id, gerenteId, "gerente", db);
 
     expect(historial?.llamadas[0]?.motivoNombre).toBe("Sin presupuesto");
   });
@@ -160,7 +173,7 @@ describe("historialDePersona", () => {
       fechaLlamada: new Date("2026-09-15T15:00:00Z"),
     } as never);
 
-    const historial = await historialDePersona(id, db);
+    const historial = await historialDePersona(id, gerenteId, "gerente", db);
 
     expect(historial?.llamadas).toEqual([]);
   });
