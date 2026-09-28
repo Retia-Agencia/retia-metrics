@@ -59,7 +59,13 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   - **105 casi hecho** (`1e00020`): migración **0028** en `dev` (`tipo_fuente` webhook, `sources.proveedor`,
     `sources.secreto_webhook`, CHECK de proveedor). El secreto lo escribe solo `rotarSecretoDeFuente` y
     nunca pasa por el molde (el molde escribe cada campo en `change_log`). El sync de Sheets ahora solo lee
-    fuentes de hoja. Falta el recorrido visual: el panel del navegador no tiene sesión y el login es Google.
+    fuentes de hoja. **Recorrido visual hecho** con la sesión de Mani: crear webhook, URL, activar sin
+    secreto (422), generar secreto (se ve una vez), activar con otra fuente activa (409), editar con el tipo
+    bloqueado; el secreto no aparece en el HTML al recargar (comparado por hash) ni en `change_log`. Queda en
+    `dev` la fuente inactiva "Typeform prueba (105)" en Comunicarte. Falta forjar la acción como closer.
+  - 🩸 **Bug viejo visto en el recorrido:** el molde escribe los campos jsonb en `change_log` como
+    `[object Object]` (`aTexto` = `String`). Tarea aparte propuesta; puede que además esconda ediciones del
+    mapeo en el diff.
   - **Código del 051:** con Kiro. Hasta que aterrice, el typecheck de `main` local falla en
     `lib/ingesta/calificacion.ts`; por eso la 0027 no se ha subido.
 - **2026-09-27 (CIERRE 33): merge de las dos sesiones y el 103.** Sesión de Mani, noche.
