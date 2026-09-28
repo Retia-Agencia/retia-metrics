@@ -26,7 +26,8 @@
     "cargar-motivos": "tsx scripts/cargar-motivos.ts",
     "db:local": "tsx scripts/db-local.ts",
     "dev:local": "tsx scripts/dev-local.ts",
-    "seed:local": "tsx scripts/seed-local.ts"
+    "seed:local": "tsx scripts/seed-local.ts",
+    "trasladar": "tsx scripts/trasladar-desde-sheets.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
