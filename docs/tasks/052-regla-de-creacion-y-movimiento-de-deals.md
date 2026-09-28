@@ -66,3 +66,16 @@ Si, con revision.
 > **27-sep:** crear un deal tambien es escribir su etapa, asi que el sync **abre con `abrirDeal()`**
 > (`lib/deals/mover-etapa.ts`, ticket 047) con actor `sistema`, en Pendiente Setteo o Agendado, y mueve
 > con `moverEtapa()`. `crearConRastro` rechaza un deal con etapa si no viene del motor.
+
+---
+
+## Enmienda 2026-09-27, noche (ADR 0054 enmendado, D4 cerrada)
+
+- **La regla lee `leads.calificacion`**, con los tres valores del 051, no el texto de `leads.estado`:
+  `descartado` no abre deal, `setteo_no_calificado` abre en Pendiente Setteo, `con_calendly` abre en
+  Agendado (o mueve a Agendado desde 1, 2 o 9). Sin calificación: no abre nada.
+- **La llama la ingesta, no "el sync":** `ingerirEntradas` aplica la regla solo cuando se lo pide su
+  llamador. El webhook (106) la pide; el traslado desde Sheets **no**, porque los leads viejos entran
+  por el 080 con su estado de gestión (decisión de Mani del 24-sep, arriba).
+- "Los 9 casos de Setteo → Calendly de `dev`" del Done se prueban con envíos sintéticos: sin sync vivo,
+  en `dev` ya no llegan envíos nuevos que los produzcan.

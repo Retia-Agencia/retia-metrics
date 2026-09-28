@@ -237,13 +237,15 @@ por webhook (hoy hay 1.152 parciales en Tactical y 193 correos que solo existen 
 ⚠️ **Riesgo operativo (T3):** Typeform tiene que seguir escribiendo en Sheets hasta que los closers
 trabajen en el CRM, aunque el CRM ya no lea la hoja, o se quedan sin ver los leads nuevos.
 
-El webhook **no tiene ticket todavía**; se crea cuando se cierren las cuatro 🔴.
+✅ Las cuatro 🔴 se cerraron el 27-sep (ADR 0055 y las respuestas de Mani: sobre crudo + 200, aviso en la
+app). Tickets: **105** (la fuente webhook), **106** (la ruta y el adaptador de Typeform), **107** (el aviso).
 
 #### 4.3b El Estado del lead sale del formulario 🆕
 
-> ✅ **Cerrado el 27-sep: ADR 0054** (A1). El form manda `estado` (`sin_recursos` o `califica`) en una
-> variable; "agendó" e "incompleto" los lee el CRM del envío; T2 se queda como validador; el script de
-> la hoja se borra después del hito B. Lo de abajo es el contexto previo.
+> ✅ **Cerrado el 27-sep: ADR 0054** (A1), **enmendado esa noche:** el form manda el Estado completo con
+> los nombres de la hoja (`descartado`, `setteo_no_calificado`, `con_calendly`) y el CRM confía en él,
+> sin calcular ni validar. T2 queda desconectado mientras se decide A8. El script de la hoja se borra
+> después del hito B. Lo de abajo es el contexto previo.
 
 **Lo que dijo Mani el 27-sep:** *"Ahorita Estado es un campo que llena un script de sheets, pero esto
 debe ser asignado directamente desde el forms según el scoring que les da: toca cambiar el Typeform
@@ -362,7 +364,8 @@ cierra, baja a un ADR (con `/grill-with-docs`) o a su ticket, y sale de esta lis
 | A4 | Garantía de la UI: tests de componente o Playwright (R5); CI (R4) | paso 4 | antes del paso 4 |
 | A5 | Calendly: webhook o consulta; plan de Calendly; Vercel Pro (R3) | 096 | paso 3 |
 | A6 | Qué pasa con 053 a 056 y con el código del sync de Sheets después del corte directo (§4.3d) | limpieza del tracker | paso 2 |
-| A7 | Las fichas técnicas de §7.1 (D3, D4, D5, R2, P2, T4) | 052, 060, 084 | según el ticket |
+| A7 | Las fichas técnicas de §7.1 (D3, D5, R2, P2, T4) | 060, 084 | según el ticket |
+| A8 | ¿El Estado lo calcula el formulario o una función del CRM por programa? Hoy: el formulario (ADR 0054, enmienda). T2 queda desconectado en el repo hasta decidirlo | nada: el 052 lee `leads.calificacion` sin saber quién la escribió | antes del hito A en producción, con el envío real de Typeform |
 
 **B. Closers** (por chat, cuando llegue el ticket que la necesita):
 
@@ -406,7 +409,6 @@ dice, alguien más.
 | Ficha | El problema | Opciones y recomendación escrita |
 |---|---|---|
 | **D3 · ¿Abonado cuenta como deal abierto?** | El índice de "un deal abierto por lead y programa" excluye solo Completo y Cierre Perdido: un Student en Abonado con saldo **bloquea** cualquier otro deal del mismo lead (una mentoría, un upsell) | A: se mantiene (el upsell espera a que se complete el pago). B: se excluye Abonado del índice. Recomendación: B solo si venden una segunda cosa a la misma persona en el mismo programa; si no, A, y se deja escrito |
-| **D4 · `estado` "con el que nadie decide"** | El ADR decía que el estado es texto porque nadie decide con él, pero la regla de deals (052) crea y mueve deals comparándolo; y hoy convive con `calificacion` (enum de T2) | Recomendación escrita el 22-sep: una tabla por programa `estado → acción` configurable desde la fuente, con alerta si llega un estado sin fila. Se decide junto con A1 |
 | **D5 · UTM en dos tablas** | `leads` y `submissions` guardan los mismos `utm_*`, sin estar declarado; el 093 filtraría por uno y el 088 por el otro: dos cifras para la misma pregunta | Recomendación: el origen del lead es el de su primer envío, derivado, y `leads.utm_*` se elimina; mientras tanto, lo que lea `leads.utm_*` lo marca como temporal |
 | **R2 · El rastro por triggers** | Hoy el rastro lo garantiza un guardián por regex que no ve alias de tabla, `.delete(` ni algunas tablas | Con las transacciones reales del ADR 0047, triggers `AFTER INSERT/UPDATE` con `SET LOCAL app.user_id` harían que la base garantice el rastro, como el dedup. Recomendación: sí; el guardián de etapas (046) encoge |
 | **R3 · Vercel Pro** | Hobby permite un cron al día y es para uso no comercial | Recomendación: Pro (20 USD/mes por miembro). Habilita la consulta de Calendly cada 15 min |

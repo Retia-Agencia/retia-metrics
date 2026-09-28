@@ -1,59 +1,67 @@
 ---
 id: 051
 etapa: E3
-serves: "plan v2 §6 etapa 3 · tarea E3-4 · ADR 0032 (cierra F-01), insumo §2.2"
+serves: "ADR 0054 (enmienda del 27-sep) · cierra D4 y F-01 · plan §4.3b"
 depends: [049, 050]
 status: en curso
 ---
 
-# 051 — `lead.estado` sale del envio completo mas reciente **por posicion en la hoja**
+# 051 — El Estado del lead es el que manda el formulario
+
+> **Reescrito el 27-sep en la noche.** La versión anterior (leer la columna `estado` de la hoja en el
+> sync, y después calcularlo con T2) quedó vieja con el corte directo y el ADR 0054: el CRM **no
+> califica**, confía en el formulario. La versión vieja: `git log -p` de este archivo.
 
 ## Objetivo
 
-Cerrar **F-01**, abierta desde agosto: el sync lee la columna `estado` y la descarta. Ahora la
-guarda, tal cual viene.
+Que cada envío guarde el Estado que le puso el formulario, y que el lead tenga el de su envío completo
+más reciente, en `leads.calificacion`, que es lo único que lee la regla de deals (ticket 052).
 
-## Las reglas
+## El contrato (ADR 0054, enmienda)
 
-- Se guarda **como viene**, sin traduccion, sin enum, sin lista de valores conocidos (ADR 0032).
-- El estado del Lead es el del **envio completo mas reciente POR POSICION en la hoja**, no por
-  fecha: 🩸 los parciales llevan fecha placeholder `1/1/0001` y no sirven para ordenar.
-- **`estado` vacio = "Sin Calificar":** el Lead existe y no tiene deal. Cuando un sync traiga el
-  valor, se actualiza y se aplica la regla de deals (ticket 052).
-- El **agrupamiento es dinamico**: se lee que valores existen y se agrupa por ellos. Una categoria
-  nueva aparece sola, sin migracion y sin desplegar.
-- **Combinar dos redacciones es un acto humano guardado como dato.** 🎯 El caso ya existe:
-  `📅 Con Calendly` y `📅 Con Calendly (Juanito)` son la misma categoria en dos programas.
-- La **razon de descarte no se trae** (vive en una pestana que no se lee).
+| La hoja escribe | Valor en el CRM | Qué hace el 052 |
+|---|---|---|
+| 🗑️ Descartado | `descartado` | no abre deal |
+| 📞 Setteo No Calificado | `setteo_no_calificado` | Pendiente Setteo |
+| 📅 Con Calendly · 📅 Con Calendly (Juanito) | `con_calendly` | Agendado |
 
 ## Alcance
 
-- **Dentro:** escribir `leads.estado`, el agrupamiento dinamico y la tabla que guarda las
-  combinaciones.
-- **Dentro:** "desaparecio de la hoja" como una categoria mas (F-06). **Nunca se borra un lead**;
-  lo que falta construir es la **deteccion**.
-- **Fuera:** la pantalla que combina. Es de la etapa 6.
-- **Fuera:** decidir si las categorias son por programa o globales. **Sigue abierto a proposito**
-  (ADR 0032) y se decide con el embudo delante, en la etapa 5.
+- **Migración (sesión principal, nunca Kiro):** el enum `calificacion_envio` pasa de
+  `incompleto, sin_recursos, con_agenda, setteo` a `descartado, setteo_no_calificado, con_calendly`.
+  Fundir dos valores en uno no se puede con `RENAME VALUE`: tipo nuevo, columnas con `USING` (incompleto
+  y sin_recursos → descartado, con_agenda → con_calendly, setteo → setteo_no_calificado), tipo viejo
+  fuera. Se escribe a mano y se lee antes de aplicar.
+- **El Envío trae `estado`:** el adaptador lo llena. El del webhook (106) lo lee de la variable `estado`
+  del formulario; el de Sheets (traslado) lee el texto de la hoja y lo pasa a su valor por el nombre de
+  la tabla de arriba. Ninguno lo deduce de las respuestas.
+- **La ingesta deja de calcular:** `ingerirEntradas` guarda el `estado` del envío en
+  `submissions.calificacion` y no llama a `calificarEnvio`. `lib/ingesta/calificacion.ts` y
+  `sources.calificacion` se quedan en el repo, desconectados (decisión A8 de `docs/plan.md` §7); sus
+  tests se adaptan a los tres valores o se marcan como del módulo desconectado, sin borrarlos.
+- **El lead:** `leads.calificacion` = la del envío completo más reciente con Estado; si solo hay
+  parciales, la del último parcial que traiga uno (lo que ya hace `resumirEnvios`).
+- **Fuera:** abrir deals (052), la pantalla que muestra el Estado, el puntaje (T4, sigue nulo).
+
+## Lo que no se adivina
+
+- Un envío **completo** sin `estado`, o con un valor fuera de los tres: entra sin calificación y se
+  cuenta en `sinCalificar` con el motivo (error visible).
+- Un envío **parcial** sin `estado`: entra sin calificación y **no** es error. 🟡 Lectura de este
+  ticket, no decisión de Mani: un parcial nunca abre deal, así que marcarlo como error llenaría el
+  reporte con los ~1.150 parciales de Tactical.
 
 ## Done cuando
 
-- [ ] Despues de una corrida sobre `dev`, la distribucion de `estado` se parece a la medida el
-      16-sep (Comunicarte: ~928 Descartado, ~786 Setteo, ~286 Con Calendly; Tactical: ~2.031,
-      ~1.447, ~316 y 1 Cerrado). **Si no se parece, algo se esta perdiendo.**
-- [ ] Un valor nuevo inventado en una celda aparece como su propio grupo, sin error.
-- [ ] Un lead con un parcial posterior a su completa conserva el estado de **la completa**.
-- [ ] Combinar dos valores deja fila con quien y cuando.
+- [ ] La migración convierte los datos de `dev` sin perder filas: el conteo por valor nuevo es la suma
+      de los viejos.
+- [ ] Cada fila de la tabla del contrato tiene su test, entrando por el adaptador de Sheets y por un
+      Envío con `estado` directo.
+- [ ] Un valor inventado (`"con calendly!"`) entra sin calificación y aparece en `sinCalificar`.
+- [ ] Un lead con un parcial posterior a su completo conserva el Estado del completo.
+- [ ] `grep` confirma que `ingerirEntradas` no llama a `calificarEnvio`.
+- [ ] `npm test`, `npm run typecheck` y `npm run lint` limpios.
 
 ## Kiro
 
-Si, con revision.
-
-## Avance 23-sep (status sigue `todo`)
-
-- ✅ **Lo que este ticket pedia ahora lo calcula el CRM, no la hoja** (T2, 22-sep):
-  `leads.calificacion` sale del envio completo mas reciente. Si solo hay parciales, sale de la
-  ultima, y se recalcula cuando llega la hermana (`lib/ingesta/ingerir.ts`, `resumirEnvios`).
-- ⚠️ Va en una columna **nueva** (`calificacion`, enum), no en `leads.estado`: la ficha D4 sigue
-  por decidir. `submissions.estado_hoja` conserva lo que escribio la hoja, para comparar.
-- Ficha nueva **T4** (scoring) en `docs/auditorias/revision-modelo-hubspot-2026-09-22.md`.
+Sí el código y los tests, con revisión. La migración la escribe y aplica la sesión principal.

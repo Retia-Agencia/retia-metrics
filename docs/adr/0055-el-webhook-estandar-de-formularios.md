@@ -51,7 +51,10 @@ por fuente; nunca responde con redirección; la ruta va en la lista pública de 
 - ⚠️ Typeform tiene que seguir escribiendo en Sheets hasta el hito B, o los closers se quedan sin ver
   los leads nuevos.
 
-## Por decidir en los tickets del track (recomendación escrita, no decidida)
+## Por decidir en los tickets del track
+
+> ✅ **Cerrados por Mani el 27-sep en la noche**, las dos como se recomendaba: el sobre crudo + 200 va en
+> el ticket 106 y el aviso en la app en el 107.
 
 1. **Dónde queda un envío que llega y no se puede procesar.** Recomendación: guardar el sobre crudo y
    responder 200, para no perder el lead y poder reprocesarlo (precedente de `dapta-forms-sheets`, D4).

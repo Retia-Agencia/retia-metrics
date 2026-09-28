@@ -113,12 +113,15 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 048 | [Una sola función de ingesta](./048-una-sola-funcion-de-ingesta.md) (E3-1) | 042 | en curso · `ingerirEntradas` escribe (23-sep); falta que el webhook o el traslado la llamen |
 | [ ] | 049 | [El Envío con todas las columnas](./049-el-envio-con-todas-las-columnas.md) (E3-2) | 048 | en curso · construcción y escritura hechas; migración 0022 solo en `dev` |
 | [ ] | 050 | [Identidad del Lead: el teléfono une **y marca**](./050-identidad-del-lead.md) (E3-3) | 048 | en curso · `resolverIdentidad` cableada en `ingerirEntradas` |
-| [ ] | 051 | [`lead.estado` desde el envío completo más reciente](./051-el-estado-del-lead-desde-el-envio.md) (E3-4) | 049, 050 | en curso · calificación T2 hecha (migración 0023); 🔴 choca con "el Estado lo da el formulario" (plan §4.3b) |
-| [ ] | 052 | [La regla de creación y movimiento de deals](./052-regla-de-creacion-y-movimiento-de-deals.md) (E3-5) | 051, 045 | todo |
+| [ ] | 051 | [El Estado del lead es el que manda el formulario](./051-el-estado-del-lead-desde-el-envio.md) (E3-4) | 049, 050 | todo · **reescrito 27-sep noche** (ADR 0054 enmendado): tres valores con los nombres de la hoja, el CRM no califica; migración del enum de la sesión principal |
+| [ ] | 052 | [La regla de creación y movimiento de deals](./052-regla-de-creacion-y-movimiento-de-deals.md) (E3-5) | 051, 045 | todo · lee `leads.calificacion` (D4 cerrada) |
 | [ ] | 053 | [Zona horaria por fuente](./053-zona-horaria-por-fuente.md) (E3-6) | 039, 049 | en curso · código hecho; falta poner las fuentes en UTC. 🔴 053-056 son del sync de Sheets vivo (plan §4.3d) |
 | [ ] | 054 | [Configurar una fuente sin adivinar](./054-configurar-una-fuente-de-verdad.md) (E3-7) | 039 | todo |
 | [ ] | 055 | [Alertas: una fuente se rompe, no se apaga](./055-alertas-y-fuente-rota.md) (E3-8) | 054 | todo |
 | [ ] | 056 | [El sync se dispara por capas](./056-disparo-del-sync-por-capas.md) (E3-9) | 048 | todo |
+| [ ] | 105 | [La fuente webhook: un formulario es una fila](./105-la-fuente-webhook.md) | 048 | todo · migración de la sesión principal (`tipo_fuente` webhook, proveedor, secreto) |
+| [ ] | 106 | [La ruta del webhook y el adaptador de Typeform](./106-la-ruta-del-webhook-y-el-adaptador-de-typeform.md) | 105, 051 | todo · **hito A**; sobre crudo + 200 si no se puede procesar |
+| [ ] | 107 | [Una fuente que dejó de recibir se ve en la app](./107-aviso-de-fuente-sin-envios.md) | 106 | todo · 🔴 el umbral por defecto lo decide Mani |
 | [ ] | 086 | [Origen humano del lead y el enlace de captación](./086-origen-humano-y-enlace-de-captacion.md) | 048, 084 | todo · ⏳ **el dato lo escribe la ingesta; después no se puede reconstruir** |
 | [ ] | 087 | [🩸 El CPL deja de preguntar por `entrada`](./087-el-cpl-deja-de-preguntar-por-entrada.md) | 085, 086 | todo · **va con el 086, nunca después** |
 

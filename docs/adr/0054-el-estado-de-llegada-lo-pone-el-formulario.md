@@ -67,3 +67,45 @@ antes los deja sin leads nuevos, sin que nada avise.
 | Que el formulario también diga "agendó" | La lógica de Typeform corre antes de que el lead agende; el hecho ya viene en la respuesta |
 | Retirar T2 | Una regla mal puesta en el form pasaría callada; el validador ya está construido |
 | Borrar el script ya | Los closers dejan de ver leads nuevos en Setteo hasta el hito B |
+
+---
+
+## Enmienda 2026-09-27, noche (Mani): el CRM no califica; confía en el formulario
+
+Mani, al revisar los tickets del paso 2: *"Estado viene ya con valor directamente del forms, el CRM NO
+se encarga de calcular ni calificar ningún lead; se confía en los valores que vienen del forms."* Y:
+*"sin recursos es descartado; quiero usar los nombres como lo manejan ya."*
+
+Reemplaza los puntos 1 a 4 de arriba:
+
+**1. El formulario manda el Estado completo, con los nombres de la hoja.** Son tres, los mismos que
+escribe hoy el Apps Script (leídos en `work/retia/apps-script-sheets/`):
+
+| La hoja escribe | El formulario manda en `estado` | Qué hace el CRM (ticket 052) |
+|---|---|---|
+| 🗑️ Descartado | `descartado` | no abre deal |
+| 📞 Setteo No Calificado | `setteo_no_calificado` | abre deal en Pendiente Setteo |
+| 📅 Con Calendly (Tactical: "Con Calendly (Juanito)") | `con_calendly` | abre deal en Agendado |
+
+"Sin recursos" e "incompleto" ya no son estados propios: los dos son **Descartado**, como en la hoja.
+La pantalla muestra el nombre de la hoja; el código usa el valor sin tildes ni emoji.
+
+**2. El CRM no deduce nada.** Ni "agendó" desde el bloque de Calendly ni "incompleto" desde el parcial:
+lo que diga el formulario es el Estado.
+
+**3. T2 no corre.** `calificarEnvio` queda en el repo, desconectado de la ingesta, porque sigue abierta
+la pregunta de si el Estado lo calcula el formulario o una función del CRM por programa (decisión A8 de
+`docs/plan.md` §7). El 052 no depende de esa respuesta: lee `leads.calificacion` y no sabe quién la
+escribió.
+
+**4. Sigue en pie:** un envío completo sin `estado`, o con un valor fuera de los tres, no se adivina:
+el lead entra sin deal y el envío se reporta como error visible.
+
+**El formulario sí sabe si agendó** (Mani, 27-sep, corrige lo que este ADR suponía arriba): el
+Calendly es un embed dentro del formulario; si el lead agenda, el link vuelve al formulario y este le
+asigna `con_calendly`. Se asume que todo el que agenda llega con su link de Calendly y con ese Estado.
+El envío real del ticket 106 lo confirma, no lo decide.
+
+**Cierra D4** (`docs/plan.md` §7.1): se decide con `leads.calificacion`, la lista de tres valores.
+`leads.estado` (texto, ADR 0032) queda como lo que escribió la hoja, para comparar en la migración;
+nadie decide con él.
