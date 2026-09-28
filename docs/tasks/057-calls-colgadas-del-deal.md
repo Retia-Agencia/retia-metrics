@@ -3,7 +3,7 @@ id: 057
 etapa: E4
 serves: "plan v2 §6 etapa 4 · tarea E4-1 · ADR 0015 (enmendado), insumo §2.5"
 depends: [052]
-status: todo
+status: done
 ---
 
 # 057 — Las Calls cuelgan del deal, y el sync crea la `agendada` sin fecha
@@ -27,10 +27,10 @@ de una persona.
 
 ## Done cuando
 
-- [ ] Una Call no puede existir sin deal.
-- [ ] El sync crea la Call `agendada` sin fecha y el deal queda sin owner.
-- [ ] Un closer reclama, pone fecha y link, y queda registrado quien lo hizo.
-- [ ] Ninguna escritura de `calls` ocurre sin su fila de `change_log` (ticket 041).
+- [x] Una Call no puede existir sin deal. *(28-sep: `agregarLlamada` exige un deal vigente y abierto; la suelta de Calendly es del 096)*
+- [x] ~~El sync crea la Call `agendada` sin fecha~~ *(28-sep: el sync se retiró; la crea el webhook con la fecha real de la cita, ADR 0057, `lib/ingesta/regla-de-deals.ts`)*
+- [x] Un closer pone fecha y link, y queda registrado quien lo hizo (`completarAgendada`). *Reclamar el deal es del 070.*
+- [x] Ninguna escritura de `calls` ocurre sin su fila de `change_log` (ticket 041).
 
 ## Kiro
 
@@ -63,3 +63,18 @@ Si.
   (5 → 3 con motivo); T11 queda reemplazada y T15 pasa a 6 → 11. Perdido llega también desde 11. Tabla
   completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
 - **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".
+
+---
+
+## Cierre 2026-09-28
+
+- `lib/deals/llamadas.ts`: `agregarLlamada` (llamada nativa sobre un deal abierto del actor; en 1, 2, 3, 9
+  y 11 mueve a Agendado por `moverEtapa()`, en 5, 6 y 7 no) y `completarAgendada` (el dueño del deal le
+  pone fecha y link a la agendada del sistema y queda como `closer_user_id`). Implementado por Kiro;
+  revisado en la sesión principal, que agregó la transacción: la llamada y el movimiento van juntos o no
+  va ninguno.
+- Migración **0036** (`closer_user_id`, `link_calendly`, `link_grain`), aditiva. **Sin aplicar en
+  producción**: se aplica al abrir E1, junto con la tabla del 110.
+- `tests/llamadas-del-deal.test.ts`: 23 casos. Suite completa: 1.091 en verde, typecheck y lint limpios.
+- Queda: un test del rechazo del motor dentro de `agregarLlamada` (hoy no se puede provocar: las cinco
+  flechas a Agendado existen). Sin pantalla: la usa el 069/074.
