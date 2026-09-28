@@ -72,6 +72,14 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     reporta en `sinCalificar`. ⚠️ Para el 106: `Envio.estado` sale de `estadoHoja`, así que el adaptador de
     Typeform pone la variable `estado` en ese campo (o se generaliza el nombre).
   - **Medido:** 922 tests, typecheck y lint limpios con el 051 y el 105 juntos.
+  - **Typeform configurado (Mani, 27-sep noche):** los dos formularios tienen la variable `estado` (texto,
+    SIN valor base) y dos cálculos en la pregunta de pago (`descartado` / `setteo_no_calificado`),
+    publicados. Typeform no deja condicionar sobre la pregunta de Calendly, así que "agendó" lo lee el CRM
+    del link (ADR 0054, segunda enmienda; se construye en el 106). La pregunta de Calendly es obligatoria y
+    ahora autocompleta nombre y correo del form (sirve al emparejador del 096). Prueba del "No" en los dos:
+    Typeform dice `descartado` y la hoja no recibió la variable (columna R vacía). 🚫 **Nunca reconectar la
+    integración con Sheets:** el Apps Script lee por posición (A-P + Q = Estado). El Partial Submit Point y
+    el webhook se configuran con el 106, no antes.
   - **Siguiente:** el 052 (ya desbloqueado) y el 106.
 - **2026-09-27 (CIERRE 33): merge de las dos sesiones y el 103.** Sesión de Mani, noche.
   - **Merge** (`17d279d`): quedó el E2 de Alejandro (está en `dev`); se descartaron el 043 y el 044
