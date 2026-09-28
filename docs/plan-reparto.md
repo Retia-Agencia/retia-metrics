@@ -9,9 +9,9 @@
 > Escrito el 28-sep-2026 sobre `main @ 6ad90ab`, leyendo los 53 tickets abiertos contra el plan y el
 > código.
 >
-> ⚠️ **Supuesto por confirmar:** "Alejo" es **Alejandro Dávila** (`alejandrod-24`, el que construyó E2,
-> Supabase y Tinta). En [`overview.md`](./overview.md) §4 "Alejo" es Alejandro Carvajal, gerente, que
-> aquí solo aparece como quien decide áreas y umbrales.
+> **Quién es quién:** "Alejo" en este documento es **Alejandro Dávila**, dev (`alejandrod-24`). El Alejo
+> gerente de [`overview.md`](./overview.md) §4 es **Alejo Carvajal**, que aquí solo aparece como quien
+> decide áreas y umbrales.
 
 ---
 
@@ -36,18 +36,22 @@ los carriles; no son días. Se re-mide al cerrar cada etapa y se rebalancea la s
 
 | Carril | Dominio | Carpetas de las que es dueño |
 |---|---|---|
-| **Alejo** | motor, dinero y pantallas de trabajo | `lib/deals/`, `lib/crm/`, `lib/abonos/`, `lib/queries/saldo.ts`, `lib/queries/dashboard.ts`, pantallas de Deals, Inbox y Dashboard |
-| **Mani** | entradas, historia de Sheets e integraciones | `lib/ingesta/`, `lib/sheets/`, `lib/calendly/`, `app/api/webhooks/`, `lib/nav.ts`, `lib/auth/`, scripts de traslado y migración |
+| **Mani** | motor, dinero y pantallas de trabajo | `lib/deals/`, `lib/crm/`, `lib/abonos/`, `lib/queries/saldo.ts`, `lib/queries/dashboard.ts`, pantallas de Deals, Inbox y Dashboard |
+| **Alejo** | entradas, historia de Sheets e integraciones | `lib/ingesta/`, `lib/sheets/`, `lib/calendly/`, `app/api/webhooks/`, `lib/nav.ts`, `lib/auth/`, scripts de traslado y migración |
 
-**Por qué por dominio:** cada uno lleva su dominio del backend a la pantalla, y ya escribió esa parte
-(Alejo el motor E2 y Tinta; Mani el webhook, Calendly, 094 y el conocimiento de las hojas).
+**Por qué por dominio:** cada uno lleva su dominio del backend a la pantalla, así una sola cabeza decide
+el contrato de cada pieza y la pantalla que la usa. Mani toma el motor, el dinero y las pantallas porque
+ahí están las decisiones de producto que quiere tomar él (consultando a Alejo cuando haga falta). Alejo
+toma las entradas y las integraciones, que son las que menos decisiones de producto piden.
 
 - **Descartado, uno backend y otro pantallas:** el de pantallas espera en cada etapa, y el contrato de
   cada función lo interpretan dos personas distintas.
 - **Descartado, el ticket suelto a quien esté libre:** trae choques de archivos y de migraciones. Pasó
   el 27-sep con E2 (handoff, CIERRE 33).
 
-El carril de Mani es un poco más liviano porque además coordina, decide (§7) y aplica las migraciones.
+Mani además coordina, decide (§7) y aplica las migraciones, así que su carril es el más cargado. Si una
+etapa se le aprieta, lo primero que pasa a Alejo es lo que no decide producto (consultas de reportes,
+tickets de lectura), nunca el motor.
 
 Tocar una carpeta del otro se pide antes. Los archivos compartidos tienen reglas propias (§5).
 
@@ -101,13 +105,12 @@ llegada, pasa a caer en E6: con la migración antes del hito B ya no espera a la
 
 Que trabajar de a dos no dependa de la memoria de nadie.
 
-| Alejo | Mani |
+| Mani | Alejo |
 |---|---|
-| 112 · CI y `main` protegido · M | Aplicar §3 en los tickets y el tracker; crear 111, 112 y 113 · M |
-| 113 · base local, si se aprueba · M | Refrescar `plan.md` §2 y `AGENTS.md` (lista abajo) · S |
-| Plantilla de PR con el checklist de contratos de `AGENTS.md` · S | Cerrar [105]: forjar la acción desde una sesión de closer · S |
-| | Ops: quitar `CRON_SECRET` y `SHEET_ID_*` de Vercel (108); cargar a Andrea ([007]) · S |
-| | Agendar a Michael ya; después closers, Gerencia y Pauta (§7) · S |
+| Aplicar §3 en los tickets y el tracker; crear 111, 112 y 113 · M | 112 · CI y `main` protegido · M |
+| Refrescar `plan.md` §2 y `AGENTS.md` (lista abajo) · S | 113 · base local, si se aprueba · M |
+| Ops: quitar `CRON_SECRET` y `SHEET_ID_*` de Vercel (108); cargar a Andrea ([007]) · S | Plantilla de PR con el checklist de contratos de `AGENTS.md` · S |
+| Agendar a Michael ya; después closers, Gerencia y Pauta (§7) · S | Cerrar [105]: forjar la acción desde una sesión de closer · S |
 
 - **Docs que hoy se contradicen:**
   - `AGENTS.md` dice que `npm ci` falla por el lock y `plan.md` §2 dice que se reparó el 27-sep. El CI
@@ -124,7 +127,7 @@ Que trabajar de a dos no dependa de la memoria de nadie.
 
 Backend puro.
 
-| Alejo | Mani |
+| Mani | Alejo |
 |---|---|
 | [057] · M | [110] · M |
 | → [058] · S | → 111 traslado (incluye [079]; cierra [048], [049] y la parte de datos del [050]) · L |
@@ -140,7 +143,7 @@ Backend puro.
 
 ### E2 · El dinero mueve el deal; Calendly y la navegación
 
-| Alejo | Mani |
+| Mani | Alejo |
 |---|---|
 | [060] (recrea el test de saldo centralizado) · L | [097] · M |
 | → [061] · S | → [096] · L |
@@ -155,7 +158,7 @@ Backend puro.
 
 ### E3 · El Kanban y la migración ensayada
 
-| Alejo | Mani |
+| Mani | Alejo |
 |---|---|
 | [069] · L | [077] · M |
 | → [074] · L | → [078] · M |
@@ -169,7 +172,7 @@ Backend puro.
 
 ### E4 · Inbox y Students
 
-| Alejo | Mani |
+| Mani | Alejo |
 |---|---|
 | [070] · M | [080] · L |
 | → [071] · L | → [099] · M |
@@ -182,7 +185,7 @@ Backend puro.
 
 ### E5 · Dashboard sobre deals y corte
 
-| Alejo | Mani |
+| Mani | Alejo |
 |---|---|
 | [064] · L | [062] · S |
 | → [098] · M | → [072] (cierra el [050]: separar y confirmar duplicados) · M |
@@ -200,7 +203,7 @@ Backend puro.
 
 ### E6 · De dónde viene cada lead
 
-| Alejo | Mani |
+| Mani | Alejo |
 |---|---|
 | [083] · S | [102] · M |
 | → [101] · M | → [065] · M |
@@ -216,7 +219,7 @@ Backend puro.
 
 ### E7 · Lo que cuesta la pauta
 
-| Alejo | Mani |
+| Mani | Alejo |
 |---|---|
 | [092] · L | [088] · M |
 | → [086] · M | → [066] · M |
@@ -231,7 +234,7 @@ Backend puro.
 
 ### E8 · El dashboard completo
 
-| Alejo | Mani |
+| Mani | Alejo |
 |---|---|
 | [095] · M | [068] (reescribir su alcance: el sync ya no existe) · S |
 | → [090] · L | → [076] · S |
@@ -247,11 +250,11 @@ Backend puro.
 
 El [075] se parte en dos y cada uno revisa lo que construyó el otro.
 
-| Alejo | Mani |
+| Mani | Alejo |
 |---|---|
 | [073] · M | [035] · M |
-| → [091] · S | → 075: revisa las pantallas que hizo Alejo · M |
-| → 075: revisa las pantallas que hizo Mani · M | |
+| → [091] · S | → 075: revisa las pantallas que hizo Mani · M |
+| → 075: revisa las pantallas que hizo Alejo · M | |
 
 - **Decidir antes:** cómo mandan el comprobante los closers (foto, link o PDF).
 - **Sale cuando:** criterio de UI escrito y recorrido completo en celular y escritorio.

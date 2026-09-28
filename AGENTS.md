@@ -27,6 +27,8 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    contexto limpia y cita lo que sirve. Nunca se salta del producto al código sin pasar por un ticket.
    **`docs/tasks/README.md` es el único tracker de avance**: se toma un ticket cuyas dependencias estén
    todas en `done`, y al cerrarlo se marca ahí y se pone `status: done` en su archivo.
+   **`docs/plan-reparto.md`** complementa el plan con el orden para dos personas: etapas en serie, un
+   carril por persona dentro de cada etapa, y una etapa solo cierra cuando todo quedó en `main`.
 3. **`docs/overview.md`** — qué es la herramienta de principio a fin: el problema, los programas, los
    roles y sus historias de usuario, el recorrido de un lead, las métricas, el alcance, los criterios de
    aceptación, de dónde salió y **el vocabulario del dominio** (§11). Es el contrato de producto (lo que

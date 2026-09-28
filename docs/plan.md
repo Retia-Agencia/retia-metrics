@@ -438,6 +438,7 @@ dice, alguien más.
 |---|---|---|
 | `AGENTS.md` | el contrato del repo: restricciones, contratos, comandos, convenciones | siempre, primero |
 | **`docs/plan.md`** | este plan | siempre, segundo |
+| `docs/plan-reparto.md` | complemento de este plan: el orden en etapas para que Mani y Alejo (Dávila) trabajen en paralelo, quién toma qué y cuándo se cierra una etapa. No define qué se construye: eso sigue aquí y en los tickets | antes de tomar un ticket, para saber en qué etapa y carril cae |
 | `docs/overview.md` | qué es la herramienta de principio a fin: problema, programas, roles, recorrido de un lead, métricas, alcance, criterios, historia, vocabulario | para entender el producto o el dominio, y antes de nombrar algo |
 | `docs/structure.md` | diagramas y componentes: operación de hoy, flujos, motor de etapas y transiciones, arquitectura, modelo de datos, ingesta, atribución, pantallas, sistema de diseño, mapa de las hojas, migración | al construir cualquier pieza; §9 antes de tocar una pantalla |
 | `docs/operations.md` | entornos, URLs de los programas, variables, base de datos, scripts, despliegue, secretos, incidentes, deuda, datos de validación | al operar, migrar, desplegar o validar cifras |
