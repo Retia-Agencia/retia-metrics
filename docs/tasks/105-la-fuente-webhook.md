@@ -33,6 +33,29 @@ recibirlo, sin tocar código.
       mirando la pantalla).
 - [ ] `npm test`, `npm run typecheck` y `npm run lint` limpios.
 
+## Cómo se cierra la forja (28-sep)
+
+El modo automático de Claude Code bloquea que el agente invoque `rotarSecretoFuenteAccion` aunque se
+espere un 403 (lo clasifica como escritura sobre secretos), y el permiso dado por chat no lo cambia. La
+corre Mani, con la app local (`npm run dev`, que escribe en producción: por eso el blanco es la fuente
+`google_sheet` inactiva "Formulario actual", que no es el webhook vivo):
+
+1. Entrar como developer y poner la vista en **closer** (selector "Ver como").
+2. En la consola del navegador, sobre cualquier página de la app:
+
+```js
+const accion = async (id, args) => (await (await fetch(location.pathname, { method: "POST",
+  headers: { "Next-Action": id, "Content-Type": "text/plain;charset=UTF-8", "Accept": "text/x-component" },
+  body: JSON.stringify(args) })).text()).split("\n").filter((l) => l.startsWith("1:")).join("\n");
+console.log("rotar:", await accion("40ad0b1c8c0e942b280881a79dacb7656c409d6a8e", ["1d0bbca3-2b2b-4ce9-8736-699613808764"]));
+console.log("crear:", await accion("4023f2a433e0a0e3629df33a00dd42794ae11f4744", [{ programId: "fb076a4d-ed63-43f0-929e-6f05ccaa28ec", nombre: "forja-105", tipo: "webhook", proveedor: "typeform" }]));
+```
+
+3. Se espera `ok:false` con un error de permiso en las dos, y la base quieta:
+   5 fuentes, `secreto_webhook` nulo en "Formulario actual" y `change_log` sin filas nuevas de `sources`
+   (línea base del 28-sep: 5 fuentes, 177 filas en `change_log`). Los ids de acción salen del bundle de
+   `/ajustes/fuentes` en dev; si no responden, se vuelven a sacar de ahí.
+
 ## Kiro
 
 Sí el código y los tests, con revisión. La migración la escribe y aplica la sesión principal.

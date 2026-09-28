@@ -3,7 +3,7 @@ id: 110
 etapa: E3
 serves: "ADR 0058 (el webhook no pierde nada) · ADR 0055 · pedido de Mani del 28-sep"
 depends: [106]
-status: todo
+status: en curso
 ---
 
 # 110 — La salud del CRM: cada entrega de webhook, a la vista

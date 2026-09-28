@@ -364,16 +364,22 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 The agent should run these to get fast signal on whether code works. Keep them current.
 
 - **Test:** `npm test` (Vitest por `scripts/test.mjs`: una suite por máquina, sin huérfanos, límite
-  de 480 s; ver Conventions). 1.068 pasando al 28-sep en `main`; ~70 s con la máquina libre.
+  de 480 s; ver Conventions). 1.144 pasando al 28-sep en `main`; ~60 s con la máquina libre.
   Un programa de prueba ACTIVO se crea con `PROGRAMA_DE_PRUEBA` (`tests/helpers/programa-de-prueba.ts`):
   desde la 0031 un programa nace inactivo y la base exige Forms Link y token para activarlo. Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
-  El lock se resincronizó el 27-sep (`134d293`, faltaban `@emnapi/*`) y `npm ci` pasa en una copia
-  limpia; el CI (ticket 112) lo confirma en Linux. Si `npm ci` te vuelve a fallar, repórtalo ahí en vez
-  de instalar con `--no-package-lock`. Si ves 46 tests caídos por `drizzle-orm/postgres-js`,
+  El lock se resincronizó otra vez el 28-sep (`649bf2c`): la primera corrida del CI lo midió roto en
+  Linux (faltaban `@emnapi/core` y `@emnapi/runtime` 1.11.3), y desde ahí `npm ci` pasa en el CI. Si te
+  vuelve a fallar, `npm install --package-lock-only` y commit del lock, nunca `--no-package-lock`. Si ves 46 tests caídos por `drizzle-orm/postgres-js`,
   a tu `node_modules` le falta el driver `postgres`: es entorno, no regresión.
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
-- **Run:** `npm run dev` (http://localhost:3000)
+- **Run:** `npm run dev` (http://localhost:3000) — **escribe en producción**, es la unica base.
+- **Base local (ticket 113):** `npm run db:local` (Docker: Postgres 17, todas las migraciones y un seed
+  por `lib/`) y `npm run dev:local` (la app contra ella, sin tocar `.env.local`). Para clics de prueba en
+  pantallas. Sembrar contra Postgres real ya destapo un bug que PGlite escondia. Falta un login local:
+  Auth.js solo tiene Google.
+- **CI:** `.github/workflows/ci.yml` corre `npm ci`, typecheck, lint, test y build en cada push a `main`.
+  Sin proteccion de `main` (Mani, 28-sep): es alarma, no reja; si queda en rojo, se arregla primero.
 
 `npm run build` no necesita `.env.local`: el cliente de la base se crea de forma perezosa.
 

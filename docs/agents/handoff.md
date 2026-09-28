@@ -5,8 +5,8 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 41 (28-sep, noche). El anterior:
-> `git show fa648cc:docs/agents/handoff.md`.
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 42 (28-sep, noche). El anterior:
+> `git show cb53f03:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas:
@@ -14,32 +14,60 @@ etapas en serie, un carril por persona) y docs/plan.md (el QUE, decisiones en §
 ticket vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta: docs/overview.md,
 docs/structure.md, docs/operations.md y docs/adr/README.md.
 
-Estado al cierre del 28-sep (sesion 41): UNA sola base y es PRODUCCION ("CRM Retia", ref
-hfqmiyiuyqapdsbywrag). 37 migraciones (0000-0036), todas aplicadas. 1.116 tests. Los leads entran
-solos por el webhook (ADR 0058). Reparto: carril de Mani (motor, dinero, pantallas) y carril de Alejo
-Davila (entradas, Sheets, integraciones). §3 del reparto ya se aplico en los tickets.
+Estado al cierre del 28-sep (sesion 42): UNA sola base y es PRODUCCION ("CRM Retia", ref
+hfqmiyiuyqapdsbywrag). 38 migraciones (0000-0037), todas aplicadas. 1.144 tests. El CI corre en cada
+push a main; SIN proteccion de main ni PR obligatorio (Mani: velocidad), el CI es alarma y no reja.
+Hay base local: npm run db:local + npm run dev:local (Docker).
 
-Hecho: carril de Mani de E0 completo y carril de Mani de E1 completo (057, 058, 059 en main; migracion
-0036 aplicada). Falta, y lo toma Mani en otra sesion porque Alejo aun no puede:
-1. Carril de Alejo en E0: 112 (CI con npm ci/test/typecheck/lint/build y main protegido), plantilla de
-   PR con el checklist de contratos de AGENTS.md, cerrar el 105 (forjar la server action desde una
-   sesion de closer: 403 y la base sin moverse), 113 (base local, aprobada; es la mas grande y solo la
-   necesita el Kanban de E3).
-2. Carril de Alejo en E1: 110 (log de entregas del webhook, reusa lib/queries/salud-fuentes.ts) y luego
-   111 (traslado desde Sheets por ingerirEntradas; incluye el 079; cierra 048, 049 y datos del 050).
-   El 110 lleva SU PROPIA migracion (0037): la 0036 ya salio sola con el ok de Mani.
-3. E1 cierra con la prueba de costura (un envio firmado abre el deal, se agenda, se pega el Grain y el
-   deal queda en Atendido; un lead trasladado que vuelve a llenar el formulario no se duplica) y el
-   traslado corrido con conciliacion en cero. Luego E2: 060 -> 061 -> 063 (Mani) y 097 -> 096 (Alejo).
-Reglas: npm test es scripts/test.mjs (una suite por maquina, sin huerfanos, corte a 480 s): nunca
-npx vitest directo ni la suite en background. Las migraciones las genera y aplica la sesion principal;
-Kiro implementa codigo y tests, la sesion principal corre la suite completa. Un agente delegado se
-detiene con TaskStop, no matando sus procesos. Antes de tomar un ticket haz git fetch.
+Hecho: E0 completo salvo la forja del 105; carril de Mani de E1 (057, 058, 059) y carril de Alejo de E1
+con codigo en main: 110 (/ajustes/salud: cada entrega del webhook con codigo y motivo, reprocesar,
+conciliacion con Sheets) y 111 (npm run trasladar, ensayo por defecto).
+Falta para cerrar E1, en este orden:
+1. 105: Mani corre en la consola del navegador el snippet del ticket 105 (vista closer). El modo
+   automatico bloquea que el agente lo haga.
+2. 111: correr `npm run trasladar` (ENSAYO, no escribe), cotejar los conteos con la hoja deduplicada por
+   (programa, correo), y con el ok de Mani `npm run trasladar -- --aplicar` (SCRIPT_ACTOR_EMAIL).
+3. 110: recorrido visual de /ajustes/salud (clic en todo, consola abierta) y ver la conciliacion en cero
+   despues del traslado.
+4. Prueba de costura de E1: un envio firmado abre el deal, se agenda, se pega el Grain y queda en
+   Atendido; un lead trasladado que vuelve a llenar el formulario no se duplica.
+Luego E2: 060 -> 061 -> 063 (Mani) y 097 -> 096 (Alejo).
+Reglas: npm test es scripts/test.mjs (una suite por maquina): nunca npx vitest directo ni en background.
+Las migraciones las genera y aplica la sesion principal. Kiro implementa en un worktree creado A MANO
+(git worktree add), NO con isolation: worktree (ahi el guard bloquea kiro-cli); la sesion principal corre
+la suite y revisa. Codex sin cuota hasta el 12-oct. Antes de tomar un ticket haz git fetch.
 ```
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-28 (sesión 42): carril de Alejo en E0 y E1, hecho por la sesión de Mani con agentes.**
+  - **112:** `.github/workflows/ci.yml` (npm ci, typecheck, lint, test, build en cada push y PR) y
+    plantilla de PR con el checklist de contratos. La primera corrida **midió el lock roto en Linux**
+    (faltaban `@emnapi/core` y `@emnapi/runtime` 1.11.3); se resincronizó (`649bf2c`). **Decisión de
+    Mani: sin protección de `main` ni PR obligatorio, "necesitamos velocidad"**; el CI es alarma.
+  - **113:** `npm run db:local` y `npm run dev:local` (Antigravity; revisado y corregido: `db-local.ts`
+    corría su `main()` al importarse, así que `dev:local` no arrancaba la app y el seed se relanzaba en
+    bucle). Probado de punta a punta con Docker. Falta un login local (Auth.js solo tiene Google).
+  - 🩸 **Bug de producción que PGlite escondía:** `leerHechos` de `moverEtapa` pasaba un `Date` en una
+    plantilla `sql` y postgres-js lo rechaza contra un Postgres real. Salió al sembrar la base local.
+    Arreglado con `gte()` (`48ea5d3`) y anotado en AGENTS.md. En producción no había fallado nada (11
+    sobres, 0 con error).
+  - **110:** migración **0037** (`entregas_webhook` + enum `motivo_entrega`, con RLS) aplicada en
+    producción con el ok de Mani. Kiro hizo la ruta (cada entrega con código y motivo, firma ausente vs
+    inválida, purga de rechazos a 90 días), `procesarSobre` compartido con el reproceso, y la pantalla
+    `/ajustes/salud`. Revisión: faltaba RLS en la 0037, la ruta había cambiado el contrato del sobre con
+    error (vuelve a `{ ok: false, guardado: true }`) y la acción no usaba `normalizando`.
+  - **111:** `npm run trasladar` (Kiro). Revisión: 🩸 **la hoja y el webhook traen el mismo token de
+    Typeform**, pero la ingesta es idempotente por `(fuente, token)`: sin filtro, los 20 envíos que ya
+    entraron por webhook se habrían duplicado como envíos de la hoja. Ahora se apartan y se reportan.
+  - **105:** los ids de las acciones se sacaron del bundle sin ejecutar nada. La invocación forjada la
+    bloquea el modo automático de Claude Code (escritura sobre secretos) aunque Mani dio permiso por
+    chat. El snippet quedó en el ticket 105 para que lo corra Mani.
+  - **Agentes:** Codex sin cuota hasta el 12-oct. Con `isolation: worktree` el guard bloquea `kiro-cli`,
+    y el worktree se borra al salir el subagente aunque Codex siga corriendo (quedaron procesos
+    huérfanos, ya muertos). Lo que funcionó: `git worktree add` a mano + `kiro-rescue` sin aislamiento.
 
 - **2026-09-28 (sesión 41): E0 del reparto y el carril de Mani de E1 (057, 058, 059).** Sesión de Mani.
   - **E0, carril de Mani:** §3 del reparto aplicado con el ok de Mani (069, 070, 074, 077, 079, 086
@@ -3002,8 +3030,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
-- Vigilar que los leads reales sigan entrando por webhook (106 cerrado el 28-sep, ADR 0058).
-- 108 (el cron ya está apagado; falta el código); 107 (umbrales decididos); 105 forjar la acción con
-  sesión de closer.
+- Cerrar E1 (orden en el prompt de arriba): forja del 105 por Mani, ensayo y traslado del 111, recorrido
+  de `/ajustes/salud` (110) y prueba de costura. Luego E2.
+- Vigilar que los leads reales sigan entrando por webhook: ahora se ve en `/ajustes/salud` (110).
+- 108 (el cron ya está apagado; falta el código); 107 (umbrales decididos).
 - 096: la pantalla que haga visibles la nota del 052 y las llamadas sueltas (pedido de Mani).
 - Producción: enlaces de pago y closers reales (007).

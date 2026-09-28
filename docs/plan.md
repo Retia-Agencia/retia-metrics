@@ -50,7 +50,8 @@ cuando los closers operan en el CRM y lo histórico ya migró. Los hitos interme
 
 ## 2. Dónde estamos (medido el 27-sep, no copiado)
 
-- `main @ dbeb8f4` (28-sep): **1.068 tests en verde**, typecheck y lint limpios. Desde el 28-sep el orden
+- `main @ 649bf2c` (28-sep, noche): **1.144 tests en verde**, typecheck, lint y build limpios, y el CI
+  (ticket 112) corre en cada push. Desde el 28-sep el orden
   de trabajo para dos personas vive en [`plan-reparto.md`](./plan-reparto.md); este plan sigue mandando
   en el qué.
 - ✅ **El lock se resincronizó el 27-sep** (`134d293`): le faltaban entradas opcionales de `@emnapi`.
@@ -59,7 +60,7 @@ cuando los closers operan en el CRM y lo histórico ya migró. Los hitos interme
 - ⚠️ Un checkout con `node_modules` de antes del 22-sep **falla 46 tests** porque no tiene el driver
   `postgres` (ADR 0047). Es entorno, no regresión: se arregla instalando.
 - **Base** (actualizado el 28-sep): **una sola, y es producción**, el proyecto "CRM Retia" (ADR 0047,
-  enmienda). 36 migraciones (0000 a 0035) aplicadas; los hashes de 0000-0020 difieren solo por CRLF
+  enmienda). 38 migraciones (0000 a 0037) aplicadas; los hashes de 0000-0020 difieren solo por CRLF
   (`operations.md` §10). Vercel Production apunta a ella desde el 28-sep (antes seguía en Neon) y el
   dashboard carga.
 - **Cero** leads, deals, llamadas y abonos en producción, a propósito: el 28-sep el cron del sync de

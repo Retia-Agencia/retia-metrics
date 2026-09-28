@@ -3,7 +3,7 @@ id: 111
 etapa: E3
 serves: "plan.md §4.3d · ADR 0004 · ADR 0054 · plan-reparto §3 y E1 (carril Alejo)"
 depends: [106, 048]
-status: todo
+status: en curso
 ---
 
 # 111 — Traslado de leads y envíos desde Sheets, una sola vez

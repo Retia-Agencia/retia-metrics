@@ -80,7 +80,7 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 | # | Qué | Por qué |
 |---|---|---|
 | 111 | **Traslado de leads y envíos desde Sheets**, una vez, por `ingerirEntradas`, con el Estado como lo escribió la hoja. Incluye las 55 de Forms viejo ([079]) | `plan.md` §4.3d lo nombra sin número. Producción solo tiene los leads del webhook desde el 28-sep |
-| 112 | **CI**: `npm ci`, test, typecheck, lint y build en cada PR; `main` protegido | no existe `.github/`, y `main` despliega a producción en cada push (ficha R4 de `plan.md` §7.1) |
+| 112 | **CI**: `npm ci`, test, typecheck, lint y build en cada push y PR; **sin** proteger `main` (Mani, 28-sep) | no existe `.github/`, y `main` despliega a producción en cada push (ficha R4 de `plan.md` §7.1) |
 | 113 | **Base local para desarrollar pantallas** (si Mani la aprueba): Postgres con todas las migraciones y datos de ejemplo; la misma receta corre en el CI | la única base es producción (ADR 0047, enmienda): cada clic de prueba al construir el Kanban o el Inbox escribiría ahí. R5 pedía Playwright "contra `dev`", que ya no existe. No es otro proyecto de Supabase |
 
 ---
@@ -109,7 +109,7 @@ Que trabajar de a dos no dependa de la memoria de nadie.
 
 | Mani | Alejo |
 |---|---|
-| Aplicar §3 en los tickets y el tracker; crear 111, 112 y 113 · M | 112 · CI y `main` protegido · M |
+| Aplicar §3 en los tickets y el tracker; crear 111, 112 y 113 · M | ✅ 112 · CI en cada push (sin proteger `main`) · M |
 | Refrescar `plan.md` §2 y `AGENTS.md` (lista abajo) · S | 113 · base local, si se aprueba · M |
 | Ops: quitar `CRON_SECRET` y `SHEET_ID_*` de Vercel (108); cargar a Andrea ([007]) · S | Plantilla de PR con el checklist de contratos de `AGENTS.md` · S |
 | Agendar a Michael ya; después closers, Gerencia y Pauta (§7) · S | Cerrar [105]: forjar la acción desde una sesión de closer · S |
@@ -123,7 +123,8 @@ Que trabajar de a dos no dependa de la memoria de nadie.
   - [082] dice que el Apps Script sigue haciendo falta, y el ADR 0054 dice lo contrario.
 - **Migración:** ninguna.
 - **Decidir antes de E1:** §3, y si va la base local.
-- **Sale cuando:** un PR real pasa el CI y lo aprueba el otro; este orden y §3 están en `main`.
+- **Sale cuando:** el CI corre en verde sobre `main`; este orden y §3 están en `main`. ~~Un PR real pasa
+  el CI y lo aprueba el otro~~: fuera por decisión de Mani (28-sep, velocidad; ver §5).
 
 ### E1 · El deal registra llamadas y la historia entra
 
@@ -274,9 +275,11 @@ Las reglas de `AGENTS.md` siguen todas. Estas se suman porque ahora son dos pers
   anterior y con el SQL leído línea por línea.
   - Si a mitad de etapa hace falta otra, se avisa, y el otro no genera ninguna hasta que esté en `main`.
     Así no se repite la 0024, que existía en la base y no en el repo (handoff, CIERRE 32).
-- **PR por ticket, y lo revisa el otro.** Es el cadenero de `AGENTS.md` con dos personas: quien no
-  escribió el código lo revisa contra el "Done cuando" y los contratos.
-  - Se mergea solo con CI verde.
+- **Sin protección de `main` ni PR obligatorio (Mani, 28-sep: *"no quiero nada complejo, necesitamos
+  velocidad de implementación"*).** Se empuja directo a `main` con test, typecheck, lint y build
+  corridos en local; el CI corre en cada push como **alarma, no como reja**, y un CI en rojo se arregla
+  antes de seguir. El cadenero de `AGENTS.md` sigue: quien no escribió el código lo revisa contra el
+  "Done cuando" y los contratos, en un PR si ayuda o sobre el commit.
   - Si implementó un agente (Kiro, Codex), quien revisa corre `npm test` completo: Kiro ya reportó
     "todo limpio" con un guardián en rojo.
 - **Una prueba de costura por etapa:** un test que cruza los dos carriles (en cada etapa de §4).
