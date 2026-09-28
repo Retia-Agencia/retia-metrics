@@ -253,6 +253,13 @@
       "when": 1790625798011,
       "tag": "0035_umbrales-de-la-fuente",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1790630398372,
+      "tag": "0036_llamada-con-closer-y-links",
+      "breakpoints": true
     }
   ]
 }

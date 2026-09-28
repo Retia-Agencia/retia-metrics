@@ -935,6 +935,16 @@ export const calls = pgTable(
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
     /** Nombre del closer tal como aparece en la hoja. Se cruza contra users.closerId. */
     closerId: text("closer_id"),
+    /**
+     * Quien tomo la llamada, como FK real a `users` (ticket 057). `closerId` queda
+     * solo para lo que llega de la hoja: el texto copiado repite el ADR 0030. Nulo
+     * mientras la llamada este sin reclamar (la agendada que crea el sistema).
+     */
+    closerUserId: uuid("closer_user_id").references(() => users.id, { onDelete: "restrict" }),
+    /** Link de la cita en Calendly, que completa el closer al reclamar (ticket 057). */
+    linkCalendly: text("link_calendly"),
+    /** Link de la grabacion. Pegarlo ES decir que la llamada sucedio (ticket 058). */
+    linkGrain: text("link_grain"),
     emailLead: text("email_lead"),
     fechaAgenda: timestamp("fecha_agenda", { withTimezone: true }),
     fechaLlamada: timestamp("fecha_llamada", { withTimezone: true }),
@@ -974,6 +984,7 @@ export const calls = pgTable(
   (t) => [
     index("calls_cohorte_closer_idx").on(t.cohortId, t.closerId),
     index("calls_deal_idx").on(t.dealId),
+    index("calls_closer_user_idx").on(t.closerUserId),
     uniqueIndex("calls_huella_idx").on(t.programId, t.huellaFila),
     // Sin motivo no hay anulacion (ADR 0026 punto 6), y la garantia vive en la base
     // y no solo en zod (ADR 0005): los tres campos van juntos o no va ninguno. Una
