@@ -24,7 +24,7 @@ SOLOS: las dos fuentes webhook de Typeform estan activas en produccion (las de S
 Siguiente:
 1. Mirar que los leads reales sigan entrando (vercel logs --query webhooks; sobres_crudos con error no
    nulo = algo que reprocesar). Borrar las pruebas de Mani (PRUEBA CRM 1 y 3, un lead de Tactical con su
-   deal y llamada) con su ok. Confirmar que entro el lead de ComunicArte de las 12:24 (Redeliver).
+   deal y llamada) con su ok.
 2. El 108 (retirar el codigo del sync), el 107 (aviso de fuente sin envios) y el 105 (forjar la accion
    con sesion de closer).
 3. El 096: cancelaciones y reprogramaciones de Calendly (hoy cancelar en Calendly no toca la llamada, y
@@ -79,7 +79,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     todos los casos posibles para que en producción no se pierdan leads".
   - **Aclarado con Mani:** Typeform siempre dice `setteo_no_calificado` para quien agenda (no puede
     condicionar sobre Calendly); el CRM lo sube a `con_calendly` al ver el link. No es un bug.
-  - ⚠️ **Pendientes:** la entrega de ComunicArte de las 12:24 no había entrado (falta Redeliver); borrar
+  - La entrega de ComunicArte de las 12:24 que dio 401 no era un lead: no hay respuesta a esa hora en
+    ningún Typeform (Mani). No se perdió ninguno.
+  - ⚠️ **Pendientes:** borrar
     las pruebas (PRUEBA CRM 1 y 3, mismo lead de Tactical con deal y llamada) con el ok de Mani; el
     Partial Submit Point lo decide el equipo; cancelar una cita en Calendly no toca la llamada (096).
   - **Medido:** 1.097 tests, typecheck, lint y build limpios. Migraciones 0033 y 0034 aplicadas en

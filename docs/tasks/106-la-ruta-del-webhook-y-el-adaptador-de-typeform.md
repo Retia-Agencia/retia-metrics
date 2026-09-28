@@ -87,8 +87,9 @@ Sí el código y los tests, con revisión. La migración de los sobres la escrib
   tiene, así que un abandono no sale de Typeform. El envío real del parcial queda fuera del "Done
   cuando" hasta que se decida; el código lo soporta sin probar contra el payload real.
 - **Ya llegan envíos reales de los dos programas** (con el secret pegado). Las dos entregas rechazadas de
-  ComunicArte eran leads reales: la de las 12:18 entró con Redeliver (Carolina Agudelo); ⚠️ la de las
-  **12:24 (17:24:35Z) seguía sin entrar** al cierre: hay que darle Redeliver en Typeform.
+  ComunicArte: la de las 12:18 era un lead real y entró con Redeliver (Carolina Agudelo); la de las
+  12:24 (17:24:35Z) **no corresponde a ninguna respuesta** en ningún Typeform (Mani lo verificó): era una
+  petición de prueba de Typeform, no un lead. No se perdió ninguno.
 
 ## Cierre 2026-09-28 (ADR 0058)
 
