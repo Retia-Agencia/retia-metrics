@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { entradasDesdeMatriz } from "@/lib/ingesta/adaptador-sheets";
 import { ingerirEntradas } from "@/lib/ingesta/ingerir";
 import {
+  apartarLasQueYaEntraron,
   fuentesATrasladar,
   mapeoEnvioDesdeHoja,
   resumirEntradas,
@@ -164,6 +165,20 @@ function fila(o: {
 function entradasDe(filas: (string | null)[][], sourceId = "fuente-1", zona = "UTC") {
   return entradasDesdeMatriz(matriz(filas), { sourceId, zona });
 }
+
+describe("apartarLasQueYaEntraron", () => {
+  it("aparta las filas cuyo token el programa ya tiene (lo que entro por el webhook) y deja el resto", () => {
+    const entradas = entradasDe([
+      fila({ token: "ya-por-webhook", correo: "ana@correo.co", fecha: "2026-09-28T10:00:00Z" }),
+      fila({ token: "solo-en-la-hoja", correo: "beto@correo.co", fecha: "2026-08-01T10:00:00Z" }),
+      fila({ correo: "sin-token@correo.co" }),
+    ]);
+    const { nuevas, yaEnElCrm } = apartarLasQueYaEntraron(entradas, new Set(["ya-por-webhook"]));
+    expect(yaEnElCrm).toBe(1);
+    // La fila sin token pasa: la ingesta la rechaza y el ensayo la cuenta como sinToken.
+    expect(nuevas).toHaveLength(2);
+  });
+});
 
 describe("resumirEntradas", () => {
   it("cuenta filas, correos unicos (dedup), sin token, sin correo y centinelas", () => {

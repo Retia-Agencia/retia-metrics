@@ -206,3 +206,26 @@ export function resumirEntradas(entradas: EntradaEnvio[]): ResumenDeEntradas {
     fechasCentinela,
   };
 }
+
+/**
+ * Aparta las filas cuyo token el programa YA tiene como envio, venga de la fuente que
+ * venga. La hoja y el webhook traen el MISMO token de respuesta de Typeform, pero la
+ * idempotencia de la ingesta es por `(fuente, token, es_parcial)`: sin este filtro, lo
+ * que entro por el webhook desde el 28-sep volveria a entrar como envio de la hoja y le
+ * subiria las aplicaciones al lead. Esas filas no son faltantes: ya estan en el CRM.
+ *
+ * Una fila sin token pasa (la ingesta la rechaza y el ensayo la cuenta como `sinToken`).
+ */
+export function apartarLasQueYaEntraron(
+  entradas: EntradaEnvio[],
+  tokensDelPrograma: ReadonlySet<string>,
+): { nuevas: EntradaEnvio[]; yaEnElCrm: number } {
+  const nuevas: EntradaEnvio[] = [];
+  let yaEnElCrm = 0;
+  for (const e of entradas) {
+    const r = construirEnvio(e);
+    if (r.ok && tokensDelPrograma.has(r.envio.token)) yaEnElCrm++;
+    else nuevas.push(e);
+  }
+  return { nuevas, yaEnElCrm };
+}

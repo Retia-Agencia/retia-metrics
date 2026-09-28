@@ -1,13 +1,14 @@
 import "./load-env";
 import { eq } from "drizzle-orm";
 import { db } from "../lib/db";
-import { programs, sources } from "../lib/db/schema";
+import { programs, sources, submissions } from "../lib/db/schema";
 import type { Db } from "../lib/db/tipos";
 import { leerPestana } from "../lib/sheets/leer";
 import { entradasDesdeMatriz } from "../lib/ingesta/adaptador-sheets";
 import { ingerirEntradas, type ResultadoIngesta } from "../lib/ingesta/ingerir";
 import type { EntradaEnvio } from "../lib/ingesta/envio";
 import {
+  apartarLasQueYaEntraron,
   fuentesATrasladar,
   resumirEntradas,
   type FuenteDeHoja,
@@ -64,6 +65,8 @@ interface ReporteFuente {
   sinToken: number;
   sinCorreo: number;
   fechasCentinela: number;
+  /** Filas cuyo token el programa ya tiene (hoy: lo que entro por el webhook). No se reingieren. */
+  yaEnElCrm: number;
   /** Solo cuando la ingesta llegó a correr (siempre, salvo error de lectura de la hoja). */
   ingesta?: {
     envios: number;
@@ -145,6 +148,15 @@ async function trasladarPrograma(
     }
   }
 
+  // Los tokens que el programa YA tiene, de cualquier fuente (el webhook incluido): la
+  // hoja trae el mismo token de Typeform y la ingesta solo es idempotente por fuente.
+  const existentes = await base
+    .select({ token: submissions.token })
+    .from(submissions)
+    .innerJoin(sources, eq(sources.id, submissions.sourceId))
+    .where(eq(sources.programId, programa.id));
+  const tokensDelPrograma = new Set(existentes.map((f) => f.token));
+
   const fuentesReporte: ReporteFuente[] = [];
 
   const ingerirTodas = async (tx: Db) => {
@@ -158,20 +170,22 @@ async function trasladarPrograma(
         sinToken: 0,
         sinCorreo: 0,
         fechasCentinela: 0,
+        yaEnElCrm: 0,
       };
       if (c.error !== undefined || c.entradas === undefined) {
         fuentesReporte.push({ ...vacio, error: c.error ?? "no se pudo leer la hoja" });
         continue;
       }
       const resumen = resumirEntradas(c.entradas);
+      const { nuevas, yaEnElCrm } = apartarLasQueYaEntraron(c.entradas, tokensDelPrograma);
       try {
-        const r = await ingerirEntradas(tx, programa.id, c.entradas, {
+        const r = await ingerirEntradas(tx, programa.id, nuevas, {
           aplicarReglaDeDeals: false,
           syncRunId,
         });
-        fuentesReporte.push({ ...vacio, ...resumen, ingesta: reporteDesdeIngesta(r) });
+        fuentesReporte.push({ ...vacio, ...resumen, yaEnElCrm, ingesta: reporteDesdeIngesta(r) });
       } catch (e) {
-        fuentesReporte.push({ ...vacio, ...resumen, error: (e as Error).message });
+        fuentesReporte.push({ ...vacio, ...resumen, yaEnElCrm, error: (e as Error).message });
       }
     }
   };
@@ -227,6 +241,7 @@ function imprimirReporte(reportes: ReportePrograma[], aplicar: boolean): void {
       console.log(`      filas leídas        : ${f.filas}`);
       console.log(`      correos únicos      : ${f.correosUnicos}   (dedup por (programa, correo))`);
       console.log(`      sin token           : ${f.sinToken}`);
+      console.log(`      ya en el CRM        : ${f.yaEnElCrm}`);
       console.log(`      sin correo          : ${f.sinCorreo}`);
       console.log(`      fechas centinela    : ${f.fechasCentinela}   (descartadas: entran como parcial)`);
       if (f.ingesta) {
