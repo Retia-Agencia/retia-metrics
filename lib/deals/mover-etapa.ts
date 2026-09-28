@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull } from "drizzle-orm";
 import {
   abonos,
   calls,
@@ -431,7 +431,10 @@ async function leerHechos(
         eq(dealActividades.dealId, deal.id),
         eq(dealActividades.tipo, "contacto"),
         isNotNull(dealActividades.canal),
-        sql`${dealActividades.fecha} >= ${desde}`,
+        // `gte` y no una plantilla `sql`: la plantilla manda el `Date` crudo al driver, y
+        // postgres-js lo rechaza (ERR_INVALID_ARG_TYPE) contra un Postgres real. PGlite lo
+        // acepta, asi que ningun test lo veia; salio sembrando la base local (113).
+        gte(dealActividades.fecha, desde),
       ),
     )
     .limit(1);

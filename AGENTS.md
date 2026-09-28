@@ -439,6 +439,11 @@ The agent should run these to get fast signal on whether code works. Keep them c
   `.toSQL()`—. La conducta practica no cambia (**nada de subconsultas correlacionadas**), pero no
   hay que desconfiar de un cast de tipo sobre una columna ni "arreglarlo" a ciegas. Si dudas,
   imprime `query.toSQL().sql`: cuesta un comando y responde de verdad.
+- 🩸 **Un `Date` nunca va interpolado en una plantilla `sql`: usa `gte`/`lt`/`eq` de drizzle.** La
+  plantilla le manda el valor crudo al driver, y postgres-js rechaza un `Date` con
+  `ERR_INVALID_ARG_TYPE` contra un Postgres real; PGlite lo acepta, asi que **ningun test lo ve**. Los
+  operadores pasan el valor por el mapeo de la columna. Estuvo en `leerHechos` de `moverEtapa` y salio
+  el 28-sep sembrando la base local del 113, no en un test.
 - **La base es Supabase y se usa por `drizzle-orm/postgres-js`, con transacciones de verdad**
   (ADR 0047, 22-sep; antes era Neon con `neon-http`, sin transacciones). La app entra por el
   **pooler en modo transaction (6543)** con `prepare: false`; `drizzle-kit` por la conexion de
