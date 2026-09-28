@@ -18,11 +18,13 @@ docs/adr/README.md.
 Estado al cierre del 27-sep en la noche (CIERRE 33): main tiene las dos sesiones del dia fusionadas.
 E2 (043-047) cerrada por Alejandro (lib/deals/etapas.ts, requisitos.ts, mover-etapa.ts, saldo.ts,
 guardian); 094 (alcance del closer), ADR 0054/0055 (A1 y A2) y 103 cerrados por Mani. 27 migraciones
-(0000-0026), todas en dev. 880 tests. Produccion en Supabase NO existe.
+(0000-0026), todas en dev. 882 tests. Produccion en Supabase NO existe.
 
 Siguiente:
-1. El 103 ya esta hecho (27-sep noche): el motor tiene las decisiones de Mani. Siguiente del plan §5:
-   E3 minimo; empezar por el 052 (abrir y mover deals desde la ingesta con abrirDeal/moverEtapa).
+1. El 103 ya esta hecho (27-sep noche, ADR 0056): el motor tiene las decisiones de Mani. Siguiente del
+   plan §5: E3 minimo; empezar por el 052 (abrir y mover deals desde la ingesta con abrirDeal/moverEtapa).
+   El 104 esta hecho: 13 motivos estandarizados desde la taxonomia de las hojas, cargados en dev con
+   `npm run cargar-motivos` (correrlo en toda base nueva despues de migrar).
 2. Crear los tickets del webhook (ADR 0055) y del Estado desde el form (ADR 0054); preguntarle a Mani
    los dos puntos abiertos del ADR 0055.
 3. Fuera del repo: variable `estado` y partial submission point en los dos Typeform.
@@ -51,6 +53,27 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   - 🩸 **Lección:** dos personas tomaron E2 el mismo día sobre el mismo `main`, sin saberlo. Antes de
     tomar un ticket: `git fetch` y mirar el tracker de `origin/main`.
   - **Medido:** 880 tests, typecheck y lint limpios.
+  - **ADR 0056** escribe las decisiones del 103 (cohorte destino, cuatro listas, quién mueve, datos en el
+    mismo movimiento, la llamada más reciente, motivo al perder).
+  - **Motivos (ticket 104, bloqueado por los closers):** Mani preguntó en qué se fundamentaban. Las cuatro
+    LISTAS salen de la tabla de transiciones; los 8 motivos de `dev` **no**: se sembraron el 16-sep (ticket
+    012) sin leer las hojas. Se leyeron todas las pestañas fuente de las DOS hojas: el equipo ya tiene
+    una taxonomía idéntica en ambas (`_ListasDropdown`: FIN-1/2, FIT-1/2/3, FU-1..5, RD-1, PRA), llenada
+    solo en el 27% de las llamadas de Tactical y el 5% de las de ComunicArte, con el resto del porqué en
+    texto libre. Criterio de Mani: **basarse en lo que ya usan, estandarizarlo y mejorarlo solo donde haga
+    falta.** La propuesta y las preguntas están en el ticket; su tabla sirve además de mapa para la migración.
+  - **104 hecho, por decisión de Mani** (*"las que usan, estandarizadas, agreguemos las necesarias,
+    descriptivas; reduce si se puede"*): son 13 motivos en frases completas (6 de perdida, 2 de reagenda, 3
+    de retroceso y 2 de recuperación), cargados en `dev` por el molde con `scripts/cargar-motivos.ts`
+    (idempotente). Las 8 semillas viejas se borraron porque ninguna tenía uso. El mapa de las subcategorías
+    de la hoja para la migración quedó en el ticket.
+  - **Bug arreglado:** `lib/catalogo/motivos.ts` no declaraba quién lo referencia (`calls`, `deals`,
+    `deal_etapa_historial`), así que borrar un motivo usado reventaba con la FK en vez de desactivarlo.
+    Hay un test.
+  - **Usuario nuevo en `dev`:** `manuelmejiaarana@gmail.com` como developer, que es el actor de los scripts
+    (`SCRIPT_ACTOR_EMAIL` en `.env.local`, que estaba vacío).
+  - ⚠️ Las pestañas `Cartera` de las dos hojas no tienen encabezado: un script que filtre datos personales
+    por nombre de columna los deja pasar. Leerlas con cuidado.
 
 - **2026-09-27 (CIERRE 32): E2 cerrada, el motor de etapas existe.** Alejandro, sesión de la tarde.
   Commits `134d293` a `5087b6a`, todos en `main`.

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { motivos as tablaMotivos, tipoMotivoEnum } from "@/lib/db/schema";
+import { calls, dealEtapaHistorial, deals, motivos as tablaMotivos, tipoMotivoEnum } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { moldeDeCatalogo } from "./molde";
 
@@ -36,6 +36,13 @@ export function motivos(db?: Db) {
       esquema: esquemaMotivo as unknown as z.ZodType<EntradaMotivo>,
       etiqueta: (fila) => String(fila.nombre),
       nombreEntidad: "un motivo",
+      // Quien lo referencia por FK `restrict` (ADR 0026 punto 5). Sin esto el molde contaba
+      // cero y un motivo ya usado reventaba con la FK al borrarse, en vez de desactivarse.
+      dependientes: [
+        { tabla: calls, columna: calls.motivoId },
+        { tabla: deals, columna: deals.motivoId },
+        { tabla: dealEtapaHistorial, columna: dealEtapaHistorial.motivoId },
+      ],
     },
     db,
   );

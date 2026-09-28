@@ -274,6 +274,12 @@ Después de pegar el Grain, una sola pregunta con seis botones. No existe "no ce
 
 Qué le hace cada **resultado de llamada** al deal: ADR 0015.
 
+**Los motivos van en cuatro listas** (ADR 0056): Perdido pide uno de `perdida`, Otra llamada (T29) uno
+de `reagenda`, el sí que se echa atrás (T15) uno de `retroceso` y recuperar (R) uno de `recuperacion`.
+El contenido de cada lista sale de la taxonomía que el equipo ya usa en las hojas (`_ListasDropdown`:
+FIN, FIT, FU, RD, PRA), estandarizada en 13 motivos (ticket 104). Quién mueve y con qué datos: también
+ADR 0056.
+
 ---
 
 ## 4. La arquitectura técnica

@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ZodError } from "zod";
-import { changeLog, users } from "@/lib/db/schema";
+import { calls, changeLog, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { Catalogo } from "@/lib/catalogo/molde";
 import { ErrorDeApp } from "@/lib/errors";
@@ -358,5 +358,21 @@ describe("guardian estatico — el molde solo borra por borrarSiNoSeUso", () => 
         }
       }
     }
+  });
+});
+
+describe("motivos declara quien lo usa (ADR 0026 punto 5)", () => {
+  it("un motivo usado por una llamada no se borra: devuelve el conteo", async () => {
+    const cat = motivos(db);
+    const m = await cat.crear(userId, { nombre: "Motivo usado", tipo: "perdida" });
+    const [p] = await db.insert(programs).values({ slug: "prog-motivo", nombre: "P", ticketUsd: "797.00" }).returning();
+    await db.insert(calls).values({ programId: p.id, motivoId: m.id });
+    expect(await cat.borrarSiNoSeUso(userId, m.id)).toEqual({ borrado: false, referencias: 1 });
+  });
+
+  it("uno sin usar si se borra", async () => {
+    const cat = motivos(db);
+    const m = await cat.crear(userId, { nombre: "Motivo libre", tipo: "reagenda" });
+    expect(await cat.borrarSiNoSeUso(userId, m.id)).toEqual({ borrado: true });
   });
 });

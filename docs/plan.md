@@ -375,6 +375,8 @@ cierra, baja a un ADR (con `/grill-with-docs`) o a su ticket, y sale de esta lis
 - Cómo mandan el comprobante: foto, link o PDF (035, 060).
 - Hasta cuántos días atrás vale migrar Setteo con deal (080).
 - Uso desde el celular; quién prueba primero; cómo y cuándo se paga la comisión.
+- **Los motivos (104, ya cargados):** revisar los 13 que salieron de su `_ListasDropdown`; sobre todo
+  reagenda y recuperación, que no tenían equivalente en la hoja. Se ajustan desde el catálogo.
 - Confirmar: la venta sin llamada y los perdidos que se recuperan (transiciones T4, T5 y R de
   `structure.md` §3.1; no confundir con la ficha T4 de §7.1).
 

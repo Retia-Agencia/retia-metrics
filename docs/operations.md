@@ -118,6 +118,7 @@ verificar el ref; dar de alta a los closers reales desde `/ajustes/usuarios`.
 | `npm run rotar` | rota `AUTH_GOOGLE_SECRET` y `AUTH_SECRET` |
 | `npm run cron-secret` | genera `CRON_SECRET` (`rotar` no lo toca) |
 | `npm run cuenta-servicio` | carga la cuenta de servicio de Google |
+| `npm run cargar-motivos` | carga las cuatro listas de motivos (ticket 104) por el molde y retira las 8 semillas de la migración 0004. **Se corre en toda base nueva después de migrar.** Idempotente; pide `SCRIPT_ACTOR_EMAIL` |
 | `npm run descubrir` · `inspeccionar <sheetId> "<pestaña>"` · `comparar` | leer la estructura de las hojas |
 | `npm run sync` | corre el sync de Sheets desde la terminal (legado) |
 | `npm run backfill-fechas` | reparación de una sola vez, ya ejecutada |

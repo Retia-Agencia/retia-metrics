@@ -67,3 +67,9 @@ cifras que se ven creíbles y están mal.
 ## Kiro
 
 Sí para código y tests, con revisión. La migración, no (AGENTS.md).
+
+---
+
+**Cerrado el 27-sep** (ADR 0056). Las listas `reagenda`, `retroceso` y `recuperacion` quedaron vacías, y
+los 8 motivos de `dev` como `perdida`. El contenido de cada lista lo lleva el **ticket 104**, que está
+bloqueado por los closers.
