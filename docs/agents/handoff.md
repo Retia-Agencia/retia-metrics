@@ -66,8 +66,12 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   - 🩸 **Bug viejo visto en el recorrido:** el molde escribe los campos jsonb en `change_log` como
     `[object Object]` (`aTexto` = `String`). Tarea aparte propuesta; puede que además esconda ediciones del
     mapeo en el diff.
-  - **Código del 051:** con Kiro. Hasta que aterrice, el typecheck de `main` local falla en
-    `lib/ingesta/calificacion.ts`; por eso la 0027 no se ha subido.
+  - **051 hecho** (Kiro, revisado): `estadoDesdeTexto` en `lib/ingesta/estado.ts` acepta los tres valores y
+    las cuatro etiquetas exactas del Apps Script; lo demás entra sin Estado y, si es un envío completo, se
+    reporta en `sinCalificar`. ⚠️ Para el 106: `Envio.estado` sale de `estadoHoja`, así que el adaptador de
+    Typeform pone la variable `estado` en ese campo (o se generaliza el nombre).
+  - **Medido:** 922 tests, typecheck y lint limpios con el 051 y el 105 juntos.
+  - **Siguiente:** el 052 (ya desbloqueado) y el 106.
 - **2026-09-27 (CIERRE 33): merge de las dos sesiones y el 103.** Sesión de Mani, noche.
   - **Merge** (`17d279d`): quedó el E2 de Alejandro (está en `dev`); se descartaron el 043 y el 044
     duplicados de la sesión de Mani; se conservaron el 094 y los ADR 0054/0055. Subido.
