@@ -34,13 +34,37 @@ export interface BaseDePrueba {
 }
 
 /**
- * Crea una base PGlite en memoria, le aplica todas las migraciones y devuelve el
- * cliente drizzle ya sembrado. Cada llamada es una base independiente.
+ * La base recien migrada, volcada UNA vez por archivo de test (vitest aisla los
+ * modulos por archivo, asi que este cache vive lo que vive el archivo). Medido el
+ * 28-sep: `new PGlite()` corre initdb y cuesta ~700 ms, las migraciones ~150 ms, y
+ * arrancar desde este volcado ~150 ms en total, porque se salta las dos cosas.
+ *
+ * Si una migracion trae SQL invalido la promesa queda rechazada y TODA llamada a
+ * `crearBaseDePrueba` del archivo revienta con ese error: la garantia de arriba no
+ * se pierde, solo se paga una vez por archivo.
+ */
+let plantilla: Promise<File | Blob> | undefined;
+
+async function volcarBaseMigrada(): Promise<File | Blob> {
+  const cliente = new PGlite();
+  try {
+    await migrate(drizzle(cliente), { migrationsFolder: CARPETA_MIGRACIONES });
+    // Sin comprimir: con gzip el volcado tarda ~15x mas y cada carga ~100 ms mas.
+    return await cliente.dumpDataDir("none");
+  } finally {
+    await cliente.close();
+  }
+}
+
+/**
+ * Crea una base PGlite en memoria con todas las migraciones aplicadas y devuelve el
+ * cliente drizzle. Cada llamada es una base independiente: arranca de una copia del
+ * volcado, y lo que escriba un test no llega a la plantilla ni a otra base.
  */
 export async function crearBaseDePrueba(): Promise<BaseDePrueba> {
-  const cliente = new PGlite();
+  plantilla ??= volcarBaseMigrada();
+  const cliente = new PGlite({ loadDataDir: await plantilla });
   const db = drizzle(cliente, { schema });
-  await migrate(db, { migrationsFolder: CARPETA_MIGRACIONES });
   return {
     db: db as Db,
     cerrar: () => cliente.close(),
