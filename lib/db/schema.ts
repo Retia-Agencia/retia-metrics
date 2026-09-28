@@ -102,19 +102,19 @@ export const resultadoLlamadaEnum = pgEnum("resultado_llamada", [
 ]);
 
 /**
- * La calificacion de un envio (T2, 22-sep): las cuatro reglas del Apps Script de la
- * hoja, que el CRM aplica desde que los leads entran por webhook. Es TIPO y no texto
- * porque el codigo decide con ella (el 052 crea deals segun esto). Las reglas y su
- * configuracion viven en `lib/ingesta/calificacion.ts`.
+ * El Estado de llegada de un envio, con los nombres de la hoja (ADR 0054, enmienda del
+ * 27-sep): Descartado, Setteo No Calificado, Con Calendly. Lo manda el FORMULARIO y el
+ * CRM confia en el; no lo calcula. Es TIPO y no texto porque el codigo decide con el
+ * (el 052 abre deals segun esto; D4 cerrada). `lib/ingesta/calificacion.ts` (T2) queda
+ * desconectado mientras se decide A8 (`docs/plan.md` §7).
  *
- * ⚠️ No reemplaza a `leads.estado` (texto, ADR 0032): la ficha D4 sigue por decidir.
- * Convive a proposito, para poder comparar lo que dijo la hoja con lo que dice el CRM.
+ * `leads.estado` (texto, ADR 0032) conserva lo que escribio la hoja, para comparar en la
+ * migracion; nadie decide con el.
  */
 export const calificacionEnvioEnum = pgEnum("calificacion_envio", [
-  "incompleto",
-  "sin_recursos",
-  "con_agenda",
-  "setteo",
+  "descartado",
+  "setteo_no_calificado",
+  "con_calendly",
 ]);
 
 /** Por donde entro una persona al CRM (ADR 0021). */
