@@ -463,13 +463,16 @@ The agent should run these to get fast signal on whether code works. Keep them c
   mutua en otra parte, ese es el molde: no hay candado que pedir ni que acordarse de soltar.
   Un script de `scripts/` **sale con `process.exit`**: `postgres-js` deja el pool abierto y el
   proceso se queda colgado.
-- **Dos proyectos de Supabase, `dev` y produccion** (ADR 0047, reemplaza al 0018). Local y previews
-  apuntan a `dev`. Una migracion se prueba en `dev` antes de tocar produccion. La URL de
-  produccion esta en `.env.local` como `DB_PROD`: ningun codigo la lee, se usa solo nombrandola en
-  el comando. Consultas de solo lectura, libres; **toda escritura en produccion pide el ok de
-  Mani**. Antes de escribir, **mirar el ref del proyecto dentro de la connection string**
-  (`postgres.<ref>@...`), no el nombre de la variable: el 16-sep `DATABASE_URL` resulto apuntar a
-  produccion (hallazgo del 16-sep). 🩸 **La Data API de Supabase va APAGADA** en los dos proyectos:
+- **UN solo proyecto de Supabase, "CRM Retia" (ref `hfqmiyiuyqapdsbywrag`), y ES produccion**
+  (Mani, 28-sep; enmienda el ADR 0047, que pedia `dev` y produccion). No hay base de pruebas: local
+  (`npm run dev`, los scripts, `db:migrate`) escribe en la base real. **Los previews de Vercel no tienen
+  `DATABASE_URL` a proposito** y se trabaja todo en `main`. La regla de Mani: **asegurar la integridad
+  antes de publicar.** En la practica: (1) una migracion se prueba primero en PGlite, que aplica TODAS
+  las migraciones en cada `npm test`, y su SQL se lee antes de aplicarla; (2) nada se empuja a `main`
+  sin `npm test`, `npm run typecheck`, `npm run lint` y `npm run build` limpios; (3) toda escritura de
+  datos a mano o por script pide el ok de Mani; (4) antes de escribir, **mirar el ref dentro de la
+  connection string** (`postgres.<ref>@...`), no el nombre de la variable. Lo que PGlite no ve y solo
+  aparece en la base real: el pooler (`prepare: false`). 🩸 **La Data API de Supabase va APAGADA**:
   publica las tablas por REST con una llave anonima y la app no la usa.
 - 🩸 **El SQL que genera `drizzle-kit` se LEE antes de aplicarlo, siempre.** Medido en la 0020
   (22-sep): de los cuatro defectos que traia, dos eran destructivos y dos la hacian fallar.

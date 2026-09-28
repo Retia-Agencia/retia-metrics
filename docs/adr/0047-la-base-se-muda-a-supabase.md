@@ -80,3 +80,19 @@ inclinó la decisión fue el punto 1.
 - **Se pierde `neon.branch_id`** como forma de comprobar a qué base apunta una variable. El
   equivalente es el *ref* del proyecto dentro de la connection string
   (`postgres.<ref>@...`): **antes de escribir, se mira el ref, no el nombre de la variable.**
+
+---
+
+## Enmienda 2026-09-28 (Mani): un solo proyecto
+
+*"No necesitamos 2 proyectos. Todo el backend dentro de ese."* El proyecto "CRM Retia" (ref
+`hfqmiyiuyqapdsbywrag`), que hacía de `dev`, **es producción**. Estaba limpio (solo configuración: dos
+programas, cuatro cohortes, tres productos, 13 motivos, cuatro usuarios, tres fuentes; cero leads, deals,
+llamadas o abonos), así que no hubo nada que vaciar. Vercel Production apunta a él desde el 28-sep (antes
+seguía en Neon); los previews quedaron **sin** `DATABASE_URL` y se trabaja en `main`.
+
+Lo que se pierde es probar una migración contra un Postgres real antes de producción. Lo reemplaza la
+regla de Mani, *"asegurar integridad antes de publicar"*: la migración pasa primero por PGlite (que
+aplica todas en cada `npm test`), su SQL se lee, y nada llega a `main` sin test, typecheck, lint y
+build limpios (AGENTS.md, convenciones). El plan gratis permite dos proyectos por organización y el otro
+cupo lo usa `pipeline-creacion-contenido`, que no es de este repo. `DB_PROD` deja de tener uso.

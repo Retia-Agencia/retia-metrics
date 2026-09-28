@@ -15,11 +15,11 @@ medido ese día.
 
 | Entorno | App | Base | Estado al 27-sep |
 |---|---|---|---|
-| Local | `npm run dev` (http://localhost:3000) | Supabase `dev` | ✅ |
-| Preview (Vercel) | cada rama | Supabase `dev` | ✅ |
-| Producción (Vercel) | rama `main`, alias `retia-metrics-seven.vercel.app` | 🔴 **el proyecto de producción en Supabase no existe** (`DB_PROD` vacía). Producción se desplegó el 23-sep y no se ha verificado a qué base apunta | 🔴 |
+| Producción (Vercel) | rama `main`, alias `retia-metrics-seven.vercel.app` | Supabase "CRM Retia" (desde el 28-sep; antes seguía en Neon) | ✅ |
+| Local | `npm run dev` (http://localhost:3000) | **la misma base de producción**: no hay otra (ADR 0047, enmienda del 28-sep) | ⚠️ |
+| Preview (Vercel) | cada rama | ninguna: sin `DATABASE_URL` a propósito, se trabaja en `main` | — |
 
-- **Supabase:** una organización de Retia, plan gratis. Proyecto `dev`: ref `hfqmiyiuyqapdsbywrag`,
+- **Supabase:** organización "Agencia - Dani", plan gratis. **Un solo proyecto, "CRM Retia", que es producción** (Mani, 28-sep): ref `hfqmiyiuyqapdsbywrag`,
   región `us-east-2`, vacío y sembrado (programas, cohortes, productos, fuentes, categorías y dos
   usuarios: un gerente y un developer), 24 migraciones aplicadas, RLS sin políticas en todas las tablas
   y Data API apagada. En plan gratis un proyecto **se pausa tras 7 días sin uso**: pasar producción a
@@ -66,7 +66,7 @@ editor) y en Vercel.
 | `DATABASE_URL` | la app: pooler de Supabase en modo transaction (6543), con `prepare: false` | local, Vercel |
 | `DATABASE_URL_DIRECTA` | `drizzle-kit`: pooler en modo session (5432); la conexión directa es solo IPv6 | local |
 | `SUPABASE_DB_PASSWORD` | `.env.local` arma las dos URLs con ella | local |
-| `DB_PROD` | la base de producción. **Ningún código la lee**: se nombra a propósito en el comando | local |
+| `DB_PROD` | sin uso desde el 28-sep: hay una sola base y `DATABASE_URL` ya es producción | local |
 | `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_URL` | login con Google (Auth.js) | local, Vercel |
 | `CRON_SECRET` | protege `/api/cron/sync` | local, Vercel |
 | `GOOGLE_SERVICE_ACCOUNT_JSON_B64` | la cuenta de servicio que lee las hojas | local, Vercel |
@@ -92,18 +92,18 @@ editor) y en Vercel.
 - **Antes de escribir, mirar el ref del proyecto dentro de la connection string** (`postgres.<ref>@...`),
   no el nombre de la variable.
 - **Lectura libre, escritura con permiso:** consultas de solo lectura contra producción, libres; toda
-  escritura en producción pide el ok de Mani en esa conversación. Uso de `DB_PROD`:
-  `DATABASE_URL="$(grep '^DB_PROD=' .env.local | cut -d= -f2- | tr -d '"')" npm run <script>`.
+  escritura de datos pide el ok de Mani en esa conversación. Desde el 28-sep hay una sola base: todo lo
+  que corre en local escribe en producción.
 - **`drizzle-kit push` y `drop` están denegados** en `.claude/settings.json`: se saltan el historial.
 - **Toda tabla nueva lleva RLS sin políticas** (lo exige `tests/rls-en-todas-las-tablas.test.ts`), y la
   Data API se apaga en cada proyecto de Supabase.
 - **No se corre una semilla sobre una base con datos reales:** `seed:datos` reconcilia por nombre y
   duplica filas si los nombres cambiaron (ADR 0029).
 
-**Cómo se arma producción cuando toque** (paso 0 del plan, con el ok de Mani): crear el proyecto de
-Supabase en la organización de Retia; aplicar las migraciones; apagar la Data API; sembrar con
-`seed:datos`, `seed:users` y `cargar-enlaces-pago`; cargar `DATABASE_URL` en Vercel Production y
-verificar el ref; dar de alta a los closers reales desde `/ajustes/usuarios`.
+**Producción quedó armada el 28-sep** sobre el proyecto que hacía de `dev` (ADR 0047, enmienda): ya tenía
+todas las migraciones, la Data API apagada, la configuración sembrada y los motivos cargados. Falta:
+cargar los enlaces de pago (`cargar-enlaces-pago`, el JSON lo tiene Mani) y dar de alta a los closers
+reales desde `/ajustes/usuarios` (ticket 007).
 
 ## 5. Scripts
 

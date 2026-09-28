@@ -244,7 +244,7 @@ app). Tickets: **105** (la fuente webhook), **106** (la ruta y el adaptador de T
 
 > ✅ **Cerrado el 27-sep: ADR 0054** (A1), **enmendado esa noche:** el form manda el Estado completo con
 > los nombres de la hoja (`descartado`, `setteo_no_calificado`, `con_calendly`) y el CRM confía en él,
-> sin calcular ni validar. T2 queda desconectado mientras se decide A8. El script de la hoja se borra
+> sin calcular ni validar. T2 se retira del repo: A8 se cerró el 28-sep (Mani: *"el CRM no calcula NADA, solo recibe los leads con estado ya definido y los rutea"*). El script de la hoja se borra
 > después del hito B. Lo de abajo es el contexto previo.
 
 **Lo que dijo Mani el 27-sep:** *"Ahorita Estado es un campo que llena un script de sheets, pero esto
@@ -292,9 +292,10 @@ igual.
 - **Migración de las pestañas de gestión (E7):** 077 · 078 · 079 · 080 · 081 → 082. Los deals viejos
   entran con su estado de gestión, no como ~2.400 deals iguales en Pendiente Setteo. Los casos que ya se
   sabe que piden decisión están en `structure.md` §11.
-- 🔴 **053 a 056 se escribieron (21-sep) para un sync de Sheets vivo.** El corte directo (22-sep) dice
-  que el CRM recibe leads **solo** por webhook, y nadie decidió si esos tickets se retiran, se reescriben
-  para el webhook o quedan solo para el traslado. El 053 (zona horaria) ya tiene código.
+- ✅ **El sync de Sheets se descarta (Mani, 28-sep; cierra A6).** Los leads entran solo por el webhook.
+  053 a 056 quedan `reemplazado`; el código del sync vivo (cron, corridas, candado, `POST /api/sync`) se
+  retira con el ticket 108. Lo que sirve para leer una hoja UNA vez (lectura, mapeo, dedup, adaptador de
+  Sheets) se queda para el traslado.
 
 #### 4.3e Después de v1
 
@@ -360,12 +361,9 @@ cierra, baja a un ADR (con `/grill-with-docs`) o a su ticket, y sale de esta lis
 
 | # | Qué | Bloquea | Cuándo |
 |---|---|---|---|
-| A3 | Crear Supabase producción; pasarlo a Pro cuando haya operación | hito A en producción | paso 0 |
 | A4 | Garantía de la UI: tests de componente o Playwright (R5); CI (R4) | paso 4 | antes del paso 4 |
 | A5 | Calendly: webhook o consulta; plan de Calendly; Vercel Pro (R3) | 096 | paso 3 |
-| A6 | Qué pasa con 053 a 056 y con el código del sync de Sheets después del corte directo (§4.3d) | limpieza del tracker | paso 2 |
 | A7 | Las fichas técnicas de §7.1 (D3, D5, R2, P2, T4) | 060, 084 | según el ticket |
-| A8 | ¿El Estado lo calcula el formulario o una función del CRM por programa? Hoy: el formulario (ADR 0054, enmienda). T2 queda desconectado en el repo hasta decidirlo | nada: el 052 lee `leads.calificacion` sin saber quién la escribió | antes del hito A en producción, con el envío real de Typeform |
 
 **B. Closers** (por chat, cuando llegue el ticket que la necesita):
 
