@@ -48,7 +48,7 @@ servicio, nunca con "cualquiera con el enlace"**. Los scripts siguen leyendo los
 | | ComunicArte | Tactical Investor |
 |---|---|---|
 | Hoja de Sheets | https://docs.google.com/spreadsheets/d/1NN6rlZXJJcgvWXYsbP99vLt9aj7FXVPd6ep4ULAcK54/edit | https://docs.google.com/spreadsheets/d/1DBKL4zwWWeJppe-6mzpJ4jT1G6MdEmT1Dd_uMiNBNwc/edit |
-| Formulario (Typeform) | https://metodocomunicarte.typeform.com/to/nkMLdeh8 (identificado el 18-ago como el destino de los botones "Unirme" de la landing) | 🔴 falta |
+| Formulario (Typeform) | https://metodocomunicarte.typeform.com/to/nkMLdeh8 (identificado el 18-ago como el destino de los botones "Unirme" de la landing; confirmado por Mani el 27-sep) | https://postulacioness.typeform.com/to/GmPGBOf9 (confirmado por Mani el 27-sep; el ID distingue mayúsculas) |
 | Landing | `programavirtual.eventoscomunicarte.com/landing.html` (el contenido vive en ese iframe) | 🔴 falta |
 | Calendly | 🔴 falta (cada closer tiene su cuenta por programa) | 🔴 falta |
 | `web_url` / `calendly_url` en la base (`dev`) | vacías | vacías |
