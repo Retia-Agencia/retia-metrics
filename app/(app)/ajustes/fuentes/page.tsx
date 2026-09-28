@@ -1,5 +1,6 @@
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { estadoDeFuentes, fuentesParaAdmin } from "@/lib/queries/fuentes";
+import { saludDeFuentes } from "@/lib/queries/salud-fuentes";
 import { PageShell } from "@/components/page-shell";
 import { haceCuanto } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,8 @@ export default async function FuentesPage() {
   await paginaConRol("gerente");
   const { conteos, corridas, cambios } = await estadoDeFuentes();
   const { programas, fuentes } = await fuentesParaAdmin();
+  // Ticket 107: solo las activas tienen salud; una inactiva no recibe a proposito.
+  const saludPorFuente = new Map((await saludDeFuentes()).map((s) => [s.sourceId, s]));
 
   // Se arma la vista por programa para la administracion: cada programa con sus
   // fuentes. El sheetId viaja completo (lo necesita el formulario de edicion) y se
@@ -40,6 +43,12 @@ export default async function FuentesPage() {
         activo: f.activo,
         ultimaSync: f.ultimaSync ? f.ultimaSync.toISOString() : null,
         orden: f.orden,
+        umbralSinRespuestaHoras: f.umbralSinRespuestaHoras,
+        umbralMuertaHoras: f.umbralMuertaHoras,
+        salud: (() => {
+          const s = saludPorFuente.get(f.id);
+          return s ? { estado: s.estado, ultimoHace: haceCuanto(s.ultimo), sobresPendientes: s.sobresPendientes } : null;
+        })(),
       })),
   }));
 

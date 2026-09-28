@@ -5,8 +5,8 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 37 (28-sep, tarde). El anterior:
-> `git show 746a317:docs/agents/handoff.md`.
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 40 (28-sep, tarde). El anterior:
+> `git show e7ef1b0:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md y despues docs/plan.md completo, antes que cualquier otro
@@ -14,23 +14,24 @@ documento (norte, tracks, orden por pasos en §5, decisiones abiertas en §7). E
 vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta: docs/overview.md,
 docs/structure.md, docs/operations.md y docs/adr/README.md.
 
-Estado al cierre del 28-sep (sesion 37): UNA sola base y es PRODUCCION ("CRM Retia", ref
-hfqmiyiuyqapdsbywrag). 35 migraciones (0000-0034), todas aplicadas. 1.097 tests. LOS LEADS YA ENTRAN
-SOLOS: las dos fuentes webhook de Typeform estan activas en produccion (las de Sheets, inactivas) y el
-106 esta hecho. El envio real destapo huecos por donde se perdian datos sin error; los cierra el ADR
-0058 (caja negra de cada envio, nombre del lead, un solo mapeo webhook/hoja, variables genericas,
-`xxxxx` = sin UTM, re-agenda crea su llamada). Matriz de casos: tests/webhook-matriz.test.ts.
+Estado al cierre del 28-sep (sesion 40): UNA sola base y es PRODUCCION ("CRM Retia", ref
+hfqmiyiuyqapdsbywrag). 36 migraciones (0000-0035), todas aplicadas. 1.068 tests. LOS LEADS ENTRAN
+SOLOS por el webhook de Typeform (ADR 0058) y la app ya avisa cuando una fuente deja de recibir (107:
+/ajustes/fuentes, modulo lib/queries/salud-fuentes.ts). El sync de Sheets se retiro (108).
 
 Siguiente:
-1. Mirar que los leads reales sigan entrando (vercel logs --query webhooks; sobres_crudos con error no
-   nulo = algo que reprocesar).
-2. El 107 (aviso de fuente sin envios; umbral por fuente = migracion de la sesion principal), el 110
-   (log de entregas del webhook) y el 105 (forjar la accion con sesion de closer). El 108 ya se cerro.
+1. Mirar que los leads reales sigan entrando: /ajustes/fuentes dice "recibiendo" o no; sobres_crudos con
+   error no nulo = algo que reprocesar.
+2. El 057 (las llamadas cuelgan del deal): es el camino principal del paso 3 y desbloquea 058, 059, 060
+   y 096. En paralelo, cerrar lo que esta en curso: 048, 049 y 050 probablemente ya cumplen (el webhook
+   llama a la ingesta real; verificar contra su "Done cuando"), y al 105 le falta forjar la accion con
+   sesion de closer.
+3. El 110 (log de entregas del webhook; reusa salud-fuentes; migracion de la sesion principal).
    Pendiente del 108: quitar CRON_SECRET y SHEET_ID_* de Vercel (GOOGLE_SERVICE_ACCOUNT_JSON_B64 SE QUEDA).
-3. El 096: cancelaciones y reprogramaciones de Calendly (hoy cancelar en Calendly no toca la llamada, y
-   una re-agenda deja dos llamadas agendadas), mas el pedido de Mani (dropdown y "buscar llamada").
-4. Decisiones abiertas: el Partial Submit Point (lo consulta Mani con el equipo) y si el log de la ruta
-   distingue "sin firma" de "firma que no cuadra".
+4. El 096: cancelaciones y reprogramaciones de Calendly, mas el pedido de Mani (dropdown y "buscar
+   llamada"). Necesita la decision A5 (webhook o consulta).
+5. Decisiones abiertas: A4 (garantia de la UI) antes del paso 4, D3 antes del 060, el Partial Submit
+   Point (equipo) y si el log de la ruta distingue "sin firma" de "firma que no cuadra" (se decide en 110).
 Las migraciones las genera y aplica la sesion principal; Kiro implementa codigo y tests y NO corre los
 guardianes por si solo: correr npm test completo al revisar. Antes de tomar un ticket haz git fetch.
 ```
@@ -38,6 +39,29 @@ guardianes por si solo: correr npm test completo al revisar. Antes de tomar un t
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-28 (sesión 40): 107 cerrado, la app avisa cuando una fuente deja de recibir.** Sesión de Mani.
+  - **Chequeo inicial:** 11 leads en producción (8 ComunicArte, 3 Tactical), cero sobres con error.
+  - **Migración 0035** (sesión principal, aplicada en producción con el ok de Mani):
+    `sources.umbral_sin_respuesta_horas` (48) y `umbral_muerta_horas` (120), en horas, con el CHECK
+    `sources_umbrales_en_orden`. Aditiva: las cinco fuentes quedaron en 48/120.
+  - **`lib/queries/salud-fuentes.ts`:** `saludDeFuente` (pura) y `saludDeFuentes`. Calculado desde
+    `submissions.created_at` y `sobres_crudos`, nada guardado. Estados: `al_dia`, `volvio`,
+    `sin_respuestas`, `muerta`, `sin_envios`. "Volvió" = el hueco entre los dos últimos envíos superó el
+    umbral. Una fuente activa que nunca recibió se marca. El 110 reusa el módulo.
+  - **Decisión de diseño:** los umbrales son OPCIONALES en zod. Al crear los pone la base; al editar se
+    conserva el valor actual. Con `.default()` una edición que no los mandara los resetearía sin error.
+  - 🩸 **El guardián de vigencia cazó una subconsulta** (`.from(alias)`): trata cualquier identificador
+    desconocido como tabla posible. No se aflojó: el penúltimo envío se lee con una consulta simple por
+    fuente activa (una por programa, ADR 0039).
+  - **Pantalla vista** con datos reales: "recibiendo · último hace 36 min" y el formulario con los dos
+    umbrales. No se guardó ninguna edición desde el navegador.
+  - ⚠️ La primera corrida de `npm test` se colgó más de 20 min con un worker al 92% de CPU; las dos
+    siguientes pasaron en ~130 s. Sin causa encontrada. Si se repite, correr con `--reporter=verbose`
+    para ver qué archivo se queda.
+  - **Medido:** 1.068 tests, typecheck, lint y build limpios.
+  - **Overview dado a Mani:** 20 tickets v2 hechos + 107, 4 en curso, 47 por hacer (~29%); ritmo de ~3
+    por día desde el 21-sep; lo que más frena son las decisiones (Pauta, closers, A4, A5, D3).
 
 - **2026-09-28 (sesión 39): 108 cerrado, el sync de Sheets retirado.** Sin migración.
   - Fuera: cron, `POST /api/sync/[programa]`, botón, `lib/sheets/sync.ts`, `plan-sync.ts`,

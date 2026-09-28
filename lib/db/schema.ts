@@ -370,6 +370,15 @@ export const sources = pgTable(
      * Nulo en una fuente webhook = todavia no puede recibir: activarla lo exige.
      */
     secretoWebhook: text("secreto_webhook"),
+    /**
+     * Cuanto silencio aguanta ESTA fuente antes de que la app la marque (ticket 107).
+     * Por fuente y no fijo (ADR 0012): un programa con pauta prendida recibe varios
+     * envios al dia y uno sin pauta puede pasar dias sin ninguno. Los defectos son de
+     * Mani (28-sep): 48 h "sin respuestas" y 5 dias (120 h) "muerta". En horas los dos,
+     * para que se comparen sin convertir unidades. Se marca, nunca se apaga (ADR 0055).
+     */
+    umbralSinRespuestaHoras: integer("umbral_sin_respuesta_horas").notNull().default(48),
+    umbralMuertaHoras: integer("umbral_muerta_horas").notNull().default(120),
     ultimaSync: timestamp("ultima_sync", { withTimezone: true }),
     activo: boolean("activo").notNull().default(true),
     orden: integer("orden").notNull().default(0),
@@ -409,6 +418,11 @@ export const sources = pgTable(
      * commit; comparando como texto no lo usa.
      */
     check("sources_webhook_con_proveedor", sql`${t.tipo}::text <> 'webhook' OR ${t.proveedor} IS NOT NULL`),
+    /** "Muerta" viene despues de "sin respuestas", o la marca intermedia nunca se veria (ticket 107). */
+    check(
+      "sources_umbrales_en_orden",
+      sql`${t.umbralSinRespuestaHoras} > 0 AND ${t.umbralMuertaHoras} > ${t.umbralSinRespuestaHoras}`,
+    ),
   ],
 );
 

@@ -21,6 +21,7 @@ import {
 } from "@/app/(app)/ajustes/fuentes/acciones";
 import { PROVEEDORES_FORMULARIO, rutaDelWebhook, type ProveedorFormulario } from "@/lib/catalogo/fuentes-webhook";
 import type { ColumnaResuelta } from "@/lib/sheets/probar-fuente";
+import type { EstadoDeFuente } from "@/lib/queries/salud-fuentes";
 import {
   aMapeo,
   aPares,
@@ -59,6 +60,17 @@ export interface FuenteVista {
   activo: boolean;
   ultimaSync: string | null;
   orden: number;
+  umbralSinRespuestaHoras: number;
+  umbralMuertaHoras: number;
+  /** Solo en las fuentes activas (ticket 107): se calcula en el servidor, no aqui. */
+  salud: SaludVista | null;
+}
+
+/** La salud de una fuente ya resuelta para pintar: el "hace X" viene del servidor. */
+export interface SaludVista {
+  estado: EstadoDeFuente;
+  ultimoHace: string;
+  sobresPendientes: number;
 }
 
 export interface ProgramaConFuentes {
@@ -79,6 +91,8 @@ interface Borrador {
   tab: string;
   rango: string;
   mapeo: ParMapeo[];
+  umbralSinRespuestaHoras: string;
+  umbralMuertaHoras: string;
 }
 
 const BORRADOR_VACIO: Borrador = {
@@ -89,6 +103,8 @@ const BORRADOR_VACIO: Borrador = {
   tab: "",
   rango: "A1:BZ",
   mapeo: [],
+  umbralSinRespuestaHoras: "48",
+  umbralMuertaHoras: "120",
 };
 
 function aBorrador(f: FuenteVista): Borrador {
@@ -100,6 +116,8 @@ function aBorrador(f: FuenteVista): Borrador {
     tab: f.tab ?? "",
     rango: f.rango,
     mapeo: aPares(f.mapeoColumnas ?? {}),
+    umbralSinRespuestaHoras: String(f.umbralSinRespuestaHoras),
+    umbralMuertaHoras: String(f.umbralMuertaHoras),
   };
 }
 
@@ -316,7 +334,8 @@ function FilaFuente({
             </>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {fuente.salud ? <MarcaDeSalud salud={fuente.salud} /> : null}
           {esWebhook && !fuente.tieneSecreto ? (
             <Badge variant="outline" className="text-muted-foreground">
               sin secreto
@@ -403,6 +422,12 @@ const origenDelNavegador = () => window.location.origin;
 
 /** Convierte el borrador a la entrada que espera la server action. */
 function aEntrada(b: Borrador, programId: string) {
+  // Siempre se mandan los dos: la logica valida el orden y zod rechaza lo que no sea
+  // un entero, con un mensaje en espanol.
+  const umbrales = {
+    umbralSinRespuestaHoras: Number(b.umbralSinRespuestaHoras),
+    umbralMuertaHoras: Number(b.umbralMuertaHoras),
+  };
   if (b.tipo === "webhook") {
     return {
       programId,
@@ -410,6 +435,7 @@ function aEntrada(b: Borrador, programId: string) {
       tipo: "webhook" as const,
       proveedor: b.proveedor,
       mapeoColumnas: aMapeo(b.mapeo),
+      ...umbrales,
     };
   }
   return {
@@ -420,7 +446,31 @@ function aEntrada(b: Borrador, programId: string) {
     tab: b.tab,
     rango: b.rango,
     mapeoColumnas: aMapeo(b.mapeo),
+    ...umbrales,
   };
+}
+
+/** Que dice la marca de cada estado, y con que tono (docs/structure.md §9). */
+const MARCA_DE_SALUD: Record<EstadoDeFuente, { texto: (hace: string) => string; tono: "exito" | "info" | "alerta" | "peligro" }> = {
+  al_dia: { texto: (h) => `recibiendo · último ${h}`, tono: "exito" },
+  volvio: { texto: (h) => `volvió · último ${h}`, tono: "info" },
+  sin_respuestas: { texto: (h) => `sin respuestas · último ${h}`, tono: "alerta" },
+  muerta: { texto: (h) => `muerta · último ${h}`, tono: "peligro" },
+  sin_envios: { texto: () => "todavía sin envíos", tono: "alerta" },
+};
+
+function MarcaDeSalud({ salud }: { salud: SaludVista }) {
+  const marca = MARCA_DE_SALUD[salud.estado];
+  return (
+    <>
+      <Badge variant={marca.tono}>{marca.texto(salud.ultimoHace)}</Badge>
+      {salud.sobresPendientes > 0 ? (
+        <Badge variant="peligro">
+          {salud.sobresPendientes === 1 ? "1 envío sin procesar" : `${salud.sobresPendientes} envíos sin procesar`}
+        </Badge>
+      ) : null}
+    </>
+  );
 }
 
 const CLASE_INPUT =
@@ -556,6 +606,35 @@ function FormularioFuente({
             </label>
           </div>
           )}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block space-y-1 text-sm">
+              <span className="text-muted-foreground">Horas sin envíos para marcarla “sin respuestas”</span>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={borrador.umbralSinRespuestaHoras}
+                onChange={(e) => setBorrador({ ...borrador, umbralSinRespuestaHoras: e.target.value })}
+                required
+                className={CLASE_INPUT}
+                aria-label="Horas para sin respuestas"
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-muted-foreground">Horas sin envíos para marcarla “muerta”</span>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={borrador.umbralMuertaHoras}
+                onChange={(e) => setBorrador({ ...borrador, umbralMuertaHoras: e.target.value })}
+                required
+                className={CLASE_INPUT}
+                aria-label="Horas para muerta"
+              />
+            </label>
+          </div>
 
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">

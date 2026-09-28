@@ -3,7 +3,7 @@ id: 107
 etapa: E3
 serves: "ADR 0055, por decidir 2 (cerrado por Mani el 27-sep) · reemplaza al 055 para las fuentes webhook"
 depends: [106]
-status: todo
+status: done
 ---
 
 # 107 — Una fuente que dejó de recibir se ve en la app
@@ -25,9 +25,9 @@ otro, webhook borrado en Typeform) antes de que se note en las ventas.
 
 ## Done cuando
 
-- [ ] Una fuente sin envíos por encima de su umbral aparece marcada; una con envíos recientes, no.
-- [ ] Una fuente con sobres crudos pendientes aparece marcada.
-- [ ] `npm test`, `npm run typecheck` y `npm run lint` limpios.
+- [x] Una fuente sin envíos por encima de su umbral aparece marcada; una con envíos recientes, no.
+- [x] Una fuente con sobres crudos pendientes aparece marcada.
+- [x] `npm test`, `npm run typecheck` y `npm run lint` limpios.
 
 ## Kiro
 
@@ -44,3 +44,26 @@ Sí, con revisión.
 - Configurables por fuente (ADR 0012); 48 h y 5 días son los valores por defecto.
 - **Canal: solo dentro de la app por ahora** (Mani, 28-sep). Queda anotado para después: revisar si
   las alertas se mandan también por correo, de forma estandarizada y simple (`docs/plan.md` §7).
+
+---
+
+## Hecho, 2026-09-28 (sesión 40)
+
+- **Migración 0035** (sesión principal): `sources.umbral_sin_respuesta_horas` (48) y
+  `sources.umbral_muerta_horas` (120), en horas los dos, y el CHECK `sources_umbrales_en_orden` (muerta >
+  sin respuestas > 0). Aditiva: las filas vivas toman los defectos.
+- **`lib/queries/salud-fuentes.ts`**: `saludDeFuente` (pura) y `saludDeFuentes` (la base). Todo se
+  calcula desde `submissions.created_at` (cuándo llegó al CRM) y `sobres_crudos`; nada se guarda. Cinco
+  estados: `al_dia`, `volvio`, `sin_respuestas`, `muerta`, `sin_envios`. Solo las fuentes activas.
+- **"Volvió" sin estado guardado:** es que el hueco entre los dos últimos envíos superó el umbral de sin
+  respuestas; se ve mientras el último sea reciente y se va solo con el siguiente envío.
+- **Una fuente activa que nunca recibió** sale como `sin_envios` y se marca: no hay fecha de activación
+  contra la cual medir, y es justo el caso del secreto sin pegar del 28-sep.
+- **Umbrales opcionales en la entrada:** al crear, si no vienen, los pone la base; al editar se conserva el
+  valor actual. Con un `.default()` en zod, una edición que no los mandara los resetearía en silencio.
+- **Pantalla:** `/ajustes/fuentes` pinta la marca por fuente (tono `exito`/`info`/`alerta`/`peligro`) y
+  los envíos sin procesar; el formulario de la fuente edita los dos umbrales. El 110 reusa el módulo.
+- Tests: `tests/salud-fuentes.test.ts` y el bloque "umbrales de silencio" de `tests/fuentes.test.ts`.
+- **Migración 0035 aplicada en producción** (ok de Mani, 28-sep): las cinco fuentes quedaron en 48/120.
+  Pantalla vista con datos reales: "recibiendo · último hace 36 min" y el formulario con los dos umbrales.
+  No se guardó ninguna edición desde el navegador (escribiría en producción).

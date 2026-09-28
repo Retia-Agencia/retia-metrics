@@ -89,7 +89,24 @@ const camposComunes = {
   rango: z.string().trim().min(1).default("A1:BZ"),
   mapeoColumnas: esquemaMapeo.default({}),
   activo: z.boolean().default(false),
+  /**
+   * Cuanto silencio aguanta la fuente antes de marcarse (ticket 107). Opcionales a
+   * proposito: al crear, si no vienen, los pone el defecto de la base (48 y 120); al
+   * editar, si no vienen, se conserva el valor actual. Con un `.default()` aqui, una
+   * edicion que no los mandara los resetearia sin que nadie lo pidiera.
+   */
+  umbralSinRespuestaHoras: z.coerce.number().int("Horas enteras.").min(1, "Mínimo 1 hora.").optional(),
+  umbralMuertaHoras: z.coerce.number().int("Horas enteras.").min(1, "Mínimo 1 hora.").optional(),
 };
+
+/** "Muerta" va despues de "sin respuestas"; la base lo exige con `sources_umbrales_en_orden`. */
+function umbralesEnOrden(d: { umbralSinRespuestaHoras?: number; umbralMuertaHoras?: number }) {
+  return (
+    d.umbralSinRespuestaHoras === undefined ||
+    d.umbralMuertaHoras === undefined ||
+    d.umbralMuertaHoras > d.umbralSinRespuestaHoras
+  );
+}
 
 /**
  * Dos formas bajo un solo esquema (ticket 105): una hoja exige hoja y pestana; un
@@ -113,7 +130,10 @@ export const esquemaFuente = z.union([
     tab: z.null().default(null),
     proveedor: z.enum(PROVEEDORES_FORMULARIO, "Elige el proveedor del formulario."),
   }),
-]);
+]).refine(umbralesEnOrden, {
+  message: "El umbral de fuente muerta tiene que ser mayor que el de sin respuestas.",
+  path: ["umbralMuertaHoras"],
+});
 
 export type EntradaFuente = z.input<typeof esquemaFuente>;
 export type FuenteValidada = z.output<typeof esquemaFuente>;
@@ -136,6 +156,8 @@ export interface FuenteVista extends FilaCatalogo {
   proveedor: ProveedorFormulario | null;
   /** Si la fuente ya tiene secreto. El valor nunca sale de aqui (ticket 105). */
   tieneSecreto: boolean;
+  umbralSinRespuestaHoras: number;
+  umbralMuertaHoras: number;
   ultimaSync: Date | null;
   orden: number;
 }
@@ -168,6 +190,8 @@ type CamposFuente = {
   mapeoColumnas: MapeoColumnas;
   proveedor: ProveedorFormulario | null;
   activo: boolean;
+  umbralSinRespuestaHoras?: number;
+  umbralMuertaHoras?: number;
 };
 
 function moldeFuentes(db: Db) {
@@ -303,9 +327,19 @@ export async function editarFuente(
     }
 
     // Se re-supplea el `activo` actual para que el diff del molde no lo cuente como
-    // cambio: la edicion de datos nunca cambia el estado de activacion.
+    // cambio: la edicion de datos nunca cambia el estado de activacion. Los umbrales que
+    // no vengan se conservan (ver `camposComunes`), y el orden se valida contra el
+    // resultado final, no solo contra lo que llego.
+    const umbrales = {
+      umbralSinRespuestaHoras: datos.umbralSinRespuestaHoras ?? actual.umbralSinRespuestaHoras,
+      umbralMuertaHoras: datos.umbralMuertaHoras ?? actual.umbralMuertaHoras,
+    };
+    if (!umbralesEnOrden(umbrales)) {
+      throw new ErrorDeApp("El umbral de fuente muerta tiene que ser mayor que el de sin respuestas.", 400);
+    }
     const fila = await moldeFuentes(db).editar(actor.id, objetivoId, {
       ...datos,
+      ...umbrales,
       activo: actual.activo,
     });
     return sinSecreto(fila);

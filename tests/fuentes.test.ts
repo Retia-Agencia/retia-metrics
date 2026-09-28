@@ -272,3 +272,34 @@ describe("errores de app, nunca 500", () => {
     ).rejects.toBeInstanceOf(ErrorDeApp);
   });
 });
+
+describe("umbrales de silencio (ticket 107)", () => {
+  it("una fuente nueva sin umbrales toma los de Mani: 48 h y 120 h", async () => {
+    const f = await crearFuente(db, actorGerente(), entradaBase());
+    expect(f.umbralSinRespuestaHoras).toBe(48);
+    expect(f.umbralMuertaHoras).toBe(120);
+  });
+
+  it("se configuran por fuente, y una edicion que no los manda NO los resetea", async () => {
+    const f = await crearFuente(db, actorGerente(), {
+      ...entradaBase(),
+      umbralSinRespuestaHoras: 12,
+      umbralMuertaHoras: 72,
+    });
+    const editada = await editarFuente(db, actorGerente(), f.id, { ...entradaBase(), nombre: "Otro nombre" });
+    expect(editada.umbralSinRespuestaHoras).toBe(12);
+    expect(editada.umbralMuertaHoras).toBe(72);
+  });
+
+  it("muerta antes que sin respuestas se rechaza con 400, sin tocar la fila", async () => {
+    const f = await crearFuente(db, actorGerente(), entradaBase());
+    await expect(
+      editarFuente(db, actorGerente(), f.id, { ...entradaBase(), umbralMuertaHoras: 24 }),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      crearFuente(db, actorGerente(), { ...entradaBase(), umbralSinRespuestaHoras: 50, umbralMuertaHoras: 40 }),
+    ).rejects.toMatchObject({ status: 400 });
+    const [fila] = await db.select().from(sources).where(eq(sources.id, f.id));
+    expect(fila.umbralMuertaHoras).toBe(120);
+  });
+});

@@ -246,6 +246,13 @@
       "when": 1790619129565,
       "tag": "0034_sobre-de-cada-envio",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1790625798011,
+      "tag": "0035_umbrales-de-la-fuente",
+      "breakpoints": true
     }
   ]
 }

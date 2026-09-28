@@ -361,7 +361,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 1.053 pasando al 28-sep, tras retirar el sync de Sheets en el 108).
+- **Test:** `npm test` (Vitest, 1.068 pasando al 28-sep, con el aviso de fuente sin envíos del 107).
   Un programa de prueba ACTIVO se crea con `PROGRAMA_DE_PRUEBA` (`tests/helpers/programa-de-prueba.ts`):
   desde la 0031 un programa nace inactivo y la base exige Forms Link y token para activarlo. Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).

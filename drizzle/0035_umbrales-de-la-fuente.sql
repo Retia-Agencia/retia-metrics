@@ -1,0 +1,3 @@
+ALTER TABLE "sources" ADD COLUMN "umbral_sin_respuesta_horas" integer DEFAULT 48 NOT NULL;--> statement-breakpoint
+ALTER TABLE "sources" ADD COLUMN "umbral_muerta_horas" integer DEFAULT 120 NOT NULL;--> statement-breakpoint
+ALTER TABLE "sources" ADD CONSTRAINT "sources_umbrales_en_orden" CHECK ("sources"."umbral_sin_respuesta_horas" > 0 AND "sources"."umbral_muerta_horas" > "sources"."umbral_sin_respuesta_horas");
