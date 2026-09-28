@@ -69,8 +69,7 @@ editor) y en Vercel.
 | `SUPABASE_DB_PASSWORD` | `.env.local` arma las dos URLs con ella | local |
 | `DB_PROD` | sin uso desde el 28-sep: hay una sola base y `DATABASE_URL` ya es producción | local |
 | `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_URL` | login con Google (Auth.js) | local, Vercel |
-| `CRON_SECRET` | protege `/api/cron/sync` | local, Vercel |
-| `GOOGLE_SERVICE_ACCOUNT_JSON_B64` | la cuenta de servicio que lee las hojas | local, Vercel |
+| `GOOGLE_SERVICE_ACCOUNT_JSON_B64` | la cuenta de servicio que lee las hojas: "probar" y activar una fuente de hoja en `/ajustes/fuentes`, los scripts y el traslado | local, Vercel |
 | `SHEET_ID_COMUNICARTE`, `SHEET_ID_TACTICAL` | los IDs de las hojas, para los scripts | local |
 | `SCRIPT_ACTOR_EMAIL` | quién firma el rastro de un script que escribe en una base viva (ADR 0029) | local |
 | `SEED_GERENTE_EMAIL`, `SEED_GERENTE_NOMBRE` | el gerente que siembra `seed:users` | local |
@@ -117,12 +116,9 @@ reales desde `/ajustes/usuarios` (ticket 007).
 | `npm run seed:users` · `seed:datos` | sembrar una base **vacía** |
 | `npm run usuarios` | **acceso de emergencia**: `usuarios` lista, `usuarios -- agregar <correo> <rol> [closer_id] [programas...]`, `usuarios -- quitar <correo>` (desactiva, no borra). La vía normal es `/ajustes/usuarios` |
 | `npm run rotar` | rota `AUTH_GOOGLE_SECRET` y `AUTH_SECRET` |
-| `npm run cron-secret` | genera `CRON_SECRET` (`rotar` no lo toca) |
 | `npm run cuenta-servicio` | carga la cuenta de servicio de Google |
 | `npm run cargar-motivos` | carga las cuatro listas de motivos (ticket 104) por el molde y retira las 8 semillas de la migración 0004. **Se corre en toda base nueva después de migrar.** Idempotente; pide `SCRIPT_ACTOR_EMAIL` |
 | `npm run descubrir` · `inspeccionar <sheetId> "<pestaña>"` · `comparar` | leer la estructura de las hojas |
-| `npm run sync` | corre el sync de Sheets desde la terminal (legado) |
-| `npm run backfill-fechas` | reparación de una sola vez, ya ejecutada |
 | `npm run limpiar-respaldos` | borra respaldos locales de `.env.local` |
 | `tsx scripts/cargar-enlaces-pago.ts` | carga los enlaces de pago por el molde, con `SCRIPT_ACTOR_EMAIL` |
 
@@ -139,23 +135,22 @@ Un script sale con `process.exit`: `postgres-js` deja el pool abierto y el proce
 - **`/api/health` no prueba nada de la base:** devuelve un JSON constante. Que las consultas corran solo
   lo prueba una sesión real abriendo una pantalla que consulte.
 - Si una migración no es aditiva, hay una ventana en que código y esquema no se entienden: migrar y
-  desplegar seguidos, fuera de la hora del cron.
+  desplegar seguidos.
 
-## 7. El sync de Sheets (legado)
+## 7. El sync de Sheets (retirado)
 
-Hoy existe y se va a retirar: el corte directo (22-sep) dice que los leads entran solo por webhook. Qué
-pasa con su código y con los tickets 053 a 056 es la decisión A6 del plan.
+**Retirado el 28-sep (ticket 108).** Los leads entran solo por el webhook (corte directo, 22-sep). Se
+fueron el cron, la corrida manual, `lib/sheets/sync.ts` y `plan-sync.ts`, sus scripts y sus tests
+(`git show bfeea2a:<ruta>` los recupera). Queda en `lib/sheets/` lo que lee una hoja una sola vez, para
+el traslado y la migración de la etapa 7. `sync_runs` sigue en la base como historial de solo lectura.
 
-- 🩸 **El cron está APAGADO desde el 28-sep** (se quitó de `vercel.json`). Estuvo programado a las
-  12:00 UTC; su primera corrida contra Supabase (28-sep, 7:52 a.m.) metió **5.343 leads sin envíos** en
-  producción por la puerta descartada, y se borraron con el ok de Mani. La ruta sigue existiendo (con
-  `CRON_SECRET`) hasta que el 108 la retire; nada la llama.
-- Una corrida es de un programa y hay un candado en la base: dos corridas del mismo programa no se
-  pisan (la segunda recibe 409 y el cron la cuenta como omitida); una corrida colgada más de 10 minutos
-  se cierra antes de intentar otra (ADR 0005).
-- `POST /api/sync/[programa]` es el único route handler que muta, y valida el origen de la petición
-  (`exigirMismoOrigen`).
-- Medido en la base vieja de Neon el 20-sep: 4.791 leads en ~3,2 s.
+- 🩸 La primera corrida del cron contra Supabase (28-sep, 7:52 a.m.) metió **5.343 leads sin envíos** en
+  producción por la puerta descartada, y se borraron con el ok de Mani. **Lección:** cambiar el
+  `DATABASE_URL` de producción también redirige a los crons; revisar `vercel.json` cuando se cambia la
+  base.
+- Ya no queda ningún route handler que mute con sesión: el único, `POST /api/sync/[programa]`, se fue
+  con su chequeo de origen (`exigirMismoOrigen`). El webhook muta, pero se autentica por firma HMAC y no
+  por cookie.
 
 ## 8. Secretos y accesos
 

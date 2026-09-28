@@ -3,10 +3,10 @@ import { MAPEO_FORMULARIO, type MapeoColumnas } from "./mapeo";
 /**
  * Combinacion del mapeo de columnas campo por campo (ADR 0019, ticket 016).
  *
- * Modulo PURO, sin base: la decision vive aparte de la escritura, mismo molde que
- * `lib/sheets/plan-sync.ts`. `lib/sheets/sync.ts` importa `combinarMapeo` y le pasa
- * lo que ya cargo (el `mapeoColumnas` de la fuente y el `plantillaLead` del
- * programa); esta funcion no toca la base.
+ * Modulo PURO, sin base: la decision vive aparte de la escritura. Quien llama
+ * (`lib/ingesta/mapeo-webhook.ts`, `lib/sheets/probar-fuente.ts`) le pasa lo que ya
+ * cargo (el `mapeoColumnas` de la fuente y el `plantillaLead` del programa); esta
+ * funcion no toca la base.
  *
  * Un programa puede tener varias hojas que preguntan lo mismo con otra redaccion.
  * En vez de repetir el mapeo entero por hoja, la plantilla se escribe UNA vez en el

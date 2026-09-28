@@ -1,12 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { eq } from "drizzle-orm";
-import { leads, programs, sources } from "@/lib/db/schema";
-import type { Db } from "@/lib/db/tipos";
+import { describe, expect, it } from "vitest";
 import { deduplicarPorCorreo } from "@/lib/sheets/dedup";
 import { parsearFecha, ZonaHorariaInvalidaError, ZONA_BOGOTA } from "@/lib/sheets/mapeo";
-import { sincronizarPersonas } from "@/lib/sheets/sync";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 053: una celda de fecha se lee con la zona DE SU FUENTE (`sources.tz_fechas`).
@@ -88,76 +82,5 @@ describe("el dedup lee cada fila con la zona de su fuente", () => {
       { emailNormalizado: "y@correo.co", fechaAplicacion: "12/8/2026 19:30:00" },
     ]);
     expect(personas[0].fechaPrimeraAplicacion!.toISOString()).toBe("2026-08-13T00:30:00.000Z");
-  });
-});
-
-// ---- El sync de punta a punta, con la base real de migraciones (PGlite) ----
-
-const matrices = new Map<string, string[][]>();
-
-vi.mock("@/lib/sheets/leer", () => ({
-  leerPestana: vi.fn(async (sheetId: string, tab: string) => matrices.get(`${sheetId}|${tab}`) ?? []),
-}));
-
-let db: Db;
-let cerrar: () => Promise<void>;
-
-beforeEach(async () => {
-  matrices.clear();
-  ({ db, cerrar } = await crearBaseDePrueba());
-});
-
-afterEach(async () => {
-  await cerrar();
-});
-
-async function programaConFuente(tzFechas?: string): Promise<string> {
-  const [p] = await db
-    .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-zona", nombre: "Programa zona", ticketUsd: "1000" })
-    .returning();
-  await db.insert(sources).values({
-    programId: p.id,
-    nombre: "Formulario",
-    tipo: "google_sheet",
-    sheetId: "sheet-zona",
-    tab: "Respuestas",
-    orden: 1,
-    ...(tzFechas ? { tzFechas } : {}),
-  });
-  matrices.set("sheet-zona|Respuestas", [
-    ["correo electronico", "submitted at"],
-    ["lead@correo.co", "16/9/2026 23:05:00"],
-  ]);
-  return p.id;
-}
-
-describe("el sync usa sources.tz_fechas", () => {
-  it("una fuente en UTC guarda el instante UTC de la celda", async () => {
-    const programId = await programaConFuente("UTC");
-    await sincronizarPersonas(programId, db);
-
-    const [lead] = await db.select().from(leads).where(eq(leads.programId, programId));
-    expect(lead.fechaPrimeraAplicacion!.toISOString()).toBe("2026-09-16T23:05:00.000Z");
-  });
-
-  it("una fuente sin configurar sigue en Bogota (el default de la columna)", async () => {
-    const programId = await programaConFuente();
-    await sincronizarPersonas(programId, db);
-
-    const [lead] = await db.select().from(leads).where(eq(leads.programId, programId));
-    expect(lead.fechaPrimeraAplicacion!.toISOString()).toBe("2026-09-17T04:05:00.000Z");
-  });
-
-  it("una zona invalida en la fuente hace fallar el sync y no escribe leads", async () => {
-    const programId = await programaConFuente("Hora de Bogota");
-    const resultado = await sincronizarPersonas(programId, db).catch((e) => e);
-
-    const escritos = await db.select().from(leads).where(eq(leads.programId, programId));
-    expect(escritos).toHaveLength(0);
-    // Sea que lance o que devuelva el error en el resultado, tiene que nombrar la zona.
-    expect(JSON.stringify(resultado instanceof Error ? resultado.message : resultado)).toContain(
-      "Hora de Bogota",
-    );
   });
 });

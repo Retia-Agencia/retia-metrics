@@ -269,19 +269,11 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   `enlaces_pago` quedo en **0**. **Omitir un rastro no lanza ningun error**, y dentro de tres
   meses "¿quien puso estos links?" no tiene respuesta en la base. Esos 5 siguen sin rastro a
   proposito: un historial de auditoria fabricado se ve igual que el de verdad.
-- **Legado, se retira con el corte directo (decisión A6 de `docs/plan.md`): una corrida de sync es
-  de un PROGRAMA, no de una fuente (ADR 0031, retirado; el molde del candado quedó en el ADR 0005).** Las personas se
-  sincronizan leyendo TODAS las fuentes del programa juntas y deduplicando sobre el conjunto, asi
-  que colgar la corrida de una fuente obligaba a elegir una a dedo (`fuentes[0]`) y **atribuia cada
-  corrida a uno de los formularios de forma NO DETERMINISTA** cuando el programa tiene dos (esa
-  consulta no lleva `ORDER BY`), o sea la bitacora podia decir cosas distintas de corridas
-  identicas (F-07). Lo que se
-  leyo se guarda como dato en `sync_runs.fuentes_leidas`, no como llave foranea, y las corridas
-  viejas que no lo tienen muestran `—` en vez de un nombre inventado. Y solo puede haber UNA
-  corriendo por programa (F-03): lo garantiza el indice unico parcial, no el codigo. Una corrida
-  colgada mas de `MINUTOS_ANTES_DE_DAR_POR_MUERTA` (10 = 2x el `maxDuration` de las rutas) la cierra
-  el reaper antes de arrancar la siguiente, o el candado pasaria de proteger a bloquear para
-  siempre. **Chocar con el candado no es un fallo**: es 409 y el cron lo cuenta como `omitidos`.
+- **El sync de Sheets se retiro el 28-sep (ticket 108, decision A6 de `docs/plan.md`).** Los leads
+  entran solo por el webhook. `sync_runs` queda como historial de solo lectura (nadie escribe en ella) y
+  su molde de exclusion mutua (el INSERT como candado contra un indice unico parcial) sigue en el ADR
+  0005. Lo que queda de `lib/sheets/` (lectura, mapeo, `parsearFecha`, dedup, prueba de fuente) sirve
+  para leer una hoja UNA vez: el traslado y la migracion de la etapa 7.
 - **El Deal es el objeto central, y `sales` ya no existe (ADR 0037).** Una venta es un deal en
   **Abonado o Completo**, nunca un deal a secas: contar todos los deals infla las ventas y **no
   lanza ningun error**. `deal.etapa` es un `pgEnum` porque el codigo decide con ella (embudo,
@@ -313,15 +305,6 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   el efecto de segundo orden, que fue el peor: el dedup conserva la fecha mas antigua, asi que el
   ano 1 le ganaba a las buenas y **una sola fila envenenada le borraba la fecha real a alguien que
   si la tenia** (839 de las 1.034). Tests en `tests/dedup.test.ts`.
-- **Las fechas de aplicacion SI se comparan en el sync** (Mani, 18-sep). `fechaPrimeraAplicacion` y
-  `fechaUltimaAplicacion` estan en `CAMPOS_COMPARABLES` (`lib/sheets/plan-sync.ts`), asi que un
-  centinela reparado por el parser produce un diff y **el sync se auto-repara** en la corrida
-  siguiente, con bitacora. Antes estaban fuera, y por eso arreglar el parser no reparaba lo ya
-  escrito: sin diff no hay `aActualizar`. `npm run backfill-fechas` queda como herramienta de una
-  sola vez (ya ejecutada), no como pieza del diseno. **El riesgo de comparar una fecha tiene test
-  propio** en `tests/plan-sync.test.ts`: si una fecha leida de la base y la misma recien parseada
-  dejaran de dar la misma cadena, el sync reescribiria la base entera cada dia sin fallar. Medido
-  contra `production` el 18-sep: de 4.599 personas, el plan actualiza 6 filas y ninguna por fecha.
 
 **Rendimiento y escala** — observados en produccion, no decididos en una reunion. Trata cualquier
 cambio que los rompa como una regresion, y cualquier crecimiento que los supere como una senal de
@@ -349,11 +332,10 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Que registros cuentan | `vigente(tabla)` / `incluyendoAnulados(tabla)` en `lib/queries/vigente.ts` (ADR 0026, ampliado a `deals` por el ADR 0038) | `tests/vigencia-centralizada.test.ts`: recorre `lib/`, `app/`, `components/` y `scripts/` cadena de drizzle por cadena, y falla si una lee `calls`, `deals` o `abonos` sin aplicar el predicado. 🩸 Cazo TRES lecturas reales el 22-sep, escritas horas antes por la misma sesion. **Ojo con izar el predicado a una variable**: el guardian lee CADENA por cadena, y una condicion escondida en un `const` le pasa por debajo — y al lector de la consulta tambien |
 | Como se escribe un valor en `change_log` | `textoDeBitacora` en `lib/db/texto-de-bitacora.ts`, UNA funcion que importan el molde de catalogo y el rastro operativo: objeto o arreglo como JSON con llaves ordenadas, fecha en ISO, ausente como `null`. **El diff de una edicion se decide con ella**, asi que tambien decide SI hay cambio | `tests/texto-de-bitacora.test.ts` y `tests/bitacora-jsonb.test.ts`. 🩸 Hasta el 28-sep eran dos copias con `String(valor)`: editar SOLO un campo jsonb (el mapeo de una fuente) comparaba `"[object Object]"` contra si mismo y **no se guardaba, sin error** |
 | Que toda escritura del CRM deje rastro | `crearConRastro` / `editarConRastro` en `lib/crm/rastro.ts` (ADR 0042): la escritura y su fila de `change_log` en la MISMA operacion, sobre `deals`, `calls`, `abonos` y `deal_actividades`. En un `update` se registran **los campos tocados**, uno por fila; si nada cambio no se escribe nada | `tests/rastro-operativo.test.ts`: guardian sobre `lib/`, `app/`, `components/` y `scripts/`, mordido en los dos sentidos. **Hoy no hay ni una escritura que vigilar y eso es el punto**: tiene que existir ANTES que las mutaciones de las etapas 2 y 4, porque omitir un rastro no lanza ningun error |
-| Cuantos intakes de leads tiene un programa | UNO activo: `sources_una_activa_por_programa_idx`, unico PARCIAL `WHERE activo` (ADR 0039). `activarFuente` traduce el 23505 a un 409 que dice la regla | `tests/sync-candado.test.ts` y `tests/fuentes.test.ts`, mordidos en los dos sentidos. La reja vive en la base y **no en un `select` previo**: entre comprobar y escribir cabe otra activacion |
+| Cuantos intakes de leads tiene un programa | UNO activo: `sources_una_activa_por_programa_idx`, unico PARCIAL `WHERE activo` (ADR 0039). `activarFuente` traduce el 23505 a un 409 que dice la regla | `tests/fuentes.test.ts`, mordido en los dos sentidos. La reja vive en la base y **no en un `select` previo**: entre comprobar y escribir cabe otra activacion |
 | Cuando un deal ocupa el cupo de su lead | `deals_uno_abierto_por_lead_y_programa_idx`: unico parcial `WHERE etapa NOT IN (completo, cierre_perdido) AND anulado_en IS NULL` (ADR 0037, ADR 0038) | `tests/modelo-crm-indices.test.ts`. 🩸 La mitad del `anulado_en` no es un detalle: sin ella, quien registra un deal sobre el lead equivocado y lo anula **no puede crear el correcto** — la base se lo rechaza por un registro que la app ya declaro inexistente |
 | Con que rol actua una sesion | `rolDeVista(session)` en `lib/auth/vista.ts` (ADR 0028): la vista solo ESTRECHA, nunca ensancha | `tests/rol-de-vista-centralizado.test.ts`: recorre `app/` y `lib/` y falla si alguien decide alcance o permiso leyendo `session.user.rol` crudo; las lecturas de IDENTIDAD van como excepciones nombradas |
 | Cuando una fuente puede estar ACTIVA | Una fuente activa SIEMPRE tiene un mapeo que cuadra: `activarFuente` prueba contra los encabezados reales en ese momento, y `editarFuente` vuelve a probar si la fuente ya esta activa (ticket 016) | `tests/fuentes.test.ts`, mordido en los dos sentidos: editar una ACTIVA a un mapeo roto se rechaza con 422 **sin tocar la fila**, y editar una INACTIVA a lo mismo se permite. **No se guarda bandera de "ultima prueba ok"**: envejeceria |
-| Cuando puede arrancar una corrida de sync | El indice unico parcial `sync_runs_una_corriendo_por_programa_idx` + `SyncEnCursoError` (409) y el reaper, en `lib/sheets/sync.ts` (legado del sync de Sheets; el molde vive en el ADR 0005) | `tests/sync-candado.test.ts`: dos corridas simultaneas, el rechazo **sin tocar la corrida viva**, el reaper, y que las fuentes leidas queden guardadas. Mordido ademas contra Neon de verdad el 19-sep, no solo contra PGlite |
 | Si un error del driver es de un codigo de Postgres | `lib/db/errores.ts`: `esViolacionUnica` (23505) y `esViolacionCheck` (23514) sobre `esCodigoPostgres`, que camina la cadena de `cause` | Revision manual: una copia local de ese bucle en cualquier modulo es el olor. Vivia duplicado byte a byte en 4 modulos hasta el 19-sep |
 | Como sale una entrada invalida hacia el cliente | `normalizando` en `lib/errors-zod.ts`: traduce un `ZodError` al `ErrorDeApp` 400 del contrato | Revision manual: un `catch` local que haga `instanceof z.ZodError` es el olor. Vivia duplicado byte a byte en **9** modulos hasta el 20-sep. `lib/catalogo/cohortes.ts` es la unica excepcion legitima y **no se aplano**: ademas traduce 23505 y 23514, asi que compone. Esa parte suya SI tiene test: `tests/cohortes-errores-driver.test.ts`, donde el choque lo produce el indice y el CHECK de verdad, no un error fabricado con `{ code: "23505" }` |
 | Cuando dos textos son el mismo closer | `lib/closers/identidad.ts` (ADR 0030) + indice unico sobre `lower()` en `users` | `tests/closer-identidad.test.ts`: guardian sobre `lib/`, `app/` y `components/`, probado mordiendo en los dos sentidos (caza lo malo y **no** marca la solucion) |
@@ -363,7 +345,6 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Cuando se puede BORRAR una fila de catalogo | `borrarSiNoSeUso` en `lib/catalogo/molde.ts` (ADR 0026 punto 5): cuenta referencias primero, cero borra, una o mas desactiva y devuelve el conteo | `tests/catalogo.test.ts`, guardian endurecido el 20-sep: **UN** solo `.delete(` en `lib/catalogo/`, dentro de `molde.ts` y despues del inicio de `borrarSiNoSeUso`. La version anterior solo pedia que el archivo contuviera el nombre de la funcion y **no cazaba un `DELETE` clandestino**. La UNICA excepcion, nombrada en `TABLAS_PUENTE_BORRABLES`: una tabla PUENTE (hoy `plataformas_programa`) — no la referencia nadie, asi que quitar el vinculo no pierde historial. El guardian exige que CADA `.delete(` de ese archivo caiga sobre una puente de la lista, asi que un `.delete(plataformasPago)` al lado sigue cayendo |
 | Que programas ve un selector de plataforma | `plataformasDelPrograma` / `vinculosDePlataformas` en `lib/catalogo/plataformas.ts` (ADR 0034). Es **proyeccion, no reja**: el servidor NO rechaza un abono por una plataforma sin vincular, porque bloquear un cobro real por un dato de configuracion es peor que ofrecer una opcion de mas | `tests/plataformas-programa.test.ts` (18): idempotencia, el acceso por programa en los dos sentidos, y que crear un enlace de pago ESCRIBA el vinculo (`tests/acciones-recursos.test.ts`) — sin eso, la plataforma con la que el closer acaba de cobrar no le sale en el selector del abono, sin un solo error |
 | Si un error del driver es una FK violada | `esViolacionForanea` en `lib/db/errores.ts`: 23503 (Postgres real, Supabase) **y 23001** (PGlite reporta asi el RESTRICT) | `tests/db-errores.test.ts`. Reconocer solo uno pasa en local y revienta con 500 en produccion |
-| Que un POST de otro sitio no dispare una mutacion | `exigirMismoOrigen` en `lib/auth/origen.ts` (S-12), en el UNICO handler que muta: `POST /api/sync/[programa]`. El resto son Server Actions, que Next ya protege | `tests/sync-permisos.test.ts`, incluido el caso `x-forwarded-host`: comparar contra el host equivocado **rechaza peticiones legitimas en produccion sin romper un test** |
 | Que quitar a alguien lo saque YA | `revalidarToken` en `lib/auth/revalidacion.ts` (S-02): revalida contra `users` en cada emision, no al expirar el JWT | `tests/revalidacion-sesion.test.ts`. Lo que NO cubre un test: que Auth.js llame el callback en cada emision |
 | Como se arma un link de captacion | **UN** generador: `programs.form_url` + los UTM (de la campana, o del closer). **Derivado, nunca guardado** (ADR 0051, ADR 0024) | Revision manual: una segunda concatenacion de "URL mas parametros" es el olor. 🩸 Y el test que importa vive en el ticket 092: **el patron tiene que reconocer el link que el generador acaba de producir** — con macros de Meta son dos actos que pueden divergir; con el link generado es uno solo y no pueden |
 | A quien pertenece un envio (area, campana, persona) | `lib/atribucion/emparejar.ts` (ADR 0045): un envio resuelve a **lo sumo uno**, gana el patron mas especifico, y el empate lo hace **imposible** un indice unico sobre la combinacion del patron dentro del programa | `tests/atribucion-emparejador.test.ts` (ticket 085): guardian sobre `lib/`, `app/`, `components/` y `scripts/`, mordido en los dos sentidos, **mas un test que corre los patrones en distinto orden y exige el mismo resultado**. Sin eso, el orden de la consulta decide la plata |
@@ -380,7 +361,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 1.097 pasando al 28-sep, tras el cierre del 106 y las migraciones 0033-0034).
+- **Test:** `npm test` (Vitest, 1.053 pasando al 28-sep, tras retirar el sync de Sheets en el 108).
   Un programa de prueba ACTIVO se crea con `PROGRAMA_DE_PRUEBA` (`tests/helpers/programa-de-prueba.ts`):
   desde la 0031 un programa nace inactivo y la base exige Forms Link y token para activarlo. Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
@@ -512,8 +493,6 @@ The agent should run these to get fast signal on whether code works. Keep them c
 - **Un fallo de `npm test` por timeout no es una regresion.** Los tests con PGlite aplican todas
   las migraciones; con varias sesiones compitiendo por la maquina el suite se cae en cascada por
   el reloj. Re-corre el archivo solo antes de investigar (`testTimeout` y `hookTimeout` en 20s).
-- **`CRON_SECRET` se genera con `npm run cron-secret`**, no con `npm run rotar` (ese solo rota
-  `AUTH_GOOGLE_SECRET` y `AUTH_SECRET`).
 - **Idioma:** UI en espanol. Nombres de variables, tablas y archivos sin acentos, consistentes.
   Mensajes de commit en espanol.
 

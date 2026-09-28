@@ -12,7 +12,6 @@ import {
 } from "@/lib/catalogo/fuentes";
 import { PROVEEDORES_FORMULARIO } from "@/lib/catalogo/fuentes-webhook";
 import { fuentesParaAdmin } from "@/lib/queries/fuentes";
-import { sincronizarPersonas } from "@/lib/sheets/sync";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -199,14 +198,5 @@ describe("activar y editar", () => {
     const e = await editarFuente(db, actorGerente(), f.id, { ...entradaWebhook(), nombre: "Nuevo" });
     expect(e.nombre).toBe("Nuevo");
     expect(await secretoEnLaBase(f.id)).not.toBeNull();
-  });
-});
-
-describe("el sync de Sheets", () => {
-  it("no toma un webhook activo como su hoja", async () => {
-    const f = await crearFuente(db, actorGerente(), entradaWebhook());
-    await rotarSecretoDeFuente(db, actorGerente(), f.id);
-    await activarFuente(db, actorGerente(), f.id);
-    await expect(sincronizarPersonas(programId, db)).rejects.toThrow(/no tiene una fuente de leads activa/);
   });
 });

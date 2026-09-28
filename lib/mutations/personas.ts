@@ -23,8 +23,7 @@ import type { Lead } from "@/lib/db/schema";
  * `change_log` con `origen = "app"` y el `userId` del actor.
  *
  * La identidad del actor se copia SIEMPRE de la sesion; el closer nunca la elige
- * (ADR 0011). El sync nunca pisa lo que la app escribio (ADR 0021): eso vive en
- * `lib/sheets/plan-sync.ts`.
+ * (ADR 0011).
  */
 
 /** Quien realiza la operacion: su id (para `change_log`), su rol y su closerId (ADR 0011). */

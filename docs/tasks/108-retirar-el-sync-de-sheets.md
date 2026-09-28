@@ -3,7 +3,7 @@ id: 108
 etapa: E3
 serves: "decisión de Mani del 28-sep (cierra A6 de docs/plan.md §7) · ADR 0004 (corte directo)"
 depends: [106]
-status: todo
+status: done
 ---
 
 # 108 — Retirar el sync de Sheets
@@ -41,12 +41,26 @@ sesión principal, si Mani la quiere. Lo mismo `sources.estado` (salud del 055) 
 
 ## Done cuando
 
-- [ ] `grep -rn "cron/sync\|api/sync\|sincronizar" app lib components scripts proxy.ts vercel.json` no
-      devuelve nada vivo.
-- [ ] `/ajustes/fuentes` carga y ya no ofrece sincronizar.
-- [ ] `npm test`, `npm run typecheck`, `npm run lint` y `npm run build` limpios.
-- [ ] Las variables `CRON_SECRET`, `GOOGLE_SERVICE_ACCOUNT_JSON_B64` y `SHEET_ID_*` se quitan de Vercel
-      (las locales se quedan para el traslado).
+- [x] `grep -rn "cron/sync\|api/sync\|sincronizar" app lib components scripts proxy.ts vercel.json` no
+      devuelve nada vivo (solo `sincronizarMembresias`, que es de usuarios).
+- [x] `/ajustes/fuentes` carga y ya no ofrece sincronizar.
+- [x] `npm test` (1.053), `npm run typecheck`, `npm run lint` y `npm run build` limpios.
+- [ ] Quitar de Vercel `CRON_SECRET` y `SHEET_ID_*` (lo hace Mani o con su ok).
+      ⚠️ **`GOOGLE_SERVICE_ACCOUNT_JSON_B64` se QUEDA en Vercel:** "probar" y activar una fuente de hoja
+      en `/ajustes/fuentes` leen la hoja en tiempo de ejecución (`lib/sheets/probar-fuente.ts`). Quitarla
+      rompería esa pantalla sin error de build.
+
+## Cierre, 28-sep
+
+- Se fueron las dos rutas, el botón, `lib/sheets/sync.ts`, `plan-sync.ts`, `lib/auth/origen.ts` (sin
+  llamadores), los scripts `sincronizar`, `backfill-fechas-centinela` y `cron-secret.sh`, y los tests
+  `sync-candado`, `sync-entrada`, `sync-permisos` y `plan-sync`. De `zona-por-fuente` y `fuentes-webhook`
+  solo salieron los casos que corrían el sync; los de `parsearFecha` y el dedup siguen.
+- `/nerd-stats` ya no muestra `CRON_SECRET` (habría dicho "FALTA" para siempre). La tarjeta "Últimas
+  sincronizaciones" sigue: lee `sync_runs`, que es historial.
+- `FuenteLeida` se mudó a `lib/queries/fuentes.ts`, su único lector.
+- `eslint.config.mjs` ignora `.claude/**`: los worktrees de otras sesiones dejaban `npm run lint` sin
+  memoria.
 
 ## Kiro
 

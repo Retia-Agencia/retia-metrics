@@ -39,11 +39,9 @@ export default async function NerdStatsPage() {
     usuariosActivosPorRol(db),
   ]);
 
-  // Metadatos del despliegue. `CRON_SECRET` se reporta como si/no y NUNCA su valor:
-  // saber que esta puesto es diagnostico, verlo seria una fuga.
+  // Metadatos del despliegue.
   const commit = process.env.VERCEL_GIT_COMMIT_SHA ?? null;
   const entorno = process.env.VERCEL_ENV ?? "local";
-  const cronConfigurado = Boolean(process.env.CRON_SECRET);
 
   return (
     <PageShell
@@ -59,12 +57,6 @@ export default async function NerdStatsPage() {
             <CardContent className="space-y-2 text-sm">
               <Fila etiqueta="Entorno" valor={entorno} />
               <Fila etiqueta="Commit" valor={commit ? commit.slice(0, 7) : "sin desplegar"} />
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground">CRON_SECRET</span>
-                <Badge variant={cronConfigurado ? "secondary" : "outline"}>
-                  {cronConfigurado ? "configurado" : "FALTA"}
-                </Badge>
-              </div>
             </CardContent>
           </Card>
 

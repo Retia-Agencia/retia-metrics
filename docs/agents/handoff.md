@@ -24,8 +24,9 @@ SOLOS: las dos fuentes webhook de Typeform estan activas en produccion (las de S
 Siguiente:
 1. Mirar que los leads reales sigan entrando (vercel logs --query webhooks; sobres_crudos con error no
    nulo = algo que reprocesar).
-2. El 108 (retirar el codigo del sync), el 107 (aviso de fuente sin envios) y el 105 (forjar la accion
-   con sesion de closer).
+2. El 107 (aviso de fuente sin envios; umbral por fuente = migracion de la sesion principal), el 110
+   (log de entregas del webhook) y el 105 (forjar la accion con sesion de closer). El 108 ya se cerro.
+   Pendiente del 108: quitar CRON_SECRET y SHEET_ID_* de Vercel (GOOGLE_SERVICE_ACCOUNT_JSON_B64 SE QUEDA).
 3. El 096: cancelaciones y reprogramaciones de Calendly (hoy cancelar en Calendly no toca la llamada, y
    una re-agenda deja dos llamadas agendadas), mas el pedido de Mani (dropdown y "buscar llamada").
 4. Decisiones abiertas: el Partial Submit Point (lo consulta Mani con el equipo) y si el log de la ruta
@@ -37,6 +38,16 @@ guardianes por si solo: correr npm test completo al revisar. Antes de tomar un t
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-28 (sesión 39): 108 cerrado, el sync de Sheets retirado.** Sin migración.
+  - Fuera: cron, `POST /api/sync/[programa]`, botón, `lib/sheets/sync.ts`, `plan-sync.ts`,
+    `lib/auth/origen.ts` (sin llamadores), scripts `sincronizar`/`backfill-fechas`/`cron-secret` y 4 tests.
+    `sync_runs` queda como historial. Detalle en el ticket 108 y `docs/operations.md` §7.
+  - ⚠️ `GOOGLE_SERVICE_ACCOUNT_JSON_B64` **no** se quita de Vercel: probar/activar una fuente de hoja la
+    usa en vivo. Falta quitar `CRON_SECRET` y `SHEET_ID_*` (pedir ok a Mani).
+  - `eslint.config.mjs` ignora `.claude/**` (los worktrees dejaban lint sin memoria).
+  - Medido: 1.053 tests, typecheck, lint y build limpios. `/ajustes/fuentes` no se abrió en navegador.
+  - El tracker marcaba el 110 como hecho por el nombre de un commit: solo existe el ticket, sigue `todo`.
 
 > Las entradas anteriores al 27-sep citan documentos que se fundieron ese día (spec, plan v2, propuesta,
 > revisión, glosario, insumos): `docs/plan.md` §8 dice dónde quedó cada uno.

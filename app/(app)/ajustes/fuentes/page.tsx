@@ -2,7 +2,6 @@ import { paginaConRol } from "@/lib/auth/page-guards";
 import { estadoDeFuentes, fuentesParaAdmin } from "@/lib/queries/fuentes";
 import { PageShell } from "@/components/page-shell";
 import { haceCuanto } from "@/lib/format";
-import { BotonSincronizar } from "@/components/boton-sincronizar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num, pct } from "@/lib/format";
@@ -80,12 +79,6 @@ export default async function FuentesPage() {
               <p className="text-xs text-muted-foreground">en la bitácora</p>
             </CardContent>
           </Card>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {programas.map((p) => (
-            <BotonSincronizar key={p.id} programa={p.slug} />
-          ))}
         </div>
 
         <FuentesAdmin programas={programasConFuentes} />

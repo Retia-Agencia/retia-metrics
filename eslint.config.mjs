@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Worktrees de otras sesiones: cada uno es una copia del repo y lint se queda sin memoria.
+    ".claude/**",
   ]),
 ]);
 

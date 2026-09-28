@@ -2,7 +2,6 @@ import { desc, eq, getTableColumns, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { sources, programs, syncRuns, leads, changeLog } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import type { FuenteLeida } from "@/lib/sheets/sync";
 
 /**
  * Lecturas de las corridas de sync y del estado de las fuentes.
@@ -14,6 +13,13 @@ import type { FuenteLeida } from "@/lib/sheets/sync";
  * corte) es del modulo; cuantas filas pedir y que columnas pintar es de cada
  * llamador.
  */
+
+/** Lo que guarda `sync_runs.fuentes_leidas`: que hoja leyo una corrida y cuantas filas trajo. */
+export type FuenteLeida = {
+  nombre: string;
+  tab: string;
+  filas: number;
+};
 
 /** Una corrida con el programa ya resuelto, sus fuentes leidas y su duracion en segundos. */
 export async function ultimasCorridasDeSync(limite = 8, db: Db = dbDeLaApp) {

@@ -1057,8 +1057,9 @@ export const adSpend = pgTable(
 // ─────────────────────────────────────────────────────────── sincronizacion
 
 /**
- * Una corrida de sync es de un PROGRAMA, no de una fuente. Es la misma razon que
- * ya gobierna `lib/sheets/sync.ts`: un programa tiene varios formularios, se leen
+ * Legado: el sync de Sheets se retiro el 28-sep (ticket 108); la tabla queda como
+ * historial de las corridas viejas y nadie escribe en ella. Una corrida de sync era
+ * de un PROGRAMA, no de una fuente: un programa tiene varios formularios, se leen
  * TODOS juntos y se deduplica sobre el conjunto, porque si no `numAplicaciones`
  * dependeria del orden de ejecucion. Colgar la corrida de una fuente obligaba a
  * elegir una a dedo (`fuentes[0]`), y en un programa con dos formularios activos
@@ -1092,8 +1093,7 @@ export const syncRuns = pgTable(
     // sesion no sobrevive entre consultas (ADR 0047). Indice unico PARCIAL, del mismo molde que
     // `cohorts_una_activa_por_programa_idx`: solo las filas 'corriendo' compiten,
     // y las 'ok'/'error' historicas no. El INSERT de la corrida ES el candado; un
-    // segundo sync simultaneo choca con 23505 y `lib/sheets/sync.ts` lo traduce a
-    // un 409 claro.
+    // segundo sync simultaneo chocaba con 23505 (el sync se retiro, ticket 108).
     uniqueIndex("sync_runs_una_corriendo_por_programa_idx")
       .on(t.programId)
       .where(sql`${t.estado} = 'corriendo'`),
