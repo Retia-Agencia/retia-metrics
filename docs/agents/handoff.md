@@ -61,8 +61,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     nunca pasa por el molde (el molde escribe cada campo en `change_log`). El sync de Sheets ahora solo lee
     fuentes de hoja. **Recorrido visual hecho** con la sesión de Mani: crear webhook, URL, activar sin
     secreto (422), generar secreto (se ve una vez), activar con otra fuente activa (409), editar con el tipo
-    bloqueado; el secreto no aparece en el HTML al recargar (comparado por hash) ni en `change_log`. Queda en
-    `dev` la fuente inactiva "Typeform prueba (105)" en Comunicarte. Falta forjar la acción como closer.
+    bloqueado; el secreto no aparece en el HTML al recargar (comparado por hash) ni en `change_log`. La fuente de
+    prueba "Typeform prueba (105)" se borró de `dev` con su rastro (Mani, 27-sep); "Formulario anterior"
+    sigue inactiva a propósito (ADR 0039: sus envíos apuntan a ella). Falta forjar la acción como closer.
   - 🩸 **Bug viejo visto en el recorrido:** el molde escribe los campos jsonb en `change_log` como
     `[object Object]` (`aTexto` = `String`). Tarea aparte propuesta; puede que además esconda ediciones del
     mapeo en el diff.
