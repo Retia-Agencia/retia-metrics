@@ -19,7 +19,7 @@ Estado al cierre del 28-sep (sesion 35): HAY UNA SOLA BASE y es PRODUCCION: el p
 Se trabaja en main; los previews de Vercel no tienen base. Regla de Mani: asegurar integridad antes de
 publicar (AGENTS.md, convenciones). Vercel Production apunta a esa base y Mani entro y el dashboard carga.
 El sync de Sheets se descarta (A6); el CRM no calcula el Estado (A8, T2 borrado). 30 migraciones
-(0000-0029). 973 tests.
+(0000-0029). 973 tests. Todo publicado en main (aa89e98) y desplegado.
 
 Siguiente:
 1. El 052 y el 106 estan en curso (codigo y tests hechos). Al 052 le falta Setteo -> Agendado: el motor
@@ -75,6 +75,10 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     secretos), y no se activa sin los dos; **ticket 109**. El 107 tiene umbrales (48 h marca, 5 días
     muerta, un envío en medio la revive) y el aviso va **solo en la app**; revisar el correo después
     (plan §7 A2). Los programas se crean en `/ajustes/programas` (gerente y developer).
+  - **Publicado:** `aa89e98` en `main`, desplegado en producción el 28-sep con los cuatro chequeos
+    limpios. La ruta `POST /api/webhooks/formularios/<id>` está viva: con un id falso o no-UUID responde
+    404 en JSON (no redirige a `/login`). Todavía **no existe ninguna fuente webhook** en la base:
+    crearlas es el primer paso del envío real del 106.
   - **Pendientes de Mani:** el JSON de enlaces de pago
     (`ENLACES_PAGO_JSON`) y dar de alta a los closers reales en producción (007). Las 2 filas de prueba
     en las hojas NO se borran (son pestañas sincronizadas; Mani, 28-sep).
