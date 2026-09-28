@@ -3,7 +3,7 @@ id: 059
 etapa: E4
 serves: "plan v2 §6 etapa 4 · tarea E4-3 · ADR 0015 (se conserva), insumo §3"
 depends: [057]
-status: todo
+status: done
 ---
 
 # 059 — `no_show` y `cancelada` mandan el deal a Pendiente Re-agenda
@@ -32,9 +32,9 @@ dejar el deal donde estaba.
 
 ## Done cuando
 
-- [ ] Los dos resultados mueven a Re-agenda con su fila de historial.
-- [ ] Una Call nueva con fecha sobre un deal en Re-agenda lo devuelve a Agendado.
-- [ ] Ningun test necesita esperar tiempo: no hay expiracion que probar.
+- [x] Los dos resultados mueven a Re-agenda con su fila de historial.
+- [x] Una Call nueva con fecha sobre un deal en Re-agenda lo devuelve a Agendado.
+- [x] Ningun test necesita esperar tiempo: no hay expiracion que probar.
 
 ## Kiro
 
@@ -66,3 +66,33 @@ tampoco lo devuelve a Agendado.
   (5 → 3 con motivo); T11 queda reemplazada y T15 pasa a 6 → 11. Perdido llega también desde 11. Tabla
   completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
 - **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".
+
+---
+
+## Cierre 2026-09-28
+
+Hecho: `marcarFallida(db, actor, { callId, resultado, motivoId? })` en
+`lib/deals/llamadas.ts`. En una transacción escribe `resultado` (`no_show` o `cancelada`, **dos
+valores distintos**, ADR 0015) por `editarConRastro`, y mueve el deal a **Pendiente Re-agenda** por
+`moverEtapa()`. La flecha depende de la etapa (decisión del 24-sep, que reemplaza la propuesta 🟡
+"la segunda llamada no hace retroceder"):
+
+- Desde **Agendado**: T8 (`agendado → pendiente_reagenda`), flecha de **sistema**, requisito
+  `llamada_fallida`, sin motivo → el movimiento va `{ tipo: "sistema" }`.
+- Desde **Atendido**: T29 (`atendido → pendiente_reagenda`), flecha de **closer** con motivo de la
+  lista `reagenda` → el movimiento va `{ tipo: "usuario", userId, rol }` con `motivoId`.
+
+El `resultado` se escribe ANTES de mover porque `llamada_fallida` mira la última llamada vigente del
+deal; ambos van en la misma transacción, así que si el motor rechaza (por ejemplo T29 sin motivo, o
+una etapa sin flecha a Re-agenda) el resultado se deshace. La flecha a usar se decide preguntando a
+`transicion()`: no se inventa ninguna transición.
+
+La vuelta (una Call nueva con fecha sobre un deal en Re-agenda lo devuelve a **Agendado**) ya la hace
+`agregarLlamada` del ticket 057 (T6, `pendiente_reagenda` está en `ETAPAS_QUE_AVANZAN_A_AGENDADO`);
+se agregó el test que lo prueba. `fechaSeguimiento` sigue viviendo en `calls` y no se toca. Sin
+timers ni expiración: ningún test espera tiempo.
+
+Fuera de alcance, sin tocar: el recordatorio, el color del Kanban.
+
+Tests: `tests/grain-y-reagenda.test.ts` (bloques `marcarFallida` y la vuelta). Suite completa 1116
+pasando, typecheck y lint limpios.
