@@ -3,7 +3,7 @@ id: 058
 etapa: E4
 serves: "plan v2 §6 etapa 4 · tarea E4-2 · insumo §2.5, ADR 0037"
 depends: [057]
-status: todo
+status: done
 ---
 
 # 058 — Pegar el link de Grain **es** decir que la llamada sucedio
@@ -35,10 +35,10 @@ una casilla es la diferencia entre una cifra y una opinion.
 
 ## Done cuando
 
-- [ ] Pegar el Grain deja `show`, fecha y deal en Atendido, en una operacion.
-- [ ] Si la fecha ya estaba, **no se pisa**.
-- [ ] El movimiento tiene su fila de `deal_etapa_historial`.
-- [ ] Quitar el link no mueve nada solo.
+- [x] Pegar el Grain deja `show`, fecha y deal en Atendido, en una operacion.
+- [x] Si la fecha ya estaba, **no se pisa**.
+- [x] El movimiento tiene su fila de `deal_etapa_historial`.
+- [x] Quitar el link no mueve nada solo.
 
 ## Kiro
 
@@ -69,3 +69,29 @@ seguimiento · próxima cohorte · perdido. Se valida con los closers.
   (5 → 3 con motivo); T11 queda reemplazada y T15 pasa a 6 → 11. Perdido llega también desde 11. Tabla
   completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
 - **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".
+
+---
+
+## Cierre 2026-09-28
+
+Hecho: `pegarGrain(db, actor, { callId, linkGrain })` en `lib/deals/llamadas.ts`. En una
+transacción escribe `link_grain`, `resultado = "show"` y `fecha_llamada` **solo si estaba vacía**
+(por `editarConRastro`, así queda en `change_log`), y mueve el deal a **Atendido** por
+`moverEtapa()` si la tabla tiene flecha desde la etapa actual. Las flechas a Atendido son de
+**sistema** (T10 desde Agendado, T7 desde Pendiente Re-agenda), así que el movimiento lo toma
+`{ tipo: "sistema" }`; ambas exigen `llamada_sucedio`, que `show` cumple. Si el deal ya está en
+Atendido o en una etapa sin flecha a Atendido, no se mueve (`movioAAtendido: false`) y se escribe
+el Grain igual. El link se valida solo como URL (el ticket dice explícito que no se comprueba que
+sea de Grain).
+
+Quitar/corregir el link NO se implementó como un camino propio con movimiento: es una edición con
+rastro y sin movimiento. Como `pegarGrain` no devuelve el deal a Agendado por su cuenta, y una
+edición del link vía `editarConRastro` tampoco toca la etapa, el requisito "quitar el link no mueve
+nada solo" queda cubierto por construcción (la etapa solo la mueve `moverEtapa()`, que aquí no se
+llama al editar). El retroceso con motivo (ticket 047) sigue siendo el único camino de vuelta.
+
+Fuera de alcance, sin tocar: la propuesta 🟡 "Grain **o** sucedió" (resultado sin grabar) no está
+decidida; Grain por API e insights.
+
+Tests: `tests/grain-y-reagenda.test.ts` (bloques `pegarGrain`). Suite completa 1116 pasando,
+typecheck y lint limpios.

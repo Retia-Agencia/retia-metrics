@@ -8,7 +8,7 @@ import { esAdministrador, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { moverEtapa } from "./mover-etapa";
-import type { EtapaDeal } from "./etapas";
+import { transicion, type EtapaDeal } from "./etapas";
 
 /**
  * Agregar una llamada NATIVA a un deal, y completar la `agendada` que el sistema dejó
@@ -247,6 +247,233 @@ export async function completarAgendada(
       },
     );
   });
+}
+
+// ─────────────────────────────────────────── 058 · pegar el Grain = sucedió
+
+/**
+ * Datos para pegar el link de Grain a una llamada (ticket 058). El link es lo único
+ * que teclea el closer: el `show`, la fecha y el movimiento a Atendido salen de él.
+ *
+ * El link se valida SOLO como URL razonable: el ticket dice explícito que NO se
+ * comprueba que sea de Grain de verdad, porque una reja que rechace un link válido de
+ * otra herramienta cuesta más de lo que protege.
+ */
+export const esquemaPegarGrain = z.object({
+  callId: z.string().uuid("La llamada no es válida."),
+  linkGrain: z.string().url("El link de la grabación no es una URL válida."),
+});
+
+export type DatosPegarGrain = z.input<typeof esquemaPegarGrain>;
+
+/** Lo que dejó `pegarGrain`: si el deal se movió a Atendido, y su etapa final. */
+export interface GrainPegado {
+  /** `true` si el deal pasó a Atendido; `false` si ya estaba ahí o más adelante. */
+  movioAAtendido: boolean;
+  etapa: EtapaDeal;
+}
+
+/**
+ * Pegar el link de Grain **es** decir que la llamada sucedió (ticket 058, ADR 0037):
+ * en una sola operación escribe `link_grain`, pone `resultado = "show"`, llena
+ * `fecha_llamada` SOLO si estaba vacía (no la pisa), y mueve el deal a **Atendido**
+ * por `moverEtapa()` si la tabla lo permite desde la etapa actual.
+ *
+ * ## Qué transición se usa, y de qué etapa
+ *
+ * Atendido se alcanza por dos flechas, **ambas del sistema** (`lib/deals/etapas.ts`):
+ * T10 (Agendado → Atendido) y T7 (Pendiente Re-agenda → Atendido). Desde Agendado es
+ * lo esperado. Las dos exigen `llamada_sucedio`, y `resultado = "show"` lo cumple
+ * (`RESULTADOS_QUE_OCURRIERON` en `mover-etapa.ts`). Como son flechas de sistema, el
+ * movimiento lo toma `{ tipo: "sistema" }`: pegar el Grain es el hecho que el CRM
+ * observa, no una decisión a mano.
+ *
+ * Si el deal ya está en Atendido —o en cualquier etapa desde la que la tabla no tiene
+ * flecha a Atendido (por ejemplo Compromiso Verbal o Seguimiento)— **no se mueve**: se
+ * escribe el Grain y el `show` igual, y `movioAAtendido` sale `false`. No se inventa
+ * ninguna transición: se pregunta a `transicion()` y, si no existe, no se mueve.
+ *
+ * ## Todo en UNA transacción
+ *
+ * La escritura de la llamada y el movimiento van juntos o nada: si el motor rechaza el
+ * movimiento, la escritura del Grain se deshace con él.
+ */
+export async function pegarGrain(
+  db: Db,
+  actor: ActorDeLlamada,
+  datos: DatosPegarGrain,
+): Promise<GrainPegado> {
+  return normalizando(async () => {
+    const { callId, linkGrain } = esquemaPegarGrain.parse(datos);
+
+    exigirQueTrabajeLeads(actor);
+
+    return (db as unknown as Transaccion).transaction(async (db) => {
+      const { call, deal } = await llamadaVigenteDeDealAbierto(db, callId, actor);
+
+      // `fecha_llamada` se llena SOLO si estaba vacía: pegar el Grain no reescribe una
+      // fecha que ya se conocía (por ejemplo la que trajo Calendly). `resultado` y
+      // `link_grain` sí se escriben siempre: son el gesto de este ticket.
+      await editarConRastro(
+        {
+          db,
+          tabla: calls,
+          nombreTabla: "calls",
+          actorId: actor.userId,
+          etiqueta: call.emailLead ?? call.id,
+        },
+        call.id,
+        {
+          linkGrain,
+          resultado: "show" as const,
+          ...(call.fechaLlamada == null ? { fechaLlamada: new Date() } : {}),
+        },
+      );
+
+      // Mover a Atendido SOLO si la tabla tiene la flecha desde la etapa actual. Las dos
+      // flechas a Atendido son de sistema (T7, T10): pegar el Grain es el hecho, no una
+      // decisión a mano. Si no hay flecha (ya está en Atendido o más adelante), no se
+      // mueve y no se inventa una transición.
+      if (transicion(deal.etapa, "atendido") != null) {
+        const hecho = await moverEtapa(db, {
+          dealId: deal.id,
+          a: "atendido",
+          actor: { tipo: "sistema" },
+        });
+        return { movioAAtendido: true, etapa: hecho.a };
+      }
+
+      return { movioAAtendido: false, etapa: deal.etapa };
+    });
+  });
+}
+
+// ─────────────────────────────── 059 · no_show / cancelada → Pendiente Re-agenda
+
+/**
+ * Los dos resultados de una llamada fallida (ADR 0015). **Siguen siendo distintos**
+ * —aviso antes (`cancelada`) no es lo mismo que no apareció (`no_show`)—: que disparen
+ * el mismo movimiento a Pendiente Re-agenda no los fusiona.
+ */
+export const RESULTADOS_FALLIDOS = ["no_show", "cancelada"] as const;
+
+/**
+ * Datos para marcar una llamada como fallida (ticket 059). El `motivoId` solo hace
+ * falta cuando la flecha lo exige (desde Atendido, T29 con motivo de la lista
+ * `reagenda`); desde Agendado (T8) no se pide y se ignora.
+ */
+export const esquemaMarcarFallida = z.object({
+  callId: z.string().uuid("La llamada no es válida."),
+  resultado: z.enum(RESULTADOS_FALLIDOS, {
+    message: "El resultado tiene que ser no_show o cancelada.",
+  }),
+  motivoId: z.string().uuid("El motivo no es válido.").optional(),
+});
+
+export type DatosMarcarFallida = z.input<typeof esquemaMarcarFallida>;
+
+/** Lo que dejó `marcarFallida`: la etapa final del deal tras el movimiento. */
+export interface LlamadaFallida {
+  etapa: EtapaDeal;
+}
+
+/**
+ * Marca una llamada como `no_show` o `cancelada` y manda el deal a **Pendiente
+ * Re-agenda** (etapa 3) por `moverEtapa()`, en la misma transacción (ticket 059,
+ * decisión del 24-sep que reemplaza la propuesta "la segunda llamada no hace
+ * retroceder").
+ *
+ * ## Qué flecha, según la etapa
+ *
+ * Re-agenda se alcanza desde dos etapas (`lib/deals/etapas.ts`):
+ *  - **Agendado → Re-agenda (T8, sistema)**: la cita se cayó antes de suceder. No pide
+ *    motivo; el hecho lo observa el CRM, así que la toma `{ tipo: "sistema" }`.
+ *  - **Atendido → Re-agenda (T29, closer, con motivo de la lista `reagenda`)**: hubo
+ *    llamada y hace falta otra. La toma la persona y el motor exige el motivo, así que
+ *    va `{ tipo: "usuario" }` con `motivoId`.
+ *
+ * En las dos, el requisito de dato es `llamada_fallida`, que mira la ÚLTIMA llamada del
+ * deal (`mover-etapa.ts`); por eso el `resultado` se escribe ANTES de mover, en la
+ * misma transacción. Desde cualquier otra etapa la tabla no tiene flecha a Re-agenda:
+ * se rechaza por el motor (no se inventa transición) tras haber escrito el resultado
+ * dentro de la transacción, que entonces se deshace entera.
+ */
+export async function marcarFallida(
+  db: Db,
+  actor: ActorDeLlamada,
+  datos: DatosMarcarFallida,
+): Promise<LlamadaFallida> {
+  return normalizando(async () => {
+    const { callId, resultado, motivoId } = esquemaMarcarFallida.parse(datos);
+
+    exigirQueTrabajeLeads(actor);
+
+    return (db as unknown as Transaccion).transaction(async (db) => {
+      const { call, deal } = await llamadaVigenteDeDealAbierto(db, callId, actor);
+
+      // El resultado se escribe ANTES de mover: `llamada_fallida` mira la última llamada
+      // vigente del deal, así que el motor tiene que verlo ya escrito. Ambos van en la
+      // misma transacción: si el movimiento se rechaza, el resultado se deshace.
+      await editarConRastro(
+        {
+          db,
+          tabla: calls,
+          nombreTabla: "calls",
+          actorId: actor.userId,
+          etiqueta: call.emailLead ?? call.id,
+        },
+        call.id,
+        { resultado },
+      );
+
+      // La flecha a Re-agenda decide quién la toma: desde Agendado es de sistema (T8),
+      // desde Atendido es de closer con motivo (T29). Se pregunta a la tabla y se arma el
+      // actor en consecuencia; si no hay flecha, el motor rechaza y no se inventa nada.
+      const t = transicion(deal.etapa, "pendiente_reagenda");
+      const quienMueve =
+        t?.quien === "sistema"
+          ? ({ tipo: "sistema" } as const)
+          : ({ tipo: "usuario", userId: actor.userId, rol: actor.rol } as const);
+
+      const hecho = await moverEtapa(db, {
+        dealId: deal.id,
+        a: "pendiente_reagenda",
+        actor: quienMueve,
+        motivoId: motivoId ?? null,
+      });
+
+      return { etapa: hecho.a };
+    });
+  });
+}
+
+/**
+ * Lee una llamada VIGENTE (no anulada) y el deal ABIERTO del que cuelga, exigiendo que
+ * el actor pueda trabajarlo (dueño, o `esAdministrador` — el developer pasa por ahí,
+ * igual que en `dealAbiertoDelActor`). La usan las mutaciones que operan sobre una
+ * llamada existente (058, 059): comparten el mismo cuerpo de rejas.
+ *
+ * Una llamada anulada no cuenta en ninguna métrica (ADR 0026) y no se toca; una suelta
+ * (sin `deal_id`) tampoco se opera aquí (se asigna primero, ADR 0049).
+ */
+async function llamadaVigenteDeDealAbierto(
+  db: Db,
+  callId: string,
+  actor: ActorDeLlamada,
+): Promise<{ call: typeof calls.$inferSelect; deal: FilaDeal }> {
+  const [call] = await db
+    .select()
+    .from(calls)
+    .where(and(eq(calls.id, callId), vigente(calls)));
+  if (!call) throw new ErrorDeApp("No existe la llamada, o está anulada.", 404);
+  if (call.dealId == null) {
+    throw new ErrorDeApp(
+      "La llamada está suelta: asígnala a un deal antes de operarla.",
+      409,
+    );
+  }
+  const { deal } = await dealAbiertoDelActor(db, call.dealId, actor);
+  return { call, deal };
 }
 
 /**
