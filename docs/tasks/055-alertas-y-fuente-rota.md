@@ -3,7 +3,7 @@ id: 055
 etapa: E3
 serves: "plan v2 §6 etapa 3 · tarea E3-8 · insumo §5.6"
 depends: [054]
-status: todo
+status: reemplazado
 ---
 
 # 055 — Alertas: una fuente se rompe, no se apaga

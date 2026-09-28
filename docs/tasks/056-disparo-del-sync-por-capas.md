@@ -3,7 +3,7 @@ id: 056
 etapa: E3
 serves: "plan v2 §6 etapa 3 · tarea E3-9 · ADR 0040 (D4), enmienda al ADR 0007"
 depends: [048]
-status: todo
+status: reemplazado
 ---
 
 # 056 — El sync se dispara por capas: la hoja avisa, la app despierta, el cron es la red

@@ -115,13 +115,14 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 050 | [Identidad del Lead: el teléfono une **y marca**](./050-identidad-del-lead.md) (E3-3) | 048 | en curso · `resolverIdentidad` cableada en `ingerirEntradas` |
 | [x] | 051 | [El Estado del lead es el que manda el formulario](./051-el-estado-del-lead-desde-el-envio.md) (E3-4) | 049, 050 | done · 27-sep noche · `lib/ingesta/estado.ts` traduce, no califica; T2 desconectado; migración 0027 en `dev` |
 | [ ] | 052 | [La regla de creación y movimiento de deals](./052-regla-de-creacion-y-movimiento-de-deals.md) (E3-5) | 051, 045 | todo · lee `leads.calificacion` (D4 cerrada) |
-| [ ] | 053 | [Zona horaria por fuente](./053-zona-horaria-por-fuente.md) (E3-6) | 039, 049 | en curso · código hecho; falta poner las fuentes en UTC. 🔴 053-056 son del sync de Sheets vivo (plan §4.3d) |
-| [ ] | 054 | [Configurar una fuente sin adivinar](./054-configurar-una-fuente-de-verdad.md) (E3-7) | 039 | todo |
-| [ ] | 055 | [Alertas: una fuente se rompe, no se apaga](./055-alertas-y-fuente-rota.md) (E3-8) | 054 | todo |
-| [ ] | 056 | [El sync se dispara por capas](./056-disparo-del-sync-por-capas.md) (E3-9) | 048 | todo |
+| [x] | 053 | [Zona horaria por fuente](./053-zona-horaria-por-fuente.md) (E3-6) | 039, 049 | reemplazado · 28-sep · el sync de Sheets se descarta (Mani); lo retira el 108 |
+| [x] | 054 | [Configurar una fuente sin adivinar](./054-configurar-una-fuente-de-verdad.md) (E3-7) | 039 | reemplazado · 28-sep · el sync de Sheets se descarta (Mani); lo retira el 108 |
+| [x] | 055 | [Alertas: una fuente se rompe, no se apaga](./055-alertas-y-fuente-rota.md) (E3-8) | 054 | reemplazado · 28-sep · el sync de Sheets se descarta (Mani); lo retira el 108 |
+| [x] | 056 | [El sync se dispara por capas](./056-disparo-del-sync-por-capas.md) (E3-9) | 048 | reemplazado · 28-sep · el sync de Sheets se descarta (Mani); lo retira el 108 |
 | [ ] | 105 | [La fuente webhook: un formulario es una fila](./105-la-fuente-webhook.md) | 048 | en curso · código, tests, migración **0028** (en `dev`) y recorrido visual hechos (27-sep noche). Falta **forjar la server action desde una sesión de closer** (hoy probado en la lógica y en el guard, no en el navegador) |
 | [ ] | 106 | [La ruta del webhook y el adaptador de Typeform](./106-la-ruta-del-webhook-y-el-adaptador-de-typeform.md) | 105, 051 | todo · **hito A**; sobre crudo + 200 si no se puede procesar |
 | [ ] | 107 | [Una fuente que dejó de recibir se ve en la app](./107-aviso-de-fuente-sin-envios.md) | 106 | todo · 🔴 el umbral por defecto lo decide Mani |
+| [ ] | 108 | [Retirar el sync de Sheets](./108-retirar-el-sync-de-sheets.md) | 106 | todo · 28-sep, cierra A6: los leads entran solo por webhook; lo que lee una hoja una vez se queda para el traslado |
 | [ ] | 086 | [Origen humano del lead y el enlace de captación](./086-origen-humano-y-enlace-de-captacion.md) | 048, 084 | todo · ⏳ **el dato lo escribe la ingesta; después no se puede reconstruir** |
 | [ ] | 087 | [🩸 El CPL deja de preguntar por `entrada`](./087-el-cpl-deja-de-preguntar-por-entrada.md) | 085, 086 | todo · **va con el 086, nunca después** |
 

@@ -3,7 +3,7 @@ id: 054
 etapa: E3
 serves: "plan v2 §6 etapa 3 · tarea E3-7 · insumo §5.2 y §5.3, amplia el ticket 016"
 depends: [039]
-status: todo
+status: reemplazado
 ---
 
 # 054 — Configurar una fuente sin adivinar: lista de pestanas, correo de la service account, paso a paso
