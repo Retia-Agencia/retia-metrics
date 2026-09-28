@@ -89,3 +89,10 @@ ticket cierra el ciclo:
 - **Botón "buscar llamada"** en el deal, que vuelve a consultar Calendly por si la cita apareció. Usa
   `citaDeCalendly` de `lib/calendly/cita.ts` (ticket 109, renombrada de `fechaDeCita` por el ticket 052,
   que ahora devuelve `{ inicio, cancelada }`) con el uuid del envío.
+
+## Nota 2026-09-28 (ADR 0058)
+
+Desde el 28-sep una re-agenda con cita vigente sobre un deal en 4-7 crea **otra** llamada en el mismo
+deal (`agregar_llamada`), sin tocar la vieja. Cuando este ticket escuche las cancelaciones y
+reprogramaciones de Calendly, la llamada vieja se marca ahí; mientras tanto el deal puede mostrar dos
+llamadas `agendada`. Y cancelar una cita en Calendly hoy no cambia su llamada en el CRM.

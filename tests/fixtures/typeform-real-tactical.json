@@ -1,0 +1,83 @@
+{
+  "event_id": "01J9REAL0000000000000TAC",
+  "event_type": "form_response",
+  "form_response": {
+    "form_id": "TacInv01",
+    "token": "tok-real-tac-001",
+    "landed_at": "2026-09-25T13:58:00Z",
+    "submitted_at": "2026-09-25T14:03:00Z",
+    "variables": [
+      { "key": "estado", "type": "text", "text": "setteo_no_calificado" },
+      { "key": "score", "type": "number", "number": 0 }
+    ],
+    "hidden": {
+      "utm_source": "facebook",
+      "utm_medium": "paid",
+      "utm_campaign": "tactical-septiembre",
+      "utm_content": "conjunto-a",
+      "utm_term": "inversion"
+    },
+    "definition": {
+      "id": "TacInv01",
+      "title": "De Cero a Tactical Investor",
+      "fields": [
+        { "id": "f-nombre", "title": "¿Cuál es tu nombre completo?", "type": "short_text", "ref": "nombre" },
+        { "id": "f-correo", "title": "¿Cuál es tu correo electrónico?", "type": "email", "ref": "correo" },
+        { "id": "f-whatsapp", "title": "¿Cuál es tu número de WhatsApp?", "type": "phone_number", "ref": "whatsapp" },
+        { "id": "f-ingreso", "title": "¿Cuánto ganas mensualmente? (en dólares)", "type": "number", "ref": "ingreso" },
+        { "id": "f-situacion", "title": "¿Cómo se podría describir mejor tu situación profesional?", "type": "multiple_choice", "ref": "situacion" },
+        { "id": "f-invertir", "title": "¿Estás dispuesto y en la capacidad de invertir 1.500 USD en ti?", "type": "multiple_choice", "ref": "invertir" },
+        { "id": "f-motivo", "title": "¿Qué te motivó a hacer parte del Programa de Cero a Tactical Investor?", "type": "long_text", "ref": "motivo" },
+        { "id": "f-urgencia", "title": "¿Qué tan urgente es para ti empezar el programa para aprender a invertir como un experto?", "type": "multiple_choice", "ref": "urgencia" },
+        { "id": "f-agenda", "title": "Agenda aquí tu entrevista", "type": "url", "ref": "agenda" }
+      ]
+    },
+    "answers": [
+      {
+        "field": { "id": "f-nombre", "type": "short_text" },
+        "type": "text",
+        "text": "María José Gómez"
+      },
+      {
+        "field": { "id": "f-correo", "type": "email" },
+        "type": "email",
+        "email": "MariaJose.Gomez@Correo.co"
+      },
+      {
+        "field": { "id": "f-whatsapp", "type": "phone_number" },
+        "type": "phone_number",
+        "phone_number": "+573001234567"
+      },
+      {
+        "field": { "id": "f-ingreso", "type": "number" },
+        "type": "number",
+        "number": 4000
+      },
+      {
+        "field": { "id": "f-situacion", "type": "multiple_choice" },
+        "type": "choice",
+        "choice": { "label": "Empleado" }
+      },
+      {
+        "field": { "id": "f-invertir", "type": "multiple_choice" },
+        "type": "choice",
+        "choice": { "label": "Sí, cuento con los recursos" }
+      },
+      {
+        "field": { "id": "f-motivo", "type": "long_text" },
+        "type": "text",
+        "text": "Quiero aprender a invertir con método."
+      },
+      {
+        "field": { "id": "f-urgencia", "type": "multiple_choice" },
+        "type": "choice",
+        "choice": { "label": "Muy urgente" }
+      },
+      {
+        "field": { "id": "f-agenda", "type": "url" },
+        "type": "url",
+        "url": "https://calendly.com/d/d2ft-nk5-gns/postulacion-de-cero-a-tactical-investor/invitees/inv-uuid-001"
+      }
+    ]
+  }
+}

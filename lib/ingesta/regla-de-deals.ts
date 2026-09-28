@@ -103,12 +103,18 @@ export function notaDeCita(cita: Exclude<ResultadoCita, { estado: "vigente" }>):
  *    Setteo con `nota`.
  *  - `mover`: hay deal abierto en 1/2/9 y "Con Calendly" con cita vigente lo avanza a
  *    Agendado, creando antes la `llamada`.
- *  - `notificar_reenvio`: el deal ya esta avanzado (4/5/6/7); no se mueve, se avisa.
+ *  - `agregar_llamada`: el deal ya esta avanzado (4/5/6/7) y llega una cita VIGENTE: no
+ *    se mueve, pero la cita queda como otra llamada del mismo deal (Mani, 28-sep: una
+ *    re-agenda con fecha nueva no se pierde). La misma cita dos veces no duplica: la
+ *    huella `calendly:<uuid>` lo impide.
+ *  - `notificar_reenvio`: el deal ya esta avanzado y la cita NO esta vigente; no se
+ *    mueve, se avisa.
  */
 export type AccionDeDeal =
   | { tipo: "nada"; motivo: string; nota?: string }
   | { tipo: "abrir"; etapa: EtapaDeal; llamada?: LlamadaDeCita; nota?: string }
   | { tipo: "mover"; a: EtapaDeal; llamada: LlamadaDeCita }
+  | { tipo: "agregar_llamada"; etapa: EtapaDeal; llamada: LlamadaDeCita }
   | { tipo: "notificar_reenvio"; etapa: EtapaDeal };
 
 /** Los datos de la llamada de Calendly que hay que crear antes de ir a Agendado. */
@@ -131,7 +137,8 @@ export interface LlamadaDeCita {
  * | `con_calendly`          | ninguno             | no vigente     | abrir en Pendiente Setteo+nota|
  * | `con_calendly`          | en 1, 2 o 9         | vigente        | mover a Agendado + llamada    |
  * | `con_calendly`          | en 1, 2 o 9         | no vigente     | nada + nota (se queda)        |
- * | `con_calendly`          | en 4, 5, 6 o 7      | —              | notificar re-envio            |
+ * | `con_calendly`          | en 4, 5, 6 o 7      | vigente        | agregar llamada (no mueve)    |
+ * | `con_calendly`          | en 4, 5, 6 o 7      | no vigente     | notificar re-envio            |
  * | `con_calendly`          | en otra etapa       | —              | nada                          |
  *
  * `cita` puede faltar (indefinida) si el llamador no la resolvio: se trata como
@@ -158,9 +165,17 @@ export function decidirAccionDeDeal(
   // se manda a Agendado un deal sin fecha real (no se afloja el motor).
   const citaResuelta: ResultadoCita = cita ?? { estado: "no_encontrada" };
 
-  // Un deal avanzado (4/5/6/7) no se toca, tenga la cita el estado que tenga: el lead
-  // ya esta mas adelante que "acaba de agendar".
+  // Un deal avanzado (4/5/6/7) no se mueve: el lead ya esta mas adelante que "acaba de
+  // agendar". Pero una cita vigente es una llamada real con fecha, y perderla haria que
+  // el closer llame a la hora vieja (Mani, 28-sep): se agrega al mismo deal.
   if (dealAbierto !== null && ETAPAS_AVANZADAS.includes(dealAbierto.etapa)) {
+    if (citaResuelta.estado === "vigente") {
+      return {
+        tipo: "agregar_llamada",
+        etapa: dealAbierto.etapa,
+        llamada: { inicio: citaResuelta.inicio, uuidInvitado: citaResuelta.uuidInvitado },
+      };
+    }
     return { tipo: "notificar_reenvio", etapa: dealAbierto.etapa };
   }
 
@@ -343,6 +358,17 @@ export async function aplicarReglaDeDeal(
       }
       throw e;
     }
+    return { leadId: lead.id, accion };
+  }
+
+  if (accion.tipo === "agregar_llamada" && dealAbierto !== null) {
+    // No mueve el deal: solo registra la cita como otra llamada (idempotente por huella).
+    await crearLlamadaDeCita(
+      db,
+      { id: dealAbierto.id, programId: lead.programId, cohortId: dealAbierto.cohortId },
+      lead.emailNormalizado,
+      accion.llamada,
+    );
     return { leadId: lead.id, accion };
   }
 

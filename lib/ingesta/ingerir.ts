@@ -244,6 +244,7 @@ export async function ingerirEntradas(
               token: e.token,
               esParcial: e.esParcial,
               fechaEnvio: e.fechaEnvio,
+              nombre: e.nombre,
               estadoHoja: e.estadoHoja,
               utmSource: e.utmSource,
               utmMedium: e.utmMedium,
@@ -258,6 +259,7 @@ export async function ingerirEntradas(
             set: {
               leadId: sql`coalesce("submissions"."lead_id", excluded."lead_id")`,
               fechaEnvio: sql`excluded."fecha_envio"`,
+              nombre: sql`excluded."nombre"`,
               estadoHoja: sql`excluded."estado_hoja"`,
               utmSource: sql`excluded."utm_source"`,
               utmMedium: sql`excluded."utm_medium"`,
@@ -406,6 +408,7 @@ async function contactosConocidos(tx: Db, programId: string, envios: Envio[]): P
 /** Los campos del lead que salen de sus envios. Ninguno se teclea: se recalculan. */
 type Resumen = Pick<
   typeof leads.$inferSelect,
+  | "nombre"
   | "telefono"
   | "utmSource"
   | "utmMedium"
@@ -418,6 +421,7 @@ type Resumen = Pick<
 >;
 
 const CAMPOS_DEL_RESUMEN = [
+  "nombre",
   "telefono",
   "utmSource",
   "utmMedium",
@@ -435,6 +439,7 @@ type EnvioGuardado = Pick<
   | "token"
   | "esParcial"
   | "fechaEnvio"
+  | "nombre"
   | "posicionEnHoja"
   | "utmSource"
   | "utmMedium"
@@ -452,12 +457,19 @@ type EnvioGuardado = Pick<
  * - cada UTM: el valor mas reciente NO vacio. Un envio sin fecha solo rellena huecos;
  * - las aplicaciones: los TOKENS distintos. La parcial y la completa de un token son una
  *   sola aplicacion, no dos;
+ * - el nombre: el del envio COMPLETO mas reciente con nombre no vacio; si ninguno
+ *   completo lo trae, el del parcial mas reciente con nombre; si NINGUN envio trae
+ *   nombre, se conserva `nombreActual` (un lead creado a mano no pierde su nombre);
  * - la calificacion y el puntaje: los del envio COMPLETO mas reciente que tenga
  *   calificacion. Si solo hay parciales, el de la ultima parcial. Asi, cuando llega la
  *   completa, el lead deja de estar "incompleto" (la herida del script, que decidia una
  *   vez), y quien re-aplico con otra respuesta queda con la nueva.
  */
-export function resumirEnvios(envios: EnvioGuardado[], telefonoPrincipal: string | null): Resumen {
+export function resumirEnvios(
+  envios: EnvioGuardado[],
+  telefonoPrincipal: string | null,
+  nombreActual: string | null = null,
+): Resumen {
   const conFecha = envios
     .filter((e) => e.fechaEnvio !== null)
     .sort((a, b) => a.fechaEnvio!.getTime() - b.fechaEnvio!.getTime() || (a.posicionEnHoja ?? 0) - (b.posicionEnHoja ?? 0));
@@ -480,7 +492,24 @@ export function resumirEnvios(envios: EnvioGuardado[], telefonoPrincipal: string
     calificados.sort(porPosicion).at(-1) ??
     null;
 
+  // El nombre sigue el mismo criterio "mas reciente" que las fechas: entre los envios
+  // fechados, el ultimo con nombre no vacio (preferiendo un completo sobre un parcial);
+  // si ninguno fechado lo trae, un envio sin fecha (parcial) puede aportarlo; y si
+  // ningun envio del lead trae nombre, se conserva el actual (un lead creado a mano no
+  // pierde su nombre porque llegue un envio anonimo). `nombre` de `EnvioGuardado` ya
+  // viene recortado por `construirEnvio` (vacio = null).
+  const conNombre = (e: EnvioGuardado) => e.nombre !== null;
+  const completosFechadosConNombre = conFecha.filter((e) => !e.esParcial && conNombre(e));
+  const parcialesFechadosConNombre = conFecha.filter((e) => e.esParcial && conNombre(e));
+  const sinFechaConNombre = sinFecha.filter(conNombre);
+  const nombre =
+    completosFechadosConNombre.at(-1)?.nombre ??
+    parcialesFechadosConNombre.at(-1)?.nombre ??
+    sinFechaConNombre.at(-1)?.nombre ??
+    nombreActual;
+
   return {
+    nombre,
     telefono: telefonoPrincipal,
     ...utm,
     calificacion: decide?.calificacion ?? null,
@@ -518,6 +547,7 @@ async function recalcularResumen(
         sourceId: submissions.sourceId,
         token: submissions.token,
         fechaEnvio: submissions.fechaEnvio,
+        nombre: submissions.nombre,
         posicionEnHoja: submissions.posicionEnHoja,
         utmSource: submissions.utmSource,
         utmMedium: submissions.utmMedium,
@@ -545,6 +575,7 @@ async function recalcularResumen(
       const resumen = resumirEnvios(
         envios.filter((e) => e.leadId === lead.id),
         telefonoDe.get(lead.id) ?? lead.telefono,
+        lead.nombre,
       );
       const diffs = CAMPOS_DEL_RESUMEN.filter((c) => comoTexto(lead[c]) !== comoTexto(resumen[c]));
       if (diffs.length === 0) continue;

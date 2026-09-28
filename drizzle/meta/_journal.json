@@ -232,6 +232,20 @@
       "when": 1790607321888,
       "tag": "0032_nota-del-sistema-en-el-deal",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790617481154,
+      "tag": "0033_nombre-del-envio",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790619129565,
+      "tag": "0034_sobre-de-cada-envio",
+      "breakpoints": true
     }
   ]
 }

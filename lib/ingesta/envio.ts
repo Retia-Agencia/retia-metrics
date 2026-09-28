@@ -1,4 +1,4 @@
-import { limpiar, normalizarEmail, parsearFecha } from "@/lib/sheets/mapeo";
+import { limpiar, normalizarEmail, normalizarTexto, parsearFecha } from "@/lib/sheets/mapeo";
 import type { Calificacion } from "./calificacion";
 import { estadoDesdeTexto } from "./estado";
 
@@ -23,6 +23,7 @@ export type CampoEnvio =
   | "token"
   | "correo"
   | "telefono"
+  | "nombre"
   | "fechaEnvio"
   | "estadoHoja"
   | "utmSource"
@@ -34,11 +35,16 @@ export type CampoEnvio =
  * el codigo decide, filtra, indexa o cruza con el; lo demas es contenido y va a
  * `respuestas`. Y lo promovido NO se repite adentro (opcion A' del ADR 0036).
  *
+ * `nombre` se promueve (migracion 0033) porque el resumen del lead (`leads.nombre`, lo
+ * que busca Personas en `lib/queries/personas.ts`) se recalcula desde los envios, y
+ * `respuestas` no dice cual pregunta es la del nombre.
+ *
  * ⚠️ `utm_term` y `utm_content` NO estan, a proposito (ADR 0045 enmienda 2): el estandar
  * son tres campos. Sus celdas quedan crudas en `respuestas`, sin leer.
  */
 export const CAMPOS_PROMOVIDOS = [
   "token",
+  "nombre",
   "fechaEnvio",
   "estadoHoja",
   "utmSource",
@@ -77,6 +83,8 @@ export interface Envio {
   token: string;
   esParcial: boolean;
   fechaEnvio: Date | null;
+  /** El nombre que la persona escribio en ESTE envio, recortado. Vacio = null. */
+  nombre: string | null;
   /** El texto crudo de la columna `Estado`, tal como llego, para comparar (ADR 0054). */
   estadoHoja: string | null;
   /**
@@ -113,6 +121,34 @@ export function normalizarTelefono(v: unknown): string | null {
   return digitos.length >= DIGITOS_MINIMOS_TELEFONO ? digitos : null;
 }
 
+/**
+ * Los valores CENTINELA de un UTM: texto que no es un dato sino un marcador de "sin
+ * UTM" (Mani, 28-sep). Hoy solo `xxxxx`: el Forms Link de cada programa trae
+ * `utm_source=xxxxx&utm_medium=xxxxx&...` como PLANTILLA para que el trafficker la
+ * reemplace; si alguien comparte el link crudo, ese `xxxxx` llega tal cual. Tratarlo
+ * como dato inflaria una campana inexistente y romperia el CPL sin un solo error, igual
+ * que el centinela de fecha (`1/1/0001`) y el de telefono (`0`) de este repo.
+ *
+ * Se comparan sin mayusculas y con `trim`. Es el UNICO lugar donde un UTM se juzga
+ * centinela; el resto sigue guardandose tal como llego (ADR 0004).
+ */
+const VALORES_CENTINELA_UTM = ["xxxxx"] as const;
+
+/** Los encabezados (normalizados) de los UTM que se CAPTURAN pero no se promueven. */
+const UTM_CAPTURADOS = new Set(["utm_term", "utm_content"]);
+
+/**
+ * Lee un UTM: lo recorta como `limpiar`, pero un valor CENTINELA (`xxxxx`) es "sin UTM"
+ * y devuelve null. NO normaliza nada mas (ADR 0004: un UTM real se guarda como llego).
+ */
+export function limpiarUtm(v: unknown): string | null {
+  const s = limpiar(v);
+  if (s === null) return null;
+  return VALORES_CENTINELA_UTM.includes(s.toLowerCase() as (typeof VALORES_CENTINELA_UTM)[number])
+    ? null
+    : s;
+}
+
 export function construirEnvio(entrada: EntradaEnvio): ResultadoEnvio {
   const celda = (campo: CampoEnvio): unknown => {
     const encabezado = entrada.campos[campo];
@@ -137,7 +173,12 @@ export function construirEnvio(entrada: EntradaEnvio): ResultadoEnvio {
   );
   const respuestas: Record<string, string | null> = {};
   for (const [encabezado, valor] of Object.entries(entrada.columnas)) {
-    if (!promovidos.has(encabezado)) respuestas[encabezado] = limpiar(valor);
+    if (promovidos.has(encabezado)) continue;
+    // `utm_term` y `utm_content` se CAPTURAN en `respuestas` (no se promueven, ADR 0045),
+    // pero el centinela `xxxxx` tampoco es un dato ahi: se limpia con la misma regla que
+    // los tres UTM leidos, para que no quede guardado en ninguna columna.
+    const esUtmCapturado = UTM_CAPTURADOS.has(normalizarTexto(encabezado));
+    respuestas[encabezado] = esUtmCapturado ? limpiarUtm(valor) : limpiar(valor);
   }
 
   return {
@@ -150,12 +191,15 @@ export function construirEnvio(entrada: EntradaEnvio): ResultadoEnvio {
       // Una fila completa siempre trae fecha. Supuesto a medir contra `dev` en el 049.
       esParcial: entrada.esParcial ?? fechaEnvio === null,
       fechaEnvio,
+      // El nombre se recorta y un vacio es null (`limpiar`), como todo campo promovido.
+      nombre: limpiar(celda("nombre")),
       estadoHoja,
       estado,
-      // Crudos: un UTM ausente es null, nunca "organico" (ADR 0004).
-      utmSource: limpiar(celda("utmSource")),
-      utmMedium: limpiar(celda("utmMedium")),
-      utmCampaign: limpiar(celda("utmCampaign")),
+      // Crudos, pero el centinela `xxxxx` es "sin UTM" (null), no un dato (Mani,
+      // 28-sep). Un UTM ausente sigue siendo null, nunca "organico" (ADR 0004).
+      utmSource: limpiarUtm(celda("utmSource")),
+      utmMedium: limpiarUtm(celda("utmMedium")),
+      utmCampaign: limpiarUtm(celda("utmCampaign")),
       posicionEnHoja: entrada.posicion,
       respuestas,
       identidad: {

@@ -3,7 +3,7 @@ id: 106
 etapa: E3
 serves: "ADR 0055 · ADR 0054 (enmienda) · plan §4.3a · hito A"
 depends: [105, 051]
-status: en curso
+status: done
 ---
 
 # 106 — La ruta del webhook y el adaptador de Typeform
@@ -40,14 +40,14 @@ Que un envío de Typeform llegue solo al CRM: la ruta verifica, el adaptador tra
 
 ## Done cuando
 
-- [ ] Con el payload de ejemplo de Typeform: firma buena crea lead, envío y contactos; firma mala es 401
+- [x] Con el payload de ejemplo de Typeform: firma buena crea lead, envío y contactos; firma mala es 401
       y la base no se mueve; el mismo envío dos veces deja una fila.
-- [ ] Un payload sin correo queda en la tabla de sobres crudos y la respuesta es 200.
-- [ ] Una URL con un id que no es fuente activa es 404.
-- [ ] Un envío real de cada Typeform en `dev`, con la variable `estado` y el parcial. El que agenda
+- [x] Un payload sin correo queda en la tabla de sobres crudos y la respuesta es 200.
+- [x] Una URL con un id que no es fuente activa es 404.
+- [x] Un envío real de cada Typeform en `dev`, con la variable `estado` y el parcial. El que agenda
       llega con `setteo_no_calificado` y su link de Calendly, y el CRM lo guarda como `con_calendly` (ADR
       0054, segunda enmienda); el link queda en `submissions.respuestas` para el 096.
-- [ ] `npm test`, `npm run typecheck` y `npm run lint` limpios.
+- [x] `npm test`, `npm run typecheck` y `npm run lint` limpios.
 
 ## Kiro
 
@@ -74,3 +74,38 @@ Sí el código y los tests, con revisión. La migración de los sobres la escrib
   `agenda`, y pegar la URL y el secreto en Typeform. (3) El Partial Submit Point.
 - Un envío completo sin correo queda **dos veces**: como `submissions` sin lead (lo escribe la ingesta)
   y como sobre crudo (para poder reprocesarlo). Es lo que pide el ticket; se anota para el reproceso.
+
+## Avance 2026-09-28 (tarde, envío real)
+
+- Las dos fuentes webhook existen en producción (Mani, desde la app): `f919d215…` ComunicArte y
+  `e3007c99…` Tactical, activas, con `{"agenda": "agenda aqui tu entrevista"}`; las de Sheets quedaron
+  inactivas. Una petición sin firma recibe 401 en las dos.
+- 🩸 **Primeras 4 entregas de Typeform: 401.** El secreto se generó en la app pero no se pegó en el campo
+  Secret del webhook de Typeform; sin él Typeform no firma. La ruta hizo lo correcto, pero el log no
+  distinguía "sin firma" de "firma que no cuadra".
+- **Partial Submit Point: decisión abierta del equipo** (Mani lo consulta). Hoy ningún formulario lo
+  tiene, así que un abandono no sale de Typeform. El envío real del parcial queda fuera del "Done
+  cuando" hasta que se decida; el código lo soporta sin probar contra el payload real.
+- **Ya llegan envíos reales de los dos programas** (con el secret pegado). Las dos entregas rechazadas de
+  ComunicArte eran leads reales: la de las 12:18 entró con Redeliver (Carolina Agudelo); ⚠️ la de las
+  **12:24 (17:24:35Z) seguía sin entrar** al cierre: hay que darle Redeliver en Typeform.
+
+## Cierre 2026-09-28 (ADR 0058)
+
+El envío real destapó huecos por donde se perdían datos sin error. Kiro los cerró (revisado por la sesión
+principal, que escribió y aplicó en producción las migraciones **0033** y **0034**):
+
+- **Nombre del lead:** `submissions.nombre` (0033, rellenó lo ya entrado); el lead toma el del envío
+  completo más reciente y conserva el suyo si ningún envío lo trae. Todo correo y teléfono va a
+  `lead_contactos`.
+- **Un solo mapeo** para webhook y hoja (`lib/ingesta/mapeo-webhook.ts` sobre `combinarMapeo`). Antes
+  el webhook ignoraba en silencio las llaves de producción (`emailNormalizado`) y no heredaba la plantilla.
+- **Caja negra** (0034): el cuerpo crudo de cada envío con firma buena; `error` nulo = procesado.
+- **Variables genéricas**: toda variable de Typeform entra a `respuestas` como `variable:<nombre>`; cuál es
+  el Estado lo dice el mapeo (`estadoHoja`, defecto `estado`).
+- **`xxxxx` en un UTM = sin UTM** (Mani).
+- **Re-agenda:** una cita vigente sobre un deal en 4-7 crea su llamada en el mismo deal
+  (`agregar_llamada`, Mani). **Agendó y después descartado:** el deal sigue en Agendado (Mani).
+- **Matriz de casos** contra la ruta real: `tests/webhook-matriz.test.ts`.
+- **Fuera:** el parcial real, hasta que el equipo decida el Partial Submit Point; y distinguir en el log
+  "sin firma" de "firma que no cuadra" (propuesto, sin decidir).

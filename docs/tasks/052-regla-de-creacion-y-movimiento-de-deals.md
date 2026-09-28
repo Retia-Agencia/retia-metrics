@@ -22,6 +22,7 @@ Que el sync cree y mueva deals segun el `estado` que trae la hoja, **llamando al
 | `estado` = Con Calendly, Lead con deal en 1, 2 o 9 | **mueve a Agendado** + crea la Call (🩸 **9 casos medidos** de Setteo → Calendly que hoy nadie ve) |
 | `estado` = Descartado o vacio | **no crea deal**; el Lead queda con su tag |
 | re-envio del mismo Lead con deal en 4 o mas | **no mueve**; notifica al owner y guarda el envio |
+| re-envio Con Calendly con cita **vigente** y deal en 4 o mas | **no mueve**; crea la llamada de la cita nueva en el mismo deal (ADR 0058, 28-sep) |
 
 ## Alcance
 

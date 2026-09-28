@@ -5,8 +5,8 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 36 (28-sep, mañana). El anterior:
-> `git show 9c1ca54:docs/agents/handoff.md`.
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 37 (28-sep, tarde). El anterior:
+> `git show 746a317:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md y despues docs/plan.md completo, antes que cualquier otro
@@ -14,24 +14,23 @@ documento (norte, tracks, orden por pasos en §5, decisiones abiertas en §7). E
 vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta: docs/overview.md,
 docs/structure.md, docs/operations.md y docs/adr/README.md.
 
-Estado al cierre del 28-sep (sesion 36): UNA sola base y es PRODUCCION ("CRM Retia", ref
-hfqmiyiuyqapdsbywrag); local, scripts y db:migrate escriben en ella. 33 migraciones (0000-0032), todas
-aplicadas. 1.017 tests. La base tiene 0 leads a proposito: el cron del sync de Sheets metio 5.343 el
-28-sep y se borraron con el ok de Mani; el cron esta APAGADO (vercel.json). Los dos programas tienen
-Forms Link y token de Calendly cargados desde /ajustes/programas (109 hecho). El 052 esta hecho: un
-envio con_calendly lee su cita en Calendly antes de la transaccion; vigente -> Agendado con su llamada,
-cancelada/no encontrada/error -> Pendiente Setteo con nota del sistema en el deal.
+Estado al cierre del 28-sep (sesion 37): UNA sola base y es PRODUCCION ("CRM Retia", ref
+hfqmiyiuyqapdsbywrag). 35 migraciones (0000-0034), todas aplicadas. 1.097 tests. LOS LEADS YA ENTRAN
+SOLOS: las dos fuentes webhook de Typeform estan activas en produccion (las de Sheets, inactivas) y el
+106 esta hecho. El envio real destapo huecos por donde se perdian datos sin error; los cierra el ADR
+0058 (caja negra de cada envio, nombre del lead, un solo mapeo webhook/hoja, variables genericas,
+`xxxxx` = sin UTM, re-agenda crea su llamada). Matriz de casos: tests/webhook-matriz.test.ts.
 
 Siguiente:
-1. El 106: el envio REAL. Crear la fuente webhook de cada programa en produccion (con la llave `agenda`
-   del mapeo = titulo de la pregunta de Calendly), pegar URL y secreto en Typeform, mandar un envio de
-   prueba, corregir el adaptador con el payload real y limpiar la prueba con el ok de Mani. Es la
-   primera prueba de punta a punta del 052 (hasta hoy el payload de los tests es inventado). Despues de
-   publicar un Typeform, mirar la fila 1 de la hoja (incidente del 27-sep).
-2. El 108 (retirar el codigo del sync; el cron ya esta apagado), el 107 (aviso de fuente sin envios) y
-   el 105 (forjar la accion con sesion de closer).
-3. La nota del 052 y el aviso de re-envio no los ve nadie todavia: no hay pantalla de deal. El 096 lleva
-   el pedido de Mani (dropdown de llamadas de Calendly y boton "buscar llamada").
+1. Mirar que los leads reales sigan entrando (vercel logs --query webhooks; sobres_crudos con error no
+   nulo = algo que reprocesar). Borrar las pruebas de Mani (PRUEBA CRM 1 y 3, un lead de Tactical con su
+   deal y llamada) con su ok. Confirmar que entro el lead de ComunicArte de las 12:24 (Redeliver).
+2. El 108 (retirar el codigo del sync), el 107 (aviso de fuente sin envios) y el 105 (forjar la accion
+   con sesion de closer).
+3. El 096: cancelaciones y reprogramaciones de Calendly (hoy cancelar en Calendly no toca la llamada, y
+   una re-agenda deja dos llamadas agendadas), mas el pedido de Mani (dropdown y "buscar llamada").
+4. Decisiones abiertas: el Partial Submit Point (lo consulta Mani con el equipo) y si el log de la ruta
+   distingue "sin firma" de "firma que no cuadra".
 Las migraciones las genera y aplica la sesion principal; Kiro implementa codigo y tests y NO corre los
 guardianes por si solo: correr npm test completo al revisar. Antes de tomar un ticket haz git fetch.
 ```
@@ -42,6 +41,31 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 > Las entradas anteriores al 27-sep citan documentos que se fundieron ese día (spec, plan v2, propuesta,
 > revisión, glosario, insumos): `docs/plan.md` §8 dice dónde quedó cada uno.
+
+- **2026-09-28 (CIERRE 37, tarde): los leads entran solos por Typeform; el 106 cerrado (ADR 0058).**
+  Sesión de Mani; Kiro implementó el cierre, revisado por la sesión principal.
+  - **Envío real:** Mani creó las dos fuentes webhook en producción (`/ajustes/fuentes`, mapeo
+    `{"agenda": "agenda aqui tu entrevista"}`), desactivó las de Sheets y pegó URL y secret en Typeform.
+    🩸 Las primeras entregas dieron **401**: el secret no estaba pegado en Typeform (sin él Typeform no
+    firma). Ya entran leads reales de los dos programas (11 envíos al cierre, 3 de prueba).
+  - **Lo que destapó el envío real, cerrado (ADR 0058):** el lead quedaba **sin nombre** (migración
+    **0033**, rellenó lo ya entrado); el mapeo webhook ignoraba en silencio las llaves de producción y no
+    heredaba la plantilla (ahora uno solo, `lib/ingesta/mapeo-webhook.ts`); solo se leía la variable
+    `estado` (ahora todas entran como `variable:<nombre>` y el Estado es configuración); el cuerpo crudo
+    solo se guardaba al fallar (**0034**: caja negra de cada envío); `xxxxx` del Forms Link entraba como
+    UTM (ahora es sin UTM).
+  - **Decisiones de Mani:** una re-agenda con cita vigente sobre un deal en 4-7 **crea su llamada** en el
+    mismo deal (`agregar_llamada`; antes la fecha nueva se perdía). Agendó y después `descartado`: el deal
+    **sigue en Agendado**, decide el closer.
+  - **Matriz de casos** contra la ruta real (`tests/webhook-matriz.test.ts`), pedido de Mani: "testear
+    todos los casos posibles para que en producción no se pierdan leads".
+  - **Aclarado con Mani:** Typeform siempre dice `setteo_no_calificado` para quien agenda (no puede
+    condicionar sobre Calendly); el CRM lo sube a `con_calendly` al ver el link. No es un bug.
+  - ⚠️ **Pendientes:** la entrega de ComunicArte de las 12:24 no había entrado (falta Redeliver); borrar
+    las pruebas (PRUEBA CRM 1 y 3, mismo lead de Tactical con deal y llamada) con el ok de Mani; el
+    Partial Submit Point lo decide el equipo; cancelar una cita en Calendly no toca la llamada (096).
+  - **Medido:** 1.097 tests, typecheck, lint y build limpios. Migraciones 0033 y 0034 aplicadas en
+    producción antes del deploy (son compatibles con el código anterior).
 
 - **2026-09-28 (CIERRE 36, mañana): 109 y 052 hechos; el cron de Sheets metió 5.343 leads y se apagó.**
   Sesión de Mani; Kiro implementó 109 y 052, revisados por la sesión principal.

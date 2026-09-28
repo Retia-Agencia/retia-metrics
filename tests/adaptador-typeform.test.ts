@@ -109,6 +109,78 @@ describe("entradaDesdeTypeform", () => {
   });
 });
 
+describe("entradaDesdeTypeform — variables genéricas (punto E del ticket 106)", () => {
+  it("captura TODAS las variables (texto y número) como columnas con prefijo reservado", () => {
+    const p = payload();
+    p.form_response.variables = [
+      { key: "estado", type: "text", text: "setteo_no_calificado" },
+      { key: "score", type: "number", number: 42 },
+      { key: "segmento", type: "text", text: "premium" },
+    ];
+    const entrada = entradaDesdeTypeform(p, OPCIONES);
+    // El prefijo `variable:` mantiene el namespace separado de hidden y de títulos.
+    expect(entrada.columnas["variable:score"]).toBe("42");
+    expect(entrada.columnas["variable:segmento"]).toBe("premium");
+    expect(entrada.columnas["variable:estado"]).toBe("setteo_no_calificado");
+  });
+
+  it("una variable desconocida entra sola a respuestas (via construirEnvio), sin tocar código", () => {
+    const p = payload();
+    p.form_response.variables = [
+      { key: "estado", type: "text", text: "setteo_no_calificado" },
+      { key: "score", type: "number", number: 7 },
+    ];
+    const r = construirEnvio(entradaDesdeTypeform(p, OPCIONES));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    // `variable:score` no es un campo promovido: cae en respuestas con su llave prefijada.
+    expect(r.envio.respuestas["variable:score"]).toBe("7");
+  });
+
+  it("un payload SIN la variable estado entra sin Estado y no revienta", () => {
+    const p = payload();
+    p.form_response.variables = [{ key: "score", type: "number", number: 1 }];
+    const r = construirEnvio(entradaDesdeTypeform(p, OPCIONES));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.envio.estado).toBeNull();
+    expect(r.envio.estadoHoja).toBeNull();
+  });
+
+  it("una fuente que apunta el Estado a OTRA variable la usa", () => {
+    const p = payload();
+    p.form_response.variables = [
+      { key: "estado", type: "text", text: "descartado" }, // la variable estándar
+      { key: "clasificacion", type: "text", text: "setteo_no_calificado" }, // la elegida
+    ];
+    // El mapeo dice que el Estado sale de la variable `clasificacion`, no de `estado`.
+    // Sin `campoAgenda` para que el link de Calendly del fixture no suba el Estado y
+    // podamos comprobar que la variable elegida se leyó tal cual.
+    const entrada = entradaDesdeTypeform(p, {
+      sourceId: "src-1",
+      zona: "America/Bogota",
+      mapeo: { variableEstado: "clasificacion" },
+    });
+    const r = construirEnvio(entrada);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.envio.estado).toBe("setteo_no_calificado");
+  });
+
+  it("una variable con el mismo nombre que un hidden NO se pisan (namespaces separados)", () => {
+    const p = payload();
+    p.form_response.hidden = { utm_source: "facebook", segmento: "de-hidden" };
+    p.form_response.variables = [
+      { key: "estado", type: "text", text: "setteo_no_calificado" },
+      { key: "segmento", type: "text", text: "de-variable" },
+    ];
+    const entrada = entradaDesdeTypeform(p, OPCIONES);
+    // El hidden queda con su nombre crudo; la variable, prefijada. Ninguna borra a la otra.
+    expect(entrada.columnas["segmento"]).toBe("de-hidden");
+    expect(entrada.columnas["variable:segmento"]).toBe("de-variable");
+  });
+});
+
 describe("estadoConAgenda (ADR 0054, segunda enmienda) — por fila, agenda del mapeo", () => {
   const AGENDA = "Agenda aquí tu entrevista";
   const conLink = { [AGENDA]: "https://calendly.com/x/y" };

@@ -117,7 +117,29 @@ export interface MapeoWebhook {
    * el mapeo, no el contenido de las respuestas.
    */
   campoAgenda?: string;
+  /**
+   * NOMBRE de la variable de Typeform que alimenta el Estado (punto E, ADR 0012). Es
+   * CONFIGURACION, no codigo: cual variable clasifica al lead lo decide el mapeo, con
+   * defecto `estado`. Sale de `sources.mapeoColumnas.estadoHoja`. El adaptador captura
+   * TODAS las variables por igual; esta solo dice cual de ellas es el Estado.
+   */
+  variableEstado?: string;
 }
+
+/** El nombre por defecto de la variable de Estado, si el mapeo no dice otra (punto E). */
+export const VARIABLE_ESTADO_POR_DEFECTO = "estado";
+
+/**
+ * El prefijo reservado con el que una VARIABLE de Typeform entra a las columnas del
+ * envio (punto E). Resuelve el choque de llaves entre una variable, un hidden y un
+ * titulo de pregunta con el mismo nombre: cada namespace es distinto, asi que
+ * `segmento` (hidden), `Segmento` (titulo) y `variable:segmento` (variable) conviven
+ * sin pisarse. Se eligio un PREFIJO y no el sufijo `(2)` de los titulos repetidos
+ * porque el sufijo solo desambigua por orden de insercion —fragil y sin decir cual
+ * valor es la variable—; el prefijo es determinista y se autodescribe en `respuestas`
+ * (un lector ve `variable:score` y sabe que es una variable, no una pregunta).
+ */
+export const PREFIJO_VARIABLE = "variable:";
 
 export interface OpcionesTypeform {
   sourceId: string;
@@ -133,6 +155,7 @@ export interface OpcionesTypeform {
  * adaptador de Sheets, ADR 0019). El mapeo de la fuente los sobreescribe.
  */
 const MAPEO_POR_DEFECTO: Partial<Record<CampoEnvio, string[]>> = {
+  nombre: ["nombre completo", "nombre"],
   correo: ["correo electronico", "correo", "email"],
   telefono: ["whatsapp", "telefono", "celular"],
 };
@@ -199,12 +222,6 @@ function textoDeRespuesta(a: z.infer<typeof respuestaSchema>): string | null {
   return primerTexto ?? null;
 }
 
-/** La variable `estado` (ADR 0054): texto, o null si el formulario no la manda. */
-function variableEstado(payload: PayloadTypeform): string | null {
-  const v = payload.form_response.variables?.find((x) => x.key === "estado");
-  return v?.text ?? (v?.number !== undefined ? String(v.number) : null);
-}
-
 /**
  * Convierte un `form_response` de Typeform en una `EntradaEnvio`.
  *
@@ -246,6 +263,23 @@ export function entradaDesdeTypeform(payload: PayloadTypeform, opciones: Opcione
   // busca por su nombre (`utm_source`, etc.), igual que en la hoja.
   for (const [llave, valor] of Object.entries(fr.hidden ?? {})) columnas[llave] = valor;
 
+  // Las VARIABLES entran TODAS como columnas, con el prefijo reservado `variable:`
+  // (punto E): una variable nueva aparece sola en `respuestas` y una que se quita deja
+  // de llegar, sin tocar codigo. El prefijo evita el choque de llaves con un hidden o un
+  // titulo de pregunta del mismo nombre. Texto o numero; cualquier otro tipo se ignora
+  // (no hay valor legible que guardar).
+  for (const v of fr.variables ?? []) {
+    const valor = v.text ?? (v.number !== undefined ? String(v.number) : undefined);
+    if (valor !== undefined) columnas[`${PREFIJO_VARIABLE}${v.key}`] = valor;
+  }
+
+  // Cual variable alimenta el Estado es CONFIGURACION (punto E, ADR 0012): el mapeo lo
+  // dice, con defecto `estado`. Se apunta el campo `estadoHoja` a la columna de esa
+  // variable (`variable:<nombre>`), igual que la fecha y el token apuntan a columnas
+  // reservadas. Asi el Estado sale del MISMO mecanismo generico que todo lo demas.
+  const nombreVariableEstado = opciones.mapeo?.variableEstado ?? VARIABLE_ESTADO_POR_DEFECTO;
+  const columnaEstado = `${PREFIJO_VARIABLE}${nombreVariableEstado}`;
+
   // El mapeo de campos: el de la fuente sobre el de por defecto. Los UTM y la fecha
   // no van en el mapeo de preguntas porque salen de sitios fijos del payload (hidden y
   // submitted_at): se ponen como columnas con su nombre estandar y el mapeo los apunta.
@@ -268,17 +302,19 @@ export function entradaDesdeTypeform(payload: PayloadTypeform, opciones: Opcione
   columnas["__submitted_at"] = fr.submitted_at ?? "";
   columnas["__token"] = fr.token;
 
-  // El Estado: la variable del formulario, mas el hecho de agendar (ADR 0054, segunda
-  // enmienda). El texto crudo que queda en `estadoHoja` es el valor del codigo
-  // (`descartado`, `setteo_no_calificado`, `con_calendly`), que `estadoDesdeTexto`
-  // reconoce tal cual.
+  // El Estado: la variable configurada (via su columna `variable:<nombre>`), mas el
+  // hecho de agendar (ADR 0054, segunda enmienda). El texto crudo que queda en
+  // `estadoHoja` es el valor del codigo (`descartado`, `setteo_no_calificado`,
+  // `con_calendly`), que `estadoDesdeTexto` reconoce tal cual. Si la variable no vino,
+  // `columnas[columnaEstado]` es undefined y el Estado queda vacio: entra sin Estado.
   //
   // La pregunta de agenda la dice el mapeo de la fuente (`campoAgenda`), no una
   // heuristica sobre las respuestas (ADR 0012). El titulo mapeado se resuelve contra
   // las columnas reales (insensible a acentos/mayusculas) para que "Agenda aqui tu
   // entrevista" case aunque el mapeo lo escriba distinto. Sin `campoAgenda`, o si esa
   // pregunta no vino en el envio, el Estado no sube a `con_calendly`.
-  const estadoBase = variableEstado(payload);
+  const valorEstado = columnas[columnaEstado];
+  const estadoBase = valorEstado === undefined || valorEstado === null ? null : String(valorEstado);
   const respuestasParaAgenda: Record<string, string | null> = {};
   for (const [k, v] of Object.entries(columnas)) respuestasParaAgenda[k] = v === null || v === undefined ? null : String(v);
   const columnaAgenda = opciones.mapeo?.campoAgenda

@@ -4,16 +4,13 @@ import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
 import { programs, sobresCrudos, sources } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { normalizarEmail } from "@/lib/sheets/mapeo";
+import { normalizarEmail, type MapeoColumnas } from "@/lib/sheets/mapeo";
 import { ingerirEntradas } from "@/lib/ingesta/ingerir";
 import { resolverCitaDeEnvio } from "@/lib/calendly/resolver-cita";
 import type { ResultadoCita } from "@/lib/ingesta/regla-de-deals";
 import type { EntradaEnvio } from "@/lib/ingesta/envio";
-import {
-  entradaDesdeTypeform,
-  payloadTypeformSchema,
-  type MapeoWebhook,
-} from "@/lib/ingesta/adaptador-typeform";
+import { mapeoWebhookDesdeFuente } from "@/lib/ingesta/mapeo-webhook";
+import { entradaDesdeTypeform, payloadTypeformSchema } from "@/lib/ingesta/adaptador-typeform";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -38,9 +35,12 @@ export const maxDuration = 60;
  * **Nunca responde con redireccion** y la ruta esta en la lista publica de `proxy.ts`
  * (un webhook no tiene sesion). La firma es la autenticacion.
  *
- * **Un envio con firma buena que NO se puede procesar** (sin correo, payload raro, o la
- * ingesta lanza) se guarda en `sobres_crudos` y la ruta responde 200 (Mani, 27-sep):
- * asi el proveedor no reintenta en bucle y el lead no se pierde, se reprocesa despues.
+ * **Caja negra (Mani, 28-sep; migracion 0034):** apenas la firma cuadra se guarda el
+ * cuerpo crudo de CADA envio en `sobres_crudos` con `error: null`. Si algo despues no se
+ * puede procesar (sin correo, payload raro, o la ingesta lanza) se ACTUALIZA esa misma
+ * fila con el error y la ruta responde 200 (una sola fila por entrega): asi el proveedor
+ * no reintenta en bucle, el lead no se pierde, y el payload queda para reprocesar.
+ * Registrar el sobre nunca tumba la ingesta del lead.
  *
  * El id de la fuente en la URL es un dato opaco, nunca un correo (regla dura). El
  * cuerpo se lee con `req.text()`, no `req.json()`: la firma se calcula sobre los BYTES
@@ -49,7 +49,6 @@ export const maxDuration = 60;
 
 /** El header de firma de Typeform: `sha256=<base64 del HMAC>`. */
 const HEADER_FIRMA = "typeform-signature";
-
 /**
  * ¿La firma del header coincide con el HMAC-SHA256 del cuerpo crudo? Comparacion en
  * tiempo constante (`timingSafeEqual`), que exige la misma longitud: se compara sobre
@@ -72,32 +71,55 @@ function firmaValida(cuerpoCrudo: string, header: string | null, secreto: string
   return recibido.length === esperado.length && timingSafeEqual(recibido, esperado);
 }
 
-/** El mapeo de una fuente webhook, tal como lo guarda `sources.mapeoColumnas`. */
-function mapeoDeFuente(mapeoColumnas: unknown): MapeoWebhook {
-  if (mapeoColumnas === null || typeof mapeoColumnas !== "object") return {};
-  const obj = mapeoColumnas as Record<string, unknown>;
-  // El mapeo reusa `sources.mapeoColumnas` (campo → patron) y separa `agenda`, que no
-  // es un campo del Envio sino el TITULO de la pregunta que el adaptador mira para el
-  // agendo (ADR 0054 segunda enmienda; ADR 0012: la decision es de configuracion). Sin
-  // `agenda` mapeada, el envio nunca sube a `con_calendly`.
-  const { agenda, ...campos } = obj;
-  return {
-    campos: campos as MapeoWebhook["campos"],
-    campoAgenda: typeof agenda === "string" ? agenda : undefined,
-  };
+/**
+ * La CAJA NEGRA (Mani, 28-sep; migracion 0034): se guarda el cuerpo crudo de CADA envio
+ * con firma buena, no solo de los que fallan. `error` nulo = se proceso bien; con texto
+ * = no se pudo (y la ruta responde 200 igual, para que el proveedor no reintente en
+ * bucle y el lead no se pierda).
+ *
+ * Es UNA sola fila por entrega: se inserta apenas la firma cuadra (con `error: null`) y,
+ * si algo falla despues, se ACTUALIZA esa misma fila con el error. Guardar el sobre
+ * NUNCA tumba la ingesta del lead: si el insert falla, se loguea y se sigue (devuelve
+ * null, y el marcado posterior intenta un insert de respaldo).
+ */
+async function registrarSobre(db: Db, sourceId: string, cuerpo: string): Promise<string | null> {
+  try {
+    const [fila] = await db
+      .insert(sobresCrudos)
+      .values({ sourceId, cuerpo, error: null })
+      .returning();
+    return fila?.id ?? null;
+  } catch (e) {
+    // La caja negra es un respaldo, no una reja: si no se puede escribir, el lead entra
+    // igual. Se loguea y se sigue.
+    console.error(`[webhook] no se pudo registrar el sobre crudo de la fuente ${sourceId}`, e);
+    return null;
+  }
 }
 
 /**
- * Guarda el sobre crudo y responde 200. Nunca lanza: si ni el sobre se puede escribir,
- * responde 200 igual (el proveedor no debe reintentar por algo que no vamos a arreglar
- * en el reintento) y deja el error en el log.
+ * Marca el sobre de ESTA entrega con el error y responde 200. Si ya hay fila
+ * (`sobreId`), la ACTUALIZA (una sola fila por entrega); si el insert inicial habia
+ * fallado (`sobreId` nulo), intenta un insert de respaldo con el error. Cualquier fallo
+ * al escribir se loguea y no cambia la respuesta: el proveedor no debe reintentar por
+ * algo que el reintento no arregla.
  */
-async function guardarSobre(db: Db, sourceId: string, cuerpo: string, error: unknown): Promise<Response> {
+async function marcarSobreConError(
+  db: Db,
+  sobreId: string | null,
+  sourceId: string,
+  cuerpo: string,
+  error: unknown,
+): Promise<Response> {
   const mensaje = error instanceof Error ? error.message : String(error);
   try {
-    await db.insert(sobresCrudos).values({ sourceId, cuerpo, error: mensaje });
+    if (sobreId !== null) {
+      await db.update(sobresCrudos).set({ error: mensaje }).where(eq(sobresCrudos.id, sobreId));
+    } else {
+      await db.insert(sobresCrudos).values({ sourceId, cuerpo, error: mensaje });
+    }
   } catch (e) {
-    console.error(`[webhook] no se pudo guardar el sobre crudo de la fuente ${sourceId}`, e);
+    console.error(`[webhook] no se pudo marcar el sobre crudo de la fuente ${sourceId}`, e);
   }
   return Response.json({ ok: false, guardado: true }, { status: 200 });
 }
@@ -195,18 +217,37 @@ export async function POST(
     return Response.json({ error: "No autorizado." }, { status: 401 });
   }
 
-  // 3. A partir de aqui la firma es buena. Cualquier cosa que salga mal —payload raro,
-  // sin correo, la ingesta lanza— NO se pierde: se guarda el sobre y se responde 200.
+  // 3. Firma buena. La CAJA NEGRA guarda el cuerpo crudo YA (con `error: null`): pase lo
+  // que pase despues, el payload queda para reprocesar (Mani, 28-sep). Si algo falla, se
+  // ACTUALIZA esta misma fila con el error (una sola fila por entrega). Registrar el
+  // sobre no puede tumbar la ingesta: si el insert falla, `sobreId` queda null y se sigue.
+  const sobreId = await registrarSobre(db, fila.id, cuerpo);
+
+  // El mapeo se resuelve con la MISMA precedencia que la hoja (fuente ← plantilla del
+  // programa ← defecto) y en el MISMO modulo (`combinarMapeo`, via
+  // `mapeoWebhookDesdeFuente`, tarea B del ticket 106). La plantilla del programa se lee
+  // aqui, no del payload. Si el programa no existe, `plantillaLead` queda nula y el mapeo
+  // cae a la fuente y al defecto.
+  const [programa] = await db
+    .select({ plantillaLead: programs.plantillaLead })
+    .from(programs)
+    .where(eq(programs.id, fila.programId))
+    .limit(1);
+  const mapeo = mapeoWebhookDesdeFuente(
+    fila.mapeoColumnas as MapeoColumnas | null,
+    (programa?.plantillaLead as MapeoColumnas | null) ?? null,
+  );
+
   let entrada;
   try {
     const payload = payloadTypeformSchema.parse(JSON.parse(cuerpo));
     entrada = entradaDesdeTypeform(payload, {
       sourceId: fila.id,
       zona: fila.tzFechas,
-      mapeo: mapeoDeFuente(fila.mapeoColumnas),
+      mapeo,
     });
   } catch (error) {
-    return guardarSobre(db, fila.id, cuerpo, error);
+    return marcarSobreConError(db, sobreId, fila.id, cuerpo, error);
   }
 
   // 4. La ingesta, con la regla de deals encendida (ticket 052). El programa sale de la
@@ -225,16 +266,23 @@ export async function POST(
     });
 
     // Un envio con firma buena y correo ausente entra como envio "sin lead": no es un
-    // error de la ingesta, pero tampoco hay lead que crear. Se guarda el sobre para
-    // poder recuperarlo (una vez que se sepa a que persona pertenece) y se responde
-    // 200. Un envio PARCIAL sin correo es normal (empezo el formulario y se fue): ese
-    // no se guarda como sobre, ya quedo como submission.
+    // error de la ingesta, pero tampoco hay lead que crear. Se marca el sobre con el
+    // motivo para poder recuperarlo (una vez que se sepa a que persona pertenece) y se
+    // responde 200. Un envio PARCIAL sin correo es normal (empezo el formulario y se
+    // fue): ese no se marca con error, el sobre queda como procesado (error null).
     if (!entrada.esParcial && resultado.enviosSinLead > 0) {
-      return guardarSobre(db, fila.id, cuerpo, new Error("Envio completo sin correo: no hay lead que crear."));
+      return marcarSobreConError(
+        db,
+        sobreId,
+        fila.id,
+        cuerpo,
+        new Error("Envio completo sin correo: no hay lead que crear."),
+      );
     }
 
+    // Todo salio bien: el sobre ya quedo guardado con `error: null` (caja negra).
     return Response.json({ ok: true }, { status: 200 });
   } catch (error) {
-    return guardarSobre(db, fila.id, cuerpo, error);
+    return marcarSobreConError(db, sobreId, fila.id, cuerpo, error);
   }
 }

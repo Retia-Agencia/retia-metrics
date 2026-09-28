@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0057)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0059)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -27,6 +27,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0055](./0055-el-webhook-estandar-de-formularios.md) | Un webhook estándar para cualquier formulario; el programa sale de la URL |
 | [0056](./0056-el-motor-decide-quien-mueve-con-que-motivo-y-datos.md) | El motor decide quién mueve, con qué motivo (cuatro listas) y con qué datos |
 | [0057](./0057-el-programa-lleva-su-formulario-y-su-token-de-calendly.md) | El programa lleva su formulario y su token de Calendly (segundo secreto en la base) |
+| [0058](./0058-el-webhook-no-pierde-nada.md) | El webhook no pierde nada: caja negra, variables genéricas, un solo mapeo, nombre del lead, re-agenda |
 | [0043](./0043-el-area-agrupa-y-el-programa-es-frontera.md) | El Área agrupa por origen; el Programa es frontera, no filtro |
 
 **El deal y la operación**

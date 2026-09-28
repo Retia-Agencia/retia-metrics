@@ -581,6 +581,12 @@ export const submissions = pgTable(
     utmMedium: text("utm_medium"),
     utmCampaign: text("utm_campaign"),
     /**
+     * El nombre que la persona escribio en ESTE envio. Promovido porque el resumen del
+     * lead (`leads.nombre`, lo que busca Personas) se recalcula desde los envios
+     * guardados, y `respuestas` no dice cual pregunta es la del nombre (migracion 0033).
+     */
+    nombre: text("nombre"),
+    /**
      * ⚠️ `utmTerm` y `utmContent` existen pero estan DELIBERADAMENTE SIN LEER
      * (Mani, 21-sep; ADR 0045 enmienda 2). El estandar de UTM son TRES campos:
      * source, medium y campaign. No hay nivel de conjunto ni de anuncio, asi que
@@ -633,10 +639,12 @@ export const submissions = pgTable(
 );
 
 /**
- * Un envio de webhook que llego con la firma buena y NO se pudo procesar (ticket 106,
- * Mani 27-sep): contenido malo, sin correo, o la ingesta fallo. Se guarda el cuerpo tal
- * como llego y la ruta responde 200, para que el proveedor no reintente en bucle y el
- * lead no se pierda: se puede reprocesar despues.
+ * El cuerpo de CADA envio de webhook que llego con la firma buena, tal como llego
+ * (Mani, 28-sep; migracion 0034). Es la caja negra: pase lo que pase con el adaptador
+ * (una variable nueva, un tipo de pregunta desconocido), el payload original queda y se
+ * puede reprocesar. `error` nulo = se proceso bien; con texto = NO se pudo procesar
+ * (contenido malo, sin correo, o la ingesta fallo; ticket 106, Mani 27-sep) y la ruta
+ * respondio 200 igual, para que el proveedor no reintente en bucle y el lead no se pierda.
  *
  * `cuerpo` es texto y no jsonb a proposito: lo que no se pudo leer puede no ser JSON, y
  * la firma se calcula sobre los bytes exactos.
@@ -649,15 +657,17 @@ export const sobresCrudos = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     sourceId: uuid("source_id").notNull().references(() => sources.id, { onDelete: "restrict" }),
     cuerpo: text("cuerpo").notNull(),
-    error: text("error").notNull(),
+    /** Nulo = se proceso bien. Con texto = por que no se pudo procesar. */
+    error: text("error"),
     recibidoEn: timestamp("recibido_en", { withTimezone: true }).notNull().defaultNow(),
     /** Nulo mientras nadie lo haya reprocesado. Lo cuenta el aviso de la fuente (107). */
     reprocesadoEn: timestamp("reprocesado_en", { withTimezone: true }),
   },
   (t) => [
+    // Pendiente = fallo y nadie lo reproceso. Los que entraron bien no son pendientes.
     index("sobres_crudos_pendientes_idx")
       .on(t.sourceId)
-      .where(sql`${t.reprocesadoEn} is null`),
+      .where(sql`${t.error} is not null and ${t.reprocesadoEn} is null`),
   ],
 );
 

@@ -130,6 +130,42 @@ describe("construirEnvio", () => {
     expect(r.envio.utmMedium).toBeNull();
   });
 
+  it('el centinela "xxxxx" en un UTM se trata como sin UTM (null), sin mayusculas ni espacios (Mani, 28-sep)', () => {
+    // El Forms Link de los programas trae utm_*=xxxxx como plantilla; el link crudo llega
+    // "xxxxx". Es un centinela de "sin UTM", no un dato. Camino de HOJA.
+    const fila = [...FILA];
+    fila[4] = "xxxxx"; // utm_source
+    fila[5] = " XXXXX "; // utm_medium (mayusculas y espacios)
+    fila[6] = "Xxxxx"; // utm_campaign
+    const [e] = entradasDesdeMatriz([ENCABEZADOS, fila], FUENTE);
+    const r = construirEnvio(e);
+    if (!r.ok) throw new Error("debia construir");
+    expect(r.envio.utmSource).toBeNull();
+    expect(r.envio.utmMedium).toBeNull();
+    expect(r.envio.utmCampaign).toBeNull();
+  });
+
+  it('el centinela "xxxxx" tampoco queda en utm_term ni utm_content (capturados, en respuestas)', () => {
+    const fila = [...FILA];
+    fila[7] = "xxxxx"; // utm_term
+    fila[8] = "XXXXX"; // utm_content
+    const [e] = entradasDesdeMatriz([ENCABEZADOS, fila], FUENTE);
+    const r = construirEnvio(e);
+    if (!r.ok) throw new Error("debia construir");
+    expect(r.envio.respuestas["utm_term"]).toBeNull();
+    expect(r.envio.respuestas["utm_content"]).toBeNull();
+  });
+
+  it('"xxxxx" en una respuesta que NO es UTM se conserva tal cual (ADR 0004)', () => {
+    // El centinela es SOLO de UTM. Una respuesta de negocio con ese texto no se toca.
+    const fila = [...FILA];
+    fila[3] = "xxxxx"; // ¿Cuanto ganas mensualmente?
+    const [e] = entradasDesdeMatriz([ENCABEZADOS, fila], FUENTE);
+    const r = construirEnvio(e);
+    if (!r.ok) throw new Error("debia construir");
+    expect(r.envio.respuestas["¿Cuanto ganas mensualmente?"]).toBe("xxxxx");
+  });
+
   it("un parcial de Typeform (fecha placeholder 1/1/0001) es parcial y sin fecha", () => {
     const fila = [...FILA];
     fila[9] = "1/1/0001 0:00:00";
@@ -192,6 +228,7 @@ describe("la misma puerta para un webhook (048)", () => {
         token: "Token",
         correo: "Correo electronico",
         telefono: "WhatsApp",
+        nombre: "Nombre completo",
         fechaEnvio: "Submitted At",
         estadoHoja: "Estado",
         utmSource: "utm_source",

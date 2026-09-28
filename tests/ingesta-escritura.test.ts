@@ -27,6 +27,7 @@ const CAMPOS = {
   token: "Token",
   correo: "Correo",
   telefono: "WhatsApp",
+  nombre: "Nombre completo",
   fechaEnvio: "Submitted At",
   estadoHoja: "Estado",
   utmSource: "utm_source",
@@ -39,6 +40,7 @@ function entrada(o: {
   token: string;
   correo?: string;
   telefono?: string;
+  nombre?: string;
   fecha?: string | null;
   posicion?: number | null;
   utmSource?: string;
@@ -55,6 +57,7 @@ function entrada(o: {
       Token: o.token,
       Correo: o.correo ?? "",
       WhatsApp: o.telefono ?? "",
+      "Nombre completo": o.nombre ?? "",
       "Submitted At": o.fecha === null ? "1/1/0001 0:00:00" : (o.fecha ?? "2026-09-20T15:00:00Z"),
       Estado: o.estado ?? "",
       utm_source: o.utmSource ?? "",
@@ -296,9 +299,93 @@ describe("ingerirEntradas: el Estado lo pone el formulario (ADR 0054, ticket 051
   });
 });
 
+describe("ingerirEntradas: el nombre del lead y sus contactos (tarea A del ticket 106)", () => {
+  it("el nombre se escribe en submissions.nombre y en leads.nombre", async () => {
+    await ingerirEntradas(db, programId, [
+      entrada({ token: "t1", correo: "ana@correo.co", nombre: "Ana Pérez", fecha: "2026-09-20T15:00:00Z" }),
+    ]);
+    const [envio] = await db.select().from(submissions);
+    expect(envio.nombre).toBe("Ana Pérez");
+    const [lead] = await db.select().from(leads);
+    expect(lead.nombre).toBe("Ana Pérez");
+  });
+
+  it("un nombre con solo espacios queda null (no un nombre en blanco)", async () => {
+    await ingerirEntradas(db, programId, [
+      entrada({ token: "t1", correo: "ana@correo.co", nombre: "   " }),
+    ]);
+    const [envio] = await db.select().from(submissions);
+    expect(envio.nombre).toBeNull();
+    const [lead] = await db.select().from(leads);
+    expect(lead.nombre).toBeNull();
+  });
+
+  it("cuando llega un envio con nombre, el lead lo adquiere y deja rastro en change_log", async () => {
+    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", fecha: null })]);
+    let [lead] = await db.select().from(leads);
+    expect(lead.nombre).toBeNull();
+
+    await ingerirEntradas(db, programId, [
+      entrada({ token: "t1", correo: "ana@correo.co", nombre: "Ana Pérez", fecha: "2026-09-20T15:00:00Z" }),
+    ]);
+    [lead] = await db.select().from(leads);
+    expect(lead.nombre).toBe("Ana Pérez");
+    const rastro = await db
+      .select()
+      .from(changeLog)
+      .where(eq(changeLog.registroId, lead.id));
+    expect(rastro.map((c) => c.campo)).toContain("nombre");
+  });
+
+  it("🩸 un lead con nombre NO lo pierde cuando llega un envio anonimo", async () => {
+    await ingerirEntradas(db, programId, [
+      entrada({ token: "t1", correo: "ana@correo.co", nombre: "Ana Pérez", fecha: "2026-09-20T15:00:00Z", posicion: 2 }),
+    ]);
+    // Un re-envio (otro token) sin nombre: el resumen se recalcula, pero el nombre se
+    // conserva porque el lead ya tenia uno.
+    await ingerirEntradas(db, programId, [
+      entrada({ token: "t2", correo: "ana@correo.co", fecha: "2026-09-25T15:00:00Z", posicion: 3 }),
+    ]);
+    const [lead] = await db.select().from(leads);
+    expect(lead.nombre).toBe("Ana Pérez");
+  });
+
+  it("todo correo y todo telefono de todos los envios terminan en lead_contactos", async () => {
+    // Dos envios con datos de contacto distintos: el correo manda (mismo lead), y el
+    // segundo telefono entra como contacto no principal. El principal es el primero.
+    await ingerirEntradas(db, programId, [
+      entrada({ token: "t1", correo: "ana@correo.co", telefono: "+573001234567", nombre: "Ana", posicion: 2 }),
+    ]);
+    await ingerirEntradas(db, programId, [
+      entrada({ token: "t2", correo: "ana@correo.co", telefono: "3119998877", posicion: 3 }),
+    ]);
+    const contactos = await db.select().from(leadContactos);
+    // El correo y los dos telefonos, todos guardados.
+    const correos = contactos.filter((c) => c.tipo === "correo").map((c) => c.valor);
+    const telefonos = contactos.filter((c) => c.tipo === "telefono").map((c) => c.valor).sort();
+    expect(correos).toEqual(["ana@correo.co"]);
+    expect(telefonos).toEqual(["3119998877", "573001234567"]);
+    // El principal es el primero; leads.telefono es ese.
+    const [lead] = await db.select().from(leads);
+    expect(lead.telefono).toBe("573001234567");
+  });
+
+  it("el formato +57 de Typeform se normaliza a digitos como principal", async () => {
+    await ingerirEntradas(db, programId, [
+      entrada({ token: "t1", correo: "ana@correo.co", telefono: "+573001234567" }),
+    ]);
+    const [lead] = await db.select().from(leads);
+    expect(lead.telefono).toBe("573001234567");
+    const [tel] = await db.select().from(leadContactos).where(eq(leadContactos.tipo, "telefono"));
+    expect(tel.valor).toBe("573001234567");
+    expect(tel.esPrincipal).toBe(true);
+  });
+});
+
 describe("resumirEnvios", () => {
   const base = {
     sourceId: "s",
+    nombre: null,
     utmMedium: null,
     utmCampaign: null,
     posicionEnHoja: null,
@@ -320,5 +407,65 @@ describe("resumirEnvios", () => {
     expect(r.fechaUltimaAplicacion?.toISOString()).toBe("2026-09-10T00:00:00.000Z");
     expect(r.utmSource).toBe("facebook");
     expect(r.numAplicaciones).toBe(3);
+  });
+
+  describe("el nombre (tarea A del ticket 106)", () => {
+    it("toma el del envio COMPLETO mas reciente con nombre no vacio", () => {
+      const r = resumirEnvios(
+        [
+          { ...base, token: "a", fechaEnvio: new Date("2026-09-01T00:00:00Z"), utmSource: null, nombre: "Ana Vieja" },
+          { ...base, token: "b", fechaEnvio: new Date("2026-09-10T00:00:00Z"), utmSource: null, nombre: "Ana Nueva" },
+        ],
+        null,
+      );
+      expect(r.nombre).toBe("Ana Nueva");
+    });
+
+    it("un completo con nombre le gana a un parcial POSTERIOR sin nombre", () => {
+      const r = resumirEnvios(
+        [
+          { ...base, token: "a", fechaEnvio: new Date("2026-09-01T00:00:00Z"), utmSource: null, nombre: "Ana" },
+          { ...base, token: "b", esParcial: true, fechaEnvio: new Date("2026-09-10T00:00:00Z"), utmSource: null, nombre: null },
+        ],
+        null,
+      );
+      expect(r.nombre).toBe("Ana");
+    });
+
+    it("si ningun completo trae nombre, toma el del parcial mas reciente con nombre", () => {
+      const r = resumirEnvios(
+        [
+          { ...base, token: "a", esParcial: true, fechaEnvio: new Date("2026-09-01T00:00:00Z"), utmSource: null, nombre: "Ana Parcial 1" },
+          { ...base, token: "b", esParcial: true, fechaEnvio: new Date("2026-09-05T00:00:00Z"), utmSource: null, nombre: "Ana Parcial 2" },
+        ],
+        null,
+      );
+      expect(r.nombre).toBe("Ana Parcial 2");
+    });
+
+    it("un envio sin fecha con nombre aporta cuando ninguno fechado lo trae", () => {
+      const r = resumirEnvios(
+        [{ ...base, token: "a", esParcial: true, fechaEnvio: null, utmSource: null, nombre: "Ana Sin Fecha" }],
+        null,
+      );
+      expect(r.nombre).toBe("Ana Sin Fecha");
+    });
+
+    it("🩸 si NINGUN envio trae nombre, conserva el nombre actual del lead", () => {
+      const r = resumirEnvios(
+        [{ ...base, token: "a", fechaEnvio: new Date("2026-09-01T00:00:00Z"), utmSource: null, nombre: null }],
+        null,
+        "Nombre Creado A Mano",
+      );
+      expect(r.nombre).toBe("Nombre Creado A Mano");
+    });
+
+    it("sin nombre en los envios y sin nombre actual, queda null", () => {
+      const r = resumirEnvios(
+        [{ ...base, token: "a", fechaEnvio: new Date("2026-09-01T00:00:00Z"), utmSource: null, nombre: null }],
+        null,
+      );
+      expect(r.nombre).toBeNull();
+    });
   });
 });

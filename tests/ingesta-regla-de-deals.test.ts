@@ -82,9 +82,21 @@ describe("decidirAccionDeDeal: la tabla del insumo §3.1, fila por fila", () => 
   );
 
   it.each(["agendado", "atendido", "compromiso_verbal", "abonado"] as const)(
-    "con_calendly con deal en %s (4, 5, 6 o 7) notifica re-envio, sin mover",
+    "con_calendly + cita vigente con deal en %s (4, 5, 6 o 7) agrega la llamada, sin mover",
     (etapa) => {
+      // Mani, 28-sep: una re-agenda con cita nueva no se pierde. El deal no se mueve.
       expect(decidirAccionDeDeal("con_calendly", conDeal(etapa), CITA_VIGENTE)).toEqual({
+        tipo: "agregar_llamada",
+        etapa,
+        llamada: { inicio: CITA_VIGENTE.inicio, uuidInvitado: "UU-1" },
+      });
+    },
+  );
+
+  it.each(["agendado", "atendido", "compromiso_verbal", "abonado"] as const)(
+    "con_calendly + cita NO vigente con deal en %s (4, 5, 6 o 7) notifica re-envio, sin mover",
+    (etapa) => {
+      expect(decidirAccionDeDeal("con_calendly", conDeal(etapa), { estado: "cancelada" })).toEqual({
         tipo: "notificar_reenvio",
         etapa,
       });
@@ -371,10 +383,10 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
       citasPorCorreo: citas("ana@correo.co", CITA_VIGENTE),
     });
     expect(await db.select().from(calls).where(eq(calls.dealId, deal.id))).toHaveLength(1);
-    expect(r.reglaDeDeals[0].accion.tipo).toBe("notificar_reenvio");
+    expect(r.reglaDeDeals[0].accion.tipo).toBe("agregar_llamada");
   });
 
-  it("con_calendly con el deal ya avanzado (Atendido) NO mueve y reporta notificar_reenvio", async () => {
+  it("con_calendly con el deal ya avanzado (Agendado) NO mueve y agrega la llamada de la cita", async () => {
     // Lead con deal, llevado a Agendado (etapa 4, "avanzada") con su cita vigente.
     await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: "setteo_no_calificado" })], {
       aplicarReglaDeDeals: true,
@@ -397,7 +409,7 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     });
     const historialDespues = await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, deal.id));
     expect(historialDespues).toHaveLength(historialAntes.length); // no hubo movimiento
-    expect(r.reglaDeDeals[0].accion).toEqual({ tipo: "notificar_reenvio", etapa: "agendado" });
+    expect(r.reglaDeDeals[0].accion).toMatchObject({ tipo: "agregar_llamada", etapa: "agendado" });
   });
 
   it("un lead con deal completo (cerrado) es 'sin deal abierto': con_calendly abre uno NUEVO en Agendado", async () => {

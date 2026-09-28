@@ -13,6 +13,7 @@ export const MAPEO_ENVIO: Record<CampoEnvio, string> = {
   token: "token",
   correo: "correo electronico",
   telefono: "whatsapp",
+  nombre: "nombre completo",
   fechaEnvio: "submitted at",
   estadoHoja: "estado",
   utmSource: "utm_source",

@@ -126,8 +126,12 @@ describe("POST /api/webhooks/formularios/[fuente]", () => {
     const contactos = await db.select().from(leadContactos);
     expect(contactos.map((c) => c.tipo).sort()).toEqual(["correo", "telefono"]);
 
-    // Nada en sobres_crudos: se proceso bien.
-    expect(await db.select().from(sobresCrudos)).toHaveLength(0);
+    // Caja negra (Mani, 28-sep): se guarda el cuerpo de CADA envio, incluso el que salio
+    // bien, con error null.
+    const sobres = await db.select().from(sobresCrudos);
+    expect(sobres).toHaveLength(1);
+    expect(sobres[0].error).toBeNull();
+    expect(sobres[0].cuerpo).toBe(cuerpo);
   });
 
   it("firma mala: 401 y la base no se mueve", async () => {
@@ -170,6 +174,8 @@ describe("POST /api/webhooks/formularios/[fuente]", () => {
     expect(sobres).toHaveLength(1);
     expect(sobres[0].sourceId).toBe(sourceId);
     expect(sobres[0].cuerpo).toBe(cuerpo);
+    // Una sola fila por entrega: se registro con error null y se ACTUALIZO con el motivo.
+    expect(sobres[0].error).toContain("sin correo");
     // No se creo lead: no habia a quien.
     expect(await db.select().from(leads)).toHaveLength(0);
   });
@@ -181,6 +187,7 @@ describe("POST /api/webhooks/formularios/[fuente]", () => {
     const sobres = await db.select().from(sobresCrudos);
     expect(sobres).toHaveLength(1);
     expect(sobres[0].cuerpo).toBe(cuerpo);
+    expect(sobres[0].error).not.toBeNull();
   });
 
   it("sin agenda en el mapeo de la fuente, el mismo envio NO sube a con_calendly", async () => {
