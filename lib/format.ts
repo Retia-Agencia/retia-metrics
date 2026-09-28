@@ -130,6 +130,28 @@ export function fechaDeInstanteEnBogota(instante: Date | string): string {
   );
 }
 
+/**
+ * Un instante escrito con su HORA en Bogota: "14 ago 2026, 19:05". Lo pide la
+ * pantalla de salud del CRM (ticket 110), donde una entrega del webhook a las 7pm y
+ * otra a las 11pm son eventos distintos y la hora importa. TODA fecha del sistema es
+ * de Bogota (AGENTS.md): la zona va EXPLICITA, no se deja al proceso (Vercel corre en
+ * UTC), y por eso no se usa `new Date().toLocaleString()` sin `timeZone`.
+ */
+export function fechaHoraEnBogota(instante: Date | string): string {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(instante));
+  const p = Object.fromEntries(partes.filter((x) => x.type !== "literal").map((x) => [x.type, x.value]));
+  const nombre = MESES[Number(p.month) - 1] ?? p.month;
+  return `${Number(p.day)} ${nombre} ${p.year}, ${p.hour}:${p.minute}`;
+}
+
 export function fecha(iso: string): string {
   const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!partes) return iso;

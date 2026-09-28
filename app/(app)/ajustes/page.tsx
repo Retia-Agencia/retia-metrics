@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Boxes, Database, ListChecks, Users } from "lucide-react";
+import { Activity, Boxes, Database, ListChecks, Users } from "lucide-react";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { esAdministrador } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -55,6 +55,14 @@ const ENLACES = [
     titulo: "Usuarios",
     descripcion:
       "Quién puede entrar, con qué rol y en qué programas vende cada closer: se agregan, editan y desactivan sin CLI.",
+    soloAdministradores: true,
+  },
+  {
+    href: "/ajustes/salud",
+    icono: Activity,
+    titulo: "Salud del CRM",
+    descripcion:
+      "Cada entrega del webhook por programa —código HTTP, motivo y el lead que trajo—, la conciliación con Sheets y el aviso de fuentes en silencio.",
     soloAdministradores: true,
   },
 ] as const;
