@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: retia-metrics-db-local
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: retia_local
+    ports:
+      - "54329:5432"
+    volumes:
+      - retia_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d retia_local"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+volumes:
+  retia_postgres_data:
+    name: retia_metrics_postgres_data

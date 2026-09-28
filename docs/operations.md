@@ -13,10 +13,11 @@ medido ese día.
 
 ## 1. Entornos
 
-| Entorno | App | Base | Estado al 27-sep |
+| Entorno | App | Base | Estado al 28-sep |
 |---|---|---|---|
 | Producción (Vercel) | rama `main`, alias `retia-metrics-seven.vercel.app` | Supabase "CRM Retia" (desde el 28-sep; antes seguía en Neon) | ✅ |
-| Local | `npm run dev` (http://localhost:3000) | **la misma base de producción**: no hay otra (ADR 0047, enmienda del 28-sep) | ⚠️ |
+| Local (Docker, desarrollo) | `npm run dev:local` (http://localhost:3000) | Postgres 17 local en Docker (puerto 54329, ticket 113) con datos de prueba | ✅ |
+| Local (Producción) | `npm run dev` (http://localhost:3000) | Supabase de producción: pide ok de Mani para escrituras | ⚠️ |
 | Preview (Vercel) | cada rama | ninguna: sin `DATABASE_URL` a propósito, se trabaja en `main` | — |
 
 - **Supabase:** organización "Agencia - Dani", plan gratis. **Un solo proyecto, "CRM Retia", que es producción** (Mani, 28-sep): ref `hfqmiyiuyqapdsbywrag`,
@@ -105,11 +106,41 @@ todas las migraciones, la Data API apagada, la configuración sembrada y los mot
 cargar los enlaces de pago (`cargar-enlaces-pago`, el JSON lo tiene Mani) y dar de alta a los closers
 reales desde `/ajustes/usuarios` (ticket 007).
 
+### 4.1 Base local para desarrollo de pantallas (Ticket 113)
+
+Para construir y probar pantallas (como el Kanban de Deals o el Inbox) sin escribir en la base de producción ni arriesgar datos reales:
+
+1. **Levantar base local y sembrar (un solo comando):**
+   ```bash
+   npm run db:local
+   ```
+   Levanta Postgres 17 en Docker (`retia-metrics-db-local` en puerto `54329`), espera a que acepte conexiones, aplica todas las migraciones de `drizzle/` con `drizzle-kit migrate` y ejecuta la siembra (`scripts/seed-local.ts`).
+
+2. **Iniciar la app contra la base local:**
+   ```bash
+   npm run dev:local
+   ```
+   Sobreescribe `DATABASE_URL` y `DATABASE_URL_DIRECTA` en el proceso hacia `postgresql://postgres:postgres@127.0.0.1:54329/retia_local` sin tocar `.env.local`.
+
+3. **Guardia contra producción:**
+   Tanto `db:local` como `dev:local` y `seed:local` verifican estrictamente que la URL apunte a `localhost` o `127.0.0.1`, y rechazan cualquier host de Supabase o producción.
+
+4. **Reinicio limpio:**
+   ```bash
+   docker compose down -v && npm run db:local
+   ```
+
+5. **Variables de Auth.js y Login Local:**
+   La app requiere `AUTH_SECRET`, `AUTH_GOOGLE_ID` y `AUTH_GOOGLE_SECRET` configuradas en `.env.local` (o entorno) con redirect URI `http://localhost:3000/api/auth/callback/google` en Google Cloud para autenticar mediante Google OAuth contra los usuarios sembrados (`users`). Un modo de login local desacoplado de Google OAuth queda pendiente como tarea de producto.
+
 ## 5. Scripts
 
 | Comando | Qué hace |
 |---|---|
 | `npm run dev` · `build` · `start` | la app |
+| `npm run dev:local` | la app apuntando exclusivamente a la base local de Docker (sin tocar `.env.local`) |
+| `npm run db:local` | levanta Docker Postgres 17, espera conexión, migra y siembra la base local (ticket 113) |
+| `npm run seed:local` | re-siembra la base local con datos de ejemplo (idempotente) |
 | `npm test` · `typecheck` · `lint` | los tres chequeos; una etapa no se cierra sin los tres limpios |
 | `npm run db:generate` · `db:migrate` · `db:studio` | migraciones (ver §4) |
 | `npm run setup` | arma el `.env.local` |

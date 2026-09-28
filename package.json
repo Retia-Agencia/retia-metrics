@@ -23,7 +23,10 @@
     "comparar": "tsx scripts/comparar-pestanas.ts",
     "seed:datos": "tsx scripts/seed-datos.ts",
     "usuarios": "tsx scripts/usuarios.ts",
-    "cargar-motivos": "tsx scripts/cargar-motivos.ts"
+    "cargar-motivos": "tsx scripts/cargar-motivos.ts",
+    "db:local": "tsx scripts/db-local.ts",
+    "dev:local": "tsx scripts/dev-local.ts",
+    "seed:local": "tsx scripts/seed-local.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
