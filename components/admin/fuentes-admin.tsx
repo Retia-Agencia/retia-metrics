@@ -181,7 +181,9 @@ function ProgramaCard({ programa }: { programa: ProgramaConFuentes }) {
             onGuardar={(b) =>
               correr(
                 () => crearFuenteAccion(aEntrada(b, programa.id)),
-                "Fuente creada (inactiva: pruébala y actívala)",
+                b.tipo === "webhook"
+                  ? "Fuente creada (inactiva: genera el secreto y actívala)"
+                  : "Fuente creada (inactiva: pruébala y actívala)",
                 () => setCreando(false),
               )
             }
