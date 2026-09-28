@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -16,8 +16,10 @@ import {
   editarFuenteAccion,
   editarPlantillaLeadAccion,
   probarFuenteAccion,
+  rotarSecretoFuenteAccion,
   type ResultadoAccion,
 } from "@/app/(app)/ajustes/fuentes/acciones";
+import { PROVEEDORES_FORMULARIO, rutaDelWebhook, type ProveedorFormulario } from "@/lib/catalogo/fuentes-webhook";
 import type { ColumnaResuelta } from "@/lib/sheets/probar-fuente";
 import {
   aMapeo,
@@ -38,6 +40,9 @@ import {
  *
  * El mapeo se edita como pares campo→patron. Un patron con "|" es una lista de
  * alternativas (se parte al guardar). El ID de la hoja se muestra truncado (S-13).
+ *
+ * Una fuente webhook (ticket 105) no tiene hoja: tiene proveedor, una URL derivada
+ * para pegar en el formulario y un secreto que se ve UNA sola vez, al generarlo.
  */
 
 export interface FuenteVista {
@@ -49,6 +54,8 @@ export interface FuenteVista {
   tab: string | null;
   rango: string;
   mapeoColumnas: MapeoColumnas;
+  proveedor: ProveedorFormulario | null;
+  tieneSecreto: boolean;
   activo: boolean;
   ultimaSync: string | null;
   orden: number;
@@ -62,7 +69,11 @@ export interface ProgramaConFuentes {
   fuentes: FuenteVista[];
 }
 
+type TipoBorrador = "google_sheet" | "webhook";
+
 interface Borrador {
+  tipo: TipoBorrador;
+  proveedor: ProveedorFormulario;
   nombre: string;
   sheetId: string;
   tab: string;
@@ -71,6 +82,8 @@ interface Borrador {
 }
 
 const BORRADOR_VACIO: Borrador = {
+  tipo: "google_sheet",
+  proveedor: PROVEEDORES_FORMULARIO[0],
   nombre: "",
   sheetId: "",
   tab: "",
@@ -80,6 +93,8 @@ const BORRADOR_VACIO: Borrador = {
 
 function aBorrador(f: FuenteVista): Borrador {
   return {
+    tipo: f.tipo === "webhook" ? "webhook" : "google_sheet",
+    proveedor: f.proveedor ?? PROVEEDORES_FORMULARIO[0],
     nombre: f.nombre,
     sheetId: f.sheetId ?? "",
     tab: f.tab ?? "",
@@ -185,6 +200,7 @@ function ProgramaCard({ programa }: { programa: ProgramaConFuentes }) {
               key={f.id}
               titulo={`Editar ${f.nombre}`}
               inicial={aBorrador(f)}
+              tipoFijo
               pendiente={pendiente}
               onCancelar={() => setEditando(null)}
               onGuardar={(b) =>
@@ -226,8 +242,45 @@ function FilaFuente({
   onActivar: () => void;
   onDesactivar: () => void;
 }) {
+  const router = useRouter();
   const [probando, startProbar] = useTransition();
   const [prueba, setPrueba] = useState<ColumnaResuelta[] | null>(null);
+  const [rotando, startRotar] = useTransition();
+  // El secreto recien generado vive SOLO en el estado de este componente: no hay forma
+  // de volver a pedirlo al servidor. Al recargar la pagina desaparece.
+  const [secretoNuevo, setSecretoNuevo] = useState<string | null>(null);
+  const esWebhook = fuente.tipo === "webhook";
+  // El origen solo existe en el navegador: en el servidor es "" y React lo reemplaza
+  // al hidratar, sin que los dos HTML discrepen.
+  const origen = useSyncExternalStore(sinSuscripcion, origenDelNavegador, () => "");
+  const url = `${origen}${rutaDelWebhook(fuente.id)}`;
+
+  function rotar() {
+    if (
+      fuente.tieneSecreto &&
+      !window.confirm(
+        "El secreto actual deja de funcionar en el acto. Tendrás que pegar el nuevo en el formulario enseguida. ¿Seguir?",
+      )
+    ) {
+      return;
+    }
+    startRotar(async () => {
+      const res = await rotarSecretoFuenteAccion(fuente.id);
+      if (res.ok) {
+        setSecretoNuevo(res.secreto);
+        router.refresh();
+      } else {
+        toast.error("No se pudo generar el secreto", { description: res.error });
+      }
+    });
+  }
+
+  function copiar(texto: string, que: string) {
+    navigator.clipboard.writeText(texto).then(
+      () => toast.success(`${que} copiado`),
+      () => toast.error(`No se pudo copiar ${que.toLowerCase()}`),
+    );
+  }
 
   function probar() {
     startProbar(async () => {
@@ -247,12 +300,26 @@ function FilaFuente({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <span className="font-medium">{fuente.nombre}</span>
-          <span className="ml-2 text-muted-foreground">· {fuente.tab}</span>
-          <span className="block text-xs text-muted-foreground">
-            hoja {truncarId(fuente.sheetId)} · rango {fuente.rango}
-          </span>
+          {esWebhook ? (
+            <>
+              <span className="ml-2 text-muted-foreground">· webhook de {fuente.proveedor}</span>
+              <span className="block break-all text-xs text-muted-foreground">{url}</span>
+            </>
+          ) : (
+            <>
+              <span className="ml-2 text-muted-foreground">· {fuente.tab}</span>
+              <span className="block text-xs text-muted-foreground">
+                hoja {truncarId(fuente.sheetId)} · rango {fuente.rango}
+              </span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-2">
+          {esWebhook && !fuente.tieneSecreto ? (
+            <Badge variant="outline" className="text-muted-foreground">
+              sin secreto
+            </Badge>
+          ) : null}
           {fuente.activo ? (
             <Badge variant="secondary">activa</Badge>
           ) : (
@@ -266,9 +333,20 @@ function FilaFuente({
         <Button size="sm" variant="ghost" disabled={pendiente} onClick={onEditar}>
           Editar
         </Button>
-        <Button size="sm" variant="ghost" disabled={pendiente || probando} onClick={probar}>
-          {probando ? "Probando…" : "Probar"}
-        </Button>
+        {esWebhook ? (
+          <>
+            <Button size="sm" variant="ghost" disabled={!origen} onClick={() => copiar(url, "URL")}>
+              Copiar URL
+            </Button>
+            <Button size="sm" variant="ghost" disabled={pendiente || rotando} onClick={rotar}>
+              {rotando ? "Generando…" : fuente.tieneSecreto ? "Rotar secreto" : "Generar secreto"}
+            </Button>
+          </>
+        ) : (
+          <Button size="sm" variant="ghost" disabled={pendiente || probando} onClick={probar}>
+            {probando ? "Probando…" : "Probar"}
+          </Button>
+        )}
         {fuente.activo ? (
           <Button size="sm" variant="ghost" disabled={pendiente} onClick={onDesactivar}>
             Desactivar
@@ -279,6 +357,22 @@ function FilaFuente({
           </Button>
         )}
       </div>
+      {secretoNuevo ? (
+        <div className="mt-2 space-y-1 rounded-md bg-muted/50 p-2">
+          <p className="text-xs font-medium">
+            Secreto del webhook. Cópialo ahora y pégalo en el formulario: no se vuelve a mostrar.
+          </p>
+          <code className="block break-all text-xs">{secretoNuevo}</code>
+          <div className="flex gap-1">
+            <Button size="sm" variant="outline" onClick={() => copiar(secretoNuevo, "Secreto")}>
+              Copiar secreto
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSecretoNuevo(null)}>
+              Ya lo guardé
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {prueba ? (
         <div className="mt-2 rounded-md bg-muted/50 p-2">
           <p className="mb-1 text-xs font-medium text-muted-foreground">
@@ -301,8 +395,21 @@ function FilaFuente({
   );
 }
 
+/** El origen de la app no cambia mientras la pagina vive: no hay nada a que suscribirse. */
+const sinSuscripcion = () => () => {};
+const origenDelNavegador = () => window.location.origin;
+
 /** Convierte el borrador a la entrada que espera la server action. */
 function aEntrada(b: Borrador, programId: string) {
+  if (b.tipo === "webhook") {
+    return {
+      programId,
+      nombre: b.nombre,
+      tipo: "webhook" as const,
+      proveedor: b.proveedor,
+      mapeoColumnas: aMapeo(b.mapeo),
+    };
+  }
   return {
     programId,
     nombre: b.nombre,
@@ -320,17 +427,21 @@ const CLASE_INPUT =
 function FormularioFuente({
   titulo,
   inicial,
+  tipoFijo = false,
   pendiente,
   onCancelar,
   onGuardar,
 }: {
   titulo: string;
   inicial: Borrador;
+  /** Al editar el tipo no se cambia (la logica lo rechaza con 422): no se ofrece. */
+  tipoFijo?: boolean;
   pendiente: boolean;
   onCancelar: () => void;
   onGuardar: (borrador: Borrador) => void;
 }) {
   const [borrador, setBorrador] = useState<Borrador>(inicial);
+  const esWebhook = borrador.tipo === "webhook";
 
   function setPar(i: number, campo: "campo" | "patron", valor: string) {
     const mapeo = borrador.mapeo.map((p, j) => (i === j ? { ...p, [campo]: valor } : p));
@@ -373,6 +484,43 @@ function FormularioFuente({
             </label>
 
             <label className="block space-y-1 text-sm">
+              <span className="text-muted-foreground">Tipo</span>
+              <select
+                value={borrador.tipo}
+                onChange={(e) => setBorrador({ ...borrador, tipo: e.target.value as TipoBorrador })}
+                disabled={tipoFijo}
+                className={CLASE_INPUT}
+                aria-label="Tipo"
+              >
+                <option value="google_sheet">Hoja de Google</option>
+                <option value="webhook">Webhook de formulario</option>
+              </select>
+            </label>
+
+            {esWebhook ? (
+              <label className="block space-y-1 text-sm">
+                <span className="text-muted-foreground">Proveedor</span>
+                <select
+                  value={borrador.proveedor}
+                  onChange={(e) =>
+                    setBorrador({ ...borrador, proveedor: e.target.value as ProveedorFormulario })
+                  }
+                  className={CLASE_INPUT}
+                  aria-label="Proveedor"
+                >
+                  {PROVEEDORES_FORMULARIO.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+          </div>
+
+          {esWebhook ? null : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block space-y-1 text-sm">
               <span className="text-muted-foreground">ID de la hoja de Google</span>
               <input
                 value={borrador.sheetId}
@@ -405,6 +553,7 @@ function FormularioFuente({
               />
             </label>
           </div>
+          )}
 
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
@@ -445,7 +594,9 @@ function FormularioFuente({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Comparte la hoja con la cuenta de servicio de Google (lectura) antes de probar.
+            {esWebhook
+              ? "Al guardar, genera el secreto y pega la URL y el secreto en el formulario. Después actívala."
+              : "Comparte la hoja con la cuenta de servicio de Google (lectura) antes de probar."}
           </p>
 
           <div className="flex justify-end gap-2">

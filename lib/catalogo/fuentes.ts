@@ -1,6 +1,7 @@
+import { randomBytes } from "node:crypto";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { programs, sources } from "@/lib/db/schema";
+import { changeLog, programs, sources } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { esViolacionUnica } from "@/lib/db/errores";
@@ -9,6 +10,7 @@ import { esAdministrador, type Rol } from "@/lib/auth/roles";
 import type { MapeoColumnas } from "@/lib/sheets/mapeo";
 import { probarMapeoDeFuente, type ResultadoPrueba } from "@/lib/sheets/probar-fuente";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
+import { PROVEEDORES_FORMULARIO, type ProveedorFormulario } from "./fuentes-webhook";
 
 /**
  * Fuentes de datos por programa (ticket 016, ADR 0012, ADR 0019), sobre el molde de
@@ -40,8 +42,14 @@ import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
 const esquemaId = z.string().uuid("El identificador no es válido.");
 
-/** Tipos de fuente. Hoy solo hoja de calculo; `upload` existe en el enum pero no se usa. */
-export const TIPOS_FUENTE = ["google_sheet", "upload"] as const;
+/**
+ * Tipos de fuente. La hoja de calculo y, desde el ticket 105, el webhook de un
+ * formulario (ADR 0055). `upload` existe en el enum pero no se usa.
+ */
+export const TIPOS_FUENTE = ["google_sheet", "upload", "webhook"] as const;
+const TIPOS_HOJA = ["google_sheet", "upload"] as const;
+
+export { PROVEEDORES_FORMULARIO, rutaDelWebhook, type ProveedorFormulario } from "./fuentes-webhook";
 
 /**
  * El mapeo de columnas: un objeto de campo → patron (texto o lista de textos). Se
@@ -63,16 +71,37 @@ const esquemaMapeo: z.ZodType<MapeoColumnas> = z.record(
  * cambia el estado de activacion es `activarFuente` / `desactivarFuente`, no la
  * edicion de datos.
  */
-export const esquemaFuente = z.object({
+const camposComunes = {
   programId: z.string().uuid("Programa inválido."),
   nombre: z.string().trim().min(1, "El nombre es obligatorio.").max(120, "Máximo 120 caracteres."),
-  tipo: z.enum(TIPOS_FUENTE).default("google_sheet"),
-  sheetId: z.string().trim().min(1, "El ID de la hoja es obligatorio."),
-  tab: z.string().trim().min(1, "La pestaña es obligatoria."),
   rango: z.string().trim().min(1).default("A1:BZ"),
   mapeoColumnas: esquemaMapeo.default({}),
   activo: z.boolean().default(false),
-});
+};
+
+/**
+ * Dos formas bajo un solo esquema (ticket 105): una hoja exige hoja y pestana; un
+ * webhook exige proveedor y no tiene hoja. Las dos salen con TODAS las columnas (lo
+ * que no aplica, en `null`) porque el molde compara campo por campo y re-parsea lo que
+ * recibe: la salida tiene que volver a ser una entrada valida. El secreto NO esta aqui
+ * (ver `rotarSecretoDeFuente`).
+ */
+export const esquemaFuente = z.union([
+  z.object({
+    ...camposComunes,
+    tipo: z.enum(TIPOS_HOJA).default("google_sheet"),
+    sheetId: z.string().trim().min(1, "El ID de la hoja es obligatorio."),
+    tab: z.string().trim().min(1, "La pestaña es obligatoria."),
+    proveedor: z.null().default(null),
+  }),
+  z.object({
+    ...camposComunes,
+    tipo: z.literal("webhook"),
+    sheetId: z.null().default(null),
+    tab: z.null().default(null),
+    proveedor: z.enum(PROVEEDORES_FORMULARIO, "Elige el proveedor del formulario."),
+  }),
+]);
 
 export type EntradaFuente = z.input<typeof esquemaFuente>;
 export type FuenteValidada = z.output<typeof esquemaFuente>;
@@ -92,8 +121,20 @@ export interface FuenteVista extends FilaCatalogo {
   tab: string | null;
   rango: string;
   mapeoColumnas: MapeoColumnas;
+  proveedor: ProveedorFormulario | null;
+  /** Si la fuente ya tiene secreto. El valor nunca sale de aqui (ticket 105). */
+  tieneSecreto: boolean;
   ultimaSync: Date | null;
   orden: number;
+}
+
+/**
+ * Lo que devuelve este modulo nunca lleva el secreto: la fila se lee entera (el molde
+ * hace `select()`), asi que se quita aqui, en UN solo lugar, antes de que salga.
+ */
+function sinSecreto(fila: FilaCatalogo): FuenteVista {
+  const { secretoWebhook, ...resto } = fila;
+  return { ...resto, tieneSecreto: typeof secretoWebhook === "string" } as FuenteVista;
 }
 
 function idValido(id: string): string {
@@ -109,10 +150,11 @@ type CamposFuente = {
   programId: string;
   nombre: string;
   tipo: string;
-  sheetId: string;
-  tab: string;
+  sheetId: string | null;
+  tab: string | null;
   rango: string;
   mapeoColumnas: MapeoColumnas;
+  proveedor: ProveedorFormulario | null;
   activo: boolean;
 };
 
@@ -144,7 +186,7 @@ function exigirAdministrador(actor: Actor): void {
 /** Lee una fila de fuente por id (sin filtrar por activo). */
 async function leerFuente(db: Db, id: string): Promise<FuenteVista | undefined> {
   const [fila] = await db.select().from(sources).where(eq(sources.id, id)).limit(1);
-  return fila as FuenteVista | undefined;
+  return fila ? sinSecreto(fila as FilaCatalogo) : undefined;
 }
 
 /** La plantilla de lead del programa, para combinar el mapeo. Null si el programa no ajusta nada. */
@@ -165,7 +207,7 @@ export async function listarFuentes(db: Db, programId: string): Promise<FuenteVi
     .from(sources)
     .where(eq(sources.programId, idValido(programId)))
     .orderBy(asc(sources.orden), asc(sources.nombre));
-  return filas as FuenteVista[];
+  return filas.map((f) => sinSecreto(f as FilaCatalogo));
 }
 
 /**
@@ -185,7 +227,7 @@ export async function crearFuente(
     // `true` de la tabla. Queda registrado en `change_log`, que es lo correcto: la
     // fuente existe pero todavia no se probo.
     const fila = await moldeFuentes(db).crear(actor.id, { ...datos, activo: false });
-    return fila as FuenteVista;
+    return sinSecreto(fila);
   });
 }
 
@@ -209,6 +251,12 @@ export async function editarFuente(
     if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
     const plantilla = await plantillaDelPrograma(db, datos.programId);
 
+    // Una hoja no se vuelve webhook ni al reves: son dos intakes distintos, con envios
+    // que apuntan a esta fila diciendo de donde salieron. Se crea otra fuente.
+    if (datos.tipo !== actual.tipo) {
+      throw new ErrorDeApp("El tipo de una fuente no se cambia: crea una fuente nueva.", 422);
+    }
+
     // El invariante no es "se probo al activar": es **una fuente ACTIVA siempre tiene
     // un mapeo que cuadra**, y hay que defenderlo tambien por esta puerta. Sin esto,
     // activar probaba y despues bastaba EDITAR el mapeo para dejar la fuente activa y
@@ -221,7 +269,7 @@ export async function editarFuente(
     // seguirlo—, porque ese cambio SI pasa la prueba contra los encabezados reales.
     // Para cambiar una fuente activa a un estado que no cuadra hay que desactivarla
     // primero, que es decir en voz alta que el sync deje de leerla.
-    if (actual.activo) {
+    if (actual.activo && datos.tipo !== "webhook") {
       await probarMapeoDeFuente(
         {
           sheetId: datos.sheetId,
@@ -239,7 +287,7 @@ export async function editarFuente(
       ...datos,
       activo: actual.activo,
     });
-    return fila as FuenteVista;
+    return sinSecreto(fila);
   });
 }
 
@@ -290,24 +338,32 @@ export async function activarFuente(
     const objetivoId = idValido(id);
     const actual = await leerFuente(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
-    if (!actual.sheetId || !actual.tab) {
-      throw new ErrorDeApp("La fuente no tiene hoja o pestaña configurada.", 422);
+    if (actual.tipo === "webhook") {
+      // Un webhook no tiene hoja contra la cual probar: lo que se exige es poder
+      // verificar la firma. Activarlo sin secreto seria un intake que rechaza todo.
+      if (!actual.tieneSecreto) {
+        throw new ErrorDeApp("Genera el secreto del webhook antes de activarla.", 422);
+      }
+    } else {
+      if (!actual.sheetId || !actual.tab) {
+        throw new ErrorDeApp("La fuente no tiene hoja o pestaña configurada.", 422);
+      }
+      // La prueba corre ANTES de escribir nada. Si lanza (MapeoInvalidoError 422), la
+      // fuente no se toca: nunca queda activa sin un mapeo que cuadre.
+      const plantilla = await plantillaDelPrograma(db, actual.programId);
+      await probarMapeoDeFuente(
+        {
+          sheetId: actual.sheetId,
+          tab: actual.tab,
+          rango: actual.rango,
+          mapeoColumnas: actual.mapeoColumnas ?? null,
+        },
+        plantilla,
+      );
     }
-    // La prueba corre ANTES de escribir nada. Si lanza (MapeoInvalidoError 422), la
-    // fuente no se toca: nunca queda activa sin un mapeo que cuadre.
-    const plantilla = await plantillaDelPrograma(db, actual.programId);
-    await probarMapeoDeFuente(
-      {
-        sheetId: actual.sheetId,
-        tab: actual.tab,
-        rango: actual.rango,
-        mapeoColumnas: actual.mapeoColumnas ?? null,
-      },
-      plantilla,
-    );
     try {
       const fila = await moldeFuentes(db).reactivar(actor.id, objetivoId);
-      return fila as FuenteVista;
+      return sinSecreto(fila);
     } catch (error) {
       // El indice `sources_una_activa_por_programa_idx` (ADR 0039) deja UNA sola
       // fuente activa por programa. Sin esta traduccion el choque sale como 500 y
@@ -339,6 +395,46 @@ export async function desactivarFuente(
     const actual = await leerFuente(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
     const fila = await moldeFuentes(db).desactivar(actor.id, objetivoId);
-    return fila as FuenteVista;
+    return sinSecreto(fila);
+  });
+}
+
+/** Etiqueta que guarda `change_log` en vez del secreto: se sabe que cambio, no a que. */
+const SECRETO_OCULTO = "(oculto)";
+
+/**
+ * Genera el secreto HMAC de una fuente webhook, o lo reemplaza (ticket 105). Es el
+ * UNICO escritor de `sources.secreto_webhook`, y devuelve el valor **una sola vez**:
+ * la pantalla lo muestra para pegarlo en el proveedor y despues no hay forma de
+ * leerlo. Rotar deja de aceptar el viejo en el acto, asi que hay que pegar el nuevo
+ * en el proveedor enseguida (el aviso del ticket 107 lo haria visible si no).
+ *
+ * El rastro va en la misma transaccion y dice que se roto, sin el valor: un secreto
+ * en `change_log` lo leeria cualquiera que lea la bitacora.
+ */
+export async function rotarSecretoDeFuente(db: Db, actor: Actor, id: string): Promise<string> {
+  return normalizando(async () => {
+    exigirAdministrador(actor);
+    const objetivoId = idValido(id);
+    const actual = await leerFuente(db, objetivoId);
+    if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
+    if (actual.tipo !== "webhook") {
+      throw new ErrorDeApp("Solo una fuente webhook tiene secreto.", 422);
+    }
+    const secreto = randomBytes(32).toString("base64url");
+    await db.transaction(async (tx) => {
+      await tx.update(sources).set({ secretoWebhook: secreto }).where(eq(sources.id, objetivoId));
+      await tx.insert(changeLog).values({
+        tabla: "sources",
+        registroId: objetivoId,
+        etiqueta: actual.nombre,
+        campo: "secreto_webhook",
+        valorAnterior: actual.tieneSecreto ? SECRETO_OCULTO : null,
+        valorNuevo: SECRETO_OCULTO,
+        origen: "app",
+        userId: actor.id,
+      });
+    });
+    return secreto;
   });
 }

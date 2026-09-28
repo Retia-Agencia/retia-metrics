@@ -13,6 +13,7 @@ import {
   desactivarFuente,
   editarFuente,
   probarFuente,
+  rotarSecretoDeFuente,
   type Actor,
   type EntradaFuente,
 } from "@/lib/catalogo/fuentes";
@@ -36,6 +37,7 @@ import type { ColumnaResuelta } from "@/lib/sheets/probar-fuente";
  */
 
 export type ResultadoAccion = { ok: true } | { ok: false; error: string };
+export type ResultadoSecreto = { ok: true; secreto: string } | { ok: false; error: string };
 export type ResultadoPrueba =
   | { ok: true; columnas: ColumnaResuelta[] }
   | { ok: false; error: string };
@@ -112,6 +114,21 @@ export async function activarFuenteAccion(id: string): Promise<ResultadoAccion> 
     await activarFuente(db, await actorDe(session), id);
     revalidar();
     return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+/**
+ * Genera o rota el secreto del webhook (ticket 105). Es la UNICA respuesta que lleva
+ * el secreto, y solo esta vez: la pantalla lo muestra para pegarlo en el proveedor.
+ */
+export async function rotarSecretoFuenteAccion(id: string): Promise<ResultadoSecreto> {
+  try {
+    const session = await requireRole("gerente");
+    const secreto = await rotarSecretoDeFuente(db, await actorDe(session), id);
+    revalidar();
+    return { ok: true, secreto };
   } catch (error) {
     return aResultado(error);
   }

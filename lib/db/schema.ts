@@ -120,7 +120,13 @@ export const calificacionEnvioEnum = pgEnum("calificacion_envio", [
 /** Por donde entro una persona al CRM (ADR 0021). */
 export const entradaPersonaEnum = pgEnum("entrada_persona", ["formulario", "crm"]);
 export const estadoCohorteEnum = pgEnum("estado_cohorte", ["cerrado", "activo", "futuro"]);
-export const tipoFuenteEnum = pgEnum("tipo_fuente", ["google_sheet", "upload"]);
+export const tipoFuenteEnum = pgEnum("tipo_fuente", ["google_sheet", "upload", "webhook"]);
+/**
+ * De que proveedor viene el payload de una fuente webhook (ADR 0055 punto 2). Es TIPO
+ * porque el codigo elige el adaptador con el: un proveedor nuevo es un valor mas y un
+ * adaptador, nunca un endpoint nuevo.
+ */
+export const proveedorFormularioEnum = pgEnum("proveedor_formulario", ["typeform"]);
 export const estadoSyncEnum = pgEnum("estado_sync", ["corriendo", "ok", "error"]);
 /**
  * Salud de una fuente (ADR 0039, lo usa el ticket 055). **No es lo mismo que
@@ -327,6 +333,18 @@ export const sources = pgTable(
      * lo pidiera.
      */
     estado: estadoFuenteEnum("estado").notNull().default("activa"),
+    /** Solo en una fuente `webhook`: que adaptador lee su payload (ADR 0055). */
+    proveedor: proveedorFormularioEnum("proveedor"),
+    /**
+     * El secreto HMAC con el que el proveedor firma cada envio (ADR 0055 punto 5,
+     * ticket 105). Se guarda en claro porque verificar una firma exige el secreto, no
+     * un hash. Por eso **nunca pasa por el molde**: el molde escribe cada campo en
+     * `change_log`, y el secreto quedaria en la bitacora. Lo escribe solo
+     * `rotarSecretoDeFuente`, que deja el rastro sin el valor.
+     *
+     * Nulo en una fuente webhook = todavia no puede recibir: activarla lo exige.
+     */
+    secretoWebhook: text("secreto_webhook"),
     ultimaSync: timestamp("ultima_sync", { withTimezone: true }),
     activo: boolean("activo").notNull().default(true),
     orden: integer("orden").notNull().default(0),
@@ -359,6 +377,13 @@ export const sources = pgTable(
     uniqueIndex("sources_una_activa_por_programa_idx")
       .on(t.programId)
       .where(sql`${t.activo} = true`),
+    /**
+     * Una fuente webhook sin proveedor no tiene adaptador que la lea (ADR 0055). El
+     * `::text` no es adorno: la migracion agrega `webhook` al enum en la misma
+     * transaccion, y Postgres no deja usar un valor de enum recien agregado antes del
+     * commit; comparando como texto no lo usa.
+     */
+    check("sources_webhook_con_proveedor", sql`${t.tipo}::text <> 'webhook' OR ${t.proveedor} IS NOT NULL`),
   ],
 );
 

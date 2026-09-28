@@ -36,6 +36,8 @@ export default async function FuentesPage() {
         tab: f.tab,
         rango: f.rango,
         mapeoColumnas: (f.mapeoColumnas as MapeoColumnas) ?? {},
+        proveedor: f.proveedor,
+        tieneSecreto: f.tieneSecreto,
         activo: f.activo,
         ultimaSync: f.ultimaSync ? f.ultimaSync.toISOString() : null,
         orden: f.orden,

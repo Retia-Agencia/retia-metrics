@@ -101,10 +101,20 @@ export async function sincronizarPersonas(
   // que filtrar por destino: la columna desaparecio con las 7 filas que la usaban.
   // Y el indice `sources_una_activa_por_programa_idx` garantiza que sea UNA sola,
   // de modo que `fuentes` tiene como mucho un elemento en el caso normal.
+  //
+  // Solo las HOJAS (ticket 105): una fuente webhook activa tambien es el intake del
+  // programa, pero no tiene hoja que leer. Sin este filtro el sync la tomaria como su
+  // hoja y fallaria con un `sheetId` nulo; con el, dice que el programa no tiene hoja.
   const fuentes = await db
     .select()
     .from(sources)
-    .where(and(eq(sources.programId, programId), eq(sources.activo, true)));
+    .where(
+      and(
+        eq(sources.programId, programId),
+        eq(sources.activo, true),
+        inArray(sources.tipo, ["google_sheet", "upload"]),
+      ),
+    );
 
   if (fuentes.length === 0) {
     throw new Error(`El programa ${programa.slug} no tiene una fuente de leads activa.`);
