@@ -119,7 +119,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 054 | [Configurar una fuente sin adivinar](./054-configurar-una-fuente-de-verdad.md) (E3-7) | 039 | todo |
 | [ ] | 055 | [Alertas: una fuente se rompe, no se apaga](./055-alertas-y-fuente-rota.md) (E3-8) | 054 | todo |
 | [ ] | 056 | [El sync se dispara por capas](./056-disparo-del-sync-por-capas.md) (E3-9) | 048 | todo |
-| [ ] | 105 | [La fuente webhook: un formulario es una fila](./105-la-fuente-webhook.md) | 048 | todo · migración de la sesión principal (`tipo_fuente` webhook, proveedor, secreto) |
+| [ ] | 105 | [La fuente webhook: un formulario es una fila](./105-la-fuente-webhook.md) | 048 | en curso · código, tests y migración **0028** (aplicada en `dev`) hechos (`1e00020`); falta el recorrido visual con sesión |
 | [ ] | 106 | [La ruta del webhook y el adaptador de Typeform](./106-la-ruta-del-webhook-y-el-adaptador-de-typeform.md) | 105, 051 | todo · **hito A**; sobre crudo + 200 si no se puede procesar |
 | [ ] | 107 | [Una fuente que dejó de recibir se ve en la app](./107-aviso-de-fuente-sin-envios.md) | 106 | todo · 🔴 el umbral por defecto lo decide Mani |
 | [ ] | 086 | [Origen humano del lead y el enlace de captación](./086-origen-humano-y-enlace-de-captacion.md) | 048, 084 | todo · ⏳ **el dato lo escribe la ingesta; después no se puede reconstruir** |
