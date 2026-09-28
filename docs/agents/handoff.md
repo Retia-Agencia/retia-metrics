@@ -5,8 +5,8 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito el 27-sep en la noche, al fusionar las dos sesiones del día (CIERRE 33). El de la mañana (consolidación
-> del plan) está en el historial de git (`git show 8678164:docs/agents/handoff.md`).
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 34 (27-sep, noche). Los anteriores están en el
+> historial de git (el de la mañana: `git show 8678164:docs/agents/handoff.md`).
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md y despues docs/plan.md completo, antes que cualquier otro
@@ -15,19 +15,19 @@ vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta: docs/
 docs/structure.md (§3 el motor de etapas y su tabla de transiciones), docs/operations.md y
 docs/adr/README.md.
 
-Estado al cierre del 27-sep en la noche (CIERRE 33): main tiene las dos sesiones del dia fusionadas.
-E2 (043-047) cerrada por Alejandro (lib/deals/etapas.ts, requisitos.ts, mover-etapa.ts, saldo.ts,
-guardian); 094 (alcance del closer), ADR 0054/0055 (A1 y A2) y 103 cerrados por Mani. 27 migraciones
-(0000-0026), todas en dev. 882 tests. Produccion en Supabase NO existe.
+Estado al cierre del 27-sep en la noche (sesion 34): el Estado de llegada lo manda el formulario y el
+CRM confia (ADR 0054 enmendado): tres valores, descartado / setteo_no_calificado / con_calendly.
+051 hecho (lib/ingesta/estado.ts traduce, T2 desconectado hasta decidir A8). 105 hecho salvo forjar la
+accion como closer (fuente webhook con proveedor y secreto; migracion 0028). 29 migraciones
+(0000-0028), todas en dev. 922 tests. Produccion en Supabase NO existe.
 
-Siguiente:
-1. El 103 ya esta hecho (27-sep noche, ADR 0056): el motor tiene las decisiones de Mani. Siguiente del
-   plan §5: E3 minimo; empezar por el 052 (abrir y mover deals desde la ingesta con abrirDeal/moverEtapa).
-   El 104 esta hecho: 13 motivos estandarizados desde la taxonomia de las hojas, cargados en dev con
-   `npm run cargar-motivos` (correrlo en toda base nueva despues de migrar).
-2. Crear los tickets del webhook (ADR 0055) y del Estado desde el form (ADR 0054); preguntarle a Mani
-   los dos puntos abiertos del ADR 0055.
-3. Fuera del repo: variable `estado` y partial submission point en los dos Typeform.
+Siguiente (paso 2 del plan, hito A):
+1. El 052: abrir y mover deals desde la ingesta con abrirDeal/moverEtapa, leyendo leads.calificacion.
+   Solo cuando lo pide el webhook; el traslado desde Sheets no abre deals.
+2. El 106: la ruta /api/webhooks/formularios/[fuente] + adaptador de Typeform + sobre crudo con 200.
+   Ojo: Envio.estado sale del campo estadoHoja; el adaptador pone ahi la variable `estado`.
+3. El 107 (umbral por defecto: preguntarle a Mani) y forjar la accion del 105 con sesion de closer.
+4. Fuera del repo: la variable `estado` y el partial submission point en los dos Typeform.
 Las migraciones las genera y aplica la sesion principal; Kiro implementa codigo y tests. Antes de
 aplicar una migracion en dev, compara drizzle.__drizzle_migrations contra los archivos por hash, y
 antes de tomar un ticket haz git fetch: dos personas trabajan el mismo main.
@@ -40,7 +40,7 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 > Las entradas anteriores al 27-sep citan documentos que se fundieron ese día (spec, plan v2, propuesta,
 > revisión, glosario, insumos): `docs/plan.md` §8 dice dónde quedó cada uno.
 
-- **2026-09-27 (sesión 34, noche): el Estado lo manda el formulario; tickets del webhook.** Sesión de Mani.
+- **2026-09-27 (CIERRE 34, noche): el Estado lo manda el formulario; 051 y 105 hechos.** Sesión de Mani.
   - **Mani:** *"el CRM NO se encarga de calcular ni calificar ningún lead; se confía en los valores que
     vienen del forms"*, con los nombres de la hoja. Son tres: `descartado` (sin recursos e incompleto
     caen aquí), `setteo_no_calificado`, `con_calendly`. El form sabe si agendó porque el Calendly está
