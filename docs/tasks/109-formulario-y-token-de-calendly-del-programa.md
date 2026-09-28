@@ -3,7 +3,7 @@ id: 109
 etapa: E3
 serves: "ADR 0057 · criterio de aceptación 4 · desbloquea el 052 (Setteo → Agendado)"
 depends: [105]
-status: todo
+status: done
 ---
 
 # 109 — El programa lleva su formulario y su token de Calendly
@@ -32,14 +32,28 @@ CRM pueda leer la fecha real de una cita a partir del link que manda Typeform (A
 
 ## Done cuando
 
-- [ ] Activar un programa sin link o sin token es 422 y la base no se mueve; con los dos, se activa.
-- [ ] El token no aparece en el HTML de la pantalla, ni en `change_log`, ni en ninguna lectura del
+- [x] Activar un programa sin link o sin token es 422 y la base no se mueve; con los dos, se activa.
+- [x] El token no aparece en el HTML de la pantalla, ni en `change_log`, ni en ninguna lectura del
       catálogo (test).
-- [ ] La función de la cita devuelve la fecha real de un invitado de Tactical (probado a mano con el
+- [x] La función de la cita devuelve la fecha real de un invitado de Tactical (probado a mano con el
       token real) y `null` para un uuid que no existe.
-- [ ] `npm test`, `npm run typecheck`, `npm run lint` y `npm run build` limpios.
-- [ ] Mani carga los dos tokens desde la app y se borran de `.env.local`.
+- [x] `npm test`, `npm run typecheck`, `npm run lint` y `npm run build` limpios.
+- [x] Mani carga los dos tokens desde la app y se borran de `.env.local`.
 
 ## Kiro
 
 Sí el código y los tests, con revisión. La migración la escribe y aplica la sesión principal.
+
+## Cierre (28-sep)
+
+- Un programa **nace inactivo** en `lib/` (el token no viaja por el molde); la pantalla crea, guarda el
+  token y activa en una sola accion, pasando por la reja. Editar con el token vacio lo conserva.
+- Por pedido de Mani, el formulario muestra **Forms Link** y **Calendly Token** (obligatorios, el token
+  enmascarado y pegable) y ya no muestra `web_url` ni `calendly_url` (vacias en produccion y sin lector;
+  las columnas siguen en la base).
+- La revision agrego la paginacion de Calendly (sin ella, un uuid en la pagina 2 salia `null` en
+  silencio) y paso `editarPlantillaLead` por `sinToken`.
+- 🔴 **Para el 052:** una cita cancelada sigue saliendo con su fecha. El 052 tiene que mirar el estado
+  del evento antes de crear la llamada agendada.
+- Pendiente aparte: el `CHECK` que exija los dos valores en todo programa activo (ADR 0057), ahora que
+  los dos programas los tienen.

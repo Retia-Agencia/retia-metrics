@@ -25,13 +25,15 @@ export default async function ProgramasPage() {
     ticketUsd: String(p.ticketUsd),
     webUrl: (p.webUrl as string | null) ?? null,
     calendlyUrl: (p.calendlyUrl as string | null) ?? null,
+    formUrl: (p.formUrl as string | null) ?? null,
+    tieneTokenCalendly: p.tieneTokenCalendly,
     activo: p.activo,
   }));
 
   return (
     <PageShell
       titulo="Programas"
-      descripcion="Cada programa con su slug, ticket, web y Calendly. Se crean y desactivan sin tocar código."
+      descripcion="Cada programa con su slug, ticket, Forms Link y Calendly Token. Sin los dos no se activa."
     >
       <ProgramasAdmin programas={vista} />
     </PageShell>

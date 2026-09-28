@@ -206,6 +206,18 @@ export const programs = pgTable("programs", {
   webUrl: text("web_url"),
   /** Calendly del programa, para cruzar agendamientos. Editable desde /ajustes/programas (ticket 014). */
   calendlyUrl: text("calendly_url"),
+  /**
+   * URL base del formulario del programa (ADR 0057). Un programa no se activa sin ella.
+   * Es tambien la base del generador de links de captacion (ADR 0051, ticket 092).
+   */
+  formUrl: text("form_url"),
+  /**
+   * Token de Calendly de la organizacion del programa (ADR 0057): con el se lee la fecha
+   * de una cita. Segunda excepcion nombrada a "secretos solo en .env.local y Vercel": lo
+   * escribe SOLO `guardarTokenCalendly`, nunca pasa por el molde ni por `change_log`, y
+   * ninguna lectura del catalogo lo devuelve. Nula hasta que Mani lo cargue.
+   */
+  calendlyToken: text("calendly_token"),
   /** Maximo historico de personas por dia habil. Marca cuando una meta es inalcanzable por volumen. */
   recordPersonasPorDiaHabil: integer("record_personas_por_dia_habil"),
   /**

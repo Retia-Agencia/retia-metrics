@@ -35,6 +35,10 @@ export interface ProgramaVista {
   ticketUsd: string;
   webUrl: string | null;
   calendlyUrl: string | null;
+  /** URL base del formulario (ADR 0057). Un programa no se activa sin ella ni sin token. */
+  formUrl: string | null;
+  /** Si el programa ya tiene token de Calendly. El valor nunca llega al cliente (ADR 0057). */
+  tieneTokenCalendly: boolean;
   activo: boolean;
 }
 
@@ -44,6 +48,9 @@ interface Borrador {
   ticketUsd: string;
   webUrl: string;
   calendlyUrl: string;
+  formUrl: string;
+  /** Lo que se teclea o pega en Calendly Token. Nunca se rellena con el guardado. */
+  tokenCalendly: string;
 }
 
 const BORRADOR_VACIO: Borrador = {
@@ -52,6 +59,8 @@ const BORRADOR_VACIO: Borrador = {
   ticketUsd: "",
   webUrl: "",
   calendlyUrl: "",
+  formUrl: "",
+  tokenCalendly: "",
 };
 
 function aBorrador(p: ProgramaVista): Borrador {
@@ -61,6 +70,8 @@ function aBorrador(p: ProgramaVista): Borrador {
     ticketUsd: p.ticketUsd,
     webUrl: p.webUrl ?? "",
     calendlyUrl: p.calendlyUrl ?? "",
+    formUrl: p.formUrl ?? "",
+    tokenCalendly: "",
   };
 }
 
@@ -104,7 +115,7 @@ export function ProgramasAdmin({ programas }: { programas: ProgramaVista[] }) {
           pendiente={pendiente}
           onCancelar={() => setCreando(false)}
           onGuardar={(b) =>
-            correr(() => crearProgramaAccion(aEntrada(b)), "Programa creado", () =>
+            correr(() => crearProgramaAccion(aEntrada(b), b.tokenCalendly), "Programa creado", () =>
               setCreando(false),
             )
           }
@@ -123,76 +134,86 @@ export function ProgramasAdmin({ programas }: { programas: ProgramaVista[] }) {
                   inicial={aBorrador(p)}
                   pendiente={pendiente}
                   slugBloqueado
+                  tieneTokenCalendly={p.tieneTokenCalendly}
                   onCancelar={() => setEditando(null)}
                   onGuardar={(b) =>
                     correr(
-                      () => editarProgramaAccion(p.id, aEntrada(b)),
+                      () => editarProgramaAccion(p.id, aEntrada(b), b.tokenCalendly),
                       "Programa actualizado",
                       () => setEditando(null),
                     )
                   }
                 />
               ) : (
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <span className="flex flex-wrap items-center gap-2">
-                      <span className="truncate font-medium">{p.nombre}</span>
-                      {!p.activo ? (
-                        <Badge variant="outline" className="text-muted-foreground">
-                          inactivo
-                        </Badge>
-                      ) : null}
-                    </span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      /{p.slug} · ticket {usd(Number(p.ticketUsd))}
-                    </span>
-                  </div>
-                  <span className="flex items-center gap-1">
-                    {p.activo ? (
-                      <>
-                        {/* `nativeButton={false}`: se renderiza como <a>, no como
-                            <button>. Sin eso Base UI avisa en consola que se pierde
-                            la semantica nativa de boton. */}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          nativeButton={false}
-                          disabled={pendiente}
-                          render={<Link href={`/ajustes/programas/${p.slug}`}>Cohortes</Link>}
-                        />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={pendiente}
-                          onClick={() => setEditando(p.id)}
-                        >
-                          Editar
-                        </Button>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="truncate font-medium">{p.nombre}</span>
+                        {!p.activo ? (
+                          <Badge variant="outline" className="text-muted-foreground">
+                            inactivo
+                          </Badge>
+                        ) : null}
+                        {p.tieneTokenCalendly ? (
+                          <Badge variant="secondary">token cargado</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground">
+                            sin token
+                          </Badge>
+                        )}
+                      </span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        /{p.slug} · ticket {usd(Number(p.ticketUsd))}
+                      </span>
+                    </div>
+                    <span className="flex items-center gap-1">
+                      {p.activo ? (
+                        <>
+                          {/* `nativeButton={false}`: se renderiza como <a>, no como
+                              <button>. Sin eso Base UI avisa en consola que se pierde
+                              la semantica nativa de boton. */}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            nativeButton={false}
+                            disabled={pendiente}
+                            render={<Link href={`/ajustes/programas/${p.slug}`}>Cohortes</Link>}
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={pendiente}
+                            onClick={() => setEditando(p.id)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={pendiente}
+                            onClick={() =>
+                              correr(() => desactivarProgramaAccion(p.id), "Programa desactivado")
+                            }
+                          >
+                            Desactivar
+                          </Button>
+                        </>
+                      ) : (
                         <Button
                           size="sm"
                           variant="ghost"
                           disabled={pendiente}
                           onClick={() =>
-                            correr(() => desactivarProgramaAccion(p.id), "Programa desactivado")
+                            correr(() => reactivarProgramaAccion(p.id), "Programa reactivado")
                           }
                         >
-                          Desactivar
+                          <RotateCcw className="size-4" />
+                          Reactivar
                         </Button>
-                      </>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={pendiente}
-                        onClick={() =>
-                          correr(() => reactivarProgramaAccion(p.id), "Programa reactivado")
-                        }
-                      >
-                        <RotateCcw className="size-4" />
-                        Reactivar
-                      </Button>
-                    )}
-                  </span>
+                      )}
+                    </span>
+                  </div>
                 </div>
               )}
             </li>
@@ -211,6 +232,7 @@ function aEntrada(b: Borrador) {
     ticketUsd: b.ticketUsd,
     webUrl: b.webUrl,
     calendlyUrl: b.calendlyUrl,
+    formUrl: b.formUrl,
   };
 }
 
@@ -219,6 +241,7 @@ function FormularioPrograma({
   inicial,
   pendiente,
   slugBloqueado,
+  tieneTokenCalendly = false,
   onCancelar,
   onGuardar,
 }: {
@@ -226,6 +249,8 @@ function FormularioPrograma({
   inicial: Borrador;
   pendiente: boolean;
   slugBloqueado?: boolean;
+  /** Si ya hay token guardado: el campo puede quedar vacio y se conserva. */
+  tieneTokenCalendly?: boolean;
   onCancelar: () => void;
   onGuardar: (borrador: Borrador) => void;
 }) {
@@ -289,25 +314,35 @@ function FormularioPrograma({
             />
           </label>
 
-          <label className="block space-y-1 text-sm">
-            <span className="text-muted-foreground">Página web (opcional)</span>
+          {/* `webUrl` y `calendlyUrl` ya no se muestran (vacias en produccion y sin
+              lector, 28-sep): el borrador las pasa tal cual para no pisar nada. */}
+          <label className="block space-y-1 text-sm sm:col-span-2">
+            <span className="text-muted-foreground">Forms Link</span>
             <input
               type="url"
-              value={borrador.webUrl}
-              onChange={(e) => setBorrador({ ...borrador, webUrl: e.target.value })}
+              value={borrador.formUrl}
+              onChange={(e) => setBorrador({ ...borrador, formUrl: e.target.value })}
+              required
+              placeholder="https://form.typeform.com/to/..."
               className={claseInput}
-              aria-label="Página web"
+              aria-label="Forms Link"
             />
           </label>
 
           <label className="block space-y-1 text-sm sm:col-span-2">
-            <span className="text-muted-foreground">Calendly (opcional)</span>
+            <span className="text-muted-foreground">Calendly Token</span>
+            {/* type="password": se ve con puntos y se puede pegar. El valor guardado
+                nunca vuelve al navegador (ADR 0057), asi que el campo arranca vacio;
+                autoComplete="new-password" evita que el gestor del navegador lo llene. */}
             <input
-              type="url"
-              value={borrador.calendlyUrl}
-              onChange={(e) => setBorrador({ ...borrador, calendlyUrl: e.target.value })}
+              type="password"
+              autoComplete="new-password"
+              value={borrador.tokenCalendly}
+              onChange={(e) => setBorrador({ ...borrador, tokenCalendly: e.target.value })}
+              required={!tieneTokenCalendly}
+              placeholder={tieneTokenCalendly ? "Cargado. Déjalo vacío para conservarlo" : ""}
               className={claseInput}
-              aria-label="Calendly"
+              aria-label="Calendly Token"
             />
           </label>
 

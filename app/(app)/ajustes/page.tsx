@@ -25,7 +25,7 @@ const ENLACES = [
     icono: Boxes,
     titulo: "Programas y cohortes",
     descripcion:
-      "Los programas con su slug, web y Calendly, y las cohortes de cada uno: se crean y desactivan sin tocar código.",
+      "Los programas con su slug, Forms Link y Calendly Token, y las cohortes de cada uno: se crean y desactivan sin tocar código.",
     soloAdministradores: true,
   },
   {

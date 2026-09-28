@@ -69,6 +69,7 @@ const programaValido = {
   ticketUsd: "797.00",
   webUrl: "",
   calendlyUrl: "",
+  formUrl: "https://form.typeform.com/to/beta",
 };
 
 const cohorteValida = {
@@ -95,8 +96,8 @@ describe("acciones de programas — barrera de rol (ADR 0003)", () => {
     } = await acciones();
 
     for (const llamada of [
-      () => crearProgramaAccion(programaValido),
-      () => editarProgramaAccion(UUID, programaValido),
+      () => crearProgramaAccion(programaValido, "tok"),
+      () => editarProgramaAccion(UUID, programaValido, "tok"),
       () => desactivarProgramaAccion(UUID),
       () => reactivarProgramaAccion(UUID),
     ]) {
@@ -129,17 +130,39 @@ describe("acciones de programas — barrera de rol (ADR 0003)", () => {
 describe("acciones de programas — el gerente administra", () => {
   beforeEach(() => auth.mockResolvedValue(sesionGerente));
 
-  it("crea un programa que aparece en la base", async () => {
+  it("crea un programa con Forms Link y Calendly Token y queda ACTIVO (ADR 0057)", async () => {
     const { crearProgramaAccion } = await acciones();
-    const res = await crearProgramaAccion(programaValido);
+    const res = await crearProgramaAccion(programaValido, "token-beta");
     expect(res.ok).toBe(true);
     const [creado] = await db.select().from(programs).where(eq(programs.slug, "programa-beta"));
-    expect(creado).toBeDefined();
+    expect(creado?.activo).toBe(true);
+    expect(creado?.calendlyToken).toBe("token-beta");
+  });
+
+  it("crear sin Calendly Token es ok:false y el programa NO queda activo", async () => {
+    const { crearProgramaAccion } = await acciones();
+    const res = await crearProgramaAccion({ ...programaValido, slug: "programa-gamma" }, "  ");
+    expect(res.ok).toBe(false);
+    const filas = await db.select().from(programs).where(eq(programs.slug, "programa-gamma"));
+    expect(filas.every((f) => !f.activo)).toBe(true);
+  });
+
+  it("editar con el token vacio conserva el guardado; con valor lo reemplaza", async () => {
+    const { crearProgramaAccion, editarProgramaAccion } = await acciones();
+    await crearProgramaAccion({ ...programaValido, slug: "programa-delta" }, "token-uno");
+    const [p] = await db.select().from(programs).where(eq(programs.slug, "programa-delta"));
+    const entrada = { ...programaValido, slug: "programa-delta", nombre: "Delta" };
+    expect((await editarProgramaAccion(p!.id, entrada, "")).ok).toBe(true);
+    let [tras] = await db.select().from(programs).where(eq(programs.id, p!.id));
+    expect(tras?.calendlyToken).toBe("token-uno");
+    expect((await editarProgramaAccion(p!.id, entrada, "token-dos")).ok).toBe(true);
+    [tras] = await db.select().from(programs).where(eq(programs.id, p!.id));
+    expect(tras?.calendlyToken).toBe("token-dos");
   });
 
   it("un slug invalido devuelve ok:false con mensaje", async () => {
     const { crearProgramaAccion } = await acciones();
-    const res = await crearProgramaAccion({ ...programaValido, slug: "Con Mayusculas" });
+    const res = await crearProgramaAccion({ ...programaValido, slug: "Con Mayusculas" }, "tok");
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error.length).toBeGreaterThan(0);
   });
