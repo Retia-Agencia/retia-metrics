@@ -3,7 +3,7 @@ id: 113
 etapa: E0
 serves: "plan-reparto §3 · plan.md §7.1 R5 · ADR 0047 (enmienda del 28-sep) · aprobado por Mani el 28-sep"
 depends: []
-status: todo
+status: done
 ---
 
 # 113 — Base local para desarrollar pantallas
