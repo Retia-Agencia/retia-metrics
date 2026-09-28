@@ -41,3 +41,19 @@ de evento, y los 10 ids de invitado tomados de la hoja aparecieron en la API **c
   `CALENDLY_TOKEN_TACTICAL`) solo para probar. Se borran de ahí al cargarlos en la app.
 - Un token de Calendly es de una persona (el owner). Si esa persona sale de la organización, el token
   deja de servir: la app tiene que mostrar un error visible, no dejar de leer fechas en silencio.
+
+## Enmienda 28-sep (cierre del 109 y del 052)
+
+- **Hecho.** Los dos tokens se cargaron desde `/ajustes/programas` y se borraron de `.env.local`. El
+  formulario los llama **Forms Link** y **Calendly Token**; el token se ve con puntos y nunca vuelve al
+  navegador.
+- **Migración 0031:** `programs.activo` nace en `false` y el CHECK
+  `programs_activo_con_formulario_y_token` exige los dos valores en todo programa activo.
+- **Punto 4, en el 052:** la cita se lee en la ruta del webhook, **antes** de la transacción de ingesta
+  (`lib/calendly/resolver-cita.ts`). Una cita **cancelada**, no encontrada o un error de Calendly no
+  llevan el deal a Agendado: queda en **Pendiente Setteo** con una nota (Mani, 28-sep). Esa nota la
+  escribe el sistema en `deal_actividades` con `user_id` nulo (migración 0032); el sistema solo deja
+  notas, nunca contactos (CHECK `deal_actividades_contacto_con_usuario`).
+- Que el lead no se quede sin llamada para siempre es del 096: la llamada que llegue después desde
+  Calendly se cuelga sola, y un closer puede asociarla a mano o volver a buscarla.
+

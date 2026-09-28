@@ -3,7 +3,7 @@ id: 052
 etapa: E3
 serves: "plan v2 §6 etapa 3 · tarea E3-5 · insumo §3.1, ADR 0037"
 depends: [051, 045]
-status: en curso
+status: done
 ---
 
 # 052 — La regla de creacion y movimiento de deals del sync
@@ -39,10 +39,11 @@ que el ADR 0037 nombra; si implementa el requisito por su cuenta, diverge del cl
 
 ## Done cuando
 
-- [ ] Cada fila de la tabla de arriba tiene su test.
-- [ ] Los 9 casos de Setteo → Calendly de `dev` producen el movimiento y **su fila de historial**.
-- [ ] Un `estado` Descartado no crea deal, ni siquiera cerrado.
-- [ ] `grep` confirma que este modulo no escribe `deals.etapa`.
+- [x] Cada fila de la tabla de arriba tiene su test.
+- [x] Los 9 casos de Setteo → Calendly producen el movimiento y **su fila de historial** (con envíos
+      sintéticos, ver la enmienda del 27-sep; el envío real llega con el 106).
+- [x] Un `estado` Descartado no crea deal, ni siquiera cerrado.
+- [x] `grep` confirma que este modulo no escribe `deals.etapa`.
 
 ## Kiro
 
@@ -106,3 +107,55 @@ Si, con revision.
 > `owner`, ven todas las citas) y los 10 ids de invitado probados de la hoja de Tactical aparecieron en la
 > API con su fecha. Mani: el token vive en la base, en el programa (ADR 0057, ticket **109**). Con el 109
 > hecho, la regla crea la llamada con su fecha y el movimiento Setteo → Agendado pasa el motor.
+
+---
+
+## Cierre 2026-09-28 (Kiro)
+
+**Hecho.** La regla ya lee la cita real de Calendly y pasa el motor sin aflojarlo. Cambios:
+
+- **`lib/calendly/cita.ts`:** `fechaDeCita` → **`citaDeCalendly`**, que devuelve `{ inicio: Date;
+  cancelada: boolean } | null`. `cancelada` es `true` si el evento o el invitado están en `status:
+  "canceled"`. Se conserva todo lo demás (uuid exacto, paginación, `ErrorDeCalendly` visible, nunca
+  `null` silencioso). Tests actualizados en `tests/calendly-cita.test.ts`, más los dos casos de
+  cancelación (evento y invitado).
+- **La consulta a Calendly va FUERA de la transacción de ingesta** (una llamada HTTP dentro retiene
+  una conexión del pooler). El webhook, antes de `ingerirEntradas`, para cada envío "Con Calendly"
+  (el adaptador ahora expone `linkAgenda`), lee `programs.calendly_token` con una consulta propia (NO
+  `listarProgramas`, que lo oculta), resuelve la cita con `lib/calendly/resolver-cita.ts` y arma el
+  mapa `citasPorCorreo` (correo normalizado → `ResultadoCita`) que le pasa a la ingesta. El token no
+  se loguea ni sale en la respuesta; el fetch es inyectable (los tests lo stubean, cero red).
+- **La regla** (`decidirAccionDeDeal` puro + `aplicarReglaDeDeal`): con cita **vigente** abre en
+  Agendado o mueve a Agendado desde 1/2/9, **creando antes** la llamada (`calls` con `dealId`,
+  `programId`, `cohortId` del deal si aplica, `emailLead`, `fechaAgenda = inicio`, `resultado agendada`,
+  sin closer, `origen calendly`, `huellaFila = calendly:<uuid>`) por `crearConRastro`. La llamada
+  cumple `llamada_con_fecha`, así que `moverEtapa` pasa **sin tocar el motor**. Abrir directo en
+  Agendado también crea su llamada (quita la asimetría). Con cita **cancelada / no encontrada / error**
+  el deal se queda o se abre en Pendiente Setteo, sin llamada, con la nota lista.
+- **Reenvío idempotente:** el índice `calls_huella_idx` (por programa + huella `calendly:<uuid>`)
+  impide duplicar la llamada; `crearLlamadaDeCita` captura la violación única y no crea una segunda.
+  Además, tras el primer envío el deal queda en Agendado (avanzado), así que un reenvío del mismo
+  `con_calendly` cae en `notificar_reenvio` y ni siquiera intenta crear la llamada.
+
+**La NOTA (resuelto por la sesión principal, 28-sep, con el ok de Mani).** Kiro la dejó solo en el
+resultado de la ingesta porque `deal_actividades.user_id` era NOT NULL. Así se perdía: el resultado solo
+viaja en la respuesta del webhook. **Migración 0032** (aplicada en producción): `deal_actividades.user_id`
+acepta nulo = el sistema (como `deal_etapa_historial.user_id` y `deals.creado_por`), y el CHECK
+`deal_actividades_contacto_con_usuario` impide que el sistema registre un **contacto** (que es lo que
+habilita En Contacto): el sistema solo deja notas. `aplicarReglaDeDeal` escribe la nota con
+`dejarNota()` por `crearConRastro`, sobre el deal nuevo o el deal en 1/2/9 que se queda donde está.
+
+**Verificación (revisión de la sesión principal):** `npm test` **1.017** pasando, `npm run typecheck`,
+`npm run lint` y `npm run build` limpios. `resolverCitaDeEnvio` probado contra **Calendly real** con el
+token de Tactical guardado en la base: una cita activa sale `vigente` con la fecha exacta, una cancelada
+sale `cancelada`, un uuid falso `no_encontrada` y un token malo `error`.
+
+**Lo que queda fuera, a propósito:**
+
+- **La prueba de punta a punta con un envío real** llega con el 106 (fuente webhook creada, URL y
+  secreto en Typeform, un envío de prueba). Hasta entonces el payload de los tests es inventado.
+- **Nadie ve todavía la nota ni el aviso de re-envío:** no existe pantalla de deal. El botón "buscar
+  llamada" y el dropdown de llamadas de Calendly son del 096 (pedido de Mani anotado ahí).
+- ⚠️ Caso raro sin test: un lead con el deal CERRADO que reenvía el MISMO envío abre un deal nuevo en
+  Agendado, y su llamada choca con la huella `calendly:<uuid>` de la del deal viejo: el deal nuevo
+  queda en Agendado sin llamada. Hace falta el mismo uuid de invitado dos veces; se revisa si aparece.

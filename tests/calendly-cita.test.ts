@@ -1,15 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  citaDeCalendly,
   ErrorDeCalendly,
-  fechaDeCita,
   uuidInvitadoDelLink,
   type FetchLike,
 } from "@/lib/calendly/cita";
 
 /**
- * Ticket 109 (ADR 0057 punto 4): leer la fecha real de una cita de Calendly.
+ * Ticket 109 (ADR 0057 punto 4) + ticket 052: leer la cita real de Calendly con su
+ * estado.
  *  - El emparejamiento es por UUID de invitado, exacto, nunca solo por correo.
  *  - Un uuid que no aparece devuelve null (la cita no se inventa).
+ *  - Una cita con el evento o el invitado en `canceled` devuelve `cancelada: true`.
  *  - Un 401/403/5xx o una respuesta rara lanza un error visible, nunca null.
  *  - Cero red: `fetch` es falso.
  */
@@ -77,11 +79,11 @@ describe("uuidInvitadoDelLink", () => {
   });
 });
 
-describe("fechaDeCita", () => {
+describe("citaDeCalendly", () => {
   const base = {
     "/users/me": { resource: { current_organization: ORG } },
     "/scheduled_events": {
-      collection: [{ uri: EVENT_URI, start_time: "2026-09-30T15:00:00.000000Z" }],
+      collection: [{ uri: EVENT_URI, start_time: "2026-09-30T15:00:00.000000Z", status: "active" }],
     },
     [`${EVENT_URI}/invitees`]: {
       collection: [
@@ -91,27 +93,59 @@ describe("fechaDeCita", () => {
     },
   };
 
-  it("devuelve la fecha del evento cuyo invitado tiene el uuid exacto", async () => {
+  it("devuelve la cita del evento cuyo invitado tiene el uuid exacto, no cancelada", async () => {
     const fetch = fetchFalso(base);
-    const fecha = await fechaDeCita({
+    const cita = await citaDeCalendly({
       token: "tok",
       correo: "lead@correo.com",
       uuidInvitado: "UUID-123",
       fetch,
     });
-    expect(fecha).toBeInstanceOf(Date);
-    expect(fecha!.toISOString()).toBe("2026-09-30T15:00:00.000Z");
+    expect(cita).not.toBeNull();
+    expect(cita!.inicio).toBeInstanceOf(Date);
+    expect(cita!.inicio.toISOString()).toBe("2026-09-30T15:00:00.000Z");
+    expect(cita!.cancelada).toBe(false);
+  });
+
+  it("marca cancelada cuando el EVENTO está en canceled", async () => {
+    const fetch = fetchFalso({
+      "/users/me": { resource: { current_organization: ORG } },
+      "/scheduled_events": {
+        collection: [{ uri: EVENT_URI, start_time: "2026-09-30T15:00:00Z", status: "canceled" }],
+      },
+      [`${EVENT_URI}/invitees`]: {
+        collection: [{ uri: "https://api.calendly.com/scheduled_events/EV1/invitees/UUID-123" }],
+      },
+    });
+    const cita = await citaDeCalendly({ token: "t", correo: "a@b.com", uuidInvitado: "UUID-123", fetch });
+    expect(cita?.cancelada).toBe(true);
+  });
+
+  it("marca cancelada cuando el INVITADO está en canceled", async () => {
+    const fetch = fetchFalso({
+      "/users/me": { resource: { current_organization: ORG } },
+      "/scheduled_events": {
+        collection: [{ uri: EVENT_URI, start_time: "2026-09-30T15:00:00Z", status: "active" }],
+      },
+      [`${EVENT_URI}/invitees`]: {
+        collection: [
+          { uri: "https://api.calendly.com/scheduled_events/EV1/invitees/UUID-123", status: "canceled" },
+        ],
+      },
+    });
+    const cita = await citaDeCalendly({ token: "t", correo: "a@b.com", uuidInvitado: "UUID-123", fetch });
+    expect(cita?.cancelada).toBe(true);
   });
 
   it("devuelve null si el uuid no aparece, aunque el correo tenga citas", async () => {
     const fetch = fetchFalso(base);
-    const fecha = await fechaDeCita({
+    const cita = await citaDeCalendly({
       token: "tok",
       correo: "lead@correo.com",
       uuidInvitado: "NO-EXISTE",
       fetch,
     });
-    expect(fecha).toBeNull();
+    expect(cita).toBeNull();
   });
 
   it("NO empareja por correo solo: otro uuid en la misma cita no cuenta", async () => {
@@ -123,33 +157,33 @@ describe("fechaDeCita", () => {
         collection: [{ uri: "https://api.calendly.com/scheduled_events/EV1/invitees/OTRO" }],
       },
     });
-    const fecha = await fechaDeCita({
+    const cita = await citaDeCalendly({
       token: "tok",
       correo: "lead@correo.com",
       uuidInvitado: "UUID-123",
       fetch,
     });
-    expect(fecha).toBeNull();
+    expect(cita).toBeNull();
   });
 
   it("un 401 lanza ErrorDeCalendly, no null", async () => {
     const fetch = vi.fn(async () => fallo(401)) as unknown as FetchLike;
     await expect(
-      fechaDeCita({ token: "malo", correo: "a@b.com", uuidInvitado: "X", fetch }),
+      citaDeCalendly({ token: "malo", correo: "a@b.com", uuidInvitado: "X", fetch }),
     ).rejects.toBeInstanceOf(ErrorDeCalendly);
   });
 
   it("un 500 lanza ErrorDeCalendly", async () => {
     const fetch = vi.fn(async () => fallo(500)) as unknown as FetchLike;
     await expect(
-      fechaDeCita({ token: "tok", correo: "a@b.com", uuidInvitado: "X", fetch }),
+      citaDeCalendly({ token: "tok", correo: "a@b.com", uuidInvitado: "X", fetch }),
     ).rejects.toBeInstanceOf(ErrorDeCalendly);
   });
 
   it("si no hay organización en /users/me, lanza ErrorDeCalendly", async () => {
     const fetch = fetchFalso({ "/users/me": { resource: {} } });
     await expect(
-      fechaDeCita({ token: "tok", correo: "a@b.com", uuidInvitado: "X", fetch }),
+      citaDeCalendly({ token: "tok", correo: "a@b.com", uuidInvitado: "X", fetch }),
     ).rejects.toBeInstanceOf(ErrorDeCalendly);
   });
 
@@ -162,7 +196,7 @@ describe("fechaDeCita", () => {
       },
     });
     await expect(
-      fechaDeCita({ token: "tok", correo: "a@b.com", uuidInvitado: "UUID-123", fetch }),
+      citaDeCalendly({ token: "tok", correo: "a@b.com", uuidInvitado: "UUID-123", fetch }),
     ).rejects.toBeInstanceOf(ErrorDeCalendly);
   });
 
@@ -171,7 +205,7 @@ describe("fechaDeCita", () => {
       throw new Error("ECONNRESET");
     }) as unknown as FetchLike;
     await expect(
-      fechaDeCita({ token: "tok", correo: "a@b.com", uuidInvitado: "X", fetch }),
+      citaDeCalendly({ token: "tok", correo: "a@b.com", uuidInvitado: "X", fetch }),
     ).rejects.toBeInstanceOf(ErrorDeCalendly);
   });
 
@@ -185,17 +219,17 @@ describe("fechaDeCita", () => {
       }
       throw new Error(`URL inesperada: ${url}`);
     }) as unknown as FetchLike;
-    const fecha = await fechaDeCita({
+    const cita = await citaDeCalendly({
       token: "tok",
       correo: "lead@correo.com",
       uuidInvitado: "X",
       fetch,
     });
-    expect(fecha).toBeNull();
+    expect(cita).toBeNull();
   });
 });
 
-describe("fechaDeCita — paginacion", () => {
+describe("citaDeCalendly — paginacion", () => {
   it("sigue next_page: un uuid en la pagina 2 de eventos se encuentra, no sale null", async () => {
     const EV2 = "https://api.calendly.com/scheduled_events/EV2";
     const PAGINA_2 = "https://api.calendly.com/scheduled_events?page_token=P2";
@@ -218,7 +252,7 @@ describe("fechaDeCita — paginacion", () => {
       }
       throw new Error(`URL inesperada: ${url}`);
     });
-    const fecha = await fechaDeCita({ token: "t", correo: "a@b.co", uuidInvitado: "UUID-123", fetch });
-    expect(fecha?.toISOString()).toBe("2026-10-01T14:00:00.000Z");
+    const cita = await citaDeCalendly({ token: "t", correo: "a@b.co", uuidInvitado: "UUID-123", fetch });
+    expect(cita?.inicio.toISOString()).toBe("2026-10-01T14:00:00.000Z");
   });
 });

@@ -2,9 +2,13 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
-import { sobresCrudos, sources } from "@/lib/db/schema";
+import { programs, sobresCrudos, sources } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { normalizarEmail } from "@/lib/sheets/mapeo";
 import { ingerirEntradas } from "@/lib/ingesta/ingerir";
+import { resolverCitaDeEnvio } from "@/lib/calendly/resolver-cita";
+import type { ResultadoCita } from "@/lib/ingesta/regla-de-deals";
+import type { EntradaEnvio } from "@/lib/ingesta/envio";
 import {
   entradaDesdeTypeform,
   payloadTypeformSchema,
@@ -26,7 +30,10 @@ export const maxDuration = 60;
  *     en tiempo constante. Si no cuadra: 401 y la base no se mueve.
  *  3. El adaptador convierte el payload en una `EntradaEnvio`. El programa sale de la
  *     FUENTE, nunca del payload.
- *  4. `ingerirEntradas` con la regla de deals encendida (ticket 052).
+ *  4. Un envio "Con Calendly" resuelve su cita en Calendly ANTES de la transaccion
+ *     (una llamada HTTP dentro retiene una conexion del pooler), con el token del
+ *     programa (ADR 0057).
+ *  5. `ingerirEntradas` con la regla de deals encendida (ticket 052).
  *
  * **Nunca responde con redireccion** y la ruta esta en la lista publica de `proxy.ts`
  * (un webhook no tiene sesion). La firma es la autenticacion.
@@ -93,6 +100,44 @@ async function guardarSobre(db: Db, sourceId: string, cuerpo: string, error: unk
     console.error(`[webhook] no se pudo guardar el sobre crudo de la fuente ${sourceId}`, e);
   }
   return Response.json({ ok: false, guardado: true }, { status: 200 });
+}
+
+/**
+ * Resuelve la cita de Calendly de cada envio "Con Calendly" del lote, ANTES de la
+ * transaccion de ingesta (ticket 052). Un envio es "Con Calendly" cuando el adaptador
+ * le puso `linkAgenda`. Devuelve el mapa `correo normalizado -> ResultadoCita` que la
+ * regla de deals consume; un envio sin link no aporta entrada.
+ *
+ * El token del programa se lee con una consulta PROPIA (no `listarProgramas`, que lo
+ * oculta a proposito, ADR 0057). Si el programa no tiene token, la cita queda como
+ * error visible con un mensaje SIN el token —no lo hay— y el deal se queda en Pendiente
+ * Setteo. `globalThis.fetch` es el que usa Calendly; en los tests se reemplaza con
+ * `vi.stubGlobal("fetch", ...)` para no tocar la red.
+ */
+async function resolverCitas(db: Db, programId: string, entradas: EntradaEnvio[]): Promise<Map<string, ResultadoCita>> {
+  const citas = new Map<string, ResultadoCita>();
+  const conAgenda = entradas.filter((e) => e.linkAgenda);
+  if (conAgenda.length === 0) return citas;
+
+  const [programa] = await db
+    .select({ calendlyToken: programs.calendlyToken })
+    .from(programs)
+    .where(eq(programs.id, programId))
+    .limit(1);
+  const token = programa?.calendlyToken ?? null;
+
+  for (const entrada of conAgenda) {
+    const correo = normalizarEmail(
+      entrada.campos.correo ? entrada.columnas[entrada.campos.correo] : null,
+    );
+    if (!correo) continue; // sin correo no hay lead al que colgarle la cita
+    if (!token) {
+      citas.set(correo, { estado: "error", mensaje: "el programa no tiene token de Calendly configurado." });
+      continue;
+    }
+    citas.set(correo, await resolverCitaDeEnvio({ token, correo, linkAgenda: entrada.linkAgenda }));
+  }
+  return citas;
 }
 
 export async function POST(
@@ -167,8 +212,16 @@ export async function POST(
   // 4. La ingesta, con la regla de deals encendida (ticket 052). El programa sale de la
   // fuente registrada (`fila.programId`), nunca del payload.
   try {
+    // La cita de Calendly de un envio "Con Calendly" se lee ANTES de la transaccion (una
+    // llamada HTTP dentro retendria una conexion del pooler, AGENTS.md). El token del
+    // programa se lee con una consulta PROPIA de servidor: `listarProgramas` lo oculta a
+    // proposito (ADR 0057), asi que aqui se pide la columna directamente. El token no se
+    // loguea ni sale en la respuesta.
+    const citasPorCorreo = await resolverCitas(db, fila.programId, [entrada]);
+
     const resultado = await ingerirEntradas(db, fila.programId, [entrada], {
       aplicarReglaDeDeals: true,
+      citasPorCorreo,
     });
 
     // Un envio con firma buena y correo ausente entra como envio "sin lead": no es un

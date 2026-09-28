@@ -5,8 +5,8 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 35 (28-sep, madrugada). El anterior:
-> `git show fdcd0aa:docs/agents/handoff.md`.
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 36 (28-sep, mañana). El anterior:
+> `git show 9c1ca54:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md y despues docs/plan.md completo, antes que cualquier otro
@@ -14,23 +14,24 @@ documento (norte, tracks, orden por pasos en §5, decisiones abiertas en §7). E
 vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta: docs/overview.md,
 docs/structure.md, docs/operations.md y docs/adr/README.md.
 
-Estado al cierre del 28-sep (sesion 35): HAY UNA SOLA BASE y es PRODUCCION: el proyecto de Supabase
-"CRM Retia" (ref hfqmiyiuyqapdsbywrag). No hay dev: local, scripts y db:migrate escriben en la base real.
-Se trabaja en main; los previews de Vercel no tienen base. Regla de Mani: asegurar integridad antes de
-publicar (AGENTS.md, convenciones). Vercel Production apunta a esa base y Mani entro y el dashboard carga.
-El sync de Sheets se descarta (A6); el CRM no calcula el Estado (A8, T2 borrado). 30 migraciones
-(0000-0029). 973 tests. Todo publicado en main (aa89e98) y desplegado.
+Estado al cierre del 28-sep (sesion 36): UNA sola base y es PRODUCCION ("CRM Retia", ref
+hfqmiyiuyqapdsbywrag); local, scripts y db:migrate escriben en ella. 33 migraciones (0000-0032), todas
+aplicadas. 1.017 tests. La base tiene 0 leads a proposito: el cron del sync de Sheets metio 5.343 el
+28-sep y se borraron con el ok de Mani; el cron esta APAGADO (vercel.json). Los dos programas tienen
+Forms Link y token de Calendly cargados desde /ajustes/programas (109 hecho). El 052 esta hecho: un
+envio con_calendly lee su cita en Calendly antes de la transaccion; vigente -> Agendado con su llamada,
+cancelada/no encontrada/error -> Pendiente Setteo con nota del sistema en el deal.
 
 Siguiente:
-1. El 052 y el 106 estan en curso (codigo y tests hechos). Al 052 le falta Setteo -> Agendado: el motor
-   exige una llamada con fecha y el link de Calendly NO trae la fecha. Se resuelve con el 109 (ADR 0057):
-   el token de Calendly del programa, ya verificado. Los tokens estan en .env.local solo para probar.
-2. Al 106 le falta el envio REAL: crear la fuente webhook de cada programa en produccion (con la llave
-   `agenda` del mapeo = titulo de la pregunta de Calendly), pegar URL y secreto en Typeform, mandar un
-   envio de prueba, corregir el adaptador con el payload real y limpiar la prueba con el ok de Mani.
-   Despues de publicar un Typeform, mirar la fila 1 de la hoja (incidente del 27-sep).
-3. El 108 (retirar el sync de Sheets) cuando el 106 cierre; el 107 ya tiene umbrales (48 h, 5 dias, solo
-   en la app); el 105 forjar la accion con sesion de closer.
+1. El 106: el envio REAL. Crear la fuente webhook de cada programa en produccion (con la llave `agenda`
+   del mapeo = titulo de la pregunta de Calendly), pegar URL y secreto en Typeform, mandar un envio de
+   prueba, corregir el adaptador con el payload real y limpiar la prueba con el ok de Mani. Es la
+   primera prueba de punta a punta del 052 (hasta hoy el payload de los tests es inventado). Despues de
+   publicar un Typeform, mirar la fila 1 de la hoja (incidente del 27-sep).
+2. El 108 (retirar el codigo del sync; el cron ya esta apagado), el 107 (aviso de fuente sin envios) y
+   el 105 (forjar la accion con sesion de closer).
+3. La nota del 052 y el aviso de re-envio no los ve nadie todavia: no hay pantalla de deal. El 096 lleva
+   el pedido de Mani (dropdown de llamadas de Calendly y boton "buscar llamada").
 Las migraciones las genera y aplica la sesion principal; Kiro implementa codigo y tests y NO corre los
 guardianes por si solo: correr npm test completo al revisar. Antes de tomar un ticket haz git fetch.
 ```
@@ -41,6 +42,39 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 > Las entradas anteriores al 27-sep citan documentos que se fundieron ese día (spec, plan v2, propuesta,
 > revisión, glosario, insumos): `docs/plan.md` §8 dice dónde quedó cada uno.
+
+- **2026-09-28 (CIERRE 36, mañana): 109 y 052 hechos; el cron de Sheets metió 5.343 leads y se apagó.**
+  Sesión de Mani; Kiro implementó 109 y 052, revisados por la sesión principal.
+  - **109 hecho** (`29da582`, migración **0030**): `programs.form_url` y `programs.calendly_token`. El
+    token lo escribe solo `guardarTokenCalendly` (bitácora "(oculto)") y ninguna lectura lo devuelve
+    (`sinToken`). **Pedido de Mani:** el formulario dice **Forms Link** y **Calendly Token**,
+    obligatorios, el token con puntos y pegable; salieron del formulario `web_url` y `calendly_url`
+    (vacías, sin lector; las columnas siguen). Mani cargó los dos tokens desde la app y se borraron de
+    `.env.local`. La revisión agregó la paginación de Calendly (un uuid en la página 2 salía `null` en
+    silencio) y tapó `editarPlantillaLead`, que devolvía el token.
+  - **Migración 0031** (`313efc4`): `programs.activo` nace en `false` y el CHECK
+    `programs_activo_con_formulario_y_token` exige los dos valores. 34 archivos de tests pasaron a
+    `PROGRAMA_DE_PRUEBA`.
+  - 🩸 **Los "39 leads" eran 5.343.** El cron diario de Vercel (`/api/cron/sync`, 7:00 Bogotá) seguía
+    vivo; su primera corrida contra Supabase (7:52) copió las dos hojas **sin un solo envío detrás**. Un
+    webhook posterior habría recalculado el resumen de esos leads solo con el envío nuevo, sin error.
+    **Apagado** (`9410442`, quitado de `vercel.json`, deploy verificado) y **borrados** los 5.343 leads y
+    las 2 corridas, con el ok de Mani, en una transacción que verificó los conteos. **Lección:** cambiar
+    el `DATABASE_URL` de producción también redirige a los crons; revisar `vercel.json` cuando se cambia
+    la base.
+  - **052 hecho** (con la migración 0032 aplicada en producción; publicado al cierre): la ruta del webhook resuelve la cita
+    **antes** de la transacción (`lib/calendly/resolver-cita.ts`, `citaDeCalendly` ahora dice si está
+    cancelada). Vigente: Agendado, creando antes la llamada `agendada` sin closer, `origen calendly`,
+    huella `calendly:<uuid>`; el motor pasa sin aflojarse y abrir directo en Agendado ya no queda sin
+    llamada. Cancelada, no encontrada o error: **Pendiente Setteo con nota** (Mani). **Migración 0032**
+    (sesión principal): `deal_actividades.user_id` nulo = el sistema, y un CHECK impide que el sistema
+    registre un contacto. Probado contra Calendly real: vigente con fecha exacta, cancelada, no
+    encontrada y error.
+  - **Pedido de Mani, anotado en el 096:** que un lead sin cita no se quede así para siempre. Dropdown de
+    llamadas de Calendly y botón "buscar llamada" en el deal; además, la llamada que llegue después se
+    cuelga sola.
+  - **Medido:** 1.017 tests, typecheck, lint y build limpios.
+  - ⚠️ `.kiro/settings/lsp.json` es configuración local de Kiro: no va al repo.
 
 - **2026-09-28 (CIERRE 35, madrugada): producción armada en la única base; 052 y 106 con código.**
   Sesión de Mani; Kiro implementó 052, 106 y bitácora + T2 en paralelo (repartidos por archivos),
@@ -2863,7 +2897,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
-- 109 (token de Calendly y link del programa) → cierra Setteo → Agendado del 052.
-- 106: envío real de cada Typeform en producción y configurar las dos fuentes webhook.
-- 108 cuando cierre el 106; 107 (umbrales decididos); 105 forjar la acción con sesión de closer.
+- 106: envío real de cada Typeform en producción y configurar las dos fuentes webhook. Es la primera
+  prueba de punta a punta del 052 (109 y 052 hechos el 28-sep).
+- 108 (el cron ya está apagado; falta el código); 107 (umbrales decididos); 105 forjar la acción con
+  sesión de closer.
+- 096: la pantalla que haga visibles la nota del 052 y las llamadas sueltas (pedido de Mani).
 - Producción: enlaces de pago y closers reales (007).

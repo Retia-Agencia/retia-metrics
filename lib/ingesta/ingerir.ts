@@ -5,7 +5,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import type { Calificacion } from "./calificacion";
 import { estadoDesdeTexto } from "./estado";
 import { construirEnvio, type EntradaEnvio, type Envio } from "./envio";
-import { aplicarReglaDeDeal, type AccionDeDeal } from "./regla-de-deals";
+import { aplicarReglaDeDeal, type AccionDeDeal, type ResultadoCita } from "./regla-de-deals";
 import {
   resolverIdentidad,
   type ContactoConocido,
@@ -63,9 +63,10 @@ export interface ResultadoIngesta {
   /**
    * Lo que la regla de deals (ticket 052) hizo con cada lead tocado. Vacio cuando no se
    * pidio (`aplicarReglaDeDeals` en false: el traslado desde Sheets). Incluye los
-   * re-envios de un deal avanzado, que NO mueven nada pero el owner tiene que ver.
+   * re-envios de un deal avanzado, que NO mueven nada pero el owner tiene que ver, y la
+   * `nota` de una cita de Calendly que no estaba vigente.
    */
-  reglaDeDeals: { leadId: string; accion: AccionDeDeal; dealAbiertoId?: string; rechazo?: string }[];
+  reglaDeDeals: { leadId: string; accion: AccionDeDeal; dealAbiertoId?: string; rechazo?: string; nota?: string }[];
 }
 
 export interface OpcionesIngesta {
@@ -78,6 +79,15 @@ export interface OpcionesIngesta {
    * como ~2.400 deals iguales en Pendiente Setteo (decision de Mani del 24-sep).
    */
   aplicarReglaDeDeals?: boolean;
+  /**
+   * La cita de Calendly ya resuelta para cada lead con calificación `con_calendly`,
+   * indexada por su correo NORMALIZADO (`leads.email_normalizado`). La resuelve el
+   * llamador FUERA de esta transacción (una llamada HTTP dentro retiene una conexión
+   * del pooler): el webhook la arma con `resolverCitaDeEnvio`. La regla solo la usa
+   * cuando `aplicarReglaDeDeals` es true; un lead `con_calendly` sin entrada aquí se
+   * trata como cita no encontrada (no va a Agendado sin fecha real).
+   */
+  citasPorCorreo?: Map<string, ResultadoCita>;
 }
 
 /** Un envio se identifica por fuente, token y parcialidad (`submissions_fuente_token_idx`). */
@@ -311,16 +321,23 @@ export async function ingerirEntradas(
       // tambien la escritura del envio: no queda un lead ingerido con un deal a medias.
       if (opciones.aplicarReglaDeDeals && tocados.length > 0) {
         const leadsTocados = await tx
-          .select({ id: leads.id, programId: leads.programId, calificacion: leads.calificacion })
+          .select({
+            id: leads.id,
+            programId: leads.programId,
+            emailNormalizado: leads.emailNormalizado,
+            calificacion: leads.calificacion,
+          })
           .from(leads)
           .where(inArray(leads.id, tocados));
         for (const lead of leadsTocados) {
-          const r = await aplicarReglaDeDeal(tx, lead);
+          const cita = opciones.citasPorCorreo?.get(lead.emailNormalizado);
+          const r = await aplicarReglaDeDeal(tx, lead, cita);
           resultado.reglaDeDeals.push({
             leadId: r.leadId,
             accion: r.accion,
             dealAbiertoId: r.dealAbiertoId,
             rechazo: r.rechazo,
+            nota: r.nota,
           });
         }
       }

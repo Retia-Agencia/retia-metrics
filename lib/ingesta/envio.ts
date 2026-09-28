@@ -62,6 +62,14 @@ export interface EntradaEnvio {
    * Si no viene, se deduce de la fecha: ver `construirEnvio`.
    */
   esParcial?: boolean;
+  /**
+   * El link de Calendly de la pregunta de agenda, cuando el envio subio a
+   * `con_calendly` (ADR 0049, ADR 0057, ticket 052). Lo pone el adaptador de webhook
+   * al resolver la pregunta de agenda; sirve para leer la cita real en Calendly ANTES
+   * de la transaccion de ingesta. No es una columna de `submissions` (el link crudo ya
+   * queda en `respuestas`): es solo el insumo del emparejador de la cita.
+   */
+  linkAgenda?: string | null;
 }
 
 export interface Envio {

@@ -833,11 +833,20 @@ export const dealActividades = pgTable(
     dealId: uuid("deal_id").notNull().references(() => deals.id, { onDelete: "restrict" }),
     tipo: tipoActividadEnum("tipo").notNull(),
     canal: text("canal"),
-    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+    /**
+     * Quien la registro. Nulo = el SISTEMA (migracion 0032), como en
+     * `deal_etapa_historial.user_id` y `deals.creado_por`: la regla de deals (052) deja
+     * una nota cuando la cita de Calendly no esta vigente. El sistema solo deja NOTAS:
+     * un contacto siempre es de una persona, y el CHECK de abajo lo garantiza.
+     */
+    userId: uuid("user_id").references(() => users.id, { onDelete: "restrict" }),
     fecha: timestamp("fecha", { withTimezone: true }).notNull().defaultNow(),
     nota: text("nota"),
   },
-  (t) => [index("deal_actividades_deal_idx").on(t.dealId, t.fecha)],
+  (t) => [
+    index("deal_actividades_deal_idx").on(t.dealId, t.fecha),
+    check("deal_actividades_contacto_con_usuario", sql`${t.tipo} <> 'contacto' OR ${t.userId} IS NOT NULL`),
+  ],
 );
 
 /**

@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { leadContactos, leads, programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
+import { calls, deals, leadContactos, leads, programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import completo from "./fixtures/typeform-completo.json";
@@ -13,6 +13,11 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
  *
  * `@/lib/db` se reemplaza por la base de prueba (holder mutable porque `vi.mock` se iza
  * antes del `beforeEach`). La ingesta y el adaptador corren sin mock: es el camino real.
+ *
+ * `globalThis.fetch` se stubea para que la lectura de Calendly (ticket 052) NUNCA toque
+ * la red: el fixture trae un link de Calendly sin segmento `/invitees/<uuid>`, asi que
+ * la cita resuelve a "no encontrada" sin llamar a la API. El stub que lanza garantiza
+ * que si alguna vez SI se llamara, el test lo delata en vez de salir a internet.
  */
 
 const holder: { db: Db | null } = { db: null };
@@ -59,6 +64,15 @@ async function invocar(fuente: string, cuerpo: string, firma: string | null): Pr
 }
 
 beforeEach(async () => {
+  // Cualquier llamada a Calendly en un test del webhook es un error: el fixture no trae
+  // un uuid de invitado, asi que la cita se resuelve sin red. Si algo la llamara, este
+  // stub lo delata en vez de salir a internet.
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => {
+      throw new Error("fetch no debería llamarse en los tests del webhook");
+    }),
+  );
   ({ db, cerrar } = await crearBaseDePrueba());
   holder.db = db;
   const [p] = await db
@@ -85,6 +99,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   holder.db = null;
+  vi.unstubAllGlobals();
   await cerrar();
 });
 
@@ -221,5 +236,79 @@ describe("POST /api/webhooks/formularios/[fuente]", () => {
     const cuerpo = JSON.stringify(completo);
     const res = await invocar(hoja.id, cuerpo, firmar(cuerpo));
     expect(res.status).toBe(404);
+  });
+
+  it("Con Calendly con cita vigente: abre deal en Agendado, con su llamada, leyendo la fecha de Calendly", async () => {
+    // El link de la pregunta de agenda ahora SÍ trae un uuid de invitado, así que la ruta
+    // consulta Calendly (con fetch falso: cero red) y crea la llamada con la fecha real.
+    const ORG = "https://api.calendly.com/organizations/ORG1";
+    const EVENT = "https://api.calendly.com/scheduled_events/EV9";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const ok = (cuerpo: unknown) => ({ ok: true, status: 200, json: async () => cuerpo });
+        if (url.includes("/users/me")) return ok({ resource: { current_organization: ORG } });
+        if (url.includes(`${EVENT}/invitees`)) {
+          return ok({ collection: [{ uri: `${EVENT}/invitees/UU-9`, status: "active" }] });
+        }
+        if (url.includes("/scheduled_events")) {
+          return ok({ collection: [{ uri: EVENT, start_time: "2026-10-05T16:00:00Z", status: "active" }] });
+        }
+        throw new Error(`URL inesperada: ${url}`);
+      }),
+    );
+
+    const conUuid = structuredClone(completo);
+    const agenda = conUuid.form_response.answers.find((a) => a.field.id === "f-agenda")!;
+    agenda.url = "https://calendly.com/d/abc/entrevista/invitees/UU-9";
+    const cuerpo = JSON.stringify(conUuid);
+
+    const res = await invocar(sourceId, cuerpo, firmar(cuerpo));
+    expect(res.status).toBe(200);
+
+    const [lead] = await db.select().from(leads);
+    expect(lead.calificacion).toBe("con_calendly");
+    const [deal] = await db.select().from(deals);
+    expect(deal.etapa).toBe("agendado");
+
+    // La llamada de Calendly quedó colgada del deal, con la fecha real y sin closer.
+    const filasCall = await db.select().from(calls).where(eq(calls.dealId, deal.id));
+    expect(filasCall).toHaveLength(1);
+    expect(filasCall[0].resultado).toBe("agendada");
+    expect(filasCall[0].fechaAgenda?.toISOString()).toBe("2026-10-05T16:00:00.000Z");
+    expect(filasCall[0].closerId).toBeNull();
+    expect(filasCall[0].origen).toBe("calendly");
+    expect(filasCall[0].huellaFila).toBe("calendly:UU-9");
+  });
+
+  it("Con Calendly con cita CANCELADA: el deal se abre en Pendiente Setteo, sin llamada", async () => {
+    const ORG = "https://api.calendly.com/organizations/ORG1";
+    const EVENT = "https://api.calendly.com/scheduled_events/EV9";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const ok = (cuerpo: unknown) => ({ ok: true, status: 200, json: async () => cuerpo });
+        if (url.includes("/users/me")) return ok({ resource: { current_organization: ORG } });
+        if (url.includes(`${EVENT}/invitees`)) {
+          return ok({ collection: [{ uri: `${EVENT}/invitees/UU-9`, status: "canceled" }] });
+        }
+        if (url.includes("/scheduled_events")) {
+          return ok({ collection: [{ uri: EVENT, start_time: "2026-10-05T16:00:00Z", status: "active" }] });
+        }
+        throw new Error(`URL inesperada: ${url}`);
+      }),
+    );
+
+    const conUuid = structuredClone(completo);
+    const agenda = conUuid.form_response.answers.find((a) => a.field.id === "f-agenda")!;
+    agenda.url = "https://calendly.com/d/abc/entrevista/invitees/UU-9";
+    const cuerpo = JSON.stringify(conUuid);
+
+    const res = await invocar(sourceId, cuerpo, firmar(cuerpo));
+    expect(res.status).toBe(200);
+
+    const [deal] = await db.select().from(deals);
+    expect(deal.etapa).toBe("pendiente_setteo");
+    expect(await db.select().from(calls)).toHaveLength(0);
   });
 });

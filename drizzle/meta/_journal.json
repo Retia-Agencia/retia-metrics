@@ -225,6 +225,13 @@
       "when": 1790603605992,
       "tag": "0031_programa-activo-con-formulario-y-token",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790607321888,
+      "tag": "0032_nota-del-sistema-en-el-deal",
+      "breakpoints": true
     }
   ]
 }

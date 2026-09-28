@@ -284,7 +284,14 @@ export function entradaDesdeTypeform(payload: PayloadTypeform, opciones: Opcione
   const columnaAgenda = opciones.mapeo?.campoAgenda
     ? resolverContra(Object.keys(columnas), [opciones.mapeo.campoAgenda])
     : undefined;
-  columnas["__estado"] = estadoConAgenda(estadoBase, respuestasParaAgenda, columnaAgenda) ?? "";
+  const estadoFinal = estadoConAgenda(estadoBase, respuestasParaAgenda, columnaAgenda) ?? "";
+  columnas["__estado"] = estadoFinal;
+
+  // Cuando el envio subio a `con_calendly`, el link de la pregunta de agenda es el
+  // insumo para leer la cita real en Calendly (ADR 0057, ticket 052). Se lleva aparte
+  // en la entrada, no como columna: el link crudo ya queda en `respuestas`.
+  const linkAgenda =
+    estadoFinal === "con_calendly" && columnaAgenda ? respuestasParaAgenda[columnaAgenda] : null;
 
   const esParcial = EVENTOS_PARCIALES.has(payload.event_type ?? "");
 
@@ -307,6 +314,7 @@ export function entradaDesdeTypeform(payload: PayloadTypeform, opciones: Opcione
     columnas,
     campos,
     esParcial,
+    linkAgenda,
   };
 }
 

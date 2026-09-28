@@ -73,3 +73,19 @@ Sí, con revisión. El emparejador es donde un bug es silencioso.
 - Evidencia a favor de emparejar **solo por correo**: hay leads que ponen **un teléfono en el formulario
   y otro en la agenda**. Emparejar por teléfono habría colgado llamadas de la persona equivocada.
 - 🔴 Sigue sin preguntarse: de quién es el deal si el host es otra closer.
+
+---
+
+## Pedido de Mani (28-sep, al decidir el 052)
+
+*"No debería ser que no encuentra y luego nunca le llega llamada."* Cuando el form dice `con_calendly`
+pero la cita no aparece (o está cancelada), el 052 deja el deal en Pendiente Setteo con una nota. Este
+ticket cierra el ciclo:
+
+- La llamada que llegue después desde Calendly se cuelga sola de ese deal por las reglas de arriba
+  (un solo lead, un solo deal abierto) y lo mueve a Agendado.
+- **Dropdown de llamadas de Calendly** para que un closer asocie una a mano (es la llamada suelta del
+  Inbox, con rastro).
+- **Botón "buscar llamada"** en el deal, que vuelve a consultar Calendly por si la cita apareció. Usa
+  `citaDeCalendly` de `lib/calendly/cita.ts` (ticket 109, renombrada de `fechaDeCita` por el ticket 052,
+  que ahora devuelve `{ inicio, cancelada }`) con el uuid del envío.

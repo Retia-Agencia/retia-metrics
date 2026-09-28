@@ -1,25 +1,35 @@
 /**
- * Lectura de la fecha real de una cita de Calendly (ADR 0057 punto 4, ticket 109).
+ * Lectura de la cita real de Calendly (ADR 0057 punto 4, ticket 109; ampliado por el
+ * ticket 052 para traer tambien su estado).
  *
  * El link que Typeform guarda de la pregunta de Calendly NO trae la fecha: es
  * `https://calendly.com/d/<evento>/<nombre>/invitees/<uuid>` (verificado con datos
- * reales). La fecha se lee de la API v2 de Calendly con el token del programa (un
+ * reales). La cita se lee de la API v2 de Calendly con el token del programa (un
  * token de rol `owner`, que ve las citas de todos los closers de su organizacion):
  *
  *   1. `GET /users/me` para saber la URI de la organizacion del token.
  *   2. `GET /scheduled_events?organization=...&invitee_email=...` acota por el correo
- *      del lead (viene en el mismo envio).
+ *      del lead (viene en el mismo envio). NO se filtra por estado: una cita cancelada
+ *      tiene que verse (una re-agenda no debe abrir una llamada muerta).
  *   3. Por cada evento, `GET <event_uri>/invitees` y se busca el invitado cuyo uuid
  *      coincide EXACTAMENTE con el del link.
  *
  * El emparejamiento es por uuid, nunca solo por correo: un correo puede tener varias
- * citas y tomar la equivocada es invisible (ADR 0057 punto 4). Si el uuid no aparece,
- * se devuelve `null` (la cita no se inventa). Un 401/403/5xx o una respuesta con forma
- * inesperada lanza `ErrorDeCalendly`, NUNCA un `null` silencioso: un token vencido
- * tiene que verse (ADR 0057, tercera consecuencia).
+ * citas y tomar la equivocada es invisible (ADR 0057 punto 4). Se devuelve la cita con
+ * su fecha de inicio y si esta cancelada (el evento o el invitado en estado
+ * `canceled`), o `null` si el uuid no aparece (la cita no se inventa). Un 401/403/5xx o
+ * una respuesta con forma inesperada lanza `ErrorDeCalendly`, NUNCA un `null`
+ * silencioso: un token vencido tiene que verse (ADR 0057, tercera consecuencia).
  *
  * `fetch` es inyectable para poder probar sin red. Ningun test toca la API real.
  */
+
+/** Una cita de Calendly emparejada por uuid: su inicio y si esta cancelada. */
+export interface CitaDeCalendly {
+  inicio: Date;
+  /** El evento o el invitado quedaron en estado `canceled`. */
+  cancelada: boolean;
+}
 
 /** Un fallo de la API de Calendly (token vencido, 5xx, respuesta rara). Es visible. */
 export class ErrorDeCalendly extends Error {
@@ -154,16 +164,16 @@ function uuidDeUri(uri: unknown): string | null {
 }
 
 /**
- * Devuelve la fecha de inicio (`Date`) de la cita cuyo invitado tiene EXACTAMENTE el
+ * Devuelve la cita (inicio + si esta cancelada) cuyo invitado tiene EXACTAMENTE el
  * uuid dado, o `null` si no aparece entre los eventos del correo. Empareja por uuid,
  * nunca solo por correo. Un fallo de la API lanza `ErrorDeCalendly`.
  */
-export async function fechaDeCita({
+export async function citaDeCalendly({
   token,
   correo,
   uuidInvitado,
   fetch: fetchInyectado,
-}: ParametrosCita): Promise<Date | null> {
+}: ParametrosCita): Promise<CitaDeCalendly | null> {
   const fetchImpl = fetchInyectado ?? (globalThis.fetch as unknown as FetchLike);
   if (!fetchImpl) throw new ErrorDeCalendly("No hay implementación de fetch disponible.");
 
@@ -176,7 +186,7 @@ export async function fechaDeCita({
 
   for (const evento of coleccion) {
     if (typeof evento !== "object" || evento === null) continue;
-    const e = evento as { uri?: unknown; start_time?: unknown };
+    const e = evento as { uri?: unknown; start_time?: unknown; status?: unknown };
     const eventUri = typeof e.uri === "string" ? e.uri : null;
     if (!eventUri) continue;
 
@@ -189,7 +199,7 @@ export async function fechaDeCita({
 
     for (const invitado of lista) {
       if (typeof invitado !== "object" || invitado === null) continue;
-      const inv = invitado as { uri?: unknown };
+      const inv = invitado as { uri?: unknown; status?: unknown };
       if (uuidDeUri(inv.uri) === uuidInvitado) {
         // El invitado del uuid vive en este evento: su fecha es la del evento.
         const inicio = e.start_time;
@@ -200,7 +210,11 @@ export async function fechaDeCita({
         if (Number.isNaN(fecha.getTime())) {
           throw new ErrorDeCalendly(`Calendly devolvió una fecha inválida: ${inicio}.`);
         }
-        return fecha;
+        // Cancelada si el evento O el invitado quedaron en `canceled`. Cualquiera de las
+        // dos formas basta: un lead que reagenda cancela su invitado, y el organizador
+        // que cancela la reunion marca el evento.
+        const cancelada = e.status === "canceled" || inv.status === "canceled";
+        return { inicio: fecha, cancelada };
       }
     }
   }

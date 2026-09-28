@@ -57,10 +57,12 @@ cuando los closers operan en el CRM y lo histórico ya migró. Los hitos interme
 - ⚠️ Un checkout con `node_modules` de antes del 22-sep **falla 46 tests** porque no tiene el driver
   `postgres` (ADR 0047). Es entorno, no regresión: se arregla instalando.
 - **Base** (actualizado el 28-sep): **una sola, y es producción**, el proyecto "CRM Retia" (ADR 0047,
-  enmienda). 30 migraciones (0000 a 0029) aplicadas; los hashes de 0000-0020 difieren solo por CRLF
+  enmienda). 33 migraciones (0000 a 0032) aplicadas; los hashes de 0000-0020 difieren solo por CRLF
   (`operations.md` §10). Vercel Production apunta a ella desde el 28-sep (antes seguía en Neon) y el
   dashboard carga.
-- **Cero** deals, llamadas y abonos en cualquier base. Los closers siguen en Sheets.
+- **Cero** leads, deals, llamadas y abonos en producción, a propósito: el 28-sep el cron del sync de
+  Sheets metió 5.343 leads sin envíos, se borraron con el ok de Mani y el cron quedó apagado. Los leads
+  entran por el webhook (106) y lo viejo por el traslado. Los closers siguen en Sheets.
 
 | Pieza | Estado |
 |---|---|

@@ -51,9 +51,10 @@ servicio, nunca con "cualquiera con el enlace"**. Los scripts siguen leyendo los
 | Formulario (Typeform) | https://metodocomunicarte.typeform.com/to/nkMLdeh8 (identificado el 18-ago como el destino de los botones "Unirme" de la landing; confirmado por Mani el 27-sep) | https://postulacioness.typeform.com/to/GmPGBOf9 (confirmado por Mani el 27-sep; el ID distingue mayúsculas) |
 | Landing | `programavirtual.eventoscomunicarte.com/landing.html` (el contenido vive en ese iframe) | 🔴 falta |
 | Calendly | una organización por programa, un solo tipo de evento ("Postulación Método Comunicarte"); token verificado el 28-sep | una organización, evento "Postulación: De Cero a Tactical Investor"; token verificado el 28-sep (451 citas en ±3 meses) |
-| `web_url` / `calendly_url` en la base (`dev`) | vacías | vacías |
+| `form_url` / `calendly_token` en la base (producción) | cargados por Mani el 28-sep desde `/ajustes/programas` | cargados por Mani el 28-sep |
+| `web_url` / `calendly_url` en la base | vacías, y desde el 28-sep fuera del formulario (nada las lee) | vacías |
 
-Cuando existan `programs.form_url` y los destinos (ticket 092), estas URLs se cargan desde la app y
+`programs.form_url` ya existe (ticket 109) y está cargado; cuando existan los destinos (ticket 092), el resto de estas URLs se cargan desde la app y
 esta tabla queda como referencia.
 
 ## 3. Variables de entorno
@@ -74,7 +75,6 @@ editor) y en Vercel.
 | `SCRIPT_ACTOR_EMAIL` | quién firma el rastro de un script que escribe en una base viva (ADR 0029) | local |
 | `SEED_GERENTE_EMAIL`, `SEED_GERENTE_NOMBRE` | el gerente que siembra `seed:users` | local |
 | `ENLACES_PAGO_JSON` | los enlaces de pago que carga `cargar-enlaces-pago` (el JSON lo tiene Mani) | local |
-| `CALENDLY_TOKEN_COMUNICARTE`, `CALENDLY_TOKEN_TACTICAL` | **temporales**: el token de Calendly de cada programa (rol owner), solo para probar hasta que el ticket 109 lo guarde en la base (ADR 0057). Se borran de aquí al cargarlos en la app | local |
 
 `npm run build` no necesita `.env.local`: el cliente de la base se crea de forma perezosa.
 

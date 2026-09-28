@@ -55,5 +55,8 @@ Sí el código y los tests, con revisión. La migración la escribe y aplica la 
   silencio) y paso `editarPlantillaLead` por `sinToken`.
 - 🔴 **Para el 052:** una cita cancelada sigue saliendo con su fecha. El 052 tiene que mirar el estado
   del evento antes de crear la llamada agendada.
-- Pendiente aparte: el `CHECK` que exija los dos valores en todo programa activo (ADR 0057), ahora que
-  los dos programas los tienen.
+- **Hecho el mismo día (migración 0031):** `programs.activo` nace en `false` y el CHECK
+  `programs_activo_con_formulario_y_token` exige los dos valores en todo programa activo. Los tests crean
+  programas activos con `tests/helpers/programa-de-prueba.ts`. `crearPrograma` ya no desactiva después de
+  crear.
+- La función de la cita se renombró a `citaDeCalendly` en el 052 y ahora dice si está cancelada.
