@@ -2,7 +2,7 @@
 id: 079
 etapa: E7
 serves: "plan v2 §6 etapa 7 · tarea E7-3 · ADR 0039 (D2)"
-depends: [078]
+depends: [111]
 status: todo
 ---
 
@@ -42,3 +42,10 @@ es **envio**, porque `submissions` se reconstruye desde la hoja que si se lee.
 ## Kiro
 
 Si.
+
+
+---
+
+## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
+
+Se hace dentro del traslado (111): las 55 de `Forms viejo` entran por la misma puerta, en la misma corrida.

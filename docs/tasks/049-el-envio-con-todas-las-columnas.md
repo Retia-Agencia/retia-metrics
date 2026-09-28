@@ -122,3 +122,10 @@ problema de captacion en una atribucion falsa.
 de la hoja completa vista el 21-sep; se comprueban cuando se haga el traslado desde Sheets (T3), no
 contra `dev`. Y por el ADR 0051, `utm_content` y `utm_term` **se promueven también**: se capturan
 siempre, aunque solo `utm_content` se lea, y solo en el canal Closer.
+
+
+---
+
+## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
+
+El sync se retiró el 28-sep (108). Este ticket cierra con el traslado desde Sheets (111).

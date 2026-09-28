@@ -2,7 +2,7 @@
 id: 074
 etapa: E6
 serves: "plan v2 §6 etapa 6 · tarea E6-6 · insumo §2.4 a §2.6, ADR 0042"
-depends: [073]
+depends: [069, 060]
 status: todo
 ---
 
@@ -37,3 +37,10 @@ La pantalla donde un closer trabaja una oportunidad entera sin salir.
 ## Kiro
 
 Si, con revision visual obligatoria.
+
+
+---
+
+## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
+
+La ficha del deal es del paso 4 y colgaba de dos pantallas del paso 6. Depende del Kanban (069) y de los abonos (060).

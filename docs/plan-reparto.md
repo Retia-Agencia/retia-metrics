@@ -62,6 +62,8 @@ Tocar una carpeta del otro se pide antes. Los archivos compartidos tienen reglas
 Sin estas correcciones el paralelo no es posible o algo se rompe en silencio. **Se aplican en los
 tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets como están.
 
+✅ **Aplicadas el 28-sep con el ok de Mani**, y creados 111, 112 y 113.
+
 | Ticket | Hoy dice | Propuesta | Por qué |
 |---|---|---|---|
 | [069] | depende de 065 | depende de 057 y 097 | con 065 los closers no operan hasta tener la analítica, y eso contradice el orden P1 (`plan.md` §5); la revisión del 22-sep (P1) ya lo recomendaba |

@@ -50,14 +50,16 @@ cuando los closers operan en el CRM y lo histórico ya migró. Los hitos interme
 
 ## 2. Dónde estamos (medido el 27-sep, no copiado)
 
-- `main` tras el merge del 27-sep en la noche (E2 de Alejandro + 094 y ADR 0054/0055 de Mani). **867 tests en verde**, typecheck y lint limpios.
+- `main @ dbeb8f4` (28-sep): **1.068 tests en verde**, typecheck y lint limpios. Desde el 28-sep el orden
+  de trabajo para dos personas vive en [`plan-reparto.md`](./plan-reparto.md); este plan sigue mandando
+  en el qué.
 - ✅ **El lock se resincronizó el 27-sep** (`134d293`): le faltaban entradas opcionales de `@emnapi`.
   `npm ci` pasa con él en una copia limpia. Ojo: en Windows con npm 11 tampoco fallaba con el viejo,
   así que la falla era de otra versión de npm o de Linux; conviene confirmarlo en el CI (R4).
 - ⚠️ Un checkout con `node_modules` de antes del 22-sep **falla 46 tests** porque no tiene el driver
   `postgres` (ADR 0047). Es entorno, no regresión: se arregla instalando.
 - **Base** (actualizado el 28-sep): **una sola, y es producción**, el proyecto "CRM Retia" (ADR 0047,
-  enmienda). 33 migraciones (0000 a 0032) aplicadas; los hashes de 0000-0020 difieren solo por CRLF
+  enmienda). 36 migraciones (0000 a 0035) aplicadas; los hashes de 0000-0020 difieren solo por CRLF
   (`operations.md` §10). Vercel Production apunta a ella desde el 28-sep (antes seguía en Neon) y el
   dashboard carga.
 - **Cero** leads, deals, llamadas y abonos en producción, a propósito: el 28-sep el cron del sync de
@@ -319,7 +321,7 @@ piezas que no tenían ticket (producción, webhook).
 | **1 · Motor** | 043 → 044 → 045 → 046 → 047 · 094 en paralelo | · | ✅ ADR 0055 (webhook) y ADR 0054 (Estado), 27-sep | un deal se mueve solo por `moverEtapa()` |
 | **2 · Entrada** | 048 · 049 · 050 (en curso) · ✅ 051 · 052 | · | ✅ 105 (fuente webhook) · ✅ 106 (ruta + adaptador de Typeform) · ✅ 107 (aviso); payload real de Typeform | **Hito A: los leads entran solos al CRM** (primero `dev`, luego producción) |
 | **3 · Llamadas y dinero** | 057 · 058 · 059 · 060 · 061 · 063 · 035 | · | 096 cuando se decida su forma | una llamada y un abono mueven el deal |
-| **4 · Operación** | · | 097 · 069 · 070 · 071 · 074 · 099 | · | **Hito B: los closers operan en el CRM.** Desde aquí Typeform puede dejar de escribir en Sheets |
+| **4 · Operación** | · | 097 · 069 · 070 · 071 · 074 · 099 | · | **Hito B: los closers operan en el CRM.** Typeform deja de escribir en Sheets después de 066 y 067 (reparto §3, 28-sep), no aquí: Urgencias vive en la hoja |
 | **5 · Atribución** | 083 · 084 · 085 · 101 · 092 · 102 · 086 · 087 | pantalla del builder y de campañas | reunión con Pauta | el origen de cada lead se clasifica solo |
 | **6 · Reportes y resto de UI** | 064 · 065 · 066 · 067 · 088 · 089 · 090 · 062 · 093 | 095 · 068 · 021 · 072 · 073 · 098 · 100 · 091 · 076 · 075 | · | el dashboard sale de los deals |
 | **7 · Migración** | · | · | traslado · 077 → 078 → 079 · 080 · 081 → 082 | **Hito C: se apagan las pestañas de gestión** |
@@ -334,7 +336,7 @@ adelanta.
 
 - Un paso no se cierra sin `npm test`, `npm run typecheck` y `npm run lint` limpios.
 - **Las migraciones las genera y aplica la sesión principal**, nunca un subagente, y el SQL que genera
-  `drizzle-kit` se lee antes de aplicarlo. Primero `dev`; producción con el ok de Mani.
+  `drizzle-kit` se lee antes de aplicarlo. Primero PGlite (`npm test`); producción con el ok de Mani.
 - En paralelo se reparte **por archivos**: dos tickets con migración no van juntos, y nadie más que el
   coordinador toca el tracker y el handoff.
 

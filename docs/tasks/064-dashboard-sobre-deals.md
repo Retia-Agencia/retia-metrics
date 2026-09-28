@@ -59,3 +59,10 @@ Si.
 - "Los leads de un closer son las personas de las que es responsable": en el modelo v2 el responsable
   es el **owner del deal**; se lee así.
 - La vista "todos los programas" es el ticket 095.
+
+
+---
+
+## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
+
+Pasa a hacerse ANTES del hito B (etapa E5 del reparto). `lib/queries/dashboard.ts` cuenta con `calls.resultado` y filtra por `closerId` de texto; cuando los closers registren en el CRM saldría una cifra creíble y equivocada.

@@ -367,9 +367,9 @@ The agent should run these to get fast signal on whether code works. Keep them c
   Un programa de prueba ACTIVO se crea con `PROGRAMA_DE_PRUEBA` (`tests/helpers/programa-de-prueba.ts`):
   desde la 0031 un programa nace inactivo y la base exige Forms Link y token para activarlo. Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
-  ⚠️ **27-sep: `npm ci` falla** porque `package-lock.json` no está sincronizado (faltan
-  `@emnapi/runtime` y `@emnapi/core`). Mientras nadie lo repare con `npm install` y un commit del
-  lock, instala con `npm install --no-package-lock`. Si ves 46 tests caídos por `drizzle-orm/postgres-js`,
+  El lock se resincronizó el 27-sep (`134d293`, faltaban `@emnapi/*`) y `npm ci` pasa en una copia
+  limpia; el CI (ticket 112) lo confirma en Linux. Si `npm ci` te vuelve a fallar, repórtalo ahí en vez
+  de instalar con `--no-package-lock`. Si ves 46 tests caídos por `drizzle-orm/postgres-js`,
   a tu `node_modules` le falta el driver `postgres`: es entorno, no regresión.
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Run:** `npm run dev` (http://localhost:3000)

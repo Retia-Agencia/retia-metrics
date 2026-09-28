@@ -2,7 +2,7 @@
 id: 069
 etapa: E6
 serves: "plan v2 §6 etapa 6 · tarea E6-1 · insumo §4.3, spec §2 (enmendada: el kanban entra)"
-depends: [065]
+depends: [057, 097]
 status: todo
 ---
 
@@ -75,3 +75,10 @@ seguimiento vencido.
   (5 → 3 con motivo); T11 queda reemplazada y T15 pasa a 6 → 11. Perdido llega también desde 11. Tabla
   completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
 - **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".
+
+
+---
+
+## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
+
+Deja de depender de 065: el Kanban no lee la analítica, y esperar el 065 contradecía el orden P1 (`plan.md` §5). Depende de 057 (llamadas del deal) y 097.

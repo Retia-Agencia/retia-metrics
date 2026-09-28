@@ -25,6 +25,25 @@ Cómo está hecho: [`docs/structure.md`](../structure.md).
 > tabla de transiciones, el acuerdo de pago como nota (ADR 0053) y el orden P1: E2 → E3 mínimo → E4 →
 > E6 mínimo → E1b → E5 → E7. **E2 (043 a 047) se cerró el 27-sep: el motor de etapas existe.** Sigue E3 mínimo (paso 2 del plan): A1 y A2 ya se cerraron (ADR 0054 y 0055), faltan sus tickets. El 094 también se cerró el 27-sep.
 
+# Reparto para dos (desde el 28-sep)
+
+El orden por etapas y carriles vive en [`docs/plan-reparto.md`](../plan-reparto.md). Las correcciones
+de su §3 se aplicaron el 28-sep con el ok de Mani (069, 070, 074, 077, 079, 086 cambian de
+dependencias; 048, 049 y 064 llevan su enmienda).
+
+## Etapa E0 del reparto · Terreno para dos — **en curso · 28-sep**
+
+| ✓ | # | Tarea | Depende de | Estado |
+|---|---|---|---|---|
+| [x] | · | §3 aplicado en tickets y tracker; `plan.md` §2 y `AGENTS.md` al día | · | done · 28-sep · Mani |
+| [ ] | 112 | [CI en cada PR y `main` protegido](./112-ci-y-main-protegido.md) | · | todo · carril Alejo |
+| [ ] | 113 | [Base local para desarrollar pantallas](./113-base-local-para-pantallas.md) | · | todo · carril Alejo · aprobada por Mani el 28-sep |
+| [ ] | · | Plantilla de PR con el checklist de contratos de `AGENTS.md` | · | todo · carril Alejo |
+| [ ] | 105 | Cerrar: forjar la acción desde una sesión de closer | · | todo · carril Alejo |
+| [ ] | · | Ops: quitar `CRON_SECRET` y `SHEET_ID_*` de Vercel; cargar a Andrea (007) | · | todo · Mani |
+| [ ] | · | Agendar a Michael; después closers, Gerencia y Pauta (reparto §7) | · | todo · Mani |
+| [ ] | 057 | Adelantado en rama `e1/057-calls-del-deal` (migración 0036 sin aplicar); se mergea al abrir E1 | · | en curso · Mani (Kiro) |
+
 # Época v2 — modelo HubSpot (tickets 036 a 082)
 
 Orden y porqué: **[docs/plan-crm-v2.md](../plan.md)**. El diseño del que sale vive fuera del
@@ -110,8 +129,8 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 048 | [Una sola función de ingesta](./048-una-sola-funcion-de-ingesta.md) (E3-1) | 042 | en curso · `ingerirEntradas` escribe (23-sep); falta que el webhook o el traslado la llamen |
-| [ ] | 049 | [El Envío con todas las columnas](./049-el-envio-con-todas-las-columnas.md) (E3-2) | 048 | en curso · construcción y escritura hechas; migración 0022 solo en `dev` |
+| [ ] | 048 | [Una sola función de ingesta](./048-una-sola-funcion-de-ingesta.md) (E3-1) | 042 | en curso · cierra con el traslado (111), el sync ya no existe · `ingerirEntradas` escribe (23-sep); falta que el webhook o el traslado la llamen |
+| [ ] | 049 | [El Envío con todas las columnas](./049-el-envio-con-todas-las-columnas.md) (E3-2) | 048 | en curso · cierra con el traslado (111) · construcción y escritura hechas; migración 0022 solo en `dev` |
 | [ ] | 050 | [Identidad del Lead: el teléfono une **y marca**](./050-identidad-del-lead.md) (E3-3) | 048 | en curso · `resolverIdentidad` cableada en `ingerirEntradas` |
 | [x] | 051 | [El Estado del lead es el que manda el formulario](./051-el-estado-del-lead-desde-el-envio.md) (E3-4) | 049, 050 | done · 27-sep noche · `lib/ingesta/estado.ts` traduce, no califica; T2 desconectado; migración 0027 en `dev` |
 | [x] | 052 | [La regla de creación y movimiento de deals](./052-regla-de-creacion-y-movimiento-de-deals.md) (E3-5) | 051, 045 | done · 28-sep: la cita se lee en Calendly antes de la transacción (`lib/calendly/resolver-cita.ts`); cita vigente → Agendado con su llamada (`calendly:<uuid>`); cancelada, no encontrada o error → Pendiente Setteo con nota del sistema en el deal (migración **0032**). Falta el envío real, que es del 106 |
@@ -123,9 +142,10 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [x] | 106 | [La ruta del webhook y el adaptador de Typeform](./106-la-ruta-del-webhook-y-el-adaptador-de-typeform.md) | 105, 051 | done · 28-sep: envíos reales de los dos programas en producción. Cierre en el ADR **0058**: caja negra (migración **0034**), nombre del lead (**0033**), un solo mapeo webhook/hoja, variables genéricas, `xxxxx` = sin UTM, re-agenda crea su llamada, matriz de casos (`tests/webhook-matriz.test.ts`). Fuera: el parcial real (el equipo decide el Partial Submit Point) |
 | [x] | 107 | [Una fuente que dejó de recibir se ve en la app](./107-aviso-de-fuente-sin-envios.md) | 106 | done · 28-sep · `lib/queries/salud-fuentes.ts` (calculado, nada guardado); marca por fuente y umbrales editables en `/ajustes/fuentes`; migración **0035** aplicada en producción |
 | [ ] | 110 | [La salud del CRM: cada entrega de webhook, a la vista](./110-la-salud-del-crm.md) | 106 | todo · 28-sep, pedido de Mani: log de entregas por programa (código HTTP, motivo, lead), conciliación Sheets ↔ CRM mientras convivan, y el aviso del 107 en la misma pantalla · migración de la sesión principal |
+| [ ] | 111 | [Traslado de leads y envíos desde Sheets](./111-traslado-desde-sheets.md) | 106, 048 | todo · 28-sep, reparto §3: incluye el 079; cierra 048, 049 y la parte de datos del 050 |
 | [x] | 108 | [Retirar el sync de Sheets](./108-retirar-el-sync-de-sheets.md) | 106 | done · 28-sep · cron, ruta manual, botón, `lib/sheets/sync.ts`, `plan-sync.ts`, `origen.ts`, scripts y sus tests fuera; `sync_runs` queda como historial. Falta quitar `CRON_SECRET` y `SHEET_ID_*` de Vercel (`GOOGLE_SERVICE_ACCOUNT_JSON_B64` se queda: probar una fuente de hoja la usa) |
 | [x] | 109 | [El programa lleva su formulario y su token de Calendly](./109-formulario-y-token-de-calendly-del-programa.md) | 105 | done · 28-sep: migración **0030**; Forms Link y Calendly Token obligatorios en `/ajustes/programas` (un programa no se activa sin los dos); la lectura de la cita (hoy `citaDeCalendly`) probada contra Calendly real; migración **0031**: nace inactivo y un CHECK exige los dos; Mani cargó los dos tokens y se borraron de `.env.local` |
-| [ ] | 086 | [Origen humano del lead y el enlace de captación](./086-origen-humano-y-enlace-de-captacion.md) | 048, 084 | todo · ⏳ **el dato lo escribe la ingesta; después no se puede reconstruir** |
+| [ ] | 086 | [Origen humano del lead y el enlace de captación](./086-origen-humano-y-enlace-de-captacion.md) | 085, 092 | todo · ⏳ **el dato lo escribe la ingesta; después no se puede reconstruir** |
 | [ ] | 087 | [🩸 El CPL deja de preguntar por `entrada`](./087-el-cpl-deja-de-preguntar-por-entrada.md) | 085, 086 | todo · **va con el 086, nunca después** |
 
 ## E4 · Calls, dinero y Students
@@ -146,7 +166,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 064 | [Dashboard sobre deals](./064-dashboard-sobre-deals.md) (E5-1) | 060 | todo |
+| [ ] | 064 | [Dashboard sobre deals](./064-dashboard-sobre-deals.md) (E5-1) | 060 | todo · antes del hito B (reparto §3) |
 | [ ] | 065 | [Conversión etapa a etapa y tiempo en etapa](./065-funnel-por-etapa.md) (E5-2) | 064 | todo |
 | [ ] | 066 | [Réplica de `🚨 Urgencias` con desglose UTM](./066-replica-de-urgencias.md) (E5-3) | 064 | todo |
 | [ ] | 067 | [ROAS por cohorte y captura de pauta](./067-roas-por-cohorte-y-captura-de-pauta.md) (E5-4) | 064 | todo |
@@ -168,7 +188,7 @@ se abre**. Este repo no tiene tests de componentes y el 20-sep dos bugs pasaron 
 |---|---|---|---|---|
 | [x] | 094 | [Un closer ve solo sus programas](./094-alcance-del-closer-por-membresia.md) | — | done · 27-sep · `lib/auth/alcance.ts`; dashboard, sidebar, buscador y ficha por id lo usan; ajeno = 404 |
 | [ ] | 097 | [Navegación por objetos y selector de programa](./097-navegacion-por-objetos-y-selector-de-programa.md) | 094 | todo · 24-sep, ADR 0050 · reemplaza la barra de hoy |
-| [ ] | 069 | [Kanban por programa](./069-kanban-por-programa.md) (E6-1) | 065 | todo · 24-sep: es la vista tablero de la tab **Deals** |
+| [ ] | 069 | [Kanban por programa](./069-kanban-por-programa.md) (E6-1) | 057, 097 | todo · 24-sep: es la vista tablero de la tab **Deals** |
 | [ ] | 070 | [Pendiente Setteo y Unclaimed](./070-pendiente-setteo-y-unclaimed.md) (E6-2) | 069 | todo · 24-sep: son secciones del **Inbox** |
 | [ ] | 071 | [El Inbox (antes Mis deals)](./071-mi-dia-del-closer.md) (E6-3) | 069, 061, 070, 096, 097 | todo · 24-sep: reemplaza "Mi día"; contenido 🟡 a validar con closers |
 | [ ] | 072 | [Base de Leads con filtros](./072-base-de-leads-con-filtros.md) (E6-4) | 069 | todo · 24-sep: es la tab **Leads** |
@@ -176,7 +196,7 @@ se abre**. Este repo no tiene tests de componentes y el 20-sep dos bugs pasaron 
 | [ ] | 099 | [La tab Students por cohorte](./099-tab-students-por-cohorte.md) | 060, 061, 097 | todo · 24-sep · la cohorte define la lista de estudiantes |
 | [ ] | 100 | [La tab Programs](./100-tab-programs-ficha-del-programa.md) | 097, 101 | todo · 24-sep · destinos, Calendly, comisión, equipo |
 | [ ] | 073 | [Ficha del Lead, con el diff entre envíos](./073-ficha-del-lead.md) (E6-5) | 072 | todo |
-| [ ] | 074 | [Ficha del Deal](./074-ficha-del-deal.md) (E6-6) | 073 | todo |
+| [ ] | 074 | [Ficha del Deal](./074-ficha-del-deal.md) (E6-6) | 069, 060 | todo |
 | [ ] | 075 | [Revisión profunda de TODA la UI](./075-revision-profunda-de-la-ui.md) (E6-8) | 069-074 | todo |
 | [ ] | 076 | [Bitácora en Nerd Stats](./076-bitacora-en-nerd-stats.md) (E6-7) | 068, 041 | todo · es la **pantalla** de un rastro que se escribe desde E1 |
 | [ ] | 091 | [`otrosProgramasDelCorreo`: visibilidad cruzada](./091-otros-programas-del-correo.md) | 073 | todo · una consulta, **no** una tabla. Ninguna métrica la usa |
@@ -187,9 +207,9 @@ Va de último, con el scaffold completo. Absorbe el "histórico de C2" de la spe
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 077 | [Barrer las pestañas de gestión](./077-barrer-las-pestanas-de-gestion.md) (E7-1) | 075 | todo |
+| [ ] | 077 | [Barrer las pestañas de gestión](./077-barrer-las-pestanas-de-gestion.md) (E7-1) | 111 | todo |
 | [ ] | 078 | [Pasa por la MISMA ingesta, nunca inserts crudos](./078-la-migracion-pasa-por-la-misma-ingesta.md) (E7-2) | 077 | todo |
-| [ ] | 079 | [Recuperar las 55 de `Forms viejo`](./079-recuperar-las-55-de-forms-viejo.md) (E7-3) | 078 | todo |
+| [ ] | 079 | [Recuperar las 55 de `Forms viejo`](./079-recuperar-las-55-de-forms-viejo.md) (E7-3) | 111 | todo · se hace dentro del traslado (111) |
 | [ ] | 080 | [Los casos raros de la migración](./080-los-casos-raros-de-la-migracion.md) (E7-4) | 078 | todo |
 | [ ] | 081 | [COP → USD a la tasa del día](./081-cop-a-usd-en-la-migracion.md) (E7-5) | 078 | todo |
 | [ ] | 082 | [Apagar las pestañas de gestión](./082-apagar-las-pestanas-de-gestion.md) (E7-6) | 079, 080, 081 | todo · lo hace Mani |

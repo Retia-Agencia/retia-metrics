@@ -2,7 +2,7 @@
 id: 070
 etapa: E6
 serves: "plan v2 §6 etapa 6 · tarea E6-2 · insumo §6, ADR 0021 (enmendado por el 0037)"
-depends: [069, 085]
+depends: [069]
 status: todo
 ---
 
@@ -84,3 +84,10 @@ dueño**; Unclaimed queda para los Agendados cuyo host no está registrado. Todo
 - 🔴 **Antes de construirlo:** qué pregunta del formulario es el ingreso, en qué moneda y periodo, y
   las bandas por programa. La pregunta se **configura por fuente** (vive en `submissions.respuestas`),
   nunca se escribe en el código (ADR 0012). Las bandas: 🔴 configurables por programa o fijas.
+
+
+---
+
+## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
+
+Se quita el 085: el closer ve el origen con los UTM tal como llegaron (ADR 0044); la etiqueta de área se enciende sola cuando exista el 085.

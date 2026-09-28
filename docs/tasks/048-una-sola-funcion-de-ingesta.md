@@ -77,3 +77,10 @@ Si, **con revision cercana**: aqui un bug es silencioso.
 - ⏳ **Falta:** que `lib/sheets/sync.ts` (o el script del traslado, T3) la llame. Tambien falta
   medir una corrida completa contra `dev`. Con el corte directo (T3), el sync viejo de personas
   deja de ser la entrada.
+
+
+---
+
+## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
+
+El sync se retiró el 28-sep (108). Este ticket cierra con el traslado desde Sheets (111), que llama a `ingerirEntradas`; los criterios que hablan del sync o de `tests/sync-candado.test.ts` se leen como "el traslado".

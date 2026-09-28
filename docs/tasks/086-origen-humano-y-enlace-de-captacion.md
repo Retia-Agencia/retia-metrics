@@ -2,7 +2,7 @@
 id: 086
 etapa: E3
 serves: "plan v2 §12.8 · ADR 0044 puntos 1 a 5"
-depends: [048, 084, 092]
+depends: [085, 092]
 status: todo
 ---
 
@@ -68,3 +68,10 @@ A la pregunta de si invitan gente o buscan leads propios, los closers dijeron qu
 sigue siendo correcto (y `traido_por_user_id` lo sigue escribiendo la ingesta si llega un link de
 closer), pero el **enlace de captación** va al final de E1b, no antes que el resto. Que Comercial salga
 en cero en "leads por área" es un dato real, no un bug.
+
+
+---
+
+## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
+
+Tracker y archivo decían dependencias distintas; quedan alineados en 085 y 092.

@@ -2,7 +2,7 @@
 id: 077
 etapa: E7
 serves: "plan v2 §6 etapa 7 · tarea E7-1 · insumo §9, spec §7 (enmendada)"
-depends: [075]
+depends: [111]
 status: todo
 ---
 
@@ -57,3 +57,10 @@ Si, **con los casos raros revisados uno por uno**.
 Por la decisión de Mani del 24-sep, el sync abre deals solo para leads nuevos desde el corte. Los
 deals de los leads viejos de Setteo **nacen aquí**, desde la pestaña Setteo, respetando su "Estado
 gestión" (ver el ticket 080).
+
+
+---
+
+## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
+
+Depende del traslado (111) y de las mutaciones de E4 (060, 069, 070), no del 075. Los tickets 077 a 081 se corren en el corte del hito B: sin lo abierto de hoy (Setteo, agendados, estudiantes con saldo) los closers llegarían al CRM sin su pipeline.
