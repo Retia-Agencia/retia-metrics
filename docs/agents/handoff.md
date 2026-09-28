@@ -42,6 +42,24 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 > Las entradas anteriores al 27-sep citan documentos que se fundieron ese día (spec, plan v2, propuesta,
 > revisión, glosario, insumos): `docs/plan.md` §8 dice dónde quedó cada uno.
 
+- **2026-09-28 (sesión 38, noche): `npm test` de 409 s a 130 s** (commit `9e7d79e`, ya en `main`).
+  Sesión de Mani, sin ticket: es infraestructura de tests, no cambia ninguna regla ni ningún test.
+  - **Lo que se midió, y la causa no era la que se creía:** por cada base de prueba, `new PGlite()`
+    (initdb) cuesta ~700 ms y las 35 migraciones solo ~150 ms. Arrancar desde un volcado cuesta ~150 ms
+    en total porque se salta las dos cosas.
+  - **El cambio, solo en `tests/helpers/base-de-prueba.ts`:** migra una vez por ARCHIVO de test (vitest
+    aísla los módulos por archivo), vuelca con `dumpDataDir("none")` y cada base nace con
+    `new PGlite({ loadDataDir })`. La firma `{ db, cerrar }` no cambió; ningún test se tocó. Sin gzip a
+    propósito (volcado ~15x más lento, cada carga ~100 ms más).
+  - **La garantía sigue:** una migración con SQL inválido tumba todos los tests de base del archivo.
+    Probado con una copia rota de la 0034 fuera de `drizzle/` (34 rojos con `syntax error`).
+  - **Descartado por ahora:** volcar una sola vez por corrida con un `globalSetup`. Ahorraría <10 s de
+    reloj a cambio de un archivo temporal y más configuración.
+  - Suite, typecheck, lint y build limpios antes del push. El worktree no traía `node_modules`: se
+    instaló con `npm install --no-package-lock` (el lock sigue desincronizado, ver AGENTS.md).
+  - Siguiente sesión: nada nuevo de aquí; sigue el prompt de arriba (106 ya cerrado). `/tdd` para el
+    108/107.
+
 - **2026-09-28 (CIERRE 37, tarde): los leads entran solos por Typeform; el 106 cerrado (ADR 0058).**
   Sesión de Mani; Kiro implementó el cierre, revisado por la sesión principal.
   - **Envío real:** Mani creó las dos fuentes webhook en producción (`/ajustes/fuentes`, mapeo
@@ -2921,8 +2939,7 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
-- 106: envío real de cada Typeform en producción y configurar las dos fuentes webhook. Es la primera
-  prueba de punta a punta del 052 (109 y 052 hechos el 28-sep).
+- Vigilar que los leads reales sigan entrando por webhook (106 cerrado el 28-sep, ADR 0058).
 - 108 (el cron ya está apagado; falta el código); 107 (umbrales decididos); 105 forjar la acción con
   sesión de closer.
 - 096: la pantalla que haga visibles la nota del 052 y las llamadas sueltas (pedido de Mani).
