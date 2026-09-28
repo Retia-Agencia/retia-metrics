@@ -78,7 +78,7 @@ sigue viviendo en WhatsApp: es donde se trabaja el pipeline.
 |---|---|---|
 | Qué es | Comunicación ejecutiva. Virtual en vivo, 2 meses. Facilitan Milena Morales y Rosario Gómez | De Cero a Tactical Investor, trading, con Juan Pablo Vieira. Mes 1: 12 sesiones de 2 h (mar, mié y jue, 6 a 8 p.m.); mes 2: 4 sesiones. Grabaciones por un año |
 | ICP | Gerentes y jefes de área con equipo a cargo, de 30 a 50 años | Personas con ingreso declarado de USD 1.000 o más |
-| Precio de lista | USD 797 desde el 13-ago (antes 697, que se respetó a quien ya lo tenía cotizado). 🔴 Las hojas y la comisión usan 697 como estándar: lo confirma Gerencia | USD 1.500 a la TRM del día |
+| Precio de lista | USD 797 desde el 13-ago (antes 697, que se respetó a quien ya lo tenía cotizado). ✅ Confirmado por Mani el 28-sep: el de lista es 797 | USD 1.500 a la TRM del día |
 | Condiciones | Único descuento: USD 100 por dificultad real de pago (beca). Mentoría 1:1 de USD 1.590 (6 sesiones), solo si la piden | Pago único con 10% de descuento, USD 1.350, vigente 24 h desde la llamada. Reserva con USD 500 y saldo con fechas; 2 o 3 cuotas |
 | Quién ve el Calendly en el formulario | ingreso de ~USD 1.500 o más (medido el 23-sep) | ingreso de USD 3.000 o más (observado) |
 | Comisión del closer (hoja) | 80 por cada 697 | 100 por cada 1.500 |

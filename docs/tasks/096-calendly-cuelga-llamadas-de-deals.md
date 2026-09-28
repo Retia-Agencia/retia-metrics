@@ -72,7 +72,8 @@ Sí, con revisión. El emparejador es donde un bug es silencioso.
 - **Todas las llamadas se graban con Grain.**
 - Evidencia a favor de emparejar **solo por correo**: hay leads que ponen **un teléfono en el formulario
   y otro en la agenda**. Emparejar por teléfono habría colgado llamadas de la persona equivocada.
-- 🔴 Sigue sin preguntarse: de quién es el deal si el host es otra closer.
+- ✅ **Decidido por Mani el 28-sep:** si el lead agenda con otra closer, el deal es de esa closer (la que
+  es host de la cita).
 
 ---
 

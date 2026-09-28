@@ -379,7 +379,8 @@ no uno por alerta. No bloquea nada.
 - Qué pregunta del formulario es el ingreso, en qué moneda y periodo, y si las bandas son iguales en
   los dos programas (070, 071).
 - El X de "deal sin actividad en X días" (071).
-- De quién es el deal si el lead agenda con otra closer por Round Robin (096).
+- ✅ ~~De quién es el deal si el lead agenda con otra closer por Round Robin (096).~~ De esa closer
+  (Mani, 28-sep).
 - ¿"Estudiante" desde el primer abono o con el pago completo? ¿Quién hace el onboarding (el transcript
   dice "Anis"; Jero nombró a Dani Rincón)? (099)
 - Cómo mandan el comprobante: foto, link o PDF (035, 060).
@@ -398,8 +399,8 @@ copia a Setteo para que el closer la lea. Tres preguntas: ¿ordenan la cola o ca
 pestañas de gestión)?; ¿las que no sirvan se quitan del formulario? Se cruza con T4.
 
 **C. Gerencia (Alejo, Daniel):** el área de cada canal (101); qué ve el Paid Trafficker (102); los
-umbrales de éxito del dashboard; el precio de lista de ComunicArte, 797 o 697 (los consolidados de C2
-dicen 797 desde el 13-ago con 697 respetado; la hoja y la comisión usan 697); el límite de los
+umbrales de éxito del dashboard; ✅ ~~el precio de lista de ComunicArte~~: **797** (Mani, 28-sep; 697 solo se respeta a quien ya lo
+tenía cotizado); el límite de los
 descuentos; si un lead traído por un closer cuenta distinto en su comisión; ratificar que se construye
 y no se compra HubSpot (R10).
 
