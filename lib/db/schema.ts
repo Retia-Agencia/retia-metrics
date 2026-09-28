@@ -607,6 +607,35 @@ export const submissions = pgTable(
   ],
 );
 
+/**
+ * Un envio de webhook que llego con la firma buena y NO se pudo procesar (ticket 106,
+ * Mani 27-sep): contenido malo, sin correo, o la ingesta fallo. Se guarda el cuerpo tal
+ * como llego y la ruta responde 200, para que el proveedor no reintente en bucle y el
+ * lead no se pierda: se puede reprocesar despues.
+ *
+ * `cuerpo` es texto y no jsonb a proposito: lo que no se pudo leer puede no ser JSON, y
+ * la firma se calcula sobre los bytes exactos.
+ *
+ * `restrict`: una fuente con sobres no se borra, se desactiva (ADR 0026).
+ */
+export const sobresCrudos = pgTable(
+  "sobres_crudos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sourceId: uuid("source_id").notNull().references(() => sources.id, { onDelete: "restrict" }),
+    cuerpo: text("cuerpo").notNull(),
+    error: text("error").notNull(),
+    recibidoEn: timestamp("recibido_en", { withTimezone: true }).notNull().defaultNow(),
+    /** Nulo mientras nadie lo haya reprocesado. Lo cuenta el aviso de la fuente (107). */
+    reprocesadoEn: timestamp("reprocesado_en", { withTimezone: true }),
+  },
+  (t) => [
+    index("sobres_crudos_pendientes_idx")
+      .on(t.sourceId)
+      .where(sql`${t.reprocesadoEn} is null`),
+  ],
+);
+
 // ─────────────────────────────────────────────────────────── deals
 
 /**
@@ -1321,3 +1350,4 @@ export type Producto = typeof productos.$inferSelect;
 export type CategoriaRecurso = typeof categoriasRecurso.$inferSelect;
 export type Recurso = typeof recursos.$inferSelect;
 export type EnlacePago = typeof enlacesPago.$inferSelect;
+export type SobreCrudo = typeof sobresCrudos.$inferSelect;

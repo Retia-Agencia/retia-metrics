@@ -1,0 +1,4 @@
+# drizzle-kit guarda el sha256 de cada migracion al aplicarla. Si un checkout de Windows la
+# convierte a CRLF, el hash aplicado deja de casar con el archivo del repo (0000-0020 en dev).
+# Se fuerza LF en toda plataforma.
+drizzle/*.sql text eol=lf
