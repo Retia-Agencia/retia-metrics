@@ -130,3 +130,9 @@ nunca se sube a `con_calendly`.
   hoja ya trae "📅 Con Calendly" escrito por su script.
 - Configurado en Typeform el 27-sep: Tactical tiene la variable `estado` (sin valor base) y las dos
   reglas de cálculo en la pregunta de pago; la pregunta de Calendly no tiene cálculo.
+
+> **Costo en la hoja (27-sep, noche):** el primer cálculo de lógica en los Typeform activó la variable
+> `score` e insertó la columna "Score" en la O de las dos hojas, lo que rompió los Apps Script (leen por
+> posición) hasta que se corrigieron sus constantes. La variable `estado` no llega a la hoja; la columna
+> Score sí. Mientras las hojas vivan (hasta el hito B), todo cambio en un Typeform se verifica mirando la
+> fila 1 de la hoja. Incidente en `docs/operations.md` §9.

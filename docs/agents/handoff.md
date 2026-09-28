@@ -27,7 +27,10 @@ Siguiente (paso 2 del plan, hito A):
 2. El 106: la ruta /api/webhooks/formularios/[fuente] + adaptador de Typeform + sobre crudo con 200.
    Ojo: Envio.estado sale del campo estadoHoja; el adaptador pone ahi la variable `estado`.
 3. El 107 (umbral por defecto: preguntarle a Mani) y forjar la accion del 105 con sesion de closer.
-4. Fuera del repo: la variable `estado` y el partial submission point en los dos Typeform.
+4. Typeform: la variable `estado` ya esta en los dos (27-sep). Con el 106 van el Partial Submit Point
+   (despues de la pregunta de WhatsApp) y el webhook. OJO: todo cambio en un Typeform puede mover las
+   columnas de la hoja y romper los Apps Script (incidente del 27-sep, docs/operations.md §9): despues
+   de publicar, mirar la fila 1 de la hoja. Nunca reconectar la integracion con Sheets.
 Las migraciones las genera y aplica la sesion principal; Kiro implementa codigo y tests. Antes de
 aplicar una migracion en dev, compara drizzle.__drizzle_migrations contra los archivos por hash, y
 antes de tomar un ticket haz git fetch: dos personas trabajan el mismo main.
@@ -76,10 +79,20 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     SIN valor base) y dos cálculos en la pregunta de pago (`descartado` / `setteo_no_calificado`),
     publicados. Typeform no deja condicionar sobre la pregunta de Calendly, así que "agendó" lo lee el CRM
     del link (ADR 0054, segunda enmienda; se construye en el 106). La pregunta de Calendly es obligatoria y
-    ahora autocompleta nombre y correo del form (sirve al emparejador del 096). Prueba del "No" en los dos:
-    Typeform dice `descartado` y la hoja no recibió la variable (columna R vacía). 🚫 **Nunca reconectar la
-    integración con Sheets:** el Apps Script lee por posición (A-P + Q = Estado). El Partial Submit Point y
-    el webhook se configuran con el 106, no antes.
+    ahora autocompleta nombre y correo del form (sirve al emparejador del 096). La variable `estado` NO
+    llega a la hoja (solo al webhook), y 🚫 **nunca se reconecta la integración con Sheets**: reordena las
+    columnas. El Partial Submit Point y el webhook se configuran con el 106, no antes.
+  - 🩸 **Incidente (27-sep, ~23:25 a ~00:03):** el cálculo activó el `score` de Typeform, que **insertó la
+    columna "Score" en la O** de las dos hojas y corrió todo un lugar (Submitted = P, Token = Q, **Estado =
+    R**). Los Apps Script leen por posición: el enrutador leía el Token como Estado, **saltaba cada lead
+    nuevo sin error** y avanzaba su contador; KPIs y tableros leían mal. Lo detecté leyendo la hoja (no
+    Mani) porque las pruebas no se procesaban. Mani aplicó el arreglo en vivo (constantes +1, `panel.gs` de
+    Tactical, `lastProcessedRow` = 2639 / 4204 y `procesarLeadsNuevos`). Verificado: las 3 filas afectadas
+    quedaron clasificadas (1 lead real de ComunicArte, Con Calendly; 2 pruebas, Descartado). Detalle y
+    reglas en `work/retia/apps-script-sheets/README.md` (la copia de los scripts quedó al día) y en
+    `docs/operations.md` §9. **Lección: "no llega a la hoja" no era lo mismo que "no cambia la hoja".**
+  - **Pendiente de Mani:** borrar las 2 filas de prueba ("PRUEBA CRM - BORRAR") de la hoja principal y de
+    Descartados en las dos hojas.
   - **Siguiente:** el 052 (ya desbloqueado) y el 106.
 - **2026-09-27 (CIERRE 33): merge de las dos sesiones y el 103.** Sesión de Mani, noche.
   - **Merge** (`17d279d`): quedó el E2 de Alejandro (está en `dev`); se descartaron el 043 y el 044

@@ -184,6 +184,7 @@ pasa con su código y con los tickets 053 a 056 es la decisión A6 del plan.
 | 20-sep | dos bugs con 669 tests en verde: un botón muerto y una función de `lib/` que nadie llamaba | antes de dar por probada una función, mirar quién la llama |
 | 22-sep | al cambiar de driver se cayó el build: un componente de cliente importaba un módulo que arrastra la base | un componente `"use client"` no importa nada de `lib/db` |
 | 23-sep | `next dev` murió con "Jest worker encountered 2 child process exceptions" tras levantar un segundo servidor sobre la misma `.next` | antes de arrancar un servidor, mirar si ya hay uno en el 3000 |
+| 27-sep | agregar un cálculo en los Typeform activó `score` e insertó la columna "Score" en la O de las dos hojas; los Apps Script leen por posición y dejaron de clasificar leads nuevos, sin error, durante ~40 min (1 lead real afectado, rescatado) | un cambio en Typeform se verifica mirando la fila 1 de la hoja después del primer envío; nunca reconectar la integración con Sheets. Detalle en `work/retia/apps-script-sheets/README.md` |
 | 27-sep | `npm ci` falla porque el lock no está sincronizado (faltan `@emnapi/runtime` y `@emnapi/core`); un `node_modules` viejo tira 46 tests por falta del driver `postgres` | reparar el lock con `npm install` y un commit; mientras tanto, `npm install --no-package-lock` |
 
 ## 10. Deuda que queda
