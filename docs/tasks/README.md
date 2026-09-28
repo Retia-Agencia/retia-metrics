@@ -113,7 +113,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 048 | [Una sola función de ingesta](./048-una-sola-funcion-de-ingesta.md) (E3-1) | 042 | en curso · `ingerirEntradas` escribe (23-sep); falta que el webhook o el traslado la llamen |
 | [ ] | 049 | [El Envío con todas las columnas](./049-el-envio-con-todas-las-columnas.md) (E3-2) | 048 | en curso · construcción y escritura hechas; migración 0022 solo en `dev` |
 | [ ] | 050 | [Identidad del Lead: el teléfono une **y marca**](./050-identidad-del-lead.md) (E3-3) | 048 | en curso · `resolverIdentidad` cableada en `ingerirEntradas` |
-| [ ] | 051 | [El Estado del lead es el que manda el formulario](./051-el-estado-del-lead-desde-el-envio.md) (E3-4) | 049, 050 | todo · **reescrito 27-sep noche** (ADR 0054 enmendado): tres valores con los nombres de la hoja, el CRM no califica; migración del enum de la sesión principal |
+| [ ] | 051 | [El Estado del lead es el que manda el formulario](./051-el-estado-del-lead-desde-el-envio.md) (E3-4) | 049, 050 | en curso · **reescrito 27-sep noche** (ADR 0054 enmendado): tres valores con los nombres de la hoja, el CRM no califica. Migración **0027** aplicada en `dev`; el código lo hace Kiro |
 | [ ] | 052 | [La regla de creación y movimiento de deals](./052-regla-de-creacion-y-movimiento-de-deals.md) (E3-5) | 051, 045 | todo · lee `leads.calificacion` (D4 cerrada) |
 | [ ] | 053 | [Zona horaria por fuente](./053-zona-horaria-por-fuente.md) (E3-6) | 039, 049 | en curso · código hecho; falta poner las fuentes en UTC. 🔴 053-056 son del sync de Sheets vivo (plan §4.3d) |
 | [ ] | 054 | [Configurar una fuente sin adivinar](./054-configurar-una-fuente-de-verdad.md) (E3-7) | 039 | todo |

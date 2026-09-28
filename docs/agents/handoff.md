@@ -40,6 +40,24 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 > Las entradas anteriores al 27-sep citan documentos que se fundieron ese día (spec, plan v2, propuesta,
 > revisión, glosario, insumos): `docs/plan.md` §8 dice dónde quedó cada uno.
 
+- **2026-09-27 (sesión 34, noche): el Estado lo manda el formulario; tickets del webhook.** Sesión de Mani.
+  - **Mani:** *"el CRM NO se encarga de calcular ni calificar ningún lead; se confía en los valores que
+    vienen del forms"*, con los nombres de la hoja. Son tres: `descartado` (sin recursos e incompleto
+    caen aquí), `setteo_no_calificado`, `con_calendly`. El form sabe si agendó porque el Calendly está
+    embebido en él. **ADR 0054 enmendado**; T2 queda en el repo desconectado mientras se decide **A8**
+    (¿form o función del CRM por programa?, Mani lo duda). **D4 cerrada:** el 052 lee `leads.calificacion`.
+  - **ADR 0055:** sus dos puntos cerrados (sobre crudo + 200; aviso en la app). Tickets **105** (fuente
+    webhook), **106** (ruta + adaptador de Typeform, hito A) y **107** (aviso de fuente sin envíos; 🔴 el
+    umbral por defecto es de Mani). 051 reescrito y 052 enmendado (solo abre deals desde el webhook).
+  - **Migración 0027** (enum de tres valores), aplicada en `dev`. 🩸 El borrador de drizzle-kit casteaba
+    los valores viejos sin traducirlos: reescrita con el `UPDATE` en medio. En `dev` no había filas
+    calificadas.
+  - ⚠️ **Los hashes de `drizzle.__drizzle_migrations` no casan con los archivos 0000-0011, 0013, 0014 y
+    0016-0020** (sí con 0012, 0015 y 0021-0026). drizzle solo mira la última, así que no bloquea; lo más
+    probable es que esos archivos se editaran después de aplicarse (comentarios o finales de línea). Sin
+    investigar.
+  - **Código del 051:** con Kiro. Hasta que aterrice, el typecheck de `main` local falla en
+    `lib/ingesta/calificacion.ts`; por eso la 0027 no se ha subido.
 - **2026-09-27 (CIERRE 33): merge de las dos sesiones y el 103.** Sesión de Mani, noche.
   - **Merge** (`17d279d`): quedó el E2 de Alejandro (está en `dev`); se descartaron el 043 y el 044
     duplicados de la sesión de Mani; se conservaron el 094 y los ADR 0054/0055. Subido.
