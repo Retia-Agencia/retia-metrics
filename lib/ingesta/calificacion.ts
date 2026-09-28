@@ -4,12 +4,18 @@ import { normalizarTexto } from "@/lib/sheets/mapeo";
 
 /**
  * La calificacion de un envio (T2) y su puntaje (T4). Son DOS preguntas distintas y
- * viven juntas solo porque leen las mismas respuestas con la misma configuracion:
+ * viven juntas solo porque leen las mismas respuestas con la misma configuracion.
+ *
+ * ⚠️ **DESCONECTADO de la ingesta desde el 27-sep (ADR 0054, enmienda; ticket 051).** El
+ * CRM ya NO califica: el Estado lo pone el formulario y `ingerirEntradas` lo guarda tal
+ * cual (ver `lib/ingesta/estado.ts`). Este modulo se queda en el repo, sin llamarse,
+ * porque sigue abierta la decision A8 (`docs/plan.md` §7): si el Estado un dia lo calcula
+ * una funcion del CRM por programa, este es el molde. Sus valores ya son los tres de la
+ * hoja (`descartado`, `setteo_no_calificado`, `con_calendly`).
  *
  * - **La calificacion es un HECHO del formulario:** ¿respondio la pregunta de pago?,
  *   ¿dijo que no tiene recursos?, ¿agendo? Decide a donde va el lead. Son las cuatro
- *   reglas del Apps Script de la hoja, en el mismo orden, porque con el webhook ya no hay
- *   hoja que las aplique (T2, 22-sep).
+ *   reglas del Apps Script de la hoja, en el mismo orden.
  * - **El puntaje es una ESTIMACION:** que tan bueno es el lead, para ordenar la cola. No
  *   cambia la calificacion: un lead que agendo sigue con agenda aunque puntue bajo.
  *
@@ -100,13 +106,17 @@ export function calificarEnvio(
   if (faltan.length > 0) return { ok: false, faltan };
 
   const sinRecursos = new Set(config.respuestasSinRecursos.map(normalizarTexto));
+  // Las cuatro reglas del Apps Script, ahora sobre los tres valores de la hoja (ADR 0054,
+  // enmienda): incompleto y sin recursos son Descartado; con agenda es Con Calendly; el
+  // resto, Setteo No Calificado. T2 esta DESCONECTADO de la ingesta (decision A8): queda
+  // como validador si algun dia se vuelve a conectar.
   const calificacion: Calificacion = !pago
-    ? "incompleto"
+    ? "descartado"
     : sinRecursos.has(normalizarTexto(pago))
-      ? "sin_recursos"
+      ? "descartado"
       : agenda
-        ? "con_agenda"
-        : "setteo";
+        ? "con_calendly"
+        : "setteo_no_calificado";
 
   const sinPuntaje = { ok: true as const, calificacion, puntaje: null, versionPuntaje: null };
   if (!config.puntaje) return { ...sinPuntaje, faltanParaPuntaje: [] };

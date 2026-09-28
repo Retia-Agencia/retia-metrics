@@ -3,8 +3,9 @@ import { eq } from "drizzle-orm";
 import { changeLog, leadContactos, leads, programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EntradaEnvio } from "@/lib/ingesta/envio";
+import type { Calificacion } from "@/lib/ingesta/calificacion";
+import { entradasDesdeMatriz } from "@/lib/ingesta/adaptador-sheets";
 import { ingerirEntradas, resumirEnvios } from "@/lib/ingesta/ingerir";
-import type { ConfigCalificacion } from "@/lib/ingesta/calificacion";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
 /**
@@ -26,6 +27,7 @@ const CAMPOS = {
   correo: "Correo",
   telefono: "WhatsApp",
   fechaEnvio: "Submitted At",
+  estadoHoja: "Estado",
   utmSource: "utm_source",
   utmMedium: "utm_medium",
   utmCampaign: "utm_campaign",
@@ -41,6 +43,7 @@ function entrada(o: {
   utmSource?: string;
   pregunta?: string;
   agenda?: string;
+  estado?: string;
   fuente?: string;
 }): EntradaEnvio {
   return {
@@ -52,6 +55,7 @@ function entrada(o: {
       Correo: o.correo ?? "",
       WhatsApp: o.telefono ?? "",
       "Submitted At": o.fecha === null ? "1/1/0001 0:00:00" : (o.fecha ?? "2026-09-20T15:00:00Z"),
+      Estado: o.estado ?? "",
       utm_source: o.utmSource ?? "",
       utm_medium: "",
       utm_campaign: "",
@@ -222,62 +226,72 @@ describe("ingerirEntradas", () => {
   });
 });
 
-describe("ingerirEntradas: calificacion y puntaje (T2, T4)", () => {
-  const CONFIG: ConfigCalificacion = {
-    preguntaPago: "Cuanto puedes invertir",
-    respuestasSinRecursos: ["No cuento con los recursos"],
-    campoAgenda: "Agenda aqui tu entrevista",
-    puntaje: { version: 3, reglas: [{ pregunta: "Cuanto puedes invertir", respuesta: "Si", puntos: 10 }] },
-  };
-  const configurar = (c: unknown) => db.update(sources).set({ calificacion: c }).where(eq(sources.id, sourceId));
+describe("ingerirEntradas: el Estado lo pone el formulario (ADR 0054, ticket 051)", () => {
+  // Cada fila del contrato, con la etiqueta EXACTA que escribe el Apps Script en la
+  // columna Estado y el valor del enum que le corresponde.
+  const CONTRATO: [etiqueta: string, valor: Calificacion][] = [
+    ["🗑️ Descartado", "descartado"],
+    ["📞 Setteo No Calificado", "setteo_no_calificado"],
+    ["📅 Con Calendly", "con_calendly"],
+    ["📅 Con Calendly (Juanito)", "con_calendly"],
+  ];
 
-  it("sin configuracion el envio entra igual, SIN calificacion, y queda reportado", async () => {
-    const r = await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", pregunta: "Si" })]);
-    expect(r.sinCalificar).toEqual([{ motivo: "la fuente no tiene calificacion configurada", envios: 1 }]);
+  it.each(CONTRATO)("la etiqueta de la hoja %s entra por el adaptador como %s", async (etiqueta, valor) => {
+    // Por el adaptador de Sheets: una matriz con encabezados reales y la etiqueta cruda.
+    const matriz: unknown[][] = [
+      ["token", "correo electronico", "submitted at", "estado"],
+      ["t1", "ana@correo.co", "2026-09-20T15:00:00Z", etiqueta],
+    ];
+    const [uno] = entradasDesdeMatriz(matriz, { sourceId, zona: "UTC" });
+    const r = await ingerirEntradas(db, programId, [uno]);
+    expect(r.sinCalificar).toEqual([]);
+    const [envio] = await db.select().from(submissions);
+    expect(envio.calificacion).toBe(valor);
+    expect(envio.estadoHoja).toBe(etiqueta);
+    const [lead] = await db.select().from(leads);
+    expect(lead.calificacion).toBe(valor);
+  });
+
+  it.each(CONTRATO)("el valor del codigo %2$s entra directo por un Envio", async (_etiqueta, valor) => {
+    // Lo que mandara el webhook (ticket 106): el valor del enform en la variable `estado`.
+    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: valor })]);
+    const [envio] = await db.select().from(submissions);
+    expect(envio.calificacion).toBe(valor);
+    const [lead] = await db.select().from(leads);
+    expect(lead.calificacion).toBe(valor);
+  });
+
+  it("un valor inventado entra SIN calificacion y aparece en sinCalificar con su motivo", async () => {
+    const r = await ingerirEntradas(db, programId, [
+      entrada({ token: "t1", correo: "ana@correo.co", estado: "con calendly!" }),
+    ]);
+    expect(r.sinCalificar).toEqual([{ motivo: "estado no reconocido: con calendly!", envios: 1 }]);
     const [envio] = await db.select().from(submissions);
     expect(envio.calificacion).toBeNull();
-  });
-
-  it("la parcial deja al lead incompleto y la completa lo corrige, con su puntaje y version", async () => {
-    await configurar(CONFIG);
-    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", fecha: null, posicion: 2 })]);
-    let [lead] = await db.select().from(leads);
-    expect(lead.calificacion).toBe("incompleto");
-
-    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", posicion: 3, pregunta: "Si" })]);
-    [lead] = await db.select().from(leads);
-    expect(lead.calificacion).toBe("setteo");
-    expect(lead.puntaje).toBe(10);
-    const completa = (await db.select().from(submissions)).find((e) => !e.esParcial)!;
-    expect(completa.versionPuntaje).toBe(3);
-  });
-
-  it("quien re-aplica con otra respuesta queda con la NUEVA (el script lo ignoraba)", async () => {
-    await configurar(CONFIG);
-    await ingerirEntradas(db, programId, [
-      entrada({ token: "t1", correo: "ana@correo.co", fecha: "2026-09-01T10:00:00Z", pregunta: "No cuento con los recursos" }),
-    ]);
-    await ingerirEntradas(db, programId, [
-      entrada({ token: "t2", correo: "ana@correo.co", fecha: "2026-09-10T10:00:00Z", pregunta: "Si", agenda: "https://calendly.com/x" }),
-    ]);
-    const [lead] = await db.select().from(leads);
-    expect(lead.calificacion).toBe("con_agenda");
-  });
-
-  it("una configuracion que no casa con el formulario no califica a nadie como incompleto", async () => {
-    await configurar({ ...CONFIG, preguntaPago: "Pregunta que no existe" });
-    const r = await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", pregunta: "Si" })]);
-    expect(r.sinCalificar[0].motivo).toContain("Pregunta que no existe");
     const [lead] = await db.select().from(leads);
     expect(lead.calificacion).toBeNull();
   });
 
-  it("una configuracion guardada invalida detiene la ingesta sin escribir nada", async () => {
-    await configurar({ preguntaPago: "" });
-    await expect(
-      ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co" })]),
-    ).rejects.toMatchObject({ status: 422 });
-    expect(await db.select().from(submissions)).toHaveLength(0);
+  it("un COMPLETO sin estado es error visible; un PARCIAL sin estado NO lo es", async () => {
+    // El completo (con fecha) sin estado se reporta; el parcial (sin fecha) no.
+    const r = await ingerirEntradas(db, programId, [
+      entrada({ token: "t1", correo: "ana@correo.co" }),
+      entrada({ token: "t2", correo: "beto@correo.co", fecha: null }),
+    ]);
+    expect(r.sinCalificar).toEqual([{ motivo: "sin estado", envios: 1 }]);
+  });
+
+  it("un lead con un parcial POSTERIOR a su completo conserva el Estado del completo", async () => {
+    // El completo trae Con Calendly; luego llega un parcial (sin fecha, sin estado). El
+    // resumen del lead se queda con el del completo, no lo borra la parcial.
+    await ingerirEntradas(db, programId, [
+      entrada({ token: "t1", correo: "ana@correo.co", fecha: "2026-09-01T10:00:00Z", estado: "con_calendly", posicion: 2 }),
+    ]);
+    await ingerirEntradas(db, programId, [
+      entrada({ token: "t1", correo: "ana@correo.co", fecha: null, posicion: 3 }),
+    ]);
+    const [lead] = await db.select().from(leads);
+    expect(lead.calificacion).toBe("con_calendly");
   });
 });
 

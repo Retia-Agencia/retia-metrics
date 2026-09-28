@@ -83,6 +83,8 @@ describe("construirEnvio", () => {
     expect(e.esParcial).toBe(false);
     expect(e.fechaEnvio!.toISOString()).toBe("2026-09-16T23:05:00.000Z");
     expect(e.estadoHoja).toBe("📞 Setteo No Calificado");
+    // El Estado ya traducido al valor del enum (ADR 0054, ticket 051).
+    expect(e.estado).toBe("setteo_no_calificado");
     expect(e.utmSource).toBe("facebook");
     expect(e.utmMedium).toBe("cpc");
     expect(e.utmCampaign).toBe("Metodo_Comunicarte");

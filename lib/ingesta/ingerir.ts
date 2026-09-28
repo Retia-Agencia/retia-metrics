@@ -2,7 +2,8 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "@/lib/db/tipos";
 import { changeLog, leadContactos, leads, sources, submissions } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
-import { calificarEnvio, esquemaCalificacion, type Calificacion, type ConfigCalificacion } from "./calificacion";
+import type { Calificacion } from "./calificacion";
+import { estadoDesdeTexto } from "./estado";
 import { construirEnvio, type EntradaEnvio, type Envio } from "./envio";
 import {
   resolverIdentidad,
@@ -30,9 +31,11 @@ import {
  * veces da lo mismo, y cuando llega la completa de una parcial el lead se corrige
  * solo (ADR 0036 punto 4: "el CRM recalcula cuando llega la hermana").
  *
- * Cada envio se califica y se puntua con la configuracion de SU fuente
- * (`lib/ingesta/calificacion.ts`, T2 y T4). Un envio que no se pudo calificar entra
- * igual, sin calificacion, y queda contado en `sinCalificar` con el motivo.
+ * Cada envio guarda el Estado que le puso el FORMULARIO (ADR 0054, enmienda del
+ * 27-sep): el CRM no califica ni deduce, lo traduce con `estadoDesdeTexto`. Un envio
+ * COMPLETO sin Estado, o con un valor que el CRM no reconoce, entra igual, sin
+ * calificacion, y queda contado en `sinCalificar` con el motivo (error visible). Un
+ * envio PARCIAL sin Estado no es error: un parcial nunca abre deal.
  *
  * Fuera de alcance, a proposito: el deal (ticket 052, espera al motor de etapas).
  */
@@ -54,7 +57,7 @@ export interface ResultadoIngesta {
   /** Para el gerente (etapa 6): uniones por telefono y telefonos de otro lead. */
   posiblesDuplicados: PosibleDuplicado[];
   cambiosRegistrados: number;
-  /** Envios que entraron sin calificacion (o sin puntaje) y por que, agrupado por motivo. */
+  /** Envios COMPLETOS que entraron sin Estado reconocible, agrupados por motivo. */
   sinCalificar: { motivo: string; envios: number }[];
 }
 
@@ -103,26 +106,11 @@ export async function ingerirEntradas(
   // registrada, nunca de un campo del formulario (T1).
   const idsDeFuente = [...new Set(entradas.map((e) => e.sourceId))];
   const propias = await db
-    .select({ id: sources.id, nombre: sources.nombre, calificacion: sources.calificacion })
+    .select({ id: sources.id, nombre: sources.nombre })
     .from(sources)
     .where(and(eq(sources.programId, programId), inArray(sources.id, idsDeFuente)));
   if (propias.length !== idsDeFuente.length) {
     throw new ErrorDeApp("Hay envios de una fuente que no pertenece a este programa.", 422);
-  }
-
-  // Una configuracion guardada que no pasa el esquema detiene la ingesta antes de
-  // escribir: es un error de quien configuro, no algo que se reparte en los leads.
-  const configDe = new Map<string, ConfigCalificacion | null>();
-  for (const f of propias) {
-    if (f.calificacion === null) {
-      configDe.set(f.id, null);
-      continue;
-    }
-    const r = esquemaCalificacion.safeParse(f.calificacion);
-    if (!r.success) {
-      throw new ErrorDeApp(`La calificacion de la fuente "${f.nombre}" esta mal configurada.`, 422);
-    }
-    configDe.set(f.id, r.data);
   }
 
   // 1. Construir. Dos versiones del mismo envio (una parcial que Typeform reescribio)
@@ -148,26 +136,21 @@ export async function ingerirEntradas(
   const envios = [...porLlave.values()];
   if (envios.length === 0) return resultado;
 
-  // 1b. Calificar y puntuar cada envio con la configuracion de su fuente.
+  // 1b. El Estado de cada envio es el que trae del formulario (ya traducido en
+  // `construirEnvio`). El CRM no califica: solo reporta lo que no reconoce. El puntaje
+  // (T4) sigue nulo hasta que se decida A8 (`docs/plan.md` §7).
   type Nota = { calificacion: Calificacion | null; puntaje: number | null; versionPuntaje: number | null };
   const notaDe = new Map<string, Nota>();
   const motivos = new Map<string, number>();
   const contar = (motivo: string) => motivos.set(motivo, (motivos.get(motivo) ?? 0) + 1);
   for (const e of envios) {
-    const config = configDe.get(e.sourceId) ?? null;
-    if (config === null) {
-      contar("la fuente no tiene calificacion configurada");
-      notaDe.set(llaveDeEnvio(e), { calificacion: null, puntaje: null, versionPuntaje: null });
-      continue;
+    notaDe.set(llaveDeEnvio(e), { calificacion: e.estado, puntaje: null, versionPuntaje: null });
+    // Un COMPLETO sin Estado reconocible es un error visible; un PARCIAL sin Estado no
+    // (un parcial nunca abre deal, y marcarlo llenaria el reporte con los parciales).
+    if (e.estado === null && !e.esParcial) {
+      const r = estadoDesdeTexto(e.estadoHoja);
+      if (r.calificacion === null) contar(r.motivo);
     }
-    const r = calificarEnvio(e.respuestas, config);
-    if (!r.ok) {
-      contar(`el envio no trae: ${r.faltan.join(" · ")}`);
-      notaDe.set(llaveDeEnvio(e), { calificacion: null, puntaje: null, versionPuntaje: null });
-      continue;
-    }
-    if (r.faltanParaPuntaje.length > 0) contar(`sin puntaje, el envio no trae: ${r.faltanParaPuntaje.join(" · ")}`);
-    notaDe.set(llaveDeEnvio(e), { calificacion: r.calificacion, puntaje: r.puntaje, versionPuntaje: r.versionPuntaje });
   }
   resultado.sinCalificar = [...motivos].map(([motivo, n]) => ({ motivo, envios: n }));
 

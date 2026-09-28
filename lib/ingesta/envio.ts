@@ -1,4 +1,6 @@
 import { limpiar, normalizarEmail, parsearFecha } from "@/lib/sheets/mapeo";
+import type { Calificacion } from "./calificacion";
+import { estadoDesdeTexto } from "./estado";
 
 /**
  * El Envio (ADR 0036, tickets 048 y 049): una fila del formulario, parcial o completa,
@@ -67,7 +69,14 @@ export interface Envio {
   token: string;
   esParcial: boolean;
   fechaEnvio: Date | null;
+  /** El texto crudo de la columna `Estado`, tal como llego, para comparar (ADR 0054). */
   estadoHoja: string | null;
+  /**
+   * El Estado ya traducido al valor del enum, o `null` si el formulario no mando uno
+   * reconocible. Lo pone el FORMULARIO y el CRM lo TRADUCE, no lo calcula (ADR 0054,
+   * enmienda del 27-sep): sale de `estadoHoja` por `estadoDesdeTexto`, sin adivinar.
+   */
+  estado: Calificacion | null;
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
@@ -109,6 +118,12 @@ export function construirEnvio(entrada: EntradaEnvio): ResultadoEnvio {
 
   const fechaEnvio = parsearFecha(celda("fechaEnvio"), entrada.zona);
 
+  // El Estado se guarda crudo (`estadoHoja`) para comparar, y traducido (`estado`) para
+  // que el codigo decida con el (el 052 abre deals). La traduccion no adivina: un texto
+  // ajeno deja `estado` nulo y el envio se reporta en la ingesta.
+  const estadoHoja = limpiar(celda("estadoHoja"));
+  const estado = estadoDesdeTexto(estadoHoja).calificacion;
+
   const promovidos = new Set(
     CAMPOS_PROMOVIDOS.map((c) => entrada.campos[c]).filter((h): h is string => h !== undefined),
   );
@@ -127,7 +142,8 @@ export function construirEnvio(entrada: EntradaEnvio): ResultadoEnvio {
       // Una fila completa siempre trae fecha. Supuesto a medir contra `dev` en el 049.
       esParcial: entrada.esParcial ?? fechaEnvio === null,
       fechaEnvio,
-      estadoHoja: limpiar(celda("estadoHoja")),
+      estadoHoja,
+      estado,
       // Crudos: un UTM ausente es null, nunca "organico" (ADR 0004).
       utmSource: limpiar(celda("utmSource")),
       utmMedium: limpiar(celda("utmMedium")),
