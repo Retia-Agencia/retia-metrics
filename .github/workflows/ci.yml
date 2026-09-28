@@ -1,0 +1,29 @@
+# Ticket 112: los cuatro chequeos de AGENTS.md (test, typecheck, lint, build) en cada PR y
+# en cada push a `main`, con `npm ci` sobre el lock. Nada de esto necesita `.env.local`:
+# los tests usan PGlite en memoria y el cliente de la base se crea de forma perezosa.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chequeos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
