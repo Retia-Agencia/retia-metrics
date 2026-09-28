@@ -3,7 +3,7 @@ id: 051
 etapa: E3
 serves: "ADR 0054 (enmienda del 27-sep) · cierra D4 y F-01 · plan §4.3b"
 depends: [049, 050]
-status: en curso
+status: done
 ---
 
 # 051 — El Estado del lead es el que manda el formulario
