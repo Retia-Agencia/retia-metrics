@@ -146,8 +146,10 @@ Un script sale con `process.exit`: `postgres-js` deja el pool abierto y el proce
 Hoy existe y se va a retirar: el corte directo (22-sep) dice que los leads entran solo por webhook. Qué
 pasa con su código y con los tickets 053 a 056 es la decisión A6 del plan.
 
-- `vercel.json` programa `/api/cron/sync` **una vez al día, a las 12:00 UTC (7 a.m. de Bogotá)**,
-  protegido con `CRON_SECRET`. Sin el secreto responde 401.
+- 🩸 **El cron está APAGADO desde el 28-sep** (se quitó de `vercel.json`). Estuvo programado a las
+  12:00 UTC; su primera corrida contra Supabase (28-sep, 7:52 a.m.) metió **5.343 leads sin envíos** en
+  producción por la puerta descartada, y se borraron con el ok de Mani. La ruta sigue existiendo (con
+  `CRON_SECRET`) hasta que el 108 la retire; nada la llama.
 - Una corrida es de un programa y hay un candado en la base: dos corridas del mismo programa no se
   pisan (la segunda recibe 409 y el cron la cuenta como omitida); una corrida colgada más de 10 minutos
   se cierra antes de intentar otra (ADR 0005).

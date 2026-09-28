@@ -16,7 +16,8 @@ una segunda puerta de entrada que nadie vigila.
 
 ## Qué se va
 
-- El cron: `app/api/cron/sync/route.ts` y su entrada en `vercel.json`.
+- El cron: `app/api/cron/sync/route.ts`. Su entrada en `vercel.json` ya se quitó el 28-sep (metió 5.343
+  leads sin envíos en producción; ver `docs/operations.md`).
 - La corrida manual: `app/api/sync/[programa]/route.ts`, `components/boton-sincronizar.tsx` y su uso en
   `/ajustes/fuentes`.
 - `lib/sheets/sync.ts` (corridas, candado, reaper) y `lib/sheets/plan-sync.ts` si solo los usa el sync.
