@@ -383,6 +383,13 @@ cierra, baja a un ADR (con `/grill-with-docs`) o a su ticket, y sale de esta lis
 - Confirmar: la venta sin llamada y los perdidos que se recuperan (transiciones T4, T5 y R de
   `structure.md` §3.1; no confundir con la ficha T4 de §7.1).
 
+**B2. Equipo (Mani, 27-sep):** ¿para qué sirven las preguntas del formulario que hoy no deciden nada?
+Ingreso filtra quién ve el Calendly (por confirmar en la ramificación de la pregunta de pago) y ordenará
+Setteo (070); **motivación y urgencia no se usan en ninguna parte**, y la situación profesional solo se
+copia a Setteo para que el closer la lea. Tres preguntas: ¿ordenan la cola o cambian a dónde va el lead?;
+¿quién fija el criterio y con qué datos (lo que respondieron los que compraron, de la migración de las
+pestañas de gestión)?; ¿las que no sirvan se quitan del formulario? Se cruza con T4.
+
 **C. Gerencia (Alejo, Daniel):** el área de cada canal (101); qué ve el Paid Trafficker (102); los
 umbrales de éxito del dashboard; el precio de lista de ComunicArte, 797 o 697 (los consolidados de C2
 dicen 797 desde el 13-ago con 697 respetado; la hoja y la comisión usan 697); el límite de los
