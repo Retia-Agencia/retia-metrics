@@ -1,0 +1,59 @@
+{
+  "event_id": "01J8ZQ3XABCDEF0123456789",
+  "event_type": "form_response",
+  "form_response": {
+    "form_id": "aBcDeF12",
+    "token": "tok-completo-001",
+    "landed_at": "2026-09-20T14:58:11Z",
+    "submitted_at": "2026-09-20T15:00:00Z",
+    "variables": [
+      { "key": "estado", "type": "text", "text": "setteo_no_calificado" },
+      { "key": "score", "type": "number", "number": 0 }
+    ],
+    "hidden": {
+      "utm_source": "facebook",
+      "utm_medium": "cpc",
+      "utm_campaign": "tactical-septiembre",
+      "utm_content": "anuncio-a",
+      "utm_term": "inversion"
+    },
+    "definition": {
+      "id": "aBcDeF12",
+      "title": "Aplicación Tactical Investor",
+      "fields": [
+        { "id": "f-correo", "title": "Correo electrónico", "type": "email", "ref": "correo" },
+        { "id": "f-whatsapp", "title": "WhatsApp", "type": "phone_number", "ref": "whatsapp" },
+        { "id": "f-nombre", "title": "Nombre completo", "type": "short_text", "ref": "nombre" },
+        { "id": "f-pago", "title": "¿Cuánto puedes invertir?", "type": "multiple_choice", "ref": "pago" },
+        { "id": "f-agenda", "title": "Agenda aquí tu entrevista", "type": "url", "ref": "agenda" }
+      ]
+    },
+    "answers": [
+      {
+        "field": { "id": "f-correo", "type": "email" },
+        "type": "email",
+        "email": "Ana.Perez@Correo.co"
+      },
+      {
+        "field": { "id": "f-whatsapp", "type": "phone_number" },
+        "type": "phone_number",
+        "phone_number": "+57 300 123 4567"
+      },
+      {
+        "field": { "id": "f-nombre", "type": "short_text" },
+        "type": "text",
+        "text": "Ana Pérez"
+      },
+      {
+        "field": { "id": "f-pago", "type": "multiple_choice" },
+        "type": "choice",
+        "choice": { "label": "Sí, cuento con los recursos" }
+      },
+      {
+        "field": { "id": "f-agenda", "type": "url" },
+        "type": "url",
+        "url": "https://calendly.com/retia/entrevista/ana-perez"
+      }
+    ]
+  }
+}

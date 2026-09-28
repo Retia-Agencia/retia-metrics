@@ -322,6 +322,9 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Lead:** una persona dentro de un programa. La misma persona en dos programas son dos leads.
 - **Envío:** cada vez que alguien llenó el formulario, parcial o completo. Su llave es el token del
   formulario. *No confundir con "registro" en el sentido de Media, que es un envío contado como métrica.*
+- **Sobre crudo:** un envío de webhook que llegó con la firma buena y no se pudo procesar (sin correo,
+  payload raro, la ingesta falló). Se guarda el cuerpo tal como llegó para reprocesarlo; no es un envío
+  todavía (tabla `sobres_crudos`, ticket 106).
 - **Deal:** la oportunidad de venderle un programa a un lead. Tiene dueño, etapa, producto y cohorte.
   Como máximo uno abierto por lead y programa.
 - **Etapa:** en cuál de los once pasos está un deal. La escribe el CRM. *No confundir con el **Estado**,

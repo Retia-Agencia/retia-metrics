@@ -3,7 +3,7 @@ id: 052
 etapa: E3
 serves: "plan v2 §6 etapa 3 · tarea E3-5 · insumo §3.1, ADR 0037"
 depends: [051, 045]
-status: todo
+status: en curso
 ---
 
 # 052 — La regla de creacion y movimiento de deals del sync
@@ -79,3 +79,30 @@ Si, con revision.
   por el 080 con su estado de gestión (decisión de Mani del 24-sep, arriba).
 - "Los 9 casos de Setteo → Calendly de `dev`" del Done se prueban con envíos sintéticos: sin sync vivo,
   en `dev` ya no llegan envíos nuevos que los produzcan.
+
+---
+
+## Avance 2026-09-28 (Kiro, revisado por la sesión principal)
+
+- **Hecho:** `lib/ingesta/regla-de-deals.ts` (`decidirAccionDeDeal` pura + `aplicarReglaDeDeal`, que abre
+  con `abrirDeal()` y mueve con `moverEtapa()`, actor sistema). La llama `ingerirEntradas` solo con
+  `aplicarReglaDeDeals: true` (el webhook sí, el traslado no), dentro de la misma transacción y después
+  de recalcular el lead. 22 tests. La revisión corrigió una lectura de `deals` sin `vigente(deals)` que
+  cazó el guardián de vigencia.
+- 🔴 **Lo que falta, con causa encontrada:** con `con_calendly` y un deal en Pendiente Setteo, el motor
+  **rechaza** el movimiento a Agendado porque esa flecha exige una llamada con fecha (`requisitos.ts`).
+  La regla no tumba la ingesta: guarda el envío y deja el rechazo en `reglaDeDeals[].rechazo`, que hoy
+  **nadie ve**. Son los 9 casos medidos de Setteo → Calendly.
+- **Asimetría del motor:** abrir un deal NUEVO directo en Agendado sí se permite sin llamada; moverlo ahí
+  desde Setteo no. El mismo hecho ("agendó por Calendly") se acepta o se rechaza según si el lead ya
+  tenía deal.
+- **La fecha no viene en el link** (verificado el 28-sep en la hoja de Tactical, columna "Agenda aquí tu
+  entrevista"): es `https://calendly.com/d/<evento>/<nombre>/invitees/<uuid>`, sin fecha. Se lee
+  preguntándole a la API de Calendly por ese invitado, que pide un token (decisión A5, ticket 096).
+  Mani (28-sep) quiere usar la fecha de Calendly; falta el token. Opción descartada por ahora: dejar que
+  el sistema entre a Agendado sin fecha (afloja una regla del motor).
+
+> **28-sep, más tarde: resuelto el camino.** Los tokens de Calendly de los dos programas funcionan (rol
+> `owner`, ven todas las citas) y los 10 ids de invitado probados de la hoja de Tactical aparecieron en la
+> API con su fecha. Mani: el token vive en la base, en el programa (ADR 0057, ticket **109**). Con el 109
+> hecho, la regla crea la llamada con su fecha y el movimiento Setteo → Agendado pasa el motor.

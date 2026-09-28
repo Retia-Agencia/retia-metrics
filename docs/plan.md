@@ -56,9 +56,10 @@ cuando los closers operan en el CRM y lo histórico ya migró. Los hitos interme
   así que la falla era de otra versión de npm o de Linux; conviene confirmarlo en el CI (R4).
 - ⚠️ Un checkout con `node_modules` de antes del 22-sep **falla 46 tests** porque no tiene el driver
   `postgres` (ADR 0047). Es entorno, no regresión: se arregla instalando.
-- **Base:** 26 migraciones (0000 a 0025), todas aplicadas en `dev` y verificadas por hash contra el repo. Supabase `dev` existe, vacío y sembrado. **El proyecto de
-  producción en Supabase no existe** (`DB_PROD` vacía). Vercel producción se desplegó el 23-sep y 🔴 no
-  se ha verificado a qué base apunta (`operations.md` §1).
+- **Base** (actualizado el 28-sep): **una sola, y es producción**, el proyecto "CRM Retia" (ADR 0047,
+  enmienda). 30 migraciones (0000 a 0029) aplicadas; los hashes de 0000-0020 difieren solo por CRLF
+  (`operations.md` §10). Vercel Production apunta a ella desde el 28-sep (antes seguía en Neon) y el
+  dashboard carga.
 - **Cero** deals, llamadas y abonos en cualquier base. Los closers siguen en Sheets.
 
 | Pieza | Estado |
@@ -67,7 +68,7 @@ cuando los closers operan en el CRM y lo histórico ya migró. Los hitos interme
 | Ingesta que escribe: `ingerirEntradas` (una transacción, por lotes, idempotente) | ✅ código, sin nadie que la llame todavía |
 | Calificación del envío (T2): las cuatro reglas del Apps Script, por fuente | ✅ código, 6.397 de 6.400 envíos coinciden con la hoja. 🔴 choca con §4.3b |
 | Puntaje del lead (T4) | ⚙️ motor sin pesos, a propósito |
-| RLS en todas las tablas, Data API apagada en `dev` | ✅ |
+| RLS en todas las tablas, Data API apagada en la base (CRM Retia) | ✅ |
 | Catálogos, productos, recursos, usuarios, roles, "ver como", sistema de diseño Tinta | ✅ del MVP |
 | **Motor de etapas (E2, 043-047):** la tabla de transiciones, `queLeFalta`, `moverEtapa()` y `abrirDeal()` con historial, el guardián, y el saldo (`lib/queries/saldo.ts`) | ✅ 27-sep, sin nadie que lo llame todavía |
 | Webhook, Calendly, registro de llamadas y abonos, UI por objetos, atribución, dashboard sobre deals, migración | ❌ |
@@ -312,7 +313,7 @@ piezas que no tenían ticket (producción, webhook).
 
 | Paso | Track 1 · CRM | Track 2 · UI/UX | Track 3 · Integraciones | Termina cuando |
 |---|---|---|---|---|
-| **0 · Terreno** | reparar el lock (§2) | · | crear Supabase producción (`operations.md` §4); verificar a qué base apunta Vercel | decisiones A1 a A3 de §7 |
+| **0 · Terreno** | ✅ reparar el lock (§2) | · | ✅ producción en CRM Retia y Vercel apuntando a ella (28-sep) | ✅ decisiones A1 a A3 de §7 |
 | **1 · Motor** | 043 → 044 → 045 → 046 → 047 · 094 en paralelo | · | ✅ ADR 0055 (webhook) y ADR 0054 (Estado), 27-sep | un deal se mueve solo por `moverEtapa()` |
 | **2 · Entrada** | 048 · 049 · 050 (en curso) · ✅ 051 · 052 | · | ✅ 105 (fuente webhook) · 106 (ruta + adaptador de Typeform) · 107 (aviso); payload real de Typeform | **Hito A: los leads entran solos al CRM** (primero `dev`, luego producción) |
 | **3 · Llamadas y dinero** | 057 · 058 · 059 · 060 · 061 · 063 · 035 | · | 096 cuando se decida su forma | una llamada y un abono mueven el deal |
@@ -362,8 +363,12 @@ cierra, baja a un ADR (con `/grill-with-docs`) o a su ticket, y sale de esta lis
 | # | Qué | Bloquea | Cuándo |
 |---|---|---|---|
 | A4 | Garantía de la UI: tests de componente o Playwright (R5); CI (R4) | paso 4 | antes del paso 4 |
-| A5 | Calendly: webhook o consulta; plan de Calendly; Vercel Pro (R3) | 096 | paso 3 |
+| A5 | Calendly: webhook o consulta para las llamadas del 096; plan de Calendly; Vercel Pro (R3). **Ya decidido (28-sep, ADR 0057):** un token por programa, en la base; los dos funcionan con rol owner | 096 | paso 3 |
 | A7 | Las fichas técnicas de §7.1 (D3, D5, R2, P2, T4) | 060, 084 | según el ticket |
+
+**A2. Para después (Mani, 28-sep):** revisar si las alertas de la app (fuente sin envíos, 107; y las
+que vengan) se mandan también por correo, de forma estandarizada y simple: un solo mecanismo para todas,
+no uno por alerta. No bloquea nada.
 
 **B. Closers** (por chat, cuando llegue el ticket que la necesita):
 

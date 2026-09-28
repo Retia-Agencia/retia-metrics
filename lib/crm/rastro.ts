@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
+import { textoDeBitacora } from "@/lib/db/texto-de-bitacora";
 
 /**
  * TODA escritura del CRM deja rastro, y el rastro se escribe desde el dia uno
@@ -55,14 +56,12 @@ export const TABLAS_CON_RASTRO = ["deals", "calls", "abonos", "deal_actividades"
 export type TablaConRastro = (typeof TABLAS_CON_RASTRO)[number];
 
 /**
- * Como se escribe un valor en `change_log`. Mismo criterio que el molde de catalogo:
- * texto plano, y `null` para lo ausente. La bitacora se LEE, no se re-parsea.
+ * Como se escribe un valor en `change_log`: vive en un solo modulo, `textoDeBitacora`,
+ * que tambien usa el molde de catalogo. Texto plano, `null` para lo ausente, y un objeto
+ * o arreglo como JSON con llaves ordenadas (no `String(valor)` = "[object Object]"). La
+ * bitacora se LEE, no se re-parsea.
  */
-function aTexto(valor: unknown): string | null {
-  if (valor === null || valor === undefined) return null;
-  if (valor instanceof Date) return valor.toISOString();
-  return String(valor);
-}
+const aTexto = textoDeBitacora;
 
 interface Contexto {
   db: Db;

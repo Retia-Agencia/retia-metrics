@@ -19,7 +19,10 @@ export default auth((req) => {
     pathname.startsWith("/api/auth/") ||
     pathname === "/api/health" ||
     // El cron no tiene sesion: se autentica con CRON_SECRET en el propio handler.
-    pathname === "/api/cron/sync";
+    pathname === "/api/cron/sync" ||
+    // El webhook de formularios (ADR 0055): no tiene sesion, se autentica con la firma
+    // HMAC en el propio handler. Nunca redirige a /login, o cada envio se perderia.
+    pathname.startsWith("/api/webhooks/formularios/");
 
   if (esRutaPublica) return NextResponse.next();
 

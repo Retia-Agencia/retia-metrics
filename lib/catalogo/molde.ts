@@ -8,6 +8,7 @@ import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
 import { esViolacionForanea, esViolacionUnica } from "@/lib/db/errores";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
+import { textoDeBitacora } from "@/lib/db/texto-de-bitacora";
 
 /**
  * El molde de toda entidad configurable (ADR 0012).
@@ -96,11 +97,11 @@ export interface Catalogo<Entrada extends Record<string, unknown>> {
   borrarSiNoSeUso: (userId: string, id: string) => Promise<ResultadoBorrado>;
 }
 
-/** Convierte un valor de columna a texto para `change_log` (que guarda todo como texto). */
-function aTexto(valor: unknown): string | null {
-  if (valor === null || valor === undefined) return null;
-  return String(valor);
-}
+// Como se escribe un valor en `change_log` vive en un solo modulo, `textoDeBitacora`
+// (mismo criterio que el rastro operativo): un objeto o arreglo se serializa como JSON
+// con llaves ordenadas, no como `String(valor)` = "[object Object]", que ademas rompia
+// el diff de la edicion de un campo jsonb.
+const aTexto = textoDeBitacora;
 
 export function moldeDeCatalogo<Entrada extends Record<string, unknown>>(
   opciones: OpcionesMolde<Entrada>,

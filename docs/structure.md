@@ -112,7 +112,7 @@ flowchart TD
 | El lead vuelve a aplicar con su deal cerrado | deal nuevo; la ficha muestra los anteriores | ADR 0037 |
 | Lead que ya existía antes del corte | no abre deal por la ingesta: entra con la migración, con su estado de gestión | ADR 0037 |
 
-🔴 Quién produce el "Estado" (Descartado, Setteo, Con Calendly) está abierto: `plan.md` §7, A1.
+El "Estado" (Descartado, Setteo, Con Calendly) lo produce el formulario y el CRM solo lo traduce (ADR 0054; A1 y A8 cerradas). El CRM lee además un hecho: si la pregunta de agenda trae un link de Calendly (ticket 106).
 
 ### 2.2 Cómo se cuelga cada llamada de su deal (Calendly)
 

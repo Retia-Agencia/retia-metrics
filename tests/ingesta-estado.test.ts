@@ -48,14 +48,19 @@ describe("estadoDesdeTexto", () => {
 });
 
 /**
- * La ingesta ya NO califica (ADR 0054, enmienda): guarda el Estado del formulario. Si
- * `ingerirEntradas` volviera a llamar a `calificarEnvio`, el CRM estaria calculando de
- * nuevo sin que nada fallara. Igual que los otros guardianes del repo, un `grep` lo caza.
+ * La ingesta NO calcula el Estado desde las respuestas (ADR 0054, enmienda del 28-sep):
+ * guarda el que manda el formulario. El calculo (`calificarEnvio` y su configuracion por
+ * fuente) se retiro ese dia. Este guardian falla si vuelve a aparecer en `lib/ingesta/`:
+ * igual que los otros guardianes del repo, un `grep` sobre el codigo lo caza. Si un dia
+ * el Estado lo calcula el CRM por programa (decision A8), este test se reescribe entonces.
  */
-describe("ingerir.ts no llama a calificarEnvio", () => {
-  it("no hay ni una referencia a calificarEnvio en la ingesta", () => {
-    const ruta = fileURLToPath(new URL("../lib/ingesta/ingerir.ts", import.meta.url));
-    const fuente = fs.readFileSync(ruta, "utf8");
-    expect(fuente).not.toContain("calificarEnvio");
+describe("nada en lib/ingesta calcula el Estado desde las respuestas", () => {
+  it("no hay ni una referencia a calificarEnvio en lib/ingesta", () => {
+    const dir = fileURLToPath(new URL("../lib/ingesta/", import.meta.url));
+    const archivos = fs
+      .readdirSync(dir)
+      .filter((n) => n.endsWith(".ts"))
+      .map((n) => fs.readFileSync(fileURLToPath(new URL(`../lib/ingesta/${n}`, import.meta.url)), "utf8"));
+    expect(archivos.some((fuente) => fuente.includes("calificarEnvio"))).toBe(false);
   });
 });

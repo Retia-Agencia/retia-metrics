@@ -136,3 +136,10 @@ nunca se sube a `con_calendly`.
 > posición) hasta que se corrigieron sus constantes. La variable `estado` no llega a la hoja; la columna
 > Score sí. Mientras las hojas vivan (hasta el hito B), todo cambio en un Typeform se verifica mirando la
 > fila 1 de la hoja. Incidente en `docs/operations.md` §9.
+
+> **28-sep (Mani): A8 se cierra, el CRM no calcula NADA.** *"El CRM no calcula NADA, solo recibe los
+> leads con estado ya definido y los rutea."* T2 (`calificarEnvio` y su configuración por fuente) se
+> borró del repo; `lib/ingesta/calificacion.ts` quedó con el tipo y los valores del enum. Las columnas
+> `sources.calificacion`, `submissions.calificacion` y `submissions.puntaje` quedan sin uso en el esquema
+> (quitarlas es una migración; no se ha pedido). Lo único que el CRM lee además de la variable es el
+> hecho de agendar, por la llave `agenda` del mapeo de la fuente (ticket 106).

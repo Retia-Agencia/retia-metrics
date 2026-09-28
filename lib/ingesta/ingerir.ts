@@ -5,6 +5,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import type { Calificacion } from "./calificacion";
 import { estadoDesdeTexto } from "./estado";
 import { construirEnvio, type EntradaEnvio, type Envio } from "./envio";
+import { aplicarReglaDeDeal, type AccionDeDeal } from "./regla-de-deals";
 import {
   resolverIdentidad,
   type ContactoConocido,
@@ -59,11 +60,24 @@ export interface ResultadoIngesta {
   cambiosRegistrados: number;
   /** Envios COMPLETOS que entraron sin Estado reconocible, agrupados por motivo. */
   sinCalificar: { motivo: string; envios: number }[];
+  /**
+   * Lo que la regla de deals (ticket 052) hizo con cada lead tocado. Vacio cuando no se
+   * pidio (`aplicarReglaDeDeals` en false: el traslado desde Sheets). Incluye los
+   * re-envios de un deal avanzado, que NO mueven nada pero el owner tiene que ver.
+   */
+  reglaDeDeals: { leadId: string; accion: AccionDeDeal; dealAbiertoId?: string; rechazo?: string }[];
 }
 
 export interface OpcionesIngesta {
   /** La corrida que origino la escritura, para la bitacora. Nulo para un webhook. */
   syncRunId?: string | null;
+  /**
+   * Si aplicar la regla de creacion y movimiento de deals (ticket 052) a cada lead
+   * tocado. **Default `false`.** Lo pide el webhook (ticket 106); el traslado desde
+   * Sheets NO, porque los leads viejos entran por el 080 con su estado de gestion, no
+   * como ~2.400 deals iguales en Pendiente Setteo (decision de Mani del 24-sep).
+   */
+  aplicarReglaDeDeals?: boolean;
 }
 
 /** Un envio se identifica por fuente, token y parcialidad (`submissions_fuente_token_idx`). */
@@ -98,6 +112,7 @@ export async function ingerirEntradas(
     posiblesDuplicados: [],
     cambiosRegistrados: 0,
     sinCalificar: [],
+    reglaDeDeals: [],
   };
   if (entradas.length === 0) return resultado;
 
@@ -288,6 +303,27 @@ export async function ingerirEntradas(
       resultado.leadsNuevos = creados.size;
       resultado.leadsActualizados = actualizados;
       resultado.cambiosRegistrados = cambios;
+
+      // 8. La regla de deals (ticket 052), SOLO si el llamador la pidio. Corre DENTRO
+      // de esta misma transaccion, despues del resumen: la regla lee `leads.calificacion`
+      // y esa cifra la acaba de fijar el paso 7, asi que tiene que ver el valor final, no
+      // el previo. Y al ir en la misma transaccion, un deal que el motor rechace deshace
+      // tambien la escritura del envio: no queda un lead ingerido con un deal a medias.
+      if (opciones.aplicarReglaDeDeals && tocados.length > 0) {
+        const leadsTocados = await tx
+          .select({ id: leads.id, programId: leads.programId, calificacion: leads.calificacion })
+          .from(leads)
+          .where(inArray(leads.id, tocados));
+        for (const lead of leadsTocados) {
+          const r = await aplicarReglaDeDeal(tx, lead);
+          resultado.reglaDeDeals.push({
+            leadId: r.leadId,
+            accion: r.accion,
+            dealAbiertoId: r.dealAbiertoId,
+            rechazo: r.rechazo,
+          });
+        }
+      }
 
       return resultado;
     },

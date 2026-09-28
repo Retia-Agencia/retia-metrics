@@ -3,7 +3,7 @@ id: 105
 etapa: E3
 serves: "ADR 0055 puntos 1 y 2 · plan §4.3a"
 depends: [048]
-status: todo
+status: en curso
 ---
 
 # 105 — La fuente webhook: un formulario es una fila

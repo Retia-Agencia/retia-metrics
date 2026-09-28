@@ -50,7 +50,7 @@ servicio, nunca con "cualquiera con el enlace"**. Los scripts siguen leyendo los
 | Hoja de Sheets | https://docs.google.com/spreadsheets/d/1NN6rlZXJJcgvWXYsbP99vLt9aj7FXVPd6ep4ULAcK54/edit | https://docs.google.com/spreadsheets/d/1DBKL4zwWWeJppe-6mzpJ4jT1G6MdEmT1Dd_uMiNBNwc/edit |
 | Formulario (Typeform) | https://metodocomunicarte.typeform.com/to/nkMLdeh8 (identificado el 18-ago como el destino de los botones "Unirme" de la landing; confirmado por Mani el 27-sep) | https://postulacioness.typeform.com/to/GmPGBOf9 (confirmado por Mani el 27-sep; el ID distingue mayúsculas) |
 | Landing | `programavirtual.eventoscomunicarte.com/landing.html` (el contenido vive en ese iframe) | 🔴 falta |
-| Calendly | 🔴 falta (cada closer tiene su cuenta por programa) | 🔴 falta |
+| Calendly | una organización por programa, un solo tipo de evento ("Postulación Método Comunicarte"); token verificado el 28-sep | una organización, evento "Postulación: De Cero a Tactical Investor"; token verificado el 28-sep (451 citas en ±3 meses) |
 | `web_url` / `calendly_url` en la base (`dev`) | vacías | vacías |
 
 Cuando existan `programs.form_url` y los destinos (ticket 092), estas URLs se cargan desde la app y
@@ -74,6 +74,7 @@ editor) y en Vercel.
 | `SCRIPT_ACTOR_EMAIL` | quién firma el rastro de un script que escribe en una base viva (ADR 0029) | local |
 | `SEED_GERENTE_EMAIL`, `SEED_GERENTE_NOMBRE` | el gerente que siembra `seed:users` | local |
 | `ENLACES_PAGO_JSON` | los enlaces de pago que carga `cargar-enlaces-pago` (el JSON lo tiene Mani) | local |
+| `CALENDLY_TOKEN_COMUNICARTE`, `CALENDLY_TOKEN_TACTICAL` | **temporales**: el token de Calendly de cada programa (rol owner), solo para probar hasta que el ticket 109 lo guarde en la base (ADR 0057). Se borran de aquí al cargarlos en la app | local |
 
 `npm run build` no necesita `.env.local`: el cliente de la base se crea de forma perezosa.
 
@@ -86,7 +87,7 @@ editor) y en Vercel.
   y sin terminal se cuelga o falla.
 - **El SQL que genera `drizzle-kit` se lee antes de aplicarlo, siempre.** La 0020 traía cuatro defectos,
   dos destructivos (habría borrado todos los leads con un `DROP TABLE ... CASCADE`).
-- **Orden:** generar → leer y corregir el SQL → aplicar en `dev` → probar → aplicar en producción **con
+- **Orden (desde el 28-sep, una sola base):** generar → leer y corregir el SQL → `npm test` (PGlite aplica todas) → aplicar en la base **con
   el ok de Mani**. Un `CHECK` o un índice único se crea después de arreglar los datos, en la misma
   migración.
 - **Antes de escribir, mirar el ref del proyecto dentro de la connection string** (`postgres.<ref>@...`),
@@ -197,6 +198,13 @@ pasa con su código y con los tickets 053 a 056 es la decisión A6 del plan.
   una frontera de dominio estable (ADR 0033). Buena parte se reescribe igual en la etapa de UI.
 - **Código muerto:** `lib/abonos/plataforma.ts` no lo importa nadie (verificado el 27-sep). Se señala,
   no se borra de paso.
+- **Columnas sin uso tras retirar T2 (28-sep):** `sources.calificacion`, `submissions.calificacion` y
+  `submissions.puntaje` siguen en el esquema, y `scripts/seed-datos.ts` todavía siembra
+  `sources.calificacion`. Quitarlas es una migración; nadie la ha pedido.
+- **Hashes de migraciones en la base:** las filas de `drizzle.__drizzle_migrations` de 0000 a 0020 no
+  casan con los archivos porque se aplicaron desde un checkout de Windows (CRLF). Verificado el 28-sep:
+  con CRLF casan todas, el contenido es idéntico y no hay que tocar nada. drizzle solo mira la última.
+  Desde el 28-sep `.gitattributes` fuerza LF en `drizzle/*.sql` para que no vuelva a pasar.
 - **Detectar que un lead desapareció de la fuente:** nunca se borra un lead (Mani, 19-sep); con el
   webhook deja de aplicar, salvo para el traslado.
 

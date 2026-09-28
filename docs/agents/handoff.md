@@ -5,35 +5,34 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 34 (27-sep, noche). Los anteriores están en el
-> historial de git (el de la mañana: `git show 8678164:docs/agents/handoff.md`).
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 35 (28-sep, madrugada). El anterior:
+> `git show fdcd0aa:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md y despues docs/plan.md completo, antes que cualquier otro
 documento (norte, tracks, orden por pasos en §5, decisiones abiertas en §7). El estado de cada ticket
 vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta: docs/overview.md,
-docs/structure.md (§3 el motor de etapas y su tabla de transiciones), docs/operations.md y
-docs/adr/README.md.
+docs/structure.md, docs/operations.md y docs/adr/README.md.
 
-Estado al cierre del 27-sep en la noche (sesion 34): el Estado de llegada lo manda el formulario y el
-CRM confia (ADR 0054 enmendado): tres valores, descartado / setteo_no_calificado / con_calendly.
-051 hecho (lib/ingesta/estado.ts traduce, T2 desconectado hasta decidir A8). 105 hecho salvo forjar la
-accion como closer (fuente webhook con proveedor y secreto; migracion 0028). 29 migraciones
-(0000-0028), todas en dev. 922 tests. Produccion en Supabase NO existe.
+Estado al cierre del 28-sep (sesion 35): HAY UNA SOLA BASE y es PRODUCCION: el proyecto de Supabase
+"CRM Retia" (ref hfqmiyiuyqapdsbywrag). No hay dev: local, scripts y db:migrate escriben en la base real.
+Se trabaja en main; los previews de Vercel no tienen base. Regla de Mani: asegurar integridad antes de
+publicar (AGENTS.md, convenciones). Vercel Production apunta a esa base y Mani entro y el dashboard carga.
+El sync de Sheets se descarta (A6); el CRM no calcula el Estado (A8, T2 borrado). 30 migraciones
+(0000-0029). 973 tests.
 
-Siguiente (paso 2 del plan, hito A):
-1. El 052: abrir y mover deals desde la ingesta con abrirDeal/moverEtapa, leyendo leads.calificacion.
-   Solo cuando lo pide el webhook; el traslado desde Sheets no abre deals.
-2. El 106: la ruta /api/webhooks/formularios/[fuente] + adaptador de Typeform + sobre crudo con 200.
-   Ojo: Envio.estado sale del campo estadoHoja; el adaptador pone ahi la variable `estado`.
-3. El 107 (umbral por defecto: preguntarle a Mani) y forjar la accion del 105 con sesion de closer.
-4. Typeform: la variable `estado` ya esta en los dos (27-sep). Con el 106 van el Partial Submit Point
-   (despues de la pregunta de WhatsApp) y el webhook. OJO: todo cambio en un Typeform puede mover las
-   columnas de la hoja y romper los Apps Script (incidente del 27-sep, docs/operations.md §9): despues
-   de publicar, mirar la fila 1 de la hoja. Nunca reconectar la integracion con Sheets.
-Las migraciones las genera y aplica la sesion principal; Kiro implementa codigo y tests. Antes de
-aplicar una migracion en dev, compara drizzle.__drizzle_migrations contra los archivos por hash, y
-antes de tomar un ticket haz git fetch: dos personas trabajan el mismo main.
+Siguiente:
+1. El 052 y el 106 estan en curso (codigo y tests hechos). Al 052 le falta Setteo -> Agendado: el motor
+   exige una llamada con fecha y el link de Calendly NO trae la fecha. Se resuelve con el 109 (ADR 0057):
+   el token de Calendly del programa, ya verificado. Los tokens estan en .env.local solo para probar.
+2. Al 106 le falta el envio REAL: crear la fuente webhook de cada programa en produccion (con la llave
+   `agenda` del mapeo = titulo de la pregunta de Calendly), pegar URL y secreto en Typeform, mandar un
+   envio de prueba, corregir el adaptador con el payload real y limpiar la prueba con el ok de Mani.
+   Despues de publicar un Typeform, mirar la fila 1 de la hoja (incidente del 27-sep).
+3. El 108 (retirar el sync de Sheets) cuando el 106 cierre; el 107 ya tiene umbrales (48 h, 5 dias, solo
+   en la app); el 105 forjar la accion con sesion de closer.
+Las migraciones las genera y aplica la sesion principal; Kiro implementa codigo y tests y NO corre los
+guardianes por si solo: correr npm test completo al revisar. Antes de tomar un ticket haz git fetch.
 ```
 
 ## Memory
@@ -43,6 +42,42 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 > Las entradas anteriores al 27-sep citan documentos que se fundieron ese día (spec, plan v2, propuesta,
 > revisión, glosario, insumos): `docs/plan.md` §8 dice dónde quedó cada uno.
 
+- **2026-09-28 (CIERRE 35, madrugada): producción armada en la única base; 052 y 106 con código.**
+  Sesión de Mani; Kiro implementó 052, 106 y bitácora + T2 en paralelo (repartidos por archivos),
+  revisados por la sesión principal.
+  - **Una sola base (Mani):** *"no necesitamos 2 proyectos, todo el backend dentro de ese"*. "CRM Retia"
+    es producción: estaba limpio (solo configuración, cero leads, deals o abonos). El `DATABASE_URL` de
+    Vercel Production **seguía apuntando a Neon** (13 días, de antes de Supabase): se cambió a CRM Retia y
+    se redesplegó; Mani entró y el dashboard carga. El de Preview (también Neon) se borró: se trabaja en
+    `main`. Regla nueva en AGENTS.md y enmienda del ADR 0047. El plan gratis permite 2 proyectos y el
+    otro cupo es de `pipeline-creacion-contenido`.
+  - **Decisiones cerradas:** A3 (producción), A6 (el sync de Sheets se descarta: 053-056 reemplazados,
+    ticket **108** para retirar el código), A8 (el CRM no calcula nada: T2 borrado, ADR 0054).
+  - **Migración 0029** (`sobres_crudos`, con RLS), aplicada. `.gitattributes` fuerza LF en las
+    migraciones.
+  - **Hashes (pendiente del cierre 34), resuelto:** las filas 0000-0020 se aplicaron desde un checkout de
+    Windows (CRLF). Con CRLF casan todas; el contenido es idéntico. Nada que arreglar en la base.
+  - **Bug de la bitácora, arreglado:** dos copias de `aTexto` con `String(valor)`. Además de escribir
+    `[object Object]`, **editar solo el mapeo de una fuente no se guardaba**: el diff comparaba la cadena
+    contra sí misma y cortaba antes del update. Ahora es una función, `textoDeBitacora`.
+  - **052 (en curso):** la regla abre y mueve por el motor. 🔴 Setteo → Agendado lo rechaza el motor
+    (exige llamada con fecha), pero abrir directo en Agendado sí se permite: asimetría. **El link de
+    Calendly no trae la fecha** (leído en la hoja de Tactical): hay que pedírsela a la API de Calendly
+    con un token (A5). Mani eligió usar la fecha de Calendly; falta el token.
+  - **106 (en curso):** ruta, adaptador y sobres crudos. La revisión arregló un id no-UUID que daba 500 y
+    un comentario que contradecía al código. El payload de los tests es inventado: falta el envío real.
+  - 🩸 **Lección:** Kiro reportó "todo limpio" corriendo solo sus tests, y el guardián de vigencia cazaba
+    una lectura de `deals` sin `vigente()`. La revisión corre `npm test` completo, siempre.
+  - **Medido:** 973 tests, typecheck, lint y build limpios.
+  - **Más tarde, con Mani:** los tokens de Calendly de los dos programas están en `.env.local` y funcionan
+    (rol owner; los 10 ids de invitado probados de la hoja de Tactical salen con fecha). **ADR 0057:** el
+    programa guarda su link de formulario y su token de Calendly en la base (segunda excepción de
+    secretos), y no se activa sin los dos; **ticket 109**. El 107 tiene umbrales (48 h marca, 5 días
+    muerta, un envío en medio la revive) y el aviso va **solo en la app**; revisar el correo después
+    (plan §7 A2). Los programas se crean en `/ajustes/programas` (gerente y developer).
+  - **Pendientes de Mani:** el JSON de enlaces de pago
+    (`ENLACES_PAGO_JSON`) y dar de alta a los closers reales en producción (007). Las 2 filas de prueba
+    en las hojas NO se borran (son pestañas sincronizadas; Mani, 28-sep).
 - **2026-09-27 (CIERRE 34, noche): el Estado lo manda el formulario; 051 y 105 hechos.** Sesión de Mani.
   - **Mani:** *"el CRM NO se encarga de calcular ni calificar ningún lead; se confía en los valores que
     vienen del forms"*, con los nombres de la hoja. Son tres: `descartado` (sin recursos e incompleto
@@ -2824,7 +2859,7 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
-- Commitear lo del 27-sep por la tarde (043, 094, migración 0024, ADR 0054 y 0055) con Mani.
-- 044 → 045 → 046 → 047 (resto del paso 1).
-- Crear los tickets del track del webhook (ADR 0055) y del Estado desde el form (ADR 0054).
-- Paso 0: reparar el lock y crear Supabase producción (con el ok de Mani).
+- 109 (token de Calendly y link del programa) → cierra Setteo → Agendado del 052.
+- 106: envío real de cada Typeform en producción y configurar las dos fuentes webhook.
+- 108 cuando cierre el 106; 107 (umbrales decididos); 105 forjar la acción con sesión de closer.
+- Producción: enlaces de pago y closers reales (007).

@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { changeLog, programs, sources } from "@/lib/db/schema";
+import { changeLog, programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { esViolacionUnica } from "@/lib/db/errores";
@@ -56,6 +56,18 @@ export { PROVEEDORES_FORMULARIO, rutaDelWebhook, type ProveedorFormulario } from
  * valida como un record laxo; que los patrones cuadren con encabezados reales lo
  * decide la prueba contra la hoja, no zod. Vacio es valido: la fuente hereda todo de
  * la plantilla del programa y el defecto.
+ *
+ * Una fuente webhook usa el MISMO record para su mapeo de preguntas (ADR 0055), con
+ * una llave reconocida ademas de los campos del Envio:
+ *  - los campos de `CampoEnvio` (`correo`, `telefono`, ...) con el TITULO de la
+ *    pregunta de Typeform como patron;
+ *  - **`agenda`** (ticket 106, ADR 0054 segunda enmienda): el TITULO de la pregunta de
+ *    agenda (Calendly). Es de configuracion, NO de codigo. Si falta, el envio NUNCA sube
+ *    a `con_calendly`: no hay heuristica sobre las demas respuestas.
+ *
+ * El record laxo ya admite la llave `agenda` con un patron string; se documenta
+ * aqui porque es la fuente de verdad de esa decision. No necesita migracion:
+ * `mapeo_columnas` ya es jsonb.
  */
 const esquemaMapeo: z.ZodType<MapeoColumnas> = z.record(
   z.string(),
@@ -166,6 +178,15 @@ function moldeFuentes(db: Db) {
       esquema: esquemaFuente as unknown as z.ZodType<CamposFuente>,
       etiqueta: (fila) => String(fila.nombre),
       nombreEntidad: "una fuente",
+      // Quien apunta a `sources` con una FK `restrict` (ADR 0026 punto 5): borrar una
+      // fuente con envios o con sobres crudos reventaria con la FK y saldria como 500.
+      // Con los dependientes declarados, `borrarSiNoSeUso` cuenta las referencias y
+      // desactiva en vez de borrar. `sobres_crudos` (ticket 106): una fuente que ya
+      // recibio un envio que no se pudo procesar se uso, aunque el envio no tenga lead.
+      dependientes: [
+        { tabla: submissions, columna: submissions.sourceId },
+        { tabla: sobresCrudos, columna: sobresCrudos.sourceId },
+      ],
     },
     db,
   );

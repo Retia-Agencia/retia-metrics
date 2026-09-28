@@ -1,0 +1,30 @@
+{
+  "event_id": "01J8ZQ3XPARTIAL0000000000",
+  "event_type": "form_response_partial",
+  "form_response": {
+    "form_id": "aBcDeF12",
+    "token": "tok-parcial-001",
+    "landed_at": "2026-09-20T14:40:00Z",
+    "variables": [{ "key": "estado", "type": "text", "text": "setteo_no_calificado" }],
+    "hidden": {
+      "utm_source": "facebook",
+      "utm_medium": "cpc",
+      "utm_campaign": "tactical-septiembre"
+    },
+    "definition": {
+      "id": "aBcDeF12",
+      "title": "Aplicación Tactical Investor",
+      "fields": [
+        { "id": "f-correo", "title": "Correo electrónico", "type": "email", "ref": "correo" },
+        { "id": "f-whatsapp", "title": "WhatsApp", "type": "phone_number", "ref": "whatsapp" }
+      ]
+    },
+    "answers": [
+      {
+        "field": { "id": "f-correo", "type": "email" },
+        "type": "email",
+        "email": "Ana.Perez@Correo.co"
+      }
+    ]
+  }
+}
