@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { LOCAL_DB_URL, validarUrlLocal } from "./db-local";
+import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
 
 /**
  * Arranca Next.js en modo desarrollo apuntando EXCLUSIVAMENTE a la base local de Docker.

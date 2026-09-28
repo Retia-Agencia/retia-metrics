@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../lib/db";
 import { abonos, leads, programs, users } from "../lib/db/schema";
 import { actorDelScript } from "./actor";
-import { LOCAL_DB_URL, validarUrlLocal } from "./db-local";
+import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
 import { crearPrograma, guardarTokenCalendly, reactivarPrograma } from "../lib/catalogo/programas";
 import { crearCohorte } from "../lib/catalogo/cohortes";
 import { crearProducto } from "../lib/catalogo/productos";
@@ -80,6 +80,9 @@ export async function sembrarLocal(): Promise<void> {
   // 1. Guardia de seguridad: la base TIENE que ser local
   const urlDestino = process.env.DATABASE_URL ?? LOCAL_DB_URL;
   validarUrlLocal(urlDestino);
+  // `npm run seed:local` suelto no trae DATABASE_URL: el cliente de lib/db es perezoso
+  // y la lee al primer uso, asi que fijarla aqui basta.
+  process.env.DATABASE_URL = urlDestino;
 
   console.log(`[seed:local] Iniciando siembra contra: ${urlDestino}`);
 

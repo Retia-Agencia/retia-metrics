@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
 import postgres from "postgres";
+import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
 
 /**
  * Script para levantar y preparar la base de datos local (Postgres 17 en Docker).
@@ -11,36 +12,6 @@ import postgres from "postgres";
  *  4. Ejecuta todas las migraciones de `drizzle/` con `drizzle-kit migrate`.
  *  5. Ejecuta el seed local (`scripts/seed-local.ts`).
  */
-
-export const LOCAL_DB_URL =
-  process.env.LOCAL_DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54329/retia_local";
-
-export function validarUrlLocal(urlStr: string): void {
-  let parsed: URL;
-  try {
-    parsed = new URL(urlStr);
-  } catch {
-    throw new Error(`[db:local] URL de conexión inválida: "${urlStr}"`);
-  }
-
-  const host = parsed.hostname;
-  if (host !== "localhost" && host !== "127.0.0.1") {
-    throw new Error(
-      `[db:local] SEGURIDAD: La URL "${urlStr}" apunta a "${host}", que no es localhost ni 127.0.0.1. ` +
-        `Operación abortada inmediatamente para proteger bases remotas y producción.`,
-    );
-  }
-
-  if (
-    urlStr.includes("supabase.com") ||
-    urlStr.includes("pooler.supabase.com") ||
-    urlStr.includes("hfqmiyiuyqapdsbywrag")
-  ) {
-    throw new Error(
-      `[db:local] SEGURIDAD: La URL contiene referencias a Supabase/producción. Abortando.`,
-    );
-  }
-}
 
 async function esperarPostgres(url: string, timeoutMs = 30000): Promise<void> {
   const inicio = Date.now();
