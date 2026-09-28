@@ -363,7 +363,8 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 
 The agent should run these to get fast signal on whether code works. Keep them current.
 
-- **Test:** `npm test` (Vitest, 1.068 pasando al 28-sep, con el aviso de fuente sin envíos del 107).
+- **Test:** `npm test` (Vitest por `scripts/test.mjs`: una suite por máquina, sin huérfanos, límite
+  de 480 s; ver Conventions). 1.068 pasando al 28-sep en `main`; ~70 s con la máquina libre.
   Un programa de prueba ACTIVO se crea con `PROGRAMA_DE_PRUEBA` (`tests/helpers/programa-de-prueba.ts`):
   desde la 0031 un programa nace inactivo y la base exige Forms Link y token para activarlo. Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
@@ -495,6 +496,15 @@ The agent should run these to get fast signal on whether code works. Keep them c
 - **Un fallo de `npm test` por timeout no es una regresion.** Los tests con PGlite aplican todas
   las migraciones; con varias sesiones compitiendo por la maquina el suite se cae en cascada por
   el reloj. Re-corre el archivo solo antes de investigar (`testTimeout` y `hookTimeout` en 20s).
+- 🩸 **UNA suite por maquina, y siempre por `npm test`** (28-sep). Una corrida de 66 s se colgo
+  mas de 55 minutos varias veces: tres suites a la vez (sesion, agente y un subagente que se
+  relanzaba) mas workers de vitest que sobrevivian a su padre muerto. `npm test` es
+  `scripts/test.mjs`: un candado por maquina (si ya hay una suite viva, sale de inmediato y dice
+  cual), barre los workers huerfanos de este repo y corta el grupo de procesos entero a los
+  `TEST_TIMEOUT_S` (480 s). **Nunca `npx vitest run` directo, nunca la suite en background, nunca
+  relanzarla en bucle.** Un archivo suelto: `npm test -- tests/x.test.ts`. Si ves "Ya hay una suite
+  corriendo", espera o mata ese pid; no lances otra. Y quien delega a un agente lo detiene por su
+  tarea (en Claude Code, `TaskStop`), no matando sus procesos: el agente vivo los relanza.
 - **Idioma:** UI en espanol. Nombres de variables, tablas y archivos sin acentos, consistentes.
   Mensajes de commit en espanol.
 
