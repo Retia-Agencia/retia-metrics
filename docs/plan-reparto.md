@@ -168,7 +168,7 @@ Backend puro.
 
 - **Migración de arranque:** marca de abono convertido (081) y lista de lo no clasificable (080).
 - **Decidir antes:** A4 (cómo se prueba la UI) · hasta cuántos días atrás vale migrar Setteo (closers) ·
-  la tasa COP→USD · qué gana cuando los consolidados de C2 y la hoja difieren (Michael).
+  la tasa COP→USD · ~~qué gana cuando los consolidados de C2 y la hoja difieren~~ (✅ la hoja, Mani 28-sep).
 - **Prueba de costura:** los deals del ensayo aparecen en el Kanban y se mueven por el motor, con el
   requisito que falta a la vista.
 
@@ -228,8 +228,8 @@ Backend puro.
 | → [087] (va con el 086, nunca después) · S | → [067] · M |
 
 - **Migración de arranque:** destinos del programa (checkouts), si el 092 los pide.
-- **Decidir antes:** Pauta, checkouts, `utm_id` y `fbclid`, y el 26% sin UTM de Tactical · Michael, ROAS
-  y la marca de Juanito (preguntado en E0).
+- **Decidir antes:** Pauta, checkouts, `utm_id` y `fbclid`, y el 26% sin UTM de Tactical (reunión del 29-sep, 8pm). ROAS
+  y Juanito ya respondidos (Mani, 28-sep).
 - **Prueba de costura:** una campaña creada en el builder da un link; su envío cae en esa campaña y su
   costo entra al CPL y al ROAS.
 - **Al cerrar:** Typeform deja de escribir en Sheets y se borra el Apps Script.
@@ -328,9 +328,9 @@ closers durante E1 que cubra E2 a E5; Gerencia durante E4; Pauta durante E5.
 | Antes de | Qué | Quién |
 |---|---|---|
 | E1 | §3 de este documento; base local sí o no (113) | Mani |
-| E1 | ROAS, Juanito, consolidados de C2. ⚠️ Está saliendo | Michael |
+| ~~E1~~ | ~~ROAS, Juanito, consolidados de C2~~ ✅ respondidas por Mani el 28-sep (`plan.md` §7.E) | Mani |
 | E2 | D3 · A5 | Mani |
-| E2 | De quién es el deal si agenda con otra closer | Closers |
+| ~~E2~~ | ~~De quién es el deal si agenda con otra closer~~ ✅ de esa closer (Mani, 28-sep) | Mani |
 | E3 | A4 · tasa COP→USD | Mani |
 | E3 | Hasta cuántos días atrás migrar Setteo | Closers |
 | E4 | Pregunta de ingreso y bandas · X días sin actividad · estudiante desde cuándo · quién hace onboarding | Closers |

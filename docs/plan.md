@@ -408,9 +408,17 @@ y no se compra HubSpot (R10).
 el builder (083, 084, 085, 092, 101); qué checkouts usan y si mandan webhooks; si además capturan
 `utm_id` y `fbclid` (R6); por qué Tactical tiene 26% de leads sin UTM.
 
-**E. Michael** (antes de que salga): por qué se dejó de calcular el ROAS; cómo marca Juanito su rastro
-en el UTM; si alguien edita el Estado de la hoja a mano; qué pasa cuando un pago parcial nunca se
-completa; qué se rompe primero si se va mañana.
+**E. Michael** ✅ respondidas por Mani el 28-sep:
+- **ROAS:** vuelve (067). Se dejó de calcular solo porque no había datos fáciles para calcularlo.
+- **Juanito:** la pregunta estaba mal planteada. Juanito es el bot de Retia para los recordatorios antes
+  de la llamada. No hace setteos ni deja rastro en el UTM, así que no toca la atribución.
+- **Estado de la hoja:** nadie lo edita a mano. Confirma el ADR 0054: el CRM traduce lo que manda el
+  formulario.
+- **Pago parcial que no se completa:** se presiona al lead de ese deal hasta completarlo. **Un deal no
+  se cierra sin el pago completo** (061, cartera vencida).
+- **Si Michael se va mañana:** se rompe el seguimiento de métricas de Retia como agencia, no el CRM.
+- **Consolidados de C2 contra la hoja:** **manda la hoja** (080, 081).
+- **Comisión:** se verifica después (062, E5).
 
 **F. Media:** si el orgánico usa el mismo formulario que la pauta; qué cuentas o creadoras van en
 `utm_content` (`rosario`, `milena`, otras).
