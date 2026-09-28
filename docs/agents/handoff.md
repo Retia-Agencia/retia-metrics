@@ -5,40 +5,66 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 40 (28-sep, tarde). El anterior:
-> `git show e7ef1b0:docs/agents/handoff.md`.
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 41 (28-sep, noche). El anterior:
+> `git show fa648cc:docs/agents/handoff.md`.
 
 ```
-Seguimos con el CRM de Retia. Lee AGENTS.md y despues docs/plan.md completo, antes que cualquier otro
-documento (norte, tracks, orden por pasos en §5, decisiones abiertas en §7). El estado de cada ticket
-vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta: docs/overview.md,
+Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas:
+etapas en serie, un carril por persona) y docs/plan.md (el QUE, decisiones en §7). El estado de cada
+ticket vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta: docs/overview.md,
 docs/structure.md, docs/operations.md y docs/adr/README.md.
 
-Estado al cierre del 28-sep (sesion 40): UNA sola base y es PRODUCCION ("CRM Retia", ref
-hfqmiyiuyqapdsbywrag). 36 migraciones (0000-0035), todas aplicadas. 1.068 tests. LOS LEADS ENTRAN
-SOLOS por el webhook de Typeform (ADR 0058) y la app ya avisa cuando una fuente deja de recibir (107:
-/ajustes/fuentes, modulo lib/queries/salud-fuentes.ts). El sync de Sheets se retiro (108).
+Estado al cierre del 28-sep (sesion 41): UNA sola base y es PRODUCCION ("CRM Retia", ref
+hfqmiyiuyqapdsbywrag). 37 migraciones (0000-0036), todas aplicadas. 1.116 tests. Los leads entran
+solos por el webhook (ADR 0058). Reparto: carril de Mani (motor, dinero, pantallas) y carril de Alejo
+Davila (entradas, Sheets, integraciones). §3 del reparto ya se aplico en los tickets.
 
-Siguiente:
-1. Mirar que los leads reales sigan entrando: /ajustes/fuentes dice "recibiendo" o no; sobres_crudos con
-   error no nulo = algo que reprocesar.
-2. El 057 (las llamadas cuelgan del deal): es el camino principal del paso 3 y desbloquea 058, 059, 060
-   y 096. En paralelo, cerrar lo que esta en curso: 048, 049 y 050 probablemente ya cumplen (el webhook
-   llama a la ingesta real; verificar contra su "Done cuando"), y al 105 le falta forjar la accion con
-   sesion de closer.
-3. El 110 (log de entregas del webhook; reusa salud-fuentes; migracion de la sesion principal).
-   Pendiente del 108: quitar CRON_SECRET y SHEET_ID_* de Vercel (GOOGLE_SERVICE_ACCOUNT_JSON_B64 SE QUEDA).
-4. El 096: cancelaciones y reprogramaciones de Calendly, mas el pedido de Mani (dropdown y "buscar
-   llamada"). Necesita la decision A5 (webhook o consulta).
-5. Decisiones abiertas: A4 (garantia de la UI) antes del paso 4, D3 antes del 060, el Partial Submit
-   Point (equipo) y si el log de la ruta distingue "sin firma" de "firma que no cuadra" (se decide en 110).
-Las migraciones las genera y aplica la sesion principal; Kiro implementa codigo y tests y NO corre los
-guardianes por si solo: correr npm test completo al revisar. Antes de tomar un ticket haz git fetch.
+Hecho: carril de Mani de E0 completo y carril de Mani de E1 completo (057, 058, 059 en main; migracion
+0036 aplicada). Falta, y lo toma Mani en otra sesion porque Alejo aun no puede:
+1. Carril de Alejo en E0: 112 (CI con npm ci/test/typecheck/lint/build y main protegido), plantilla de
+   PR con el checklist de contratos de AGENTS.md, cerrar el 105 (forjar la server action desde una
+   sesion de closer: 403 y la base sin moverse), 113 (base local, aprobada; es la mas grande y solo la
+   necesita el Kanban de E3).
+2. Carril de Alejo en E1: 110 (log de entregas del webhook, reusa lib/queries/salud-fuentes.ts) y luego
+   111 (traslado desde Sheets por ingerirEntradas; incluye el 079; cierra 048, 049 y datos del 050).
+   El 110 lleva SU PROPIA migracion (0037): la 0036 ya salio sola con el ok de Mani.
+3. E1 cierra con la prueba de costura (un envio firmado abre el deal, se agenda, se pega el Grain y el
+   deal queda en Atendido; un lead trasladado que vuelve a llenar el formulario no se duplica) y el
+   traslado corrido con conciliacion en cero. Luego E2: 060 -> 061 -> 063 (Mani) y 097 -> 096 (Alejo).
+Reglas: npm test es scripts/test.mjs (una suite por maquina, sin huerfanos, corte a 480 s): nunca
+npx vitest directo ni la suite en background. Las migraciones las genera y aplica la sesion principal;
+Kiro implementa codigo y tests, la sesion principal corre la suite completa. Un agente delegado se
+detiene con TaskStop, no matando sus procesos. Antes de tomar un ticket haz git fetch.
 ```
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-28 (sesión 41): E0 del reparto y el carril de Mani de E1 (057, 058, 059).** Sesión de Mani.
+  - **E0, carril de Mani:** §3 del reparto aplicado con el ok de Mani (069, 070, 074, 077, 079, 086
+    cambian de dependencias; enmiendas en 048, 049, 064). Tickets nuevos 111 (traslado), 112 (CI), 113
+    (base local, aprobada). `CRON_SECRET` y `SHEET_ID_*` fuera de Vercel. Andrea dada de alta por Mani
+    en `/ajustes/usuarios`.
+  - **Decisiones de Mani:** el deal es de la closer con quien agenda el lead (096); precio de lista de
+    ComunicArte 797; respuestas a Michael en `plan.md` §7.E (ROAS vuelve; Juanito es el bot de
+    recordatorios y no toca UTM; nadie edita el Estado a mano; un deal no se cierra sin el pago
+    completo; la hoja manda sobre los consolidados de C2). La comisión se verifica en E5. Reunión con
+    Pauta, Alejo Carvajal y Michael el 29-sep 8pm (UTM, checkouts, 26% sin UTM, áreas).
+  - **E1, carril de Mani:** `lib/deals/llamadas.ts` con `agregarLlamada`, `completarAgendada`,
+    `pegarGrain` y `marcarFallida`, todo en transacción con `moverEtapa()`. Implementado por Kiro; la
+    sesión principal agregó la transacción de `agregarLlamada`. Migración **0036** (`calls.closer_user_id`,
+    `link_calendly`, `link_grain`) aplicada en producción con el ok de Mani. **Desviación del reparto:**
+    salió sola, sin la tabla del 110, para que la otra sesión construya sobre `main`; el 110 lleva la 0037.
+  - 🩸 **La suite "se colgaba" 55+ min y no era el código.** El subagente del 057 seguía vivo y relanzaba
+    Kiro y `npm test` cada vez que se mataban sus procesos; con tres suites a la vez y workers de vitest
+    huérfanos (sobreviven a su padre) nada terminaba. Con la máquina limpia la suite tarda 45-66 s.
+    Arreglo: `npm test` = `scripts/test.mjs` (candado por máquina, barre huérfanos, corte a 480 s),
+    probado en los tres casos; convención en `AGENTS.md`. Probablemente explica también el cuelgue de la
+    sesión 40.
+  - ⚠️ `npm run build` falla en un worktree con `node_modules` enlazado (Turbopack no acepta el symlink):
+    es entorno. Se construye en el repo principal.
+  - **Medido:** 1.116 tests, typecheck, lint y build limpios; deploy de `fa648cc`.
 
 - **2026-09-28 (sesión 40): 107 cerrado, la app avisa cuando una fuente deja de recibir.** Sesión de Mani.
   - **Chequeo inicial:** 11 leads en producción (8 ComunicArte, 3 Tactical), cero sobres con error.

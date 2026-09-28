@@ -137,6 +137,8 @@ Backend puro.
 
 - **Migración de arranque:** `calls` gana dueño como usuario y link de Grain (057, 058); tabla de
   entregas del webhook (110).
+  ✅ 28-sep: la parte de `calls` salió sola como **0036** (aplicada, ok de Mani) para que el carril de
+  Alejo construya sobre `main`; la tabla del 110 va en la 0037.
 - **Decidir antes:** nada bloquea. "Grain o sucedió" ([058]) se valida con closers sin frenar el código.
 - **Prueba de costura:** un envío firmado abre el deal, se agenda, se pega el Grain y el deal queda en
   Atendido. Un lead del traslado que vuelve a llenar el formulario no se duplica.

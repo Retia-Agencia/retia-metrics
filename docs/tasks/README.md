@@ -42,7 +42,7 @@ dependencias; 048, 049 y 064 llevan su enmienda).
 | [ ] | 105 | Cerrar: forjar la acción desde una sesión de closer | · | todo · carril Alejo |
 | [x] | · | Ops: quitar `CRON_SECRET` y `SHEET_ID_*` de Vercel; cargar a Andrea (007) | · | done · 28-sep · Vercel limpio (prod y preview); Andrea dada de alta por Mani en `/ajustes/usuarios` |
 | [x] | · | Agendar a Michael; después closers, Gerencia y Pauta (reparto §7) | · | done · 28-sep · Michael y el dueño del deal respondidos por Mani; precio 797; Pauta, Alejo Carvajal y Michael el 29-sep 8pm |
-| [ ] | 057 | Adelantado en rama `e1/057-calls-del-deal` (migración 0036 sin aplicar); se mergea al abrir E1 | · | en curso · Mani (Kiro) |
+| [x] | 057 | 057, 058 y 059 del carril de Mani en E1, adelantados y en `main` | · | done · 28-sep · migración 0036 aplicada con el ok de Mani (sin la tabla del 110, que lleva la 0037) |
 
 # Época v2 — modelo HubSpot (tickets 036 a 082)
 
@@ -152,9 +152,9 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 057 | [Las Calls cuelgan del deal](./057-calls-colgadas-del-deal.md) (E4-1) | 052 | todo |
-| [ ] | 058 | [Pegar el Grain = la llamada sucedió](./058-grain-significa-que-la-llamada-sucedio.md) (E4-2) | 057 | todo |
-| [ ] | 059 | [`no_show` y `cancelada` van a Re-agenda](./059-no-show-y-cancelada-van-a-reagenda.md) (E4-3) | 057 | todo |
+| [x] | 057 | [Las Calls cuelgan del deal](./057-calls-colgadas-del-deal.md) (E4-1) | 052 | done · 28-sep · `agregarLlamada` y `completarAgendada` en `lib/deals/llamadas.ts`; migración 0036 |
+| [x] | 058 | [Pegar el Grain = la llamada sucedió](./058-grain-significa-que-la-llamada-sucedio.md) (E4-2) | 057 | done · 28-sep · `pegarGrain`: show, fecha si faltaba y Atendido (T10/T7), en una transacción |
+| [x] | 059 | [`no_show` y `cancelada` van a Re-agenda](./059-no-show-y-cancelada-van-a-reagenda.md) (E4-3) | 057 | done · 28-sep · `marcarFallida`: Re-agenda desde Agendado (T8) y desde Atendido con motivo (T29) |
 | [ ] | 060 | [Abonos sobre el deal](./060-abonos-sobre-el-deal.md) (E4-4) | 057, 045 | todo |
 | [ ] | 061 | [Acuerdo de pago y cartera vencida](./061-cuotas-pactadas-y-cartera-vencida.md) (E4-5) | 060 | todo · 24-sep, ADR 0053: nota + fecha límite, sin cuotas en v1 · migración de la sesión principal |
 | [ ] | 062 | [La comisión se calcula, nunca se guarda](./062-comision-calculada.md) (E4-6) | 060 | todo |
