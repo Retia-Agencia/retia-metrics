@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { crearPersonaManual } from "@/lib/mutations/personas";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 026 — alta manual de un lead (ADR 0021, 0011, 0005, 0003). La asignacion
@@ -51,13 +52,13 @@ beforeEach(async () => {
 
   const [a] = await db
     .insert(programs)
-    .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
     .returning();
   programaA = a.id;
 
   const [b] = await db
     .insert(programs)
-    .values({ slug: "programa-b", nombre: "Programa B", ticketUsd: "1500.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1500.00" })
     .returning();
   programaB = b.id;
 

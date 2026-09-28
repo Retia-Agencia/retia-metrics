@@ -4,6 +4,7 @@ import { changeLog, enlacesPago, plataformasPago, programs, users } from "@/lib/
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 013: las operaciones detras de la pantalla de catalogos. Cada operacion
@@ -205,7 +206,7 @@ describe("operaciones de catalogos — borrar solo lo que nunca se uso (ticket 0
 
     const [programa] = await db
       .insert(programs)
-      .values({ slug: "comunicarte", nombre: "Comunicarte", ticketUsd: "797.00" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "Comunicarte", ticketUsd: "797.00" })
       .returning();
     await db.insert(enlacesPago).values({
       programId: programa.id,

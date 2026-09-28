@@ -11,6 +11,7 @@ import {
   reemplazarEnlacePago,
 } from "@/lib/catalogo/enlaces-pago";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 022 — enlaces de pago como links (ADR 0017, ADR 0012).
@@ -44,7 +45,7 @@ beforeEach(async () => {
 
   const [a] = await db
     .insert(programs)
-    .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
     .returning();
   programaA = a.id;
 

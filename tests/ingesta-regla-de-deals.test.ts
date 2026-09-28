@@ -14,6 +14,7 @@ import type { Calificacion } from "@/lib/ingesta/calificacion";
 import { ingerirEntradas } from "@/lib/ingesta/ingerir";
 import { decidirAccionDeDeal } from "@/lib/ingesta/regla-de-deals";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * La regla de creacion y movimiento de deals (ticket 052, insumo §3.1, ADR 0037).
@@ -123,7 +124,7 @@ function entrada(o: {
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
-  const [p] = await db.insert(programs).values({ slug: "tactical", nombre: "Tactical", ticketUsd: "1500" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" }).returning();
   programId = p.id;
   const [f] = await db.insert(sources).values({ programId, nombre: "Typeform", tipo: "google_sheet" }).returning();
   sourceId = f.id;

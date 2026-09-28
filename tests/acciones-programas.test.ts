@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { cohorts, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 014: las server actions de `/ajustes/programas`. Cada accion envuelve la
@@ -50,7 +51,7 @@ beforeEach(async () => {
   sesionGerente.user.id = gerenteId;
   const [p] = await db
     .insert(programs)
-    .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" })
     .returning();
   programId = p.id;
 });

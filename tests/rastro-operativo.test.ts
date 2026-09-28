@@ -8,6 +8,7 @@ import { changeLog, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * ADR 0042 (D6) — **toda escritura del CRM deja rastro, desde el dia uno**.
@@ -214,7 +215,7 @@ describe("crearConRastro y editarConRastro", () => {
     ({ db, cerrar } = await crearBaseDePrueba());
     const [p] = await db
       .insert(programs)
-      .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
       .returning();
     programaA = p.id;
     const [l] = await db

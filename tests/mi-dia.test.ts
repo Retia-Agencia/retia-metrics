@@ -13,6 +13,7 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba, type BaseDePrueba } from "./helpers/base-de-prueba";
 import { buscarPersonas } from "@/lib/queries/personas";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 003 — lecturas de la pantalla `/mi-dia` (ADR 0021, 0023, 0011, 0005, 0013).
@@ -65,13 +66,13 @@ beforeEach(async () => {
 
   const [a] = await db
     .insert(programs)
-    .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
     .returning();
   programaA = a.id;
 
   const [b] = await db
     .insert(programs)
-    .values({ slug: "programa-b", nombre: "Programa B", ticketUsd: "1500.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1500.00" })
     .returning();
   programaB = b.id;
 

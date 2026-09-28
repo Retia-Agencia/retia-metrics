@@ -17,6 +17,7 @@ import {
   historialesDeRecursos,
   recursosVigentes,
 } from "@/lib/queries/recursos";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 023: las lecturas de la pantalla `/recursos`. El molde del 022 devuelve
@@ -45,12 +46,12 @@ beforeEach(async () => {
 
   const [a] = await db
     .insert(programs)
-    .values({ slug: "comunicarte", nombre: "Comunicarte", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "Comunicarte", ticketUsd: "797.00" })
     .returning();
   programaA = a.id;
   const [b] = await db
     .insert(programs)
-    .values({ slug: "tactical", nombre: "Tactical Investor", ticketUsd: "1500.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical Investor", ticketUsd: "1500.00" })
     .returning();
   programaB = b.id;
 

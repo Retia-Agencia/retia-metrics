@@ -14,6 +14,7 @@ import {
   reactivarUsuario,
 } from "@/lib/catalogo/usuarios";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 015 — administrar usuarios y closers desde /ajustes.
@@ -45,8 +46,8 @@ beforeEach(async () => {
   const insertados = await db
     .insert(programs)
     .values([
-      { slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" },
-      { slug: "programa-b", nombre: "Programa B", ticketUsd: "2000" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "2000" },
     ])
     .returning();
   programaAId = insertados.find((p) => p.slug === "programa-a")!.id;

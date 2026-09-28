@@ -16,6 +16,7 @@ import {
 } from "@/lib/catalogo/productos";
 import { moldeDeCatalogo } from "@/lib/catalogo/molde";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 017 — productos por programa (ADR 0016, ADR 0012).
@@ -70,7 +71,7 @@ beforeEach(async () => {
 
   const [a] = await db
     .insert(programs)
-    .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
     .returning();
   programaA = a.id;
 
@@ -83,7 +84,7 @@ beforeEach(async () => {
 
   const [b] = await db
     .insert(programs)
-    .values({ slug: "programa-b", nombre: "Programa B", ticketUsd: "1500.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1500.00" })
     .returning();
   programaB = b.id;
 

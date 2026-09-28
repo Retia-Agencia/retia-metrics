@@ -3,6 +3,7 @@ import { abonos, calls, cohorts, deals, leads, programs } from "@/lib/db/schema"
 import type { Db } from "@/lib/db/tipos";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 005 — el armado de la vista del dashboard.
@@ -23,7 +24,7 @@ beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
   const [p] = await db
     .insert(programs)
-    .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
     .returning();
   programaA = p.id;
 }, 60_000);

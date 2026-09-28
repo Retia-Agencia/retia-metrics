@@ -12,6 +12,7 @@ import {
   probarFuente,
 } from "@/lib/catalogo/fuentes";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 016 / ADR 0019 — fuentes por el molde de catalogo, con prueba antes de
@@ -74,7 +75,7 @@ beforeEach(async () => {
 
   const [p] = await db
     .insert(programs)
-    .values({ slug: "programa", nombre: "Programa", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa", nombre: "Programa", ticketUsd: "1000" })
     .returning();
   programId = p.id;
 });

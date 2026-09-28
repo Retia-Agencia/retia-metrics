@@ -7,6 +7,7 @@ import type { Calificacion } from "@/lib/ingesta/calificacion";
 import { entradasDesdeMatriz } from "@/lib/ingesta/adaptador-sheets";
 import { ingerirEntradas, resumirEnvios } from "@/lib/ingesta/ingerir";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * La escritura de la ingesta (tickets 048-050), contra PGlite con TODAS las migraciones:
@@ -68,7 +69,7 @@ function entrada(o: {
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
-  const [p] = await db.insert(programs).values({ slug: "tactical", nombre: "Tactical", ticketUsd: "1500" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" }).returning();
   programId = p.id;
   const [f] = await db.insert(sources).values({ programId, nombre: "Typeform", tipo: "google_sheet" }).returning();
   sourceId = f.id;
@@ -199,7 +200,7 @@ describe("ingerirEntradas", () => {
   });
 
   it("el programa es frontera: una fuente de otro programa no escribe NADA", async () => {
-    const [otro] = await db.insert(programs).values({ slug: "comunicarte", nombre: "C", ticketUsd: "797" }).returning();
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "C", ticketUsd: "797" }).returning();
     const [ajena] = await db.insert(sources).values({ programId: otro.id, nombre: "Otra" }).returning();
 
     await expect(
@@ -213,7 +214,7 @@ describe("ingerirEntradas", () => {
   });
 
   it("la misma persona en otro programa es OTRO lead", async () => {
-    const [otro] = await db.insert(programs).values({ slug: "comunicarte", nombre: "C", ticketUsd: "797" }).returning();
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "C", ticketUsd: "797" }).returning();
     const [suya] = await db.insert(sources).values({ programId: otro.id, nombre: "Otra" }).returning();
 
     await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", telefono: "3001234567" })]);

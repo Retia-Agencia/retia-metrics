@@ -5,6 +5,7 @@ import { esViolacionUnica } from "@/lib/db/errores";
 import type { Db } from "@/lib/db/tipos";
 import { sincronizarPersonas, SyncEnCursoError } from "@/lib/sheets/sync";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * F-03 y F-07 son el mismo bug: la corrida se guardaba colgada de UNA fuente elegida
@@ -38,7 +39,7 @@ let cerrar: () => Promise<void>;
 async function sembrarPrograma(slug: string): Promise<string> {
   const [p] = await db
     .insert(programs)
-    .values({ slug, nombre: slug, ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug, nombre: slug, ticketUsd: "1000" })
     .returning();
   return p.id;
 }

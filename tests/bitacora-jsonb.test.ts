@@ -5,6 +5,7 @@ import { changeLog, programs, sources, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { moldeDeCatalogo } from "@/lib/catalogo/molde";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * El bug del 28-sep, probado de punta a punta contra PGlite: editar un campo jsonb de
@@ -73,7 +74,7 @@ beforeEach(async () => {
   userId = u.id;
   const [p] = await db
     .insert(programs)
-    .values({ slug: "prueba", nombre: "Programa de prueba", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "prueba", nombre: "Programa de prueba", ticketUsd: "797.00" })
     .returning();
   programId = p.id;
 });

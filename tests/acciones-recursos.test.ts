@@ -12,6 +12,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 023 + enmienda del 19-sep: crear/reemplazar/desactivar recursos y enlaces de
@@ -98,12 +99,12 @@ beforeEach(async () => {
 
   const [a] = await db
     .insert(programs)
-    .values({ slug: "comunicarte", nombre: "Comunicarte", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "Comunicarte", ticketUsd: "797.00" })
     .returning();
   programaA = a.id;
   const [b] = await db
     .insert(programs)
-    .values({ slug: "tactical", nombre: "Tactical Investor", ticketUsd: "1500.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical Investor", ticketUsd: "1500.00" })
     .returning();
   programaB = b.id;
 

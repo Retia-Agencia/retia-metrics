@@ -12,6 +12,7 @@ import {
   type EtapaDeal,
 } from "@/lib/deals/etapas";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 043 — las once etapas y la tabla de transiciones (`docs/structure.md`
@@ -152,7 +153,7 @@ describe("la base acepta la etapa nueva (migracion 0024)", () => {
       const enBase = ("rows" in filas ? filas.rows : filas) as { valor: string }[];
       expect(enBase.map((f) => f.valor).sort()).toEqual([...ETAPAS].sort());
 
-      const [p] = await db.insert(programs).values({ slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
+      const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
       const [l] = await db
         .insert(leads)
         .values({ programId: p.id, emailNormalizado: "a@b.co" })

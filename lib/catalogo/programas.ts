@@ -128,20 +128,11 @@ export async function listarProgramas(db: Db = dbDeLaApp): Promise<ProgramaVista
 /**
  * Crea un programa. La entrada se valida con el esquema compartido.
  *
- * La reja del ADR 0057 punto 1: un programa no puede quedar ACTIVO sin su URL base
- * de formulario y su token de Calendly. La columna `programs.activo` tiene default
- * `true`, asi que aqui se decide explicitamente:
- *
- *   - Si faltan el link o el token, el programa NACE INACTIVO (no un 422). Se elige
- *     crear-inactivo sobre rechazar porque el token NO puede viajar por el molde ni
- *     por el esquema (es un secreto, ADR 0057 punto 2): pedirlo en el alta obligaria
- *     a meterlo por una puerta que este modulo cierra a proposito. En vez de eso el
- *     programa se crea, la pantalla carga el token con `guardarTokenCalendly` y el
- *     link por la edicion normal, y solo entonces se reactiva —que es el mismo flujo
- *     que una fuente webhook (nace inactiva, se le pone el secreto, se activa). Asi
- *     ningun programa queda activo sin los dos, sin bloquear el alta.
- *   - Si el link ya viene (en `input.formUrl`) el token aun no puede venir por el
- *     alta, asi que igual nace inactivo hasta que se cargue el token y se reactive.
+ * Nace INACTIVO: es el default de `programs.activo` y el CHECK
+ * `programs_activo_con_formulario_y_token` (migracion 0031, ADR 0057) impide que un
+ * programa este activo sin Forms Link y token de Calendly. El token no entra por el
+ * alta (es secreto y no pasa por el molde): se guarda con `guardarTokenCalendly` y el
+ * programa se activa despues con `reactivarPrograma`, que es la reja con el 422.
  */
 export async function crearPrograma(
   db: Db,
@@ -149,16 +140,7 @@ export async function crearPrograma(
   input: EntradaPrograma,
 ): Promise<ProgramaVistaCatalogo> {
   return normalizando(async () => {
-    const datos = esquemaPrograma.parse(input);
-    // El token no entra por el alta (es secreto): un programa recien creado nunca lo
-    // tiene, asi que siempre nace inactivo. Se reactiva cuando estan el link y el token.
-    const fila = await moldePrograma(db).crear(actorId, datos);
-    if (fila.activo) {
-      // El molde dejo la fila activa por el default de la tabla. Como todavia no puede
-      // tener token, la desactivamos en el acto para respetar la reja del ADR 0057.
-      const desactivada = await moldePrograma(db).desactivar(actorId, fila.id);
-      return sinToken(desactivada);
-    }
+    const fila = await moldePrograma(db).crear(actorId, esquemaPrograma.parse(input));
     return sinToken(fila);
   });
 }

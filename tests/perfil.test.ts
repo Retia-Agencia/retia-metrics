@@ -9,6 +9,7 @@ import {
   usuarioPorId,
 } from "@/lib/catalogo/usuarios";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 031 — perfil propio, logica pura.
@@ -35,7 +36,7 @@ beforeEach(async () => {
   gerenteId = g.id;
   const [p] = await db
     .insert(programs)
-    .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" })
     .returning();
   programaAId = p.id;
 });

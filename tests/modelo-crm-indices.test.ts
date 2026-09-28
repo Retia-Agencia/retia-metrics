@@ -3,6 +3,7 @@ import { deals, leadContactos, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 037 — las dos garantias del modelo nuevo que viven en la BASE y no en el
@@ -27,11 +28,11 @@ beforeEach(async () => {
 
   const [a] = await db
     .insert(programs)
-    .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" })
     .returning();
   const [b] = await db
     .insert(programs)
-    .values({ slug: "programa-b", nombre: "Programa B", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1000" })
     .returning();
   programaA = a.id;
   programaB = b.id;

@@ -197,45 +197,58 @@ export const miembrosPrograma = pgTable(
 
 // ─────────────────────────────────────────────────────────── programas y cohortes
 
-export const programs = pgTable("programs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  slug: text("slug").notNull().unique(),
-  nombre: text("nombre").notNull(),
-  ticketUsd: numeric("ticket_usd", { precision: 10, scale: 2 }).notNull(),
-  /** Pagina de venta del programa. Editable desde /ajustes/programas (ticket 014). */
-  webUrl: text("web_url"),
-  /** Calendly del programa, para cruzar agendamientos. Editable desde /ajustes/programas (ticket 014). */
-  calendlyUrl: text("calendly_url"),
-  /**
-   * URL base del formulario del programa (ADR 0057). Un programa no se activa sin ella.
-   * Es tambien la base del generador de links de captacion (ADR 0051, ticket 092).
-   */
-  formUrl: text("form_url"),
-  /**
-   * Token de Calendly de la organizacion del programa (ADR 0057): con el se lee la fecha
-   * de una cita. Segunda excepcion nombrada a "secretos solo en .env.local y Vercel": lo
-   * escribe SOLO `guardarTokenCalendly`, nunca pasa por el molde ni por `change_log`, y
-   * ninguna lectura del catalogo lo devuelve. Nula hasta que Mani lo cargue.
-   */
-  calendlyToken: text("calendly_token"),
-  /** Maximo historico de personas por dia habil. Marca cuando una meta es inalcanzable por volumen. */
-  recordPersonasPorDiaHabil: integer("record_personas_por_dia_habil"),
-  /**
-   * Plantilla de lead del programa (ADR 0019, ticket 016): en que encabezado de SU
-   * hoja esta cada campo. Misma forma que `sources.mapeoColumnas`.
-   *
-   * Existe porque un programa puede tener varias hojas que preguntan lo mismo con
-   * otra redaccion: la plantilla se escribe UNA vez en el programa y cada fuente
-   * solo ajusta los campos que su hoja redacta distinto. El mapeo efectivo se
-   * combina campo por campo —fuente gana sobre programa, programa sobre el defecto
-   * del codigo— en `lib/sheets/plantilla-lead.ts`.
-   *
-   * Nula = el programa no ajusta nada y sus fuentes heredan el defecto. No inventa
-   * campos: los campos son fijos en el codigo y lo demas va a `leads.raw`.
-   */
-  plantillaLead: jsonb("plantilla_lead"),
-  activo: boolean("activo").notNull().default(true),
-});
+export const programs = pgTable(
+  "programs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull().unique(),
+    nombre: text("nombre").notNull(),
+    ticketUsd: numeric("ticket_usd", { precision: 10, scale: 2 }).notNull(),
+    /** Pagina de venta del programa. Editable desde /ajustes/programas (ticket 014). */
+    webUrl: text("web_url"),
+    /** Calendly del programa, para cruzar agendamientos. Editable desde /ajustes/programas (ticket 014). */
+    calendlyUrl: text("calendly_url"),
+    /**
+     * URL base del formulario del programa (ADR 0057). Un programa no se activa sin ella.
+     * Es tambien la base del generador de links de captacion (ADR 0051, ticket 092).
+     */
+    formUrl: text("form_url"),
+    /**
+     * Token de Calendly de la organizacion del programa (ADR 0057): con el se lee la fecha
+     * de una cita. Segunda excepcion nombrada a "secretos solo en .env.local y Vercel": lo
+     * escribe SOLO `guardarTokenCalendly`, nunca pasa por el molde ni por `change_log`, y
+     * ninguna lectura del catalogo lo devuelve. Nula hasta que Mani lo cargue.
+     */
+    calendlyToken: text("calendly_token"),
+    /** Maximo historico de personas por dia habil. Marca cuando una meta es inalcanzable por volumen. */
+    recordPersonasPorDiaHabil: integer("record_personas_por_dia_habil"),
+    /**
+     * Plantilla de lead del programa (ADR 0019, ticket 016): en que encabezado de SU
+     * hoja esta cada campo. Misma forma que `sources.mapeoColumnas`.
+     *
+     * Existe porque un programa puede tener varias hojas que preguntan lo mismo con
+     * otra redaccion: la plantilla se escribe UNA vez en el programa y cada fuente
+     * solo ajusta los campos que su hoja redacta distinto. El mapeo efectivo se
+     * combina campo por campo —fuente gana sobre programa, programa sobre el defecto
+     * del codigo— en `lib/sheets/plantilla-lead.ts`.
+     *
+     * Nula = el programa no ajusta nada y sus fuentes heredan el defecto. No inventa
+     * campos: los campos son fijos en el codigo y lo demas va a `leads.raw`.
+     */
+    plantillaLead: jsonb("plantilla_lead"),
+    /**
+     * Nace INACTIVO (ADR 0057): un programa se activa solo con su Forms Link y su
+     * token de Calendly, y el CHECK de abajo lo garantiza en la base (ADR 0005).
+     */
+    activo: boolean("activo").notNull().default(false),
+  },
+  (t) => [
+    check(
+      "programs_activo_con_formulario_y_token",
+      sql`NOT ${t.activo} OR (${t.formUrl} IS NOT NULL AND ${t.calendlyToken} IS NOT NULL)`,
+    ),
+  ],
+);
 
 export const cohorts = pgTable(
   "cohorts",

@@ -20,6 +20,7 @@ import { MovimientoRechazado, abrirDeal, moverEtapa, type Actor } from "@/lib/de
 import { crearConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 045 — `moverEtapa()`, el unico camino para cambiar `deals.etapa`.
@@ -51,7 +52,7 @@ const comoGerente = (): Actor => ({ tipo: "usuario", userId: gerente, rol: "gere
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
-  const [p] = await db.insert(programs).values({ slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
   programId = p.id;
   const [l] = await db.insert(leads).values({ programId, emailNormalizado: "ana@correo.co" }).returning();
   leadId = l.id;
@@ -306,7 +307,7 @@ describe("los datos van en el mismo movimiento, o no van (punto 6, Mani 27-sep)"
   });
 
   it("un producto de otro programa se rechaza (frontera, ADR 0043) y no escribe nada", async () => {
-    const [otro] = await db.insert(programs).values({ slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
     const [ajeno] = await db
       .insert(productos)
       .values({ programId: otro.id, nombre: "Otro", precioLista: "500" })
@@ -445,7 +446,7 @@ describe("los hechos salen de la base", () => {
       .values({ ...base, codigo: "C3", estado: "activo", fechaInicioVentas: "2026-09-01" })
       .returning();
     // Cohorte de OTRO programa: el programa es frontera (ADR 0043).
-    const [otro] = await db.insert(programs).values({ slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
     const [ajena] = await db
       .insert(cohorts)
       .values({ programId: otro.id, codigo: "Q1", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25", estado: "futuro" })
@@ -644,7 +645,7 @@ describe("abrirDeal: donde nace un deal (ticket 047)", () => {
   });
 
   it("el programa es frontera: no se abre un deal sobre un lead de otro programa", async () => {
-    const [otro] = await db.insert(programs).values({ slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
     const e = await rechazo(abrirDeal(db, { leadId, programId: otro.id, etapa: "pendiente_setteo", actor: sistema }));
     expect(e.status).toBe(422);
     expect(await db.select().from(deals)).toEqual([]);

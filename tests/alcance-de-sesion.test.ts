@@ -19,6 +19,7 @@ import {
   programasVisibles,
 } from "@/lib/auth/alcance";
 import { buscarPersonas, historialDePersona } from "@/lib/queries/personas";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * ADR 0048 punto 1 / ticket 094 — "¿qué programas ve esta sesión?" tiene UNA sola
@@ -78,14 +79,14 @@ describe("la función de alcance (ADR 0048, ticket 094)", () => {
 
     const [a] = await db
       .insert(programs)
-      .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
       .returning();
     programaA = a.id;
     slugA = a.slug;
 
     const [b] = await db
       .insert(programs)
-      .values({ slug: "programa-b", nombre: "Programa B", ticketUsd: "1500.00" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1500.00" })
       .returning();
     programaB = b.id;
     slugB = b.slug;

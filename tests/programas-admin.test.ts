@@ -21,6 +21,7 @@ import {
   listarCohortes,
 } from "@/lib/catalogo/cohortes";
 import { programasActivos } from "@/lib/queries/programas";
+import { esViolacionCheck } from "@/lib/db/errores";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
 /**
@@ -572,5 +573,39 @@ describe("cohortes de un programa", () => {
     const error = await activarCohorte(db, gerenteId, futura.id).catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(400);
+  });
+});
+
+describe("CHECK programs_activo_con_formulario_y_token (migracion 0031, ADR 0057)", () => {
+  it("la base rechaza un programa ACTIVO sin Forms Link o sin token, aunque se salte lib/", async () => {
+    const base = { slug: "directo", nombre: "Directo", ticketUsd: "100" };
+    for (const valores of [
+      { ...base, activo: true },
+      { ...base, activo: true, formUrl: "https://form.test/x" },
+      { ...base, activo: true, calendlyToken: "t" },
+    ]) {
+      const error = await db.insert(programs).values(valores).then(() => null, (e: unknown) => e);
+      expect(esViolacionCheck(error)).toBe(true);
+    }
+  });
+
+  it("un programa nace inactivo por default y con los dos se puede activar", async () => {
+    const [p] = await db
+      .insert(programs)
+      .values({ slug: "default", nombre: "Default", ticketUsd: "100" })
+      .returning();
+    expect(p!.activo).toBe(false);
+    const error = await db
+      .update(programs)
+      .set({ activo: true })
+      .where(eq(programs.id, p!.id))
+      .then(() => null, (e: unknown) => e);
+    expect(esViolacionCheck(error)).toBe(true);
+    await db
+      .update(programs)
+      .set({ activo: true, formUrl: "https://form.test/x", calendlyToken: "t" })
+      .where(eq(programs.id, p!.id));
+    const [tras] = await db.select().from(programs).where(eq(programs.id, p!.id));
+    expect(tras!.activo).toBe(true);
   });
 });

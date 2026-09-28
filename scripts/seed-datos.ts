@@ -13,6 +13,9 @@ import { MAPEO_FORMULARIO } from "../lib/sheets/mapeo";
  * se hace desde `/ajustes/programas` sin tocar codigo ni correr este script. Este
  * archivo existe para arrancar una base vacia (local, `dev` o produccion la primera
  * vez), no para administrar el catalogo despues.
+ *
+ * Los programas nacen INACTIVOS (migracion 0031, ADR 0057): se activan desde
+ * `/ajustes/programas` cuando tengan Forms Link y token de Calendly.
  */
 
 /**

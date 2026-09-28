@@ -6,6 +6,7 @@ import { deduplicarPorCorreo } from "@/lib/sheets/dedup";
 import { parsearFecha, ZonaHorariaInvalidaError, ZONA_BOGOTA } from "@/lib/sheets/mapeo";
 import { sincronizarPersonas } from "@/lib/sheets/sync";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 053: una celda de fecha se lee con la zona DE SU FUENTE (`sources.tz_fechas`).
@@ -113,7 +114,7 @@ afterEach(async () => {
 async function programaConFuente(tzFechas?: string): Promise<string> {
   const [p] = await db
     .insert(programs)
-    .values({ slug: "programa-zona", nombre: "Programa zona", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-zona", nombre: "Programa zona", ticketUsd: "1000" })
     .returning();
   await db.insert(sources).values({
     programId: p.id,

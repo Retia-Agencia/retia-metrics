@@ -3,6 +3,7 @@ import { abonos, calls, cohorts, deals, motivos, origenes, leads, programs, user
 import type { Db } from "@/lib/db/tipos";
 import { cajaRecaudada, embudoDelRango, embudoPorCloser, embudoPorOrigen, leadsDelRango, llamadasPorMotivo, vistaDeCohorteActiva } from "@/lib/queries/dashboard";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 004 — consultas del dashboard.
@@ -19,7 +20,7 @@ let programaA: string;
 async function crearPrograma(slug: string, nombre: string): Promise<string> {
   const [p] = await db
     .insert(programs)
-    .values({ slug, nombre, ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug, nombre, ticketUsd: "797.00" })
     .returning();
   return p.id;
 }

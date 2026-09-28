@@ -17,6 +17,7 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba, type BaseDePrueba } from "./helpers/base-de-prueba";
 import { historialDePersona } from "@/lib/queries/personas";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 006 — historial de una persona (ADR 0013, 0015, 0021).
@@ -71,7 +72,7 @@ beforeEach(async () => {
   await limpiar();
   const [a] = await db
     .insert(programs)
-    .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
     .returning();
   programaA = a.id;
 

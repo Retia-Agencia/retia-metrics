@@ -8,6 +8,7 @@ import {
   usuariosActivosPorRol,
 } from "@/lib/queries/nerd-stats";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 025 — las lecturas de `/nerd-stats`, sobre PGlite con las migraciones
@@ -46,12 +47,12 @@ beforeEach(async () => {
 
   const [a] = await db
     .insert(programs)
-    .values({ slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
     .returning();
   programaA = a.id;
   const [b] = await db
     .insert(programs)
-    .values({ slug: "programa-b", nombre: "Programa B", ticketUsd: "1497.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1497.00" })
     .returning();
   programaB = b.id;
 

@@ -14,6 +14,7 @@ import { PROVEEDORES_FORMULARIO } from "@/lib/catalogo/fuentes-webhook";
 import { fuentesParaAdmin } from "@/lib/queries/fuentes";
 import { sincronizarPersonas } from "@/lib/sheets/sync";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 105 (ADR 0055): la fuente webhook. Lo que este archivo muerde:
@@ -56,7 +57,7 @@ beforeEach(async () => {
   closerId = c.id;
   const [p] = await db
     .insert(programs)
-    .values({ slug: "programa", nombre: "Programa", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa", nombre: "Programa", ticketUsd: "1000" })
     .returning();
   programId = p.id;
 });
