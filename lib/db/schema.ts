@@ -122,6 +122,22 @@ export const entradaPersonaEnum = pgEnum("entrada_persona", ["formulario", "crm"
 export const estadoCohorteEnum = pgEnum("estado_cohorte", ["cerrado", "activo", "futuro"]);
 export const tipoFuenteEnum = pgEnum("tipo_fuente", ["google_sheet", "upload", "webhook"]);
 /**
+ * Que paso con una entrega del webhook (ticket 110). Es TIPO: la pantalla de salud
+ * decide con el (etiqueta, tono, si se puede reprocesar). Los 200 con firma buena
+ * (`procesado`, `sin_correo`, `contenido_invalido`, `fallo_ingesta`) tienen sobre crudo;
+ * los rechazos (404, 401) no, porque un cuerpo sin firma valida es de cualquiera.
+ */
+export const motivoEntregaEnum = pgEnum("motivo_entrega", [
+  "procesado",
+  "sin_correo",
+  "contenido_invalido",
+  "fallo_ingesta",
+  "fuente_no_encontrada",
+  "sin_secreto",
+  "firma_ausente",
+  "firma_invalida",
+]);
+/**
  * De que proveedor viene el payload de una fuente webhook (ADR 0055 punto 2). Es TIPO
  * porque el codigo elige el adaptador con el: un proveedor nuevo es un valor mas y un
  * adaptador, nunca un endpoint nuevo.
@@ -682,6 +698,38 @@ export const sobresCrudos = pgTable(
     index("sobres_crudos_pendientes_idx")
       .on(t.sourceId)
       .where(sql`${t.error} is not null and ${t.reprocesadoEn} is null`),
+  ],
+);
+
+/**
+ * Cada entrega que toca la ruta del webhook, aceptada o rechazada (ticket 110, pedido
+ * de Mani del 28-sep): la hora, el codigo HTTP que se respondio, el motivo y, si hubo,
+ * el lead. Es lo que antes solo vivia en los logs de Vercel.
+ *
+ * - Un rechazo (404, 401) se registra **sin cuerpo**: `sobre_id` nulo. `source_id` y
+ *   `program_id` quedan nulos si el id de la URL no es una fuente; esas entregas no son
+ *   de ningun programa.
+ * - `program_id` va denormalizado a proposito (como `lead_contactos`): la pantalla es
+ *   por programa y el programa es frontera.
+ * - Registrar la entrega NUNCA tumba la ingesta (mismo principio que la caja negra,
+ *   ADR 0058). Los rechazos se purgan a los 90 dias; las aceptadas quedan con su sobre.
+ */
+export const entregasWebhook = pgTable(
+  "entregas_webhook",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id").references(() => programs.id, { onDelete: "restrict" }),
+    sourceId: uuid("source_id").references(() => sources.id, { onDelete: "restrict" }),
+    sobreId: uuid("sobre_id").references(() => sobresCrudos.id, { onDelete: "restrict" }),
+    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+    codigoHttp: integer("codigo_http").notNull(),
+    motivo: motivoEntregaEnum("motivo").notNull(),
+    recibidoEn: timestamp("recibido_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("entregas_webhook_programa_idx").on(t.programId, t.recibidoEn),
+    index("entregas_webhook_recibido_idx").on(t.recibidoEn),
+    check("entregas_webhook_codigo_chk", sql`${t.codigoHttp} in (200, 401, 404)`),
   ],
 );
 
@@ -1420,3 +1468,4 @@ export type CategoriaRecurso = typeof categoriasRecurso.$inferSelect;
 export type Recurso = typeof recursos.$inferSelect;
 export type EnlacePago = typeof enlacesPago.$inferSelect;
 export type SobreCrudo = typeof sobresCrudos.$inferSelect;
+export type EntregaWebhook = typeof entregasWebhook.$inferSelect;
