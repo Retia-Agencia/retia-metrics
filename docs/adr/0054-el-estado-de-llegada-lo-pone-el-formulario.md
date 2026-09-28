@@ -109,3 +109,24 @@ El envío real del ticket 106 lo confirma, no lo decide.
 **Cierra D4** (`docs/plan.md` §7.1): se decide con `leads.calificacion`, la lista de tres valores.
 `leads.estado` (texto, ADR 0032) queda como lo que escribió la hoja, para comparar en la migración;
 nadie decide con él.
+
+---
+
+## Segunda enmienda 2026-09-27, noche (Mani): "agendó" lo lee el CRM del link
+
+Al configurar el Typeform de Tactical se comprobó que **Typeform no deja poner una condición sobre la
+pregunta de Calendly** ("Agenda aquí tu entrevista"): en los cálculos, la lista de condiciones no la
+ofrece. El formulario no puede mandar `con_calendly` en la variable. "Siempre" tampoco sirve: la
+pregunta se puede saltar, y quien puede pagar y no agenda terminaría como `con_calendly`.
+
+Mani eligió: **el formulario manda `descartado` o `setteo_no_calificado`, y el CRM lee el hecho de
+agendar.** Si la variable dice `setteo_no_calificado` y la respuesta de la pregunta de agenda trae un
+link de Calendly, el Estado es `con_calendly`. No es calificar: es leer un hecho que viene en el mismo
+envío, igual que hoy lo hace el Apps Script (`cal.toLowerCase().includes("calendly")`). `descartado`
+nunca se sube a `con_calendly`.
+
+- Qué pregunta es la de agenda lo dice el mapeo de la fuente (ADR 0012), no un texto en el código.
+- Se construye en el ticket 106 (adaptador del webhook). El traslado desde Sheets no lo necesita: la
+  hoja ya trae "📅 Con Calendly" escrito por su script.
+- Configurado en Typeform el 27-sep: Tactical tiene la variable `estado` (sin valor base) y las dos
+  reglas de cálculo en la pregunta de pago; la pregunta de Calendly no tiene cálculo.

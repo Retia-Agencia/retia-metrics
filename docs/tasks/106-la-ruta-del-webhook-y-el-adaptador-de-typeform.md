@@ -24,6 +24,11 @@ Que un envío de Typeform llegue solo al CRM: la ruta verifica, el adaptador tra
 
 ## Las reglas
 
+- **"Agendó" lo lee el adaptador** (ADR 0054, segunda enmienda): Typeform solo manda `descartado` o
+  `setteo_no_calificado` en la variable `estado`. Si dice `setteo_no_calificado` y la respuesta de la
+  pregunta de agenda (la que el mapeo de la fuente marque como agenda) contiene un link de Calendly, el
+  Estado del Envío es `con_calendly`. `descartado` nunca sube. Es una función pura con su test por fila.
+
 - **Nunca responde con redirección** y la ruta va en la lista pública de `proxy.ts`, o cada envío falla
   sin que nadie lo vea.
 - **Un envío que no se puede procesar (firma buena, contenido malo o la ingesta falla): se guarda el
@@ -40,8 +45,8 @@ Que un envío de Typeform llegue solo al CRM: la ruta verifica, el adaptador tra
 - [ ] Un payload sin correo queda en la tabla de sobres crudos y la respuesta es 200.
 - [ ] Una URL con un id que no es fuente activa es 404.
 - [ ] Un envío real de cada Typeform en `dev`, con la variable `estado` y el parcial. El que agenda
-      llega con `con_calendly` **y** su link de Calendly en las respuestas (ADR 0054, enmienda); el link
-      se guarda en `submissions.respuestas` para el 096.
+      llega con `setteo_no_calificado` y su link de Calendly, y el CRM lo guarda como `con_calendly` (ADR
+      0054, segunda enmienda); el link queda en `submissions.respuestas` para el 096.
 - [ ] `npm test`, `npm run typecheck` y `npm run lint` limpios.
 
 ## Kiro
