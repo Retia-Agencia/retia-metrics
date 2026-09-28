@@ -226,7 +226,11 @@ export async function POST(
     motivo: motivoDeEntrega(resultado.motivo),
   });
 
-  return Response.json({ ok: resultado.motivo === "procesado" }, { status: 200 });
+  // Mismo contrato que antes del 110: un sobre con error sigue siendo 200 (el proveedor no
+  // reintenta) y dice que quedo guardado para reprocesar.
+  return resultado.motivo === "procesado"
+    ? Response.json({ ok: true }, { status: 200 })
+    : Response.json({ ok: false, guardado: true }, { status: 200 });
 }
 
 /** Un motivo de procesamiento ES un motivo de entrega (el enum los incluye). */

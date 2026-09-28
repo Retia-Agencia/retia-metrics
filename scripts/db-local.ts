@@ -1,5 +1,4 @@
 import { execSync } from "node:child_process";
-import postgres from "postgres";
 import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
 
 /**
@@ -12,35 +11,6 @@ import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
  *  4. Ejecuta todas las migraciones de `drizzle/` con `drizzle-kit migrate`.
  *  5. Ejecuta el seed local (`scripts/seed-local.ts`).
  */
-
-async function esperarPostgres(url: string, timeoutMs = 30000): Promise<void> {
-  const inicio = Date.now();
-  console.log(`[db:local] Esperando conexión a Postgres en ${url}...`);
-
-  while (Date.now() - inicio < timeoutMs) {
-    let sql: ReturnType<typeof postgres> | null = null;
-    try {
-      sql = postgres(url, { max: 1, connect_timeout: 1 });
-      await sql`SELECT 1`;
-      await sql.end({ timeout: 1 });
-      console.log("[db:local] Postgres local listo para recibir conexiones.");
-      return;
-    } catch {
-      if (sql) {
-        try {
-          await sql.end({ timeout: 0.1 });
-        } catch {
-          // Ignorar error al cerrar socket en fallo
-        }
-      }
-      await new Promise((r) => setTimeout(r, 500));
-    }
-  }
-
-  throw new Error(
-    `[db:local] Timeout de ${timeoutMs / 1000}s esperando que Postgres local acepte conexiones en ${url}.`,
-  );
-}
 
 async function main() {
   console.log("============================================================");
@@ -56,9 +26,10 @@ async function main() {
   console.log("\n[1/4] Levantando contenedor Postgres...");
   try {
     try {
-      execSync("docker compose up -d", { stdio: "inherit" });
+      // `--wait` espera el healthcheck (pg_isready): sin importar el driver fuera de lib/db/ (ADR 0047).
+      execSync("docker compose up -d --wait", { stdio: "inherit" });
     } catch {
-      execSync("docker-compose up -d", { stdio: "inherit" });
+      execSync("docker-compose up -d --wait", { stdio: "inherit" });
     }
   } catch (error) {
     console.error(
@@ -67,9 +38,6 @@ async function main() {
     throw error;
   }
 
-  // 3. Esperar a que acepte conexiones
-  console.log("\n[2/4] Verificando salud del servidor Postgres...");
-  await esperarPostgres(LOCAL_DB_URL);
 
   // 4. Migraciones
   console.log("\n[3/4] Aplicando migraciones de Drizzle contra la base local...");

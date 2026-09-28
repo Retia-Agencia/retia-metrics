@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
+import { normalizando } from "@/lib/errors-zod";
 import { reprocesarSobre } from "@/lib/ingesta/procesar-sobre";
 import { registrarEntrega } from "@/lib/queries/entregas-webhook";
 
@@ -35,7 +36,7 @@ const idSchema = z.string().uuid("Id de sobre inválido.");
 export async function reprocesarSobreAccion(sobreId: string): Promise<ResultadoReproceso> {
   try {
     await requireRole("gerente");
-    const id = idSchema.parse(sobreId);
+    const id = await normalizando(async () => idSchema.parse(sobreId));
 
     const reproceso = await reprocesarSobre(db, id);
     if (!reproceso) {
@@ -58,9 +59,6 @@ export async function reprocesarSobreAccion(sobreId: string): Promise<ResultadoR
     return { ok: true, motivo: reproceso.resultado.motivo };
   } catch (error) {
     if (error instanceof ErrorDeApp) return { ok: false, error: error.message };
-    if (error instanceof z.ZodError) {
-      return { ok: false, error: error.issues[0]?.message ?? "Petición inválida." };
-    }
     console.error("[salud] error no controlado al reprocesar", error);
     return { ok: false, error: "Error interno." };
   }

@@ -22,6 +22,8 @@ import { reprocesarSobre } from "@/lib/ingesta/procesar-sobre";
 import { reprocesarSobreAccion } from "@/app/(app)/ajustes/salud/acciones";
 import real from "./fixtures/typeform-real-tactical.json";
 
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+
 /**
  * La salud del CRM (ticket 110): cada entrega del webhook registrada, la purga de los
  * rechazos vencidos, el reproceso de un sobre con error, la conciliacion PURA con la

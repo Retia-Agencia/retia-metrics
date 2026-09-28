@@ -11,6 +11,8 @@ CREATE TABLE "entregas_webhook" (
 	CONSTRAINT "entregas_webhook_codigo_chk" CHECK ("entregas_webhook"."codigo_http" in (200, 401, 404))
 );
 --> statement-breakpoint
+-- Como toda tabla de public (ADR 0047, migracion 0021): RLS sin politicas, la Data API no la expone.
+ALTER TABLE "entregas_webhook" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "entregas_webhook" ADD CONSTRAINT "entregas_webhook_program_id_programs_id_fk" FOREIGN KEY ("program_id") REFERENCES "public"."programs"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "entregas_webhook" ADD CONSTRAINT "entregas_webhook_source_id_sources_id_fk" FOREIGN KEY ("source_id") REFERENCES "public"."sources"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "entregas_webhook" ADD CONSTRAINT "entregas_webhook_sobre_id_sobres_crudos_id_fk" FOREIGN KEY ("sobre_id") REFERENCES "public"."sobres_crudos"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
