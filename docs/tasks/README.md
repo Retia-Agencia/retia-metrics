@@ -40,8 +40,8 @@ dependencias; 048, 049 y 064 llevan su enmienda).
 | [ ] | 113 | [Base local para desarrollar pantallas](./113-base-local-para-pantallas.md) | · | todo · carril Alejo · aprobada por Mani el 28-sep |
 | [ ] | · | Plantilla de PR con el checklist de contratos de `AGENTS.md` | · | todo · carril Alejo |
 | [ ] | 105 | Cerrar: forjar la acción desde una sesión de closer | · | todo · carril Alejo |
-| [ ] | · | Ops: quitar `CRON_SECRET` y `SHEET_ID_*` de Vercel; cargar a Andrea (007) | · | todo · Mani |
-| [ ] | · | Agendar a Michael; después closers, Gerencia y Pauta (reparto §7) | · | todo · Mani |
+| [x] | · | Ops: quitar `CRON_SECRET` y `SHEET_ID_*` de Vercel; cargar a Andrea (007) | · | done · 28-sep · Vercel limpio (prod y preview); Andrea dada de alta por Mani en `/ajustes/usuarios` |
+| [x] | · | Agendar a Michael; después closers, Gerencia y Pauta (reparto §7) | · | done · 28-sep · Michael y el dueño del deal respondidos por Mani; precio 797; Pauta, Alejo Carvajal y Michael el 29-sep 8pm |
 | [ ] | 057 | Adelantado en rama `e1/057-calls-del-deal` (migración 0036 sin aplicar); se mergea al abrir E1 | · | en curso · Mani (Kiro) |
 
 # Época v2 — modelo HubSpot (tickets 036 a 082)

@@ -26,8 +26,8 @@ y sus programas asignados, cargados desde la pantalla del ticket 015.
 
 ## Done cuando
 - [ ] Cada closer activo tiene `rol="closer"`, `closerId` no nulo y al menos un programa.
-      *18-sep: Maru lista (`Maru`, los 2 programas). Falta Andrea: su `closer_id` ya se sabe,
-      falta su correo de Google.*
+      *18-sep: Maru lista (`Maru`, los 2 programas). 28-sep: Andrea dada de alta por Mani en
+      `/ajustes/usuarios` (`closer_id` Andrea).*
 - [ ] `registrarLlamada` probado con una cuenta real de closer. *18-sep: desbloqueado, ya hay
       closer y productos en `production`. Nadie ha registrado todavia una llamada real alla.*
 
