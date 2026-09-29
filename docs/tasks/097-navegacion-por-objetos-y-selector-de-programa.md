@@ -3,7 +3,7 @@ id: 097
 etapa: E6
 serves: "ADR 0050 · propuesta 24-sep §3.5"
 depends: [094]
-status: en curso
+status: done
 ---
 
 # 097 — La navegación por objetos y el selector de programa
@@ -33,7 +33,7 @@ Ajustes · Nerd Stats (solo developer). Cuáles ve cada rol: matriz en el docume
 - [x] Cada rol ve sus tabs y ninguna ruta confía en que la tab esté escondida.
 - [x] Cambiar de programa mantiene la tab y cambia la URL.
 - [x] Recorrido haciendo clic en todo lo que se abre (menú, selector), con la consola abierta.
-- [ ] Probado en celular. (Parcial: el comportamiento del cajón sí; el aspecto a 390 px no, ver abajo.)
+- [x] Probado en celular (29-sep, ver "Cierre" abajo).
 
 ## Kiro
 
@@ -93,3 +93,19 @@ muestran el valor crudo ("hoy", "todos") y no la etiqueta ("Hoy", "Todos los clo
 le falta `items`, igual que al selector antes de este ticket.
 
 **Falta para cerrar:** ver el marco a 390 px en un teléfono real o en el modo dispositivo de DevTools.
+
+## Cierre (29-sep, Alejo): el aspecto en celular
+
+Recorrido en producción con la sesión de developer, solo lectura. Chrome no baja una ventana de ~658 px de
+ancho, así que se probó a 658 px (ya es el diseño de celular: el corte del marco es `md`, 768 px) y además con el
+contenido limitado a 390 px. El marco no usa clases `sm:` (`app-sidebar.tsx`, `page-shell.tsx`), así que a 390 px
+se comporta igual que a 658.
+
+- Barra de arriba: logo y botón completos; sin scroll horizontal a 658 ni a 390 (ningún elemento pasa de 390 px).
+- Cajón (~240 px): cabe en 390; selector de programa, tabs y usuario legibles.
+- El selector y el menú de usuario abren ENCIMA del cajón. Cambiar de programa desde el cajón lleva de
+  `/p/comunicarte/dashboard` a `/p/tactical-investor/dashboard`, mantiene la tab y cierra el cajón.
+- Consola sin errores de la app.
+
+**Para el 075 (fuera de alcance):** a 390 px la tabla "Closers" del Dashboard queda muy apretada (Show, % show,
+Cierres, % cierre y Caja casi pegadas); con nombres reales de closer se va a desbordar.
