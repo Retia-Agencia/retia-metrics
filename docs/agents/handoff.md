@@ -43,6 +43,20 @@ cada migracion nueva. Antes de tomar un ticket, git fetch: Alejo empuja al mismo
 
 ## Memory
 
+- **2026-09-29 (sesión 50, Mani): valores de Typeform en Deals.**
+  - Se añadió la migración 0041 con `lead_quality` y `lead_value` en `submissions` y `leads`.
+  - El adaptador acepta las llaves configurables `leadQuality` y `leadValue` del mapeo de cada fuente;
+    guarda los textos que llegan de Typeform sin interpretar ni limitar sus valores.
+  - El Kanban muestra ambos como tags y ofrece filtros dinámicos por programa, derivados de los valores
+    existentes en deals vigentes. Un valor nuevo aparece sin cambio de código.
+  - Pasaron typecheck, lint, build y las pruebas focalizadas de ingesta/Kanban (57 tests). La suite
+    completa pasó 1.481 tests y 1 skipped; un hook de `tests/acciones-programas.test.ts` agotó 20s al
+    crear la base, fallo de timeout/entorno no relacionado con estos cambios.
+  - Aún no se configuraron las dos filas reales de fuentes Typeform ni se aplicó la migración a
+    producción; requieren confirmar los nombres exactos de variable y el ok explícito de Mani.
+  - El recorrido visual exacto a 390 px de 071/098 sigue pendiente: el navegador embebido quedó en
+    639 px aunque las páginas se revisaron funcionalmente.
+
 _Estado actual del trabajo. Lo mas reciente arriba._
 
 - **2026-09-29 (sesión 49, Mani): 096 cerrado y login local corregido.**

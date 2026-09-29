@@ -84,6 +84,8 @@ export interface EntradaEnvio {
    * calcula (decision A8): solo lo lee y lo copia a `submissions.puntaje`.
    */
   puntaje?: number | null;
+  leadQuality?: string | null;
+  leadValue?: string | null;
 }
 
 export interface Envio {
@@ -112,6 +114,8 @@ export interface Envio {
    * ahi al resumen `leads.puntaje` por la misma regla del "envio que decide".
    */
   puntaje: number | null;
+  leadQuality: string | null;
+  leadValue: string | null;
   /** Todas las columnas NO promovidas, con el texto del encabezado como llave. */
   respuestas: Record<string, string | null>;
   /** Normalizados para decidir a que Lead pertenece (ticket 050). */
@@ -219,6 +223,8 @@ export function construirEnvio(entrada: EntradaEnvio): ResultadoEnvio {
       // El SCORE lo pone el adaptador (webhook) o es null (hoja). Un valor no numerico ya
       // llego como null desde el adaptador: aqui no se re-juzga, se copia (decision A8).
       puntaje: entrada.puntaje ?? null,
+      leadQuality: entrada.leadQuality ?? null,
+      leadValue: entrada.leadValue ?? null,
       respuestas,
       identidad: {
         correo: normalizarEmail(celda("correo")),

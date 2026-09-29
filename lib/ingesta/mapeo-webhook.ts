@@ -78,6 +78,8 @@ const LLAVE_ESTADO = "estadoHoja";
  * fuente no la trae, el adaptador no lee ningun score y `puntaje` queda null.
  */
 const LLAVE_PUNTAJE = "puntaje";
+const LLAVE_LEAD_QUALITY = "leadQuality";
+const LLAVE_LEAD_VALUE = "leadValue";
 
 /**
  * Lo que devuelve `mapeoWebhookDesdeFuente`: el `MapeoWebhook` que consume el adaptador,
@@ -105,6 +107,8 @@ export function mapeoWebhookDesdeFuente(
   let campoAgenda: string | undefined;
   let variableEstado: string | undefined;
   let variablePuntaje: string | undefined;
+  let variableLeadQuality: string | undefined;
+  let variableLeadValue: string | undefined;
 
   for (const [llave, patron] of Object.entries(mapeo)) {
     if (llave === LLAVE_AGENDA) {
@@ -133,9 +137,17 @@ export function mapeoWebhookDesdeFuente(
       variablePuntaje = Array.isArray(patron) ? patron[0] : patron;
       continue;
     }
+    if (llave === LLAVE_LEAD_QUALITY) {
+      variableLeadQuality = Array.isArray(patron) ? patron[0] : patron;
+      continue;
+    }
+    if (llave === LLAVE_LEAD_VALUE) {
+      variableLeadValue = Array.isArray(patron) ? patron[0] : patron;
+      continue;
+    }
     const campo = HOJA_A_CAMPO_ENVIO[llave];
     if (campo !== undefined) campos[campo] = patron;
   }
 
-  return { campos, campoAgenda, variableEstado, variablePuntaje };
+  return { campos, campoAgenda, variableEstado, variablePuntaje, variableLeadQuality, variableLeadValue };
 }

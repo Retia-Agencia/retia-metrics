@@ -66,6 +66,8 @@ export interface TarjetaDeal {
   /** UTM del LEAD, para el filtro por canal (source + medium). */
   utmSource: string | null;
   utmMedium: string | null;
+  leadQuality: string | null;
+  leadValue: string | null;
   /** Dias que el deal lleva en su etapa actual (dia de Bogota). */
   diasEnEtapa: number;
   avisos: AvisosDeTarjeta;
@@ -93,6 +95,8 @@ export interface FiltrosKanban {
   canal?: string | null;
   /** Antiguedad minima en la etapa, en dias. */
   antiguedadMinima?: number | null;
+  leadQuality?: string | null;
+  leadValue?: string | null;
 }
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
@@ -125,6 +129,8 @@ export function parsearFiltros(busqueda: Record<string, string | string[] | unde
     ownerUserId: texto(busqueda.owner) ?? null,
     cohorteId: texto(busqueda.cohorte) ?? null,
     canal: texto(busqueda.canal) ?? null,
+    ...(texto(busqueda.leadQuality) !== undefined ? { leadQuality: texto(busqueda.leadQuality) } : {}),
+    ...(texto(busqueda.leadValue) !== undefined ? { leadValue: texto(busqueda.leadValue) } : {}),
     antiguedadMinima: antiguedad != null && antiguedad >= 1 ? antiguedad : null,
   };
 }
@@ -151,6 +157,8 @@ export async function tableroKanban(
       emailLead: leads.emailNormalizado,
       utmSource: leads.utmSource,
       utmMedium: leads.utmMedium,
+        leadQuality: leads.leadQuality,
+        leadValue: leads.leadValue,
       ownerNombre: users.nombre,
       productoNombre: productos.nombre,
     })
@@ -200,6 +208,8 @@ export async function tableroKanban(
       cohortId: f.cohortId,
       utmSource: f.utmSource,
       utmMedium: f.utmMedium,
+      leadQuality: f.leadQuality,
+      leadValue: f.leadValue,
       diasEnEtapa: diasDesde(entrada, hoy),
       avisos: {
         compromisoVencido,
@@ -231,6 +241,8 @@ function pasaFiltros(t: TarjetaDeal, f: FiltrosKanban): boolean {
   if (f.cohorteId && t.cohortId !== f.cohorteId) return false;
   if (f.canal && canalDeLead(t.utmSource, t.utmMedium) !== f.canal) return false;
   if (f.antiguedadMinima != null && t.diasEnEtapa < f.antiguedadMinima) return false;
+  if (f.leadQuality && t.leadQuality !== f.leadQuality) return false;
+  if (f.leadValue && t.leadValue !== f.leadValue) return false;
   return true;
 }
 
@@ -286,6 +298,8 @@ export interface OpcionesDeTablero {
   owners: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
   canales: OpcionCanal[];
+  leadQualities: string[];
+  leadValues: string[];
   /**
    * Inicio de clases (`YYYY-MM-DD`) de cada cohorte con deals, y el de la cohorte activa:
    * con ellos el dialogo de Compromiso Verbal prellena la fecha limite (ticket 074, la
@@ -339,6 +353,13 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
     .filter((c) => c.utmSource && c.utmMedium)
     .map((c) => ({ clave: `${c.utmSource}|${c.utmMedium}`, utmSource: c.utmSource!, utmMedium: c.utmMedium! }))
     .sort((a, b) => a.clave.localeCompare(b.clave));
+  const etiquetasFilas = await db
+    .selectDistinct({ leadQuality: leads.leadQuality, leadValue: leads.leadValue })
+    .from(deals)
+    .innerJoin(leads, eq(leads.id, deals.leadId))
+    .where(and(eq(deals.programId, programId), vigente(deals)));
+  const leadQualities = etiquetasFilas.map((f) => f.leadQuality).filter((v): v is string => v !== null).sort();
+  const leadValues = etiquetasFilas.map((f) => f.leadValue).filter((v): v is string => v !== null).sort();
 
   const productosFilas = await db
     .select({ id: productos.id, nombre: productos.nombre, moneda: productos.moneda, precio: productos.precioLista })
@@ -359,5 +380,5 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   const inicioDeClases = Object.fromEntries(cohorteFilas.map((c) => [c.id, c.inicio] as const));
   const inicioDeLaCohorteActiva = (await cohorteActiva(programId, db))?.fechaInicioClases ?? null;
 
-  return { owners, cohortes, canales, inicioDeClases, inicioDeLaCohorteActiva, productos: listaProductos, motivos: listaMotivos };
+  return { owners, cohortes, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, productos: listaProductos, motivos: listaMotivos };
 }

@@ -138,6 +138,8 @@ export function TarjetaDealCard({
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {tarjeta.leadQuality ? <Badge variant="info">Calidad: {tarjeta.leadQuality}</Badge> : null}
+        {tarjeta.leadValue ? <Badge variant="neutro">Valor: {tarjeta.leadValue}</Badge> : null}
         {tarjeta.productoNombre ? (
           <span className="truncate text-xs text-muted-foreground">{tarjeta.productoNombre}</span>
         ) : null}
