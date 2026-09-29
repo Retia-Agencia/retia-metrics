@@ -15,8 +15,8 @@ ticket vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta
 docs/structure.md (§9, el sistema de diseño Tinta, es OBLIGATORIO antes de tocar una pantalla),
 docs/operations.md y docs/adr/README.md.
 
-Estado al cierre del 28-sep (sesion 43): UNA sola base y es PRODUCCION ("CRM Retia", ref
-hfqmiyiuyqapdsbywrag). 39 migraciones (0000-0038), todas aplicadas. 1.291 tests. El CI corre en cada
+Estado al cierre del 28-sep (sesion 44, Alejo): UNA sola base y es PRODUCCION ("CRM Retia", ref
+hfqmiyiuyqapdsbywrag). 39 migraciones (0000-0038), todas aplicadas. 1.300 tests. Ultimo push: a584454 (096). El CI corre en cada
 push a main (ahora con un Postgres de servicio para la prueba de concurrencia); SIN proteccion de main
 (Mani: velocidad), el CI es alarma y no reja. Hay base local: npm run db:local + npm run dev:local.
 
@@ -34,8 +34,17 @@ escritor; una reagenda mueve la fecha de la MISMA llamada, y hoy el escritor cre
 invitado; "Conectar Calendly" guarda la calendly_signing_key) y decidir si la suelta en el Inbox y los
 botones pasan al 071/074. El 097 esta en main; le falta ver el aspecto a 390 px.
 
+SIGUIENTE SESION DE ALEJO: las etapas van en serie, asi que PRIMERO cerrar el 096 para cerrar E2, en
+este orden: (1) recorrer /ajustes/usuarios en produccion (consola abierta, abrir cada selector) y vincular
+las cuentas de Calendly de las closers; (2) pedirle a Michael la confirmacion del plan Standard de las dos
+cuentas; (3) construir el webhook segun el diseño de Mani al final del ticket 096 (ruta
+/api/webhooks/calendly/<id opaco>, firma con calendly_signing_key, sobres_crudos, idempotente por huella,
+cancelacion/no-show/reagenda sobre la MISMA llamada, "Conectar Calendly" que crea la suscripcion por la
+API) — el webhook llama a registrarLlamadaDeCalendly de lib/calendly/colgar-llamada.ts; (4) cerrar el 096
+y el 097 (390 px) en el tracker. Recien ahi E3.
+
 LO QUE SIGUE, E3 (plan-reparto): Mani 069 (Kanban por programa, L) -> 074 (Ficha del deal, L); Alejo 077
-(barrer las pestañas de gestion) -> 078 -> 081. A4 YA DECIDIDA (Mani, 28-sep): la UI se prueba USANDOLA, porque tiene
+(barrer las pestañas de gestion) -> 078 (el 081 se descarto: solo USD). A4 YA DECIDIDA (Mani, 28-sep): la UI se prueba USANDOLA, porque tiene
 que servir y ser intuitiva; sin tests de componente ni Playwright. Ojo: para usarla sin tocar produccion
 hace falta un login local (Auth.js solo tiene Google), asi que en la sesion de E3 decide con Mani si se
 hace ese login para la base local o si se recorre contra produccion con cuidado. Antes de E3 decidir
