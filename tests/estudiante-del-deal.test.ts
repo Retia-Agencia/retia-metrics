@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { changeLog, cohorts, dealActividades, deals, leads, productos, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
-import { cambiarCohorte, marcarOnboarded } from "@/lib/deals/estudiante";
+import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals/estudiante";
 import { ErrorDeApp } from "@/lib/errors";
 import { estudiantesDe } from "@/lib/queries/estudiantes";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -128,6 +128,47 @@ describe("marcarOnboarded", () => {
     }
     const anulado = await nuevoDeal("abonado", { anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
     expect((await capturar(marcarOnboarded(db, comoCloser(), { dealId: anulado }))).status).toBe(409);
+  });
+});
+
+describe("desmarcarOnboarded", () => {
+  it("borra la marca con su rastro (valor anterior y quién) y se puede volver a marcar", async () => {
+    const dealId = await nuevoDeal("abonado");
+    await marcarOnboarded(db, comoCloser(), { dealId });
+    await desmarcarOnboarded(db, comoCloser(), { dealId });
+    expect((await fila(dealId)).onboardedAt).toBeNull();
+    const rastro = await db
+      .select()
+      .from(changeLog)
+      .where(and(eq(changeLog.registroId, dealId), eq(changeLog.campo, "onboardedAt")))
+      .orderBy(changeLog.detectadoEn);
+    expect(rastro).toHaveLength(2);
+    expect(rastro[1]).toMatchObject({ valorNuevo: null, userId: closer });
+    expect(rastro[1].valorAnterior).not.toBeNull();
+    await marcarOnboarded(db, comoCloser(), { dealId });
+    expect((await fila(dealId)).onboardedAt).not.toBeNull();
+  });
+
+  it("lo hacen el gerente y el developer; otro closer no; sin marca es 409", async () => {
+    const dealId = await nuevoDeal("completo");
+    expect((await capturar(desmarcarOnboarded(db, comoCloser(), { dealId }))).status).toBe(409);
+    await marcarOnboarded(db, comoCloser(), { dealId });
+    expect((await capturar(desmarcarOnboarded(db, { userId: otroCloser, rol: "closer" }, { dealId }))).status).toBe(403);
+    await desmarcarOnboarded(db, { userId: gerente, rol: "gerente" }, { dealId });
+    expect((await fila(dealId)).onboardedAt).toBeNull();
+    await marcarOnboarded(db, comoCloser(), { dealId });
+    await desmarcarOnboarded(db, { userId: developer, rol: "developer" }, { dealId });
+    expect((await fila(dealId)).onboardedAt).toBeNull();
+  });
+
+  it("se puede quitar aunque el deal ya no sea estudiante (una anulación lo sacó de Abonado)", async () => {
+    const dealId = await nuevoDeal("abonado", { onboardedAt: new Date() });
+    await db.update(deals).set({ etapa: "atendido" }).where(eq(deals.id, dealId));
+    await desmarcarOnboarded(db, comoCloser(), { dealId });
+    expect((await fila(dealId)).onboardedAt).toBeNull();
+    // Y un deal anulado no se toca.
+    const anulado = await nuevoDeal("abonado", { onboardedAt: new Date(), anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
+    expect((await capturar(desmarcarOnboarded(db, comoCloser(), { dealId: anulado }))).status).toBe(409);
   });
 });
 

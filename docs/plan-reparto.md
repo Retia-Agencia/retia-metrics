@@ -162,6 +162,9 @@ Backend puro.
   closer.
 - **Prueba de costura:** una cita de Calendly cae en su deal, el Grain lo pasa a Atendido, un abono a
   Abonado, el que salda a Completo, y anular ese abono lo devuelve.
+  ✅ 28-sep: `tests/costura-e2.test.ts` (webhook con cita vigente → Grain → dos abonos → cartera y estudiantes →
+  onboarding → anular ambos, con el historial completo). **E2 cierra cuando Alejo termine el 096** (su
+  migración de arranque está propuesta en el ticket y espera a Mani; A5 sigue abierta).
 
 ### E3 · El Kanban y la migración ensayada
 

@@ -40,7 +40,7 @@ Si.
 
 - **Onboarding:** lo marca el closer dueño del deal, o quien administra (gerente y developer). Solo a un
   estudiante (Abonado o Completo). Es un timestamp, se escribe una vez (marcar de nuevo es 409, no pisa la
-  fecha) y queda en `change_log`. Corregir un onboarding marcado por error no existe todavía.
+  fecha) y queda en `change_log`. Borrar la marca (`desmarcarOnboarded`, pedido de Mani el 28-sep) la hace quien puede marcarla y funciona aunque el deal ya no sea estudiante (una anulación lo sacó de Abonado); queda en `change_log`.
 - **Cambio de cohorte:** solo estudiantes; cohorte nueva del mismo programa, distinta y **futura o activa**;
   motivo en texto libre, obligatorio. **La venta cuenta donde asiste** (`deals.cohort_id` pasa a la nueva).
   Quién y cuándo: `change_log`; el porqué: una nota en `deal_actividades`, en la misma transacción. Si la

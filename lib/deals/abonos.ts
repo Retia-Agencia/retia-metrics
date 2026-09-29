@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne, notInArray } from "drizzle-orm";
 import { z } from "zod";
 import { abonos, cohorts, deals, leads, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -11,7 +11,7 @@ import { mismoCloser } from "@/lib/closers/identidad";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
-import { incluyendoAnulados } from "@/lib/queries/vigente";
+import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { etapaALaQueVuelve, moverEtapa } from "./mover-etapa";
 import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal } from "./etapas";
 
@@ -278,6 +278,32 @@ export async function anularAbono(
           if (c && c.estado !== "activo") {
             throw new ErrorDeApp("La cohorte ya no está activa: pídele a un administrador que anule el abono.", 403);
           }
+        }
+      }
+
+      // D3 (Mani, 28-sep): Abonado ocupa el cupo del lead. Si el deal esta en Completo y el lead
+      // ya abrio OTRO deal en el programa, anular este abono lo devolveria a Abonado (A2) y los
+      // dos quedarian abiertos: la base lo rechaza con un error crudo. Se ataja antes, con el
+      // mensaje que dice que hacer, y no se escribe nada (`deals_uno_abierto_por_lead_y_programa_idx`).
+      if (deal.etapa === "completo" && !deal.anuladoEn) {
+        const [otroAbierto] = await tx
+          .select({ id: deals.id })
+          .from(deals)
+          .where(
+            and(
+              eq(deals.leadId, deal.leadId),
+              eq(deals.programId, deal.programId),
+              ne(deals.id, deal.id),
+              notInArray(deals.etapa, ["completo", "cierre_perdido"]),
+              vigente(deals),
+            ),
+          )
+          .limit(1);
+        if (otroAbierto) {
+          throw new ErrorDeApp(
+            "Este lead ya tiene otro deal abierto en el programa: anular este abono devolvería el deal a Abonado y quedarían dos abiertos. Cierra o anula el otro deal primero.",
+            409,
+          );
         }
       }
 

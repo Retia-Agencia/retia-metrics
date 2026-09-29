@@ -6,40 +6,67 @@
 ## Prompt para arrancar la próxima sesión
 
 > Copiar y pegar tal cual. Reescrito al cierre de la sesión 43 (28-sep, noche). El anterior:
-> `git show 128afa4:docs/agents/handoff.md`.
+> `git show 282cd21:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas:
 etapas en serie, un carril por persona) y docs/plan.md (el QUE, decisiones en §7). El estado de cada
 ticket vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta: docs/overview.md,
-docs/structure.md, docs/operations.md y docs/adr/README.md.
+docs/structure.md (§9, el sistema de diseño Tinta, es OBLIGATORIO antes de tocar una pantalla),
+docs/operations.md y docs/adr/README.md.
 
 Estado al cierre del 28-sep (sesion 43): UNA sola base y es PRODUCCION ("CRM Retia", ref
-hfqmiyiuyqapdsbywrag). 38 migraciones (0000-0037), todas aplicadas. 1.148 tests. El CI corre en cada
-push a main; SIN proteccion de main ni PR obligatorio (Mani: velocidad), el CI es alarma y no reja.
-Hay base local: npm run db:local + npm run dev:local (Docker).
+hfqmiyiuyqapdsbywrag). 38 migraciones (0000-0037), todas aplicadas. ~1.260 tests. El CI corre en cada
+push a main (ahora con un Postgres de servicio para la prueba de concurrencia); SIN proteccion de main
+(Mani: velocidad), el CI es alarma y no reja. Hay base local: npm run db:local + npm run dev:local.
 
-E0 y E1 CERRADAS. El traslado de Sheets corrio en produccion con el ok de Mani: ComunicArte 2.478 leads,
-Tactical 2.891 (con las 65 de Forms viejo, el 079); un segundo ensayo crea 0; la conciliacion de
-/ajustes/salud da 0 faltantes en los dos programas. Quedan para revision humana 18 envios de Tactical
-sin correo ni telefono conocido (sin lead), 69 uniones por telefono y 2 telefonos de otro lead.
+E0 y E1 CERRADAS (el traslado de Sheets corrio en produccion: ComunicArte 2.478 leads, Tactical 2.891,
+conciliacion en 0). E2: el carril de Mani esta HECHO (060 abonos, 061 acuerdo de pago y cartera vencida,
+063 onboarding y cambio de cohorte) y la prueba de costura de E2 existe y pasa (tests/costura-e2.test.ts).
+E2 cierra cuando Alejo termine el 096 (Calendly): su migracion de arranque esta propuesta en el ticket
+096 y espera la revision y aplicacion de Mani, y A5 (webhook o consulta periodica de Calendly) sigue
+abierta. El carril de Alejo ya tiene 097 y parte del 096.
 
-Sigue E2 (plan-reparto): Mani 060, 061 y 063 HECHOS (28-sep); Alejo 097 -> 096.
-D3 decidida (se mantiene: Abonado ocupa el cupo). Antes de 096 decidir: A5 (webhook o consulta de
-Calendly, plan de Calendly, Vercel Pro) y de quien es el deal si el lead agenda con otra closer (ya
-decidido 28-sep: de la closer con quien agenda, 096). Migracion de arranque de E2: cuenta de Calendly por
-membresia y datos de la llamada suelta (096).
-El pulido de pantallas NO es de E2: las observaciones de Mani (selector de programa, tokens crudos en la
-conciliacion, "Personas" que se llama Leads) estan en el ticket 075.
+LO QUE SIGUE, E3 (plan-reparto): Mani 069 (Kanban por programa, L) -> 074 (Ficha del deal, L); Alejo 077
+(barrer las pestañas de gestion) -> 078 -> 081. Antes de E3 decidir: A4 (como se prueba la UI: tests de
+componente o Playwright; el plan dice que hay que decidirla ANTES de abrir E6/E3, porque en este repo los
+bugs de UI pasaron con cientos de tests en verde), hasta cuantos dias atras vale migrar Setteo, y la tasa
+COP->USD. Migracion de arranque de E3: marca de abono convertido (081) y lista de lo no clasificable (080).
+
+Al construir 069 y 074 ojo: TODO el dinero, el acuerdo de pago, la cartera, el onboarding y el cambio de
+cohorte ya existen en lib/ SIN pantalla ni server action (registrarAbono, anularAbono, editarAcuerdoDePago,
+marcarOnboarded, desmarcarOnboarded, cambiarCohorte en lib/deals/; carteraVencida y estudiantesDe en
+lib/queries/; buscarLlamadaDelDeal de Alejo en lib/calendly/). Las acciones deben pasar por paginaConRol /
+requireRole y tomar el rol de rolDeVista(session), nunca session.user.rol crudo; el actor sale de la
+sesion, nunca del input. Cargar una pantalla no es probarla: hace clic en todo lo que se abre y mira la
+consola (Base UI lanza en ejecucion). Una regla de permiso se prueba forjando la peticion.
+Decision abierta que toca la UI: el registrarAbono devuelve cohorteAsignada null cuando no hay cohorte
+activa y el cobro entra igual: la pantalla tiene que decirlo.
+
 Reglas: npm test es scripts/test.mjs (una suite por maquina): nunca npx vitest directo ni en background.
 Las migraciones las genera y aplica la sesion principal. Kiro implementa en un worktree creado A MANO
 (git worktree add), NO con isolation: worktree (ahi el guard bloquea kiro-cli); la sesion principal corre
-la suite y revisa. Codex sin cuota hasta el 12-oct. Antes de tomar un ticket haz git fetch.
+la suite y revisa. Codex sin cuota hasta el 12-oct. Antes de tomar un ticket haz git fetch, y antes de
+empujar otra vez: Alejo trabaja en paralelo sobre el mismo main.
 ```
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-28 (sesión 43, quinta parte): costura de E2, borrar el onboarding y revisión de Alejo.** Sin migración.
+  - **Revisión de Alejo a mi 060/061 (`7598185`):** T18 exige comprobante; producto en otra moneda se rechaza;
+    `anularAbono` relee el abono tras bloquear el deal; `fechaEfectivaDePago` única; test de concurrencia contra
+    Postgres real (el de PGlite no probaba el `for update`) y un servicio de Postgres en el CI. Bien hecho.
+  - **`desmarcarOnboarded`** (pedido de Mani): borra la marca con su rastro; la hacen el closer dueño, el gerente
+    y el developer; funciona aunque el deal ya no sea estudiante.
+  - **`tests/costura-e2.test.ts`:** webhook con cita vigente → Agendado con llamada `calendly:<uuid>` → Grain →
+    Atendido → abono → Abonado con cohorte asignada → acuerdo de pago con tope → cartera vencida → abono que
+    salda → Completo → onboarding → anular ambos (A2 y A1), con historial, saldo, cartera y estudiantes
+    coherentes en cada paso.
+  - 🩸 **Hueco de Alejo resuelto (D3):** anular el abono de un Completo con OTRO deal abierto del lead reventaba
+    con un error crudo de la base; ahora es un 409 claro y no escribe nada.
+  - **Medido:** 1.259 tests, typecheck, lint y build limpios.
 
 - **2026-09-28 (sesión 43, cuarta parte): 063 hecho, cierra el carril de Mani de E2.** Sin migración.
   - `lib/deals/estudiante.ts`, `lib/queries/estudiantes.ts`. Marca el onboarding el closer dueño o un

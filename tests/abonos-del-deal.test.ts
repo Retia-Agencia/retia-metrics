@@ -433,6 +433,34 @@ describe("anularAbono: la etapa se recalcula", () => {
     expect(r.etapa).toBe("atendido");
   });
 
+  it("anular el abono de un Completo cuando el lead ya tiene otro deal abierto se bloquea con un 409 claro (D3)", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const cierre = await registrarAbono(db, comoCloser(), abono(dealId, "1000"));
+    expect(await etapaDe(dealId)).toBe("completo");
+    // El lead vuelve a aplicar y abre un segundo deal: el cupo estaba libre porque el primero es Completo.
+    const [d] = await db.select({ leadId: deals.leadId }).from(deals).where(eq(deals.id, dealId));
+    await db.insert(deals).values({ leadId: d.leadId, programId, cohortId, etapa: "en_contacto", ownerUserId: closer });
+
+    const e = await capturar(anularAbono(db, comoCloser(), { abonoId: cierre.abonoId, motivo: "Error" }));
+
+    expect(e.status).toBe(409);
+    expect(e.message).toContain("otro deal abierto");
+    // No se escribio nada: el abono sigue vigente y el deal sigue Completo.
+    const [fila] = await db.select().from(abonos).where(eq(abonos.id, cierre.abonoId));
+    expect(fila.anuladoEn).toBeNull();
+    expect(await etapaDe(dealId)).toBe("completo");
+  });
+
+  it("y si el otro deal ya se cerró o se anuló, la anulación sí procede", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const cierre = await registrarAbono(db, comoCloser(), abono(dealId, "1000"));
+    const [d] = await db.select({ leadId: deals.leadId }).from(deals).where(eq(deals.id, dealId));
+    await db.insert(deals).values({ leadId: d.leadId, programId, cohortId, etapa: "cierre_perdido", ownerUserId: closer });
+    await db.insert(deals).values({ leadId: d.leadId, programId, cohortId, etapa: "en_contacto", ownerUserId: closer, anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
+    const r = await anularAbono(db, comoCloser(), { abonoId: cierre.abonoId, motivo: "Error" });
+    expect(r.etapa).toBe("atendido");
+  });
+
   it("anular en un deal perdido escribe la anulación y no mueve la etapa", async () => {
     const dealId = await nuevoDeal("cierre_perdido");
     const [a] = await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-01", monto: "100", closerId: "Maru" }).returning();

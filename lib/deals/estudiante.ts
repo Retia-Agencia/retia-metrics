@@ -32,7 +32,12 @@ type FilaDeal = typeof deals.$inferSelect;
  * primaria: si un deal anulado se toca o no lo decide esta función (no), y dicho con su
  * nombre queda en el grep.
  */
-async function estudianteDelActor(tx: Db, dealId: string, actor: ActorDeEstudiante): Promise<{ deal: FilaDeal; emailLead: string }> {
+async function estudianteDelActor(
+  tx: Db,
+  dealId: string,
+  actor: ActorDeEstudiante,
+  { soloEstudiante = true }: { soloEstudiante?: boolean } = {},
+): Promise<{ deal: FilaDeal; emailLead: string }> {
   const [fila] = await tx
     .select({ deal: deals, emailLead: leads.emailNormalizado })
     .from(deals)
@@ -42,7 +47,7 @@ async function estudianteDelActor(tx: Db, dealId: string, actor: ActorDeEstudian
   if (!fila) throw new ErrorDeApp("No existe el deal.", 404);
   const { deal } = fila;
   if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado: no cuenta en ninguna métrica.", 409);
-  if (deal.etapa !== "abonado" && deal.etapa !== "completo") {
+  if (soloEstudiante && deal.etapa !== "abonado" && deal.etapa !== "completo") {
     throw new ErrorDeApp("Solo un estudiante (deal en Abonado o Completo) tiene onboarding y cohorte propios.", 409);
   }
   if (!esAdministrador(actor.rol)) {
@@ -74,6 +79,28 @@ export async function marcarOnboarded(db: Db, actor: ActorDeEstudiante, datos: D
         { onboardedAt },
       );
       return { onboardedAt };
+    });
+  });
+}
+
+/**
+ * Borra la marca de onboarding (Mani, 28-sep): para corregir un error de quien la puso. Lo hace
+ * quien puede marcarla (el closer dueño o un administrador) y queda en `change_log` con quién y
+ * el valor anterior. **No exige que el deal siga siendo estudiante**: si una anulación lo sacó de
+ * Abonado o Completo, la marca vieja tiene que poder quitarse, o volvería a aparecer como un
+ * onboarding que ya no corresponde cuando el deal vuelva a pagar.
+ */
+export async function desmarcarOnboarded(db: Db, actor: ActorDeEstudiante, datos: DatosMarcarOnboarded): Promise<void> {
+  return normalizando(async () => {
+    const { dealId } = esquemaMarcarOnboarded.parse(datos);
+    return (db as unknown as Transaccion).transaction(async (tx) => {
+      const { deal, emailLead } = await estudianteDelActor(tx, dealId, actor, { soloEstudiante: false });
+      if (!deal.onboardedAt) throw new ErrorDeApp("El estudiante no tiene onboarding marcado.", 409);
+      await editarConRastro(
+        { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: emailLead },
+        deal.id,
+        { onboardedAt: null },
+      );
     });
   });
 }

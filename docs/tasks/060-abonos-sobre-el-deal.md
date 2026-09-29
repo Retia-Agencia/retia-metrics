@@ -70,3 +70,9 @@ Si, con revision: aqui se cruzan dinero y etapas.
   closer solo lo suyo y con la cohorte activa.
 - El comprobante lo exige el motor solo cuando el abono MUEVE el deal (a Abonado o a Completo): sin él, se
   deshace el abono entero. El comprobante con foto sigue siendo el 035.
+- **Revisión de Alejo (28-sep, `7598185`, ok de Mani):** T18 también exige comprobante; producto en otra moneda
+  se rechaza de entrada; `anularAbono` relee el abono tras bloquear el deal; test de concurrencia contra
+  Postgres real (corre en el CI; sin `DATABASE_URL_PRUEBA_POSTGRES` se salta).
+- **D3 aplicada a la anulación (28-sep):** anular el abono de un deal Completo cuando el lead ya tiene OTRO deal
+  abierto en el programa devuelve un 409 claro y no escribe nada (antes: error crudo de la base, por el índice
+  `deals_uno_abierto_por_lead_y_programa_idx`). Un otro deal cerrado o anulado no bloquea.
