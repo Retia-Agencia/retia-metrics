@@ -861,10 +861,22 @@ export const deals = pgTable(
     anuladoEn: timestamp("anulado_en", { withTimezone: true }),
     anuladoPor: uuid("anulado_por").references(() => users.id, { onDelete: "restrict" }),
     motivoAnulacion: text("motivo_anulacion"),
+    /**
+     * La fila de la hoja de la que salio un deal historico (ADR 0059 punto 2):
+     * `sheets:<programa>:<pestaña>:<llave>`. Nulo para todo deal nativo del CRM.
+     *
+     * 🩸 Un deal en Completo **no ocupa el cupo** del lead, asi que sin esta huella una
+     * segunda corrida de la migracion lo duplicaria sin un solo error. La garantia es
+     * el indice unico de abajo, no un `select` previo (ADR 0005).
+     */
+    huellaMigracion: text("huella_migracion"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    uniqueIndex("deals_huella_migracion_idx")
+      .on(t.huellaMigracion)
+      .where(sql`${t.huellaMigracion} is not null`),
     /**
      * **Maximo un deal ABIERTO por lead y programa** (ADR 0037 punto 1). Indice
      * unico PARCIAL, mismo molde que `cohorts_una_activa_por_programa_idx`: la
@@ -1140,9 +1152,14 @@ export const abonos = pgTable(
     anuladoEn: timestamp("anulado_en", { withTimezone: true }),
     anuladoPor: uuid("anulado_por").references(() => users.id, { onDelete: "restrict" }),
     motivoAnulacion: text("motivo_anulacion"),
+    /** La fila de la hoja de la que salio un abono historico (ADR 0059). Ver `deals.huellaMigracion`. */
+    huellaMigracion: text("huella_migracion"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    uniqueIndex("abonos_huella_migracion_idx")
+      .on(t.huellaMigracion)
+      .where(sql`${t.huellaMigracion} is not null`),
     index("abonos_programa_fecha_idx").on(t.programId, t.fecha),
     index("abonos_deal_idx").on(t.dealId),
     // Sin motivo no hay anulacion (ADR 0026 punto 6), y la garantia vive en la base
@@ -1154,6 +1171,46 @@ export const abonos = pgTable(
           OR (${t.anuladoEn} IS NOT NULL AND ${t.anuladoPor} IS NOT NULL
               AND length(trim(${t.motivoAnulacion})) > 0)`,
     ),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────── migracion
+
+/**
+ * Lo que la migracion de las pestañas de gestion no pudo clasificar (ticket 080, ADR
+ * 0059): la lista visible en la app. **Una rareza no se anula** (de la hoja si paso,
+ * ADR 0038) **y no se adivina** (ADR 0027): queda aqui, con su fila de origen, para
+ * que alguien la corrija.
+ *
+ * - `huella` es la de la fila de la hoja (`sheets:<programa>:<pestaña>:<llave>`), la
+ *   misma que llevan `deals`, `abonos` y `calls`: con ella se vuelve a la hoja.
+ * - `tipo` es texto y no un `pgEnum`: la lista de casos la sigue cerrando el 080, y la
+ *   pantalla solo agrupa y rotula por el. Los valores los fija el tipo del importador.
+ * - Los enlaces a lo que SI entro son opcionales: una fila sin correo no tiene lead, y
+ *   una con deal vivo no creo deal (ADR 0059 punto 3).
+ * - Correr la migracion dos veces no duplica rarezas: indice unico `(huella, tipo)`.
+ * - `program_id` va aparte de la huella porque la pantalla es por programa y el
+ *   programa es frontera.
+ */
+export const rarezasMigracion = pgTable(
+  "rarezas_migracion",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
+    huella: text("huella").notNull(),
+    tipo: text("tipo").notNull(),
+    /** Que tiene de raro, en palabras, con el valor de la hoja que lo causo. */
+    detalle: text("detalle").notNull(),
+    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "restrict" }),
+    dealId: uuid("deal_id").references(() => deals.id, { onDelete: "restrict" }),
+    abonoId: uuid("abono_id").references(() => abonos.id, { onDelete: "restrict" }),
+    callId: uuid("call_id").references(() => calls.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("rarezas_migracion_huella_tipo_idx").on(t.huella, t.tipo),
+    index("rarezas_migracion_programa_idx").on(t.programId, t.tipo),
+    check("rarezas_migracion_detalle_chk", sql`length(trim(${t.detalle})) > 0`),
   ],
 );
 

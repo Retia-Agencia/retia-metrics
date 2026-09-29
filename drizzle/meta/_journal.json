@@ -288,6 +288,13 @@
       "when": 1790697641575,
       "tag": "0040_dias-sin-actividad",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1790706532268,
+      "tag": "0041_huellas-y-rarezas-de-migracion",
+      "breakpoints": true
     }
   ]
 }

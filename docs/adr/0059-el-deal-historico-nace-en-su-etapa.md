@@ -1,6 +1,6 @@
 # 0059 — El deal histórico nace en su etapa, por un template y con su huella
 
-- **Estado:** propuesta · 29-sep-2026 (Alejo, en grill; **falta el ok de Mani**)
+- **Estado:** aceptado · 29-sep-2026 (Alejo, en grill; ok de Mani el mismo día)
 - **Relacionadas:** ADR 0004 (se guarda como llegó), ADR 0005 (la garantía vive en un índice), ADR 0027
   (nada de emparejar por heurística), ADR 0029 (un script llama a `lib/`, con su actor), ADR 0030 (el
   closer como texto copiado), ADR 0037 (el deal y el motor), ADR 0038 (anular no es Cierre Perdido), ADR
