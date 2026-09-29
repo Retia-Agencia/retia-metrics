@@ -94,23 +94,25 @@ Se quita el 085: el closer ve el origen con los UTM tal como llegaron (ADR 0044)
 
 ---
 
-## ✅ Decisión 2026-09-29 (Mani): el ingreso y sus bandas
+## ✅ Decisión 2026-09-29 (Mani): el orden del Setteo lo da un SCORE que calcula el formulario
 
-- **La pregunta** es la 4 del Typeform de los dos programas, *"¿Cuánto ganas mensualmente? (en dólares)"*,
-  en **USD mensuales**. Ya existe la llave `ingresoDeclarado` en el mapeo (`MAPEO_FORMULARIO`): se lee de
-  `submissions.respuestas` por esa llave, nunca por el título escrito en el código.
-- **Las bandas son distintas por programa** y son las opciones del formulario, así que no hay números que
-  inventar: la configuración es **una lista ORDENADA de etiquetas, de mayor a menor**, por programa
-  (`programs.bandas_ingreso text[]`, migración de arranque de E4, editable en `/ajustes/programas`). El
-  rango de una respuesta es su posición en la lista; la comparación es insensible a mayúsculas y acentos.
-  **No se parsea el número de la etiqueta**: sería adivinar (AGENTS.md, "nunca adivinar una columna").
-- 🩸 **Medido en producción el 29-sep (solo lectura):** ComunicArte tiene las DOS escalas en su historia.
-  La actual (Menos de $700 · $700-$1.500 · $1.500-$3.000 · Más de $3.000) y **641 respuestas con la escala
-  de Tactical** (Menos de $1.000 · $1.000-$3.000 · $3.000-$10.000 · Más de $10.000), de un formulario
-  anterior. La lista de ComunicArte lleva las ocho, ordenadas por el piso del rango: Más de $10.000 ·
-  $3.000-$10.000 · Más de $3.000 · $1.500-$3.000 · $1.000-$3.000 · $700-$1.500 · Menos de $1.000 ·
-  Menos de $700. Tactical, sus cuatro. Hay **1** respuesta basura (`]+`) en Tactical.
-- **Una respuesta que no casa con ninguna etiqueta** va al final de la sección con la marca "sin banda"
-  y su texto crudo a la vista: nunca se esconde ni se le inventa rango. Dentro de la misma banda, ordena
-  la fecha del último envío (más reciente primero).
-- Las listas se cargan desde la pantalla (molde de catálogo, `change_log`), no dentro de la migración.
+*"Sería más fácil solo leer el campo de score; falta es configurarlo bien en los forms."* Es la misma
+regla de A8 (28-sep, *"el CRM no calcula NADA"*): el Estado ya llega calculado, y el puntaje también.
+
+- **Typeform calcula el score** con su variable de puntaje (lógica por respuesta: el ingreso y lo que
+  quieran sumar), y la manda en el payload como variable, igual que `estado`. Cada programa pone sus
+  propios pesos en SU formulario: el CRM no tiene que acomodar escalas distintas entre programas.
+- **El CRM solo lo lee:** una llave del mapeo de la fuente nombra la variable (molde de `estadoHoja`,
+  ADR 0012; nunca un nombre fijo en el código) y el valor entra a `submissions.puntaje` y al resumen
+  `leads.puntaje`, que ya existen y hoy van nulos (T4). Un valor que no es número entra nulo, no se
+  adivina.
+- **Orden de la sección:** score de mayor a menor; a igual score, el envío más reciente primero. **Sin
+  score** (los trasladados de Sheets y todo lo que llegue antes de configurar el formulario) va DESPUÉS,
+  por recencia, marcado "sin score": no se le inventa uno.
+- 🩸 Medido el 29-sep (solo lectura): ComunicArte tiene dos escalas de ingreso en su historia (641
+  respuestas con la de Tactical). Con el score del formulario eso deja de ser problema del CRM: lo viejo
+  no trae score y se ordena por recencia.
+- **Pendiente (Mani):** configurar la variable de score en los dos Typeform. Sin eso el Setteo funciona
+  igual, ordenado solo por recencia.
+- Descartado: bandas de ingreso configuradas en el CRM (`programs.bandas_ingreso`). Era el CRM
+  calificando, contra A8.

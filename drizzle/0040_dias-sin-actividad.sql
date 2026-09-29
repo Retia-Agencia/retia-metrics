@@ -1,0 +1,2 @@
+ALTER TABLE "programs" ADD COLUMN "dias_sin_actividad" integer DEFAULT 3 NOT NULL;--> statement-breakpoint
+ALTER TABLE "programs" ADD CONSTRAINT "programs_dias_sin_actividad_positivo" CHECK ("programs"."dias_sin_actividad" > 0);

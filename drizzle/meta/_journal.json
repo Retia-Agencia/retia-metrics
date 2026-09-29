@@ -281,6 +281,13 @@
       "when": 1790656147661,
       "tag": "0039_calendly-sobres-del-programa",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1790697641575,
+      "tag": "0040_dias-sin-actividad",
+      "breakpoints": true
     }
   ]
 }

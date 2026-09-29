@@ -78,9 +78,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
     `lib/deals/duenos.ts` y la usan la lista y la reja. (2) Anular un deal dejaba sus llamadas contando en el
     embudo (`vigente(calls)` no mira el deal); `anularDeal` las anula en cascada, con rastro.
   - Decisiones: K1 (se retira `buscarLlamadaDelDeal`, lo hace Alejo con el 096), K2 (la suelta se asigna en
-    el Inbox), 079 cerrado por el traslado. 070: bandas de ingreso = lista ordenada de etiquetas por
-    programa; ComunicArte tiene DOS escalas en su historia (641 respuestas con la de Tactical). 071: X = 3
-    días hábiles por programa. Ambas columnas van en la migración de arranque de E4 (falta el ok de Mani).
+    el Inbox), 079 cerrado por el traslado. 070: el Setteo se ordena por un SCORE que calcula Typeform
+    y el CRM solo lee (A8; las bandas en el CRM se descartaron); falta configurarlo en los forms. 071: X = 3
+    días hábiles por programa, migración 0040 (`programs.dias_sin_actividad`).
   - UI: dentro de un `DialogContent` (grid), el envoltorio del formulario necesita `min-w-0` o un Select
     con texto largo empuja el diálogo fuera de pantalla en celular.
   - **Medido:** 1.415 tests, typecheck, lint y build limpios.

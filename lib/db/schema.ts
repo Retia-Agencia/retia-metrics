@@ -274,6 +274,11 @@ export const programs = pgTable(
      */
     plantillaLead: jsonb("plantilla_lead"),
     /**
+     * Dias HABILES sin actividad tras los cuales un deal abierto con dueno esta estancado
+     * (ticket 071). Por programa (ADR 0012); defecto 3.
+     */
+    diasSinActividad: integer("dias_sin_actividad").notNull().default(3),
+    /**
      * Nace INACTIVO (ADR 0057): un programa se activa solo con su Forms Link y su
      * token de Calendly, y el CHECK de abajo lo garantiza en la base (ADR 0005).
      */
@@ -284,6 +289,7 @@ export const programs = pgTable(
       "programs_activo_con_formulario_y_token",
       sql`NOT ${t.activo} OR (${t.formUrl} IS NOT NULL AND ${t.calendlyToken} IS NOT NULL)`,
     ),
+    check("programs_dias_sin_actividad_positivo", sql`${t.diasSinActividad} > 0`),
   ],
 );
 
