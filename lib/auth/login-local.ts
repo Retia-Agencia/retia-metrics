@@ -24,8 +24,11 @@ import { esUrlLocal } from "@/lib/db/es-local";
  * registre nada: la base tiene que ser local ademas.
  */
 
-/** El id del proveedor y del boton del formulario en `/login`. Un solo literal. */
-export const LOGIN_LOCAL_ID = "local";
+/**
+ * El id de ruta del proveedor de credenciales de Auth.js y del botón de `/login`.
+ * Credentials conserva este id en la ruta aunque reciba opciones personalizadas.
+ */
+export const LOGIN_LOCAL_ID = "credentials";
 
 /** `true` si el login local debe existir en esta ejecucion (flag + base local). */
 export function loginLocalHabilitado(): boolean {

@@ -53,9 +53,13 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
           cohorteId={filtros.cohorteId ?? null}
           canal={filtros.canal ?? null}
           antiguedadMinima={filtros.antiguedadMinima ?? null}
+          leadQuality={filtros.leadQuality ?? null}
+          leadValue={filtros.leadValue ?? null}
           owners={opciones.owners}
           cohortes={opciones.cohortes}
           canales={opciones.canales}
+          leadQualities={opciones.leadQualities}
+          leadValues={opciones.leadValues}
         />
         <TableroKanban
           columnas={tablero.columnas}

@@ -39,6 +39,10 @@ export interface FiltroKanbanProps {
   owners: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
   canales: OpcionCanal[];
+  leadQuality: string | null;
+  leadValue: string | null;
+  leadQualities: string[];
+  leadValues: string[];
 }
 
 export function FiltroKanban({
@@ -49,6 +53,10 @@ export function FiltroKanban({
   owners,
   cohortes,
   canales,
+  leadQuality,
+  leadValue,
+  leadQualities,
+  leadValues,
 }: FiltroKanbanProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -64,7 +72,7 @@ export function FiltroKanban({
     router.push(query ? `${pathname}?${query}` : pathname);
   }
 
-  const hayFiltro = ownerUserId || cohorteId || canal || antiguedadMinima != null;
+  const hayFiltro = ownerUserId || cohorteId || canal || antiguedadMinima != null || leadQuality || leadValue;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -84,6 +92,14 @@ export function FiltroKanban({
             </SelectItem>
           ))}
         </SelectContent>
+      </Select>
+      <Select value={leadQuality ?? TODOS} items={[{ value: TODOS, label: "Todas las calidades" }, ...leadQualities.map((v) => ({ value: v, label: v }))]} onValueChange={(v: string | null) => navegar({ leadQuality: !v || v === TODOS ? null : v })}>
+        <SelectTrigger className="w-44" aria-label="Calidad del lead"><SelectValue /></SelectTrigger>
+        <SelectContent><SelectItem value={TODOS}>Todas las calidades</SelectItem>{leadQualities.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
+      </Select>
+      <Select value={leadValue ?? TODOS} items={[{ value: TODOS, label: "Todos los valores" }, ...leadValues.map((v) => ({ value: v, label: v }))]} onValueChange={(v: string | null) => navegar({ leadValue: !v || v === TODOS ? null : v })}>
+        <SelectTrigger className="w-40" aria-label="Valor del lead"><SelectValue /></SelectTrigger>
+        <SelectContent><SelectItem value={TODOS}>Todos los valores</SelectItem>{leadValues.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
       </Select>
 
       <Select

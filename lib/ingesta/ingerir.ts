@@ -254,6 +254,9 @@ export async function ingerirEntradas(
               utmCampaign: e.utmCampaign,
               posicionEnHoja: e.posicionEnHoja,
               respuestas: e.respuestas,
+              puntaje: e.puntaje,
+              leadQuality: e.leadQuality,
+              leadValue: e.leadValue,
               ...notaDe.get(llaveDeEnvio(e)),
             })),
           )
@@ -271,6 +274,8 @@ export async function ingerirEntradas(
               respuestas: sql`excluded."respuestas"`,
               calificacion: sql`excluded."calificacion"`,
               puntaje: sql`excluded."puntaje"`,
+              leadQuality: sql`excluded."lead_quality"`,
+              leadValue: sql`excluded."lead_value"`,
               versionPuntaje: sql`excluded."version_puntaje"`,
             },
           })
@@ -421,6 +426,8 @@ type Resumen = Pick<
   | "numAplicaciones"
   | "calificacion"
   | "puntaje"
+  | "leadQuality"
+  | "leadValue"
 >;
 
 const CAMPOS_DEL_RESUMEN = [
@@ -434,6 +441,8 @@ const CAMPOS_DEL_RESUMEN = [
   "numAplicaciones",
   "calificacion",
   "puntaje",
+  "leadQuality",
+  "leadValue",
 ] as const satisfies readonly (keyof Resumen)[];
 
 type EnvioGuardado = Pick<
@@ -449,7 +458,7 @@ type EnvioGuardado = Pick<
   | "utmCampaign"
   | "calificacion"
   | "puntaje"
->;
+> & { leadQuality?: string | null; leadValue?: string | null };
 
 /**
  * El resumen de un lead a partir de sus envios. Mismas reglas que el dedup de la hoja
@@ -517,6 +526,8 @@ export function resumirEnvios(
     ...utm,
     calificacion: decide?.calificacion ?? null,
     puntaje: decide?.puntaje ?? null,
+    leadQuality: decide?.leadQuality ?? null,
+    leadValue: decide?.leadValue ?? null,
     fechaPrimeraAplicacion: conFecha[0]?.fechaEnvio ?? null,
     fechaUltimaAplicacion: conFecha.at(-1)?.fechaEnvio ?? null,
     numAplicaciones: new Set(envios.map((e) => `${e.sourceId}\u0000${e.token}`)).size,
@@ -541,7 +552,7 @@ async function actualizarResumenes(tx: Db, filas: { id: string; resumen: Resumen
   for (const lote of enLotes(filas)) {
     const valores = lote.map(
       ({ id, resumen: r }) =>
-        sql`(${id}::uuid, ${r.nombre}::text, ${r.telefono}::text, ${r.utmSource}::text, ${r.utmMedium}::text, ${r.utmCampaign}::text, ${iso(r.fechaPrimeraAplicacion)}::timestamptz, ${iso(r.fechaUltimaAplicacion)}::timestamptz, ${r.numAplicaciones}::integer, ${r.calificacion}::calificacion_envio, ${r.puntaje}::integer)`,
+        sql`(${id}::uuid, ${r.nombre}::text, ${r.telefono}::text, ${r.utmSource}::text, ${r.utmMedium}::text, ${r.utmCampaign}::text, ${iso(r.fechaPrimeraAplicacion)}::timestamptz, ${iso(r.fechaUltimaAplicacion)}::timestamptz, ${r.numAplicaciones}::integer, ${r.calificacion}::calificacion_envio, ${r.puntaje}::integer, ${r.leadQuality}::text, ${r.leadValue}::text)`,
     );
     await tx.execute(sql`
       update "leads" set
@@ -549,9 +560,10 @@ async function actualizarResumenes(tx: Db, filas: { id: string; resumen: Resumen
         "utm_medium" = v.utm_medium, "utm_campaign" = v.utm_campaign,
         "fecha_primera_aplicacion" = v.fecha_primera, "fecha_ultima_aplicacion" = v.fecha_ultima,
         "num_aplicaciones" = v.num_aplicaciones, "calificacion" = v.calificacion,
-        "puntaje" = v.puntaje, "updated_at" = ${ahora.toISOString()}::timestamptz
+        "puntaje" = v.puntaje, "lead_quality" = v.lead_quality, "lead_value" = v.lead_value,
+        "updated_at" = ${ahora.toISOString()}::timestamptz
       from (values ${sql.join(valores, sql`, `)})
-        as v(id, nombre, telefono, utm_source, utm_medium, utm_campaign, fecha_primera, fecha_ultima, num_aplicaciones, calificacion, puntaje)
+        as v(id, nombre, telefono, utm_source, utm_medium, utm_campaign, fecha_primera, fecha_ultima, num_aplicaciones, calificacion, puntaje, lead_quality, lead_value)
       where "leads"."id" = v.id
     `);
   }
@@ -587,6 +599,8 @@ async function recalcularResumen(
         esParcial: submissions.esParcial,
         calificacion: submissions.calificacion,
         puntaje: submissions.puntaje,
+        leadQuality: submissions.leadQuality,
+        leadValue: submissions.leadValue,
       })
       .from(submissions)
       .where(inArray(submissions.leadId, lote));

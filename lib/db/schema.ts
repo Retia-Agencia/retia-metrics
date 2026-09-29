@@ -520,6 +520,8 @@ export const leads = pgTable(
      */
     calificacion: calificacionEnvioEnum("calificacion"),
     puntaje: integer("puntaje"),
+    leadQuality: text("lead_quality"),
+    leadValue: text("lead_value"),
     motivoDescarte: text("motivo_descarte"),
     cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "set null" }),
     /** Fila original tal como vino de la hoja, para auditar sin volver a Sheets. */
@@ -671,6 +673,9 @@ export const submissions = pgTable(
     /** El puntaje (T4) y la version de los pesos que lo produjo. Nulos sin pesos. */
     puntaje: integer("puntaje"),
     versionPuntaje: integer("version_puntaje"),
+    /** Etiquetas calculadas por Typeform; el CRM las recibe y muestra sin interpretarlas. */
+    leadQuality: text("lead_quality"),
+    leadValue: text("lead_value"),
     /** Todas las columnas NO promovidas, con el texto del encabezado como llave. */
     respuestas: jsonb("respuestas"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

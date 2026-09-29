@@ -3,7 +3,7 @@ id: 096
 etapa: E4
 serves: "ADR 0049 · propuesta 24-sep §2.3 y §3.7"
 depends: [057, 045]
-status: en curso
+status: done
 ---
 
 # 096 — Calendly por programa: cada llamada a su deal, y si hay duda, suelta
@@ -36,11 +36,11 @@ que tenga duda queda suelto en el Inbox para que un closer lo asigne.
 
 ## Done cuando
 
-- [ ] Cada regla de emparejamiento tiene su test en los dos sentidos; ante la duda, **suelta**, nunca
+- [x] Cada regla de emparejamiento tiene su test en los dos sentidos; ante la duda, **suelta**, nunca
       la opción "más parecida".
-- [ ] Una llamada suelta aparece en el Inbox y se asigna a mano, con su fila de `change_log`.
-- [ ] Una segunda llamada sobre un deal Atendido no lo hace retroceder.
-- [ ] ~~El dueño nunca se pisa si ya existía.~~ Reemplazado por la decisión de Mani del 28-sep: el deal
+- [x] Una llamada suelta aparece en el Inbox y se asigna a mano, con su fila de `change_log`.
+- [x] Una segunda llamada sobre un deal Atendido no lo hace retroceder.
+- [x] ~~El dueño nunca se pisa si ya existía.~~ Reemplazado por la decisión de Mani del 28-sep: el deal
       es de la closer host si está registrada en el programa; si tenía otro dueño, pasa a la host y se avisa.
 
 ## Kiro
@@ -228,10 +228,9 @@ en el perfil de la closer, por programa. Y confirmar con Michael que las dos cue
 ## Estado consolidado (29-sep, Mani)
 
 El código está completo y live; el webhook fue verificado en ambos programas y las migraciones 0038 y 0039 están
-aplicadas. El cierre operativo pasa a Mani porque tiene acceso a las cuentas de Calendly de ComunicArte y Tactical
-Investor. K1 (retirar `buscarLlamadaDelDeal`) y K2 (asignar la llamada suelta desde Inbox) están decididas; queda
-crear a Maru, vincular las cuentas por programa en `/ajustes/usuarios`, confirmar el plan de cada cuenta y verificar
-el flujo completo antes de marcar el ticket como `done`.
+aplicadas. Mani creó a Maru y vinculó en producción sus cuentas por programa desde `/ajustes/usuarios`:
+`soymarumarquez@gmail.com` para ComunicArte y `equipo@ttrading.co` para Tactical Investor. La pantalla confirmó
+ambos guardados. K1 (retirar `buscarLlamadaDelDeal`) y K2 (asignar la llamada suelta desde Inbox) están resueltas.
 
 ## Avance 28-sep, noche (Alejo): el escritor, la migración y la cuenta por membresía
 

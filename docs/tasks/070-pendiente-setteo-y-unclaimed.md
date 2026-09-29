@@ -85,6 +85,15 @@ dueño**; Unclaimed queda para los Agendados cuyo host no está registrado. Todo
 - **Pendiente operativo:** configurar la variable de score en ambos Typeform. Sin ella, el Setteo
   funciona por recencia y marca esos leads como "sin score".
 
+## ✅ Implementación 2026-09-29 (Mani)
+
+El CRM ya recibe y persiste, sin recalcular, los valores configurables `leadQuality` y `leadValue`
+que llegan como variables de Typeform. Se promueven a `submissions` y `leads` (migración 0041), se
+muestran como tags en las tarjetas de Deals y se pueden filtrar con opciones derivadas de los valores
+existentes por programa. No hay enums ni valores hardcodeados: una etiqueta nueva aparece
+automáticamente. La configuración de las dos fuentes Typeform y el recorrido visual exacto a 390 px
+siguen siendo pendientes operativos.
+
 
 ---
 
