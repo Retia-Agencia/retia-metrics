@@ -85,6 +85,7 @@ async function correr<T extends object>(cuerpo: (ctx: Contexto) => Promise<T>): 
     const extra = await normalizando(() => cuerpo(ctx));
     // El Inbox es la pantalla actual, pero el Kanban es otra ruta cuyo cache queda viejo.
     revalidatePath("/p/[programa]/inbox", "page");
+    revalidatePath("/p/[programa]/calls", "page");
     revalidatePath("/p/[programa]/deals", "page");
     return { ok: true, ...extra };
   } catch (error) {

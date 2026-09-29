@@ -82,6 +82,12 @@ describe("navegacion por rol", () => {
     expect(rutasDe("gerente", "programa-b")).not.toContain("/p/programa-a/dashboard");
   });
 
+  it("los roles operativos ven la tab Calls del programa elegido (ticket 098)", () => {
+    for (const rol of ["gerente", "closer", "developer"] as const) {
+      expect(rutasDe(rol)).toContain("/p/programa-a/calls");
+    }
+  });
+
   it("sin programa visible no hay tabs de programa", () => {
     expect(rutasDe("closer", null).some((r) => r.startsWith("/p/"))).toBe(false);
     expect(rutasDe("closer", null)).toContain("/ajustes");

@@ -192,7 +192,7 @@ tratan como dos hechos independientes, la reagenda se ve como cancelación y no 
 - **Cómo se conecta:** un botón "Conectar Calendly" en la configuración del programa (gerente y developer) que,
   con el token del programa (ADR 0057), crea la suscripción por la API con la URL de producción y guarda el
   `signing_key`; y otro para ver/rehacer la suscripción. Necesita el dominio público de producción.
-- **Pendiente de Michael:** confirmar que las cuentas de Calendly de **los dos programas** son plan Standard o
+- **Pendiente de Mani:** confirmar que las cuentas de Calendly de **los dos programas** son plan Standard o
   superior; sin eso la API rechaza la suscripción.
 - **Migración de arranque:** la propuesta de arriba (`miembros_programa.calendly_email`,
   `calls.calendly_host_email`, el CHECK de la suelta) más la columna del `signing_key` del programa. La genera y
@@ -219,11 +219,19 @@ Es aditiva y se validó contra los datos reales antes (las 15 llamadas de produc
   no tener deal.
 - `users.calendly_email` (global) queda sin lector; se retira después.
 
-**Lo que le falta al 096 (Alejo):** el escritor del emparejador (que llama al emparejador con `calendly_email` de la
+**Lo que le falta al 096:** el escritor del emparejador (que llama al emparejador con `calendly_email` de la
 membresía y guarda `calendly_host_email`), la ruta del webhook con la firma, el guardián "nadie cuelga una Call de
 Calendly por fuera del emparejador", el botón "Conectar Calendly" que crea la suscripción por API y guarda la
 `calendly_signing_key`, la pantalla de la llamada suelta (asignar a mano, con rastro) y la lectura de `calendly_email`
 en el perfil de la closer, por programa. Y confirmar con Michael que las dos cuentas son plan Standard o superior.
+
+## Estado consolidado (29-sep, Mani)
+
+El código está completo y live; el webhook fue verificado en ambos programas y las migraciones 0038 y 0039 están
+aplicadas. El cierre operativo pasa a Mani porque tiene acceso a las cuentas de Calendly de ComunicArte y Tactical
+Investor. K1 (retirar `buscarLlamadaDelDeal`) y K2 (asignar la llamada suelta desde Inbox) están decididas; queda
+crear a Maru, vincular las cuentas por programa en `/ajustes/usuarios`, confirmar el plan de cada cuenta y verificar
+el flujo completo antes de marcar el ticket como `done`.
 
 ## Avance 28-sep, noche (Alejo): el escritor, la migración y la cuenta por membresía
 

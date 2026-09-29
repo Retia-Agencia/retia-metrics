@@ -52,7 +52,7 @@ cuando los closers operan en el CRM y lo histórico ya migró. Los hitos interme
 
 El avance ticket por ticket vive **solo** en [`tasks/README.md`](./tasks/README.md); aquí va la foto.
 
-- `main` al 29-sep: **1.478 tests en verde**, typecheck y lint limpios; el CI (112) corre en cada
+- `main` al 29-sep: **1.482 tests en verde**, typecheck, lint y build limpios; el CI (112) corre en cada
   push, sin protección de `main` (Mani, 28-sep). Producción: https://retia-metrics-seven.vercel.app, que
   despliega cada push a `main`.
 - **Base:** una sola, y es producción ("CRM Retia", ADR 0047 enmendado). 41 migraciones (0000 a 0040),
@@ -67,11 +67,11 @@ El avance ticket por ticket vive **solo** en [`tasks/README.md`](./tasks/README.
 | Webhook de formularios + ingesta (`ingerirEntradas`), caja negra y salud (106, 110) | ✅ live | · |
 | Estado del lead: lo manda el formulario (ADR 0054); T2 se borró el 28-sep | ✅ | Puntaje T4 sin pesos (§7.1) |
 | Motor de etapas: transiciones, `moverEtapa()`, historial, guardián, saldo | ✅ | · |
-| Llamadas del deal (057-059), abonos, acuerdo de pago, cartera, onboarding y cambio de cohorte (060, 061, 063) | ✅ en `lib/`, probados | **sin pantalla**: la da la Ficha del Deal (074) |
+| Llamadas del deal (057-059), abonos, acuerdo de pago, cartera, onboarding y cambio de cohorte (060, 061, 063) | ✅ en `lib/`, probados | Calls en curso (098); la Ficha del Deal (074) ya cubre el detalle |
 | Calendly: webhook firmado, reagenda, cancelación, no-show, la suelta (096) | ✅ live, conectado en los dos programas y verificado con una cita real | configuración: vincular cuentas de closers (§4.3c) |
 | Navegación por objetos y selector de programa (097) | ✅ live | · |
 | Kanban de Deals (069) | ✅ live | vista tabla; probar en un celular real |
-| Ficha del Deal (074), Inbox (070, 071), Students (099), Calls (098), Leads (072) | ❌ | E3 y E4 |
+| Ficha del Deal (074), Inbox (070, 071), Students (099), Calls (098), Leads (072) | 074 ✅ · 070/071/098 en curso | E4: recorrido visual de Inbox y Calls; Students y Leads siguen pendientes |
 | Atribución, dashboard sobre deals, pauta | ❌ | E5 a E8 |
 | Migración de las pestañas de gestión | ❌ | E3 (077, 078) y E4 (080) |
 
