@@ -32,7 +32,7 @@ LO QUE SIGUE, E3 (plan-reparto): Mani 069 (Kanban por programa, L) -> 074 (Ficha
 que servir y ser intuitiva; sin tests de componente ni Playwright. Ojo: para usarla sin tocar produccion
 hace falta un login local (Auth.js solo tiene Google), asi que en la sesion de E3 decide con Mani si se
 hace ese login para la base local o si se recorre contra produccion con cuidado. Antes de E3 decidir
-todavia: hasta cuantos dias atras vale migrar Setteo, y la tasa COP->USD. Migracion de arranque de E3: marca de abono convertido (081) y lista de lo no clasificable (080).
+todavia: Setteo YA DECIDIDO (Mani, 28-sep, ticket 080): deal para lo trabajado (En proceso o con actividad) + los Pendiente de los ultimos 30 dias; la cola vieja sin actividad y los No interesado/Cerrado solo como lead; el alcance es un PARAMETRO del script (por defecto trabajado-y-reciente, `total` para migrarlo todo). La tasa COP->USD ya no existe: solo USD, el 081 se descarto. Migracion de arranque de E3: lista de lo no clasificable (080).
 
 Al construir 069 y 074 ojo: TODO el dinero, el acuerdo de pago, la cartera, el onboarding y el cambio de
 cohorte ya existen en lib/ SIN pantalla ni server action (registrarAbono, anularAbono, editarAcuerdoDePago,

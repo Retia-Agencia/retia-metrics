@@ -680,8 +680,8 @@ rastro (ADR 0029):
 - `Registro de llamadas` de ComunicArte tiene los encabezados corridos por un bug del `onEdit`: mapear
   por posición y por nombre, y revisar a mano.
 - `_kpis` apunta a pestañas equivocadas: se leen las pestañas **con datos**, no las que nombra el script.
-- Cobros en COP: se convierten a USD a la tasa del día de la migración (081).
-- 🔴 Hasta cuántos días atrás vale migrar Setteo con deal.
+- Cobros en COP: **no se convierten** (Mani, 28-sep: solo USD). Un monto en COP se lista como rareza (080).
+- ✅ **Setteo con deal (Mani, 28-sep):** lo trabajado (En proceso o con actividad) + los Pendiente de los últimos 30 días; la cola vieja sin actividad y los No interesado/Cerrado quedan solo como lead. El alcance es un parámetro del script y se puede pedir la migración TOTAL (080).
 - 🔴 Cuando los consolidados de C2 de Michael y la hoja difieran: la regla que usaron los consolidados
   fue *"si el reporte del equipo y la hoja no coinciden, manda el reporte; la hoja queda como nota"*.
   Confirmarla antes de migrar. Los consolidados (con el detalle fila por fila y sus discrepancias) están

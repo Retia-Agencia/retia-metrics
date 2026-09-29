@@ -389,7 +389,7 @@ no uno por alerta. No bloquea nada.
 - ¿"Estudiante" desde el primer abono o con el pago completo? ¿Quién hace el onboarding (el transcript
   dice "Anis"; Jero nombró a Dani Rincón)? (099)
 - Cómo mandan el comprobante: foto, link o PDF (035, 060).
-- Hasta cuántos días atrás vale migrar Setteo con deal (080).
+- ~~Hasta cuántos días atrás vale migrar Setteo con deal (080).~~ ✅ 28-sep (Mani): lo trabajado + los últimos 30 días, con parámetro para migrar TOTAL.
 - Uso desde el celular; quién prueba primero; cómo y cuándo se paga la comisión.
 - **Los motivos (104, ya cargados):** revisar los 13 que salieron de su `_ListasDropdown`; sobre todo
   reagenda y recuperación, que no tenían equivalente en la hoja. Se ajustan desde el catálogo.

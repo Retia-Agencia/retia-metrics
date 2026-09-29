@@ -211,8 +211,8 @@ Va de último, con el scaffold completo. Absorbe el "histórico de C2" de la spe
 | [ ] | 078 | [Pasa por la MISMA ingesta, nunca inserts crudos](./078-la-migracion-pasa-por-la-misma-ingesta.md) (E7-2) | 077 | todo |
 | [ ] | 079 | [Recuperar las 55 de `Forms viejo`](./079-recuperar-las-55-de-forms-viejo.md) (E7-3) | 111 | todo · se hace dentro del traslado (111) |
 | [ ] | 080 | [Los casos raros de la migración](./080-los-casos-raros-de-la-migracion.md) (E7-4) | 078 | todo |
-| [ ] | 081 | [COP → USD a la tasa del día](./081-cop-a-usd-en-la-migracion.md) (E7-5) | 078 | todo |
-| [ ] | 082 | [Apagar las pestañas de gestión](./082-apagar-las-pestanas-de-gestion.md) (E7-6) | 079, 080, 081 | todo · lo hace Mani |
+| [x] | 081 | [COP → USD a la tasa del día](./081-cop-a-usd-en-la-migracion.md) (E7-5) | 078 | descartado · 28-sep (Mani): *"solo usamos USD aquí"*. No hay conversión ni tasa ni marca de abono convertido; un monto que aparezca en COP al barrer se lista como rareza (080) y no se convierte |
+| [ ] | 082 | [Apagar las pestañas de gestión](./082-apagar-las-pestanas-de-gestion.md) (E7-6) | 079, 080 | todo · lo hace Mani |
 
 ---
 

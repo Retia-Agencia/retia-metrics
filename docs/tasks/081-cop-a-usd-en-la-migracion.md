@@ -3,10 +3,15 @@ id: 081
 etapa: E7
 serves: "plan v2 §6 etapa 7 · tarea E7-5 · insumo §7 y §9, spec §7"
 depends: [078]
-status: todo
+status: descartado
 ---
 
 # 081 — COP → USD a la tasa del dia de la migracion
+
+> ❌ **DESCARTADO el 28-sep por Mani: *"nada de tasa COP → USD, solo usamos USD aquí"*.** No hay tasa de
+> migración, ni conversión, ni marca de abono convertido. La app ya solo acepta USD (`esquemaAbono`). Si al
+> barrer las pestañas (077) aparece un monto en COP, **se lista como rareza (080) y no se convierte**: lo que no
+> se puede clasificar queda visible. El texto de abajo se conserva como historia.
 
 ## Objetivo
 

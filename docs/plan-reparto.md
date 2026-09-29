@@ -172,11 +172,11 @@ Backend puro.
 |---|---|
 | [069] · L | [077] · M |
 | → [074] · L | → [078] · M |
-| | → [081] · S (se ensaya en la base local; en producción todavía no) |
+| | ~~→ [081]~~ descartado (28-sep, Mani: solo USD) |
 
-- **Migración de arranque:** marca de abono convertido (081) y lista de lo no clasificable (080).
-- **Decidir antes:** ~~A4 (cómo se prueba la UI)~~ ✅ 28-sep: usándola, Mani · hasta cuántos días atrás vale migrar Setteo (closers) ·
-  la tasa COP→USD · ~~qué gana cuando los consolidados de C2 y la hoja difieren~~ (✅ la hoja, Mani 28-sep).
+- **Migración de arranque:** lista de lo no clasificable (080). ~~Marca de abono convertido (081)~~: descartada, solo USD.
+- **Decidir antes:** ~~A4 (cómo se prueba la UI)~~ ✅ 28-sep: usándola, Mani · ~~hasta cuántos días atrás vale migrar Setteo~~ (✅ 28-sep, Mani: lo trabajado + los últimos 30 días; parámetro para TOTAL) ·
+  ~~la tasa COP→USD~~ (✅ descartada: solo USD) · ~~qué gana cuando los consolidados de C2 y la hoja difieren~~ (✅ la hoja, Mani 28-sep).
 - **Prueba de costura:** los deals del ensayo aparecen en el Kanban y se mueven por el motor, con el
   requisito que falta a la vista.
 
@@ -341,8 +341,8 @@ closers durante E1 que cubra E2 a E5; Gerencia durante E4; Pauta durante E5.
 | ~~E1~~ | ~~ROAS, Juanito, consolidados de C2~~ ✅ respondidas por Mani el 28-sep (`plan.md` §7.E) | Mani |
 | E2 | D3 · A5 | Mani |
 | ~~E2~~ | ~~De quién es el deal si agenda con otra closer~~ ✅ de esa closer (Mani, 28-sep) | Mani |
-| E3 | ~~A4~~ ✅ · tasa COP→USD | Mani |
-| E3 | Hasta cuántos días atrás migrar Setteo | Closers |
+| E3 | ~~A4~~ ✅ · ~~tasa COP→USD~~ ✅ descartada, solo USD | Mani |
+| E3 | ~~Hasta cuántos días atrás migrar Setteo~~ ✅ decidido por Mani | · |
 | E4 | Pregunta de ingreso y bandas · X días sin actividad · estudiante desde cuándo · quién hace onboarding | Closers |
 | E5 | Precio de lista de ComunicArte (797 o 697) · fecha del corte | Gerencia · closers |
 | E6 | Área de cada canal · qué ve el paid trafficker · P2 · D5 | Gerencia · Mani |

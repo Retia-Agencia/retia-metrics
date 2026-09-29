@@ -53,3 +53,33 @@ su "Estado gestión": `Pendiente` → Pendiente Setteo, `En proceso` → En Cont
 sigue: ¿sin nota también?), `Agendado` → Agendado, `No interesado` → Cierre Perdido con motivo,
 `Cerrado` → se busca su venta. 🔴 **Pregunta para los closers:** ¿hasta cuántos días atrás vale la pena
 recontactar? Los leads más viejos pueden entrar sin deal.
+
+---
+
+## ✅ Decisión de Mani, 28-sep: qué del Setteo se migra como deal (reemplaza la enmienda del 24-sep)
+
+Medido ese día en las dos hojas (solo agregados). ComunicArte: 973 filas (Pendiente 716, En proceso 196,
+No interesado 57, Cerrado 3). Tactical: 1.520 (Pendiente 708, En proceso 738, Agendado 58, No interesado 11,
+Cerrado 4). Con actividad (fecha de contacto o algún Registro): 283 y 1.220. Ya son lead en el CRM: 959 y 1.490.
+
+**Alcance por defecto, "lo trabajado + lo reciente":**
+- **Deal** para todo `En proceso` y todo lo que tenga actividad de un closer (fecha de contacto o algún
+  `Registro`), y para los `Pendiente` de los **últimos 30 días** aunque no tengan actividad.
+- **Solo lead, sin deal:** los `Pendiente` de más de 30 días sin actividad (la cola vieja que nadie tocó).
+  Se encuentran desde Leads; no ensucian el Inbox.
+- **`No interesado` y `Cerrado`: solo lead, sin deal.** Un Cierre Perdido migrado movería la conversión del
+  embudo con un motivo que la hoja no dice; las ventas reales entran por Estudiantes. Es la regla de
+  siempre: lo que no se puede clasificar queda visible, no se inventa.
+- `Agendado` (58 de Tactical, todos de hace más de 60 días) tiene actividad: cae en la regla de arriba y su
+  etapa la decide la llamada, no el texto (una cita de hace dos meses no es un deal en Agendado).
+- **El dueño** sale de `Closer asignado` / `Responsable` SOLO si ese nombre es un usuario del CRM (`mismoCloser`,
+  ADR 0030); Michael, Alejo, Sebastian, Dana o Juanjo no lo son todos, y el deal nace sin dueño (Inbox).
+- **Una fila `Pendiente` con notas de un closer** (~410 en Tactical, 26 en ComunicArte) es un estado
+  inconsistente de la hoja: entra por la regla de actividad y **queda marcada como rareza**, no adivinada.
+- La duda de "`En proceso` sin nota" casi no existe: son 2 filas, las dos de Tactical.
+
+**Puerta abierta a la migración TOTAL (Mani): el alcance es un PARÁMETRO del script, no código fijo.** El
+script de la migración (077/078) recibe el alcance (`trabajado-y-reciente` por defecto, `total` para todo el
+Setteo abierto) y los días de corte (30 por defecto). Pasar a total es correr con otro flag y el mismo
+camino de ingesta, sin reescribir nada. `total` no cambia lo de `No interesado`/`Cerrado`: eso es una decisión
+aparte.

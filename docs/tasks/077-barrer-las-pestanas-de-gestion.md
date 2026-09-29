@@ -38,6 +38,8 @@ Traer al CRM lo que vive en las pestanas de gestion: `Setteo`, `Registro de llam
   una** al modelo nuevo.
 - **Dentro:** lo que no se pueda clasificar queda **visible con su rareza**. ⚠️ **No se anula**:
   anular significa "esto nunca paso", y de la hoja **si paso** (ADR 0038).
+- **Dentro:** el script recibe el **alcance del Setteo como parámetro** (`trabajado-y-reciente` por defecto, `total`
+  para migrarlo todo) y los días de corte (30): decisión de Mani del 28-sep, ver el ticket 080.
 - **Fuera:** inserts crudos. Eso es el ticket 078.
 - **Fuera:** apagar las pestanas. Eso es el ticket 082, y va despues de verificar.
 
