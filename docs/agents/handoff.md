@@ -68,7 +68,7 @@ cada migracion nueva. Antes de tomar un ticket, git fetch: Alejo empuja al mismo
     Distribución en leads: MUY ALTO VALOR 3 (High), ALTO VALOR 2, VALOR MEDIO 1, BAJO VALOR 2 (Low).
   - **Falta:** verificar con un envío NUEVO (posterior al mapeo) que promueva de punta a punta, y ver los tags en Deals.
   - Validación: typecheck, lint y build limpios; `npm test` 1.486 pasando y 1 omitido, sin timeouts.
-  - `.env.example` ahora nombra los tokens de dev: `TYPEFORM_TOKEN_TACTICAL/COMUNICARTE` y `CALENDLY_ACCESS_TOKEN_COMUNICARTE/TACTICAL` (uno por programa, los reales; las `CALENDLY_PAT_LOCAL_*` no se usan).
+  - `.env.example` ahora nombra los tokens de dev: un solo `TYPEFORM_TOKEN` (por cuenta; ve los dos forms, verificado solo con lecturas el 29-sep) y `CALENDLY_ACCESS_TOKEN_COMUNICARTE/TACTICAL` (uno por programa, los reales; las `CALENDLY_PAT_LOCAL_*` no se usan).
     Solo local; ningún código los lee. Cada dev los pega en su `.env.local`.
 
 - **2026-09-29 (sesión 50, Mani): valores de Typeform en Deals.**
