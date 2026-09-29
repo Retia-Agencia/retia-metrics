@@ -12,6 +12,7 @@ import {
   reactivarPrograma,
   type EntradaPrograma,
 } from "@/lib/catalogo/programas";
+import { conectarCalendly } from "@/lib/calendly/suscripcion";
 import {
   activarCohorte,
   crearCohorte,
@@ -110,6 +111,22 @@ export async function reactivarProgramaAccion(id: string): Promise<ResultadoAcci
   try {
     const session = await requireRole("gerente");
     await reactivarPrograma(db, session.user.id, id);
+    revalidarNav();
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+/**
+ * "Conectar Calendly" (ticket 096): crea (o rehace) la suscripcion del webhook de Calendly
+ * del programa con su token y guarda la clave de firma. La URL publica sale de `AUTH_URL`,
+ * nunca del navegador: desde local no se conecta produccion por accidente.
+ */
+export async function conectarCalendlyAccion(id: string): Promise<ResultadoAccion> {
+  try {
+    const session = await requireRole("gerente");
+    await conectarCalendly(db, session.user.id, id, { urlBase: process.env.AUTH_URL });
     revalidarNav();
     return { ok: true };
   } catch (error) {

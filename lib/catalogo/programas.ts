@@ -84,16 +84,20 @@ export type ProgramaValidado = z.output<typeof esquemaPrograma>;
 export interface ProgramaVistaCatalogo extends FilaCatalogo {
   /** Si el programa ya tiene token de Calendly. El valor nunca sale de aqui. */
   tieneTokenCalendly: boolean;
+  /** Si el webhook de Calendly esta conectado (hay clave de firma). La clave nunca sale de aqui. */
+  webhookCalendlyConectado: boolean;
 }
 
 /**
- * Quita el token de Calendly de una fila y expone en su lugar el booleano
- * `tieneTokenCalendly`. Es el unico sitio por donde una fila de programa sale hacia
+ * Quita el token de Calendly y la clave de firma de su webhook de una fila, y expone en
+ * su lugar los booleanos `tieneTokenCalendly` y `webhookCalendlyConectado`. Es el unico sitio por donde una fila de programa sale hacia
  * el llamador, para que ninguna lectura del catalogo devuelva el token (ADR 0057).
  */
 function sinToken(fila: FilaCatalogo): ProgramaVistaCatalogo {
-  const { calendlyToken, ...resto } = fila;
-  return { ...resto, tieneTokenCalendly: typeof calendlyToken === "string" && calendlyToken.length > 0 };
+  // La clave de firma del webhook (0038) es la tercera excepcion de secretos: sale igual.
+  const { calendlyToken, calendlySigningKey, ...resto } = fila;
+  const tiene = (v: unknown) => typeof v === "string" && v.length > 0;
+  return { ...resto, tieneTokenCalendly: tiene(calendlyToken), webhookCalendlyConectado: tiene(calendlySigningKey) };
 }
 
 /** Valida el id como uuid; un id invalido sale como ErrorDeApp 400, nunca como 500. */

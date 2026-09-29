@@ -20,7 +20,9 @@ export default auth((req) => {
     pathname === "/api/health" ||
     // El webhook de formularios (ADR 0055): no tiene sesion, se autentica con la firma
     // HMAC en el propio handler. Nunca redirige a /login, o cada envio se perderia.
-    pathname.startsWith("/api/webhooks/formularios/");
+    pathname.startsWith("/api/webhooks/formularios/") ||
+    // El webhook de Calendly (ticket 096): mismo caso, firma con la clave del programa.
+    pathname.startsWith("/api/webhooks/calendly/");
 
   if (esRutaPublica) return NextResponse.next();
 

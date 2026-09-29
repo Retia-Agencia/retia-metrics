@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { usd } from "@/lib/format";
 import {
+  conectarCalendlyAccion,
   crearProgramaAccion,
   desactivarProgramaAccion,
   editarProgramaAccion,
@@ -39,6 +40,8 @@ export interface ProgramaVista {
   formUrl: string | null;
   /** Si el programa ya tiene token de Calendly. El valor nunca llega al cliente (ADR 0057). */
   tieneTokenCalendly: boolean;
+  /** Si el webhook de Calendly esta conectado. La clave nunca llega al cliente (ticket 096). */
+  webhookCalendlyConectado: boolean;
   activo: boolean;
 }
 
@@ -162,6 +165,9 @@ export function ProgramasAdmin({ programas }: { programas: ProgramaVista[] }) {
                             sin token
                           </Badge>
                         )}
+                        {p.webhookCalendlyConectado ? (
+                          <Badge variant="secondary">webhook conectado</Badge>
+                        ) : null}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
                         /{p.slug} · ticket {usd(Number(p.ticketUsd))}
@@ -180,6 +186,21 @@ export function ProgramasAdmin({ programas }: { programas: ProgramaVista[] }) {
                             disabled={pendiente}
                             render={<Link href={`/ajustes/programas/${p.slug}`}>Cohortes</Link>}
                           />
+                          {p.tieneTokenCalendly ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={pendiente}
+                              onClick={() =>
+                                correr(
+                                  () => conectarCalendlyAccion(p.id),
+                                  p.webhookCalendlyConectado ? "Webhook de Calendly rehecho" : "Calendly conectado",
+                                )
+                              }
+                            >
+                              {p.webhookCalendlyConectado ? "Rehacer webhook" : "Conectar Calendly"}
+                            </Button>
+                          ) : null}
                           <Button
                             size="sm"
                             variant="ghost"

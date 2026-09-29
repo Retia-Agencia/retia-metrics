@@ -27,6 +27,7 @@ export default async function ProgramasPage() {
     calendlyUrl: (p.calendlyUrl as string | null) ?? null,
     formUrl: (p.formUrl as string | null) ?? null,
     tieneTokenCalendly: p.tieneTokenCalendly,
+    webhookCalendlyConectado: p.webhookCalendlyConectado,
     activo: p.activo,
   }));
 

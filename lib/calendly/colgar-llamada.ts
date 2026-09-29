@@ -230,7 +230,7 @@ async function crearLlamada(db: Db, valores: Record<string, unknown>, correo: st
  * habia otro) y, desde 1, 2, 3, 9 u 11, el motor lo lleva a Agendado. Lo usan el registro
  * automatico y la asignacion a mano de una suelta.
  */
-async function efectoSobreElDeal(
+export async function efectoSobreElDeal(
   tx: Db,
   dealId: string,
   host: string | null,
@@ -254,6 +254,38 @@ async function efectoSobreElDeal(
     if (e instanceof MovimientoRechazado) return { movioAAgendado: false, duenoAnterior, rechazo: e.message };
     throw e;
   }
+}
+
+/**
+ * La SUELTA que se reintenta cuando llega el envio (ADR 0049 punto 7): si la cita ya
+ * entro por el webhook sin deal (el evento de Calendly llego antes que el envio, cosa
+ * normal: la agenda esta embebida a mitad del formulario), el 052 la adopta en vez de
+ * crear otra llamada con la misma huella, que chocaria contra `calls_huella_idx`.
+ *
+ * - `adoptada`: era suelta y ahora cuelga del deal, con rastro.
+ * - `ya_existe`: la cita ya estaba registrada con deal (o anulada): no se toca.
+ * - `no_existe`: no hay llamada con esa huella; el llamador la crea.
+ */
+export async function adoptarSueltaDeCita(
+  tx: Db,
+  programId: string,
+  uuidInvitado: string,
+  deal: { id: string; cohortId: string | null },
+): Promise<"adoptada" | "ya_existe" | "no_existe"> {
+  const [fila] = await tx
+    .select({ id: calls.id, dealId: calls.dealId, anuladoEn: calls.anuladoEn, emailLead: calls.emailLead })
+    .from(calls)
+    .where(
+      and(eq(calls.programId, programId), eq(calls.huellaFila, huellaDeCita(uuidInvitado)), incluyendoAnulados(calls)),
+    );
+  if (!fila) return "no_existe";
+  if (fila.dealId !== null || fila.anuladoEn !== null) return "ya_existe";
+  await editarConRastro(
+    { db: tx, tabla: calls, nombreTabla: "calls", actorId: null, etiqueta: fila.emailLead ?? fila.id },
+    fila.id,
+    { dealId: deal.id, cohortId: deal.cohortId },
+  );
+  return "adoptada";
 }
 
 /**

@@ -7,7 +7,12 @@ import { crearConRastro } from "@/lib/crm/rastro";
 import { abrirDeal, moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { closerHost } from "@/lib/calendly/emparejar-llamada";
-import { closersConCalendly, darDealAlHost, huellaDeCita } from "@/lib/calendly/colgar-llamada";
+import {
+  adoptarSueltaDeCita,
+  closersConCalendly,
+  darDealAlHost,
+  huellaDeCita,
+} from "@/lib/calendly/colgar-llamada";
 import type { Calificacion } from "./calificacion";
 
 /**
@@ -280,6 +285,9 @@ async function crearLlamadaDeCita(
   emailLead: string,
   llamada: LlamadaDeCita,
 ): Promise<void> {
+  // La cita pudo entrar antes por el webhook de Calendly, suelta: se adopta (096).
+  const previa = await adoptarSueltaDeCita(db, deal.programId, llamada.uuidInvitado, deal);
+  if (previa !== "no_existe") return;
   try {
     await crearConRastro(
       {

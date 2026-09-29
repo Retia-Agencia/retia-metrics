@@ -321,7 +321,7 @@ describe("reprocesar un sobre con error", () => {
     const cuerpo = JSON.stringify(conEstado(fixture(), "descartado"));
     const [sobre] = await db
       .insert(sobresCrudos)
-      .values({ sourceId, cuerpo, error: "fallo anterior simulado" })
+      .values({ sourceId, programId, cuerpo, error: "fallo anterior simulado" })
       .returning();
 
     const reproceso = await reprocesarSobre(db, sobre.id);
@@ -339,7 +339,7 @@ describe("reprocesar un sobre con error", () => {
 
   it("un sobre ya procesado (sin error) no se reprocesa", async () => {
     const cuerpo = JSON.stringify(conEstado(fixture(), "descartado"));
-    const [sobre] = await db.insert(sobresCrudos).values({ sourceId, cuerpo, error: null }).returning();
+    const [sobre] = await db.insert(sobresCrudos).values({ sourceId, programId, cuerpo, error: null }).returning();
     expect(await reprocesarSobre(db, sobre.id)).toBeNull();
   });
 });
@@ -351,7 +351,7 @@ describe("server action de reprocesar: rol en el servidor", () => {
     const cuerpo = JSON.stringify(conEstado(fixture(), "descartado"));
     const [sobre] = await db
       .insert(sobresCrudos)
-      .values({ sourceId, cuerpo, error: "fallo anterior" })
+      .values({ sourceId, programId, cuerpo, error: "fallo anterior" })
       .returning();
 
     sesionHolder.rol = "closer";
@@ -368,7 +368,7 @@ describe("server action de reprocesar: rol en el servidor", () => {
     const cuerpo = JSON.stringify(conEstado(fixture(), "descartado"));
     const [sobre] = await db
       .insert(sobresCrudos)
-      .values({ sourceId, cuerpo, error: "fallo anterior" })
+      .values({ sourceId, programId, cuerpo, error: "fallo anterior" })
       .returning();
 
     sesionHolder.rol = "gerente";

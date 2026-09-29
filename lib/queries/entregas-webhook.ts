@@ -140,6 +140,7 @@ export async function entregasDePrograma(
       codigoHttp: entregasWebhook.codigoHttp,
       motivo: entregasWebhook.motivo,
       fuenteNombre: sources.nombre,
+      sourceId: entregasWebhook.sourceId,
       leadId: entregasWebhook.leadId,
       leadNombre: leads.nombre,
       leadEmail: leads.emailNormalizado,
@@ -155,13 +156,14 @@ export async function entregasDePrograma(
     .orderBy(desc(entregasWebhook.recibidoEn))
     .limit(LIMITE_ENTREGAS);
 
-  return filas.map((f) => aEntregaListada(f));
+  return filas.map((f) => aEntregaListada(f, false));
 }
 
 /**
- * Las entregas HUERFANAS: las que no resolvieron una fuente (`source_id` nulo), asi
- * que no son de ningun programa. Son los 404 por id inexistente o mal formado. Se
- * muestran aparte porque no caben en la vista por programa.
+ * Las entregas HUERFANAS: las que no resolvieron ni una fuente ni un programa
+ * (`program_id` nulo). Son los 404 por id inexistente o mal formado. Se muestran aparte
+ * porque no caben en la vista por programa. No se filtra por `source_id` nulo: una
+ * entrega de Calendly (0039) tampoco tiene fuente y SI es de un programa.
  */
 export async function entregasHuerfanas(db: Db = dbDeLaApp): Promise<EntregaListada[]> {
   const filas = await db
@@ -171,6 +173,7 @@ export async function entregasHuerfanas(db: Db = dbDeLaApp): Promise<EntregaList
       codigoHttp: entregasWebhook.codigoHttp,
       motivo: entregasWebhook.motivo,
       fuenteNombre: sql<string | null>`null`,
+      sourceId: entregasWebhook.sourceId,
       leadId: entregasWebhook.leadId,
       leadNombre: sql<string | null>`null`,
       leadEmail: sql<string | null>`null`,
@@ -179,11 +182,11 @@ export async function entregasHuerfanas(db: Db = dbDeLaApp): Promise<EntregaList
       reprocesadoEn: sql<Date | null>`null`,
     })
     .from(entregasWebhook)
-    .where(isNull(entregasWebhook.sourceId))
+    .where(isNull(entregasWebhook.programId))
     .orderBy(desc(entregasWebhook.recibidoEn))
     .limit(LIMITE_ENTREGAS);
 
-  return filas.map((f) => aEntregaListada(f));
+  return filas.map((f) => aEntregaListada(f, true));
 }
 
 function aEntregaListada(f: {
@@ -192,19 +195,21 @@ function aEntregaListada(f: {
   codigoHttp: number;
   motivo: MotivoEntrega;
   fuenteNombre: string | null;
+  sourceId: string | null;
   leadId: string | null;
   leadNombre: string | null;
   leadEmail: string | null;
   sobreId: string | null;
   errorSobre: string | null;
   reprocesadoEn: Date | null;
-}): EntregaListada {
+}, huerfana: boolean): EntregaListada {
   return {
     id: f.id,
     recibidoEn: new Date(f.recibidoEn),
     codigoHttp: f.codigoHttp,
     motivo: f.motivo,
-    fuenteNombre: f.fuenteNombre,
+    // Una entrega de un programa sin fuente es del webhook de Calendly (0039).
+    fuenteNombre: f.fuenteNombre ?? (f.sourceId === null && !huerfana ? "Calendly" : null),
     leadId: f.leadId,
     // El nombre del lead, y si no tiene, el correo: la pantalla necesita una etiqueta
     // para el enlace. El id de la URL sigue siendo opaco (regla dura).
@@ -212,7 +217,11 @@ function aEntregaListada(f: {
     sobreId: f.sobreId,
     errorSobre: f.errorSobre,
     // Reprocesable = tiene sobre, el sobre sigue con error y aun nadie lo reproceso.
+    // Un sobre de Calendly (sin fuente) todavia no se reprocesa desde la pantalla.
     reprocesable:
-      MOTIVOS_CON_SOBRE.includes(f.motivo) && f.errorSobre !== null && f.reprocesadoEn === null,
+      f.sourceId !== null &&
+      MOTIVOS_CON_SOBRE.includes(f.motivo) &&
+      f.errorSobre !== null &&
+      f.reprocesadoEn === null,
   };
 }

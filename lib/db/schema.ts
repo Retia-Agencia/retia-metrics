@@ -701,12 +701,20 @@ export const submissions = pgTable(
  * la firma se calcula sobre los bytes exactos.
  *
  * `restrict`: una fuente con sobres no se borra, se desactiva (ADR 0026).
+ *
+ * Desde la 0039 (ticket 096) guarda tambien los eventos del webhook de CALENDLY, que no
+ * son de una fuente sino del programa: `origen = 'calendly'` y `source_id` nulo, y el
+ * CHECK ata las dos cosas. `program_id` va en todos (denormalizado, como en
+ * `entregas_webhook`): el programa es frontera.
  */
 export const sobresCrudos = pgTable(
   "sobres_crudos",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    sourceId: uuid("source_id").notNull().references(() => sources.id, { onDelete: "restrict" }),
+    sourceId: uuid("source_id").references(() => sources.id, { onDelete: "restrict" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
+    /** `formulario` (Typeform, con su fuente) o `calendly` (del programa, sin fuente). */
+    origen: text("origen").notNull().default("formulario"),
     cuerpo: text("cuerpo").notNull(),
     /** Nulo = se proceso bien. Con texto = por que no se pudo procesar. */
     error: text("error"),
@@ -719,6 +727,10 @@ export const sobresCrudos = pgTable(
     index("sobres_crudos_pendientes_idx")
       .on(t.sourceId)
       .where(sql`${t.error} is not null and ${t.reprocesadoEn} is null`),
+    check(
+      "sobres_crudos_origen_chk",
+      sql`(${t.origen} = 'formulario' AND ${t.sourceId} IS NOT NULL) OR (${t.origen} = 'calendly' AND ${t.sourceId} IS NULL)`,
+    ),
   ],
 );
 

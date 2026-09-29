@@ -112,9 +112,9 @@ describe("saludDeFuentes (contra la base)", () => {
       { sourceId: id, token: "c", createdAt: hace(1) },
     ]);
     await db.insert(sobresCrudos).values([
-      { sourceId: id, cuerpo: "{}", error: "fallo" }, // pendiente
-      { sourceId: id, cuerpo: "{}", error: "fallo", reprocesadoEn: hace(1) }, // ya reprocesado
-      { sourceId: id, cuerpo: "{}" }, // entro bien
+      { sourceId: id, programId, cuerpo: "{}", error: "fallo" }, // pendiente
+      { sourceId: id, programId, cuerpo: "{}", error: "fallo", reprocesadoEn: hace(1) }, // ya reprocesado
+      { sourceId: id, programId, cuerpo: "{}" }, // entro bien
     ]);
 
     const [s] = await saludDeFuentes(db, AHORA);

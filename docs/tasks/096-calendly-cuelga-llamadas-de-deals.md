@@ -289,3 +289,33 @@ y documentados en `.env.example` y `docs/operations.md` §3 y §4.1; `scripts/se
 4. Decidir con Mani si "la suelta aparece en el Inbox", el dropdown y el botón "buscar llamada" se
    cierran aquí o pasan al 071 y al 074 (los backends ya existen: `asignarLlamadaSuelta`,
    `buscarLlamadaDelDeal`).
+
+## Avance 28-sep, noche (Alejo): el webhook (A5) construido y la 0039 aplicada
+
+- **Ruta** `POST /api/webhooks/calendly/<id del programa>` (en la lista pública de `proxy.ts`). Firma con
+  `programs.calendly_signing_key`; sin firma buena, 404/401 sin tocar nada. Con firma buena el cuerpo va a
+  `sobres_crudos` (`origen = 'calendly'`, sin fuente) y se responde 200 siempre. Cada entrega va a
+  `entregas_webhook` y se ve en la salud del programa como "Calendly" (no como huérfana).
+- **Lo puro**, `lib/calendly/evento-webhook.ts`: la firma (`t=<ts>,v1=<hex>` sobre `<ts>.<cuerpo>`, 5 min de
+  tolerancia) y la lectura del evento. 🩸 **Sin confirmar contra una entrega real**: si difiere, se corrige ahí.
+- **El efecto**, `lib/calendly/eventos-de-cita.ts`: `invitee.created` → `registrarLlamadaDeCalendly`; con
+  `old_invitee` es **reagenda** y mueve la MISMA llamada (huella, fecha, host), en los dos órdenes;
+  `invitee.canceled` (sin reagenda) y `invitee_no_show.created` → la llamada `agendada` pasa a
+  `cancelada`/`no_show` y el deal de Agendado a Re-agenda (T8); `invitee_no_show.deleted` lo deshace (T6). Una
+  llamada que ya no está `agendada` no se pisa. Idempotente.
+- **La suelta que se reintenta:** `adoptarSueltaDeCita` (en el escritor); el 052 la adopta al llegar el envío en
+  vez de chocar con la huella.
+- **"Conectar Calendly" / "Rehacer webhook"** en `/ajustes/programas`: `lib/calendly/suscripcion.ts`, único
+  escritor de la clave (guardián en `tests/calendly-suscripcion.test.ts`). La clave la genera el CRM; la URL sale
+  de `AUTH_URL` (solo https). Un 403 de Calendly dice "plan Standard".
+- 🩸 **Fuga tapada:** `sinToken` (`lib/catalogo/programas.ts`) no quitaba `calendly_signing_key`; ahora sí, y
+  expone `webhookCalendlyConectado`.
+- **Migración 0039** (ok de Mani, aplicada en producción): `sobres_crudos.source_id` nulo, `program_id` (rellenado
+  desde la fuente: 37 sobres) y `origen`, con CHECK. Los sobres de Calendly todavía no se reprocesan desde la
+  pantalla.
+- **Tests:** `calendly-evento-webhook`, `calendly-webhook-ruta` (ruta real firmada contra PGlite; mordido quitando
+  la huella de la reagenda y la adopción), `calendly-suscripcion`. Suite 1.335.
+
+**Para cerrar:** apretar "Conectar Calendly" en los dos programas en producción, agendar una cita de prueba y
+confirmar firma y payload; vincular las cuentas de las closers en `/ajustes/usuarios`; decidir con Mani si la
+pantalla de la suelta y "buscar llamada" pasan al 071/074.

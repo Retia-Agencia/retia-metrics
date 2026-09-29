@@ -2,8 +2,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
-import { sobresCrudos, sources } from "@/lib/db/schema";
-import type { Db } from "@/lib/db/tipos";
+import { sources } from "@/lib/db/schema";
+import { guardarSobre, marcarSobreConError, type DuenoDelSobre } from "@/lib/ingesta/caja-negra";
 import type { MapeoColumnas } from "@/lib/sheets/mapeo";
 import { procesarSobre, type MotivoProcesado } from "@/lib/ingesta/procesar-sobre";
 import { registrarEntrega, type MotivoEntrega } from "@/lib/queries/entregas-webhook";
@@ -64,47 +64,6 @@ function firmaValida(cuerpoCrudo: string, header: string | null, secreto: string
     return false;
   }
   return recibido.length === esperado.length && timingSafeEqual(recibido, esperado);
-}
-
-/**
- * La CAJA NEGRA: guarda el cuerpo crudo con firma buena (con `error: null`). Es UNA
- * fila por entrega; si algo falla despues se ACTUALIZA con el error. Guardar el sobre
- * NUNCA tumba la ingesta: si el insert falla, se loguea y se devuelve null.
- */
-async function registrarSobre(db: Db, sourceId: string, cuerpo: string): Promise<string | null> {
-  try {
-    const [fila] = await db
-      .insert(sobresCrudos)
-      .values({ sourceId, cuerpo, error: null })
-      .returning();
-    return fila?.id ?? null;
-  } catch (e) {
-    console.error(`[webhook] no se pudo registrar el sobre crudo de la fuente ${sourceId}`, e);
-    return null;
-  }
-}
-
-/**
- * Marca el sobre de ESTA entrega con el error. Si ya hay fila la ACTUALIZA; si el insert
- * inicial habia fallado (`sobreId` nulo), intenta un insert de respaldo. Cualquier fallo
- * al escribir se loguea y no cambia la respuesta.
- */
-async function marcarSobreConError(
-  db: Db,
-  sobreId: string | null,
-  sourceId: string,
-  cuerpo: string,
-  error: string,
-): Promise<void> {
-  try {
-    if (sobreId !== null) {
-      await db.update(sobresCrudos).set({ error }).where(eq(sobresCrudos.id, sobreId));
-    } else {
-      await db.insert(sobresCrudos).values({ sourceId, cuerpo, error });
-    }
-  } catch (e) {
-    console.error(`[webhook] no se pudo marcar el sobre crudo de la fuente ${sourceId}`, e);
-  }
 }
 
 export async function POST(
@@ -197,7 +156,8 @@ export async function POST(
 
   // 3. Firma buena. La CAJA NEGRA guarda el cuerpo crudo YA. Luego `procesarSobre` (el
   // mismo camino que el reproceso del ticket 110) adapta e ingiere.
-  const sobreId = await registrarSobre(db, fila.id, cuerpo);
+  const dueno: DuenoDelSobre = { canal: "formulario", sourceId: fila.id, programId: fila.programId };
+  const sobreId = await guardarSobre(db, dueno, cuerpo);
   const resultado = await procesarSobre(
     db,
     {
@@ -212,7 +172,7 @@ export async function POST(
   // Si algo no se pudo procesar (sin correo, contenido invalido, fallo de ingesta) se
   // marca el sobre con el error; si salio bien, queda con `error: null` (caja negra).
   if (resultado.error !== null) {
-    await marcarSobreConError(db, sobreId, fila.id, cuerpo, resultado.error);
+    await marcarSobreConError(db, sobreId, dueno, cuerpo, resultado.error);
   }
 
   // La entrega, con su motivo, el lead que trajo y el sobre. Registrar la entrega no

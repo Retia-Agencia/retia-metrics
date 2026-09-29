@@ -180,6 +180,9 @@ export async function reprocesarSobre(db: Db, sobreId: string): Promise<Reproces
     .where(eq(sobresCrudos.id, sobreId))
     .limit(1);
   if (!sobre || sobre.error === null) return null;
+  // Un evento de Calendly (0039) no tiene fuente ni pasa por este adaptador: todavia no se
+  // reprocesa desde la pantalla. Queda guardado con su error.
+  if (sobre.sourceId === null) return null;
 
   const [fuente] = await db
     .select({
