@@ -526,6 +526,35 @@ function comoTexto(v: unknown): string | null {
 }
 
 /**
+ * UN `UPDATE ... FROM (VALUES ...)` por lote en vez de uno por lead: por el pooler cada
+ * viaje cuesta y el traslado de ~3.000 leads no cabia (AGENTS.md, "Rendimiento y escala").
+ * Los valores van con su cast: un `null` sin tipo en un VALUES no lo infiere Postgres, y un
+ * `Date` NUNCA se interpola crudo en una plantilla `sql` (postgres-js lo rechaza), asi que
+ * viajan como ISO. Los nombres de columna van escritos a mano porque aqui no hay ambiguedad
+ * que resolver: el UPDATE es de una sola tabla.
+ */
+async function actualizarResumenes(tx: Db, filas: { id: string; resumen: Resumen }[], ahora: Date): Promise<void> {
+  const iso = (d: Date | null) => (d === null ? null : d.toISOString());
+  for (const lote of enLotes(filas)) {
+    const valores = lote.map(
+      ({ id, resumen: r }) =>
+        sql`(${id}::uuid, ${r.nombre}::text, ${r.telefono}::text, ${r.utmSource}::text, ${r.utmMedium}::text, ${r.utmCampaign}::text, ${iso(r.fechaPrimeraAplicacion)}::timestamptz, ${iso(r.fechaUltimaAplicacion)}::timestamptz, ${r.numAplicaciones}::integer, ${r.calificacion}::calificacion_envio, ${r.puntaje}::integer)`,
+    );
+    await tx.execute(sql`
+      update "leads" set
+        "nombre" = v.nombre, "telefono" = v.telefono, "utm_source" = v.utm_source,
+        "utm_medium" = v.utm_medium, "utm_campaign" = v.utm_campaign,
+        "fecha_primera_aplicacion" = v.fecha_primera, "fecha_ultima_aplicacion" = v.fecha_ultima,
+        "num_aplicaciones" = v.num_aplicaciones, "calificacion" = v.calificacion,
+        "puntaje" = v.puntaje, "updated_at" = ${ahora.toISOString()}::timestamptz
+      from (values ${sql.join(valores, sql`, `)})
+        as v(id, nombre, telefono, utm_source, utm_medium, utm_campaign, fecha_primera, fecha_ultima, num_aplicaciones, calificacion, puntaje)
+      where "leads"."id" = v.id
+    `);
+  }
+}
+
+/**
  * Reescribe el resumen de los leads que cambian y deja en `change_log` cada campo
  * tocado de un lead que YA existia. Un lead recien creado no deja bitacora de sus
  * campos: su creacion es el envio mismo, que queda guardado.
@@ -571,6 +600,8 @@ async function recalcularResumen(
     const telefonoDe = new Map(principales.map((p) => [p.leadId, p.valor]));
 
     const ahora = new Date();
+    const aEscribir: { id: string; resumen: Resumen }[] = [];
+    const bitacora: (typeof changeLog.$inferInsert)[] = [];
     for (const lead of guardados) {
       const resumen = resumirEnvios(
         envios.filter((e) => e.leadId === lead.id),
@@ -580,12 +611,12 @@ async function recalcularResumen(
       const diffs = CAMPOS_DEL_RESUMEN.filter((c) => comoTexto(lead[c]) !== comoTexto(resumen[c]));
       if (diffs.length === 0) continue;
 
-      await tx.update(leads).set({ ...resumen, updatedAt: ahora }).where(eq(leads.id, lead.id));
+      aEscribir.push({ id: lead.id, resumen });
       if (creados.has(lead.id)) continue;
 
       actualizados++;
-      await tx.insert(changeLog).values(
-        diffs.map((campo) => ({
+      for (const campo of diffs) {
+        bitacora.push({
           tabla: "leads",
           registroId: lead.id,
           etiqueta: lead.nombre ?? lead.emailNormalizado,
@@ -594,10 +625,12 @@ async function recalcularResumen(
           valorNuevo: comoTexto(resumen[campo]),
           origen: "sync" as const,
           syncRunId,
-        })),
-      );
+        });
+      }
       cambios += diffs.length;
     }
+    await actualizarResumenes(tx, aEscribir, ahora);
+    for (const filas of enLotes(bitacora)) await tx.insert(changeLog).values(filas);
   }
   return { actualizados, cambios };
 }

@@ -74,6 +74,8 @@ interface ReporteFuente {
     leadsActualizados: number;
     contactosNuevos: number;
     enviosSinLead: number;
+    /** Uniones por telefono y telefonos de otro lead: explican leads nuevos < correos unicos. */
+    posiblesDuplicados: { unidosPorTelefono: number; telefonoDeOtroLead: number };
     sinCalificar: { motivo: string; envios: number }[];
   };
   error?: string;
@@ -105,6 +107,10 @@ function reporteDesdeIngesta(r: ResultadoIngesta): NonNullable<ReporteFuente["in
     leadsActualizados: r.leadsActualizados,
     contactosNuevos: r.contactosNuevos,
     enviosSinLead: r.enviosSinLead,
+    posiblesDuplicados: {
+      unidosPorTelefono: r.posiblesDuplicados.filter((d) => d.motivo === "unido_por_telefono").length,
+      telefonoDeOtroLead: r.posiblesDuplicados.filter((d) => d.motivo === "telefono_de_otro_lead").length,
+    },
     sinCalificar: r.sinCalificar,
   };
 }
@@ -178,11 +184,15 @@ async function trasladarPrograma(
       }
       const resumen = resumirEntradas(c.entradas);
       const { nuevas, yaEnElCrm } = apartarLasQueYaEntraron(c.entradas, tokensDelPrograma);
+      // Avance por fuente: un traslado largo no puede quedar mudo (ticket 111).
+      console.log(`  … ${programa.slug} / ${c.fuente.nombre}: ingiriendo ${nuevas.length} filas`);
+      const inicio = Date.now();
       try {
         const r = await ingerirEntradas(tx, programa.id, nuevas, {
           aplicarReglaDeDeals: false,
           syncRunId,
         });
+        console.log(`  ✓ ${c.fuente.nombre}: ${((Date.now() - inicio) / 1000).toFixed(1)} s`);
         fuentesReporte.push({ ...vacio, ...resumen, yaEnElCrm, ingesta: reporteDesdeIngesta(r) });
       } catch (e) {
         fuentesReporte.push({ ...vacio, ...resumen, yaEnElCrm, error: (e as Error).message });
@@ -250,6 +260,7 @@ function imprimirReporte(reportes: ReportePrograma[], aplicar: boolean): void {
         console.log(`      → leads nuevos      : ${g.leadsNuevos}`);
         console.log(`      → leads actualizados: ${g.leadsActualizados}`);
         console.log(`      → contactos nuevos  : ${g.contactosNuevos}`);
+        console.log(`      → posibles duplicados : ${g.posiblesDuplicados.unidosPorTelefono} unidos por teléfono, ${g.posiblesDuplicados.telefonoDeOtroLead} teléfono de otro lead`);
         if (g.enviosSinLead > 0) console.log(`      → envíos sin lead   : ${g.enviosSinLead}`);
         for (const s of g.sinCalificar) console.log(`      → sin calificar     : ${s.envios}  (${s.motivo})`);
       }
