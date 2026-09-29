@@ -1,3 +1,7 @@
+# Nombre fijo: sin el, Compose toma el de la carpeta y cada worktree choca por el mismo container_name.
+name: retia-metrics
+
+
 services:
   postgres:
     image: postgres:17-alpine
