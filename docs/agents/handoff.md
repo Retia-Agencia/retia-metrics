@@ -43,7 +43,7 @@ cancelacion/no-show/reagenda sobre la MISMA llamada, "Conectar Calendly" que cre
 API) — el webhook llama a registrarLlamadaDeCalendly de lib/calendly/colgar-llamada.ts; (4) cerrar el 096
 y el 097 (390 px) en el tracker. Recien ahi E3.
 
-LO QUE SIGUE, E3 (plan-reparto): Mani 069 (Kanban por programa, L) -> 074 (Ficha del deal, L); Alejo 077
+LO QUE SIGUE, E3 (plan-reparto): Mani 069 (Kanban, HECHO 29-sep) -> 074 (Ficha del deal, L, SIGUIENTE); Alejo 077
 (barrer las pestañas de gestion) -> 078 (el 081 se descarto: solo USD). A4 YA DECIDIDA (Mani, 28-sep): la UI se prueba USANDOLA, porque tiene
 que servir y ser intuitiva; sin tests de componente ni Playwright. Ojo: para usarla sin tocar produccion
 hace falta un login local (Auth.js solo tiene Google), asi que en la sesion de E3 decide con Mani si se
@@ -70,6 +70,26 @@ empujar otra vez: Alejo trabaja en paralelo sobre el mismo main.
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-29 (sesión 45, Mani): 069 hecho, el Kanban de Deals. Primer ticket de E3 del carril de Mani.**
+  - **Login local** (`lib/auth/login-local.ts`, `lib/db/es-local.ts`): "Entrar como (local)" solo con
+    `AUTH_LOGIN_LOCAL=1` (lo pone `dev:local`) y una `DATABASE_URL` local; en producción no existe. Decisión
+    de Mani: la UI se prueba contra la base de Docker, no contra producción.
+  - **Kanban** en `/p/<programa>/deals` (`components/deals/`, `lib/queries/kanban.ts`, acción en
+    `app/(app)/p/[programa]/deals/acciones.ts`). Decisión de Mani: arrastre nativo estilo HubSpot (todo el
+    tablero reacciona al levantar una tarjeta) más menú "Mover a…" para celular; sin dependencia nueva.
+    `ETAPAS_EN_ORDEN` en `lib/deals/etapas.ts` es el orden de pantalla (no el del enum).
+  - **Recorrido hecho usándolo** (detalle en el cierre del ticket 069): requisito faltante, motivo, producto y
+    fecha, arrastre permitido y prohibido, deal ajeno rechazado por el servidor, 390 px. Seis bugs de UI
+    salieron ahí y no en los tests (Select con valor crudo y no controlado, orden de columnas, precio sin
+    formato, T9 en el menú, menú en deals ajenos).
+  - **Base local:** `docker-compose.yml` con `name: retia-metrics` (cada worktree chocaba por el contenedor).
+    Turbopack no acepta un `node_modules` enlazado: un worktree con symlink no corre `next dev`.
+  - **Kiro** implementó en un worktree a mano; la sesión principal revisó, corrigió y corrió la suite.
+  - **Medido:** 1.365 tests, typecheck, lint y build limpios.
+  - **Sigue en el carril de Mani de E3: el 074 (Ficha del Deal)**, que además debe prellenar la fecha
+    límite con el inicio de clases en el diálogo de Compromiso Verbal. E3 no cierra sin él ni sin el 077/078
+    de Alejo.
 
 - **2026-09-28 (sesión 44, Alejo): el 096 sin el webhook, en `main` sobre la 0038 de Mani.**
   - **Migración:** propuse una 0038 propia (con el CHECK ya aflojado por la misma razón que Mani); al empujar,
