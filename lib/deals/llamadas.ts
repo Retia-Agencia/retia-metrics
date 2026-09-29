@@ -4,10 +4,11 @@ import { calls, deals, leads } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { esAdministrador, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { moverEtapa } from "./mover-etapa";
+import { puedeTrabajarDeal } from "./permiso";
 import { transicion, type EtapaDeal } from "./etapas";
 
 /**
@@ -533,19 +534,17 @@ async function dealAbiertoDelActor(
       409,
     );
   }
-  if (!esAdministrador(actor.rol)) {
+  if (!puedeTrabajarDeal(actor, deal)) {
     if (deal.ownerUserId == null) {
       throw new ErrorDeApp(
         "Este deal no tiene dueño: reclámalo antes de registrar una llamada.",
         409,
       );
     }
-    if (deal.ownerUserId !== actor.userId) {
-      throw new ErrorDeApp(
-        "Solo el dueño del deal puede registrar sus llamadas.",
-        403,
-      );
-    }
+    throw new ErrorDeApp(
+      "Solo el dueño del deal puede registrar sus llamadas.",
+      403,
+    );
   }
   return { deal, emailLead };
 }

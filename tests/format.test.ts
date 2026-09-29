@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fecha, fechaDeInstanteEnBogota, monto, saldoLegible } from "@/lib/format";
+import { fecha, fechaDeInstanteEnBogota, instanteDeBogota, monto, saldoLegible } from "@/lib/format";
 
 /**
  * Ticket 005 — la moneda va SIEMPRE al lado del numero y nunca se convierte
@@ -94,5 +94,18 @@ describe("fecha de calendario legible", () => {
   it("lo que no es una fecha se devuelve tal cual, sin inventar un dia", () => {
     expect(fecha("")).toBe("");
     expect(fecha("sin fecha")).toBe("sin fecha");
+  });
+});
+
+describe("instante de una fecha y hora de Bogota", () => {
+  it("es -05:00 explicito, no la zona del proceso", () => {
+    expect(instanteDeBogota("2026-09-29", "19:30")?.toISOString()).toBe("2026-09-30T00:30:00.000Z");
+    expect(instanteDeBogota("2026-09-29", "09:00")?.toISOString()).toBe("2026-09-29T14:00:00.000Z");
+  });
+
+  it("un texto que no es fecha y hora da null", () => {
+    expect(instanteDeBogota("", "09:00")).toBeNull();
+    expect(instanteDeBogota("2026-09-29", "9am")).toBeNull();
+    expect(instanteDeBogota("2026-13-45", "09:00")).toBeNull();
   });
 });

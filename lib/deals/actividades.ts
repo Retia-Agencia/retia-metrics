@@ -1,0 +1,65 @@
+import { z } from "zod";
+import { dealActividades } from "@/lib/db/schema";
+import type { Db } from "@/lib/db/tipos";
+import { ErrorDeApp } from "@/lib/errors";
+import { normalizando } from "@/lib/errors-zod";
+import { crearConRastro } from "@/lib/crm/rastro";
+import { dealBloqueadoConLead } from "./leer-deal";
+import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
+
+/**
+ * Registrar una actividad de un deal: un `contacto` (le escribi, lo llame) o una `nota`
+ * (ticket 074, ADR 0037). Reemplazan las cinco columnas `Registro 1-5` de la hoja.
+ *
+ * - **Registrar un contacto NO mueve la etapa.** Es un hecho que el motor LEE
+ *   (`tieneContactoRegistrado`, la flecha a En Contacto); moverla es decision del closer.
+ * - **`canal` es texto libre**, no catalogo: la UI sugiere WhatsApp, Llamada, Correo con un
+ *   `datalist` y deja escribir otro. Si algun dia hay que reportar por canal, pasa a molde.
+ * - Quien la registra sale de la sesion (`userId` = el actor), nunca del input. Un contacto
+ *   siempre es de una persona (CHECK `deal_actividades_contacto_con_usuario`).
+ * - Solo sobre un deal vigente. Puede quien trabaja el deal (dueño o administrador). Un deal
+ *   cerrado si admite notas: "por que se perdio" se escribe DESPUES de cerrar.
+ *
+ * `fecha` es un INSTANTE; ausente = ahora. La arma quien llama, en Bogota (`-05:00`).
+ */
+export const esquemaRegistrarActividad = z.object({
+  dealId: z.string().uuid("El deal no es válido."),
+  tipo: z.enum(["contacto", "nota"], { message: "El tipo tiene que ser contacto o nota." }),
+  canal: z.string().trim().max(60, "El canal es muy largo.").optional(),
+  fecha: z.date({ message: "La fecha no es válida." }).optional(),
+  nota: z.string().trim().min(1, "Escribe qué pasó.").max(4000, "La nota es muy larga."),
+});
+export type DatosRegistrarActividad = z.input<typeof esquemaRegistrarActividad>;
+
+type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
+
+export async function registrarActividad(db: Db, actor: ActorDeDeal, datos: DatosRegistrarActividad): Promise<string> {
+  return normalizando(async () => {
+    const { dealId, tipo, canal, fecha, nota } = esquemaRegistrarActividad.parse(datos);
+
+    return (db as unknown as Transaccion).transaction(async (tx) => {
+      const { deal, emailLead } = await dealBloqueadoConLead(tx, dealId);
+      if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado: no recibe actividades.", 409);
+      if (!puedeTrabajarDeal(actor, deal)) {
+        throw new ErrorDeApp(
+          deal.ownerUserId == null
+            ? "Este deal no tiene dueño: reclámalo antes de registrar una actividad."
+            : "Solo el dueño del deal o un administrador registran sus actividades.",
+          403,
+        );
+      }
+
+      return crearConRastro(
+        { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: actor.userId, etiqueta: emailLead },
+        {
+          dealId: deal.id,
+          tipo,
+          canal: canal ? canal : null,
+          userId: actor.userId,
+          fecha: fecha ?? new Date(),
+          nota,
+        },
+      );
+    });
+  });
+}

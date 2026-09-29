@@ -123,6 +123,19 @@ export function hoyEnBogota(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 }
 
+/**
+ * El INSTANTE de una fecha y hora escritas en Bogota (un `<input type="date">` mas uno
+ * `type="time"`, ticket 074). Colombia no tiene horario de verano: siempre `-05:00`, y va
+ * EXPLICITO porque la zona del proceso no es la de Bogota (Vercel corre en UTC). Nunca
+ * `new Date("YYYY-MM-DDTHH:mm")` (usa la zona del proceso) ni `new Date(a, m, d)`.
+ * `null` si el texto no es una fecha y hora validas.
+ */
+export function instanteDeBogota(dia: string, hora: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia) || !/^\d{2}:\d{2}$/.test(hora)) return null;
+  const instante = new Date(`${dia}T${hora}:00-05:00`);
+  return Number.isNaN(instante.getTime()) ? null : instante;
+}
+
 /** Fecha de calendario de un instante, observada en Bogota. */
 export function fechaDeInstanteEnBogota(instante: Date | string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(

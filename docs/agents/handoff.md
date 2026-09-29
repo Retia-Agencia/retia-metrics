@@ -70,6 +70,21 @@ sobre el mismo main.
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-29 (sesión 46, Mani): 074 hecho, la Ficha del Deal. E3 del carril de Mani cerrada.**
+  - Implementó un subagente; la sesión principal revisó, corrigió y probó. **Desde aquí implementa Kiro y
+    NO corre suites ni pruebas** (Mani, 29-sep): la verificación es de la sesión principal.
+  - 🩸 **Dos defectos que la revisión cazó y los tests del implementador no:** (1) `editarDeal` dejaba poner
+    de dueño a un closer de OTRO programa (solo pedía `trabajaLeads`); ahora la pregunta vive en
+    `lib/deals/duenos.ts` y la usan la lista y la reja. (2) Anular un deal dejaba sus llamadas contando en el
+    embudo (`vigente(calls)` no mira el deal); `anularDeal` las anula en cascada, con rastro.
+  - Decisiones: K1 (se retira `buscarLlamadaDelDeal`, lo hace Alejo con el 096), K2 (la suelta se asigna en
+    el Inbox), 079 cerrado por el traslado. 070: bandas de ingreso = lista ordenada de etiquetas por
+    programa; ComunicArte tiene DOS escalas en su historia (641 respuestas con la de Tactical). 071: X = 3
+    días hábiles por programa. Ambas columnas van en la migración de arranque de E4 (falta el ok de Mani).
+  - UI: dentro de un `DialogContent` (grid), el envoltorio del formulario necesita `min-w-0` o un Select
+    con texto largo empuja el diálogo fuera de pantalla en celular.
+  - **Medido:** 1.415 tests, typecheck, lint y build limpios.
+
 - **2026-09-29 (sesión 45, Mani, cierre): docs consolidados contra el código.**
   - `plan.md` §2 reescrito con el estado de hoy; §4.3b y §7.1 decían abiertas D3, D4, R4, R5 y las
     preguntas del Estado, ya decididas; `AGENTS.md` daba el alcance del 094 como "por construir".

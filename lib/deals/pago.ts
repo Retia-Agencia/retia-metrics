@@ -4,10 +4,11 @@ import { cohorts, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { esAdministrador, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import type { Rol } from "@/lib/auth/roles";
 import { editarConRastro } from "@/lib/crm/rastro";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
+import { puedeTrabajarDeal } from "./permiso";
 
 /**
  * El acuerdo de pago y su fecha límite (ticket 061, ADR 0053).
@@ -115,10 +116,8 @@ export async function editarAcuerdoDePago(db: Db, actor: ActorDeAcuerdo, datos: 
       if (deal.etapa === "completo" || deal.etapa === "cierre_perdido") {
         throw new ErrorDeApp("El deal está cerrado: no tiene acuerdo de pago que editar.", 409);
       }
-      if (!esAdministrador(actor.rol)) {
-        if (!trabajaLeads(actor.rol) || deal.ownerUserId !== actor.userId) {
-          throw new ErrorDeApp("Solo el dueño del deal o un administrador editan su acuerdo de pago.", 403);
-        }
+      if (!puedeTrabajarDeal(actor, deal)) {
+        throw new ErrorDeApp("Solo el dueño del deal o un administrador editan su acuerdo de pago.", 403);
       }
 
       const cambios: Record<string, unknown> = {};

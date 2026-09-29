@@ -4,10 +4,11 @@ import { cohorts, dealActividades, deals, leads } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { esAdministrador, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import type { Rol } from "@/lib/auth/roles";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { fechaLimiteMaxima } from "./pago";
+import { puedeTrabajarDeal } from "./permiso";
 
 /**
  * Lo único del onboarding que entra al CRM y el único movimiento extraordinario de un deal
@@ -50,10 +51,8 @@ async function estudianteDelActor(
   if (soloEstudiante && deal.etapa !== "abonado" && deal.etapa !== "completo") {
     throw new ErrorDeApp("Solo un estudiante (deal en Abonado o Completo) tiene onboarding y cohorte propios.", 409);
   }
-  if (!esAdministrador(actor.rol)) {
-    if (!trabajaLeads(actor.rol) || deal.ownerUserId !== actor.userId) {
-      throw new ErrorDeApp("Solo el closer dueño del deal o un administrador pueden hacerlo.", 403);
-    }
+  if (!puedeTrabajarDeal(actor, deal)) {
+    throw new ErrorDeApp("Solo el closer dueño del deal o un administrador pueden hacerlo.", 403);
   }
   return fila;
 }

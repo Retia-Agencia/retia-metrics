@@ -241,6 +241,12 @@ describe("guardián: el alcance se pregunta por la función, no con un join prop
     [path.join("lib", "calendly", "colgar-llamada.ts")]:
       "identidad de la host: qué closer es dueña de una cuenta de Calendly en el programa",
 
+    // "¿Quién puede ser dueño de un deal de este programa?" (ticket 074): decide de quién
+    // puede ser una fila, para la lista de reasignar y para la reja de editarDeal. No acota
+    // ninguna lectura a una sesión.
+    [path.join("lib", "deals", "duenos.ts")]:
+      "identidad del dueño: quién puede ser dueño de un deal del programa",
+
     // Mutación: al crear/asignar una persona comprueba que el actor sea miembro activo
     // del programa. Es autorización de escritura, misma familia que acceso-programa.
     [path.join("lib", "mutations", "personas.ts")]:

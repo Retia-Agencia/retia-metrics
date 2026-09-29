@@ -41,6 +41,9 @@ export interface TableroKanbanProps {
   productos: (OpcionCatalogo & { moneda: string; precio: string })[];
   cohortes: OpcionCatalogo[];
   motivos: { id: string; nombre: string; tipo: string }[];
+  /** Inicio de clases por cohorte y el de la activa: prellenan la fecha limite de Compromiso Verbal. */
+  inicioDeClases: Record<string, string>;
+  inicioDeLaCohorteActiva: string | null;
   /** Quien mira, para saber que deals son suyos. Sale de la sesion en el servidor. */
   userId: string;
   /** Administra (gerente o developer, `esAdministrador`): mueve cualquier deal. */
@@ -63,6 +66,8 @@ export function TableroKanban({
   productos,
   cohortes,
   motivos,
+  inicioDeClases,
+  inicioDeLaCohorteActiva,
   userId,
   administra,
 }: TableroKanbanProps) {
@@ -250,6 +255,10 @@ export function TableroKanban({
           productos={productos}
           cohortes={cohortes}
           motivos={motivos}
+          // La cohorte del deal; sin ella, la activa del programa (la que se le asignara al pagar).
+          fechaLimiteSugerida={
+            dialogo.tarjeta.cohortId ? (inicioDeClases[dialogo.tarjeta.cohortId] ?? null) : inicioDeLaCohorteActiva
+          }
           pendiente={pendiente}
           onConfirmar={(datos) => ejecutar(dialogo.tarjeta, dialogo.flecha, datos)}
         />

@@ -12,6 +12,7 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { ETAPAS_EN_ORDEN, type EtapaDeal } from "@/lib/deals/etapas";
 import { carteraVencida } from "@/lib/queries/cartera";
+import { cohorteActiva } from "@/lib/queries/cohortes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
 import { hoyEnBogota } from "@/lib/format";
@@ -285,6 +286,13 @@ export interface OpcionesDeTablero {
   owners: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
   canales: OpcionCanal[];
+  /**
+   * Inicio de clases (`YYYY-MM-DD`) de cada cohorte con deals, y el de la cohorte activa:
+   * con ellos el dialogo de Compromiso Verbal prellena la fecha limite (ticket 074, la
+   * misma `fechaLimiteMaxima` de la reja del motor).
+   */
+  inicioDeClases: Record<string, string>;
+  inicioDeLaCohorteActiva: string | null;
   /** Productos activos del programa (para el dialogo de Compromiso Verbal). */
   productos: (OpcionCatalogo & { moneda: string; precio: string })[];
   /** Motivos activos por tipo (para las flechas que exigen motivo). */
@@ -313,7 +321,7 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
 
   // Cohortes con deals vigentes en el programa.
   const cohorteFilas = await db
-    .selectDistinct({ id: cohorts.id, codigo: cohorts.codigo })
+    .selectDistinct({ id: cohorts.id, codigo: cohorts.codigo, inicio: cohorts.fechaInicioClases })
     .from(deals)
     .innerJoin(cohorts, eq(cohorts.id, deals.cohortId))
     .where(and(eq(deals.programId, programId), vigente(deals)));
@@ -348,5 +356,8 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
     .where(eq(motivos.activo, true));
   const listaMotivos = motivoFilas.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-  return { owners, cohortes, canales, productos: listaProductos, motivos: listaMotivos };
+  const inicioDeClases = Object.fromEntries(cohorteFilas.map((c) => [c.id, c.inicio] as const));
+  const inicioDeLaCohorteActiva = (await cohorteActiva(programId, db))?.fechaInicioClases ?? null;
+
+  return { owners, cohortes, canales, inicioDeClases, inicioDeLaCohorteActiva, productos: listaProductos, motivos: listaMotivos };
 }

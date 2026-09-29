@@ -51,6 +51,12 @@ export interface DialogoMoverProps {
   cohortes: OpcionCatalogo[];
   /** Motivos activos con su tipo; el dialogo filtra por el tipo de la flecha. */
   motivos: { id: string; nombre: string; tipo: string }[];
+  /**
+   * El inicio de clases de la cohorte del deal (`fechaLimiteMaxima`, ticket 061): con el
+   * se PRELLENA la fecha limite de pago de Compromiso Verbal, que ademas no puede pasarlo.
+   * `null` si no hay cohorte de referencia: el campo queda vacio.
+   */
+  fechaLimiteSugerida?: string | null;
   pendiente: boolean;
   onConfirmar: (datos: DatosDialogo) => void;
 }
@@ -86,11 +92,14 @@ export function DialogoMover({
   productos,
   cohortes,
   motivos,
+  fechaLimiteSugerida = null,
   pendiente,
   onConfirmar,
 }: DialogoMoverProps) {
   const campos = camposDeDialogo(flecha);
-  const [datos, setDatos] = useState<DatosDialogo>({});
+  // Lo unico que arranca lleno es la fecha limite, con el inicio de clases de la cohorte.
+  const inicial = (): DatosDialogo => ({ fechaLimitePago: fechaLimiteSugerida });
+  const [datos, setDatos] = useState<DatosDialogo>(inicial);
 
   const motivosDeLaFlecha = flecha.tipoDeMotivo
     ? motivos.filter((m) => m.tipo === flecha.tipoDeMotivo)
@@ -111,7 +120,7 @@ export function DialogoMover({
       open={abierto}
       onOpenChange={(v) => {
         onAbrir(v);
-        if (!v) setDatos({});
+        if (!v) setDatos(inicial());
       }}
     >
       <DialogContent>
@@ -122,7 +131,7 @@ export function DialogoMover({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="min-w-0 space-y-3">
           {campos.map((campo) => (
             <div key={campo} className="space-y-1">
               <label className="block text-xs font-medium text-muted-foreground">{ETIQUETA[campo]}</label>
@@ -184,11 +193,18 @@ export function DialogoMover({
                 </Select>
               ) : null}
 
+              {campo === "fecha_limite_pago" && fechaLimiteSugerida ? (
+                <p className="text-xs text-muted-foreground">
+                  Sugerida: el inicio de clases de la cohorte. No puede pasarlo.
+                </p>
+              ) : null}
+
               {campo === "fecha_limite_pago" ? (
                 <input
                   type="date"
                   className={claseInput}
                   value={datos.fechaLimitePago ?? ""}
+                  max={fechaLimiteSugerida ?? undefined}
                   onChange={(e) => setDatos((d) => ({ ...d, fechaLimitePago: e.target.value || null }))}
                 />
               ) : null}

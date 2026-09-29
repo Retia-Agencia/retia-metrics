@@ -196,7 +196,7 @@ se abre**. Este repo no tiene tests de componentes y el 20-sep dos bugs pasaron 
 | [ ] | 099 | [La tab Students por cohorte](./099-tab-students-por-cohorte.md) | 060, 061, 097 | todo · 24-sep · la cohorte define la lista de estudiantes |
 | [ ] | 100 | [La tab Programs](./100-tab-programs-ficha-del-programa.md) | 097, 101 | todo · 24-sep · destinos, Calendly, comisión, equipo |
 | [ ] | 073 | [Ficha del Lead, con el diff entre envíos](./073-ficha-del-lead.md) (E6-5) | 072 | todo |
-| [ ] | 074 | [Ficha del Deal](./074-ficha-del-deal.md) (E6-6) | 069, 060 | en curso · Mani · 29-sep |
+| [x] | 074 | [Ficha del Deal](./074-ficha-del-deal.md) (E6-6) | 069, 060 | done · 29-sep · `/p/<programa>/deals/<id>`: cabecera, llamadas, pago y abonos, actividades e historial en una pantalla; `editarDeal`, `anularDeal` (rechaza con abonos vigentes y anula en cascada sus llamadas), `registrarActividad`; `puedeTrabajarDeal` (`lib/deals/permiso.ts`) y `duenosPosibles` (`lib/deals/duenos.ts`) en un solo lugar. Recorrido contra la base local (escritorio y 390 px) y permiso mordido forjando la acción. 1.415 tests. Falta: celular de verdad y ver el prellenado de Compromiso Verbal con un deal Atendido |
 | [ ] | 075 | [Revisión profunda de TODA la UI](./075-revision-profunda-de-la-ui.md) (E6-8) | 069-074 | todo |
 | [ ] | 076 | [Bitácora en Nerd Stats](./076-bitacora-en-nerd-stats.md) (E6-7) | 068, 041 | todo · es la **pantalla** de un rastro que se escribe desde E1 |
 | [ ] | 091 | [`otrosProgramasDelCorreo`: visibilidad cruzada](./091-otros-programas-del-correo.md) | 073 | todo · una consulta, **no** una tabla. Ninguna métrica la usa |

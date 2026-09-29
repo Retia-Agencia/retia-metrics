@@ -3,7 +3,7 @@ id: 074
 etapa: E6
 serves: "plan v2 §6 etapa 6 · tarea E6-6 · insumo §2.4 a §2.6, ADR 0042"
 depends: [069, 060]
-status: todo
+status: done
 ---
 
 # 074 — Ficha del Deal: todo en una pantalla, mas el historial de etapas

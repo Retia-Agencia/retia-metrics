@@ -14,10 +14,11 @@ import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { esViolacionUnica } from "@/lib/db/errores";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
-import { esAdministrador, type Rol } from "@/lib/auth/roles";
+import type { Rol } from "@/lib/auth/roles";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { exigirFechaLimiteValida } from "./pago";
+import { puedeTrabajarDeal } from "./permiso";
 import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal, type TipoMotivo, type Transicion } from "./etapas";
 import { queLeFalta, type HechosDelDeal, type RequisitoFaltante } from "./requisitos";
 
@@ -384,13 +385,11 @@ function quienNoPuede(t: Transicion, actor: Actor, deal: FilaDeal): string | nul
   if (t.quien === "closer" && actor.tipo === "sistema") {
     return `A ${NOMBRE_DE_ETAPA[t.a]} lo mueve una persona, no el sistema (${t.id}).`;
   }
-  if (actor.tipo === "usuario" && !esAdministrador(actor.rol)) {
+  if (actor.tipo === "usuario" && !puedeTrabajarDeal(actor, deal)) {
     if (deal.ownerUserId == null) {
       return "Este deal no tiene dueño: hasta que alguien lo reclame, solo lo mueve el sistema.";
     }
-    if (deal.ownerUserId !== actor.userId) {
-      return "Solo el dueño del deal o un administrador pueden moverlo.";
-    }
+    return "Solo el dueño del deal o un administrador pueden moverlo.";
   }
   return null;
 }

@@ -13,6 +13,7 @@ import { cohorteActiva } from "@/lib/queries/cohortes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { etapaALaQueVuelve, moverEtapa } from "./mover-etapa";
+import { puedeTrabajarDeal } from "./permiso";
 import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal } from "./etapas";
 
 /**
@@ -119,13 +120,11 @@ export async function registrarAbono(
       if (deal.etapa === "completo" || deal.etapa === "cierre_perdido") {
         throw new ErrorDeApp("El deal está cerrado: no recibe abonos nuevos.", 409);
       }
-      if (!esAdministrador(actor.rol)) {
+      if (!puedeTrabajarDeal(actor, deal)) {
         if (deal.ownerUserId == null) {
           throw new ErrorDeApp("Este deal no tiene dueño: reclámalo antes de registrar un abono.", 409);
         }
-        if (deal.ownerUserId !== actor.userId) {
-          throw new ErrorDeApp("Solo el dueño del deal puede registrar sus abonos.", 403);
-        }
+        throw new ErrorDeApp("Solo el dueño del deal puede registrar sus abonos.", 403);
       }
       // Sin producto no hay precio, y sin precio no hay saldo contra el cual medir.
       if (deal.productoId == null) {
