@@ -52,10 +52,14 @@ cada migracion nueva. Antes de tomar un ticket, git fetch: Alejo empuja al mismo
   - Pasaron typecheck, lint, build y las pruebas focalizadas de ingesta/Kanban (57 tests). La suite
     completa pasó 1.481 tests y 1 skipped; un hook de `tests/acciones-programas.test.ts` agotó 20s al
     crear la base, fallo de timeout/entorno no relacionado con estos cambios.
-  - Aún no se configuraron las dos filas reales de fuentes Typeform ni se aplicó la migración a
-    producción; requieren confirmar los nombres exactos de variable y el ok explícito de Mani.
-  - El recorrido visual exacto a 390 px de 071/098 sigue pendiente: el navegador embebido quedó en
-    639 px aunque las páginas se revisaron funcionalmente.
+  - Los nombres exactos confirmados por Typeform son `score`, `tag_lead_quality` y `lead_value`.
+    En cada fuente, el mapeo debe quedar como `{ puntaje: "score", leadQuality: "tag_lead_quality",
+    leadValue: "lead_value" }`. `hvm_points` y `hvm_tier` no se promueven.
+  - La migración 0041 todavía no pudo aplicarse a producción desde la sesión: `DATABASE_URL` está
+    oculto como secreto en Vercel y `vercel env pull/run` bloquea secretos para agentes. El proyecto
+    correcto fue verificado como `agencia-dani/retia-metrics`; no se simuló la aplicación.
+  - 071 y 098 quedan cerrados: recorrido visual funcional a 390 px realizado con consola, filtros,
+    menús, diálogos, enlaces, estados vacíos y llamadas sueltas revisados.
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 

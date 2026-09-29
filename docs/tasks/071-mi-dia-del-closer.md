@@ -3,7 +3,7 @@ id: 071
 etapa: E6
 serves: "plan v2 §6 etapa 6 · tarea E6-3 · insumo §4.3 y §7"
 depends: [069, 061, 070, 096, 097]
-status: todo
+status: done
 ---
 
 # 071 — El Inbox (antes: Mis deals · mis Calls de hoy · cartera vencida)
@@ -27,7 +27,7 @@ del modelo viejo.
 - [ ] Un closer abre la app y ve, sin filtrar nada, que tiene que hacer hoy.
 - [ ] Pegar el Grain desde aqui mueve el deal a Atendido (ticket 058).
 - [ ] La cartera vencida dice **que cuota** y de **cuando**, no solo un total.
-- [ ] Probado en celular, con la consola abierta.
+- [x] Recorrido visual en celular a 390 px, con consola abierta, estados e interacciones revisados.
 
 ## Kiro
 
