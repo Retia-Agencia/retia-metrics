@@ -190,8 +190,12 @@ flowchart TD
 | Reportes | 095 · 068 · 021 | tab Dashboard (un programa o "todos" con lo sumable), Nerd Stats reescrito, snapshot en PDF |
 | Cierre | 075 | revisión profunda de toda la UI |
 
-⚠️ **Antes de abrir E6 hay que decidir la garantía** (§7, A4): este repo no tiene tests de
-componente, y el 20-sep dos bugs pasaron con 669 tests en verde.
+✅ **A4 decidida por Mani el 28-sep: la UI se prueba USÁNDOLA**, porque tiene que servir y ser intuitiva; no
+se agregan tests de componente ni Playwright por ahora (R5 queda abierta). Riesgo asumido: este repo no tiene
+tests de componente y el 20-sep dos bugs pasaron con 669 tests en verde. Lo que lo cubre: cada pantalla se
+recorre con clic en todo lo que se abre y la consola abierta, y una regla de permiso se prueba forjando la
+petición (`AGENTS.md`, Conventions). Para usarla sin tocar producción hace falta un login local (hoy Auth.js
+solo tiene Google; ver `npm run dev:local`).
 
 ### 4.3 Track 3 · Integraciones
 
@@ -367,7 +371,7 @@ cierra, baja a un ADR (con `/grill-with-docs`) o a su ticket, y sale de esta lis
 
 | # | Qué | Bloquea | Cuándo |
 |---|---|---|---|
-| A4 | Garantía de la UI: tests de componente o Playwright (R5); CI (R4) | paso 4 | antes del paso 4 |
+| A4 | ~~Garantía de la UI: tests de componente o Playwright (R5)~~ ✅ 28-sep (Mani): se prueba usándola; CI (R4) ya existe | paso 4 | cerrada |
 | A5 | Calendly: webhook o consulta para las llamadas del 096; plan de Calendly; Vercel Pro (R3). **Ya decidido (28-sep, ADR 0057):** un token por programa, en la base; los dos funcionan con rol owner | 096 | paso 3 |
 | A7 | Las fichas técnicas de §7.1 (D3, D5, R2, P2, T4) | 060, 084 | según el ticket |
 

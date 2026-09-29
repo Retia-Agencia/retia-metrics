@@ -28,10 +28,11 @@ E2 cierra cuando Alejo termine el 096 (Calendly): su migracion de arranque esta 
 abierta. El carril de Alejo ya tiene 097 y parte del 096.
 
 LO QUE SIGUE, E3 (plan-reparto): Mani 069 (Kanban por programa, L) -> 074 (Ficha del deal, L); Alejo 077
-(barrer las pestañas de gestion) -> 078 -> 081. Antes de E3 decidir: A4 (como se prueba la UI: tests de
-componente o Playwright; el plan dice que hay que decidirla ANTES de abrir E6/E3, porque en este repo los
-bugs de UI pasaron con cientos de tests en verde), hasta cuantos dias atras vale migrar Setteo, y la tasa
-COP->USD. Migracion de arranque de E3: marca de abono convertido (081) y lista de lo no clasificable (080).
+(barrer las pestañas de gestion) -> 078 -> 081. A4 YA DECIDIDA (Mani, 28-sep): la UI se prueba USANDOLA, porque tiene
+que servir y ser intuitiva; sin tests de componente ni Playwright. Ojo: para usarla sin tocar produccion
+hace falta un login local (Auth.js solo tiene Google), asi que en la sesion de E3 decide con Mani si se
+hace ese login para la base local o si se recorre contra produccion con cuidado. Antes de E3 decidir
+todavia: hasta cuantos dias atras vale migrar Setteo, y la tasa COP->USD. Migracion de arranque de E3: marca de abono convertido (081) y lista de lo no clasificable (080).
 
 Al construir 069 y 074 ojo: TODO el dinero, el acuerdo de pago, la cartera, el onboarding y el cambio de
 cohorte ya existen en lib/ SIN pantalla ni server action (registrarAbono, anularAbono, editarAcuerdoDePago,
