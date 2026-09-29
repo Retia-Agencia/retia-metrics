@@ -472,10 +472,17 @@ type EnvioGuardado = Pick<
  * - el nombre: el del envio COMPLETO mas reciente con nombre no vacio; si ninguno
  *   completo lo trae, el del parcial mas reciente con nombre; si NINGUN envio trae
  *   nombre, se conserva `nombreActual` (un lead creado a mano no pierde su nombre);
- * - la calificacion y el puntaje: los del envio COMPLETO mas reciente que tenga
+ * - la calificacion: la del envio COMPLETO mas reciente que tenga
  *   calificacion. Si solo hay parciales, el de la ultima parcial. Asi, cuando llega la
  *   completa, el lead deja de estar "incompleto" (la herida del script, que decidia una
- *   vez), y quien re-aplico con otra respuesta queda con la nueva.
+ *   vez), y quien re-aplico con otra respuesta queda con la nueva;
+ * - el puntaje, el leadQuality y el leadValue: los del envio con la MISMA precedencia
+ *   (completo fechado mas reciente; si no, completo por posicion; si no, parcial), pero
+ *   filtrando por envios que traigan AL MENOS UNO de los tres no nulo. Van por separado
+ *   de la calificacion porque un lead con estado vacio (calificacion nula, p. ej. High
+ *   que aun no agenda) SI trae valores en el envio, y decidirlos con la calificacion los
+ *   perdia (🩸 verificado en produccion: 2 envios con valores y sus leads en NULL). Un
+ *   lead sin ningun envio con valores queda con los tres en null, nunca un valor por defecto.
  */
 export function resumirEnvios(
   envios: EnvioGuardado[],
@@ -504,6 +511,21 @@ export function resumirEnvios(
     calificados.sort(porPosicion).at(-1) ??
     null;
 
+  // Los valores (puntaje, leadQuality, leadValue) van por separado de la calificacion:
+  // un lead con calificacion nula (estado vacio) igual trae valores en su envio, y
+  // decidirlos con `decide` los perdia. Misma precedencia que `decide` (completo fechado
+  // mas reciente; si no, completo por posicion; si no, parcial mas reciente), pero
+  // filtrando por envios con AL MENOS UNO de los tres no nulo.
+  const tieneValores = (e: EnvioGuardado) =>
+    e.puntaje !== null || (e.leadQuality ?? null) !== null || (e.leadValue ?? null) !== null;
+  const conValores = envios.filter(tieneValores);
+  const completosConValores = conFecha.filter((e) => !e.esParcial && tieneValores(e));
+  const decideValores =
+    completosConValores.at(-1) ??
+    conValores.filter((e) => !e.esParcial).sort(porPosicion).at(-1) ??
+    conValores.sort(porPosicion).at(-1) ??
+    null;
+
   // El nombre sigue el mismo criterio "mas reciente" que las fechas: entre los envios
   // fechados, el ultimo con nombre no vacio (preferiendo un completo sobre un parcial);
   // si ninguno fechado lo trae, un envio sin fecha (parcial) puede aportarlo; y si
@@ -525,9 +547,9 @@ export function resumirEnvios(
     telefono: telefonoPrincipal,
     ...utm,
     calificacion: decide?.calificacion ?? null,
-    puntaje: decide?.puntaje ?? null,
-    leadQuality: decide?.leadQuality ?? null,
-    leadValue: decide?.leadValue ?? null,
+    puntaje: decideValores?.puntaje ?? null,
+    leadQuality: decideValores?.leadQuality ?? null,
+    leadValue: decideValores?.leadValue ?? null,
     fechaPrimeraAplicacion: conFecha[0]?.fechaEnvio ?? null,
     fechaUltimaAplicacion: conFecha.at(-1)?.fechaEnvio ?? null,
     numAplicaciones: new Set(envios.map((e) => `${e.sourceId}\u0000${e.token}`)).size,
