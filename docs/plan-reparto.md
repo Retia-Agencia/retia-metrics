@@ -163,8 +163,9 @@ Backend puro.
 - **Prueba de costura:** una cita de Calendly cae en su deal, el Grain lo pasa a Atendido, un abono a
   Abonado, el que salda a Completo, y anular ese abono lo devuelve.
   ✅ 28-sep: `tests/costura-e2.test.ts` (webhook con cita vigente → Grain → dos abonos → cartera y estudiantes →
-  onboarding → anular ambos, con el historial completo). **E2 cierra cuando Alejo termine el 096** (su
-  migración de arranque está propuesta en el ticket y espera a Mani; A5 decidida: webhook).
+  onboarding → anular ambos, con el historial completo). **Estado al 29-sep:** 097 cerrado; del 096 el
+  código está completo y live (webhook verificado en producción, migraciones 0038 y 0039 aplicadas). **E2
+  cierra** cuando se vinculen las cuentas de Calendly de las closers y se decida K2 (`plan.md` §7).
 
 ### E3 · El Kanban y la migración ensayada
 
@@ -339,12 +340,12 @@ closers durante E1 que cubra E2 a E5; Gerencia durante E4; Pauta durante E5.
 |---|---|---|
 | E1 | §3 de este documento; base local sí o no (113) | Mani |
 | ~~E1~~ | ~~ROAS, Juanito, consolidados de C2~~ ✅ respondidas por Mani el 28-sep (`plan.md` §7.E) | Mani |
-| E2 | ~~D3 · A5~~ ✅ | · |
+| E2 | ~~D3 · A5~~ ✅ · K2 (dónde se asigna la llamada suelta, `plan.md` §7) | Mani |
 | ~~E2~~ | ~~De quién es el deal si agenda con otra closer~~ ✅ de esa closer (Mani, 28-sep) | Mani |
 | E3 | ~~A4~~ ✅ · ~~tasa COP→USD~~ ✅ descartada, solo USD | Mani |
-| E3 | ~~Hasta cuántos días atrás migrar Setteo~~ ✅ decidido por Mani | · |
+| E3 | ~~Hasta cuántos días atrás migrar Setteo~~ ✅ decidido por Mani · K1 ("buscar llamada" en la Ficha del Deal o se retira) | Mani |
 | E4 | Pregunta de ingreso y bandas · X días sin actividad · estudiante desde cuándo · quién hace onboarding | Closers |
-| E5 | Precio de lista de ComunicArte (797 o 697) · fecha del corte | Gerencia · closers |
+| E5 | ~~Precio de lista de ComunicArte~~ ✅ 797 (Mani, 28-sep) · fecha del corte | Closers |
 | E6 | Área de cada canal · qué ve el paid trafficker · P2 · D5 | Gerencia · Mani |
 | E7 | Checkouts · `utm_id` y `fbclid` · el 26% sin UTM | Pauta |
 | E8 | Umbrales del dashboard (no bloquea) | Gerencia |

@@ -19,6 +19,10 @@ Estado al cierre del 29-sep (sesion 45, Alejo): UNA sola base y es PRODUCCION ("
 hfqmiyiuyqapdsbywrag). 40 migraciones (0000-0039), todas aplicadas. 1.365 tests (medido por Mani con el 069). Produccion:
 https://retia-metrics-seven.vercel.app. CI verde en cada push a main (sin proteccion de main).
 
+Docs consolidados el 29-sep (Mani): plan.md §2 es la foto de hoy (qué esta live y qué falta), §4.3c
+dice qué hace el webhook de Calendly y para qué sirve el PAT, y §7 es la lista UNICA de decisiones
+abiertas (nuevas: K1 "buscar llamada", K2 dónde se asigna la suelta, K3 la llamada de prueba).
+
 E0 y E1 CERRADAS. E2: el carril de Mani esta hecho; E2 cierra con el 096 de Alejo. El 097 se CERRO
 (29-sep, celular revisado en produccion).
 
@@ -65,6 +69,13 @@ sobre el mismo main.
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-29 (sesión 45, Mani, cierre): docs consolidados contra el código.**
+  - `plan.md` §2 reescrito con el estado de hoy; §4.3b y §7.1 decían abiertas D3, D4, R4, R5 y las
+    preguntas del Estado, ya decididas; `AGENTS.md` daba el alcance del 094 como "por construir".
+  - Calendly: el webhook ya está vivo, así que **no hay botón que apretar para traer llamadas**; lo que
+    falta del 096 es configuración (cuentas de las closers, Maru) y la decisión K2.
+  - Decisiones nuevas en `plan.md` §7: K1, K2, K3 (Calendly) y K4 (tono de Seguimiento, cerrada).
 
 - **2026-09-29 (sesión 45, Alejo): el webhook de Calendly (A5) en producción, 0039 aplicada, 097 cerrado.**
   - **Webhook** (`086ba9a`): ruta `app/api/webhooks/calendly/[programa]/route.ts`; lo puro en

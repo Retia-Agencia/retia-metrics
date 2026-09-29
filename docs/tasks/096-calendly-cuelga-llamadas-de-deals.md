@@ -339,3 +339,18 @@ pantalla de la suelta y "buscar llamada" pasan al 071/074.
   recibir llamadas. Así se sabe de quién es la cita y el deal queda a esa closer (Mani).
 - Consecuencia: una cuenta solo puede ser de **una** closer por programa (índice `miembros_programa_calendly_idx`).
 - Maru no tiene usuario todavía; se crea desde la app (no por código) con su correo.
+
+## Estado consolidado (29-sep, sesión de Mani)
+
+**Código: completo y live.** El webhook trae las citas solo (agenda, reagenda, cancelación, no-show); no hay
+que apretar nada para actualizar llamadas. Verificado en producción con una cita y una cancelación reales.
+
+**Para marcarlo done (en orden):**
+1. Decidir con qué cuenta de Calendly recibe llamadas cada closer en cada programa (closers, `plan.md` §7.B).
+2. Crear el usuario de Maru desde `/ajustes/usuarios` y vincular las cuentas ahí (administrador). Mientras
+   no estén, toda cita entra **suelta**.
+3. Decidir K2: dónde se asigna la llamada suelta (aquí, 071 o 074).
+4. Opcional: una reagenda y un no-show con una cita real (hoy solo en tests).
+
+**Decisiones abiertas que lo tocan** (`plan.md` §7): K1 ("buscar llamada" en la Ficha del Deal como respaldo
+o se retira), K2 y K3 (la llamada de prueba en producción).

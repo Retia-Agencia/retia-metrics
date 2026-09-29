@@ -48,40 +48,32 @@ cuando los closers operan en el CRM y lo histórico ya migró. Los hitos interme
 
 ---
 
-## 2. Dónde estamos (medido el 27-sep, no copiado)
+## 2. Dónde estamos (medido el 29-sep, no copiado)
 
-- `main @ 649bf2c` (28-sep, noche): **1.144 tests en verde**, typecheck, lint y build limpios, y el CI
-  (ticket 112) corre en cada push. Desde el 28-sep el orden
-  de trabajo para dos personas vive en [`plan-reparto.md`](./plan-reparto.md); este plan sigue mandando
-  en el qué.
-- ✅ **El lock se resincronizó el 27-sep** (`134d293`): le faltaban entradas opcionales de `@emnapi`.
-  `npm ci` pasa con él en una copia limpia. Ojo: en Windows con npm 11 tampoco fallaba con el viejo,
-  así que la falla era de otra versión de npm o de Linux; conviene confirmarlo en el CI (R4).
-- ⚠️ Un checkout con `node_modules` de antes del 22-sep **falla 46 tests** porque no tiene el driver
-  `postgres` (ADR 0047). Es entorno, no regresión: se arregla instalando.
-- **Base** (actualizado el 28-sep): **una sola, y es producción**, el proyecto "CRM Retia" (ADR 0047,
-  enmienda). 38 migraciones (0000 a 0037) aplicadas; los hashes de 0000-0020 difieren solo por CRLF
-  (`operations.md` §10). Vercel Production apunta a ella desde el 28-sep (antes seguía en Neon) y el
-  dashboard carga.
-- **Cero** leads, deals, llamadas y abonos en producción, a propósito: el 28-sep el cron del sync de
-  Sheets metió 5.343 leads sin envíos, se borraron con el ok de Mani y el cron quedó apagado. Los leads
-  entran por el webhook (106) y lo viejo por el traslado. Los closers siguen en Sheets.
+El avance ticket por ticket vive **solo** en [`tasks/README.md`](./tasks/README.md); aquí va la foto.
 
-| Pieza | Estado |
-|---|---|
-| Esquema del modelo (Lead, Envío, Contacto, Deal, historial, actividades, Calls, Abonos) | ✅ migración 0020. Las 11 etapas desde la 0024; acuerdo de pago y fecha de seguimiento en el deal desde la 0025 |
-| Ingesta que escribe: `ingerirEntradas` (una transacción, por lotes, idempotente) | ✅ código, sin nadie que la llame todavía |
-| Calificación del envío (T2): las cuatro reglas del Apps Script, por fuente | ✅ código, 6.397 de 6.400 envíos coinciden con la hoja. 🔴 choca con §4.3b |
-| Puntaje del lead (T4) | ⚙️ motor sin pesos, a propósito |
-| RLS en todas las tablas, Data API apagada en la base (CRM Retia) | ✅ |
-| Catálogos, productos, recursos, usuarios, roles, "ver como", sistema de diseño Tinta | ✅ del MVP |
-| **Motor de etapas (E2, 043-047):** la tabla de transiciones, `queLeFalta`, `moverEtapa()` y `abrirDeal()` con historial, el guardián, y el saldo (`lib/queries/saldo.ts`) | ✅ 27-sep, sin nadie que lo llame todavía |
-| Webhook, Calendly, registro de llamadas y abonos, UI por objetos, atribución, dashboard sobre deals, migración | ❌ |
+- `main` al 29-sep: **1.365 tests en verde**, typecheck, lint y build limpios; el CI (112) corre en cada
+  push, sin protección de `main` (Mani, 28-sep). Producción: https://retia-metrics-seven.vercel.app, que
+  despliega cada push a `main`.
+- **Base:** una sola, y es producción ("CRM Retia", ADR 0047 enmendado). 40 migraciones (0000 a 0039),
+  todas aplicadas. Para probar pantallas hay base local en Docker con login local (113, 069).
+- **Datos en producción:** los leads del traslado de Sheets (111, 28-sep: ComunicArte 2.478, Tactical
+  2.891, conciliación en 0) y los que entran por el webhook de formularios (106). Los deals de la operación
+  vieja todavía no: eso es la migración de E3/E4 (077, 078, 080). Los closers siguen trabajando en Sheets.
 
-El tracker iba atrasado: 048, 049, 050, 051 y 053 tenían código y seguían en `todo`. Desde el 27-sep
-figuran `en curso`, con lo que les falta anotado en cada ticket.
-
----
+| Pieza | Estado al 29-sep | Qué falta |
+|---|---|---|
+| Esquema del modelo (Lead, Envío, Contacto, Deal, historial, actividades, Calls, Abonos) | ✅ live | · |
+| Webhook de formularios + ingesta (`ingerirEntradas`), caja negra y salud (106, 110) | ✅ live | · |
+| Estado del lead: lo manda el formulario (ADR 0054); T2 se borró el 28-sep | ✅ | Puntaje T4 sin pesos (§7.1) |
+| Motor de etapas: transiciones, `moverEtapa()`, historial, guardián, saldo | ✅ | · |
+| Llamadas del deal (057-059), abonos, acuerdo de pago, cartera, onboarding y cambio de cohorte (060, 061, 063) | ✅ en `lib/`, probados | **sin pantalla**: la da la Ficha del Deal (074) |
+| Calendly: webhook firmado, reagenda, cancelación, no-show, la suelta (096) | ✅ live, conectado en los dos programas y verificado con una cita real | configuración: vincular cuentas de closers (§4.3c) |
+| Navegación por objetos y selector de programa (097) | ✅ live | · |
+| Kanban de Deals (069) | ✅ live | vista tabla; probar en un celular real |
+| Ficha del Deal (074), Inbox (070, 071), Students (099), Calls (098), Leads (072) | ❌ | E3 y E4 |
+| Atribución, dashboard sobre deals, pauta | ❌ | E5 a E8 |
+| Migración de las pestañas de gestión | ❌ | E3 (077, 078) y E4 (080) |
 
 ## 3. Qué construye cada track, en un diagrama
 
@@ -274,15 +266,16 @@ para que funcione así."*
   forma nativa y Typeform no. Hoy el Typeform ya decide quién ve el Calendly según el ingreso. 🔴 Lo
   primero es verificar si el Typeform puede producir el Estado que se necesita.
 
-**🔴 Por decidir:**
+**Estado de las preguntas (29-sep):**
 
-1. Qué manda el formulario: el Estado ya calculado, un puntaje, o los dos.
-2. Qué pasa con T2: se retira, o se queda como respaldo cuando el form no manda Estado y como
-   validador del que sí manda.
-3. Si el scoring del form también ordena el Setteo, o eso sigue siendo la pregunta de ingreso
-   configurable por fuente (N1, ticket 070).
-4. Si "cambiar el Typeform" alcanza, o este es el momento de pasar a Dapta Forms.
-5. D4: si `leads.estado` (texto) se retira en favor de `calificacion` (lista).
+1. ✅ Qué manda el formulario: **el Estado** (ADR 0054, enmienda del 27-sep); el puntaje (T4) sigue nulo.
+2. ✅ T2 **se borró** el 28-sep (A8 cerrada: *"el CRM no calcula NADA"*).
+3. 🔴 Si el scoring del form también ordena el Setteo, o eso sigue siendo la pregunta de ingreso
+   configurable por fuente (N1, ticket 070). Se decide con los closers antes de E4 (§7.B).
+4. 🔴 Si "cambiar el Typeform" alcanza, o este es el momento de pasar a Dapta Forms. No bloquea: el
+   webhook acepta cualquier formulario por su mapeo (ADR 0055). Decide Mani cuando se toque el formulario.
+5. ✅ D4 cerrada (ADR 0054): se decide con `leads.calificacion`; `leads.estado` guarda lo que escribió la
+   hoja para comparar en la migración y nadie decide con él.
 
 **Lo que no cambia, se decida lo que se decida:** un envío sin Estado, o con un valor que el CRM no
 reconoce, no se adivina: queda sin calificar y se reporta.
@@ -290,11 +283,31 @@ reconoce, no se adivina: queda sin calificar y se reporta.
 #### 4.3c Calendly (ticket 096)
 
 Cuelga cada llamada de su deal por el **correo del invitado**, nunca por el teléfono; si hay duda, la
-llamada queda **suelta** en el Inbox (ADR 0049; flujo en `structure.md` §2.2). ✅ **Webhook** (Mani, 28-sep, A5: recibe
-cualquier evento de Calendly —agendas, reagendas, cancelaciones, no-shows— y lo refleja; exige plan Standard
-o superior en cada cuenta). La consulta periódica y el cron de 15 min (Vercel Pro) ya no hacen falta; la
-credencial de cada programa es el token del ADR 0057. Sin la integración, el closer crea la llamada a mano y el modelo funciona
-igual.
+llamada queda **suelta** (ADR 0049; flujo en `structure.md` §2.2).
+
+**Live desde el 29-sep (Alejo):** el **webhook** (A5, Mani 28-sep). Calendly empuja cada evento solo; nadie
+aprieta un botón para traer llamadas. Ruta `POST /api/webhooks/calendly/<id del programa>`, firmada con la
+clave de la suscripción (`programs.calendly_signing_key`), caja negra en `sobres_crudos`, idempotente por la
+huella `calendly:<uuid>`. Eventos: `invitee.created` crea la llamada (o, si trae `old_invitee`, es una
+**reagenda** y mueve la MISMA llamada); `invitee.canceled` y `invitee_no_show.created` pasan la llamada a
+`cancelada`/`no_show` y el deal de Agendado a Re-agenda; `invitee_no_show.deleted` lo deshace. "Conectar
+Calendly" ya corrió en los dos programas (el plan de las dos cuentas alcanza: A5 cerrada del todo) y una cita
+y una cancelación reales pasaron de punta a punta. Reagenda y no-show solo están probados en tests.
+
+**Para qué sirve el PAT de cada programa** (`programs.calendly_token`, ADR 0057). No trae llamadas; eso lo
+hace el webhook. El PAT es la llave con la que el CRM **le pregunta** cosas a Calendly en cuatro momentos:
+1. **Al entrar un envío "Con Calendly"** (052): lee la cita exacta de ese invitado *antes* de escribir, para
+   crear el deal en Agendado con la fecha real y no en un Agendado sin fecha.
+2. **"Conectar Calendly"** (`lib/calendly/suscripcion.ts`): crea la suscripción del webhook por la API
+   (Calendly no deja crearla desde su panel).
+3. **Vincular la cuenta de cada closer** (`/ajustes/usuarios`): lista las cuentas de la organización para
+   elegir, y el servidor vuelve a comprobarla.
+4. **"Buscar llamada"** (`buscarLlamadaDelDeal`): consulta a pedido para un deal cuya cita no apareció al
+   entrar el envío. Existe en `lib/` sin pantalla; con el webhook vivo es solo un respaldo (decisión K1, §7).
+
+**Lo que falta, todo configuración:** vincular la cuenta de Calendly de cada closer por programa (lo hace un
+administrador, compartida o personal: Mani 29-sep); crear el usuario de Maru desde la app; y las decisiones
+K1 a K3 de §7. Sin la integración, el closer crea la llamada a mano y el modelo funciona igual.
 
 #### 4.3d Lo que viene de Sheets
 
@@ -368,13 +381,17 @@ Criterios de `overview.md` §9:
 Lo que no está aquí, está decidido. Cada una dice qué bloquea y cuándo hace falta. Cuando una se
 cierra, baja a un ADR (con `/grill-with-docs`) o a su ticket, y sale de esta lista.
 
-**A. Mani** (bloquean el arranque o la entrada de leads):
+**A. Mani** (técnicas y de producto):
 
 | # | Qué | Bloquea | Cuándo |
 |---|---|---|---|
-| A4 | ~~Garantía de la UI: tests de componente o Playwright (R5)~~ ✅ 28-sep (Mani): se prueba usándola; CI (R4) ya existe | paso 4 | cerrada |
-| A5 | ~~Calendly: webhook o consulta para las llamadas del 096~~ ✅ **webhook** (Mani, 28-sep); falta confirmar que las dos cuentas de Calendly son plan Standard o superior (Michael). Vercel Pro (R3) ya no lo exige. **Ya decidido (28-sep, ADR 0057):** un token por programa, en la base; los dos funcionan con rol owner | 096 | paso 3 |
-| A7 | Las fichas técnicas de §7.1 (D3, D5, R2, P2, T4) | 060, 084 | según el ticket |
+| A4 | ~~Garantía de la UI~~ ✅ 28-sep: se prueba usándola, contra la base local con login local (069); CI (R4) existe | · | cerrada |
+| A5 | ~~Calendly: webhook o consulta~~ ✅ **webhook**, live y verificado el 29-sep en los dos programas (el plan de las cuentas alcanzó); token por programa (ADR 0057) | · | cerrada |
+| A7 | Las fichas técnicas de §7.1 que siguen abiertas: D5, R2, R3, P2, T4 | ver cada ficha | según el ticket |
+| K1 | **"Buscar llamada" con el webhook vivo:** ¿se le da pantalla (un botón en la Ficha del Deal) como respaldo, o se retira `buscarLlamadaDelDeal`? El webhook ya trae las citas solo; el botón solo sirve si una entrega se pierde o llega antes que el envío | 074 | al construir el 074 |
+| K2 | **Dónde se asigna la llamada suelta:** ¿en el 096, en el Inbox (071) o en la Ficha (074)? El backend existe (`asignarLlamadaSuelta`) | cierre del 096 | antes de marcar el 096 |
+| K3 | **La llamada de prueba del 29-sep** (suelta, cancelada, sin deal; no cuenta en nada): ¿se borra o se deja? Borrarla es escribir en producción | nada | cuando Mani quiera |
+| K4 | ~~Tono de Seguimiento~~ ✅ 29-sep: `info` (`structure.md` §3), elegido en la sesión del 069 porque es "hay que hacer algo con la llamada", como Agendado y Atendido. Mani puede cambiarlo | · | cerrada |
 
 **A2. Para después (Mani, 28-sep):** revisar si las alertas de la app (fuente sin envíos, 107; y las
 que vengan) se mandan también por correo, de forma estandarizada y simple: un solo mecanismo para todas,
@@ -395,6 +412,10 @@ no uno por alerta. No bloquea nada.
 - **Los motivos (104, ya cargados):** revisar los 13 que salieron de su `_ListasDropdown`; sobre todo
   reagenda y recuperación, que no tenían equivalente en la hoja. Se ajustan desde el catálogo.
 - Confirmar: la venta sin llamada y los perdidos que se recuperan (transiciones T4, T5 y R de
+- **Con qué cuenta de Calendly recibe llamadas cada closer en cada programa** (096). Hoy Andrea no tiene
+  cuenta propia; en ComunicArte las candidatas son `info@eventoscomunicarte.com` (Milena) o la de Maru, y
+  en Tactical `equipo@`, `registro@` o `jvieira@ttrading.co`. Lo vincula un administrador; mientras no
+  esté, las citas entran sueltas.
   `structure.md` §3.1; no confundir con la ficha T4 de §7.1).
 
 **B2. Equipo (Mani, 27-sep):** ¿para qué sirven las preguntas del formulario que hoy no deciden nada?
@@ -437,12 +458,13 @@ dice, alguien más.
 
 | Ficha | El problema | Opciones y recomendación escrita |
 |---|---|---|
-| **D3 · ¿Abonado cuenta como deal abierto?** | El índice de "un deal abierto por lead y programa" excluye solo Completo y Cierre Perdido: un Student en Abonado con saldo **bloquea** cualquier otro deal del mismo lead (una mentoría, un upsell) | A: se mantiene (el upsell espera a que se complete el pago). B: se excluye Abonado del índice. Recomendación: B solo si venden una segunda cosa a la misma persona en el mismo programa; si no, A, y se deja escrito |
+| ~~**D3 · ¿Abonado cuenta como deal abierto?**~~ | ✅ **Decidida (Mani, 28-sep, ticket 060): A.** Abonado ocupa el cupo del lead; un segundo producto espera a que se complete el pago | · |
+| ~~**D4 · `leads.estado` o `calificacion`**~~ | ✅ Cerrada por el ADR 0054: decide `leads.calificacion`; `leads.estado` queda como texto de la hoja, sin lectores que decidan | · |
 | **D5 · UTM en dos tablas** | `leads` y `submissions` guardan los mismos `utm_*`, sin estar declarado; el 093 filtraría por uno y el 088 por el otro: dos cifras para la misma pregunta | Recomendación: el origen del lead es el de su primer envío, derivado, y `leads.utm_*` se elimina; mientras tanto, lo que lea `leads.utm_*` lo marca como temporal |
 | **R2 · El rastro por triggers** | Hoy el rastro lo garantiza un guardián por regex que no ve alias de tabla, `.delete(` ni algunas tablas | Con las transacciones reales del ADR 0047, triggers `AFTER INSERT/UPDATE` con `SET LOCAL app.user_id` harían que la base garantice el rastro, como el dedup. Recomendación: sí; el guardián de etapas (046) encoge |
 | **R3 · Vercel Pro** | Hobby permite un cron al día y es para uso no comercial | Recomendación: Pro (20 USD/mes por miembro). ~~Habilita la consulta de Calendly cada 15 min~~: A5 se resolvió por webhook, así que Calendly ya no lo pide; queda por el uso comercial |
-| **R4 · CI** | No hay `.github/`; "una etapa no se cierra sin los tres chequeos" depende de que alguien se acuerde | Recomendación: un workflow que corra test, typecheck y lint en cada push y PR. Requiere reparar el lock primero (§2) |
-| **R5 · Playwright** | Dos bugs de UI pasaron con más de 600 tests en verde; el Kanban es la superficie más grande | Recomendación: 5 o 6 flujos contra `dev` (reclamar un deal, moverlo, pegar el Grain, registrar un abono, anular, forjar una server action sin permiso) |
+| ~~**R4 · CI**~~ | ✅ Hecho (112, 28-sep): `.github/workflows/ci.yml` en cada push, sin proteger `main` | · |
+| ~~**R5 · Playwright**~~ | ✅ Reemplazada por A4 (Mani, 28-sep): la UI se prueba usándola contra la base local | · |
 | **P2 · Empates en el emparejador** | En Postgres dos `NULL` no chocan en un índice único, y todos los campos del patrón son opcionales | Hace falta `NULLS NOT DISTINCT` **y** detectar el empate en tiempo de ejecución, como error visible (084, 085) |
 | **P3 · El costo del proceso** | `AGENTS.md` pesa ~50 KB y el handoff ~2.900 líneas: cada sesión gasta contexto en historia | Recomendación: `AGENTS.md` solo reglas, contratos y comandos, cada regla con su ADR; el handoff con el estado actual y lo siguiente. La consolidación del 27-sep ya movió los documentos |
 | **T4 · El valor del puntaje** | El motor existe sin pesos; no hay datos de venta para calibrarlo | Opciones: A categoría (A/B/C), B puntaje de 0 a 100, C valor esperado en USD. Recomendación: A por ahora y C cuando haya histórico, calibrando con la migración de las pestañas de gestión. Preguntas: ¿solo ordena la cola o también cambia a dónde va un lead?; ¿quién fija los pesos? Se cruza con A1 |
