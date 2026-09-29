@@ -3,7 +3,7 @@ id: 105
 etapa: E3
 serves: "ADR 0055 puntos 1 y 2 · plan §4.3a"
 depends: [048]
-status: en curso
+status: done
 ---
 
 # 105 — La fuente webhook: un formulario es una fila
@@ -27,11 +27,14 @@ recibirlo, sin tocar código.
 
 ## Done cuando
 
-- [ ] Crear una fuente webhook desde la app deja la fila, su rastro y una URL que se puede copiar.
-- [ ] El secreto no aparece en `change_log` ni en la respuesta de una lectura posterior.
-- [ ] Un closer no puede crear ni ver el secreto de una fuente (forjando la server action, no solo
+- [x] Crear una fuente webhook desde la app deja la fila, su rastro y una URL que se puede copiar.
+- [x] El secreto no aparece en `change_log` ni en la respuesta de una lectura posterior.
+- [x] Un closer no puede crear ni ver el secreto de una fuente (forjando la server action, no solo
       mirando la pantalla).
-- [ ] `npm test`, `npm run typecheck` y `npm run lint` limpios.
+- [x] `npm test`, `npm run typecheck` y `npm run lint` limpios.
+
+**Cerrado el 28-sep:** Mani forjó las dos acciones desde la vista closer y confirmó que un closer no
+puede crear ni rotar el secreto de una fuente webhook.
 
 ## Cómo se cierra la forja (28-sep)
 

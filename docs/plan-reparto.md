@@ -143,6 +143,7 @@ Backend puro.
 - **Decidir antes:** nada bloquea. "Grain o sucedió" ([058]) se valida con closers sin frenar el código.
 - **Prueba de costura:** un envío firmado abre el deal, se agenda, se pega el Grain y el deal queda en
   Atendido. Un lead del traslado que vuelve a llenar el formulario no se duplica.
+  ✅ 28-sep: `tests/costura-e1.test.ts` (los dos casos, y el inverso: webhook primero, hoja después).
 - **Sale cuando:** el traslado corrió en producción con el ok de Mani y la conciliación del 110 marca
   cero faltantes.
 

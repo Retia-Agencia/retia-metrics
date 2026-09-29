@@ -19,18 +19,18 @@ hfqmiyiuyqapdsbywrag). 38 migraciones (0000-0037), todas aplicadas. 1.144 tests.
 push a main; SIN proteccion de main ni PR obligatorio (Mani: velocidad), el CI es alarma y no reja.
 Hay base local: npm run db:local + npm run dev:local (Docker).
 
-Hecho: E0 completo salvo la forja del 105; carril de Mani de E1 (057, 058, 059) y carril de Alejo de E1
-con codigo en main: 110 (/ajustes/salud: cada entrega del webhook con codigo y motivo, reprocesar,
-conciliacion con Sheets) y 111 (npm run trasladar, ensayo por defecto).
+Hecho: E0 completo (105 cerrado: Mani forjo las acciones como closer); carril de Mani de E1 (057, 058,
+059) y carril de Alejo de E1 con codigo en main: 110 (/ajustes/salud: cada entrega del webhook con
+codigo y motivo, reprocesar, conciliacion con TODAS las hojas del programa) y 111 (npm run trasladar).
+La prueba de costura de E1 existe y pasa (tests/costura-e1.test.ts).
 Falta para cerrar E1, en este orden:
-1. 105: Mani corre en la consola del navegador el snippet del ticket 105 (vista closer). El modo
-   automatico bloquea que el agente lo haga.
-2. 111: correr `npm run trasladar` (ENSAYO, no escribe), cotejar los conteos con la hoja deduplicada por
-   (programa, correo), y con el ok de Mani `npm run trasladar -- --aplicar` (SCRIPT_ACTOR_EMAIL).
-3. 110: recorrido visual de /ajustes/salud (clic en todo, consola abierta) y ver la conciliacion en cero
-   despues del traslado.
-4. Prueba de costura de E1: un envio firmado abre el deal, se agenda, se pega el Grain y queda en
-   Atendido; un lead trasladado que vuelve a llenar el formulario no se duplica.
+1. 111: el ensayo real contra las hojas se corto a los 12 min porque la ingesta escribe lead por lead
+   por el pooler. Hacer la escritura de leads por lotes (y que el script imprima avance), repetir el
+   ensayo, cotejar los conteos con la hoja deduplicada por (programa, correo) y, con el ok de Mani,
+   `npm run trasladar -- --aplicar` (SCRIPT_ACTOR_EMAIL). Ver la nota del 28-sep en el ticket 111.
+2. 110: la conciliacion de /ajustes/salud en cero despues del traslado (esa es la salida de E1).
+El pulido de pantallas NO es de E1: las observaciones de Mani del 28-sep (selector de programa, tokens
+crudos en la conciliacion, "Personas" que se llama Leads) estan en el ticket 075.
 Luego E2: 060 -> 061 -> 063 (Mani) y 097 -> 096 (Alejo).
 Reglas: npm test es scripts/test.mjs (una suite por maquina): nunca npx vitest directo ni en background.
 Las migraciones las genera y aplica la sesion principal. Kiro implementa en un worktree creado A MANO
@@ -65,6 +65,11 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   - **105:** los ids de las acciones se sacaron del bundle sin ejecutar nada. La invocación forjada la
     bloquea el modo automático de Claude Code (escritura sobre secretos) aunque Mani dio permiso por
     chat. El snippet quedó en el ticket 105 para que lo corra Mani.
+  - **Segunda parte (misma noche):** Mani forjó el 105 como closer (cerrado). Bug de la conciliación:
+    tomaba UNA hoja con `.limit(1)` sin orden y en ComunicArte le tocó `Forms viejo`; ahora junta todas
+    (`tests/conciliacion-sheets.test.ts`). Prueba de costura de E1 escrita por Kiro y en verde. El
+    ensayo real del traslado se cortó a los 12 min sin escribir nada (ver ticket 111). Mani propuso un
+    template de importación para la gestión: anotado en el 077 para E7. Sus observaciones de UI, en el 075.
   - **Agentes:** Codex sin cuota hasta el 12-oct. Con `isolation: worktree` el guard bloquea `kiro-cli`,
     y el worktree se borra al salir el subagente aunque Codex siga corriendo (quedaron procesos
     huérfanos, ya muertos). Lo que funcionó: `git worktree add` a mano + `kiro-rescue` sin aislamiento.
@@ -3030,8 +3035,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
-- Cerrar E1 (orden en el prompt de arriba): forja del 105 por Mani, ensayo y traslado del 111, recorrido
-  de `/ajustes/salud` (110) y prueba de costura. Luego E2.
+- Cerrar E1 (orden en el prompt de arriba): ingesta por lotes y traslado del 111, y la conciliación del
+  110 en cero. Luego E2.
 - Vigilar que los leads reales sigan entrando por webhook: ahora se ve en `/ajustes/salud` (110).
 - 108 (el cron ya está apagado; falta el código); 107 (umbrales decididos).
 - 096: la pantalla que haga visibles la nota del 052 y las llamadas sueltas (pedido de Mani).

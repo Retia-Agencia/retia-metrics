@@ -60,7 +60,7 @@ export type ResultadoConciliacion =
  * hoy inactivas) y los compara con los de sus `submissions`. El programa es frontera:
  * los tokens del CRM son SOLO de las fuentes de ESE programa.
  *
- * 🩸 Todas, no "la" hoja: ComunicArte tiene dos (`New form` y `Forms viejo`, ticket 079).
+ * 🩸 Todas, no "la" hoja: un programa puede tener dos (`New form` y `Forms viejo`, ticket 079).
  * Con `.limit(1)` sin orden la consulta tomaba una cualquiera, le toco la vieja, y la
  * pantalla dijo que ningun envio del webhook estaba en la hoja. Es el `fuentes[0]` sin
  * `ORDER BY` del ADR 0031 otra vez (28-sep).

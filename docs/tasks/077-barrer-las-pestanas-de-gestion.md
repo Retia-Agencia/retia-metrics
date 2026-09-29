@@ -64,3 +64,13 @@ gestión" (ver el ticket 080).
 ## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
 
 Depende del traslado (111) y de las mutaciones de E4 (060, 069, 070), no del 075. Los tickets 077 a 081 se corren en el corte del hito B: sin lo abierto de hoy (Setteo, agendados, estudiantes con saldo) los closers llegarían al CRM sin su pipeline.
+
+## Idea de Mani, 28-sep: un template de importación
+
+Recopilar la gestión (setteo, llamadas, estudiantes, pagos) en un **template canónico** desde otra
+sesión, y después **subirlo** para inyectarlo. La recomendación de la sesión 42: sí para la gestión
+(heterogénea, pide criterio; separar "recopilar" de "inyectar" hace revisable lo primero y deja el
+importador fijo, idempotente y con ensayo, que es lo que pide el 078), **no** para leads y envíos (el
+traslado 111 ya los lee directo de la fuente; un paso de copiado solo agrega errores). Decisión previa
+que merece ADR: un deal histórico "nace" en su etapa por migración, porque no puede recorrer las
+transiciones del motor. Diseñarlo con `/grill-with-docs` al abrir E7. `tipo_fuente` ya tiene `upload`.

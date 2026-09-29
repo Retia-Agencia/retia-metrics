@@ -31,3 +31,16 @@ historia sin inventar nada.
 - [ ] Corrió en producción con el ok de Mani, y la conciliación del [110] marca cero faltantes.
 - [ ] Un lead trasladado que vuelve a llenar el formulario no se duplica (prueba de costura de E1).
 - [ ] Cierra [048] y [049], y la parte de datos del [050].
+
+## Estado al 28-sep (noche)
+
+- `npm run trasladar` (ensayo por defecto) y `npm run trasladar -- --aplicar` en `main`. Aparta los tokens
+  que el programa ya tiene (la hoja y el webhook traen el mismo token de Typeform; sin eso, los envíos
+  del webhook se duplicaban como envíos de la hoja). Prueba de costura en `tests/costura-e1.test.ts`.
+- ⚠️ **El primer ensayo contra las hojas reales se cortó a los 12 min sin terminar.** La ingesta va lead
+  por lead (`update "leads"` por fila) a través del pooler: ~3.300 filas de Tactical no caben en un
+  tiempo razonable, y el ensayo tiene una transacción abierta en producción todo ese rato (bloquea al
+  webhook sobre los mismos leads). No quedó nada escrito (se revirtió). **Antes de `--aplicar`:**
+  (1) que la ingesta escriba los leads por lotes (regla de AGENTS.md "Rendimiento y escala": el sync
+  pasó de 161 s a 4 s con lotes de 200), y (2) que el script imprima el avance por fuente, no solo al
+  final. Alternativa si (1) es grande: correr el ensayo contra la base local (`npm run db:local`).

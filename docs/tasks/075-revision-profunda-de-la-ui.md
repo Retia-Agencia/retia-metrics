@@ -68,3 +68,17 @@ Parcial. El inventario y los arreglos si; el criterio, no.
 
 El criterio de navegación que faltaba ya existe: tabs por objeto, selector de programa, Inbox y
 Dashboard. Esta revisión incluye además las tabs 095, 097, 098, 099 y 100.
+
+## Observaciones de Mani, 28-sep (recorrido de `/ajustes/salud` y Personas)
+
+Anotadas para atacarlas aquí, no antes: la UI se pule en esta etapa.
+
+1. **El selector de programa no le gusta** (el `<select>` nativo arriba a la derecha de `/ajustes/salud`).
+   Hoy cada pantalla por programa lo resuelve a su manera; conviene UN selector de programa común.
+2. **La conciliación con Sheets muestra un bloque de tokens crudos**: no ocupa el ancho de la pantalla y
+   no hace falta verlo de entrada. Lo crudo va **plegado** (desplegable) o **conciso y tabulado, estilo
+   hoja** (filas y columnas), no como una lista de caracteres. De entrada: los conteos.
+3. **"Personas" no le gusta cómo se ve, y se llama Leads**: la lista de pantallas ya dice "Leads, Deals,
+   Calls, Students" (`docs/structure.md` §8), pero la navegación y la ruta siguen en `/personas`.
+4. **Regla general que sale de 2:** el dato crudo en cualquier pantalla se muestra desplegable o
+   tabulado, nunca en bruto de entrada.
