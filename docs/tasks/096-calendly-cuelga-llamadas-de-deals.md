@@ -3,7 +3,7 @@ id: 096
 etapa: E4
 serves: "ADR 0049 · propuesta 24-sep §2.3 y §3.7"
 depends: [057, 045]
-status: todo
+status: en curso
 ---
 
 # 096 — Calendly por programa: cada llamada a su deal, y si hay duda, suelta
@@ -40,7 +40,8 @@ que tenga duda queda suelto en el Inbox para que un closer lo asigne.
       la opción "más parecida".
 - [ ] Una llamada suelta aparece en el Inbox y se asigna a mano, con su fila de `change_log`.
 - [ ] Una segunda llamada sobre un deal Atendido no lo hace retroceder.
-- [ ] El dueño nunca se pisa si ya existía.
+- [ ] ~~El dueño nunca se pisa si ya existía.~~ Reemplazado por la decisión de Mani del 28-sep: el deal
+      es de la closer host si está registrada en el programa; si tenía otro dueño, pasa a la host y se avisa.
 
 ## Kiro
 
@@ -97,3 +98,34 @@ Desde el 28-sep una re-agenda con cita vigente sobre un deal en 4-7 crea **otra*
 deal (`agregar_llamada`), sin tocar la vieja. Cuando este ticket escuche las cancelaciones y
 reprogramaciones de Calendly, la llamada vieja se marca ahí; mientras tanto el deal puede mostrar dos
 llamadas `agendada`. Y cancelar una cita en Calendly hoy no cambia su llamada en el CRM.
+
+## Avance 28-sep (Alejo)
+
+**Hecho, sin migración ni A5:** el emparejador, `lib/calendly/emparejar-llamada.ts`, puro.
+`emparejarLlamada(llamada, candidatos, closers)` devuelve `colgada` (lead, deal y el dueño antes y
+después, con `cambio` para avisar) o `suelta` con su motivo: `sin_correo`, `sin_lead`, `varios_leads`,
+`sin_deal_abierto` o `varios_deals_abiertos`.
+- Empareja **solo por correo confirmado** (`lead_contactos.confirmado`): un correo que entró unido por
+  teléfono no decide, o el teléfono estaría emparejando por la puerta de atrás (ADR 0035).
+- Normaliza con `normalizarEmail`, la misma función de la llave del lead.
+- El dueño sigue la decisión de Mani del 28-sep (la host registrada se queda el deal). Un correo de
+  Calendly que reclaman dos closers se trata como host no registrada: no se inventa dueño.
+- `tests/calendly-emparejador.test.ts` (20): cada regla en los dos sentidos y el orden de los
+  candidatos; mordido rompiendo a propósito la regla del correo confirmado y la de varios leads.
+
+**Falta el guardián** ("nadie cuelga una Call de Calendly por fuera del emparejador"): se escribe con
+el escritor, que necesita la migración.
+
+**Propuesta de migración de arranque de E2 (la revisa y la aplica Mani):**
+- `miembros_programa.calendly_email text` nulo, con índice único parcial
+  `(program_id, lower(calendly_email)) WHERE calendly_email IS NOT NULL`: dos closers no pueden reclamar
+  la misma cuenta en un programa (el emparejador ya lo trata como duda, pero la garantía va en la base,
+  ADR 0005).
+- `calls.calendly_host_email text` nulo: quién hospeda la cita, para decidir el dueño y para mostrar la
+  llamada suelta.
+- La llamada suelta ya cabe: `calls.deal_id` acepta nulo y la huella `calendly:<uuid>` existe (052).
+  Falta un `CHECK` que solo permita `deal_id` nulo con `origen = 'calendly'` (ADR 0049 punto 6: la
+  suelta es la única Call sin deal).
+- `users.calendly_email` (global) queda sin lector y se retira después.
+
+**Sigue bloqueado por A5** (webhook o consulta periódica): de eso depende quién llama al emparejador.
