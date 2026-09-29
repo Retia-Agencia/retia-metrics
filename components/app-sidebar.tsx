@@ -95,7 +95,7 @@ export function AppSidebar({
       </div>
 
       {abierto ? (
-        <div aria-hidden className="fixed inset-0 z-40 bg-velo md:hidden" onClick={cerrar} />
+        <div aria-hidden className="fixed inset-0 z-30 bg-velo md:hidden" onClick={cerrar} />
       ) : null}
 
       <aside
@@ -105,7 +105,8 @@ export function AppSidebar({
         }}
         className={cn(
           "top-0 h-dvh w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:sticky md:flex",
-          abierto ? "fixed inset-y-0 left-0 z-50 flex shadow-flotante" : "hidden",
+          // Por debajo de los popups (z-50): el selector y el menu abren en un portal ENCIMA del cajon.
+          abierto ? "fixed inset-y-0 left-0 z-40 flex shadow-flotante" : "hidden",
         )}
       >
         <div className="flex items-center justify-between px-4 pt-4 pb-3">

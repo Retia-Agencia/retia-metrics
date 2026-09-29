@@ -30,10 +30,10 @@ Ajustes · Nerd Stats (solo developer). Cuáles ve cada rol: matriz en el docume
 
 ## Done cuando
 
-- [ ] Cada rol ve sus tabs y ninguna ruta confía en que la tab esté escondida.
-- [ ] Cambiar de programa mantiene la tab y cambia la URL.
-- [ ] Recorrido haciendo clic en todo lo que se abre (menú, selector), con la consola abierta.
-- [ ] Probado en celular.
+- [x] Cada rol ve sus tabs y ninguna ruta confía en que la tab esté escondida.
+- [x] Cambiar de programa mantiene la tab y cambia la URL.
+- [x] Recorrido haciendo clic en todo lo que se abre (menú, selector), con la consola abierta.
+- [ ] Probado en celular. (Parcial: el comportamiento del cajón sí; el aspecto a 390 px no, ver abajo.)
 
 ## Kiro
 
@@ -72,5 +72,24 @@ Sí, con revisión visual obligatoria.
 - **Productos y Recursos siguen fuera del segmento de programa:** hoy muestran la unión de los
   programas visibles, y cambiar eso es cambiar su contenido (fuera de alcance).
 
-**Falta para cerrar:** el recorrido en el navegador (abrir el selector y cambiar de programa, el menú
-de usuario, el cajón en celular, con la consola abierta) y verlo en celular.
+**Recorrido en el navegador (28-sep, Alejo, sesión de developer contra producción, solo lectura):**
+- `/` aterriza en `/p/comunicarte/dashboard`; el selector muestra el nombre del programa, no el slug.
+- Selector: Comunicarte → Tactical cambia la URL y mantiene la tab. Desde `/ajustes` lleva al
+  Dashboard del programa elegido.
+- `/programas/comunicarte?rango=mes` → `/p/comunicarte/dashboard?rango=mes`, con el filtro aplicado.
+- `/p/no-existe/dashboard` da 404 y el selector no nombra el slug.
+- Menú de usuario: abre. "Como gerente" quita Mi día; "Como closer" (cuenta sin membresías) quita el
+  selector y el Dashboard, y Tactical responde 404 (ADR 0048).
+- Consola: un solo error, el de `next-themes` ("script tag while rendering React component"), que ya
+  existía.
+- **Celular:** la ventana no bajó a 390 px (DevTools dejó el viewport en ~110 px), así que se probó
+  el **comportamiento**: el botón abre el cajón (`aria-expanded`, velo), y lo cierran Escape, el velo
+  y navegar desde un link. **El aspecto a 390 px no se vio.**
+- El recorrido destapó un orden de capas frágil: cajón y popups en `z-50`. El cajón bajó a `z-40`
+  y el velo a `z-30`, así el selector y el menú abren siempre encima.
+
+**Hallazgo fuera de alcance (para el 075):** los filtros del dashboard (`components/filtro-dashboard.tsx`)
+muestran el valor crudo ("hoy", "todos") y no la etiqueta ("Hoy", "Todos los closers"): a su `Select`
+le falta `items`, igual que al selector antes de este ticket.
+
+**Falta para cerrar:** ver el marco a 390 px en un teléfono real o en el modo dispositivo de DevTools.
