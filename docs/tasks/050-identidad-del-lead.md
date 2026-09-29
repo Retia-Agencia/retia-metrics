@@ -3,7 +3,7 @@ id: 050
 etapa: E3
 serves: "plan v2 §6 etapa 3 · tarea E3-3 · ADR 0035, ADR 0005, insumo §2.2"
 depends: [048]
-status: en curso
+status: done
 ---
 
 # 050 — Identidad del Lead: el correo manda, el telefono une **y marca**

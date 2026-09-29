@@ -146,6 +146,7 @@ Backend puro.
   ✅ 28-sep: `tests/costura-e1.test.ts` (los dos casos, y el inverso: webhook primero, hoja después).
 - **Sale cuando:** el traslado corrió en producción con el ok de Mani y la conciliación del 110 marca
   cero faltantes.
+  ✅ **E1 cerrada el 28-sep (sesión 43).**
 
 ### E2 · El dinero mueve el deal; Calendly y la navegación
 

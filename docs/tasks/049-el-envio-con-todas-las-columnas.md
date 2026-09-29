@@ -3,7 +3,7 @@ id: 049
 etapa: E3
 serves: "plan v2 §6 etapa 3 · tarea E3-2 · ADR 0036 (opcion A'), insumo §5.4"
 depends: [048]
-status: en curso
+status: done
 ---
 
 # 049 — El Envio: ~10 columnas promovidas y el resto en `jsonb`, sin repetir

@@ -5,8 +5,8 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 42 (28-sep, noche). El anterior:
-> `git show cb53f03:docs/agents/handoff.md`.
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 43 (28-sep, noche). El anterior:
+> `git show 128afa4:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas:
@@ -14,24 +14,23 @@ etapas en serie, un carril por persona) y docs/plan.md (el QUE, decisiones en §
 ticket vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta: docs/overview.md,
 docs/structure.md, docs/operations.md y docs/adr/README.md.
 
-Estado al cierre del 28-sep (sesion 42): UNA sola base y es PRODUCCION ("CRM Retia", ref
-hfqmiyiuyqapdsbywrag). 38 migraciones (0000-0037), todas aplicadas. 1.144 tests. El CI corre en cada
+Estado al cierre del 28-sep (sesion 43): UNA sola base y es PRODUCCION ("CRM Retia", ref
+hfqmiyiuyqapdsbywrag). 38 migraciones (0000-0037), todas aplicadas. 1.148 tests. El CI corre en cada
 push a main; SIN proteccion de main ni PR obligatorio (Mani: velocidad), el CI es alarma y no reja.
 Hay base local: npm run db:local + npm run dev:local (Docker).
 
-Hecho: E0 completo (105 cerrado: Mani forjo las acciones como closer); carril de Mani de E1 (057, 058,
-059) y carril de Alejo de E1 con codigo en main: 110 (/ajustes/salud: cada entrega del webhook con
-codigo y motivo, reprocesar, conciliacion con TODAS las hojas del programa) y 111 (npm run trasladar).
-La prueba de costura de E1 existe y pasa (tests/costura-e1.test.ts).
-Falta para cerrar E1, en este orden:
-1. 111: el ensayo real contra las hojas se corto a los 12 min porque la ingesta escribe lead por lead
-   por el pooler. Hacer la escritura de leads por lotes (y que el script imprima avance), repetir el
-   ensayo, cotejar los conteos con la hoja deduplicada por (programa, correo) y, con el ok de Mani,
-   `npm run trasladar -- --aplicar` (SCRIPT_ACTOR_EMAIL). Ver la nota del 28-sep en el ticket 111.
-2. 110: la conciliacion de /ajustes/salud en cero despues del traslado (esa es la salida de E1).
-El pulido de pantallas NO es de E1: las observaciones de Mani del 28-sep (selector de programa, tokens
-crudos en la conciliacion, "Personas" que se llama Leads) estan en el ticket 075.
-Luego E2: 060 -> 061 -> 063 (Mani) y 097 -> 096 (Alejo).
+E0 y E1 CERRADAS. El traslado de Sheets corrio en produccion con el ok de Mani: ComunicArte 2.478 leads,
+Tactical 2.891 (con las 65 de Forms viejo, el 079); un segundo ensayo crea 0; la conciliacion de
+/ajustes/salud da 0 faltantes en los dos programas. Quedan para revision humana 18 envios de Tactical
+sin correo ni telefono conocido (sin lead), 69 uniones por telefono y 2 telefonos de otro lead.
+
+Sigue E2 (plan-reparto): Mani 060 (recrea el test de saldo centralizado) -> 061 -> 063; Alejo 097 -> 096.
+Antes de E2 decidir: D3 (¿un deal en Abonado ocupa el cupo del lead?), A5 (webhook o consulta de
+Calendly, plan de Calendly, Vercel Pro) y de quien es el deal si el lead agenda con otra closer (ya
+decidido 28-sep: de la closer con quien agenda, 096). Migracion de arranque de E2: cuenta de Calendly por
+membresia y datos de la llamada suelta (096).
+El pulido de pantallas NO es de E2: las observaciones de Mani (selector de programa, tokens crudos en la
+conciliacion, "Personas" que se llama Leads) estan en el ticket 075.
 Reglas: npm test es scripts/test.mjs (una suite por maquina): nunca npx vitest directo ni en background.
 Las migraciones las genera y aplica la sesion principal. Kiro implementa en un worktree creado A MANO
 (git worktree add), NO con isolation: worktree (ahi el guard bloquea kiro-cli); la sesion principal corre
@@ -41,6 +40,19 @@ la suite y revisa. Codex sin cuota hasta el 12-oct. Antes de tomar un ticket haz
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-28 (sesión 43): E1 cerrada, el traslado corrió en producción.** Sesión de Mani.
+  - 🩸 **Causa de los 12 min:** `recalcularResumen` hacía un `UPDATE` y un `INSERT` de bitácora por lead a
+    través del pooler. Ahora `actualizarResumenes` escribe un `UPDATE ... FROM (VALUES)` por lote de 200
+    (casts explícitos, fechas en ISO: un `Date` crudo en `sql` lo rechaza postgres-js). Ensayo completo en
+    ~2 min; el script imprime avance por fuente y desglosa los posibles duplicados.
+  - **Cotejo antes de aplicar:** los leads nuevos del ensayo cuadran al lead con la hoja deduplicada por
+    (programa, correo) menos las uniones por teléfono (ComunicArte 23, Tactical 46 menos 4).
+  - **Aplicado con el ok de Mani:** ComunicArte 2.478 leads / 2.739 envíos / 4.986 contactos; Tactical
+    2.891 / 4.199 / 5.843. Segundo ensayo: 0 nuevos. Conciliación 0 en los dos (2.739 y 3.304 tokens).
+  - **Cerrados:** 048, 049, 050, 110, 111 (y la parte de datos del 079). Commit `9da3080` + docs.
+  - **Medido:** 1.148 tests, typecheck y lint limpios. No se abrió `/ajustes/salud` en navegador: la
+    conciliación se corrió con la misma función que usa la pantalla.
 
 - **2026-09-28 (sesión 42): carril de Alejo en E0 y E1, hecho por la sesión de Mani con agentes.**
   - **112:** `.github/workflows/ci.yml` (npm ci, typecheck, lint, test, build en cada push y PR) y
