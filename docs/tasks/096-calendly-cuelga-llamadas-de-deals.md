@@ -319,3 +319,15 @@ y documentados en `.env.example` y `docs/operations.md` §3 y §4.1; `scripts/se
 **Para cerrar:** apretar "Conectar Calendly" en los dos programas en producción, agendar una cita de prueba y
 confirmar firma y payload; vincular las cuentas de las closers en `/ajustes/usuarios`; decidir con Mani si la
 pantalla de la suelta y "buscar llamada" pasan al 071/074.
+
+## ✅ Verificado en producción (29-sep, madrugada, Alejo)
+
+- "Conectar Calendly" corrió en los **dos programas** (las cuentas admiten webhooks: el plan alcanza).
+- **Firma y payload confirmados con entregas reales** (lo que el diseño pedía antes de fiarse): una cita de
+  prueba en Comunicarte (`prueba.webhook+1@tucorreo.com`, host `info@eventoscomunicarte.com`) entró como
+  `invitee.created` → 200 procesado, sobre sin error, llamada **suelta** `agendada` con fecha y host. Cancelada por
+  la API con el PAT del programa → `invitee.canceled` (`rescheduled: false`) → 200 procesado y **la misma**
+  llamada pasó a `cancelada`, sin crear otra.
+- **Sin probar con una cita real:** reagenda y no-show (cubiertos por `tests/calendly-webhook-ruta.test.ts`).
+- Queda en producción esa llamada suelta cancelada, de prueba; no cuenta en ninguna métrica (sin deal). Borrarla
+  pide el ok de Mani.
