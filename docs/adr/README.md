@@ -28,6 +28,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0056](./0056-el-motor-decide-quien-mueve-con-que-motivo-y-datos.md) | El motor decide quién mueve, con qué motivo (cuatro listas) y con qué datos |
 | [0057](./0057-el-programa-lleva-su-formulario-y-su-token-de-calendly.md) | El programa lleva su formulario y su token de Calendly (segundo secreto en la base) |
 | [0058](./0058-el-webhook-no-pierde-nada.md) | El webhook no pierde nada: caja negra, variables genéricas, un solo mapeo, nombre del lead, re-agenda |
+| [0059](./0059-el-deal-historico-nace-en-su-etapa.md) | El deal histórico nace en su etapa, por un template y con su huella (migración de las pestañas de gestión) |
 | [0043](./0043-el-area-agrupa-y-el-programa-es-frontera.md) | El Área agrupa por origen; el Programa es frontera, no filtro |
 
 **El deal y la operación**

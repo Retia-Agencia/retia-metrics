@@ -209,11 +209,15 @@ export function parsearFecha(v: unknown, zona: string = ZONA_BOGOTA): Date | nul
   const s = String(v ?? "").trim();
   if (!s) return null;
 
+  // El ano puede venir con DOS digitos (`5/08/26`): las pestañas de gestion escritas a mano
+  // lo traen asi en ~260 filas (medido el 29-sep, ticket 078), siempre dia/mes y siempre 26.
+  // Se lee como 20yy; un centinela de dos digitos no existe (los dos son de cuatro).
   const m = s.match(
-    /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ ,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/,
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})(?![\d/])(?:[ ,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/,
   );
   if (m) {
-    const [, d, mes, a, h = "0", min = "0", seg = "0"] = m;
+    const [, d, mes, anio, h = "0", min = "0", seg = "0"] = m;
+    const a = anio.length === 2 ? `20${anio}` : anio;
     const p2 = (n: string) => n.padStart(2, "0");
     // El desplazamiento va explicito, no se lo deja al entorno. El constructor de
     // componentes (new Date(a, m, d, ...)) los interpreta en la zona local del
@@ -232,7 +236,16 @@ export function parsearFecha(v: unknown, zona: string = ZONA_BOGOTA): Date | nul
     return plausible(instanteDelReloj(zona, n(a), n(mes), n(d), n(h), n(min), n(seg)));
   }
 
-  // ISO u otros formatos que Date si entiende sin ambiguedad
+  // Un DIA ISO sin hora (`2026-09-05`) es un dia de la zona, no medianoche UTC: `new Date`
+  // lo leeria en UTC y en Bogota caeria el dia anterior (hallazgo de Codex, ticket 078).
+  const dia = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dia) {
+    const [, a, mes, d] = dia;
+    if (zona === ZONA_BOGOTA) return plausible(new Date(`${a}-${mes}-${d}T00:00:00-05:00`));
+    return plausible(instanteDelReloj(zona, Number(a), Number(mes), Number(d), 0, 0, 0));
+  }
+
+  // ISO con hora u otros formatos que Date si entiende sin ambiguedad
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
     const f = new Date(s);
     return plausible(f);

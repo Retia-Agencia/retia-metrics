@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, notInArray } from "drizzle-orm";
 import {
   abonos,
   calls,
@@ -364,6 +364,142 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
     await tx.insert(dealEtapaHistorial).values({ dealId: id, de: null, a: alta.etapa, userId: usuario });
     return id;
   });
+}
+
+/**
+ * Un deal que viene de las pestañas de gestion de la hoja (ADR 0059, ticket 078).
+ *
+ * `actorId` es quien corrio la migracion (`actorDelScript()`) y va SOLO a `change_log`:
+ * el historial y las notas son del sistema (`user_id` nulo), porque lo que hizo un closer
+ * en la hoja no se le atribuye a quien corre el script.
+ */
+export interface AltaHistorica {
+  leadId: string;
+  programId: string;
+  /** La que dice la hoja. Cualquiera de las once: no se recorre el motor (ADR 0059 punto 1). */
+  etapa: EtapaDeal;
+  /** `sheets:<programa>:<pestaña>:<llave>`. La garantia contra la segunda corrida (punto 2). */
+  huella: string;
+  actorId: string;
+  /** Cuando entro a esa etapa, si la hoja lo sabe. Sin fecha, el momento de la migracion. */
+  fechaEtapa?: Date | null;
+  /** Solo si el nombre de la hoja es un usuario del CRM (`duenoDesdeLaHoja`); si no, sin dueño. */
+  ownerUserId?: string | null;
+  productoId?: string | null;
+  cohortId?: string | null;
+  acuerdoPago?: string | null;
+  onboardedAt?: Date | null;
+  /** Los `Registro 1-5` de Setteo. Toda actividad migrada es una `nota` (punto 5). */
+  notas?: readonly { texto: string; fecha?: Date | null }[];
+}
+
+export type DealHistorico =
+  | { estado: "creado"; dealId: string }
+  /** La segunda corrida: esta fila de la hoja ya entro. No se toca nada. */
+  | { estado: "ya_migrado"; dealId: string }
+  /** El lead ya tiene un deal abierto en el programa: gana el vivo (punto 3). Es una rareza. */
+  | { estado: "lead_con_deal_vivo"; dealVivoId: string };
+
+/**
+ * Abre un deal HISTORICO directamente en la etapa que dice la hoja, con UNA fila de
+ * historial (`de` nulo), su rastro y sus notas, en una transaccion (ADR 0059).
+ *
+ * Es el otro camino de nacimiento, al lado de `abrirDeal`, y vive en el motor porque
+ * escribe la etapa. **No pasa por `queLeFalta`**: lo que la hoja no trae (producto,
+ * fecha limite) le falta al deal y la Ficha lo dice, como a cualquier otro. Lo usa solo
+ * la migracion, y `tests/migracion-escritor-guardian.test.ts` lo fija.
+ *
+ * Las dos formas de chocar las decide la BASE (ADR 0005) y aqui solo se nombran: la huella
+ * repetida es la segunda corrida, y el cupo ocupado es el deal vivo que gana.
+ */
+export async function abrirDealHistorico(db: Db, alta: AltaHistorica): Promise<DealHistorico> {
+  if (alta.huella.trim() === "") {
+    throw new Error("Un deal historico sin huella no se puede volver a encontrar: la migracion la tiene que dar.");
+  }
+  const notas = (alta.notas ?? []).filter((n) => n.texto.trim() !== "");
+
+  try {
+    return await (db as unknown as Transaccion).transaction(async (tx) => {
+      const [lead] = await tx.select().from(leads).where(eq(leads.id, alta.leadId));
+      if (!lead) throw new ErrorDeApp("No existe el lead.", 404);
+      if (lead.programId !== alta.programId) {
+        throw new ErrorDeApp("El lead es de otro programa: el deal tiene que abrirse en el programa del lead.", 422);
+      }
+      const etiqueta = lead.nombre ?? lead.emailNormalizado;
+      // La frontera tambien vale para el producto y la cohorte: la FK solo mira que existan, y
+      // un producto de otro programa haria el saldo con el precio equivocado sin ningun error.
+      // No se exige que el producto este activo: una venta vieja pudo ser de uno ya retirado.
+      if (alta.productoId) {
+        const [prod] = await tx
+          .select({ id: productos.id })
+          .from(productos)
+          .where(and(eq(productos.id, alta.productoId), eq(productos.programId, alta.programId)));
+        if (!prod) throw new ErrorDeApp("El producto no existe o es de otro programa.", 422);
+      }
+      if (alta.cohortId) {
+        const [coh] = await tx
+          .select({ id: cohorts.id })
+          .from(cohorts)
+          .where(and(eq(cohorts.id, alta.cohortId), eq(cohorts.programId, alta.programId)));
+        if (!coh) throw new ErrorDeApp("La cohorte no existe o es de otro programa.", 422);
+      }
+
+      const dealId = await crearConRastro(
+        { db: tx, tabla: deals, nombreTabla: "deals", actorId: alta.actorId, etiqueta, desdeElMotor: true },
+        {
+          leadId: alta.leadId,
+          programId: alta.programId,
+          etapa: alta.etapa,
+          ownerUserId: alta.ownerUserId ?? null,
+          productoId: alta.productoId ?? null,
+          cohortId: alta.cohortId ?? null,
+          acuerdoPago: alta.acuerdoPago ?? null,
+          onboardedAt: alta.onboardedAt ?? null,
+          huellaMigracion: alta.huella,
+          creadoPor: null,
+        },
+      );
+
+      await tx.insert(dealEtapaHistorial).values({
+        dealId,
+        de: null,
+        a: alta.etapa,
+        userId: null,
+        ...(alta.fechaEtapa ? { fecha: alta.fechaEtapa } : {}),
+      });
+
+      for (const nota of notas) {
+        await crearConRastro(
+          { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: alta.actorId, etiqueta },
+          { dealId, tipo: "nota", userId: null, nota: nota.texto, ...(nota.fecha ? { fecha: nota.fecha } : {}) },
+        );
+      }
+
+      return { estado: "creado", dealId } as const;
+    });
+  } catch (e) {
+    if (!esViolacionUnica(e)) throw e;
+    // La transaccion ya se deshizo; se pregunta afuera cual de los dos indices choco.
+    const [migrado] = await db
+      .select({ id: deals.id })
+      .from(deals)
+      .where(and(eq(deals.huellaMigracion, alta.huella), incluyendoAnulados(deals)));
+    if (migrado) return { estado: "ya_migrado", dealId: migrado.id };
+
+    const [vivo] = await db
+      .select({ id: deals.id })
+      .from(deals)
+      .where(
+        and(
+          eq(deals.leadId, alta.leadId),
+          eq(deals.programId, alta.programId),
+          notInArray(deals.etapa, ["completo", "cierre_perdido"]),
+          vigente(deals),
+        ),
+      );
+    if (vivo) return { estado: "lead_con_deal_vivo", dealVivoId: vivo.id };
+    throw e;
+  }
 }
 
 /**

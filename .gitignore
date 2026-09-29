@@ -53,3 +53,6 @@ next-env.d.ts
 
 # Cache local de Kiro (se regenera en cada corrida; nunca va al repo)
 .claude/sdd-cache/
+
+# migracion de las pestañas de gestion (078): templates con datos personales
+/.migracion/

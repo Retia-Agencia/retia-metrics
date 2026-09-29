@@ -3,7 +3,7 @@ id: 078
 etapa: E7
 serves: "plan v2 §6 etapa 7 · tarea E7-2 · ADR 0029, invariante 2 del plan v2"
 depends: [077]
-status: todo
+status: en curso
 ---
 
 # 078 — La migracion pasa por la MISMA ingesta, nunca por inserts crudos
@@ -47,7 +47,7 @@ Si, con revision.
 
 ---
 
-## Diseño (29-sep, sesión 46 de Alejo): ADR 0059, **propuesta, falta el ok de Mani**
+## Diseño (29-sep, sesión 46 de Alejo): ADR 0059, **aceptado (ok de Mani, 29-sep)**
 
 Grill con Alejo sobre el mapeo del 077. El ADR 0059 decide: el deal histórico nace en su etapa (actor
 `migracion`, sin recorrer el motor); huella `huella_migracion` con índice único parcial en `deals` y `abonos`
@@ -56,7 +56,61 @@ dos pasos (extractor → template local con datos personales, **fuera de git** �
 del script y hechos del sistema, toda actividad migrada es `nota`; sin fecha de venta, la del cierre de
 ventas de la C1 como rareza "fecha aproximada"; Parcial sin monto o `Ya pago` → Compromiso Verbal sin abono.
 
-**Orden para construir, cuando Mani dé el ok:** (1) migración de las huellas + la tabla de rarezas del 080;
+**Orden para construir (Mani dio el ok el 29-sep):** (1) migración de las huellas + la tabla de rarezas del 080;
 (2) el escritor histórico en `lib/deals/` con su guardian y tests en PGlite; (3) el extractor, puro sobre
 matrices (testeable sin Google); (4) el importador con ensayo; (5) ensayo en la base local (`npm run
 db:local`) con las hojas del día.
+
+**Paso (1) preparado (29-sep, Alejo), rama `migracion/078-huellas-y-rarezas`, SIN aplicar:** migración
+`0042_huellas-y-rarezas-de-migracion` (era la 0041; se renumeró el 29-sep porque la 0041 de `main`, valores del lead de Typeform, se aplicó antes. SQL leído: solo agrega; RLS puesto a mano; se quitaron las columnas de la 0041 de main que drizzle-kit arrastraba por no tener ella snapshot).
+`huella_migracion` en `deals` y `abonos` con índice único parcial; tabla `rarezas_migracion` (programa,
+huella, `tipo` en texto, detalle obligatorio, enlaces opcionales a lead/deal/abono/call, único
+`(huella, tipo)`). Tests: `tests/migracion-huellas.test.ts`. **Falta que Mani la revise, la fusione y la
+aplique** (y `npm run db:local` para la base de Docker).
+
+**Paso (2) hecho (29-sep, Alejo), misma rama:** `abrirDealHistorico` en `lib/deals/mover-etapa.ts` (vive en
+el motor porque escribe la etapa: nace en cualquiera, una fila de historial del sistema con su fecha, notas
+del sistema en la misma transacción, frontera de programa para lead, producto y cohorte) y
+`lib/deals/historico.ts` (`registrarAbonoHistorico`, `registrarLlamadaHistorica`, `duenoDesdeLaHoja`). Nada
+mueve la etapa; solo se cuelga de deals de la migración, nunca del vivo. La huella repetida devuelve
+`ya_migrado` y el cupo ocupado `lead_con_deal_vivo` (lo decide el índice; funciona dentro de una transacción
+externa, para el ensayo). Guardián: `tests/migracion-escritor-guardian.test.ts` (solo el motor, `historico.ts`
+y `lib/migracion/` los mencionan). Revisado por Codex: tres hallazgos (frontera de producto/cohorte, colgar del
+vivo, alias en el guardián), arreglados con su test.
+
+**Paso (3) hecho (29-sep, Alejo), misma rama:** el extractor, puro sobre matrices, en `lib/migracion/`
+(`template.ts` con los tipos de rareza, `celdas.ts`, `extraer-setteo.ts`, `extraer-llamadas.ts`,
+`extraer-estudiantes.ts`). Toda fila termina en deal, llamada, `sinDeal` (alcance, no rareza) o rareza. Tests
+en `tests/migracion-extractor.test.ts` con los encabezados reales. Corrido en solo lectura contra las hojas del
+29-sep (solo conteos), lo que destapó y se arregló:
+- **~260 fechas con año de dos dígitos** (`5/08/26`, siempre día/mes): `parsearFecha` ahora las lee como 20yy.
+  Un día ISO sin hora ya no retrocede un día (hallazgo de Codex).
+- **Columnas `Correo`/`WhatsApp` cruzadas en una hoja:** 87 filas de `Registro de llamadas` y 26 de 31 de
+  `Septiembre Estudiantes Cohort`. Se toma el correo de `WhatsApp` solo si `Correo` no trae uno
+  (`correoDeLaFila`).
+- Conteos resultantes (trabajado-y-reciente, 30 días): CA 658 deals de Setteo, 285 llamadas, 77 estudiantes con
+  77 abonos; TI 1.272 deals de Setteo, 229 llamadas, 66 estudiantes (14 en Compromiso Verbal sin abono).
+
+**Paso (4) hecho (29-sep, Alejo), misma rama:** `lib/migracion/consolidar.ts` (el estudiante absorbe su fila de
+Setteo y sus notas; un correo en dos pestañas de Estudiantes queda marcado; la llamada se cuelga solo si su correo
+tiene UN deal migrado), `lib/migracion/importar.ts` (cruza lead por correo, cohorte por código, producto USD por
+precio exacto y único, plataforma por nombre sin espacios y sin ambigüedad; lo que no cruza es rareza; escribe las
+rarezas con sus enlaces y sin duplicar) y `scripts/migrar-gestion.ts`:
+- `npm run migracion:extraer -- --programa <slug> [--alcance total] [--dias 30]` → template en `.migracion/`
+  (ignorado por git: lleva correos).
+- `npm run migracion:importar -- <template.json> [--aplicar] [--local --programa <slug local>] [--onboarded-desde-mail]`
+  → ensayo con rollback por defecto. Exige `SCRIPT_ACTOR_EMAIL`. Solo imprime conteos; un error sale sin parámetros.
+
+Probado en la base local de Docker (Postgres real): ensayo con el template real de CA (se deshizo entero) y dos
+corridas `--aplicar` con 20 leads de prueba: la primera creó 20 deals, 5 abonos y 20 llamadas, la segunda todo
+`ya_migrado` y 0 rarezas nuevas. Revisado por Codex: seis hallazgos (programa cruzado con `--programa`, llamada al
+último de dos deals, producto en COP, plataformas que colisionan, abono sin deal invisible, parámetros en el error),
+arreglados con su test.
+
+**Falta para cerrar el 078:** que Mani revise y aplique la **0042** en producción, merge a `main`, y el ensayo contra
+producción (sin `--aplicar`) de los dos programas. Las preguntas abiertas del 077 (cuentas, `Bootcamp`,
+`Mail onboarding`) no bloquean el ensayo: caen como rarezas o quedan apagadas por defecto.
+
+Sin resolver en el extractor (va al importador o al 080): el cruce del `Agendado` con su llamada, los 12
+"cohorte pasada" de CA Septiembre (no hay columna que los marque), y el catálogo de motivos por código de
+subcategoría.
