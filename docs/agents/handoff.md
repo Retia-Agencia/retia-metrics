@@ -61,8 +61,12 @@ cada migracion nueva. Antes de tomar un ticket, git fetch: Alejo empuja al mismo
     `hvm_points`, `hvm_tier` y `lead_value` en `respuestas` (6/6); ComunicArte 3 con `score` y 2 con las otras cuatro
     (el tercero es anterior a que Alejandro editara ese form, 17:58 UTC). Ningún envío es posterior al mapeo todavía:
     los 7 anteriores tienen `lead_quality`/`lead_value` en NULL en `submissions`, y los 2 reprocesados los traen.
-  - **Falta:** tras el deploy, recalcular el resumen de los leads con valores en `respuestas` (escritura en
-    producción, pide ok de Mani); verificar con un envío nuevo que promueva a submission y lead; ver los tags en Deals.
+  - **Leads anteriores recalculados (29-sep, con ok de Mani):** los 9 sobres crudos desde 17:20 UTC se pasaron por
+    `ingerirEntradas` SIN la regla de deals (upsert por fuente y token, y resumen del lead recalculado). Resultado:
+    Tactical 6/6 submissions y 6/6 leads con `lead_quality`, `lead_value` y `puntaje`; ComunicArte 3 leads con
+    `puntaje` y 2 con calidad y valor (el tercero es anterior a la edición del form: queda sin valor, no Low).
+    Distribución en leads: MUY ALTO VALOR 3 (High), ALTO VALOR 2, VALOR MEDIO 1, BAJO VALOR 2 (Low).
+  - **Falta:** verificar con un envío NUEVO (posterior al mapeo) que promueva de punta a punta, y ver los tags en Deals.
   - Validación: typecheck, lint y build limpios; `npm test` 1.486 pasando y 1 omitido, sin timeouts.
   - `.env.example` ahora nombra los tokens de dev: `TYPEFORM_TOKEN_TACTICAL/COMUNICARTE` y `CALENDLY_ACCESS_TOKEN_COMUNICARTE/TACTICAL` (uno por programa, los reales; las `CALENDLY_PAT_LOCAL_*` no se usan).
     Solo local; ningún código los lee. Cada dev los pega en su `.env.local`.
