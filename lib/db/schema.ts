@@ -206,9 +206,23 @@ export const miembrosPrograma = pgTable(
     userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
     activo: boolean("activo").notNull().default(true),
+    /**
+     * La cuenta de Calendly de esta closer EN ESTE programa (ticket 096, ADR 0049): tiene un
+     * correo distinto por programa, asi que vive en la membresia y no en `users`
+     * (`users.calendly_email` es global y queda sin lector). Es como el webhook sabe quien es
+     * la host de una cita. Guardar en minusculas y sin espacios: el indice compara `lower()`.
+     */
+    calendlyEmail: text("calendly_email"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("miembros_programa_par_idx").on(t.userId, t.programId)],
+  (t) => [
+    uniqueIndex("miembros_programa_par_idx").on(t.userId, t.programId),
+    // Dos closers no pueden reclamar la misma cuenta de Calendly en un programa: la garantia
+    // vive en la base (ADR 0005), no solo en el emparejador, que ya lo trata como duda.
+    uniqueIndex("miembros_programa_calendly_idx")
+      .on(t.programId, sql`lower(${t.calendlyEmail})`)
+      .where(sql`${t.calendlyEmail} IS NOT NULL`),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────── programas y cohortes
@@ -236,6 +250,13 @@ export const programs = pgTable(
      * ninguna lectura del catalogo lo devuelve. Nula hasta que Mani lo cargue.
      */
     calendlyToken: text("calendly_token"),
+    /**
+     * La clave con la que Calendly FIRMA los eventos del webhook de este programa (ticket 096,
+     * A5): cada suscripcion tiene la suya. Tercera excepcion nombrada a "secretos solo en
+     * .env.local y Vercel", con las reglas del token: la escribe una sola funcion, nunca pasa
+     * por el molde ni por `change_log`, y ninguna lectura del catalogo la devuelve.
+     */
+    calendlySigningKey: text("calendly_signing_key"),
     /** Maximo historico de personas por dia habil. Marca cuando una meta es inalcanzable por volumen. */
     recordPersonasPorDiaHabil: integer("record_personas_por_dia_habil"),
     /**
@@ -993,6 +1014,11 @@ export const calls = pgTable(
     linkCalendly: text("link_calendly"),
     /** Link de la grabacion. Pegarlo ES decir que la llamada sucedio (ticket 058). */
     linkGrain: text("link_grain"),
+    /**
+     * El correo de la cuenta de Calendly que hospeda la cita (ticket 096): decide el dueño del
+     * deal (la closer host) y se muestra en la llamada suelta. Nulo para lo que no viene de Calendly.
+     */
+    calendlyHostEmail: text("calendly_host_email"),
     emailLead: text("email_lead"),
     fechaAgenda: timestamp("fecha_agenda", { withTimezone: true }),
     fechaLlamada: timestamp("fecha_llamada", { withTimezone: true }),
@@ -1037,6 +1063,14 @@ export const calls = pgTable(
     // Sin motivo no hay anulacion (ADR 0026 punto 6), y la garantia vive en la base
     // y no solo en zod (ADR 0005): los tres campos van juntos o no va ninguno. Una
     // fila anulada sin quien ni por que es justo el estado que el ADR descarta.
+    // Una llamada NATIVA del CRM siempre cuelga de un deal (ticket 057): la garantia vive en la
+    // base y no solo en `agregarLlamada` (ADR 0005). Lo que viene de fuera puede no tenerlo: la
+    // SUELTA de Calendly (ADR 0049 punto 6, hasta que un closer la asigna) y la historia de la hoja
+    // (origen `sheets`, hasta que la migracion E7 la cuelgue o la deje como rareza).
+    // ponytail: el techo es que ADR 0049 pide que la suelta sea la UNICA Call sin deal; cuando
+    // termine E7 (ticket 082) y toda llamada de la hoja tenga deal, se aprieta a
+    // `deal_id IS NOT NULL OR origen = 'calendly'` con una migracion (los datos ya lo cumplirian).
+    check("calls_crm_con_deal", sql`${t.dealId} IS NOT NULL OR ${t.origen} <> 'crm'`),
     check(
       "calls_anulacion_completa",
       sql`(${t.anuladoEn} IS NULL AND ${t.anuladoPor} IS NULL AND ${t.motivoAnulacion} IS NULL)

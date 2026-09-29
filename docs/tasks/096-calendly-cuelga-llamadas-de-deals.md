@@ -197,3 +197,30 @@ tratan como dos hechos independientes, la reagenda se ve como cancelación y no 
 - **Migración de arranque:** la propuesta de arriba (`miembros_programa.calendly_email`,
   `calls.calendly_host_email`, el CHECK de la suelta) más la columna del `signing_key` del programa. La genera y
   aplica la sesión principal con el ok de Mani.
+
+---
+
+## ✅ Migración 0038 aplicada (28-sep, sesión 43, ok de Mani): Alejo puede empujar el 096
+
+`drizzle/0038_calendly-por-membresia-y-webhook.sql`, aplicada en producción (ref `hfqmiyiuyqapdsbywrag`) y en `main`.
+Es aditiva y se validó contra los datos reales antes (las 15 llamadas de producción tienen deal).
+
+- `miembros_programa.calendly_email` (texto, nulo) e índice único parcial `miembros_programa_calendly_idx` sobre
+  `(program_id, lower(calendly_email)) WHERE calendly_email IS NOT NULL`. Guardar **en minúsculas y sin espacios**.
+  La misma cuenta puede estar en dos programas; dos closers no pueden reclamarla en el mismo.
+- `calls.calendly_host_email` (texto, nulo): quién hospeda la cita.
+- `programs.calendly_signing_key` (texto, nulo): la clave con la que Calendly firma el webhook del programa (tercera
+  excepción nombrada de secretos: solo la escribe una función, sin molde ni `change_log`, ninguna lectura la devuelve).
+- **CHECK `calls_crm_con_deal`** (`deal_id IS NOT NULL OR origen <> 'crm'`): una llamada NATIVA del CRM nunca existe
+  sin deal. 🩸 **Se aflojó respecto a la propuesta** ("la suelta es la única Call sin deal"): ese CHECK estricto
+  rompía fixtures y, sobre todo, chocaba con la migración E7 (las llamadas históricas de leads que Mani decidió
+  dejar sin deal —No interesado y Cerrado— no tendrían a qué colgarse). Se aprieta a `origen = 'calendly'` cuando
+  termine E7 (082), con una migración; los datos ya lo cumplirían. La suelta de Calendly y `sheets` siguen pudiendo
+  no tener deal.
+- `users.calendly_email` (global) queda sin lector; se retira después.
+
+**Lo que le falta al 096 (Alejo):** el escritor del emparejador (que llama al emparejador con `calendly_email` de la
+membresía y guarda `calendly_host_email`), la ruta del webhook con la firma, el guardián "nadie cuelga una Call de
+Calendly por fuera del emparejador", el botón "Conectar Calendly" que crea la suscripción por API y guarda la
+`calendly_signing_key`, la pantalla de la llamada suelta (asignar a mano, con rastro) y la lectura de `calendly_email`
+en el perfil de la closer, por programa. Y confirmar con Michael que las dos cuentas son plan Standard o superior.

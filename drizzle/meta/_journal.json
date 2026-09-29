@@ -267,6 +267,13 @@
       "when": 1790637392250,
       "tag": "0037_entregas-del-webhook",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1790654922123,
+      "tag": "0038_calendly-por-membresia-y-webhook",
+      "breakpoints": true
     }
   ]
 }

@@ -16,15 +16,15 @@ docs/structure.md (§9, el sistema de diseño Tinta, es OBLIGATORIO antes de toc
 docs/operations.md y docs/adr/README.md.
 
 Estado al cierre del 28-sep (sesion 43): UNA sola base y es PRODUCCION ("CRM Retia", ref
-hfqmiyiuyqapdsbywrag). 38 migraciones (0000-0037), todas aplicadas. ~1.260 tests. El CI corre en cada
+hfqmiyiuyqapdsbywrag). 39 migraciones (0000-0038), todas aplicadas. ~1.270 tests. El CI corre en cada
 push a main (ahora con un Postgres de servicio para la prueba de concurrencia); SIN proteccion de main
 (Mani: velocidad), el CI es alarma y no reja. Hay base local: npm run db:local + npm run dev:local.
 
 E0 y E1 CERRADAS (el traslado de Sheets corrio en produccion: ComunicArte 2.478 leads, Tactical 2.891,
 conciliacion en 0). E2: el carril de Mani esta HECHO (060 abonos, 061 acuerdo de pago y cartera vencida,
 063 onboarding y cambio de cohorte) y la prueba de costura de E2 existe y pasa (tests/costura-e2.test.ts).
-E2 cierra cuando Alejo termine el 096 (Calendly): su migracion de arranque esta propuesta en el ticket
-096 y espera la revision y aplicacion de Mani, y A5 esta DECIDIDA (Mani, 28-sep): WEBHOOK (diseño al final del ticket 096; falta
+E2 cierra cuando Alejo termine el 096 (Calendly): su migracion de arranque, la 0038, YA esta aplicada (28-sep)
+y lo que le falta esta al final del ticket 096; A5 esta DECIDIDA (Mani, 28-sep): WEBHOOK (diseño al final del ticket 096; falta
 confirmar con Michael que las dos cuentas de Calendly son plan Standard o superior). El carril de Alejo ya tiene 097 y parte del 096.
 
 LO QUE SIGUE, E3 (plan-reparto): Mani 069 (Kanban por programa, L) -> 074 (Ficha del deal, L); Alejo 077
@@ -54,6 +54,15 @@ empujar otra vez: Alejo trabaja en paralelo sobre el mismo main.
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-28 (sesión 43, sexta parte): migración 0038 aplicada, desbloquea el 096 de Alejo.**
+  - Columnas `miembros_programa.calendly_email`, `calls.calendly_host_email` y `programs.calendly_signing_key`, el
+    índice único parcial por programa y correo, y el CHECK `calls_crm_con_deal`. Validada contra los datos reales
+    (las 15 llamadas tienen deal), leída entera y aplicada con el ok de Mani; producción quedó en 39 migraciones.
+  - 🩸 **El CHECK propuesto ("la suelta es la única Call sin deal") se aflojó** a "una llamada del CRM siempre tiene
+    deal": rompía 15 tests viejos del dashboard y chocaba con E7. Se aprieta al terminar E7. Está en el ticket 096.
+  - **Alejo ya puede hacer pull y empujar el 096.**
+  - **Medido:** 1.268 tests, typecheck, lint y build limpios.
 
 - **2026-09-28 (sesión 43, quinta parte): costura de E2, borrar el onboarding y revisión de Alejo.** Sin migración.
   - **Revisión de Alejo a mi 060/061 (`7598185`):** T18 exige comprobante; producto en otra moneda se rechaza;
