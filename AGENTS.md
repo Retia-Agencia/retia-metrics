@@ -519,6 +519,24 @@ The agent should run these to get fast signal on whether code works. Keep them c
   relanzarla en bucle.** Un archivo suelto: `npm test -- tests/x.test.ts`. Si ves "Ya hay una suite
   corriendo", espera o mata ese pid; no lances otra. Y quien delega a un agente lo detiene por su
   tarea (en Claude Code, `TaskStop`), no matando sus procesos: el agente vivo los relanza.
+- 🔑 **Todos los devs comparten el MISMO `.env.local` (29-sep, Mani): una sesion puede consultar Typeform y
+  Calendly por API sin pedirle nada a nadie.** Los tokens son de dev, **ninguna ruta de la app los lee**
+  (en produccion el token de Calendly vive en la base, ADR 0057). Que hay y que se puede hacer, verificado
+  el 29-sep solo con lecturas:
+  - `DATABASE_URL` / `DATABASE_URL_DIRECTA`: la base de produccion (ref `hfqmiyiuyqapdsbywrag`). Leer: libre.
+    Escribir: pide el ok de Mani y se mira el ref antes.
+  - `TYPEFORM_TOKEN`: token personal **por cuenta, no por programa**. Ve los dos forms (Tactical `GmPGBOf9`,
+    ComunicArte `nkMLdeh8`), sus campos, variables, webhooks y respuestas (~3.100 y ~2.700), y ademas otros
+    forms ajenos a Retia. **No es frontera de programa:** el script pasa siempre el form id explicito. Sus
+    scopes no se ven por API: si una escritura da 403, falta `forms:write`.
+  - `CALENDLY_ACCESS_TOKEN_COMUNICARTE` y `CALENDLY_ACCESS_TOKEN_TACTICAL`: uno por programa, de una cuenta
+    OWNER de su organizacion. Ven miembros, tipos de evento, citas y webhooks de esa organizacion. Cada
+    programa usa SU token: nunca uno para consultar el otro. `CALENDLY_PAT_LOCAL_*` no se usa.
+  - **Reglas:** leer es libre; **crear, editar o borrar en Typeform, Calendly o la base pide el ok de Mani**
+    (un webhook o un form editado por API se ve igual que uno bueno y no lanza error). Nunca imprimir un token
+    ni pegarlo en un commit, un ticket o el chat: se comprueba por presencia o por lo que devuelve la API. Usa
+    `node` con `fetch`, no el Python del sistema (falla el certificado SSL en la maquina de Mani). Un script
+    desechable se escribe en `scripts/`, se corre y se borra, sin commitearlo. Nunca `vercel env pull`.
 - **Idioma:** UI en espanol. Nombres de variables, tablas y archivos sin acentos, consistentes.
   Mensajes de commit en espanol.
 
