@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import { authConfig } from "./config";
+import { proveedorLoginLocal } from "./login-local";
 import { puedeIniciarSesion, revalidarToken } from "./revalidacion";
 
 /**
@@ -8,9 +9,17 @@ import { puedeIniciarSesion, revalidarToken } from "./revalidacion";
  *
  * Las dos decisiones que consultan la base viven en `./revalidacion` y no aqui, para
  * que se puedan probar (S-02). Ver la nota de ese archivo.
+ *
+ * El proveedor de login LOCAL (`./login-local`) se agrega SOLO aqui, no en `config.ts`:
+ * ese archivo tiene que quedar apto para el edge (sin base), y decidir si el login local
+ * existe depende de `DATABASE_URL`. En produccion `proveedorLoginLocal()` devuelve `null`
+ * y los proveedores quedan byte-identicos a `authConfig.providers`.
  */
+const loginLocal = proveedorLoginLocal();
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  providers: loginLocal ? [...authConfig.providers, loginLocal] : authConfig.providers,
   callbacks: {
     ...authConfig.callbacks,
 

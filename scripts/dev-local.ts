@@ -23,6 +23,10 @@ async function main() {
       ...process.env,
       DATABASE_URL: LOCAL_DB_URL,
       DATABASE_URL_DIRECTA: LOCAL_DB_URL,
+      // Habilita el proveedor de login local (ticket 069): sin el, nadie puede entrar a
+      // la app local porque Google no autentica un correo `.local`. Solo tiene efecto si
+      // ADEMAS la base es local (lo comprueba `esUrlLocal`); aqui ya lo es.
+      AUTH_LOGIN_LOCAL: "1",
     },
   });
 

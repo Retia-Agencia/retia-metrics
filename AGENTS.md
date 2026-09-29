@@ -376,8 +376,11 @@ The agent should run these to get fast signal on whether code works. Keep them c
 - **Run:** `npm run dev` (http://localhost:3000) — **escribe en producción**, es la unica base.
 - **Base local (ticket 113):** `npm run db:local` (Docker: Postgres 17, todas las migraciones y un seed
   por `lib/`) y `npm run dev:local` (la app contra ella, sin tocar `.env.local`). Para clics de prueba en
-  pantallas. Sembrar contra Postgres real ya destapo un bug que PGlite escondia. Falta un login local:
-  Auth.js solo tiene Google.
+  pantallas. Sembrar contra Postgres real ya destapo un bug que PGlite escondia. **Login local (ticket
+  069):** `dev:local` habilita un proveedor de credenciales que entra con solo un correo de `users`
+  (activo), SIN Google; existe unicamente con `AUTH_LOGIN_LOCAL=1` **y** una `DATABASE_URL` local
+  (`lib/db/es-local.ts`, la unica respuesta a "¿es local?"), asi que en produccion no se registra y el rol
+  sigue saliendo de la base por los callbacks de siempre.
 - **CI:** `.github/workflows/ci.yml` corre `npm ci`, typecheck, lint, test y build en cada push a `main`.
   Sin proteccion de `main` (Mani, 28-sep): es alarma, no reja; si queda en rojo, se arregla primero.
 

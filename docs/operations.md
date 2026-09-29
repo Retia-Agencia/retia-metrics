@@ -139,8 +139,15 @@ Para construir y probar pantallas (como el Kanban de Deals o el Inbox) sin escri
    docker compose down -v && npm run db:local
    ```
 
-6. **Variables de Auth.js y Login Local:**
-   La app requiere `AUTH_SECRET`, `AUTH_GOOGLE_ID` y `AUTH_GOOGLE_SECRET` configuradas en `.env.local` (o entorno) con redirect URI `http://localhost:3000/api/auth/callback/google` en Google Cloud para autenticar mediante Google OAuth contra los usuarios sembrados (`users`). Un modo de login local desacoplado de Google OAuth queda pendiente como tarea de producto.
+6. **Login local (solo desarrollo):**
+   `npm run dev:local` habilita un proveedor de credenciales que pide un correo y entra como
+   ese usuario de `users` (activo), sin Google OAuth. Existe SOLO si `AUTH_LOGIN_LOCAL=1` (lo pone
+   `dev:local` para su hijo) **y** `DATABASE_URL` es local (mismo check que la guardia del script,
+   `lib/db/es-local.ts`); en producción no se registra. El rol y el `closerId` los sigue poniendo la
+   base por los callbacks de siempre (`puedeIniciarSesion`, `revalidarToken`), igual que con Google.
+   `/login` muestra el formulario "Entrar como (local)" solo cuando el proveedor está activo.
+   Para Google (dev normal o producción) hacen falta `AUTH_SECRET`, `AUTH_GOOGLE_ID` y
+   `AUTH_GOOGLE_SECRET` con redirect URI `http://localhost:3000/api/auth/callback/google`.
 
 ## 5. Scripts
 
