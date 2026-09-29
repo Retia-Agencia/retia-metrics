@@ -107,7 +107,7 @@ corridas `--aplicar` con 20 leads de prueba: la primera creó 20 deals, 5 abonos
 último de dos deals, producto en COP, plataformas que colisionan, abono sin deal invisible, parámetros en el error),
 arreglados con su test.
 
-**Falta para cerrar el 078:** que Mani revise y aplique la **0042** en producción, merge a `main`, y el ensayo contra
+**Falta para cerrar el 078:** (0042 aplicada en producción y merge a `main` hechos el 29-sep) el ensayo contra
 producción (sin `--aplicar`) de los dos programas. Las preguntas abiertas del 077 (cuentas, `Bootcamp`,
 `Mail onboarding`) no bloquean el ensayo: caen como rarezas o quedan apagadas por defecto.
 
