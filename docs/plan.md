@@ -52,10 +52,10 @@ cuando los closers operan en el CRM y lo histórico ya migró. Los hitos interme
 
 El avance ticket por ticket vive **solo** en [`tasks/README.md`](./tasks/README.md); aquí va la foto.
 
-- `main` al 29-sep: **1.365 tests en verde**, typecheck, lint y build limpios; el CI (112) corre en cada
+- `main` al 29-sep: **1.478 tests en verde**, typecheck y lint limpios; el CI (112) corre en cada
   push, sin protección de `main` (Mani, 28-sep). Producción: https://retia-metrics-seven.vercel.app, que
   despliega cada push a `main`.
-- **Base:** una sola, y es producción ("CRM Retia", ADR 0047 enmendado). 40 migraciones (0000 a 0039),
+- **Base:** una sola, y es producción ("CRM Retia", ADR 0047 enmendado). 41 migraciones (0000 a 0040),
   todas aplicadas. Para probar pantallas hay base local en Docker con login local (113, 069).
 - **Datos en producción:** los leads del traslado de Sheets (111, 28-sep: ComunicArte 2.478, Tactical
   2.891, conciliación en 0) y los que entran por el webhook de formularios (106). Los deals de la operación
