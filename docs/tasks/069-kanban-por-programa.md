@@ -3,7 +3,7 @@ id: 069
 etapa: E6
 serves: "plan v2 §6 etapa 6 · tarea E6-1 · insumo §4.3, spec §2 (enmendada: el kanban entra)"
 depends: [057, 097]
-status: todo
+status: done
 ---
 
 # 069 — Kanban por programa con las diez etapas
@@ -82,3 +82,25 @@ seguimiento vencido.
 ## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
 
 Deja de depender de 065: el Kanban no lee la analítica, y esperar el 065 contradecía el orden P1 (`plan.md` §5). Depende de 057 (llamadas del deal) y 097.
+
+
+---
+
+## Cierre 2026-09-29 (sesión de Mani)
+
+Hecho por Kiro (login local y Kanban) y revisado y corregido en la sesión principal, con el recorrido
+contra la base local (`npm run db:local` + `npm run dev:local`, login "Entrar como (local)").
+
+- **Probado usándolo, consola abierta:** menú "Mover a…" (solo flechas de persona; las del sistema salen
+  deshabilitadas con "Los pone el sistema"); flecha a Agendado sin llamada → "Falta una llamada con
+  fecha." y la base sin moverse (historial verificado en Postgres); Cierre Perdido abre el diálogo del
+  motivo; Compromiso Verbal pide producto y fecha; arrastre: la columna válida se resalta, las demás se
+  apagan, soltar en una del sistema dice por qué, soltar en una válida abre el diálogo y cancelar la
+  devuelve; como closer, mover un deal de otra closer → "Solo el dueño del deal o un administrador
+  pueden moverlo." (el servidor es la reja; la tarjeta ya no ofrece el menú).
+- **Corregido en el recorrido:** orden de columnas (`ETAPAS_EN_ORDEN`, Seguimiento tras Atendido), los
+  `Select` mostraban el valor crudo (faltaba `items`) y cambiaban de no controlado a controlado, precio
+  sin el formato del contrato, la flecha T9 en el menú, y en celular columnas al 85% con snap.
+- **Decisión de diseño:** Seguimiento toma el tono `info` en `docs/structure.md` §3 (estaba sin tono).
+- **Queda fuera:** la vista tabla de Deals; prellenar la fecha límite con el inicio de clases en el
+  diálogo (el motor ya la limita; se hace con la ficha, 074); probar en un celular de verdad.

@@ -188,7 +188,7 @@ se abre**. Este repo no tiene tests de componentes y el 20-sep dos bugs pasaron 
 |---|---|---|---|---|
 | [x] | 094 | [Un closer ve solo sus programas](./094-alcance-del-closer-por-membresia.md) | — | done · 27-sep · `lib/auth/alcance.ts`; dashboard, sidebar, buscador y ficha por id lo usan; ajeno = 404 |
 | [x] | 097 | [Navegación por objetos y selector de programa](./097-navegacion-por-objetos-y-selector-de-programa.md) | 094 | done · 29-sep (Alejo): tabs por objeto en `/p/<programa>/<tab>` y selector de programa (`39bf931`, `d953769`); celular revisado en producción (cajón, selector y menú encima, sin scroll horizontal a 390 px) |
-| [ ] | 069 | [Kanban por programa](./069-kanban-por-programa.md) (E6-1) | 057, 097 | todo · 24-sep: es la vista tablero de la tab **Deals** |
+| [x] | 069 | [Kanban por programa](./069-kanban-por-programa.md) (E6-1) | 057, 097 | done · 29-sep · `/p/<programa>/deals`: tablero con arrastre nativo y menú "Mover a…", todo por `moverEtapa` desde una server action con el actor de la sesión; filtros por URL; `ETAPAS_EN_ORDEN` en `lib/deals/etapas.ts`. Login local para `dev:local`. Recorrido contra la base local con consola abierta (escritorio y 390 px emulados). Falta: probarlo en un celular de verdad y la vista tabla |
 | [ ] | 070 | [Pendiente Setteo y Unclaimed](./070-pendiente-setteo-y-unclaimed.md) (E6-2) | 069 | todo · 24-sep: son secciones del **Inbox** |
 | [ ] | 071 | [El Inbox (antes Mis deals)](./071-mi-dia-del-closer.md) (E6-3) | 069, 061, 070, 096, 097 | todo · 24-sep: reemplaza "Mi día"; contenido 🟡 a validar con closers |
 | [ ] | 072 | [Base de Leads con filtros](./072-base-de-leads-con-filtros.md) (E6-4) | 069 | todo · 24-sep: es la tab **Leads** |
