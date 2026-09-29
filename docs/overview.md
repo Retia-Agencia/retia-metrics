@@ -334,6 +334,11 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   Inbox.
 - **Student:** un deal en Abonado o Completo, en la cohorte de su deal. Es una vista, no una tabla. 🔴 Si
   "estudiante" empieza en el primer abono o con el pago completo está por confirmar.
+- **Deal histórico:** un deal que vino de las pestañas de gestión de la hoja (migración de E7). Nace en la
+  etapa que dice la hoja, sin recorrer el motor, y lleva su **huella de migración** (ADR 0059).
+- **Rareza:** una fila de la hoja que entró (o no pudo entrar) sin poder clasificarse del todo: fecha
+  aproximada, monto desconocido, plataforma fuera del catálogo, ya tenía deal vivo. Queda visible con su
+  razón; *no es* un anulado, porque de la hoja sí pasó (ticket 080).
 - **Anular:** dejar un registro fuera de toda métrica sin borrarlo, con quién, cuándo y por qué. Se ve
   tachado en la ficha. *Evitar: "borrar", "cancelar".*
 - **Vigente:** lo contrario de anulado (un registro que cuenta). En recursos, la versión de hoy.

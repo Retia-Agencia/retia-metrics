@@ -44,3 +44,19 @@ Que la migracion one-time no sea un segundo camino de escritura.
 ## Kiro
 
 Si, con revision.
+
+---
+
+## Diseño (29-sep, sesión 46 de Alejo): ADR 0059, **propuesta, falta el ok de Mani**
+
+Grill con Alejo sobre el mapeo del 077. El ADR 0059 decide: el deal histórico nace en su etapa (actor
+`migracion`, sin recorrer el motor); huella `huella_migracion` con índice único parcial en `deals` y `abonos`
+(**migración aditiva, la aplica Mani**); si el lead ya tiene deal vivo, gana el vivo y la fila es rareza;
+dos pasos (extractor → template local con datos personales, **fuera de git** → importador con ensayo); rastro
+del script y hechos del sistema, toda actividad migrada es `nota`; sin fecha de venta, la del cierre de
+ventas de la C1 como rareza "fecha aproximada"; Parcial sin monto o `Ya pago` → Compromiso Verbal sin abono.
+
+**Orden para construir, cuando Mani dé el ok:** (1) migración de las huellas + la tabla de rarezas del 080;
+(2) el escritor histórico en `lib/deals/` con su guardian y tests en PGlite; (3) el extractor, puro sobre
+matrices (testeable sin Google); (4) el importador con ensayo; (5) ensayo en la base local (`npm run
+db:local`) con las hojas del día.
