@@ -1,9 +1,12 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
-import { changeLog, miembrosPrograma, users } from "@/lib/db/schema";
+import { changeLog, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
+import { esViolacionUnica } from "@/lib/db/errores";
+import { cuentasDeCalendly } from "@/lib/calendly/cuentas";
+import { ErrorDeCalendly, type FetchLike } from "@/lib/calendly/cita";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { esAdministrador, ROLES } from "@/lib/auth/roles";
@@ -471,4 +474,128 @@ export async function reactivarUsuario(
       programas: await programasDe(db, objetivoId),
     };
   });
+}
+
+// ─────────────────────────────────────────────────────────── cuenta de Calendly por membresia
+
+export const esquemaCalendlyDeMembresia = z.object({
+  membresiaId: z.string().uuid("La membresía no es válida."),
+  /** `null` desvincula la cuenta. */
+  calendlyEmail: z.string().trim().toLowerCase().email("El correo de Calendly no es válido.").nullable(),
+});
+
+export type EntradaCalendlyDeMembresia = z.input<typeof esquemaCalendlyDeMembresia>;
+
+/**
+ * Vincula una membresia (closer × programa) con SU cuenta de Calendly en ese programa
+ * (ticket 096, ADR 0049). La cuenta decide de quien es un deal (la closer host se lo
+ * queda), asi que:
+ *
+ *  - **Solo administra quien `esAdministrador`**, igual que el `closerId`: una closer no
+ *    puede reclamar una cuenta ajena. Lo reenforza la server action; aqui se recibe el
+ *    actor ya autorizado, como el resto de este modulo.
+ *  - **El correo tiene que ser una cuenta de la organizacion de Calendly del programa**,
+ *    comprobado contra la API con el token del programa en el momento de guardar. Nadie
+ *    teclea un correo: la pantalla ofrece la lista y el servidor no confia en ella.
+ *  - Dos closers no reclaman la misma cuenta en un programa: lo garantiza el indice
+ *    `miembros_programa_calendly_idx` (ADR 0005), y el choque sale como 409.
+ *  - El cambio va a `change_log` con quien lo hizo.
+ */
+export async function asignarCalendlyDeMembresia(
+  db: Db,
+  actorId: string,
+  input: EntradaCalendlyDeMembresia,
+  opciones: { fetch?: FetchLike } = {},
+): Promise<void> {
+  return normalizando(async () => {
+    const { membresiaId, calendlyEmail } = esquemaCalendlyDeMembresia.parse(input);
+
+    const [m] = await db
+      .select({
+        id: miembrosPrograma.id,
+        activo: miembrosPrograma.activo,
+        actual: miembrosPrograma.calendlyEmail,
+        email: users.email,
+        token: programs.calendlyToken,
+      })
+      .from(miembrosPrograma)
+      .innerJoin(users, eq(users.id, miembrosPrograma.userId))
+      .innerJoin(programs, eq(programs.id, miembrosPrograma.programId))
+      .where(eq(miembrosPrograma.id, membresiaId));
+    if (!m || !m.activo) throw new ErrorDeApp("No existe esa membresía activa.", 404);
+    if (m.actual === calendlyEmail) return;
+
+    if (calendlyEmail !== null) {
+      if (!m.token) {
+        throw new ErrorDeApp("El programa no tiene token de Calendly: cárgalo antes de vincular cuentas.", 409);
+      }
+      let cuentas;
+      try {
+        cuentas = await cuentasDeCalendly({ token: m.token, fetch: opciones.fetch });
+      } catch (e) {
+        if (e instanceof ErrorDeCalendly) throw new ErrorDeApp(e.message, 502);
+        throw e;
+      }
+      if (!cuentas.some((c) => c.correo === calendlyEmail)) {
+        throw new ErrorDeApp("Esa cuenta no está en la organización de Calendly del programa.", 422);
+      }
+    }
+
+    try {
+      await ejecutarJuntas(db, (tx) => [
+        tx.update(miembrosPrograma).set({ calendlyEmail }).where(eq(miembrosPrograma.id, membresiaId)),
+        tx.insert(changeLog).values({
+          tabla: "miembros_programa",
+          registroId: membresiaId,
+          etiqueta: m.email,
+          campo: "calendlyEmail",
+          valorAnterior: m.actual,
+          valorNuevo: calendlyEmail,
+          origen: "app" as const,
+          userId: actorId,
+        }),
+      ]);
+    } catch (e) {
+      if (esViolacionUnica(e)) {
+        throw new ErrorDeApp("Esa cuenta de Calendly ya está vinculada a otra closer en este programa.", 409);
+      }
+      throw e;
+    }
+  });
+}
+
+/** Una membresia activa de alguien que trabaja leads, con su cuenta de Calendly. */
+export interface MembresiaConCalendly {
+  id: string;
+  userId: string;
+  usuario: string;
+  emailUsuario: string;
+  programId: string;
+  calendlyEmail: string | null;
+}
+
+/** Las membresias activas de usuarios activos, para vincular su cuenta de Calendly. */
+export async function membresiasConCalendly(db: Db = dbDeLaApp): Promise<MembresiaConCalendly[]> {
+  const filas = await db
+    .select({
+      id: miembrosPrograma.id,
+      userId: users.id,
+      nombre: users.nombre,
+      email: users.email,
+      programId: miembrosPrograma.programId,
+      calendlyEmail: miembrosPrograma.calendlyEmail,
+    })
+    .from(miembrosPrograma)
+    .innerJoin(users, eq(users.id, miembrosPrograma.userId))
+    .where(and(eq(miembrosPrograma.activo, true), eq(users.activo, true)));
+  return filas
+    .map((f) => ({
+      id: f.id,
+      userId: f.userId,
+      usuario: f.nombre ?? f.email,
+      emailUsuario: f.email,
+      programId: f.programId,
+      calendlyEmail: f.calendlyEmail,
+    }))
+    .sort((a, b) => a.usuario.localeCompare(b.usuario, "es"));
 }

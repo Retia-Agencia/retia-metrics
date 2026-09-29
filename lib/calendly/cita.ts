@@ -67,7 +67,7 @@ export type FetchLike = (
   json: () => Promise<unknown>;
 }>;
 
-const BASE = "https://api.calendly.com";
+export const BASE = "https://api.calendly.com";
 
 export interface ParametrosCita {
   /** El token de Calendly del programa (rol owner). */
@@ -143,7 +143,7 @@ async function getJson(
  * hasta el final. Sin esto, la pagina por defecto (20) cortaria la busqueda y un uuid
  * de la pagina 2 saldria como `null` silencioso.
  */
-async function coleccionCompleta(
+export async function coleccionCompleta(
   fetchImpl: FetchLike,
   url: string,
   token: string,
@@ -164,7 +164,7 @@ async function coleccionCompleta(
 }
 
 /** La URI de la organizacion del token, desde `GET /users/me`. */
-async function organizacionDelToken(fetchImpl: FetchLike, token: string): Promise<string> {
+export async function organizacionDelToken(fetchImpl: FetchLike, token: string): Promise<string> {
   const cuerpo = await getJson(fetchImpl, `${BASE}/users/me`, token);
   const recurso = cuerpo.resource as { current_organization?: unknown } | undefined;
   const org = recurso?.current_organization;

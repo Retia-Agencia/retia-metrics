@@ -235,6 +235,12 @@ describe("guardián: el alcance se pregunta por la función, no con un join prop
     [path.join("lib", "catalogo", "usuarios.ts")]:
       "write-side: administra las membresías (las crea, activa y desactiva)",
 
+    // La identidad de la host de una cita (ticket 096): "¿qué closer del programa es
+    // dueña de esta cuenta de Calendly?". No acota ninguna lectura a una sesión: decide
+    // de quién es un deal, y no hay sesión (lo llama el sistema).
+    [path.join("lib", "calendly", "colgar-llamada.ts")]:
+      "identidad de la host: qué closer es dueña de una cuenta de Calendly en el programa",
+
     // Mutación: al crear/asignar una persona comprueba que el actor sea miembro activo
     // del programa. Es autorización de escritura, misma familia que acceso-programa.
     [path.join("lib", "mutations", "personas.ts")]:

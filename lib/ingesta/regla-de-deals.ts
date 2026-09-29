@@ -6,6 +6,8 @@ import { vigente } from "@/lib/queries/vigente";
 import { crearConRastro } from "@/lib/crm/rastro";
 import { abrirDeal, moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
 import type { EtapaDeal } from "@/lib/deals/etapas";
+import { closerHost } from "@/lib/calendly/emparejar-llamada";
+import { closersConCalendly, darDealAlHost, huellaDeCita } from "@/lib/calendly/colgar-llamada";
 import type { Calificacion } from "./calificacion";
 
 /**
@@ -81,8 +83,8 @@ export type ResultadoCita =
       inicio: Date;
       uuidInvitado: string;
       /**
-       * Quien hospeda la cita (ticket 096). Todavia no se guarda ni decide el dueño: falta
-       * la cuenta de Calendly por membresia (migracion de arranque de E2).
+       * Quien hospeda la cita (ticket 096): se guarda en la llamada y, si es una closer
+       * registrada en el programa, el deal es suyo (decision de Mani del 28-sep).
        */
       correoHost?: string | null;
     }
@@ -130,6 +132,7 @@ export type AccionDeDeal =
 export interface LlamadaDeCita {
   inicio: Date;
   uuidInvitado: string;
+  correoHost?: string | null;
 }
 
 /**
@@ -182,7 +185,11 @@ export function decidirAccionDeDeal(
       return {
         tipo: "agregar_llamada",
         etapa: dealAbierto.etapa,
-        llamada: { inicio: citaResuelta.inicio, uuidInvitado: citaResuelta.uuidInvitado },
+        llamada: {
+          inicio: citaResuelta.inicio,
+          uuidInvitado: citaResuelta.uuidInvitado,
+          correoHost: citaResuelta.correoHost,
+        },
       };
     }
     return { tipo: "notificar_reenvio", etapa: dealAbierto.etapa };
@@ -195,7 +202,11 @@ export function decidirAccionDeDeal(
   }
 
   if (citaResuelta.estado === "vigente") {
-    const llamada: LlamadaDeCita = { inicio: citaResuelta.inicio, uuidInvitado: citaResuelta.uuidInvitado };
+    const llamada: LlamadaDeCita = {
+          inicio: citaResuelta.inicio,
+          uuidInvitado: citaResuelta.uuidInvitado,
+          correoHost: citaResuelta.correoHost,
+        };
     if (dealAbierto === null) return { tipo: "abrir", etapa: "agendado", llamada };
     return { tipo: "mover", a: "agendado", llamada };
   }
@@ -230,7 +241,12 @@ export interface ResultadoReglaDeDeal {
 }
 
 /** El deal abierto del lead con su id, o `null`. */
-type DealAbiertoConId = { id: string; etapa: EtapaDeal; cohortId: string | null } | null;
+type DealAbiertoConId = {
+  id: string;
+  etapa: EtapaDeal;
+  cohortId: string | null;
+  ownerUserId: string | null;
+} | null;
 
 /**
  * El deal abierto del lead en su programa, o `null`. Mismo predicado que el indice
@@ -241,7 +257,7 @@ type DealAbiertoConId = { id: string; etapa: EtapaDeal; cohortId: string | null 
  */
 async function dealAbiertoDelLead(db: Db, leadId: string, programId: string): Promise<DealAbiertoConId> {
   const filas = await db
-    .select({ id: deals.id, etapa: deals.etapa, cohortId: deals.cohortId })
+    .select({ id: deals.id, etapa: deals.etapa, cohortId: deals.cohortId, ownerUserId: deals.ownerUserId })
     .from(deals)
     .where(and(eq(deals.leadId, leadId), eq(deals.programId, programId), vigente(deals)));
   const abierto = filas.find((d) => d.etapa !== "completo" && d.etapa !== "cierre_perdido");
@@ -279,9 +295,10 @@ async function crearLlamadaDeCita(
         cohortId: deal.cohortId,
         emailLead,
         fechaAgenda: llamada.inicio,
+        calendlyHostEmail: llamada.correoHost ?? null,
         resultado: "agendada" as const,
         origen: "calendly",
-        huellaFila: `calendly:${llamada.uuidInvitado}`,
+        huellaFila: huellaDeCita(llamada.uuidInvitado),
       },
     );
   } catch (e) {
@@ -322,12 +339,19 @@ export async function aplicarReglaDeDeal(
   const dealAbierto = await dealAbiertoDelLead(db, lead.id, lead.programId);
   const accion = decidirAccionDeDeal(lead.calificacion, dealAbierto, cita);
 
+  // La closer host de la cita, si esta registrada en el programa (ticket 096).
+  const llamadaDeLaAccion = "llamada" in accion ? accion.llamada : undefined;
+  const host = llamadaDeLaAccion?.correoHost
+    ? closerHost(llamadaDeLaAccion.correoHost, await closersConCalendly(db, lead.programId))
+    : null;
+
   if (accion.tipo === "abrir") {
     const dealId = await abrirDeal(db, {
       leadId: lead.id,
       programId: lead.programId,
       etapa: accion.etapa,
       actor: { tipo: "sistema" },
+      ownerUserId: host,
     });
     // Con cita vigente el deal nace en Agendado y necesita su llamada (quita la
     // asimetria con el movimiento: abrir directo en Agendado también crea la llamada).
@@ -353,6 +377,7 @@ export async function aplicarReglaDeDeal(
       lead.emailNormalizado,
       accion.llamada,
     );
+    await darDealAlHost(db, dealAbierto.id, dealAbierto.ownerUserId, host, lead.emailNormalizado);
 
     // `moverEtapa` valida la flecha y escribe el historial; nunca la etapa a mano. Un
     // `MovimientoRechazado` NO es un error de datos: es el motor diciendo que al deal le
@@ -378,6 +403,7 @@ export async function aplicarReglaDeDeal(
       lead.emailNormalizado,
       accion.llamada,
     );
+    await darDealAlHost(db, dealAbierto.id, dealAbierto.ownerUserId, host, lead.emailNormalizado);
     return { leadId: lead.id, accion };
   }
 

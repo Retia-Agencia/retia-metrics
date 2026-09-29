@@ -5,10 +5,12 @@ import { requireRole } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import {
+  asignarCalendlyDeMembresia,
   crearUsuario,
   desactivarUsuario,
   editarUsuario,
   reactivarUsuario,
+  type EntradaCalendlyDeMembresia,
   type EntradaUsuario,
 } from "@/lib/catalogo/usuarios";
 
@@ -71,6 +73,24 @@ export async function reactivarUsuarioAccion(id: string): Promise<ResultadoAccio
   try {
     const session = await requireRole("gerente");
     await reactivarUsuario(db, session.user.id, id);
+    revalidatePath("/ajustes/usuarios");
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+/**
+ * Vincula la cuenta de Calendly de una membresia (ticket 096). Solo administrador: esa
+ * cuenta decide de quien es un deal. La lista de cuentas validas la vuelve a pedir el
+ * servidor a Calendly; lo que mande el cliente no se cree.
+ */
+export async function asignarCalendlyDeMembresiaAccion(
+  input: EntradaCalendlyDeMembresia,
+): Promise<ResultadoAccion> {
+  try {
+    const session = await requireRole("gerente");
+    await asignarCalendlyDeMembresia(db, session.user.id, input);
     revalidatePath("/ajustes/usuarios");
     return { ok: true };
   } catch (error) {

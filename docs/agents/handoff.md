@@ -5,8 +5,8 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 43 (28-sep, noche). El anterior:
-> `git show 282cd21:docs/agents/handoff.md`.
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 44 de Alejo (28-sep, noche). El anterior:
+> `git show cacc569:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas:
@@ -16,16 +16,23 @@ docs/structure.md (§9, el sistema de diseño Tinta, es OBLIGATORIO antes de toc
 docs/operations.md y docs/adr/README.md.
 
 Estado al cierre del 28-sep (sesion 43): UNA sola base y es PRODUCCION ("CRM Retia", ref
-hfqmiyiuyqapdsbywrag). 39 migraciones (0000-0038), todas aplicadas. ~1.270 tests. El CI corre en cada
+hfqmiyiuyqapdsbywrag). 39 migraciones (0000-0038), todas aplicadas. 1.291 tests. El CI corre en cada
 push a main (ahora con un Postgres de servicio para la prueba de concurrencia); SIN proteccion de main
 (Mani: velocidad), el CI es alarma y no reja. Hay base local: npm run db:local + npm run dev:local.
 
 E0 y E1 CERRADAS (el traslado de Sheets corrio en produccion: ComunicArte 2.478 leads, Tactical 2.891,
 conciliacion en 0). E2: el carril de Mani esta HECHO (060 abonos, 061 acuerdo de pago y cartera vencida,
 063 onboarding y cambio de cohorte) y la prueba de costura de E2 existe y pasa (tests/costura-e2.test.ts).
-E2 cierra cuando Alejo termine el 096 (Calendly): su migracion de arranque, la 0038, YA esta aplicada (28-sep)
-y lo que le falta esta al final del ticket 096; A5 esta DECIDIDA (Mani, 28-sep): WEBHOOK (diseño al final del ticket 096; falta
-confirmar con Michael que las dos cuentas de Calendly son plan Standard o superior). El carril de Alejo ya tiene 097 y parte del 096.
+E2 cierra cuando Alejo termine el 096 (Calendly). La 0038 (de Mani) esta aplicada y el trabajo de Alejo
+esta en main: el escritor lib/calendly/colgar-llamada.ts (colgada/suelta, asignar a mano), el 052 guarda el
+host y el deal es de la closer host, y la cuenta de Calendly de cada closer por programa se elige en
+/ajustes/usuarios de la lista que da el PAT del programa (solo administrador). A5 esta DECIDIDA (Mani,
+28-sep): WEBHOOK (diseño al final del ticket 096; falta confirmar con Michael que las dos cuentas de
+Calendly son plan Standard o superior). Para cerrar el 096 (lista al final del ticket): recorrer
+/ajustes/usuarios y vincular las cuentas de las closers, CONSTRUIR el webhook (sin el NADIE llama al
+escritor; una reagenda mueve la fecha de la MISMA llamada, y hoy el escritor crea una por uuid de
+invitado; "Conectar Calendly" guarda la calendly_signing_key) y decidir si la suelta en el Inbox y los
+botones pasan al 071/074. El 097 esta en main; le falta ver el aspecto a 390 px.
 
 LO QUE SIGUE, E3 (plan-reparto): Mani 069 (Kanban por programa, L) -> 074 (Ficha del deal, L); Alejo 077
 (barrer las pestañas de gestion) -> 078 -> 081. A4 YA DECIDIDA (Mani, 28-sep): la UI se prueba USANDOLA, porque tiene
@@ -55,6 +62,25 @@ empujar otra vez: Alejo trabaja en paralelo sobre el mismo main.
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-28 (sesión 44, Alejo): el 096 sin el webhook, en `main` sobre la 0038 de Mani.**
+  - **Migración:** propuse una 0038 propia (con el CHECK ya aflojado por la misma razón que Mani); al empujar,
+    Mani ya había aplicado la suya (`0038_calendly-por-membresia-y-webhook.sql`, con `calendly_signing_key`). Al
+    rebasar se descartó la mía: mismos nombres de columna, el código calzó sin cambios.
+  - **Escritor** `lib/calendly/colgar-llamada.ts`: `registrarLlamadaDeCalendly` y `asignarLlamadaSuelta`.
+    Empareja también por la llave del lead (`leads.email_normalizado`), que cuenta como confirmado.
+    `huellaDeCita` es la única forma de armar `calendly:<uuid>`. Guardián nuevo con helper
+    `tests/helpers/codigo-fuente.ts` (los guardianes viejos siguen con su copia de `sinComentarios`).
+    Excepción nombrada en `tests/alcance-de-sesion.test.ts`: leer membresías para saber quién es la host no
+    es acotar una sesión.
+  - **Decisión de Alejo:** la cuenta de Calendly de cada closer la vincula un administrador, eligiéndola de
+    la lista que devuelve el PAT (`GET /organization_memberships`); el servidor la vuelve a comprobar. El PAT
+    no sabe qué closer es cada cuenta: la que tiene el mismo correo del login sale **sugerida**, sin
+    guardarse sola. El campo global "Correo de Calendly" salió del formulario.
+  - **PATs:** en producción los dos están en la base (verificado sin leer valores). Placeholders
+    `CALENDLY_PAT_LOCAL_COMUNICARTE` / `_TACTICAL` para la base local (`.env.example`, `.env.local` vacíos);
+    el seed lee de `.env.local` solo esas dos llaves.
+  - **No se vio en navegador todavía:** falta el recorrido de `/ajustes/usuarios` contra producción.
+  - **Medido:** 1.291 tests, typecheck, lint y build limpios.
 - **2026-09-28 (sesión 43, sexta parte): migración 0038 aplicada, desbloquea el 096 de Alejo.**
   - Columnas `miembros_programa.calendly_email`, `calls.calendly_host_email` y `programs.calendly_signing_key`, el
     índice único parcial por programa y correo, y el CHECK `calls_crm_con_deal`. Validada contra los datos reales

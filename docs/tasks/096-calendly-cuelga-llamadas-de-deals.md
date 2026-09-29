@@ -224,3 +224,68 @@ membresía y guarda `calendly_host_email`), la ruta del webhook con la firma, el
 Calendly por fuera del emparejador", el botón "Conectar Calendly" que crea la suscripción por API y guarda la
 `calendly_signing_key`, la pantalla de la llamada suelta (asignar a mano, con rastro) y la lectura de `calendly_email`
 en el perfil de la closer, por programa. Y confirmar con Michael que las dos cuentas son plan Standard o superior.
+
+## Avance 28-sep, noche (Alejo): el escritor, la migración y la cuenta por membresía
+
+**Migración:** la mía se descartó al rebasar; manda la **0038 de Mani** (`0038_calendly-por-membresia-y-webhook.sql`,
+arriba), con los mismos nombres de columna y además `programs.calendly_signing_key`. El código de abajo calza
+con ella sin cambios.
+
+**El escritor**, `lib/calendly/colgar-llamada.ts`:
+- `registrarLlamadaDeCalendly(db, programId, cita)`: arma los candidatos (contactos de correo + la llave
+  del lead, deals abiertos y vigentes), pregunta al emparejador y escribe. Colgada: la llamada, el dueño
+  pasa a la host registrada (con nota del sistema si tenía otro) y, desde 1, 2, 3, 9 u 11, el motor la
+  lleva a Agendado; en 4-7 es otra llamada. Suelta: la llamada sin deal. Idempotente por la huella
+  (`huellaDeCita`, compartida con el 052). **Es lo que A5 va a llamar.**
+- `asignarLlamadaSuelta(db, actor, { callId, dealId })`: quien `trabajaLeads` y ve el programa; el deal,
+  abierto y del mismo programa; rastro con el actor; mismo efecto que la colgada automática.
+- La llamada nace sin `closer_user_id`, como la del 052.
+
+**El 052** guarda `calendly_host_email` y el deal es de la closer host registrada (al abrir, mover o
+agregar la llamada).
+
+**La cuenta de Calendly por membresía** (decisión de Alejo, 28-sep: solo administrador, elegida de la
+lista que da el PAT):
+- `lib/calendly/cuentas.ts`: `cuentasDeCalendly` (`GET /organization_memberships` con el token del
+  programa) y `cuentasPorPrograma` para la pantalla (el token no sale del servidor; sin token o token
+  rechazado, el error del programa se muestra).
+- `asignarCalendlyDeMembresia` en `lib/catalogo/usuarios.ts`: el servidor vuelve a comprobar contra
+  Calendly que la cuenta sea de la organización (422 si no), 409 si otra closer ya la tiene, `change_log`.
+- `/ajustes/usuarios`: sección "Cuentas de Calendly por programa", una fila por membresía activa de
+  quien trabaja leads, con selector; la cuenta con el mismo correo del login viene **sugerida** (no se
+  guarda sola). El campo global "Correo de Calendly" salió del formulario; `users.calendly_email` queda
+  sin lector y se retira después.
+
+**Tests:** `calendly-colgar-llamada` (20), `calendly-colgar-guardian` (4, con helper nuevo
+`tests/helpers/codigo-fuente.ts`), `calendly-cuentas` (8). Mordidos quitando la frontera de programa y el
+cambio de dueño. Excepción nombrada en `tests/alcance-de-sesion.test.ts` para `colgar-llamada.ts` (lee
+membresías para saber quién es la host, no para acotar una sesión). Suite 1.285, typecheck, lint y build
+limpios.
+
+**No se vio en navegador:** recorrido pendiente de `/ajustes/usuarios` contra producción.
+
+**Falta del 096:** el webhook (A5) para cancelaciones, reprogramaciones y citas fuera del
+formulario; el dropdown y el botón "buscar llamada" en pantalla (Inbox 071 y ficha 074, carril de Mani);
+la suelta que se reintenta cuando llega el envío.
+
+## Cierre de la sesión del 28-sep, noche (Alejo): qué falta para cerrar el 096
+
+**Placeholders de los PAT (uno por programa):** en producción los dos viven en `programs.calendly_token`
+y ya están cargados (verificado sin leer el valor); se cambian en `/ajustes/programas`. Para la base
+local quedaron `CALENDLY_PAT_LOCAL_COMUNICARTE` y `CALENDLY_PAT_LOCAL_TACTICAL`, vacíos en `.env.local`
+y documentados en `.env.example` y `docs/operations.md` §3 y §4.1; `scripts/seed-local.ts` lee de
+`.env.local` solo esas dos llaves.
+
+**Para cerrar, en orden:**
+1. ✅ Mani aplicó su **0038** y el trabajo de Alejo quedó empujado a `main`.
+2. Recorrido de `/ajustes/usuarios` en navegador (consola abierta, abrir cada selector) y vincular la
+   cuenta de Calendly de cada closer en cada programa. Hasta entonces nadie es host registrada.
+3. **El webhook** (A5 decidida por Mani: ver "A5: webhook" arriba), lo único de código que bloquea: sin él
+   nadie llama a `registrarLlamadaDeCalendly`. La columna `programs.calendly_signing_key` ya existe (0038),
+   falta quien la escriba ("Conectar Calendly"); cancelaciones y no-show, la reagenda que
+   **mueve la fecha de la misma llamada** (hoy el escritor crea una llamada por uuid de invitado: el
+   webhook tiene que reconocer la reagenda antes de llamarlo) y la suelta que se reintenta cuando llega
+   el envío. Confirmar con Michael el plan Standard de las dos cuentas.
+4. Decidir con Mani si "la suelta aparece en el Inbox", el dropdown y el botón "buscar llamada" se
+   cierran aquí o pasan al 071 y al 074 (los backends ya existen: `asignarLlamadaSuelta`,
+   `buscarLlamadaDelDeal`).

@@ -53,6 +53,8 @@ servicio, nunca con "cualquiera con el enlace"**. Los scripts siguen leyendo los
 | Landing | `programavirtual.eventoscomunicarte.com/landing.html` (el contenido vive en ese iframe) | 🔴 falta |
 | Calendly | una organización por programa, un solo tipo de evento ("Postulación Método Comunicarte"); token verificado el 28-sep | una organización, evento "Postulación: De Cero a Tactical Investor"; token verificado el 28-sep (451 citas en ±3 meses) |
 | `form_url` / `calendly_token` en la base (producción) | cargados por Mani el 28-sep desde `/ajustes/programas` | cargados por Mani el 28-sep |
+| **PAT de Calendly** (uno por programa, ADR 0057) | en `programs.calendly_token`, verificado presente el 28-sep (sin leer el valor). Lo cambia un administrador en `/ajustes/programas`; ninguna lectura lo devuelve. En local: `CALENDLY_PAT_LOCAL_COMUNICARTE` (§3) | en `programs.calendly_token`, verificado presente el 28-sep. En local: `CALENDLY_PAT_LOCAL_TACTICAL` |
+| Cuenta de Calendly de cada closer (096) | por membresía, en `miembros_programa.calendly_email`: se elige en `/ajustes/usuarios` → "Cuentas de Calendly por programa", de la lista que da el PAT. 🔴 Vincular a las closers al desplegar la 0038 | igual |
 | `web_url` / `calendly_url` en la base | vacías, y desde el 28-sep fuera del formulario (nada las lee) | vacías |
 
 `programs.form_url` ya existe (ticket 109) y está cargado; cuando existan los destinos (ticket 092), el resto de estas URLs se cargan desde la app y
@@ -75,6 +77,7 @@ editor) y en Vercel.
 | `SCRIPT_ACTOR_EMAIL` | quién firma el rastro de un script que escribe en una base viva (ADR 0029) | local |
 | `SEED_GERENTE_EMAIL`, `SEED_GERENTE_NOMBRE` | el gerente que siembra `seed:users` | local |
 | `ENLACES_PAGO_JSON` | los enlaces de pago que carga `cargar-enlaces-pago` (el JSON lo tiene Mani) | local |
+| `CALENDLY_PAT_LOCAL_COMUNICARTE`, `CALENDLY_PAT_LOCAL_TACTICAL` | **solo la base local** (§4.1): el seed guarda cada PAT en su programa. Opcionales; vacíos va un token de mentira. En producción el PAT vive en la base, nunca en una variable (ADR 0057) | local |
 
 `npm run build` no necesita `.env.local`: el cliente de la base se crea de forma perezosa.
 
@@ -125,12 +128,18 @@ Para construir y probar pantallas (como el Kanban de Deals o el Inbox) sin escri
 3. **Guardia contra producción:**
    Tanto `db:local` como `dev:local` y `seed:local` verifican estrictamente que la URL apunte a `localhost` o `127.0.0.1`, y rechazan cualquier host de Supabase o producción.
 
-4. **Reinicio limpio:**
+4. **Calendly en local (opcional):** con `CALENDLY_PAT_LOCAL_COMUNICARTE` y `CALENDLY_PAT_LOCAL_TACTICAL`
+   en `.env.local` (placeholders vacíos desde el 28-sep), el seed guarda esos PAT en sus programas y lo que
+   lee Calendly (la cuenta por membresía en `/ajustes/usuarios`, "buscar llamada") funciona en local. El
+   seed lee de `.env.local` **solo esas dos llaves**, nunca el archivo entero, porque ahí está el
+   `DATABASE_URL` de producción. Sin ellas, esas pantallas muestran el rechazo de Calendly.
+
+5. **Reinicio limpio:**
    ```bash
    docker compose down -v && npm run db:local
    ```
 
-5. **Variables de Auth.js y Login Local:**
+6. **Variables de Auth.js y Login Local:**
    La app requiere `AUTH_SECRET`, `AUTH_GOOGLE_ID` y `AUTH_GOOGLE_SECRET` configuradas en `.env.local` (o entorno) con redirect URI `http://localhost:3000/api/auth/callback/google` en Google Cloud para autenticar mediante Google OAuth contra los usuarios sembrados (`users`). Un modo de login local desacoplado de Google OAuth queda pendiente como tarea de producto.
 
 ## 5. Scripts
@@ -226,6 +235,9 @@ el traslado y la migración de la etapa 7. `sync_runs` sigue en la base como his
   una frontera de dominio estable (ADR 0033). Buena parte se reescribe igual en la etapa de UI.
 - **Código muerto:** `lib/abonos/plataforma.ts` no lo importa nadie (verificado el 27-sep). Se señala,
   no se borra de paso.
+- **`users.calendly_email` sin lector (28-sep, ticket 096):** la cuenta de Calendly pasó a la membresía
+  (`miembros_programa.calendly_email`, migración 0038) y el campo salió del formulario. La columna sigue
+  en el esquema y en el molde de usuarios; quitarla es una migración.
 - **Columnas sin uso tras retirar T2 (28-sep):** `sources.calificacion`, `submissions.calificacion` y
   `submissions.puntaje` siguen en el esquema, y `scripts/seed-datos.ts` todavía siembra
   `sources.calificacion`. Quitarlas es una migración; nadie la ha pedido.

@@ -160,7 +160,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 062 | [La comisión se calcula, nunca se guarda](./062-comision-calculada.md) (E4-6) | 060 | todo |
 | [x] | 063 | [`onboarded_at` y cambio de cohorte](./063-onboarded-at-y-cambio-de-cohorte.md) (E4-7) | 060 | done · 28-sep · `lib/deals/estudiante.ts` (`marcarOnboarded`, `cambiarCohorte`), `lib/queries/estudiantes.ts` (Students es una consulta) y la cohorte activa se asigna sola en el primer abono. Sin migración. Falta la pantalla (074) |
 | [ ] | 035 | [Comprobante: link **o** foto](./035-comprobante-link-o-foto.md) (E4-8) | 060 | todo · **aterriza aquí**, colgando de `abonos.deal_id`. Siguen debiéndose los dos análisis. 22-sep: la foto va a Supabase Storage (ADR 0047) |
-| [ ] | 096 | [Calendly: cada llamada a su deal; si hay duda, suelta](./096-calendly-cuelga-llamadas-de-deals.md) | 057, 045 | en curso (Alejo) · 24-sep, ADR 0049 · **A5: webhook (Mani, 28-sep)**; migración **0038 aplicada** (28-sep) · 28-sep: el token por programa ya existe (109); pedido de Mani: dropdown de llamadas y botón "buscar llamada" en el deal |
+| [ ] | 096 | [Calendly: cada llamada a su deal; si hay duda, suelta](./096-calendly-cuelga-llamadas-de-deals.md) | 057, 045 | en curso (Alejo) · 24-sep, ADR 0049 · **A5: webhook (Mani, 28-sep)**; migración **0038 aplicada** (Mani, 28-sep) · 28-sep (Alejo, en `main`): emparejador puro, escritor `lib/calendly/colgar-llamada.ts` (colgada/suelta, asignar a mano con rastro), el 052 guarda el host y el deal es de la host, cuenta de Calendly por membresía elegida del PAT en `/ajustes/usuarios`, backend de "buscar llamada". **Para cerrar:** construir el webhook (nada llama al escritor todavía; cancelaciones, no-show, reagenda sobre la misma llamada, la suelta que se reintenta, "Conectar Calendly" con la `calendly_signing_key`), recorrer `/ajustes/usuarios` y vincular las cuentas, y decidir si la pantalla de la suelta y los botones pasan al 071/074 |
 
 ## E5 · Lectura y reporting
 
@@ -187,7 +187,7 @@ se abre**. Este repo no tiene tests de componentes y el 20-sep dos bugs pasaron 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 094 | [Un closer ve solo sus programas](./094-alcance-del-closer-por-membresia.md) | — | done · 27-sep · `lib/auth/alcance.ts`; dashboard, sidebar, buscador y ficha por id lo usan; ajeno = 404 |
-| [ ] | 097 | [Navegación por objetos y selector de programa](./097-navegacion-por-objetos-y-selector-de-programa.md) | 094 | todo · 24-sep, ADR 0050 · reemplaza la barra de hoy |
+| [ ] | 097 | [Navegación por objetos y selector de programa](./097-navegacion-por-objetos-y-selector-de-programa.md) | 094 | en curso · 28-sep (Alejo): código en `main` (`39bf931`, `d953769`): tabs por objeto en `/p/<programa>/<tab>` y selector de programa. Falta ver el aspecto a 390 px (el comportamiento del cajón sí se probó) |
 | [ ] | 069 | [Kanban por programa](./069-kanban-por-programa.md) (E6-1) | 057, 097 | todo · 24-sep: es la vista tablero de la tab **Deals** |
 | [ ] | 070 | [Pendiente Setteo y Unclaimed](./070-pendiente-setteo-y-unclaimed.md) (E6-2) | 069 | todo · 24-sep: son secciones del **Inbox** |
 | [ ] | 071 | [El Inbox (antes Mis deals)](./071-mi-dia-del-closer.md) (E6-3) | 069, 061, 070, 096, 097 | todo · 24-sep: reemplaza "Mi día"; contenido 🟡 a validar con closers |

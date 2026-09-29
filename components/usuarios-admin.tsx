@@ -337,16 +337,8 @@ function FormularioUsuario({
             </label>
           ) : null}
 
-          <label className="block space-y-1 text-sm">
-            <span className="text-muted-foreground">Correo de Calendly (opcional)</span>
-            <input
-              type="email"
-              value={borrador.calendlyEmail}
-              onChange={(e) => setBorrador({ ...borrador, calendlyEmail: e.target.value })}
-              className={claseInput}
-              aria-label="Correo de Calendly"
-            />
-          </label>
+          {/* La cuenta de Calendly ya no es del usuario sino de cada membresia (ticket 096):
+              se vincula en "Cuentas de Calendly por programa", debajo de la lista. */}
 
           {trabajaConLeads ? (
             <fieldset className="space-y-1 text-sm sm:col-span-2">

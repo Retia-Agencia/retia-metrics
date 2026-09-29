@@ -1,4 +1,6 @@
 import { eq } from "drizzle-orm";
+import { existsSync, readFileSync } from "node:fs";
+import { parse } from "dotenv";
 import { db } from "../lib/db";
 import { abonos, leads, programs, users } from "../lib/db/schema";
 import { actorDelScript } from "./actor";
@@ -14,6 +16,19 @@ import type { EntradaEnvio } from "../lib/ingesta/envio";
 import { abrirDeal, moverEtapa } from "../lib/deals/mover-etapa";
 import { agregarLlamada, marcarFallida, pegarGrain } from "../lib/deals/llamadas";
 import { crearConRastro } from "../lib/crm/rastro";
+
+/**
+ * Un PAT de Calendly para la base local (ticket 096), del entorno o de `.env.local`. De ese
+ * archivo se lee SOLO esta llave, nunca el archivo entero: ahi esta el `DATABASE_URL` de
+ * produccion, y este seed no debe verlo.
+ */
+function patLocal(nombre: string): string | undefined {
+  const delEntorno = process.env[nombre]?.trim();
+  if (delEntorno) return delEntorno;
+  if (!existsSync(".env.local")) return undefined;
+  const valor = parse(readFileSync(".env.local"))[nombre]?.trim();
+  return valor ? valor : undefined;
+}
 
 /**
  * Semilla de datos de prueba para desarrollo local (Ticket 113).
@@ -139,7 +154,11 @@ export async function sembrarLocal(): Promise<void> {
     }
   }
 
-  // 5. Dos Programas activos
+  // 5. Dos Programas activos. El token de Calendly de cada uno sale de
+  // CALENDLY_PAT_LOCAL_COMUNICARTE / CALENDLY_PAT_LOCAL_TACTICAL si estan (ver .env.example):
+  // con un PAT real, las pantallas que leen Calendly (la cuenta por membresia en
+  // /ajustes/usuarios, ticket 096) funcionan en local. Sin ellos va un token de mentira y
+  // esas pantallas muestran el rechazo de Calendly, que es lo correcto.
   console.log("[seed:local] Creando programas activos...");
   const p1 = await crearPrograma(db, actorId, {
     nombre: "ComunicArte Local",
@@ -147,7 +166,12 @@ export async function sembrarLocal(): Promise<void> {
     ticketUsd: "797.00",
     formUrl: "https://form.typeform.com/to/comunicarte-demo",
   });
-  await guardarTokenCalendly(db, actorId, p1.id, "calendly-token-local-comunicarte");
+  await guardarTokenCalendly(
+    db,
+    actorId,
+    p1.id,
+    patLocal("CALENDLY_PAT_LOCAL_COMUNICARTE") ?? "calendly-token-local-comunicarte",
+  );
   const prog1 = await reactivarPrograma(db, actorId, p1.id);
 
   const p2 = await crearPrograma(db, actorId, {
@@ -156,7 +180,12 @@ export async function sembrarLocal(): Promise<void> {
     ticketUsd: "1500.00",
     formUrl: "https://form.typeform.com/to/tactical-demo",
   });
-  await guardarTokenCalendly(db, actorId, p2.id, "calendly-token-local-tactical");
+  await guardarTokenCalendly(
+    db,
+    actorId,
+    p2.id,
+    patLocal("CALENDLY_PAT_LOCAL_TACTICAL") ?? "calendly-token-local-tactical",
+  );
   const prog2 = await reactivarPrograma(db, actorId, p2.id);
 
   // 6. Cohortes activas
