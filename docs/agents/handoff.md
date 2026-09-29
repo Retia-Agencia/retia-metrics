@@ -21,14 +21,17 @@ Carril de Mani: E3 cerrada (069, 074). E4: 070 hecho; 071 (Inbox) con el codigo 
 por tests, FALTA EL RECORRIDO EN NAVEGADOR (npm run db:local + npm run dev:local, entrar como
 carlos.closer@retia.local, /p/comunicarte-local/inbox: abrir cada seccion y dialogo, asignar una suelta,
 pegar Grain desde "llamadas de hoy", 390 px, consola). Si pasa, marcar 071 done. E5: 064 quedó done
-(dashboard sobre deals; incluye 114-A2, "la llamada ocurrio" en un solo modulo). Siguiente: 098 (tab Calls).
+(dashboard sobre deals; incluye 114-A2, "la llamada ocurrio" en un solo modulo). 098 (Calls) está
+implementado y verificado por 1.482 tests, typecheck, lint y build; falta el recorrido visual. El
+recorrido está bloqueado porque `dev:local` devuelve `InvalidProvider: Callback for provider type
+(credentials) is not supported` al intentar entrar como local; resolver primero el login local de 069/113.
 
 Como se trabaja (Mani, 29-sep): IMPLEMENTA KIRO en un worktree a mano (git worktree add ../retia-metrics-NNN
 -b kiro/NNN main) y NO corre nada (ni tests, ni tsc, ni lint, ni build, ni dev). La sesion principal decide
 la arquitectura, revisa, corre la verificacion, prueba en navegador y commitea (cherry-pick --no-commit).
 El agente kiro-rescue regresa antes que Kiro: esperar el pid de `kiro-cli chat` con un Bash en background.
 
-Pendientes de Mani: revisar 098; configurar la variable de score en los dos Typeform y nombrarla en la llave `puntaje`
+Pendientes de Mani: destrabar el login local y recorrer 071/098 en navegador; configurar la variable de score en los dos Typeform y nombrarla en la llave `puntaje`
 del mapeo de cada fuente (070); K3 (borrar o no la llamada de prueba). Alejo: 096 en pausa (cuentas de
 Calendly; retirar buscarLlamadaDelDeal, K1), 077 en curso. 114 (auditoria): A1 y A3 hechos; A2 con el 064;
 B4 (titulos de pregunta en el codigo), B5 (columna sources.calificacion muerta) y C6 pendientes.
@@ -41,6 +44,15 @@ cada migracion nueva. Antes de tomar un ticket, git fetch: Alejo empuja al mismo
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-29 (sesión 48, Mani): 098 implementado, aún no cerrado.**
+  - Nueva tab `/p/<programa>/calls` con filtros por closer, resultado y fecha, enlaces al deal/Calendly/Grain,
+    pegar Grain, resultados del motor y llamadas sueltas con asignación a un deal.
+  - La consulta mantiene las llamadas sueltas con `vigente(deals)` en el `LEFT JOIN`, y el selector de
+    closer incluye usuarios que solo aparecen en llamadas sueltas.
+  - Verificado: `npm test` (1.482 tests, 1 omitido), `npm run typecheck`, `npm run lint` y `npm run build`.
+  - Bloqueo de recorrido: `npm run dev:local` arranca, pero Auth.js responde `InvalidProvider` para el
+    proveedor `credentials` al enviar el login local. No se modificó el login ni se marcó 098 como done.
 
 - **2026-09-29 (Alejandro, sesión aparte fuera del repo): los dos Typeform ya mandan score, calidad y VALOR
   del lead. PARA MANI: esto tiene que llegar al CRM y verse en cada lead.** Nada de esto tocó código del
