@@ -21,7 +21,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const vista = await vistaActual();
 
   return (
-    <div className="flex min-h-full flex-1">
+    <div className="flex min-h-full flex-1 flex-col md:flex-row">
       <AppSidebar
         rol={rolVista}
         nombre={session.user.name ?? session.user.email ?? "Usuario"}

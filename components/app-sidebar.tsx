@@ -1,18 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, CalendarCheck, Library, LineChart, Settings, Tag, Users } from "lucide-react";
-import { navParaRol, type ItemNav } from "@/lib/nav";
+import { Activity, CalendarCheck, Library, LineChart, Menu, Settings, Tag, Users, X } from "lucide-react";
+import { navParaRol, programaDeRuta, type ItemNav } from "@/lib/nav";
 import type { Rol } from "@/lib/auth/roles";
 import type { Vista } from "@/lib/auth/vista";
 import { cn } from "@/lib/utils";
 import { Marca } from "@/components/marca";
+import { ProgramSwitcher } from "@/components/program-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 
 const ICONOS: Record<ItemNav["icono"], typeof LineChart> = {
-  programa: LineChart,
+  dashboard: LineChart,
   recursos: Library,
   ajustes: Settings,
   midia: CalendarCheck,
@@ -27,6 +29,7 @@ type Props = {
   nombre: string;
   email: string;
   imagen?: string | null;
+  /** Los programas que ESTA sesion ve (ADR 0048), ya acotados en el servidor. */
   programas: readonly { slug: string; nombre: string }[];
   /** Si el usuario REAL es developer: solo el ve el selector de "ver como". */
   puedeCambiarVista: boolean;
@@ -40,8 +43,12 @@ type Props = {
  * `data-zona="marco"`, que redefine los tokens (`app/globals.css`), asi que lo que viva
  * aqui dentro se ve bien sin estilos propios.
  *
- * Los programas van en su propio grupo: son fronteras (ADR 0043), no un filtro, y se
- * navega de uno a otro.
+ * Arriba, el selector de programa; abajo, una tab por objeto (ADR 0050, ticket 097). El
+ * programa elegido sale de la URL (`/p/<programa>/...`), nunca de la sesion (ADR 0023);
+ * fuera de una ruta de programa, las tabs de programa abren el primero visible.
+ *
+ * En celular el marco es un cajon: una barra arriba con el boton que lo abre. Queda
+ * abierto solo en la ruta donde se abrio, asi que navegar lo cierra sin un efecto.
  */
 export function AppSidebar({
   rol,
@@ -53,81 +60,131 @@ export function AppSidebar({
   vista,
 }: Props) {
   const pathname = usePathname();
+  const [abiertoEn, setAbiertoEn] = useState<string | null>(null);
+  const abierto = abiertoEn === pathname;
+  const cerrar = () => setAbiertoEn(null);
+
+  // Un slug en la URL que no esta en la lista (inexistente o ajeno) no se elige: la
+  // pagina ya responde 404 y el selector no tiene por que nombrarlo.
+  const deLaRuta = programaDeRuta(pathname);
+  const programa =
+    programas.find((p) => p.slug === deLaRuta)?.slug ?? programas[0]?.slug ?? null;
+
   // La lista viene filtrada por el ROL DE VISTA. Esconder no es seguridad: cada ruta
   // valida en servidor, tambien contra el rol de vista (ticket 028).
-  const items = navParaRol(rol, programas);
-  const deProgramas = items.filter((i) => i.icono === "programa");
-  const deTrabajo = items.filter((i) => i.icono !== "programa");
-
-  const grupo = (titulo: string, lista: ItemNav[]) =>
-    lista.length === 0 ? null : (
-      <div className="grid gap-0.5">
-        <p className="px-3 pb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-          {titulo}
-        </p>
-        {lista.map((item) => {
-          const Icono = ICONOS[item.icono];
-          const activo = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={activo ? "page" : undefined}
-              className={cn(
-                "group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                activo
-                  ? "bg-marca-suave font-medium text-marca"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-              )}
-            >
-              {/* El fondo y la raya lila marcan DONDE estas. */}
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute top-1/2 left-0 h-4 w-0.5 -translate-y-1/2 rounded-full bg-marca transition-opacity",
-                  activo ? "opacity-100" : "opacity-0",
-                )}
-              />
-              <Icono
-                className={cn(
-                  "size-4 shrink-0",
-                  activo ? "text-marca" : "text-muted-foreground group-hover:text-sidebar-accent-foreground",
-                )}
-              />
-              <span className="truncate">{item.etiqueta}</span>
-            </Link>
-          );
-        })}
-      </div>
-    );
+  const items = navParaRol(rol, programa);
 
   return (
-    <aside
-      data-zona="marco"
-      className="sticky top-0 flex h-dvh w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground"
-    >
-      <div className="flex items-center justify-between px-4 pt-4 pb-3">
+    <>
+      <div
+        data-zona="marco"
+        className="sticky top-0 z-30 flex items-center justify-between bg-sidebar px-4 py-3 text-sidebar-foreground md:hidden"
+      >
         <Link href="/" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <Marca subtitulo="Gerencia comercial" />
+          <Marca />
         </Link>
-        <ThemeToggle />
+        <button
+          type="button"
+          onClick={() => setAbiertoEn(pathname)}
+          aria-label="Abrir menú"
+          aria-expanded={abierto}
+          className="grid size-9 place-items-center rounded-lg text-sidebar-foreground transition-colors duration-150 outline-none hover:bg-sidebar-accent/60 focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Menu className="size-5" />
+        </button>
       </div>
 
-      <nav className="flex-1 space-y-5 overflow-y-auto px-2 py-3" aria-label="Principal">
-        {grupo("Programas", deProgramas)}
-        {grupo("Trabajo", deTrabajo)}
-      </nav>
+      {abierto ? (
+        <div aria-hidden className="fixed inset-0 z-40 bg-velo md:hidden" onClick={cerrar} />
+      ) : null}
 
-      <div className="border-t border-sidebar-border p-2">
-        <UserMenu
-          nombre={nombre}
-          email={email}
-          imagen={imagen}
-          rol={rol}
-          puedeCambiarVista={puedeCambiarVista}
-          vista={vista}
-        />
-      </div>
-    </aside>
+      <aside
+        data-zona="marco"
+        onKeyDown={(e) => {
+          if (e.key === "Escape") cerrar();
+        }}
+        className={cn(
+          "top-0 h-dvh w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:sticky md:flex",
+          abierto ? "fixed inset-y-0 left-0 z-50 flex shadow-flotante" : "hidden",
+        )}
+      >
+        <div className="flex items-center justify-between px-4 pt-4 pb-3">
+          <Link href="/" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <Marca subtitulo="Gerencia comercial" />
+          </Link>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            {abierto ? (
+              <button
+                type="button"
+                onClick={cerrar}
+                aria-label="Cerrar menú"
+                className="grid size-8 place-items-center rounded-lg text-sidebar-foreground transition-colors duration-150 outline-none hover:bg-sidebar-accent/60 focus-visible:ring-2 focus-visible:ring-ring md:hidden"
+              >
+                <X className="size-4" />
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {programa ? (
+          <div className="px-4 pb-2">
+            <p className="pb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+              Programa
+            </p>
+            <ProgramSwitcher programas={programas} actual={programa} />
+          </div>
+        ) : null}
+
+        <nav className="flex-1 overflow-y-auto px-2 py-3" aria-label="Principal">
+          <div className="grid gap-0.5">
+            {items.map((item) => {
+              const Icono = ICONOS[item.icono];
+              const activo = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={activo ? "page" : undefined}
+                  className={cn(
+                    "group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    activo
+                      ? "bg-marca-suave font-medium text-marca"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                  )}
+                >
+                  {/* El fondo y la raya lila marcan DONDE estas. */}
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "absolute top-1/2 left-0 h-4 w-0.5 -translate-y-1/2 rounded-full bg-marca transition-opacity",
+                      activo ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  <Icono
+                    className={cn(
+                      "size-4 shrink-0",
+                      activo ? "text-marca" : "text-muted-foreground group-hover:text-sidebar-accent-foreground",
+                    )}
+                  />
+                  <span className="truncate">{item.etiqueta}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+
+        <div className="border-t border-sidebar-border p-2">
+          <UserMenu
+            nombre={nombre}
+            email={email}
+            imagen={imagen}
+            rol={rol}
+            puedeCambiarVista={puedeCambiarVista}
+            vista={vista}
+          />
+        </div>
+      </aside>
+    </>
   );
 }

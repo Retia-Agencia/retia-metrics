@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * ("todos ven todo"). Lo que sigue siendo exclusivo de gerente es la administracion
  * del sistema: `/ajustes` y `/ajustes/fuentes`.
  *
- * El dashboard vive en una ruta dinamica `/programas/[slug]` (ADR 0012): un solo
+ * El dashboard vive en una ruta dinamica `/p/[programa]/dashboard` (ADR 0012): un solo
  * componente sirve a todos los programas, que salen de la base. La guarda corre
  * antes de mirar el slug, asi que sin sesion redirige a login sin filtrar que
  * slugs existen; un slug inexistente o inactivo, ya con sesion, es 404.
@@ -255,12 +255,13 @@ const PAGINAS_COMPARTIDAS_CON_CLOSER = [
 ] as const;
 
 /**
- * El dashboard de programa vive en una ruta dinamica `/programas/[slug]`. Se
+ * El dashboard de programa vive en una ruta dinamica `/p/[programa]/dashboard`
+ * (ticket 097; antes `/programas/[slug]`, que ahora solo redirige). Se
  * invoca el componente real con `params` como Promise (Next 16). La guarda corre
  * ANTES de mirar el slug: sin sesion redirige a login aunque el slug no exista, y
  * nunca filtra que slugs existen.
  */
-const RUTA_PROGRAMA = "@/app/(app)/programas/[slug]/page";
+const RUTA_PROGRAMA = "@/app/(app)/p/[programa]/dashboard/page";
 
 /** Ejecuta la pagina de programa con un slug y devuelve que hizo. */
 async function correrPrograma(
@@ -269,13 +270,13 @@ async function correrPrograma(
 ): Promise<"paso" | "login" | "midia" | "notFound"> {
   const modulo = (await import(/* @vite-ignore */ RUTA_PROGRAMA)) as {
     default: (props: {
-      params: Promise<{ slug: string }>;
+      params: Promise<{ programa: string }>;
       searchParams: Promise<Record<string, string | string[] | undefined>>;
     }) => Promise<unknown>;
   };
   try {
     await modulo.default({
-      params: Promise.resolve({ slug }),
+      params: Promise.resolve({ programa: slug }),
       searchParams: Promise.resolve(busqueda),
     });
     return "paso";
@@ -352,7 +353,7 @@ describe("developer pasa toda guarda de pagina (ADR 0025)", () => {
   });
 });
 
-describe("dashboard de programa /programas/[slug] (ADR 0048 + 0012)", () => {
+describe("dashboard de programa /p/[programa]/dashboard (ADR 0048 + 0012)", () => {
   const SLUG_EXISTE = "programa-a";
   const SLUG_NO_EXISTE = "no-existe";
 
@@ -449,6 +450,51 @@ describe("el dashboard no depende del rol dentro del alcance (ADR 0048, ticket 0
       hasta: "2026-09-10",
       closerId: "Beto",
     });
+  });
+});
+
+/**
+ * Las rutas viejas y la raiz de un programa solo redirigen (ticket 097): el filtro de la
+ * URL viaja intacto, y es la ruta nueva la que valida el programa.
+ */
+describe("redirecciones al programa como segmento (ticket 097)", () => {
+  async function destinoConParams(
+    ruta: string,
+    params: Record<string, string>,
+    busqueda: Record<string, string | string[]> = {},
+  ): Promise<string | null> {
+    const modulo = (await import(/* @vite-ignore */ ruta)) as {
+      default: (props: {
+        params: Promise<Record<string, string>>;
+        searchParams: Promise<Record<string, string | string[]>>;
+      }) => Promise<unknown>;
+    };
+    try {
+      await modulo.default({ params: Promise.resolve(params), searchParams: Promise.resolve(busqueda) });
+      return null;
+    } catch (e) {
+      if (e instanceof Redireccion) return e.destino;
+      throw e;
+    }
+  }
+
+  it("/programas/[slug] lleva al Dashboard del programa, con el filtro intacto", async () => {
+    expect(
+      await destinoConParams(
+        "@/app/(app)/programas/[slug]/page",
+        { slug: "programa-a" },
+        { rango: "mes", closer: "Maru" },
+      ),
+    ).toBe("/p/programa-a/dashboard?rango=mes&closer=Maru");
+    expect(await destinoConParams("@/app/(app)/programas/[slug]/page", { slug: "programa-a" })).toBe(
+      "/p/programa-a/dashboard",
+    );
+  });
+
+  it("/p/[programa] a secas entra por la tab por defecto", async () => {
+    expect(await destinoConParams("@/app/(app)/p/[programa]/page", { programa: "programa-a" })).toBe(
+      "/p/programa-a/dashboard",
+    );
   });
 });
 
@@ -682,7 +728,7 @@ describe("pagina de closer", () => {
   it("/mi-dia rechaza a un gerente y lo manda a su vista", async () => {
     auth.mockResolvedValue(sesionGerente);
     // El gerente rechazado aterriza en su primer programa activo (destinoInicial).
-    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/programas/programa-a");
+    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/p/programa-a/dashboard");
   });
 
   it("/mi-dia manda al login a quien no tiene sesion", async () => {
@@ -710,7 +756,7 @@ describe("pagina de closer", () => {
     ponerVista("gerente");
     // En vista gerente, `paginaConRol("closer")` lo estrecha a gerente y lo rechaza,
     // igual que a un gerente de verdad: aterriza en su primer programa.
-    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/programas/programa-a");
+    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/p/programa-a/dashboard");
   });
 
   it("/mi-dia deja pasar a un developer en vista 'closer'", async () => {
@@ -738,7 +784,7 @@ describe("pagina de developer /nerd-stats (ticket 025)", () => {
 
   it("rechaza a un gerente y lo manda a su primer programa", async () => {
     auth.mockResolvedValue(sesionGerente);
-    expect(await destinoDe(RUTA)).toBe("/programas/programa-a");
+    expect(await destinoDe(RUTA)).toBe("/p/programa-a/dashboard");
   });
 
   it("rechaza a un closer y lo manda a su vista", async () => {

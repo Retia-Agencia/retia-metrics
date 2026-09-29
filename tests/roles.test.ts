@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { puedeAcceder, esRolValido, trabajaLeads } from "@/lib/auth/roles";
-import { navParaRol, rutaInicial } from "@/lib/nav";
+import { navParaRol, programaDeRuta, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
 describe("trabajaLeads", () => {
@@ -53,73 +53,66 @@ describe("puedeAcceder", () => {
 });
 
 describe("navegacion por rol", () => {
-  // Programas de prueba: slugs inventados, nunca los reales. La nav recibe los
-  // programas como dato (salen de la base), no los conoce de antemano.
-  const PROGRAMAS = [
-    { slug: "programa-a", nombre: "Programa A" },
-    { slug: "programa-b", nombre: "Programa B" },
-  ] as const;
+  // La nav recibe el programa ELEGIDO como dato (sale de la URL o del primero visible),
+  // no los conoce de antemano: slugs inventados, nunca los reales.
+  const PROGRAMA = "programa-a";
+  const rutasDe = (rol: Parameters<typeof navParaRol>[0], programa: string | null = PROGRAMA) =>
+    navParaRol(rol, programa).map((i) => i.href);
 
   it("el closer no ve las rutas de administracion exclusivas de gerente", () => {
-    const rutas = navParaRol("closer", PROGRAMAS).map((i) => i.href);
     // `/nerd-stats` es la unica ruta exclusiva que queda en la nav (ticket 025).
-    expect(rutas).not.toContain("/nerd-stats");
-    expect(rutas).toContain("/mi-dia");
+    expect(rutasDe("closer")).not.toContain("/nerd-stats");
+    expect(rutasDe("closer")).toContain("/mi-dia");
   });
 
   it("los tres roles ven /ajustes desde el 20-sep (enmienda del ticket 013)", () => {
-    // Dejo de ser exclusivo del gerente cuando el closer paso a administrar las
-    // plataformas de pago: sin la puerta tendria el permiso y ninguna forma de
-    // llegar. Lo que el closer ve ADENTRO lo acota el indice, no la nav.
     for (const rol of ["gerente", "closer", "developer"] as const) {
-      expect(navParaRol(rol, PROGRAMAS).map((i) => i.href)).toContain("/ajustes");
+      expect(rutasDe(rol)).toContain("/ajustes");
     }
   });
 
-  it("el closer si ve los dashboards de programa, desde ADR 0009", () => {
-    const rutas = navParaRol("closer", PROGRAMAS).map((i) => i.href);
-    expect(rutas).toContain("/programas/programa-a");
-    expect(rutas).toContain("/programas/programa-b");
+  it("los tres roles ven la tab Dashboard del programa elegido (ADR 0050)", () => {
+    for (const rol of ["gerente", "closer", "developer"] as const) {
+      expect(rutasDe(rol)).toContain("/p/programa-a/dashboard");
+    }
   });
 
-  it("el gerente tambien ve los dashboards de programa", () => {
-    const rutas = navParaRol("gerente", PROGRAMAS).map((i) => i.href);
-    expect(rutas).toContain("/programas/programa-a");
-    expect(rutas).toContain("/programas/programa-b");
+  it("la tab Dashboard apunta al programa que se le pasa, no a uno fijo", () => {
+    expect(rutasDe("gerente", "programa-b")).toContain("/p/programa-b/dashboard");
+    expect(rutasDe("gerente", "programa-b")).not.toContain("/p/programa-a/dashboard");
+  });
+
+  it("sin programa visible no hay tabs de programa", () => {
+    expect(rutasDe("closer", null).some((r) => r.startsWith("/p/"))).toBe(false);
+    expect(rutasDe("closer", null)).toContain("/ajustes");
+  });
+
+  it("la barra ya no lleva un item por programa (ADR 0050)", () => {
+    expect(rutasDe("gerente").some((r) => r.startsWith("/programas/"))).toBe(false);
   });
 
   it("ambos roles ven /productos (los closers tambien los administran, ADR 0016)", () => {
-    const rutasCloser = navParaRol("closer", PROGRAMAS).map((i) => i.href);
-    const rutasGerente = navParaRol("gerente", PROGRAMAS).map((i) => i.href);
-    expect(rutasCloser).toContain("/productos");
-    expect(rutasGerente).toContain("/productos");
+    expect(rutasDe("closer")).toContain("/productos");
+    expect(rutasDe("gerente")).toContain("/productos");
   });
 
   it("los tres roles ven /personas, la puerta al historial (18-sep)", () => {
     // El gerente es el caso que motivo la ruta: podia abrir `/personas/[id]` y no
     // tenia como llegar, porque el unico enlace vivia en `/mi-dia`.
     for (const rol of ["gerente", "closer", "developer"] as const) {
-      expect(navParaRol(rol, PROGRAMAS).map((i) => i.href)).toContain("/personas");
+      expect(rutasDe(rol)).toContain("/personas");
     }
   });
 
   it("ambos roles ven /recursos y ya no /documentos (ticket 023)", () => {
-    const rutasCloser = navParaRol("closer", PROGRAMAS).map((i) => i.href);
-    const rutasGerente = navParaRol("gerente", PROGRAMAS).map((i) => i.href);
-    expect(rutasCloser).toContain("/recursos");
-    expect(rutasGerente).toContain("/recursos");
-    expect(rutasCloser).not.toContain("/documentos");
-    expect(rutasGerente).not.toContain("/documentos");
+    for (const rol of ["gerente", "closer"] as const) {
+      expect(rutasDe(rol)).toContain("/recursos");
+      expect(rutasDe(rol)).not.toContain("/documentos");
+    }
   });
 
-  it("un programa insertado en la lista aparece en la nav", () => {
-    const conNuevo = [...PROGRAMAS, { slug: "programa-c", nombre: "Programa C" }];
-    const rutas = navParaRol("gerente", conNuevo).map((i) => i.href);
-    expect(rutas).toContain("/programas/programa-c");
-  });
-
-  it("el gerente no aterriza en la vista del closer", () => {
-    expect(rutaInicial("gerente", "programa-a")).toBe("/programas/programa-a");
+  it("el gerente aterriza en el Dashboard del primer programa; el closer en Mi dia", () => {
+    expect(rutaInicial("gerente", "programa-a")).toBe("/p/programa-a/dashboard");
     expect(rutaInicial("closer", "programa-a")).toBe("/mi-dia");
   });
 
@@ -127,26 +120,58 @@ describe("navegacion por rol", () => {
     expect(rutaInicial("gerente", null)).toBe("/ajustes");
   });
 
-  it("el developer ve la union de items: mi-dia, dashboards, productos, recursos y ajustes (ADR 0025)", () => {
-    const rutas = navParaRol("developer", PROGRAMAS).map((i) => i.href);
+  it("el developer ve la union de items: mi-dia, dashboard, productos, recursos y ajustes (ADR 0025)", () => {
+    const rutas = rutasDe("developer");
     expect(rutas).toContain("/mi-dia");
-    expect(rutas).toContain("/programas/programa-a");
-    expect(rutas).toContain("/programas/programa-b");
+    expect(rutas).toContain("/p/programa-a/dashboard");
     expect(rutas).toContain("/productos");
     expect(rutas).toContain("/recursos");
     expect(rutas).toContain("/ajustes");
   });
 
-  it("Nerd Stats es SOLO del developer: ni gerente ni closer lo ven (ticket 025)", () => {
-    expect(navParaRol("developer", PROGRAMAS).map((i) => i.href)).toContain("/nerd-stats");
-    expect(navParaRol("gerente", PROGRAMAS).map((i) => i.href)).not.toContain("/nerd-stats");
-    expect(navParaRol("closer", PROGRAMAS).map((i) => i.href)).not.toContain("/nerd-stats");
+  it("el gerente no ve Mi dia: no trabaja leads (ADR 0003)", () => {
+    expect(rutasDe("gerente")).not.toContain("/mi-dia");
   });
 
-  it("el developer aterriza en el primer programa, como el gerente (destino documentado)", () => {
-    expect(rutaInicial("developer", "programa-a")).toBe("/programas/programa-a");
+  it("Nerd Stats es SOLO del developer: ni gerente ni closer lo ven (ticket 025)", () => {
+    expect(rutasDe("developer")).toContain("/nerd-stats");
+    expect(rutasDe("gerente")).not.toContain("/nerd-stats");
+    expect(rutasDe("closer")).not.toContain("/nerd-stats");
+  });
+
+  it("el developer aterriza en el Dashboard del primer programa, como el gerente", () => {
+    expect(rutaInicial("developer", "programa-a")).toBe("/p/programa-a/dashboard");
     // Sin programas activos, cae en ajustes: tiene acceso total de administracion.
     expect(rutaInicial("developer", null)).toBe("/ajustes");
+  });
+});
+
+describe("el programa en la URL (ticket 097)", () => {
+  it("lee el programa de una ruta /p/<slug>/..., y nada de las demas", () => {
+    expect(programaDeRuta("/p/programa-a/dashboard")).toBe("programa-a");
+    expect(programaDeRuta("/p/programa-a")).toBe("programa-a");
+    expect(programaDeRuta("/p")).toBeNull();
+    expect(programaDeRuta("/ajustes/programas/programa-a")).toBeNull();
+    expect(programaDeRuta("/programas/programa-a")).toBeNull();
+  });
+
+  it("cambiar de programa mantiene la tab y cambia la URL", () => {
+    expect(rutaAlCambiarDePrograma("/p/programa-a/dashboard", "programa-b")).toBe(
+      "/p/programa-b/dashboard",
+    );
+  });
+
+  it("suelta lo que venga detras de la tab: un id es del programa anterior", () => {
+    expect(rutaAlCambiarDePrograma("/p/programa-a/dashboard/algo", "programa-b")).toBe(
+      "/p/programa-b/dashboard",
+    );
+  });
+
+  it("desde una ruta sin programa, o una tab que no existe, entra por la tab por defecto", () => {
+    expect(rutaAlCambiarDePrograma("/ajustes", "programa-b")).toBe("/p/programa-b/dashboard");
+    expect(rutaAlCambiarDePrograma("/p/programa-a/inventada", "programa-b")).toBe(
+      "/p/programa-b/dashboard",
+    );
   });
 });
 
@@ -187,7 +212,7 @@ describe("callback session", () => {
 
 describe("fallar cerrado sin rol", () => {
   it("no se muestra ningun item de navegacion", () => {
-    expect(navParaRol(null, [])).toEqual([]);
+    expect(navParaRol(null, null)).toEqual([]);
   });
 
   it("no hay destino dentro de la app: va al login", () => {

@@ -55,6 +55,7 @@
   --color-marca: var(--marca);
   --color-marca-texto: var(--marca-texto);
   --color-marca-suave: var(--marca-suave);
+  --color-velo: var(--velo);
   /* Tonos de estado (semánticos, NO son el acento). Cada uno: fondo suave + texto + punto. */
   --color-tono-neutro: var(--tono-neutro);
   --color-tono-neutro-suave: var(--tono-neutro-suave);
@@ -130,6 +131,8 @@
   /* Borde hecho con sombra: separa la tarjeta del fondo sin una linea dura. */
   --sombra-tarjeta: 0 0 0 1px rgb(10 10 10 / 0.06), 0 1px 2px rgb(10 10 10 / 0.06);
   --sombra-flotante: 0 0 0 1px rgb(10 10 10 / 0.08), 0 8px 24px -6px rgb(10 10 10 / 0.18);
+  /* Velo detras de lo que tapa la pantalla (el marco abierto en celular). */
+  --velo: rgb(10 10 10 / 0.4);
 
   /* 8px en botones y campos (`rounded-lg`), 12px en tarjetas (`rounded-xl`). */
   --radius: 0.5rem;
@@ -191,6 +194,7 @@
 
   --sombra-tarjeta: 0 0 0 1px rgb(255 255 255 / 0.06), 0 1px 2px rgb(0 0 0 / 0.4);
   --sombra-flotante: 0 0 0 1px rgb(255 255 255 / 0.08), 0 12px 32px -8px rgb(0 0 0 / 0.7);
+  --velo: rgb(0 0 0 / 0.6);
 
   --sidebar: #050505;
   --sidebar-foreground: #d4d4d4;

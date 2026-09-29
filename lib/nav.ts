@@ -1,46 +1,84 @@
 import type { Rol } from "@/lib/auth/roles";
-import { esAccesoTotal } from "@/lib/auth/roles";
+import { esAccesoTotal, trabajaLeads } from "@/lib/auth/roles";
 
 export type ItemNav = {
   href: string;
   etiqueta: string;
-  icono: "programa" | "recursos" | "ajustes" | "midia" | "productos" | "nerdstats" | "personas";
+  icono: "dashboard" | "recursos" | "ajustes" | "midia" | "productos" | "nerdstats" | "personas";
   roles: readonly Rol[];
 };
 
 /**
- * Navegacion por rol. Es pura y declarativa a proposito: es la misma fuente que
- * usa el sidebar y que se puede testear. Los programas NO viven aqui (ADR 0012):
- * salen de la base y entran como dato, uno por programa activo.
+ * Las tabs que viven DENTRO de un programa: `/p/<programa>/<tab>` (ADR 0050, ticket
+ * 097). El programa es un segmento de la ruta y no un parametro: es una frontera (ADR
+ * 0043), no un filtro, y el filtro vive en la URL, nunca en la sesion (ADR 0023).
+ *
+ * Solo entran las tabs que ya tienen pantalla (Alejo, 28-sep): cada ticket que construye
+ * una (Leads 072, Deals 069, Calls 098, Students 099...) la agrega aqui y en la nav.
+ */
+export const TABS_DE_PROGRAMA = ["dashboard"] as const;
+export type TabDePrograma = (typeof TABS_DE_PROGRAMA)[number];
+
+/** La tab con la que se entra a un programa cuando no se viene de otra. */
+export const TAB_POR_DEFECTO: TabDePrograma = "dashboard";
+
+/** La ruta de una tab dentro de un programa. */
+export function rutaDePrograma(slug: string, tab: TabDePrograma = TAB_POR_DEFECTO): string {
+  return `/p/${slug}/${tab}`;
+}
+
+/** El slug del programa de una ruta `/p/<slug>/...`, o `null` si la ruta no es de un programa. */
+export function programaDeRuta(pathname: string): string | null {
+  const [primero, slug] = pathname.split("/").filter(Boolean);
+  return primero === "p" && slug ? slug : null;
+}
+
+/**
+ * A donde lleva el selector al elegir otro programa. Si se esta en una tab de programa,
+ * se queda en ESA tab (ticket 097); lo que venga detras (un id, `/p/a/deals/<id>`) y la
+ * query se sueltan, porque un id y un filtro (un closer, una cohorte) son del programa
+ * anterior y en el nuevo apuntarian a nada. Desde una ruta sin programa (Ajustes,
+ * Productos) se entra por la tab por defecto.
+ */
+export function rutaAlCambiarDePrograma(pathname: string, nuevoSlug: string): string {
+  const [primero, slug, tab] = pathname.split("/").filter(Boolean);
+  if (primero === "p" && slug && (TABS_DE_PROGRAMA as readonly string[]).includes(tab ?? "")) {
+    return rutaDePrograma(nuevoSlug, tab as TabDePrograma);
+  }
+  return rutaDePrograma(nuevoSlug);
+}
+
+/**
+ * Navegacion por rol. Es pura y declarativa a proposito: es la misma fuente que usa el
+ * sidebar y que se puede testear. Los programas NO viven aqui (ADR 0012): la nav recibe
+ * el programa ELEGIDO como dato, y sus tabs apuntan a el. Sin programa visible, las tabs
+ * de programa no aparecen.
  * Ojo: esconder un item NO es seguridad — cada ruta valida su rol en el servidor.
  */
-export function navParaRol(
-  rol: Rol | null,
-  programas: readonly { slug: string; nombre: string }[],
-): ItemNav[] {
+export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] {
   if (!rol) return [];
 
   const items: ItemNav[] = [];
 
-  // Mi dia: el closer, y el developer que ve la union de todo (ADR 0025).
-  if (rol === "closer" || esAccesoTotal(rol)) {
+  // Mi dia: quien trabaja leads (closer y developer, ADR 0025). Se queda hasta que el
+  // Inbox (ticket 071) lo reemplace; el ADR 0050 no quiere dos pantallas de inicio.
+  if (trabajaLeads(rol)) {
     items.push({ href: "/mi-dia", etiqueta: "Mi día", icono: "midia", roles: ["closer"] });
   }
 
-  // Un item por programa activo, en el orden que llega (la base ordena por nombre).
-  // Ambos roles lo ven: el dashboard del CRM abre a todos (ADR 0009).
-  for (const p of programas) {
+  // Dashboard del programa elegido. Lo ven todos los roles, cada uno en SUS programas
+  // (ADR 0048): el selector solo ofrece los visibles y la ruta devuelve 404 a los demas.
+  if (programa) {
     items.push({
-      href: `/programas/${p.slug}`,
-      etiqueta: p.nombre,
-      icono: "programa",
+      href: rutaDePrograma(programa, "dashboard"),
+      etiqueta: "Dashboard",
+      icono: "dashboard",
       roles: ["gerente", "closer"],
     });
   }
 
-  // Personas: la puerta al historial de un lead. Ambos roles, como el dashboard
-  // (ADR 0009). Antes solo se llegaba desde el buscador de /mi-dia, asi que un
-  // gerente no tenia NINGUNA forma de abrir un historial (18-sep).
+  // Personas: la puerta al historial de un lead. Busca en todos los programas visibles;
+  // pasa a ser la tab Leads, de un programa, con el ticket 072.
   items.push({ href: "/personas", etiqueta: "Personas", icono: "personas", roles: ["gerente", "closer"] });
 
   // Productos: ambos roles los administran (ADR 0016). Es la unica configuracion que
@@ -52,12 +90,6 @@ export function navParaRol(
   // eso se decide en el servidor (ticket 023).
   items.push({ href: "/recursos", etiqueta: "Recursos", icono: "recursos", roles: ["gerente", "closer"] });
 
-  // Nerd Stats: SOLO el developer. Es la unica ruta exclusiva suya (ticket 025), y
-  // por eso es la unica que pregunta por `esAccesoTotal` sin un rol al lado.
-  if (esAccesoTotal(rol)) {
-    items.push({ href: "/nerd-stats", etiqueta: "Nerd Stats", icono: "nerdstats", roles: ["developer"] });
-  }
-
   // Ajustes: los tres roles desde el 20-sep (enmienda del ticket 013). Dejo de ser
   // exclusivo del gerente cuando un closer paso a administrar las plataformas de
   // pago: sin la puerta tendria el permiso y ninguna forma de llegar. El INDICE
@@ -65,20 +97,25 @@ export function navParaRol(
   // conserva su propia guarda, que es donde vive la seguridad.
   items.push({ href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["gerente", "closer"] });
 
+  // Nerd Stats: SOLO el developer. Es la unica ruta exclusiva suya (ticket 025), y
+  // por eso es la unica que pregunta por `esAccesoTotal` sin un rol al lado.
+  if (esAccesoTotal(rol)) {
+    items.push({ href: "/nerd-stats", etiqueta: "Nerd Stats", icono: "nerdstats", roles: ["developer"] });
+  }
+
   return items;
 }
 
 /**
  * A donde mandar a alguien que entra a "/" segun su rol.
  * Sin rol no hay destino valido dentro de la app: va al login.
- * El gerente aterriza en el primer programa activo; si no hay ninguno, en ajustes.
- * El developer (ADR 0025) aterriza igual que el gerente: es el mismo trabajo de
- * administracion, y un dashboard de programa es un mejor punto de partida que la
- * vista de closer. El primer programa se resuelve fuera (contra la base) y entra
- * como dato.
+ * El gerente y el developer (ADR 0025) aterrizan en el Dashboard del primer programa
+ * (ADR 0050); si no hay ninguno, en ajustes. El closer aterriza en Mi dia hasta que
+ * exista el Inbox (ticket 071). El primer programa se resuelve fuera (contra la base) y
+ * entra como dato.
  */
 export function rutaInicial(rol: Rol | null, primerPrograma: string | null): string {
   if (!rol) return "/login";
   if (rol === "closer") return "/mi-dia";
-  return primerPrograma ? `/programas/${primerPrograma}` : "/ajustes";
+  return primerPrograma ? rutaDePrograma(primerPrograma, "dashboard") : "/ajustes";
 }

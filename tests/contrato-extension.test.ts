@@ -92,7 +92,7 @@ function buscarViolaciones(dirs: readonly string[], raiz: string): string[] {
 describe("contrato de extension (ADR 0012)", () => {
   // El ticket 010 elimino las violaciones que este guardian nacio vigilando: los
   // programas ya no viven a mano en `lib/nav.ts` ni en dos paginas fijas, sino que
-  // salen de la base y entran como dato; el dashboard vive en `/programas/[slug]`;
+  // salen de la base y entran como dato; el dashboard vive en `/p/[programa]/dashboard`;
   // los comentarios de `lib/sheets/*`, `app/layout.tsx` y los iconos del sidebar ya
   // no nombran ningun programa. Con eso el `.fails` desaparece y el guardian queda
   // activo: si alguien vuelve a escribir un programa a mano en lib/, app/ o

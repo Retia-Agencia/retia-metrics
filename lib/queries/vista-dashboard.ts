@@ -16,7 +16,7 @@ import {
 } from "@/lib/queries/dashboard";
 
 /**
- * Arma de una sola vez todo lo que pinta `/programas/[slug]` (ticket 005).
+ * Arma de una sola vez todo lo que pinta `/p/[programa]/dashboard` (tickets 005 y 097).
  *
  * Existe para que la pagina no tenga que saber en que orden se preguntan las cosas ni
  * que consulta lleva closer y cual no. Dos reglas viven aca y en ningun otro lado:

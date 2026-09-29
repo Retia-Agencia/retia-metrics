@@ -16,7 +16,7 @@ type Props = {
 export function PageShell({ titulo, descripcion, acciones, children }: Props) {
   return (
     <>
-      <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b bg-card/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-card/80 lg:px-8">
+      <header className="z-10 flex flex-wrap items-center justify-between gap-3 border-b bg-card/95 px-4 py-4 md:sticky md:top-0 md:px-6 backdrop-blur supports-[backdrop-filter]:bg-card/80 lg:px-8">
         <div className="min-w-0">
           <h1 className="text-lg font-semibold tracking-tight">{titulo}</h1>
           {descripcion ? (
@@ -25,7 +25,7 @@ export function PageShell({ titulo, descripcion, acciones, children }: Props) {
         </div>
         {acciones}
       </header>
-      <main className="flex-1 p-6 lg:p-8">{children}</main>
+      <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
     </>
   );
 }
