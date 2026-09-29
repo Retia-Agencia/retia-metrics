@@ -77,3 +77,13 @@ Siempre de un programa (el del selector, ADR 0048). Depende también de 096 y 09
   "¿en qué estoy con cada uno?" mejor que esas etiquetas, o las van a seguir usando.
 - ✅ ADR 0053: donde este ticket diga "cuota vencida", se lee **"fecha límite de pago vencida con
   saldo"**. En v1 no hay cuotas.
+
+---
+
+## ✅ Decisión 2026-09-29 (Mani): la X de "deal sin actividad"
+
+Es el rastreo de **deals estancados**. La X es un número por programa (`programs.dias_sin_actividad`,
+migración de arranque de E4 junto con las bandas del 070), en **días hábiles** (regla de Retia: solo se
+excluyen sábados y domingos), con defecto **3**, editable en `/ajustes/programas`. "Actividad" es la
+fecha más reciente entre: actividad del deal, llamada, abono y movimiento de etapa. Solo cuenta para
+deals abiertos con dueño; Completo, Cierre Perdido y los anulados nunca están estancados.

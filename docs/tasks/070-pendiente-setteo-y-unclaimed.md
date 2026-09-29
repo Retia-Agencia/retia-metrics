@@ -91,3 +91,26 @@ dueño**; Unclaimed queda para los Agendados cuyo host no está registrado. Todo
 ## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
 
 Se quita el 085: el closer ve el origen con los UTM tal como llegaron (ADR 0044); la etiqueta de área se enciende sola cuando exista el 085.
+
+---
+
+## ✅ Decisión 2026-09-29 (Mani): el ingreso y sus bandas
+
+- **La pregunta** es la 4 del Typeform de los dos programas, *"¿Cuánto ganas mensualmente? (en dólares)"*,
+  en **USD mensuales**. Ya existe la llave `ingresoDeclarado` en el mapeo (`MAPEO_FORMULARIO`): se lee de
+  `submissions.respuestas` por esa llave, nunca por el título escrito en el código.
+- **Las bandas son distintas por programa** y son las opciones del formulario, así que no hay números que
+  inventar: la configuración es **una lista ORDENADA de etiquetas, de mayor a menor**, por programa
+  (`programs.bandas_ingreso text[]`, migración de arranque de E4, editable en `/ajustes/programas`). El
+  rango de una respuesta es su posición en la lista; la comparación es insensible a mayúsculas y acentos.
+  **No se parsea el número de la etiqueta**: sería adivinar (AGENTS.md, "nunca adivinar una columna").
+- 🩸 **Medido en producción el 29-sep (solo lectura):** ComunicArte tiene las DOS escalas en su historia.
+  La actual (Menos de $700 · $700-$1.500 · $1.500-$3.000 · Más de $3.000) y **641 respuestas con la escala
+  de Tactical** (Menos de $1.000 · $1.000-$3.000 · $3.000-$10.000 · Más de $10.000), de un formulario
+  anterior. La lista de ComunicArte lleva las ocho, ordenadas por el piso del rango: Más de $10.000 ·
+  $3.000-$10.000 · Más de $3.000 · $1.500-$3.000 · $1.000-$3.000 · $700-$1.500 · Menos de $1.000 ·
+  Menos de $700. Tactical, sus cuatro. Hay **1** respuesta basura (`]+`) en Tactical.
+- **Una respuesta que no casa con ninguna etiqueta** va al final de la sección con la marca "sin banda"
+  y su texto crudo a la vista: nunca se esconde ni se le inventa rango. Dentro de la misma banda, ordena
+  la fecha del último envío (más reciente primero).
+- Las listas se cargan desde la pantalla (molde de catálogo, `change_log`), no dentro de la migración.
