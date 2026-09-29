@@ -34,7 +34,8 @@ El agente kiro-rescue regresa antes que Kiro: esperar el pid de `kiro-cli chat` 
 Pendientes de Mani: cerrar 096 desde `/ajustes/usuarios` (crear Maru y vincular las cuentas de Calendly de
 ambos programas); destrabar el login local y recorrer 071/098 en navegador; configurar la variable de score en
 los dos Typeform y nombrarla en la llave `puntaje` del mapeo de cada fuente (070); K3 (borrar o no la llamada
-de prueba). Alejo: 077 en curso. 114 (auditoria): A1 y A3 hechos; A2 con el 064;
+de prueba). Alejo: 077 en curso. 078: revisar y aprobar ADR 0059 y aplicar la migración aditiva antes de
+construir el importador. 114 (auditoria): A1 y A3 hechos; A2 con el 064;
 B4 (titulos de pregunta en el codigo), B5 (columna sources.calificacion muerta) y C6 pendientes.
 
 Reglas: npm test es scripts/test.mjs (una suite por maquina). Las migraciones las aplica la sesion
@@ -57,6 +58,19 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   - **096 pasa al carril de Mani:** Mani cerrará la configuración de Calendly de ambos programas porque
     tiene acceso a sus cuentas; Alejo ya no lo tiene pendiente. K1 (retirar la búsqueda) y K2 (Inbox) están
     decididas; el ticket sigue abierto hasta crear/vincular las cuentas y dejarlo verificado.
+
+- **2026-09-29 (sesión 46, Alejo): 096 en pausa, mapeo del 077, ADR 0059 propuesto para el 078.**
+  - 096: sin acceso a Calendly, todo lo que queda pasa para después. Anotado en el ticket: las cuentas
+    dueñas de cada organización (TI `jvieira@ttrading.co`, CA `info@eventoscomunicarte.com`), que no se
+    vinculan a ninguna closer, y que Maru usa `soymarumarquez@gmail.com`. Por confirmar: el correo de
+    Calendly de cada closer parece distinto del de su usuario.
+  - 077: las 7 pestañas de gestión leídas (solo encabezados y conteos, nada personal) y su mapeo escrito en
+    el ticket. Lo que salió: los encabezados corridos de CA confirmados (col J), 75 llamadas de TI sin
+    correo, estudiantes de Julio/Agosto sin fecha, 10 Parcial sin monto, plataformas fuera del catálogo
+    (Binance, `Bootcamp`). Lectura de producción: **solo Andrea es closer con cuenta**, y hay 48 deals vivos.
+  - ADR 0059 (propuesta, grill con Alejo): el deal histórico nace en su etapa (actor `migracion`), huella con
+    índice único, gana el deal vivo, extractor → template (fuera de git, lleva datos personales) →
+    importador con ensayo. El orden para construirlo está en el ticket 078.
 
 - **2026-09-29 (Alejandro, sesión aparte fuera del repo): los dos Typeform ya mandan score, calidad y VALOR
   del lead. PARA MANI: esto tiene que llegar al CRM y verse en cada lead.** Nada de esto tocó código del
