@@ -50,3 +50,6 @@ next-env.d.ts
 *.jpg
 *.jpeg
 !public/**
+
+# Cache local de Kiro (se regenera en cada corrida; nunca va al repo)
+.claude/sdd-cache/
