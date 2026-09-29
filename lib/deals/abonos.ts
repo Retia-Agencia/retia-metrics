@@ -137,6 +137,12 @@ export async function registrarAbono(
       // que ve el closer (`saldosDeDeals`), y el deal bloqueado impide que otro abono la
       // cambie entre esta lectura y la escritura.
       const antes = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
+      if (antes?.moneda != null && antes.moneda !== entrada.moneda) {
+        throw new ErrorDeApp(
+          `El producto del deal está en ${antes.moneda} y los abonos se registran en ${entrada.moneda}: no se convierte moneda.`,
+          422,
+        );
+      }
       if (!antes || antes.saldo === null) {
         throw new ErrorDeApp(
           antes?.sinSaldoPorque === "moneda_distinta"
@@ -184,8 +190,11 @@ export async function registrarAbono(
       }
 
       // El movimiento lo decide el saldo que dejo el abono, leido de nuevo del modulo.
-      const despues = (await saldosDeDeals(tx, [deal.id])).get(deal.id)!;
-      const saldo = despues.saldo!;
+      const despues = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
+      if (!despues || despues.saldo === null) {
+        throw new ErrorDeApp("No se puede calcular el saldo del deal después del abono: se deshace el registro.", 409);
+      }
+      const saldo = despues.saldo;
       const destino: EtapaDeal = saldo <= 0 ? "completo" : "abonado";
 
       if (deal.etapa === destino) return { abonoId, etapa: deal.etapa, movioElDeal: false, saldo, cohorteAsignada };
@@ -240,15 +249,22 @@ export async function anularAbono(
     return (db as unknown as Transaccion).transaction(async (tx) => {
       // "Dame la fila que voy a anular" por clave primaria: `incluyendoAnulados` para poder
       // decir "ya esta anulado" en vez de un 404 que confunde.
+      const [referencia] = await tx
+        .select()
+        .from(abonos)
+        .where(and(eq(abonos.id, abonoId), incluyendoAnulados(abonos)));
+      if (!referencia) throw new ErrorDeApp("No existe el abono.", 404);
+
+      // El deal se bloquea ANTES de decidir nada: una anulacion y un abono simultaneos
+      // sobre el mismo deal no pueden dejarlo en una etapa que el saldo no respalda.
+      const { deal, emailLead } = await dealBloqueado(tx, referencia.dealId);
+      // La primera lectura pudo esperar detras de otra anulacion: la decision usa la
+      // fila fresca, con el deal ya bloqueado, para no pisar quien anulo ni su motivo.
       const [abono] = await tx
         .select()
         .from(abonos)
         .where(and(eq(abonos.id, abonoId), incluyendoAnulados(abonos)));
       if (!abono) throw new ErrorDeApp("No existe el abono.", 404);
-
-      // El deal se bloquea ANTES de decidir nada: una anulacion y un abono simultaneos
-      // sobre el mismo deal no pueden dejarlo en una etapa que el saldo no respalda.
-      const { deal, emailLead } = await dealBloqueado(tx, abono.dealId);
       if (abono.anuladoEn) throw new ErrorDeApp("El abono ya está anulado.", 409);
 
       if (!esAdministrador(actor.rol)) {

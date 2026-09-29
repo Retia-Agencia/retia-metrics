@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { changeLog, cohorts, deals, leads, productos, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { abrirDeal, moverEtapa } from "@/lib/deals/mover-etapa";
-import { editarAcuerdoDePago, fechaLimiteMaxima } from "@/lib/deals/pago";
+import { editarAcuerdoDePago, fechaLimiteMaxima, fechaEfectivaDePago } from "@/lib/deals/pago";
 import { ErrorDeApp } from "@/lib/errors";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -76,6 +76,18 @@ async function capturar(p: Promise<unknown>): Promise<ErrorDeApp> {
 
 const comoCloser = () => ({ userId: closer, rol: "closer" as const });
 
+describe("fechaEfectivaDePago: una sola prioridad de fechas", () => {
+  it.each([
+    ["2026-10-01", "2026-10-15", "2026-11-01", "2026-10-01"],
+    [null, "2026-10-15", "2026-11-01", "2026-10-15"],
+    [null, null, "2026-11-01", "2026-11-01"],
+    [null, null, null, null],
+    ["2026-10-01", null, null, "2026-10-01"],
+  ])("propia %s, cohorte %s y activa %s dan %s", (propia, cohorte, activa, esperada) => {
+    expect(fechaEfectivaDePago(propia, cohorte, activa)).toBe(esperada);
+  });
+});
+
 describe("fechaLimiteMaxima: el inicio de clases de la cohorte del deal", () => {
   it("usa la cohorte del deal; sin cohorte, la activa del programa; sin ninguna, null", async () => {
     const conCohorte = await nuevoDeal("compromiso_verbal");
@@ -97,6 +109,21 @@ describe("fechaLimiteMaxima: el inicio de clases de la cohorte del deal", () => 
 });
 
 describe("editarAcuerdoDePago", () => {
+  it("bloquea el deal dentro de la transaccion antes de decidir si sigue editable", async () => {
+    const d = await nuevoDeal("completo");
+    const bloquear = vi.fn();
+    const lectura = Object.assign(Promise.resolve([d]), { for: bloquear });
+    bloquear.mockReturnValue(lectura);
+    const tx = { select: () => ({ from: () => ({ where: () => lectura }) }) };
+    const base = { transaction: (fn: (tx: unknown) => Promise<void>) => fn(tx) } as unknown as Db;
+
+    const e = await capturar(editarAcuerdoDePago(base, comoCloser(), { dealId: d.id, acuerdoPago: "otra nota" }));
+    expect(e.status).toBe(409);
+    expect(bloquear).toHaveBeenCalledExactlyOnceWith("update");
+    const [fila] = await db.select().from(deals).where(eq(deals.id, d.id));
+    expect(fila.acuerdoPago).toBeNull();
+  });
+
   it("guarda la nota y la fecha con su rastro, y la fecha no pasa del inicio de clases", async () => {
     const d = await nuevoDeal("compromiso_verbal");
 

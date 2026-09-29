@@ -1,6 +1,6 @@
 # Ticket 112: los cuatro chequeos de AGENTS.md (test, typecheck, lint, build) en cada PR y
 # en cada push a `main`, con `npm ci` sobre el lock. Nada de esto necesita `.env.local`:
-# los tests usan PGlite en memoria y el cliente de la base se crea de forma perezosa.
+# los tests usan PGlite y un Postgres local para la concurrencia entre conexiones.
 name: CI
 
 on:
@@ -16,6 +16,22 @@ jobs:
   chequeos:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: retia_pruebas
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d retia_pruebas"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL_PRUEBA_POSTGRES: postgresql://postgres:postgres@127.0.0.1:5432/retia_pruebas
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

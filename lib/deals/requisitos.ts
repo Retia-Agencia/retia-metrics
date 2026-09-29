@@ -168,7 +168,7 @@ function requisitosDe(t: Transicion): Requisito[] {
     case "T8":
       return ["llamada_fallida"];
     case "T18":
-      return ["saldo_en_cero"];
+      return ["saldo_en_cero", "comprobante"];
     case "T19":
     case "T20":
     case "T21":

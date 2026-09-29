@@ -26,6 +26,15 @@ export interface DealParaFecha {
   cohortId: string | null;
 }
 
+/** La fecha propia manda; sin ella, la cohorte del deal y luego la activa del programa. */
+export function fechaEfectivaDePago(
+  fechaPropia: string | null,
+  inicioDeSuCohorte: string | null,
+  inicioDeLaActiva: string | null,
+): string | null {
+  return fechaPropia ?? inicioDeSuCohorte ?? inicioDeLaActiva;
+}
+
 /**
  * La fecha máxima de pago de un deal: el inicio de clases de SU cohorte; si el deal aún no
  * tiene cohorte, el de la cohorte activa de su programa (la que se le asignará al cerrar,
@@ -35,14 +44,19 @@ export interface DealParaFecha {
  * Devuelve `YYYY-MM-DD` (día de Bogotá, como todo el sistema).
  */
 export async function fechaLimiteMaxima(db: Db, deal: DealParaFecha): Promise<string | null> {
+  let inicioDeSuCohorte: string | null = null;
   if (deal.cohortId != null) {
     const [c] = await db
       .select({ inicio: cohorts.fechaInicioClases })
       .from(cohorts)
       .where(and(eq(cohorts.id, deal.cohortId), eq(cohorts.programId, deal.programId)));
-    if (c) return c.inicio;
+    inicioDeSuCohorte = c?.inicio ?? null;
   }
-  return (await cohorteActiva(deal.programId, db))?.fechaInicioClases ?? null;
+  const inicioDeLaActiva = inicioDeSuCohorte == null
+    ? (await cohorteActiva(deal.programId, db))?.fechaInicioClases ?? null
+    : null;
+  // El tope no usa la fecha pactada: solo las fechas de las cohortes.
+  return fechaEfectivaDePago(null, inicioDeSuCohorte, inicioDeLaActiva);
 }
 
 /** Rechaza (422) una fecha límite posterior al inicio de clases de la cohorte del deal. */
@@ -94,7 +108,8 @@ export async function editarAcuerdoDePago(db: Db, actor: ActorDeAcuerdo, datos: 
       const [deal] = await tx
         .select()
         .from(deals)
-        .where(and(eq(deals.id, dealId), incluyendoAnulados(deals)));
+        .where(and(eq(deals.id, dealId), incluyendoAnulados(deals)))
+        .for("update");
       if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
       if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado: no se edita su acuerdo de pago.", 409);
       if (deal.etapa === "completo" || deal.etapa === "cierre_perdido") {

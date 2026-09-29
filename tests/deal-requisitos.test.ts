@@ -30,7 +30,7 @@ const ESPERADOS: Record<string, Codigo[]> = {
   T15: ["motivo"],
   T16: ["producto", "abono", "comprobante", "saldo_pendiente"],
   T17: ["producto", "abono", "comprobante", "saldo_en_cero"],
-  T18: ["saldo_en_cero"],
+  T18: ["saldo_en_cero", "comprobante"],
   T19: ["cohorte_destino"],
   T20: ["cohorte_destino"],
   T21: ["cohorte_destino"],
@@ -154,7 +154,7 @@ describe("lo que no es un requisito", () => {
   });
 
   it("un sobrepago que se colo cuenta como pagado: el deal no queda trabado en Abonado", () => {
-    const hechos = { ...cumpliendo(["abono"]), saldo: -50 };
+    const hechos = { ...cumpliendo(["abono", "comprobante"]), saldo: -50 };
     expect(queLeFalta("abonado", "completo", hechos)).toEqual([]);
   });
 });

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
   abonos,
@@ -17,6 +17,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { anularAbono, registrarAbono } from "@/lib/deals/abonos";
 import { ErrorDeApp } from "@/lib/errors";
 import { saldosDeDeals } from "@/lib/queries/saldo";
+import * as moduloSaldo from "@/lib/queries/saldo";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -75,6 +76,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await cerrar();
 });
 
@@ -166,6 +168,52 @@ describe("registrarAbono: el dinero mueve el deal", () => {
 });
 
 describe("registrarAbono: las rejas", () => {
+  it("un abono sobre un deal ya Completo se rechaza como cerrado y no se escribe", async () => {
+    const dealId = await nuevoDeal("atendido");
+    await registrarAbono(db, comoCloser(), abono(dealId, "400"));
+    await registrarAbono(db, comoCloser(), abono(dealId, "600"));
+    const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "600")));
+    expect(e.status).toBe(409);
+    expect(e.message).toContain("El deal está cerrado");
+    expect(await abonosDe(dealId)).toHaveLength(2);
+    expect((await saldosDeDeals(db, [dealId])).get(dealId)?.saldo).toBe(0);
+  });
+
+  it("un producto en COP rechaza abonos en USD antes de escribir", async () => {
+    await db.update(productos).set({ moneda: "COP" }).where(eq(productos.id, productoId));
+    const dealId = await nuevoDeal("atendido");
+    const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "400")));
+    expect(e.status).toBe(422);
+    expect(e.message).toBe("El producto del deal está en COP y los abonos se registran en USD: no se convierte moneda.");
+    expect(await abonosDe(dealId)).toHaveLength(0);
+    expect(await etapaDe(dealId)).toBe("atendido");
+    expect(await db.select().from(changeLog)).toHaveLength(0);
+  });
+
+  it("un saldo no calculable despues del insert deshace el abono con un error claro", async () => {
+    const dealId = await nuevoDeal("abonado");
+    const antes = await saldosDeDeals(db, [dealId]);
+    vi.spyOn(moduloSaldo, "saldosDeDeals")
+      .mockResolvedValueOnce(antes)
+      .mockResolvedValueOnce(new Map([[dealId, { ...antes.get(dealId)!, saldo: null, sinSaldoPorque: "moneda_distinta" }]]));
+    const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "400")));
+    expect(e).toMatchObject({ status: 409, message: "No se puede calcular el saldo del deal después del abono: se deshace el registro." });
+    expect(await abonosDe(dealId)).toHaveLength(0);
+    expect(await etapaDe(dealId)).toBe("abonado");
+  });
+
+  it("el ultimo abono sin comprobante no cierra el deal ni queda escrito", async () => {
+    const dealId = await nuevoDeal("atendido");
+    await registrarAbono(db, comoCloser(), abono(dealId, "400"));
+    const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "600", { comprobanteUrl: undefined })));
+    expect(e.message).toContain("comprobante");
+    expect(await etapaDe(dealId)).toBe("abonado");
+    const filas = await abonosDe(dealId);
+    expect(filas).toHaveLength(1);
+    expect(filas[0].anuladoEn).toBeNull();
+    expect((await saldosDeDeals(db, [dealId])).get(dealId)?.saldo).toBe(600);
+  });
+
   it("un sobrepago se rechaza y no escribe nada", async () => {
     const dealId = await nuevoDeal("atendido");
     await registrarAbono(db, comoCloser(), abono(dealId, "600"));
@@ -252,6 +300,58 @@ describe("registrarAbono: las rejas", () => {
 });
 
 describe("anularAbono: la etapa se recalcula", () => {
+  it("relee el abono despues del bloqueo y conserva la primera anulacion ante una lectura obsoleta", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const a = await registrarAbono(db, comoCloser(), abono(dealId, "400"));
+    const [obsoleto] = await abonosDe(dealId);
+    await anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "Primera anulacion" });
+    const [primera] = await abonosDe(dealId);
+    const orden: string[] = [];
+
+    // PGlite serializa transacciones: solo la primera lectura se sustituye por la fila
+    // anterior. El bloqueo y las lecturas posteriores usan la base real del test.
+    const conLecturaObsoleta = {
+      transaction: (fn: (tx: Db) => Promise<unknown>) => db.transaction(async (tx) => {
+        const select = tx.select.bind(tx);
+        vi.spyOn(tx, "select").mockImplementation((...args) => {
+          const consulta = select(...args);
+          const from = consulta.from.bind(consulta);
+          consulta.from = ((tabla: Parameters<typeof from>[0]) => {
+            const q = from(tabla);
+            if (tabla === abonos && orden.length === 0) {
+              const where = q.where.bind(q);
+              q.where = ((...condiciones: Parameters<typeof where>) => {
+                const resultado = where(...condiciones);
+                orden.push("lectura obsoleta");
+                vi.spyOn(resultado, "execute").mockResolvedValue([obsoleto]);
+                return resultado;
+              }) as typeof q.where;
+            } else if (tabla === abonos) {
+              orden.push("lectura fresca");
+            }
+            if (tabla === deals) {
+              const bloquear = q.for.bind(q);
+              q.for = ((...opciones: Parameters<typeof bloquear>) => {
+                orden.push("bloqueo");
+                return bloquear(...opciones);
+              }) as typeof q.for;
+            }
+            return q;
+          }) as typeof consulta.from;
+          return consulta;
+        });
+        return fn(tx as unknown as Db);
+      }),
+    } as unknown as Db;
+
+    const e = await capturar(anularAbono(conLecturaObsoleta, { userId: gerente, rol: "gerente" }, { abonoId: a.abonoId, motivo: "Segunda anulacion" }));
+    expect(e).toMatchObject({ status: 409, message: "El abono ya está anulado." });
+    expect(orden.slice(0, 3)).toEqual(["lectura obsoleta", "bloqueo", "lectura fresca"]);
+    expect((await abonosDe(dealId))[0]).toMatchObject({
+      anuladoPor: closer, motivoAnulacion: "Primera anulacion", anuladoEn: primera.anuladoEn,
+    });
+  });
+
   it("anular el abono que cerró el deal lo saca de Completo, con su historial", async () => {
     const dealId = await nuevoDeal("compromiso_verbal");
     await registrarAbono(db, comoCloser(), abono(dealId, "400"));
