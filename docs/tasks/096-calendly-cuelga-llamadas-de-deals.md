@@ -331,3 +331,11 @@ pantalla de la suelta y "buscar llamada" pasan al 071/074.
 - **Sin probar con una cita real:** reagenda y no-show (cubiertos por `tests/calendly-webhook-ruta.test.ts`).
 - Queda en producción esa llamada suelta cancelada, de prueba; no cuenta en ninguna métrica (sin deal). Borrarla
   pide el ok de Mani.
+
+## ✅ Decisión 29-sep (Mani y Alejo): quién vincula la cuenta de Calendly
+
+- La cuenta de Calendly de cada closer, por programa, **la asigna un administrador** en `/ajustes/usuarios` (como
+  ya está construido). Puede ser una cuenta **compartida o personal**: la que la closer tiene registrada para
+  recibir llamadas. Así se sabe de quién es la cita y el deal queda a esa closer (Mani).
+- Consecuencia: una cuenta solo puede ser de **una** closer por programa (índice `miembros_programa_calendly_idx`).
+- Maru no tiene usuario todavía; se crea desde la app (no por código) con su correo.
