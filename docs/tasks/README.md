@@ -155,7 +155,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [x] | 057 | [Las Calls cuelgan del deal](./057-calls-colgadas-del-deal.md) (E4-1) | 052 | done · 28-sep · `agregarLlamada` y `completarAgendada` en `lib/deals/llamadas.ts`; migración 0036 |
 | [x] | 058 | [Pegar el Grain = la llamada sucedió](./058-grain-significa-que-la-llamada-sucedio.md) (E4-2) | 057 | done · 28-sep · `pegarGrain`: show, fecha si faltaba y Atendido (T10/T7), en una transacción |
 | [x] | 059 | [`no_show` y `cancelada` van a Re-agenda](./059-no-show-y-cancelada-van-a-reagenda.md) (E4-3) | 057 | done · 28-sep · `marcarFallida`: Re-agenda desde Agendado (T8) y desde Atendido con motivo (T29) |
-| [ ] | 060 | [Abonos sobre el deal](./060-abonos-sobre-el-deal.md) (E4-4) | 057, 045 | todo |
+| [x] | 060 | [Abonos sobre el deal](./060-abonos-sobre-el-deal.md) (E4-4) | 057, 045 | done · 28-sep · `lib/deals/abonos.ts` (`registrarAbono`, `anularAbono`) + `tests/abonos-del-deal.test.ts` y `tests/saldo-centralizado.test.ts` recreado. Sin migración. Falta la pantalla para registrar/anular (074) y el comprobante con foto (035) |
 | [ ] | 061 | [Acuerdo de pago y cartera vencida](./061-cuotas-pactadas-y-cartera-vencida.md) (E4-5) | 060 | todo · 24-sep, ADR 0053: nota + fecha límite, sin cuotas en v1 · migración de la sesión principal |
 | [ ] | 062 | [La comisión se calcula, nunca se guarda](./062-comision-calculada.md) (E4-6) | 060 | todo |
 | [ ] | 063 | [`onboarded_at` y cambio de cohorte](./063-onboarded-at-y-cambio-de-cohorte.md) (E4-7) | 060 | todo |

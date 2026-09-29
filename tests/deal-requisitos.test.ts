@@ -45,8 +45,8 @@ const ESPERADOS: Record<string, Codigo[]> = {
   T29: ["motivo"],
   P: ["motivo"],
   R: ["motivo"],
-  A1: ["sin_abonos", "motivo"],
-  A2: ["saldo_pendiente", "motivo"],
+  A1: ["sin_abonos"],
+  A2: ["saldo_pendiente"],
 };
 
 /** Un deal que no cumple nada. */

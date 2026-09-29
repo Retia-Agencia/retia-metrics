@@ -3,7 +3,7 @@ id: 060
 etapa: E4
 serves: "plan v2 §6 etapa 4 · tarea E4-4 · ADR 0013, ADR 0024, ADR 0037"
 depends: [057, 045]
-status: todo
+status: done
 ---
 
 # 060 — Abonos sobre el deal, y los dos movimientos que hace el sistema
@@ -44,12 +44,29 @@ Que el dinero entre por el deal y que la etapa la mueva **el sistema**, nunca el
 
 ## Done cuando
 
-- [ ] El primer abono mueve a Abonado y el que deja saldo 0 mueve a Completo, **por el motor**.
-- [ ] Ningun movimiento de etapa por dinero se escribe fuera de `lib/deals/etapas.ts`.
-- [ ] `tests/saldo-centralizado.test.ts` verde.
-- [ ] Anular el abono que cerro el deal lo saca de Completo, con su fila de historial.
-- [ ] Un sobrepago sigue bloqueado por la misma reja de siempre.
+- [x] El primer abono mueve a Abonado y el que deja saldo 0 mueve a Completo, **por el motor**.
+- [x] Ningun movimiento de etapa por dinero se escribe fuera de `lib/deals/etapas.ts`.
+- [x] `tests/saldo-centralizado.test.ts` verde.
+- [x] Anular el abono que cerro el deal lo saca de Completo, con su fila de historial.
+- [x] Un sobrepago sigue bloqueado por la misma reja de siempre.
 
 ## Kiro
 
 Si, con revision: aqui se cruzan dinero y etapas.
+
+## Cierre (28-sep, sesión 43) — decisiones de Mani
+
+- **D3:** se mantiene: Abonado ocupa el cupo del lead (un segundo producto espera a que se complete el pago).
+- **Anular y volver:** Completo → Abonado (A2) si queda saldo; sin abonos vigentes, a la etapa de donde vino
+  antes de pagar (A1, `etapaALaQueVuelve`: mira Abonado **y Completo**, porque un pago único va directo a
+  Completo). Sin historial (migración) vuelve a **Compromiso Verbal**.
+- **A1 y A2 ya no piden motivo del catálogo:** su razón es el motivo en texto de la anulación del abono
+  (ADR 0026, obligatorio). Cambió `lib/deals/etapas.ts` (ADR 0056 y `structure.md` §3.1 lo dicen).
+- Sin producto no hay abono (422). Todo en USD (otra moneda es 400). El monto es lo que pagó el cliente.
+  Una promoción o cortesía es OTRO producto, no un descuento: no hay `precio_contrato`.
+- Rejas: solo `trabajaLeads` y dueño (o administrador) registra; el gerente no. Sobrepago 422 con la cifra de
+  `saldosDeDeals`; el deal se bloquea `for update`. Desde Pendiente Setteo, Agendado, Re-agenda o Próxima
+  Cohorte se rechaza (409): no hay flecha a pagar. Quien anula (ADR 0026 p.5): administrador cualquiera;
+  closer solo lo suyo y con la cohorte activa.
+- El comprobante lo exige el motor solo cuando el abono MUEVE el deal (a Abonado o a Completo): sin él, se
+  deshace el abono entero. El comprobante con foto sigue siendo el 035.

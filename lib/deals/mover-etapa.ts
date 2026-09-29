@@ -144,10 +144,10 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
     // A1: al anular el unico abono, Abonado vuelve a la etapa de donde vino, y esa la
     // dice el historial, no quien llama.
     if (t.id === "A1") {
-      const previa = await etapaAntesDe(tx, deal.id, "abonado");
+      const previa = await etapaALaQueVuelve(tx, deal.id);
       if (previa !== mov.a) {
         throw new MovimientoRechazado(
-          `Al anular el abono, el deal vuelve a ${previa ? NOMBRE_DE_ETAPA[previa] : "la etapa previa"}, no a ${NOMBRE_DE_ETAPA[mov.a]}.`,
+          `Al anular el abono, el deal vuelve a ${NOMBRE_DE_ETAPA[previa]}, no a ${NOMBRE_DE_ETAPA[mov.a]}.`,
           [],
           409,
         );
@@ -510,19 +510,28 @@ async function entradaALaEtapaActual(tx: Db, deal: FilaDeal): Promise<Date> {
   return ultima?.fecha ?? deal.createdAt;
 }
 
-/** De que etapa venia el deal la ultima vez que entro a `etapa`. */
-async function etapaAntesDe(tx: Db, dealId: string, etapa: EtapaDeal): Promise<EtapaDeal | null> {
+/**
+ * La etapa a la que vuelve un deal cuando se anula su ultimo abono (A1): de donde venia
+ * la ultima vez que entro a Abonado **o a Completo** desde una de las cuatro etapas que
+ * pagan (2, 5, 6, 11). Se miran las dos porque un deal que pago todo de una vez fue
+ * directo a Completo (T5, T14, T17, T26) sin pasar por Abonado, y sin eso no habria a donde
+ * volver. Las entradas que vienen de Completo (A2) quedan fuera por el filtro de `de`.
+ *
+ * Un deal sin historial de pago (los que trae la migracion, ticket 080) vuelve a
+ * **Compromiso Verbal** (Mani, 28-sep): es donde esta un lead que ya dijo que si.
+ */
+export async function etapaALaQueVuelve(tx: Db, dealId: string): Promise<EtapaDeal> {
   const [fila] = await tx
     .select({ de: dealEtapaHistorial.de })
     .from(dealEtapaHistorial)
     .where(
       and(
         eq(dealEtapaHistorial.dealId, dealId),
-        eq(dealEtapaHistorial.a, etapa),
+        inArray(dealEtapaHistorial.a, ["abonado", "completo"]),
         inArray(dealEtapaHistorial.de, ["en_contacto", "atendido", "compromiso_verbal", "seguimiento"]),
       ),
     )
     .orderBy(desc(dealEtapaHistorial.fecha))
     .limit(1);
-  return fila?.de ?? null;
+  return fila?.de ?? "compromiso_verbal";
 }

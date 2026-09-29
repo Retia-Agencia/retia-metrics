@@ -24,8 +24,8 @@ Tactical 2.891 (con las 65 de Forms viejo, el 079); un segundo ensayo crea 0; la
 /ajustes/salud da 0 faltantes en los dos programas. Quedan para revision humana 18 envios de Tactical
 sin correo ni telefono conocido (sin lead), 69 uniones por telefono y 2 telefonos de otro lead.
 
-Sigue E2 (plan-reparto): Mani 060 (recrea el test de saldo centralizado) -> 061 -> 063; Alejo 097 -> 096.
-Antes de E2 decidir: D3 (¿un deal en Abonado ocupa el cupo del lead?), A5 (webhook o consulta de
+Sigue E2 (plan-reparto): Mani 060 HECHO (28-sep) -> 061 -> 063; Alejo 097 -> 096.
+D3 decidida (se mantiene: Abonado ocupa el cupo). Antes de 096 decidir: A5 (webhook o consulta de
 Calendly, plan de Calendly, Vercel Pro) y de quien es el deal si el lead agenda con otra closer (ya
 decidido 28-sep: de la closer con quien agenda, 096). Migracion de arranque de E2: cuenta de Calendly por
 membresia y datos de la llamada suelta (096).
@@ -40,6 +40,19 @@ la suite y revisa. Codex sin cuota hasta el 12-oct. Antes de tomar un ticket haz
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-28 (sesión 43, segunda parte): 060 hecho, el dinero mueve el deal.** Sesión de Mani, sin migración.
+  - `lib/deals/abonos.ts`: `registrarAbono` (reja de sobrepago con la cifra de `saldosDeDeals`, deal bloqueado
+    `for update`, Abonado o Completo por el motor) y `anularAbono` (A2 y A1). `saldo-centralizado.test.ts`
+    recreado. Decisiones de Mani en el ticket 060 (cierre).
+  - 🩸 **Dos huecos del motor que solo salieron al usarlo:** (1) A1 y A2 exigían un motivo del catálogo que ninguna
+    de las cuatro listas describe: Mani decidió quitarlo (la razón es la anulación del abono); (2) A1 no
+    encontraba a dónde volver si el deal fue directo a Completo con un solo abono: `etapaALaQueVuelve` mira
+    Abonado y Completo, con respaldo Compromiso Verbal.
+  - **Ojo, Alejo está trabajando su carril (097, 096) sin haber empujado nada al cierre:** este commit toca
+    `lib/deals/mover-etapa.ts`, `lib/deals/etapas.ts` y sus tests. Antes de tomar algo, `git fetch`.
+  - **Medido:** 1.178 tests, typecheck, lint y build limpios. Sigue el 061 (prellenado de la fecha con el inicio
+    de clases + cartera vencida) y el 063.
 
 - **2026-09-28 (sesión 43): E1 cerrada, el traslado corrió en producción.** Sesión de Mani.
   - 🩸 **Causa de los 12 min:** `recalcularResumen` hacía un `UPDATE` y un `INSERT` de bitácora por lead a

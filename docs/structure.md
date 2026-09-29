@@ -252,7 +252,7 @@ el requisito antes de aceptar. La implementa el ticket 043.
 | T29 | 5 → 3 | la llamada no alcanzó y hace falta otra | closer | **motivo** | "si falla y no cierra, pasa a Re-agenda con motivo; no se duplica el deal" (Mani) |
 | P | 1 a 7, 9 y 11 → 10 | dijo que no, no responde o desistió | closer | **motivo obligatorio** | Cierre Perdido cuenta en el embudo |
 | R | 10 → 2, 4 o 9 | se recupera un perdido | closer | motivo | a 5-8 solo se entra por un evento (Grain, abono) |
-| A1 | 7 → la etapa previa | se anula el único abono | sistema | anulación con motivo | si el abono no existe, Abonado tampoco |
+| A1 | 7 → la etapa previa | se anula el único abono | sistema | anulación con motivo (el texto de la anulación del abono, no un motivo del catálogo) | si el abono no existe, Abonado tampoco |
 | A2 | 8 → 7 | se anula un abono y vuelve a quedar saldo | sistema | anulación con motivo | igual que A1 |
 
 Anular el deal entero no es una flecha: es una marca aparte que lo saca de todas las métricas, esté en

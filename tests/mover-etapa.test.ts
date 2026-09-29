@@ -511,10 +511,10 @@ describe("los hechos salen de la base", () => {
       .update(abonos)
       .set({ anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "tecleo" })
       .where(eq(abonos.id, primero.id));
-    e = await rechazo(moverEtapa(db, { dealId, a: "en_contacto", actor: sistema, motivoId: motivoActivo }));
+    e = await rechazo(moverEtapa(db, { dealId, a: "en_contacto", actor: sistema }));
     expect(e.status).toBe(409);
     expect(e.message).toContain("vuelve a Atendido");
-    await moverEtapa(db, { dealId, a: "atendido", actor: sistema, motivoId: motivoActivo });
+    await moverEtapa(db, { dealId, a: "atendido", actor: sistema });
     expect(await etapaDe(dealId)).toBe("atendido");
 
     // Paga todo de una vez: T14 directo a Completo.

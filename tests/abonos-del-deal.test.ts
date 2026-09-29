@@ -1,0 +1,342 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { and, eq } from "drizzle-orm";
+import {
+  abonos,
+  changeLog,
+  cohorts,
+  dealEtapaHistorial,
+  deals,
+  leads,
+  plataformasPago,
+  productos,
+  programs,
+  users,
+} from "@/lib/db/schema";
+import type { Db } from "@/lib/db/tipos";
+import type { EtapaDeal } from "@/lib/deals/etapas";
+import { anularAbono, registrarAbono } from "@/lib/deals/abonos";
+import { ErrorDeApp } from "@/lib/errors";
+import { saldosDeDeals } from "@/lib/queries/saldo";
+import { incluyendoAnulados } from "@/lib/queries/vigente";
+import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+
+/**
+ * Ticket 060: el dinero entra por el deal y la etapa la mueve el SISTEMA.
+ *
+ * Producto de 1.000 USD. Cubre: el primer abono lleva a Abonado, el que salda a Completo
+ * (por el motor, dejando historial), la reja del sobrepago con la misma cifra que ve el
+ * closer, las rejas de quien puede y de en que etapa, y anular: Completo vuelve a Abonado
+ * (A2) y, si era el unico abono, a donde estaba antes de pagar (A1).
+ */
+
+let db: Db;
+let cerrar: () => Promise<void>;
+let programId: string;
+let cohortId: string;
+let productoId: string;
+let leadN = 0;
+let closer: string;
+let otroCloser: string;
+let gerente: string;
+let developer: string;
+
+beforeEach(async () => {
+  ({ db, cerrar } = await crearBaseDePrueba());
+  const [p] = await db
+    .insert(programs)
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" })
+    .returning();
+  programId = p.id;
+  const [c] = await db
+    .insert(cohorts)
+    .values({
+      programId,
+      codigo: "C1",
+      metaCupos: 10,
+      precioUsd: "1000",
+      fechaInicioClases: "2026-10-01",
+      fechaInicioVentas: "2026-09-01",
+      fechaCierreVentas: "2026-09-30",
+      estado: "activo",
+    })
+    .returning();
+  cohortId = c.id;
+  const [prod] = await db.insert(productos).values({ programId, nombre: "Programa", precioLista: "1000" }).returning();
+  productoId = prod.id;
+  const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
+  closer = u.id;
+  const [u2] = await db.insert(users).values({ email: "jero@retiagrowth.com", rol: "closer", closerId: "Jero" }).returning();
+  otroCloser = u2.id;
+  const [g] = await db.insert(users).values({ email: "gerente@retiagrowth.com", rol: "gerente" }).returning();
+  gerente = g.id;
+  const [d] = await db.insert(users).values({ email: "dev@retiagrowth.com", rol: "developer" }).returning();
+  developer = d.id;
+});
+
+afterEach(async () => {
+  await cerrar();
+});
+
+const comoCloser = () => ({ userId: closer, rol: "closer" as const });
+
+async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferInsert> = {}) {
+  const [l] = await db
+    .insert(leads)
+    .values({ programId, emailNormalizado: `lead${++leadN}@correo.co`, nombre: `Lead ${leadN}` })
+    .returning();
+  const [d] = await db
+    .insert(deals)
+    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer, productoId, ...extra })
+    .returning();
+  return d.id;
+}
+
+const abono = (dealId: string, monto: string, extra: Record<string, unknown> = {}) => ({
+  dealId,
+  fecha: "2026-09-28",
+  monto,
+  comprobanteUrl: "https://drive.google.com/comprobante",
+  ...extra,
+});
+
+async function etapaDe(dealId: string) {
+  const [d] = await db.select({ etapa: deals.etapa }).from(deals).where(and(eq(deals.id, dealId), incluyendoAnulados(deals)));
+  return d.etapa;
+}
+
+async function abonosDe(dealId: string) {
+  return db.select().from(abonos).where(and(eq(abonos.dealId, dealId), incluyendoAnulados(abonos)));
+}
+
+async function historial(dealId: string) {
+  return db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, dealId));
+}
+
+async function capturar(p: Promise<unknown>): Promise<ErrorDeApp> {
+  try {
+    await p;
+  } catch (e) {
+    return e as ErrorDeApp;
+  }
+  throw new Error("se esperaba un error");
+}
+
+describe("registrarAbono: el dinero mueve el deal", () => {
+  it("el primer abono con saldo lleva a Abonado, por el sistema, con su historial y su rastro", async () => {
+    const dealId = await nuevoDeal("atendido");
+
+    const r = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
+
+    expect(r).toMatchObject({ etapa: "abonado", movioElDeal: true, saldo: 700 });
+    expect(await etapaDe(dealId)).toBe("abonado");
+    const [fila] = await abonosDe(dealId);
+    // El programa sale del deal y el closer de la cuenta, no del input.
+    expect(fila).toMatchObject({ programId, moneda: "USD", closerId: "Maru", origen: "app" });
+    const h = await historial(dealId);
+    expect(h.map((x) => [x.de, x.a, x.userId])).toEqual([["atendido", "abonado", null]]);
+    const rastro = await db.select().from(changeLog).where(and(eq(changeLog.tabla, "abonos"), eq(changeLog.registroId, r.abonoId)));
+    expect(rastro.length).toBeGreaterThan(0);
+  });
+
+  it("el abono que salda el deal lo lleva a Completo, aunque venga directo de Atendido", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const r = await registrarAbono(db, comoCloser(), abono(dealId, "1000"));
+    expect(r).toMatchObject({ etapa: "completo", saldo: 0 });
+    expect(await etapaDe(dealId)).toBe("completo");
+  });
+
+  it("un segundo abono en Abonado no mueve nada; el que deja saldo cero lo lleva a Completo", async () => {
+    const dealId = await nuevoDeal("compromiso_verbal");
+    await registrarAbono(db, comoCloser(), abono(dealId, "400"));
+
+    const segundo = await registrarAbono(db, comoCloser(), abono(dealId, "100"));
+    expect(segundo).toMatchObject({ etapa: "abonado", movioElDeal: false, saldo: 500 });
+
+    const ultimo = await registrarAbono(db, comoCloser(), abono(dealId, "500"));
+    expect(ultimo).toMatchObject({ etapa: "completo", movioElDeal: true, saldo: 0 });
+    expect((await historial(dealId)).map((x) => x.a)).toEqual(["abonado", "completo"]);
+  });
+
+  it("los centavos cuentan: 999.99 deja saldo y el ultimo centavo lo cierra", async () => {
+    const dealId = await nuevoDeal("atendido");
+    expect(await registrarAbono(db, comoCloser(), abono(dealId, "999.99"))).toMatchObject({ etapa: "abonado", saldo: 0.01 });
+    expect(await registrarAbono(db, comoCloser(), abono(dealId, "0.01"))).toMatchObject({ etapa: "completo", saldo: 0 });
+  });
+});
+
+describe("registrarAbono: las rejas", () => {
+  it("un sobrepago se rechaza y no escribe nada", async () => {
+    const dealId = await nuevoDeal("atendido");
+    await registrarAbono(db, comoCloser(), abono(dealId, "600"));
+
+    const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "400.01")));
+
+    expect(e.status).toBe(422);
+    expect(e.message).toContain("400.00 USD");
+    expect(await abonosDe(dealId)).toHaveLength(1);
+    expect(await etapaDe(dealId)).toBe("abonado");
+  });
+
+  it("sin producto no hay precio: no se recibe el abono", async () => {
+    const dealId = await nuevoDeal("atendido", { productoId: null });
+    const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "100")));
+    expect(e.status).toBe(422);
+    expect(await abonosDe(dealId)).toHaveLength(0);
+    expect(await etapaDe(dealId)).toBe("atendido");
+  });
+
+  it("solo USD: otra moneda es un 400 y no toca la base", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "400000", { moneda: "COP" })));
+    expect(e.status).toBe(400);
+    expect(await abonosDe(dealId)).toHaveLength(0);
+  });
+
+  it("el abono que movería el deal sin comprobante se rechaza entero: ni abono ni movimiento", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "300", { comprobanteUrl: undefined })));
+    expect(e.message).toContain("comprobante");
+    expect(await abonosDe(dealId)).toHaveLength(0);
+    expect(await etapaDe(dealId)).toBe("atendido");
+    expect(await historial(dealId)).toHaveLength(0);
+  });
+
+  it.each(["pendiente_setteo", "agendado", "pendiente_reagenda", "proxima_cohorte"] as const)(
+    "desde %s no hay flecha a pagar: se rechaza y el abono se deshace",
+    async (etapa) => {
+      const dealId = await nuevoDeal(etapa);
+      const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "300")));
+      expect(e.status).toBe(409);
+      expect(await abonosDe(dealId)).toHaveLength(0);
+      expect(await etapaDe(dealId)).toBe(etapa);
+    },
+  );
+
+  it("un deal cerrado o anulado no recibe abonos", async () => {
+    for (const etapa of ["completo", "cierre_perdido"] as const) {
+      const id = await nuevoDeal(etapa);
+      expect((await capturar(registrarAbono(db, comoCloser(), abono(id, "10")))).status).toBe(409);
+    }
+    const anulado = await nuevoDeal("atendido", { anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
+    expect((await capturar(registrarAbono(db, comoCloser(), abono(anulado, "10")))).status).toBe(409);
+  });
+
+  it("solo el dueño registra; el gerente no; el developer si", async () => {
+    const dealId = await nuevoDeal("atendido");
+    expect((await capturar(registrarAbono(db, { userId: otroCloser, rol: "closer" }, abono(dealId, "10")))).status).toBe(403);
+    expect((await capturar(registrarAbono(db, { userId: gerente, rol: "gerente" }, abono(dealId, "10")))).status).toBe(403);
+    const sinDueno = await nuevoDeal("atendido", { ownerUserId: null });
+    expect((await capturar(registrarAbono(db, comoCloser(), abono(sinDueno, "10")))).status).toBe(409);
+    await registrarAbono(db, { userId: developer, rol: "developer" }, abono(dealId, "10"));
+    expect(await abonosDe(dealId)).toHaveLength(1);
+  });
+
+  it("una plataforma inactiva se rechaza antes de escribir", async () => {
+    const [pl] = await db.insert(plataformasPago).values({ nombre: "Vieja", activo: false }).returning();
+    const dealId = await nuevoDeal("atendido");
+    const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "10", { plataformaId: pl.id })));
+    expect(e.status).toBe(400);
+    expect(await abonosDe(dealId)).toHaveLength(0);
+  });
+
+  it("dos abonos simultaneos que saldan el deal: solo uno entra", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const resultados = await Promise.allSettled([
+      registrarAbono(db, comoCloser(), abono(dealId, "1000")),
+      registrarAbono(db, comoCloser(), abono(dealId, "1000")),
+    ]);
+    expect(resultados.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(await abonosDe(dealId)).toHaveLength(1);
+  });
+});
+
+describe("anularAbono: la etapa se recalcula", () => {
+  it("anular el abono que cerró el deal lo saca de Completo, con su historial", async () => {
+    const dealId = await nuevoDeal("compromiso_verbal");
+    await registrarAbono(db, comoCloser(), abono(dealId, "400"));
+    const cierre = await registrarAbono(db, comoCloser(), abono(dealId, "600"));
+    expect(await etapaDe(dealId)).toBe("completo");
+
+    const r = await anularAbono(db, comoCloser(), { abonoId: cierre.abonoId, motivo: "Monto mal tecleado" });
+
+    expect(r).toMatchObject({ etapa: "abonado", movioElDeal: true });
+    expect((await historial(dealId)).map((x) => [x.de, x.a])).toEqual([
+      ["compromiso_verbal", "abonado"],
+      ["abonado", "completo"],
+      ["completo", "abonado"],
+    ]);
+    const saldo = (await saldosDeDeals(db, [dealId])).get(dealId)!;
+    expect(saldo).toMatchObject({ abonado: 400, saldo: 600 });
+    const [anulado] = await db.select().from(abonos).where(eq(abonos.id, cierre.abonoId));
+    expect(anulado).toMatchObject({ anuladoPor: closer, motivoAnulacion: "Monto mal tecleado" });
+    expect(anulado.anuladoEn).not.toBeNull();
+  });
+
+  it("si el deal estaba en Completo por UN solo abono, vuelve a la etapa de donde venía", async () => {
+    const dealId = await nuevoDeal("en_contacto");
+    const unico = await registrarAbono(db, comoCloser(), abono(dealId, "1000"));
+    expect(await etapaDe(dealId)).toBe("completo");
+
+    const r = await anularAbono(db, comoCloser(), { abonoId: unico.abonoId, motivo: "Era otro cliente" });
+
+    expect(r).toMatchObject({ etapa: "en_contacto", movioElDeal: true });
+    expect(await etapaDe(dealId)).toBe("en_contacto");
+  });
+
+  it("anular el único abono de un Abonado lo devuelve a Atendido, no a otra etapa", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const primero = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
+    const r = await anularAbono(db, comoCloser(), { abonoId: primero.abonoId, motivo: "Duplicado" });
+    expect(r.etapa).toBe("atendido");
+    // Y puede volver a pagar: el deal quedó en una etapa desde donde hay flecha a pagar.
+    expect((await registrarAbono(db, comoCloser(), abono(dealId, "300"))).etapa).toBe("abonado");
+  });
+
+  it("sin historial de pago (deal migrado) vuelve a Compromiso Verbal", async () => {
+    const dealId = await nuevoDeal("abonado");
+    const [a] = await db
+      .insert(abonos)
+      .values({ dealId, programId, fecha: "2026-09-01", monto: "300", closerId: "Maru" })
+      .returning();
+    const r = await anularAbono(db, comoCloser(), { abonoId: a.id, motivo: "No entró la plata" });
+    expect(r.etapa).toBe("compromiso_verbal");
+  });
+
+  it("anular un abono que no era el último no mueve el deal", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const a1 = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
+    await registrarAbono(db, comoCloser(), abono(dealId, "200"));
+    const r = await anularAbono(db, comoCloser(), { abonoId: a1.abonoId, motivo: "Error de tecleo" });
+    expect(r).toMatchObject({ etapa: "abonado", movioElDeal: false });
+    expect((await saldosDeDeals(db, [dealId])).get(dealId)).toMatchObject({ abonado: 200, saldo: 800 });
+  });
+
+  it("el motivo es obligatorio y un abono anulado no se anula dos veces", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const a = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
+    expect((await capturar(anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "  " }))).status).toBe(400);
+    await anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "Error" });
+    expect((await capturar(anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "Otra vez" }))).status).toBe(409);
+  });
+
+  it("un closer solo anula lo que registró él, y mientras la cohorte esté activa; el administrador siempre", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const a = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
+
+    expect((await capturar(anularAbono(db, { userId: otroCloser, rol: "closer" }, { abonoId: a.abonoId, motivo: "x" }))).status).toBe(403);
+
+    await db.update(cohorts).set({ estado: "cerrado" }).where(eq(cohorts.id, cohortId));
+    expect((await capturar(anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "x" }))).status).toBe(403);
+
+    const r = await anularAbono(db, { userId: gerente, rol: "gerente" }, { abonoId: a.abonoId, motivo: "Corrección del gerente" });
+    expect(r.etapa).toBe("atendido");
+  });
+
+  it("anular en un deal perdido escribe la anulación y no mueve la etapa", async () => {
+    const dealId = await nuevoDeal("cierre_perdido");
+    const [a] = await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-01", monto: "100", closerId: "Maru" }).returning();
+    const r = await anularAbono(db, { userId: gerente, rol: "gerente" }, { abonoId: a.id, motivo: "Devuelto" });
+    expect(r).toMatchObject({ etapa: "cierre_perdido", movioElDeal: false });
+  });
+});

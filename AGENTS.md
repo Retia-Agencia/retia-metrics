@@ -126,9 +126,9 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   importan. Estuvo copiada en `saldoDeVenta` (la reja que bloquea un sobrepago) y en
   `ventasDePersona` (lo que el closer ve): una pantalla y una reja discrepando sobre el mismo
   numero no se descubre hasta que el dinero no cuadra. `tests/saldo-centralizado.test.ts` compara
-  las dos salidas y falla si alguien las separa. ⚠️ **El modulo volvio el 27-sep sobre el deal** (`saldosDeDeals`,
-  lo lee el motor de etapas, ticket 045); **su test comparativo todavia NO EXISTE**: salio con `sales`
-  en el corte de la 0020 y lo recrea el ticket 060, cuando exista la reja del abono que comparar. **La regla no es solo del dinero:** si dos lugares
+  las dos salidas y falla si alguien las separa. El modulo volvio el 27-sep sobre el deal (`saldosDeDeals`) y
+  el test comparativo el 28-sep con el ticket 060: la reja del sobrepago de `registrarAbono`
+  (`lib/deals/abonos.ts`) acepta exactamente el saldo del modulo y un centavo mas se rechaza. **La regla no es solo del dinero:** si dos lugares
   responden la MISMA pregunta, la respuesta vive en un modulo y los dos la importan — la proyeccion
   es del llamador, el predicado es del modulo (asi se consolido `programasActivos`). Dos preguntas
   distintas que hoy dan el mismo SQL siguen siendo dos funciones.

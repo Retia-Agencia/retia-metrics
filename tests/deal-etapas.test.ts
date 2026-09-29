@@ -106,22 +106,20 @@ describe("las reglas generales del ADR 0037", () => {
     }
   });
 
-  it("exigen motivo exactamente Perdido, Recuperar, los retrocesos y las anulaciones", () => {
+  it("exigen motivo exactamente Perdido, Recuperar y los retrocesos (las anulaciones llevan el suyo en el abono)", () => {
     const conMotivo = new Set(TRANSICIONES.filter((t) => t.exigeMotivo).map((t) => t.id));
-    expect([...conMotivo].sort()).toEqual(["A1", "A2", "P", "R", "T15", "T29"].sort());
+    expect([...conMotivo].sort()).toEqual(["P", "R", "T15", "T29"].sort());
   });
 
   it("cada flecha con lista de motivos (tipoDeMotivo) tiene su lista, y coincide con la decision de Mani (punto 2)", () => {
     // La flecha decide la lista: P pierde, T29 re-agenda, T15 se echa atras, R recupera.
-    // Las anulaciones (A1, A2) exigen motivo pero no una LISTA (su motivo es la anulacion,
-    // ADR 0026): tipoDeMotivo null, aceptan cualquier motivo activo.
+    // Las anulaciones (A1, A2) no piden motivo del catalogo: su motivo es el de la anulacion
+    // del abono (ADR 0026), que ya es obligatorio (Mani, 28-sep).
     const esperado: Record<string, string | null> = {
       P: "perdida",
       T29: "reagenda",
       T15: "retroceso",
       R: "recuperacion",
-      A1: null,
-      A2: null,
     };
     for (const t of TRANSICIONES.filter((t) => t.exigeMotivo)) {
       expect(t.tipoDeMotivo, `${t.id}`).toBe(esperado[t.id]);

@@ -152,8 +152,8 @@ const FILAS: readonly Fila[] = [
   ["T29", "atendido", "pendiente_reagenda", "closer", true, "reagenda"],
   ["P", ABIERTAS_QUE_SE_PUEDEN_PERDER, "cierre_perdido", "closer", true, "perdida"],
   ["R", "cierre_perdido", ["en_contacto", "agendado", "proxima_cohorte"], "closer", true, "recuperacion"],
-  ["A1", "abonado", ["en_contacto", "atendido", "compromiso_verbal", "seguimiento"], "sistema", true],
-  ["A2", "completo", "abonado", "sistema", true],
+  ["A1", "abonado", ["en_contacto", "atendido", "compromiso_verbal", "seguimiento"], "sistema"],
+  ["A2", "completo", "abonado", "sistema"],
 ];
 
 function comoLista(valor: EtapaDeal | readonly EtapaDeal[]): readonly EtapaDeal[] {

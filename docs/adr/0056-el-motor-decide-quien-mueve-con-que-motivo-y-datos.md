@@ -25,7 +25,8 @@ y equivocadas.
    `retroceso`, `recuperacion`). Es un tipo porque el motor decide con él (ADR 0012); los motivos en sí
    siguen siendo filas editables. La flecha dice qué lista acepta, como dato en `lib/deals/etapas.ts`:
    P acepta `perdida`, T29 `reagenda`, T15 `retroceso` y R `recuperacion`. A1 y A2 (anular un abono)
-   aceptan cualquier motivo activo. Un motivo de otra lista cuenta como "sin motivo".
+   no piden motivo del catálogo: su razón es el motivo en texto de la anulación del abono (ADR 0026,
+   obligatorio; Mani, 28-sep). Un motivo de otra lista cuenta como "sin motivo".
 3. **Mueven el dueño del deal y quien administra** (`esAdministrador`), y lo revisa el motor. Un closer
    no mueve un deal sin dueño hasta reclamarlo; un administrador sí puede.
 4. **El requisito se llena en el mismo movimiento, como en HubSpot.** `moverEtapa` recibe los datos que
