@@ -3,7 +3,7 @@ id: 061
 etapa: E4
 serves: "plan v2 §6 etapa 4 · tarea E4-5 · ADR 0053 (enmienda el 0041)"
 depends: [060]
-status: todo
+status: done
 ---
 
 # 061 — El acuerdo de pago (nota + fecha límite) y la cartera vencida
@@ -77,10 +77,10 @@ nadie llena miente en la cartera sin lanzar un error. Migración: la sesión pri
 
 ## Done cuando (vigente)
 
-- [ ] Un deal con saldo y fecha límite vencida sale en cartera; con saldo en cero, no.
-- [ ] Un deal anulado no sale en cartera (`vigente`).
-- [ ] La fecha prellenada es la del inicio de clases y se puede cambiar, con su fila de `change_log`.
-- [ ] La cartera no suma abonos a mano: importa el saldo del módulo (ADR 0024).
+- [x] Un deal con saldo y fecha límite vencida sale en cartera; con saldo en cero, no.
+- [x] Un deal anulado no sale en cartera (`vigente`).
+- [x] La fecha prellenada es la del inicio de clases y se puede cambiar, con su fila de `change_log`.
+- [x] La cartera no suma abonos a mano: importa el saldo del módulo (ADR 0024).
 
 ---
 
@@ -88,3 +88,16 @@ nadie llena miente en la cartera sin lanzar un error. Migración: la sesión pri
 > las adelanto la migracion **0025** con el ticket 045, porque el motor de etapas lee la fecha limite
 > para Compromiso Verbal. A este ticket le queda el prellenado con el inicio de clases, la pantalla y la
 > cartera vencida.
+
+## Cierre (28-sep, sesión 43) — decisiones de Mani
+
+- **El inicio de clases de la cohorte asociada es SIEMPRE el límite máximo** de pago, no solo la sugerencia:
+  `fechaLimiteMaxima` (cohorte del deal; sin cohorte, la activa del programa) prellena y topa. Se exige en
+  los tres lugares donde nace la fecha: `editarAcuerdoDePago`, `moverEtapa` (datos de la flecha) y `abrirDeal`
+  (422 si pasa). Sin cohorte de referencia no hay tope.
+- **Cartera vencida** (`carteraVencida(db, programId, hoy)`): deals vigentes en **Abonado** con saldo > 0
+  (`saldosDeDeals`) y fecha efectiva estrictamente anterior a hoy (día de Bogotá). La fecha efectiva es la
+  propia del deal o, si no tiene, el inicio de clases de su cohorte: un deal con saldo nunca queda sin
+  vigilar. Lo que no tiene ninguna fecha de referencia se cuenta aparte (`sinFechaDeReferencia`), no se
+  esconde. Sin gracia y sin movimiento automático a Cierre Perdido: solo lista, más atrasado primero.
+- Edita el acuerdo el dueño del deal o un administrador; un deal anulado, Completo o Cierre Perdido no.

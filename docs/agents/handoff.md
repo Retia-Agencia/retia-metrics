@@ -24,7 +24,7 @@ Tactical 2.891 (con las 65 de Forms viejo, el 079); un segundo ensayo crea 0; la
 /ajustes/salud da 0 faltantes en los dos programas. Quedan para revision humana 18 envios de Tactical
 sin correo ni telefono conocido (sin lead), 69 uniones por telefono y 2 telefonos de otro lead.
 
-Sigue E2 (plan-reparto): Mani 060 HECHO (28-sep) -> 061 -> 063; Alejo 097 -> 096.
+Sigue E2 (plan-reparto): Mani 060 y 061 HECHOS (28-sep) -> 063; Alejo 097 -> 096.
 D3 decidida (se mantiene: Abonado ocupa el cupo). Antes de 096 decidir: A5 (webhook o consulta de
 Calendly, plan de Calendly, Vercel Pro) y de quien es el deal si el lead agenda con otra closer (ya
 decidido 28-sep: de la closer con quien agenda, 096). Migracion de arranque de E2: cuenta de Calendly por
@@ -40,6 +40,11 @@ la suite y revisa. Codex sin cuota hasta el 12-oct. Antes de tomar un ticket haz
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-28 (sesión 43, tercera parte): 061 hecho, acuerdo de pago y cartera vencida.** Sin migración.
+  - `lib/deals/pago.ts` y `lib/queries/cartera.ts`. Decisión de Mani: el inicio de clases de la cohorte es
+    SIEMPRE el tope del plazo de pago (prellena y limita); rige en la edición, en `moverEtapa` y en `abrirDeal`.
+  - **Medido:** 1.215 tests, typecheck, lint y build limpios. Sigue el 063 (`onboarded_at` y cambio de cohorte).
 
 - **2026-09-28 (sesión 43, segunda parte): 060 hecho, el dinero mueve el deal.** Sesión de Mani, sin migración.
   - `lib/deals/abonos.ts`: `registrarAbono` (reja de sobrepago con la cifra de `saldosDeDeals`, deal bloqueado

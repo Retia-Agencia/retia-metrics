@@ -17,6 +17,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { esAdministrador, type Rol } from "@/lib/auth/roles";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
+import { exigirFechaLimiteValida } from "./pago";
 import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal, type TipoMotivo, type Transicion } from "./etapas";
 import { queLeFalta, type HechosDelDeal, type RequisitoFaltante } from "./requisitos";
 
@@ -218,7 +219,11 @@ async function escribirDatos(tx: Db, deal: FilaDeal, mov: Movimiento): Promise<F
     }
     aplicar("productoId", datos.productoId);
   }
-  if (datos.fechaLimitePago !== undefined) aplicar("fechaLimitePago", datos.fechaLimitePago);
+  if (datos.fechaLimitePago !== undefined) {
+    // El inicio de clases de la cohorte es el tope del plazo de pago (ticket 061).
+    if (datos.fechaLimitePago !== null) await exigirFechaLimiteValida(tx, deal, datos.fechaLimitePago);
+    aplicar("fechaLimitePago", datos.fechaLimitePago);
+  }
   if (datos.acuerdoPago !== undefined) aplicar("acuerdoPago", datos.acuerdoPago);
   if (datos.fechaSeguimiento !== undefined) aplicar("fechaSeguimiento", datos.fechaSeguimiento);
   if (datos.cohorteDestinoId !== undefined) {
@@ -319,6 +324,9 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
     if (!lead) throw new ErrorDeApp("No existe el lead.", 404);
     if (lead.programId !== alta.programId) {
       throw new ErrorDeApp("El lead es de otro programa: el deal tiene que abrirse en el programa del lead.", 422);
+    }
+    if (alta.fechaLimitePago) {
+      await exigirFechaLimiteValida(tx, { programId: alta.programId, cohortId: alta.cohortId ?? null }, alta.fechaLimitePago);
     }
 
     const usuario = alta.actor.tipo === "usuario" ? alta.actor.userId : null;
