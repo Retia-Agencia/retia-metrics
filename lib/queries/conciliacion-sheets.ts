@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -56,21 +56,27 @@ export type ResultadoConciliacion =
   | { estado: "error"; mensaje: string };
 
 /**
- * Concilia un programa: lee los tokens de su hoja (la fuente de tipo `google_sheet`,
- * hoy inactiva) y los de sus `submissions`, y los compara. El programa es frontera:
+ * Concilia un programa: junta los tokens de TODAS sus hojas (las fuentes `google_sheet`,
+ * hoy inactivas) y los compara con los de sus `submissions`. El programa es frontera:
  * los tokens del CRM son SOLO de las fuentes de ESE programa.
  *
- * Si el programa no tiene una fuente `google_sheet` con hoja configurada, devuelve
- * `sin_hoja` (no hay nada que conciliar, no es un error). Si la lectura de la hoja
+ * 🩸 Todas, no "la" hoja: ComunicArte tiene dos (`New form` y `Forms viejo`, ticket 079).
+ * Con `.limit(1)` sin orden la consulta tomaba una cualquiera, le toco la vieja, y la
+ * pantalla dijo que ningun envio del webhook estaba en la hoja. Es el `fuentes[0]` sin
+ * `ORDER BY` del ADR 0031 otra vez (28-sep).
+ *
+ * Si el programa no tiene ninguna fuente `google_sheet` con hoja configurada, devuelve
+ * `sin_hoja` (no hay nada que conciliar, no es un error). Si la lectura de una hoja
  * falla (hoja no compartida, encabezado sin columna de token), devuelve `error` con el
- * mensaje: la pantalla lo muestra sin tumbarse.
+ * nombre de la fuente: la pantalla lo muestra sin tumbarse.
  */
 export async function conciliarProgramaConHoja(
   programId: string,
   db: Db = dbDeLaApp,
 ): Promise<ResultadoConciliacion> {
-  const [hoja] = await db
+  const hojas = await db
     .select({
+      nombre: sources.nombre,
       sheetId: sources.sheetId,
       tab: sources.tab,
       rango: sources.rango,
@@ -78,18 +84,23 @@ export async function conciliarProgramaConHoja(
     })
     .from(sources)
     .where(and(eq(sources.programId, programId), eq(sources.tipo, "google_sheet")))
-    .limit(1);
+    .orderBy(asc(sources.nombre));
 
-  if (!hoja?.sheetId || !hoja.tab) return { estado: "sin_hoja" };
+  const configuradas = hojas.filter((h) => h.sheetId && h.tab);
+  if (configuradas.length === 0) return { estado: "sin_hoja" };
 
-  let tokensHoja: Set<string>;
-  try {
-    tokensHoja = await tokensDeHoja(hoja.sheetId, hoja.tab, {
-      rango: hoja.rango,
-      mapeo: (hoja.mapeoColumnas as MapeoColumnas | null) ?? null,
-    });
-  } catch (e) {
-    return { estado: "error", mensaje: e instanceof Error ? e.message : String(e) };
+  const tokensHoja = new Set<string>();
+  for (const hoja of configuradas) {
+    try {
+      const tokens = await tokensDeHoja(hoja.sheetId!, hoja.tab!, {
+        rango: hoja.rango,
+        mapeo: (hoja.mapeoColumnas as MapeoColumnas | null) ?? null,
+      });
+      for (const t of tokens) tokensHoja.add(t);
+    } catch (e) {
+      const mensaje = e instanceof Error ? e.message : String(e);
+      return { estado: "error", mensaje: `${hoja.nombre}: ${mensaje}` };
+    }
   }
 
   const tokensCrm = await tokensDeSubmissions(db, programId);
