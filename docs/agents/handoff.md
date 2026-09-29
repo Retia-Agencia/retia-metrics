@@ -24,8 +24,8 @@ E0 y E1 CERRADAS (el traslado de Sheets corrio en produccion: ComunicArte 2.478 
 conciliacion en 0). E2: el carril de Mani esta HECHO (060 abonos, 061 acuerdo de pago y cartera vencida,
 063 onboarding y cambio de cohorte) y la prueba de costura de E2 existe y pasa (tests/costura-e2.test.ts).
 E2 cierra cuando Alejo termine el 096 (Calendly): su migracion de arranque esta propuesta en el ticket
-096 y espera la revision y aplicacion de Mani, y A5 (webhook o consulta periodica de Calendly) sigue
-abierta. El carril de Alejo ya tiene 097 y parte del 096.
+096 y espera la revision y aplicacion de Mani, y A5 esta DECIDIDA (Mani, 28-sep): WEBHOOK (diseño al final del ticket 096; falta
+confirmar con Michael que las dos cuentas de Calendly son plan Standard o superior). El carril de Alejo ya tiene 097 y parte del 096.
 
 LO QUE SIGUE, E3 (plan-reparto): Mani 069 (Kanban por programa, L) -> 074 (Ficha del deal, L); Alejo 077
 (barrer las pestañas de gestion) -> 078 -> 081. A4 YA DECIDIDA (Mani, 28-sep): la UI se prueba USANDOLA, porque tiene

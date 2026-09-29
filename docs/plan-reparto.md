@@ -157,14 +157,14 @@ Backend puro.
 | → [063] · M | |
 
 - **Migración de arranque:** cuenta de Calendly por membresía y datos de la llamada suelta (096).
-- **Decidir antes:** D3 de `plan.md` §7.1 (¿un deal en Abonado ocupa el cupo del lead?) · A5 (webhook o
-  consulta de Calendly, plan de Calendly, Vercel Pro) · de quién es el deal si el lead agenda con otra
+- **Decidir antes:** D3 de `plan.md` §7.1 (¿un deal en Abonado ocupa el cupo del lead?) · ~~A5 (webhook o
+  consulta de Calendly, Vercel Pro)~~ ✅ webhook, Mani 28-sep; falta confirmar el plan de Calendly (Standard o más) · de quién es el deal si el lead agenda con otra
   closer.
 - **Prueba de costura:** una cita de Calendly cae en su deal, el Grain lo pasa a Atendido, un abono a
   Abonado, el que salda a Completo, y anular ese abono lo devuelve.
   ✅ 28-sep: `tests/costura-e2.test.ts` (webhook con cita vigente → Grain → dos abonos → cartera y estudiantes →
   onboarding → anular ambos, con el historial completo). **E2 cierra cuando Alejo termine el 096** (su
-  migración de arranque está propuesta en el ticket y espera a Mani; A5 sigue abierta).
+  migración de arranque está propuesta en el ticket y espera a Mani; A5 decidida: webhook).
 
 ### E3 · El Kanban y la migración ensayada
 
@@ -339,7 +339,7 @@ closers durante E1 que cubra E2 a E5; Gerencia durante E4; Pauta durante E5.
 |---|---|---|
 | E1 | §3 de este documento; base local sí o no (113) | Mani |
 | ~~E1~~ | ~~ROAS, Juanito, consolidados de C2~~ ✅ respondidas por Mani el 28-sep (`plan.md` §7.E) | Mani |
-| E2 | D3 · A5 | Mani |
+| E2 | ~~D3 · A5~~ ✅ | · |
 | ~~E2~~ | ~~De quién es el deal si agenda con otra closer~~ ✅ de esa closer (Mani, 28-sep) | Mani |
 | E3 | ~~A4~~ ✅ · ~~tasa COP→USD~~ ✅ descartada, solo USD | Mani |
 | E3 | ~~Hasta cuántos días atrás migrar Setteo~~ ✅ decidido por Mani | · |

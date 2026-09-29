@@ -27,7 +27,7 @@ medido ese día.
   Pro (25 USD/mes) es la primera compra cuando haya operación real (ADR 0047).
 - **Vercel:** team `agencia-dani`, proyecto `retia-metrics`, **plan Hobby** (verificado el 21-sep): el
   cron solo puede correr una vez al día. Hobby es para uso no comercial; pasar a Pro es la decisión R3
-  (`plan.md` §7).
+  (`plan.md` §7; Calendly ya no la exige: A5 se resolvió por webhook, sin cron).
 - **Google Cloud:** proyecto `retia-growth`, dentro de la organización `retiagrowth.com`. Ahí viven la
   cuenta de servicio de lectura de hojas (`retia-metrics-sync@retia-growth.iam.gserviceaccount.com`) y
   el cliente OAuth del login. La pantalla de consentimiento es External y está publicada: cualquiera

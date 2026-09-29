@@ -30,8 +30,8 @@ que tenga duda queda suelto en el Inbox para que un closer lo asigne.
 - **Dentro:** el emparejador de llamadas como **módulo puro** con su guardián: nadie cuelga una Call de
   un deal por fuera de él.
 - **Dentro:** asignar una llamada suelta a un deal, a mano, con rastro.
-- **Por decidir al abrir:** webhook (exige Calendly Standard o superior) o consulta periódica (exige
-  Vercel Pro para un cron de 15 min).
+- ✅ **Decidido (Mani, 28-sep, A5): webhook.** Recibe cualquier evento de Calendly y lo refleja. Exige plan
+  Standard o superior en cada cuenta. No hace falta cron ni Vercel Pro por esto.
 - **Fuera:** crear deals desde Calendly. El deal lo abre el envío.
 
 ## Done cuando
@@ -128,7 +128,7 @@ el escritor, que necesita la migración.
   suelta es la única Call sin deal).
 - `users.calendly_email` (global) queda sin lector y se retira después.
 
-**Sigue bloqueado por A5** (webhook o consulta periódica): de eso depende quién llama al emparejador.
+**A5 decidida por Mani el 28-sep: WEBHOOK.** Ver "Diseño del webhook" al final; de eso depende quién llama al emparejador.
 
 ## Avance 28-sep, noche (Alejo): lo que no espera a A5
 
@@ -151,3 +151,49 @@ cancelaciones, reprogramaciones, no-shows y citas agendadas fuera del formulario
   `calls.calendly_host_email` (la migración propuesta arriba). Con la migración, el deal que abre el
   envío nace con la closer host como dueña (`closerHost` del emparejador).
 
+
+---
+
+## ✅ A5: webhook (Mani, 28-sep) — diseño para quien lo construya
+
+> *"Por webhook, más fácil; nos permite recibir cualquier evento de Calendly (agendas, reagendas,
+> cancelaciones, etc.) y reflejar acordemente."*
+
+**Verificado en la documentación de Calendly (28-sep):** la cuenta que crea la suscripción necesita plan
+**Standard, Teams o Enterprise**; los webhooks se **crean por la API** (no desde el panel) y devuelven un
+`signing_key` **propio de cada suscripción**; alcance `user` u `organization`; eventos disponibles
+`invitee.created`, `invitee.canceled`, `invitee_no_show.created`, `invitee_no_show.deleted` y
+`routing_form_submission.created`.
+
+**Sin verificar todavía (confirmar con una entrega real antes de fiarse, 🩸):** el nombre y formato exacto de
+la cabecera de firma y cómo se arma lo firmado (lo que se recuerda: `Calendly-Webhook-Signature: t=<ts>,v1=<hex>`,
+HMAC-SHA256 sobre `<ts>.<cuerpo>`, con tolerancia de unos minutos contra repeticiones), y cómo llega una
+**reagenda** (lo esperable: un `invitee.canceled` marcado como reagendado y un `invitee.created` nuevo; si se
+tratan como dos hechos independientes, la reagenda se ve como cancelación y no como movimiento de la cita).
+
+**Piezas, con el molde del webhook de formularios (ADR 0055, 0058):**
+- **Ruta** `POST /api/webhooks/calendly/<id opaco del programa>`, con su excepción en `proxy.ts` (la del
+  webhook de formularios). El programa sale de la URL, nunca del cuerpo (ADR 0043).
+- **Firma:** el `signing_key` de la suscripción se guarda por programa como **tercera excepción nombrada de
+  secretos** (mismas reglas que el token, ADR 0057: lo escribe una sola función, no pasa por el molde ni por
+  `change_log`, ninguna lectura lo devuelve). Sin firma válida, 401 sin tocar nada.
+- **Cuerpo crudo y respuesta:** apenas la firma cuadra, el cuerpo va a `sobres_crudos` y, si algo falla después,
+  se guarda el error y se responde 200, nunca 500 (ADR 0058: una entrega con firma buena nunca se pierde). Cada
+  entrega, con su código y motivo, en `/ajustes/salud` (110).
+- **Idempotente:** Calendly reintenta; la llave es la huella `calendly:<uuid del invitado>` que ya existe (052).
+  Un evento repetido no duplica llamada ni mueve el deal dos veces.
+- **Fuera de orden:** una cita que llega antes que el envío queda **suelta** y se reasigna cuando llega el envío
+  (ya en el ticket); una cancelación de una cita que no conocemos se guarda y no inventa nada.
+- **Efecto sobre el deal:** siempre por el emparejador (`lib/calendly/emparejar-llamada.ts`) y `moverEtapa()` con
+  actor sistema: `invitee.created` → llamada (deal en 1, 2, 3, 9, 11 → Agendado); `invitee.canceled` → llamada
+  `cancelada` (Re-agenda solo desde Agendado); `invitee_no_show.created` → `no_show`; `..deleted` → se desmarca.
+  Una segunda llamada sobre un deal Atendido no lo hace retroceder. Un `rescheduled` mueve la fecha de la MISMA
+  llamada, no crea otra.
+- **Cómo se conecta:** un botón "Conectar Calendly" en la configuración del programa (gerente y developer) que,
+  con el token del programa (ADR 0057), crea la suscripción por la API con la URL de producción y guarda el
+  `signing_key`; y otro para ver/rehacer la suscripción. Necesita el dominio público de producción.
+- **Pendiente de Michael:** confirmar que las cuentas de Calendly de **los dos programas** son plan Standard o
+  superior; sin eso la API rechaza la suscripción.
+- **Migración de arranque:** la propuesta de arriba (`miembros_programa.calendly_email`,
+  `calls.calendly_host_email`, el CHECK de la suelta) más la columna del `signing_key` del programa. La genera y
+  aplica la sesión principal con el ok de Mani.

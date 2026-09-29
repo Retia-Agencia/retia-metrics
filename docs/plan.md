@@ -290,9 +290,10 @@ reconoce, no se adivina: queda sin calificar y se reporta.
 #### 4.3c Calendly (ticket 096)
 
 Cuelga cada llamada de su deal por el **correo del invitado**, nunca por el teléfono; si hay duda, la
-llamada queda **suelta** en el Inbox (ADR 0049; flujo en `structure.md` §2.2). 🔴 Webhook (tiempo real,
-exige plan Standard de Calendly) o consulta periódica (cada 15 min exige Vercel Pro); dónde vive la
-credencial de cada programa. Sin la integración, el closer crea la llamada a mano y el modelo funciona
+llamada queda **suelta** en el Inbox (ADR 0049; flujo en `structure.md` §2.2). ✅ **Webhook** (Mani, 28-sep, A5: recibe
+cualquier evento de Calendly —agendas, reagendas, cancelaciones, no-shows— y lo refleja; exige plan Standard
+o superior en cada cuenta). La consulta periódica y el cron de 15 min (Vercel Pro) ya no hacen falta; la
+credencial de cada programa es el token del ADR 0057. Sin la integración, el closer crea la llamada a mano y el modelo funciona
 igual.
 
 #### 4.3d Lo que viene de Sheets
@@ -372,7 +373,7 @@ cierra, baja a un ADR (con `/grill-with-docs`) o a su ticket, y sale de esta lis
 | # | Qué | Bloquea | Cuándo |
 |---|---|---|---|
 | A4 | ~~Garantía de la UI: tests de componente o Playwright (R5)~~ ✅ 28-sep (Mani): se prueba usándola; CI (R4) ya existe | paso 4 | cerrada |
-| A5 | Calendly: webhook o consulta para las llamadas del 096; plan de Calendly; Vercel Pro (R3). **Ya decidido (28-sep, ADR 0057):** un token por programa, en la base; los dos funcionan con rol owner | 096 | paso 3 |
+| A5 | ~~Calendly: webhook o consulta para las llamadas del 096~~ ✅ **webhook** (Mani, 28-sep); falta confirmar que las dos cuentas de Calendly son plan Standard o superior (Michael). Vercel Pro (R3) ya no lo exige. **Ya decidido (28-sep, ADR 0057):** un token por programa, en la base; los dos funcionan con rol owner | 096 | paso 3 |
 | A7 | Las fichas técnicas de §7.1 (D3, D5, R2, P2, T4) | 060, 084 | según el ticket |
 
 **A2. Para después (Mani, 28-sep):** revisar si las alertas de la app (fuente sin envíos, 107; y las
@@ -439,7 +440,7 @@ dice, alguien más.
 | **D3 · ¿Abonado cuenta como deal abierto?** | El índice de "un deal abierto por lead y programa" excluye solo Completo y Cierre Perdido: un Student en Abonado con saldo **bloquea** cualquier otro deal del mismo lead (una mentoría, un upsell) | A: se mantiene (el upsell espera a que se complete el pago). B: se excluye Abonado del índice. Recomendación: B solo si venden una segunda cosa a la misma persona en el mismo programa; si no, A, y se deja escrito |
 | **D5 · UTM en dos tablas** | `leads` y `submissions` guardan los mismos `utm_*`, sin estar declarado; el 093 filtraría por uno y el 088 por el otro: dos cifras para la misma pregunta | Recomendación: el origen del lead es el de su primer envío, derivado, y `leads.utm_*` se elimina; mientras tanto, lo que lea `leads.utm_*` lo marca como temporal |
 | **R2 · El rastro por triggers** | Hoy el rastro lo garantiza un guardián por regex que no ve alias de tabla, `.delete(` ni algunas tablas | Con las transacciones reales del ADR 0047, triggers `AFTER INSERT/UPDATE` con `SET LOCAL app.user_id` harían que la base garantice el rastro, como el dedup. Recomendación: sí; el guardián de etapas (046) encoge |
-| **R3 · Vercel Pro** | Hobby permite un cron al día y es para uso no comercial | Recomendación: Pro (20 USD/mes por miembro). Habilita la consulta de Calendly cada 15 min |
+| **R3 · Vercel Pro** | Hobby permite un cron al día y es para uso no comercial | Recomendación: Pro (20 USD/mes por miembro). ~~Habilita la consulta de Calendly cada 15 min~~: A5 se resolvió por webhook, así que Calendly ya no lo pide; queda por el uso comercial |
 | **R4 · CI** | No hay `.github/`; "una etapa no se cierra sin los tres chequeos" depende de que alguien se acuerde | Recomendación: un workflow que corra test, typecheck y lint en cada push y PR. Requiere reparar el lock primero (§2) |
 | **R5 · Playwright** | Dos bugs de UI pasaron con más de 600 tests en verde; el Kanban es la superficie más grande | Recomendación: 5 o 6 flujos contra `dev` (reclamar un deal, moverlo, pegar el Grain, registrar un abono, anular, forjar una server action sin permiso) |
 | **P2 · Empates en el emparejador** | En Postgres dos `NULL` no chocan en un índice único, y todos los campos del patrón son opcionales | Hace falta `NULLS NOT DISTINCT` **y** detectar el empate en tiempo de ejecución, como error visible (084, 085) |
