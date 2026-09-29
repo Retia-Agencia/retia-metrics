@@ -3,7 +3,7 @@ id: 079
 etapa: E7
 serves: "plan v2 §6 etapa 7 · tarea E7-3 · ADR 0039 (D2)"
 depends: [111]
-status: todo
+status: done
 ---
 
 # 079 — Recuperar las 55 personas exclusivas de `Forms viejo`, con sus envios

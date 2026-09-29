@@ -160,7 +160,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 062 | [La comisión se calcula, nunca se guarda](./062-comision-calculada.md) (E4-6) | 060 | todo |
 | [x] | 063 | [`onboarded_at` y cambio de cohorte](./063-onboarded-at-y-cambio-de-cohorte.md) (E4-7) | 060 | done · 28-sep · `lib/deals/estudiante.ts` (`marcarOnboarded`, `cambiarCohorte`), `lib/queries/estudiantes.ts` (Students es una consulta) y la cohorte activa se asigna sola en el primer abono. Sin migración. Falta la pantalla (074) |
 | [ ] | 035 | [Comprobante: link **o** foto](./035-comprobante-link-o-foto.md) (E4-8) | 060 | todo · **aterriza aquí**, colgando de `abonos.deal_id`. Siguen debiéndose los dos análisis. 22-sep: la foto va a Supabase Storage (ADR 0047) |
-| [ ] | 096 | [Calendly: cada llamada a su deal; si hay duda, suelta](./096-calendly-cuelga-llamadas-de-deals.md) | 057, 045 | en curso (Alejo) · **código completo y live** (29-sep): webhook de Calendly verificado en producción en los dos programas; 0038 y 0039 aplicadas. **Para cerrar, solo configuración y una decisión:** vincular las cuentas de Calendly de las closers (y crear a Maru) en `/ajustes/usuarios`, y decidir K2 (`plan.md` §7). Detalle: "Estado consolidado" al final del ticket |
+| [ ] | 096 | [Calendly: cada llamada a su deal; si hay duda, suelta](./096-calendly-cuelga-llamadas-de-deals.md) | 057, 045 | en curso (Alejo) · **código completo y live** (29-sep): webhook de Calendly verificado en producción en los dos programas; 0038 y 0039 aplicadas. **Para cerrar, solo configuración y una decisión:** vincular las cuentas de Calendly de las closers (y crear a Maru) en `/ajustes/usuarios`, y retirar `buscarLlamadaDelDeal` (K1). K2 decidida el 29-sep: la suelta se asigna en el Inbox (071). Detalle: "Estado consolidado" al final del ticket |
 
 ## E5 · Lectura y reporting
 
@@ -196,7 +196,7 @@ se abre**. Este repo no tiene tests de componentes y el 20-sep dos bugs pasaron 
 | [ ] | 099 | [La tab Students por cohorte](./099-tab-students-por-cohorte.md) | 060, 061, 097 | todo · 24-sep · la cohorte define la lista de estudiantes |
 | [ ] | 100 | [La tab Programs](./100-tab-programs-ficha-del-programa.md) | 097, 101 | todo · 24-sep · destinos, Calendly, comisión, equipo |
 | [ ] | 073 | [Ficha del Lead, con el diff entre envíos](./073-ficha-del-lead.md) (E6-5) | 072 | todo |
-| [ ] | 074 | [Ficha del Deal](./074-ficha-del-deal.md) (E6-6) | 069, 060 | todo |
+| [ ] | 074 | [Ficha del Deal](./074-ficha-del-deal.md) (E6-6) | 069, 060 | en curso · Mani · 29-sep |
 | [ ] | 075 | [Revisión profunda de TODA la UI](./075-revision-profunda-de-la-ui.md) (E6-8) | 069-074 | todo |
 | [ ] | 076 | [Bitácora en Nerd Stats](./076-bitacora-en-nerd-stats.md) (E6-7) | 068, 041 | todo · es la **pantalla** de un rastro que se escribe desde E1 |
 | [ ] | 091 | [`otrosProgramasDelCorreo`: visibilidad cruzada](./091-otros-programas-del-correo.md) | 073 | todo · una consulta, **no** una tabla. Ninguna métrica la usa |
@@ -209,7 +209,7 @@ Va de último, con el scaffold completo. Absorbe el "histórico de C2" de la spe
 |---|---|---|---|---|
 | [ ] | 077 | [Barrer las pestañas de gestión](./077-barrer-las-pestanas-de-gestion.md) (E7-1) | 111 | todo |
 | [ ] | 078 | [Pasa por la MISMA ingesta, nunca inserts crudos](./078-la-migracion-pasa-por-la-misma-ingesta.md) (E7-2) | 077 | todo |
-| [ ] | 079 | [Recuperar las 55 de `Forms viejo`](./079-recuperar-las-55-de-forms-viejo.md) (E7-3) | 111 | todo · se hace dentro del traslado (111) |
+| [x] | 079 | [Recuperar las 55 de `Forms viejo`](./079-recuperar-las-55-de-forms-viejo.md) (E7-3) | 111 | done · 29-sep · cerrado por el traslado (111), que lo tenía en su alcance: `Forms viejo` entró en la misma corrida (ComunicArte 2.465 leads, conciliación 2.739/2.739) |
 | [ ] | 080 | [Los casos raros de la migración](./080-los-casos-raros-de-la-migracion.md) (E7-4) | 078 | todo |
 | [x] | 081 | [COP → USD a la tasa del día](./081-cop-a-usd-en-la-migracion.md) (E7-5) | 078 | descartado · 28-sep (Mani): *"solo usamos USD aquí"*. No hay conversión ni tasa ni marca de abono convertido; un monto que aparezca en COP al barrer se lista como rareza (080) y no se convierte |
 | [ ] | 082 | [Apagar las pestañas de gestión](./082-apagar-las-pestanas-de-gestion.md) (E7-6) | 079, 080 | todo · lo hace Mani |
