@@ -5,7 +5,7 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 46 de Mani (29-sep). El anterior:
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 47 de Mani (29-sep). El anterior:
 > `git show 816aabd:docs/agents/handoff.md`.
 
 ```
@@ -13,22 +13,22 @@ Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el OR
 y docs/plan.md (el QUE, decisiones en §7). El estado de cada ticket vive solo en docs/tasks/README.md.
 docs/structure.md §9 (sistema de diseño Tinta) es OBLIGATORIO antes de tocar una pantalla.
 
-Estado al cierre del 29-sep (sesion 46, Mani): UNA base y es PRODUCCION ("CRM Retia", ref
+Estado al cierre del 29-sep (sesion 47, Mani): UNA base y es PRODUCCION ("CRM Retia", ref
 hfqmiyiuyqapdsbywrag). 41 migraciones (0000-0040), todas aplicadas. 1.476 tests. Produccion:
 https://retia-metrics-seven.vercel.app.
 
 Carril de Mani: E3 cerrada (069, 074). E4: 070 hecho; 071 (Inbox) con el codigo en main y verificado
 por tests, FALTA EL RECORRIDO EN NAVEGADOR (npm run db:local + npm run dev:local, entrar como
 carlos.closer@retia.local, /p/comunicarte-local/inbox: abrir cada seccion y dialogo, asignar una suelta,
-pegar Grain desde "llamadas de hoy", 390 px, consola). Si pasa, marcar 071 done. Despues E5: 064
-(dashboard sobre deals; incluye 114-A2, "¿la llamada ocurrio?" en un solo modulo) y 098 (tab Calls).
+pegar Grain desde "llamadas de hoy", 390 px, consola). Si pasa, marcar 071 done. E5: 064 quedó done
+(dashboard sobre deals; incluye 114-A2, "la llamada ocurrio" en un solo modulo). Siguiente: 098 (tab Calls).
 
 Como se trabaja (Mani, 29-sep): IMPLEMENTA KIRO en un worktree a mano (git worktree add ../retia-metrics-NNN
 -b kiro/NNN main) y NO corre nada (ni tests, ni tsc, ni lint, ni build, ni dev). La sesion principal decide
 la arquitectura, revisa, corre la verificacion, prueba en navegador y commitea (cherry-pick --no-commit).
 El agente kiro-rescue regresa antes que Kiro: esperar el pid de `kiro-cli chat` con un Bash en background.
 
-Pendientes de Mani: configurar la variable de score en los dos Typeform y nombrarla en la llave `puntaje`
+Pendientes de Mani: revisar 098; configurar la variable de score en los dos Typeform y nombrarla en la llave `puntaje`
 del mapeo de cada fuente (070); K3 (borrar o no la llamada de prueba). Alejo: 096 en pausa (cuentas de
 Calendly; retirar buscarLlamadaDelDeal, K1), 077 en curso. 114 (auditoria): A1 y A3 hechos; A2 con el 064;
 B4 (titulos de pregunta en el codigo), B5 (columna sources.calificacion muerta) y C6 pendientes.

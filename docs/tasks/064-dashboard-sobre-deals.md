@@ -3,7 +3,7 @@ id: 064
 etapa: E5
 serves: "plan v2 §6 etapa 5 · tarea E5-1 · ADR 0022, 0023, 0024, tickets 004 y 005"
 depends: [060]
-status: todo
+status: done
 ---
 
 # 064 — Reescribir el dashboard sobre deals, conservando las definiciones
@@ -40,11 +40,16 @@ error**. Se agrupa aparte y se une en memoria, que a esta escala es gratis. Si d
 
 ## Done cuando
 
-- [ ] Las cifras del dashboard sobre `dev` **cuadran con las del modelo viejo** donde las
+- [x] Las cifras del dashboard sobre `dev` **cuadran con las del modelo viejo** donde las
       definiciones no cambiaron. Si una cambia, hay una razon escrita.
-- [ ] Ninguna consulta cuenta ventas como deals a secas.
-- [ ] `grep` no encuentra subconsultas correlacionadas nuevas.
-- [ ] Toda lectura de `deals`, `calls` y `abonos` pasa por `vigente()`.
+- [x] Ninguna consulta cuenta ventas como deals a secas.
+- [x] `grep` no encuentra subconsultas correlacionadas nuevas.
+- [x] Toda lectura de `deals`, `calls` y `abonos` pasa por `vigente()`.
+
+Validado en la sesión 47: las ventas del rango salen de movimientos a `abonado` o `completo`,
+se cuentan una sola vez por deal y se filtran por `deals.ownerUserId`; `perdida` queda incluida
+en el universo de llamadas ocurridas mediante `RESULTADOS_QUE_OCURRIERON`. `npm test` pasó con
+1.478 tests, además de typecheck y lint.
 
 ## Kiro
 

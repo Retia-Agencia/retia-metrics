@@ -1,5 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, cohorts, deals, motivos, origenes, leads, programs, users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import {
+  abonos,
+  calls,
+  cohorts,
+  dealEtapaHistorial,
+  deals,
+  motivos,
+  origenes,
+  leads,
+  programs,
+  users,
+} from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { cajaRecaudada, embudoDelRango, embudoPorCloser, embudoPorOrigen, leadsDelRango, llamadasPorMotivo, vistaDeCohorteActiva } from "@/lib/queries/dashboard";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -68,6 +80,20 @@ async function sembrarCloser(closerId: string): Promise<string> {
     .values({ email: `${closerId.toLowerCase()}@retiagrowth.com`, rol: "closer", closerId })
     .returning();
   return u.id;
+}
+
+async function marcarVenta(dealId: string, fecha: Date, ownerUserId?: string) {
+  await db
+    .update(deals)
+    .set({ etapa: "abonado", ownerUserId })
+    .where(eq(deals.id, dealId));
+  await db.insert(dealEtapaHistorial).values({
+    dealId,
+    de: null,
+    a: "abonado",
+    fecha,
+    userId: ownerUserId,
+  });
 }
 
 // ─────────────────────────────────────── 1. abono de hoy sobre venta vieja
@@ -186,6 +212,8 @@ describe("% de show y % de cierre", () => {
       { programId: programaA, fechaAgenda: fecha, resultado: "compromiso_pago" },
       { programId: programaA, fechaAgenda: fecha, resultado: "no_show" },
     ]);
+    const venta = await sembrarDeal(programaA);
+    await marcarVenta(venta, fecha);
 
     const embudo = await embudoDelRango({ programId: programaA, rango: rango }, db);
     expect(embudo.agendas).toBe(4);
@@ -200,6 +228,41 @@ describe("% de show y % de cierre", () => {
     expect(embudo.agendas).toBe(0);
     expect(embudo.pctShow).toBeNull();
     expect(embudo.pctCierre).toBeNull();
+  });
+
+  it("cuenta una sola vez un deal que pasa por abonado y completo", async () => {
+    const fecha = new Date("2026-09-15T14:00:00Z");
+    await db.insert(calls).values({
+      programId: programaA,
+      fechaAgenda: fecha,
+      resultado: "show",
+    });
+    const dealId = await sembrarDeal(programaA);
+    await db.insert(dealEtapaHistorial).values([
+      { dealId, de: null, a: "abonado", fecha, userId: null },
+      { dealId, de: "abonado", a: "completo", fecha: new Date("2026-09-15T15:00:00Z"), userId: null },
+    ]);
+
+    const embudo = await embudoDelRango(
+      { programId: programaA, rango: { desde: "2026-09-15", hasta: "2026-09-15" } },
+      db,
+    );
+    expect(embudo.cierres).toBe(1);
+  });
+
+  it("cuenta una llamada perdida como show ocurrido", async () => {
+    const fecha = new Date("2026-09-15T14:00:00Z");
+    await db.insert(calls).values({
+      programId: programaA,
+      fechaAgenda: fecha,
+      resultado: "perdida",
+    });
+
+    const embudo = await embudoDelRango(
+      { programId: programaA, rango: { desde: "2026-09-15", hasta: "2026-09-15" } },
+      db,
+    );
+    expect(embudo.llamadasConShow).toBe(1);
   });
 });
 
@@ -547,14 +610,18 @@ describe("alcance acotado a un closer", () => {
   const fecha = new Date("2026-09-15T14:00:00Z");
 
   async function sembrarDosClosers() {
+    const anaId = await sembrarCloser("Ana");
+    const betoId = await sembrarCloser("Beto");
     await db.insert(calls).values([
       { programId: programaA, closerId: "Ana", fechaAgenda: fecha, resultado: "show" },
       { programId: programaA, closerId: "Ana", fechaAgenda: fecha, resultado: "cerrada" },
       { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "no_show" },
       { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "cerrada" },
     ]);
-    const ventaAna = { id: await sembrarDeal(programaA) };
-    const ventaBeto = { id: await sembrarDeal(programaA) };
+    const ventaAna = { id: await sembrarDeal(programaA, { ownerUserId: anaId }) };
+    const ventaBeto = { id: await sembrarDeal(programaA, { ownerUserId: betoId }) };
+    await marcarVenta(ventaAna.id, fecha, anaId);
+    await marcarVenta(ventaBeto.id, fecha, betoId);
     await db.insert(abonos).values([
       { dealId: ventaAna.id, programId: programaA, closerId: "Ana", fecha: "2026-09-15", monto: "100.00", moneda: "USD" },
       { dealId: ventaBeto.id, programId: programaA, closerId: "Beto", fecha: "2026-09-15", monto: "250.00", moneda: "USD" },
@@ -687,6 +754,6 @@ describe("pendientes y desgloses acotados a un closer", () => {
     const origenesDeBeto = await embudoPorOrigen({ programId: programaA, rango, closerId: "Beto" }, db);
     expect(origenesDeBeto).toHaveLength(1);
     expect(origenesDeBeto[0].agendas).toBe(2);
-    expect(origenesDeBeto[0].llamadasConShow).toBe(1);
+    expect(origenesDeBeto[0].llamadasConShow).toBe(2);
   });
 });

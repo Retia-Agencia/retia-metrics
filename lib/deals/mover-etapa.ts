@@ -414,7 +414,8 @@ const HECHOS_VACIOS: HechosDelDeal = {
  * Resultados de llamada que prueban que la llamada OCURRIO. Mientras `calls` no tenga
  * el link de Grain (ticket 058), "sucedio" es que el closer la marco con uno de estos.
  */
-const RESULTADOS_QUE_OCURRIERON = ["show", "compromiso_pago", "cerrada", "perdida"] as const;
+/** Resultados que prueban que la llamada ocurrió, incluso cuando terminó perdida. */
+export const RESULTADOS_QUE_OCURRIERON = ["show", "compromiso_pago", "cerrada", "perdida"] as const;
 
 /**
  * Los dos resultados de una llamada fallida (ADR 0015): el motor los lee para el hecho

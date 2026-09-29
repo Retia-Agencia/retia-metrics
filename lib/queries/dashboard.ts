@@ -1,10 +1,20 @@
 import { and, between, eq, inArray, sql } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
-import { abonos, calls, deals, motivos, origenes, leads, users } from "@/lib/db/schema";
+import {
+  abonos,
+  calls,
+  dealEtapaHistorial,
+  deals,
+  motivos,
+  origenes,
+  leads,
+  users,
+} from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaHabilDe, diasHabilesEntre, metaDinamica, metaLineal } from "@/lib/dias-habiles";
 import { claveDeCloser, claveDeCloserSql, igualCloser } from "@/lib/closers/identidad";
+import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { vigente } from "@/lib/queries/vigente";
 
@@ -151,6 +161,63 @@ function tasa(numerador: number, denominador: number): number | null {
   return denominador === 0 ? null : numerador / denominador;
 }
 
+const ETAPAS_VENDIDAS = ["abonado", "completo"] as const;
+const fechaAnclaMovimiento = sql<string>`(${dealEtapaHistorial.fecha} AT TIME ZONE 'America/Bogota')::date`;
+
+function llamadaOcurrio() {
+  return inArray(calls.resultado, [...RESULTADOS_QUE_OCURRIERON]);
+}
+
+/**
+ * Cuenta deals distintos que entraron a Abonado o Completo en el rango. Un deal
+ * puede pasar por ambas etapas, por eso el `distinct` es obligatorio.
+ *
+ * La fecha de venta es la del movimiento de etapa, no la del abono ni la de la
+ * llamada. El dueño sale de `deals.ownerUserId`, que es la identidad actual de la
+ * oportunidad y no el texto histórico de una llamada.
+ */
+async function ventasDelRango(
+  { programId, rango, closerId }: Alcance,
+  db: Db,
+): Promise<number> {
+  const condiciones = [
+    eq(deals.programId, programId),
+    inArray(dealEtapaHistorial.a, [...ETAPAS_VENDIDAS]),
+    between(fechaAnclaMovimiento, rango.desde, rango.hasta),
+    delCloser(users.closerId, closerId),
+  ];
+  const [fila] = await db
+    .select({ ventas: sql<number>`count(distinct ${deals.id})::int` })
+    .from(deals)
+    .innerJoin(dealEtapaHistorial, eq(dealEtapaHistorial.dealId, deals.id))
+    .leftJoin(users, eq(users.id, deals.ownerUserId))
+    .where(and(...condiciones, vigente(deals)));
+  return fila?.ventas ?? 0;
+}
+
+async function ventasPorCloser(
+  { programId, rango }: Omit<Alcance, "closerId">,
+  db: Db,
+): Promise<{ closerId: string | null; cierres: number }[]> {
+  return db
+    .select({
+      closerId: sql<string | null>`min(${users.closerId})`,
+      cierres: sql<number>`count(distinct ${deals.id})::int`,
+    })
+    .from(deals)
+    .innerJoin(dealEtapaHistorial, eq(dealEtapaHistorial.dealId, deals.id))
+    .leftJoin(users, eq(users.id, deals.ownerUserId))
+    .where(
+      and(
+        eq(deals.programId, programId),
+        inArray(dealEtapaHistorial.a, [...ETAPAS_VENDIDAS]),
+        between(fechaAnclaMovimiento, rango.desde, rango.hasta),
+        vigente(deals),
+      ),
+    )
+    .groupBy(claveDeCloserSql(users.closerId));
+}
+
 /**
  * Caja recaudada del rango, agrupada por moneda (ADR 0013). Suma `abonos.monto`
  * por `abonos.fecha` entre `desde` y `hasta`, inclusive. Nunca convierte moneda:
@@ -196,8 +263,7 @@ export async function embudoDelRango(
   const [llamadas] = await db
     .select({
       agendas: sql<number>`count(*)::int`,
-      llamadasConShow: sql<number>`count(*) filter (where ${calls.resultado} in ('show','compromiso_pago','cerrada'))::int`,
-      cierres: sql<number>`count(*) filter (where ${calls.resultado} = 'cerrada')::int`,
+      llamadasConShow: sql<number>`count(*) filter (where ${llamadaOcurrio()})::int`,
     })
     .from(calls)
     .where(
@@ -211,7 +277,7 @@ export async function embudoDelRango(
 
   const agendas = llamadas?.agendas ?? 0;
   const llamadasConShow = llamadas?.llamadasConShow ?? 0;
-  const cierres = llamadas?.cierres ?? 0;
+  const cierres = await ventasDelRango({ programId, rango, closerId }, db);
 
   return {
     agendas,
@@ -278,7 +344,7 @@ export async function embudoPorCloser(
 ): Promise<(EmbudoDelRango & { closerId: string | null; caja: CajaPorMoneda[] })[]> {
   const ancla = fechaAnclaCall();
 
-  const [llamadasPorCloser, abonosPorCloser] = await Promise.all([
+  const [llamadasPorCloser, abonosPorCloser, cierresPorCloser] = await Promise.all([
     db
       .select({
         // Se agrupa por la clave NORMALIZADA (ADR 0030) y se devuelve un
@@ -286,8 +352,7 @@ export async function embudoPorCloser(
         // clave, lo que se pinta es una de las formas en que esta escrito.
         closerId: sql<string | null>`min(${calls.closerId})`,
         agendas: sql<number>`count(*)::int`,
-        llamadasConShow: sql<number>`count(*) filter (where ${calls.resultado} in ('show','compromiso_pago','cerrada'))::int`,
-        cierres: sql<number>`count(*) filter (where ${calls.resultado} = 'cerrada')::int`,
+        llamadasConShow: sql<number>`count(*) filter (where ${llamadaOcurrio()})::int`,
       })
       .from(calls)
       .where(
@@ -313,6 +378,7 @@ export async function embudoPorCloser(
         ),
       )
       .groupBy(claveDeCloserSql(abonos.closerId), abonos.moneda),
+    ventasPorCloser({ programId, rango }, db),
   ]);
 
   // Clave estable para agrupar por closer. Es la NORMALIZADA (ADR 0030): las tres
@@ -350,7 +416,9 @@ export async function embudoPorCloser(
     const fila = asegurar(l.closerId);
     fila.agendas = l.agendas;
     fila.llamadasConShow = l.llamadasConShow;
-    fila.cierres = l.cierres;
+  }
+  for (const c of cierresPorCloser) {
+    asegurar(c.closerId).cierres = c.cierres;
   }
   for (const a of abonosPorCloser) {
     asegurar(a.closerId).caja.push({ moneda: a.moneda, total: a.total });
@@ -366,11 +434,11 @@ export async function embudoPorCloser(
 }
 
 /**
- * El embudo de llamadas del rango desglosado por origen del lead. Es SOLO de
- * llamadas: `abonos` no tiene `origenId`, asi que este desglose no lleva
- * ventas ni caja. Las llamadas sin `origenId` van a un grupo con `origen: null`, no
- * se descartan. Se anclan por `coalesce(fechaAgenda, fechaLlamada)` como todo el
- * embudo. Los conteos por origen suman el total de llamadas del programa.
+ * El embudo de llamadas del rango desglosado por origen del lead. Las agendas y
+ * shows salen de `calls`; los cierres salen de deals vendidos vinculados a una
+ * llamada del origen. Las llamadas sin `origenId` van a un grupo con `origen: null`,
+ * no se descartan. Los conteos de llamadas se anclan por `coalesce(fechaAgenda,
+ * fechaLlamada)` y los cierres por la fecha de su movimiento de etapa.
  */
 export async function embudoPorOrigen(
   { programId, rango, closerId }: Alcance,
@@ -390,8 +458,7 @@ export async function embudoPorOrigen(
     .select({
       origen: origenes.nombre,
       agendas: sql<number>`count(*)::int`,
-      llamadasConShow: sql<number>`count(*) filter (where ${calls.resultado} in ('show','compromiso_pago','cerrada'))::int`,
-      cierres: sql<number>`count(*) filter (where ${calls.resultado} = 'cerrada')::int`,
+      llamadasConShow: sql<number>`count(*) filter (where ${llamadaOcurrio()})::int`,
     })
     .from(calls)
     // leftJoin para no perder las llamadas sin origenId: caen en el grupo null.
@@ -406,14 +473,52 @@ export async function embudoPorOrigen(
     )
     .groupBy(origenes.nombre);
 
-  return filas.map((f) => ({
+  const cierres = await db
+    .select({
+      origen: origenes.nombre,
+      cierres: sql<number>`count(distinct ${deals.id})::int`,
+    })
+    .from(deals)
+    .innerJoin(dealEtapaHistorial, eq(dealEtapaHistorial.dealId, deals.id))
+    .innerJoin(calls, eq(calls.dealId, deals.id))
+    .leftJoin(origenes, eq(origenes.id, calls.origenId))
+    .leftJoin(users, eq(users.id, deals.ownerUserId))
+    .where(
+      and(
+        eq(deals.programId, programId),
+        inArray(dealEtapaHistorial.a, [...ETAPAS_VENDIDAS]),
+        between(fechaAnclaMovimiento, rango.desde, rango.hasta),
+        delCloser(users.closerId, closerId),
+        vigente(deals),
+        vigente(calls),
+      ),
+    )
+    .groupBy(origenes.nombre);
+
+  const cierresPorOrigen = new Map(cierres.map((fila) => [fila.origen, fila.cierres]));
+  const resultado = filas.map((f) => ({
     origen: f.origen,
     agendas: f.agendas,
     llamadasConShow: f.llamadasConShow,
-    cierres: f.cierres,
+    cierres: cierresPorOrigen.get(f.origen) ?? 0,
     pctShow: tasa(f.llamadasConShow, f.agendas),
-    pctCierre: tasa(f.cierres, f.llamadasConShow),
+    pctCierre: tasa(cierresPorOrigen.get(f.origen) ?? 0, f.llamadasConShow),
   }));
+
+  for (const fila of cierres) {
+    if (!filas.some((f) => f.origen === fila.origen)) {
+      resultado.push({
+        origen: fila.origen,
+        agendas: 0,
+        llamadasConShow: 0,
+        cierres: fila.cierres,
+        pctShow: null,
+        pctCierre: null,
+      });
+    }
+  }
+
+  return resultado;
 }
 
 /**
@@ -432,8 +537,6 @@ export async function embudoPorOrigen(
  * resuelve por `users.closerId` con `igualCloser` (ADR 0030): `Mani` y `mani` son
  * el mismo closer y una comparacion cruda los partiria en dos.
  */
-const ETAPAS_VENDIDAS = ["abonado", "completo"] as const;
-
 async function ventasDeCohorte(
   cohorteId: string,
   db: Db,
