@@ -33,7 +33,7 @@ export async function resolverCitaDeEnvio(params: {
     });
     if (cita === null) return { estado: "no_encontrada" };
     if (cita.cancelada) return { estado: "cancelada" };
-    return { estado: "vigente", inicio: cita.inicio, uuidInvitado };
+    return { estado: "vigente", inicio: cita.inicio, uuidInvitado, correoHost: cita.correoHost };
   } catch (e) {
     // Un token vencido o un 5xx tiene que verse (ADR 0057): se reporta como error visible,
     // el deal se queda en Pendiente Setteo, y el mensaje (sin el token) va a la nota.

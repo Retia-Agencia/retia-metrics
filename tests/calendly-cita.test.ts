@@ -107,6 +107,45 @@ describe("citaDeCalendly", () => {
     expect(cita!.cancelada).toBe(false);
   });
 
+  it("trae el correo del host cuando el evento tiene uno solo (ticket 096)", async () => {
+    const conHost = {
+      ...base,
+      "/scheduled_events": {
+        collection: [
+          {
+            uri: EVENT_URI,
+            start_time: "2026-09-30T15:00:00.000000Z",
+            status: "active",
+            event_memberships: [{ user: "https://api.calendly.com/users/U1", user_email: " Maru.Tactical@RetiaGrowth.com " }],
+          },
+        ],
+      },
+    };
+    const cita = await citaDeCalendly({ token: "tok", correo: "lead@correo.com", uuidInvitado: "UUID-123", fetch: fetchFalso(conHost) });
+    expect(cita?.correoHost).toBe("maru.tactical@retiagrowth.com");
+  });
+
+  it("sin host, o con varios (evento colectivo), el host queda null: no se inventa dueño", async () => {
+    const sinHost = await citaDeCalendly({ token: "tok", correo: "lead@correo.com", uuidInvitado: "UUID-123", fetch: fetchFalso(base) });
+    expect(sinHost?.correoHost).toBeNull();
+
+    const colectivo = {
+      ...base,
+      "/scheduled_events": {
+        collection: [
+          {
+            uri: EVENT_URI,
+            start_time: "2026-09-30T15:00:00.000000Z",
+            status: "active",
+            event_memberships: [{ user_email: "maru@retiagrowth.com" }, { user_email: "andrea@retiagrowth.com" }],
+          },
+        ],
+      },
+    };
+    const cita = await citaDeCalendly({ token: "tok", correo: "lead@correo.com", uuidInvitado: "UUID-123", fetch: fetchFalso(colectivo) });
+    expect(cita?.correoHost).toBeNull();
+  });
+
   it("marca cancelada cuando el EVENTO está en canceled", async () => {
     const fetch = fetchFalso({
       "/users/me": { resource: { current_organization: ORG } },

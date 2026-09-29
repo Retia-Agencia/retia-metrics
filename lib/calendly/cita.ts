@@ -29,6 +29,24 @@ export interface CitaDeCalendly {
   inicio: Date;
   /** El evento o el invitado quedaron en estado `canceled`. */
   cancelada: boolean;
+  /**
+   * El correo de la cuenta de Calendly que hospeda la cita (`event_memberships`), para
+   * saber de que closer es (ticket 096). `null` si no viene o si hay mas de un host (un
+   * evento colectivo): con la duda no se inventa dueño.
+   */
+  correoHost: string | null;
+}
+
+/** El correo del host de un evento, solo si hay exactamente uno. */
+function correoDelHost(evento: { event_memberships?: unknown }): string | null {
+  const miembros = Array.isArray(evento.event_memberships) ? evento.event_memberships : [];
+  const correos = new Set(
+    miembros
+      .map((m) => (typeof m === "object" && m !== null ? (m as { user_email?: unknown }).user_email : null))
+      .filter((c): c is string => typeof c === "string" && c.includes("@"))
+      .map((c) => c.trim().toLowerCase()),
+  );
+  return correos.size === 1 ? [...correos][0] : null;
 }
 
 /** Un fallo de la API de Calendly (token vencido, 5xx, respuesta rara). Es visible. */
@@ -186,7 +204,7 @@ export async function citaDeCalendly({
 
   for (const evento of coleccion) {
     if (typeof evento !== "object" || evento === null) continue;
-    const e = evento as { uri?: unknown; start_time?: unknown; status?: unknown };
+    const e = evento as { uri?: unknown; start_time?: unknown; status?: unknown; event_memberships?: unknown };
     const eventUri = typeof e.uri === "string" ? e.uri : null;
     if (!eventUri) continue;
 
@@ -214,7 +232,7 @@ export async function citaDeCalendly({
         // dos formas basta: un lead que reagenda cancela su invitado, y el organizador
         // que cancela la reunion marca el evento.
         const cancelada = e.status === "canceled" || inv.status === "canceled";
-        return { inicio: fecha, cancelada };
+        return { inicio: fecha, cancelada, correoHost: correoDelHost(e) };
       }
     }
   }

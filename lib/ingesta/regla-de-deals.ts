@@ -76,7 +76,16 @@ export type DealAbierto = { etapa: EtapaDeal } | null;
  * decide con el. Las tres formas que no son `vigente` llevan la NOTA lista para el deal.
  */
 export type ResultadoCita =
-  | { estado: "vigente"; inicio: Date; uuidInvitado: string }
+  | {
+      estado: "vigente";
+      inicio: Date;
+      uuidInvitado: string;
+      /**
+       * Quien hospeda la cita (ticket 096). Todavia no se guarda ni decide el dueño: falta
+       * la cuenta de Calendly por membresia (migracion de arranque de E2).
+       */
+      correoHost?: string | null;
+    }
   | { estado: "cancelada" }
   | { estado: "no_encontrada" }
   | { estado: "error"; mensaje: string };

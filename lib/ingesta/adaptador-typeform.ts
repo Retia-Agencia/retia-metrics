@@ -361,9 +361,10 @@ export type MapeoWebhookColumnas = MapeoColumnas;
  * Encuentra en `columnas` la primera que case con alguno de los patrones, exacto
  * primero y parcial despues, sin acentos ni mayusculas. Es el mismo criterio de
  * `resolverColumnas` de la hoja, reducido a lo que el adaptador necesita: emparejar el
- * titulo de una pregunta con su nombre real.
+ * titulo de una pregunta con su nombre real. Lo usa tambien "buscar llamada" (096) para
+ * encontrar la pregunta de agenda en un envio ya guardado, con el mismo criterio.
  */
-function resolverContra(columnas: string[], patrones: string[]): string | undefined {
+export function resolverContra(columnas: string[], patrones: string[]): string | undefined {
   const norm = (s: string) =>
     s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
   const normalizadas = columnas.map((c) => ({ real: c, n: norm(c) }));

@@ -129,3 +129,25 @@ el escritor, que necesita la migración.
 - `users.calendly_email` (global) queda sin lector y se retira después.
 
 **Sigue bloqueado por A5** (webhook o consulta periódica): de eso depende quién llama al emparejador.
+
+## Avance 28-sep, noche (Alejo): lo que no espera a A5
+
+**La primera cita ya llega por el Typeform** (Calendly embebido). El 052 la lee en la API al entrar el
+envío, así que A5 (webhook o consulta periódica) solo hace falta para lo que pasa **después**:
+cancelaciones, reprogramaciones, no-shows y citas agendadas fuera del formulario.
+
+- **"Buscar llamada"**, el backend: `buscarLlamadaDelDeal` en `lib/calendly/buscar-llamada.ts`. Toma el
+  link de agenda del envío más reciente del lead (la pregunta que dice el mapeo de la fuente, con el
+  mismo `resolverContra` del adaptador), le pregunta a Calendly y, si la cita está vigente, aplica
+  **`aplicarReglaDeDeal`**, el mismo camino del 052: la misma llamada, la misma huella (dos clics no la
+  duplican) y el mismo motor. Si no está vigente, **no escribe nada** y devuelve el motivo. Lo puede
+  usar cualquier sesión que vea el programa (lo que decide es un hecho de Calendly, y el movimiento lo
+  hace el sistema); si el programa queda fuera de su alcance, 404. **No lo llama nadie todavía**: el
+  botón va en la ficha del deal (074, carril de Mani). Tests: `tests/calendly-buscar-llamada.test.ts`
+  (7), mordido quitando la reja de alcance.
+- **El host de la cita:** `citaDeCalendly` devuelve `correoHost` (de `event_memberships`; `null` si no
+  viene o si hay varios hosts) y `resolverCitaDeEnvio` lo pasa en la cita vigente. **Todavía no se
+  guarda ni decide el dueño:** para eso hacen falta `miembros_programa.calendly_email` y
+  `calls.calendly_host_email` (la migración propuesta arriba). Con la migración, el deal que abre el
+  envío nace con la closer host como dueña (`closerHost` del emparejador).
+
