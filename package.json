@@ -27,7 +27,9 @@
     "db:local": "tsx scripts/db-local.ts",
     "dev:local": "tsx scripts/dev-local.ts",
     "seed:local": "tsx scripts/seed-local.ts",
-    "trasladar": "tsx scripts/trasladar-desde-sheets.ts"
+    "trasladar": "tsx scripts/trasladar-desde-sheets.ts",
+    "migracion:extraer": "tsx scripts/migrar-gestion.ts extraer",
+    "migracion:importar": "tsx scripts/migrar-gestion.ts importar"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

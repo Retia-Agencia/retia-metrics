@@ -33,12 +33,15 @@ export const TIPOS_DE_RAREZA = [
   "monto_cobrado_desconocido",
   "precio_desconocido",
   "fecha_aproximada",
+  "en_dos_cohortes",
   // importador
   "lead_no_encontrado",
   "ya_tiene_deal_vivo",
   "plataforma_fuera_de_catalogo",
   "llamada_sin_deal",
-  "dueno_sin_cuenta",
+  "abono_sin_deal",
+  "producto_no_encontrado",
+  "sin_cohorte",
 ] as const;
 export type TipoRareza = (typeof TIPOS_DE_RAREZA)[number];
 
@@ -105,7 +108,7 @@ export interface LlamadaTemplate {
 /** Una fila que a proposito NO crea deal (decision de Mani del 28-sep, ticket 080). No es rareza: es alcance. */
 export interface SinDealTemplate {
   huella: string;
-  razon: "no_interesado" | "cerrado" | "pendiente_viejo_sin_actividad" | "pendiente_sin_fecha";
+  razon: "no_interesado" | "cerrado" | "pendiente_viejo_sin_actividad" | "pendiente_sin_fecha" | "es_estudiante";
 }
 
 export interface Extraccion {

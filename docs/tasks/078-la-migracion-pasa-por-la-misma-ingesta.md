@@ -91,6 +91,26 @@ en `tests/migracion-extractor.test.ts` con los encabezados reales. Corrido en so
 - Conteos resultantes (trabajado-y-reciente, 30 días): CA 658 deals de Setteo, 285 llamadas, 77 estudiantes con
   77 abonos; TI 1.272 deals de Setteo, 229 llamadas, 66 estudiantes (14 en Compromiso Verbal sin abono).
 
+**Paso (4) hecho (29-sep, Alejo), misma rama:** `lib/migracion/consolidar.ts` (el estudiante absorbe su fila de
+Setteo y sus notas; un correo en dos pestañas de Estudiantes queda marcado; la llamada se cuelga solo si su correo
+tiene UN deal migrado), `lib/migracion/importar.ts` (cruza lead por correo, cohorte por código, producto USD por
+precio exacto y único, plataforma por nombre sin espacios y sin ambigüedad; lo que no cruza es rareza; escribe las
+rarezas con sus enlaces y sin duplicar) y `scripts/migrar-gestion.ts`:
+- `npm run migracion:extraer -- --programa <slug> [--alcance total] [--dias 30]` → template en `.migracion/`
+  (ignorado por git: lleva correos).
+- `npm run migracion:importar -- <template.json> [--aplicar] [--local --programa <slug local>] [--onboarded-desde-mail]`
+  → ensayo con rollback por defecto. Exige `SCRIPT_ACTOR_EMAIL`. Solo imprime conteos; un error sale sin parámetros.
+
+Probado en la base local de Docker (Postgres real): ensayo con el template real de CA (se deshizo entero) y dos
+corridas `--aplicar` con 20 leads de prueba: la primera creó 20 deals, 5 abonos y 20 llamadas, la segunda todo
+`ya_migrado` y 0 rarezas nuevas. Revisado por Codex: seis hallazgos (programa cruzado con `--programa`, llamada al
+último de dos deals, producto en COP, plataformas que colisionan, abono sin deal invisible, parámetros en el error),
+arreglados con su test.
+
+**Falta para cerrar el 078:** que Mani revise y aplique la 0041 en producción, merge a `main`, y el ensayo contra
+producción (sin `--aplicar`) de los dos programas. Las preguntas abiertas del 077 (cuentas, `Bootcamp`,
+`Mail onboarding`) no bloquean el ensayo: caen como rarezas o quedan apagadas por defecto.
+
 Sin resolver en el extractor (va al importador o al 080): el cruce del `Agendado` con su llamada, los 12
 "cohorte pasada" de CA Septiembre (no hay columna que los marque), y el catálogo de motivos por código de
 subcategoría.
