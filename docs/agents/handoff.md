@@ -64,7 +64,7 @@ cada migracion nueva. Antes de tomar un ticket, git fetch: Alejo empuja al mismo
   - **Falta:** tras el deploy, recalcular el resumen de los leads con valores en `respuestas` (escritura en
     producción, pide ok de Mani); verificar con un envío nuevo que promueva a submission y lead; ver los tags en Deals.
   - Validación: typecheck, lint y build limpios; `npm test` 1.486 pasando y 1 omitido, sin timeouts.
-  - `.env.example` ahora nombra los tokens de dev: `TYPEFORM_TOKEN_TACTICAL/COMUNICARTE` y un solo `CALENDLY_ACCESS_TOKEN` (el real; las `CALENDLY_PAT_LOCAL_*` no se usan).
+  - `.env.example` ahora nombra los tokens de dev: `TYPEFORM_TOKEN_TACTICAL/COMUNICARTE` y `CALENDLY_ACCESS_TOKEN_COMUNICARTE/TACTICAL` (uno por programa, los reales; las `CALENDLY_PAT_LOCAL_*` no se usan).
     Solo local; ningún código los lee. Cada dev los pega en su `.env.local`.
 
 - **2026-09-29 (sesión 50, Mani): valores de Typeform en Deals.**
