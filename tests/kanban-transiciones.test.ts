@@ -63,6 +63,14 @@ describe("destinosArrastrables", () => {
   });
 });
 
+describe("flechasDesde", () => {
+  it("no ofrece la flecha que vuelve a la misma etapa (T9, reagenda que sigue en Agendado)", () => {
+    const destinos = flechasDesde(MAPA, "agendado").map((f) => f.a);
+    expect(destinos).not.toContain("agendado");
+    expect(destinos).toContain("cierre_perdido");
+  });
+});
+
 describe("flechaPideDatos / camposDeDialogo", () => {
   it("T12 (Atendido -> Compromiso Verbal) pide producto y fecha limite: abre dialogo", () => {
     const f = flechasDesde(MAPA, "atendido").find((x) => x.a === "compromiso_verbal")!;

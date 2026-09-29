@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { monto } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -128,7 +129,8 @@ export function DialogoMover({
 
               {campo === "producto" ? (
                 <Select
-                  value={datos.productoId ?? undefined}
+                  value={datos.productoId ?? null}
+                  items={productos.map((p) => ({ value: p.id, label: `${p.nombre} · ${monto(Number(p.precio), p.moneda)}` }))}
                   onValueChange={(v: string | null) => setDatos((d) => ({ ...d, productoId: v }))}
                 >
                   <SelectTrigger className="w-full">
@@ -137,7 +139,7 @@ export function DialogoMover({
                   <SelectContent>
                     {productos.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
-                        {p.nombre} · {p.moneda} {p.precio}
+                        {p.nombre} · {monto(Number(p.precio), p.moneda)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -146,7 +148,8 @@ export function DialogoMover({
 
               {campo === "cohorte_destino" ? (
                 <Select
-                  value={datos.cohorteDestinoId ?? undefined}
+                  value={datos.cohorteDestinoId ?? null}
+                  items={cohortes.map((c) => ({ value: c.id, label: c.nombre }))}
                   onValueChange={(v: string | null) => setDatos((d) => ({ ...d, cohorteDestinoId: v }))}
                 >
                   <SelectTrigger className="w-full">
@@ -164,7 +167,8 @@ export function DialogoMover({
 
               {campo === "motivo" ? (
                 <Select
-                  value={datos.motivoId ?? undefined}
+                  value={datos.motivoId ?? null}
+                  items={motivosDeLaFlecha.map((m) => ({ value: m.id, label: m.nombre }))}
                   onValueChange={(v: string | null) => setDatos((d) => ({ ...d, motivoId: v }))}
                 >
                   <SelectTrigger className="w-full">

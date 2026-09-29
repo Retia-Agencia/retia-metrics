@@ -11,7 +11,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import { ETAPAS, type EtapaDeal } from "@/lib/deals/etapas";
 import { opcionesDeTablero, parsearFiltros, tableroKanban } from "@/lib/queries/kanban";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -128,10 +128,16 @@ async function deal(o: OpcDeal): Promise<string> {
 }
 
 describe("tableroKanban", () => {
-  it("las once columnas salen siempre, en el orden del enum, aunque esten vacias", async () => {
+  it("las once columnas salen siempre, en el orden del recorrido, aunque esten vacias", async () => {
     const t = await tableroKanban(db, programId, {}, HOY);
-    expect(t.columnas).toHaveLength(11);
-    expect(t.columnas[0].etapa).toBe("pendiente_setteo");
+    const orden = t.columnas.map((c) => c.etapa);
+    // Todas las etapas, cada una una vez: el orden de pantalla no pierde ninguna.
+    expect([...orden].sort()).toEqual([...ETAPAS].sort());
+    // El numero no es el orden (structure.md §3): Re-agenda despues de Agendado y
+    // Seguimiento despues de Atendido; Cierre Perdido cierra el tablero.
+    expect(orden.indexOf("pendiente_reagenda")).toBe(orden.indexOf("agendado") + 1);
+    expect(orden.indexOf("seguimiento")).toBe(orden.indexOf("atendido") + 1);
+    expect(orden.at(-1)).toBe("cierre_perdido");
     expect(t.total).toBe(0);
   });
 

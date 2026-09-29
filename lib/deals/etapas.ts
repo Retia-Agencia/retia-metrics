@@ -29,6 +29,26 @@ export type TipoMotivo = (typeof tipoMotivoEnum.enumValues)[number];
 export const ETAPAS: readonly EtapaDeal[] = etapaDealEnum.enumValues;
 
 /**
+ * Las etapas en el orden en que las recorre un deal: el de la tabla de
+ * `docs/structure.md` §3. Es el orden de pantalla (columnas del Kanban). No es el del
+ * enum (Seguimiento se agrego al final) ni el del numero: Re-agenda (3) va despues de
+ * Agendado (4) y Seguimiento (11) despues de Atendido (5).
+ */
+export const ETAPAS_EN_ORDEN: readonly EtapaDeal[] = [
+  "pendiente_setteo",
+  "en_contacto",
+  "agendado",
+  "pendiente_reagenda",
+  "atendido",
+  "seguimiento",
+  "compromiso_verbal",
+  "abonado",
+  "completo",
+  "proxima_cohorte",
+  "cierre_perdido",
+];
+
+/**
  * El numero con el que Comercial nombra cada etapa. **Es un nombre, no un orden**:
  * no se ordena ni se compara por el.
  */

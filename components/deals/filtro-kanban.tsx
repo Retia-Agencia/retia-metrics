@@ -70,6 +70,7 @@ export function FiltroKanban({
     <div className="flex flex-wrap items-center gap-2">
       <Select
         value={ownerUserId ?? TODOS}
+        items={[{ value: TODOS, label: "Todos los dueños" }, ...owners.map((o) => ({ value: o.id, label: o.nombre }))]}
         onValueChange={(v: string | null) => navegar({ owner: !v || v === TODOS ? null : v })}
       >
         <SelectTrigger className="w-44" aria-label="Dueño">
@@ -87,6 +88,7 @@ export function FiltroKanban({
 
       <Select
         value={cohorteId ?? TODOS}
+        items={[{ value: TODOS, label: "Todas las cohortes" }, ...cohortes.map((c) => ({ value: c.id, label: c.nombre }))]}
         onValueChange={(v: string | null) => navegar({ cohorte: !v || v === TODOS ? null : v })}
       >
         <SelectTrigger className="w-40" aria-label="Cohorte">
@@ -104,6 +106,7 @@ export function FiltroKanban({
 
       <Select
         value={canal ?? TODOS}
+        items={[{ value: TODOS, label: "Todos los canales" }, ...canales.map((c) => ({ value: c.clave, label: `${c.utmSource} / ${c.utmMedium}` }))]}
         onValueChange={(v: string | null) => navegar({ canal: !v || v === TODOS ? null : v })}
       >
         <SelectTrigger className="w-48" aria-label="Canal">
@@ -121,9 +124,10 @@ export function FiltroKanban({
 
       <Select
         value={antiguedadMinima != null ? String(antiguedadMinima) : TODOS}
+        items={[{ value: TODOS, label: "Cualquier antigüedad" }, ...ANTIGUEDADES.map((a) => ({ value: a.valor, label: a.etiqueta }))]}
         onValueChange={(v: string | null) => navegar({ antiguedad: !v || v === TODOS ? null : v })}
       >
-        <SelectTrigger className="w-36" aria-label="Antigüedad en la etapa">
+        <SelectTrigger className="w-52" aria-label="Antigüedad en la etapa">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

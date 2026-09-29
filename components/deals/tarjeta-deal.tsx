@@ -35,6 +35,12 @@ export interface TarjetaDealProps {
   nombreDeEtapa: Record<EtapaDeal, string>;
   programaSlug: string;
   arrastrando: boolean;
+  /**
+   * Si esta sesion puede mover ESTE deal (dueño o administrador). Es proyeccion, no
+   * reja: la reja es `moverEtapa`, que rechaza igual una peticion forjada. Sirve para
+   * no ofrecer un arrastre que el servidor va a rechazar.
+   */
+  puedeMover: boolean;
   onArrastrarInicio: () => void;
   onArrastrarFin: () => void;
   onElegirDestino: (flecha: FlechaCliente) => void;
@@ -46,6 +52,7 @@ export function TarjetaDealCard({
   nombreDeEtapa,
   programaSlug,
   arrastrando,
+  puedeMover,
   onArrastrarInicio,
   onArrastrarFin,
   onElegirDestino,
@@ -59,7 +66,8 @@ export function TarjetaDealCard({
 
   return (
     <div
-      draggable
+      draggable={puedeMover}
+      title={puedeMover ? undefined : "Solo su dueño o un administrador lo mueven."}
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", tarjeta.dealId);
@@ -74,7 +82,9 @@ export function TarjetaDealCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-1.5">
-          <GripVertical className="mt-0.5 size-4 shrink-0 cursor-grab text-muted-foreground" aria-hidden />
+          {puedeMover ? (
+            <GripVertical className="mt-0.5 size-4 shrink-0 cursor-grab text-muted-foreground" aria-hidden />
+          ) : null}
           <div className="min-w-0">
             <Link
               href={`/p/${programaSlug}/deals/${tarjeta.dealId}`}
@@ -88,6 +98,7 @@ export function TarjetaDealCard({
           </div>
         </div>
 
+        {puedeMover ? (
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label="Mover a…"
@@ -123,6 +134,7 @@ export function TarjetaDealCard({
             ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
+        ) : null}
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">

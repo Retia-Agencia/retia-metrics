@@ -41,6 +41,10 @@ export interface TableroKanbanProps {
   productos: (OpcionCatalogo & { moneda: string; precio: string })[];
   cohortes: OpcionCatalogo[];
   motivos: { id: string; nombre: string; tipo: string }[];
+  /** Quien mira, para saber que deals son suyos. Sale de la sesion en el servidor. */
+  userId: string;
+  /** Administra (gerente o developer, `esAdministrador`): mueve cualquier deal. */
+  administra: boolean;
 }
 
 /** Lo que un movimiento pendiente necesita saber para abrir su diálogo. */
@@ -59,6 +63,8 @@ export function TableroKanban({
   productos,
   cohortes,
   motivos,
+  userId,
+  administra,
 }: TableroKanbanProps) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
@@ -152,7 +158,7 @@ export function TableroKanban({
       </p>
 
       {/* Scroll horizontal en el tablero; la página nunca se desplaza de lado. */}
-      <div className="flex gap-3 overflow-x-auto pb-4">
+      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 sm:snap-none">
         {columnas.map((columna) => {
           const destinoPermitido =
             arrastrando != null && sePuedeArrastrar(mapa, etapaDe(arrastrando), columna.etapa);
@@ -182,9 +188,14 @@ export function TableroKanban({
                 soltarEn(columna.etapa);
               }}
               className={cn(
-                "flex w-72 shrink-0 flex-col rounded-xl bg-background/60 p-2 transition-colors duration-150 motion-reduce:transition-none",
-                columnaHover === columna.etapa && destinoPermitido && "ring-2 ring-primary",
-                columnaHover === columna.etapa && destinoProhibido && "cursor-not-allowed opacity-60 ring-2 ring-border",
+                "flex w-[85vw] shrink-0 snap-start flex-col rounded-xl sm:w-72 bg-background/60 p-2 transition-colors duration-150 motion-reduce:transition-none",
+                // Como en HubSpot: al levantar una tarjeta reacciona TODO el tablero, no solo
+                // la columna bajo el cursor. Las validas se marcan, las prohibidas se apagan,
+                // y la que tiene el cursor encima se destaca.
+                destinoPermitido && "ring-1 ring-primary/40",
+                destinoPermitido && columnaHover === columna.etapa && "bg-primary/10 ring-2 ring-primary",
+                destinoProhibido && "opacity-40",
+                destinoProhibido && columnaHover === columna.etapa && "cursor-not-allowed",
               )}
               aria-label={nombreDeEtapa[columna.etapa]}
             >
@@ -211,6 +222,7 @@ export function TableroKanban({
                       nombreDeEtapa={nombreDeEtapa}
                       programaSlug={programaSlug}
                       arrastrando={arrastrando?.dealId === tarjeta.dealId}
+                      puedeMover={administra || tarjeta.ownerUserId === userId}
                       onArrastrarInicio={() => setArrastrando(tarjeta)}
                       onArrastrarFin={() => {
                         setArrastrando(null);

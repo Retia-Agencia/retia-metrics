@@ -10,7 +10,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { ETAPAS, type EtapaDeal } from "@/lib/deals/etapas";
+import { ETAPAS_EN_ORDEN, type EtapaDeal } from "@/lib/deals/etapas";
 import { carteraVencida } from "@/lib/queries/cartera";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
@@ -33,7 +33,7 @@ import { hoyEnBogota } from "@/lib/format";
  * - **Ninguna fecha se interpola en una plantilla `sql`**: se comparan `YYYY-MM-DD`
  *   como texto (fechas de negocio de Bogota) contra `hoyEnBogota()`.
  *
- * Las once columnas salen SIEMPRE, en el orden del enum (`ETAPAS`), aunque esten
+ * Las once columnas salen SIEMPRE, en el orden del recorrido (`ETAPAS_EN_ORDEN`), aunque esten
  * vacias: un tablero con una columna que desaparece porque no tiene tarjetas confunde.
  */
 
@@ -159,7 +159,7 @@ export async function tableroKanban(
     .leftJoin(productos, eq(productos.id, deals.productoId))
     .where(and(eq(deals.programId, programId), vigente(deals)));
 
-  const columnasVacias = (): ColumnaKanban[] => ETAPAS.map((etapa) => ({ etapa, tarjetas: [] }));
+  const columnasVacias = (): ColumnaKanban[] => ETAPAS_EN_ORDEN.map((etapa) => ({ etapa, tarjetas: [] }));
   if (filas.length === 0) return { columnas: columnasVacias(), total: 0 };
 
   const dealIds = filas.map((f) => f.dealId);
@@ -212,14 +212,14 @@ export async function tableroKanban(
   const filtradas = tarjetas.filter((t) => pasaFiltros(t, filtros));
 
   const porEtapa = new Map<EtapaDeal, TarjetaDeal[]>();
-  for (const etapa of ETAPAS) porEtapa.set(etapa, []);
+  for (const etapa of ETAPAS_EN_ORDEN) porEtapa.set(etapa, []);
   for (const t of filtradas) porEtapa.get(t.etapa)!.push(t);
   // Dentro de una columna, lo mas viejo en la etapa primero: es a lo que hay que
   // prestarle atencion antes.
   for (const lista of porEtapa.values()) lista.sort((a, b) => b.diasEnEtapa - a.diasEnEtapa || a.emailLead.localeCompare(b.emailLead));
 
   return {
-    columnas: ETAPAS.map((etapa) => ({ etapa, tarjetas: porEtapa.get(etapa)! })),
+    columnas: ETAPAS_EN_ORDEN.map((etapa) => ({ etapa, tarjetas: porEtapa.get(etapa)! })),
     total: filtradas.length,
   };
 }

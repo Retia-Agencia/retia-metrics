@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
+import { esAdministrador } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
@@ -66,6 +67,8 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
           productos={opciones.productos}
           cohortes={opciones.cohortes}
           motivos={opciones.motivos}
+          userId={session.user.id}
+          administra={esAdministrador(rol)}
         />
       </div>
     </PageShell>
