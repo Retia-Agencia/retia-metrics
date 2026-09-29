@@ -85,6 +85,32 @@ dueño**; Unclaimed queda para los Agendados cuyo host no está registrado. Todo
 - **Pendiente operativo:** configurar la variable de score en ambos Typeform. Sin ella, el Setteo
   funciona por recencia y marca esos leads como "sin score".
 
+## ✅ Configuración Typeform/CRM confirmada · 2026-09-29
+
+En cada una de las dos fuentes Typeform del CRM, `mapeoColumnas` debe quedar con estos nombres
+exactos:
+
+```json
+{
+  "puntaje": "score",
+  "leadQuality": "tag_lead_quality",
+  "leadValue": "lead_value"
+}
+```
+
+`score`, `tag_lead_quality` y `lead_value` son variables de Typeform, no valores hardcodeados del
+CRM. `hvm_points` y `hvm_tier` llegan en el payload, pero no se promueven porque no son parte del
+alcance solicitado.
+
+## ✅ Implementación 2026-09-29 (Mani)
+
+El CRM ya recibe y persiste, sin recalcular, los valores configurables `leadQuality` y `leadValue`
+que llegan como variables de Typeform. Se promueven a `submissions` y `leads` (migración 0041), se
+muestran como tags en las tarjetas de Deals y se pueden filtrar con opciones derivadas de los valores
+existentes por programa. No hay enums ni valores hardcodeados: una etiqueta nueva aparece
+automáticamente. La configuración de las dos fuentes Typeform y el recorrido visual exacto a 390 px
+siguen siendo pendientes operativos.
+
 
 ---
 

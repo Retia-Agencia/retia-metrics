@@ -1,6 +1,9 @@
 -- ADR 0059 y ticket 080: huella de la migracion de las pestañas de gestion en deals y abonos,
 -- y la lista de rarezas. Solo AGREGA: columnas nulas, una tabla vacia e indices sobre columnas
 -- nuevas (todas nulas hoy, asi que los indices unicos no pueden chocar con datos existentes).
+-- Era la 0041 de la rama; se renumero porque la 0041 de main (valores del lead de Typeform)
+-- se aplico antes. drizzle-kit la regenero desde el snapshot 0040 (la 0041 de main no trae
+-- snapshot) e incluia las cuatro columnas de esa 0041: se quitaron a mano, ya estan aplicadas.
 CREATE TABLE "rarezas_migracion" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"program_id" uuid NOT NULL,

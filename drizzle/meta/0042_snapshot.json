@@ -1,5 +1,5 @@
 {
-  "id": "798aa4e8-e37f-4258-82a0-4a70c421f0be",
+  "id": "142de459-3a6c-4765-8f66-b6571c7675c1",
   "prevId": "b5409f95-10c0-4563-8aff-36adad50579f",
   "version": "7",
   "dialect": "postgresql",
@@ -2374,6 +2374,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "lead_quality": {
+          "name": "lead_quality",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lead_value": {
+          "name": "lead_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "motivo_descarte": {
           "name": "motivo_descarte",
           "type": "text",
@@ -3836,6 +3848,18 @@
         "version_puntaje": {
           "name": "version_puntaje",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lead_quality": {
+          "name": "lead_quality",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lead_value": {
+          "name": "lead_value",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },

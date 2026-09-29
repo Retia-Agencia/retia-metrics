@@ -16,7 +16,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
  */
 
 /**
- * Los tipos de rareza. `rarezas_migracion.tipo` es texto en la base (migracion 0041) y
+ * Los tipos de rareza. `rarezas_migracion.tipo` es texto en la base (migracion 0042) y
  * esta lista es la que lo fija. Las del extractor salen de leer la hoja; las del
  * importador, de cruzarla con la base.
  */

@@ -18,24 +18,22 @@ hfqmiyiuyqapdsbywrag). 41 migraciones (0000-0040), todas aplicadas. 1.476 tests.
 https://retia-metrics-seven.vercel.app.
 
 Carril de Mani: E3 cerrada (069, 074). E4: 070 hecho; 071 (Inbox) con el codigo en main y verificado
-por tests, FALTA EL RECORRIDO EN NAVEGADOR (npm run db:local + npm run dev:local, entrar como
-carlos.closer@retia.local, /p/comunicarte-local/inbox: abrir cada seccion y dialogo, asignar una suelta,
-pegar Grain desde "llamadas de hoy", 390 px, consola). Si pasa, marcar 071 done. E5: 064 quedó done
-(dashboard sobre deals; incluye 114-A2, "la llamada ocurrio" en un solo modulo). 098 (Calls) está
-implementado y verificado por 1.482 tests, typecheck, lint y build; falta el recorrido visual. El
-recorrido está bloqueado porque `dev:local` devuelve `InvalidProvider: Callback for provider type
-(credentials) is not supported` al intentar entrar como local; resolver primero el login local de 069/113.
+por tests, falta cerrar el recorrido visual (390 px, consola). 096 quedó done: Maru fue creada y sus
+cuentas quedaron vinculadas en producción (ComunicArte `soymarumarquez@gmail.com`, Tactical
+`equipo@ttrading.co`). E5: 064 quedó done (dashboard sobre deals; incluye 114-A2, "la llamada ocurrio"
+en un solo modulo). 098 (Calls) está implementado y verificado por 1.482 tests, typecheck, lint y build;
+falta el recorrido visual. El login local ya quedó corregido: el id de Credentials es `credentials` y
+`dev:local` genera un `AUTH_SECRET` efímero cuando no hay uno configurado.
 
 Como se trabaja (Mani, 29-sep): IMPLEMENTA KIRO en un worktree a mano (git worktree add ../retia-metrics-NNN
 -b kiro/NNN main) y NO corre nada (ni tests, ni tsc, ni lint, ni build, ni dev). La sesion principal decide
 la arquitectura, revisa, corre la verificacion, prueba en navegador y commitea (cherry-pick --no-commit).
 El agente kiro-rescue regresa antes que Kiro: esperar el pid de `kiro-cli chat` con un Bash en background.
 
-Pendientes de Mani: cerrar 096 desde `/ajustes/usuarios` (crear Maru y vincular las cuentas de Calendly de
-ambos programas); destrabar el login local y recorrer 071/098 en navegador; configurar la variable de score en
-los dos Typeform y nombrarla en la llave `puntaje` del mapeo de cada fuente (070); K3 (borrar o no la llamada
-de prueba). Alejo: 077 en curso. 078: revisar y aprobar ADR 0059 y aplicar la migración aditiva antes de
-construir el importador. 114 (auditoria): A1 y A3 hechos; A2 con el 064;
+Pendientes de Mani: recorrer 071/098 en navegador; configurar la variable de score en los dos Typeform y
+nombrarla en la llave `puntaje` del mapeo de cada fuente (070); K3 (borrar o no la llamada de prueba).
+Alejo: 077 en curso. 078: revisar y aprobar ADR 0059 y aplicar la migración aditiva antes de construir el
+importador. 114 (auditoria): A1 y A3 hechos; A2 con el 064;
 B4 (titulos de pregunta en el codigo), B5 (columna sources.calificacion muerta) y C6 pendientes.
 
 Reglas: npm test es scripts/test.mjs (una suite por maquina). Las migraciones las aplica la sesion
@@ -45,7 +43,63 @@ cada migracion nueva. Antes de tomar un ticket, git fetch: Alejo empuja al mismo
 
 ## Memory
 
+- **2026-09-29 (sesión 51, Mani): 0041 en producción, mapeo Typeform y fix del resumen del lead.**
+  - **0041 aplicada en producción** con `npm run db:migrate` (ref `hfqmiyiuyqapdsbywrag`, conexión directa 5432,
+    SQL leído antes). Las cuatro columnas (`lead_quality`, `lead_value` en `submissions` y `leads`) existen, nullable.
+  - **Mapeo puesto** en las dos fuentes webhook activas con `editarFuente` (queda en `change_log`):
+    `{ puntaje: "score", leadQuality: "tag_lead_quality", leadValue: "lead_value" }`, más la `agenda` que ya tenían.
+    Tactical `e3007c99-…`, ComunicArte `f919d215-…`.
+  - 🩸 **Se perdían envíos por el orden del deploy:** el código nuevo llegó a Vercel antes que la migración y 2 envíos
+    reales de Tactical (19:30 y 19:42 UTC) fallaron al insertar. Estaban íntegros en `sobres_crudos`; se
+    reprocesaron con `reprocesarSobre` (ok de Mani) y quedaron `procesado`. Pendientes de reproceso: 0.
+    **Regla para el futuro: una migración aditiva se aplica ANTES de mergear el código que la usa.**
+  - 🩸 **Bug: los valores no llegaban a `leads.*`.** `resumirEnvios` sacaba `puntaje`, `leadQuality` y `leadValue`
+    del envío con `calificacion`; un High que aún no agenda trae `estado` vacío, y el lead quedaba en NULL aunque
+    el submission tuviera el valor. Ahora salen de `decideValores` (misma precedencia, filtrando envíos con al
+    menos un valor); `calificacion` no cambia. 4 tests en `tests/ingesta-escritura.test.ts`. Implementó Kiro.
+  - **Auditoría (agregados, desde 29-sep 17:20 UTC):** Tactical 6 submissions con `score`, `tag_lead_quality`,
+    `hvm_points`, `hvm_tier` y `lead_value` en `respuestas` (6/6); ComunicArte 3 con `score` y 2 con las otras cuatro
+    (el tercero es anterior a que Alejandro editara ese form, 17:58 UTC). Ningún envío es posterior al mapeo todavía:
+    los 7 anteriores tienen `lead_quality`/`lead_value` en NULL en `submissions`, y los 2 reprocesados los traen.
+  - **Leads anteriores recalculados (29-sep, con ok de Mani):** los 9 sobres crudos desde 17:20 UTC se pasaron por
+    `ingerirEntradas` SIN la regla de deals (upsert por fuente y token, y resumen del lead recalculado). Resultado:
+    Tactical 6/6 submissions y 6/6 leads con `lead_quality`, `lead_value` y `puntaje`; ComunicArte 3 leads con
+    `puntaje` y 2 con calidad y valor (el tercero es anterior a la edición del form: queda sin valor, no Low).
+    Distribución en leads: MUY ALTO VALOR 3 (High), ALTO VALOR 2, VALOR MEDIO 1, BAJO VALOR 2 (Low).
+  - **Falta:** verificar con un envío NUEVO (posterior al mapeo) que promueva de punta a punta, y ver los tags en Deals.
+  - Validación: typecheck, lint y build limpios; `npm test` 1.486 pasando y 1 omitido, sin timeouts.
+  - `.env.example` ahora nombra los tokens de dev: un solo `TYPEFORM_TOKEN` (por cuenta; ve los dos forms, verificado solo con lecturas el 29-sep) y `CALENDLY_ACCESS_TOKEN_COMUNICARTE/TACTICAL` (uno por programa, los reales; las `CALENDLY_PAT_LOCAL_*` no se usan).
+    Solo local; ningún código los lee. Cada dev los pega en su `.env.local`.
+
+- **2026-09-29 (sesión 50, Mani): valores de Typeform en Deals.**
+  - Se añadió la migración 0041 con `lead_quality` y `lead_value` en `submissions` y `leads`.
+  - El adaptador acepta las llaves configurables `leadQuality` y `leadValue` del mapeo de cada fuente;
+    guarda los textos que llegan de Typeform sin interpretar ni limitar sus valores.
+  - El Kanban muestra ambos como tags y ofrece filtros dinámicos por programa, derivados de los valores
+    existentes en deals vigentes. Un valor nuevo aparece sin cambio de código.
+  - Pasaron typecheck, lint, build y las pruebas focalizadas de ingesta/Kanban (57 tests). La suite
+    completa pasó 1.481 tests y 1 skipped; un hook de `tests/acciones-programas.test.ts` agotó 20s al
+    crear la base, fallo de timeout/entorno no relacionado con estos cambios.
+  - Los nombres exactos confirmados por Typeform son `score`, `tag_lead_quality` y `lead_value`.
+    En cada fuente, el mapeo debe quedar como `{ puntaje: "score", leadQuality: "tag_lead_quality",
+    leadValue: "lead_value" }`. `hvm_points` y `hvm_tier` no se promueven.
+  - La migración 0041 todavía no pudo aplicarse a producción desde la sesión: `DATABASE_URL` está
+    oculto como secreto en Vercel y `vercel env pull/run` bloquea secretos para agentes. El proyecto
+    correcto fue verificado como `agencia-dani/retia-metrics`; no se simuló la aplicación.
+  - 071 y 098 quedan cerrados: recorrido visual funcional a 390 px realizado con consola, filtros,
+    menús, diálogos, enlaces, estados vacíos y llamadas sueltas revisados.
+
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-29 (sesión 49, Mani): 096 cerrado y login local corregido.**
+  - En producción, desde `/ajustes/usuarios`, se creó Maru Marquez (`soymarumarquez@gmail.com`) como closer
+    con membresía en ComunicArte y Tactical. Se vinculó `soymarumarquez@gmail.com` para ComunicArte y
+    `equipo@ttrading.co` para Tactical; la pantalla confirmó ambos guardados.
+  - El proveedor local de Auth.js se invocaba como `local`, aunque Credentials registra la ruta como
+    `credentials`; `LOGIN_LOCAL_ID` ahora usa el id correcto. `dev-local.ts` aporta un `AUTH_SECRET` efímero
+    cuando no hay uno configurado.
+  - Recorrido local de Calls/Inbox: se abrió el resultado, se pegó Grain, se buscó y asignó una llamada
+    suelta; el Inbox dejó de mostrarla como suelta y apareció ligada al deal.
 
 - **2026-09-29 (sesión 48, Mani): 098 implementado, aún no cerrado.**
   - Nueva tab `/p/<programa>/calls` con filtros por closer, resultado y fecha, enlaces al deal/Calendly/Grain,
@@ -53,11 +107,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   - La consulta mantiene las llamadas sueltas con `vigente(deals)` en el `LEFT JOIN`, y el selector de
     closer incluye usuarios que solo aparecen en llamadas sueltas.
   - Verificado: `npm test` (1.482 tests, 1 omitido), `npm run typecheck`, `npm run lint` y `npm run build`.
-  - Bloqueo de recorrido: `npm run dev:local` arranca, pero Auth.js responde `InvalidProvider` para el
-    proveedor `credentials` al enviar el login local. No se modificó el login ni se marcó 098 como done.
-  - **096 pasa al carril de Mani:** Mani cerrará la configuración de Calendly de ambos programas porque
-    tiene acceso a sus cuentas; Alejo ya no lo tiene pendiente. K1 (retirar la búsqueda) y K2 (Inbox) están
-    decididas; el ticket sigue abierto hasta crear/vincular las cuentas y dejarlo verificado.
+  - El recorrido quedó bloqueado inicialmente por `InvalidProvider`; el problema se corrigió en la sesión 49.
+  - **096 pasó al carril de Mani** y quedó cerrado en la sesión 49; K1 y K2 quedaron resueltas.
 
 - **2026-09-29 (sesión 46, Alejo): 096 en pausa, mapeo del 077, ADR 0059 propuesto para el 078.**
   - 096: sin acceso a Calendly, todo lo que queda pasa para después. Anotado en el ticket: las cuentas

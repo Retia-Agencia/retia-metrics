@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
 
 /**
@@ -23,6 +24,10 @@ async function main() {
       ...process.env,
       DATABASE_URL: LOCAL_DB_URL,
       DATABASE_URL_DIRECTA: LOCAL_DB_URL,
+      // Auth.js exige un secreto incluso para el proveedor local. Si no existe uno
+      // configurado, usa uno efimero: el proceso local no debe depender de secretos
+      // de produccion ni escribirlos en el repositorio.
+      AUTH_SECRET: process.env.AUTH_SECRET ?? randomBytes(32).toString("base64url"),
       // Habilita el proveedor de login local (ticket 069): sin el, nadie puede entrar a
       // la app local porque Google no autentica un correo `.local`. Solo tiene efecto si
       // ADEMAS la base es local (lo comprueba `esUrlLocal`); aqui ya lo es.

@@ -468,4 +468,112 @@ describe("resumirEnvios", () => {
       expect(r.nombre).toBeNull();
     });
   });
+
+  describe("los valores del lead: puntaje, leadQuality y leadValue", () => {
+    it("🩸 un envio completo con calificacion null pero con valores SI los trae al resumen", () => {
+      const r = resumirEnvios(
+        [
+          {
+            ...base,
+            token: "a",
+            fechaEnvio: new Date("2026-09-01T00:00:00Z"),
+            utmSource: null,
+            calificacion: null,
+            puntaje: 7,
+            leadQuality: "High",
+            leadValue: "1500",
+          },
+        ],
+        null,
+      );
+      expect(r.calificacion).toBeNull();
+      expect(r.puntaje).toBe(7);
+      expect(r.leadQuality).toBe("High");
+      expect(r.leadValue).toBe("1500");
+    });
+
+    it("con dos envios completos con valores, gana el mas reciente por fecha", () => {
+      const r = resumirEnvios(
+        [
+          {
+            ...base,
+            token: "a",
+            fechaEnvio: new Date("2026-09-01T00:00:00Z"),
+            utmSource: null,
+            calificacion: null,
+            puntaje: 3,
+            leadQuality: "Low",
+            leadValue: "797",
+          },
+          {
+            ...base,
+            token: "b",
+            fechaEnvio: new Date("2026-09-10T00:00:00Z"),
+            utmSource: null,
+            calificacion: null,
+            puntaje: 9,
+            leadQuality: "High",
+            leadValue: "1500",
+          },
+        ],
+        null,
+      );
+      expect(r.puntaje).toBe(9);
+      expect(r.leadQuality).toBe("High");
+      expect(r.leadValue).toBe("1500");
+    });
+
+    it("sin ningun envio con valores, los tres quedan en null (nunca un valor por defecto)", () => {
+      const r = resumirEnvios(
+        [
+          {
+            ...base,
+            token: "a",
+            fechaEnvio: new Date("2026-09-01T00:00:00Z"),
+            utmSource: null,
+            calificacion: "con_calendly" as Calificacion,
+            puntaje: null,
+            leadQuality: null,
+            leadValue: null,
+          },
+        ],
+        null,
+      );
+      expect(r.puntaje).toBeNull();
+      expect(r.leadQuality).toBeNull();
+      expect(r.leadValue).toBeNull();
+    });
+
+    it("la calificacion sigue saliendo del envio calificado, ajena a los valores", () => {
+      const r = resumirEnvios(
+        [
+          {
+            ...base,
+            token: "a",
+            fechaEnvio: new Date("2026-09-01T00:00:00Z"),
+            utmSource: null,
+            calificacion: "con_calendly" as Calificacion,
+            puntaje: null,
+            leadQuality: null,
+            leadValue: null,
+          },
+          {
+            ...base,
+            token: "b",
+            fechaEnvio: new Date("2026-09-10T00:00:00Z"),
+            utmSource: null,
+            calificacion: null,
+            puntaje: 8,
+            leadQuality: "High",
+            leadValue: "1500",
+          },
+        ],
+        null,
+      );
+      expect(r.calificacion).toBe("con_calendly");
+      expect(r.puntaje).toBe(8);
+      expect(r.leadQuality).toBe("High");
+      expect(r.leadValue).toBe("1500");
+    });
+  });
 });

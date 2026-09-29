@@ -62,7 +62,7 @@ matrices (testeable sin Google); (4) el importador con ensayo; (5) ensayo en la 
 db:local`) con las hojas del día.
 
 **Paso (1) preparado (29-sep, Alejo), rama `migracion/078-huellas-y-rarezas`, SIN aplicar:** migración
-`0041_huellas-y-rarezas-de-migracion` (SQL leído: solo agrega; RLS de la tabla nueva puesto a mano).
+`0042_huellas-y-rarezas-de-migracion` (era la 0041; se renumeró el 29-sep porque la 0041 de `main`, valores del lead de Typeform, se aplicó antes. SQL leído: solo agrega; RLS puesto a mano; se quitaron las columnas de la 0041 de main que drizzle-kit arrastraba por no tener ella snapshot).
 `huella_migracion` en `deals` y `abonos` con índice único parcial; tabla `rarezas_migracion` (programa,
 huella, `tipo` en texto, detalle obligatorio, enlaces opcionales a lead/deal/abono/call, único
 `(huella, tipo)`). Tests: `tests/migracion-huellas.test.ts`. **Falta que Mani la revise, la fusione y la
@@ -107,7 +107,7 @@ corridas `--aplicar` con 20 leads de prueba: la primera creó 20 deals, 5 abonos
 último de dos deals, producto en COP, plataformas que colisionan, abono sin deal invisible, parámetros en el error),
 arreglados con su test.
 
-**Falta para cerrar el 078:** que Mani revise y aplique la 0041 en producción, merge a `main`, y el ensayo contra
+**Falta para cerrar el 078:** que Mani revise y aplique la **0042** en producción, merge a `main`, y el ensayo contra
 producción (sin `--aplicar`) de los dos programas. Las preguntas abiertas del 077 (cuentas, `Bootcamp`,
 `Mail onboarding`) no bloquean el ensayo: caen como rarezas o quedan apagadas por defecto.
 

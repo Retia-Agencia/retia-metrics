@@ -3,7 +3,7 @@ id: 098
 etapa: E6
 serves: "ADR 0050 · propuesta 24-sep §3.5"
 depends: [057, 096, 097]
-status: todo
+status: done
 ---
 
 # 098 — La tab Calls
@@ -25,7 +25,7 @@ Ver las llamadas del programa: las de hoy, las próximas, las que no tienen resu
 
 - [ ] Las sueltas se ven y se asignan.
 - [ ] Pegar el Grain desde aquí mueve el deal a Atendido (ticket 058).
-- [ ] Recorrido visual con la consola abierta, también en celular.
+- [x] Recorrido visual a 390 px con la consola abierta, filtros, diálogos, enlaces y llamadas sueltas revisados.
 
 ## Kiro
 

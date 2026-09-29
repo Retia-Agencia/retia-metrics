@@ -136,6 +136,10 @@ export interface MapeoWebhook {
    * ajena como puntaje sin un solo error. El Setteo sin score se ordena por recencia.
    */
   variablePuntaje?: string;
+  /** Nombre configurable de la variable Typeform con la etiqueta de calidad. */
+  variableLeadQuality?: string;
+  /** Nombre configurable de la variable Typeform con la etiqueta de valor. */
+  variableLeadValue?: string;
 }
 
 /** El nombre por defecto de la variable de Estado, si el mapeo no dice otra (punto E). */
@@ -301,6 +305,14 @@ export function entradaDesdeTypeform(payload: PayloadTypeform, opciones: Opcione
     opciones.mapeo?.variablePuntaje !== undefined
       ? aEnteroONull(columnas[`${PREFIJO_VARIABLE}${opciones.mapeo.variablePuntaje}`])
       : null;
+  const textoVariable = (nombre: string | undefined): string | null =>
+    nombre === undefined ? null : (() => {
+      const valor = columnas[`${PREFIJO_VARIABLE}${nombre}`];
+      const texto = valor == null ? "" : String(valor).trim();
+      return texto === "" ? null : texto;
+    })();
+  const leadQuality = textoVariable(opciones.mapeo?.variableLeadQuality);
+  const leadValue = textoVariable(opciones.mapeo?.variableLeadValue);
 
   // El mapeo de campos: el de la fuente sobre el de por defecto. Los UTM y la fecha
   // no van en el mapeo de preguntas porque salen de sitios fijos del payload (hidden y
@@ -374,6 +386,8 @@ export function entradaDesdeTypeform(payload: PayloadTypeform, opciones: Opcione
     esParcial,
     linkAgenda,
     puntaje,
+    leadQuality,
+    leadValue,
   };
 }
 
