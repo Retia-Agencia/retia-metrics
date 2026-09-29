@@ -268,17 +268,20 @@ para que funcione así."*
 
 **Estado de las preguntas (29-sep):**
 
-1. ✅ Qué manda el formulario: **el Estado** (ADR 0054, enmienda del 27-sep); el puntaje (T4) sigue nulo.
+1. ✅ Qué manda el formulario: **el Estado y el score** (ADR 0054 y decisión de Mani del 29-sep).
+   El CRM recibe ambos; el score alimenta `submissions.puntaje` y `leads.puntaje`.
 2. ✅ T2 **se borró** el 28-sep (A8 cerrada: *"el CRM no calcula NADA"*).
-3. 🔴 Si el scoring del form también ordena el Setteo, o eso sigue siendo la pregunta de ingreso
-   configurable por fuente (N1, ticket 070). Se decide con los closers antes de E4 (§7.B).
-4. 🔴 Si "cambiar el Typeform" alcanza, o este es el momento de pasar a Dapta Forms. No bloquea: el
-   webhook acepta cualquier formulario por su mapeo (ADR 0055). Decide Mani cuando se toque el formulario.
+3. ✅ El scoring del form ordena el Setteo. El CRM no calcula ingreso ni bandas: recibe `score` por la
+   llave `puntaje` del mapeo y lo copia a `submissions.puntaje` y `leads.puntaje`. Alejo dejó esa ruta
+   implementada; falta configurar la variable en ambos Typeform.
+4. ✅ No se agrega lógica de ingreso al CRM. Cada formulario puede tener su scoring por programa; el
+   webhook acepta el valor por su mapeo (ADR 0055).
 5. ✅ D4 cerrada (ADR 0054): se decide con `leads.calificacion`; `leads.estado` guarda lo que escribió la
    hoja para comparar en la migración y nadie decide con él.
 
-**Lo que no cambia, se decida lo que se decida:** un envío sin Estado, o con un valor que el CRM no
-reconoce, no se adivina: queda sin calificar y se reporta.
+**Lo que no cambia:** un envío sin Estado o score, o con un valor que el CRM no reconoce, no se
+adivina: queda sin calificar/sin score y se reporta. El Setteo lo ordena por score cuando existe y por
+recencia cuando no.
 
 #### 4.3c Calendly (ticket 096)
 
@@ -399,13 +402,14 @@ no uno por alerta. No bloquea nada.
 
 **B. Closers** (por chat, cuando llegue el ticket que la necesita):
 
-- Qué pregunta del formulario es el ingreso, en qué moneda y periodo, y si las bandas son iguales en
-  los dos programas (070, 071).
-- El X de "deal sin actividad en X días" (071).
+- ~~Qué pregunta del formulario es el ingreso, en qué moneda y periodo, y si las bandas son iguales en
+  los dos programas (070, 071).~~ ✅ Lo resuelve el scoring del formulario; el CRM solo recibe `score`.
+- ~~El X de "deal sin actividad en X días" (071).~~ ✅ 3 días hábiles por defecto, configurable.
 - ✅ ~~De quién es el deal si el lead agenda con otra closer por Round Robin (096).~~ De esa closer
   (Mani, 28-sep).
-- ¿"Estudiante" desde el primer abono o con el pago completo? ¿Quién hace el onboarding (el transcript
-  dice "Anis"; Jero nombró a Dani Rincón)? (099)
+- ~~¿"Estudiante" desde el primer abono o con el pago completo? ¿Quién hace el onboarding?~~ ✅ Students
+  muestra deals en `abonado` o `completo`, con su lead, por cohorte y programa; el onboarding lo marca
+  el closer dueño, gerente o developer (099).
 - Cómo mandan el comprobante: foto, link o PDF (035, 060).
 - ~~Hasta cuántos días atrás vale migrar Setteo con deal (080).~~ ✅ 28-sep (Mani): lo trabajado + los últimos 30 días, con parámetro para migrar TOTAL.
 - Uso desde el celular; quién prueba primero; cómo y cuándo se paga la comisión.

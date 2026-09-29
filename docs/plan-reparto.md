@@ -189,8 +189,10 @@ Backend puro.
 | → [071] · L | → [099] · M |
 
 - **Migración de arranque:** la pregunta de ingreso por fuente y sus bandas (070).
-- **Decidir antes (closers):** qué pregunta es el ingreso y sus bandas · la X de "deal sin actividad" ·
-  ¿estudiante desde el primer abono o con el pago completo? · quién hace el onboarding.
+- **Decisiones cerradas:** el score lo calcula el formulario por programa y el CRM solo lo recibe;
+  no hay lógica de ingreso ni bandas en el CRM. La alerta de deal sin actividad usa 3 días hábiles por
+  defecto y es configurable. Students muestra deals en `abonado` o `completo`, con su lead, por cohorte
+  y programa; el onboarding lo marca el closer dueño, gerente o developer.
 - **Prueba de costura:** recorrido en celular sobre la base local: reclamar un Setteo, agendar, pegar el
   Grain, registrar el abono. Consola abierta, clic en todo lo que se abre.
 
@@ -344,7 +346,7 @@ closers durante E1 que cubra E2 a E5; Gerencia durante E4; Pauta durante E5.
 | ~~E2~~ | ~~De quién es el deal si agenda con otra closer~~ ✅ de esa closer (Mani, 28-sep) | Mani |
 | E3 | ~~A4~~ ✅ · ~~tasa COP→USD~~ ✅ descartada, solo USD | Mani |
 | E3 | ~~Hasta cuántos días atrás migrar Setteo~~ ✅ decidido por Mani · K1 ("buscar llamada" en la Ficha del Deal o se retira) | Mani |
-| E4 | Pregunta de ingreso y bandas · X días sin actividad · estudiante desde cuándo · quién hace onboarding | Closers |
+| E4 | ~~Pregunta de ingreso y bandas~~ ✅ score del formulario; ~~X días~~ ✅ 3 días hábiles por defecto configurable; ~~estudiante desde cuándo~~ ✅ abonado o completo por cohorte/programa; ~~quién hace onboarding~~ ✅ dueño, gerente o developer | Closers / Mani |
 | E5 | ~~Precio de lista de ComunicArte~~ ✅ 797 (Mani, 28-sep) · fecha del corte | Closers |
 | E6 | Área de cada canal · qué ve el paid trafficker · P2 · D5 | Gerencia · Mani |
 | E7 | Checkouts · `utm_id` y `fbclid` · el 26% sin UTM | Pauta |

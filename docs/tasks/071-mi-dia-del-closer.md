@@ -43,7 +43,7 @@ Si, con revision visual obligatoria.
 1. Deals sin dueño: Pendiente Setteo nuevos y Agendados con host no registrado (ticket 070).
 2. **Llamadas sueltas** de Calendly (ADR 0049, ticket 096).
 3. Lo mío que necesita atención: llamada de hoy sin resultado, Re-agenda sin nueva fecha, Compromiso
-   Verbal vencido, cuota vencida, deal sin actividad en X días (X por definir), un lead con deal
+   Verbal vencido, cuota vencida, deal sin actividad en 3 días hábiles por defecto (configurable), un lead con deal
    abierto que volvió a llenar el formulario.
 4. Para el gerente: lo mismo de todo el equipo, más los leads unidos por teléfono.
 
@@ -83,7 +83,7 @@ Siempre de un programa (el del selector, ADR 0048). Depende también de 096 y 09
 ## ✅ Decisión 2026-09-29 (Mani): la X de "deal sin actividad"
 
 Es el rastreo de **deals estancados**. La X es un número por programa (`programs.dias_sin_actividad`,
-migración de arranque de E4 junto con las bandas del 070), en **días hábiles** (regla de Retia: solo se
+de migración de arranque de E4 junto con la configuración del Inbox), en **días hábiles** (regla de Retia: solo se
 excluyen sábados y domingos), con defecto **3**, editable en `/ajustes/programas`. "Actividad" es la
 fecha más reciente entre: actividad del deal, llamada, abono y movimiento de etapa. Solo cuenta para
 deals abiertos con dueño; Completo, Cierre Perdido y los anulados nunca están estancados.

@@ -73,17 +73,17 @@ Este ticket deja de ser una pantalla propia: sus dos listas son las secciones "s
 dueño**; Unclaimed queda para los Agendados cuyo host no está registrado. Todo lo demás de este ticket
 (la reja del reclamo, el origen a la vista) sigue igual.
 
-## 🆕 Reunión con los closers 2026-09-24 ([reunión con los closers del 24-sep](../overview.md), resumen en la propuesta §0): el Setteo viene ORDENADO
+## ✅ Decisión 2026-09-24/29 (Mani): el Setteo viene ordenado por el score del formulario
 
 - **Reparto:** el primero que ve el lead lo toma. El turno fijo de la hoja está desactualizado y se
-  retira. Reclamar desde el Inbox es exactamente lo que hacen hoy: se confirma.
-- **Prioridad:** hoy priorizan a mano por **ingreso declarado** (más de 10.000, luego más de 3.000, y
-  bajando) y por **recencia** (quien se acaba de registrar cierra más). Lo pidieron *"no como filtro,
-  sino ya priorizado"*. Dentro de este ticket: la sección se ordena por banda de ingreso y, dentro de
-  la banda, por fecha del último envío (🟡 el orden entre los dos).
-- 🔴 **Antes de construirlo:** qué pregunta del formulario es el ingreso, en qué moneda y periodo, y
-  las bandas por programa. La pregunta se **configura por fuente** (vive en `submissions.respuestas`),
-  nunca se escribe en el código (ADR 0012). Las bandas: 🔴 configurables por programa o fijas.
+  retira. Reclamar desde el Inbox es exactamente lo que hacen hoy.
+- **Prioridad:** el formulario calcula el score con su propia lógica por programa; el CRM no interpreta
+  ingreso, moneda, periodo ni bandas, y no agrega lógica de cálculo que tendría que variar por programa.
+- **Contrato:** el formulario manda `score`; el adaptador de Alejo lo lee mediante la llave `puntaje`
+  del mapeo de la fuente y el CRM lo copia a `submissions.puntaje` y `leads.puntaje`. El Setteo
+  ordena score descendente, luego envío más reciente; sin score va al final por recencia.
+- **Pendiente operativo:** configurar la variable de score en ambos Typeform. Sin ella, el Setteo
+  funciona por recencia y marca esos leads como "sin score".
 
 
 ---

@@ -19,9 +19,10 @@ lista de estudiantes**: un estudiante confirmado pertenece a una cohorte de un p
   cuotas pactadas, cartera vencida y `onboarded_at`.
 - **Dentro:** el cambio de cohorte de un estudiante, con quién y por qué (el caso de los 12 de
   ComunicArte que pasaron de agosto a septiembre).
-- **Por confirmar en la reunión:** si "estudiante confirmado" empieza en el primer abono o con el pago
-  completo (hoy cuentan los dos); y si Students lleva un checklist de onboarding (accesos, factura,
-  bonos) o se queda en `onboarded_at`.
+- **Decidido:** "estudiante" es la vista de los deals en `abonado` o `completo`, con su lead,
+  pertenecientes a cada cohorte de cada programa. No se calcula una nueva categoría.
+- **Decidido:** Students no lleva checklist de onboarding. Solo muestra y filtra `onboarded_at`.
+  El onboarding lo marca el closer dueño del deal; gerente y developer también pueden marcarlo.
 - **Fuera:** la factura electrónica, los accesos y los bonos, salvo que la reunión los meta.
 
 ## Done cuando
@@ -40,5 +41,5 @@ El onboarding (meterlo al grupo y mandarle el correo con los accesos) pasa fuera
 pidieron es un **tracker sí/no** para que quien lo hace vea qué le falta, por programa y cohorte:
 alcanza con `onboarded_at` (ticket 063) como columna y filtro. **Sin checklist.** La nota y la fecha
 límite del acuerdo de pago (ADR 0053, ticket 061) van como columnas aquí; las cuotas no.
-🔴 Sigue abierto: si "estudiante" empieza en el primer abono o en el pago completo, y quién hace el
-onboarding (¿Dani Rincón?).
+La decisión de producto es que la vista incluya ambos estados (`abonado` y `completo`) y que el
+onboarding sea una marca operativa del CRM, no una lista de tareas.
