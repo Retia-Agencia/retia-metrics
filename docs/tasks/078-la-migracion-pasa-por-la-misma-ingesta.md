@@ -77,3 +77,20 @@ mueve la etapa; solo se cuelga de deals de la migración, nunca del vivo. La hue
 externa, para el ensayo). Guardián: `tests/migracion-escritor-guardian.test.ts` (solo el motor, `historico.ts`
 y `lib/migracion/` los mencionan). Revisado por Codex: tres hallazgos (frontera de producto/cohorte, colgar del
 vivo, alias en el guardián), arreglados con su test.
+
+**Paso (3) hecho (29-sep, Alejo), misma rama:** el extractor, puro sobre matrices, en `lib/migracion/`
+(`template.ts` con los tipos de rareza, `celdas.ts`, `extraer-setteo.ts`, `extraer-llamadas.ts`,
+`extraer-estudiantes.ts`). Toda fila termina en deal, llamada, `sinDeal` (alcance, no rareza) o rareza. Tests
+en `tests/migracion-extractor.test.ts` con los encabezados reales. Corrido en solo lectura contra las hojas del
+29-sep (solo conteos), lo que destapó y se arregló:
+- **~260 fechas con año de dos dígitos** (`5/08/26`, siempre día/mes): `parsearFecha` ahora las lee como 20yy.
+  Un día ISO sin hora ya no retrocede un día (hallazgo de Codex).
+- **Columnas `Correo`/`WhatsApp` cruzadas en una hoja:** 87 filas de `Registro de llamadas` y 26 de 31 de
+  `Septiembre Estudiantes Cohort`. Se toma el correo de `WhatsApp` solo si `Correo` no trae uno
+  (`correoDeLaFila`).
+- Conteos resultantes (trabajado-y-reciente, 30 días): CA 658 deals de Setteo, 285 llamadas, 77 estudiantes con
+  77 abonos; TI 1.272 deals de Setteo, 229 llamadas, 66 estudiantes (14 en Compromiso Verbal sin abono).
+
+Sin resolver en el extractor (va al importador o al 080): el cruce del `Agendado` con su llamada, los 12
+"cohorte pasada" de CA Septiembre (no hay columna que los marque), y el catálogo de motivos por código de
+subcategoría.

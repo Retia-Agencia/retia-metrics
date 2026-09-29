@@ -49,6 +49,10 @@ describe("parsearFecha", () => {
     expect(parsearFecha("2026-08-19")!.getUTCFullYear()).toBe(2026);
   });
 
+  it("un dia ISO sin hora es medianoche de Bogota, no de UTC (no retrocede un dia)", () => {
+    expect(parsearFecha("2026-09-05")!.toISOString()).toBe("2026-09-05T05:00:00.000Z");
+  });
+
   it("devuelve null en vez de una fecha inventada", () => {
     expect(parsearFecha("")).toBeNull();
     expect(parsearFecha("no es fecha")).toBeNull();
@@ -71,6 +75,16 @@ describe("parsearFecha", () => {
     expect(parsearFecha("0001-01-01T00:00:00")).toBeNull();
     // El cero de Excel y de Google Sheets.
     expect(parsearFecha("30/12/1899")).toBeNull();
+  });
+
+  it("lee el ano de dos digitos como 20yy, dia/mes como siempre (ticket 078)", () => {
+    // Las pestañas de gestion lo traen asi en ~260 filas, todas de 2026.
+    expect(parsearFecha("15/08/26")!.toISOString()).toBe("2026-08-15T05:00:00.000Z");
+    expect(parsearFecha("5/9/26 14:30")!.toISOString()).toBe("2026-09-05T19:30:00.000Z");
+    // Un doble separador no es una fecha: no se adivina.
+    expect(parsearFecha("15/08//26")).toBeNull();
+    // Los centinelas siguen siendo de cuatro digitos.
+    expect(parsearFecha("1/1/0001")).toBeNull();
   });
 
   it("el piso no se come ninguna fecha real", () => {
