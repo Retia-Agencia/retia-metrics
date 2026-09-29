@@ -727,7 +727,9 @@ describe("pagina de documentos /documentos redirige a /recursos (ticket 023)", (
 describe("pagina de closer", () => {
   it("/mi-dia rechaza a un gerente y lo manda a su vista", async () => {
     auth.mockResolvedValue(sesionGerente);
-    // El gerente rechazado aterriza en su primer programa activo (destinoInicial).
+    // El gerente rechazado aterriza en su primer programa VISIBLE (destinoInicial ->
+    // programasVisibles por el alcance del rol, ticket 071).
+    programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
     expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/p/programa-a/dashboard");
   });
 
@@ -755,7 +757,8 @@ describe("pagina de closer", () => {
     auth.mockResolvedValue(sesionDeveloper);
     ponerVista("gerente");
     // En vista gerente, `paginaConRol("closer")` lo estrecha a gerente y lo rechaza,
-    // igual que a un gerente de verdad: aterriza en su primer programa.
+    // igual que a un gerente de verdad: aterriza en su primer programa VISIBLE.
+    programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
     expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/p/programa-a/dashboard");
   });
 
@@ -784,6 +787,7 @@ describe("pagina de developer /nerd-stats (ticket 025)", () => {
 
   it("rechaza a un gerente y lo manda a su primer programa", async () => {
     auth.mockResolvedValue(sesionGerente);
+    programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
     expect(await destinoDe(RUTA)).toBe("/p/programa-a/dashboard");
   });
 

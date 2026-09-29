@@ -3,5 +3,5 @@ import { paginaConSesion, destinoInicial } from "@/lib/auth/page-guards";
 
 export default async function Home() {
   const session = await paginaConSesion();
-  redirect(await destinoInicial(session.user.rol));
+  redirect(await destinoInicial(session.user.id, session.user.rol));
 }

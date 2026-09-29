@@ -111,13 +111,17 @@ describe("navegacion por rol", () => {
     }
   });
 
-  it("el gerente aterriza en el Dashboard del primer programa; el closer en Mi dia", () => {
+  it("el gerente aterriza en el Dashboard del primer programa; el closer en el Inbox de su primer programa (ticket 071)", () => {
     expect(rutaInicial("gerente", "programa-a")).toBe("/p/programa-a/dashboard");
-    expect(rutaInicial("closer", "programa-a")).toBe("/mi-dia");
+    expect(rutaInicial("closer", "programa-a")).toBe("/p/programa-a/inbox");
   });
 
   it("un gerente sin programas activos aterriza en ajustes", () => {
     expect(rutaInicial("gerente", null)).toBe("/ajustes");
+  });
+
+  it("un closer sin programas visibles cae en /mi-dia de respaldo (ticket 071)", () => {
+    expect(rutaInicial("closer", null)).toBe("/mi-dia");
   });
 
   it("el developer ve la union de items: mi-dia, dashboard, productos, recursos y ajustes (ADR 0025)", () => {

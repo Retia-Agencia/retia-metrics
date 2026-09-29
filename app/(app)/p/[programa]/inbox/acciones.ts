@@ -16,6 +16,8 @@ import { instanteDeBogota } from "@/lib/format";
 import { reclamarDeal } from "@/lib/deals/reclamar";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { completarAgendada } from "@/lib/deals/llamadas";
+import { asignarLlamadaSuelta } from "@/lib/calendly/colgar-llamada";
+import { buscarDealsAbiertos, type DealAbiertoBuscado } from "@/lib/queries/inbox";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 
 /**
@@ -161,4 +163,55 @@ export async function completarAgendadaAccion(entrada: EntradaCompletarAgendada)
     await completarAgendada(db, ctx.actor, { callId, fechaAgenda: instante(d, h), linkCalendly });
     return {};
   });
+}
+
+// ───────────────────────────────────────────── asignar una llamada suelta (decisión K2)
+
+const esquemaAsignar = z.object({
+  callId: id("Llamada inválida."),
+  dealId: id("Deal inválido."),
+});
+export type EntradaAsignarSuelta = z.input<typeof esquemaAsignar>;
+
+/**
+ * Asignar una llamada SUELTA (sin deal) a un deal abierto del MISMO programa (ADR 0049
+ * punto 6, decisión K2 del ticket 071: se asigna desde el Inbox). Reusa
+ * `asignarLlamadaSuelta`, que YA enforza los permisos —`trabajaLeads` y ver el programa—,
+ * que el deal esté abierto y que sea del mismo programa que la llamada. No se duplica la
+ * reja: se le pasa el actor de la sesión y el resultado es serializable.
+ */
+export async function asignarLlamadaSueltaAccion(
+  entrada: EntradaAsignarSuelta,
+): Promise<ResultadoInbox<{ movioAAgendado: boolean }>> {
+  return correr(async (ctx) => {
+    const { callId, dealId } = esquemaAsignar.parse(entrada);
+    // El alcance del programa lo comprueba `asignarLlamadaSuelta` contra la llamada y el
+    // deal; aquí solo se le pasa el actor (id + rol de vista) de la sesión, nunca del input.
+    const r = await asignarLlamadaSuelta(db, ctx.actor, { callId, dealId });
+    return { movioAAgendado: r.movioAAgendado };
+  });
+}
+
+// ───────────────────────────────────────────── buscar deals abiertos (para el selector)
+
+const esquemaBuscar = z.object({ programId: id("Programa inválido."), texto: z.string().max(120) });
+export type EntradaBuscarDeals = z.input<typeof esquemaBuscar>;
+
+/**
+ * Los deals abiertos del programa que casan un texto, para el selector de "asignar suelta".
+ * El programa se comprueba contra el ALCANCE de la sesión (un programa ajeno responde 404),
+ * y la lectura no cruza la frontera (ADR 0043). No muta: solo lee.
+ */
+export async function buscarDealsAbiertosAccion(
+  entrada: EntradaBuscarDeals,
+): Promise<ResultadoInbox<{ deals: DealAbiertoBuscado[] }>> {
+  const ctx = await contextoDe();
+  try {
+    const { programId, texto } = esquemaBuscar.parse(entrada);
+    await exigirProgramaVisible(ctx, programId);
+    const encontrados = await buscarDealsAbiertos(db, programId, texto);
+    return { ok: true, deals: encontrados };
+  } catch (error) {
+    return aError(error);
+  }
 }

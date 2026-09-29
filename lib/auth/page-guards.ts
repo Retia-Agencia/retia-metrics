@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import type { Session } from "next-auth";
 import { auth } from "./index";
-import { esAccesoTotal, puedeAcceder, type Rol } from "./roles";
+import { puedeAcceder, type Rol } from "./roles";
 import { rolDeVista } from "./vista";
 import { rutaInicial } from "@/lib/nav";
-import { programasActivos } from "@/lib/queries/programas";
+import { programasVisibles } from "@/lib/auth/alcance";
 
 /**
  * Guardas para paginas (no para APIs).
@@ -16,15 +16,17 @@ import { programasActivos } from "@/lib/queries/programas";
  * A donde mandar a alguien segun su rol, resolviendo el primer programa contra la
  * base solo cuando hace falta. El slug del primer programa vive en la base
  * (ADR 0012), asi que no puede salir de `rutaInicial`, que es pura; se resuelve
- * aqui y se le pasa como dato. El gerente y el developer (ADR 0025) aterrizan en un
- * programa, asi que solo por ellos se consulta la base; el developer nunca es
- * redirigido en la practica (pasa toda guarda), pero se resuelve igual por si algun
- * dia entra a "/".
+ * aqui y se le pasa como dato.
+ *
+ * El primer programa se resuelve por el ALCANCE del rol (`programasVisibles`, ADR 0048):
+ * el gerente y el developer ven todos los activos; el closer, solo aquellos donde tiene
+ * membresia activa. Asi el closer aterriza en el Inbox de un programa que SI ve (ticket
+ * 071); si no ve ninguno, `rutaInicial` lo lleva a `/mi-dia` de respaldo. El developer
+ * nunca es redirigido en la practica (pasa toda guarda), pero se resuelve igual.
  */
-export async function destinoInicial(rol: Rol | null): Promise<string> {
-  if (rol !== "gerente" && !esAccesoTotal(rol)) return rutaInicial(rol, null);
-  const programas = await programasActivos();
-  return rutaInicial(rol, programas[0]?.slug ?? null);
+export async function destinoInicial(userId: string, rol: Rol | null): Promise<string> {
+  const visibles = await programasVisibles(userId, rol);
+  return rutaInicial(rol, visibles[0]?.slug ?? null);
 }
 
 export async function paginaConSesion(): Promise<Session> {
@@ -43,7 +45,7 @@ export async function paginaConRol(...permitidos: Rol[]): Promise<Session> {
   // usuario, que no depende de la vista.
   const rol = await rolDeVista(session);
   if (!puedeAcceder(rol, permitidos)) {
-    redirect(await destinoInicial(rol));
+    redirect(await destinoInicial(session.user.id, rol));
   }
   return session;
 }

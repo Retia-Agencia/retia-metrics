@@ -70,6 +70,17 @@ sobre el mismo main.
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-29 (sesión 46, Mani, tercera parte): 114-A1 y 071 (el Inbox) hechos por Kiro.**
+  - 114-A1: `ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO` en `lib/deals/etapas.ts` (1, 2, 3, 9, 11) y
+    `RESULTADOS_FALLIDOS` en `mover-etapa.ts`, cada una en un solo lugar, con guardián.
+  - 071: `lib/queries/inbox.ts` (`inboxDelPrograma`): llamadas de hoy sin resultado (arriba), sin dueño
+    (070), llamadas sueltas con "Asignar a un deal" (K2) y "lo mío" en cinco cajas excluyentes (re-agenda sin
+    fecha, compromiso vencido, pago vencido, re-envío sin atender DERIVADO, estancado por días hábiles). El
+    closer aterriza en el Inbox de su primer programa VISIBLE (`destinoInicial` usa `programasVisibles`).
+    `/mi-dia` sigue vivo: retirarlo va al 075.
+  - Kiro corre en segundo plano y el agente que lo lanza regresa antes: esperar el pid de `kiro-cli chat` con
+    un Bash en background, no el reporte del agente.
+
 - **2026-09-29 (sesión 46, Mani, segunda parte): 070 hecho por Kiro; 0040 aplicada; auditoría 114.**
   - Inbox del programa en `/p/<programa>/inbox` (secciones sin dueño). El score lo manda Typeform: la fuente
     nombra la variable en la llave `puntaje` del mapeo; sin ella, null. **Falta configurarlo en los forms.**

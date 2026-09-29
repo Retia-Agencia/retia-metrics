@@ -34,7 +34,7 @@ type Busqueda = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function LoginPage({ searchParams }: { searchParams: Busqueda }) {
   const session = await auth();
-  if (session?.user?.id) redirect(await destinoInicial(session.user.rol));
+  if (session?.user?.id) redirect(await destinoInicial(session.user.id, session.user.rol));
 
   const params = await searchParams;
   const error = typeof params.error === "string" ? params.error : undefined;

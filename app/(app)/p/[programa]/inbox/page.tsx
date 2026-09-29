@@ -1,30 +1,46 @@
+import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
+import { motivos } from "@/lib/db/schema";
 import { duenosPosibles } from "@/lib/deals/duenos";
+import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
+import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
+import { inboxDelPrograma, type AlcanceInbox } from "@/lib/queries/inbox";
 import { PageShell } from "@/components/page-shell";
+import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { InboxSinDueno } from "@/components/deals/inbox-sin-dueno";
+import { InboxLlamadasDeHoy } from "@/components/deals/inbox-llamadas-de-hoy";
+import { InboxLlamadasSueltas } from "@/components/deals/inbox-llamadas-sueltas";
+import { InboxAtencion } from "@/components/deals/inbox-atencion";
 
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ programa: string }> };
 
 /**
- * El Inbox de un programa (ADR 0050, ticket 070): las dos listas por las que un deal SIN
- * dueño consigue uno —Agendados sin dueño (el caso urgente) y Pendiente Setteo—. Misma
- * guarda y mismo alcance que Deals: `paginaConRol("gerente", "closer")`, `rolDeVista` y
- * `programaVisiblePorSlug` -> `notFound()`. El developer pasa por `esAccesoTotal`; nunca se
- * compara el rol a mano.
+ * El Inbox de un programa (ADR 0050, tickets 070 y 071): con lo que un closer abre el día y
+ * ve, sin filtrar nada, qué tiene que hacer. Misma guarda y alcance que Deals:
+ * `paginaConRol("gerente", "closer")`, `rolDeVista` y `programaVisiblePorSlug` → `notFound()`.
+ * El developer pasa por `esAccesoTotal`; nunca se compara el rol a mano.
  *
- * Un programa que la sesión no ve responde 404, igual que un slug inexistente (ADR 0048).
+ * ## Alcance de las listas (regla dura de AGENTS.md)
+ * - Un closer ve LO SUYO (sus deals, sus llamadas de hoy). Quien administra
+ *   (`esAdministrador`: gerente o developer) ve todo el EQUIPO, con el dueño en cada fila.
+ * - El programa es FRONTERA (ADR 0043): todo es del programa del selector, jamás cruza.
  *
- * Lo que se muestra como botón es proyección: `trabajaLeads` ve "Reclamar" y `esAdministrador`
- * ve "Reasignar". La reja de verdad está en las server actions y en `lib/deals/`, que
- * rechazan igual una petición forjada.
+ * ## Orden de las secciones (reunión con closers, 24-sep)
+ *  1. Llamadas de hoy sin resultado — el dolor número uno, va PRIMERA.
+ *  2. Sin dueño (ticket 070): Agendados sin dueño y Pendiente Setteo.
+ *  3. Llamadas sueltas (decisión K2: se asignan aquí).
+ *  4. Lo mío que necesita atención.
+ *
+ * Lo que se muestra como botón es proyección (`trabajaLeads`, `esAdministrador`); la reja
+ * de verdad vive en las server actions y en `lib/`, que rechazan igual una petición forjada.
  */
 export default async function InboxDelProgramaPage({ params }: Props) {
   const session = await paginaConRol("gerente", "closer");
@@ -34,20 +50,61 @@ export default async function InboxDelProgramaPage({ params }: Props) {
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa || !esRolValido(rol)) notFound();
 
-  const [secciones, duenos] = await Promise.all([
+  const administra = esAdministrador(rol);
+  const puedeTrabajar = trabajaLeads(rol);
+  // Un administrador ve el equipo entero; el closer (y el developer en vista closer) ve lo suyo.
+  const alcance: AlcanceInbox = administra ? "equipo" : { ownerUserId: session.user.id };
+
+  const [inbox, secciones, duenos, plataformas, motivosFilas] = await Promise.all([
+    inboxDelPrograma(db, programa.id, alcance),
     seccionesSinDueno(db, programa.id),
     duenosPosibles(db, programa.id),
+    plataformasDelPrograma(db, programa.id),
+    db.select().from(motivos).where(eq(motivos.activo, true)),
   ]);
 
+  const motivosDeReagenda = motivosFilas
+    .map((m) => ({ id: m.id, nombre: m.nombre, tipo: m.tipo }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  const plataformasOpcion = plataformas.map((p) => ({ id: p.id, nombre: String(p.nombre) }));
+
   return (
-    <PageShell titulo={programa.nombre} descripcion="Inbox · sin dueño">
-      <InboxSinDueno
-        pendienteSetteo={secciones.pendienteSetteo}
-        unclaimed={secciones.unclaimed}
-        puedeReclamar={trabajaLeads(rol)}
-        administra={esAdministrador(rol)}
-        duenos={duenos}
-      />
+    <PageShell titulo={programa.nombre} descripcion="Inbox">
+      <div className="space-y-4">
+        {/* 1 · Llamadas de hoy sin resultado (el dolor número uno, va primera). */}
+        <InboxLlamadasDeHoy
+          llamadas={inbox.llamadasDeHoy}
+          slug={programa.slug}
+          puedeRegistrar={puedeTrabajar}
+          motivosReagenda={motivosDeReagenda}
+        />
+
+        {/* 2 · Sin dueño (ticket 070): Agendados sin dueño y Pendiente Setteo. */}
+        <InboxSinDueno
+          pendienteSetteo={secciones.pendienteSetteo}
+          unclaimed={secciones.unclaimed}
+          puedeReclamar={puedeTrabajar}
+          administra={administra}
+          duenos={duenos}
+        />
+
+        {/* 3 · Llamadas sueltas del programa (decisión K2: se asignan aquí). */}
+        <InboxLlamadasSueltas
+          llamadas={inbox.llamadasSueltas}
+          programId={programa.id}
+          puedeAsignar={puedeTrabajar}
+        />
+
+        {/* 4 · Lo mío que necesita atención. */}
+        <InboxAtencion
+          filas={inbox.atencion}
+          slug={programa.slug}
+          nombreDeEtapa={NOMBRE_DE_ETAPA}
+          tonoDeEtapa={TONO_DE_ETAPA}
+          plataformas={plataformasOpcion}
+          puedeRegistrar={puedeTrabajar}
+        />
+      </div>
     </PageShell>
   );
 }
