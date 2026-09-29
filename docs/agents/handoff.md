@@ -42,6 +42,110 @@ cada migracion nueva. Antes de tomar un ticket, git fetch: Alejo empuja al mismo
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-29 (Alejandro, sesión aparte fuera del repo): los dos Typeform ya mandan score, calidad y VALOR
+  del lead. PARA MANI: esto tiene que llegar al CRM y verse en cada lead.** Nada de esto tocó código del
+  repo; todo se cambió en Typeform por la API (PUT del form completo) y se probó con envíos reales.
+  - **Forms tocados** (ambos ya con webhook a producción, sin cambios en el webhook):
+    - Tactical: "De Cero a Tactical Investor", form `GmPGBOf9`
+      (https://postulacioness.typeform.com/to/GmPGBOf9), webhook
+      `/api/webhooks/formularios/e3007c99-35cc-4f27-889e-1b07d6c720d1`. Última edición 2026-09-29 17:20 UTC.
+    - Comunicarte: "Postulación Evento Comunicarte", form `nkMLdeh8`
+      (https://metodocomunicarte.typeform.com/to/nkMLdeh8), webhook
+      `/api/webhooks/formularios/f919d215-9212-4f1b-9719-fdb957ac7747`. Última edición 2026-09-29 17:58 UTC.
+    - **Los envíos ANTERIORES a esas horas no traen las variables nuevas** (`tag_lead_quality`, `hvm_*`,
+      `lead_value`; Comunicarte tampoco traía `score`). El CRM debe mostrarlos como "sin valor", NUNCA como
+      BAJO VALOR ni Low por defecto.
+  - **Variables que ahora llegan en `form_response.variables`** (las mismas 6 en los dos forms):
+
+    | Variable | Tipo | Valores | Qué es |
+    |---|---|---|---|
+    | `score` | number | 0, -100, -200, -300… | Calidad. Arranca en 0; -100 por cada respuesta descalificadora. |
+    | `tag_lead_quality` | text | `High` / `Low` | High = llegó a la llamada (Calendly). Low = descalificado. Ya NO existe `Medium`. |
+    | `hvm_points` | number | 0 a 50 | Puntos de capacidad (ingreso + situación profesional). Base del valor. |
+    | `hvm_tier` | text | `A+` / `A` / `B` / `C` | Tier por `hvm_points`: A+ ≥45, A 30–44, B 15–29, C <15. |
+    | `lead_value` | text | `MUY ALTO VALOR` / `ALTO VALOR` / `VALOR MEDIO` / `BAJO VALOR` | **La etiqueta a mostrar en el lead.** Matriz tier × calidad (abajo). |
+    | `estado` | text | `descartado` / `setteo_no_calificado` / `""` | Ya existía; NO se tocó (ver problemas abajo). |
+
+    Ejemplo real de lo que manda Typeform (envío de prueba, Tactical, lead A+ calificado):
+    `[{key:"score",type:"number",number:0},{key:"tag_lead_quality",type:"text",text:"High"},
+    {key:"hvm_points",type:"number",number:50},{key:"hvm_tier",type:"text",text:"A+"},
+    {key:"lead_value",type:"text",text:"MUY ALTO VALOR"},{key:"estado",type:"text",text:""}]`
+  - **Reglas exactas (para que el CRM no tenga que adivinar nada; el CRM NO recalcula, decisión A8):**
+    - **Calidad (`score` → `tag_lead_quality`)**: -100 por cada descalificador. Los mismos descalificadores
+      mandan al ending "¡Perfecto! Estamos analizando tu aplicación" y los demás pasan a Calendly. El tag
+      `High` se asigna al pasar por el bloque de Calendly (`score >= 0`); el default es `Low`. En la práctica:
+      **High ⇔ agendó/llegó a Calendly, Low ⇔ descalificado.** Todo lead en Setteo que llegó por Calendly
+      tiene score 0: el score es binario a propósito (decisión de Alejandro: "todos los que llegan a llamada
+      son High").
+      - Tactical descalifica: ingreso "Menos de $1.000 USD"; urgencia "No es prioridad"; inversión 1.500 USD
+        "No, en este momento no cuento con los recursos".
+      - Comunicarte descalifica: ingreso "Menos de $700 USD" o "$700 - $1.500 USD"; urgencia "No es
+        prioridad"; inversión 797 USD "No…". **Antes descalificaba también "Estudiante"; Alejandro pidió
+        quitarlo el 29-sep**: la situación profesional ya no descalifica en ningún form.
+    - **Puntos de valor (`hvm_points`)** = ingreso + situación profesional (NO afecta la calidad):
+      - Ingreso Tactical: <$1k 0 · $1k–3k 10 · $3k–10k 20 · >$10k 30.
+      - Ingreso Comunicarte (mismas posiciones, otros rangos): <$700 0 · $700–1.500 10 · $1.500–3.000 20 · >$3.000 30.
+      - Situación profesional (igual en los dos): Estudiante 0 · Desempleado 0 · Pensionado 10 ·
+        0–5 años 10 · 5–15 años 20 · +15 años 20.
+    - **Matriz `lead_value`** (tier × calidad). "ALTO VALOR" es la regla que Alejandro trajo de una captura
+      del CRM (con Medium pasado a Low); los otros tres nombres los confirmó él:
+
+      | Tier | High (llamada) | Low (descalificado) |
+      |---|---|---|
+      | A+ | MUY ALTO VALOR | ALTO VALOR |
+      | A | MUY ALTO VALOR | ALTO VALOR |
+      | B | ALTO VALOR | VALOR MEDIO |
+      | C | VALOR MEDIO | BAJO VALOR |
+
+      Ojo: un descalificado puede ser ALTO VALOR (p. ej. gana >$10k pero "No es prioridad"). Es a propósito:
+      el valor es un eje distinto de la calidad; ese lead vale la pena recuperarlo aunque no haya agendado.
+      El tier y el valor se calculan ANTES del salto de descarte, así que los descalificados también los traen.
+      En Comunicarte no existe C+High (todo C tiene ingreso descalificador).
+  - **Cómo se verificó**: simulación de las 216 combinaciones de respuestas contra la lógica publicada (0
+    casos donde calidad y ending no coincidan) y envíos reales desde Chrome a COPIAS temporales de cada form
+    (sin webhook y con una pantalla en lugar de Calendly, ya borradas; no entró nada al CRM). Resultados leídos
+    por la API de Typeform, todos como se esperaba: Tactical A+/High/MUY ALTO VALOR, A+/Low/ALTO VALOR,
+    C/High/VALOR MEDIO; Comunicarte A+/High/MUY ALTO VALOR, (Estudiante) A/Low/ALTO VALOR, B/High/ALTO VALOR.
+    **No se probó el camino webhook → CRM**: el primer lead real es la prueba.
+  - **Qué hace HOY el CRM con esto, sin tocar código** (leído en `lib/ingesta/adaptador-typeform.ts`):
+    - Todas las variables entran como columnas `variable:<key>` en `submissions.respuestas` (jsonb). O sea,
+      desde ya se guardan `variable:score`, `variable:tag_lead_quality`, `variable:hvm_points`,
+      `variable:hvm_tier` y `variable:lead_value`, pero **nada las muestra**.
+    - `puntaje` (ticket 070, orden del Pendiente Setteo) sigue en null porque ninguna fuente tiene la llave
+      `puntaje` en `sources.mapeoColumnas`. Es el "falta configurarlo en los forms" del 070: **ya está del lado
+      de Typeform; falta el mapeo del lado del CRM.**
+  - **Qué falta en el CRM (propuesta; decide Mani):**
+    1. **Configuración, sin código:** en las dos fuentes, poner `puntaje` en `sources.mapeoColumnas`.
+       **Recomendación: `"puntaje": "hvm_points"`, no `score`.** El Setteo solo tiene leads que llegaron a
+       Calendly, y todos tienen `score` 0, así que ordenar por `score` no ordena nada. `hvm_points` (0–50) sí
+       ordena por valor. Si prefieren un número que junte calidad y valor, se puede agregar en Typeform una
+       variable más; pedírselo a Alejandro.
+    2. **Mostrar el valor en cada lead (código, ticket nuevo):** badge con `lead_value` en la tarjeta del
+       Kanban, la Ficha del Deal (074) y las filas del Inbox (070/071), como la captura que trajo Alejandro
+       (badge azul "ALTO VALOR" con tooltip de la regla). Sugerencia de colores: MUY ALTO VALOR la más
+       fuerte, luego ALTO, MEDIO y BAJO en gris; "sin valor" para envíos viejos. En el tooltip, `hvm_tier` +
+       `tag_lead_quality` (p. ej. "Tier A+ · Low"). Dos caminos:
+       - (a) Leerlo de `submissions.respuestas->>'variable:lead_value'` del "envío que decide" (misma regla
+         que `puntaje`/`calificacion`). Sin migración, pero es un string dentro del jsonb.
+       - (b) **Recomendado:** promoverlo como `puntaje`: una llave en el mapeo (p. ej. `valor` →
+         `lead_value`, y si se quiere `tier` → `hvm_tier`), columna en `submissions` y resumen en `leads`
+         por la regla del envío que decide. Así se puede filtrar y ordenar ("solo ALTO VALOR y más"). Necesita
+         migración (la genera la sesión principal con el ok de Mani). Mismo molde que `variablePuntaje`:
+         sin defecto, el mapeo nombra la variable. Si el texto no es uno de los 4 valores, null (no se adivina).
+    3. Filtro por valor en el Inbox y en el Kanban: el caso de uso es que setteo priorice MUY ALTO/ALTO, y
+       recuperar los descalificados ALTO VALOR (Low) que hoy se pierden en "descartado".
+  - 🩸 **Problemas de `estado` que existían antes y NO se tocaron** (el Estado del CRM sale de esta variable):
+    - **Tactical nunca asigna `estado`**: la variable existe con valor `""` y ninguna regla la cambia. Sus
+      descalificados entran SIN Estado (los que agendan solo suben a `con_calendly` si la fuente tiene
+      `campoAgenda` en su mapeo; no lo revisé en la base).
+    - **Comunicarte** pone `descartado` solo cuando no puede invertir. Ingreso <$1.500 o "No es prioridad"
+      también descalifican, pero quedan en `setteo_no_calificado`.
+    - Arreglo posible en Typeform (Alejandro lo puede hacer por la API en minutos): en los dos forms,
+      `estado = descartado` si `score < 0` y `setteo_no_calificado` si no. **Antes, Mani confirma qué
+      significa cada Estado en el CRM**, porque cambia conteos del embudo.
+  - Respaldos del JSON original de los forms: solo en el scratchpad de la sesión de Alejandro (temporal). Si
+    hay que revertir, la lógica de arriba basta para reconstruirla.
+
 - **2026-09-29 (sesión 46, Mani, tercera parte): 114-A1 y 071 (el Inbox) hechos por Kiro.**
   - 114-A1: `ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO` en `lib/deals/etapas.ts` (1, 2, 3, 9, 11) y
     `RESULTADOS_FALLIDOS` en `mover-etapa.ts`, cada una en un solo lugar, con guardián.
