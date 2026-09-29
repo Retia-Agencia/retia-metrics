@@ -5,8 +5,8 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 44 de Alejo (28-sep, noche). El anterior:
-> `git show cacc569:docs/agents/handoff.md`.
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 45 de Alejo (29-sep, madrugada). El anterior:
+> `git show 89b6902:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas:
@@ -15,62 +15,72 @@ ticket vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta
 docs/structure.md (§9, el sistema de diseño Tinta, es OBLIGATORIO antes de tocar una pantalla),
 docs/operations.md y docs/adr/README.md.
 
-Estado al cierre del 28-sep (sesion 44, Alejo): UNA sola base y es PRODUCCION ("CRM Retia", ref
-hfqmiyiuyqapdsbywrag). 39 migraciones (0000-0038), todas aplicadas. 1.300 tests. Ultimo push: a584454 (096). El CI corre en cada
-push a main (ahora con un Postgres de servicio para la prueba de concurrencia); SIN proteccion de main
-(Mani: velocidad), el CI es alarma y no reja. Hay base local: npm run db:local + npm run dev:local.
+Estado al cierre del 29-sep (sesion 45, Alejo): UNA sola base y es PRODUCCION ("CRM Retia", ref
+hfqmiyiuyqapdsbywrag). 40 migraciones (0000-0039), todas aplicadas. 1.365 tests (medido por Mani con el 069). Produccion:
+https://retia-metrics-seven.vercel.app. CI verde en cada push a main (sin proteccion de main).
 
-E0 y E1 CERRADAS (el traslado de Sheets corrio en produccion: ComunicArte 2.478 leads, Tactical 2.891,
-conciliacion en 0). E2: el carril de Mani esta HECHO (060 abonos, 061 acuerdo de pago y cartera vencida,
-063 onboarding y cambio de cohorte) y la prueba de costura de E2 existe y pasa (tests/costura-e2.test.ts).
-E2 cierra cuando Alejo termine el 096 (Calendly). La 0038 (de Mani) esta aplicada y el trabajo de Alejo
-esta en main: el escritor lib/calendly/colgar-llamada.ts (colgada/suelta, asignar a mano), el 052 guarda el
-host y el deal es de la closer host, y la cuenta de Calendly de cada closer por programa se elige en
-/ajustes/usuarios de la lista que da el PAT del programa (solo administrador). A5 esta DECIDIDA (Mani,
-28-sep): WEBHOOK (diseño al final del ticket 096; falta confirmar con Michael que las dos cuentas de
-Calendly son plan Standard o superior). Para cerrar el 096 (lista al final del ticket): recorrer
-/ajustes/usuarios y vincular las cuentas de las closers, CONSTRUIR el webhook (sin el NADIE llama al
-escritor; una reagenda mueve la fecha de la MISMA llamada, y hoy el escritor crea una por uuid de
-invitado; "Conectar Calendly" guarda la calendly_signing_key) y decidir si la suelta en el Inbox y los
-botones pasan al 071/074. El 097 esta en main; le falta ver el aspecto a 390 px.
+E0 y E1 CERRADAS. E2: el carril de Mani esta hecho; E2 cierra con el 096 de Alejo. El 097 se CERRO
+(29-sep, celular revisado en produccion).
 
-SIGUIENTE SESION DE ALEJO: las etapas van en serie, asi que PRIMERO cerrar el 096 para cerrar E2, en
-este orden: (1) recorrer /ajustes/usuarios en produccion (consola abierta, abrir cada selector) y vincular
-las cuentas de Calendly de las closers; (2) pedirle a Michael la confirmacion del plan Standard de las dos
-cuentas; (3) construir el webhook segun el diseño de Mani al final del ticket 096 (ruta
-/api/webhooks/calendly/<id opaco>, firma con calendly_signing_key, sobres_crudos, idempotente por huella,
-cancelacion/no-show/reagenda sobre la MISMA llamada, "Conectar Calendly" que crea la suscripcion por la
-API) — el webhook llama a registrarLlamadaDeCalendly de lib/calendly/colgar-llamada.ts; (4) cerrar el 096
-y el 097 (390 px) en el tracker. Recien ahi E3.
+096 (Calendly), casi cerrado: el WEBHOOK esta construido, en main y VERIFICADO EN PRODUCCION con una cita
+y una cancelacion reales (firma y payload confirmados). Ruta /api/webhooks/calendly/<id del programa>,
+firma con programs.calendly_signing_key, caja negra en sobres_crudos (origen 'calendly', sin fuente; la
+0039 lo permite), reagenda sobre la MISMA llamada, cancelacion/no-show -> Re-agenda, la suelta que llego
+antes que el envio la adopta el 052. "Conectar Calendly" en /ajustes/programas ya corrio en los DOS
+programas. Detalle en el ticket 096 (secciones del 28-sep noche y 29-sep).
 
-LO QUE SIGUE, E3 (plan-reparto): Mani 069 (Kanban, HECHO 29-sep) -> 074 (Ficha del deal, L, SIGUIENTE); Alejo 077
-(barrer las pestañas de gestion) -> 078 (el 081 se descarto: solo USD). A4 YA DECIDIDA (Mani, 28-sep): la UI se prueba USANDOLA, porque tiene
-que servir y ser intuitiva; sin tests de componente ni Playwright. Ojo: para usarla sin tocar produccion
-hace falta un login local (Auth.js solo tiene Google), asi que en la sesion de E3 decide con Mani si se
-hace ese login para la base local o si se recorre contra produccion con cuidado. Antes de E3 decidir
-todavia: Setteo YA DECIDIDO (Mani, 28-sep, ticket 080): deal para lo trabajado (En proceso o con actividad) + los Pendiente de los ultimos 30 dias; la cola vieja sin actividad y los No interesado/Cerrado solo como lead; el alcance es un PARAMETRO del script (por defecto trabajado-y-reciente, `total` para migrarlo todo). La tasa COP->USD ya no existe: solo USD, el 081 se descarto. Migracion de arranque de E3: lista de lo no clasificable (080).
+SIGUIENTE SESION DE ALEJO, para cerrar el 096 (solo configuracion en la app, nada de codigo):
+(1) Preguntarle a Mani/Andrea con que cuenta de Calendly recibe llamadas Andrea en cada programa
+    (Comunicarte: info@eventoscomunicarte.com de Milena o soymarumarquez@gmail.com de Maru; Tactical:
+    equipo@ttrading.co, registro@ttrading.co o jvieira@ttrading.co).
+(2) Crear el usuario de Maru DESDE LA APP (/ajustes/usuarios, no por codigo, Mani 29-sep) con
+    soymarumarquez@gmail.com, rol closer y sus membresias.
+(3) Vincular las cuentas en /ajustes/usuarios. DECIDIDO (Mani 29-sep): la vincula el ADMINISTRADOR; puede
+    ser compartida o personal; una cuenta es de UNA closer por programa (indice unico).
+(4) Decidir con Mani si la pantalla de la llamada suelta y "buscar llamada" van en el 096 o pasan al
+    071/074 (backends: asignarLlamadaSuelta, buscarLlamadaDelDeal). Opcional: probar reagenda y no-show
+    con una cita real. Luego marcar el 096 done en el tracker. Recien ahi E3.
+
+LO QUE SIGUE, E3 (plan-reparto): Mani 069 (Kanban, HECHO 29-sep) -> 074 (Ficha del deal, SIGUIENTE); Alejo 077
+(barrer las pestañas de gestion) -> 078 (el 081 se descarto: solo USD). A4 decidida: la UI se prueba
+USANDOLA, contra la base de Docker: npm run db:local + npm run dev:local trae "Entrar como (local)"
+(login local de Mani, solo con AUTH_LOGIN_LOCAL=1 y base local). Setteo decidido (ticket 080). Para el 075 (Mani): a 390 px la tabla "Closers" del Dashboard
+queda apretada, y los filtros muestran "hoy"/"todos" en vez de la etiqueta.
 
 Al construir 069 y 074 ojo: TODO el dinero, el acuerdo de pago, la cartera, el onboarding y el cambio de
-cohorte ya existen en lib/ SIN pantalla ni server action (registrarAbono, anularAbono, editarAcuerdoDePago,
-marcarOnboarded, desmarcarOnboarded, cambiarCohorte en lib/deals/; carteraVencida y estudiantesDe en
-lib/queries/; buscarLlamadaDelDeal de Alejo en lib/calendly/). Las acciones deben pasar por paginaConRol /
-requireRole y tomar el rol de rolDeVista(session), nunca session.user.rol crudo; el actor sale de la
-sesion, nunca del input. Cargar una pantalla no es probarla: hace clic en todo lo que se abre y mira la
-consola (Base UI lanza en ejecucion). Una regla de permiso se prueba forjando la peticion.
-Decision abierta que toca la UI: el registrarAbono devuelve cohorteAsignada null cuando no hay cohorte
-activa y el cobro entra igual: la pantalla tiene que decirlo.
+cohorte ya existen en lib/ SIN pantalla ni server action (lib/deals/, lib/queries/; buscarLlamadaDelDeal y
+asignarLlamadaSuelta en lib/calendly/). Acciones por paginaConRol / requireRole, rol de rolDeVista(session),
+actor de la sesion. Cargar una pantalla no es probarla: clic en todo lo que se abre y consola. Una regla de
+permiso se prueba forjando la peticion. registrarAbono devuelve cohorteAsignada null sin cohorte activa: la
+pantalla tiene que decirlo.
 
 Reglas: npm test es scripts/test.mjs (una suite por maquina): nunca npx vitest directo ni en background.
-Las migraciones las genera y aplica la sesion principal. Kiro implementa en un worktree creado A MANO
-(git worktree add), NO con isolation: worktree (ahi el guard bloquea kiro-cli); la sesion principal corre
-la suite y revisa. Codex sin cuota hasta el 12-oct. Antes de tomar un ticket haz git fetch, y antes de
-empujar otra vez: Alejo trabaja en paralelo sobre el mismo main.
+Las migraciones las genera y aplica la sesion principal, con el ok de Mani y mirando el ref de la
+connection string. Kiro implementa en un worktree creado A MANO (git worktree add); Codex sin cuota hasta
+el 12-oct. Chrome: la extension no baja una ventana de ~658 px; a ese ancho ya es diseño de
+celular. Antes de tomar un ticket haz git fetch, y antes de empujar otra vez: Mani trabaja en paralelo
+sobre el mismo main.
 ```
 
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-29 (sesión 45, Alejo): el webhook de Calendly (A5) en producción, 0039 aplicada, 097 cerrado.**
+  - **Webhook** (`086ba9a`): ruta `app/api/webhooks/calendly/[programa]/route.ts`; lo puro en
+    `lib/calendly/evento-webhook.ts` (firma `t=,v1=` HMAC hex sobre `<t>.<cuerpo>`, lectura del evento); el efecto
+    en `lib/calendly/eventos-de-cita.ts`; la caja negra compartida con el de formularios en
+    `lib/ingesta/caja-negra.ts`; "Conectar Calendly" en `lib/calendly/suscripcion.ts` (único escritor de la clave,
+    con guardián; la URL sale de `AUTH_URL`).
+  - **0039** (ok de Mani, aplicada): `sobres_crudos.source_id` nulo + `program_id` (37 rellenados) + `origen`
+    con CHECK. `entregasHuerfanas` ahora filtra por `program_id` nulo.
+  - 🩸 **Fuga tapada:** `sinToken` no quitaba `calendly_signing_key` de la lectura de programas.
+  - **Verificado en producción:** los dos programas conectados; una cita de prueba entró como suelta y su
+    cancelación (por la API) la pasó a `cancelada`. Queda esa llamada de prueba (sin deal, no cuenta).
+  - **Decisión (Mani):** el administrador vincula la cuenta de Calendly de cada closer, compartida o personal.
+    En Calendly, Andrea no tiene cuenta propia y Maru no tiene usuario en el CRM.
+  - **097 cerrado:** celular revisado en producción (a 658 px y con el contenido a 390).
+  - **Medido:** 1.335 tests, typecheck, lint, build y CI limpios.
 - **2026-09-29 (sesión 45, Mani): 069 hecho, el Kanban de Deals. Primer ticket de E3 del carril de Mani.**
   - **Login local** (`lib/auth/login-local.ts`, `lib/db/es-local.ts`): "Entrar como (local)" solo con
     `AUTH_LOGIN_LOCAL=1` (lo pone `dev:local`) y una `DATABASE_URL` local; en producción no existe. Decisión
