@@ -9,6 +9,7 @@ import { esquemaAbono } from "@/lib/abonos/esquema";
 import { exigirPlataformaActiva } from "@/lib/abonos/plataforma";
 import { mismoCloser } from "@/lib/closers/identidad";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
+import { cohorteActiva } from "@/lib/queries/cohortes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { etapaALaQueVuelve, moverEtapa } from "./mover-etapa";
@@ -61,6 +62,12 @@ export interface AbonoRegistrado {
   movioElDeal: boolean;
   /** Lo que queda por pagar; nunca `null` aqui porque se rechaza antes un deal sin precio. */
   saldo: number;
+  /**
+   * La cohorte que quedo asignada al deal en ESTE abono (la activa del programa, spec §4), o
+   * `null` si no se asigno nada: ya tenia una, o el programa no tiene cohorte activa (entonces
+   * el deal sigue sin cohorte y la pantalla lo tiene que decir; no se bloquea un cobro real).
+   */
+  cohorteAsignada: string | null;
 }
 
 type FilaDeal = typeof deals.$inferSelect;
@@ -162,12 +169,26 @@ export async function registrarAbono(
         },
       );
 
+      // La cohorte se asigna SOLA la primera vez que el deal recibe plata (ticket 063, spec §4):
+      // la activa del programa. Un deal ya asignado no se toca (moverlo es `cambiarCohorte`).
+      let cohorteAsignada: string | null = null;
+      if (deal.cohortId == null) {
+        cohorteAsignada = (await cohorteActiva(deal.programId, tx))?.id ?? null;
+        if (cohorteAsignada) {
+          await editarConRastro(
+            { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: emailLead },
+            deal.id,
+            { cohortId: cohorteAsignada },
+          );
+        }
+      }
+
       // El movimiento lo decide el saldo que dejo el abono, leido de nuevo del modulo.
       const despues = (await saldosDeDeals(tx, [deal.id])).get(deal.id)!;
       const saldo = despues.saldo!;
       const destino: EtapaDeal = saldo <= 0 ? "completo" : "abonado";
 
-      if (deal.etapa === destino) return { abonoId, etapa: deal.etapa, movioElDeal: false, saldo };
+      if (deal.etapa === destino) return { abonoId, etapa: deal.etapa, movioElDeal: false, saldo, cohorteAsignada };
       if (!transicion(deal.etapa, destino)) {
         // Desde Pendiente Setteo, Agendado, Re-agenda o Proxima Cohorte no hay flecha a
         // pagar. Se rechaza (y el abono se deshace con la transaccion) en vez de inventar
@@ -180,7 +201,7 @@ export async function registrarAbono(
       // El sistema toma la flecha; el motor exige el comprobante del abono y la etapa que
       // corresponde, y si algo falta la transaccion entera se deshace con su mensaje.
       await moverEtapa(tx, { dealId: deal.id, a: destino, actor: { tipo: "sistema" } });
-      return { abonoId, etapa: destino, movioElDeal: true, saldo };
+      return { abonoId, etapa: destino, movioElDeal: true, saldo, cohorteAsignada };
     });
   });
 }

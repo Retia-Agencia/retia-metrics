@@ -24,7 +24,7 @@ Tactical 2.891 (con las 65 de Forms viejo, el 079); un segundo ensayo crea 0; la
 /ajustes/salud da 0 faltantes en los dos programas. Quedan para revision humana 18 envios de Tactical
 sin correo ni telefono conocido (sin lead), 69 uniones por telefono y 2 telefonos de otro lead.
 
-Sigue E2 (plan-reparto): Mani 060 y 061 HECHOS (28-sep) -> 063; Alejo 097 -> 096.
+Sigue E2 (plan-reparto): Mani 060, 061 y 063 HECHOS (28-sep); Alejo 097 -> 096.
 D3 decidida (se mantiene: Abonado ocupa el cupo). Antes de 096 decidir: A5 (webhook o consulta de
 Calendly, plan de Calendly, Vercel Pro) y de quien es el deal si el lead agenda con otra closer (ya
 decidido 28-sep: de la closer con quien agenda, 096). Migracion de arranque de E2: cuenta de Calendly por
@@ -40,6 +40,16 @@ la suite y revisa. Codex sin cuota hasta el 12-oct. Antes de tomar un ticket haz
 ## Memory
 
 _Estado actual del trabajo. Lo mas reciente arriba._
+
+- **2026-09-28 (sesión 43, cuarta parte): 063 hecho, cierra el carril de Mani de E2.** Sin migración.
+  - `lib/deals/estudiante.ts`, `lib/queries/estudiantes.ts`. Marca el onboarding el closer dueño o un
+    administrador; el cambio de cohorte lleva motivo en texto y la venta cuenta donde asiste.
+  - 🩸 **Nadie asignaba la cohorte al cerrar:** `registrarAbono` la asigna en el primer abono (la activa).
+  - **Medido:** 1.231 tests, typecheck, lint y build limpios. El guardián del ADR 0012 cazó el nombre de un
+    programa en un comentario: sin nombres de programa ni en comentarios de `lib/`.
+  - **Carril de Mani de E2 terminado (060, 061, 063).** Falta lo de Alejo (097 hecho, 096 en curso) y la
+    prueba de costura de E2 (una cita cae en su deal, el Grain lo pasa a Atendido, un abono a Abonado, el que
+    salda a Completo, anular lo devuelve), que necesita el 096 de Alejo.
 
 - **2026-09-28 (sesión 43, tercera parte): 061 hecho, acuerdo de pago y cartera vencida.** Sin migración.
   - `lib/deals/pago.ts` y `lib/queries/cartera.ts`. Decisión de Mani: el inicio de clases de la cohorte es

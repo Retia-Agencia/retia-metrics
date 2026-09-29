@@ -340,3 +340,36 @@ describe("anularAbono: la etapa se recalcula", () => {
     expect(r).toMatchObject({ etapa: "cierre_perdido", movioElDeal: false });
   });
 });
+
+describe("registrarAbono: la cohorte se asigna sola la primera vez que el deal recibe plata (063)", () => {
+  it("un deal sin cohorte queda en la activa del programa, con su rastro", async () => {
+    const dealId = await nuevoDeal("atendido", { cohortId: null });
+    const r = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
+    expect(r.cohorteAsignada).toBe(cohortId);
+    const [d] = await db.select({ cohortId: deals.cohortId }).from(deals).where(eq(deals.id, dealId));
+    expect(d.cohortId).toBe(cohortId);
+    const rastro = await db.select().from(changeLog).where(and(eq(changeLog.registroId, dealId), eq(changeLog.campo, "cohortId")));
+    expect(rastro).toHaveLength(1);
+  });
+
+  it("un deal que ya tiene cohorte no se toca", async () => {
+    const [otra] = await db
+      .insert(cohorts)
+      .values({ programId, codigo: "C2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25", estado: "futuro" })
+      .returning();
+    const dealId = await nuevoDeal("atendido", { cohortId: otra.id });
+    const r = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
+    expect(r.cohorteAsignada).toBeNull();
+    const [d] = await db.select({ cohortId: deals.cohortId }).from(deals).where(eq(deals.id, dealId));
+    expect(d.cohortId).toBe(otra.id);
+  });
+
+  it("sin cohorte activa el cobro entra igual y el deal sigue sin cohorte (no se bloquea plata real)", async () => {
+    await db.update(cohorts).set({ estado: "cerrado" }).where(eq(cohorts.id, cohortId));
+    const dealId = await nuevoDeal("atendido", { cohortId: null });
+    const r = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
+    expect(r).toMatchObject({ etapa: "abonado", cohorteAsignada: null });
+    const [d] = await db.select({ cohortId: deals.cohortId }).from(deals).where(eq(deals.id, dealId));
+    expect(d.cohortId).toBeNull();
+  });
+});
