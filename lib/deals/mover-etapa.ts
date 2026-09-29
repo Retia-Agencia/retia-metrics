@@ -415,7 +415,14 @@ const HECHOS_VACIOS: HechosDelDeal = {
  * el link de Grain (ticket 058), "sucedio" es que el closer la marco con uno de estos.
  */
 const RESULTADOS_QUE_OCURRIERON = ["show", "compromiso_pago", "cerrada", "perdida"] as const;
-const RESULTADOS_FALLIDOS = ["no_show", "cancelada"] as const;
+
+/**
+ * Los dos resultados de una llamada fallida (ADR 0015): el motor los lee para el hecho
+ * `llamada_fallida`. La lista es UNA y vive aquí; `lib/deals/llamadas.ts` la re-exporta
+ * para su schema de `marcarFallida` y para la server action de acciones de deal. Estuvo
+ * copiada en los dos módulos (hallazgo A3 del ticket 114).
+ */
+export const RESULTADOS_FALLIDOS = ["no_show", "cancelada"] as const;
 
 type FilaDeal = typeof deals.$inferSelect;
 

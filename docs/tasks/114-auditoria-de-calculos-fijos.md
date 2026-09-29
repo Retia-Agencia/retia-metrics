@@ -20,14 +20,16 @@ las métricas (dashboard, cartera, kanban), y los umbrales ya viven en la base (
    `lib/deals/llamadas.ts` y `lib/calendly/colgar-llamada.ts` dicen 1, 2, 3, 9 y 11 (la decisión del
    24-sep); **`lib/ingesta/regla-de-deals.ts` dice 1, 2 y 9**, escrita antes de Seguimiento. Efecto: un
    lead en Pendiente Reagenda o en Seguimiento que vuelve a llenar el formulario con Calendly **no pasa a
-   Agendado**. Arreglo: la lista vive en `lib/deals/etapas.ts` y las tres la importan, con un test de la
-   regla desde 3 y 11. Carril de Alejo (`lib/ingesta/`).
+   Agendado**. ✅ **Arreglado el 29-sep** (Kiro, con ok de Mani para tocar `lib/ingesta/`):
+   `ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO` en `lib/deals/etapas.ts`, importada por los tres; test de 3 y 11 y
+   guardián contra una copia local.
 2. **"¿La llamada ocurrió?"**: `mover-etapa.ts` cuenta `show, compromiso_pago, cerrada, perdida`; las tres
    consultas del embudo en `lib/queries/dashboard.ts` cuentan "con show" sin `perdida`. Cuando se registre
    una llamada `perdida` (el lead se presentó y dijo que no), **la tasa de show sale subestimada**. Latente:
    hoy producción tiene 0 (25 agendadas, 1 cancelada). Arreglo: una constante exportada que usen el motor y
    el dashboard (`inArray`). Va con el 064 (dashboard sobre deals, carril de Mani).
-3. `RESULTADOS_FALLIDOS` está en `mover-etapa.ts` y en `llamadas.ts`. Hoy iguales; misma cura que el 2.
+3. `RESULTADOS_FALLIDOS` estaba en `mover-etapa.ts` y en `llamadas.ts`. ✅ 29-sep: vive en `mover-etapa.ts`
+   (la dirección de dependencia ya existente) y `llamadas.ts` la re-exporta; guardián incluido.
 
 ## B. El CRM "sabiendo" cosas del formulario
 

@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { fileURLToPath } from "node:url";
+import fs from "node:fs";
+import path from "node:path";
 import { and, eq } from "drizzle-orm";
 import {
   calls,
@@ -17,6 +20,8 @@ import { decidirAccionDeDeal, type ResultadoCita } from "@/lib/ingesta/regla-de-
 import { esViolacionCheck } from "@/lib/db/errores";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { sinComentarios } from "./helpers/codigo-fuente";
+
 
 /**
  * La regla de creacion y movimiento de deals (ticket 052, insumo §3.1, ADR 0037,
@@ -70,8 +75,8 @@ describe("decidirAccionDeDeal: la tabla del insumo §3.1, fila por fila", () => 
     });
   });
 
-  it.each(["pendiente_setteo", "en_contacto", "proxima_cohorte"] as const)(
-    "con_calendly + cita vigente con deal en %s (1, 2 o 9) mueve a Agendado con la llamada",
+  it.each(["pendiente_setteo", "en_contacto", "pendiente_reagenda", "proxima_cohorte", "seguimiento"] as const)(
+    "con_calendly + cita vigente con deal en %s (1, 2, 3, 9 u 11) mueve a Agendado con la llamada",
     (etapa) => {
       expect(decidirAccionDeDeal("con_calendly", conDeal(etapa), CITA_VIGENTE)).toEqual({
         tipo: "mover",
@@ -103,9 +108,12 @@ describe("decidirAccionDeDeal: la tabla del insumo §3.1, fila por fila", () => 
     },
   );
 
-  it("con_calendly con deal en una etapa que ni avanza ni es avanzada no hace nada", () => {
-    // Pendiente Re-agenda (3) no está en 1/2/9 ni en 4/5/6/7: no se toca.
-    expect(decidirAccionDeDeal("con_calendly", conDeal("pendiente_reagenda"), CITA_VIGENTE).tipo).toBe("nada");
+  it("con_calendly con deal en Pendiente Re-agenda o Seguimiento + cita vigente SÍ mueve (regresión A1 del 114)", () => {
+    // Antes 3 y 11 no estaban en la lista de la ingesta (era 1/2/9), así que un
+    // re-envío con cita válida caía en la rama `nada`. Con la lista única de
+    // `lib/deals/etapas.ts` avanzan por T6 y T27.
+    expect(decidirAccionDeDeal("con_calendly", conDeal("pendiente_reagenda"), CITA_VIGENTE).tipo).toBe("mover");
+    expect(decidirAccionDeDeal("con_calendly", conDeal("seguimiento"), CITA_VIGENTE).tipo).toBe("mover");
   });
 
   it("con_calendly sin deal + cita CANCELADA abre en Pendiente Setteo con nota", () => {
@@ -366,6 +374,52 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     expect(r.reglaDeDeals[0].nota).toBe("No se pudo consultar Calendly: Calendly respondió 500.");
   });
 
+  // ─────────────── regresión A1 del ticket 114: 3 y 11 sí avanzan a Agendado ───────────────
+  //
+  // Antes la ingesta tenía su propia lista 1/2/9 (escrita antes de Seguimiento), así que
+  // un lead en Pendiente Re-agenda (3, T6) o en Seguimiento (11, T27) que re-enviaba el
+  // formulario con una cita válida NO pasaba a Agendado. Con la lista única de
+  // `lib/deals/etapas.ts` sí avanza y crea su llamada de Calendly.
+  it.each([
+    ["pendiente_reagenda"], // 3, T6
+    ["seguimiento"], // 11, T27
+  ] as const)("con_calendly desde %s + cita vigente MUEVE a Agendado y crea la llamada", async (etapa) => {
+    // Un deal abierto del lead, llevado a la etapa de origen directo en la base (solo
+    // prepara el estado; el motor exige únicamente `llamada_con_fecha` para T6/T27, y
+    // esa la crea la propia regla antes de mover).
+    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: "setteo_no_calificado" })], {
+      aplicarReglaDeDeals: true,
+    });
+    const lead = await leadDeCorreo("ana@correo.co");
+    const [deal] = await db.select().from(deals).where(eq(deals.leadId, lead.id));
+    await db.update(deals).set({ etapa }).where(eq(deals.id, deal.id));
+
+    const r = await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: "con_calendly" })], {
+      aplicarReglaDeDeals: true,
+      citasPorCorreo: citas("ana@correo.co", CITA_VIGENTE),
+    });
+
+    const [movido] = await db.select().from(deals).where(eq(deals.id, deal.id));
+    expect(movido.etapa).toBe("agendado");
+
+    // La fila de historial del movimiento, desde la etapa de origen, por el sistema.
+    const historial = await db
+      .select()
+      .from(dealEtapaHistorial)
+      .where(and(eq(dealEtapaHistorial.dealId, deal.id), eq(dealEtapaHistorial.a, "agendado")));
+    expect(historial).toHaveLength(1);
+    expect(historial[0].de).toBe(etapa);
+    expect(historial[0].userId).toBeNull();
+
+    // La llamada de Calendly, colgada del deal, con la fecha real de la cita.
+    const filasCall = await db.select().from(calls).where(eq(calls.dealId, deal.id));
+    expect(filasCall).toHaveLength(1);
+    expect(filasCall[0].huellaFila).toBe("calendly:UU-1");
+
+    expect(r.reglaDeDeals[0].accion.tipo).toBe("mover");
+    expect(r.reglaDeDeals[0].rechazo).toBeUndefined();
+  });
+
   it("un re-envío del mismo Con Calendly NO duplica la llamada (huella idempotente)", async () => {
     // Primer envío: abre deal en Agendado y crea la llamada.
     await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: "con_calendly" })], {
@@ -456,5 +510,56 @@ describe("la nota del sistema en el deal (migración 0032)", () => {
       .values({ dealId: deal.id, tipo: "contacto", canal: "whatsapp", userId: null })
       .then(() => null, (e: unknown) => e);
     expect(esViolacionCheck(error)).toBe(true);
+  });
+});
+
+// ─────────────── guardián: una sola lista de "desde qué etapas una cita mueve a Agendado" ───────────────
+//
+// La pregunta —hallazgo A1 del ticket 114— estaba copiada en tres módulos y la de la
+// ingesta ya había divergido (1/2/9 en vez de 1/2/3/9/11). La respuesta vive UNA vez en
+// `lib/deals/etapas.ts` (`ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO`) y los tres la importan.
+// Este guardián falla si alguno vuelve a declarar su propia lista.
+describe("guardián: la lista de etapas que una cita mueve a Agendado no se re-declara", () => {
+  const RAIZ = fileURLToPath(new URL("../", import.meta.url));
+  const CONSUMIDORES = [
+    path.join("lib", "deals", "llamadas.ts"),
+    path.join("lib", "calendly", "colgar-llamada.ts"),
+    path.join("lib", "ingesta", "regla-de-deals.ts"),
+  ];
+  const NOMBRE_VIEJO = "ETAPAS_QUE_AVANZAN_A_AGENDADO";
+  const NOMBRE_UNICO = "ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO";
+
+  it.each(CONSUMIDORES)("%s ya no define su propia lista y usa la única", (rel) => {
+    const codigo = sinComentarios(fs.readFileSync(path.join(RAIZ, rel), "utf8"));
+    // El nombre local viejo no debe aparecer en ningún lado (ni declaración ni uso).
+    expect(codigo).not.toContain(NOMBRE_VIEJO);
+    // Y ninguno declara una constante con la lista; la importa.
+    expect(new RegExp(`const\\s+${NOMBRE_UNICO}\\b`).test(codigo)).toBe(false);
+    // La referencia a la lista única sigue ahí (si no, no vigila nada).
+    expect(codigo).toContain(NOMBRE_UNICO);
+  });
+
+  it("la única lista vive en lib/deals/etapas.ts, exportada", () => {
+    const codigo = sinComentarios(fs.readFileSync(path.join(RAIZ, "lib", "deals", "etapas.ts"), "utf8"));
+    expect(new RegExp(`export\\s+const\\s+${NOMBRE_UNICO}\\b`).test(codigo)).toBe(true);
+  });
+});
+
+// ─────────────── guardián: RESULTADOS_FALLIDOS vive en un solo módulo ───────────────
+//
+// Hallazgo A3 del ticket 114: estaba copiada en `mover-etapa.ts` y en `llamadas.ts`. La
+// definición única vive en `mover-etapa.ts` (el motor la lee para `llamada_fallida`) y
+// `llamadas.ts` la re-exporta para no romper a quien la importa desde ahí.
+describe("guardián: RESULTADOS_FALLIDOS se declara una sola vez", () => {
+  const RAIZ = fileURLToPath(new URL("../", import.meta.url));
+
+  it("solo lib/deals/mover-etapa.ts declara la lista con sus valores", () => {
+    const motor = sinComentarios(fs.readFileSync(path.join(RAIZ, "lib", "deals", "mover-etapa.ts"), "utf8"));
+    const llamadas = sinComentarios(fs.readFileSync(path.join(RAIZ, "lib", "deals", "llamadas.ts"), "utf8"));
+    const declaracion = /const\s+RESULTADOS_FALLIDOS\s*=\s*\[/;
+    expect(declaracion.test(motor)).toBe(true);
+    // llamadas.ts NO vuelve a declararla (solo la importa y re-exporta).
+    expect(declaracion.test(llamadas)).toBe(false);
+    expect(llamadas).toContain("RESULTADOS_FALLIDOS");
   });
 });

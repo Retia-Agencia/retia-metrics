@@ -10,7 +10,7 @@ import { programaEnAlcance } from "@/lib/auth/alcance";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import { ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO } from "@/lib/deals/etapas";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
 import {
   closerHost,
@@ -70,14 +70,9 @@ export type LlamadaRegistrada =
   /** La cita ya estaba registrada (misma huella): no se escribe nada. */
   | { tipo: "repetida"; callId: string };
 
-/** Desde estas etapas una llamada nueva MUEVE el deal a Agendado (misma lista del 057). */
-const ETAPAS_QUE_AVANZAN_A_AGENDADO: readonly EtapaDeal[] = [
-  "pendiente_setteo",
-  "en_contacto",
-  "pendiente_reagenda",
-  "proxima_cohorte",
-  "seguimiento",
-];
+/** Desde estas etapas una llamada nueva MUEVE el deal a Agendado. La lista es UNA y vive
+ * en `lib/deals/etapas.ts` (`ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO`): estuvo copiada en
+ * tres módulos y la de la ingesta ya había divergido (hallazgo A1 del ticket 114). */
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
 
@@ -243,7 +238,7 @@ export async function efectoSobreElDeal(
 
   const duenoAnterior = await darDealAlHost(tx, dealId, deal.ownerUserId, host, etiqueta ?? dealId);
 
-  if (!ETAPAS_QUE_AVANZAN_A_AGENDADO.includes(deal.etapa)) {
+  if (!ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO.includes(deal.etapa)) {
     return { movioAAgendado: false, duenoAnterior };
   }
   try {

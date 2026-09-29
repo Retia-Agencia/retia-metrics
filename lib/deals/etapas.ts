@@ -217,6 +217,33 @@ export function transicion(de: EtapaDeal, a: EtapaDeal): Transicion | null {
   return INDICE.get(clave(de, a)) ?? null;
 }
 
+/**
+ * Las etapas desde las que una CITA NUEVA (una llamada agendada, venga del CRM, de
+ * Calendly o de un re-envío del formulario) mueve el deal a Agendado: 1, 2, 3, 9 y 11
+ * (decisión de Mani del 24-sep, ADR 0049 punto 4; `docs/tasks/071-mi-dia-del-closer.md`
+ * y `docs/tasks/096`). Las flechas son T2, T3, T6, T23 y T27, todas hacia Agendado y ya
+ * en la tabla `TRANSICIONES`; si alguna faltara, `moverEtapa()` la rechazaría en vez de
+ * inventar una transición.
+ *
+ * La pregunta —"¿desde qué etapas una cita nueva mueve el deal a Agendado?"— es UNA, así
+ * que la respuesta vive UNA vez aquí y la importan sus tres consumidores
+ * (`lib/deals/llamadas.ts`, `lib/calendly/colgar-llamada.ts`,
+ * `lib/ingesta/regla-de-deals.ts`). Estuvo copiada en los tres y ya había divergido: la
+ * ingesta decía 1, 2 y 9 (escrita antes de que existiera Seguimiento), así que un lead en
+ * Pendiente Re-agenda o en Seguimiento que re-enviaba el formulario con una cita válida
+ * **no pasaba a Agendado** (hallazgo A1 del ticket 114).
+ *
+ * ⚠️ Ninguna regla compara NÚMEROS de etapa: el número es un nombre, no un orden. Cada
+ * etapa va por su nombre del enum.
+ */
+export const ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO: readonly EtapaDeal[] = [
+  "pendiente_setteo", // 1
+  "en_contacto", // 2
+  "pendiente_reagenda", // 3
+  "proxima_cohorte", // 9
+  "seguimiento", // 11
+];
+
 /** ¿Se puede pasar de `de` a `a`? */
 export function esTransicionPermitida(de: EtapaDeal, a: EtapaDeal): boolean {
   return INDICE.has(clave(de, a));

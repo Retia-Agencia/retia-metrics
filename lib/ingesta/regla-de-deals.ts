@@ -5,7 +5,7 @@ import { esViolacionUnica } from "@/lib/db/errores";
 import { vigente } from "@/lib/queries/vigente";
 import { crearConRastro } from "@/lib/crm/rastro";
 import { abrirDeal, moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import { ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO, type EtapaDeal } from "@/lib/deals/etapas";
 import { closerHost } from "@/lib/calendly/emparejar-llamada";
 import {
   adoptarSueltaDeCita,
@@ -35,7 +35,7 @@ import type { Calificacion } from "./calificacion";
  *
  * ⚠️ **Ninguna regla compara numeros de etapa** (`lib/deals/etapas.ts`): el numero es
  * un nombre, no un orden. Cada caso nombra las etapas una por una. Los numeros del
- * insumo (1, 2, 9 para mover; 4, 5, 6, 7 para el re-envio) se traducen aca a sus
+ * insumo (1, 2, 3, 9, 11 para mover; 4, 5, 6, 7 para el re-envio) se traducen aca a sus
  * nombres reales del enum.
  *
  * ## Calendly y "Con Calendly" (ADR 0049, ADR 0057)
@@ -48,20 +48,26 @@ import type { Calificacion } from "./calificacion";
  *
  *  - **cita vigente** (encontrada y no cancelada): el deal va a Agendado (se abre o se
  *    mueve) y ANTES se crea la llamada `agendada` con la fecha real. La llamada hace
- *    que el motor pase el requisito `llamada_con_fecha` de T2/T3/T23 sin aflojar la
- *    reja. Abrir un deal nuevo en Agendado tambien crea su llamada (asi no hay
+ *    que el motor pase el requisito `llamada_con_fecha` de T2/T3/T6/T23/T27 sin aflojar
+ *    la reja. Abrir un deal nuevo en Agendado tambien crea su llamada (asi no hay
  *    asimetria con el movimiento).
  *  - **cita cancelada / no encontrada / error de Calendly**: el deal se queda —o se
  *    abre— en Pendiente Setteo, SIN llamada, con una NOTA visible que dice por que. No
  *    se afloja el motor ni se manda a Agendado un deal sin cita real.
  */
 
-/** Las etapas 1, 2 y 9 del insumo: desde ellas "Con Calendly" MUEVE a Agendado (T2, T3, T23). */
-const ETAPAS_QUE_AVANZAN_A_AGENDADO: readonly EtapaDeal[] = [
-  "pendiente_setteo", // 1
-  "en_contacto", // 2
-  "proxima_cohorte", // 9
-];
+/**
+ * Desde estas etapas un "Con Calendly" con cita vigente MUEVE el deal a Agendado. La
+ * lista es UNA y vive en `lib/deals/etapas.ts`
+ * (`ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO`): 1, 2, 3, 9 y 11 (T2, T3, T6, T23, T27).
+ *
+ * 🩸 Estaba copiada aquí con 1, 2 y 9, escrita antes de que existieran Pendiente
+ * Re-agenda (3, T6) y Seguimiento (11, T27) como orígenes hacia Agendado: un lead en
+ * cualquiera de esas dos que re-enviaba el formulario con una cita válida caía en la
+ * tercera rama de `decidirAccionDeDeal` (`nada`, "no cambia con este re-envío") y **no
+ * pasaba a Agendado** (hallazgo A1 del ticket 114). Al unificar la lista, 3 y 11 —que NO
+ * están en `ETAPAS_AVANZADAS` (4/5/6/7)— caen ahora en la rama `mover`.
+ */
 
 /**
  * Las etapas 4, 5, 6 y 7 del insumo: un re-envio con el deal ya en una de estas NO lo
@@ -117,8 +123,8 @@ export function notaDeCita(cita: Exclude<ResultadoCita, { estado: "vigente" }>):
  *  - `abrir`: no hay deal abierto y la calificacion pide uno nuevo. Con cita vigente
  *    la etapa es Agendado y trae la `llamada`; sin cita vigente nace en Pendiente
  *    Setteo con `nota`.
- *  - `mover`: hay deal abierto en 1/2/9 y "Con Calendly" con cita vigente lo avanza a
- *    Agendado, creando antes la `llamada`.
+ *  - `mover`: hay deal abierto en 1/2/3/9/11 y "Con Calendly" con cita vigente lo
+ *    avanza a Agendado, creando antes la `llamada`.
  *  - `agregar_llamada`: el deal ya esta avanzado (4/5/6/7) y llega una cita VIGENTE: no
  *    se mueve, pero la cita queda como otra llamada del mismo deal (Mani, 28-sep: una
  *    re-agenda con fecha nueva no se pierde). La misma cita dos veces no duplica: la
@@ -152,8 +158,8 @@ export interface LlamadaDeCita {
  * | `setteo_no_calificado`  | (cualquiera)        | —              | nada (ya tiene deal)          |
  * | `con_calendly`          | ninguno             | vigente        | abrir en Agendado + llamada   |
  * | `con_calendly`          | ninguno             | no vigente     | abrir en Pendiente Setteo+nota|
- * | `con_calendly`          | en 1, 2 o 9         | vigente        | mover a Agendado + llamada    |
- * | `con_calendly`          | en 1, 2 o 9         | no vigente     | nada + nota (se queda)        |
+ * | `con_calendly`          | en 1,2,3,9,11       | vigente        | mover a Agendado + llamada    |
+ * | `con_calendly`          | en 1,2,3,9,11       | no vigente     | nada + nota (se queda)        |
  * | `con_calendly`          | en 4, 5, 6 o 7      | vigente        | agregar llamada (no mueve)    |
  * | `con_calendly`          | en 4, 5, 6 o 7      | no vigente     | notificar re-envio            |
  * | `con_calendly`          | en otra etapa       | —              | nada                          |
@@ -200,7 +206,7 @@ export function decidirAccionDeDeal(
     return { tipo: "notificar_reenvio", etapa: dealAbierto.etapa };
   }
 
-  const puedeAvanzar = dealAbierto === null || ETAPAS_QUE_AVANZAN_A_AGENDADO.includes(dealAbierto.etapa);
+  const puedeAvanzar = dealAbierto === null || ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO.includes(dealAbierto.etapa);
   if (!puedeAvanzar) {
     // Ya esta agendado por otra via, o en una etapa que no avanza a Agendado: no se toca.
     return { tipo: "nada", motivo: `el deal está en ${dealAbierto!.etapa} y no cambia con este re-envío` };
@@ -378,7 +384,7 @@ export async function aplicarReglaDeDeal(
   if (accion.tipo === "mover" && dealAbierto !== null) {
     // El deal abierto existe (lo garantiza la decisión, que salió de esta misma lectura).
     // La llamada de Calendly se crea ANTES de mover: es lo que hace que el motor pase el
-    // requisito `llamada_con_fecha` de T2/T3/T23 sin aflojar la reja.
+    // requisito `llamada_con_fecha` de T2/T3/T6/T23/T27 sin aflojar la reja.
     await crearLlamadaDeCita(
       db,
       { id: dealAbierto.id, programId: lead.programId, cohortId: dealAbierto.cohortId },
@@ -416,7 +422,7 @@ export async function aplicarReglaDeDeal(
   }
 
   // `nada` y `notificar_reenvio` no mueven el deal. Un `nada` con nota (cita no vigente
-  // sobre un deal en 1/2/9) la deja escrita en ese deal.
+  // sobre un deal en 1/2/3/9/11) la deja escrita en ese deal.
   const nota = accion.tipo === "nada" ? accion.nota : undefined;
   if (nota && dealAbierto !== null) await dejarNota(db, dealAbierto.id, lead.emailNormalizado, nota);
   return { leadId: lead.id, accion, nota };

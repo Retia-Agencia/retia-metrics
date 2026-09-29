@@ -7,9 +7,9 @@ import { normalizando } from "@/lib/errors-zod";
 import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
-import { moverEtapa } from "./mover-etapa";
+import { moverEtapa, RESULTADOS_FALLIDOS } from "./mover-etapa";
 import { puedeTrabajarDeal } from "./permiso";
-import { transicion, type EtapaDeal } from "./etapas";
+import { ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO, transicion, type EtapaDeal } from "./etapas";
 
 /**
  * Agregar una llamada NATIVA a un deal, y completar la `agendada` que el sistema dejó
@@ -51,21 +51,16 @@ export interface ActorDeLlamada {
 
 /**
  * Las etapas desde las que agregar una llamada MUEVE el deal a Agendado (decisión del
- * 24-sep, ADR 0049 punto 4): 1, 2, 3, 9 y 11. Las flechas son T2, T3, T6, T23 y T27,
- * todas hacia Agendado y ya en la tabla de transiciones (`lib/deals/etapas.ts`); si
- * alguna faltara, `moverEtapa()` la rechazaría y el error saldría a la luz en vez de
- * inventarse una transición.
+ * 24-sep, ADR 0049 punto 4): 1, 2, 3, 9 y 11. La lista es UNA y vive en
+ * `lib/deals/etapas.ts` (`ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO`), importada aquí: la
+ * misma pregunta la contestaban tres módulos por copia y ya había divergido (hallazgo
+ * A1 del ticket 114). Las flechas son T2, T3, T6, T23 y T27, todas hacia Agendado y ya
+ * en la tabla de transiciones; si alguna faltara, `moverEtapa()` la rechazaría y el
+ * error saldría a la luz en vez de inventarse una transición.
  *
  * ⚠️ Ninguna regla compara NÚMEROS de etapa: el número es un nombre, no un orden
  * (`lib/deals/etapas.ts`). Cada etapa va por su nombre del enum.
  */
-const ETAPAS_QUE_AVANZAN_A_AGENDADO: readonly EtapaDeal[] = [
-  "pendiente_setteo", // 1
-  "en_contacto", // 2
-  "pendiente_reagenda", // 3
-  "proxima_cohorte", // 9
-  "seguimiento", // 11
-];
 
 // En 5, 6 y 7 (atendido, compromiso_verbal, abonado) agregar una llamada NO cambia la
 // etapa (decisión del 24-sep): el lead ya está más adelante que "acaba de agendar".
@@ -151,7 +146,7 @@ export async function agregarLlamada(
       // La etapa NUNCA se escribe aquí: si el deal está en 1, 2, 3, 9 u 11 se mueve a
       // Agendado por `moverEtapa()`, que ya ve la llamada recién creada (misma `db`) y
       // pasa el requisito `llamada_con_fecha`. En 5, 6 o 7 no se mueve.
-      if (ETAPAS_QUE_AVANZAN_A_AGENDADO.includes(deal.etapa)) {
+      if (ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO.includes(deal.etapa)) {
         await moverEtapa(db, {
           dealId: deal.id,
           a: "agendado",
@@ -355,8 +350,13 @@ export async function pegarGrain(
  * Los dos resultados de una llamada fallida (ADR 0015). **Siguen siendo distintos**
  * —aviso antes (`cancelada`) no es lo mismo que no apareció (`no_show`)—: que disparen
  * el mismo movimiento a Pendiente Re-agenda no los fusiona.
+ *
+ * La lista es UNA y vive en `lib/deals/mover-etapa.ts` (el motor la lee para el hecho
+ * `llamada_fallida`); aquí se re-exporta para no romper a quien la importa desde este
+ * módulo (la server action de acciones de deal). Estuvo copiada en los dos y hoy eran
+ * iguales (hallazgo A3 del ticket 114).
  */
-export const RESULTADOS_FALLIDOS = ["no_show", "cancelada"] as const;
+export { RESULTADOS_FALLIDOS };
 
 /**
  * Datos para marcar una llamada como fallida (ticket 059). El `motivoId` solo hace
