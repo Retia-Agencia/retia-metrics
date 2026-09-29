@@ -67,3 +67,13 @@ db:local`) con las hojas del día.
 huella, `tipo` en texto, detalle obligatorio, enlaces opcionales a lead/deal/abono/call, único
 `(huella, tipo)`). Tests: `tests/migracion-huellas.test.ts`. **Falta que Mani la revise, la fusione y la
 aplique** (y `npm run db:local` para la base de Docker).
+
+**Paso (2) hecho (29-sep, Alejo), misma rama:** `abrirDealHistorico` en `lib/deals/mover-etapa.ts` (vive en
+el motor porque escribe la etapa: nace en cualquiera, una fila de historial del sistema con su fecha, notas
+del sistema en la misma transacción, frontera de programa para lead, producto y cohorte) y
+`lib/deals/historico.ts` (`registrarAbonoHistorico`, `registrarLlamadaHistorica`, `duenoDesdeLaHoja`). Nada
+mueve la etapa; solo se cuelga de deals de la migración, nunca del vivo. La huella repetida devuelve
+`ya_migrado` y el cupo ocupado `lead_con_deal_vivo` (lo decide el índice; funciona dentro de una transacción
+externa, para el ensayo). Guardián: `tests/migracion-escritor-guardian.test.ts` (solo el motor, `historico.ts`
+y `lib/migracion/` los mencionan). Revisado por Codex: tres hallazgos (frontera de producto/cohorte, colgar del
+vivo, alias en el guardián), arreglados con su test.
