@@ -354,3 +354,17 @@ que apretar nada para actualizar llamadas. Verificado en producción con una cit
 
 **Decisiones abiertas que lo tocan** (`plan.md` §7): K1 ("buscar llamada" en la Ficha del Deal como respaldo
 o se retira), K2 y K3 (la llamada de prueba en producción).
+
+## ⏸️ En pausa (29-sep, sesión 46 de Alejo): sin acceso a Calendly
+
+Lo que se aclaró, para retomarlo:
+- **Cuentas dueñas de cada organización** (las del token del programa, no de una closer):
+  Tactical `jvieira@ttrading.co` · ComunicArte `info@eventoscomunicarte.com`. No se vinculan a ninguna
+  closer, salvo que una atienda desde ahí.
+- **Andrea** es la closer que ya está en el CRM. **Maru** usa `soymarumarquez@gmail.com`.
+- **Pendiente de confirmar:** Alejo cree que el correo de Calendly de cada closer es **distinto** del de su
+  usuario en el CRM. El selector de `/ajustes/usuarios` ofrece los miembros de la organización del programa
+  (`GET /organization_memberships`); si la cuenta de una closer no aparece, primero hay que invitarla a esa
+  organización desde la cuenta dueña. Falta: en qué programa(s) atiende cada una y con qué cuenta host.
+- **Todas las decisiones de Calendly quedan para después** (los pasos 1 a 4 de arriba, K1, K2, K3): hoy no
+  hay acceso a las cuentas. Mientras tanto toda cita entra **suelta**, que es el comportamiento diseñado.
