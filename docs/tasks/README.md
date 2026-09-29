@@ -160,7 +160,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 062 | [La comisión se calcula, nunca se guarda](./062-comision-calculada.md) (E4-6) | 060 | todo |
 | [x] | 063 | [`onboarded_at` y cambio de cohorte](./063-onboarded-at-y-cambio-de-cohorte.md) (E4-7) | 060 | done · 28-sep · `lib/deals/estudiante.ts` (`marcarOnboarded`, `cambiarCohorte`), `lib/queries/estudiantes.ts` (Students es una consulta) y la cohorte activa se asigna sola en el primer abono. Sin migración. Falta la pantalla (074) |
 | [ ] | 035 | [Comprobante: link **o** foto](./035-comprobante-link-o-foto.md) (E4-8) | 060 | todo · **aterriza aquí**, colgando de `abonos.deal_id`. Siguen debiéndose los dos análisis. 22-sep: la foto va a Supabase Storage (ADR 0047) |
-| [ ] | 096 | [Calendly: cada llamada a su deal; si hay duda, suelta](./096-calendly-cuelga-llamadas-de-deals.md) | 057, 045 | en curso (Alejo) · **código completo y live** (29-sep): webhook de Calendly verificado en producción en los dos programas; 0038 y 0039 aplicadas. **Para cerrar, solo configuración y una decisión:** vincular las cuentas de Calendly de las closers (y crear a Maru) en `/ajustes/usuarios`, y retirar `buscarLlamadaDelDeal` (K1). K2 decidida el 29-sep: la suelta se asigna en el Inbox (071). Detalle: "Estado consolidado" al final del ticket |
+| [ ] | 096 | [Calendly: cada llamada a su deal; si hay duda, suelta](./096-calendly-cuelga-llamadas-de-deals.md) | 057, 045 | en curso · **Mani** (29-sep) · código completo y live; webhook verificado en los dos programas; 0038 y 0039 aplicadas. Mani cerrará la configuración: crear a Maru y vincular las cuentas por programa en `/ajustes/usuarios`; K1 y K2 ya están resueltas |
 
 ## E5 · Lectura y reporting
 

@@ -165,7 +165,8 @@ Backend puro.
   ✅ 28-sep: `tests/costura-e2.test.ts` (webhook con cita vigente → Grain → dos abonos → cartera y estudiantes →
   onboarding → anular ambos, con el historial completo). **Estado al 29-sep:** 097 cerrado; del 096 el
   código está completo y live (webhook verificado en producción, migraciones 0038 y 0039 aplicadas). **E2
-  cierra** cuando se vinculen las cuentas de Calendly de las closers y se decida K2 (`plan.md` §7).
+  cierra** cuando Mani vincule las cuentas de Calendly de las closers y cree a Maru en `/ajustes/usuarios`;
+  K2 ya está decidida y resuelta por 071 (`plan.md` §7). El cierre de 096 pasa al carril de Mani.
 
 ### E3 · El Kanban y la migración ensayada
 

@@ -31,9 +31,10 @@ Como se trabaja (Mani, 29-sep): IMPLEMENTA KIRO en un worktree a mano (git workt
 la arquitectura, revisa, corre la verificacion, prueba en navegador y commitea (cherry-pick --no-commit).
 El agente kiro-rescue regresa antes que Kiro: esperar el pid de `kiro-cli chat` con un Bash en background.
 
-Pendientes de Mani: destrabar el login local y recorrer 071/098 en navegador; configurar la variable de score en los dos Typeform y nombrarla en la llave `puntaje`
-del mapeo de cada fuente (070); K3 (borrar o no la llamada de prueba). Alejo: 096 en pausa (cuentas de
-Calendly; retirar buscarLlamadaDelDeal, K1), 077 en curso. 114 (auditoria): A1 y A3 hechos; A2 con el 064;
+Pendientes de Mani: cerrar 096 desde `/ajustes/usuarios` (crear Maru y vincular las cuentas de Calendly de
+ambos programas); destrabar el login local y recorrer 071/098 en navegador; configurar la variable de score en
+los dos Typeform y nombrarla en la llave `puntaje` del mapeo de cada fuente (070); K3 (borrar o no la llamada
+de prueba). Alejo: 077 en curso. 114 (auditoria): A1 y A3 hechos; A2 con el 064;
 B4 (titulos de pregunta en el codigo), B5 (columna sources.calificacion muerta) y C6 pendientes.
 
 Reglas: npm test es scripts/test.mjs (una suite por maquina). Las migraciones las aplica la sesion
@@ -53,6 +54,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   - Verificado: `npm test` (1.482 tests, 1 omitido), `npm run typecheck`, `npm run lint` y `npm run build`.
   - Bloqueo de recorrido: `npm run dev:local` arranca, pero Auth.js responde `InvalidProvider` para el
     proveedor `credentials` al enviar el login local. No se modificó el login ni se marcó 098 como done.
+  - **096 pasa al carril de Mani:** Mani cerrará la configuración de Calendly de ambos programas porque
+    tiene acceso a sus cuentas; Alejo ya no lo tiene pendiente. K1 (retirar la búsqueda) y K2 (Inbox) están
+    decididas; el ticket sigue abierto hasta crear/vincular las cuentas y dejarlo verificado.
 
 - **2026-09-29 (Alejandro, sesión aparte fuera del repo): los dos Typeform ya mandan score, calidad y VALOR
   del lead. PARA MANI: esto tiene que llegar al CRM y verse en cada lead.** Nada de esto tocó código del
