@@ -5,65 +5,37 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 45 de Alejo (29-sep, madrugada). El anterior:
-> `git show 89b6902:docs/agents/handoff.md`.
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 46 de Mani (29-sep). El anterior:
+> `git show 816aabd:docs/agents/handoff.md`.
 
 ```
-Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas:
-etapas en serie, un carril por persona) y docs/plan.md (el QUE, decisiones en §7). El estado de cada
-ticket vive solo en docs/tasks/README.md. Lo demas se consulta cuando haga falta: docs/overview.md,
-docs/structure.md (§9, el sistema de diseño Tinta, es OBLIGATORIO antes de tocar una pantalla),
-docs/operations.md y docs/adr/README.md.
+Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas)
+y docs/plan.md (el QUE, decisiones en §7). El estado de cada ticket vive solo en docs/tasks/README.md.
+docs/structure.md §9 (sistema de diseño Tinta) es OBLIGATORIO antes de tocar una pantalla.
 
-Estado al cierre del 29-sep (sesion 45, Alejo): UNA sola base y es PRODUCCION ("CRM Retia", ref
-hfqmiyiuyqapdsbywrag). 40 migraciones (0000-0039), todas aplicadas. 1.365 tests (medido por Mani con el 069). Produccion:
-https://retia-metrics-seven.vercel.app. CI verde en cada push a main (sin proteccion de main).
+Estado al cierre del 29-sep (sesion 46, Mani): UNA base y es PRODUCCION ("CRM Retia", ref
+hfqmiyiuyqapdsbywrag). 41 migraciones (0000-0040), todas aplicadas. 1.476 tests. Produccion:
+https://retia-metrics-seven.vercel.app.
 
-Docs consolidados el 29-sep (Mani): plan.md §2 es la foto de hoy (qué esta live y qué falta), §4.3c
-dice qué hace el webhook de Calendly y para qué sirve el PAT, y §7 es la lista UNICA de decisiones
-abiertas (nuevas: K1 "buscar llamada", K2 dónde se asigna la suelta, K3 la llamada de prueba).
+Carril de Mani: E3 cerrada (069, 074). E4: 070 hecho; 071 (Inbox) con el codigo en main y verificado
+por tests, FALTA EL RECORRIDO EN NAVEGADOR (npm run db:local + npm run dev:local, entrar como
+carlos.closer@retia.local, /p/comunicarte-local/inbox: abrir cada seccion y dialogo, asignar una suelta,
+pegar Grain desde "llamadas de hoy", 390 px, consola). Si pasa, marcar 071 done. Despues E5: 064
+(dashboard sobre deals; incluye 114-A2, "¿la llamada ocurrio?" en un solo modulo) y 098 (tab Calls).
 
-E0 y E1 CERRADAS. E2: el carril de Mani esta hecho; E2 cierra con el 096 de Alejo. El 097 se CERRO
-(29-sep, celular revisado en produccion).
+Como se trabaja (Mani, 29-sep): IMPLEMENTA KIRO en un worktree a mano (git worktree add ../retia-metrics-NNN
+-b kiro/NNN main) y NO corre nada (ni tests, ni tsc, ni lint, ni build, ni dev). La sesion principal decide
+la arquitectura, revisa, corre la verificacion, prueba en navegador y commitea (cherry-pick --no-commit).
+El agente kiro-rescue regresa antes que Kiro: esperar el pid de `kiro-cli chat` con un Bash en background.
 
-096 (Calendly), casi cerrado: el WEBHOOK esta construido, en main y VERIFICADO EN PRODUCCION con una cita
-y una cancelacion reales (firma y payload confirmados). Ruta /api/webhooks/calendly/<id del programa>,
-firma con programs.calendly_signing_key, caja negra en sobres_crudos (origen 'calendly', sin fuente; la
-0039 lo permite), reagenda sobre la MISMA llamada, cancelacion/no-show -> Re-agenda, la suelta que llego
-antes que el envio la adopta el 052. "Conectar Calendly" en /ajustes/programas ya corrio en los DOS
-programas. Detalle en el ticket 096 (secciones del 28-sep noche y 29-sep).
+Pendientes de Mani: configurar la variable de score en los dos Typeform y nombrarla en la llave `puntaje`
+del mapeo de cada fuente (070); K3 (borrar o no la llamada de prueba). Alejo: 096 en pausa (cuentas de
+Calendly; retirar buscarLlamadaDelDeal, K1), 077 en curso. 114 (auditoria): A1 y A3 hechos; A2 con el 064;
+B4 (titulos de pregunta en el codigo), B5 (columna sources.calificacion muerta) y C6 pendientes.
 
-SIGUIENTE SESION DE ALEJO, para cerrar el 096 (solo configuracion en la app, nada de codigo):
-(1) Preguntarle a Mani/Andrea con que cuenta de Calendly recibe llamadas Andrea en cada programa
-    (Comunicarte: info@eventoscomunicarte.com de Milena o soymarumarquez@gmail.com de Maru; Tactical:
-    equipo@ttrading.co, registro@ttrading.co o jvieira@ttrading.co).
-(2) Crear el usuario de Maru DESDE LA APP (/ajustes/usuarios, no por codigo, Mani 29-sep) con
-    soymarumarquez@gmail.com, rol closer y sus membresias.
-(3) Vincular las cuentas en /ajustes/usuarios. DECIDIDO (Mani 29-sep): la vincula el ADMINISTRADOR; puede
-    ser compartida o personal; una cuenta es de UNA closer por programa (indice unico).
-(4) Decidir con Mani si la pantalla de la llamada suelta y "buscar llamada" van en el 096 o pasan al
-    071/074 (backends: asignarLlamadaSuelta, buscarLlamadaDelDeal). Opcional: probar reagenda y no-show
-    con una cita real. Luego marcar el 096 done en el tracker. Recien ahi E3.
-
-LO QUE SIGUE, E3 (plan-reparto): Mani 069 (Kanban, HECHO 29-sep) -> 074 (Ficha del deal, SIGUIENTE); Alejo 077
-(barrer las pestañas de gestion) -> 078 (el 081 se descarto: solo USD). A4 decidida: la UI se prueba
-USANDOLA, contra la base de Docker: npm run db:local + npm run dev:local trae "Entrar como (local)"
-(login local de Mani, solo con AUTH_LOGIN_LOCAL=1 y base local). Setteo decidido (ticket 080). Para el 075 (Mani): a 390 px la tabla "Closers" del Dashboard
-queda apretada, y los filtros muestran "hoy"/"todos" en vez de la etiqueta.
-
-Al construir 069 y 074 ojo: TODO el dinero, el acuerdo de pago, la cartera, el onboarding y el cambio de
-cohorte ya existen en lib/ SIN pantalla ni server action (lib/deals/, lib/queries/; buscarLlamadaDelDeal y
-asignarLlamadaSuelta en lib/calendly/). Acciones por paginaConRol / requireRole, rol de rolDeVista(session),
-actor de la sesion. Cargar una pantalla no es probarla: clic en todo lo que se abre y consola. Una regla de
-permiso se prueba forjando la peticion. registrarAbono devuelve cohorteAsignada null sin cohorte activa: la
-pantalla tiene que decirlo.
-
-Reglas: npm test es scripts/test.mjs (una suite por maquina): nunca npx vitest directo ni en background.
-Las migraciones las genera y aplica la sesion principal, con el ok de Mani y mirando el ref de la
-connection string. Kiro implementa en un worktree creado A MANO (git worktree add); Codex sin cuota hasta
-el 12-oct. Chrome: la extension no baja una ventana de ~658 px; a ese ancho ya es diseño de
-celular. Antes de tomar un ticket haz git fetch, y antes de empujar otra vez: Mani trabaja en paralelo
-sobre el mismo main.
+Reglas: npm test es scripts/test.mjs (una suite por maquina). Las migraciones las aplica la sesion
+principal con el ok de Mani, mirando el ref; la base local de Docker tambien necesita npm run db:local tras
+cada migracion nueva. Antes de tomar un ticket, git fetch: Alejo empuja al mismo main.
 ```
 
 ## Memory

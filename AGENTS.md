@@ -364,7 +364,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 The agent should run these to get fast signal on whether code works. Keep them current.
 
 - **Test:** `npm test` (Vitest por `scripts/test.mjs`: una suite por máquina, sin huérfanos, límite
-  de 480 s; ver Conventions). 1.365 pasando al 29-sep; ~60 s con la máquina libre.
+  de 480 s; ver Conventions). 1.476 pasando al 29-sep; ~60 s con la máquina libre.
   Un programa de prueba ACTIVO se crea con `PROGRAMA_DE_PRUEBA` (`tests/helpers/programa-de-prueba.ts`):
   desde la 0031 un programa nace inactivo y la base exige Forms Link y token para activarlo. Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
