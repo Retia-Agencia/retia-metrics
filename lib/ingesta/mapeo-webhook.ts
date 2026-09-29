@@ -72,6 +72,14 @@ const LLAVE_AGENDA = "agenda";
 const LLAVE_ESTADO = "estadoHoja";
 
 /**
+ * La llave del mapeo que nombra la VARIABLE de Typeform que trae el SCORE (ticket 070,
+ * decision del 29-sep). Su valor es el NOMBRE de la variable, no un titulo de pregunta.
+ * Igual que `estadoHoja`, es configuracion por fuente (ADR 0012). **Sin defecto:** si la
+ * fuente no la trae, el adaptador no lee ningun score y `puntaje` queda null.
+ */
+const LLAVE_PUNTAJE = "puntaje";
+
+/**
  * Lo que devuelve `mapeoWebhookDesdeFuente`: el `MapeoWebhook` que consume el adaptador,
  * pero con `campos` SIEMPRE presente (nunca undefined). Se estrecha el tipo a proposito
  * para que el llamador no tenga que guardarse contra un `campos` inexistente.
@@ -96,6 +104,7 @@ export function mapeoWebhookDesdeFuente(
   const campos: Partial<Record<CampoEnvio, string | string[]>> = {};
   let campoAgenda: string | undefined;
   let variableEstado: string | undefined;
+  let variablePuntaje: string | undefined;
 
   for (const [llave, patron] of Object.entries(mapeo)) {
     if (llave === LLAVE_AGENDA) {
@@ -118,9 +127,15 @@ export function mapeoWebhookDesdeFuente(
       variableEstado = Array.isArray(patron) ? patron[0] : patron;
       continue;
     }
+    if (llave === LLAVE_PUNTAJE) {
+      // El NOMBRE de la variable que trae el score (ticket 070). Sin defecto en el
+      // codigo: solo la fuente o la plantilla lo configuran. Si no, `puntaje` es null.
+      variablePuntaje = Array.isArray(patron) ? patron[0] : patron;
+      continue;
+    }
     const campo = HOJA_A_CAMPO_ENVIO[llave];
     if (campo !== undefined) campos[campo] = patron;
   }
 
-  return { campos, campoAgenda, variableEstado };
+  return { campos, campoAgenda, variableEstado, variablePuntaje };
 }

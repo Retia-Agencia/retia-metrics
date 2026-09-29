@@ -124,6 +124,18 @@ export interface MapeoWebhook {
    * TODAS las variables por igual; esta solo dice cual de ellas es el Estado.
    */
   variableEstado?: string;
+  /**
+   * NOMBRE de la variable de Typeform que trae el SCORE del formulario (ticket 070,
+   * decision del 29-sep; mismo molde que `variableEstado`, ADR 0012). El CRM NO calcula
+   * el puntaje (decision A8): Typeform lo calcula con sus pesos por respuesta y lo manda
+   * como una variable. Sale de `sources.mapeoColumnas.puntaje`.
+   *
+   * **No hay defecto** a proposito, y es la diferencia con `variableEstado`: si el mapeo
+   * no nombra la variable, `puntaje` queda null. Un nombre fijo en el codigo obligaria a
+   * que cada Typeform llamara igual a su variable de score, o el CRM leeria una variable
+   * ajena como puntaje sin un solo error. El Setteo sin score se ordena por recencia.
+   */
+  variablePuntaje?: string;
 }
 
 /** El nombre por defecto de la variable de Estado, si el mapeo no dice otra (punto E). */
@@ -280,6 +292,16 @@ export function entradaDesdeTypeform(payload: PayloadTypeform, opciones: Opcione
   const nombreVariableEstado = opciones.mapeo?.variableEstado ?? VARIABLE_ESTADO_POR_DEFECTO;
   const columnaEstado = `${PREFIJO_VARIABLE}${nombreVariableEstado}`;
 
+  // El SCORE del formulario (ticket 070). Igual que el Estado, es una VARIABLE que el
+  // mapeo nombra (`variablePuntaje`), pero SIN defecto: si el mapeo no la nombra, no hay
+  // puntaje. Su valor ya entro a `columnas` como `variable:<nombre>` (todas las variables
+  // se capturan arriba); aqui solo se lee y se convierte a entero. Un valor que no es un
+  // numero finito no se adivina: queda null (decision del 29-sep, "no se le inventa uno").
+  const puntaje =
+    opciones.mapeo?.variablePuntaje !== undefined
+      ? aEnteroONull(columnas[`${PREFIJO_VARIABLE}${opciones.mapeo.variablePuntaje}`])
+      : null;
+
   // El mapeo de campos: el de la fuente sobre el de por defecto. Los UTM y la fecha
   // no van en el mapeo de preguntas porque salen de sitios fijos del payload (hidden y
   // submitted_at): se ponen como columnas con su nombre estandar y el mapeo los apunta.
@@ -351,7 +373,21 @@ export function entradaDesdeTypeform(payload: PayloadTypeform, opciones: Opcione
     campos,
     esParcial,
     linkAgenda,
+    puntaje,
   };
+}
+
+/**
+ * Convierte el valor de la variable de score a un entero, o null. El adaptador guarda
+ * las variables como texto en `columnas` (`String(v.number)` o `v.text`), asi que aqui
+ * se re-parsea. **Un valor que no es un numero finito se descarta a null, nunca se
+ * adivina** (decision del 29-sep). Se redondea a entero porque `submissions.puntaje` es
+ * `integer`; un score con decimales pierde la fraccion, no falla la ingesta.
+ */
+function aEnteroONull(valor: unknown): number | null {
+  if (valor === null || valor === undefined) return null;
+  const n = Number(String(valor).trim());
+  return Number.isFinite(n) ? Math.round(n) : null;
 }
 
 /** El mapeo laxo para reusar el resolvedor de la hoja si hiciera falta en el futuro. */

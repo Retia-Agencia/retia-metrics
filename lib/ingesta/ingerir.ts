@@ -163,13 +163,16 @@ export async function ingerirEntradas(
 
   // 1b. El Estado de cada envio es el que trae del formulario (ya traducido en
   // `construirEnvio`). El CRM no califica: solo reporta lo que no reconoce. El puntaje
-  // (T4) sigue nulo hasta que se decida A8 (`docs/plan.md` §7).
+  // (ticket 070, decision del 29-sep) tambien lo TRAE el formulario, no lo calcula el
+  // CRM (decision A8): es el `e.puntaje` que el adaptador leyo de la variable de score, o
+  // null si la fuente no la nombra o el valor no era numero. `versionPuntaje` sigue nulo:
+  // no hay pesos del CRM que versionar (el formulario es quien pondera).
   type Nota = { calificacion: Calificacion | null; puntaje: number | null; versionPuntaje: number | null };
   const notaDe = new Map<string, Nota>();
   const motivos = new Map<string, number>();
   const contar = (motivo: string) => motivos.set(motivo, (motivos.get(motivo) ?? 0) + 1);
   for (const e of envios) {
-    notaDe.set(llaveDeEnvio(e), { calificacion: e.estado, puntaje: null, versionPuntaje: null });
+    notaDe.set(llaveDeEnvio(e), { calificacion: e.estado, puntaje: e.puntaje, versionPuntaje: null });
     // Un COMPLETO sin Estado reconocible es un error visible; un PARCIAL sin Estado no
     // (un parcial nunca abre deal, y marcarlo llenaria el reporte con los parciales).
     if (e.estado === null && !e.esParcial) {

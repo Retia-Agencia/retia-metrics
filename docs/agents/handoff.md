@@ -70,6 +70,16 @@ sobre el mismo main.
 
 _Estado actual del trabajo. Lo mas reciente arriba._
 
+- **2026-09-29 (sesión 46, Mani, segunda parte): 070 hecho por Kiro; 0040 aplicada; auditoría 114.**
+  - Inbox del programa en `/p/<programa>/inbox` (secciones sin dueño). El score lo manda Typeform: la fuente
+    nombra la variable en la llave `puntaje` del mapeo; sin ella, null. **Falta configurarlo en los forms.**
+  - 🩸 `duenosPosibles` exigía membresía también al developer: lo cazó un test de Kiro. El developer es dueño
+    posible en todo programa (ADR 0025 punto 5).
+  - Kiro trabajó en el worktree `../retia-metrics-070` (rama `kiro/070`) sin correr nada; la sesión trajo el
+    cambio con `cherry-pick --no-commit` y verificó. Sigue: 114-A1 (la regla de Agendado copiada en tres
+    archivos, la de la ingesta desactualizada), con el ok de Mani para tocar `lib/ingesta/`.
+  - **Medido:** 1.440 tests, typecheck, lint y build limpios.
+
 - **2026-09-29 (sesión 46, Mani): 074 hecho, la Ficha del Deal. E3 del carril de Mani cerrada.**
   - Implementó un subagente; la sesión principal revisó, corrigió y probó. **Desde aquí implementa Kiro y
     NO corre suites ni pruebas** (Mani, 29-sep): la verificación es de la sesión principal.

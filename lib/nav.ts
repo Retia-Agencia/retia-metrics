@@ -4,7 +4,7 @@ import { esAccesoTotal, trabajaLeads } from "@/lib/auth/roles";
 export type ItemNav = {
   href: string;
   etiqueta: string;
-  icono: "dashboard" | "deals" | "recursos" | "ajustes" | "midia" | "productos" | "nerdstats" | "personas";
+  icono: "dashboard" | "deals" | "inbox" | "recursos" | "ajustes" | "midia" | "productos" | "nerdstats" | "personas";
   roles: readonly Rol[];
 };
 
@@ -16,7 +16,7 @@ export type ItemNav = {
  * Solo entran las tabs que ya tienen pantalla (Alejo, 28-sep): cada ticket que construye
  * una (Leads 072, Deals 069, Calls 098, Students 099...) la agrega aqui y en la nav.
  */
-export const TABS_DE_PROGRAMA = ["dashboard", "deals"] as const;
+export const TABS_DE_PROGRAMA = ["dashboard", "deals", "inbox"] as const;
 export type TabDePrograma = (typeof TABS_DE_PROGRAMA)[number];
 
 /** La tab con la que se entra a un programa cuando no se viene de otra. */
@@ -81,6 +81,16 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
       href: rutaDePrograma(programa, "deals"),
       etiqueta: "Deals",
       icono: "deals",
+      roles: ["gerente", "closer"],
+    });
+    // Inbox: las dos listas por las que un deal consigue dueño —Pendiente Setteo y
+    // Agendados sin dueño— (ADR 0050, ticket 070). Junto a Deals, del mismo programa; un
+    // closer solo en sus programas. El boton de reclamar lo ve quien trabaja leads, pero
+    // la reja de verdad es el servidor.
+    items.push({
+      href: rutaDePrograma(programa, "inbox"),
+      etiqueta: "Inbox",
+      icono: "inbox",
       roles: ["gerente", "closer"],
     });
   }

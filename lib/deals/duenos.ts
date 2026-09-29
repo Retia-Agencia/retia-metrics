@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { miembrosPrograma, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { trabajaLeads } from "@/lib/auth/roles";
+import { esAccesoTotal, trabajaLeads } from "@/lib/auth/roles";
 
 /**
  * **¿Quién puede ser dueño de un deal de ESTE programa?** (ticket 074, ADR 0043). Una sola
@@ -15,6 +15,10 @@ import { trabajaLeads } from "@/lib/auth/roles";
  * darle el deal a un closer de OTRO programa: un deal cuyo dueño no ve su programa (ADR
  * 0048), que no le sale en ningún Inbox y que cruza la frontera del programa sin error.
  *
+ * **El developer es dueño posible en TODO programa, con o sin membresía** (ADR 0025 punto 5:
+ * al developer no se le restringe nada). Exigirle membresía seria el `rol === "..."` que lo
+ * deja afuera, escrito de otra forma.
+ *
  * No acota una lectura a una sesión (eso es `lib/auth/alcance.ts`): decide de quién puede
  * ser una fila. Por eso es excepción nombrada en `tests/alcance-de-sesion.test.ts`.
  */
@@ -24,14 +28,18 @@ export interface DuenoPosible {
 }
 
 export async function duenosPosibles(db: Db, programId: string): Promise<DuenoPosible[]> {
-  const filas = await db
-    .select({ id: users.id, nombre: users.nombre, email: users.email, rol: users.rol })
-    .from(miembrosPrograma)
-    .innerJoin(users, eq(users.id, miembrosPrograma.userId))
-    .where(and(eq(miembrosPrograma.programId, programId), eq(miembrosPrograma.activo, true), eq(users.activo, true)));
-  return filas
-    .filter((f) => trabajaLeads(f.rol))
-    .map((f) => ({ id: f.id, nombre: f.nombre ?? f.email }))
+  const [miembros, activos] = await Promise.all([
+    db
+      .select({ id: users.id })
+      .from(miembrosPrograma)
+      .innerJoin(users, eq(users.id, miembrosPrograma.userId))
+      .where(and(eq(miembrosPrograma.programId, programId), eq(miembrosPrograma.activo, true))),
+    db.select({ id: users.id, nombre: users.nombre, email: users.email, rol: users.rol }).from(users).where(eq(users.activo, true)),
+  ]);
+  const conMembresia = new Set(miembros.map((m) => m.id));
+  return activos
+    .filter((u) => trabajaLeads(u.rol) && (conMembresia.has(u.id) || esAccesoTotal(u.rol)))
+    .map((u) => ({ id: u.id, nombre: u.nombre ?? u.email }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 

@@ -76,6 +76,14 @@ export interface EntradaEnvio {
    * queda en `respuestas`): es solo el insumo del emparejador de la cita.
    */
   linkAgenda?: string | null;
+  /**
+   * El SCORE que el FORMULARIO calculo (ticket 070, decision del 29-sep). Entero, o null
+   * si la fuente no nombra la variable de score o si el valor no era un numero. Lo pone
+   * el adaptador de webhook leyendo la variable que el mapeo nombra (`variablePuntaje`);
+   * el adaptador de Sheets nunca lo trae (una hoja no calcula score). El CRM NO lo
+   * calcula (decision A8): solo lo lee y lo copia a `submissions.puntaje`.
+   */
+  puntaje?: number | null;
 }
 
 export interface Envio {
@@ -97,6 +105,13 @@ export interface Envio {
   utmMedium: string | null;
   utmCampaign: string | null;
   posicionEnHoja: number | null;
+  /**
+   * El SCORE que trajo el formulario (ticket 070), tal cual, sin recalcular. Entero o
+   * null. El CRM lo TRADUCE de la variable del payload, no lo calcula (decision A8): un
+   * valor ausente o no numerico es null y no se adivina. Va a `submissions.puntaje` y de
+   * ahi al resumen `leads.puntaje` por la misma regla del "envio que decide".
+   */
+  puntaje: number | null;
   /** Todas las columnas NO promovidas, con el texto del encabezado como llave. */
   respuestas: Record<string, string | null>;
   /** Normalizados para decidir a que Lead pertenece (ticket 050). */
@@ -201,6 +216,9 @@ export function construirEnvio(entrada: EntradaEnvio): ResultadoEnvio {
       utmMedium: limpiarUtm(celda("utmMedium")),
       utmCampaign: limpiarUtm(celda("utmCampaign")),
       posicionEnHoja: entrada.posicion,
+      // El SCORE lo pone el adaptador (webhook) o es null (hoja). Un valor no numerico ya
+      // llego como null desde el adaptador: aqui no se re-juzga, se copia (decision A8).
+      puntaje: entrada.puntaje ?? null,
       respuestas,
       identidad: {
         correo: normalizarEmail(celda("correo")),

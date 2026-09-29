@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, CalendarCheck, KanbanSquare, Library, LineChart, Menu, Settings, Tag, Users, X } from "lucide-react";
+import { Activity, CalendarCheck, Inbox, KanbanSquare, Library, LineChart, Menu, Settings, Tag, Users, X } from "lucide-react";
 import { navParaRol, programaDeRuta, type ItemNav } from "@/lib/nav";
 import type { Rol } from "@/lib/auth/roles";
 import type { Vista } from "@/lib/auth/vista";
@@ -16,6 +16,7 @@ import { UserMenu } from "@/components/user-menu";
 const ICONOS: Record<ItemNav["icono"], typeof LineChart> = {
   dashboard: LineChart,
   deals: KanbanSquare,
+  inbox: Inbox,
   recursos: Library,
   ajustes: Settings,
   midia: CalendarCheck,

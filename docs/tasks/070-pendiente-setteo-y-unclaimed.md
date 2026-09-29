@@ -3,7 +3,7 @@ id: 070
 etapa: E6
 serves: "plan v2 §6 etapa 6 · tarea E6-2 · insumo §6, ADR 0021 (enmendado por el 0037)"
 depends: [069]
-status: todo
+status: done
 ---
 
 # 070 — Pendiente Setteo para reclamar, y Unclaimed
