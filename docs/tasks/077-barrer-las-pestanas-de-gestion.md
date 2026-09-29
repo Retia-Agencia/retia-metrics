@@ -3,7 +3,7 @@ id: 077
 etapa: E7
 serves: "plan v2 §6 etapa 7 · tarea E7-1 · insumo §9, spec §7 (enmendada)"
 depends: [111]
-status: todo
+status: done
 ---
 
 # 077 — Barrer las pestanas de gestion de las dos hojas

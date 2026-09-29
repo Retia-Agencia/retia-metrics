@@ -3,7 +3,7 @@ id: 078
 etapa: E7
 serves: "plan v2 §6 etapa 7 · tarea E7-2 · ADR 0029, invariante 2 del plan v2"
 depends: [077]
-status: todo
+status: en curso
 ---
 
 # 078 — La migracion pasa por la MISMA ingesta, nunca por inserts crudos

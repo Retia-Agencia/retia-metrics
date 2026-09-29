@@ -208,8 +208,8 @@ Va de último, con el scaffold completo. Absorbe el "histórico de C2" de la spe
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 077 | [Barrer las pestañas de gestión](./077-barrer-las-pestanas-de-gestion.md) (E7-1) | 111 | todo |
-| [ ] | 078 | [Pasa por la MISMA ingesta, nunca inserts crudos](./078-la-migracion-pasa-por-la-misma-ingesta.md) (E7-2) | 077 | todo |
+| [x] | 077 | [Barrer las pestañas de gestión](./077-barrer-las-pestanas-de-gestion.md) (E7-1) | 111 | done · 29-sep · Alejo · las ocho pestañas leídas (encabezados reales) y su mapeo escrito en el ticket; el extractor del 078 lo implementa y ninguna fila se descarta en silencio (deal, llamada, sin deal por alcance o rareza) |
+| [ ] | 078 | [Pasa por la MISMA ingesta, nunca inserts crudos](./078-la-migracion-pasa-por-la-misma-ingesta.md) (E7-2) | 077 | en curso · Alejo · rama `migracion/078-huellas-y-rarezas`: 0041 (sin aplicar, la aplica Mani), escritor histórico y extractor hechos; falta el importador |
 | [x] | 079 | [Recuperar las 55 de `Forms viejo`](./079-recuperar-las-55-de-forms-viejo.md) (E7-3) | 111 | done · 29-sep · cerrado por el traslado (111), que lo tenía en su alcance: `Forms viejo` entró en la misma corrida (ComunicArte 2.465 leads, conciliación 2.739/2.739) |
 | [ ] | 080 | [Los casos raros de la migración](./080-los-casos-raros-de-la-migracion.md) (E7-4) | 078 | todo |
 | [x] | 081 | [COP → USD a la tasa del día](./081-cop-a-usd-en-la-migracion.md) (E7-5) | 078 | descartado · 28-sep (Mani): *"solo usamos USD aquí"*. No hay conversión ni tasa ni marca de abono convertido; un monto que aparezca en COP al barrer se lista como rareza (080) y no se convierte |
