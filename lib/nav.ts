@@ -4,7 +4,7 @@ import { esAccesoTotal, trabajaLeads } from "@/lib/auth/roles";
 export type ItemNav = {
   href: string;
   etiqueta: string;
-  icono: "dashboard" | "recursos" | "ajustes" | "midia" | "productos" | "nerdstats" | "personas";
+  icono: "dashboard" | "deals" | "recursos" | "ajustes" | "midia" | "productos" | "nerdstats" | "personas";
   roles: readonly Rol[];
 };
 
@@ -16,7 +16,7 @@ export type ItemNav = {
  * Solo entran las tabs que ya tienen pantalla (Alejo, 28-sep): cada ticket que construye
  * una (Leads 072, Deals 069, Calls 098, Students 099...) la agrega aqui y en la nav.
  */
-export const TABS_DE_PROGRAMA = ["dashboard"] as const;
+export const TABS_DE_PROGRAMA = ["dashboard", "deals"] as const;
 export type TabDePrograma = (typeof TABS_DE_PROGRAMA)[number];
 
 /** La tab con la que se entra a un programa cuando no se viene de otra. */
@@ -73,6 +73,14 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
       href: rutaDePrograma(programa, "dashboard"),
       etiqueta: "Dashboard",
       icono: "dashboard",
+      roles: ["gerente", "closer"],
+    });
+    // Deals: el Kanban del programa (ADR 0050, ticket 069). Lo ven gerente y closer (y el
+    // developer por `esAccesoTotal`); un closer solo en sus programas, como el Dashboard.
+    items.push({
+      href: rutaDePrograma(programa, "deals"),
+      etiqueta: "Deals",
+      icono: "deals",
       roles: ["gerente", "closer"],
     });
   }

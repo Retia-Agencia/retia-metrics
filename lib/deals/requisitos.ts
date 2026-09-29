@@ -189,6 +189,19 @@ function requisitosDe(t: Transicion): Requisito[] {
 }
 
 /**
+ * Los codigos de requisito de una flecha, incluido `motivo` cuando la flecha lo exige.
+ * Es la version publica de `requisitosDe`: la usa el servidor para decir al cliente del
+ * Kanban que campos pedir en un dialogo (ticket 069), sin exponer la logica interna ni
+ * duplicarla. `queLeFalta` sigue siendo el unico que DECIDE lo que falta; esto solo
+ * lista lo que la flecha puede pedir.
+ */
+export function requisitosDeTransicion(t: Transicion): CodigoRequisito[] {
+  const codigos: CodigoRequisito[] = [...requisitosDe(t)];
+  if (t.exigeMotivo) codigos.push("motivo");
+  return codigos;
+}
+
+/**
  * Lo que le falta al deal para pasar de `de` a `a`. Lista vacia: puede pasar.
  * Si la flecha no existe, devuelve solo ese hecho, con las etapas por su nombre.
  */

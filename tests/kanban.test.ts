@@ -1,0 +1,271 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  abonos,
+  cohorts,
+  dealEtapaHistorial,
+  deals,
+  leadContactos,
+  leads,
+  productos,
+  programs,
+  users,
+} from "@/lib/db/schema";
+import type { Db } from "@/lib/db/tipos";
+import type { EtapaDeal } from "@/lib/deals/etapas";
+import { opcionesDeTablero, parsearFiltros, tableroKanban } from "@/lib/queries/kanban";
+import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+
+/**
+ * Ticket 069: el tablero Kanban. Prueba que un deal anulado NUNCA aparece, que los
+ * filtros funcionan, que las tarjetas se agrupan por etapa (las doce columnas salen
+ * siempre) y que los avisos se calculan. El saldo sale de `saldosDeDeals` y la cartera
+ * de `carteraVencida`, no se recalculan aqui.
+ */
+
+const HOY = "2026-10-20";
+
+let db: Db;
+let cerrar: () => Promise<void>;
+let programId: string;
+let cohortId: string;
+let productoId: string;
+let owner1: string;
+let owner2: string;
+let leadN = 0;
+
+beforeEach(async () => {
+  ({ db, cerrar } = await crearBaseDePrueba());
+  const [p] = await db
+    .insert(programs)
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" })
+    .returning();
+  programId = p.id;
+  const [c] = await db
+    .insert(cohorts)
+    .values({
+      programId,
+      codigo: "C1",
+      metaCupos: 10,
+      precioUsd: "1000",
+      fechaInicioClases: "2026-11-15",
+      fechaInicioVentas: "2026-09-01",
+      fechaCierreVentas: "2026-11-14",
+      estado: "activo",
+    })
+    .returning();
+  cohortId = c.id;
+  const [prod] = await db.insert(productos).values({ programId, nombre: "Programa", precioLista: "1000" }).returning();
+  productoId = prod.id;
+  const [u1] = await db.insert(users).values({ email: "carlos@retia.co", rol: "closer", closerId: "carlos", nombre: "Carlos" }).returning();
+  const [u2] = await db.insert(users).values({ email: "maria@retia.co", rol: "closer", closerId: "maria", nombre: "Maria" }).returning();
+  owner1 = u1.id;
+  owner2 = u2.id;
+});
+
+afterEach(async () => {
+  await cerrar();
+});
+
+interface OpcDeal {
+  etapa: EtapaDeal;
+  owner?: string;
+  cohort?: string | null;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  fechaLimitePago?: string | null;
+  fechaSeguimiento?: string | null;
+  anulado?: boolean;
+  /** Cuando entro a su etapa actual (para dias en etapa); default: hoy. */
+  entrada?: string;
+  contactoSinConfirmar?: boolean;
+  abono?: string;
+}
+
+async function deal(o: OpcDeal): Promise<string> {
+  const [l] = await db
+    .insert(leads)
+    .values({
+      programId,
+      emailNormalizado: `l${++leadN}@correo.co`,
+      nombre: `Lead ${leadN}`,
+      utmSource: o.utmSource ?? "meta",
+      utmMedium: o.utmMedium ?? "cpc",
+    })
+    .returning();
+  const [d] = await db
+    .insert(deals)
+    .values({
+      leadId: l.id,
+      programId,
+      cohortId: o.cohort === undefined ? cohortId : o.cohort,
+      etapa: o.etapa,
+      ownerUserId: o.owner ?? owner1,
+      productoId,
+      fechaLimitePago: o.fechaLimitePago ?? null,
+      fechaSeguimiento: o.fechaSeguimiento ?? null,
+      ...(o.anulado
+        ? { anuladoEn: new Date(), anuladoPor: owner1, motivoAnulacion: "error de tecleo" }
+        : {}),
+    })
+    .returning();
+  // Fila de historial hacia la etapa actual, con la fecha de entrada dada.
+  const fecha = o.entrada ? new Date(`${o.entrada}T12:00:00-05:00`) : new Date(`${HOY}T12:00:00-05:00`);
+  await db.insert(dealEtapaHistorial).values({ dealId: d.id, de: null, a: o.etapa, fecha });
+  if (o.abono) {
+    await db.insert(abonos).values({ dealId: d.id, programId, fecha: "2026-10-01", monto: o.abono });
+  }
+  if (o.contactoSinConfirmar) {
+    await db.insert(leadContactos).values({
+      leadId: l.id,
+      programId,
+      tipo: "telefono",
+      valor: `+5730011100${leadN}`,
+      confirmado: false,
+    });
+  }
+  return d.id;
+}
+
+describe("tableroKanban", () => {
+  it("las once columnas salen siempre, en el orden del enum, aunque esten vacias", async () => {
+    const t = await tableroKanban(db, programId, {}, HOY);
+    expect(t.columnas).toHaveLength(11);
+    expect(t.columnas[0].etapa).toBe("pendiente_setteo");
+    expect(t.total).toBe(0);
+  });
+
+  it("un deal ANULADO no aparece en ninguna columna", async () => {
+    await deal({ etapa: "en_contacto" });
+    await deal({ etapa: "en_contacto", anulado: true });
+    const t = await tableroKanban(db, programId, {}, HOY);
+    expect(t.total).toBe(1);
+    const enContacto = t.columnas.find((c) => c.etapa === "en_contacto")!;
+    expect(enContacto.tarjetas).toHaveLength(1);
+  });
+
+  it("agrupa por etapa y muestra dueño y producto", async () => {
+    await deal({ etapa: "pendiente_setteo", owner: owner1 });
+    await deal({ etapa: "en_contacto", owner: owner2 });
+    await deal({ etapa: "en_contacto", owner: owner1 });
+    const t = await tableroKanban(db, programId, {}, HOY);
+    const enContacto = t.columnas.find((c) => c.etapa === "en_contacto")!;
+    const setteo = t.columnas.find((c) => c.etapa === "pendiente_setteo")!;
+    expect(enContacto.tarjetas).toHaveLength(2);
+    expect(setteo.tarjetas).toHaveLength(1);
+    expect(enContacto.tarjetas[0].productoNombre).toBe("Programa");
+    expect([owner1, owner2]).toContain(enContacto.tarjetas[0].ownerUserId);
+    expect(enContacto.tarjetas.some((x) => x.ownerNombre === "Maria")).toBe(true);
+  });
+
+  it("filtra por dueño", async () => {
+    await deal({ etapa: "en_contacto", owner: owner1 });
+    await deal({ etapa: "en_contacto", owner: owner2 });
+    const t = await tableroKanban(db, programId, { ownerUserId: owner2 }, HOY);
+    expect(t.total).toBe(1);
+    expect(t.columnas.find((c) => c.etapa === "en_contacto")!.tarjetas[0].ownerUserId).toBe(owner2);
+  });
+
+  it("filtra por canal (source|medium del lead)", async () => {
+    await deal({ etapa: "en_contacto", utmSource: "meta", utmMedium: "cpc" });
+    await deal({ etapa: "en_contacto", utmSource: "google", utmMedium: "cpc" });
+    const t = await tableroKanban(db, programId, { canal: "google|cpc" }, HOY);
+    expect(t.total).toBe(1);
+  });
+
+  it("filtra por antiguedad minima en la etapa", async () => {
+    await deal({ etapa: "en_contacto", entrada: "2026-10-01" }); // 19 dias
+    await deal({ etapa: "en_contacto", entrada: HOY }); // 0 dias
+    const t = await tableroKanban(db, programId, { antiguedadMinima: 7 }, HOY);
+    expect(t.total).toBe(1);
+    expect(t.columnas.find((c) => c.etapa === "en_contacto")!.tarjetas[0].diasEnEtapa).toBe(19);
+  });
+
+  it("filtra por cohorte de origen", async () => {
+    const [otra] = await db
+      .insert(cohorts)
+      .values({
+        programId,
+        codigo: "C2",
+        metaCupos: 5,
+        precioUsd: "1000",
+        fechaInicioClases: "2026-12-15",
+        fechaCierreVentas: "2026-12-01",
+        estado: "futuro",
+      })
+      .returning();
+    await deal({ etapa: "en_contacto", cohort: cohortId });
+    await deal({ etapa: "en_contacto", cohort: otra.id });
+    const t = await tableroKanban(db, programId, { cohorteId: otra.id }, HOY);
+    expect(t.total).toBe(1);
+  });
+
+  it("aviso: compromiso verbal con fecha limite pasada", async () => {
+    await deal({ etapa: "compromiso_verbal", fechaLimitePago: "2026-10-01" });
+    const t = await tableroKanban(db, programId, {}, HOY);
+    const tarjeta = t.columnas.find((c) => c.etapa === "compromiso_verbal")!.tarjetas[0];
+    expect(tarjeta.avisos.compromisoVencido).toBe(true);
+  });
+
+  it("aviso: seguimiento con fecha de seguimiento pasada", async () => {
+    await deal({ etapa: "seguimiento", fechaSeguimiento: "2026-10-01" });
+    const t = await tableroKanban(db, programId, {}, HOY);
+    const tarjeta = t.columnas.find((c) => c.etapa === "seguimiento")!.tarjetas[0];
+    expect(tarjeta.avisos.seguimientoVencido).toBe(true);
+  });
+
+  it("aviso: cartera vencida (abonado, saldo > 0, fecha limite pasada) sale de carteraVencida", async () => {
+    await deal({ etapa: "abonado", abono: "400", fechaLimitePago: "2026-10-01" });
+    const t = await tableroKanban(db, programId, {}, HOY);
+    const tarjeta = t.columnas.find((c) => c.etapa === "abonado")!.tarjetas[0];
+    expect(tarjeta.avisos.carteraVencida).toBe(true);
+    expect(tarjeta.saldo).toBe(600);
+    expect(tarjeta.moneda).toBe("USD");
+  });
+
+  it("aviso: lead unido por telefono (contacto sin confirmar)", async () => {
+    await deal({ etapa: "en_contacto", contactoSinConfirmar: true });
+    const t = await tableroKanban(db, programId, {}, HOY);
+    const tarjeta = t.columnas.find((c) => c.etapa === "en_contacto")!.tarjetas[0];
+    expect(tarjeta.avisos.leadUnidoPorTelefono).toBe(true);
+  });
+});
+
+describe("opcionesDeTablero", () => {
+  it("trae owners, cohortes y canales presentes en los deals, y los catalogos", async () => {
+    await deal({ etapa: "en_contacto", owner: owner1, utmSource: "meta", utmMedium: "cpc" });
+    await deal({ etapa: "en_contacto", owner: owner2, utmSource: "google", utmMedium: "organic" });
+    const o = await opcionesDeTablero(db, programId);
+    expect(o.owners.map((x) => x.id).sort()).toEqual([owner1, owner2].sort());
+    expect(o.cohortes.map((x) => x.nombre)).toContain("C1");
+    expect(o.canales.map((x) => x.clave).sort()).toEqual(["google|organic", "meta|cpc"]);
+    expect(o.productos.map((p) => p.nombre)).toContain("Programa");
+  });
+
+  it("un deal anulado no aporta su dueño ni su canal a las opciones", async () => {
+    await deal({ etapa: "en_contacto", owner: owner2, anulado: true });
+    const o = await opcionesDeTablero(db, programId);
+    expect(o.owners).toHaveLength(0);
+  });
+});
+
+describe("parsearFiltros", () => {
+  it("lee owner, cohorte, canal y antiguedad; ignora vacios y antiguedad no numerica", () => {
+    expect(parsearFiltros({ owner: "u1", cohorte: "c1", canal: "meta|cpc", antiguedad: "7" })).toEqual({
+      ownerUserId: "u1",
+      cohorteId: "c1",
+      canal: "meta|cpc",
+      antiguedadMinima: 7,
+    });
+    expect(parsearFiltros({ owner: "", antiguedad: "abc" })).toEqual({
+      ownerUserId: null,
+      cohorteId: null,
+      canal: null,
+      antiguedadMinima: null,
+    });
+    // Un arreglo (parametro repetido) no es un valor de filtro.
+    expect(parsearFiltros({ owner: ["a", "b"] }).ownerUserId).toBeNull();
+    // antiguedad 0 no filtra (minimo 1).
+    expect(parsearFiltros({ antiguedad: "0" }).antiguedadMinima).toBeNull();
+  });
+});

@@ -158,7 +158,7 @@ pinta siempre con el mismo tono (§9).
 | 4 | Agendado | hay una llamada con fecha | sistema / closer | `info` |
 | 3 | Pendiente Re-agenda | la llamada falló o hace falta otra, siempre con motivo | sistema / closer | `alerta` |
 | 5 | Atendido | la llamada ocurrió (se pegó el Grain) | sistema | `info` |
-| 11 | Seguimiento | la llamada ocurrió y hay que volver a contactarlo | closer | 🔴 sin tono asignado |
+| 11 | Seguimiento | la llamada ocurrió y hay que volver a contactarlo | closer | `info` |
 | 6 | Compromiso Verbal | dijo que sí: producto y fecha límite de pago | closer | `alerta` |
 | 7 | Abonado | entró el primer pago y queda saldo | sistema | `exito` |
 | 8 | Completo | saldo en cero | sistema | `exito` |

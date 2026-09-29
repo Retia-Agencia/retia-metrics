@@ -352,6 +352,31 @@ export async function sembrarLocal(): Promise<void> {
       telefono: "+573002220001",
       estado: "con_calendly",
     }),
+    entradaDePrueba(f2.id, {
+      token: "tok-p2-2",
+      correo: "karina.lopez@ejemplo.local",
+      nombre: "Karina López",
+      telefono: "+573002220002",
+      estado: "setteo_no_calificado",
+      utmSource: "google",
+      utmMedium: "cpc",
+    }),
+    entradaDePrueba(f2.id, {
+      token: "tok-p2-3",
+      correo: "luis.mendoza@ejemplo.local",
+      nombre: "Luis Mendoza",
+      telefono: "+573002220003",
+      estado: "con_calendly",
+      utmSource: "google",
+      utmMedium: "organic",
+    }),
+    entradaDePrueba(f2.id, {
+      token: "tok-p2-4",
+      correo: "marta.rios@ejemplo.local",
+      nombre: "Marta Ríos",
+      telefono: "+573002220004",
+      estado: "con_calendly",
+    }),
   ];
 
   await ingerirEntradas(db, prog1.id, entradasProg1, { aplicarReglaDeDeals: false });
@@ -602,6 +627,51 @@ export async function sembrarLocal(): Promise<void> {
     dealId: deal10Id,
     a: "abonado",
     actor: { tipo: "sistema" },
+  });
+
+  // Deal 11 -> Tactical: pendiente_setteo
+  const lead11 = mapaLeads.get("karina.lopez@ejemplo.local")!;
+  await abrirDeal(db, {
+    leadId: lead11.id,
+    programId: prog2.id,
+    etapa: "pendiente_setteo",
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    ownerUserId: closer1.id,
+    cohortId: coh2.id,
+  });
+
+  // Deal 12 -> Tactical: agendado (vía agregarLlamada)
+  const lead12 = mapaLeads.get("luis.mendoza@ejemplo.local")!;
+  const deal12Id = await abrirDeal(db, {
+    leadId: lead12.id,
+    programId: prog2.id,
+    etapa: "pendiente_setteo",
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    ownerUserId: closer1.id,
+    cohortId: coh2.id,
+  });
+  await agregarLlamada(
+    db,
+    { userId: closer1.id, rol: "closer" },
+    {
+      dealId: deal12Id,
+      fechaAgenda: new Date("2026-10-06T15:00:00-05:00"),
+      linkCalendly: "https://calendly.com/retia-demo/cita-luis",
+      notas: "Quiere entender la estrategia antes de decidir.",
+    },
+  );
+
+  // Deal 13 -> Tactical: compromiso_verbal (con fecha límite pasada, para ver el aviso)
+  const lead13 = mapaLeads.get("marta.rios@ejemplo.local")!;
+  await abrirDeal(db, {
+    leadId: lead13.id,
+    programId: prog2.id,
+    etapa: "compromiso_verbal",
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    ownerUserId: closer1.id,
+    cohortId: coh2.id,
+    productoId: prod2Completo.id,
+    fechaLimitePago: "2026-09-20",
   });
 
   console.log("\n[seed:local] Siembra local finalizada exitosamente.");
