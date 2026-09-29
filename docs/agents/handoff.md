@@ -43,6 +43,30 @@ cada migracion nueva. Antes de tomar un ticket, git fetch: Alejo empuja al mismo
 
 ## Memory
 
+- **2026-09-29 (sesión 51, Mani): 0041 en producción, mapeo Typeform y fix del resumen del lead.**
+  - **0041 aplicada en producción** con `npm run db:migrate` (ref `hfqmiyiuyqapdsbywrag`, conexión directa 5432,
+    SQL leído antes). Las cuatro columnas (`lead_quality`, `lead_value` en `submissions` y `leads`) existen, nullable.
+  - **Mapeo puesto** en las dos fuentes webhook activas con `editarFuente` (queda en `change_log`):
+    `{ puntaje: "score", leadQuality: "tag_lead_quality", leadValue: "lead_value" }`, más la `agenda` que ya tenían.
+    Tactical `e3007c99-…`, ComunicArte `f919d215-…`.
+  - 🩸 **Se perdían envíos por el orden del deploy:** el código nuevo llegó a Vercel antes que la migración y 2 envíos
+    reales de Tactical (19:30 y 19:42 UTC) fallaron al insertar. Estaban íntegros en `sobres_crudos`; se
+    reprocesaron con `reprocesarSobre` (ok de Mani) y quedaron `procesado`. Pendientes de reproceso: 0.
+    **Regla para el futuro: una migración aditiva se aplica ANTES de mergear el código que la usa.**
+  - 🩸 **Bug: los valores no llegaban a `leads.*`.** `resumirEnvios` sacaba `puntaje`, `leadQuality` y `leadValue`
+    del envío con `calificacion`; un High que aún no agenda trae `estado` vacío, y el lead quedaba en NULL aunque
+    el submission tuviera el valor. Ahora salen de `decideValores` (misma precedencia, filtrando envíos con al
+    menos un valor); `calificacion` no cambia. 4 tests en `tests/ingesta-escritura.test.ts`. Implementó Kiro.
+  - **Auditoría (agregados, desde 29-sep 17:20 UTC):** Tactical 6 submissions con `score`, `tag_lead_quality`,
+    `hvm_points`, `hvm_tier` y `lead_value` en `respuestas` (6/6); ComunicArte 3 con `score` y 2 con las otras cuatro
+    (el tercero es anterior a que Alejandro editara ese form, 17:58 UTC). Ningún envío es posterior al mapeo todavía:
+    los 7 anteriores tienen `lead_quality`/`lead_value` en NULL en `submissions`, y los 2 reprocesados los traen.
+  - **Falta:** tras el deploy, recalcular el resumen de los leads con valores en `respuestas` (escritura en
+    producción, pide ok de Mani); verificar con un envío nuevo que promueva a submission y lead; ver los tags en Deals.
+  - Validación: typecheck, lint y build limpios; `npm test` 1.486 pasando y 1 omitido, sin timeouts.
+  - `.env.example` ahora nombra los tokens de dev: `TYPEFORM_TOKEN_TACTICAL/COMUNICARTE` y `CALENDLY_PAT_DEV_*`.
+    Solo local; ningún código los lee. Cada dev los pega en su `.env.local`.
+
 - **2026-09-29 (sesión 50, Mani): valores de Typeform en Deals.**
   - Se añadió la migración 0041 con `lead_quality` y `lead_value` en `submissions` y `leads`.
   - El adaptador acepta las llaves configurables `leadQuality` y `leadValue` del mapeo de cada fuente;
