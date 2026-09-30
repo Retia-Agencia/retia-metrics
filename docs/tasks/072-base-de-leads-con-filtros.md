@@ -3,7 +3,7 @@ id: 072
 etapa: E6
 serves: "plan v2 §6 etapa 6 · tarea E6-4 · insumo §4.3, ADR 0032"
 depends: [069]
-status: todo
+status: en curso
 ---
 
 # 072 — La base de Leads: lo que existe y todavia no es una oportunidad
@@ -54,3 +54,35 @@ del selector (ADR 0048).
 ## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
 
 - Filtros nuevos: "abandonó el formulario" (token con parcial y sin completa, sin estado: lead sin deal, ADR 0061) y "sin estado" (valor vacío o desconocido). Ninguno abre deal; los dos se ven aquí.
+
+---
+
+## ✅ Construido (30-sep, Alejo)
+
+Medido en producción antes (solo agregados): 68 correos sin confirmar en 65 leads (CA 23, TI 42), 2 de esos leads
+con deal y 1 caso donde el envío a mover es origen de un deal; 98% de los leads sin deal (CA 2.491/2.532, TI
+2.897/2.933); 187 leads de TI con solo parciales.
+
+**La tab `/p/<programa>/leads`** (`lib/queries/leads.ts`, `app/(app)/p/[programa]/leads/`), tab en la nav. Filtros por
+hecho: con o sin deal vigente (un anulado no cuenta), estado (o "sin estado"), abandonó el formulario (TODOS sus
+envíos parciales), posible duplicado y fechas de la última aplicación en días de Bogotá. 100 por página. **Sin
+búsqueda por texto:** los filtros van en la URL y un correo ahí está prohibido; para buscar está Personas.
+
+**Posibles duplicados: confirmar o separar** (`lib/ingesta/separar.ts`). Decisiones de Alejo, 29-sep:
+- **Separar** crea un lead nuevo con ese correo y mueve **los envíos que traen ese correo exacto** (el que lo trajo y
+  cualquier otro cuyas respuestas lo contengan, normalizado). Los demás se quedan; el teléfono compartido se queda
+  con el lead original. Recalcula los dos resúmenes (`recalcularResumen`, ahora exportado con actor).
+- Si un envío a mover **abrió un deal vigente**, 409 con la etapa del deal: lo resuelve una persona.
+- Lo hace **quien trabaja el programa** (membresía activa) o quien administra (`exigirAccesoAlPrograma`).
+- Todo en una transacción, con su rastro en `change_log` (`origen: app`, el usuario).
+
+Tests: `tests/leads-tab.test.ts`, `tests/separar-correo.test.ts`, `tests/roles.test.ts`. Probado en Postgres real
+(base local): los filtros y una separación.
+
+**Fuera, con su razón:**
+- *Combinar redacciones del estado:* salía del ADR 0032, **retirado**. Los valores del Estado los mapea la tabla
+  `estados_llegada` (ADR 0061, ticket 117).
+- *Filtros por canal, área y campaña:* dependen de 083, 084 y 101. *"Traído por":* de `leads.traido_por_user_id`
+  (ADR 0044), que no existe todavía. Cada uno se suma aquí cuando exista su dato.
+
+**Falta:** recorrido visual en navegador (claro/oscuro, 390 px, consola; incluye el flujo de separar).

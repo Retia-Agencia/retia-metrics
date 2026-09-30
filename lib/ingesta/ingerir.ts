@@ -584,12 +584,16 @@ async function actualizarResumenes(tx: Db, filas: { id: string; resumen: Resumen
  * Reescribe el resumen de los leads que cambian y deja en `change_log` cada campo
  * tocado de un lead que YA existia. Un lead recien creado no deja bitacora de sus
  * campos: su creacion es el envio mismo, que queda guardado.
+ *
+ * `actorId`: cuando lo dispara una PERSONA (separar un correo, ticket 072) y no la ingesta,
+ * el rastro sale como `app` con su usuario. Sin actor, es la ingesta (`sync`).
  */
-async function recalcularResumen(
+export async function recalcularResumen(
   tx: Db,
   leadIds: string[],
   creados: Set<string>,
   syncRunId: string | null,
+  actorId: string | null = null,
 ): Promise<{ actualizados: number; cambios: number }> {
   let actualizados = 0;
   let cambios = 0;
@@ -648,7 +652,8 @@ async function recalcularResumen(
           campo,
           valorAnterior: comoTexto(lead[campo]),
           valorNuevo: comoTexto(resumen[campo]),
-          origen: "sync" as const,
+          origen: actorId ? ("app" as const) : ("sync" as const),
+          userId: actorId,
           syncRunId,
         });
       }

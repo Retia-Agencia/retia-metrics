@@ -4,7 +4,7 @@ import { esAccesoTotal, trabajaLeads } from "@/lib/auth/roles";
 export type ItemNav = {
   href: string;
   etiqueta: string;
-  icono: "dashboard" | "deals" | "inbox" | "calls" | "recursos" | "ajustes" | "midia" | "productos" | "nerdstats" | "personas" | "students";
+  icono: "dashboard" | "deals" | "inbox" | "calls" | "recursos" | "ajustes" | "midia" | "productos" | "nerdstats" | "personas" | "students" | "leads";
   roles: readonly Rol[];
 };
 
@@ -16,7 +16,7 @@ export type ItemNav = {
  * Solo entran las tabs que ya tienen pantalla (Alejo, 28-sep): cada ticket que construye
  * una (Leads 072, Deals 069, Calls 098, Students 099...) la agrega aqui y en la nav.
  */
-export const TABS_DE_PROGRAMA = ["dashboard", "deals", "inbox", "calls", "students"] as const;
+export const TABS_DE_PROGRAMA = ["dashboard", "leads", "deals", "inbox", "calls", "students"] as const;
 export type TabDePrograma = (typeof TABS_DE_PROGRAMA)[number];
 
 /** La tab con la que se entra a un programa cuando no se viene de otra. */
@@ -73,6 +73,14 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
       href: rutaDePrograma(programa, "dashboard"),
       etiqueta: "Dashboard",
       icono: "dashboard",
+      roles: ["gerente", "closer"],
+    });
+    // Leads: la base del programa, lo que todavia no es oportunidad (ticket 072). Mismo
+    // alcance que Deals; Personas se queda como buscador entre programas.
+    items.push({
+      href: rutaDePrograma(programa, "leads"),
+      etiqueta: "Leads",
+      icono: "leads",
       roles: ["gerente", "closer"],
     });
     // Deals: el Kanban del programa (ADR 0050, ticket 069). Lo ven gerente y closer (y el
