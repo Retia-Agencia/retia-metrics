@@ -38,3 +38,10 @@ Hasta que respondan, la pantalla dice qué supuesto usa.
 ## Kiro
 
 Sí, con revisión visual.
+
+
+---
+
+## Respuesta de Mani, 29-sep
+
+- La conversión agenda→venta **se declara en los objetivos** (122). Cada agenda cuenta para la cohorte de su deal; si el deal aún no tiene cohorte (se asigna en el primer abono), cuenta para la cohorte activa el día en que se agendó. Siguen abiertas la ventana del ritmo y el desfase.

@@ -466,12 +466,11 @@ y no se compra HubSpot (R10).
 Pauta define sus UTM con macros de Meta y el CRM las recibe (el builder queda para orgánico y closer, ADR
 0062); `utm_id = {{ad.id}}` es la llave del anuncio; `fbclid` no hace falta. Lo que sigue abierto:
 
-- **PQ1:** ¿una cuenta publicitaria por programa o una compartida? Moneda y zona horaria de cada una. ¿Hay
-  pauta fuera de Meta? (119, 120)
+- ~~**PQ1**~~ ✅ una cuenta por programa, COP, Bogotá (Mani, 29-sep). Sigue: ¿pautan fuera de Meta?
 - **PQ2:** cuándo aplican la plantilla de UTM en Retia (después del campo oculto `utm_id`, O-1).
-- **PQ3:** qué conversión agenda→venta usan para las agendas requeridas, qué ventana para el ritmo actual y
+- **PQ3:** ✅ la conversión agenda→venta se declara en los objetivos (Mani, 29-sep). Siguen: qué conversión agenda→venta usan para las agendas requeridas, qué ventana para el ritmo actual y
   cuántos días antes del cierre dejan de contar agendas (124).
-- **PQ4:** los objetivos por programa: agendas de paid por día (dijeron meta 15, aceptable 10), costo por
+- **PQ4:** (✅ se suma costo por venta) los objetivos por programa: agendas de paid por día (dijeron meta 15, aceptable 10), costo por
   agenda (60.000 / 80.000 COP), costo por lead, ROAS de contrato (¿1,67?) y el reparto de cupos de C3 (122).
 - **PQ6** (con Media): la convención de UTM del orgánico, y si quieren tipo, formato y autor del creativo
   (piden una convención de nombres de anuncio).

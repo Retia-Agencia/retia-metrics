@@ -38,3 +38,10 @@ una sola función diga si algo va "en ruta" o "atrasado".
 ## Kiro
 
 Sí. La migración, la sesión principal.
+
+
+---
+
+## Respuestas de Mani, 29-sep
+
+- Métricas adicionales: **`conversion_agenda_venta`** (declarada por cohorte y área; la usa el 124) y **`costo_por_venta`** (cierres).

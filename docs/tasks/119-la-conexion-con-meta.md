@@ -41,3 +41,10 @@ construir, no se adivina por el nombre.
 ## Kiro
 
 Sí para el código y los tests, con revisión de permisos. La migración, la sesión principal.
+
+
+---
+
+## Respuesta de Mani, 29-sep
+
+- Una cuenta publicitaria por programa, en COP y zona Bogotá; un token por portafolio (varias conexiones). La relación cuenta → programa es 1 a 1 por ahora; no hace falta asignar campañas a mano.

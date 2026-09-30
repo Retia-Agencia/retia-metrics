@@ -40,3 +40,10 @@ Calendly, agendó.
 ## Kiro
 
 Sí, con revisión.
+
+
+---
+
+## Decisión de Mani, 29-sep
+
+- ✅ El token de la API de Typeform vive en la base, en la fuente, con las reglas del secreto del webhook (lo escribe una función, se muestra una vez, nunca vuelve en una lectura ni en `change_log`). Se carga en producción. Es otra excepción nombrada de `AGENTS.md`.

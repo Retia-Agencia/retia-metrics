@@ -84,3 +84,5 @@ Si.
 ## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
 
 - 🟡 Prioridad baja (sale de la captura de Adpulze, nadie lo pidió de palabra): ranking de motivos de pérdida con los deals perdidos y el ticket estimado, como las "objeciones" de Adpulze (PT-34).
+
+- ✅ 29-sep (Mani): el ranking de objeciones **entra**, sin prioridad baja.

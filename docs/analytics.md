@@ -219,7 +219,7 @@ radar.
 | PT-31 | Revenue, inversión, ROAS y ad profit | Contratado (USD), gasto (COP), ROAS y ad profit con la TRM de la cohorte (DP-7) | · | 067, 123 | M | 🟢 |
 | PT-32 | Embudo visual (llamadas → calificadas → show → ventas) | Sección del Dashboard | · | 123 | M | 🟢 |
 | PT-33 | Todo por campaña, conjunto y anuncio | Tab Campañas: árbol de Meta con embudo, gasto, costos y ROAS por fila | · | 125 | M | 🟢 |
-| PT-34 | Objeciones ("Ghosting", "Price") con su oportunidad | Ranking de motivos de pérdida (catálogo 104) con deals y ticket perdido estimado. No lo pidieron de palabra: sale de la captura 2 | `motivos` | 065 | M | 🟡 prioridad baja |
+| PT-34 | Objeciones ("Ghosting", "Price") con su oportunidad | Ranking de motivos de pérdida (catálogo 104) con deals y ticket perdido estimado. No lo pidieron de palabra: sale de la captura 2 | `motivos` | 065 | M | 🟢 entra (Mani, 29-sep) |
 | PT-35 | "Ad profit por etapa" de Adpulze | La semántica no está clara y nadie lo pidió | · | · | — | ⚫ |
 | PT-36 | Presets de fecha (hoy, ayer, 7, 14 y 30 días, este mes, mes pasado, personalizado) | `lib/rangos.ts` tiene hoy, semana, mes, cohorte y personalizado; se suman los que faltan | · | 095 | M | 🟢 |
 | PT-37 | Comparativo en cada KPI | DP-16 | · | 089, 095 | M | 🟢 |
@@ -230,7 +230,7 @@ radar.
 |---|---|---|---|---|---|---|
 | PT-38 | Conectar la API de Meta (un token por portafolio) | Conexiones en la base (token secreto, patrón ADR 0057) y una o más cuentas publicitarias por programa, con su moneda y zona horaria leídas de Meta | `meta_conexiones`, `cuentas_publicitarias` | 119 | A | 🟢 · 🔴 PQ1 |
 | PT-39 | El gasto por anuncio y por día | Sincronización diaria (cron diario, cabe en Hobby) más un botón "sincronizar ahora"; re-lee los últimos 7 días porque Meta ajusta el gasto hacia atrás; idempotente por (anuncio, día). "Última sincronización hace X" a la vista | `pauta_objetos`, `gasto_pauta` | 120 | A | 🟢 |
-| PT-39b | Otras plataformas de pago (TikTok Ads, Google) | Captura manual por el mismo escritor del gasto | `gasto_pauta` | 067 | M | 🟡 si existen (PQ1) |
+| PT-39b | Otras plataformas de pago (TikTok Ads, Google) | Captura manual por el mismo escritor del gasto | `gasto_pauta` | 067 | M | 🔴 no se sabe si pautan fuera de Meta (PQ1) |
 
 ### E. Metas y cumplimiento de la cohorte ("Cierre por canal")
 
@@ -397,3 +397,18 @@ Viven en `plan.md` §7 (la lista única); aquí solo el índice.
 | PQ6 | La convención de UTM del orgánico y si quieren tipo, formato y autor del creativo (exige una convención de nombres de anuncio) | Pauta y Media |
 | PQ7 | El nombre visible de cada área (paid, orgánico, referidos) | Gerencia |
 | PQ8 | ~~Ok a DP-23, DP-24 y DP-25~~ ✅ 29-sep | Mani |
+
+### 9.1 Respuestas del 29-sep (Mani)
+
+| # | Respuesta | Queda en |
+|---|---|---|
+| PT-34 | ✅ Las objeciones **entran** (ranking de motivos de pérdida con su ticket perdido) | 065 |
+| 126 | ✅ El token de la API de Typeform vive **en la base, en la fuente**, con las reglas del secreto del webhook; se carga en producción | 126 |
+| PQ1 | ✅ **Una cuenta publicitaria por programa**, en **COP** y zona **Bogotá** (un token/API por portafolio). 🔴 Sigue: si pautan en TikTok Ads o Google | 119 |
+| PQ2 | 🟡 Mani cree que Pauta ya usa la plantilla. ⚠️ Lo medido el 29-sep dice otra cosa: los envíos del webhook de ese día llegaron con `facebook / cpc` y sin `utm_id`. Se verifica con los próximos envíos | O-2 |
+| PQ3 | ✅ **La tasa agenda→venta es un objetivo más de la cohorte** (se declara en `objetivos`, métrica `conversion_agenda_venta`). Cada agenda cuenta para la cohorte de su deal. ⚠️ Un deal recibe cohorte en su primer abono (063): una agenda cuyo deal aún no tiene cohorte se cuenta para la cohorte activa del programa el día en que se agendó. 🔴 Siguen: la ventana del ritmo actual y el desfase agenda→venta | 122, 124 |
+| PQ4 | ✅ Se agrega **costo por venta (cierre)** a los objetivos. 🔴 Los valores de cada programa los da Pauta | 122 |
+| PQ5 (antes PQ6) | 🟡 **Orgánico = lo que no es `paid_social`** (ni `closer`, que es referidos). **Sin UTM sigue siendo su propia cubeta**, nunca orgánico (ADR 0045). 🔴 Preguntar a Pauta si están de acuerdo, y cómo tratan el `facebook / cpc` histórico (el CRM lo pone en paid) | 101 |
+| PQ7 | ✅ Las áreas se muestran como **paid, orgánico y referidos** | 083 |
+| Cortesías | 🔴 Mani pregunta a Gerencia | DP-15 |
+| Checkouts y sin UTM de Tactical | 🔴 Mani pregunta a Pauta | `plan.md` §7 |

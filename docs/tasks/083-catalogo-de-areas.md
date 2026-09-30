@@ -55,3 +55,5 @@ utm_medium` con su área. El mapeo UTM → área que se le iba a pedir a Alejo *
 ## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
 
 - 🔴 El nombre visible de cada área lo decide Gerencia (PQ7): Pauta la llama paid, orgánico y referidos. Las áreas son filas, así que no hay código de por medio.
+
+- ✅ 29-sep (Mani): en pantalla las áreas se llaman **paid, orgánico y referidos**.
