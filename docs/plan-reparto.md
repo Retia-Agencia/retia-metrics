@@ -202,12 +202,18 @@ Backend puro.
 | Mani | Alejo |
 |---|---|
 | [064] · L | [062] · S |
-| → [098] · M | → [072] (cierra el [050]: separar y confirmar duplicados) · M |
-| | → guion del corte, capacitación y plan de reversa · M |
+| → [098] · M | → [072] (cierra el [050]: separar y confirmar duplicados; **también lo usa el closer**, ADR 0060) · M |
+| → [115] (el origen es del envío, ADR 0060) · M | → guion del corte, capacitación y plan de reversa · M |
 
 - **Migración de arranque:** la tasa de comisión del programa (062).
-- **Decidir antes:** precio de lista de ComunicArte, 797 o 697 (Gerencia) · la fecha del corte (closers).
+- **Decidir antes:** ~~precio de lista de ComunicArte~~ ✅ 797 · la fecha del corte (closers) · 🚨 **Supabase Pro
+  (S1, `plan.md` §7): sin él no hay respaldos, y desde el corte la historia vive solo en esa base** (equipo).
+- **Costura del 115 con el carril de Alejo (29-sep):** el 115 toca `lib/ingesta/regla-de-deals.ts`, que es
+  del carril de Alejo, así que ese cambio va con su ok. Y el importador del 078 tiene que pasar
+  `submissionOrigenId` al abrir cada deal histórico (el envío más reciente del lead): **antes de aplicar la
+  migración en el corte**, o los deals migrados nacen sin origen.
 - **El corte, que es la salida de la etapa y el hito B:**
+  0. S1 decidido (Supabase Pro o no, con un respaldo manual si es no).
   1. Ensayo final de la migración en la base local con las hojas del día.
   2. Los closers dejan de escribir en las pestañas de gestión por unas horas; la migración corre en
      producción con el ok de Mani.
@@ -227,7 +233,9 @@ Backend puro.
 
 - **Migración de arranque:** la única de E1b (`tasks/README.md`): áreas, canales, campañas, `utm_patron`
   con `NULLS NOT DISTINCT` (P2), pauta por campaña y el valor `paid_trafficker`.
-- **Decidir antes:** Gerencia, el área de cada canal y qué ve el paid trafficker · Mani, P2 y D5.
+- **Decidir antes:** Gerencia, el área de cada canal · qué ve el paid trafficker (Mani, 29-sep: crea UTM y
+  mide la operación de sus programas; falta si ve caja y comparativo entre closers) · ~~P2~~ ✅ · ~~D5~~ ✅
+  ADR 0060 · el alcance del 092 tras la reunión con Pauta del 29-sep (ellos ya estandarizan sus UTM).
 - **Prueba de costura:** un envío con UTM resuelve a canal, área y campaña; "sin UTM" y "sin clasificar"
   salen separados, con conteo.
 
@@ -349,7 +357,8 @@ closers durante E1 que cubra E2 a E5; Gerencia durante E4; Pauta durante E5.
 | E3 | ~~Hasta cuántos días atrás migrar Setteo~~ ✅ decidido por Mani · K1 ("buscar llamada" en la Ficha del Deal o se retira) | Mani |
 | E4 | ~~Pregunta de ingreso y bandas~~ ✅ score del formulario; ~~X días~~ ✅ 3 días hábiles por defecto configurable; ~~estudiante desde cuándo~~ ✅ abonado o completo por cohorte/programa; ~~quién hace onboarding~~ ✅ dueño, gerente o developer | Closers / Mani |
 | E5 | ~~Precio de lista de ComunicArte~~ ✅ 797 (Mani, 28-sep) · fecha del corte | Closers |
-| E6 | Área de cada canal · qué ve el paid trafficker · P2 · D5 | Gerencia · Mani |
+| E5 | 🚨 Supabase Pro, por los respaldos (S1) | Equipo |
+| E6 | Área de cada canal · caja y comparativo para el paid trafficker · ~~P2~~ ✅ · ~~D5~~ ✅ | Gerencia · Mani |
 | E7 | Checkouts · `utm_id` y `fbclid` · el 26% sin UTM | Pauta |
 | E8 | Umbrales del dashboard (no bloquea) | Gerencia |
 | E9 | Formato del comprobante | Closers |
