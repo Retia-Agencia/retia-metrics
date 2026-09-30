@@ -10,7 +10,8 @@ status: todo
 
 ## Objetivo
 
-Que Pauta cree sus campañas y sus links dentro del CRM, sin ver ni administrar nada más.
+Que Pauta cree sus campañas y sus links dentro del CRM y mida la operación de sus programas, sin
+administrar nada más.
 
 ## Alcance
 
@@ -20,8 +21,9 @@ Que Pauta cree sus campañas y sus links dentro del CRM, sin ver ni administrar 
 - **Dentro:** acceso a Campañas de sus programas (membresía, ticket 094): crear, editar, generar links y
   cargar gasto.
 - **Dentro:** alta de usuarios con este rol desde `/ajustes/usuarios`.
-- **🔴 Por decidir con Gerencia:** qué ve del Dashboard. Propuesta: la parte de pauta de sus programas,
-  sin caja ni comparativo entre closers.
+- **✅ Mani, 29-sep (tras la reunión con Pauta):** el paid trafficker es un rol del CRM que **crea las UTM
+  y mide la operación de sus programas**: métricas, metas y lo demás del Dashboard. Falta precisar si ve
+  la caja y el comparativo entre closers.
 - **Fuera:** deals, llamadas, abonos, administración.
 
 ## Done cuando

@@ -72,5 +72,5 @@ principal, nunca un subagente** (`AGENTS.md`).
   **Campaña** (`utm_campaign`). Una campaña cuelga de un canal y de un programa.
 - `submissions.utm_term` y `utm_content` **dejan de ser "deliberadamente sin leer"**: se capturan
   siempre, y `utm_content` se lee solo en el canal Closer (para `traido_por`).
-- Pendiente de la revisión del 22-sep (P2), sigue vigente: el índice único necesita
-  `NULLS NOT DISTINCT` **y** detección del empate en tiempo de ejecución.
+- **P2, decidida el 29-sep (Mani):** el índice único lleva `NULLS NOT DISTINCT` **y** el empate se
+  detecta en tiempo de ejecución como error visible. El rechazo lo ve quien crea la campaña.

@@ -8,6 +8,10 @@ status: todo
 
 # 092 — La URL del formulario y el generador de links
 
+> **29-sep (Mani, tras la reunión con Pauta):** Pauta ya define y estandariza sus UTM. El generador se
+> **integra con la forma en que ya lo hacen**, no la reemplaza: el alcance se reescribe en la sesión que
+> mapea esa reunión, antes de construir. Choca en parte con el ADR 0051 ("el link sale del CRM").
+
 ## Objetivo
 
 Que el CRM sea el **registro** de las campanas de cada programa y el **generador** de sus links de

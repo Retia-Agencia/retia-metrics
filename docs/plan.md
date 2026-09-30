@@ -390,11 +390,13 @@ cierra, baja a un ADR (con `/grill-with-docs`) o a su ticket, y sale de esta lis
 |---|---|---|---|
 | A4 | ~~Garantía de la UI~~ ✅ 28-sep: se prueba usándola, contra la base local con login local (069); CI (R4) existe | · | cerrada |
 | A5 | ~~Calendly: webhook o consulta~~ ✅ **webhook**, live y verificado el 29-sep en los dos programas (el plan de las cuentas alcanzó); token por programa (ADR 0057) | · | cerrada |
-| A7 | Las fichas técnicas de §7.1 que siguen abiertas: D5, R2, R3, P2, T4 | ver cada ficha | según el ticket |
+| A7 | Las fichas técnicas de §7.1 que siguen abiertas: R2, después del corte (D5, P2, R3 y T4 cerradas el 29-sep) | ver cada ficha | según el ticket |
 | K1 | ~~"Buscar llamada" con el webhook vivo~~ ✅ 29-sep: **se retira `buscarLlamadaDelDeal`, sin pantalla.** Los dos casos que cubría ya tienen dueño: una entrega que falla queda en `sobres_crudos` con su error y se ve en `/ajustes/salud`; una que llega antes que el envío la adopta el 052; y la que no casa queda suelta (K2). Un botón que no cubre ningún caso nuevo es código que envejece sin que nadie lo mire. El retiro va con el cierre del 096 (carril de Alejo, `lib/calendly/`) | · | cerrada |
 | K2 | ~~Dónde se asigna la llamada suelta~~ ✅ 29-sep: **en el Inbox (071)**, con `asignarLlamadaSuelta`. Una suelta no tiene deal, así que la Ficha (074) solo la vería quien ya sospecha que existe; el Inbox es la cola de lo que no tiene dueño. La tab Calls (098) la muestra, pero no es donde se trabaja. El 096 cierra sin pantalla | · | cerrada |
-| K3 | **La llamada de prueba del 29-sep** (suelta, cancelada, sin deal; no cuenta en nada): ¿se borra o se deja? Borrarla es escribir en producción | nada | cuando Mani quiera |
+| K3 | ~~La llamada de prueba del 29-sep~~ ✅ 29-sep (Mani): **se deja.** No cuenta en ninguna métrica y borrarla sería escribir en producción sin ganar nada | · | cerrada |
 | K4 | ~~Tono de Seguimiento~~ ✅ 29-sep: `info` (`structure.md` §3), elegido en la sesión del 069 porque es "hay que hacer algo con la llamada", como Agendado y Atendido. Mani puede cambiarlo | · | cerrada |
+| K5 | ~~¿Hace falta una entidad Cliente por encima del programa?~~ ✅ 29-sep (Mani): **no.** Al CRM solo entra gente de Retia, y **el programa identifica al cliente** que Retia maneja. Un cliente nuevo es un programa nuevo (fila, fuente con su mapeo, token de Calendly, membresías): configuración, no código. Si algún día entra gente del cliente, esta decisión se reabre antes | · | cerrada |
+| S1 | 🚨 **Supabase Pro: pagar o no. URGENTE, con el equipo.** El plan gratis no trae respaldos: la única base es producción y, si un script o una migración borra datos, no hay a dónde volver. Desde el corte (hito B) la historia de las pestañas de gestión vivirá solo ahí. El tamaño no es el motivo (30 MB de 500 al 29-sep) | el corte (hito B) | antes del corte |
 
 **A2. Para después (Mani, 28-sep):** revisar si las alertas de la app (fuente sin envíos, 107; y las
 que vengan) se mandan también por correo, de forma estandarizada y simple: un solo mecanismo para todas,
@@ -435,7 +437,7 @@ tenía cotizado); el límite de los
 descuentos; si un lead traído por un closer cuenta distinto en su comisión; ratificar que se construye
 y no se compra HubSpot (R10).
 
-**D. Pauta** (Jero consigue la reunión; prioridad altísima según los closers): la convención de UTM y
+**D. Pauta** · 🗓️ **reunión hecha el 29-sep**; Mani mapea lo discutido al alcance del CRM en una sesión aparte. Lo que dijo Pauta: **ellos definen y estandarizan las UTM** y el CRM las recibe como llegan (choca en parte con el builder del 092 y el ADR 0051, donde el link sale del CRM: se resuelve en esa sesión). Lo que estaba abierto (Jero consigue la reunión; prioridad altísima según los closers): la convención de UTM y
 el builder (083, 084, 085, 092, 101); qué checkouts usan y si mandan webhooks; si además capturan
 `utm_id` y `fbclid` (R6); por qué Tactical tiene 26% de leads sin UTM.
 
@@ -464,14 +466,14 @@ dice, alguien más.
 |---|---|---|
 | ~~**D3 · ¿Abonado cuenta como deal abierto?**~~ | ✅ **Decidida (Mani, 28-sep, ticket 060): A.** Abonado ocupa el cupo del lead; un segundo producto espera a que se complete el pago | · |
 | ~~**D4 · `leads.estado` o `calificacion`**~~ | ✅ Cerrada por el ADR 0054: decide `leads.calificacion`; `leads.estado` queda como texto de la hoja, sin lectores que decidan | · |
-| **D5 · UTM en dos tablas** | `leads` y `submissions` guardan los mismos `utm_*`, sin estar declarado; el 093 filtraría por uno y el 088 por el otro: dos cifras para la misma pregunta | Recomendación: el origen del lead es el de su primer envío, derivado, y `leads.utm_*` se elimina; mientras tanto, lo que lea `leads.utm_*` lo marca como temporal |
-| **R2 · El rastro por triggers** | Hoy el rastro lo garantiza un guardián por regex que no ve alias de tabla, `.delete(` ni algunas tablas | Con las transacciones reales del ADR 0047, triggers `AFTER INSERT/UPDATE` con `SET LOCAL app.user_id` harían que la base garantice el rastro, como el dedup. Recomendación: sí; el guardián de etapas (046) encoge |
-| **R3 · Vercel Pro** | Hobby permite un cron al día y es para uso no comercial | Recomendación: Pro (20 USD/mes por miembro). ~~Habilita la consulta de Calendly cada 15 min~~: A5 se resolvió por webhook, así que Calendly ya no lo pide; queda por el uso comercial |
+| ~~**D5 · UTM en dos tablas**~~ | ✅ 29-sep (Mani), **ADR 0060** y ticket 115: el origen es de cada envío y no se resume; pauta cuenta envíos, venta cuenta deals con el origen del envío que abrió el deal (`deals.submission_origen_id`); `leads.utm_*` se elimina. El dedup no cambia. Se descartó un deal por envío (inflaba ~1.577 deals y las tasas) | · |
+| **R2 · El rastro por triggers** · ⏸️ **después del corte** (Mani, 29-sep): es una migración sobre la única base, y el guardián funciona mientras tanto | Hoy el rastro lo garantiza un guardián por regex que no ve alias de tabla, `.delete(` ni algunas tablas | Con las transacciones reales del ADR 0047, triggers `AFTER INSERT/UPDATE` con `SET LOCAL app.user_id` harían que la base garantice el rastro, como el dedup. Recomendación: sí; el guardián de etapas (046) encoge |
+| ~~**R3 · Vercel Pro**~~ | ✅ 29-sep (Mani): **no se paga por ahora.** Calendly ya no lo pide (A5 es webhook). Queda anotado que Hobby es de uso no comercial. El pago que sí se evalúa es Supabase Pro, por los respaldos de la única base (ver `operations.md`) | · |
 | ~~**R4 · CI**~~ | ✅ Hecho (112, 28-sep): `.github/workflows/ci.yml` en cada push, sin proteger `main` | · |
 | ~~**R5 · Playwright**~~ | ✅ Reemplazada por A4 (Mani, 28-sep): la UI se prueba usándola contra la base local | · |
-| **P2 · Empates en el emparejador** | En Postgres dos `NULL` no chocan en un índice único, y todos los campos del patrón son opcionales | Hace falta `NULLS NOT DISTINCT` **y** detectar el empate en tiempo de ejecución, como error visible (084, 085) |
+| ~~**P2 · Empates en el emparejador**~~ | ✅ 29-sep (Mani): **`NULLS NOT DISTINCT` en el índice del patrón y el empate como error visible en tiempo de ejecución** (084, 085). Es un empate entre dos CAMPAÑAS para un mismo envío, no entre dos envíos de un lead. Quien crea una campaña que empataría con otra ve el rechazo al guardarla; closers y gerentes ven el origen de cada lead y los conteos de "sin UTM" y "sin clasificar" | · |
 | **P3 · El costo del proceso** | `AGENTS.md` pesa ~50 KB y el handoff ~2.900 líneas: cada sesión gasta contexto en historia | Recomendación: `AGENTS.md` solo reglas, contratos y comandos, cada regla con su ADR; el handoff con el estado actual y lo siguiente. La consolidación del 27-sep ya movió los documentos |
-| **T4 · El valor del puntaje** | El motor existe sin pesos; no hay datos de venta para calibrarlo | Opciones: A categoría (A/B/C), B puntaje de 0 a 100, C valor esperado en USD. Recomendación: A por ahora y C cuando haya histórico, calibrando con la migración de las pestañas de gestión. Preguntas: ¿solo ordena la cola o también cambia a dónde va un lead?; ¿quién fija los pesos? Se cruza con A1 |
+| ~~**T4 · El valor del puntaje**~~ | ✅ 29-sep (Mani): **lo califica el formulario, que es tercerizado; el CRM no calcula nada.** Recibe `score`, `tag_lead_quality` y `lead_value` por el mapeo de cada fuente y los guarda como llegan (0041). Cero pesos, bandas o reglas por programa en el código: un programa nuevo se suma configurando su fuente, no escribiendo lógica | · |
 
 ---
 

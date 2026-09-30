@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0059)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0061)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -41,7 +41,8 @@ comentarios; esta tabla es la que los resuelve.
 | [0026](./0026-anular-registros-y-borrar-del-catalogo.md) | Un registro se anula, no se borra; del catálogo se borra solo lo que nunca se usó |
 | [0038](./0038-anular-no-es-cierre-perdido.md) | Anular no es Cierre Perdido |
 | [0042](./0042-todo-movimiento-del-crm-deja-rastro.md) | Todo movimiento del CRM deja rastro, desde el primer día |
-| [0059](./0059-el-deal-historico-nace-en-su-etapa.md) | El deal histórico nace en su etapa, por un template y con su huella (propuesta, falta el ok de Mani) |
+| [0059](./0059-el-deal-historico-nace-en-su-etapa.md) | El deal histórico nace en su etapa, por un template y con su huella |
+| [0060](./0060-el-origen-es-del-envio-y-la-venta-hereda-el-del-envio-que-abrio-el-deal.md) | El origen es del envío; la venta hereda el del envío que abrió su deal (cierra D5) |
 | [0022](./0022-ventana-de-venta-de-la-cohorte-es-dato-por-cohorte.md) | La ventana de venta es dato de cada cohorte |
 | [0023](./0023-metricas-por-closer-sin-meta-individual.md) | Las métricas por closer salen de las mismas consultas, y la meta no se reparte |
 
