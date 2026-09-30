@@ -37,7 +37,7 @@ cercania acierta casi siempre y **cuando falla, mueve la cifra equivocada sin av
 
 - [ ] Cada fila de la tabla tiene su decision escrita **antes** de correr nada.
 - [ ] Los encabezados corridos de ComunicArte estan revisados a mano.
-- [ ] Los 12 "cohorte pasada" tienen su fila de historial.
+- [x] Los 12 "cohorte pasada" tienen su fila de historial (una nota del sistema "Movido desde la cohorte C1", ver la tabla).
 - [ ] Existe una lista de lo que no se pudo clasificar, visible en la app.
 
 ## Kiro
@@ -103,7 +103,7 @@ Estudiantes y ninguna llamada la cambia. Afecta a pocos: ~5 deals en CA y ~40 en
 | Setteo `Agendado` (58 TI) | Si tiene llamada, la decide la llamada y la rareza `agendado_por_decidir` desaparece; si no, En Contacto con la rareza. |
 | `Registro 1-5` | Una nota por registro; fecha solo en el primero (y el último en TI). Hecho en el 078. |
 | `Origen` de Estudiantes | No se lee: el origen es el envío más reciente del lead (`submissionOrigenId`, ADR 0060). Hecho en el 078. |
-| CA `Estudiantes Septiembre` | La `x` es la fecha de venta; `Numero de asistentes` no se lee (078). **Los 12 "cohorte pasada" se marcan a mano en el template** (`movidoDesde: "C1"`): el deal lleva una nota del sistema *"Movido desde la cohorte C1"*, y si el mismo correo también tiene deal en la pestaña de esa cohorte, ese deal no se crea (`sinDeal: movido_de_cohorte`) y no hay rareza `en_dos_cohortes`. Sin marca, entran como estudiantes de septiembre. |
+| CA `Estudiantes Septiembre` | La `x` es la fecha de venta; `Numero de asistentes` no se lee (078). **Los 12 "cohorte pasada" los marca el extractor** (30-sep; antes era a mano en el template): la `x` trae una celda combinada "Cohorte pasada" que abre el bloque, y el bloque termina en la primera fila con fecha. Esas filas salen con `movidoDesde: "C1"` (`cohortePasadaDesde` de la pestaña en `scripts/migrar-gestion.ts`; si una pestaña trae el bloque sin esa configuración, el extractor falla ruidosamente). El deal lleva una nota del sistema *"Movido desde la cohorte C1"*, y si el mismo correo también tiene deal en la pestaña de esa cohorte, ese deal no se crea (`sinDeal: movido_de_cohorte`) y no hay rareza `en_dos_cohortes`. Sin marca, entran como estudiantes de septiembre. |
 | `Registro de llamadas` de CA | Encabezados corridos mapeados por forma (078). **Falta la revisión a mano** en el ensayo. |
 | `_kpis` | No se lee: se leen las pestañas con datos. |
 | Consolidados C2 de Michael | Gana la hoja (Mani, 28-sep). |
@@ -120,6 +120,9 @@ Estudiantes y ninguna llamada la cambia. Afecta a pocos: ~5 deals en CA y ~40 en
   Probada en la base local con 2.112 rarezas de TI (render del servidor, filtro, tipo ajeno).
 - `scripts/dev-local.ts`: `shell` en Windows (el spawn de `npx` fallaba con ENOENT).
 
-**Falta:** recorrido en navegador (claro/oscuro, 390 px, consola; la extensión no estaba conectada); marcar los 12
-"cohorte pasada" en el template de CA (quien conozca la hoja); revisar a mano los encabezados corridos de CA en el
-ensayo del 078.
+**30-sep (Alejo):** el extractor lee el bloque "Cohorte pasada" de la hoja (filas 2 a 13 de `Estudiantes
+Septiembre`): el template del 30-sep sale con los 12 marcados (C1 → C2), y el de Tactical no trae el bloque.
+Tests en `tests/migracion-extractor.test.ts`.
+
+**Falta:** recorrido en navegador (claro/oscuro, 390 px, consola; la extensión no estaba conectada); revisar a
+mano los encabezados corridos de CA en el ensayo del 078.

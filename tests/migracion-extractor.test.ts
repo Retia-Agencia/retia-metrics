@@ -4,6 +4,7 @@ import { extraerSetteo } from "@/lib/migracion/extraer-setteo";
 import { extraerLlamadas } from "@/lib/migracion/extraer-llamadas";
 import { extraerEstudiantes } from "@/lib/migracion/extraer-estudiantes";
 import { juntar } from "@/lib/migracion/template";
+import { MapeoInvalidoError } from "@/lib/sheets/mapeo";
 
 /**
  * Ticket 078 paso 3 — el extractor, puro sobre matrices. Los encabezados son los REALES de
@@ -252,6 +253,39 @@ describe("extraerEstudiantes (ADR 0059 puntos 6 y 7)", () => {
     expect(r.deals[0].acuerdoPago).toBeNull();
     expect(r.abonos.map((a) => [a.fecha, a.monto])).toEqual([["2026-09-05", "400.00"], ["2026-09-06", "797.00"]]);
     expect(r.rarezas).toEqual([]);
+  });
+
+  it("Septiembre CA: el bloque \"Cohorte pasada\" marca movidoDesde hasta la primera fila con fecha (080)", () => {
+    const sept = (x: string, correo: string) =>
+      [x, "1", "N", "123", correo, "3", "Andrea", "797", "797", "total", "mercadopago", "", "", "", "", ""];
+    const OPS = { programa: "prog-b", pestana: "estudiantes-septiembre", cohorte: "C2", cohortePasadaDesde: "C1" };
+    const r = extraerEstudiantes(
+      [
+        CAB_SEPT_CA,
+        sept("Cohorte pasada", "a@c.co"),
+        sept("", "b@c.co"),
+        sept("", ""), // sin correo: sigue dentro del bloque
+        sept("", "c@c.co"),
+        sept("5/09/2026", "d@c.co"),
+        sept("", "e@c.co"), // despues de una fecha, ya no es de la cohorte pasada
+      ],
+      OPS,
+    );
+    expect(r.deals.map((d) => [d.correo, d.movidoDesde ?? null])).toEqual([
+      ["a@c.co", "C1"],
+      ["b@c.co", "C1"],
+      ["c@c.co", "C1"],
+      ["d@c.co", null],
+      ["e@c.co", null],
+    ]);
+    expect(r.deals.every((d) => d.cohorte === "C2")).toBe(true);
+  });
+
+  it("Septiembre CA: un bloque \"Cohorte pasada\" sin saber de donde viene falla ruidosamente", () => {
+    const fila = ["Cohorte pasada", "1", "N", "123", "a@c.co", "3", "Andrea", "797", "797", "total", "mercadopago", "", "", "", "", ""];
+    expect(() => extraerEstudiantes([CAB_SEPT_CA, fila], { programa: "prog-b", pestana: "estudiantes-septiembre", cohorte: "C2" })).toThrow(
+      MapeoInvalidoError,
+    );
   });
 
   it("juntar suma lo de varias pestañas sin perder nada", () => {

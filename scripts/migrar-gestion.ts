@@ -45,7 +45,13 @@ import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
 interface PestanasDelPrograma {
   setteo: string;
   llamadas: string;
-  estudiantes: { tab: string; pestana: string; cohorte: string; situacionEsAcuerdoDePago?: boolean }[];
+  estudiantes: {
+    tab: string;
+    pestana: string;
+    cohorte: string;
+    situacionEsAcuerdoDePago?: boolean;
+    cohortePasadaDesde?: string;
+  }[];
 }
 
 const PESTANAS: Record<string, PestanasDelPrograma> = {
@@ -54,7 +60,8 @@ const PESTANAS: Record<string, PestanasDelPrograma> = {
     llamadas: "Registro de llamadas",
     estudiantes: [
       { tab: "Estudiantes Agosto", pestana: "estudiantes-agosto", cohorte: "C1" },
-      { tab: "Estudiantes Septiembre", pestana: "estudiantes-septiembre", cohorte: "C2" },
+      // Las filas del bloque "Cohorte pasada" (12 al 30-sep) vienen de agosto (080).
+      { tab: "Estudiantes Septiembre", pestana: "estudiantes-septiembre", cohorte: "C2", cohortePasadaDesde: "C1" },
     ],
   },
   "tactical-investor": {

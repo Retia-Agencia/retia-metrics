@@ -27,6 +27,11 @@ import { extraccionVacia, type Extraccion } from "./template";
  * - **Fecha:** la de la columna de fecha si la pestaña la tiene; si no, nula y marcada: el
  *   importador pone el cierre de ventas de la cohorte (punto 6).
  * - `Origen`, `Numero de asistentes`, `Factura` y `Acceso` no se leen (080).
+ * - **"Cohorte pasada"** (080): en una pestaña de septiembre, una celda combinada con ese
+ *   texto en la columna de fecha abre un bloque de estudiantes que vienen de la cohorte anterior. El
+ *   bloque sigue mientras la celda de fecha este vacia y termina en la primera fila con fecha. Esas
+ *   filas salen con `movidoDesde` = `cohortePasadaDesde`; si la pestaña trae el bloque y no se configuro
+ *   de donde vienen, falla ruidosamente en vez de dejarlos como estudiantes de septiembre.
  */
 
 export interface OpcionesEstudiantes {
@@ -40,7 +45,11 @@ export interface OpcionesEstudiantes {
    * ahi son el acuerdo de pago. En las demas es la situacion, que ya esta en el envio.
    */
   situacionEsAcuerdoDePago?: boolean;
+  /** El codigo de la cohorte de la que vienen las filas del bloque "Cohorte pasada" (080). */
+  cohortePasadaDesde?: string;
 }
+
+const COHORTE_PASADA = "cohorte pasada";
 
 export function extraerEstudiantes(matriz: readonly (readonly unknown[])[], op: OpcionesEstudiantes): Extraccion {
   const salida = extraccionVacia();
@@ -64,9 +73,21 @@ export function extraerEstudiantes(matriz: readonly (readonly unknown[])[], op: 
   if (col.precio < 0) throw new MapeoInvalidoError("precio", ["precio final", "precio"], cab);
 
   const vistos = new Set<string>();
+  let enCohortePasada = false;
   datos.forEach((fila, i) => {
     if (filaVacia(fila)) return;
     const n = filaDeLaHoja(i);
+    const marcaDeFecha = normalizarTexto(celda(fila, col.fecha));
+    if (marcaDeFecha === COHORTE_PASADA) {
+      if (!op.cohortePasadaDesde) {
+        throw new MapeoInvalidoError(`cohortePasadaDesde de ${op.pestana}`, ["cohortePasadaDesde"], [
+          `La fila ${n} abre un bloque "Cohorte pasada" y no se configuró de qué cohorte vienen.`,
+        ]);
+      }
+      enCohortePasada = true;
+    } else if (marcaDeFecha !== "") {
+      enCohortePasada = false;
+    }
     const correo = correoDeLaFila(fila, col.correo, col.whatsapp);
     if (!correo) {
       salida.rarezas.push({
@@ -128,6 +149,7 @@ export function extraerEstudiantes(matriz: readonly (readonly unknown[])[], op: 
       acuerdoPago: op.situacionEsAcuerdoDePago ? situacion : null,
       mailOnboarding: siNo(celda(fila, col.onboarding)) === "si",
       notas: [],
+      ...(enCohortePasada ? { movidoDesde: op.cohortePasadaDesde } : {}),
     });
 
     if (etapa !== "compromiso_verbal" && cobrado != null) {
