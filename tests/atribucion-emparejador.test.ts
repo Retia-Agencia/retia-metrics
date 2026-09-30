@@ -214,6 +214,7 @@ describe("guardian: los UTM detallados se leen solo dentro de atribucion", () =>
     [path.join("lib", "ingesta", "adaptador-sheets.ts"), "mapea el encabezado de la hoja a la columna; no interpreta"],
     [path.join("lib", "ingesta", "adaptador-typeform.ts"), "mapea el campo oculto de Typeform a la columna; no interpreta"],
     [path.join("lib", "ingesta", "mapeo-webhook.ts"), "traduce la llave del mapeo de la fuente; no interpreta"],
+    [path.join("scripts", "seed-local.ts"), "arma envios ficticios para la base local; escribe y no interpreta"],
   ]);
 
   function archivos(dir: string): string[] {

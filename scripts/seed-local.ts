@@ -1,11 +1,11 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { existsSync, readFileSync } from "node:fs";
 import { parse } from "dotenv";
 import { db } from "../lib/db";
-import { abonos, leads, programs, users } from "../lib/db/schema";
+import { abonos, etapaDealEnum, leads, programs, submissions, users } from "../lib/db/schema";
 import { actorDelScript } from "./actor";
 import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
-import { crearPrograma, guardarTokenCalendly, reactivarPrograma } from "../lib/catalogo/programas";
+import { crearPrograma, editarPrograma, guardarTokenCalendly, reactivarPrograma } from "../lib/catalogo/programas";
 import { crearCohorte } from "../lib/catalogo/cohortes";
 import { crearProducto } from "../lib/catalogo/productos";
 import { activarFuente, crearFuente, rotarSecretoDeFuente } from "../lib/catalogo/fuentes";
@@ -18,6 +18,16 @@ import type { EntradaEnvio } from "../lib/ingesta/envio";
 import { abrirDeal, moverEtapa } from "../lib/deals/mover-etapa";
 import { agregarLlamada, marcarFallida, pegarGrain } from "../lib/deals/llamadas";
 import { crearConRastro } from "../lib/crm/rastro";
+import {
+  abrirDealesHistoricos,
+  registrarAbonosHistoricos,
+  registrarLlamadasHistoricas,
+  type AbonoHistorico,
+  type AltaHistorica,
+  type LlamadaHistorica,
+} from "../lib/deals/historico";
+import { anularAbono } from "../lib/deals/abonos";
+import { anularDeal } from "../lib/deals/anular-deal";
 
 /**
  * Un PAT de Calendly para la base local (ticket 096), del entorno o de `.env.local`. De ese
@@ -58,6 +68,9 @@ const CAMPOS_MAPEO = {
   utmSource: "utm_source",
   utmMedium: "utm_medium",
   utmCampaign: "utm_campaign",
+  utmContent: "utm_content",
+  utmTerm: "utm_term",
+  utmId: "utm_id",
 } as const;
 
 function entradaDePrueba(
@@ -72,8 +85,13 @@ function entradaDePrueba(
     utmSource?: string;
     utmMedium?: string;
     utmCampaign?: string;
+    utmContent?: string;
+    utmTerm?: string;
+    utmId?: string;
+    sinUtm?: boolean;
   },
 ): EntradaEnvio {
+  const vacio = o.sinUtm ? "" : undefined;
   return {
     sourceId: fuenteId,
     zona: "America/Bogota",
@@ -85,12 +103,347 @@ function entradaDePrueba(
       "Nombre completo": o.nombre,
       "Submitted At": o.fecha ?? "2026-09-20T10:00:00-05:00",
       Estado: o.estado,
-      utm_source: o.utmSource ?? "meta",
-      utm_medium: o.utmMedium ?? "cpc",
-      utm_campaign: o.utmCampaign ?? "campana_lanzamiento",
+      utm_source: vacio ?? o.utmSource ?? "meta",
+      utm_medium: vacio ?? o.utmMedium ?? "cpc",
+      utm_campaign: vacio ?? o.utmCampaign ?? "campana_lanzamiento",
+      utm_content: vacio ?? o.utmContent ?? "",
+      utm_term: vacio ?? o.utmTerm ?? "",
+      utm_id: vacio ?? o.utmId ?? "",
     },
     campos: { ...CAMPOS_MAPEO },
   };
+}
+
+type EtapaVolumen = (typeof etapaDealEnum.enumValues)[number];
+
+interface ProgramaVolumen {
+  id: string;
+  nombre: string;
+  slug: string;
+  ticketUsd: string;
+  formUrl: string;
+  fuenteId: string;
+  cohorteId: string;
+  productoId: string;
+  totalLeads: number;
+  comisionPorVentaUsd: string;
+  prefijo: "p1" | "p2";
+  etapas: Readonly<Record<EtapaVolumen, number>>;
+}
+
+interface LeadDeVolumen {
+  correo: string;
+  fecha: string;
+  entrada: EntradaEnvio;
+}
+
+interface DealDeVolumen {
+  id: string;
+  etapa: EtapaVolumen;
+  fechaEtapa: string;
+  fechaLlamada: string;
+  fechaAbono: string;
+  correo: string;
+  ownerUserId: string;
+  closerId: string;
+}
+
+const DIAS_HABILES_SEPTIEMBRE = [
+  "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-07",
+  "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11", "2026-09-14",
+  "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18", "2026-09-21",
+  "2026-09-22", "2026-09-23", "2026-09-24", "2026-09-25", "2026-09-28",
+  "2026-09-29", "2026-09-30",
+] as const;
+
+function mulberry32(semilla: number): () => number {
+  let estado = semilla;
+  return () => {
+    estado += 0x6d2b79f5;
+    let n = estado;
+    n = Math.imul(n ^ (n >>> 15), n | 1);
+    n ^= n + Math.imul(n ^ (n >>> 7), n | 61);
+    return ((n ^ (n >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function mezclar<T>(valores: readonly T[], azar: () => number): T[] {
+  const copia = [...valores];
+  for (let i = copia.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(azar() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
+}
+
+function repetir<T>(valor: T, veces: number): T[] {
+  return Array.from({ length: veces }, () => valor);
+}
+
+function instanteDeBogota(fecha: string, hora: number): Date {
+  return new Date(`${fecha}T${String(hora).padStart(2, "0")}:00:00-05:00`);
+}
+
+function categoriasUtm(total: number, azar: () => number): string[] {
+  const cantidades = total === 150
+    ? { meta: 83, macro: 5, closer: 15, directo: 18, sinClasificar: 7, sinUtm: 22 }
+    : { meta: 66, macro: 4, closer: 12, directo: 14, sinClasificar: 6, sinUtm: 18 };
+  return mezclar([
+    ...repetir("meta", cantidades.meta),
+    ...repetir("macro", cantidades.macro),
+    ...repetir("closer", cantidades.closer),
+    ...repetir("directo", cantidades.directo),
+    ...repetir("sin_clasificar", cantidades.sinClasificar),
+    ...repetir("sin_utm", cantidades.sinUtm),
+  ], azar);
+}
+
+function etapasDeVolumen(
+  cantidades: Readonly<Record<EtapaVolumen, number>>,
+  azar: () => number,
+): EtapaVolumen[] {
+  return mezclar(
+    etapaDealEnum.enumValues.flatMap((etapa) => repetir(etapa, cantidades[etapa])),
+    azar,
+  );
+}
+
+function crearLeadsDeVolumen(
+  programa: ProgramaVolumen,
+  azar: () => number,
+): LeadDeVolumen[] {
+  const categorias = categoriasUtm(programa.totalLeads, azar);
+  const campanas = ["CA Lanzamiento Septiembre", "CA Evergreen", "CA Testimonios"];
+  const anuncios = ["Video caso real", "Carrusel beneficios", "Reel objeciones"];
+  const placements = ["instagram_reels", "facebook_feed", "instagram_stories"];
+  const codigosCloser = ["ref-7f3a-carlos", "ref-91bd-maria"];
+
+  return categorias.map((categoria, indice) => {
+    const numero = indice + 1;
+    const totalDeals = Object.values(programa.etapas).reduce((total, cantidad) => total + cantidad, 0);
+    const diasDisponibles = indice < totalDeals ? 19 : DIAS_HABILES_SEPTIEMBRE.length;
+    const fecha = DIAS_HABILES_SEPTIEMBRE[Math.floor(azar() * diasDisponibles)];
+    const correo = `persona-${programa.prefijo}-${String(numero).padStart(3, "0")}@ejemplo.local`;
+    const base = {
+      token: `tok-vol-${programa.prefijo}-${numero}`,
+      correo,
+      nombre: `Persona ${programa.prefijo.toUpperCase()} ${String(numero).padStart(3, "0")}`,
+      telefono: `+57300${programa.prefijo === "p1" ? "1" : "2"}${String(numero).padStart(6, "0")}`,
+      fecha: `${fecha}T${String(8 + Math.floor(azar() * 10)).padStart(2, "0")}:00:00-05:00`,
+      estado: (() => {
+        const valor = azar();
+        if (valor < 0.42) return "setteo_no_calificado";
+        if (valor < 0.77) return "con_calendly";
+        if (valor < 0.97) return "descartado";
+        return "estado_local_desconocido";
+      })(),
+    };
+    const variante = numero % 3;
+    let utm: Parameters<typeof entradaDePrueba>[1] = base;
+    if (categoria === "meta" || categoria === "macro") {
+      utm = {
+        ...base,
+        utmSource: numero % 2 === 0 ? "facebook" : "instagram",
+        utmMedium: "paid_social",
+        utmCampaign: categoria === "macro" ? "{{campaign.name}}" : campanas[variante],
+        utmContent: anuncios[variante],
+        utmTerm: placements[variante],
+        utmId: String(900000000000 + (programa.prefijo === "p1" ? 1000 : 2000) + numero),
+      };
+    } else if (categoria === "closer") {
+      utm = { ...base, utmSource: "closer", utmMedium: "referido", utmCampaign: "referidos_septiembre", utmContent: codigosCloser[numero % 2] };
+    } else if (categoria === "directo") {
+      utm = { ...base, utmSource: "direct", utmMedium: "organic", utmCampaign: "contenido_septiembre" };
+    } else if (categoria === "sin_clasificar") {
+      utm = { ...base, utmSource: "google", utmMedium: "cpc", utmCampaign: "busqueda_sin_catalogar" };
+    } else {
+      utm = { ...base, sinUtm: true };
+    }
+    return { correo, fecha, entrada: entradaDePrueba(programa.fuenteId, utm) };
+  });
+}
+
+async function sembrarVolumen(
+  actorId: string,
+  programasDeVolumen: readonly ProgramaVolumen[],
+  closers: readonly [{ id: string; closerId: string | null }, { id: string; closerId: string | null }],
+  motivosPerdidaIds: readonly string[],
+): Promise<void> {
+  console.log("[seed:local] Sembrando volumen determinista para el dashboard...");
+  const azar = mulberry32(0x5eed2026);
+
+  for (const programa of programasDeVolumen) {
+    await editarPrograma(db, actorId, programa.id, {
+      nombre: programa.nombre,
+      slug: programa.slug,
+      ticketUsd: programa.ticketUsd,
+      formUrl: programa.formUrl,
+      comisionPorVentaUsd: programa.comisionPorVentaUsd,
+    });
+  }
+
+  const leadsPorPrograma = programasDeVolumen.map((programa) => ({
+    programa,
+    leads: crearLeadsDeVolumen(programa, azar),
+  }));
+  for (const grupo of leadsPorPrograma) {
+    await ingerirEntradas(db, grupo.programa.id, grupo.leads.map((lead) => lead.entrada), {
+      aplicarReglaDeDeals: false,
+    });
+  }
+
+  const correos = leadsPorPrograma.flatMap((grupo) => grupo.leads.map((lead) => lead.correo));
+  const leadsCreados = await db.select().from(leads).where(inArray(leads.emailNormalizado, correos));
+  const leadPorCorreo = new Map(leadsCreados.map((lead) => [lead.emailNormalizado, lead]));
+  const envios = await db
+    .select({ id: submissions.id, leadId: submissions.leadId })
+    .from(submissions)
+    .where(inArray(submissions.leadId, leadsCreados.map((lead) => lead.id)));
+  const envioPorLead = new Map(envios.map((envio) => [envio.leadId, envio.id]));
+
+  const dealsCreados: DealDeVolumen[] = [];
+  for (const grupo of leadsPorPrograma) {
+    const etapas = etapasDeVolumen(grupo.programa.etapas, azar);
+    const altas: AltaHistorica[] = grupo.leads.slice(0, etapas.length).map((leadVolumen, indice) => {
+      const lead = leadPorCorreo.get(leadVolumen.correo)!;
+      const owner = closers[indice % closers.length];
+      const etapaFinal = etapas[indice];
+      const indiceFecha = DIAS_HABILES_SEPTIEMBRE.indexOf(
+        leadVolumen.fecha as (typeof DIAS_HABILES_SEPTIEMBRE)[number],
+      );
+      return {
+        leadId: lead.id,
+        programId: grupo.programa.id,
+        etapa: etapaFinal === "cierre_perdido" ? "en_contacto" : etapaFinal,
+        huella: `seed-local:${grupo.programa.prefijo}:deal:${indice + 1}`,
+        actorId,
+        fechaEtapa: instanteDeBogota(DIAS_HABILES_SEPTIEMBRE[indiceFecha + 2], 10 + (indice % 7)),
+        ownerUserId: owner.id,
+        productoId: ["compromiso_verbal", "abonado", "completo"].includes(etapaFinal)
+          ? grupo.programa.productoId
+          : null,
+        cohortId: grupo.programa.cohorteId,
+        submissionOrigenId: indice % 10 === 0 ? null : envioPorLead.get(lead.id),
+      };
+    });
+    const resultados = await abrirDealesHistoricos(db, altas);
+    resultados.forEach((resultado, indice) => {
+      if (resultado.estado === "lead_con_deal_vivo") {
+        throw new Error(`El lead de volumen ${grupo.leads[indice].correo} ya tenia un deal vivo.`);
+      }
+      const owner = closers[indice % closers.length];
+      const indiceFecha = DIAS_HABILES_SEPTIEMBRE.indexOf(
+        grupo.leads[indice].fecha as (typeof DIAS_HABILES_SEPTIEMBRE)[number],
+      );
+      dealsCreados.push({
+        id: resultado.dealId,
+        etapa: etapas[indice],
+        fechaLlamada: DIAS_HABILES_SEPTIEMBRE[indiceFecha + 1],
+        fechaEtapa: DIAS_HABILES_SEPTIEMBRE[indiceFecha + 2],
+        fechaAbono: DIAS_HABILES_SEPTIEMBRE[indiceFecha + 3],
+        correo: grupo.leads[indice].correo,
+        ownerUserId: owner.id,
+        closerId: owner.closerId ?? "",
+      });
+    });
+  }
+
+  for (const [indice, deal] of dealsCreados.filter((item) => item.etapa === "cierre_perdido").entries()) {
+    await moverEtapa(db, {
+      dealId: deal.id,
+      a: "cierre_perdido",
+      actor: { tipo: "usuario", userId: deal.ownerUserId, rol: "closer" },
+      motivoId: motivosPerdidaIds[indice % motivosPerdidaIds.length],
+    });
+  }
+
+  const llamadas: LlamadaHistorica[] = [];
+  const etapasConShow = new Set<EtapaVolumen>([
+    "atendido",
+    "compromiso_verbal",
+    "abonado",
+    "completo",
+    "proxima_cohorte",
+  ]);
+  for (const programa of programasDeVolumen) {
+    const candidatas = dealsCreados
+      .filter((deal) => deal.id && leadPorCorreo.get(deal.correo)?.programId === programa.id)
+      .filter((deal) => etapasConShow.has(deal.etapa)
+        || deal.etapa === "agendado"
+        || deal.etapa === "pendiente_reagenda");
+    candidatas.forEach((deal, indice) => {
+      const show = etapasConShow.has(deal.etapa);
+      const resultado = show ? "show" : deal.etapa === "pendiente_reagenda" ? "no_show" : "agendada";
+      llamadas.push({
+        programId: programa.id,
+        dealId: deal.id,
+        huella: `seed-local:${programa.prefijo}:llamada:${indice + 1}`,
+        actorId,
+        resultado,
+        fechaAgenda: instanteDeBogota(deal.fechaLlamada, 14),
+        fechaLlamada: show ? instanteDeBogota(deal.fechaLlamada, 15) : null,
+        closer: deal.closerId,
+        emailLead: deal.correo,
+        notas: show
+          ? "Llamada de demostracion con asistencia."
+          : resultado === "no_show"
+            ? "No asistio a la llamada de demostracion."
+            : "Llamada de demostracion agendada.",
+      });
+    });
+  }
+  await registrarLlamadasHistoricas(db, llamadas);
+
+  const abonosHistoricos: AbonoHistorico[] = [];
+  const candidatosParaAnular: number[] = [];
+  for (const programa of programasDeVolumen) {
+    const precio = Number(programa.ticketUsd);
+    let abonadosVistos = 0;
+    const pagadores = dealsCreados.filter(
+      (deal) => leadPorCorreo.get(deal.correo)?.programId === programa.id
+        && (deal.etapa === "abonado" || deal.etapa === "completo"),
+    );
+    pagadores.forEach((deal, indice) => {
+      const numeroDeAbonado = deal.etapa === "abonado" ? abonadosVistos++ : -1;
+      const montos = deal.etapa === "completo"
+        ? (indice % 2 === 0 ? [precio] : [precio * 0.4, precio * 0.6])
+        : (numeroDeAbonado < 2 || numeroDeAbonado % 2 === 0
+          ? [precio * 0.2, precio * 0.25]
+          : [precio * 0.35]);
+      montos.forEach((monto, numeroAbono) => {
+        const posicion = abonosHistoricos.length;
+        abonosHistoricos.push({
+          dealId: deal.id,
+          huella: `seed-local:${programa.prefijo}:abono:${indice + 1}:${numeroAbono + 1}`,
+          actorId,
+          fecha: deal.fechaAbono,
+          monto: monto.toFixed(2),
+          closer: deal.closerId,
+        });
+        if (deal.etapa === "abonado" && montos.length === 2 && numeroAbono === 0) {
+          candidatosParaAnular.push(posicion);
+        }
+      });
+    });
+  }
+  const abonosCreados = await registrarAbonosHistoricos(db, abonosHistoricos);
+  for (const posicion of candidatosParaAnular.slice(0, 2)) {
+    await anularAbono(db, { userId: actorId, rol: "developer" }, {
+      abonoId: abonosCreados[posicion].id,
+      motivo: "Abono ficticio anulado para probar metricas vigentes.",
+    });
+  }
+
+  const dealParaAnular = dealsCreados.find((deal) => deal.etapa === "pendiente_setteo")!;
+  await anularDeal(db, { userId: actorId, rol: "developer" }, {
+    dealId: dealParaAnular.id,
+    motivo: "Deal ficticio anulado para probar metricas vigentes.",
+  });
+
+  for (const programa of programasDeVolumen) {
+    const conteos = etapaDealEnum.enumValues.map((etapa) => `${etapa}=${programa.etapas[etapa]}`).join(", ");
+    console.log(`[seed:local] ${programa.nombre}: ${programa.totalLeads} leads; ${conteos}`);
+  }
 }
 
 export async function sembrarLocal(): Promise<void> {
@@ -313,7 +666,7 @@ export async function sembrarLocal(): Promise<void> {
     nombre: "María Closer",
     rol: "closer",
     closerId: "maria",
-    programas: [prog1.id],
+    programas: [prog1.id, prog2.id],
   });
 
   // 10. Leads vía ingerirEntradas
@@ -432,12 +785,15 @@ export async function sembrarLocal(): Promise<void> {
   }
 
   console.log("[seed:local] Creando deals y distribuyéndolos en varias etapas con llamadas y abonos...");
+  // Desde el 121 el motor pide el área declarada para comprometer, abonar y completar.
+  const areaDeclaradaSeed = areasPorNombre.get("paid")!;
 
   // Deal 1 -> Etapa: pendiente_setteo
   const lead1 = mapaLeads.get("andrea.morales@ejemplo.local")!;
   await abrirDeal(db, {
     leadId: lead1.id,
     programId: prog1.id,
+    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "pendiente_setteo",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
@@ -449,6 +805,7 @@ export async function sembrarLocal(): Promise<void> {
   await abrirDeal(db, {
     leadId: lead2.id,
     programId: prog1.id,
+    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "en_contacto",
     actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
     ownerUserId: closer2.id,
@@ -460,6 +817,7 @@ export async function sembrarLocal(): Promise<void> {
   const deal3Id = await abrirDeal(db, {
     leadId: lead3.id,
     programId: prog1.id,
+    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "pendiente_setteo",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
@@ -481,6 +839,7 @@ export async function sembrarLocal(): Promise<void> {
   const deal4Id = await abrirDeal(db, {
     leadId: lead4.id,
     programId: prog1.id,
+    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "pendiente_setteo",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
@@ -508,6 +867,7 @@ export async function sembrarLocal(): Promise<void> {
   await abrirDeal(db, {
     leadId: lead5.id,
     programId: prog1.id,
+    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "compromiso_verbal",
     actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
     ownerUserId: closer2.id,
@@ -521,6 +881,7 @@ export async function sembrarLocal(): Promise<void> {
   const deal6Id = await abrirDeal(db, {
     leadId: lead6.id,
     programId: prog1.id,
+    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "compromiso_verbal",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
@@ -557,6 +918,7 @@ export async function sembrarLocal(): Promise<void> {
   const deal7Id = await abrirDeal(db, {
     leadId: lead7.id,
     programId: prog1.id,
+    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "compromiso_verbal",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
@@ -593,6 +955,7 @@ export async function sembrarLocal(): Promise<void> {
   const deal8Id = await abrirDeal(db, {
     leadId: lead8.id,
     programId: prog1.id,
+    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "pendiente_setteo",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
@@ -620,12 +983,13 @@ export async function sembrarLocal(): Promise<void> {
   const deal9Id = await abrirDeal(db, {
     leadId: lead9.id,
     programId: prog1.id,
+    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "en_contacto",
     actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
     ownerUserId: closer2.id,
     cohortId: coh1.id,
   });
-  const motivoPerdidaId = mapaMotivos.get("perdida|Sin dinero para invertir ahora");
+  const motivoPerdidaId = mapaMotivos.get("perdida|Sin dinero para invertir ahora")!;
   await moverEtapa(db, {
     dealId: deal9Id,
     a: "cierre_perdido",
@@ -638,6 +1002,7 @@ export async function sembrarLocal(): Promise<void> {
   const deal10Id = await abrirDeal(db, {
     leadId: lead10.id,
     programId: prog2.id,
+    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "compromiso_verbal",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
@@ -674,6 +1039,7 @@ export async function sembrarLocal(): Promise<void> {
   await abrirDeal(db, {
     leadId: lead11.id,
     programId: prog2.id,
+    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "pendiente_setteo",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
@@ -685,6 +1051,7 @@ export async function sembrarLocal(): Promise<void> {
   const deal12Id = await abrirDeal(db, {
     leadId: lead12.id,
     programId: prog2.id,
+    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "pendiente_setteo",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
@@ -706,6 +1073,7 @@ export async function sembrarLocal(): Promise<void> {
   await abrirDeal(db, {
     leadId: lead13.id,
     programId: prog2.id,
+    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "compromiso_verbal",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
@@ -713,6 +1081,73 @@ export async function sembrarLocal(): Promise<void> {
     productoId: prod2Completo.id,
     fechaLimitePago: "2026-09-20",
   });
+
+  // 12. Volumen adicional para recorrer todas las métricas y filtros del dashboard.
+  await sembrarVolumen(
+    actorId,
+    [
+      {
+        id: prog1.id,
+        nombre: "ComunicArte Local",
+        slug: "comunicarte-local",
+        ticketUsd: "797.00",
+        formUrl: "https://form.typeform.com/to/comunicarte-demo",
+        fuenteId: f1.id,
+        cohorteId: coh1.id,
+        productoId: prod1Completo.id,
+        totalLeads: 150,
+        comisionPorVentaUsd: "80.00",
+        prefijo: "p1",
+        etapas: {
+          pendiente_setteo: 24,
+          en_contacto: 18,
+          pendiente_reagenda: 8,
+          agendado: 14,
+          atendido: 12,
+          compromiso_verbal: 10,
+          abonado: 8,
+          completo: 6,
+          proxima_cohorte: 5,
+          cierre_perdido: 8,
+          seguimiento: 7,
+        },
+      },
+      {
+        id: prog2.id,
+        nombre: "Tactical Investor Local",
+        slug: "tactical-local",
+        ticketUsd: "1500.00",
+        formUrl: "https://form.typeform.com/to/tactical-demo",
+        fuenteId: f2.id,
+        cohorteId: coh2.id,
+        productoId: prod2Completo.id,
+        totalLeads: 120,
+        comisionPorVentaUsd: "150.00",
+        prefijo: "p2",
+        etapas: {
+          pendiente_setteo: 20,
+          en_contacto: 14,
+          pendiente_reagenda: 7,
+          agendado: 11,
+          atendido: 9,
+          compromiso_verbal: 8,
+          abonado: 6,
+          completo: 5,
+          proxima_cohorte: 4,
+          cierre_perdido: 7,
+          seguimiento: 5,
+        },
+      },
+    ],
+    [
+      { id: closer1.id, closerId: closer1.closerId },
+      { id: closer2.id, closerId: closer2.closerId },
+    ],
+    [
+      motivoPerdidaId,
+      mapaMotivos.get("perdida|El programa no se ajusta a su nivel o necesidad")!,
+    ],
+  );
 
   console.log("\n[seed:local] Siembra local finalizada exitosamente.");
 }
