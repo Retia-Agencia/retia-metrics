@@ -3,7 +3,7 @@ id: 084
 etapa: E1b
 serves: "plan v2 §12.10.2 y §12.15 · ADR 0045 (enmendado el 21-sep)"
 depends: [083]
-status: todo
+status: reemplazado
 ---
 
 # 084 — `campanas` y `utm_patron`: el esquema de la atribucion
@@ -82,3 +82,12 @@ principal, nunca un subagente** (`AGENTS.md`).
 
 - ✅ **Se reduce** (ADR 0062 punto 6, Mani 29-sep): la campaña de paid sale del árbol de Meta (120), por `utm_id` o por nombre exacto y único para lo histórico; la de orgánico se agrupa por el texto crudo de `utm_campaign`. Sin `utm_patron` ni especificidad: con canal único por par e id de Meta único, el empate no puede ocurrir y P2 queda sin objeto.
 - El gasto ya no va en `ad_spend` por campaña y fecha: va en `gasto_pauta` (120), por anuncio y día.
+
+---
+
+## Cierre 2026-09-30: reemplazado (Mani)
+
+DP-25 y el ADR 0062 punto 6 lo dejaron sin contenido: no hay `campanas` ni `utm_patron`. La campaña de paid
+la da el árbol de Meta (120) por `utm_id` o por nombre exacto único; la de orgánico, el texto crudo de
+`utm_campaign`, y eso lo resuelve el emparejador (085). El gasto vive en `gasto_pauta` (120). Sus
+dependientes se recolgaron: 085 y 092 de 101, 067 de 120.

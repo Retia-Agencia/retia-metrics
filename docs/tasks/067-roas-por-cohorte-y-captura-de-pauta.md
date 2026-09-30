@@ -2,7 +2,7 @@
 id: 067
 etapa: E5
 serves: "plan v2 §6 etapa 5 · tarea E5-4 · ADR 0039 punto 4, insumo §8 · ENMENDADO por ADR 0045"
-depends: [064, 084]
+depends: [064, 120]
 status: todo
 ---
 

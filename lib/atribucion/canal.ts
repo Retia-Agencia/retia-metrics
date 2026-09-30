@@ -1,3 +1,5 @@
+import { esMacro } from "@/lib/atribucion/utm-del-envio";
+
 export interface CanalActivo {
   id: string;
   nombre: string;
@@ -17,7 +19,7 @@ export type ResultadoCanal =
 export function normalizarUtm(valor: string | null): string | null {
   if (valor === null) return null;
   const limpio = valor.trim();
-  if (limpio === "" || limpio.includes("{{")) return null;
+  if (limpio === "" || esMacro(limpio)) return null;
   return limpio.toLowerCase();
 }
 

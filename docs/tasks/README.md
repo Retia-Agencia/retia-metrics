@@ -133,9 +133,9 @@ la de RLS del 23-sep (ADR 0047), así que es **la siguiente libre**. Léela lín
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 083 | [El catálogo de áreas](./083-catalogo-de-areas.md) | 042 | done · 30-sep · 0045 en producción; Paid, Orgánico y Referidos sembradas por el molde; adelantado de E6 con ok de Mani |
-| [ ] | 084 | [`campanas` y `utm_patron`](./084-campanas-y-el-patron-utm.md) | 083 | todo · **tres** campos de patrón, sin `nivel_utm` |
-| [ ] | 085 | [El emparejador determinista y su guardián](./085-el-emparejador-determinista.md) | 084 | todo |
-| [ ] | 092 | [La URL del formulario y el generador de links](./092-url-del-formulario-y-generador-de-links.md) | 084 | todo · 🩸 **destapa que `programs` no tiene la URL del formulario**, sin la cual el 086 tampoco se puede calcular. Encogió el 21-sep: **sin árbol**. **24-sep: es el builder v1** (destinos con checkouts, canal, campaña, dos opcionales; ADR 0051) |
+| [x] | 084 | [`campanas` y `utm_patron`](./084-campanas-y-el-patron-utm.md) | 083 | reemplazado · 30-sep (Mani) · DP-25: sin patrones; la campaña de paid sale del árbol de Meta (120) y la de orgánico del texto crudo (085). 085 y 092 pasan a depender de 101; 067, de 120 |
+| [x] | 085 | [El emparejador determinista y su guardián](./085-el-emparejador-determinista.md) | 101 | done · 30-sep · Mani · `lib/atribucion/emparejar.ts` (canal, campaña, anuncio por `utm_id`, contenido por formato, macros aparte, nivel N3-N0) y `utm-del-envio.ts`; el árbol de Meta entra como dato (lo conecta el 120); guardián en `tests/atribucion-emparejador.test.ts`. Sin migración |
+| [ ] | 092 | [La URL del formulario y el generador de links](./092-url-del-formulario-y-generador-de-links.md) | 101 | todo · 🩸 **destapa que `programs` no tiene la URL del formulario**, sin la cual el 086 tampoco se puede calcular. Encogió el 21-sep: **sin árbol**. **24-sep: es el builder v1** (destinos con checkouts, canal, campaña, dos opcionales; ADR 0051) |
 | [x] | 101 | [El catálogo de Canales (el "Origen" del builder)](./101-catalogo-de-canales.md) | 083 | done · 30-sep · Mani · 0047 en producción; catálogo global con comodín de source, formato de content/term por canal, `/ajustes/canales` con envíos por canal y pares sin canal; 26 canales sembrados, 5.140 envíos clasificados y solo 5 de prueba sin canal |
 | [ ] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | todo · 24-sep, ADR 0052 · migración de la sesión principal |
 
@@ -199,7 +199,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [x] | 064 | [Dashboard sobre deals](./064-dashboard-sobre-deals.md) (E5-1) | 060 | done · sesión 47 · cierres desde deal_etapa_historial, dueño por ownerUserId, show centralizado |
 | [ ] | 065 | [Conversión etapa a etapa y tiempo en etapa](./065-funnel-por-etapa.md) (E5-2) | 064 | todo |
 | [ ] | 066 | [Réplica de `🚨 Urgencias` con desglose UTM](./066-replica-de-urgencias.md) (E5-3) | 064 | todo |
-| [ ] | 067 | [ROAS por cohorte y captura de pauta](./067-roas-por-cohorte-y-captura-de-pauta.md) (E5-4) | 064 | todo |
+| [ ] | 067 | [ROAS por cohorte y captura de pauta](./067-roas-por-cohorte-y-captura-de-pauta.md) (E5-4) | 064, 120 | todo |
 | [ ] | 068 | [`nerd-stats` reescrito](./068-nerd-stats-reescrito.md) (E5-5) | 064 | todo |
 | [x] | 093 | [Filtros por UTM con lo que YA hay](./093-filtros-utm-con-lo-que-ya-hay.md) | — | done · 29-sep · vista interina de Pauta en el dashboard: registros, agendas por el origen del deal, sin UTM (Tactical 25,3%) y macros aparte; drill-down canal → campaña → content/term |
 | [ ] | 088 | [Registros vs agendas por canal](./088-registros-vs-agendas-por-canal.md) | 049, 052, 085 | todo · la vista de **Media** |

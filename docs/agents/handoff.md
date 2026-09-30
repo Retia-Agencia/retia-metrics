@@ -5,8 +5,8 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 53 de Alejo (30-sep) y actualizado en la 54 de
-> Mani (30-sep, carril de Mani). El anterior: `git show 968532a:docs/agents/handoff.md`.
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 53 de Alejo (30-sep) y actualizado en la 54 y la 55
+> de Mani (30-sep, carril de Mani). El anterior: `git show 968532a:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas)
@@ -14,11 +14,14 @@ y docs/plan.md (el QUE, decisiones en §7). El estado de cada ticket vive solo e
 docs/structure.md §9 (sistema de diseño Tinta) es OBLIGATORIO antes de tocar una pantalla.
 
 Estado al 30-sep (sesion 53, Alejo): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
-48 migraciones (0000-0047), todas aplicadas. ~1.620 tests. Produccion: https://retia-metrics-seven.vercel.app.
+48 migraciones (0000-0047), todas aplicadas. ~1.645 tests. Produccion: https://retia-metrics-seven.vercel.app.
 
-Carril de Mani (E6, sesion 54): 101 done (canales, /ajustes/canales, 0047 en produccion, 26 canales sembrados).
-- SIGUIENTE: 085 el emparejador (usa resolverCanal de lib/atribucion/canal.ts y lee canales.formato; utm_id,
-  macro como centinela, nivel de la traza) -> 087 -> 121 -> 118 (espera 117) -> 089. 084 se reduce (DP-25).
+Carril de Mani (E6, sesion 55): 083, 101 y 085 done. 084 reemplazado por DP-25.
+- 085: emparejar() en lib/atribucion/emparejar.ts (canal, campana, anuncio por utm_id, nivel N3-N0) y
+  utmsDelEnvio en lib/atribucion/utm-del-envio.ts. El arbol de Meta entra como DATO (lo carga el 120). Nadie
+  llama emparejar todavia.
+- SIGUIENTE: 087 (el CPL por area Pauta con emparejar; va con el 085, no espera al 086) -> 121 -> 118 (espera
+  117) -> 089.
 - PQ9 a Pauta: que manden por escrito como agrupan los UTM (nuevo e historico).
 
 Carril de Alejo (E5 con el codigo en main):
@@ -50,6 +53,25 @@ empuja al mismo main y el numero de migracion puede chocar.
 ```
 
 ## Memory
+
+- **2026-09-30 (sesión 55, Mani): 085, el emparejador, y 084 reemplazado.**
+  - **084 reemplazado (Mani):** DP-25 lo dejó sin contenido. Sus dependientes se recolgaron: 085 y 092 de 101, 067
+    de 120.
+  - **Decisión de Mani:** el árbol de Meta (campaña, conjunto, anuncio) entra al emparejador como **dato**
+    (`ArbolDePauta`), así el 085 no espera el token de Meta; el 120 solo conecta el cargador. Hasta entonces nada
+    llega a N3 y todo `utm_id` sale como `anuncio_desconocido`.
+  - **Código:** `lib/atribucion/emparejar.ts` (`emparejar` → `Traza`: canal, campaña, anuncio, contenido por
+    formato, macros, avisos, nivel), `lib/atribucion/utm-del-envio.ts` (`utmsDelEnvio`, `columnasUtmDelEnvio`,
+    `esMacro`). La vista interina de Pauta pasa por ahí sin cambiar su salida. Guardián en
+    `tests/atribucion-emparejador.test.ts`. El comentario de `submissions.utmContent` en el esquema ya no dice
+    "sin leer". Sin migración. 1.645 tests (con los de Alejo).
+  - Implementó Codex en un worktree; su sandbox no deja correr `npm test` (`spawnSync ps EPERM` en el candado) y
+    `next build` falla en un worktree con `node_modules` enlazado (Turbopack rechaza el symlink): la suite y el
+    build se corren en el checkout principal.
+  - **Medido en producción (lectura):** 21 envíos de ComunicArte traen `utm_id` en `respuestas`, los recientes con
+    el mismo id y como `facebook / cpc`; Tactical, 0. O-1 (campo oculto en Tactical) y O-2 (plantilla de Pauta)
+    siguen pendientes; preguntar a Pauta si ese id es de anuncio o de campaña.
+  - **Queda:** un envío que solo trae `utm_id` cae en N0 aunque su anuncio exista (revisar con el 123).
 
 - **2026-09-30 (sesión 54, Mani): 101, el catálogo de Canales, en producción.**
   - **Decisiones de Mani (ADR 0051 enmendado, ticket 101):** catálogo **global** (la convención UTM es la misma en
@@ -3460,7 +3482,7 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
-- **30-sep:** E6 abierta. Carril de Mani: 085 → 087 → 121 → 118 → 089 (101 y 083 done). Carril de Alejo: cerrar
+- **30-sep:** E6 abierta. Carril de Mani: 087 → 121 → 118 → 089 (083, 101 y 085 done; 084 reemplazado). Carril de Alejo: cerrar
   072, 099, 080 y 078 (recorridos y ensayo), 127, y después 116 y 117. El orden completo, en el prompt de arriba y
   en `plan-reparto.md` §4.
 - Vigilar que los leads reales sigan entrando por webhook: `/ajustes/salud` (110). Los pares sin canal:

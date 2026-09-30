@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { calls, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { categoriaDe, pautaInterina, utmCapturados, type FilaPauta } from "@/lib/queries/pauta-interina";
+import { categoriaDe, pautaInterina, type FilaPauta } from "@/lib/queries/pauta-interina";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -189,14 +189,6 @@ describe("filtros y el contador de hoy", () => {
 });
 
 describe("utm_content y utm_term: crudos, de la columna o de respuestas", () => {
-  it("lee la columna si viene y si no la llave de respuestas, sin distinguir mayusculas ni espacios", () => {
-    expect(utmCapturados({ utmContent: "col", utmTerm: null, respuestas: { " UTM_Term ": "ad-1", utm_content: "ignorado" } })).toEqual({
-      content: "col",
-      term: "ad-1",
-    });
-    expect(utmCapturados({ utmContent: null, utmTerm: null, respuestas: null })).toEqual({ content: null, term: null });
-  });
-
   it("entran a la serie tal como llegaron", async () => {
     await envio({ respuestas: { utm_content: "De_Cero_a_Tactical", utm_term: "Jptactical_FKT3" } });
     const v = await pautaInterina(db, programId, RANGO, {}, HOY);

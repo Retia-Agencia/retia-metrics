@@ -1,4 +1,5 @@
 import { and, between, eq, sql } from "drizzle-orm";
+import { columnasUtmDelEnvio, esMacro, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { calls, deals, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { fechaDeInstanteEnBogota } from "@/lib/format";
@@ -78,37 +79,9 @@ export interface VistaPautaInterina {
 const diaEnBogota = (columna: typeof submissions.fechaEnvio | typeof calls.createdAt) =>
   sql<string>`(${columna} AT TIME ZONE 'America/Bogota')::date`;
 
-const LLAVE_CONTENT = "utm_content";
-const LLAVE_TERM = "utm_term";
-
-/**
- * `utm_content` y `utm_term` de un envio: la columna promovida si viene, y si no, la llave de
- * `respuestas` donde los guardan la hoja y el webhook (ticket 093, enmienda del 29-sep; ADR
- * 0062). Es la UNICA lectura de estos dos campos fuera del emparejador, y los devuelve CRUDOS:
- * en el `facebook / cpc` historico de Retia `utm_content` es el conjunto y `utm_term` el
- * anuncio, y en la plantilla de Pauta es al reves. Interpretarlos es del 085 y el 101.
- */
-export function utmCapturados(envio: {
-  utmContent: string | null;
-  utmTerm: string | null;
-  respuestas: unknown;
-}): { content: string | null; term: string | null } {
-  const r =
-    envio.respuestas !== null && typeof envio.respuestas === "object" && !Array.isArray(envio.respuestas)
-      ? (envio.respuestas as Record<string, unknown>)
-      : {};
-  const leer = (llave: string): string | null => {
-    for (const [k, v] of Object.entries(r)) {
-      if (k.trim().toLowerCase() === llave && typeof v === "string" && v.trim() !== "") return v;
-    }
-    return null;
-  };
-  return { content: envio.utmContent ?? leer(LLAVE_CONTENT), term: envio.utmTerm ?? leer(LLAVE_TERM) };
-}
-
 export function categoriaDe(d: DimensionesUtm): Exclude<CategoriaOrigen, "sin_envio_origen"> {
   const valores = [d.source, d.medium, d.campaign, d.content, d.term];
-  if (valores.some((v) => v !== null && v.includes("{{"))) return "macro";
+  if (valores.some(esMacro)) return "macro";
   if (d.source === null && d.medium === null && d.campaign === null) return "sin_utm";
   return "con_utm";
 }
@@ -132,12 +105,7 @@ async function enviosCompletos(db: Db, programId: string, rango: Rango) {
       id: submissions.id,
       fechaEnvio: submissions.fechaEnvio,
       nombre: submissions.nombre,
-      utmSource: submissions.utmSource,
-      utmMedium: submissions.utmMedium,
-      utmCampaign: submissions.utmCampaign,
-      utmContent: submissions.utmContent,
-      utmTerm: submissions.utmTerm,
-      respuestas: submissions.respuestas,
+      ...columnasUtmDelEnvio,
     })
     .from(submissions)
     .innerJoin(sources, eq(sources.id, submissions.sourceId))
@@ -150,15 +118,9 @@ async function enviosCompletos(db: Db, programId: string, rango: Rango) {
     );
 }
 
-function dimensionesDe(e: {
-  utmSource: string | null;
-  utmMedium: string | null;
-  utmCampaign: string | null;
-  utmContent: string | null;
-  utmTerm: string | null;
-  respuestas: unknown;
-}): DimensionesUtm {
-  return { source: e.utmSource, medium: e.utmMedium, campaign: e.utmCampaign, ...utmCapturados(e) };
+function dimensionesDe(e: Parameters<typeof utmsDelEnvio>[0]): DimensionesUtm {
+  const { source, medium, campaign, content, term } = utmsDelEnvio(e);
+  return { source, medium, campaign, content, term };
 }
 
 export async function pautaInterina(
@@ -178,12 +140,7 @@ export async function pautaInterina(
     .select({
       createdAt: calls.createdAt,
       origenId: submissions.id,
-      utmSource: submissions.utmSource,
-      utmMedium: submissions.utmMedium,
-      utmCampaign: submissions.utmCampaign,
-      utmContent: submissions.utmContent,
-      utmTerm: submissions.utmTerm,
-      respuestas: submissions.respuestas,
+      ...columnasUtmDelEnvio,
     })
     .from(calls)
     .leftJoin(deals, and(eq(deals.id, calls.dealId), incluyendoAnulados(deals)))

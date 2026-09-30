@@ -644,15 +644,13 @@ export const submissions = pgTable(
      */
     nombre: text("nombre"),
     /**
-     * ⚠️ `utmTerm` y `utmContent` existen pero estan DELIBERADAMENTE SIN LEER
-     * (Mani, 21-sep; ADR 0045 enmienda 2). El estandar de UTM son TRES campos:
-     * source, medium y campaign. No hay nivel de conjunto ni de anuncio, asi que
-     * "que anuncio esta vendiendo" quedo FUERA DE ALCANCE, no pendiente.
-     *
-     * No se borran porque quitarlas cuesta una migracion sobre una tabla que ya
-     * esta en `production` y volver a ponerlas costaria otra; el dato sigue en la
-     * hoja si algun dia se quiere. **Cablearlas no tapa ningun hueco: no hay
-     * hueco.** Si alguna vez entran, entran por una decision, no por un arreglo.
+     * `utmTerm` y `utmContent` los interpreta SOLO `lib/atribucion/` (ADR 0062, ticket 085):
+     * su significado lo declara el formato del Canal (en `paid_social`, anuncio y placement; en
+     * el `facebook / cpc` historico, conjunto y anuncio; en `closer / referido`, el codigo del
+     * closer). Hoy el webhook los deja en `respuestas` y estas columnas llegan vacias salvo en
+     * lo historico; `utmsDelEnvio` lee la columna y, si falta, la llave de `respuestas`.
+     * Promoverlas (y agregar `utm_id`) es del ticket 116. El guardian de
+     * `tests/atribucion-emparejador.test.ts` falla si alguien las lee por fuera.
      */
     utmTerm: text("utm_term"),
     utmContent: text("utm_content"),

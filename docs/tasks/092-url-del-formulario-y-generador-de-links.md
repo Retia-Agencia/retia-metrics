@@ -2,7 +2,7 @@
 id: 092
 etapa: E1b
 serves: "ADR 0046 · plan v2 §12.12"
-depends: [084]
+depends: [101]
 status: todo
 ---
 
