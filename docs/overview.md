@@ -84,7 +84,7 @@ etapa con el gasto de Meta, y cómo va la cohorte contra su meta cada día (reun
 | Precio de lista | USD 797 desde el 13-ago (antes 697, que se respetó a quien ya lo tenía cotizado). ✅ Confirmado por Mani el 28-sep: el de lista es 797 | USD 1.500 a la TRM del día |
 | Condiciones | Único descuento: USD 100 por dificultad real de pago (beca). Mentoría 1:1 de USD 1.590 (6 sesiones), solo si la piden | Pago único con 10% de descuento, USD 1.350, vigente 24 h desde la llamada. Reserva con USD 500 y saldo con fechas; 2 o 3 cuotas |
 | Quién ve el Calendly en el formulario | ingreso de ~USD 1.500 o más (medido el 23-sep) | ingreso de USD 3.000 o más (observado) |
-| Comisión del closer (hoja) | 80 por cada 697 | 100 por cada 1.500 |
+| Comisión del closer (hoja) | USD 80 por venta | USD 100 por venta |
 | Cohorte C2 | meta 50 cupos · venta del 14-ago al 21-sep (27 días hábiles) · clases el 22-sep | meta 50 cupos del equipo (lo del webinar no cuenta) · venta del 19-ago al 29-sep (30 días hábiles) · clases el 29-sep · C3: clases el 10-nov, venta desde el 30-sep, meta 60 según Pauta (29-sep; ComunicArte "60 igual") |
 
 Datos de los consolidados de C2 de Michael (14-sep) y de las hojas; cada cohorte guarda su propia
@@ -233,7 +233,7 @@ abonos sueltos (ADR 0052 enmendado, Mani 29-sep).
 | Calidad de la traza | % de ventas por nivel de origen: anuncio, campaña, canal o sin UTM |
 | Cumplimiento por área | la meta de la cohorte repartida en cupos por área (paid, orgánico, referidos): vendidas, faltan, requeridas por día, ritmo y proyección, con semáforo |
 | Leads por área | Gerencial, Comercial, Pauta, Media, derivados del canal |
-| Comisión | tasa del programa × precio del producto, calculada |
+| Comisión | ventas del closer × monto fijo por venta del programa (USD), calculada; nunca se guarda (062, 29-sep) |
 
 Lo que pidió cada área (Alejo, 21-sep): **Comercial**, close rate, show rate y el estado del lead por
 etapa; **Pauta**, todo por UTM, por fecha, canal e inversión; **Media**, registros contra agendas por

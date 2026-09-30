@@ -14,6 +14,7 @@ import {
   type LeadsDelRango,
   type VistaDeCohorte,
 } from "@/lib/queries/dashboard";
+import { comisionPorVentaDe, comisionUsd } from "@/lib/queries/comision";
 
 /**
  * Arma de una sola vez todo lo que pinta `/p/[programa]/dashboard` (tickets 005 y 097).
@@ -55,7 +56,14 @@ export interface VistaDelDashboard {
   cohorte: VistaDeCohorte | null;
   motivos: { motivo: string; llamadas: number }[];
   origenes: Awaited<ReturnType<typeof embudoPorOrigen>>;
-  comparativo: Awaited<ReturnType<typeof embudoPorCloser>>;
+  /**
+   * El comparativo entre closers, con la comision de cada uno (ticket 062): sus cierres del
+   * rango por el monto por venta del programa. `comisionUsd` es `null` si el programa no
+   * tiene el monto cargado.
+   */
+  comparativo: (Awaited<ReturnType<typeof embudoPorCloser>>[number] & { comisionUsd: number | null })[];
+  /** El monto por venta vigente del programa, en USD, o `null` si no esta cargado. */
+  comisionPorVentaUsd: string | null;
 }
 
 export async function armarVistaDelDashboard(
@@ -71,14 +79,17 @@ export async function armarVistaDelDashboard(
 
   const alcance = { programId, rango, closerId };
 
-  const [embudo, caja, leads, motivos, origenes, comparativo] = await Promise.all([
+  const [embudo, caja, leads, motivos, origenes, porCloser, comisionPorVentaUsd] = await Promise.all([
     embudoDelRango(alcance, db),
     cajaRecaudada(alcance, db),
     leadsDelRango(alcance, db),
     llamadasPorMotivo(alcance, db),
     embudoPorOrigen(alcance, db),
     embudoPorCloser({ programId, rango }, db),
+    comisionPorVentaDe(programId, db),
   ]);
+  // La comision sale de los MISMOS cierres de la fila: la columna y la cifra no pueden discrepar.
+  const comparativo = porCloser.map((c) => ({ ...c, comisionUsd: comisionUsd(c.cierres, comisionPorVentaUsd) }));
 
   // Las opciones del selector salen del comparativo (quien tiene actividad en el
   // rango), mas el closer ya elegido: si no, cambiar de rango a uno donde no hizo
@@ -99,5 +110,6 @@ export async function armarVistaDelDashboard(
     motivos,
     origenes,
     comparativo,
+    comisionPorVentaUsd,
   };
 }

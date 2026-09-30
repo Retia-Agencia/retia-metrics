@@ -309,6 +309,13 @@
       "when": 1790739542922,
       "tag": "0043_quitar-utm-del-lead",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1790740206068,
+      "tag": "0044_comision-por-venta",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { fecha, monto, num, pct } from "@/lib/format";
+import { fecha, monto, num, pct, usd } from "@/lib/format";
 import type { CajaPorMoneda } from "@/lib/queries/dashboard";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 
@@ -74,7 +74,7 @@ function Tabla({ cabeceras, children }: { cabeceras: string[]; children: ReactNo
 }
 
 export function DashboardPrograma({ vista }: { vista: VistaDelDashboard }) {
-  const { embudo, caja, leads, cohorte, comparativo, motivos, origenes, closerId } = vista;
+  const { embudo, caja, leads, cohorte, comparativo, comisionPorVentaUsd, motivos, origenes, closerId } = vista;
 
   return (
     <div className="space-y-6">
@@ -199,7 +199,7 @@ export function DashboardPrograma({ vista }: { vista: VistaDelDashboard }) {
               Nadie registró actividad en este rango.
             </p>
           ) : (
-            <Tabla cabeceras={["Closer", "Agendas", "Show", "% show", "Cierres", "% cierre", "Caja"]}>
+            <Tabla cabeceras={["Closer", "Agendas", "Show", "% show", "Cierres", "% cierre", "Caja", "Comisión"]}>
               {comparativo.map((c) => (
                 <tr key={c.closerId ?? "sin-closer"} className="tabular-nums">
                   <td className="py-2">
@@ -213,12 +213,20 @@ export function DashboardPrograma({ vista }: { vista: VistaDelDashboard }) {
                   <td className="py-2 text-right">
                     <Caja caja={c.caja} />
                   </td>
+                  <td className="py-2 text-right">
+                    {c.comisionUsd == null ? <span className="text-muted-foreground">—</span> : usd(c.comisionUsd)}
+                  </td>
                 </tr>
               ))}
             </Tabla>
           )}
           <p className="pt-3 text-xs text-muted-foreground">
             El comparativo nunca se filtra por closer: todos ven todo (ADR 0009).
+          </p>
+          <p className="pt-1 text-xs text-muted-foreground">
+            {comisionPorVentaUsd != null
+              ? `Comisión: ${usd(Number(comisionPorVentaUsd))} por cada cierre del rango.`
+              : "Este programa no tiene cargada la comisión por venta: se carga en Ajustes → Programas y cohortes."}
           </p>
         </CardContent>
       </Card>

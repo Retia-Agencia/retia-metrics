@@ -73,7 +73,7 @@ Excepción: un Agendado cuyo host de Calendly es closer registrado en el program
 (ADR 0049).
 
 **7. Derivados, nunca guardados:** lo abonado, el saldo, "es Student" (etapa Abonado o Completo) y la
-comisión (tasa del programa × precio del producto) se calculan (ADR 0024).
+comisión (ventas × monto fijo por venta del programa, en USD; enmendado el 29-sep con el ticket 062: no es un porcentaje del precio) se calculan (ADR 0024).
 
 **8. Deals históricos:** el CRM abre deals solo para leads nuevos desde el corte. Los leads viejos de
 Setteo entran con la migración de la etapa 7, respetando su estado de gestión, no como ~2.400 deals

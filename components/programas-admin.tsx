@@ -34,6 +34,8 @@ export interface ProgramaVista {
   slug: string;
   nombre: string;
   ticketUsd: string;
+  /** Lo que gana un closer por venta, en USD (ticket 062). Nulo = sin cargar. */
+  comisionPorVentaUsd: string | null;
   webUrl: string | null;
   calendlyUrl: string | null;
   /** URL base del formulario (ADR 0057). Un programa no se activa sin ella ni sin token. */
@@ -49,6 +51,7 @@ interface Borrador {
   nombre: string;
   slug: string;
   ticketUsd: string;
+  comisionPorVentaUsd: string;
   webUrl: string;
   calendlyUrl: string;
   formUrl: string;
@@ -60,6 +63,7 @@ const BORRADOR_VACIO: Borrador = {
   nombre: "",
   slug: "",
   ticketUsd: "",
+  comisionPorVentaUsd: "",
   webUrl: "",
   calendlyUrl: "",
   formUrl: "",
@@ -71,6 +75,7 @@ function aBorrador(p: ProgramaVista): Borrador {
     nombre: p.nombre,
     slug: p.slug,
     ticketUsd: p.ticketUsd,
+    comisionPorVentaUsd: p.comisionPorVentaUsd ?? "",
     webUrl: p.webUrl ?? "",
     calendlyUrl: p.calendlyUrl ?? "",
     formUrl: p.formUrl ?? "",
@@ -170,7 +175,10 @@ export function ProgramasAdmin({ programas }: { programas: ProgramaVista[] }) {
                         ) : null}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        /{p.slug} · ticket {usd(Number(p.ticketUsd))}
+                        /{p.slug} · ticket {usd(Number(p.ticketUsd))} ·{" "}
+                        {p.comisionPorVentaUsd != null
+                          ? `comisión ${usd(Number(p.comisionPorVentaUsd))} por venta`
+                          : "sin comisión cargada"}
                       </span>
                     </div>
                     <span className="flex items-center gap-1">
@@ -251,6 +259,7 @@ function aEntrada(b: Borrador) {
     nombre: b.nombre,
     slug: b.slug,
     ticketUsd: b.ticketUsd,
+    comisionPorVentaUsd: b.comisionPorVentaUsd,
     webUrl: b.webUrl,
     calendlyUrl: b.calendlyUrl,
     formUrl: b.formUrl,
@@ -332,6 +341,18 @@ function FormularioPrograma({
               required
               className={claseInput}
               aria-label="Ticket en USD"
+            />
+          </label>
+
+          <label className="block space-y-1 text-sm">
+            <span className="text-muted-foreground">Comisión por venta (USD)</span>
+            <input
+              value={borrador.comisionPorVentaUsd}
+              onChange={(e) => setBorrador({ ...borrador, comisionPorVentaUsd: e.target.value })}
+              inputMode="decimal"
+              placeholder="Monto fijo por venta, por ejemplo 80"
+              className={claseInput}
+              aria-label="Comisión por venta en USD"
             />
           </label>
 

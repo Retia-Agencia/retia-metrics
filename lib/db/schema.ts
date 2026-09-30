@@ -279,6 +279,14 @@ export const programs = pgTable(
      */
     diasSinActividad: integer("dias_sin_actividad").notNull().default(3),
     /**
+     * Lo que gana un closer por cada venta del programa, en USD (ticket 062; Alejo, 29-sep:
+     * monto FIJO por venta, no un porcentaje del precio: la hoja pagaba un monto por venta distinto
+     * en cada programa; los valores estan en el ticket 062). Instancia editable (ADR 0012). La
+     * comision NUNCA se guarda: la calcula `lib/queries/comision.ts` con el monto vigente. Nulo =
+     * el programa no la tiene cargada, y la pantalla lo dice en vez de mostrar un cero.
+     */
+    comisionPorVentaUsd: numeric("comision_por_venta_usd", { precision: 10, scale: 2 }),
+    /**
      * Nace INACTIVO (ADR 0057): un programa se activa solo con su Forms Link y su
      * token de Calendly, y el CHECK de abajo lo garantiza en la base (ADR 0005).
      */
@@ -290,6 +298,7 @@ export const programs = pgTable(
       sql`NOT ${t.activo} OR (${t.formUrl} IS NOT NULL AND ${t.calendlyToken} IS NOT NULL)`,
     ),
     check("programs_dias_sin_actividad_positivo", sql`${t.diasSinActividad} > 0`),
+    check("programs_comision_no_negativa", sql`${t.comisionPorVentaUsd} IS NULL OR ${t.comisionPorVentaUsd} >= 0`),
   ],
 );
 
