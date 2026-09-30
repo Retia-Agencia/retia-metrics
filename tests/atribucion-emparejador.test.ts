@@ -64,6 +64,7 @@ describe("UTM crudos del envio", () => {
         utmCampaign: "cruda",
         utmContent: "columna",
         utmTerm: null,
+        utmId: null,
         respuestas: { utm_content: "ignorado", " UTM_Term ": "ad-1", " utm_ID ": " 42 " },
       }),
     ).toEqual({ source: "facebook", medium: "cpc", campaign: "cruda", content: "columna", term: "ad-1", id: " 42 " });
@@ -75,9 +76,16 @@ describe("UTM crudos del envio", () => {
         utmCampaign: null,
         utmContent: null,
         utmTerm: null,
+        utmId: null,
         respuestas: null,
       }),
     ).toEqual(VACIOS);
+  });
+
+  it("desde el 116 el id del anuncio sale de su columna, y respuestas queda para lo anterior", () => {
+    const base = { utmSource: "ig", utmMedium: "paid_social", utmCampaign: "c", utmContent: null, utmTerm: null };
+    expect(utmsDelEnvio({ ...base, utmId: "120212", respuestas: { utm_id: "viejo" } }).id).toBe("120212");
+    expect(utmsDelEnvio({ ...base, utmId: null, respuestas: { utm_id: "viejo" } }).id).toBe("viejo");
   });
 });
 
@@ -199,7 +207,13 @@ describe("guardian: los UTM detallados se leen solo dentro de atribucion", () =>
   const EXTENSIONES = new Set([".ts", ".tsx"]);
   const EXCEPCIONES = new Map([
     [path.join("lib", "db", "schema.ts"), "define las columnas; no las lee"],
-    [path.join("lib", "ingesta", "envio.ts"), "captura las llaves en respuestas; escribe y no lee"],
+    // La ingesta PROMUEVE las UTM a sus columnas (ticket 116): las nombra para copiarlas tal
+    // como llegaron, sin interpretarlas. Interpretar sigue siendo solo de lib/atribucion/.
+    [path.join("lib", "ingesta", "envio.ts"), "las promueve tal como llegaron; escribe y no interpreta"],
+    [path.join("lib", "ingesta", "ingerir.ts"), "escribe las columnas promovidas en submissions; no interpreta"],
+    [path.join("lib", "ingesta", "adaptador-sheets.ts"), "mapea el encabezado de la hoja a la columna; no interpreta"],
+    [path.join("lib", "ingesta", "adaptador-typeform.ts"), "mapea el campo oculto de Typeform a la columna; no interpreta"],
+    [path.join("lib", "ingesta", "mapeo-webhook.ts"), "traduce la llave del mapeo de la fuente; no interpreta"],
   ]);
 
   function archivos(dir: string): string[] {

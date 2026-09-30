@@ -22,6 +22,7 @@ export const columnasUtmDelEnvio = {
   utmCampaign: submissions.utmCampaign,
   utmContent: submissions.utmContent,
   utmTerm: submissions.utmTerm,
+  utmId: submissions.utmId,
   respuestas: submissions.respuestas,
 };
 
@@ -32,6 +33,7 @@ export function utmsDelEnvio(fila: {
   utmCampaign: string | null;
   utmContent: string | null;
   utmTerm: string | null;
+  utmId: string | null;
   respuestas: unknown;
 }): UtmsDelEnvio {
   const respuestas =
@@ -53,6 +55,7 @@ export function utmsDelEnvio(fila: {
     campaign: fila.utmCampaign,
     content: fila.utmContent ?? leer("utm_content"),
     term: fila.utmTerm ?? leer("utm_term"),
-    id: leer("utm_id"),
+    // Desde el 116 las tres viven en su columna; `respuestas` queda para lo anterior a la 0048.
+    id: fila.utmId ?? leer("utm_id"),
   };
 }
