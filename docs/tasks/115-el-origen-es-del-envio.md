@@ -3,7 +3,7 @@ id: 115
 etapa: E6
 serves: "ADR 0060 · plan.md §7.1 D5"
 depends: []
-status: en curso
+status: done
 ---
 
 # 115 — El origen es del envío; el deal recuerda el envío que lo abrió
@@ -64,3 +64,15 @@ Mani.
   Verificado: 0 deals vivos sin origen de 71, 71 filas en `change_log`, 0 cruzados de lead o programa.
 - **Falta:** la migración que quita `leads.utm_source/medium/campaign` (con el ok de Mani, SQL leído).
 - Nota: el Inbox sin dueño muestra "Sin UTM" también para un deal sin envío de origen; hoy no hay ninguno.
+
+## Cierre 2026-09-29 (Mani, sesión principal)
+
+- Migración **0043** (`quitar-utm-del-lead`) aplicada en producción con el ok de Mani: `leads` ya no tiene
+  `utm_source`, `utm_medium` ni `utm_campaign`. Se desplegó primero el código sin las columnas (el anterior
+  las pedía por nombre en cada `select` de `leads`) y después se aplicó.
+- 🩸 Los dos primeros intentos esperaron el candado exclusivo de `leads` detrás de una transacción de ensayo
+  del 078 abierta 1h20m contra producción, y el `statement_timeout` (2 min) los canceló. Mientras esperaba,
+  el `ALTER` dejó en fila toda lectura de `leads` (~22:45 y ~22:50). La 0043 lleva ahora
+  `SET lock_timeout = '5s'`: un DDL que no consigue el candado falla rápido en vez de congelar la tabla.
+  **Molde para toda migración con DDL sobre una tabla caliente.**
+- Verificado: 44 migraciones, 0 columnas UTM en `leads`, 5.697 envíos con UTM intactos, la app lee `leads`.

@@ -510,6 +510,13 @@ The agent should run these to get fast signal on whether code works. Keep them c
   estan DENEGADOS.** `push` aplica el esquema directo contra la base sin dejar archivo de
   migracion: se salta el historial, el journal y la revision, que es justo la disciplina que este
   repo enforza. `drop` borra migraciones. Ninguno de los dos se usa aqui.
+- 🩸 **Una migracion con DDL sobre una tabla caliente empieza con `SET lock_timeout = '5s';`** (29-sep,
+  0043). Un `ALTER TABLE` pide candado exclusivo y, mientras espera, **deja en fila toda lectura de esa
+  tabla**: la 0043 espero 2 minutos detras de una transaccion de ensayo abierta 1h20m y congelo `leads`
+  dos veces hasta que el `statement_timeout` la cancelo. Con `lock_timeout` falla en 5 s y se reintenta.
+  Antes de aplicar, mirar `pg_stat_activity` por transacciones largas (`idle in transaction` incluido), y
+  **un ensayo contra produccion no se deja abierto**. Y si la migracion QUITA columnas, primero se
+  despliega el codigo sin ellas: drizzle las pide por nombre en cada `select()`.
 - **Un `CHECK` nuevo se crea despues de arreglar los datos**, en la misma migracion. El de la
   0009 habria fallado con las cohortes activas que estaban sin inicio de ventas.
 - **Trabajo en paralelo: el reparto se hace por ARCHIVOS, no por el grafo de dependencias**
