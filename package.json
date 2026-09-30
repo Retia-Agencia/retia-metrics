@@ -25,6 +25,7 @@
     "usuarios": "tsx scripts/usuarios.ts",
     "cargar-motivos": "tsx scripts/cargar-motivos.ts",
     "cargar-areas": "tsx scripts/cargar-areas.ts",
+    "cargar-canales": "tsx scripts/cargar-canales.ts",
     "db:local": "tsx scripts/db-local.ts",
     "dev:local": "tsx scripts/dev-local.ts",
     "seed:local": "tsx scripts/seed-local.ts",

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, Boxes, Database, FileWarning, ListChecks, Users } from "lucide-react";
+import { Activity, Boxes, Database, FileWarning, ListChecks, Radio, Users } from "lucide-react";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { esAdministrador } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -48,6 +48,13 @@ const ENLACES = [
     descripcionSinAdministrar:
       "Las plataformas de pago con las que cobras, y en qué programas aparece cada una.",
     soloAdministradores: false,
+  },
+  {
+    href: "/ajustes/canales",
+    icono: Radio,
+    titulo: "Canales",
+    descripcion: "De qué canal y área viene cada envío",
+    soloAdministradores: true,
   },
   {
     href: "/ajustes/usuarios",

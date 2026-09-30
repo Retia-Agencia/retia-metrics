@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { areas as tablaAreas } from "@/lib/db/schema";
+import { areas as tablaAreas, canales as tablaCanales } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { moldeDeCatalogo } from "./molde";
 
@@ -25,9 +25,7 @@ export function areas(db?: Db) {
       esquema: esquemaArea,
       etiqueta: (fila) => String(fila.nombre),
       nombreEntidad: "un área",
-      // Hoy nadie apunta a un area; el Canal (101) y el area declarada del deal (121)
-      // se agregan aqui cuando existan (ADR 0026).
-      dependientes: [],
+      dependientes: [{ tabla: tablaCanales, columna: tablaCanales.areaId }],
     },
     db,
   );

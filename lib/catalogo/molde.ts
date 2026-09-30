@@ -72,6 +72,8 @@ export interface OpcionesMolde<Entrada extends Record<string, unknown>> {
   etiqueta: (fila: FilaCatalogo) => string;
   /** Nombre de la entidad en singular, para los mensajes de error ("plataforma de pago"). */
   nombreEntidad: string;
+  /** Mensaje para el indice unico cuando la identidad no es solo el nombre. */
+  mensajeDuplicado?: string;
   /**
    * Las tablas que referencian este catalogo por FK `restrict`. Solo hace falta para
    * `borrarSiNoSeUso` (ADR 0026 punto 5): un catalogo sin dependientes declarados no
@@ -123,7 +125,7 @@ export function moldeDeCatalogo<Entrada extends Record<string, unknown>>(
     return filas[0] as FilaCatalogo | undefined;
   }
 
-  const mensajeDuplicado = `Ya existe ${nombreEntidad} con ese nombre.`;
+  const mensajeDuplicado = opciones.mensajeDuplicado ?? `Ya existe ${nombreEntidad} con ese nombre.`;
 
   return {
     async listar(opcionesListar) {

@@ -474,6 +474,8 @@ Pauta define sus UTM con macros de Meta y el CRM las recibe (el builder queda pa
   agenda (60.000 / 80.000 COP), costo por lead, ROAS de contrato (¿1,67?) y el reparto de cupos de C3 (122).
 - **PQ6** (con Media): la convención de UTM del orgánico, y si quieren tipo, formato y autor del creativo
   (piden una convención de nombres de anuncio).
+- **PQ9:** por escrito, cómo agrupan los UTM para sacar métricas, campo por campo, para lo que llega y para el
+  histórico (`facebook / cpc`). Confirma o corrige el formato y el área de cada canal del 101 (filas editables).
 - Sin responder todavía: qué checkouts usan y si mandan webhooks; por qué Tactical tiene 26% de leads sin UTM
   (hoy ~21% en el webhook: el contador de sin UTM de hoy lo hace visible, 093).
 

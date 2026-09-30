@@ -404,6 +404,7 @@ Viven en `plan.md` §7 (la lista única); aquí solo el índice.
 | PQ6 | La convención de UTM del orgánico y si quieren tipo, formato y autor del creativo (exige una convención de nombres de anuncio) | Pauta y Media |
 | PQ7 | El nombre visible de cada área (paid, orgánico, referidos) | Gerencia |
 | PQ8 | ~~Ok a DP-23, DP-24 y DP-25~~ ✅ 29-sep | Mani |
+| PQ9 | Por escrito: cómo agrupan los UTM para sacar métricas, campo por campo, para lo que llega **y** para el histórico (`facebook / cpc` con conjunto en content y anuncio en term). Con eso se confirma o corrige el formato y el área de cada canal del 101, que son filas editables en `/ajustes/canales` | Pauta |
 
 ### 9.1 Respuestas del 29-sep (Mani)
 
