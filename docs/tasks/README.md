@@ -203,7 +203,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 068 | [`nerd-stats` reescrito](./068-nerd-stats-reescrito.md) (E5-5) | 064 | todo |
 | [x] | 093 | [Filtros por UTM con lo que YA hay](./093-filtros-utm-con-lo-que-ya-hay.md) | — | done · 29-sep · vista interina de Pauta en el dashboard: registros, agendas por el origen del deal, sin UTM (Tactical 25,3%) y macros aparte; drill-down canal → campaña → content/term |
 | [ ] | 088 | [Registros vs agendas por canal](./088-registros-vs-agendas-por-canal.md) | 049, 052, 085 | todo · la vista de **Media** |
-| [ ] | 089 | [Series con dimensiones, no escalares](./089-series-con-dimensiones.md) | 064, 085 | todo · carril Mani · E6 · **acotado el 30-sep**: el contrato de la serie y una consulta de hechos del embudo; `dashboard.ts` no se reescribe |
+| [x] | 089 | [Series con dimensiones, no escalares](./089-series-con-dimensiones.md) | 064, 085 | done · 30-sep · Mani · `lib/queries/serie.ts` (tipo con `programId` obligatorio, `periodoAnterior`) y `hechosDelEmbudo` en `lib/queries/hechos-embudo.ts` (día × área × canal × dueño × cohorte; primer llamador real de `emparejar`); filtro `?area=` en el dashboard; `dashboard.ts` no se reescribió |
 | [ ] | 090 | [Rendimiento por área](./090-rendimiento-por-area.md) | 085, 088, 089 | todo · la vista de **Gerencia**. Estados con acción, no una tabla |
 | [ ] | 095 | [La tab Dashboard: un programa o "todos" solo con lo sumable](./095-dashboard-con-selector-y-todos-los-programas.md) | 064, 089, 094 | todo · 24-sep, ADR 0048 y 0050 · la garantía vive en el tipo |
 | [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) (E5-6) | 064, 065, 066, 067 | **congelado hasta aquí** · se descongela con el dashboard nuevo, no antes |

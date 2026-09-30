@@ -141,7 +141,7 @@ export interface LeadsDelRango {
  * en Bogota ANTES de comparar. Comparar el timestamp crudo meteria el sesgo de zona
  * (una llamada del 15-sep 22:00 Bogota contaria como del 16-sep).
  */
-function fechaAnclaCall() {
+export function fechaAnclaCall() {
   return sql<string>`(coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada}) AT TIME ZONE 'America/Bogota')::date`;
 }
 
@@ -172,15 +172,35 @@ const ETAPAS_VENDIDAS = ["abonado", "completo"] as const;
  * Abonado en septiembre y a Completo en octubre salia como cierre en los dos meses, y la
  * comision (ticket 062) se habria pagado dos veces. Sin error y con cifras creibles.
  */
+function diaDeVenta() {
+  return sql<string>`(min(${dealEtapaHistorial.fecha}) AT TIME ZONE 'America/Bogota')::date`;
+}
+
+/**
+ * Las dos piezas que definen una venta: que movimientos cuentan y en que dia cae la primera.
+ * `vendidosEn` y `ventasConDiaEn` solo difieren en la proyeccion (ticket 089): sin subconsulta,
+ * para que el guardian de vigencia siga leyendo cada cadena.
+ */
+const esMovimientoDeVenta = () => inArray(dealEtapaHistorial.a, [...ETAPAS_VENDIDAS]);
+const vendidoEnElRango = (rango: Rango) => between(diaDeVenta(), rango.desde, rango.hasta);
+
 export function vendidosEn(db: Db, rango: Rango) {
   return db
     .select({ dealId: dealEtapaHistorial.dealId })
     .from(dealEtapaHistorial)
-    .where(inArray(dealEtapaHistorial.a, [...ETAPAS_VENDIDAS]))
+    .where(esMovimientoDeVenta())
     .groupBy(dealEtapaHistorial.dealId)
-    .having(
-      between(sql<string>`(min(${dealEtapaHistorial.fecha}) AT TIME ZONE 'America/Bogota')::date`, rango.desde, rango.hasta),
-    );
+    .having(vendidoEnElRango(rango));
+}
+
+/** Lo mismo que `vendidosEn`, con el dia de la venta. */
+export function ventasConDiaEn(db: Db, rango: Rango) {
+  return db
+    .select({ dealId: dealEtapaHistorial.dealId, dia: diaDeVenta() })
+    .from(dealEtapaHistorial)
+    .where(esMovimientoDeVenta())
+    .groupBy(dealEtapaHistorial.dealId)
+    .having(vendidoEnElRango(rango));
 }
 
 function llamadaOcurrio() {

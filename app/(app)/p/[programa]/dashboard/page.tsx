@@ -4,14 +4,17 @@ import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { diaDeCalendario } from "@/lib/dias-habiles";
-import { fecha } from "@/lib/format";
+import { fecha, num } from "@/lib/format";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { pautaInterina, type FiltrosPauta } from "@/lib/queries/pauta-interina";
+import { hechosDelEmbudo } from "@/lib/queries/hechos-embudo";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { DashboardPrograma } from "@/components/dashboard-programa";
 import { FiltroDashboard } from "@/components/filtro-dashboard";
 import { PautaInterina } from "@/components/pauta-interina";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +32,8 @@ const esquemaFiltrosPauta = z.object({
   medium: z.string().trim().min(1).max(200).optional().catch(undefined),
   campaign: z.string().trim().min(1).max(300).optional().catch(undefined),
 });
+
+const esquemaFiltroArea = z.string().uuid().optional().catch(undefined);
 
 /** Un parametro de la URL solo sirve si vino una vez y como texto. */
 function texto(valor: string | string[] | undefined): string | undefined {
@@ -77,6 +82,21 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
     campaign: texto(busqueda.campaign),
   });
   const pauta = await pautaInterina(db, programa.id, vista.seleccion.rango, filtrosPauta, hoy);
+  const areaId = esquemaFiltroArea.parse(texto(busqueda.area));
+  const hechos = await hechosDelEmbudo(db, {
+    programId: programa.id,
+    rango: vista.seleccion.rango,
+  });
+  const hechosFiltrados = areaId === undefined ? hechos : hechos.filter((fila) => fila.areaId === areaId);
+  const resumenSerie = hechosFiltrados.reduce(
+    (total, fila) => ({
+      envios: total.envios + fila.envios,
+      agendas: total.agendas + fila.agendas,
+      shows: total.shows + fila.shows,
+      ventas: total.ventas + fila.ventas,
+    }),
+    { envios: 0, agendas: 0, shows: 0, ventas: 0 },
+  );
   // El link de profundizar conserva el rango y el closer, y reemplaza solo los filtros de UTM.
   const hrefConFiltros = (f: FiltrosPauta) => {
     const q = new URLSearchParams();
@@ -112,6 +132,27 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
           cohorteDisponible={vista.cohorte?.ventana != null}
         />
         <DashboardPrograma vista={vista} />
+        <Card aria-labelledby="resumen-serie">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CardTitle id="resumen-serie">Serie del embudo</CardTitle>
+              {areaId !== undefined ? <Badge variant="info">Área filtrada</Badge> : null}
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.entries({
+              Envíos: resumenSerie.envios,
+              Agendas: resumenSerie.agendas,
+              Shows: resumenSerie.shows,
+              Ventas: resumenSerie.ventas,
+            }).map(([etiqueta, valor]) => (
+              <div key={etiqueta}>
+                <p className="text-sm text-muted-foreground">{etiqueta}</p>
+                <p className="cifra text-lg font-semibold">{num(valor)}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
         <PautaInterina vista={pauta} filtros={filtrosPauta} hrefCon={hrefConFiltros} />
       </div>
     </PageShell>

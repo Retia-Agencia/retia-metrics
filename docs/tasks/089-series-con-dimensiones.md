@@ -3,7 +3,7 @@ id: 089
 etapa: E6
 serves: "plan v2 §12.10.5 · el dashboard que no es estatico"
 depends: [064, 085]
-status: todo
+status: done
 ---
 
 # 089 — Las consultas devuelven series con dimensiones, no escalares
@@ -98,11 +98,39 @@ valor del 089 hoy es fijar el contrato **antes** de que se escriban. El molde ya
 
 **Done cuando (reemplaza al original):**
 
-- [ ] Existe el tipo de serie y un test de tipos (`@ts-expect-error`) prueba que la consulta sin `programId`
+- [x] Existe el tipo de serie y un test de tipos (`@ts-expect-error`) prueba que la consulta sin `programId`
       no compila.
-- [ ] La consulta de hechos cuadra con el dashboard actual en el mismo rango y programa: sus agendas, shows y
+- [x] La consulta de hechos cuadra con el dashboard actual en el mismo rango y programa: sus agendas, shows y
       ventas sumadas dan lo mismo que `embudoDelRango`, con test.
-- [ ] Un envío con UTM de un canal cae en su área; uno sin UTM y uno sin clasificar caen en sus dos valores
+- [x] Un envío con UTM de un canal cae en su área; uno sin UTM y uno sin clasificar caen en sus dos valores
       separados; un deal de otro programa no aparece; un deal anulado no cuenta. Con test.
-- [ ] Una venta de un dueño `mani` y otra de `Mani` son UN solo dueño en la serie, con test.
-- [ ] El filtro por área en la URL recorta la serie sin tocar la consulta, y el link abre igual en otra sesión.
+- [x] Una venta de un dueño `mani` y otra de `Mani` son UN solo dueño en la serie, con test.
+- [x] El filtro por área en la URL recorta la serie sin tocar la consulta, y el link abre igual en otra sesión.
+
+---
+
+## Cierre 2026-09-30 (Mani, sesión 58)
+
+**Qué se hizo.** Lo implementó Codex y lo revisó Claude.
+- `lib/queries/serie.ts`: `Serie<D, M>` (cada fila lleva `programId`), `AlcanceDeSerie` con `programId` obligatorio y
+  `periodoAnterior` (el comparativo del DP-16; la pantalla es del 095).
+- `lib/queries/hechos-embudo.ts`: `hechosDelEmbudo(db, { programId, rango })`, una fila por día (Bogotá) × área ×
+  canal × origen × dueño × cohorte con envíos, agendas, shows y ventas. Área y canal por `emparejar()` sobre el envío
+  de origen del deal (árbol de Meta vacío hasta el 120). `origen` separa `sin_utm`, `sin_clasificar` y
+  `sin_envio_origen`.
+- `lib/queries/dashboard.ts`: `fechaAnclaCall` exportada; `ventasConDiaEn` al lado de `vendidosEn`, las dos armadas
+  con las mismas piezas (`esMovimientoDeVenta`, `diaDeVenta`, `vendidoEnElRango`).
+- Dashboard: `?area=<uuid>` recorta la serie en la página, sin tocar la consulta; tarjeta mínima "Serie del embudo".
+
+**Qué se decidió (Mani).** Agendas y shows por la fecha de la llamada (`coalesce(fechaAgenda, fechaLlamada)`), la
+misma del embudo, para que cuadren; la fecha en que se agendó queda como otra medida cuando la pida el 123. Dueño =
+`deals.owner_user_id`; una llamada suelta sale "sin dueño". Cohorte = la del deal; un envío no tiene cohorte.
+
+**Qué quedó.**
+- 🧪 El guardián de vigencia no lee subconsultas (`.as(...)`) y las marca: por eso las ventas no se leen desde una
+  subconsulta y el día de la venta se une en memoria.
+- Los envíos se agrupan en SQL también por `respuestas` (jsonb), así que en la práctica sale una fila por envío. A
+  ~5.000 envíos no pesa; revisar si el volumen crece ×10.
+- La tarjeta es solo la demostración del filtro; la pantalla de verdad es del 095.
+- Verificado: 1.685 tests, typecheck, lint y build limpios; recorrido en la base local (3 ventas cuadran con el
+  comparativo de closers; `?area=` con un uuid recorta a 0, uno inválido se ignora; consola limpia).

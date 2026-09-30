@@ -25,9 +25,9 @@ Carril de Mani (E6, sesion 57): 083, 101, 085, 087 y 121 done. 084 reemplazado p
   llama emparejar todavia.
 - 087 cerrado sin codigo de costo (no existia CPL ni gasto): la regla queda en el ADR 0044 punto 5 y sus dos
   tests pasan al 123, que construye el costo.
-- SIGUIENTE: 089, ACOTADO el 30-sep (enmienda al final del ticket): el tipo de serie con programId obligatorio
-  y UNA consulta de hechos del embudo (dia x area x canal x dueño x cohorte, area por emparejar(), venta por
-  vendidosEn, dueño por owner_user_id). dashboard.ts NO se reescribe. Despues 118 (espera el 117 de Alejo).
+- 089 done (sesion 58): lib/queries/serie.ts (programId obligatorio, periodoAnterior) y hechosDelEmbudo en
+  lib/queries/hechos-embudo.ts (dia x area x canal x dueño x cohorte). El 123, 124, 125 y 095 se escriben encima.
+- SIGUIENTE: 118 (espera el 117 de Alejo). Si el 117 no esta, E7 no abre: bajar deuda o preparar el 122.
 - Decidir con Alejo antes de su --aplicar del 078: las ~235 llamadas de la hoja saldrian como sueltas en el
   Inbox (lib/queries/inbox.ts no mira el origen). Es del carril de Mani (071).
 - PQ9 a Pauta: que manden por escrito como agrupan los UTM (nuevo e historico).
@@ -56,6 +56,12 @@ empuja al mismo main y el numero de migracion puede chocar.
 ```
 
 ## Memory
+
+- **2026-09-30 (Mani, sesión 58): 089 cerrado.** Implementó Codex y revisó Claude; detalle en la nota de cierre del
+  ticket. 🧪 El guardián de vigencia marca cualquier subconsulta (`.as(...)`) como tabla desconocida: una consulta
+  nueva sobre `deals`, `calls` o `abonos` no lee desde una subconsulta; se piden por separado y se unen en memoria
+  (así quedó `ventasConDiaEn` al lado de `vendidosEn`). `tests/paginas.test.ts` simula cada consulta que llama una
+  página: una consulta nueva en una página necesita su `vi.mock` ahí, o esos tests piden `DATABASE_URL`.
 
 - **2026-09-30 (Mani, sesión 57): 121 cerrado y 089 acotado.**
   - **121:** lo implementó Codex en segundo plano; Claude revisó y corrigió tres cosas que el brief no cubría:

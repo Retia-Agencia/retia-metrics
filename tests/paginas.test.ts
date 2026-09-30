@@ -91,6 +91,9 @@ const pautaInterina = vi.fn(async () => ({
   sinUtmHoy: [],
 }));
 vi.mock("@/lib/queries/pauta-interina", () => ({ pautaInterina }));
+// La serie del embudo (089), igual: sin base, una serie vacia.
+const hechosDelEmbudo = vi.fn(async () => []);
+vi.mock("@/lib/queries/hechos-embudo", () => ({ hechosDelEmbudo }));
 
 // La pagina de cohortes lee las cohortes del programa; sin base en los tests, se
 // mockea la lectura para que la guarda sea lo unico bajo prueba.
