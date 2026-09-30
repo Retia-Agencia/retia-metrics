@@ -19,6 +19,9 @@ export const MAPEO_ENVIO: Record<CampoEnvio, string> = {
   utmSource: "utm_source",
   utmMedium: "utm_medium",
   utmCampaign: "utm_campaign",
+  utmId: "utm_id",
+  utmContent: "utm_content",
+  utmTerm: "utm_term",
 };
 
 /**

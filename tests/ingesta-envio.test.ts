@@ -102,13 +102,24 @@ describe("construirEnvio", () => {
     expect(r.envio.respuestas["¿Cuanto ganas mensualmente?"]).toBe("Mas de $3.000 USD");
   });
 
-  it("utm_term y utm_content NO se promueven: se quedan en respuestas, crudos (ADR 0045)", () => {
-    expect(CAMPOS_PROMOVIDOS).not.toContain("utmTerm");
-    expect(CAMPOS_PROMOVIDOS).not.toContain("utmContent");
+  it("utm_content y utm_term se promueven a sus columnas y no se repiten en respuestas (ticket 116)", () => {
+    expect(CAMPOS_PROMOVIDOS).toEqual(expect.arrayContaining(["utmId", "utmContent", "utmTerm"]));
     const r = construirEnvio(entrada);
     if (!r.ok) throw new Error("debia construir");
-    expect(r.envio.respuestas["utm_content"]).toBe("anuncio-7");
-    expect(r.envio.respuestas["utm_term"]).toBeNull();
+    expect(r.envio.utmContent).toBe("anuncio-7");
+    expect(r.envio.utmTerm).toBeNull();
+    expect(r.envio.utmId).toBeNull();
+    expect(r.envio.respuestas).not.toHaveProperty("utm_content");
+    expect(r.envio.respuestas).not.toHaveProperty("utm_term");
+  });
+
+  it("una macro de Meta sin expandir se guarda tal cual: la juzga el emparejador, no la ingesta (ticket 116)", () => {
+    const [e] = entradasDesdeMatriz([[...ENCABEZADOS, "utm_id"], [...FILA.slice(0, 8), "{{ad.name}}", ...FILA.slice(9), "{{ad.id}}"]], FUENTE);
+    const r = construirEnvio(e);
+    if (!r.ok) throw new Error("debia construir");
+    expect(r.envio.utmContent).toBe("{{ad.name}}");
+    expect(r.envio.utmId).toBe("{{ad.id}}");
+    expect(r.envio.respuestas).not.toHaveProperty("utm_id");
   });
 
   it("correo y telefono salen normalizados para la identidad y se quedan en respuestas", () => {
@@ -145,14 +156,23 @@ describe("construirEnvio", () => {
     expect(r.envio.utmCampaign).toBeNull();
   });
 
-  it('el centinela "xxxxx" tampoco queda en utm_term ni utm_content (capturados, en respuestas)', () => {
+  it('el centinela "xxxxx" tampoco queda en utm_term ni utm_content', () => {
     const fila = [...FILA];
     fila[7] = "xxxxx"; // utm_term
     fila[8] = "XXXXX"; // utm_content
     const [e] = entradasDesdeMatriz([ENCABEZADOS, fila], FUENTE);
     const r = construirEnvio(e);
     if (!r.ok) throw new Error("debia construir");
-    expect(r.envio.respuestas["utm_term"]).toBeNull();
+    expect(r.envio.utmTerm).toBeNull();
+    expect(r.envio.utmContent).toBeNull();
+  });
+
+  it('una UTM que el mapeo de la fuente no apunta queda en respuestas, sin el centinela "xxxxx"', () => {
+    const [base] = entradasDesdeMatriz([ENCABEZADOS, FILA.map((v, i) => (i === 8 ? "XXXXX" : v))], FUENTE);
+    const { utmContent: _sinApuntar, ...campos } = base.campos;
+    const r = construirEnvio({ ...base, campos });
+    if (!r.ok) throw new Error("debia construir");
+    expect(r.envio.utmContent).toBeNull();
     expect(r.envio.respuestas["utm_content"]).toBeNull();
   });
 
@@ -234,6 +254,8 @@ describe("la misma puerta para un webhook (048)", () => {
         utmSource: "utm_source",
         utmMedium: "utm_medium",
         utmCampaign: "utm_campaign",
+        utmContent: "utm_content",
+        utmTerm: "utm_term",
       },
     };
     expect(construirEnvio(desdeWebhook)).toEqual(construirEnvio(desdeHoja));

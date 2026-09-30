@@ -59,6 +59,9 @@ const HOJA_A_CAMPO_ENVIO: Record<string, CampoEnvio> = {
   utmSource: "utmSource",
   utmMedium: "utmMedium",
   utmCampaign: "utmCampaign",
+  utmId: "utmId",
+  utmContent: "utmContent",
+  utmTerm: "utmTerm",
 };
 
 /** La llave del mapeo de la hoja que nombra la pregunta de agenda (ADR 0054, 2a enmienda). */

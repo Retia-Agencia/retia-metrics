@@ -647,14 +647,20 @@ export const submissions = pgTable(
      */
     nombre: text("nombre"),
     /**
-     * `utmTerm` y `utmContent` los interpreta SOLO `lib/atribucion/` (ADR 0062, ticket 085):
-     * su significado lo declara el formato del Canal (en `paid_social`, anuncio y placement; en
-     * el `facebook / cpc` historico, conjunto y anuncio; en `closer / referido`, el codigo del
-     * closer). Hoy el webhook los deja en `respuestas` y estas columnas llegan vacias salvo en
-     * lo historico; `utmsDelEnvio` lee la columna y, si falta, la llave de `respuestas`.
-     * Promoverlas (y agregar `utm_id`) es del ticket 116. El guardian de
-     * `tests/atribucion-emparejador.test.ts` falla si alguien las lee por fuera.
+     * Las otras tres UTM de la plantilla de Pauta (ADR 0062, ticket 116), promovidas por la ingesta
+     * y guardadas **como llegaron**, macro sin expandir incluida (`{{ad.name}}`, ADR 0004).
+     *
+     * - `utmId`: el id del anuncio de Meta, la llave hacia el arbol y el gasto (120).
+     * - `utmTerm` y `utmContent` los interpreta SOLO `lib/atribucion/` (ADR 0062, ticket 085): su
+     *   significado lo declara el formato del Canal (en `paid_social`, anuncio y placement; en el
+     *   `facebook / cpc` historico, conjunto y anuncio; en `closer / referido`, el codigo del
+     *   closer). El guardian de `tests/atribucion-emparejador.test.ts` falla si alguien las lee
+     *   por fuera.
+     *
+     * Hasta el 116 (30-sep) el webhook las dejaba en `respuestas`; la migracion 0048 relleno las
+     * columnas desde ahi. `utmsDelEnvio` sigue leyendo la llave de `respuestas` si la columna falta.
      */
+    utmId: text("utm_id"),
     utmTerm: text("utm_term"),
     utmContent: text("utm_content"),
     /**

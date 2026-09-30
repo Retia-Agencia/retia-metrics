@@ -3,7 +3,7 @@ id: 116
 etapa: E6
 serves: "ADR 0062 puntos 2 y 7 · docs/analytics.md PT-14, PT-16, PT-17, PT-18"
 depends: []
-status: todo
+status: en curso
 ---
 
 # 116 — Las UTM completas en el envío: `utm_id`, `utm_content` y `utm_term`

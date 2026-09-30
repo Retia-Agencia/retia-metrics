@@ -337,6 +337,13 @@
       "when": 1790777248175,
       "tag": "0047_catalogo-de-canales",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1790782437157,
+      "tag": "0048_utm-completas-en-el-envio",
+      "breakpoints": true
     }
   ]
 }

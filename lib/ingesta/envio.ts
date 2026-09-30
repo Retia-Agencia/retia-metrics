@@ -28,7 +28,10 @@ export type CampoEnvio =
   | "estadoHoja"
   | "utmSource"
   | "utmMedium"
-  | "utmCampaign";
+  | "utmCampaign"
+  | "utmId"
+  | "utmContent"
+  | "utmTerm";
 
 /**
  * Las columnas de `submissions` que salen de la entrada. Un campo se promueve SOLO si
@@ -39,8 +42,9 @@ export type CampoEnvio =
  * que busca Personas en `lib/queries/personas.ts`) se recalcula desde los envios, y
  * `respuestas` no dice cual pregunta es la del nombre.
  *
- * ⚠️ `utm_term` y `utm_content` NO estan, a proposito (ADR 0045 enmienda 2): el estandar
- * son tres campos. Sus celdas quedan crudas en `respuestas`, sin leer.
+ * Las seis UTM de la plantilla de Pauta se promueven (ADR 0062, ticket 116): `utm_id` es la
+ * llave del anuncio hacia el gasto de Meta, y `utm_content`/`utm_term` los lee el emparejador
+ * segun el canal. Hasta el 30-sep estas tres vivian en `respuestas`.
  */
 export const CAMPOS_PROMOVIDOS = [
   "token",
@@ -50,6 +54,9 @@ export const CAMPOS_PROMOVIDOS = [
   "utmSource",
   "utmMedium",
   "utmCampaign",
+  "utmId",
+  "utmContent",
+  "utmTerm",
 ] as const satisfies readonly CampoEnvio[];
 
 /** Lo que entra por la puerta, venga de una hoja o de un webhook. */
@@ -106,6 +113,9 @@ export interface Envio {
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
+  utmId: string | null;
+  utmContent: string | null;
+  utmTerm: string | null;
   posicionEnHoja: number | null;
   /**
    * El SCORE que trajo el formulario (ticket 070), tal cual, sin recalcular. Entero o
@@ -153,8 +163,12 @@ export function normalizarTelefono(v: unknown): string | null {
  */
 const VALORES_CENTINELA_UTM = ["xxxxx"] as const;
 
-/** Los encabezados (normalizados) de los UTM que se CAPTURAN pero no se promueven. */
-const UTM_CAPTURADOS = new Set(["utm_term", "utm_content"]);
+/**
+ * Los encabezados (normalizados) de las UTM que pueden quedar en `respuestas`: solo cuando
+ * una fuente con mapeo propio no las apunta (lo normal es que se promuevan). Ahi tampoco
+ * el centinela es un dato.
+ */
+const UTM_CAPTURADOS = new Set(["utm_id", "utm_term", "utm_content"]);
 
 /**
  * Lee un UTM: lo recorta como `limpiar`, pero un valor CENTINELA (`xxxxx`) es "sin UTM"
@@ -193,9 +207,8 @@ export function construirEnvio(entrada: EntradaEnvio): ResultadoEnvio {
   const respuestas: Record<string, string | null> = {};
   for (const [encabezado, valor] of Object.entries(entrada.columnas)) {
     if (promovidos.has(encabezado)) continue;
-    // `utm_term` y `utm_content` se CAPTURAN en `respuestas` (no se promueven, ADR 0045),
-    // pero el centinela `xxxxx` tampoco es un dato ahi: se limpia con la misma regla que
-    // los tres UTM leidos, para que no quede guardado en ninguna columna.
+    // Una UTM que el mapeo no apunto queda en `respuestas`, pero el centinela `xxxxx`
+    // tampoco es un dato ahi: se limpia con la misma regla que las promovidas.
     const esUtmCapturado = UTM_CAPTURADOS.has(normalizarTexto(encabezado));
     respuestas[encabezado] = esUtmCapturado ? limpiarUtm(valor) : limpiar(valor);
   }
@@ -219,6 +232,11 @@ export function construirEnvio(entrada: EntradaEnvio): ResultadoEnvio {
       utmSource: limpiarUtm(celda("utmSource")),
       utmMedium: limpiarUtm(celda("utmMedium")),
       utmCampaign: limpiarUtm(celda("utmCampaign")),
+      // Como llegaron, macro sin expandir incluida (`{{ad.name}}`): la juzga el
+      // emparejador (085), no la ingesta.
+      utmId: limpiarUtm(celda("utmId")),
+      utmContent: limpiarUtm(celda("utmContent")),
+      utmTerm: limpiarUtm(celda("utmTerm")),
       posicionEnHoja: entrada.posicion,
       // El SCORE lo pone el adaptador (webhook) o es null (hoja). Un valor no numerico ya
       // llego como null desde el adaptador: aqui no se re-juzga, se copia (decision A8).

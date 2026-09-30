@@ -608,7 +608,7 @@ describe("caso 11 — UTM ausentes, vacíos, y el CENTINELA xxxxx (Mani, 28-sep)
     expect(envio.utmCampaign).toBeNull();
   });
 
-  it('el centinela "xxxxx" tampoco queda en utm_term ni utm_content (capturados, en respuestas)', async () => {
+  it('el centinela "xxxxx" tampoco queda en utm_term ni utm_content', async () => {
     const p = conAgenda(fixture(), "");
     p.form_response.hidden = {
       utm_source: "facebook",
@@ -619,9 +619,34 @@ describe("caso 11 — UTM ausentes, vacíos, y el CENTINELA xxxxx (Mani, 28-sep)
     };
     await enviar(p);
     const [envio] = await db.select().from(submissions);
-    const respuestas = envio.respuestas as Record<string, string | null>;
-    expect(respuestas["utm_term"]).toBeNull();
-    expect(respuestas["utm_content"]).toBeNull();
+    expect(envio.utmTerm).toBeNull();
+    expect(envio.utmContent).toBeNull();
+  });
+
+  it("las seis UTM de la plantilla de Pauta quedan en sus columnas y no en respuestas; la macro, tal cual (ticket 116)", async () => {
+    const p = conAgenda(fixture(), "");
+    p.form_response.hidden = {
+      utm_source: "ig",
+      utm_medium: "paid_social",
+      utm_campaign: "Metodo_Tactical",
+      utm_content: "{{ad.name}}",
+      utm_term: "Instagram_Reels",
+      utm_id: "120212345678900001",
+    };
+    await enviar(p);
+    const [envio] = await db.select().from(submissions);
+    expect([envio.utmSource, envio.utmMedium, envio.utmCampaign, envio.utmContent, envio.utmTerm, envio.utmId]).toEqual([
+      "ig",
+      "paid_social",
+      "Metodo_Tactical",
+      "{{ad.name}}",
+      "Instagram_Reels",
+      "120212345678900001",
+    ]);
+    const respuestas = envio.respuestas as Record<string, unknown>;
+    for (const llave of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "utm_id"]) {
+      expect(respuestas).not.toHaveProperty(llave);
+    }
   });
 });
 
