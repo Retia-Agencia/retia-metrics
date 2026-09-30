@@ -3,7 +3,7 @@ id: 099
 etapa: E6
 serves: "ADR 0050 · ADR 0037 (Student es vista) · propuesta 24-sep §3.2b"
 depends: [060, 061, 097]
-status: en curso
+status: done
 ---
 
 # 099 — La tab Students: la lista de estudiantes por cohorte
@@ -27,9 +27,9 @@ lista de estudiantes**: un estudiante confirmado pertenece a una cohorte de un p
 
 ## Done cuando
 
-- [ ] La lista por cohorte cuadra con los deals en Abonado o Completo de esa cohorte.
-- [ ] Una cuota vencida se ve con su número y su fecha.
-- [ ] Recorrido visual con la consola abierta.
+- [x] La lista por cohorte cuadra con los deals en Abonado o Completo de esa cohorte.
+- [x] Una cuota vencida se ve con su número y su fecha (no hay cuotas, ADR 0053: "Vencida el <fecha> · N días").
+- [x] Recorrido visual con la consola abierta (30-sep).
 
 ## Kiro
 
@@ -62,4 +62,4 @@ onboarding sea una marca operativa del CRM, no una lista de tareas.
   frontera) y `tests/roles.test.ts` (la tab). Probada en la base local (render del servidor, filtros, cohorte
   inválida, slug inexistente 404).
 
-**Falta:** recorrido visual en navegador (claro/oscuro, 390 px, consola): la extensión no estaba conectada.
+**Recorrido visual (30-sep, Alejo, base local):** claro, oscuro, 390 px sin desborde (medido con `zoom` 500/390: Chrome no baja de 500 px en Windows), consola limpia. Filtros de cohorte y onboarding (incluido el vacío), la fila lleva a la ficha con el mismo saldo, y una fecha límite pasada sale como "Vencida el 20 sep 2026 · 10 días" con el KPI en 1. Arreglo: un deal en Completo ya no muestra su fecha límite (`e5cb64e`). **Cerrado.**

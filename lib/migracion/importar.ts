@@ -9,6 +9,7 @@ import {
 } from "@/lib/deals/historico";
 import { enviosDeOrigenPorLead } from "@/lib/ingesta/envio-de-origen";
 import { normalizarTexto } from "@/lib/sheets/mapeo";
+import { usd } from "@/lib/format";
 import { consolidar } from "./consolidar";
 import type { Extraccion, RarezaTemplate, TipoRareza } from "./template";
 
@@ -101,7 +102,7 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
         marcar(
           d.huella,
           "producto_no_encontrado",
-          `${candidatos.length === 0 ? "Ningún" : "Más de un"} producto del programa cuesta USD ${d.precio}: el deal entra sin producto.`,
+          `${candidatos.length === 0 ? "Ningún" : "Más de un"} producto del programa cuesta ${usd(Number(d.precio))}: el deal entra sin producto.`,
         );
       }
     }
@@ -139,7 +140,7 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
     if (!deal) {
       // Su deal no entro (sin lead, gana el vivo, o la huella no casa tras corregir el
       // template): la plata de la hoja queda visible, nunca descartada en silencio.
-      marcar(a.huella, "abono_sin_deal", `Abono de USD ${a.monto} sin deal migrado al que colgarse: no se registra.`);
+      marcar(a.huella, "abono_sin_deal", `Abono de ${usd(Number(a.monto))} sin deal migrado al que colgarse: no se registra.`);
       sumar(reporte.abonos, "sin_deal");
       continue;
     }

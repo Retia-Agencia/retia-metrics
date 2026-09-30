@@ -3,7 +3,7 @@ id: 080
 etapa: E7
 serves: "plan v2 §6 etapa 7 · tarea E7-4 · insumo §9"
 depends: [078]
-status: en curso
+status: done
 ---
 
 # 080 — Los casos raros que la migracion ya sabe que va a encontrar
@@ -35,10 +35,10 @@ cercania acierta casi siempre y **cuando falla, mueve la cifra equivocada sin av
 
 ## Done cuando
 
-- [ ] Cada fila de la tabla tiene su decision escrita **antes** de correr nada.
+- [x] Cada fila de la tabla tiene su decision escrita **antes** de correr nada (29-sep, tabla de abajo).
 - [x] Los encabezados corridos de ComunicArte estan revisados a mano (30-sep: la Categoria vive en `Registro 2`, ver abajo).
 - [x] Los 12 "cohorte pasada" tienen su fila de historial (una nota del sistema "Movido desde la cohorte C1", ver la tabla).
-- [ ] Existe una lista de lo que no se pudo clasificar, visible en la app.
+- [x] Existe una lista de lo que no se pudo clasificar, visible en la app (`/ajustes/migracion`).
 
 ## Kiro
 
@@ -135,4 +135,4 @@ pérdidas que antes no llegaban a `perdida_por_decidir`). Tactical está limpio 
 🩸 **El template de CA hay que regenerarlo** (`npm run migracion:extraer -- --programa comunicarte`) antes del
 ensayo y del corte.
 
-**Falta:** recorrido en navegador (claro/oscuro, 390 px, consola; la extensión no estaba conectada).
+**Recorrido visual (30-sep, Alejo, base local con las 1.254 rarezas de CA):** claro, oscuro, 390 px sin desborde (Chrome no baja de 500 px en Windows: se midió con `zoom` 500/390, mismo breakpoint), consola limpia; filtro por tipo, chips, tipo inventado en la URL y programa sin rarezas. Dos arreglos: el select de tipo se quedaba en el anterior al navegar por un chip (`e5cb64e`), y el detalle de una rareza con dinero salía `USD 697.00` en vez de `USD 697,00` (ahora pasa por `usd()`). Los enlaces "Ver deal / Ver lead" no se pudieron clicar: en la base local ninguna rareza tiene deal ni lead. **Cerrado.**
