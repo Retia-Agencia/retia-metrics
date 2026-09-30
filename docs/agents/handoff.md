@@ -6,31 +6,36 @@
 ## Prompt para arrancar la próxima sesión
 
 > Copiar y pegar tal cual. Reescrito al cierre de la sesión 53 de Alejo (30-sep) y actualizado en la 54 y la 55
-> de Mani (30-sep, carril de Mani) y en la 56 de Alejo (30-sep, carril de Alejo). El anterior: `git show 968532a:docs/agents/handoff.md`.
+> de Mani (30-sep, carril de Mani), en la 56 de Alejo (30-sep, carril de Alejo) y en la 57 de Mani (30-sep). El anterior: `git show 968532a:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas)
 y docs/plan.md (el QUE, decisiones en §7). El estado de cada ticket vive solo en docs/tasks/README.md.
 docs/structure.md §9 (sistema de diseño Tinta) es OBLIGATORIO antes de tocar una pantalla.
 
-Estado al 30-sep (sesion 56, Alejo): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
-49 migraciones (0000-0048), todas aplicadas. ~1.653 tests. Produccion: https://retia-metrics-seven.vercel.app.
+Estado al 30-sep (sesion 57, Mani): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
+50 migraciones (0000-0049), todas aplicadas. ~1.676 tests. Produccion: https://retia-metrics-seven.vercel.app.
 
-Carril de Mani (E6, sesion 55): 083, 101, 085 y 087 done. 084 reemplazado por DP-25.
+Carril de Mani (E6, sesion 57): 083, 101, 085, 087 y 121 done. 084 reemplazado por DP-25.
+- 121: deals.area_declarada_id (0049). El motor la exige al entrar a 6, 7 u 8 (historicos exentos, A1/A2 no);
+  selector en Kanban, "¿Como termino?", abono y Editar deal. ventasSinUtmPorAreaDeclarada en
+  lib/queries/origen-declarado.ts, sobre vendidosEn (exportada de dashboard.ts). Nadie la pinta aun (123/125).
 - 085: emparejar() en lib/atribucion/emparejar.ts (canal, campana, anuncio por utm_id, nivel N3-N0) y
   utmsDelEnvio en lib/atribucion/utm-del-envio.ts. El arbol de Meta entra como DATO (lo carga el 120). Nadie
   llama emparejar todavia.
 - 087 cerrado sin codigo de costo (no existia CPL ni gasto): la regla queda en el ADR 0044 punto 5 y sus dos
   tests pasan al 123, que construye el costo.
-- SIGUIENTE: 121 (area declarada por el closer, con migracion) -> 118 (espera 117) -> 089.
+- SIGUIENTE: 089, ACOTADO el 30-sep (enmienda al final del ticket): el tipo de serie con programId obligatorio
+  y UNA consulta de hechos del embudo (dia x area x canal x dueño x cohorte, area por emparejar(), venta por
+  vendidosEn, dueño por owner_user_id). dashboard.ts NO se reescribe. Despues 118 (espera el 117 de Alejo).
+- Decidir con Alejo antes de su --aplicar del 078: las ~235 llamadas de la hoja saldrian como sueltas en el
+  Inbox (lib/queries/inbox.ts no mira el origen). Es del carril de Mani (071).
 - PQ9 a Pauta: que manden por escrito como agrupan los UTM (nuevo e historico).
 
 Carril de Alejo (E5 con el codigo en main; E6 arrancado):
-- 062, 127 y 116 done. 127: npm run migracion:deshacer (reversa nivel 3 del corte). 116: las seis UTM en
-  sus columnas, 0048 aplicada en produccion; utmsDelEnvio lee utm_id de la columna primero.
-- 072 y 099 en curso: solo falta el recorrido visual.
-- 080 en curso: los 12 "cohorte pasada" ya los marca el extractor. Falta: recorrido visual y revisar a mano
-  los encabezados corridos del Registro de llamadas de CA en el ensayo del 078.
+- 062, 127, 116, 080 y 099 done. 127: npm run migracion:deshacer (reversa nivel 3 del corte). 116: las seis
+  UTM en sus columnas, 0048 aplicada en produccion; utmsDelEnvio lee utm_id de la columna primero.
+- 072 en curso: solo falta el recorrido visual.
 - 078 en curso: falta el ensayo contra produccion sin --aplicar (ok de Mani; no dejar la transaccion
   abierta). Regenerar antes los templates (npm run migracion:extraer).
 - Guion del corte escrito: docs/operations.md §12 (pasos, reversa, capacitacion, conciliacion).
@@ -51,6 +56,27 @@ empuja al mismo main y el numero de migracion puede chocar.
 ```
 
 ## Memory
+
+- **2026-09-30 (Mani, sesión 57): 121 cerrado y 089 acotado.**
+  - **121:** lo implementó Codex en segundo plano; Claude revisó y corrigió tres cosas que el brief no cubría:
+    (1) la validación del área estaba copiada en tres lugares y quedó en `exigirAreaActiva`; (2) el catálogo de
+    áreas no contaba `deals.area_declarada_id` como referencia, así que borrar un área usada solo por deals
+    habría chocado con la FK en vez de desactivarla; (3) la burbuja filtraba por `deals.created_at` y ahora usa
+    `vendidosEn`, la misma venta del dashboard. Detalle en la nota de cierre del ticket.
+  - 🩸 **Choque de número de migración:** mientras Codex trabajaba, el 116 de Alejo tomó y aplicó la 0048. La
+    del 121 se regeneró como 0049 sobre `origin/main` (rama nueva, cherry-pick del código, `db:generate` de
+    nuevo). Dos 0048 distintas en journals distintos no se reconcilian: el merge rompe el journal y el
+    snapshot. **Antes de aplicar una migración, `git fetch` y comparar el conteo de
+    `drizzle.__drizzle_migrations` con el journal.**
+  - **Transacción colgada:** a las 11:26 había una `idle in transaction` de 33+ min con escrituras en `deals`,
+    `calls`, `abonos` y `change_log`: el ensayo del 078 (40 min en una sola transacción, ver la entrada de
+    abajo). Se esperó a que cerrara antes de aplicar la 0049.
+  - 🧪 **El guardián de vigencia marca una tabla importada con alias** (`areas as tablaAreas`) dentro de un
+    `.from()`: no la reconoce como tabla del esquema y la trata como posible anulable. Salida: leer por el molde
+    del catálogo (lo que hace `exigirAreaActiva`) o usar el nombre del esquema sin alias.
+  - **089 acotado con Mani:** la ventana "gratis" se cerró a medias porque el 064 ya escribió `dashboard.ts` con
+    escalares. Queda el contrato de la serie y una consulta de hechos del embudo para que el 123, 124, 125 y 095
+    se escriban encima; `dashboard.ts` migra cuando ellos lo toquen. Pasa a E6 y depende también del 085.
 
 - **2026-09-30 (Alejo, sesión del 078): ensayo del 078 contra producción, solo ComunicArte; tres hallazgos antes
   de aplicar.** Sesión del 29-sep que armó el 078 de punta a punta (0042, escritor, extractor, importador) y lo
@@ -3523,8 +3549,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
-- **30-sep:** E6 abierta. Carril de Mani: 121 → 118 → 089 (083, 101, 085 y 087 done; 084 reemplazado). Carril de Alejo: cerrar
-  072, 099, 080 y 078 (recorridos y ensayo), 127, y después 116 y 117. El orden completo, en el prompt de arriba y
-  en `plan-reparto.md` §4.
+- **30-sep:** E6 abierta. Carril de Mani: 089 (acotado) → 118 (espera el 117); 083, 101, 085, 087 y 121 done, 084
+  reemplazado. Carril de Alejo: cerrar 072 (recorrido) y 078 (resolver sus tres hallazgos y `--aplicar`), después 092,
+  117, 119/120 y 102; 127, 116, 080 y 099 done. El orden completo, en el prompt de arriba y en `plan-reparto.md` §4.
 - Vigilar que los leads reales sigan entrando por webhook: `/ajustes/salud` (110). Los pares sin canal:
   `/ajustes/canales` (101).

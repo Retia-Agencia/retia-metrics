@@ -57,12 +57,12 @@ aplicado en el Typeform ese día (`docs/analytics.md` §2.4); el 117 lo vuelve i
 
 | ✓ | # | Tarea | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 116 | [Las UTM completas en el envío: `utm_id`, `utm_content`, `utm_term`](./116-las-utm-completas-en-el-envio.md) | — | todo · carril Alejo · migración |
+| [x] | 116 | [Las UTM completas en el envío: `utm_id`, `utm_content`, `utm_term`](./116-las-utm-completas-en-el-envio.md) | — | done · 30-sep · Alejo · 0048 en producción; las seis UTM en sus columnas (el tracker se marcó al cierre de la sesión de Mani) |
 | [ ] | 117 | [Los estados de llegada por tabla, y los parciales por el webhook](./117-los-estados-de-llegada-por-tabla-y-los-parciales.md) | 115 | todo · carril Alejo · migración · reprocesa los 23 envíos de Tactical |
 | [ ] | 118 | ["Se perdió en el Calendly": urgente arriba del Inbox](./118-se-perdio-en-el-calendly.md) | 117 | todo · carril Mani |
 | [ ] | 119 | [La conexión con Meta: token por portafolio y cuentas por programa](./119-la-conexion-con-meta.md) | — | todo · carril Alejo · migración · espera el token de Anderson |
 | [ ] | 120 | [La pauta de Meta: árbol y gasto por anuncio y día](./120-la-pauta-de-meta-por-anuncio-y-dia.md) | 119 | todo · carril Alejo · migración (retira `ad_spend`) |
-| [ ] | 121 | [El área declarada por el closer al cerrar](./121-el-area-declarada-por-el-closer.md) | 083 | todo · carril Mani · migración |
+| [x] | 121 | [El área declarada por el closer al cerrar](./121-el-area-declarada-por-el-closer.md) | 083 | done · 30-sep · Mani · 0049 en producción; requisito `area_declarada` al entrar a 6, 7 u 8 (históricos exentos), selector en Kanban/Ficha/abono, `ventasSinUtmPorAreaDeclarada` sobre `vendidosEn`; recorrido visual hecho |
 | [ ] | 122 | [Los objetivos de la cohorte y el reparto de cupos por área](./122-los-objetivos-de-la-cohorte.md) | 083 | todo · carril Mani · migración |
 | [ ] | 123 | [El embudo de Pauta y los costos por etapa](./123-el-embudo-de-pauta-y-los-costos-por-etapa.md) | 085, 089, 115, 120 | todo · carril Mani |
 | [ ] | 124 | [El cumplimiento de la cohorte por área](./124-el-cumplimiento-de-la-cohorte-por-area.md) | 122, 123 | todo · carril Mani · espera PQ3 de Pauta |
