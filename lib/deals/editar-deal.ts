@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { exigirAreaActiva } from "@/lib/catalogo/areas";
 import { deals, motivos, productos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
@@ -40,6 +41,7 @@ export const esquemaEditarDeal = z.object({
     .nullable()
     .optional(),
   motivoId: z.string().uuid("El motivo no es válido.").nullable().optional(),
+  areaDeclaradaId: z.string().uuid("El área no es válida.").nullable().optional(),
 });
 export type DatosEditarDeal = z.input<typeof esquemaEditarDeal>;
 
@@ -48,7 +50,7 @@ type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> 
 /** Devuelve `true` si algo cambio (si no, no se escribe ni rastro). */
 export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarDeal): Promise<boolean> {
   return normalizando(async () => {
-    const { dealId, productoId, ownerUserId, fechaSeguimiento, motivoId } = esquemaEditarDeal.parse(datos);
+    const { dealId, productoId, ownerUserId, fechaSeguimiento, motivoId, areaDeclaradaId } = esquemaEditarDeal.parse(datos);
 
     return (db as unknown as Transaccion).transaction(async (tx) => {
       const { deal, emailLead } = await dealBloqueadoConLead(tx, dealId);
@@ -106,6 +108,11 @@ export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarD
           throw new ErrorDeApp("El deal está cerrado: no tiene fecha de seguimiento.", 409);
         }
         cambios.fechaSeguimiento = fechaSeguimiento;
+      }
+
+      if (areaDeclaradaId !== undefined) {
+        if (areaDeclaradaId !== null) await exigirAreaActiva(tx, areaDeclaradaId);
+        cambios.areaDeclaradaId = areaDeclaradaId;
       }
 
       if (motivoId !== undefined) {

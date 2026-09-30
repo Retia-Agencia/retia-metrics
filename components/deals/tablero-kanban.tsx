@@ -39,6 +39,7 @@ export interface TableroKanbanProps {
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
   programaSlug: string;
   productos: (OpcionCatalogo & { moneda: string; precio: string })[];
+  areas: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
   motivos: { id: string; nombre: string; tipo: string }[];
   /** Inicio de clases por cohorte y el de la activa: prellenan la fecha limite de Compromiso Verbal. */
@@ -64,6 +65,7 @@ export function TableroKanban({
   tonoDeEtapa,
   programaSlug,
   productos,
+  areas,
   cohortes,
   motivos,
   inicioDeClases,
@@ -95,6 +97,7 @@ export function TableroKanban({
         motivoId: datos.motivoId ?? null,
         datos: {
           productoId: datos.productoId,
+          areaDeclaradaId: datos.areaDeclaradaId,
           fechaLimitePago: datos.fechaLimitePago,
           cohorteDestinoId: datos.cohorteDestinoId,
           fechaSeguimiento: datos.fechaSeguimiento,
@@ -253,6 +256,7 @@ export function TableroKanban({
           etapaDestinoNombre={nombreDeEtapa[dialogo.flecha.a]}
           nombreLead={dialogo.tarjeta.nombreLead ?? dialogo.tarjeta.emailLead}
           productos={productos}
+          areas={areas}
           cohortes={cohortes}
           motivos={motivos}
           // La cohorte del deal; sin ella, la activa del programa (la que se le asignara al pagar).

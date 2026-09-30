@@ -81,6 +81,7 @@ export interface FilaLlamada {
 /** Una fila de "lo mío que necesita atención" (sección 4). */
 export interface FilaAtencion {
   dealId: string;
+  areaDeclaradaId: string | null;
   leadNombre: string | null;
   leadEmail: string;
   etapa: EtapaDeal;
@@ -237,6 +238,7 @@ async function seccionAtencion(
     .select({
       dealId: deals.id,
       leadId: deals.leadId,
+      areaDeclaradaId: deals.areaDeclaradaId,
       etapa: deals.etapa,
       fechaLimitePago: deals.fechaLimitePago,
       createdAt: deals.createdAt,
@@ -278,6 +280,7 @@ async function seccionAtencion(
     const owner = alcance === "equipo" ? (d.ownerNombre ?? d.ownerEmail ?? null) : null;
     const base = {
       dealId: d.dealId,
+      areaDeclaradaId: d.areaDeclaradaId,
       leadNombre: d.leadNombre,
       leadEmail: d.leadEmail,
       etapa: d.etapa,

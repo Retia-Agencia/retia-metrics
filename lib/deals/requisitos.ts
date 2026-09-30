@@ -33,6 +33,9 @@ export interface HechosDelDeal {
   /** La ultima llamada quedo en `no_show` o `cancelada`. */
   llamadaFallida: boolean;
   productoId: string | null;
+  /** Área que el closer declara como origen del lead; los deals históricos están exentos. */
+  areaDeclaradaId: string | null;
+  esHistorico: boolean;
   /** La fecha limite de pago del acuerdo (ADR 0053), `YYYY-MM-DD`. */
   fechaLimitePago: string | null;
   /**
@@ -68,6 +71,7 @@ export type CodigoRequisito =
   | "llamada_sucedio"
   | "llamada_fallida"
   | "producto"
+  | "area_declarada"
   | "fecha_limite_pago"
   | "cohorte_destino"
   | "fecha_seguimiento"
@@ -91,6 +95,7 @@ const MENSAJES: Record<Exclude<CodigoRequisito, "transicion_no_permitida">, stri
   llamada_sucedio: "Falta el link de Grain de la llamada.",
   llamada_fallida: "La llamada no quedó en no-show ni cancelada.",
   producto: "Falta el producto.",
+  area_declarada: "Falta el área: ¿cómo nos conoció?",
   fecha_limite_pago: "Falta la fecha límite de pago.",
   cohorte_destino: "Falta la cohorte a la que quiere entrar.",
   fecha_seguimiento: "Falta la fecha de seguimiento.",
@@ -112,6 +117,7 @@ const CUMPLE: Record<Exclude<CodigoRequisito, "transicion_no_permitida">, Cheque
   llamada_sucedio: (h) => h.llamadaSucedio,
   llamada_fallida: (h) => h.llamadaFallida,
   producto: (h) => h.productoId != null,
+  area_declarada: (h) => h.areaDeclaradaId != null || h.esHistorico,
   fecha_limite_pago: (h) => h.fechaLimitePago != null,
   cohorte_destino: (h) => h.cohorteDestinoId != null,
   fecha_seguimiento: (h) => h.fechaSeguimiento != null,
@@ -154,21 +160,21 @@ function requisitosDe(t: Transicion): Requisito[] {
     case "T4":
     case "T12":
     case "T25":
-      return ["producto", "fecha_limite_pago"];
+      return ["producto", "fecha_limite_pago", "area_declarada"];
     case "T5":
     case "T13":
     case "T14":
     case "T16":
     case "T17":
     case "T26":
-      return segunDestino();
+      return [...segunDestino(), "area_declarada"];
     case "T7":
     case "T10":
       return ["llamada_sucedio"];
     case "T8":
       return ["llamada_fallida"];
     case "T18":
-      return ["saldo_en_cero", "comprobante"];
+      return ["saldo_en_cero", "comprobante", "area_declarada"];
     case "T19":
     case "T20":
     case "T21":

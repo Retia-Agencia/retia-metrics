@@ -83,6 +83,7 @@ async function deal(dealId: string) {
 }
 
 const acciones = () => import("@/app/(app)/p/[programa]/deals/[id]/acciones");
+const accionesMover = () => import("@/app/(app)/p/[programa]/deals/acciones");
 
 describe("anular el deal, forjando la peticion", () => {
   it("un closer NO anula el deal de otro: el mensaje lo dice y la base no se mueve", async () => {
@@ -136,6 +137,14 @@ describe("anular el deal, forjando la peticion", () => {
 });
 
 describe("editar el deal, forjando la peticion", () => {
+  it("mover un deal de otro programa devuelve 403 y no lo cambia", async () => {
+    const dealId = await nuevoDeal(programaB, closerA);
+    auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
+    const r = await (await accionesMover()).moverDeal({ dealId, a: "pendiente_reagenda" });
+    expect(r).toMatchObject({ ok: false, status: 403 });
+    expect((await deal(dealId)).etapa).toBe("atendido");
+  });
+
   it("un closer no se reasigna el deal de otro ni el suyo: el `ownerUserId` del cuerpo no manda", async () => {
     const dealId = await nuevoDeal(programaA, closerA);
     auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));

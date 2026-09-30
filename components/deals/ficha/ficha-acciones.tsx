@@ -78,6 +78,7 @@ export function FichaAcciones({ ficha, opciones, mapa, nombreDeEtapa, puedeTraba
       motivoId: datos.motivoId ?? null,
       datos: {
         productoId: datos.productoId,
+        areaDeclaradaId: datos.areaDeclaradaId,
         fechaLimitePago: datos.fechaLimitePago,
         cohorteDestinoId: datos.cohorteDestinoId,
         fechaSeguimiento: datos.fechaSeguimiento,
@@ -154,6 +155,7 @@ export function FichaAcciones({ ficha, opciones, mapa, nombreDeEtapa, puedeTraba
           etapaDestinoNombre={nombreDeEtapa[dialogoMover.a]}
           nombreLead={ficha.lead.nombre ?? ficha.lead.email}
           productos={opciones.productos}
+          areas={opciones.areas}
           cohortes={opciones.cohortes}
           motivos={opciones.motivos}
           fechaLimiteSugerida={ficha.fechaLimiteSugerida}
@@ -185,6 +187,7 @@ function DialogoEditar({
 }) {
   const { pendiente, correr } = useAccion();
   const [productoId, setProductoId] = useState<string | null>(ficha.producto?.id ?? null);
+  const [areaDeclaradaId, setAreaDeclaradaId] = useState<string | null>(ficha.areaDeclarada?.id ?? null);
   const [ownerId, setOwnerId] = useState<string | null>(ficha.owner?.id ?? null);
   const [seguimiento, setSeguimiento] = useState<string>(ficha.fechaSeguimiento ?? "");
   const [motivoId, setMotivoId] = useState<string | null>(ficha.motivo?.id ?? null);
@@ -197,6 +200,7 @@ function DialogoEditar({
   // Solo viaja lo que cambio: el servidor escribe un renglon de bitacora por campo tocado.
   const entrada: EntradaEditarDeal = { dealId: ficha.dealId };
   if (muestraProducto && productoId && productoId !== ficha.producto?.id) entrada.productoId = productoId;
+  if (areaDeclaradaId && areaDeclaradaId !== ficha.areaDeclarada?.id) entrada.areaDeclaradaId = areaDeclaradaId;
   if (administra && ownerId && ownerId !== ficha.owner?.id) entrada.ownerUserId = ownerId;
   if (!cerrado && seguimiento !== (ficha.fechaSeguimiento ?? "")) entrada.fechaSeguimiento = seguimiento || null;
   if (muestraMotivo && motivoId && motivoId !== ficha.motivo?.id) entrada.motivoId = motivoId;
@@ -234,6 +238,21 @@ function DialogoEditar({
               </Select>
             </Campo>
           ) : null}
+
+          <Campo etiqueta="Área de origen (según el closer)">
+            <Select
+              value={areaDeclaradaId}
+              items={opciones.areas.map((a) => ({ value: a.id, label: a.nombre }))}
+              onValueChange={(v: string | null) => setAreaDeclaradaId(v)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Elige un área" />
+              </SelectTrigger>
+              <SelectContent>
+                {opciones.areas.map((a) => <SelectItem key={a.id} value={a.id}>{a.nombre}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Campo>
 
           {administra ? (
             <Campo etiqueta="Dueño del deal" ayuda="Reasignar el trabajo de otro es de quien administra.">
@@ -283,9 +302,6 @@ function DialogoEditar({
             </Campo>
           ) : null}
 
-          {!muestraProducto && !administra && cerrado ? (
-            <p className="text-sm text-muted-foreground">Este deal está cerrado: no hay nada que editar aquí.</p>
-          ) : null}
         </div>
 
         <DialogFooter>

@@ -51,6 +51,7 @@ export function FichaCabecera({
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-4">
           <Dato etiqueta="Dueño">{ficha.owner ? (ficha.owner.nombre ?? "Sin nombre") : "Sin dueño"}</Dato>
           <Dato etiqueta="Producto">{ficha.producto?.nombre ?? null}</Dato>
+          <Dato etiqueta="Área de origen">{ficha.areaDeclarada?.nombre ?? null}</Dato>
           <Dato etiqueta="Cohorte">
             {ficha.cohorte?.codigo ?? null}
             {ficha.cohorteDestino ? ` → ${ficha.cohorteDestino.codigo}` : null}

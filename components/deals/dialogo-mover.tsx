@@ -35,6 +35,7 @@ import type { OpcionCatalogo } from "@/lib/queries/kanban";
 
 export interface DatosDialogo {
   productoId?: string | null;
+  areaDeclaradaId?: string | null;
   fechaLimitePago?: string | null;
   cohorteDestinoId?: string | null;
   fechaSeguimiento?: string | null;
@@ -48,6 +49,7 @@ export interface DialogoMoverProps {
   etapaDestinoNombre: string;
   nombreLead: string;
   productos: (OpcionCatalogo & { moneda: string; precio: string })[];
+  areas: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
   /** Motivos activos con su tipo; el dialogo filtra por el tipo de la flecha. */
   motivos: { id: string; nombre: string; tipo: string }[];
@@ -63,6 +65,7 @@ export interface DialogoMoverProps {
 
 const ETIQUETA: Record<CodigoRequisito, string> = {
   producto: "Producto",
+  area_declarada: "Área de origen (según el closer)",
   fecha_limite_pago: "Fecha límite de pago",
   cohorte_destino: "Cohorte a la que quiere entrar",
   fecha_seguimiento: "Fecha de seguimiento",
@@ -90,6 +93,7 @@ export function DialogoMover({
   etapaDestinoNombre,
   nombreLead,
   productos,
+  areas,
   cohortes,
   motivos,
   fechaLimiteSugerida = null,
@@ -108,6 +112,7 @@ export function DialogoMover({
   // Todo campo pedido tiene que estar lleno para confirmar.
   const completo = campos.every((c) => {
     if (c === "producto") return Boolean(datos.productoId);
+    if (c === "area_declarada") return Boolean(datos.areaDeclaradaId);
     if (c === "fecha_limite_pago") return Boolean(datos.fechaLimitePago);
     if (c === "cohorte_destino") return Boolean(datos.cohorteDestinoId);
     if (c === "fecha_seguimiento") return Boolean(datos.fechaSeguimiento);
@@ -150,6 +155,23 @@ export function DialogoMover({
                       <SelectItem key={p.id} value={p.id}>
                         {p.nombre} · {monto(Number(p.precio), p.moneda)}
                       </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+
+              {campo === "area_declarada" ? (
+                <Select
+                  value={datos.areaDeclaradaId ?? null}
+                  items={areas.map((a) => ({ value: a.id, label: a.nombre }))}
+                  onValueChange={(v: string | null) => setDatos((d) => ({ ...d, areaDeclaradaId: v }))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Elige un área" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {areas.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{a.nombre}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

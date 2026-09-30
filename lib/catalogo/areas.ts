@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { areas as tablaAreas, canales as tablaCanales } from "@/lib/db/schema";
+import { areas as tablaAreas, canales as tablaCanales, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { ErrorDeApp } from "@/lib/errors";
 import { moldeDeCatalogo } from "./molde";
 
 /**
@@ -25,8 +26,24 @@ export function areas(db?: Db) {
       esquema: esquemaArea,
       etiqueta: (fila) => String(fila.nombre),
       nombreEntidad: "un área",
-      dependientes: [{ tabla: tablaCanales, columna: tablaCanales.areaId }],
+      // El area declarada del deal (ticket 121) tambien la referencia: sin contarla, un area
+      // que solo usan deals contaria cero y el borrado chocaria con la FK en vez de decir
+      // cuantas referencias tiene y ofrecer desactivarla (ADR 0026 punto 5).
+      dependientes: [
+        { tabla: tablaCanales, columna: tablaCanales.areaId },
+        { tabla: deals, columna: deals.areaDeclaradaId },
+      ],
     },
     db,
   );
+}
+
+/**
+ * Que un area exista y este activa antes de ponerla en un deal (ticket 121). Una sola
+ * respuesta para el motor y la edicion del deal: la FK solo mira que exista.
+ */
+export async function exigirAreaActiva(db: Db, areaId: string): Promise<void> {
+  // Por el molde y no con un select propio: el catalogo tiene tres o cuatro filas.
+  const activas = await areas(db).listar({ soloActivos: true });
+  if (!activas.some((a) => a.id === areaId)) throw new ErrorDeApp("El área no existe o está inactiva.", 422);
 }

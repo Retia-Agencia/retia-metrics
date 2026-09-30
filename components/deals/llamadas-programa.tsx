@@ -171,13 +171,13 @@ function DialogoResultado({
   const [pendiente, setPendiente] = useState(false);
   async function mover(f: FlechaCliente, datos: DatosDialogo) {
     setPendiente(true);
-    const r = await moverDeal({ dealId, a: f.a, datos: { productoId: datos.productoId, fechaLimitePago: datos.fechaLimitePago, cohorteDestinoId: datos.cohorteDestinoId, fechaSeguimiento: datos.fechaSeguimiento }, motivoId: datos.motivoId ?? null });
+    const r = await moverDeal({ dealId, a: f.a, datos: { productoId: datos.productoId, areaDeclaradaId: datos.areaDeclaradaId, fechaLimitePago: datos.fechaLimitePago, cohorteDestinoId: datos.cohorteDestinoId, fechaSeguimiento: datos.fechaSeguimiento }, motivoId: datos.motivoId ?? null });
     setPendiente(false);
     if (r.ok) { toast.success(`Deal movido a ${nombreDeEtapa[f.a]}.`); onCerrar(); }
     else toast.error(r.faltantes.length ? r.faltantes.map((x) => x.mensaje).join(" ") : r.error, { duration: 6000 });
   }
   if (flecha) {
-    return <DialogoMover abierto onAbrir={(abierto) => !abierto && onCerrar()} flecha={flecha} etapaDestinoNombre={nombreDeEtapa[flecha.a]} nombreLead="el lead" productos={opciones.productos} cohortes={opciones.cohortes} motivos={opciones.motivos} pendiente={pendiente} onConfirmar={(datos) => void mover(flecha, datos)} />;
+    return <DialogoMover abierto onAbrir={(abierto) => !abierto && onCerrar()} flecha={flecha} etapaDestinoNombre={nombreDeEtapa[flecha.a]} nombreLead="el lead" productos={opciones.productos} areas={opciones.areas} cohortes={opciones.cohortes} motivos={opciones.motivos} pendiente={pendiente} onConfirmar={(datos) => void mover(flecha, datos)} />;
   }
   return (
     <DialogoForm

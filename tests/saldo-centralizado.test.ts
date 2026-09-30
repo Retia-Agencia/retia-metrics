@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { abonos, cohorts, deals, leads, productos, programs, users } from "@/lib/db/schema";
+import { abonos, areas, cohorts, deals, leads, productos, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { registrarAbono } from "@/lib/deals/abonos";
 import { saldosDeDeals } from "@/lib/queries/saldo";
@@ -29,12 +29,13 @@ beforeEach(async () => {
     .values({ programId: p.id, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-10-01", fechaCierreVentas: "2026-09-30" })
     .returning();
   const [prod] = await db.insert(productos).values({ programId: p.id, nombre: "Programa", precioLista: "1000" }).returning();
+  const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
   const [l] = await db.insert(leads).values({ programId: p.id, emailNormalizado: "ana@correo.co" }).returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId: p.id, cohortId: c.id, etapa: "atendido", ownerUserId: closer, productoId: prod.id })
+    .values({ leadId: l.id, programId: p.id, cohortId: c.id, etapa: "atendido", ownerUserId: closer, productoId: prod.id, areaDeclaradaId: area.id })
     .returning();
   dealId = d.id;
 });

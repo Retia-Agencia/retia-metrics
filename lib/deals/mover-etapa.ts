@@ -11,6 +11,7 @@ import {
   productos,
   submissions,
 } from "@/lib/db/schema";
+import { exigirAreaActiva } from "@/lib/catalogo/areas";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { esViolacionUnica } from "@/lib/db/errores";
 import type { Db } from "@/lib/db/tipos";
@@ -69,6 +70,7 @@ export type Actor =
  */
 export interface DatosMovimiento {
   productoId?: string | null;
+  areaDeclaradaId?: string | null;
   fechaLimitePago?: string | null;
   acuerdoPago?: string | null;
   /** La cohorte a la que quiere entrar (Proxima Cohorte). `deals.cohorte_destino_id`. */
@@ -221,6 +223,10 @@ async function escribirDatos(tx: Db, deal: FilaDeal, mov: Movimiento): Promise<F
     }
     aplicar("productoId", datos.productoId);
   }
+  if (datos.areaDeclaradaId !== undefined) {
+    if (datos.areaDeclaradaId !== null) await exigirAreaActiva(tx, datos.areaDeclaradaId);
+    aplicar("areaDeclaradaId", datos.areaDeclaradaId);
+  }
   if (datos.fechaLimitePago !== undefined) {
     // El inicio de clases de la cohorte es el tope del plazo de pago (ticket 061).
     if (datos.fechaLimitePago !== null) await exigirFechaLimiteValida(tx, deal, datos.fechaLimitePago);
@@ -287,6 +293,7 @@ export interface AltaDeDeal {
   etapa: EtapaDeal;
   actor: Actor;
   productoId?: string | null;
+  areaDeclaradaId?: string | null;
   fechaLimitePago?: string | null;
   cohortId?: string | null;
   submissionOrigenId?: string | null;
@@ -313,6 +320,7 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
       ...HECHOS_VACIOS,
       productoId: alta.productoId ?? null,
       fechaLimitePago: alta.fechaLimitePago ?? null,
+      areaDeclaradaId: alta.areaDeclaradaId ?? null,
     });
     if (faltantes.length > 0) {
       throw new MovimientoRechazado(faltantes.map((f) => f.mensaje).join(" "), faltantes);
@@ -330,6 +338,7 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
     if (alta.fechaLimitePago) {
       await exigirFechaLimiteValida(tx, { programId: alta.programId, cohortId: alta.cohortId ?? null }, alta.fechaLimitePago);
     }
+    if (alta.areaDeclaradaId) await exigirAreaActiva(tx, alta.areaDeclaradaId);
     // El origen de la venta (ADR 0060): la FK solo mira que el envio exista, y uno de otro
     // lead le atribuiria a este deal el clic de otra persona sin ningun error.
     if (alta.submissionOrigenId) {
@@ -358,6 +367,7 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
           etapa: alta.etapa,
           ownerUserId: usuario ?? alta.ownerUserId ?? null,
           productoId: alta.productoId ?? null,
+          areaDeclaradaId: alta.areaDeclaradaId ?? null,
           fechaLimitePago: alta.fechaLimitePago ?? null,
           cohortId: alta.cohortId ?? null,
           submissionOrigenId: alta.submissionOrigenId ?? null,
@@ -562,6 +572,8 @@ const HECHOS_VACIOS: HechosDelDeal = {
   llamadaSucedio: false,
   llamadaFallida: false,
   productoId: null,
+  areaDeclaradaId: null,
+  esHistorico: false,
   fechaLimitePago: null,
   cohorteDestinoId: null,
   fechaSeguimiento: null,
@@ -662,6 +674,8 @@ async function leerHechos(
     llamadaFallida:
       ultimaLlamada != null && (RESULTADOS_FALLIDOS as readonly string[]).includes(ultimaLlamada.resultado),
     productoId: deal.productoId,
+    areaDeclaradaId: deal.areaDeclaradaId,
+    esHistorico: deal.huellaMigracion != null,
     fechaLimitePago: deal.fechaLimitePago,
     // La cohorte destino es la columna aparte (Mani 27-sep, punto 1): `cohort_id` sigue
     // siendo la de origen y no se toca al ir a Proxima Cohorte, asi la conversion de la

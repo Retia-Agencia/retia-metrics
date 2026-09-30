@@ -3,12 +3,15 @@
 import { z } from "zod";
 import type { Session } from "next-auth";
 import { requireRole } from "@/lib/auth/guards";
+import { programaEnAlcance } from "@/lib/auth/alcance";
 import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { etapaDealEnum } from "@/lib/db/schema";
+import { deals, etapaDealEnum } from "@/lib/db/schema";
+import { and, eq } from "drizzle-orm";
+import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
 import type { RequisitoFaltante } from "@/lib/deals/requisitos";
 
@@ -34,6 +37,7 @@ import type { RequisitoFaltante } from "@/lib/deals/requisitos";
 const esquemaDatos = z
   .object({
     productoId: z.string().uuid().nullable().optional(),
+    areaDeclaradaId: z.string().uuid().nullable().optional(),
     fechaLimitePago: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida.").nullable().optional(),
     acuerdoPago: z.string().trim().max(500).nullable().optional(),
     cohorteDestinoId: z.string().uuid().nullable().optional(),
@@ -52,7 +56,7 @@ export type EntradaMover = z.input<typeof esquemaMover>;
 
 export type ResultadoMover =
   | { ok: true }
-  | { ok: false; error: string; faltantes: { codigo: string; mensaje: string }[] };
+  | { ok: false; error: string; faltantes: { codigo: string; mensaje: string }[]; status: number };
 
 /** El actor del movimiento, armado desde la sesion. El rol es el DE VISTA (ticket 028). */
 async function actorDe(session: Session): Promise<{ tipo: "usuario"; userId: string; rol: import("@/lib/auth/roles").Rol }> {
@@ -69,6 +73,14 @@ export async function moverDeal(entrada: EntradaMover): Promise<ResultadoMover> 
   try {
     const mov = esquemaMover.parse(entrada);
     const actor = await actorDe(session);
+    const [deal] = await db
+      .select({ programId: deals.programId })
+      .from(deals)
+      .where(and(eq(deals.id, mov.dealId), incluyendoAnulados(deals)));
+    if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
+    if (!(await programaEnAlcance(actor.userId, actor.rol, deal.programId, db))) {
+      throw new ErrorDeApp("No puedes mover un deal de otro programa.", 403);
+    }
     await normalizando(() =>
       moverEtapa(db, {
         dealId: mov.dealId,
@@ -84,11 +96,11 @@ export async function moverDeal(entrada: EntradaMover): Promise<ResultadoMover> 
   }
 }
 
-function aResultado(error: unknown): { ok: false; error: string; faltantes: RequisitoFaltante[] } {
+function aResultado(error: unknown): { ok: false; error: string; faltantes: RequisitoFaltante[]; status: number } {
   if (error instanceof MovimientoRechazado) {
-    return { ok: false, error: error.message, faltantes: error.faltantes };
+    return { ok: false, error: error.message, faltantes: error.faltantes, status: error.status };
   }
-  if (error instanceof ErrorDeApp) return { ok: false, error: error.message, faltantes: [] };
+  if (error instanceof ErrorDeApp) return { ok: false, error: error.message, faltantes: [], status: error.status };
   console.error("[deals] error no controlado al mover", error);
-  return { ok: false, error: "Error interno.", faltantes: [] };
+  return { ok: false, error: "Error interno.", faltantes: [], status: 500 };
 }

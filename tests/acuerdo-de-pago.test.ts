@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { changeLog, cohorts, deals, leads, productos, programs, users } from "@/lib/db/schema";
+import { areas, changeLog, cohorts, deals, leads, productos, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { abrirDeal, moverEtapa } from "@/lib/deals/mover-etapa";
@@ -19,6 +19,7 @@ let cerrar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
 let productoId: string;
+let areaId: string;
 let closer: string;
 let otroCloser: string;
 let gerente: string;
@@ -44,6 +45,8 @@ beforeEach(async () => {
   cohortId = c.id;
   const [prod] = await db.insert(productos).values({ programId, nombre: "Programa", precioLista: "1000" }).returning();
   productoId = prod.id;
+  const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
+  areaId = area.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
   const [u2] = await db.insert(users).values({ email: "jero@retiagrowth.com", rol: "closer", closerId: "Jero" }).returning();
@@ -60,7 +63,7 @@ async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferIns
   const [l] = await db.insert(leads).values({ programId, emailNormalizado: `l${++leadN}@correo.co` }).returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer, productoId, ...extra })
+    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer, productoId, areaDeclaradaId: areaId, ...extra })
     .returning();
   return d;
 }
@@ -195,7 +198,7 @@ describe("el tope también rige donde nace la fecha: el motor y el alta del deal
   it("abrirDeal en Compromiso Verbal con la fecha pasada del inicio de clases se rechaza", async () => {
     const [l] = await db.insert(leads).values({ programId, emailNormalizado: "nuevo@correo.co" }).returning();
     const e = await capturar(
-      abrirDeal(db, { leadId: l.id, programId, etapa: "compromiso_verbal", actor: { tipo: "usuario", userId: closer, rol: "closer" }, productoId, cohortId, fechaLimitePago: "2026-10-20" }),
+      abrirDeal(db, { leadId: l.id, programId, etapa: "compromiso_verbal", actor: { tipo: "usuario", userId: closer, rol: "closer" }, productoId, areaDeclaradaId: areaId, cohortId, fechaLimitePago: "2026-10-20" }),
     );
     expect(e.status).toBe(422);
     expect(await db.select().from(deals).where(eq(deals.leadId, l.id))).toHaveLength(0);

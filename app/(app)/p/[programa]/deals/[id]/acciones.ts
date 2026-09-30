@@ -119,6 +119,7 @@ const esquemaEditar = z.object({
   ownerUserId: id("Dueño inválido.").optional(),
   fechaSeguimiento: dia.nullable().optional(),
   motivoId: id("Motivo inválido.").nullable().optional(),
+  areaDeclaradaId: id("Área inválida.").nullable().optional(),
 });
 export type EntradaEditarDeal = z.input<typeof esquemaEditar>;
 
@@ -126,9 +127,9 @@ export async function editarDealAccion(entrada: EntradaEditarDeal): Promise<Resu
   return correr(async (ctx) => {
     const { actor } = ctx;
     // Solo estos campos pasan a la funcion: nada mas del cuerpo de la peticion llega a ella.
-    const { dealId, productoId, ownerUserId, fechaSeguimiento, motivoId } = esquemaEditar.parse(entrada);
+    const { dealId, productoId, ownerUserId, fechaSeguimiento, motivoId, areaDeclaradaId } = esquemaEditar.parse(entrada);
     await exigirDealVisible(ctx, dealId);
-    await editarDeal(db, actor, { dealId, productoId, ownerUserId, fechaSeguimiento, motivoId });
+    await editarDeal(db, actor, { dealId, productoId, ownerUserId, fechaSeguimiento, motivoId, areaDeclaradaId });
     return {};
   });
 }
@@ -192,6 +193,7 @@ const esquemaAbonoAccion = z.object({
   monto: z.string(),
   plataformaId: textoOpcional(id("Plataforma inválida.")),
   comprobanteUrl: textoOpcional(z.string().url("El comprobante debe ser una URL válida.")),
+  areaDeclaradaId: id("Área inválida.").nullable().optional(),
 });
 export type EntradaAbono = z.input<typeof esquemaAbonoAccion>;
 

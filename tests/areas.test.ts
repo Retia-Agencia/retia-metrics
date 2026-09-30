@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq, getTableColumns } from "drizzle-orm";
-import { areas as tablaAreas, changeLog, users } from "@/lib/db/schema";
+import { areas as tablaAreas, changeLog, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { areas } from "@/lib/catalogo/areas";
 import { ErrorDeApp } from "@/lib/errors";
@@ -74,6 +74,17 @@ describe("catalogo de areas (ticket 083)", () => {
 
     expect(await cat.borrarSiNoSeUso(userId, creada.id)).toEqual({ borrado: true });
     expect((await cat.listar()).find((area) => area.id === creada.id)).toBeUndefined();
+  });
+
+  it("un area que solo usa un deal como declarada no se borra y dice su conteo (ticket 121)", async () => {
+    const cat = areas(db);
+    const creada = await cat.crear(userId, { nombre: "Referidos" });
+    const [programa] = await db.insert(programs).values({ slug: "uno", nombre: "Uno", ticketUsd: "797" }).returning();
+    const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "a@correo.co" }).returning();
+    await db.insert(deals).values({ leadId: lead.id, programId: programa.id, etapa: "abonado", areaDeclaradaId: creada.id });
+
+    expect(await cat.borrarSiNoSeUso(userId, creada.id)).toEqual({ borrado: false, referencias: 1 });
+    expect((await cat.listar()).find((area) => area.id === creada.id)).toBeDefined();
   });
 
   it("la tabla no tiene program_id", () => {

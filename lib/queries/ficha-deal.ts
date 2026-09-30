@@ -18,6 +18,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { fechaLimiteMaxima } from "@/lib/deals/pago";
 import { duenosPosibles } from "@/lib/deals/duenos";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
+import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { saldosDeDeals, type SaldoDeDeal } from "@/lib/queries/saldo";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 
@@ -104,6 +105,7 @@ export interface FichaDeDeal {
   origen: { utmSource: string | null; utmMedium: string | null; utmCampaign: string | null } | null;
   owner: { id: string; nombre: string | null } | null;
   producto: { id: string; nombre: string; precio: string; moneda: string } | null;
+  areaDeclarada: { id: string; nombre: string } | null;
   cohorte: { id: string; codigo: string; inicioClases: string } | null;
   cohorteDestino: { id: string; codigo: string } | null;
   acuerdoPago: string | null;
@@ -198,6 +200,9 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
   const [producto] = deal.productoId
     ? await db.select().from(productos).where(eq(productos.id, deal.productoId))
     : [];
+  const areaDeclarada = deal.areaDeclaradaId
+    ? (await catalogoAreas(db).listar()).find((a) => a.id === deal.areaDeclaradaId) ?? null
+    : null;
   const idsDeCohortes = [deal.cohortId, deal.cohorteDestinoId].filter((x): x is string => x != null);
   const cohortesFilas = idsDeCohortes.length > 0 ? await db.select().from(cohorts).where(inArray(cohorts.id, idsDeCohortes)) : [];
   const cohorteDeId = (id: string | null) => cohortesFilas.find((c) => c.id === id) ?? null;
@@ -232,6 +237,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
       : null,
     owner: deal.ownerUserId ? { id: deal.ownerUserId, nombre: nombreDe(deal.ownerUserId) } : null,
     producto: producto ? { id: producto.id, nombre: producto.nombre, precio: producto.precioLista, moneda: producto.moneda } : null,
+    areaDeclarada: areaDeclarada ? { id: areaDeclarada.id, nombre: String(areaDeclarada.nombre) } : null,
     cohorte: cohorte ? { id: cohorte.id, codigo: cohorte.codigo, inicioClases: cohorte.fechaInicioClases } : null,
     cohorteDestino: cohorteDestino ? { id: cohorteDestino.id, codigo: cohorteDestino.codigo } : null,
     acuerdoPago: deal.acuerdoPago,
@@ -296,6 +302,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
 /** Lo que los formularios de la ficha ofrecen, todo acotado al programa del deal. */
 export interface OpcionesDeFicha {
   productos: { id: string; nombre: string; moneda: string; precio: string }[];
+  areas: { id: string; nombre: string }[];
   /** Cohortes futuras o activas del programa: a donde puede ir un deal (`cambiarCohorte`). */
   cohortes: { id: string; nombre: string }[];
   motivos: { id: string; nombre: string; tipo: string }[];
@@ -315,6 +322,7 @@ export async function opcionesDeFicha(db: Db, programId: string, ownerActualId: 
     .where(and(eq(cohorts.programId, programId), ne(cohorts.estado, "cerrado")));
   const motivosFilas = await db.select().from(motivos).where(eq(motivos.activo, true));
   const plataformasFilas = await plataformasDelPrograma(db, programId);
+  const areasFilas = await catalogoAreas(db).listar({ soloActivos: true });
 
   const owners = new Map((await duenosPosibles(db, programId)).map((d) => [d.id, d.nombre] as const));
   // El dueño actual se muestra aunque ya no sea dueño posible (se fue del programa): la
@@ -328,6 +336,7 @@ export async function opcionesDeFicha(db: Db, programId: string, ownerActualId: 
     productos: productosFilas
       .map((p) => ({ id: p.id, nombre: p.nombre, moneda: p.moneda, precio: p.precioLista }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    areas: areasFilas.map((a) => ({ id: a.id, nombre: String(a.nombre) })),
     cohortes: cohortesFilas.map((c) => ({ id: c.id, nombre: c.codigo })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
     motivos: motivosFilas.map((m) => ({ id: m.id, nombre: m.nombre, tipo: m.tipo })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
     plataformas: plataformasFilas.map((p) => ({ id: p.id, nombre: String(p.nombre) })),

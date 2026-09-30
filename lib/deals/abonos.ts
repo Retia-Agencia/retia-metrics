@@ -52,7 +52,9 @@ export interface ActorDeAbono {
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
 
-export const esquemaRegistrarAbono = esquemaAbono.omit({ programId: true });
+export const esquemaRegistrarAbono = esquemaAbono
+  .omit({ programId: true })
+  .extend({ areaDeclaradaId: z.string().uuid("El área no es válida.").nullable().optional() });
 export type DatosRegistrarAbono = z.input<typeof esquemaRegistrarAbono>;
 
 export interface AbonoRegistrado {
@@ -208,7 +210,12 @@ export async function registrarAbono(
       }
       // El sistema toma la flecha; el motor exige el comprobante del abono y la etapa que
       // corresponde, y si algo falta la transaccion entera se deshace con su mensaje.
-      await moverEtapa(tx, { dealId: deal.id, a: destino, actor: { tipo: "sistema" } });
+      await moverEtapa(tx, {
+        dealId: deal.id,
+        a: destino,
+        actor: { tipo: "sistema" },
+        datos: { areaDeclaradaId: entrada.areaDeclaradaId },
+      });
       return { abonoId, etapa: destino, movioElDeal: true, saldo, cohorteAsignada };
     });
   });

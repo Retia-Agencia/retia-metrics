@@ -9,6 +9,7 @@ import { motivos } from "@/lib/db/schema";
 import { duenosPosibles } from "@/lib/deals/duenos";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
+import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
 import { inboxDelPrograma, type AlcanceInbox } from "@/lib/queries/inbox";
 import { PageShell } from "@/components/page-shell";
@@ -55,12 +56,13 @@ export default async function InboxDelProgramaPage({ params }: Props) {
   // Un administrador ve el equipo entero; el closer (y el developer en vista closer) ve lo suyo.
   const alcance: AlcanceInbox = administra ? "equipo" : { ownerUserId: session.user.id };
 
-  const [inbox, secciones, duenos, plataformas, motivosFilas] = await Promise.all([
+  const [inbox, secciones, duenos, plataformas, motivosFilas, areasFilas] = await Promise.all([
     inboxDelPrograma(db, programa.id, alcance),
     seccionesSinDueno(db, programa.id),
     duenosPosibles(db, programa.id),
     plataformasDelPrograma(db, programa.id),
     db.select().from(motivos).where(eq(motivos.activo, true)),
+    catalogoAreas(db).listar({ soloActivos: true }),
   ]);
 
   const motivosDeReagenda = motivosFilas
@@ -102,6 +104,7 @@ export default async function InboxDelProgramaPage({ params }: Props) {
           nombreDeEtapa={NOMBRE_DE_ETAPA}
           tonoDeEtapa={TONO_DE_ETAPA}
           plataformas={plataformasOpcion}
+          areas={areasFilas.map((a) => ({ id: a.id, nombre: String(a.nombre) }))}
           puedeRegistrar={puedeTrabajar}
         />
       </div>

@@ -16,6 +16,7 @@ import { carteraVencida } from "@/lib/queries/cartera";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
+import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { hoyEnBogota } from "@/lib/format";
 
 /**
@@ -312,6 +313,7 @@ export interface OpcionesDeTablero {
   inicioDeLaCohorteActiva: string | null;
   /** Productos activos del programa (para el dialogo de Compromiso Verbal). */
   productos: (OpcionCatalogo & { moneda: string; precio: string })[];
+  areas: OpcionCatalogo[];
   /** Motivos activos por tipo (para las flechas que exigen motivo). */
   motivos: { id: string; nombre: string; tipo: string }[];
 }
@@ -379,9 +381,13 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
     .from(motivos)
     .where(eq(motivos.activo, true));
   const listaMotivos = motivoFilas.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const listaAreas = (await catalogoAreas(db).listar({ soloActivos: true })).map((a) => ({
+    id: a.id,
+    nombre: String(a.nombre),
+  }));
 
   const inicioDeClases = Object.fromEntries(cohorteFilas.map((c) => [c.id, c.inicio] as const));
   const inicioDeLaCohorteActiva = (await cohorteActiva(programId, db))?.fechaInicioClases ?? null;
 
-  return { owners, cohortes, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, productos: listaProductos, motivos: listaMotivos };
+  return { owners, cohortes, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, productos: listaProductos, areas: listaAreas, motivos: listaMotivos };
 }

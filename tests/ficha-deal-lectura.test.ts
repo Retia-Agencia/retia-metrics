@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  areas,
   calls,
   cohorts,
   dealActividades,
@@ -58,6 +59,7 @@ beforeEach(async () => {
   cohortId = c.id;
   const [prod] = await db.insert(productos).values({ programId, nombre: "Programa", precioLista: "1000" }).returning();
   productoId = prod.id;
+  const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru", nombre: "Maru" }).returning();
   closer = u.id;
   const [l] = await db
@@ -71,7 +73,7 @@ beforeEach(async () => {
     .returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, submissionOrigenId: env.id, programId, cohortId, etapa: "atendido", ownerUserId: closer, productoId, acuerdoPago: "30% en octubre" })
+    .values({ leadId: l.id, submissionOrigenId: env.id, programId, cohortId, etapa: "atendido", ownerUserId: closer, productoId, areaDeclaradaId: area.id, acuerdoPago: "30% en octubre" })
     .returning();
   dealId = d.id;
 }, 60_000);

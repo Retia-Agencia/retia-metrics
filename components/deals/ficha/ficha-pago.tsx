@@ -215,6 +215,7 @@ function DialogoAbono({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opcio
   const [dia, setDia] = useState(hoyEnBogota());
   const [valor, setValor] = useState("");
   const [plataformaId, setPlataformaId] = useState<string | null>(null);
+  const [areaDeclaradaId, setAreaDeclaradaId] = useState<string | null>(null);
   const [comprobante, setComprobante] = useState("");
   const moneda = ficha.saldo.moneda ?? "USD";
 
@@ -228,13 +229,13 @@ function DialogoAbono({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opcio
       }
       pendiente={pendiente}
       onCerrar={onCerrar}
-      deshabilitarConfirmar={!dia || valor.trim() === ""}
+      deshabilitarConfirmar={!dia || valor.trim() === "" || (!ficha.areaDeclarada && !areaDeclaradaId)}
       confirmar={{
         texto: "Registrar",
         enCurso: "Registrando…",
         onClick: () =>
           correr(
-            () => registrarAbonoAccion({ dealId: ficha.dealId, fecha: dia, monto: valor.trim(), plataformaId: plataformaId ?? undefined, comprobanteUrl: comprobante }),
+            () => registrarAbonoAccion({ dealId: ficha.dealId, fecha: dia, monto: valor.trim(), plataformaId: plataformaId ?? undefined, comprobanteUrl: comprobante, areaDeclaradaId: areaDeclaradaId ?? undefined }),
             {
               exito: (r) => {
                 const sinCohorte =
@@ -256,6 +257,20 @@ function DialogoAbono({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opcio
           <input className={`${claseInput} cifra`} inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="750.00" />
         </Campo>
       </div>
+      {!ficha.areaDeclarada ? (
+        <Campo etiqueta="Área de origen (según el closer)">
+          <Select
+            value={areaDeclaradaId}
+            items={opciones.areas.map((a) => ({ value: a.id, label: a.nombre }))}
+            onValueChange={(v: string | null) => setAreaDeclaradaId(v)}
+          >
+            <SelectTrigger className="w-full"><SelectValue placeholder="Elige un área" /></SelectTrigger>
+            <SelectContent>
+              {opciones.areas.map((a) => <SelectItem key={a.id} value={a.id}>{a.nombre}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </Campo>
+      ) : null}
       <Campo etiqueta="Plataforma de pago (opcional)">
         <Select
           value={plataformaId}

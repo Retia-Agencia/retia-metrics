@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
   abonos,
+  areas,
   calls,
   changeLog,
   cohorts,
@@ -65,6 +66,7 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
+let areaId: string;
 let webhookSourceId: string;
 let closer: string;
 let gerente: string;
@@ -141,6 +143,8 @@ beforeEach(async () => {
     })
     .returning();
   cohortId = c.id;
+  const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
+  areaId = area.id;
 
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
@@ -182,7 +186,7 @@ describe("E2 — la cita cae en su deal, el Grain lo atiende, el dinero lo mueve
 
     // El closer reclama el deal (070, fuera de E2) y elige el producto (074, la pantalla).
     const [prod] = await db.insert(productos).values({ programId, nombre: "Programa", precioLista: "1500" }).returning();
-    await db.update(deals).set({ ownerUserId: closer, productoId: prod.id }).where(eq(deals.id, dealId));
+    await db.update(deals).set({ ownerUserId: closer, productoId: prod.id, areaDeclaradaId: areaId }).where(eq(deals.id, dealId));
 
     // 2. El Grain de ESA llamada la marca como sucedida y pasa el deal a Atendido (T10).
     const grain = await pegarGrain(db, comoCloser(), { callId: llamada.id, linkGrain: "https://grain.com/share/recording/e2" });

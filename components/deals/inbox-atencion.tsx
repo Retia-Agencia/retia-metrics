@@ -34,6 +34,7 @@ export function InboxAtencion({
   nombreDeEtapa,
   tonoDeEtapa,
   plataformas,
+  areas,
   puedeRegistrar,
 }: {
   filas: FilaAtencion[];
@@ -42,6 +43,7 @@ export function InboxAtencion({
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
   /** Plataformas de pago del programa, para el abono rápido. */
   plataformas: OpcionesDeFicha["plataformas"];
+  areas: OpcionesDeFicha["areas"];
   /** Trabaja leads Y (dueño o administra). Proyección: la reja es el servidor. */
   puedeRegistrar: boolean;
 }) {
@@ -63,6 +65,7 @@ export function InboxAtencion({
                 nombreDeEtapa={nombreDeEtapa}
                 tonoDeEtapa={tonoDeEtapa}
                 plataformas={plataformas}
+                areas={areas}
                 puedeRegistrar={puedeRegistrar}
               />
             ))}
@@ -102,6 +105,7 @@ function FilaAtencionItem({
   nombreDeEtapa,
   tonoDeEtapa,
   plataformas,
+  areas,
   puedeRegistrar,
 }: {
   fila: FilaAtencion;
@@ -109,6 +113,7 @@ function FilaAtencionItem({
   nombreDeEtapa: Record<EtapaDeal, string>;
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
   plataformas: OpcionesDeFicha["plataformas"];
+  areas: OpcionesDeFicha["areas"];
   puedeRegistrar: boolean;
 }) {
   const [dialogo, setDialogo] = useState<"contacto" | "abono" | null>(null);
@@ -142,7 +147,7 @@ function FilaAtencionItem({
 
       {dialogo === "contacto" ? <DialogoContacto dealId={fila.dealId} onCerrar={() => setDialogo(null)} /> : null}
       {dialogo === "abono" ? (
-        <DialogoAbono dealId={fila.dealId} plataformas={plataformas} onCerrar={() => setDialogo(null)} />
+        <DialogoAbono dealId={fila.dealId} areaDeclaradaIdActual={fila.areaDeclaradaId} areas={areas} plataformas={plataformas} onCerrar={() => setDialogo(null)} />
       ) : null}
     </li>
   );
@@ -208,10 +213,14 @@ function DialogoContacto({ dealId, onCerrar }: { dealId: string; onCerrar: () =>
  */
 function DialogoAbono({
   dealId,
+  areaDeclaradaIdActual,
+  areas,
   plataformas,
   onCerrar,
 }: {
   dealId: string;
+  areaDeclaradaIdActual: string | null;
+  areas: OpcionesDeFicha["areas"];
   plataformas: OpcionesDeFicha["plataformas"];
   onCerrar: () => void;
 }) {
@@ -219,6 +228,7 @@ function DialogoAbono({
   const [dia, setDia] = useState(hoyEnBogota());
   const [montoStr, setMontoStr] = useState("");
   const [plataformaId, setPlataformaId] = useState<string | null>(null);
+  const [areaDeclaradaId, setAreaDeclaradaId] = useState<string | null>(null);
   const [comprobante, setComprobante] = useState("");
   return (
     <DialogoForm
@@ -226,7 +236,7 @@ function DialogoAbono({
       descripcion="Un pago recibido sobre este deal. El deal pasa a Abonado (o Completo) según el saldo."
       pendiente={pendiente}
       onCerrar={onCerrar}
-      deshabilitarConfirmar={!dia || montoStr.trim() === ""}
+      deshabilitarConfirmar={!dia || montoStr.trim() === "" || (!areaDeclaradaIdActual && !areaDeclaradaId)}
       confirmar={{
         texto: "Registrar",
         enCurso: "Guardando…",
@@ -239,6 +249,7 @@ function DialogoAbono({
                 monto: montoStr,
                 plataformaId: plataformaId ?? undefined,
                 comprobanteUrl: comprobante,
+                areaDeclaradaId: areaDeclaradaId ?? undefined,
               }),
             {
               exito: (r) => (r.movioElDeal ? "Abono registrado: el deal se movió." : "Abono registrado."),
@@ -263,6 +274,18 @@ function DialogoAbono({
             />
           </Campo>
         </div>
+        {!areaDeclaradaIdActual ? (
+          <Campo etiqueta="Área de origen (según el closer)">
+            <Select
+              value={areaDeclaradaId}
+              items={areas.map((a) => ({ value: a.id, label: a.nombre }))}
+              onValueChange={(v: string | null) => setAreaDeclaradaId(v)}
+            >
+              <SelectTrigger className="w-full"><SelectValue placeholder="Elige un área" /></SelectTrigger>
+              <SelectContent>{areas.map((a) => <SelectItem key={a.id} value={a.id}>{a.nombre}</SelectItem>)}</SelectContent>
+            </Select>
+          </Campo>
+        ) : null}
         <Campo etiqueta="Plataforma (opcional)">
           <Select
             value={plataformaId}

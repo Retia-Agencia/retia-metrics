@@ -74,6 +74,7 @@ export function razonSistema(mapa: MapaTransiciones, de: EtapaDeal, a: EtapaDeal
  */
 const REQUISITOS_QUE_SE_TECLEAN: ReadonlySet<CodigoRequisito> = new Set([
   "producto",
+  "area_declarada",
   "fecha_limite_pago",
   "cohorte_destino",
   "fecha_seguimiento",
