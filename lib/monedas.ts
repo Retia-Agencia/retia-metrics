@@ -9,7 +9,13 @@
  * - **Los componentes de cliente la importan.** Si viviera en un modulo que toca la base,
  *   el driver (`postgres`, que necesita sockets de Node) terminaria en el bundle del
  *   navegador. Asi rompio el build al mudarse a Supabase (ADR 0047).
+ *
+ * **Solo USD desde el 30-sep (ticket 114 C6).** Los abonos ya se registran solo en USD
+ * (081, Mani 28-sep: *"solo usamos USD aqui"*), asi que un producto o un enlace en COP era
+ * una trampa: se creaba y despues no se podia cobrar. La pauta en COP NO pasa por aqui: su
+ * gasto lleva la moneda en cada fila (ticket 120) y `monto` de `lib/format.ts` la sigue
+ * sabiendo escribir. Filas viejas en COP siguen legibles: la columna es texto.
  */
-export const MONEDAS = ["USD", "COP"] as const;
+export const MONEDAS = ["USD"] as const;
 
 export type Moneda = (typeof MONEDAS)[number];

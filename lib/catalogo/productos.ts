@@ -24,7 +24,7 @@ import { MONEDAS } from "@/lib/monedas";
  *    regla de datos (a que programa pertenece este producto), aparte de la barrera
  *    de rol que ya enforza `requireRole("gerente","closer")` en la ruta.
  *  - **Un solo esquema zod:** `programId` uuid, `nombre` (trim, 1..80), `precioLista`
- *    positivo con hasta dos decimales, `moneda` enum ["USD","COP"] con default "USD".
+ *    positivo con hasta dos decimales, `moneda` enum de `MONEDAS` (hoy solo USD) con default "USD".
  *    La moneda vive al lado del numero y nunca se convierte en silencio (restriccion
  *    dura de AGENTS.md).
  *

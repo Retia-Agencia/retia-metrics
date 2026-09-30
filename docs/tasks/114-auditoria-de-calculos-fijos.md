@@ -40,14 +40,20 @@ las métricas (dashboard, cartera, kanban), y los umbrales ya viven en la base (
    redacte distinto, un campo **casa en silencio o se pierde en silencio**. La plantilla por programa ya
    existe (`programs.plantilla_lead`, ADR 0019). Propuesta: que el defecto viva ahí (cargado una vez) y el
    código no tenga títulos; `agenda` ya se trata así en el webhook. No urgente: se hace antes de sumar un
-   tercer programa.
+   tercer programa. ➡️ **30-sep (Mani): va dentro del [117](./117-los-estados-de-llegada-por-tabla-y-los-parciales.md)**
+   (carril Alejo), que ya reescribe el adaptador; ver la suma al final de ese ticket.
 5. **`sources.calificacion` (jsonb, los pesos del puntaje por fuente) está muerta** desde el 28-sep (T2
    borrado) y con el score de Typeform (070) no vuelve. Retirar la columna en una migración de limpieza.
+   Medido el 30-sep: NULL en las 5 fuentes de producción y ningún lector; solo `scripts/seed-datos.ts` la
+   escribía.
 
 ## C. Menores
 
 6. `MONEDAS = ["USD", "COP"]` (`lib/monedas.ts`) con la decisión "solo USD" (081). Revisar si COP sigue
-   haciendo falta para la pauta (E7) antes de quitarlo.
+   haciendo falta para la pauta (E7) antes de quitarlo. ✅ **30-sep:** `MONEDAS = ["USD"]`. La pauta no pasa
+   por `MONEDAS` (su gasto lleva la moneda por fila, 120) y era una trampa: los abonos ya solo aceptaban
+   USD, así que un producto o enlace en COP se creaba y no se podía cobrar. Producción: 3 productos, todos
+   USD; 0 enlaces. `tests/monedas.test.ts` ata producto, enlace y abono a la misma lista.
 
 ## Lo que NO es deuda (y por qué)
 

@@ -174,8 +174,8 @@ describe("enlacesDePagoVigentes — con programa, producto, plataforma, monto y 
     await crearEnlacePago(db, actor, {
       programId: programaA,
       plataformaId: plataforma,
-      monto: "500000",
-      moneda: "COP",
+      monto: "500.00",
+      moneda: "USD",
       url: "https://paypal.com/sin-producto",
     });
 
@@ -188,7 +188,7 @@ describe("enlacesDePagoVigentes — con programa, producto, plataforma, monto y 
     expect(conProducto.moneda).toBe("USD");
     const sinProducto = filas.find((f) => f.url.endsWith("sin-producto"))!;
     expect(sinProducto.productoNombre).toBeNull();
-    expect(sinProducto.moneda).toBe("COP");
+    expect(sinProducto.moneda).toBe("USD");
   });
 });
 

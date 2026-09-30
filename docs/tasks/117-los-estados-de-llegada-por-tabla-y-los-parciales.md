@@ -67,3 +67,24 @@ ticket lo vuelve innecesario.
 
 Sí para el código y los tests, con revisión. La migración, la siembra y el reproceso en producción, la
 sesión principal con el ok de Mani.
+
+---
+
+## Suma 2026-09-30: el B4 de la auditoría 114 entra aquí (Mani)
+
+Los títulos de pregunta de los Typeform de hoy siguen escritos en el código: `MAPEO_FORMULARIO`
+(`lib/sheets/mapeo.ts`) y `MAPEO_POR_DEFECTO` (`lib/ingesta/adaptador-typeform.ts`), que hacen de defecto
+cuando ni la fuente ni `programs.plantilla_lead` dicen nada (`combinarMapeo`, `lib/sheets/plantilla-lead.ts`).
+Como este ticket ya reescribe el adaptador, el cambio se hace aquí una sola vez y no en dos pasadas:
+
+- El defecto pasa a vivir en `programs.plantilla_lead` de cada programa (cargado una vez, por
+  `lib/catalogo/programas.ts`, con `change_log`); el código deja de tener títulos de pregunta.
+- Un programa sin plantilla y una fuente sin mapeo **fallan ruidosamente** (`MapeoInvalidoError`), no
+  caen a un defecto que adivina. `agenda` ya se trata así en el webhook.
+- La carga de las dos plantillas en producción la hace la sesión principal con el ok de Mani, **antes**
+  de desplegar el código que quita el defecto.
+- `MAPEO_FORMULARIO` puede quedarse solo como vocabulario del traslado/migración desde la hoja (etapa 7),
+  que lee una hoja una vez; si se queda, que el nombre o un comentario lo diga.
+
+**Done cuando (suma):** `rg` no encuentra títulos de pregunta de Typeform en `lib/ingesta/`; test de que un
+programa sin plantilla y sin mapeo de fuente falla con `MapeoInvalidoError`.
