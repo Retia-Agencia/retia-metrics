@@ -393,17 +393,6 @@ export const sources = pgTable(
      */
     tzFechas: text("tz_fechas").notNull().default("America/Bogota"),
     /**
-     * Como se califica y se puntua un envio de ESTA fuente (T2 y T4): que pregunta es
-     * la de pago, que respuesta descarta, que campo trae la agenda y, si Mani los fija,
-     * los pesos del puntaje. Validado por `esquemaCalificacion`. Por fuente y no por
-     * programa porque las preguntas son del formulario: el texto lleva el precio y las
-     * escalas de ingreso cambian entre formularios.
-     *
-     * Nulo = sin configurar: el envio entra igual, SIN calificacion, y la ingesta lo
-     * reporta. Adivinar la pregunta de pago mandaria leads al lugar equivocado sin error.
-     */
-    calificacion: jsonb("calificacion"),
-    /**
      * Salud de la fuente (ticket 055). Una fuente rota SIGUE ACTIVA y sigue siendo
      * el intake del programa: lo que cambia es que la app avisa. Apagarla por un
      * encabezado renombrado dejaria al programa sin entrada de leads sin que nadie

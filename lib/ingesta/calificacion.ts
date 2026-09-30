@@ -12,10 +12,9 @@ import { calificacionEnvioEnum } from "@/lib/db/schema";
  * Quedan solo el tipo y la lista de valores, que el resto de la ingesta necesita
  * (`estado.ts`, `envio.ts`, `ingerir.ts`).
  *
- * La columna `sources.calificacion` (jsonb) y las columnas `submissions.calificacion` /
- * `submissions.puntaje` siguen en el esquema, sin uso: no se tocan aqui (ver reporte del
- * 28-sep). Si el Estado un dia lo calcula el CRM por programa (decision A8, `docs/plan.md`
- * §7), esa logica se reintroduce entonces, no antes.
+ * La columna `sources.calificacion` (la configuracion de T2 por fuente) se retiro el 30-sep
+ * (ticket 114 B5, migracion 0046). Si el Estado un dia lo calcula el CRM por programa
+ * (decision A8, `docs/plan.md` §7), esa logica se reintroduce entonces, no antes.
  */
 
 /** Los valores del Estado. El codigo decide con ellos (el 052 abre deals segun esto). */
