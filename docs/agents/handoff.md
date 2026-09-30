@@ -71,6 +71,9 @@ empuja al mismo main y el numero de migracion puede chocar.
   - 🩸 La base local de Docker era anterior a la 0045 (0 áreas): `db:local` no resiembra una base con datos. Se
     rehízo con `docker compose down -v && npm run db:local`.
   - Codex no puede escribir en `.git` desde su sandbox: el commit lo hace la sesión principal.
+  - **Después del cierre:** áreas administrables en `/ajustes/canales` (crear, renombrar, desactivar), a pedido de
+    Mani; 127 de Alejo marcado done en el tracker. Los niveles bajo el canal (campaña, anuncio, placement) no se
+    descartan: son del 085 (emparejador), 120 (árbol y gasto de Meta), 123 (embudo y costos) y 125 (tab Campañas).
 
 - **2026-09-29/30 (sesión 53, Alejo): costura 078/115, 080, 099, 062, 072 y el guion del corte.**
   - **078 (`8898ff1`):** el importador pasa `submissionOrigenId` (el envío más reciente del lead, o nulo) a

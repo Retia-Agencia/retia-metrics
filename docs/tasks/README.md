@@ -68,7 +68,7 @@ aplicado en el Typeform ese día (`docs/analytics.md` §2.4); el 117 lo vuelve i
 | [ ] | 124 | [El cumplimiento de la cohorte por área](./124-el-cumplimiento-de-la-cohorte-por-area.md) | 122, 123 | todo · carril Mani · espera PQ3 de Pauta |
 | [ ] | 125 | [La tab Campañas: el árbol de Meta con su embudo](./125-la-tab-campanas-con-el-arbol-de-meta.md) | 120, 123 | todo · carril Mani |
 | [ ] | 126 | [El embudo del formulario](./126-el-embudo-del-formulario.md) | — | todo · carril Alejo · 🟡 dónde vive el token de Typeform |
-| [ ] | 127 | [Deshacer la migración de un programa por su huella](./127-deshacer-la-migracion-por-huella.md) | 078 | todo · carril Alejo · 30-sep · la reversa nivel 3 del corte (`operations.md` §12.3) como comando probado; recomendado ANTES del corte |
+| [x] | 127 | [Deshacer la migración de un programa por su huella](./127-deshacer-la-migracion-por-huella.md) | 078 | done · 30-sep · Alejo (`87625fe`) · `npm run migracion:deshacer -- --programa <slug> [--aplicar]`: la reversa nivel 3 del corte (`operations.md` §12.3), probada en PGlite y en la base local; se niega sin borrar si alguien trabajó encima |
 
 Enmendados el 29-sep por la reunión (bloque al final de cada archivo): 021, 051, 052, 062, 065, 067, 070,
 071, 072, 077, 078, 083, 084, 085, 087, 088, 089, 090, 092, 093, 095, 100, 101, 102, 115. El 093 pasa a ser

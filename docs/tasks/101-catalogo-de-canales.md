@@ -87,3 +87,6 @@ Sí. **La migración la genera y aplica la sesión principal.**
 - **Cuidado:** un canal creado desde un par sin source queda como comodín de ese medium.
 - **Quién mapea:** hoy un administrador; con el 102, el paid trafficker (Mani, 30-sep).
 - **Siguiente:** el 085 usa `resolverCanal` como primer paso y lee `formato` para interpretar content/term.
+- **Áreas desde la pantalla (Mani, 30-sep):** `/ajustes/canales` suma un bloque de Áreas (crear, renombrar,
+  desactivar, con cuántos canales tiene cada una), por el mismo molde y la misma guarda. Una área no se borra; si se
+  desactiva con canales, esos canales muestran "Área inactiva".
