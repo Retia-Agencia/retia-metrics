@@ -118,6 +118,20 @@ copiarla. El escritor rechaza un envío de otro lead (la FK solo mira que exista
 producción (sin `--aplicar`) de los dos programas. Las preguntas abiertas del 077 (cuentas, `Bootcamp`,
 `Mail onboarding`) no bloquean el ensayo: caen como rarezas o quedan apagadas por defecto.
 
+**Ensayo contra producción de los dos programas, hecho (30-sep, Alejo, templates del 30-sep):** antes, el
+importador escribía fila por fila (~20 consultas por deal a ~90 ms cada una por el pooler): CA tardó 40 minutos
+en una transacción y TI no terminó. Desde `0f63581` escribe en lote (`crearVariosConRastro`,
+`abrirDealesHistoricos`, `registrarAbonosHistoricos`, `registrarLlamadasHistoricas`; las mismas reglas, el índice
+sigue decidiendo): **CA en 18 s y TI en 23 s**. Después: 0 transacciones abiertas y 0 filas migradas.
+
+| | Deals creados | Sin lead | Gana el vivo | Abonos (sin deal) | Llamadas colgadas / sueltas | Rarezas |
+|---|---|---|---|---|---|---|
+| CA | 691 | 13 | 24 | 72 (5) | 69 / 235 | 467 |
+| TI | 1.272 | 29 | 13 | 47 (7) | 74 / 156 | 741 |
+
+Antes de `--aplicar` siguen abiertos dos hallazgos del handoff (30-sep): las llamadas sueltas llenarían el Inbox
+(decidir con Mani, 071) y los estudiantes sin producto (43 en CA y 23 en TI: no hay producto USD con ese precio).
+
 Sin resolver en el extractor (va al importador o al 080): el cruce del `Agendado` con su llamada, los 12
 "cohorte pasada" de CA Septiembre (no hay columna que los marque), y el catálogo de motivos por código de
 subcategoría.
