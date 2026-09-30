@@ -52,6 +52,28 @@ empuja al mismo main y el numero de migracion puede chocar.
 
 ## Memory
 
+- **2026-09-30 (Alejo, sesión del 078): ensayo del 078 contra producción, solo ComunicArte; tres hallazgos antes
+  de aplicar.** Sesión del 29-sep que armó el 078 de punta a punta (0042, escritor, extractor, importador) y lo
+  mergeó; el detalle está en el ticket 078.
+  - **Ensayo CA (se deshizo entero, templates del 29-sep):** 696 deals creados, 23 ganados por el deal vivo, 13
+    sin lead; 72 abonos (5 sin deal); 69 llamadas colgadas y **235 sueltas**; 466 rarezas. **Tardó 40 minutos en
+    UNA transacción.** Tactical no terminó: Claude Code cortó el proceso por falta de memoria de la máquina (no
+    es un fallo del script). Verificado después: nada migrado en producción y ninguna transacción colgada.
+  - **Tres cosas que resolver ANTES de `--aplicar`:**
+    1. **Las sueltas llenarían el Inbox:** `lib/queries/inbox.ts:203` lista toda llamada sin deal sin mirar el
+       origen, así que ~235 llamadas de la hoja de CA (más las de TI) saldrían como sueltas por asignar.
+       Propuesta: el Inbox muestra solo las de `origen = 'calendly'` (ADR 0049) y las de la hoja se ven como
+       rareza. Es del carril de Mani (071): decidirlo con él.
+    2. **43 de 77 estudiantes de CA sin producto:** no hay producto USD con su precio exacto (697, 397…); sin
+       producto el deal no tiene saldo. Crear esos productos antes de aplicar (depende del precio de lista 797 o
+       697, decisión pendiente de Gerencia en E5).
+    3. **Rendimiento:** 40 min para CA y TI es casi el doble; `--aplicar` en una sola transacción dejaría bloqueos
+       más de una hora con el webhook escribiendo. Como el importador es idempotente, `--aplicar` puede confirmar
+       fila por fila (si se corta, se vuelve a correr); el ensayo sí necesita la transacción, pero hay que bajar
+       las consultas por fila. Detalle menor: el reporte muestra la fecha del template en UTC (`generadoEn` con
+       `slice(0,10)`), no la de Bogotá.
+  - `SCRIPT_ACTOR_EMAIL` de Alejo quedó lleno en su `.env.local` (tenía una errata: `davola` → `davila`).
+
 - **2026-09-30 (sesión 56, Alejo): 127, 116, "cohorte pasada" del 080 y los huérfanos de `test.mjs`.**
   - **127 (`87625fe`):** `lib/migracion/deshacer.ts` y `npm run migracion:deshacer`. Se niega si hay trabajo encima;
     lo detecta, entre otras cosas, por una fila de `change_log` de un registro migrado con otra hora que su alta (el
