@@ -5,8 +5,8 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 53 de Alejo (30-sep). El anterior:
-> `git show 968532a:docs/agents/handoff.md`.
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 53 de Alejo (30-sep) y actualizado en la 54 de
+> Mani (30-sep, carril de Mani). El anterior: `git show 968532a:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas)
@@ -14,7 +14,12 @@ y docs/plan.md (el QUE, decisiones en §7). El estado de cada ticket vive solo e
 docs/structure.md §9 (sistema de diseño Tinta) es OBLIGATORIO antes de tocar una pantalla.
 
 Estado al 30-sep (sesion 53, Alejo): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
-47 migraciones (0000-0046), todas aplicadas. ~1.609 tests. Produccion: https://retia-metrics-seven.vercel.app.
+48 migraciones (0000-0047), todas aplicadas. ~1.620 tests. Produccion: https://retia-metrics-seven.vercel.app.
+
+Carril de Mani (E6, sesion 54): 101 done (canales, /ajustes/canales, 0047 en produccion, 26 canales sembrados).
+- SIGUIENTE: 085 el emparejador (usa resolverCanal de lib/atribucion/canal.ts y lee canales.formato; utm_id,
+  macro como centinela, nivel de la traza) -> 087 -> 121 -> 118 (espera 117) -> 089. 084 se reduce (DP-25).
+- PQ9 a Pauta: que manden por escrito como agrupan los UTM (nuevo e historico).
 
 Carril de Alejo (E5 con el codigo en main):
 - 062 done: comision = cierres x monto FIJO por venta en USD (programs.comision_por_venta_usd, 0044);
@@ -45,6 +50,27 @@ empuja al mismo main y el numero de migracion puede chocar.
 ```
 
 ## Memory
+
+- **2026-09-30 (sesión 54, Mani): 101, el catálogo de Canales, en producción.**
+  - **Decisiones de Mani (ADR 0051 enmendado, ticket 101):** catálogo **global** (la convención UTM es la misma en
+    todos los programas); `utm_source` nulo = **comodín** del medium (para `paid_social`, que Meta llena con
+    `{{site_source_name}}`), el par exacto gana; medium obligatorio; comparación `lower(trim())` sin tocar el crudo;
+    **formato** de content/term fijo en el código (`plantilla_pauta`, `meta_historico`, `closer`): dice en qué campo
+    viene cada cosa, los valores se agrupan como llegan. El área se deriva al leer, así que corregir un canal
+    reclasifica la historia. **Mapear canales es trabajo de Pauta:** con el 102 pasa a `manejaPauta` (enmienda en el
+    ticket). PQ9: que Pauta mande por escrito cómo agrupa.
+  - **Código:** `lib/catalogo/canales.ts`, `lib/atribucion/canal.ts` (`resolverCanal`),
+    `lib/atribucion/pares-sin-clasificar.ts` (`clasificacionDeEnvios`: envíos por canal y pares sin canal),
+    `/ajustes/canales`, `scripts/cargar-canales.ts`. Implementó Codex; Claude corrigió un test con `rejects` sin
+    `await` (pasaba sin verificar) y las columnas pegadas de la tabla, y agregó el conteo por canal.
+  - **Producción (ok de Mani):** 0047 aplicada (ref verificado, sin transacciones largas); 26 canales por el molde
+    (130 filas de `change_log`). **5.140 envíos clasificados**; en 0 solo `paid_social` y `closer / referido`
+    (esperado); sin canal, 5 de prueba de Tactical.
+  - Recorrido en la base local (escritorio, 375 px, claro y oscuro, consola limpia): un closer rebota a su Inbox;
+    crear desde un par, duplicado con otras mayúsculas (409), editar y desactivar funcionan.
+  - 🩸 La base local de Docker era anterior a la 0045 (0 áreas): `db:local` no resiembra una base con datos. Se
+    rehízo con `docker compose down -v && npm run db:local`.
+  - Codex no puede escribir en `.git` desde su sandbox: el commit lo hace la sesión principal.
 
 - **2026-09-29/30 (sesión 53, Alejo): costura 078/115, 080, 099, 062, 072 y el guion del corte.**
   - **078 (`8898ff1`):** el importador pasa `submissionOrigenId` (el envío más reciente del lead, o nulo) a
@@ -3431,9 +3457,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
-- Cerrar E1 (orden en el prompt de arriba): ingesta por lotes y traslado del 111, y la conciliación del
-  110 en cero. Luego E2.
-- Vigilar que los leads reales sigan entrando por webhook: ahora se ve en `/ajustes/salud` (110).
-- 108 (el cron ya está apagado; falta el código); 107 (umbrales decididos).
-- 096: la pantalla que haga visibles la nota del 052 y las llamadas sueltas (pedido de Mani).
-- Producción: enlaces de pago y closers reales (007).
+- **30-sep:** E6 abierta. Carril de Mani: 085 → 087 → 121 → 118 → 089 (101 y 083 done). Carril de Alejo: cerrar
+  072, 099, 080 y 078 (recorridos y ensayo), 127, y después 116 y 117. El orden completo, en el prompt de arriba y
+  en `plan-reparto.md` §4.
+- Vigilar que los leads reales sigan entrando por webhook: `/ajustes/salud` (110). Los pares sin canal:
+  `/ajustes/canales` (101).

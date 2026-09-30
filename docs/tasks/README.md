@@ -136,7 +136,7 @@ la de RLS del 23-sep (ADR 0047), así que es **la siguiente libre**. Léela lín
 | [ ] | 084 | [`campanas` y `utm_patron`](./084-campanas-y-el-patron-utm.md) | 083 | todo · **tres** campos de patrón, sin `nivel_utm` |
 | [ ] | 085 | [El emparejador determinista y su guardián](./085-el-emparejador-determinista.md) | 084 | todo |
 | [ ] | 092 | [La URL del formulario y el generador de links](./092-url-del-formulario-y-generador-de-links.md) | 084 | todo · 🩸 **destapa que `programs` no tiene la URL del formulario**, sin la cual el 086 tampoco se puede calcular. Encogió el 21-sep: **sin árbol**. **24-sep: es el builder v1** (destinos con checkouts, canal, campaña, dos opcionales; ADR 0051) |
-| [ ] | 101 | [El catálogo de Canales (el "Origen" del builder)](./101-catalogo-de-canales.md) | 083 | todo · 24-sep, ADR 0051 · el mapeo UTM → área **es** este catálogo |
+| [x] | 101 | [El catálogo de Canales (el "Origen" del builder)](./101-catalogo-de-canales.md) | 083 | done · 30-sep · Mani · 0047 en producción; catálogo global con comodín de source, formato de content/term por canal, `/ajustes/canales` con envíos por canal y pares sin canal; 26 canales sembrados, 5.140 envíos clasificados y solo 5 de prueba sin canal |
 | [ ] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | todo · 24-sep, ADR 0052 · migración de la sesión principal |
 
 ## E2 · El motor de etapas

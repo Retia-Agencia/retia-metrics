@@ -78,3 +78,17 @@ mientras tanto el closer registra el abono.
 - **Puntos 3, 4 y 5:** el CRM **no** genera los links de Meta ni crea sus campañas; las refleja desde la
   API. El builder queda para lo que Meta no genera: el orgánico y el link del closer.
 - **Abierto que se cierra:** Pauta usa `{{ad.id}}`, en `utm_id`; `fbclid` no hace falta con el id.
+
+---
+
+## Enmienda 2026-09-30 (Mani, ticket 101)
+
+- **Punto 2:** el catálogo de Canales es **uno solo para todos los programas** (la convención es la misma). Un canal
+  con `utm_source` nulo es el **comodín** de su medium (para `paid_social`, cuyo source lo llena Meta); el par exacto
+  gana. Un índice único sobre `(coalesce(lower(trim(source)), ''), lower(trim(medium)))` hace imposible el empate. El
+  medium es obligatorio; `utm_campaign` no es parte del canal.
+- **Qué significan content y term** lo declara el canal con un **formato** fijo en el código (`formato_utm`:
+  `plantilla_pauta`, `meta_historico`, `closer`, o ninguno): dice en qué campo viene cada cosa, nunca qué valores
+  valen. Los valores se agrupan como llegan.
+- El área se **deriva** al leer: corregir un canal reclasifica la historia sin migrar. Lo que no casa se ve en
+  `/ajustes/canales` con su conteo. Pendiente: que Pauta confirme su agrupación por escrito (PQ9).

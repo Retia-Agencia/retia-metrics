@@ -43,3 +43,9 @@ Parcial. El código y los tests sí, con revisión de permisos. La migración, l
 
 - **Qué ve (Mani, 29-sep; ADR 0052 enmendado):** el Dashboard de sus programas menos el comparativo entre closers y la comisión; sí ventas contratadas y caja, que el ROAS necesita. Crea links de orgánico en el builder y conecta la cuenta de Meta de sus programas (119).
 - Usuarios de Pauta: Anderson, César y Daniela Rodríguez (entra full time).
+
+## Enmienda 2026-09-30 (Mani, ticket 101)
+
+- **El paid trafficker maneja los Canales:** `/ajustes/canales` (crear, editar, desactivar y ver los pares sin canal)
+  pasa de `esAdministrador` a `manejaPauta`, en la página y en sus server actions. Mapear lo que llega es trabajo de
+  Pauta; el CRM solo muestra lo que no casa.

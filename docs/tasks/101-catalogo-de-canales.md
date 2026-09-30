@@ -3,7 +3,7 @@ id: 101
 etapa: E1b
 serves: "ADR 0051 punto 2 · ADR 0043 punto 3"
 depends: [083]
-status: todo
+status: done
 ---
 
 # 101 — El catálogo de Canales (el "Origen" del builder)
@@ -33,9 +33,9 @@ significado. Dos cosas con el mismo nombre se confunden en el código y en la co
 
 ## Done cuando
 
-- [ ] Dos canales con el mismo par los rechaza el índice, con test.
-- [ ] El área de un envío sale del canal, con test, y un par sin canal da "(sin clasificar)".
-- [ ] Cada alta queda en `change_log`.
+- [x] Dos canales con el mismo par los rechaza el índice, con test.
+- [x] El área de un envío sale del canal, con test, y un par sin canal da "(sin clasificar)".
+- [x] Cada alta queda en `change_log`.
 
 ## Kiro
 
@@ -71,3 +71,19 @@ Sí. **La migración la genera y aplica la sesión principal.**
 - **Visibilidad de todo UTM:** todo par sin canal sale listado con su conteo y "crear canal".
 - **Abierto (PQ9, Pauta):** que manden por escrito cómo agrupan, para confirmar formato y área de cada canal.
 - Migración **0047** (tabla `canales`, enum `formato_utm`), aditiva.
+
+## Cierre 2026-09-30 (sesión 54, Mani)
+
+- **Código:** `lib/catalogo/canales.ts` (molde; el molde ganó `mensajeDuplicado` opcional), `lib/atribucion/canal.ts`
+  (`resolverCanal`, puro: exacto > comodín > sin clasificar; "sin UTM" aparte; macros y vacíos cuentan como ausentes;
+  solo canales activos; el orden del catálogo no cambia el resultado), `lib/atribucion/pares-sin-clasificar.ts`
+  (`clasificacionDeEnvios`: envíos por canal y pares sin canal por programa, en una pasada), `/ajustes/canales`
+  (solo administradores; crear desde un par, editar, desactivar), `scripts/cargar-canales.ts`. Un área con canales ya
+  no se borra (dependiente declarado). Implementó Codex; revisión, arreglos y recorrido de Claude.
+- **Producción (ok de Mani):** 0047 aplicada; 26 canales sembrados por el molde (130 filas de `change_log`).
+  Medido al sembrar: **5.140 envíos clasificados**; en 0 solo `paid_social` (Pauta aún no aplica la plantilla) y
+  `closer / referido` (llega con el 086); sin canal, 5 envíos de prueba de Tactical (`prueba`, `test`,
+  `test_url_parameter`, `null / linktree`), que el gerente decide.
+- **Cuidado:** un canal creado desde un par sin source queda como comodín de ese medium.
+- **Quién mapea:** hoy un administrador; con el 102, el paid trafficker (Mani, 30-sep).
+- **Siguiente:** el 085 usa `resolverCanal` como primer paso y lee `formato` para interpretar content/term.
