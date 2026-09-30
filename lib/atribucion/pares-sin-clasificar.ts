@@ -11,10 +11,19 @@ export interface ParSinClasificar {
   envios: number;
 }
 
+export interface ClasificacionDeEnvios {
+  /** Envios completos que cada canal activo clasifica; un canal en 0 no casa con nada. */
+  enviosPorCanal: Map<string, number>;
+  paresSinClasificar: ParSinClasificar[];
+}
+
 const parCrudoNormalizado = (valor: string | null): string => valor?.trim().toLowerCase() ?? "";
 
-/** Agrupa por programa los pares crudos normalizados que todavía no tienen canal. */
-export async function paresSinClasificar(db: Db): Promise<ParSinClasificar[]> {
+/**
+ * Pasa cada envio completo por `resolverCanal` UNA vez: cuenta los que casan con cada canal
+ * y agrupa por programa los pares crudos normalizados que todavia no tienen canal.
+ */
+export async function clasificacionDeEnvios(db: Db): Promise<ClasificacionDeEnvios> {
   const [catalogo, envios] = await Promise.all([
     db.select().from(canales).where(eq(canales.activo, true)),
     db
@@ -31,9 +40,15 @@ export async function paresSinClasificar(db: Db): Promise<ParSinClasificar[]> {
       .where(eq(submissions.esParcial, false)),
   ]);
 
+  const enviosPorCanal = new Map<string, number>();
   const agrupados = new Map<string, ParSinClasificar>();
   for (const envio of envios) {
-    if (resolverCanal(envio, catalogo as CanalActivo[]).tipo !== "sin_clasificar") continue;
+    const resultado = resolverCanal(envio, catalogo as CanalActivo[]);
+    if (resultado.tipo === "canal") {
+      enviosPorCanal.set(resultado.canal.id, (enviosPorCanal.get(resultado.canal.id) ?? 0) + 1);
+      continue;
+    }
+    if (resultado.tipo !== "sin_clasificar") continue;
     // La clasificación trata una macro como centinela; la tabla de diagnóstico muestra
     // el par crudo (solo lower/trim) para que el problema de origen siga siendo visible.
     const source = parCrudoNormalizado(envio.source);
@@ -44,7 +59,9 @@ export async function paresSinClasificar(db: Db): Promise<ParSinClasificar[]> {
     else agrupados.set(clave, { programId: envio.programId, programa: envio.programa, source, medium, envios: 1 });
   }
 
-  return [...agrupados.values()].sort(
+  const paresSinClasificar = [...agrupados.values()].sort(
     (a, b) => b.envios - a.envios || a.programa.localeCompare(b.programa, "es") || a.source.localeCompare(b.source),
   );
+  return { enviosPorCanal, paresSinClasificar };
 }
+

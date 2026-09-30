@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { areas, canales, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { paresSinClasificar } from "@/lib/atribucion/pares-sin-clasificar";
+import { clasificacionDeEnvios } from "@/lib/atribucion/pares-sin-clasificar";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
 let db: Db;
@@ -14,7 +14,8 @@ describe("pares sin clasificar (ticket 101)", () => {
   it("cuenta completos por programa, normaliza el par y excluye resueltos", async () => {
     const [actor] = await db.insert(users).values({ email: "pares@retia.local", rol: "gerente" }).returning();
     const [area] = await db.insert(areas).values({ nombre: "Orgánico" }).returning();
-    await db.insert(canales).values({ nombre: "Directo", utmSource: "direct", utmMedium: "organic", areaId: area.id });
+    const [directo] = await db.insert(canales).values({ nombre: "Directo", utmSource: "direct", utmMedium: "organic", areaId: area.id }).returning();
+    const [sinUso] = await db.insert(canales).values({ nombre: "Sin uso", utmSource: "facebok", utmMedium: "cpc", areaId: area.id }).returning();
     const [p1, p2] = await db.insert(programs).values([
       { slug: "uno", nombre: "Uno", ticketUsd: "100.00" },
       { slug: "dos", nombre: "Dos", ticketUsd: "200.00" },
@@ -33,7 +34,10 @@ describe("pares sin clasificar (ticket 101)", () => {
     ]);
 
     expect(actor.id).toBeTruthy();
-    expect(await paresSinClasificar(db)).toEqual([
+    const { enviosPorCanal, paresSinClasificar } = await clasificacionDeEnvios(db);
+    expect(enviosPorCanal.get(directo.id)).toBe(1);
+    expect(enviosPorCanal.get(sinUso.id)).toBeUndefined();
+    expect(paresSinClasificar).toEqual([
       { programId: p1.id, programa: "Uno", source: "instagram", medium: "stories", envios: 2 },
       { programId: p2.id, programa: "Dos", source: "instagram", medium: "stories", envios: 1 },
     ]);
