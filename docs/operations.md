@@ -347,10 +347,15 @@ tocar lo que entró por el webhook.
 2. **Falla durante `--aplicar`:** la transacción se deshace sola. No hay nada que revertir: se corrige la
    causa y se vuelve al paso 4 de 12.2.
 3. **Aplicado pero mal, antes de abrir a los closers:** nadie tocó todavía los deals migrados, así que
-   deshacerlos es borrar lo que lleva huella de ese programa. **Todavía no existe un script para esto** (es
-   el ticket 127, recomendado antes del corte): si hace falta sin él, se escribe ese día sobre la huella, se prueba primero en la base local y se aplica con el ok
-   de Mani. La alternativa sin script es restaurar el respaldo del paso 1, que también se lleva lo que
-   entró por el webhook en esas horas.
+   deshacerlos es borrar lo que lleva huella de ese programa, con
+   `npm run migracion:deshacer -- --programa <slug>` (ticket 127). Sin `--aplicar` es un ensayo que solo
+   imprime conteos; con `--aplicar` y el ok de Mani borra los deals migrados (con su historial y sus
+   notas), sus abonos, las llamadas `sheets:` y las rarezas del programa, y deja una fila
+   `reversa_migracion` por registro en `change_log`. Leads, envíos y lo que entró por el webhook o
+   Calendly no se tocan. **Se niega sin borrar nada** si alguien ya trabajó encima (un reclamo, una
+   edición, un abono o una llamada del CRM, un movimiento de etapa, una anulación): eso es el nivel 4.
+   La alternativa es restaurar el respaldo del paso 1, que también se lleva lo que entró por el webhook
+   en esas horas.
 4. **Mal y con los closers ya trabajando:** no se revierte en bloque, porque encima ya hay trabajo real.
    Se corrige fila por fila: un deal o un abono migrado que no debía existir se **anula** con su motivo
    (ADR 0038: anular es "esto nunca pasó", y deja rastro); lo que faltó se carga a mano.

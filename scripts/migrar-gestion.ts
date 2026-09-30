@@ -12,6 +12,7 @@ import { extraerLlamadas } from "../lib/migracion/extraer-llamadas";
 import { extraerSetteo, type AlcanceSetteo } from "../lib/migracion/extraer-setteo";
 import { importarGestion, type ReporteImportacion } from "../lib/migracion/importar";
 import { juntar, type Extraccion } from "../lib/migracion/template";
+import { DESCRIPCION_DE_MOTIVO, deshacerMigracion, type ResultadoReversa } from "../lib/migracion/deshacer";
 import { actorDelScript } from "./actor";
 import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
 
@@ -28,6 +29,11 @@ import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
  *     conteo sale del mismo camino de escritura que la corrida real. `--aplicar` escribe de
  *     verdad (pide el ok de Mani). `--local` apunta a la base de Docker (`npm run db:local`).
  *     Siempre exige `SCRIPT_ACTOR_EMAIL` (ADR 0029): su correo queda en `change_log`.
+ *
+ *   npm run migracion:deshacer -- --programa <slug> [--aplicar] [--local]
+ *     La reversa nivel 3 del corte (`operations.md` §12.3, ticket 127): borra lo que escribio la
+ *     migracion en ESE programa, reconocido por su huella, y nada mas. Se niega, sin borrar nada,
+ *     si alguien ya trabajo encima. Ensayo por defecto; `--aplicar` con el ok de Mani.
  *
  * Solo imprime conteos, nunca datos personales. Idempotente: correrlo dos veces no duplica.
  *
@@ -148,12 +154,7 @@ async function importar() {
     process.exit(1);
   }
   const aplicar = process.argv.includes("--aplicar");
-  if (process.argv.includes("--local")) {
-    validarUrlLocal(LOCAL_DB_URL);
-    // El cliente de `lib/db` es perezoso: esto vale mientras nadie lo haya usado todavia.
-    process.env.DATABASE_URL = LOCAL_DB_URL;
-    process.env.DATABASE_URL_DIRECTA = LOCAL_DB_URL;
-  }
+  usarBaseLocalSiSePide();
   const t = JSON.parse(fs.readFileSync(archivo, "utf8")) as ArchivoTemplate;
   // El programa es frontera (ADR 0043): el template se importa en SU programa. `--programa`
   // solo existe para el ensayo local, donde los slugs sembrados son otros.
@@ -188,8 +189,57 @@ async function importar() {
   if (!aplicar) console.log("\n  Para escribir de verdad (con el ok de Mani): agrega --aplicar\n");
 }
 
-const comando = process.argv[2];
-(comando === "extraer" ? extraer() : comando === "importar" ? importar() : Promise.reject(new Error("Comando: extraer | importar")))
+async function deshacer() {
+  const slug = argumento("--programa");
+  if (!slug) {
+    console.error("Falta --programa <slug>: la reversa es de UN programa.");
+    process.exit(1);
+  }
+  const aplicar = process.argv.includes("--aplicar");
+  usarBaseLocalSiSePide();
+
+  const actorId = await actorDelScript(db);
+  const [programa] = await db.select({ id: programs.id }).from(programs).where(eq(programs.slug, slug));
+  if (!programa) {
+    console.error(`No existe el programa ${slug} en esta base.`);
+    process.exit(1);
+  }
+
+  let resultado: ResultadoReversa | undefined;
+  type ConTx = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
+  try {
+    await (db as unknown as ConTx).transaction(async (tx) => {
+      resultado = await deshacerMigracion(tx, { programId: programa.id, actorId });
+      if (!aplicar || resultado.estado === "negado") throw ENSAYO_ROLLBACK;
+    });
+  } catch (e) {
+    if (e !== ENSAYO_ROLLBACK) throw e;
+  }
+
+  if (resultado?.estado === "negado") {
+    console.error(`\nNO SE BORRÓ NADA · ${slug}: alguien ya trabajó sobre lo migrado.`);
+    for (const [motivo, n] of Object.entries(resultado.motivos)) {
+      console.error(`  ${n} ${DESCRIPCION_DE_MOTIVO[motivo as keyof typeof DESCRIPCION_DE_MOTIVO]}`);
+    }
+    console.error("\n  Es el nivel 4 de la reversa (operations.md §12.3): se anula fila por fila (ADR 0038).\n");
+    process.exit(1);
+  }
+  console.log(`\n${aplicar ? "DESHECHO" : "ENSAYO (nada quedó borrado)"} · ${slug}`);
+  console.log(JSON.stringify(resultado?.borrado, null, 2));
+  if (!aplicar) console.log("\n  Para borrar de verdad (con el ok de Mani): agrega --aplicar\n");
+}
+
+function usarBaseLocalSiSePide() {
+  if (!process.argv.includes("--local")) return;
+  validarUrlLocal(LOCAL_DB_URL);
+  // El cliente de `lib/db` es perezoso: esto vale mientras nadie lo haya usado todavia.
+  process.env.DATABASE_URL = LOCAL_DB_URL;
+  process.env.DATABASE_URL_DIRECTA = LOCAL_DB_URL;
+}
+
+const COMANDOS: Record<string, () => Promise<void>> = { extraer, importar, deshacer };
+const comando = COMANDOS[process.argv[2]];
+(comando ? comando() : Promise.reject(new Error("Comando: extraer | importar | deshacer")))
   .then(() => process.exit(0))
   .catch((e) => {
     console.error("Falló la migración:", mensajeSinDatos(e));
