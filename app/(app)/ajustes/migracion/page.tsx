@@ -143,7 +143,9 @@ function Filtros({
   const clase =
     "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
   return (
-    <form method="get" action="/ajustes/migracion" className="flex flex-wrap items-center gap-2">
+    // La `key` rehace los select al navegar por un chip: un `defaultValue` no se reinicia solo y el
+    // select se quedaba mostrando el tipo anterior (recorrido del 30-sep).
+    <form key={`${slug}:${tipo ?? ""}`} method="get" action="/ajustes/migracion" className="flex flex-wrap items-center gap-2">
       <select name="programa" defaultValue={slug} className={clase} aria-label="Programa">
         {programas.map((p) => (
           <option key={p.slug} value={p.slug}>

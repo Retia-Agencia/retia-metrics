@@ -151,7 +151,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                           <Badge variant="peligro">
                             Vencida el {fecha(f.vencido.fechaLimite)} · <span className="cifra">{num(f.vencido.diasDeAtraso)}</span> días
                           </Badge>
-                        ) : f.fechaLimitePago ? (
+                        ) : f.fechaLimitePago && f.etapa !== "completo" ? (
                           <p className="text-xs text-muted-foreground">Fecha límite {fecha(f.fechaLimitePago)}</p>
                         ) : null}
                         {f.acuerdoPago ? <p className="text-xs whitespace-pre-line">{f.acuerdoPago}</p> : null}
