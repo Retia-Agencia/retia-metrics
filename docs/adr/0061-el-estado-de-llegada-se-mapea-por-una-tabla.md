@@ -58,6 +58,14 @@ Tres hechos del 29-sep:
    el Inbox; no hay cron. El aviso fuera de la app (WhatsApp o correo) es del mecanismo único de alertas
    (A2 de `plan.md` §7).
 
+## Nota del 29-sep: la variable `etapa`
+
+Con el ok de Mani, los dos Typeform mandan además una variable `etapa`: `Setteo` por defecto y `Agendado`
+al salir de la pregunta del Calendly. Es una previsión para cuando haya más estados de llegada; **hoy el
+CRM no la usa** y el punto 4 sigue siendo la fuente de verdad de "agendó" (el link del Calendly). Si un
+día `etapa` y el link discrepan, gana el link (punto 4).
+`estado` no cambia. Detalle en `docs/analytics.md` §2.2 y O-8.
+
 ## Consecuencias
 
 - `estadoDesdeTexto` deja de traducir tres valores fijos: lee la tabla. `calificacion_envio` (enum) queda

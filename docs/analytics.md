@@ -88,7 +88,13 @@ No se copian: se adaptan a lo que el CRM ya tiene.
 
 - Campos ocultos de los dos: `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`. **No
   hay `utm_id`**: si Meta lo manda, Typeform lo descarta. ⏳
-- Variables: `estado`, `score`, `tag_lead_quality`, `lead_value`, `hvm_points`, `hvm_tier`.
+- Variables: `estado`, `score`, `tag_lead_quality`, `lead_value`, `hvm_points`, `hvm_tier`, `etapa`.
+- **`etapa` (29-sep, ok de Mani, O-8):** variable de texto en los dos Typeform, **aparte de `estado`**. Vale
+  `Setteo` por defecto y pasa a `Agendado` al salir de la pregunta del Calendly (el mismo punto que pone
+  `tag_lead_quality = High`). Es para que el CRM la use cuando haya más estados de llegada (ADR 0061): hoy
+  el CRM **no la lee** para decidir nada; el webhook la guarda en `respuestas` como `variable:etapa`
+  (ADR 0058). No se metió en `estado` porque el CRM solo reconoce los valores de su tabla y un valor nuevo
+  ahí repite el bug de §2.4.
 - **Los valores del scoring** (leídos de la lógica): `score` arranca en 0 y resta 100 por cada respuesta que
   descalifica (ingreso bajo, "no cuento con los recursos", "no es prioridad"); `hvm_points` suma por ingreso
   (10, 20, 30) y experiencia (10, 20); `hvm_tier` A+ (≥45), A (≥30), B (≥15), C; `lead_value` MUY ALTO VALOR,
@@ -344,6 +350,7 @@ Las métricas de pauta cuentan envíos; las de venta, deals con el origen del en
 | O-5 | Crear la C3 de cada programa con su ventana y meta (Mani, 29-sep: después, verificando bien las fechas) | gerente | antes de la primera venta de C3 |
 | O-6 | ~~Confirmar el parche de Tactical con el próximo envío~~ ✅ 29-sep, 20:30 y 20:35 | Mani | §2.4 |
 | O-7 | Punto parcial antes del Calendly, valor `con_calendly_sin_agenda` en `estado` y el evento `form_response_partial` en el webhook | Ops | **solo después del 117 en producción**: si el form manda el valor nuevo antes, el CRM no lo reconoce y se repite el bug de §2.4 |
+| O-8 | ~~Variable `etapa` (`Setteo` / `Agendado`) en los dos Typeform, aparte de `estado` (§2.2)~~ ✅ 29-sep, por API con respaldo: solo cambiaron `variables` y `logic`, webhooks intactos; la regla `Agendado` es `always` en la pregunta del Calendly (sin la condición de score de `High`) | Ops (Alejandro, ok de Mani 29-sep) | no rompe nada: el CRM la guarda sin leerla. Que el CRM la **use** es del 117 o posterior |
 
 ### Ola 1 y ola 2: en qué etapa y carril cae cada ticket
 

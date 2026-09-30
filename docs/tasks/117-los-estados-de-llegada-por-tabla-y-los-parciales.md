@@ -45,6 +45,10 @@ ticket lo vuelve innecesario.
 - **Fuera:** el urgente del Inbox (118). La configuración del Typeform (tarea O-7 de `docs/analytics.md`
   §7), que va **después** de este ticket en producción.
 
+- **A tener en cuenta:** desde el 29-sep los dos Typeform mandan también la variable `etapa` (`Setteo` /
+  `Agendado`), aparte de `estado` (`docs/analytics.md` §2.2, O-8). Llega en `respuestas` como
+  `variable:etapa`. Si la tabla `estados_llegada` va a leerla, se decide aquí; mientras no, se ignora.
+
 ## Las reglas
 
 - La regla de etapa no compara números de etapa ni textos fijos: lee la fila (ADR 0012).
