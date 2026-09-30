@@ -6,15 +6,15 @@
 ## Prompt para arrancar la próxima sesión
 
 > Copiar y pegar tal cual. Reescrito al cierre de la sesión 53 de Alejo (30-sep) y actualizado en la 54 y la 55
-> de Mani (30-sep, carril de Mani). El anterior: `git show 968532a:docs/agents/handoff.md`.
+> de Mani (30-sep, carril de Mani) y en la 56 de Alejo (30-sep, carril de Alejo). El anterior: `git show 968532a:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas)
 y docs/plan.md (el QUE, decisiones en §7). El estado de cada ticket vive solo en docs/tasks/README.md.
 docs/structure.md §9 (sistema de diseño Tinta) es OBLIGATORIO antes de tocar una pantalla.
 
-Estado al 30-sep (sesion 53, Alejo): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
-48 migraciones (0000-0047), todas aplicadas. ~1.645 tests. Produccion: https://retia-metrics-seven.vercel.app.
+Estado al 30-sep (sesion 56, Alejo): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
+49 migraciones (0000-0048), todas aplicadas. ~1.653 tests. Produccion: https://retia-metrics-seven.vercel.app.
 
 Carril de Mani (E6, sesion 55): 083, 101, 085 y 087 done. 084 reemplazado por DP-25.
 - 085: emparejar() en lib/atribucion/emparejar.ts (canal, campana, anuncio por utm_id, nivel N3-N0) y
@@ -25,21 +25,18 @@ Carril de Mani (E6, sesion 55): 083, 101, 085 y 087 done. 084 reemplazado por DP
 - SIGUIENTE: 121 (area declarada por el closer, con migracion) -> 118 (espera 117) -> 089.
 - PQ9 a Pauta: que manden por escrito como agrupan los UTM (nuevo e historico).
 
-Carril de Alejo (E5 con el codigo en main):
-- 062 done: comision = cierres x monto FIJO por venta en USD (programs.comision_por_venta_usd, 0044);
-  montos cargados (CA 80, TI 100). Con el ok de Mani se corrigio el doble conteo de cierres del 064: la
-  fecha de venta es la PRIMERA entrada a Abonado o Completo (vendidosEn en lib/queries/dashboard.ts).
-- 072 en curso: tab Leads (/p/<programa>/leads) con filtros y posibles duplicados (confirmar / separar,
-  lib/ingesta/separar.ts). Falta el recorrido visual.
-- 099 en curso: tab Students. Falta el recorrido visual.
-- 080 en curso: casos raros decididos (tabla en el ticket) y /ajustes/migracion. Falta: recorrido visual,
-  marcar a mano los 12 "cohorte pasada" de CA en el template (movidoDesde) y revisar los encabezados
-  corridos de CA en el ensayo.
-- 078 en curso: el importador ya pasa submissionOrigenId (ADR 0060). Falta el ensayo contra produccion
-  sin --aplicar (ok de Mani; no dejar la transaccion abierta).
+Carril de Alejo (E5 con el codigo en main; E6 arrancado):
+- 062, 127 y 116 done. 127: npm run migracion:deshacer (reversa nivel 3 del corte). 116: las seis UTM en
+  sus columnas, 0048 aplicada en produccion; utmsDelEnvio lee utm_id de la columna primero.
+- 072 y 099 en curso: solo falta el recorrido visual.
+- 080 en curso: los 12 "cohorte pasada" ya los marca el extractor. Falta: recorrido visual y revisar a mano
+  los encabezados corridos del Registro de llamadas de CA en el ensayo del 078.
+- 078 en curso: falta el ensayo contra produccion sin --aplicar (ok de Mani; no dejar la transaccion
+  abierta). Regenerar antes los templates (npm run migracion:extraer).
 - Guion del corte escrito: docs/operations.md §12 (pasos, reversa, capacitacion, conciliacion).
-- SIGUIENTE: 127 (deshacer la migracion por huella, reversa nivel 3), recomendado antes del corte. Despues,
-  E6: 116, 117 (reprocesa los 23 envios de Tactical), 119/120 (esperan el token de Meta), 102.
+- SIGUIENTE: 092 (ahora depende de 101, listo), pero antes definir su alcance con Mani: el builder queda
+  para organico y closer, y la convencion del organico espera PQ6 (Pauta y Media). Lleva migracion.
+  Despues, E6: 117 (tras el 115; reprocesa los 23 envios de Tactical), 119/120 (token de Meta), 102.
 - Los recorridos visuales (080, 099, 072) necesitan la extension de Chrome conectada: claro/oscuro,
   390 px, consola, clic en todo lo que se abre.
 
@@ -54,6 +51,23 @@ empuja al mismo main y el numero de migracion puede chocar.
 ```
 
 ## Memory
+
+- **2026-09-30 (sesión 56, Alejo): 127, 116, "cohorte pasada" del 080 y los huérfanos de `test.mjs`.**
+  - **127 (`87625fe`):** `lib/migracion/deshacer.ts` y `npm run migracion:deshacer`. Se niega si hay trabajo encima;
+    lo detecta, entre otras cosas, por una fila de `change_log` de un registro migrado con otra hora que su alta (el
+    alta escribe todo en una transacción). Guardián nuevo: solo ese módulo hace `.delete(` sobre deals, llamadas,
+    abonos, actividades o historial. Probado en Docker con el template real de Tactical.
+  - **080 (`9202161`):** el bloque "Cohorte pasada" es una celda combinada en la `x` de `Estudiantes Septiembre` de
+    CA (filas 2 a 13); el extractor lo lee (`cohortePasadaDesde` en `scripts/migrar-gestion.ts`).
+  - **`scripts/test.mjs` (`ffe5d6c`):** en Windows el corte mataba solo la shell y dejaba vivos los workers
+    (31 procesos de ~500 MB). Ahora `taskkill /T` y barrido de huérfanos al arrancar, filtrado a `node.exe`
+    (la PowerShell del barrido se mataba a sí misma).
+  - **116 (`1b6186b`, `d12ba57`):** 0048 aplicada con el ok de Mani; relleno verificado (4.612/4.612 y 22/22).
+    Costura con el 085: `utmsDelEnvio` leía `id` solo de `respuestas`. El guardián del 085 lleva como excepciones
+    nombradas a los cuatro escritores de la ingesta.
+  - 🩸 Ruido conocido de la suite: timeouts de ~20 s y fallos internos de PGlite ("invalid page", "relation does
+    not exist" en un `beforeEach`); se re-corre el archivo solo. `change_log.campo` guarda el nombre de JS
+    (`ownerUserId`). Un error de drizzle imprime los parámetros (correos): filtrar como `mensajeSinDatos`.
 
 - **2026-09-30 (sesión 55, Mani): 085, el emparejador; 084 reemplazado y 087 cerrado.**
   - **084 reemplazado (Mani):** DP-25 lo dejó sin contenido. Sus dependientes se recolgaron: 085 y 092 de 101, 067
