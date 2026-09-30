@@ -24,7 +24,7 @@ async function main() {
     process.env.DATABASE_URL_DIRECTA = LOCAL_DB_URL;
   }
   // El ref del proyecto, no la cadena: antes de escribir se mira CONTRA que base (AGENTS.md).
-  const ref = process.env.DATABASE_URL?.match(/postgres\.([a-z0-9]+)@/)?.[1] ?? "local o sin ref";
+  const ref = process.env.DATABASE_URL?.match(/postgres\.([a-z0-9]+)[:@]/)?.[1] ?? "local o sin ref";
   console.log(`Base: ${ref} · ${aplicar ? "APLICANDO" : "ensayo (no escribe)"}`);
 
   const actorId = await actorDelScript(db);
