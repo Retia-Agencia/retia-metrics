@@ -23,9 +23,22 @@ import { extraccionVacia, type Extraccion, type ResultadoTemplate } from "./temp
  *   cuelga de un deal solo por correo, nunca por cercania (ADR 0027).
  * - 🩸 **Los encabezados corridos de una de las hojas** (bug del `onEdit`): no hay `Registro 3` y
  *   hay DOS `Subcategoría`; la primera (col J) trae el texto del Registro 3 y la ultima es
- *   la subcategoria de verdad. Se detecta por esa forma exacta, no por el programa, y el 080
- *   pide revisarla a mano.
+ *   la subcategoria de verdad. Se detecta por esa forma exacta, no por el programa.
+ * - 🩸 **Y en esa misma hoja la Categoria vive casi siempre en `Registro 2`** (revision a mano del
+ *   080, 30-sep: 76 filas de toda la hoja la traen en la col I; `Categoría` solo se uso en 15). Con
+ *   la forma corrida, si `Categoría` esta vacia y `Registro 2` es EXACTAMENTE una de
+ *   `CATEGORIAS_DE_LLAMADA`, se lee como categoria y no como nota. Cualquier otro texto sigue
+ *   siendo nota: es la lista cerrada, no un parecido (ADR 0027).
  */
+
+/** Las categorias que la columna `Categoría` usa en las dos hojas (medido el 30-sep). */
+export const CATEGORIAS_DE_LLAMADA: ReadonlySet<string> = new Set([
+  "FOLLOW UP",
+  "PENDIENTE RE AGENDA",
+  "FIT/PRODUCTO",
+  "RECHAZO DIRECTO",
+  "FINANCIERO",
+]);
 
 export interface OpcionesLlamadas {
   programa: string;
@@ -93,8 +106,19 @@ export function extraerLlamadas(matriz: readonly (readonly unknown[])[], op: Opc
       salida.rarezas.push({ huella, tipo: "sin_fecha", detalle: `Fila ${n}: sin fecha de llamada.` });
     }
 
+    let categoria = limpiar(celda(fila, col.categoria));
+    let registroQueEsCategoria = -1;
+    if (corridos && !categoria) {
+      const r2 = limpiar(celda(fila, registros[1]));
+      if (r2 && CATEGORIAS_DE_LLAMADA.has(r2.toUpperCase())) {
+        categoria = r2.toUpperCase();
+        registroQueEsCategoria = 1;
+      }
+    }
+
     const partes = registros
       .map((c, k) => {
+        if (k === registroQueEsCategoria) return null;
         const t = limpiar(celda(fila, c));
         return t ? `Registro ${k + 1}: ${t}` : null;
       })
@@ -108,7 +132,7 @@ export function extraerLlamadas(matriz: readonly (readonly unknown[])[], op: Opc
       fecha,
       closer: limpiar(celda(fila, col.closer)),
       resultado,
-      categoria: limpiar(celda(fila, col.categoria)),
+      categoria,
       subcategoria: limpiar(celda(fila, col.subcategoria)),
       link: limpiar(celda(fila, col.link)),
       notas: partes.length > 0 ? partes.join("\n") : null,

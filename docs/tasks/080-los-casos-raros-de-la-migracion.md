@@ -36,7 +36,7 @@ cercania acierta casi siempre y **cuando falla, mueve la cifra equivocada sin av
 ## Done cuando
 
 - [ ] Cada fila de la tabla tiene su decision escrita **antes** de correr nada.
-- [ ] Los encabezados corridos de ComunicArte estan revisados a mano.
+- [x] Los encabezados corridos de ComunicArte estan revisados a mano (30-sep: la Categoria vive en `Registro 2`, ver abajo).
 - [x] Los 12 "cohorte pasada" tienen su fila de historial (una nota del sistema "Movido desde la cohorte C1", ver la tabla).
 - [ ] Existe una lista de lo que no se pudo clasificar, visible en la app.
 
@@ -124,5 +124,15 @@ Estudiantes y ninguna llamada la cambia. Afecta a pocos: ~5 deals en CA y ~40 en
 Septiembre`): el template del 30-sep sale con los 12 marcados (C1 → C2), y el de Tactical no trae el bloque.
 Tests en `tests/migracion-extractor.test.ts`.
 
-**Falta:** recorrido en navegador (claro/oscuro, 390 px, consola; la extensión no estaba conectada); revisar a
-mano los encabezados corridos de CA en el ensayo del 078.
+**30-sep (Alejo), revisión a mano de los encabezados corridos de CA** (perfil por columna de la hoja real, solo
+conteos y valores repetidos, sin datos personales): el mapeo de J como Registro 3 y de N como la subcategoría de
+verdad se sostiene, pero **la Categoría vive casi siempre en la col I (`Registro 2`)**: 76 filas de toda la hoja
+(3 a 305) contra 15 en `Categoría` (208 a 232). Decisión de Alejo: con la forma corrida, si `Categoría` está vacía
+y `Registro 2` es **exactamente** una de las cinco categorías de la lista cerrada (`CATEGORIAS_DE_LLAMADA` en
+`lib/migracion/extraer-llamadas.ts`), se lee como categoría y deja de ser nota; cualquier otro texto sigue siendo
+nota. Llamadas de CA con categoría: de 15 a 91 (RECHAZO DIRECTO 3, FIT/PRODUCTO 5, FINANCIERO 2: las posibles
+pérdidas que antes no llegaban a `perdida_por_decidir`). Tactical está limpio (la categoría solo en su columna).
+🩸 **El template de CA hay que regenerarlo** (`npm run migracion:extraer -- --programa comunicarte`) antes del
+ensayo y del corte.
+
+**Falta:** recorrido en navegador (claro/oscuro, 390 px, consola; la extensión no estaba conectada).

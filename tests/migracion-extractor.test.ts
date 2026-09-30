@@ -202,6 +202,29 @@ describe("extraerLlamadas", () => {
     expect(r.llamadas[0].notas).toBe("Registro 1: r1\nRegistro 2: r2\nRegistro 3: pendiente onboarding\nCartera: debe 200");
     expect(r.llamadas[0].link).toBe("https://grain.co/y");
   });
+
+  it("ComunicArte: con Categoría vacia, un Registro 2 que es EXACTAMENTE una categoria se lee como categoria", () => {
+    const fila = (r2: string, categoria = "") =>
+      ["10/08/2026", "Andrea", "N", "a@c.co", "3", "Sí", "No", "r1", r2, "", "", "", categoria, "", "", ""];
+    const r = extraerLlamadas(
+      [CAB_LLAMADAS_CA, fila("RECHAZO DIRECTO"), fila("pendiente onboarding"), fila("FOLLOW UP", "FINANCIERO"), fila("rechazo directo, llamar luego")],
+      { programa: "prog-b" },
+    );
+    expect(r.llamadas.map((l) => l.categoria)).toEqual(["RECHAZO DIRECTO", null, "FINANCIERO", null]);
+    // La que se leyo como categoria no queda duplicada como nota; las demas siguen siendo nota.
+    expect(r.llamadas.map((l) => l.notas)).toEqual([
+      "Registro 1: r1",
+      "Registro 1: r1\nRegistro 2: pendiente onboarding",
+      "Registro 1: r1\nRegistro 2: FOLLOW UP",
+      "Registro 1: r1\nRegistro 2: rechazo directo, llamar luego",
+    ]);
+  });
+
+  it("Tactical (sin la forma corrida): una categoria escrita en un Registro sigue siendo nota", () => {
+    const fila = ["10/08/2026", "Andrea", "N", "3", "a@c.co", "Sí", "No", "", "r1", "FOLLOW UP", "", "", "", "", "", ""];
+    const r = extraerLlamadas([CAB_LLAMADAS_TI, fila], { programa: "prog-a" });
+    expect(r.llamadas[0]).toMatchObject({ categoria: null, notas: "Registro 1: r1\nRegistro 2: FOLLOW UP" });
+  });
 });
 
 // ─────────────────────────────────────────── Estudiantes
