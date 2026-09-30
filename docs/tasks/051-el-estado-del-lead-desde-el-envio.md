@@ -65,3 +65,11 @@ más reciente, en `leads.calificacion`, que es lo único que lee la regla de dea
 ## Kiro
 
 Sí el código y los tests, con revisión. La migración la escribe y aplica la sesión principal.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- **Reemplazado por el 117 (ADR 0061):** el Estado ya no se traduce con tres valores fijos; una tabla por programa (`estados_llegada`) dice a qué etapa entra cada valor, y `descartado` desaparece para lo nuevo. El código de este ticket rige hasta que salga el 117.
+- 🩸 El 29-sep el Typeform de Tactical dejó de mandar `estado` y ningún envío abrió deal durante horas (`docs/analytics.md` §2.4). Parche en el Typeform aplicado ese día.

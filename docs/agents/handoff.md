@@ -43,6 +43,28 @@ cada migracion nueva. Antes de tomar un ticket, git fetch: Alejo empuja al mismo
 
 ## Memory
 
+- **2026-09-29 (sesión 52, Mani): mapeo de la reunión con Pauta y parche del Typeform de Tactical.**
+  - **Nuevo documento: `docs/analytics.md`** (complemento del plan): lo pedido y lo medido, decisiones DP-1 a
+    DP-25, grid de 66 requisitos, modelo de datos, fórmulas y orden (ola 0 de configuración, ola 1 y ola 2).
+    ADR **0061** (estados de llegada por tabla; **retira el 0054**), **0062** (el anuncio es la llave: plantilla
+    de Pauta con macros, `utm_id`, gasto por la API de Meta, área declarada por el closer) y **0063** (métricas
+    y objetivos). Tickets **116 a 126**; 25 tickets enmendados; `plan-reparto.md` E5 a E8 rehechas (el corte
+    deja de frenar las etapas de código; Mani: *"lo antes posible, sin fechas"*).
+  - 🩸 **Bug vivo encontrado midiendo:** el Typeform de Tactical perdió sus reglas de `estado` el 29-sep entre
+    11:26 y 11:40 (Bogotá), en la edición que metió el scoring. El CRM solo sube a `con_calendly` desde
+    `setteo_no_calificado`, así que **ningún envío de Tactical abrió deal entre las 11:40 y el parche** (23
+    envíos hasta las 20:11, 9 con cita, que quedaron como llamadas sueltas). La hoja no se rompió: su Estado lo escribe el Apps Script.
+  - ✅ **Parche en producción (ok de Mani), 29-sep ~20:19:** una regla en la lógica de "¿Estás dispuesto...?"
+    del Typeform de Tactical (`GmPGBOf9`) pone `estado = setteo_no_calificado` a todos (`op: always`). PUT del
+    form completo con respaldo previo en el scratchpad de la sesión; verificado que el form quedó idéntico más
+    esa regla, webhook intacto y form público. **Confirmado con dos envíos reales** (20:30 y 20:35: abrieron
+    su deal en Agendado). **Falta:** reprocesar los 23 envíos con el 117.
+  - Medido (solo lectura): `utm_content` y `utm_term` viven en `respuestas`, no en sus columnas; Pauta de Retia
+    manda hoy `facebook / cpc` con conjunto en content y anuncio en term; 20 envíos con `{{campaign.name}}`
+    sin expandir; no hay `utm_id`; los Typeform no tienen ese campo oculto; el webhook no recibe parciales;
+    Insights de Typeform: 43% (Tactical) y 51% (ComunicArte) de quienes ven el Calendly no agenda. **La C3 no
+    existe en la base** y Tactical vende C3 desde el 30-sep (O-5 en `plan.md` §7).
+
 - **2026-09-29 (sesión 51, Mani): 0041 en producción, mapeo Typeform y fix del resumen del lead.**
   - **0041 aplicada en producción** con `npm run db:migrate` (ref `hfqmiyiuyqapdsbywrag`, conexión directa 5432,
     SQL leído antes). Las cuatro columnas (`lead_quality`, `lead_value` en `submissions` y `leads`) existen, nullable.

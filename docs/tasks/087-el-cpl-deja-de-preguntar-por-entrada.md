@@ -49,3 +49,10 @@ cifras distintas sobre lo mismo, que es exactamente la herida del ADR 0024.
 ## Kiro
 
 Si, con revision. La enmienda de los ADR la escribe la sesion principal.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- Sin cambio de fondo: el denominador del CPL es el área Pauta. Se suma que un registro es un **token**, no una fila (ADR 0063): el parcial y su completa cuentan una vez.

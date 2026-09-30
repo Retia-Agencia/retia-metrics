@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0061)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0064)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -23,7 +23,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0035](./0035-el-lead-y-sus-contactos.md) | El Lead es una persona en un programa; el correo manda y el teléfono une y marca |
 | [0036](./0036-el-envio-y-todas-las-columnas-sin-plantilla.md) | El Envío guarda todas las columnas; las promovidas no se repiten |
 | [0039](./0039-un-programa-una-fuente-de-leads.md) | Un programa, una fuente de leads activa |
-| [0054](./0054-el-estado-de-llegada-lo-pone-el-formulario.md) | El Estado de llegada lo pone el formulario; el CRM lo valida |
+| [0061](./0061-el-estado-de-llegada-se-mapea-por-una-tabla.md) | El Estado de llegada lo manda el formulario y una tabla por programa lo lleva a su etapa (reemplaza el 0054) |
 | [0055](./0055-el-webhook-estandar-de-formularios.md) | Un webhook estándar para cualquier formulario; el programa sale de la URL |
 | [0056](./0056-el-motor-decide-quien-mueve-con-que-motivo-y-datos.md) | El motor decide quién mueve, con qué motivo (cuatro listas) y con qué datos |
 | [0057](./0057-el-programa-lleva-su-formulario-y-su-token-de-calendly.md) | El programa lleva su formulario y su token de Calendly (segundo secreto en la base) |
@@ -66,6 +66,8 @@ comentarios; esta tabla es la que los resuelve.
 | [0051](./0051-la-convencion-de-utm-y-el-builder.md) | La convención de UTM y el builder: el CRM genera los links |
 | [0045](./0045-la-campana-y-el-patron-utm.md) | La campaña es una entidad y el emparejamiento es determinista |
 | [0044](./0044-el-origen-humano-de-un-lead.md) | El origen humano de un lead: el link del closer y `traido_por` |
+| [0062](./0062-el-anuncio-es-la-llave-de-la-pauta.md) | El anuncio es la llave de la pauta: UTM de Meta con macros, gasto por su API y origen declarado aparte (enmienda 0045, 0051 y 0052) |
+| [0063](./0063-las-metricas-y-los-objetivos-de-pauta.md) | Las métricas y los objetivos de Pauta: registro por token, calificada por `lead_value`, ROAS sobre contratado, metas por área |
 
 **Roles y acceso**
 
@@ -115,3 +117,9 @@ comentarios; esta tabla es la que los resuelve.
 | 0040 | El sync se dispara por capas | El corte directo (T3) deja al webhook como única entrada | el webhook propio, en `plan.md` §4.3a |
 | 0041 | Las cuotas pactadas son filas | En v1 no hay cuotas | 0053 (incluye la forma correcta si algún día se cobra por cuota) |
 | 0046 | El CRM genera los links; árbol de campaña | El árbol se aplanó y el resto se fundió en la convención de UTM | 0051 |
+
+## Retirados el 29-sep
+
+| # | Qué decía | Por qué se retiró | Dónde quedó lo vigente |
+|---|---|---|---|
+| 0054 | El Estado de llegada lo pone el formulario (tres valores fijos: descartado, setteo, con calendly) y el CRM lo traduce | El 29-sep una edición del Typeform de Tactical quitó la variable y el CRM dejó de abrir deals en silencio; Mani pidió que los valores y su etapa sean datos y que descartado desaparezca (`docs/analytics.md` §2.4) | 0061. El código lo sigue hasta el ticket 117. Texto: `git show 17cbcd1:docs/adr/0054-el-estado-de-llegada-lo-pone-el-formulario.md` |

@@ -72,7 +72,8 @@ El avance ticket por ticket vive **solo** en [`tasks/README.md`](./tasks/README.
 | Navegación por objetos y selector de programa (097) | ✅ live | · |
 | Kanban de Deals (069) | ✅ live | vista tabla; probar en un celular real |
 | Ficha del Deal (074), Inbox (070, 071), Students (099), Calls (098), Leads (072) | 074 ✅ · 070/071/098 en curso | E4: recorrido visual de Inbox y Calls; Students y Leads siguen pendientes |
-| Atribución, dashboard sobre deals, pauta | ❌ | E5 a E8 |
+| Atribución, dashboard sobre deals, pauta | ❌ construir · ✅ mapeado el 29-sep con Pauta ([`analytics.md`](./analytics.md)) | E5 (093, vista interina) a E8; tickets 116 a 126 |
+| Estado de llegada | 🩸 el 29-sep el Typeform de Tactical dejó de mandar `estado` y no se abrieron deals por horas; parche aplicado en el Typeform | 117 (tabla por programa, ADR 0061) |
 | Migración de las pestañas de gestión | ❌ | E3 (077, 078) y E4 (080) |
 
 ## 3. Qué construye cada track, en un diagrama
@@ -244,6 +245,10 @@ app). Tickets: **105** (la fuente webhook), **106** (la ruta y el adaptador de T
 
 #### 4.3b El Estado del lead sale del formulario 🆕
 
+> 🔄 **29-sep: el ADR 0054 se retira y rige el ADR 0061** (Mani): el formulario sigue mandando `estado`, pero
+> qué etapa abre cada valor lo dice una **tabla por programa**, `descartado` desaparece para lo nuevo y entra
+> `con_calendly_sin_agenda` (el parcial previo al Calendly). Ticket 117; contexto en `analytics.md` §2.4 y §3.
+>
 > ✅ **Cerrado el 27-sep: ADR 0054** (A1), **enmendado esa noche:** el form manda el Estado completo con
 > los nombres de la hoja (`descartado`, `setteo_no_calificado`, `con_calendly`) y el CRM confía en él,
 > sin calcular ni validar. T2 se retira del repo: A8 se cerró el 28-sep (Mani: *"el CRM no calcula NADA, solo recibe los leads con estado ya definido y los rutea"*). El script de la hoja se borra
@@ -324,10 +329,24 @@ K1 a K3 de §7. Sin la integración, el closer crea la llamada a mano y el model
   retira con el ticket 108. Lo que sirve para leer una hoja UNA vez (lectura, mapeo, dedup, adaptador de
   Sheets) se queda para el traslado.
 
-#### 4.3e Después de v1
+#### 4.3e La API de Meta 🆕 (29-sep)
+
+El gasto de la pauta entra por la API de Meta, por anuncio y día, con un token por portafolio guardado en la
+base (ADR 0062; tickets 119 y 120). Antes estaba fuera de v1 y se iba a cargar a mano.
+
+#### 4.3f Después de v1
 
 Ventas que vuelven solas desde los checkouts (Hotmart, PayPal, MercadoPago), Kapso, recordatorios,
 acortador de links (`overview.md` §8).
+
+### 4.4 La analítica de Pauta 🆕 (29-sep)
+
+La reunión con Pauta del 29-sep definió qué tiene que medir el CRM para la pauta: el panel de atribución
+por área, los costos por etapa, el árbol de campañas con su embudo por anuncio y el cumplimiento diario de
+la cohorte por área. **El mapeo completo vive en [`analytics.md`](./analytics.md)**: lo dicho y lo medido,
+las decisiones DP-1 a DP-25, el grid de 66 requisitos con su ticket, etapa y carril, el modelo de datos, las
+fórmulas y el orden. Las decisiones de arquitectura: ADR 0061, 0062 y 0063. Tickets 116 a 126; el 093 es la
+vista interina, lo primero que se entrega.
 
 ---
 
@@ -344,7 +363,7 @@ piezas que no tenían ticket (producción, webhook).
 | **2 · Entrada** | 048 · 049 · 050 (en curso) · ✅ 051 · 052 | · | ✅ 105 (fuente webhook) · ✅ 106 (ruta + adaptador de Typeform) · ✅ 107 (aviso); payload real de Typeform | **Hito A: los leads entran solos al CRM** (primero `dev`, luego producción) |
 | **3 · Llamadas y dinero** | 057 · 058 · 059 · 060 · 061 · 063 · 035 | · | 096 cuando se decida su forma | una llamada y un abono mueven el deal |
 | **4 · Operación** | · | 097 · 069 · 070 · 071 · 074 · 099 | · | **Hito B: los closers operan en el CRM.** Typeform deja de escribir en Sheets después de 066 y 067 (reparto §3, 28-sep), no aquí: Urgencias vive en la hoja |
-| **5 · Atribución** | 083 · 084 · 085 · 101 · 092 · 102 · 086 · 087 | pantalla del builder y de campañas | reunión con Pauta | el origen de cada lead se clasifica solo |
+| **5 · Atribución** | 083 · 084 · 085 · 101 · 092 · 102 · 086 · 087 · 116 · 117 · 121 · 122 | pantalla del builder y tab Campañas (125) | ✅ reunión con Pauta (29-sep) · 119 · 120 (API de Meta) · 126 | el origen de cada lead y el gasto de cada anuncio se clasifican solos (`analytics.md` §7) |
 | **6 · Reportes y resto de UI** | 064 · 065 · 066 · 067 · 088 · 089 · 090 · 062 · 093 | 095 · 068 · 021 · 072 · 073 · 098 · 100 · 091 · 076 · 075 | · | el dashboard sale de los deals |
 | **7 · Migración** | · | · | traslado · 077 → 078 → 079 · 080 · 081 → 082 | **Hito C: se apagan las pestañas de gestión** |
 
@@ -396,6 +415,9 @@ cierra, baja a un ADR (con `/grill-with-docs`) o a su ticket, y sale de esta lis
 | K3 | ~~La llamada de prueba del 29-sep~~ ✅ 29-sep (Mani): **se deja.** No cuenta en ninguna métrica y borrarla sería escribir en producción sin ganar nada | · | cerrada |
 | K4 | ~~Tono de Seguimiento~~ ✅ 29-sep: `info` (`structure.md` §3), elegido en la sesión del 069 porque es "hay que hacer algo con la llamada", como Agendado y Atendido. Mani puede cambiarlo | · | cerrada |
 | K5 | ~~¿Hace falta una entidad Cliente por encima del programa?~~ ✅ 29-sep (Mani): **no.** Al CRM solo entra gente de Retia, y **el programa identifica al cliente** que Retia maneja. Un cliente nuevo es un programa nuevo (fila, fuente con su mapeo, token de Calendly, membresías): configuración, no código. Si algún día entra gente del cliente, esta decisión se reabre antes | · | cerrada |
+| PQ8 | ~~Ok a DP-23, DP-24 y DP-25~~ ✅ aprobadas por Mani el 29-sep | · | cerrada |
+| O-1 | ~~Agregar el campo oculto `utm_id` a los dos Typeform~~ ✅ hecho el 29-sep por API. Falta que Pauta aplique la plantilla en Meta (PQ2) | · | cerrada |
+| O-5 | 🚨 **Crear la C3 de cada programa** (meta 60 según Pauta, con su ventana de venta). Tactical vende C3 desde el 30-sep y en la base no existe: sin cohorte activa, el primer abono no tiene a qué cohorte asignarse (063) | cumplimiento (124), Students | cuando se verifiquen las fechas de cada C3 (Mani, 29-sep) |
 | S1 | 🚨 **Supabase Pro: pagar o no. URGENTE, con el equipo.** El plan gratis no trae respaldos: la única base es producción y, si un script o una migración borra datos, no hay a dónde volver. Desde el corte (hito B) la historia de las pestañas de gestión vivirá solo ahí. El tamaño no es el motivo (30 MB de 500 al 29-sep) | el corte (hito B) | antes del corte |
 
 **A2. Para después (Mani, 28-sep):** revisar si las alertas de la app (fuente sin envíos, 107; y las
@@ -431,15 +453,30 @@ copia a Setteo para que el closer la lea. Tres preguntas: ¿ordenan la cola o ca
 ¿quién fija el criterio y con qué datos (lo que respondieron los que compraron, de la migración de las
 pestañas de gestión)?; ¿las que no sirvan se quitan del formulario? Se cruza con T4.
 
-**C. Gerencia (Alejo, Daniel):** el área de cada canal (101); qué ve el Paid Trafficker (102); los
-umbrales de éxito del dashboard; ✅ ~~el precio de lista de ComunicArte~~: **797** (Mani, 28-sep; 697 solo se respeta a quien ya lo
+**C. Gerencia (Alejo, Daniel):** el área de cada canal (101) y su nombre visible: Pauta las llama paid,
+orgánico y referidos (PQ7); ~~qué ve el Paid Trafficker (102)~~ ✅ Mani, 29-sep: el Dashboard de sus
+programas menos el comparativo entre closers y la comisión (ADR 0052 enmendado); **si Retia da cortesías**
+(PQ5: cupos sin cobro que no cuentan para la meta); los umbrales de éxito del dashboard (los primeros los
+dio Pauta, PQ4); ✅ ~~el precio de lista de ComunicArte~~: **797** (Mani, 28-sep; 697 solo se respeta a quien ya lo
 tenía cotizado); el límite de los
 descuentos; si un lead traído por un closer cuenta distinto en su comisión; ratificar que se construye
 y no se compra HubSpot (R10).
 
-**D. Pauta** · 🗓️ **reunión hecha el 29-sep**; Mani mapea lo discutido al alcance del CRM en una sesión aparte. Lo que dijo Pauta: **ellos definen y estandarizan las UTM** y el CRM las recibe como llegan (choca en parte con el builder del 092 y el ADR 0051, donde el link sale del CRM: se resuelve en esa sesión). Lo que estaba abierto (Jero consigue la reunión; prioridad altísima según los closers): la convención de UTM y
-el builder (083, 084, 085, 092, 101); qué checkouts usan y si mandan webhooks; si además capturan
-`utm_id` y `fbclid` (R6); por qué Tactical tiene 26% de leads sin UTM.
+**D. Pauta** · ✅ **reunión hecha el 29-sep y mapeada en [`analytics.md`](./analytics.md).** Cerrado ahí:
+Pauta define sus UTM con macros de Meta y el CRM las recibe (el builder queda para orgánico y closer, ADR
+0062); `utm_id = {{ad.id}}` es la llave del anuncio; `fbclid` no hace falta. Lo que sigue abierto:
+
+- **PQ1:** ¿una cuenta publicitaria por programa o una compartida? Moneda y zona horaria de cada una. ¿Hay
+  pauta fuera de Meta? (119, 120)
+- **PQ2:** cuándo aplican la plantilla de UTM en Retia (después del campo oculto `utm_id`, O-1).
+- **PQ3:** qué conversión agenda→venta usan para las agendas requeridas, qué ventana para el ritmo actual y
+  cuántos días antes del cierre dejan de contar agendas (124).
+- **PQ4:** los objetivos por programa: agendas de paid por día (dijeron meta 15, aceptable 10), costo por
+  agenda (60.000 / 80.000 COP), costo por lead, ROAS de contrato (¿1,67?) y el reparto de cupos de C3 (122).
+- **PQ6** (con Media): la convención de UTM del orgánico, y si quieren tipo, formato y autor del creativo
+  (piden una convención de nombres de anuncio).
+- Sin responder todavía: qué checkouts usan y si mandan webhooks; por qué Tactical tiene 26% de leads sin UTM
+  (hoy ~21% en el webhook: el contador de sin UTM de hoy lo hace visible, 093).
 
 **E. Michael** ✅ respondidas por Mani el 28-sep:
 - **ROAS:** vuelve (067). Se dejó de calcular solo porque no había datos fáciles para calcularlo.
@@ -454,7 +491,7 @@ el builder (083, 084, 085, 092, 101); qué checkouts usan y si mandan webhooks; 
 - **Comisión:** se verifica después (062, E5).
 
 **F. Media:** si el orgánico usa el mismo formulario que la pauta; qué cuentas o creadoras van en
-`utm_content` (`rosario`, `milena`, otras).
+`utm_content` (`rosario`, `milena`, otras). Se cruza con PQ6 (la convención del orgánico, con Pauta).
 
 ### 7.1 Las fichas técnicas abiertas, con su contexto
 
@@ -471,7 +508,7 @@ dice, alguien más.
 | ~~**R3 · Vercel Pro**~~ | ✅ 29-sep (Mani): **no se paga por ahora.** Calendly ya no lo pide (A5 es webhook). Queda anotado que Hobby es de uso no comercial. El pago que sí se evalúa es Supabase Pro, por los respaldos de la única base (ver `operations.md`) | · |
 | ~~**R4 · CI**~~ | ✅ Hecho (112, 28-sep): `.github/workflows/ci.yml` en cada push, sin proteger `main` | · |
 | ~~**R5 · Playwright**~~ | ✅ Reemplazada por A4 (Mani, 28-sep): la UI se prueba usándola contra la base local | · |
-| ~~**P2 · Empates en el emparejador**~~ | ✅ 29-sep (Mani): **`NULLS NOT DISTINCT` en el índice del patrón y el empate como error visible en tiempo de ejecución** (084, 085). Es un empate entre dos CAMPAÑAS para un mismo envío, no entre dos envíos de un lead. Quien crea una campaña que empataría con otra ve el rechazo al guardarla; closers y gerentes ven el origen de cada lead y los conteos de "sin UTM" y "sin clasificar" | · |
+| ~~**P2 · Empates en el emparejador**~~ | ✅ 29-sep (Mani): **`NULLS NOT DISTINCT` en el índice del patrón y el empate como error visible en tiempo de ejecución** (084, 085). ⚠️ DP-25 aprobado el 29-sep: `utm_patron` no se crea y esta ficha queda sin objeto. Es un empate entre dos CAMPAÑAS para un mismo envío, no entre dos envíos de un lead. Quien crea una campaña que empataría con otra ve el rechazo al guardarla; closers y gerentes ven el origen de cada lead y los conteos de "sin UTM" y "sin clasificar" | · |
 | **P3 · El costo del proceso** | `AGENTS.md` pesa ~50 KB y el handoff ~2.900 líneas: cada sesión gasta contexto en historia | Recomendación: `AGENTS.md` solo reglas, contratos y comandos, cada regla con su ADR; el handoff con el estado actual y lo siguiente. La consolidación del 27-sep ya movió los documentos |
 | ~~**T4 · El valor del puntaje**~~ | ✅ 29-sep (Mani): **lo califica el formulario, que es tercerizado; el CRM no calcula nada.** Recibe `score`, `tag_lead_quality` y `lead_value` por el mapeo de cada fuente y los guarda como llegan (0041). Cero pesos, bandas o reglas por programa en el código: un programa nuevo se suma configurando su fuente, no escribiendo lógica | · |
 
@@ -483,6 +520,7 @@ dice, alguien más.
 |---|---|---|
 | `AGENTS.md` | el contrato del repo: restricciones, contratos, comandos, convenciones | siempre, primero |
 | **`docs/plan.md`** | este plan | siempre, segundo |
+| `docs/analytics.md` | complemento de este plan: el mapeo de la reunión con Pauta (29-sep) requisito por requisito, con sus decisiones, fórmulas, modelo de datos y orden | antes de tocar atribución, pauta, métricas o el dashboard |
 | `docs/plan-reparto.md` | complemento de este plan: el orden en etapas para que Mani y Alejo (Dávila) trabajen en paralelo, quién toma qué y cuándo se cierra una etapa. No define qué se construye: eso sigue aquí y en los tickets | antes de tomar un ticket, para saber en qué etapa y carril cae |
 | `docs/overview.md` | qué es la herramienta de principio a fin: problema, programas, roles, recorrido de un lead, métricas, alcance, criterios, historia, vocabulario | para entender el producto o el dominio, y antes de nombrar algo |
 | `docs/structure.md` | diagramas y componentes: operación de hoy, flujos, motor de etapas y transiciones, arquitectura, modelo de datos, ingesta, atribución, pantallas, sistema de diseño, mapa de las hojas, migración | al construir cualquier pieza; §9 antes de tocar una pantalla |

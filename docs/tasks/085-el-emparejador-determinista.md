@@ -65,3 +65,12 @@ El emparejador resuelve en dos pasos: el par `utm_source + utm_medium` a un **Ca
 área) y `utm_campaign` a una **Campaña**. Es también **el único módulo que lee `utm_content`**, y solo
 cuando el canal es Closer, para convertir el código en el usuario que trajo el lead. El guardián se
 amplía: falla si alguien lee `utm_content` por fuera de este módulo.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- El emparejador resuelve también el **anuncio** por `utm_id` (y de ahí conjunto y campaña, 120), y lee `utm_content` y `utm_term` según lo que declara el canal (DP-22): en `paid_social`, anuncio y placement; en el `facebook / cpc` histórico, conjunto y anuncio.
+- **Una macro sin expandir (`{{...}}`) es un centinela** (DP-21): ausente en ese nivel y contada aparte. Medido el 29-sep: 20 envíos con `{{campaign.name}}`.
+- Devuelve además el **nivel de la traza** (N3 anuncio, N2 campaña, N1 canal, N0 sin UTM) que usa el 123.

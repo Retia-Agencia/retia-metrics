@@ -56,3 +56,14 @@ Medido en los consolidados de C2: `utm_content` significaba **anuncio** en Comun
 en Tactical. Cualquier código que lo leyera sin mirar el programa estaría bien en uno y mal en el otro.
 La convención vigente (ADR 0051) lo resuelve leyendo solo tres campos y dejando que `utm_content`
 cambie de sentido **solo según el canal**, interpretado por un único módulo.
+
+---
+
+## Enmienda 2026-09-29 (ADR 0062, reunión con Pauta)
+
+- **El punto 2 cae: el anuncio entra.** Pauta dijo que saber qué creativo vende es vital. La llave es
+  `utm_id = {{ad.id}}`; conjunto y campaña salen del árbol de Meta por su API, y el gasto entra por anuncio
+  y día (`gasto_pauta`), no cargado a mano por campaña.
+- **Los puntos 1 y 3 quedan reducidos** (ADR 0062 punto 6, aprobado el 29-sep): con un canal único por par
+  y un id de Meta único, el empate entre campañas no puede ocurrir, y `utm_patron` pierde su razón de ser.
+- **Los puntos 4 y 5 siguen:** dos cubetas de huérfanos y la regla del cero.

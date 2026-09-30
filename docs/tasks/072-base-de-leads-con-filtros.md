@@ -47,3 +47,10 @@ Si, con revision visual.
 
 Filtros que se suman: canal, área y campaña (ticket 101), y "traído por". Siempre dentro del programa
 del selector (ADR 0048).
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- Filtros nuevos: "abandonó el formulario" (token con parcial y sin completa, sin estado: lead sin deal, ADR 0061) y "sin estado" (valor vacío o desconocido). Ninguno abre deal; los dos se ven aquí.

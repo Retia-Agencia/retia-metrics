@@ -44,7 +44,10 @@ pauta"*. Nadie la puede responder sin trabajo manual porque la cadena se corta e
 
 **El lugar donde vive la operación comercial de Retia: los leads, los deals, las llamadas, los pagos y
 la plata cobrada, con las métricas calculándose solas encima.** No es un dashboard que refleja lo que
-sigue viviendo en WhatsApp: es donde se trabaja el pipeline.
+sigue viviendo en WhatsApp: es donde se trabaja el pipeline. Y de ahí sale, sin armar nada a mano, la
+analítica de toda la operación: de dónde viene cada lead y cada venta hasta el anuncio, cuánto cuesta cada
+etapa con el gasto de Meta, y cómo va la cohorte contra su meta cada día (reunión con Pauta, 29-sep;
+[`analytics.md`](./analytics.md)).
 
 **Lo que tiene que trackear, sí o sí:**
 
@@ -52,7 +55,7 @@ sigue viviendo en WhatsApp: es donde se trabaja el pipeline.
    colgado: programa, producto, cohorte, closer, llamadas, Grain, abonos, comprobantes, acuerdo de
    pago e historial.
 2. **El origen de cada lead**: UTM estandarizado cruzado con la inversión en pauta, para saber qué
-   canal, qué campaña y qué closer convierten.
+   canal, qué campaña, qué anuncio y qué closer convierten. El gasto entra por la API de Meta (ADR 0062).
 
 **Principios** (del diseño del 20-sep, vigentes):
 
@@ -82,7 +85,7 @@ sigue viviendo en WhatsApp: es donde se trabaja el pipeline.
 | Condiciones | Único descuento: USD 100 por dificultad real de pago (beca). Mentoría 1:1 de USD 1.590 (6 sesiones), solo si la piden | Pago único con 10% de descuento, USD 1.350, vigente 24 h desde la llamada. Reserva con USD 500 y saldo con fechas; 2 o 3 cuotas |
 | Quién ve el Calendly en el formulario | ingreso de ~USD 1.500 o más (medido el 23-sep) | ingreso de USD 3.000 o más (observado) |
 | Comisión del closer (hoja) | 80 por cada 697 | 100 por cada 1.500 |
-| Cohorte C2 | meta 50 cupos · venta del 14-ago al 21-sep (27 días hábiles) · clases el 22-sep | meta 50 cupos del equipo (lo del webinar no cuenta) · venta del 19-ago al 29-sep (30 días hábiles) · clases el 29-sep · C3: clases el 10-nov, venta desde el 30-sep |
+| Cohorte C2 | meta 50 cupos · venta del 14-ago al 21-sep (27 días hábiles) · clases el 22-sep | meta 50 cupos del equipo (lo del webinar no cuenta) · venta del 19-ago al 29-sep (30 días hábiles) · clases el 29-sep · C3: clases el 10-nov, venta desde el 30-sep, meta 60 según Pauta (29-sep; ComunicArte "60 igual") |
 
 Datos de los consolidados de C2 de Michael (14-sep) y de las hojas; cada cohorte guarda su propia
 ventana, meta y precio (ADR 0022). Las URLs de cada programa están en `operations.md`.
@@ -96,7 +99,7 @@ Binance/USDT. Los abonos se registran siempre en **USD** (Michael, 16-sep).
 |---|---|---|
 | **Closer** | Andrea Machado y Maru Marquez (confirmadas por Michael el 16-sep) y Jero (Jerónimo, del equipo de Vieira), los tres en la reunión del 24-sep. La spec nombraba además a Sebastián Salazar y Sebastián Rodríguez, sin confirmar | al colgar una llamada: sale a mandar un screenshot al grupo o a pedir un link de PayPal |
 | **Gerente** | Alejandro Carvajal (Alejo) y Daniel Tovar; Michael Castellanos (Ops) está saliendo | preguntar en el grupo "¿cuántas calls, cuántos no-show, cuántas ventas hoy?" y esperar el PDF |
-| **Paid Trafficker** | el equipo de pauta, externo | armar links de campaña sin un estándar de UTM |
+| **Paid Trafficker** | el equipo de pauta: Anderson, César y Daniela Rodríguez (entra full time) | reconciliar a mano cada día Meta, la hoja de ventas y Calendly para saber qué canal y qué creativo vende, y cómo va la cohorte |
 | **Developer** | Mani y quien mantenga la herramienta | saber si algo falló o qué cambió sin abrir la base a mano |
 
 **Cuentas.** Cada closer entra con **su propia cuenta de Google**, así sus llamadas y pagos quedan a su
@@ -137,8 +140,11 @@ se puede sumar); ve cierres, show, caja, meta y meta dinámica, rendimiento por 
 reasigna; registra campañas y su gasto y genera los links con UTM; administra programas, cohortes,
 productos, usuarios y membresías.
 
-**Paid Trafficker:** crea las campañas de sus programas, genera sus links desde el builder y carga su
-gasto. No ve deals, llamadas ni abonos (ADR 0052). 🔴 Qué ve del Dashboard lo decide Gerencia.
+**Paid Trafficker:** arma sus UTM de Meta con macros y el CRM las recibe; el gasto de sus anuncios entra
+solo por la API de Meta (ADR 0062). Genera en el builder los links de orgánico. Ve el Dashboard de sus
+programas (atribución por área, costos por etapa, ROAS, cumplimiento de la cohorte) y la tab Campañas con
+el embudo por anuncio, **menos el comparativo entre closers y la comisión**; no ve deals, llamadas ni
+abonos sueltos (ADR 0052 enmendado, Mani 29-sep).
 
 **Developer:** todo, sin restricción, más Nerd Stats (salud de la herramienta y bitácora de cambios) y
 "ver como" gerente o closer (ADR 0025, 0028).
@@ -147,13 +153,15 @@ gasto. No ve deals, llamadas ni abonos (ADR 0052). 🔴 Qué ve del Dashboard lo
 
 1. **Llega el envío.** La persona llena el formulario del programa (Typeform hoy; Dapta Forms es la
    alternativa evaluada) y el envío llega al CRM por webhook, con todas sus respuestas y sus UTM. Se
-   guarda aunque esté a medias: un envío parcial es un abandono contactable.
+   guarda aunque esté a medias: un envío parcial es un abandono contactable. Hay dos puntos parciales:
+   tras dejar el WhatsApp y justo antes del Calendly (ADR 0061).
 2. **Se identifica a la persona.** Mismo correo, mismo lead. Mismo teléfono con otro correo: se une y
    se marca para que un gerente lo revise, nunca se fusiona a ciegas.
-3. **Se clasifica.** El envío sale como Descartado (no hay deal), Setteo (calificó pero no agendó: deal
-   nuevo en Pendiente Setteo, sin dueño) o Con Calendly (agendó dentro del formulario: deal nuevo en
-   Agendado). 🔴 Si esa clasificación la da el formulario o la calcula el CRM está por decidir
-   (`plan.md` §7, A1).
+3. **Se clasifica.** El formulario manda su **Estado** y una tabla por programa dice en qué etapa nace el
+   deal (ADR 0061): Setteo (completó sin agendar: Pendiente Setteo, sin dueño), "va hacia el Calendly"
+   (llegó al Calendly: Pendiente Setteo con prioridad alta; si en 5 minutos no agenda, sale urgente en el
+   Inbox) y Con Calendly (agendó: Agendado). **Todo el que llena el formulario es contacto:** Descartado
+   desaparece. Quien abandona tras dejar el WhatsApp queda como lead sin deal, visible en Leads.
 4. **Se trabaja.** El closer reclama el Setteo desde el Inbox y lo contacta (En Contacto). Cuando hay
    cita, Calendly cuelga la llamada del deal con su fecha real y su host; si no hay certeza de a qué
    deal va, queda suelta en el Inbox.
@@ -166,8 +174,10 @@ gasto. No ve deals, llamadas ni abonos (ADR 0052). 🔴 Qué ve del Dashboard lo
    Abonado; saldo en cero, Completo.
 8. **Estudiante.** Un deal en Abonado o Completo es un estudiante de la cohorte de su deal. Se marca
    cuándo se le hizo el onboarding (`onboarded_at`), sin checklist.
-9. **El origen.** Todo el tiempo, el lead lleva su canal, su área, su campaña y, si lo trajo un closer,
-   quién. Con el gasto de cada campaña cargado, el CRM dice qué canal y qué campaña convierten.
+9. **El origen.** Cada envío lleva su canal, su área, su campaña, su anuncio y, si lo trajo un closer,
+   quién; la venta hereda el del envío que abrió su deal (ADR 0060). Con el gasto de Meta por anuncio, el
+   CRM dice qué canal, qué campaña y qué creativo convierten. Al cerrar, el closer declara además el área
+   por la que llegó ("¿cómo nos conociste?"): solo cuenta para las ventas sin UTM, y nunca se mezcla con él.
 
 **Las once etapas del deal** (el número es un nombre, no el orden): 1 Pendiente Setteo · 2 En Contacto ·
 4 Agendado · 3 Pendiente Re-agenda · 5 Atendido · 11 Seguimiento · 6 Compromiso Verbal · 7 Abonado ·
@@ -217,7 +227,11 @@ gasto. No ve deals, llamadas ni abonos (ADR 0052). 🔴 Qué ve del Dashboard lo
 | Contribución | las ventas de la cohorte de un closer. **No existe meta individual** (ADR 0023) |
 | Conversión etapa a etapa y tiempo en etapa | cuenta deals distintos, no entradas |
 | Registros vs agendas por canal | la métrica de Media: TikTok puede traer muchos registros y pocas agendas |
-| CPL, costo por agenda, CAC, ROAS | por campaña y canal, solo donde hay gasto cargado ("sin pauta" en vez de $0). Estándar de Daniel Tovar: costo por agenda USD 20, alerta en USD 100 |
+| CPL, costo por agenda, por llamada, por llamada calificada, por show y por venta (CAC) | gasto del área Pauta ÷ el conteo de Pauta, por área, campaña, conjunto y anuncio; sin gasto, "sin pauta" en vez de $0. Umbrales de Pauta (29-sep, en COP): costo por agenda meta 60.000, aceptable 80.000 (antes: estándar de Daniel Tovar, USD 20 y alerta en USD 100) |
+| ROAS y ad profit | sobre ventas **contratadas** (precio de los deals vendidos), con la TRM de la cohorte a la vista (ADR 0063) |
+| Llamada calificada | llamada que ocurrió de un lead cuyo `lead_value` del formulario está en el conjunto calificado del programa (por defecto MUY ALTO y ALTO VALOR) |
+| Calidad de la traza | % de ventas por nivel de origen: anuncio, campaña, canal o sin UTM |
+| Cumplimiento por área | la meta de la cohorte repartida en cupos por área (paid, orgánico, referidos): vendidas, faltan, requeridas por día, ritmo y proyección, con semáforo |
 | Leads por área | Gerencial, Comercial, Pauta, Media, derivados del canal |
 | Comisión | tasa del programa × precio del producto, calculada |
 
@@ -226,6 +240,10 @@ etapa; **Pauta**, todo por UTM, por fecha, canal e inversión; **Media**, regist
 canal; **Gerencial**, rendimiento de las áreas, % de cierre por closer y leads por área. Gerencia pidió
 además números y tablas antes que estética, y un reporte de un botón. Los umbrales de éxito llegan
 cuando haya datos. Criterio para el dashboard: el número que no soporta una decisión, no va.
+
+Todo se compara contra el periodo anterior y contra la cohorte anterior en el mismo día hábil. Un registro
+es un envío contado una vez aunque llegue parcial y completo. El detalle de cada fórmula:
+[`analytics.md`](./analytics.md) §6.
 
 Dos cubetas de origen huérfano, siempre visibles y nunca juntas: **sin UTM** (llegó sin origen:
 irrecuperable; el 21-sep era el 15% de los leads, 26% en Tactical) y **sin clasificar** (trae UTM pero
@@ -236,7 +254,8 @@ no casa con ningún canal o campaña: se arregla con una fila y repara hacia atr
 **Entra en v1:** leads por formulario y alta manual; deals con once etapas y Kanban; llamadas colgadas
 del deal, con Calendly; abonos con comprobante (link o foto); acuerdo de pago como nota con fecha
 límite; Students por cohorte con onboarding; productos, recursos y links de pago; Inbox; Dashboard por
-programa y agregado de lo sumable; atribución por canal, campaña y área; builder de links; roles
+programa y agregado de lo sumable; atribución por canal, campaña, anuncio y área, con el gasto de Meta por su API; costos por etapa y
+cumplimiento de la cohorte por área; builder de links para orgánico y closers; roles
 closer, gerente, paid trafficker y developer; Nerd Stats con bitácora; snapshot del dashboard en PDF (lo toman todos los roles y recibe el mismo
 objeto que pintó la pantalla, 19-sep);
 el traslado y la migración de lo que hay en Sheets.
@@ -248,7 +267,10 @@ el traslado y la migración de lo que hay en Sheets.
   según lo que convierte (24-sep).
 - El PDF narrativo de Michael: el dashboard **es** el reporte.
 - Ventas que vuelven solas desde los checkouts (Hotmart, PayPal, MercadoPago).
-- Acortador de links, URL libre en el builder, desglose por conjunto o por anuncio.
+- Acortador de links y URL libre en el builder. (El desglose por conjunto y anuncio **sí entra** desde el
+  29-sep, ADR 0062.)
+- Llamada confirmada (la confirma Juanito, afuera) y el costo del orgánico, que queda al radar
+  (`analytics.md` DP-13 y DP-14). Crear o pausar campañas en Meta desde el CRM.
 - Constructor de consultas y vistas guardadas (entran cuando alguien se queje de rearmar un filtro).
 - Cuotas pactadas fila por fila (ADR 0053), calendario, checklist de onboarding.
 - Unir el lead de un programa con el del otro (solo un aviso en la ficha).
@@ -376,6 +398,27 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Link de captación del closer ("Mi link"):** el link del programa con el canal Closer y el código
   opaco del closer. **Origen humano (`traido_por`):** quién trajo a un lead.
 - **Sin UTM / sin clasificar:** las dos cubetas de origen huérfano (§7).
+- **Anuncio (creativo):** la pieza de Meta que trajo el clic; su id viaja en `utm_id` y es la llave hacia su
+  conjunto, su campaña y su gasto. **Placement:** dónde se mostró (historias, feed, reels), en `utm_term`.
+- **Macro sin expandir:** un UTM que llegó como `{{campaign.name}}`: un centinela, no un dato.
+- **Origen declarado:** el área que el closer marca al cerrar ("¿cómo nos conociste?"). Solo informa las
+  ventas sin UTM; nunca se mezcla con el UTM.
+- **Estado de llegada:** el valor que manda el formulario en su variable `estado`; una tabla por programa lo
+  lleva a la etapa donde nace el deal (ADR 0061). *No confundir con la Etapa.*
+- **Se perdió en el Calendly:** llegó a la pantalla del Calendly (envío parcial) y a los minutos de su
+  estado no agendó: urgente en el Inbox.
+
+**Las métricas de Pauta**
+
+- **Registro:** un envío (un token), contado una vez aunque llegue parcial y completo.
+- **Agenda:** una llamada agendada, contada el día en que se agendó.
+- **Llamada calificada:** ocurrió y el `lead_value` del lead está en el conjunto calificado del programa.
+- **Contratado:** la suma del precio de las ventas. *No confundir con la caja (lo abonado).*
+- **ROAS y ad profit:** contratado frente al gasto, con la TRM de la cohorte a la vista.
+- **Objetivo:** la meta y el nivel aceptable de una métrica en una cohorte, total o por área; dice si va en
+  ruta o atrasado. **Reparto por área:** la meta de cupos de la cohorte dividida entre paid, orgánico y
+  referidos (no entre closers, ADR 0023).
+- **Calidad de la traza:** hasta qué nivel se sabe el origen de una venta (anuncio, campaña, canal o nada).
 
 **El equipo y el acceso**
 

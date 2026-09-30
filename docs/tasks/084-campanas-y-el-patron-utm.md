@@ -74,3 +74,11 @@ principal, nunca un subagente** (`AGENTS.md`).
   siempre, y `utm_content` se lee solo en el canal Closer (para `traido_por`).
 - **P2, decidida el 29-sep (Mani):** el índice único lleva `NULLS NOT DISTINCT` **y** el empate se
   detecta en tiempo de ejecución como error visible. El rechazo lo ve quien crea la campaña.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- ✅ **Se reduce** (ADR 0062 punto 6, Mani 29-sep): la campaña de paid sale del árbol de Meta (120), por `utm_id` o por nombre exacto y único para lo histórico; la de orgánico se agrupa por el texto crudo de `utm_campaign`. Sin `utm_patron` ni especificidad: con canal único por par e id de Meta único, el empate no puede ocurrir y P2 queda sin objeto.
+- El gasto ya no va en `ad_spend` por campaña y fecha: va en `gasto_pauta` (120), por anuncio y día.

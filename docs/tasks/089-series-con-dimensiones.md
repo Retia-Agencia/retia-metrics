@@ -54,3 +54,10 @@ techo abierto.
 ## Kiro
 
 Si, con revision del contrato de salida.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- **Comparativos** (DP-16): cada KPI contra el periodo anterior del mismo largo y contra la cohorte anterior en el mismo día hábil. Es la misma consulta con otro rango: la serie con dimensiones lo hace gratis.

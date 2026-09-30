@@ -114,3 +114,10 @@ producción (sin `--aplicar`) de los dos programas. Las preguntas abiertas del 0
 Sin resolver en el extractor (va al importador o al 080): el cruce del `Agendado` con su llamada, los 12
 "cohorte pasada" de CA Septiembre (no hay columna que los marque), y el catálogo de motivos por código de
 subcategoría.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- Si las pestañas traen la columna "origen del deal" al corte, el importador la lleva a `deals.area_declarada_id` (121). Si no, los deals históricos quedan sin área declarada (ADR 0059).

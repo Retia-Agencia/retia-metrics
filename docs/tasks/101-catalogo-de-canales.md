@@ -40,3 +40,12 @@ significado. Dos cosas con el mismo nombre se confunden en el código y en la co
 ## Kiro
 
 Sí. **La migración la genera y aplica la sesión principal.**
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- Siembra con los pares medidos el 29-sep (`docs/analytics.md` §2.1) y con los de la plantilla de Pauta: `fb`, `ig`, `an`, `msg` y `th` con `paid_social`, área Pauta.
+- Cada canal **declara qué significan `utm_content` y `utm_term`** (DP-22): `paid_social`, anuncio y placement; `facebook / cpc` (histórico de Retia), conjunto y anuncio; `closer / referido`, el código del closer.
+- Las filas de prueba (`prueba`, `test`, `test_url_parameter`) se listan para que el gerente decida; no se adivina un canal.

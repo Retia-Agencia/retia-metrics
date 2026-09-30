@@ -73,3 +73,12 @@ ella dependia poder cruzar costo con leads:
 
 **Lo que sigue vivo de este ticket:** la pantalla de captura del costo, la moneda al lado del numero
 (COP vs USD, nunca convertir en silencio), y las preguntas a Michael.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- **La fuente principal del gasto es la API de Meta** (119, 120, ADR 0062), por anuncio y por día, en `gasto_pauta` (reemplaza `ad_spend`). La captura manual de este ticket queda para otras plataformas, si existen (PQ1), por la misma función que escribe el gasto.
+- **ROAS sobre ventas contratadas, con la TRM de la cohorte a la vista** (ADR 0063); ad profit = contratado − gasto ÷ TRM. Los "tres cubos" son las áreas (paid, orgánico, referidos) más las dos cubetas de huérfanos.
+- Números de referencia de Pauta: ROAS del corte de julio 1,97, "0,30 sobre contrato" (PQ4).

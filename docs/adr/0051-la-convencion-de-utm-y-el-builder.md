@@ -65,3 +65,16 @@ mientras tanto el closer registra el abono.
 - Qué checkouts usa Retia hoy y si mandan webhooks.
 - ⚠️ El árbol de campañas del CRM puede divergir del de Meta y el CRM no lo sabe: solo puede decir
   "esta campaña no trae leads desde tal fecha", que no distingue una campaña pausada de una cara.
+
+---
+
+## Enmienda 2026-09-29 (ADR 0062, reunión con Pauta)
+
+- **Punto 1:** para la pauta de Meta rige la plantilla de Pauta, con macros:
+  `utm_source={{site_source_name}}` · `utm_medium=paid_social` · `utm_campaign={{campaign.name}}` ·
+  `utm_content={{ad.name}}` · `utm_term={{placement}}` · `utm_id={{ad.id}}`. Se leen también `utm_id` (la
+  llave del anuncio), `utm_content` y `utm_term`, siempre por el emparejador y según lo que declara el canal.
+  Sigue la regla de fondo: un solo módulo interpreta `utm_content`, mirando el canal.
+- **Puntos 3, 4 y 5:** el CRM **no** genera los links de Meta ni crea sus campañas; las refleja desde la
+  API. El builder queda para lo que Meta no genera: el orgánico y el link del closer.
+- **Abierto que se cierra:** Pauta usa `{{ad.id}}`, en `utm_id`; `fbclid` no hace falta con el id.

@@ -36,3 +36,10 @@ status: todo
 ## Kiro
 
 Si.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- La comisión no se le muestra al paid trafficker (ADR 0052 enmendado).

@@ -167,3 +167,10 @@ ensayo. `Forms viejo` ya entró con el traslado (111, los 65 del 079): aquí no 
    quedó para hacerla con permiso.)
 4. **`Bootcamp`** como plataforma de pago: ¿qué es?
 5. **`Mail onboarding = Si`** → ¿se marca el deal como onboarded (`onboarded_at`) con fecha desconocida?
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- Pauta pidió que los closers anoten desde ya el **origen del deal** en una columna seleccionable de las pestañas de gestión (tarea O-4 de `docs/analytics.md` §7). Si la columna existe al barrer, se documenta aquí para el importador.

@@ -72,3 +72,12 @@ Si, con revision visual obligatoria.
   alcance el 21-sep (ADR 0045, enmienda 2). Se rebana por **campaña, canal y fecha**.
 - El área sale del catálogo de Canales (ticket 101).
 - 🔴 Qué ve el Paid Trafficker de esta vista lo decide Gerencia (ADR 0052).
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- **Conjunto y anuncio vuelven** (ADR 0062): Pauta se rebana por campaña, conjunto, anuncio, placement y fecha. El árbol vive en la tab Campañas (125).
+- **El hueco del umbral se llena** con la tabla `objetivos` (122) y el semáforo de DP-24 (🟡). Primeros valores reales de Pauta: agendas de paid por día meta 15, aceptable 10; costo por agenda meta 60.000 COP, aceptable 80.000 (PQ4).
+- Los costos por etapa y el embudo son del 123; este ticket queda como la vista de Gerencia por área, con estados y acción.

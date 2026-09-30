@@ -44,6 +44,35 @@ dependencias; 048, 049 y 064 llevan su enmienda).
 | [x] | · | Agendar a Michael; después closers, Gerencia y Pauta (reparto §7) | · | done · 28-sep · Michael y el dueño del deal respondidos por Mani; precio 797; Pauta, Alejo Carvajal y Michael el 29-sep 8pm |
 | [x] | 057 | 057, 058 y 059 del carril de Mani en E1, adelantados y en `main` | · | done · 28-sep · migración 0036 aplicada con el ok de Mani (sin la tabla del 110, que lleva la 0037) |
 
+# Pauta y analítica (tickets 116 a 126) — abierto el 29-sep
+
+Sale de la reunión con Pauta del 29-sep. El mapeo requisito por requisito, las decisiones (DP-1 a DP-25) y
+las fórmulas viven en **[`docs/analytics.md`](../analytics.md)**; las decisiones de arquitectura, en los
+ADR **0061** (estados de llegada por tabla), **0062** (el anuncio es la llave de la pauta) y **0063**
+(métricas y objetivos). Mani: *"lo antes posible, sin fechas"*. Etapa y carril de cada uno:
+[`plan-reparto.md`](../plan-reparto.md) §4.
+
+🩸 El 29-sep el Typeform de Tactical dejó de mandar `estado` y ningún envío abrió deal durante horas. Parche
+aplicado en el Typeform ese día (`docs/analytics.md` §2.4); el 117 lo vuelve innecesario.
+
+| ✓ | # | Tarea | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 116 | [Las UTM completas en el envío: `utm_id`, `utm_content`, `utm_term`](./116-las-utm-completas-en-el-envio.md) | — | todo · carril Alejo · migración |
+| [ ] | 117 | [Los estados de llegada por tabla, y los parciales por el webhook](./117-los-estados-de-llegada-por-tabla-y-los-parciales.md) | 115 | todo · carril Alejo · migración · reprocesa los 23 envíos de Tactical |
+| [ ] | 118 | ["Se perdió en el Calendly": urgente arriba del Inbox](./118-se-perdio-en-el-calendly.md) | 117 | todo · carril Mani |
+| [ ] | 119 | [La conexión con Meta: token por portafolio y cuentas por programa](./119-la-conexion-con-meta.md) | — | todo · carril Alejo · migración · espera el token de Anderson |
+| [ ] | 120 | [La pauta de Meta: árbol y gasto por anuncio y día](./120-la-pauta-de-meta-por-anuncio-y-dia.md) | 119 | todo · carril Alejo · migración (retira `ad_spend`) |
+| [ ] | 121 | [El área declarada por el closer al cerrar](./121-el-area-declarada-por-el-closer.md) | 083 | todo · carril Mani · migración |
+| [ ] | 122 | [Los objetivos de la cohorte y el reparto de cupos por área](./122-los-objetivos-de-la-cohorte.md) | 083 | todo · carril Mani · migración |
+| [ ] | 123 | [El embudo de Pauta y los costos por etapa](./123-el-embudo-de-pauta-y-los-costos-por-etapa.md) | 085, 089, 115, 120 | todo · carril Mani |
+| [ ] | 124 | [El cumplimiento de la cohorte por área](./124-el-cumplimiento-de-la-cohorte-por-area.md) | 122, 123 | todo · carril Mani · espera PQ3 de Pauta |
+| [ ] | 125 | [La tab Campañas: el árbol de Meta con su embudo](./125-la-tab-campanas-con-el-arbol-de-meta.md) | 120, 123 | todo · carril Mani |
+| [ ] | 126 | [El embudo del formulario](./126-el-embudo-del-formulario.md) | — | todo · carril Alejo · 🟡 dónde vive el token de Typeform |
+
+Enmendados el 29-sep por la reunión (bloque al final de cada archivo): 021, 051, 052, 062, 065, 067, 070,
+071, 072, 077, 078, 083, 084, 085, 087, 088, 089, 090, 092, 093, 095, 100, 101, 102, 115. El 093 pasa a ser
+la **vista interina de Pauta**, lo primero que se puede entregar.
+
 # Época v2 — modelo HubSpot (tickets 036 a 082)
 
 Orden y porqué: **[docs/plan-crm-v2.md](../plan.md)**. El diseño del que sale vive fuera del

@@ -102,3 +102,10 @@ reporte entero. Quien lo mande sigue escribiendo la narrativa y los masivos apar
 evita la trampa que el propio ticket senalaba: *"el PDF se va a inventar una estructura y el
 equipo va a seguir mandando el de Mike"*. Va a seguir mandando **parte** del de Mike, y eso esta
 bien siempre que se decida a proposito.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- Michael sale en octubre y el Dashboard reemplaza su reporte (reunión con Alfredo y Dani, 29-sep). El PDF toma también las secciones de Pauta (123) y el cumplimiento (124), con el mismo objeto que pinta la pantalla.

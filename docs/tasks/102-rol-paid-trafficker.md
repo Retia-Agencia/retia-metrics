@@ -35,3 +35,11 @@ administrar nada más.
 ## Kiro
 
 Parcial. El código y los tests sí, con revisión de permisos. La migración, la sesión principal.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- **Qué ve (Mani, 29-sep; ADR 0052 enmendado):** el Dashboard de sus programas menos el comparativo entre closers y la comisión; sí ventas contratadas y caja, que el ROAS necesita. Crea links de orgánico en el builder y conecta la cuenta de Meta de sus programas (119).
+- Usuarios de Pauta: Anderson, César y Daniela Rodríguez (entra full time).

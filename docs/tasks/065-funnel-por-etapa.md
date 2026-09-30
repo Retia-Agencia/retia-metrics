@@ -77,3 +77,10 @@ Si.
   (5 → 3 con motivo); T11 queda reemplazada y T15 pasa a 6 → 11. Perdido llega también desde 11. Tabla
   completa en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2.5 y §2.6.
 - **Reemplaza** lo dicho antes en este documento sobre "la segunda llamada no hace retroceder".
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- 🟡 Prioridad baja (sale de la captura de Adpulze, nadie lo pidió de palabra): ranking de motivos de pérdida con los deals perdidos y el ticket estimado, como las "objeciones" de Adpulze (PT-34).

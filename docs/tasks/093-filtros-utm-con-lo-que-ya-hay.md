@@ -78,3 +78,13 @@ ahora.
 ## Kiro
 
 Si.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- **Es la vista interina de Pauta, lo primero que se puede entregar** (ola 1 de `docs/analytics.md` §7): registros, agendas y sin UTM por canal, campaña y anuncio, con lo que ya hay.
+- 🩸 Corrección de lo medido: `utm_term` y `utm_content` **no están en 0**: viven en `submissions.respuestas` (6.911 envíos de la hoja y 101 del webhook). El anuncio **sí** entra (ADR 0062); mientras salga el 116, se leen de `respuestas`.
+- Lee de `submissions`, no de `leads.utm_*` (ADR 0060, que elimina esas columnas). Registro = token.
+- **Contador visible de sin UTM de hoy, sin umbral** (DP-17), con la lista de esos envíos; las macros sin expandir, aparte.

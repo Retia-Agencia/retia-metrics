@@ -142,3 +142,10 @@ regla de A8 (28-sep, *"el CRM no calcula NADA"*): el Estado ya llega calculado, 
   igual, ordenado solo por recencia.
 - Descartado: bandas de ingreso configuradas en el CRM (`programs.bandas_ingreso`). Era el CRM
   calificando, contra A8.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- El orden del Setteo suma la **prioridad** de la fila del estado de llegada (117): `con_calendly_sin_agenda` va arriba, después el score desc y la recencia. El urgente "se perdió en el Calendly" es el 118.

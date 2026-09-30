@@ -87,3 +87,10 @@ de migración de arranque de E4 junto con la configuración del Inbox), en **dí
 excluyen sábados y domingos), con defecto **3**, editable en `/ajustes/programas`. "Actividad" es la
 fecha más reciente entre: actividad del deal, llamada, abono y movimiento de etapa. Solo cuenta para
 deals abiertos con dueño; Completo, Cierre Perdido y los anulados nunca están estancados.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- El Inbox gana la sección "se perdió en el Calendly" (118): arriba de todo, calculada al leer, sin cron.

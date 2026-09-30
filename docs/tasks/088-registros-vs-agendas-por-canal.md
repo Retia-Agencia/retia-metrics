@@ -48,3 +48,10 @@ sale de `submissions`, no de `deals`**. Si sale de deals, la tasa de calificacio
 ## Kiro
 
 Si.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- Registro = token (ADR 0063). La agenda se ancla por el día en que se agendó (`calls.created_at`), no por el de la cita (`docs/analytics.md` §6).

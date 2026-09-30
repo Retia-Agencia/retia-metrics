@@ -93,10 +93,12 @@ aparte: el Typeform le muestra el Calendly al que califica, así que un envío p
 flowchart TD
   E["Llega un envío del formulario del programa"] --> Q{"¿El lead ya tiene un deal abierto en este programa?"}
   Q -- "sí" --> R["Se guarda el envío y se avisa al dueño. La etapa no cambia"]
-  Q -- "no" --> EST{"¿Cómo llegó el envío?"}
-  EST -- "Descartado o sin Estado" --> L["Lead sin deal, visible en la tab Leads"]
-  EST -- "Setteo: calificó pero no agendó" --> D1["Deal nuevo en 1 Pendiente Setteo, sin dueño, al Inbox"]
-  EST -- "Con Calendly: agendó en el formulario" --> D4["Deal nuevo en 4 Agendado, esperando su llamada de Calendly"]
+  Q -- "no" --> EST{"¿Qué etapa dice la tabla de estados para su Estado?"}
+  EST -- "sin Estado, valor desconocido o parcial del WhatsApp" --> L["Lead sin deal, visible y contado en la tab Leads"]
+  EST -- "setteo_no_calificado: completó sin agendar" --> D1["Deal nuevo en 1 Pendiente Setteo, sin dueño, al Inbox"]
+  EST -- "con_calendly_sin_agenda: parcial previo al Calendly" --> D1A["Deal nuevo en 1, prioridad alta; urgente a los 5 min sin completa"]
+  EST -- "con_calendly: trae el link de la cita" --> D4["Deal nuevo en 4 Agendado, con su llamada de Calendly"]
+  D1A -- "llega la completa con cita" --> D4
   MAN["El closer crea el lead a mano: WhatsApp, referido, evento"] --> DM["Deal nuevo en 1, 2 o 6, con él como dueño"]
 ```
 
@@ -104,7 +106,9 @@ flowchart TD
 |---|---|---|
 | Envío Setteo, lead sin deal abierto | deal en 1, sin dueño, al Inbox | ADR 0037 |
 | Envío Con Calendly, lead sin deal abierto | deal en 4 Agendado | ADR 0037, 0049 |
-| Envío Descartado o sin Estado | lead sin deal | ADR 0037 |
+| Envío sin Estado, o con un valor que la tabla del programa no tiene | lead sin deal, contado como "sin estado" | ADR 0061 |
+| Parcial previo al Calendly (`con_calendly_sin_agenda`) | deal en 1 con prioridad alta; su completa con cita lo pasa a 4 | ADR 0061 |
+| Parcial tras el WhatsApp, sin Estado | lead sin deal, "abandonó el formulario" | ADR 0061 |
 | Nuevo envío de un lead con deal abierto | se guarda, se avisa al dueño, la etapa no cambia | ADR 0037 |
 | Envío parcial y luego su completa | se guardan los dos; la completa manda | ADR 0036 |
 | Teléfono igual, correo distinto | se une al lead existente y se marca para revisión | ADR 0035 |
@@ -112,7 +116,7 @@ flowchart TD
 | El lead vuelve a aplicar con su deal cerrado | deal nuevo; la ficha muestra los anteriores | ADR 0037 |
 | Lead que ya existía antes del corte | no abre deal por la ingesta: entra con la migración, con su estado de gestión | ADR 0037 |
 
-El "Estado" (Descartado, Setteo, Con Calendly) lo produce el formulario y el CRM solo lo traduce (ADR 0054; A1 y A8 cerradas). El CRM lee además un hecho: si la pregunta de agenda trae un link de Calendly (ticket 106).
+El "Estado" lo manda el formulario en su variable `estado`, y **una tabla por programa (`estados_llegada`) dice en qué etapa nace el deal y con qué prioridad** (ADR 0061, 29-sep; reemplaza al 0054). Descartado desaparece para lo nuevo. El CRM lee además un hecho: si la pregunta de agenda trae un link de Calendly, el envío es `con_calendly` (ticket 106).
 
 ### 2.2 Cómo se cuelga cada llamada de su deal (Calendly)
 
@@ -292,6 +296,8 @@ flowchart TD
     CALE["Calendly de cada programa"]
     GOOG["Google OAuth"]
     SHEETS["Google Sheets API<br/>solo para el traslado"]
+    META["API de Meta<br/>árbol y gasto por anuncio, tickets 119 y 120"]
+    TFI["Insights de Typeform<br/>embudo por pregunta, ticket 126"]
   end
   subgraph VERCEL["Vercel"]
     PROXY["proxy.ts<br/>exige sesión salvo las rutas públicas nombradas"]
@@ -309,6 +315,8 @@ flowchart TD
   NEXT -->|"drizzle + postgres-js, pooler 6543"| PG
   NEXT -->|"lib/archivos"| STO
   NEXT --> SHEETS
+  NEXT -->|"cron diario + botón"| META
+  NEXT -->|"al leer"| TFI
   CRON --> NEXT
 ```
 
@@ -327,7 +335,8 @@ UI, zod en el borde, Vitest con PGlite, npm.
 | `lib/deals/etapas.ts` · `requisitos.ts` · `mover-etapa.ts` | la tabla de transiciones (043), lo que le falta a un deal (044), y `moverEtapa()` y `abrirDeal()`, los únicos escritores de la etapa (045, 047), vigilados por un guardián (046) | ✅ 27-sep |
 | `lib/queries/vigente.ts` | qué registros cuentan: `vigente`, `incluyendoAnulados` | ✅ |
 | `lib/queries/saldo.ts` | lo abonado y el saldo, una sola definición | ❌ lo recrea el 060 |
-| `lib/atribucion/emparejar.ts` | a qué canal, campaña y área pertenece un envío | ❌ ticket 085 |
+| `lib/atribucion/emparejar.ts` | a qué canal, área, campaña y anuncio pertenece un envío, y hasta qué nivel llega su traza | ❌ ticket 085 (ADR 0062) |
+| `lib/pauta/` | la conexión con Meta, la sincronización del árbol y el único escritor del gasto (`registrarGasto`) | ❌ tickets 119 y 120 |
 | `lib/archivos/` | guardar y servir comprobantes | ❌ ticket 035 |
 | `lib/closers/identidad.ts` | si dos textos son el mismo closer (histórico) | ✅ |
 | `lib/db/` | el esquema, la conexión, `ejecutarJuntas`, los códigos de error de Postgres | ✅ |
@@ -375,13 +384,18 @@ erDiagram
   AREA ||--o{ CANAL : agrupa
   CANAL ||--o{ CAMPANA : "source + medium"
   PROGRAMA ||--o{ CAMPANA : tiene
-  CAMPANA ||--o{ GASTO_PAUTA : "costo por fecha"
+  CAMPANA ||--o{ GASTO_PAUTA : "costo manual por fecha"
   PROGRAMA ||--o{ DESTINO : "form y checkouts"
+  PROGRAMA ||--o{ CUENTA_PUBLICITARIA : "Meta"
+  CUENTA_PUBLICITARIA ||--o{ PAUTA_OBJETO : "campaña, conjunto, anuncio"
+  PAUTA_OBJETO ||--o{ GASTO_PAUTA : "gasto por anuncio y día"
+  PROGRAMA ||--o{ ESTADO_LLEGADA : "valor del form a etapa"
+  COHORTE ||--o{ OBJETIVO : "meta y aceptable, por área"
 ```
 
 | Existe ✅ | Le falta algo | No existe ❌ |
 |---|---|---|
-| `programs`, `cohorts`, `users`, `miembros_programa`, `leads`, `lead_contactos`, `submissions`, `deals`, `deal_etapa_historial`, `deal_actividades`, `calls`, `abonos`, `cuotas_pactadas` (quieta en v1), `productos`, `plataformas_pago`, `plataformas_programa`, `motivos`, `origenes`, `recursos`, `categorias_recurso`, `enlaces_pago`, `sources`, `ad_spend`, `change_log`, `sync_runs` | `sources`: identificador del formulario y un tipo webhook (hoy `tipo_fuente` solo admite `google_sheet` y `upload`) · `deals`: la etapa Seguimiento (043), nota y fecha límite de pago (061) · `calls`: el closer como FK (057), id del evento de Calendly y host (096) · `abonos`: FK a quien registró (060) · membresía: cuenta de Calendly por programa (096) · `programs`: `form_url` (092) y tasa de comisión (062) · `leads`: `traido_por_user_id` (086) | áreas (083), campañas (084), canales (101), destinos (092). `ad_spend` guarda la campaña como texto hasta el 084 |
+| `programs`, `cohorts`, `users`, `miembros_programa`, `leads`, `lead_contactos`, `submissions`, `deals`, `deal_etapa_historial`, `deal_actividades`, `calls`, `abonos`, `cuotas_pactadas` (quieta en v1), `productos`, `plataformas_pago`, `plataformas_programa`, `motivos`, `origenes`, `recursos`, `categorias_recurso`, `enlaces_pago`, `sources`, `ad_spend`, `change_log`, `sync_runs` | `sources`: identificador del formulario y un tipo webhook (hoy `tipo_fuente` solo admite `google_sheet` y `upload`) · `deals`: la etapa Seguimiento (043), nota y fecha límite de pago (061) · `calls`: el closer como FK (057), id del evento de Calendly y host (096) · `abonos`: FK a quien registró (060) · membresía: cuenta de Calendly por programa (096) · `programs`: `form_url` (092) y tasa de comisión (062) · `leads`: `traido_por_user_id` (086) | áreas (083), campañas (084, se reduce: DP-25 ✅), canales (101), destinos (092). Desde el 29-sep (`analytics.md` §5): `submissions.utm_id` (116), `estados_llegada` (117), `deals.area_declarada_id` (121), `meta_conexiones` y `cuentas_publicitarias` (119), `pauta_objetos` y `gasto_pauta`, que reemplaza `ad_spend` (120), `objetivos` (122), `programs.valores_calificados` (123) |
 
 Students e Inbox son **vistas**, no tablas. `leads` todavía guarda sus propios `utm_*`, que repiten los
 del envío (decisión D5 del plan).
@@ -397,7 +411,7 @@ flowchart LR
   CE["construirEnvio<br/>una fila y un payload dan el mismo Envío"] --> ID["resolverIdentidad<br/>el correo manda; el teléfono une y marca"]
   ID --> ING["ingerirEntradas<br/>una transacción, por lotes, idempotente"]
   ING --> W1["leads + submissions + lead_contactos<br/>con change_log"]
-  ING --> CAL["calificarEnvio<br/>🔴 o la calificación la trae el formulario"]
+  ING --> CAL["estados_llegada<br/>el Estado del form a su etapa, ADR 0061"]
   CAL --> REG["Regla de deals, 052<br/>por construir"]
   REG --> MOT["moverEtapa<br/>por construir"]
 ```
@@ -406,9 +420,10 @@ flowchart LR
   se rechaza con 422 y no se escribe nada.
 - **El resumen del lead se recalcula desde sus envíos** cada vez que llega uno nuevo (la parcial deja al
   lead incompleto y la completa lo corrige).
-- **Calificación (T2, construida):** las cuatro reglas del Apps Script, configuradas por fuente en
-  `sources.calificacion`, validadas contra 6.400 envíos del histórico (6.397 coinciden). Sin
-  configuración no se califica y queda reportado; nunca se asume una respuesta vacía.
+- **Calificación:** T2 (las reglas del Apps Script en el CRM) se borró el 28-sep. El Estado lo manda el
+  formulario y, desde el 29-sep, una tabla por programa lo lleva a su etapa (ADR 0061, ticket 117). Un
+  valor vacío o desconocido no se adivina: lead sin deal, contado. 🩸 El 29-sep una edición del Typeform de
+  Tactical quitó la variable y el CRM dejó de abrir deals en silencio (`analytics.md` §2.4).
 - **Puntaje (T4):** el motor existe y **no tiene pesos**, a propósito: no hay datos de venta con qué
   calibrarlos, y correlacionar con "tiene Calendly" mediría el umbral contra sí mismo. Un peso escrito a
   ojo se ve igual que uno calibrado.
@@ -417,17 +432,26 @@ flowchart LR
 
 ## 7. La atribución
 
-**La convención de UTM** (ADR 0051): tres se leen (`utm_source` la plataforma, `utm_medium` el tipo de
-tráfico, `utm_campaign` la campaña) y dos se capturan (`utm_content`, quién o qué pieza según el
-canal; `utm_term`, variante libre). Minúsculas y `snake_case`. Ningún link se arma a mano: sale del
-builder.
+**La convención de UTM** (ADR 0051, enmendado por el 0062 el 29-sep):
+
+- **Pauta de Meta:** la plantilla de Pauta, con macros que Meta llena por anuncio:
+  `utm_source={{site_source_name}}` · `utm_medium=paid_social` · `utm_campaign={{campaign.name}}` ·
+  `utm_content={{ad.name}}` · `utm_term={{placement}}` · `utm_id={{ad.id}}`. `utm_id` es la llave hacia el
+  árbol y el gasto de Meta. El CRM no genera estos links.
+- **Orgánico y closers:** los links salen del builder del CRM. Minúsculas y `snake_case`.
+- **Qué significan `utm_content` y `utm_term` lo declara el canal** y lo lee solo el emparejador: en
+  `paid_social`, anuncio y placement; en el `facebook / cpc` histórico de Retia (medido el 29-sep),
+  conjunto y anuncio; en `closer / referido`, el código del closer.
+- Una macro que llega sin expandir (`{{campaign.name}}`, 20 envíos al 29-sep) es un centinela: se guarda como
+  llegó y cuenta aparte.
 
 **Catálogo inicial de canales** 🟡 (sale de los valores reales de las hojas; el área la confirma Alejo y
 la convención se cierra con Pauta):
 
 | Canal | `utm_source` | `utm_medium` | Área propuesta |
 |---|---|---|---|
-| Meta Ads | `facebook` | `cpc` | Pauta |
+| Meta Ads (plantilla de Pauta) | `fb`, `ig`, `an`, `msg`, `th` | `paid_social` | Pauta |
+| Meta Ads (histórico de Retia) | `facebook` | `cpc` | Pauta |
 | TikTok Ads | `tiktok` | `cpc` | Pauta |
 | Google / YouTube Ads | `google` | `cpc` | Pauta |
 | Instagram bio / linktree | `instagram` | `bio` | Media |
@@ -442,6 +466,9 @@ la convención se cierra con Pauta):
 🩸 Los pares reales que traían las hojas: `facebook / cpc`, `direct / organic`,
 `instagram rosario / linktree`, `instagram milena / linktree`, `instagram rosario / stories`,
 `leadmagnetdiagnostico / pdf`. Se clasifican hacia atrás con reglas del canal; el crudo no se reescribe.
+Medidos otra vez el 29-sep (`analytics.md` §2.1): además `manychat`, `storiesfijadas`, `dm`,
+`storiesmanychat`, `tiktok / linktree`, `youtube / linktree`, `whatsapp rosario / chat`, `fb / paid` y
+filas de prueba (`prueba`, `test`).
 
 **El builder v1:**
 
@@ -453,7 +480,8 @@ la convención se cierra con Pauta):
 | Opcional | `utm_content` y `utm_term`, con "usar fecha de hoy" |
 | URL final | se copia; no se guarda, se calcula |
 
-Lo usan el gerente y el paid trafficker. El closer tiene "Mi link", ya prellenado. Crear una campaña
+Desde el 29-sep es para lo que Meta no genera: el orgánico y los links de closer (ADR 0062). Lo usan el
+gerente y el paid trafficker, en la tab Campañas. El closer tiene "Mi link", ya prellenado. Crear una campaña
 escribe su regla de clasificación en la misma operación. El emparejamiento es determinista (gana el
 patrón más específico, un empate es un error visible, ADR 0045) y las dos cubetas de huérfanos, **sin
 UTM** y **sin clasificar**, se muestran siempre con su conteo y su porcentaje.
@@ -473,7 +501,7 @@ construirla.
 | **Deals** | Kanban por etapas y vista de tabla | etapa, dueño, cohorte, canal, antigüedad, "necesita atención" |
 | **Calls** | llamadas de hoy y próximas, sin resultado, sueltas | closer, resultado, fecha |
 | **Students** | estudiantes por cohorte: saldo, acuerdo de pago, fecha límite, cartera vencida, onboarding | cohorte (por defecto la activa), saldo, vencida |
-| **Campañas** | catálogo de campañas, gasto y builder | canal, área, cohorte |
+| **Campañas** | el árbol de Meta (campaña, conjunto, anuncio) con su embudo, gasto, costos y ROAS por fila; el builder de orgánico y closers (125, ADR 0062) | fecha, cohorte, canal, placement, formato |
 | **Programs** | ficha del programa: cohortes, destinos, Calendly, fuente, comisión, equipo | · |
 | **Products** | productos y precios | · |
 | **Resources** | brochures y links de pago | categoría |
@@ -483,9 +511,9 @@ construirla.
 | Tab | Closer | Gerente | Paid Trafficker | Developer |
 |---|---|---|---|---|
 | Inbox | lo suyo + sin dueño de sus programas | todo el programa | · | todo |
-| Dashboard | sus programas, completos | todos | 🔴 ¿solo la pauta de sus programas? | todo |
+| Dashboard | sus programas, completos | todos | sus programas, menos el comparativo entre closers y la comisión (ADR 0052 enmendado) | todo |
 | Leads, Deals, Calls, Students | sus programas | todos | · | todo |
-| Campañas | "Mi link" | todo | crea campañas y links de sus programas | todo |
+| Campañas | "Mi link" | todo | ve el árbol y el embudo de sus programas, crea links de orgánico y conecta la cuenta de Meta | todo |
 | Programs | lectura de los suyos | edita | · | todo |
 | Products | edita en sus programas | edita | · | todo |
 | Resources | lee y crea en sus programas | edita | · | todo |
@@ -509,7 +537,10 @@ en otro programa. Cada tarjeta lleva a su lista ya filtrada.
 | Por área | leads, deals y ventas por área | sí, los conteos |
 | Origen | por canal y campaña: registros, agendas, ventas; las dos cubetas de huérfanos | sí, los conteos |
 | Flujo de caja | caja por fecha de abono, saldo por cobrar, cartera vencida | sí (todo en USD) |
-| Inversión | gasto, CPL, costo por agenda, CAC, ROAS por campaña y cohorte | el gasto sí; lo demás por programa |
+| Atribución por área | los cinco KPI (ventas contratadas, caja, ventas, agendas, registros) con su reparto por área y su comparativo; composición semanal; calidad de la traza; "sin UTM · según el comercial" (123) | los conteos y el dinero sí; los % no |
+| Inversión y costos por etapa | gasto de Meta, costo por lead, agenda, llamada, calificada, show y venta, ROAS y ad profit con la TRM de la cohorte, por área, campaña, conjunto y anuncio (123) | el gasto sí; lo demás por programa |
+| Cumplimiento de la cohorte | por área: meta, vendidas, faltan, requeridas por día, ritmo, proyección y semáforo; tabla día a día (124) | no |
+| Formulario | embudo por pregunta (Insights de Typeform) y por canal (126); sin UTM de hoy (093) | los conteos sí |
 
 También entran una réplica del semáforo `🚨 Urgencias` de la hoja (agendas de ayer, promedio de 7 días,
 desglose por canal; ticket 066) y el ROAS por cohorte (067).

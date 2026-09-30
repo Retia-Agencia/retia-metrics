@@ -40,3 +40,12 @@ programas (gasto, registros, agendas, CPL, costo por agenda), sin caja ni compar
 | Darle rol de gerente | Vería caja, closers y usuarios, y podría administrar |
 | Que las campañas las cargue siempre un gerente | Deja abiertos los dos límites del link generado |
 | Preguntar `rol === "paid_trafficker"` donde haga falta | Es el bug que el ADR 0025 existe para evitar |
+
+---
+
+## Enmienda 2026-09-29 (ADR 0062, reunión con Pauta; Mani)
+
+- **Punto 2:** el gasto de Meta entra por la API; el trafficker solo carga a mano el de otras plataformas.
+- **Punto 4, cerrado:** ve el Dashboard de sus programas **menos el comparativo entre closers y la
+  comisión**. Sí ve ventas contratadas y caja, porque ROAS y ad profit las necesitan. Sigue sin ver deals,
+  llamadas ni abonos sueltos.

@@ -94,14 +94,24 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 | E2 | El dinero mueve el deal; Calendly y la navegación | · |
 | E3 | El Kanban y la migración ensayada | · |
 | E4 | Inbox y Students | · |
-| E5 | Dashboard sobre deals y corte | **Hito B**: los closers operan en el CRM |
-| E6 | De dónde viene cada lead | **Hito C** ([082]) durante la etapa |
-| E7 | Lo que cuesta la pauta | Sheets fuera: Typeform deja de escribir ahí y se borra el Apps Script |
+| E5 | Dashboard sobre deals, vista interina de Pauta y corte | **Hito B**: los closers operan en el CRM |
+| E6 | De dónde viene cada lead (ola 1 de Pauta) | **Hito C** ([082]) durante la etapa |
+| E7 | Lo que cuesta y lo que vende la pauta (ola 2) | Sheets fuera: Typeform deja de escribir ahí y se borra el Apps Script |
 | E8 | El dashboard completo | · |
 | E9 | Revisión cruzada | v1 completo |
 
 El hito A (los leads entran solos) se cumplió el 28-sep. El 082, que `plan.md` §1 pone como línea de
 llegada, pasa a caer en E6: con la migración antes del hito B ya no espera a la analítica.
+
+**29-sep: E6 a E8 se rehicieron con la reunión con Pauta** ([`analytics.md`](./analytics.md) §7; tickets
+116 a 126). Mani: *"lo antes posible, sin fechas, estructurado"*. Dos consecuencias para el orden:
+
+- **El corte (hito B) deja de frenar las etapas de código.** Espera decisiones de afuera (la fecha con los
+  closers, S1), no código. Cuando el código de E5 está en `main`, E6 abre aunque el corte siga pendiente; el
+  corte se hace en cuanto esas dos cosas estén. La ola 1 de Pauta (envíos, agendas, gasto) no depende de él.
+- **Lo que no se puede reconstruir va antes que todo** (ola 0 de `analytics.md`: campo oculto `utm_id`,
+  plantilla de UTM en Meta, token de Meta, columna de origen en las hojas, crear la C3). Es configuración:
+  corre desde ya, fuera de los carriles.
 
 ### E0 · Terreno para dos
 
@@ -204,6 +214,12 @@ Backend puro.
 | [064] · L | [062] · S |
 | → [098] · M | → [072] (cierra el [050]: separar y confirmar duplicados; **también lo usa el closer**, ADR 0060) · M |
 | → [115] (el origen es del envío, ADR 0060) · M | → guion del corte, capacitación y plan de reversa · M |
+| → [093] vista interina de Pauta (29-sep: lo primero que se entrega a Pauta, sin migración) · S | |
+
+- **Ola 0 de Pauta, fuera de los carriles y desde ya** ([`analytics.md`](./analytics.md) §7): O-1 campo
+  oculto `utm_id` en los dos Typeform (ok de Mani), O-2 plantilla de UTM en Meta (Pauta, después de O-1),
+  O-3 token de Meta (Anderson), O-4 columna "origen del deal" en las hojas (Mani o Dani con los closers),
+  O-5 crear la C3 de cada programa (gerente), ~~O-6 confirmar el parche de Tactical con un envío real~~ ✅ 29-sep.
 
 - **Migración de arranque:** la tasa de comisión del programa (062).
 - **Decidir antes:** ~~precio de lista de ComunicArte~~ ✅ 797 · la fecha del corte (closers) · 🚨 **Supabase Pro
@@ -221,52 +237,64 @@ Backend puro.
   4. Closers con cuenta, membresía y Calendly por programa; recorrido de su día en el celular.
   5. Desde ese día se registra solo en el CRM. Las pestañas quedan de respaldo hasta el 082.
 
-### E6 · De dónde viene cada lead
+### E6 · De dónde viene cada lead (ola 1 de Pauta)
 
 | Mani | Alejo |
 |---|---|
-| [083] · S | [102] · M |
-| → [101] · M | → [065] · M |
-| → [084] · M | → [089] · M |
-| → [085] · M | → [093] · S |
-| | [082] cuando el equipo lleve días operando solo en el CRM (propuesta: una semana hábil) = **hito C** · S |
+| [083] · S | [116] · S |
+| → [101] (con los pares medidos el 29-sep y `paid_social`) · M | → [117] (va después del [115]: los dos tocan `regla-de-deals.ts`) · M |
+| → [085] (lee `utm_id`; macro sin expandir; nivel de la traza) · M | → [119] · M |
+| → [087] (va con el 085, nunca después) · S | → [120] · L |
+| → [121] · M | → [102] · M |
+| → [118] · S | [082] cuando el equipo lleve días operando solo en el CRM (propuesta: una semana hábil) = **hito C** · S |
+| → [089] · M | |
 
-- **Migración de arranque:** la única de E1b (`tasks/README.md`): áreas, canales, campañas, `utm_patron`
-  con `NULLS NOT DISTINCT` (P2), pauta por campaña y el valor `paid_trafficker`.
-- **Decidir antes:** Gerencia, el área de cada canal · qué ve el paid trafficker (Mani, 29-sep: crea UTM y
-  mide la operación de sus programas; falta si ve caja y comparativo entre closers) · ~~P2~~ ✅ · ~~D5~~ ✅
-  ADR 0060 · el alcance del 092 tras la reunión con Pauta del 29-sep (ellos ya estandarizan sus UTM).
-- **Prueba de costura:** un envío con UTM resuelve a canal, área y campaña; "sin UTM" y "sin clasificar"
-  salen separados, con conteo.
+- **Migración de arranque:** una sola, aditiva: áreas, canales, `submissions.utm_id`, `estados_llegada`,
+  `deals.area_declarada_id`, `meta_conexiones`, `cuentas_publicitarias`, `pauta_objetos`, `gasto_pauta` (y
+  se retira `ad_spend`, vacía) y el valor `paid_trafficker`. Con DP-25 aprobado, `utm_patron` no se crea.
+- **Decidir antes:** PQ1 (Pauta: cuentas, moneda y zona
+  horaria) · PQ7 (Gerencia: nombre visible de cada área) · el token de Meta (Anderson) · dónde vive el token
+  de Typeform ([126]).
+- **Prueba de costura:** un envío `ig / paid_social` con `utm_id` resuelve a su área (Pauta), su anuncio, su
+  conjunto y su campaña, con el gasto de ese anuncio; un parcial `con_calendly_sin_agenda` abre el deal en
+  Setteo con prioridad alta y su completa con cita lo pasa a Agendado; "sin UTM" y "sin clasificar" salen
+  separados, con conteo.
+- **Después, en producción (ola 0, O-7):** punto parcial antes del Calendly, valor `con_calendly_sin_agenda`
+  y evento `form_response_partial` en el webhook. **Solo cuando el 117 esté en producción.**
 
-### E7 · Lo que cuesta la pauta
+### E7 · Lo que cuesta y lo que vende la pauta (ola 2)
 
 | Mani | Alejo |
 |---|---|
-| [092] · L | [088] · M |
-| → [086] · M | → [066] · M |
-| → [087] (va con el 086, nunca después) · S | → [067] · M |
+| [122] · M | [126] · M |
+| → [123] · L | → [088] · M |
+| | → [066] · M |
+| | → [067] (captura manual del gasto de otras plataformas y ROAS por cohorte) · M |
+| | → [065] · M |
 
-- **Migración de arranque:** destinos del programa (checkouts), si el 092 los pide.
-- **Decidir antes:** Pauta, checkouts, `utm_id` y `fbclid`, y el 26% sin UTM de Tactical (reunión del 29-sep, 8pm). ROAS
-  y Juanito ya respondidos (Mani, 28-sep).
-- **Prueba de costura:** una campaña creada en el builder da un link; su envío cae en esa campaña y su
-  costo entra al CPL y al ROAS.
+- **Migración de arranque:** `objetivos` y `programs.valores_calificados`.
+- **Decidir antes:** DP-23 y DP-24 (Mani) · PQ3 y PQ4 (Pauta: conversión, ritmo, desfase y objetivos) ·
+  PQ5 (Gerencia: cortesías). ROAS y Juanito ya respondidos (Mani, 28-sep).
+- **Prueba de costura:** una venta de un anuncio con gasto cargado sale en su área, su campaña y su anuncio,
+  con su costo por venta y su ROAS a la TRM de la cohorte, igual en la consulta del 123 y en el 088.
 - **Al cerrar:** Typeform deja de escribir en Sheets y se borra el Apps Script.
 
 ### E8 · El dashboard completo
 
 | Mani | Alejo |
 |---|---|
-| [095] · M | [068] (reescribir su alcance: el sync ya no existe) · S |
+| [124] · L | [092] (el builder solo para orgánico y closer) · M |
+| → [125] · M | → [086] · M |
+| → [095] · M | → [068] (reescribir su alcance: el sync ya no existe) · S |
 | → [090] · L | → [076] · S |
 | | → [100] · M |
 | | → [021] · M |
 
 - **Migración de arranque:** ninguna prevista.
-- **Decidir antes:** umbrales de Gerencia. No bloquea: el 090 deja el hueco listo.
-- **Prueba de costura:** "todos los programas" solo suma lo sumable (test de tipo) y cuadra con la suma
-  de cada programa.
+- **Decidir antes:** PQ6 (Pauta y Media: convención del orgánico) y los umbrales que falten (Gerencia). No
+  bloquea: el 090 y el 124 muestran el supuesto que usan.
+- **Prueba de costura:** "todos los programas" solo suma lo sumable (test de tipo) y cuadra con la suma de
+  cada programa; el ROAS de una campaña cuadra entre la tab Campañas y el Dashboard.
 
 ### E9 · Revisión cruzada y cierre de v1
 
@@ -358,9 +386,10 @@ closers durante E1 que cubra E2 a E5; Gerencia durante E4; Pauta durante E5.
 | E4 | ~~Pregunta de ingreso y bandas~~ ✅ score del formulario; ~~X días~~ ✅ 3 días hábiles por defecto configurable; ~~estudiante desde cuándo~~ ✅ abonado o completo por cohorte/programa; ~~quién hace onboarding~~ ✅ dueño, gerente o developer | Closers / Mani |
 | E5 | ~~Precio de lista de ComunicArte~~ ✅ 797 (Mani, 28-sep) · fecha del corte | Closers |
 | E5 | 🚨 Supabase Pro, por los respaldos (S1) | Equipo |
-| E6 | Área de cada canal · caja y comparativo para el paid trafficker · ~~P2~~ ✅ · ~~D5~~ ✅ | Gerencia · Mani |
-| E7 | Checkouts · `utm_id` y `fbclid` · el 26% sin UTM | Pauta |
-| E8 | Umbrales del dashboard (no bloquea) | Gerencia |
+| E6 | Área de cada canal y su nombre visible (PQ7) · ~~caja y comparativo para el paid trafficker~~ ✅ DP-12 · ~~P2~~ sin objeto · ~~D5~~ ✅ · ~~DP-25~~ ✅ | Gerencia · Mani |
+| E6 | Cuentas publicitarias, moneda y zona horaria (PQ1) · token de Meta · ~~`utm_id` y `fbclid`~~ ✅ `utm_id` por macro (ADR 0062) | Pauta |
+| E7 | Conversión, ritmo, desfase y objetivos (PQ3, PQ4) · cortesías (PQ5) · checkouts · el 26% sin UTM de Tactical | Pauta · Mani · Gerencia |
+| E8 | Convención del orgánico (PQ6) · umbrales que falten (no bloquea) | Pauta y Media · Gerencia |
 | E9 | Formato del comprobante | Closers |
 
 ---
@@ -425,3 +454,15 @@ closers durante E1 que cubra E2 a E5; Gerencia durante E4; Pauta durante E5.
 [102]: ./tasks/102-rol-paid-trafficker.md
 [105]: ./tasks/105-la-fuente-webhook.md
 [110]: ./tasks/110-la-salud-del-crm.md
+[115]: ./tasks/115-el-origen-es-del-envio.md
+[116]: ./tasks/116-las-utm-completas-en-el-envio.md
+[117]: ./tasks/117-los-estados-de-llegada-por-tabla-y-los-parciales.md
+[118]: ./tasks/118-se-perdio-en-el-calendly.md
+[119]: ./tasks/119-la-conexion-con-meta.md
+[120]: ./tasks/120-la-pauta-de-meta-por-anuncio-y-dia.md
+[121]: ./tasks/121-el-area-declarada-por-el-closer.md
+[122]: ./tasks/122-los-objetivos-de-la-cohorte.md
+[123]: ./tasks/123-el-embudo-de-pauta-y-los-costos-por-etapa.md
+[124]: ./tasks/124-el-cumplimiento-de-la-cohorte-por-area.md
+[125]: ./tasks/125-la-tab-campanas-con-el-arbol-de-meta.md
+[126]: ./tasks/126-el-embudo-del-formulario.md

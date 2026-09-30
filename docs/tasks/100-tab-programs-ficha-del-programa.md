@@ -29,3 +29,10 @@ Un lugar donde ver todo lo que define un programa, sin entrar a Ajustes: cohorte
 ## Kiro
 
 Sí, con revisión visual.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- La ficha del programa es un buen lugar para configurar sus estados de llegada (117), sus objetivos por cohorte (122), sus cuentas publicitarias de Meta (119) y sus `valores_calificados` (123).

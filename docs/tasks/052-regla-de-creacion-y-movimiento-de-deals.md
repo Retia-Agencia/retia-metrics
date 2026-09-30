@@ -160,3 +160,11 @@ sale `cancelada`, un uuid falso `no_encontrada` y un token malo `error`.
 - ⚠️ Caso raro sin test: un lead con el deal CERRADO que reenvía el MISMO envío abre un deal nuevo en
   Agendado, y su llamada choca con la huella `calendly:<uuid>` de la del deal viejo: el deal nuevo
   queda en Agendado sin llamada. Hace falta el mismo uuid de invitado dos veces; se revisa si aparece.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- La regla lee la fila de `estados_llegada` (117) en vez de los tres valores fijos. `estadoConAgenda` sube a `con_calendly` cualquier valor cuando llega el link de la cita.
+- Llega el envío parcial previo al Calendly (`con_calendly_sin_agenda`): abre el deal en Pendiente Setteo; su completa con cita lo mueve a Agendado por esta misma regla (lead con deal abierto en 1).

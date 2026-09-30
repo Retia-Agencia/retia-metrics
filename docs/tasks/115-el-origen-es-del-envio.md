@@ -44,3 +44,11 @@ sola campaña de origen (ADR 0060).
 
 Sí para el código y los tests. La migración y el relleno en producción, la sesión principal con el ok de
 Mani.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- Un deal que abre el envío parcial previo al Calendly (117) tiene ese parcial como envío de origen: es la misma sesión y trae las mismas UTM que su completa.
+- El 117 toca también `regla-de-deals.ts` y va después de este ticket.

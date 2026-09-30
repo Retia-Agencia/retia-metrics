@@ -48,3 +48,10 @@ Si. Es el molde de catalogo, ya hay cuatro ejemplos en el repo.
 
 El área de un lead se deriva de su **Canal** (ticket 101), que es el catálogo de pares `utm_source +
 utm_medium` con su área. El mapeo UTM → área que se le iba a pedir a Alejo **es** ese catálogo.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- 🔴 El nombre visible de cada área lo decide Gerencia (PQ7): Pauta la llama paid, orgánico y referidos. Las áreas son filas, así que no hay código de por medio.

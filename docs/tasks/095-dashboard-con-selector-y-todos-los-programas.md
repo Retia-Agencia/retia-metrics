@@ -40,3 +40,11 @@ programa, y la opción "todos los programas".
 ## Kiro
 
 Sí, con revisión visual.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- Presets de fecha que faltan (PT-36): ayer, últimos 7, 14 y 30 días, mes pasado. Comparativos en cada KPI (DP-16). Las secciones de Pauta son del 123 y el cumplimiento del 124.
+- El paid trafficker ve este Dashboard para sus programas menos el comparativo entre closers y la comisión (ADR 0052 enmendado).

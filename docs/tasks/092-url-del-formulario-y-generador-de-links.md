@@ -80,3 +80,12 @@ Replica el builder de 30X, adaptado:
 - Lo usan el gerente y el **Paid Trafficker** (ticket 102). El closer no usa el builder: ve "Mi link".
 - Fuera de v1: URL libre y el acortador con analítica de clics.
 - Checkouts: el link se genera ya; que la venta vuelva sola al CRM es una integración posterior.
+
+
+---
+
+## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
+
+- **El builder queda solo para lo que Meta no genera:** orgánico (bio, stories, linktree, manychat) y el link del closer (086). La pauta de Meta usa sus macros (ADR 0062) y sus campañas se reflejan por API (120); el CRM no las crea.
+- 🔴 La convención de UTM del orgánico la definen Pauta y Media (PQ6). Referencia de 30X: `instagram / reel`, content = código del post.
+- El builder vive en la tab Campañas (125). Los destinos (formulario y checkouts) siguen.
