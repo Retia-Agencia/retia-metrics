@@ -5,43 +5,71 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 47 de Mani (29-sep). El anterior:
-> `git show 816aabd:docs/agents/handoff.md`.
+> Copiar y pegar tal cual. Reescrito al cierre de la sesión 53 de Alejo (30-sep). El anterior:
+> `git show 968532a:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas)
 y docs/plan.md (el QUE, decisiones en §7). El estado de cada ticket vive solo en docs/tasks/README.md.
 docs/structure.md §9 (sistema de diseño Tinta) es OBLIGATORIO antes de tocar una pantalla.
 
-Estado al cierre del 29-sep (sesion 47, Mani): UNA base y es PRODUCCION ("CRM Retia", ref
-hfqmiyiuyqapdsbywrag). 41 migraciones (0000-0040), todas aplicadas. 1.476 tests. Produccion:
-https://retia-metrics-seven.vercel.app.
+Estado al 30-sep (sesion 53, Alejo): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
+47 migraciones (0000-0046), todas aplicadas. ~1.609 tests. Produccion: https://retia-metrics-seven.vercel.app.
 
-Carril de Mani: E3 cerrada (069, 074). E4: 070 hecho; 071 (Inbox) con el codigo en main y verificado
-por tests, falta cerrar el recorrido visual (390 px, consola). 096 quedó done: Maru fue creada y sus
-cuentas quedaron vinculadas en producción (ComunicArte `soymarumarquez@gmail.com`, Tactical
-`equipo@ttrading.co`). E5: 064 quedó done (dashboard sobre deals; incluye 114-A2, "la llamada ocurrio"
-en un solo modulo). 098 (Calls) está implementado y verificado por 1.482 tests, typecheck, lint y build;
-falta el recorrido visual. El login local ya quedó corregido: el id de Credentials es `credentials` y
-`dev:local` genera un `AUTH_SECRET` efímero cuando no hay uno configurado.
+Carril de Alejo (E5 con el codigo en main):
+- 062 done: comision = cierres x monto FIJO por venta en USD (programs.comision_por_venta_usd, 0044);
+  montos cargados (CA 80, TI 100). Con el ok de Mani se corrigio el doble conteo de cierres del 064: la
+  fecha de venta es la PRIMERA entrada a Abonado o Completo (vendidosEn en lib/queries/dashboard.ts).
+- 072 en curso: tab Leads (/p/<programa>/leads) con filtros y posibles duplicados (confirmar / separar,
+  lib/ingesta/separar.ts). Falta el recorrido visual.
+- 099 en curso: tab Students. Falta el recorrido visual.
+- 080 en curso: casos raros decididos (tabla en el ticket) y /ajustes/migracion. Falta: recorrido visual,
+  marcar a mano los 12 "cohorte pasada" de CA en el template (movidoDesde) y revisar los encabezados
+  corridos de CA en el ensayo.
+- 078 en curso: el importador ya pasa submissionOrigenId (ADR 0060). Falta el ensayo contra produccion
+  sin --aplicar (ok de Mani; no dejar la transaccion abierta).
+- Guion del corte escrito: docs/operations.md §12 (pasos, reversa, capacitacion, conciliacion).
+- SIGUIENTE: 127 (deshacer la migracion por huella, reversa nivel 3), recomendado antes del corte. Despues,
+  E6: 116, 117 (reprocesa los 23 envios de Tactical), 119/120 (esperan el token de Meta), 102.
+- Los recorridos visuales (080, 099, 072) necesitan la extension de Chrome conectada: claro/oscuro,
+  390 px, consola, clic en todo lo que se abre.
 
-Como se trabaja (Mani, 29-sep): IMPLEMENTA KIRO en un worktree a mano (git worktree add ../retia-metrics-NNN
--b kiro/NNN main) y NO corre nada (ni tests, ni tsc, ni lint, ni build, ni dev). La sesion principal decide
-la arquitectura, revisa, corre la verificacion, prueba en navegador y commitea (cherry-pick --no-commit).
-El agente kiro-rescue regresa antes que Kiro: esperar el pid de `kiro-cli chat` con un Bash en background.
-
-Pendientes de Mani: recorrer 071/098 en navegador; configurar la variable de score en los dos Typeform y
-nombrarla en la llave `puntaje` del mapeo de cada fuente (070); K3 (borrar o no la llamada de prueba).
-Alejo: 077 en curso. 078: revisar y aprobar ADR 0059 y aplicar la migración aditiva antes de construir el
-importador. 114 (auditoria): A1 y A3 hechos; A2 con el 064;
-B4 (titulos de pregunta en el codigo), B5 (columna sources.calificacion muerta) y C6 pendientes.
+Del corte dependen decisiones de afuera: la fecha (closers), S1 Supabase Pro (equipo), la C3 de cada
+programa (O-5, gerente).
 
 Reglas: npm test es scripts/test.mjs (una suite por maquina). Las migraciones las aplica la sesion
-principal con el ok de Mani, mirando el ref; la base local de Docker tambien necesita npm run db:local tras
-cada migracion nueva. Antes de tomar un ticket, git fetch: Alejo empuja al mismo main.
+principal con el ok de Mani, mirando el ref y pg_stat_activity, con SET lock_timeout en tablas calientes;
+una migracion aditiva se aplica ANTES del merge del codigo que la usa (se trabaja en rama). La base local
+de Docker necesita npm run db:local tras cada migracion nueva. Antes de tomar un ticket, git fetch: Mani
+empuja al mismo main y el numero de migracion puede chocar.
 ```
 
 ## Memory
+
+- **2026-09-29/30 (sesión 53, Alejo): costura 078/115, 080, 099, 062, 072 y el guion del corte.**
+  - **078 (`8898ff1`):** el importador pasa `submissionOrigenId` (el envío más reciente del lead, o nulo) a
+    `abrirDealHistorico`, que rechaza un envío de otro lead. La pregunta vive en `lib/ingesta/envio-de-origen.ts`.
+    Ok de Alejo a Mani para tocar `regla-de-deals.ts` en el 115.
+  - **080 (`2c0809f`):** decisiones caso por caso escritas en el ticket. La última llamada decide la etapa de un deal
+    del Setteo (Show no → Pendiente Re-agenda; Show sí → Atendido; nunca Cierre Perdido: una categoría de pérdida
+    queda como rareza `perdida_por_decidir`). `movidoDesde` a mano en el template para los "cohorte pasada".
+    `/ajustes/migracion` lista las rarezas. `scripts/dev-local.ts` ahora usa `shell` en Windows (el spawn de `npx`
+    fallaba con ENOENT); efecto secundario: al detenerlo, el `next dev` hijo sobrevive y hay que matarlo por puerto.
+  - **099 (`2d7212c`):** tab Students; saldo de `saldosDeDeals` y vencido de `carteraVencida`, nada recalculado.
+  - **062 (done):** decisión de Alejo, **monto fijo por venta** (no porcentaje). Migración renumerada a **0044**
+    porque la 0043 de `main` era la del 115 de Mani; lleva `SET lock_timeout`. Aplicada con el ok de Mani; montos
+    cargados por `editarPrograma` con actor `a.davila0423@gmail.com` (no el `SCRIPT_ACTOR_EMAIL` del `.env`
+    compartido). 🩸 **Doble conteo de cierres corregido** (con el ok de Mani, código del 064): un deal que pasaba a
+    Abonado un mes y a Completo el siguiente salía como venta en los dos, y la comisión se habría pagado dos veces.
+  - **072 (`a0c9850`):** tab Leads y separar/confirmar. Decisiones: se mueven los envíos que traen ese correo exacto;
+    409 si uno abrió un deal vigente; lo hace quien trabaja el programa. "Combinar redacciones" quedó fuera (ADR 0032
+    retirado); canal/área/campaña/traído por, cuando exista su dato. Medido: 68 correos por revisar en producción.
+  - **Guion del corte (`968532a`):** `operations.md` §12. Salió el **127** (deshacer por huella) como hueco.
+  - 🩸 **La suite se colgó dos veces** (más de 17 min, el corte de 480 s de `scripts/test.mjs` no la cortó). Se
+    mataron los workers de este repo y la tercera corrida terminó (5 timeouts que pasan solos). Si se repite, revisar
+    `scripts/test.mjs`.
+  - Pendiente: recorridos visuales de 080, 099 y 072 (la extensión de Chrome no estaba conectada); ensayo del 078
+    contra producción; 127.
 
 - **2026-09-29 (sesión 52, Mani): mapeo de la reunión con Pauta y parche del Typeform de Tactical.**
   - **Nuevo documento: `docs/analytics.md`** (complemento del plan): lo pedido y lo medido, decisiones DP-1 a

@@ -347,8 +347,8 @@ tocar lo que entró por el webhook.
 2. **Falla durante `--aplicar`:** la transacción se deshace sola. No hay nada que revertir: se corrige la
    causa y se vuelve al paso 4 de 12.2.
 3. **Aplicado pero mal, antes de abrir a los closers:** nadie tocó todavía los deals migrados, así que
-   deshacerlos es borrar lo que lleva huella de ese programa. **Todavía no existe un script para esto:** si
-   hace falta, se escribe ese día sobre la huella, se prueba primero en la base local y se aplica con el ok
+   deshacerlos es borrar lo que lleva huella de ese programa. **Todavía no existe un script para esto** (es
+   el ticket 127, recomendado antes del corte): si hace falta sin él, se escribe ese día sobre la huella, se prueba primero en la base local y se aplica con el ok
    de Mani. La alternativa sin script es restaurar el respaldo del paso 1, que también se lleva lo que
    entró por el webhook en esas horas.
 4. **Mal y con los closers ya trabajando:** no se revierte en bloque, porque encima ya hay trabajo real.
