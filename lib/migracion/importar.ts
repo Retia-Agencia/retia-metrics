@@ -7,6 +7,7 @@ import {
   registrarAbonoHistorico,
   registrarLlamadaHistorica,
 } from "@/lib/deals/historico";
+import { enviosDeOrigenPorLead } from "@/lib/ingesta/envio-de-origen";
 import { normalizarTexto } from "@/lib/sheets/mapeo";
 import { consolidar } from "./consolidar";
 import type { Extraccion, RarezaTemplate, TipoRareza } from "./template";
@@ -26,6 +27,8 @@ import type { Extraccion, RarezaTemplate, TipoRareza } from "./template";
  *   confirmado) dentro del programa; la cohorte por su codigo; el producto solo si UN producto
  *   del programa tiene exactamente ese precio; la plataforma por nombre sin mayusculas ni
  *   espacios. Lo que no cruza es rareza, nunca un valor parecido.
+ * - **El deal nace con su origen** (ADR 0060): el envío más reciente del lead, o nulo si no
+ *   tiene ninguno. Sin esto los deals migrados nacerían sin origen y habría que rellenarlos.
  * - **El ensayo lo da quien llama:** el script corre esto dentro de una transaccion y la
  *   deshace. Los escritores abren savepoints, asi que un choque de huella no la tumba.
  */
@@ -113,6 +116,7 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
       actorId: op.actorId,
       fechaEtapa: d.fechaEtapa ? new Date(d.fechaEtapa) : null,
       ownerUserId: duenos.get(closer) ?? null,
+      submissionOrigenId: ctx.envioDeOrigen.get(leadId) ?? null,
       productoId,
       cohortId,
       acuerdoPago: d.acuerdoPago,
@@ -226,7 +230,7 @@ function clavePlataforma(nombre: string): string {
 }
 
 async function cargarContexto(db: Db, programId: string) {
-  const [principales, contactos, cohortes, plataformas, prods] = await Promise.all([
+  const [principales, contactos, cohortes, plataformas, prods, envioDeOrigen] = await Promise.all([
     db.select({ id: leads.id, correo: leads.emailNormalizado }).from(leads).where(eq(leads.programId, programId)),
     db
       .select({ leadId: leadContactos.leadId, valor: leadContactos.valor })
@@ -242,6 +246,7 @@ async function cargarContexto(db: Db, programId: string) {
       .from(productos)
       // Solo USD: el precio de la hoja es USD y nunca se convierte en silencio (AGENTS.md).
       .where(and(eq(productos.programId, programId), eq(productos.moneda, "USD"))),
+    enviosDeOrigenPorLead(db, programId),
   ]);
 
   const leadDeCorreo = new Map<string, string>();
@@ -257,5 +262,6 @@ async function cargarContexto(db: Db, programId: string) {
     cohortes: new Map(cohortes.map((c) => [c.codigo, { id: c.id, cierreVentas: c.cierreVentas }])),
     plataformas: plataformasPorClave(plataformas),
     productosPorPrecio,
+    envioDeOrigen,
   };
 }

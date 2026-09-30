@@ -107,6 +107,13 @@ corridas `--aplicar` con 20 leads de prueba: la primera creó 20 deals, 5 abonos
 último de dos deals, producto en COP, plataformas que colisionan, abono sin deal invisible, parámetros en el error),
 arreglados con su test.
 
+**Origen del deal migrado (29-sep, Alejo; ADR 0060, costura con el 115):** el importador pasa
+`submissionOrigenId` a `abrirDealHistorico`: el envío más reciente del lead, o nulo si no tiene ninguno. La
+pregunta vive en `lib/ingesta/envio-de-origen.ts` (`envioMasReciente`, mismo orden que `resumirEnvios`;
+`enviosDeOrigenPorLead`, una lectura por programa) para que el alta manual del 115 la importe en vez de
+copiarla. El escritor rechaza un envío de otro lead (la FK solo mira que exista). Tests en
+`tests/envio-de-origen.test.ts`, `tests/migracion-importador.test.ts` y `tests/migracion-escritor-historico.test.ts`.
+
 **Falta para cerrar el 078:** (0042 aplicada en producción y merge a `main` hechos el 29-sep) el ensayo contra
 producción (sin `--aplicar`) de los dos programas. Las preguntas abiertas del 077 (cuentas, `Bootcamp`,
 `Mail onboarding`) no bloquean el ensayo: caen como rarezas o quedan apagadas por defecto.

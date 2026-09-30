@@ -9,6 +9,7 @@ import {
   leads,
   motivos,
   productos,
+  submissions,
 } from "@/lib/db/schema";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { esViolacionUnica } from "@/lib/db/errores";
@@ -389,6 +390,11 @@ export interface AltaHistorica {
   cohortId?: string | null;
   acuerdoPago?: string | null;
   onboardedAt?: Date | null;
+  /**
+   * El envío más reciente del lead al migrar (`enviosDeOrigenPorLead`), o nulo si no tiene
+   * ninguno (ADR 0060 punto 3). Tiene que ser un envío de ESTE lead.
+   */
+  submissionOrigenId?: string | null;
   /** Los `Registro 1-5` de Setteo. Toda actividad migrada es una `nota` (punto 5). */
   notas?: readonly { texto: string; fecha?: Date | null }[];
 }
@@ -443,6 +449,15 @@ export async function abrirDealHistorico(db: Db, alta: AltaHistorica): Promise<D
           .where(and(eq(cohorts.id, alta.cohortId), eq(cohorts.programId, alta.programId)));
         if (!coh) throw new ErrorDeApp("La cohorte no existe o es de otro programa.", 422);
       }
+      // El origen de la venta (ADR 0060): la FK solo mira que el envío exista, y uno de otro
+      // lead le atribuiría a esta venta el clic de otra persona sin ningún error.
+      if (alta.submissionOrigenId) {
+        const [env] = await tx
+          .select({ id: submissions.id })
+          .from(submissions)
+          .where(and(eq(submissions.id, alta.submissionOrigenId), eq(submissions.leadId, alta.leadId)));
+        if (!env) throw new ErrorDeApp("El envío de origen no existe o es de otro lead.", 422);
+      }
 
       const dealId = await crearConRastro(
         { db: tx, tabla: deals, nombreTabla: "deals", actorId: alta.actorId, etiqueta, desdeElMotor: true },
@@ -455,6 +470,7 @@ export async function abrirDealHistorico(db: Db, alta: AltaHistorica): Promise<D
           cohortId: alta.cohortId ?? null,
           acuerdoPago: alta.acuerdoPago ?? null,
           onboardedAt: alta.onboardedAt ?? null,
+          submissionOrigenId: alta.submissionOrigenId ?? null,
           huellaMigracion: alta.huella,
           creadoPor: null,
         },

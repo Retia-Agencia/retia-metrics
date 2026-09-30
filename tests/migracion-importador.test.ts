@@ -12,6 +12,8 @@ import {
   productos,
   programs,
   rarezasMigracion,
+  sources,
+  submissions,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -223,6 +225,25 @@ describe("importarGestion (ADR 0059)", () => {
     expect(tipos).toEqual(
       expect.arrayContaining(["en_dos_cohortes", "llamada_sin_deal", "producto_no_encontrado", "plataforma_fuera_de_catalogo", "abono_sin_deal"]),
     );
+  });
+
+  it("el deal nace con su origen: el envío más reciente del lead, o nulo sin envíos (ADR 0060)", async () => {
+    const [fuente] = await db.insert(sources).values({ programId: programa, nombre: "Typeform" }).returning();
+    const [, nuevo] = await db
+      .insert(submissions)
+      .values([
+        { leadId: ana, sourceId: fuente.id, token: "viejo", fechaEnvio: new Date("2026-07-01T12:00:00-05:00") },
+        { leadId: ana, sourceId: fuente.id, token: "nuevo", fechaEnvio: new Date("2026-08-01T12:00:00-05:00") },
+        // Un parcial sin fecha nunca le gana a uno fechado.
+        { leadId: ana, sourceId: fuente.id, token: "parcial", esParcial: true },
+      ])
+      .returning();
+
+    await importarGestion(db, template(), op());
+
+    const todos = await db.select().from(deals);
+    expect(todos.find((d) => d.leadId === ana)?.submissionOrigenId).toBe(nuevo.id);
+    expect(todos.find((d) => d.etapa === "completo")?.submissionOrigenId).toBeNull(); // beto no tiene envíos
   });
 
   it("lo que no cruza es rareza: plataforma fuera de catalogo y precio sin producto", async () => {

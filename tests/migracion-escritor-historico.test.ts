@@ -11,6 +11,8 @@ import {
   miembrosPrograma,
   productos,
   programs,
+  sources,
+  submissions,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -180,6 +182,22 @@ describe("abrirDealHistorico (ADR 0059 punto 1)", () => {
       }),
     ).rejects.toThrow(/otro programa/);
     expect(await db.select().from(deals)).toHaveLength(0);
+  });
+
+  it("el envío de origen tiene que ser de ESTE lead (ADR 0060)", async () => {
+    const [fuente] = await db.insert(sources).values({ programId: programa, nombre: "Typeform" }).returning();
+    const [otro] = await db.insert(leads).values({ programId: programa, emailNormalizado: "beto@correo.co" }).returning();
+    const [deAna] = await db.insert(submissions).values({ leadId: lead, sourceId: fuente.id, token: "t-ana" }).returning();
+    const [deBeto] = await db.insert(submissions).values({ leadId: otro.id, sourceId: fuente.id, token: "t-beto" }).returning();
+    const alta = { leadId: lead, programId: programa, etapa: "completo" as const, huella: H("ana"), actorId: script };
+
+    await expect(abrirDealHistorico(db, { ...alta, submissionOrigenId: deBeto.id })).rejects.toThrow(/otro lead/);
+    expect(await db.select().from(deals)).toHaveLength(0);
+
+    const r = await abrirDealHistorico(db, { ...alta, submissionOrigenId: deAna.id });
+    if (r.estado !== "creado") throw new Error(r.estado);
+    const [deal] = await db.select().from(deals).where(eq(deals.id, r.dealId));
+    expect(deal.submissionOrigenId).toBe(deAna.id);
   });
 
   it("dentro de una transaccion externa (el ensayo), el choque no la tumba", async () => {
