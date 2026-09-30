@@ -1,7 +1,8 @@
-import { and, count, eq, isNotNull, isNull, lt, max } from "drizzle-orm";
+import { and, count, eq, gte, isNotNull, isNull, lt, max } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { estadosDeLlegadaDelPrograma, motivoSinEstado } from "@/lib/ingesta/estados-llegada";
 
 /**
  * La salud de una fuente de leads (ticket 107): ¿sigue recibiendo envios?
@@ -30,20 +31,32 @@ export interface DatosDeSalud {
   penultimo: Date | null;
   /** Sobres crudos que fallaron y nadie reproceso: una fuente que recibe y no procesa esta igual de rota. */
   sobresPendientes: number;
+  /**
+   * Envios de las ultimas `HORAS_SIN_ESTADO` horas sin un Estado que el programa reconozca
+   * (ADR 0061 punto 5, ticket 117): completos vacios o desconocidos, y parciales con un valor
+   * desconocido. El parcial vacio (el del WhatsApp) no cuenta: llega asi a proposito. 🩸 El 29-sep el Typeform
+   * de un programa dejo de mandar `estado` y la fuente seguia "al dia": recibir no es procesar
+   * bien, y esto lo vuelve visible el mismo dia.
+   */
+  sinEstado: number;
 }
+
+/** La ventana del conteo de "sin estado": lo reciente, para que un arreglo se note al dia siguiente. */
+export const HORAS_SIN_ESTADO = 24;
 
 export interface SaludDeFuente {
   estado: EstadoDeFuente;
   /** Si la app tiene que llamar la atencion sobre la fuente. */
   marcada: boolean;
   sobresPendientes: number;
+  sinEstado: number;
 }
 
 const HORA_MS = 3_600_000;
 
 export function saludDeFuente(d: DatosDeSalud, ahora: Date = new Date()): SaludDeFuente {
-  const sobresPendientes = d.sobresPendientes;
-  if (!d.ultimo) return { estado: "sin_envios", marcada: true, sobresPendientes };
+  const { sobresPendientes, sinEstado } = d;
+  if (!d.ultimo) return { estado: "sin_envios", marcada: true, sobresPendientes, sinEstado };
 
   const silencio = (ahora.getTime() - d.ultimo.getTime()) / HORA_MS;
   let estado: EstadoDeFuente;
@@ -54,7 +67,7 @@ export function saludDeFuente(d: DatosDeSalud, ahora: Date = new Date()): SaludD
   } else estado = "al_dia";
 
   const silenciosa = estado === "sin_respuestas" || estado === "muerta";
-  return { estado, marcada: silenciosa || sobresPendientes > 0, sobresPendientes };
+  return { estado, marcada: silenciosa || sobresPendientes > 0 || sinEstado > 0, sobresPendientes, sinEstado };
 }
 
 export interface SaludDeFuenteConDatos extends SaludDeFuente, DatosDeSalud {
@@ -75,7 +88,8 @@ export interface SaludDeFuenteConDatos extends SaludDeFuente, DatosDeSalud {
  * `.from()` sobre un alias que no puede resolver.
  */
 export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date()): Promise<SaludDeFuenteConDatos[]> {
-  const [fuentes, filasUltimo, filasSobres] = await Promise.all([
+  const desde = new Date(ahora.getTime() - HORAS_SIN_ESTADO * HORA_MS);
+  const [fuentes, filasUltimo, filasSobres, recientes] = await Promise.all([
     db
       .select({
         sourceId: sources.id,
@@ -98,6 +112,11 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
       .from(sobresCrudos)
       .where(and(isNotNull(sobresCrudos.error), isNull(sobresCrudos.reprocesadoEn)))
       .groupBy(sobresCrudos.sourceId),
+    db
+      .select({ sourceId: submissions.sourceId, esParcial: submissions.esParcial, calificacion: submissions.calificacion, n: count() })
+      .from(submissions)
+      .where(gte(submissions.createdAt, desde))
+      .groupBy(submissions.sourceId, submissions.esParcial, submissions.calificacion),
   ]);
 
   const fecha = (v: Date | string | null | undefined) => (v ? new Date(v) : null);
@@ -116,6 +135,25 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
     ),
   );
   const sobresDe = new Map(filasSobres.map((f) => [f.sourceId, Number(f.pendientes)]));
+  // Que Estados reconoce cada programa lo dice su tabla: una lectura por programa activo.
+  const estadosDe = new Map(
+    await Promise.all(
+      [...new Set(fuentes.map((f) => f.programId))].map(
+        async (id) => [id, await estadosDeLlegadaDelPrograma(db, id)] as const,
+      ),
+    ),
+  );
+  const programaDe = new Map(fuentes.map((f) => [f.sourceId, f.programId]));
+  const sinEstadoDe = new Map<string, number>();
+  for (const r of recientes) {
+    const programId = programaDe.get(r.sourceId);
+    if (!programId) continue;
+    // El parcial del WhatsApp llega sin Estado a proposito; un parcial CON un valor que el
+    // programa no tiene (el previo al Calendly mal escrito) si es un formulario roto.
+    if (r.esParcial && r.calificacion === null) continue;
+    if (motivoSinEstado(r.calificacion, estadosDe.get(programId) ?? new Map()) === null) continue;
+    sinEstadoDe.set(r.sourceId, (sinEstadoDe.get(r.sourceId) ?? 0) + Number(r.n));
+  }
 
   return fuentes.map((f) => {
     const datos: DatosDeSalud = {
@@ -124,6 +162,7 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
       ultimo: ultimoDe.get(f.sourceId) ?? null,
       penultimo: penultimoDe.get(f.sourceId) ?? null,
       sobresPendientes: sobresDe.get(f.sourceId) ?? 0,
+      sinEstado: sinEstadoDe.get(f.sourceId) ?? 0,
     };
     return { ...f, ...datos, ...saludDeFuente(datos, ahora) };
   });

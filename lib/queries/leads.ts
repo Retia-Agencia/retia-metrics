@@ -1,7 +1,8 @@
-import { and, between, count, desc, eq, inArray, isNull, notInArray, sql, type SQL } from "drizzle-orm";
-import { calificacionEnvioEnum, deals, leadContactos, leads, submissions } from "@/lib/db/schema";
+import { and, between, count, desc, eq, inArray, isNull, notInArray, or, sql, type SQL } from "drizzle-orm";
+import { deals, leadContactos, leads, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { vigente } from "@/lib/queries/vigente";
+import { estadosDeLlegadaDelPrograma, llaveDeEstado, resolverEstadoDeLlegada } from "@/lib/ingesta/estados-llegada";
 
 /**
  * La tab Leads (ticket 072, ADR 0050): la base del programa, sobre todo lo que existe y todavía
@@ -10,7 +11,8 @@ import { vigente } from "@/lib/queries/vigente";
  *
  * Los filtros son hechos, nada se adivina:
  * - **deal:** con o sin deal vigente (cualquier etapa; un deal anulado no cuenta, ADR 0038).
- * - **estado:** la calificación del lead, o "sin estado" (llegó vacía o desconocida, ADR 0061).
+ * - **estado:** la calificación del lead, o "sin estado": llegó vacía o con un valor que el
+ *   programa no tiene activo en `estados_llegada` (ADR 0061 punto 5, ticket 117).
  * - **abandonó el formulario:** todos sus envíos son parciales (ADR 0061 punto 6).
  * - **posible duplicado:** tiene un correo que entró por teléfono y nadie confirmó (ADR 0035).
  * - **fechas:** la última aplicación, en días de Bogotá.
@@ -19,12 +21,10 @@ import { vigente } from "@/lib/queries/vigente";
  * correo en la URL está prohibido (AGENTS.md). Para buscar a alguien está Personas.
  */
 
-export type Calificacion = (typeof calificacionEnvioEnum.enumValues)[number];
-export const ESTADOS_DE_LEAD = calificacionEnvioEnum.enumValues;
-
 export interface FiltroLeads {
   deal?: "con" | "sin" | null;
-  estado?: Calificacion | "sin_estado" | null;
+  /** Un valor de `estados_llegada` del programa, o "sin_estado". */
+  estado?: string | null;
   abandono?: boolean;
   duplicado?: boolean;
   /** Días `YYYY-MM-DD` de Bogotá, inclusive, sobre la última aplicación. */
@@ -40,7 +40,9 @@ export interface FilaLead {
   id: string;
   nombre: string | null;
   email: string;
-  calificacion: Calificacion | null;
+  calificacion: string | null;
+  /** Si el programa reconoce su Estado (fila activa en `estados_llegada`). */
+  estadoReconocido: boolean;
   leadQuality: string | null;
   leadValue: string | null;
   fechaUltimaAplicacion: Date | null;
@@ -77,11 +79,16 @@ export async function leadsDelPrograma(
   programId: string,
   filtro: FiltroLeads = {},
 ): Promise<{ total: number; filas: FilaLead[] }> {
+  const estados = await estadosDeLlegadaDelPrograma(db, programId);
+  const llaveDelLead = sql<string>`lower(trim(${leads.calificacion}))`;
   const condiciones: (SQL | undefined)[] = [eq(leads.programId, programId)];
   if (filtro.deal === "con") condiciones.push(inArray(leads.id, conDeal(db)));
   if (filtro.deal === "sin") condiciones.push(notInArray(leads.id, conDeal(db)));
-  if (filtro.estado === "sin_estado") condiciones.push(isNull(leads.calificacion));
-  else if (filtro.estado) condiciones.push(eq(leads.calificacion, filtro.estado));
+  if (filtro.estado === "sin_estado") {
+    condiciones.push(or(isNull(leads.calificacion), notInArray(llaveDelLead, [...estados.keys()])));
+  } else if (filtro.estado) {
+    condiciones.push(eq(llaveDelLead, llaveDeEstado(filtro.estado)));
+  }
   if (filtro.abandono) condiciones.push(inArray(leads.id, soloParciales(db)));
   if (filtro.duplicado) condiciones.push(inArray(leads.id, conCorreoSinConfirmar(db)));
   if (filtro.desde && filtro.hasta) {
@@ -134,6 +141,7 @@ export async function leadsDelPrograma(
     total,
     filas: base.map((b) => ({
       ...b,
+      estadoReconocido: resolverEstadoDeLlegada(b.calificacion, estados) !== null,
       tieneDeal: tienenDeal.has(b.id),
       soloParciales: soloPar.has(b.id),
       correosSinConfirmar: sinConfirmar.get(b.id) ?? 0,

@@ -7,7 +7,7 @@ import type { Calificacion } from "@/lib/ingesta/calificacion";
 import { entradasDesdeMatriz } from "@/lib/ingesta/adaptador-sheets";
 import { ingerirEntradas, resumirEnvios } from "@/lib/ingesta/ingerir";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
 
 /**
  * La escritura de la ingesta (tickets 048-050), contra PGlite con TODAS las migraciones:
@@ -231,7 +231,12 @@ describe("ingerirEntradas", () => {
   });
 });
 
-describe("ingerirEntradas: el Estado lo pone el formulario (ADR 0054, ticket 051)", () => {
+describe("ingerirEntradas: el Estado lo pone el formulario (ADR 0061, tickets 051 y 117)", () => {
+  // Que Estados reconoce el programa lo dice su tabla (117): sin filas, todo se cuenta.
+  beforeEach(async () => {
+    await sembrarEstadosDeLlegada(db, programId);
+  });
+
   // Cada fila del contrato, con la etiqueta EXACTA que escribe el Apps Script en la
   // columna Estado y el valor del enum que le corresponde.
   const CONTRATO: [etiqueta: string, valor: Calificacion][] = [
@@ -266,15 +271,16 @@ describe("ingerirEntradas: el Estado lo pone el formulario (ADR 0054, ticket 051
     expect(lead.calificacion).toBe(valor);
   });
 
-  it("un valor inventado entra SIN calificacion y aparece en sinCalificar con su motivo", async () => {
+  it("un valor que el programa no tiene se guarda como llego y aparece en sinCalificar con su motivo", async () => {
     const r = await ingerirEntradas(db, programId, [
       entrada({ token: "t1", correo: "ana@correo.co", estado: "con calendly!" }),
     ]);
     expect(r.sinCalificar).toEqual([{ motivo: "estado no reconocido: con calendly!", envios: 1 }]);
+    // ADR 0004: lo que manda la fuente se guarda como llego. Si abre deal lo dice la tabla.
     const [envio] = await db.select().from(submissions);
-    expect(envio.calificacion).toBeNull();
+    expect(envio.calificacion).toBe("con calendly!");
     const [lead] = await db.select().from(leads);
-    expect(lead.calificacion).toBeNull();
+    expect(lead.calificacion).toBe("con calendly!");
   });
 
   it("un COMPLETO sin estado es error visible; un PARCIAL sin estado NO lo es", async () => {

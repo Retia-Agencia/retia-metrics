@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ESTADO_CON_CALENDLY } from "./calificacion";
 import type { CampoEnvio, EntradaEnvio } from "./envio";
 import type { MapeoColumnas } from "@/lib/sheets/mapeo";
 import type { OpcionesAdaptador } from "./proveedores";
@@ -160,19 +161,6 @@ export const PREFIJO_VARIABLE = "variable:";
 
 export type OpcionesTypeform = OpcionesAdaptador;
 
-/**
- * Los campos que este adaptador sabe resolver por defecto, por si el mapeo de la fuente
- * no los nombra. Son los encabezados de la hoja (`MAPEO_FORMULARIO`, ADR 0019), que
- * hasta el 130 le llegaban a este adaptador por `mapeoWebhookDesdeFuente`; desde el 130
- * ese defecto ya no viaja por el mapeo y cada adaptador trae el suyo. Se dejan EXACTOS
- * para que Typeform se comporte igual. El mapeo de la fuente los sobreescribe.
- */
-const MAPEO_POR_DEFECTO: Partial<Record<CampoEnvio, string>> = {
-  nombre: "nombre completo",
-  correo: "correo electronico",
-  telefono: "whatsapp",
-};
-
 // ─────────────────────────────────────────────── el agendo (ADR 0054)
 
 /** Un link de Calendly es cualquier texto que contenga este dominio. */
@@ -188,14 +176,16 @@ export function traeLinkDeCalendly(valor: string | null | undefined): boolean {
 }
 
 /**
- * El Estado final de un envio de Typeform (ADR 0054, segunda enmienda). Funcion PURA
- * con su test por fila (ticket 106).
+ * El Estado final de un envio de Typeform (ADR 0061 punto 4). Funcion PURA con su test
+ * por fila (ticket 106, ticket 117).
  *
- * Typeform manda en la variable `estado` solo `descartado` o `setteo_no_calificado`,
- * porque no deja poner una condicion sobre la pregunta de Calendly. El hecho de
- * "agendo" lo lee el CRM del envio: si el Estado es `setteo_no_calificado` y la
- * respuesta de la pregunta de agenda trae un link de Calendly, sube a `con_calendly`.
- * `descartado` NUNCA sube: es un descarte del formulario, no un lead que agendo.
+ * Typeform no deja poner una condicion sobre la pregunta de Calendly, asi que el hecho
+ * de "agendo" lo lee el CRM del envio: si la respuesta de la pregunta de agenda trae un
+ * link de Calendly, el envio es `con_calendly`, **venga con el valor que venga**, vacio
+ * incluido. Es un HECHO, no una regla de negocio: a que etapa lleva `con_calendly` lo
+ * dice su fila en `estados_llegada`. 🩸 Hasta el 117 solo subia desde
+ * `setteo_no_calificado`, y cuando el Typeform de un programa dejo de mandar ese valor (29-sep)
+ * ni los que agendaron abrieron deal.
  *
  * **Cual es la pregunta de agenda lo dice el mapeo de la fuente (ADR 0012), no una
  * heuristica sobre las respuestas** (correccion del 28-sep). `campoAgenda` es el titulo
@@ -210,10 +200,8 @@ export function estadoConAgenda(
   respuestas: Record<string, string | null>,
   campoAgenda?: string,
 ): string | null {
-  if (estadoBase !== "setteo_no_calificado") return estadoBase;
   if (!campoAgenda) return estadoBase;
-
-  return traeLinkDeCalendly(respuestas[campoAgenda]) ? "con_calendly" : estadoBase;
+  return traeLinkDeCalendly(respuestas[campoAgenda]) ? ESTADO_CON_CALENDLY : estadoBase;
 }
 
 // ─────────────────────────────────────────────── el adaptador
@@ -243,8 +231,8 @@ function textoDeRespuesta(a: z.infer<typeof respuestaSchema>): string | null {
  *   equivalente del encabezado de columna de una hoja.
  * - **Campos ocultos:** `hidden` trae los UTM (`utm_source`, etc.), que se mezclan con
  *   las respuestas como si fueran columnas: el mapeo de UTM del Envio los encuentra.
- * - **La variable `estado`** (ADR 0054) va a `estadoHoja`, el campo que `estado.ts`
- *   traduce. Antes se le aplica el hecho de "agendo" (ADR 0054, segunda enmienda).
+ * - **La variable `estado`** (ADR 0061) va a `estadoHoja`, el campo que `estado.ts`
+ *   limpia. Antes se le aplica el hecho de "agendo" (ADR 0061 punto 4).
  * - **El token** del envio es `form_response.token`.
  * - **Parcial:** lo dice el `event_type` del sobre (`form_response_partial`).
  *
@@ -311,11 +299,12 @@ export function entradaDesdeTypeform(payload: PayloadTypeform, opciones: Opcione
   const leadQuality = textoVariable(opciones.mapeo?.variableLeadQuality);
   const leadValue = textoVariable(opciones.mapeo?.variableLeadValue);
 
-  // El mapeo de campos: el de la fuente sobre el de por defecto. Los UTM y la fecha
+  // El mapeo de campos: el de la fuente y la plantilla del programa, sin defecto en el
+  // codigo (ticket 117, B4 del 114): que pregunta es el correo lo dice la configuracion,
+  // y sin ella `mapeoWebhookDesdeFuente` falla antes de llegar aqui. Los UTM y la fecha
   // no van en el mapeo de preguntas porque salen de sitios fijos del payload (hidden y
   // submitted_at): se ponen como columnas con su nombre estandar y el mapeo los apunta.
   const mapeo: Partial<Record<CampoEnvio, string | string[]>> = {
-    ...MAPEO_POR_DEFECTO,
     utmSource: "utm_source",
     utmMedium: "utm_medium",
     utmCampaign: "utm_campaign",
@@ -337,15 +326,15 @@ export function entradaDesdeTypeform(payload: PayloadTypeform, opciones: Opcione
   columnas["__token"] = fr.token;
 
   // El Estado: la variable configurada (via su columna `variable:<nombre>`), mas el
-  // hecho de agendar (ADR 0054, segunda enmienda). El texto crudo que queda en
-  // `estadoHoja` es el valor del codigo (`descartado`, `setteo_no_calificado`,
-  // `con_calendly`), que `estadoDesdeTexto` reconoce tal cual. Si la variable no vino,
-  // `columnas[columnaEstado]` es undefined y el Estado queda vacio: entra sin Estado.
+  // hecho de agendar (ADR 0061 punto 4). El texto que queda en `estadoHoja` es el valor
+  // que mando el formulario, o `con_calendly` si trae link; que significa lo dice
+  // `estados_llegada`. Si la variable no vino y no hay link, el Estado queda vacio: entra
+  // sin Estado y se cuenta.
   //
   // La pregunta de agenda la dice el mapeo de la fuente (`campoAgenda`), no una
   // heuristica sobre las respuestas (ADR 0012). El titulo mapeado se resuelve contra
-  // las columnas reales (insensible a acentos/mayusculas) para que "Agenda aqui tu
-  // entrevista" case aunque el mapeo lo escriba distinto. Sin `campoAgenda`, o si esa
+  // las columnas reales (insensible a acentos/mayusculas) para que el titulo case aunque
+  // el mapeo lo escriba sin tildes. Sin `campoAgenda`, o si esa
   // pregunta no vino en el envio, el Estado no sube a `con_calendly`.
   const valorEstado = columnas[columnaEstado];
   const estadoBase = valorEstado === undefined || valorEstado === null ? null : String(valorEstado);
@@ -361,7 +350,7 @@ export function entradaDesdeTypeform(payload: PayloadTypeform, opciones: Opcione
   // insumo para leer la cita real en Calendly (ADR 0057, ticket 052). Se lleva aparte
   // en la entrada, no como columna: el link crudo ya queda en `respuestas`.
   const linkAgenda =
-    estadoFinal === "con_calendly" && columnaAgenda ? respuestasParaAgenda[columnaAgenda] : null;
+    estadoFinal === ESTADO_CON_CALENDLY && columnaAgenda ? respuestasParaAgenda[columnaAgenda] : null;
 
   const esParcial = EVENTOS_PARCIALES.has(payload.event_type ?? "");
 
@@ -372,7 +361,7 @@ export function entradaDesdeTypeform(payload: PayloadTypeform, opciones: Opcione
   for (const [campo, patron] of Object.entries(mapeo)) {
     const buscados = Array.isArray(patron) ? patron : [patron];
     // Se resuelve por coincidencia insensible a acentos/mayusculas contra las columnas
-    // reales, para que "Correo" case con "correo electronico" como en la hoja.
+    // reales, igual que el encabezado de una hoja.
     const encontrado = resolverContra(Object.keys(columnas), buscados);
     if (encontrado !== undefined) campos[campo as CampoEnvio] = encontrado;
   }

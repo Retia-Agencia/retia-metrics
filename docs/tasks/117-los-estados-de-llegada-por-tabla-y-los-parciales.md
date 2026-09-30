@@ -3,7 +3,7 @@ id: 117
 etapa: E6
 serves: "ADR 0061 · docs/analytics.md PT-01, PT-02, PT-05, PT-06, PT-07"
 depends: [115]
-status: todo
+status: en curso
 ---
 
 # 117 — Los estados de llegada por tabla, y los envíos parciales por el webhook
@@ -88,3 +88,51 @@ Como este ticket ya reescribe el adaptador, el cambio se hace aquí una sola vez
 
 **Done cuando (suma):** `rg` no encuentra títulos de pregunta de Typeform en `lib/ingesta/`; test de que un
 programa sin plantilla y sin mapeo de fuente falla con `MapeoInvalidoError`.
+
+---
+
+## Hecho el 2026-09-30 (Alejo, sesión 58)
+
+**Decisiones de la sesión (Alejo):**
+
+- `submissions.calificacion` y `leads.calificacion` pasan a **texto** (migración 0051) y el enum
+  `calificacion_envio` se retira en la 0052, **en un commit posterior al deploy**: el código de antes escribe `::calificacion_envio`
+  en SQL crudo y, sin el enum, todo webhook fallaría (hallazgo de la revisión de Codex, verificado en Postgres 17). El valor se guarda como llegó (ADR 0004) y su significado lo da la tabla. Un valor nuevo del
+  formulario no pide migración.
+- **La regla decide con el Estado del envío que la dispara, no con el resumen del lead.** Con el resumen, un parcial
+  `con_calendly_sin_agenda` que llega después de una completa vieja decidía con la completa, y un parcial reintentado
+  fuera de orden mandaba el deal a buscar una cita que no traía.
+- El hecho de agendar sube **cualquier** valor a `con_calendly`, vacío incluido (ADR 0061 punto 4). Así, los 9 del
+  29-sep con cita se habrían agendado aunque les faltara `estado`.
+- La variable `etapa` se ignora: el link manda (nota del ADR 0061).
+- "Sin estado" = vacío, un valor sin fila o con la fila inactiva. Una fila con etapa nula se *reconoce* y no abre
+  deal (no se cuenta).
+- B4: `MAPEO_POR_DEFECTO` desaparece del adaptador y el webhook combina solo fuente y plantilla. Sin mapeo del correo,
+  `MapeoInvalidoError`: `procesarSobre` lo devuelve como `fallo_ingesta` y el sobre queda guardado para reprocesar.
+  `MAPEO_ENVIO` de la hoja se deriva de `MAPEO_FORMULARIO` (`lib/sheets/`), así que `lib/ingesta/` no tiene títulos.
+
+- Los dos puntos parciales comparten token: un parcial con **menos respuestas** no pisa al que tiene más (el del
+  WhatsApp reintentado le borraba `con_calendly_sin_agenda` al previo al Calendly). La salud cuenta también un
+  parcial con un valor desconocido; solo el parcial vacío (el del WhatsApp) no cuenta. Ambos, de la revisión de Codex.
+
+**Código:** `lib/catalogo/estados-llegada.ts` (molde), `lib/ingesta/estados-llegada.ts` (la única respuesta a "¿abre
+deal?"), `lib/queries/estados-llegada.ts` y `components/admin/estados-llegada-admin.tsx` (sección en
+`/ajustes/fuentes`, con los valores que llegaron sin fila y un botón para crearla), conteo `sinEstado` en
+`lib/queries/salud-fuentes.ts` (24 h, marca la fuente), filtro y badge en Leads.
+
+**Payload del primer parcial real:** pendiente. Se anota cuando Typeform mande el primero (tras la O-7).
+
+## Producción: orden obligatorio (cada paso con el ok de Mani)
+
+1. Aplicar **solo la 0051** (hecho el 30-sep; se aplicó con el número 0050 y se renumeró al chocar con la 0050 de Mani, ver el handoff) (`SET lock_timeout` incluido; mirar `pg_stat_activity` antes). Es compatible con el
+   código desplegado hoy: probado en Postgres 17 que su `::calificacion_envio` sigue escribiendo en la columna de texto.
+2. `npm run cargar-estados-llegada -- --aplicar` (4 filas por programa).
+3. `npm run cargar-plantillas-lead -- --aplicar` (correo, WhatsApp y nombre, los patrones del defecto de hoy).
+   **Antes del deploy**, o todo envío falla con `MapeoInvalidoError`.
+4. Push a `main` (deploy). Después, en un commit aparte: borrar `calificacionEnvioEnumRetirado` de
+   `lib/db/schema.ts`, `npm run db:generate` (sale `DROP TYPE "public"."calificacion_envio"`, la **0052**) y aplicarla. No
+   van en el mismo commit porque `db:migrate` aplica todo lo pendiente de una vez.
+5. Reprocesar los 23 de Tactical del 29-sep: los 9 con link entran en Agendado por la regla nueva (adoptan su
+   llamada suelta si la hay). **Los 14 sin link ni `estado` quedan "sin estado" con la regla nueva: hay que decidir
+   con Mani** si se les da `setteo_no_calificado` (lo que el parche puso a los posteriores) antes de reprocesar.
+6. Después, la O-7: el Typeform manda `con_calendly_sin_agenda` en el parcial previo al Calendly.

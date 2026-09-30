@@ -6,7 +6,7 @@ import { ingerirEntradas } from "@/lib/ingesta/ingerir";
 import { resolverCitaDeEnvio } from "@/lib/calendly/resolver-cita";
 import type { ResultadoCita } from "@/lib/ingesta/regla-de-deals";
 import type { EntradaEnvio } from "@/lib/ingesta/envio";
-import { mapeoWebhookDesdeFuente } from "@/lib/ingesta/mapeo-webhook";
+import { mapeoWebhookDesdeFuente, type MapeoWebhookResuelto } from "@/lib/ingesta/mapeo-webhook";
 import { PROVEEDORES } from "@/lib/ingesta/proveedores";
 import type { ProveedorFormulario } from "@/lib/catalogo/fuentes-webhook";
 
@@ -100,8 +100,16 @@ export async function procesarSobre(
   fuente: FuenteParaProcesar,
   cuerpo: string,
 ): Promise<ResultadoProcesamiento> {
-  const plantilla = await plantillaDelPrograma(db, fuente.programId);
-  const mapeo = mapeoWebhookDesdeFuente(fuente.mapeoColumnas, plantilla);
+  // Un mapeo sin el correo es CONFIGURACION rota, no un payload malo (ticket 117): el sobre
+  // queda con el error y se reprocesa cuando la fuente o el programa lo configuren.
+  let mapeo: MapeoWebhookResuelto;
+  try {
+    mapeo = mapeoWebhookDesdeFuente(fuente.mapeoColumnas, await plantillaDelPrograma(db, fuente.programId), {
+      correoPorDefecto: PROVEEDORES[fuente.proveedor].correoPorDefecto,
+    });
+  } catch (error) {
+    return { motivo: "fallo_ingesta", leadId: null, error: mensajeDe(error) };
+  }
 
   let entrada: EntradaEnvio;
   try {

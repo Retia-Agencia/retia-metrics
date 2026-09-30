@@ -10,7 +10,7 @@ import { tableroKanban } from "@/lib/queries/kanban";
 import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
 import { fichaDeDeal } from "@/lib/queries/ficha-deal";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 115, ADR 0060: el origen es del envio y el deal recuerda el que lo abrio. Ninguna
@@ -63,6 +63,7 @@ beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "t", nombre: "T", ticketUsd: "1500" }).returning();
   programId = p.id;
+  await sembrarEstadosDeLlegada(db, programId);
   const [f] = await db.insert(sources).values({ programId, nombre: "Typeform", tipo: "google_sheet" }).returning();
   sourceId = f.id;
 }, 60_000);
@@ -78,12 +79,12 @@ async function envioDeToken(token: string) {
 
 describe("el deal que abre la ingesta recuerda el envio que lo abrio", () => {
   it("dos envios con UTM distintas: el origen es el que abrio el deal, completo, sin mezclarlos", async () => {
-    // El primero no abre deal (descartado) y trae campaña; el segundo la abre y NO trae
+    // El primero no abre deal (un Estado que el programa no tiene) y trae campaña; el segundo la abre y NO trae
     // campaña. Un resumen "el mas reciente no vacio" le pegaba la campaña del primero.
     await ingerirEntradas(
       db,
       programId,
-      [entrada({ token: "t1", correo: "ana@correo.co", fecha: "2026-09-10T15:00:00Z", estado: "descartado", utm: ["facebook", "cpc", "camp-a"] })],
+      [entrada({ token: "t1", correo: "ana@correo.co", fecha: "2026-09-10T15:00:00Z", estado: "sin_fila_en_la_tabla", utm: ["facebook", "cpc", "camp-a"] })],
       conRegla,
     );
     expect(await db.select().from(deals)).toHaveLength(0);

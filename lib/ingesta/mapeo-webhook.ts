@@ -1,12 +1,12 @@
 import { combinarMapeo } from "@/lib/sheets/plantilla-lead";
-import type { MapeoColumnas } from "@/lib/sheets/mapeo";
+import { MapeoInvalidoError, type MapeoColumnas } from "@/lib/sheets/mapeo";
 import type { CampoEnvio } from "./envio";
 import type { MapeoWebhook } from "./adaptador-typeform";
 
 /**
  * El mapeo de una fuente webhook, resuelto con la MISMA precedencia y el MISMO modulo
  * que la hoja (ticket 106, tarea B; ADR 0019, ADR 0055): la fuente gana sobre la
- * plantilla del programa, y la plantilla sobre el defecto. Reusa `combinarMapeo`; no es
+ * plantilla del programa, y NO hay defecto del codigo (ticket 117). Reusa `combinarMapeo`; no es
  * una segunda copia de esa logica (regla de AGENTS.md: una pregunta, un modulo).
  *
  * ⚠️ **La discrepancia de vocabularios, resuelta en UN solo lugar (aqui).** El mapeo de
@@ -64,6 +64,9 @@ const HOJA_A_CAMPO_ENVIO: Record<string, CampoEnvio> = {
   utmTerm: "utmTerm",
 };
 
+/** El webhook no hereda el defecto de la hoja (ticket 117): solo fuente y programa. */
+const SIN_DEFECTO: MapeoColumnas = {};
+
 /** La llave del mapeo de la hoja que nombra la pregunta de agenda (ADR 0054, 2a enmienda). */
 const LLAVE_AGENDA = "agenda";
 
@@ -92,19 +95,53 @@ const LLAVE_LEAD_VALUE = "leadValue";
 export type MapeoWebhookResuelto = MapeoWebhook & { campos: NonNullable<MapeoWebhook["campos"]> };
 
 /**
- * Combina el mapeo de la fuente con la plantilla del programa (fuente ← programa ←
- * defecto) y lo traduce al `MapeoWebhook` que consume el adaptador de Typeform.
+ * Combina el mapeo de la fuente con la plantilla del programa (fuente ← programa) y lo
+ * traduce al `MapeoWebhook` que consume el adaptador de Typeform.
  *
- * El `defecto` de `combinarMapeo` es `MAPEO_FORMULARIO` (el mismo que la hoja): asi un
- * campo sin ajuste en la fuente ni en la plantilla cae al patron por defecto, igual que
- * en el sync de Sheets. La traduccion descarta los campos que no son de `CampoEnvio`
- * (los del sobre y los no promovidos) sin adivinar.
+ * **Sin defecto del codigo** (ticket 117, B4 del 114): cayo al `MAPEO_FORMULARIO` de la
+ * hoja, que tiene escritos los titulos de pregunta de los Typeform de hoy, y un
+ * formulario nuevo con otra redaccion habria entrado con el correo de una pregunta que
+ * nadie configuro. Un programa sin plantilla y una fuente sin mapeo del correo fallan
+ * con `MapeoInvalidoError`, ruidosamente. La traduccion descarta los campos que no son de
+ * `CampoEnvio` (los del sobre y los no promovidos) sin adivinar.
  */
 export function mapeoWebhookDesdeFuente(
   mapeoFuente: MapeoColumnas | null | undefined,
   plantillaLead: MapeoColumnas | null | undefined,
+  opciones: { correoPorDefecto?: boolean } = {},
 ): MapeoWebhookResuelto {
-  const { mapeo, origen } = combinarMapeo(mapeoFuente ?? null, plantillaLead ?? null);
+  const resuelto = traducirMapeo(mapeoFuente, plantillaLead);
+  // El correo es la llave del lead (ADR 0005): sin saber que pregunta lo trae, cada envio
+  // entraria "sin lead" en silencio. Se falla aqui, antes de leer ningun envio. La unica
+  // salida es un proveedor cuyo payload trae el correo en una llave FIJA que su adaptador
+  // conoce (Dapta: `email`, ticket 130); Typeform no, porque ahi el correo es un titulo de
+  // pregunta que solo la configuracion sabe.
+  if (resuelto.campos.correo === undefined && !opciones.correoPorDefecto) {
+    throw new MapeoInvalidoError(
+      "correo",
+      ["(ningún patrón: ni la fuente ni la plantilla del programa dicen qué pregunta trae el correo, llave emailNormalizado)"],
+      [],
+    );
+  }
+  return resuelto;
+}
+
+/**
+ * Solo el titulo de la pregunta de agenda, para quien relee un envio ya guardado ("buscar
+ * llamada", 096) y no va a ingerir nada: no exige el correo.
+ */
+export function campoAgendaDeFuente(
+  mapeoFuente: MapeoColumnas | null | undefined,
+  plantillaLead: MapeoColumnas | null | undefined,
+): string | undefined {
+  return traducirMapeo(mapeoFuente, plantillaLead).campoAgenda;
+}
+
+function traducirMapeo(
+  mapeoFuente: MapeoColumnas | null | undefined,
+  plantillaLead: MapeoColumnas | null | undefined,
+): MapeoWebhookResuelto {
+  const { mapeo } = combinarMapeo(mapeoFuente ?? null, plantillaLead ?? null, SIN_DEFECTO);
 
   const campos: Partial<Record<CampoEnvio, string | string[]>> = {};
   let campoAgenda: string | undefined;
@@ -115,12 +152,8 @@ export function mapeoWebhookDesdeFuente(
 
   for (const [llave, patron] of Object.entries(mapeo)) {
     if (llave === LLAVE_AGENDA) {
-      // 🩸 `agenda` SOLO cuenta si la puso la fuente o la plantilla del programa, NUNCA
-      // el defecto del codigo (ADR 0054, 2a enmienda: cual pregunta es la de agenda es
-      // CONFIGURACION, no una heuristica). `MAPEO_FORMULARIO` trae un patron de agenda
-      // por defecto que le sirve a la hoja pero que aqui subiria un envio a
-      // `con_calendly` sin que nadie lo configurara. `origen` lo distingue.
-      if (origen[LLAVE_AGENDA] === "defecto") continue;
+      // `agenda` solo la pone la fuente o la plantilla del programa (ADR 0061 punto 4:
+      // cual pregunta es la de agenda es CONFIGURACION, no una heuristica).
       // `agenda` es el TITULO de la pregunta de Calendly. Si viniera como lista, se toma
       // el primer patron: `campoAgenda` es un solo titulo (el adaptador lo resuelve
       // contra las columnas reales, insensible a acentos/mayusculas).
@@ -148,10 +181,6 @@ export function mapeoWebhookDesdeFuente(
       variableLeadValue = Array.isArray(patron) ? patron[0] : patron;
       continue;
     }
-    // El defecto del codigo es el de la HOJA (sus encabezados). Un webhook no lo hereda:
-    // cada adaptador trae el suyo, que conoce su payload (Dapta manda `email`, no
-    // "correo electronico"). Solo la fuente o la plantilla del programa lo pisan (130).
-    if (origen[llave] === "defecto") continue;
     const campo = HOJA_A_CAMPO_ENVIO[llave];
     if (campo !== undefined) campos[campo] = patron;
   }

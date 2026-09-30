@@ -11,6 +11,7 @@ import {
   leads,
   programs,
   sources,
+  submissions,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EntradaEnvio } from "@/lib/ingesta/envio";
@@ -19,7 +20,9 @@ import { ingerirEntradas } from "@/lib/ingesta/ingerir";
 import { decidirAccionDeDeal, type ResultadoCita } from "@/lib/ingesta/regla-de-deals";
 import { esViolacionCheck } from "@/lib/db/errores";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
+import { estadosDeLlegada } from "@/lib/catalogo/estados-llegada";
+import { users } from "@/lib/db/schema";
 import { sinComentarios } from "./helpers/codigo-fuente";
 
 
@@ -44,31 +47,35 @@ const CITA_VIGENTE: ResultadoCita = {
 // ─────────────────────────────────────────────── la decision pura (sin base)
 
 describe("decidirAccionDeDeal: la tabla del insumo §3.1, fila por fila", () => {
+  // La decision lee la ETAPA DE ENTRADA de la fila del Estado (ticket 117), no un valor.
+  const SETTEO = { etapaEntrada: "pendiente_setteo" as const };
+  const AGENDADO = { etapaEntrada: "agendado" as const };
+  const NO_ABRE = { etapaEntrada: null };
   const conDeal = (etapa: import("@/lib/deals/etapas").EtapaDeal) => ({ etapa });
 
-  it("descartado no abre nada, tenga o no deal", () => {
-    expect(decidirAccionDeDeal("descartado", null).tipo).toBe("nada");
-    expect(decidirAccionDeDeal("descartado", conDeal("agendado")).tipo).toBe("nada");
+  it("una fila que no abre deal (etapa nula) no abre nada, tenga o no deal", () => {
+    expect(decidirAccionDeDeal(NO_ABRE, null).tipo).toBe("nada");
+    expect(decidirAccionDeDeal(NO_ABRE, conDeal("agendado")).tipo).toBe("nada");
   });
 
-  it("sin calificacion no abre nada", () => {
+  it("sin fila (vacio o desconocido) no abre nada: no se adivina un deal", () => {
     expect(decidirAccionDeDeal(null, null).tipo).toBe("nada");
     expect(decidirAccionDeDeal(null, conDeal("pendiente_setteo")).tipo).toBe("nada");
   });
 
-  it("setteo_no_calificado sin deal abre en Pendiente Setteo", () => {
-    expect(decidirAccionDeDeal("setteo_no_calificado", null)).toEqual({
+  it("entra en Setteo sin deal abre en Pendiente Setteo", () => {
+    expect(decidirAccionDeDeal(SETTEO, null)).toEqual({
       tipo: "abrir",
       etapa: "pendiente_setteo",
     });
   });
 
-  it("setteo_no_calificado con deal abierto no hace nada", () => {
-    expect(decidirAccionDeDeal("setteo_no_calificado", conDeal("pendiente_setteo")).tipo).toBe("nada");
+  it("entra en Setteo con deal abierto no hace nada", () => {
+    expect(decidirAccionDeDeal(SETTEO, conDeal("pendiente_setteo")).tipo).toBe("nada");
   });
 
-  it("con_calendly + cita vigente, sin deal, abre en Agendado con la llamada", () => {
-    expect(decidirAccionDeDeal("con_calendly", null, CITA_VIGENTE)).toEqual({
+  it("entra en Agendado + cita vigente, sin deal, abre en Agendado con la llamada", () => {
+    expect(decidirAccionDeDeal(AGENDADO, null, CITA_VIGENTE)).toEqual({
       tipo: "abrir",
       etapa: "agendado",
       llamada: { inicio: CITA_VIGENTE.inicio, uuidInvitado: "UU-1" },
@@ -76,9 +83,9 @@ describe("decidirAccionDeDeal: la tabla del insumo §3.1, fila por fila", () => 
   });
 
   it.each(["pendiente_setteo", "en_contacto", "pendiente_reagenda", "proxima_cohorte", "seguimiento"] as const)(
-    "con_calendly + cita vigente con deal en %s (1, 2, 3, 9 u 11) mueve a Agendado con la llamada",
+    "entra en Agendado + cita vigente con deal en %s (1, 2, 3, 9 u 11) mueve a Agendado con la llamada",
     (etapa) => {
-      expect(decidirAccionDeDeal("con_calendly", conDeal(etapa), CITA_VIGENTE)).toEqual({
+      expect(decidirAccionDeDeal(AGENDADO, conDeal(etapa), CITA_VIGENTE)).toEqual({
         tipo: "mover",
         a: "agendado",
         llamada: { inicio: CITA_VIGENTE.inicio, uuidInvitado: "UU-1" },
@@ -87,10 +94,10 @@ describe("decidirAccionDeDeal: la tabla del insumo §3.1, fila por fila", () => 
   );
 
   it.each(["agendado", "atendido", "compromiso_verbal", "abonado"] as const)(
-    "con_calendly + cita vigente con deal en %s (4, 5, 6 o 7) agrega la llamada, sin mover",
+    "entra en Agendado + cita vigente con deal en %s (4, 5, 6 o 7) agrega la llamada, sin mover",
     (etapa) => {
       // Mani, 28-sep: una re-agenda con cita nueva no se pierde. El deal no se mueve.
-      expect(decidirAccionDeDeal("con_calendly", conDeal(etapa), CITA_VIGENTE)).toEqual({
+      expect(decidirAccionDeDeal(AGENDADO, conDeal(etapa), CITA_VIGENTE)).toEqual({
         tipo: "agregar_llamada",
         etapa,
         llamada: { inicio: CITA_VIGENTE.inicio, uuidInvitado: "UU-1" },
@@ -99,55 +106,55 @@ describe("decidirAccionDeDeal: la tabla del insumo §3.1, fila por fila", () => 
   );
 
   it.each(["agendado", "atendido", "compromiso_verbal", "abonado"] as const)(
-    "con_calendly + cita NO vigente con deal en %s (4, 5, 6 o 7) notifica re-envio, sin mover",
+    "entra en Agendado + cita NO vigente con deal en %s (4, 5, 6 o 7) notifica re-envio, sin mover",
     (etapa) => {
-      expect(decidirAccionDeDeal("con_calendly", conDeal(etapa), { estado: "cancelada" })).toEqual({
+      expect(decidirAccionDeDeal(AGENDADO, conDeal(etapa), { estado: "cancelada" })).toEqual({
         tipo: "notificar_reenvio",
         etapa,
       });
     },
   );
 
-  it("con_calendly con deal en Pendiente Re-agenda o Seguimiento + cita vigente SÍ mueve (regresión A1 del 114)", () => {
+  it("entra en Agendado con deal en Pendiente Re-agenda o Seguimiento + cita vigente SÍ mueve (regresión A1 del 114)", () => {
     // Antes 3 y 11 no estaban en la lista de la ingesta (era 1/2/9), así que un
     // re-envío con cita válida caía en la rama `nada`. Con la lista única de
     // `lib/deals/etapas.ts` avanzan por T6 y T27.
-    expect(decidirAccionDeDeal("con_calendly", conDeal("pendiente_reagenda"), CITA_VIGENTE).tipo).toBe("mover");
-    expect(decidirAccionDeDeal("con_calendly", conDeal("seguimiento"), CITA_VIGENTE).tipo).toBe("mover");
+    expect(decidirAccionDeDeal(AGENDADO, conDeal("pendiente_reagenda"), CITA_VIGENTE).tipo).toBe("mover");
+    expect(decidirAccionDeDeal(AGENDADO, conDeal("seguimiento"), CITA_VIGENTE).tipo).toBe("mover");
   });
 
-  it("con_calendly sin deal + cita CANCELADA abre en Pendiente Setteo con nota", () => {
-    expect(decidirAccionDeDeal("con_calendly", null, { estado: "cancelada" })).toEqual({
+  it("entra en Agendado sin deal + cita CANCELADA abre en Pendiente Setteo con nota", () => {
+    expect(decidirAccionDeDeal(AGENDADO, null, { estado: "cancelada" })).toEqual({
       tipo: "abrir",
       etapa: "pendiente_setteo",
       nota: "La cita de Calendly está cancelada.",
     });
   });
 
-  it("con_calendly sin deal + cita NO ENCONTRADA abre en Pendiente Setteo con nota", () => {
-    expect(decidirAccionDeDeal("con_calendly", null, { estado: "no_encontrada" })).toEqual({
+  it("entra en Agendado sin deal + cita NO ENCONTRADA abre en Pendiente Setteo con nota", () => {
+    expect(decidirAccionDeDeal(AGENDADO, null, { estado: "no_encontrada" })).toEqual({
       tipo: "abrir",
       etapa: "pendiente_setteo",
       nota: "No se encontró la cita en Calendly.",
     });
   });
 
-  it("con_calendly sin deal + ERROR de Calendly abre en Pendiente Setteo con nota que trae el mensaje", () => {
-    expect(decidirAccionDeDeal("con_calendly", null, { estado: "error", mensaje: "token vencido." })).toEqual({
+  it("entra en Agendado sin deal + ERROR de Calendly abre en Pendiente Setteo con nota que trae el mensaje", () => {
+    expect(decidirAccionDeDeal(AGENDADO, null, { estado: "error", mensaje: "token vencido." })).toEqual({
       tipo: "abrir",
       etapa: "pendiente_setteo",
       nota: "No se pudo consultar Calendly: token vencido.",
     });
   });
 
-  it("con_calendly con deal en Pendiente Setteo + cita no vigente: no mueve, deja nota", () => {
-    const r = decidirAccionDeDeal("con_calendly", conDeal("pendiente_setteo"), { estado: "cancelada" });
+  it("entra en Agendado con deal en Pendiente Setteo + cita no vigente: no mueve, deja nota", () => {
+    const r = decidirAccionDeDeal(AGENDADO, conDeal("pendiente_setteo"), { estado: "cancelada" });
     expect(r.tipo).toBe("nada");
     expect(r.tipo === "nada" && r.nota).toBe("La cita de Calendly está cancelada.");
   });
 
-  it("con_calendly sin cita resuelta (indefinida) se trata como no encontrada", () => {
-    expect(decidirAccionDeDeal("con_calendly", null)).toEqual({
+  it("entra en Agendado sin cita resuelta (indefinida) se trata como no encontrada", () => {
+    expect(decidirAccionDeDeal(AGENDADO, null)).toEqual({
       tipo: "abrir",
       etapa: "pendiente_setteo",
       nota: "No se encontró la cita en Calendly.",
@@ -179,11 +186,15 @@ function entrada(o: {
   correo?: string;
   fecha?: string | null;
   estado?: Calificacion | string;
+  esParcial?: boolean;
+  /** Respuestas no promovidas, las que un parcial va acumulando pregunta a pregunta. */
+  extra?: Record<string, string>;
 }): EntradaEnvio {
   return {
     sourceId,
     zona: "UTC",
     posicion: null,
+    esParcial: o.esParcial,
     columnas: {
       Token: o.token,
       Correo: o.correo ?? "",
@@ -193,6 +204,7 @@ function entrada(o: {
       utm_source: "",
       utm_medium: "",
       utm_campaign: "",
+      ...o.extra,
     },
     campos: { ...CAMPOS },
   };
@@ -209,6 +221,7 @@ beforeEach(async () => {
   programId = p.id;
   const [f] = await db.insert(sources).values({ programId, nombre: "Typeform", tipo: "google_sheet" }).returning();
   sourceId = f.id;
+  await sembrarEstadosDeLlegada(db, programId);
 });
 
 afterEach(async () => {
@@ -281,14 +294,6 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     expect(filasCall[0].huellaFila).toBe("calendly:UU-1");
 
     expect(r.reglaDeDeals[0].accion.tipo).toBe("abrir");
-  });
-
-  it("descartado no crea deal, ni siquiera cerrado", async () => {
-    const r = await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: "descartado" })], {
-      aplicarReglaDeDeals: true,
-    });
-    expect(await db.select().from(deals)).toHaveLength(0);
-    expect(r.reglaDeDeals[0].accion.tipo).toBe("nada");
   });
 
   it("un COMPLETO sin estado (sin calificación) no abre deal", async () => {
@@ -485,6 +490,189 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     expect(abiertos).toHaveLength(2);
     expect(abiertos.some((d) => d.etapa === "agendado")).toBe(true);
     expect(r.reglaDeDeals[0].accion.tipo).toBe("abrir");
+  });
+});
+
+// ─────────────────────────────────────────────── los Estados de llegada por tabla (117)
+
+describe("los Estados de llegada salen de la tabla, no del codigo (ticket 117, ADR 0061)", () => {
+  const ingerir = (entradas: EntradaEnvio[], extra: Parameters<typeof ingerirEntradas>[3] = {}) =>
+    ingerirEntradas(db, programId, entradas, { aplicarReglaDeDeals: true, ...extra });
+
+  async function actor(): Promise<string> {
+    const [u] = await db.insert(users).values({ email: "gerente@retia.co", nombre: "Gerente", rol: "gerente" }).returning();
+    return u.id;
+  }
+
+  it("un valor NUEVO en la tabla abre deals en su etapa, sin tocar codigo", async () => {
+    await estadosDeLlegada(db).crear(await actor(), {
+      programId,
+      valor: "lead_premium",
+      etapaEntrada: "pendiente_setteo",
+      prioridad: "alta",
+      alertaMinutos: 10,
+    });
+    const r = await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado: "Lead_Premium" })]);
+    const [deal] = await db.select().from(deals);
+    expect(deal.etapa).toBe("pendiente_setteo");
+    expect(r.sinCalificar).toEqual([]);
+    // El Estado se guarda como llego (ADR 0004); la comparacion es la del indice.
+    expect((await leadDeCorreo("ana@correo.co")).calificacion).toBe("Lead_Premium");
+  });
+
+  it("🩸 sin estado o con un valor desconocido: lead sin deal, y se cuenta (el 29-sep de Tactical)", async () => {
+    const r = await ingerir([
+      entrada({ token: "t1", correo: "ana@correo.co", estado: "" }),
+      entrada({ token: "t2", correo: "beto@correo.co", estado: "valor_que_nadie_configuro" }),
+    ]);
+    expect(await db.select().from(deals)).toHaveLength(0);
+    expect(await leadDeCorreo("ana@correo.co")).toBeDefined();
+    expect(await leadDeCorreo("beto@correo.co")).toBeDefined();
+    expect(r.sinCalificar).toEqual(
+      expect.arrayContaining([
+        { motivo: "sin estado", envios: 1 },
+        { motivo: "estado no reconocido: valor_que_nadie_configuro", envios: 1 },
+      ]),
+    );
+    expect(r.reglaDeDeals.every((x) => x.accion.tipo === "nada")).toBe(true);
+  });
+
+  it("una fila DESACTIVADA deja de reconocerse: no abre deal y se cuenta", async () => {
+    const [fila] = (await estadosDeLlegada(db).listar()).filter((f) => f.valor === "setteo_no_calificado");
+    await estadosDeLlegada(db).desactivar(await actor(), fila.id);
+    const r = await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado: "setteo_no_calificado" })]);
+    expect(await db.select().from(deals)).toHaveLength(0);
+    expect(r.sinCalificar).toEqual([{ motivo: "estado no reconocido: setteo_no_calificado", envios: 1 }]);
+  });
+
+  it("una fila que dice que no abre deal se reconoce (no se cuenta) y no abre", async () => {
+    const [fila] = (await estadosDeLlegada(db).listar()).filter((f) => f.valor === "descartado");
+    await estadosDeLlegada(db).editar(await actor(), fila.id, {
+      programId,
+      valor: "descartado",
+      etapaEntrada: null,
+      prioridad: "normal",
+      alertaMinutos: null,
+    });
+    const r = await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado: "descartado" })]);
+    expect(await db.select().from(deals)).toHaveLength(0);
+    expect(r.sinCalificar).toEqual([]);
+  });
+
+  it("descartado (sembrado en Setteo) abre deal: todo el que llena el formulario es contacto", async () => {
+    await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado: "descartado" })]);
+    const [deal] = await db.select().from(deals);
+    expect(deal.etapa).toBe("pendiente_setteo");
+  });
+
+  it("la frontera: el Estado de OTRO programa no se reconoce aqui", async () => {
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "797" }).returning();
+    await sembrarEstadosDeLlegada(db, otro.id, [
+      { valor: "solo_del_otro", etapaEntrada: "pendiente_setteo", prioridad: "normal", alertaMinutos: null },
+    ]);
+    const r = await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado: "solo_del_otro" })]);
+    expect(await db.select().from(deals)).toHaveLength(0);
+    expect(r.sinCalificar).toEqual([{ motivo: "estado no reconocido: solo_del_otro", envios: 1 }]);
+  });
+
+  it("parcial SIN estado (el del WhatsApp): lead sin deal, y no se cuenta como error", async () => {
+    const r = await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado: "", esParcial: true })]);
+    expect(await leadDeCorreo("ana@correo.co")).toBeDefined();
+    expect(await db.select().from(deals)).toHaveLength(0);
+    expect(r.sinCalificar).toEqual([]);
+  });
+
+  it("parcial con_calendly_sin_agenda y luego su completa con cita: un lead, un deal, en Agendado con su llamada", async () => {
+    const parcial = await ingerir([
+      entrada({ token: "tok-1", correo: "ana@correo.co", estado: "con_calendly_sin_agenda", esParcial: true, fecha: null }),
+    ]);
+    expect(parcial.reglaDeDeals[0].accion).toEqual({ tipo: "abrir", etapa: "pendiente_setteo" });
+    const [enSetteo] = await db.select().from(deals);
+    expect(enSetteo.etapa).toBe("pendiente_setteo");
+
+    // La completa del MISMO token, con la cita: el mismo deal pasa a Agendado por el motor.
+    const completa = await ingerir(
+      [entrada({ token: "tok-1", correo: "ana@correo.co", estado: "con_calendly", esParcial: false })],
+      { citasPorCorreo: citas("ana@correo.co", CITA_VIGENTE) },
+    );
+    expect(completa.reglaDeDeals[0].accion.tipo).toBe("mover");
+    expect(await db.select().from(leads)).toHaveLength(1);
+    const todos = await db.select().from(deals);
+    expect(todos).toHaveLength(1);
+    expect(todos[0].id).toBe(enSetteo.id);
+    expect(todos[0].etapa).toBe("agendado");
+    const llamadas = await db.select().from(calls).where(eq(calls.dealId, enSetteo.id));
+    expect(llamadas).toHaveLength(1);
+    expect(llamadas[0].fechaAgenda?.toISOString()).toBe(CITA_VIGENTE.inicio.toISOString());
+    const historial = await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, enSetteo.id));
+    expect(historial.map((h) => h.a)).toEqual(["pendiente_setteo", "agendado"]);
+  });
+
+  describe("🩸 los dos puntos parciales comparten token: el viejo no pisa al nuevo (revisión de Codex)", () => {
+    // El del WhatsApp llega con menos respuestas y sin Estado; el previo al Calendly, con mas
+    // respuestas y `con_calendly_sin_agenda`. Son VERSIONES de la misma fila.
+    const whatsapp = () =>
+      entrada({ token: "tok-1", correo: "ana@correo.co", estado: "", esParcial: true, fecha: null, extra: { Ingreso: "1000" } });
+    const calendly = () =>
+      entrada({
+        token: "tok-1",
+        correo: "ana@correo.co",
+        estado: "con_calendly_sin_agenda",
+        esParcial: true,
+        fecha: null,
+        extra: { Ingreso: "1000", Motivo: "crecer", Urgencia: "ya" },
+      });
+
+    it("en orden: el del Calendly reemplaza al del WhatsApp y abre el deal", async () => {
+      await ingerir([whatsapp()]);
+      expect(await db.select().from(deals)).toHaveLength(0);
+      await ingerir([calendly()]);
+      const [envio] = await db.select().from(submissions);
+      expect(envio.calificacion).toBe("con_calendly_sin_agenda");
+      expect(await db.select().from(deals)).toHaveLength(1);
+    });
+
+    it("fuera de orden: el del WhatsApp que llega tarde no le borra el Estado ni las respuestas", async () => {
+      await ingerir([calendly()]);
+      const [deal] = await db.select().from(deals);
+      expect(deal.etapa).toBe("pendiente_setteo");
+      const r = await ingerir([whatsapp()]);
+      const envios = await db.select().from(submissions);
+      expect(envios).toHaveLength(1);
+      expect(envios[0].calificacion).toBe("con_calendly_sin_agenda");
+      expect(Object.keys(envios[0].respuestas as object)).toEqual(expect.arrayContaining(["Motivo", "Urgencia"]));
+      expect(r.reglaDeDeals.every((x) => x.accion.tipo === "nada")).toBe(true);
+      expect(await db.select().from(deals)).toHaveLength(1);
+    });
+
+    it.each([
+      ["calendly, whatsapp", () => [calendly(), whatsapp()]],
+      ["whatsapp, calendly", () => [whatsapp(), calendly()]],
+    ] as const)("en UN mismo lote (%s) gana la version con mas respuestas", async (_orden, lote) => {
+      await ingerir([...lote()]);
+      const envios = await db.select().from(submissions);
+      expect(envios).toHaveLength(1);
+      expect(envios[0].calificacion).toBe("con_calendly_sin_agenda");
+      expect(await db.select().from(deals)).toHaveLength(1);
+    });
+
+    it("el mismo parcial reintentado sí se re-escribe (idempotente)", async () => {
+      await ingerir([calendly()]);
+      await ingerir([calendly()]);
+      expect(await db.select().from(submissions)).toHaveLength(1);
+      expect(await db.select().from(deals)).toHaveLength(1);
+    });
+  });
+
+  it("la regla decide con el Estado del ENVIO que la dispara, no con el resumen del lead", async () => {
+    // Una completa vieja sin Estado que abra deal, y despues el parcial previo al Calendly:
+    // el resumen del lead sigue siendo la completa, pero el parcial abre su deal.
+    await ingerir([entrada({ token: "viejo", correo: "ana@correo.co", estado: "valor_viejo", fecha: "2026-09-01T10:00:00Z" })]);
+    expect(await db.select().from(deals)).toHaveLength(0);
+    await ingerir([entrada({ token: "nuevo", correo: "ana@correo.co", estado: "con_calendly_sin_agenda", esParcial: true, fecha: null })]);
+    expect((await leadDeCorreo("ana@correo.co")).calificacion).toBe("valor_viejo");
+    const [deal] = await db.select().from(deals);
+    expect(deal.etapa).toBe("pendiente_setteo");
   });
 });
 

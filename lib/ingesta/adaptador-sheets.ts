@@ -1,4 +1,4 @@
-import { resolverColumnas, ZONA_BOGOTA, type MapeoColumnas } from "@/lib/sheets/mapeo";
+import { MAPEO_FORMULARIO, resolverColumnas, ZONA_BOGOTA, type MapeoColumnas } from "@/lib/sheets/mapeo";
 import type { CampoEnvio, EntradaEnvio } from "./envio";
 
 /**
@@ -8,12 +8,16 @@ import type { CampoEnvio, EntradaEnvio } from "./envio";
  * `construirEnvio`, que no sabe de donde vino la entrada.
  */
 
-/** Donde buscar cada campo en los formularios de hoy. Se resuelve por texto (ADR 0019). */
-export const MAPEO_ENVIO: Record<CampoEnvio, string> = {
+/**
+ * Donde buscar cada campo en una hoja. Se resuelve por texto (ADR 0019). Los titulos de
+ * pregunta salen de `MAPEO_FORMULARIO`, el vocabulario de la hoja (`lib/sheets/`): en
+ * `lib/ingesta/` no hay ni un titulo escrito (ticket 117, B4 del 114).
+ */
+export const MAPEO_ENVIO: Record<CampoEnvio, string | string[]> = {
   token: "token",
-  correo: "correo electronico",
-  telefono: "whatsapp",
-  nombre: "nombre completo",
+  correo: MAPEO_FORMULARIO.emailNormalizado,
+  telefono: MAPEO_FORMULARIO.telefono,
+  nombre: MAPEO_FORMULARIO.nombre,
   fechaEnvio: "submitted at",
   estadoHoja: "estado",
   utmSource: "utm_source",

@@ -71,6 +71,8 @@ export interface SaludVista {
   estado: EstadoDeFuente;
   ultimoHace: string;
   sobresPendientes: number;
+  /** Envíos completos recientes sin un Estado que el programa reconozca (117). */
+  sinEstado: number;
 }
 
 export interface ProgramaConFuentes {
@@ -473,6 +475,11 @@ function MarcaDeSalud({ salud }: { salud: SaludVista }) {
       {salud.sobresPendientes > 0 ? (
         <Badge variant="peligro">
           {salud.sobresPendientes === 1 ? "1 envío sin procesar" : `${salud.sobresPendientes} envíos sin procesar`}
+        </Badge>
+      ) : null}
+      {salud.sinEstado > 0 ? (
+        <Badge variant="alerta" title="Envíos completos del último día sin un Estado de llegada que el programa tenga: no abrieron deal.">
+          {salud.sinEstado === 1 ? "1 envío sin estado" : `${salud.sinEstado} envíos sin estado`}
         </Badge>
       ) : null}
     </>

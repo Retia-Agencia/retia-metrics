@@ -76,7 +76,7 @@ describe("adaptador de score (parte A, puro)", () => {
   });
 
   it("mapeoWebhookDesdeFuente traduce la llave `puntaje` a variablePuntaje", () => {
-    const m = mapeoWebhookDesdeFuente({ puntaje: "score" }, null);
+    const m = mapeoWebhookDesdeFuente({ puntaje: "score" }, PROGRAMA_DE_PRUEBA.plantillaLead);
     expect(m.variablePuntaje).toBe("score");
   });
 
@@ -118,7 +118,7 @@ describe("el score aterriza en submission y en el resumen del lead", () => {
       ...(numero === null ? [] : [{ key: "score" as const, type: "number" as const, number: numero }]),
     ];
     return {
-      ...entradaDesdeTypeform(p, { sourceId, zona: "America/Bogota", mapeo: { variablePuntaje: "score" } }),
+      ...entradaDesdeTypeform(p, { sourceId, zona: "America/Bogota", mapeo: { variablePuntaje: "score", campos: { correo: "correo electronico" } } }),
       sourceId,
     };
   }

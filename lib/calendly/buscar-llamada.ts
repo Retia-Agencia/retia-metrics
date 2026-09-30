@@ -6,7 +6,8 @@ import type { Rol } from "@/lib/auth/roles";
 import { programaEnAlcance } from "@/lib/auth/alcance";
 import { vigente } from "@/lib/queries/vigente";
 import { resolverContra } from "@/lib/ingesta/adaptador-typeform";
-import { mapeoWebhookDesdeFuente } from "@/lib/ingesta/mapeo-webhook";
+import { ESTADO_CON_CALENDLY } from "@/lib/ingesta/calificacion";
+import { campoAgendaDeFuente } from "@/lib/ingesta/mapeo-webhook";
 import type { MapeoColumnas } from "@/lib/sheets/mapeo";
 import { aplicarReglaDeDeal, notaDeCita, type AccionDeDeal } from "@/lib/ingesta/regla-de-deals";
 import { uuidInvitadoDelLink, type FetchLike } from "./cita";
@@ -116,7 +117,7 @@ export async function buscarLlamadaDelDeal(
         id: fila.leadId,
         programId: fila.programId,
         emailNormalizado: fila.emailNormalizado,
-        calificacion: "con_calendly",
+        calificacion: ESTADO_CON_CALENDLY,
       },
       cita,
     ),
@@ -142,7 +143,7 @@ async function linkDeAgendaMasReciente(db: Db, leadId: string, programId: string
     .where(and(eq(submissions.leadId, leadId), eq(sources.programId, programId)))
     .orderBy(sql`${submissions.fechaEnvio} desc nulls last`);
   for (const e of envios) {
-    const { campoAgenda } = mapeoWebhookDesdeFuente(
+    const campoAgenda = campoAgendaDeFuente(
       e.mapeoColumnas as MapeoColumnas | null,
       e.plantillaLead as MapeoColumnas | null,
     );

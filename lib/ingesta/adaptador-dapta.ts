@@ -109,6 +109,15 @@ export function entradaDesdeDapta(
     estadoHoja: "__estado",
     ...opciones.mapeo?.campos,
   };
+  // La plantilla del programa habla en titulos de Typeform ("correo electronico", 117) y
+  // vale para todas sus fuentes: si pisara las llaves fijas de Dapta, ningun envio de Dapta
+  // de ese programa encontraria su correo. Lo configurado se busca primero; si no casa,
+  // las llaves fijas del paso.
+  for (const [campo, fijas] of Object.entries(MAPEO_POR_DEFECTO) as [CampoEnvio, string[]][]) {
+    const configurado = opciones.mapeo?.campos?.[campo];
+    if (configurado === undefined) continue;
+    mapeo[campo] = [...(Array.isArray(configurado) ? configurado : [configurado]), ...fijas];
+  }
   const patronesNombre = mapeo.nombre;
   const buscadosNombre = patronesNombre
     ? Array.isArray(patronesNombre)

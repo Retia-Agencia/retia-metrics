@@ -5,7 +5,15 @@ import { db } from "../lib/db";
 import { abonos, etapaDealEnum, leads, programs, submissions, users } from "../lib/db/schema";
 import { actorDelScript } from "./actor";
 import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
-import { crearPrograma, editarPrograma, guardarTokenCalendly, reactivarPrograma } from "../lib/catalogo/programas";
+import {
+  crearPrograma,
+  editarPlantillaLead,
+  editarPrograma,
+  guardarTokenCalendly,
+  reactivarPrograma,
+} from "../lib/catalogo/programas";
+import { estadosDeLlegada } from "../lib/catalogo/estados-llegada";
+import { ESTADOS_LLEGADA_BASE, PLANTILLA_LEAD_BASE } from "./estados-llegada-base";
 import { crearCohorte } from "../lib/catalogo/cohortes";
 import { crearProducto } from "../lib/catalogo/productos";
 import { activarFuente, crearFuente, rotarSecretoDeFuente } from "../lib/catalogo/fuentes";
@@ -580,6 +588,16 @@ export async function sembrarLocal(): Promise<void> {
     patLocal("CALENDLY_PAT_LOCAL_TACTICAL") ?? "calendly-token-local-tactical",
   );
   const prog2 = await reactivarPrograma(db, actorId, p2.id);
+
+  // 5b. Estados de llegada y plantilla de lead (ticket 117): sin ellos ningun envio abre
+  // deal y el webhook no sabe que pregunta trae el correo.
+  console.log("[seed:local] Sembrando estados de llegada y plantillas de lead...");
+  for (const programa of [prog1, prog2]) {
+    for (const estado of ESTADOS_LLEGADA_BASE) {
+      await estadosDeLlegada(db).crear(actorId, { programId: programa.id, ...estado });
+    }
+    await editarPlantillaLead(db, actorId, programa.id, PLANTILLA_LEAD_BASE);
+  }
 
   // 6. Cohortes activas
   console.log("[seed:local] Creando cohortes activas...");

@@ -14,7 +14,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
 import real from "./fixtures/typeform-real-tactical.json";
 import daptaParcial from "./fixtures/dapta-parcial.json";
 import daptaCompleto from "./fixtures/dapta-completo.json";
@@ -171,6 +171,7 @@ beforeEach(async () => {
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
     .returning();
   programId = p.id;
+  await sembrarEstadosDeLlegada(db, programId);
   const [f] = await db
     .insert(sources)
     .values({
@@ -234,27 +235,51 @@ describe("caso 2 — completo sin link de agenda, setteo_no_calificado", () => {
 
 // ─────────────────────────────────────────────────────── caso 3: descartado
 
-describe("caso 3 — descartado", () => {
-  it("el lead se guarda, pero no se abre ningun deal", async () => {
-    const res = await enviar(conEstado(fixture(), "descartado"));
+describe("caso 3 — descartado sin agenda", () => {
+  it("el lead se guarda y abre en Pendiente Setteo: todo el que llena el formulario es contacto (ADR 0061)", async () => {
+    vi.stubGlobal("fetch", fetchQueLanza());
+    const res = await enviar(conAgenda(conEstado(fixture(), "descartado"), ""));
     expect(res.status).toBe(200);
     const [lead] = await db.select().from(leads);
     expect(lead.calificacion).toBe("descartado");
-    expect(await db.select().from(deals)).toHaveLength(0);
+    const [deal] = await db.select().from(deals);
+    expect(deal.etapa).toBe("pendiente_setteo");
   });
 });
 
 // ────────────────────────── caso 4: agenda con link pero variable descartado
 
-describe("caso 4 — link de agenda pero variable descartado", () => {
-  it("descartado NUNCA sube a con_calendly, aunque traiga el link", async () => {
-    // fetch que lanza: si la ruta intentara resolver la cita, el test lo delata.
+describe("caso 4 — link de agenda con cualquier variable", () => {
+  it("con link la agenda es un HECHO: descartado sube a con_calendly y entra en Agendado (ADR 0061 punto 4)", async () => {
+    vi.stubGlobal("fetch", stubCalendly({}));
     const res = await enviar(conEstado(fixture(), "descartado"));
     expect(res.status).toBe(200);
     const [lead] = await db.select().from(leads);
-    expect(lead.calificacion).toBe("descartado");
+    expect(lead.calificacion).toBe("con_calendly");
+    const [deal] = await db.select().from(deals);
+    expect(deal.etapa).toBe("agendado");
+    expect(await db.select().from(calls)).toHaveLength(1);
+  });
+
+  it("🩸 SIN la variable estado pero con link: entra en Agendado (el 29-sep de Tactical)", async () => {
+    vi.stubGlobal("fetch", stubCalendly({}));
+    const p = fixture();
+    p.form_response.variables = [];
+    const res = await enviar(p);
+    expect(res.status).toBe(200);
+    const [deal] = await db.select().from(deals);
+    expect(deal.etapa).toBe("agendado");
+  });
+
+  it("SIN la variable estado y sin link: lead guardado, sin deal, y la fuente lo cuenta", async () => {
+    vi.stubGlobal("fetch", fetchQueLanza());
+    const p = conAgenda(fixture(), "");
+    p.form_response.variables = [];
+    const res = await enviar(p);
+    expect(res.status).toBe(200);
+    const [lead] = await db.select().from(leads);
+    expect(lead.calificacion).toBeNull();
     expect(await db.select().from(deals)).toHaveLength(0);
-    expect(await db.select().from(calls)).toHaveLength(0);
   });
 });
 
@@ -304,8 +329,15 @@ describe("caso 5 — la cita no está vigente o Calendly falla: Pendiente Setteo
     // programa NUEVO inactivo y sin token, con su propia fuente webhook.
     const [sinToken] = await db
       .insert(programs)
-      .values({ slug: "sin-token", nombre: "Sin token", ticketUsd: "1500", activo: false })
+      .values({
+        slug: "sin-token",
+        nombre: "Sin token",
+        ticketUsd: "1500",
+        activo: false,
+        plantillaLead: PROGRAMA_DE_PRUEBA.plantillaLead,
+      })
       .returning();
+    await sembrarEstadosDeLlegada(db, sinToken.id);
     const [fuenteSinToken] = await db
       .insert(sources)
       .values({
@@ -372,27 +404,31 @@ describe("caso 7 — la misma persona re-aplica (fija el comportamiento actual)"
     let [deal] = await db.select().from(deals);
     expect(deal.etapa).toBe("agendado");
 
-    // Ahora descartado: la regla no toca un deal, y descartado no abre ni mueve.
+    // Ahora descartado, sin agenda: el lead ya tiene deal abierto y un Estado de Setteo no
+    // lo toca ni lo retrocede.
     vi.stubGlobal("fetch", fetchQueLanza());
-    const desc = conEstado(fixture(), "descartado");
+    const desc = conAgenda(conEstado(fixture(), "descartado"), "");
     desc.form_response.token = "t-desc";
     await enviar(desc);
     [deal] = await db.select().from(deals);
     expect(deal.etapa).toBe("agendado"); // el deal no retrocede
   });
 
-  it("(b) descartado y luego agenda: se abre el deal en Agendado al llegar la agenda", async () => {
-    const desc = conEstado(fixture(), "descartado");
+  it("(b) descartado y luego agenda: el deal de Setteo sube a Agendado al llegar la agenda", async () => {
+    const desc = conAgenda(conEstado(fixture(), "descartado"), "");
     desc.form_response.token = "t-desc";
     await enviar(desc);
-    expect(await db.select().from(deals)).toHaveLength(0);
+    const [enSetteo] = await db.select().from(deals);
+    expect(enSetteo.etapa).toBe("pendiente_setteo");
 
     vi.stubGlobal("fetch", stubCalendly({}));
     const agenda = fixture();
     agenda.form_response.token = "t-agenda";
     await enviar(agenda);
-    const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("agendado");
+    const todos = await db.select().from(deals);
+    expect(todos).toHaveLength(1);
+    expect(todos[0].id).toBe(enSetteo.id);
+    expect(todos[0].etapa).toBe("agendado");
   });
 
   it("(c) agenda dos veces con dos citas distintas: la SEGUNDA cita crea su llamada en el mismo deal", async () => {
@@ -446,7 +482,7 @@ describe("caso 7 — la misma persona re-aplica (fija el comportamiento actual)"
     await enviar(agenda);
 
     vi.stubGlobal("fetch", fetchQueLanza());
-    const desc = conEstado(fixture(), "descartado");
+    const desc = conAgenda(conEstado(fixture(), "descartado"), "");
     desc.form_response.token = "t-desc";
     desc.form_response.submitted_at = "2026-09-25T14:00:00Z";
     await enviar(desc);
@@ -455,6 +491,52 @@ describe("caso 7 — la misma persona re-aplica (fija el comportamiento actual)"
     const [deal] = await db.select().from(deals);
     expect(lead.calificacion).toBe("descartado");
     expect(deal.etapa).toBe("agendado");
+  });
+});
+
+// ─────────────────────────── caso 7b: los envíos parciales (ticket 117, ADR 0061 punto 6)
+
+describe("caso 7b — form_response_partial por la ruta real", () => {
+  /** El parcial previo al Calendly: sin la pregunta de agenda y sin fecha de envío. */
+  function parcial(estado: string | null): Fixture {
+    const p = conAgenda(fixture(), "");
+    p.event_type = "form_response_partial";
+    delete p.form_response.submitted_at;
+    p.form_response.token = "tok-parcial";
+    p.form_response.variables = estado === null ? [] : [{ key: "estado", type: "text", text: estado }];
+    return p;
+  }
+
+  it("parcial con_calendly_sin_agenda y luego su completa con la cita: un lead, un deal, en Agendado con su llamada", async () => {
+    vi.stubGlobal("fetch", fetchQueLanza());
+    expect((await enviar(parcial("con_calendly_sin_agenda"))).status).toBe(200);
+    const [envioParcial] = await db.select().from(submissions);
+    expect(envioParcial.esParcial).toBe(true);
+    const [enSetteo] = await db.select().from(deals);
+    expect(enSetteo.etapa).toBe("pendiente_setteo");
+
+    // La completa del MISMO token trae el link de la cita: el mismo deal sube a Agendado.
+    vi.stubGlobal("fetch", stubCalendly({}));
+    const completa = conEstado(fixture(), "con_calendly_sin_agenda");
+    completa.form_response.token = "tok-parcial";
+    expect((await enviar(completa)).status).toBe(200);
+
+    expect(await db.select().from(leads)).toHaveLength(1);
+    const todos = await db.select().from(deals);
+    expect(todos).toHaveLength(1);
+    expect(todos[0].id).toBe(enSetteo.id);
+    expect(todos[0].etapa).toBe("agendado");
+    expect(await db.select().from(calls)).toHaveLength(1);
+    expect(await db.select().from(submissions)).toHaveLength(2);
+  });
+
+  it("parcial SIN estado (el del WhatsApp): lead guardado, sin deal", async () => {
+    vi.stubGlobal("fetch", fetchQueLanza());
+    expect((await enviar(parcial(null))).status).toBe(200);
+    expect(await db.select().from(leads)).toHaveLength(1);
+    expect(await db.select().from(deals)).toHaveLength(0);
+    // Procesado sin error: un parcial sin Estado es normal, no un sobre por reprocesar.
+    expect((await db.select().from(sobresCrudos)).map((s) => s.error)).toEqual([null]);
   });
 });
 

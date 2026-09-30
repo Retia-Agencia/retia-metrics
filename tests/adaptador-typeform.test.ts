@@ -15,15 +15,23 @@ import parcial from "./fixtures/typeform-parcial.json";
  * Lo que un bug aqui hace no es fallar, es traducir mal un lead sin un solo error, asi
  * que cada regla tiene su caso:
  *  - respuestas por pregunta (titulo como llave), UTM de hidden, token, parcialidad;
- *  - el agendo (ADR 0054, segunda enmienda), por fila;
+ *  - el agendo (ADR 0061 punto 4), por fila;
  *  - que el resultado, pasado por `construirEnvio`, dé la identidad correcta.
  */
 
-// La pregunta de agenda la dice el mapeo de la fuente (ADR 0012), no el codigo.
+// La pregunta de agenda y las del correo, el telefono y el nombre las dice el mapeo de la
+// fuente o la plantilla del programa (ADR 0012, ticket 117), no el codigo.
 const OPCIONES = {
   sourceId: "src-1",
   zona: "America/Bogota",
-  mapeo: { campoAgenda: "Agenda aquí tu entrevista" },
+  mapeo: {
+    campoAgenda: "Agenda aquí tu entrevista",
+    campos: {
+      nombre: ["nombre completo", "nombre"],
+      correo: ["correo electronico", "correo", "email"],
+      telefono: ["whatsapp", "telefono", "celular"],
+    },
+  },
 };
 
 function payload(): PayloadTypeform {
@@ -137,14 +145,32 @@ describe("entradaDesdeTypeform — variables genéricas (punto E del ticket 106)
     expect(r.envio.respuestas["variable:score"]).toBe("7");
   });
 
-  it("un payload SIN la variable estado entra sin Estado y no revienta", () => {
+  it("un payload SIN la variable estado y sin agenda entra sin Estado y no revienta", () => {
     const p = payload();
     p.form_response.variables = [{ key: "score", type: "number", number: 1 }];
-    const r = construirEnvio(entradaDesdeTypeform(p, OPCIONES));
+    const r = construirEnvio(entradaDesdeTypeform(p, { ...OPCIONES, mapeo: { ...OPCIONES.mapeo, campoAgenda: undefined } }));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.envio.estado).toBeNull();
     expect(r.envio.estadoHoja).toBeNull();
+  });
+
+  it("🩸 SIN la variable estado pero CON link de agenda: es con_calendly (el 29-sep de Tactical)", () => {
+    const p = payload();
+    p.form_response.variables = [{ key: "score", type: "number", number: 1 }];
+    const entrada = entradaDesdeTypeform(p, OPCIONES);
+    const r = construirEnvio(entrada);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.envio.estado).toBe("con_calendly");
+    expect(entrada.linkAgenda).toContain("calendly.com");
+  });
+
+  it("sin mapeo del correo el adaptador no lo adivina: el envio no tiene identidad", () => {
+    const r = construirEnvio(entradaDesdeTypeform(payload(), { ...OPCIONES, mapeo: { campoAgenda: OPCIONES.mapeo.campoAgenda } }));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.envio.identidad.correo).toBeNull();
   });
 
   it("una fuente que apunta el Estado a OTRA variable la usa", () => {
@@ -207,13 +233,17 @@ describe("estadoConAgenda (ADR 0054, segunda enmienda) — por fila, agenda del 
     expect(estadoConAgenda("setteo_no_calificado", respuestas, AGENDA)).toBe("setteo_no_calificado");
   });
 
-  it("descartado NUNCA sube, aunque la pregunta de agenda tenga un link", () => {
-    expect(estadoConAgenda("descartado", conLink, AGENDA)).toBe("descartado");
+  it("con link, CUALQUIER valor sube a con_calendly, vacio incluido (ADR 0061 punto 4)", () => {
+    expect(estadoConAgenda("descartado", conLink, AGENDA)).toBe("con_calendly");
+    expect(estadoConAgenda("con_calendly_sin_agenda", conLink, AGENDA)).toBe("con_calendly");
+    expect(estadoConAgenda("otra_cosa", conLink, AGENDA)).toBe("con_calendly");
+    expect(estadoConAgenda(null, conLink, AGENDA)).toBe("con_calendly");
   });
 
-  it("un estado nulo o desconocido se respeta tal cual", () => {
-    expect(estadoConAgenda(null, conLink, AGENDA)).toBeNull();
-    expect(estadoConAgenda("otra_cosa", conLink, AGENDA)).toBe("otra_cosa");
+  it("sin link, un estado nulo o desconocido se respeta tal cual", () => {
+    expect(estadoConAgenda(null, sinLink, AGENDA)).toBeNull();
+    expect(estadoConAgenda("otra_cosa", sinLink, AGENDA)).toBe("otra_cosa");
+    expect(estadoConAgenda("con_calendly_sin_agenda", sinLink, AGENDA)).toBe("con_calendly_sin_agenda");
   });
 
   it("la pregunta de agenda no vino en el envio: no sube", () => {

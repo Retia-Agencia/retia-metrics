@@ -25,7 +25,7 @@ import { estudiantesDe } from "@/lib/queries/estudiantes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
 import real from "./fixtures/typeform-real-tactical.json";
 
 /**
@@ -127,6 +127,7 @@ beforeEach(async () => {
 
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" }).returning();
   programId = p.id;
+  await sembrarEstadosDeLlegada(db, programId);
 
   // Cohorte activa que arranca el 15-oct: el tope del plazo de pago y la que se asigna sola.
   const [c] = await db

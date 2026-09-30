@@ -5,8 +5,8 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
+import { estadosDeLlegadaDelPrograma, llaveDeEstado } from "@/lib/ingesta/estados-llegada";
 import {
-  ESTADOS_DE_LEAD,
   LEADS_POR_PAGINA,
   leadsDelPrograma,
   posiblesDuplicadosDelPrograma,
@@ -29,12 +29,14 @@ function uno(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-const NOMBRE_DE_ESTADO: Record<string, string> = {
-  descartado: "Descartado",
-  setteo_no_calificado: "Setteo no calificado",
-  con_calendly: "Con Calendly",
-  sin_estado: "Sin estado",
-};
+/**
+ * El Estado se muestra como lo manda el formulario (ADR 0004), solo mas legible: sin guiones
+ * bajos y con mayuscula inicial. Los valores viven en `estados_llegada`, no aqui (ADR 0061).
+ */
+function nombreDeEstado(valor: string): string {
+  const texto = valor.replaceAll("_", " ").trim();
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
 
 const DIA = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -53,6 +55,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa || !esRolValido(rol)) notFound();
 
+  const estados = [...(await estadosDeLlegadaDelPrograma(db, programa.id)).values()];
   const q = await searchParams;
   const deal = uno(q.deal);
   const estado = uno(q.estado);
@@ -61,7 +64,10 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   const pagina = Math.max(0, Number.parseInt(uno(q.pagina) ?? "0", 10) || 0);
   const filtro: FiltroLeads = {
     deal: deal === "con" || deal === "sin" ? deal : null,
-    estado: estado === "sin_estado" || (ESTADOS_DE_LEAD as readonly string[]).includes(estado ?? "") ? (estado as FiltroLeads["estado"]) : null,
+    estado:
+      estado === "sin_estado" || estados.some((e) => llaveDeEstado(e.valor) === llaveDeEstado(estado ?? ""))
+        ? (estado ?? null)
+        : null,
     abandono: uno(q.abandono) === "1",
     duplicado: uno(q.duplicado) === "1",
     desde: desde && DIA.test(desde) ? desde : null,
@@ -100,11 +106,12 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
             Estado
             <select name="estado" defaultValue={filtro.estado ?? ""} className={control}>
               <option value="">Todos</option>
-              {[...ESTADOS_DE_LEAD, "sin_estado"].map((e) => (
-                <option key={e} value={e}>
-                  {NOMBRE_DE_ESTADO[e] ?? e}
+              {estados.map((e) => (
+                <option key={e.valor} value={e.valor}>
+                  {nombreDeEstado(e.valor)}
                 </option>
               ))}
+              <option value="sin_estado">Sin estado</option>
             </select>
           </label>
           <label className="grid gap-1 text-sm">
@@ -160,7 +167,13 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
                       </Link>
                       {f.nombre ? <p className="truncate text-xs text-muted-foreground">{f.email}</p> : null}
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <Badge variant={f.calificacion ? "neutro" : "alerta"}>{NOMBRE_DE_ESTADO[f.calificacion ?? "sin_estado"]}</Badge>
+                        {f.estadoReconocido && f.calificacion ? (
+                          <Badge variant="neutro">{nombreDeEstado(f.calificacion)}</Badge>
+                        ) : (
+                          <Badge variant="alerta" title={f.calificacion ? `El formulario mandó "${f.calificacion}", que el programa no tiene.` : undefined}>
+                            Sin estado
+                          </Badge>
+                        )}
                         {f.tieneDeal ? <Badge variant="info">Con deal</Badge> : null}
                         {f.soloParciales ? <Badge variant="alerta">Abandonó el formulario</Badge> : null}
                         {f.correosSinConfirmar > 0 ? <Badge variant="alerta">Posible duplicado</Badge> : null}

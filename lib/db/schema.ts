@@ -102,16 +102,24 @@ export const resultadoLlamadaEnum = pgEnum("resultado_llamada", [
 ]);
 
 /**
- * El Estado de llegada de un envio, con los nombres de la hoja (ADR 0054, enmienda del
- * 27-sep): Descartado, Setteo No Calificado, Con Calendly. Lo manda el FORMULARIO y el
- * CRM confia en el; no lo calcula. Es TIPO y no texto porque el codigo decide con el
- * (el 052 abre deals segun esto; D4 cerrada). `lib/ingesta/calificacion.ts` (T2) queda
- * desconectado mientras se decide A8 (`docs/plan.md` §7).
+ * La prioridad con la que entra un deal segun su Estado de llegada (ticket 117, ADR
+ * 0061). Es TIPO y no texto porque el codigo decide con ella (el urgente del Inbox,
+ * 118). Que Estado lleva que prioridad lo dice la fila de `estados_llegada`, no el codigo.
  *
- * `leads.estado` (texto, ADR 0032) conserva lo que escribio la hoja, para comparar en la
- * migracion; nadie decide con el.
+ * El Estado en si (`submissions.calificacion`, `leads.calificacion`) es TEXTO desde el
+ * 117: fue el enum `calificacion_envio` con tres valores fijos (ADR 0054) y una edicion
+ * del formulario lo rompio en silencio el 29-sep. `leads.estado` (texto, ADR 0032)
+ * conserva lo que escribio la hoja; nadie decide con el.
  */
-export const calificacionEnvioEnum = pgEnum("calificacion_envio", [
+export const prioridadLlegadaEnum = pgEnum("prioridad_llegada", ["normal", "alta"]);
+
+/**
+ * ⚠️ RETIRADO, se borra con la migracion 0051 (ticket 117). Ninguna columna lo usa desde la
+ * 0050, pero sigue en la base porque el codigo anterior al 117 escribe `::calificacion_envio`
+ * en SQL crudo: borrarlo antes del deploy rompe el webhook. Se declara aqui solo para que un
+ * `generate` no emita el `DROP TYPE` en la migracion de otro. No lo uses.
+ */
+export const calificacionEnvioEnumRetirado = pgEnum("calificacion_envio", [
   "descartado",
   "setteo_no_calificado",
   "con_calendly",
@@ -447,6 +455,46 @@ export const sources = pgTable(
   ],
 );
 
+/**
+ * Los Estados de llegada de un programa (ticket 117, ADR 0061): que valor de la variable
+ * `estado` del formulario abre un deal, en que etapa y con que prioridad. Es catalogo
+ * (ADR 0012): un valor nuevo del formulario, o un programa nuevo, es una fila y no
+ * codigo. 🩸 Estuvo escrito en el codigo con tres valores fijos, y el 29-sep una edicion
+ * del Typeform de un programa dejo de mandarlos: ningun envio abrio deal por horas, sin error.
+ *
+ * - `valor`: el texto tal como lo manda el formulario (ADR 0004). Se compara con
+ *   `lower(trim())`; el indice unico hace imposible que dos filas digan cosas distintas
+ *   del mismo valor en un programa.
+ * - `etapaEntrada`: Pendiente Setteo o Agendado; nulo = el valor se reconoce pero no abre
+ *   deal. Entrar a Agendado exige leer la cita en Calendly (ADR 0057): sin cita vigente
+ *   el deal nace en Pendiente Setteo con la nota del sistema.
+ * - `alertaMinutos`: pasados esos minutos sin la completa de su token, el deal es urgente
+ *   (118). Nulo = sin alerta.
+ */
+export const estadosLlegada = pgTable(
+  "estados_llegada",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
+    valor: text("valor").notNull(),
+    etapaEntrada: etapaDealEnum("etapa_entrada"),
+    prioridad: prioridadLlegadaEnum("prioridad").notNull().default("normal"),
+    alertaMinutos: integer("alerta_minutos"),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("estados_llegada_programa_valor_idx").on(t.programId, sql`lower(trim(${t.valor}))`),
+    /** Un deal solo nace en Pendiente Setteo o en Agendado (ADR 0037); nulo = no abre. */
+    check(
+      "estados_llegada_etapa_de_entrada",
+      sql`${t.etapaEntrada} IS NULL OR ${t.etapaEntrada}::text IN ('pendiente_setteo', 'agendado')`,
+    ),
+    check("estados_llegada_alerta_positiva", sql`${t.alertaMinutos} IS NULL OR ${t.alertaMinutos} > 0`),
+    check("estados_llegada_valor_no_vacio", sql`length(trim(${t.valor})) > 0`),
+  ],
+);
+
 // ─────────────────────────────────────────────────────────── personas
 
 export const leads = pgTable(
@@ -497,9 +545,11 @@ export const leads = pgTable(
     /**
      * Resumen, igual que las fechas: la calificacion y el puntaje del envio que decide
      * (el completo mas reciente; si solo hay parciales, el ultimo). Los recalcula la
-     * ingesta desde `submissions`, nunca se teclean.
+     * ingesta desde `submissions`, nunca se teclean. La calificacion es texto (ticket
+     * 117): la regla de deals no decide con este resumen sino con el envio que la
+     * disparo, y lo que significa cada valor lo dice `estados_llegada`.
      */
-    calificacion: calificacionEnvioEnum("calificacion"),
+    calificacion: text("calificacion"),
     puntaje: integer("puntaje"),
     leadQuality: text("lead_quality"),
     leadValue: text("lead_value"),
@@ -651,10 +701,13 @@ export const submissions = pgTable(
      */
     posicionEnHoja: integer("posicion_en_hoja"),
     /**
-     * Lo que dice el CRM de este envio (T2). Nulo si la fuente no tiene configuracion o
-     * si la configuracion no casa con el formulario: nunca se rellena con un supuesto.
+     * El Estado de llegada que mando el formulario (ADR 0061), ya con el hecho de agendar
+     * aplicado (`con_calendly` si la pregunta de agenda trae link). Es TEXTO (ticket 117):
+     * lo que significa cada valor lo dice `estados_llegada`, no un enum, asi que un valor
+     * nuevo del formulario se guarda tal cual y no pide migracion. Nulo si llego vacio:
+     * nunca se rellena con un supuesto.
      */
-    calificacion: calificacionEnvioEnum("calificacion"),
+    calificacion: text("calificacion"),
     /** El puntaje (T4) y la version de los pesos que lo produjo. Nulos sin pesos. */
     puntaje: integer("puntaje"),
     versionPuntaje: integer("version_puntaje"),
@@ -1637,3 +1690,4 @@ export type Recurso = typeof recursos.$inferSelect;
 export type EnlacePago = typeof enlacesPago.$inferSelect;
 export type SobreCrudo = typeof sobresCrudos.$inferSelect;
 export type EntregaWebhook = typeof entregasWebhook.$inferSelect;
+export type EstadoLlegada = typeof estadosLlegada.$inferSelect;

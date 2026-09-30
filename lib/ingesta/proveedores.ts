@@ -16,6 +16,11 @@ export interface OpcionesAdaptador {
 
 export interface ProveedorWebhook {
   headerFirma: string;
+  /**
+   * Si el payload trae el correo en una llave FIJA que el adaptador conoce, y por eso la
+   * fuente puede no mapearlo (ticket 117). Typeform no: su correo es un titulo de pregunta.
+   */
+  correoPorDefecto: boolean;
   verificarFirma(cuerpoCrudo: string, header: string | null, secreto: string): boolean;
   adaptar(cuerpoCrudo: string, opciones: OpcionesAdaptador): EntradaEnvio;
 }
@@ -47,6 +52,7 @@ function firmaDaptaValida(cuerpoCrudo: string, header: string | null, secreto: s
 export const PROVEEDORES: Record<ProveedorFormulario, ProveedorWebhook> = {
   typeform: {
     headerFirma: "typeform-signature",
+    correoPorDefecto: false,
     verificarFirma: firmaTypeformValida,
     adaptar(cuerpoCrudo, opciones) {
       return entradaDesdeTypeform(payloadTypeformSchema.parse(JSON.parse(cuerpoCrudo)), opciones);
@@ -54,6 +60,7 @@ export const PROVEEDORES: Record<ProveedorFormulario, ProveedorWebhook> = {
   },
   dapta: {
     headerFirma: "x-forms-signature",
+    correoPorDefecto: true,
     verificarFirma: firmaDaptaValida,
     adaptar(cuerpoCrudo, opciones) {
       return entradaDesdeDapta(payloadDaptaSchema.parse(JSON.parse(cuerpoCrudo)), opciones);

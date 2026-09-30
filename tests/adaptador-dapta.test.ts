@@ -25,6 +25,19 @@ describe("entradaDesdeDapta", () => {
     expect(PROVEEDORES.dapta.verificarFirma(cuerpo, "sha256=ABCDEF", secreto)).toBe(false);
   });
 
+  it("🩸 la plantilla del programa en titulos de Typeform no le quita el correo a Dapta (117 + 130)", () => {
+    // La plantilla vale para todas las fuentes del programa; si pisara la llave fija
+    // `email`, ningun envio de Dapta de ese programa tendria lead.
+    const conPlantilla = {
+      ...OPCIONES,
+      mapeo: { campos: { correo: "correo electronico", telefono: "whatsapp", nombre: "nombre completo" } },
+    };
+    const resultado = construirEnvio(entradaDesdeDapta(payload(), conPlantilla));
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+    expect(resultado.envio.identidad.correo).toBeTruthy();
+  });
+
   it("marca como parcial solo phase partial", () => {
     expect(entradaDesdeDapta(payloadDaptaSchema.parse(parcial), OPCIONES).esParcial).toBe(true);
     expect(entradaDesdeDapta(payload(), OPCIONES).esParcial).toBe(false);

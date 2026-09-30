@@ -109,7 +109,7 @@ aplicado en el Typeform ese día (`docs/analytics.md` §2.4); el 117 lo vuelve i
 | ✓ | # | Tarea | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 116 | [Las UTM completas en el envío: `utm_id`, `utm_content`, `utm_term`](./116-las-utm-completas-en-el-envio.md) | — | done · 30-sep · Alejo · 0048 en producción; las seis UTM en sus columnas (el tracker se marcó al cierre de la sesión de Mani) |
-| [ ] | 117 | [Los estados de llegada por tabla, y los parciales por el webhook](./117-los-estados-de-llegada-por-tabla-y-los-parciales.md) | 115 | todo · carril Alejo · migración · reprocesa los 23 envíos de Tactical |
+| [ ] | 117 | [Los estados de llegada por tabla, y los parciales por el webhook](./117-los-estados-de-llegada-por-tabla-y-los-parciales.md) | 115 | en curso · Alejo · 30-sep: código, migración 0050 (sin aplicar) y tests en la rama `117-estados-de-llegada`; faltan la siembra, las plantillas y el reproceso en producción |
 | [ ] | 118 | ["Se perdió en el Calendly": urgente arriba del Inbox](./118-se-perdio-en-el-calendly.md) | 117 | todo · carril Mani |
 | [ ] | 119 | [La conexión con Meta: token por portafolio y cuentas por programa](./119-la-conexion-con-meta.md) | — | todo · carril Alejo · migración · espera el token de Anderson |
 | [ ] | 120 | [La pauta de Meta: árbol y gasto por anuncio y día](./120-la-pauta-de-meta-por-anuncio-y-dia.md) | 119 | todo · carril Alejo · migración (retira `ad_spend`) |

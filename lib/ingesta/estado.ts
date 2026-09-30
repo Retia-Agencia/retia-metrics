@@ -1,62 +1,44 @@
-import { CALIFICACIONES, type Calificacion } from "./calificacion";
+import type { Calificacion } from "./calificacion";
 
 /**
- * El Estado de llegada de un envio (ADR 0054, enmienda del 27-sep): lo pone el
- * FORMULARIO y el CRM confia en el. El CRM NO califica ni deduce nada; esta funcion
- * solo TRADUCE el texto crudo al valor del enum, no lo calcula.
+ * El Estado de llegada de un envio, desde su texto crudo (ADR 0061). Lo pone el
+ * FORMULARIO y el CRM confia en el: esta funcion solo lo LIMPIA, no lo califica ni lo
+ * valida. Si el valor abre deal lo decide la fila de `estados_llegada`
+ * (`lib/ingesta/estados-llegada.ts`), que es donde se sabe si un valor se reconoce.
  *
  * Acepta dos formas del mismo hecho, sin adivinar entre ellas:
  *
- *  - **El valor del codigo tal cual** (`descartado`, `setteo_no_calificado`,
- *    `con_calendly`): es lo que mandara el webhook de Typeform en la variable `estado`
- *    (ticket 106).
- *  - **La etiqueta exacta de la hoja**, con su emoji, que es lo que escribe hoy el Apps
- *    Script en la columna `Estado` (leido el 27-sep en `work/retia/apps-script-sheets/`):
- *    `🗑️ Descartado`, `📞 Setteo No Calificado`, `📅 Con Calendly` y su variante con un
- *    nombre entre parentesis. Lo usa el traslado desde Sheets.
+ *  - **El valor tal cual** lo manda la variable `estado` del webhook (`setteo_no_calificado`,
+ *    `con_calendly_sin_agenda`, o cualquier valor nuevo): se guarda recortado, nada mas.
+ *  - **La etiqueta exacta de la hoja**, con su emoji, que escribia el Apps Script en la
+ *    columna `Estado` (`🗑️ Descartado`, `📞 Setteo No Calificado`, `📅 Con Calendly` y su
+ *    variante con un nombre entre parentesis). La usan el traslado y la migracion desde
+ *    Sheets (etapa 7), que leen una hoja una vez; se traduce al valor que hoy manda el
+ *    formulario para que los dos caminos hablen igual.
  *
- * Nada de emparejamiento difuso: cualquier otro texto (o un vacio) NO se adivina, y
- * devuelve `null` con el motivo. Un valor desconocido en un envio completo es un error
- * visible (lo cuenta `ingerirEntradas` en `sinCalificar`), nunca un lead mal calificado
- * en silencio.
+ * Un vacio es `null` con motivo "sin estado". Nada de emparejamiento difuso: fuera de las
+ * etiquetas de la hoja, el texto no se reescribe (ADR 0004).
  */
 
 /**
- * Las etiquetas EXACTAS que escribe el Apps Script en la columna `Estado`, por valor del
- * enum. Se comparan con el texto ya recortado (`trim`), sin normalizar acentos ni bajar
- * a minusculas: son literales copiados de la fuente (ADR 0004), no texto a interpretar.
+ * Las etiquetas EXACTAS del Apps Script de la hoja y el valor del formulario que
+ * representan. Se comparan con el texto recortado, sin normalizar acentos ni mayusculas:
+ * son literales copiados de la fuente (ADR 0004), vocabulario del traslado, no reglas.
  */
-const ETIQUETAS_HOJA: Record<Calificacion, readonly string[]> = {
-  descartado: ["🗑️ Descartado"],
-  setteo_no_calificado: ["📞 Setteo No Calificado"],
-  con_calendly: ["📅 Con Calendly", "📅 Con Calendly (Juanito)"],
-};
-
-/** Los valores del codigo, para reconocerlos tal cual los manda el webhook. */
-const VALORES = new Set<string>(CALIFICACIONES);
-
-/** Etiqueta de la hoja exacta → valor del enum, ya aplanado para buscar en O(1). */
-const PORETIQUETA = new Map<string, Calificacion>(
-  (Object.entries(ETIQUETAS_HOJA) as [Calificacion, readonly string[]][]).flatMap(
-    ([valor, etiquetas]) => etiquetas.map((e) => [e, valor] as const),
-  ),
-);
+const ETIQUETAS_HOJA: ReadonlyMap<string, Calificacion> = new Map([
+  ["🗑️ Descartado", "descartado"],
+  ["📞 Setteo No Calificado", "setteo_no_calificado"],
+  ["📅 Con Calendly", "con_calendly"],
+  ["📅 Con Calendly (Juanito)", "con_calendly"],
+]);
 
 export type ResultadoEstado =
   | { calificacion: Calificacion }
-  /** Sin Estado reconocible. `motivo` distingue el vacio del texto ajeno, para el reporte. */
-  | { calificacion: null; motivo: "sin estado" | `estado no reconocido: ${string}` };
+  | { calificacion: null; motivo: "sin estado" };
 
-/**
- * Traduce el texto crudo del Estado a `Calificacion | null`. `trim` de blancos y nada
- * mas: ni acentos ni mayusculas, para no confundir dos etiquetas que solo el emoji o la
- * variante entre parentesis distinguen.
- */
+/** Recorta el texto crudo del Estado y traduce una etiqueta de la hoja. Vacio = sin estado. */
 export function estadoDesdeTexto(crudo: string | null | undefined): ResultadoEstado {
   const texto = (crudo ?? "").trim();
   if (texto === "") return { calificacion: null, motivo: "sin estado" };
-  if (VALORES.has(texto)) return { calificacion: texto as Calificacion };
-  const porEtiqueta = PORETIQUETA.get(texto);
-  if (porEtiqueta) return { calificacion: porEtiqueta };
-  return { calificacion: null, motivo: `estado no reconocido: ${texto}` };
+  return { calificacion: ETIQUETAS_HOJA.get(texto) ?? texto };
 }

@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { mapeoWebhookDesdeFuente } from "@/lib/ingesta/mapeo-webhook";
+import { campoAgendaDeFuente, mapeoWebhookDesdeFuente } from "@/lib/ingesta/mapeo-webhook";
+import { MapeoInvalidoError } from "@/lib/sheets/mapeo";
+
+/** El minimo que toda fuente webhook necesita desde el 117: que pregunta trae el correo. */
+const CORREO = { emailNormalizado: "correo electronico" };
 
 /**
  * Tarea B del ticket 106: la fuente webhook resuelve su mapeo con la MISMA precedencia
- * que la hoja (fuente ← plantilla del programa ← defecto) y en el MISMO modulo
- * (`combinarMapeo`). Y traduce el vocabulario de la hoja (`emailNormalizado`,
+ * que la hoja (fuente ← plantilla del programa) y en el MISMO modulo (`combinarMapeo`),
+ * sin defecto del codigo desde el ticket 117. Y traduce el vocabulario de la hoja (`emailNormalizado`,
  * `fechaAplicacion`, `estado`, `agenda`...) al de `CampoEnvio` en UN solo lugar.
  *
  * Funcion PURA: se prueba sin base. Un bug aqui no falla: deja de leer un campo mapeado
@@ -35,7 +39,7 @@ describe("mapeoWebhookDesdeFuente — precedencia y traduccion de vocabulario", 
     // `__estado`), no de una pregunta. Traducirlos pisaria esas columnas fijas.
     const { campos } = mapeoWebhookDesdeFuente(
       { token: "Token", fechaAplicacion: "Submitted At", estado: "Estado" },
-      null,
+      CORREO,
     );
     expect(campos).not.toHaveProperty("token");
     expect(campos).not.toHaveProperty("fechaEnvio");
@@ -59,35 +63,42 @@ describe("mapeoWebhookDesdeFuente — precedencia y traduccion de vocabulario", 
     expect(campos.correo).toBe("correo de la fuente");
   });
 
-  it("sin fuente ni plantilla, el defecto de la HOJA no viaja: cada adaptador trae el suyo (130)", () => {
-    // Dapta manda `email`, no "correo electronico": si el defecto de la hoja viajara,
-    // pisaria el del adaptador y ningun envio de Dapta encontraria su correo.
-    const { campos } = mapeoWebhookDesdeFuente(null, null);
-    expect(campos.correo).toBeUndefined();
-    expect(campos.telefono).toBeUndefined();
-    expect(campos.nombre).toBeUndefined();
+  it("🩸 sin fuente ni plantilla falla con MapeoInvalidoError: no cae a un defecto que adivina (117)", () => {
+    expect(() => mapeoWebhookDesdeFuente(null, null)).toThrow(MapeoInvalidoError);
+    expect(() => mapeoWebhookDesdeFuente({}, {})).toThrow(/correo/);
+    // Mapear otras cosas no basta: sin el correo no hay lead que identificar.
+    expect(() => mapeoWebhookDesdeFuente({ agenda: "Agenda aquí tu entrevista", telefono: "whatsapp" }, null)).toThrow(
+      MapeoInvalidoError,
+    );
   });
 
-  it("🩸 la agenda por DEFECTO no cuenta: solo la que pone la fuente o la plantilla", () => {
-    // MAPEO_FORMULARIO trae un patron de agenda que le sirve a la hoja; para el webhook
-    // subiria un envio a con_calendly sin que nadie lo configurara (ADR 0054, 2a
-    // enmienda: cual pregunta es la de agenda es CONFIGURACION, no heuristica).
-    const soloDefecto = mapeoWebhookDesdeFuente(null, null);
-    expect(soloDefecto.campoAgenda).toBeUndefined();
+  it("sin defecto, solo lo que dicen la fuente y la plantilla: nada de nombre ni telefono inventados", () => {
+    const { campos } = mapeoWebhookDesdeFuente(null, CORREO);
+    expect(campos).toEqual({ correo: "correo electronico" });
+  });
 
-    const enLaFuente = mapeoWebhookDesdeFuente({ agenda: "Agenda aquí tu entrevista" }, null);
+  it("🩸 la agenda solo la pone la fuente o la plantilla", () => {
+    // Cual pregunta es la de agenda es CONFIGURACION, no heuristica (ADR 0061 punto 4).
+    expect(mapeoWebhookDesdeFuente(null, CORREO).campoAgenda).toBeUndefined();
+
+    const enLaFuente = mapeoWebhookDesdeFuente({ agenda: "Agenda aquí tu entrevista" }, CORREO);
     expect(enLaFuente.campoAgenda).toBe("Agenda aquí tu entrevista");
 
-    const enLaPlantilla = mapeoWebhookDesdeFuente(null, { agenda: "Reserva tu llamada" });
+    const enLaPlantilla = mapeoWebhookDesdeFuente(null, { ...CORREO, agenda: "Reserva tu llamada" });
     expect(enLaPlantilla.campoAgenda).toBe("Reserva tu llamada");
+  });
+
+  it("releer la agenda de un envio guardado no exige el correo (buscar llamada, 096)", () => {
+    expect(campoAgendaDeFuente({ agenda: "Agenda aquí tu entrevista" }, null)).toBe("Agenda aquí tu entrevista");
+    expect(campoAgendaDeFuente(null, null)).toBeUndefined();
   });
 
   it("los campos no promovidos (ingreso, motivo, urgencia...) no ensucian el mapeo del Envio", () => {
     const { campos } = mapeoWebhookDesdeFuente(
       { ingresoDeclarado: "¿Cuánto ganas?", porQueAplico: "¿Qué te motivó?", urgencia: "¿Qué tan urgente?" },
-      null,
+      CORREO,
     );
-    // Solo los campos de CampoEnvio (mas el defecto). Ninguna llave rara del vocabulario
+    // Solo los campos de CampoEnvio. Ninguna llave rara del vocabulario
     // de la hoja se cuela como campo del Envio.
     for (const k of Object.keys(campos)) {
       expect(["correo", "telefono", "nombre", "utmSource", "utmMedium", "utmCampaign"]).toContain(k);
@@ -97,7 +108,7 @@ describe("mapeoWebhookDesdeFuente — precedencia y traduccion de vocabulario", 
   it("una agenda como lista toma el primer titulo", () => {
     const { campoAgenda } = mapeoWebhookDesdeFuente(
       { agenda: ["Agenda aquí tu entrevista", "Reserva"] },
-      null,
+      CORREO,
     );
     expect(campoAgenda).toBe("Agenda aquí tu entrevista");
   });

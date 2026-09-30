@@ -3,7 +3,7 @@ import type { Db } from "@/lib/db/tipos";
 import { changeLog, leadContactos, leads, sources, submissions } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import type { Calificacion } from "./calificacion";
-import { estadoDesdeTexto } from "./estado";
+import { estadosDeLlegadaDelPrograma, motivoSinEstado } from "./estados-llegada";
 import { construirEnvio, type EntradaEnvio, type Envio } from "./envio";
 import { envioMasReciente, type EnvioCandidato } from "./envio-de-origen";
 import { aplicarReglaDeDeal, type AccionDeDeal, type ResultadoCita } from "./regla-de-deals";
@@ -33,11 +33,11 @@ import {
  * veces da lo mismo, y cuando llega la completa de una parcial el lead se corrige
  * solo (ADR 0036 punto 4: "el CRM recalcula cuando llega la hermana").
  *
- * Cada envio guarda el Estado que le puso el FORMULARIO (ADR 0054, enmienda del
- * 27-sep): el CRM no califica ni deduce, lo traduce con `estadoDesdeTexto`. Un envio
- * COMPLETO sin Estado, o con un valor que el CRM no reconoce, entra igual, sin
- * calificacion, y queda contado en `sinCalificar` con el motivo (error visible). Un
- * envio PARCIAL sin Estado no es error: un parcial nunca abre deal.
+ * Cada envio guarda el Estado que le puso el FORMULARIO tal como llego (ADR 0061): el
+ * CRM no califica ni deduce. Un envio COMPLETO sin Estado, o con un valor que el
+ * programa no tiene en `estados_llegada`, entra igual y queda contado en `sinCalificar`
+ * con el motivo (error visible, ADR 0061 punto 5). Un envio PARCIAL sin Estado no es
+ * error: es el parcial del WhatsApp, que no abre deal.
  *
  * Fuera de alcance, a proposito: el deal (ticket 052, espera al motor de etapas).
  */
@@ -92,6 +92,11 @@ export interface OpcionesIngesta {
 }
 
 /** Un envio se identifica por fuente, token y parcialidad (`submissions_fuente_token_idx`). */
+/** Cuantas preguntas trae un envio: un parcial avanza pregunta a pregunta (ticket 117). */
+function cuantasRespuestas(e: Envio): number {
+  return Object.keys(e.respuestas ?? {}).length;
+}
+
 function llaveDeEnvio(e: { sourceId: string; token: string; esParcial: boolean }): string {
   return `${e.sourceId}\u0000${e.token}\u0000${e.esParcial ? "p" : "c"}`;
 }
@@ -157,6 +162,11 @@ export async function ingerirEntradas(
       resultado.rechazadas.push({ posicion: r.posicion, motivo: r.motivo });
       continue;
     }
+    // Dos versiones de un PARCIAL en el mismo lote: la de menos respuestas es la vieja y
+    // no pisa a la otra. Misma regla que el `setWhere` del paso 5, que cuida las que
+    // llegan en entregas separadas (ticket 117).
+    const previa = porLlave.get(llaveDeEnvio(r.envio));
+    if (previa && r.envio.esParcial && cuantasRespuestas(r.envio) < cuantasRespuestas(previa)) continue;
     porLlave.set(llaveDeEnvio(r.envio), r.envio);
   }
   const envios = [...porLlave.values()];
@@ -172,14 +182,16 @@ export async function ingerirEntradas(
   const notaDe = new Map<string, Nota>();
   const motivos = new Map<string, number>();
   const contar = (motivo: string) => motivos.set(motivo, (motivos.get(motivo) ?? 0) + 1);
+  // Que Estados reconoce el programa lo dice su tabla (ticket 117), leida una vez.
+  const estados = await estadosDeLlegadaDelPrograma(db, programId);
   for (const e of envios) {
     notaDe.set(llaveDeEnvio(e), { calificacion: e.estado, puntaje: e.puntaje, versionPuntaje: null });
-    // Un COMPLETO sin Estado reconocible es un error visible; un PARCIAL sin Estado no
-    // (un parcial nunca abre deal, y marcarlo llenaria el reporte con los parciales).
-    if (e.estado === null && !e.esParcial) {
-      const r = estadoDesdeTexto(e.estadoHoja);
-      if (r.calificacion === null) contar(r.motivo);
-    }
+    // Un COMPLETO sin Estado reconocido es un error visible; un PARCIAL sin Estado no
+    // (el parcial del WhatsApp llega sin el, y marcarlo llenaria el reporte). Un parcial
+    // CON un valor que el programa no tiene si se cuenta: ese si es un formulario mal editado.
+    if (e.esParcial && e.estado === null) continue;
+    const motivo = motivoSinEstado(e.estado, estados);
+    if (motivo !== null) contar(motivo);
   }
   resultado.sinCalificar = [...motivos].map(([motivo, n]) => ({ motivo, envios: n }));
 
@@ -240,7 +252,7 @@ export async function ingerirEntradas(
       const idDeEnvio = new Map<string, string>();
       // Los envios de ESTE lote por lead: el que dispara la regla de deals es el mas
       // reciente de ellos, y es el origen del deal que abra (ADR 0060).
-      const enviosDelLote = new Map<string, EnvioCandidato[]>();
+      const enviosDelLote = new Map<string, (EnvioCandidato & { calificacion: string | null })[]>();
       for (const lote of enLotes(envios)) {
         const filas = await tx
           .insert(submissions)
@@ -288,6 +300,13 @@ export async function ingerirEntradas(
               leadValue: sql`excluded."lead_value"`,
               versionPuntaje: sql`excluded."version_puntaje"`,
             },
+            // 🩸 Los dos puntos de envio parcial (el del WhatsApp y el previo al Calendly,
+            // ADR 0061 punto 6) comparten token y parcialidad: son VERSIONES de la misma fila.
+            // Si el del WhatsApp llega tarde o reintentado, pisaba al previo al Calendly y el
+            // envio perdia `con_calendly_sin_agenda` sin un solo error. Un parcial avanza
+            // pregunta a pregunta, asi que la version con menos respuestas es la vieja y no
+            // pisa a la que tiene mas. Una completa si pisa siempre (reintento o reproceso).
+            setWhere: sql`NOT "submissions"."es_parcial" OR (select count(*) from jsonb_object_keys(coalesce(excluded."respuestas", '{}'::jsonb))) >= (select count(*) from jsonb_object_keys(coalesce("submissions"."respuestas", '{}'::jsonb)))`,
           })
           .returning();
         for (const f of filas) {
@@ -336,24 +355,26 @@ export async function ingerirEntradas(
       resultado.cambiosRegistrados = cambios;
 
       // 8. La regla de deals (ticket 052), SOLO si el llamador la pidio. Corre DENTRO
-      // de esta misma transaccion, despues del resumen: la regla lee `leads.calificacion`
-      // y esa cifra la acaba de fijar el paso 7, asi que tiene que ver el valor final, no
-      // el previo. Y al ir en la misma transaccion, un deal que el motor rechace deshace
-      // tambien la escritura del envio: no queda un lead ingerido con un deal a medias.
+      // de esta misma transaccion, despues del resumen. Decide con el Estado del ENVIO que
+      // la disparo (el mas reciente del lote para ese lead), no con el resumen del lead
+      // (ticket 117): es ese envio el que dice donde entra el deal. Y al ir en la misma
+      // transaccion, un deal que el motor rechace deshace tambien la escritura del envio:
+      // no queda un lead ingerido con un deal a medias.
       if (opciones.aplicarReglaDeDeals && tocados.length > 0) {
         const leadsTocados = await tx
           .select({
             id: leads.id,
             programId: leads.programId,
             emailNormalizado: leads.emailNormalizado,
-            calificacion: leads.calificacion,
           })
           .from(leads)
           .where(inArray(leads.id, tocados));
         for (const lead of leadsTocados) {
           const cita = opciones.citasPorCorreo?.get(lead.emailNormalizado);
-          const origen = envioMasReciente(enviosDelLote.get(lead.id) ?? []);
-          const r = await aplicarReglaDeDeal(tx, lead, cita, origen);
+          const delLote = enviosDelLote.get(lead.id) ?? [];
+          const origen = envioMasReciente(delLote);
+          const calificacion = delLote.find((e) => e.id === origen)?.calificacion ?? null;
+          const r = await aplicarReglaDeDeal(tx, { ...lead, calificacion }, cita, origen, estados);
           resultado.reglaDeDeals.push({
             leadId: r.leadId,
             accion: r.accion,
@@ -570,7 +591,7 @@ async function actualizarResumenes(tx: Db, filas: { id: string; resumen: Resumen
   for (const lote of enLotes(filas)) {
     const valores = lote.map(
       ({ id, resumen: r }) =>
-        sql`(${id}::uuid, ${r.nombre}::text, ${r.telefono}::text, ${iso(r.fechaPrimeraAplicacion)}::timestamptz, ${iso(r.fechaUltimaAplicacion)}::timestamptz, ${r.numAplicaciones}::integer, ${r.calificacion}::calificacion_envio, ${r.puntaje}::integer, ${r.leadQuality}::text, ${r.leadValue}::text)`,
+        sql`(${id}::uuid, ${r.nombre}::text, ${r.telefono}::text, ${iso(r.fechaPrimeraAplicacion)}::timestamptz, ${iso(r.fechaUltimaAplicacion)}::timestamptz, ${r.numAplicaciones}::integer, ${r.calificacion}::text, ${r.puntaje}::integer, ${r.leadQuality}::text, ${r.leadValue}::text)`,
     );
     await tx.execute(sql`
       update "leads" set
