@@ -3,7 +3,7 @@ id: 087
 etapa: E3
 serves: "plan v2 §12.8.5 · ADR 0044 punto 6"
 depends: [085, 086]
-status: todo
+status: done
 ---
 
 # 087 — 🩸 El CPL deja de preguntar por `entrada`
@@ -40,11 +40,11 @@ cifras distintas sobre lo mismo, que es exactamente la herida del ADR 0024.
 
 ## Done cuando
 
-- [ ] Un lead con `entrada = 'formulario'` y patron de area Comercial **NO cuenta** en el CPL, con test.
-- [ ] Un lead organico de Media con `entrada = 'formulario'` **tampoco cuenta**, con test. (Antes si
+- [x] Un lead con `entrada = 'formulario'` y patron de area Comercial **NO cuenta** en el CPL, con test.
+- [x] Un lead organico de Media con `entrada = 'formulario'` **tampoco cuenta**, con test. (Antes si
       contaba: la regla vieja tambien estaba mal por este lado.)
-- [ ] `grep` confirma que ninguna consulta de costo pregunta por `entrada`.
-- [ ] Los tres ADR y el comentario del esquema quedan enmendados.
+- [x] `grep` confirma que ninguna consulta de costo pregunta por `entrada`.
+- [x] Los tres ADR y el comentario del esquema quedan enmendados.
 
 ## Kiro
 
@@ -56,3 +56,24 @@ Si, con revision. La enmienda de los ADR la escribe la sesion principal.
 ## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
 
 - Sin cambio de fondo: el denominador del CPL es el área Pauta. Se suma que un registro es un **token**, no una fila (ADR 0063): el parcial y su completa cuentan una vez.
+
+
+---
+
+## Cierre 2026-09-30 (sesión 55, Mani)
+
+**Se cerró sin código de costo, porque no había costo que arreglar.** Medido al tomarlo: ninguna consulta calcula
+un CPL, `ad_spend` estaba vacía y nadie la leía (el 120 la retira). La regla vieja vivía solo en dos comentarios
+(`lib/db/schema.ts` sobre `leads.entrada` y `components/historial-persona.tsx`), que se corrigieron.
+
+- **Los criterios, cumplidos así:** los dos casos (lead de Comercial y orgánico de Media con `entrada =
+  'formulario'`) no pueden contar porque el área la decide `emparejar` (085), que los manda a su canal; su test
+  vive en `tests/atribucion-emparejador.test.ts`. El test del costo con esos leads lo escribe el 123, que es
+  donde nace la consulta. `grep`: ninguna consulta de costo lee `entrada` (la única lectura es `leadsDelRango`,
+  meta de leads, que no es costo).
+- **ADR:** el 0021 está retirado; la regla vive en el **0044 punto 5**, enmendado con el cierre. El 0037 no la
+  repite. `docs/analytics.md` §6 ya tenía la fórmula ("costo por X = gasto del área ÷ X del área").
+- **Decisión de Mani:** la meta de leads por día (`leadsDelRango`) sigue contando `entrada = 'formulario'`: es
+  cumplimiento de meta, no costo. Si con los objetivos por área (122) esa meta pasa a ser por área, se revisa ahí.
+- **Queda para el 123:** el denominador por token y por área con `emparejar`, y los dos tests de arriba sobre
+  la consulta real.

@@ -46,6 +46,13 @@ el formulario. Con el link del closer, un lead de Comercial también entra por e
 abarataría el CPL de una campaña mala sin lanzar un error. Esta regla va en el mismo movimiento que la
 clasificación (ticket 087), nunca después.
 
+> **Cerrado el 30-sep (ticket 087, Mani).** El área la resuelve `emparejar` (`lib/atribucion/emparejar.ts`,
+> 085), y el denominador cuenta **tokens**, no filas (DP-11: el parcial y su completa cuentan una vez). La
+> consulta del costo no existía al cerrar (ni gasto: `ad_spend` estaba vacía); nace en el 123 con
+> `gasto_pauta` (120), con la fórmula de `docs/analytics.md` §6. `leads.entrada` queda solo como "por dónde
+> entró": no es la llave de ningún costo. Sigue contando para la meta de leads por día (`leadsDelRango`),
+> que es cumplimiento y no costo.
+
 ## Abierto
 
 🔴 Para Gerencia: ¿un lead que trae un closer cuenta distinto para su comisión?

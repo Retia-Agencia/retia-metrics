@@ -176,7 +176,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [x] | 108 | [Retirar el sync de Sheets](./108-retirar-el-sync-de-sheets.md) | 106 | done · 28-sep · cron, ruta manual, botón, `lib/sheets/sync.ts`, `plan-sync.ts`, `origen.ts`, scripts y sus tests fuera; `sync_runs` queda como historial. Falta quitar `CRON_SECRET` y `SHEET_ID_*` de Vercel (`GOOGLE_SERVICE_ACCOUNT_JSON_B64` se queda: probar una fuente de hoja la usa) |
 | [x] | 109 | [El programa lleva su formulario y su token de Calendly](./109-formulario-y-token-de-calendly-del-programa.md) | 105 | done · 28-sep: migración **0030**; Forms Link y Calendly Token obligatorios en `/ajustes/programas` (un programa no se activa sin los dos); la lectura de la cita (hoy `citaDeCalendly`) probada contra Calendly real; migración **0031**: nace inactivo y un CHECK exige los dos; Mani cargó los dos tokens y se borraron de `.env.local` |
 | [ ] | 086 | [Origen humano del lead y el enlace de captación](./086-origen-humano-y-enlace-de-captacion.md) | 085, 092 | todo · ⏳ **el dato lo escribe la ingesta; después no se puede reconstruir** |
-| [ ] | 087 | [🩸 El CPL deja de preguntar por `entrada`](./087-el-cpl-deja-de-preguntar-por-entrada.md) | 085, 086 | todo · **va con el 086, nunca después** |
+| [x] | 087 | [🩸 El CPL deja de preguntar por `entrada`](./087-el-cpl-deja-de-preguntar-por-entrada.md) | 085, 086 | done · 30-sep · Mani · no había CPL en el código ni gasto: la regla queda en el ADR 0044 punto 5 (enmendado), el área la da `emparejar` y el denominador por token lo construye el 123. `leads.entrada` solo dice por dónde entró |
 
 ## E4 · Calls, dinero y Students
 

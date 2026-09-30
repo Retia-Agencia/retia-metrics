@@ -85,7 +85,7 @@ export function HistorialPersona({ historial }: { historial: HistorialDePersona 
           <CardTitle className="flex flex-wrap items-center gap-2">
             {persona.nombre ?? persona.emailNormalizado}
             {/* La entrada separa a quien llego por el formulario de un alta manual
-                (ADR 0021): el CPL solo cuenta las del formulario. */}
+                (ADR 0044 punto 3). No decide ningun costo: eso es del area (087). */}
             {persona.entrada === "crm" ? <Badge variant="outline">Alta manual</Badge> : null}
           </CardTitle>
         </CardHeader>

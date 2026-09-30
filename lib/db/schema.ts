@@ -505,10 +505,13 @@ export const leads = pgTable(
      */
     estado: text("estado").notNull().default("cola_setteo"),
     /**
-     * Por donde entro la persona (ADR 0021): por el formulario de la hoja o creada
-     * a mano en el CRM. Es un tipo, no una fila: el codigo decide segun su valor
-     * (el CPL usa solo las del formulario, y el sync pasa una persona de `crm` a
-     * `formulario` cuando la encuentra).
+     * Por donde entro la persona: por el formulario o creada a mano en el CRM (alta
+     * manual, ADR 0044 punto 3). Es un tipo, no una fila: el conteo de leads contra la
+     * meta de leads por dia (`leadsDelRango`) cuenta solo las del formulario.
+     * **No es la llave de ningun costo** (ADR 0044 punto 5, ticket 087): con el link del
+     * closer, un lead de Comercial tambien entra por el formulario. El denominador de un
+     * costo por X es el area que resuelve `emparejar` (`lib/atribucion/`), por token
+     * (DP-11); lo construye el 123.
      */
     entrada: entradaPersonaEnum("entrada").notNull().default("formulario"),
     /**

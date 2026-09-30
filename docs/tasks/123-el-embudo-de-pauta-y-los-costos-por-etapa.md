@@ -42,3 +42,12 @@ Las dos vistas que Anderson dijo que le bastan: el panel de atribución por áre
 ## Kiro
 
 Sí, con revisión del contrato de las consultas y revisión visual.
+
+---
+
+## Heredado del 087 (30-sep)
+
+El 087 se cerró sin consulta de costo porque no existía. Este ticket la construye y trae sus dos tests: un lead
+con `entrada = 'formulario'` de área Comercial (link del closer) y uno orgánico de Media **no cuentan** en el
+denominador del costo de Pauta. El área sale de `emparejar` (085), el conteo es por token (DP-11), y
+`leads.entrada` no se lee (ADR 0044 punto 5).

@@ -16,12 +16,13 @@ docs/structure.md §9 (sistema de diseño Tinta) es OBLIGATORIO antes de tocar u
 Estado al 30-sep (sesion 53, Alejo): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
 48 migraciones (0000-0047), todas aplicadas. ~1.645 tests. Produccion: https://retia-metrics-seven.vercel.app.
 
-Carril de Mani (E6, sesion 55): 083, 101 y 085 done. 084 reemplazado por DP-25.
+Carril de Mani (E6, sesion 55): 083, 101, 085 y 087 done. 084 reemplazado por DP-25.
 - 085: emparejar() en lib/atribucion/emparejar.ts (canal, campana, anuncio por utm_id, nivel N3-N0) y
   utmsDelEnvio en lib/atribucion/utm-del-envio.ts. El arbol de Meta entra como DATO (lo carga el 120). Nadie
   llama emparejar todavia.
-- SIGUIENTE: 087 (el CPL por area Pauta con emparejar; va con el 085, no espera al 086) -> 121 -> 118 (espera
-  117) -> 089.
+- 087 cerrado sin codigo de costo (no existia CPL ni gasto): la regla queda en el ADR 0044 punto 5 y sus dos
+  tests pasan al 123, que construye el costo.
+- SIGUIENTE: 121 (area declarada por el closer, con migracion) -> 118 (espera 117) -> 089.
 - PQ9 a Pauta: que manden por escrito como agrupan los UTM (nuevo e historico).
 
 Carril de Alejo (E5 con el codigo en main):
@@ -54,7 +55,7 @@ empuja al mismo main y el numero de migracion puede chocar.
 
 ## Memory
 
-- **2026-09-30 (sesión 55, Mani): 085, el emparejador, y 084 reemplazado.**
+- **2026-09-30 (sesión 55, Mani): 085, el emparejador; 084 reemplazado y 087 cerrado.**
   - **084 reemplazado (Mani):** DP-25 lo dejó sin contenido. Sus dependientes se recolgaron: 085 y 092 de 101, 067
     de 120.
   - **Decisión de Mani:** el árbol de Meta (campaña, conjunto, anuncio) entra al emparejador como **dato**
@@ -72,6 +73,10 @@ empuja al mismo main y el numero de migracion puede chocar.
     el mismo id y como `facebook / cpc`; Tactical, 0. O-1 (campo oculto en Tactical) y O-2 (plantilla de Pauta)
     siguen pendientes; preguntar a Pauta si ese id es de anuncio o de campaña.
   - **Queda:** un envío que solo trae `utm_id` cae en N0 aunque su anuncio exista (revisar con el 123).
+  - **087 cerrado sin código (Mani):** al tomarlo no había ningún CPL calculado ni gasto (`ad_spend` vacía). Se
+    corrigieron los dos comentarios que decían "el CPL cuenta las del formulario", se enmendó el ADR 0044 punto
+    5 y los dos tests del ticket pasan al 123 (anotado en su archivo). `leadsDelRango` sigue contando
+    `entrada = 'formulario'` para la meta de leads por día: es cumplimiento, no costo (decisión de Mani).
 
 - **2026-09-30 (sesión 54, Mani): 101, el catálogo de Canales, en producción.**
   - **Decisiones de Mani (ADR 0051 enmendado, ticket 101):** catálogo **global** (la convención UTM es la misma en
@@ -3482,7 +3487,7 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
-- **30-sep:** E6 abierta. Carril de Mani: 087 → 121 → 118 → 089 (083, 101 y 085 done; 084 reemplazado). Carril de Alejo: cerrar
+- **30-sep:** E6 abierta. Carril de Mani: 121 → 118 → 089 (083, 101, 085 y 087 done; 084 reemplazado). Carril de Alejo: cerrar
   072, 099, 080 y 078 (recorridos y ensayo), 127, y después 116 y 117. El orden completo, en el prompt de arriba y
   en `plan-reparto.md` §4.
 - Vigilar que los leads reales sigan entrando por webhook: `/ajustes/salud` (110). Los pares sin canal:
