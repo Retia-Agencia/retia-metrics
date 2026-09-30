@@ -3,7 +3,7 @@ id: 099
 etapa: E6
 serves: "ADR 0050 · ADR 0037 (Student es vista) · propuesta 24-sep §3.2b"
 depends: [060, 061, 097]
-status: todo
+status: en curso
 ---
 
 # 099 — La tab Students: la lista de estudiantes por cohorte
@@ -43,3 +43,23 @@ alcanza con `onboarded_at` (ticket 063) como columna y filtro. **Sin checklist.*
 límite del acuerdo de pago (ADR 0053, ticket 061) van como columnas aquí; las cuotas no.
 La decisión de producto es que la vista incluya ambos estados (`abonado` y `completo`) y que el
 onboarding sea una marca operativa del CRM, no una lista de tareas.
+
+---
+
+## Construido (29-sep, Alejo)
+
+- `/p/<programa>/students` con su tab en la nav (`lib/nav.ts`, ícono `GraduationCap`). Mismo alcance que Deals
+  (ADR 0048): un programa fuera del alcance es 404.
+- `studentsDelPrograma` en `lib/queries/estudiantes.ts`: los deals vigentes en Abonado o Completo, filtrados por
+  cohorte (por defecto la activa; `?cohorte=todas`) y por onboarding. **Nada se recalcula:** el saldo sale de
+  `saldosDeDeals` (ADR 0024) y lo vencido de `carteraVencida` (ADR 0053), como en el Kanban y el Inbox.
+- Cada fila: etapa, cohorte (si se ven todas), onboarding con su fecha, dueño, saldo (`saldoLegible`), fecha
+  límite o "Vencida el <fecha> · N días", y el acuerdo de pago. KPI: estudiantes, completos, sin onboarding, en
+  cartera vencida.
+- El onboarding y el cambio de cohorte **no** se hacen desde la lista: la fila lleva a la ficha del deal, donde ya
+  están con su reja (063). Las cuotas no existen: la cartera vencida es la fecha límite (ADR 0053).
+- Tests: `tests/students.test.ts` (la lista cuadra con los deals de la cohorte, saldo, vencida, onboarding,
+  frontera) y `tests/roles.test.ts` (la tab). Probada en la base local (render del servidor, filtros, cohorte
+  inválida, slug inexistente 404).
+
+**Falta:** recorrido visual en navegador (claro/oscuro, 390 px, consola): la extensión no estaba conectada.
