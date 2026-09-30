@@ -3,7 +3,7 @@ id: 114
 etapa: E4
 serves: "A8 (el CRM no calcula nada) · AGENTS.md: una pregunta, un módulo · ADR 0012"
 depends: []
-status: todo
+status: done
 ---
 
 # 114 — Auditoría de lo que el CRM calcula o sabe "a mano" (29-sep)
@@ -27,7 +27,7 @@ las métricas (dashboard, cartera, kanban), y los umbrales ya viven en la base (
    consultas del embudo en `lib/queries/dashboard.ts` cuentan "con show" sin `perdida`. Cuando se registre
    una llamada `perdida` (el lead se presentó y dijo que no), **la tasa de show sale subestimada**. Latente:
    hoy producción tiene 0 (25 agendadas, 1 cancelada). Arreglo: una constante exportada que usen el motor y
-   el dashboard (`inArray`). Va con el 064 (dashboard sobre deals, carril de Mani).
+   el dashboard (`inArray`). Va con el 064 (dashboard sobre deals, carril de Mani). ✅ Hecho con el 064 (sesión 47).
 3. `RESULTADOS_FALLIDOS` estaba en `mover-etapa.ts` y en `llamadas.ts`. ✅ 29-sep: vive en `mover-etapa.ts`
    (la dirección de dependencia ya existente) y `llamadas.ts` la re-exporta; guardián incluido.
 
@@ -45,7 +45,8 @@ las métricas (dashboard, cartera, kanban), y los umbrales ya viven en la base (
 5. **`sources.calificacion` (jsonb, los pesos del puntaje por fuente) está muerta** desde el 28-sep (T2
    borrado) y con el score de Typeform (070) no vuelve. Retirar la columna en una migración de limpieza.
    Medido el 30-sep: NULL en las 5 fuentes de producción y ningún lector; solo `scripts/seed-datos.ts` la
-   escribía.
+   escribía. ✅ **30-sep:** el código salió primero (`ef3dd20`) y, con ese deploy vivo, la **0046** (`DROP
+   COLUMN` con `lock_timeout` de 5 s) se aplicó en producción con el ok de Mani.
 
 ## C. Menores
 
@@ -60,3 +61,10 @@ las métricas (dashboard, cartera, kanban), y los umbrales ya viven en la base (
 Etapas, transiciones y resultados de llamada son tipos (el código decide con ellos, ADR 0012). Días hábiles
 es regla de Retia para todos. Los límites técnicos (lotes de 200, retención de 90 días, tolerancia de firma)
 no dependen de un programa.
+
+---
+
+## Cierre 2026-09-30 (Mani)
+
+A1, A2 y A3 arreglados; B5 y C6 hechos el 30-sep; B4 pasa al alcance del 117 (carril Alejo), donde queda
+como suma con su propio "Done cuando".
