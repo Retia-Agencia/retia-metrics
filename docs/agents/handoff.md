@@ -12,6 +12,8 @@
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas)
 y docs/plan.md (el QUE, decisiones en §7). El estado de cada ticket vive solo en docs/tasks/README.md.
 docs/structure.md §9 (sistema de diseño Tinta) es OBLIGATORIO antes de tocar una pantalla.
+docs/anotaciones.md (nuevo, 30-sep) es la bandeja de anotaciones de UI de Mani: leela antes de tocar una
+pantalla; A-02..A-14 y los principios P-1, P-2 ya estan citados en 072, 075, 100 y el 128 (nuevo: alertas del deal).
 
 Estado al 30-sep (sesion 57, Mani): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
 50 migraciones (0000-0049), todas aplicadas. ~1.676 tests. Produccion: https://retia-metrics-seven.vercel.app.

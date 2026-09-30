@@ -82,3 +82,9 @@ Anotadas para atacarlas aquí, no antes: la UI se pule en esta etapa.
    Calls, Students" (`docs/structure.md` §8), pero la navegación y la ruta siguen en `/personas`.
 4. **Regla general que sale de 2:** el dato crudo en cualquier pantalla se muestra desplegable o
    tabulado, nunca en bruto de entrada.
+
+---
+
+## Anotaciones de UI (30-sep, Mani)
+
+Este ticket recoge de [`docs/anotaciones.md`](../anotaciones.md): A-02, A-03, A-04 (closer sin membresía), A-05 (el hub del closer), A-06 (sin scroll infinito ni subsecciones apiladas), A-07 y A-08 (Kanban), A-12, A-13 (su construcción vive en el 128), y los principios P-1 (el CRM trae el contexto, no se busca a mano) y P-2 como criterio de revisión de toda pantalla. El texto vive allá.

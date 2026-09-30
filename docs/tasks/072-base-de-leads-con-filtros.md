@@ -86,3 +86,9 @@ Tests: `tests/leads-tab.test.ts`, `tests/separar-correo.test.ts`, `tests/roles.t
   (ADR 0044), que no existe todavía. Cada uno se suma aquí cuando exista su dato.
 
 **Falta:** recorrido visual en navegador (claro/oscuro, 390 px, consola; incluye el flujo de separar).
+
+---
+
+## Anotaciones de UI (30-sep, Mani)
+
+Este ticket recoge de [`docs/anotaciones.md`](../anotaciones.md): A-09 (tabla tipo hoja, páginas de 25 o 50, campos crudos del envío), A-11 y A-14 (Leads absorbe la búsqueda y Personas se retira: son el mismo objeto) y A-12 (el duplicado trae al candidato lado a lado). El texto vive allá.

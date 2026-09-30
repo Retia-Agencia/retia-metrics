@@ -49,7 +49,11 @@ lugar, sin copias entre documentos.** Léelos en este orden:
 6. **ADRs** (`docs/adr/`, índice en `docs/adr/README.md`) — las decisiones vigentes, cada una reescrita
    para decir lo que se va a construir, y el índice de las retiradas (el código cita sus números).
    Léelas antes de cambiar un área decidida; no se re-litigan. Una nueva toma el siguiente número libre.
-7. **Handoff** (`docs/agents/handoff.md`) — memoria de sesiones: se lee al arrancar y se actualiza al
+7. **Anotaciones de UI y UX** (`docs/anotaciones.md`) — la bandeja de lo que sale de recorrer la app a
+   mano (cambios, aclaraciones, usabilidad; quienes la usan no son técnicos). Toda anotación nueva de
+   interfaz se agrega ahí con su id `A-NN`, y si cabe en un ticket, el ticket la cita por id. Léela antes
+   de tocar una pantalla.
+8. **Handoff** (`docs/agents/handoff.md`) — memoria de sesiones: se lee al arrancar y se actualiza al
    cerrar. Referencia tickets, no los duplica.
 
 Los documentos que se fundieron el 27-sep (spec, plan v2, propuesta del 24-sep, revisión del 22-sep,

@@ -36,3 +36,9 @@ Sí, con revisión visual.
 ## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
 
 - La ficha del programa es un buen lugar para configurar sus estados de llegada (117), sus objetivos por cohorte (122), sus cuentas publicitarias de Meta (119) y sus `valores_calificados` (123).
+
+---
+
+## Anotaciones de UI (30-sep, Mani)
+
+Este ticket recoge de [`docs/anotaciones.md`](../anotaciones.md): A-10 (las cohortes se encuentran desde el programa, no dos niveles adentro de Ajustes). El texto vive allá.
