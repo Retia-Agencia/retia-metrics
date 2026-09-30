@@ -71,3 +71,8 @@ meses: la venta se cuenta dos veces entre períodos, y con la comisión se pagar
 contar la PRIMERA entrada a Abonado o Completo. No se tocó aquí: es del 064.
 - La 0044 empieza con `SET lock_timeout = '5s';` (regla del 29-sep en `AGENTS.md`: `programs` es tabla caliente).
   Antes de aplicarla, mirar `pg_stat_activity` por transacciones largas.
+
+**Aplicado (29-sep, Alejo, con el ok de Mani):** `0044` aplicada en producción con `npm run db:migrate` (ref
+`hfqmiyiuyqapdsbywrag`, conexión directa 5432; `pg_stat_activity` sin transacciones largas antes). Verificado: 45
+migraciones, la columna `numeric(10,2)` nullable y el CHECK. Merge a `main` en `7bae817`. **Falta:** cargar los
+montos en Ajustes → Programas (USD 80 ComunicArte, USD 100 Tactical); hoy los dos están en nulo.
