@@ -1,8 +1,8 @@
 ---
 id: 089
-etapa: E5
+etapa: E6
 serves: "plan v2 §12.10.5 · el dashboard que no es estatico"
-depends: [064]
+depends: [064, 085]
 status: todo
 ---
 
@@ -46,10 +46,13 @@ techo abierto.
 
 ## Done cuando
 
-- [ ] Ninguna consulta de `lib/queries/` devuelve un escalar suelto donde habia una dimension.
-- [ ] Un filtro nuevo se agrega **sin tocar la consulta**, demostrado con uno.
-- [ ] El link con filtros aplicados **abre igual en otra sesion**.
-- [ ] Una consulta a la que se le quita el programa **no compila**, con test de tipos.
+> ⚠️ **Reemplazado por el "Done cuando" de la enmienda del 30-sep (al final).** Se deja para la historia:
+> la primera casilla, aplicada al pie de la letra, obligaba a reescribir `lib/queries/dashboard.ts`.
+
+- ~~Ninguna consulta de `lib/queries/` devuelve un escalar suelto donde habia una dimension.~~
+- ~~Un filtro nuevo se agrega **sin tocar la consulta**, demostrado con uno.~~
+- ~~El link con filtros aplicados **abre igual en otra sesion**.~~
+- ~~Una consulta a la que se le quita el programa **no compila**, con test de tipos.~~
 
 ## Kiro
 
@@ -61,3 +64,45 @@ Si, con revision del contrato de salida.
 ## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
 
 - **Comparativos** (DP-16): cada KPI contra el periodo anterior del mismo largo y contra la cohorte anterior en el mismo día hábil. Es la misma consulta con otro rango: la serie con dimensiones lo hace gratis.
+
+---
+
+## Enmienda 2026-09-30: acotado (Mani)
+
+**Por qué.** La ventana de "gratis" se cerró a medias: el 064 ya escribió `lib/queries/dashboard.ts` con
+escalares (`EmbudoDelRango`, `LeadsDelRango`), probado. Reescribirlo es justo el costo que este ticket
+quería evitar. Lo que sigue abierto son las consultas que **todavía no existen** (123, 124, 125, 095): el
+valor del 089 hoy es fijar el contrato **antes** de que se escriban. El molde ya existe y funciona:
+`lib/queries/pauta-interina.ts` (093) devuelve filas con día, UTM y categoría y filtra desde la URL.
+
+**Alcance acotado:**
+
+- **Dentro, el contrato:** un tipo de serie común (filas con dimensiones y medidas) donde `programId` es
+  **obligatorio** en la entrada y en cada fila. Sin programa la consulta no compila. Juntar programas lo hace
+  solo la función del agregado del 095 (ADR 0048), nunca esta consulta.
+- **Dentro, una consulta nueva de hechos del embudo:** una fila por día (Bogotá) × área × canal × dueño ×
+  cohorte, con envíos, agendas, shows y ventas.
+  - Área y canal salen de `emparejar()` (085) sobre el envío de origen del deal (115). Es su primer llamador
+    real. "Sin UTM" y "sin clasificar" son valores de la dimensión, separados (ADR 0045), no filas perdidas.
+  - El dueño es `deals.owner_user_id`, **nunca** el texto `closer_id` (ADR 0030).
+  - La venta y su fecha salen de la MISMA definición que el dashboard (`vendidosEn`: primera entrada a
+    Abonado o Completo). Si hay que moverla para compartirla, se mueve; no se copia.
+  - Todo por `vigente()`.
+- **Dentro, la demostración:** un filtro por área en la URL del dashboard, aplicado sobre la serie sin tocar
+  la consulta.
+- **Dentro, gratis:** el comparativo del DP-16 es la misma consulta con otro rango. Se deja un helper que dé
+  el periodo anterior del mismo largo; la pantalla del comparativo es del 095.
+- **Fuera:** reescribir `dashboard.ts`. Sus escalares migran a la serie cuando el 123 o el 095 los toquen.
+  **Fuera:** la meta y la meta dinámica, que son de la cohorte (ADR 0022, 0023) y no una dimensión. **Fuera:**
+  vistas guardadas y constructor de consultas (como antes).
+
+**Done cuando (reemplaza al original):**
+
+- [ ] Existe el tipo de serie y un test de tipos (`@ts-expect-error`) prueba que la consulta sin `programId`
+      no compila.
+- [ ] La consulta de hechos cuadra con el dashboard actual en el mismo rango y programa: sus agendas, shows y
+      ventas sumadas dan lo mismo que `embudoDelRango`, con test.
+- [ ] Un envío con UTM de un canal cae en su área; uno sin UTM y uno sin clasificar caen en sus dos valores
+      separados; un deal de otro programa no aparece; un deal anulado no cuenta. Con test.
+- [ ] Una venta de un dueño `mani` y otra de `Mani` son UN solo dueño en la serie, con test.
+- [ ] El filtro por área en la URL recorta la serie sin tocar la consulta, y el link abre igual en otra sesión.
