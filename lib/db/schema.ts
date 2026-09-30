@@ -1418,6 +1418,22 @@ export const origenes = pgTable(
 );
 
 /**
+ * Areas de Retia (ticket 083, ADR 0043): agrupan leads y deals por origen. Area NO
+ * es rol. El area de un lead se deriva de su Canal (ticket 101), nunca se guarda en
+ * leads ni deals.
+ */
+export const areas = pgTable(
+  "areas",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nombre: text("nombre").notNull(),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("areas_nombre_idx").on(sql`lower(${t.nombre})`)],
+);
+
+/**
  * Productos que se venden dentro de un programa (ticket 017, ADR 0016): el programa
  * completo, la reserva de cupo, la mentoria 1:1... Cada uno con su precio de lista y
  * su moneda. Instancia editable del molde (ADR 0012): tabla con `activo`, un solo

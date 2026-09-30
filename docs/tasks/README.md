@@ -131,7 +131,7 @@ la de RLS del 23-sep (ADR 0047), así que es **la siguiente libre**. Léela lín
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 083 | [El catálogo de áreas](./083-catalogo-de-areas.md) | 042 | todo |
+| [x] | 083 | [El catálogo de áreas](./083-catalogo-de-areas.md) | 042 | done · 30-sep · 0045 en producción; Paid, Orgánico y Referidos sembradas por el molde; adelantado de E6 con ok de Mani |
 | [ ] | 084 | [`campanas` y `utm_patron`](./084-campanas-y-el-patron-utm.md) | 083 | todo · **tres** campos de patrón, sin `nivel_utm` |
 | [ ] | 085 | [El emparejador determinista y su guardián](./085-el-emparejador-determinista.md) | 084 | todo |
 | [ ] | 092 | [La URL del formulario y el generador de links](./092-url-del-formulario-y-generador-de-links.md) | 084 | todo · 🩸 **destapa que `programs` no tiene la URL del formulario**, sin la cual el 086 tampoco se puede calcular. Encogió el 21-sep: **sin árbol**. **24-sep: es el builder v1** (destinos con checkouts, canal, campaña, dos opcionales; ADR 0051) |

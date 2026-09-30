@@ -5,6 +5,7 @@ import { esquemaPlataformaPago, plataformasDePago } from "./plataformas";
 import { esquemaMotivo, motivos } from "./motivos";
 import { esquemaOrigen, origenes } from "./origenes";
 import { categoriasDeRecurso, esquemaCategoriaRecurso } from "./categorias-recurso";
+import { areas, esquemaArea } from "./areas";
 
 /**
  * Registro de catalogos de la pantalla `/ajustes/catalogos` (ticket 013, ADR 0012).
@@ -12,7 +13,7 @@ import { categoriasDeRecurso, esquemaCategoriaRecurso } from "./categorias-recur
  * Es la UNICA fuente de verdad de que catalogos administra la pantalla. Agregar un
  * catalogo nuevo (que ya cumpla el molde) es una sola linea aca: la pantalla, las
  * pestañas y las operaciones lo heredan sin tocar nada mas. Un test
- * (`tests/registro-catalogos.test.ts`) fija que aparezcan los tres del molde.
+ * (`tests/registro-catalogos.test.ts`) fija que aparezcan los cinco del molde.
  */
 
 /** La entrada minima comun a todos los catalogos del molde: un nombre. */
@@ -86,6 +87,14 @@ export const REGISTRO_CATALOGOS: readonly DefinicionCatalogo[] = [
     nombre: "Categorías de recurso",
     esquema: esquemaCategoriaRecurso,
     fabrica: categoriasDeRecurso,
+  },
+  {
+    slug: "areas",
+    vinculadoAProgramas: false,
+    compartidoConClosers: false,
+    nombre: "Áreas",
+    esquema: esquemaArea,
+    fabrica: areas,
   },
 ];
 

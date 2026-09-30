@@ -126,6 +126,10 @@ vi.mock("@/lib/catalogo/plataformas", async (importOriginal) => ({
   plataformasDePago: () => ({ listar: listarVacio }),
   vinculosDePlataformas: vi.fn(async () => new Map<string, string[]>()),
 }));
+vi.mock("@/lib/catalogo/areas", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/catalogo/areas")>()),
+  areas: () => ({ listar: listarVacio }),
+}));
 // La pagina de recursos (ticket 023) ofrece las categorias ACTIVAS en su formulario;
 // se mockea `.listar()` preservando el esquema zod que el resto del modulo exporta.
 vi.mock("@/lib/catalogo/categorias-recurso", async (importOriginal) => ({

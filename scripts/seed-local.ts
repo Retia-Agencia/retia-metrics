@@ -11,6 +11,7 @@ import { crearProducto } from "../lib/catalogo/productos";
 import { activarFuente, crearFuente, rotarSecretoDeFuente } from "../lib/catalogo/fuentes";
 import { crearUsuario } from "../lib/catalogo/usuarios";
 import { motivos } from "../lib/catalogo/motivos";
+import { areas } from "../lib/catalogo/areas";
 import { ingerirEntradas } from "../lib/ingesta/ingerir";
 import type { EntradaEnvio } from "../lib/ingesta/envio";
 import { abrirDeal, moverEtapa } from "../lib/deals/mover-etapa";
@@ -37,7 +38,7 @@ function patLocal(nombre: string): string | undefined {
  *  - Trabaja sobre la base local de Docker (127.0.0.1:54329).
  *  - Posee guardia estricta contra producción.
  *  - Pasa 100% por las funciones de `lib/`:
- *      * Catálogo: `lib/catalogo/` (programas, cohortes, productos, fuentes, usuarios, motivos).
+ *      * Catálogo: `lib/catalogo/` (programas, cohortes, productos, fuentes, usuarios, motivos, áreas).
  *      * Leads: `ingerirEntradas` de `lib/ingesta/`.
  *      * Etapas: `abrirDeal` y `moverEtapa` de `lib/deals/`.
  *      * Llamadas: `agregarLlamada`, `pegarGrain`, `marcarFallida` de `lib/deals/llamadas`.
@@ -151,6 +152,21 @@ export async function sembrarLocal(): Promise<void> {
     if (!mapaMotivos.has(clave)) {
       const creado = await catMotivos.crear(actorId, m);
       mapaMotivos.set(clave, creado.id);
+    }
+  }
+
+  // 4b. Catálogo global de Áreas
+  console.log("[seed:local] Configurando catálogo de áreas...");
+  const catAreas = areas(db);
+  const areasExistentes = await catAreas.listar();
+  const nombresDeAreas = new Set(
+    areasExistentes.map((area) => String(area.nombre).toLowerCase()),
+  );
+  const AREAS_BASE = ["Paid", "Orgánico", "Referidos"];
+
+  for (const nombre of AREAS_BASE) {
+    if (!nombresDeAreas.has(nombre.toLowerCase())) {
+      await catAreas.crear(actorId, { nombre });
     }
   }
 

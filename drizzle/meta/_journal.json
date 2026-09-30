@@ -316,6 +316,13 @@
       "when": 1790740206068,
       "tag": "0044_comision-por-venta",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1790757274041,
+      "tag": "0045_catalogo-de-areas",
+      "breakpoints": true
     }
   ]
 }
