@@ -3,7 +3,7 @@ id: 080
 etapa: E7
 serves: "plan v2 §6 etapa 7 · tarea E7-4 · insumo §9"
 depends: [078]
-status: todo
+status: en curso
 ---
 
 # 080 — Los casos raros que la migracion ya sabe que va a encontrar
@@ -83,3 +83,43 @@ script de la migración (077/078) recibe el alcance (`trabajado-y-reciente` por 
 Setteo abierto) y los días de corte (30 por defecto). Pasar a total es correr con otro flag y el mismo
 camino de ingesta, sin reescribir nada. `total` no cambia lo de `No interesado`/`Cerrado`: eso es una decisión
 aparte.
+
+---
+
+## ✅ Decisiones caso por caso (29-sep, Alejo; medido con los templates del 29-sep, solo conteos)
+
+La etapa de un deal del **Setteo** (Pendiente Setteo o En Contacto) la decide su **última llamada** del
+`Registro de llamadas`, colgada por correo (solo si el correo tiene UN deal migrado, ADR 0027). La última es la
+de fecha más reciente; sin fecha, la de fila más baja. A un deal de Estudiantes su etapa se la da la pestaña de
+Estudiantes y ninguna llamada la cambia. Afecta a pocos: ~5 deals en CA y ~40 en TI.
+
+| Caso | Decisión |
+|---|---|
+| Setteo `En proceso` sin nota | Entra en **En Contacto** como cualquier `En proceso` (2 filas, TI). |
+| `Show = Sí, Cierre = No` | **Atendido** siempre (TI 27, CA 4). La categoría queda en la llamada como texto. Si es de pérdida (`RECHAZO DIRECTO`, `FIT/PRODUCTO`, `FINANCIERO`) → rareza `perdida_por_decidir`: la cierra un closer, no el script (el 28-sep: un Cierre Perdido migrado movería la conversión). |
+| `Show = No` | **Pendiente Re-agenda** siempre (TI 19, CA 5). `RECHAZO DIRECTO` → rareza `perdida_por_decidir`. |
+| `Show = Sí, Cierre = Sí` sin fila en Estudiantes | **Atendido** y rareza `cerrada_sin_estudiante`: la venta sin su pago no se inventa. |
+| Última llamada `agendada` (Show vacío) | No cambia la etapa (la cita ya pasó); su rareza `sin_resultado` ya existe. |
+| Setteo `Agendado` (58 TI) | Si tiene llamada, la decide la llamada y la rareza `agendado_por_decidir` desaparece; si no, En Contacto con la rareza. |
+| `Registro 1-5` | Una nota por registro; fecha solo en el primero (y el último en TI). Hecho en el 078. |
+| `Origen` de Estudiantes | No se lee: el origen es el envío más reciente del lead (`submissionOrigenId`, ADR 0060). Hecho en el 078. |
+| CA `Estudiantes Septiembre` | La `x` es la fecha de venta; `Numero de asistentes` no se lee (078). **Los 12 "cohorte pasada" se marcan a mano en el template** (`movidoDesde: "C1"`): el deal lleva una nota del sistema *"Movido desde la cohorte C1"*, y si el mismo correo también tiene deal en la pestaña de esa cohorte, ese deal no se crea (`sinDeal: movido_de_cohorte`) y no hay rareza `en_dos_cohortes`. Sin marca, entran como estudiantes de septiembre. |
+| `Registro de llamadas` de CA | Encabezados corridos mapeados por forma (078). **Falta la revisión a mano** en el ensayo. |
+| `_kpis` | No se lee: se leen las pestañas con datos. |
+| Consolidados C2 de Michael | Gana la hoja (Mani, 28-sep). |
+| Subcategorías con código (`FU-3`, `RD-1`, 14 filas) | No se cruzan con `motivos` (no tiene código): van como texto en `motivo_perdida`, que no mueve la etapa. |
+| La lista visible | **`/ajustes/migracion`**, solo administración (gerente y developer), selector de programa obligatorio, filtro por tipo, enlace al lead/deal. Solo lectura. |
+
+**Construido (29-sep, Alejo):**
+- `lib/migracion/consolidar.ts`: la última llamada decide la etapa del Setteo según la tabla de arriba; rarezas
+  nuevas `perdida_por_decidir` y `cerrada_sin_estudiante`; `movidoDesde` (campo opcional del template, a mano).
+  Sobre los templates del 29-sep: TI 16 en Pendiente Re-agenda, 24 en Atendido, 4 posibles pérdidas; los
+  `agendado_por_decidir` bajan de 58 a 31. CA 3 y 1.
+- `/ajustes/migracion` (`lib/migracion/rarezas.ts`): conteo por tipo y lista (hasta 500) con enlace al deal y al
+  lead; guarda de administración en `tests/paginas.test.ts`, consulta en `tests/migracion-rarezas.test.ts`.
+  Probada en la base local con 2.112 rarezas de TI (render del servidor, filtro, tipo ajeno).
+- `scripts/dev-local.ts`: `shell` en Windows (el spawn de `npx` fallaba con ENOENT).
+
+**Falta:** recorrido en navegador (claro/oscuro, 390 px, consola; la extensión no estaba conectada); marcar los 12
+"cohorte pasada" en el template de CA (quien conozca la hoja); revisar a mano los encabezados corridos de CA en el
+ensayo del 078.

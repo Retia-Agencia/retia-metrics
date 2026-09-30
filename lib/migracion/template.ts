@@ -34,6 +34,9 @@ export const TIPOS_DE_RAREZA = [
   "precio_desconocido",
   "fecha_aproximada",
   "en_dos_cohortes",
+  // consolidar (080)
+  "perdida_por_decidir",
+  "cerrada_sin_estudiante",
   // importador
   "lead_no_encontrado",
   "ya_tiene_deal_vivo",
@@ -75,6 +78,11 @@ export interface DealTemplate {
   /** `Mail onboarding = Si`. Que se hace con eso lo decide el importador (pregunta abierta del 077). */
   mailOnboarding: boolean;
   notas: NotaTemplate[];
+  /**
+   * Los "cohorte pasada" (080): la hoja no los marca, así que lo escribe A MANO en el template
+   * quien conoce la hoja, con el código de la cohorte de la que vino. Ningún extractor lo llena.
+   */
+  movidoDesde?: string | null;
 }
 
 export interface AbonoTemplate {
@@ -108,7 +116,7 @@ export interface LlamadaTemplate {
 /** Una fila que a proposito NO crea deal (decision de Mani del 28-sep, ticket 080). No es rareza: es alcance. */
 export interface SinDealTemplate {
   huella: string;
-  razon: "no_interesado" | "cerrado" | "pendiente_viejo_sin_actividad" | "pendiente_sin_fecha" | "es_estudiante";
+  razon: "no_interesado" | "cerrado" | "pendiente_viejo_sin_actividad" | "pendiente_sin_fecha" | "es_estudiante" | "movido_de_cohorte";
 }
 
 export interface Extraccion {

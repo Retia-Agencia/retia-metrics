@@ -20,6 +20,8 @@ async function main() {
 
   const child = spawn("npx", ["next", "dev"], {
     stdio: "inherit",
+    // En Windows `npx` es `npx.cmd`, y sin shell el spawn falla con ENOENT.
+    shell: process.platform === "win32",
     env: {
       ...process.env,
       DATABASE_URL: LOCAL_DB_URL,

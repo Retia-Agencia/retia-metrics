@@ -20,7 +20,7 @@ import type { Db } from "@/lib/db/tipos";
 import { abrirDeal } from "@/lib/deals/mover-etapa";
 import { consolidar } from "@/lib/migracion/consolidar";
 import { importarGestion } from "@/lib/migracion/importar";
-import { extraccionVacia, type DealTemplate, type Extraccion } from "@/lib/migracion/template";
+import { extraccionVacia, type DealTemplate, type Extraccion, type LlamadaTemplate } from "@/lib/migracion/template";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -135,6 +135,84 @@ describe("consolidar", () => {
     const c = consolidar(t);
     expect(c.deals).toHaveLength(2);
     expect(c.rarezas.map((r) => r.tipo)).toEqual(["en_dos_cohortes", "en_dos_cohortes"]);
+  });
+});
+
+describe("consolidar: la ultima llamada decide la etapa del Setteo (decisiones del 080)", () => {
+  const llamada = (fila: number, correo: string, resultado: LlamadaTemplate["resultado"], fecha: string | null, categoria: string | null = null): LlamadaTemplate => ({
+    huella: `sheets:${P}:registro:${fila}`,
+    correo,
+    fecha,
+    closer: "Andrea",
+    resultado,
+    categoria,
+    subcategoria: null,
+    link: null,
+    notas: null,
+  });
+  const con = (deals: DealTemplate[], llamadas: LlamadaTemplate[], rarezas: Extraccion["rarezas"] = []) => {
+    const t = extraccionVacia();
+    t.deals.push(...deals);
+    t.llamadas.push(...llamadas);
+    t.rarezas.push(...rarezas);
+    return consolidar(t);
+  };
+
+  it("Show No → Pendiente Re-agenda, con la fecha de la llamada; gana la mas reciente sin importar el orden", () => {
+    const vieja = llamada(2, "ana@c.co", "show", "2026-08-01T15:00:00.000Z");
+    const nueva = llamada(9, "ana@c.co", "no_show", "2026-08-20T15:00:00.000Z");
+    for (const orden of [[vieja, nueva], [nueva, vieja]]) {
+      const [d] = con([setteo("ana@c.co")], orden).deals;
+      expect(d.etapa).toBe("pendiente_reagenda");
+      expect(d.fechaEtapa).toBe("2026-08-20T15:00:00.000Z");
+    }
+  });
+
+  it("Show sin cierre → Atendido; con categoria de perdida queda marcado y NUNCA en Cierre Perdido", () => {
+    const c = con(
+      [setteo("ana@c.co"), setteo("caro@c.co")],
+      [llamada(2, "ana@c.co", "show", "2026-08-01T15:00:00.000Z", "FOLLOW UP"), llamada(3, "caro@c.co", "show", null, "FIT/PRODUCTO")],
+    );
+    expect(c.deals.map((d) => d.etapa)).toEqual(["atendido", "atendido"]);
+    expect(c.rarezas.map((r) => [r.huella, r.tipo])).toEqual([[`sheets:${P}:setteo:caro@c.co`, "perdida_por_decidir"]]);
+  });
+
+  it("No show con RECHAZO DIRECTO → Pendiente Re-agenda y marcado; Cierre Si sin estudiante → Atendido y marcado", () => {
+    const c = con(
+      [setteo("ana@c.co"), setteo("caro@c.co")],
+      [llamada(2, "ana@c.co", "no_show", null, "RECHAZO DIRECTO"), llamada(3, "caro@c.co", "cerrada", null)],
+    );
+    expect(c.deals.map((d) => d.etapa)).toEqual(["pendiente_reagenda", "atendido"]);
+    expect(c.rarezas.map((r) => r.tipo)).toEqual(["perdida_por_decidir", "cerrada_sin_estudiante"]);
+  });
+
+  it("una llamada nunca cambia la etapa de un estudiante, y una agendada no cambia nada", () => {
+    const c = con(
+      [estudiante("beto@c.co"), setteo("ana@c.co")],
+      [llamada(2, "beto@c.co", "no_show", null), llamada(3, "ana@c.co", "agendada", "2026-08-01T15:00:00.000Z")],
+    );
+    expect(c.deals.map((d) => d.etapa)).toEqual(["completo", "en_contacto"]);
+  });
+
+  it("un Agendado del Setteo resuelto por su llamada deja de estar por decidir; sin llamada, sigue marcado", () => {
+    const porDecidir = (correo: string) => ({ huella: `sheets:${P}:setteo:${correo}`, tipo: "agendado_por_decidir" as const, detalle: "x" });
+    const c = con(
+      [setteo("ana@c.co"), setteo("caro@c.co")],
+      [llamada(2, "ana@c.co", "show", null)],
+      [porDecidir("ana@c.co"), porDecidir("caro@c.co")],
+    );
+    expect(c.rarezas.map((r) => r.huella)).toEqual([`sheets:${P}:setteo:caro@c.co`]);
+  });
+
+  it("los 'cohorte pasada' marcados a mano: un solo deal, con la nota del traslado, y sin rareza de dos cohortes", () => {
+    const agosto = estudiante("ana@c.co");
+    const septiembre = estudiante("ana@c.co", { huella: `sheets:${P}:estudiantes-septiembre:ana@c.co`, cohorte: "C2", movidoDesde: "C1" });
+    const c = con([agosto, septiembre], []);
+    expect(c.deals).toHaveLength(1);
+    expect(c.deals[0].cohorte).toBe("C2");
+    expect(c.deals[0].notas.map((n) => n.texto)).toContain("Movido desde la cohorte C1 (según la hoja).");
+    expect(c.sinDeal).toEqual([{ huella: agosto.huella, razon: "movido_de_cohorte" }]);
+    expect(c.rarezas).toEqual([]);
   });
 });
 

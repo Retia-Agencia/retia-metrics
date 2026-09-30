@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, Boxes, Database, ListChecks, Users } from "lucide-react";
+import { Activity, Boxes, Database, FileWarning, ListChecks, Users } from "lucide-react";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { esAdministrador } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -63,6 +63,14 @@ const ENLACES = [
     titulo: "Salud del CRM",
     descripcion:
       "Cada entrega del webhook por programa —código HTTP, motivo y el lead que trajo—, la conciliación con Sheets y el aviso de fuentes en silencio.",
+    soloAdministradores: true,
+  },
+  {
+    href: "/ajustes/migracion",
+    icono: FileWarning,
+    titulo: "Rarezas de la migración",
+    descripcion:
+      "Lo que la migración de las pestañas de gestión no pudo clasificar, por programa y por tipo, con el deal o el lead al que apunta.",
     soloAdministradores: true,
   },
 ] as const;
