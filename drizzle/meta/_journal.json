@@ -330,6 +330,13 @@
       "when": 1790758916203,
       "tag": "0046_quitar-calificacion-de-fuentes",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1790777248175,
+      "tag": "0047_catalogo-de-canales",
+      "breakpoints": true
     }
   ]
 }
