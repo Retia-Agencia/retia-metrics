@@ -330,6 +330,15 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
     if (alta.fechaLimitePago) {
       await exigirFechaLimiteValida(tx, { programId: alta.programId, cohortId: alta.cohortId ?? null }, alta.fechaLimitePago);
     }
+    // El origen de la venta (ADR 0060): la FK solo mira que el envio exista, y uno de otro
+    // lead le atribuiria a este deal el clic de otra persona sin ningun error.
+    if (alta.submissionOrigenId) {
+      const [env] = await tx
+        .select({ id: submissions.id })
+        .from(submissions)
+        .where(and(eq(submissions.id, alta.submissionOrigenId), eq(submissions.leadId, alta.leadId)));
+      if (!env) throw new ErrorDeApp("El envío de origen no existe o es de otro lead.", 422);
+    }
 
     const usuario = alta.actor.tipo === "usuario" ? alta.actor.userId : null;
     let id: string;

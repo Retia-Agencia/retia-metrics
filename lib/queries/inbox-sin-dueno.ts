@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
-import { calls, deals, leads } from "@/lib/db/schema";
+import { calls, deals, leads, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { vigente } from "@/lib/queries/vigente";
 
@@ -33,7 +33,7 @@ import { vigente } from "@/lib/queries/vigente";
  *   programa) es directo y se lee correcto.
  */
 
-/** El origen de un lead, a la vista para decidir si se reclama (ADR 0044). */
+/** El origen del deal (su envio de origen, ADR 0060), a la vista para decidir si se reclama (ADR 0044). */
 export interface OrigenDeFila {
   /** UTM tal como llego, sin normalizar (ADR 0004). `null` = sin UTM, un hecho valido. */
   utmSource: string | null;
@@ -84,9 +84,10 @@ const COLUMNAS_LEAD = {
   leadEmail: leads.emailNormalizado,
   puntaje: leads.puntaje,
   fechaUltimaAplicacion: leads.fechaUltimaAplicacion,
-  utmSource: leads.utmSource,
-  utmMedium: leads.utmMedium,
-  utmCampaign: leads.utmCampaign,
+  // El origen es del envio que abrio el deal (ADR 0060), nunca un resumen del lead.
+  utmSource: submissions.utmSource,
+  utmMedium: submissions.utmMedium,
+  utmCampaign: submissions.utmCampaign,
 } as const;
 
 type FilaCruda = {
@@ -129,6 +130,7 @@ export async function seccionesSinDueno(db: Db, programId: string): Promise<Secc
     .select(COLUMNAS_LEAD)
     .from(deals)
     .innerJoin(leads, eq(leads.id, deals.leadId))
+    .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .where(
       and(
         eq(deals.programId, programId),
@@ -147,6 +149,7 @@ export async function seccionesSinDueno(db: Db, programId: string): Promise<Secc
     .select(COLUMNAS_LEAD)
     .from(deals)
     .innerJoin(leads, eq(leads.id, deals.leadId))
+    .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .where(
       and(
         eq(deals.programId, programId),

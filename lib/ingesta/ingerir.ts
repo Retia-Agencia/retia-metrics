@@ -5,6 +5,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import type { Calificacion } from "./calificacion";
 import { estadoDesdeTexto } from "./estado";
 import { construirEnvio, type EntradaEnvio, type Envio } from "./envio";
+import { envioMasReciente, type EnvioCandidato } from "./envio-de-origen";
 import { aplicarReglaDeDeal, type AccionDeDeal, type ResultadoCita } from "./regla-de-deals";
 import {
   resolverIdentidad,
@@ -237,6 +238,9 @@ export async function ingerirEntradas(
       // gerente (ADR 0035), y una relectura de la hoja no la deshace.
       const leadDeEnvio = new Map(identidad.asignaciones.map((a) => [a.token, resolverLead(a.lead)]));
       const idDeEnvio = new Map<string, string>();
+      // Los envios de ESTE lote por lead: el que dispara la regla de deals es el mas
+      // reciente de ellos, y es el origen del deal que abra (ADR 0060).
+      const enviosDelLote = new Map<string, EnvioCandidato[]>();
       for (const lote of enLotes(envios)) {
         const filas = await tx
           .insert(submissions)
@@ -283,6 +287,7 @@ export async function ingerirEntradas(
         for (const f of filas) {
           idDeEnvio.set(llaveDeEnvio(f), f.id);
           if (f.leadId === null) resultado.enviosSinLead++;
+          else enviosDelLote.set(f.leadId, [...(enviosDelLote.get(f.leadId) ?? []), f]);
         }
       }
       resultado.envios = envios.length;
@@ -341,7 +346,8 @@ export async function ingerirEntradas(
           .where(inArray(leads.id, tocados));
         for (const lead of leadsTocados) {
           const cita = opciones.citasPorCorreo?.get(lead.emailNormalizado);
-          const r = await aplicarReglaDeDeal(tx, lead, cita);
+          const origen = envioMasReciente(enviosDelLote.get(lead.id) ?? []);
+          const r = await aplicarReglaDeDeal(tx, lead, cita, origen);
           resultado.reglaDeDeals.push({
             leadId: r.leadId,
             accion: r.accion,
@@ -418,9 +424,6 @@ type Resumen = Pick<
   typeof leads.$inferSelect,
   | "nombre"
   | "telefono"
-  | "utmSource"
-  | "utmMedium"
-  | "utmCampaign"
   | "fechaPrimeraAplicacion"
   | "fechaUltimaAplicacion"
   | "numAplicaciones"
@@ -433,9 +436,6 @@ type Resumen = Pick<
 const CAMPOS_DEL_RESUMEN = [
   "nombre",
   "telefono",
-  "utmSource",
-  "utmMedium",
-  "utmCampaign",
   "fechaPrimeraAplicacion",
   "fechaUltimaAplicacion",
   "numAplicaciones",
@@ -453,9 +453,6 @@ type EnvioGuardado = Pick<
   | "fechaEnvio"
   | "nombre"
   | "posicionEnHoja"
-  | "utmSource"
-  | "utmMedium"
-  | "utmCampaign"
   | "calificacion"
   | "puntaje"
 > & { leadQuality?: string | null; leadValue?: string | null };
@@ -466,7 +463,9 @@ type EnvioGuardado = Pick<
  * - las fechas: la mas antigua y la mas reciente, ignorando las nulas. Una parcial trae
  *   el placeholder `1/1/0001`, que el parser ya devuelve nulo, y una fecha nula NUNCA le
  *   gana a una real (🩸 839 de 1.034 personas perdieron su fecha asi);
- * - cada UTM: el valor mas reciente NO vacio. Un envio sin fecha solo rellena huecos;
+ * - los UTM NO: el origen es del envio y el deal recuerda el que lo abrio (ADR 0060).
+ *   Un resumen "el mas reciente no vacio" por campo mezclaba dos clics en una sola
+ *   combinacion que nadie hizo;
  * - las aplicaciones: los TOKENS distintos. La parcial y la completa de un token son una
  *   sola aplicacion, no dos;
  * - el nombre: el del envio COMPLETO mas reciente con nombre no vacio; si ninguno
@@ -493,14 +492,6 @@ export function resumirEnvios(
     .filter((e) => e.fechaEnvio !== null)
     .sort((a, b) => a.fechaEnvio!.getTime() - b.fechaEnvio!.getTime() || (a.posicionEnHoja ?? 0) - (b.posicionEnHoja ?? 0));
   const sinFecha = envios.filter((e) => e.fechaEnvio === null);
-
-  const utm = { utmSource: null as string | null, utmMedium: null as string | null, utmCampaign: null as string | null };
-  // Primero los que no tienen fecha, para que cualquier envio fechado los pise.
-  for (const e of [...sinFecha, ...conFecha]) {
-    for (const c of ["utmSource", "utmMedium", "utmCampaign"] as const) {
-      if (e[c] !== null) utm[c] = e[c];
-    }
-  }
 
   const calificados = envios.filter((e) => e.calificacion !== null);
   const porPosicion = (a: EnvioGuardado, b: EnvioGuardado) => (a.posicionEnHoja ?? 0) - (b.posicionEnHoja ?? 0);
@@ -545,7 +536,6 @@ export function resumirEnvios(
   return {
     nombre,
     telefono: telefonoPrincipal,
-    ...utm,
     calificacion: decide?.calificacion ?? null,
     puntaje: decideValores?.puntaje ?? null,
     leadQuality: decideValores?.leadQuality ?? null,
@@ -574,18 +564,17 @@ async function actualizarResumenes(tx: Db, filas: { id: string; resumen: Resumen
   for (const lote of enLotes(filas)) {
     const valores = lote.map(
       ({ id, resumen: r }) =>
-        sql`(${id}::uuid, ${r.nombre}::text, ${r.telefono}::text, ${r.utmSource}::text, ${r.utmMedium}::text, ${r.utmCampaign}::text, ${iso(r.fechaPrimeraAplicacion)}::timestamptz, ${iso(r.fechaUltimaAplicacion)}::timestamptz, ${r.numAplicaciones}::integer, ${r.calificacion}::calificacion_envio, ${r.puntaje}::integer, ${r.leadQuality}::text, ${r.leadValue}::text)`,
+        sql`(${id}::uuid, ${r.nombre}::text, ${r.telefono}::text, ${iso(r.fechaPrimeraAplicacion)}::timestamptz, ${iso(r.fechaUltimaAplicacion)}::timestamptz, ${r.numAplicaciones}::integer, ${r.calificacion}::calificacion_envio, ${r.puntaje}::integer, ${r.leadQuality}::text, ${r.leadValue}::text)`,
     );
     await tx.execute(sql`
       update "leads" set
-        "nombre" = v.nombre, "telefono" = v.telefono, "utm_source" = v.utm_source,
-        "utm_medium" = v.utm_medium, "utm_campaign" = v.utm_campaign,
+        "nombre" = v.nombre, "telefono" = v.telefono,
         "fecha_primera_aplicacion" = v.fecha_primera, "fecha_ultima_aplicacion" = v.fecha_ultima,
         "num_aplicaciones" = v.num_aplicaciones, "calificacion" = v.calificacion,
         "puntaje" = v.puntaje, "lead_quality" = v.lead_quality, "lead_value" = v.lead_value,
         "updated_at" = ${ahora.toISOString()}::timestamptz
       from (values ${sql.join(valores, sql`, `)})
-        as v(id, nombre, telefono, utm_source, utm_medium, utm_campaign, fecha_primera, fecha_ultima, num_aplicaciones, calificacion, puntaje, lead_quality, lead_value)
+        as v(id, nombre, telefono, fecha_primera, fecha_ultima, num_aplicaciones, calificacion, puntaje, lead_quality, lead_value)
       where "leads"."id" = v.id
     `);
   }
@@ -615,9 +604,6 @@ async function recalcularResumen(
         fechaEnvio: submissions.fechaEnvio,
         nombre: submissions.nombre,
         posicionEnHoja: submissions.posicionEnHoja,
-        utmSource: submissions.utmSource,
-        utmMedium: submissions.utmMedium,
-        utmCampaign: submissions.utmCampaign,
         esParcial: submissions.esParcial,
         calificacion: submissions.calificacion,
         puntaje: submissions.puntaje,

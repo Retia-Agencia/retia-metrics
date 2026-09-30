@@ -7,6 +7,7 @@ import {
   leads,
   motivos,
   productos,
+  submissions,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -91,7 +92,7 @@ export interface FiltrosKanban {
   ownerUserId?: string | null;
   /** Cohorte de origen del deal (`cohort_id`). */
   cohorteId?: string | null;
-  /** Canal del lead: `utm_source|utm_medium` (par exacto). */
+  /** Canal del envio de origen del deal: `utm_source|utm_medium` (par exacto, ADR 0060). */
   canal?: string | null;
   /** Antiguedad minima en la etapa, en dias. */
   antiguedadMinima?: number | null;
@@ -155,8 +156,9 @@ export async function tableroKanban(
       createdAt: deals.createdAt,
       nombreLead: leads.nombre,
       emailLead: leads.emailNormalizado,
-      utmSource: leads.utmSource,
-      utmMedium: leads.utmMedium,
+      // El origen es del envio que abrio el deal (ADR 0060), nunca un resumen del lead.
+      utmSource: submissions.utmSource,
+      utmMedium: submissions.utmMedium,
         leadQuality: leads.leadQuality,
         leadValue: leads.leadValue,
       ownerNombre: users.nombre,
@@ -164,6 +166,7 @@ export async function tableroKanban(
     })
     .from(deals)
     .innerJoin(leads, eq(leads.id, deals.leadId))
+    .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .leftJoin(users, eq(users.id, deals.ownerUserId))
     .leftJoin(productos, eq(productos.id, deals.productoId))
     .where(and(eq(deals.programId, programId), vigente(deals)));
@@ -343,11 +346,11 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
     .map((c) => ({ id: c.id, nombre: c.codigo }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-  // Canales presentes: pares source+medium de los leads con deal vigente.
+  // Canales presentes: pares source+medium del envio de origen de los deals vigentes.
   const canalFilas = await db
-    .selectDistinct({ utmSource: leads.utmSource, utmMedium: leads.utmMedium })
+    .selectDistinct({ utmSource: submissions.utmSource, utmMedium: submissions.utmMedium })
     .from(deals)
-    .innerJoin(leads, eq(leads.id, deals.leadId))
+    .innerJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .where(and(eq(deals.programId, programId), vigente(deals)));
   const canales = canalFilas
     .filter((c) => c.utmSource && c.utmMedium)

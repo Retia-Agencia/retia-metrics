@@ -8,6 +8,8 @@ import {
   leads,
   productos,
   programs,
+  sources,
+  submissions,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -32,6 +34,7 @@ let cohortId: string;
 let productoId: string;
 let owner1: string;
 let owner2: string;
+let sourceId: string;
 let leadN = 0;
 
 beforeEach(async () => {
@@ -41,6 +44,8 @@ beforeEach(async () => {
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" })
     .returning();
   programId = p.id;
+  const [s] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
+  sourceId = s.id;
   const [c] = await db
     .insert(cohorts)
     .values({
@@ -89,14 +94,24 @@ async function deal(o: OpcDeal): Promise<string> {
       programId,
       emailNormalizado: `l${++leadN}@correo.co`,
       nombre: `Lead ${leadN}`,
-      utmSource: o.utmSource ?? "meta",
-      utmMedium: o.utmMedium ?? "cpc",
+    })
+    .returning();
+  // El canal es del envío que abrió el deal (ADR 0060), no del lead.
+  const [env] = await db
+    .insert(submissions)
+    .values({
+      leadId: l.id,
+      sourceId,
+      token: `t${leadN}`,
+      utmSource: o.utmSource === undefined ? "meta" : o.utmSource,
+      utmMedium: o.utmMedium === undefined ? "cpc" : o.utmMedium,
     })
     .returning();
   const [d] = await db
     .insert(deals)
     .values({
       leadId: l.id,
+      submissionOrigenId: env.id,
       programId,
       cohortId: o.cohort === undefined ? cohortId : o.cohort,
       etapa: o.etapa,
@@ -172,7 +187,7 @@ describe("tableroKanban", () => {
     expect(t.columnas.find((c) => c.etapa === "en_contacto")!.tarjetas[0].ownerUserId).toBe(owner2);
   });
 
-  it("filtra por canal (source|medium del lead)", async () => {
+  it("filtra por canal (source|medium del envío de origen)", async () => {
     await deal({ etapa: "en_contacto", utmSource: "meta", utmMedium: "cpc" });
     await deal({ etapa: "en_contacto", utmSource: "google", utmMedium: "cpc" });
     const t = await tableroKanban(db, programId, { canal: "google|cpc" }, HOY);

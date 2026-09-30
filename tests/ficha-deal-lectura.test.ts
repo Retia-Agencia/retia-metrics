@@ -9,6 +9,8 @@ import {
   motivos,
   productos,
   programs,
+  sources,
+  submissions,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -60,11 +62,16 @@ beforeEach(async () => {
   closer = u.id;
   const [l] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana", telefono: "300", utmSource: "facebook", utmMedium: "cpc" })
+    .values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana", telefono: "300" })
+    .returning();
+  const [fuente] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
+  const [env] = await db
+    .insert(submissions)
+    .values({ leadId: l.id, sourceId: fuente.id, token: "t1", utmSource: "facebook", utmMedium: "cpc" })
     .returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId, cohortId, etapa: "atendido", ownerUserId: closer, productoId, acuerdoPago: "30% en octubre" })
+    .values({ leadId: l.id, submissionOrigenId: env.id, programId, cohortId, etapa: "atendido", ownerUserId: closer, productoId, acuerdoPago: "30% en octubre" })
     .returning();
   dealId = d.id;
 }, 60_000);
@@ -83,7 +90,8 @@ describe("fichaDeDeal", () => {
     expect(f).toMatchObject({
       dealId,
       etapa: "atendido",
-      lead: { email: "ana@correo.co", nombre: "Ana", utmSource: "facebook", utmMedium: "cpc" },
+      lead: { email: "ana@correo.co", nombre: "Ana" },
+      origen: { utmSource: "facebook", utmMedium: "cpc", utmCampaign: null },
       owner: { id: closer, nombre: "Maru" },
       producto: { nombre: "Programa", moneda: "USD" },
       cohorte: { codigo: "C1", inicioClases: "2026-10-01" },

@@ -139,14 +139,15 @@ describe("ingerirEntradas", () => {
     ]);
     [lead] = await db.select().from(leads);
     expect(lead.fechaPrimeraAplicacion?.toISOString()).toBe("2026-09-20T15:00:00.000Z");
-    expect(lead.utmSource).toBe("facebook");
+    // El UTM es del envío, no un resumen del lead (ADR 0060).
+    const [envio] = await db.select().from(submissions).where(eq(submissions.esParcial, false));
+    expect(envio.utmSource).toBe("facebook");
     expect(r.leadsActualizados).toBe(1);
 
     const rastro = await db.select().from(changeLog).where(eq(changeLog.registroId, lead.id));
     expect(rastro.map((c) => c.campo).sort()).toEqual([
       "fechaPrimeraAplicacion",
       "fechaUltimaAplicacion",
-      "utmSource",
     ]);
   });
 
@@ -386,26 +387,24 @@ describe("resumirEnvios", () => {
   const base = {
     sourceId: "s",
     nombre: null,
-    utmMedium: null,
-    utmCampaign: null,
     posicionEnHoja: null,
     esParcial: false,
     calificacion: null,
     puntaje: null,
   };
 
-  it("una fecha nula nunca le gana a una real, y un UTM vacio no borra el anterior", () => {
+  it("una fecha nula nunca le gana a una real, y el resumen ya no lleva UTM (ADR 0060)", () => {
     const r = resumirEnvios(
       [
-        { ...base, token: "a", fechaEnvio: new Date("2026-09-01T00:00:00Z"), utmSource: "facebook" },
-        { ...base, token: "b", fechaEnvio: new Date("2026-09-10T00:00:00Z"), utmSource: null },
-        { ...base, token: "c", fechaEnvio: null, utmSource: "parcial" },
+        { ...base, token: "a", fechaEnvio: new Date("2026-09-01T00:00:00Z") },
+        { ...base, token: "b", fechaEnvio: new Date("2026-09-10T00:00:00Z") },
+        { ...base, token: "c", fechaEnvio: null },
       ],
       null,
     );
     expect(r.fechaPrimeraAplicacion?.toISOString()).toBe("2026-09-01T00:00:00.000Z");
     expect(r.fechaUltimaAplicacion?.toISOString()).toBe("2026-09-10T00:00:00.000Z");
-    expect(r.utmSource).toBe("facebook");
+    expect(r).not.toHaveProperty("utmSource");
     expect(r.numAplicaciones).toBe(3);
   });
 
@@ -413,8 +412,8 @@ describe("resumirEnvios", () => {
     it("toma el del envio COMPLETO mas reciente con nombre no vacio", () => {
       const r = resumirEnvios(
         [
-          { ...base, token: "a", fechaEnvio: new Date("2026-09-01T00:00:00Z"), utmSource: null, nombre: "Ana Vieja" },
-          { ...base, token: "b", fechaEnvio: new Date("2026-09-10T00:00:00Z"), utmSource: null, nombre: "Ana Nueva" },
+          { ...base, token: "a", fechaEnvio: new Date("2026-09-01T00:00:00Z"), nombre: "Ana Vieja" },
+          { ...base, token: "b", fechaEnvio: new Date("2026-09-10T00:00:00Z"), nombre: "Ana Nueva" },
         ],
         null,
       );
@@ -424,8 +423,8 @@ describe("resumirEnvios", () => {
     it("un completo con nombre le gana a un parcial POSTERIOR sin nombre", () => {
       const r = resumirEnvios(
         [
-          { ...base, token: "a", fechaEnvio: new Date("2026-09-01T00:00:00Z"), utmSource: null, nombre: "Ana" },
-          { ...base, token: "b", esParcial: true, fechaEnvio: new Date("2026-09-10T00:00:00Z"), utmSource: null, nombre: null },
+          { ...base, token: "a", fechaEnvio: new Date("2026-09-01T00:00:00Z"), nombre: "Ana" },
+          { ...base, token: "b", esParcial: true, fechaEnvio: new Date("2026-09-10T00:00:00Z"), nombre: null },
         ],
         null,
       );
@@ -435,8 +434,8 @@ describe("resumirEnvios", () => {
     it("si ningun completo trae nombre, toma el del parcial mas reciente con nombre", () => {
       const r = resumirEnvios(
         [
-          { ...base, token: "a", esParcial: true, fechaEnvio: new Date("2026-09-01T00:00:00Z"), utmSource: null, nombre: "Ana Parcial 1" },
-          { ...base, token: "b", esParcial: true, fechaEnvio: new Date("2026-09-05T00:00:00Z"), utmSource: null, nombre: "Ana Parcial 2" },
+          { ...base, token: "a", esParcial: true, fechaEnvio: new Date("2026-09-01T00:00:00Z"), nombre: "Ana Parcial 1" },
+          { ...base, token: "b", esParcial: true, fechaEnvio: new Date("2026-09-05T00:00:00Z"), nombre: "Ana Parcial 2" },
         ],
         null,
       );
@@ -445,7 +444,7 @@ describe("resumirEnvios", () => {
 
     it("un envio sin fecha con nombre aporta cuando ninguno fechado lo trae", () => {
       const r = resumirEnvios(
-        [{ ...base, token: "a", esParcial: true, fechaEnvio: null, utmSource: null, nombre: "Ana Sin Fecha" }],
+        [{ ...base, token: "a", esParcial: true, fechaEnvio: null, nombre: "Ana Sin Fecha" }],
         null,
       );
       expect(r.nombre).toBe("Ana Sin Fecha");
@@ -453,7 +452,7 @@ describe("resumirEnvios", () => {
 
     it("🩸 si NINGUN envio trae nombre, conserva el nombre actual del lead", () => {
       const r = resumirEnvios(
-        [{ ...base, token: "a", fechaEnvio: new Date("2026-09-01T00:00:00Z"), utmSource: null, nombre: null }],
+        [{ ...base, token: "a", fechaEnvio: new Date("2026-09-01T00:00:00Z"), nombre: null }],
         null,
         "Nombre Creado A Mano",
       );
@@ -462,7 +461,7 @@ describe("resumirEnvios", () => {
 
     it("sin nombre en los envios y sin nombre actual, queda null", () => {
       const r = resumirEnvios(
-        [{ ...base, token: "a", fechaEnvio: new Date("2026-09-01T00:00:00Z"), utmSource: null, nombre: null }],
+        [{ ...base, token: "a", fechaEnvio: new Date("2026-09-01T00:00:00Z"), nombre: null }],
         null,
       );
       expect(r.nombre).toBeNull();
@@ -477,7 +476,6 @@ describe("resumirEnvios", () => {
             ...base,
             token: "a",
             fechaEnvio: new Date("2026-09-01T00:00:00Z"),
-            utmSource: null,
             calificacion: null,
             puntaje: 7,
             leadQuality: "High",
@@ -499,7 +497,6 @@ describe("resumirEnvios", () => {
             ...base,
             token: "a",
             fechaEnvio: new Date("2026-09-01T00:00:00Z"),
-            utmSource: null,
             calificacion: null,
             puntaje: 3,
             leadQuality: "Low",
@@ -509,7 +506,6 @@ describe("resumirEnvios", () => {
             ...base,
             token: "b",
             fechaEnvio: new Date("2026-09-10T00:00:00Z"),
-            utmSource: null,
             calificacion: null,
             puntaje: 9,
             leadQuality: "High",
@@ -530,7 +526,6 @@ describe("resumirEnvios", () => {
             ...base,
             token: "a",
             fechaEnvio: new Date("2026-09-01T00:00:00Z"),
-            utmSource: null,
             calificacion: "con_calendly" as Calificacion,
             puntaje: null,
             leadQuality: null,
@@ -551,7 +546,6 @@ describe("resumirEnvios", () => {
             ...base,
             token: "a",
             fechaEnvio: new Date("2026-09-01T00:00:00Z"),
-            utmSource: null,
             calificacion: "con_calendly" as Calificacion,
             puntaje: null,
             leadQuality: null,
@@ -561,7 +555,6 @@ describe("resumirEnvios", () => {
             ...base,
             token: "b",
             fechaEnvio: new Date("2026-09-10T00:00:00Z"),
-            utmSource: null,
             calificacion: null,
             puntaje: 8,
             leadQuality: "High",

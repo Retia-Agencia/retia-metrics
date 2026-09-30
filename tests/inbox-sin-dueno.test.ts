@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { cohorts, deals, leads, programs, users } from "@/lib/db/schema";
+import { cohorts, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
@@ -69,10 +69,13 @@ async function crear(o: {
       nombre: `Lead ${leadN}`,
       puntaje: o.puntaje ?? null,
       fechaUltimaAplicacion: o.fecha == null ? null : new Date(o.fecha),
-      utmSource: "facebook",
-      utmMedium: "cpc",
-      utmCampaign: "camp",
     })
+    .returning();
+  // El origen es del envío que abrió el deal (ADR 0060), no del lead.
+  const [fuente] = await db.insert(sources).values({ programId: prog, nombre: `Typeform ${leadN}`, activo: false }).returning();
+  const [env] = await db
+    .insert(submissions)
+    .values({ leadId: l.id, sourceId: fuente.id, token: `t${leadN}`, utmSource: "facebook", utmMedium: "cpc", utmCampaign: "camp" })
     .returning();
   const marca = o.anulado
     ? { anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error de tecleo" }
@@ -81,6 +84,7 @@ async function crear(o: {
     .insert(deals)
     .values({
       leadId: l.id,
+      submissionOrigenId: env.id,
       programId: prog,
       cohortId: prog === programId ? cohortId : null,
       etapa: o.etapa,

@@ -60,7 +60,11 @@ export function FichaCabecera({
           <Dato etiqueta="Empresa">{[lead.empresa, lead.cargo].filter(Boolean).join(" · ") || null}</Dato>
           <Dato etiqueta="Ubicación">{[lead.ciudad, lead.pais].filter(Boolean).join(", ") || null}</Dato>
           <Dato etiqueta="Canal">
-            {lead.utmSource && lead.utmMedium ? `${lead.utmSource} / ${lead.utmMedium}` : null}
+            {ficha.origen === null
+              ? "Sin envío de origen"
+              : ficha.origen.utmSource || ficha.origen.utmMedium
+                ? `${ficha.origen.utmSource ?? "—"} / ${ficha.origen.utmMedium ?? "—"}`
+                : "Sin UTM"}
           </Dato>
           {ficha.motivo ? <Dato etiqueta="Motivo del cierre">{ficha.motivo.nombre}</Dato> : null}
           <Dato etiqueta="Creado">{fechaHoraEnBogota(ficha.creadoEn)}</Dato>

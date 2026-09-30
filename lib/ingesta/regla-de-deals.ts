@@ -344,11 +344,15 @@ async function dejarNota(db: Db, dealId: string, etiqueta: string, nota: string)
  *
  * Devuelve la acción tomada; la `notificar_reenvio` no muta nada, solo deja el dato
  * para que el llamador avise al owner (el canal es de la etapa 6, fuera de este ticket).
+ *
+ * `envioDeOrigen` es el envio que disparo la regla: si la regla abre un deal, ese envio es
+ * su origen, completo, sin mezclarlo con los UTM de otros envios del lead (ADR 0060).
  */
 export async function aplicarReglaDeDeal(
   db: Db,
   lead: { id: string; programId: string; emailNormalizado: string; calificacion: Calificacion | null },
   cita?: ResultadoCita,
+  envioDeOrigen: string | null = null,
 ): Promise<ResultadoReglaDeDeal> {
   const dealAbierto = await dealAbiertoDelLead(db, lead.id, lead.programId);
   const accion = decidirAccionDeDeal(lead.calificacion, dealAbierto, cita);
@@ -366,6 +370,7 @@ export async function aplicarReglaDeDeal(
       etapa: accion.etapa,
       actor: { tipo: "sistema" },
       ownerUserId: host,
+      submissionOrigenId: envioDeOrigen,
     });
     // Con cita vigente el deal nace en Agendado y necesita su llamada (quita la
     // asimetria con el movimiento: abrir directo en Agendado también crea la llamada).

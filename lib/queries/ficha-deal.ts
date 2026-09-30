@@ -10,6 +10,7 @@ import {
   motivos,
   plataformasPago,
   productos,
+  submissions,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -95,10 +96,12 @@ export interface FichaDeDeal {
     cargo: string | null;
     ciudad: string | null;
     pais: string | null;
-    utmSource: string | null;
-    utmMedium: string | null;
-    utmCampaign: string | null;
   };
+  /**
+   * El origen del deal: los UTM del envio que lo abrio, completos (ADR 0060). `null` = el
+   * deal no tiene envio de origen, y la pantalla lo dice en vez de inventar un canal.
+   */
+  origen: { utmSource: string | null; utmMedium: string | null; utmCampaign: string | null } | null;
   owner: { id: string; nombre: string | null } | null;
   producto: { id: string; nombre: string; precio: string; moneda: string } | null;
   cohorte: { id: string; codigo: string; inicioClases: string } | null;
@@ -133,9 +136,16 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
   // El deal + su lead: joins directos. `incluyendoAnulados`: la ficha de un deal anulado se
   // abre (dice que esta anulado); es una fila por su id, no una metrica.
   const [fila] = await db
-    .select({ deal: deals, lead: leads })
+    .select({
+      deal: deals,
+      lead: leads,
+      origenSource: submissions.utmSource,
+      origenMedium: submissions.utmMedium,
+      origenCampaign: submissions.utmCampaign,
+    })
     .from(deals)
     .innerJoin(leads, eq(leads.id, deals.leadId))
+    .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .where(and(eq(deals.id, dealId), eq(deals.programId, programId), incluyendoAnulados(deals)));
   if (!fila) return null;
   const { deal, lead } = fila;
@@ -216,10 +226,10 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
       cargo: lead.cargo,
       ciudad: lead.ciudad,
       pais: lead.pais,
-      utmSource: lead.utmSource,
-      utmMedium: lead.utmMedium,
-      utmCampaign: lead.utmCampaign,
     },
+    origen: deal.submissionOrigenId
+      ? { utmSource: fila.origenSource, utmMedium: fila.origenMedium, utmCampaign: fila.origenCampaign }
+      : null,
     owner: deal.ownerUserId ? { id: deal.ownerUserId, nombre: nombreDe(deal.ownerUserId) } : null,
     producto: producto ? { id: producto.id, nombre: producto.nombre, precio: producto.precioLista, moneda: producto.moneda } : null,
     cohorte: cohorte ? { id: cohorte.id, codigo: cohorte.codigo, inicioClases: cohorte.fechaInicioClases } : null,

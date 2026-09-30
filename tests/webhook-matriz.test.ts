@@ -572,28 +572,28 @@ describe("caso 10 — nombres vacíos, con tildes/emoji, largos, ausentes", () =
 describe("caso 11 — UTM ausentes, vacíos, y el CENTINELA xxxxx (Mani, 28-sep)", () => {
   it("UTM presentes se guardan crudos", async () => {
     await enviar(conAgenda(fixture(), ""));
-    const [lead] = await db.select().from(leads);
-    expect(lead.utmSource).toBe("facebook");
-    expect(lead.utmMedium).toBe("paid");
-    expect(lead.utmCampaign).toBe("tactical-septiembre");
+    const [envio] = await db.select().from(submissions);
+    expect(envio.utmSource).toBe("facebook");
+    expect(envio.utmMedium).toBe("paid");
+    expect(envio.utmCampaign).toBe("tactical-septiembre");
   });
 
   it("UTM ausentes (sin hidden): quedan null, no un centinela inventado", async () => {
     const p = conAgenda(fixture(), "");
     delete p.form_response.hidden;
     await enviar(p);
-    const [lead] = await db.select().from(leads);
-    expect(lead.utmSource).toBeNull();
-    expect(lead.utmMedium).toBeNull();
-    expect(lead.utmCampaign).toBeNull();
+    const [envio] = await db.select().from(submissions);
+    expect(envio.utmSource).toBeNull();
+    expect(envio.utmMedium).toBeNull();
+    expect(envio.utmCampaign).toBeNull();
   });
 
   it("UTM vacíos: quedan null", async () => {
     const p = conAgenda(fixture(), "");
     p.form_response.hidden = { utm_source: "", utm_medium: "", utm_campaign: "" };
     await enviar(p);
-    const [lead] = await db.select().from(leads);
-    expect(lead.utmSource).toBeNull();
+    const [envio] = await db.select().from(submissions);
+    expect(envio.utmSource).toBeNull();
   });
 
   it('el placeholder "xxxxx" es un CENTINELA: se trata como sin UTM (null) en los tres leídos', async () => {
@@ -602,10 +602,10 @@ describe("caso 11 — UTM ausentes, vacíos, y el CENTINELA xxxxx (Mani, 28-sep)
     const p = conAgenda(fixture(), "");
     p.form_response.hidden = { utm_source: "xxxxx", utm_medium: " XXXXX ", utm_campaign: "Xxxxx" };
     await enviar(p);
-    const [lead] = await db.select().from(leads);
-    expect(lead.utmSource).toBeNull();
-    expect(lead.utmMedium).toBeNull();
-    expect(lead.utmCampaign).toBeNull();
+    const [envio] = await db.select().from(submissions);
+    expect(envio.utmSource).toBeNull();
+    expect(envio.utmMedium).toBeNull();
+    expect(envio.utmCampaign).toBeNull();
   });
 
   it('el centinela "xxxxx" tampoco queda en utm_term ni utm_content (capturados, en respuestas)', async () => {
@@ -656,13 +656,13 @@ describe("caso 12 — respuestas raras: tipo nuevo, nula, sin definition, answer
     expect(await db.select().from(sobresCrudos)).toHaveLength(1);
   });
 
-  it("hidden ausente: 200, lead guardado sin UTM", async () => {
+  it("hidden ausente: 200, envío guardado sin UTM", async () => {
     const p = conAgenda(fixture(), "");
     delete p.form_response.hidden;
     const res = await enviar(p);
     expect(res.status).toBe(200);
-    const [lead] = await db.select().from(leads);
-    expect(lead.utmSource).toBeNull();
+    const [envio] = await db.select().from(submissions);
+    expect(envio.utmSource).toBeNull();
   });
 });
 
