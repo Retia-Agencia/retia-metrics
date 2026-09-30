@@ -228,7 +228,8 @@ Backend puro.
   del carril de Alejo, así que ese cambio va con su ok. Y el importador del 078 tiene que pasar
   `submissionOrigenId` al abrir cada deal histórico (el envío más reciente del lead): **antes de aplicar la
   migración en el corte**, o los deals migrados nacen sin origen.
-- **El corte, que es la salida de la etapa y el hito B:**
+- **El corte, que es la salida de la etapa y el hito B** (el guion completo, la capacitación y la reversa
+  viven en [`operations.md`](./operations.md) §12):
   0. S1 decidido (Supabase Pro o no, con un respaldo manual si es no).
   1. Ensayo final de la migración en la base local con las hojas del día.
   2. Los closers dejan de escribir en las pestañas de gestión por unas horas; la migración corre en

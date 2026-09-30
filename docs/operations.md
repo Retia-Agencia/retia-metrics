@@ -289,3 +289,108 @@ hoja no coinciden, manda el reporte):
 
 Los reportes diarios del equipo contaban los leads por fecha UTC; los consolidados, por fecha de
 Bogotá. Por eso las dos cuentas no coinciden día a día.
+
+## 12. El corte (hito B): guion, capacitación y reversa
+
+El día en que los closers dejan de escribir en las pestañas de gestión (`Setteo`, `Registro de llamadas`,
+`Estudiantes`) y empiezan a trabajar solo en el CRM. La migración que trae lo abierto de esas pestañas es la
+del 078 (ADR 0059), con los casos raros decididos en el 080. Escrito el 30-sep (Alejo); la **fecha** la
+deciden los closers y **S1** el equipo (`plan.md` §7).
+
+### 12.1 Antes del día (bloquea el corte si falta algo)
+
+| # | Qué | Quién | Cómo se comprueba |
+|---|---|---|---|
+| 1 | **S1 decidido.** Sin Supabase Pro no hay respaldos: la migración escribe en la única base y desde ese día la historia vive solo ahí | equipo | Pro pagado, o el respaldo manual de 12.3 paso 1 como regla fija |
+| 2 | **La C3 de cada programa existe y está activa** (O-5). Sin cohorte activa, el primer abono no tiene a qué cohorte asignarse | gerente | Ajustes → Programas y cohortes |
+| 3 | **Cada closer tiene cuenta, rol y membresía** en sus programas, y su correo de Calendly vinculado (096) | gerente o Mani | Ajustes → Usuarios. El dueño de un deal migrado sale del nombre de la hoja solo si ese nombre es un usuario del CRM (ADR 0030); si no, el deal nace sin dueño y va al Inbox |
+| 4 | **Los montos de comisión cargados** (062) | hecho el 29-sep | Ajustes → Programas: CA USD 80, TI USD 100 |
+| 5 | **Los 12 "cohorte pasada" de ComunicArte marcados** en el template (`movidoDesde`, 080) | quien conozca la hoja | el template de CA los trae |
+| 6 | **Ensayo contra producción** de los dos programas, sin `--aplicar` (078). Transacción corta que se deshace sola | Alejo, con el ok de Mani | conteos coherentes con el ensayo local |
+| 7 | **Revisión a mano** de los encabezados corridos del `Registro de llamadas` de CA (080) | Alejo | una muestra de filas del template contra la hoja |
+| 8 | **La capacitación de 12.4 hecha** | Alejo o Mani | cada closer completó el recorrido una vez |
+
+### 12.2 El día, en orden
+
+1. **Aviso** a los closers por el grupo: desde la hora H no se escribe en las pestañas de gestión. Siguen
+   atendiendo por WhatsApp y Calendly como siempre; lo que pase en esa ventana se anota aparte y se carga
+   en el CRM al terminar.
+2. **Extraer** con las hojas de ese momento, una vez por programa:
+   `npm run migracion:extraer -- --programa comunicarte` y lo mismo con `tactical-investor`. El template
+   queda en `.migracion/` (ignorado por git: lleva correos).
+3. **Marcar a mano** en el template de CA los "cohorte pasada" (`movidoDesde: "C1"`), igual que en el
+   ensayo.
+4. **Ensayo final** de cada template contra producción (`npm run migracion:importar -- <template>`, sin
+   `--aplicar`). Los conteos tienen que coincidir con el ensayo del día anterior, salvo lo que se movió ese
+   día. Si no coinciden, se para y se entiende por qué.
+5. **Respaldo** (12.3 paso 1) y revisión de `pg_stat_activity`: ninguna transacción larga abierta.
+6. **Aplicar**, un programa a la vez, con el ok de Mani:
+   `SCRIPT_ACTOR_EMAIL=<tu correo de developer> npm run migracion:importar -- <template> --aplicar`.
+   Cada programa entra en **una sola transacción**: si algo falla a la mitad, no queda nada escrito.
+7. **Conciliar** (12.5). Si algo no cuadra, se decide ahí si se corrige o se revierte (12.3).
+8. **Abrir:** aviso por el grupo de que desde ya se registra solo en el CRM. La primera hora, alguien del
+   equipo técnico en línea para dudas.
+9. **Registrar** en el handoff y en el ticket 078 la hora, los conteos y las rarezas.
+
+Las pestañas **no se tocan** ese día: quedan como respaldo hasta el 082, que las pone en solo lectura
+después de una semana hábil operando solo en el CRM (hito C).
+
+### 12.3 Plan de reversa
+
+Lo migrado se reconoce siempre: los deals y abonos por `huella_migracion`, y las llamadas por
+`huella_fila` que empieza con `sheets:` (ADR 0059). Eso vuelve la reversa selectiva: nunca hace falta
+tocar lo que entró por el webhook.
+
+1. **Antes de aplicar, un respaldo:** `pg_dump` de producción por la conexión directa (5432) a un archivo
+   **fuera del repo** (lleva datos personales), con la fecha y la hora en el nombre. Sin S1 es la única
+   vuelta atrás para un daño que no venga de la migración.
+2. **Falla durante `--aplicar`:** la transacción se deshace sola. No hay nada que revertir: se corrige la
+   causa y se vuelve al paso 4 de 12.2.
+3. **Aplicado pero mal, antes de abrir a los closers:** nadie tocó todavía los deals migrados, así que
+   deshacerlos es borrar lo que lleva huella de ese programa. **Todavía no existe un script para esto:** si
+   hace falta, se escribe ese día sobre la huella, se prueba primero en la base local y se aplica con el ok
+   de Mani. La alternativa sin script es restaurar el respaldo del paso 1, que también se lleva lo que
+   entró por el webhook en esas horas.
+4. **Mal y con los closers ya trabajando:** no se revierte en bloque, porque encima ya hay trabajo real.
+   Se corrige fila por fila: un deal o un abono migrado que no debía existir se **anula** con su motivo
+   (ADR 0038: anular es "esto nunca pasó", y deja rastro); lo que faltó se carga a mano.
+5. **El CRM no sirve para operar** (se cae o bloquea el trabajo): los closers vuelven a las pestañas, que
+   siguen intactas hasta el 082. Lo que registraron en el CRM mientras tanto queda ahí y se reconcilia
+   después, a mano. Es la razón para no apagar las pestañas hasta el hito C.
+
+### 12.4 Capacitación
+
+Una sesión por programa, con los closers, sobre la base local (`npm run dev:local`) y compartiendo
+pantalla: ahí se pueden equivocar sin consecuencias. Solo lo que existe hoy.
+
+**Closer**, cada uno lo hace una vez:
+
+1. **Inbox:** reclamar un Setteo; ver los agendados sin dueño; asignar una llamada suelta de Calendly a su
+   deal.
+2. **Ficha del deal:** registrar un contacto con canal y nota (reemplaza los `Registro 1-5`); pegar el link
+   de Grain después de la llamada (el deal pasa solo a Atendido); marcar un no show (va a Re-agenda); mover
+   de etapa.
+3. **Cobrar:** elegir el producto, registrar el abono con el link del comprobante (la foto llega con el
+   035), poner la fecha límite de pago y la nota del acuerdo. El deal pasa solo a Abonado, y a Completo con
+   saldo cero.
+4. **Students:** marcar el onboarding desde la ficha y verlo en la lista de su cohorte.
+5. **Leads:** confirmar o separar un posible duplicado.
+6. **Recursos** (brochures y links de pago) y el **Dashboard** con su comisión.
+
+**Lo que deja de hacer desde el corte:** escribir en las pestañas de gestión, llenar Sí/No a mano, mandar el
+comprobante al grupo como registro y calcular su comisión. Todavía no existe su link de captación (092):
+mientras tanto, un lead que trae un closer no queda atribuido a él.
+
+**Gerente:** el Dashboard por programa y el comparativo entre closers; la cartera vencida en Students y en el
+Inbox; reasignar deals sin dueño; `/ajustes/migracion` para revisar las rarezas los primeros días; usuarios,
+membresías y cohortes.
+
+### 12.5 Conciliación, el mismo día
+
+- Por programa, los conteos del `--aplicar` coinciden con el último ensayo.
+- En `/ajustes/migracion` se revisan las rarezas por tipo, primero las de plata (`abono_sin_deal`,
+  `monto_cobrado_desconocido`, `fecha_aproximada`).
+- **Students de la C2** contra la pestaña de estudiantes de la C2: las mismas personas y la misma caja por
+  closer. La caja de julio y agosto cuadra por cohorte, no por día (ADR 0059 punto 6).
+- En el **Kanban**, los deals migrados aparecen en su etapa y se pueden mover por el motor.
+- Una muestra de 5 deals al azar: la ficha contra la hoja, fila por fila.
