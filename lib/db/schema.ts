@@ -487,9 +487,9 @@ export const leads = pgTable(
     ingresoDeclarado: text("ingreso_declarado"),
     urgencia: text("urgencia"),
     porQueAplico: text("por_que_aplico"),
-    utmSource: text("utm_source"),
-    utmMedium: text("utm_medium"),
-    utmCampaign: text("utm_campaign"),
+    // Sin UTM a proposito (ADR 0060, ticket 115): el origen es de cada envio
+    // (`submissions`) y el de un deal es el envio que lo abrio. Un resumen por lead
+    // mezclaba campos de clics distintos en una combinacion que nadie hizo.
     fechaPrimeraAplicacion: timestamp("fecha_primera_aplicacion", { withTimezone: true }),
     fechaUltimaAplicacion: timestamp("fecha_ultima_aplicacion", { withTimezone: true }),
     /** Cuantas veces aplico la misma persona. Senal de intensidad, no personas distintas. */
