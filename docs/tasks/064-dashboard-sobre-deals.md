@@ -71,3 +71,12 @@ Si.
 ## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
 
 Pasa a hacerse ANTES del hito B (etapa E5 del reparto). `lib/queries/dashboard.ts` cuenta con `calls.resultado` y filtra por `closerId` de texto; cuando los closers registren en el CRM saldría una cifra creíble y equivocada.
+
+---
+
+## Corrección 2026-09-29 (Alejo, con el ok de Mani, durante el 062)
+
+Los cierres contaban un deal en CADA rango donde entraba a Abonado **o** a Completo: un deal que pasaba a Abonado
+en septiembre y a Completo en octubre salía como venta en los dos meses. Ahora la fecha de venta es la PRIMERA
+entrada a Abonado o Completo (`vendidosEn` en `lib/queries/dashboard.ts`), y la usan las tres consultas de cierres.
+Test en `tests/comision.test.ts`.

@@ -3,7 +3,7 @@ id: 062
 etapa: E4
 serves: "plan v2 §6 etapa 4 · tarea E4-6 · insumo §2.7 y §7, ADR 0024"
 depends: [060]
-status: en curso
+status: done
 ---
 
 # 062 — La comision se calcula, nunca se guarda
@@ -76,3 +76,11 @@ contar la PRIMERA entrada a Abonado o Completo. No se tocó aquí: es del 064.
 `hfqmiyiuyqapdsbywrag`, conexión directa 5432; `pg_stat_activity` sin transacciones largas antes). Verificado: 45
 migraciones, la columna `numeric(10,2)` nullable y el CHECK. Merge a `main` en `7bae817`. **Falta:** cargar los
 montos en Ajustes → Programas (USD 80 ComunicArte, USD 100 Tactical); hoy los dos están en nulo.
+
+**Cerrado (29-sep, Alejo, con el ok de Mani para tocar su parte):**
+- **Montos cargados en producción** por `editarPrograma` (molde, `change_log` con actor `a.davila0423@gmail.com`):
+  ComunicArte USD 80, Tactical USD 100. Verificado: solo cambió `comisionPorVentaUsd` (2 filas en `change_log`).
+- **El doble conteo, corregido** en `lib/queries/dashboard.ts`: la fecha de venta es la PRIMERA entrada del deal a
+  Abonado o Completo (`vendidosEn`, una sola subconsulta que usan `ventasDelRango`, `ventasPorCloser` y los cierres
+  de `embudoPorOrigen`). Test en `tests/comision.test.ts`, mordido contra el código anterior (fallaba) y probado en
+  Postgres real (base local).

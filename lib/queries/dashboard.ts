@@ -162,15 +162,33 @@ function tasa(numerador: number, denominador: number): number | null {
 }
 
 const ETAPAS_VENDIDAS = ["abonado", "completo"] as const;
-const fechaAnclaMovimiento = sql<string>`(${dealEtapaHistorial.fecha} AT TIME ZONE 'America/Bogota')::date`;
+/**
+ * La fecha de VENTA de cada deal: el dia (Bogota) de su PRIMERA entrada a Abonado o Completo.
+ * Es la unica respuesta a "¿cuando se vendio?" y la usan las tres consultas de cierres.
+ *
+ * 🩸 Contar cualquier fila del historial que llegue a Abonado o Completo dentro del rango
+ * (como se hacia hasta el 29-sep) cuenta la MISMA venta en dos periodos: un deal que pasa a
+ * Abonado en septiembre y a Completo en octubre salia como cierre en los dos meses, y la
+ * comision (ticket 062) se habria pagado dos veces. Sin error y con cifras creibles.
+ */
+function vendidosEn(db: Db, rango: Rango) {
+  return db
+    .select({ dealId: dealEtapaHistorial.dealId })
+    .from(dealEtapaHistorial)
+    .where(inArray(dealEtapaHistorial.a, [...ETAPAS_VENDIDAS]))
+    .groupBy(dealEtapaHistorial.dealId)
+    .having(
+      between(sql<string>`(min(${dealEtapaHistorial.fecha}) AT TIME ZONE 'America/Bogota')::date`, rango.desde, rango.hasta),
+    );
+}
 
 function llamadaOcurrio() {
   return inArray(calls.resultado, [...RESULTADOS_QUE_OCURRIERON]);
 }
 
 /**
- * Cuenta deals distintos que entraron a Abonado o Completo en el rango. Un deal
- * puede pasar por ambas etapas, por eso el `distinct` es obligatorio.
+ * Cuenta los deals cuya VENTA (`vendidosEn`: su primera entrada a Abonado o Completo)
+ * cae en el rango. Cada venta cuenta en un solo periodo.
  *
  * La fecha de venta es la del movimiento de etapa, no la del abono ni la de la
  * llamada. El dueño sale de `deals.ownerUserId`, que es la identidad actual de la
@@ -182,14 +200,12 @@ async function ventasDelRango(
 ): Promise<number> {
   const condiciones = [
     eq(deals.programId, programId),
-    inArray(dealEtapaHistorial.a, [...ETAPAS_VENDIDAS]),
-    between(fechaAnclaMovimiento, rango.desde, rango.hasta),
+    inArray(deals.id, vendidosEn(db, rango)),
     delCloser(users.closerId, closerId),
   ];
   const [fila] = await db
     .select({ ventas: sql<number>`count(distinct ${deals.id})::int` })
     .from(deals)
-    .innerJoin(dealEtapaHistorial, eq(dealEtapaHistorial.dealId, deals.id))
     .leftJoin(users, eq(users.id, deals.ownerUserId))
     .where(and(...condiciones, vigente(deals)));
   return fila?.ventas ?? 0;
@@ -205,13 +221,11 @@ async function ventasPorCloser(
       cierres: sql<number>`count(distinct ${deals.id})::int`,
     })
     .from(deals)
-    .innerJoin(dealEtapaHistorial, eq(dealEtapaHistorial.dealId, deals.id))
     .leftJoin(users, eq(users.id, deals.ownerUserId))
     .where(
       and(
         eq(deals.programId, programId),
-        inArray(dealEtapaHistorial.a, [...ETAPAS_VENDIDAS]),
-        between(fechaAnclaMovimiento, rango.desde, rango.hasta),
+        inArray(deals.id, vendidosEn(db, rango)),
         vigente(deals),
       ),
     )
@@ -479,15 +493,13 @@ export async function embudoPorOrigen(
       cierres: sql<number>`count(distinct ${deals.id})::int`,
     })
     .from(deals)
-    .innerJoin(dealEtapaHistorial, eq(dealEtapaHistorial.dealId, deals.id))
     .innerJoin(calls, eq(calls.dealId, deals.id))
     .leftJoin(origenes, eq(origenes.id, calls.origenId))
     .leftJoin(users, eq(users.id, deals.ownerUserId))
     .where(
       and(
         eq(deals.programId, programId),
-        inArray(dealEtapaHistorial.a, [...ETAPAS_VENDIDAS]),
-        between(fechaAnclaMovimiento, rango.desde, rango.hasta),
+        inArray(deals.id, vendidosEn(db, rango)),
         delCloser(users.closerId, closerId),
         vigente(deals),
         vigente(calls),

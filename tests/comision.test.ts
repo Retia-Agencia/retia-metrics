@@ -85,6 +85,23 @@ describe("la comisión en el comparativo entre closers", () => {
   });
 });
 
+describe("cada venta cuenta en UN solo periodo (la comisión no se paga dos veces)", () => {
+  it("un deal que pasa a Abonado un mes y a Completo el siguiente es venta solo en el primero", async () => {
+    await db.update(programs).set({ comisionPorVentaUsd: "80" }).where(eq(programs.id, programId));
+    await closerConVentas("Ana", 1); // entra a Abonado el 15-sep
+    const [deal] = await db.select().from(deals);
+    await db.insert(dealEtapaHistorial).values({ dealId: deal.id, de: "abonado", a: "completo", fecha: new Date("2026-10-03T15:00:00Z") });
+
+    const septiembre = await armarVistaDelDashboard({ programId, hoy: HOY, preset: "hoy" }, db);
+    const octubre = await armarVistaDelDashboard({ programId, hoy: "2026-10-03", preset: "hoy" }, db);
+
+    expect(septiembre.embudo.cierres).toBe(1);
+    expect(septiembre.comparativo.find((c) => c.closerId === "Ana")?.comisionUsd).toBe(80);
+    expect(octubre.embudo.cierres).toBe(0);
+    expect(octubre.comparativo.find((c) => c.closerId === "Ana")?.cierres ?? 0).toBe(0);
+  });
+});
+
 describe("el monto por venta es una instancia editable con rastro (ADR 0012)", () => {
   const entrada = (comisionPorVentaUsd: string) => ({
     nombre: "Programa A",
