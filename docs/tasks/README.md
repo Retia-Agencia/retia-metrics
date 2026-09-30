@@ -200,7 +200,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 066 | [Réplica de `🚨 Urgencias` con desglose UTM](./066-replica-de-urgencias.md) (E5-3) | 064 | todo |
 | [ ] | 067 | [ROAS por cohorte y captura de pauta](./067-roas-por-cohorte-y-captura-de-pauta.md) (E5-4) | 064 | todo |
 | [ ] | 068 | [`nerd-stats` reescrito](./068-nerd-stats-reescrito.md) (E5-5) | 064 | todo |
-| [ ] | 093 | [Filtros por UTM con lo que YA hay](./093-filtros-utm-con-lo-que-ya-hay.md) | — | todo · ⚡ **sin dependencias: valor hoy**. Solo `utm_source/medium/campaign`, que ya son columnas |
+| [x] | 093 | [Filtros por UTM con lo que YA hay](./093-filtros-utm-con-lo-que-ya-hay.md) | — | done · 29-sep · vista interina de Pauta en el dashboard: registros, agendas por el origen del deal, sin UTM (Tactical 25,3%) y macros aparte; drill-down canal → campaña → content/term |
 | [ ] | 088 | [Registros vs agendas por canal](./088-registros-vs-agendas-por-canal.md) | 049, 052, 085 | todo · la vista de **Media** |
 | [ ] | 089 | [Series con dimensiones, no escalares](./089-series-con-dimensiones.md) | 064 | todo · ⏳ **gratis ahora, reescritura después** |
 | [ ] | 090 | [Rendimiento por área](./090-rendimiento-por-area.md) | 085, 088, 089 | todo · la vista de **Gerencia**. Estados con acción, no una tabla |
@@ -228,7 +228,7 @@ se abre**. Este repo no tiene tests de componentes y el 20-sep dos bugs pasaron 
 | [x] | 074 | [Ficha del Deal](./074-ficha-del-deal.md) (E6-6) | 069, 060 | done · 29-sep · `/p/<programa>/deals/<id>`: cabecera, llamadas, pago y abonos, actividades e historial en una pantalla; `editarDeal`, `anularDeal` (rechaza con abonos vigentes y anula en cascada sus llamadas), `registrarActividad`; `puedeTrabajarDeal` (`lib/deals/permiso.ts`) y `duenosPosibles` (`lib/deals/duenos.ts`) en un solo lugar. Recorrido contra la base local (escritorio y 390 px) y permiso mordido forjando la acción. 1.415 tests. Falta: celular de verdad y ver el prellenado de Compromiso Verbal con un deal Atendido |
 | [ ] | 075 | [Revisión profunda de TODA la UI](./075-revision-profunda-de-la-ui.md) (E6-8) | 069-074 | todo |
 | [ ] | 114 | [Auditoría de cálculos y reglas fijas](./114-auditoria-de-calculos-fijos.md) | · | en curso · 29-sep · A1 y A3 arreglados (regla de Agendado y resultados fallidos en un solo módulo); A2 va con el 064; B4, B5 y C6 pendientes · **carril Mani** (29-sep), se atacan en su momento |
-| [ ] | 115 | [El origen es del envío; el deal recuerda el envío que lo abrió](./115-el-origen-es-del-envio.md) | · | todo · 29-sep · ADR 0060 (cierra D5) · carril Mani · 🩸 hoy 0 de 58 deals tienen `submission_origen_id` y el lead mezcla UTM de envíos distintos |
+| [ ] | 115 | [El origen es del envío; el deal recuerda el envío que lo abrió](./115-el-origen-es-del-envio.md) | · | en curso · 29-sep · código en `main` y relleno aplicado (69/69); falta la migración que quita `leads.utm_*` |
 | [ ] | 076 | [Bitácora en Nerd Stats](./076-bitacora-en-nerd-stats.md) (E6-7) | 068, 041 | todo · es la **pantalla** de un rastro que se escribe desde E1 |
 | [ ] | 091 | [`otrosProgramasDelCorreo`: visibilidad cruzada](./091-otros-programas-del-correo.md) | 073 | todo · una consulta, **no** una tabla. Ninguna métrica la usa |
 

@@ -1,13 +1,17 @@
 import { notFound } from "next/navigation";
+import { z } from "zod";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { fecha } from "@/lib/format";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
+import { pautaInterina, type FiltrosPauta } from "@/lib/queries/pauta-interina";
+import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { DashboardPrograma } from "@/components/dashboard-programa";
 import { FiltroDashboard } from "@/components/filtro-dashboard";
+import { PautaInterina } from "@/components/pauta-interina";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +19,16 @@ type Props = {
   params: Promise<{ programa: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+/**
+ * Los filtros de UTM de la vista interina de Pauta (093). Un valor que no cuadra se ignora en
+ * vez de romper la pagina: es un filtro de lectura, no una escritura.
+ */
+const esquemaFiltrosPauta = z.object({
+  source: z.string().trim().min(1).max(200).optional().catch(undefined),
+  medium: z.string().trim().min(1).max(200).optional().catch(undefined),
+  campaign: z.string().trim().min(1).max(300).optional().catch(undefined),
+});
 
 /** Un parametro de la URL solo sirve si vino una vez y como texto. */
 function texto(valor: string | string[] | undefined): string | undefined {
@@ -56,6 +70,23 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
   });
 
   const { desde, hasta } = vista.seleccion.rango;
+
+  const filtrosPauta: FiltrosPauta = esquemaFiltrosPauta.parse({
+    source: texto(busqueda.source),
+    medium: texto(busqueda.medium),
+    campaign: texto(busqueda.campaign),
+  });
+  const pauta = await pautaInterina(db, programa.id, vista.seleccion.rango, filtrosPauta, hoy);
+  // El link de profundizar conserva el rango y el closer, y reemplaza solo los filtros de UTM.
+  const hrefConFiltros = (f: FiltrosPauta) => {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(busqueda)) {
+      if (typeof v === "string" && !["source", "medium", "campaign"].includes(k)) q.set(k, v);
+    }
+    for (const [k, v] of Object.entries(f)) if (v !== undefined) q.set(k, v);
+    const query = q.toString();
+    return query ? `?${query}` : "?";
+  };
   // Un solo dia se escribe una sola vez: "15 sep 2026", no "15 sep 2026 a 15 sep 2026".
   const rangoLegible = desde === hasta ? fecha(desde) : `${fecha(desde)} a ${fecha(hasta)}`;
 
@@ -81,6 +112,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
           cohorteDisponible={vista.cohorte?.ventana != null}
         />
         <DashboardPrograma vista={vista} />
+        <PautaInterina vista={pauta} filtros={filtrosPauta} hrefCon={hrefConFiltros} />
       </div>
     </PageShell>
   );

@@ -84,6 +84,13 @@ vi.mock("@/lib/queries/recursos", () => ({
 // los tests se mockea para poder mirar CON QUE lo llama cada rol.
 const armarVistaDelDashboard = vi.fn();
 vi.mock("@/lib/queries/vista-dashboard", () => ({ armarVistaDelDashboard }));
+// La vista interina de Pauta (093) tambien lee la base: aqui solo importa que la pagina pase.
+const pautaInterina = vi.fn(async () => ({
+  filas: [],
+  resumen: { registros: 0, sinUtm: 0, macro: 0, agendas: 0, agendasSinEnvioDeOrigen: 0 },
+  sinUtmHoy: [],
+}));
+vi.mock("@/lib/queries/pauta-interina", () => ({ pautaInterina }));
 
 // La pagina de cohortes lee las cohortes del programa; sin base en los tests, se
 // mockea la lectura para que la guarda sea lo unico bajo prueba.

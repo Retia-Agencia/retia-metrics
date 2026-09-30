@@ -3,7 +3,7 @@ id: 093
 etapa: E5
 serves: "plan v2 §12.14 · valor inmediato con el dato que YA existe"
 depends: []
-status: todo
+status: done
 ---
 
 # 093 — Filtrar el dashboard por UTM con lo que ya esta en la base
@@ -70,10 +70,10 @@ ahora.
 
 ## Done cuando
 
-- [ ] Se puede ver leads por `utm_source / utm_medium` de un programa, con el filtro en la URL.
-- [ ] **`sin UTM`** sale **como categoria**, con conteo y porcentaje, y en Tactical da ~26%.
-- [ ] La consulta **no compila** sin programa.
-- [ ] La salida es una serie con dimensiones: agregar un filtro no obliga a tocar la consulta.
+- [x] Se puede ver leads por `utm_source / utm_medium` de un programa, con el filtro en la URL.
+- [x] **`sin UTM`** sale **como categoria**, con conteo y porcentaje, y en Tactical da ~26%.
+- [x] La consulta **no compila** sin programa.
+- [x] La salida es una serie con dimensiones: agregar un filtro no obliga a tocar la consulta.
 
 ## Kiro
 
@@ -88,3 +88,22 @@ Si.
 - 🩸 Corrección de lo medido: `utm_term` y `utm_content` **no están en 0**: viven en `submissions.respuestas` (6.911 envíos de la hoja y 101 del webhook). El anuncio **sí** entra (ADR 0062); mientras salga el 116, se leen de `respuestas`.
 - Lee de `submissions`, no de `leads.utm_*` (ADR 0060, que elimina esas columnas). Registro = token.
 - **Contador visible de sin UTM de hoy, sin umbral** (DP-17), con la lista de esos envíos; las macros sin expandir, aparte.
+
+---
+
+## Cierre 2026-09-29 (Mani, sesión principal)
+
+- `lib/queries/pauta-interina.ts` (`pautaInterina`): registros (token completo, DP-11), agendas (llamada
+  vigente atribuida al envío de origen de su deal, ADR 0060) y las categorías sin UTM, macro y "sin envío de
+  origen". Serie por día y los cinco UTM. `utmCapturados` es la única lectura de `utm_content`/`utm_term`
+  fuera del emparejador: columna promovida o llave de `respuestas`, **crudos**, sin llamarlos anuncio ni
+  conjunto (en `facebook / cpc` de Retia el anuncio va en `utm_term`; en la plantilla de Pauta, en
+  `utm_content`).
+- Sección "Origen de registros y agendas" en `/p/<programa>/dashboard`, con drill-down por la URL: canal →
+  campaña → content/term. Usa el rango del dashboard; no aplica el filtro de closer. "Hoy llegaron N sin UTM"
+  es de hoy, mire el rango que mire.
+- Medido en producción (todo el histórico): Tactical 790 de 3.120 registros sin UTM (**25,3%**), ComunicArte
+  32 de 2.790 (1,1%); 17 macros; 9 envíos de Tactical sin UTM hoy.
+- Queda: 10 y 12 agendas "sin envío de origen" por programa con todos los deals vivos ya rellenados (115):
+  son llamadas sueltas o de deals anulados. Las leerá bien el 123 cuando el embudo sea por área.
+- Tests: `tests/pauta-interina.test.ts`. Recorrido en la base local a 390 px, consola limpia.

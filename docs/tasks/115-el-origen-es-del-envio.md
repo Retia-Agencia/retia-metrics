@@ -3,7 +3,7 @@ id: 115
 etapa: E6
 serves: "ADR 0060 · plan.md §7.1 D5"
 depends: []
-status: todo
+status: en curso
 ---
 
 # 115 — El origen es del envío; el deal recuerda el envío que lo abrió
@@ -32,12 +32,12 @@ sola campaña de origen (ADR 0060).
 
 ## Done cuando
 
-- [ ] Un test: lead con dos envíos de UTM distintas; el deal que abre el segundo tiene como origen **ese**
+- [x] Un test: lead con dos envíos de UTM distintas; el deal que abre el segundo tiene como origen **ese**
       envío completo, y ninguna consulta devuelve una combinación de los dos.
-- [ ] Un test: lead con deal en Completo que vuelve a enviar abre un deal nuevo cuyo origen es el envío
+- [x] Un test: lead con deal en Completo que vuelve a enviar abre un deal nuevo cuyo origen es el envío
       nuevo; el deal cerrado no cambia.
-- [ ] `grep` sin resultados de lecturas de `leads.utm` en `lib/`, `app/` y `components/`.
-- [ ] Todos los deals vivos tienen `submission_origen_id`, o nulo con motivo (sin envíos), verificado con
+- [x] `grep` sin resultados de lecturas de `leads.utm` en `lib/`, `app/` y `components/`.
+- [x] Todos los deals vivos tienen `submission_origen_id`, o nulo con motivo (sin envíos), verificado con
       una consulta después del relleno.
 
 ## Kiro
@@ -52,3 +52,15 @@ Mani.
 
 - Un deal que abre el envío parcial previo al Calendly (117) tiene ese parcial como envío de origen: es la misma sesión y trae las mismas UTM que su completa.
 - El 117 toca también `regla-de-deals.ts` y va después de este ticket.
+
+---
+
+## Avance 2026-09-29 (Mani, sesión principal)
+
+- En `main` (`0413c67`, `625795e`): la regla de deals pasa el envío más reciente del lote que la disparó;
+  `abrirDeal` rechaza un envío de otro lead; Kanban, Inbox sin dueño y Ficha leen el origen del deal; la
+  ingesta dejó de escribir `leads.utm_*`. El importador del 078 ya pasaba su origen (Alejo, `8898ff1`).
+- Relleno aplicado en producción con el ok de Mani: 69 de 69 deals vivos rellenados, 0 sin envíos previos.
+  Verificado: 0 deals vivos sin origen de 71, 71 filas en `change_log`, 0 cruzados de lead o programa.
+- **Falta:** la migración que quita `leads.utm_source/medium/campaign` (con el ok de Mani, SQL leído).
+- Nota: el Inbox sin dueño muestra "Sin UTM" también para un deal sin envío de origen; hoy no hay ninguno.
