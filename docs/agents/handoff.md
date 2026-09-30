@@ -38,14 +38,18 @@ Carril de Alejo (E5 con el codigo en main; E6 arrancado):
 - 062, 127, 116, 080 y 099 done. 127: npm run migracion:deshacer (reversa nivel 3 del corte). 116: las seis
   UTM en sus columnas, 0048 aplicada en produccion; utmsDelEnvio lee utm_id de la columna primero.
 - 072 en curso: solo falta el recorrido visual.
-- 078 en curso: falta el ensayo contra produccion sin --aplicar (ok de Mani; no dejar la transaccion
-  abierta). Regenerar antes los templates (npm run migracion:extraer).
+- 078 en curso: ensayo de los dos programas hecho (importador en lote). Antes de --aplicar: REGENERAR el
+  template de CA (npm run migracion:extraer -- --programa comunicarte): desde d01c461 la Categoria de su
+  Registro de llamadas se lee de "Registro 2" (76 filas) y el template del 30-sep es anterior.
+- 117 escrito en la rama local 117-estados-de-llegada (8e0d69a), rebasada sobre el 089 el 30-sep: suite,
+  build y seed local contra Postgres limpios. Produccion con el ok de Mani, en el orden del ticket.
 - Guion del corte escrito: docs/operations.md §12 (pasos, reversa, capacitacion, conciliacion).
 - SIGUIENTE: 092 (ahora depende de 101, listo), pero antes definir su alcance con Mani: el builder queda
   para organico y closer, y la convencion del organico espera PQ6 (Pauta y Media). Lleva migracion.
   Despues, E6: 117 (tras el 115; reprocesa los 23 envios de Tactical), 119/120 (token de Meta), 102.
-- Los recorridos visuales (080, 099, 072) necesitan la extension de Chrome conectada: claro/oscuro,
-  390 px, consola, clic en todo lo que se abre.
+- El recorrido visual del 072 necesita la extension de Chrome: claro/oscuro, 390 px, consola, clic en todo.
+  Chrome en Windows no baja de 500 px: se mide 390 con document.documentElement.style.zoom = innerWidth/390
+  (mismo breakpoint). Nunca reemplazar el body con iframes: la app no se deja enmarcar y rompe React.
 
 Del corte dependen decisiones de afuera: la fecha (closers), S1 Supabase Pro (equipo), la C3 de cada
 programa (O-5, gerente).
