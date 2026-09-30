@@ -121,6 +121,7 @@ async function crearLlamada(o: {
   resultado?: (typeof calls.$inferInsert)["resultado"];
   anulada?: boolean;
   createdAt?: Date;
+  origen?: string;
 }): Promise<string> {
   const marca = o.anulada ? { anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error" } : {};
   const [c] = await db
@@ -131,6 +132,7 @@ async function crearLlamada(o: {
       resultado: o.resultado ?? "agendada",
       fechaAgenda: o.fechaAgenda ?? null,
       emailLead: "lead@correo.co",
+      origen: o.origen ?? "calendly",
       ...(o.createdAt ? { createdAt: o.createdAt } : {}),
       ...marca,
     })
@@ -214,6 +216,13 @@ describe("inboxDelPrograma — llamadas sueltas", () => {
     const comoEquipo = await inboxDelPrograma(db, programId, "equipo", HOY);
     expect(comoCloser.llamadasSueltas.map((f) => f.callId)).toEqual([suelta]);
     expect(comoEquipo.llamadasSueltas.map((f) => f.callId)).toEqual([suelta]);
+  });
+
+  it("solo las de Calendly: una de la hoja que la migración no colgó no entra (078; Mani, 30-sep)", async () => {
+    const deCalendly = await crearLlamada({ dealId: null, fechaAgenda: enBogota(HOY) });
+    await crearLlamada({ dealId: null, fechaAgenda: enBogota(HOY), origen: "sheets" });
+    const inbox = await inboxDelPrograma(db, programId, "equipo", HOY);
+    expect(inbox.llamadasSueltas.map((f) => f.callId)).toEqual([deCalendly]);
   });
 });
 

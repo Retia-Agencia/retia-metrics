@@ -129,8 +129,14 @@ sigue decidiendo): **CA en 18 s y TI en 23 s**. Después: 0 transacciones abiert
 | CA | 691 | 13 | 24 | 72 (5) | 69 / 235 | 467 |
 | TI | 1.272 | 29 | 13 | 47 (7) | 74 / 156 | 741 |
 
-Antes de `--aplicar` siguen abiertos dos hallazgos del handoff (30-sep): las llamadas sueltas llenarían el Inbox
-(decidir con Mani, 071) y los estudiantes sin producto (43 en CA y 23 en TI: no hay producto USD con ese precio).
+**Las sueltas de la hoja no llegan al Inbox (30-sep, ok de Mani):** una llamada sin deal se asigna a mano solo si
+es de Calendly (`lib/calendly/suelta.ts`: `sueltaPorAsignar` / `esSueltaPorAsignar`, que importan el Inbox, Calls y
+`asignarLlamadaSuelta`). Las de la hoja que la migración no pudo colgar quedan como rareza `llamada_sin_deal`, y
+asignarlas forjando la petición da 404 (colgarlas de un deal vivo lo prohíbe el ADR 0059 punto 3). En producción,
+al 30-sep, las 23 sueltas son todas de Calendly: el Inbox no pierde ninguna.
+
+Antes de `--aplicar` sigue abierto el otro hallazgo del handoff (30-sep): los estudiantes sin producto (43 en CA y
+23 en TI: no hay producto USD con ese precio).
 
 Sin resolver en el extractor (va al importador o al 080): el cruce del `Agendado` con su llamada, los 12
 "cohorte pasada" de CA Septiembre (no hay columna que los marque), y el catálogo de motivos por código de

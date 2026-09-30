@@ -57,7 +57,7 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
     opcionesDeFicha(db, programa.id, null),
   ]);
   const sueltas = llamadas
-    .filter((c) => c.dealId == null)
+    .filter((c) => c.porAsignar)
     .map((c) => ({
       callId: c.callId,
       dealId: null,

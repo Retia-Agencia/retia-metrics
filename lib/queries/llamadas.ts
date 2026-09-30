@@ -3,6 +3,7 @@ import { calls, deals, leads, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { diaDeCalendario } from "@/lib/dias-habiles";
+import { esSueltaPorAsignar } from "@/lib/calendly/suelta";
 import { vigente } from "@/lib/queries/vigente";
 
 export type FiltroLlamadas = {
@@ -27,6 +28,8 @@ export interface FilaLlamadaPrograma {
   closerNombre: string | null;
   closerEmail: string | null;
   notas: string | null;
+  /** Suelta de Calendly que un closer cuelga a mano (`esSueltaPorAsignar`). */
+  porAsignar: boolean;
 }
 
 export interface OpcionesLlamadas {
@@ -56,6 +59,7 @@ export async function llamadasDelPrograma(
       closerNombre: users.nombre,
       closerEmail: users.email,
       notas: calls.notas,
+      origen: calls.origen,
     })
     .from(calls)
     .leftJoin(deals, and(eq(deals.id, calls.dealId), vigente(deals)))
@@ -87,6 +91,7 @@ export async function llamadasDelPrograma(
       closerNombre: f.closerNombre,
       closerEmail: f.closerEmail,
       notas: f.notas,
+      porAsignar: esSueltaPorAsignar(f),
     }))
     .sort(
       (a, b) =>

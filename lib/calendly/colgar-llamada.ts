@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import { calls, dealActividades, deals, leadContactos, leads, miembrosPrograma, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -9,6 +9,7 @@ import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { programaEnAlcance } from "@/lib/auth/alcance";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
+import { sueltaPorAsignar } from "./suelta";
 import { moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
 import { ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO } from "@/lib/deals/etapas";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
@@ -354,7 +355,7 @@ export async function asignarLlamadaSuelta(
           host: calls.calendlyHostEmail,
         })
         .from(calls)
-        .where(and(eq(calls.id, callId), isNull(calls.dealId), vigente(calls)));
+        .where(and(eq(calls.id, callId), sueltaPorAsignar(), vigente(calls)));
       // Inexistente, ya asignada, anulada o de un programa ajeno: el mismo 404.
       if (!llamada || !(await programaEnAlcance(actor.userId, actor.rol, llamada.programId, tx))) {
         throw new ErrorDeApp("No existe esa llamada suelta.", 404);

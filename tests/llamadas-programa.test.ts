@@ -28,7 +28,7 @@ beforeEach(async () => {
   const [deal] = await db.insert(deals).values({ programId, leadId: lead.id, cohortId: cohorte.id, etapa: "agendado", ownerUserId: closer }).returning();
   await db.insert(calls).values([
     { programId, dealId: deal.id, cohortId: cohorte.id, closerUserId: closer, emailLead: lead.emailNormalizado, resultado: "show", fechaAgenda: new Date("2026-09-28T15:00:00-05:00") },
-    { programId, dealId: null, emailLead: "suelta@correo.co", resultado: "agendada", fechaAgenda: new Date("2026-09-29T15:00:00-05:00") },
+    { programId, dealId: null, origen: "calendly", emailLead: "suelta@correo.co", resultado: "agendada", fechaAgenda: new Date("2026-09-29T15:00:00-05:00") },
     { programId, dealId: null, emailLead: "otra@correo.co", closerUserId: otroCloser, resultado: "cancelada", fechaAgenda: new Date("2026-09-27T15:00:00-05:00") },
   ]);
 });
@@ -40,6 +40,8 @@ describe("llamadasDelPrograma", () => {
     const todas = await llamadasDelPrograma(db, programId);
     expect(todas).toHaveLength(3);
     expect(todas.filter((c) => c.dealId == null)).toHaveLength(2);
+    // Se asigna a mano solo la de Calendly; la otra (origen de la hoja) no (078; Mani, 30-sep).
+    expect(todas.filter((c) => c.porAsignar).map((c) => c.leadEmail)).toEqual(["suelta@correo.co"]);
 
     const filtradas = await llamadasDelPrograma(db, programId, { closerUserId: otroCloser, resultado: "cancelada" });
     expect(filtradas).toHaveLength(1);

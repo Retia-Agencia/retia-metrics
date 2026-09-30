@@ -143,4 +143,16 @@ describe("asignarLlamadaSueltaAccion", () => {
     await expect(asignarLlamadaSueltaAccion({ callId: callSuelta, dealId: dealAbierto })).rejects.toThrow();
     expect((await llamada(callSuelta)).dealId).toBeNull();
   });
+
+  it("una llamada de la hoja sin deal no se asigna ni forjando la petición: 404 y no se cuelga (078)", async () => {
+    const [deLaHoja] = await db
+      .insert(calls)
+      .values({ programId: programaA, resultado: "show", emailLead: "lead@correo.co", origen: "sheets", huellaFila: "sheets:a:Registro:1" })
+      .returning();
+    auth.mockResolvedValue(sesionCloserA);
+    const { asignarLlamadaSueltaAccion } = await acciones();
+    const r = await asignarLlamadaSueltaAccion({ callId: deLaHoja.id, dealId: dealAbierto });
+    expect(r.ok).toBe(false);
+    expect((await llamada(deLaHoja.id)).dealId).toBeNull();
+  });
 });

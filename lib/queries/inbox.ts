@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, notInArray } from "drizzle-orm";
+import { and, eq, inArray, notInArray } from "drizzle-orm";
 import {
   abonos,
   calls,
@@ -16,6 +16,7 @@ import { diaDeCalendario, diasHabilesEntre } from "@/lib/dias-habiles";
 import { hoyEnBogota } from "@/lib/format";
 import { carteraVencida } from "@/lib/queries/cartera";
 import { vigente } from "@/lib/queries/vigente";
+import { sueltaPorAsignar } from "@/lib/calendly/suelta";
 
 /**
  * El READ MODEL del Inbox (ticket 071, ADR 0050): lo que un closer tiene que hacer HOY,
@@ -29,8 +30,9 @@ import { vigente } from "@/lib/queries/vigente";
  *     24-sep): llamadas VIGENTES de MIS deals cuya cita (día de Bogotá) es hoy o antes y
  *     cuyo `resultado` sigue en `agendada`. Es la red de seguridad para ponerse al día al
  *     final de un bloque de llamadas.
- *  3. **Llamadas sueltas** del programa (ADR 0049, decisión K2): llamadas vigentes con
- *     `deal_id` nulo, que un closer asigna a un deal desde aquí.
+ *  3. **Llamadas sueltas** del programa (ADR 0049, decisión K2): llamadas vigentes de
+ *     Calendly con `deal_id` nulo (`sueltaPorAsignar`), que un closer asigna a un deal desde
+ *     aquí. Las de la hoja que la migración no pudo colgar no entran: son rareza (078).
  *  4. **Lo mío que necesita atención**: MIS deals abiertos y vigentes, cada uno en UN solo
  *     bucket, el primero que casa en este orden: re-agenda sin fecha, compromiso vencido,
  *     fecha límite vencida con saldo, re-envío sin atender, estancado.
@@ -189,8 +191,8 @@ async function seccionLlamadasDeHoy(
 // ───────────────────────────────────────────── sección 3: llamadas sueltas del programa
 
 /**
- * Llamadas VIGENTES del programa con `deal_id` nulo (ADR 0049): un closer las cuelga de un
- * deal desde aquí. Es de programa, no de dueño: una suelta no tiene dueño todavía.
+ * Llamadas VIGENTES de Calendly con `deal_id` nulo (ADR 0049, `sueltaPorAsignar`): un closer
+ * las cuelga de un deal desde aquí. Es de programa, no de dueño: una suelta no tiene dueño todavía.
  */
 async function seccionLlamadasSueltas(db: Db, programId: string): Promise<FilaLlamada[]> {
   const filas = await db
@@ -201,7 +203,7 @@ async function seccionLlamadasSueltas(db: Db, programId: string): Promise<FilaLl
       emailLead: calls.emailLead,
     })
     .from(calls)
-    .where(and(eq(calls.programId, programId), isNull(calls.dealId), vigente(calls)));
+    .where(and(eq(calls.programId, programId), sueltaPorAsignar(), vigente(calls)));
 
   filas.sort((a, b) => (a.fechaAgenda?.getTime() ?? 0) - (b.fechaAgenda?.getTime() ?? 0));
   return filas.map((f) => ({
