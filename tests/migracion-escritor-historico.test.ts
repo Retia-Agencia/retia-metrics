@@ -19,9 +19,12 @@ import type { Db } from "@/lib/db/tipos";
 import { abrirDeal } from "@/lib/deals/mover-etapa";
 import {
   abrirDealHistorico,
+  abrirDealesHistoricos,
   duenoDesdeLaHoja,
   registrarAbonoHistorico,
+  registrarAbonosHistoricos,
   registrarLlamadaHistorica,
+  registrarLlamadasHistoricas,
 } from "@/lib/deals/historico";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -319,5 +322,104 @@ describe("duenoDesdeLaHoja (ADR 0059 punto 5)", () => {
 
   it("una closer sin membresia en el programa no es dueña posible ahi", async () => {
     expect(await duenoDesdeLaHoja(db, otroPrograma, "Maru")).toBeNull();
+  });
+});
+
+/**
+ * Ticket 078, rendimiento: la migracion escribe en LOTE. Con ~90 ms por viaje a la base, fila
+ * por fila la corrida de ComunicArte tardo 40 minutos con una transaccion abierta en
+ * produccion. El lote tiene que decidir exactamente lo mismo que la fila suelta.
+ */
+describe("en lote (ticket 078)", () => {
+  let beto: string;
+  let caro: string;
+
+  beforeEach(async () => {
+    const otros = await db
+      .insert(leads)
+      .values([
+        { programId: programa, emailNormalizado: "beto@correo.co", nombre: "Beto" },
+        { programId: programa, emailNormalizado: "caro@correo.co", nombre: "Caro" },
+      ])
+      .returning();
+    [beto, caro] = otros.map((l) => l.id);
+  });
+
+  it("en una sola llamada: creado, ya migrado, gana el vivo, y el orden de la respuesta es el de las altas", async () => {
+    const previo = await abrirDealHistorico(db, { leadId: lead, programId: programa, etapa: "completo", huella: H("ana"), actorId: script });
+    const vivo = await abrirDeal(db, { leadId: beto, programId: programa, etapa: "pendiente_setteo", actor: { tipo: "sistema" } });
+
+    const r = await abrirDealesHistoricos(db, [
+      { leadId: caro, programId: programa, etapa: "en_contacto", huella: H("caro"), actorId: script, notas: [{ texto: "hola" }] },
+      { leadId: lead, programId: programa, etapa: "completo", huella: H("ana"), actorId: script },
+      { leadId: beto, programId: programa, etapa: "en_contacto", huella: H("beto"), actorId: script, notas: [{ texto: "no" }] },
+    ]);
+
+    expect(r[0].estado).toBe("creado");
+    expect(r[1]).toEqual({ estado: "ya_migrado", dealId: (previo as { dealId: string }).dealId });
+    expect(r[2]).toEqual({ estado: "lead_con_deal_vivo", dealVivoId: vivo });
+    // Del que choco no queda ni historial, ni nota, ni bitacora.
+    expect(await db.select().from(deals)).toHaveLength(3);
+    expect(await db.select().from(dealEtapaHistorial)).toHaveLength(3);
+    const notas = await db.select().from(dealActividades);
+    expect(notas.map((n) => n.nota)).toEqual(["hola"]);
+    const deCaro = (r[0] as { dealId: string }).dealId;
+    const rastro = await db.select().from(changeLog).where(eq(changeLog.tabla, "deals"));
+    const registros = new Set(rastro.map((f) => f.registroId));
+    expect(registros.has(deCaro)).toBe(true);
+    expect(rastro.filter((f) => f.registroId === deCaro).every((f) => f.userId === script && f.etiqueta === "Caro")).toBe(true);
+  });
+
+  it("dos altas del mismo lead en el lote: la segunda choca con la primera, como corriendo una tras otra", async () => {
+    const r = await abrirDealesHistoricos(db, [
+      { leadId: caro, programId: programa, etapa: "en_contacto", huella: H("caro:1"), actorId: script },
+      { leadId: caro, programId: programa, etapa: "pendiente_setteo", huella: H("caro:2"), actorId: script },
+    ]);
+    expect(r[0].estado).toBe("creado");
+    expect(r[1]).toEqual({ estado: "lead_con_deal_vivo", dealVivoId: (r[0] as { dealId: string }).dealId });
+  });
+
+  it("una sola alta fuera de la frontera tumba el lote entero, sin escribir nada", async () => {
+    const [ajeno] = await db
+      .insert(leads)
+      .values({ programId: otroPrograma, emailNormalizado: "zoe@correo.co" })
+      .returning();
+    await expect(
+      abrirDealesHistoricos(db, [
+        { leadId: caro, programId: programa, etapa: "en_contacto", huella: H("caro"), actorId: script },
+        { leadId: ajeno.id, programId: programa, etapa: "en_contacto", huella: H("zoe"), actorId: script },
+      ]),
+    ).rejects.toThrow(/otro programa/);
+    expect(await db.select().from(deals)).toHaveLength(0);
+    expect(await db.select().from(changeLog)).toHaveLength(0);
+  });
+
+  it("abonos y llamadas: la segunda corrida del lote no duplica ni deja bitacora nueva", async () => {
+    const [d] = await abrirDealesHistoricos(db, [
+      { leadId: caro, programId: programa, etapa: "compromiso_verbal", huella: H("caro"), actorId: script },
+    ]);
+    const dealId = (d as { dealId: string }).dealId;
+    const listaAbonos = [1, 2].map((n) => ({ dealId, huella: H(`caro:abono:${n}`), actorId: script, fecha: "2026-08-18", monto: "100" }));
+    const listaLlamadas = [
+      { programId: programa, dealId, huella: H("caro:llamada"), actorId: script, resultado: "show" as const },
+      { programId: programa, huella: H("suelta"), actorId: script, resultado: "no_show" as const },
+    ];
+
+    const a1 = await registrarAbonosHistoricos(db, listaAbonos);
+    const l1 = await registrarLlamadasHistoricas(db, listaLlamadas);
+    const bitacora = (await db.select().from(changeLog)).length;
+    const a2 = await registrarAbonosHistoricos(db, listaAbonos);
+    const l2 = await registrarLlamadasHistoricas(db, listaLlamadas);
+
+    expect(a1.map((r) => r.estado)).toEqual(["creado", "creado"]);
+    expect(l1.map((r) => r.estado)).toEqual(["creado", "creado"]);
+    expect(a2).toEqual(a1.map((r) => ({ estado: "ya_migrado", id: r.id })));
+    expect(l2).toEqual(l1.map((r) => ({ estado: "ya_migrado", id: r.id })));
+    expect(await db.select().from(abonos)).toHaveLength(2);
+    expect(await db.select().from(calls)).toHaveLength(2);
+    expect((await db.select().from(changeLog)).length).toBe(bitacora);
+    // No mueve la etapa.
+    const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
+    expect(deal.etapa).toBe("compromiso_verbal");
   });
 });

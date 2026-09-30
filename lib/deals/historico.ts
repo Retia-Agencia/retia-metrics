@@ -1,14 +1,13 @@
-import { and, eq } from "drizzle-orm";
+import { and, inArray } from "drizzle-orm";
 import { abonos, calls, deals, users } from "@/lib/db/schema";
-import { crearConRastro } from "@/lib/crm/rastro";
-import { esViolacionUnica } from "@/lib/db/errores";
+import { crearVariosConRastro } from "@/lib/crm/rastro";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { mismoCloser } from "@/lib/closers/identidad";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { duenosPosibles } from "./duenos";
 
-export { abrirDealHistorico, type AltaHistorica, type DealHistorico } from "./mover-etapa";
+export { abrirDealHistorico, abrirDealesHistoricos, type AltaHistorica, type DealHistorico } from "./mover-etapa";
 
 /**
  * El escritor de lo HISTORICO: lo que paso en las pestañas de gestion antes del CRM
@@ -66,19 +65,34 @@ export interface AbonoHistorico {
  * importador, no un rechazo que pierda la plata.
  */
 export async function registrarAbonoHistorico(db: Db, abono: AbonoHistorico): Promise<EscrituraHistorica> {
-  exigirHuella(abono.huella);
-  if (!(Number(abono.monto) > 0)) throw new ErrorDeApp("El monto de un abono tiene que ser mayor que cero.", 422);
+  const [r] = await registrarAbonosHistoricos(db, [abono]);
+  return r;
+}
 
-  return conHuella(
-    () => buscarAbono(db, abono.huella),
-    () =>
-      (db as unknown as Transaccion).transaction(async (tx) => {
-        const deal = await dealDeLaMigracion(tx, abono.dealId);
-        return crearConRastro(
-          { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: abono.actorId, etiqueta: deal.id },
-          {
-            dealId: deal.id,
-            programId: deal.programId,
+/**
+ * `registrarAbonoHistorico` en lote (ticket 078): las mismas reglas, en una transaccion y con
+ * un insert de varias filas. La huella repetida la decide el indice (`ON CONFLICT DO
+ * NOTHING`, ADR 0005) y despues se busca cual era. Un resultado por abono, en orden.
+ */
+export async function registrarAbonosHistoricos(db: Db, lista: readonly AbonoHistorico[]): Promise<EscrituraHistorica[]> {
+  for (const abono of lista) {
+    exigirHuella(abono.huella);
+    if (!(Number(abono.monto) > 0)) throw new ErrorDeApp("El monto de un abono tiene que ser mayor que cero.", 422);
+  }
+  if (lista.length === 0) return [];
+  const actorId = unSoloActor(lista);
+
+  return (db as unknown as Transaccion).transaction(async (tx) => {
+    const deal = await dealesDeLaMigracion(tx, lista.map((a) => a.dealId));
+    const ids = await crearVariosConRastro(
+      { db: tx, tabla: abonos, nombreTabla: "abonos", actorId, omitirChoques: true },
+      lista.map((abono) => {
+        const d = deal.get(abono.dealId)!;
+        return {
+          etiqueta: d.id,
+          valores: {
+            dealId: d.id,
+            programId: d.programId,
             fecha: abono.fecha,
             monto: abono.monto,
             moneda: "USD",
@@ -87,9 +101,21 @@ export async function registrarAbonoHistorico(db: Db, abono: AbonoHistorico): Pr
             origen: "sheets",
             huellaMigracion: abono.huella,
           },
-        );
+        };
       }),
-  );
+    );
+
+    const chocadas = lista.filter((_, i) => ids[i] == null).map((a) => a.huella);
+    const previos = new Map<string, string>();
+    if (chocadas.length > 0) {
+      const filas = await tx
+        .select({ id: abonos.id, huella: abonos.huellaMigracion })
+        .from(abonos)
+        .where(and(inArray(abonos.huellaMigracion, chocadas), incluyendoAnulados(abonos)));
+      for (const f of filas) if (f.huella) previos.set(f.huella, f.id);
+    }
+    return lista.map((abono, i) => resultado(ids[i], previos.get(abono.huella)));
+  });
 }
 
 export interface LlamadaHistorica {
@@ -113,31 +139,40 @@ export interface LlamadaHistorica {
  * tenia con su indice unico por programa.
  */
 export async function registrarLlamadaHistorica(db: Db, llamada: LlamadaHistorica): Promise<EscrituraHistorica> {
-  exigirHuella(llamada.huella);
+  const [r] = await registrarLlamadasHistoricas(db, [llamada]);
+  return r;
+}
 
-  return conHuella(
-    () => buscarLlamada(db, llamada.programId, llamada.huella),
-    () =>
-      (db as unknown as Transaccion).transaction(async (tx) => {
+/** `registrarLlamadaHistorica` en lote (ticket 078), con las reglas de `registrarAbonosHistoricos`. */
+export async function registrarLlamadasHistoricas(
+  db: Db,
+  lista: readonly LlamadaHistorica[],
+): Promise<EscrituraHistorica[]> {
+  for (const llamada of lista) exigirHuella(llamada.huella);
+  if (lista.length === 0) return [];
+  const actorId = unSoloActor(lista);
+
+  return (db as unknown as Transaccion).transaction(async (tx) => {
+    const deal = await dealesDeLaMigracion(
+      tx,
+      lista.flatMap((l) => (l.dealId ? [l.dealId] : [])),
+    );
+    const ids = await crearVariosConRastro(
+      { db: tx, tabla: calls, nombreTabla: "calls", actorId, omitirChoques: true },
+      lista.map((llamada) => {
         let cohortId: string | null = null;
         if (llamada.dealId) {
-          const deal = await dealDeLaMigracion(tx, llamada.dealId);
+          const d = deal.get(llamada.dealId)!;
           // El programa es frontera (ADR 0043): una llamada de un programa colgada de un deal
           // de otro mezclaria las dos economias sin lanzar ningun error.
-          if (deal.programId !== llamada.programId) {
+          if (d.programId !== llamada.programId) {
             throw new ErrorDeApp("El deal es de otro programa: la llamada no se puede colgar de el.", 422);
           }
-          cohortId = deal.cohortId;
+          cohortId = d.cohortId;
         }
-        return crearConRastro(
-          {
-            db: tx,
-            tabla: calls,
-            nombreTabla: "calls",
-            actorId: llamada.actorId,
-            etiqueta: llamada.emailLead ?? llamada.huella,
-          },
-          {
+        return {
+          etiqueta: llamada.emailLead ?? llamada.huella,
+          valores: {
             dealId: llamada.dealId ?? null,
             programId: llamada.programId,
             cohortId,
@@ -151,9 +186,21 @@ export async function registrarLlamadaHistorica(db: Db, llamada: LlamadaHistoric
             origen: "sheets",
             huellaFila: llamada.huella,
           },
-        );
+        };
       }),
-  );
+    );
+
+    const chocadas = lista.filter((_, i) => ids[i] == null);
+    const previas = new Map<string, string>();
+    if (chocadas.length > 0) {
+      const filas = await tx
+        .select({ id: calls.id, programId: calls.programId, huella: calls.huellaFila })
+        .from(calls)
+        .where(and(inArray(calls.huellaFila, chocadas.map((l) => l.huella)), incluyendoAnulados(calls)));
+      for (const f of filas) if (f.huella) previas.set(`${f.programId}:${f.huella}`, f.id);
+    }
+    return lista.map((llamada, i) => resultado(ids[i], previas.get(`${llamada.programId}:${llamada.huella}`)));
+  });
 }
 
 function exigirHuella(huella: string): void {
@@ -162,52 +209,40 @@ function exigirHuella(huella: string): void {
   }
 }
 
-/**
- * El deal al que se le cuelga algo: tiene que existir, no estar anulado y **haber salido de
- * la migracion**. Al deal vivo del CRM no se le cuelga nada (ADR 0059 punto 3): un abono
- * historico sobre el no lo moveria de etapa y dejaria su saldo y su etapa en desacuerdo.
- */
-async function dealDeLaMigracion(tx: Db, dealId: string): Promise<typeof deals.$inferSelect> {
-  const [deal] = await tx.select().from(deals).where(and(eq(deals.id, dealId), incluyendoAnulados(deals)));
-  if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
-  if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado: no se le cuelga nada.", 409);
-  if (deal.huellaMigracion == null) {
-    throw new ErrorDeApp("El deal es del CRM, no de la migración: gana el vivo y no se le cuelga nada.", 409);
-  }
-  return deal;
+function unSoloActor(lista: readonly { actorId: string }[]): string {
+  const actorId = lista[0].actorId;
+  if (lista.some((x) => x.actorId !== actorId)) throw new Error("Un lote historico tiene un solo actor.");
+  return actorId;
 }
 
 /**
- * Escribe, y si la base rechaza la huella repetida devuelve la fila que ya estaba. La
- * pregunta se hace DESPUES del choque y fuera de la transaccion deshecha: quien decide que
- * ya entro es el indice, no un `select` previo (ADR 0005).
+ * Escrita, o ya estaba: quien decide que ya entro es el indice, no un `select` previo
+ * (ADR 0005). Si no se escribio y tampoco esta su huella, choco con OTRO indice unico, y
+ * eso no se esconde.
  */
-async function conHuella(
-  buscar: () => Promise<string | undefined>,
-  escribir: () => Promise<string>,
-): Promise<EscrituraHistorica> {
-  try {
-    return { estado: "creado", id: await escribir() };
-  } catch (e) {
-    if (!esViolacionUnica(e)) throw e;
-    const id = await buscar();
-    if (id) return { estado: "ya_migrado", id };
-    throw e;
+function resultado(escrita: string | null, previa: string | undefined): EscrituraHistorica {
+  if (escrita) return { estado: "creado", id: escrita };
+  if (previa) return { estado: "ya_migrado", id: previa };
+  throw new Error("Una fila historica choco con un indice unico que no es su huella.");
+}
+
+/**
+ * Los deals a los que se les cuelga algo: tienen que existir, no estar anulados y **haber
+ * salido de la migracion**. Al deal vivo del CRM no se le cuelga nada (ADR 0059 punto 3): un
+ * abono historico sobre el no lo moveria de etapa y dejaria su saldo y su etapa en desacuerdo.
+ */
+async function dealesDeLaMigracion(tx: Db, dealIds: readonly string[]): Promise<Map<string, typeof deals.$inferSelect>> {
+  const unicos = [...new Set(dealIds)];
+  if (unicos.length === 0) return new Map();
+  const filas = await tx.select().from(deals).where(and(inArray(deals.id, unicos), incluyendoAnulados(deals)));
+  const porId = new Map(filas.map((d) => [d.id, d]));
+  for (const id of unicos) {
+    const deal = porId.get(id);
+    if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
+    if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado: no se le cuelga nada.", 409);
+    if (deal.huellaMigracion == null) {
+      throw new ErrorDeApp("El deal es del CRM, no de la migración: gana el vivo y no se le cuelga nada.", 409);
+    }
   }
-}
-
-async function buscarAbono(db: Db, huella: string): Promise<string | undefined> {
-  const [fila] = await db
-    .select({ id: abonos.id })
-    .from(abonos)
-    .where(and(eq(abonos.huellaMigracion, huella), incluyendoAnulados(abonos)));
-  return fila?.id;
-}
-
-async function buscarLlamada(db: Db, programId: string, huella: string): Promise<string | undefined> {
-  const [fila] = await db
-    .select({ id: calls.id })
-    .from(calls)
-    .where(and(eq(calls.programId, programId), eq(calls.huellaFila, huella), incluyendoAnulados(calls)));
-  return fila?.id;
+  return porId;
 }

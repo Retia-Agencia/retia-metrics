@@ -2,10 +2,13 @@ import { and, eq } from "drizzle-orm";
 import { cohorts, leadContactos, leads, plataformasPago, productos, rarezasMigracion } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
-  abrirDealHistorico,
+  abrirDealesHistoricos,
   duenoDesdeLaHoja,
-  registrarAbonoHistorico,
-  registrarLlamadaHistorica,
+  registrarAbonosHistoricos,
+  registrarLlamadasHistoricas,
+  type AbonoHistorico,
+  type AltaHistorica,
+  type LlamadaHistorica,
 } from "@/lib/deals/historico";
 import { enviosDeOrigenPorLead } from "@/lib/ingesta/envio-de-origen";
 import { normalizarTexto } from "@/lib/sheets/mapeo";
@@ -80,6 +83,7 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
   // ── deals
   const dealPorHuella = new Map<string, { id: string; cohorte: string | null }>();
   const duenos = new Map<string, string | null>();
+  const altas: { d: (typeof t.deals)[number]; alta: AltaHistorica }[] = [];
   for (const d of t.deals) {
     const leadId = ctx.leadDeCorreo.get(d.correo);
     if (!leadId) {
@@ -109,7 +113,7 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
     const closer = d.closer ?? "";
     if (!duenos.has(closer)) duenos.set(closer, await duenoDesdeLaHoja(db, op.programId, d.closer));
 
-    const r = await abrirDealHistorico(db, {
+    const alta: AltaHistorica = {
       leadId,
       programId: op.programId,
       etapa: d.etapa,
@@ -123,7 +127,13 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
       acuerdoPago: d.acuerdoPago,
       onboardedAt: op.onboardedDesdeMail && d.mailOnboarding && d.fechaEtapa ? new Date(d.fechaEtapa) : null,
       notas: d.notas.map((n) => ({ texto: n.texto, fecha: n.fecha ? new Date(n.fecha) : null })),
-    });
+    };
+    altas.push({ d, alta });
+  }
+  // En lote (ticket 078): fila por fila eran ~20 viajes a la base por deal.
+  const resultadosDeals = await abrirDealesHistoricos(db, altas.map((a) => a.alta));
+  for (const [i, { d }] of altas.entries()) {
+    const r = resultadosDeals[i];
     sumar(reporte.deals, r.estado);
     if (r.estado === "lead_con_deal_vivo") {
       marcar(d.huella, "ya_tiene_deal_vivo", "El lead ya tiene un deal abierto en el CRM: gana el vivo y no se le cuelga nada.");
@@ -135,6 +145,7 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
   }
 
   // ── abonos
+  const porAbonar: { a: (typeof t.abonos)[number]; abono: AbonoHistorico }[] = [];
   for (const a of t.abonos) {
     const deal = dealPorHuella.get(a.dealHuella);
     if (!deal) {
@@ -151,28 +162,27 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
       continue;
     }
     const plataformaId = a.plataforma ? (ctx.plataformas.get(clavePlataforma(a.plataforma)) ?? null) : null;
-    const r = await registrarAbonoHistorico(db, {
-      dealId: deal.id,
-      huella: a.huella,
-      actorId: op.actorId,
-      fecha,
-      monto: a.monto,
-      plataformaId,
-      closer: a.closer,
+    porAbonar.push({
+      a,
+      abono: { dealId: deal.id, huella: a.huella, actorId: op.actorId, fecha, monto: a.monto, plataformaId, closer: a.closer },
     });
+  }
+  const resultadosAbonos = await registrarAbonosHistoricos(db, porAbonar.map((x) => x.abono));
+  for (const [i, { a, abono }] of porAbonar.entries()) {
+    const r = resultadosAbonos[i];
     sumar(reporte.abonos, r.estado);
-    enlazar(a.huella, { dealId: deal.id, abonoId: r.id });
-    if (a.plataforma && !plataformaId) {
+    enlazar(a.huella, { dealId: abono.dealId, abonoId: r.id });
+    if (a.plataforma && !abono.plataformaId) {
       marcar(a.huella, "plataforma_fuera_de_catalogo", `Plataforma "${a.plataforma}": no está en el catálogo (o viene combinada). El abono entra sin plataforma.`);
     }
   }
 
   // ── llamadas
-  for (const l of t.llamadas) {
+  const llamadas = t.llamadas.map((l) => {
     const dealHuella = l.correo ? t.dealDeCorreo.get(l.correo) : undefined;
     const dealId = dealHuella ? dealPorHuella.get(dealHuella)?.id : undefined;
     const notas = [l.notas, l.link ? `Link: ${l.link}` : null].filter(Boolean).join("\n") || null;
-    const r = await registrarLlamadaHistorica(db, {
+    const llamada: LlamadaHistorica = {
       programId: op.programId,
       dealId: dealId ?? null,
       huella: l.huella,
@@ -184,7 +194,12 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
       // `motivo_perdida` es el texto libre de las filas viejas de Sheets (ADR 0015).
       motivoPerdida: [l.categoria, l.subcategoria].filter(Boolean).join(" · ") || null,
       notas,
-    });
+    };
+    return { l, dealId, llamada };
+  });
+  const resultadosLlamadas = await registrarLlamadasHistoricas(db, llamadas.map((x) => x.llamada));
+  for (const [i, { l, dealId }] of llamadas.entries()) {
+    const r = resultadosLlamadas[i];
     sumar(reporte.llamadas, dealId ? r.estado : `${r.estado}_suelta`);
     enlazar(l.huella, { dealId, callId: r.id });
     // Sin correo ya es rareza del extractor; con correo y sin deal migrado, es de aqui.

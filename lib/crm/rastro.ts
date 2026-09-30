@@ -115,23 +115,90 @@ export async function crearConRastro(
     ([campo, valor]) => campo !== "id" && valor !== null && valor !== undefined,
   );
 
+  // La bitacora va en UN insert de varias filas: una consulta por campo eran diez viajes a
+  // la base por alta.
+  const bitacora = aRegistrar.map(([campo, valor]) => filaDeBitacora(nombreTabla, actorId, id, etiqueta, campo, valor));
   await ejecutarJuntas(db, (tx) => [
     (tx as Db).insert(tabla as never).values({ id, ...valores } as never),
-    ...aRegistrar.map(([campo, valor]) =>
-      (tx as Db).insert(changeLog).values({
-        tabla: nombreTabla,
-        registroId: id,
-        etiqueta,
-        campo,
-        valorAnterior: null,
-        valorNuevo: aTexto(valor),
-        origen: "app" as const,
-        userId: actorId,
-      }),
-    ),
+    ...(bitacora.length > 0 ? [(tx as Db).insert(changeLog).values(bitacora)] : []),
   ]);
 
   return id;
+}
+
+function filaDeBitacora(
+  nombreTabla: TablaConRastro,
+  actorId: string | null,
+  id: string,
+  etiqueta: string,
+  campo: string,
+  valor: unknown,
+) {
+  return {
+    tabla: nombreTabla,
+    registroId: id,
+    etiqueta,
+    campo,
+    valorAnterior: null,
+    valorNuevo: aTexto(valor),
+    origen: "app" as const,
+    userId: actorId,
+  };
+}
+
+/** Filas por consulta: lejos del limite de 65.535 parametros de Postgres. */
+const FILAS_POR_LOTE = 500;
+
+export interface AltaEnLote {
+  valores: Record<string, unknown>;
+  /** La etiqueta de ESTA fila (ver `Contexto.etiqueta`). */
+  etiqueta: string;
+}
+
+/**
+ * `crearConRastro` para muchas filas de la misma tabla: las altas y su bitacora en UNA
+ * transaccion, con un insert de varias filas por lote en vez de una consulta por fila. Lo
+ * usa la migracion (ADR 0059, ticket 078): con ~90 ms por viaje a la base, fila por fila
+ * la corrida de un programa tardo 40 minutos con una transaccion abierta en produccion.
+ *
+ * Con `omitirChoques`, una fila que choca con un indice unico NO se escribe, y tampoco su
+ * bitacora (`ON CONFLICT DO NOTHING`): quien decide que ya entro sigue siendo el indice
+ * (ADR 0005), y el llamador pregunta despues por las que faltan. Devuelve, por posicion,
+ * el id de cada fila escrita o `null` si choco.
+ */
+export async function crearVariosConRastro(
+  ctx: Omit<Contexto, "etiqueta"> & { omitirChoques?: true },
+  altas: readonly AltaEnLote[],
+): Promise<(string | null)[]> {
+  for (const a of altas) exigirQueLaEtapaVengaDelMotor({ ...ctx, etiqueta: a.etiqueta }, a.valores);
+  if (altas.length === 0) return [];
+  const ids = altas.map(() => crypto.randomUUID());
+  const escritos = new Set<string>();
+  const idCol = (ctx.tabla as unknown as Record<string, unknown>).id as never;
+
+  await (ctx.db as { transaction: (fn: (tx: Db) => Promise<void>) => Promise<void> }).transaction(async (tx) => {
+    for (let i = 0; i < altas.length; i += FILAS_POR_LOTE) {
+      const filas = altas.slice(i, i + FILAS_POR_LOTE).map((a, j) => ({ id: ids[i + j], ...a.valores }));
+      type ConReturning = { returning: (campos: Record<string, never>) => Promise<{ id: string }[]> };
+      const insert = tx.insert(ctx.tabla as never).values(filas as never);
+      const conChoques = (ctx.omitirChoques ? insert.onConflictDoNothing() : insert) as unknown as ConReturning;
+      const devueltas = await conChoques.returning({ id: idCol });
+      for (const d of devueltas) escritos.add(d.id);
+    }
+
+    const bitacora = altas.flatMap((a, i) =>
+      escritos.has(ids[i])
+        ? Object.entries(a.valores)
+            .filter(([campo, valor]) => campo !== "id" && valor !== null && valor !== undefined)
+            .map(([campo, valor]) => filaDeBitacora(ctx.nombreTabla, ctx.actorId, ids[i], a.etiqueta, campo, valor))
+        : [],
+    );
+    for (let i = 0; i < bitacora.length; i += FILAS_POR_LOTE) {
+      await tx.insert(changeLog).values(bitacora.slice(i, i + FILAS_POR_LOTE));
+    }
+  });
+
+  return ids.map((id) => (escritos.has(id) ? id : null));
 }
 
 /**

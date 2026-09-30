@@ -12,7 +12,7 @@ import {
   submissions,
 } from "@/lib/db/schema";
 import { exigirAreaActiva } from "@/lib/catalogo/areas";
-import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
+import { crearConRastro, crearVariosConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { esViolacionUnica } from "@/lib/db/errores";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
@@ -438,49 +438,85 @@ export type DealHistorico =
  * repetida es la segunda corrida, y el cupo ocupado es el deal vivo que gana.
  */
 export async function abrirDealHistorico(db: Db, alta: AltaHistorica): Promise<DealHistorico> {
-  if (alta.huella.trim() === "") {
-    throw new Error("Un deal historico sin huella no se puede volver a encontrar: la migracion la tiene que dar.");
-  }
-  const notas = (alta.notas ?? []).filter((n) => n.texto.trim() !== "");
+  const [r] = await abrirDealesHistoricos(db, [alta]);
+  return r;
+}
 
-  try {
-    return await (db as unknown as Transaccion).transaction(async (tx) => {
-      const [lead] = await tx.select().from(leads).where(eq(leads.id, alta.leadId));
-      if (!lead) throw new ErrorDeApp("No existe el lead.", 404);
-      if (lead.programId !== alta.programId) {
+/**
+ * `abrirDealHistorico` para todo un programa: las mismas reglas, en lote (ticket 078). Fila
+ * por fila eran ~20 viajes a la base por deal, y la corrida de un programa tardo 40 minutos
+ * con una transaccion abierta en produccion; en lote son unas diez consultas por cada 500.
+ *
+ * Todo en una transaccion: la frontera de programa se valida para TODAS las altas antes de
+ * escribir (una sola mala tumba el lote, como tumbaba la corrida), y los choques los sigue
+ * decidiendo el indice (`ON CONFLICT DO NOTHING`, ADR 0005); despues solo se pregunta cual
+ * de los dos fue. Devuelve un resultado por alta, en el mismo orden.
+ */
+export async function abrirDealesHistoricos(db: Db, altas: readonly AltaHistorica[]): Promise<DealHistorico[]> {
+  for (const alta of altas) {
+    if (alta.huella.trim() === "") {
+      throw new Error("Un deal historico sin huella no se puede volver a encontrar: la migracion la tiene que dar.");
+    }
+  }
+  if (altas.length === 0) return [];
+  const actorId = altas[0].actorId;
+  if (altas.some((a) => a.actorId !== actorId)) throw new Error("Un lote historico tiene un solo actor.");
+
+  const leadIds = unicos(altas.map((a) => a.leadId));
+  const productoIds = unicos(altas.map((a) => a.productoId));
+  const cohortIds = unicos(altas.map((a) => a.cohortId));
+  const envioIds = unicos(altas.map((a) => a.submissionOrigenId));
+
+  return (db as unknown as Transaccion).transaction(async (tx) => {
+    // Las cuatro lecturas de la frontera viajan juntas.
+    const [filasLead, filasProd, filasCoh, filasEnv] = await Promise.all([
+      tx
+        .select({ id: leads.id, programId: leads.programId, nombre: leads.nombre, email: leads.emailNormalizado })
+        .from(leads)
+        .where(inArray(leads.id, leadIds)),
+      productoIds.length > 0
+        ? tx.select({ id: productos.id, programId: productos.programId }).from(productos).where(inArray(productos.id, productoIds))
+        : Promise.resolve([]),
+      cohortIds.length > 0
+        ? tx.select({ id: cohorts.id, programId: cohorts.programId }).from(cohorts).where(inArray(cohorts.id, cohortIds))
+        : Promise.resolve([]),
+      envioIds.length > 0
+        ? tx.select({ id: submissions.id, leadId: submissions.leadId }).from(submissions).where(inArray(submissions.id, envioIds))
+        : Promise.resolve([]),
+    ]);
+    const lead = new Map(filasLead.map((l) => [l.id, l]));
+    const programaDeProducto = new Map(filasProd.map((p) => [p.id, p.programId]));
+    const programaDeCohorte = new Map(filasCoh.map((c) => [c.id, c.programId]));
+    const leadDeEnvio = new Map(filasEnv.map((s) => [s.id, s.leadId]));
+
+    const etiquetas = altas.map((alta) => {
+      const l = lead.get(alta.leadId);
+      if (!l) throw new ErrorDeApp("No existe el lead.", 404);
+      if (l.programId !== alta.programId) {
         throw new ErrorDeApp("El lead es de otro programa: el deal tiene que abrirse en el programa del lead.", 422);
       }
-      const etiqueta = lead.nombre ?? lead.emailNormalizado;
       // La frontera tambien vale para el producto y la cohorte: la FK solo mira que existan, y
       // un producto de otro programa haria el saldo con el precio equivocado sin ningun error.
       // No se exige que el producto este activo: una venta vieja pudo ser de uno ya retirado.
-      if (alta.productoId) {
-        const [prod] = await tx
-          .select({ id: productos.id })
-          .from(productos)
-          .where(and(eq(productos.id, alta.productoId), eq(productos.programId, alta.programId)));
-        if (!prod) throw new ErrorDeApp("El producto no existe o es de otro programa.", 422);
+      if (alta.productoId && programaDeProducto.get(alta.productoId) !== alta.programId) {
+        throw new ErrorDeApp("El producto no existe o es de otro programa.", 422);
       }
-      if (alta.cohortId) {
-        const [coh] = await tx
-          .select({ id: cohorts.id })
-          .from(cohorts)
-          .where(and(eq(cohorts.id, alta.cohortId), eq(cohorts.programId, alta.programId)));
-        if (!coh) throw new ErrorDeApp("La cohorte no existe o es de otro programa.", 422);
+      if (alta.cohortId && programaDeCohorte.get(alta.cohortId) !== alta.programId) {
+        throw new ErrorDeApp("La cohorte no existe o es de otro programa.", 422);
       }
       // El origen de la venta (ADR 0060): la FK solo mira que el envío exista, y uno de otro
       // lead le atribuiría a esta venta el clic de otra persona sin ningún error.
-      if (alta.submissionOrigenId) {
-        const [env] = await tx
-          .select({ id: submissions.id })
-          .from(submissions)
-          .where(and(eq(submissions.id, alta.submissionOrigenId), eq(submissions.leadId, alta.leadId)));
-        if (!env) throw new ErrorDeApp("El envío de origen no existe o es de otro lead.", 422);
+      if (alta.submissionOrigenId && leadDeEnvio.get(alta.submissionOrigenId) !== alta.leadId) {
+        throw new ErrorDeApp("El envío de origen no existe o es de otro lead.", 422);
       }
+      return l.nombre ?? l.email;
+    });
 
-      const dealId = await crearConRastro(
-        { db: tx, tabla: deals, nombreTabla: "deals", actorId: alta.actorId, etiqueta, desdeElMotor: true },
-        {
+    const ids = await crearVariosConRastro(
+      { db: tx, tabla: deals, nombreTabla: "deals", actorId, desdeElMotor: true, omitirChoques: true },
+      altas.map((alta, i) => ({
+        etiqueta: etiquetas[i],
+        valores: {
           leadId: alta.leadId,
           programId: alta.programId,
           etapa: alta.etapa,
@@ -493,48 +529,76 @@ export async function abrirDealHistorico(db: Db, alta: AltaHistorica): Promise<D
           huellaMigracion: alta.huella,
           creadoPor: null,
         },
-      );
+      })),
+    );
 
-      await tx.insert(dealEtapaHistorial).values({
-        dealId,
-        de: null,
-        a: alta.etapa,
-        userId: null,
-        ...(alta.fechaEtapa ? { fecha: alta.fechaEtapa } : {}),
-      });
+    // Los que chocaron: se pregunta cual de los dos indices fue. La huella repetida es la
+    // segunda corrida; el cupo ocupado es el deal vivo que gana.
+    const chocados = altas.filter((_, i) => ids[i] == null);
+    const migrados = new Map<string, string>();
+    const vivos = new Map<string, string>();
+    if (chocados.length > 0) {
+      const [porHuella, abiertos] = await Promise.all([
+        tx
+          .select({ id: deals.id, huella: deals.huellaMigracion })
+          .from(deals)
+          .where(and(inArray(deals.huellaMigracion, chocados.map((a) => a.huella)), incluyendoAnulados(deals))),
+        tx
+          .select({ id: deals.id, leadId: deals.leadId, programId: deals.programId })
+          .from(deals)
+          .where(
+            and(
+              inArray(deals.leadId, unicos(chocados.map((a) => a.leadId))),
+              notInArray(deals.etapa, ["completo", "cierre_perdido"]),
+              vigente(deals),
+            ),
+          ),
+      ]);
+      for (const d of porHuella) if (d.huella) migrados.set(d.huella, d.id);
+      for (const d of abiertos) vivos.set(`${d.leadId}:${d.programId}`, d.id);
+    }
 
-      for (const nota of notas) {
-        await crearConRastro(
-          { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: alta.actorId, etiqueta },
-          { dealId, tipo: "nota", userId: null, nota: nota.texto, ...(nota.fecha ? { fecha: nota.fecha } : {}) },
-        );
-      }
-
-      return { estado: "creado", dealId } as const;
+    const creados = altas.flatMap((alta, i) => {
+      const dealId = ids[i];
+      return dealId ? [{ alta, dealId, etiqueta: etiquetas[i] }] : [];
     });
-  } catch (e) {
-    if (!esViolacionUnica(e)) throw e;
-    // La transaccion ya se deshizo; se pregunta afuera cual de los dos indices choco.
-    const [migrado] = await db
-      .select({ id: deals.id })
-      .from(deals)
-      .where(and(eq(deals.huellaMigracion, alta.huella), incluyendoAnulados(deals)));
-    if (migrado) return { estado: "ya_migrado", dealId: migrado.id };
-
-    const [vivo] = await db
-      .select({ id: deals.id })
-      .from(deals)
-      .where(
-        and(
-          eq(deals.leadId, alta.leadId),
-          eq(deals.programId, alta.programId),
-          notInArray(deals.etapa, ["completo", "cierre_perdido"]),
-          vigente(deals),
-        ),
+    for (let i = 0; i < creados.length; i += 500) {
+      await tx.insert(dealEtapaHistorial).values(
+        creados.slice(i, i + 500).map(({ alta, dealId }) => ({
+          dealId,
+          de: null,
+          a: alta.etapa,
+          userId: null,
+          ...(alta.fechaEtapa ? { fecha: alta.fechaEtapa } : {}),
+        })),
       );
-    if (vivo) return { estado: "lead_con_deal_vivo", dealVivoId: vivo.id };
-    throw e;
-  }
+    }
+    await crearVariosConRastro(
+      { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId },
+      creados.flatMap(({ alta, dealId, etiqueta }) =>
+        (alta.notas ?? [])
+          .filter((n) => n.texto.trim() !== "")
+          .map((nota) => ({
+            etiqueta,
+            valores: { dealId, tipo: "nota", userId: null, nota: nota.texto, ...(nota.fecha ? { fecha: nota.fecha } : {}) },
+          })),
+      ),
+    );
+
+    return altas.map((alta, i): DealHistorico => {
+      const dealId = ids[i];
+      if (dealId) return { estado: "creado", dealId };
+      const migrado = migrados.get(alta.huella);
+      if (migrado) return { estado: "ya_migrado", dealId: migrado };
+      const vivo = vivos.get(`${alta.leadId}:${alta.programId}`);
+      if (vivo) return { estado: "lead_con_deal_vivo", dealVivoId: vivo };
+      throw new Error("Un deal historico choco con un indice unico que no es su huella ni el cupo del lead.");
+    });
+  });
+}
+
+function unicos(xs: readonly (string | null | undefined)[]): string[] {
+  return [...new Set(xs.filter((x): x is string => !!x))];
 }
 
 /**
