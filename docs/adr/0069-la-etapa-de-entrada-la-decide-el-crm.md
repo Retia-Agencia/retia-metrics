@@ -36,6 +36,10 @@ hay razón para que cada programa enrute distinto.
 4. **`lead_value` no cambia la etapa:** se guarda y ordena el trabajo, pero no enruta.
 5. **La variable `estado` deja de leerse.** `estados_llegada` y su pantalla se retiran cuando el código nuevo esté
    desplegado; lo que llegue con `estado` se ignora sin error.
+6. **El puntaje es UN estándar para todo formulario de todo programa** (Mani, 1-oct): las mismas preguntas que
+   puntúan, los mismos puntos, los mismos descalificantes y los mismos tramos de `lead_value` y `lead_quality`.
+   Solo cambian por programa los rangos de ingreso. El estándar está escrito en `docs/dapta/README.md`
+   ("Estándar de puntaje"); un formulario que se aparte es un bug, no una variante.
 
 ## Cuándo se construye
 

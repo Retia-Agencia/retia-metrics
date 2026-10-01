@@ -101,6 +101,29 @@ empuja al mismo main y el numero de migracion puede chocar.
 
 ## Memory
 
+- **2026-10-01 (Mani, sesión 65): Dapta de punta a punta; 130 cerrado; ADR 0068 y 0069.**
+  - **Hecho:** la "migración ajena" ya la había resuelto Alejo (0051 y 0052 cuadran por hash y `created_at`). 130
+    cerrado con seis envíos reales en ComunicArte (tabla en el ticket). 🩸 **Las UTM de Dapta se perdían todas**: el
+    adaptador leía `utm.source` y Dapta manda `utm.utm_source` (y `utm.utm_id` nativo); el fixture sintético tenía la
+    forma inventada y el contrato pasaba. Arreglado (`7d6c04d`), verificado en producción, y el contrato de
+    proveedores ahora pasa un **cuerpo REAL** de cada proveedor por la ruta real y exige en la base todas las UTM y
+    todos los campos intactos (`f435a66`, muerde). Firma falsa contra producción: 401 y la base quieta. Deals de
+    prueba anulados por `anularDeal` con motivo.
+  - **Typeform de ComunicArte (con ok de Mani):** la única regla que aún mandaba `descartado` (inversión "No") manda
+    `setteo_no_calificado`. `descartado` apagado en `estados_llegada` de los tres programas (por el molde, con rastro).
+  - **Decidido (Mani):** **ADR 0068** (A11): el link de captación sale de la fuente, una principal por programa;
+    `programs.form_url` se retira en dos pasos; se construye en el 092 (enmendado). **ADR 0069:** el formulario deja de
+    mandar `estado`; manda agenda, calidad y valor, y el CRM enruta con la regla de 30X (parcial sin calidad →
+    Potencial, Low/Mid → Registrado, High → Calificado, agendó → Agendado); el puntaje es UN estándar para todo
+    formulario (`docs/dapta/README.md`). Se construye con las etapas de 30X (lote 2), no antes.
+  - 🧪 **Dapta:** el `label` del outcome es a la vez el título de la pantalla final y lo que manda el webhook; por eso
+    los redirects. `data.agenda` llega como `"booked"`. La completa puede llegar antes que la parcial.
+  - **Pendiente:** (1) Mani manda el mensaje a Dapta (token de solo lectura, `inviteeUri` y el `id` del outcome); con
+    el `id`, cambiar el generador para que el título sea texto normal y quitar los redirects; hasta entonces no se
+    reparte el link de Dapta. (2) Memorable sin Calendly: recomendado despublicar hasta configurarlo (link en el
+    generador, token en `/ajustes/programas`, Calendly en Dapta, webhook 096, activar). (3) Construir el ADR 0069 con
+    el lote 2. (4) El 092 con el ADR 0068.
+
 - **2026-10-01 (Alejo, sesión 64): el 117 en producción y dos 0050 a la vez; después 136 y 137.**
   - **Qué pasó:** Mani aplicó su 0050 (130/131) minutos antes que la del 117, que también se llamaba 0050. Las dos
     quedaron aplicadas (filas 51 y 52) y no se pisan. La del 117 se renumeró a **0051** con el SQL byte a byte (mismo
@@ -3742,7 +3765,7 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 - **30-sep:** E6 abierta. Carril de Mani: 089 (acotado) → 118 (espera el 117); 083, 101, 085, 087 y 121 done, 084
   reemplazado. Carril de Alejo: cerrar 072 (recorrido) y 078 (resolver sus tres hallazgos y `--aplicar`), después 092,
   117, 119/120 y 102; 127, 116, 080 y 099 done. El orden completo, en el prompt de arriba y en `plan-reparto.md` §4.
-- **30-sep, Dapta Forms:** 131 (varias fuentes activas) → 130 (adaptador; espera el 117). Los formularios de
-  ComunicArte y Memorable están en Dapta, en borrador: **ninguno se publica ni conecta su webhook antes del 130**.
+- **Dapta Forms (1-oct):** 131 y 130 done; ComunicArte recibe por Dapta en producción. Antes de repartir el link:
+  la pantalla final (respuesta de Dapta al `id` del outcome). Memorable espera su Calendly. Ver `docs/dapta/README.md`.
 - Vigilar que los leads reales sigan entrando por webhook: `/ajustes/salud` (110). Los pares sin canal:
   `/ajustes/canales` (101).

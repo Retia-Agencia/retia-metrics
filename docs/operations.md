@@ -75,12 +75,14 @@ Cada pieza vive en UN lugar, y ninguna se duplica:
 | Fuente webhook | `/ajustes/fuentes`, proveedor del formulario, **mapeo vacío** para Dapta | administrador | la URL `/api/webhooks/formularios/<id>` que se pega en el proveedor. Un programa puede tener varias activas (131) |
 | Secreto de la fuente | se genera en `/ajustes/fuentes`, se ve una vez | administrador, **a mano** | firma del webhook. Nunca pasa por un chat ni un script |
 | Activar la fuente | `/ajustes/fuentes` | administrador | inactiva = 404 a todo |
-| `form_url` del programa | `/ajustes/programas` | administrador | el generador de links de captación (092). Con varios formularios, A11 |
+| `form_url` del programa | `/ajustes/programas` | administrador | el generador de links de captación (092). **Se muda a la fuente** (`sources.url_publica`, una principal por programa) cuando se construya el 092 (ADR 0068) |
 
 **Orden que funcionó:** programa → token de Calendly → formulario en borrador → fuente + secreto + activar → pegar URL y
 secreto en el proveedor → **"enviar prueba"** (el CRM la recibe y no crea lead: se ve en `sobres_crudos`) →
-conectar Calendly en el formulario y escoger el evento → cambiar los placeholders → publicar. **No compartir el link
-antes del 117** (sin él, un calificado de Dapta entra sin deal).
+conectar Calendly en el formulario y escoger el evento → cambiar los placeholders → publicar → **un envío real por
+camino** (descalificado, sin agenda, con agenda, con las seis UTM) revisado en la base antes de compartir el link.
+El puntaje del formulario sigue el estándar único (`docs/dapta/README.md`, "Estándar de puntaje"). Desde el ADR 0069
+el formulario no decide la etapa: manda agenda, calidad y valor, y el CRM enruta (se construye con las etapas de 30X).
 
 ## 3. Variables de entorno
 

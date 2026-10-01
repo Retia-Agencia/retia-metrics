@@ -3,7 +3,7 @@ id: 130
 etapa: E6
 serves: "ADR 0055 (proveedor nuevo = un valor más) · ADR 0061 · ADR 0064"
 depends: [117]
-status: in-progress
+status: done
 ---
 
 # 130 — El adaptador de Dapta Forms: los envíos de Dapta entran por el mismo webhook
@@ -145,3 +145,24 @@ El primer cuerpo real de cada camino se guarda como fixture de `tests/` (sin dat
   frontera de programa.
 - Los 7 envíos reales de arriba entran a producción como dice cada uno, con el ok de Mani para publicar.
 - `npm test`, `npm run typecheck`, `npm run lint` y `npm run build` limpios.
+
+## Resultado (1-oct, sesión 65, Mani)
+
+Seis envíos reales en ComunicArte por el formulario publicado, revisados en `sobres_crudos`, `entregas_webhook`, el
+lead, el deal y la llamada; los deals de prueba se anularon después con su motivo.
+
+| Camino | Resultado |
+|---|---|
+| Descalificado | ✅ parcial y completa, mismo token; deal en Pendiente Setteo |
+| Calificado sin agenda | ✅ parcial `con_calendly_sin_agenda`; deal en Pendiente Setteo (prioridad alta en la tabla; se ve con el 118) |
+| Calificado que agenda | ✅ el webhook de Calendly colgó la llamada y pasó el deal a Agendado; al cancelar, Pendiente Reagenda. `data.agenda` llega como `"booked"` |
+| Seis UTM | ❌ → ✅ 🩸 el adaptador leía `utm.source` y Dapta manda `utm.utm_source` (y `utm.utm_id`, nativo): el fixture sintético tenía la forma inventada y el test pasaba. Arreglado (`7d6c04d`) y verificado en producción con un envío nuevo: las seis columnas llenas |
+| Typeform + Dapta, misma persona | ✅ un lead con los envíos de los dos; la completa llegó antes que la parcial sin romper nada |
+| Firma mala | ✅ 401 por la URL de producción, `firma_invalida`, cero cambios en envíos, leads y sobres |
+| Reentrega | cubierta por `tests/webhook-matriz.test.ts`: Dapta solo reintenta un no-2xx y no tiene botón de reenviar, y el reproceso (110) solo toma sobres con error |
+| Anti-spam | leído en el código de Dapta: con él prendido el parcial no se entrega; va apagado |
+
+Fixtures reales anonimizados: `tests/fixtures/dapta-real-*.json`. El contrato de proveedores ahora pasa un cuerpo
+REAL de cada proveedor por la ruta real y exige en la base todas sus UTM y todos sus campos intactos (`f435a66`;
+muerde con el adaptador viejo). Regla de Mani: **las UTM y los campos del formulario llegan siempre, de cualquier
+formulario.**

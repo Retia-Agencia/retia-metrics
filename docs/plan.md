@@ -376,7 +376,7 @@ piezas que no tenían ticket (producción, webhook).
 |---|---|---|---|---|
 | **0 · Terreno** | ✅ reparar el lock (§2) | · | ✅ producción en CRM Retia y Vercel apuntando a ella (28-sep) | ✅ decisiones A1 a A3 de §7 |
 | **1 · Motor** | 043 → 044 → 045 → 046 → 047 · 094 en paralelo | · | ✅ ADR 0055 (webhook) y ADR 0054 (Estado), 27-sep | un deal se mueve solo por `moverEtapa()` |
-| **2 · Entrada** | 048 · 049 · 050 (en curso) · ✅ 051 · 052 | · | ✅ 105 (fuente webhook) · ✅ 106 (ruta + adaptador de Typeform) · ✅ 107 (aviso); payload real de Typeform · 🆕 131 → 130 (Dapta Forms, 30-sep) | **Hito A: los leads entran solos al CRM** (primero `dev`, luego producción) |
+| **2 · Entrada** | 048 · 049 · 050 (en curso) · ✅ 051 · 052 | · | ✅ 105 (fuente webhook) · ✅ 106 (ruta + adaptador de Typeform) · ✅ 107 (aviso); payload real de Typeform · ✅ 131 · ✅ 130 (Dapta Forms, 1-oct) | **Hito A: los leads entran solos al CRM** (primero `dev`, luego producción) |
 | **3 · Llamadas y dinero** | 057 · 058 · 059 · 060 · 061 · 063 · 035 | · | 096 cuando se decida su forma | una llamada y un abono mueven el deal |
 | **4 · Operación** | · | 097 · 069 · 070 · 071 · 074 · 099 | · | **Hito B: los closers operan en el CRM.** Typeform deja de escribir en Sheets después de 066 y 067 (reparto §3, 28-sep), no aquí: Urgencias vive en la hoja |
 | **5 · Atribución** | 083 · 084 · 085 · 101 · 092 · 102 · 086 · 087 · 116 · 117 · 121 · 122 | pantalla del builder y tab Campañas (125) | ✅ reunión con Pauta (29-sep) · 119 · 120 (API de Meta) · 126 | el origen de cada lead y el gasto de cada anuncio se clasifican solos (`analytics.md` §7) |

@@ -27,6 +27,21 @@ Se verificó contra el motor real de Dapta (`packages/engine/src/form-logic.ts`)
 respuestas de cada programa contra la lógica de su Typeform: cero diferencias. Mani revisó la lógica en el
 editor el 30-sep.
 
+## Estándar de puntaje (el mismo en TODO formulario, Typeform o Dapta; Mani, 1-oct, ADR 0069)
+
+Solo puntúan tres preguntas; motivación y urgencia "Muy urgente" o "Puede esperar" no suman. Cambia por programa
+solo la tabla de ingresos (abajo, en `PROGRAMAS` del generador). Un formulario que se aparte de esto es un bug.
+
+- **Puntos de valor (0 a 50)** = ingreso (0, 10, 20 o 30 según el rango) + situación profesional (estudiante o
+  desempleado 0 · 0-5 años o pensionado 10 · 5-15 o +15 años 20).
+- **Descalificantes** (−100 cada uno en el score de Dapta): ingreso en un rango marcado como descalificante, urgencia
+  "No es prioridad", inversión "No, en este momento no cuento con los recursos".
+- **`lead_quality`:** `High` sin descalificantes (ve el Calendly), `Low` con alguno.
+- **`lead_value`:** 30-50 puntos → MUY ALTO VALOR (con descalificantes, ALTO VALOR) · 15-29 → ALTO VALOR (VALOR
+  MEDIO) · 0-14 → VALOR MEDIO (BAJO VALOR). Mide poder económico, y baja un nivel con un descalificante.
+- **Score de Dapta** = puntos de valor − 100 × descalificantes. En Typeform son las variables `hvm_points`,
+  `lead_value` y `tag_lead_quality`, con la misma lógica (verificado: 216 combinaciones, cero diferencias).
+
 ## Programas
 
 | Programa | Workspace de Dapta | Form id | Ticket | Rangos de ingreso |
@@ -37,7 +52,7 @@ editor el 30-sep.
 **Publicados por Mani el 30-sep, con los placeholders todavía puestos** (Calendly `calendly.com/REEMPLAZAR` y redirects
 `example.com/REEMPLAZAR-*`, verificado en la página pública). Links: ComunicArte
 `forms.dapta.ai/4bgty3/f/postulacion-evento-comunicarte`, Memorable `forms.dapta.ai/rx4i7a/f/postulacion-memorable`.
-**No se comparten hasta cambiar los placeholders y tener el 117.** Calendly de ComunicArte confirmado por Mani:
+**El 117 ya está y el 130 se cerró el 1-oct; ComunicArte recibe por Dapta en producción. Falta la pantalla final (redirects, ver abajo) antes de repartir el link.** Calendly de ComunicArte confirmado por Mani:
 `calendly.com/eventoscomunicarte-info/postulacion-comunicarte`, ya en el generador; Mani conectó Calendly en Dapta
 (`info@eventoscomunicarte.com`) y publicó: **en vivo desde el 30-sep** (verificado en la página pública). Memorable
 todavía no tiene Calendly: su formulario publicado muestra `calendly.com/REEMPLAZAR`. Cómo se configura un programa de
@@ -58,15 +73,15 @@ El Typeform no redirige, muestra un mensaje final: sin redirect, Dapta mostrarí
 5. La destinación webhook de Dapta con URL y **secreto** de la fuente del CRM. El secreto se genera en
    `/ajustes/fuentes` (se muestra una vez) y se pega a mano: nunca pasa por un chat ni un script. La URL es
    `/api/webhooks/formularios/<id de la fuente>`, y la fuente tiene que estar **activa** (inactiva = 404).
-6. **No antes del 117:** hasta que el CRM traduzca `con_calendly_sin_agenda` por su tabla de estados, ese lead entra
-   sin Estado y no abre deal.
+6. **Un envío real por camino** (descalificado, sin agenda, con agenda, con las seis UTM) revisado en la base antes de
+   repartir el link (el 117 ya está en producción desde el 1-oct).
 
 ## Lo que se sabe del webhook de Dapta (leído en su código, 30-sep)
 
 - Firma `x-forms-signature: sha256=<hex>`; el secreto es opcional en Dapta, pero el CRM sin firma responde 401.
 - `visit.pageUri` y `visit.pageName` llegan `null` cuando Dapta no los conoce; `visit.hutk` (cookie de HubSpot) no
   se guarda.
-- La agenda llega como la **hora de inicio** de la cita (o `booked`), nunca como link. Dapta guarda el
+- La agenda llega como **`"booked"`** (medido el 1-oct con un envío real), nunca como link ni hora. Dapta guarda el
   `inviteeUri` en su base, pero no lo manda: se le pidió (A9).
 - **Conectar Calendly en Integrations no cambia eso** (verificado en `submission.service.ts`, 30-sep): la reserva va a
   la tabla `booking_event` de Dapta y a su sync con HubSpot, nunca a `data`. La conexión solo sirve para escoger el
@@ -80,6 +95,18 @@ El Typeform no redirige, muestra un mensaje final: sin redirect, Dapta mostrarí
   probar URL y secreto, con la fuente activa.
   **Probado el 30-sep en los dos programas:** firma buena, 200, sobre con ese error, cero envíos y cero leads. El
   cuerpo real (con el formulario sin publicar trae solo `data: { test: true }`) es `tests/fixtures/dapta-prueba-real.json`.
+
+## Lo que se midió con envíos reales (1-oct, ticket 130 cerrado)
+
+- **Las UTM llegan como `utm.utm_source` … `utm.utm_id`**, con el prefijo, y `utm_id` llega solo desde la URL (el campo
+  oculto `utm_id` del generador queda de respaldo). `data.utm` repite lo mismo y no se guarda dos veces. 🩸 El adaptador
+  las leía sin prefijo y los primeros envíos entraron sin UTM: arreglado y blindado con el contrato de proveedores
+  sobre cuerpos reales (`tests/fixtures/dapta-real-*.json`).
+- **El `label` del outcome es a la vez el título de la pantalla final y lo que manda el webhook** (`resolveEnding` en
+  `packages/engine/src/form-logic.ts`; `webhook.ts`). Por eso los outcomes llevan redirect: sin él la persona vería
+  `estado|lead_value|lead_quality`. Se le pide a Dapta mandar también el `id` del outcome; con eso el título vuelve a
+  ser un texto normal. Hasta entonces los redirects siguen en `example.com/REEMPLAZAR-*`.
+- La completa puede llegar antes que la parcial (medido): la ingesta lo aguanta.
 
 ## Los formularios de Dapta no los creó el CRM
 
