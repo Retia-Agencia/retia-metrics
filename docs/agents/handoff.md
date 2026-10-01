@@ -84,9 +84,9 @@ Carril de Alejo (E5 con el codigo en main; E6 arrancado):
 - 141 DONE (1-oct, sesion 66): filtro de fecha en Deals (creado, ultima actividad, cierre) y en Leads (creado,
   ultimo envio), con el selector del 136 en modo soloA (components/filtro-fecha-lista.tsx). La ultima actividad
   vive en lib/queries/ultima-actividad.ts (Inbox y lista); cerradosEn en metricas-filtros.ts respeta las
-  reaperturas. Falta un clic humano en las dos listas: la extension de Chrome no entregaba clics (cero eventos en
-  la pagina, tambien en combos viejos); se probo por teclado y click() desde JS. Ojo: en el computer tool de
-  Chrome, el marco de coordenadas es el de la captura (1568x675), no el viewport.
+  reaperturas. Recorrido con clics reales hecho (la extension estuvo desconectada un rato). Ojo: el computer tool
+  de Chrome usa el marco de la captura, no el viewport (escalar por ancho_captura/innerWidth). Y TaskStop sobre
+  npm run dev:local NO mata a next (dev-local lanza "cmd /c next dev"): matar el arbol con taskkill /T.
 - SIGUIENTE (norte comercial, prioridad): 140 (crear un deal a mano). Antes de arrancar, preguntar a Mani que
   esta tomando (132-135 son de dinero y motor).
 - Despues: 092 (ahora depende de 101, listo), pero antes definir su alcance con Mani: el builder queda

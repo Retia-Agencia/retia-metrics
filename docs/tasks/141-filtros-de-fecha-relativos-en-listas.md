@@ -26,7 +26,7 @@ Filtrar las listas por fecha de creación, última actividad y cierre con el mis
 
 - [x] "Ayer" a las 11 pm de Bogotá trae los de ayer de Bogotá, no los de UTC (test).
 - [x] La última actividad de la lista y la del Inbox salen de la misma función.
-- [x] Recorrido visual de las dos listas con cada atajo (por servidor y por teclado; falta confirmar con un clic de ratón humano).
+- [x] Recorrido visual de las dos listas con cada atajo.
 
 ## Codex
 
@@ -48,8 +48,8 @@ Sí, esfuerzo `low`.
   `SelectorPeriodo` borra `pagina` al cambiar el periodo. "Limpiar" de Deals aparece también con solo la fecha.
 - **Recorrido (dev:local, base de Docker):** cada atajo en las dos listas por el servidor, y los conteos cuadran
   contra el total (deals: creado hoy 21 + mes pasado 107 = 128; cierre 11 + 14 = los 25 cerrados; leads: sin deal
-  31 + con deal 128 = 159). Interacción: los clics de la extensión de Chrome no llegaban a la página (cero eventos,
-  también en combos viejos), así que se manejó con teclado y `click()` desde JavaScript: el combo de campo navega,
-  el diálogo en modo solo A sale sin B ni cohortes, y el atajo filtra. Pendiente un clic humano de confirmación.
+  31 + con deal 128 = 159). Con clics reales en las dos listas: el combo de campo navega, el diálogo en modo solo A
+  sale sin B ni cohortes y se cierra al elegir el atajo (Deals: cierre, semana pasada = 7), y en Leads "Filtrar"
+  conserva la fecha (con deal + último envío del mes pasado = 128). Consola limpia.
 - Revisión: subagente de Claude (Codex sin cuota); sus 5 hallazgos aplicados.
 - Tests: `tests/filtros-fecha-listas.test.ts`.
