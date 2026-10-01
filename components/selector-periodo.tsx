@@ -81,6 +81,11 @@ export function SelectorPeriodo({
           </DialogDescription>
           <Select
             value={periodo.preset}
+            // Sin `items`, Base UI pinta el valor crudo (`hoy`) en el disparador.
+            items={[
+              ...Object.entries(atajosDePeriodo).map(([value, label]) => ({ value, label })),
+              { value: "custom", label: "Personalizado" },
+            ]}
             onValueChange={(valor) => {
               if (valor && valor !== "custom") navegar({ periodo: valor });
             }}
