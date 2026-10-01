@@ -11,6 +11,8 @@ import typeformParcial from "./fixtures/typeform-parcial.json";
 import typeformCompleto from "./fixtures/typeform-completo.json";
 import daptaParcial from "./fixtures/dapta-parcial.json";
 import daptaCompleto from "./fixtures/dapta-completo.json";
+import typeformReal from "./fixtures/typeform-real-tactical.json";
+import daptaReal from "./fixtures/dapta-real-completo-utm.json";
 
 const holder: { db: Db | null } = { db: null };
 vi.mock("@/lib/db", () => ({
@@ -201,3 +203,98 @@ it.each(proveedores)("una firma mala de %s no cambia ninguna tabla por la ruta r
     await cerrar();
   }
 });
+
+/**
+ * 🩸 Mani (1-oct): las UTM y los campos del formulario llegan SIEMPRE, de cualquier proveedor.
+ * El contrato de arriba corria contra fixtures inventados y paso con un adaptador de Dapta que
+ * perdia todas las UTM. Este corre contra un cuerpo REAL capturado de cada proveedor, por la ruta
+ * real con firma buena, y mira lo que quedo en la base. Un proveedor nuevo no entra sin el suyo.
+ */
+const REALES = {
+  typeform: {
+    cuerpo: typeformReal,
+    utm: (c: typeof typeformReal) => c.form_response.hidden as Record<string, string>,
+    valores: (c: typeof typeformReal) =>
+      c.form_response.answers.map((a: Record<string, unknown>) => {
+        const v = a[a.type as string] as unknown;
+        return typeof v === "object" && v !== null ? (v as { label?: string }).label ?? v : v;
+      }),
+  },
+  dapta: {
+    cuerpo: daptaReal,
+    utm: (c: typeof daptaReal) => c.utm as Record<string, string>,
+    valores: (c: typeof daptaReal) =>
+      Object.entries(c.data).filter(([k]) => k !== "utm").map(([, v]) => v),
+  },
+} satisfies Record<ProveedorFormulario, { cuerpo: unknown; utm(c: never): Record<string, string>; valores(c: never): unknown[] }>;
+
+it.each(proveedores)(
+  "un cuerpo REAL de %s deja en la base todas sus UTM y todos sus campos intactos",
+  async (nombre) => {
+    const { db, cerrar } = await crearBaseDePrueba();
+    holder.db = db;
+    try {
+      const [programa] = await db
+        .insert(programs)
+        .values({ ...PROGRAMA_DE_PRUEBA, slug: `real-${nombre}`, nombre: `Real ${nombre}`, ticketUsd: "1500" })
+        .returning();
+      const [fuente] = await db
+        .insert(sources)
+        .values({
+          programId: programa.id,
+          nombre: `Fuente ${nombre}`,
+          tipo: "webhook",
+          proveedor: nombre,
+          secretoWebhook: "secreto-del-contrato",
+          activo: true,
+        })
+        .returning();
+      const real = REALES[nombre];
+      const cuerpo = JSON.stringify(real.cuerpo);
+      const { POST } = await import("@/app/api/webhooks/formularios/[fuente]/route");
+      const respuesta = await POST(
+        new Request("https://app.retia.co/api/webhooks/formularios/x", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            [PROVEEDORES[nombre].headerFirma]: CASOS[nombre].firmar(cuerpo, "secreto-del-contrato"),
+          },
+          body: cuerpo,
+        }),
+        { params: Promise.resolve({ fuente: fuente.id }) },
+      );
+      expect(respuesta.status).toBe(200);
+      const [envio] = await db.select().from(submissions);
+      expect(envio, "el cuerpo real no produjo envio").toBeDefined();
+
+      const utm = (real.utm as (c: unknown) => Record<string, string>)(real.cuerpo);
+      expect(Object.keys(utm).length).toBeGreaterThanOrEqual(3);
+      const columna = {
+        utm_source: envio.utmSource,
+        utm_medium: envio.utmMedium,
+        utm_campaign: envio.utmCampaign,
+        utm_content: envio.utmContent,
+        utm_term: envio.utmTerm,
+        utm_id: envio.utmId,
+      } as Record<string, string | null>;
+      for (const [llave, valor] of Object.entries(utm)) expect(columna[llave], llave).toBe(valor);
+
+      // Intacto: cada valor respondido esta, tal cual, en una columna o en `respuestas`.
+      const guardado = new Set(
+        [...Object.values((envio.respuestas ?? {}) as Record<string, unknown>), ...Object.values(envio)]
+          .filter((v) => v !== null && typeof v !== "object")
+          .map(String),
+      );
+      const [lead] = await db.select().from(leads);
+      for (const v of [lead?.emailNormalizado, lead?.telefono]) if (v) guardado.add(String(v));
+      const valores = (real.valores as (c: unknown) => unknown[])(real.cuerpo);
+      const faltan = valores
+        .map(String)
+        .filter((v) => !guardado.has(v) && !guardado.has(v.toLowerCase()) && ![...guardado].some((g) => g.includes(v)));
+      expect(faltan, "campos del formulario que no llegaron intactos").toEqual([]);
+    } finally {
+      holder.db = null;
+      await cerrar();
+    }
+  },
+);
