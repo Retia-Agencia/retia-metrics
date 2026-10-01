@@ -56,8 +56,9 @@ export function porcentajeConBase(cantidad: number, base: number): string {
  */
 export function textoDeVariacionDeTasa(actual: number | null, anterior: number | null): string {
   const tasa = (t: number | null) => (t === null ? "—" : pct(t, 0));
+  // Los puntos salen de las tasas YA redondeadas: "45% → 45%" no puede decir "+1 pp" ni "−0 pp".
   const cambio = actual === null || anterior === null
     ? "—"
-    : `${conSigno((actual - anterior) * 100, (n) => num(n, 0))} pp`;
+    : `${conSigno(Math.round(actual * 100) - Math.round(anterior * 100), (n) => num(n, 0))} pp`;
   return `${tasa(anterior)} → ${tasa(actual)} · ${cambio}`;
 }

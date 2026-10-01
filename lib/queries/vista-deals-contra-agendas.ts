@@ -27,16 +27,26 @@ export type VistaDealsContraAgendas =
       detalles: { deals_creados: DetalleDeCifra; agendas_creadas: DetalleDeCifra };
     };
 
+const hayCurva = (p: PeriodoResuelto) => diasHabilesEntre(p.a.desde, p.a.hasta) > 1;
+
 /**
- * La gráfica sigue al selector del dashboard (ADR 0067), salvo cuando A tiene un solo hábil:
- * un punto no es una curva, y el selector arranca en Hoy. Ahí pinta lo que pide el ticket por
- * defecto: este mes contra el mes pasado al mismo día hábil, y lo dice.
+ * La gráfica sigue al selector del dashboard (ADR 0067), salvo cuando A tiene uno o ningún
+ * hábil: un punto no es una curva, y el selector arranca en Hoy. Ahí pinta lo que pide el
+ * ticket por defecto, este mes contra el mes pasado al mismo día hábil; y si el mes apenas
+ * empieza (su primer hábil, o un 1 en fin de semana), el mes pasado completo. Siempre lo dice.
  */
 export function periodoDeLaGrafica(periodo: PeriodoResuelto, hoy: string): { periodo: PeriodoResuelto; nota?: string } {
-  if (diasHabilesEntre(periodo.a.desde, periodo.a.hasta) > 1) return { periodo };
+  if (hayCurva(periodo)) return { periodo };
+  const esteMes = resolverPeriodo({ preset: "este_mes" }, { hoy });
+  if (hayCurva(esteMes)) {
+    return {
+      periodo: esteMes,
+      nota: "El periodo elegido no tiene días hábiles suficientes para una curva: la gráfica muestra este mes contra el mes pasado al mismo día hábil.",
+    };
+  }
   return {
-    periodo: resolverPeriodo({ preset: "este_mes" }, { hoy }),
-    nota: "Un solo día no hace curva: la gráfica muestra este mes contra el mes pasado al mismo día hábil.",
+    periodo: resolverPeriodo({ preset: "mes_pasado" }, { hoy }),
+    nota: "El mes apenas empieza: la gráfica muestra el mes pasado contra el anterior al mismo día hábil.",
   };
 }
 

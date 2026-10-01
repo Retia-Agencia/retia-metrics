@@ -113,7 +113,8 @@ export function SeriesLineales({ datos, titulo, unidad, etiquetas, formato }: Se
                 r="3"
                 fill={color(s, i)}
               >
-                <title>{s.clave} · {etiqueta(j)}: {escribir(v)} {unidad}</title>
+                {/* Un solo texto: con varios nodos, React 19 no hidrata el <title> igual que el servidor. */}
+                <title>{`${s.clave} · ${etiqueta(j)}: ${escribir(v)} ${unidad}`}</title>
               </circle>
             ))}
           </g>
@@ -147,26 +148,29 @@ export function SeriesLineales({ datos, titulo, unidad, etiquetas, formato }: Se
           </li>
         ))}
       </ul>
-      <table className="sr-only">
-        <caption>{titulo}, {unidad}</caption>
-        <thead>
-          <tr>
-            <th>{etiquetas ? "Punto" : "Día"}</th>
-            {datos.series.map((s) => <th key={s.clave}>{s.clave}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {datos.dias.map((dia, i) => (
-            <tr key={`${dia}-${i}`}>
-              <th>{etiqueta(i)}</th>
-              {datos.series.map((s) => {
-                const v = s.valores[i];
-                return <td key={s.clave}>{v === null || v === undefined ? "—" : escribir(v)}</td>;
-              })}
+      {/* Una <table> no respeta el width:1px de sr-only y desborda la página: el div lo contiene. */}
+      <div className="sr-only">
+        <table>
+          <caption>{titulo}, {unidad}</caption>
+          <thead>
+            <tr>
+              <th>{etiquetas ? "Punto" : "Día"}</th>
+              {datos.series.map((s) => <th key={s.clave}>{s.clave}</th>)}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {datos.dias.map((dia, i) => (
+              <tr key={`${dia}-${i}`}>
+                <th>{etiqueta(i)}</th>
+                {datos.series.map((s) => {
+                  const v = s.valores[i];
+                  return <td key={s.clave}>{v === null || v === undefined ? "—" : escribir(v)}</td>;
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 }

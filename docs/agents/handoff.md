@@ -35,7 +35,7 @@ cohorte, productos se retira, comision % congelada), 0066 (Atendido sin Grain), 
 vs B, cifra -> resumen -> lista). Tickets 132-141 listos para construir (orden y dependencias en
 docs/tasks/README.md, seccion Norte comercial); 142-148 bloqueados por QD/QM. HECHOS (sesion 64, Alejo):
 136 (selector A contra B en el dashboard; lib/periodo.ts, lib/variacion.ts) y 137 (toda cifra abre su lista:
-lib/queries/metricas-filtros.ts + metricas-con-filas.ts, vista /p/[programa]/dashboard/lista). Quedan listos 138 y 141.
+lib/queries/metricas-filtros.ts + metricas-con-filas.ts, vista /p/[programa]/dashboard/lista). 138 hecho (sesion 65); queda listo 141.
 Para construir: UNA sesion por ticket. Lee el ticket y su ADR, /delegate a Codex en un worktree propio, la
 sesion revisa tests y diff; la migracion la genera y aplica la sesion principal con el ok de Mani. Arranca por
 el 132 (base del dinero). En paralelo con el solo 136 (lib/periodo, pantallas) y 140 (alta de deal); el 135
@@ -76,9 +76,14 @@ Carril de Alejo (E5 con el codigo en main; E6 arrancado):
   resumen y su lista paginada. resumenDeMetrica/listaDeMetrica ya aceptan varios programas: la vista "todos"
   del 095 tiene que usarlas, no escribir otra consulta.
 - Guion del corte escrito: docs/operations.md §12 (pasos, reversa, capacitacion, conciliacion).
-- SIGUIENTE (norte comercial, prioridad): 138 (deals creados contra agendas, sobre el 136), 141 (filtros de
-  fecha relativos en listas; toca el 072, asi que conviene cerrar antes su recorrido) o 140 (crear un deal a
-  mano). Antes de arrancar, preguntar a Mani que esta tomando (132-135 son de dinero y motor).
+- 138 DONE (1-oct, sesion 65): grafica "Deals creados contra agendas" en el dashboard (acumulado por habil, A
+  contra B; lib/queries/deals-contra-agendas.ts). Deal creado = fecha del envio de origen, agenda creada =
+  calls.created_at (metricas-filtros.ts; Pauta usa la misma). Metricas deals_creados/agendas_creadas en el 137.
+  SeriesLineales ya acepta huecos (null), etiquetas propias y formato: el 095 y el 148 pueden usarla. Codex sin
+  cuota hasta las 2:28 pm del 1-oct: reviso un subagente de Claude.
+- SIGUIENTE (norte comercial, prioridad): 141 (filtros de fecha relativos en listas; toca el 072, asi que
+  conviene cerrar antes su recorrido) o 140 (crear un deal a mano). Antes de arrancar, preguntar a Mani que
+  esta tomando (132-135 son de dinero y motor).
 - Despues: 092 (ahora depende de 101, listo), pero antes definir su alcance con Mani: el builder queda
   para organico y closer, y la convencion del organico espera PQ6 (Pauta y Media). Lleva migracion.
   Despues, E6: 119/120 (token de Meta), 102.

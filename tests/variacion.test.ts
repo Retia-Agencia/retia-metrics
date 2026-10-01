@@ -23,3 +23,7 @@ it("una tasa contra otra cambia en puntos porcentuales, y sin base dice raya", (
   expect(textoDeVariacionDeTasa(0.5, null)).toBe("— → 50% · —");
   expect(textoDeVariacionDeTasa(null, null)).toBe("— → — · —");
 });
+it("los puntos de una tasa salen de las tasas ya redondeadas", () => {
+  expect(textoDeVariacionDeTasa(0.452, 0.449)).toBe("45% → 45% · 0 pp");
+  expect(textoDeVariacionDeTasa(0.454, 0.446)).toBe("45% → 45% · 0 pp");
+});

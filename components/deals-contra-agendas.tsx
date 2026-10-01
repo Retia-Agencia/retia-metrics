@@ -56,7 +56,7 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
               <tr className="border-b text-left text-xs text-muted-foreground">
                 <th className="py-2 font-medium" />
                 <th className="py-2 text-right font-medium">A · hábil {num(a.puntos.length)}</th>
-                <th className="py-2 text-right font-medium">B · hábil {num(b?.puntos.length ?? 0)}</th>
+                <th className="py-2 text-right font-medium">{b ? `B · hábil ${num(b.puntos.length)}` : "B · —"}</th>
                 <th className="py-2 text-right font-medium">B → A</th>
               </tr>
             </thead>

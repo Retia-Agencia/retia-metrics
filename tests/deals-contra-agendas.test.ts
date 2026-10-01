@@ -44,6 +44,15 @@ describe("138: acumular por día hábil (puro)", () => {
     expect(periodo.b).toEqual(B);
   });
 
+  it("si el mes apenas empieza, la gráfica pasa al mes pasado completo, también un 1 en domingo", () => {
+    for (const hoy of ["2026-10-01", "2026-11-01"]) {
+      const { periodo, nota } = periodoDeLaGrafica(resolverPeriodo({ preset: "hoy" }, { hoy }), hoy);
+      expect(periodo.a.desde.slice(8)).toBe("01");
+      expect(periodo.a.hasta < hoy).toBe(true);
+      expect(nota).toMatch(/mes pasado/);
+    }
+  });
+
   it("si el selector es un solo día, la gráfica pasa a este mes contra el anterior y lo dice", () => {
     const { periodo, nota } = periodoDeLaGrafica(resolverPeriodo({ preset: "hoy" }, { hoy: HOY }), HOY);
     expect(periodo.a).toEqual(A);
