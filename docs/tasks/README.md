@@ -57,7 +57,7 @@ parten en **dos lotes** por dependencia (`comercial.md` §8): el lote 1 no depen
 | [x] | 138 | [Deals creados contra agendas](./138-deals-creados-contra-agendas.md) | 136 | done · 1-oct · Alejo · acumulado por hábil A contra B en el dashboard; `deals_creados` y `agendas_creadas` abren su lista |
 | [ ] | 139 | [La ficha del deal por bloques](./139-ficha-del-deal-por-bloques.md) | 132, 134 | todo · enmienda el 074 |
 | [ ] | 140 | [Crear un deal a mano](./140-crear-un-deal-a-mano.md) | · | todo |
-| [ ] | 141 | [Filtros de fecha relativos en las listas](./141-filtros-de-fecha-relativos-en-listas.md) | 136 | todo · toca el 072 (Alejo) |
+| [x] | 141 | [Filtros de fecha relativos en las listas](./141-filtros-de-fecha-relativos-en-listas.md) | 136 | done · 1-oct · Alejo · deals por creado, actividad y cierre; leads por creado y último envío; selector del 136 en modo solo A |
 
 **Lote 2 (bloqueado por preguntas).**
 

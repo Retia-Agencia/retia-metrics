@@ -72,7 +72,9 @@ export function FiltroKanban({
     router.push(query ? `${pathname}?${query}` : pathname);
   }
 
-  const hayFiltro = ownerUserId || cohorteId || canal || antiguedadMinima != null || leadQuality || leadValue;
+  // "Limpiar" vuelve a la URL desnuda, asi que tambien quita el filtro de fecha (141): cuenta como filtro.
+  const hayFiltro =
+    ownerUserId || cohorteId || canal || antiguedadMinima != null || leadQuality || leadValue || busqueda.has("fecha");
 
   return (
     <div className="flex flex-wrap items-center gap-2">

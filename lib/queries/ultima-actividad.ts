@@ -9,15 +9,21 @@ import { vigente } from "@/lib/queries/vigente";
  * creación y por cita), abonos y movimientos de etapa. El `created_at` del deal lo aporta
  * el llamador (así un deal recién creado sin ningún registro tiene una fecha base). Los
  * abonos y las llamadas se leen VIGENTES: un registro anulado no cuenta como actividad.
+ *
+ * `hasta` deja fuera lo que todavía no pasó (la cita agendada para el martes): la lista de deals
+ * filtra por actividad OCURRIDA (ticket 141). El Inbox no lo pasa: para "estancado", una cita
+ * futura sí es atención al deal.
  */
 export async function ultimaActividadPorDeal(
   db: Db,
   dealIds: string[],
   deals_: { dealId: string; createdAt: Date }[],
+  hasta?: Date,
 ): Promise<Map<string, Date>> {
   const map = new Map<string, Date>();
   const anota = (dealId: string | null, cuando: Date | null | undefined) => {
     if (dealId == null || cuando == null) return;
+    if (hasta && cuando.getTime() > hasta.getTime()) return;
     const previo = map.get(dealId);
     if (!previo || cuando.getTime() > previo.getTime()) map.set(dealId, cuando);
   };

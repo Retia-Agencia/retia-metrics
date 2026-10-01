@@ -12,7 +12,9 @@ import {
 } from "@/components/ui/select";
 
 const SIN_FECHA = "sin_fecha";
-const CLAVES_DE_PERIODO = ["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "rango", "desde", "hasta"];
+const CLAVES_DE_PERIODO = ["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta"];
+/** Las claves de antes del 136 (`desde`, `hasta`, `rango`): un marcador viejo no debe decidir el periodo. */
+const CLAVES_VIEJAS = ["rango", "desde", "hasta"];
 
 interface FiltroFechaListaProps {
   /** Los campos que la lista sabe filtrar, con su etiqueta. */
@@ -37,6 +39,7 @@ export function FiltroFechaLista({ campos, filtro }: FiltroFechaListaProps) {
   function elegirCampo(valor: string | null) {
     const params = new URLSearchParams(busqueda.toString());
     params.delete("pagina");
+    CLAVES_VIEJAS.forEach((clave) => params.delete(clave));
     if (!valor || valor === SIN_FECHA) {
       params.delete("fecha");
       CLAVES_DE_PERIODO.forEach((clave) => params.delete(clave));

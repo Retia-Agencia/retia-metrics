@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { abonos, dealEtapaHistorial, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
+import { abonos, calls, dealEtapaHistorial, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { filtroDeFechaDeLaUrl } from "@/lib/periodo";
 import { CAMPOS_DE_FECHA_DE_DEAL, parsearFiltros, tableroKanban } from "@/lib/queries/kanban";
@@ -98,8 +98,26 @@ describe("141: la lista de deals y la base de leads, contra la base", () => {
     ]);
     const perdido = await deal("perdido", bogota("2026-08-01"));
     await db.insert(dealEtapaHistorial).values({ dealId: perdido.deal.id, a: "cierre_perdido", fecha: bogota("2026-09-20") });
+    // Perdido el 3-sep, recuperado (transicion R) y vendido el 22-sep: cierra el 22, no el 3.
+    const recuperado = await deal("recuperado", bogota("2026-08-01"));
+    await db.insert(dealEtapaHistorial).values([
+      { dealId: recuperado.deal.id, a: "cierre_perdido", fecha: bogota("2026-09-03") },
+      { dealId: recuperado.deal.id, de: "cierre_perdido", a: "en_contacto", fecha: bogota("2026-09-08") },
+      { dealId: recuperado.deal.id, de: "en_contacto", a: "abonado", fecha: bogota("2026-09-22") },
+    ]);
+    // Perdido el 4-sep y recuperado: hoy esta abierto, no tiene fecha de cierre.
+    const reabierto = await deal("reabierto", bogota("2026-08-01"));
+    await db.insert(dealEtapaHistorial).values([
+      { dealId: reabierto.deal.id, a: "cierre_perdido", fecha: bogota("2026-09-04") },
+      { dealId: reabierto.deal.id, de: "cierre_perdido", a: "agendado", fecha: bogota("2026-09-09") },
+    ]);
+    // Una cita agendada para el futuro no es actividad ocurrida.
+    const conCita = await deal("conCitaFutura", bogota("2026-08-02"));
+    await db.insert(calls).values({ programId, dealId: conCita.deal.id, origen: "calendly", createdAt: bogota("2026-08-02"), fechaAgenda: bogota("2026-10-06") });
 
     // Leads sin deal para "creado" contra "último envío".
+    // Un lead dado de alta a mano: sin primera aplicación, "creado" es su alta.
+    await db.insert(leads).values({ programId, emailNormalizado: "manual@example.test", entrada: "crm", createdAt: bogota("2026-09-03") });
     await db.insert(leads).values({
       programId,
       emailNormalizado: "lead@example.test",
@@ -149,6 +167,24 @@ describe("141: la lista de deals y la base de leads, contra la base", () => {
       .toEqual(new Set([id.perdido]));
   });
 
+  it("un perdido que se recupera cierra el día de la venta; uno recuperado y abierto no tiene cierre", async () => {
+    const enSeptiembre = await idsDelTablero({ fecha: "cierre", periodo: "custom", a_desde: "2026-09-01", a_hasta: "2026-09-30" });
+    expect(enSeptiembre.has(id.reabierto)).toBe(false);
+    expect((await idsDelTablero({ fecha: "cierre", periodo: "custom", a_desde: "2026-09-03", a_hasta: "2026-09-03" })).has(id.recuperado)).toBe(false);
+    expect(await idsDelTablero({ fecha: "cierre", periodo: "custom", a_desde: "2026-09-22", a_hasta: "2026-09-22" }))
+      .toEqual(new Set([id.recuperado]));
+  });
+
+  it("una cita futura no cuenta como última actividad en la lista", async () => {
+    const tablero = async (dia: string) => {
+      const filtros = parsearFiltros({ fecha: "actividad", periodo: "custom", a_desde: dia, a_hasta: dia }, "2026-10-01");
+      const t = await tableroKanban(db, programId, filtros, "2026-10-01", bogota("2026-10-01", "18:00"));
+      return new Set(t.columnas.flatMap((c) => c.tarjetas.map((x) => x.dealId)));
+    };
+    expect((await tablero("2026-10-06")).has(id.conCitaFutura)).toBe(false);
+    expect((await tablero("2026-08-02")).has(id.conCitaFutura)).toBe(true);
+  });
+
   it("sin filtro de fecha el tablero trae todos", async () => {
     expect((await idsDelTablero({})).size).toBe(Object.keys(id).length);
   });
@@ -159,6 +195,7 @@ describe("141: la lista de deals y la base de leads, contra la base", () => {
     expect(await correos("creado", "2026-09-02")).toContain("lead@example.test");
     expect(await correos("ultimo_envio", "2026-09-28")).toContain("lead@example.test");
     expect(await correos("ultimo_envio", "2026-09-29")).not.toContain("lead@example.test");
+    expect(await correos("creado", "2026-09-03")).toContain("manual@example.test");
   });
 });
 

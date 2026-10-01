@@ -1,4 +1,4 @@
-import { and, between, desc, eq, inArray } from "drizzle-orm";
+import { and, between, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   cohorts,
   dealEtapaHistorial,
@@ -157,10 +157,12 @@ export async function tableroKanban(
   programId: string,
   filtros: FiltrosKanban = {},
   hoy: string = hoyEnBogota(),
+  ahora: Date = new Date(),
 ): Promise<TableroKanban> {
   // Un deal + su lead + su dueno + su producto, en una sola lectura de la tabla `deals`
   // con joins (sin subconsultas correlacionadas: son joins directos, no plantillas).
   const { creado, actividad, cierre } = rangosDeFecha(filtros);
+  const cerrados = cierre ? await cerradosEn(db, programId, cierre) : null;
   let filas = await db
     .select({
       dealId: deals.id,
@@ -192,14 +194,16 @@ export async function tableroKanban(
         vigente(deals),
         // Creado y cierre se deciden en SQL con la MISMA definicion que el dashboard (138, 141).
         creado ? between(fechaAnclaDealCreado(), creado.desde, creado.hasta) : undefined,
-        cierre ? inArray(deals.id, cerradosEn(db, cierre)) : undefined,
+        // Un arreglo vacio en `inArray` no filtra nada: sin cerrados, la condicion es falsa.
+        cerrados ? (cerrados.length > 0 ? inArray(deals.id, cerrados) : sql`false`) : undefined,
       ),
     );
 
   const columnasVacias = (): ColumnaKanban[] => ETAPAS_EN_ORDEN.map((etapa) => ({ etapa, tarjetas: [] }));
   if (actividad && filas.length > 0) {
     // La ultima actividad sale de la funcion que decide "estancado" en el Inbox, no de una copia.
-    const ultima = await ultimaActividadPorDeal(db, filas.map((f) => f.dealId), filas);
+    // Solo lo que ya ocurrio: una cita agendada para el martes no es actividad de hoy.
+    const ultima = await ultimaActividadPorDeal(db, filas.map((f) => f.dealId), filas, ahora);
     filas = filas.filter((f) => {
       const dia = diaDeCalendario(ultima.get(f.dealId) ?? f.createdAt);
       return dia >= actividad.desde && dia <= actividad.hasta;

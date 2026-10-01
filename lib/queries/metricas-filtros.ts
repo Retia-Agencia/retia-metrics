@@ -1,7 +1,9 @@
-import { and, between, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, between, eq, inArray, sql } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { diaDeCalendario } from "@/lib/dias-habiles";
+import { vigente } from "@/lib/queries/vigente";
 import type { Alcance } from "@/lib/queries/dashboard";
 import { igualCloser } from "@/lib/closers/identidad";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
@@ -70,18 +72,42 @@ export const ETAPAS_DE_CIERRE = [...ETAPAS_VENDIDAS, "cierre_perdido"] as const;
 
 /**
  * Los deals CERRADOS en el rango (ticket 141): la "Close date" de HubSpot, que vale para los
- * ganados y los perdidos. Es el dia (Bogota) de la PRIMERA entrada a Abonado, Completo o
- * Cierre Perdido, por la misma razon que `diaDeVenta` (el mismo agregado: el minimo de los
- * movimientos que deja pasar el WHERE, aqui los de las tres etapas): un deal se cierra una vez, aunque
- * despues pase de Abonado a Completo. No es una venta: para eso esta `vendidosEn`.
+ * ganados y los perdidos. Es el dia (Bogota) en que el deal entro a su cierre ACTUAL: la primera
+ * entrada a Abonado, Completo o Cierre Perdido despues de su ultima reapertura.
+ *
+ * - Abonado y despues Completo es UN cierre: cuenta el dia de Abonado, como `diaDeVenta`.
+ * - Un perdido que se recupera (Cierre Perdido -> En Contacto, transicion R) deja de estar
+ *   cerrado: su fecha vieja no cuenta, y si despues se vende, cierra el dia de la venta.
+ * - Un deal abierto no tiene fecha de cierre.
+ *
+ * Se decide en memoria sobre el historial de los deals vigentes del programa (sin subconsultas
+ * correlacionadas, AGENTS.md): a esta escala es gratis y la regla se lee. No es una venta: para
+ * eso esta `vendidosEn`.
  */
-export function cerradosEn(db: Db, rango: Rango) {
-  return db
-    .select({ dealId: dealEtapaHistorial.dealId })
+export async function cerradosEn(db: Db, programId: string, rango: Rango): Promise<string[]> {
+  const historial = await db
+    .select({ dealId: dealEtapaHistorial.dealId, a: dealEtapaHistorial.a, fecha: dealEtapaHistorial.fecha })
     .from(dealEtapaHistorial)
-    .where(inArray(dealEtapaHistorial.a, [...ETAPAS_DE_CIERRE]))
-    .groupBy(dealEtapaHistorial.dealId)
-    .having(between(diaDeVenta(), rango.desde, rango.hasta));
+    .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.programId, programId), vigente(deals)))
+    .orderBy(asc(dealEtapaHistorial.fecha), asc(dealEtapaHistorial.id));
+
+  // Recorrido en orden: una entrada abierta borra el cierre; la primera cerrada despues lo fija.
+  const cierre = new Map<string, Date | null>();
+  for (const h of historial) {
+    if (!esEtapaDeCierre(h.a)) cierre.set(h.dealId, null);
+    else if (!cierre.get(h.dealId)) cierre.set(h.dealId, h.fecha);
+  }
+  return [...cierre]
+    .filter(([, fecha]) => {
+      if (!fecha) return false;
+      const dia = diaDeCalendario(fecha);
+      return dia >= rango.desde && dia <= rango.hasta;
+    })
+    .map(([dealId]) => dealId);
+}
+
+function esEtapaDeCierre(etapa: string): boolean {
+  return (ETAPAS_DE_CIERRE as readonly string[]).includes(etapa);
 }
 
 /** Lo mismo que `vendidosEn`, con el dia de la venta. */

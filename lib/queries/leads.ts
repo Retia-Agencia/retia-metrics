@@ -2,7 +2,6 @@ import { and, between, count, desc, eq, inArray, isNull, notInArray, or, sql, ty
 import { deals, leadContactos, leads, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { vigente } from "@/lib/queries/vigente";
-import { fechaAnclaLead } from "@/lib/queries/metricas-filtros";
 import type { Rango } from "@/lib/queries/dashboard";
 import { estadosDeLlegadaDelPrograma, llaveDeEstado, resolverEstadoDeLlegada } from "@/lib/ingesta/estados-llegada";
 
@@ -17,8 +16,10 @@ import { estadosDeLlegadaDelPrograma, llaveDeEstado, resolverEstadoDeLlegada } f
  *   programa no tiene activo en `estados_llegada` (ADR 0061 punto 5, ticket 117).
  * - **abandonó el formulario:** todos sus envíos son parciales (ADR 0061 punto 6).
  * - **posible duplicado:** tiene un correo que entró por teléfono y nadie confirmó (ADR 0035).
- * - **fecha (141):** la de creación (primera aplicación, la misma del dashboard) o la del último
- *   envío, en días de Bogotá, dentro del periodo A del selector.
+ * - **fecha (141):** la de creación o la del último envío, en días de Bogotá, dentro del periodo A
+ *   del selector. Creado es la primera aplicación; un lead dado de alta a mano (sin formulario)
+ *   no tiene, y usa su alta. No es el ancla del dashboard (`fechaAnclaLead`), que solo cuenta
+ *   los del formulario: aquí la pregunta es "¿cuándo entró a la base?".
  *
  * No hay búsqueda por texto en esta consulta a propósito: los filtros viajan en la URL y un
  * correo en la URL está prohibido (AGENTS.md). Para buscar a alguien está Personas.
@@ -99,7 +100,7 @@ export async function leadsDelPrograma(
   if (filtro.duplicado) condiciones.push(inArray(leads.id, conCorreoSinConfirmar(db)));
   if (filtro.fecha) {
     const dia = filtro.fecha.campo === "creado"
-      ? fechaAnclaLead()
+      ? sql<string>`(coalesce(${leads.fechaPrimeraAplicacion}, ${leads.createdAt}) AT TIME ZONE 'America/Bogota')::date`
       : sql<string>`(${leads.fechaUltimaAplicacion} AT TIME ZONE 'America/Bogota')::date`;
     condiciones.push(between(dia, filtro.fecha.rango.desde, filtro.fecha.rango.hasta));
   }
