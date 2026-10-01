@@ -36,8 +36,8 @@ vs B, cifra -> resumen -> lista). Tickets 132-141 listos para construir (orden y
 docs/tasks/README.md, seccion Norte comercial); 142-148 bloqueados por QD/QM. NADA implementado todavia.
 Para construir: UNA sesion por ticket. Lee el ticket y su ADR, /delegate a Codex en un worktree propio, la
 sesion revisa tests y diff; la migracion la genera y aplica la sesion principal con el ok de Mani. Arranca por
-el 132 (base del dinero), en paralelo se pueden 135, 136 y 140 (no se pisan con el 132: si con archivos de
-deals, revisar); 133 y 134 tras el 132; 137, 138, 141 tras el 136; 139 tras 132 y 134.
+el 132 (base del dinero). En paralelo con el solo 136 (lib/periodo, pantallas) y 140 (alta de deal); el 135
+toca requisitos.ts y mover-etapa.ts como el 132, asi que va DESPUES del 132; 133 y 134 tras el 132; 137, 138, 141 tras el 136; 139 tras 132 y 134.
 
 Estado al 30-sep (sesion 57, Mani): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
 51 migraciones (0000-0050), todas aplicadas. DAPTA (sesion 61, 30-sep): el adaptador y el contrato de proveedores estan en produccion; ComunicArte tiene Typeform y Dapta activos, Memorable existe inactivo; lo pendiente esta en Memory 30-sep sesion 61 y la guia de configurar un programa en docs/operations.md §2.1; en produccion hay ademas UNA aplicada desde otra maquina que no esta en el repo (fila 52 de __drizzle_migrations, hash 28fc7b38..., ver Memory 30-sep sesion 61). ~1.676 tests. Produccion: https://retia-metrics-seven.vercel.app.
