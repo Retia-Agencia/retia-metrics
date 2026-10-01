@@ -53,7 +53,7 @@ parten en **dos lotes** por dependencia (`comercial.md` §8): el lote 1 no depen
 | [ ] | 134 | [El ticket base es de la cohorte y `productos` se retira](./134-ticket-base-de-la-cohorte-y-adios-productos.md) | 132 | todo · migración destructiva |
 | [ ] | 135 | [Atendido sin Grain](./135-atendido-sin-grain.md) | · | todo |
 | [x] | 136 | [Selector de periodo A contra B, número y %](./136-selector-de-periodo-y-numero-y-porcentaje.md) | · | done · 1-oct · Alejo · selector en el dashboard; 137, 138 y 141 quedan listos |
-| [ ] | 137 | [Toda cifra abre su lista](./137-toda-cifra-abre-su-lista.md) | 136 | todo |
+| [x] | 137 | [Toda cifra abre su lista](./137-toda-cifra-abre-su-lista.md) | 136 | done · 1-oct · Alejo · caja, shows, agendas, cierres y leads; "todos" en la consulta, la pantalla es del 095 |
 | [ ] | 138 | [Deals creados contra agendas](./138-deals-creados-contra-agendas.md) | 136 | todo |
 | [ ] | 139 | [La ficha del deal por bloques](./139-ficha-del-deal-por-bloques.md) | 132, 134 | todo · enmienda el 074 |
 | [ ] | 140 | [Crear un deal a mano](./140-crear-un-deal-a-mano.md) | · | todo |

@@ -98,7 +98,15 @@ export function DashboardPrograma({ vista, detalles }: { vista: VistaDelDashboar
         />
         <Tarjeta
           titulo="Leads"
-          valor={leads.leads === null ? "—" : num(leads.leads)}
+          valor={
+            leads.leads === null ? (
+              "—"
+            ) : (
+              <CifraConLista titulo="Leads" detalle={detalles?.leads}>
+                {num(leads.leads)}
+              </CifraConLista>
+            )
+          }
           nota={
             leads.metaDelRango === null
               ? `${num(leads.diasHabiles)} días hábiles · sin meta de leads en la cohorte`

@@ -59,7 +59,10 @@ export function CifraConLista({ titulo, detalle, children }: Props) {
         <p className="text-xs text-muted-foreground">
           Antigüedad desde la fecha de la fila hasta hoy en Bogotá; las fechas futuras cuentan 0 días.
         </p>
-        <Button render={<Link href={href} />}>Ver la lista completa</Button>
+        {/* `nativeButton={false}`: se pinta como <a>; sin eso Base UI avisa en consola. */}
+        <Button nativeButton={false} render={<Link href={href} />}>
+          Ver la lista completa
+        </Button>
       </DialogContent>
     </Dialog>
   );
@@ -67,21 +70,26 @@ export function CifraConLista({ titulo, detalle, children }: Props) {
 
 /** Una tabla corta del resumen. Cada línea lleva su cantidad y su parte del total. */
 function Desglose({ titulo, lineas, total }: { titulo: string; lineas: LineaDeDesglose[]; total: number }) {
+  // Solo la caja trae montos: sin ellos la columna sobra y le quita ancho a la etiqueta.
+  const conMonto = lineas.some((linea) => linea.caja.length > 0);
+
   return (
     <section className="space-y-1">
       <h3 className="text-sm font-medium">{titulo}</h3>
-      <table className="w-full text-sm">
+      <table className="w-full table-fixed text-sm">
         <tbody className="divide-y">
           {lineas.map((linea) => (
             <tr key={linea.etiqueta}>
-              <td className="py-1.5">{linea.etiqueta}</td>
-              <td className="cifra text-right">{num(linea.cantidad)}</td>
-              <td className="cifra w-16 text-right text-muted-foreground">
+              <td className="truncate py-1.5" title={linea.etiqueta}>{linea.etiqueta}</td>
+              <td className="cifra w-10 text-right">{num(linea.cantidad)}</td>
+              <td className="cifra w-12 text-right text-muted-foreground">
                 {pct(linea.cantidad / total, 0)}
               </td>
-              <td className="cifra text-right">
-                {linea.caja.map((c) => monto(c.total, c.moneda)).join(" · ")}
-              </td>
+              {conMonto && (
+                <td className="cifra w-28 text-right sm:w-36">
+                  {linea.caja.map((c) => monto(c.total, c.moneda)).join(" · ")}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

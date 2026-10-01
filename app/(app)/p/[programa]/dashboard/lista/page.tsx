@@ -79,7 +79,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
                       <td>{fecha(fila.fecha)}</td>
                       <td className="cifra">{num(fila.antiguedad)}</td>
                       <td className="cifra">{fila.moneda && fila.monto !== null ? monto(fila.monto, fila.moneda) : "—"}</td>
-                      <td>{fila.dealId ? <Button variant="link" render={<Link href={`/p/${encodeURIComponent(slug)}/deals/${fila.dealId}`} />}>Ver deal</Button> : "Sin deal"}</td>
+                      <td>{fila.dealId ? <Button variant="link" nativeButton={false} render={<Link href={`/p/${encodeURIComponent(slug)}/deals/${fila.dealId}`} />}>Ver deal</Button> : "Sin deal"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -88,9 +88,9 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           </CardContent>
         </Card>
         <nav aria-label="Paginación" className="flex items-center gap-3">
-          {pagina > 1 ? <Button variant="outline" render={<Link href={`${enlace}&pagina=${pagina - 1}`} />}>Anterior</Button> : <Button variant="outline" disabled>Anterior</Button>}
+          {pagina > 1 ? <Button variant="outline" nativeButton={false} render={<Link href={`${enlace}&pagina=${pagina - 1}`} />}>Anterior</Button> : <Button variant="outline" disabled>Anterior</Button>}
           <span className="cifra">Página {num(pagina)}</span>
-          {pagina * TAMANO_PAGINA < lista.subtotal.cantidad ? <Button variant="outline" render={<Link href={`${enlace}&pagina=${pagina + 1}`} />}>Siguiente</Button> : <Button variant="outline" disabled>Siguiente</Button>}
+          {pagina * TAMANO_PAGINA < lista.subtotal.cantidad ? <Button variant="outline" nativeButton={false} render={<Link href={`${enlace}&pagina=${pagina + 1}`} />}>Siguiente</Button> : <Button variant="outline" disabled>Siguiente</Button>}
         </nav>
       </div>
     </PageShell>
