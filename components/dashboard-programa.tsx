@@ -1,3 +1,5 @@
+import { CifraConLista } from "@/components/cifra-con-lista";
+import type { DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,7 +52,7 @@ function Caja({ caja }: { caja: CajaPorMoneda[] }) {
   return (
     <>
       {caja.map((c) => (
-        <div key={c.moneda}>{monto(c.total, c.moneda)}</div>
+        <span className="block" key={c.moneda}>{monto(c.total, c.moneda)}</span>
       ))}
     </>
   );
@@ -73,7 +75,7 @@ function Tabla({ cabeceras, children }: { cabeceras: string[]; children: ReactNo
   );
 }
 
-export function DashboardPrograma({ vista }: { vista: VistaDelDashboard }) {
+export function DashboardPrograma({ vista, detalles }: { vista: VistaDelDashboard; detalles?: DetallesDelDashboard }) {
   const { embudo, caja, leads, cohorte, comparativo, comisionPorVentaUsd, motivos, origenes, closerId } = vista;
 
   return (
@@ -81,18 +83,18 @@ export function DashboardPrograma({ vista }: { vista: VistaDelDashboard }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Tarjeta
           titulo="Caja recaudada"
-          valor={<Caja caja={caja} />}
+          valor={<CifraConLista titulo="Caja recaudada" detalle={detalles?.caja}><Caja caja={caja} /></CifraConLista>}
           nota="suma de abonos por su fecha, por moneda"
         />
         <Tarjeta
           titulo="Llamadas"
-          valor={`${num(embudo.llamadasConShow)} de ${num(embudo.agendas)}`}
+          valor={<><CifraConLista titulo="Shows" detalle={detalles?.shows}>{num(embudo.llamadasConShow)}</CifraConLista>{" de "}<CifraConLista titulo="Agendas" detalle={detalles?.agendas}>{num(embudo.agendas)}</CifraConLista></>}
           nota={`${tasa(embudo.pctShow)} de show`}
         />
         <Tarjeta
           titulo="% de cierre"
           valor={tasa(embudo.pctCierre)}
-          nota={`${num(embudo.cierres)} cierres sobre llamadas con show`}
+          nota={<><CifraConLista titulo="Cierres" detalle={detalles?.cierres}>{num(embudo.cierres)} cierres</CifraConLista>{" sobre llamadas con show"}</>}
         />
         <Tarjeta
           titulo="Leads"

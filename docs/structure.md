@@ -599,6 +599,25 @@ El selector de programa (ADR 0050) vive arriba de la barra, dentro del marco, y 
 10. **Todo control interactivo tiene hover, foco visible y deshabilitado.** Sin foco visible no se
     mergea.
 
+**Toda cifra abre su lista (ADR 0067 puntos 5 y 6, ticket 137):**
+
+- Cada métrica clicable tiene UNA definición de su universo en `lib/queries/metricas-filtros.ts`
+  (`filtroCaja`, `filtroLlamadas`, `filtroCierres`, `filtroLeads`), que usan a la vez la cifra del
+  dashboard (`dashboard.ts`), el resumen y la lista (`metricas-con-filas.ts`): no pueden discrepar.
+  Hoy son caja (abonos, por moneda), agendas y shows (llamadas), cierres (los deals de `vendidosEn`) y
+  leads. `vigente()` va escrito en cada cadena, no en el filtro, porque el guardián lee cadena por cadena.
+- Paso 1, el **resumen**: agregado en Postgres (`GROUP BY`), sin traer filas; se parte en tres desgloses
+  (`desglosesDelResumen`): por closer (agrupado por `claveDeCloser`, ADR 0030), por etapa y por antigüedad
+  (0-7, 8-30, 31-90, >90 días desde la fecha de la fila hasta hoy en Bogotá; lo futuro cuenta 0).
+- Paso 2, la **lista**: `/p/[programa]/dashboard/lista?metrica=caja|agendas|shows|cierres|leads&periodo=custom&a_desde…&b_hasta[&closer=<sha256>][&moneda=USD][&pagina=N]`,
+  paginada en el servidor (50 por página, más antiguas primero), con el total arriba y los filtros como
+  chips. El closer viaja como código opaco (sha256 de su forma normalizada); un código desconocido da 404,
+  nunca ensancha al programa entero. Un abono, una llamada o un lead sin deal sale sin enlace, no se descarta.
+- Varios programas: `resumenDeMetrica` y `listaDeMetrica` aceptan varios `programId` y devuelven una
+  sección y un subtotal por programa, nunca filas mezcladas (ADR 0048). La vista "todos" la monta el 095.
+- Leads no tiene atribución por closer: con un closer elegido, el resumen sale no disponible y la cifra
+  no se pinta clicable.
+
 **Periodo A contra B y número + porcentaje (ADR 0067, ticket 136):**
 
 - `lib/periodo.ts` valida con zod (`parsearPeriodoUrl`) y resuelve (`resolverPeriodo`). El servidor

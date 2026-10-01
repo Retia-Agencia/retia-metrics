@@ -84,6 +84,13 @@ vi.mock("@/lib/queries/recursos", () => ({
 // los tests se mockea para poder mirar CON QUE lo llama cada rol.
 const armarVistaDelDashboard = vi.fn();
 vi.mock("@/lib/queries/vista-dashboard", () => ({ armarVistaDelDashboard }));
+const detallesDelDashboard = vi.fn(async () => ({}));
+const vistaDeLista = vi.fn();
+vi.mock("@/lib/queries/vista-metrica", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/queries/vista-metrica")>(),
+  detallesDelDashboard,
+  vistaDeLista,
+}));
 // La vista interina de Pauta (093) tambien lee la base: aqui solo importa que la pagina pase.
 const pautaInterina = vi.fn(async () => ({
   filas: [],
@@ -900,5 +907,57 @@ describe("historial de una persona /personas/[id] (ticket 006)", () => {
     auth.mockResolvedValue(sesionGerente);
     expect(await correrHistorial("lead@correo.co")).toBe("notFound");
     expect(historialDePersona).not.toHaveBeenCalled();
+  });
+});
+
+
+describe("la lista de una cifra respeta la frontera del dashboard (137)", () => {
+  async function abrir(busqueda: Record<string, string | string[]> = { metrica: "agendas" }) {
+    const { default: pagina } = await import("@/app/(app)/p/[programa]/dashboard/lista/page");
+    return pagina({ params: Promise.resolve({ programa: "programa-a" }), searchParams: Promise.resolve(busqueda) });
+  }
+
+  beforeEach(() => {
+    vistaDeLista.mockReset();
+    vistaDeLista.mockResolvedValue({
+      lista: { filas: [], disponible: true, subtotal: { cantidad: 0, caja: [] } },
+      periodo: VISTA_VACIA.periodo,
+      closerId: null,
+    });
+  });
+
+  it("sin sesión no consulta ni revela el programa", async () => {
+    auth.mockResolvedValue(null);
+    await expect(abrir()).rejects.toBeInstanceOf(Redireccion);
+    expect(programaVisiblePorSlug).not.toHaveBeenCalled();
+    expect(vistaDeLista).not.toHaveBeenCalled();
+  });
+
+  it("un programa ajeno devuelve 404 antes de consultar filas", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programaVisiblePorSlug.mockResolvedValue(null);
+    await expect(abrir()).rejects.toBeInstanceOf(NoEncontrado);
+    expect(vistaDeLista).not.toHaveBeenCalled();
+  });
+
+  it.each([sesionGerente, sesionCloser, sesionDeveloper])("permite a cada rol dentro de su alcance", async (sesion) => {
+    auth.mockResolvedValue(sesion);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", nombre: "Programa A" });
+    await expect(abrir({ metrica: "shows", periodo: "ayer", pagina: "2" })).resolves.toBeTruthy();
+    expect(vistaDeLista).toHaveBeenCalledWith(expect.objectContaining({ programId: "p-1", metrica: "shows", pagina: 2 }));
+  });
+
+  it.each<Record<string, string | string[]>>([{ metrica: "inventada" }, { metrica: "caja", pagina: "0" }, { metrica: "caja", closer: "un-nombre" }, { metrica: ["caja", "leads"] }])("rechaza filtros inválidos sin consultar", async (busqueda) => {
+    auth.mockResolvedValue(sesionGerente);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", nombre: "Programa A" });
+    await expect(abrir(busqueda)).rejects.toBeInstanceOf(NoEncontrado);
+    expect(vistaDeLista).not.toHaveBeenCalled();
+  });
+
+  it("un código de closer desconocido no ensancha la lista", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", nombre: "Programa A" });
+    vistaDeLista.mockResolvedValue(null);
+    await expect(abrir({ metrica: "caja", closer: "a".repeat(64) })).rejects.toBeInstanceOf(NoEncontrado);
   });
 });

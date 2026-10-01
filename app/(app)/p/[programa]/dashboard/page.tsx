@@ -1,3 +1,4 @@
+import { detallesDelDashboard } from "@/lib/queries/vista-metrica";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { paginaConRol } from "@/lib/auth/page-guards";
@@ -75,6 +76,13 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
     closerId: texto(busqueda.closer) ?? null,
   });
 
+  const detalles = await detallesDelDashboard({
+    programId: programa.id,
+    slug,
+    hoy,
+    periodo: vista.periodo,
+    closerId: vista.closerId,
+  });
   const { desde, hasta } = vista.seleccion.rango;
 
   const filtrosPauta: FiltrosPauta = esquemaFiltrosPauta.parse({
@@ -131,7 +139,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
           closers={vista.closers}
           cohorteDisponible={vista.cohorte?.ventana != null}
         />
-        <DashboardPrograma vista={vista} />
+        <DashboardPrograma vista={vista} detalles={detalles} />
         <Card aria-labelledby="resumen-serie">
           <CardHeader>
             <div className="flex items-center gap-2">

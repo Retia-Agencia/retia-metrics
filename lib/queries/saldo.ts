@@ -51,7 +51,7 @@ export async function saldosDeDeals(db: Db, dealIds: readonly string[]): Promise
     .select({
       dealId: abonos.dealId,
       moneda: abonos.moneda,
-      total: sql<string>`sum(${abonos.monto})`,
+      total: sumaDeAbonos(),
       cuantos: sql<number>`count(*)::int`,
     })
     .from(abonos)
@@ -77,4 +77,9 @@ export async function saldosDeDeals(db: Db, dealIds: readonly string[]): Promise
     });
   }
   return resultado;
+}
+
+/** Suma decimal de abonos: cada lector decide su alcance y agrupa siempre por moneda. */
+export function sumaDeAbonos() {
+  return sql<string>`sum(${abonos.monto})`;
 }
