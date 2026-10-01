@@ -7,12 +7,15 @@ import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { estadosDeLlegadaDelPrograma, llaveDeEstado } from "@/lib/ingesta/estados-llegada";
 import {
+  CAMPOS_DE_FECHA_DE_LEAD,
   LEADS_POR_PAGINA,
   leadsDelPrograma,
   posiblesDuplicadosDelPrograma,
   type FiltroLeads,
 } from "@/lib/queries/leads";
-import { fecha, fechaDeInstanteEnBogota, num } from "@/lib/format";
+import { fecha, fechaDeInstanteEnBogota, hoyEnBogota, num } from "@/lib/format";
+import { filtroDeFechaDeLaUrl } from "@/lib/periodo";
+import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,7 +41,15 @@ function nombreDeEstado(valor: string): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-const DIA = /^\d{4}-\d{2}-\d{2}$/;
+/** Las claves de la URL que forman el filtro de fecha (141): el campo y las del selector. */
+const CLAVES_DE_FECHA = ["fecha", "periodo", "a_desde", "a_hasta"] as const;
+
+/** Las fechas que filtra la base de leads (ticket 141). */
+const CAMPOS = [
+  { valor: "creado", etiqueta: "Creado" },
+  { valor: "ultimo_envio", etiqueta: "Último envío" },
+] as const satisfies readonly { valor: (typeof CAMPOS_DE_FECHA_DE_LEAD)[number]; etiqueta: string }[];
+
 
 /**
  * La tab Leads (ticket 072, ADR 0050): la base del programa, sobre todo lo que existe y todavía no
@@ -59,8 +70,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   const q = await searchParams;
   const deal = uno(q.deal);
   const estado = uno(q.estado);
-  const desde = uno(q.desde);
-  const hasta = uno(q.hasta);
+  const filtroDeFecha = filtroDeFechaDeLaUrl(q, CAMPOS_DE_FECHA_DE_LEAD, hoyEnBogota());
   const pagina = Math.max(0, Number.parseInt(uno(q.pagina) ?? "0", 10) || 0);
   const filtro: FiltroLeads = {
     deal: deal === "con" || deal === "sin" ? deal : null,
@@ -70,8 +80,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
         : null,
     abandono: uno(q.abandono) === "1",
     duplicado: uno(q.duplicado) === "1",
-    desde: desde && DIA.test(desde) ? desde : null,
-    hasta: hasta && DIA.test(hasta) ? hasta : null,
+    fecha: filtroDeFecha ? { campo: filtroDeFecha.campo, rango: filtroDeFecha.periodo.a } : null,
     pagina,
   };
   const [{ total, filas }, duplicados] = await Promise.all([
@@ -93,7 +102,8 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   return (
     <PageShell titulo={programa.nombre} descripcion="Leads">
       <div className="space-y-4">
-        <form className="grid gap-3 rounded-xl bg-card p-4 shadow-tarjeta sm:grid-cols-3 lg:grid-cols-6" method="get">
+        <FiltroFechaLista campos={CAMPOS} filtro={filtroDeFecha} />
+        <form className="grid gap-3 rounded-xl bg-card p-4 shadow-tarjeta sm:grid-cols-3 lg:grid-cols-5" method="get">
           <label className="grid gap-1 text-sm">
             Deal
             <select name="deal" defaultValue={filtro.deal ?? ""} className={control}>
@@ -114,14 +124,11 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
               <option value="sin_estado">Sin estado</option>
             </select>
           </label>
-          <label className="grid gap-1 text-sm">
-            Desde
-            <input type="date" name="desde" defaultValue={filtro.desde ?? ""} className={control} />
-          </label>
-          <label className="grid gap-1 text-sm">
-            Hasta
-            <input type="date" name="hasta" defaultValue={filtro.hasta ?? ""} className={control} />
-          </label>
+          {/* El filtro de fecha vive arriba, en la URL: el formulario GET lo conserva al filtrar. */}
+          {CLAVES_DE_FECHA.map((clave) => {
+            const valor = uno(q[clave]);
+            return filtroDeFecha && valor ? <input key={clave} type="hidden" name={clave} value={valor} /> : null;
+          })}
           <div className="grid content-end gap-1 text-sm">
             <label className="flex items-center gap-2">
               <input type="checkbox" name="abandono" value="1" defaultChecked={filtro.abandono} className="size-4 accent-primary" />
@@ -141,9 +148,6 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
             </button>
           </div>
         </form>
-        {(filtro.desde && !filtro.hasta) || (!filtro.desde && filtro.hasta) ? (
-          <p className="text-xs text-muted-foreground">El filtro de fechas necesita desde y hasta.</p>
-        ) : null}
 
         <Card>
           <CardHeader>

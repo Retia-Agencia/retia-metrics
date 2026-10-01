@@ -279,3 +279,34 @@ export function resolverPeriodo(
         : "Sin cohorte anterior con ventana de venta. Elige B manualmente."),
   };
 }
+
+/** El filtro de fecha de una lista (ticket 141): QUÉ fecha y el periodo A del selector, sin B. */
+export interface FiltroDeFecha<C extends string> {
+  campo: C;
+  /** `b` siempre es `null`: una lista filtra, no compara. */
+  periodo: PeriodoResuelto;
+}
+
+/**
+ * Lee el filtro de fecha de una lista desde la URL: `fecha` dice sobre qué campo y el resto son
+ * las claves del selector (136). Sin `fecha`, o con un campo que la lista no tiene, no hay
+ * filtro: una lista sin parámetros muestra todo, no "Hoy". `hoy` viene de `hoyEnBogota()`.
+ *
+ * Las listas no tienen ventana de cohorte: un atajo de cohorte cae a Hoy con su aviso, igual
+ * que una URL inválida. Los avisos que hablan de B se callan, porque aquí no hay B.
+ */
+export function filtroDeFechaDeLaUrl<C extends string>(
+  url: Record<string, unknown>,
+  campos: readonly C[],
+  hoy: string,
+): FiltroDeFecha<C> | null {
+  const campo = url.fecha;
+  if (typeof campo !== "string" || !(campos as readonly string[]).includes(campo)) return null;
+  const entrada = parsearPeriodoUrl(url);
+  const periodo = resolverPeriodo({ ...entrada, b: undefined }, { hoy });
+  const cayoAHoy = periodo.preset !== entrada.preset;
+  return {
+    campo: campo as C,
+    periodo: { ...periodo, b: null, aviso: entrada.aviso ?? (cayoAHoy ? periodo.aviso : undefined) },
+  };
+}

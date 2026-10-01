@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, between, desc, eq, inArray } from "drizzle-orm";
 import {
   cohorts,
   dealEtapaHistorial,
@@ -18,6 +18,10 @@ import { saldosDeDeals } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
 import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { hoyEnBogota } from "@/lib/format";
+import { diaDeCalendario } from "@/lib/dias-habiles";
+import { filtroDeFechaDeLaUrl, type FiltroDeFecha } from "@/lib/periodo";
+import { cerradosEn, fechaAnclaDealCreado } from "@/lib/queries/metricas-filtros";
+import { ultimaActividadPorDeal } from "@/lib/queries/ultima-actividad";
 
 /**
  * Los deals de un programa agrupados por etapa, para el Kanban (ticket 069).
@@ -99,7 +103,13 @@ export interface FiltrosKanban {
   antiguedadMinima?: number | null;
   leadQuality?: string | null;
   leadValue?: string | null;
+  /** Fecha de creacion, de ultima actividad o de cierre en el periodo A del selector (ticket 141). */
+  fecha?: FiltroDeFecha<CampoDeFechaDeDeal> | null;
 }
+
+/** Sobre que fecha filtra la lista de deals (ticket 141), como en HubSpot. */
+export const CAMPOS_DE_FECHA_DE_DEAL = ["creado", "actividad", "cierre"] as const;
+export type CampoDeFechaDeDeal = (typeof CAMPOS_DE_FECHA_DE_DEAL)[number];
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
 
@@ -122,7 +132,11 @@ export function canalDeLead(utmSource: string | null, utmMedium: string | null):
  *
  * Es puro para poder probarlo: recibe un objeto de strings y devuelve `FiltrosKanban`.
  */
-export function parsearFiltros(busqueda: Record<string, string | string[] | undefined>): FiltrosKanban {
+export function parsearFiltros(
+  busqueda: Record<string, string | string[] | undefined>,
+  hoy: string = hoyEnBogota(),
+): FiltrosKanban {
+  const fecha = filtroDeFechaDeLaUrl(busqueda, CAMPOS_DE_FECHA_DE_DEAL, hoy);
   const texto = (v: string | string[] | undefined): string | undefined =>
     typeof v === "string" && v !== "" ? v : undefined;
   const antiguedadCruda = texto(busqueda.antiguedad);
@@ -134,6 +148,7 @@ export function parsearFiltros(busqueda: Record<string, string | string[] | unde
     ...(texto(busqueda.leadQuality) !== undefined ? { leadQuality: texto(busqueda.leadQuality) } : {}),
     ...(texto(busqueda.leadValue) !== undefined ? { leadValue: texto(busqueda.leadValue) } : {}),
     antiguedadMinima: antiguedad != null && antiguedad >= 1 ? antiguedad : null,
+    ...(fecha ? { fecha } : {}),
   };
 }
 
@@ -145,7 +160,8 @@ export async function tableroKanban(
 ): Promise<TableroKanban> {
   // Un deal + su lead + su dueno + su producto, en una sola lectura de la tabla `deals`
   // con joins (sin subconsultas correlacionadas: son joins directos, no plantillas).
-  const filas = await db
+  const { creado, actividad, cierre } = rangosDeFecha(filtros);
+  let filas = await db
     .select({
       dealId: deals.id,
       leadId: deals.leadId,
@@ -170,9 +186,25 @@ export async function tableroKanban(
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .leftJoin(users, eq(users.id, deals.ownerUserId))
     .leftJoin(productos, eq(productos.id, deals.productoId))
-    .where(and(eq(deals.programId, programId), vigente(deals)));
+    .where(
+      and(
+        eq(deals.programId, programId),
+        vigente(deals),
+        // Creado y cierre se deciden en SQL con la MISMA definicion que el dashboard (138, 141).
+        creado ? between(fechaAnclaDealCreado(), creado.desde, creado.hasta) : undefined,
+        cierre ? inArray(deals.id, cerradosEn(db, cierre)) : undefined,
+      ),
+    );
 
   const columnasVacias = (): ColumnaKanban[] => ETAPAS_EN_ORDEN.map((etapa) => ({ etapa, tarjetas: [] }));
+  if (actividad && filas.length > 0) {
+    // La ultima actividad sale de la funcion que decide "estancado" en el Inbox, no de una copia.
+    const ultima = await ultimaActividadPorDeal(db, filas.map((f) => f.dealId), filas);
+    filas = filas.filter((f) => {
+      const dia = diaDeCalendario(ultima.get(f.dealId) ?? f.createdAt);
+      return dia >= actividad.desde && dia <= actividad.hasta;
+    });
+  }
   if (filas.length === 0) return { columnas: columnasVacias(), total: 0 };
 
   const dealIds = filas.map((f) => f.dealId);
@@ -390,4 +422,9 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   const inicioDeLaCohorteActiva = (await cohorteActiva(programId, db))?.fechaInicioClases ?? null;
 
   return { owners, cohortes, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, productos: listaProductos, areas: listaAreas, motivos: listaMotivos };
+}
+
+/** El rango del filtro de fecha, bajo la llave del campo que filtra; los otros dos, ausentes. */
+function rangosDeFecha(f: FiltrosKanban): Partial<Record<CampoDeFechaDeDeal, { desde: string; hasta: string }>> {
+  return f.fecha ? { [f.fecha.campo]: f.fecha.periodo.a } : {};
 }

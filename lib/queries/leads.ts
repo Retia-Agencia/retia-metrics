@@ -2,6 +2,8 @@ import { and, between, count, desc, eq, inArray, isNull, notInArray, or, sql, ty
 import { deals, leadContactos, leads, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { vigente } from "@/lib/queries/vigente";
+import { fechaAnclaLead } from "@/lib/queries/metricas-filtros";
+import type { Rango } from "@/lib/queries/dashboard";
 import { estadosDeLlegadaDelPrograma, llaveDeEstado, resolverEstadoDeLlegada } from "@/lib/ingesta/estados-llegada";
 
 /**
@@ -15,7 +17,8 @@ import { estadosDeLlegadaDelPrograma, llaveDeEstado, resolverEstadoDeLlegada } f
  *   programa no tiene activo en `estados_llegada` (ADR 0061 punto 5, ticket 117).
  * - **abandonó el formulario:** todos sus envíos son parciales (ADR 0061 punto 6).
  * - **posible duplicado:** tiene un correo que entró por teléfono y nadie confirmó (ADR 0035).
- * - **fechas:** la última aplicación, en días de Bogotá.
+ * - **fecha (141):** la de creación (primera aplicación, la misma del dashboard) o la del último
+ *   envío, en días de Bogotá, dentro del periodo A del selector.
  *
  * No hay búsqueda por texto en esta consulta a propósito: los filtros viajan en la URL y un
  * correo en la URL está prohibido (AGENTS.md). Para buscar a alguien está Personas.
@@ -27,14 +30,17 @@ export interface FiltroLeads {
   estado?: string | null;
   abandono?: boolean;
   duplicado?: boolean;
-  /** Días `YYYY-MM-DD` de Bogotá, inclusive, sobre la última aplicación. */
-  desde?: string | null;
-  hasta?: string | null;
+  /** Sobre qué fecha y en qué días `YYYY-MM-DD` de Bogotá, inclusive (ticket 141). */
+  fecha?: { campo: CampoDeFechaDeLead; rango: Rango } | null;
   /** Desde 0. */
   pagina?: number;
 }
 
 export const LEADS_POR_PAGINA = 100;
+
+/** Sobre qué fecha filtra la base de leads (ticket 141). */
+export const CAMPOS_DE_FECHA_DE_LEAD = ["creado", "ultimo_envio"] as const;
+export type CampoDeFechaDeLead = (typeof CAMPOS_DE_FECHA_DE_LEAD)[number];
 
 export interface FilaLead {
   id: string;
@@ -91,10 +97,11 @@ export async function leadsDelPrograma(
   }
   if (filtro.abandono) condiciones.push(inArray(leads.id, soloParciales(db)));
   if (filtro.duplicado) condiciones.push(inArray(leads.id, conCorreoSinConfirmar(db)));
-  if (filtro.desde && filtro.hasta) {
-    condiciones.push(
-      between(sql<string>`(${leads.fechaUltimaAplicacion} AT TIME ZONE 'America/Bogota')::date`, filtro.desde, filtro.hasta),
-    );
+  if (filtro.fecha) {
+    const dia = filtro.fecha.campo === "creado"
+      ? fechaAnclaLead()
+      : sql<string>`(${leads.fechaUltimaAplicacion} AT TIME ZONE 'America/Bogota')::date`;
+    condiciones.push(between(dia, filtro.fecha.rango.desde, filtro.fecha.rango.hasta));
   }
   const donde = and(...condiciones);
 

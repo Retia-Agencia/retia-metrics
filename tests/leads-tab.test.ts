@@ -108,7 +108,8 @@ describe("leadsDelPrograma", () => {
   });
 
   it("las fechas son días de Bogotá", async () => {
-    expect(await correos({ desde: "2026-09-01", hasta: "2026-09-01" })).toEqual(["con-deal@c.co"]);
-    expect(await correos({ desde: "2026-09-02", hasta: "2026-09-20" })).toEqual(["parcial@c.co", "sin-estado@c.co"]);
+    const ultimo = (desde: string, hasta: string) => ({ fecha: { campo: "ultimo_envio" as const, rango: { desde, hasta } } });
+    expect(await correos(ultimo("2026-09-01", "2026-09-01"))).toEqual(["con-deal@c.co"]);
+    expect(await correos(ultimo("2026-09-02", "2026-09-20"))).toEqual(["parcial@c.co", "sin-estado@c.co"]);
   });
 });

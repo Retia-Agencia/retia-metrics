@@ -66,6 +66,24 @@ export function vendidosEn(db: Db, rango: Rango) {
     .having(vendidoEnElRango(rango));
 }
 
+export const ETAPAS_DE_CIERRE = [...ETAPAS_VENDIDAS, "cierre_perdido"] as const;
+
+/**
+ * Los deals CERRADOS en el rango (ticket 141): la "Close date" de HubSpot, que vale para los
+ * ganados y los perdidos. Es el dia (Bogota) de la PRIMERA entrada a Abonado, Completo o
+ * Cierre Perdido, por la misma razon que `diaDeVenta` (el mismo agregado: el minimo de los
+ * movimientos que deja pasar el WHERE, aqui los de las tres etapas): un deal se cierra una vez, aunque
+ * despues pase de Abonado a Completo. No es una venta: para eso esta `vendidosEn`.
+ */
+export function cerradosEn(db: Db, rango: Rango) {
+  return db
+    .select({ dealId: dealEtapaHistorial.dealId })
+    .from(dealEtapaHistorial)
+    .where(inArray(dealEtapaHistorial.a, [...ETAPAS_DE_CIERRE]))
+    .groupBy(dealEtapaHistorial.dealId)
+    .having(between(diaDeVenta(), rango.desde, rango.hasta));
+}
+
 /** Lo mismo que `vendidosEn`, con el dia de la venta. */
 export function ventasConDiaEn(db: Db, rango: Rango) {
   return db

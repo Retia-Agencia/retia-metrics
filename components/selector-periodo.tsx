@@ -20,7 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const claves = ["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "rango", "desde", "hasta"];
+// `pagina` tambien se va: con otro periodo, la pagina vieja ya no existe.
+const claves = ["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "rango", "desde", "hasta", "pagina"];
 const claseInput =
   "cifra w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none hover:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
 
@@ -28,6 +29,8 @@ interface SelectorPeriodoProps {
   periodo: PeriodoResuelto;
   cohorteDisponible: boolean;
   anteriorDisponible: boolean;
+  /** Solo el rango A, sin comparación: el de las listas (ticket 141). */
+  soloA?: boolean;
 }
 
 /**
@@ -42,7 +45,11 @@ export function SelectorPeriodo({
   periodo,
   cohorteDisponible,
   anteriorDisponible,
+  soloA = false,
 }: SelectorPeriodoProps) {
+  const letras = soloA ? (["a"] as const) : (["a", "b"] as const);
+  // Una lista no tiene ventana de cohorte: sus atajos ni se ofrecen.
+  const atajos = Object.entries(atajosDePeriodo).filter(([valor]) => !soloA || !valor.startsWith("cohorte"));
   const [abierto, setAbierto] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -70,20 +77,24 @@ export function SelectorPeriodo({
               {periodo.preset === "custom" ? "Personalizado" : atajosDePeriodo[periodo.preset]}
             </span>
             <span className="cifra block text-xs">
-              A: {legible(periodo.a)} · B: {periodo.b ? legible(periodo.b) : "Sin comparación"}
+              {soloA
+                ? legible(periodo.a)
+                : `A: ${legible(periodo.a)} · B: ${periodo.b ? legible(periodo.b) : "Sin comparación"}`}
             </span>
           </span>
         </DialogTrigger>
         <DialogContent>
-          <DialogTitle>Periodo A contra B</DialogTitle>
+          <DialogTitle>{soloA ? "Periodo" : "Periodo A contra B"}</DialogTitle>
           <DialogDescription>
-            Elige un atajo o dos rangos. Por defecto B compara el mismo número de días hábiles.
+            {soloA
+              ? "Elige un atajo o un rango. Los días son de Bogotá."
+              : "Elige un atajo o dos rangos. Por defecto B compara el mismo número de días hábiles."}
           </DialogDescription>
           <Select
             value={periodo.preset}
             // Sin `items`, Base UI pinta el valor crudo (`hoy`) en el disparador.
             items={[
-              ...Object.entries(atajosDePeriodo).map(([value, label]) => ({ value, label })),
+              ...atajos.map(([value, label]) => ({ value, label })),
               { value: "custom", label: "Personalizado" },
             ]}
             onValueChange={(valor) => {
@@ -94,7 +105,7 @@ export function SelectorPeriodo({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(atajosDePeriodo).map(([valor, etiqueta]) => (
+              {atajos.map(([valor, etiqueta]) => (
                 <SelectItem
                   key={valor}
                   value={valor}
@@ -109,18 +120,18 @@ export function SelectorPeriodo({
               <SelectItem value="custom">Personalizado</SelectItem>
             </SelectContent>
           </Select>
-          {!cohorteDisponible && (
+          {!soloA && !cohorteDisponible && (
             <p className="text-sm text-muted-foreground">Sin cohorte actual con ventana de venta.</p>
           )}
-          {!anteriorDisponible && (
+          {!soloA && !anteriorDisponible && (
             <p className="text-sm text-muted-foreground">Sin cohorte anterior con ventana de venta.</p>
           )}
           <form
             key={JSON.stringify(periodo)}
             className="space-y-4"
             onInput={(e) => {
-              for (const nombre of ["a_hasta", "b_hasta"]) {
-                const input = e.currentTarget.elements.namedItem(nombre) as HTMLInputElement;
+              for (const letra of letras) {
+                const input = e.currentTarget.elements.namedItem(`${letra}_hasta`) as HTMLInputElement;
                 input.setCustomValidity("");
               }
             }}
@@ -128,13 +139,12 @@ export function SelectorPeriodo({
               e.preventDefault();
               const data = new FormData(e.currentTarget);
               const valores = Object.fromEntries(
-                ["a_desde", "a_hasta", "b_desde", "b_hasta"].map((k) => [k, String(data.get(k))]),
+                letras.flatMap((l) => [`${l}_desde`, `${l}_hasta`]).map((k) => [k, String(data.get(k))]),
               );
 
-              if (valores.a_desde > valores.a_hasta || valores.b_desde > valores.b_hasta) {
-                const input = e.currentTarget.elements.namedItem(
-                  valores.a_desde > valores.a_hasta ? "a_hasta" : "b_hasta",
-                ) as HTMLInputElement;
+              const invertida = letras.find((l) => valores[`${l}_desde`] > valores[`${l}_hasta`]);
+              if (invertida) {
+                const input = e.currentTarget.elements.namedItem(`${invertida}_hasta`) as HTMLInputElement;
                 input.setCustomValidity("El fin debe ser igual o posterior al inicio.");
                 input.reportValidity();
                 return;
@@ -146,9 +156,9 @@ export function SelectorPeriodo({
               });
             }}
           >
-            {(["a", "b"] as const).map((letra) => (
+            {letras.map((letra) => (
               <fieldset key={letra} className="grid grid-cols-2 gap-2">
-                <legend className="mb-1 text-sm font-medium">Periodo {letra.toUpperCase()}</legend>
+                <legend className="mb-1 text-sm font-medium">{soloA ? "Rango" : `Periodo ${letra.toUpperCase()}`}</legend>
                 {(["desde", "hasta"] as const).map((extremo) => (
                   <label key={extremo} className="text-sm">
                     {extremo === "desde" ? "Desde" : "Hasta"}
@@ -156,7 +166,7 @@ export function SelectorPeriodo({
                       className={claseInput}
                       type="date"
                       name={`${letra}_${extremo}`}
-                      aria-label={`${letra.toUpperCase()} ${extremo}`}
+                      aria-label={soloA ? extremo : `${letra.toUpperCase()} ${extremo}`}
                       required
                       defaultValue={periodo[letra]?.[extremo] ?? ""}
                       onInput={(e) => e.currentTarget.setCustomValidity("")}
@@ -165,7 +175,7 @@ export function SelectorPeriodo({
                 ))}
               </fieldset>
             ))}
-            <Button type="submit">Aplicar A contra B</Button>
+            <Button type="submit">{soloA ? "Aplicar" : "Aplicar A contra B"}</Button>
           </form>
         </DialogContent>
       </Dialog>

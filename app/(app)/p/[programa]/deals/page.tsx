@@ -6,13 +6,21 @@ import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
-import { opcionesDeTablero, parsearFiltros, tableroKanban } from "@/lib/queries/kanban";
+import { opcionesDeTablero, parsearFiltros, tableroKanban, type CampoDeFechaDeDeal } from "@/lib/queries/kanban";
 import { PageShell } from "@/components/page-shell";
 import { FiltroKanban } from "@/components/deals/filtro-kanban";
+import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
 import { TableroKanban } from "@/components/deals/tablero-kanban";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 
 export const dynamic = "force-dynamic";
+
+/** Las fechas que filtra la lista de deals (ticket 141), como en HubSpot. */
+const CAMPOS_DE_FECHA = [
+  { valor: "creado", etiqueta: "Creado" },
+  { valor: "actividad", etiqueta: "Última actividad" },
+  { valor: "cierre", etiqueta: "Cierre" },
+] as const satisfies readonly { valor: CampoDeFechaDeDeal; etiqueta: string }[];
 
 type Props = {
   params: Promise<{ programa: string }>;
@@ -48,6 +56,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
       descripcion="Deals · tablero"
     >
       <div className="space-y-4">
+        <FiltroFechaLista campos={CAMPOS_DE_FECHA} filtro={filtros.fecha ?? null} />
         <FiltroKanban
           ownerUserId={filtros.ownerUserId ?? null}
           cohorteId={filtros.cohorteId ?? null}
