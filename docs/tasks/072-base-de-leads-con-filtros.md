@@ -100,3 +100,22 @@ Este ticket recoge de [`docs/anotaciones.md`](../anotaciones.md): A-09 (tabla ti
 
 - La lista suma el selector de fecha relativo (creado, último envío) del **141**, que lo construye sobre el 136. Coordinar con Mani antes: el 141 toca archivos de este ticket.
 - El "Fuera: crear un lead a mano" sigue: crear un **deal** a mano es el **140** (elige un lead existente o crea el lead con el alta manual del 026).
+
+---
+
+## Recorrido visual (1-oct, sesión 67, Alejo)
+
+Base local (`dev:local`, Tactical local, developer), con clics reales:
+- **Filtros contra la base:** todos 124 · con deal 100 · sin deal 24 · Setteo no calificado 53 · Con calendly 48 ·
+  Descartado 22 · sin estado 1 (el `estado_local_desconocido` del seed). Cuadran uno a uno con `leads.calificacion`.
+- **Separar** (duplicado sembrado a mano en la base local: un segundo envío con otro correo y su contacto sin
+  confirmar): el confirmar es en línea, Cancelar lo deshace, "Sí, separar" deja dos leads con un envío cada uno, el
+  aviso "Correo separado en un lead nuevo" y una fila en `change_log` (`origen: app`, con usuario). Sin deal pasó a 25.
+- **Es la misma persona:** confirma el contacto (`confirmado = true`) y la lista queda vacía con su aviso.
+- Selector de fecha (Creado → "Este mes") abre y filtra. Claro y oscuro bien. Consola sin errores en todo el recorrido.
+- **Ningún correo en una URL:** 115 enlaces y acciones de la página, ninguno con `@`; la ficha va por id opaco.
+- **390 px: NO medido en vivo.** Chrome con la ventana maximizada no se dejó achicar, el zoom no activa el diseño
+  móvil y los popups están bloqueados. Por código: el formulario es `grid` de una columna bajo `sm` y cada fila es
+  `flex-wrap` con `truncate`. Falta mirarlo en un teléfono o en el modo dispositivo de DevTools (Ctrl+Shift+M).
+- Detalle visto: el primer clic tras navegar puede caer antes de hidratar y no hacer nada (pasó una vez con
+  "Es la misma persona"); el segundo funciona. No es de esta pantalla.
