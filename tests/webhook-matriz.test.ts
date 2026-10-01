@@ -18,6 +18,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import real from "./fixtures/typeform-real-tactical.json";
 import daptaParcial from "./fixtures/dapta-parcial.json";
 import daptaCompleto from "./fixtures/dapta-completo.json";
+import daptaPruebaReal from "./fixtures/dapta-prueba-real.json";
 
 /**
  * Matriz de casos del webhook (tarea C del ticket 106, pedido explicito de Mani:
@@ -562,13 +563,8 @@ describe("Dapta", () => {
 
   it("la entrega de prueba del editor de Dapta responde 200, deja el sobre y no crea lead", async () => {
     const fuente = await fuenteDapta();
-    // La forma que arma Dapta al "enviar prueba": parcial, sin outcome y con respuestas de muestra.
-    const prueba = {
-      ...structuredClone(daptaParcial),
-      submission: { id: "test-submission", sessionId: "test-session", score: 0, outcome: null },
-      data: { nombre: "Sample", email: "sample@example.com", test: true },
-      utm: {},
-    };
+    // El cuerpo REAL del boton "enviar prueba" de Dapta, recibido en produccion el 30-sep.
+    const prueba = daptaPruebaReal;
     const res = await enviarDapta(prueba, fuente);
     expect(res.status).toBe(200);
     const sobres = await db.select().from(sobresCrudos);

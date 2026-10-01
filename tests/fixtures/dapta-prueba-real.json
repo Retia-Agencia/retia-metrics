@@ -1,0 +1,26 @@
+{
+  "id": "ping:003e5f13-3b73-45cf-b922-d0504b5b8548:1790828808336",
+  "type": "form.submission",
+  "phase": "partial",
+  "submittedAt": "2026-10-01T04:26:48.336Z",
+  "form": {
+    "id": "003e5f13-3b73-45cf-b922-d0504b5b8548",
+    "name": "Postulación Evento Comunicarte"
+  },
+  "submission": {
+    "id": "test-submission",
+    "sessionId": "test-session",
+    "score": 0,
+    "outcome": null
+  },
+  "data": {
+    "test": true
+  },
+  "utm": {},
+  "visit": {
+    "pageUri": "https://example.com/landing?utm_source=test",
+    "pageName": "Example landing page",
+    "embedded": true,
+    "hutk": "00000000000000000000000000000000"
+  }
+}

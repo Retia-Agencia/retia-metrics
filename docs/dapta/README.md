@@ -63,6 +63,8 @@ Los dos están en **borrador, sin publicar**; se volvieron a subir con el genera
   `submission.id: "test-submission"` y `sample@example.com`. El CRM lo responde con 200 y lo deja en `sobres_crudos`
   con el error "Entrega de prueba de Dapta", **sin crear lead** (`esEntregaDePrueba`, 30-sep). Se puede usar para
   probar URL y secreto, con la fuente activa.
+  **Probado el 30-sep en los dos programas:** firma buena, 200, sobre con ese error, cero envíos y cero leads. El
+  cuerpo real (con el formulario sin publicar trae solo `data: { test: true }`) es `tests/fixtures/dapta-prueba-real.json`.
 
 ## Los formularios de Dapta no los creó el CRM
 

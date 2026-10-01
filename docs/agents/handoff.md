@@ -91,7 +91,9 @@ empuja al mismo main y el numero de migracion puede chocar.
   - **Después (misma sesión):** el botón "enviar prueba" de Dapta manda un parcial real firmado con
     `sample@example.com`; habría creado un lead falso en producción. `esEntregaDePrueba` lo rechaza (200, sobre
     con error, sin lead) y `tests/webhook-matriz.test.ts` lo cubre (muerde). Mani genera el secreto en
-    `/ajustes/fuentes` el 30-sep.
+    `/ajustes/fuentes` el 30-sep, deja las dos fuentes Dapta activas con mapeo vacío y manda las dos pruebas:
+    firma buena y 200, sobre con el error de prueba, cero envíos y cero leads. Es el primer payload real de
+    Dapta (`tests/fixtures/dapta-prueba-real.json`) y pasó el schema del adaptador.
   - **Pendiente:** 117; luego en Dapta el evento de Calendly y las URLs de gracias, secreto desde
     `/ajustes/fuentes`, activar, publicar y los 7 envíos reales del ticket 130 (fixtures reales al contrato).
 
