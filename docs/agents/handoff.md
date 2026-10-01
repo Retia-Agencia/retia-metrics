@@ -7,8 +7,8 @@
 
 > Copiar y pegar tal cual. Reescrito al cierre de la sesión 53 de Alejo (30-sep) y actualizado en la 54 y la 55
 > de Mani (30-sep, carril de Mani), en la 56 de Alejo (30-sep, carril de Alejo), en la 57 de Mani (30-sep) y en
-> la 60 de Mani (30-sep: el norte comercial de Gerencia pasa a ser la prioridad) y en la 62 de Mani (1-oct: paso 2
-hecho, los dos lotes). El anterior: `git show 968532a:docs/agents/handoff.md`.
+> la 60 de Mani (30-sep: el norte comercial de Gerencia pasa a ser la prioridad) en la 62 de Mani (1-oct: paso 2
+hecho, los dos lotes) y en la 64 de Alejo (1-oct: 117 en produccion, 136 y 137 hechos). El anterior: `git show 968532a:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas)
@@ -33,14 +33,16 @@ gestion comercial QD-8): las etapas de 30X en UNA migracion, despues el --aplica
 ESTADO AL 1-OCT (sesion 63): pasos 4 y 5 del LOTE 1 HECHOS. ADR 0065 (valor vendido, ticket base de la
 cohorte, productos se retira, comision % congelada), 0066 (Atendido sin Grain), 0067 (numero y %, periodo A
 vs B, cifra -> resumen -> lista). Tickets 132-141 listos para construir (orden y dependencias en
-docs/tasks/README.md, seccion Norte comercial); 142-148 bloqueados por QD/QM. NADA implementado todavia.
+docs/tasks/README.md, seccion Norte comercial); 142-148 bloqueados por QD/QM. HECHOS (sesion 64, Alejo):
+136 (selector A contra B en el dashboard; lib/periodo.ts, lib/variacion.ts) y 137 (toda cifra abre su lista:
+lib/queries/metricas-filtros.ts + metricas-con-filas.ts, vista /p/[programa]/dashboard/lista). Quedan listos 138 y 141.
 Para construir: UNA sesion por ticket. Lee el ticket y su ADR, /delegate a Codex en un worktree propio, la
 sesion revisa tests y diff; la migracion la genera y aplica la sesion principal con el ok de Mani. Arranca por
 el 132 (base del dinero). En paralelo con el solo 136 (lib/periodo, pantallas) y 140 (alta de deal); el 135
 toca requisitos.ts y mover-etapa.ts como el 132, asi que va DESPUES del 132; 133 y 134 tras el 132; 137, 138, 141 tras el 136; 139 tras 132 y 134.
 
 Estado al 30-sep (sesion 57, Mani): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
-51 migraciones (0000-0050), todas aplicadas. DAPTA (sesion 61, 30-sep): el adaptador y el contrato de proveedores estan en produccion; ComunicArte tiene Typeform y Dapta activos, Memorable existe inactivo; lo pendiente esta en Memory 30-sep sesion 61 y la guia de configurar un programa en docs/operations.md §2.1; en produccion hay ademas UNA aplicada desde otra maquina que no esta en el repo (fila 52 de __drizzle_migrations, hash 28fc7b38..., ver Memory 30-sep sesion 61). ~1.676 tests. Produccion: https://retia-metrics-seven.vercel.app.
+53 migraciones (0000-0052), todas aplicadas (1-oct). DAPTA (sesion 61, 30-sep): el adaptador y el contrato de proveedores estan en produccion; ComunicArte tiene Typeform y Dapta activos, Memorable existe inactivo; lo pendiente esta en Memory 30-sep sesion 61 y la guia de configurar un programa en docs/operations.md §2.1; la "migracion ajena" de la fila 52 era la del 117: renumerada a 0051 y alineada (Memory 1-oct sesion 64). ~1.810 tests. Produccion: https://retia-metrics-seven.vercel.app.
 
 Carril de Mani (E6, sesion 57): 083, 101, 085, 087 y 121 done. 084 reemplazado por DP-25.
 - 121: deals.area_declarada_id (0049). El motor la exige al entrar a 6, 7 u 8 (historicos exentos, A1/A2 no);
@@ -69,13 +71,23 @@ Carril de Alejo (E5 con el codigo en main; E6 arrancado):
   TYPE calificacion_envio) aplicadas; cargar-estados-llegada y cargar-plantillas-lead aplicados en los tres
   programas. Falta: reprocesar los 23 de Tactical (Mani decide los 14 sin link ni estado), el recorrido visual
   de "Estados de llegada" en /ajustes/fuentes y anotar el payload del primer parcial real. Desbloquea 118 y 130.
+- 136 y 137 DONE (1-oct): el dashboard tiene el selector A contra B (A alimenta las cifras, B solo se
+  muestra: cablear la comparacion es del 095) y cada cifra (caja, shows, agendas, cierres, leads) abre su
+  resumen y su lista paginada. resumenDeMetrica/listaDeMetrica ya aceptan varios programas: la vista "todos"
+  del 095 tiene que usarlas, no escribir otra consulta.
 - Guion del corte escrito: docs/operations.md §12 (pasos, reversa, capacitacion, conciliacion).
-- SIGUIENTE: 092 (ahora depende de 101, listo), pero antes definir su alcance con Mani: el builder queda
+- SIGUIENTE (norte comercial, prioridad): 138 (deals creados contra agendas, sobre el 136), 141 (filtros de
+  fecha relativos en listas; toca el 072, asi que conviene cerrar antes su recorrido) o 140 (crear un deal a
+  mano). Antes de arrancar, preguntar a Mani que esta tomando (132-135 son de dinero y motor).
+- Despues: 092 (ahora depende de 101, listo), pero antes definir su alcance con Mani: el builder queda
   para organico y closer, y la convencion del organico espera PQ6 (Pauta y Media). Lleva migracion.
   Despues, E6: 119/120 (token de Meta), 102.
 - El recorrido visual del 072 necesita la extension de Chrome: claro/oscuro, 390 px, consola, clic en todo.
   Chrome en Windows no baja de 500 px: se mide 390 con document.documentElement.style.zoom = innerWidth/390
-  (mismo breakpoint). Nunca reemplazar el body con iframes: la app no se deja enmarcar y rompe React.
+  (mismo breakpoint). OJO (1-oct): en una ventana de 1280 ese zoom NO activo el diseño movil (el sidebar
+  siguio visible); sirve para medir desborde (scrollWidth vs clientWidth), no para ver el layout de telefono.
+  Nunca reemplazar el body con iframes: la app no se deja enmarcar y rompe React. Si las capturas de Chrome
+  se cuelgan al navegar en dev, leer con get_page_text o javascript funciona.
 
 Del corte dependen decisiones de afuera: la fecha (closers), S1 Supabase Pro (equipo), la C3 de cada
 programa (O-5, gerente).
@@ -89,7 +101,7 @@ empuja al mismo main y el numero de migracion puede chocar.
 
 ## Memory
 
-- **2026-10-01 (Alejo, sesión 62): el 117 en producción, y dos 0050 a la vez.**
+- **2026-10-01 (Alejo, sesión 64): el 117 en producción y dos 0050 a la vez; después 136 y 137.**
   - **Qué pasó:** Mani aplicó su 0050 (130/131) minutos antes que la del 117, que también se llamaba 0050. Las dos
     quedaron aplicadas (filas 51 y 52) y no se pisan. La del 117 se renumeró a **0051** con el SQL byte a byte (mismo
     hash) y un `when` nuevo; la fila 52 de `drizzle.__drizzle_migrations` se alineó a ese `when` con el ok de Alejo.
@@ -105,6 +117,20 @@ empuja al mismo main y el numero de migracion puede chocar.
     porque los dos aplicamos con minutos de diferencia. Y el migrador de drizzle decide por `created_at` (el
     `when` del journal), no por nombre ni hash: una migración con `when` menor que la última aplicada se salta
     sin avisar.
+  - **136 hecho** (`562fa09`, `9577160`): implementó Codex en un worktree y revisó Claude. El recorrido visual
+    destapó que el disparador del atajo pintaba el valor crudo (`hoy`): Base UI necesita `items` en el `Select`.
+  - **137 hecho** (`3bdb2ae`, `cbbd1fb`): Codex se quedó sin cuota a mitad (vuelve el 1-oct 2:28 pm); terminó
+    Claude. 🩸 El test de los desgloses mordió un closer partido en dos por mayúsculas (`Ana` / `  ANA  `,
+    ADR 0030): agrupar en memoria por el texto crudo repite el bug aunque el SQL agrupe bien. El recorrido destapó
+    leads sin conectar, el aviso `nativeButton` de Base UI en botones-enlace, columnas desalineadas y etiquetas
+    cortadas a 390 px. Pendientes nombrados en el ticket: la pantalla "todos" (095) y medir con 3.000 filas reales.
+  - 🧪 **Worktree con `node_modules` enlazado (junction): los tests corren, Turbopack NO** (`build` y `dev`
+    fallan con "Symlink ... points out of the filesystem root"). El recorrido y la build se hacen en el checkout
+    principal tras hacer commit en la rama. Y **Next 16 deja UN solo `next dev` por carpeta**: había un
+    `dev:local` huérfano del 30-sep en el 3000 (cadena `cmd /c "npx next dev"`); una `next build` en la misma
+    carpeta le rompe la caché a un `dev` vivo.
+  - **Base local recreada** (`docker compose down -v` + `npm run db:local`): tenía la del 117 con su número viejo y
+    quería re-aplicarla. Quien tenga una base de Docker de antes del 1-oct, igual.
 
 - **2026-10-01 (Mani, sesión 63): pasos 4 y 5 del lote 1 del norte comercial hechos.**
   - **Decidido (Mani, `/grill-with-docs`):** ADR **0065**: valor vendido por deal en USD, `null` en la base y 0

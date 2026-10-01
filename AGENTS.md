@@ -387,7 +387,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 The agent should run these to get fast signal on whether code works. Keep them current.
 
 - **Test:** `npm test` (Vitest por `scripts/test.mjs`: una suite por máquina, sin huérfanos, límite
-  de 480 s; ver Conventions). 1.676 pasando al 30-sep; ~60 s con la máquina libre.
+  de 480 s; ver Conventions). 1.810 pasando al 1-oct; entre 60 y 190 s según la máquina.
   Un programa de prueba ACTIVO se crea con `PROGRAMA_DE_PRUEBA` (`tests/helpers/programa-de-prueba.ts`):
   desde la 0031 un programa nace inactivo y la base exige Forms Link y token para activarlo. Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
@@ -457,6 +457,13 @@ The agent should run these to get fast signal on whether code works. Keep them c
   declararse sobre `@auth/core/jwt` o no aplica (ver `types/next-auth.d.ts`).
 - **`LayoutProps` / `PageProps` los genera `next build`.** No dependas de ellos: tipa las props a
   mano para que `tsc --noEmit` corra limpio sin build previo.
+- **Worktree para delegar: los tests sí, Turbopack no** (1-oct). Un worktree con `node_modules` enlazado
+  (junction a la del checkout principal) corre `npm test`, typecheck y lint, pero `next build` y `next dev`
+  fallan ("Symlink ... points out of the filesystem root"). La build y el recorrido visual se hacen en el
+  checkout principal tras commit en la rama. Para quitar el worktree, primero `rmdir node_modules` (borra el
+  enlace, no la carpeta real) y después `git worktree remove`. Y **Next 16 deja UN solo `next dev` por
+  carpeta**: si `dev:local` dice "Another next dev server is already running", mira de quién es el PID antes de
+  matarlo (un `npm run dev` escribe en producción); una `next build` en la misma carpeta rompe un `dev` vivo.
 - **Un paquete no se instala antes del codigo que lo usa.** Instalar por adelantado es
   abstraccion especulativa (ADR 0006).
 - **Dentro de una plantilla `sql` de drizzle, las columnas salen SIN calificar.**
