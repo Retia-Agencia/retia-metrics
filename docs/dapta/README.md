@@ -66,6 +66,9 @@ El Typeform no redirige, muestra un mensaje final: sin redirect, Dapta mostrarí
   se guarda.
 - La agenda llega como la **hora de inicio** de la cita (o `booked`), nunca como link. Dapta guarda el
   `inviteeUri` en su base, pero no lo manda: se le pidió (A9).
+- **Conectar Calendly en Integrations no cambia eso** (verificado en `submission.service.ts`, 30-sep): la reserva va a
+  la tabla `booking_event` de Dapta y a su sync con HubSpot, nunca a `data`. La conexión solo sirve para escoger el
+  evento en el editor. Se conecta igual, para que el editor muestre el evento escogido.
 - Dapta le pasa a Calendly `utm_content = sessionId`, el mismo `submission.id` que el CRM usa como token. Es una
   llave exacta para emparejar la cita con el envío, sin depender del correo; nadie la usa todavía.
 - Con el anti-spam prendido, el parcial se guarda pero no se entrega a ningún destino.
