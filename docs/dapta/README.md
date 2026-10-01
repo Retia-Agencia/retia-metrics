@@ -34,7 +34,12 @@ editor el 30-sep.
 | ComunicArte | Eventos ComunicArte SAS | `003e5f13-3b73-45cf-b922-d0504b5b8548` | USD 797 | los de su Typeform: descalifica menos de 1.500 |
 | Memorable en Instagram & TikTok | Memorable en Instagram & TikTok | `36772ec5-c79e-45de-97fb-791b7cd8f668` | USD 1.200 | los de Tactical: descalifica menos de 1.000 |
 
-Los dos están en **borrador, sin publicar**; se volvieron a subir con el generador actual el 30-sep.
+**Publicados por Mani el 30-sep, con los placeholders todavía puestos** (Calendly `calendly.com/REEMPLAZAR` y redirects
+`example.com/REEMPLAZAR-*`, verificado en la página pública). Links: ComunicArte
+`forms.dapta.ai/4bgty3/f/postulacion-evento-comunicarte`, Memorable `forms.dapta.ai/rx4i7a/f/postulacion-memorable`.
+**No se comparten hasta cambiar los placeholders y tener el 117.** Candidato para ComunicArte (sin confirmar: el
+Typeform usa la integración nativa y no guarda el link): `calendly.com/eventoscomunicarte-info/postulacion-comunicarte`.
+El Typeform no redirige, muestra un mensaje final: sin redirect, Dapta mostraría la etiqueta del outcome.
 
 ## Antes de publicar uno
 

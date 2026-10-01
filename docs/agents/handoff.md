@@ -94,6 +94,9 @@ empuja al mismo main y el numero de migracion puede chocar.
     `/ajustes/fuentes` el 30-sep, deja las dos fuentes Dapta activas con mapeo vacío y manda las dos pruebas:
     firma buena y 200, sobre con el error de prueba, cero envíos y cero leads. Es el primer payload real de
     Dapta (`tests/fixtures/dapta-prueba-real.json`) y pasó el schema del adaptador.
+  - ⚠️ **Mani publicó los dos formularios el 30-sep con los placeholders puestos** (Calendly y redirects; ver
+    `docs/dapta/README.md`). Las pruebas con el form publicado también se rechazaron bien. No compartir los
+    links hasta reemplazarlos y tener el 117.
   - **Pendiente:** 117; luego en Dapta el evento de Calendly y las URLs de gracias, secreto desde
     `/ajustes/fuentes`, activar, publicar y los 7 envíos reales del ticket 130 (fixtures reales al contrato).
 
