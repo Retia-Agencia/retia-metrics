@@ -3,7 +3,7 @@ id: 132
 etapa: NC1
 serves: "ADR 0065 puntos 1, 2, 3 y 6 · comercial.md R-3, GC-09, GC-13"
 depends: []
-status: todo
+status: done
 ---
 
 # 132 — El valor vendido del deal: lo escribe el closer y de él sale el saldo
@@ -45,14 +45,14 @@ y su primer abono queda como sobrepago, sin ningún error.
 
 ## Done cuando
 
-- [ ] Mover a Abonado o Completo sin valor vendido se rechaza con "Falta el valor vendido"; con valor, pasa.
+- [x] Mover a Abonado o Completo sin valor vendido se rechaza con "Falta el valor vendido"; con valor, pasa.
       Un deal histórico pasa sin él.
-- [ ] El saldo de un deal con valor 797 y un abono de 500 es 297 en la ficha y en la reja del abono (el test
+- [x] El saldo de un deal con valor 797 y un abono de 500 es 297 en la ficha y en la reja del abono (el test
       comparativo muerde si se separan).
-- [ ] Bajar el valor vendido por debajo de lo abonado se rechaza y la base no se mueve; subirlo deja una fila
+- [x] Bajar el valor vendido por debajo de lo abonado se rechaza y la base no se mueve; subirlo deja una fila
       en `change_log`.
-- [ ] Un formulario enviado sin tocar el campo guarda `null`, no 0 (test sobre la acción).
-- [ ] Recorrido visual de los cuatro formularios, abriendo cada uno, con la consola abierta.
+- [x] Un formulario enviado sin tocar el campo guarda `null`, no 0 (test sobre la acción).
+- [x] Recorrido visual de los cuatro formularios, abriendo cada uno, con la consola abierta.
 
 ## Codex
 

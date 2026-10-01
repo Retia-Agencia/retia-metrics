@@ -129,6 +129,25 @@ empuja al mismo main y el numero de migracion puede chocar.
 
 ## Memory
 
+- **2026-10-01 (Mani, sesión 69): 132 en producción; el closer escribirá el descuento (enmienda del ADR 0065).**
+  - **Hecho:** 132 en `main` (`27583bb`). Migración 0053 (`deals.valor_vendido_usd`, CHECK >= 0) aplicada en
+    producción con ok de Mani. `saldo.ts` lee el valor vendido (siempre USD; `sin_valor_vendido`); el motor lo
+    exige en toda flecha a Abonado/Completo (históricos exentos); el abono se rechaza sin valor; Editar deal no
+    lo baja de lo abonado (mensaje con las dos cifras) ni lo toca en Completo; un 0 se guarda `null`.
+    **Compromiso Verbal (T4, T12, T25) ya no pide producto** (Mani) y el requisito `producto` desapareció del motor.
+    Codex implementó; suite 1.857 en verde, build limpia, recorrido en `dev:local` (Compromiso Verbal sin producto,
+    abono bloqueado sin valor, 797 − 500 = 297 y paso solo a Abonado, bajar a 400 rechazado; consola limpia).
+  - **Decidido (Mani):** valor vendido = precio al que se cerró; lo pagado = suma de abonos (ya son actividad).
+    Pero el closer no teclea el valor: teclea el **descuento** y el motor congela `valor = precio de la cohorte −
+    descuento`. Enmienda en el ADR 0065; se construye en el **134**. Propuesto por Claude y por confirmar: sin
+    cohorte o cohorte sin precio, no se vende.
+  - 🩸 **Codex corre solo los tests que toca:** 12 fallaron en 6 archivos que armaban el saldo con producto. La
+    suite completa la corre siempre la sesión principal antes del merge.
+  - **Abierto:** un deal en Abonado cuyo valor se edita hasta igualar lo abonado queda con saldo 0 sin pasar a
+    Completo (solo un abono lo dispara). Cortesía (QM-12). `docs/insumos/reu-danieltovar.md` recortado (`fe7b026`),
+    sigue en el historial de git.
+  - **Siguiente:** 133 (comisión %, `high`, migración) y 134 (ticket base + descuento + adiós productos).
+
 - **2026-10-01 (Alejo, sesión 68): recorridos de 072 y 117, plantilla de PR, 126 parte A y 088.**
   - **072:** recorrido con clics en la base local: los filtros cuadran con la base, separar y confirmar, selector de
     fecha, claro/oscuro, consola, ningún correo en una URL. Falta 390 px en vivo (la ventana maximizada no se achica y

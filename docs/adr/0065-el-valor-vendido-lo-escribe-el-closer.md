@@ -50,6 +50,29 @@ precio.
    (ADR 0048). Los números de cada programa son dato, no diseño: los da Dani (QD-5; hoy 80/797 = 10,04% y
    100/1.500 = 6,67%).
 
+## Enmienda 1-oct (Mani, sesión 69): el closer escribe el DESCUENTO, no el valor vendido
+
+Al cerrar el 132, Mani: *"los Deals tienen ticket price que lo pone el programa; dentro del deal se modifica
+si hay descuento o no, que modifica el total al cual se tiene que llegar"*. Se mantiene todo lo de arriba
+sobre **qué es** el valor vendido (el precio al que se cerró: 797, o 697 con descuento; lo pagado es la suma
+de los abonos y nunca se escribe a mano, ADR 0024). Cambia **cómo se escribe**:
+
+1. **El ticket lo pone la cohorte del deal** (punto 4). El closer no lo teclea.
+2. **El closer teclea el descuento en USD** (0 por defecto, que es un valor válido: "sin descuento"). Al
+   guardar, el motor escribe `valor_vendido_usd = precio_usd de la cohorte − descuento` en esa misma
+   transacción, **congelado**: si después cambia el precio de la cohorte, la venta no se mueve.
+3. **No hay columna de descuento.** El descuento se sigue derivando (punto 6: ticket base − valor vendido),
+   así no hay dos cifras que puedan discrepar. La pantalla muestra ticket, descuento, total a pagar (= valor
+   vendido), abonado y saldo.
+4. **Sin cohorte o cohorte sin precio**, no se puede vender: el motor lo rechaza con "La cohorte del deal no
+   tiene precio" (antes de este cambio, el closer podía teclear cualquier valor).
+5. Las rejas del 132 siguen iguales: el descuento no puede dejar el total por debajo de lo ya abonado ni por
+   debajo de 0, y un deal en Completo no se edita.
+6. **Cortesía** (descuento = ticket, total 0) sigue abierta en la QM-12: hoy el motor exige valor vendido > 0.
+
+Se construye en el **134**, que es el que trae el ticket base de la cohorte. El 132 (en `main` desde el 1-oct)
+deja el campo "Valor vendido (USD)" en la pantalla hasta entonces; la base no cambia.
+
 ## Lo que queda abierto
 
 - **Deals históricos sin valor vendido** (los que traiga el 078 en Abonado o Completo): Mani, 1-oct, se

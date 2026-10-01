@@ -22,6 +22,12 @@ precio es de la cohorte.
 
 - **Dentro:** el descuento de un deal = `cohorts.precio_usd` de su cohorte − valor vendido, en USD y en %
   (función en `lib/queries/saldo.ts` o vecino, no en la pantalla). Sin cohorte o sin valor: `null`.
+- **Dentro (enmienda del ADR 0065, 1-oct):** los formularios del 132 dejan de pedir "Valor vendido (USD)" y
+  piden **"Descuento (USD)"**, 0 por defecto. El motor (`moverEtapa`, `editarDeal`, `registrarAbono`) calcula
+  y congela `valor_vendido_usd = precio_usd de la cohorte − descuento` en la misma transacción. Muestran
+  ticket, descuento, total a pagar, abonado y saldo. Sin cohorte o sin precio en la cohorte: no se vende
+  ("La cohorte del deal no tiene precio"). Las rejas del 132 (no por debajo de lo abonado, no en Completo)
+  se mantienen. Sin columna nueva.
 - **Dentro:** la meta en cash de una cohorte = `meta_cupos × precio_usd` de la cohorte (donde hoy se lea
   `programs.ticket_usd` para eso: `lib/queries/vista-dashboard.ts`, `components/dashboard-programa.tsx`).
 - **Dentro:** `programs.ticket_usd` queda solo como valor por defecto al crear una cohorte (prellena el
@@ -35,7 +41,9 @@ precio es de la cohorte.
 
 ## Done cuando
 
-- [ ] Un deal de la C2 de ComunicArte vendido a 697 muestra "descuento USD 100,00 (12,5%)".
+- [ ] Un deal de la C2 de ComunicArte con descuento 100 queda con valor vendido 697 y muestra "descuento USD 100,00
+      (12,5%)"; subir después el precio de la C2 no le mueve el valor.
+- [ ] Un deal sin cohorte (o con cohorte sin precio) no puede pasar a venta, con el mensaje de arriba.
 - [ ] Ninguna consulta de métrica lee `programs.ticket_usd` (grep en el test, o guardián si cuesta poco).
 - [ ] `grep -rn productos lib app components` solo devuelve lo que se retira en la migración.
 - [ ] `npm run build` limpio y la suite completa en verde tras quitar la tabla.
