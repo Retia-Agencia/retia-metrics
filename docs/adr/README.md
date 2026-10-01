@@ -25,6 +25,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0039](./0039-un-programa-una-fuente-de-leads.md) | Un programa, una fuente de leads activa (**el punto 2 lo enmienda el 0064**) |
 | [0064](./0064-un-programa-puede-tener-varios-formularios-activos.md) | Un programa puede tener varios formularios activos a la vez (migrar de proveedor sin perder envíos) |
 | [0068](./0068-el-link-de-captacion-sale-de-la-fuente.md) | El link de captación sale de la fuente, con una principal por programa (`programs.form_url` se retira) |
+| [0069](./0069-la-etapa-de-entrada-la-decide-el-crm.md) | La etapa de entrada la decide el CRM con la agenda y la calidad; el formulario ya no manda `estado` (reemplaza al 0061) |
 | [0061](./0061-el-estado-de-llegada-se-mapea-por-una-tabla.md) | El Estado de llegada lo manda el formulario y una tabla por programa lo lleva a su etapa (reemplaza el 0054) |
 | [0055](./0055-el-webhook-estandar-de-formularios.md) | Un webhook estándar para cualquier formulario; el programa sale de la URL |
 | [0056](./0056-el-motor-decide-quien-mueve-con-que-motivo-y-datos.md) | El motor decide quién mueve, con qué motivo (cuatro listas) y con qué datos |
