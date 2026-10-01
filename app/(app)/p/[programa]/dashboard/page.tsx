@@ -10,12 +10,14 @@ import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { pautaInterina, type FiltrosPauta } from "@/lib/queries/pauta-interina";
 import { hechosDelEmbudo } from "@/lib/queries/hechos-embudo";
 import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
+import { registrosYAgendasPorCanal } from "@/lib/queries/registros-agendas-canal";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { DashboardPrograma } from "@/components/dashboard-programa";
 import { FiltroDashboard } from "@/components/filtro-dashboard";
 import { PautaInterina } from "@/components/pauta-interina";
 import { EmbudoFormulario } from "@/components/embudo-formulario";
+import { RegistrosAgendasCanal } from "@/components/registros-agendas-canal";
 import { DealsContraAgendas } from "@/components/deals-contra-agendas";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { Badge } from "@/components/ui/badge";
@@ -111,6 +113,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
     programId: programa.id,
     rango: vista.seleccion.rango,
   });
+  const porCanal = await registrosYAgendasPorCanal(db, programa.id, vista.seleccion.rango, hoy);
   const hechosFiltrados = areaId === undefined ? hechos : hechos.filter((fila) => fila.areaId === areaId);
   const resumenSerie = hechosFiltrados.reduce(
     (total, fila) => ({
@@ -178,6 +181,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
           </CardContent>
         </Card>
         <PautaInterina vista={pauta} filtros={filtrosPauta} hrefCon={hrefConFiltros} />
+        <RegistrosAgendasCanal vista={porCanal} />
         <EmbudoFormulario embudo={embudoFormulario} />
       </div>
     </PageShell>

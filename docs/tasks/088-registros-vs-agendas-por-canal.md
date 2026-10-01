@@ -3,7 +3,7 @@ id: 088
 etapa: E5
 serves: "plan v2 §12.4 · la metrica que pidio Media"
 depends: [049, 052, 085]
-status: todo
+status: done
 ---
 
 # 088 — Registros vs agendas por canal: la vista de Media
@@ -55,3 +55,19 @@ Si.
 ## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
 
 - Registro = token (ADR 0063). La agenda se ancla por el día en que se agendó (`calls.created_at`), no por el de la cita (`docs/analytics.md` §6).
+
+---
+
+## ✅ Construido (1-oct, sesión 67, Alejo)
+
+- `registrosYAgendasPorCanal` en `lib/queries/registros-agendas-canal.ts`. **No define registro ni agenda:** reagrupa
+  la serie de `pautaInterina` (093), donde viven las dos definiciones, por el catálogo de Canales (`resolverCanal`).
+  Así esta tabla y la de Pauta no pueden discrepar: en la base local las dos dan 126 registros y 51 agendas.
+- Filas: cada canal con su área, registros, agendas y tasa (agendas ÷ registros, `—` sin registros); después
+  **sin clasificar**, **sin UTM** y **sin envío de origen** (una agenda cuyo deal no nació de un envío), siempre,
+  aunque estén en cero. Tarjeta en el dashboard (`components/registros-agendas-canal.tsx`), con el período A.
+- Done: el denominador son envíos (un registro sin deal cuenta; el test falla si se cuentan solo los que agendaron,
+  mordido); un canal sin agendas sale con 0; los huérfanos por separado; `programId` obligatorio en el tipo; y el
+  mismo resultado con el catálogo en otro orden. `tests/registros-agendas-canal.test.ts` (6).
+- Ojo: "Agendó" del embudo del formulario (126) es el hecho del FORMULARIO (trajo link de Calendly); "Agendas" aquí son
+  LLAMADAS creadas (`calls.created_at`). Son preguntas distintas y pueden diferir (50 contra 51 en la base local).

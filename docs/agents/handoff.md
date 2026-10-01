@@ -101,18 +101,15 @@ Carril de Alejo (E5 con el codigo en main; E6 arrancado):
   npm run dev:local NO mata a next (dev-local lanza "cmd /c next dev"): matar el arbol con taskkill /T.
 - 140 NO es de este carril (plan-reparto §2 y comercial.md §8: lib/deals y la pantalla de Deals son de Mani).
   136-138 y 141 tambien eran de su dominio y se tomaron porque estaban libres; el 140 solo si Mani lo pasa.
-- LO QUE LE FALTA A ALEJO (1-oct, sesion 66), por orden de lo que se puede hacer ya:
-  1. 072: solo el recorrido visual de Leads (claro/oscuro, 390 px, consola, clic en todo). Se puede ya.
-  2. Plantilla de PR con el checklist de contratos de AGENTS.md (E0, S). Se puede ya.
-  3. 117, cabos: reprocesar los 23 de Tactical (los 14 sin link ni estado los decide Mani), recorrido de
-     "Estados de llegada" en /ajustes/fuentes, anotar el payload del primer parcial real. Poca inversion: el
-     ADR 0069 reemplaza los Estados de llegada cuando entren las etapas de 30X.
-  4. 078 --aplicar: espera las etapas de 30X (142) y QD-2. Antes, regenerar el template de CA (ver arriba).
-  5. 119 y 120 (Meta): esperan el token de Anderson. Llevan migracion.
-  6. 102 (rol Paid Trafficker, manejaPauta): lleva migracion; v1 es comercial, pauta despues.
-  7. 082 (apagar las pestanas de gestion): plan-reparto lo pone aqui, el tracker dice "lo hace Mani"; aclarar.
-  8. E7: 126 (embudo del formulario; token de Typeform), 088, 066, 067, 065.
-  9. E8: 092 (definir alcance con Mani; ADR 0068: el link sale de la fuente), 086, 068, 076, 100, 021.
+- LO QUE LE FALTA A ALEJO (1-oct, sesion 68; el ORDEN lo manda plan-reparto §4, NC1):
+  1. 072: solo falta mirar los 390 px en vivo (DevTools, Ctrl+Shift+M). El resto del recorrido esta hecho.
+  2. 117: reprocesar los 23 de Tactical (escribe en produccion: ok de Mani; los 14 sin link ni estado los
+     decide el) y anotar el payload del primer parcial real. El recorrido de Estados de llegada esta hecho.
+  3. MANUAL DE GESTION COMERCIAL (QD-8), de NC1. Y el 140 si Mani lo confirma.
+  4. Despues de NC1-NC3 (pauta): 066 (Urgencias, se arma sobre registrosYAgendasPorCanal del 088), 126
+     parte B (token de Typeform en la fuente = migracion), 078 --aplicar (NC2; antes regenerar el template de
+     CA), 119/120 (token de Anderson), 102, 082 (aclarar si es de Mani), E8 (092, 086, 068, 076, 100, 021),
+     067, 065.
 - El recorrido visual del 072 necesita la extension de Chrome: claro/oscuro, 390 px, consola, clic en todo.
   Chrome en Windows no baja de 500 px: se mide 390 con document.documentElement.style.zoom = innerWidth/390
   (mismo breakpoint). OJO (1-oct): en una ventana de 1280 ese zoom NO activo el diseño movil (el sidebar
@@ -132,6 +129,25 @@ empuja al mismo main y el numero de migracion puede chocar.
 
 ## Memory
 
+- **2026-10-01 (Alejo, sesión 68): recorridos de 072 y 117, plantilla de PR, 126 parte A y 088.**
+  - **072:** recorrido con clics en la base local: los filtros cuadran con la base, separar y confirmar, selector de
+    fecha, claro/oscuro, consola, ningún correo en una URL. Falta 390 px en vivo (la ventana maximizada no se achica y
+    los popups están bloqueados). Dos duplicados sembrados SOLO en la base local (tokens `recorrido-072-*`).
+  - **117, recorrido de Estados de llegada** (`bdaa392`): un valor con fila INACTIVA ofrecía "Crear Estado" y chocaba
+    con el índice; ahora la consulta trae `inactivoId` (misma llave) y la pantalla ofrece Reactivar. El formulario
+    quedaba bajo el encabezado fijo: `md:scroll-mt-28`, también en Canales.
+  - **Plantilla de PR** al día con la tabla de Contratos del 1-oct (`06aead6`).
+  - **126 parte A** (`66e4472`): `embudoDelFormulario` y su tarjeta en el dashboard. Llegó al Calendly = agendó o
+    `lead_quality` High (ADR 0069), NO la variable `estado`; `analytics.md` §6 actualizado. La parte B espera la
+    migración del token de Typeform.
+  - **088 done** (`4ff4f79`): reagrupa la serie de `pautaInterina` por canal, con área y tasa; no puede discrepar de
+    la tarjeta del 093.
+  - 🩸 Con la pestaña de Chrome oculta, el scroll suave no corre y las capturas se cuelgan: medir con `javascript`,
+    no es un bug. Y la suite con `dev:local` y Chrome abiertos pasa de 480 s: cerrarlos antes de `npm test`.
+  - ⚠️ 126A y 088 son de pauta y se hicieron antes de ver el orden nuevo de Mani (NC1-NC3 primero). No tocan etapas
+    ni dinero.
+  - **Siguiente:** la lista de Alejo de arriba (NC1): 072 a 390 px, reproceso del 117 con ok de Mani, manual de
+    gestión comercial (QD-8).
 - **2026-10-01 (Mani, sesión 67): QD contestadas y paso 6 hecho; el orden pasa a NC1, NC2 y NC3.**
   - **Contestado (Mani, en nombre del equipo comercial):** QD-1 a QD-12, tabla en `comercial.md` §7.0. Lo
     que cambia el plan: las etapas se definen como en `insumos/hubspot-30x-workflow.md` §3; Pendiente

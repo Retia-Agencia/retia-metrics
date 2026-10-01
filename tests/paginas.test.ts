@@ -107,6 +107,8 @@ const embudoDelFormulario = vi.fn(async () => ({
   sinCalidad: 0,
 }));
 vi.mock("@/lib/queries/embudo-formulario", () => ({ embudoDelFormulario }));
+const registrosYAgendasPorCanal = vi.fn(async () => ({ filas: [], total: { registros: 0, agendas: 0 } }));
+vi.mock("@/lib/queries/registros-agendas-canal", () => ({ registrosYAgendasPorCanal }));
 // Deals creados contra agendas (138), igual: sin base, la gráfica no disponible.
 const vistaDealsContraAgendas = vi.fn(async () => ({ disponible: false }));
 vi.mock("@/lib/queries/vista-deals-contra-agendas", () => ({ vistaDealsContraAgendas }));
