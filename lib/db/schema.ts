@@ -880,6 +880,13 @@ export const deals = pgTable(
       onDelete: "restrict",
     }),
     /**
+     * Lo que de verdad se vendio, en USD (ticket 132, ADR 0065): lo escribe el closer
+     * y de aqui salen el saldo y el Completo automatico, no del producto. Nulo = nadie
+     * lo escribio; el motor lo exige (> 0) al entrar a Abonado o Completo, salvo un
+     * deal historico. La pantalla arranca en 0 pero un 0 sin tocar se guarda nulo.
+     */
+    valorVendidoUsd: numeric("valor_vendido_usd", { precision: 10, scale: 2 }),
+    /**
      * Quien lo creo. **Nulo significa el sync**, igual que `changeLog.userId`: en
      * un movimiento del sistema no hay usuario, y un id inventado ahi seria peor
      * que la ausencia.
@@ -914,6 +921,7 @@ export const deals = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    check("deals_valor_vendido_no_negativo", sql`${t.valorVendidoUsd} IS NULL OR ${t.valorVendidoUsd} >= 0`),
     uniqueIndex("deals_huella_migracion_idx")
       .on(t.huellaMigracion)
       .where(sql`${t.huellaMigracion} is not null`),

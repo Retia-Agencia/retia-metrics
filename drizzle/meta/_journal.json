@@ -372,6 +372,13 @@
       "when": 1790863627354,
       "tag": "0052_retirar-calificacion-envio",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1790895363379,
+      "tag": "0053_valor-vendido-del-deal",
+      "breakpoints": true
     }
   ]
 }
