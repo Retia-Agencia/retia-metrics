@@ -89,3 +89,15 @@ Replica el builder de 30X, adaptado:
 - **El builder queda solo para lo que Meta no genera:** orgánico (bio, stories, linktree, manychat) y el link del closer (086). La pauta de Meta usa sus macros (ADR 0062) y sus campañas se reflejan por API (120); el CRM no las crea.
 - 🔴 La convención de UTM del orgánico la definen Pauta y Media (PQ6). Referencia de 30X: `instagram / reel`, content = código del post.
 - El builder vive en la tab Campañas (125). Los destinos (formulario y checkouts) siguen.
+
+---
+
+## Enmienda 2026-10-01 (ADR 0068, A11 cerrada): el destino del formulario sale de la fuente
+
+- **Dentro, en vez de `programs.form_url`:** `sources.url_publica` y `sources.principal`, con el índice único
+  parcial `(program_id) WHERE principal` y el CHECK `NOT principal OR (activo AND url_publica IS NOT NULL)`.
+  La pantalla de fuentes los edita.
+- El generador usa la principal por defecto y deja escoger otra fuente activa del programa. "Un programa sin
+  `form_url` no deja generar links" pasa a ser "sin principal".
+- `programs.form_url` se retira en dos pasos (ADR 0068 punto 5): el valor de hoy se copia a la fuente que Mani
+  diga, y la columna y su parte del CHECK de la 0031 se quitan con el código ya desplegado sin ellas.
