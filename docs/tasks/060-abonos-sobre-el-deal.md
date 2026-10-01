@@ -76,3 +76,10 @@ Si, con revision: aqui se cruzan dinero y etapas.
 - **D3 aplicada a la anulación (28-sep):** anular el abono de un deal Completo cuando el lead ya tiene OTRO deal
   abierto en el programa devuelve un 409 claro y no escribe nada (antes: error crudo de la base, por el índice
   `deals_uno_abierto_por_lead_y_programa_idx`). Un otro deal cerrado o anulado no bloquea.
+
+
+---
+
+## Enmienda 2026-10-01 (norte comercial, lote 1, [`docs/comercial.md`](../comercial.md))
+
+- La reja del sobrepago mide contra el **valor vendido** del deal, no contra el producto (ADR 0065; ticket 132). Sin valor vendido el saldo es `null` con la razón `sin_valor_vendido`. Bajar el valor vendido por debajo de lo abonado se rechaza (132).

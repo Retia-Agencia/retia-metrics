@@ -44,3 +44,10 @@ Si, con revision visual obligatoria.
 ## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
 
 La ficha del deal es del paso 4 y colgaba de dos pantallas del paso 6. Depende del Kanban (069) y de los abonos (060).
+
+
+---
+
+## Enmienda 2026-10-01 (norte comercial, lote 1, [`docs/comercial.md`](../comercial.md))
+
+- La ficha se reorganiza por bloques (origen crudo, perfil, facturación con link de pago, log) en el **139**. El producto de la cabecera pasa a valor vendido y descuento contra el ticket base de la cohorte (132, 134).

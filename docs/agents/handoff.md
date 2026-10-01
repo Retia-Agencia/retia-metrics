@@ -7,7 +7,8 @@
 
 > Copiar y pegar tal cual. Reescrito al cierre de la sesión 53 de Alejo (30-sep) y actualizado en la 54 y la 55
 > de Mani (30-sep, carril de Mani), en la 56 de Alejo (30-sep, carril de Alejo), en la 57 de Mani (30-sep) y en
-> la 60 de Mani (30-sep: el norte comercial de Gerencia pasa a ser la prioridad). El anterior: `git show 968532a:docs/agents/handoff.md`.
+> la 60 de Mani (30-sep: el norte comercial de Gerencia pasa a ser la prioridad) y en la 62 de Mani (1-oct: paso 2
+hecho, los dos lotes). El anterior: `git show 968532a:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas)
@@ -21,9 +22,13 @@ Es fuente de verdad y reabre decisiones: las etapas del deal pasan a las de 30X 
 propiedades por etapa), el valor vendido lo escribe el closer (0 por defecto) y la comision es un
 porcentaje, Atendido se acepta sin Grain con alarma, rol Customer Success con onboarding de 4 pasos, meta
 del mes ademas de la de la cohorte, dashboard con periodos flexibles y numero + % siempre, y la v1 es
-comercial (pauta despues). Va por los 6 pasos de su §8, en el tracker arriba de todo. SIGUIENTE: paso 2,
-leer el HubSpot de 30X (necesita el acceso de Mani). El --aplicar del 078 ESPERA a las etapas nuevas; el
-117 sigue.
+comercial (pauta despues). Va por los 6 pasos de su §8, en el tracker arriba de todo. Paso 2 HECHO el 1-oct:
+§4 (las 11 etapas de 30X) y §9 (etiquetas, ficha del deal, 18 graficas de HubSpot con su mejora, 4 secciones
+de dashboard). Desde el 1-oct los pasos 3-5 van en DOS LOTES por dependencia (§8; no es otro plan, se reparten
+con los carriles de plan-reparto): LOTE 1 arranca ya sin Dani (valor vendido + ticket base + comision %,
+Atendido sin Grain como alarma, reglas de pantalla: numero y %, periodo A vs B, clic a la lista; crear deal a
+mano; filtros de fecha relativos). LOTE 2 espera respuestas de Dani (QD-1..QD-12, sobre todo el manual de
+gestion comercial QD-8): las etapas de 30X en UNA migracion, despues el --aplicar del 078. El 117 sigue.
 
 Estado al 30-sep (sesion 57, Mani): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
 51 migraciones (0000-0050), todas aplicadas. DAPTA (sesion 61, 30-sep): el adaptador y el contrato de proveedores estan en produccion; ComunicArte tiene Typeform y Dapta activos, Memorable existe inactivo; lo pendiente esta en Memory 30-sep sesion 61 y la guia de configurar un programa en docs/operations.md §2.1; en produccion hay ademas UNA aplicada desde otra maquina que no esta en el repo (fila 52 de __drizzle_migrations, hash 28fc7b38..., ver Memory 30-sep sesion 61). ~1.676 tests. Produccion: https://retia-metrics-seven.vercel.app.
@@ -72,6 +77,37 @@ empuja al mismo main y el numero de migracion puede chocar.
 ```
 
 ## Memory
+
+- **2026-10-01 (Mani, sesión 63): pasos 4 y 5 del lote 1 del norte comercial hechos.**
+  - **Decidido (Mani, `/grill-with-docs`):** ADR **0065**: valor vendido por deal en USD, `null` en la base y 0
+    en la pantalla, obligatorio (> 0) al entrar a Abonado o Completo, editable con rastro y nunca por debajo de
+    lo abonado; **ticket base = `cohorts.precio_usd`** (QM-2 cerrada: la C1 de ComunicArte fue 697 y la C2
+    797); `productos` se retira (0 de 157 deals lo usan); comisión = % del valor vendido, **congelado en el
+    deal** al entrar a venta. ADR **0066**: Atendido sin Grain se acepta, cuenta como show, alarma derivada
+    sin excepción. ADR **0067**: número y % siempre, periodo A contra B al mismo día hábil con atajos, toda
+    cifra abre primero un resumen y, si se confirma, la lista paginada; en "todos", partida por programa.
+  - **Abierto:** los deals históricos del 078 en venta se llenan con el ticket de su cohorte; si quedan
+    marcados como estimados se decide con el equipo comercial al aplicar la migración.
+  - **Tickets:** enmendados 017, 044, 058, 060, 062, 072, 074, 089, 095, 128; nuevos 132 a 141 (lote 1, orden
+    en el tracker) y 142 a 148 (lote 2, `bloqueado`). Vocabulario en `overview.md` §11.
+  - **Siguiente:** implementar el 132 con Codex (la migración la aplica la sesión principal con el ok de Mani).
+    `docs/insumos/*.md` sigue sin commitear a propósito (recortar el de Dani antes).
+
+- **2026-10-01 (Mani, sesión 62): paso 2 del norte comercial hecho; los pasos 3 a 5 se parten en dos lotes.**
+  - **Hecho:** HubSpot de 30X leído con 11 pantallazos de Mani (Claude in Chrome no respondió en ninguno de los
+    dos Chrome). `comercial.md` §4 lleno (11 etapas, probabilidad, conteos, la nuestra más cercana) y §9 nuevo:
+    tablero de Deals, etiquetas, ficha del deal, filtros relativos, Leads, Productos, el inventario de las 18
+    gráficas de "Gestión comercial" con su mejora y la propuesta de 4 secciones (Pulso, Operación comercial,
+    Dinero, Pauta y origen). Preguntas nuevas QD-8 a QD-12 y QM-9. Tracker y tarea de Notion marcados.
+  - **Decidido (Mani):** QM-1, un ticket base por programa; descuentos y pagos en cada deal. Se pueden crear deals
+    a mano. Los pasos 3 a 5 van en dos **lotes** por dependencia (`comercial.md` §8): el lote 1 no espera a Dani;
+    el lote 2 (las etapas y lo que espera otra respuesta) va cuando lleguen. **"Lote" y no "carril" a propósito:**
+    carril es por persona (`plan-reparto.md` §2) y cada lote se reparte con esos carriles.
+  - **Pendiente:** mandarle a Dani QD-1 a QD-12 en un solo mensaje (lo manda Mani). Arrancar el lote 1: ADR de
+    valor vendido y comisión, Atendido sin Grain y reglas de pantalla; tickets; implementa Codex. Los 11
+    pantallazos NO van al repo (datos personales de clientes de 30X); viven en el scratchpad de la sesión y se
+    pierden si Mani no los guarda. `docs/insumos/reu-danieltovar.md` y `reu-pauta.md` quedaron sin commitear: el
+    de Dani trae otra reunión (entrevista con salario, inversiones personales); recortarlo antes de commitear.
 
 - **2026-09-30 (Mani, sesión 61): Dapta Forms entra al CRM por un contrato estándar; 131 cerrado, 130 en código.**
   - **Hecho:** `lib/ingesta/proveedores.ts`, el registro de proveedores (firma + adaptador; la ruta y el reproceso
@@ -3645,8 +3681,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
-- 🎯 **30-sep, PRIORIDAD: el norte comercial de Gerencia** (`docs/comercial.md`, tracker arriba de todo). Paso 1
-  hecho; sigue el paso 2 (HubSpot de 30X). El `--aplicar` del 078 espera.
+- 🎯 **30-sep, PRIORIDAD: el norte comercial de Gerencia** (`docs/comercial.md`, tracker arriba de todo). Pasos 1 y
+  2 hechos (1-oct). Sigue el **lote 1** (sin Dani) en paralelo al mensaje a Dani; el **lote 2** (etapas de 30X)
+  espera el manual. El `--aplicar` del 078 espera al lote 2.
 - **30-sep:** E6 abierta. Carril de Mani: 089 (acotado) → 118 (espera el 117); 083, 101, 085, 087 y 121 done, 084
   reemplazado. Carril de Alejo: cerrar 072 (recorrido) y 078 (resolver sus tres hallazgos y `--aplicar`), después 092,
   117, 119/120 y 102; 127, 116, 080 y 099 done. El orden completo, en el prompt de arriba y en `plan-reparto.md` §4.

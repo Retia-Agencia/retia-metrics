@@ -134,3 +134,10 @@ misma del embudo, para que cuadren; la fecha en que se agendó queda como otra m
 - La tarjeta es solo la demostración del filtro; la pantalla de verdad es del 095.
 - Verificado: 1.685 tests, typecheck, lint y build limpios; recorrido en la base local (3 ventas cuadran con el
   comparativo de closers; `?area=` con un uuid recorta a 0, uno inválido se ignora; consola limpia).
+
+
+---
+
+## Enmienda 2026-10-01 (norte comercial, lote 1, [`docs/comercial.md`](../comercial.md))
+
+- El periodo A contra B al **mismo día hábil**, los atajos relativos y la regla de número y % se escriben encima de `serie.ts` en el **136** (ADR 0067). `periodoAnterior` se reusa, no se copia.

@@ -2,7 +2,7 @@
 id: 128
 etapa: E6
 serves: "docs/anotaciones.md A-13 · principio P-1 · ADR 0050"
-depends: [074, 071]
+depends: [074, 071, 135]
 status: todo
 ---
 
@@ -55,3 +55,11 @@ closer aprendería a no creerle. Por eso:
 ## Kiro
 
 Sí, con revisión visual.
+
+
+---
+
+## Enmienda 2026-10-01 (norte comercial, lote 1, [`docs/comercial.md`](../comercial.md))
+
+- **Rojo nuevo: atendido sin Grain** (ADR 0066), con la función del **135**, no una copia. Depende del 135.
+- **Amarillo:** "Falta el producto" pasa a "Falta el valor vendido" (132), y sale de `queLeFalta` como todo lo demás.

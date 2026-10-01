@@ -233,7 +233,7 @@ abonos sueltos (ADR 0052 enmendado, Mani 29-sep).
 | Calidad de la traza | % de ventas por nivel de origen: anuncio, campaña, canal o sin UTM |
 | Cumplimiento por área | la meta de la cohorte repartida en cupos por área (paid, orgánico, referidos): vendidas, faltan, requeridas por día, ritmo y proyección, con semáforo |
 | Leads por área | Gerencial, Comercial, Pauta, Media, derivados del canal |
-| Comisión | ventas del closer × monto fijo por venta del programa (USD), calculada; nunca se guarda (062, 29-sep) |
+| Comisión | por venta del closer: valor vendido × el % del programa congelado al vender (USD), calculada; nunca se guarda el monto (ADR 0065, 1-oct; antes monto fijo, 062) |
 
 Lo que pidió cada área (Alejo, 21-sep): **Comercial**, close rate, show rate y el estado del lead por
 etapa; **Pauta**, todo por UTM, por fecha, canal e inversión; **Media**, registros contra agendas por
@@ -347,11 +347,13 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Sobre crudo:** un envío de webhook que llegó con la firma buena y no se pudo procesar (sin correo,
   payload raro, la ingesta falló). Se guarda el cuerpo tal como llegó para reprocesarlo; no es un envío
   todavía (tabla `sobres_crudos`, ticket 106).
-- **Deal:** la oportunidad de venderle un programa a un lead. Tiene dueño, etapa, producto y cohorte.
+- **Deal:** la oportunidad de venderle un programa a un lead. Tiene dueño, etapa, valor vendido y cohorte.
   Como máximo uno abierto por lead y programa.
 - **Etapa:** en cuál de los once pasos está un deal. La escribe el CRM. *No confundir con el **Estado**,
   la clasificación de llegada del envío (Descartado, Setteo, Con Calendly).*
 - **Dueño:** el closer responsable de un deal. Los deals nacen sin dueño y se reclaman.
+- **Atendido sin Grain:** una llamada que ocurrió (cuenta como show) y no tiene link de Grain. Es una
+  alarma que se calcula y se apaga sola al pegar el Grain (ADR 0066).
 - **Llamada suelta:** una llamada de Calendly que no se pudo colgar de un deal sin duda; espera en el
   Inbox.
 - **Student:** un deal en Abonado o Completo, en la cohorte de su deal. Es una vista, no una tabla. 🔴 Si
@@ -372,13 +374,21 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Ventana de venta:** los dos días entre los que una cohorte vende, inclusive. Los declara el
   negocio; no se deducen.
 - **Día hábil, meta de cupos, meta dinámica, contribución:** ver §7.
+- **Periodo A contra B:** los dos rangos que compara toda cifra. Por defecto, B es el mismo punto del
+  periodo anterior contado en días hábiles (el día hábil 7 de octubre contra el día hábil 7 de
+  septiembre), nunca el periodo anterior entero (ADR 0067).
 
 **El dinero**
 
-- **Producto:** algo que se vende dentro de un programa, con su precio de lista. Cada precio con
-  descuento es un producto. Su precio es el ticket del deal.
+- **Ticket base:** el precio de lista de una cohorte, en USD. Contra él se mide la meta en cash y el
+  descuento. Puede cambiar de una cohorte a otra (ADR 0065). *Evitar: "producto", que se retira.*
+- **Valor vendido:** lo que el closer escribe que vendió en un deal, en USD. Vacío hasta que lo escribe;
+  obligatorio para que el deal sea venta. *No confundir con el ticket base ni con lo abonado.*
+- **Descuento:** ticket base de la cohorte menos el valor vendido, en número y %.
+- **Comisión:** un porcentaje del valor vendido; el porcentaje es el del programa el día de la venta y no
+  cambia después.
 - **Abono:** un pago recibido, con fecha, monto, moneda, plataforma y comprobante.
-- **Saldo:** precio del producto menos lo abonado. Es nulo, no cero, cuando no hay precio.
+- **Saldo:** valor vendido menos lo abonado. Es nulo, no cero, cuando no hay valor vendido.
 - **Sobrepago:** un abono que dejaría el saldo negativo; se rechaza salvo confirmación explícita.
 - **Acuerdo de pago y fecha límite:** la nota de cómo se pactó pagar el saldo y hasta cuándo. **Cartera
   vencida:** saldo pendiente con la fecha límite pasada.
@@ -413,7 +423,7 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Registro:** un envío (un token), contado una vez aunque llegue parcial y completo.
 - **Agenda:** una llamada agendada, contada el día en que se agendó.
 - **Llamada calificada:** ocurrió y el `lead_value` del lead está en el conjunto calificado del programa.
-- **Contratado:** la suma del precio de las ventas. *No confundir con la caja (lo abonado).*
+- **Contratado:** la suma del valor vendido de las ventas. *No confundir con la caja (lo abonado).*
 - **ROAS y ad profit:** contratado frente al gasto, con la TRM de la cohorte a la vista.
 - **Objetivo:** la meta y el nivel aceptable de una métrica en una cohorte, total o por área; dice si va en
   ruta o atrasado. **Reparto por área:** la meta de cupos de la cohorte dividida entre paid, orgánico y

@@ -92,3 +92,11 @@ Tests: `tests/leads-tab.test.ts`, `tests/separar-correo.test.ts`, `tests/roles.t
 ## Anotaciones de UI (30-sep, Mani)
 
 Este ticket recoge de [`docs/anotaciones.md`](../anotaciones.md): A-09 (tabla tipo hoja, páginas de 25 o 50, campos crudos del envío), A-11 y A-14 (Leads absorbe la búsqueda y Personas se retira: son el mismo objeto) y A-12 (el duplicado trae al candidato lado a lado). El texto vive allá.
+
+
+---
+
+## Enmienda 2026-10-01 (norte comercial, lote 1, [`docs/comercial.md`](../comercial.md))
+
+- La lista suma el selector de fecha relativo (creado, último envío) del **141**, que lo construye sobre el 136. Coordinar con Mani antes: el 141 toca archivos de este ticket.
+- El "Fuera: crear un lead a mano" sigue: crear un **deal** a mano es el **140** (elige un lead existente o crea el lead con el alta manual del 026).

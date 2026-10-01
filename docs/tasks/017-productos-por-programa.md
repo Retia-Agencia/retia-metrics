@@ -35,3 +35,10 @@ reserva, 1:1...) para usarlos al registrar una venta.
 - "Las ventas viejas lo siguen mostrando": `productoPorId` devuelve también inactivos; la columna
   `sales.productoId` llega en 018.
 - `moneda` es un tipo (`USD` | `COP`), no un catálogo.
+
+
+---
+
+## Enmienda 2026-10-01 (norte comercial, lote 1, [`docs/comercial.md`](../comercial.md))
+
+- **El precio ya no sale del producto** (ADR 0065, reemplaza al 0016 en lo del precio). Cada deal lleva su valor vendido (132), el ticket base es `cohorts.precio_usd` y `productos` se retira (134). Este ticket queda como historia.

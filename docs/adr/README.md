@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0065)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0068)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -36,7 +36,8 @@ comentarios; esta tabla es la que los resuelve.
 
 | # | Decisión |
 |---|---|
-| [0037](./0037-el-deal-y-las-once-etapas.md) | El Deal es el objeto central, con once etapas y un solo motor que las mueve |
+| [0037](./0037-el-deal-y-las-once-etapas.md) | El Deal es el objeto central, con once etapas y un solo motor que las mueve (**el punto 2 lo reemplaza el 0065; el Grain como requisito lo enmienda el 0066**) |
+| [0066](./0066-atendido-sin-grain-es-una-alarma.md) | Atendido sin Grain se acepta, cuenta como show y prende una alarma derivada |
 | [0015](./0015-resultado-de-llamada-ampliado.md) | La llamada dice qué pasó (ocho resultados); el motor decide qué significa |
 | [0049](./0049-calendly-cuelga-llamadas-de-deals.md) | Calendly cuelga cada llamada de su deal; si hay duda, la llamada queda suelta |
 | [0026](./0026-anular-registros-y-borrar-del-catalogo.md) | Un registro se anula, no se borra; del catálogo se borra solo lo que nunca se usó |
@@ -56,7 +57,8 @@ comentarios; esta tabla es la que los resuelve.
 | [0024](./0024-una-sola-definicion-del-dinero-derivado.md) | Una sola definición por pregunta, empezando por el dinero derivado |
 | [0012](./0012-contrato-de-extension-instancias-en-base-tipos-en-codigo.md) | Contrato de extensión: instancias en la base, tipos en el código |
 | [0029](./0029-una-fila-de-catalogo-se-crea-por-el-molde-tambien-desde-un-script.md) | Una fila de catálogo se crea por el molde, también desde un script |
-| [0016](./0016-productos-por-programa-los-gestionan-gerentes-y-closers.md) | Los productos de cada programa los gestionan gerentes y closers |
+| [0065](./0065-el-valor-vendido-lo-escribe-el-closer.md) | El valor vendido lo escribe el closer; el ticket base es de la cohorte y la comisión es un porcentaje congelado |
+| [0016](./0016-productos-por-programa-los-gestionan-gerentes-y-closers.md) | Los productos de cada programa los gestionan gerentes y closers (**lo del precio lo reemplaza el 0065: `productos` se retira; recursos y plataformas siguen**) |
 | [0034](./0034-una-plataforma-de-pago-sirve-a-programas.md) | Una plataforma de pago sirve a programas, por tabla puente |
 | [0017](./0017-recursos-solo-como-links.md) | Los recursos son links; el comprobante de un abono puede ser foto |
 
@@ -87,6 +89,7 @@ comentarios; esta tabla es la que los resuelve.
 | # | Decisión |
 |---|---|
 | [0050](./0050-la-navegacion-es-por-objetos.md) | La navegación es por objetos, con selector de programa, Inbox y Dashboard |
+| [0067](./0067-numero-y-porcentaje-periodo-a-contra-b-y-toda-cifra-abre-su-lista.md) | Número y porcentaje siempre, periodo A contra B al mismo día hábil, y toda cifra abre su lista (resumen primero) |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
 
 **Plataforma**

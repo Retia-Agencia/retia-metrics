@@ -95,3 +95,10 @@ decidida; Grain por API e insights.
 
 Tests: `tests/grain-y-reagenda.test.ts` (bloques `pegarGrain`). Suite completa 1116 pasando,
 typecheck y lint limpios.
+
+
+---
+
+## Enmienda 2026-10-01 (norte comercial, lote 1, [`docs/comercial.md`](../comercial.md))
+
+- **El Grain deja de ser la única puerta a Atendido** (ADR 0066; ticket 135): el closer puede mover a Atendido sin él; la llamada queda en show y prende la alarma derivada "sin Grain" hasta que se pegue. Pegar el Grain sigue siendo lo que hace este ticket.

@@ -101,3 +101,10 @@ Detalle en `docs/auditorias/propuesta-crm-y-reunion-comercial-2026-09-24.md` §2
 - **Fuera:** Pendiente Setteo no tiene flecha de entrada; nace ahi al crearse el deal (052, 047).
 - `tests/deal-requisitos.test.ts`: 132 tests, cada flecha en los dos sentidos contra una lista escrita a
   mano desde el documento.
+
+
+---
+
+## Enmienda 2026-10-01 (norte comercial, lote 1, [`docs/comercial.md`](../comercial.md))
+
+- El requisito `producto` de las flechas a Abonado y Completo pasa a `valor_vendido > 0` (ADR 0065; ticket 132). El requisito `llamada_sucedio` de T7 y T10 sigue para las flechas de sistema, y hay una **flecha manual a Atendido sin Grain** (ADR 0066; ticket 135).

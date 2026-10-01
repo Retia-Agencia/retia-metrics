@@ -84,3 +84,10 @@ montos en Ajustes → Programas (USD 80 ComunicArte, USD 100 Tactical); hoy los 
   Abonado o Completo (`vendidosEn`, una sola subconsulta que usan `ventasDelRango`, `ventasPorCloser` y los cierres
   de `embudoPorOrigen`). Test en `tests/comision.test.ts`, mordido contra el código anterior (fallaba) y probado en
   Postgres real (base local).
+
+
+---
+
+## Enmienda 2026-10-01 (norte comercial, lote 1, [`docs/comercial.md`](../comercial.md))
+
+- **La comisión pasa a porcentaje del valor vendido, congelado en el deal al entrar a venta** (ADR 0065 punto 7; ticket 133). `comision_por_venta_usd` se retira. Los porcentajes de cada programa los da Dani (QD-5).

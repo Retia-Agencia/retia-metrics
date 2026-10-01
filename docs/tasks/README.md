@@ -32,15 +32,44 @@ del HubSpot de 30X, el dinero cambia (valor vendido escrito por el closer, comis
 próxima fecha de pago), aparece la meta del mes y el dashboard se vuelve flexible, con número y porcentaje
 siempre. **Mani, 30-sep: es la prioridad, antes que cualquier otro frente.** El inventario punto por punto
 (GC-01 a GC-53), lo que reabre (R-1 a R-12) y las preguntas (QD, QM) viven en
-**[`docs/comercial.md`](../comercial.md)**. Va paso por paso: no se abre uno sin cerrar el anterior.
+**[`docs/comercial.md`](../comercial.md)**. Va paso por paso: no se abre uno sin cerrar el anterior. **Excepción desde el 1-oct (Mani):** los pasos 3 a 5 se
+parten en **dos lotes** por dependencia (`comercial.md` §8): el lote 1 no depende de Dani y arranca ya; el lote 2
+(las etapas y lo que espera otra respuesta) va cuando lleguen. Los lotes se reparten con los carriles de `plan-reparto.md`.
 
 | ✓ | # | Paso | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 1 | El inventario de la reunión contra el repo (`comercial.md`) | · | done · 30-sep · Mani |
-| [ ] | 2 | Leer el HubSpot de 30X, solo lectura: etapas, etiquetas y propiedades por etapa (cuáles obligatorias), "fecha corte" y "cortesías", y el dashboard "Gestión Comercial" con pantallazos | 1 | todo · carril Mani · necesita el acceso de Mani a HubSpot |
-| [ ] | 3 | Preguntas a Dani (QD-1 a QD-7) y a Mani (QM-1 a QM-8); hablar con 2 o 3 closers sobre abonos (GC-17) | 2 | todo · Mani |
-| [ ] | 4 | Las decisiones en ADR (`/grill-with-docs`): pipeline de 30X, valor vendido y comisión, Atendido sin Grain, rol Customer Success, meta del mes, periodos flexibles | 3 | todo · sesión principal |
-| [ ] | 5 | Enmendar los tickets vivos y crear los nuevos (lista en `comercial.md` §8) | 4 | todo · sesión principal |
+| [x] | 2 | Leer el HubSpot de 30X, solo lectura: etapas, etiquetas y propiedades por etapa (cuáles obligatorias), "fecha corte" y "cortesías", y el dashboard "Gestión Comercial" con pantallazos | 1 | done · 1-oct · Mani (pantallazos) y sesión principal · §4 lleno y §9 en `comercial.md`: las 11 etapas, las etiquetas, la ficha del deal, el inventario de 18 gráficas con su mejora y 4 secciones de dashboard. Lo que HubSpot no muestra (reglas de movimiento, obligatorias, fecha corte, cortesías) pasó a QD-8 a QD-12 |
+| [ ] | 3 | Preguntas a Dani (QD-1 a QD-12) y a Mani (QM-2 a QM-9); hablar con 2 o 3 closers sobre abonos (GC-17) | 2 | todo · Mani · el mensaje a Dani se manda ya; **no frena el lote 1** |
+| [ ] | 4 | Las decisiones en ADR (`/grill-with-docs`): pipeline de 30X, valor vendido y comisión, Atendido sin Grain, rol Customer Success, meta del mes, periodos flexibles | 3 (solo el lote 2) | en curso · **lote 1 hecho el 1-oct** (Mani): ADR 0065 (valor vendido, ticket base de la cohorte, `productos` se retira, comisión % congelada; QM-2 cerrada), 0066 (Atendido sin Grain), 0067 (número y %, periodo A contra B, cifra → resumen → lista). El lote 2 espera a Dani |
+| [ ] | 5 | Enmendar los tickets vivos y crear los nuevos (lista en `comercial.md` §8) | 4 | en curso · **lote 1 hecho el 1-oct**: enmendados 017, 044, 058, 060, 062, 072, 074, 089, 095, 128; creados 132 a 141 y, bloqueados, 142 a 148. Falta enmendar los del lote 2 (117, 118, 078, 080, 122, 124, 065, 069, 070, 071, 102) cuando se desbloqueen |
+
+**Lote 1 (no espera a Dani).** Se toman en este orden; implementa Codex, revisa la sesión principal.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 132 | [El valor vendido del deal](./132-valor-vendido-del-deal.md) | · | todo · migración · `high` |
+| [ ] | 133 | [La comisión por porcentaje congelado](./133-comision-por-porcentaje-congelado.md) | 132 | todo · migración · `high` |
+| [ ] | 134 | [El ticket base es de la cohorte y `productos` se retira](./134-ticket-base-de-la-cohorte-y-adios-productos.md) | 132 | todo · migración destructiva |
+| [ ] | 135 | [Atendido sin Grain](./135-atendido-sin-grain.md) | · | todo |
+| [ ] | 136 | [Selector de periodo A contra B, número y %](./136-selector-de-periodo-y-numero-y-porcentaje.md) | · | todo |
+| [ ] | 137 | [Toda cifra abre su lista](./137-toda-cifra-abre-su-lista.md) | 136 | todo |
+| [ ] | 138 | [Deals creados contra agendas](./138-deals-creados-contra-agendas.md) | 136 | todo |
+| [ ] | 139 | [La ficha del deal por bloques](./139-ficha-del-deal-por-bloques.md) | 132, 134 | todo · enmienda el 074 |
+| [ ] | 140 | [Crear un deal a mano](./140-crear-un-deal-a-mano.md) | · | todo |
+| [ ] | 141 | [Filtros de fecha relativos en las listas](./141-filtros-de-fecha-relativos-en-listas.md) | 136 | todo · toca el 072 (Alejo) |
+
+**Lote 2 (bloqueado por preguntas).**
+
+| ✓ | # | Ticket | Bloqueado por | Estado |
+|---|---|---|---|---|
+| [ ] | 142 | [Las etapas de 30X](./142-las-etapas-de-30x.md) | QD-1, QD-8 | bloqueado |
+| [ ] | 143 | [Etiquetas y propiedades por etapa](./143-etiquetas-y-propiedades-por-etapa.md) | 142, QD-4, QD-10 | bloqueado |
+| [ ] | 144 | [Próxima fecha de pago y cartera](./144-proxima-fecha-de-pago-y-cartera.md) | 132, QM-3, GC-17 | bloqueado |
+| [ ] | 145 | [Rol Customer Success y onboarding](./145-rol-customer-success-y-onboarding.md) | QM-5 | bloqueado |
+| [ ] | 146 | [Meta del mes y página de Metas](./146-meta-del-mes-y-pagina-de-metas.md) | 136, QM-6, QM-7 | bloqueado |
+| [ ] | 147 | [Alertas por persistencia](./147-alertas-por-persistencia.md) | 136, QD-6 | bloqueado |
+| [ ] | 148 | [Las secciones del dashboard](./148-las-secciones-del-dashboard.md) | 142, 095, 137 | bloqueado |
 | [ ] | 6 | Reordenar `plan.md` §5 y `plan-reparto.md`: v1 comercial primero, pauta después | 5 | todo · sesión principal |
 
 ⏸️ **Mientras tanto: el `--aplicar` del 078 espera** a que se cierren las etapas (paso 4) y QD-2. Meter
@@ -227,7 +256,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [ ] | 088 | [Registros vs agendas por canal](./088-registros-vs-agendas-por-canal.md) | 049, 052, 085 | todo · la vista de **Media** |
 | [x] | 089 | [Series con dimensiones, no escalares](./089-series-con-dimensiones.md) | 064, 085 | done · 30-sep · Mani · `lib/queries/serie.ts` (tipo con `programId` obligatorio, `periodoAnterior`) y `hechosDelEmbudo` en `lib/queries/hechos-embudo.ts` (día × área × canal × dueño × cohorte; primer llamador real de `emparejar`); filtro `?area=` en el dashboard; `dashboard.ts` no se reescribió |
 | [ ] | 090 | [Rendimiento por área](./090-rendimiento-por-area.md) | 085, 088, 089 | todo · la vista de **Gerencia**. Estados con acción, no una tabla |
-| [ ] | 095 | [La tab Dashboard: un programa o "todos" solo con lo sumable](./095-dashboard-con-selector-y-todos-los-programas.md) | 064, 089, 094 | todo · 24-sep, ADR 0048 y 0050 · la garantía vive en el tipo |
+| [ ] | 095 | [La tab Dashboard: un programa o "todos" solo con lo sumable](./095-dashboard-con-selector-y-todos-los-programas.md) | 064, 089, 094, 136, 137 | todo · 24-sep, ADR 0048 y 0050 · la garantía vive en el tipo · enmendado el 1-oct (ADR 0067) |
 | [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) (E5-6) | 064, 065, 066, 067 | **congelado hasta aquí** · se descongela con el dashboard nuevo, no antes |
 
 ## E6 · UI
@@ -250,7 +279,7 @@ se abre**. Este repo no tiene tests de componentes y el 20-sep dos bugs pasaron 
 | [ ] | 073 | [Ficha del Lead, con el diff entre envíos](./073-ficha-del-lead.md) (E6-5) | 072 | todo |
 | [x] | 074 | [Ficha del Deal](./074-ficha-del-deal.md) (E6-6) | 069, 060 | done · 29-sep · `/p/<programa>/deals/<id>`: cabecera, llamadas, pago y abonos, actividades e historial en una pantalla; `editarDeal`, `anularDeal` (rechaza con abonos vigentes y anula en cascada sus llamadas), `registrarActividad`; `puedeTrabajarDeal` (`lib/deals/permiso.ts`) y `duenosPosibles` (`lib/deals/duenos.ts`) en un solo lugar. Recorrido contra la base local (escritorio y 390 px) y permiso mordido forjando la acción. 1.415 tests. Falta: celular de verdad y ver el prellenado de Compromiso Verbal con un deal Atendido |
 | [ ] | 075 | [Revisión profunda de TODA la UI](./075-revision-profunda-de-la-ui.md) (E6-8) | 069-074 | todo |
-| [ ] | 128 | [Las alertas del Deal: qué urge y qué le falta para avanzar](./128-alertas-del-deal.md) | 074, 071 | todo · 30-sep · sale de `docs/anotaciones.md` A-13; reutiliza `queLeFalta` y la atención del Inbox |
+| [ ] | 128 | [Las alertas del Deal: qué urge y qué le falta para avanzar](./128-alertas-del-deal.md) | 074, 071, 135 | todo · 30-sep · sale de `docs/anotaciones.md` A-13; reutiliza `queLeFalta` y la atención del Inbox · enmendado el 1-oct (sin Grain, valor vendido) |
 | [ ] | 129 | [Motivos de pérdida y Origen del lead salen vacíos en el Dashboard](./129-dashboard-motivos-y-origen-vacios.md) | — | todo · 30-sep · diagnóstico en el ticket; dos decisiones de Mani |
 | [ ] | 130 | [El adaptador de Dapta Forms](./130-el-adaptador-de-dapta.md) | 117 | in-progress · código y 0050 en producción el 30-sep (`9374bc8`) · fuentes Dapta creadas inactivas · faltan publicar y los 7 envíos reales, **después del 117** |
 | [x] | 131 | [Varios formularios activos por programa](./131-varios-formularios-activos-por-programa.md) | — | done · 30-sep · 0050 aplicada · el link de captación sigue en `programs.form_url` (A11) |
