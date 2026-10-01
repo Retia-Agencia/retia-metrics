@@ -379,6 +379,13 @@
       "when": 1790895363379,
       "tag": "0053_valor-vendido-del-deal",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1790898475104,
+      "tag": "0054_comision-porcentaje",
+      "breakpoints": true
     }
   ]
 }

@@ -283,6 +283,13 @@ export const programs = pgTable(
      */
     comisionPorVentaUsd: numeric("comision_por_venta_usd", { precision: 10, scale: 2 }),
     /**
+     * La comision como PORCENTAJE del valor vendido (ticket 133, ADR 0065 punto 7). Es el
+     * vigente: `moverEtapa()` lo copia al deal la primera vez que entra a venta, y desde ahi
+     * cambiarlo solo toca las ventas nuevas. Nulo = no cargado, nunca 0. Reemplaza al monto
+     * fijo de arriba, que se quita de la base despues de desplegar el codigo sin el.
+     */
+    comisionPorcentaje: numeric("comision_porcentaje", { precision: 5, scale: 2 }),
+    /**
      * Nace INACTIVO (ADR 0057): un programa se activa solo con su Forms Link y su
      * token de Calendly, y el CHECK de abajo lo garantiza en la base (ADR 0005).
      */
@@ -295,6 +302,10 @@ export const programs = pgTable(
     ),
     check("programs_dias_sin_actividad_positivo", sql`${t.diasSinActividad} > 0`),
     check("programs_comision_no_negativa", sql`${t.comisionPorVentaUsd} IS NULL OR ${t.comisionPorVentaUsd} >= 0`),
+    check(
+      "programs_comision_porcentaje_rango",
+      sql`${t.comisionPorcentaje} IS NULL OR (${t.comisionPorcentaje} >= 0 AND ${t.comisionPorcentaje} <= 100)`,
+    ),
   ],
 );
 
@@ -887,6 +898,13 @@ export const deals = pgTable(
      */
     valorVendidoUsd: numeric("valor_vendido_usd", { precision: 10, scale: 2 }),
     /**
+     * El % de comision CONGELADO al entrar a venta por primera vez (ticket 133, ADR 0065 punto
+     * 7): copia del de su programa en ese momento, que no se pisa si el deal sale y vuelve. La
+     * comision = valor vendido × este % / 100, calculada en `lib/queries/comision.ts`; el
+     * monto nunca se guarda. Nulo = el programa no tenia % cargado al vender.
+     */
+    comisionPorcentaje: numeric("comision_porcentaje", { precision: 5, scale: 2 }),
+    /**
      * Quien lo creo. **Nulo significa el sync**, igual que `changeLog.userId`: en
      * un movimiento del sistema no hay usuario, y un id inventado ahi seria peor
      * que la ausencia.
@@ -922,6 +940,10 @@ export const deals = pgTable(
   },
   (t) => [
     check("deals_valor_vendido_no_negativo", sql`${t.valorVendidoUsd} IS NULL OR ${t.valorVendidoUsd} >= 0`),
+    check(
+      "deals_comision_porcentaje_rango",
+      sql`${t.comisionPorcentaje} IS NULL OR (${t.comisionPorcentaje} >= 0 AND ${t.comisionPorcentaje} <= 100)`,
+    ),
     uniqueIndex("deals_huella_migracion_idx")
       .on(t.huellaMigracion)
       .where(sql`${t.huellaMigracion} is not null`),
