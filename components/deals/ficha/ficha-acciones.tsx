@@ -78,7 +78,6 @@ export function FichaAcciones({ ficha, opciones, mapa, nombreDeEtapa, puedeTraba
       a: flecha.a,
       motivoId: datos.motivoId ?? null,
       datos: {
-        productoId: datos.productoId,
         valorVendidoUsd: datos.valorVendidoUsd,
         areaDeclaradaId: datos.areaDeclaradaId,
         fechaLimitePago: datos.fechaLimitePago,
@@ -156,7 +155,6 @@ export function FichaAcciones({ ficha, opciones, mapa, nombreDeEtapa, puedeTraba
           flecha={dialogoMover}
           etapaDestinoNombre={nombreDeEtapa[dialogoMover.a]}
           nombreLead={ficha.lead.nombre ?? ficha.lead.email}
-          productos={opciones.productos}
           areas={opciones.areas}
           cohortes={opciones.cohortes}
           motivos={opciones.motivos}

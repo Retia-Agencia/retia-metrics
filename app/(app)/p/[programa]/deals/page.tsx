@@ -77,7 +77,6 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
           nombreDeEtapa={NOMBRE_DE_ETAPA}
           tonoDeEtapa={TONO_DE_ETAPA}
           programaSlug={programa.slug}
-          productos={opciones.productos}
           areas={opciones.areas}
           cohortes={opciones.cohortes}
           motivos={opciones.motivos}

@@ -68,12 +68,11 @@ export function razonSistema(mapa: MapaTransiciones, de: EtapaDeal, a: EtapaDeal
 
 /**
  * ¿La flecha necesita que el usuario ESCRIBA algo antes de mover (abrir un dialogo)?
- * Es asi si exige motivo o pide alguno de los datos que se teclean (producto, valor vendido, fechas,
+ * Es asi si exige motivo o pide alguno de los datos que se teclean (valor vendido, fechas,
  * cohorte destino). Los requisitos que se prueban con un HECHO (contacto, llamada,
  * abono) no se piden por dialogo: el motor los mide contra la base.
  */
 const REQUISITOS_QUE_SE_TECLEAN: ReadonlySet<CodigoRequisito> = new Set([
-  "producto",
   "valor_vendido",
   "area_declarada",
   "fecha_limite_pago",

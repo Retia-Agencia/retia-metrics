@@ -38,7 +38,6 @@ export interface TableroKanbanProps {
   nombreDeEtapa: Record<EtapaDeal, string>;
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
   programaSlug: string;
-  productos: (OpcionCatalogo & { moneda: string; precio: string })[];
   areas: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
   motivos: { id: string; nombre: string; tipo: string }[];
@@ -64,7 +63,6 @@ export function TableroKanban({
   nombreDeEtapa,
   tonoDeEtapa,
   programaSlug,
-  productos,
   areas,
   cohortes,
   motivos,
@@ -96,7 +94,6 @@ export function TableroKanban({
         a: flecha.a,
         motivoId: datos.motivoId ?? null,
         datos: {
-          productoId: datos.productoId,
           valorVendidoUsd: datos.valorVendidoUsd,
           areaDeclaradaId: datos.areaDeclaradaId,
           fechaLimitePago: datos.fechaLimitePago,
@@ -256,7 +253,6 @@ export function TableroKanban({
           flecha={dialogo.flecha}
           etapaDestinoNombre={nombreDeEtapa[dialogo.flecha.a]}
           nombreLead={dialogo.tarjeta.nombreLead ?? dialogo.tarjeta.emailLead}
-          productos={productos}
           areas={areas}
           cohortes={cohortes}
           motivos={motivos}

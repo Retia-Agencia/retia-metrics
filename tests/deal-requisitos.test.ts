@@ -16,7 +16,7 @@ const ESPERADOS: Record<string, Codigo[]> = {
   T1: ["dueno", "contacto"],
   T2: ["llamada_con_fecha"],
   T3: ["llamada_con_fecha"],
-  T4: ["producto", "fecha_limite_pago", "area_declarada"],
+  T4: ["fecha_limite_pago", "area_declarada"],
   "T5>abonado": ["valor_vendido", "abono", "comprobante", "saldo_pendiente", "area_declarada"],
   "T5>completo": ["valor_vendido", "abono", "comprobante", "saldo_en_cero", "area_declarada"],
   T6: ["llamada_con_fecha"],
@@ -24,7 +24,7 @@ const ESPERADOS: Record<string, Codigo[]> = {
   T8: ["llamada_fallida"],
   T9: ["llamada_con_fecha"],
   T10: ["llamada_sucedio"],
-  T12: ["producto", "fecha_limite_pago", "area_declarada"],
+  T12: ["fecha_limite_pago", "area_declarada"],
   T13: ["valor_vendido", "abono", "comprobante", "saldo_pendiente", "area_declarada"],
   T14: ["valor_vendido", "abono", "comprobante", "saldo_en_cero", "area_declarada"],
   T15: ["motivo"],
@@ -37,7 +37,7 @@ const ESPERADOS: Record<string, Codigo[]> = {
   T22: ["contacto"],
   T23: ["llamada_con_fecha"],
   T24: ["fecha_seguimiento"],
-  T25: ["producto", "fecha_limite_pago", "area_declarada"],
+  T25: ["fecha_limite_pago", "area_declarada"],
   "T26>abonado": ["valor_vendido", "abono", "comprobante", "saldo_pendiente", "area_declarada"],
   "T26>completo": ["valor_vendido", "abono", "comprobante", "saldo_en_cero", "area_declarada"],
   T27: ["llamada_con_fecha"],
@@ -56,7 +56,6 @@ const NADA: HechosDelDeal = {
   tieneLlamadaConFecha: false,
   llamadaSucedio: false,
   llamadaFallida: false,
-  productoId: null,
   valorVendidoUsd: null,
   areaDeclaradaId: null,
   esHistorico: false,
@@ -76,7 +75,6 @@ const CUMPLIR: Record<Codigo, Partial<HechosDelDeal>> = {
   llamada_con_fecha: { tieneLlamadaConFecha: true },
   llamada_sucedio: { llamadaSucedio: true },
   llamada_fallida: { llamadaFallida: true },
-  producto: { productoId: "prod-1" },
   valor_vendido: { valorVendidoUsd: 797 },
   area_declarada: { areaDeclaradaId: "area-1" },
   fecha_limite_pago: { fechaLimitePago: "2026-10-15" },
@@ -96,7 +94,6 @@ const ROMPER: Record<Codigo, Partial<HechosDelDeal>> = {
   llamada_con_fecha: { tieneLlamadaConFecha: false },
   llamada_sucedio: { llamadaSucedio: false },
   llamada_fallida: { llamadaFallida: false },
-  producto: { productoId: null },
   valor_vendido: { valorVendidoUsd: null, esHistorico: false },
   area_declarada: { areaDeclaradaId: null, esHistorico: false },
   fecha_limite_pago: { fechaLimitePago: null },
@@ -140,7 +137,7 @@ describe("los requisitos de cada flecha (structure.md §3.1)", () => {
 
 describe("lo que no es un requisito", () => {
   it("una flecha que no existe se rechaza con las etapas por su nombre", () => {
-    const falta = queLeFalta("pendiente_setteo", "completo", cumpliendo(["producto", "abono", "saldo_en_cero"]));
+    const falta = queLeFalta("pendiente_setteo", "completo", cumpliendo(["valor_vendido", "abono", "saldo_en_cero"]));
     expect(falta).toEqual([
       { codigo: "transicion_no_permitida", mensaje: "Un deal no puede pasar de Pendiente Setteo a Completo." },
     ]);

@@ -32,7 +32,6 @@ export interface HechosDelDeal {
   llamadaSucedio: boolean;
   /** La ultima llamada quedo en `no_show` o `cancelada`. */
   llamadaFallida: boolean;
-  productoId: string | null;
   valorVendidoUsd: number | null;
   /** Área que el closer declara como origen del lead; los deals históricos están exentos. */
   areaDeclaradaId: string | null;
@@ -71,7 +70,6 @@ export type CodigoRequisito =
   | "llamada_con_fecha"
   | "llamada_sucedio"
   | "llamada_fallida"
-  | "producto"
   | "valor_vendido"
   | "area_declarada"
   | "fecha_limite_pago"
@@ -96,7 +94,6 @@ const MENSAJES: Record<Exclude<CodigoRequisito, "transicion_no_permitida">, stri
   llamada_con_fecha: "Falta una llamada con fecha.",
   llamada_sucedio: "Falta el link de Grain de la llamada.",
   llamada_fallida: "La llamada no quedó en no-show ni cancelada.",
-  producto: "Falta el producto.",
   valor_vendido: "Falta el valor vendido.",
   area_declarada: "Falta el área: ¿cómo nos conoció?",
   fecha_limite_pago: "Falta la fecha límite de pago.",
@@ -119,7 +116,6 @@ const CUMPLE: Record<Exclude<CodigoRequisito, "transicion_no_permitida">, Cheque
   llamada_con_fecha: (h) => h.tieneLlamadaConFecha,
   llamada_sucedio: (h) => h.llamadaSucedio,
   llamada_fallida: (h) => h.llamadaFallida,
-  producto: (h) => h.productoId != null,
   valor_vendido: (h) => (h.valorVendidoUsd ?? 0) > 0 || h.esHistorico,
   area_declarada: (h) => h.areaDeclaradaId != null || h.esHistorico,
   fecha_limite_pago: (h) => h.fechaLimitePago != null,
@@ -164,7 +160,7 @@ function requisitosDe(t: Transicion): Requisito[] {
     case "T4":
     case "T12":
     case "T25":
-      return ["producto", "fecha_limite_pago", "area_declarada"];
+      return ["fecha_limite_pago", "area_declarada"];
     case "T5":
     case "T13":
     case "T14":

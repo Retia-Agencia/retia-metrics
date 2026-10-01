@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { monto } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,7 +25,7 @@ import type { OpcionCatalogo } from "@/lib/queries/kanban";
 
 /**
  * El dialogo que recoge lo que una flecha PIDE antes de mover (ticket 069, como en
- * HubSpot): producto, fecha limite de pago, cohorte destino, fecha de seguimiento y/o
+ * HubSpot): valor vendido, fecha limite de pago, cohorte destino, fecha de seguimiento y/o
  * motivo. Lo recogido se manda en `datos`/`motivoId` en la MISMA server action, asi que
  * el motor lo escribe en una sola transaccion (`moverEtapa`).
  *
@@ -35,7 +34,6 @@ import type { OpcionCatalogo } from "@/lib/queries/kanban";
  */
 
 export interface DatosDialogo {
-  productoId?: string | null;
   valorVendidoUsd?: number | null;
   areaDeclaradaId?: string | null;
   fechaLimitePago?: string | null;
@@ -50,7 +48,6 @@ export interface DialogoMoverProps {
   flecha: FlechaCliente;
   etapaDestinoNombre: string;
   nombreLead: string;
-  productos: (OpcionCatalogo & { moneda: string; precio: string })[];
   areas: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
   /** Motivos activos con su tipo; el dialogo filtra por el tipo de la flecha. */
@@ -66,7 +63,6 @@ export interface DialogoMoverProps {
 }
 
 const ETIQUETA: Record<CodigoRequisito, string> = {
-  producto: "Producto",
   valor_vendido: "Valor vendido (USD)",
   area_declarada: "Área de origen (según el closer)",
   fecha_limite_pago: "Fecha límite de pago",
@@ -95,7 +91,6 @@ export function DialogoMover({
   flecha,
   etapaDestinoNombre,
   nombreLead,
-  productos,
   areas,
   cohortes,
   motivos,
@@ -114,7 +109,6 @@ export function DialogoMover({
 
   // Todo campo pedido tiene que estar lleno para confirmar.
   const completo = campos.every((c) => {
-    if (c === "producto") return Boolean(datos.productoId);
     if (c === "valor_vendido") return (datos.valorVendidoUsd ?? 0) > 0;
     if (c === "area_declarada") return Boolean(datos.areaDeclaradaId);
     if (c === "fecha_limite_pago") return Boolean(datos.fechaLimitePago);
@@ -145,24 +139,6 @@ export function DialogoMover({
             <div key={campo} className="space-y-1">
               <label className="block text-xs font-medium text-muted-foreground">{ETIQUETA[campo]}</label>
 
-              {campo === "producto" ? (
-                <Select
-                  value={datos.productoId ?? null}
-                  items={productos.map((p) => ({ value: p.id, label: `${p.nombre} · ${monto(Number(p.precio), p.moneda)}` }))}
-                  onValueChange={(v: string | null) => setDatos((d) => ({ ...d, productoId: v }))}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Elige un producto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {productos.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.nombre} · {monto(Number(p.precio), p.moneda)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : null}
 
               {campo === "valor_vendido" ? (
                 <Input

@@ -324,7 +324,6 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
   if (alta.etapa === "compromiso_verbal") {
     const faltantes = queLeFalta("en_contacto", "compromiso_verbal", {
       ...HECHOS_VACIOS,
-      productoId: alta.productoId ?? null,
       fechaLimitePago: alta.fechaLimitePago ?? null,
       areaDeclaradaId: alta.areaDeclaradaId ?? null,
     });
@@ -641,7 +640,6 @@ const HECHOS_VACIOS: HechosDelDeal = {
   tieneLlamadaConFecha: false,
   llamadaSucedio: false,
   llamadaFallida: false,
-  productoId: null,
   valorVendidoUsd: null,
   areaDeclaradaId: null,
   esHistorico: false,
@@ -744,7 +742,6 @@ async function leerHechos(
       ultimaLlamada != null && (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(ultimaLlamada.resultado),
     llamadaFallida:
       ultimaLlamada != null && (RESULTADOS_FALLIDOS as readonly string[]).includes(ultimaLlamada.resultado),
-    productoId: deal.productoId,
     valorVendidoUsd: deal.valorVendidoUsd == null ? null : Number(deal.valorVendidoUsd),
     areaDeclaradaId: deal.areaDeclaradaId,
     esHistorico: deal.huellaMigracion != null,

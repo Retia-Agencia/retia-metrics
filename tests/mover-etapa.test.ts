@@ -629,22 +629,22 @@ describe("el saldo (ADR 0024)", () => {
 });
 
 describe("saltos, retrocesos y recuperacion (ticket 047)", () => {
-  it("T4: el cierre por chat salta de En Contacto a Compromiso Verbal con producto y fecha limite", async () => {
+  it("T4: el cierre por chat salta de En Contacto a Compromiso Verbal con fecha limite, sin producto", async () => {
     const dealId = await nuevoDeal("en_contacto", { ownerUserId: closer });
     const e = await rechazo(moverEtapa(db, { dealId, a: "compromiso_verbal", actor: comoCloser() }));
-    expect(e.faltantes.map((f) => f.codigo)).toEqual(["producto", "fecha_limite_pago"]);
+    expect(e.faltantes.map((f) => f.codigo)).toEqual(["fecha_limite_pago"]);
 
-    // Los datos que la flecha pide van en el MISMO movimiento (punto 6): producto activo
-    // del programa y fecha limite, escritos por el motor, no antes.
+    // Los datos que la flecha pide van en el MISMO movimiento (punto 6): la fecha limite,
+    // escrita por el motor, no antes. El producto ya no se pide (ADR 0065).
     await moverEtapa(db, {
       dealId,
       a: "compromiso_verbal",
       actor: comoCloser(),
-      datos: { productoId, fechaLimitePago: "2026-10-30" },
+      datos: { fechaLimitePago: "2026-10-30" },
     });
     expect(await etapaDe(dealId)).toBe("compromiso_verbal");
     const [d] = await db.select().from(deals).where(eq(deals.id, dealId));
-    expect(d).toMatchObject({ productoId, fechaLimitePago: "2026-10-30" });
+    expect(d).toMatchObject({ productoId: null, fechaLimitePago: "2026-10-30" });
   });
 
   it("un retroceso (T29, Atendido → Re-agenda) sin motivo se rechaza; con motivo de re-agenda pasa y queda en el historial", async () => {

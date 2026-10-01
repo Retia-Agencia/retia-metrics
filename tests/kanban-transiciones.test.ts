@@ -72,10 +72,10 @@ describe("flechasDesde", () => {
 });
 
 describe("flechaPideDatos / camposDeDialogo", () => {
-  it("T12 (Atendido -> Compromiso Verbal) pide producto y fecha limite: abre dialogo", () => {
+  it("T12 (Atendido -> Compromiso Verbal) pide fecha limite y area, sin producto: abre dialogo", () => {
     const f = flechasDesde(MAPA, "atendido").find((x) => x.a === "compromiso_verbal")!;
     expect(flechaPideDatos(f)).toBe(true);
-    expect(camposDeDialogo(f)).toEqual(expect.arrayContaining(["producto", "fecha_limite_pago"]));
+    expect(camposDeDialogo(f)).toEqual(["fecha_limite_pago", "area_declarada"]);
   });
 
   it("P (-> Cierre Perdido) exige motivo: abre dialogo con el campo motivo", () => {
