@@ -117,6 +117,7 @@ async function deal(o: OpcDeal): Promise<string> {
       etapa: o.etapa,
       ownerUserId: o.owner ?? owner1,
       productoId,
+      valorVendidoUsd: "1000.00",
       fechaLimitePago: o.fechaLimitePago ?? null,
       fechaSeguimiento: o.fechaSeguimiento ?? null,
       ...(o.anulado

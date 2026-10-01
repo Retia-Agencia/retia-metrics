@@ -73,7 +73,7 @@ beforeEach(async () => {
     .returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, submissionOrigenId: env.id, programId, cohortId, etapa: "atendido", ownerUserId: closer, productoId, areaDeclaradaId: area.id, acuerdoPago: "30% en octubre" })
+    .values({ leadId: l.id, submissionOrigenId: env.id, programId, cohortId, etapa: "atendido", ownerUserId: closer, productoId, valorVendidoUsd: "1000.00", areaDeclaradaId: area.id, acuerdoPago: "30% en octubre" })
     .returning();
   dealId = d.id;
 }, 60_000);

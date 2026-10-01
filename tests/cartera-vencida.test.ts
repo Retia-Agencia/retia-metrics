@@ -48,7 +48,7 @@ async function deal(etapa: EtapaDeal, pagado: string, extra: Partial<typeof deal
   const [l] = await db.insert(leads).values({ programId: programa, emailNormalizado: `l${++leadN}@correo.co`, nombre: `Lead ${leadN}` }).returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId: programa, cohortId, etapa, ownerUserId: closer, productoId, ...extra })
+    .values({ leadId: l.id, programId: programa, cohortId, etapa, ownerUserId: closer, productoId, valorVendidoUsd: "1000.00", ...extra })
     .returning();
   if (Number(pagado) > 0) await db.insert(abonos).values({ dealId: d.id, programId: programa, fecha: "2026-10-01", monto: pagado });
   return d;
@@ -128,7 +128,7 @@ describe("carteraVencida", () => {
   it("el programa es frontera: la cartera de uno no incluye los deals del otro", async () => {
     const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
     const [productoAjeno] = await db.insert(productos).values({ programId: otro.id, nombre: "Otro producto", precioLista: "1500" }).returning();
-    await deal("abonado", "400", { fechaLimitePago: "2026-10-01", cohortId: null, productoId: productoAjeno.id }, otro.id);
+    await deal("abonado", "400", { fechaLimitePago: "2026-10-01", cohortId: null, productoId: productoAjeno.id, valorVendidoUsd: "1500.00" }, otro.id);
     await deal("abonado", "100", { fechaLimitePago: "2026-10-01" });
     const r = await carteraVencida(db, programId, HOY);
     expect(r.vencidos).toHaveLength(1);

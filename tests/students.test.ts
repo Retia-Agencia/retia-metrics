@@ -61,7 +61,7 @@ async function deal(etapa: EtapaDeal, pagado: string, extra: Partial<typeof deal
   const [l] = await db.insert(leads).values({ programId: programa, emailNormalizado: `l${++n}@correo.co`, nombre: `Lead ${n}` }).returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId: programa, cohortId: c2, etapa, ownerUserId: closer, productoId, ...extra })
+    .values({ leadId: l.id, programId: programa, cohortId: c2, etapa, ownerUserId: closer, productoId, valorVendidoUsd: "1000.00", ...extra })
     .returning();
   if (Number(pagado) > 0) await db.insert(abonos).values({ dealId: d.id, programId: programa, fecha: "2026-10-01", monto: pagado });
   return d;

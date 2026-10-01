@@ -105,6 +105,7 @@ async function crearDeal(o: {
       etapa: o.etapa,
       ownerUserId: o.owner === undefined ? closer : o.owner,
       productoId: o.conProducto === false ? null : prog === programId ? productoId : null,
+      valorVendidoUsd: prog === programId ? "1000.00" : null,
       fechaLimitePago: o.fechaLimitePago ?? null,
       ...(o.createdAt ? { createdAt: o.createdAt } : {}),
       ...marca,
