@@ -87,11 +87,20 @@ Carril de Alejo (E5 con el codigo en main; E6 arrancado):
   reaperturas. Recorrido con clics reales hecho (la extension estuvo desconectada un rato). Ojo: el computer tool
   de Chrome usa el marco de la captura, no el viewport (escalar por ancho_captura/innerWidth). Y TaskStop sobre
   npm run dev:local NO mata a next (dev-local lanza "cmd /c next dev"): matar el arbol con taskkill /T.
-- SIGUIENTE (norte comercial, prioridad): 140 (crear un deal a mano). Antes de arrancar, preguntar a Mani que
-  esta tomando (132-135 son de dinero y motor).
-- Despues: 092 (ahora depende de 101, listo), pero antes definir su alcance con Mani: el builder queda
-  para organico y closer, y la convencion del organico espera PQ6 (Pauta y Media). Lleva migracion.
-  Despues, E6: 119/120 (token de Meta), 102.
+- 140 NO es de este carril (plan-reparto §2 y comercial.md §8: lib/deals y la pantalla de Deals son de Mani).
+  136-138 y 141 tambien eran de su dominio y se tomaron porque estaban libres; el 140 solo si Mani lo pasa.
+- LO QUE LE FALTA A ALEJO (1-oct, sesion 66), por orden de lo que se puede hacer ya:
+  1. 072: solo el recorrido visual de Leads (claro/oscuro, 390 px, consola, clic en todo). Se puede ya.
+  2. Plantilla de PR con el checklist de contratos de AGENTS.md (E0, S). Se puede ya.
+  3. 117, cabos: reprocesar los 23 de Tactical (los 14 sin link ni estado los decide Mani), recorrido de
+     "Estados de llegada" en /ajustes/fuentes, anotar el payload del primer parcial real. Poca inversion: el
+     ADR 0069 reemplaza los Estados de llegada cuando entren las etapas de 30X.
+  4. 078 --aplicar: espera las etapas de 30X (142) y QD-2. Antes, regenerar el template de CA (ver arriba).
+  5. 119 y 120 (Meta): esperan el token de Anderson. Llevan migracion.
+  6. 102 (rol Paid Trafficker, manejaPauta): lleva migracion; v1 es comercial, pauta despues.
+  7. 082 (apagar las pestanas de gestion): plan-reparto lo pone aqui, el tracker dice "lo hace Mani"; aclarar.
+  8. E7: 126 (embudo del formulario; token de Typeform), 088, 066, 067, 065.
+  9. E8: 092 (definir alcance con Mani; ADR 0068: el link sale de la fuente), 086, 068, 076, 100, 021.
 - El recorrido visual del 072 necesita la extension de Chrome: claro/oscuro, 390 px, consola, clic en todo.
   Chrome en Windows no baja de 500 px: se mide 390 con document.documentElement.style.zoom = innerWidth/390
   (mismo breakpoint). OJO (1-oct): en una ventana de 1280 ese zoom NO activo el diseño movil (el sidebar
@@ -111,6 +120,22 @@ empuja al mismo main y el numero de migracion puede chocar.
 
 ## Memory
 
+- **2026-10-01 (Alejo, sesión 66): 138 y 141 en producción; el 140 es de Mani.**
+  - **Hecho:** 138 (gráfica deals creados contra agendas, acumulado por hábil A contra B; métricas
+    `deals_creados` y `agendas_creadas` en el 137) y 141 (filtros de fecha en Deals y Leads con el selector en modo
+    solo A). Sin migraciones. Empujados: `335ef79` y `45cb2b0`. Revisó un subagente de Claude (Codex sin cuota) y
+    sus hallazgos se aplicaron; recorrido con clics reales en `dev:local`.
+  - **Definiciones nuevas, una sola vez:** deal creado = fecha del envío de origen o su alta
+    (`fechaAnclaDealCreado`); agenda creada = `calls.created_at` (`fechaAnclaAgendaCreada`, también Pauta); cierre
+    = primera entrada a Abonado/Completo/Cierre Perdido tras la última reapertura (`cerradosEn`, en memoria: el
+    guardián de vigencia no lee subconsultas con alias); última actividad en `lib/queries/ultima-actividad.ts`
+    (Inbox y lista; la lista ignora citas futuras).
+  - 🩸 **Dos bugs que solo salieron en el navegador:** la tabla `sr-only` de `SeriesLineales` desbordaba la página
+    (una `<table>` no respeta `width:1px`; va dentro de un `div`) y un `<title>` de SVG con varios nodos rompía la
+    hidratación de React 19 (un solo string).
+  - **Herramientas:** `TaskStop` sobre `npm run dev:local` deja huérfano a `next` (matar el árbol con
+    `taskkill /T`); el computer tool de Chrome mide en el marco de la captura, no del viewport.
+  - **Siguiente:** la lista "LO QUE LE FALTA A ALEJO" en el carril de arriba; empezar por el 072.
 - **2026-10-01 (Mani, sesión 65): Dapta de punta a punta; 130 cerrado; ADR 0068 y 0069.**
   - **Hecho:** la "migración ajena" ya la había resuelto Alejo (0051 y 0052 cuadran por hash y `created_at`). 130
     cerrado con seis envíos reales en ComunicArte (tabla en el ticket). 🩸 **Las UTM de Dapta se perdían todas**: el
