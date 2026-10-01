@@ -71,7 +71,13 @@ de ComunicArte hay además un formulario viejo, **"Postulación Método ComunicA
 trabajo y no se toca. El enlace público del nuevo será `forms.dapta.ai/4bgty3/f/postulacion-evento-comunicarte`
 (`4bgty3` es el código de la cuenta) cuando se publique.
 
-## Fuentes en el CRM (30-sep, inactivas y sin secreto)
+## Fuentes en el CRM (30-sep: activas y con secreto, puestos por Mani en `/ajustes/fuentes`)
+
+**El mapeo de una fuente Dapta va VACÍO.** El adaptador encuentra solo `nombre`, `email` y `whatsapp`; las UTM salen
+de su lugar fijo, y el Estado, `lead_value`, `lead_quality` y el puntaje salen del outcome y del score, no del
+mapeo (las llaves `puntaje`, `leadValue`, `leadQuality` y `agenda` de esa pantalla son de Typeform). Copiar el mapeo
+de la fuente de Typeform (`correo: "correo electronico"`) haría que ningún lead encuentre su correo. Lo mismo si
+el programa tuviera una plantilla de lead con títulos de Typeform: hoy ninguno tiene.
 
 | Programa | Fuente | id |
 |---|---|---|
