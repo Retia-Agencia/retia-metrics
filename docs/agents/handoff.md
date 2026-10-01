@@ -65,12 +65,14 @@ Carril de Alejo (E5 con el codigo en main; E6 arrancado):
 - 078 en curso: ensayo de los dos programas hecho (importador en lote). Antes de --aplicar: REGENERAR el
   template de CA (npm run migracion:extraer -- --programa comunicarte): desde d01c461 la Categoria de su
   Registro de llamadas se lee de "Registro 2" (76 filas) y el template del 30-sep es anterior.
-- 117 escrito en la rama local 117-estados-de-llegada (8e0d69a), rebasada sobre el 089 el 30-sep: suite,
-  build y seed local contra Postgres limpios. Produccion con el ok de Mani, en el orden del ticket.
+- 117 EN PRODUCCION (1-oct, 2da8be0): migraciones 0051 (estados_llegada, calificacion a texto) y 0052 (DROP
+  TYPE calificacion_envio) aplicadas; cargar-estados-llegada y cargar-plantillas-lead aplicados en los tres
+  programas. Falta: reprocesar los 23 de Tactical (Mani decide los 14 sin link ni estado), el recorrido visual
+  de "Estados de llegada" en /ajustes/fuentes y anotar el payload del primer parcial real. Desbloquea 118 y 130.
 - Guion del corte escrito: docs/operations.md §12 (pasos, reversa, capacitacion, conciliacion).
 - SIGUIENTE: 092 (ahora depende de 101, listo), pero antes definir su alcance con Mani: el builder queda
   para organico y closer, y la convencion del organico espera PQ6 (Pauta y Media). Lleva migracion.
-  Despues, E6: 117 (tras el 115; reprocesa los 23 envios de Tactical), 119/120 (token de Meta), 102.
+  Despues, E6: 119/120 (token de Meta), 102.
 - El recorrido visual del 072 necesita la extension de Chrome: claro/oscuro, 390 px, consola, clic en todo.
   Chrome en Windows no baja de 500 px: se mide 390 con document.documentElement.style.zoom = innerWidth/390
   (mismo breakpoint). Nunca reemplazar el body con iframes: la app no se deja enmarcar y rompe React.
@@ -86,6 +88,23 @@ empuja al mismo main y el numero de migracion puede chocar.
 ```
 
 ## Memory
+
+- **2026-10-01 (Alejo, sesión 62): el 117 en producción, y dos 0050 a la vez.**
+  - **Qué pasó:** Mani aplicó su 0050 (130/131) minutos antes que la del 117, que también se llamaba 0050. Las dos
+    quedaron aplicadas (filas 51 y 52) y no se pisan. La del 117 se renumeró a **0051** con el SQL byte a byte (mismo
+    hash) y un `when` nuevo; la fila 52 de `drizzle.__drizzle_migrations` se alineó a ese `when` con el ok de Alejo.
+    Es la "migración ajena" que anotó Mani en la sesión 61: resuelta.
+  - 🩸 **Choque de lógica entre 117 y 130, cazado por la matriz del webhook:** la plantilla del programa (títulos de
+    Typeform, la siembra del 117) vale para TODAS sus fuentes y pisaba la llave fija `email` de Dapta: ningún envío
+    de Dapta de ComunicArte habría tenido lead, sin error. Ahora el adaptador de Dapta busca lo configurado y cae a
+    sus llaves fijas; exigir el correo configurado es por proveedor (`correoPorDefecto` en `proveedores.ts`). El
+    guardián B4 nombra a `adaptador-dapta.ts` como excepción. Test en `tests/adaptador-dapta.test.ts`.
+  - **Ventana revisada:** entre la plantilla (04:42 UTC) y el deploy (14:05 UTC) no llegó ningún envío real de Dapta
+    (solo las 4 pruebas, anteriores) y Typeform ingirió 19 sobres sin error.
+  - 🧪 **Antes de `db:migrate`, `git fetch` y mirar el journal de `origin/main`**, no solo el local: el choque pasó
+    porque los dos aplicamos con minutos de diferencia. Y el migrador de drizzle decide por `created_at` (el
+    `when` del journal), no por nombre ni hash: una migración con `when` menor que la última aplicada se salta
+    sin avisar.
 
 - **2026-10-01 (Mani, sesión 63): pasos 4 y 5 del lote 1 del norte comercial hechos.**
   - **Decidido (Mani, `/grill-with-docs`):** ADR **0065**: valor vendido por deal en USD, `null` en la base y 0

@@ -113,18 +113,6 @@ export const resultadoLlamadaEnum = pgEnum("resultado_llamada", [
  */
 export const prioridadLlegadaEnum = pgEnum("prioridad_llegada", ["normal", "alta"]);
 
-/**
- * ⚠️ RETIRADO, se borra con la migracion 0051 (ticket 117). Ninguna columna lo usa desde la
- * 0050, pero sigue en la base porque el codigo anterior al 117 escribe `::calificacion_envio`
- * en SQL crudo: borrarlo antes del deploy rompe el webhook. Se declara aqui solo para que un
- * `generate` no emita el `DROP TYPE` en la migracion de otro. No lo uses.
- */
-export const calificacionEnvioEnumRetirado = pgEnum("calificacion_envio", [
-  "descartado",
-  "setteo_no_calificado",
-  "con_calendly",
-]);
-
 /** Por donde entro una persona al CRM (ADR 0021). */
 export const entradaPersonaEnum = pgEnum("entrada_persona", ["formulario", "crm"]);
 export const estadoCohorteEnum = pgEnum("estado_cohorte", ["cerrado", "activo", "futuro"]);
