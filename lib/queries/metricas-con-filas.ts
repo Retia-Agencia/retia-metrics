@@ -3,16 +3,20 @@ import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
-import { abonos, calls, deals, dealEtapaHistorial, leads, users } from "@/lib/db/schema";
+import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
 import type { Alcance, CajaPorMoneda, Rango } from "@/lib/queries/dashboard";
 import { claveDeCloser, claveDeCloserSql } from "@/lib/closers/identidad";
 import { vigente } from "@/lib/queries/vigente";
 import {
-  fechaAnclaCall, fechaAnclaLead, filtroCaja, filtroCierres,
-  filtroLeads, filtroLlamadas, llamadaOcurrio, primerosMovimientosDeVenta,
+  fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaLead, filtroAgendasCreadas,
+  filtroCaja, filtroCierres, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
+  primerosMovimientosDeVenta,
 } from "@/lib/queries/metricas-filtros";
 
-export type Metrica = "caja" | "agendas" | "shows" | "cierres" | "leads";
+export type Metrica = "caja" | "agendas" | "shows" | "cierres" | "leads" | "deals_creados" | "agendas_creadas";
+
+/** Las métricas que no se atribuyen a un closer: con closer no hay cifra ("—"), nunca el programa entero. */
+export const METRICAS_SIN_CLOSER: readonly Metrica[] = ["leads", "deals_creados", "agendas_creadas"];
 export const TAMANO_PAGINA = 50;
 
 export interface FiltrosDeMetrica {
@@ -80,6 +84,11 @@ function fuenteDe(metrica: Metrica): FuenteDeMetrica {
         fecha: sql<string>`(${dealEtapaHistorial.fecha} AT TIME ZONE 'America/Bogota')::date`,
         columnaCloser: users.closerId,
       };
+    // Ticket 138: el closer es solo contexto (el dueño del deal); estas métricas no se filtran por él.
+    case "deals_creados":
+      return { id: deals.id, fecha: fechaAnclaDealCreado(), columnaCloser: users.closerId };
+    case "agendas_creadas":
+      return { id: calls.id, fecha: fechaAnclaAgendaCreada(), columnaCloser: users.closerId };
   }
 }
 
@@ -199,6 +208,21 @@ function consultaDe(
           ),
         )
         .where(and(filtroCierres(alcance, db), vigente(deals)));
+    case "deals_creados":
+      return db
+        .select(campos)
+        .from(deals)
+        .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
+        .leftJoin(users, eq(users.id, deals.ownerUserId))
+        .where(and(filtroDealsCreados(alcance), vigente(deals)));
+    case "agendas_creadas":
+      // Una llamada suelta (sin deal) también es una agenda: el join solo aporta contexto.
+      return db
+        .select(campos)
+        .from(calls)
+        .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
+        .leftJoin(users, eq(users.id, deals.ownerUserId))
+        .where(and(filtroAgendasCreadas(alcance), vigente(calls), vigente(deals)));
   }
 }
 
@@ -258,7 +282,7 @@ export async function resumenDeMetrica(metrica: Metrica, filtros: FiltrosDeMetri
     const grupos = await leerMetrica(metrica, { ...filtros, programId }, filtros, null, db);
     return {
       programId,
-      disponible: !(metrica === "leads" && filtros.closerId),
+      disponible: !(METRICAS_SIN_CLOSER.includes(metrica) && filtros.closerId),
       subtotal: subtotal(grupos),
       grupos: grupos.map(({ closer, etapa, bucket, moneda, monto, cantidad }) => ({ closer, etapa, bucket, moneda, monto, cantidad })),
     };

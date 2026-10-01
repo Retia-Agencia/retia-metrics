@@ -20,13 +20,21 @@ interface Props {
 }
 
 const esquema = z.object({
-  metrica: z.enum(["caja", "agendas", "shows", "cierres", "leads"]),
+  metrica: z.enum(["caja", "agendas", "shows", "cierres", "leads", "deals_creados", "agendas_creadas"]),
   closer: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   moneda: z.string().regex(/^[A-Z]{3}$/).optional(),
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
 });
 
-const titulos = { caja: "Caja recaudada", agendas: "Agendas", shows: "Shows", cierres: "Cierres", leads: "Leads" };
+const titulos = {
+  caja: "Caja recaudada",
+  agendas: "Agendas",
+  shows: "Shows",
+  cierres: "Cierres",
+  leads: "Leads",
+  deals_creados: "Deals creados",
+  agendas_creadas: "Agendas creadas",
+};
 
 export default async function ListaDeCifraPage({ params, searchParams }: Props) {
   const session = await paginaConRol("gerente", "closer");

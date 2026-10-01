@@ -14,6 +14,8 @@ import { PageShell } from "@/components/page-shell";
 import { DashboardPrograma } from "@/components/dashboard-programa";
 import { FiltroDashboard } from "@/components/filtro-dashboard";
 import { PautaInterina } from "@/components/pauta-interina";
+import { DealsContraAgendas } from "@/components/deals-contra-agendas";
+import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -83,6 +85,13 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
     periodo: vista.periodo,
     closerId: vista.closerId,
   });
+  const dealsContraAgendas = await vistaDealsContraAgendas({
+    programId: programa.id,
+    slug,
+    hoy,
+    periodo: vista.periodo,
+    closerId: vista.closerId,
+  });
   const { desde, hasta } = vista.seleccion.rango;
 
   const filtrosPauta: FiltrosPauta = esquemaFiltrosPauta.parse({
@@ -140,6 +149,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
           cohorteDisponible={vista.cohorte?.ventana != null}
         />
         <DashboardPrograma vista={vista} detalles={detalles} />
+        <DealsContraAgendas vista={dealsContraAgendas} />
         <Card aria-labelledby="resumen-serie">
           <CardHeader>
             <div className="flex items-center gap-2">

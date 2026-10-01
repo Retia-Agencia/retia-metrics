@@ -13,7 +13,8 @@ let programaA: string;
 let programaB: string;
 const rango = { desde: "2026-06-01", hasta: "2026-10-02" };
 const hoy = "2026-10-01";
-const metricas: Metrica[] = ["caja", "agendas", "shows", "cierres", "leads"];
+const metricas = ["caja", "agendas", "shows", "cierres", "leads"] as const;
+type MetricaDelTablero = (typeof metricas)[number];
 
 beforeAll(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
@@ -101,7 +102,7 @@ function suma(filas: FilaDeMetrica[]) {
   return resultado;
 }
 
-async function cifra(metrica: Metrica, programId: string, closerId?: string) {
+async function cifra(metrica: MetricaDelTablero, programId: string, closerId?: string) {
   const alcance = { programId, rango, closerId };
   if (metrica === "caja") return Object.fromEntries((await cajaRecaudada(alcance, db)).map((c) => [c.moneda, c.total]));
   if (metrica === "leads") return (await leadsDelRango(alcance, db)).leads;

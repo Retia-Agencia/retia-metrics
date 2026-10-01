@@ -48,3 +48,16 @@ export function textoDeVariacion(v: VariacionDeNumero, decimales = 0): string {
 export function porcentajeConBase(cantidad: number, base: number): string {
   return base === 0 ? "—" : `${pct(cantidad / base, 0)} de ${num(base)}`;
 }
+
+/**
+ * Una tasa contra otra (ticket 138). El cambio de una tasa se dice en puntos porcentuales: un
+ * "+11%" sobre un 45% obliga a la cuenta que el ADR 0067 quiere evitar. Sin base en alguno de
+ * los dos lados no hay cambio que decir: "—", nunca un 0 inventado.
+ */
+export function textoDeVariacionDeTasa(actual: number | null, anterior: number | null): string {
+  const tasa = (t: number | null) => (t === null ? "—" : pct(t, 0));
+  const cambio = actual === null || anterior === null
+    ? "—"
+    : `${conSigno((actual - anterior) * 100, (n) => num(n, 0))} pp`;
+  return `${tasa(anterior)} → ${tasa(actual)} · ${cambio}`;
+}

@@ -33,7 +33,9 @@ export function nombreDeEtapa(etapa: string): string {
   return NOMBRE_DE_ETAPA[etapa as EtapaDeal] ?? etapa;
 }
 
-export type DetallesDelDashboard = Record<Metrica, DetalleDeCifra>;
+/** Las cifras de las tarjetas del dashboard; las del 138 viven en su propia vista. */
+const METRICAS_DEL_TABLERO = ["caja", "agendas", "shows", "cierres", "leads"] as const;
+export type DetallesDelDashboard = Record<(typeof METRICAS_DEL_TABLERO)[number], DetalleDeCifra>;
 
 export function urlDeLista(slug: string, metrica: Metrica, periodo: PeriodoResuelto, closer?: string | null, moneda?: string): string {
   const q = new URLSearchParams({ metrica, periodo: "custom", a_desde: periodo.a.desde, a_hasta: periodo.a.hasta });
@@ -54,17 +56,22 @@ export interface EntradaDeDetalles {
   closerId: string | null;
 }
 
+/** El resumen de UNA cifra del periodo A y el enlace a su lista. Solo agregados SQL. */
+export async function detalleDeCifra(metrica: Metrica, entrada: EntradaDeDetalles, db: Db = dbDeLaApp): Promise<DetalleDeCifra> {
+  const [resumen] = await resumenDeMetrica(metrica, { ...entrada, rango: entrada.periodo.a }, db);
+  return {
+    resumen,
+    desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
+    href: urlDeLista(entrada.slug, metrica, entrada.periodo, entrada.closerId),
+  };
+}
+
 /** Solo agregados SQL: abrir el diálogo nunca descarga filas de negocio. */
 export async function detallesDelDashboard(entrada: EntradaDeDetalles, db: Db = dbDeLaApp): Promise<DetallesDelDashboard> {
-  const metricas: Metrica[] = ["caja", "agendas", "shows", "cierres", "leads"];
-  const entradas = await Promise.all(metricas.map(async (metrica) => {
-    const [resumen] = await resumenDeMetrica(metrica, { ...entrada, rango: entrada.periodo.a }, db);
-    return [metrica, {
-      resumen,
-      desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
-      href: urlDeLista(entrada.slug, metrica, entrada.periodo, entrada.closerId),
-    }] as const;
-  }));
+
+  const entradas = await Promise.all(
+    METRICAS_DEL_TABLERO.map(async (metrica) => [metrica, await detalleDeCifra(metrica, entrada, db)] as const),
+  );
   return Object.fromEntries(entradas) as DetallesDelDashboard;
 }
 

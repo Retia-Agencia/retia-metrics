@@ -1,6 +1,6 @@
 import { and, between, eq, inArray, sql } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
-import { abonos, calls, deals, dealEtapaHistorial, leads, users } from "@/lib/db/schema";
+import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { Alcance } from "@/lib/queries/dashboard";
 import { igualCloser } from "@/lib/closers/identidad";
@@ -116,6 +116,44 @@ export function filtroLeads({ programId, rango, closerId }: Alcance) {
     eq(leads.entrada, "formulario"),
     between(fechaAnclaLead(), rango.desde, rango.hasta),
     // No hay atribución por closer de esta métrica: jamás devolver el programa entero.
+    closerId ? sql`false` : undefined,
+  );
+}
+
+/**
+ * El dia (Bogota) en que nacio un deal (ticket 138, GC-07): el de su envio de origen, que es
+ * cuando la persona lleno el formulario; sin envio (historico o alta manual), su alta en el CRM.
+ * Exige un `left join` de `submissions` por `deals.submissionOrigenId`.
+ */
+export function fechaAnclaDealCreado() {
+  return sql<string>`(coalesce(${submissions.fechaEnvio}, ${deals.createdAt}) AT TIME ZONE 'America/Bogota')::date`;
+}
+
+/**
+ * El dia (Bogota) en que se AGENDO una llamada (ticket 138): cuando entro su fila, por el
+ * webhook de Calendly o a mano. No es `fechaAgenda`, que es el dia de la cita: una agenda hecha
+ * hoy para el martes es una agenda de hoy. Es la misma fecha que usa la vista interina de Pauta.
+ */
+export function fechaAnclaAgendaCreada() {
+  return sql<string>`(${calls.createdAt} AT TIME ZONE 'America/Bogota')::date`;
+}
+
+/**
+ * Generar deals y agendas es del programa, no de un closer: un deal nace sin dueño. Como los
+ * leads, con closer no se devuelve nada, jamas el programa entero. Exige el join de arriba.
+ */
+export function filtroDealsCreados({ programId, rango, closerId }: Alcance) {
+  return and(
+    eq(deals.programId, programId),
+    between(fechaAnclaDealCreado(), rango.desde, rango.hasta),
+    closerId ? sql`false` : undefined,
+  );
+}
+
+export function filtroAgendasCreadas({ programId, rango, closerId }: Alcance) {
+  return and(
+    eq(calls.programId, programId),
+    between(fechaAnclaAgendaCreada(), rango.desde, rango.hasta),
     closerId ? sql`false` : undefined,
   );
 }

@@ -4,6 +4,7 @@ import { calls, deals, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { fechaDeInstanteEnBogota } from "@/lib/format";
 import type { Rango } from "@/lib/queries/dashboard";
+import { fechaAnclaAgendaCreada } from "@/lib/queries/metricas-filtros";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 
 /**
@@ -76,7 +77,7 @@ export interface VistaPautaInterina {
 }
 
 /** El dia de Bogota de una columna `timestamptz`, el mismo ancla que usa el dashboard. */
-const diaEnBogota = (columna: typeof submissions.fechaEnvio | typeof calls.createdAt) =>
+const diaEnBogota = (columna: typeof submissions.fechaEnvio) =>
   sql<string>`(${columna} AT TIME ZONE 'America/Bogota')::date`;
 
 export function categoriaDe(d: DimensionesUtm): Exclude<CategoriaOrigen, "sin_envio_origen"> {
@@ -149,7 +150,7 @@ export async function pautaInterina(
       and(
         eq(calls.programId, programId),
         vigente(calls),
-        between(diaEnBogota(calls.createdAt), rango.desde, rango.hasta),
+        between(fechaAnclaAgendaCreada(), rango.desde, rango.hasta),
       ),
     );
 

@@ -101,6 +101,9 @@ vi.mock("@/lib/queries/pauta-interina", () => ({ pautaInterina }));
 // La serie del embudo (089), igual: sin base, una serie vacia.
 const hechosDelEmbudo = vi.fn(async () => []);
 vi.mock("@/lib/queries/hechos-embudo", () => ({ hechosDelEmbudo }));
+// Deals creados contra agendas (138), igual: sin base, la gráfica no disponible.
+const vistaDealsContraAgendas = vi.fn(async () => ({ disponible: false }));
+vi.mock("@/lib/queries/vista-deals-contra-agendas", () => ({ vistaDealsContraAgendas }));
 
 // La pagina de cohortes lee las cohortes del programa; sin base en los tests, se
 // mockea la lectura para que la guarda sea lo unico bajo prueba.
