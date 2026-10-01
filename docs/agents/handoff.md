@@ -30,6 +30,15 @@ Atendido sin Grain como alarma, reglas de pantalla: numero y %, periodo A vs B, 
 mano; filtros de fecha relativos). LOTE 2 espera respuestas de Dani (QD-1..QD-12, sobre todo el manual de
 gestion comercial QD-8): las etapas de 30X en UNA migracion, despues el --aplicar del 078. El 117 sigue.
 
+ESTADO AL 1-OCT (sesion 63): pasos 4 y 5 del LOTE 1 HECHOS. ADR 0065 (valor vendido, ticket base de la
+cohorte, productos se retira, comision % congelada), 0066 (Atendido sin Grain), 0067 (numero y %, periodo A
+vs B, cifra -> resumen -> lista). Tickets 132-141 listos para construir (orden y dependencias en
+docs/tasks/README.md, seccion Norte comercial); 142-148 bloqueados por QD/QM. NADA implementado todavia.
+Para construir: UNA sesion por ticket. Lee el ticket y su ADR, /delegate a Codex en un worktree propio, la
+sesion revisa tests y diff; la migracion la genera y aplica la sesion principal con el ok de Mani. Arranca por
+el 132 (base del dinero), en paralelo se pueden 135, 136 y 140 (no se pisan con el 132: si con archivos de
+deals, revisar); 133 y 134 tras el 132; 137, 138, 141 tras el 136; 139 tras 132 y 134.
+
 Estado al 30-sep (sesion 57, Mani): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
 51 migraciones (0000-0050), todas aplicadas. DAPTA (sesion 61, 30-sep): el adaptador y el contrato de proveedores estan en produccion; ComunicArte tiene Typeform y Dapta activos, Memorable existe inactivo; lo pendiente esta en Memory 30-sep sesion 61 y la guia de configurar un programa en docs/operations.md §2.1; en produccion hay ademas UNA aplicada desde otra maquina que no esta en el repo (fila 52 de __drizzle_migrations, hash 28fc7b38..., ver Memory 30-sep sesion 61). ~1.676 tests. Produccion: https://retia-metrics-seven.vercel.app.
 
@@ -90,7 +99,8 @@ empuja al mismo main y el numero de migracion puede chocar.
     marcados como estimados se decide con el equipo comercial al aplicar la migración.
   - **Tickets:** enmendados 017, 044, 058, 060, 062, 072, 074, 089, 095, 128; nuevos 132 a 141 (lote 1, orden
     en el tracker) y 142 a 148 (lote 2, `bloqueado`). Vocabulario en `overview.md` §11.
-  - **Siguiente:** implementar el 132 con Codex (la migración la aplica la sesión principal con el ok de Mani).
+  - **Siguiente:** implementar desde otras sesiones, una por ticket, empezando por el 132 (Mani, 1-oct: no se
+    implementa en esta sesión; un intento con Codex se canceló sin escribir nada).
     `docs/insumos/*.md` sigue sin commitear a propósito (recortar el de Dani antes).
 
 - **2026-10-01 (Mani, sesión 62): paso 2 del norte comercial hecho; los pasos 3 a 5 se parten en dos lotes.**
