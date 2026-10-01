@@ -101,6 +101,12 @@ vi.mock("@/lib/queries/pauta-interina", () => ({ pautaInterina }));
 // La serie del embudo (089), igual: sin base, una serie vacia.
 const hechosDelEmbudo = vi.fn(async () => []);
 vi.mock("@/lib/queries/hechos-embudo", () => ({ hechosDelEmbudo }));
+const embudoDelFormulario = vi.fn(async () => ({
+  filas: [],
+  total: { dejoDatos: 0, completo: 0, llegoCalendly: 0, agendo: 0 },
+  sinCalidad: 0,
+}));
+vi.mock("@/lib/queries/embudo-formulario", () => ({ embudoDelFormulario }));
 // Deals creados contra agendas (138), igual: sin base, la gráfica no disponible.
 const vistaDealsContraAgendas = vi.fn(async () => ({ disponible: false }));
 vi.mock("@/lib/queries/vista-deals-contra-agendas", () => ({ vistaDealsContraAgendas }));

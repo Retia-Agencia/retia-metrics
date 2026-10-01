@@ -118,7 +118,7 @@ aplicado en el Typeform ese día (`docs/analytics.md` §2.4); el 117 lo vuelve i
 | [ ] | 123 | [El embudo de Pauta y los costos por etapa](./123-el-embudo-de-pauta-y-los-costos-por-etapa.md) | 085, 089, 115, 120 | todo · carril Mani |
 | [ ] | 124 | [El cumplimiento de la cohorte por área](./124-el-cumplimiento-de-la-cohorte-por-area.md) | 122, 123 | todo · carril Mani · espera PQ3 de Pauta |
 | [ ] | 125 | [La tab Campañas: el árbol de Meta con su embudo](./125-la-tab-campanas-con-el-arbol-de-meta.md) | 120, 123 | todo · carril Mani |
-| [ ] | 126 | [El embudo del formulario](./126-el-embudo-del-formulario.md) | — | todo · carril Alejo · 🟡 dónde vive el token de Typeform |
+| [ ] | 126 | [El embudo del formulario](./126-el-embudo-del-formulario.md) | — | en curso · Alejo · 1-oct: parte A hecha (por canal, tarjeta en el dashboard); falta la B (Insights por pregunta: token en la fuente = migración, ok de Mani) |
 | [x] | 127 | [Deshacer la migración de un programa por su huella](./127-deshacer-la-migracion-por-huella.md) | 078 | done · 30-sep · Alejo (`87625fe`) · `npm run migracion:deshacer -- --programa <slug> [--aplicar]`: la reversa nivel 3 del corte (`operations.md` §12.3), probada en PGlite y en la base local; se niega sin borrar si alguien trabajó encima |
 
 Enmendados el 29-sep por la reunión (bloque al final de cada archivo): 021, 051, 052, 062, 065, 067, 070,

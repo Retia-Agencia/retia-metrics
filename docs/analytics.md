@@ -313,7 +313,7 @@ PDF y cualquier otra consulta (ADR 0024).
 |---|---|---|---|
 | Dejó datos | tokens con parcial 1 o completo, por fecha del primer envío | personas-envío | sí |
 | Registro (completó) | tokens con envío completo, por su fecha (DP-11) | envíos | sí |
-| Llegó al Calendly | tokens con estado `con_calendly_sin_agenda` o `con_calendly` | envíos | sí |
+| Llegó al Calendly | tokens que agendaron (`con_calendly`, el hecho del código) o con `lead_quality` High, a quien el formulario le ofrece la agenda (ADR 0069; no lee `estado`). Antes de que el formulario mandara la calidad, solo los que agendaron (126) | envíos | sí |
 | Agenda | llamada vigente creada en el rango (`calls.created_at`: el día en que se agendó); una cita movida (T9) no cuenta dos veces | llamadas | sí |
 | Llamada | llamada vigente cuya fecha de cita cae en el rango (el ancla del 064) | llamadas | sí |
 | Show | llamada que ocurrió (`llamadaOcurrio`, ya centralizado) | llamadas | sí |
