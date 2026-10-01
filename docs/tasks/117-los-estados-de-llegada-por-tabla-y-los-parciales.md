@@ -136,3 +136,20 @@ deal?"), `lib/queries/estados-llegada.ts` y `components/admin/estados-llegada-ad
    llamada suelta si la hay). **Los 14 sin link ni `estado` quedan "sin estado" con la regla nueva: hay que decidir
    con Mani** si se les da `setteo_no_calificado` (lo que el parche puso a los posteriores) antes de reprocesar.
 6. Después, la O-7: el Typeform manda `con_calendly_sin_agenda` en el parcial previo al Calendly.
+
+---
+
+## Recorrido visual de "Estados de llegada" (1-oct, sesión 67, Alejo)
+
+Base local (`dev:local`, developer), `/ajustes/fuentes`, con clics reales:
+- Las 8 filas (2 programas × 4 valores) con etapa, prioridad, minutos, envíos y estado; "Valores sin Estado de
+  llegada" muestra el `estado_local_desconocido` de cada programa (5 y 1), igual que el aviso de la fuente.
+- **Editar → Guardar:** el programa queda bloqueado, el cambio se guarda y `change_log` registra solo el campo
+  tocado (`alertaMinutos` null → 30, origen app, con usuario). Desactivar, Reactivar y Crear Estado (desde un valor
+  sin fila) funcionan con su aviso. Claro y oscuro por tokens, consola sin errores.
+- **Arreglado:** (1) un valor con fila INACTIVA salía en "sin Estado" con **Crear Estado**, y crearlo terminaba en
+  "Ese programa ya tiene ese Estado de llegada". Ahora la consulta trae `inactivoId` (con la misma llave del índice) y
+  la pantalla ofrece **Reactivar** (`tests/estados-llegada-admin.test.ts`). (2) El `scrollIntoView` de Editar y
+  Crear Estado dejaba el formulario debajo del encabezado fijo (81 px): `md:scroll-mt-28`, también en Canales.
+- Ojo para el próximo recorrido: con la pestaña de Chrome oculta, el scroll suave no corre y las capturas se
+  cuelgan; medir con `javascript` y no confundirlo con un bug.

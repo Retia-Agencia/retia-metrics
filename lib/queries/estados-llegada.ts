@@ -30,6 +30,8 @@ export interface ValorSinEstado {
   programa: string;
   valor: string;
   envios: number;
+  /** La fila INACTIVA que ya tiene este valor: se reactiva, no se crea otra (choca con el índice único). */
+  inactivoId: string | null;
 }
 
 export async function estadosDeLlegadaParaAdmin(
@@ -57,10 +59,12 @@ export async function estadosDeLlegadaParaAdmin(
   }
 
   const conFila = new Set<string>();
+  const inactivoDe = new Map<string, string>();
   const estados = filas.map((f) => {
     const llave = `${f.programId}\u0000${llaveDeEstado(f.valor)}`;
     // Una fila inactiva no reconoce su valor: sus envíos vuelven a salir como "sin fila".
     if (f.activo) conFila.add(llave);
+    else inactivoDe.set(llave, f.id);
     return {
       id: f.id,
       programId: f.programId,
@@ -81,6 +85,7 @@ export async function estadosDeLlegadaParaAdmin(
       programa: nombreDe.get(programId) ?? "Programa",
       valor,
       envios: envios.get(llave) ?? 0,
+      inactivoId: inactivoDe.get(llave) ?? null,
     }))
     .sort((a, b) => b.envios - a.envios);
 

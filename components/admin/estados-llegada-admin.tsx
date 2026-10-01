@@ -121,7 +121,7 @@ export function EstadosLlegadaAdmin({
       <CardContent className="space-y-6">
         <form
           id="formulario-estado-llegada"
-          className="grid gap-3 md:grid-cols-2 lg:grid-cols-3"
+          className="grid gap-3 md:scroll-mt-28 md:grid-cols-2 lg:grid-cols-3"
           onSubmit={(evento) => {
             evento.preventDefault();
             correr(
@@ -288,20 +288,34 @@ export function EstadosLlegadaAdmin({
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {sinFila.map((v) => (
-                    <tr key={`${v.programId}:${v.valor}`}>
-                      <td className="py-3">{v.programa}</td>
-                      <td className="font-medium">
-                        <code>{v.valor}</code>
-                      </td>
-                      <td className="cifra text-right">{v.envios}</td>
-                      <td className="text-right">
-                        <Button size="sm" variant="outline" onClick={() => desdeValor(v)}>
-                          Crear Estado
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {sinFila.map((v) => {
+                    const inactivoId = v.inactivoId;
+                    return (
+                      <tr key={`${v.programId}:${v.valor}`}>
+                        <td className="py-3">{v.programa}</td>
+                        <td className="font-medium">
+                          <code>{v.valor}</code>
+                        </td>
+                        <td className="cifra text-right">{v.envios}</td>
+                        <td className="text-right">
+                          {inactivoId ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={pendiente}
+                              onClick={() => correr(() => reactivarEstadoLlegadaAccion(inactivoId), "Estado reactivado")}
+                            >
+                              Reactivar
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => desdeValor(v)}>
+                              Crear Estado
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

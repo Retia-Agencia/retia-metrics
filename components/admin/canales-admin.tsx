@@ -78,7 +78,7 @@ export function CanalesAdmin({ canales, areas, pares }: { canales: CanalVista[];
 
   return (
     <div className="space-y-6">
-      <Card id="formulario-canal">
+      <Card id="formulario-canal" className="md:scroll-mt-28">
         <CardHeader><CardTitle className="text-base">{borrador.id ? "Editar canal" : "Crear canal"}</CardTitle></CardHeader>
         <CardContent>
           <form className="grid gap-3 md:grid-cols-2 lg:grid-cols-3" onSubmit={(evento) => {
