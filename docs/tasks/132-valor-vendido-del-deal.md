@@ -37,7 +37,9 @@ y su primer abono queda como sobrepago, sin ningún error.
 - **Dentro:** editar el valor vendido después de la venta (`editarDeal`), con rastro (`editarConRastro`, ADR
   0042), por el dueño, gerente o developer (`trabajaLeads`/`esAdministrador`, nunca un `rol ===` a mano), y
   **rechazado si queda por debajo de lo abonado vigente** (mensaje con las dos cifras).
-- **Dentro:** el contratado del dashboard (`vendidosEn` y vecinos) suma `valor_vendido_usd`.
+  En **Completo** no se edita (409), como hoy el producto: subirlo dejaría un Completo con saldo.
+- **Nota (1-oct):** el contratado todavía no existe en ninguna consulta; lo construye quien lo pinte (095/148)
+  sumando `valor_vendido_usd` de `vendidosEn`, en `saldo.ts`.
 - **Fuera:** retirar `productos` y `producto_id` (134). La comisión (133). El descuento contra el ticket base
   (134, porque necesita el ticket de la cohorte decidido). Llenar los históricos (078, lote 2).
 
