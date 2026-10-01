@@ -2,7 +2,7 @@
 id: 142
 etapa: NC2
 serves: "comercial.md R-1, GC-01, GC-03, GC-04, §4"
-depends: [QD-1, QD-8]
+depends: [QM-10, QD-8]
 status: bloqueado
 ---
 
@@ -11,6 +11,8 @@ status: bloqueado
 **Bloqueado por:** QD-1 (dónde van Pendiente Re-agenda, Seguimiento y Próxima Cohorte; qué distingue
 Potencial, Registrado, En gestión y Contactado) y **QD-8 (el manual de gestión comercial)**. Sin el manual
 las reglas de movimiento no se pueden reescribir. No se toca nada de etapas antes.
+
+> **1-oct (Mani, `comercial.md` §7.0):** QD-1 contestada: cada etapa se define como en `insumos/hubspot-30x-workflow.md` §3, y Pendiente Re-agenda, Seguimiento y Próxima Cohorte son **estados dentro del deal**, no etapas (cómo se modelan: QM-10, ADR antes de este ticket). QD-2: descartados y setteo a la cola del setter (propuesta: En gestión), cerrados a ganado en su cohorte. Sigue esperando el manual de Alejo (QD-8).
 
 ## Objetivo
 

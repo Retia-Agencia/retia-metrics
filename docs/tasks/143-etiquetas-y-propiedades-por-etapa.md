@@ -11,6 +11,8 @@ status: bloqueado
 **Bloqueado por:** el 142, QD-4 (qué es obligatorio en cada etapa) y QD-10 (la lista de etiquetas, qué
 significa cada una y quién la pone).
 
+> **1-oct (Mani, `comercial.md` §7.0):** QD-10, las etiquetas de 30X **no se usan**: solo Lead Value y Lead Quality, que llegan con el envío. El ticket queda en propiedades obligatorias por etapa. QD-4: toda obligatoria vacía es **alerta roja**, un solo nivel. Cuáles son obligatorias sale del manual (QD-8).
+
 ## Objetivo
 
 Que cada etapa tenga sus etiquetas y propiedades, y que un deal sin la propiedad exigida se cuente y se liste

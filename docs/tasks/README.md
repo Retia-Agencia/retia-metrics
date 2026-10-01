@@ -40,7 +40,7 @@ parten en **dos lotes** por dependencia (`comercial.md` §8): el lote 1 no depen
 |---|---|---|---|---|
 | [x] | 1 | El inventario de la reunión contra el repo (`comercial.md`) | · | done · 30-sep · Mani |
 | [x] | 2 | Leer el HubSpot de 30X, solo lectura: etapas, etiquetas y propiedades por etapa (cuáles obligatorias), "fecha corte" y "cortesías", y el dashboard "Gestión Comercial" con pantallazos | 1 | done · 1-oct · Mani (pantallazos) y sesión principal · §4 lleno y §9 en `comercial.md`: las 11 etapas, las etiquetas, la ficha del deal, el inventario de 18 gráficas con su mejora y 4 secciones de dashboard. Lo que HubSpot no muestra (reglas de movimiento, obligatorias, fecha corte, cortesías) pasó a QD-8 a QD-12 |
-| [ ] | 3 | Preguntas a Dani (QD-1 a QD-12) y a Mani (QM-2 a QM-9); hablar con 2 o 3 closers sobre abonos (GC-17) | 2 | todo · Mani · el mensaje a Dani se manda ya; **no frena el lote 1** |
+| [ ] | 3 | Preguntas a Dani (QD-1 a QD-12) y a Mani (QM-2 a QM-9); hablar con 2 o 3 closers sobre abonos (GC-17) | 2 | en curso · **QD-1 a QD-12 contestadas por Mani el 1-oct** (`comercial.md` §7.0). Quedan: QM-10 (estados dentro del deal), QM-11, QM-12 (cortesías), confirmar el destino de la QD-2, el manual de gestión comercial (QD-8, Alejo) y GC-17 con los closers |
 | [ ] | 4 | Las decisiones en ADR (`/grill-with-docs`): pipeline de 30X, valor vendido y comisión, Atendido sin Grain, rol Customer Success, meta del mes, periodos flexibles | 3 (solo el lote 2) | en curso · **lote 1 hecho el 1-oct** (Mani): ADR 0065 (valor vendido, ticket base de la cohorte, `productos` se retira, comisión % congelada; QM-2 cerrada), 0066 (Atendido sin Grain), 0067 (número y %, periodo A contra B, cifra → resumen → lista). El lote 2 espera a Dani |
 | [ ] | 5 | Enmendar los tickets vivos y crear los nuevos (lista en `comercial.md` §8) | 4 | en curso · **lote 1 hecho el 1-oct**: enmendados 017, 044, 058, 060, 062, 072, 074, 089, 095, 128; creados 132 a 141 y, bloqueados, 142 a 148. Falta enmendar los del lote 2 (117, 118, 078, 080, 122, 124, 065, 069, 070, 071, 102) cuando se desbloqueen; el 117 y el 118 además con el **ADR 0069** (la etapa de entrada la decide el CRM con agenda y calidad, regla de 30X) |
 
@@ -56,21 +56,22 @@ parten en **dos lotes** por dependencia (`comercial.md` §8): el lote 1 no depen
 | [x] | 137 | [Toda cifra abre su lista](./137-toda-cifra-abre-su-lista.md) | 136 | done · 1-oct · Alejo · caja, shows, agendas, cierres y leads; "todos" en la consulta, la pantalla es del 095 |
 | [x] | 138 | [Deals creados contra agendas](./138-deals-creados-contra-agendas.md) | 136 | done · 1-oct · Alejo · acumulado por hábil A contra B en el dashboard; `deals_creados` y `agendas_creadas` abren su lista |
 | [ ] | 139 | [La ficha del deal por bloques](./139-ficha-del-deal-por-bloques.md) | 132, 134 | todo · enmienda el 074 |
-| [ ] | 140 | [Crear un deal a mano](./140-crear-un-deal-a-mano.md) | · | todo |
+| [ ] | 140 | [Crear un deal a mano](./140-crear-un-deal-a-mano.md) | · | todo · NC1 · propuesto al carril de Alejo (`plan-reparto.md` NC1), a confirmar por Mani |
 | [x] | 141 | [Filtros de fecha relativos en las listas](./141-filtros-de-fecha-relativos-en-listas.md) | 136 | done · 1-oct · Alejo · deals por creado, actividad y cierre; leads por creado y último envío; selector del 136 en modo solo A |
 
-**Lote 2 (bloqueado por preguntas).**
+**Lote 2 (bloqueado por preguntas).** Orden y carriles: `plan-reparto.md` NC2.
 
 | ✓ | # | Ticket | Bloqueado por | Estado |
 |---|---|---|---|---|
-| [ ] | 142 | [Las etapas de 30X](./142-las-etapas-de-30x.md) | QD-1, QD-8 | bloqueado |
-| [ ] | 143 | [Etiquetas y propiedades por etapa](./143-etiquetas-y-propiedades-por-etapa.md) | 142, QD-4, QD-10 | bloqueado |
+| [ ] | 142 | [Las etapas de 30X](./142-las-etapas-de-30x.md) | QM-10, QD-8 | bloqueado · QD-1 contestada (1-oct): falta el ADR de los estados dentro del deal (QM-10) y el manual de Alejo (QD-8) |
+| [ ] | 143 | [Etiquetas y propiedades por etapa](./143-etiquetas-y-propiedades-por-etapa.md) | 142, QD-8 | bloqueado · 1-oct: QD-10 sin etiquetas (solo Lead Value y Lead Quality); QD-4, toda obligatoria vacía es alerta roja. Cuáles son obligatorias sale del manual |
 | [ ] | 144 | [Próxima fecha de pago y cartera](./144-proxima-fecha-de-pago-y-cartera.md) | 132, QM-3, GC-17 | bloqueado |
 | [ ] | 145 | [Rol Customer Success y onboarding](./145-rol-customer-success-y-onboarding.md) | QM-5 | bloqueado |
 | [ ] | 146 | [Meta del mes y página de Metas](./146-meta-del-mes-y-pagina-de-metas.md) | 136, QM-6, QM-7 | bloqueado |
-| [ ] | 147 | [Alertas por persistencia](./147-alertas-por-persistencia.md) | 136, QD-6 | bloqueado |
+| [ ] | 147 | [Alertas por persistencia](./147-alertas-por-persistencia.md) | 136, QM-11 | bloqueado · QD-6 contestada (1-oct): 5 hábiles, configurable; falta la lista de métricas (QM-11) · NC2 carril Alejo |
 | [ ] | 148 | [Las secciones del dashboard](./148-las-secciones-del-dashboard.md) | 142, 095, 137 | bloqueado |
-| [ ] | 6 | Reordenar `plan.md` §5 y `plan-reparto.md`: v1 comercial primero, pauta después | 5 | todo · sesión principal |
+| [ ] | 149 | [El manual de uso del CRM, por rol](./149-manual-de-uso-por-rol.md) | 075 | todo · 1-oct (QD-7) · E9, sesión principal |
+| [x] | 6 | Reordenar `plan.md` §5 y `plan-reparto.md`: v1 comercial primero, pauta después | 5 | done · 1-oct · Mani · `plan-reparto.md` §4: etapas **NC1** (lote 1), **NC2** (lote 2, el 078 y el corte) y **NC3** (dashboard comercial = v1 comercial), antes de E7 y E8 |
 
 ⏸️ **Mientras tanto: el `--aplicar` del 078 espera** a que se cierren las etapas (paso 4) y QD-2. Meter
 ahora los deals viejos en las once etapas obliga a migrarlos dos veces. El 117 sigue: corrige el bug de

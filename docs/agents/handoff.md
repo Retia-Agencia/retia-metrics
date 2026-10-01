@@ -8,11 +8,23 @@
 > Copiar y pegar tal cual. Reescrito al cierre de la sesión 53 de Alejo (30-sep) y actualizado en la 54 y la 55
 > de Mani (30-sep, carril de Mani), en la 56 de Alejo (30-sep, carril de Alejo), en la 57 de Mani (30-sep) y en
 > la 60 de Mani (30-sep: el norte comercial de Gerencia pasa a ser la prioridad) en la 62 de Mani (1-oct: paso 2
-hecho, los dos lotes) y en la 64 de Alejo (1-oct: 117 en produccion, 136 y 137 hechos). El anterior: `git show 968532a:docs/agents/handoff.md`.
+hecho, los dos lotes), en la 64 de Alejo (1-oct: 117 en produccion, 136 y 137 hechos) y en la 67 de Mani (1-oct:
+QD contestadas, paso 6 hecho, orden NC1-NC3). El anterior: `git show 968532a:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas)
 y docs/plan.md (el QUE, decisiones en §7). El estado de cada ticket vive solo en docs/tasks/README.md.
+
+ORDEN VIGENTE DESDE EL 1-OCT (sesion 67, Mani): plan-reparto.md §4. Despues de E6 vienen NC1 (el dinero:
+Mani 132 -> 133 -> 134 -> 135 -> 139; Alejo cierra 072 y 117, escribe el MANUAL DE GESTION COMERCIAL (QD-8)
+y hace el 140, propuesto, a confirmar por Mani), NC2 (las etapas de 30X en UNA migracion, el --aplicar del
+078 y el corte = hito B) y NC3 (dashboard comercial = v1 comercial, hito C). Pauta (119, 120, 102, E7, E8)
+despues. Las QD-1 a QD-12 las contesto Mani: comercial.md §7.0. SIGUIENTE para Mani: /delegate del 132 a
+Codex (high, migracion; la aplica la sesion principal con el ok de Mani). En paralelo, decidir: QM-10 (los
+"estados dentro del deal": Pendiente Re-agenda, Seguimiento, Proxima Cohorte; /grill-with-docs + ADR,
+bloquea el 142), QM-12 (cortesias; choca con el ADR 0065), QM-11, confirmar QD-2 (descartados y setteo ->
+En gestion; cerrados -> Ganado segun saldo) y si el 140 va a Alejo. Lo que sigue de este bloque es historia
+de los dias anteriores: si contradice a plan-reparto §4, gana plan-reparto.
 docs/structure.md §9 (sistema de diseño Tinta) es OBLIGATORIO antes de tocar una pantalla.
 docs/anotaciones.md (nuevo, 30-sep) es la bandeja de anotaciones de UI de Mani: leela antes de tocar una
 pantalla; A-02..A-14 y los principios P-1, P-2 ya estan citados en 072, 075, 100 y el 128 (nuevo: alertas del deal).
@@ -119,6 +131,31 @@ empuja al mismo main y el numero de migracion puede chocar.
 ```
 
 ## Memory
+
+- **2026-10-01 (Mani, sesión 67): QD contestadas y paso 6 hecho; el orden pasa a NC1, NC2 y NC3.**
+  - **Contestado (Mani, en nombre del equipo comercial):** QD-1 a QD-12, tabla en `comercial.md` §7.0. Lo
+    que cambia el plan: las etapas se definen como en `insumos/hubspot-30x-workflow.md` §3; Pendiente
+    Re-agenda, Seguimiento y Próxima Cohorte son **estados dentro del deal**, no etapas (Dani); las
+    etiquetas de 30X no se usan, solo Lead Value y Lead Quality (el 143 se encoge); toda obligatoria vacía
+    es alerta roja (un nivel); comisión 10,04% ComunicArte y 6,67% Tactical (dato del 133); alertas a 5
+    hábiles configurables; "corte" es Cohorte (el vocabulario ya decía evitar "corte"); el manual de
+    gestión comercial lo escribe **Alejo**; la configuración de la app (programas, precios, cohortes) la
+    hacen los usuarios por rol, y al final va un **manual de uso por rol** enlazado en el CRM (ticket **149**,
+    nuevo, E9); el nivel de contacto sale de la actividad y vive en el hub del closer (071, 075).
+  - **Paso 6 hecho:** `plan-reparto.md` §4 con las etapas **NC1** (dinero), **NC2** (etapas de 30X, 078 y el
+    corte, que se muda de E5) y **NC3** (dashboard comercial = v1 comercial); E6 cierra con los cabos del
+    117; 118 pasa a NC2, 119/120/102 a E7, 082 a NC3. `plan.md` §5 apunta ahí. Tracker: paso 6 done, paso 3
+    en curso, 142/143/147 con sus bloqueos nuevos (QM-10, QD-8, QM-11), 149 agregado.
+  - **Abierto (de Mani):** QM-10 (cómo se modela un estado dentro del deal; bloquea el 142), QM-12
+    (cortesía: deal al 100% de descuento o estudiante sin deal; las dos chocan con el ADR 0065 y el 0037;
+    recomendado: deal con valor 0 y marca de cortesía), QM-11 (qué métricas llevan alerta), confirmar el
+    destino de la QD-2 (propuesta: descartados y setteo a En gestión, cerrados a Ganado según saldo; los
+    descartados se intentan recuperar con un masivo de Kapso, fuera del CRM), si el 140 pasa a Alejo, y
+    GC-17 con 2 o 3 closers.
+  - ⚠️ **Sin revisar:** el commit `32ce4d1` metió `docs/insumos/reu-danieltovar.md`, que según la sesión 62
+    traía otra reunión con datos personales (salario, inversiones). Revisarlo y recortarlo; si es sensible,
+    un commit nuevo no lo saca del historial.
+  - **Siguiente:** `/delegate` del 132 (`high`, migración).
 
 - **2026-10-01 (Alejo, sesión 66): 138 y 141 en producción; el 140 es de Mani.**
   - **Hecho:** 138 (gráfica deals creados contra agendas, acumulado por hábil A contra B; métricas

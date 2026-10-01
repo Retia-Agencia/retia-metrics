@@ -10,8 +10,11 @@
 > código.
 >
 > 🎯 **30-sep: el norte comercial de Gerencia es la prioridad** ([`comercial.md`](./comercial.md)). Cambia
-> las etapas del deal, el dinero y las metas, y pone la pauta después de la v1 comercial: las etapas de §4
-> se reordenan en su paso 6. Mientras tanto, **el `--aplicar` del 078 espera** a que se cierren las etapas.
+> las etapas del deal, el dinero y las metas, y pone la pauta después de la v1 comercial.
+> **1-oct (paso 6 de `comercial.md` §8): §4 está reordenado.** Después de E6 vienen **NC1** (lote 1: el
+> dinero), **NC2** (lote 2: las etapas de 30X, y con ellas el `--aplicar` del 078 y el corte) y **NC3** (el
+> dashboard comercial, que es la v1 comercial). La pauta que espera a Meta (119, 120, 102) y lo de E7 y E8
+> va después.
 >
 > **Quién es quién:** "Alejo" en este documento es **Alejandro Dávila**, dev (`alejandrod-24`). El Alejo
 > gerente de [`overview.md`](./overview.md) §4 es **Alejo Carvajal**, que aquí solo aparece como quien
@@ -98,11 +101,28 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 | E2 | El dinero mueve el deal; Calendly y la navegación | · |
 | E3 | El Kanban y la migración ensayada | · |
 | E4 | Inbox y Students | · |
-| E5 | Dashboard sobre deals, vista interina de Pauta y corte | **Hito B**: los closers operan en el CRM |
-| E6 | De dónde viene cada lead (ola 1 de Pauta) | **Hito C** ([082]) durante la etapa |
+| E5 | Dashboard sobre deals, vista interina de Pauta | · (el corte pasa a NC2) |
+| E6 | De dónde viene cada lead (ola 1 de Pauta) | · |
+| **NC1** | El dinero del deal (lote 1 comercial) | · |
+| **NC2** | Las etapas de 30X (lote 2 comercial), la migración aplicada y el corte | **Hito B**: los closers operan en el CRM |
+| **NC3** | El dashboard comercial | **v1 comercial** · **Hito C** ([082]) cuando el equipo lleve una semana hábil solo en el CRM |
 | E7 | Lo que cuesta y lo que vende la pauta (ola 2) | Sheets fuera: Typeform deja de escribir ahí y se borra el Apps Script |
 | E8 | El dashboard completo | · |
-| E9 | Revisión cruzada | v1 completo |
+| E9 | Revisión cruzada y manual de uso | v1 completo |
+
+**1-oct: por qué este orden** (paso 6 de [`comercial.md`](./comercial.md) §8; Mani, 30-sep: *"es la
+prioridad"*; Dani: *"la versión 1 es solamente la visual de comercial"*):
+
+- **NC1 antes que NC2** porque el lote 1 no espera a nadie y el 142 sí: espera el manual de gestión
+  comercial (QD-8), que escribe Alejo **dentro** de NC1, y la decisión QM-10 (los estados dentro del deal).
+  Así NC1 produce, a la vez, el dinero y lo que NC2 necesita para arrancar.
+- **El corte se muda de E5 a NC2**: meter los deals de las hojas en las etapas viejas obligaría a migrarlos
+  dos veces (`comercial.md` §8). El `--aplicar` del 078 va después del 142, con el mapeo de la QD-2.
+- **E6 cierra con lo que queda en código del carril**: 117 (cabos). Lo de E6 que espera a afuera o que el
+  ADR 0069 cambia se muda: [118] a NC2 (su disparador es la etapa de entrada que reescribe el 0069), [119],
+  [120] y [102] a E7 (esperan el token de Meta y la v1 es comercial), [082] a NC3.
+- **Las etapas de pauta (E7, E8) no se borran**: siguen igual, después de NC3. Si el token de Meta llega
+  antes, 119 y 120 pueden correr en el carril de Alejo en NC3 siempre que no toquen etapas ni dinero (QM-8).
 
 El hito A (los leads entran solos) se cumplió el 28-sep. El 082, que `plan.md` §1 pone como línea de
 llegada, pasa a caer en E6: con la migración antes del hito B ya no espera a la analítica.
@@ -232,7 +252,7 @@ Backend puro.
   del carril de Alejo, así que ese cambio va con su ok. Y el importador del 078 tiene que pasar
   `submissionOrigenId` al abrir cada deal histórico (el envío más reciente del lead): **antes de aplicar la
   migración en el corte**, o los deals migrados nacen sin origen.
-- **El corte, que es la salida de la etapa y el hito B** (el guion completo, la capacitación y la reversa
+- **El corte** (⚠️ 1-oct: **se muda a la salida de NC2**, con las etapas de 30X; los pasos no cambian) (el guion completo, la capacitación y la reversa
   viven en [`operations.md`](./operations.md) §12):
   0. S1 decidido (Supabase Pro o no, con un respaldo manual si es no).
   1. Ensayo final de la migración en la base local con las hojas del día.
@@ -243,6 +263,9 @@ Backend puro.
   5. Desde ese día se registra solo en el CRM. Las pestañas quedan de respaldo hasta el 082.
 
 ### E6 · De dónde viene cada lead (ola 1 de Pauta)
+
+> 1-oct: E6 cierra con los cabos del [117]. Se mudan [118] a NC2, [119], [120] y [102] a E7, y [082] a
+> NC3 (§4).
 
 | Mani | Alejo |
 |---|---|
@@ -267,7 +290,75 @@ Backend puro.
 - **Después, en producción (ola 0, O-7):** punto parcial antes del Calendly, valor `con_calendly_sin_agenda`
   y evento `form_response_partial` en el webhook. **Solo cuando el 117 esté en producción.**
 
+### NC1 · El dinero del deal (lote 1 comercial) — abre el 1-oct
+
+| Mani | Alejo |
+|---|---|
+| [132] valor vendido (migración, `high`) · L | Cerrar [072] (390 px en vivo) y los cabos del [117] · S |
+| → [133] comisión % congelada (migración, `high`) · M | → **Manual de gestión comercial** (QD-8): cuándo y cómo se mueve un deal entre las etapas de 30X, qué tiene que tener para entrar y quién lo mueve, desde `insumos/hubspot-30x-workflow.md` · M |
+| → [134] ticket base de la cohorte, adiós `productos` (migración destructiva) · M | → [140] crear un deal a mano · M (propuesta, ver abajo) |
+| → [135] Atendido sin Grain · S | |
+| → [139] la ficha del deal por bloques · M | |
+
+- **Ya hechos del lote** (Alejo, 1-oct, tomados porque estaban libres): [136], [137], [138], [141].
+- **El 140 pasa al carril de Alejo, propuesta a confirmar por Mani:** el carril de Mani lleva tres
+  migraciones de dinero en serie y el de Alejo se queda corto en NC1. El 140 abre el deal por `abrirDeal`
+  (el escritor de la ingesta, dominio de Alejo) y reutiliza el alta manual del lead; no toca los archivos
+  del 132 al 135. Si Mani prefiere tenerlo, vuelve a su carril después del 139.
+- **Migración de arranque:** no hay una sola: 132, 133 y 134 llevan una cada uno, **en serie y en el mismo
+  carril**, así nunca hay dos migraciones abiertas a la vez (§5). Las aplica la sesión principal con el ok
+  de Mani.
+- **Decidir durante NC1, para que NC2 abra:** **QM-10** (los estados dentro del deal: Pendiente Re-agenda,
+  Seguimiento, Próxima Cohorte; `/grill-with-docs` con ADR) · **QM-12** (cortesías) · confirmar el destino
+  de la **QD-2** (cola del setter = En gestión) · QM-3, QM-5, QM-6, QM-7 y QM-11 (sus tickets, del 144 al
+  147) · **GC-17**: Mani habla con 2 o 3 closers sobre los abonos.
+- **Prueba de costura:** un deal entra a Abonado con valor vendido escrito, su comisión queda congelada en
+  el porcentaje del programa (10,04% ComunicArte, 6,67% Tactical) y el ticket base sale de su cohorte; un
+  deal creado a mano entra por el mismo escritor y se mueve con el motor.
+- **Sale cuando:** 132 a 135, 139 y 140 en `main`, y el manual de gestión comercial escrito en `docs/`.
+
+### NC2 · Las etapas de 30X, la migración aplicada y el corte
+
+| Mani | Alejo |
+|---|---|
+| ADR de QM-10 (estados dentro del deal) · S | [117] enmendado con el ADR 0069: la etapa de entrada la decide el CRM por agenda y calidad (va con la migración del 142) · M |
+| → [142] las once etapas en **una** migración: enum, transiciones, requisitos y la traducción de deals, historial y estados de llegada · L | → [078] `--aplicar` con el mapeo de la QD-2 (regenerar antes el template de ComunicArte) · M |
+| → [143] propiedades obligatorias por etapa (sin catálogo de etiquetas: QD-10) · M | → [147] alertas por persistencia (5 hábiles, configurable) · M |
+| → [128] alertas del deal (rojo: falta algo, QD-4) · M | → [145] rol Customer Success y onboarding (`lib/auth/`) · M |
+| → [118] "se perdió en el Calendly" · S | → guion del corte ([`operations.md`](./operations.md) §12) al día con las etapas nuevas · S |
+| → [144] próxima fecha de pago y cartera · M | |
+| → [146] meta del mes y página de Metas · M | |
+
+- **Migración de arranque:** la del 142, una sola y en el carril de Mani. El 117 de Alejo se construye
+  **sobre** ella (rama propia, se mergea después), porque los dos tocan la etapa de entrada.
+- **Decidir antes:** todo lo que NC1 dejó listo (arriba) · la fecha del corte (closers) · 🚨 S1 Supabase
+  Pro (equipo).
+- **El corte**, que es la salida de NC2 y el hito B: los pasos 0 a 5 de E5 (abajo) siguen iguales, con las
+  etapas de 30X.
+- **Prueba de costura:** un parcial sin calidad nace en Potencial, un completo Low en Registrado, uno High
+  en Calificado y uno con agenda en Agendado (ADR 0069); un deal migrado de la hoja cae en En gestión o en
+  ganado según la QD-2; una propiedad obligatoria vacía sale en rojo en la ficha.
+
+### NC3 · El dashboard comercial (v1 comercial)
+
+| Mani | Alejo |
+|---|---|
+| [095] la tab Dashboard con "todos" solo sumable · M | [100] la tab Programs (los usuarios configuran su programa, QD-7) · M |
+| → [148] las secciones Pulso, Operación comercial y Dinero · L | → [073] ficha del lead · M |
+| → [129] motivos y origen vacíos (dos decisiones de Mani) · S | → [091] `otrosProgramasDelCorreo` · S |
+| → hub del closer en Mi día con el **nivel de contacto** por actividad (QD-12, A-05; sale del [075]) · M | |
+| [082] apagar las pestañas de gestión, a la semana hábil del corte = **hito C** · S | |
+
+- **Migración de arranque:** ninguna prevista.
+- **Prueba de costura:** cada cifra de las tres secciones abre su lista (137) y cuadra con ella; "todos"
+  solo suma lo sumable.
+- **Sale cuando:** Gerencia ve su dashboard comercial sobre las etapas de 30X y los closers trabajan desde su
+  hub. Es la **v1 comercial**.
+
 ### E7 · Lo que cuesta y lo que vende la pauta (ola 2)
+
+> 1-oct: entran aquí, desde E6, [119], [120] y [102] (carril de Alejo, antes del [126] parte B). Van
+> después de NC3, salvo que el token de Meta llegue antes (ver §4).
 
 | Mani | Alejo |
 |---|---|
@@ -312,7 +403,8 @@ El [075] se parte en dos y cada uno revisa lo que construyó el otro.
 | → 075: revisa las pantallas que hizo Alejo · M | |
 
 - **Decidir antes:** cómo mandan el comprobante los closers (foto, link o PDF).
-- **Sale cuando:** criterio de UI escrito y recorrido completo en celular y escritorio.
+- **Al final, sesión principal:** [149], el manual de uso del CRM por rol, enlazado dentro del CRM (QD-7).
+- **Sale cuando:** criterio de UI escrito, recorrido completo en celular y escritorio, y el manual publicado.
 
 ---
 
@@ -471,3 +563,23 @@ closers durante E1 que cubra E2 a E5; Gerencia durante E4; Pauta durante E5.
 [124]: ./tasks/124-el-cumplimiento-de-la-cohorte-por-area.md
 [125]: ./tasks/125-la-tab-campanas-con-el-arbol-de-meta.md
 [126]: ./tasks/126-el-embudo-del-formulario.md
+[128]: ./tasks/128-alertas-del-deal.md
+[129]: ./tasks/129-dashboard-motivos-y-origen-vacios.md
+[132]: ./tasks/132-valor-vendido-del-deal.md
+[133]: ./tasks/133-comision-por-porcentaje-congelado.md
+[134]: ./tasks/134-ticket-base-de-la-cohorte-y-adios-productos.md
+[135]: ./tasks/135-atendido-sin-grain.md
+[136]: ./tasks/136-selector-de-periodo-y-numero-y-porcentaje.md
+[137]: ./tasks/137-toda-cifra-abre-su-lista.md
+[138]: ./tasks/138-deals-creados-contra-agendas.md
+[139]: ./tasks/139-ficha-del-deal-por-bloques.md
+[140]: ./tasks/140-crear-un-deal-a-mano.md
+[141]: ./tasks/141-filtros-de-fecha-relativos-en-listas.md
+[142]: ./tasks/142-las-etapas-de-30x.md
+[143]: ./tasks/143-etiquetas-y-propiedades-por-etapa.md
+[144]: ./tasks/144-proxima-fecha-de-pago-y-cartera.md
+[145]: ./tasks/145-rol-customer-success-y-onboarding.md
+[146]: ./tasks/146-meta-del-mes-y-pagina-de-metas.md
+[147]: ./tasks/147-alertas-por-persistencia.md
+[148]: ./tasks/148-las-secciones-del-dashboard.md
+[149]: ./tasks/149-manual-de-uso-por-rol.md

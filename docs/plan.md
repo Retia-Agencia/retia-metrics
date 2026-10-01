@@ -366,7 +366,13 @@ corrige un bug vivo y su columna de etapa se traduce junto con `deals.etapa`.
 > 🎯 **30-sep (Mani): el norte comercial de Gerencia va primero** ([`comercial.md`](./comercial.md) §8):
 > leer el HubSpot de 30X, preguntar a Dani, decidir (ADR), rehacer los tickets y recién ahí reordenar esta
 > tabla. Dani: *"la versión 1 es solamente la visual de comercial"*; lo de pauta (119, 120, 123, 125) va
-> después. Hasta el paso 6 de ese documento, la tabla de abajo es la de antes y no se lee como orden vigente.
+> después.
+>
+> ✅ **1-oct, paso 6 hecho: el orden vigente es el de [`plan-reparto.md`](./plan-reparto.md) §4**: después
+> de E6 van **NC1** (el dinero del deal: 132 a 135, 139, 140 y el manual de gestión comercial), **NC2** (las
+> etapas de 30X en una migración, el `--aplicar` del 078 y el corte = hito B) y **NC3** (el dashboard
+> comercial = v1 comercial, y el hito C). La pauta que espera a Meta (119, 120, 102) y los pasos 5 y 6 de
+> abajo que no son comerciales van después. La tabla de abajo queda como **mapa de tracks**, no como orden.
 
 El orden oficial es el de **P1, operación antes que analítica** (decidido el 24-sep): E2 → E3 mínimo
 → E4 → E6 mínimo → E1b → E5 → E7. Lo que este plan agrega es **dónde cae cada track** y dónde entran las
