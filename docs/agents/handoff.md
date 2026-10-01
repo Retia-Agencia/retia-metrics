@@ -26,7 +26,7 @@ leer el HubSpot de 30X (necesita el acceso de Mani). El --aplicar del 078 ESPERA
 117 sigue.
 
 Estado al 30-sep (sesion 57, Mani): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
-51 migraciones (0000-0050), todas aplicadas; en produccion hay ademas UNA aplicada desde otra maquina que no esta en el repo (fila 52 de __drizzle_migrations, hash 28fc7b38..., ver Memory 30-sep sesion 61). ~1.676 tests. Produccion: https://retia-metrics-seven.vercel.app.
+51 migraciones (0000-0050), todas aplicadas. DAPTA (sesion 61, 30-sep): el adaptador y el contrato de proveedores estan en produccion; ComunicArte tiene Typeform y Dapta activos, Memorable existe inactivo; lo pendiente esta en Memory 30-sep sesion 61 y la guia de configurar un programa en docs/operations.md §2.1; en produccion hay ademas UNA aplicada desde otra maquina que no esta en el repo (fila 52 de __drizzle_migrations, hash 28fc7b38..., ver Memory 30-sep sesion 61). ~1.676 tests. Produccion: https://retia-metrics-seven.vercel.app.
 
 Carril de Mani (E6, sesion 57): 083, 101, 085, 087 y 121 done. 084 reemplazado por DP-25.
 - 121: deals.area_declarada_id (0049). El motor la exige al entrar a 6, 7 u 8 (historicos exentos, A1/A2 no);
@@ -97,8 +97,16 @@ empuja al mismo main y el numero de migracion puede chocar.
   - ⚠️ **Mani publicó los dos formularios el 30-sep con los placeholders puestos** (Calendly y redirects; ver
     `docs/dapta/README.md`). Las pruebas con el form publicado también se rechazaron bien. No compartir los
     links hasta reemplazarlos y tener el 117.
-  - **Pendiente:** 117; luego en Dapta el evento de Calendly y las URLs de gracias, secreto desde
-    `/ajustes/fuentes`, activar, publicar y los 7 envíos reales del ticket 130 (fixtures reales al contrato).
+  - **Cierre de la sesión (30-sep, tarde):** Mani conectó Calendly en Dapta y publicó ComunicArte con el Calendly
+    real (`eventoscomunicarte-info/postulacion-comunicarte`, verificado en vivo). El CRM no guarda el link de
+    Calendly: usa el token y el webhook (`docs/operations.md` §2.1, la guía nueva de configurar un programa).
+  - **Pendiente, en orden:** (1) **117** (sin él, un calificado de Dapta entra sin deal); (2) los redirects finales
+    de los dos formularios siguen en `example.com/REEMPLAZAR-*` (decisión de Mani: páginas de gracias propias o
+    pedirle a Dapta mostrar el mensaje sin la etiqueta del outcome); (3) **Memorable publicado sin Calendly**:
+    despublicar o conseguir su Calendly y token; (4) mandar el mensaje a Dapta (token de solo lectura e
+    `inviteeUri`); (5) avisar a Alejo de la migración ajena en producción; (6) después del 117, los 7 envíos reales
+    del ticket 130; (7) A11 (de dónde sale el link de captación con varios formularios).
+
 
 - **2026-09-30 (Mani, sesión 60): reunión con Gerencia; el norte comercial pasa a ser la prioridad.**
   - **Qué pasó:** Dani y Michael pidieron llevar la operación al modelo de 30X (etapas, etiquetas y propiedades

@@ -38,8 +38,10 @@ editor el 30-sep.
 `example.com/REEMPLAZAR-*`, verificado en la página pública). Links: ComunicArte
 `forms.dapta.ai/4bgty3/f/postulacion-evento-comunicarte`, Memorable `forms.dapta.ai/rx4i7a/f/postulacion-memorable`.
 **No se comparten hasta cambiar los placeholders y tener el 117.** Calendly de ComunicArte confirmado por Mani:
-`calendly.com/eventoscomunicarte-info/postulacion-comunicarte`, ya en el generador y cargado al borrador (falta que
-Mani **publique** para que llegue al formulario en vivo). Memorable todavía no tiene Calendly.
+`calendly.com/eventoscomunicarte-info/postulacion-comunicarte`, ya en el generador; Mani conectó Calendly en Dapta
+(`info@eventoscomunicarte.com`) y publicó: **en vivo desde el 30-sep** (verificado en la página pública). Memorable
+todavía no tiene Calendly: su formulario publicado muestra `calendly.com/REEMPLAZAR`. Cómo se configura un programa de
+punta a punta: `docs/operations.md` §2.1.
 
 **El CRM no guarda el link de Calendly.** El link vive solo en el paso de agenda de Dapta. El CRM usa el **token** de
 Calendly del programa (ADR 0057; ComunicArte lo tiene, Memorable no) y el webhook de Calendly (096) para colgar la

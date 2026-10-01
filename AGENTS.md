@@ -48,7 +48,7 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    mapa de las hojas de Sheets** (§10, antes de tocar `lib/sheets/` o el traslado: qué pestaña es
    fuente, cuáles son vistas derivadas que romperían el dedup y cuáles son respaldos que inflan los
    conteos) y la migración.
-5. **`docs/operations.md`** — cómo se opera: entornos, las URLs de cada programa, variables, base de
+5. **`docs/operations.md`** — cómo se opera: entornos, las URLs de cada programa, **cómo se configura un programa de punta a punta (§2.1: programa, Calendly, formulario, fuente, secreto)**, variables, base de
    datos, scripts, despliegue, secretos, incidentes, deuda y datos de validación.
 6. **ADRs** (`docs/adr/`, índice en `docs/adr/README.md`) — las decisiones vigentes, cada una reescrita
    para decir lo que se va a construir, y el índice de las retiradas (el código cita sus números).

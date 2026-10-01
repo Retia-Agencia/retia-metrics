@@ -50,6 +50,7 @@ servicio, nunca con "cualquiera con el enlace"**. Los scripts siguen leyendo los
 |---|---|---|
 | Hoja de Sheets | https://docs.google.com/spreadsheets/d/1NN6rlZXJJcgvWXYsbP99vLt9aj7FXVPd6ep4ULAcK54/edit | https://docs.google.com/spreadsheets/d/1DBKL4zwWWeJppe-6mzpJ4jT1G6MdEmT1Dd_uMiNBNwc/edit |
 | Formulario (Typeform) | https://metodocomunicarte.typeform.com/to/nkMLdeh8 (identificado el 18-ago como el destino de los botones "Unirme" de la landing; confirmado por Mani el 27-sep) | https://postulacioness.typeform.com/to/GmPGBOf9 (confirmado por Mani el 27-sep; el ID distingue mayúsculas) |
+| Formulario (Dapta, 30-sep) | `forms.dapta.ai/4bgty3/f/postulacion-evento-comunicarte`, publicado con Calendly real; fuente Dapta activa junto a la de Typeform (131). Redirects finales aún en `example.com` | 🔴 no hay. Memorable (programa nuevo, USD 1.200, inactivo): `forms.dapta.ai/rx4i7a/f/postulacion-memorable`, publicado **sin Calendly**; fuente Dapta activa |
 | Landing | `programavirtual.eventoscomunicarte.com/landing.html` (el contenido vive en ese iframe) | 🔴 falta |
 | Calendly | una organización por programa, un solo tipo de evento ("Postulación Método Comunicarte"); token verificado el 28-sep | una organización, evento "Postulación: De Cero a Tactical Investor"; token verificado el 28-sep (451 citas en ±3 meses) |
 | `form_url` / `calendly_token` en la base (producción) | cargados por Mani el 28-sep desde `/ajustes/programas` | cargados por Mani el 28-sep |
@@ -59,6 +60,27 @@ servicio, nunca con "cualquiera con el enlace"**. Los scripts siguen leyendo los
 
 `programs.form_url` ya existe (ticket 109) y está cargado; cuando existan los destinos (ticket 092), el resto de estas URLs se cargan desde la app y
 esta tabla queda como referencia.
+
+### 2.1 Configurar un programa de punta a punta (aprendido el 30-sep con ComunicArte y Memorable en Dapta)
+
+Cada pieza vive en UN lugar, y ninguna se duplica:
+
+| Pieza | Dónde vive | Quién la pone | Para qué |
+|---|---|---|---|
+| El programa (nombre, slug, ticket USD) | `/ajustes/programas` (o un script por el molde, ADR 0029) | administrador | nace **inactivo** |
+| Token de Calendly (PAT) | `/ajustes/programas`, `programs.calendly_token` | administrador | que el CRM le pregunte a Calendly por las citas. Sin token no se activa el programa (ADR 0057) |
+| Webhook de Calendly | Calendly → CRM, uno por programa (096) | ya montado en ComunicArte y Tactical | cuelga la cita del lead **por correo**. **El link de Calendly NO se guarda en el CRM** |
+| Link de Calendly | el paso de agenda del formulario (Dapta) | quien edita el formulario | lo que la persona ve para agendar. En Dapta, conectar Calendly en *Integrations* con la cuenta dueña del evento y escogerlo |
+| El formulario | Dapta, generado por `docs/dapta/generar-base.mjs` | Claude carga el JSON; Mani publica | ver `docs/dapta/README.md` |
+| Fuente webhook | `/ajustes/fuentes`, proveedor del formulario, **mapeo vacío** para Dapta | administrador | la URL `/api/webhooks/formularios/<id>` que se pega en el proveedor. Un programa puede tener varias activas (131) |
+| Secreto de la fuente | se genera en `/ajustes/fuentes`, se ve una vez | administrador, **a mano** | firma del webhook. Nunca pasa por un chat ni un script |
+| Activar la fuente | `/ajustes/fuentes` | administrador | inactiva = 404 a todo |
+| `form_url` del programa | `/ajustes/programas` | administrador | el generador de links de captación (092). Con varios formularios, A11 |
+
+**Orden que funcionó:** programa → token de Calendly → formulario en borrador → fuente + secreto + activar → pegar URL y
+secreto en el proveedor → **"enviar prueba"** (el CRM la recibe y no crea lead: se ve en `sobres_crudos`) →
+conectar Calendly en el formulario y escoger el evento → cambiar los placeholders → publicar. **No compartir el link
+antes del 117** (sin él, un calificado de Dapta entra sin deal).
 
 ## 3. Variables de entorno
 
