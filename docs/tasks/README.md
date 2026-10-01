@@ -89,7 +89,7 @@ dependencias; 048, 049 y 064 llevan su enmienda).
 | [x] | · | §3 aplicado en tickets y tracker; `plan.md` §2 y `AGENTS.md` al día | · | done · 28-sep · Mani |
 | [x] | 112 | [CI en cada push a `main` (sin protección)](./112-ci-y-main-protegido.md) | · | done · 28-sep: workflow y plantilla de PR; el CI midió el lock roto en Linux y se resincronizó. **Sin protección de `main` ni PR obligatorio** (Mani: velocidad); el CI es alarma, no reja |
 | [x] | 113 | [Base local para desarrollar pantallas](./113-base-local-para-pantallas.md) | · | done · 28-sep: `npm run db:local` (Docker, 38 migraciones, seed por `lib/`) y `npm run dev:local`, probado de punta a punta. Falta un modo de login local (Auth.js solo tiene Google) · sembrar contra Postgres real destapó el `Date` en `moverEtapa` (arreglado) |
-| [ ] | · | Plantilla de PR con el checklist de contratos de `AGENTS.md` | · | todo · carril Alejo |
+| [x] | · | Plantilla de PR con el checklist de contratos de `AGENTS.md` | · | done · 1-oct · Alejo: `.github/pull_request_template.md` (la del 112) al día con la tabla de Contratos del 1-oct: alcance, agregado entre programas, ADR 0067, closers, centinelas, ingesta, atribución, errores, plantillas `sql` y migraciones |
 | [x] | 105 | Cerrar: forjar la acción desde una sesión de closer | · | done · 28-sep: Mani lo forjó desde la vista closer; ni crear ni rotar |
 | [x] | · | Ops: quitar `CRON_SECRET` y `SHEET_ID_*` de Vercel; cargar a Andrea (007) | · | done · 28-sep · Vercel limpio (prod y preview); Andrea dada de alta por Mani en `/ajustes/usuarios` |
 | [x] | · | Agendar a Michael; después closers, Gerencia y Pauta (reparto §7) | · | done · 28-sep · Michael y el dueño del deal respondidos por Mani; precio 797; Pauta, Alejo Carvajal y Michael el 29-sep 8pm |
