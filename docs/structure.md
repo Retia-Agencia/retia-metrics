@@ -599,6 +599,35 @@ El selector de programa (ADR 0050) vive arriba de la barra, dentro del marco, y 
 10. **Todo control interactivo tiene hover, foco visible y deshabilitado.** Sin foco visible no se
     mergea.
 
+**Periodo A contra B y número + porcentaje (ADR 0067, ticket 136):**
+
+- `lib/periodo.ts` valida con zod (`parsearPeriodoUrl`) y resuelve (`resolverPeriodo`). El servidor
+  entrega `hoyEnBogota()`; el navegador nunca calcula hoy. `SelectorPeriodo` es el único control,
+  reutilizable en dashboard y listas; el dashboard consulta A y muestra B, sin cablear aún KPI (095).
+- URL: `?periodo=hoy|ayer|manana|esta_semana|semana_pasada|este_mes|mes_pasado|cohorte_actual|cohorte_anterior`.
+  Para rangos libres: `?periodo=custom&a_desde=YYYY-MM-DD&a_hasta=YYYY-MM-DD&b_desde=YYYY-MM-DD&b_hasta=YYYY-MM-DD`.
+  A explícito prevalece sobre el atajo y se etiqueta Personalizado. B explícito puede acompañar un atajo.
+  Sin B, se calcula el anterior por hábiles. Se mantienen `?rango=hoy|semana|mes|cohorte|custom&desde&hasta`.
+  Parámetros repetidos, fechas imposibles, pares incompletos o invertidos caen a Hoy con aviso visible.
+  El control conserva los otros filtros y sustituye las claves de periodo antiguas al navegar.
+- Semana actual y mes actual llegan hasta hoy; semana pasada va de lunes a domingo y mes pasado es
+  completo. B corta al mismo número de hábiles de A (`diasHabilesEntre`), con tope al cierre anterior.
+  Un día compara con el hábil anterior; A sin hábiles deja B nulo, anunciado, editable manualmente.
+  Un rango libre sin B toma los hábiles inmediatamente anteriores. Los festivos cuentan como hábiles.
+- Cohortes: A usa su ventana de venta hasta hoy o su cierre. Las anteriores se ordenan por inicio de
+  clases (desempate por id), siempre del mismo programa; no se salta una cohorte sin ventana conocida.
+  Cohorte anterior compara con la previa a ella. Sin ventana elegible A cae a Hoy con aviso; sin
+  anterior B es nulo, nunca una ventana inventada.
+- `lib/variacion.ts`: `{ actual, anterior, delta, deltaPct }`; `deltaPct` es una fracción y vale `null`
+  con base cero. Base negativa usa su magnitud. `Variacion` pinta `358 → 4 · −354 · −99%`, con `cifra`,
+  `num`/`pct`, menos tipográfico y `—` con base cero. `porcentajeConBase(cantidad, base)` escribe
+  `50% de 12`; con base cero escribe `—`. El signo no decide un tono de éxito o peligro.
+- `pivotarSerie` (`lib/series-alineadas.ts`) exige programa, rechaza filas ajenas, suma por día y valor
+  de dimensión y rellena huecos con cero. `SeriesLineales` usa SVG, ejes lineales con cero visible,
+  tokens `chart-1` a `chart-5`, trazos para series adicionales y tabla accesible. No está montado aún.
+- Tests: `periodo.test.ts`, `variacion.test.ts`, `series-alineadas.test.ts`, `vista-dashboard.test.ts`
+  y el borde de página en `paginas.test.ts`.
+
 **Paleta:**
 
 | Token | Claro | Oscuro | Para qué |

@@ -19,14 +19,18 @@ export type PresetDeRango = "hoy" | "semana" | "mes" | "cohorte" | "custom";
 const MS_POR_DIA = 86_400_000;
 
 /** 'YYYY-MM-DD' → milisegundos UTC de ese dia de calendario. */
-function aUtc(fecha: string): number {
+export function aUtc(fecha: string): number {
   const [anio, mes, dia] = fecha.split("-").map(Number);
   return Date.UTC(anio, mes - 1, dia);
 }
 
 /** milisegundos UTC → 'YYYY-MM-DD'. */
-function aIso(ms: number): string {
-  return new Date(ms).toISOString().slice(0, 10);
+export function aIso(ms: number): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "UTC" }).format(new Date(ms));
+}
+
+export function sumarDias(fecha: string, dias: number): string {
+  return aIso(aUtc(fecha) + dias * MS_POR_DIA);
 }
 
 /** El lunes de la semana a la que pertenece la fecha (la semana arranca en lunes). */
@@ -45,8 +49,8 @@ function primeroDelMes(fecha: string): string {
 /** Una fecha de calendario escrita como 'YYYY-MM-DD' y que existe de verdad. */
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
-function esFecha(valor: string | undefined): valor is string {
-  return valor !== undefined && FECHA.test(valor) && !Number.isNaN(aUtc(valor));
+export function esFecha(valor: string | undefined): valor is string {
+  return valor !== undefined && FECHA.test(valor) && !Number.isNaN(aUtc(valor)) && aIso(aUtc(valor)) === valor;
 }
 
 /**

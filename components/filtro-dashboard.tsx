@@ -1,5 +1,7 @@
 "use client";
 
+import { SelectorPeriodo } from "@/components/selector-periodo";
+import type { PeriodoResuelto } from "@/lib/periodo";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Select,
@@ -21,13 +23,9 @@ import {
 
 const TODOS = "todos";
 
-const claseInput =
-  "h-8 rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-
 export interface FiltroProps {
-  preset: string;
-  desde: string;
-  hasta: string;
+  periodo: PeriodoResuelto;
+  anteriorDisponible: boolean;
   closerId: string | null;
   closers: readonly string[];
   /** Solo se ofrece el rango de la cohorte si hay una vendiendo con ventana (ADR 0022). */
@@ -35,9 +33,8 @@ export interface FiltroProps {
 }
 
 export function FiltroDashboard({
-  preset,
-  desde,
-  hasta,
+  periodo,
+  anteriorDisponible,
   closerId,
   closers,
   cohorteDisponible,
@@ -56,63 +53,9 @@ export function FiltroDashboard({
     router.push(query ? `${pathname}?${query}` : pathname);
   }
 
-  const rangos: { valor: string; etiqueta: string }[] = [
-    { valor: "hoy", etiqueta: "Hoy" },
-    { valor: "semana", etiqueta: "Esta semana" },
-    { valor: "mes", etiqueta: "Este mes" },
-    ...(cohorteDisponible ? [{ valor: "cohorte", etiqueta: "Cohorte" }] : []),
-    { valor: "custom", etiqueta: "Personalizado" },
-  ];
-
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Select
-        value={preset}
-        onValueChange={(valor: string | null) =>
-          // Al salir de "personalizado" las fechas sueltas se van con el preset:
-          // dejarlas en la URL haria que volver a "personalizado" muestre un rango
-          // viejo que nadie pidio.
-          navegar(
-            valor === null
-              ? { rango: "hoy", desde: null, hasta: null }
-              : valor === "custom"
-              ? { rango: valor, desde, hasta }
-              : { rango: valor, desde: null, hasta: null },
-          )
-        }
-      >
-        <SelectTrigger className="w-44" aria-label="Rango de fechas">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {rangos.map((r) => (
-            <SelectItem key={r.valor} value={r.valor}>
-              {r.etiqueta}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {preset === "custom" ? (
-        <>
-          <input
-            type="date"
-            value={desde}
-            max={hasta}
-            onChange={(e) => navegar({ rango: "custom", desde: e.target.value, hasta })}
-            className={claseInput}
-            aria-label="Desde"
-          />
-          <input
-            type="date"
-            value={hasta}
-            min={desde}
-            onChange={(e) => navegar({ rango: "custom", desde, hasta: e.target.value })}
-            className={claseInput}
-            aria-label="Hasta"
-          />
-        </>
-      ) : null}
+      <SelectorPeriodo periodo={periodo} cohorteDisponible={cohorteDisponible} anteriorDisponible={anteriorDisponible} />
 
       <Select
         value={closerId ?? TODOS}

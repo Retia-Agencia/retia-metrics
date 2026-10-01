@@ -1,6 +1,8 @@
 import { db as dbDeLaApp } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
-import { resolverRango, type SeleccionDeRango } from "@/lib/rangos";
+import { type SeleccionDeRango } from "@/lib/rangos";
+import { parsearPeriodoUrl, resolverPeriodo, type EntradaDePeriodo, type PeriodoResuelto } from "@/lib/periodo";
+import { ventanasAnterioresDeCohorte } from "@/lib/queries/ventanas-de-cohortes";
 import {
   cajaRecaudada,
   embudoDelRango,
@@ -39,6 +41,7 @@ export interface EntradaDeVista {
   hoy: string;
   /** Lo que venga en la URL; si no sirve, `resolverRango` cae a hoy. */
   preset: string;
+  periodo?: EntradaDePeriodo;
   desde?: string;
   hasta?: string;
   closerId?: string | null;
@@ -46,6 +49,8 @@ export interface EntradaDeVista {
 
 export interface VistaDelDashboard {
   seleccion: SeleccionDeRango;
+  periodo: PeriodoResuelto;
+  anteriorDisponible: boolean;
   /** El closer al que se acoto la vista, o null si se esta mirando todo el programa. */
   closerId: string | null;
   /** Los closers que puede elegir el selector. */
@@ -74,8 +79,19 @@ export async function armarVistaDelDashboard(
   const closerId = entrada.closerId ?? null;
 
   const cohorte = await vistaDeCohorteActiva({ programId, closerId }, hoy, db);
-  const seleccion = resolverRango({ preset, hoy, ventana: cohorte?.ventana ?? null, desde, hasta });
-  const rango = seleccion.rango;
+  const ventanas = cohorte
+    ? await ventanasAnterioresDeCohorte(db, programId, cohorte.cohorteId)
+    : { anterior: null, anteAnterior: null };
+  const periodo = resolverPeriodo(entrada.periodo ?? parsearPeriodoUrl({ rango: preset, desde, hasta }), {
+    hoy, actual: cohorte?.ventana, ...ventanas,
+  });
+  // La proyección antigua se conserva para consumidores del dashboard.
+  const equivalentes = { hoy: "hoy", esta_semana: "semana", este_mes: "mes", cohorte_actual: "cohorte" } as const;
+  const seleccion: SeleccionDeRango = {
+    preset: equivalentes[periodo.preset as keyof typeof equivalentes] ?? "custom",
+    rango: periodo.a,
+  };
+  const rango = periodo.a;
 
   const alcance = { programId, rango, closerId };
 
@@ -101,6 +117,8 @@ export async function armarVistaDelDashboard(
 
   return {
     seleccion,
+    periodo,
+    anteriorDisponible: ventanas.anterior !== null,
     closerId,
     closers,
     embudo,

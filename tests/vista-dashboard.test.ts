@@ -125,3 +125,23 @@ describe("el selector de closer", () => {
     expect(vista.closerId).toBe("Ana");
   });
 });
+
+
+it("la anterior es del mismo programa y A nuevo alimenta las consultas existentes", async () => {
+  await sembrarDosClosers();
+  const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1500.00" }).returning();
+  const base = { metaCupos: 30, precioUsd: "797.00", estado: "cerrado" as const };
+  await db.insert(cohorts).values([
+    { ...base, programId: programaA, codigo: "C2", estado: "activo", fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" },
+    { ...base, programId: programaA, codigo: "C1", fechaInicioClases: "2026-09-01", fechaInicioVentas: "2026-08-03", fechaCierreVentas: "2026-08-31" },
+    { ...base, programId: otro.id, codigo: "AJENA", fechaInicioClases: "2026-09-20", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-19" },
+  ]);
+  const vista = await armarVistaDelDashboard({ programId: programaA, hoy: HOY, preset: "hoy", periodo: { preset: "cohorte_actual" } }, db);
+  expect(vista.periodo.b).toEqual({ desde: "2026-08-03", hasta: "2026-08-17" });
+  expect(vista.seleccion.rango).toEqual(vista.periodo.a);
+  expect(vista.embudo.agendas).toBe(2);
+  const previa = await armarVistaDelDashboard({ programId: programaA, hoy: HOY, preset: "hoy", periodo: { preset: "cohorte_anterior" } }, db);
+  expect(previa.seleccion.rango).toEqual({ desde: "2026-08-03", hasta: "2026-08-31" });
+  expect(previa.embudo.agendas).toBe(0);
+  expect(previa.periodo.b).toBeNull();
+});

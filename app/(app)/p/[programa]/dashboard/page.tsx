@@ -3,8 +3,8 @@ import { z } from "zod";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
-import { diaDeCalendario } from "@/lib/dias-habiles";
-import { fecha, num } from "@/lib/format";
+import { parsearPeriodoUrl } from "@/lib/periodo";
+import { fecha, num, hoyEnBogota } from "@/lib/format";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { pautaInterina, type FiltrosPauta } from "@/lib/queries/pauta-interina";
 import { hechosDelEmbudo } from "@/lib/queries/hechos-embudo";
@@ -59,7 +59,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
   if (!programa) notFound();
 
   const busqueda = await searchParams;
-  const hoy = diaDeCalendario(new Date());
+  const hoy = hoyEnBogota();
 
   // El filtro sale de la URL, nunca de la sesion: un closer que entra sin filtro ve
   // el programa completo, igual que un gerente (ADR 0048: dentro de su programa, ve
@@ -68,6 +68,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
   const vista = await armarVistaDelDashboard({
     programId: programa.id,
     hoy,
+    periodo: parsearPeriodoUrl(busqueda),
     preset: texto(busqueda.rango) ?? "hoy",
     desde: texto(busqueda.desde),
     hasta: texto(busqueda.hasta),
@@ -124,9 +125,8 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
     >
       <div className="space-y-6">
         <FiltroDashboard
-          preset={vista.seleccion.preset}
-          desde={desde}
-          hasta={hasta}
+          periodo={vista.periodo}
+          anteriorDisponible={vista.anteriorDisponible}
           closerId={vista.closerId}
           closers={vista.closers}
           cohorteDisponible={vista.cohorte?.ventana != null}

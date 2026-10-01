@@ -223,6 +223,8 @@ beforeEach(() => {
 
 /** Una vista sin datos, suficiente para que la pagina renderice en los tests. */
 const VISTA_VACIA = {
+  periodo: { preset: "hoy", a: { desde: "2026-09-15", hasta: "2026-09-15" }, b: { desde: "2026-09-14", hasta: "2026-09-14" } },
+  anteriorDisponible: false,
   seleccion: { preset: "hoy", rango: { desde: "2026-09-15", hasta: "2026-09-15" } },
   closerId: null,
   closers: [],
@@ -453,6 +455,14 @@ describe("el dashboard no depende del rol dentro del alcance (ADR 0048, ticket 0
     expect(armarVistaDelDashboard.mock.calls.at(-1)![0]).toMatchObject({
       programId: "p-1",
       closerId: null,
+    });
+  });
+
+  it("el periodo nuevo se valida en el borde de la página", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    expect(await correrPrograma(SLUG, { periodo: "este_mes", b_desde: "2026-08-01", b_hasta: "2026-08-07" })).toBe("paso");
+    expect(armarVistaDelDashboard.mock.calls.at(-1)![0]).toMatchObject({
+      periodo: { preset: "este_mes", b: { desde: "2026-08-01", hasta: "2026-08-07" } },
     });
   });
 

@@ -347,6 +347,7 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Permisos de rol | `lib/auth/guards.ts` (APIs) y `lib/auth/page-guards.ts` (paginas) | `tests/guards.test.ts`, `tests/paginas.test.ts`, `tests/roles.test.ts` invocan los handlers y las paginas reales |
 | Errores hacia el cliente | `lib/errors.ts` + `respuestaDeError` | `tests/errores.test.ts`: un error interno no se filtra ni aunque traiga la propiedad `status` |
 | Validacion en el borde | `zod` en todo route handler y cron que reciba input | Patron fijado en B-03; `ZodError` sale como 400 |
+| Periodo A contra B, número y porcentaje (ADR 0067) | `lib/periodo.ts`, `lib/variacion.ts`; `SelectorPeriodo` y `Variacion`. Bogotá, URL validada, B al mismo hábil, base cero `—`; contrato en `docs/structure.md` §9 | `tests/periodo.test.ts`, `tests/variacion.test.ts`, `tests/vista-dashboard.test.ts`, `tests/paginas.test.ts`; series alineadas por programa en `tests/series-alineadas.test.ts` |
 | Formato de numero | `lib/format.ts` (punto de miles, coma decimal; el USD SIEMPRE con dos decimales) | `tests/format.test.ts` |
 | Como se escribe un saldo | `saldoLegible` en `lib/format.ts`: decide la ETIQUETA y el valor juntos, porque un saldo negativo es un **sobrepago** y no una deuda | `tests/format.test.ts` |
 | Mensajes de validacion del navegador | `components/validacion-en-espanol.tsx`, montado una vez en el layout raiz: traduce los globos nativos, que salen en el idioma del navegador y no en el del `lang` de la pagina | Revision manual |
@@ -394,6 +395,9 @@ The agent should run these to get fast signal on whether code works. Keep them c
   vuelve a fallar, `npm install --package-lock-only` y commit del lock, nunca `--no-package-lock`. Si ves 46 tests caídos por `drizzle-orm/postgres-js`,
   a tu `node_modules` le falta el driver `postgres`: es entorno, no regresión.
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
+- **Worktree restringido en Windows:** si PowerShell bloquea `npm.ps1`, usar `npm.cmd`. Si Vite no
+  puede escribir en `node_modules/.vite-temp` porque las dependencias son compartidas, usar
+  `npm.cmd test -- --configLoader runner tests/<archivo>.test.ts`; conserva el candado de `npm test`.
 - **Run:** `npm run dev` (http://localhost:3000) — **escribe en producción**, es la unica base.
 - **Base local (ticket 113):** `npm run db:local` (Docker: Postgres 17, todas las migraciones y un seed
   por `lib/`) y `npm run dev:local` (la app contra ella, sin tocar `.env.local`). Para clics de prueba en
