@@ -88,6 +88,10 @@ empuja al mismo main y el numero de migracion puede chocar.
   - 🩸 **Alguien aplicó en producción una migración que no está en ningún repo** (fila 52, hash `28fc7b38…`,
     `when` 1790790430487, entre la 0049 y la 0050). Casi seguro es la del 117 (Alejo): su archivo también se
     llamará `0050_…` y chocará con la nuestra en el journal al integrar. Renumerarla a 0051 sin re-aplicarla.
+  - **Después (misma sesión):** el botón "enviar prueba" de Dapta manda un parcial real firmado con
+    `sample@example.com`; habría creado un lead falso en producción. `esEntregaDePrueba` lo rechaza (200, sobre
+    con error, sin lead) y `tests/webhook-matriz.test.ts` lo cubre (muerde). Mani genera el secreto en
+    `/ajustes/fuentes` el 30-sep.
   - **Pendiente:** 117; luego en Dapta el evento de Calendly y las URLs de gracias, secreto desde
     `/ajustes/fuentes`, activar, publicar y los 7 envíos reales del ticket 130 (fixtures reales al contrato).
 

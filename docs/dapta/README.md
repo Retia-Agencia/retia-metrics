@@ -59,6 +59,17 @@ Los dos están en **borrador, sin publicar**; se volvieron a subir con el genera
 - Dapta le pasa a Calendly `utm_content = sessionId`, el mismo `submission.id` que el CRM usa como token. Es una
   llave exacta para emparejar la cita con el envío, sin depender del correo; nadie la usa todavía.
 - Con el anti-spam prendido, el parcial se guarda pero no se entrega a ningún destino.
+- **El botón "enviar prueba" de la destinación** manda un parcial firmado con `data.test: true`,
+  `submission.id: "test-submission"` y `sample@example.com`. El CRM lo responde con 200 y lo deja en `sobres_crudos`
+  con el error "Entrega de prueba de Dapta", **sin crear lead** (`esEntregaDePrueba`, 30-sep). Se puede usar para
+  probar URL y secreto, con la fuente activa.
+
+## Los formularios de Dapta no los creó el CRM
+
+Se crearon a mano en el editor de Dapta el 30-sep (sesión 59) y se les cargó el JSON del generador. En el workspace
+de ComunicArte hay además un formulario viejo, **"Postulación Método ComunicArte"** (18-sep), que no es de este
+trabajo y no se toca. El enlace público del nuevo será `forms.dapta.ai/4bgty3/f/postulacion-evento-comunicarte`
+(`4bgty3` es el código de la cuenta) cuando se publique.
 
 ## Fuentes en el CRM (30-sep, inactivas y sin secreto)
 

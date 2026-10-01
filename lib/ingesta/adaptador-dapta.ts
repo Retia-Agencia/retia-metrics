@@ -77,11 +77,25 @@ function aplanarObjeto(
   }
 }
 
+/**
+ * La entrega de prueba del editor de Dapta ("enviar prueba" en la destinacion webhook):
+ * va firmada y con la forma real, pero con `data.test: true`, `submission.id
+ * "test-submission"` y respuestas de muestra (`sample@example.com`). Ingerirla crearia un
+ * lead falso en produccion sin un solo error, asi que se rechaza: el sobre queda guardado
+ * con el error y la ruta responde 200, que es justo lo que el editor necesita ver.
+ */
+export function esEntregaDePrueba(payload: PayloadDapta): boolean {
+  return payload.data.test === true || payload.submission.id === "test-submission";
+}
+
 /** Convierte un evento de Dapta Forms a la entrada comun de la ingesta. */
 export function entradaDesdeDapta(
   payload: PayloadDapta,
   opciones: OpcionesAdaptador,
 ): EntradaEnvio {
+  if (esEntregaDePrueba(payload)) {
+    throw new Error("Entrega de prueba de Dapta: llego bien y no se ingiere.");
+  }
   const mapeo: Partial<Record<CampoEnvio, string | string[]>> = {
     ...MAPEO_POR_DEFECTO,
     utmSource: "utm_source",

@@ -559,6 +559,24 @@ describe("Dapta", () => {
     await enviarDapta(daptaCompleto, fuenteOtro);
     expect(await db.select().from(leads)).toHaveLength(2);
   });
+
+  it("la entrega de prueba del editor de Dapta responde 200, deja el sobre y no crea lead", async () => {
+    const fuente = await fuenteDapta();
+    // La forma que arma Dapta al "enviar prueba": parcial, sin outcome y con respuestas de muestra.
+    const prueba = {
+      ...structuredClone(daptaParcial),
+      submission: { id: "test-submission", sessionId: "test-session", score: 0, outcome: null },
+      data: { nombre: "Sample", email: "sample@example.com", test: true },
+      utm: {},
+    };
+    const res = await enviarDapta(prueba, fuente);
+    expect(res.status).toBe(200);
+    const sobres = await db.select().from(sobresCrudos);
+    expect(sobres).toHaveLength(1);
+    expect(sobres[0].error).toContain("prueba");
+    expect(await db.select().from(submissions)).toHaveLength(0);
+    expect(await db.select().from(leads)).toHaveLength(0);
+  });
 });
 
 // ─────────────────────────────────── caso 9: correo/telefono ausentes o centinela
