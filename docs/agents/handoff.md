@@ -139,8 +139,8 @@ empuja al mismo main y el numero de migracion puede chocar.
     abono bloqueado sin valor, 797 − 500 = 297 y paso solo a Abonado, bajar a 400 rechazado; consola limpia).
   - **Decidido (Mani):** valor vendido = precio al que se cerró; lo pagado = suma de abonos (ya son actividad).
     Pero el closer no teclea el valor: teclea el **descuento** y el motor congela `valor = precio de la cohorte −
-    descuento`. Enmienda en el ADR 0065; se construye en el **134**. Propuesto por Claude y por confirmar: sin
-    cohorte o cohorte sin precio, no se vende.
+    descuento`. Enmienda en el ADR 0065; se construye en el **134**. Confirmado por Mani: sin cohorte o cohorte
+    sin precio, no se vende.
   - 🩸 **Codex corre solo los tests que toca:** 12 fallaron en 6 archivos que armaban el saldo con producto. La
     suite completa la corre siempre la sesión principal antes del merge.
   - **Abierto:** un deal en Abonado cuyo valor se edita hasta igualar lo abonado queda con saldo 0 sin pasar a

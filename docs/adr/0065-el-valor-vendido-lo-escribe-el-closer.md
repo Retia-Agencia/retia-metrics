@@ -65,7 +65,7 @@ de los abonos y nunca se escribe a mano, ADR 0024). Cambia **cómo se escribe**:
    así no hay dos cifras que puedan discrepar. La pantalla muestra ticket, descuento, total a pagar (= valor
    vendido), abonado y saldo.
 4. **Sin cohorte o cohorte sin precio**, no se puede vender: el motor lo rechaza con "La cohorte del deal no
-   tiene precio" (antes de este cambio, el closer podía teclear cualquier valor).
+   tiene precio" (antes de este cambio, el closer podía teclear cualquier valor). Confirmado por Mani el 1-oct.
 5. Las rejas del 132 siguen iguales: el descuento no puede dejar el total por debajo de lo ya abonado ni por
    debajo de 0, y un deal en Completo no se edita.
 6. **Cortesía** (descuento = ticket, total 0) sigue abierta en la QM-12: hoy el motor exige valor vendido > 0.
