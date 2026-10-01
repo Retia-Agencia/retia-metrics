@@ -67,14 +67,14 @@ export const esquemaPrograma = z.object({
   // proposito: es un secreto y lo escribe solo `guardarTokenCalendly` (ADR 0057
   // punto 2), nunca el molde ni el `change_log`.
   formUrl: urlOpcional,
-  // Lo que gana un closer por venta, en USD (ticket 062): monto fijo, no porcentaje. Vacio =>
-  // null (el programa no la tiene cargada). Pasa por el molde, asi que cambiarla deja rastro.
-  comisionPorVentaUsd: z
+  // Porcentaje de comision vigente (ticket 133). Se congela en cada deal al vender.
+  comisionPorcentaje: z
     .string()
     .trim()
-    .regex(/^(\d+(\.\d{1,2})?)?$/, "La comisión debe ser un monto en USD (por ejemplo 80 o 80.00).")
+    .regex(/^(\d+(\.\d{1,2})?)?$/, "La comisión debe ser un porcentaje con máximo dos decimales.")
     .nullable()
     .optional()
+    .refine((v) => v == null || v === "" || Number(v) <= 100, "La comisión debe estar entre 0 y 100.")
     .transform((v) => (v && v.length > 0 ? v : null)),
 });
 

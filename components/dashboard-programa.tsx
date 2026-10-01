@@ -76,7 +76,7 @@ function Tabla({ cabeceras, children }: { cabeceras: string[]; children: ReactNo
 }
 
 export function DashboardPrograma({ vista, detalles }: { vista: VistaDelDashboard; detalles?: DetallesDelDashboard }) {
-  const { embudo, caja, leads, cohorte, comparativo, comisionPorVentaUsd, motivos, origenes, closerId } = vista;
+  const { embudo, caja, leads, cohorte, comparativo, comisionPorcentaje, motivos, origenes, closerId } = vista;
 
   return (
     <div className="space-y-6">
@@ -224,7 +224,12 @@ export function DashboardPrograma({ vista, detalles }: { vista: VistaDelDashboar
                     <Caja caja={c.caja} />
                   </td>
                   <td className="py-2 text-right">
-                    {c.comisionUsd == null ? <span className="text-muted-foreground">—</span> : usd(c.comisionUsd)}
+                    <span className="block">{usd(c.comisionUsd)}</span>
+                    {c.ventasSinComision > 0 ? (
+                      <span className="block text-xs text-muted-foreground">
+                        {num(c.ventasSinComision)} sin % o sin valor
+                      </span>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -234,9 +239,7 @@ export function DashboardPrograma({ vista, detalles }: { vista: VistaDelDashboar
             El comparativo nunca se filtra por closer: todos ven todo (ADR 0009).
           </p>
           <p className="pt-1 text-xs text-muted-foreground">
-            {comisionPorVentaUsd != null
-              ? `Comisión: ${usd(Number(comisionPorVentaUsd))} por cada cierre del rango.`
-              : "Este programa no tiene cargada la comisión por venta: se carga en Ajustes → Programas y cohortes."}
+            {textoComisionPrograma(comisionPorcentaje)}
           </p>
         </CardContent>
       </Card>
@@ -300,4 +303,10 @@ export function DashboardPrograma({ vista, detalles }: { vista: VistaDelDashboar
       ) : null}
     </div>
   );
+}
+
+export function textoComisionPrograma(comisionPorcentaje: string | null): string {
+  return comisionPorcentaje != null
+    ? `Comisión: ${num(Number(comisionPorcentaje), 2)} % del valor vendido de cada venta, congelado al vender.`
+    : "Comisión: sin porcentaje cargado.";
 }

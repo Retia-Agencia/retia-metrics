@@ -134,7 +134,7 @@ interface ProgramaVolumen {
   cohorteId: string;
   productoId: string;
   totalLeads: number;
-  comisionPorVentaUsd: string;
+  comisionPorcentaje: string;
   prefijo: "p1" | "p2";
   etapas: Readonly<Record<EtapaVolumen, number>>;
 }
@@ -286,7 +286,7 @@ async function sembrarVolumen(
       slug: programa.slug,
       ticketUsd: programa.ticketUsd,
       formUrl: programa.formUrl,
-      comisionPorVentaUsd: programa.comisionPorVentaUsd,
+      comisionPorcentaje: programa.comisionPorcentaje,
     });
   }
 
@@ -1114,7 +1114,7 @@ export async function sembrarLocal(): Promise<void> {
         cohorteId: coh1.id,
         productoId: prod1Completo.id,
         totalLeads: 150,
-        comisionPorVentaUsd: "80.00",
+        comisionPorcentaje: "10.04",
         prefijo: "p1",
         etapas: {
           pendiente_setteo: 24,
@@ -1140,7 +1140,7 @@ export async function sembrarLocal(): Promise<void> {
         cohorteId: coh2.id,
         productoId: prod2Completo.id,
         totalLeads: 120,
-        comisionPorVentaUsd: "150.00",
+        comisionPorcentaje: "6.67",
         prefijo: "p2",
         etapas: {
           pendiente_setteo: 20,

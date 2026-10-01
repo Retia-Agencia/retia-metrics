@@ -1,5 +1,8 @@
 import { db as dbDeLaApp } from "@/lib/db";
+import { programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDeCloser } from "@/lib/closers/identidad";
+import { eq } from "drizzle-orm";
 import { type SeleccionDeRango } from "@/lib/rangos";
 import { parsearPeriodoUrl, resolverPeriodo, type EntradaDePeriodo, type PeriodoResuelto } from "@/lib/periodo";
 import { ventanasAnterioresDeCohorte } from "@/lib/queries/ventanas-de-cohortes";
@@ -16,7 +19,7 @@ import {
   type LeadsDelRango,
   type VistaDeCohorte,
 } from "@/lib/queries/dashboard";
-import { comisionPorVentaDe, comisionUsd } from "@/lib/queries/comision";
+import { comisionesPorCloser } from "@/lib/queries/comision";
 
 /**
  * Arma de una sola vez todo lo que pinta `/p/[programa]/dashboard` (tickets 005 y 097).
@@ -62,13 +65,14 @@ export interface VistaDelDashboard {
   motivos: { motivo: string; llamadas: number }[];
   origenes: Awaited<ReturnType<typeof embudoPorOrigen>>;
   /**
-   * El comparativo entre closers, con la comision de cada uno (ticket 062): sus cierres del
-   * rango por el monto por venta del programa. `comisionUsd` es `null` si el programa no
-   * tiene el monto cargado.
+   * El comparativo entre closers, con la comision de sus ventas del rango (ticket 133).
    */
-  comparativo: (Awaited<ReturnType<typeof embudoPorCloser>>[number] & { comisionUsd: number | null })[];
-  /** El monto por venta vigente del programa, en USD, o `null` si no esta cargado. */
-  comisionPorVentaUsd: string | null;
+  comparativo: (Awaited<ReturnType<typeof embudoPorCloser>>[number] & {
+    comisionUsd: number;
+    ventasSinComision: number;
+  })[];
+  /** El porcentaje vigente; las ventas conservan el que se les congelo. */
+  comisionPorcentaje: string | null;
 }
 
 export async function armarVistaDelDashboard(
@@ -95,17 +99,22 @@ export async function armarVistaDelDashboard(
 
   const alcance = { programId, rango, closerId };
 
-  const [embudo, caja, leads, motivos, origenes, porCloser, comisionPorVentaUsd] = await Promise.all([
+  const [embudo, caja, leads, motivos, origenes, porCloser, comisiones, [programa]] = await Promise.all([
     embudoDelRango(alcance, db),
     cajaRecaudada(alcance, db),
     leadsDelRango(alcance, db),
     llamadasPorMotivo(alcance, db),
     embudoPorOrigen(alcance, db),
     embudoPorCloser({ programId, rango }, db),
-    comisionPorVentaDe(programId, db),
+    comisionesPorCloser({ programId, rango }, db),
+    db.select({ comisionPorcentaje: programs.comisionPorcentaje }).from(programs).where(eq(programs.id, programId)),
   ]);
-  // La comision sale de los MISMOS cierres de la fila: la columna y la cifra no pueden discrepar.
-  const comparativo = porCloser.map((c) => ({ ...c, comisionUsd: comisionUsd(c.cierres, comisionPorVentaUsd) }));
+  const comisionPorClave = new Map(comisiones.map((c) => [claveDeCloser(c.closerId), c]));
+  const comparativo = porCloser.map((c) => ({
+    ...c,
+    comisionUsd: comisionPorClave.get(claveDeCloser(c.closerId))?.comisionUsd ?? 0,
+    ventasSinComision: comisionPorClave.get(claveDeCloser(c.closerId))?.ventasSinComision ?? 0,
+  }));
 
   // Las opciones del selector salen del comparativo (quien tiene actividad en el
   // rango), mas el closer ya elegido: si no, cambiar de rango a uno donde no hizo
@@ -128,6 +137,6 @@ export async function armarVistaDelDashboard(
     motivos,
     origenes,
     comparativo,
-    comisionPorVentaUsd,
+    comisionPorcentaje: programa?.comisionPorcentaje ?? null,
   };
 }

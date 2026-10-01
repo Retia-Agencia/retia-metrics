@@ -1,33 +1,58 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { claveDeCloser } from "@/lib/closers/identidad";
 import { db as dbDeLaApp } from "@/lib/db";
-import { programs } from "@/lib/db/schema";
+import { deals, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import type { Rango } from "@/lib/queries/dashboard";
+import { filtroCierres } from "@/lib/queries/metricas-filtros";
+import { vigente } from "@/lib/queries/vigente";
 
 /**
- * La comision de un closer: UNA sola definicion (ticket 062, ADR 0024). Se calcula, nunca se
- * guarda: guardarla la dejaria discrepar el dia que el monto cambie.
- *
- * **Monto fijo por venta, en USD** (Alejo, 29-sep): `comision = ventas × programs.comision_por_venta_usd`.
- * No es un porcentaje del precio: la hoja pagaba un monto fijo por venta en cada programa (los
- * valores estan en el ticket 062), y el precio de lista puede cambiar sin que cambie lo que gana
- * el closer. Usa el monto VIGENTE: cambiarlo cambia la cifra de todos los rangos. Congelar el
- * monto de cada venta seria otra decision, con su ADR.
- *
- * La moneda es siempre USD y va escrita al lado del numero (`usd` de `lib/format.ts`). Es por
- * programa: dos programas pagan distinto y la comision no se suma entre ellos (ADR 0048).
+ * La comision se calcula, nunca se guarda: valor vendido por el porcentaje congelado
+ * en el deal cuando entro a venta (ticket 133). Siempre es USD y siempre queda
+ * acotada a un programa: dos programas no se suman.
  */
-
-/** Las ventas del closer por el monto del programa, o `null` si el programa no tiene monto cargado. */
-export function comisionUsd(ventas: number, comisionPorVentaUsd: string | number | null): number | null {
-  if (comisionPorVentaUsd === null) return null;
-  return ventas * Number(comisionPorVentaUsd);
+export function comisionDeDeal(
+  valorVendidoUsd: string | number | null,
+  comisionPorcentaje: string | number | null,
+): number | null {
+  if (valorVendidoUsd === null || comisionPorcentaje === null) return null;
+  return Math.round((Number(valorVendidoUsd) * Number(comisionPorcentaje) / 100 + Number.EPSILON) * 100) / 100;
 }
 
-/** El monto por venta vigente de un programa, o `null` si no está cargado. */
-export async function comisionPorVentaDe(programId: string, db: Db = dbDeLaApp): Promise<string | null> {
-  const [fila] = await db
-    .select({ monto: programs.comisionPorVentaUsd })
-    .from(programs)
-    .where(eq(programs.id, programId));
-  return fila?.monto ?? null;
+export interface ComisionDeCloser {
+  closerId: string | null;
+  comisionUsd: number;
+  ventasSinComision: number;
+}
+
+/** Suma exactamente los deals que forman la columna `cierres` del comparativo. */
+export async function comisionesPorCloser(
+  { programId, rango }: { programId: string; rango: Rango },
+  db: Db = dbDeLaApp,
+): Promise<ComisionDeCloser[]> {
+  const filas = await db
+    .select({
+      closerId: users.closerId,
+      valorVendidoUsd: deals.valorVendidoUsd,
+      comisionPorcentaje: deals.comisionPorcentaje,
+    })
+    .from(deals)
+    .leftJoin(users, eq(users.id, deals.ownerUserId))
+    .where(and(filtroCierres({ programId, rango }, db), vigente(deals)));
+
+  const porCloser = new Map<string, ComisionDeCloser>();
+  for (const fila of filas) {
+    const clave = claveDeCloser(fila.closerId);
+    const acumulado = porCloser.get(clave) ?? {
+      closerId: fila.closerId,
+      comisionUsd: 0,
+      ventasSinComision: 0,
+    };
+    const comision = comisionDeDeal(fila.valorVendidoUsd, fila.comisionPorcentaje);
+    if (comision === null) acumulado.ventasSinComision += 1;
+    else acumulado.comisionUsd = Math.round((acumulado.comisionUsd + comision + Number.EPSILON) * 100) / 100;
+    porCloser.set(clave, acumulado);
+  }
+  return [...porCloser.values()];
 }

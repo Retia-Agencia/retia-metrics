@@ -23,7 +23,7 @@ export default async function ProgramasPage() {
     slug: String(p.slug),
     nombre: String(p.nombre),
     ticketUsd: String(p.ticketUsd),
-    comisionPorVentaUsd: p.comisionPorVentaUsd == null ? null : String(p.comisionPorVentaUsd),
+    comisionPorcentaje: p.comisionPorcentaje == null ? null : String(p.comisionPorcentaje),
     webUrl: (p.webUrl as string | null) ?? null,
     calendlyUrl: (p.calendlyUrl as string | null) ?? null,
     formUrl: (p.formUrl as string | null) ?? null,

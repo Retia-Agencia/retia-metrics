@@ -1,133 +1,201 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { changeLog, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
-import type { Db } from "@/lib/db/tipos";
+import { textoComisionPrograma } from "@/components/dashboard-programa";
 import { editarPrograma } from "@/lib/catalogo/programas";
+import { moverEtapa } from "@/lib/deals/mover-etapa";
+import { editarDeal } from "@/lib/deals/editar-deal";
 import { esViolacionCheck } from "@/lib/db/errores";
-import { comisionUsd } from "@/lib/queries/comision";
+import {
+  abonos,
+  areas,
+  changeLog,
+  deals,
+  leads,
+  programs,
+  users,
+} from "@/lib/db/schema";
+import type { Db } from "@/lib/db/tipos";
+import { comisionDeDeal } from "@/lib/queries/comision";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
-
-/**
- * Ticket 062 — la comisión se calcula, nunca se guarda. Monto FIJO por venta en USD, por
- * programa (Alejo, 29-sep). Sale de los mismos cierres que la columna del comparativo.
- */
 
 let db: Db;
 let cerrar: () => Promise<void>;
 let programId: string;
 let gerente: string;
+let closer: string;
+let areaId: string;
+let secuencia = 0;
 
-const HOY = "2026-09-15";
+const HOY = "2026-10-01";
+const sistema = { tipo: "sistema" } as const;
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000.00" })
     .returning();
   programId = p.id;
   const [g] = await db.insert(users).values({ email: "gerente@retiagrowth.com", rol: "gerente" }).returning();
   gerente = g.id;
+  const [u] = await db
+    .insert(users)
+    .values({ email: "ana@retiagrowth.com", rol: "closer", closerId: "Ana" })
+    .returning();
+  closer = u.id;
+  const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
+  areaId = area.id;
 }, 60_000);
 
 afterEach(async () => {
   await cerrar();
 });
 
-/** Un closer con `ventas` deals que entraron a Abonado hoy. */
-async function closerConVentas(closerId: string, ventas: number) {
-  const [u] = await db.insert(users).values({ email: `${closerId}@retiagrowth.com`, rol: "closer", closerId }).returning();
-  for (let i = 0; i < ventas; i++) {
-    const [l] = await db.insert(leads).values({ programId, emailNormalizado: `${closerId}${i}@correo.co` }).returning();
-    const [d] = await db.insert(deals).values({ leadId: l.id, programId, etapa: "abonado", ownerUserId: u.id }).returning();
-    await db.insert(dealEtapaHistorial).values({ dealId: d.id, de: "compromiso_verbal", a: "abonado", fecha: new Date("2026-09-15T15:00:00Z") });
-  }
+async function dealAtendido(valorVendidoUsd: string | null = "1000") {
+  const [lead] = await db
+    .insert(leads)
+    .values({ programId, emailNormalizado: `lead-${++secuencia}@correo.co` })
+    .returning();
+  const [deal] = await db
+    .insert(deals)
+    .values({
+      leadId: lead.id,
+      programId,
+      etapa: "atendido",
+      ownerUserId: closer,
+      areaDeclaradaId: areaId,
+      valorVendidoUsd,
+    })
+    .returning();
+  return deal.id;
+}
+
+async function vender(porcentaje: string | null, valor = "1000") {
+  await db.update(programs).set({ comisionPorcentaje: porcentaje }).where(eq(programs.id, programId));
+  const dealId = await dealAtendido(valor);
+  await db
+    .insert(abonos)
+    .values({ dealId, programId, fecha: HOY, monto: "500", comprobanteUrl: "https://drive.google.com/abono" });
+  await moverEtapa(db, { dealId, a: "abonado", actor: sistema });
+  const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
+  return deal;
 }
 
 const vista = () => armarVistaDelDashboard({ programId, hoy: HOY, preset: "hoy" }, db);
 
-describe("comisionUsd", () => {
-  it("es ventas por el monto fijo, y nula sin monto: nunca un cero inventado", () => {
-    expect(comisionUsd(3, "80.00")).toBe(240);
-    expect(comisionUsd(0, "100")).toBe(0);
-    expect(comisionUsd(3, null)).toBeNull();
+describe("comisionDeDeal", () => {
+  it("calcula porcentaje y redondea a centavos; un dato ausente es null", () => {
+    expect(comisionDeDeal("797", "10.04")).toBe(80.02);
+    expect(comisionDeDeal("1500", "6.67")).toBe(100.05);
+    expect(comisionDeDeal(null, "10")).toBeNull();
+    expect(comisionDeDeal("1000", null)).toBeNull();
   });
 });
 
-describe("la comisión en el comparativo entre closers", () => {
-  it("sale de los mismos cierres de la fila, por el monto del programa", async () => {
-    await db.update(programs).set({ comisionPorVentaUsd: "80.00" }).where(eq(programs.id, programId));
-    await closerConVentas("Ana", 2);
-    await closerConVentas("Beto", 1);
+describe("porcentaje congelado al vender", () => {
+  it("una venta conserva el porcentaje anterior y una nueva toma el vigente", async () => {
+    const primera = await vender("10.04");
+    expect(primera.comisionPorcentaje).toBe("10.04");
 
+    await db.update(programs).set({ comisionPorcentaje: "6.67" }).where(eq(programs.id, programId));
+    const [sinCambiar] = await db.select().from(deals).where(eq(deals.id, primera.id));
+    expect(sinCambiar.comisionPorcentaje).toBe("10.04");
+    expect(comisionDeDeal(sinCambiar.valorVendidoUsd, sinCambiar.comisionPorcentaje)).toBe(100.4);
+
+    const segunda = await vender("6.67");
+    expect(segunda.comisionPorcentaje).toBe("6.67");
+    expect((await vista()).comparativo[0]).toMatchObject({ cierres: 2, comisionUsd: 167.1, ventasSinComision: 0 });
+  });
+
+  it("salir de venta y volver no pisa el porcentaje congelado", async () => {
+    const vendido = await vender("10.04");
+    await db.update(programs).set({ comisionPorcentaje: "6.67" }).where(eq(programs.id, programId));
+    await db
+      .update(abonos)
+      .set({ anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "corrección" })
+      .where(eq(abonos.dealId, vendido.id));
+    await moverEtapa(db, { dealId: vendido.id, a: "atendido", actor: sistema });
+    await db
+      .insert(abonos)
+      .values({
+        dealId: vendido.id,
+        programId,
+        fecha: HOY,
+        monto: "500",
+        comprobanteUrl: "https://drive.google.com/abono-nuevo",
+      });
+    await moverEtapa(db, { dealId: vendido.id, a: "abonado", actor: sistema });
+
+    const [deVuelta] = await db.select().from(deals).where(eq(deals.id, vendido.id));
+    expect(deVuelta.comisionPorcentaje).toBe("10.04");
+  });
+
+  it("corregir el valor vendido recalcula con el mismo porcentaje", async () => {
+    const vendido = await vender("10.04", "1000");
+    await editarDeal(db, { userId: gerente, rol: "gerente" }, { dealId: vendido.id, valorVendidoUsd: 1200 });
+
+    const fila = (await vista()).comparativo[0];
+    expect(fila).toMatchObject({ cierres: 1, comisionUsd: 120.48, ventasSinComision: 0 });
+    const [corregido] = await db.select().from(deals).where(eq(deals.id, vendido.id));
+    expect(corregido.comisionPorcentaje).toBe("10.04");
+  });
+});
+
+describe("comision del comparativo", () => {
+  it("cuenta los mismos cierres, omite anulados y separa ventas incompletas", async () => {
+    const completa = await vender("10");
+    const sinPorcentaje = await vender(null);
+    const anulada = await vender("10");
+    await db
+      .update(deals)
+      .set({ anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "duplicado" })
+      .where(eq(deals.id, anulada.id));
+
+    const fila = (await vista()).comparativo[0];
+    expect(fila).toMatchObject({ cierres: 2, comisionUsd: 100, ventasSinComision: 1 });
+    expect(comisionDeDeal(completa.valorVendidoUsd, completa.comisionPorcentaje)).toBe(100);
+    expect(sinPorcentaje.comisionPorcentaje).toBeNull();
+  });
+
+  it("sin porcentaje conserva null, marca la venta y muestra el texto del pie", async () => {
+    const deal = await vender(null);
     const v = await vista();
-
-    expect(v.comisionPorVentaUsd).toBe("80.00");
-    const porCloser = Object.fromEntries(v.comparativo.map((c) => [c.closerId, [c.cierres, c.comisionUsd]]));
-    expect(porCloser).toEqual({ Ana: [2, 160], Beto: [1, 80] });
-  });
-
-  it("sin monto cargado la comisión es nula, no cero", async () => {
-    await closerConVentas("Ana", 2);
-    const v = await vista();
-    expect(v.comisionPorVentaUsd).toBeNull();
-    expect(v.comparativo[0].comisionUsd).toBeNull();
-  });
-
-  it("cambiar el monto cambia la cifra sin migración (no se guarda en el deal)", async () => {
-    await closerConVentas("Ana", 2);
-    await db.update(programs).set({ comisionPorVentaUsd: "80" }).where(eq(programs.id, programId));
-    expect((await vista()).comparativo[0].comisionUsd).toBe(160);
-    await db.update(programs).set({ comisionPorVentaUsd: "100" }).where(eq(programs.id, programId));
-    expect((await vista()).comparativo[0].comisionUsd).toBe(200);
+    expect(deal.comisionPorcentaje).toBeNull();
+    expect(v.comisionPorcentaje).toBeNull();
+    expect(v.comparativo[0]).toMatchObject({ cierres: 1, comisionUsd: 0, ventasSinComision: 1 });
+    expect(textoComisionPrograma(v.comisionPorcentaje)).toBe("Comisión: sin porcentaje cargado.");
   });
 });
 
-describe("cada venta cuenta en UN solo periodo (la comisión no se paga dos veces)", () => {
-  it("un deal que pasa a Abonado un mes y a Completo el siguiente es venta solo en el primero", async () => {
-    await db.update(programs).set({ comisionPorVentaUsd: "80" }).where(eq(programs.id, programId));
-    await closerConVentas("Ana", 1); // entra a Abonado el 15-sep
-    const [deal] = await db.select().from(deals);
-    await db.insert(dealEtapaHistorial).values({ dealId: deal.id, de: "abonado", a: "completo", fecha: new Date("2026-10-03T15:00:00Z") });
-
-    const septiembre = await armarVistaDelDashboard({ programId, hoy: HOY, preset: "hoy" }, db);
-    const octubre = await armarVistaDelDashboard({ programId, hoy: "2026-10-03", preset: "hoy" }, db);
-
-    expect(septiembre.embudo.cierres).toBe(1);
-    expect(septiembre.comparativo.find((c) => c.closerId === "Ana")?.comisionUsd).toBe(80);
-    expect(octubre.embudo.cierres).toBe(0);
-    expect(octubre.comparativo.find((c) => c.closerId === "Ana")?.cierres ?? 0).toBe(0);
-  });
-});
-
-describe("el monto por venta es una instancia editable con rastro (ADR 0012)", () => {
-  const entrada = (comisionPorVentaUsd: string) => ({
+describe("porcentaje editable del programa", () => {
+  const entrada = (comisionPorcentaje: string) => ({
     nombre: "Programa A",
     slug: "programa-a",
-    ticketUsd: "797.00",
+    ticketUsd: "1000.00",
     formUrl: PROGRAMA_DE_PRUEBA.formUrl,
-    comisionPorVentaUsd,
+    comisionPorcentaje,
   });
 
-  it("editarlo deja su fila en change_log; vacío se guarda como nulo", async () => {
-    await editarPrograma(db, gerente, programId, entrada("80"));
+  it("escribe change_log y convierte vacío en null", async () => {
+    await editarPrograma(db, gerente, programId, entrada("10.04"));
     const rastro = await db
       .select()
       .from(changeLog)
-      .where(and(eq(changeLog.registroId, programId), eq(changeLog.campo, "comisionPorVentaUsd")));
+      .where(and(eq(changeLog.registroId, programId), eq(changeLog.campo, "comisionPorcentaje")));
     expect(rastro).toHaveLength(1);
     expect(rastro[0].userId).toBe(gerente);
 
     await editarPrograma(db, gerente, programId, entrada(""));
-    const [p] = await db.select().from(programs).where(eq(programs.id, programId));
-    expect(p.comisionPorVentaUsd).toBeNull();
+    const [programa] = await db.select().from(programs).where(eq(programs.id, programId));
+    expect(programa.comisionPorcentaje).toBeNull();
   });
 
-  it("un monto que no es USD es 400, y la base rechaza uno negativo", async () => {
-    await expect(editarPrograma(db, gerente, programId, entrada("ochenta"))).rejects.toMatchObject({ status: 400 });
-    const negativo = db.update(programs).set({ comisionPorVentaUsd: "-1" }).where(eq(programs.id, programId));
+  it("rechaza más de dos decimales, más de 100 y el CHECK rechaza negativos", async () => {
+    await expect(editarPrograma(db, gerente, programId, entrada("10.041"))).rejects.toMatchObject({ status: 400 });
+    await expect(editarPrograma(db, gerente, programId, entrada("100.01"))).rejects.toMatchObject({ status: 400 });
+    const negativo = db.update(programs).set({ comisionPorcentaje: "-1" }).where(eq(programs.id, programId));
     await expect(negativo).rejects.toSatisfy(esViolacionCheck);
   });
 });

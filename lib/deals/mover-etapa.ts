@@ -9,6 +9,7 @@ import {
   leads,
   motivos,
   productos,
+  programs,
   submissions,
 } from "@/lib/db/schema";
 import { exigirAreaActiva } from "@/lib/catalogo/areas";
@@ -18,6 +19,7 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import type { Rol } from "@/lib/auth/roles";
 import { saldosDeDeals } from "@/lib/queries/saldo";
+import { ETAPAS_VENDIDAS } from "@/lib/queries/metricas-filtros";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { exigirFechaLimiteValida } from "./pago";
 import { puedeTrabajarDeal } from "./permiso";
@@ -165,11 +167,21 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
     // movio el deal entre la lectura y esta escritura, no se pisa, se rechaza.
     // Al perder (P) se escribe `deals.motivo_id` en la misma transaccion (punto 5): la
     // ficha del deal muestra el motivo, no solo el historial.
+    let comisionPorcentaje: string | null | undefined;
+    if ((ETAPAS_VENDIDAS as readonly EtapaDeal[]).includes(mov.a) && deal.comisionPorcentaje === null) {
+      const [programa] = await tx
+        .select({ comisionPorcentaje: programs.comisionPorcentaje })
+        .from(programs)
+        .where(eq(programs.id, deal.programId));
+      comisionPorcentaje = programa?.comisionPorcentaje ?? null;
+    }
+
     const escritas = await tx
       .update(deals)
       .set({
         etapa: mov.a,
         updatedAt: new Date(),
+        ...(comisionPorcentaje !== undefined ? { comisionPorcentaje } : {}),
         ...(mov.a === "cierre_perdido" ? { motivoId: mov.motivoId ?? null } : {}),
       })
       .where(and(eq(deals.id, deal.id), eq(deals.etapa, de)))

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { usd } from "@/lib/format";
+import { num, usd } from "@/lib/format";
 import {
   conectarCalendlyAccion,
   crearProgramaAccion,
@@ -34,8 +34,8 @@ export interface ProgramaVista {
   slug: string;
   nombre: string;
   ticketUsd: string;
-  /** Lo que gana un closer por venta, en USD (ticket 062). Nulo = sin cargar. */
-  comisionPorVentaUsd: string | null;
+  /** Porcentaje vigente; se congela en el deal al vender. */
+  comisionPorcentaje: string | null;
   webUrl: string | null;
   calendlyUrl: string | null;
   /** URL base del formulario (ADR 0057). Un programa no se activa sin ella ni sin token. */
@@ -51,7 +51,7 @@ interface Borrador {
   nombre: string;
   slug: string;
   ticketUsd: string;
-  comisionPorVentaUsd: string;
+  comisionPorcentaje: string;
   webUrl: string;
   calendlyUrl: string;
   formUrl: string;
@@ -63,7 +63,7 @@ const BORRADOR_VACIO: Borrador = {
   nombre: "",
   slug: "",
   ticketUsd: "",
-  comisionPorVentaUsd: "",
+  comisionPorcentaje: "",
   webUrl: "",
   calendlyUrl: "",
   formUrl: "",
@@ -75,7 +75,7 @@ function aBorrador(p: ProgramaVista): Borrador {
     nombre: p.nombre,
     slug: p.slug,
     ticketUsd: p.ticketUsd,
-    comisionPorVentaUsd: p.comisionPorVentaUsd ?? "",
+    comisionPorcentaje: p.comisionPorcentaje ?? "",
     webUrl: p.webUrl ?? "",
     calendlyUrl: p.calendlyUrl ?? "",
     formUrl: p.formUrl ?? "",
@@ -175,10 +175,10 @@ export function ProgramasAdmin({ programas }: { programas: ProgramaVista[] }) {
                         ) : null}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        /{p.slug} · ticket {usd(Number(p.ticketUsd))} ·{" "}
-                        {p.comisionPorVentaUsd != null
-                          ? `comisión ${usd(Number(p.comisionPorVentaUsd))} por venta`
-                          : "sin comisión cargada"}
+                        /{p.slug} · ticket {usd(Number(p.ticketUsd))}
+                        {p.comisionPorcentaje != null
+                          ? ` · comisión ${num(Number(p.comisionPorcentaje), 2)} %`
+                          : null}
                       </span>
                     </div>
                     <span className="flex items-center gap-1">
@@ -259,7 +259,7 @@ function aEntrada(b: Borrador) {
     nombre: b.nombre,
     slug: b.slug,
     ticketUsd: b.ticketUsd,
-    comisionPorVentaUsd: b.comisionPorVentaUsd,
+    comisionPorcentaje: b.comisionPorcentaje,
     webUrl: b.webUrl,
     calendlyUrl: b.calendlyUrl,
     formUrl: b.formUrl,
@@ -345,14 +345,18 @@ function FormularioPrograma({
           </label>
 
           <label className="block space-y-1 text-sm">
-            <span className="text-muted-foreground">Comisión por venta (USD)</span>
+            <span className="text-muted-foreground">Comisión (% del valor vendido)</span>
             <input
-              value={borrador.comisionPorVentaUsd}
-              onChange={(e) => setBorrador({ ...borrador, comisionPorVentaUsd: e.target.value })}
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              value={borrador.comisionPorcentaje}
+              onChange={(e) => setBorrador({ ...borrador, comisionPorcentaje: e.target.value })}
               inputMode="decimal"
-              placeholder="Monto fijo por venta, por ejemplo 80"
+              placeholder="Por ejemplo 10,04"
               className={claseInput}
-              aria-label="Comisión por venta en USD"
+              aria-label="Comisión en porcentaje del valor vendido"
             />
           </label>
 
