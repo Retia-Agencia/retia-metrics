@@ -384,6 +384,16 @@ conectados. **Solo lectura: nada se movió en HubSpot.** Lo que HubSpot no muest
 para mover entre etapas, qué propiedad es obligatoria, "fecha corte", "cortesías") no se infiere: queda
 como pregunta en §7.
 
+**Lectura por API (1-oct, solo lectura), que completa los pantallazos:**
+[`insumos/hubspot-30x-workflow.md`](insumos/hubspot-30x-workflow.md) cuenta el recorrido de un deal de punta
+a punta: quién mueve cada etapa, qué llena el closer, los workflows reconstruidos desde el historial, las
+integraciones y las etiquetas. [`insumos/hubspot-30x-catalogo.md`](insumos/hubspot-30x-catalogo.md) es el
+anexo completo: los 22 pipelines con sus etapas y conteos, y todas las propiedades con sus opciones. Contesta
+en parte la QD-1 (Potencial y Registrado son dos puertas de entrada, no dos pasos: formulario parcial frente a
+completo con calidad baja o media) y la QD-4 (los resultados de la reunión atendida son la propiedad
+*Resultado de reunión completada*, con 12 valores). Los nombres de las etiquetas y las reglas de los workflows
+siguen sin leerse: la llave no tiene el scope `automation`.
+
 ### 9.1 Deals: el tablero
 
 - Kanban por etapa (§4) con selector de **pipeline** arriba a la derecha. **En 30X un pipeline es un
