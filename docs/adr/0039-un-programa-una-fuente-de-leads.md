@@ -20,6 +20,8 @@ eran de otras pestañas se borraron en la migración 0020, con su columna `desti
 (archivo y pestaña) quedaron en el mapa de las hojas de `docs/structure.md`, que es donde las necesita
 la migración de la etapa 7.
 
+> **30-sep: el punto 2 lo enmienda el [ADR 0064](./0064-un-programa-puede-tener-varios-formularios-activos.md):** un programa puede tener varios formularios activos a la vez (migrar de Typeform a Dapta sin perder envíos). El índice se quita con el ticket 131; hasta entonces sigue vigente.
+
 **2. Una sola fuente ACTIVA por programa**, garantizada por el índice parcial
 `sources_una_activa_por_programa_idx` (`WHERE activo`). Parcial y no único a secas porque una fuente
 se reemplaza alguna vez (de Typeform a otro formulario) y el registro de la anterior no se destruye:

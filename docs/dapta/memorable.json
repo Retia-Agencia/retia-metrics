@@ -1,0 +1,280 @@
+{
+  "name": "Postulación Memorable",
+  "config": {
+    "version": 1,
+    "title": "Postulación Memorable",
+    "language": "es",
+    "layout": "slides",
+    "steps": [
+      {
+        "key": "nombre",
+        "type": "text",
+        "question": "¿Cuál es tu nombre completo?",
+        "flowGroup": "lead_capture",
+        "required": true
+      },
+      {
+        "key": "email",
+        "type": "email",
+        "question": "¿Cuál es tu correo electrónico?",
+        "flowGroup": "lead_capture",
+        "required": true
+      },
+      {
+        "key": "whatsapp",
+        "type": "phone",
+        "question": "¿Cuál es tu número de WhatsApp?",
+        "phoneDefaultCountry": "CO",
+        "flowGroup": "lead_capture",
+        "required": true
+      },
+      {
+        "key": "ingreso",
+        "type": "multiple_choice",
+        "required": true,
+        "question": "¿Cuánto ganas mensualmente? (en dólares)",
+        "options": [
+          {
+            "label": "Menos de $1.000 USD",
+            "value": "ingreso_1",
+            "points": -100
+          },
+          {
+            "label": "$1.000 - $3.000 USD",
+            "value": "ingreso_2",
+            "points": 10
+          },
+          {
+            "label": "$3.000 - $10.000 USD",
+            "value": "ingreso_3",
+            "points": 20
+          },
+          {
+            "label": "Más de $10.000 USD",
+            "value": "ingreso_4",
+            "points": 30
+          }
+        ]
+      },
+      {
+        "key": "motivacion",
+        "type": "textarea",
+        "required": true,
+        "scoringEnabled": false,
+        "question": "¿Qué te motivó a hacer parte de Memorable?",
+        "helper": "Cuéntanos por qué quieres participar y qué esperarías obtener del programa"
+      },
+      {
+        "key": "urgencia",
+        "type": "multiple_choice",
+        "required": true,
+        "question": "¿Qué tan urgente es para ti empezar el programa y aprender a ser memorable en redes sociales?",
+        "options": [
+          {
+            "label": "Muy urgente",
+            "value": "muy_urgente",
+            "points": 0
+          },
+          {
+            "label": "Estoy interesado pero puede esperar",
+            "value": "puede_esperar",
+            "points": 0
+          },
+          {
+            "label": "No es prioridad",
+            "value": "no_prioridad",
+            "points": -100
+          }
+        ]
+      },
+      {
+        "key": "situacion",
+        "type": "multiple_choice",
+        "required": true,
+        "question": "¿Cómo se podría describir mejor tu situación profesional?",
+        "options": [
+          {
+            "label": "Estudiante",
+            "value": "estudiante",
+            "points": 0
+          },
+          {
+            "label": "Desempleado",
+            "value": "desempleado",
+            "points": 0
+          },
+          {
+            "label": "0-5 años de experiencia",
+            "value": "exp_0_5",
+            "points": 10
+          },
+          {
+            "label": "5-15 años de experiencia",
+            "value": "exp_5_15",
+            "points": 20
+          },
+          {
+            "label": "+15 años de experiencia",
+            "value": "exp_15_mas",
+            "points": 20
+          },
+          {
+            "label": "Pensionado",
+            "value": "pensionado",
+            "points": 10
+          }
+        ]
+      },
+      {
+        "key": "inversion",
+        "type": "multiple_choice",
+        "required": true,
+        "question": "¿Estás dispuesto y en la capacidad de invertir 1.200 USD en ti?",
+        "options": [
+          {
+            "label": "Sí, tengo la disposición y capacidad de invertir en este momento",
+            "value": "si_puedo",
+            "points": 0
+          },
+          {
+            "label": "Sí, pero necesito facilidades de pago",
+            "value": "si_facilidades",
+            "points": 0
+          },
+          {
+            "label": "No, en este momento no cuento con los recursos",
+            "value": "no_recursos",
+            "points": -100
+          }
+        ]
+      },
+      {
+        "key": "agenda",
+        "type": "scheduler",
+        "required": true,
+        "question": "Agenda aquí tu entrevista",
+        "helper": "Si eres seleccionado te invitaremos allí de una vez a reservar tu cupo",
+        "hideWhen": {
+          "field": "@score",
+          "op": "lt",
+          "value": 0
+        },
+        "scheduler": {
+          "provider": "calendly",
+          "url": "https://calendly.com/REEMPLAZAR",
+          "prefill": true,
+          "prefillMap": {
+            "name": "nombre",
+            "email": "email"
+          }
+        }
+      },
+      {
+        "key": "utm_id",
+        "type": "text",
+        "hidden": true
+      }
+    ],
+    "scoring": {
+      "enabled": true
+    },
+    "outcomes": [
+      {
+        "id": "limpio_30",
+        "label": "con_calendly_sin_agenda|MUY ALTO VALOR",
+        "minScore": 30,
+        "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
+        "redirectUrl": "https://example.com/REEMPLAZAR-agendado"
+      },
+      {
+        "id": "desc1_30",
+        "label": "setteo_no_calificado|ALTO VALOR",
+        "minScore": -70,
+        "maxScore": -50,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
+        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+      },
+      {
+        "id": "desc2_30",
+        "label": "setteo_no_calificado|ALTO VALOR",
+        "minScore": -170,
+        "maxScore": -150,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
+        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+      },
+      {
+        "id": "desc3_30",
+        "label": "setteo_no_calificado|ALTO VALOR",
+        "minScore": -270,
+        "maxScore": -250,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
+        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+      },
+      {
+        "id": "limpio_15",
+        "label": "con_calendly_sin_agenda|ALTO VALOR",
+        "minScore": 15,
+        "maxScore": 29,
+        "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
+        "redirectUrl": "https://example.com/REEMPLAZAR-agendado"
+      },
+      {
+        "id": "desc1_15",
+        "label": "setteo_no_calificado|VALOR MEDIO",
+        "minScore": -85,
+        "maxScore": -71,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
+        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+      },
+      {
+        "id": "desc2_15",
+        "label": "setteo_no_calificado|VALOR MEDIO",
+        "minScore": -185,
+        "maxScore": -171,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
+        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+      },
+      {
+        "id": "desc3_15",
+        "label": "setteo_no_calificado|VALOR MEDIO",
+        "minScore": -285,
+        "maxScore": -271,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
+        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+      },
+      {
+        "id": "limpio_0",
+        "label": "con_calendly_sin_agenda|VALOR MEDIO",
+        "minScore": 0,
+        "maxScore": 14,
+        "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
+        "redirectUrl": "https://example.com/REEMPLAZAR-agendado"
+      },
+      {
+        "id": "desc1_0",
+        "label": "setteo_no_calificado|BAJO VALOR",
+        "minScore": -100,
+        "maxScore": -86,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
+        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+      },
+      {
+        "id": "desc2_0",
+        "label": "setteo_no_calificado|BAJO VALOR",
+        "minScore": -200,
+        "maxScore": -186,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
+        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+      },
+      {
+        "id": "desc3_0",
+        "label": "setteo_no_calificado|BAJO VALOR",
+        "minScore": -300,
+        "maxScore": -286,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
+        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+      }
+    ],
+    "partialSubmitAfterStep": 8
+  }
+}

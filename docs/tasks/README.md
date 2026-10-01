@@ -230,6 +230,8 @@ se abre**. Este repo no tiene tests de componentes y el 20-sep dos bugs pasaron 
 | [ ] | 075 | [Revisión profunda de TODA la UI](./075-revision-profunda-de-la-ui.md) (E6-8) | 069-074 | todo |
 | [ ] | 128 | [Las alertas del Deal: qué urge y qué le falta para avanzar](./128-alertas-del-deal.md) | 074, 071 | todo · 30-sep · sale de `docs/anotaciones.md` A-13; reutiliza `queLeFalta` y la atención del Inbox |
 | [ ] | 129 | [Motivos de pérdida y Origen del lead salen vacíos en el Dashboard](./129-dashboard-motivos-y-origen-vacios.md) | — | todo · 30-sep · diagnóstico en el ticket; dos decisiones de Mani |
+| [ ] | 130 | [El adaptador de Dapta Forms](./130-el-adaptador-de-dapta.md) | 117 | todo · 30-sep · migración (enum `dapta`) · los formularios de ComunicArte y Memorable ya están en Dapta, en borrador · pruebas con envíos reales |
+| [ ] | 131 | [Varios formularios activos por programa](./131-varios-formularios-activos-por-programa.md) | — | todo · 30-sep · ADR 0064 · migración (quita `sources_una_activa_por_programa_idx`) · lo necesita el 130 para ComunicArte |
 | [x] | 114 | [Auditoría de cálculos y reglas fijas](./114-auditoria-de-calculos-fijos.md) | · | done · 30-sep · A1-A3 arreglados; B5 (0046, `sources.calificacion` fuera) y C6 (solo USD) hechos; B4 pasa al 117 |
 | [x] | 115 | [El origen es del envío; el deal recuerda el envío que lo abrió](./115-el-origen-es-del-envio.md) | · | done · 29-sep · el deal guarda el envío que lo abrió; relleno 69/69; migración 0043 quita `leads.utm_*` (con `lock_timeout`) |
 | [ ] | 076 | [Bitácora en Nerd Stats](./076-bitacora-en-nerd-stats.md) (E6-7) | 068, 041 | todo · es la **pantalla** de un rastro que se escribe desde E1 |

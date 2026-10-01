@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0064)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0065)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -22,7 +22,8 @@ comentarios; esta tabla es la que los resuelve.
 | [0005](./0005-dedup-garantizado-por-la-base.md) | Las garantías viven en la base: índices únicos y parciales, no solo código |
 | [0035](./0035-el-lead-y-sus-contactos.md) | El Lead es una persona en un programa; el correo manda y el teléfono une y marca |
 | [0036](./0036-el-envio-y-todas-las-columnas-sin-plantilla.md) | El Envío guarda todas las columnas; las promovidas no se repiten |
-| [0039](./0039-un-programa-una-fuente-de-leads.md) | Un programa, una fuente de leads activa |
+| [0039](./0039-un-programa-una-fuente-de-leads.md) | Un programa, una fuente de leads activa (**el punto 2 lo enmienda el 0064**) |
+| [0064](./0064-un-programa-puede-tener-varios-formularios-activos.md) | Un programa puede tener varios formularios activos a la vez (migrar de proveedor sin perder envíos) |
 | [0061](./0061-el-estado-de-llegada-se-mapea-por-una-tabla.md) | El Estado de llegada lo manda el formulario y una tabla por programa lo lleva a su etapa (reemplaza el 0054) |
 | [0055](./0055-el-webhook-estandar-de-formularios.md) | Un webhook estándar para cualquier formulario; el programa sale de la URL |
 | [0056](./0056-el-motor-decide-quien-mueve-con-que-motivo-y-datos.md) | El motor decide quién mueve, con qué motivo (cuatro listas) y con qué datos |

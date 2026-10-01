@@ -63,6 +63,28 @@ empuja al mismo main y el numero de migracion puede chocar.
 
 ## Memory
 
+- **2026-09-30 (Mani, sesión 59): los formularios pasan a Dapta Forms; tickets 130 y 131, ADR 0064.**
+  - **Hecho:** se leyeron por API los dos Typeform y se replicó su lógica en Dapta: el formulario de **ComunicArte**
+    (workspace "Eventos ComunicArte SAS") y el de **Memorable en Instagram & TikTok**, programa nuevo (ticket USD
+    1.200, rangos de ingreso de Tactical). Los dos quedaron en borrador. Los genera `docs/dapta/generar-base.mjs`
+    y se verificaron contra el motor de Dapta: 216 combinaciones por programa, cero diferencias con su Typeform.
+    Cómo está armado y cómo se sube: `docs/dapta/README.md`.
+  - **Decidido (Mani):** un programa puede tener varios formularios activos a la vez (ADR 0064, enmienda el 0039
+    punto 2), para migrar de proveedor sin perder envíos. Se construye en el **131**. El adaptador es el **130**.
+  - **Hoy no se rompe nada:** un POST de Dapta recibe 404 (la ruta solo acepta `proveedor = 'typeform'`). El
+    riesgo es perder envíos si alguien publica un formulario de Dapta y conecta su webhook antes del 130.
+  - 🧪 **La API de Dapta no acepta API key**, solo la sesión del usuario logueado (el token vive en una cookie
+    httpOnly del lado de su servidor). Para subir un formulario: crearlo vacío en la interfaz y hacer POST desde
+    esa misma pestaña a `/admin/forms/<id>/flush` (la ruta con la que guarda su editor). El CRM no puede llamar
+    esa API: A9 en `docs/plan.md` §7.
+  - 🧪 **Diferencias del payload que ya están en el 130:** la firma va en hex y no en base64; las respuestas
+    llegan por key del paso y no por título; el estado viene en `submission.outcome` como
+    `estado|lead_value`; la agenda trae la **hora** de la cita y no el link (la regla del 052 no aplica
+    tal cual); con el anti-spam prendido Dapta no manda el parcial.
+  - **Pendiente:** las decisiones del 130 y del 131 (A10); el Calendly y las URLs de gracias de cada formulario;
+    y las pruebas con envíos reales cuando el 130 esté en producción. Memorable todavía no existe como programa
+    en el CRM.
+
 - **2026-09-30 (Mani, sesión 58): 089 cerrado.** Implementó Codex y revisó Claude; detalle en la nota de cierre del
   ticket. 🧪 El guardián de vigencia marca cualquier subconsulta (`.as(...)`) como tabla desconocida: una consulta
   nueva sobre `deals`, `calls` o `abonos` no lee desde una subconsulta; se piden por separado y se unen en memoria
@@ -3564,5 +3586,7 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 - **30-sep:** E6 abierta. Carril de Mani: 089 (acotado) → 118 (espera el 117); 083, 101, 085, 087 y 121 done, 084
   reemplazado. Carril de Alejo: cerrar 072 (recorrido) y 078 (resolver sus tres hallazgos y `--aplicar`), después 092,
   117, 119/120 y 102; 127, 116, 080 y 099 done. El orden completo, en el prompt de arriba y en `plan-reparto.md` §4.
+- **30-sep, Dapta Forms:** 131 (varias fuentes activas) → 130 (adaptador; espera el 117). Los formularios de
+  ComunicArte y Memorable están en Dapta, en borrador: **ninguno se publica ni conecta su webhook antes del 130**.
 - Vigilar que los leads reales sigan entrando por webhook: `/ajustes/salud` (110). Los pares sin canal:
   `/ajustes/canales` (101).
