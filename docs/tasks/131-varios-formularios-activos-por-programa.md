@@ -3,7 +3,7 @@ id: 131
 etapa: E6
 serves: "ADR 0064 (enmienda el 0039 punto 2)"
 depends: []
-status: todo
+status: done
 ---
 
 # 131 — Varios formularios activos por programa
@@ -46,6 +46,15 @@ webhook de una fuente inactiva responde 404.
   exigir "tiene una fuente principal".
 - **Mínimo:** dejar `programs.form_url` y cambiarlo a mano el día del corte. Es menos trabajo, pero el link
   queda en el programa y su formulario en la fuente: son dos lugares que pueden no coincidir.
+
+## Cerrado (30-sep)
+
+- Migración 0050 (quita el índice) aplicada en producción; `activarFuente` ya no da 409; la pantalla cuenta las
+  fuentes activas de cada programa. Probado en `tests/fuentes.test.ts` y `tests/webhook-matriz.test.ts` (Typeform y
+  Dapta activos en el mismo programa, la misma persona por los dos = un lead con dos envíos).
+- **La decisión del link quedó abierta como A11** (`docs/plan.md` §7). Mani (30-sep): varios formularios activos por
+  programa son una realidad permanente, no solo de migración. Mientras se decide, el generador sigue usando
+  `programs.form_url`.
 
 ## Done cuando
 

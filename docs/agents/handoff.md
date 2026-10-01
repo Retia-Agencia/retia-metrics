@@ -26,7 +26,7 @@ leer el HubSpot de 30X (necesita el acceso de Mani). El --aplicar del 078 ESPERA
 117 sigue.
 
 Estado al 30-sep (sesion 57, Mani): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
-50 migraciones (0000-0049), todas aplicadas. ~1.676 tests. Produccion: https://retia-metrics-seven.vercel.app.
+51 migraciones (0000-0050), todas aplicadas; en produccion hay ademas UNA aplicada desde otra maquina que no esta en el repo (fila 52 de __drizzle_migrations, hash 28fc7b38..., ver Memory 30-sep sesion 61). ~1.676 tests. Produccion: https://retia-metrics-seven.vercel.app.
 
 Carril de Mani (E6, sesion 57): 083, 101, 085, 087 y 121 done. 084 reemplazado por DP-25.
 - 121: deals.area_declarada_id (0049). El motor la exige al entrar a 6, 7 u 8 (historicos exentos, A1/A2 no);
@@ -72,6 +72,24 @@ empuja al mismo main y el numero de migracion puede chocar.
 ```
 
 ## Memory
+
+- **2026-09-30 (Mani, sesión 61): Dapta Forms entra al CRM por un contrato estándar; 131 cerrado, 130 en código.**
+  - **Hecho:** `lib/ingesta/proveedores.ts`, el registro de proveedores (firma + adaptador; la ruta y el reproceso
+    lo consultan), `lib/ingesta/adaptador-dapta.ts` y `tests/contrato-proveedores.test.ts` (mismas reglas para todo
+    proveedor; muerde, comprobado). Migración 0050 (`dapta` en el enum, sin el índice de una fuente activa)
+    aplicada; código en producción (`9374bc8`). Implementó Codex; dos bugs suyos los cazaron los tests reales:
+    el defecto de la HOJA en `mapeoWebhookDesdeFuente` pisaba el `email` de Dapta (ningún lead se creaba) y
+    `visit` con página `null` botaba el envío. Memorable creado (inactivo) y fuentes Dapta inactivas en
+    ComunicArte y Memorable (ids en `docs/dapta/README.md`). Los dos borradores de Dapta re-subidos.
+  - **Decidido (Mani):** `lead_quality` en el outcome; la cita la cuelga el webhook de Calendly, no se busca por
+    hora; value = texto; varios formularios activos son permanentes (el link de captación queda como A11); A9
+    cerrada: el webhook alcanza, se le pide a Dapta un token de servicio de solo lectura y el `inviteeUri`
+    (borrador del mensaje en la sesión; lo manda Mani). **No se publica Dapta antes del 117.**
+  - 🩸 **Alguien aplicó en producción una migración que no está en ningún repo** (fila 52, hash `28fc7b38…`,
+    `when` 1790790430487, entre la 0049 y la 0050). Casi seguro es la del 117 (Alejo): su archivo también se
+    llamará `0050_…` y chocará con la nuestra en el journal al integrar. Renumerarla a 0051 sin re-aplicarla.
+  - **Pendiente:** 117; luego en Dapta el evento de Calendly y las URLs de gracias, secreto desde
+    `/ajustes/fuentes`, activar, publicar y los 7 envíos reales del ticket 130 (fixtures reales al contrato).
 
 - **2026-09-30 (Mani, sesión 60): reunión con Gerencia; el norte comercial pasa a ser la prioridad.**
   - **Qué pasó:** Dani y Michael pidieron llevar la operación al modelo de 30X (etapas, etiquetas y propiedades

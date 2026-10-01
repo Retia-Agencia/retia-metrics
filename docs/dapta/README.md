@@ -14,7 +14,13 @@ etiqueta final). Por eso el score guarda los dos ejes del Typeform:
 - `score >= 0` quiere decir que la persona no tiene descalificantes, y entonces ve el Calendly (`hideWhen`
   sobre `@score`). Si tiene alguno, `hvm = score mod 100`.
 - Los 12 outcomes son los rangos de score que reproducen el `lead_value` del Typeform. Su etiqueta es
-  `<estado>|<lead_value>`, por ejemplo `con_calendly_sin_agenda|MUY ALTO VALOR`. El adaptador del 130 la parte.
+  `<estado>|<lead_value>|<lead_quality>`, por ejemplo `con_calendly_sin_agenda|MUY ALTO VALOR|High` (`High` si no
+  tiene descalificantes, `Low` si sí, como el `tag_lead_quality` del Typeform). El adaptador del 130 la parte.
+- El `value` de cada opción es su misma etiqueta: Dapta manda el value en el webhook y así `respuestas` se lee
+  igual que un Typeform. Ningún salto usa el value (van por `@score`), así que es seguro.
+- El paso de agenda prellena Calendly con `prefillMap: { name: 'nombre', email: 'email' }`. Sin el mapa, Dapta solo
+  prellena el nombre en pasos tipo `name`, y el nuestro es `text`. El correo prellenado es lo que deja al webhook
+  de Calendly (096) colgar la cita del lead.
 - El envío parcial va después de la pregunta 8 (inversión): es el parcial previo al Calendly del ADR 0061.
 
 Se verificó contra el motor real de Dapta (`packages/engine/src/form-logic.ts`), con las 216 combinaciones de
@@ -28,7 +34,7 @@ editor el 30-sep.
 | ComunicArte | Eventos ComunicArte SAS | `003e5f13-3b73-45cf-b922-d0504b5b8548` | USD 797 | los de su Typeform: descalifica menos de 1.500 |
 | Memorable en Instagram & TikTok | Memorable en Instagram & TikTok | `36772ec5-c79e-45de-97fb-791b7cd8f668` | USD 1.200 | los de Tactical: descalifica menos de 1.000 |
 
-Los dos están en **borrador, sin publicar** (30-sep).
+Los dos están en **borrador, sin publicar**; se volvieron a subir con el generador actual el 30-sep.
 
 ## Antes de publicar uno
 
@@ -37,8 +43,29 @@ Los dos están en **borrador, sin publicar** (30-sep).
    persona vería la etiqueta `estado|lead_value` como título de la pantalla final.
 3. **Anti-spam apagado:** con él prendido, Dapta no manda el parcial por webhook.
 4. No borrar la pregunta 10: es el campo oculto `utm_id`, que se llena desde la URL.
-5. La destinación webhook de Dapta con URL y **secreto** de la fuente del CRM (ticket 130). Sin el 130 en
-   producción, los envíos reciben 404 y no entran.
+5. La destinación webhook de Dapta con URL y **secreto** de la fuente del CRM. El secreto se genera en
+   `/ajustes/fuentes` (se muestra una vez) y se pega a mano: nunca pasa por un chat ni un script. La URL es
+   `/api/webhooks/formularios/<id de la fuente>`, y la fuente tiene que estar **activa** (inactiva = 404).
+6. **No antes del 117:** hasta que el CRM traduzca `con_calendly_sin_agenda` por su tabla de estados, ese lead entra
+   sin Estado y no abre deal.
+
+## Lo que se sabe del webhook de Dapta (leído en su código, 30-sep)
+
+- Firma `x-forms-signature: sha256=<hex>`; el secreto es opcional en Dapta, pero el CRM sin firma responde 401.
+- `visit.pageUri` y `visit.pageName` llegan `null` cuando Dapta no los conoce; `visit.hutk` (cookie de HubSpot) no
+  se guarda.
+- La agenda llega como la **hora de inicio** de la cita (o `booked`), nunca como link. Dapta guarda el
+  `inviteeUri` en su base, pero no lo manda: se le pidió (A9).
+- Dapta le pasa a Calendly `utm_content = sessionId`, el mismo `submission.id` que el CRM usa como token. Es una
+  llave exacta para emparejar la cita con el envío, sin depender del correo; nadie la usa todavía.
+- Con el anti-spam prendido, el parcial se guarda pero no se entrega a ningún destino.
+
+## Fuentes en el CRM (30-sep, inactivas y sin secreto)
+
+| Programa | Fuente | id |
+|---|---|---|
+| ComunicArte | Dapta - Postulación Evento Comunicarte | `58263e2b-4550-4045-ab97-147fdb1f55fe` |
+| Memorable (programa `b5440788-5265-41ed-8a77-b4b0228038e5`, inactivo) | Dapta - Postulación Memorable | `867f29df-1be7-490e-823a-6e29f3cab4d2` |
 
 ## Un programa nuevo, o un cambio
 

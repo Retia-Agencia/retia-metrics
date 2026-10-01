@@ -3,7 +3,7 @@ id: 130
 etapa: E6
 serves: "ADR 0055 (proveedor nuevo = un valor más) · ADR 0061 · ADR 0064"
 depends: [117]
-status: todo
+status: in-progress
 ---
 
 # 130 — El adaptador de Dapta Forms: los envíos de Dapta entran por el mismo webhook
@@ -66,7 +66,40 @@ Fuente: `packages/destinations/src/adapters/webhook.ts` de `Dapta-Tech/dapta-for
 - **Fuera:** usar la API de Dapta desde el CRM (crear formularios, leer respuestas). Su API solo acepta la
   sesión de un usuario logueado, no una API key. Ver `docs/plan.md` §7, A9.
 
-## Decisiones abiertas (de Mani)
+## Decidido (Mani, 30-sep) y construido
+
+1. **`lead_quality`:** tercer pedazo del outcome (`estado|lead_value|High|Low`). El generador lo escribe y los dos
+   borradores se volvieron a subir. El CRM no la calcula (A8).
+2. **La cita: la cuelga el webhook de Calendly (096), opción (b).** El adaptador **no** sube a `con_calendly` por
+   `data.agenda` ni deduce nada de ella: el Estado entra tal cual lo manda el outcome, y `data.agenda` (la hora de
+   inicio) queda en `respuestas`. El nombre y el correo llegan prellenados a Calendly porque el paso de agenda
+   trae `prefillMap: { name: 'nombre', email: 'email' }` (Dapta solo prellena el nombre solo en pasos `name`).
+   Dapta sí conoce el `inviteeUri`, pero no lo manda en el webhook: se le pidió (A9).
+3. **Respuestas:** el `value` de cada opción es su misma etiqueta, así `respuestas` se lee igual que un Typeform.
+   Ninguna condición usa el value (los saltos van por `@score`).
+
+⚠️ **Hasta el 117, `con_calendly_sin_agenda` entra sin Estado y no abre deal**, y la cita de Calendly queda suelta
+en el Inbox. Por eso ningún formulario de Dapta se publica antes del 117 (Mani, 30-sep).
+
+## Lo que se construyó
+
+- `lib/ingesta/proveedores.ts`: el registro de proveedores (firma + adaptador). La ruta y el reproceso lo
+  consultan; agregar un proveedor es un valor del enum, una entrada ahí y sus fixtures (ADR 0055).
+- `lib/ingesta/adaptador-dapta.ts` y `tests/contrato-proveedores.test.ts` (las mismas reglas para todo proveedor;
+  se comprobó que muerde rompiendo el adaptador a propósito).
+- `mapeoWebhookDesdeFuente` ya no hereda el defecto de la HOJA: pisaba el `email` de Dapta y el lead nunca se
+  creaba. Typeform conserva exactos los defectos que le aplicaban.
+- Fuentes en producción, inactivas y sin secreto: ComunicArte `58263e2b-4550-4045-ab97-147fdb1f55fe`, Memorable
+  `867f29df-1be7-490e-823a-6e29f3cab4d2`. Memorable existe como programa (`b5440788-…`), inactivo.
+
+## Lo que falta (después del 117)
+
+1. En Dapta: escoger el evento de Calendly del paso 9 y las dos URLs de gracias (`docs/dapta/README.md`).
+2. En `/ajustes/fuentes`: generar el secreto de la fuente Dapta (se muestra una vez) y pegarlo con la URL en la
+   destinación webhook de Dapta. Activar la fuente.
+3. Publicar y correr los 7 envíos de abajo; guardar el primer cuerpo real de cada camino como fixture.
+
+## Decisiones que estaban abiertas (historial)
 
 1. **`lead_quality`.** El Typeform la manda en `tag_lead_quality` (`High` si pasó los filtros y llegó al
    Calendly, `Low` si no). El formulario de Dapta no la manda, aunque es exactamente "score ≥ 0".
