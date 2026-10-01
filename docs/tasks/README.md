@@ -25,6 +25,28 @@ Cómo está hecho: [`docs/structure.md`](../structure.md).
 > tabla de transiciones, el acuerdo de pago como nota (ADR 0053) y el orden P1: E2 → E3 mínimo → E4 →
 > E6 mínimo → E1b → E5 → E7. **E2 (043 a 047) se cerró el 27-sep: el motor de etapas existe.** Sigue E3 mínimo (paso 2 del plan): A1 y A2 ya se cerraron (ADR 0054 y 0055), faltan sus tickets. El 094 también se cerró el 27-sep.
 
+# 🎯 Norte comercial de Gerencia — PRIORIDAD · abierto el 30-sep
+
+Sale de la reunión con Dani y Michael del 30-sep: el pipeline pasa a las etapas, etiquetas y propiedades
+del HubSpot de 30X, el dinero cambia (valor vendido escrito por el closer, comisión por porcentaje,
+próxima fecha de pago), aparece la meta del mes y el dashboard se vuelve flexible, con número y porcentaje
+siempre. **Mani, 30-sep: es la prioridad, antes que cualquier otro frente.** El inventario punto por punto
+(GC-01 a GC-53), lo que reabre (R-1 a R-12) y las preguntas (QD, QM) viven en
+**[`docs/comercial.md`](../comercial.md)**. Va paso por paso: no se abre uno sin cerrar el anterior.
+
+| ✓ | # | Paso | Depende de | Estado |
+|---|---|---|---|---|
+| [x] | 1 | El inventario de la reunión contra el repo (`comercial.md`) | · | done · 30-sep · Mani |
+| [ ] | 2 | Leer el HubSpot de 30X, solo lectura: etapas, etiquetas y propiedades por etapa (cuáles obligatorias), "fecha corte" y "cortesías", y el dashboard "Gestión Comercial" con pantallazos | 1 | todo · carril Mani · necesita el acceso de Mani a HubSpot |
+| [ ] | 3 | Preguntas a Dani (QD-1 a QD-7) y a Mani (QM-1 a QM-8); hablar con 2 o 3 closers sobre abonos (GC-17) | 2 | todo · Mani |
+| [ ] | 4 | Las decisiones en ADR (`/grill-with-docs`): pipeline de 30X, valor vendido y comisión, Atendido sin Grain, rol Customer Success, meta del mes, periodos flexibles | 3 | todo · sesión principal |
+| [ ] | 5 | Enmendar los tickets vivos y crear los nuevos (lista en `comercial.md` §8) | 4 | todo · sesión principal |
+| [ ] | 6 | Reordenar `plan.md` §5 y `plan-reparto.md`: v1 comercial primero, pauta después | 5 | todo · sesión principal |
+
+⏸️ **Mientras tanto: el `--aplicar` del 078 espera** a que se cierren las etapas (paso 4) y QD-2. Meter
+ahora los deals viejos en las once etapas obliga a migrarlos dos veces. El 117 sigue: corrige el bug de
+Tactical y su columna de etapa se traduce junto con `deals.etapa`.
+
 # Reparto para dos (desde el 28-sep)
 
 El orden por etapas y carriles vive en [`docs/plan-reparto.md`](../plan-reparto.md). Las correcciones
@@ -244,7 +266,7 @@ Va de último, con el scaffold completo. Absorbe el "histórico de C2" de la spe
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 077 | [Barrer las pestañas de gestión](./077-barrer-las-pestanas-de-gestion.md) (E7-1) | 111 | done · 29-sep · Alejo · las ocho pestañas leídas (encabezados reales) y su mapeo escrito en el ticket; el extractor del 078 lo implementa y ninguna fila se descarta en silencio (deal, llamada, sin deal por alcance o rareza) |
-| [ ] | 078 | [Pasa por la MISMA ingesta, nunca inserts crudos](./078-la-migracion-pasa-por-la-misma-ingesta.md) (E7-2) | 077 | en curso · Alejo · en `main` (29-sep): migración 0042 aplicada en producción con el ok de Mani, escritor histórico, extractor e importador (`npm run migracion:extraer` / `migracion:importar`). **Falta el ensayo contra producción** de los dos programas (sin `--aplicar`) y aplicar en el corte del hito B |
+| [ ] | 078 | [Pasa por la MISMA ingesta, nunca inserts crudos](./078-la-migracion-pasa-por-la-misma-ingesta.md) (E7-2) | 077 | en curso · Alejo · ⏸️ **30-sep: el `--aplicar` espera a las etapas de 30X y a QD-2 ([`comercial.md`](../comercial.md) R-11)** · en `main` (29-sep): migración 0042 aplicada en producción con el ok de Mani, escritor histórico, extractor e importador (`npm run migracion:extraer` / `migracion:importar`). **Falta el ensayo contra producción** de los dos programas (sin `--aplicar`) y aplicar en el corte del hito B |
 | [x] | 079 | [Recuperar las 55 de `Forms viejo`](./079-recuperar-las-55-de-forms-viejo.md) (E7-3) | 111 | done · 29-sep · cerrado por el traslado (111), que lo tenía en su alcance: `Forms viejo` entró en la misma corrida (ComunicArte 2.465 leads, conciliación 2.739/2.739) |
 | [x] | 080 | [Los casos raros de la migración](./080-los-casos-raros-de-la-migracion.md) (E7-4) | 078 | done · 30-sep · Alejo · decisiones escritas, `/ajustes/migracion` recorrida; en CA la Categoría vive en `Registro 2` (`d01c461`): **regenerar el template de CA antes de aplicar el 078** |
 | [x] | 081 | [COP → USD a la tasa del día](./081-cop-a-usd-en-la-migracion.md) (E7-5) | 078 | descartado · 28-sep (Mani): *"solo usamos USD aquí"*. No hay conversión ni tasa ni marca de abono convertido; un monto que aparezca en COP al barrer se lista como rareza (080) y no se convierte |

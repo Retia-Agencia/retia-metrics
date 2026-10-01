@@ -9,6 +9,10 @@
 > Escrito el 28-sep-2026 sobre `main @ 6ad90ab`, leyendo los 53 tickets abiertos contra el plan y el
 > código.
 >
+> 🎯 **30-sep: el norte comercial de Gerencia es la prioridad** ([`comercial.md`](./comercial.md)). Cambia
+> las etapas del deal, el dinero y las metas, y pone la pauta después de la v1 comercial: las etapas de §4
+> se reordenan en su paso 6. Mientras tanto, **el `--aplicar` del 078 espera** a que se cierren las etapas.
+>
 > **Quién es quién:** "Alejo" en este documento es **Alejandro Dávila**, dev (`alejandrod-24`). El Alejo
 > gerente de [`overview.md`](./overview.md) §4 es **Alejo Carvajal**, que aquí solo aparece como quien
 > decide áreas y umbrales.

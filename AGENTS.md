@@ -32,6 +32,10 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    **`docs/analytics.md`** mapea la reunión con Pauta (29-sep) al alcance: lo pedido y lo medido, las
    decisiones DP-1 a DP-25, el grid de requisitos con su ticket (116 a 126), el modelo de datos y **las
    fórmulas de cada métrica** (§6). Léelo antes de tocar atribución, pauta, métricas o el dashboard.
+   **`docs/comercial.md`** mapea la reunión con Gerencia (30-sep), que **es fuente de verdad**: el
+   pipeline pasa a las etapas, etiquetas y propiedades de 30X, el valor vendido lo escribe el closer y la
+   comisión es un porcentaje, hay meta del mes y de la cohorte, y la v1 es comercial. Léelo antes de tocar
+   etapas, dinero, metas o el dashboard.
 3. **`docs/overview.md`** — qué es la herramienta de principio a fin: el problema, los programas, los
    roles y sus historias de usuario, el recorrido de un lead, las métricas, el alcance, los criterios de
    aceptación, de dónde salió y **el vocabulario del dominio** (§11). Es el contrato de producto (lo que

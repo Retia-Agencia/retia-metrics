@@ -348,9 +348,25 @@ las decisiones DP-1 a DP-25, el grid de 66 requisitos con su ticket, etapa y car
 fórmulas y el orden. Las decisiones de arquitectura: ADR 0061, 0062 y 0063. Tickets 116 a 126; el 093 es la
 vista interina, lo primero que se entrega.
 
+### 4.5 El norte comercial de Gerencia 🆕 (30-sep)
+
+La reunión con Dani y Michael del 30-sep llevó la operación al modelo de 30X: las etapas, etiquetas y
+propiedades del pipeline salen del HubSpot de 30X, y las métricas del dashboard "Gestión Comercial" de 30X,
+más flexibles y con número y porcentaje siempre. La v1 es comercial, sin marketing. **Es la fuente de verdad
+(Mani) y reabre decisiones vigentes**: el inventario punto por punto, los choques (R-1 a R-12) y los pasos
+viven en [`comercial.md`](./comercial.md). 🎯 **Es la prioridad del CRM (Mani, 30-sep)**: sus seis pasos
+(§8 de ese documento) van antes que cualquier otro frente. Mientras no se cierren las etapas, **el
+`--aplicar` del 078 espera** (metería los deals viejos en etapas que van a cambiar); el 117 sigue, porque
+corrige un bug vivo y su columna de etapa se traduce junto con `deals.etapa`.
+
 ---
 
 ## 5. Orden de construcción
+
+> 🎯 **30-sep (Mani): el norte comercial de Gerencia va primero** ([`comercial.md`](./comercial.md) §8):
+> leer el HubSpot de 30X, preguntar a Dani, decidir (ADR), rehacer los tickets y recién ahí reordenar esta
+> tabla. Dani: *"la versión 1 es solamente la visual de comercial"*; lo de pauta (119, 120, 123, 125) va
+> después. Hasta el paso 6 de ese documento, la tabla de abajo es la de antes y no se lee como orden vigente.
 
 El orden oficial es el de **P1, operación antes que analítica** (decidido el 24-sep): E2 → E3 mínimo
 → E4 → E6 mínimo → E1b → E5 → E7. Lo que este plan agrega es **dónde cae cada track** y dónde entran las
@@ -421,6 +437,16 @@ cierra, baja a un ADR (con `/grill-with-docs`) o a su ticket, y sale de esta lis
 | O-1 | ~~Agregar el campo oculto `utm_id` a los dos Typeform~~ ✅ hecho el 29-sep por API. Falta que Pauta aplique la plantilla en Meta (PQ2) | · | cerrada |
 | O-5 | 🚨 **Crear la C3 de cada programa** (meta 60 según Pauta, con su ventana de venta). Tactical vende C3 desde el 30-sep y en la base no existe: sin cohorte activa, el primer abono no tiene a qué cohorte asignarse (063) | cumplimiento (124), Students | cuando se verifiquen las fechas de cada C3 (Mani, 29-sep) |
 | S1 | 🚨 **Supabase Pro: pagar o no. URGENTE, con el equipo.** El plan gratis no trae respaldos: la única base es producción y, si un script o una migración borra datos, no hay a dónde volver. Desde el corte (hito B) la historia de las pestañas de gestión vivirá solo ahí. El tamaño no es el motivo (30 MB de 500 al 29-sep) | el corte (hito B) | antes del corte |
+
+**G. Gerencia, reunión del 30-sep (Dani y Michael)** 🎯 prioridad: las preguntas viven en
+[`comercial.md`](./comercial.md) §7, con su recomendación, para no copiarlas aquí. **A Dani** (QD-1 a QD-7):
+dónde van las etapas sin equivalente en 30X, el destino de cada categoría de la migración, qué respuesta del
+formulario es "no calificado" y cuál "calificado sin agenda", las propiedades obligatorias por etapa, el
+porcentaje de comisión, los umbrales y los días seguidos de una alerta, y el precio de Francisco. **A Mani**
+(QM-1 a QM-8): qué queda de los productos, cuál es el ticket base, la próxima fecha de pago frente a la fecha
+límite, Grain por API, los pasos del onboarding como filas, la meta del mes por día hábil, las ventas de una
+cohorte en la ventana de la siguiente y qué hace el carril de pauta mientras tanto. Bloquean los pasos 4 y 5
+de ese documento.
 
 **A2. Para después (Mani, 28-sep):** revisar si las alertas de la app (fuente sin envíos, 107; y las
 que vengan) se mandan también por correo, de forma estandarizada y simple: un solo mecanismo para todas,
@@ -524,6 +550,7 @@ dice, alguien más.
 | `AGENTS.md` | el contrato del repo: restricciones, contratos, comandos, convenciones | siempre, primero |
 | **`docs/plan.md`** | este plan | siempre, segundo |
 | `docs/analytics.md` | complemento de este plan: el mapeo de la reunión con Pauta (29-sep) requisito por requisito, con sus decisiones, fórmulas, modelo de datos y orden | antes de tocar atribución, pauta, métricas o el dashboard |
+| `docs/comercial.md` | complemento de este plan: el mapeo de la reunión con Gerencia (30-sep) punto por punto: el pipeline de 30X, el dinero, las metas del mes y la cohorte, las gráficas flexibles, lo que reabre y lo que falta preguntar | antes de tocar etapas, dinero, metas o el dashboard |
 | `docs/plan-reparto.md` | complemento de este plan: el orden en etapas para que Mani y Alejo (Dávila) trabajen en paralelo, quién toma qué y cuándo se cierra una etapa. No define qué se construye: eso sigue aquí y en los tickets | antes de tomar un ticket, para saber en qué etapa y carril cae |
 | `docs/overview.md` | qué es la herramienta de principio a fin: problema, programas, roles, recorrido de un lead, métricas, alcance, criterios, historia, vocabulario | para entender el producto o el dominio, y antes de nombrar algo |
 | `docs/structure.md` | diagramas y componentes: operación de hoy, flujos, motor de etapas y transiciones, arquitectura, modelo de datos, ingesta, atribución, pantallas, sistema de diseño, mapa de las hojas, migración | al construir cualquier pieza; §9 antes de tocar una pantalla |

@@ -6,7 +6,8 @@
 ## Prompt para arrancar la próxima sesión
 
 > Copiar y pegar tal cual. Reescrito al cierre de la sesión 53 de Alejo (30-sep) y actualizado en la 54 y la 55
-> de Mani (30-sep, carril de Mani), en la 56 de Alejo (30-sep, carril de Alejo) y en la 57 de Mani (30-sep). El anterior: `git show 968532a:docs/agents/handoff.md`.
+> de Mani (30-sep, carril de Mani), en la 56 de Alejo (30-sep, carril de Alejo), en la 57 de Mani (30-sep) y en
+> la 60 de Mani (30-sep: el norte comercial de Gerencia pasa a ser la prioridad). El anterior: `git show 968532a:docs/agents/handoff.md`.
 
 ```
 Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas)
@@ -14,6 +15,15 @@ y docs/plan.md (el QUE, decisiones en §7). El estado de cada ticket vive solo e
 docs/structure.md §9 (sistema de diseño Tinta) es OBLIGATORIO antes de tocar una pantalla.
 docs/anotaciones.md (nuevo, 30-sep) es la bandeja de anotaciones de UI de Mani: leela antes de tocar una
 pantalla; A-02..A-14 y los principios P-1, P-2 ya estan citados en 072, 075, 100 y el 128 (nuevo: alertas del deal).
+
+PRIORIDAD DESDE EL 30-SEP (Mani): docs/comercial.md, el mapeo de la reunion con Gerencia (Dani y Michael).
+Es fuente de verdad y reabre decisiones: las etapas del deal pasan a las de 30X (con etiquetas y
+propiedades por etapa), el valor vendido lo escribe el closer (0 por defecto) y la comision es un
+porcentaje, Atendido se acepta sin Grain con alarma, rol Customer Success con onboarding de 4 pasos, meta
+del mes ademas de la de la cohorte, dashboard con periodos flexibles y numero + % siempre, y la v1 es
+comercial (pauta despues). Va por los 6 pasos de su §8, en el tracker arriba de todo. SIGUIENTE: paso 2,
+leer el HubSpot de 30X (necesita el acceso de Mani). El --aplicar del 078 ESPERA a las etapas nuevas; el
+117 sigue.
 
 Estado al 30-sep (sesion 57, Mani): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
 50 migraciones (0000-0049), todas aplicadas. ~1.676 tests. Produccion: https://retia-metrics-seven.vercel.app.
@@ -62,6 +72,23 @@ empuja al mismo main y el numero de migracion puede chocar.
 ```
 
 ## Memory
+
+- **2026-09-30 (Mani, sesión 60): reunión con Gerencia; el norte comercial pasa a ser la prioridad.**
+  - **Qué pasó:** Dani y Michael pidieron llevar la operación al modelo de 30X (etapas, etiquetas y propiedades
+    del HubSpot de 30X) y tomar el dashboard "Gestión Comercial" de 30X como referencia, más flexible. Mani: es
+    **fuente de verdad** y es la **prioridad**. Granola `d0eae6e8-64fd-4a87-83f4-57770f03b64f`; su resumen se
+    equivoca en dos cosas (dice "HubSpot" por el CRM de Retia, y que el valor *base* es 0 cuando es el valor
+    *vendido*). Fuente principal: el transcript que pegó Mani.
+  - **Hecho:** `docs/comercial.md`, el inventario punto por punto (GC-01 a GC-53), lo que reabre (R-1 a R-12),
+    las metas como las explicó Dani con las cuentas (§5) y las preguntas QD-1 a QD-7 (Dani) y QM-1 a QM-8
+    (Mani). Punteros en `AGENTS.md`, `plan.md` §4.5, §5 y §7 (bloque G), `plan-reparto.md` y el tracker
+    (sección "Norte comercial", arriba de todo). Tarea en Notion con prioridad 1. Ningún ADR ni ticket tocado.
+  - **Decidido (Mani):** prioridad del norte comercial; el `--aplicar` del 078 espera a las etapas nuevas (el 117
+    sigue, porque corrige el bug vivo de Tactical y su columna de etapa se traduce con `deals.etapa`).
+  - 🧪 **Tres precios conviven** y la reunión pide uno solo como "ticket base": `programs.ticket_usd`,
+    `cohorts.precio_usd` y `productos.precio_usd` (QM-2). Y la comisión de hoy son montos fijos (80 CA, 100 TI):
+    en porcentaje son 10,04% y 6,67% (QD-5).
+  - **Pendiente:** el paso 2 (leer el HubSpot de 30X, solo lectura) y avisarle a Alejo lo del 078.
 
 - **2026-09-30 (Mani, sesión 59): los formularios pasan a Dapta Forms; tickets 130 y 131, ADR 0064.**
   - **Hecho:** se leyeron por API los dos Typeform y se replicó su lógica en Dapta: el formulario de **ComunicArte**
@@ -3583,6 +3610,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
+- 🎯 **30-sep, PRIORIDAD: el norte comercial de Gerencia** (`docs/comercial.md`, tracker arriba de todo). Paso 1
+  hecho; sigue el paso 2 (HubSpot de 30X). El `--aplicar` del 078 espera.
 - **30-sep:** E6 abierta. Carril de Mani: 089 (acotado) → 118 (espera el 117); 083, 101, 085, 087 y 121 done, 084
   reemplazado. Carril de Alejo: cerrar 072 (recorrido) y 078 (resolver sus tres hallazgos y `--aplicar`), después 092,
   117, 119/120 y 102; 127, 116, 080 y 099 done. El orden completo, en el prompt de arriba y en `plan-reparto.md` §4.
