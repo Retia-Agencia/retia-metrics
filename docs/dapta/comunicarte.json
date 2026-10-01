@@ -161,7 +161,7 @@
         },
         "scheduler": {
           "provider": "calendly",
-          "url": "https://calendly.com/REEMPLAZAR",
+          "url": "https://calendly.com/eventoscomunicarte-info/postulacion-comunicarte",
           "prefill": true,
           "prefillMap": {
             "name": "nombre",

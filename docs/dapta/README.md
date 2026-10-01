@@ -37,8 +37,13 @@ editor el 30-sep.
 **Publicados por Mani el 30-sep, con los placeholders todavía puestos** (Calendly `calendly.com/REEMPLAZAR` y redirects
 `example.com/REEMPLAZAR-*`, verificado en la página pública). Links: ComunicArte
 `forms.dapta.ai/4bgty3/f/postulacion-evento-comunicarte`, Memorable `forms.dapta.ai/rx4i7a/f/postulacion-memorable`.
-**No se comparten hasta cambiar los placeholders y tener el 117.** Candidato para ComunicArte (sin confirmar: el
-Typeform usa la integración nativa y no guarda el link): `calendly.com/eventoscomunicarte-info/postulacion-comunicarte`.
+**No se comparten hasta cambiar los placeholders y tener el 117.** Calendly de ComunicArte confirmado por Mani:
+`calendly.com/eventoscomunicarte-info/postulacion-comunicarte`, ya en el generador y cargado al borrador (falta que
+Mani **publique** para que llegue al formulario en vivo). Memorable todavía no tiene Calendly.
+
+**El CRM no guarda el link de Calendly.** El link vive solo en el paso de agenda de Dapta. El CRM usa el **token** de
+Calendly del programa (ADR 0057; ComunicArte lo tiene, Memorable no) y el webhook de Calendly (096) para colgar la
+cita por el correo prellenado. `programs.calendly_url` existe, pero está vacío y la pantalla ya no lo muestra.
 El Typeform no redirige, muestra un mensaje final: sin redirect, Dapta mostraría la etiqueta del outcome.
 
 ## Antes de publicar uno

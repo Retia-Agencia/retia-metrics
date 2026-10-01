@@ -14,6 +14,7 @@ const PROGRAMAS = {
     motivacion: '¿Qué te motivó a hacer parte del Método Comunicarte?',
     urgencia: '¿Qué tan urgente es para ti empezar el programa para aprender a comunicarte como un experto?',
     agendaAyuda: 'Si eres seleccionado, en la misma llamada podrás reservar tu cupo',
+    calendly: 'https://calendly.com/eventoscomunicarte-info/postulacion-comunicarte', // Mani, 30-sep
     ingresos: [
       ['ingreso_1', 'Menos de $700 USD', 0, true],
       ['ingreso_2', '$700 - $1.500 USD', 10, true],
@@ -26,6 +27,7 @@ const PROGRAMAS = {
     motivacion: '¿Qué te motivó a hacer parte de Memorable?',
     urgencia: '¿Qué tan urgente es para ti empezar el programa y aprender a ser memorable en redes sociales?',
     agendaAyuda: 'Si eres seleccionado te invitaremos allí de una vez a reservar tu cupo',
+    calendly: null, // Memorable aun no tiene Calendly (Mani, 30-sep)
     ingresos: [ // los rangos de Tactical (Mani, 30-sep)
       ['ingreso_1', 'Menos de $1.000 USD', 0, true],
       ['ingreso_2', '$1.000 - $3.000 USD', 10, false],
@@ -75,7 +77,7 @@ const steps = [
   { key: 'agenda', type: 'scheduler', required: true, question: 'Agenda aquí tu entrevista',
     helper: p.agendaAyuda,
     hideWhen: { field: '@score', op: 'lt', value: 0 },
-    scheduler: { provider: 'calendly', url: 'https://calendly.com/REEMPLAZAR', prefill: true,
+    scheduler: { provider: 'calendly', url: p.calendly ?? 'https://calendly.com/REEMPLAZAR', prefill: true,
       prefillMap: { name: 'nombre', email: 'email' } } },
   // utm_source/medium/campaign/content/term los captura Dapta solo; utm_id (llave del anuncio, ADR 0062) no.
   { key: 'utm_id', type: 'text', hidden: true },
