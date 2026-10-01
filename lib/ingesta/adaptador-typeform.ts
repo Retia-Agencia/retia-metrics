@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { CampoEnvio, EntradaEnvio } from "./envio";
 import type { MapeoColumnas } from "@/lib/sheets/mapeo";
+import type { OpcionesAdaptador } from "./proveedores";
 
 /**
  * El adaptador de Typeform (ticket 106, ADR 0055 punto 2): convierte un
@@ -157,23 +158,19 @@ export const VARIABLE_ESTADO_POR_DEFECTO = "estado";
  */
 export const PREFIJO_VARIABLE = "variable:";
 
-export interface OpcionesTypeform {
-  sourceId: string;
-  /** `sources.tz_fechas` (ticket 053). No lo usa el adaptador salvo pasarlo al Envio. */
-  zona: string;
-  /** El mapeo de preguntas de la fuente (`sources.mapeoColumnas` + `campoAgenda`). */
-  mapeo?: MapeoWebhook;
-}
+export type OpcionesTypeform = OpcionesAdaptador;
 
 /**
  * Los campos que este adaptador sabe resolver por defecto, por si el mapeo de la fuente
- * no los nombra. Son los titulos de pregunta de los Typeform de hoy (mismos que el
- * adaptador de Sheets, ADR 0019). El mapeo de la fuente los sobreescribe.
+ * no los nombra. Son los encabezados de la hoja (`MAPEO_FORMULARIO`, ADR 0019), que
+ * hasta el 130 le llegaban a este adaptador por `mapeoWebhookDesdeFuente`; desde el 130
+ * ese defecto ya no viaja por el mapeo y cada adaptador trae el suyo. Se dejan EXACTOS
+ * para que Typeform se comporte igual. El mapeo de la fuente los sobreescribe.
  */
-const MAPEO_POR_DEFECTO: Partial<Record<CampoEnvio, string[]>> = {
-  nombre: ["nombre completo", "nombre"],
-  correo: ["correo electronico", "correo", "email"],
-  telefono: ["whatsapp", "telefono", "celular"],
+const MAPEO_POR_DEFECTO: Partial<Record<CampoEnvio, string>> = {
+  nombre: "nombre completo",
+  correo: "correo electronico",
+  telefono: "whatsapp",
 };
 
 // ─────────────────────────────────────────────── el agendo (ADR 0054)

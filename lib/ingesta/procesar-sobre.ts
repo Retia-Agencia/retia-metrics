@@ -7,7 +7,8 @@ import { resolverCitaDeEnvio } from "@/lib/calendly/resolver-cita";
 import type { ResultadoCita } from "@/lib/ingesta/regla-de-deals";
 import type { EntradaEnvio } from "@/lib/ingesta/envio";
 import { mapeoWebhookDesdeFuente } from "@/lib/ingesta/mapeo-webhook";
-import { entradaDesdeTypeform, payloadTypeformSchema } from "@/lib/ingesta/adaptador-typeform";
+import { PROVEEDORES } from "@/lib/ingesta/proveedores";
+import type { ProveedorFormulario } from "@/lib/catalogo/fuentes-webhook";
 
 /**
  * El procesamiento de un envio DESPUES de que la firma cuadro (ticket 110). Es lo que
@@ -45,6 +46,7 @@ export interface ResultadoProcesamiento {
 export interface FuenteParaProcesar {
   id: string;
   programId: string;
+  proveedor: ProveedorFormulario;
   tzFechas: string;
   mapeoColumnas: MapeoColumnas | null;
 }
@@ -103,8 +105,11 @@ export async function procesarSobre(
 
   let entrada: EntradaEnvio;
   try {
-    const payload = payloadTypeformSchema.parse(JSON.parse(cuerpo));
-    entrada = entradaDesdeTypeform(payload, { sourceId: fuente.id, zona: fuente.tzFechas, mapeo });
+    entrada = PROVEEDORES[fuente.proveedor].adaptar(cuerpo, {
+      sourceId: fuente.id,
+      zona: fuente.tzFechas,
+      mapeo,
+    });
   } catch (error) {
     return { motivo: "contenido_invalido", leadId: null, error: mensajeDe(error) };
   }
@@ -188,19 +193,21 @@ export async function reprocesarSobre(db: Db, sobreId: string): Promise<Reproces
     .select({
       id: sources.id,
       programId: sources.programId,
+      proveedor: sources.proveedor,
       tzFechas: sources.tzFechas,
       mapeoColumnas: sources.mapeoColumnas,
     })
     .from(sources)
     .where(eq(sources.id, sobre.sourceId))
     .limit(1);
-  if (!fuente) return null;
+  if (!fuente?.proveedor) return null;
 
   const resultado = await procesarSobre(
     db,
     {
       id: fuente.id,
       programId: fuente.programId,
+      proveedor: fuente.proveedor,
       tzFechas: fuente.tzFechas,
       mapeoColumnas: fuente.mapeoColumnas as MapeoColumnas | null,
     },

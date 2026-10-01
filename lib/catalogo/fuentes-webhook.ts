@@ -9,7 +9,7 @@
  * de la base, porque el cliente no importa el esquema; `tests/fuentes-webhook.test.ts`
  * las compara y falla si se separan.
  */
-export const PROVEEDORES_FORMULARIO = ["typeform"] as const;
+export const PROVEEDORES_FORMULARIO = ["typeform", "dapta"] as const;
 export type ProveedorFormulario = (typeof PROVEEDORES_FORMULARIO)[number];
 
 /**

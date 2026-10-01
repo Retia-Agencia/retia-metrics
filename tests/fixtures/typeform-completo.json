@@ -8,14 +8,17 @@
     "submitted_at": "2026-09-20T15:00:00Z",
     "variables": [
       { "key": "estado", "type": "text", "text": "setteo_no_calificado" },
-      { "key": "score", "type": "number", "number": 0 }
+      { "key": "score", "type": "number", "number": 0 },
+      { "key": "lead_value", "type": "text", "text": "MUY ALTO VALOR" },
+      { "key": "lead_quality", "type": "text", "text": "High" }
     ],
     "hidden": {
       "utm_source": "facebook",
       "utm_medium": "cpc",
       "utm_campaign": "tactical-septiembre",
       "utm_content": "anuncio-a",
-      "utm_term": "inversion"
+      "utm_term": "inversion",
+      "utm_id": "120212345678900001"
     },
     "definition": {
       "id": "aBcDeF12",

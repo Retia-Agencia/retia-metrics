@@ -148,6 +148,10 @@ export function mapeoWebhookDesdeFuente(
       variableLeadValue = Array.isArray(patron) ? patron[0] : patron;
       continue;
     }
+    // El defecto del codigo es el de la HOJA (sus encabezados). Un webhook no lo hereda:
+    // cada adaptador trae el suyo, que conoce su payload (Dapta manda `email`, no
+    // "correo electronico"). Solo la fuente o la plantilla del programa lo pisan (130).
+    if (origen[llave] === "defecto") continue;
     const campo = HOJA_A_CAMPO_ENVIO[llave];
     if (campo !== undefined) campos[campo] = patron;
   }

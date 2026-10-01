@@ -51,6 +51,13 @@ por fuente; nunca responde con redirección; la ruta va en la lista pública de 
 - ⚠️ Typeform tiene que seguir escribiendo en Sheets hasta el hito B, o los closers se quedan sin ver
   los leads nuevos.
 
+### Como se agrega un proveedor
+
+Se agrega su valor a `proveedor_formulario` mediante una migracion, una entrada exhaustiva en
+`PROVEEDORES` (`lib/ingesta/proveedores.ts`) con su firma y adaptador, y los fixtures
+`tests/fixtures/<proveedor>-parcial.json` y `<proveedor>-completo.json`. El test de contrato recorre
+el registro y cubre automaticamente a cada proveedor.
+
 ## Por decidir en los tickets del track
 
 > ✅ **Cerrados por Mani el 27-sep en la noche**, las dos como se recomendaba: el sobre crudo + 200 va en

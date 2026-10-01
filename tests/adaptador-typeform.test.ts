@@ -90,7 +90,7 @@ describe("entradaDesdeTypeform", () => {
     if (!r.ok) return;
     expect(r.envio.esParcial).toBe(true);
     expect(r.envio.fechaEnvio).toBeNull();
-    expect(r.envio.token).toBe("tok-parcial-001");
+    expect(r.envio.token).toBe("tok-completo-001");
   });
 
   it("dos preguntas con el mismo titulo no se pisan en silencio", () => {

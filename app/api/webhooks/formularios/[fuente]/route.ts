@@ -1,4 +1,3 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
@@ -6,13 +5,14 @@ import { sources } from "@/lib/db/schema";
 import { guardarSobre, marcarSobreConError, type DuenoDelSobre } from "@/lib/ingesta/caja-negra";
 import type { MapeoColumnas } from "@/lib/sheets/mapeo";
 import { procesarSobre, type MotivoProcesado } from "@/lib/ingesta/procesar-sobre";
+import { esProveedorRegistrado, PROVEEDORES } from "@/lib/ingesta/proveedores";
 import { registrarEntrega, type MotivoEntrega } from "@/lib/queries/entregas-webhook";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /**
- * El webhook estandar de formularios (ticket 106, ADR 0055). Un envio de Typeform
+ * El webhook estandar de formularios (ticket 106, ADR 0055). Un envio de un proveedor
  * entra solo al CRM por aqui: la ruta verifica, `procesarSobre` traduce e ingiere.
  *
  * El camino, en orden (ADR 0055 punto 1 y 5):
@@ -42,29 +42,6 @@ export const maxDuration = 60;
  * cuerpo se lee con `req.text()`, no `req.json()`: la firma se calcula sobre los BYTES
  * exactos que llegaron.
  */
-
-/** El header de firma de Typeform: `sha256=<base64 del HMAC>`. */
-const HEADER_FIRMA = "typeform-signature";
-
-/**
- * ¿La firma del header coincide con el HMAC-SHA256 del cuerpo crudo? Comparacion en
- * tiempo constante (`timingSafeEqual`), sobre los bytes del digest.
- */
-function firmaValida(cuerpoCrudo: string, header: string | null, secreto: string): boolean {
-  if (!header) return false;
-  const prefijo = "sha256=";
-  if (!header.startsWith(prefijo)) return false;
-  const enviado = header.slice(prefijo.length);
-
-  const esperado = createHmac("sha256", secreto).update(cuerpoCrudo, "utf8").digest();
-  let recibido: Buffer;
-  try {
-    recibido = Buffer.from(enviado, "base64");
-  } catch {
-    return false;
-  }
-  return recibido.length === esperado.length && timingSafeEqual(recibido, esperado);
-}
 
 export async function POST(
   req: Request,
@@ -107,8 +84,12 @@ export async function POST(
     .where(eq(sources.id, fuenteId))
     .limit(1);
 
-  const esWebhookActiva = !!fila && fila.tipo === "webhook" && fila.activo && fila.proveedor === "typeform";
-  if (!esWebhookActiva) {
+  if (
+    !fila ||
+    fila.tipo !== "webhook" ||
+    !fila.activo ||
+    !esProveedorRegistrado(fila.proveedor)
+  ) {
     console.warn(`[webhook] id no es una fuente webhook activa: ${fuenteId}`);
     await registrarEntrega(db, {
       // Si el id existe como fuente (aunque no sea webhook activa), se guarda de que
@@ -137,12 +118,13 @@ export async function POST(
     return Response.json({ error: "No autorizado." }, { status: 401 });
   }
 
-  // 2. La firma sobre el CUERPO CRUDO. Se lee como texto: la firma es de los bytes.
+  // 2. La firma del proveedor sobre el CUERPO CRUDO. Se lee como texto: la firma es de los bytes.
   // "Firma ausente" (no vino el header) y "firma invalida" (vino y no cuadra) se
   // distinguen aqui (ticket 106, ticket 110): son dos problemas distintos.
   const cuerpo = await req.text();
-  const header = req.headers.get(HEADER_FIRMA);
-  if (!firmaValida(cuerpo, header, fila.secreto)) {
+  const proveedor = PROVEEDORES[fila.proveedor];
+  const header = req.headers.get(proveedor.headerFirma);
+  if (!proveedor.verificarFirma(cuerpo, header, fila.secreto)) {
     await registrarEntrega(db, {
       programId: fila.programId,
       sourceId: fila.id,
@@ -163,6 +145,7 @@ export async function POST(
     {
       id: fila.id,
       programId: fila.programId,
+      proveedor: fila.proveedor,
       tzFechas: fila.tzFechas,
       mapeoColumnas: fila.mapeoColumnas as MapeoColumnas | null,
     },

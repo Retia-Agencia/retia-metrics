@@ -4,7 +4,6 @@ import { z } from "zod";
 import { changeLog, programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
-import { esViolacionUnica } from "@/lib/db/errores";
 import { normalizando } from "@/lib/errors-zod";
 import { esAdministrador, type Rol } from "@/lib/auth/roles";
 import type { MapeoColumnas } from "@/lib/sheets/mapeo";
@@ -416,25 +415,8 @@ export async function activarFuente(
         plantilla,
       );
     }
-    try {
-      const fila = await moldeFuentes(db).reactivar(actor.id, objetivoId);
-      return sinSecreto(fila);
-    } catch (error) {
-      // El indice `sources_una_activa_por_programa_idx` (ADR 0039) deja UNA sola
-      // fuente activa por programa. Sin esta traduccion el choque sale como 500 y
-      // el gerente ve "Error interno" en vez de la regla que acaba de tocar.
-      //
-      // La reja vive en la base y no en un `select` previo a proposito (ADR 0005):
-      // entre la comprobacion y la escritura cabe otra activacion, y una regla que
-      // se puede ganar en una carrera no es una garantia.
-      if (esViolacionUnica(error)) {
-        throw new ErrorDeApp(
-          "Ese programa ya tiene una fuente de leads activa. Desactívala primero: solo puede haber una.",
-          409,
-        );
-      }
-      throw error;
-    }
+    const fila = await moldeFuentes(db).reactivar(actor.id, objetivoId);
+    return sinSecreto(fila);
   });
 }
 

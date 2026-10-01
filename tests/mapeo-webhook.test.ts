@@ -59,12 +59,13 @@ describe("mapeoWebhookDesdeFuente — precedencia y traduccion de vocabulario", 
     expect(campos.correo).toBe("correo de la fuente");
   });
 
-  it("sin fuente ni plantilla, cae al defecto (MAPEO_FORMULARIO) para el contenido", () => {
+  it("sin fuente ni plantilla, el defecto de la HOJA no viaja: cada adaptador trae el suyo (130)", () => {
+    // Dapta manda `email`, no "correo electronico": si el defecto de la hoja viajara,
+    // pisaria el del adaptador y ningun envio de Dapta encontraria su correo.
     const { campos } = mapeoWebhookDesdeFuente(null, null);
-    // El defecto de la hoja trae los patrones estandar del formulario.
-    expect(campos.correo).toBe("correo electronico");
-    expect(campos.telefono).toBe("whatsapp");
-    expect(campos.nombre).toBe("nombre completo");
+    expect(campos.correo).toBeUndefined();
+    expect(campos.telefono).toBeUndefined();
+    expect(campos.nombre).toBeUndefined();
   });
 
   it("🩸 la agenda por DEFECTO no cuenta: solo la que pone la fuente o la plantilla", () => {

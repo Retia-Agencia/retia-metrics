@@ -3,13 +3,21 @@
   "event_type": "form_response_partial",
   "form_response": {
     "form_id": "aBcDeF12",
-    "token": "tok-parcial-001",
+    "token": "tok-completo-001",
     "landed_at": "2026-09-20T14:40:00Z",
-    "variables": [{ "key": "estado", "type": "text", "text": "setteo_no_calificado" }],
+    "variables": [
+      { "key": "estado", "type": "text", "text": "setteo_no_calificado" },
+      { "key": "score", "type": "number", "number": 17 },
+      { "key": "lead_value", "type": "text", "text": "MUY ALTO VALOR" },
+      { "key": "lead_quality", "type": "text", "text": "High" }
+    ],
     "hidden": {
       "utm_source": "facebook",
       "utm_medium": "cpc",
-      "utm_campaign": "tactical-septiembre"
+      "utm_campaign": "tactical-septiembre",
+      "utm_content": "anuncio-a",
+      "utm_term": "inversion",
+      "utm_id": "120212345678900001"
     },
     "definition": {
       "id": "aBcDeF12",

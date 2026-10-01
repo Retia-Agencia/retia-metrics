@@ -147,10 +147,7 @@ describe("activar corre la prueba en ese momento", () => {
     expect(fila.activo).toBe(false);
   });
 
-  it("activar una SEGUNDA fuente del programa sale como 409, no como 500 (ADR 0039)", async () => {
-    // Un programa tiene UN intake de leads. La reja es el indice de la base
-    // (ADR 0005), no un `select` previo: entre comprobar y escribir cabe otra
-    // activacion. Lo que se mide aqui es que el choque llegue traducido.
+  it("activar una segunda fuente del mismo programa deja las dos activas", async () => {
     filasPorFuente.set("sheet-1|Hoja", [ENCABEZADOS_OK]);
     filasPorFuente.set("sheet-2|Otra", [ENCABEZADOS_OK]);
     const primera = await crearFuente(db, actorGerente(), entradaBase());
@@ -163,13 +160,10 @@ describe("activar corre la prueba en ese momento", () => {
       tab: "Otra",
     });
 
-    await expect(activarFuente(db, actorGerente(), segunda.id)).rejects.toMatchObject({
-      status: 409,
-    });
+    await activarFuente(db, actorGerente(), segunda.id);
 
-    // Y la primera no se toco: el rechazo no deja al programa sin intake.
-    const [viva] = await db.select().from(sources).where(eq(sources.id, primera.id));
-    expect(viva.activo).toBe(true);
+    const activas = await db.select().from(sources).where(eq(sources.programId, programId));
+    expect(activas.filter((fuente) => fuente.activo)).toHaveLength(2);
   });
 
   it("desactivar la primera deja activar la segunda: el cupo se libera", async () => {

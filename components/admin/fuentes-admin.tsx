@@ -137,6 +137,7 @@ function ProgramaCard({ programa }: { programa: ProgramaConFuentes }) {
   const [creando, setCreando] = useState(false);
   const [editando, setEditando] = useState<string | null>(null);
   const [editandoPlantilla, setEditandoPlantilla] = useState(false);
+  const fuentesActivas = programa.fuentes.filter((fuente) => fuente.activo).length;
 
   function correr(accion: () => Promise<ResultadoAccion>, exito: string, alExito?: () => void) {
     startTransition(async () => {
@@ -154,7 +155,12 @@ function ProgramaCard({ programa }: { programa: ProgramaConFuentes }) {
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
-        <CardTitle className="text-base">{programa.nombre}</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-base">{programa.nombre}</CardTitle>
+          <Badge variant="outline" className="text-muted-foreground">
+            {fuentesActivas} {fuentesActivas === 1 ? "fuente activa" : "fuentes activas"}
+          </Badge>
+        </div>
         <div className="flex gap-2">
           <Button
             size="sm"

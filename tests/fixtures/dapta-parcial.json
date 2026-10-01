@@ -1,0 +1,37 @@
+{
+  "id": "delivery-parcial-001",
+  "type": "form.submission",
+  "phase": "partial",
+  "submittedAt": "2026-09-20T14:40:00Z",
+  "form": {
+    "id": "form-dapta-tactical",
+    "name": "Aplicación Tactical Investor"
+  },
+  "submission": {
+    "id": "submission-dapta-001",
+    "sessionId": "session-dapta-001",
+    "score": 17,
+    "outcome": "con_calendly_sin_agenda|MUY ALTO VALOR|High"
+  },
+  "data": {
+    "email": "Ana.Perez@Correo.co",
+    "whatsapp": "+57 300 123 4567",
+    "nombre_dividido": { "firstname": "Ana", "lastname": "Pérez" },
+    "utm_id": "120212345678900001",
+    "extra_desconocido": "se conserva"
+  },
+  "utm": {
+    "source": "facebook",
+    "medium": "paid_social",
+    "campaign": "tactical-septiembre",
+    "content": "anuncio-a",
+    "term": "instagram_reels"
+  },
+  "visit": {
+    "pageUri": "https://retia.co/tactical",
+    "pageName": "Tactical Investor",
+    "embedded": true,
+    "hutk": "no-se-guarda"
+  },
+  "programId": "programa-que-no-debe-usarse"
+}

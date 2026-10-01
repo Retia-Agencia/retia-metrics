@@ -16,6 +16,8 @@ import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import real from "./fixtures/typeform-real-tactical.json";
+import daptaParcial from "./fixtures/dapta-parcial.json";
+import daptaCompleto from "./fixtures/dapta-completo.json";
 
 /**
  * Matriz de casos del webhook (tarea C del ticket 106, pedido explicito de Mani:
@@ -59,9 +61,13 @@ function firmar(cuerpo: string, secreto = SECRETO): string {
   return "sha256=" + createHmac("sha256", secreto).update(cuerpo, "utf8").digest("base64");
 }
 
-function peticion(cuerpo: string, firma: string | null): Request {
+function firmarDapta(cuerpo: string, secreto = SECRETO): string {
+  return "sha256=" + createHmac("sha256", secreto).update(cuerpo, "utf8").digest("hex");
+}
+
+function peticion(cuerpo: string, firma: string | null, headerFirma = "Typeform-Signature"): Request {
   const headers: Record<string, string> = { "content-type": "application/json" };
-  if (firma !== null) headers["Typeform-Signature"] = firma;
+  if (firma !== null) headers[headerFirma] = firma;
   return new Request("https://app.retia.co/api/webhooks/formularios/x", {
     method: "POST",
     headers,
@@ -69,15 +75,25 @@ function peticion(cuerpo: string, firma: string | null): Request {
   });
 }
 
-async function invocar(fuente: string, cuerpo: string, firma: string | null): Promise<Response> {
+async function invocar(
+  fuente: string,
+  cuerpo: string,
+  firma: string | null,
+  headerFirma?: string,
+): Promise<Response> {
   const { POST } = await import("@/app/api/webhooks/formularios/[fuente]/route");
-  return POST(peticion(cuerpo, firma), { params: Promise.resolve({ fuente }) });
+  return POST(peticion(cuerpo, firma, headerFirma), { params: Promise.resolve({ fuente }) });
 }
 
 /** Envia el fixture (o una variante) firmado a la fuente activa por defecto. */
 async function enviar(payload: unknown, fuente = sourceId): Promise<Response> {
   const cuerpo = JSON.stringify(payload);
   return invocar(fuente, cuerpo, firmar(cuerpo));
+}
+
+async function enviarDapta(payload: unknown, fuente: string): Promise<Response> {
+  const cuerpo = JSON.stringify(payload);
+  return invocar(fuente, cuerpo, firmarDapta(cuerpo), "x-forms-signature");
 }
 
 type Answer = { field: { id: string; type?: string }; type: string; [k: string]: unknown };
@@ -482,6 +498,65 @@ describe("caso 8 — mismo correo, mayúsculas/espacios y frontera de programa",
     otroEnvio.form_response.token = "t-otro-programa";
     await enviar(otroEnvio, fuenteOtro.id);
 
+    expect(await db.select().from(leads)).toHaveLength(2);
+  });
+});
+
+describe("Dapta", () => {
+  async function fuenteDapta(programa = programId): Promise<string> {
+    const [fuente] = await db
+      .insert(sources)
+      .values({
+        programId: programa,
+        nombre: "Dapta Forms",
+        tipo: "webhook",
+        proveedor: "dapta",
+        secretoWebhook: SECRETO,
+        activo: true,
+      })
+      .returning();
+    return fuente.id;
+  }
+
+  it("acepta la firma hexadecimal correcta y rechaza la incorrecta", async () => {
+    const fuente = await fuenteDapta();
+    const cuerpo = JSON.stringify(daptaCompleto);
+    const mala = await invocar(fuente, cuerpo, "sha256=00", "x-forms-signature");
+    const buena = await enviarDapta(daptaCompleto, fuente);
+    expect(mala.status).toBe(401);
+    expect(buena.status).toBe(200);
+  });
+
+  it("guarda el parcial y el completo del mismo token como dos envios y un lead", async () => {
+    const fuente = await fuenteDapta();
+    await enviarDapta(daptaParcial, fuente);
+    await enviarDapta(daptaCompleto, fuente);
+    expect(await db.select().from(submissions)).toHaveLength(2);
+    expect(await db.select().from(leads)).toHaveLength(1);
+  });
+
+  it("deduplica la misma persona de Typeform y Dapta dentro del programa", async () => {
+    const fuente = await fuenteDapta();
+    await enviar(conAgenda(fixture(), ""));
+    await enviarDapta(daptaCompleto, fuente);
+    expect(await db.select().from(submissions)).toHaveLength(2);
+    expect(await db.select().from(leads)).toHaveLength(1);
+  });
+
+  it("mantiene la frontera cuando el mismo correo llega a otro programa", async () => {
+    const fuente = await fuenteDapta();
+    await enviarDapta(daptaCompleto, fuente);
+    const [otro] = await db
+      .insert(programs)
+      .values({
+        ...PROGRAMA_DE_PRUEBA,
+        slug: "dapta-otro",
+        nombre: "Dapta Otro",
+        ticketUsd: "1500",
+      })
+      .returning();
+    const fuenteOtro = await fuenteDapta(otro.id);
+    await enviarDapta(daptaCompleto, fuenteOtro);
     expect(await db.select().from(leads)).toHaveLength(2);
   });
 });
