@@ -34,7 +34,9 @@ const PROGRAMAS = {
     ],
   },
 };
-const opt = (value, label, points) => ({ label, value, points });
+// El value es la misma etiqueta (A10, 30-sep): Dapta manda el value en el webhook, y asi `respuestas`
+// se lee igual que un envio de Typeform. Ninguna condicion usa el value: los saltos van por @score.
+const opt = (_slug, label, points) => ({ label, value: label, points });
 const lead = { flowGroup: 'lead_capture', required: true };
 
 function formDe(p) {
@@ -89,11 +91,11 @@ const GRACIAS = 'Nuestro equipo revisará tu perfil, y en caso de ser selecciona
 const AGENDADO = 'Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.';
 const outcomes = [];
 for (const t of TRAMOS) {
-  outcomes.push({ id: `limpio_${t.min}`, label: `con_calendly_sin_agenda|${t.limpio}`,
+  outcomes.push({ id: `limpio_${t.min}`, label: `con_calendly_sin_agenda|${t.limpio}|High`,
     minScore: t.min, ...(t.min === 30 ? {} : { maxScore: t.max }),
     message: AGENDADO, redirectUrl: 'https://example.com/REEMPLAZAR-agendado' });
   for (const k of [1, 2, 3]) // hasta tres respuestas descalificantes (ingreso, urgencia, inversion)
-    outcomes.push({ id: `desc${k}_${t.min}`, label: `setteo_no_calificado|${t.desc}`,
+    outcomes.push({ id: `desc${k}_${t.min}`, label: `setteo_no_calificado|${t.desc}|Low`,
       minScore: t.min - 100 * k, maxScore: t.max - 100 * k,
       message: GRACIAS, redirectUrl: 'https://example.com/REEMPLAZAR-gracias' });
 }

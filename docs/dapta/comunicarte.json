@@ -36,22 +36,22 @@
         "options": [
           {
             "label": "Menos de $700 USD",
-            "value": "ingreso_1",
+            "value": "Menos de $700 USD",
             "points": -100
           },
           {
             "label": "$700 - $1.500 USD",
-            "value": "ingreso_2",
+            "value": "$700 - $1.500 USD",
             "points": -90
           },
           {
             "label": "$1.500 - $3.000 USD",
-            "value": "ingreso_3",
+            "value": "$1.500 - $3.000 USD",
             "points": 20
           },
           {
             "label": "Más de $3.000 USD",
-            "value": "ingreso_4",
+            "value": "Más de $3.000 USD",
             "points": 30
           }
         ]
@@ -72,17 +72,17 @@
         "options": [
           {
             "label": "Muy urgente",
-            "value": "muy_urgente",
+            "value": "Muy urgente",
             "points": 0
           },
           {
             "label": "Estoy interesado pero puede esperar",
-            "value": "puede_esperar",
+            "value": "Estoy interesado pero puede esperar",
             "points": 0
           },
           {
             "label": "No es prioridad",
-            "value": "no_prioridad",
+            "value": "No es prioridad",
             "points": -100
           }
         ]
@@ -95,32 +95,32 @@
         "options": [
           {
             "label": "Estudiante",
-            "value": "estudiante",
+            "value": "Estudiante",
             "points": 0
           },
           {
             "label": "Desempleado",
-            "value": "desempleado",
+            "value": "Desempleado",
             "points": 0
           },
           {
             "label": "0-5 años de experiencia",
-            "value": "exp_0_5",
+            "value": "0-5 años de experiencia",
             "points": 10
           },
           {
             "label": "5-15 años de experiencia",
-            "value": "exp_5_15",
+            "value": "5-15 años de experiencia",
             "points": 20
           },
           {
             "label": "+15 años de experiencia",
-            "value": "exp_15_mas",
+            "value": "+15 años de experiencia",
             "points": 20
           },
           {
             "label": "Pensionado",
-            "value": "pensionado",
+            "value": "Pensionado",
             "points": 10
           }
         ]
@@ -133,17 +133,17 @@
         "options": [
           {
             "label": "Sí, tengo la disposición y capacidad de invertir en este momento",
-            "value": "si_puedo",
+            "value": "Sí, tengo la disposición y capacidad de invertir en este momento",
             "points": 0
           },
           {
             "label": "Sí, pero necesito facilidades de pago",
-            "value": "si_facilidades",
+            "value": "Sí, pero necesito facilidades de pago",
             "points": 0
           },
           {
             "label": "No, en este momento no cuento con los recursos",
-            "value": "no_recursos",
+            "value": "No, en este momento no cuento con los recursos",
             "points": -100
           }
         ]
@@ -181,14 +181,14 @@
     "outcomes": [
       {
         "id": "limpio_30",
-        "label": "con_calendly_sin_agenda|MUY ALTO VALOR",
+        "label": "con_calendly_sin_agenda|MUY ALTO VALOR|High",
         "minScore": 30,
         "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
         "redirectUrl": "https://example.com/REEMPLAZAR-agendado"
       },
       {
         "id": "desc1_30",
-        "label": "setteo_no_calificado|ALTO VALOR",
+        "label": "setteo_no_calificado|ALTO VALOR|Low",
         "minScore": -70,
         "maxScore": -50,
         "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
@@ -196,7 +196,7 @@
       },
       {
         "id": "desc2_30",
-        "label": "setteo_no_calificado|ALTO VALOR",
+        "label": "setteo_no_calificado|ALTO VALOR|Low",
         "minScore": -170,
         "maxScore": -150,
         "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
@@ -204,7 +204,7 @@
       },
       {
         "id": "desc3_30",
-        "label": "setteo_no_calificado|ALTO VALOR",
+        "label": "setteo_no_calificado|ALTO VALOR|Low",
         "minScore": -270,
         "maxScore": -250,
         "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
@@ -212,7 +212,7 @@
       },
       {
         "id": "limpio_15",
-        "label": "con_calendly_sin_agenda|ALTO VALOR",
+        "label": "con_calendly_sin_agenda|ALTO VALOR|High",
         "minScore": 15,
         "maxScore": 29,
         "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
@@ -220,7 +220,7 @@
       },
       {
         "id": "desc1_15",
-        "label": "setteo_no_calificado|VALOR MEDIO",
+        "label": "setteo_no_calificado|VALOR MEDIO|Low",
         "minScore": -85,
         "maxScore": -71,
         "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
@@ -228,7 +228,7 @@
       },
       {
         "id": "desc2_15",
-        "label": "setteo_no_calificado|VALOR MEDIO",
+        "label": "setteo_no_calificado|VALOR MEDIO|Low",
         "minScore": -185,
         "maxScore": -171,
         "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
@@ -236,7 +236,7 @@
       },
       {
         "id": "desc3_15",
-        "label": "setteo_no_calificado|VALOR MEDIO",
+        "label": "setteo_no_calificado|VALOR MEDIO|Low",
         "minScore": -285,
         "maxScore": -271,
         "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
@@ -244,7 +244,7 @@
       },
       {
         "id": "limpio_0",
-        "label": "con_calendly_sin_agenda|VALOR MEDIO",
+        "label": "con_calendly_sin_agenda|VALOR MEDIO|High",
         "minScore": 0,
         "maxScore": 14,
         "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
@@ -252,7 +252,7 @@
       },
       {
         "id": "desc1_0",
-        "label": "setteo_no_calificado|BAJO VALOR",
+        "label": "setteo_no_calificado|BAJO VALOR|Low",
         "minScore": -100,
         "maxScore": -86,
         "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
@@ -260,7 +260,7 @@
       },
       {
         "id": "desc2_0",
-        "label": "setteo_no_calificado|BAJO VALOR",
+        "label": "setteo_no_calificado|BAJO VALOR|Low",
         "minScore": -200,
         "maxScore": -186,
         "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
@@ -268,7 +268,7 @@
       },
       {
         "id": "desc3_0",
-        "label": "setteo_no_calificado|BAJO VALOR",
+        "label": "setteo_no_calificado|BAJO VALOR|Low",
         "minScore": -300,
         "maxScore": -286,
         "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",

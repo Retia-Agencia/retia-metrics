@@ -142,7 +142,7 @@ export const motivoEntregaEnum = pgEnum("motivo_entrega", [
  * porque el codigo elige el adaptador con el: un proveedor nuevo es un valor mas y un
  * adaptador, nunca un endpoint nuevo.
  */
-export const proveedorFormularioEnum = pgEnum("proveedor_formulario", ["typeform"]);
+export const proveedorFormularioEnum = pgEnum("proveedor_formulario", ["typeform", "dapta"]);
 export const estadoSyncEnum = pgEnum("estado_sync", ["corriendo", "ok", "error"]);
 /**
  * Salud de una fuente (ADR 0039, lo usa el ticket 055). **No es lo mismo que
@@ -426,32 +426,12 @@ export const sources = pgTable(
   },
   (t) => [
     /**
-     * **Un solo intake ACTIVO por programa** (ADR 0039 punto 2, insumo §2.10). La
-     * garantia vive en la base y no en el codigo (ADR 0005), mismo molde que
-     * `cohorts_una_activa_por_programa_idx`.
-     *
-     * PARCIAL y no unico a secas, por dos razones que no son comodidad:
-     * - `Forms viejo` se queda como fuente INACTIVA, no se borra. Sus 55 personas
-     *   exclusivas las recupera la etapa 7 **con sus envios**, y esos
-     *   `submissions.source_id` necesitan apuntar a algo que diga la verdad sobre
-     *   de donde salieron. Apuntarlos al formulario actual seria escribir un origen
-     *   falso.
-     * - Un formulario se reemplaza alguna vez (Typeform → Dapta). Con un unico a
-     *   secas, cambiar de formulario obligaria a destruir el registro del anterior
-     *   en el mismo movimiento.
-     *
-     * Lo que nunca puede existir son DOS intakes activos en el mismo programa: eso
-     * duplica la superficie del dedup y es lo que hacia ambigua la atribucion de una
-     * corrida (F-07, ADR 0031).
-     *
-     * ⚠️ En la migracion este indice se crea DESPUES de desactivar la fuente
-     * vieja. Medido contra `dev` el 21-sep: uno de los dos programas tiene HOY
-     * dos fuentes de leads activas, asi que al reves falla. Misma leccion que el
-     * `CHECK` de la migracion 0009.
+     * **Varios intakes ACTIVOS por programa** (ADR 0064, ticket 131; enmienda el ADR 0039
+     * punto 2). Hasta el 30-sep un indice unico parcial (`sources_una_activa_por_programa_idx`)
+     * dejaba uno solo. Se quito porque pasar de Typeform a Dapta exige que los dos reciban a
+     * la vez, y Mani lo quiere como realidad permanente, no solo de migracion. El dedup no se
+     * afloja: la identidad es `(program_id, email_normalizado)` del lead, no la fuente.
      */
-    uniqueIndex("sources_una_activa_por_programa_idx")
-      .on(t.programId)
-      .where(sql`${t.activo} = true`),
     /**
      * Una fuente webhook sin proveedor no tiene adaptador que la lea (ADR 0055). El
      * `::text` no es adorno: la migracion agrega `webhook` al enum en la misma
