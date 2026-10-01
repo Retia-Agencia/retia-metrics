@@ -67,7 +67,7 @@ export function FichaPago({
         <CardTitle>Pago</CardTitle>
         {abonosActivos ? (
           <CardAction>
-            <Button size="sm" variant="outline" onClick={() => setDialogo({ tipo: "abono" })} disabled={!ficha.producto}>
+            <Button size="sm" variant="outline" onClick={() => setDialogo({ tipo: "abono" })} disabled={ficha.valorVendidoUsd == null}>
               Registrar abono
             </Button>
           </CardAction>
@@ -77,8 +77,8 @@ export function FichaPago({
       <CardContent className="space-y-4">
         <dl className="grid grid-cols-3 gap-3">
           <div>
-            <dt className="text-xs text-muted-foreground">Precio</dt>
-            <dd className="cifra text-sm">{s.precio != null ? monto(s.precio, moneda) : "Sin producto"}</dd>
+            <dt className="text-xs text-muted-foreground">Valor vendido</dt>
+            <dd className="cifra text-sm">{s.precio != null ? monto(s.precio, moneda) : "Sin valor vendido"}</dd>
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">Abonado</dt>
@@ -90,10 +90,10 @@ export function FichaPago({
           </div>
         </dl>
         {s.sinSaldoPorque === "moneda_distinta" ? (
-          <p className="text-xs text-tono-alerta">Hay abonos en otra moneda que el producto: el saldo no se calcula ni se convierte.</p>
+          <p className="text-xs text-tono-alerta">Hay abonos en otra moneda que el valor vendido: el saldo no se calcula ni se convierte.</p>
         ) : null}
-        {abonosActivos && !ficha.producto ? (
-          <p className="text-xs text-muted-foreground">Elige un producto (Editar) antes de registrar un abono: sin producto no hay precio.</p>
+        {abonosActivos && ficha.valorVendidoUsd == null ? (
+          <p className="text-xs text-muted-foreground">Escribe el valor vendido (Editar) antes de registrar un abono.</p>
         ) : null}
 
         {/* El acuerdo de pago: texto y fecha limite (ADR 0053), no cuotas. */}
@@ -169,7 +169,7 @@ export function FichaPago({
 
       {/* Los abonos: los anulados se ven tachados, con quien y por que (ADR 0026 punto 4). */}
       {ficha.abonos.length === 0 ? (
-        <Vacio>Aún no hay abonos.{abonosActivos && ficha.producto ? " Registra el primero arriba." : ""}</Vacio>
+        <Vacio>Aún no hay abonos.{abonosActivos && ficha.valorVendidoUsd != null ? " Registra el primero arriba." : ""}</Vacio>
       ) : (
         <ul className="divide-y border-t">
           {ficha.abonos.map((a) => {

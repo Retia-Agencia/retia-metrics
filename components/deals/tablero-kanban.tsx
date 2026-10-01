@@ -97,6 +97,7 @@ export function TableroKanban({
         motivoId: datos.motivoId ?? null,
         datos: {
           productoId: datos.productoId,
+          valorVendidoUsd: datos.valorVendidoUsd,
           areaDeclaradaId: datos.areaDeclaradaId,
           fechaLimitePago: datos.fechaLimitePago,
           cohorteDestinoId: datos.cohorteDestinoId,

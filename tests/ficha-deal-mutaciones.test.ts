@@ -23,6 +23,7 @@ import { editarDeal } from "@/lib/deals/editar-deal";
 import { puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { ErrorDeApp } from "@/lib/errors";
 import { embudoDelRango, vistaDeCohorteActiva } from "@/lib/queries/dashboard";
+import { saldosDeDeals } from "@/lib/queries/saldo";
 import { tableroKanban } from "@/lib/queries/kanban";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -101,7 +102,7 @@ async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferIns
     .returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer, productoId, areaDeclaradaId: areaId, ...extra })
+    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer, productoId, valorVendidoUsd: "1000", areaDeclaradaId: areaId, ...extra })
     .returning();
   return d.id;
 }
@@ -269,13 +270,41 @@ describe("editarDeal", () => {
       expect((await deal(dealId)).productoId).toBe(productoId);
     });
 
-    it("uno mas barato que lo ya abonado se rechaza: no se fabrica un sobrepago", async () => {
+    it("el producto ya no cambia el saldo del deal", async () => {
       const dealId = await nuevoDeal("atendido");
       await registrarAbono(db, comoCloser(), { dealId, fecha: "2026-09-28", monto: "600", comprobanteUrl: "https://drive.google.com/c" });
       const [barato] = await db.insert(productos).values({ programId, nombre: "Barato", precioLista: "500" }).returning();
-      const e = await capturar(editarDeal(db, comoCloser(), { dealId, productoId: barato.id }));
-      expect(e.status).toBe(422);
-      expect((await deal(dealId)).productoId).toBe(productoId);
+      await editarDeal(db, comoCloser(), { dealId, productoId: barato.id });
+      expect((await deal(dealId)).productoId).toBe(barato.id);
+      expect((await saldosDeDeals(db, [dealId])).get(dealId)?.saldo).toBe(400);
+    });
+  });
+
+  describe("el valor vendido", () => {
+    it("no baja de lo abonado y deja la fila intacta cuando se rechaza", async () => {
+      const dealId = await nuevoDeal("atendido", { valorVendidoUsd: "797" });
+      await registrarAbono(db, comoCloser(), { dealId, fecha: "2026-09-28", monto: "500", comprobanteUrl: "https://drive.google.com/c" });
+
+      const e = await capturar(editarDeal(db, comoCloser(), { dealId, valorVendidoUsd: 499.99 }));
+
+      expect(e).toMatchObject({ status: 422 });
+      expect(e.message).toContain("USD 499,99");
+      expect(e.message).toContain("USD 500,00");
+      expect((await deal(dealId)).valorVendidoUsd).toBe("797.00");
+    });
+
+    it("al subirlo escribe change_log", async () => {
+      const dealId = await nuevoDeal("atendido", { valorVendidoUsd: "797" });
+      await editarDeal(db, comoCloser(), { dealId, valorVendidoUsd: 900 });
+      expect((await deal(dealId)).valorVendidoUsd).toBe("900.00");
+      expect(await rastro(dealId)).toContainEqual(expect.objectContaining({ campo: "valorVendidoUsd", valorAnterior: "797.00", valorNuevo: "900", userId: closer }));
+    });
+
+    it("en Completo devuelve 409", async () => {
+      const dealId = await nuevoDeal("completo", { valorVendidoUsd: "797" });
+      const e = await capturar(editarDeal(db, comoCloser(), { dealId, valorVendidoUsd: 900 }));
+      expect(e).toMatchObject({ status: 409, message: "El deal está completo: cambiar su valor vendido movería su saldo." });
+      expect((await deal(dealId)).valorVendidoUsd).toBe("797.00");
     });
   });
 

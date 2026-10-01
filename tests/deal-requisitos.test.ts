@@ -17,20 +17,20 @@ const ESPERADOS: Record<string, Codigo[]> = {
   T2: ["llamada_con_fecha"],
   T3: ["llamada_con_fecha"],
   T4: ["producto", "fecha_limite_pago", "area_declarada"],
-  "T5>abonado": ["producto", "abono", "comprobante", "saldo_pendiente", "area_declarada"],
-  "T5>completo": ["producto", "abono", "comprobante", "saldo_en_cero", "area_declarada"],
+  "T5>abonado": ["valor_vendido", "abono", "comprobante", "saldo_pendiente", "area_declarada"],
+  "T5>completo": ["valor_vendido", "abono", "comprobante", "saldo_en_cero", "area_declarada"],
   T6: ["llamada_con_fecha"],
   T7: ["llamada_sucedio"],
   T8: ["llamada_fallida"],
   T9: ["llamada_con_fecha"],
   T10: ["llamada_sucedio"],
   T12: ["producto", "fecha_limite_pago", "area_declarada"],
-  T13: ["producto", "abono", "comprobante", "saldo_pendiente", "area_declarada"],
-  T14: ["producto", "abono", "comprobante", "saldo_en_cero", "area_declarada"],
+  T13: ["valor_vendido", "abono", "comprobante", "saldo_pendiente", "area_declarada"],
+  T14: ["valor_vendido", "abono", "comprobante", "saldo_en_cero", "area_declarada"],
   T15: ["motivo"],
-  T16: ["producto", "abono", "comprobante", "saldo_pendiente", "area_declarada"],
-  T17: ["producto", "abono", "comprobante", "saldo_en_cero", "area_declarada"],
-  T18: ["saldo_en_cero", "comprobante", "area_declarada"],
+  T16: ["valor_vendido", "abono", "comprobante", "saldo_pendiente", "area_declarada"],
+  T17: ["valor_vendido", "abono", "comprobante", "saldo_en_cero", "area_declarada"],
+  T18: ["valor_vendido", "saldo_en_cero", "comprobante", "area_declarada"],
   T19: ["cohorte_destino"],
   T20: ["cohorte_destino"],
   T21: ["cohorte_destino"],
@@ -38,8 +38,8 @@ const ESPERADOS: Record<string, Codigo[]> = {
   T23: ["llamada_con_fecha"],
   T24: ["fecha_seguimiento"],
   T25: ["producto", "fecha_limite_pago", "area_declarada"],
-  "T26>abonado": ["producto", "abono", "comprobante", "saldo_pendiente", "area_declarada"],
-  "T26>completo": ["producto", "abono", "comprobante", "saldo_en_cero", "area_declarada"],
+  "T26>abonado": ["valor_vendido", "abono", "comprobante", "saldo_pendiente", "area_declarada"],
+  "T26>completo": ["valor_vendido", "abono", "comprobante", "saldo_en_cero", "area_declarada"],
   T27: ["llamada_con_fecha"],
   T28: ["cohorte_destino"],
   T29: ["motivo"],
@@ -57,6 +57,7 @@ const NADA: HechosDelDeal = {
   llamadaSucedio: false,
   llamadaFallida: false,
   productoId: null,
+  valorVendidoUsd: null,
   areaDeclaradaId: null,
   esHistorico: false,
   fechaLimitePago: null,
@@ -76,6 +77,7 @@ const CUMPLIR: Record<Codigo, Partial<HechosDelDeal>> = {
   llamada_sucedio: { llamadaSucedio: true },
   llamada_fallida: { llamadaFallida: true },
   producto: { productoId: "prod-1" },
+  valor_vendido: { valorVendidoUsd: 797 },
   area_declarada: { areaDeclaradaId: "area-1" },
   fecha_limite_pago: { fechaLimitePago: "2026-10-15" },
   cohorte_destino: { cohorteDestinoId: "coh-2" },
@@ -95,6 +97,7 @@ const ROMPER: Record<Codigo, Partial<HechosDelDeal>> = {
   llamada_sucedio: { llamadaSucedio: false },
   llamada_fallida: { llamadaFallida: false },
   producto: { productoId: null },
+  valor_vendido: { valorVendidoUsd: null, esHistorico: false },
   area_declarada: { areaDeclaradaId: null, esHistorico: false },
   fecha_limite_pago: { fechaLimitePago: null },
   cohorte_destino: { cohorteDestinoId: null },
@@ -145,7 +148,7 @@ describe("lo que no es un requisito", () => {
 
   it("devuelve TODO lo que falta, no solo lo primero", () => {
     expect(queLeFalta("atendido", "abonado", NADA).map((f) => f.codigo)).toEqual([
-      "producto",
+      "valor_vendido",
       "abono",
       "comprobante",
       "saldo_pendiente",
@@ -153,9 +156,9 @@ describe("lo que no es un requisito", () => {
     ]);
   });
 
-  it("un deal sin producto no tiene saldo contra el cual ir a Completo", () => {
+  it("un deal sin valor vendido no tiene saldo contra el cual ir a Completo", () => {
     const hechos = { ...cumpliendo(["abono", "comprobante", "area_declarada"]), saldo: null };
-    expect(queLeFalta("abonado", "completo", hechos).map((f) => f.codigo)).toEqual(["saldo_en_cero"]);
+    expect(queLeFalta("abonado", "completo", hechos).map((f) => f.codigo)).toEqual(["valor_vendido", "saldo_en_cero"]);
   });
 
   it("A1 y A2 no piden área declarada", () => {
@@ -168,8 +171,13 @@ describe("lo que no es un requisito", () => {
     expect(queLeFalta("abonado", "completo", hechos)).toEqual([]);
   });
 
+  it("un deal histórico está exento del valor vendido", () => {
+    const hechos = { ...cumpliendo(ESPERADOS.T18), valorVendidoUsd: null, esHistorico: true };
+    expect(queLeFalta("abonado", "completo", hechos)).toEqual([]);
+  });
+
   it("un sobrepago que se colo cuenta como pagado: el deal no queda trabado en Abonado", () => {
-    const hechos = { ...cumpliendo(["abono", "comprobante", "area_declarada"]), saldo: -50 };
+    const hechos = { ...cumpliendo(["valor_vendido", "abono", "comprobante", "area_declarada"]), saldo: -50 };
     expect(queLeFalta("abonado", "completo", hechos)).toEqual([]);
   });
 });

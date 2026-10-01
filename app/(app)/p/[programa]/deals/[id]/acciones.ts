@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import { esquemaValorVendidoUsdOpcional } from "@/lib/deals/valor-vendido";
 import type { Session } from "next-auth";
 import { requireRole } from "@/lib/auth/guards";
 import { esRolValido, type Rol } from "@/lib/auth/roles";
@@ -116,6 +117,7 @@ function instante(d: string, h: string): Date {
 const esquemaEditar = z.object({
   dealId: id("Deal inválido."),
   productoId: id("Producto inválido.").optional(),
+  valorVendidoUsd: esquemaValorVendidoUsdOpcional,
   ownerUserId: id("Dueño inválido.").optional(),
   fechaSeguimiento: dia.nullable().optional(),
   motivoId: id("Motivo inválido.").nullable().optional(),
@@ -127,9 +129,9 @@ export async function editarDealAccion(entrada: EntradaEditarDeal): Promise<Resu
   return correr(async (ctx) => {
     const { actor } = ctx;
     // Solo estos campos pasan a la funcion: nada mas del cuerpo de la peticion llega a ella.
-    const { dealId, productoId, ownerUserId, fechaSeguimiento, motivoId, areaDeclaradaId } = esquemaEditar.parse(entrada);
+    const { dealId, productoId, valorVendidoUsd, ownerUserId, fechaSeguimiento, motivoId, areaDeclaradaId } = esquemaEditar.parse(entrada);
     await exigirDealVisible(ctx, dealId);
-    await editarDeal(db, actor, { dealId, productoId, ownerUserId, fechaSeguimiento, motivoId, areaDeclaradaId });
+    await editarDeal(db, actor, { dealId, productoId, valorVendidoUsd, ownerUserId, fechaSeguimiento, motivoId, areaDeclaradaId });
     return {};
   });
 }

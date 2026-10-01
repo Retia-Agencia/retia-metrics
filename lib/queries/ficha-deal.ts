@@ -105,6 +105,7 @@ export interface FichaDeDeal {
   origen: { utmSource: string | null; utmMedium: string | null; utmCampaign: string | null } | null;
   owner: { id: string; nombre: string | null } | null;
   producto: { id: string; nombre: string; precio: string; moneda: string } | null;
+  valorVendidoUsd: number | null;
   areaDeclarada: { id: string; nombre: string } | null;
   cohorte: { id: string; codigo: string; inicioClases: string } | null;
   cohorteDestino: { id: string; codigo: string } | null;
@@ -237,6 +238,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
       : null,
     owner: deal.ownerUserId ? { id: deal.ownerUserId, nombre: nombreDe(deal.ownerUserId) } : null,
     producto: producto ? { id: producto.id, nombre: producto.nombre, precio: producto.precioLista, moneda: producto.moneda } : null,
+    valorVendidoUsd: deal.valorVendidoUsd == null ? null : Number(deal.valorVendidoUsd),
     areaDeclarada: areaDeclarada ? { id: areaDeclarada.id, nombre: String(areaDeclarada.nombre) } : null,
     cohorte: cohorte ? { id: cohorte.id, codigo: cohorte.codigo, inicioClases: cohorte.fechaInicioClases } : null,
     cohorteDestino: cohorteDestino ? { id: cohorteDestino.id, codigo: cohorteDestino.codigo } : null,

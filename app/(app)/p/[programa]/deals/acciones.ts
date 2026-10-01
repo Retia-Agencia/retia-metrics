@@ -14,6 +14,7 @@ import { and, eq } from "drizzle-orm";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
 import type { RequisitoFaltante } from "@/lib/deals/requisitos";
+import { esquemaValorVendidoUsdOpcional } from "@/lib/deals/valor-vendido";
 
 /**
  * Server action del Kanban (ticket 069): mover un deal de etapa.
@@ -37,6 +38,7 @@ import type { RequisitoFaltante } from "@/lib/deals/requisitos";
 const esquemaDatos = z
   .object({
     productoId: z.string().uuid().nullable().optional(),
+    valorVendidoUsd: esquemaValorVendidoUsdOpcional,
     areaDeclaradaId: z.string().uuid().nullable().optional(),
     fechaLimitePago: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida.").nullable().optional(),
     acuerdoPago: z.string().trim().max(500).nullable().optional(),

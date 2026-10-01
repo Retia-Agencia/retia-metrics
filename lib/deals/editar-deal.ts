@@ -8,9 +8,11 @@ import { normalizando } from "@/lib/errors-zod";
 import { esAdministrador } from "@/lib/auth/roles";
 import { editarConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
+import { usd } from "@/lib/format";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { esDuenoPosible } from "./duenos";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
+import { esquemaValorVendidoUsdOpcional } from "./valor-vendido";
 
 /**
  * Editar los campos sueltos de un deal (ticket 074, ADR 0042): un deal NO es inmutable.
@@ -33,6 +35,7 @@ import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
 export const esquemaEditarDeal = z.object({
   dealId: z.string().uuid("El deal no es válido."),
   productoId: z.string().uuid("El producto no es válido.").optional(),
+  valorVendidoUsd: esquemaValorVendidoUsdOpcional,
   ownerUserId: z.string().uuid("El dueño no es válido.").optional(),
   fechaSeguimiento: z
     .string()
@@ -50,7 +53,7 @@ type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> 
 /** Devuelve `true` si algo cambio (si no, no se escribe ni rastro). */
 export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarDeal): Promise<boolean> {
   return normalizando(async () => {
-    const { dealId, productoId, ownerUserId, fechaSeguimiento, motivoId, areaDeclaradaId } = esquemaEditarDeal.parse(datos);
+    const { dealId, productoId, valorVendidoUsd, ownerUserId, fechaSeguimiento, motivoId, areaDeclaradaId } = esquemaEditarDeal.parse(datos);
 
     return (db as unknown as Transaccion).transaction(async (tx) => {
       const { deal, emailLead } = await dealBloqueadoConLead(tx, dealId);
@@ -86,21 +89,21 @@ export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarD
         if (!producto || producto.programId !== deal.programId || !producto.activo) {
           throw new ErrorDeApp("El producto no existe, está inactivo o es de otro programa.", 422);
         }
-        // El precio nuevo se mide contra lo YA abonado, que sale del modulo de saldo (ADR 0024):
-        // un producto mas barato que lo recibido dejaria un sobrepago que ninguna reja ve.
-        const actual = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
-        if (actual && actual.abonosVigentes > 0) {
-          if (actual.moneda != null && actual.moneda !== producto.moneda) {
-            throw new ErrorDeApp("El deal ya tiene abonos en otra moneda: no se convierte moneda.", 422);
-          }
-          if (Number(producto.precioLista) < actual.abonado) {
-            throw new ErrorDeApp(
-              "El producto cuesta menos de lo que el deal ya abonó: anula primero el abono que sobra.",
-              422,
-            );
-          }
-        }
         cambios.productoId = productoId;
+      }
+
+      if (valorVendidoUsd !== undefined) {
+        if (deal.etapa === "completo") {
+          throw new ErrorDeApp("El deal está completo: cambiar su valor vendido movería su saldo.", 409);
+        }
+        const actual = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
+        if (actual && (valorVendidoUsd ?? 0) < actual.abonado) {
+          throw new ErrorDeApp(
+            `El valor vendido (${usd(valorVendidoUsd ?? 0)}) queda por debajo de lo ya abonado (${usd(actual.abonado)}): anula primero el abono que sobra.`,
+            422,
+          );
+        }
+        cambios.valorVendidoUsd = valorVendidoUsd == null ? null : String(valorVendidoUsd);
       }
 
       if (fechaSeguimiento !== undefined) {

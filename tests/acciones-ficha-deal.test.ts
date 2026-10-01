@@ -137,6 +137,16 @@ describe("anular el deal, forjando la peticion", () => {
 });
 
 describe("editar el deal, forjando la peticion", () => {
+  it("normaliza cero a null al editar el valor vendido", async () => {
+    const dealId = await nuevoDeal(programaA, closerA);
+    auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
+
+    const r = await (await acciones()).editarDealAccion({ dealId, valorVendidoUsd: 0 });
+
+    expect(r).toEqual({ ok: true });
+    expect((await deal(dealId)).valorVendidoUsd).toBeNull();
+  });
+
   it("mover un deal de otro programa devuelve 403 y no lo cambia", async () => {
     const dealId = await nuevoDeal(programaB, closerA);
     auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));

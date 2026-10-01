@@ -27,7 +27,7 @@ import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal } from "./etapas";
  *   inflada de esta familia.
  *
  * Decisiones de Mani, 28-sep: todo en USD, el monto es lo que pago el cliente (bruto, las
- * comisiones de la plataforma no se modelan), sin producto no hay precio y no se recibe
+ * comisiones de la plataforma no se modelan), sin valor vendido no hay precio y no se recibe
  * un abono, y una promocion o cortesia es OTRO producto (`productos`), no un descuento
  * sobre el de lista. Por eso no existe `precio_contrato`.
  *
@@ -128,9 +128,9 @@ export async function registrarAbono(
         }
         throw new ErrorDeApp("Solo el dueño del deal puede registrar sus abonos.", 403);
       }
-      // Sin producto no hay precio, y sin precio no hay saldo contra el cual medir.
-      if (deal.productoId == null) {
-        throw new ErrorDeApp("El deal no tiene producto: elígelo antes de registrar un abono.", 422);
+      // Sin valor vendido no hay precio, y sin precio no hay saldo contra el cual medir.
+      if (deal.valorVendidoUsd == null || Number(deal.valorVendidoUsd) === 0) {
+        throw new ErrorDeApp("El deal no tiene valor vendido: escríbelo antes de registrar un abono.", 422);
       }
       await exigirPlataformaActiva(entrada.plataformaId, tx);
 
@@ -140,7 +140,7 @@ export async function registrarAbono(
       const antes = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
       if (antes?.moneda != null && antes.moneda !== entrada.moneda) {
         throw new ErrorDeApp(
-          `El producto del deal está en ${antes.moneda} y los abonos se registran en ${entrada.moneda}: no se convierte moneda.`,
+          `El valor vendido del deal está en ${antes.moneda} y los abonos se registran en ${entrada.moneda}: no se convierte moneda.`,
           422,
         );
       }
@@ -148,7 +148,7 @@ export async function registrarAbono(
         throw new ErrorDeApp(
           antes?.sinSaldoPorque === "moneda_distinta"
             ? "El deal tiene abonos en otra moneda: no se puede calcular el saldo."
-            : "El deal no tiene producto: elígelo antes de registrar un abono.",
+            : "El deal no tiene valor vendido: escríbelo antes de registrar un abono.",
           409,
         );
       }

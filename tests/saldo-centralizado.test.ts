@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { abonos, areas, cohorts, deals, leads, productos, programs, users } from "@/lib/db/schema";
+import { abonos, areas, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { registrarAbono } from "@/lib/deals/abonos";
 import { saldosDeDeals } from "@/lib/queries/saldo";
@@ -28,14 +28,13 @@ beforeEach(async () => {
     .insert(cohorts)
     .values({ programId: p.id, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-10-01", fechaCierreVentas: "2026-09-30" })
     .returning();
-  const [prod] = await db.insert(productos).values({ programId: p.id, nombre: "Programa", precioLista: "1000" }).returning();
   const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
   const [l] = await db.insert(leads).values({ programId: p.id, emailNormalizado: "ana@correo.co" }).returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId: p.id, cohortId: c.id, etapa: "atendido", ownerUserId: closer, productoId: prod.id, areaDeclaradaId: area.id })
+    .values({ leadId: l.id, programId: p.id, cohortId: c.id, etapa: "atendido", ownerUserId: closer, valorVendidoUsd: "797", areaDeclaradaId: area.id })
     .returning();
   dealId = d.id;
 });
@@ -48,10 +47,10 @@ const abono = (monto: string) => ({ dealId, fecha: "2026-09-28", monto, comproba
 
 describe("la reja del sobrepago y el saldo que ve el closer son la misma cifra", () => {
   it("lo máximo que la reja acepta es exactamente el saldo del módulo; un centavo más se rechaza", async () => {
-    await registrarAbono(db, { userId: closer, rol: "closer" }, abono("250.50"));
+    await registrarAbono(db, { userId: closer, rol: "closer" }, abono("500"));
 
     const visto = (await saldosDeDeals(db, [dealId])).get(dealId)!.saldo!;
-    expect(visto).toBe(749.5);
+    expect(visto).toBe(297);
 
     await expect(registrarAbono(db, { userId: closer, rol: "closer" }, abono((visto + 0.01).toFixed(2)))).rejects.toMatchObject({ status: 422 });
     const r = await registrarAbono(db, { userId: closer, rol: "closer" }, abono(visto.toFixed(2)));
@@ -65,8 +64,8 @@ describe("la reja del sobrepago y el saldo que ve el closer son la misma cifra",
       .values({ dealId, programId: (await db.select().from(deals))[0].programId, fecha: "2026-09-01", monto: "900", anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error" })
       .returning();
     expect(a.anuladoEn).not.toBeNull();
-    expect((await saldosDeDeals(db, [dealId])).get(dealId)!.saldo).toBe(1000);
-    expect((await registrarAbono(db, { userId: closer, rol: "closer" }, abono("1000"))).etapa).toBe("completo");
+    expect((await saldosDeDeals(db, [dealId])).get(dealId)!.saldo).toBe(797);
+    expect((await registrarAbono(db, { userId: closer, rol: "closer" }, abono("797"))).etapa).toBe("completo");
   });
 });
 

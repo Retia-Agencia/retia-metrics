@@ -33,6 +33,7 @@ export interface HechosDelDeal {
   /** La ultima llamada quedo en `no_show` o `cancelada`. */
   llamadaFallida: boolean;
   productoId: string | null;
+  valorVendidoUsd: number | null;
   /** Área que el closer declara como origen del lead; los deals históricos están exentos. */
   areaDeclaradaId: string | null;
   esHistorico: boolean;
@@ -55,7 +56,7 @@ export interface HechosDelDeal {
   abonoConComprobante: boolean;
   /**
    * Lo que falta por pagar, tal como lo calcula el modulo del saldo (ADR 0024).
-   * **No se recalcula aqui.** `null` si el deal no tiene producto y por eso no hay
+   * **No se recalcula aqui.** `null` si el deal no tiene valor vendido y por eso no hay
    * precio contra el cual medir.
    */
   saldo: number | null;
@@ -71,6 +72,7 @@ export type CodigoRequisito =
   | "llamada_sucedio"
   | "llamada_fallida"
   | "producto"
+  | "valor_vendido"
   | "area_declarada"
   | "fecha_limite_pago"
   | "cohorte_destino"
@@ -95,6 +97,7 @@ const MENSAJES: Record<Exclude<CodigoRequisito, "transicion_no_permitida">, stri
   llamada_sucedio: "Falta el link de Grain de la llamada.",
   llamada_fallida: "La llamada no quedó en no-show ni cancelada.",
   producto: "Falta el producto.",
+  valor_vendido: "Falta el valor vendido.",
   area_declarada: "Falta el área: ¿cómo nos conoció?",
   fecha_limite_pago: "Falta la fecha límite de pago.",
   cohorte_destino: "Falta la cohorte a la que quiere entrar.",
@@ -117,6 +120,7 @@ const CUMPLE: Record<Exclude<CodigoRequisito, "transicion_no_permitida">, Cheque
   llamada_sucedio: (h) => h.llamadaSucedio,
   llamada_fallida: (h) => h.llamadaFallida,
   producto: (h) => h.productoId != null,
+  valor_vendido: (h) => (h.valorVendidoUsd ?? 0) > 0 || h.esHistorico,
   area_declarada: (h) => h.areaDeclaradaId != null || h.esHistorico,
   fecha_limite_pago: (h) => h.fechaLimitePago != null,
   cohorte_destino: (h) => h.cohorteDestinoId != null,
@@ -143,7 +147,7 @@ type Requisito = Exclude<CodigoRequisito, "transicion_no_permitida" | "motivo">;
  * del pago se decide por el destino: a Abonado le queda saldo, a Completo no.
  */
 function requisitosDe(t: Transicion): Requisito[] {
-  const pago: Requisito[] = ["producto", "abono", "comprobante"];
+  const pago: Requisito[] = ["valor_vendido", "abono", "comprobante"];
   const segunDestino = (): Requisito[] =>
     t.a === "abonado" ? [...pago, "saldo_pendiente"] : [...pago, "saldo_en_cero"];
 
@@ -174,7 +178,7 @@ function requisitosDe(t: Transicion): Requisito[] {
     case "T8":
       return ["llamada_fallida"];
     case "T18":
-      return ["saldo_en_cero", "comprobante", "area_declarada"];
+      return ["valor_vendido", "saldo_en_cero", "comprobante", "area_declarada"];
     case "T19":
     case "T20":
     case "T21":

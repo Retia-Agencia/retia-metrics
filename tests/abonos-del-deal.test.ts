@@ -93,7 +93,7 @@ async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferIns
     .returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer, productoId, areaDeclaradaId: areaId, ...extra })
+    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer, productoId, valorVendidoUsd: "1000", areaDeclaradaId: areaId, ...extra })
     .returning();
   return d.id;
 }
@@ -195,15 +195,12 @@ describe("registrarAbono: las rejas", () => {
     expect((await saldosDeDeals(db, [dealId])).get(dealId)?.saldo).toBe(0);
   });
 
-  it("un producto en COP rechaza abonos en USD antes de escribir", async () => {
+  it("el valor vendido sigue en USD aunque el producto esté en COP", async () => {
     await db.update(productos).set({ moneda: "COP" }).where(eq(productos.id, productoId));
     const dealId = await nuevoDeal("atendido");
-    const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "400")));
-    expect(e.status).toBe(422);
-    expect(e.message).toBe("El producto del deal está en COP y los abonos se registran en USD: no se convierte moneda.");
-    expect(await abonosDe(dealId)).toHaveLength(0);
-    expect(await etapaDe(dealId)).toBe("atendido");
-    expect(await db.select().from(changeLog)).toHaveLength(0);
+    await registrarAbono(db, comoCloser(), abono(dealId, "400"));
+    expect(await abonosDe(dealId)).toHaveLength(1);
+    expect(await etapaDe(dealId)).toBe("abonado");
   });
 
   it("un saldo no calculable despues del insert deshace el abono con un error claro", async () => {
@@ -242,10 +239,11 @@ describe("registrarAbono: las rejas", () => {
     expect(await etapaDe(dealId)).toBe("abonado");
   });
 
-  it("sin producto no hay precio: no se recibe el abono", async () => {
-    const dealId = await nuevoDeal("atendido", { productoId: null });
+  it("sin valor vendido no se recibe el abono", async () => {
+    const dealId = await nuevoDeal("atendido", { valorVendidoUsd: null });
     const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "100")));
     expect(e.status).toBe(422);
+    expect(e.message).toBe("El deal no tiene valor vendido: escríbelo antes de registrar un abono.");
     expect(await abonosDe(dealId)).toHaveLength(0);
     expect(await etapaDe(dealId)).toBe("atendido");
   });

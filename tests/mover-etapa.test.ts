@@ -88,7 +88,7 @@ afterEach(async () => {
 });
 
 async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferInsert> = {}) {
-  const [d] = await db.insert(deals).values({ leadId, programId, etapa, areaDeclaradaId: areaId, ...extra }).returning();
+  const [d] = await db.insert(deals).values({ leadId, programId, etapa, valorVendidoUsd: "1000", areaDeclaradaId: areaId, ...extra }).returning();
   return d.id;
 }
 
@@ -577,20 +577,34 @@ describe("los hechos salen de la base", () => {
     await moverEtapa(db, { dealId, a: "completo", actor: sistema });
     expect(await etapaDe(dealId)).toBe("completo");
   });
+
+  it.each([
+    { destino: "abonado" as const, monto: "500" },
+    { destino: "completo" as const, monto: "1000" },
+  ])("para mover a $destino exige valor vendido y pasa cuando se escribe", async ({ destino, monto }) => {
+    const dealId = await nuevoDeal("atendido", { valorVendidoUsd: null });
+    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-28", monto, comprobanteUrl: "https://x/valor.png" });
+
+    const e = await rechazo(moverEtapa(db, { dealId, a: destino, actor: sistema }));
+    expect(e.message).toContain("Falta el valor vendido.");
+
+    await moverEtapa(db, { dealId, a: destino, actor: sistema, datos: { valorVendidoUsd: 1000 } });
+    expect(await etapaDe(dealId)).toBe(destino);
+  });
 });
 
 describe("el saldo (ADR 0024)", () => {
-  it("precio del producto menos abonos vigentes; sin producto no hay saldo", async () => {
-    const conProducto = await nuevoDeal("atendido", { productoId });
+  it("valor vendido menos abonos vigentes; sin valor vendido no hay saldo", async () => {
+    const conValor = await nuevoDeal("atendido", { valorVendidoUsd: "1000" });
     // Otro lead: la base no deja dos deals abiertos del mismo lead y programa.
     const [otro] = await db.insert(leads).values({ programId, emailNormalizado: "beto@correo.co" }).returning();
     const [sp] = await db.insert(deals).values({ leadId: otro.id, programId, etapa: "atendido" }).returning();
-    const sinProducto = sp.id;
-    await db.insert(abonos).values({ dealId: conProducto, programId, fecha: "2026-09-27", monto: "250.50" });
+    const sinValor = sp.id;
+    await db.insert(abonos).values({ dealId: conValor, programId, fecha: "2026-09-27", monto: "250.50" });
     await db
       .insert(abonos)
       .values({
-        dealId: conProducto,
+        dealId: conValor,
         programId,
         fecha: "2026-09-27",
         monto: "100",
@@ -599,9 +613,9 @@ describe("el saldo (ADR 0024)", () => {
         motivoAnulacion: "tecleo",
       });
 
-    const saldos = await saldosDeDeals(db, [conProducto, sinProducto]);
-    expect(saldos.get(conProducto)).toMatchObject({ precio: 1000, abonado: 250.5, abonosVigentes: 1, saldo: 749.5 });
-    expect(saldos.get(sinProducto)).toMatchObject({ precio: null, saldo: null, sinSaldoPorque: "sin_producto" });
+    const saldos = await saldosDeDeals(db, [conValor, sinValor]);
+    expect(saldos.get(conValor)).toMatchObject({ precio: 1000, moneda: "USD", abonado: 250.5, abonosVigentes: 1, saldo: 749.5 });
+    expect(saldos.get(sinValor)).toMatchObject({ precio: null, moneda: "USD", saldo: null, sinSaldoPorque: "sin_valor_vendido" });
   });
 
   it("nunca convierte moneda en silencio: un abono en otra moneda deja el saldo sin calcular", async () => {

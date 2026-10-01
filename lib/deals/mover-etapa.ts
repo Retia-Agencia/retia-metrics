@@ -23,6 +23,7 @@ import { exigirFechaLimiteValida } from "./pago";
 import { puedeTrabajarDeal } from "./permiso";
 import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal, type TipoMotivo, type Transicion } from "./etapas";
 import { queLeFalta, type HechosDelDeal, type RequisitoFaltante } from "./requisitos";
+import { esquemaValorVendidoUsd } from "./valor-vendido";
 
 /**
  * `moverEtapa()`: el UNICO camino para cambiar `deals.etapa` (ADR 0037 punto 4,
@@ -70,6 +71,7 @@ export type Actor =
  */
 export interface DatosMovimiento {
   productoId?: string | null;
+  valorVendidoUsd?: number | null;
   areaDeclaradaId?: string | null;
   fechaLimitePago?: string | null;
   acuerdoPago?: string | null;
@@ -222,6 +224,10 @@ async function escribirDatos(tx: Db, deal: FilaDeal, mov: Movimiento): Promise<F
       }
     }
     aplicar("productoId", datos.productoId);
+  }
+  if (datos.valorVendidoUsd !== undefined) {
+    const valor = esquemaValorVendidoUsd.parse(datos.valorVendidoUsd);
+    aplicar("valorVendidoUsd", valor == null ? null : String(valor));
   }
   if (datos.areaDeclaradaId !== undefined) {
     if (datos.areaDeclaradaId !== null) await exigirAreaActiva(tx, datos.areaDeclaradaId);
@@ -636,6 +642,7 @@ const HECHOS_VACIOS: HechosDelDeal = {
   llamadaSucedio: false,
   llamadaFallida: false,
   productoId: null,
+  valorVendidoUsd: null,
   areaDeclaradaId: null,
   esHistorico: false,
   fechaLimitePago: null,
@@ -738,6 +745,7 @@ async function leerHechos(
     llamadaFallida:
       ultimaLlamada != null && (RESULTADOS_FALLIDOS as readonly string[]).includes(ultimaLlamada.resultado),
     productoId: deal.productoId,
+    valorVendidoUsd: deal.valorVendidoUsd == null ? null : Number(deal.valorVendidoUsd),
     areaDeclaradaId: deal.areaDeclaradaId,
     esHistorico: deal.huellaMigracion != null,
     fechaLimitePago: deal.fechaLimitePago,

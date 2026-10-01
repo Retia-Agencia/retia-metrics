@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { monto } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ import type { OpcionCatalogo } from "@/lib/queries/kanban";
 
 export interface DatosDialogo {
   productoId?: string | null;
+  valorVendidoUsd?: number | null;
   areaDeclaradaId?: string | null;
   fechaLimitePago?: string | null;
   cohorteDestinoId?: string | null;
@@ -65,6 +67,7 @@ export interface DialogoMoverProps {
 
 const ETIQUETA: Record<CodigoRequisito, string> = {
   producto: "Producto",
+  valor_vendido: "Valor vendido (USD)",
   area_declarada: "Área de origen (según el closer)",
   fecha_limite_pago: "Fecha límite de pago",
   cohorte_destino: "Cohorte a la que quiere entrar",
@@ -112,6 +115,7 @@ export function DialogoMover({
   // Todo campo pedido tiene que estar lleno para confirmar.
   const completo = campos.every((c) => {
     if (c === "producto") return Boolean(datos.productoId);
+    if (c === "valor_vendido") return (datos.valorVendidoUsd ?? 0) > 0;
     if (c === "area_declarada") return Boolean(datos.areaDeclaradaId);
     if (c === "fecha_limite_pago") return Boolean(datos.fechaLimitePago);
     if (c === "cohorte_destino") return Boolean(datos.cohorteDestinoId);
@@ -158,6 +162,20 @@ export function DialogoMover({
                     ))}
                   </SelectContent>
                 </Select>
+              ) : null}
+
+              {campo === "valor_vendido" ? (
+                <Input
+                  type="number"
+                  min="0"
+                  max="99999999.99"
+                  step="0.01"
+                  value={datos.valorVendidoUsd ?? 0}
+                  onChange={(e) => {
+                    const valor = e.currentTarget.valueAsNumber;
+                    setDatos((d) => ({ ...d, valorVendidoUsd: Number.isFinite(valor) && valor > 0 ? valor : undefined }));
+                  }}
+                />
               ) : null}
 
               {campo === "area_declarada" ? (

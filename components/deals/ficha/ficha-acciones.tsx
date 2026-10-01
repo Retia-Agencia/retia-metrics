@@ -5,6 +5,7 @@ import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,6 +79,7 @@ export function FichaAcciones({ ficha, opciones, mapa, nombreDeEtapa, puedeTraba
       motivoId: datos.motivoId ?? null,
       datos: {
         productoId: datos.productoId,
+        valorVendidoUsd: datos.valorVendidoUsd,
         areaDeclaradaId: datos.areaDeclaradaId,
         fechaLimitePago: datos.fechaLimitePago,
         cohorteDestinoId: datos.cohorteDestinoId,
@@ -187,6 +189,7 @@ function DialogoEditar({
 }) {
   const { pendiente, correr } = useAccion();
   const [productoId, setProductoId] = useState<string | null>(ficha.producto?.id ?? null);
+  const [valorVendidoUsd, setValorVendidoUsd] = useState(String(ficha.valorVendidoUsd ?? 0));
   const [areaDeclaradaId, setAreaDeclaradaId] = useState<string | null>(ficha.areaDeclarada?.id ?? null);
   const [ownerId, setOwnerId] = useState<string | null>(ficha.owner?.id ?? null);
   const [seguimiento, setSeguimiento] = useState<string>(ficha.fechaSeguimiento ?? "");
@@ -194,12 +197,17 @@ function DialogoEditar({
 
   const cerrado = ficha.etapa === "completo" || ficha.etapa === "cierre_perdido";
   const muestraProducto = ficha.etapa !== "completo";
+  const muestraValorVendido = ficha.etapa !== "completo";
   const muestraMotivo = ficha.etapa === "cierre_perdido";
   const motivosDePerdida = opciones.motivos.filter((m) => m.tipo === "perdida");
 
   // Solo viaja lo que cambio: el servidor escribe un renglon de bitacora por campo tocado.
   const entrada: EntradaEditarDeal = { dealId: ficha.dealId };
   if (muestraProducto && productoId && productoId !== ficha.producto?.id) entrada.productoId = productoId;
+  const valorVendidoNormalizado = Number(valorVendidoUsd) || null;
+  if (muestraValorVendido && valorVendidoNormalizado !== ficha.valorVendidoUsd) {
+    entrada.valorVendidoUsd = valorVendidoNormalizado;
+  }
   if (areaDeclaradaId && areaDeclaradaId !== ficha.areaDeclarada?.id) entrada.areaDeclaradaId = areaDeclaradaId;
   if (administra && ownerId && ownerId !== ficha.owner?.id) entrada.ownerUserId = ownerId;
   if (!cerrado && seguimiento !== (ficha.fechaSeguimiento ?? "")) entrada.fechaSeguimiento = seguimiento || null;
@@ -236,6 +244,19 @@ function DialogoEditar({
                   ))}
                 </SelectContent>
               </Select>
+            </Campo>
+          ) : null}
+
+          {muestraValorVendido ? (
+            <Campo etiqueta="Valor vendido (USD)">
+              <Input
+                type="number"
+                min="0"
+                max="99999999.99"
+                step="0.01"
+                value={valorVendidoUsd}
+                onChange={(e) => setValorVendidoUsd(e.currentTarget.value)}
+              />
             </Campo>
           ) : null}
 
