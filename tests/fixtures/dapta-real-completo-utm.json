@@ -1,0 +1,47 @@
+{
+  "id": "submission:423a4751-d541-441d-80bc-f3a3045a8fcf:complete:webhook:0",
+  "utm": {
+    "utm_id": "123456",
+    "utm_term": "termino_b",
+    "utm_medium": "test",
+    "utm_source": "prueba",
+    "utm_content": "contenido_a",
+    "utm_campaign": "p130_4_utm"
+  },
+  "data": {
+    "utm": {
+      "utm_id": "123456",
+      "utm_term": "termino_b",
+      "utm_medium": "test",
+      "utm_source": "prueba",
+      "utm_content": "contenido_a",
+      "utm_campaign": "p130_4_utm"
+    },
+    "email": "ana.prueba@example.com",
+    "nombre": "Ana Prueba",
+    "ingreso": "$700 - $1.500 USD",
+    "urgencia": "Estoy interesado pero puede esperar",
+    "whatsapp": "+573000000000",
+    "inversion": "Sí, pero necesito facilidades de pago",
+    "situacion": "Estudiante",
+    "motivacion": "Texto de prueba"
+  },
+  "form": {
+    "id": "003e5f13-3b73-45cf-b922-d0504b5b8548",
+    "name": "Postulación Evento Comunicarte"
+  },
+  "type": "form.submission",
+  "phase": "complete",
+  "visit": {
+    "pageUri": "https://forms.dapta.ai/4bgty3/f/postulacion-evento-comunicarte?utm_source=prueba&utm_medium=test&utm_campaign=p130_4_utm&utm_content=contenido_a&utm_term=termino_b&utm_id=123456",
+    "embedded": false,
+    "pageName": "Postulación Evento Comunicarte"
+  },
+  "submission": {
+    "id": "423a4751-d541-441d-80bc-f3a3045a8fcf",
+    "score": -90,
+    "outcome": "setteo_no_calificado|BAJO VALOR|Low",
+    "sessionId": "sesion-de-prueba"
+  },
+  "submittedAt": "2026-10-01T16:41:16.078Z"
+}

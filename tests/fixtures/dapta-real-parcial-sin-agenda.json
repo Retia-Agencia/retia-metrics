@@ -1,0 +1,41 @@
+{
+  "id": "submission:9414c5b6-e2d3-4590-bc46-fc5806356149:partial:webhook:0",
+  "utm": {
+    "utm_medium": "test",
+    "utm_source": "prueba",
+    "utm_campaign": "p130_2_sin_agenda"
+  },
+  "data": {
+    "utm": {
+      "utm_medium": "test",
+      "utm_source": "prueba",
+      "utm_campaign": "p130_2_sin_agenda"
+    },
+    "email": "ana.prueba@example.com",
+    "nombre": "Ana Prueba",
+    "ingreso": "Más de $3.000 USD",
+    "urgencia": "Muy urgente",
+    "whatsapp": "+573000000000",
+    "inversion": "Sí, tengo la disposición y capacidad de invertir en este momento",
+    "situacion": "5-15 años de experiencia",
+    "motivacion": "Texto de prueba"
+  },
+  "form": {
+    "id": "003e5f13-3b73-45cf-b922-d0504b5b8548",
+    "name": "Postulación Evento Comunicarte"
+  },
+  "type": "form.submission",
+  "phase": "partial",
+  "visit": {
+    "pageUri": "https://forms.dapta.ai/4bgty3/f/postulacion-evento-comunicarte?utm_source=prueba&utm_medium=test&utm_campaign=p130_2_sin_agenda",
+    "embedded": false,
+    "pageName": "Postulación Evento Comunicarte"
+  },
+  "submission": {
+    "id": "9414c5b6-e2d3-4590-bc46-fc5806356149",
+    "score": 50,
+    "outcome": "con_calendly_sin_agenda|MUY ALTO VALOR|High",
+    "sessionId": "sesion-de-prueba"
+  },
+  "submittedAt": "2026-10-01T16:38:34.690Z"
+}

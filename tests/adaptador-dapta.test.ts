@@ -9,6 +9,9 @@ import { construirEnvio } from "@/lib/ingesta/envio";
 import { PROVEEDORES } from "@/lib/ingesta/proveedores";
 import completo from "./fixtures/dapta-completo.json";
 import parcial from "./fixtures/dapta-parcial.json";
+import realAgenda from "./fixtures/dapta-real-completo-agenda.json";
+import realUtm from "./fixtures/dapta-real-completo-utm.json";
+import realParcial from "./fixtures/dapta-real-parcial-sin-agenda.json";
 
 const OPCIONES = { sourceId: "src-dapta", zona: "America/Bogota" };
 
@@ -79,6 +82,29 @@ describe("entradaDesdeDapta", () => {
     expect(valor("utmContent")).toBe("anuncio-a");
     expect(valor("utmTerm")).toBe("instagram_reels");
     expect(valor("utmId")).toBe("120212345678900001");
+  });
+
+  it("🩸 las UTM del cuerpo REAL de Dapta llegan con prefijo utm_ (130, 1-oct)", () => {
+    // El fixture sintetico decia `utm.source`; Dapta manda `utm.utm_source` y `utm.utm_id`.
+    // Con la forma inventada, los primeros envios reales entraron sin ninguna UTM y sin error.
+    const entrada = entradaDesdeDapta(payloadDaptaSchema.parse(realUtm), OPCIONES);
+    const valor = (campo: keyof typeof entrada.campos) =>
+      entrada.columnas[entrada.campos[campo]!];
+    expect(valor("utmSource")).toBe("prueba");
+    expect(valor("utmMedium")).toBe("test");
+    expect(valor("utmCampaign")).toBe("p130_4_utm");
+    expect(valor("utmContent")).toBe("contenido_a");
+    expect(valor("utmTerm")).toBe("termino_b");
+    expect(valor("utmId")).toBe("123456");
+  });
+
+  it("los cuerpos reales de Dapta pasan el schema y construyen un envio con correo", () => {
+    for (const cuerpo of [realParcial, realAgenda, realUtm]) {
+      const resultado = construirEnvio(entradaDesdeDapta(payloadDaptaSchema.parse(cuerpo), OPCIONES));
+      expect(resultado.ok).toBe(true);
+      if (!resultado.ok) continue;
+      expect(resultado.envio.identidad.correo).toBe("ana.prueba@example.com");
+    }
   });
 
   it("separa outcome literalmente y nunca deduce una cita desde data.agenda", () => {

@@ -41,7 +41,16 @@ const MAPEO_POR_DEFECTO: Partial<Record<CampoEnvio, string[]>> = {
   telefono: ["whatsapp", "telefono"],
 };
 
-const CAMPOS_UTM = ["source", "medium", "campaign", "content", "term"] as const;
+// Dapta manda las UTM con su nombre completo (`utm_source`), utm_id incluido: verificado con el
+// primer envio real el 1-oct. El fixture sintetico decia `source` y ningun envio guardo UTM.
+const CAMPOS_UTM = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "utm_term",
+  "utm_id",
+] as const;
 
 function textoPlano(valor: unknown): string | null {
   if (valor === null || valor === undefined) return null;
@@ -127,6 +136,8 @@ export function entradaDesdeDapta(
   const columnas: Record<string, unknown> = {};
 
   for (const [llave, valor] of Object.entries(payload.data)) {
+    // `data.utm` repite `payload.utm`: se lee una sola vez, abajo.
+    if (llave === "utm") continue;
     if (valor !== null && !Array.isArray(valor) && typeof valor === "object") {
       const objeto = valor as Record<string, unknown>;
       const esNombre = resolverContra([llave], buscadosNombre) !== undefined;
@@ -137,7 +148,10 @@ export function entradaDesdeDapta(
     }
   }
 
-  for (const campo of CAMPOS_UTM) columnas[`utm_${campo}`] = payload.utm[campo] ?? null;
+  for (const campo of CAMPOS_UTM) {
+    // utm_id tambien puede venir del campo oculto del generador (`data.utm_id`).
+    columnas[campo] = payload.utm[campo] ?? (campo === "utm_id" ? textoPlano(payload.data.utm_id) : null);
+  }
 
   const outcome = payload.submission.outcome ?? null;
   const [estado, leadValue, leadQuality] = outcome?.split("|") ?? [];

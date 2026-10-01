@@ -22,11 +22,11 @@
     "extra_desconocido": "se conserva"
   },
   "utm": {
-    "source": "facebook",
-    "medium": "paid_social",
-    "campaign": "tactical-septiembre",
-    "content": "anuncio-a",
-    "term": "instagram_reels"
+    "utm_source": "facebook",
+    "utm_medium": "paid_social",
+    "utm_campaign": "tactical-septiembre",
+    "utm_content": "anuncio-a",
+    "utm_term": "instagram_reels"
   },
   "visit": {
     "pageUri": "https://retia.co/tactical",
