@@ -3,7 +3,7 @@ id: 128
 etapa: E6
 serves: "docs/anotaciones.md A-13 · principio P-1 · ADR 0050"
 depends: [074, 071, 135]
-status: en curso
+status: done
 ---
 
 # 128 — Las alertas del Deal: qué urge y qué le falta para avanzar
