@@ -153,3 +153,35 @@ Base local (`dev:local`, developer), `/ajustes/fuentes`, con clics reales:
   Crear Estado dejaba el formulario debajo del encabezado fijo (81 px): `md:scroll-mt-28`, también en Canales.
 - Ojo para el próximo recorrido: con la pestaña de Chrome oculta, el scroll suave no corre y las capturas se
   cuelgan; medir con `javascript` y no confundirlo con un bug.
+
+---
+
+## Enmienda del ADR 0069, fase 1 (2-oct, Alejo): la etapa de entrada la decide el CRM
+
+**Hecho, sin migración.** La regla de deals ya no lee la variable `estado` ni la tabla `estados_llegada`:
+- `lib/ingesta/etapa-de-entrada.ts` (nuevo, puro): `etapaDeEntrada({ esParcial, agendo, leadQuality })` con la tabla
+  del ADR 0069; `agendoElEnvio` (la ÚNICA lectura de `calificacion` que queda: el `con_calendly` que pone el
+  adaptador) y `esCalidadAlta`. El embudo del formulario (126 A) usa la misma `agendoElEnvio`.
+- `regla-de-deals.ts`: `decidirAccionDeDeal(etapaDeEntrada, dealAbierto, cita)`; `aplicarReglaDeDeal` recibe los
+  `hechos` del envío que la dispara. `ingerir.ts` los saca de la fila recién escrita; `lib/calendly/buscar-llamada.ts`
+  pasa `agendo: true`.
+- **Ningún envío se queda sin deal** (GC-27): un completo sin estado o con `descartado` abre en Registrado; un parcial
+  sin calidad, en Potencial.
+
+**Decisiones tomadas aquí** (se revisan con Mani):
+- Un **parcial Low** (no está en la tabla del ADR) nace en **Potencial**: Registrado es "terminó el formulario".
+- Un **parcial sin calidad que después manda su completa High sin agenda se queda en Potencial**: el motor no tiene
+  la flecha Potencial → Calificado y con deal abierto la etapa no cambia (ADR 0037). El manual §3.1 lo deja 🟡.
+- **Dapta no agenda por `data.agenda`** (ADR 0069 punto 3): su adaptador no lo lee (test de Mani del 130, "nunca
+  deduce una cita desde data.agenda"). Sus envíos entran por calidad y la cita llega por el webhook de Calendly (096).
+
+**El reproceso de los 23 de Tactical** ya no espera la decisión de los 14 sin link ni `estado`: con la regla nueva
+entran por su calidad (Calificado o Registrado). Sigue pidiendo el ok de Mani porque escribe en producción.
+
+**Fase 2 (pendiente, con migración y ok de Mani):** retirar `estados_llegada` y su pantalla, `sinCalificar` del
+resumen de la ingesta, la salud "sin estado" de la fuente y el filtro "sin estado" de Leads (ADR 0069 punto 5).
+Mientras tanto siguen en pie y no deciden nada.
+
+Tests: `tests/ingesta-regla-de-deals.test.ts` (la tabla del ADR fila por fila, la variable `estado` ignorada con
+cinco valores, parciales en orden y fuera de orden), `tests/webhook-matriz.test.ts` y `tests/origen-del-envio.test.ts`
+ajustados a GC-27. Corridos 27 archivos de ingesta, Calendly, webhook, costura y páginas: verdes.

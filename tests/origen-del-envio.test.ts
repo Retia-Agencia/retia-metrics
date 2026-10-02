@@ -79,13 +79,13 @@ async function envioDeToken(token: string) {
 
 describe("el deal que abre la ingesta recuerda el envio que lo abrio", () => {
   it("dos envios con UTM distintas: el origen es el que abrio el deal, completo, sin mezclarlos", async () => {
-    // El primero no abre deal (un Estado que el programa no tiene) y trae campaña; el segundo la abre y NO trae
-    // campaña. Un resumen "el mas reciente no vacio" le pegaba la campaña del primero.
+    // El primero no abre deal (entra sin la regla, como el traslado desde la hoja) y trae campaña; el
+    // segundo la abre y NO trae campaña. Un resumen "el mas reciente no vacio" le pegaba la campaña del
+    // primero. (Desde el ADR 0069 todo envío por el webhook abre deal: ya no hay un Estado que no abra.)
     await ingerirEntradas(
       db,
       programId,
-      [entrada({ token: "t1", correo: "ana@correo.co", fecha: "2026-09-10T15:00:00Z", estado: "sin_fila_en_la_tabla", utm: ["facebook", "cpc", "camp-a"] })],
-      conRegla,
+      [entrada({ token: "t1", correo: "ana@correo.co", fecha: "2026-09-10T15:00:00Z", estado: "", utm: ["facebook", "cpc", "camp-a"] })],
     );
     expect(await db.select().from(deals)).toHaveLength(0);
     await ingerirEntradas(

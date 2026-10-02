@@ -6,7 +6,6 @@ import type { Rol } from "@/lib/auth/roles";
 import { programaEnAlcance } from "@/lib/auth/alcance";
 import { vigente } from "@/lib/queries/vigente";
 import { resolverContra } from "@/lib/ingesta/adaptador-typeform";
-import { ESTADO_CON_CALENDLY } from "@/lib/ingesta/calificacion";
 import { campoAgendaDeFuente } from "@/lib/ingesta/mapeo-webhook";
 import type { MapeoColumnas } from "@/lib/sheets/mapeo";
 import { aplicarReglaDeDeal, notaDeCita, type AccionDeDeal } from "@/lib/ingesta/regla-de-deals";
@@ -117,7 +116,8 @@ export async function buscarLlamadaDelDeal(
         id: fila.leadId,
         programId: fila.programId,
         emailNormalizado: fila.emailNormalizado,
-        calificacion: ESTADO_CON_CALENDLY,
+        // Buscar la cita es el hecho de agendar: entra en Agendado (ADR 0069).
+        hechos: { esParcial: false, agendo: true, leadQuality: null },
       },
       cita,
     ),

@@ -117,7 +117,7 @@ flowchart TD
 | El lead vuelve a aplicar con su deal cerrado | deal nuevo; la ficha muestra los anteriores | ADR 0037 |
 | Lead que ya existía antes del corte | no abre deal por la ingesta: entra con la migración, con su estado de gestión | ADR 0037 |
 
-El "Estado" lo manda el formulario en su variable `estado`, y **una tabla por programa (`estados_llegada`) dice en qué etapa nace el deal y con qué prioridad** (ADR 0061, 29-sep; reemplaza al 0054). Descartado desaparece para lo nuevo. El CRM lee además un hecho: si la pregunta de agenda trae un link de Calendly, el envío es `con_calendly` (ticket 106).
+**La etapa en que nace el deal la decide el CRM** con tres hechos del envío (ADR 0069, 2-oct; reemplaza al 0061): agendó → Agendado; `lead_quality` High → Calificado; completo con otra calidad o sin ella → Registrado; parcial → Potencial (`lib/ingesta/etapa-de-entrada.ts`). Ningún envío se queda sin deal (GC-27). La variable `estado` del formulario se guarda como llegó y ya no enruta; `estados_llegada` queda en pie sin decidir nada hasta su retiro (117, fase 2). "Agendó" es el hecho que pone el adaptador: la pregunta de agenda del mapeo trae un link de Calendly (ticket 106).
 
 ### 2.2 Cómo se cuelga cada llamada de su deal (Calendly)
 

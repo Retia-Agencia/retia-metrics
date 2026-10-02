@@ -15,23 +15,22 @@ import {
   darDealAlHost,
   huellaDeCita,
 } from "@/lib/calendly/colgar-llamada";
-import type { Calificacion } from "./calificacion";
-import { estadosDeLlegadaDelPrograma, resolverEstadoDeLlegada, type EstadoDeLlegada } from "./estados-llegada";
+import { etapaDeEntrada, type EtapaDeEntrada, type HechosDeEntrada } from "./etapa-de-entrada";
 
 /**
  * La regla de creacion y movimiento de deals de la ingesta (ticket 052, insumo §3.1,
  * ADR 0037, ADR 0049).
  *
- * Cuando entra un envio por el webhook, su Estado de llegada (el que le puso el
- * formulario) decide si nace o avanza un deal, y **lo que significa ese Estado lo dice su
- * fila en `estados_llegada`** (ticket 117, ADR 0061), no un valor escrito aqui. 🩸 La
- * regla comparaba contra tres valores fijos, y el 29-sep una edicion del Typeform de
- * un programa dejo de mandarlos: ningun envio abrio deal por horas, sin un solo error. La
- * regla tiene dos mitades y la separacion es a proposito:
+ * Cuando entra un envio por el webhook, **la etapa de entrada la decide el CRM** con tres
+ * hechos del envio —si agendo, su `lead_quality` y si es parcial— (ADR 0069, ticket 117
+ * enmendado; `etapaDeEntrada` en `./etapa-de-entrada.ts`). La variable `estado` del
+ * formulario ya no se lee: 🩸 el 29-sep una edicion del Typeform de un programa dejo de
+ * mandarla y ningun envio abrio deal por horas, sin un solo error. Ahora **ningun envio se
+ * queda sin deal** (GC-27). La regla tiene dos mitades y la separacion es a proposito:
  *
- *  - **DECIDE** (`decidirAccionDeDeal`): funcion PURA. Recibe la fila del Estado (o
- *    ninguna), el deal abierto actual (con su etapa) o ninguno, y —si la fila entra en
- *    Agendado— el resultado de consultar la cita en Calendly. Devuelve QUE hacer. No toca la base,
+ *  - **DECIDE** (`decidirAccionDeDeal`): funcion PURA. Recibe la etapa de entrada del
+ *    envio, el deal abierto actual (con su etapa) o ninguno, y —si el envio agendo— el
+ *    resultado de consultar la cita en Calendly. Devuelve QUE hacer. No toca la base,
  *    asi que se prueba con una tabla de casos sin PGlite.
  *  - **DELEGA** (`aplicarReglaDeDeal`): traduce esa decision a una llamada al motor de
  *    la etapa 2 —`abrirDeal()` para crear, `moverEtapa()` para mover— con actor
@@ -115,10 +114,10 @@ export function notaDeCita(cita: Exclude<ResultadoCita, { estado: "vigente" }>):
 
 /**
  * Que hace la regla ante un lead. Cada variante es una fila de la tabla del insumo:
- *  - `nada`: sin Estado que abra deal, o un caso que no cambia el deal. Puede
+ *  - `nada`: un caso que no cambia el deal (el lead ya tiene uno abierto). Puede
  *    llevar `nota` cuando un "Con Calendly" sin cita vigente no puede avanzar y se
  *    queda donde esta.
- *  - `abrir`: no hay deal abierto y el Estado pide uno nuevo. Con cita vigente
+ *  - `abrir`: no hay deal abierto: nace en la etapa de entrada del envio. Con cita vigente
  *    la etapa es Agendado y trae la `llamada`; sin cita vigente nace en Calificado
  *    con `nota`.
  *  - `mover`: `unaCitaMueveAAgendado` dice que si y "Con Calendly" con cita vigente lo
@@ -145,13 +144,12 @@ export interface LlamadaDeCita {
 }
 
 /**
- * La decision, pura. La tabla del insumo §3.1, leida sobre la ETAPA DE ENTRADA de la
- * fila del Estado (ADR 0061), no sobre un valor ni sobre numeros de etapa, y —cuando la
- * fila entra en Agendado— sobre el resultado de la cita:
+ * La decision, pura. La tabla del insumo §3.1, leida sobre la ETAPA DE ENTRADA del envio
+ * (ADR 0069), no sobre un valor ni sobre numeros de etapa, y —cuando el envio agendo—
+ * sobre el resultado de la cita:
  *
  * | etapa de entrada        | deal abierto        | cita           | accion                        |
  * |-------------------------|---------------------|----------------|-------------------------------|
- * | sin fila / nula         | (cualquiera)        | —              | nada (se cuenta "sin estado") |
  * | Potencial, Registrado,  | ninguno             | —              | abrir en esa etapa            |
  * |   Calificado            | (cualquiera)        | —              | nada (ya tiene deal)          |
  * | Agendado                | ninguno             | vigente        | abrir en Agendado + llamada   |
@@ -169,20 +167,14 @@ export interface LlamadaDeCita {
  * `no_encontrada`, porque entrar a Agendado exige una cita real (ADR 0057).
  */
 export function decidirAccionDeDeal(
-  estado: Pick<EstadoDeLlegada, "etapaEntrada"> | null,
+  entrada: EtapaDeEntrada,
   dealAbierto: DealAbierto,
   cita?: ResultadoCita,
 ): AccionDeDeal {
-  // Sin Estado reconocido, o uno que el programa marca sin etapa: no se adivina un deal
-  // (ADR 0061 punto 5). El lead queda visible como "sin estado".
-  if (estado === null || estado.etapaEntrada === null) {
-    return { tipo: "nada", motivo: "el envío no trae un Estado que abra deal" };
-  }
-
-  if (["potencial", "registrado", "calificado"].includes(estado.etapaEntrada)) {
-    // Solo abre si no hay deal; si ya tiene uno, la regla no lo toca (los historicos
-    // no re-abren, enmienda del 24-sep).
-    if (dealAbierto === null) return { tipo: "abrir", etapa: estado.etapaEntrada };
+  if (entrada !== "agendado") {
+    // Solo abre si no hay deal; si ya tiene uno, la regla no lo toca (ADR 0037; los
+    // historicos no re-abren, enmienda del 24-sep).
+    if (dealAbierto === null) return { tipo: "abrir", etapa: entrada };
     return { tipo: "nada", motivo: "el lead ya tiene un deal abierto" };
   }
 
@@ -351,25 +343,18 @@ async function crearLlamadaDeCita(
  * `envioDeOrigen` es el envio que disparo la regla: si la regla abre un deal, ese envio es
  * su origen, completo, sin mezclarlo con los UTM de otros envios del lead (ADR 0060).
  *
- * `lead.calificacion` es el Estado de ESE envio, no el resumen del lead (ticket 117): un
- * parcial `con_calendly_sin_agenda` que llega despues de una completa vieja decide con su
- * propio Estado, y un parcial reintentado fuera de orden no manda un deal a buscar una
- * cita que no trae. `estados` son las filas activas del programa; si el llamador no las
- * trae, se leen aqui.
+ * `lead.hechos` son los de ESE envio, no el resumen del lead (ticket 117): un parcial
+ * que llega despues de una completa vieja decide con lo suyo, y un parcial reintentado
+ * fuera de orden no manda un deal a buscar una cita que no trae.
  */
 export async function aplicarReglaDeDeal(
   db: Db,
-  lead: { id: string; programId: string; emailNormalizado: string; calificacion: Calificacion | null },
+  lead: { id: string; programId: string; emailNormalizado: string; hechos: HechosDeEntrada },
   cita?: ResultadoCita,
   envioDeOrigen: string | null = null,
-  estados?: ReadonlyMap<string, EstadoDeLlegada>,
 ): Promise<ResultadoReglaDeDeal> {
   const dealAbierto = await dealAbiertoDelLead(db, lead.id, lead.programId);
-  const estado = resolverEstadoDeLlegada(
-    lead.calificacion,
-    estados ?? (await estadosDeLlegadaDelPrograma(db, lead.programId)),
-  );
-  const accion = decidirAccionDeDeal(estado, dealAbierto, cita);
+  const accion = decidirAccionDeDeal(etapaDeEntrada(lead.hechos), dealAbierto, cita);
 
   // La closer host de la cita, si esta registrada en el programa (ticket 096).
   const llamadaDeLaAccion = "llamada" in accion ? accion.llamada : undefined;

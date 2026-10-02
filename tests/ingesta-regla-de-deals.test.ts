@@ -18,11 +18,10 @@ import type { EntradaEnvio } from "@/lib/ingesta/envio";
 import type { Calificacion } from "@/lib/ingesta/calificacion";
 import { ingerirEntradas } from "@/lib/ingesta/ingerir";
 import { decidirAccionDeDeal, type ResultadoCita } from "@/lib/ingesta/regla-de-deals";
+import { agendoElEnvio, esCalidadAlta, etapaDeEntrada } from "@/lib/ingesta/etapa-de-entrada";
 import { esViolacionCheck } from "@/lib/db/errores";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
-import { estadosDeLlegada } from "@/lib/catalogo/estados-llegada";
-import { users } from "@/lib/db/schema";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { sinComentarios } from "./helpers/codigo-fuente";
 
 
@@ -46,35 +45,57 @@ const CITA_VIGENTE: ResultadoCita = {
 
 // ─────────────────────────────────────────────── la decision pura (sin base)
 
+describe("etapaDeEntrada: la tabla del ADR 0069, fila por fila", () => {
+  const hechos = (esParcial: boolean, agendo: boolean, leadQuality: string | null) => ({ esParcial, agendo, leadQuality });
+
+  it.each([
+    [false, "High"], [false, "Low"], [false, null], [true, "High"], [true, null],
+  ] as const)("agendó (parcial=%s, calidad %s): Agendado, venga con la calidad que venga", (esParcial, q) => {
+    expect(etapaDeEntrada(hechos(esParcial, true, q))).toBe("agendado");
+  });
+
+  it.each([false, true])("High sin agenda (parcial=%s): Calificado", (esParcial) => {
+    expect(etapaDeEntrada(hechos(esParcial, false, "High"))).toBe("calificado");
+  });
+
+  it.each(["Low", "Mid", null, ""])("completo %s sin agenda: Registrado (ningún envío se descarta)", (q) => {
+    expect(etapaDeEntrada(hechos(false, false, q))).toBe("registrado");
+  });
+
+  it.each(["Low", null])("parcial %s sin agenda: Potencial", (q) => {
+    expect(etapaDeEntrada(hechos(true, false, q))).toBe("potencial");
+  });
+
+  it("la calidad se compara sin mayúsculas ni espacios", () => {
+    expect(esCalidadAlta(" high ")).toBe(true);
+    expect(esCalidadAlta("HIGH")).toBe(true);
+    expect(esCalidadAlta("Highish")).toBe(false);
+  });
+
+  it("agendó es SOLO el hecho que pone el adaptador; cualquier otro valor del formulario no lo es", () => {
+    expect(agendoElEnvio("con_calendly")).toBe(true);
+    expect(agendoElEnvio(" con_calendly ")).toBe(true);
+    expect(agendoElEnvio("con_calendly_sin_agenda")).toBe(false);
+    expect(agendoElEnvio("setteo_no_calificado")).toBe(false);
+    expect(agendoElEnvio(null)).toBe(false);
+  });
+});
+
 describe("decidirAccionDeDeal: la tabla del insumo §3.1, fila por fila", () => {
-  // La decision lee la ETAPA DE ENTRADA de la fila del Estado (ticket 117), no un valor.
-  const SETTEO = { etapaEntrada: "registrado" as const };
-  const AGENDADO = { etapaEntrada: "agendado" as const };
-  const NO_ABRE = { etapaEntrada: null };
+  // La decision lee la ETAPA DE ENTRADA del envio (ADR 0069), no un valor del formulario.
+  const AGENDADO = "agendado" as const;
   const conDeal = (
     etapa: import("@/lib/deals/etapas").EtapaDeal,
     pendiente: import("@/lib/deals/etapas").PendienteDeal | null = null,
   ) => ({ etapa, pendiente });
 
-  it("una fila que no abre deal (etapa nula) no abre nada, tenga o no deal", () => {
-    expect(decidirAccionDeDeal(NO_ABRE, null).tipo).toBe("nada");
-    expect(decidirAccionDeDeal(NO_ABRE, conDeal("agendado")).tipo).toBe("nada");
+  it.each(["potencial", "registrado", "calificado"] as const)("entra en %s sin deal: abre en esa etapa", (etapa) => {
+    expect(decidirAccionDeDeal(etapa, null)).toEqual({ tipo: "abrir", etapa });
   });
 
-  it("sin fila (vacio o desconocido) no abre nada: no se adivina un deal", () => {
-    expect(decidirAccionDeDeal(null, null).tipo).toBe("nada");
-    expect(decidirAccionDeDeal(null, conDeal("registrado")).tipo).toBe("nada");
-  });
-
-  it("entra en Setteo sin deal abre en esa etapa", () => {
-    expect(decidirAccionDeDeal(SETTEO, null)).toEqual({
-      tipo: "abrir",
-      etapa: "registrado",
-    });
-  });
-
-  it("entra en Setteo con deal abierto no hace nada", () => {
-    expect(decidirAccionDeDeal(SETTEO, conDeal("registrado")).tipo).toBe("nada");
+  it.each(["potencial", "registrado", "calificado"] as const)("entra en %s con deal abierto: no hace nada", (etapa) => {
+    expect(decidirAccionDeDeal(etapa, conDeal("registrado")).tipo).toBe("nada");
+    expect(decidirAccionDeDeal(etapa, conDeal("potencial")).tipo).toBe("nada");
   });
 
   it("entra en Agendado + cita vigente, sin deal, abre en Agendado con la llamada", () => {
@@ -196,6 +217,8 @@ function entrada(o: {
   fecha?: string | null;
   estado?: Calificacion | string;
   esParcial?: boolean;
+  /** `lead_quality` del formulario (ADR 0069): High, Low, Mid o ninguno. */
+  leadQuality?: string | null;
   /** Respuestas no promovidas, las que un parcial va acumulando pregunta a pregunta. */
   extra?: Record<string, string>;
 }): EntradaEnvio {
@@ -204,6 +227,7 @@ function entrada(o: {
     zona: "UTC",
     posicion: null,
     esParcial: o.esParcial,
+    leadQuality: o.leadQuality ?? null,
     columnas: {
       Token: o.token,
       Correo: o.correo ?? "",
@@ -230,7 +254,7 @@ beforeEach(async () => {
   programId = p.id;
   const [f] = await db.insert(sources).values({ programId, nombre: "Typeform", tipo: "google_sheet" }).returning();
   sourceId = f.id;
-  await sembrarEstadosDeLlegada(db, programId);
+  // Sin filas en `estados_llegada`: la regla ya no las lee (ADR 0069).
 });
 
 afterEach(async () => {
@@ -255,7 +279,7 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     expect((await leadDeCorreo("ana@correo.co")).calificacion).toBe("setteo_no_calificado");
   });
 
-  it("setteo_no_calificado abre un deal en Pendiente Setteo, por el motor y con historial", async () => {
+  it("un completo sin agenda ni calidad abre en Registrado, por el motor y con historial", async () => {
     const r = await ingerirEntradas(
       db,
       programId,
@@ -305,12 +329,13 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     expect(r.reglaDeDeals[0].accion.tipo).toBe("abrir");
   });
 
-  it("un COMPLETO sin estado (sin calificación) no abre deal", async () => {
+  it("🩸 un COMPLETO sin estado SÍ abre deal (GC-27; el 29-sep de Tactical no vuelve a pasar)", async () => {
     await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co" })], {
       aplicarReglaDeDeals: true,
     });
     expect((await leadDeCorreo("ana@correo.co")).calificacion).toBeNull();
-    expect(await db.select().from(deals)).toHaveLength(0);
+    const [deal] = await db.select().from(deals);
+    expect(deal.etapa).toBe("registrado");
   });
 
   it("con_calendly desde Setteo + cita vigente MUEVE a Agendado, crea la llamada y deja su fila de historial", async () => {
@@ -502,124 +527,86 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
   });
 });
 
-// ─────────────────────────────────────────────── los Estados de llegada por tabla (117)
+// ─────────────────────────────────────────────── la etapa de entrada la decide el CRM (ADR 0069)
 
-describe("los Estados de llegada salen de la tabla, no del codigo (ticket 117, ADR 0061)", () => {
+describe("la etapa de entrada la decide el CRM con agenda y calidad, no el formulario (ADR 0069)", () => {
   const ingerir = (entradas: EntradaEnvio[], extra: Parameters<typeof ingerirEntradas>[3] = {}) =>
     ingerirEntradas(db, programId, entradas, { aplicarReglaDeDeals: true, ...extra });
 
-  async function actor(): Promise<string> {
-    const [u] = await db.insert(users).values({ email: "gerente@retia.co", nombre: "Gerente", rol: "gerente" }).returning();
-    return u.id;
-  }
-
-  it("un valor NUEVO en la tabla abre deals en su etapa, sin tocar codigo", async () => {
-    await estadosDeLlegada(db).crear(await actor(), {
-      programId,
-      valor: "lead_premium",
-      etapaEntrada: "registrado",
-      prioridad: "alta",
-      alertaMinutos: 10,
-    });
-    const r = await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado: "Lead_Premium" })]);
-    const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("registrado");
-    expect(r.sinCalificar).toEqual([]);
-    // El Estado se guarda como llego (ADR 0004); la comparacion es la del indice.
-    expect((await leadDeCorreo("ana@correo.co")).calificacion).toBe("Lead_Premium");
-  });
-
-  it("🩸 sin estado o con un valor desconocido: lead sin deal, y se cuenta (el 29-sep de Tactical)", async () => {
+  it.each([
+    ["completo High sin agenda", { esParcial: false, leadQuality: "High" }, "calificado"],
+    ["completo Low sin agenda", { esParcial: false, leadQuality: "Low" }, "registrado"],
+    ["completo Mid sin agenda", { esParcial: false, leadQuality: "Mid" }, "registrado"],
+    ["parcial High sin agenda", { esParcial: true, leadQuality: "High" }, "calificado"],
+    ["parcial sin calidad", { esParcial: true, leadQuality: null }, "potencial"],
+  ] as const)("%s nace en %s", async (_caso, hechos, etapa) => {
     const r = await ingerir([
-      entrada({ token: "t1", correo: "ana@correo.co", estado: "" }),
-      entrada({ token: "t2", correo: "beto@correo.co", estado: "valor_que_nadie_configuro" }),
+      entrada({ token: "t1", correo: "ana@correo.co", fecha: hechos.esParcial ? null : undefined, ...hechos }),
     ]);
-    expect(await db.select().from(deals)).toHaveLength(0);
-    expect(await leadDeCorreo("ana@correo.co")).toBeDefined();
-    expect(await leadDeCorreo("beto@correo.co")).toBeDefined();
-    expect(r.sinCalificar).toEqual(
-      expect.arrayContaining([
-        { motivo: "sin estado", envios: 1 },
-        { motivo: "estado no reconocido: valor_que_nadie_configuro", envios: 1 },
-      ]),
-    );
-    expect(r.reglaDeDeals.every((x) => x.accion.tipo === "nada")).toBe(true);
-  });
-
-  it("una fila DESACTIVADA deja de reconocerse: no abre deal y se cuenta", async () => {
-    const [fila] = (await estadosDeLlegada(db).listar()).filter((f) => f.valor === "setteo_no_calificado");
-    await estadosDeLlegada(db).desactivar(await actor(), fila.id);
-    const r = await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado: "setteo_no_calificado" })]);
-    expect(await db.select().from(deals)).toHaveLength(0);
-    expect(r.sinCalificar).toEqual([{ motivo: "estado no reconocido: setteo_no_calificado", envios: 1 }]);
-  });
-
-  it("una fila que dice que no abre deal se reconoce (no se cuenta) y no abre", async () => {
-    const [fila] = (await estadosDeLlegada(db).listar()).filter((f) => f.valor === "descartado");
-    await estadosDeLlegada(db).editar(await actor(), fila.id, {
-      programId,
-      valor: "descartado",
-      etapaEntrada: null,
-      prioridad: "normal",
-      alertaMinutos: null,
-    });
-    const r = await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado: "descartado" })]);
-    expect(await db.select().from(deals)).toHaveLength(0);
-    expect(r.sinCalificar).toEqual([]);
-  });
-
-  it("descartado (sembrado en Setteo) abre deal: todo el que llena el formulario es contacto", async () => {
-    await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado: "descartado" })]);
     const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("registrado");
+    expect(deal.etapa).toBe(etapa);
+    expect(r.reglaDeDeals[0].accion).toEqual({ tipo: "abrir", etapa });
+    const historial = await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, deal.id));
+    expect(historial.map((h) => [h.de, h.a])).toEqual([[null, etapa]]);
   });
 
-  it("la frontera: el Estado de OTRO programa no se reconoce aqui", async () => {
-    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "797" }).returning();
-    await sembrarEstadosDeLlegada(db, otro.id, [
-      { valor: "solo_del_otro", etapaEntrada: "registrado", prioridad: "normal", alertaMinutos: null },
-    ]);
-    const r = await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado: "solo_del_otro" })]);
-    expect(await db.select().from(deals)).toHaveLength(0);
-    expect(r.sinCalificar).toEqual([{ motivo: "estado no reconocido: solo_del_otro", envios: 1 }]);
+  it.each(["", "descartado", "lead_premium", "valor_que_nadie_configuro", "con_calendly_sin_agenda"])(
+    "🩸 la variable estado (%s) ya no decide: un completo Low abre en Registrado",
+    async (estado) => {
+      await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado, leadQuality: "Low" })]);
+      const [deal] = await db.select().from(deals);
+      expect(deal.etapa).toBe("registrado");
+      // El valor se guarda como llegó (ADR 0004); solo deja de enrutar.
+      expect((await leadDeCorreo("ana@correo.co")).calificacion).toBe(estado === "" ? null : estado);
+    },
+  );
+
+  it("un estado del formulario que dice agendado, sin el link de agenda, no agenda: decide la calidad", async () => {
+    // Solo el adaptador pone `con_calendly`, cuando la pregunta de agenda trae el link; una
+    // variable del formulario no es un hecho de agenda.
+    await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado: "agendado", leadQuality: "High" })]);
+    const [deal] = await db.select().from(deals);
+    expect(deal.etapa).toBe("calificado");
   });
 
-  it("parcial SIN estado (el del WhatsApp): lead sin deal, y no se cuenta como error", async () => {
-    const r = await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado: "", esParcial: true })]);
-    expect(await leadDeCorreo("ana@correo.co")).toBeDefined();
-    expect(await db.select().from(deals)).toHaveLength(0);
-    expect(r.sinCalificar).toEqual([]);
-  });
-
-  it("parcial con_calendly_sin_agenda y luego su completa con cita: un lead, un deal, en Agendado con su llamada", async () => {
+  it("parcial High y luego su completa con cita: un lead, un deal, de Calificado a Agendado con su llamada", async () => {
     const parcial = await ingerir([
-      entrada({ token: "tok-1", correo: "ana@correo.co", estado: "con_calendly_sin_agenda", esParcial: true, fecha: null }),
+      entrada({ token: "tok-1", correo: "ana@correo.co", esParcial: true, fecha: null, leadQuality: "High" }),
     ]);
     expect(parcial.reglaDeDeals[0].accion).toEqual({ tipo: "abrir", etapa: "calificado" });
-    const [enSetteo] = await db.select().from(deals);
-    expect(enSetteo.etapa).toBe("calificado");
+    const [calificado] = await db.select().from(deals);
 
     // La completa del MISMO token, con la cita: el mismo deal pasa a Agendado por el motor.
     const completa = await ingerir(
-      [entrada({ token: "tok-1", correo: "ana@correo.co", estado: "con_calendly", esParcial: false })],
+      [entrada({ token: "tok-1", correo: "ana@correo.co", estado: "con_calendly", esParcial: false, leadQuality: "High" })],
       { citasPorCorreo: citas("ana@correo.co", CITA_VIGENTE) },
     );
     expect(completa.reglaDeDeals[0].accion.tipo).toBe("mover");
     expect(await db.select().from(leads)).toHaveLength(1);
     const todos = await db.select().from(deals);
     expect(todos).toHaveLength(1);
-    expect(todos[0].id).toBe(enSetteo.id);
+    expect(todos[0].id).toBe(calificado.id);
     expect(todos[0].etapa).toBe("agendado");
-    const llamadas = await db.select().from(calls).where(eq(calls.dealId, enSetteo.id));
+    const llamadas = await db.select().from(calls).where(eq(calls.dealId, calificado.id));
     expect(llamadas).toHaveLength(1);
     expect(llamadas[0].fechaAgenda?.toISOString()).toBe(CITA_VIGENTE.inicio.toISOString());
-    const historial = await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, enSetteo.id));
+    const historial = await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, calificado.id));
     expect(historial.map((h) => h.a)).toEqual(["calificado", "agendado"]);
   });
 
+  it("parcial sin calidad y luego su completa High sin agenda: el deal se queda en Potencial (no sube solo)", async () => {
+    // El motor no tiene flecha Potencial → Calificado, y con deal abierto la etapa no
+    // cambia (ADR 0037). Queda para decidir con Mani (manual §3.1, 🟡).
+    await ingerir([entrada({ token: "tok-1", correo: "ana@correo.co", esParcial: true, fecha: null })]);
+    const r = await ingerir([entrada({ token: "tok-1", correo: "ana@correo.co", leadQuality: "High" })]);
+    expect(r.reglaDeDeals[0].accion.tipo).toBe("nada");
+    const [deal] = await db.select().from(deals);
+    expect(deal.etapa).toBe("potencial");
+  });
+
   describe("🩸 los dos puntos parciales comparten token: el viejo no pisa al nuevo (revisión de Codex)", () => {
-    // El del WhatsApp llega con menos respuestas y sin Estado; el previo al Calendly, con mas
-    // respuestas y `con_calendly_sin_agenda`. Son VERSIONES de la misma fila.
+    // El del WhatsApp llega con menos respuestas; el previo al Calendly, con más respuestas
+    // y su calidad. Son VERSIONES de la misma fila.
     const whatsapp = () =>
       entrada({ token: "tok-1", correo: "ana@correo.co", estado: "", esParcial: true, fecha: null, extra: { Ingreso: "1000" } });
     const calendly = () =>
@@ -629,26 +616,29 @@ describe("los Estados de llegada salen de la tabla, no del codigo (ticket 117, A
         estado: "con_calendly_sin_agenda",
         esParcial: true,
         fecha: null,
+        leadQuality: "High",
         extra: { Ingreso: "1000", Motivo: "crecer", Urgencia: "ya" },
       });
 
-    it("en orden: el del Calendly reemplaza al del WhatsApp y abre el deal", async () => {
+    it("en orden: el del WhatsApp abre en Potencial y el del Calendly reemplaza su envío, sin otro deal", async () => {
       await ingerir([whatsapp()]);
-      expect(await db.select().from(deals)).toHaveLength(0);
+      const [deal] = await db.select().from(deals);
+      expect(deal.etapa).toBe("potencial");
       await ingerir([calendly()]);
       const [envio] = await db.select().from(submissions);
       expect(envio.calificacion).toBe("con_calendly_sin_agenda");
+      expect(envio.leadQuality).toBe("High");
       expect(await db.select().from(deals)).toHaveLength(1);
     });
 
-    it("fuera de orden: el del WhatsApp que llega tarde no le borra el Estado ni las respuestas", async () => {
+    it("fuera de orden: el del WhatsApp que llega tarde no le borra la calidad ni las respuestas", async () => {
       await ingerir([calendly()]);
       const [deal] = await db.select().from(deals);
       expect(deal.etapa).toBe("calificado");
       const r = await ingerir([whatsapp()]);
       const envios = await db.select().from(submissions);
       expect(envios).toHaveLength(1);
-      expect(envios[0].calificacion).toBe("con_calendly_sin_agenda");
+      expect(envios[0].leadQuality).toBe("High");
       expect(Object.keys(envios[0].respuestas as object)).toEqual(expect.arrayContaining(["Motivo", "Urgencia"]));
       expect(r.reglaDeDeals.every((x) => x.accion.tipo === "nada")).toBe(true);
       expect(await db.select().from(deals)).toHaveLength(1);
@@ -661,8 +651,9 @@ describe("los Estados de llegada salen de la tabla, no del codigo (ticket 117, A
       await ingerir([...lote()]);
       const envios = await db.select().from(submissions);
       expect(envios).toHaveLength(1);
-      expect(envios[0].calificacion).toBe("con_calendly_sin_agenda");
-      expect(await db.select().from(deals)).toHaveLength(1);
+      expect(envios[0].leadQuality).toBe("High");
+      const [deal] = await db.select().from(deals);
+      expect(deal.etapa).toBe("calificado");
     });
 
     it("el mismo parcial reintentado sí se re-escribe (idempotente)", async () => {
@@ -673,15 +664,18 @@ describe("los Estados de llegada salen de la tabla, no del codigo (ticket 117, A
     });
   });
 
-  it("la regla decide con el Estado del ENVIO que la dispara, no con el resumen del lead", async () => {
-    // Una completa vieja sin Estado que abra deal, y despues el parcial previo al Calendly:
-    // el resumen del lead sigue siendo la completa, pero el parcial abre su deal.
-    await ingerir([entrada({ token: "viejo", correo: "ana@correo.co", estado: "valor_viejo", fecha: "2026-09-01T10:00:00Z" })]);
-    expect(await db.select().from(deals)).toHaveLength(0);
-    await ingerir([entrada({ token: "nuevo", correo: "ana@correo.co", estado: "con_calendly_sin_agenda", esParcial: true, fecha: null })]);
-    expect((await leadDeCorreo("ana@correo.co")).calificacion).toBe("valor_viejo");
-    const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("calificado");
+  it("la regla decide con los hechos del ENVIO que la dispara, no con el resumen del lead", async () => {
+    // Una completa vieja Low abre en Registrado y se pierde; después llega un parcial High.
+    // El resumen del lead sigue siendo la completa (Low), pero el parcial abre en Calificado.
+    await ingerir([entrada({ token: "viejo", correo: "ana@correo.co", leadQuality: "Low", fecha: "2026-09-01T10:00:00Z" })]);
+    const [viejo] = await db.select().from(deals);
+    expect(viejo.etapa).toBe("registrado");
+    await db.update(deals).set({ etapa: "cierre_perdido" }).where(eq(deals.id, viejo.id));
+
+    await ingerir([entrada({ token: "nuevo", correo: "ana@correo.co", esParcial: true, fecha: null, leadQuality: "High" })]);
+    expect((await leadDeCorreo("ana@correo.co")).leadQuality).toBe("Low");
+    const nuevos = (await db.select().from(deals)).filter((d) => d.id !== viejo.id);
+    expect(nuevos.map((d) => d.etapa)).toEqual(["calificado"]);
   });
 });
 

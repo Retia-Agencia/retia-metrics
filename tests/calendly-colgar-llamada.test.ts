@@ -304,7 +304,7 @@ describe("el 052 con la host de la cita", () => {
       .returning();
     const r = await aplicarReglaDeDeal(
       db,
-      { id: l.id, programId, emailNormalizado: "caro@correo.co", calificacion: "con_calendly" },
+      { id: l.id, programId, emailNormalizado: "caro@correo.co", hechos: { esParcial: false, agendo: true, leadQuality: null } },
       { estado: "vigente", inicio: new Date("2026-10-02T15:00:00Z"), uuidInvitado: "uuid-caro", correoHost: HOST_MARU },
     );
     const [d] = await db.select().from(deals).where(eq(deals.id, r.dealAbiertoId!));
@@ -320,7 +320,7 @@ describe("el 052 con la host de la cita", () => {
       .returning();
     const r = await aplicarReglaDeDeal(
       db,
-      { id: l.id, programId, emailNormalizado: "dani@correo.co", calificacion: "con_calendly" },
+      { id: l.id, programId, emailNormalizado: "dani@correo.co", hechos: { esParcial: false, agendo: true, leadQuality: null } },
       { estado: "vigente", inicio: new Date("2026-10-02T15:00:00Z"), uuidInvitado: "uuid-dani", correoHost: "x@y.co" },
     );
     const [d] = await db.select().from(deals).where(eq(deals.id, r.dealAbiertoId!));

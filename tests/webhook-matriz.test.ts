@@ -271,7 +271,7 @@ describe("caso 4 — link de agenda con cualquier variable", () => {
     expect(deal.etapa).toBe("agendado");
   });
 
-  it("SIN la variable estado y sin link: lead guardado, sin deal, y la fuente lo cuenta", async () => {
+  it("🩸 SIN la variable estado y sin link: lead guardado y su deal en Registrado (ADR 0069, GC-27)", async () => {
     vi.stubGlobal("fetch", fetchQueLanza());
     const p = conAgenda(fixture(), "");
     p.form_response.variables = [];
@@ -279,7 +279,8 @@ describe("caso 4 — link de agenda con cualquier variable", () => {
     expect(res.status).toBe(200);
     const [lead] = await db.select().from(leads);
     expect(lead.calificacion).toBeNull();
-    expect(await db.select().from(deals)).toHaveLength(0);
+    const [deal] = await db.select().from(deals);
+    expect(deal.etapa).toBe("registrado");
   });
 });
 
@@ -512,8 +513,9 @@ describe("caso 7b — form_response_partial por la ruta real", () => {
     expect((await enviar(parcial("con_calendly_sin_agenda"))).status).toBe(200);
     const [envioParcial] = await db.select().from(submissions);
     expect(envioParcial.esParcial).toBe(true);
+    // Esta fuente de prueba no mapea `lead_quality`: el parcial sin calidad nace en Potencial (ADR 0069).
     const [enSetteo] = await db.select().from(deals);
-    expect(enSetteo.etapa).toBe("calificado");
+    expect(enSetteo.etapa).toBe("potencial");
 
     // La completa del MISMO token trae el link de la cita: el mismo deal sube a Agendado.
     vi.stubGlobal("fetch", stubCalendly({}));
@@ -530,11 +532,12 @@ describe("caso 7b — form_response_partial por la ruta real", () => {
     expect(await db.select().from(submissions)).toHaveLength(2);
   });
 
-  it("parcial SIN estado (el del WhatsApp): lead guardado, sin deal", async () => {
+  it("parcial SIN estado (el del WhatsApp): lead guardado y su deal en Potencial (ADR 0069)", async () => {
     vi.stubGlobal("fetch", fetchQueLanza());
     expect((await enviar(parcial(null))).status).toBe(200);
     expect(await db.select().from(leads)).toHaveLength(1);
-    expect(await db.select().from(deals)).toHaveLength(0);
+    const [deal] = await db.select().from(deals);
+    expect(deal.etapa).toBe("potencial");
     // Procesado sin error: un parcial sin Estado es normal, no un sobre por reprocesar.
     expect((await db.select().from(sobresCrudos)).map((s) => s.error)).toEqual([null]);
   });
@@ -1009,8 +1012,9 @@ describe("caso E — variables genéricas (nada hard-coded a estado)", () => {
     expect(res.status).toBe(200);
     const [lead] = await db.select().from(leads);
     expect(lead.calificacion).toBeNull();
-    // Sin Estado no se abre deal (la regla no toca un lead sin calificación).
-    expect(await db.select().from(deals)).toHaveLength(0);
+    // Sin Estado igual abre deal (ADR 0069, GC-27): completo sin calidad mapeada = Registrado.
+    const [deal] = await db.select().from(deals);
+    expect(deal.etapa).toBe("registrado");
   });
 
   it("una fuente que apunta el Estado a OTRA variable la usa (config, no código)", async () => {

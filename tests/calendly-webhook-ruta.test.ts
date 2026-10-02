@@ -185,7 +185,7 @@ describe("una cita nueva", () => {
       .returning();
     await aplicarReglaDeDeal(
       db,
-      { id: nuevo.id, programId, emailNormalizado: "nuevo@correo.co", calificacion: "con_calendly" },
+      { id: nuevo.id, programId, emailNormalizado: "nuevo@correo.co", hechos: { esParcial: false, agendo: true, leadQuality: null } },
       { estado: "vigente", inicio: new Date("2026-10-02T15:00:00.000Z"), uuidInvitado: "B", correoHost: null },
     );
     const todas = await llamadas();

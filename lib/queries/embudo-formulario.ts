@@ -3,7 +3,7 @@ import { emparejar, ARBOL_VACIO } from "@/lib/atribucion/emparejar";
 import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { canales, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { ESTADO_CON_CALENDLY } from "@/lib/ingesta/calificacion";
+import { agendoElEnvio } from "@/lib/ingesta/etapa-de-entrada";
 import type { AlcanceDeSerie } from "@/lib/queries/serie";
 
 /**
@@ -18,7 +18,7 @@ import type { AlcanceDeSerie } from "@/lib/queries/serie";
  * - **El canal sale del envío completo** si lo hay (el último que mandó el formulario), si no
  *   del primer parcial; por `emparejar`, igual que el resto del embudo. "Sin UTM" y "sin
  *   clasificar" son dos filas aparte, siempre.
- * - **Agendó** es el hecho que pone el código (`ESTADO_CON_CALENDLY`: la pregunta de agenda
+ * - **Agendó** es el hecho que pone el código (`agendoElEnvio`, `ESTADO_CON_CALENDLY`: la pregunta de agenda
  *   trae link). **Llegó al Calendly** es agendó, o la calidad `High`: a quien es High el
  *   formulario le ofrece la agenda (ADR 0069 punto 2; medido el 1-oct: todo
  *   `con_calendly_sin_agenda` llega High). No lee la variable `estado`, que el 0069 retira.
@@ -119,7 +119,7 @@ export async function embudoDelFormulario(db: Db, { programId, rango }: AlcanceD
         ...vacio(),
       } satisfies FilaEmbudoFormulario);
 
-    const agendo = lista.some((e) => e.calificacion?.trim() === ESTADO_CON_CALENDLY);
+    const agendo = lista.some((e) => agendoElEnvio(e.calificacion));
     const calidades = lista.map((e) => e.leadQuality?.trim().toLowerCase() ?? null).filter((c) => c !== null && c !== "");
     const llego = agendo || calidades.includes(CALIDAD_QUE_VE_LA_AGENDA);
     if (!agendo && calidades.length === 0) sinCalidad += 1;

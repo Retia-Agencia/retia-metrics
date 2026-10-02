@@ -7,6 +7,7 @@ import { estadosDeLlegadaDelPrograma, motivoSinEstado } from "./estados-llegada"
 import { construirEnvio, type EntradaEnvio, type Envio } from "./envio";
 import { envioMasReciente, type EnvioCandidato } from "./envio-de-origen";
 import { aplicarReglaDeDeal, type AccionDeDeal, type ResultadoCita } from "./regla-de-deals";
+import { agendoElEnvio } from "./etapa-de-entrada";
 import {
   resolverIdentidad,
   type ContactoConocido,
@@ -252,7 +253,10 @@ export async function ingerirEntradas(
       const idDeEnvio = new Map<string, string>();
       // Los envios de ESTE lote por lead: el que dispara la regla de deals es el mas
       // reciente de ellos, y es el origen del deal que abra (ADR 0060).
-      const enviosDelLote = new Map<string, (EnvioCandidato & { calificacion: string | null })[]>();
+      const enviosDelLote = new Map<
+        string,
+        (EnvioCandidato & { calificacion: string | null; esParcial: boolean; leadQuality: string | null })[]
+      >();
       for (const lote of enLotes(envios)) {
         const filas = await tx
           .insert(submissions)
@@ -355,9 +359,10 @@ export async function ingerirEntradas(
       resultado.cambiosRegistrados = cambios;
 
       // 8. La regla de deals (ticket 052), SOLO si el llamador la pidio. Corre DENTRO
-      // de esta misma transaccion, despues del resumen. Decide con el Estado del ENVIO que
-      // la disparo (el mas reciente del lote para ese lead), no con el resumen del lead
-      // (ticket 117): es ese envio el que dice donde entra el deal. Y al ir en la misma
+      // de esta misma transaccion, despues del resumen. Decide con los hechos del ENVIO que
+      // la disparo (el mas reciente del lote para ese lead: si agendo, su calidad y si es
+      // parcial, ADR 0069), no con el resumen del lead (ticket 117): es ese envio el que
+      // dice donde entra el deal. Y al ir en la misma
       // transaccion, un deal que el motor rechace deshace tambien la escritura del envio:
       // no queda un lead ingerido con un deal a medias.
       if (opciones.aplicarReglaDeDeals && tocados.length > 0) {
@@ -373,8 +378,13 @@ export async function ingerirEntradas(
           const cita = opciones.citasPorCorreo?.get(lead.emailNormalizado);
           const delLote = enviosDelLote.get(lead.id) ?? [];
           const origen = envioMasReciente(delLote);
-          const calificacion = delLote.find((e) => e.id === origen)?.calificacion ?? null;
-          const r = await aplicarReglaDeDeal(tx, { ...lead, calificacion }, cita, origen, estados);
+          const envio = delLote.find((e) => e.id === origen);
+          const hechos = {
+            esParcial: envio?.esParcial ?? false,
+            agendo: agendoElEnvio(envio?.calificacion ?? null),
+            leadQuality: envio?.leadQuality ?? null,
+          };
+          const r = await aplicarReglaDeDeal(tx, { ...lead, hechos }, cita, origen);
           resultado.reglaDeDeals.push({
             leadId: r.leadId,
             accion: r.accion,
