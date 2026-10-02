@@ -478,6 +478,13 @@ The agent should run these to get fast signal on whether code works. Keep them c
   declararse sobre `@auth/core/jwt` o no aplica (ver `types/next-auth.d.ts`).
 - **`LayoutProps` / `PageProps` los genera `next build`.** No dependas de ellos: tipa las props a
   mano para que `tsc --noEmit` corra limpio sin build previo.
+- 🩸 **Un cambio que toca un componente cliente (`"use client"`) corre `npm run build` antes de empujar** (2-oct, 142).
+  Typecheck, lint y tests pasan con un import que mete la base al navegador: un cliente que importa un VALOR de un
+  modulo de `lib/` que carga `lib/db` (aunque sea un nombre de etapa) revienta solo en el build de Vercel
+  (`Module not found: 'fs'`). Paso el 2-oct con `components/admin/estados-llegada-admin.tsx` y la base ya migrada:
+  produccion sirvio el codigo viejo contra la 0058 unos 5 minutos. Lo que un cliente necesita de `lib/` llega por
+  props desde la pagina del servidor (como `nombreDeEtapa`); `import type` si se puede. En un worktree, `next build`
+  corre con la copia APFS de `node_modules` (abajo), no con el enlace.
 - **Worktree para delegar: los tests sí, Turbopack no** (1-oct). Un worktree con `node_modules` enlazado
   (junction a la del checkout principal) corre `npm test`, typecheck y lint, pero `next build` y `next dev`
   fallan ("Symlink ... points out of the filesystem root"). La build y el recorrido visual se hacen en el
