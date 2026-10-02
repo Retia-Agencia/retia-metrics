@@ -4,6 +4,7 @@ import { textoComisionPrograma } from "@/components/dashboard-programa";
 import { editarPrograma } from "@/lib/catalogo/programas";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
 import { esViolacionCheck } from "@/lib/db/errores";
+import { hoyEnBogota } from "@/lib/format";
 import {
   abonos,
   areas,
@@ -27,7 +28,9 @@ let closer: string;
 let areaId: string;
 let secuencia = 0;
 
-const HOY = "2026-10-01";
+// El dia real de Bogota y no una fecha fija: `moverEtapa` fecha la venta con `now()` en el historial, asi que
+// una fecha escrita a mano saca la venta del rango "hoy" en cuanto pasa la medianoche (rojo el 2-oct).
+const HOY = hoyEnBogota();
 const sistema = { tipo: "sistema" } as const;
 
 beforeEach(async () => {
