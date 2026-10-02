@@ -81,7 +81,7 @@ export function FichaPago({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <dl className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        <dl className="grid grid-cols-2 gap-3 xl:grid-cols-3">
           <div>
             <dt className="text-xs text-muted-foreground">Ticket</dt>
             <dd className="cifra text-sm">
