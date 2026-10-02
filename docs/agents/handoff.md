@@ -32,6 +32,15 @@ leer es libre, escribir pide el ok de Mani.
 
 ## Memory
 
+- **2026-10-02 (Mani, sesión del 142): esquema y migración 0058 de las etapas de 30X en rama, brief de Codex listo.**
+  - **Hecho:** rama `142-etapas-30x` (worktree `.claude/worktrees/142`), commit `fe64ded`: `schema.ts` + migración
+    0058 reescrita a mano y probada en PGlite (11 casos). **Sin aplicar en producción.** Brief de la tanda 1 en
+    `docs/tasks/142-brief-codex-tanda-1.md`; **no se despachó** (usage).
+  - **Decidido (Mani):** `ganado_parcial`/`ganado_completo`; área declarada en Atendido al 143; 142 en tres tandas de
+    Codex (motor → consumidores → UI de preguntas). Detalle en el ticket 142.
+  - **Abierto:** cómo entra una cortesía a ganado sin abono (ADR 0071 p10). No bloquea la tanda 1.
+  - **Para retomar:** despachar la tanda 1 con `/delegate` usando el brief tal cual (el worktree ya existe; correr
+    `codex-busy.sh` antes), evaluar, y escribir las tandas 2 y 3.
 - **2026-10-01 (Mani, sesión 69): 132 en producción; el closer escribirá el descuento (enmienda del ADR 0065).**
   - **Hecho:** 132 en `main` (`27583bb`). Migración 0053 (`deals.valor_vendido_usd`, CHECK >= 0) aplicada en
     producción con ok de Mani. `saldo.ts` lee el valor vendido (siempre USD; `sin_valor_vendido`); el motor lo
@@ -3811,7 +3820,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   entrada) y dudas D-1 a D-9 y QM-12 en el ADR 0071. **El 142 está desbloqueado y al frente de la cola de
   migraciones (142 → 092 → 102).** M-1 a M-6 contestadas el mismo día (ADR 0072: una pregunta por etapa, arrastre
   con la pregunta, solo alertas, Lead Value ordena). Para retomarlo: el 142 a Codex con `/delegate` (la migración la genera y aplica la sesión principal),
-  y el orden hasta el corte está en el manual §0.
+  y el orden hasta el corte está en el manual §0. **Al 2-oct (noche): esquema + migración 0058 en la rama
+  `142-etapas-30x`, sin aplicar; el brief de la tanda 1 listo en `docs/tasks/142-brief-codex-tanda-1.md`, sin despachar.**
 - ✅ **2-oct, checkpoint `cp-20261002-1`** (`526a105`, CI verde, producción sirve ese commit): 139 y 150 done
   (095 y 135 ya estaban en `cp-20261001-1`).
 - 🌊 **1-oct: olas y checkpoints** (`docs/plan-reparto.md` §1, §4 a §6). Ola O1 abierta; camino crítico: QM-10 y el

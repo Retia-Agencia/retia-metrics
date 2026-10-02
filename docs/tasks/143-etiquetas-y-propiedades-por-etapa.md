@@ -6,6 +6,11 @@ depends: [142, QD-4, QD-10]
 status: bloqueado
 ---
 
+> **2-oct (Mani, sesión del 142):** el área declarada al entrar a Atendido (ADR 0072 punto 6) se construye AQUÍ, no
+> en el 142. Hay que resolver el choque: Agendado → Atendido lo hace el sistema al pegar el Grain y ahí no hay a
+> quién preguntar (propuesta a decidir: pedirla al contestar "¿Cómo terminó?"). Hasta entonces el motor la sigue
+> pidiendo en Compromiso Verbal y ganado.
+
 # 143 — Etiquetas y propiedades por etapa, y el "sin valor" como bandera roja
 
 **Bloqueado por:** el 142, QD-4 (qué es obligatorio en cada etapa) y QD-10 (la lista de etiquetas, qué

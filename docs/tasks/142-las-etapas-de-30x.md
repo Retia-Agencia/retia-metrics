@@ -3,7 +3,7 @@ id: 142
 etapa: NC2
 serves: "comercial.md R-1, GC-01, GC-03, GC-04, §4"
 depends: [QD-8]
-status: todo
+status: en_curso
 ---
 
 # 142 — Las etapas de 30X: enum, transiciones, requisitos y la traducción en una migración
@@ -32,6 +32,30 @@ las reglas de movimiento no se pueden reescribir. No se toca nada de etapas ante
 > tiene y le falta; Seguimiento también en Calificado (ya contactado) y en Compromiso Verbal; el área declarada se pide
 > al entrar a Atendido; nada automatizado. El orden de la cola (Lead Value, días en la etapa, última actividad, próximo
 > paso) es del hub del closer, no de este ticket.
+
+> **2-oct, sesión de Mani (en curso, rama `142-etapas-30x`, worktree `.claude/worktrees/142`):**
+> - ✅ **Esquema y migración 0058 hechos** (commit `fe64ded` en la rama, **sin aplicar**): once etapas de 30X, enum
+>   `pendiente_deal`, `deals.pendiente`, `deals.cortesia`, `tipo_actividad` + `intento`, historial con
+>   `pendiente_de`/`pendiente_a`. La migración se reescribió a mano sobre el borrador de drizzle-kit (casteaba los
+>   valores viejos y fallaba): columnas a texto, traducción, tipo nuevo. Probada en PGlite con 11 casos de la forma
+>   vieja. Producción hoy (medido, solo lectura): 145 en Pendiente Setteo → 115+28 Registrado, 3 Potencial, 3
+>   Calificado (por el envío de origen, ADR 0069); 2 en Re-agenda → Agendado + pendiente `reagenda`; 93 Agendado.
+>   `estados_llegada`: Pendiente Setteo alta → Calificado, normal → Registrado.
+> - **Decidido por Mani:** las de ganado se llaman `ganado_parcial` / `ganado_completo`; el área declarada al entrar a
+>   Atendido (ADR 0072 p6) **va al 143** (choca con el paso a Atendido por Grain, que hace el sistema); el 142 se
+>   parte en **tres tandas de Codex** sobre la misma rama: (1) el motor en `lib/deals/`, (2) el resto de consumidores
+>   y tests hasta typecheck verde + reescribir `structure.md` §3.1, (3) la UI: la pregunta de la etapa en la ficha y al
+>   soltar en el Kanban (ADR 0072 p1 y p2).
+> - **Brief de la tanda 1 listo:** [`142-brief-codex-tanda-1.md`](./142-brief-codex-tanda-1.md) (tabla de flechas E1
+>   a E13, RETRO, P, R, A1, A2 y de pendientes PR1, PR2, PS1 a PS3, PC, RET, con todas las decisiones). **No se
+>   despachó** (Mani cortó por usage). Las tandas 2 y 3 se escriben al revisar la 1.
+> - 🔴 **Abierto, no bloquea la tanda 1:** la cortesía (ADR 0071 p10) no tiene flecha a ganado (a ganado solo se
+>   entra con un abono y una cortesía no tiene). El 142 solo crea la columna; el flujo y su exclusión de ventas y
+>   comisión necesitan decisión de Mani (¿abono de 0 con marca, o flecha propia?).
+> - **Cierre del 142:** typecheck, lint y tests de las tres tandas; con el ok de Mani, aplicar 0058 en producción
+>   (`SET lock_timeout`, mirar `pg_stat_activity` antes) **en el mismo momento** que se empuja la rama a `main`: el
+>   código viejo no lee el enum nuevo y el nuevo no lee el viejo. Hoy los closers aún no trabajan en el CRM (el
+>   corte es después), así que la ventana es tolerable.
 
 ## Objetivo
 
