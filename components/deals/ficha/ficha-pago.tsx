@@ -44,6 +44,7 @@ export function FichaPago({
   opciones,
   puedeTrabajar,
   puedeRegistrar,
+  aceptaAbono,
   nombreDeEtapa,
 }: {
   ficha: FichaDeDeal;
@@ -54,6 +55,8 @@ export function FichaPago({
   puedeTrabajar: boolean;
   /** Ademas trabaja leads (un gerente administra pero no registra plata, ADR 0003). */
   puedeRegistrar: boolean;
+  /** Calculado en el servidor: esta etapa admite una flecha de pago. */
+  aceptaAbono: boolean;
 }) {
   const { pendiente, correr } = useAccion();
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
@@ -67,7 +70,7 @@ export function FichaPago({
   const anulado = ficha.anulado != null;
   const cerrado = ficha.etapa === "ganado_completo" || ficha.etapa === "cierre_perdido";
   const esEstudiante = ficha.etapa === "ganado_parcial" || ficha.etapa === "ganado_completo";
-  const abonosActivos = puedeRegistrar && !anulado && !cerrado;
+  const abonosActivos = puedeRegistrar && aceptaAbono && !anulado && !cerrado;
 
   return (
     <Card id={ID_DE_SECCION.pago} className="scroll-mt-24">
