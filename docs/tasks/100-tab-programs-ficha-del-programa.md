@@ -3,7 +3,7 @@ id: 100
 etapa: E6
 serves: "ADR 0050 · ADR 0051 (destinos) · propuesta 24-sep §3.5"
 depends: [097, 101]
-status: review
+status: done
 ---
 
 # 100 — La tab Programs: la ficha del programa
@@ -82,3 +82,7 @@ desde un closer con membresía → rechazado, la base y `change_log` sin moverse
 
 **Pendiente / fuera:** estados de llegada (117), objetivos (122), cuentas de Meta (119) y
 `valores_calificados` (123) de la enmienda del 29-sep se agregan a la ficha cuando existan sus tickets.
+
+**Recorrido visual (2-oct, sesión principal, base local):** como closer, la ficha es de solo lectura (sin botones
+ni enlaces a Ajustes; tokens fuera); como developer, "Nueva cohorte" y "Editar" abren en línea con los datos de C1, y
+"Administrar" lleva a Fuentes y Usuarios. Consola sin errores. Probado en escritorio; 390 px no se pidió.
