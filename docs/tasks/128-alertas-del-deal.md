@@ -73,11 +73,27 @@ Sí, con revisión visual.
   "motivo" (se pide en el diálogo de mover). Cada requisito enlaza a la sección que lo resuelve. **Aviso en En gestión:**
   "Para registrar un pago, primero marca el contacto como logrado" (un lead trabajado solo por WhatsApp va a pago por
   E2 → E6, sin agenda).
-- **Fuera de esta entrega (Mani, 2-oct):** la alerta roja de Grain (la enmienda de arriba queda sin aplicar) y el
-  indicador del Kanban. Tampoco entra "se perdió en el Calendly" (118, función aparte del Inbox); si se quiere en
+- **Fuera de esta entrega (Mani, 2-oct):** la alerta roja de Grain (la enmienda de arriba queda sin aplicar). Tampoco entra "se perdió en el Calendly" (118, función aparte del Inbox); si se quiere en
   rojo, se agrega leyendo esa función.
 - Recorrido en `dev:local` a 375 px: En gestión muestra aviso y "falta el contacto"; registrar el contacto por
   WhatsApp movió el deal a Contactado (E2) y el bloque desapareció sin recargar. Consola limpia.
-- Ojo: con el camino feliz cumplido y sin urgentes el bloque NO se muestra, aunque otras rutas tengan faltantes.
+- **El bloque se muestra mientras quede algo** (Mani, 2-oct): un urgente, el aviso o **cualquier** ruta con
+  faltantes, no solo el camino feliz. Se esconde únicamente cuando no queda nada.
 - Tests: `tests/alertas-del-deal.test.ts` (amarillo contra el rechazo real de `moverEtapa`, rojo contra el Inbox en
   los dos sentidos). Corridos por Codex; en local la máquina no tenía aire tras rebasar sobre el 118, los valida el CI.
+
+## Falta para cerrar el 128: el indicador del Kanban (Mani lo quiere, 2-oct)
+
+Qué es: en cada tarjeta del tablero de Deals, una marca chica que dice si ese deal tiene alertas **sin abrirlo**.
+Rojo con el número de urgentes si tiene alguno; si no, amarillo con el número de faltantes de su camino feliz; nada
+si no queda nada. Sirve para que el closer vea de un vistazo qué tarjetas atender primero.
+
+- **Mismo origen que el bloque:** las cifras salen de lo mismo que `alertasDelDeal`, nunca de una regla nueva. La
+  tarjeta recibe solo `{ urgentes: number; faltan: number }` por props (cliente sin valores de `lib/`).
+- **Decisión abierta antes de delegar:** el tablero tiene muchos deals y `alertasDelDeal` lee el Inbox entero y los
+  hechos de UN deal. Para el tablero hace falta una versión por lotes: el Inbox una sola vez por pantalla, y los
+  hechos de todos los deals visibles sin una consulta por tarjeta (`leerHechos` es por deal). Hay que decidir si se
+  agrega una lectura por lotes de hechos en `lib/deals/` (y quién es dueño de ese archivo en la ola) o si se acepta
+  N consultas a esta escala.
+- **Done cuando:** un test compara el indicador con `alertasDelDeal` para los mismos deals (rojo, amarillo y nada), y
+  el recorrido del tablero a 390 px con la consola abierta.

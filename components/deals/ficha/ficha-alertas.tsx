@@ -58,7 +58,10 @@ function Destino({ destino }: { destino: AlertasDelDeal["paraAvanzar"][number] }
 export function FichaAlertas({ alertas }: { alertas: AlertasDelDeal | null }) {
   if (!alertas) return null;
   const feliz = alertas.paraAvanzar.find((destino) => destino.caminoFeliz);
-  if (alertas.urgentes.length === 0 && !alertas.aviso && (feliz?.faltan.length ?? 0) === 0) return null;
+  // Se esconde solo cuando no queda nada: ni urgentes, ni aviso, ni una ruta con faltantes.
+  const quedaAlgo = alertas.urgentes.length > 0 || alertas.aviso != null
+    || alertas.paraAvanzar.some((destino) => destino.faltan.length > 0);
+  if (!quedaAlgo) return null;
   const alternos = alertas.paraAvanzar.filter((destino) => !destino.caminoFeliz);
 
   return (
