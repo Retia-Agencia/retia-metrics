@@ -76,6 +76,37 @@ pantalla, ya corregida). La 28 no se pudo: el seed no deja ningún "se perdió e
 | A-32 | Página 404 (programa ajeno) | aclaración | La consola dice "Encountered a script tag while rendering React component" alrededor del 404. No rompe nada visible; hay que ubicar qué componente lo emite. | 155 | resuelta · 2-oct (155) sin cambio: lo emite el `<script>` inline de `next-themes` 0.4.6 (`ThemeProvider`) cuando el árbol se vuelve a montar en el cliente al 404; `scriptProps` solo agrega atributos, solo pasa en desarrollo y no rompe nada. Si molesta, se resuelve cambiando o actualizando la dependencia |
 | A-33 | Ficha del Deal recuperado | usabilidad | Tras recuperar un Cierre perdido a En gestión, la cabecera sigue mostrando "Motivo del cierre: Sin dinero para invertir ahora". O se oculta fuera de Cierre perdido, o se rotula como "último motivo de cierre". | sin ticket | resuelta 2-oct (O2-d, Alejo): "Motivo del cierre" solo se muestra en Cierre perdido; el motivo viejo queda en el log |
 
+## Recorrido 5 · 2-oct · onboarding de los closers nuevos (Mani en vivo, cuenta de closer en `dev:local`)
+
+Mani le mostró el CRM a los dos closers nuevos con Michael. Prioridad que dejó: *"que el manejo comercial sirva
+100%"*, súper intuitivo y estandarizado para que las métricas salgan solas. Decisiones en el ADR 0075 (A-34 a A-39)
+y el ADR 0076 (A-40, propuesto).
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-34 | Ficha del Deal → Llamadas | cambio | Una re-agenda hablada con la persona lleva el link que sea (Meet, Zoom, Calendly), no solo de Calendly. | 156 | en ticket |
+| A-35 | Registrar abono | cambio | El comprobante no puede bloquear el abono: si no se tiene, el deal entra a Ganado igual y queda una alerta hasta pegarlo. | 156 | en ticket |
+| A-36 | Ficha del Deal → Alertas | cambio | Las alertas no van como franja encima del lead: son su propio recuadro. | 156 | en ticket |
+| A-37 | Ficha del Deal | cambio | Mover un deal pide mucha memoria. Una sección "Transición" con un botón por cada etapa a la que puede ir, con su tag; el botón abre el pop-up con lo necesario. | 156 | en ticket |
+| A-38 | Deals (Kanban) | cambio | Arrastrar una tarjeta a una etapa abre el MISMO pop-up de A-37. | 156 | en ticket |
+| A-39 | Deals (Kanban) | cambio | Un closer no ve todos los deals ni elige dueño: solo ve los suyos. | 156 | en ticket |
+| A-40 | Deal con llamada | cambio | Setter y closer son personas distintas con el mismo rol. Un deal con llamada es siempre de quien da la llamada; el setter queda con su crédito como marca, y el deal se queda con él hasta que la cita entra por Calendly. Riesgo: el lead agenda con otro correo. | 157 | en ticket (ADR 0076 aceptado, 2-oct) |
+| A-41 | Regla de entrada | aclaración | Nicolás (closer nuevo): un parcial es "basura" para un closer; se recupera con retargeting del píxel de Meta, no con el setter. Michael: a los parciales se les da contacto automático (IA, Kapso), nunca una reunión. Mani: se deja como está (GC-27, ningún envío sin deal) hasta hablarlo con Michael y Gerencia. | sin ticket | abierta |
+| A-42 | Reporte del día | cambio | Michael pide un mensaje diario por closer (agendadas, canceladas, efectivas, ventas, objeciones, sin fit). Lo arma el CRM, no el closer a mano. | 158 | en ticket (falta decidir cómo se registran las objeciones) |
+
+### Lo que dejó la llamada fuera de la pantalla (operación, no código)
+
+- **Programas nuevos:** los de Nicolás y Francisco. Hay que crearlos de punta a punta (`docs/operations.md` §2.1:
+  programa, Calendly con round robin, formulario, fuente y secreto) **antes del lunes 5-oct**, que es cuando arrancan.
+- **Accesos:** los dos closers nuevos mandan su correo; se dan de alta con membresía en su programa y cada uno
+  asigna su cuenta de Calendly desde `/perfil` (ADR 0074).
+- **Disponibilidad para el Calendly** (lo configura Michael): uno de 6 a 10 p. m. de lunes a jueves y desde las 5
+  los jueves y viernes; el otro de 5 a 9 p. m.
+- **Grabaciones:** Grain, como el resto de closers de Retia. El link va en la llamada al marcar que terminó.
+- **Material:** el manual de operación comercial (154) más una versión corta solo con las 11 etapas.
+- **Fuera del CRM:** pushes de Juanito (la noche antes, la mañana y minutos antes), WhatsApp Business para cada
+  closer, el grupo "onboarding closers", la llamada de prueba con Andrea y la reunión del pitch con Nicolás Martínez.
+
 ### Principios que salen del recorrido
 
 Reglas de UI que aplican a toda pantalla, no a una. El 075 las usa como criterio de revisión.
