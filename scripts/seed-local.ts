@@ -829,6 +829,7 @@ export async function sembrarLocal(): Promise<void> {
         fecha: `2026-09-29T${10 + indice}:00:00-05:00`,
         esParcial: true,
       })),
+      { aplicarReglaDeDeals: true },
     );
     await ingerirEntradas(
       db,
@@ -840,6 +841,7 @@ export async function sembrarLocal(): Promise<void> {
         fecha: `2026-09-30T${10 + indice}:00:00-05:00`,
         esParcial: false,
       })),
+      { aplicarReglaDeDeals: true },
     );
   }
 
@@ -856,6 +858,7 @@ export async function sembrarLocal(): Promise<void> {
       fecha: `2026-10-01T${9 + numero}:00:00-05:00`,
       esParcial: true,
     })),
+    { aplicarReglaDeDeals: true },
   );
   await ingerirEntradas(
     db,
@@ -869,6 +872,7 @@ export async function sembrarLocal(): Promise<void> {
       fecha: `2026-10-01T${12 + numero}:00:00-05:00`,
       esParcial: false,
     })),
+    { aplicarReglaDeDeals: true },
   );
 
   const requisitos = (["contactado", "calificado", "atendido"] as const).flatMap((etapa) =>
