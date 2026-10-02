@@ -98,9 +98,10 @@ export function DashboardPrograma({ vista, detalles }: { vista: VistaDelDashboar
               <span className={sinGrain.sinGrain > 0 ? "text-tono-peligro" : undefined}>
                 <CifraConLista titulo="Shows sin Grain" detalle={detalles?.shows_sin_grain}>{num(sinGrain.sinGrain)}</CifraConLista>
               </span>
-              {` de ${num(sinGrain.shows)} shows sin Grain (${tasa(sinGrain.pct)})`}
+              {` de ${num(sinGrain.shows)}`}
             </>
           }
+          nota={`${tasa(sinGrain.pct)} de los shows no tiene grabación`}
         />
         <Tarjeta
           titulo="% de cierre"
