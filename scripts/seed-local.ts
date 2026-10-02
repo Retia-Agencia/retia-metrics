@@ -843,6 +843,120 @@ export async function sembrarLocal(): Promise<void> {
     );
   }
 
+  // A-19: deja deals por settear y requisitos que muerden durante la prueba manual.
+  await ingerirEntradas(
+    db,
+    prog1.id,
+    [1, 2, 3].map((numero) => entradaDePrueba(f1.id, {
+      token: `tok-libre-potencial-${numero}`,
+      correo: `libre-potencial-${numero}@ejemplo.local`,
+      nombre: `Libre potencial ${numero}`,
+      telefono: `+57300810000${numero}`,
+      estado: "setteo_no_calificado",
+      fecha: `2026-10-01T${9 + numero}:00:00-05:00`,
+      esParcial: true,
+    })),
+  );
+  await ingerirEntradas(
+    db,
+    prog1.id,
+    [1, 2, 3].map((numero) => entradaDePrueba(f1.id, {
+      token: `tok-libre-registrado-${numero}`,
+      correo: `libre-registrado-${numero}@ejemplo.local`,
+      nombre: `Libre registrado ${numero}`,
+      telefono: `+57300820000${numero}`,
+      estado: "setteo_no_calificado",
+      fecha: `2026-10-01T${12 + numero}:00:00-05:00`,
+      esParcial: false,
+    })),
+  );
+
+  const requisitos = (["contactado", "calificado", "atendido"] as const).flatMap((etapa) =>
+    [1, 2].map((numero) => ({
+      etapa,
+      numero,
+      correo: `req-${etapa}-${numero}@ejemplo.local`,
+    })),
+  );
+  await ingerirEntradas(
+    db,
+    prog1.id,
+    requisitos.map(({ etapa, numero, correo }, indice) => entradaDePrueba(f1.id, {
+      token: `tok-req-${etapa}-${numero}`,
+      correo,
+      nombre: `Requisito ${etapa} ${numero}`,
+      telefono: `+5730083${String(indice + 1).padStart(5, "0")}`,
+      estado: "setteo_no_calificado",
+      fecha: `2026-10-01T${9 + indice}:30:00-05:00`,
+      esParcial: false,
+    })),
+    { aplicarReglaDeDeals: false },
+  );
+
+  const leadsDeRequisitos = await db
+    .select()
+    .from(leads)
+    .where(inArray(leads.emailNormalizado, requisitos.map(({ correo }) => correo)));
+  const leadsDeRequisitosPorCorreo = new Map(
+    leadsDeRequisitos.map((lead) => [lead.emailNormalizado, lead]),
+  );
+
+  for (const requisito of requisitos) {
+    const lead = leadsDeRequisitosPorCorreo.get(requisito.correo)!;
+    const dealId = await abrirDeal(db, {
+      leadId: lead.id,
+      programId: prog1.id,
+      etapa: "registrado",
+      actor: { tipo: "sistema" },
+      ownerUserId: closerMani.id,
+      cohortId: coh1.id,
+    });
+
+    if (requisito.etapa === "contactado" || requisito.etapa === "calificado") {
+      await registrarActividad(
+        db,
+        { userId: closerMani.id, rol: "closer" },
+        {
+          dealId,
+          tipo: "contacto",
+          canal: "WhatsApp",
+          nota: "Contacto de prueba para validar los requisitos del motor.",
+        },
+      );
+    }
+
+    if (requisito.etapa === "calificado") {
+      await moverEtapa(db, {
+        dealId,
+        a: "calificado",
+        actor: { tipo: "usuario", userId: closerMani.id, rol: "closer" },
+      });
+    }
+
+    if (requisito.etapa === "atendido") {
+      const llamada = await agregarLlamada(
+        db,
+        { userId: closerMani.id, rol: "closer" },
+        {
+          dealId,
+          fechaAgenda: new Date(
+            requisito.numero === 1
+              ? "2026-09-29T10:00:00-05:00"
+              : "2026-09-30T11:00:00-05:00",
+          ),
+        },
+      );
+      await pegarGrain(
+        db,
+        { userId: closerMani.id, rol: "closer" },
+        {
+          callId: llamada.callId,
+          linkGrain: `https://grain.com/share/req-atendido-${requisito.numero}`,
+        },
+      );
+    }
+  }
+
   // Una cita sin candidato por programa queda en el Inbox para asignarla a mano.
   for (const [programa, prefijo] of [[prog1, "p1"], [prog2, "p2"]] as const) {
     const llamada = await registrarLlamadaDeCalendly(db, programa.id, {
