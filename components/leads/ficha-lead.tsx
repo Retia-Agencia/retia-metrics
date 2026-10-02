@@ -45,8 +45,13 @@ export function FichaLeadCabecera({ ficha }: { ficha: FichaDeLead }) {
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-1.5">
           <Badge variant="neutro">{ficha.entrada === "crm" ? "Alta manual" : "Formulario"}</Badge>
-          {ficha.calificacion ? <Badge variant="neutro">{ficha.calificacion}</Badge> : <Badge variant="alerta">Sin estado</Badge>}
-          {ficha.leadQuality ? <Badge variant="secondary">{ficha.leadQuality}</Badge> : null}
+          {/* La variable `estado` ya no decide nada (ADR 0069 punto 5); lo que falta y miente es la
+              calidad: sin ella, un completo nace en Registrado sin un error (117 fase 2). */}
+          {ficha.leadQuality ? (
+            <Badge variant="secondary">{ficha.leadQuality}</Badge>
+          ) : ficha.entrada !== "crm" ? (
+            <Badge variant="alerta">Sin calidad</Badge>
+          ) : null}
           {ficha.leadValue ? <Badge variant="secondary">{ficha.leadValue}</Badge> : null}
           {ficha.unidoPorTelefono ? <Badge variant="info">Unido por teléfono</Badge> : null}
           {ficha.soloParciales ? <Badge variant="alerta">Abandonó el formulario</Badge> : null}
@@ -82,7 +87,7 @@ export function FichaLeadContactos({ ficha }: { ficha: FichaDeLead }) {
             {ficha.contactos.map((c) => (
               <li key={c.id} className="flex min-w-0 flex-wrap items-center gap-2 py-3 text-sm first:pt-0 last:pb-0">
                 <span className="text-xs text-muted-foreground">{c.tipo === "correo" ? "Correo" : "Teléfono"}</span>
-                <span className="min-w-0 flex-1 break-words">{c.valor}</span>
+                <span className="min-w-48 flex-1 break-all">{c.valor}</span>
                 {c.esPrincipal ? <Badge variant="neutro">Principal</Badge> : null}
                 {!c.confirmado ? <Badge variant="alerta">Unido por teléfono · sin confirmar</Badge> : null}
                 <span className="text-xs text-muted-foreground">
@@ -147,7 +152,7 @@ export function FichaLeadDeals({ ficha, slug }: { ficha: FichaDeLead; slug: stri
       </CardHeader>
       <CardContent className="space-y-4">
         {ficha.deals.length === 0 ? (
-          <Vacio>Este lead no tiene deals. Un deal se abre al llegar un envío calificado, o desde Deals con “Nuevo deal”.</Vacio>
+          <Vacio>Este lead no tiene deals. Un deal se abre con cada envío del formulario, o desde Deals con “Nuevo deal”.</Vacio>
         ) : (
           <>
             <section className="space-y-2">
