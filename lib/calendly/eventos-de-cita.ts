@@ -5,6 +5,9 @@ import { editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
 import type { EtapaDeal } from "@/lib/deals/etapas";
+import type { PendienteDeal } from "@/lib/deals/etapas";
+import { dejarNotaDelSistema } from "@/lib/deals/nota-del-sistema";
+import { fechaHoraEnBogota } from "@/lib/format";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
 import type { EventoDeCalendly } from "./evento-webhook";
 import { closerHost } from "./emparejar-llamada";
@@ -24,11 +27,11 @@ import {
  * | Evento                                   | Llamada                         | Deal                              |
  * | ---------------------------------------- | ------------------------------- | --------------------------------- |
  * | `invitee.created`                        | la registra el escritor         | colgada/suelta (emparejador)      |
- * | `invitee.created` con `old_invitee`      | la MISMA llamada cambia de fecha y de huella | a Agendado si estaba en 1, 2, 3, 9 u 11 |
- * | `invitee.canceled` (sin reagenda)        | `cancelada` si seguia `agendada`| Agendado → Re-agenda (T8)         |
+ * | `invitee.created` con `old_invitee`      | la MISMA llamada cambia de fecha y de huella | a Agendado si `unaCitaMueveAAgendado` |
+ * | `invitee.canceled` (sin reagenda)        | `cancelada` si seguia `agendada`| Agendado + Re-agenda (PR1)        |
  * | `invitee.canceled` de una reagenda       | nada: la otra mitad la mueve    | nada                              |
- * | `invitee_no_show.created`                | `no_show` si seguia `agendada`  | Agendado → Re-agenda (T8)         |
- * | `invitee_no_show.deleted`                | vuelve a `agendada`             | Re-agenda → Agendado (T6)         |
+ * | `invitee_no_show.created`                | `no_show` si seguia `agendada`  | Agendado + Re-agenda (PR1)        |
+ * | `invitee_no_show.deleted`                | vuelve a `agendada`             | Agendado, sin pendiente (E7)      |
  *
  * **Idempotente:** Calendly reintenta. Cada rama mira el estado antes de escribir, asi que
  * repetir un evento no escribe nada. **Fuera de orden:** la reagenda funciona en los dos
@@ -98,19 +101,22 @@ async function llamadaDeLaCita(tx: Db, programId: string, uuidInvitado: string) 
       dealId: calls.dealId,
       resultado: calls.resultado,
       emailLead: calls.emailLead,
+      fechaAgenda: calls.fechaAgenda,
     })
     .from(calls)
     .where(and(eq(calls.programId, programId), eq(calls.huellaFila, huellaDeCita(uuidInvitado)), vigente(calls)));
   if (!fila) return null;
   let etapa: EtapaDeal | null = null;
+  let pendiente: PendienteDeal | null = null;
   if (fila.dealId) {
     const [deal] = await tx
-      .select({ etapa: deals.etapa })
+      .select({ etapa: deals.etapa, pendiente: deals.pendiente })
       .from(deals)
       .where(and(eq(deals.id, fila.dealId), vigente(deals)));
     etapa = deal?.etapa ?? null;
+    pendiente = deal?.pendiente ?? null;
   }
-  return { ...fila, etapa };
+  return { ...fila, etapa, pendiente };
 }
 
 /**
@@ -150,18 +156,18 @@ async function reagendar(
       resultado: "agendada",
     });
 
-    if (!vieja.dealId || vieja.etapa === null || vieja.etapa === "completo" || vieja.etapa === "cierre_perdido") {
+    if (!vieja.dealId || vieja.etapa === null || vieja.etapa === "ganado_completo" || vieja.etapa === "cierre_perdido") {
       return { tipo: "reagendada", callId: vieja.id, movioAAgendado: false } as const;
     }
     const host = closerHost(cita.correoHost, await closersConCalendly(tx, programId));
-    const efecto = await efectoSobreElDeal(tx, vieja.dealId, host, etiqueta);
+    const efecto = await efectoSobreElDeal(tx, vieja.dealId, host, etiqueta, cita.inicio);
     return { tipo: "reagendada", callId: vieja.id, movioAAgendado: efecto.movioAAgendado, rechazo: efecto.rechazo };
   });
 }
 
 /**
  * Cancelada o no-show: la llamada `agendada` pasa a ese resultado y, si el deal esta en
- * Agendado, el sistema lo lleva a Re-agenda (T8). Una llamada que ya no esta `agendada`
+ * Agendado, el sistema le pone Re-agenda (PR1). Una llamada que ya no esta `agendada`
  * (ocurrio, ya fallo) no se pisa: Grain o el closer ya dijeron algo mas fuerte.
  */
 async function marcarFallida(
@@ -181,7 +187,7 @@ async function marcarFallida(
       llamada.id,
       { resultado },
     );
-    return moverDealDeLaLlamada(tx, llamada, "agendado", "pendiente_reagenda", resultado);
+    return moverDealDeLaLlamada(tx, llamada, "agendado", "reagenda", resultado);
   });
 }
 
@@ -198,23 +204,29 @@ async function retirarNoShow(db: Db, programId: string, uuidInvitado: string): P
       llamada.id,
       { resultado: "agendada" },
     );
-    return moverDealDeLaLlamada(tx, llamada, "pendiente_reagenda", "agendado", "agendada");
+    return moverDealDeLaLlamada(tx, llamada, "agendado", null, "agendada", "reagenda");
   });
 }
 
 /** Mueve el deal de la llamada `de → a` por el motor, solo si esta en `de`. */
 async function moverDealDeLaLlamada(
   tx: Db,
-  llamada: { id: string; dealId: string | null; etapa: EtapaDeal | null },
+  llamada: { id: string; dealId: string | null; etapa: EtapaDeal | null; pendiente: PendienteDeal | null; fechaAgenda: Date | null },
   de: EtapaDeal,
-  a: EtapaDeal,
+  pendienteA: PendienteDeal | null,
   resultado: "cancelada" | "no_show" | "agendada",
+  pendienteEsperado?: PendienteDeal,
 ): Promise<EfectoDeEvento> {
-  if (!llamada.dealId || llamada.etapa !== de) {
+  if (!llamada.dealId || llamada.etapa !== de || (pendienteEsperado && llamada.pendiente !== pendienteEsperado)) {
     return { tipo: "marcada", callId: llamada.id, resultado, etapa: llamada.etapa };
   }
   try {
-    const hecho = await moverEtapa(tx, { dealId: llamada.dealId, a, actor: { tipo: "sistema" } });
+    const hecho = await moverEtapa(tx, { dealId: llamada.dealId, a: de, pendiente: pendienteA, actor: { tipo: "sistema" } });
+    const fecha = llamada.fechaAgenda ? fechaHoraEnBogota(llamada.fechaAgenda) : "una fecha desconocida";
+    const texto = resultado === "agendada"
+      ? `Llegó una cita nueva para el ${fecha}: se limpió Re-agenda pendiente.`
+      : `Calendly marcó la cita del ${fecha} como ${resultado === "no_show" ? "no asistió" : "cancelada"}: queda Re-agenda pendiente.`;
+    await dejarNotaDelSistema(tx, llamada.dealId, texto);
     return { tipo: "marcada", callId: llamada.id, resultado, etapa: hecho.a };
   } catch (e) {
     // El motor dice que falta algo (p. ej. hay otra llamada mas reciente): la llamada

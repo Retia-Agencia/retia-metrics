@@ -10,7 +10,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { ETAPAS_EN_ORDEN, type EtapaDeal } from "@/lib/deals/etapas";
+import { ETAPAS_EN_ORDEN, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
 import { carteraVencida } from "@/lib/queries/cartera";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
@@ -61,6 +61,7 @@ export interface TarjetaDeal {
   nombreLead: string | null;
   emailLead: string;
   etapa: EtapaDeal;
+  pendiente: PendienteDeal | null;
   ownerUserId: string | null;
   ownerNombre: string | null;
   /** El saldo tal como lo da `saldosDeDeals`: `null` sin total vendido. */
@@ -166,6 +167,7 @@ export async function tableroKanban(
       dealId: deals.id,
       leadId: deals.leadId,
       etapa: deals.etapa,
+      pendiente: deals.pendiente,
       ownerUserId: deals.ownerUserId,
       fechaLimitePago: deals.fechaLimitePago,
       fechaSeguimiento: deals.fechaSeguimiento,
@@ -229,13 +231,14 @@ export async function tableroKanban(
     const compromisoVencido =
       f.etapa === "compromiso_verbal" && f.fechaLimitePago != null && f.fechaLimitePago < hoy;
     const seguimientoVencido =
-      f.etapa === "seguimiento" && f.fechaSeguimiento != null && f.fechaSeguimiento < hoy;
+      f.pendiente === "seguimiento" && f.fechaSeguimiento != null && f.fechaSeguimiento < hoy;
     return {
       dealId: f.dealId,
       leadId: f.leadId,
       nombreLead: f.nombreLead,
       emailLead: f.emailLead,
       etapa: f.etapa,
+      pendiente: f.pendiente,
       ownerUserId: f.ownerUserId,
       ownerNombre: f.ownerNombre,
       saldo: saldo?.saldo ?? null,

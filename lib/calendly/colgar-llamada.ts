@@ -11,7 +11,9 @@ import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { sueltaPorAsignar } from "./suelta";
 import { moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
-import { ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO } from "@/lib/deals/etapas";
+import { NOMBRE_DE_PENDIENTE, unaCitaMueveAAgendado } from "@/lib/deals/etapas";
+import { dejarNotaDelSistema } from "@/lib/deals/nota-del-sistema";
+import { fechaHoraEnBogota } from "@/lib/format";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
 import {
   closerHost,
@@ -34,7 +36,7 @@ import {
  *
  * ## El efecto sobre el deal (ADR 0049 punto 4, decision del 24-sep)
  *
- * - En 1, 2, 3, 9 u 11 el deal pasa a Agendado por `moverEtapa()` (T2, T3, T6, T23, T27).
+ * - Si `unaCitaMueveAAgendado` lo dice (setteo, o Agendado/Atendido con pendiente), el deal pasa a Agendado por `moverEtapa()` (E4, E7, E9).
  * - En 4 se queda en Agendado; la cita queda como otra llamada con su fecha real.
  * - En 5, 6 o 7 es una segunda llamada y la etapa no cambia.
  *
@@ -72,7 +74,7 @@ export type LlamadaRegistrada =
   | { tipo: "repetida"; callId: string };
 
 /** Desde estas etapas una llamada nueva MUEVE el deal a Agendado. La lista es UNA y vive
- * en `lib/deals/etapas.ts` (`ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO`): estuvo copiada en
+ * en `lib/deals/etapas.ts` (`unaCitaMueveAAgendado`): estuvo copiada en
  * tres módulos y la de la ingesta ya había divergido (hallazgo A1 del ticket 114). */
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
@@ -141,7 +143,7 @@ async function candidatosPorCorreo(db: Db, programId: string, correo: string): P
     leadId,
     correos: correos.get(leadId)!,
     dealsAbiertos: abiertos
-      .filter((d) => d.leadId === leadId && d.etapa !== "completo" && d.etapa !== "cierre_perdido")
+      .filter((d) => d.leadId === leadId && d.etapa !== "ganado_completo" && d.etapa !== "cierre_perdido")
       .map((d) => ({ dealId: d.id, ownerUserId: d.ownerUserId })),
   }));
 }
@@ -188,7 +190,7 @@ export async function registrarLlamadaDeCalendly(
     const callId = await crearLlamada(tx, { ...valores, dealId: deal.id, cohortId: deal.cohortId }, correo);
     if (!callId) return { tipo: "repetida", callId: (await llamadaPorHuella(tx, programId, cita.uuidInvitado))! };
 
-    const efecto = await efectoSobreElDeal(tx, deal.id, closerHost(cita.correoHost, closers), correo);
+    const efecto = await efectoSobreElDeal(tx, deal.id, closerHost(cita.correoHost, closers), correo, cita.inicio);
     return { tipo: "colgada", callId, dealId: deal.id, ...efecto };
   });
 }
@@ -223,7 +225,7 @@ async function crearLlamada(db: Db, valores: Record<string, unknown>, correo: st
 
 /**
  * Lo que una llamada nueva le hace al deal: el dueño pasa a la host registrada (con nota si
- * habia otro) y, desde 1, 2, 3, 9 u 11, el motor lo lleva a Agendado. Lo usan el registro
+ * habia otro) y, si `unaCitaMueveAAgendado` lo dice, el motor lo lleva a Agendado. Lo usan el registro
  * automatico y la asignacion a mano de una suelta.
  */
 export async function efectoSobreElDeal(
@@ -231,19 +233,29 @@ export async function efectoSobreElDeal(
   dealId: string,
   host: string | null,
   etiqueta: string | null,
+  fechaCita?: Date | null,
 ): Promise<{ movioAAgendado: boolean; duenoAnterior: string | null; rechazo?: string }> {
   const [deal] = await tx
-    .select({ etapa: deals.etapa, ownerUserId: deals.ownerUserId })
+    .select({ etapa: deals.etapa, pendiente: deals.pendiente, ownerUserId: deals.ownerUserId })
     .from(deals)
     .where(and(eq(deals.id, dealId), vigente(deals)));
 
   const duenoAnterior = await darDealAlHost(tx, dealId, deal.ownerUserId, host, etiqueta ?? dealId);
 
-  if (!ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO.includes(deal.etapa)) {
+  if (!unaCitaMueveAAgendado(deal.etapa, deal.pendiente)) {
     return { movioAAgendado: false, duenoAnterior };
   }
   try {
     await moverEtapa(tx, { dealId, a: "agendado", actor: { tipo: "sistema" } });
+    // Solo deja nota cuando la cita le quita al deal un pendiente: eso es lo que el sistema
+    // decide solo. Una cita sobre un deal de setteo ya se explica con la llamada misma.
+    if (fechaCita && deal.pendiente != null) {
+      await dejarNotaDelSistema(
+        tx,
+        dealId,
+        `Llegó una cita nueva para el ${fechaHoraEnBogota(fechaCita)}: el deal pasó a Agendado y se quitó el pendiente ${NOMBRE_DE_PENDIENTE[deal.pendiente]}.`,
+      );
+    }
     return { movioAAgendado: true, duenoAnterior };
   } catch (e) {
     // El motor dice que al deal le falta algo: la llamada queda y el deal no se mueve.
@@ -353,6 +365,7 @@ export async function asignarLlamadaSuelta(
           programId: calls.programId,
           emailLead: calls.emailLead,
           host: calls.calendlyHostEmail,
+          fechaAgenda: calls.fechaAgenda,
         })
         .from(calls)
         .where(and(eq(calls.id, callId), sueltaPorAsignar(), vigente(calls)));
@@ -366,7 +379,7 @@ export async function asignarLlamadaSuelta(
         .from(deals)
         .where(and(eq(deals.id, dealId), vigente(deals)));
       if (!deal || deal.programId !== llamada.programId) throw new ErrorDeApp("No existe el deal.", 404);
-      if (deal.etapa === "completo" || deal.etapa === "cierre_perdido") {
+      if (deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido") {
         throw new ErrorDeApp("El deal está cerrado: no se le cuelgan llamadas.", 409);
       }
 
@@ -377,7 +390,7 @@ export async function asignarLlamadaSuelta(
         { dealId: deal.id, cohortId: deal.cohortId },
       );
       const host = closerHost(llamada.host, await closersConCalendly(tx, llamada.programId));
-      return efectoSobreElDeal(tx, deal.id, host, etiqueta);
+      return efectoSobreElDeal(tx, deal.id, host, etiqueta, llamada.fechaAgenda);
     });
   });
 }

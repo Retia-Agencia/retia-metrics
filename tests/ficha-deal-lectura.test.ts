@@ -254,8 +254,8 @@ describe("fichaDeDeal", () => {
   it("el historial dice quien movio (null = sistema) y el motivo; las actividades, su autor", async () => {
     const [m] = await db.insert(motivos).values({ nombre: "Sin dinero", tipo: "perdida" }).returning();
     await db.insert(dealEtapaHistorial).values([
-      { dealId, de: null, a: "pendiente_setteo", userId: null, fecha: new Date("2026-09-01T10:00:00Z") },
-      { dealId, de: "pendiente_setteo", a: "atendido", userId: closer, motivoId: m.id, fecha: new Date("2026-09-02T10:00:00Z") },
+      { dealId, de: null, a: "registrado", userId: null, fecha: new Date("2026-09-01T10:00:00Z") },
+      { dealId, de: "registrado", a: "atendido", userId: closer, motivoId: m.id, fecha: new Date("2026-09-02T10:00:00Z") },
     ]);
     await db.insert(dealActividades).values([
       { dealId, tipo: "contacto", canal: "WhatsApp", userId: closer, nota: "Le escribí", fecha: new Date("2026-09-03T10:00:00Z") },
@@ -265,8 +265,8 @@ describe("fichaDeDeal", () => {
     const f = (await fichaDeDeal(db, programId, dealId))!;
 
     expect(f.historial.map((h) => [h.de, h.a, h.porNombre, h.motivoNombre])).toEqual([
-      [null, "pendiente_setteo", null, null],
-      ["pendiente_setteo", "atendido", "Maru", "Sin dinero"],
+      [null, "registrado", null, null],
+      ["registrado", "atendido", "Maru", "Sin dinero"],
     ]);
     // Las actividades, de la mas nueva a la mas vieja.
     expect(f.actividades.map((a) => [a.tipo, a.autorNombre])).toEqual([

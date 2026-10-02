@@ -92,9 +92,9 @@ describe("141: la lista de deals y la base de leads, contra la base", () => {
     // Cierre: la primera entrada a Abonado, Completo o Cierre Perdido.
     const vendido = await deal("vendido", bogota("2026-08-01"));
     await db.insert(dealEtapaHistorial).values([
-      { dealId: vendido.deal.id, a: "en_contacto", fecha: bogota("2026-09-01") }, // abierto: no es cierre
-      { dealId: vendido.deal.id, de: "en_contacto", a: "abonado", fecha: bogota("2026-09-05") },
-      { dealId: vendido.deal.id, de: "abonado", a: "completo", fecha: bogota("2026-09-20") },
+      { dealId: vendido.deal.id, a: "contactado", fecha: bogota("2026-09-01") }, // abierto: no es cierre
+      { dealId: vendido.deal.id, de: "contactado", a: "ganado_parcial", fecha: bogota("2026-09-05") },
+      { dealId: vendido.deal.id, de: "ganado_parcial", a: "ganado_completo", fecha: bogota("2026-09-20") },
     ]);
     const perdido = await deal("perdido", bogota("2026-08-01"));
     await db.insert(dealEtapaHistorial).values({ dealId: perdido.deal.id, a: "cierre_perdido", fecha: bogota("2026-09-20") });
@@ -102,8 +102,8 @@ describe("141: la lista de deals y la base de leads, contra la base", () => {
     const recuperado = await deal("recuperado", bogota("2026-08-01"));
     await db.insert(dealEtapaHistorial).values([
       { dealId: recuperado.deal.id, a: "cierre_perdido", fecha: bogota("2026-09-03") },
-      { dealId: recuperado.deal.id, de: "cierre_perdido", a: "en_contacto", fecha: bogota("2026-09-08") },
-      { dealId: recuperado.deal.id, de: "en_contacto", a: "abonado", fecha: bogota("2026-09-22") },
+      { dealId: recuperado.deal.id, de: "cierre_perdido", a: "contactado", fecha: bogota("2026-09-08") },
+      { dealId: recuperado.deal.id, de: "contactado", a: "ganado_parcial", fecha: bogota("2026-09-22") },
     ]);
     // Perdido el 4-sep y recuperado: hoy esta abierto, no tiene fecha de cierre.
     const reabierto = await deal("reabierto", bogota("2026-08-01"));

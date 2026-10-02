@@ -15,7 +15,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import { fechaLimiteMaxima } from "@/lib/deals/pago";
 import { duenosPosibles } from "@/lib/deals/duenos";
 import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
@@ -74,7 +74,7 @@ export interface FichaDeAbono {
 
 export interface FichaDeActividad {
   id: string;
-  tipo: "contacto" | "nota";
+  tipo: "contacto" | "intento" | "nota";
   canal: string | null;
   fecha: Date;
   nota: string | null;
@@ -137,6 +137,7 @@ export interface FichaDeDeal {
   dealId: string;
   programId: string;
   etapa: EtapaDeal;
+  pendiente: PendienteDeal | null;
   lead: {
     id: string;
     nombre: string | null;
@@ -331,6 +332,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
     dealId: deal.id,
     programId: deal.programId,
     etapa: deal.etapa,
+    pendiente: deal.pendiente,
     lead: {
       id: lead.id,
       nombre: lead.nombre,

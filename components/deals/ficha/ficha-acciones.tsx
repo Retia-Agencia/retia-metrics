@@ -192,7 +192,7 @@ function DialogoEditar({
   const [seguimiento, setSeguimiento] = useState<string>(ficha.fechaSeguimiento ?? "");
   const [motivoId, setMotivoId] = useState<string | null>(ficha.motivo?.id ?? null);
 
-  const cerrado = ficha.etapa === "completo" || ficha.etapa === "cierre_perdido";
+  const cerrado = ficha.etapa === "ganado_completo" || ficha.etapa === "cierre_perdido";
   const muestraMotivo = ficha.etapa === "cierre_perdido";
   const motivosDePerdida = opciones.motivos.filter((m) => m.tipo === "perdida");
 

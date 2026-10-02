@@ -43,14 +43,14 @@ beforeAll(async () => {
         programId,
         leadId: lead.id,
         ownerUserId: owner.id,
-        etapa: "completo",
+        etapa: "ganado_completo",
         anuladoEn: anulada ? fecha : null,
         anuladoPor: anulada ? owner.id : null,
         motivoAnulacion: anulada ? "Prueba de corrección" : null,
       }).returning();
       await db.insert(dealEtapaHistorial).values([
-        { dealId: deal.id, a: "abonado", fecha },
-        { dealId: deal.id, de: "abonado", a: "completo", fecha: new Date("2026-10-02T23:30:00-05:00") },
+        { dealId: deal.id, a: "ganado_parcial", fecha },
+        { dealId: deal.id, de: "ganado_parcial", a: "ganado_completo", fecha: new Date("2026-10-02T23:30:00-05:00") },
       ]);
       await db.insert(abonos).values({
         programId,

@@ -50,7 +50,7 @@ describe("estadoDesdeTexto", () => {
  * indice unico (`lower(trim())`), y lo que no tiene fila no se adivina.
  */
 describe("resolverEstadoDeLlegada y motivoSinEstado", () => {
-  const setteo: EstadoDeLlegada = { valor: "setteo_no_calificado", etapaEntrada: "pendiente_setteo", prioridad: "normal", alertaMinutos: null };
+  const setteo: EstadoDeLlegada = { valor: "setteo_no_calificado", etapaEntrada: "registrado", prioridad: "normal", alertaMinutos: null };
   const estados = new Map([["setteo_no_calificado", setteo]]);
 
   it("encuentra la fila sin importar mayusculas ni blancos", () => {

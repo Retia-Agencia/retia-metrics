@@ -15,6 +15,7 @@ import {
   type ResultadoEstadoLlegadaAccion,
 } from "@/app/(app)/ajustes/fuentes/estados-llegada-acciones";
 import type { EstadoLlegadaVista, ValorSinEstado } from "@/lib/queries/estados-llegada";
+import { ETIQUETA_ETAPA_DE_ENTRADA } from "@/lib/catalogo/estados-llegada";
 
 /**
  * Los Estados de llegada de cada programa (ticket 117, ADR 0061): qué valor de la variable
@@ -34,11 +35,6 @@ interface Borrador {
   prioridad: Prioridad;
   alertaMinutos: string;
 }
-
-const ETIQUETA_ETAPA: Record<Exclude<Etapa, null>, string> = {
-  pendiente_setteo: "Pendiente Setteo",
-  agendado: "Agendado",
-};
 
 const claseControl =
   "h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -63,7 +59,7 @@ export function EstadosLlegadaAdmin({
     id: null,
     programId,
     valor: "",
-    etapaEntrada: "pendiente_setteo",
+    etapaEntrada: "registrado",
     prioridad: "normal",
     alertaMinutos: "",
   });
@@ -161,7 +157,7 @@ export function EstadosLlegadaAdmin({
               value={borrador.etapaEntrada ?? ""}
               onChange={(e) => setBorrador({ ...borrador, etapaEntrada: (e.target.value || null) as Etapa })}
             >
-              {Object.entries(ETIQUETA_ETAPA).map(([valor, etiqueta]) => (
+              {Object.entries(ETIQUETA_ETAPA_DE_ENTRADA).map(([valor, etiqueta]) => (
                 <option key={valor} value={valor}>
                   {etiqueta}
                 </option>
@@ -233,7 +229,7 @@ export function EstadosLlegadaAdmin({
                     <td className="font-medium">
                       <code>{e.valor}</code>
                     </td>
-                    <td>{e.etapaEntrada ? ETIQUETA_ETAPA[e.etapaEntrada] : "No abre deal"}</td>
+                    <td>{e.etapaEntrada ? ETIQUETA_ETAPA_DE_ENTRADA[e.etapaEntrada] : "No abre deal"}</td>
                     <td>
                       {e.prioridad === "alta" ? <Badge variant="alerta">Alta</Badge> : <Badge variant="neutro">Normal</Badge>}
                     </td>

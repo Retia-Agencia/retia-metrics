@@ -109,7 +109,7 @@ describe("ticket 134 — cohorte y descuento", () => {
     const conActiva = await abrirDeal(db, {
       leadId: primera.id,
       programId,
-      etapa: "pendiente_setteo",
+      etapa: "en_gestion",
       actor: { tipo: "usuario", ...actor() },
     });
     expect((await db.select().from(deals).where(eq(deals.id, conActiva)))[0].cohortId).toBe(cohortId);
@@ -119,7 +119,7 @@ describe("ticket 134 — cohorte y descuento", () => {
     const sinActiva = await abrirDeal(db, {
       leadId: segunda.id,
       programId,
-      etapa: "pendiente_setteo",
+      etapa: "en_gestion",
       actor: { tipo: "usuario", ...actor() },
     });
     expect((await db.select().from(deals).where(eq(deals.id, sinActiva)))[0].cohortId).toBeNull();
@@ -146,7 +146,7 @@ describe("ticket 134 — cohorte y descuento", () => {
       comprobanteUrl: "https://drive.google.com/abono",
     });
     const [congelado] = await db.select().from(deals).where(eq(deals.id, conActiva.id));
-    expect(congelado).toMatchObject({ cohortId, valorVendidoUsd: "797.00", etapa: "abonado" });
+    expect(congelado).toMatchObject({ cohortId, valorVendidoUsd: "797.00", etapa: "ganado_parcial" });
 
     await db.update(cohorts).set({ estado: "futuro" }).where(eq(cohorts.id, cohortId));
     const sinActiva = await dealDirecto("atendido", { cohortId: null, valorVendidoUsd: null });
@@ -170,7 +170,7 @@ describe("ticket 134 — cohorte y descuento", () => {
     const sinVenta = await dealDirecto();
     expect(await capturar(editarDeal(db, actor(), { dealId: sinVenta.id, descuentoUsd: 797 }))).toMatchObject({ status: 422 });
 
-    const vendido = await dealDirecto("abonado", { valorVendidoUsd: "797" });
+    const vendido = await dealDirecto("ganado_parcial", { valorVendidoUsd: "797" });
     await db.insert(abonos).values({
       dealId: vendido.id,
       programId,
@@ -187,7 +187,7 @@ describe("ticket 134 — cohorte y descuento", () => {
   });
 
   it("una venta exige motivo, deja actividad y reconcilia Abonado ↔ Completo", async () => {
-    const abonado = await dealDirecto("abonado", { valorVendidoUsd: "697" });
+    const abonado = await dealDirecto("ganado_parcial", { valorVendidoUsd: "697" });
     await db.insert(abonos).values({
       dealId: abonado.id,
       programId,
@@ -200,7 +200,7 @@ describe("ticket 134 — cohorte y descuento", () => {
     expect(sinMotivo).toMatchObject({ status: 422, message: "El motivo es obligatorio para cambiar una venta." });
     expect((await db.select().from(deals).where(eq(deals.id, abonado.id)))[0]).toMatchObject({
       valorVendidoUsd: "697.00",
-      etapa: "abonado",
+      etapa: "ganado_parcial",
     });
 
     await editarDeal(db, actor(), {
@@ -210,7 +210,7 @@ describe("ticket 134 — cohorte y descuento", () => {
     });
     expect((await db.select().from(deals).where(eq(deals.id, abonado.id)))[0]).toMatchObject({
       valorVendidoUsd: "600.00",
-      etapa: "completo",
+      etapa: "ganado_completo",
     });
     const actividades = await db.select().from(dealActividades).where(eq(dealActividades.dealId, abonado.id));
     expect(actividades[0].nota).toContain("Cambio de descuento: USD 100,00 → USD 197,00");
@@ -218,7 +218,7 @@ describe("ticket 134 — cohorte y descuento", () => {
       expect.objectContaining({ campo: "valorVendidoUsd", valorNuevo: "600" }),
     );
 
-    const completo = await dealDirecto("completo", { valorVendidoUsd: "697" });
+    const completo = await dealDirecto("ganado_completo", { valorVendidoUsd: "697" });
     await db.insert(abonos).values({
       dealId: completo.id,
       programId,
@@ -233,7 +233,7 @@ describe("ticket 134 — cohorte y descuento", () => {
     });
     expect((await db.select().from(deals).where(eq(deals.id, completo.id)))[0]).toMatchObject({
       valorVendidoUsd: "797.00",
-      etapa: "abonado",
+      etapa: "ganado_parcial",
     });
   });
 

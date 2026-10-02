@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { estadosLlegada as tablaEstadosLlegada, prioridadLlegadaEnum } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { ErrorDeApp } from "@/lib/errors";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
@@ -11,9 +12,12 @@ import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
  * reconocerse (el envio queda "sin estado", visible).
  *
  * Las ETAPAS de entrada posibles si son un tipo (el motor solo deja nacer un deal en
- * Pendiente Setteo o Agendado, ADR 0037); que valor va a cual no.
+ * Potencial, Registrado, Calificado o Agendado; qué valor va a cuál no.
  */
-export const ETAPAS_DE_ENTRADA = ["pendiente_setteo", "agendado"] as const;
+export const ETAPAS_DE_ENTRADA = ["potencial", "registrado", "calificado", "agendado"] as const;
+export const ETIQUETA_ETAPA_DE_ENTRADA = Object.fromEntries(
+  ETAPAS_DE_ENTRADA.map((etapa) => [etapa, NOMBRE_DE_ETAPA[etapa]]),
+) as Readonly<Record<(typeof ETAPAS_DE_ENTRADA)[number], string>>;
 
 export const esquemaEstadoLlegada = z.object({
   programId: z.string().uuid("Programa inválido."),

@@ -53,7 +53,7 @@ conPostgres("registrarAbono: concurrencia contra Postgres real", () => {
       const [area] = await db.insert(schema.areas).values({ nombre: "Referidos" }).returning();
       const [closer] = await db.insert(schema.users).values({ email: "closer@prueba.local", rol: "closer", closerId: "Prueba" }).returning();
       const [lead] = await db.insert(schema.leads).values({ programId: programa.id, emailNormalizado: "lead@prueba.local" }).returning();
-      const [deal] = await db.insert(schema.deals).values({ programId: programa.id, leadId: lead.id, areaDeclaradaId: area.id, ownerUserId: closer.id, etapa: "abonado", valorVendidoUsd: "1000" }).returning();
+      const [deal] = await db.insert(schema.deals).values({ programId: programa.id, leadId: lead.id, areaDeclaradaId: area.id, ownerUserId: closer.id, etapa: "ganado_parcial", valorVendidoUsd: "1000" }).returning();
       await db.insert(schema.abonos).values({ programId: programa.id, dealId: deal.id, monto: "400", moneda: "USD", fecha: "2026-09-28", comprobanteUrl: "https://prueba.local/400" });
 
       const actor = { userId: closer.id, rol: "closer" } as const;
@@ -104,7 +104,7 @@ conPostgres("registrarAbono: concurrencia contra Postgres real", () => {
       expect(saldo).toMatchObject({ abonado: 1000, saldo: 0, abonosVigentes: 2 });
       expect(saldo.saldo).toBeGreaterThanOrEqual(0);
       const [final] = await db.select().from(schema.deals).where(and(eq(schema.deals.id, deal.id), vigente(schema.deals)));
-      expect(final.etapa).toBe("completo");
+      expect(final.etapa).toBe("ganado_completo");
     } finally {
       try {
         await Promise.all(clientes.map((cliente) => cliente.end({ timeout: 5 })));

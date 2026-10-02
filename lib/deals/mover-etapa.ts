@@ -470,6 +470,8 @@ export interface AltaHistorica {
   programId: string;
   /** La que dice la hoja. Cualquiera de las once: no se recorre el motor (ADR 0059 punto 1). */
   etapa: EtapaDeal;
+  /** Pendiente con el que nació según el histórico. */
+  pendiente?: PendienteDeal | null;
   /** `sheets:<programa>:<pestaña>:<llave>`. La garantia contra la segunda corrida (punto 2). */
   huella: string;
   actorId: string;
@@ -581,6 +583,7 @@ export async function abrirDealesHistoricos(db: Db, altas: readonly AltaHistoric
           leadId: alta.leadId,
           programId: alta.programId,
           etapa: alta.etapa,
+          pendiente: alta.pendiente ?? null,
           ownerUserId: alta.ownerUserId ?? null,
           cohortId: alta.cohortId ?? null,
           acuerdoPago: alta.acuerdoPago ?? null,
@@ -628,6 +631,8 @@ export async function abrirDealesHistoricos(db: Db, altas: readonly AltaHistoric
           dealId,
           de: null,
           a: alta.etapa,
+          pendienteDe: null,
+          pendienteA: alta.pendiente ?? null,
           userId: null,
           ...(alta.fechaEtapa ? { fecha: alta.fechaEtapa } : {}),
         })),

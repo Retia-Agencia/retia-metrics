@@ -69,6 +69,7 @@ const ETIQUETA: Record<CodigoRequisito, string> = {
   cohorte_destino: "Cohorte a la que quiere entrar",
   fecha_seguimiento: "Fecha de seguimiento",
   motivo: "Motivo",
+  actividad: "Actividad comercial",
   transicion_no_permitida: "",
   dueno: "",
   contacto: "",

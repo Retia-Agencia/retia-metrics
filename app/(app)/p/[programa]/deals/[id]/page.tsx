@@ -56,7 +56,7 @@ export default async function FichaDelDealPage({ params }: Props) {
   const puedeTrabajar = !ficha.anulado && puedeTrabajarDeal(actor, { ownerUserId: ficha.owner?.id ?? null });
   // Registrar llamadas y plata es trabajar el lead: el gerente administra pero no registra (ADR 0003).
   const puedeRegistrar = puedeTrabajar && trabajaLeads(rol);
-  const cerrado = ficha.etapa === "completo" || ficha.etapa === "cierre_perdido";
+  const cerrado = ficha.etapa === "ganado_completo" || ficha.etapa === "cierre_perdido";
   const nombre = nombreDelDeal({
     leadNombre: ficha.lead.nombre,
     leadEmail: ficha.lead.email,

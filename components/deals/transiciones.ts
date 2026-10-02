@@ -36,7 +36,7 @@ export type MapaTransiciones = FlechaCliente[];
  * Las flechas legales DESDE una etapa. El orden lo fija el servidor (orden del enum).
  */
 export function flechasDesde(mapa: MapaTransiciones, de: EtapaDeal): FlechaCliente[] {
-  // Sin las flechas que vuelven a la misma etapa (T9, una reagenda que sigue en
+  // Sin las flechas que vuelven a la misma etapa (E7, una reagenda que sigue en
   // Agendado): no son un destino al que se mueva la tarjeta.
   return mapa.filter((f) => f.tipo === "etapa" && f.de === de && f.a !== de);
 }

@@ -36,7 +36,7 @@ export interface Consolidado extends Extraccion {
 const CATEGORIAS_DE_PERDIDA = new Set(["rechazo directo", "fit/producto", "financiero"]);
 
 /** Las etapas que puede tener un deal del Setteo, las unicas que una llamada puede afinar. */
-const ETAPAS_DEL_SETTEO: readonly EtapaDeal[] = ["pendiente_setteo", "en_contacto"];
+const ETAPAS_DEL_SETTEO: readonly EtapaDeal[] = ["registrado", "contactado"];
 
 export function consolidar(e: Extraccion): Consolidado {
   const rarezas = [...e.rarezas];
@@ -103,7 +103,7 @@ export function consolidar(e: Extraccion): Consolidado {
     resueltos.add(d.huella);
     const r = etapaPorLlamada(d.huella, ultima);
     if (r.rareza) rarezas.push(r.rareza);
-    return { ...d, etapa: r.etapa, fechaEtapa: ultima.fecha ?? d.fechaEtapa };
+    return { ...d, etapa: r.etapa, pendiente: r.pendiente ?? null, fechaEtapa: ultima.fecha ?? d.fechaEtapa };
   });
 
   return {
@@ -131,16 +131,16 @@ function ultimaLlamada(llamadas: readonly LlamadaTemplate[]): LlamadaTemplate | 
   return mejor;
 }
 
-function etapaPorLlamada(huella: string, l: LlamadaTemplate): { etapa: EtapaDeal; rareza?: RarezaTemplate } {
+function etapaPorLlamada(huella: string, l: LlamadaTemplate): Pick<DealTemplate, "etapa" | "pendiente"> & { rareza?: RarezaTemplate } {
   const categoria = l.categoria ? normalizarTexto(l.categoria) : null;
   const perdida = categoria != null && CATEGORIAS_DE_PERDIDA.has(categoria);
   const marca = (detalle: string): RarezaTemplate => ({ huella, tipo: "perdida_por_decidir", detalle });
 
   if (l.resultado === "no_show") {
     if (categoria === "rechazo directo") {
-      return { etapa: "pendiente_reagenda", rareza: marca(`Su última llamada fue No show con categoría "${l.categoria}": entra en Pendiente Re-agenda y un closer decide si es Cierre Perdido.`) };
+      return { etapa: "agendado", pendiente: "reagenda", rareza: marca(`Su última llamada fue No show con categoría "${l.categoria}": entra Agendado con Re-agenda pendiente y un closer decide si es Cierre Perdido.`) };
     }
-    return { etapa: "pendiente_reagenda" };
+    return { etapa: "agendado", pendiente: "reagenda" };
   }
   if (l.resultado === "cerrada") {
     return {

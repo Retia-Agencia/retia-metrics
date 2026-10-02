@@ -41,7 +41,7 @@ beforeEach(async () => {
     { leadId: m.id, sourceId: g.id, token: "t4", esParcial: false, calificacion: "descartado" },
   ]);
   await db.insert(estadosLlegada).values([
-    { programId, valor: "descartado", etapaEntrada: "pendiente_setteo", prioridad: "normal", activo: false },
+    { programId, valor: "descartado", etapaEntrada: "registrado", prioridad: "normal", activo: false },
   ]);
 });
 

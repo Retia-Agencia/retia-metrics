@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { parse } from "dotenv";
 import { db } from "../lib/db";
 import { abonos, etapaDealEnum, leads, programs, submissions, users } from "../lib/db/schema";
+import type { PendienteDeal } from "../lib/deals/etapas";
 import { actorDelScript } from "./actor";
 import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
 import {
@@ -134,7 +135,7 @@ interface ProgramaVolumen {
   totalLeads: number;
   comisionPorcentaje: string;
   prefijo: "p1" | "p2";
-  etapas: Readonly<Record<EtapaVolumen, number>>;
+  distribucion: readonly { etapa: EtapaVolumen; pendiente?: PendienteDeal; cantidad: number }[];
 }
 
 interface LeadDeVolumen {
@@ -146,6 +147,7 @@ interface LeadDeVolumen {
 interface DealDeVolumen {
   id: string;
   etapa: EtapaVolumen;
+  pendiente: PendienteDeal | null;
   fechaEtapa: string;
   fechaLlamada: string;
   fechaAbono: string;
@@ -205,11 +207,11 @@ function categoriasUtm(total: number, azar: () => number): string[] {
 }
 
 function etapasDeVolumen(
-  cantidades: Readonly<Record<EtapaVolumen, number>>,
+  distribucion: ProgramaVolumen["distribucion"],
   azar: () => number,
-): EtapaVolumen[] {
+): { etapa: EtapaVolumen; pendiente: PendienteDeal | null }[] {
   return mezclar(
-    etapaDealEnum.enumValues.flatMap((etapa) => repetir(etapa, cantidades[etapa])),
+    distribucion.flatMap(({ etapa, pendiente, cantidad }) => repetir({ etapa, pendiente: pendiente ?? null }, cantidad)),
     azar,
   );
 }
@@ -226,7 +228,7 @@ function crearLeadsDeVolumen(
 
   return categorias.map((categoria, indice) => {
     const numero = indice + 1;
-    const totalDeals = Object.values(programa.etapas).reduce((total, cantidad) => total + cantidad, 0);
+    const totalDeals = programa.distribucion.reduce((total, fila) => total + fila.cantidad, 0);
     const diasDisponibles = indice < totalDeals ? 19 : DIAS_HABILES_SEPTIEMBRE.length;
     const fecha = DIAS_HABILES_SEPTIEMBRE[Math.floor(azar() * diasDisponibles)];
     const correo = `persona-${programa.prefijo}-${String(numero).padStart(3, "0")}@ejemplo.local`;
@@ -309,18 +311,19 @@ async function sembrarVolumen(
 
   const dealsCreados: DealDeVolumen[] = [];
   for (const grupo of leadsPorPrograma) {
-    const etapas = etapasDeVolumen(grupo.programa.etapas, azar);
-    const altas: AltaHistorica[] = grupo.leads.slice(0, etapas.length).map((leadVolumen, indice) => {
+    const destinos = etapasDeVolumen(grupo.programa.distribucion, azar);
+    const altas: AltaHistorica[] = grupo.leads.slice(0, destinos.length).map((leadVolumen, indice) => {
       const lead = leadPorCorreo.get(leadVolumen.correo)!;
       const owner = closers[indice % closers.length];
-      const etapaFinal = etapas[indice];
+      const destino = destinos[indice];
       const indiceFecha = DIAS_HABILES_SEPTIEMBRE.indexOf(
         leadVolumen.fecha as (typeof DIAS_HABILES_SEPTIEMBRE)[number],
       );
       return {
         leadId: lead.id,
         programId: grupo.programa.id,
-        etapa: etapaFinal === "cierre_perdido" ? "en_contacto" : etapaFinal,
+        etapa: destino.etapa === "cierre_perdido" ? "contactado" : destino.etapa,
+        pendiente: destino.etapa === "cierre_perdido" ? null : destino.pendiente,
         huella: `seed-local:${grupo.programa.prefijo}:deal:${indice + 1}`,
         actorId,
         fechaEtapa: instanteDeBogota(DIAS_HABILES_SEPTIEMBRE[indiceFecha + 2], 10 + (indice % 7)),
@@ -340,7 +343,8 @@ async function sembrarVolumen(
       );
       dealsCreados.push({
         id: resultado.dealId,
-        etapa: etapas[indice],
+        etapa: destinos[indice].etapa,
+        pendiente: destinos[indice].pendiente,
         fechaLlamada: DIAS_HABILES_SEPTIEMBRE[indiceFecha + 1],
         fechaEtapa: DIAS_HABILES_SEPTIEMBRE[indiceFecha + 2],
         fechaAbono: DIAS_HABILES_SEPTIEMBRE[indiceFecha + 3],
@@ -364,19 +368,19 @@ async function sembrarVolumen(
   const etapasConShow = new Set<EtapaVolumen>([
     "atendido",
     "compromiso_verbal",
-    "abonado",
-    "completo",
-    "proxima_cohorte",
+    "ganado_parcial",
+    "ganado_completo",
   ]);
   for (const programa of programasDeVolumen) {
     const candidatas = dealsCreados
       .filter((deal) => deal.id && leadPorCorreo.get(deal.correo)?.programId === programa.id)
       .filter((deal) => etapasConShow.has(deal.etapa)
+        || deal.pendiente === "proxima_cohorte"
         || deal.etapa === "agendado"
-        || deal.etapa === "pendiente_reagenda");
+        || deal.pendiente === "reagenda");
     candidatas.forEach((deal, indice) => {
-      const show = etapasConShow.has(deal.etapa);
-      const resultado = show ? "show" : deal.etapa === "pendiente_reagenda" ? "no_show" : "agendada";
+      const show = etapasConShow.has(deal.etapa) || deal.pendiente === "proxima_cohorte";
+      const resultado = show ? "show" : deal.pendiente === "reagenda" ? "no_show" : "agendada";
       llamadas.push({
         programId: programa.id,
         dealId: deal.id,
@@ -404,11 +408,11 @@ async function sembrarVolumen(
     let abonadosVistos = 0;
     const pagadores = dealsCreados.filter(
       (deal) => leadPorCorreo.get(deal.correo)?.programId === programa.id
-        && (deal.etapa === "abonado" || deal.etapa === "completo"),
+        && (deal.etapa === "ganado_parcial" || deal.etapa === "ganado_completo"),
     );
     pagadores.forEach((deal, indice) => {
-      const numeroDeAbonado = deal.etapa === "abonado" ? abonadosVistos++ : -1;
-      const montos = deal.etapa === "completo"
+      const numeroDeAbonado = deal.etapa === "ganado_parcial" ? abonadosVistos++ : -1;
+      const montos = deal.etapa === "ganado_completo"
         ? (indice % 2 === 0 ? [precio] : [precio * 0.4, precio * 0.6])
         : (numeroDeAbonado < 2 || numeroDeAbonado % 2 === 0
           ? [precio * 0.2, precio * 0.25]
@@ -423,7 +427,7 @@ async function sembrarVolumen(
           monto: monto.toFixed(2),
           closer: deal.closerId,
         });
-        if (deal.etapa === "abonado" && montos.length === 2 && numeroAbono === 0) {
+        if (deal.etapa === "ganado_parcial" && montos.length === 2 && numeroAbono === 0) {
           candidatosParaAnular.push(posicion);
         }
       });
@@ -437,14 +441,14 @@ async function sembrarVolumen(
     });
   }
 
-  const dealParaAnular = dealsCreados.find((deal) => deal.etapa === "pendiente_setteo")!;
+  const dealParaAnular = dealsCreados.find((deal) => deal.etapa === "registrado")!;
   await anularDeal(db, { userId: actorId, rol: "developer" }, {
     dealId: dealParaAnular.id,
     motivo: "Deal ficticio anulado para probar metricas vigentes.",
   });
 
   for (const programa of programasDeVolumen) {
-    const conteos = etapaDealEnum.enumValues.map((etapa) => `${etapa}=${programa.etapas[etapa]}`).join(", ");
+    const conteos = programa.distribucion.map((fila) => `${fila.etapa}${fila.pendiente ? `/${fila.pendiente}` : ""}=${fila.cantidad}`).join(", ");
     console.log(`[seed:local] ${programa.nombre}: ${programa.totalLeads} leads; ${conteos}`);
   }
 }
@@ -777,25 +781,25 @@ export async function sembrarLocal(): Promise<void> {
   // Desde el 121 el motor pide el área declarada para comprometer, abonar y completar.
   const areaDeclaradaSeed = areasPorNombre.get("paid")!;
 
-  // Deal 1 -> Etapa: pendiente_setteo
+  // Deal 1 -> Etapa: registrado
   const lead1 = mapaLeads.get("andrea.morales@ejemplo.local")!;
   await abrirDeal(db, {
     leadId: lead1.id,
     programId: prog1.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "pendiente_setteo",
-    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    etapa: "registrado",
+    actor: { tipo: "sistema" },
     ownerUserId: closer1.id,
     cohortId: coh1.id,
   });
 
-  // Deal 2 -> Etapa: en_contacto
+  // Deal 2 -> Etapa: contactado
   const lead2 = mapaLeads.get("bernardo.gomez@ejemplo.local")!;
   await abrirDeal(db, {
     leadId: lead2.id,
     programId: prog1.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "en_contacto",
+    etapa: "contactado",
     actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
     ownerUserId: closer2.id,
     cohortId: coh1.id,
@@ -807,8 +811,8 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead3.id,
     programId: prog1.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "pendiente_setteo",
-    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    etapa: "registrado",
+    actor: { tipo: "sistema" },
     ownerUserId: closer1.id,
     cohortId: coh1.id,
   });
@@ -829,8 +833,8 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead4.id,
     programId: prog1.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "pendiente_setteo",
-    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    etapa: "registrado",
+    actor: { tipo: "sistema" },
     ownerUserId: closer1.id,
     cohortId: coh1.id,
   });
@@ -896,7 +900,7 @@ export async function sembrarLocal(): Promise<void> {
   );
   await moverEtapa(db, {
     dealId: deal6Id,
-    a: "abonado",
+    a: "ganado_parcial",
     actor: { tipo: "sistema" },
   });
 
@@ -932,18 +936,18 @@ export async function sembrarLocal(): Promise<void> {
   );
   await moverEtapa(db, {
     dealId: deal7Id,
-    a: "completo",
+    a: "ganado_completo",
     actor: { tipo: "sistema" },
   });
 
-  // Deal 8 -> Etapa: pendiente_reagenda (llamada fallida)
+  // Deal 8 -> Etapa: agendado con Re-agenda pendiente (llamada fallida)
   const lead8 = mapaLeads.get("hector.sanchez@ejemplo.local")!;
   const deal8Id = await abrirDeal(db, {
     leadId: lead8.id,
     programId: prog1.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "pendiente_setteo",
-    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    etapa: "registrado",
+    actor: { tipo: "sistema" },
     ownerUserId: closer1.id,
     cohortId: coh1.id,
   });
@@ -970,7 +974,7 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead9.id,
     programId: prog1.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "en_contacto",
+    etapa: "contactado",
     actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
     ownerUserId: closer2.id,
     cohortId: coh1.id,
@@ -1015,18 +1019,18 @@ export async function sembrarLocal(): Promise<void> {
   );
   await moverEtapa(db, {
     dealId: deal10Id,
-    a: "abonado",
+    a: "ganado_parcial",
     actor: { tipo: "sistema" },
   });
 
-  // Deal 11 -> Tactical: pendiente_setteo
+  // Deal 11 -> Tactical: registrado
   const lead11 = mapaLeads.get("karina.lopez@ejemplo.local")!;
   await abrirDeal(db, {
     leadId: lead11.id,
     programId: prog2.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "pendiente_setteo",
-    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    etapa: "registrado",
+    actor: { tipo: "sistema" },
     ownerUserId: closer1.id,
     cohortId: coh2.id,
   });
@@ -1037,8 +1041,8 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead12.id,
     programId: prog2.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "pendiente_setteo",
-    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    etapa: "registrado",
+    actor: { tipo: "sistema" },
     ownerUserId: closer1.id,
     cohortId: coh2.id,
   });
@@ -1081,19 +1085,19 @@ export async function sembrarLocal(): Promise<void> {
         totalLeads: 150,
         comisionPorcentaje: "10.04",
         prefijo: "p1",
-        etapas: {
-          pendiente_setteo: 24,
-          en_contacto: 18,
-          pendiente_reagenda: 8,
-          agendado: 14,
-          atendido: 12,
-          compromiso_verbal: 10,
-          abonado: 8,
-          completo: 6,
-          proxima_cohorte: 5,
-          cierre_perdido: 8,
-          seguimiento: 7,
-        },
+        distribucion: [
+          { etapa: "registrado", cantidad: 24 },
+          { etapa: "contactado", cantidad: 18 },
+          { etapa: "agendado", pendiente: "reagenda", cantidad: 8 },
+          { etapa: "agendado", cantidad: 14 },
+          { etapa: "atendido", cantidad: 12 },
+          { etapa: "compromiso_verbal", cantidad: 10 },
+          { etapa: "ganado_parcial", cantidad: 8 },
+          { etapa: "ganado_completo", cantidad: 6 },
+          { etapa: "registrado", pendiente: "proxima_cohorte", cantidad: 5 },
+          { etapa: "cierre_perdido", cantidad: 8 },
+          { etapa: "atendido", pendiente: "seguimiento", cantidad: 7 },
+        ],
       },
       {
         id: prog2.id,
@@ -1106,19 +1110,19 @@ export async function sembrarLocal(): Promise<void> {
         totalLeads: 120,
         comisionPorcentaje: "6.67",
         prefijo: "p2",
-        etapas: {
-          pendiente_setteo: 20,
-          en_contacto: 14,
-          pendiente_reagenda: 7,
-          agendado: 11,
-          atendido: 9,
-          compromiso_verbal: 8,
-          abonado: 6,
-          completo: 5,
-          proxima_cohorte: 4,
-          cierre_perdido: 7,
-          seguimiento: 5,
-        },
+        distribucion: [
+          { etapa: "registrado", cantidad: 20 },
+          { etapa: "contactado", cantidad: 14 },
+          { etapa: "agendado", pendiente: "reagenda", cantidad: 7 },
+          { etapa: "agendado", cantidad: 11 },
+          { etapa: "atendido", cantidad: 9 },
+          { etapa: "compromiso_verbal", cantidad: 8 },
+          { etapa: "ganado_parcial", cantidad: 6 },
+          { etapa: "ganado_completo", cantidad: 5 },
+          { etapa: "registrado", pendiente: "proxima_cohorte", cantidad: 4 },
+          { etapa: "cierre_perdido", cantidad: 7 },
+          { etapa: "atendido", pendiente: "seguimiento", cantidad: 5 },
+        ],
       },
     ],
     [

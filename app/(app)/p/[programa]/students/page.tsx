@@ -57,7 +57,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
   };
   const filas = await studentsDelPrograma(db, programa.id, filtro);
 
-  const completos = filas.filter((f) => f.etapa === "completo").length;
+  const completos = filas.filter((f) => f.etapa === "ganado_completo").length;
   const sinOnboarding = filas.filter((f) => f.onboardedAt == null).length;
   const vencidos = filas.filter((f) => f.vencido != null).length;
   const control =
@@ -151,7 +151,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                           <Badge variant="peligro">
                             Vencida el {fecha(f.vencido.fechaLimite)} · <span className="cifra">{num(f.vencido.diasDeAtraso)}</span> días
                           </Badge>
-                        ) : f.fechaLimitePago && f.etapa !== "completo" ? (
+                        ) : f.fechaLimitePago && f.etapa !== "ganado_completo" ? (
                           <p className="text-xs text-muted-foreground">Fecha límite {fecha(f.fechaLimitePago)}</p>
                         ) : null}
                         {f.acuerdoPago ? <p className="text-xs whitespace-pre-line">{f.acuerdoPago}</p> : null}

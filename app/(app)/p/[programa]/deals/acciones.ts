@@ -9,7 +9,7 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { deals, etapaDealEnum } from "@/lib/db/schema";
+import { deals, etapaDealEnum, pendienteDealEnum } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
@@ -49,6 +49,7 @@ const esquemaDatos = z
 const esquemaMover = z.object({
   dealId: z.string().uuid("Deal inválido."),
   a: z.enum(etapaDealEnum.enumValues),
+  pendiente: z.enum(pendienteDealEnum.enumValues).nullable().optional(),
   motivoId: z.string().uuid().nullable().optional(),
   datos: esquemaDatos,
 });
@@ -86,6 +87,7 @@ export async function moverDeal(entrada: EntradaMover): Promise<ResultadoMover> 
       moverEtapa(db, {
         dealId: mov.dealId,
         a: mov.a,
+        pendiente: mov.pendiente,
         actor,
         motivoId: mov.motivoId ?? null,
         datos: mov.datos,

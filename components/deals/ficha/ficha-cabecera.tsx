@@ -1,9 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { fecha, fechaHoraEnBogota, saldoLegible, usd, pct } from "@/lib/format";
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import { NOMBRE_DE_PENDIENTE, type EtapaDeal } from "@/lib/deals/etapas";
 import type { FichaDeDeal } from "@/lib/queries/ficha-deal";
-import type { TonoEtapa } from "../etapa-tono";
+import { TONO_DE_PENDIENTE, type TonoEtapa } from "../etapa-tono";
 import { Dato } from "./campos";
 
 /**
@@ -43,10 +43,15 @@ export function FichaCabecera({
               {nombre}
             </h2>
           </div>
-          <Badge variant={anulado ? "neutro" : tonoDeEtapa[ficha.etapa]}>
-            {nombreDeEtapa[ficha.etapa]}
-            {anulado ? " (anulado)" : ""}
-          </Badge>
+          <div className="flex flex-wrap gap-1.5">
+            <Badge variant={anulado ? "neutro" : tonoDeEtapa[ficha.etapa]}>
+              {nombreDeEtapa[ficha.etapa]}
+              {anulado ? " (anulado)" : ""}
+            </Badge>
+            {ficha.pendiente ? (
+              <Badge variant={TONO_DE_PENDIENTE[ficha.pendiente]}>{NOMBRE_DE_PENDIENTE[ficha.pendiente]}</Badge>
+            ) : null}
+          </div>
         </div>
 
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-5">

@@ -2,12 +2,13 @@ import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { calls, deals, leads, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { vigente } from "@/lib/queries/vigente";
+import { ETAPAS_DE_SETTEO } from "@/lib/deals/etapas";
 
 /**
  * Las dos listas por las que un deal SIN dueño consigue uno (ticket 070, ADR 0050): las
  * secciones "sin dueño" del Inbox de un programa.
  *
- * - **Pendiente Setteo**: deals en etapa `pendiente_setteo` sin dueño, que un closer
+ * - **Por settear**: deals en una etapa de `ETAPAS_DE_SETTEO` sin dueño, que un closer
  *   reclama. **Ordenados por SCORE** (el que calculo el formulario, decision del 29-sep):
  *   de mayor a menor; a igual score, el envio mas reciente primero. **Sin score** (lo
  *   trasladado de Sheets y todo lo que llegue antes de configurar la variable en el
@@ -63,14 +64,14 @@ export interface FilaSinDueno {
    * La llamada agendada SIN closer que el sistema dejo sin fecha, si existe (ticket 057).
    * `null` si el deal no tiene una. Al reclamar un Agendado, la pantalla ofrece
    * completarla; `completarAgendada` exige que el actor ya sea el dueño, asi que se
-   * completa DESPUES de reclamar. Solo se llena en `unclaimed` (los Pendiente Setteo no
+   * completa DESPUES de reclamar. Solo se llena en `unclaimed` (los de Por settear no
    * tienen cita).
    */
   llamadaPorCompletarId: string | null;
 }
 
 export interface SeccionesSinDueno {
-  /** Pendiente Setteo: por score desc (null al final), luego envio mas reciente. */
+  /** Por settear: por score desc (null al final), luego envio mas reciente. */
   pendienteSetteo: FilaSinDueno[];
   /** Agendados sin dueño: por antiguedad, lo mas viejo primero. */
   unclaimed: FilaSinDueno[];
@@ -122,7 +123,7 @@ function aFila(f: FilaCruda, llamadaPorCompletarId: string | null = null): FilaS
 }
 
 export async function seccionesSinDueno(db: Db, programId: string): Promise<SeccionesSinDueno> {
-  // Pendiente Setteo: sin dueño, vigente, del programa. El orden por score va en memoria
+  // Por settear: sin dueño, vigente, del programa. El orden por score va en memoria
   // (score desc con null al final, luego recencia desc): un `ORDER BY ... NULLS LAST`
   // mezclado con la recencia se lee peor y aqui el conjunto es chico. La consulta trae un
   // orden estable de respaldo (recencia) y el sort final decide.
@@ -134,7 +135,7 @@ export async function seccionesSinDueno(db: Db, programId: string): Promise<Secc
     .where(
       and(
         eq(deals.programId, programId),
-        eq(deals.etapa, "pendiente_setteo"),
+        inArray(deals.etapa, [...ETAPAS_DE_SETTEO]),
         isNull(deals.ownerUserId),
         vigente(deals),
       ),

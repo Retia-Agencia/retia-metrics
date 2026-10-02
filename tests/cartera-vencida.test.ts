@@ -58,7 +58,7 @@ describe("carteraVencida", () => {
       programId: otro.id, codigo: "C1", metaCupos: 10, precioUsd: "1000",
       fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25", estado: "futuro",
     }).returning();
-    const d = await deal("abonado", "400", { cohortId: ajena.id });
+    const d = await deal("ganado_parcial", "400", { cohortId: ajena.id });
     const maxima = await fechaLimiteMaxima(db, d);
     expect(maxima).toBe("2026-10-15");
     const r = await carteraVencida(db, programId, HOY);
@@ -67,7 +67,7 @@ describe("carteraVencida", () => {
   });
 
   it("un deal con saldo y fecha límite vencida sale, con su saldo y sus días de atraso", async () => {
-    const d = await deal("abonado", "400", { fechaLimitePago: "2026-10-10", acuerdoPago: "el resto antes de clases" });
+    const d = await deal("ganado_parcial", "400", { fechaLimitePago: "2026-10-10", acuerdoPago: "el resto antes de clases" });
     const r = await carteraVencida(db, programId, HOY);
     expect(r.vencidos).toHaveLength(1);
     expect(r.vencidos[0]).toMatchObject({
@@ -82,32 +82,32 @@ describe("carteraVencida", () => {
   });
 
   it("con saldo en cero no sale; con la fecha de hoy o futura tampoco (el día límite aún es plazo)", async () => {
-    await deal("abonado", "1000", { fechaLimitePago: "2026-10-01" });
-    await deal("abonado", "400", { fechaLimitePago: HOY });
-    await deal("abonado", "400", { fechaLimitePago: "2026-10-30" });
+    await deal("ganado_parcial", "1000", { fechaLimitePago: "2026-10-01" });
+    await deal("ganado_parcial", "400", { fechaLimitePago: HOY });
+    await deal("ganado_parcial", "400", { fechaLimitePago: "2026-10-30" });
     expect((await carteraVencida(db, programId, HOY)).vencidos).toHaveLength(0);
   });
 
   it("un deal anulado no sale (vigente)", async () => {
-    await deal("abonado", "400", { fechaLimitePago: "2026-10-01", anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error" });
+    await deal("ganado_parcial", "400", { fechaLimitePago: "2026-10-01", anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error" });
     expect((await carteraVencida(db, programId, HOY)).vencidos).toHaveLength(0);
   });
 
   it("un abono anulado no cuenta: el saldo es el del módulo", async () => {
-    const d = await deal("abonado", "400", { fechaLimitePago: "2026-10-01" });
+    const d = await deal("ganado_parcial", "400", { fechaLimitePago: "2026-10-01" });
     await db.insert(abonos).values({ dealId: d.id, programId, fecha: "2026-10-02", monto: "600", anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error" });
     const r = await carteraVencida(db, programId, HOY);
     expect(r.vencidos[0].saldo).toBe(600);
   });
 
   it("sin fecha propia rige el inicio de clases de su cohorte", async () => {
-    await deal("abonado", "400");
+    await deal("ganado_parcial", "400");
     const r = await carteraVencida(db, programId, HOY);
     expect(r.vencidos[0]).toMatchObject({ fechaLimite: "2026-10-15", fechaPropia: false, diasDeAtraso: 5 });
   });
 
   it("sin cohorte propia rige la activa del programa; sin ninguna referencia se cuenta aparte", async () => {
-    await deal("abonado", "400", { cohortId: null });
+    await deal("ganado_parcial", "400", { cohortId: null });
     let r = await carteraVencida(db, programId, HOY);
     expect(r.vencidos[0].fechaLimite).toBe("2026-10-15");
 
@@ -124,15 +124,15 @@ describe("carteraVencida", () => {
 
   it("el programa es frontera: la cartera de uno no incluye los deals del otro", async () => {
     const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
-    await deal("abonado", "400", { fechaLimitePago: "2026-10-01", cohortId: null, valorVendidoUsd: "1500.00" }, otro.id);
-    await deal("abonado", "100", { fechaLimitePago: "2026-10-01" });
+    await deal("ganado_parcial", "400", { fechaLimitePago: "2026-10-01", cohortId: null, valorVendidoUsd: "1500.00" }, otro.id);
+    await deal("ganado_parcial", "100", { fechaLimitePago: "2026-10-01" });
     const r = await carteraVencida(db, programId, HOY);
     expect(r.vencidos).toHaveLength(1);
   });
 
   it("ordena por lo más atrasado primero", async () => {
-    const reciente = await deal("abonado", "100", { fechaLimitePago: "2026-10-18" });
-    const viejo = await deal("abonado", "100", { fechaLimitePago: "2026-09-01" });
+    const reciente = await deal("ganado_parcial", "100", { fechaLimitePago: "2026-10-18" });
+    const viejo = await deal("ganado_parcial", "100", { fechaLimitePago: "2026-09-01" });
     const r = await carteraVencida(db, programId, HOY);
     expect(r.vencidos.map((v) => v.dealId)).toEqual([viejo.id, reciente.id]);
   });

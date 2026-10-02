@@ -47,12 +47,12 @@ describe("ventas sin UTM por área declarada", () => {
     const [envioSinUtm] = await db.insert(submissions).values({ leadId: sinUtm.id, sourceId: fuente.id, token: "sin-utm" }).returning();
 
     const creados = await db.insert(deals).values([
-      { leadId: conUtm.id, programId: programa.id, etapa: "abonado", areaDeclaradaId: referidos.id, submissionOrigenId: envioConUtm.id },
-      { leadId: sinOrigen.id, programId: programa.id, etapa: "abonado", areaDeclaradaId: referidos.id },
-      { leadId: sinUtm.id, programId: programa.id, etapa: "completo", areaDeclaradaId: referidos.id, submissionOrigenId: envioSinUtm.id },
-      { leadId: ajeno.id, programId: otroPrograma.id, etapa: "abonado", areaDeclaradaId: referidos.id },
+      { leadId: conUtm.id, programId: programa.id, etapa: "ganado_parcial", areaDeclaradaId: referidos.id, submissionOrigenId: envioConUtm.id },
+      { leadId: sinOrigen.id, programId: programa.id, etapa: "ganado_parcial", areaDeclaradaId: referidos.id },
+      { leadId: sinUtm.id, programId: programa.id, etapa: "ganado_completo", areaDeclaradaId: referidos.id, submissionOrigenId: envioSinUtm.id },
+      { leadId: ajeno.id, programId: otroPrograma.id, etapa: "ganado_parcial", areaDeclaradaId: referidos.id },
       { leadId: noVenta.id, programId: programa.id, etapa: "compromiso_verbal", areaDeclaradaId: referidos.id },
-      { leadId: anulado.id, programId: programa.id, etapa: "completo", areaDeclaradaId: referidos.id, anuladoEn: new Date(), anuladoPor: actor.id, motivoAnulacion: "duplicado" },
+      { leadId: anulado.id, programId: programa.id, etapa: "ganado_completo", areaDeclaradaId: referidos.id, anuladoEn: new Date(), anuladoPor: actor.id, motivoAnulacion: "duplicado" },
     ]).returning();
 
     // La venta es la primera entrada a Abonado o Completo del historial, igual que en el
@@ -60,15 +60,15 @@ describe("ventas sin UTM por área declarada", () => {
     const enElRango = new Date("2026-09-15T15:00:00Z");
     await db.insert(dealEtapaHistorial).values(
       creados
-        .filter((d) => d.etapa === "abonado" || d.etapa === "completo")
+        .filter((d) => d.etapa === "ganado_parcial" || d.etapa === "ganado_completo")
         .map((d) => ({ dealId: d.id, de: "compromiso_verbal" as const, a: d.etapa, fecha: enElRango })),
     );
     // Vendido fuera del rango: no cuenta aunque sea sin UTM y tenga área.
     const tarde = await lead(programa.id);
     const [fuera] = await db.insert(deals).values(
-      { leadId: tarde.id, programId: programa.id, etapa: "abonado", areaDeclaradaId: referidos.id },
+      { leadId: tarde.id, programId: programa.id, etapa: "ganado_parcial", areaDeclaradaId: referidos.id },
     ).returning();
-    await db.insert(dealEtapaHistorial).values({ dealId: fuera.id, de: "compromiso_verbal", a: "abonado", fecha: new Date("2026-10-15T15:00:00Z") });
+    await db.insert(dealEtapaHistorial).values({ dealId: fuera.id, de: "compromiso_verbal", a: "ganado_parcial", fecha: new Date("2026-10-15T15:00:00Z") });
 
     expect(await ventasSinUtmPorAreaDeclarada(db, programa.id, { desde: "2026-09-01", hasta: "2026-09-30" })).toEqual([
       { areaId: referidos.id, nombre: "Referidos", ventas: 2 },

@@ -1,4 +1,4 @@
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 
 /**
  * El tono (`<Badge variant>`) con el que se pinta cada etapa, de la tabla de
@@ -15,15 +15,21 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 export type TonoEtapa = "neutro" | "info" | "alerta" | "exito" | "peligro";
 
 export const TONO_DE_ETAPA: Readonly<Record<EtapaDeal, TonoEtapa>> = {
-  pendiente_setteo: "neutro",
-  en_contacto: "neutro",
+  potencial: "neutro",
+  registrado: "neutro",
+  en_gestion: "neutro",
+  contactado: "neutro",
+  calificado: "neutro",
   agendado: "info",
-  pendiente_reagenda: "alerta",
   atendido: "info",
-  seguimiento: "info",
   compromiso_verbal: "alerta",
-  abonado: "exito",
-  completo: "exito",
-  proxima_cohorte: "neutro",
+  ganado_parcial: "exito",
+  ganado_completo: "exito",
   cierre_perdido: "peligro",
+};
+
+export const TONO_DE_PENDIENTE: Readonly<Record<PendienteDeal, TonoEtapa>> = {
+  reagenda: "alerta",
+  seguimiento: "info",
+  proxima_cohorte: "neutro",
 };

@@ -98,10 +98,10 @@ async function crear(o: {
 
 describe("seccionesSinDueno — Pendiente Setteo", () => {
   it("ordena por score desc; sin score al final; a igual banda, el envío más reciente primero", async () => {
-    const bajo = await crear({ etapa: "pendiente_setteo", puntaje: 10, fecha: "2026-09-10T15:00:00Z" });
-    const altoViejo = await crear({ etapa: "pendiente_setteo", puntaje: 90, fecha: "2026-09-01T15:00:00Z" });
-    const altoNuevo = await crear({ etapa: "pendiente_setteo", puntaje: 90, fecha: "2026-09-20T15:00:00Z" });
-    const sinScore = await crear({ etapa: "pendiente_setteo", puntaje: null, fecha: "2026-09-25T15:00:00Z" });
+    const bajo = await crear({ etapa: "registrado", puntaje: 10, fecha: "2026-09-10T15:00:00Z" });
+    const altoViejo = await crear({ etapa: "registrado", puntaje: 90, fecha: "2026-09-01T15:00:00Z" });
+    const altoNuevo = await crear({ etapa: "registrado", puntaje: 90, fecha: "2026-09-20T15:00:00Z" });
+    const sinScore = await crear({ etapa: "registrado", puntaje: null, fecha: "2026-09-25T15:00:00Z" });
 
     const { pendienteSetteo } = await seccionesSinDueno(db, programId);
     // 90 nuevo, 90 viejo, 10, luego el sin score (aunque sea el más reciente de todos).
@@ -110,23 +110,23 @@ describe("seccionesSinDueno — Pendiente Setteo", () => {
   });
 
   it("el origen viaja tal cual (UTM sin normalizar) y traidoPorNombre es null (086 aún no existe)", async () => {
-    const dealId = await crear({ etapa: "pendiente_setteo", puntaje: 5 });
+    const dealId = await crear({ etapa: "registrado", puntaje: 5 });
     const { pendienteSetteo } = await seccionesSinDueno(db, programId);
     const fila = pendienteSetteo.find((f) => f.dealId === dealId)!;
     expect(fila.origen).toMatchObject({ utmSource: "facebook", utmMedium: "cpc", utmCampaign: "camp", traidoPorNombre: null });
   });
 
   it("un deal con dueño, uno anulado, y uno de otro programa no aparecen", async () => {
-    const sinDueno = await crear({ etapa: "pendiente_setteo", puntaje: 50 });
-    await crear({ etapa: "pendiente_setteo", puntaje: 99, owner: closer });
-    await crear({ etapa: "pendiente_setteo", puntaje: 99, anulado: true });
-    await crear({ etapa: "pendiente_setteo", puntaje: 99, programa: otroProgramId });
+    const sinDueno = await crear({ etapa: "registrado", puntaje: 50 });
+    await crear({ etapa: "registrado", puntaje: 99, owner: closer });
+    await crear({ etapa: "registrado", puntaje: 99, anulado: true });
+    await crear({ etapa: "registrado", puntaje: 99, programa: otroProgramId });
 
     const { pendienteSetteo } = await seccionesSinDueno(db, programId);
     expect(pendienteSetteo.map((f) => f.dealId)).toEqual([sinDueno]);
   });
 
-  it("una etapa distinta de pendiente_setteo no cae en esta sección", async () => {
+  it("una etapa distinta de registrado no cae en esta sección", async () => {
     await crear({ etapa: "atendido", puntaje: 99 });
     const { pendienteSetteo } = await seccionesSinDueno(db, programId);
     expect(pendienteSetteo).toHaveLength(0);
@@ -154,7 +154,7 @@ describe("seccionesSinDueno — Unclaimed (Agendados sin dueño)", () => {
   });
 
   it("un Pendiente Setteo no cae en Unclaimed, y al revés", async () => {
-    const setteo = await crear({ etapa: "pendiente_setteo", puntaje: 1 });
+    const setteo = await crear({ etapa: "registrado", puntaje: 1 });
     const agendado = await crear({ etapa: "agendado" });
     const { pendienteSetteo, unclaimed } = await seccionesSinDueno(db, programId);
     expect(pendienteSetteo.map((f) => f.dealId)).toEqual([setteo]);

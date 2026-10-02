@@ -51,14 +51,14 @@ beforeEach(async () => {
     const [deal] = await db.insert(deals).values({
       programId: programa.id,
       leadId: lead.id,
-      etapa: "abonado",
+      etapa: "ganado_parcial",
       valorVendidoUsd: indice ? "1500" : "797",
       comisionPorcentaje: indice ? "5" : "10",
     }).returning();
     await db.insert(dealEtapaHistorial).values({
       dealId: deal.id,
       de: "atendido",
-      a: "abonado",
+      a: "ganado_parcial",
       fecha: new Date("2026-09-15T15:00:00Z"),
     });
     await db.insert(abonos).values({

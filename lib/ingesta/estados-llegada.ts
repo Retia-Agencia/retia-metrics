@@ -13,7 +13,7 @@ import type { Calificacion } from "./calificacion";
 /** Lo que la regla necesita de una fila. */
 export interface EstadoDeLlegada {
   valor: string;
-  /** Pendiente Setteo o Agendado; nulo = el valor se reconoce pero no abre deal. */
+  /** Potencial, Registrado, Calificado o Agendado; nulo = el valor se reconoce pero no abre deal. */
   etapaEntrada: EtapaDeal | null;
   prioridad: "normal" | "alta";
   alertaMinutos: number | null;

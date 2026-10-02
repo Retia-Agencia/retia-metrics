@@ -36,7 +36,7 @@ export async function resolverCitaDeEnvio(params: {
     return { estado: "vigente", inicio: cita.inicio, uuidInvitado, correoHost: cita.correoHost };
   } catch (e) {
     // Un token vencido o un 5xx tiene que verse (ADR 0057): se reporta como error visible,
-    // el deal se queda en Pendiente Setteo, y el mensaje (sin el token) va a la nota.
+    // el deal se queda en Calificado, y el mensaje (sin el token) va a la nota.
     if (e instanceof ErrorDeCalendly) return { estado: "error", mensaje: e.message };
     throw e;
   }

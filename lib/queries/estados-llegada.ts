@@ -2,6 +2,7 @@ import { and, count, eq, isNotNull } from "drizzle-orm";
 import { estadosLlegada, programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { llaveDeEstado } from "@/lib/ingesta/estados-llegada";
+import type { EtapaDeal } from "@/lib/deals/etapas";
 
 /**
  * Lo que pinta la sección de Estados de llegada en `/ajustes/fuentes` (ticket 117): las
@@ -17,7 +18,7 @@ export interface EstadoLlegadaVista {
   id: string;
   programId: string;
   valor: string;
-  etapaEntrada: "pendiente_setteo" | "agendado" | null;
+  etapaEntrada: Extract<EtapaDeal, "potencial" | "registrado" | "calificado" | "agendado"> | null;
   prioridad: "normal" | "alta";
   alertaMinutos: number | null;
   activo: boolean;

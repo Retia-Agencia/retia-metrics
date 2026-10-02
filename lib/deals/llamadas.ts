@@ -9,7 +9,7 @@ import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { moverEtapa, RESULTADOS_FALLIDOS } from "./mover-etapa";
 import { puedeTrabajarDeal } from "./permiso";
-import { transicion, unaCitaMueveAAgendado, type EtapaDeal } from "./etapas";
+import { transicion, transicionPendiente, unaCitaMueveAAgendado, type EtapaDeal } from "./etapas";
 
 /**
  * Agregar una llamada NATIVA a un deal, y completar la `agendada` que el sistema dejó
@@ -75,7 +75,7 @@ export type DatosAgregarLlamada = z.input<typeof esquemaAgregarLlamada>;
 /** Lo que dejó `agregarLlamada`: el id de la llamada y si el deal se movió a Agendado. */
 export interface LlamadaAgregada {
   callId: string;
-  /** `true` si el deal pasó a Agendado (etapas 1, 2, 3, 9, 11); `false` si no cambió. */
+  /** `true` si el deal pasó a Agendado (`unaCitaMueveAAgendado`); `false` si no cambió. */
   movioAAgendado: boolean;
 }
 
@@ -326,6 +326,7 @@ export const esquemaMarcarFallida = z.object({
   resultado: z.enum(RESULTADOS_FALLIDOS, {
     message: "El resultado tiene que ser no_show o cancelada.",
   }),
+  motivoId: z.string().uuid("El motivo no es válido.").optional(),
 });
 
 export type DatosMarcarFallida = z.input<typeof esquemaMarcarFallida>;
@@ -351,7 +352,7 @@ export async function marcarFallida(
   datos: DatosMarcarFallida,
 ): Promise<LlamadaFallida> {
   return normalizando(async () => {
-    const { callId, resultado } = esquemaMarcarFallida.parse(datos);
+    const { callId, resultado, motivoId } = esquemaMarcarFallida.parse(datos);
 
     exigirQueTrabajeLeads(actor);
 
@@ -373,12 +374,18 @@ export async function marcarFallida(
         { resultado },
       );
 
-      // PR1 la toma el sistema porque el resultado de la llamada es el hecho.
+      // La flecha a Re-agenda decide quién la toma: desde Agendado es del sistema (PR1, el
+      // resultado de la llamada es el hecho), desde Atendido es del closer con motivo (PR2).
+      // Se pregunta a la tabla; si no hay flecha, el motor rechaza y no se inventa nada.
+      const t = transicionPendiente(deal.etapa, "reagenda");
       const hecho = await moverEtapa(db, {
         dealId: deal.id,
         a: deal.etapa,
         pendiente: "reagenda",
-        actor: { tipo: "sistema" },
+        actor: t?.quien === "sistema"
+          ? { tipo: "sistema" }
+          : { tipo: "usuario", userId: actor.userId, rol: actor.rol },
+        ...(motivoId !== undefined ? { motivoId } : {}),
       });
 
       return { etapa: hecho.a };

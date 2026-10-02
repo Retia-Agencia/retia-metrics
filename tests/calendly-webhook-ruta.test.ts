@@ -82,7 +82,7 @@ async function enviar(evento: unknown, programa = programId, clave = CLAVE): Pro
 
 const llamadas = () => db.select().from(calls).where(eq(calls.programId, programId));
 async function etapa() {
-  const [d] = await db.select({ etapa: deals.etapa, owner: deals.ownerUserId }).from(deals).where(eq(deals.id, dealId));
+  const [d] = await db.select({ etapa: deals.etapa, pendiente: deals.pendiente, owner: deals.ownerUserId }).from(deals).where(eq(deals.id, dealId));
   return d;
 }
 
@@ -102,7 +102,7 @@ beforeEach(async () => {
   otroProgramId = o.id;
   const [l] = await db.insert(leads).values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();
   leadId = l.id;
-  dealId = await abrirDeal(db, { leadId, programId, etapa: "pendiente_setteo", actor: { tipo: "sistema" } });
+  dealId = await abrirDeal(db, { leadId, programId, etapa: "registrado", actor: { tipo: "sistema" } });
   const [m] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer" }).returning();
   maru = m.id;
   await db.insert(miembrosPrograma).values({ userId: maru, programId, calendlyEmail: "maru.tactical@calendly.co" });
@@ -158,7 +158,7 @@ describe("una cita nueva", () => {
     const [c] = await llamadas();
     expect(c.dealId).toBe(dealId);
     expect(c.fechaAgenda?.toISOString()).toBe("2026-10-02T15:00:00.000Z");
-    expect(await etapa()).toEqual({ etapa: "agendado", owner: maru });
+    expect(await etapa()).toEqual({ etapa: "agendado", owner: maru, pendiente: null });
 
     const [s] = await db.select().from(sobresCrudos);
     expect(s).toMatchObject({ origen: "calendly", sourceId: null, programId, error: null });
@@ -203,20 +203,20 @@ describe("cancelacion y no-show", () => {
     await enviar(cancelado("A"));
     const [c] = await llamadas();
     expect(c.resultado).toBe("cancelada");
-    expect((await etapa()).etapa).toBe("pendiente_reagenda");
+    expect(await etapa()).toMatchObject({ etapa: "agendado", pendiente: "reagenda" });
   });
 
   it("la cancelacion de una cita que el CRM no conoce: 200 y nada inventado", async () => {
     expect((await enviar(cancelado("DESCONOCIDA"))).status).toBe(200);
     expect(await llamadas()).toHaveLength(0);
-    expect((await etapa()).etapa).toBe("pendiente_setteo");
+    expect((await etapa()).etapa).toBe("registrado");
   });
 
   it("no-show y su retiro: ida y vuelta de la llamada y del deal", async () => {
     await enviar(creado("A"));
     await enviar(noShow("A"));
     expect((await llamadas())[0].resultado).toBe("no_show");
-    expect((await etapa()).etapa).toBe("pendiente_reagenda");
+    expect(await etapa()).toMatchObject({ etapa: "agendado", pendiente: "reagenda" });
     await enviar(noShow("A", true));
     expect((await llamadas())[0].resultado).toBe("agendada");
     expect((await etapa()).etapa).toBe("agendado");
@@ -259,7 +259,7 @@ describe("reagenda: la MISMA llamada, en los dos ordenes", () => {
   it("si la vieja ya estaba cancelada (la cancelacion llego sin marca), la nueva la revive y el deal vuelve a Agendado", async () => {
     await enviar(creado("VIEJA"));
     await enviar(cancelado("VIEJA"));
-    expect((await etapa()).etapa).toBe("pendiente_reagenda");
+    expect(await etapa()).toMatchObject({ etapa: "agendado", pendiente: "reagenda" });
     await enviar(creado("NUEVA", { viejo: "VIEJA", inicio: "2026-10-05T16:00:00Z" }));
     await verificar();
   });

@@ -80,7 +80,7 @@ describe("abrirDealHistorico (ADR 0059 punto 1)", () => {
     const r = await abrirDealHistorico(db, {
       leadId: lead,
       programId: programa,
-      etapa: "completo",
+      etapa: "ganado_completo",
       huella: H("ana"),
       actorId: script,
       fechaEtapa: fecha,
@@ -89,13 +89,13 @@ describe("abrirDealHistorico (ADR 0059 punto 1)", () => {
     if (r.estado !== "creado") return;
 
     const [deal] = await db.select().from(deals).where(eq(deals.id, r.dealId));
-    expect(deal.etapa).toBe("completo");
+    expect(deal.etapa).toBe("ganado_completo");
     expect(deal.huellaMigracion).toBe(H("ana"));
     expect(deal.creadoPor).toBeNull();
 
     const historial = await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, r.dealId));
     expect(historial).toHaveLength(1);
-    expect(historial[0]).toMatchObject({ de: null, a: "completo", userId: null });
+    expect(historial[0]).toMatchObject({ de: null, a: "ganado_completo", userId: null });
     expect(historial[0].fecha.getTime()).toBe(fecha.getTime());
 
     const rastro = await db.select().from(changeLog).where(eq(changeLog.registroId, r.dealId));
@@ -107,7 +107,7 @@ describe("abrirDealHistorico (ADR 0059 punto 1)", () => {
     const r = await abrirDealHistorico(db, {
       leadId: lead,
       programId: programa,
-      etapa: "en_contacto",
+      etapa: "contactado",
       huella: H("ana"),
       actorId: script,
       notas: [{ texto: "Maru: le escribi por WhatsApp" }, { texto: "   " }, { texto: "No contesta" }],
@@ -120,7 +120,7 @@ describe("abrirDealHistorico (ADR 0059 punto 1)", () => {
   });
 
   it("la segunda corrida devuelve el mismo deal y no escribe nada", async () => {
-    const alta = { leadId: lead, programId: programa, etapa: "completo" as const, huella: H("ana"), actorId: script };
+    const alta = { leadId: lead, programId: programa, etapa: "ganado_completo" as const, huella: H("ana"), actorId: script };
     const primera = await abrirDealHistorico(db, { ...alta, notas: [{ texto: "nota" }] });
     const bitacora = (await db.select().from(changeLog)).length;
 
@@ -135,12 +135,12 @@ describe("abrirDealHistorico (ADR 0059 punto 1)", () => {
   });
 
   it("si el lead ya tiene un deal vivo, gana el vivo y no se toca nada (punto 3)", async () => {
-    const vivo = await abrirDeal(db, { leadId: lead, programId: programa, etapa: "pendiente_setteo", actor: { tipo: "sistema" } });
+    const vivo = await abrirDeal(db, { leadId: lead, programId: programa, etapa: "registrado", actor: { tipo: "sistema" } });
 
     const r = await abrirDealHistorico(db, {
       leadId: lead,
       programId: programa,
-      etapa: "en_contacto",
+      etapa: "contactado",
       huella: H("ana"),
       actorId: script,
     });
@@ -150,12 +150,12 @@ describe("abrirDealHistorico (ADR 0059 punto 1)", () => {
   });
 
   it("una venta en Completo SI entra aunque haya deal vivo: fue otra oportunidad, ya pagada", async () => {
-    await abrirDeal(db, { leadId: lead, programId: programa, etapa: "pendiente_setteo", actor: { tipo: "sistema" } });
+    await abrirDeal(db, { leadId: lead, programId: programa, etapa: "registrado", actor: { tipo: "sistema" } });
 
     const r = await abrirDealHistorico(db, {
       leadId: lead,
       programId: programa,
-      etapa: "completo",
+      etapa: "ganado_completo",
       huella: H("ana"),
       actorId: script,
     });
@@ -166,7 +166,7 @@ describe("abrirDealHistorico (ADR 0059 punto 1)", () => {
 
   it("el programa es frontera: un lead de otro programa se rechaza", async () => {
     await expect(
-      abrirDealHistorico(db, { leadId: lead, programId: otroPrograma, etapa: "completo", huella: H("ana"), actorId: script }),
+      abrirDealHistorico(db, { leadId: lead, programId: otroPrograma, etapa: "ganado_completo", huella: H("ana"), actorId: script }),
     ).rejects.toThrow(/otro programa/);
   });
 
@@ -175,7 +175,7 @@ describe("abrirDealHistorico (ADR 0059 punto 1)", () => {
     const [otro] = await db.insert(leads).values({ programId: programa, emailNormalizado: "beto@correo.co" }).returning();
     const [deAna] = await db.insert(submissions).values({ leadId: lead, sourceId: fuente.id, token: "t-ana" }).returning();
     const [deBeto] = await db.insert(submissions).values({ leadId: otro.id, sourceId: fuente.id, token: "t-beto" }).returning();
-    const alta = { leadId: lead, programId: programa, etapa: "completo" as const, huella: H("ana"), actorId: script };
+    const alta = { leadId: lead, programId: programa, etapa: "ganado_completo" as const, huella: H("ana"), actorId: script };
 
     await expect(abrirDealHistorico(db, { ...alta, submissionOrigenId: deBeto.id })).rejects.toThrow(/otro lead/);
     expect(await db.select().from(deals)).toHaveLength(0);
@@ -187,7 +187,7 @@ describe("abrirDealHistorico (ADR 0059 punto 1)", () => {
   });
 
   it("dentro de una transaccion externa (el ensayo), el choque no la tumba", async () => {
-    const alta = { leadId: lead, programId: programa, etapa: "completo" as const, huella: H("ana"), actorId: script };
+    const alta = { leadId: lead, programId: programa, etapa: "ganado_completo" as const, huella: H("ana"), actorId: script };
     type ConTx = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
     const segunda = await (db as unknown as ConTx).transaction(async (tx) => {
       await abrirDealHistorico(tx, alta);
@@ -239,7 +239,7 @@ describe("registrarAbonoHistorico", () => {
       .insert(leads)
       .values({ programId: programa, emailNormalizado: "beto@correo.co" })
       .returning();
-    const vivo = await abrirDeal(db, { leadId: otroLead.id, programId: programa, etapa: "pendiente_setteo", actor: { tipo: "sistema" } });
+    const vivo = await abrirDeal(db, { leadId: otroLead.id, programId: programa, etapa: "registrado", actor: { tipo: "sistema" } });
 
     await expect(
       registrarAbonoHistorico(db, { ...abono, dealId: vivo, actorId: script }),
@@ -271,7 +271,7 @@ describe("registrarLlamadaHistorica", () => {
   });
 
   it("colgada de su deal, no mueve la etapa, y la segunda corrida no duplica", async () => {
-    const r = await abrirDealHistorico(db, { leadId: lead, programId: programa, etapa: "en_contacto", huella: H("ana"), actorId: script });
+    const r = await abrirDealHistorico(db, { leadId: lead, programId: programa, etapa: "contactado", huella: H("ana"), actorId: script });
     const dealId = (r as { dealId: string }).dealId;
 
     const primera = await registrarLlamadaHistorica(db, { ...llamada, dealId, programId: programa, actorId: script });
@@ -280,11 +280,11 @@ describe("registrarLlamadaHistorica", () => {
     expect(segunda).toEqual({ estado: "ya_migrado", id: primera.id });
     expect(await db.select().from(calls)).toHaveLength(1);
     const [d] = await db.select().from(deals).where(eq(deals.id, dealId));
-    expect(d.etapa).toBe("en_contacto");
+    expect(d.etapa).toBe("contactado");
   });
 
   it("el programa es frontera: no se cuelga de un deal de otro programa", async () => {
-    const r = await abrirDealHistorico(db, { leadId: lead, programId: programa, etapa: "en_contacto", huella: H("ana"), actorId: script });
+    const r = await abrirDealHistorico(db, { leadId: lead, programId: programa, etapa: "contactado", huella: H("ana"), actorId: script });
     const dealId = (r as { dealId: string }).dealId;
 
     await expect(
@@ -329,13 +329,13 @@ describe("en lote (ticket 078)", () => {
   });
 
   it("en una sola llamada: creado, ya migrado, gana el vivo, y el orden de la respuesta es el de las altas", async () => {
-    const previo = await abrirDealHistorico(db, { leadId: lead, programId: programa, etapa: "completo", huella: H("ana"), actorId: script });
-    const vivo = await abrirDeal(db, { leadId: beto, programId: programa, etapa: "pendiente_setteo", actor: { tipo: "sistema" } });
+    const previo = await abrirDealHistorico(db, { leadId: lead, programId: programa, etapa: "ganado_completo", huella: H("ana"), actorId: script });
+    const vivo = await abrirDeal(db, { leadId: beto, programId: programa, etapa: "registrado", actor: { tipo: "sistema" } });
 
     const r = await abrirDealesHistoricos(db, [
-      { leadId: caro, programId: programa, etapa: "en_contacto", huella: H("caro"), actorId: script, notas: [{ texto: "hola" }] },
-      { leadId: lead, programId: programa, etapa: "completo", huella: H("ana"), actorId: script },
-      { leadId: beto, programId: programa, etapa: "en_contacto", huella: H("beto"), actorId: script, notas: [{ texto: "no" }] },
+      { leadId: caro, programId: programa, etapa: "contactado", huella: H("caro"), actorId: script, notas: [{ texto: "hola" }] },
+      { leadId: lead, programId: programa, etapa: "ganado_completo", huella: H("ana"), actorId: script },
+      { leadId: beto, programId: programa, etapa: "contactado", huella: H("beto"), actorId: script, notas: [{ texto: "no" }] },
     ]);
 
     expect(r[0].estado).toBe("creado");
@@ -355,8 +355,8 @@ describe("en lote (ticket 078)", () => {
 
   it("dos altas del mismo lead en el lote: la segunda choca con la primera, como corriendo una tras otra", async () => {
     const r = await abrirDealesHistoricos(db, [
-      { leadId: caro, programId: programa, etapa: "en_contacto", huella: H("caro:1"), actorId: script },
-      { leadId: caro, programId: programa, etapa: "pendiente_setteo", huella: H("caro:2"), actorId: script },
+      { leadId: caro, programId: programa, etapa: "contactado", huella: H("caro:1"), actorId: script },
+      { leadId: caro, programId: programa, etapa: "registrado", huella: H("caro:2"), actorId: script },
     ]);
     expect(r[0].estado).toBe("creado");
     expect(r[1]).toEqual({ estado: "lead_con_deal_vivo", dealVivoId: (r[0] as { dealId: string }).dealId });
@@ -369,8 +369,8 @@ describe("en lote (ticket 078)", () => {
       .returning();
     await expect(
       abrirDealesHistoricos(db, [
-        { leadId: caro, programId: programa, etapa: "en_contacto", huella: H("caro"), actorId: script },
-        { leadId: ajeno.id, programId: programa, etapa: "en_contacto", huella: H("zoe"), actorId: script },
+        { leadId: caro, programId: programa, etapa: "contactado", huella: H("caro"), actorId: script },
+        { leadId: ajeno.id, programId: programa, etapa: "contactado", huella: H("zoe"), actorId: script },
       ]),
     ).rejects.toThrow(/otro programa/);
     expect(await db.select().from(deals)).toHaveLength(0);

@@ -70,6 +70,7 @@ afterEach(async () => {
 
 interface OpcDeal {
   etapa: EtapaDeal;
+  pendiente?: "reagenda" | "seguimiento" | "proxima_cohorte" | null;
   owner?: string;
   cohort?: string | null;
   utmSource?: string | null;
@@ -111,6 +112,7 @@ async function deal(o: OpcDeal): Promise<string> {
       programId,
       cohortId: o.cohort === undefined ? cohortId : o.cohort,
       etapa: o.etapa,
+      pendiente: o.pendiente ?? null,
       ownerUserId: o.owner ?? owner1,valorVendidoUsd: "1000.00",
       fechaLimitePago: o.fechaLimitePago ?? null,
       fechaSeguimiento: o.fechaSeguimiento ?? null,
@@ -143,30 +145,27 @@ describe("tableroKanban", () => {
     const orden = t.columnas.map((c) => c.etapa);
     // Todas las etapas, cada una una vez: el orden de pantalla no pierde ninguna.
     expect([...orden].sort()).toEqual([...ETAPAS].sort());
-    // El numero no es el orden (structure.md §3): Re-agenda despues de Agendado y
-    // Seguimiento despues de Atendido; Cierre Perdido cierra el tablero.
-    expect(orden.indexOf("pendiente_reagenda")).toBe(orden.indexOf("agendado") + 1);
-    expect(orden.indexOf("seguimiento")).toBe(orden.indexOf("atendido") + 1);
+    // Los pendientes no crean columnas; Cierre Perdido cierra el tablero.
     expect(orden.at(-1)).toBe("cierre_perdido");
     expect(t.total).toBe(0);
   });
 
   it("un deal ANULADO no aparece en ninguna columna", async () => {
-    await deal({ etapa: "en_contacto" });
-    await deal({ etapa: "en_contacto", anulado: true });
+    await deal({ etapa: "contactado" });
+    await deal({ etapa: "contactado", anulado: true });
     const t = await tableroKanban(db, programId, {}, HOY);
     expect(t.total).toBe(1);
-    const enContacto = t.columnas.find((c) => c.etapa === "en_contacto")!;
+    const enContacto = t.columnas.find((c) => c.etapa === "contactado")!;
     expect(enContacto.tarjetas).toHaveLength(1);
   });
 
   it("agrupa por etapa y muestra el dueño", async () => {
-    await deal({ etapa: "pendiente_setteo", owner: owner1 });
-    await deal({ etapa: "en_contacto", owner: owner2 });
-    await deal({ etapa: "en_contacto", owner: owner1 });
+    await deal({ etapa: "registrado", owner: owner1 });
+    await deal({ etapa: "contactado", owner: owner2 });
+    await deal({ etapa: "contactado", owner: owner1 });
     const t = await tableroKanban(db, programId, {}, HOY);
-    const enContacto = t.columnas.find((c) => c.etapa === "en_contacto")!;
-    const setteo = t.columnas.find((c) => c.etapa === "pendiente_setteo")!;
+    const enContacto = t.columnas.find((c) => c.etapa === "contactado")!;
+    const setteo = t.columnas.find((c) => c.etapa === "registrado")!;
     expect(enContacto.tarjetas).toHaveLength(2);
     expect(setteo.tarjetas).toHaveLength(1);
     expect([owner1, owner2]).toContain(enContacto.tarjetas[0].ownerUserId);
@@ -174,26 +173,26 @@ describe("tableroKanban", () => {
   });
 
   it("filtra por dueño", async () => {
-    await deal({ etapa: "en_contacto", owner: owner1 });
-    await deal({ etapa: "en_contacto", owner: owner2 });
+    await deal({ etapa: "contactado", owner: owner1 });
+    await deal({ etapa: "contactado", owner: owner2 });
     const t = await tableroKanban(db, programId, { ownerUserId: owner2 }, HOY);
     expect(t.total).toBe(1);
-    expect(t.columnas.find((c) => c.etapa === "en_contacto")!.tarjetas[0].ownerUserId).toBe(owner2);
+    expect(t.columnas.find((c) => c.etapa === "contactado")!.tarjetas[0].ownerUserId).toBe(owner2);
   });
 
   it("filtra por canal (source|medium del envío de origen)", async () => {
-    await deal({ etapa: "en_contacto", utmSource: "meta", utmMedium: "cpc" });
-    await deal({ etapa: "en_contacto", utmSource: "google", utmMedium: "cpc" });
+    await deal({ etapa: "contactado", utmSource: "meta", utmMedium: "cpc" });
+    await deal({ etapa: "contactado", utmSource: "google", utmMedium: "cpc" });
     const t = await tableroKanban(db, programId, { canal: "google|cpc" }, HOY);
     expect(t.total).toBe(1);
   });
 
   it("filtra por antiguedad minima en la etapa", async () => {
-    await deal({ etapa: "en_contacto", entrada: "2026-10-01" }); // 19 dias
-    await deal({ etapa: "en_contacto", entrada: HOY }); // 0 dias
+    await deal({ etapa: "contactado", entrada: "2026-10-01" }); // 19 dias
+    await deal({ etapa: "contactado", entrada: HOY }); // 0 dias
     const t = await tableroKanban(db, programId, { antiguedadMinima: 7 }, HOY);
     expect(t.total).toBe(1);
-    expect(t.columnas.find((c) => c.etapa === "en_contacto")!.tarjetas[0].diasEnEtapa).toBe(19);
+    expect(t.columnas.find((c) => c.etapa === "contactado")!.tarjetas[0].diasEnEtapa).toBe(19);
   });
 
   it("filtra por cohorte de origen", async () => {
@@ -209,8 +208,8 @@ describe("tableroKanban", () => {
         estado: "futuro",
       })
       .returning();
-    await deal({ etapa: "en_contacto", cohort: cohortId });
-    await deal({ etapa: "en_contacto", cohort: otra.id });
+    await deal({ etapa: "contactado", cohort: cohortId });
+    await deal({ etapa: "contactado", cohort: otra.id });
     const t = await tableroKanban(db, programId, { cohorteId: otra.id }, HOY);
     expect(t.total).toBe(1);
   });
@@ -223,33 +222,34 @@ describe("tableroKanban", () => {
   });
 
   it("aviso: seguimiento con fecha de seguimiento pasada", async () => {
-    await deal({ etapa: "seguimiento", fechaSeguimiento: "2026-10-01" });
+    await deal({ etapa: "atendido", pendiente: "seguimiento", fechaSeguimiento: "2026-10-01" });
     const t = await tableroKanban(db, programId, {}, HOY);
-    const tarjeta = t.columnas.find((c) => c.etapa === "seguimiento")!.tarjetas[0];
+    const tarjeta = t.columnas.find((c) => c.etapa === "atendido")!.tarjetas[0];
+    expect(tarjeta.pendiente).toBe("seguimiento");
     expect(tarjeta.avisos.seguimientoVencido).toBe(true);
   });
 
   it("aviso: cartera vencida (abonado, saldo > 0, fecha limite pasada) sale de carteraVencida", async () => {
-    await deal({ etapa: "abonado", abono: "400", fechaLimitePago: "2026-10-01" });
+    await deal({ etapa: "ganado_parcial", abono: "400", fechaLimitePago: "2026-10-01" });
     const t = await tableroKanban(db, programId, {}, HOY);
-    const tarjeta = t.columnas.find((c) => c.etapa === "abonado")!.tarjetas[0];
+    const tarjeta = t.columnas.find((c) => c.etapa === "ganado_parcial")!.tarjetas[0];
     expect(tarjeta.avisos.carteraVencida).toBe(true);
     expect(tarjeta.saldo).toBe(600);
     expect(tarjeta.moneda).toBe("USD");
   });
 
   it("aviso: lead unido por telefono (contacto sin confirmar)", async () => {
-    await deal({ etapa: "en_contacto", contactoSinConfirmar: true });
+    await deal({ etapa: "contactado", contactoSinConfirmar: true });
     const t = await tableroKanban(db, programId, {}, HOY);
-    const tarjeta = t.columnas.find((c) => c.etapa === "en_contacto")!.tarjetas[0];
+    const tarjeta = t.columnas.find((c) => c.etapa === "contactado")!.tarjetas[0];
     expect(tarjeta.avisos.leadUnidoPorTelefono).toBe(true);
   });
 });
 
 describe("opcionesDeTablero", () => {
   it("trae owners, cohortes y canales presentes en los deals, y los catalogos", async () => {
-    await deal({ etapa: "en_contacto", owner: owner1, utmSource: "meta", utmMedium: "cpc" });
-    await deal({ etapa: "en_contacto", owner: owner2, utmSource: "google", utmMedium: "organic" });
+    await deal({ etapa: "contactado", owner: owner1, utmSource: "meta", utmMedium: "cpc" });
+    await deal({ etapa: "contactado", owner: owner2, utmSource: "google", utmMedium: "organic" });
     const o = await opcionesDeTablero(db, programId);
     expect(o.owners.map((x) => x.id).sort()).toEqual([owner1, owner2].sort());
     expect(o.cohortes.map((x) => x.nombre)).toContain("C1");
@@ -257,7 +257,7 @@ describe("opcionesDeTablero", () => {
   });
 
   it("un deal anulado no aporta su dueño ni su canal a las opciones", async () => {
-    await deal({ etapa: "en_contacto", owner: owner2, anulado: true });
+    await deal({ etapa: "contactado", owner: owner2, anulado: true });
     const o = await opcionesDeTablero(db, programId);
     expect(o.owners).toHaveLength(0);
   });

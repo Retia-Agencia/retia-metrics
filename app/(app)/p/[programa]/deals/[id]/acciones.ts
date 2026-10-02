@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import type { EtapaDeal } from "@/lib/deals/etapas";
 import { esquemaDescuentoUsdOpcional } from "@/lib/deals/valor-vendido";
 import type { Session } from "next-auth";
 import { requireRole } from "@/lib/auth/guards";
@@ -201,7 +202,7 @@ export type EntradaAbono = z.input<typeof esquemaAbonoAccion>;
 
 export async function registrarAbonoAccion(
   entrada: EntradaAbono,
-): Promise<ResultadoFicha<{ etapa: string; movioElDeal: boolean; saldo: number; cohorteAsignada: string | null }>> {
+): Promise<ResultadoFicha<{ etapa: EtapaDeal; movioElDeal: boolean; saldo: number; cohorteAsignada: string | null }>> {
   return correr(async (ctx) => {
     const { actor } = ctx;
     const datos = esquemaAbonoAccion.parse(entrada);

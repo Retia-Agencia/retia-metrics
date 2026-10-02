@@ -81,7 +81,7 @@ describe("catalogo de areas (ticket 083)", () => {
     const creada = await cat.crear(userId, { nombre: "Referidos" });
     const [programa] = await db.insert(programs).values({ slug: "uno", nombre: "Uno", ticketUsd: "797" }).returning();
     const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "a@correo.co" }).returning();
-    await db.insert(deals).values({ leadId: lead.id, programId: programa.id, etapa: "abonado", areaDeclaradaId: creada.id });
+    await db.insert(deals).values({ leadId: lead.id, programId: programa.id, etapa: "ganado_parcial", areaDeclaradaId: creada.id });
 
     expect(await cat.borrarSiNoSeUso(userId, creada.id)).toEqual({ borrado: false, referencias: 1 });
     expect((await cat.listar()).find((area) => area.id === creada.id)).toBeDefined();

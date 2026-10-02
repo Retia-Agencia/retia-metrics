@@ -80,7 +80,7 @@ async function vender(porcentaje: string | null, valor = "1000") {
   await db
     .insert(abonos)
     .values({ dealId, programId, fecha: HOY, monto: "500", comprobanteUrl: "https://drive.google.com/abono" });
-  await moverEtapa(db, { dealId, a: "abonado", actor: sistema });
+  await moverEtapa(db, { dealId, a: "ganado_parcial", actor: sistema });
   const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
   return deal;
 }
@@ -128,7 +128,7 @@ describe("porcentaje congelado al vender", () => {
         monto: "500",
         comprobanteUrl: "https://drive.google.com/abono-nuevo",
       });
-    await moverEtapa(db, { dealId: vendido.id, a: "abonado", actor: sistema });
+    await moverEtapa(db, { dealId: vendido.id, a: "ganado_parcial", actor: sistema });
 
     const [deVuelta] = await db.select().from(deals).where(eq(deals.id, vendido.id));
     expect(deVuelta.comisionPorcentaje).toBe("10.04");

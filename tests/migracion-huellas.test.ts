@@ -43,19 +43,19 @@ describe("huella de migracion en deals (ADR 0059)", () => {
   it("dos deals en Completo con la MISMA huella chocan: la segunda corrida no duplica", async () => {
     await db
       .insert(deals)
-      .values({ leadId: lead, programId: programa, etapa: "completo", huellaMigracion: HUELLA });
+      .values({ leadId: lead, programId: programa, etapa: "ganado_completo", huellaMigracion: HUELLA });
 
     await expect(
       db
         .insert(deals)
-        .values({ leadId: lead, programId: programa, etapa: "completo", huellaMigracion: HUELLA }),
+        .values({ leadId: lead, programId: programa, etapa: "ganado_completo", huellaMigracion: HUELLA }),
     ).rejects.toSatisfy(esViolacionUnica);
   });
 
   it("huellas distintas conviven: son dos ventas de la hoja", async () => {
     await db.insert(deals).values([
-      { leadId: lead, programId: programa, etapa: "completo", huellaMigracion: HUELLA },
-      { leadId: lead, programId: programa, etapa: "completo", huellaMigracion: `${HUELLA}:2` },
+      { leadId: lead, programId: programa, etapa: "ganado_completo", huellaMigracion: HUELLA },
+      { leadId: lead, programId: programa, etapa: "ganado_completo", huellaMigracion: `${HUELLA}:2` },
     ]);
 
     expect(await db.select().from(deals)).toHaveLength(2);
@@ -63,8 +63,8 @@ describe("huella de migracion en deals (ADR 0059)", () => {
 
   it("los deals nativos (huella nula) no compiten entre si", async () => {
     await db.insert(deals).values([
-      { leadId: lead, programId: programa, etapa: "completo" },
-      { leadId: lead, programId: programa, etapa: "completo" },
+      { leadId: lead, programId: programa, etapa: "ganado_completo" },
+      { leadId: lead, programId: programa, etapa: "ganado_completo" },
     ]);
 
     expect(await db.select().from(deals)).toHaveLength(2);
@@ -77,7 +77,7 @@ describe("huella de migracion en abonos (ADR 0059)", () => {
   beforeEach(async () => {
     const [d] = await db
       .insert(deals)
-      .values({ leadId: lead, programId: programa, etapa: "completo" })
+      .values({ leadId: lead, programId: programa, etapa: "ganado_completo" })
       .returning();
     deal = d.id;
   });

@@ -45,7 +45,7 @@ async function sembrarDosClosers() {
     .returning();
   const [deal] = await db
     .insert(deals)
-    .values({ leadId: lead.id, programId: programaA, etapa: "abonado" })
+    .values({ leadId: lead.id, programId: programaA, etapa: "ganado_parcial" })
     .returning();
   await db.insert(abonos).values({
     dealId: deal.id,

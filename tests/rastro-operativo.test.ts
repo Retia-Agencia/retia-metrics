@@ -292,7 +292,7 @@ describe("crearConRastro y editarConRastro", () => {
     await expect(editarConRastro(ctx(), id, valores)).rejects.toThrow(/moverEtapa\(\)/);
 
     const [d] = await db.select().from(deals).where(eq(deals.id, id));
-    expect(d).toMatchObject({ etapa: "pendiente_setteo", ownerUserId: null });
+    expect(d).toMatchObject({ etapa: "registrado", ownerUserId: null });
     expect(await db.select().from(changeLog)).toHaveLength(0);
   });
 

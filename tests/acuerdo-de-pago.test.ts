@@ -110,7 +110,7 @@ describe("fechaLimiteMaxima: el inicio de clases de la cohorte del deal", () => 
 
 describe("editarAcuerdoDePago", () => {
   it("bloquea el deal dentro de la transaccion antes de decidir si sigue editable", async () => {
-    const d = await nuevoDeal("completo");
+    const d = await nuevoDeal("ganado_completo");
     const bloquear = vi.fn();
     const lectura = Object.assign(Promise.resolve([d]), { for: bloquear });
     bloquear.mockReturnValue(lectura);
@@ -165,7 +165,7 @@ describe("editarAcuerdoDePago", () => {
     expect((await capturar(editarAcuerdoDePago(db, { userId: otroCloser, rol: "closer" }, { dealId: d.id, acuerdoPago: "x" }))).status).toBe(403);
     await editarAcuerdoDePago(db, { userId: gerente, rol: "gerente" }, { dealId: d.id, acuerdoPago: "lo pone el gerente" });
 
-    for (const etapa of ["completo", "cierre_perdido"] as const) {
+    for (const etapa of ["ganado_completo", "cierre_perdido"] as const) {
       const c = await nuevoDeal(etapa);
       expect((await capturar(editarAcuerdoDePago(db, comoCloser(), { dealId: c.id, acuerdoPago: "x" }))).status).toBe(409);
     }
@@ -176,17 +176,17 @@ describe("editarAcuerdoDePago", () => {
 
 describe("el tope también rige donde nace la fecha: el motor y el alta del deal", () => {
   it("moverEtapa con una fecha pasada del inicio de clases se rechaza y no escribe nada", async () => {
-    const d = await nuevoDeal("en_contacto");
+    const d = await nuevoDeal("contactado");
     const e = await capturar(
       moverEtapa(db, { dealId: d.id, a: "compromiso_verbal", actor: { tipo: "usuario", userId: closer, rol: "closer" }, datos: {fechaLimitePago: "2026-10-16" } }),
     );
     expect(e.status).toBe(422);
     const [f] = await db.select().from(deals).where(eq(deals.id, d.id));
-    expect(f).toMatchObject({ etapa: "en_contacto", fechaLimitePago: null });
+    expect(f).toMatchObject({ etapa: "contactado", fechaLimitePago: null });
   });
 
   it("con la fecha justo en el inicio de clases el movimiento pasa", async () => {
-    const d = await nuevoDeal("en_contacto");
+    const d = await nuevoDeal("contactado");
     await moverEtapa(db, { dealId: d.id, a: "compromiso_verbal", actor: { tipo: "usuario", userId: closer, rol: "closer" }, datos: {fechaLimitePago: "2026-10-15" } });
     const [f] = await db.select().from(deals).where(eq(deals.id, d.id));
     expect(f.etapa).toBe("compromiso_verbal");

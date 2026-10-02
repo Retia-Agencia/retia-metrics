@@ -121,7 +121,7 @@ describe("el deal que abre la ingesta recuerda el envio que lo abrio", () => {
     );
     const [primero] = await db.select().from(deals);
     // Prepara el estado directo en la base: no es lo que prueba este test.
-    await db.update(deals).set({ etapa: "completo" }).where(eq(deals.id, primero.id));
+    await db.update(deals).set({ etapa: "ganado_completo" }).where(eq(deals.id, primero.id));
 
     await ingerirEntradas(
       db,
@@ -161,7 +161,7 @@ describe("el deal que abre la ingesta recuerda el envio que lo abrio", () => {
       abrirDeal(db, {
         leadId: ana.id,
         programId,
-        etapa: "pendiente_setteo",
+        etapa: "registrado",
         actor: { tipo: "sistema" },
         submissionOrigenId: (await envioDeToken("t2")).id,
       }),
@@ -195,7 +195,7 @@ describe("rellenarOrigenDeDeals: el relleno unico de los deals viejos", () => {
       .values({
         leadId: l.id,
         programId,
-        etapa: "pendiente_setteo",
+        etapa: "registrado",
         createdAt: new Date(o.creado),
         ...(o.anulado ? { anuladoEn: new Date(), anuladoPor: actorId, motivoAnulacion: "error de tecleo" } : {}),
       })

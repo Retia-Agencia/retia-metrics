@@ -148,7 +148,7 @@ describe("editarDeal", () => {
   });
 
   it("la fecha de seguimiento se puede borrar con null", async () => {
-    const dealId = await nuevoDeal("seguimiento", { fechaSeguimiento: "2026-10-05" });
+    const dealId = await nuevoDeal("atendido", { pendiente: "seguimiento", fechaSeguimiento: "2026-10-05" });
     await editarDeal(db, comoCloser(), { dealId, fechaSeguimiento: null });
     expect((await deal(dealId)).fechaSeguimiento).toBeNull();
   });
@@ -162,7 +162,7 @@ describe("editarDeal", () => {
   });
 
   it("un deal sin dueño lo edita quien administra, no un closer", async () => {
-    const dealId = await nuevoDeal("pendiente_setteo", { ownerUserId: null });
+    const dealId = await nuevoDeal("registrado", { ownerUserId: null });
     expect((await capturar(editarDeal(db, comoCloser(), { dealId, fechaSeguimiento: "2026-10-05" }))).status).toBe(403);
     await editarDeal(db, comoGerente(), { dealId, fechaSeguimiento: "2026-10-05" });
     expect((await deal(dealId)).fechaSeguimiento).toBe("2026-10-05");
@@ -179,7 +179,7 @@ describe("editarDeal", () => {
 
   it("la etapa no se edita: un `etapa` en la entrada se ignora y no deja rastro", async () => {
     const dealId = await nuevoDeal("atendido");
-    await editarDeal(db, comoCloser(), { dealId, etapa: "completo", fechaSeguimiento: "2026-10-05" } as never);
+    await editarDeal(db, comoCloser(), { dealId, etapa: "ganado_completo", fechaSeguimiento: "2026-10-05" } as never);
     expect((await deal(dealId)).etapa).toBe("atendido");
     expect((await rastro(dealId)).map((f) => f.campo)).toEqual(["fechaSeguimiento"]);
   });
@@ -277,7 +277,7 @@ describe("anularDeal", () => {
 
   it("un closer NO anula el deal de otro ni uno sin dueño", async () => {
     const ajeno = await nuevoDeal("atendido");
-    const sinDueno = await nuevoDeal("pendiente_setteo", { ownerUserId: null });
+    const sinDueno = await nuevoDeal("registrado", { ownerUserId: null });
     expect((await capturar(anularDeal(db, comoOtroCloser(), { dealId: ajeno, motivo: "quiero anularlo" }))).status).toBe(403);
     expect((await capturar(anularDeal(db, comoCloser(), { dealId: sinDueno, motivo: "quiero anularlo" }))).status).toBe(403);
     expect((await deal(ajeno)).anuladoEn).toBeNull();
@@ -323,7 +323,7 @@ describe("anularDeal", () => {
 
   it("el deal anulado deja de contar en el dashboard y en el Kanban (la cifra, antes y después)", async () => {
     // Un deal vendido de la cohorte activa (Completo) y uno abierto.
-    const vendido = await nuevoDeal("completo");
+    const vendido = await nuevoDeal("ganado_completo");
     await nuevoDeal("atendido");
 
     const antes = await vistaDeCohorteActiva({ programId }, "2026-09-15", db);
@@ -373,13 +373,13 @@ describe("anularDeal", () => {
 });
 
 describe("registrarActividad", () => {
-  it("un contacto queda con su autor, su canal y su rastro, y NO mueve la etapa", async () => {
-    const dealId = await nuevoDeal("pendiente_setteo");
+  it("un contacto queda con su autor, su canal y su rastro, y lleva Registrado a Contactado (ADR 0071)", async () => {
+    const dealId = await nuevoDeal("registrado");
     const id = await registrarActividad(db, comoCloser(), { dealId, tipo: "contacto", canal: " WhatsApp ", nota: "Le escribí, quedó de responder" });
 
     const [a] = await db.select().from(dealActividades).where(eq(dealActividades.id, id));
     expect(a).toMatchObject({ dealId, tipo: "contacto", canal: "WhatsApp", userId: closer, nota: "Le escribí, quedó de responder" });
-    expect((await deal(dealId)).etapa).toBe("pendiente_setteo");
+    expect((await deal(dealId)).etapa).toBe("contactado");
     const filas = await db
       .select()
       .from(changeLog)

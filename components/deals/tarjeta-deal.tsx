@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { usd } from "@/lib/format";
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import { NOMBRE_DE_PENDIENTE, type EtapaDeal } from "@/lib/deals/etapas";
+import { TONO_DE_PENDIENTE } from "./etapa-tono";
 import type { TarjetaDeal } from "@/lib/queries/kanban";
 import type { FlechaCliente, MapaTransiciones } from "./transiciones";
 import { flechasDesde } from "./transiciones";
@@ -138,6 +139,9 @@ export function TarjetaDealCard({
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {tarjeta.pendiente ? (
+          <Badge variant={TONO_DE_PENDIENTE[tarjeta.pendiente]}>{NOMBRE_DE_PENDIENTE[tarjeta.pendiente]}</Badge>
+        ) : null}
         {tarjeta.leadQuality ? <Badge variant="info">Calidad: {tarjeta.leadQuality}</Badge> : null}
         {tarjeta.leadValue ? <Badge variant="neutro">Valor: {tarjeta.leadValue}</Badge> : null}
         {saldoTexto ? (

@@ -7,6 +7,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fecha, fechaHoraEnBogota, hoyEnBogota, monto, pct, saldoLegible, usd } from "@/lib/format";
+import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import type { FichaDeAbono, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import {
   anularAbonoAccion,
@@ -58,8 +59,8 @@ export function FichaPago({
   const moneda = s.moneda ?? "USD";
   const legible = saldoLegible(s.saldo, moneda);
   const anulado = ficha.anulado != null;
-  const cerrado = ficha.etapa === "completo" || ficha.etapa === "cierre_perdido";
-  const esEstudiante = ficha.etapa === "abonado" || ficha.etapa === "completo";
+  const cerrado = ficha.etapa === "ganado_completo" || ficha.etapa === "cierre_perdido";
+  const esEstudiante = ficha.etapa === "ganado_parcial" || ficha.etapa === "ganado_completo";
   const abonosActivos = puedeRegistrar && !anulado && !cerrado;
 
   return (
@@ -307,7 +308,7 @@ function DialogoAbono({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opcio
                   !ficha.cohorte && r.cohorteAsignada == null
                     ? " El programa no tiene cohorte activa: el deal queda sin cohorte."
                     : "";
-                return `Abono registrado. ${r.movioElDeal ? `El deal pasó a ${r.etapa === "completo" ? "Completo" : "Abonado"}.` : ""}${sinCohorte}`.trim();
+                return `Abono registrado. ${r.movioElDeal ? `El deal pasó a ${NOMBRE_DE_ETAPA[r.etapa]}.` : ""}${sinCohorte}`.trim();
               },
               alExito: onCerrar,
             },

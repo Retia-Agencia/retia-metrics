@@ -7,6 +7,7 @@ import { vigente } from "@/lib/queries/vigente";
 import type { Alcance } from "@/lib/queries/dashboard";
 import { igualCloser } from "@/lib/closers/identidad";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
+import { ETAPAS_VENDIDAS } from "@/lib/deals/etapas";
 import type { Rango } from "@/lib/queries/dashboard";
 
 /**
@@ -36,7 +37,7 @@ export function delCloser(columna: PgColumn, closerId: string | null | undefined
   return closerId == null ? undefined : igualCloser(columna, closerId);
 }
 
-export const ETAPAS_VENDIDAS = ["abonado", "completo"] as const;
+export { ETAPAS_VENDIDAS };
 /**
  * La fecha de VENTA de cada deal: el dia (Bogota) de su PRIMERA entrada a Abonado o Completo.
  * Es la unica respuesta a "¿cuando se vendio?": la usan las consultas de cierres de este modulo
