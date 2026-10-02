@@ -4,7 +4,7 @@ import { esAccesoTotal, trabajaLeads } from "@/lib/auth/roles";
 export type ItemNav = {
   href: string;
   etiqueta: string;
-  icono: "dashboard" | "deals" | "inbox" | "calls" | "recursos" | "ajustes" | "midia" | "nerdstats" | "personas" | "students" | "leads";
+  icono: "dashboard" | "deals" | "inbox" | "calls" | "recursos" | "ajustes" | "midia" | "nerdstats" | "personas" | "students" | "leads" | "programa";
   roles: readonly Rol[];
 };
 
@@ -16,7 +16,7 @@ export type ItemNav = {
  * Solo entran las tabs que ya tienen pantalla (Alejo, 28-sep): cada ticket que construye
  * una (Leads 072, Deals 069, Calls 098, Students 099...) la agrega aqui y en la nav.
  */
-export const TABS_DE_PROGRAMA = ["dashboard", "leads", "deals", "inbox", "calls", "students"] as const;
+export const TABS_DE_PROGRAMA = ["dashboard", "leads", "deals", "inbox", "calls", "students", "programa"] as const;
 export type TabDePrograma = (typeof TABS_DE_PROGRAMA)[number];
 
 /** La tab con la que se entra a un programa cuando no se viene de otra. */
@@ -119,6 +119,15 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
       href: rutaDePrograma(programa, "students"),
       etiqueta: "Students",
       icono: "students",
+      roles: ["gerente", "closer"],
+    });
+    // Programa: la ficha del programa elegido (ticket 100, la tab Programs del ADR 0050):
+    // cohortes, destinos, Calendly, fuentes, comision y equipo. Un closer la LEE en sus
+    // programas; quien administra edita ahi las cohortes y entra a Ajustes por lo demas.
+    items.push({
+      href: rutaDePrograma(programa, "programa"),
+      etiqueta: "Programa",
+      icono: "programa",
       roles: ["gerente", "closer"],
     });
   }

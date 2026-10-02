@@ -2,9 +2,10 @@ import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
-import { CohortesAdmin, type CohorteVista } from "@/components/cohortes-admin";
+import { CohortesAdmin } from "@/components/cohortes-admin";
 import { listarCohortes } from "@/lib/catalogo/cohortes";
 import { programaPorSlug } from "@/lib/queries/programas";
+import { aCohorteVista } from "@/lib/queries/ficha-programa";
 
 export const dynamic = "force-dynamic";
 
@@ -26,17 +27,7 @@ export default async function CohortesPage({ params }: Props) {
   if (!programa) notFound();
 
   const filas = await listarCohortes(db, programa.id);
-  const vista: CohorteVista[] = filas.map((c) => ({
-    id: c.id,
-    codigo: c.codigo,
-    metaCupos: c.metaCupos,
-    metaLeadsDia: c.metaLeadsDia ?? null,
-    precioUsd: String(c.precioUsd),
-    fechaInicioClases: c.fechaInicioClases,
-    fechaInicioVentas: c.fechaInicioVentas ?? null,
-    fechaCierreVentas: c.fechaCierreVentas,
-    estado: c.estado,
-  }));
+  const vista = filas.map(aCohorteVista);
 
   return (
     <PageShell
