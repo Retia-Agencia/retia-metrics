@@ -139,6 +139,19 @@ export async function listarProgramas(db: Db = dbDeLaApp): Promise<ProgramaVista
 }
 
 /**
+ * Un programa por su id (activo o no), sin el token de Calendly ni la clave de firma, o
+ * `null` si no existe. Pasa por `sinToken` como `listarProgramas`: es la lectura de la
+ * ficha del programa (ticket 100), que la ve un closer, y el secreto no puede salir por
+ * ahi tampoco. No decide alcance: quien llama ya resolvio que la sesion ve este programa.
+ */
+export async function programaPorId(db: Db, id: string): Promise<ProgramaVistaCatalogo | null> {
+  return normalizando(async () => {
+    const [fila] = await db.select().from(programs).where(eq(programs.id, idValido(id)));
+    return fila ? sinToken(fila as FilaCatalogo) : null;
+  });
+}
+
+/**
  * Crea un programa. La entrada se valida con el esquema compartido.
  *
  * Nace INACTIVO: es el default de `programs.activo` y el CHECK

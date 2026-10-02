@@ -574,8 +574,17 @@ export interface MembresiaConCalendly {
   calendlyEmail: string | null;
 }
 
-/** Las membresias activas de usuarios activos, para vincular su cuenta de Calendly. */
-export async function membresiasConCalendly(db: Db = dbDeLaApp): Promise<MembresiaConCalendly[]> {
+/**
+ * Las membresias activas de usuarios activos, para vincular su cuenta de Calendly.
+ * Con `programId`, solo las de ese programa: es el equipo de la ficha del programa
+ * (ticket 100), que no puede traer gente de otro (el programa es frontera).
+ */
+export async function membresiasConCalendly(
+  db: Db = dbDeLaApp,
+  programId?: string,
+): Promise<MembresiaConCalendly[]> {
+  const condiciones = [eq(miembrosPrograma.activo, true), eq(users.activo, true)];
+  if (programId !== undefined) condiciones.push(eq(miembrosPrograma.programId, programId));
   const filas = await db
     .select({
       id: miembrosPrograma.id,
@@ -587,7 +596,7 @@ export async function membresiasConCalendly(db: Db = dbDeLaApp): Promise<Membres
     })
     .from(miembrosPrograma)
     .innerJoin(users, eq(users.id, miembrosPrograma.userId))
-    .where(and(eq(miembrosPrograma.activo, true), eq(users.activo, true)));
+    .where(and(...condiciones));
   return filas
     .map((f) => ({
       id: f.id,
