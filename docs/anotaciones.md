@@ -41,6 +41,22 @@ Bandeja única de lo que sale de recorrer la app a mano: cambios que queremos, a
 | A-17 | Ficha del Deal → Cabecera y Facturación | cambio | Cuando no hay valor vendido, el saldo dice "sin precio de contrato registrado" en la fuente de cifras (`cifra`); es texto, no una cifra, y se lee como un número roto. | 075 | abierta |
 | A-18 | Ficha del Deal → Perfil | aclaración | Las respuestas del formulario repiten datos que ya están en otros bloques: correo y WhatsApp (en Lead y contactos) y las variables de Typeform como `variable:lead_value` o `variable:tag_lead_quality` (ya arriba como lead value y quality). El 139 solo quita las llaves `utm_*`. ¿Se ocultan también estas, y con qué regla? Decisión de Mani. | sin ticket | abierta |
 
+## Recorrido 3 · 2-oct · ticket 153 (closer `mani.closer`, base local desechable con el seed del 153)
+
+Recorrido parcial de `docs/pruebas-operacion-comercial.md`, cortado por uso. Pasaron, sin errores de consola: 1, 5, 6, 8, 10, 12,
+14, 15, 17, 18, 19, 20, 22, 26, 31, 38 y 40. Faltan: 2, 3, 4, 7 (ver A-20), 9, 11, 13, 16, 21, 23 a 25, 27 a 30 y 32 a 37, 39.
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-19 | Seed local (153) | cambio | Los deals de volumen nacen como **históricos** (`abrirDealesHistoricos`), y el motor les perdona el área y el valor vendido: un deal pasó a Compromiso Verbal sin área. Las pruebas de requisitos no muerden sobre ellos. Además todos tienen dueño, así que "Por settear" sale vacío y la prueba 4 (tomar un lead) no se puede hacer. El seed tiene que dejar deals no históricos y algunos sin dueño en Potencial y Registrado. | 153 | abierta |
+| A-20 | Ficha del Deal → Actividades | usabilidad | "Registrar" queda deshabilitado mientras la nota esté vacía y no dice por qué. El canal es opcional y no hay campo de fecha, pero la alerta pide "el contacto, con fecha y canal". Que la alerta y el formulario digan lo mismo. | sin ticket | abierta |
+| A-21 | Ficha del Deal y Inbox → Registrar abono | usabilidad | "Registrar abono" se ofrece en En gestión y en Agendado (Inbox, "Lo mío que necesita atención"), donde el motor lo rechaza: el closer llena el formulario entero antes de que se lo digan. Esconderlo donde no aplica, o avisar antes. | sin ticket | abierta |
+| A-22 | Ficha del Deal → Alertas | cambio | Al agendar una cita para hoy a las 4 p. m. (eran las 2:40), sale en rojo "La llamada de hoy no tiene resultado" antes de que la llamada ocurra. El "no value" debe esperar a que pase la hora. | 128 | abierta |
+| A-23 | Ficha del Deal → Llamadas | cambio | Se aceptó el Grain de una cita fechada el 5-oct (futura) y el deal pasó a Atendido. Una llamada que no ha pasado no debería poder marcarse como ocurrida. | sin ticket | abierta |
+| A-24 | Registrar abono → mensaje de sobrepago | cambio | "El abono (497.01 USD) supera el saldo del deal (497.00 USD)": punto decimal, contra el contrato de `lib/format.ts` (coma decimal). | sin ticket | abierta |
+| A-25 | Ficha del Deal → Alertas en Ganado Pago Parcial | aclaración | "Otra ruta: Contactado / Calificado / Atendido / Compromiso Verbal" son las vueltas del sistema al anular el abono (A1), no rutas del closer. Se leen como opciones. | 128 | abierta |
+| A-26 | Inbox → "Llamadas de hoy sin resultado" | aclaración | Lista llamadas del 8 al 25 de septiembre bajo el título "de hoy". O el título dice "pasadas sin resultado", o la lista se limita a hoy. | 128 | abierta |
+
 ### Principios que salen del recorrido
 
 Reglas de UI que aplican a toda pantalla, no a una. El 075 las usa como criterio de revisión.
