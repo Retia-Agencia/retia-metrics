@@ -386,6 +386,13 @@
       "when": 1790898475104,
       "tag": "0054_comision-porcentaje",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1790900577852,
+      "tag": "0055_retirar-comision-por-venta",
+      "breakpoints": true
     }
   ]
 }

@@ -275,18 +275,10 @@ export const programs = pgTable(
      */
     diasSinActividad: integer("dias_sin_actividad").notNull().default(3),
     /**
-     * Lo que gana un closer por cada venta del programa, en USD (ticket 062; Alejo, 29-sep:
-     * monto FIJO por venta, no un porcentaje del precio: la hoja pagaba un monto por venta distinto
-     * en cada programa; los valores estan en el ticket 062). Instancia editable (ADR 0012). La
-     * comision NUNCA se guarda: la calcula `lib/queries/comision.ts` con el monto vigente. Nulo =
-     * el programa no la tiene cargada, y la pantalla lo dice en vez de mostrar un cero.
-     */
-    comisionPorVentaUsd: numeric("comision_por_venta_usd", { precision: 10, scale: 2 }),
-    /**
      * La comision como PORCENTAJE del valor vendido (ticket 133, ADR 0065 punto 7). Es el
      * vigente: `moverEtapa()` lo copia al deal la primera vez que entra a venta, y desde ahi
-     * cambiarlo solo toca las ventas nuevas. Nulo = no cargado, nunca 0. Reemplaza al monto
-     * fijo de arriba, que se quita de la base despues de desplegar el codigo sin el.
+     * cambiarlo solo toca las ventas nuevas. Nulo = no cargado, nunca 0. Reemplazo al monto
+     * fijo por venta del ticket 062 (`comision_por_venta_usd`, retirado en la 0055).
      */
     comisionPorcentaje: numeric("comision_porcentaje", { precision: 5, scale: 2 }),
     /**
@@ -301,7 +293,6 @@ export const programs = pgTable(
       sql`NOT ${t.activo} OR (${t.formUrl} IS NOT NULL AND ${t.calendlyToken} IS NOT NULL)`,
     ),
     check("programs_dias_sin_actividad_positivo", sql`${t.diasSinActividad} > 0`),
-    check("programs_comision_no_negativa", sql`${t.comisionPorVentaUsd} IS NULL OR ${t.comisionPorVentaUsd} >= 0`),
     check(
       "programs_comision_porcentaje_rango",
       sql`${t.comisionPorcentaje} IS NULL OR (${t.comisionPorcentaje} >= 0 AND ${t.comisionPorcentaje} <= 100)`,

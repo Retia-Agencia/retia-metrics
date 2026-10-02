@@ -224,7 +224,12 @@ export function DashboardPrograma({ vista, detalles }: { vista: VistaDelDashboar
                     <Caja caja={c.caja} />
                   </td>
                   <td className="py-2 text-right">
-                    <span className="block">{usd(c.comisionUsd)}</span>
+                    {/* Si NINGUNA venta tiene % y valor, no hay comision que mostrar: un cero mentiria. */}
+                    {c.comisionUsd === 0 && c.ventasSinComision > 0 ? (
+                      <span className="block text-muted-foreground">—</span>
+                    ) : (
+                      <span className="block">{usd(c.comisionUsd)}</span>
+                    )}
                     {c.ventasSinComision > 0 ? (
                       <span className="block text-xs text-muted-foreground">
                         {num(c.ventasSinComision)} sin % o sin valor
