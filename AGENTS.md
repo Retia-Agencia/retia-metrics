@@ -485,6 +485,13 @@ The agent should run these to get fast signal on whether code works. Keep them c
   enlace, no la carpeta real) y después `git worktree remove`. Y **Next 16 deja UN solo `next dev` por
   carpeta**: si `dev:local` dice "Another next dev server is already running", mira de quién es el PID antes de
   matarlo (un `npm run dev` escribe en producción); una `next build` en la misma carpeta rompe un `dev` vivo.
+  **Si el checkout principal está ocupado por otra sesión, el recorrido sale del worktree** (095, 1-oct): se
+  cambia el enlace por una copia APFS (`rm node_modules && cp -cR <principal>/node_modules .`, unos 14 s y sin
+  gastar disco) y `PORT=3095 npm run dev:local`. 🍪 **Dos `next dev` en `localhost` se pisan la sesión**: las
+  cookies no distinguen puertos, así que el login de una pestaña tumba el de la otra (vuelves a `/login` sin
+  error). Tampoco sirve `127.0.0.1`: Next dev responde 403 a sus propios recursos, la página no hidrata y los
+  diálogos no abren. Entra por un subdominio de `localhost` (`app095.localhost:3095`), que tiene sus propias
+  cookies; uno distinto por rol (`closer095.localhost`) para tener dos sesiones a la vez.
 - **Un paquete no se instala antes del codigo que lo usa.** Instalar por adelantado es
   abstraccion especulativa (ADR 0006).
 - **Dentro de una plantilla `sql` de drizzle, las columnas salen SIN calificar.**
