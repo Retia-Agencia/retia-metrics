@@ -65,7 +65,7 @@ describe("la reja del sobrepago y el saldo que ve el closer son la misma cifra",
       .returning();
     expect(a.anuladoEn).not.toBeNull();
     expect((await saldosDeDeals(db, [dealId])).get(dealId)!.saldo).toBe(797);
-    expect((await registrarAbono(db, { userId: closer, rol: "closer" }, abono("797"))).etapa).toBe("completo");
+    expect((await registrarAbono(db, { userId: closer, rol: "closer" }, abono("797"))).etapa).toBe("ganado_completo");
   });
 });
 
