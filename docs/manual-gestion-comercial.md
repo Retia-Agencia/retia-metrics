@@ -43,7 +43,13 @@ alrededor de ellas, y esas sirven:
 | Flag DESATENDIDO (+2 días sin contacto, sin próximo paso, con contacto previo) | alerta calculada al leer, no mueve el deal | 128, 071 |
 | Reglas de oro (no arrastrar, registrar todo, motivo al perder, 3 intentos) | lo que se le enseña al closer en el corte | este manual; `operations.md` §12 |
 
-### Lo que falta decidir para dejarlo igual al diagrama (antes o durante el 142)
+### Lo que faltaba decidir para dejarlo igual al diagrama
+
+> **Contestadas el 2-oct en el [ADR 0072](./adr/0072-una-pregunta-por-etapa-mueve-el-deal.md):** M-1 sí, una
+> pregunta por etapa · M-2 se arrastra, y soltar abre la pregunta con lo que tiene y le falta · M-3 Seguimiento
+> también en Calificado (solo ya contactado) y en Compromiso Verbal · M-4 solo alertas, nada automatizado en v1 ·
+> M-5 Lead Value ordena, y se puede ordenar por días en la etapa, última actividad y próximo paso · M-6 el origen
+> se pide al entrar a Atendido. El texto de abajo queda como estaba planteado.
 
 - **M-1. Una pregunta de resultado por etapa.** En 30X cada etapa tiene UNA propiedad cuya respuesta mueve el
   deal: intento de contacto (En gestión), resultado del contacto (Contactado), resultado de la calificación
@@ -66,7 +72,7 @@ alrededor de ellas, y esas sirven:
 
 ### El orden hasta tenerlo en vivo
 
-1. Contestar M-1 a M-6 (una sesión corta de `/grill-me`, ADR si cambian algo decidido).
+1. ✅ M-1 a M-6 contestadas (ADR 0072).
 2. **142**, las once etapas en una migración (Codex implementa; la sesión principal genera y aplica la migración
    con el ok de Mani).
 3. **143** propiedades por etapa y **128** alertas (con los tres intentos y DESATENDIDO).
