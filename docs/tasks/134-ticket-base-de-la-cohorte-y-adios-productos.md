@@ -3,7 +3,7 @@ id: 134
 etapa: NC1
 serves: "ADR 0065 puntos 4, 5 y 6 (descuento) · comercial.md GC-10, GC-11, QM-1, QM-2"
 depends: [132]
-status: todo
+status: done
 ---
 
 # 134 — El ticket base es de la cohorte, y `productos` se retira
@@ -44,12 +44,12 @@ precio es de la cohorte.
 
 ## Done cuando
 
-- [ ] Un deal de la C2 de ComunicArte con descuento 100 queda con valor vendido 697 y muestra "descuento USD 100,00
+- [x] Un deal de la C2 de ComunicArte con descuento 100 queda con valor vendido 697 y muestra "descuento USD 100,00
       (12,5%)"; subir después el precio de la C2 no le mueve el valor.
-- [ ] Un deal sin cohorte (o con cohorte sin precio) no puede pasar a venta, con el mensaje de arriba.
-- [ ] Ninguna consulta de métrica lee `programs.ticket_usd` (grep en el test, o guardián si cuesta poco).
-- [ ] `grep -rn productos lib app components` solo devuelve lo que se retira en la migración.
-- [ ] `npm run build` limpio y la suite completa en verde tras quitar la tabla.
+- [x] Un deal sin cohorte (o con cohorte sin precio) no puede pasar a venta, con el mensaje de arriba.
+- [x] Ninguna consulta de métrica lee `programs.ticket_usd` (grep en el test, o guardián si cuesta poco).
+- [x] `grep -rn productos lib app components` solo devuelve lo que se retira en la migración.
+- [x] `npm run build` limpio y la suite completa en verde tras quitar la tabla.
 
 ## Codex
 

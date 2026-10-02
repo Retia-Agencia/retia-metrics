@@ -153,7 +153,17 @@ empuja al mismo main y el numero de migracion puede chocar.
     **Falta:** cargar 10,04 (ComunicArte) y 6,67 (Tactical) en producción desde `/ajustes/programas`, y la
     migración que quita `programs.comision_por_venta_usd` (el código ya no la lee). Un closer cuyas ventas son
     todas sin % muestra "USD 0,00 · N sin %": se lee bien con la nota, pero se puede pulir a "—".
-  - **Siguiente:** 134 (ticket base + descuento + adiós productos).
+  - **0055 aplicada** (código primero, después la migración): `comision_por_venta_usd` ya no existe. Un closer
+    sin ninguna venta con % muestra "—", no USD 0. Mani cargó 10,04 y 6,67.
+  - **134 hecho** (`295cdaa`, 0056 en producción): el ticket sale de la cohorte, el closer teclea el descuento y
+    el motor congela `valor_vendido_usd`; el primer abono congela con descuento 0; todo deal nace en la cohorte
+    activa; `cambiarCohorte` sirve para cualquier deal; cambiar el descuento de una venta (también Completo) exige
+    motivo, deja nota y reconcilia Abonado/Completo; `productos` fuera del código y de la base. 🩸 El SQL de
+    drizzle borraba la tabla con CASCADE y después sus FK (habría fallado): reescrito, columnas primero.
+  - **Datos (con ok de Mani):** 208 deals sin cohorte → C2 (script con rastro y nota); Mani creó las C3 y 214
+    deals vivos (ninguno con abonos) pasaron a la C3 por `cambiarCohorte` con motivo. Ojo: la C3 de ComunicArte
+    tiene inicio de ventas el 22-oct estando activa el 1-oct; confirmar con Mani.
+  - **Siguiente (NC1):** 135 (Atendido sin Grain) y 139 (ficha por bloques, ya desbloqueado).
 
 - **2026-10-01 (Alejo, sesión 68): recorridos de 072 y 117, plantilla de PR, 126 parte A y 088.**
   - **072:** recorrido con clics en la base local: los filtros cuadran con la base, separar y confirmar, selector de
