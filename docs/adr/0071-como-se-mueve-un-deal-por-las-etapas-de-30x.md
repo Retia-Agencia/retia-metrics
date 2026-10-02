@@ -1,7 +1,8 @@
 # 0071 — Cómo se mueve un deal por las once etapas de 30X
 
 - **Estado:** aceptado · 2-oct-2026 (Mani, revisión del manual de gestión comercial, dudas D-1 a D-9 y QM-12).
-  Se construye con el ticket 142.
+  Se construye con el ticket 142. **El punto 5 lo amplía el [ADR 0072](./0072-una-pregunta-por-etapa-mueve-el-deal.md):**
+  la pregunta de Atendido es una de las preguntas por etapa.
 - **Enmienda:** ADR 0059 punto 7 (los cerrados de la hoja sin monto). **Confirma:** ADR 0037 (no hay relojes),
   0065 (valor vendido), 0069 (etapa de entrada) y 0070 (pendientes).
 - **Fuentes:** [`manual-gestion-comercial.md`](../manual-gestion-comercial.md) §3, §4 y §10 (borrador de Alejo,

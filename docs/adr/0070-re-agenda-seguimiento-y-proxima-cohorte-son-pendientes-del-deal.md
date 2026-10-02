@@ -1,7 +1,9 @@
 # 0070 — Re-agenda, Seguimiento y Próxima Cohorte son pendientes del deal, no etapas
 
 - **Estado:** aceptado · 1-oct-2026 (Mani, sesión de `/grill-with-docs` sobre la QM-10). Se construye con el
-  ticket 142, junto con las etapas de 30X.
+  ticket 142, junto con las etapas de 30X. **El punto 6 lo enmienda el
+  [ADR 0072](./0072-una-pregunta-por-etapa-mueve-el-deal.md) (2-oct):** Seguimiento también en Calificado (ya
+  contactado) y en Compromiso Verbal (revisando propuesta).
 - **Reemplaza:** las etapas 3, 9 y 11 del ADR 0037 y las flechas T6, T7, T8, T15, T19 a T29 y el destino 9 de
   la R de `docs/structure.md` §3.1. **Enmienda:** ADR 0056 punto 1 (cuándo se muda la cohorte) y ADR 0049
   punto 4 (qué hace una cita nueva).

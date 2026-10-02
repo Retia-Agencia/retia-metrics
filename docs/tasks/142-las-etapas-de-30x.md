@@ -27,6 +27,12 @@ las reglas de movimiento no se pueden reescribir. No se toca nada de etapas ante
 > valor 0 solo con ella), y el Parcial que desiste es Cierre perdido. Las reglas por etapa están en el manual §3 y §4;
 > el norte de 30X, en `insumos/30x-ciclo-de-vida.md`.
 
+> **2-oct, [ADR 0072](../adr/0072-una-pregunta-por-etapa-mueve-el-deal.md):** cada etapa tiene UNA pregunta cuya
+> respuesta es la flecha (tabla en el ADR, punto 1); el Kanban se arrastra y soltar abre esa pregunta con lo que el deal
+> tiene y le falta; Seguimiento también en Calificado (ya contactado) y en Compromiso Verbal; el área declarada se pide
+> al entrar a Atendido; nada automatizado. El orden de la cola (Lead Value, días en la etapa, última actividad, próximo
+> paso) es del hub del closer, no de este ticket.
+
 ## Objetivo
 
 Que `deals.etapa` tenga las once etapas de 30X (`comercial.md` §4) y que `moverEtapa()` las mueva con los

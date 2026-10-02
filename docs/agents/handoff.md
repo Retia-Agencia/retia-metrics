@@ -21,7 +21,7 @@ Push directo a main. La suite completa la valida un CHECKPOINT dos veces al dia 
 empuja mientras corre; verde = tag cp-AAAAMMDD-N; rojo = el culpable esta entre el ultimo tag y la punta.
 
 Ola vigente: O1 (plan-reparto §4). Camino critico de la v1 comercial: el 142, DESBLOQUEADO el 2-oct (ADR 0070 y
-0071; el metodo es el ciclo de vida de 30X, docs/manual-gestion-comercial.md §0, con M-1 a M-6 por contestar antes), y del 142 cuelgan 143, 128,
+0071; el metodo es el ciclo de vida de 30X, docs/manual-gestion-comercial.md §0; ADR 0072: una pregunta por etapa), y del 142 cuelgan 143, 128,
 118, el 117 enmendado (ADR 0069), el --aplicar del 078, el corte y el 148. Cola de migraciones: 0057 aplicada;
 sigue el 142 al frente, despues 092 (ADR 0068) -> 102. Abierta para E7: A12, el ROAS sin la TRM de la
 cohorte (plan.md §7).
@@ -3809,8 +3809,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 - 🎯 **2-oct, EL MÉTODO COMERCIAL: el ciclo de vida de 30X es como se maneja Retia** (Mani). Transcrito en
   `docs/insumos/30x-ciclo-de-vida.md`; manual aprobado (`docs/manual-gestion-comercial.md`, su §0 es el punto de
   entrada) y dudas D-1 a D-9 y QM-12 en el ADR 0071. **El 142 está desbloqueado y al frente de la cola de
-  migraciones (142 → 092 → 102).** Para retomarlo: primero M-1 a M-6 (manual §0, decisiones cortas que cambian el
-  diseño del 142), después el 142 a Codex con `/delegate` (la migración la genera y aplica la sesión principal),
+  migraciones (142 → 092 → 102).** M-1 a M-6 contestadas el mismo día (ADR 0072: una pregunta por etapa, arrastre
+  con la pregunta, solo alertas, Lead Value ordena). Para retomarlo: el 142 a Codex con `/delegate` (la migración la genera y aplica la sesión principal),
   y el orden hasta el corte está en el manual §0.
 - ✅ **2-oct, checkpoint `cp-20261002-1`** (`526a105`, CI verde, producción sirve ese commit): 139 y 150 done
   (095 y 135 ya estaban en `cp-20261001-1`).
