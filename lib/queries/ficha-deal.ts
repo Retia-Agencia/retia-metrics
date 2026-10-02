@@ -18,6 +18,7 @@ import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { fechaLimiteMaxima } from "@/lib/deals/pago";
 import { duenosPosibles } from "@/lib/deals/duenos";
+import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { descuentoDeDeal, saldosDeDeals, type DescuentoDeDeal, type SaldoDeDeal } from "@/lib/queries/saldo";
@@ -54,6 +55,8 @@ export interface FichaDeLlamada {
   anuladoEn: Date | null;
   motivoAnulacion: string | null;
   anuladoPorNombre: string | null;
+  /** Atendida sin Grain (ADR 0066): derivada al leer con `esAtendidaSinGrain`, nunca guardada. */
+  sinGrain: boolean;
 }
 
 export interface FichaDeAbono {
@@ -367,6 +370,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
         anuladoEn: c.anuladoEn,
         motivoAnulacion: c.motivoAnulacion,
         anuladoPorNombre: nombreDe(c.anuladoPor),
+        sinGrain: esAtendidaSinGrain(c),
       }))
       // Lo mas reciente primero, por la fecha de la cita (o de la llamada); sin fecha, al final.
       .sort((a, b) => (fechaDeLlamada(b)?.getTime() ?? 0) - (fechaDeLlamada(a)?.getTime() ?? 0)),
