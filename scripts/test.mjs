@@ -15,7 +15,8 @@
  * 3. **Limite duro** (`TEST_TIMEOUT_S`, 480 s por defecto; la suite tarda ~70-140 s).
  *    Al vencer, o con Ctrl-C, mata el GRUPO de procesos entero, no solo al padre.
  *
- * Los argumentos pasan a vitest: `npm test -- tests/llamadas-del-deal.test.ts`.
+ * Los argumentos pasan a vitest: `npm test -- tests/llamadas-del-deal.test.ts`;
+ * `npm run test:cambios` usa el mismo candado para correr solo lo cambiado.
  */
 import { spawn, execFileSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
