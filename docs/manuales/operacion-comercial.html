@@ -1,0 +1,699 @@
+<title>Operación comercial Retia</title>
+<meta name="description" content="Manual de operación comercial de Retia: cómo se manejan los deals en el CRM, de la llegada del lead al student.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<style>
+/* Layout: un manual de consulta. Índice fijo a la izquierda en escritorio, una columna de lectura a ~68ch.
+   Colores del sistema "Tinta" del CRM: un solo acento morado y cinco tonos de estado. */
+:root {
+  --bg: #f6f4f9;
+  --surface: #ffffff;
+  --fg: #16121c;
+  --muted: #625a6e;
+  --line: #e4dfeb;
+  --accent: #820ad1;
+  --accent-soft: #f3e8fc;
+  --accent-ink: #5c0794;
+  /* tonos de estado */
+  --t-neutro: #6b6478;  --t-neutro-bg: #efedf3;
+  --t-info: #1f5fbf;    --t-info-bg: #e6eefb;
+  --t-alerta: #9a6200;  --t-alerta-bg: #fbf1dc;
+  --t-ok: #1d7a46;      --t-ok-bg: #e2f4e9;
+  --t-mal: #b3362a;     --t-mal-bg: #fbe6e3;
+  --f-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --f-body: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d0b10; --surface: #17141c; --fg: #ece8f2; --muted: #a59eb1; --line: #2a2531;
+    --accent: #b57bff; --accent-soft: rgb(181 123 255 / .14); --accent-ink: #e4d2ff;
+    --t-neutro: #b1aabd; --t-neutro-bg: #24202a;
+    --t-info: #8db4f5;   --t-info-bg: rgb(80 140 240 / .16);
+    --t-alerta: #f0c063; --t-alerta-bg: rgb(240 180 60 / .14);
+    --t-ok: #6fd39a;     --t-ok-bg: rgb(80 200 130 / .14);
+    --t-mal: #f28b7a;    --t-mal-bg: rgb(240 110 90 / .15);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d0b10; --surface: #17141c; --fg: #ece8f2; --muted: #a59eb1; --line: #2a2531;
+  --accent: #b57bff; --accent-soft: rgb(181 123 255 / .14); --accent-ink: #e4d2ff;
+  --t-neutro: #b1aabd; --t-neutro-bg: #24202a;
+  --t-info: #8db4f5;   --t-info-bg: rgb(80 140 240 / .16);
+  --t-alerta: #f0c063; --t-alerta-bg: rgb(240 180 60 / .14);
+  --t-ok: #6fd39a;     --t-ok-bg: rgb(80 200 130 / .14);
+  --t-mal: #f28b7a;    --t-mal-bg: rgb(240 110 90 / .15);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--f-body); margin: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 96px;
+  display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px; }
+@media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-inline: 16px; padding-block: 24px 64px; } }
+
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 14px; }
+nav.toc p { font: 500 11px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: s; }
+nav.toc a { display: block; padding: 5px 10px; border-radius: 6px; color: var(--muted); text-decoration: none; }
+nav.toc a:hover { color: var(--fg); background: var(--accent-soft); }
+nav.toc a:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 860px) {
+  nav.toc { position: static; }
+  nav.toc ol { display: flex; flex-wrap: wrap; gap: 6px; }
+  nav.toc a { border: 1px solid var(--line); background: var(--surface); padding: 4px 10px; }
+}
+
+main { min-width: 0; }
+header.hero { padding-bottom: 32px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.eyebrow { font: 500 12px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 14px; }
+h1 { font: 600 clamp(34px, 5vw, 52px)/1.05 var(--f-display); letter-spacing: -.01em; margin: 0 0 16px; text-wrap: balance; }
+.lede { font-size: 18px; color: var(--muted); max-width: 62ch; margin: 0; }
+.meta { margin-top: 18px; font: 400 13px/1.5 var(--f-mono); color: var(--muted); }
+
+section { padding-top: 48px; scroll-margin-top: 16px; }
+h2 { font: 600 28px/1.15 var(--f-display); margin: 0 0 6px; text-wrap: balance; }
+h2 .n { font: 500 13px/1 var(--f-mono); color: var(--accent); display: block; margin-bottom: 10px; letter-spacing: .06em; }
+h3 { font: 600 17px/1.3 var(--f-body); margin: 28px 0 8px; }
+p, li { max-width: 68ch; }
+.sub { color: var(--muted); margin: 0 0 20px; }
+ul, ol { padding-left: 1.2em; }
+li + li { margin-top: 4px; }
+strong { font-weight: 600; }
+code, .k { font: 500 .88em var(--f-mono); background: var(--accent-soft); color: var(--accent-ink); padding: 1px 6px; border-radius: 5px; }
+
+/* reglas de oro */
+.reglas { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.reglas li { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; max-width: none; }
+.reglas b { display: block; font-weight: 600; margin-bottom: 4px; }
+.reglas span { color: var(--muted); font-size: 15px; }
+
+/* pastillas de etapa */
+.pill { display: inline-flex; align-items: center; gap: 6px; font: 500 13px/1 var(--f-body); padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.neutro { color: var(--t-neutro); background: var(--t-neutro-bg); }
+.info { color: var(--t-info); background: var(--t-info-bg); }
+.acento { color: var(--accent-ink); background: var(--accent-soft); }
+.alerta { color: var(--t-alerta); background: var(--t-alerta-bg); }
+.ok { color: var(--t-ok); background: var(--t-ok-bg); }
+.mal { color: var(--t-mal); background: var(--t-mal-bg); }
+
+/* tubería */
+.tuberia { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 20px 0 8px; }
+.tramo { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 8px; align-content: start; }
+.tramo h4 { margin: 0 0 2px; font: 500 11px/1.2 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.tramo .pill { justify-self: start; }
+.tramo small { color: var(--muted); font-size: 13px; line-height: 1.4; }
+@media (max-width: 900px) { .tuberia { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .tuberia { grid-template-columns: minmax(0, 1fr); } }
+.perdido-nota { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
+
+/* tablas */
+.tabla { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); margin: 16px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 560px; }
+th, td { text-align: left; vertical-align: top; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+th { font: 500 11px/1.3 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; font-family: var(--f-mono); }
+
+/* relaciones */
+.relacion { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 20px 0; }
+.obj { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; }
+.obj b { display: block; font: 600 16px/1.2 var(--f-body); margin-bottom: 2px; }
+.obj .card { font: 500 11px/1 var(--f-mono); color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
+.obj p { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+.cadena { font: 500 14px/1.7 var(--f-mono); background: var(--surface); border: 1px dashed var(--line); border-radius: var(--r); padding: 14px 16px; overflow-x: auto; white-space: nowrap; }
+.cadena span { color: var(--accent); }
+
+/* pasos */
+.pasos { list-style: none; padding: 0; margin: 16px 0; counter-reset: p; display: grid; gap: 0; }
+.pasos li { counter-increment: p; position: relative; padding: 0 0 22px 48px; margin: 0; max-width: 72ch; }
+.pasos li::before { content: counter(p); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; font: 600 13px/1 var(--f-mono); color: var(--accent-ink); background: var(--accent-soft); }
+.pasos li::after { content: ""; position: absolute; left: 14.5px; top: 34px; bottom: 4px; width: 1px; background: var(--line); }
+.pasos li:last-child::after { display: none; }
+.pasos b { display: block; }
+.pasos .donde { font: 400 13px/1.5 var(--f-mono); color: var(--muted); }
+
+/* cajas */
+.caja { border-radius: var(--r); padding: 14px 18px; margin: 16px 0; font-size: 15px; }
+.caja p { margin: 0; }
+.caja.ojo { background: var(--t-alerta-bg); color: var(--fg); border-left: 3px solid var(--t-alerta); }
+.caja.nota { background: var(--accent-soft); border-left: 3px solid var(--accent); }
+.caja.no { background: var(--t-mal-bg); border-left: 3px solid var(--t-mal); }
+.caja b { font-weight: 600; }
+
+.dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 640px) { .dos { grid-template-columns: minmax(0, 1fr); } }
+.dos > div { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; min-width: 0; }
+.dos h4 { margin: 0 0 8px; font: 600 16px/1.3 var(--f-body); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.dos ul { margin: 0; padding-left: 1.1em; font-size: 15px; }
+
+dl.glosario { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 20px; margin: 16px 0; }
+dl.glosario dt { font-weight: 600; }
+dl.glosario dd { margin: 0; color: var(--muted); max-width: 64ch; }
+@media (max-width: 560px) { dl.glosario { grid-template-columns: minmax(0, 1fr); gap: 2px; } dl.glosario dd { margin-bottom: 10px; } }
+
+footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--line); font: 400 13px/1.6 var(--f-mono); color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+
+<style>
+/* el flujo de arriba: seis tramos en orden, enlazados a su sección */
+.flujo { list-style: none; padding: 0; margin: 28px 0 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; counter-reset: f; }
+.flujo li { counter-increment: f; margin: 0; max-width: none; }
+.flujo a { display: grid; gap: 4px; height: 100%; padding: 12px 12px 14px; border-radius: var(--r); border: 1px solid var(--line); background: var(--surface); color: var(--fg); text-decoration: none; }
+.flujo a:hover { border-color: var(--accent); }
+.flujo a::before { content: "0" counter(f); font: 500 12px/1 var(--f-mono); color: var(--accent); }
+.flujo b { font-weight: 600; font-size: 15px; line-height: 1.25; }
+.flujo span { font-size: 13px; color: var(--muted); line-height: 1.35; }
+@media (max-width: 1000px) { .flujo { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .flujo { grid-template-columns: minmax(0, 1fr); } }
+.parte { margin-top: 56px; padding-top: 10px; border-top: 2px solid var(--fg); font: 500 12px/1 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.parte b { color: var(--fg); font-weight: 600; }
+.falta { list-style: none; padding: 0; display: grid; gap: 8px; margin: 12px 0; }
+.falta li { margin: 0; max-width: none; display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 4px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 16px; }
+.falta li > .pill { justify-self: start; align-self: start; }
+.falta b { font-weight: 600; }
+.falta p { margin: 2px 0 0; font-size: 14.5px; color: var(--muted); max-width: none; }
+@media (max-width: 560px) { .falta li { grid-template-columns: minmax(0, 1fr); } }
+/* sección activa en el índice */
+nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--accent-soft); font-weight: 600; }
+@media (max-width: 860px) { nav.toc a[aria-current="true"] { border-color: var(--accent); } }
+</style>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Contenido">
+    <p>Contenido</p>
+    <ol>
+      <li><a href="#reglas">Reglas de oro</a></li>
+      <li><a href="#piezas">Las piezas</a></li>
+      <li><a href="#llegada">1 · Llega el lead</a></li>
+      <li><a href="#calidad">Quality y Value</a></li>
+      <li><a href="#deal">2 · Aparece el deal</a></li>
+      <li><a href="#etapas">3 · Las 11 etapas</a></li>
+      <li><a href="#recorrido">Paso a paso</a></li>
+      <li><a href="#pendientes">Pendientes</a></li>
+      <li><a href="#cierre">4 · El cierre</a></li>
+      <li><a href="#plata">5 · El dinero</a></li>
+      <li><a href="#cohortes">Cohortes</a></li>
+      <li><a href="#students">6 · Students</a></li>
+      <li><a href="#perder">Perder y anular</a></li>
+      <li><a href="#dia">Tu día</a></li>
+      <li><a href="#alertas">Alertas</a></li>
+      <li><a href="#errores">Errores típicos</a></li>
+      <li><a href="#falta">Lo que falta</a></li>
+      <li><a href="#glosario">Glosario</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow">Retia · Manual de operación comercial</p>
+      <h1>Cómo se trabaja un deal en el CRM de Retia</h1>
+      <p class="lede">De que una persona llena el formulario a que es student y paga todo: qué es cada cosa y qué haces en cada paso.</p>
+      <p class="meta">2 de octubre de 2026 · ComunicArte y Tactical Investor</p>
+      <ol class="flujo" aria-label="El flujo en seis pasos">
+        <li><a href="#llegada"><b>Llega el lead</b><span>Con su Quality y su Value</span></a></li>
+        <li><a href="#deal"><b>Aparece el deal</b><span>En su etapa, sin dueño o tuyo</span></a></li>
+        <li><a href="#etapas"><b>Se trabaja</b><span>Contacto, cita, llamada</span></a></li>
+        <li><a href="#cierre"><b>Se cierra</b><span>Compromiso, pago o perdido</span></a></li>
+        <li><a href="#plata"><b>Entra la plata</b><span>Abonos y saldo</span></a></li>
+        <li><a href="#students"><b>Es student</b><span>Cohorte y onboarding</span></a></li>
+      </ol>
+    </header>
+
+    <section id="reglas">
+      <h2><span class="n">Antes de empezar</span>Reglas de oro</h2>
+      <ul class="reglas">
+        <li><b>Tú respondes, el CRM mueve.</b><span>Nunca eliges la etapa: respondes la pregunta del deal y el CRM lo mueve.</span></li>
+        <li><b>Todo se registra.</b><span>Lo que no está en el CRM no pasó ni cuenta en tus cifras.</span></li>
+        <li><b>A ganado solo con plata.</b><span>Se entra registrando un abono con comprobante.</span></li>
+        <li><b>Perder lleva motivo.</b><span>Siempre de la lista.</span></li>
+        <li><b>Tres intentos y decides.</b><span>Lo pierdes con motivo o sigues. El CRM no lo cierra solo.</span></li>
+        <li><b>Perder no es anular.</b><span>Perder: dijo que no. Anular: me equivoqué al registrar.</span></li>
+      </ul>
+    </section>
+
+    <section id="piezas">
+      <h2><span class="n">Antes de empezar</span>Las piezas del CRM</h2>
+      <div class="relacion">
+        <div class="obj"><span class="card">La persona</span><b>Lead</b><p>Se identifica por su correo dentro de un programa.</p></div>
+        <div class="obj"><span class="card">Lo que mandó</span><b>Envío</b><p>Cada vez que llena el formulario. Todos quedan guardados.</p></div>
+        <div class="obj"><span class="card">La oportunidad</span><b>Deal</b><p>Tiene dueño, etapa y cohorte. Uno abierto por lead.</p></div>
+        <div class="obj"><span class="card">La reunión</span><b>Llamada</b><p>Llega de Calendly o la creas tú.</p></div>
+        <div class="obj"><span class="card">La plata</span><b>Abono</b><p>Un pago con comprobante. Baja el saldo.</p></div>
+        <div class="obj"><span class="card">El resultado</span><b>Student</b><p>Quien tiene un deal en Ganado.</p></div>
+      </div>
+      <div class="cadena" role="img" aria-label="Lead, envíos, deal, llamadas y abonos, student">
+        Lead <span>→</span> Envíos <span>→</span> Deal <span>→</span> Llamadas + Abonos <span>→</span> Student
+      </div>
+      <ul>
+        <li><strong>El programa es una frontera:</strong> solo ves los tuyos, y cada lista es de un programa. La misma persona en dos programas son dos leads.</li>
+        <li><strong>Sin setter:</strong> el closer dueño del deal hace todo, del contacto al cobro. Gerencia asigna, configura y ve todo, pero no trabaja leads.</li>
+      </ul>
+    </section>
+
+    <p class="parte"><b>Paso 1</b> · Llega el lead</p>
+
+    <section id="llegada">
+      <h2><span class="n">01</span>Llega el lead</h2>
+      <p class="sub">El formulario de cada programa llega al CRM al instante.</p>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>Trae</th><th>Dónde lo ves</th></tr></thead>
+          <tbody>
+            <tr><td>Nombre, correo, WhatsApp</td><td>Ficha → Lead y contactos</td></tr>
+            <tr><td>Sus respuestas</td><td>Ficha → Perfil</td></tr>
+            <tr><td>Lead Quality y Lead Value</td><td>Tarjeta y ficha</td></tr>
+            <tr><td>La cita, si agendó</td><td>Ficha → Llamadas</td></tr>
+            <tr><td>Canal de origen (ej. <span class="k">facebook / paid_social</span>, o "sin UTM")</td><td>Ficha → Origen</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li><strong>Mismo correo = mismo lead.</strong> El envío nuevo se suma y el deal muestra <span class="k">N envíos</span>.</li>
+        <li><strong>Mismo teléfono, otro correo:</strong> se une marcado <span class="pill info">Unido por teléfono</span> y gerencia confirma.</li>
+        <li>Si la persona no termina, llega igual como <strong>parcial</strong>. Parcial y completo cuentan como un envío.</li>
+      </ul>
+    </section>
+
+    <section id="calidad">
+      <h2><span class="n">01 · b</span>Cómo se calculan Quality y Value</h2>
+      <p class="sub">Los calcula el formulario con dos contadores mientras la persona responde.</p>
+      <div class="dos">
+        <div>
+          <h4>Descarte</h4>
+          <p>Cualquiera de estas respuestas descalifica, y quien la marca no ve la agenda:</p>
+          <ul>
+            <li>"No cuento con los recursos"</li>
+            <li>"No es prioridad"</li>
+            <li>Ingreso bajo: menos de 1.500 USD/mes en ComunicArte, menos de 1.000 en Tactical</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Puntos de valor (0 a 50)</h4>
+          <ul>
+            <li><b>Ingreso</b> → 10, 20 o 30 puntos, del tramo bajo al más alto
+              <br><small>ComunicArte: 700 · 1.500 · 3.000 USD &nbsp;·&nbsp; Tactical: 1.000 · 3.000 · 10.000 USD</small></li>
+            <li><b>Experiencia</b> → 10 (pensionado o hasta 5 años) o 20 (más de 5 años)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>Lead Quality</th><th>Cuándo</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill ok">High</span></td><td>Pasó la agenda sin respuestas que descalifican.</td></tr>
+            <tr><td><span class="pill neutro">Low</span></td><td>Todos los demás.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>Puntos</th><th>Sin descarte</th><th>Con descarte</th></tr></thead>
+          <tbody class="num">
+            <tr><td>30 o más</td><td><span class="pill ok">MUY ALTO VALOR</span></td><td><span class="pill info">ALTO VALOR</span></td></tr>
+            <tr><td>15 a 29</td><td><span class="pill info">ALTO VALOR</span></td><td><span class="pill alerta">VALOR MEDIO</span></td></tr>
+            <tr><td>menos de 15</td><td><span class="pill alerta">VALOR MEDIO</span></td><td><span class="pill neutro">BAJO VALOR</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="caja nota"><p><b>Quality decide dónde nace el deal. Value no mueve nada: ordena.</b> Dentro de una etapa, trabaja primero los de más valor.</p></div>
+      <div class="caja ojo"><p>Si de pronto todo llega Low o sin calidad, avisa a gerencia: alguien pudo editar el formulario.</p></div>
+    </section>
+
+    <p class="parte"><b>Paso 2</b> · Aparece el deal</p>
+
+    <section id="deal">
+      <h2><span class="n">02</span>Aparece el deal</h2>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>Formulario</th><th>Quality</th><th>¿Agendó?</th><th>Nace en</th></tr></thead>
+          <tbody>
+            <tr><td>cualquiera</td><td>cualquiera</td><td>sí</td><td><span class="pill acento">Agendado</span></td></tr>
+            <tr><td>parcial o completo</td><td>High</td><td>no</td><td><span class="pill neutro">Calificado</span></td></tr>
+            <tr><td>completo</td><td>Low</td><td>no</td><td><span class="pill neutro">Registrado</span></td></tr>
+            <tr><td>parcial</td><td>Low</td><td>no</td><td><span class="pill neutro">Potencial</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li><strong>Calificado sin cita</strong> = se fue en la agenda. A los 5 minutos sale arriba del Inbox: escríbele ya.</li>
+        <li><strong>Si vuelve a llenar el formulario</strong> estando en Potencial o Registrado, el deal sube a la etapa que le toca. Solo sube.</li>
+        <li><strong>Más adelante de eso</strong>, un envío nuevo no lo mueve (salvo una cita, que lo lleva a Agendado).</li>
+        <li><strong>Si su deal ya estaba cerrado</strong>, se abre uno nuevo.</li>
+      </ul>
+      <h3>Quién es el dueño</h3>
+      <ul>
+        <li><strong>Agendó por tu Calendly</strong> (asignado en Mi perfil): nace tuyo.</li>
+        <li><strong>Lo demás nace sin dueño</strong> en el Inbox. Lo tomas con <b>Reclamar</b>.</li>
+        <li><strong>Nuevo deal</strong> (WhatsApp, referido): nace en En gestión, tuyo.</li>
+        <li>Solo el dueño o gerencia mueven un deal.</li>
+      </ul>
+      <h3>Cómo se ve</h3>
+      <div class="dos">
+        <div>
+          <h4>Tarjeta</h4>
+          <ul>
+            <li>Lead, dueño y días en la etapa</li>
+            <li>Calidad y Valor</li>
+            <li>Pendiente y <span class="k">N envíos</span></li>
+            <li>Saldo y avisos vencidos</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Ficha</h4>
+          <ul>
+            <li>Cabecera: dueño, etapa, cohorte</li>
+            <li>La pregunta de su etapa y alertas</li>
+            <li>Origen, Perfil, Lead y contactos</li>
+            <li>Llamadas, Log y Facturación</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <p class="parte"><b>Paso 3</b> · Se trabaja</p>
+
+    <section id="etapas">
+      <h2><span class="n">03</span>Las 11 etapas</h2>
+      <div class="tuberia">
+        <div class="tramo"><h4>Entrada</h4><span class="pill neutro">Potencial</span><span class="pill neutro">Registrado</span><span class="pill neutro">Calificado</span><small>Las pone el formulario.</small></div>
+        <div class="tramo"><h4>Setteo</h4><span class="pill info">En gestión</span><span class="pill info">Contactado</span><small>Contactar y agendar.</small></div>
+        <div class="tramo"><h4>Llamada</h4><span class="pill acento">Agendado</span><span class="pill acento">Atendido</span><small>Hay cita; ocurrió.</small></div>
+        <div class="tramo"><h4>Cierre</h4><span class="pill alerta">Compromiso Verbal</span><small>Dijo que sí.</small></div>
+        <div class="tramo"><h4>Ganado</h4><span class="pill ok">Ganado Pago Parcial</span><span class="pill ok">Ganado Pagado Completo</span><small>Es venta.</small></div>
+      </div>
+      <p class="perdido-nota"><span class="pill mal">Cierre perdido</span> desde cualquier etapa abierta, con motivo. Nunca desde Ganado Pagado Completo.</p>
+
+      <h3>Cada etapa tiene una pregunta. Tu respuesta mueve el deal.</h3>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>Etapa</th><th>Significa</th><th>Pregunta → respuestas</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill neutro">Potencial</span> <span class="pill neutro">Registrado</span></td><td>Nadie lo ha trabajado</td><td>Registrar contacto o intento → En gestión</td></tr>
+            <tr><td><span class="pill info">En gestión</span></td><td>Intentando contactarlo</td><td><b>¿Se logró el contacto?</b> Sí → Contactado · No → se cuenta el intento</td></tr>
+            <tr><td><span class="pill info">Contactado</span></td><td>Ya hablaste con él</td><td><b>¿Califica?</b> Sí → Calificado · Negocia → Compromiso · No → Perdido</td></tr>
+            <tr><td><span class="pill neutro">Calificado</span></td><td>Hay que ofrecerle la agenda</td><td><b>¿Qué pasó?</b> Agendó · Negocia · Pagó · Más adelante · Próxima cohorte · Descartar</td></tr>
+            <tr><td><span class="pill acento">Agendado</span></td><td>Llamada con fecha</td><td><b>¿Cómo va la cita?</b> Terminó → Atendido · Se movió · No asistió → Re-agenda</td></tr>
+            <tr><td><span class="pill acento">Atendido</span></td><td>La llamada ocurrió</td><td><b>¿Cómo terminó?</b> Pagó ahora · Compromiso · Seguimiento · Otra llamada · Próxima cohorte · Perdido</td></tr>
+            <tr><td><span class="pill alerta">Compromiso Verbal</span></td><td>Promete pagar</td><td><b>¿Cómo va la negociación?</b> Pagó · Revisando propuesta · Se echó para atrás · Descartar</td></tr>
+            <tr><td><span class="pill ok">Ganado Pago Parcial</span></td><td>Pagó una parte</td><td>Registrar abono · Desistió</td></tr>
+            <tr><td><span class="pill ok">Ganado Pagado Completo</span></td><td>Pagó todo</td><td>Final</td></tr>
+            <tr><td><span class="pill mal">Cierre perdido</span></td><td>No compró</td><td><b>¿Se recupera?</b> → En gestión, con motivo</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="caja nota"><p><b>En el tablero puedes arrastrar.</b> Al soltar se abre la misma pregunta y te muestra lo que el deal tiene (verde) y lo que le falta (rojo). Si no hay camino, la tarjeta vuelve.</p></div>
+      <p>El CRM <strong>nunca</strong> mueve un deal porque pasó el tiempo: lo vencido se pinta y cae al Inbox.</p>
+    </section>
+
+    <section id="recorrido">
+      <h2><span class="n">03 · b</span>Paso a paso</h2>
+      <p class="sub">El camino normal. Si llegó agendado, empieza en el 4.</p>
+      <ol class="pasos">
+        <li><b>Reclama el deal.</b><div class="donde">Inbox → Por settear</div></li>
+        <li><b>Contáctalo.</b> Sin respuesta: "No, fue un intento". Con respuesta: "Sí", con fecha y canal.<div class="donde">Ficha → ¿Se logró el contacto?</div></li>
+        <li><b>Califícalo y agenda.</b> "Agendó" y crea la llamada, o deja que llegue por tu Calendly.<div class="donde">Ficha → ¿Califica? → ¿Qué pasó?</div></li>
+        <li><b>Haz la llamada y pega el Grain.</b> Pasa a Atendido.<div class="donde">Ficha → Llamadas, o Calls</div></li>
+        <li><b>Di cómo terminó.</b><div class="donde">Ficha → ¿Cómo terminó?</div></li>
+        <li><b>Registra el pago</b> con comprobante. Ya es student.<div class="donde">Ficha → Facturación</div></li>
+        <li><b>Cobra el saldo</b> hasta cero.</li>
+      </ol>
+    </section>
+
+    <section id="pendientes">
+      <h2><span class="n">03 · c</span>Pendientes</h2>
+      <p class="sub">Lo que hay que hacer con un deal quieto. No es etapa: el deal se queda donde está, con la marca.</p>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>Pendiente</th><th>Cuándo</th><th>Pide</th><th>Se quita</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill alerta">Re-agenda</span></td><td>No-show, cancelada u "Otra llamada"</td><td>Motivo</td><td>Agendando otra llamada</td></tr>
+            <tr><td><span class="pill alerta">Seguimiento</span></td><td>Interesado, pero no ahora</td><td>Fecha</td><td>Con el siguiente paso real</td></tr>
+            <tr><td><span class="pill alerta">Próxima Cohorte</span></td><td>Quiere la siguiente cohorte</td><td>Cohorte</td><td>Reaparece en tu Inbox cuando esa cohorte abre</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Uno a la vez. El tiempo no lo quita: vencido, sale como alerta.</p>
+    </section>
+
+    <p class="parte"><b>Paso 4</b> · El cierre</p>
+
+    <section id="cierre">
+      <h2><span class="n">04</span>El cierre</h2>
+      <div class="dos">
+        <div>
+          <h4><span class="pill alerta">Compromiso Verbal</span></h4>
+          <ul>
+            <li>Dijo que sí, paga después.</li>
+            <li>Pide <b>fecha límite</b> (prellenada con el inicio de clases) y <b>área</b>: "¿cómo nos conoció?".</li>
+          </ul>
+        </div>
+        <div>
+          <h4><span class="pill ok">Pagó</span></h4>
+          <ul>
+            <li>Registra el abono: <b>descuento</b>, <b>comprobante</b>, <b>plataforma</b> y <b>área</b>.</li>
+            <li>Con saldo → Parcial. Sin saldo → Completo.</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Venta solo por WhatsApp</h3>
+      <p>Registra el contacto (pasa a Contactado) y luego el abono, o "Negocia" si paga después. <strong>Desde En gestión no se puede cobrar.</strong></p>
+      <p><strong>Venta</strong> = deal en Ganado Pago Parcial o Ganado Pagado Completo. Un Compromiso todavía no es venta.</p>
+    </section>
+
+    <p class="parte"><b>Paso 5</b> · El dinero</p>
+
+    <section id="plata">
+      <h2><span class="n">05</span>El dinero</h2>
+      <div class="dos">
+        <div>
+          <h4>La fórmula</h4>
+          <ul>
+            <li><b>Ticket base:</b> de la cohorte</li>
+            <li><b>Valor vendido</b> = ticket − descuento</li>
+            <li><b>Saldo</b> = valor vendido − abonos</li>
+            <li><b>Comisión:</b> % del programa el día de la venta</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Ejemplo (ComunicArte)</h4>
+          <ul class="num">
+            <li>797,00 − 100,00 = 697,00 USD</li>
+            <li>Abona 300,00 → saldo 397,00 · <span class="pill ok">Parcial</span></li>
+            <li>Abona 397,00 → saldo 0,00 · <span class="pill ok">Completo</span></li>
+          </ul>
+        </div>
+      </div>
+      <ul>
+        <li>No se puede abonar más que el saldo.</li>
+        <li>Todo en USD; el CRM no convierte monedas.</li>
+        <li><strong>Caja</strong> es lo que entró en abonos; <strong>ventas</strong> son deals en Ganado. Son cifras distintas.</li>
+        <li><strong>Cartera</strong> es lo que falta cobrar. Con la fecha límite pasada sale <b>Pago vencido</b>.</li>
+        <li><strong>Cortesía:</strong> 100% de descuento y su marca. Es student, no cuenta como venta.</li>
+      </ul>
+    </section>
+
+    <section id="cohortes">
+      <h2><span class="n">05 · b</span>Cohortes</h2>
+      <ul>
+        <li>Grupo que empieza clases en una fecha, con su <b>ticket base</b>. La configura gerencia.</li>
+        <li>El deal nace en la cohorte con ventas abiertas.</li>
+        <li><b>Próxima Cohorte:</b> cuenta en la de origen hasta que lo retomas; ahí se muda a la nueva.</li>
+        <li><b>La meta es de la cohorte.</b> Tú tienes contribución: tus ventas en ella.</li>
+        <li>La cohorte de un student se cambia en su ficha: Facturación → Cambiar cohorte.</li>
+      </ul>
+    </section>
+
+    <p class="parte"><b>Paso 6</b> · Student</p>
+
+    <section id="students">
+      <h2><span class="n">06</span>Students</h2>
+      <ul>
+        <li><b>Student desde el primer pago.</b></li>
+        <li>La pantalla Students los lista por cohorte, con saldo y filtro de onboarding.</li>
+        <li><b>Onboarding:</b> marca "onboarded" en la ficha cuando ya está listo para empezar.</li>
+        <li>Si un Parcial desiste: Cierre perdido con motivo. Deja de ser student; lo pagado sigue en caja.</li>
+      </ul>
+    </section>
+
+    <section id="perder">
+      <h2><span class="n">07</span>Perder y anular</h2>
+      <div class="tabla">
+        <table>
+          <thead><tr><th></th><th>Cierre perdido</th><th>Anular</th></tr></thead>
+          <tbody>
+            <tr><td>Es</td><td>Dijo que no</td><td>Me equivoqué al registrar</td></tr>
+            <tr><td>Cuenta en cifras</td><td>Sí</td><td>No</td></tr>
+            <tr><td>Pide</td><td>Motivo de la lista</td><td>Texto de la corrección</td></tr>
+            <tr><td>Después</td><td>Se recupera a En gestión</td><td>Queda tachado; el lead queda libre</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="caja no"><p><b>Un duplicado se anula, nunca se pierde.</b> Perderlo registra un "no" que nadie dijo.</p></div>
+      <p>Anular un abono recalcula la etapa: sin abonos vuelve atrás; con saldo, de Completo a Parcial.</p>
+    </section>
+
+    <p class="parte"><b>Operación</b> · Día a día</p>
+
+    <section id="dia">
+      <h2><span class="n">08</span>Tu día en el CRM</h2>
+      <ol class="pasos">
+        <li><b>Inbox de cada programa, de arriba abajo.</b></li>
+        <li><b>Primero lo que se enfría:</b> perdidos en el Calendly y llamadas sin resultado.</li>
+        <li><b>Toma deals nuevos:</b> Calificados primero, luego por Value.</li>
+        <li><b>Lo tuyo:</b> re-agendas, vencidos, envíos nuevos, estancados.</li>
+        <li><b>Tras cada llamada:</b> Grain y "¿Cómo terminó?" el mismo día.</li>
+        <li><b>Al cerrar:</b> Urgencias, y ninguna tarjeta tuya en rojo.</li>
+      </ol>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>Pantalla</th><th>Para qué</th></tr></thead>
+          <tbody>
+            <tr><td><b>Inbox</b></td><td>Por dónde empiezas</td></tr>
+            <tr><td><b>Deals</b></td><td>Tablero por etapa, filtros y Nuevo deal</td></tr>
+            <tr><td><b>Leads</b></td><td>Personas y todos sus envíos</td></tr>
+            <tr><td><b>Calls</b></td><td>Llamadas: Grain y "¿Cómo terminó?"</td></tr>
+            <tr><td><b>Students</b></td><td>Compradores y onboarding</td></tr>
+            <tr><td><b>Urgencias</b></td><td>Todo lo vencido</td></tr>
+            <tr><td><b>Dashboard</b></td><td>Cifras de tus programas</td></tr>
+            <tr><td><b>Mi perfil</b></td><td>Tu Calendly por programa</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Secciones del Inbox</h3>
+      <div class="tabla">
+        <table>
+          <tbody>
+            <tr><td>Se perdieron en el Calendly</td><td>Escríbeles ya</td></tr>
+            <tr><td>Llamadas sin resultado</td><td>Grain, o "La llamada no se dio"</td></tr>
+            <tr><td>Por settear</td><td>Sin dueño ni cita: reclama</td></tr>
+            <tr><td>Agendados sin dueño</td><td>Con cita y sin closer: tómalos</td></tr>
+            <tr><td>Llamadas sueltas</td><td>Citas sin deal claro: asígnalas</td></tr>
+            <tr><td>Lo mío que necesita atención</td><td>Tus deals con algo vencido</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="alertas">
+      <h2><span class="n">09</span>Alertas</h2>
+      <p class="sub">No se apagan con un clic: se apagan haciendo lo que falta.</p>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>Alerta</th><th>Se apaga</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill alerta">Para avanzar le falta…</span></td><td>Es una guía del siguiente paso</td></tr>
+            <tr><td><span class="pill mal">Atendido sin Grain</span></td><td>Pegando el Grain</td></tr>
+            <tr><td><span class="pill mal">Llamada sin resultado</span></td><td>Grain, no-show o cancelada</td></tr>
+            <tr><td><span class="pill alerta">Re-agenda sin fecha</span></td><td>Agendando</td></tr>
+            <tr><td><span class="pill alerta">Seguimiento vencido</span></td><td>Dando el siguiente paso</td></tr>
+            <tr><td><span class="pill mal">Compromiso vencido</span></td><td>Abono, Seguimiento o Perdido</td></tr>
+            <tr><td><span class="pill mal">Pago vencido</span></td><td>Abono</td></tr>
+            <tr><td><span class="pill alerta">Estancado</span></td><td>Registrando actividad</td></tr>
+            <tr><td><span class="pill info">Envío nuevo</span></td><td>Revisándolo y contactándolo</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Días hábiles = lunes a viernes, festivos incluidos. Toda hora es de Bogotá.</p>
+    </section>
+
+    <section id="errores">
+      <h2><span class="n">10</span>Errores típicos</h2>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>Ves</th><th>Haz</th></tr></thead>
+          <tbody>
+            <tr><td>"Falta registrar el contacto"</td><td>Registra el contacto primero</td></tr>
+            <tr><td>El abono se rechaza</td><td>En En gestión o Agendado no se cobra: registra contacto o llamada antes</td></tr>
+            <tr><td>"Falta el área"</td><td>Pregúntale cómo nos conoció</td></tr>
+            <tr><td>La tarjeta vuelve al soltarla en Ganado</td><td>Usa Registrar abono</td></tr>
+            <tr><td>"El abono supera el saldo"</td><td>Revisa monto o descuento</td></tr>
+            <tr><td>No te deja crear el deal</td><td>Ya tiene uno abierto: el mensaje lo enlaza</td></tr>
+            <tr><td>Tus citas llegan sin dueño</td><td>Asigna tu Calendly en Mi perfil</td></tr>
+            <tr><td>No ves un programa</td><td>Pide la membresía a gerencia</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <p class="parte"><b>Estado</b> · Lo que falta</p>
+
+    <section id="falta">
+      <h2><span class="n">11</span>Lo que le falta al CRM</h2>
+      <p class="sub">Al 2 de octubre de 2026. Lo de arriba ya funciona; esto no todavía.</p>
+      <h3>Para empezar a operar</h3>
+      <ul class="falta">
+        <li><span class="pill alerta">En pruebas</span><div><b>Recorrido completo y ajustes de pantalla</b><p>Ej.: la alerta de llamada sin resultado sale antes de la hora; "Registrar abono" aparece donde no aplica. Mientras: sigue el manual, no la pantalla.</p></div></li>
+        <li><span class="pill alerta">Pendiente</span><div><b>Traslado de las hojas al CRM</b><p>Mientras: se sigue gestionando en las hojas.</p></div></li>
+        <li><span class="pill alerta">Pendiente</span><div><b>El corte</b><p>El día en que se dejan las hojas, con capacitación. A la semana se apagan sus pestañas de gestión.</p></div></li>
+        <li><span class="pill alerta">En revisión</span><div><b>Tu Calendly desde Mi perfil</b><p>Mientras: gerencia lo asigna.</p></div></li>
+      </ul>
+      <h3>Después</h3>
+      <ul class="falta">
+        <li><span class="pill neutro">Por construir</span><div><b>Lo que falta en cada etapa, en rojo</b><p>Mientras: usa "Para avanzar le falta…".</p></div></li>
+        <li><span class="pill neutro">Por construir</span><div><b>Alerta de tres intentos</b><p>Mientras: cuéntalos en el log.</p></div></li>
+        <li><span class="pill neutro">Por construir</span><div><b>Tu cola ordenada por Value y el dashboard comercial</b><p>Mientras: filtra el tablero por Valor.</p></div></li>
+        <li><span class="pill neutro">Por construir</span><div><b>Marcar una cortesía</b><p>Mientras: avisa a gerencia.</p></div></li>
+        <li><span class="pill neutro">Por construir</span><div><b>Enlace de captación por closer</b><p>Mientras: el origen lo da el área declarada.</p></div></li>
+        <li><span class="pill mal">Espera decisión</span><div><b>Próxima fecha de pago y cartera por fecha</b><p>Mientras: anota el acuerdo en la nota del compromiso.</p></div></li>
+        <li><span class="pill mal">Espera decisión</span><div><b>Onboarding por pasos y Customer Success</b><p>Mientras: una sola marca, "onboarded".</p></div></li>
+        <li><span class="pill mal">Espera decisión</span><div><b>Meta del mes</b><p>Solo existe la meta de la cohorte.</p></div></li>
+        <li><span class="pill mal">Espera decisión</span><div><b>Alertas por métricas caídas</b><p>Falta decidir qué métricas.</p></div></li>
+      </ul>
+    </section>
+
+    <section id="glosario">
+      <h2><span class="n">12</span>Glosario</h2>
+      <dl class="glosario">
+        <dt>Lead Quality</dt><dd>High o Low. Decide si nace en Calificado.</dd>
+        <dt>Lead Value</dt><dd>De MUY ALTO a BAJO VALOR. Ordena tu cola.</dd>
+        <dt>Canal</dt><dd>De dónde vino el clic: fuente / medio.</dd>
+        <dt>Área declarada</dt><dd>Cómo dice la persona que nos conoció.</dd>
+        <dt>Setteo</dt><dd>Contactar a quien no agendó y conseguirle la cita.</dd>
+        <dt>Show / no-show</dt><dd>Llegó o no llegó a la llamada.</dd>
+        <dt>Grain</dt><dd>La grabación que prueba que la llamada ocurrió.</dd>
+        <dt>Pendiente</dt><dd>Re-agenda, Seguimiento o Próxima Cohorte.</dd>
+        <dt>Ticket base</dt><dd>Precio de la cohorte en USD, antes del descuento.</dd>
+        <dt>Valor vendido</dt><dd>Ticket base menos descuento.</dd>
+        <dt>Caja</dt><dd>Lo que entró en abonos.</dd>
+        <dt>Cartera</dt><dd>Lo que falta por cobrar.</dd>
+        <dt>Contribución</dt><dd>Tus ventas en una cohorte.</dd>
+        <dt>Cortesía</dt><dd>Cupo regalado; no cuenta como venta.</dd>
+      </dl>
+    </section>
+
+    <footer>Retia · Manual de operación comercial · 2-oct-2026. Si el manual y el CRM no coinciden, manda el CRM: avisa a gerencia.</footer>
+  </main>
+</div>
+
+<script>
+// Resalta en el índice la sección que se está leyendo.
+(() => {
+  const enlaces = new Map();
+  document.querySelectorAll('nav.toc a[href^="#"]').forEach((a) => enlaces.set(a.getAttribute("href").slice(1), a));
+  const secciones = [...enlaces.keys()].map((id) => document.getElementById(id)).filter(Boolean);
+  const marcar = () => {
+    const linea = window.innerHeight * 0.3;
+    let actual = secciones[0];
+    for (const s of secciones) if (s.getBoundingClientRect().top <= linea) actual = s;
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) actual = secciones[secciones.length - 1];
+    enlaces.forEach((a, id) => a.setAttribute("aria-current", id === actual.id ? "true" : "false"));
+  };
+  let pendiente = false;
+  window.addEventListener("scroll", () => {
+    if (pendiente) return;
+    pendiente = true;
+    requestAnimationFrame(() => { pendiente = false; marcar(); });
+  }, { passive: true });
+  window.addEventListener("resize", marcar);
+  marcar();
+})();
+</script>
