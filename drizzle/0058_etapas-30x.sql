@@ -64,9 +64,13 @@ CREATE TEMP TABLE "historial_142" AS
   ),
   "resuelto" AS (
     SELECT "id", "deal_id", "fecha", "orden", "pend",
+      -- Sin etapa real antes (el deal nacio en el pendiente), la misma regla que la rama de
+      -- deals sin historial de abajo: Re-agenda vive en Agendado, Seguimiento en Atendido y
+      -- Proxima Cohorte en la puerta. Con la puerta para todos, nacia "Registrado con
+      -- Re-agenda", que ninguna flecha del motor produce.
       coalesce(
         max("a_real") OVER (PARTITION BY "deal_id", "grupo"),
-        "puerta"
+        CASE "pend" WHEN 'reagenda' THEN 'agendado' WHEN 'seguimiento' THEN 'atendido' ELSE "puerta" END
       ) AS "a_nueva"
     FROM "base"
   )
