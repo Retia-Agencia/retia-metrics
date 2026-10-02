@@ -99,7 +99,7 @@ async function capturar(p: Promise<unknown>): Promise<ErrorDeApp> {
 
 describe("reclamarDeal", () => {
   it("un closer con membresía reclama y queda como dueño, con UNA fila de change_log", async () => {
-    const dealId = await nuevoDeal("pendiente_setteo");
+    const dealId = await nuevoDeal("registrado");
     await reclamarDeal(db, comoCloser(), { dealId });
 
     expect((await deal(dealId)).ownerUserId).toBe(closer);
@@ -109,13 +109,13 @@ describe("reclamarDeal", () => {
   });
 
   it("el developer también puede reclamar (nunca rol === '...' a mano)", async () => {
-    const dealId = await nuevoDeal("pendiente_setteo");
+    const dealId = await nuevoDeal("registrado");
     await reclamarDeal(db, comoDeveloper(), { dealId });
     expect((await deal(dealId)).ownerUserId).toBe(developer);
   });
 
   it("el gerente NO puede reclamar: administra pero no trabaja leads (ADR 0003)", async () => {
-    const dealId = await nuevoDeal("pendiente_setteo");
+    const dealId = await nuevoDeal("registrado");
     const e = await capturar(reclamarDeal(db, comoGerente(), { dealId }));
     expect(e.status).toBe(403);
     expect((await deal(dealId)).ownerUserId).toBeNull();
@@ -123,7 +123,7 @@ describe("reclamarDeal", () => {
   });
 
   it("un closer SIN membresía activa en el programa no puede reclamar", async () => {
-    const dealId = await nuevoDeal("pendiente_setteo");
+    const dealId = await nuevoDeal("registrado");
     await db.update(miembrosPrograma).set({ activo: false }).where(eq(miembrosPrograma.userId, closer));
     const e = await capturar(reclamarDeal(db, comoCloser(), { dealId }));
     expect(e.status).toBe(403);
@@ -137,14 +137,14 @@ describe("reclamarDeal", () => {
   });
 
   it("el dueño sale de la SESIÓN: un ownerUserId ajeno en el cuerpo se ignora (ni se lee)", async () => {
-    const dealId = await nuevoDeal("pendiente_setteo");
+    const dealId = await nuevoDeal("registrado");
     // El esquema no tiene `ownerUserId`: aunque se cuele, el nuevo dueño es el actor.
     await reclamarDeal(db, comoCloser(), { dealId, ownerUserId: otroCloser } as never);
     expect((await deal(dealId)).ownerUserId).toBe(closer);
   });
 
   it("un segundo reclamo sobre un deal que YA tiene dueño se rechaza con 409 'Ya lo reclamó otra persona'", async () => {
-    const dealId = await nuevoDeal("pendiente_setteo");
+    const dealId = await nuevoDeal("registrado");
     await reclamarDeal(db, comoCloser(), { dealId });
     const e = await capturar(reclamarDeal(db, comoOtroCloser(), { dealId }));
     expect(e.status).toBe(409);
@@ -155,7 +155,7 @@ describe("reclamarDeal", () => {
   });
 
   it("un deal anulado no se reclama", async () => {
-    const dealId = await nuevoDeal("pendiente_setteo", {
+    const dealId = await nuevoDeal("registrado", {
       anuladoEn: new Date(),
       anuladoPor: gerente,
       motivoAnulacion: "lo registré mal",

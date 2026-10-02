@@ -97,7 +97,7 @@ type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> 
 /**
  * Escribe el acuerdo de pago y/o la fecha límite de un deal, por `editarConRastro` (queda en
  * `change_log`). Lo edita el dueño del deal (`trabajaLeads`) o quien administra; un deal
- * anulado o ya cerrado (Completo, Cierre Perdido) no tiene nada que acordar.
+ * anulado o ya cerrado (Ganado Pagado Completo, Cierre perdido) no tiene nada que acordar.
  */
 export async function editarAcuerdoDePago(db: Db, actor: ActorDeAcuerdo, datos: DatosAcuerdoDePago): Promise<void> {
   return normalizando(async () => {
@@ -113,7 +113,7 @@ export async function editarAcuerdoDePago(db: Db, actor: ActorDeAcuerdo, datos: 
         .for("update");
       if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
       if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado: no se edita su acuerdo de pago.", 409);
-      if (deal.etapa === "completo" || deal.etapa === "cierre_perdido") {
+      if (deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido") {
         throw new ErrorDeApp("El deal está cerrado: no tiene acuerdo de pago que editar.", 409);
       }
       if (!puedeTrabajarDeal(actor, deal)) {

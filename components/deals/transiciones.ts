@@ -1,4 +1,4 @@
-import type { EtapaDeal, QuienMueve, TipoMotivo } from "@/lib/deals/etapas";
+import type { EtapaDeal, PendienteDeal, QuienMueve, TipoMotivo } from "@/lib/deals/etapas";
 import type { CodigoRequisito } from "@/lib/deals/requisitos";
 
 /**
@@ -17,8 +17,11 @@ import type { CodigoRequisito } from "@/lib/deals/requisitos";
 
 /** Una flecha, en forma plana y serializable (lo que el servidor manda al cliente). */
 export interface FlechaCliente {
+  tipo: "etapa" | "pendiente";
+  id: string;
   de: EtapaDeal;
   a: EtapaDeal;
+  pendienteA: PendienteDeal | null;
   quien: QuienMueve;
   exigeMotivo: boolean;
   tipoDeMotivo: TipoMotivo | null;
@@ -35,7 +38,7 @@ export type MapaTransiciones = FlechaCliente[];
 export function flechasDesde(mapa: MapaTransiciones, de: EtapaDeal): FlechaCliente[] {
   // Sin las flechas que vuelven a la misma etapa (T9, una reagenda que sigue en
   // Agendado): no son un destino al que se mueva la tarjeta.
-  return mapa.filter((f) => f.de === de && f.a !== de);
+  return mapa.filter((f) => f.tipo === "etapa" && f.de === de && f.a !== de);
 }
 
 /**
@@ -47,13 +50,13 @@ export function flechasDesde(mapa: MapaTransiciones, de: EtapaDeal): FlechaClien
  * verdad la vuelve a aplicar el servidor en `moverEtapa()` (nunca se confia del cliente).
  */
 export function sePuedeArrastrar(mapa: MapaTransiciones, de: EtapaDeal, a: EtapaDeal): boolean {
-  const f = mapa.find((x) => x.de === de && x.a === a);
+  const f = mapa.find((x) => x.tipo === "etapa" && x.de === de && x.a === a);
   return f != null && f.quien !== "sistema";
 }
 
 /** Las etapas destino a las que una PERSONA puede arrastrar desde `de`. */
 export function destinosArrastrables(mapa: MapaTransiciones, de: EtapaDeal): Set<EtapaDeal> {
-  return new Set(mapa.filter((f) => f.de === de && f.quien !== "sistema").map((f) => f.a));
+  return new Set(mapa.filter((f) => f.tipo === "etapa" && f.de === de && f.quien !== "sistema").map((f) => f.a));
 }
 
 /**
@@ -61,7 +64,7 @@ export function destinosArrastrables(mapa: MapaTransiciones, de: EtapaDeal): Set
  * menu "Mover a...". `null` si la flecha si es arrastrable o no existe.
  */
 export function razonSistema(mapa: MapaTransiciones, de: EtapaDeal, a: EtapaDeal): string | null {
-  const f = mapa.find((x) => x.de === de && x.a === a);
+  const f = mapa.find((x) => x.tipo === "etapa" && x.de === de && x.a === a);
   if (!f || f.quien !== "sistema") return null;
   return "Lo pone el sistema cuando pasa el hecho (un abono, la agenda); no se mueve a mano.";
 }

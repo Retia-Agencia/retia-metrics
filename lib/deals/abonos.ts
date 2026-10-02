@@ -20,9 +20,9 @@ import { congelarValorVendido } from "./valor-vendido";
  * Registrar y anular un abono, y los movimientos que el SISTEMA hace por el dinero
  * (ticket 060, ADR 0013, ADR 0024, ADR 0026, ADR 0037).
  *
- * - **Primer abono con saldo > 0** → Abonado. **Saldo en cero** → Completo (T5, T13, T14,
- *   T16, T17, T26 y T18). El closer nunca mueve el deal a mano por dinero.
- * - **Anular** el abono que cerro el deal lo saca de Completo (A2); si era el unico abono,
+ * - **Primer abono con saldo > 0** → Ganado Pago Parcial. **Saldo en cero** → Ganado Pagado
+ *   Completo. El closer nunca mueve el deal a mano por dinero.
+ * - **Anular** el abono que cerro el deal lo saca de Ganado Pagado Completo (A2); si era el unico abono,
  *   el deal vuelve a donde estaba antes de pagar (A1). Un Student que no pago es la cifra
  *   inflada de esta familia.
  *
@@ -60,7 +60,7 @@ export interface AbonoRegistrado {
   abonoId: string;
   /** La etapa del deal DESPUES del abono. */
   etapa: EtapaDeal;
-  /** `true` si el abono movio el deal (a Abonado o a Completo). */
+  /** `true` si el abono movio el deal a una etapa ganada. */
   movioElDeal: boolean;
   /** Lo que queda por pagar; nunca `null` aqui porque se rechaza antes un deal sin precio. */
   saldo: number;
@@ -117,7 +117,7 @@ export async function registrarAbono(
       if (deal.anuladoEn) {
         throw new ErrorDeApp("El deal está anulado: no cuenta en ninguna métrica y no recibe abonos.", 409);
       }
-      if (deal.etapa === "completo" || deal.etapa === "cierre_perdido") {
+      if (deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido") {
         throw new ErrorDeApp("El deal está cerrado: no recibe abonos nuevos.", 409);
       }
       if (!puedeTrabajarDeal(actor, deal)) {
@@ -188,13 +188,11 @@ export async function registrarAbono(
         throw new ErrorDeApp("No se puede calcular el saldo del deal después del abono: se deshace el registro.", 409);
       }
       const saldo = despues.saldo;
-      const destino: EtapaDeal = saldo <= 0 ? "completo" : "abonado";
+      const destino: EtapaDeal = saldo <= 0 ? "ganado_completo" : "ganado_parcial";
 
       if (deal.etapa === destino) return { abonoId, etapa: deal.etapa, movioElDeal: false, saldo, cohorteAsignada };
       if (!transicion(deal.etapa, destino)) {
-        // Desde Pendiente Setteo, Agendado, Re-agenda o Proxima Cohorte no hay flecha a
-        // pagar. Se rechaza (y el abono se deshace con la transaccion) en vez de inventar
-        // una transicion que la tabla no tiene.
+        // Desde una etapa sin flecha de pago se rechaza el abono y se deshace la transaccion.
         throw new ErrorDeApp(
           `Desde ${NOMBRE_DE_ETAPA[deal.etapa]} no se registra un abono: mueve primero el deal a una etapa donde el lead ya hable de pagar.`,
           409,
@@ -232,9 +230,9 @@ export interface AbonoAnulado {
  *
  * Anular un abono NO anula el deal: un pago mal tecleado no vuelve falsa la oportunidad.
  * Lo que cambia es la etapa, por el motor:
- *  - Completo con saldo otra vez > 0 → Abonado (A2);
+ *  - Ganado Pagado Completo con saldo otra vez > 0 → Ganado Pago Parcial (A2);
  *  - sin abonos vigentes → a donde estaba antes de pagar (A1, `etapaALaQueVuelve`).
- * Si el deal estaba en Completo por UN solo abono, hace las dos: A2 y luego A1.
+ * Si estaba completamente pagado por UN solo abono, hace las dos: A2 y luego A1.
  */
 export async function anularAbono(
   db: Db,
@@ -279,11 +277,11 @@ export async function anularAbono(
         }
       }
 
-      // D3 (Mani, 28-sep): Abonado ocupa el cupo del lead. Si el deal esta en Completo y el lead
-      // ya abrio OTRO deal en el programa, anular este abono lo devolveria a Abonado (A2) y los
+      // Ganado Pago Parcial ocupa el cupo. Si el deal está completamente pagado y el lead
+      // ya abrió OTRO deal, anular este abono lo devolvería a Ganado Pago Parcial (A2) y los
       // dos quedarian abiertos: la base lo rechaza con un error crudo. Se ataja antes, con el
       // mensaje que dice que hacer, y no se escribe nada (`deals_uno_abierto_por_lead_y_programa_idx`).
-      if (deal.etapa === "completo" && !deal.anuladoEn) {
+      if (deal.etapa === "ganado_completo" && !deal.anuladoEn) {
         const [otroAbierto] = await tx
           .select({ id: deals.id })
           .from(deals)
@@ -292,14 +290,14 @@ export async function anularAbono(
               eq(deals.leadId, deal.leadId),
               eq(deals.programId, deal.programId),
               ne(deals.id, deal.id),
-              notInArray(deals.etapa, ["completo", "cierre_perdido"]),
+              notInArray(deals.etapa, ["ganado_completo", "cierre_perdido"]),
               vigente(deals),
             ),
           )
           .limit(1);
         if (otroAbierto) {
           throw new ErrorDeApp(
-            "Este lead ya tiene otro deal abierto en el programa: anular este abono devolvería el deal a Abonado y quedarían dos abiertos. Cierra o anula el otro deal primero.",
+            "Este lead ya tiene otro deal abierto en el programa: anular este abono devolvería el deal a Ganado Pago Parcial y quedarían dos abiertos. Cierra o anula el otro deal primero.",
             409,
           );
         }
@@ -317,11 +315,11 @@ export async function anularAbono(
       const saldo = (await saldosDeDeals(tx, [deal.id])).get(deal.id)!;
       const sistema = { tipo: "sistema" } as const;
 
-      if (etapa === "completo" && saldo.saldo !== null && saldo.saldo > 0) {
-        await moverEtapa(tx, { dealId: deal.id, a: "abonado", actor: sistema });
-        etapa = "abonado";
+      if (etapa === "ganado_completo" && saldo.saldo !== null && saldo.saldo > 0) {
+        await moverEtapa(tx, { dealId: deal.id, a: "ganado_parcial", actor: sistema });
+        etapa = "ganado_parcial";
       }
-      if (etapa === "abonado" && saldo.abonosVigentes === 0) {
+      if (etapa === "ganado_parcial" && saldo.abonosVigentes === 0) {
         const previa = await etapaALaQueVuelve(tx, deal.id);
         await moverEtapa(tx, { dealId: deal.id, a: previa, actor: sistema });
         etapa = previa;

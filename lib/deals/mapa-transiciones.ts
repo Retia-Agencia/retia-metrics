@@ -1,4 +1,4 @@
-import { TRANSICIONES } from "@/lib/deals/etapas";
+import { TRANSICIONES, TRANSICIONES_PENDIENTE } from "@/lib/deals/etapas";
 import { requisitosDeTransicion } from "@/lib/deals/requisitos";
 import type { MapaTransiciones } from "@/components/deals/transiciones";
 
@@ -12,12 +12,27 @@ import type { MapaTransiciones } from "@/components/deals/transiciones";
  * arrastrar el motor al navegador.
  */
 export function mapaDeTransiciones(): MapaTransiciones {
-  return TRANSICIONES.map((t) => ({
+  const etapas: MapaTransiciones = TRANSICIONES.map((t) => ({
+    tipo: "etapa",
+    id: t.id,
     de: t.de,
     a: t.a,
+    pendienteA: null,
     quien: t.quien,
     exigeMotivo: t.exigeMotivo,
     tipoDeMotivo: t.tipoDeMotivo,
     requisitos: requisitosDeTransicion(t),
   }));
+  const pendientes: MapaTransiciones = TRANSICIONES_PENDIENTE.map((t) => ({
+    tipo: "pendiente",
+    id: t.id,
+    de: t.etapa,
+    a: t.etapa,
+    pendienteA: t.pone,
+    quien: t.quien,
+    exigeMotivo: t.exigeMotivo,
+    tipoDeMotivo: t.tipoDeMotivo,
+    requisitos: requisitosDeTransicion(t),
+  }));
+  return [...etapas, ...pendientes];
 }

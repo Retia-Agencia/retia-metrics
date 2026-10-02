@@ -84,13 +84,13 @@ interface Contexto {
   desdeElMotor?: true;
 }
 
-/** La etapa de un deal solo la escribe el motor (ADR 0037, ticket 046). */
-function exigirQueLaEtapaVengaDelMotor(ctx: Contexto, valores: Record<string, unknown>): void {
+/** La etapa y el pendiente de un deal solo los escribe el motor. */
+function exigirQueElMotorEscribaSuEstado(ctx: Contexto, valores: Record<string, unknown>): void {
   // Es un error de programacion, no del usuario: sale como 500. Se revisa en tiempo de
   // ejecucion porque la etapa puede llegar dentro de una variable que el guardian
   // estatico no ve.
-  if (ctx.nombreTabla === "deals" && "etapa" in valores && !ctx.desdeElMotor) {
-    throw new Error("La etapa de un deal no se escribe aqui: usa moverEtapa() o abrirDeal() de lib/deals/mover-etapa.ts.");
+  if (ctx.nombreTabla === "deals" && ("etapa" in valores || "pendiente" in valores) && !ctx.desdeElMotor) {
+    throw new Error("La etapa o el pendiente de un deal no se escribe aqui: usa moverEtapa() o abrirDeal() de lib/deals/mover-etapa.ts.");
   }
 }
 
@@ -106,7 +106,7 @@ export async function crearConRastro(
   valores: Record<string, unknown>,
 ): Promise<string> {
   const { db, tabla, nombreTabla, actorId, etiqueta } = ctx;
-  exigirQueLaEtapaVengaDelMotor(ctx, valores);
+  exigirQueElMotorEscribaSuEstado(ctx, valores);
   // El id se genera en codigo para meter el alta y su bitacora en el mismo lote:
   // `ejecutarJuntas` no deja encadenar el id recien insertado.
   const id = crypto.randomUUID();
@@ -170,7 +170,7 @@ export async function crearVariosConRastro(
   ctx: Omit<Contexto, "etiqueta"> & { omitirChoques?: true },
   altas: readonly AltaEnLote[],
 ): Promise<(string | null)[]> {
-  for (const a of altas) exigirQueLaEtapaVengaDelMotor({ ...ctx, etiqueta: a.etiqueta }, a.valores);
+  for (const a of altas) exigirQueElMotorEscribaSuEstado({ ...ctx, etiqueta: a.etiqueta }, a.valores);
   if (altas.length === 0) return [];
   const ids = altas.map(() => crypto.randomUUID());
   const escritos = new Set<string>();
@@ -227,7 +227,7 @@ export async function editarConRastro(
 ): Promise<boolean> {
   const { db, tabla, nombreTabla, actorId, etiqueta } = ctx;
   // Editar la etapa no tiene excepcion: moverla es `moverEtapa()`, que no pasa por aqui.
-  exigirQueLaEtapaVengaDelMotor({ ...ctx, desdeElMotor: undefined }, valores);
+  exigirQueElMotorEscribaSuEstado({ ...ctx, desdeElMotor: undefined }, valores);
   const columnas = tabla as unknown as Record<string, unknown>;
   const idCol = columnas.id as never;
 

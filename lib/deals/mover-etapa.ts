@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull, notInArray } from "drizzle-orm";
+import { and, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import {
   abonos,
   calls,
@@ -19,12 +19,23 @@ import { ErrorDeApp } from "@/lib/errors";
 import type { Rol } from "@/lib/auth/roles";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { cohorteActiva } from "@/lib/queries/cohortes";
-import { ETAPAS_VENDIDAS } from "@/lib/queries/metricas-filtros";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { exigirFechaLimiteValida } from "./pago";
 import { puedeTrabajarDeal } from "./permiso";
-import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal, type TipoMotivo, type Transicion } from "./etapas";
-import { queLeFalta, type HechosDelDeal, type RequisitoFaltante } from "./requisitos";
+import {
+  NOMBRE_DE_ETAPA,
+  ETAPAS_VENDIDAS,
+  transicion,
+  transicionPendiente,
+  transicionRetomar,
+  type EtapaDeal,
+  type FlechaBase,
+  type PendienteDeal,
+  type TipoMotivo,
+  type Transicion,
+  type TransicionPendiente,
+} from "./etapas";
+import { queLeFalta, queLeFaltaTransicion, type HechosDelDeal, type RequisitoFaltante } from "./requisitos";
 import { congelarValorVendido } from "./valor-vendido";
 
 /**
@@ -84,6 +95,8 @@ export interface DatosMovimiento {
 export interface Movimiento {
   dealId: string;
   a: EtapaDeal;
+  /** Pendiente DESPUES del movimiento. Todo cambio de etapa lo limpia por defecto. */
+  pendiente?: PendienteDeal | null;
   actor: Actor;
   /** Del catalogo `motivos`. Lo exigen las flechas con `exigeMotivo` (043). */
   motivoId?: string | null;
@@ -108,7 +121,9 @@ export class MovimientoRechazado extends ErrorDeApp {
 export interface MovimientoHecho {
   de: EtapaDeal;
   a: EtapaDeal;
-  transicion: Transicion;
+  pendienteDe: PendienteDeal | null;
+  pendienteA: PendienteDeal | null;
+  transicion: Transicion | TransicionPendiente;
 }
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
@@ -125,10 +140,34 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
     }
 
     const de = deal.etapa;
-    const t = transicion(de, mov.a);
+    const pendienteDe = deal.pendiente;
+    let pendienteA: PendienteDeal | null = null;
+    let t: Transicion | TransicionPendiente | null;
+    if (mov.a !== de) {
+      t = transicion(de, mov.a);
+      if (t?.id === "RETRO") pendienteA = "seguimiento";
+      if (t?.id === "R" && mov.a === "en_gestion" && mov.pendiente === "proxima_cohorte") {
+        pendienteA = "proxima_cohorte";
+      }
+    } else if (mov.pendiente != null) {
+      pendienteA = mov.pendiente;
+      t = transicionPendiente(de, mov.pendiente);
+    } else {
+      t = de === "agendado" ? transicion(de, de) : transicionRetomar(de, pendienteDe);
+    }
     if (!t) {
-      const faltantes = queLeFalta(de, mov.a, HECHOS_VACIOS);
+      const faltantes = mov.a === de
+        ? [{ codigo: "transicion_no_permitida" as const, mensaje: `Este movimiento no está permitido en ${NOMBRE_DE_ETAPA[de]}.` }]
+        : queLeFalta(de, mov.a, HECHOS_VACIOS);
       throw new MovimientoRechazado(faltantes[0].mensaje, faltantes);
+    }
+    if (t.tipo === "etapa" && t.soloConPendiente && pendienteDe == null) {
+      const faltantes = [{ codigo: "transicion_no_permitida" as const, mensaje: "Atendido solo vuelve a Agendado cuando tiene un pendiente." }];
+      throw new MovimientoRechazado(faltantes[0].mensaje, faltantes, 409);
+    }
+    if (t.id === "PC" && de === "agendado" && pendienteDe == null) {
+      const faltantes = [{ codigo: "transicion_no_permitida" as const, mensaje: "Agendado solo pasa a Próxima Cohorte cuando ya tiene un pendiente." }];
+      throw new MovimientoRechazado(faltantes[0].mensaje, faltantes, 409);
     }
 
     // Quien puede tomar la flecha: primero la clase (sistema vs persona), y para una
@@ -143,17 +182,20 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
     // deshace. La etapa NUNCA se toca aca: la mueve el update de mas abajo.
     const dealActualizado = await escribirDatos(tx, deal, mov);
 
-    if ((t.id === "T7" || t.id === "T10") && mov.actor.tipo === "usuario") {
+    if (t.id === "E8" && mov.actor.tipo === "usuario") {
       await darPorAtendida(tx, dealActualizado, mov.actor.userId);
     }
 
     const hechos = await leerHechos(tx, dealActualizado, mov.motivoId ?? null, t.tipoDeMotivo);
-    const faltantes = queLeFalta(de, mov.a, hechos);
+    const faltantes = queLeFaltaTransicion(t, hechos);
+    if (t.id === "R" && pendienteA === "proxima_cohorte" && hechos.cohorteDestinoId == null) {
+      faltantes.push({ codigo: "cohorte_destino", mensaje: "Falta la cohorte a la que quiere entrar." });
+    }
     if (faltantes.length > 0) {
       throw new MovimientoRechazado(faltantes.map((f) => f.mensaje).join(" "), faltantes);
     }
 
-    // A1: al anular el unico abono, Abonado vuelve a la etapa de donde vino, y esa la
+    // A1: al anular el unico abono, Ganado Pago Parcial vuelve a la etapa de donde vino.
     // dice el historial, no quien llama.
     if (t.id === "A1") {
       const previa = await etapaALaQueVuelve(tx, deal.id);
@@ -164,6 +206,28 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
           409,
         );
       }
+    }
+    if (t.id === "RETRO") {
+      const previa = await etapaAntesDeCompromiso(tx, deal.id);
+      if (previa == null) {
+        throw new MovimientoRechazado("El historial no dice desde qué etapa entró a Compromiso Verbal.", [], 409);
+      }
+      if (previa !== mov.a) {
+        throw new MovimientoRechazado(
+          `El deal vuelve a ${NOMBRE_DE_ETAPA[previa]}, no a ${NOMBRE_DE_ETAPA[mov.a]}.`,
+          [],
+          409,
+        );
+      }
+    }
+
+    const mudaDeCohorte = pendienteDe === "proxima_cohorte" && pendienteA !== "proxima_cohorte" && t.id !== "P";
+    if (mudaDeCohorte && deal.cohorteDestinoId != null) {
+      await editarConRastro(
+        { db: tx, tabla: deals, nombreTabla: "deals", actorId: mov.actor.tipo === "usuario" ? mov.actor.userId : null, etiqueta: deal.id },
+        deal.id,
+        { cohortId: deal.cohorteDestinoId },
+      );
     }
 
     // La condicion `etapa = de` es la reja contra dos movimientos simultaneos: si otro
@@ -183,11 +247,12 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
       .update(deals)
       .set({
         etapa: mov.a,
+        pendiente: pendienteA,
         updatedAt: new Date(),
         ...(comisionPorcentaje !== undefined ? { comisionPorcentaje } : {}),
         ...(mov.a === "cierre_perdido" ? { motivoId: mov.motivoId ?? null } : {}),
       })
-      .where(and(eq(deals.id, deal.id), eq(deals.etapa, de)))
+      .where(and(eq(deals.id, deal.id), eq(deals.etapa, de), sql`${deals.pendiente} IS NOT DISTINCT FROM ${pendienteDe}`))
       .returning();
     if (escritas.length === 0) {
       throw new ErrorDeApp("El deal cambió de etapa mientras tanto. Vuelve a cargarlo.", 409);
@@ -197,11 +262,14 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
       dealId: deal.id,
       de,
       a: mov.a,
+      pendienteDe,
+      pendienteA,
       userId: mov.actor.tipo === "usuario" ? mov.actor.userId : null,
       motivoId: mov.motivoId ?? null,
+      fecha: sql`clock_timestamp()`,
     });
 
-    return { de, a: mov.a, transicion: t };
+    return { de, a: mov.a, pendienteDe, pendienteA, transicion: t };
   });
 }
 
@@ -288,17 +356,12 @@ async function escribirDatos(tx: Db, deal: FilaDeal, mov: Movimiento): Promise<F
 /**
  * Donde puede NACER un deal, y quien puede abrirlo ahi (ticket 047; `structure.md` §2.1).
  *
- * - Una persona abre a mano (el lead que llego por WhatsApp, ADR 0044) en Pendiente
- *   Setteo, En Contacto o Compromiso Verbal, y el deal nace con ella de dueña.
- * - El sistema abre en Pendiente Setteo (calificó y no agendó) o en Agendado (llego con
- *   agenda); lo usan el 052 y el 096.
- *
- * Ninguno nace en Atendido, Abonado o Completo: a esas se entra por un hecho (el Grain,
- * un abono), no por un alta.
+ * Una persona abre a mano en En gestión, con ella como dueña. El sistema abre en
+ * Potencial, Registrado, Calificado o Agendado.
  */
 const NACIMIENTOS: Readonly<Record<Actor["tipo"], readonly EtapaDeal[]>> = {
-  usuario: ["pendiente_setteo", "en_contacto", "compromiso_verbal"],
-  sistema: ["pendiente_setteo", "agendado"],
+  usuario: ["en_gestion"],
+  sistema: ["potencial", "registrado", "calificado", "agendado"],
 };
 
 export interface AltaDeDeal {
@@ -328,17 +391,6 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
     const quien = alta.actor.tipo === "usuario" ? "A mano" : "Automáticamente";
     throw new MovimientoRechazado(`${quien}, un deal no puede nacer en ${NOMBRE_DE_ETAPA[alta.etapa]}.`, [], 422);
   }
-  if (alta.etapa === "compromiso_verbal") {
-    const faltantes = queLeFalta("en_contacto", "compromiso_verbal", {
-      ...HECHOS_VACIOS,
-      fechaLimitePago: alta.fechaLimitePago ?? null,
-      areaDeclaradaId: alta.areaDeclaradaId ?? null,
-    });
-    if (faltantes.length > 0) {
-      throw new MovimientoRechazado(faltantes.map((f) => f.mensaje).join(" "), faltantes);
-    }
-  }
-
   return (db as unknown as Transaccion).transaction(async (tx) => {
     // El programa es frontera (ADR 0043): un deal de un programa sobre un lead de otro
     // mezclaria las dos economias sin lanzar ningun error.
@@ -393,7 +445,15 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
       throw e;
     }
 
-    await tx.insert(dealEtapaHistorial).values({ dealId: id, de: null, a: alta.etapa, userId: usuario });
+    await tx.insert(dealEtapaHistorial).values({
+      dealId: id,
+      de: null,
+      a: alta.etapa,
+      pendienteDe: null,
+      pendienteA: null,
+      userId: usuario,
+      fecha: sql`clock_timestamp()`,
+    });
     return id;
   });
 }
@@ -549,7 +609,7 @@ export async function abrirDealesHistoricos(db: Db, altas: readonly AltaHistoric
           .where(
             and(
               inArray(deals.leadId, unicos(chocados.map((a) => a.leadId))),
-              notInArray(deals.etapa, ["completo", "cierre_perdido"]),
+              notInArray(deals.etapa, ["ganado_completo", "cierre_perdido"]),
               vigente(deals),
             ),
           ),
@@ -604,7 +664,7 @@ function unicos(xs: readonly (string | null | undefined)[]): string[] {
 /**
  * Una flecha del sistema la toma el CRM cuando pasa el evento (se pega el Grain,
  * entra un abono); una de closer la toma una persona. Que una persona "mueva a
- * Abonado" sin abono, o que el sistema decida por el closer que alguien dijo que no,
+ * Ganado Pago Parcial" sin abono, o que el sistema decida por el closer que alguien dijo que no,
  * es justo lo que la tabla prohibe.
  *
  * Y para una PERSONA hay una segunda reja (Mani, 27-sep, punto 3): solo mueve el deal
@@ -613,12 +673,12 @@ function unicos(xs: readonly (string | null | undefined)[]): string[] {
  * que no administra: lo mueve el sistema hasta que alguien lo reclame. La reja vive
  * aca, en el motor, y no en quien lo llama, que era la puerta que alguien olvidaba.
  */
-function quienNoPuede(t: Transicion, actor: Actor, deal: FilaDeal): string | null {
+function quienNoPuede(t: FlechaBase & { a?: EtapaDeal }, actor: Actor, deal: FilaDeal): string | null {
   if (t.quien === "sistema" && actor.tipo === "usuario") {
-    return `A ${NOMBRE_DE_ETAPA[t.a]} no se mueve a mano: la mueve el CRM cuando pasa el hecho (${t.id}).`;
+    return `${t.a ? `A ${NOMBRE_DE_ETAPA[t.a]}` : "Ese pendiente"} no se mueve a mano: lo mueve el CRM cuando pasa el hecho (${t.id}).`;
   }
   if (t.quien === "closer" && actor.tipo === "sistema") {
-    return `A ${NOMBRE_DE_ETAPA[t.a]} lo mueve una persona, no el sistema (${t.id}).`;
+    return `${t.a ? `A ${NOMBRE_DE_ETAPA[t.a]}` : "Ese pendiente"} lo mueve una persona, no el sistema (${t.id}).`;
   }
   if (actor.tipo === "usuario" && !puedeTrabajarDeal(actor, deal)) {
     if (deal.ownerUserId == null) {
@@ -631,7 +691,9 @@ function quienNoPuede(t: Transicion, actor: Actor, deal: FilaDeal): string | nul
 
 const HECHOS_VACIOS: HechosDelDeal = {
   tieneDueno: false,
+  tieneActividadComercial: false,
   tieneContactoRegistrado: false,
+  pendienteActual: null,
   tieneLlamadaConFecha: false,
   llamadaSucedio: false,
   llamadaFallida: false,
@@ -640,6 +702,8 @@ const HECHOS_VACIOS: HechosDelDeal = {
   esHistorico: false,
   fechaLimitePago: null,
   cohorteDestinoId: null,
+  fechaInicioVentasCohorteDestino: null,
+  fechaUltimoContacto: null,
   fechaSeguimiento: null,
   abonosVigentes: 0,
   abonoConComprobante: false,
@@ -702,25 +766,12 @@ async function leerHechos(
   motivoId: string | null,
   tipoEsperado: TipoMotivo | null,
 ): Promise<HechosDelDeal> {
-  const desde = await entradaALaEtapaActual(tx, deal);
-
-  // Un contacto cuenta si se registro DESDE que el deal entro a su etapa actual: el
-  // primero (T1) desde que nacio, uno nuevo (T22) desde que quedo en Proxima Cohorte.
-  const [contacto] = await tx
-    .select({ id: dealActividades.id })
+  const actividades = await tx
+    .select({ tipo: dealActividades.tipo, canal: dealActividades.canal, fecha: dealActividades.fecha })
     .from(dealActividades)
-    .where(
-      and(
-        eq(dealActividades.dealId, deal.id),
-        eq(dealActividades.tipo, "contacto"),
-        isNotNull(dealActividades.canal),
-        // `gte` y no una plantilla `sql`: la plantilla manda el `Date` crudo al driver, y
-        // postgres-js lo rechaza (ERR_INVALID_ARG_TYPE) contra un Postgres real. PGlite lo
-        // acepta, asi que ningun test lo veia; salio sembrando la base local (113).
-        gte(dealActividades.fecha, desde),
-      ),
-    )
-    .limit(1);
+    .where(eq(dealActividades.dealId, deal.id))
+    .orderBy(desc(dealActividades.fecha));
+  const contacto = actividades.find((a) => a.tipo === "contacto" && a.canal != null);
 
   const llamadas = await tx
     .select({ resultado: calls.resultado, fechaAgenda: calls.fechaAgenda })
@@ -753,6 +804,9 @@ async function leerHechos(
         : [];
 
   const saldo = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
+  const [cohorteDestino] = deal.cohorteDestinoId
+    ? await tx.select({ fechaInicioVentas: cohorts.fechaInicioVentas }).from(cohorts).where(eq(cohorts.id, deal.cohorteDestinoId))
+    : [];
 
   // La llamada mas reciente (`orderBy createdAt desc`, ya aplicado): "sucedio" mira SOLO
   // la ultima (punto 4, Mani 27-sep), no `some()` sobre todas. Con "un deal, muchas
@@ -762,7 +816,9 @@ async function leerHechos(
 
   return {
     tieneDueno: deal.ownerUserId != null,
+    tieneActividadComercial: actividades.some((a) => a.tipo === "contacto" || a.tipo === "intento"),
     tieneContactoRegistrado: contacto != null,
+    pendienteActual: deal.pendiente,
     tieneLlamadaConFecha: llamadas.some((l) => l.resultado === "agendada" && l.fechaAgenda != null),
     llamadaSucedio:
       ultimaLlamada != null && (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(ultimaLlamada.resultado),
@@ -776,6 +832,8 @@ async function leerHechos(
     // siendo la de origen y no se toca al ir a Proxima Cohorte, asi la conversion de la
     // cohorte de origen no pierde el deal. Ya no se exige que sea una cohorte `futuro`.
     cohorteDestinoId: deal.cohorteDestinoId,
+    fechaInicioVentasCohorteDestino: cohorteDestino?.fechaInicioVentas ?? null,
+    fechaUltimoContacto: contacto?.fecha ?? null,
     fechaSeguimiento: deal.fechaSeguimiento,
     abonosVigentes: saldo?.abonosVigentes ?? 0,
     abonoConComprobante: ultimoAbono?.comprobanteUrl != null && ultimoAbono.comprobanteUrl.trim() !== "",
@@ -784,23 +842,11 @@ async function leerHechos(
   };
 }
 
-/** Cuando entro el deal a la etapa en la que esta: su ultimo movimiento hacia ella, o su alta. */
-async function entradaALaEtapaActual(tx: Db, deal: FilaDeal): Promise<Date> {
-  const [ultima] = await tx
-    .select({ fecha: dealEtapaHistorial.fecha })
-    .from(dealEtapaHistorial)
-    .where(and(eq(dealEtapaHistorial.dealId, deal.id), eq(dealEtapaHistorial.a, deal.etapa)))
-    .orderBy(desc(dealEtapaHistorial.fecha))
-    .limit(1);
-  return ultima?.fecha ?? deal.createdAt;
-}
-
 /**
  * La etapa a la que vuelve un deal cuando se anula su ultimo abono (A1): de donde venia
- * la ultima vez que entro a Abonado **o a Completo** desde una de las cuatro etapas que
- * pagan (2, 5, 6, 11). Se miran las dos porque un deal que pago todo de una vez fue
- * directo a Completo (T5, T14, T17, T26) sin pasar por Abonado, y sin eso no habria a donde
- * volver. Las entradas que vienen de Completo (A2) quedan fuera por el filtro de `de`.
+ * la última vez que entró a una etapa ganada desde Contactado, Calificado, Atendido o
+ * Compromiso Verbal. Se miran las dos etapas ganadas porque un pago total puede entrar
+ * directamente a Ganado Pagado Completo. Las entradas de A2 quedan fuera por `de`.
  *
  * Un deal sin historial de pago (los que trae la migracion, ticket 080) vuelve a
  * **Compromiso Verbal** (Mani, 28-sep): es donde esta un lead que ya dijo que si.
@@ -812,11 +858,25 @@ export async function etapaALaQueVuelve(tx: Db, dealId: string): Promise<EtapaDe
     .where(
       and(
         eq(dealEtapaHistorial.dealId, dealId),
-        inArray(dealEtapaHistorial.a, ["abonado", "completo"]),
-        inArray(dealEtapaHistorial.de, ["en_contacto", "atendido", "compromiso_verbal", "seguimiento"]),
+        inArray(dealEtapaHistorial.a, ["ganado_parcial", "ganado_completo"]),
+        inArray(dealEtapaHistorial.de, ["contactado", "calificado", "atendido", "compromiso_verbal"]),
       ),
     )
     .orderBy(desc(dealEtapaHistorial.fecha))
     .limit(1);
   return fila?.de ?? "compromiso_verbal";
+}
+
+async function etapaAntesDeCompromiso(tx: Db, dealId: string): Promise<EtapaDeal | null> {
+  const [fila] = await tx
+    .select({ de: dealEtapaHistorial.de })
+    .from(dealEtapaHistorial)
+    .where(and(
+      eq(dealEtapaHistorial.dealId, dealId),
+      eq(dealEtapaHistorial.a, "compromiso_verbal"),
+      inArray(dealEtapaHistorial.de, ["atendido", "contactado", "calificado"]),
+    ))
+    .orderBy(desc(dealEtapaHistorial.fecha))
+    .limit(1);
+  return fila?.de ?? null;
 }
