@@ -32,6 +32,17 @@ leer es libre, escribir pide el ok de Mani.
 
 ## Memory
 
+- **2026-10-02 (tarde, Alejo + Claude): el 092 paso 1 en `main` y la 0060 aplicada; O2-d con A-24, A-29, A-31 y A-33.**
+  - **Hecho:** 092 (ADR 0068, paso 1) en `7796e65`: `sources.url_publica` y `sources.principal` (índice único parcial y
+    CHECK), `marcarFuentePrincipal`, el generador único `lib/atribucion/link-de-captacion.ts` y la ficha del programa
+    leyendo la principal. **0060 aplicada en producción** con el ok de Mani (verificada: 61 migraciones, 0 principales).
+    Codex revisó: 5 defectos corregidos con test. O2-d en `37f558c` (anotaciones marcadas resueltas).
+  - **Pendiente de Mani (no es código):** marcar en `/ajustes/fuentes` la principal de cada programa, con su URL del
+    formulario: **ComunicArte, ¿Typeform o Dapta?**; Tactical y Memorable tienen una sola fuente webhook activa. Mientras
+    no haya principal, la ficha del programa dice "Sin fuente principal" y no se generan links.
+  - **Después:** paso 2 del ADR 0068 (`reactivarPrograma` exige principal; se retiran `programs.form_url`, su campo y
+    su parte del CHECK de la 0031, con migración). El 092 queda `done` con el checkpoint que incluya `7796e65`.
+
 - **2026-10-02 (tarde, Mani + Claude): el 153 recorrido entero por la sesión; falta el recorrido de Mani.**
   - **Hecho:** A-19 en el seed (Codex escribió, Claude revisó y corrigió): 6 deals sin dueño en ComunicArte nacidos por
     la regla real y 6 no históricos de `mani.closer` (`req-*`, sin área) donde los requisitos sí fallan. Recorridos 3 y
