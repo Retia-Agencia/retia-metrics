@@ -43,12 +43,13 @@ Bandeja única de lo que sale de recorrer la app a mano: cambios que queremos, a
 
 ## Recorrido 3 · 2-oct · ticket 153 (closer `mani.closer`, base local desechable con el seed del 153)
 
-Recorrido parcial de `docs/pruebas-operacion-comercial.md`, cortado por uso. Pasaron, sin errores de consola: 1, 5, 6, 8, 10, 12,
-14, 15, 17, 18, 19, 20, 22, 26, 31, 38 y 40. Faltan: 2, 3, 4, 7 (ver A-20), 9, 11, 13, 16, 21, 23 a 25, 27 a 30 y 32 a 37, 39.
+Recorrido parcial de `docs/pruebas-operacion-comercial.md` (33 pruebas), cortado por uso. Pasaron, sin errores de consola: 1, 5,
+6, 8, 10, 12, 14, 15, 17, 18, 19, 20, 22, 26 y 31. (El primer registro decía "17 de 40" y daba por pasadas la 38 y la 40, que no
+existen.) El resto quedó para el recorrido 4.
 
 | Id | Pantalla | Tipo | Anotación | Destino | Estado |
 |---|---|---|---|---|---|
-| A-19 | Seed local (153) | cambio | Los deals de volumen nacen como **históricos** (`abrirDealesHistoricos`), y el motor les perdona el área y el valor vendido: un deal pasó a Compromiso Verbal sin área. Las pruebas de requisitos no muerden sobre ellos. Además todos tienen dueño, así que "Por settear" sale vacío y la prueba 4 (tomar un lead) no se puede hacer. El seed tiene que dejar deals no históricos y algunos sin dueño en Potencial y Registrado. | 153 | abierta |
+| A-19 | Seed local (153) | cambio | Los deals de volumen nacen como **históricos** (`abrirDealesHistoricos`), y el motor les perdona el área y el valor vendido: un deal pasó a Compromiso Verbal sin área. Las pruebas de requisitos no muerden sobre ellos. Además todos tienen dueño, así que "Por settear" sale vacío y la prueba 4 (tomar un lead) no se puede hacer. El seed tiene que dejar deals no históricos y algunos sin dueño en Potencial y Registrado. | 153 | resuelta: rama `153-a19-seed` (6 deals sin dueño por la regla real, 6 no históricos de `mani.closer`; el seed ahora pide `aplicarReglaDeDeals: true`, que no viene por defecto) |
 | A-20 | Ficha del Deal → Actividades | usabilidad | "Registrar" queda deshabilitado mientras la nota esté vacía y no dice por qué. El canal es opcional y no hay campo de fecha, pero la alerta pide "el contacto, con fecha y canal". Que la alerta y el formulario digan lo mismo. | sin ticket | abierta |
 | A-21 | Ficha del Deal y Inbox → Registrar abono | usabilidad | "Registrar abono" se ofrece en En gestión y en Agendado (Inbox, "Lo mío que necesita atención"), donde el motor lo rechaza: el closer llena el formulario entero antes de que se lo digan. Esconderlo donde no aplica, o avisar antes. | sin ticket | abierta |
 | A-22 | Ficha del Deal → Alertas | cambio | Al agendar una cita para hoy a las 4 p. m. (eran las 2:40), sale en rojo "La llamada de hoy no tiene resultado" antes de que la llamada ocurra. El "no value" debe esperar a que pase la hora. | 128 | abierta |
@@ -56,6 +57,24 @@ Recorrido parcial de `docs/pruebas-operacion-comercial.md`, cortado por uso. Pas
 | A-24 | Registrar abono → mensaje de sobrepago | cambio | "El abono (497.01 USD) supera el saldo del deal (497.00 USD)": punto decimal, contra el contrato de `lib/format.ts` (coma decimal). | sin ticket | abierta |
 | A-25 | Ficha del Deal → Alertas en Ganado Pago Parcial | aclaración | "Otra ruta: Contactado / Calificado / Atendido / Compromiso Verbal" son las vueltas del sistema al anular el abono (A1), no rutas del closer. Se leen como opciones. | 128 | abierta |
 | A-26 | Inbox → "Llamadas de hoy sin resultado" | aclaración | Lista llamadas del 8 al 25 de septiembre bajo el título "de hoy". O el título dice "pasadas sin resultado", o la lista se limita a hoy. | 128 | abierta |
+
+## Recorrido 4 · 2-oct · ticket 153 (closer `mani.closer` y gerente, base local resembrada con A-19)
+
+Las 18 que faltaban. Pasaron: 2, 3, 7, 9, 11, 16, 21, 23, 24, 25, 27, 29, 32 y 33. La 15, la 16 y la 24 se repitieron sobre
+deals **no históricos** (`req-*`): ahí el área sí se exige y A1 sí baja de Completo a Parcial. Con hallazgo: la 4 y la 5 (la lista
+estaba vieja contra el ADR 0071, ya corregida), la 13 (A-27), la 24 sobre un histórico (A-30) y la 30 (la prueba describía otra
+pantalla, ya corregida). La 28 no se pudo: el seed no deja ningún "se perdió en el Calendly". Consola: solo ruido de entorno
+(logins contra la base vieja, el websocket del reinicio, los 404 de la 32) y A-32.
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-27 | Ficha del Deal → Alertas | cambio | Un deal pasado a Atendido sin Grain muestra "Sin Grain" en la fila de la llamada, pero el bloque de Alertas no dice nada. La prueba 13 (ADR 0066) espera la alerta en rojo en la ficha y la tarjeta. | 128 | abierta |
+| A-28 | Ficha del Deal → Log de eventos | cambio | Ediciones que no son altas salen tituladas **"Deal creado"**: reclamar el deal, congelar el valor vendido al calificar y poner el área al comprometer. El que lee el log cree que el deal se creó tres veces. | sin ticket | abierta |
+| A-29 | Avisos de la ficha (toasts) | cambio | Al anular un abono el aviso dice "El deal volvió a compromiso_verbal." y "...a ganado_parcial.": el nombre interno de la etapa, no el de pantalla (`nombreDeEtapa`). | sin ticket | abierta |
+| A-30 | Anular abono sobre un deal histórico | aclaración | En un Completo histórico sin valor vendido, anular un abono no lo baja a Parcial: el saldo es desconocido y A1 no corre (`lib/deals/abonos.ts`). Los deals migrados (078) son históricos: o la migración les escribe valor vendido, o se acepta que anular sobre ellos no recalcula la etapa. Decisión de Mani antes del 078. | 078 | abierta |
+| A-31 | Ficha del Deal → Origen | cambio | "Fecha del envío" muestra la hora de ingesta (2 oct, 14:57), no la del envío (29 y 30 sep, que la ficha del lead sí muestra bien). | sin ticket | abierta |
+| A-32 | Página 404 (programa ajeno) | aclaración | La consola dice "Encountered a script tag while rendering React component" alrededor del 404. No rompe nada visible; hay que ubicar qué componente lo emite. | sin ticket | abierta |
+| A-33 | Ficha del Deal recuperado | usabilidad | Tras recuperar un Cierre perdido a En gestión, la cabecera sigue mostrando "Motivo del cierre: Sin dinero para invertir ahora". O se oculta fuera de Cierre perdido, o se rotula como "último motivo de cierre". | sin ticket | abierta |
 
 ### Principios que salen del recorrido
 

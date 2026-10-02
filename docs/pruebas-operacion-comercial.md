@@ -9,12 +9,16 @@ transiciones.
 
 - Base y app: `npm run db:local` y `npm run dev:local` (nunca `npm run dev`, que escribe en producción).
   Entra en `http://localhost:3000/login` solo con el correo, sin Google.
-- Cuentas: `carlos.closer@retia.local` (closer, dos programas) · `lucia.closer@retia.local` (closer, solo
-  ComunicArte Local) · `gerente@retia.local` · `dev@retia.local` (developer).
+- Cuentas: `mani.closer@retia.local` (closer, solo ComunicArte Local: la cuenta del recorrido) ·
+  `carlos.closer@retia.local` y `maria.closer@retia.local` (closers, dos programas) · `gerente@retia.local` ·
+  `dev@retia.local` (developer).
+- Los deals de volumen del seed son **históricos** y el motor les perdona el área y el valor vendido (como a los
+  migrados). Para las pruebas de requisitos (15, 16, 21, 24) usa los **no históricos** de `mani.closer`:
+  `req-contactado-*`, `req-calificado-*` y `req-atendido-*`, sin área.
 - Programa de trabajo: **ComunicArte Local**, slug `comunicarte-local`. Las rutas abajo usan `/p/comunicarte-local/…`.
 - Cada prueba: **qué hacer · dónde · qué debe verse**. Marca la casilla al pasarla. Ten la consola del navegador
   abierta: un error rojo en consola también es un fallo.
-- **Lo que falle o confunda** va a `docs/anotaciones.md` (Recorrido 2) con su `A-NN` y el número de prueba.
+- **Lo que falle o confunda** va a `docs/anotaciones.md` (un recorrido nuevo) con su `A-NN` y el número de prueba.
   Lo pequeño se arregla dentro del 153; lo grande sale como ticket de la O2-d.
 
 ## A. Entrada
@@ -31,10 +35,12 @@ transiciones.
 
 ## B. Setteo
 
-- [ ] **4. Tomar un lead sin dueño (E1).** `/p/comunicarte-local/inbox`, sección sin dueño → **Reclamar** en un
-  deal de Potencial o Registrado. Debe quedar con Carlos como dueño y pasar a **En gestión**.
-- [ ] **5. Intento fallido.** Ficha de ese deal → Actividades → "Intento sin respuesta". Queda registrado y el
-  deal **no** cambia de etapa.
+- [ ] **4. Tomar un lead sin dueño.** `/p/comunicarte-local/inbox`, sección "Por settear" → **Reclamar** en un
+  deal de Potencial o Registrado (el seed deja `libre-*`). Queda a tu nombre y **sigue en su etapa**: reclamar no
+  mueve (ADR 0071, D-1).
+- [ ] **5. La primera actividad lo saca a En gestión (E1).** Ficha de ese deal → "Registrar intento" (o
+  Actividades → "Intento sin respuesta"). Queda registrado y el deal pasa a **En gestión**: E1 pide dueño y una
+  actividad. Un segundo intento ya no cambia la etapa.
 - [ ] **6. Contacto logrado (E2).** Misma ficha → "Registrar contacto" con fecha y canal. El deal pasa a
   **Contactado**.
 - [ ] **7. Calificar (E3).** Desde Contactado, mover a **Calificado**. Pide el contacto registrado (ya está):
@@ -97,14 +103,14 @@ transiciones.
   ninguno, anótalo como aclaración.
 - [ ] **29. Alertas de la ficha (128).** En un deal al que le falta algo de su etapa, la ficha lo dice en rojo
   y "Para avanzar le falta…" en amarillo. Una llamada pasada sin resultado sale en rojo y en el Inbox.
-- [ ] **30. Urgencias.** `/p/comunicarte-local/urgencias` carga y lista lo vencido (compromiso vencido,
-  cartera vencida, estancados).
+- [ ] **30. Urgencias.** `/p/comunicarte-local/urgencias` carga el semáforo del día hábil anterior: agendas
+  contra el promedio de los 7 hábiles previos, y la tabla por canal y área con sus registros.
 
 ## I. Crear y permisos
 
 - [ ] **31. Crear un deal a mano (140).** Deals → "Nuevo deal" sobre un lead sin deal abierto. Nace en
-  **En gestión** con Carlos como dueño. Sobre un lead que ya tiene deal abierto, se rechaza diciéndolo.
-- [ ] **32. Un closer no ve otro programa.** Sal y entra como `lucia.closer@retia.local`. Abre
+  **En gestión** con quien lo crea como dueño. Sobre un lead que ya tiene deal abierto, se rechaza diciéndolo.
+- [ ] **32. Un closer no ve otro programa.** Como `mani.closer@retia.local` (solo ComunicArte Local), abre
   `/p/tactical-local/deals`: debe responder **404**. El selector de programa solo le ofrece ComunicArte Local.
 - [ ] **33. Gerente.** Entra como `gerente@retia.local`: ve los dos programas y el dashboard; no puede
   trabajar leads como closer (no reclama ni registra).
