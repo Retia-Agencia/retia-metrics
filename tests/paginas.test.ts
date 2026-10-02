@@ -64,10 +64,12 @@ const programaVisiblePorSlug = vi.fn();
 const programasVisibles = vi.fn();
 vi.mock("@/lib/auth/alcance", () => ({ programaVisiblePorSlug, programasVisibles }));
 
-// El historial de una persona (ticket 006) lee la base; sin base en los tests se
-// mockea la query para que las guardas y el 404 sean lo unico bajo prueba.
-const historialDePersona = vi.fn();
-vi.mock("@/lib/queries/personas", () => ({ historialDePersona }));
+// La ficha del lead (ticket 073) y la redireccion de `/personas/[id]` leen la base; sin
+// base en los tests se mockean las queries para que las guardas y el 404 sean lo unico
+// bajo prueba.
+const fichaDeLead = vi.fn();
+const slugDelLeadVisible = vi.fn();
+vi.mock("@/lib/queries/ficha-lead", () => ({ fichaDeLead, slugDelLeadVisible }));
 
 // La pagina de recursos (ticket 023) lee la base; sin base en los tests se mockean
 // las lecturas para que las guardas sean lo unico bajo prueba.
@@ -203,8 +205,10 @@ beforeEach(() => {
   programasGestionablesPorUsuario.mockReset();
   programasGestionablesPorUsuario.mockResolvedValue([]);
   listarVacio.mockClear();
-  historialDePersona.mockReset();
-  historialDePersona.mockResolvedValue(HISTORIAL_VACIO);
+  fichaDeLead.mockReset();
+  fichaDeLead.mockResolvedValue(FICHA_VACIA);
+  slugDelLeadVisible.mockReset();
+  slugDelLeadVisible.mockResolvedValue("programa-a");
   recursosVigentes.mockReset();
   recursosVigentes.mockResolvedValue([]);
   enlacesDePagoVigentes.mockReset();
@@ -883,30 +887,39 @@ describe("token vaciado", () => {
   });
 });
 
-/** Un historial minimo, suficiente para que la pagina renderice en los tests. */
-const HISTORIAL_VACIO = {
-  persona: {
-    id: "per-1",
-    nombre: "Lead de Prueba",
-    emailNormalizado: "lead@correo.co",
-    telefono: null,
-    programId: "p-1",
-    programaNombre: "Programa A",
-    responsableCloserId: null,
-    entrada: "formulario",
-    estado: "cola_setteo",
-  },
-  llamadas: [],
-  ventas: [],
+/** Una ficha minima, suficiente para que la pagina renderice en los tests. */
+const FICHA_VACIA = {
+  id: "3f8a1c2e-0000-4000-8000-000000000001",
+  programId: "p-1",
+  nombre: "Lead de Prueba",
+  email: "lead@correo.co",
+  telefono: null,
+  empresa: null,
+  cargo: null,
+  ciudad: null,
+  pais: null,
+  entrada: "formulario",
+  calificacion: null,
+  leadQuality: null,
+  leadValue: null,
+  numAplicaciones: 1,
+  fechaPrimeraAplicacion: null,
+  fechaUltimaAplicacion: null,
+  creadoEn: new Date("2026-09-01T12:00:00Z"),
+  unidoPorTelefono: false,
+  soloParciales: false,
+  envios: [],
+  contactos: [],
+  deals: [],
 };
 
 /**
- * Historial de una persona `/personas/[id]` (ticket 006). Lo ven gerente y closer,
- * igual que el dashboard del que se entra (ADR 0009). Un id que no existe es 404,
- * y la guarda corre ANTES de mirar el id: sin sesion va al login aunque el id sea
- * basura, sin filtrar que ids existen.
+ * `/personas/[id]` (ticket 006, 073): ya no pinta nada, redirige a la ficha del lead dentro
+ * de su programa. La guarda corre ANTES de mirar el id: sin sesion va al login aunque el id
+ * sea basura, sin filtrar que ids existen. Un lead fuera del alcance es 404, igual que uno
+ * inexistente: la redireccion nunca revela su programa.
  */
-async function correrHistorial(id: string): Promise<"paso" | "login" | "midia" | "notFound"> {
+async function correrPersona(id: string): Promise<string> {
   const modulo = (await import(/* @vite-ignore */ "@/app/(app)/personas/[id]/page")) as {
     default: (props: { params: Promise<{ id: string }> }) => Promise<unknown>;
   };
@@ -915,42 +928,81 @@ async function correrHistorial(id: string): Promise<"paso" | "login" | "midia" |
     return "paso";
   } catch (e) {
     if (e instanceof NoEncontrado) return "notFound";
-    if (e instanceof Redireccion) return e.destino === "/login" ? "login" : "midia";
+    if (e instanceof Redireccion) return e.destino;
     throw e;
   }
 }
 
-describe("historial de una persona /personas/[id] (ticket 006)", () => {
+describe("/personas/[id] redirige a la ficha del lead (ticket 073)", () => {
   const ID = "3f8a1c2e-0000-4000-8000-000000000001";
 
-  it("deja pasar a un gerente", async () => {
-    auth.mockResolvedValue(sesionGerente);
-    expect(await correrHistorial(ID)).toBe("paso");
+  it.each([sesionGerente, sesionCloser, sesionDeveloper])("lleva a la ficha dentro del programa", async (sesion) => {
+    auth.mockResolvedValue(sesion);
+    expect(await correrPersona(ID)).toBe(`/p/programa-a/leads/${ID}`);
   });
 
-  it("deja pasar a un closer (se entra desde el dashboard, ADR 0009)", async () => {
-    auth.mockResolvedValue(sesionCloser);
-    expect(await correrHistorial(ID)).toBe("paso");
-  });
-
-  it("manda al login a quien no tiene sesion", async () => {
+  it("manda al login a quien no tiene sesion, sin mirar el id", async () => {
     auth.mockResolvedValue(null);
-    expect(await correrHistorial(ID)).toBe("login");
+    expect(await correrPersona(ID)).toBe("/login");
+    expect(slugDelLeadVisible).not.toHaveBeenCalled();
   });
 
-  it("una persona que no existe es 404", async () => {
-    auth.mockResolvedValue(sesionGerente);
-    historialDePersona.mockResolvedValue(null);
-    expect(await correrHistorial(ID)).toBe("notFound");
+  it("un lead inexistente o fuera del alcance es 404", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    slugDelLeadVisible.mockResolvedValue(null);
+    expect(await correrPersona(ID)).toBe("notFound");
   });
 
   it("un id que no es uuid es 404 y nunca llega a la base", async () => {
     auth.mockResolvedValue(sesionGerente);
-    expect(await correrHistorial("lead@correo.co")).toBe("notFound");
-    expect(historialDePersona).not.toHaveBeenCalled();
+    expect(await correrPersona("lead@correo.co")).toBe("notFound");
+    expect(slugDelLeadVisible).not.toHaveBeenCalled();
   });
 });
 
+describe("la ficha del lead /p/[programa]/leads/[id] (ticket 073)", () => {
+  const ID = "3f8a1c2e-0000-4000-8000-000000000001";
+  async function abrir(id = ID) {
+    const { default: pagina } = await import("@/app/(app)/p/[programa]/leads/[id]/page");
+    return pagina({ params: Promise.resolve({ programa: "programa-a", id }) });
+  }
+
+  it("sin sesión no consulta ni revela el programa", async () => {
+    auth.mockResolvedValue(null);
+    await expect(abrir()).rejects.toBeInstanceOf(Redireccion);
+    expect(programaVisiblePorSlug).not.toHaveBeenCalled();
+    expect(fichaDeLead).not.toHaveBeenCalled();
+  });
+
+  it("un programa fuera del alcance es 404 antes de leer el lead", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programaVisiblePorSlug.mockResolvedValue(null);
+    await expect(abrir()).rejects.toBeInstanceOf(NoEncontrado);
+    expect(fichaDeLead).not.toHaveBeenCalled();
+  });
+
+  it.each([sesionGerente, sesionCloser, sesionDeveloper])("cada rol abre la ficha de su programa", async (sesion) => {
+    auth.mockResolvedValue(sesion);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
+    await expect(abrir()).resolves.toBeTruthy();
+    // La consulta recibe el programa de la URL ya validado: un lead de otro programa sale null.
+    expect(fichaDeLead).toHaveBeenCalledWith(expect.anything(), "p-1", ID);
+  });
+
+  it("un lead de otro programa o inexistente es 404", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
+    fichaDeLead.mockResolvedValue(null);
+    await expect(abrir()).rejects.toBeInstanceOf(NoEncontrado);
+  });
+
+  it("un id que no es uuid es 404 y nunca llega a la base", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
+    await expect(abrir("lead@correo.co")).rejects.toBeInstanceOf(NoEncontrado);
+    expect(fichaDeLead).not.toHaveBeenCalled();
+  });
+});
 
 describe("la lista de una cifra respeta la frontera del dashboard (137)", () => {
   async function abrir(busqueda: Record<string, string | string[]> = { metrica: "agendas" }) {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FichaDeDeal } from "@/lib/queries/ficha-deal";
 import { Dato, Vacio } from "./campos";
 
-export function FichaLead({ ficha }: { ficha: FichaDeDeal }) {
+/** `rutaDelLead`: la ficha del lead (ticket 073), con todos sus envíos y sus otros deals. */
+export function FichaLead({ ficha, rutaDelLead }: { ficha: FichaDeDeal; rutaDelLead: string }) {
   const { lead } = ficha;
   async function copiar(valor: string) {
     try {
@@ -22,6 +24,12 @@ export function FichaLead({ ficha }: { ficha: FichaDeDeal }) {
     <Card>
       <CardHeader>
         <CardTitle>Lead y contactos</CardTitle>
+        <Link
+          href={rutaDelLead}
+          className="w-fit rounded-lg text-xs text-marca-texto underline-offset-2 outline-none transition-colors duration-150 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          Ver la ficha del lead: envíos y otros deals
+        </Link>
       </CardHeader>
       <CardContent className="space-y-4">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3">

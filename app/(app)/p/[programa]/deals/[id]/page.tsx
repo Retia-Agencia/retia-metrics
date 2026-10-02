@@ -95,7 +95,7 @@ export default async function FichaDelDealPage({ params }: Props) {
           <div className="space-y-4">
             <FichaOrigen ficha={ficha} />
             <FichaPerfil perfil={ficha.perfil} />
-            <FichaLead ficha={ficha} />
+            <FichaLead ficha={ficha} rutaDelLead={`/p/${programa.slug}/leads/${ficha.lead.id}`} />
             <FichaHistorial log={ficha.log} nombreDeEtapa={NOMBRE_DE_ETAPA} tonoDeEtapa={TONO_DE_ETAPA} />
           </div>
           <div className="space-y-4">
