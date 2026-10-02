@@ -100,9 +100,17 @@ describe("las reglas generales del ADR 0037", () => {
     for (const a of siguientesDe("cierre_perdido")) expect(transicion("cierre_perdido", a)!.exigeMotivo).toBe(true);
   });
 
-  it("a Atendido, Abonado y Completo solo entra el sistema: un evento, no una mano", () => {
-    for (const t of TRANSICIONES.filter((t) => ["atendido", "abonado", "completo"].includes(t.a))) {
+  it("a Abonado y Completo solo entra el sistema: un evento, no una mano", () => {
+    for (const t of TRANSICIONES.filter((t) => ["abonado", "completo"].includes(t.a))) {
       expect(t.quien, `${t.id} ${t.de} → ${t.a}`).toBe("sistema");
+    }
+  });
+
+  it("a Atendido entra el sistema al pegar el Grain o el closer sin el (ADR 0066), y nunca solo una mano", () => {
+    const aAtendido = TRANSICIONES.filter((t) => t.a === "atendido");
+    expect(aAtendido.map((t) => t.id).sort()).toEqual(["A1", "T10", "T7"]);
+    for (const t of aAtendido.filter((t) => t.id !== "A1")) {
+      expect(t.quien, `${t.id} ${t.de} → ${t.a}`).toBe("ambos");
     }
   });
 
