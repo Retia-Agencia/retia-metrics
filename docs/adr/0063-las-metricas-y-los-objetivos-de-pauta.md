@@ -63,3 +63,7 @@ umbrales.
 | Pedir la cuenta de Meta en USD | Suele exigir abrir otra cuenta publicitaria |
 | Reparto por porcentaje | Esconde un redondeo (60% de 70 es 42) |
 | Umbrales en el código | Cambian por cohorte y por programa (ADR 0012) |
+
+> ⚠️ **1-oct: abierto.** La migración 0057 quita `cohorts.trm_cohorte` (Mani). De dónde sale la TRM del ROAS es
+> la decisión A12 de `docs/plan.md` §7, y se toma antes de E7. Hasta entonces, lo que este documento dice de la
+> "TRM de la cohorte" describe la intención, no una columna que exista.

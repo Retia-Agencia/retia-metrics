@@ -11,6 +11,13 @@ Un ticket está **listo** cuando todos los de su columna "Depende de" están en 
 (§5 el orden, §7 la lista única de decisiones). Qué es el producto: [`docs/overview.md`](../overview.md).
 Cómo está hecho: [`docs/structure.md`](../structure.md).
 
+> 🌊 **1-oct (Mani): el trabajo va por olas de tickets listos, no por etapas en serie con dos carriles.** Cada
+> uno trabaja con varias sesiones; solo se ordenan las migraciones (una cola), los archivos calientes (un dueño
+> por ola) y las decisiones. Push directo a `main` y la suite completa en **checkpoints** (dos al día). Quién
+> hace qué en la ola vigente (O1) y la cola de migraciones: [`plan-reparto.md`](../plan-reparto.md) §4; las
+> reglas, §1, §5 y §6. Cada sesión escribe su estado en el archivo de su ticket; esta tabla la pone al día
+> Mani en cada checkpoint verde.
+
 > 🧭 **27-sep:** Comercial dio luz verde y la documentación se centralizó en `plan.md`, `overview.md`,
 > `structure.md`, `operations.md` y los ADR vigentes. Muchos tickets citan documentos que ya no están
 > (spec, plan v2, la propuesta del 24-sep, la revisión del 22-sep, el "insumo"): **`docs/plan.md` §8
@@ -23,7 +30,7 @@ Cómo está hecho: [`docs/structure.md`](../structure.md).
 > con la etapa E1b de atribución tras la reunión con Alejo. El 22-sep la revisión del modelo; el 24-sep la
 > dirección de producto (tickets 094 a 102) y la reunión con los closers, tras la cual Mani adoptó la
 > tabla de transiciones, el acuerdo de pago como nota (ADR 0053) y el orden P1: E2 → E3 mínimo → E4 →
-> E6 mínimo → E1b → E5 → E7. **E2 (043 a 047) se cerró el 27-sep: el motor de etapas existe.** Sigue E3 mínimo (paso 2 del plan): A1 y A2 ya se cerraron (ADR 0054 y 0055), faltan sus tickets. El 094 también se cerró el 27-sep.
+> E6 mínimo → E1b → E5 → E7. **E2 (043 a 047) se cerró el 27-sep: el motor de etapas existe.** Sigue E3 mínimo (paso 2 del plan): A1 y A2 ya se cerraron (ADR 0054 y 0055), faltan sus tickets. El 094 también se cerró el 27-sep. *(Nota del 27-sep: el orden vigente es el de arriba, por olas.)*
 
 # 🎯 Norte comercial de Gerencia — PRIORIDAD · abierto el 30-sep
 
@@ -34,7 +41,7 @@ siempre. **Mani, 30-sep: es la prioridad, antes que cualquier otro frente.** El 
 (GC-01 a GC-53), lo que reabre (R-1 a R-12) y las preguntas (QD, QM) viven en
 **[`docs/comercial.md`](../comercial.md)**. Va paso por paso: no se abre uno sin cerrar el anterior. **Excepción desde el 1-oct (Mani):** los pasos 3 a 5 se
 parten en **dos lotes** por dependencia (`comercial.md` §8): el lote 1 no depende de Dani y arranca ya; el lote 2
-(las etapas y lo que espera otra respuesta) va cuando lleguen. Los lotes se reparten con los carriles de `plan-reparto.md`.
+(las etapas y lo que espera otra respuesta) va cuando lleguen. Los lotes se reparten en las olas de `plan-reparto.md` §4.
 
 | ✓ | # | Paso | Depende de | Estado |
 |---|---|---|---|---|
@@ -49,14 +56,14 @@ parten en **dos lotes** por dependencia (`comercial.md` §8): el lote 1 no depen
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 132 | [El valor vendido del deal](./132-valor-vendido-del-deal.md) | · | done · 1-oct · Mani · 0053 en producción; saldo y rejas del pago leen el valor vendido; Compromiso Verbal ya no pide producto. El 134 cambia la entrada a descuento (enmienda del ADR 0065) |
-| [x] | 133 | [La comisión por porcentaje congelado](./133-comision-por-porcentaje-congelado.md) | 132 | done · 1-oct · Mani · 0054 en producción; % congelado al entrar a venta, comisión por closer sobre sus mismos cierres. Falta: cargar 10,04/6,67 en producción y la migración que quita `comision_por_venta_usd`; el criterio del agregado pasa al 095 |
+| [x] | 133 | [La comisión por porcentaje congelado](./133-comision-por-porcentaje-congelado.md) | 132 | done · 1-oct · Mani · 0054 en producción; % congelado al entrar a venta, comisión por closer sobre sus mismos cierres. La 0055 ya quitó `comision_por_venta_usd` (en producción). 10,04/6,67 cargados en producción (verificado el 1-oct); el criterio del agregado pasa al 095 |
 | [x] | 134 | [El ticket base es de la cohorte y `productos` se retira](./134-ticket-base-de-la-cohorte-y-adios-productos.md) | 132 | done · 1-oct · Mani · 0056 en producción (sin `productos`); descuento contra la cohorte, deals nacen en la activa, cambios de una venta con motivo; 214 deals movidos a la C3 |
-| [ ] | 135 | [Atendido sin Grain](./135-atendido-sin-grain.md) | · | todo |
+| [ ] | 135 | [Atendido sin Grain](./135-atendido-sin-grain.md) | · | todo · ola O1, sesión O1-a (dueña del motor) |
 | [x] | 136 | [Selector de periodo A contra B, número y %](./136-selector-de-periodo-y-numero-y-porcentaje.md) | · | done · 1-oct · Alejo · selector en el dashboard; 137, 138 y 141 quedan listos |
 | [x] | 137 | [Toda cifra abre su lista](./137-toda-cifra-abre-su-lista.md) | 136 | done · 1-oct · Alejo · caja, shows, agendas, cierres y leads; "todos" en la consulta, la pantalla es del 095 |
 | [x] | 138 | [Deals creados contra agendas](./138-deals-creados-contra-agendas.md) | 136 | done · 1-oct · Alejo · acumulado por hábil A contra B en el dashboard; `deals_creados` y `agendas_creadas` abren su lista |
-| [ ] | 139 | [La ficha del deal por bloques](./139-ficha-del-deal-por-bloques.md) | 132, 134 | todo · enmienda el 074 |
-| [ ] | 140 | [Crear un deal a mano](./140-crear-un-deal-a-mano.md) | · | todo · NC1 · propuesto al carril de Alejo (`plan-reparto.md` NC1), a confirmar por Mani |
+| [ ] | 139 | [La ficha del deal por bloques](./139-ficha-del-deal-por-bloques.md) | 132, 134 | todo · enmienda el 074 · ola O1, sesión O1-b |
+| [ ] | 140 | [Crear un deal a mano](./140-crear-un-deal-a-mano.md) | · | todo · ola O1, sesión O1-c · propuesto para Alejo (el dominio es de Mani) |
 | [x] | 141 | [Filtros de fecha relativos en las listas](./141-filtros-de-fecha-relativos-en-listas.md) | 136 | done · 1-oct · Alejo · deals por creado, actividad y cierre; leads por creado y último envío; selector del 136 en modo solo A |
 
 **Lote 2 (bloqueado por preguntas).** Orden y carriles: `plan-reparto.md` NC2.
@@ -77,7 +84,16 @@ parten en **dos lotes** por dependencia (`comercial.md` §8): el lote 1 no depen
 ahora los deals viejos en las once etapas obliga a migrarlos dos veces. El 117 sigue: corrige el bug de
 Tactical y su columna de etapa se traduce junto con `deals.etapa`.
 
-# Reparto para dos (desde el 28-sep)
+# 🌊 Ola O1 (desde el 1-oct) y el reparto anterior
+
+Lo nuevo de la ola O1 que no tenía ticket:
+
+| ✓ | # | Tarea | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 150 | [Tests rápidos: la base migrada una vez por corrida](./150-tests-rapidos-base-migrada-una-vez.md) | · | todo · ola O1, sesión O1-i · acelera los checkpoints |
+| [ ] | 0057 | Aplicar la migración 0057 (quita `cohorts.trm_cohorte`) en producción | · | todo · cola de O1, primera · ok de Mani. El ROAS sin TRM queda abierto para E7 (`plan.md` §7) |
+
+## Reparto para dos (28-sep a 1-oct, reemplazado por las olas)
 
 El orden por etapas y carriles vive en [`docs/plan-reparto.md`](../plan-reparto.md). Las correcciones
 de su §3 se aplicaron el 28-sep con el ok de Mani (069, 070, 074, 077, 079, 086 cambian de
@@ -128,7 +144,7 @@ la **vista interina de Pauta**, lo primero que se puede entregar.
 
 # Época v2 — modelo HubSpot (tickets 036 a 082)
 
-Orden y porqué: **[docs/plan-crm-v2.md](../plan.md)**. El diseño del que sale vive fuera del
+Orden y porqué: **[docs/plan.md](../plan.md)** (el plan v2 se fundió ahí el 27-sep). El diseño del que sale vive fuera del
 repo y **manda sobre el plan en todo lo que sea diseño**:
 `mani_vault/02 Projects/retia/notebook/crm-retia-modelo-hubspot-scaffold.md`.
 
@@ -179,7 +195,7 @@ Decisiones: **ADR 0043, 0044 y 0045**. Argumento y medición: [plan v2 §12](../
 la pauta y el origen de un lead **no se pueden cortar con la misma llave**, porque `ad_spend` guarda
 la campaña en texto libre. Ninguna de las dos cosas lanza un error.
 
-**Una rama y UNA migración para 083, 084, 092, 101 y 102.** Ya no es la `0021`: ese número lo tomó
+**Una rama y UNA migración para 083, 084, 092, 101 y 102.** *(1-oct: superado. 083 y 101 se hicieron; 084 se reemplazó; el 092 entra a la cola de la ola O1 con el ADR 0068 y el 102 lleva su propia migración.)* Ya no es la `0021`: ese número lo tomó
 la de RLS del 23-sep (ADR 0047), así que es **la siguiente libre**. Léela línea por línea antes de aplicarla.
 
 | ✓ | # | Ticket | Depende de | Estado |
@@ -187,7 +203,7 @@ la de RLS del 23-sep (ADR 0047), así que es **la siguiente libre**. Léela lín
 | [x] | 083 | [El catálogo de áreas](./083-catalogo-de-areas.md) | 042 | done · 30-sep · 0045 en producción; Paid, Orgánico y Referidos sembradas por el molde; adelantado de E6 con ok de Mani |
 | [x] | 084 | [`campanas` y `utm_patron`](./084-campanas-y-el-patron-utm.md) | 083 | reemplazado · 30-sep (Mani) · DP-25: sin patrones; la campaña de paid sale del árbol de Meta (120) y la de orgánico del texto crudo (085). 085 y 092 pasan a depender de 101; 067, de 120 |
 | [x] | 085 | [El emparejador determinista y su guardián](./085-el-emparejador-determinista.md) | 101 | done · 30-sep · Mani · `lib/atribucion/emparejar.ts` (canal, campaña, anuncio por `utm_id`, contenido por formato, macros aparte, nivel N3-N0) y `utm-del-envio.ts`; el árbol de Meta entra como dato (lo conecta el 120); guardián en `tests/atribucion-emparejador.test.ts`. Sin migración |
-| [ ] | 092 | [La URL del formulario y el generador de links](./092-url-del-formulario-y-generador-de-links.md) | 101 | todo · 🩸 **destapa que `programs` no tiene la URL del formulario**, sin la cual el 086 tampoco se puede calcular. Encogió el 21-sep: **sin árbol**. **24-sep: es el builder v1** (destinos con checkouts, canal, campaña, dos opcionales; ADR 0051) |
+| [ ] | 092 | [La URL del formulario y el generador de links](./092-url-del-formulario-y-generador-de-links.md) | 101 | todo · 🩸 **destapa que `programs` no tiene la URL del formulario**, sin la cual el 086 tampoco se puede calcular. Encogió el 21-sep: **sin árbol**. **24-sep: es el builder v1** (destinos con checkouts, canal, campaña, dos opcionales; ADR 0051) · **1-oct: ADR 0068**, el link sale de la fuente principal (`sources.url_publica`); sube a la cola de migraciones de la ola O1 |
 | [x] | 101 | [El catálogo de Canales (el "Origen" del builder)](./101-catalogo-de-canales.md) | 083 | done · 30-sep · Mani · 0047 en producción; catálogo global con comodín de source, formato de content/term por canal, `/ajustes/canales` con envíos por canal y pares sin canal; 26 canales sembrados, 5.140 envíos clasificados y solo 5 de prueba sin canal |
 | [ ] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | todo · 24-sep, ADR 0052 · migración de la sesión principal |
 

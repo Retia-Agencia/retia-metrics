@@ -305,6 +305,9 @@ ritmo, la proyección, el estado "se perdió en el Calendly" y los comparativos.
 
 ## 6. Las fórmulas (una definición por métrica)
 
+> ⚠️ 1-oct: la TRM de la cohorte se quitó del esquema (migración 0057). De dónde sale la tasa del ROAS y del ad
+> profit es la decisión A12 de `plan.md` §7, antes de E7.
+
 Todas por programa (el programa es frontera, ADR 0043); en "todos los programas" solo lo sumable (ADR
 0048). Fechas de Bogotá. Cada fórmula vive en **un** módulo de `lib/queries/` y la importan la pantalla, el
 PDF y cualquier otra consulta (ADR 0024).

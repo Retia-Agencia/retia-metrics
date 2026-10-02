@@ -46,7 +46,9 @@ Reglas de UI que aplican a toda pantalla, no a una. El 075 las usa como criterio
 
 ### Respuestas
 
-**A-01 · Producto de un Deal.** Hay dos caminos, los dos en código (`lib/deals/editar-deal.ts`):
+**A-01 · Producto de un Deal.** ⚠️ **Obsoleta desde el 1-oct: el ticket 134 retiró `productos`.** El precio sale
+de la cohorte del deal y el closer escribe el descuento (ADR 0065); el saldo se mide contra el valor vendido. Lo
+que sigue es la respuesta del 30-sep, como historia. Había dos caminos, los dos en código (`lib/deals/editar-deal.ts`):
 1. En la **ficha del Deal**, la acción *Editar deal* tiene el selector **Producto** (solo productos
    activos del mismo programa). Desaparece cuando el deal está en Completo, porque cambiarlo movería
    su saldo.

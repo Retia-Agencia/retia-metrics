@@ -5,126 +5,29 @@
 
 ## Prompt para arrancar la próxima sesión
 
-> Copiar y pegar tal cual. Reescrito al cierre de la sesión 53 de Alejo (30-sep) y actualizado en la 54 y la 55
-> de Mani (30-sep, carril de Mani), en la 56 de Alejo (30-sep, carril de Alejo), en la 57 de Mani (30-sep) y en
-> la 60 de Mani (30-sep: el norte comercial de Gerencia pasa a ser la prioridad) en la 62 de Mani (1-oct: paso 2
-hecho, los dos lotes), en la 64 de Alejo (1-oct: 117 en produccion, 136 y 137 hechos) y en la 67 de Mani (1-oct:
-QD contestadas, paso 6 hecho, orden NC1-NC3). El anterior: `git show 968532a:docs/agents/handoff.md`.
+> Copiar y pegar tal cual. **Reescrito corto el 1-oct (sesión de Mani: olas y checkpoints).** El largo, que
+> acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia. Lee AGENTS.md, despues docs/plan-reparto.md (el ORDEN para dos personas)
-y docs/plan.md (el QUE, decisiones en §7). El estado de cada ticket vive solo en docs/tasks/README.md.
+Seguimos con el CRM de Retia. Lee AGENTS.md y despues docs/plan-reparto.md §1, §4, §5 y §6: desde el 1-oct
+se trabaja por OLAS de tickets listos, cada uno con varias sesiones (una sesion = un ticket = un worktree).
+Solo se ordenan tres cosas: la COLA de migraciones (una a la vez, la aplica la sesion principal de Mani con
+su ok), los ARCHIVOS CALIENTES (un dueño por ola: motor, dashboard, regla-de-deals, schema) y las
+DECISIONES (un ticket bloqueado no entra). El estado vive en el archivo de cada ticket y, tras cada
+checkpoint verde, en docs/tasks/README.md.
 
-ORDEN VIGENTE DESDE EL 1-OCT (sesion 67, Mani): plan-reparto.md §4. Despues de E6 vienen NC1 (el dinero:
-Mani 132 -> 133 -> 134 -> 135 -> 139; Alejo cierra 072 y 117, escribe el MANUAL DE GESTION COMERCIAL (QD-8)
-y hace el 140, propuesto, a confirmar por Mani), NC2 (las etapas de 30X en UNA migracion, el --aplicar del
-078 y el corte = hito B) y NC3 (dashboard comercial = v1 comercial, hito C). Pauta (119, 120, 102, E7, E8)
-despues. Las QD-1 a QD-12 las contesto Mani: comercial.md §7.0. SIGUIENTE para Mani: /delegate del 132 a
-Codex (high, migracion; la aplica la sesion principal con el ok de Mani). En paralelo, decidir: QM-10 (los
-"estados dentro del deal": Pendiente Re-agenda, Seguimiento, Proxima Cohorte; /grill-with-docs + ADR,
-bloquea el 142), QM-12 (cortesias; choca con el ADR 0065), QM-11, confirmar QD-2 (descartados y setteo ->
-En gestion; cerrados -> Ganado segun saldo) y si el 140 va a Alejo. Lo que sigue de este bloque es historia
-de los dias anteriores: si contradice a plan-reparto §4, gana plan-reparto.
-docs/structure.md §9 (sistema de diseño Tinta) es OBLIGATORIO antes de tocar una pantalla.
-docs/anotaciones.md (nuevo, 30-sep) es la bandeja de anotaciones de UI de Mani: leela antes de tocar una
-pantalla; A-02..A-14 y los principios P-1, P-2 ya estan citados en 072, 075, 100 y el 128 (nuevo: alertas del deal).
+Tests: nivel 1 antes de cada push (typecheck, lint y los tests del ticket; nunca la suite completa en local).
+Push directo a main. La suite completa la valida un CHECKPOINT dos veces al dia (plan-reparto §6): nadie
+empuja mientras corre; verde = tag cp-AAAAMMDD-N; rojo = el culpable esta entre el ultimo tag y la punta.
 
-PRIORIDAD DESDE EL 30-SEP (Mani): docs/comercial.md, el mapeo de la reunion con Gerencia (Dani y Michael).
-Es fuente de verdad y reabre decisiones: las etapas del deal pasan a las de 30X (con etiquetas y
-propiedades por etapa), el valor vendido lo escribe el closer (0 por defecto) y la comision es un
-porcentaje, Atendido se acepta sin Grain con alarma, rol Customer Success con onboarding de 4 pasos, meta
-del mes ademas de la de la cohorte, dashboard con periodos flexibles y numero + % siempre, y la v1 es
-comercial (pauta despues). Va por los 6 pasos de su §8, en el tracker arriba de todo. Paso 2 HECHO el 1-oct:
-§4 (las 11 etapas de 30X) y §9 (etiquetas, ficha del deal, 18 graficas de HubSpot con su mejora, 4 secciones
-de dashboard). Desde el 1-oct los pasos 3-5 van en DOS LOTES por dependencia (§8; no es otro plan, se reparten
-con los carriles de plan-reparto): LOTE 1 arranca ya sin Dani (valor vendido + ticket base + comision %,
-Atendido sin Grain como alarma, reglas de pantalla: numero y %, periodo A vs B, clic a la lista; crear deal a
-mano; filtros de fecha relativos). LOTE 2 espera respuestas de Dani (QD-1..QD-12, sobre todo el manual de
-gestion comercial QD-8): las etapas de 30X en UNA migracion, despues el --aplicar del 078. El 117 sigue.
+Ola vigente: O1 (plan-reparto §4). Camino critico de la v1 comercial: QM-10 (ADR de los estados dentro del
+deal, Mani) y el manual de gestion comercial (QD-8, Alejo) desbloquean el 142, y del 142 cuelgan 143, 128,
+118, el 117 enmendado (ADR 0069), el --aplicar del 078, el corte y el 148. Cola de migraciones: aplicar la
+0057 -> 092 (ADR 0068) -> 102 -> el 142 cuando se destrabe. Abierta para E7: A12, el ROAS sin la TRM de la
+cohorte (plan.md §7).
 
-ESTADO AL 1-OCT (sesion 63): pasos 4 y 5 del LOTE 1 HECHOS. ADR 0065 (valor vendido, ticket base de la
-cohorte, productos se retira, comision % congelada), 0066 (Atendido sin Grain), 0067 (numero y %, periodo A
-vs B, cifra -> resumen -> lista). Tickets 132-141 listos para construir (orden y dependencias en
-docs/tasks/README.md, seccion Norte comercial); 142-148 bloqueados por QD/QM. HECHOS (sesion 64, Alejo):
-136 (selector A contra B en el dashboard; lib/periodo.ts, lib/variacion.ts) y 137 (toda cifra abre su lista:
-lib/queries/metricas-filtros.ts + metricas-con-filas.ts, vista /p/[programa]/dashboard/lista). 138 y 141 hechos (sesion 66).
-Para construir: UNA sesion por ticket. Lee el ticket y su ADR, /delegate a Codex en un worktree propio, la
-sesion revisa tests y diff; la migracion la genera y aplica la sesion principal con el ok de Mani. Arranca por
-el 132 (base del dinero). En paralelo con el solo 136 (lib/periodo, pantallas) y 140 (alta de deal); el 135
-toca requisitos.ts y mover-etapa.ts como el 132, asi que va DESPUES del 132; 133 y 134 tras el 132; 137, 138, 141 tras el 136; 139 tras 132 y 134.
-
-Estado al 30-sep (sesion 57, Mani): UNA base y es PRODUCCION ("CRM Retia", ref hfqmiyiuyqapdsbywrag).
-53 migraciones (0000-0052), todas aplicadas (1-oct). DAPTA (sesion 61, 30-sep): el adaptador y el contrato de proveedores estan en produccion; ComunicArte tiene Typeform y Dapta activos, Memorable existe inactivo; lo pendiente esta en Memory 30-sep sesion 61 y la guia de configurar un programa en docs/operations.md §2.1; la "migracion ajena" de la fila 52 era la del 117: renumerada a 0051 y alineada (Memory 1-oct sesion 64). ~1.810 tests. Produccion: https://retia-metrics-seven.vercel.app.
-
-Carril de Mani (E6, sesion 57): 083, 101, 085, 087 y 121 done. 084 reemplazado por DP-25.
-- 121: deals.area_declarada_id (0049). El motor la exige al entrar a 6, 7 u 8 (historicos exentos, A1/A2 no);
-  selector en Kanban, "¿Como termino?", abono y Editar deal. ventasSinUtmPorAreaDeclarada en
-  lib/queries/origen-declarado.ts, sobre vendidosEn (exportada de dashboard.ts). Nadie la pinta aun (123/125).
-- 085: emparejar() en lib/atribucion/emparejar.ts (canal, campana, anuncio por utm_id, nivel N3-N0) y
-  utmsDelEnvio en lib/atribucion/utm-del-envio.ts. El arbol de Meta entra como DATO (lo carga el 120). Nadie
-  llama emparejar todavia.
-- 087 cerrado sin codigo de costo (no existia CPL ni gasto): la regla queda en el ADR 0044 punto 5 y sus dos
-  tests pasan al 123, que construye el costo.
-- 089 done (sesion 58): lib/queries/serie.ts (programId obligatorio, periodoAnterior) y hechosDelEmbudo en
-  lib/queries/hechos-embudo.ts (dia x area x canal x dueño x cohorte). El 123, 124, 125 y 095 se escriben encima.
-- SIGUIENTE: 118 (espera el 117 de Alejo). Si el 117 no esta, E7 no abre: bajar deuda o preparar el 122.
-- Decidir con Alejo antes de su --aplicar del 078: las ~235 llamadas de la hoja saldrian como sueltas en el
-  Inbox (lib/queries/inbox.ts no mira el origen). Es del carril de Mani (071).
-- PQ9 a Pauta: que manden por escrito como agrupan los UTM (nuevo e historico).
-
-Carril de Alejo (E5 con el codigo en main; E6 arrancado):
-- 062, 127, 116, 080 y 099 done. 127: npm run migracion:deshacer (reversa nivel 3 del corte). 116: las seis
-  UTM en sus columnas, 0048 aplicada en produccion; utmsDelEnvio lee utm_id de la columna primero.
-- 072 en curso: solo falta el recorrido visual.
-- 078 en curso: ensayo de los dos programas hecho (importador en lote). Antes de --aplicar: REGENERAR el
-  template de CA (npm run migracion:extraer -- --programa comunicarte): desde d01c461 la Categoria de su
-  Registro de llamadas se lee de "Registro 2" (76 filas) y el template del 30-sep es anterior.
-- 117 EN PRODUCCION (1-oct, 2da8be0): migraciones 0051 (estados_llegada, calificacion a texto) y 0052 (DROP
-  TYPE calificacion_envio) aplicadas; cargar-estados-llegada y cargar-plantillas-lead aplicados en los tres
-  programas. Falta: reprocesar los 23 de Tactical (Mani decide los 14 sin link ni estado), el recorrido visual
-  de "Estados de llegada" en /ajustes/fuentes y anotar el payload del primer parcial real. Desbloquea 118 y 130.
-- 136 y 137 DONE (1-oct): el dashboard tiene el selector A contra B (A alimenta las cifras, B solo se
-  muestra: cablear la comparacion es del 095) y cada cifra (caja, shows, agendas, cierres, leads) abre su
-  resumen y su lista paginada. resumenDeMetrica/listaDeMetrica ya aceptan varios programas: la vista "todos"
-  del 095 tiene que usarlas, no escribir otra consulta.
-- Guion del corte escrito: docs/operations.md §12 (pasos, reversa, capacitacion, conciliacion).
-- 138 DONE (1-oct, sesion 66): grafica "Deals creados contra agendas" en el dashboard (acumulado por habil, A
-  contra B; lib/queries/deals-contra-agendas.ts). Deal creado = fecha del envio de origen, agenda creada =
-  calls.created_at (metricas-filtros.ts; Pauta usa la misma). Metricas deals_creados/agendas_creadas en el 137.
-  SeriesLineales ya acepta huecos (null), etiquetas propias y formato: el 095 y el 148 pueden usarla. Codex sin
-  cuota hasta las 2:28 pm del 1-oct: reviso un subagente de Claude.
-- 141 DONE (1-oct, sesion 66): filtro de fecha en Deals (creado, ultima actividad, cierre) y en Leads (creado,
-  ultimo envio), con el selector del 136 en modo soloA (components/filtro-fecha-lista.tsx). La ultima actividad
-  vive en lib/queries/ultima-actividad.ts (Inbox y lista); cerradosEn en metricas-filtros.ts respeta las
-  reaperturas. Recorrido con clics reales hecho (la extension estuvo desconectada un rato). Ojo: el computer tool
-  de Chrome usa el marco de la captura, no el viewport (escalar por ancho_captura/innerWidth). Y TaskStop sobre
-  npm run dev:local NO mata a next (dev-local lanza "cmd /c next dev"): matar el arbol con taskkill /T.
-- 140 NO es de este carril (plan-reparto §2 y comercial.md §8: lib/deals y la pantalla de Deals son de Mani).
-  136-138 y 141 tambien eran de su dominio y se tomaron porque estaban libres; el 140 solo si Mani lo pasa.
-- LO QUE LE FALTA A ALEJO (1-oct, sesion 68; el ORDEN lo manda plan-reparto §4, NC1):
-  1. 072: solo falta mirar los 390 px en vivo (DevTools, Ctrl+Shift+M). El resto del recorrido esta hecho.
-  2. 117: reprocesar los 23 de Tactical (escribe en produccion: ok de Mani; los 14 sin link ni estado los
-     decide el) y anotar el payload del primer parcial real. El recorrido de Estados de llegada esta hecho.
-  3. MANUAL DE GESTION COMERCIAL (QD-8), de NC1. Y el 140 si Mani lo confirma.
-  4. Despues de NC1-NC3 (pauta): 066 (Urgencias, se arma sobre registrosYAgendasPorCanal del 088), 126
-     parte B (token de Typeform en la fuente = migracion), 078 --aplicar (NC2; antes regenerar el template de
-     CA), 119/120 (token de Anderson), 102, 082 (aclarar si es de Mani), E8 (092, 086, 068, 076, 100, 021),
-     067, 065.
-- El recorrido visual del 072 necesita la extension de Chrome: claro/oscuro, 390 px, consola, clic en todo.
-  Chrome en Windows no baja de 500 px: se mide 390 con document.documentElement.style.zoom = innerWidth/390
-  (mismo breakpoint). OJO (1-oct): en una ventana de 1280 ese zoom NO activo el diseño movil (el sidebar
-  siguio visible); sirve para medir desborde (scrollWidth vs clientWidth), no para ver el layout de telefono.
-  Nunca reemplazar el body con iframes: la app no se deja enmarcar y rompe React. Si las capturas de Chrome
-  se cuelgan al navegar en dev, leer con get_page_text o javascript funciona.
-
-Del corte dependen decisiones de afuera: la fecha (closers), S1 Supabase Pro (equipo), la C3 de cada
-programa (O-5, gerente).
-
-Reglas: npm test es scripts/test.mjs (una suite por maquina). Las migraciones las aplica la sesion
-principal con el ok de Mani, mirando el ref y pg_stat_activity, con SET lock_timeout en tablas calientes;
-una migracion aditiva se aplica ANTES del merge del codigo que la usa (se trabaja en rama). La base local
-de Docker necesita npm run db:local tras cada migracion nueva. Antes de tomar un ticket, git fetch: Mani
-empuja al mismo main y el numero de migracion puede chocar.
+Antes de una pantalla: docs/structure.md §9 (Tinta) y docs/anotaciones.md. Produccion es la unica base:
+leer es libre, escribir pide el ok de Mani.
 ```
 
 ## Memory
@@ -3902,6 +3805,14 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 > [`docs/operations.md`](../operations.md). El texto anterior: `git show da68cdf:docs/agents/handoff.md`.
 
 ### Now
+
+- 🌊 **1-oct: olas y checkpoints** (`docs/plan-reparto.md` §1, §4 a §6). Ola O1 abierta; camino crítico: QM-10 y el
+  manual de gestión comercial (QD-8) → 142. Cola de migraciones: 0057 → 092 → 102 → 142.
+- **1-oct, documentación reconectada:** `plan.md` §2 re-medido (58 migraciones, 0057 sin aplicar; C3 y comisión %
+  verificadas en producción), O-5 cerrada, A12 nueva (TRM del ROAS, antes de E7), `comercial.md` §8 al día, A-01
+  marcada obsoleta (134), 092 con el ADR 0068 en la cola, ticket 150 (tests rápidos) creado.
+
+#### Antes del 1-oct (historia)
 
 - 🎯 **30-sep, PRIORIDAD: el norte comercial de Gerencia** (`docs/comercial.md`, tracker arriba de todo). Pasos 1 y
   2 hechos (1-oct). Sigue el **lote 1** (sin Dani) en paralelo al mensaje a Dani; el **lote 2** (etapas de 30X)

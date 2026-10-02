@@ -372,14 +372,14 @@ detalle"*).
 | **1** | El inventario de la reunión contra el repo | este documento | ✅ 30-sep |
 | **2** | Leer el HubSpot de 30X, solo lectura: las etapas con su definición, las etiquetas y propiedades de cada una (cuáles son obligatorias), "fecha corte" y "cortesías" (GC-52), y el dashboard "Gestión Comercial" gráfica por gráfica, con pantallazos | §4 lleno; §9 (lo leído y el inventario de gráficas de GC-30); QD-8 a QD-12 y QM-9 | ✅ 1-oct, con pantallazos de Mani (Claude in Chrome no respondió). Lo que HubSpot no dice (reglas de movimiento, obligatorias, fecha corte, cortesías) quedó como pregunta |
 | **3** | Las preguntas a Dani (QD-1 a QD-12) y a Mani (QM-2 a QM-9); Mani habla con 2 o 3 closers sobre abonos (GC-17) | §7 contestado | ✅ 1-oct, Mani (§7.0). Quedan QM-10 a QM-12 y el manual (QD-8, Alejo); falta GC-17 con los closers |
-| **4** | Las decisiones, con `/grill-with-docs`: el pipeline de 30X (reemplaza partes del ADR 0037 y el 0056), el valor vendido y la comisión por porcentaje (ADR 0016), Atendido sin Grain, el rol Customer Success, la meta del mes, los periodos flexibles | ADR nuevos y enmiendas | · |
-| **5** | Los tickets: enmendar los vivos (117, 118, 078, 080, 122, 124, 089, 095, 128, 065, 069, 070, 071, 102, 062) y crear los nuevos | `tasks/` y el tracker | · |
-| **6** | El orden: v1 comercial primero (R-9), y el cambio de etapas **antes** del `--aplicar` del 078. El 117 sigue: corrige el bug de Tactical (`analytics.md` §2.4) y su `etapa_entrada` se traduce en la misma migración que traduce `deals.etapa` | `plan.md` §5 y `plan-reparto.md` | ✅ 1-oct: etapas NC1 y NC2 en `plan-reparto.md` §4 |
+| **4** | Las decisiones, con `/grill-with-docs`: el pipeline de 30X (reemplaza partes del ADR 0037 y el 0056), el valor vendido y la comisión por porcentaje (ADR 0016), Atendido sin Grain, el rol Customer Success, la meta del mes, los periodos flexibles | ADR nuevos y enmiendas || ✅ lote 1, 1-oct: ADR 0065, 0066 y 0067. El lote 2 espera QM-10 y el manual (QD-8) |
+| **5** | Los tickets: enmendar los vivos (117, 118, 078, 080, 122, 124, 089, 095, 128, 065, 069, 070, 071, 102, 062) y crear los nuevos | `tasks/` y el tracker || ✅ lote 1, 1-oct: enmendados 017, 044, 058, 060, 062, 072, 074, 089, 095 y 128; creados 132 a 149. Los del lote 2, cuando se desbloqueen |
+| **6** | El orden: v1 comercial primero (R-9), y el cambio de etapas **antes** del `--aplicar` del 078. El 117 sigue: corrige el bug de Tactical (`analytics.md` §2.4) y su `etapa_entrada` se traduce en la misma migración que traduce `deals.etapa` | `plan.md` §5 y `plan-reparto.md` | ✅ 1-oct: etapas NC1 a NC3 en `plan-reparto.md` §4; desde el mismo día se trabaja por olas (ola O1) |
 
 **Los dos lotes (Mani, 1-oct).** Los pasos 3 a 5 ya no van en serie para todo: el paso 3 espera a Dani, y la
 mitad del trabajo no depende de él. Se parte en dos **lotes** por **dependencia**, no por persona. No es un plan
-aparte: cada lote se reparte con los **carriles** de [`plan-reparto.md`](./plan-reparto.md) §2 (Mani y Alejo,
-por dominio), y la etapa de `plan-reparto` sigue cerrando solo cuando todo quedó en `main`.
+aparte: cada lote se reparte en las **olas** de [`plan-reparto.md`](./plan-reparto.md) §4 (desde el 1-oct; antes,
+carriles por persona).
 
 | Lote | Qué entra | Espera a | Carril |
 |---|---|---|---|

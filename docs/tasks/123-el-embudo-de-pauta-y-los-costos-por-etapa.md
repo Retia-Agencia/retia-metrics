@@ -51,3 +51,7 @@ El 087 se cerró sin consulta de costo porque no existía. Este ticket la constr
 con `entrada = 'formulario'` de área Comercial (link del closer) y uno orgánico de Media **no cuentan** en el
 denominador del costo de Pauta. El área sale de `emparejar` (085), el conteo es por token (DP-11), y
 `leads.entrada` no se lee (ADR 0044 punto 5).
+
+> ⚠️ **1-oct: abierto.** La migración 0057 quita `cohorts.trm_cohorte` (Mani). De dónde sale la TRM del ROAS es
+> la decisión A12 de `docs/plan.md` §7, y se toma antes de E7. Hasta entonces, lo que este documento dice de la
+> "TRM de la cohorte" describe la intención, no una columna que exista.
