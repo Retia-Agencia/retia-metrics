@@ -1,4 +1,4 @@
-Repo: /Users/mani/Desktop/mani/work/retia/repos/retia-metrics-mani/.claude/worktrees/142 (branch 142-etapas-30x). Work ONLY in this folder. Commit your work on this branch at the end (message in Spanish, `git add` naming files, never -A). Do not push.
+Repo: /Users/mani/Desktop/mani/work/retia/repos/retia-metrics-mani/.claude/worktrees/142 (branch 142-etapas-30x). Work ONLY in this folder. Do not commit (the sandbox cannot write .git; Claude commits). Do not push.
 
 Goal: TANDA 2 de 3 del ticket 142. Tanda 1 rewrote the stage engine in lib/deals/ (eleven 30X stages + `deals.pendiente`). Make every OTHER consumer speak the new stages until `npm run typecheck` is fully green, update their tests, and rewrite docs/structure.md §3 and §3.1 to match the engine. No new behaviour beyond what is listed here.
 
@@ -57,6 +57,7 @@ Done when:
 - `npm run lint` clean.
 - `npm test -- <every test file you changed or added>` passes; list them in the report.
 - `rg -n 'pendiente_setteo|en_contacto|pendiente_reagenda|ETAPAS_QUE_UNA_CITA|NUMERO_DE_ETAPA' lib app components scripts tests` returns only the historical translation in lib/migracion/ and tests that assert that translation.
-- Report: files changed, tests run, any question you stopped on.
+- Your sandbox cannot run `ps`, so `npm test` dies with `spawnSync ps EPERM`: do NOT work around it (no PATH stubs). Run typecheck and lint, and list the test files Claude must run; Claude runs them.
+- Report: files changed, tests to run, any question you stopped on.
 
 Out of scope: the ADR 0069 routing (117), the move dialog and drag-and-drop questions (tanda 3), cortesía, alerts (128), properties per stage (143), docs other than structure.md §3-§3.2.
