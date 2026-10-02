@@ -29,6 +29,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
  */
 
 const HOY = "2026-09-28"; // lunes
+const AHORA = new Date("2026-09-28T12:00:00-05:00");
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -148,17 +149,17 @@ describe("inboxDelPrograma — llamadas de hoy sin resultado", () => {
     // Misma cita pero ya marcada show: no cuenta (resultado distinto de agendada).
     await crearLlamada({ dealId, fechaAgenda: enBogota("2026-09-25"), resultado: "show" });
 
-    const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
+    const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY, AHORA);
     expect(inbox.llamadasDeHoy.map((f) => f.callId)).toEqual([vencidaAyer]);
   });
 
-  it("incluye la de hoy y excluye una cita futura", async () => {
+  it("incluye la de ayer y excluye una de hoy cuya hora todavía no pasa", async () => {
     const { dealId } = await crearDeal({ etapa: "agendado" });
-    const hoy = await crearLlamada({ dealId, fechaAgenda: enBogota(HOY) });
-    await crearLlamada({ dealId, fechaAgenda: enBogota("2026-09-30") }); // futura
+    const ayer = await crearLlamada({ dealId, fechaAgenda: new Date("2026-09-27T18:00:00-05:00") });
+    await crearLlamada({ dealId, fechaAgenda: new Date("2026-09-28T16:00:00-05:00") });
 
-    const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
-    expect(inbox.llamadasDeHoy.map((f) => f.callId)).toEqual([hoy]);
+    const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY, AHORA);
+    expect(inbox.llamadasDeHoy.map((f) => f.callId)).toEqual([ayer]);
   });
 
   it("solo de MIS deals para un closer; el equipo ve las de todos con el dueño", async () => {
@@ -167,10 +168,10 @@ describe("inboxDelPrograma — llamadas de hoy sin resultado", () => {
     const callMia = await crearLlamada({ dealId: mio.dealId, fechaAgenda: enBogota(HOY) });
     const callAjena = await crearLlamada({ dealId: ajeno.dealId, fechaAgenda: enBogota(HOY) });
 
-    const soloMias = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
+    const soloMias = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY, AHORA);
     expect(soloMias.llamadasDeHoy.map((f) => f.callId)).toEqual([callMia]);
 
-    const equipo = await inboxDelPrograma(db, programId, "equipo", HOY);
+    const equipo = await inboxDelPrograma(db, programId, "equipo", HOY, AHORA);
     expect(new Set(equipo.llamadasDeHoy.map((f) => f.callId))).toEqual(new Set([callMia, callAjena]));
     const laAjena = equipo.llamadasDeHoy.find((f) => f.callId === callAjena)!;
     expect(laAjena.ownerNombre).toBe("Jose");
@@ -184,7 +185,7 @@ describe("inboxDelPrograma — llamadas de hoy sin resultado", () => {
     const ajeno = await crearDeal({ etapa: "agendado", programa: otroProgramId, owner: closer });
     await crearLlamada({ dealId: ajeno.dealId, programa: otroProgramId, fechaAgenda: enBogota(HOY) });
 
-    const inbox = await inboxDelPrograma(db, programId, "equipo", HOY);
+    const inbox = await inboxDelPrograma(db, programId, "equipo", HOY, AHORA);
     expect(inbox.llamadasDeHoy).toHaveLength(0);
   });
 });

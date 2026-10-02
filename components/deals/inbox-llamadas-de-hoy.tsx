@@ -17,9 +17,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAccion } from "@/components/deals/ficha/uso-accion";
 
 /**
- * Sección 1 del Inbox (ticket 071): "Llamadas de hoy sin resultado", el dolor número uno
+ * Sección 1 del Inbox (ticket 071): "Llamadas que ya pasaron sin resultado", el dolor número uno
  * (reunión con closers, 24-sep). Va PRIMERA. Cada fila es una llamada de MI deal cuya cita
- * (día de Bogotá) es hoy o antes y sigue `agendada`. Las acciones son las MISMAS de la
+ * ya pasó y sigue `agendada`. Las acciones son las MISMAS de la
  * ficha del deal —pegar Grain y "No se dio"— importadas, no duplicadas.
  *
  * Mobile first: los closers la usan en el teléfono a mitad de un bloque de llamadas, así
@@ -42,7 +42,7 @@ export function InboxLlamadasDeHoy({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Llamadas de hoy sin resultado</CardTitle>
+        <CardTitle>Llamadas que ya pasaron sin resultado</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         {llamadas.length === 0 ? (

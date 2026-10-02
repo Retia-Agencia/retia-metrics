@@ -115,10 +115,13 @@ export function FichaActividades({
                 />
               </Campo>
             </div>
-            <div className="flex justify-end sm:col-span-2">
+            <div className="flex flex-col items-end gap-1 sm:col-span-2">
               <Button type="submit" disabled={pendiente || nota.trim() === ""}>
                 {pendiente ? "Guardando…" : "Registrar"}
               </Button>
+              {nota.trim() === "" ? (
+                <p className="text-xs text-muted-foreground">Escribe una nota para registrar.</p>
+              ) : null}
             </div>
           </form>
         </CardContent>

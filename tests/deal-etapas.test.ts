@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { deals, leads, programs } from "@/lib/db/schema";
 import {
   ETAPAS, NOMBRE_DE_ETAPA, TRANSICIONES, TRANSICIONES_PENDIENTE,
-  esTransicionPermitida, siguientesDe, transicion, type EtapaDeal,
+  aceptaAbono, esTransicionPermitida, siguientesDe, transicion, type EtapaDeal,
 } from "@/lib/deals/etapas";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -58,6 +58,13 @@ describe("la tabla de transiciones", () => {
 });
 
 describe("las reglas generales del motor", () => {
+  it("acepta abonos solo donde hay una flecha de pago o ya está en Pago Parcial", () => {
+    expect(aceptaAbono("en_gestion")).toBe(false);
+    expect(aceptaAbono("agendado")).toBe(false);
+    expect(aceptaAbono("atendido")).toBe(true);
+    expect(aceptaAbono("ganado_parcial")).toBe(true);
+  });
+
   it("Cierre Perdido es alcanzable desde las nueve abiertas y nunca desde Ganado Pagado Completo", () => {
     const hacia = ETAPAS.filter((etapa) => esTransicionPermitida(etapa, "cierre_perdido"));
     expect(new Set(hacia)).toEqual(new Set([

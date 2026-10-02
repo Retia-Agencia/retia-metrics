@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { calls, dealActividades, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import { transicion, type EtapaDeal } from "@/lib/deals/etapas";
 import { MovimientoRechazado, moverEtapa } from "@/lib/deals/mover-etapa";
 import { alertasDelDeal } from "@/lib/queries/ficha-deal";
 import { inboxDelPrograma } from "@/lib/queries/inbox";
@@ -63,13 +63,13 @@ async function crearDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferIns
   return deal.id;
 }
 
-const actorPara = (etapa: EtapaDeal) => etapa === "contactado"
+const actorPara = (etapa: EtapaDeal, destino: EtapaDeal) => transicion(etapa, destino)?.quien === "closer"
   ? { tipo: "usuario" as const, userId: closer, rol: "closer" as const }
   : { tipo: "sistema" as const };
 
 async function rechazoDe(dealId: string, etapa: EtapaDeal, destino: EtapaDeal) {
   try {
-    await moverEtapa(db, { dealId, a: destino, actor: actorPara(etapa) });
+    await moverEtapa(db, { dealId, a: destino, actor: actorPara(etapa, destino) });
   } catch (error) {
     expect(error).toBeInstanceOf(MovimientoRechazado);
     return error as MovimientoRechazado;
@@ -101,32 +101,55 @@ async function preparar(etapa: EtapaDeal, listo: boolean) {
 
 describe("alertasDelDeal — requisitos del camino feliz", () => {
   for (const etapa of ["en_gestion", "contactado", "agendado"] as const) {
-    it(`${etapa}: muestra exactamente lo que rechaza moverEtapa y desaparece al cumplirlo`, async () => {
+    it(`${etapa}: la primera ruta visible muestra exactamente lo que rechaza moverEtapa`, async () => {
       const incompleto = await preparar(etapa, false);
       const alerta = await alertasDelDeal(db, programId, incompleto);
-      const feliz = alerta!.paraAvanzar[0];
-      expect(feliz.caminoFeliz).toBe(true);
+      const ruta = alerta!.paraAvanzar[0];
+      expect(transicion(etapa, ruta.destino)?.quien).not.toBe("sistema");
 
-      const rechazo = await rechazoDe(incompleto, etapa, feliz.destino);
-      expect(feliz.faltan.map((f) => f.codigo)).toEqual(
+      const rechazo = await rechazoDe(incompleto, etapa, ruta.destino);
+      expect(ruta.faltan.map((f) => f.codigo)).toEqual(
         rechazo.faltantes.filter((f) => f.codigo !== "motivo").map((f) => f.codigo),
       );
 
       const listo = await preparar(etapa, true);
       const alertaLista = await alertasDelDeal(db, programId, listo);
-      const felizListo = alertaLista!.paraAvanzar[0];
-      expect(felizListo.caminoFeliz).toBe(true);
-      expect(felizListo.faltan).toEqual([]);
+      const rutaLista = alertaLista!.paraAvanzar[0];
+      expect(rutaLista.faltan).toEqual([]);
       await expect(moverEtapa(db, {
         dealId: listo,
-        a: felizListo.destino,
-        actor: actorPara(etapa),
-      })).resolves.toMatchObject({ de: etapa, a: felizListo.destino });
+        a: rutaLista.destino,
+        actor: actorPara(etapa, rutaLista.destino),
+      })).resolves.toMatchObject({ de: etapa, a: rutaLista.destino });
     });
   }
 });
 
 describe("alertasDelDeal — urgencia y fronteras", () => {
+  it("Ganado Pago Parcial no ofrece rutas que mueve el sistema", async () => {
+    const dealId = await crearDeal("ganado_parcial");
+
+    const alerta = (await alertasDelDeal(db, programId, dealId))!;
+
+    expect(alerta.paraAvanzar.map((ruta) => ruta.destino)).toEqual(["cierre_perdido"]);
+  });
+
+  it("marca como urgente una llamada atendida vigente sin link de Grain", async () => {
+    const dealId = await crearDeal("atendido");
+    await db.insert(calls).values({
+      dealId,
+      programId,
+      resultado: "show",
+      linkGrain: " ",
+      origen: "app",
+    });
+
+    expect((await alertasDelDeal(db, programId, dealId))!.urgentes).toContainEqual({
+      motivo: "atendida_sin_grain",
+      mensaje: "La llamada atendida no tiene el link de Grain.",
+    });
+  });
+
   it("refleja en ambos sentidos los motivos de atención del Inbox", async () => {
     const urgente = await crearDeal("contactado", { createdAt: new Date("2026-09-01T12:00:00-05:00") });
     const reciente = await crearDeal("contactado", { createdAt: new Date() });

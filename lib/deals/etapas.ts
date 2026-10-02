@@ -135,3 +135,8 @@ export function unaCitaMueveAAgendado(etapa: EtapaDeal, pendiente: PendienteDeal
 }
 export function esTransicionPermitida(de: EtapaDeal, a: EtapaDeal): boolean { return INDICE_ETAPA.has(claveEtapa(de, a)); }
 export function siguientesDe(de: EtapaDeal): EtapaDeal[] { return ETAPAS.filter((a) => esTransicionPermitida(de, a)); }
+export function aceptaAbono(etapa: EtapaDeal): boolean {
+  return etapa === "ganado_parcial"
+    || transicion(etapa, "ganado_parcial") != null
+    || transicion(etapa, "ganado_completo") != null;
+}

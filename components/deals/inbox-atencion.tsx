@@ -139,14 +139,16 @@ function FilaAtencionItem({
           <Button size="sm" variant="outline" onClick={() => setDialogo("contacto")}>
             Registrar contacto
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => setDialogo("abono")}>
-            Registrar abono
-          </Button>
+          {fila.aceptaAbono ? (
+            <Button size="sm" variant="secondary" onClick={() => setDialogo("abono")}>
+              Registrar abono
+            </Button>
+          ) : null}
         </div>
       ) : null}
 
       {dialogo === "contacto" ? <DialogoContacto dealId={fila.dealId} onCerrar={() => setDialogo(null)} /> : null}
-      {dialogo === "abono" ? (
+      {dialogo === "abono" && fila.aceptaAbono ? (
         <DialogoAbono dealId={fila.dealId} areaDeclaradaIdActual={fila.areaDeclaradaId} areas={areas} plataformas={plataformas} onCerrar={() => setDialogo(null)} />
       ) : null}
     </li>

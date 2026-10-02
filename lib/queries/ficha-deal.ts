@@ -15,7 +15,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA, siguientesDe, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
+import { ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA, siguientesDe, transicion, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
 import { leerHechos } from "@/lib/deals/mover-etapa";
 import { queLeFalta, type RequisitoFaltante } from "@/lib/deals/requisitos";
 import { fechaLimiteMaxima } from "@/lib/deals/pago";
@@ -203,7 +203,7 @@ export interface FichaDeDeal {
 }
 
 export interface AlertasDelDeal {
-  urgentes: { motivo: MotivoAtencion | "llamada_sin_resultado"; mensaje: string }[];
+  urgentes: { motivo: MotivoAtencion | "llamada_sin_resultado" | "atendida_sin_grain"; mensaje: string }[];
   paraAvanzar: {
     destino: EtapaDeal;
     nombreDestino: string;
@@ -213,13 +213,14 @@ export interface AlertasDelDeal {
   aviso: string | null;
 }
 
-const MENSAJE_URGENTE: Record<MotivoAtencion | "llamada_sin_resultado", string> = {
+const MENSAJE_URGENTE: Record<MotivoAtencion | "llamada_sin_resultado" | "atendida_sin_grain", string> = {
   reagenda_sin_fecha: "La re-agenda no tiene fecha.",
   compromiso_vencido: "El compromiso verbal se venció.",
   pago_vencido: "La fecha de pago se venció y queda saldo.",
   reenvio_sin_atender: "El lead volvió a llenar el formulario.",
   estancado: "El deal lleva días sin actividad.",
-  llamada_sin_resultado: "La llamada de hoy no tiene resultado.",
+  llamada_sin_resultado: "La llamada ya pasó y no tiene resultado.",
+  atendida_sin_grain: "La llamada atendida no tiene el link de Grain.",
 };
 
 /** Lo urgente y lo que falta para mover este deal, calculado por los módulos que deciden ambas cosas. */
@@ -230,12 +231,13 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
     .where(and(eq(deals.id, dealId), eq(deals.programId, programId), vigente(deals)));
   if (!deal || deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido") return null;
 
-  const [inbox, hechos] = await Promise.all([
+  const [inbox, hechos, llamadasVigentes] = await Promise.all([
     inboxDelPrograma(db, programId, "equipo"),
     leerHechos(db, deal, null, null),
+    db.select().from(calls).where(and(eq(calls.dealId, dealId), vigente(calls))),
   ]);
 
-  const urgentes = new Map<MotivoAtencion | "llamada_sin_resultado", string>();
+  const urgentes = new Map<MotivoAtencion | "llamada_sin_resultado" | "atendida_sin_grain", string>();
   for (const fila of inbox.atencion) {
     if (fila.dealId !== dealId || urgentes.has(fila.motivo)) continue;
     const mensaje = fila.motivo === "pago_vencido" && fila.fecha
@@ -248,6 +250,9 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
   if (inbox.llamadasDeHoy.some((fila) => fila.dealId === dealId)) {
     urgentes.set("llamada_sin_resultado", MENSAJE_URGENTE.llamada_sin_resultado);
   }
+  if (llamadasVigentes.some(esAtendidaSinGrain)) {
+    urgentes.set("atendida_sin_grain", MENSAJE_URGENTE.atendida_sin_grain);
+  }
 
   const destinos = siguientesDe(deal.etapa);
   const indiceActual = ETAPAS_EN_ORDEN.indexOf(deal.etapa);
@@ -255,6 +260,7 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
     (destino, indice) => indice > indiceActual && destinos.includes(destino),
   );
   const paraAvanzar = destinos
+    .filter((destino) => transicion(deal.etapa, destino)?.quien !== "sistema")
     .map((destino) => ({
       destino,
       nombreDestino: NOMBRE_DE_ETAPA[destino],
@@ -384,6 +390,22 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
         porNombre: nombreDe(cambio.userId),
       });
     }
+  }
+  const cambiosPorRegistro = new Map<string, Extract<FichaDeEvento, { tipo: "cambio" }>[]>();
+  for (const [claveDeGrupo, cambio] of cambiosAgrupados) {
+    const [, registroId] = claveDeGrupo.split("\u0000");
+    const claveDeRegistro = `${cambio.tabla}\u0000${registroId}`;
+    const grupos = cambiosPorRegistro.get(claveDeRegistro) ?? [];
+    grupos.push(cambio);
+    cambiosPorRegistro.set(claveDeRegistro, grupos);
+  }
+  for (const grupos of cambiosPorRegistro.values()) {
+    grupos.sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
+    grupos.forEach((grupo, indice) => {
+      grupo.accion = indice === 0 && grupo.campos.every((campo) => campo.valorAnterior === null)
+        ? "creado"
+        : "editado";
+    });
   }
 
   const areaDeclarada = deal.areaDeclaradaId

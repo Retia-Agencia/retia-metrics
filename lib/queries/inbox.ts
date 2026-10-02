@@ -8,7 +8,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import { aceptaAbono, type EtapaDeal } from "@/lib/deals/etapas";
 import { diaDeCalendario, diasHabilesEntre } from "@/lib/dias-habiles";
 import { hoyEnBogota } from "@/lib/format";
 import { carteraVencida } from "@/lib/queries/cartera";
@@ -25,8 +25,8 @@ import type { OrigenDeFila } from "@/lib/queries/inbox-sin-dueno";
  * Las secciones "sin dueño" (Por settear y Agendados sin dueño) NO están aquí: viven
  * en `lib/queries/inbox-sin-dueno.ts` (ticket 070) y la pantalla las intercala. Aquí van:
  *
- *  1. **Llamadas de hoy sin resultado** — el dolor número uno (reunión con closers,
- *     24-sep): llamadas VIGENTES de MIS deals cuya cita (día de Bogotá) es hoy o antes y
+ *  1. **Llamadas que ya pasaron sin resultado** — el dolor número uno (reunión con closers,
+ *     24-sep): llamadas VIGENTES de MIS deals cuyo instante de cita ya pasó y
  *     cuyo `resultado` sigue en `agendada`. Es la red de seguridad para ponerse al día al
  *     final de un bloque de llamadas.
  *  3. **Llamadas sueltas** del programa (ADR 0049, decisión K2): llamadas vigentes de
@@ -86,6 +86,7 @@ export interface FilaAtencion {
   leadNombre: string | null;
   leadEmail: string;
   etapa: EtapaDeal;
+  aceptaAbono: boolean;
   motivo: MotivoAtencion;
   /** El dueño del deal, para "equipo" (nulo cuando el alcance es de un dueño). */
   ownerNombre: string | null;
@@ -99,7 +100,7 @@ export interface FilaAtencion {
 }
 
 export interface Inbox {
-  /** Sección 1: llamadas de hoy o vencidas sin resultado, la más vieja primero. */
+  /** Sección 1: llamadas que ya pasaron sin resultado, la más vieja primero. */
   llamadasDeHoy: FilaLlamada[];
   /** Sección 3: llamadas sueltas del programa, la más vieja primero. */
   llamadasSueltas: FilaLlamada[];
@@ -209,6 +210,7 @@ export async function inboxDelPrograma(
   programId: string,
   alcance: AlcanceInbox,
   hoy: string = hoyEnBogota(),
+  ahora: Date = new Date(),
 ): Promise<Inbox> {
   // Cuántos días hábiles sin actividad marcan "estancado" (por programa, ADR 0012).
   const [programa] = await db
@@ -218,7 +220,7 @@ export async function inboxDelPrograma(
   const diasEstancado = programa?.diasSinActividad ?? 3;
 
   const [llamadasDeHoy, llamadasSueltas, atencion] = await Promise.all([
-    seccionLlamadasDeHoy(db, programId, alcance, hoy),
+    seccionLlamadasDeHoy(db, programId, alcance, ahora),
     seccionLlamadasSueltas(db, programId),
     seccionAtencion(db, programId, alcance, hoy, diasEstancado),
   ]);
@@ -226,19 +228,18 @@ export async function inboxDelPrograma(
   return { llamadasDeHoy, llamadasSueltas, atencion };
 }
 
-// ───────────────────────────────────────────── sección 1: llamadas de hoy sin resultado
+// ───────────────────────────────────────────── sección 1: llamadas que ya pasaron sin resultado
 
 /**
- * Llamadas VIGENTES en `agendada` cuya cita (día de Bogotá) es hoy o anterior, de deals
- * abiertos y vigentes del alcance. No se interpola el `Date` en `sql`: se traen las
- * agendadas del programa y se filtra el día en memoria por `diaDeCalendario` (Bogotá),
- * que es la única definición de "qué día es" del proyecto.
+ * Llamadas VIGENTES en `agendada` cuyo instante de cita ya pasó, de deals abiertos y
+ * vigentes del alcance. No se interpola el `Date` en `sql`: se traen las agendadas del
+ * programa y se filtran en memoria.
  */
 async function seccionLlamadasDeHoy(
   db: Db,
   programId: string,
   alcance: AlcanceInbox,
-  hoy: string,
+  ahora: Date,
 ): Promise<FilaLlamada[]> {
   const filas = await db
     .select({
@@ -267,7 +268,7 @@ async function seccionLlamadasDeHoy(
       ),
     );
 
-  const soloAlDia = filas.filter((f) => f.fechaAgenda != null && diaDeCalendario(f.fechaAgenda) <= hoy);
+  const soloAlDia = filas.filter((f) => f.fechaAgenda != null && f.fechaAgenda <= ahora);
   // La más vieja primero: es la que más urge ponerse al día.
   soloAlDia.sort((a, b) => (a.fechaAgenda?.getTime() ?? 0) - (b.fechaAgenda?.getTime() ?? 0));
   return soloAlDia.map((f) => ({
@@ -380,6 +381,7 @@ async function seccionAtencion(
       leadNombre: d.leadNombre,
       leadEmail: d.leadEmail,
       etapa: d.etapa,
+      aceptaAbono: aceptaAbono(d.etapa),
       ownerNombre: owner,
       saldo: null as number | null,
       moneda: null as string | null,

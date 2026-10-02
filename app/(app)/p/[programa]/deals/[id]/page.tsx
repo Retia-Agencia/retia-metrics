@@ -5,7 +5,7 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
+import { aceptaAbono, NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { nombreDelDeal } from "@/lib/deals/nombre";
@@ -119,7 +119,14 @@ export default async function FichaDelDealPage({ params }: Props) {
               puedeRegistrar={puedeRegistrar && !cerrado}
             />
             <FichaActividades actividades={ficha.actividades} dealId={ficha.dealId} puedeRegistrar={puedeTrabajar} />
-            <FichaPago ficha={ficha} opciones={opciones} puedeTrabajar={puedeTrabajar} puedeRegistrar={puedeRegistrar} nombreDeEtapa={NOMBRE_DE_ETAPA} />
+            <FichaPago
+              ficha={ficha}
+              opciones={opciones}
+              puedeTrabajar={puedeTrabajar}
+              puedeRegistrar={puedeRegistrar}
+              aceptaAbono={aceptaAbono(ficha.etapa)}
+              nombreDeEtapa={NOMBRE_DE_ETAPA}
+            />
           </div>
         </div>
       </div>

@@ -31,12 +31,12 @@ type Props = { params: Promise<{ programa: string }> };
  * El developer pasa por `esAccesoTotal`; nunca se compara el rol a mano.
  *
  * ## Alcance de las listas (regla dura de AGENTS.md)
- * - Un closer ve LO SUYO (sus deals, sus llamadas de hoy). Quien administra
+ * - Un closer ve LO SUYO (sus deals, sus llamadas que ya pasaron). Quien administra
  *   (`esAdministrador`: gerente o developer) ve todo el EQUIPO, con el dueño en cada fila.
  * - El programa es FRONTERA (ADR 0043): todo es del programa del selector, jamás cruza.
  *
  * ## Orden de las secciones (reunión con closers, 24-sep)
- *  1. Llamadas de hoy sin resultado — el dolor número uno, va PRIMERA.
+ *  1. Llamadas que ya pasaron sin resultado — el dolor número uno, va PRIMERA.
  *  2. Sin dueño (ticket 070): Agendados sin dueño y Por settear.
  *  3. Llamadas sueltas (decisión K2: se asignan aquí).
  *  4. Lo mío que necesita atención.
@@ -77,7 +77,7 @@ export default async function InboxDelProgramaPage({ params }: Props) {
       <div className="space-y-4">
         <InboxPerdidosEnCalendly filas={perdidos} slug={programa.slug} />
 
-        {/* 1 · Llamadas de hoy sin resultado (el dolor número uno, va primera). */}
+        {/* 1 · Llamadas que ya pasaron sin resultado (el dolor número uno, va primera). */}
         <InboxLlamadasDeHoy
           llamadas={inbox.llamadasDeHoy}
           slug={programa.slug}

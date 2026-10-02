@@ -140,6 +140,16 @@ describe("fichaDeDeal", () => {
     expect((await fichaDeDeal(db, programId, dealId))!.origen).toBeNull();
   });
 
+  it("usa fecha_envio para el origen y cae a created_at cuando falta", async () => {
+    const fechaEnvio = new Date("2026-09-02T14:00:00Z");
+    const createdAt = new Date("2026-09-03T15:00:00Z");
+    await db.update(submissions).set({ fechaEnvio, createdAt }).where(eq(submissions.token, "t1"));
+    expect((await fichaDeDeal(db, programId, dealId))!.origen?.fecha).toEqual(fechaEnvio);
+
+    await db.update(submissions).set({ fechaEnvio: null }).where(eq(submissions.token, "t1"));
+    expect((await fichaDeDeal(db, programId, dealId))!.origen?.fecha).toEqual(createdAt);
+  });
+
   it("toma lead quality y lead value del lead", async () => {
     await db.update(leads).set({ leadQuality: "Alta", leadValue: "Premium" }).where(eq(leads.emailNormalizado, "ana@correo.co"));
     await db.update(submissions).set({ respuestas: { Pregunta: "Respuesta" } }).where(eq(submissions.token, "t1"));
@@ -196,6 +206,17 @@ describe("fichaDeDeal", () => {
     ]);
     expect(f.log).toHaveLength(3);
     expect(f.log[0].porNombre).toBe("Maru");
+  });
+
+  it("solo titula creado el primer grupo aunque una edición posterior llene un campo vacío", async () => {
+    await db.insert(changeLog).values([
+      { tabla: "deals", registroId: dealId, campo: "lead_id", valorAnterior: null, valorNuevo: "inicial", detectadoEn: new Date("2026-09-10T10:00:00Z"), origen: "app" },
+      { tabla: "deals", registroId: dealId, campo: "owner_user_id", valorAnterior: null, valorNuevo: closer, detectadoEn: new Date("2026-09-11T10:00:00Z"), origen: "app" },
+    ]);
+
+    const cambios = (await fichaDeDeal(db, programId, dealId))!.log
+      .filter((evento) => evento.tipo === "cambio");
+    expect(cambios.map((evento) => evento.accion)).toEqual(["editado", "creado"]);
   });
 
   it("incluye solo enlaces de pago vigentes del programa", async () => {

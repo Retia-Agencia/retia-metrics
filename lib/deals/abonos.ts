@@ -14,7 +14,7 @@ import { saldosDeDeals } from "@/lib/queries/saldo";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { etapaALaQueVuelve, moverEtapa } from "./mover-etapa";
 import { puedeTrabajarDeal } from "./permiso";
-import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal } from "./etapas";
+import { aceptaAbono, NOMBRE_DE_ETAPA, transicion, type EtapaDeal } from "./etapas";
 import { congelarValorVendido } from "./valor-vendido";
 
 /**
@@ -190,7 +190,7 @@ export async function registrarAbono(
       const destino: EtapaDeal = saldo <= 0 ? "ganado_completo" : "ganado_parcial";
 
       if (deal.etapa === destino) return { abonoId, etapa: deal.etapa, movioElDeal: false, saldo, cohorteAsignada };
-      if (!transicion(deal.etapa, destino)) {
+      if (!aceptaAbono(deal.etapa) || !transicion(deal.etapa, destino)) {
         // Desde una etapa sin flecha de pago se rechaza el abono y se deshace la transaccion.
         throw new ErrorDeApp(
           `Desde ${NOMBRE_DE_ETAPA[deal.etapa]} no se registra un abono: mueve primero el deal a una etapa donde el lead ya hable de pagar.`,

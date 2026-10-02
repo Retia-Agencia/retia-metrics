@@ -34,7 +34,7 @@ type CodigoReal = Exclude<CodigoRequisito, "transicion_no_permitida">;
 export const MENSAJES: Record<CodigoReal, string> = {
   dueno: "El deal no tiene dueño.",
   actividad: "Falta registrar una actividad: llamada, WhatsApp o correo.",
-  contacto: "Falta registrar el contacto, con fecha y canal.",
+  contacto: "Falta registrar un contacto con el lead.",
   llamada_con_fecha: "Falta una llamada con fecha.",
   llamada_sucedio: "Falta el link de Grain de la llamada.",
   llamada_fallida: "La llamada no quedó en no-show ni cancelada.",
