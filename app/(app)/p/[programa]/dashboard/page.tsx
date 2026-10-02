@@ -116,7 +116,8 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
   });
   const porCanal = await registrosYAgendasPorCanal(db, programa.id, vista.seleccion.rango, hoy);
   const hechosFiltrados = areaId === undefined ? hechos : hechos.filter((fila) => fila.areaId === areaId);
-  const origenPorCanal = vista.closerId !== null
+  // Con un closer en el filtro el bloque Origen por canal no se muestra (129).
+  const origenPorCanal = vista.closerId
     ? null
     : embudoPorCanal(hechosFiltrados, await nombresDeCanales(db));
   const resumenSerie = hechosFiltrados.reduce(
