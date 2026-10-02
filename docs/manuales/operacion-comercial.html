@@ -307,38 +307,44 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
 
     <section id="calidad">
       <h2><span class="n">01 · b</span>Cómo se calculan Quality y Value</h2>
-      <p class="sub">Los calcula el formulario con dos contadores mientras la persona responde.</p>
-      <div class="dos">
-        <div>
-          <h4>Descarte</h4>
-          <p>Cualquiera de estas respuestas descalifica, y quien la marca no ve la agenda:</p>
-          <ul>
-            <li>"No cuento con los recursos"</li>
-            <li>"No es prioridad"</li>
-            <li>Ingreso bajo: menos de 1.500 USD/mes en ComunicArte, menos de 1.000 en Tactical</li>
-          </ul>
-        </div>
-        <div>
-          <h4>Puntos de valor (0 a 50)</h4>
-          <ul>
-            <li><b>Ingreso</b> → 10, 20 o 30 puntos, del tramo bajo al más alto
-              <br><small>ComunicArte: 700 · 1.500 · 3.000 USD &nbsp;·&nbsp; Tactical: 1.000 · 3.000 · 10.000 USD</small></li>
-            <li><b>Experiencia</b> → 10 (pensionado o hasta 5 años) o 20 (más de 5 años)</li>
-          </ul>
-        </div>
-      </div>
+      <p class="sub">Los pone el formulario según lo que la persona responde. El CRM solo los recibe.</p>
+
+      <h3>Las respuestas de descarte</h3>
+      <p>Son tres respuestas que dicen "hoy no puede comprar". Si la persona marca <strong>al menos una</strong>, el formulario la despide antes de la agenda y no puede agendar.</p>
+      <ul>
+        <li>"No, en este momento no cuento con los recursos"</li>
+        <li>Urgencia: "No es prioridad"</li>
+        <li>Ingreso bajo: menos de 1.500 USD al mes en ComunicArte, menos de 1.000 en Tactical</li>
+      </ul>
+
+      <h3>Lead Quality: ¿agendó en el formulario?</h3>
+      <p>El formulario termina con la pregunta <b>"Agenda aquí tu entrevista"</b>, que es el Calendly. Es obligatoria: para terminar el formulario hay que agendar.</p>
       <div class="tabla">
         <table>
-          <thead><tr><th>Lead Quality</th><th>Cuándo</th></tr></thead>
+          <thead><tr><th>Quality</th><th>Quién</th></tr></thead>
           <tbody>
-            <tr><td><span class="pill ok">High</span></td><td>Pasó la agenda sin respuestas que descalifican.</td></tr>
-            <tr><td><span class="pill neutro">Low</span></td><td>Todos los demás.</td></tr>
+            <tr><td><span class="pill ok">High</span></td><td>No marcó ninguna respuesta de descarte y agendó en el Calendly del formulario.</td></tr>
+            <tr><td><span class="pill neutro">Low</span></td><td>Marcó al menos una respuesta de descarte, o se fue antes de agendar.</td></tr>
           </tbody>
         </table>
       </div>
+
+      <h3>Lead Value: ¿cuánto vale el lead?</h3>
+      <p>Sale de sumar <b>puntos</b> por dos respuestas, y de si marcó o no alguna respuesta de descarte.</p>
       <div class="tabla">
         <table>
-          <thead><tr><th>Puntos</th><th>Sin descarte</th><th>Con descarte</th></tr></thead>
+          <thead><tr><th>Respuesta</th><th>0 puntos</th><th>10 puntos</th><th>20 puntos</th><th>30 puntos</th></tr></thead>
+          <tbody class="num">
+            <tr><td>Ingreso mensual, ComunicArte</td><td>menos de 700</td><td>700 a 1.500</td><td>1.500 a 3.000</td><td>más de 3.000</td></tr>
+            <tr><td>Ingreso mensual, Tactical</td><td>menos de 1.000</td><td>1.000 a 3.000</td><td>3.000 a 10.000</td><td>más de 10.000</td></tr>
+            <tr><td>Situación profesional</td><td>otra</td><td>pensionado o 0 a 5 años</td><td>5 a 15 años o más de 15</td><td>·</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="sub">Ingresos en USD. Máximo: 30 + 20 = 50 puntos.</p>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>Puntos</th><th>No marcó ninguna de descarte</th><th>Marcó al menos una de descarte</th></tr></thead>
           <tbody class="num">
             <tr><td>30 o más</td><td><span class="pill ok">MUY ALTO VALOR</span></td><td><span class="pill info">ALTO VALOR</span></td></tr>
             <tr><td>15 a 29</td><td><span class="pill info">ALTO VALOR</span></td><td><span class="pill alerta">VALOR MEDIO</span></td></tr>
@@ -346,6 +352,7 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
           </tbody>
         </table>
       </div>
+      <p><b>Ejemplo:</b> gana más de 3.000 USD (30) y tiene 10 años de experiencia (20) = 50 puntos. Si no marcó nada de descarte es MUY ALTO VALOR. Si dijo "No es prioridad", baja a ALTO VALOR: tiene con qué, pero no tiene afán.</p>
       <div class="caja nota"><p><b>Quality decide dónde nace el deal. Value no mueve nada: ordena.</b> Dentro de una etapa, trabaja primero los de más valor.</p></div>
       <div class="caja ojo"><p>Si de pronto todo llega Low o sin calidad, avisa a gerencia: alguien pudo editar el formulario.</p></div>
     </section>
@@ -387,7 +394,7 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
         </table>
       </div>
       <ul>
-        <li><strong>Calificado sin cita</strong> = se fue en la agenda. A los 5 minutos sale arriba del Inbox: escríbele ya.</li>
+        <li><strong>Calificado sin cita:</strong> llegó con High pero su cita no llegó al CRM. Si a los 5 minutos sigue sin llegar, sale arriba del Inbox como "se perdió en el Calendly": escríbele ya.</li>
         <li><strong>Si vuelve a llenar el formulario</strong> estando en Potencial o Registrado, el deal sube a la etapa que le toca. Solo sube.</li>
         <li><strong>Más adelante de eso</strong>, un envío nuevo no lo mueve (salvo una cita, que lo lleva a Agendado).</li>
         <li><strong>Si su deal ya estaba cerrado</strong>, se abre uno nuevo.</li>
@@ -515,7 +522,7 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
           <summary><span class="pill neutro">Calificado</span><span class="resumen">Lead bueno al que hay que ofrecerle la agenda</span></summary>
           <div class="cuerpo">
             <dl>
-              <dt>Llega</dt><dd>Solo, por el formulario con High sin cita (casi siempre: se fue en la agenda), o cuando respondes "Sí" en Contactado.</dd>
+              <dt>Llega</dt><dd>Solo, por el formulario con High cuando su cita no llegó, o cuando respondes "Sí" en Contactado.</dd>
               <dt>Pregunta</dt><dd>¿Qué pasó?</dd>
             </dl>
             <table class="mov">
