@@ -391,7 +391,12 @@ The agent should run these to get fast signal on whether code works. Keep them c
   de 480 s; ver Conventions). 1.810 pasando al 1-oct; entre 60 y 190 s según la máquina.
   Un programa de prueba ACTIVO se crea con `PROGRAMA_DE_PRUEBA` (`tests/helpers/programa-de-prueba.ts`):
   desde la 0031 un programa nace inactivo y la base exige Forms Link y token para activarlo. Los tests que necesitan base usan PGlite en
-  memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
+  memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020). **Desde el 1-oct
+  (ticket 150) la base se migra UNA vez por corrida** en el `globalSetup` (`tests/helpers/volcado-global.ts`) y
+  cada archivo carga ese volcado; si no existe, migra por su cuenta como antes. Una migración con SQL roto
+  revienta la corrida entera, una vez, con el error de la migración (probado en una rama desechable).
+  **Bucle local opcional: `npm run test:cambios`** (`vitest run --changed`, mismo candado): solo los tests
+  afectados por lo que no está commiteado.
   El lock se resincronizó otra vez el 28-sep (`649bf2c`): la primera corrida del CI lo midió roto en
   Linux (faltaban `@emnapi/core` y `@emnapi/runtime` 1.11.3), y desde ahí `npm ci` pasa en el CI. Si te
   vuelve a fallar, `npm install --package-lock-only` y commit del lock, nunca `--no-package-lock`. Si ves 46 tests caídos por `drizzle-orm/postgres-js`,
@@ -401,14 +406,16 @@ The agent should run these to get fast signal on whether code works. Keep them c
   y lint siempre; los archivos de tests del cambio (`npm test -- tests/x.test.ts`) solo si la máquina tiene
   aire, y eso se mide antes de correr: carga (`uptime`, por debajo del número de núcleos) y swap
   (`sysctl vm.swapusage`, sin varios GB usados). Si no hay aire, se empuja y decide el CI. La suite completa la valida el CI de cada
-  push (~6,5 min de `npm test`, ~8 min la corrida; no usa la máquina de nadie). **Desde el 1-oct la valida un
+  push (no usa la máquina de nadie). `npm test` en el CI, medido con el ticket 150: **vitest 372 s → 274 s**
+  (paso de 6 min 12 s a 4 min 34 s; ~8 min la corrida entera). Un archivo suelto en local no gana: ~3,7 s
+  antes y ~4,2 s después, porque la migración sigue pagándose una vez. **Desde el 1-oct la valida un
   checkpoint** (`docs/plan-reparto.md` §6): dos al día, nadie empuja mientras corre, y si sale verde se marca con
   el tag `cp-AAAAMMDD-N`; si sale rojo, el culpable está entre el último tag y la punta. **Un ticket no está
   terminado hasta el checkpoint verde que lo incluye.** Antes de empujar, cada sesión corre su nivel 1:
   typecheck, lint y los tests de su ticket. El CI además corre lo que en local se salta: los tests
   contra Postgres real (`DATABASE_URL_PRUEBA_POSTGRES`), que el 1-oct estuvieron rojos 3 h sin que nadie mirara.
   Ojo: el CI cancela la corrida anterior al empujar otro commit (`cancel-in-progress`): entre checkpoints es
-  alarma, no reja, y durante un checkpoint no se empuja. Pendiente: volcado migrado una vez por corrida y CI también en ramas.
+  alarma, no reja, y durante un checkpoint no se empuja. Pendiente: CI también en ramas.
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Worktree restringido en Windows:** si PowerShell bloquea `npm.ps1`, usar `npm.cmd`. Si Vite no
   puede escribir en `node_modules/.vite-temp` porque las dependencias son compartidas, usar
