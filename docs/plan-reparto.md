@@ -130,7 +130,7 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 | Qué | Quién | Destraba |
 |---|---|---|
 | **QM-10**: los estados dentro del deal (Pendiente Re-agenda, Seguimiento, Próxima Cohorte), `/grill-with-docs` y su ADR | Mani | 142 → 143, 128, 118, el 117 enmendado, el `--aplicar` del 078, el corte, 148 |
-| **Manual de gestión comercial** (QD-8), desde `insumos/hubspot-30x-workflow.md` | Alejo | 142 y 143 (qué es obligatorio por etapa) |
+| **Manual de gestión comercial** (QD-8): **borrador en [`manual-gestion-comercial.md`](./manual-gestion-comercial.md) desde el 1-oct**; falta que Mani lo apruebe | Alejo → Mani | 142 y 143 (qué es obligatorio por etapa) |
 
 **Tickets listos, una sesión cada uno:**
 
@@ -143,7 +143,7 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 | O1-e | [100] la tab Programs | Alejo | · | M |
 | O1-f | [073] ficha del lead → [091] | Alejo | · | M + S |
 | O1-g | [066] Urgencias → [068] → [076] (lecturas) | Alejo | · | M + S + S |
-| O1-h | cerrar [072] (390 px) y los cabos del [117] | Alejo | la etapa de entrada | S |
+| O1-h | los cabos del [117] (el [072] se cerró el 1-oct) | Alejo | la etapa de entrada | S |
 | O1-i | [150] tests rápidos: base migrada una vez por corrida | Mani | `tests/helpers/`, `vitest.config` | M |
 
 **La cola de migraciones de la ola**, en este orden (una abierta a la vez):
