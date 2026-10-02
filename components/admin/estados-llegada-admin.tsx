@@ -15,7 +15,6 @@ import {
   type ResultadoEstadoLlegadaAccion,
 } from "@/app/(app)/ajustes/fuentes/estados-llegada-acciones";
 import type { EstadoLlegadaVista, ValorSinEstado } from "@/lib/queries/estados-llegada";
-import { ETIQUETA_ETAPA_DE_ENTRADA } from "@/lib/catalogo/estados-llegada";
 
 /**
  * Los Estados de llegada de cada programa (ticket 117, ADR 0061): qué valor de la variable
@@ -48,10 +47,16 @@ export function EstadosLlegadaAdmin({
   programas,
   estados,
   sinFila,
+  etiquetaDeEntrada,
 }: {
   programas: ProgramaEstadosVista[];
   estados: EstadoLlegadaVista[];
   sinFila: ValorSinEstado[];
+  /**
+   * Las etapas en las que puede nacer un deal, con su nombre. Viene del servidor:
+   * `lib/catalogo/estados-llegada.ts` carga la base y no puede entrar al bundle.
+   */
+  etiquetaDeEntrada: Readonly<Record<NonNullable<EstadoLlegadaVista["etapaEntrada"]>, string>>;
 }) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
@@ -157,7 +162,7 @@ export function EstadosLlegadaAdmin({
               value={borrador.etapaEntrada ?? ""}
               onChange={(e) => setBorrador({ ...borrador, etapaEntrada: (e.target.value || null) as Etapa })}
             >
-              {Object.entries(ETIQUETA_ETAPA_DE_ENTRADA).map(([valor, etiqueta]) => (
+              {Object.entries(etiquetaDeEntrada).map(([valor, etiqueta]) => (
                 <option key={valor} value={valor}>
                   {etiqueta}
                 </option>
@@ -229,7 +234,7 @@ export function EstadosLlegadaAdmin({
                     <td className="font-medium">
                       <code>{e.valor}</code>
                     </td>
-                    <td>{e.etapaEntrada ? ETIQUETA_ETAPA_DE_ENTRADA[e.etapaEntrada] : "No abre deal"}</td>
+                    <td>{e.etapaEntrada ? etiquetaDeEntrada[e.etapaEntrada] : "No abre deal"}</td>
                     <td>
                       {e.prioridad === "alta" ? <Badge variant="alerta">Alta</Badge> : <Badge variant="neutro">Normal</Badge>}
                     </td>
