@@ -120,6 +120,28 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ## 4. La ola vigente y el mapa de etapas
 
+### 🌊 Ola O2 · cerrar la operación comercial en el CRM · abierta el 2-oct
+
+**Meta (Mani, 2-oct):** que toda la operación comercial, de la entrada del lead a student, se maneje en el CRM. Las
+métricas, el dashboard y la pauta siguen después, encima de esto. La migración va **al final**, cuando la operación
+esté probada a mano. Producción al 2-oct: la entrada funciona (174 envíos en 48 h, cada uno con su deal), pero nadie
+opera todavía (0 deals de En gestión en adelante, 0 abonos) y la cartera vive en las hojas.
+
+| Orden | Sesión | Ticket | Dueño | Tamaño | Notas |
+|---|---|---|---|---|---|
+| 1 | O2-a | [152] el closer asigna su Calendly (ADR 0074) | Mani | S | en paralelo con O2-b |
+| 1 | O2-b | [153] base local y lista de pruebas | Mani | M | Mani recorre la lista como closer; lo que falle va a `anotaciones.md` y a su ticket |
+| 2 | O2-c | [143] propiedades obligatorias por etapa | Mani | M | dueño de `lib/deals/requisitos.ts`; después de que O2-b muestre qué falta |
+| 2 | O2-d | arreglos que salgan de la lista del 153 | Mani | · | un ticket por hallazgo que no quepa en el 153 |
+| 3 | O2-e | [078] migración de ComunicArte (plan de cierre en su archivo) | Mani | M | paso 0: barrido y tabla aprobada antes del código |
+| 3 | O2-f | [078] migración de Tactical | Mani | S | después de O2-e en `main` |
+| 4 | O2-g | [154] manual de operación comercial (artifact) | Mani | M | con la operación probada y migrada |
+
+**Lo de Mani que no es código:** invitar a los closers nuevos a la organización de Calendly de cada programa y darlos
+de alta en `/ajustes/usuarios` (rol, `closer_id`, membresías); el `pg_dump` de producción el día de cada `--aplicar`
+(paso 4 del plan del 078) mientras S1 siga abierta; avisar a los closers que revisen lo suyo después de migrar. El
+corte no tiene fecha (Mani, 2-oct): las hojas se dejan cuando la migración de los dos programas esté revisada.
+
 ### 🌊 Ola O1 · abierta el 1-oct
 
 Se llama "O" para no confundirla con las olas 0, 1 y 2 de Pauta (`analytics.md` §7). Una fila es una sesión.

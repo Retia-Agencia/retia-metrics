@@ -148,3 +148,45 @@ subcategoría.
 ## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
 
 - Si las pestañas traen la columna "origen del deal" al corte, el importador la lleva a `deals.area_declarada_id` (121). Si no, los deals históricos quedan sin área declarada (ADR 0059).
+
+## Plan de cierre (2-oct, Mani): lo último de la operación comercial, después de la ola O2
+
+La migración va **al final**, cuando el manejo de la operación en el CRM esté probado (ola O2 de
+`plan-reparto.md` §4). Deja el CRM igual a las hojas: todos los deals con su closer, los cerrados con su saldo y los
+estudiantes; desde ahí la operación sigue en el CRM y las hojas se dejan. Se corre **por programa, en dos sesiones**:
+primero ComunicArte (adapta el código y aplica CA), después Tactical (reusa el código y aplica TI).
+
+**Por qué hay que adaptar el código:** `lib/migracion/` se escribió antes del 142 (etapas de 30X) y del 132 (valor
+vendido). Hoy manda el setteo a Registrado/Contactado y no escribe el valor vendido de los estudiantes.
+
+**Decisiones de Mani (2-oct, QD-2 confirmada):**
+
+1. **Alcance:** entra lo trabajado (`En proceso`, todo lo que tiene actividad de un closer y los `Pendiente` de los
+   últimos 30 días). `No interesado` y la cola vieja sin actividad no entran (se recuperan por Kapso, fuera del CRM).
+2. **Dueño:** el closer de la hoja (`duenoDesdeLaHoja`).
+3. **Etapa:** la base es **En gestión** (la cola del setter), pero **no todo queda ahí**: cada valor de la hoja que dice
+   más (estado, categoría, subcategoría, resultado de la última llamada) va a su etapa, pendiente o motivo de 30X
+   según la tabla del paso 0. La última llamada sigue afinando: show sin cierre → Atendido; no show → Agendado con
+   re-agenda pendiente.
+4. **Estudiantes:** valor vendido = `Precio final`; abono = `Cash collected`; Ganado parcial o completo según el saldo
+   (`saldosDeDeals`). Sin monto cobrado → Compromiso Verbal + rareza (no se inventa).
+5. **Comisión histórica:** nula (ADR 0023: un porcentaje inventado mide mal a una persona).
+
+**Orden por programa (cada paso para y pide el ok de Mani):**
+
+0. **Barrido de hoy, solo lectura.** Cada pestaña de gestión del programa: cada valor de `Estado gestión`,
+   `Categoría`/`Subcategoría` y resultado de la última llamada, con su conteo y la etapa/pendiente/motivo de 30X
+   propuesta (de `lib/deals/etapas.ts` y `docs/manual-gestion-comercial.md`; parte del barrido del 077, que es del
+   29-sep y con las etapas viejas). La tabla se escribe aquí abajo y **Mani la aprueba** antes de tocar código.
+   Ejemplos del 077 en TI: `FOLLOW UP` (31), `PENDIENTE RE AGENDA` (20), `RECHAZO DIRECTO` / `FIT/PRODUCTO` /
+   `FINANCIERO` (cierre perdido con su motivo), `Agendado` 58.
+1. Adaptar `lib/migracion/` a la tabla aprobada y a las decisiones de arriba (Codex, medium), con sus tests.
+2. Template del programa (en CA la Categoría vive en `Registro 2`).
+3. Ensayo en la base local y contra producción **sin** `--aplicar`: conteos y rarezas.
+4. **Respaldo:** `pg_dump` completo de producción a `~/retia-backups/` (fuera del repo: lleva datos personales). Es el
+   respaldo de este día mientras S1 (respaldos diarios) siga abierta.
+5. `--aplicar`, mirando antes el ref de la connection string.
+6. Conteo por closer y por etapa, para que cada closer entre y revise lo suyo. Lo que reporten va a
+   `docs/anotaciones.md`.
+
+La reversa por programa existe (`npm run migracion:deshacer`, ticket 127).
