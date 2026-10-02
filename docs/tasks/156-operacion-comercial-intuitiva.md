@@ -3,7 +3,7 @@ id: 156
 etapa: O2
 serves: "docs/anotaciones.md A-34, A-35, A-36, A-37, A-38, A-39 · ADR 0075"
 depends: [155]
-status: todo
+status: en curso
 ---
 
 # 156 — La operación comercial intuitiva: Transición por etapa destino, alertas en su recuadro, comprobante sin reja y el closer ve lo suyo

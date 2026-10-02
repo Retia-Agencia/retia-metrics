@@ -32,6 +32,26 @@ leer es libre, escribir pide el ok de Mani.
 
 ## Memory
 
+- **2026-10-02 (noche, Mani + Claude): onboarding de los closers nuevos → ADR 0075 y 0076, el 156 en `main`.**
+  - **De dónde sale:** la llamada de onboarding con los dos closers nuevos y Michael. Mani mandó 8 puntos; quedaron
+    como A-34 a A-42 en `docs/anotaciones.md` (recorrido 5), con lo que no es código (programas de Nicolás y
+    Francisco, accesos, disponibilidad, Grain, Juanito) en la misma sección.
+  - **Decidido:** ADR 0075 (Transición por etapa destino con un pop-up para ficha y Kanban; alertas en su recuadro;
+    el comprobante no bloquea, es alerta roja; link de reunión genérico; el closer ve solo sus deals). ADR 0076
+    (handoff del setter SIN soltar el deal, alerta "link enviado sin cita" a **1 día hábil**, crédito en
+    `deals.setter_user_id`, cuatro caminos de una llamada con su llave, una suelta solo la cuelga su host). Se
+    descartó que el setter suelte el deal: queda huérfano si el lead no agenda y cualquier closer podría tomarlo.
+    Calendly devuelve los UTM del link en `invitee.tracking` (verificado contra la API de Tactical, solo lectura).
+  - **Hecho:** el 156 lo implementó Codex y lo revisó la sesión principal: typecheck y lint limpios; diff leído en
+    lo riesgoso (`lib/auth/alcance-deals.ts`, requisitos, Kanban, `pegarComprobante`, imports de los componentes
+    cliente). Los tests NO se corrieron en local (9,7 GB de swap): decide el CI. Codex reportó 386 + 11 en verde.
+  - **Pendiente:** CI verde del 156; `npm run build` y el recorrido en `dev:local` (mover desde ficha y Kanban,
+    pegar comprobante, forjar la ficha de un deal ajeno → 404). Después el 157 (migración en la cola). El 158 espera
+    la decisión de objeciones con Michael; A-41 (parciales) se deja como está.
+  - **Aprendido:** el sandbox de Codex solo escribe dentro del checkout de la sesión: el worktree va en
+    `.claude/worktrees/`, no al lado del repo. Y no puede escribir el gitdir del worktree, así que el commit lo hace
+    la sesión principal.
+
 - **2026-10-02 (tarde, Alejo + Claude): el 092 paso 1 en `main` y la 0060 aplicada; O2-d con A-24, A-29, A-31 y A-33.**
   - **Hecho:** 092 (ADR 0068, paso 1) en `7796e65`: `sources.url_publica` y `sources.principal` (índice único parcial y
     CHECK), `marcarFuentePrincipal`, el generador único `lib/atribucion/link-de-captacion.ts` y la ficha del programa
@@ -3894,6 +3914,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
+- 🧭 **2-oct (noche): la operación comercial para los closers nuevos.** El 156 en `main` esperando CI y recorrido; el
+  157 (handoff del setter, migración) listo detrás; el 158 bloqueado por objeciones. Los programas de Nicolás y
+  Francisco tienen que estar montados antes del lunes 5-oct (tarea en Notion).
 - 🎯 **2-oct, EL MÉTODO COMERCIAL: el ciclo de vida de 30X es como se maneja Retia** (Mani). Transcrito en
   `docs/insumos/30x-ciclo-de-vida.md`; manual aprobado (`docs/manual-gestion-comercial.md`, su §0 es el punto de
   entrada) y dudas D-1 a D-9 y QM-12 en el ADR 0071. **El 142 está desbloqueado y al frente de la cola de
