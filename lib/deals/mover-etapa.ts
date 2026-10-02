@@ -8,7 +8,6 @@ import {
   deals,
   leads,
   motivos,
-  productos,
   programs,
   submissions,
 } from "@/lib/db/schema";
@@ -19,13 +18,14 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import type { Rol } from "@/lib/auth/roles";
 import { saldosDeDeals } from "@/lib/queries/saldo";
+import { cohorteActiva } from "@/lib/queries/cohortes";
 import { ETAPAS_VENDIDAS } from "@/lib/queries/metricas-filtros";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { exigirFechaLimiteValida } from "./pago";
 import { puedeTrabajarDeal } from "./permiso";
 import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal, type TipoMotivo, type Transicion } from "./etapas";
 import { queLeFalta, type HechosDelDeal, type RequisitoFaltante } from "./requisitos";
-import { esquemaValorVendidoUsd } from "./valor-vendido";
+import { congelarValorVendido } from "./valor-vendido";
 
 /**
  * `moverEtapa()`: el UNICO camino para cambiar `deals.etapa` (ADR 0037 punto 4,
@@ -38,7 +38,7 @@ import { esquemaValorVendidoUsd } from "./valor-vendido";
  * **y** su fila de `deal_etapa_historial` en la misma transaccion (ADR 0047).
  *
  * **Los hechos los lee este modulo, nunca el llamador.** Si el llamador pudiera
- * pasar "ya tiene producto", cada escritor podria afirmar algo distinto y la reja no
+ * pasar "ya tiene valor vendido", cada escritor podria afirmar algo distinto y la reja no
  * seria una reja.
  *
  * El rastro del movimiento es `deal_etapa_historial`, no `change_log`: la etapa no es
@@ -68,12 +68,11 @@ export type Actor =
  * 🎯 **Nada que PRUEBE un hecho entra por aca.** Las llamadas, los contactos y los
  * abonos se leen de la base, nunca del input: si el llamador pudiera afirmar "ya tiene
  * abono", la reja no seria una reja (mismo principio que los hechos). Estos son datos
- * del propio deal (producto, fechas, acuerdo, cohorte destino), no evidencia de un
+ * del propio deal (descuento, fechas, acuerdo, cohorte destino), no evidencia de un
  * evento.
  */
 export interface DatosMovimiento {
-  productoId?: string | null;
-  valorVendidoUsd?: number | null;
+  descuentoUsd?: number;
   areaDeclaradaId?: string | null;
   fechaLimitePago?: string | null;
   acuerdoPago?: string | null;
@@ -207,7 +206,7 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
  * movimiento (punto 6). No filtra por flecha: quien puede mover el deal (su dueño o
  * quien administra) tambien puede editarlo, asi que un dato de mas no abre ninguna
  * puerta; lo que la flecha EXIGE lo sigue midiendo `queLeFalta`. Valida cada uno antes:
- *  - **producto**: activo y del mismo programa del deal (frontera, ADR 0043).
+ *  - **descuento**: se calcula contra el ticket de la cohorte y congela el total.
  *  - **cohorte destino**: del mismo programa (ADR 0043) y distinta de la de origen
  *    (`cohort_id`); no se exige estado `futuro` (Mani, 27-sep: no decidido).
  *
@@ -225,21 +224,14 @@ async function escribirDatos(tx: Db, deal: FilaDeal, mov: Movimiento): Promise<F
     cambios[campo as string] = valor;
   };
 
-  if (datos.productoId !== undefined) {
-    if (datos.productoId !== null) {
-      const [prod] = await tx
-        .select({ id: productos.id })
-        .from(productos)
-        .where(and(eq(productos.id, datos.productoId), eq(productos.activo, true), eq(productos.programId, deal.programId)));
-      if (!prod) {
-        throw new MovimientoRechazado("El producto no existe, está inactivo o es de otro programa.", [], 422);
-      }
-    }
-    aplicar("productoId", datos.productoId);
-  }
-  if (datos.valorVendidoUsd !== undefined) {
-    const valor = esquemaValorVendidoUsd.parse(datos.valorVendidoUsd);
-    aplicar("valorVendidoUsd", valor == null ? null : String(valor));
+  if (datos.descuentoUsd !== undefined) {
+    const congelado = await congelarValorVendido(tx, {
+      deal,
+      descuentoUsd: datos.descuentoUsd,
+      actorId: mov.actor.tipo === "usuario" ? mov.actor.userId : null,
+      etiqueta: deal.id,
+    });
+    deal = { ...deal, cohortId: congelado.cohortId, valorVendidoUsd: String(congelado.valorVendidoUsd) };
   }
   if (datos.areaDeclaradaId !== undefined) {
     if (datos.areaDeclaradaId !== null) await exigirAreaActiva(tx, datos.areaDeclaradaId);
@@ -310,7 +302,6 @@ export interface AltaDeDeal {
   programId: string;
   etapa: EtapaDeal;
   actor: Actor;
-  productoId?: string | null;
   areaDeclaradaId?: string | null;
   fechaLimitePago?: string | null;
   cohortId?: string | null;
@@ -352,8 +343,9 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
     if (lead.programId !== alta.programId) {
       throw new ErrorDeApp("El lead es de otro programa: el deal tiene que abrirse en el programa del lead.", 422);
     }
+    const cohortId = alta.cohortId === undefined ? (await cohorteActiva(alta.programId, tx))?.id ?? null : alta.cohortId;
     if (alta.fechaLimitePago) {
-      await exigirFechaLimiteValida(tx, { programId: alta.programId, cohortId: alta.cohortId ?? null }, alta.fechaLimitePago);
+      await exigirFechaLimiteValida(tx, { programId: alta.programId, cohortId }, alta.fechaLimitePago);
     }
     if (alta.areaDeclaradaId) await exigirAreaActiva(tx, alta.areaDeclaradaId);
     // El origen de la venta (ADR 0060): la FK solo mira que el envio exista, y uno de otro
@@ -383,10 +375,9 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
           programId: alta.programId,
           etapa: alta.etapa,
           ownerUserId: usuario ?? alta.ownerUserId ?? null,
-          productoId: alta.productoId ?? null,
           areaDeclaradaId: alta.areaDeclaradaId ?? null,
           fechaLimitePago: alta.fechaLimitePago ?? null,
-          cohortId: alta.cohortId ?? null,
+          cohortId,
           submissionOrigenId: alta.submissionOrigenId ?? null,
           creadoPor: usuario,
         },
@@ -422,7 +413,6 @@ export interface AltaHistorica {
   fechaEtapa?: Date | null;
   /** Solo si el nombre de la hoja es un usuario del CRM (`duenoDesdeLaHoja`); si no, sin dueño. */
   ownerUserId?: string | null;
-  productoId?: string | null;
   cohortId?: string | null;
   acuerdoPago?: string | null;
   onboardedAt?: Date | null;
@@ -447,7 +437,7 @@ export type DealHistorico =
  * historial (`de` nulo), su rastro y sus notas, en una transaccion (ADR 0059).
  *
  * Es el otro camino de nacimiento, al lado de `abrirDeal`, y vive en el motor porque
- * escribe la etapa. **No pasa por `queLeFalta`**: lo que la hoja no trae (producto,
+ * escribe la etapa. **No pasa por `queLeFalta`**: lo que la hoja no trae (valor vendido,
  * fecha limite) le falta al deal y la Ficha lo dice, como a cualquier otro. Lo usa solo
  * la migracion, y `tests/migracion-escritor-guardian.test.ts` lo fija.
  *
@@ -480,20 +470,16 @@ export async function abrirDealesHistoricos(db: Db, altas: readonly AltaHistoric
   if (altas.some((a) => a.actorId !== actorId)) throw new Error("Un lote historico tiene un solo actor.");
 
   const leadIds = unicos(altas.map((a) => a.leadId));
-  const productoIds = unicos(altas.map((a) => a.productoId));
   const cohortIds = unicos(altas.map((a) => a.cohortId));
   const envioIds = unicos(altas.map((a) => a.submissionOrigenId));
 
   return (db as unknown as Transaccion).transaction(async (tx) => {
-    // Las cuatro lecturas de la frontera viajan juntas.
-    const [filasLead, filasProd, filasCoh, filasEnv] = await Promise.all([
+    // Las tres lecturas de la frontera viajan juntas.
+    const [filasLead, filasCoh, filasEnv] = await Promise.all([
       tx
         .select({ id: leads.id, programId: leads.programId, nombre: leads.nombre, email: leads.emailNormalizado })
         .from(leads)
         .where(inArray(leads.id, leadIds)),
-      productoIds.length > 0
-        ? tx.select({ id: productos.id, programId: productos.programId }).from(productos).where(inArray(productos.id, productoIds))
-        : Promise.resolve([]),
       cohortIds.length > 0
         ? tx.select({ id: cohorts.id, programId: cohorts.programId }).from(cohorts).where(inArray(cohorts.id, cohortIds))
         : Promise.resolve([]),
@@ -502,7 +488,6 @@ export async function abrirDealesHistoricos(db: Db, altas: readonly AltaHistoric
         : Promise.resolve([]),
     ]);
     const lead = new Map(filasLead.map((l) => [l.id, l]));
-    const programaDeProducto = new Map(filasProd.map((p) => [p.id, p.programId]));
     const programaDeCohorte = new Map(filasCoh.map((c) => [c.id, c.programId]));
     const leadDeEnvio = new Map(filasEnv.map((s) => [s.id, s.leadId]));
 
@@ -512,12 +497,7 @@ export async function abrirDealesHistoricos(db: Db, altas: readonly AltaHistoric
       if (l.programId !== alta.programId) {
         throw new ErrorDeApp("El lead es de otro programa: el deal tiene que abrirse en el programa del lead.", 422);
       }
-      // La frontera tambien vale para el producto y la cohorte: la FK solo mira que existan, y
-      // un producto de otro programa haria el saldo con el precio equivocado sin ningun error.
-      // No se exige que el producto este activo: una venta vieja pudo ser de uno ya retirado.
-      if (alta.productoId && programaDeProducto.get(alta.productoId) !== alta.programId) {
-        throw new ErrorDeApp("El producto no existe o es de otro programa.", 422);
-      }
+      // La frontera tambien vale para la cohorte: la FK solo mira que exista.
       if (alta.cohortId && programaDeCohorte.get(alta.cohortId) !== alta.programId) {
         throw new ErrorDeApp("La cohorte no existe o es de otro programa.", 422);
       }
@@ -538,7 +518,6 @@ export async function abrirDealesHistoricos(db: Db, altas: readonly AltaHistoric
           programId: alta.programId,
           etapa: alta.etapa,
           ownerUserId: alta.ownerUserId ?? null,
-          productoId: alta.productoId ?? null,
           cohortId: alta.cohortId ?? null,
           acuerdoPago: alta.acuerdoPago ?? null,
           onboardedAt: alta.onboardedAt ?? null,

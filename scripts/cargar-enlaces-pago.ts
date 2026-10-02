@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../lib/db";
-import { enlacesPago, plataformasPago, productos, programs } from "../lib/db/schema";
+import { enlacesPago, plataformasPago, programs } from "../lib/db/schema";
 import { crearEnlacePago, esquemaEnlacePago } from "../lib/catalogo/enlaces-pago";
 import { actorConRolDelScript } from "./actor";
 
@@ -26,7 +26,6 @@ import { actorConRolDelScript } from "./actor";
  *     {
  *       "programa": "comunicarte",       // slug del programa
  *       "plataforma": "PayPal",          // nombre de la plataforma de pago
- *       "producto": "Programa completo", // opcional: nombre del producto
  *       "monto": "797.00",
  *       "moneda": "USD",
  *       "url": "https://..."
@@ -47,7 +46,6 @@ import { actorConRolDelScript } from "./actor";
 const esquemaFilaCruda = z.object({
   programa: z.string().min(1, "Falta el slug del programa."),
   plataforma: z.string().min(1, "Falta el nombre de la plataforma."),
-  producto: z.string().min(1).optional(),
   monto: z.string(),
   moneda: z.string().optional(),
   url: z.string(),
@@ -59,7 +57,7 @@ function rutaDelJson(): string {
     throw new Error(
       "Falta ENLACES_PAGO_JSON en .env.local. Debe ser la RUTA a un archivo JSON " +
         "fuera del repo con los enlaces de pago (un array de filas con programa, " +
-        "plataforma, producto opcional, monto, moneda y url). Los links no se " +
+        "plataforma, monto, moneda y url). Los links no se " +
         "escriben en el codigo (ADR 0017): pide el archivo a Mani y apunta la " +
         "variable a su ruta local.",
     );
@@ -80,16 +78,6 @@ async function idPorNombrePlataforma(nombre: string): Promise<string> {
       `No existe una plataforma de pago "${nombre}". Creala en /ajustes/catalogos o siembra las plataformas primero.`,
     );
   }
-  return fila.id;
-}
-
-async function idPorNombreProducto(programId: string, nombre: string): Promise<string> {
-  const [fila] = await db
-    .select()
-    .from(productos)
-    .where(and(eq(productos.programId, programId), eq(productos.nombre, nombre)))
-    .limit(1);
-  if (!fila) throw new Error(`No existe el producto "${nombre}" en ese programa.`);
   return fila.id;
 }
 
@@ -141,7 +129,6 @@ async function main() {
   for (const [i, fila] of filas.entries()) {
     const programId = await idPorSlugPrograma(fila.programa);
     const plataformaId = await idPorNombrePlataforma(fila.plataforma);
-    const productoId = fila.producto ? await idPorNombreProducto(programId, fila.producto) : undefined;
 
     // Se valida con el MISMO esquema zod de la entidad: si un monto o una url no
     // cumplen (por ejemplo un http://), la carga falla ruidosamente en esa fila.
@@ -150,7 +137,6 @@ async function main() {
       datos = esquemaEnlacePago.parse({
         programId,
         plataformaId,
-        productoId,
         monto: fila.monto,
         moneda: fila.moneda ?? "USD",
         url: fila.url,
@@ -173,7 +159,6 @@ async function main() {
     await crearEnlacePago(db, actor, {
       programId,
       plataformaId,
-      productoId: datos.productoId,
       monto: datos.monto,
       moneda: datos.moneda,
       url: datos.url,

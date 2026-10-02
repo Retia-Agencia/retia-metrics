@@ -4,7 +4,7 @@ import { esAccesoTotal, trabajaLeads } from "@/lib/auth/roles";
 export type ItemNav = {
   href: string;
   etiqueta: string;
-  icono: "dashboard" | "deals" | "inbox" | "calls" | "recursos" | "ajustes" | "midia" | "productos" | "nerdstats" | "personas" | "students" | "leads";
+  icono: "dashboard" | "deals" | "inbox" | "calls" | "recursos" | "ajustes" | "midia" | "nerdstats" | "personas" | "students" | "leads";
   roles: readonly Rol[];
 };
 
@@ -38,7 +38,7 @@ export function programaDeRuta(pathname: string): string | null {
  * se queda en ESA tab (ticket 097); lo que venga detras (un id, `/p/a/deals/<id>`) y la
  * query se sueltan, porque un id y un filtro (un closer, una cohorte) son del programa
  * anterior y en el nuevo apuntarian a nada. Desde una ruta sin programa (Ajustes,
- * Productos) se entra por la tab por defecto.
+ * catálogos) se entra por la pestaña por defecto.
  */
 export function rutaAlCambiarDePrograma(pathname: string, nuevoSlug: string): string {
   const [primero, slug, tab] = pathname.split("/").filter(Boolean);
@@ -120,10 +120,6 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
   // Personas: la puerta al historial de un lead. Busca en todos los programas visibles;
   // pasa a ser la tab Leads, de un programa, con el ticket 072.
   items.push({ href: "/personas", etiqueta: "Personas", icono: "personas", roles: ["gerente", "closer"] });
-
-  // Productos: ambos roles los administran (ADR 0016). Es la unica configuracion que
-  // un closer puede tocar; su acceso por programa se enforza en el servidor.
-  items.push({ href: "/productos", etiqueta: "Productos", icono: "productos", roles: ["gerente", "closer"] });
 
   // Recursos: ambos roles leen (brochures y links de pago vigentes). Solo quien
   // ADMINISTRA ve los controles de edicion (`esAdministrador`, ADR 0025 punto 5), y

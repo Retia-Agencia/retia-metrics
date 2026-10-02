@@ -24,7 +24,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { monto } from "@/lib/format";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import type { FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { moverDeal } from "@/app/(app)/p/[programa]/deals/acciones";
@@ -78,7 +77,7 @@ export function FichaAcciones({ ficha, opciones, mapa, nombreDeEtapa, puedeTraba
       a: flecha.a,
       motivoId: datos.motivoId ?? null,
       datos: {
-        valorVendidoUsd: datos.valorVendidoUsd,
+        descuentoUsd: datos.descuentoUsd,
         areaDeclaradaId: datos.areaDeclaradaId,
         fechaLimitePago: datos.fechaLimitePago,
         cohorteDestinoId: datos.cohorteDestinoId,
@@ -186,25 +185,24 @@ function DialogoEditar({
   onCerrar: () => void;
 }) {
   const { pendiente, correr } = useAccion();
-  const [productoId, setProductoId] = useState<string | null>(ficha.producto?.id ?? null);
-  const [valorVendidoUsd, setValorVendidoUsd] = useState(String(ficha.valorVendidoUsd ?? 0));
+  const [descuentoUsd, setDescuentoUsd] = useState(String(ficha.descuento?.usd ?? 0));
+  const [motivoCambioVenta, setMotivoCambioVenta] = useState("");
   const [areaDeclaradaId, setAreaDeclaradaId] = useState<string | null>(ficha.areaDeclarada?.id ?? null);
   const [ownerId, setOwnerId] = useState<string | null>(ficha.owner?.id ?? null);
   const [seguimiento, setSeguimiento] = useState<string>(ficha.fechaSeguimiento ?? "");
   const [motivoId, setMotivoId] = useState<string | null>(ficha.motivo?.id ?? null);
 
   const cerrado = ficha.etapa === "completo" || ficha.etapa === "cierre_perdido";
-  const muestraProducto = ficha.etapa !== "completo";
-  const muestraValorVendido = ficha.etapa !== "completo";
   const muestraMotivo = ficha.etapa === "cierre_perdido";
   const motivosDePerdida = opciones.motivos.filter((m) => m.tipo === "perdida");
 
   // Solo viaja lo que cambio: el servidor escribe un renglon de bitacora por campo tocado.
   const entrada: EntradaEditarDeal = { dealId: ficha.dealId };
-  if (muestraProducto && productoId && productoId !== ficha.producto?.id) entrada.productoId = productoId;
-  const valorVendidoNormalizado = Number(valorVendidoUsd) || null;
-  if (muestraValorVendido && valorVendidoNormalizado !== ficha.valorVendidoUsd) {
-    entrada.valorVendidoUsd = valorVendidoNormalizado;
+  const descuentoNormalizado = Number(descuentoUsd);
+  const cambioDescuento = Number.isFinite(descuentoNormalizado) && descuentoNormalizado !== (ficha.descuento?.usd ?? 0);
+  if (cambioDescuento) {
+    entrada.descuentoUsd = descuentoNormalizado;
+    if (ficha.vendido && motivoCambioVenta.trim()) entrada.motivoCambioVenta = motivoCambioVenta;
   }
   if (areaDeclaradaId && areaDeclaradaId !== ficha.areaDeclarada?.id) entrada.areaDeclaradaId = areaDeclaradaId;
   if (administra && ownerId && ownerId !== ficha.owner?.id) entrada.ownerUserId = ownerId;
@@ -224,36 +222,23 @@ function DialogoEditar({
         </DialogHeader>
 
         <div className="min-w-0 space-y-3">
-          {muestraProducto ? (
-            <Campo etiqueta="Producto">
-              <Select
-                value={productoId}
-                items={opciones.productos.map((p) => ({ value: p.id, label: `${p.nombre} · ${monto(Number(p.precio), p.moneda)}` }))}
-                onValueChange={(v: string | null) => setProductoId(v)}
-              >
-                <SelectTrigger className="w-full min-w-0">
-                  <SelectValue className="min-w-0 truncate" placeholder="Elige un producto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {opciones.productos.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nombre} · {monto(Number(p.precio), p.moneda)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Campo>
-          ) : null}
+          <Campo etiqueta="Descuento (USD)">
+            <Input
+              type="number"
+              min="0"
+              max="99999999.99"
+              step="0.01"
+              value={descuentoUsd}
+              onChange={(e) => setDescuentoUsd(e.currentTarget.value)}
+            />
+          </Campo>
 
-          {muestraValorVendido ? (
-            <Campo etiqueta="Valor vendido (USD)">
-              <Input
-                type="number"
-                min="0"
-                max="99999999.99"
-                step="0.01"
-                value={valorVendidoUsd}
-                onChange={(e) => setValorVendidoUsd(e.currentTarget.value)}
+          {ficha.vendido ? (
+            <Campo etiqueta="Motivo del cambio" ayuda="Obligatorio si cambias el descuento de una venta.">
+              <textarea
+                className={claseTextarea}
+                value={motivoCambioVenta}
+                onChange={(e) => setMotivoCambioVenta(e.target.value)}
               />
             </Campo>
           ) : null}
@@ -329,7 +314,7 @@ function DialogoEditar({
           </Button>
           <Button
             type="button"
-            disabled={pendiente || !hayCambios}
+            disabled={pendiente || !hayCambios || (ficha.vendido && cambioDescuento && motivoCambioVenta.trim() === "")}
             onClick={() => correr(() => editarDealAccion(entrada), { exito: "Deal actualizado.", alExito: onCerrar })}
           >
             {pendiente ? "Guardando…" : "Guardar"}

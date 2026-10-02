@@ -281,11 +281,8 @@ export function RecursosPantalla({
                   <CardTitle className="text-base">{grupo.programa}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {grupo.productos.map((prod) => (
-                    <div key={prod.producto} className="space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground">{prod.producto}</p>
-                      <ul className="space-y-2">
-                        {prod.enlaces.map((e) => (
+                  <ul className="space-y-2">
+                    {grupo.enlaces.map((e) => (
                           <EnlaceItem
                             key={e.id}
                             enlace={e}
@@ -302,10 +299,8 @@ export function RecursosPantalla({
                               correr(() => desactivarEnlacePagoAccion(e.id), "Enlace desactivado")
                             }
                           />
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
+                    ))}
+                  </ul>
                 </CardContent>
               </Card>
             ))}

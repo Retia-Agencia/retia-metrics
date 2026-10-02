@@ -31,7 +31,7 @@ import path from "node:path";
  *   B. **Pasar `session.user.rol` SIN PROYECTAR como valor** (a una funcion que decide
  *      alcance/permiso —`buscarPersonas`, `esAdministrador`, un `actorDe`—, o
  *      devolverlo). No es una comparacion literal, es usar el valor crudo. Es la clase
- *      de hueco que se escapo en `personas/acciones.ts`, `productos/acciones.ts` y
+ *      de hueco que se escapó en `personas/acciones.ts` y
  *      `anulaciones.ts`: el guardian viejo (solo forma A) no la veia.
  *
  * Como casi todo el codigo proyectado usa `rolDeVista(session)` (que NO menciona

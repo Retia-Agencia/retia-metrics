@@ -1,25 +1,27 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { exigirAreaActiva } from "@/lib/catalogo/areas";
-import { deals, motivos, productos } from "@/lib/db/schema";
+import { dealActividades, deals, motivos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { esAdministrador } from "@/lib/auth/roles";
-import { editarConRastro } from "@/lib/crm/rastro";
+import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
+import { ETAPAS_VENDIDAS } from "@/lib/queries/metricas-filtros";
 import { usd } from "@/lib/format";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { esDuenoPosible } from "./duenos";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
-import { esquemaValorVendidoUsdOpcional } from "./valor-vendido";
+import { moverEtapa } from "./mover-etapa";
+import { congelarValorVendido, esquemaDescuentoUsdOpcional } from "./valor-vendido";
 
 /**
  * Editar los campos sueltos de un deal (ticket 074, ADR 0042): un deal NO es inmutable.
  * Si editar fuera imposible, anular seria el unico remedio para un dato mal puesto y se
  * usaria para todo, que es justo lo que el ADR 0038 evita.
  *
- * Aqui van: producto, dueño, fecha de seguimiento y motivo del Cierre Perdido. **Lo demas
+ * Aqui van: descuento, dueño, fecha de seguimiento y motivo del Cierre Perdido. **Lo demas
  * ya tiene su puerta y no se duplica**: el acuerdo de pago y su fecha limite son
  * `editarAcuerdoDePago` (`pago.ts`), la cohorte es `cambiarCohorte` (`estudiante.ts`), y
  * **la etapa NUNCA se edita aqui**: solo `moverEtapa()` la escribe (ADR 0037). El esquema
@@ -34,8 +36,8 @@ import { esquemaValorVendidoUsdOpcional } from "./valor-vendido";
  */
 export const esquemaEditarDeal = z.object({
   dealId: z.string().uuid("El deal no es válido."),
-  productoId: z.string().uuid("El producto no es válido.").optional(),
-  valorVendidoUsd: esquemaValorVendidoUsdOpcional,
+  descuentoUsd: esquemaDescuentoUsdOpcional,
+  motivoCambioVenta: z.string().trim().min(1, "El motivo es obligatorio para cambiar una venta.").optional(),
   ownerUserId: z.string().uuid("El dueño no es válido.").optional(),
   fechaSeguimiento: z
     .string()
@@ -53,7 +55,7 @@ type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> 
 /** Devuelve `true` si algo cambio (si no, no se escribe ni rastro). */
 export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarDeal): Promise<boolean> {
   return normalizando(async () => {
-    const { dealId, productoId, valorVendidoUsd, ownerUserId, fechaSeguimiento, motivoId, areaDeclaradaId } = esquemaEditarDeal.parse(datos);
+    const { dealId, descuentoUsd, motivoCambioVenta, ownerUserId, fechaSeguimiento, motivoId, areaDeclaradaId } = esquemaEditarDeal.parse(datos);
 
     return (db as unknown as Transaccion).transaction(async (tx) => {
       const { deal, emailLead } = await dealBloqueadoConLead(tx, dealId);
@@ -80,30 +82,35 @@ export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarD
         cambios.ownerUserId = ownerUserId;
       }
 
-      if (productoId !== undefined) {
-        if (deal.etapa === "completo") {
-          throw new ErrorDeApp("El deal está completo: cambiar su producto movería su saldo.", 409);
-        }
-        const [producto] = await tx.select().from(productos).where(eq(productos.id, productoId));
-        // Frontera: un producto de otro programa no existe para este deal (ADR 0043).
-        if (!producto || producto.programId !== deal.programId || !producto.activo) {
-          throw new ErrorDeApp("El producto no existe, está inactivo o es de otro programa.", 422);
-        }
-        cambios.productoId = productoId;
-      }
-
-      if (valorVendidoUsd !== undefined) {
-        if (deal.etapa === "completo") {
-          throw new ErrorDeApp("El deal está completo: cambiar su valor vendido movería su saldo.", 409);
-        }
-        const actual = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
-        if (actual && (valorVendidoUsd ?? 0) < actual.abonado) {
-          throw new ErrorDeApp(
-            `El valor vendido (${usd(valorVendidoUsd ?? 0)}) queda por debajo de lo ya abonado (${usd(actual.abonado)}): anula primero el abono que sobra.`,
-            422,
+      let cambioDeVenta = false;
+      if (descuentoUsd !== undefined) {
+        const saldoAntes = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
+        const vendido = (saldoAntes?.abonosVigentes ?? 0) > 0 || (ETAPAS_VENDIDAS as readonly string[]).includes(deal.etapa);
+        const congelado = await congelarValorVendido(tx, {
+          deal,
+          descuentoUsd,
+          actorId: actor.userId,
+          etiqueta: emailLead,
+        });
+        cambioDeVenta = congelado.valorAnteriorUsd !== congelado.valorVendidoUsd;
+        if (vendido && cambioDeVenta) {
+          if (!motivoCambioVenta) {
+            throw new ErrorDeApp("El motivo es obligatorio para cambiar una venta.", 422);
+          }
+          const descuentoAnterior =
+            congelado.valorAnteriorUsd == null
+              ? 0
+              : Math.round((congelado.precioTicketUsd - congelado.valorAnteriorUsd) * 100) / 100;
+          await crearConRastro(
+            { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: actor.userId, etiqueta: emailLead },
+            {
+              dealId: deal.id,
+              tipo: "nota",
+              userId: actor.userId,
+              nota: `Cambio de descuento: ${usd(descuentoAnterior)} → ${usd(congelado.descuentoUsd)} (total ${usd(congelado.valorAnteriorUsd ?? congelado.precioTicketUsd)} → ${usd(congelado.valorVendidoUsd)}). ${motivoCambioVenta}`,
+            },
           );
         }
-        cambios.valorVendidoUsd = valorVendidoUsd == null ? null : String(valorVendidoUsd);
       }
 
       if (fechaSeguimiento !== undefined) {
@@ -136,12 +143,24 @@ export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarD
         cambios.motivoId = motivoId;
       }
 
-      if (Object.keys(cambios).length === 0) return false;
-      return editarConRastro(
-        { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: emailLead },
-        deal.id,
-        cambios,
-      );
+      const editoCampos =
+        Object.keys(cambios).length === 0
+          ? false
+          : await editarConRastro(
+              { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: emailLead },
+              deal.id,
+              cambios,
+            );
+
+      if (cambioDeVenta) {
+        const despues = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
+        if (deal.etapa === "abonado" && despues?.saldo === 0) {
+          await moverEtapa(tx, { dealId: deal.id, a: "completo", actor: { tipo: "sistema" } });
+        } else if (deal.etapa === "completo" && despues?.saldo != null && despues.saldo > 0) {
+          await moverEtapa(tx, { dealId: deal.id, a: "abonado", actor: { tipo: "sistema" } });
+        }
+      }
+      return cambioDeVenta || editoCampos;
     });
   });
 }

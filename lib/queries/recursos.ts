@@ -4,7 +4,6 @@ import {
   categoriasRecurso,
   enlacesPago,
   plataformasPago,
-  productos,
   programs,
   recursos,
 } from "@/lib/db/schema";
@@ -109,16 +108,13 @@ export interface EnlaceDeLaPantalla {
   moneda: string;
   programId: string;
   programaNombre: string | null;
-  productoId: string | null;
-  /** Nulo cuando el enlace no corresponde a un producto del catalogo. */
-  productoNombre: string | null;
   plataformaId: string;
   plataformaNombre: string | null;
 }
 
 /**
- * Enlaces de pago VIGENTES y activos, con su programa, producto (puede ser nulo),
- * plataforma, monto y moneda ya resueltos. El filtro por programa NO arrastra
+ * Enlaces de pago VIGENTES y activos, con su programa, plataforma, monto y moneda
+ * ya resueltos. El filtro por programa NO arrastra
  * globales: un enlace de pago siempre tiene programa (la columna es `NOT NULL`).
  */
 export async function enlacesDePagoVigentes(
@@ -136,14 +132,11 @@ export async function enlacesDePagoVigentes(
       moneda: enlacesPago.moneda,
       programId: enlacesPago.programId,
       programaNombre: programs.nombre,
-      productoId: enlacesPago.productoId,
-      productoNombre: productos.nombre,
       plataformaId: enlacesPago.plataformaId,
       plataformaNombre: plataformasPago.nombre,
     })
     .from(enlacesPago)
     .leftJoin(programs, eq(programs.id, enlacesPago.programId))
-    .leftJoin(productos, eq(productos.id, enlacesPago.productoId))
     .leftJoin(plataformasPago, eq(plataformasPago.id, enlacesPago.plataformaId))
     .where(and(...condiciones))
     .orderBy(asc(enlacesPago.monto));

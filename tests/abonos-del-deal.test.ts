@@ -9,7 +9,6 @@ import {
   deals,
   leads,
   plataformasPago,
-  productos,
   programs,
   users,
 } from "@/lib/db/schema";
@@ -26,7 +25,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 /**
  * Ticket 060: el dinero entra por el deal y la etapa la mueve el SISTEMA.
  *
- * Producto de 1.000 USD. Cubre: el primer abono lleva a Abonado, el que salda a Completo
+ * Cohorte con ticket de 1.000 USD. Cubre: el primer abono lleva a Abonado, el que salda a Completo
  * (por el motor, dejando historial), la reja del sobrepago con la misma cifra que ve el
  * closer, las rejas de quien puede y de en que etapa, y anular: Completo vuelve a Abonado
  * (A2) y, si era el unico abono, a donde estaba antes de pagar (A1).
@@ -36,7 +35,6 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
-let productoId: string;
 let areaId: string;
 let leadN = 0;
 let closer: string;
@@ -65,8 +63,6 @@ beforeEach(async () => {
     })
     .returning();
   cohortId = c.id;
-  const [prod] = await db.insert(productos).values({ programId, nombre: "Programa", precioLista: "1000" }).returning();
-  productoId = prod.id;
   const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
   areaId = area.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
@@ -93,7 +89,7 @@ async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferIns
     .returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer, productoId, valorVendidoUsd: "1000", areaDeclaradaId: areaId, ...extra })
+    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer,valorVendidoUsd: "1000", areaDeclaradaId: areaId, ...extra })
     .returning();
   return d.id;
 }
@@ -195,14 +191,6 @@ describe("registrarAbono: las rejas", () => {
     expect((await saldosDeDeals(db, [dealId])).get(dealId)?.saldo).toBe(0);
   });
 
-  it("el valor vendido sigue en USD aunque el producto esté en COP", async () => {
-    await db.update(productos).set({ moneda: "COP" }).where(eq(productos.id, productoId));
-    const dealId = await nuevoDeal("atendido");
-    await registrarAbono(db, comoCloser(), abono(dealId, "400"));
-    expect(await abonosDe(dealId)).toHaveLength(1);
-    expect(await etapaDe(dealId)).toBe("abonado");
-  });
-
   it("un saldo no calculable despues del insert deshace el abono con un error claro", async () => {
     const dealId = await nuevoDeal("abonado");
     const antes = await saldosDeDeals(db, [dealId]);
@@ -239,13 +227,12 @@ describe("registrarAbono: las rejas", () => {
     expect(await etapaDe(dealId)).toBe("abonado");
   });
 
-  it("sin valor vendido no se recibe el abono", async () => {
+  it("sin valor vendido congela el ticket de la cohorte antes de recibir el abono", async () => {
     const dealId = await nuevoDeal("atendido", { valorVendidoUsd: null });
-    const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "100")));
-    expect(e.status).toBe(422);
-    expect(e.message).toBe("El deal no tiene valor vendido: escríbelo antes de registrar un abono.");
-    expect(await abonosDe(dealId)).toHaveLength(0);
-    expect(await etapaDe(dealId)).toBe("atendido");
+    await registrarAbono(db, comoCloser(), abono(dealId, "100"));
+    expect(await abonosDe(dealId)).toHaveLength(1);
+    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].valorVendidoUsd).toBe("1000.00");
+    expect(await etapaDe(dealId)).toBe("abonado");
   });
 
   it("solo USD: otra moneda es un 400 y no toca la base", async () => {
@@ -485,7 +472,7 @@ describe("anularAbono: la etapa se recalcula", () => {
 
 describe("registrarAbono: la cohorte se asigna sola la primera vez que el deal recibe plata (063)", () => {
   it("un deal sin cohorte queda en la activa del programa, con su rastro", async () => {
-    const dealId = await nuevoDeal("atendido", { cohortId: null });
+    const dealId = await nuevoDeal("atendido", { cohortId: null, valorVendidoUsd: null });
     const r = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
     expect(r.cohorteAsignada).toBe(cohortId);
     const [d] = await db.select({ cohortId: deals.cohortId }).from(deals).where(eq(deals.id, dealId));

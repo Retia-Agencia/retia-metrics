@@ -109,11 +109,6 @@ describe("navegacion por rol", () => {
     expect(rutasDe("gerente").some((r) => r.startsWith("/programas/"))).toBe(false);
   });
 
-  it("ambos roles ven /productos (los closers tambien los administran, ADR 0016)", () => {
-    expect(rutasDe("closer")).toContain("/productos");
-    expect(rutasDe("gerente")).toContain("/productos");
-  });
-
   it("los tres roles ven /personas, la puerta al historial (18-sep)", () => {
     // El gerente es el caso que motivo la ruta: podia abrir `/personas/[id]` y no
     // tenia como llegar, porque el unico enlace vivia en `/mi-dia`.
@@ -142,11 +137,11 @@ describe("navegacion por rol", () => {
     expect(rutaInicial("closer", null)).toBe("/mi-dia");
   });
 
-  it("el developer ve la union de items: mi-dia, dashboard, productos, recursos y ajustes (ADR 0025)", () => {
+  it("el developer ve la union de items: mi-dia, dashboard, recursos y ajustes (ADR 0025)", () => {
     const rutas = rutasDe("developer");
     expect(rutas).toContain("/mi-dia");
     expect(rutas).toContain("/p/programa-a/dashboard");
-    expect(rutas).toContain("/productos");
+    expect(rutas).not.toContain("/productos");
     expect(rutas).toContain("/recursos");
     expect(rutas).toContain("/ajustes");
   });

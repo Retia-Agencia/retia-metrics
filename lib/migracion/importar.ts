@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { cohorts, leadContactos, leads, plataformasPago, productos, rarezasMigracion } from "@/lib/db/schema";
+import { cohorts, leadContactos, leads, plataformasPago, rarezasMigracion } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
   abrirDealesHistoricos,
@@ -28,9 +28,8 @@ import type { Extraccion, RarezaTemplate, TipoRareza } from "./template";
  * - **No toca lo vivo** (punto 3): si el lead ya tiene un deal abierto, gana el vivo y la fila
  *   queda como rareza; sus abonos y llamadas no se cuelgan de el.
  * - **Cruza con la base, no adivina:** el lead por su correo (principal o contacto de correo
- *   confirmado) dentro del programa; la cohorte por su codigo; el producto solo si UN producto
- *   del programa tiene exactamente ese precio; la plataforma por nombre sin mayusculas ni
- *   espacios. Lo que no cruza es rareza, nunca un valor parecido.
+ *   confirmado) dentro del programa; la cohorte por su codigo; la plataforma por nombre sin
+ *   mayusculas ni espacios. Lo que no cruza es rareza, nunca un valor parecido.
  * - **El deal nace con su origen** (ADR 0060): el envío más reciente del lead, o nulo si no
  *   tiene ninguno. Sin esto los deals migrados nacerían sin origen y habría que rellenarlos.
  * - **El ensayo lo da quien llama:** el script corre esto dentro de una transaccion y la
@@ -98,18 +97,6 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
       cohortId = ctx.cohortes.get(d.cohorte)?.id ?? null;
       if (!cohortId) marcar(d.huella, "sin_cohorte", `La cohorte ${d.cohorte} no existe en el programa: el deal entra sin cohorte.`);
     }
-    let productoId: string | null = null;
-    if (d.precio) {
-      const candidatos = ctx.productosPorPrecio.get(Number(d.precio)) ?? [];
-      if (candidatos.length === 1) productoId = candidatos[0];
-      else {
-        marcar(
-          d.huella,
-          "producto_no_encontrado",
-          `${candidatos.length === 0 ? "Ningún" : "Más de un"} producto del programa cuesta ${usd(Number(d.precio))}: el deal entra sin producto.`,
-        );
-      }
-    }
     const closer = d.closer ?? "";
     if (!duenos.has(closer)) duenos.set(closer, await duenoDesdeLaHoja(db, op.programId, d.closer));
 
@@ -122,7 +109,6 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
       fechaEtapa: d.fechaEtapa ? new Date(d.fechaEtapa) : null,
       ownerUserId: duenos.get(closer) ?? null,
       submissionOrigenId: ctx.envioDeOrigen.get(leadId) ?? null,
-      productoId,
       cohortId,
       acuerdoPago: d.acuerdoPago,
       onboardedAt: op.onboardedDesdeMail && d.mailOnboarding && d.fechaEtapa ? new Date(d.fechaEtapa) : null,
@@ -246,7 +232,7 @@ function clavePlataforma(nombre: string): string {
 }
 
 async function cargarContexto(db: Db, programId: string) {
-  const [principales, contactos, cohortes, plataformas, prods, envioDeOrigen] = await Promise.all([
+  const [principales, contactos, cohortes, plataformas, envioDeOrigen] = await Promise.all([
     db.select({ id: leads.id, correo: leads.emailNormalizado }).from(leads).where(eq(leads.programId, programId)),
     db
       .select({ leadId: leadContactos.leadId, valor: leadContactos.valor })
@@ -257,11 +243,6 @@ async function cargarContexto(db: Db, programId: string) {
       .from(cohorts)
       .where(eq(cohorts.programId, programId)),
     db.select({ id: plataformasPago.id, nombre: plataformasPago.nombre }).from(plataformasPago),
-    db
-      .select({ id: productos.id, precio: productos.precioLista })
-      .from(productos)
-      // Solo USD: el precio de la hoja es USD y nunca se convierte en silencio (AGENTS.md).
-      .where(and(eq(productos.programId, programId), eq(productos.moneda, "USD"))),
     enviosDeOrigenPorLead(db, programId),
   ]);
 
@@ -270,14 +251,10 @@ async function cargarContexto(db: Db, programId: string) {
   // El correo principal manda sobre un contacto secundario.
   for (const l of principales) if (l.correo) leadDeCorreo.set(l.correo, l.id);
 
-  const productosPorPrecio = new Map<number, string[]>();
-  for (const p of prods) productosPorPrecio.set(Number(p.precio), [...(productosPorPrecio.get(Number(p.precio)) ?? []), p.id]);
-
   return {
     leadDeCorreo,
     cohortes: new Map(cohortes.map((c) => [c.codigo, { id: c.id, cierreVentas: c.cierreVentas }])),
     plataformas: plataformasPorClave(plataformas),
-    productosPorPrecio,
     envioDeOrigen,
   };
 }

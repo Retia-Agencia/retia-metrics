@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { abonos, cohorts, deals, leads, productos, programs, users } from "@/lib/db/schema";
+import { abonos, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { carteraVencida } from "@/lib/queries/cartera";
@@ -18,7 +18,6 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
-let productoId: string;
 let closer: string;
 let leadN = 0;
 
@@ -33,8 +32,6 @@ beforeEach(async () => {
     .values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-10-15", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-10-10", estado: "activo" })
     .returning();
   cohortId = c.id;
-  const [prod] = await db.insert(productos).values({ programId, nombre: "Programa", precioLista: "1000" }).returning();
-  productoId = prod.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
 });
@@ -48,7 +45,7 @@ async function deal(etapa: EtapaDeal, pagado: string, extra: Partial<typeof deal
   const [l] = await db.insert(leads).values({ programId: programa, emailNormalizado: `l${++leadN}@correo.co`, nombre: `Lead ${leadN}` }).returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId: programa, cohortId, etapa, ownerUserId: closer, productoId, valorVendidoUsd: "1000.00", ...extra })
+    .values({ leadId: l.id, programId: programa, cohortId, etapa, ownerUserId: closer,valorVendidoUsd: "1000.00", ...extra })
     .returning();
   if (Number(pagado) > 0) await db.insert(abonos).values({ dealId: d.id, programId: programa, fecha: "2026-10-01", monto: pagado });
   return d;
@@ -127,8 +124,7 @@ describe("carteraVencida", () => {
 
   it("el programa es frontera: la cartera de uno no incluye los deals del otro", async () => {
     const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
-    const [productoAjeno] = await db.insert(productos).values({ programId: otro.id, nombre: "Otro producto", precioLista: "1500" }).returning();
-    await deal("abonado", "400", { fechaLimitePago: "2026-10-01", cohortId: null, productoId: productoAjeno.id, valorVendidoUsd: "1500.00" }, otro.id);
+    await deal("abonado", "400", { fechaLimitePago: "2026-10-01", cohortId: null, valorVendidoUsd: "1500.00" }, otro.id);
     await deal("abonado", "100", { fechaLimitePago: "2026-10-01" });
     const r = await carteraVencida(db, programId, HOY);
     expect(r.vencidos).toHaveLength(1);

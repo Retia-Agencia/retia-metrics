@@ -43,7 +43,6 @@ export const TIPOS_DE_RAREZA = [
   "plataforma_fuera_de_catalogo",
   "llamada_sin_deal",
   "abono_sin_deal",
-  "producto_no_encontrado",
   "sin_cohorte",
 ] as const;
 export type TipoRareza = (typeof TIPOS_DE_RAREZA)[number];
@@ -72,7 +71,7 @@ export interface DealTemplate {
   fechaEtapa: string | null;
   /** Codigo de la cohorte (Estudiantes); nulo en el Setteo. */
   cohorte: string | null;
-  /** Precio en USD que dice la hoja; el producto lo resuelve el importador. */
+  /** Precio histórico en USD tal como lo dice la hoja; el importador no lo aplica al deal. */
   precio: string | null;
   acuerdoPago: string | null;
   /** `Mail onboarding = Si`. Que se hace con eso lo decide el importador (pregunta abierta del 077). */

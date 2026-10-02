@@ -178,7 +178,7 @@ interface Revision {
  * - **cuotas pactadas:** la migracion no las crea.
  * - **editado despues:** el alta de un registro deja todas sus filas de `change_log` en UNA
  *   transaccion, asi que comparten `detectado_en` (`now()` es el inicio de la transaccion). Una
- *   fila con otra hora es una edicion posterior: reclamar el deal, cambiarle el producto,
+ *   fila con otra hora es una edicion posterior: reclamar el deal, cambiarle el descuento,
  *   colgar una llamada suelta de un deal desde el Inbox.
  */
 async function trabajoEncima(db: Db, r: Revision): Promise<Partial<Record<MotivoNegativa, number>>> {

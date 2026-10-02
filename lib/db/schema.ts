@@ -229,6 +229,7 @@ export const programs = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     slug: text("slug").notNull().unique(),
     nombre: text("nombre").notNull(),
+    /** Solo prellena el precio al crear una cohorte; ninguna métrica lee este valor. */
     ticketUsd: numeric("ticket_usd", { precision: 10, scale: 2 }).notNull(),
     /** Pagina de venta del programa. Editable desde /ajustes/programas (ticket 014). */
     webUrl: text("web_url"),
@@ -809,13 +810,12 @@ export const entregasWebhook = pgTable(
 
 /**
  * El Deal: la oportunidad de venderle un programa a un Lead (ADR 0037). Es el
- * objeto central del CRM y **es tambien la venta**: producto, cohorte, owner y
+ * objeto central del CRM y **es tambien la venta**: cohorte, owner y
  * fechas viven aqui, y por eso `sales` se disuelve (ticket 038).
  *
- * El ticket lo da el producto (`productoId → productos.precioLista`), sin
- * `precio_contrato`: 🩸 las hojas muestran ocho precios por descuentos y **cada
- * precio que el equipo use es un producto del catalogo**, que el equipo crea
- * (ADR 0016).
+ * El ticket lo da la cohorte. Al vender se congela el total como ticket menos
+ * descuento en `valorVendidoUsd`; cambiar después el precio de la cohorte no mueve
+ * lo que ya se vendió.
  *
  * Derivados, nunca almacenados (ADR 0037 punto 6, ADR 0024): `abonado`, `saldo`,
  * `es_student` (`etapa in (abonado, completo)`) y la comision.
@@ -842,7 +842,6 @@ export const deals = pgTable(
      */
     ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "restrict" }),
     etapa: etapaDealEnum("etapa").notNull().default("pendiente_setteo"),
-    productoId: uuid("producto_id").references(() => productos.id, { onDelete: "restrict" }),
     /**
      * El acuerdo de pago, como lo conversaron (ADR 0053): *"el otro 30% en tal fecha y
      * el 20% en tal otra"*. Texto libre y opcional: no hay cuotas en v1.
@@ -882,10 +881,8 @@ export const deals = pgTable(
       onDelete: "restrict",
     }),
     /**
-     * Lo que de verdad se vendio, en USD (ticket 132, ADR 0065): lo escribe el closer
-     * y de aqui salen el saldo y el Completo automatico, no del producto. Nulo = nadie
-     * lo escribio; el motor lo exige (> 0) al entrar a Abonado o Completo, salvo un
-     * deal historico. La pantalla arranca en 0 pero un 0 sin tocar se guarda nulo.
+     * Lo que de verdad se vendió, en USD: ticket de la cohorte menos el descuento
+     * escrito por el closer. Se congela al vender; de aquí salen saldo y Completo.
      */
     valorVendidoUsd: numeric("valor_vendido_usd", { precision: 10, scale: 2 }),
     /**
@@ -1049,7 +1046,7 @@ export const dealActividades = pgTable(
  * El deal NO lleva `num_cuotas`: es `count()` sobre esta tabla.
  *
  * `moneda` vive al lado del monto y nunca se convierte en silencio (restriccion
- * dura de AGENTS.md), igual que en `abonos` y `productos`.
+ * dura de AGENTS.md), igual que en `abonos`.
  */
 export const cuotasPactadas = pgTable(
   "cuotas_pactadas",
@@ -1363,8 +1360,8 @@ export const changeLog = pgTable(
     /**
      * Quien hizo el cambio desde la app. Nullable a proposito: en los cambios del
      * sync no hay usuario (`null`). El molde de catalogo (ADR 0012) lo llena, y
-     * ADR 0016 lo necesita porque los closers crean productos y hay que poder
-     * auditar quien creo cada uno. `set null` para no perder la bitacora si algun
+     * los cambios de catálogo necesitan auditar quién creó cada fila. `set null`
+     * para no perder la bitácora si algún
      * dia se desactiva/borra al usuario.
      */
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
@@ -1525,36 +1522,6 @@ export const canales = pgTable(
 );
 
 /**
- * Productos que se venden dentro de un programa (ticket 017, ADR 0016): el programa
- * completo, la reserva de cupo, la mentoria 1:1... Cada uno con su precio de lista y
- * su moneda. Instancia editable del molde (ADR 0012): tabla con `activo`, un solo
- * esquema zod, nunca se borra, cada cambio a `change_log`.
- *
- * A diferencia de los catalogos globales (plataformas, motivos, origenes), un
- * producto cuelga de un programa (`programId`), asi que la unicidad del nombre es
- * POR programa y sin distinguir mayusculas: dos programas pueden tener cada uno un
- * "Programa completo", pero un mismo programa no puede repetirlo.
- *
- * La moneda vive al lado del precio y nunca se convierte en silencio (restriccion
- * dura de AGENTS.md): USD o COP, sin TRM historica unica.
- */
-export const productos = pgTable(
-  "productos",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
-    nombre: text("nombre").notNull(),
-    precioLista: numeric("precio_lista", { precision: 10, scale: 2 }).notNull(),
-    moneda: text("moneda").notNull().default("USD"),
-    activo: boolean("activo").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  // Unicidad del nombre POR programa y SIN distinguir mayusculas, como los indices
-  // `lower(nombre)` de los demas catalogos: 'Programa completo' y 'programa completo'
-  // no pueden partir el catalogo del mismo programa en dos.
-  (t) => [uniqueIndex("productos_programa_nombre_idx").on(t.programId, sql`lower(${t.nombre})`)],
-);
-
 // ─────────────────────────────────────────────────────────── recursos y enlaces de pago
 
 /**
@@ -1634,9 +1601,7 @@ export const recursos = pgTable(
  * (restriccion dura de AGENTS.md): los links se generan a mano segun la TRM del
  * momento, asi que el monto es el que cobra ese link y nada mas.
  *
- * `productoId` nulo = el link no corresponde a un producto del catalogo (un abono
- * suelto, un monto pactado). `vigente` y `activo` significan lo mismo que en
- * `recursos`.
+ * `vigente` y `activo` significan lo mismo que en `recursos`.
  */
 export const enlacesPago = pgTable(
   "enlaces_pago",
@@ -1645,7 +1610,6 @@ export const enlacesPago = pgTable(
     programId: uuid("program_id")
       .notNull()
       .references(() => programs.id, { onDelete: "cascade" }),
-    productoId: uuid("producto_id").references(() => productos.id, { onDelete: "restrict" }),
     plataformaId: uuid("plataforma_id")
       .notNull()
       .references(() => plataformasPago.id, { onDelete: "restrict" }),
@@ -1693,7 +1657,6 @@ export type PlataformaPago = typeof plataformasPago.$inferSelect;
 export type PlataformaPrograma = typeof plataformasPrograma.$inferSelect;
 export type Motivo = typeof motivos.$inferSelect;
 export type Origen = typeof origenes.$inferSelect;
-export type Producto = typeof productos.$inferSelect;
 export type CategoriaRecurso = typeof categoriasRecurso.$inferSelect;
 export type Recurso = typeof recursos.$inferSelect;
 export type EnlacePago = typeof enlacesPago.$inferSelect;

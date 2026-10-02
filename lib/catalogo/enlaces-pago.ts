@@ -21,7 +21,7 @@ import { MONEDAS } from "@/lib/monedas";
  *
  * Igual que un recurso tiene `vigente` + `reemplazaA` y la misma operacion
  * `reemplazar(id, nuevaUrl)`: crear la fila nueva vigente y bajar la anterior sin
- * borrarla. `productoId` nulo = el link no corresponde a un producto del catalogo.
+ * borrarla.
  *
  * El monto se recibe como texto (la columna es `numeric`, que Drizzle mapea a
  * string): un monto POSITIVO con hasta dos decimales, igual que en
@@ -41,7 +41,6 @@ const esquemaId = z.string().uuid("El identificador no es válido.");
 /** El unico esquema zod de un enlace de pago. */
 export const esquemaEnlacePago = z.object({
   programId: z.string().uuid("Programa inválido."),
-  productoId: z.string().uuid("Producto inválido.").optional(),
   plataformaId: z.string().uuid("Plataforma inválida."),
   monto: z
     .string()
@@ -60,7 +59,6 @@ export type EnlacePagoValidado = z.output<typeof esquemaEnlacePago>;
 /** Un enlace de pago tal como lo ve el llamador. */
 export interface EnlacePagoVista extends FilaCatalogo {
   programId: string;
-  productoId: string | null;
   plataformaId: string;
   monto: string;
   moneda: string;
@@ -72,7 +70,6 @@ export interface EnlacePagoVista extends FilaCatalogo {
 /** Columnas de `enlaces_pago` que el molde administra al crear/editar. */
 type CamposEnlacePago = {
   programId: string;
-  productoId?: string;
   plataformaId: string;
   monto: string;
   moneda: string;

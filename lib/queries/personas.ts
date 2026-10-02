@@ -64,7 +64,7 @@ const MAXIMO_FILAS = 20;
  * un gerente no necesita membresias, **un gerente no encontraba a nadie, nunca**. No
  * era un buscador vacio y ya: `/personas/[id]` solo se alcanza desde aqui, asi que un
  * gerente no tenia NINGUNA forma de abrir el historial de un lead. Misma familia que el
- * bug de `/productos`: la pregunta era del rol y se contesto con la membresia. Desde el
+ * bug histórico de los catálogos: la pregunta era del rol y se contestó con la membresía. Desde el
  * 094 esa pregunta la contesta una sola funcion, `programasVisibles`, y este buscador
  * ya no la re-implementa: pide los ids del alcance y filtra por ellos.
  *

@@ -9,7 +9,6 @@ import {
   leads,
   motivos,
   plataformasPago,
-  productos,
   submissions,
   users,
 } from "@/lib/db/schema";
@@ -19,7 +18,9 @@ import { fechaLimiteMaxima } from "@/lib/deals/pago";
 import { duenosPosibles } from "@/lib/deals/duenos";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 import { areas as catalogoAreas } from "@/lib/catalogo/areas";
-import { saldosDeDeals, type SaldoDeDeal } from "@/lib/queries/saldo";
+import { descuentoDeDeal, saldosDeDeals, type DescuentoDeDeal, type SaldoDeDeal } from "@/lib/queries/saldo";
+import { cohorteActiva } from "@/lib/queries/cohortes";
+import { ETAPAS_VENDIDAS } from "@/lib/queries/metricas-filtros";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 
 /**
@@ -104,8 +105,10 @@ export interface FichaDeDeal {
    */
   origen: { utmSource: string | null; utmMedium: string | null; utmCampaign: string | null } | null;
   owner: { id: string; nombre: string | null } | null;
-  producto: { id: string; nombre: string; precio: string; moneda: string } | null;
   valorVendidoUsd: number | null;
+  ticket: { cohorteId: string; codigo: string; precioUsd: number; esActivaSugerida: boolean } | null;
+  descuento: DescuentoDeDeal | null;
+  vendido: boolean;
   areaDeclarada: { id: string; nombre: string } | null;
   cohorte: { id: string; codigo: string; inicioClases: string } | null;
   cohorteDestino: { id: string; codigo: string } | null;
@@ -198,9 +201,6 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
   }
   const nombreDe = (id: string | null | undefined) => (id ? (nombres.get(id) ?? null) : null);
 
-  const [producto] = deal.productoId
-    ? await db.select().from(productos).where(eq(productos.id, deal.productoId))
-    : [];
   const areaDeclarada = deal.areaDeclaradaId
     ? (await catalogoAreas(db).listar()).find((a) => a.id === deal.areaDeclaradaId) ?? null
     : null;
@@ -218,6 +218,9 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
 
   const cohorte = cohorteDeId(deal.cohortId);
   const cohorteDestino = cohorteDeId(deal.cohorteDestinoId);
+  const activaSugerida = deal.cohortId == null ? await cohorteActiva(deal.programId, db) : null;
+  const cohorteDelTicket = cohorte ?? activaSugerida;
+  const valorVendidoUsd = deal.valorVendidoUsd == null ? null : Number(deal.valorVendidoUsd);
 
   return {
     dealId: deal.id,
@@ -237,8 +240,17 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
       ? { utmSource: fila.origenSource, utmMedium: fila.origenMedium, utmCampaign: fila.origenCampaign }
       : null,
     owner: deal.ownerUserId ? { id: deal.ownerUserId, nombre: nombreDe(deal.ownerUserId) } : null,
-    producto: producto ? { id: producto.id, nombre: producto.nombre, precio: producto.precioLista, moneda: producto.moneda } : null,
-    valorVendidoUsd: deal.valorVendidoUsd == null ? null : Number(deal.valorVendidoUsd),
+    valorVendidoUsd,
+    ticket: cohorteDelTicket
+      ? {
+          cohorteId: cohorteDelTicket.id,
+          codigo: cohorteDelTicket.codigo,
+          precioUsd: Number(cohorteDelTicket.precioUsd),
+          esActivaSugerida: cohorte == null,
+        }
+      : null,
+    descuento: descuentoDeDeal(cohorte?.precioUsd, valorVendidoUsd),
+    vendido: saldo.abonosVigentes > 0 || (ETAPAS_VENDIDAS as readonly string[]).includes(deal.etapa),
     areaDeclarada: areaDeclarada ? { id: areaDeclarada.id, nombre: String(areaDeclarada.nombre) } : null,
     cohorte: cohorte ? { id: cohorte.id, codigo: cohorte.codigo, inicioClases: cohorte.fechaInicioClases } : null,
     cohorteDestino: cohorteDestino ? { id: cohorteDestino.id, codigo: cohorteDestino.codigo } : null,
@@ -303,7 +315,6 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
 
 /** Lo que los formularios de la ficha ofrecen, todo acotado al programa del deal. */
 export interface OpcionesDeFicha {
-  productos: { id: string; nombre: string; moneda: string; precio: string }[];
   areas: { id: string; nombre: string }[];
   /** Cohortes futuras o activas del programa: a donde puede ir un deal (`cambiarCohorte`). */
   cohortes: { id: string; nombre: string }[];
@@ -314,10 +325,6 @@ export interface OpcionesDeFicha {
 }
 
 export async function opcionesDeFicha(db: Db, programId: string, ownerActualId: string | null): Promise<OpcionesDeFicha> {
-  const productosFilas = await db
-    .select()
-    .from(productos)
-    .where(and(eq(productos.programId, programId), eq(productos.activo, true)));
   const cohortesFilas = await db
     .select()
     .from(cohorts)
@@ -335,9 +342,6 @@ export async function opcionesDeFicha(db: Db, programId: string, ownerActualId: 
   }
 
   return {
-    productos: productosFilas
-      .map((p) => ({ id: p.id, nombre: p.nombre, moneda: p.moneda, precio: p.precioLista }))
-      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
     areas: areasFilas.map((a) => ({ id: a.id, nombre: String(a.nombre) })),
     cohortes: cohortesFilas.map((c) => ({ id: c.id, nombre: c.codigo })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
     motivos: motivosFilas.map((m) => ({ id: m.id, nombre: m.nombre, tipo: m.tipo })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),

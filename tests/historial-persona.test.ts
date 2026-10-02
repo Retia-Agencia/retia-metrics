@@ -10,7 +10,6 @@ import {
   origenes,
   leads,
   plataformasPago,
-  productos,
   programs,
   users,
 } from "@/lib/db/schema";
@@ -49,7 +48,6 @@ async function limpiar(): Promise<void> {
   // lead con deals perderia su historial. El orden de este helper es el orden de
   // las llaves foraneas, no una lista alfabetica.
   await db.delete(deals);
-  await db.delete(productos);
   await db.delete(leads);
   await db.delete(cohorts);
   await db.delete(miembrosPrograma);

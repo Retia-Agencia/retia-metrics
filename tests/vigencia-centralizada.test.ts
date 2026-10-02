@@ -78,7 +78,7 @@ const EXCEPCIONES: readonly string[] = [];
  * Archivos donde un `.from(x)` con la tabla por PARAMETRO no exige predicado.
  *
  * El molde de catalogo (ADR 0012) es generico sobre tablas de catalogo —plataformas
- * de pago, motivos, origenes, productos—, **ninguna de las cuales se anula**: esas se
+ * de pago, motivos, origenes—, **ninguna de las cuales se anula**: esas se
  * desactivan (`activo = false`), que es otra cosa. Exigirles vigencia seria pedir un
  * filtro sobre una columna que no existe.
  *

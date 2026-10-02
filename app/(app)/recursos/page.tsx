@@ -125,7 +125,6 @@ export default async function RecursosPage({ searchParams }: Props) {
           moneda: e.moneda,
           programId: e.programId,
           programaNombre: e.programaNombre,
-          productoNombre: e.productoNombre,
           plataformaNombre: e.plataformaNombre,
         }))}
       />

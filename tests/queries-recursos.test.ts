@@ -3,7 +3,6 @@ import { eq } from "drizzle-orm";
 import {
   categoriasRecurso,
   plataformasPago,
-  productos,
   programs,
   users,
 } from "@/lib/db/schema";
@@ -156,39 +155,28 @@ describe("recursosVigentes — filtro por programa incluye los globales", () => 
   });
 });
 
-describe("enlacesDePagoVigentes — con programa, producto, plataforma, monto y moneda", () => {
-  it("resuelve los nombres y deja el producto nulo cuando no lo hay", async () => {
-    const [prod] = await db
-      .insert(productos)
-      .values({ programId: programaA, nombre: "Programa completo", precioLista: "797.00", moneda: "USD" })
-      .returning();
-
+describe("enlacesDePagoVigentes — con programa, plataforma, monto y moneda", () => {
+  it("resuelve los nombres", async () => {
     await crearEnlacePago(db, actor, {
       programId: programaA,
-      productoId: prod.id,
       plataformaId: plataforma,
       monto: "797.00",
       moneda: "USD",
-      url: "https://paypal.com/con-producto",
+      url: "https://paypal.com/uno",
     });
     await crearEnlacePago(db, actor, {
       programId: programaA,
       plataformaId: plataforma,
       monto: "500.00",
       moneda: "USD",
-      url: "https://paypal.com/sin-producto",
+      url: "https://paypal.com/dos",
     });
 
     const filas = await enlacesDePagoVigentes({}, db);
     expect(filas).toHaveLength(2);
-    const conProducto = filas.find((f) => f.url.endsWith("con-producto"))!;
-    expect(conProducto.programaNombre).toBe("Comunicarte");
-    expect(conProducto.productoNombre).toBe("Programa completo");
-    expect(conProducto.plataformaNombre).toBe("PayPal");
-    expect(conProducto.moneda).toBe("USD");
-    const sinProducto = filas.find((f) => f.url.endsWith("sin-producto"))!;
-    expect(sinProducto.productoNombre).toBeNull();
-    expect(sinProducto.moneda).toBe("USD");
+    expect(filas[0].programaNombre).toBe("Comunicarte");
+    expect(filas[0].plataformaNombre).toBe("PayPal");
+    expect(filas.every((f) => f.moneda === "USD")).toBe(true);
   });
 });
 

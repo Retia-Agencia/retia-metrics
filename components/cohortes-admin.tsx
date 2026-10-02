@@ -84,10 +84,12 @@ function aBorrador(c: CohorteVista): Borrador {
 export function CohortesAdmin({
   slug,
   programId,
+  ticketUsd,
   cohortes,
 }: {
   slug: string;
   programId: string;
+  ticketUsd: string;
   cohortes: CohorteVista[];
 }) {
   const router = useRouter();
@@ -122,7 +124,7 @@ export function CohortesAdmin({
       {creando ? (
         <FormularioCohorte
           titulo="Nueva cohorte"
-          inicial={BORRADOR_VACIO}
+          inicial={{ ...BORRADOR_VACIO, precioUsd: ticketUsd }}
           pendiente={pendiente}
           onCancelar={() => setCreando(false)}
           onGuardar={(b) =>

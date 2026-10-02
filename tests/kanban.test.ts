@@ -6,7 +6,6 @@ import {
   deals,
   leadContactos,
   leads,
-  productos,
   programs,
   sources,
   submissions,
@@ -31,7 +30,6 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
-let productoId: string;
 let owner1: string;
 let owner2: string;
 let sourceId: string;
@@ -60,8 +58,6 @@ beforeEach(async () => {
     })
     .returning();
   cohortId = c.id;
-  const [prod] = await db.insert(productos).values({ programId, nombre: "Programa", precioLista: "1000" }).returning();
-  productoId = prod.id;
   const [u1] = await db.insert(users).values({ email: "carlos@retia.co", rol: "closer", closerId: "carlos", nombre: "Carlos" }).returning();
   const [u2] = await db.insert(users).values({ email: "maria@retia.co", rol: "closer", closerId: "maria", nombre: "Maria" }).returning();
   owner1 = u1.id;
@@ -115,9 +111,7 @@ async function deal(o: OpcDeal): Promise<string> {
       programId,
       cohortId: o.cohort === undefined ? cohortId : o.cohort,
       etapa: o.etapa,
-      ownerUserId: o.owner ?? owner1,
-      productoId,
-      valorVendidoUsd: "1000.00",
+      ownerUserId: o.owner ?? owner1,valorVendidoUsd: "1000.00",
       fechaLimitePago: o.fechaLimitePago ?? null,
       fechaSeguimiento: o.fechaSeguimiento ?? null,
       ...(o.anulado
@@ -166,7 +160,7 @@ describe("tableroKanban", () => {
     expect(enContacto.tarjetas).toHaveLength(1);
   });
 
-  it("agrupa por etapa y muestra dueño y producto", async () => {
+  it("agrupa por etapa y muestra el dueño", async () => {
     await deal({ etapa: "pendiente_setteo", owner: owner1 });
     await deal({ etapa: "en_contacto", owner: owner2 });
     await deal({ etapa: "en_contacto", owner: owner1 });
@@ -175,7 +169,6 @@ describe("tableroKanban", () => {
     const setteo = t.columnas.find((c) => c.etapa === "pendiente_setteo")!;
     expect(enContacto.tarjetas).toHaveLength(2);
     expect(setteo.tarjetas).toHaveLength(1);
-    expect(enContacto.tarjetas[0].productoNombre).toBe("Programa");
     expect([owner1, owner2]).toContain(enContacto.tarjetas[0].ownerUserId);
     expect(enContacto.tarjetas.some((x) => x.ownerNombre === "Maria")).toBe(true);
   });
@@ -261,7 +254,6 @@ describe("opcionesDeTablero", () => {
     expect(o.owners.map((x) => x.id).sort()).toEqual([owner1, owner2].sort());
     expect(o.cohortes.map((x) => x.nombre)).toContain("C1");
     expect(o.canales.map((x) => x.clave).sort()).toEqual(["google|organic", "meta|cpc"]);
-    expect(o.productos.map((p) => p.nombre)).toContain("Programa");
   });
 
   it("un deal anulado no aporta su dueño ni su canal a las opciones", async () => {

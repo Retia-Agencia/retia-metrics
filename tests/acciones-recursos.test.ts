@@ -16,13 +16,13 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 023 + enmienda del 19-sep: crear/reemplazar/desactivar recursos y enlaces de
- * pago lo pueden hacer gerente Y closer, con el molde del ADR 0016 (el de productos):
+ * pago lo pueden hacer gerente Y closer, con el molde de acceso por programa:
  * quien ADMINISTRA (gerente/developer) entra a cualquier programa; un closer solo a
  * los programas donde tiene membresia ACTIVA, y NUNCA a un recurso global.
  *
  * La barrera es de servidor (ADR 0003): un closer sin acceso recibe `ok:false`, no
- * solo un boton escondido. Mismo patron que `tests/acciones-productos.test.ts`: `auth`
- * mockeado, base PGlite inyectada, y la cookie de vista mockeada para el developer.
+ * solo un botón escondido. `auth` está mockeado, la base PGlite se inyecta y la cookie
+ * de vista se simula para el developer.
  */
 
 const auth = vi.fn();

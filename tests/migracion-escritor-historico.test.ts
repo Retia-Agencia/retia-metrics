@@ -9,7 +9,6 @@ import {
   deals,
   leads,
   miembrosPrograma,
-  productos,
   programs,
   sources,
   submissions,
@@ -169,22 +168,6 @@ describe("abrirDealHistorico (ADR 0059 punto 1)", () => {
     await expect(
       abrirDealHistorico(db, { leadId: lead, programId: otroPrograma, etapa: "completo", huella: H("ana"), actorId: script }),
     ).rejects.toThrow(/otro programa/);
-  });
-
-  it("el programa es frontera tambien para el producto (revision de Codex, 29-sep)", async () => {
-    const [ajeno] = await db.insert(productos).values({ programId: otroPrograma, nombre: "Ajeno", precioLista: "1500" }).returning();
-
-    await expect(
-      abrirDealHistorico(db, {
-        leadId: lead,
-        programId: programa,
-        etapa: "completo",
-        huella: H("ana"),
-        actorId: script,
-        productoId: ajeno.id,
-      }),
-    ).rejects.toThrow(/otro programa/);
-    expect(await db.select().from(deals)).toHaveLength(0);
   });
 
   it("el envío de origen tiene que ser de ESTE lead (ADR 0060)", async () => {

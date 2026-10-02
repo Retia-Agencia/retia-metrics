@@ -15,7 +15,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
  * Ticket 003 — server actions de `/mi-dia` (ADR 0003, 0011, 0015, 0021).
  *
  * `auth` se mockea para simular la sesion; la base es PGlite en memoria inyectada
- * via un mock de `@/lib/db`, igual que `tests/acciones-productos.test.ts`. La
+ * vía un mock de `@/lib/db`. La
  * barrera de rol es lo que se prueba aca: la pantalla es del closer (ADR 0003), asi
  * que un gerente no registra y sin sesion no pasa nada.
  *

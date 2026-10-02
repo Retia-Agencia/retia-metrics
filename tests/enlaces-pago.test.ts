@@ -79,11 +79,6 @@ describe("esquema de enlace de pago", () => {
     expect(datos.moneda).toBe("USD");
   });
 
-  it("productoId es opcional (nulo permitido)", () => {
-    const datos = esquemaEnlacePago.parse(enlaceValido({ productoId: undefined }));
-    expect(datos.productoId).toBeUndefined();
-  });
-
   it("rechaza una URL http://", () => {
     expect(esquemaEnlacePago.safeParse(enlaceValido({ url: "http://paypal.com/x" })).success).toBe(
       false,

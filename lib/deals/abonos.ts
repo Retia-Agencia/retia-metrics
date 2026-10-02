@@ -9,12 +9,12 @@ import { esquemaAbono } from "@/lib/abonos/esquema";
 import { exigirPlataformaActiva } from "@/lib/abonos/plataforma";
 import { mismoCloser } from "@/lib/closers/identidad";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
-import { cohorteActiva } from "@/lib/queries/cohortes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { etapaALaQueVuelve, moverEtapa } from "./mover-etapa";
 import { puedeTrabajarDeal } from "./permiso";
 import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal } from "./etapas";
+import { congelarValorVendido } from "./valor-vendido";
 
 /**
  * Registrar y anular un abono, y los movimientos que el SISTEMA hace por el dinero
@@ -27,9 +27,8 @@ import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal } from "./etapas";
  *   inflada de esta familia.
  *
  * Decisiones de Mani, 28-sep: todo en USD, el monto es lo que pago el cliente (bruto, las
- * comisiones de la plataforma no se modelan), sin valor vendido no hay precio y no se recibe
- * un abono, y una promocion o cortesia es OTRO producto (`productos`), no un descuento
- * sobre el de lista. Por eso no existe `precio_contrato`.
+ * comisiones de la plataforma no se modelan). El primer abono congela el ticket de la
+ * cohorte sin descuento cuando el closer todavía no lo hizo.
  *
  * ## El saldo es de `lib/queries/saldo.ts`
  *
@@ -67,8 +66,7 @@ export interface AbonoRegistrado {
   saldo: number;
   /**
    * La cohorte que quedo asignada al deal en ESTE abono (la activa del programa, spec §4), o
-   * `null` si no se asigno nada: ya tenia una, o el programa no tiene cohorte activa (entonces
-   * el deal sigue sin cohorte y la pantalla lo tiene que decir; no se bloquea un cobro real).
+   * `null` si no se asignó nada porque ya tenía una.
    */
   cohorteAsignada: string | null;
 }
@@ -128,9 +126,17 @@ export async function registrarAbono(
         }
         throw new ErrorDeApp("Solo el dueño del deal puede registrar sus abonos.", 403);
       }
-      // Sin valor vendido no hay precio, y sin precio no hay saldo contra el cual medir.
+      let cohorteAsignada: string | null = null;
+      // El primer abono congela el ticket completo. El helper también asigna la cohorte
+      // activa si falta; sin cohorte no se puede aceptar dinero contra un total inventado.
       if (deal.valorVendidoUsd == null || Number(deal.valorVendidoUsd) === 0) {
-        throw new ErrorDeApp("El deal no tiene valor vendido: escríbelo antes de registrar un abono.", 422);
+        const congelado = await congelarValorVendido(tx, {
+          deal,
+          descuentoUsd: 0,
+          actorId: actor.userId,
+          etiqueta: emailLead,
+        });
+        if (deal.cohortId == null) cohorteAsignada = congelado.cohortId;
       }
       await exigirPlataformaActiva(entrada.plataformaId, tx);
 
@@ -175,20 +181,6 @@ export async function registrarAbono(
           origen: "app",
         },
       );
-
-      // La cohorte se asigna SOLA la primera vez que el deal recibe plata (ticket 063, spec §4):
-      // la activa del programa. Un deal ya asignado no se toca (moverlo es `cambiarCohorte`).
-      let cohorteAsignada: string | null = null;
-      if (deal.cohortId == null) {
-        cohorteAsignada = (await cohorteActiva(deal.programId, tx))?.id ?? null;
-        if (cohorteAsignada) {
-          await editarConRastro(
-            { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: emailLead },
-            deal.id,
-            { cohortId: cohorteAsignada },
-          );
-        }
-      }
 
       // El movimiento lo decide el saldo que dejo el abono, leido de nuevo del modulo.
       const despues = (await saldosDeDeals(tx, [deal.id])).get(deal.id);

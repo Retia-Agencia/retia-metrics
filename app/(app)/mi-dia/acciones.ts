@@ -28,7 +28,7 @@ import {
  *
  * Se traduce cualquier error al contrato de `lib/errors`: el resultado es
  * serializable y nunca se lanza al cliente, porque una server action se invoca por
- * red y una excepcion no viaja con su tipo (mismo patron que `productos/acciones.ts`).
+ * red y una excepción no viaja con su tipo.
  */
 
 export type ResultadoAccion = { ok: true } | { ok: false; error: string };

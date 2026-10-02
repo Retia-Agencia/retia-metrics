@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { abonos, cohorts, deals, leads, productos, programs, users } from "@/lib/db/schema";
+import { abonos, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { studentsDelPrograma } from "@/lib/queries/estudiantes";
@@ -17,7 +17,6 @@ let programId: string;
 let otroPrograma: string;
 let c1: string;
 let c2: string;
-let productoId: string;
 let closer: string;
 let n = 0;
 
@@ -47,8 +46,6 @@ beforeEach(async () => {
   const [a, b] = await db.insert(cohorts).values([cohorte("C1", "cerrado", "2026-09-05"), cohorte("C2", "activo", "2026-10-15")]).returning();
   c1 = a.id;
   c2 = b.id;
-  const [prod] = await db.insert(productos).values({ programId, nombre: "Programa", precioLista: "1000" }).returning();
-  productoId = prod.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", nombre: "Maru", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
 });
@@ -61,7 +58,7 @@ async function deal(etapa: EtapaDeal, pagado: string, extra: Partial<typeof deal
   const [l] = await db.insert(leads).values({ programId: programa, emailNormalizado: `l${++n}@correo.co`, nombre: `Lead ${n}` }).returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId: programa, cohortId: c2, etapa, ownerUserId: closer, productoId, valorVendidoUsd: "1000.00", ...extra })
+    .values({ leadId: l.id, programId: programa, cohortId: c2, etapa, ownerUserId: closer,valorVendidoUsd: "1000.00", ...extra })
     .returning();
   if (Number(pagado) > 0) await db.insert(abonos).values({ dealId: d.id, programId: programa, fecha: "2026-10-01", monto: pagado });
   return d;

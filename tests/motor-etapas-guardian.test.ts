@@ -166,7 +166,7 @@ describe("nadie escribe deals.etapa fuera del motor (ADR 0037, ticket 046)", () 
         "// Aqui se habla de la etapa y de update deals en prosa: no cuenta.",
         "/* update deals set etapa = x, tambien en prosa */",
         "export async function editar(db: Db, id: string) {",
-        "  await editarConRastro({ db, tabla: deals, nombreTabla: 'deals', actorId, etiqueta }, id, { productoId: p });",
+        "  await editarConRastro({ db, tabla: deals, nombreTabla: 'deals', actorId, etiqueta }, id, {});",
         "  const lista = await db.select({ etapa: deals.etapa }).from(deals);",
         "  return moverEtapa(db, { dealId: id, a: 'en_contacto', actor });",
         "}",

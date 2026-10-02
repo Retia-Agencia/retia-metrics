@@ -159,7 +159,7 @@ describe("operaciones de catalogos — el gerente administra", () => {
 
 /**
  * Ticket 030 (ADR 0026 punto 5): borrar de verdad lo que nunca se uso, desde la
- * pantalla de catalogos y no solo desde productos. La regla que protege el historial
+ * pantalla de catálogos. La regla que protege el historial
  * no se afloja: con una sola referencia NO se borra, se devuelve el conteo y la fila
  * sigue en la base para que la pantalla ofrezca desactivar.
  */

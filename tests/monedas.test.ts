@@ -1,20 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { esquemaAbono } from "@/lib/abonos/esquema";
 import { esquemaEnlacePago } from "@/lib/catalogo/enlaces-pago";
-import { esquemaProducto } from "@/lib/catalogo/productos";
 
 /**
  * Ticket 114 C6: lo que se vende y lo que se cobra hablan la misma moneda.
  *
- * Los abonos solo aceptan USD (081). Si un producto o un enlace de pago aceptara COP, se
- * podria crear algo que despues no se puede cobrar, sin ningun error al crearlo.
+ * Los abonos y enlaces de pago solo aceptan USD (081).
  */
 describe("una sola moneda para vender y cobrar", () => {
-  const producto = {
-    programId: "22222222-2222-4222-8222-222222222222",
-    nombre: "Programa completo",
-    precioLista: "797",
-  };
   const enlace = {
     programId: "22222222-2222-4222-8222-222222222222",
     plataformaId: "33333333-3333-4333-8333-333333333333",
@@ -22,8 +15,7 @@ describe("una sola moneda para vender y cobrar", () => {
     url: "https://paypal.com/x",
   };
 
-  it("producto y enlace rechazan COP, igual que el abono", () => {
-    expect(esquemaProducto.safeParse({ ...producto, moneda: "COP" }).success).toBe(false);
+  it("el enlace rechaza COP, igual que el abono", () => {
     expect(esquemaEnlacePago.safeParse({ ...enlace, moneda: "COP" }).success).toBe(false);
     expect(
       esquemaAbono.safeParse({
@@ -36,8 +28,7 @@ describe("una sola moneda para vender y cobrar", () => {
     ).toBe(false);
   });
 
-  it("producto y enlace aceptan USD", () => {
-    expect(esquemaProducto.safeParse({ ...producto, moneda: "USD" }).success).toBe(true);
+  it("el enlace acepta USD", () => {
     expect(esquemaEnlacePago.safeParse({ ...enlace, moneda: "USD" }).success).toBe(true);
   });
 });

@@ -7,7 +7,6 @@ import {
   dealActividades,
   deals,
   leads,
-  productos,
   programs,
   sources,
   submissions,
@@ -37,7 +36,6 @@ let programId: string;
 let otroProgramId: string;
 let cohortId: string;
 let sourceId: string;
-let productoId: string;
 let closer: string;
 let otroCloser: string;
 let leadN = 0;
@@ -64,11 +62,6 @@ beforeEach(async () => {
   cohortId = c.id;
   const [s] = await db.insert(sources).values({ programId, nombre: "Typeform", tipo: "google_sheet" }).returning();
   sourceId = s.id;
-  const [prod] = await db
-    .insert(productos)
-    .values({ programId, nombre: "Curso", precioLista: "1000", moneda: "USD", activo: true })
-    .returning();
-  productoId = prod.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru", nombre: "Maru" }).returning();
   closer = u.id;
   const [u2] = await db.insert(users).values({ email: "jose@retiagrowth.com", rol: "closer", closerId: "Jose", nombre: "Jose" }).returning();
@@ -86,7 +79,6 @@ async function crearDeal(o: {
   owner?: string | null;
   anulado?: boolean;
   fechaLimitePago?: string | null;
-  conProducto?: boolean;
   cohorte?: boolean;
   createdAt?: Date;
 }): Promise<{ dealId: string; leadId: string }> {
@@ -104,7 +96,6 @@ async function crearDeal(o: {
       cohortId: o.cohorte === false ? null : prog === programId ? cohortId : null,
       etapa: o.etapa,
       ownerUserId: o.owner === undefined ? closer : o.owner,
-      productoId: o.conProducto === false ? null : prog === programId ? productoId : null,
       valorVendidoUsd: prog === programId ? "1000.00" : null,
       fechaLimitePago: o.fechaLimitePago ?? null,
       ...(o.createdAt ? { createdAt: o.createdAt } : {}),

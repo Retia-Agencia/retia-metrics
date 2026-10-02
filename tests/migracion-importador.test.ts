@@ -9,7 +9,6 @@ import {
   leads,
   miembrosPrograma,
   plataformasPago,
-  productos,
   programs,
   rarezasMigracion,
   sources,
@@ -61,7 +60,6 @@ let programa: string;
 let script: string;
 let maru: string;
 let ana: string;
-let producto: string;
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
@@ -77,8 +75,6 @@ beforeEach(async () => {
     fechaInicioClases: "2026-08-20",
     estado: "cerrado",
   });
-  const [prod] = await db.insert(productos).values({ programId: programa, nombre: "Programa", precioLista: "1500" }).returning();
-  producto = prod.id;
   // `MercadoPago` ya viene sembrada por la migracion 0003.
   const [s] = await db.insert(users).values({ email: "script@retiagrowth.com", rol: "developer" }).returning();
   script = s.id;
@@ -225,7 +221,6 @@ describe("importarGestion (ADR 0059)", () => {
     const deAna = todos.find((d) => d.leadId === ana)!;
     expect(deAna.ownerUserId).toBe(maru);
     const deBeto = todos.find((d) => d.etapa === "completo")!;
-    expect(deBeto.productoId).toBe(producto);
     expect(deBeto.ownerUserId).toBeNull(); // Jero no tiene cuenta
 
     // El abono sin fecha toma el cierre de ventas de su cohorte, y la plataforma cruza sin espacios.
@@ -276,8 +271,7 @@ describe("importarGestion (ADR 0059)", () => {
     expect(rarezas.find((x) => x.tipo === "ya_tiene_deal_vivo")?.dealId).toBe(vivo);
   });
 
-  it("revision de Codex: dos cohortes → llamada suelta; producto COP no cruza; plataforma ambigua; abono sin deal visible", async () => {
-    await db.insert(productos).values({ programId: programa, nombre: "En pesos", precioLista: "700", moneda: "COP" });
+  it("revisión de Codex: dos cohortes → llamada suelta; plataforma ambigua; abono sin deal visible", async () => {
     await db.insert(plataformasPago).values({ nombre: "Mercado Pago" }); // misma clave que la sembrada `MercadoPago`
     const t = extraccionVacia();
     t.deals.push(
@@ -295,13 +289,13 @@ describe("importarGestion (ADR 0059)", () => {
 
     const [llamada] = await db.select().from(calls);
     expect(llamada.dealId).toBeNull();
-    const deBeto = (await db.select().from(deals)).find((d) => d.productoId === null && d.leadId !== ana);
+    const deBeto = (await db.select().from(deals)).find((d) => d.leadId !== ana);
     expect(deBeto).toBeDefined();
     const [abono] = await db.select().from(abonos);
     expect(abono.plataformaId).toBeNull();
     const tipos = (await db.select().from(rarezasMigracion)).map((x) => x.tipo);
     expect(tipos).toEqual(
-      expect.arrayContaining(["en_dos_cohortes", "llamada_sin_deal", "producto_no_encontrado", "plataforma_fuera_de_catalogo", "abono_sin_deal"]),
+      expect.arrayContaining(["en_dos_cohortes", "llamada_sin_deal", "plataforma_fuera_de_catalogo", "abono_sin_deal"]),
     );
   });
 
@@ -324,18 +318,16 @@ describe("importarGestion (ADR 0059)", () => {
     expect(todos.find((d) => d.etapa === "completo")?.submissionOrigenId).toBeNull(); // beto no tiene envíos
   });
 
-  it("lo que no cruza es rareza: plataforma fuera de catalogo y precio sin producto", async () => {
+  it("lo que no cruza es rareza: plataforma fuera de catálogo", async () => {
     const t = extraccionVacia();
     t.deals.push(estudiante("beto@c.co", { precio: "999.00" }));
     t.abonos.push({ huella: `sheets:${P}:estudiantes-julio:beto@c.co:abono`, dealHuella: `sheets:${P}:estudiantes-julio:beto@c.co`, fecha: "2026-08-01", monto: "999.00", plataforma: "Bootcamp", closer: null });
 
     await importarGestion(db, t, op());
 
-    const [d] = await db.select().from(deals);
-    expect(d.productoId).toBeNull();
     const [a] = await db.select().from(abonos);
     expect(a.plataformaId).toBeNull();
     const tipos = (await db.select().from(rarezasMigracion)).map((x) => x.tipo).sort();
-    expect(tipos).toEqual(["plataforma_fuera_de_catalogo", "producto_no_encontrado"]);
+    expect(tipos).toEqual(["plataforma_fuera_de_catalogo"]);
   });
 });

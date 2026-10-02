@@ -217,7 +217,7 @@ function moldeFuentes(db: Db) {
 
 /**
  * Solo administra quien cumple `esAdministrador` (gerente o developer, ADR 0025).
- * A diferencia de los productos (que un closer edita en sus programas), una fuente
+ * A diferencia de los catálogos comerciales que un closer edita en sus programas, una fuente
  * es configuracion de infraestructura: la tocan gerente y developer, no el closer.
  * NUNCA se escribe el rol a mano: la respuesta vive en `lib/auth/roles.ts`.
  */

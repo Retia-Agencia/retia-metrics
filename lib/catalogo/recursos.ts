@@ -111,7 +111,7 @@ const NEGADO_GLOBAL = "No puedes gestionar recursos globales.";
  *
  * Un recurso de un programa: quien administra entra a cualquiera; un closer solo a
  * los programas donde tiene membresia activa. La regla vive en el modulo compartido
- * `acceso-programa.ts`, la misma que usan los productos.
+ * `acceso-programa.ts`, compartida por los catálogos acotados a programa.
  *
  * Un recurso GLOBAL (`programId` nulo) afecta a programas donde un closer no vende,
  * asi que un closer NO puede crearlo (asimetria declarada por Mani), y —supuesto que

@@ -59,7 +59,7 @@ export function monto(valor: number, moneda: string): string {
  * Como se escribe lo que falta por pagar de una venta. Tres estados, tres frases
  * distintas, porque son tres cosas distintas:
  *
- * - `null` → no hay precio contra el cual restar (sin producto asignado). No hay
+ * - `null` → no hay total vendido contra el cual restar. No hay
  *   saldo que calcular y no se inventa un numero.
  * - negativo → NO es "un saldo pendiente de -103". Es un SOBREPAGO de 103, que
  *   alguien confirmo a proposito (el registro de abonos, que vuelve con el ticket 060). Un menos delante le

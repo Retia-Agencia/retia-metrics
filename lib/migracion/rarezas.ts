@@ -36,7 +36,6 @@ export const NOMBRE_DE_RAREZA: Record<TipoRareza, string> = {
   plataforma_fuera_de_catalogo: "Plataforma fuera de catálogo",
   llamada_sin_deal: "Llamada sin deal",
   abono_sin_deal: "Abono sin deal",
-  producto_no_encontrado: "Producto no encontrado",
   sin_cohorte: "Cohorte no encontrada",
 };
 

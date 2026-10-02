@@ -6,7 +6,6 @@ import {
   leadContactos,
   leads,
   motivos,
-  productos,
   submissions,
   users,
 } from "@/lib/db/schema";
@@ -64,8 +63,7 @@ export interface TarjetaDeal {
   etapa: EtapaDeal;
   ownerUserId: string | null;
   ownerNombre: string | null;
-  productoNombre: string | null;
-  /** El saldo tal como lo da `saldosDeDeals`: `null` sin producto o con monedas mezcladas. */
+  /** El saldo tal como lo da `saldosDeDeals`: `null` sin total vendido. */
   saldo: number | null;
   moneda: string | null;
   cohortId: string | null;
@@ -159,7 +157,7 @@ export async function tableroKanban(
   hoy: string = hoyEnBogota(),
   ahora: Date = new Date(),
 ): Promise<TableroKanban> {
-  // Un deal + su lead + su dueno + su producto, en una sola lectura de la tabla `deals`
+  // Un deal + su lead + su dueno, en una sola lectura de la tabla `deals`
   // con joins (sin subconsultas correlacionadas: son joins directos, no plantillas).
   const { creado, actividad, cierre } = rangosDeFecha(filtros);
   const cerrados = cierre ? await cerradosEn(db, programId, cierre) : null;
@@ -181,13 +179,11 @@ export async function tableroKanban(
         leadQuality: leads.leadQuality,
         leadValue: leads.leadValue,
       ownerNombre: users.nombre,
-      productoNombre: productos.nombre,
     })
     .from(deals)
     .innerJoin(leads, eq(leads.id, deals.leadId))
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .leftJoin(users, eq(users.id, deals.ownerUserId))
-    .leftJoin(productos, eq(productos.id, deals.productoId))
     .where(
       and(
         eq(deals.programId, programId),
@@ -242,7 +238,6 @@ export async function tableroKanban(
       etapa: f.etapa,
       ownerUserId: f.ownerUserId,
       ownerNombre: f.ownerNombre,
-      productoNombre: f.productoNombre,
       saldo: saldo?.saldo ?? null,
       moneda: saldo?.moneda ?? null,
       cohortId: f.cohortId,
@@ -347,8 +342,6 @@ export interface OpcionesDeTablero {
    */
   inicioDeClases: Record<string, string>;
   inicioDeLaCohorteActiva: string | null;
-  /** Productos activos del programa (para el dialogo de Compromiso Verbal). */
-  productos: (OpcionCatalogo & { moneda: string; precio: string })[];
   areas: OpcionCatalogo[];
   /** Motivos activos por tipo (para las flechas que exigen motivo). */
   motivos: { id: string; nombre: string; tipo: string }[];
@@ -357,7 +350,7 @@ export interface OpcionesDeTablero {
 /**
  * Las opciones del programa para poblar los selectores del Kanban: los duenos que
  * tienen algun deal, las cohortes con deals, los canales presentes, y los catalogos
- * (productos activos, motivos activos) que los dialogos de arrastre necesitan.
+ * (motivos y áreas activos) que los diálogos de arrastre necesitan.
  *
  * El programa es frontera (ADR 0043): todo se acota a `programId`. Los owners y las
  * cohortes salen de los deals del programa (no de la tabla entera) para no ofrecer
@@ -402,14 +395,6 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   const leadQualities = etiquetasFilas.map((f) => f.leadQuality).filter((v): v is string => v !== null).sort();
   const leadValues = etiquetasFilas.map((f) => f.leadValue).filter((v): v is string => v !== null).sort();
 
-  const productosFilas = await db
-    .select({ id: productos.id, nombre: productos.nombre, moneda: productos.moneda, precio: productos.precioLista })
-    .from(productos)
-    .where(and(eq(productos.programId, programId), eq(productos.activo, true)));
-  const listaProductos = productosFilas
-    .map((p) => ({ id: p.id, nombre: p.nombre, moneda: p.moneda, precio: p.precio }))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre));
-
   // Los motivos son un catalogo GLOBAL (no por programa): la flecha decide la lista por
   // su tipo, y el dialogo la filtra en el cliente.
   const motivoFilas = await db
@@ -425,7 +410,7 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   const inicioDeClases = Object.fromEntries(cohorteFilas.map((c) => [c.id, c.inicio] as const));
   const inicioDeLaCohorteActiva = (await cohorteActiva(programId, db))?.fechaInicioClases ?? null;
 
-  return { owners, cohortes, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, productos: listaProductos, areas: listaAreas, motivos: listaMotivos };
+  return { owners, cohortes, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, areas: listaAreas, motivos: listaMotivos };
 }
 
 /** El rango del filtro de fecha, bajo la llave del campo que filtra; los otros dos, ausentes. */

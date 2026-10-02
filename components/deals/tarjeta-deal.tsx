@@ -21,7 +21,7 @@ import { flechasDesde } from "./transiciones";
 
 /**
  * Una tarjeta de deal en el Kanban (ticket 069). Muestra el lead, el dueño, el
- * producto, el saldo (USD con dos decimales y su moneda, `lib/format.ts`), los días en
+ * saldo (USD con dos decimales y su moneda, `lib/format.ts`), los días en
  * la etapa y los avisos como `<Badge variant>` (nada de colores a mano, §9).
  *
  * Arrastrable con HTML5 nativo (sin dependencia nueva). Además, un menú "Mover a…" para
@@ -140,9 +140,6 @@ export function TarjetaDealCard({
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {tarjeta.leadQuality ? <Badge variant="info">Calidad: {tarjeta.leadQuality}</Badge> : null}
         {tarjeta.leadValue ? <Badge variant="neutro">Valor: {tarjeta.leadValue}</Badge> : null}
-        {tarjeta.productoNombre ? (
-          <span className="truncate text-xs text-muted-foreground">{tarjeta.productoNombre}</span>
-        ) : null}
         {saldoTexto ? (
           <span className="cifra text-xs text-muted-foreground">
             {saldoTexto}

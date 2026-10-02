@@ -11,7 +11,6 @@ import {
   deals,
   leads,
   motivos,
-  productos,
   programs,
   users,
 } from "@/lib/db/schema";
@@ -39,7 +38,6 @@ let leadId: string;
 let closer: string;
 let otroCloser: string;
 let gerente: string;
-let productoId: string;
 let areaId: string;
 let motivoActivo: string;
 let motivoInactivo: string;
@@ -64,11 +62,6 @@ beforeEach(async () => {
   otroCloser = u2.id;
   const [g] = await db.insert(users).values({ email: "gerente@retiagrowth.com", rol: "gerente" }).returning();
   gerente = g.id;
-  const [prod] = await db
-    .insert(productos)
-    .values({ programId, nombre: "Programa completo", precioLista: "1000" })
-    .returning();
-  productoId = prod.id;
   const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
   areaId = area.id;
   const [m1] = await db.insert(motivos).values({ nombre: "No contesta", tipo: "perdida" }).returning();
@@ -279,7 +272,7 @@ describe("los datos van en el mismo movimiento, o no van (punto 6, Mani 27-sep)"
       dealId: compromiso,
       a: "compromiso_verbal",
       actor: comoCloser(),
-      datos: { productoId, fechaLimitePago: "2026-10-30" },
+      datos: {fechaLimitePago: "2026-10-30" },
     }));
     expect(e.status).toBe(422);
     expect(e.faltantes.map((f) => f.codigo)).toEqual(["area_declarada"]);
@@ -288,7 +281,7 @@ describe("los datos van en el mismo movimiento, o no van (punto 6, Mani 27-sep)"
   });
 
   it("Abonado rechaza un deal sin área declarada", async () => {
-    const abonado = await nuevoDeal("atendido", { productoId, areaDeclaradaId: null });
+    const abonado = await nuevoDeal("atendido", {areaDeclaradaId: null });
     await db.insert(abonos).values({
       dealId: abonado,
       programId,
@@ -303,21 +296,18 @@ describe("los datos van en el mismo movimiento, o no van (punto 6, Mani 27-sep)"
   });
 
   it("un movimiento rechazado deja el deal intacto y sin change_log (rollback atomico)", async () => {
-    // El deal quiere ir a Compromiso Verbal (T4): pide producto + fecha limite. Se pasa
-    // el producto por `datos` pero NO la fecha, asi que el requisito falla DESPUES de
-    // escribir el producto. La transaccion tiene que deshacer tambien la escritura de los
-    // datos: el deal queda sin producto y sin una sola fila de change_log.
+    // Se escribe el área pero falta la fecha; el rechazo debe deshacer ambos cambios.
     const dealId = await nuevoDeal("en_contacto", { ownerUserId: closer, areaDeclaradaId: null });
     await db.delete(changeLog);
 
     const e = await rechazo(
-      moverEtapa(db, { dealId, a: "compromiso_verbal", actor: comoCloser(), datos: { productoId } }),
+      moverEtapa(db, { dealId, a: "compromiso_verbal", actor: comoCloser(), datos: { areaDeclaradaId: areaId } }),
     );
-    expect(e.faltantes.map((f) => f.codigo)).toEqual(["fecha_limite_pago", "area_declarada"]);
+    expect(e.faltantes.map((f) => f.codigo)).toEqual(["fecha_limite_pago"]);
 
     const [d] = await db.select().from(deals).where(eq(deals.id, dealId));
     expect(d.etapa).toBe("en_contacto");
-    expect(d.productoId).toBeNull();
+    expect(d.areaDeclaradaId).toBeNull();
     expect(await db.select().from(changeLog)).toEqual([]);
     expect(await historial(dealId)).toEqual([]);
   });
@@ -330,54 +320,13 @@ describe("los datos van en el mismo movimiento, o no van (punto 6, Mani 27-sep)"
       dealId,
       a: "compromiso_verbal",
       actor: comoCloser(),
-      datos: { productoId, areaDeclaradaId: areaId, fechaLimitePago: "2026-10-30", acuerdoPago: "50% ahora, 50% en octubre" },
+      datos: {areaDeclaradaId: areaId, fechaLimitePago: "2026-10-30", acuerdoPago: "50% ahora, 50% en octubre" },
     });
 
     expect(await etapaDe(dealId)).toBe("compromiso_verbal");
     const log = await db.select().from(changeLog).where(eq(changeLog.registroId, dealId));
-    expect(log.map((l) => l.campo).sort()).toEqual(["acuerdoPago", "areaDeclaradaId", "fechaLimitePago", "productoId"]);
+    expect(log.map((l) => l.campo).sort()).toEqual(["acuerdoPago", "areaDeclaradaId", "fechaLimitePago"]);
     expect(log.every((l) => l.userId === closer)).toBe(true);
-  });
-
-  it("un producto de otro programa se rechaza (frontera, ADR 0043) y no escribe nada", async () => {
-    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
-    const [ajeno] = await db
-      .insert(productos)
-      .values({ programId: otro.id, nombre: "Otro", precioLista: "500" })
-      .returning();
-    const dealId = await nuevoDeal("en_contacto", { ownerUserId: closer });
-    await db.delete(changeLog);
-
-    const e = await rechazo(
-      moverEtapa(db, {
-        dealId,
-        a: "compromiso_verbal",
-        actor: comoCloser(),
-        datos: { productoId: ajeno.id, fechaLimitePago: "2026-10-30" },
-      }),
-    );
-    expect(e.status).toBe(422);
-    const [d] = await db.select().from(deals).where(eq(deals.id, dealId));
-    expect(d.productoId).toBeNull();
-    expect(await db.select().from(changeLog)).toEqual([]);
-  });
-
-  it("un producto inactivo se rechaza", async () => {
-    const [inactivo] = await db
-      .insert(productos)
-      .values({ programId, nombre: "Retirado", precioLista: "500", activo: false })
-      .returning();
-    const dealId = await nuevoDeal("en_contacto", { ownerUserId: closer });
-
-    const e = await rechazo(
-      moverEtapa(db, {
-        dealId,
-        a: "compromiso_verbal",
-        actor: comoCloser(),
-        datos: { productoId: inactivo.id, fechaLimitePago: "2026-10-30" },
-      }),
-    );
-    expect(e.status).toBe(422);
   });
 
   it("un área inactiva se rechaza y no mueve el deal", async () => {
@@ -387,7 +336,7 @@ describe("los datos van en el mismo movimiento, o no van (punto 6, Mani 27-sep)"
       dealId,
       a: "compromiso_verbal",
       actor: comoCloser(),
-      datos: { productoId, fechaLimitePago: "2026-10-30", areaDeclaradaId: inactiva.id },
+      datos: {fechaLimitePago: "2026-10-30", areaDeclaradaId: inactiva.id },
     }));
     expect(e.status).toBe(422);
     expect(await etapaDe(dealId)).toBe("en_contacto");
@@ -399,7 +348,7 @@ describe("los datos van en el mismo movimiento, o no van (punto 6, Mani 27-sep)"
     // pasando datos: sin abono real, no se puede ir a Abonado por mas datos que se manden.
     const dealId = await nuevoDeal("atendido", { ownerUserId: closer });
     const e = await rechazo(
-      moverEtapa(db, { dealId, a: "abonado", actor: sistema, datos: { productoId } }),
+      moverEtapa(db, { dealId, a: "abonado", actor: sistema }),
     );
     expect(e.faltantes.map((f) => f.codigo)).toContain("abono");
   });
@@ -540,7 +489,7 @@ describe("los hechos salen de la base", () => {
   });
 
   it("el dinero mueve el deal: Abonado con saldo, Completo sin saldo, y A1 vuelve a la etapa de donde vino", async () => {
-    const dealId = await nuevoDeal("atendido", { productoId });
+    const dealId = await nuevoDeal("atendido");
     await db.insert(dealEtapaHistorial).values({ dealId, de: "agendado", a: "atendido" });
     const [primero] = await db
       .insert(abonos)
@@ -572,7 +521,7 @@ describe("los hechos salen de la base", () => {
   });
 
   it("un deal histórico pasa de Abonado a Completo sin área declarada", async () => {
-    const dealId = await nuevoDeal("abonado", { productoId, areaDeclaradaId: null, huellaMigracion: "sheets:p:ventas:1" });
+    const dealId = await nuevoDeal("abonado", {areaDeclaradaId: null, huellaMigracion: "sheets:p:ventas:1" });
     await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-28", monto: "1000", comprobanteUrl: "https://x/1.png" });
     await moverEtapa(db, { dealId, a: "completo", actor: sistema });
     expect(await etapaDe(dealId)).toBe("completo");
@@ -582,13 +531,26 @@ describe("los hechos salen de la base", () => {
     { destino: "abonado" as const, monto: "500" },
     { destino: "completo" as const, monto: "1000" },
   ])("para mover a $destino exige valor vendido y pasa cuando se escribe", async ({ destino, monto }) => {
-    const dealId = await nuevoDeal("atendido", { valorVendidoUsd: null });
+    const [cohorte] = await db
+      .insert(cohorts)
+      .values({
+        programId,
+        codigo: "Activa",
+        metaCupos: 10,
+        precioUsd: "1000",
+        fechaInicioClases: "2026-11-01",
+        fechaInicioVentas: "2026-09-01",
+        fechaCierreVentas: "2026-10-31",
+        estado: "activo",
+      })
+      .returning();
+    const dealId = await nuevoDeal("atendido", { cohortId: cohorte.id, valorVendidoUsd: null });
     await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-28", monto, comprobanteUrl: "https://x/valor.png" });
 
     const e = await rechazo(moverEtapa(db, { dealId, a: destino, actor: sistema }));
     expect(e.message).toContain("Falta el valor vendido.");
 
-    await moverEtapa(db, { dealId, a: destino, actor: sistema, datos: { valorVendidoUsd: 1000 } });
+    await moverEtapa(db, { dealId, a: destino, actor: sistema, datos: { descuentoUsd: 0 } });
     expect(await etapaDe(dealId)).toBe(destino);
   });
 });
@@ -619,7 +581,7 @@ describe("el saldo (ADR 0024)", () => {
   });
 
   it("nunca convierte moneda en silencio: un abono en otra moneda deja el saldo sin calcular", async () => {
-    const dealId = await nuevoDeal("atendido", { productoId });
+    const dealId = await nuevoDeal("atendido");
     await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-27", monto: "400000", moneda: "COP" });
     expect((await saldosDeDeals(db, [dealId])).get(dealId)).toMatchObject({
       saldo: null,
@@ -629,13 +591,13 @@ describe("el saldo (ADR 0024)", () => {
 });
 
 describe("saltos, retrocesos y recuperacion (ticket 047)", () => {
-  it("T4: el cierre por chat salta de En Contacto a Compromiso Verbal con fecha limite, sin producto", async () => {
+  it("T4: el cierre por chat salta de En Contacto a Compromiso Verbal con fecha límite", async () => {
     const dealId = await nuevoDeal("en_contacto", { ownerUserId: closer });
     const e = await rechazo(moverEtapa(db, { dealId, a: "compromiso_verbal", actor: comoCloser() }));
     expect(e.faltantes.map((f) => f.codigo)).toEqual(["fecha_limite_pago"]);
 
     // Los datos que la flecha pide van en el MISMO movimiento (punto 6): la fecha limite,
-    // escrita por el motor, no antes. El producto ya no se pide (ADR 0065).
+    // escrita por el motor, no antes.
     await moverEtapa(db, {
       dealId,
       a: "compromiso_verbal",
@@ -644,7 +606,7 @@ describe("saltos, retrocesos y recuperacion (ticket 047)", () => {
     });
     expect(await etapaDe(dealId)).toBe("compromiso_verbal");
     const [d] = await db.select().from(deals).where(eq(deals.id, dealId));
-    expect(d).toMatchObject({ productoId: null, fechaLimitePago: "2026-10-30" });
+    expect(d).toMatchObject({ fechaLimitePago: "2026-10-30" });
   });
 
   it("un retroceso (T29, Atendido → Re-agenda) sin motivo se rechaza; con motivo de re-agenda pasa y queda en el historial", async () => {
@@ -697,17 +659,15 @@ describe("abrirDeal: donde nace un deal (ticket 047)", () => {
     expect(d.ownerUserId).toBe(closer);
   });
 
-  it("nacer en Compromiso Verbal exige producto y fecha limite", async () => {
-    const e = await rechazo(abrirDeal(db, { leadId, programId, etapa: "compromiso_verbal", actor: comoCloser(), productoId }));
+  it("nacer en Compromiso Verbal exige fecha límite y área", async () => {
+    const e = await rechazo(abrirDeal(db, { leadId, programId, etapa: "compromiso_verbal", actor: comoCloser() }));
     expect(e.faltantes.map((f) => f.codigo)).toEqual(["fecha_limite_pago", "area_declarada"]);
 
     await abrirDeal(db, {
       leadId,
       programId,
       etapa: "compromiso_verbal",
-      actor: comoCloser(),
-      productoId,
-      areaDeclaradaId: areaId,
+      actor: comoCloser(),areaDeclaradaId: areaId,
       fechaLimitePago: "2026-10-30",
     });
   });

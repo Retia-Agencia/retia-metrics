@@ -27,8 +27,8 @@ import {
  * Server actions de la pantalla `/recursos` (ticket 023, ADR 0017; enmienda del
  * 19-sep).
  *
- * Igual que `/productos` (ADR 0016), administrar recursos y enlaces de pago lo pueden
- * hacer gerente Y closer: el closer se topa primero con "necesito el link que no
+ * Administrar recursos y enlaces de pago lo pueden hacer gerente Y closer: el closer
+ * se topa primero con "necesito el link que no
  * esta". La barrera de rol es de servidor, en cada accion (ADR 0003): pasa por
  * `requireRole("gerente","closer")`, y la regla mas fina —un closer solo toca sus
  * programas, y NUNCA un recurso global— la aplica `lib/catalogo/{recursos,enlaces-pago}`

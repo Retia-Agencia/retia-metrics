@@ -77,7 +77,7 @@ export async function carteraVencida(db: Db, programId: string, hoy: string = ho
   let sinFechaDeReferencia = 0;
   for (const f of filas) {
     const saldo = saldos.get(f.dealId);
-    // Sin saldo calculable (sin producto o monedas mezcladas) no hay cartera que medir; el
+    // Sin saldo calculable (sin total vendido) no hay cartera que medir; el
     // saldo en cero es un deal pagado. En los dos casos no es cartera.
     if (!saldo || saldo.saldo === null || saldo.saldo <= 0) continue;
 

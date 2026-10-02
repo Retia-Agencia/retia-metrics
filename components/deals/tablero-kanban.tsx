@@ -25,7 +25,7 @@ import { moverDeal } from "@/app/(app)/p/[programa]/deals/acciones";
  * - **Optimista:** al soltar, la tarjeta salta a la nueva columna; si el servidor
  *   rechaza, vuelve a su sitio y se muestran los `faltantes` (qué falta), nunca un
  *   genérico "no se puede" (ticket 044).
- * - **Las flechas que pide datos** (producto, fechas, cohorte, motivo) abren un diálogo;
+ * - **Las flechas que piden datos** (descuento, fechas, cohorte, motivo) abren un diálogo;
  *   lo recogido va en la MISMA acción (una transacción).
  * - **Las columnas hacen scroll horizontal**; la página no se desplaza de lado en
  *   celular. `prefers-reduced-motion` se respeta en las tarjetas.
@@ -94,7 +94,7 @@ export function TableroKanban({
         a: flecha.a,
         motivoId: datos.motivoId ?? null,
         datos: {
-          valorVendidoUsd: datos.valorVendidoUsd,
+          descuentoUsd: datos.descuentoUsd,
           areaDeclaradaId: datos.areaDeclaradaId,
           fechaLimitePago: datos.fechaLimitePago,
           cohorteDestinoId: datos.cohorteDestinoId,

@@ -6,7 +6,6 @@ import {
   deals,
   leads,
   miembrosPrograma,
-  productos,
   programs,
   users,
 } from "@/lib/db/schema";
@@ -92,13 +91,12 @@ beforeEach(async () => {
       estado: "activo",
     })
     .returning();
-  const [prod] = await db.insert(productos).values({ programId: programaA, nombre: "Curso", precioLista: "1000" }).returning();
 
   // Un lead con deal abierto en el programa A.
   const [lead] = await db.insert(leads).values({ programId: programaA, emailNormalizado: "lead@correo.co", nombre: "Lead" }).returning();
   const [deal] = await db
     .insert(deals)
-    .values({ leadId: lead.id, programId: programaA, cohortId: cohorteA.id, etapa: "agendado", ownerUserId: closerDeA, productoId: prod.id })
+    .values({ leadId: lead.id, programId: programaA, cohortId: cohorteA.id, etapa: "agendado", ownerUserId: closerDeA,})
     .returning();
   dealAbierto = deal.id;
 

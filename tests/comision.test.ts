@@ -3,7 +3,6 @@ import { and, eq } from "drizzle-orm";
 import { textoComisionPrograma } from "@/components/dashboard-programa";
 import { editarPrograma } from "@/lib/catalogo/programas";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
-import { editarDeal } from "@/lib/deals/editar-deal";
 import { esViolacionCheck } from "@/lib/db/errores";
 import {
   abonos,
@@ -132,15 +131,6 @@ describe("porcentaje congelado al vender", () => {
     expect(deVuelta.comisionPorcentaje).toBe("10.04");
   });
 
-  it("corregir el valor vendido recalcula con el mismo porcentaje", async () => {
-    const vendido = await vender("10.04", "1000");
-    await editarDeal(db, { userId: gerente, rol: "gerente" }, { dealId: vendido.id, valorVendidoUsd: 1200 });
-
-    const fila = (await vista()).comparativo[0];
-    expect(fila).toMatchObject({ cierres: 1, comisionUsd: 120.48, ventasSinComision: 0 });
-    const [corregido] = await db.select().from(deals).where(eq(deals.id, vendido.id));
-    expect(corregido.comisionPorcentaje).toBe("10.04");
-  });
 });
 
 describe("comision del comparativo", () => {

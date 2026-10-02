@@ -3,7 +3,7 @@ import { agruparEnlaces } from "@/components/resources/helpers";
 import { aMapeo, aPares } from "@/components/admin/mapeo-fuentes";
 
 describe("helpers de componentes por dominio", () => {
-  it("agrupa enlaces por programa y producto, conservando el orden", () => {
+  it("agrupa enlaces por programa, conservando el orden", () => {
     const enlaces = [
       {
         id: "1",
@@ -12,7 +12,6 @@ describe("helpers de componentes por dominio", () => {
         moneda: "USD",
         programId: "p-comunicarte",
         programaNombre: "Comunicarte",
-        productoNombre: "Completo",
         plataformaNombre: null,
       },
       {
@@ -22,7 +21,6 @@ describe("helpers de componentes por dominio", () => {
         moneda: "USD",
         programId: "p-comunicarte",
         programaNombre: "Comunicarte",
-        productoNombre: "Completo",
         plataformaNombre: null,
       },
       {
@@ -32,7 +30,6 @@ describe("helpers de componentes por dominio", () => {
         moneda: "USD",
         programId: "p-sin",
         programaNombre: null,
-        productoNombre: null,
         plataformaNombre: null,
       },
     ];
@@ -40,11 +37,11 @@ describe("helpers de componentes por dominio", () => {
     expect(agruparEnlaces(enlaces)).toEqual([
       {
         programa: "Comunicarte",
-        productos: [{ producto: "Completo", enlaces: [enlaces[0], enlaces[1]] }],
+        enlaces: [enlaces[0], enlaces[1]],
       },
       {
         programa: "Sin programa",
-        productos: [{ producto: "Sin producto", enlaces: [enlaces[2]] }],
+        enlaces: [enlaces[2]],
       },
     ]);
   });

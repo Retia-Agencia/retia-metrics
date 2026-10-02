@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { deals, leads, miembrosPrograma, productos, programs, users } from "@/lib/db/schema";
+import { deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -69,10 +69,9 @@ afterEach(async () => {
 
 async function nuevoDeal(programId: string, ownerUserId: string | null) {
   const [l] = await db.insert(leads).values({ programId, emailNormalizado: `lead${++leadN}@correo.co` }).returning();
-  const [p] = await db.insert(productos).values({ programId, nombre: `Prod ${leadN}`, precioLista: "1000" }).returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId, etapa: "atendido", ownerUserId, productoId: p.id })
+    .values({ leadId: l.id, programId, etapa: "atendido", ownerUserId,})
     .returning();
   return d.id;
 }
@@ -137,16 +136,6 @@ describe("anular el deal, forjando la peticion", () => {
 });
 
 describe("editar el deal, forjando la peticion", () => {
-  it("normaliza cero a null al editar el valor vendido", async () => {
-    const dealId = await nuevoDeal(programaA, closerA);
-    auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
-
-    const r = await (await acciones()).editarDealAccion({ dealId, valorVendidoUsd: 0 });
-
-    expect(r).toEqual({ ok: true });
-    expect((await deal(dealId)).valorVendidoUsd).toBeNull();
-  });
-
   it("mover un deal de otro programa devuelve 403 y no lo cambia", async () => {
     const dealId = await nuevoDeal(programaB, closerA);
     auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));

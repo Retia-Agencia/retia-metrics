@@ -253,7 +253,7 @@ describe("guardián: el alcance se pregunta por la función, no con un join prop
       "write-side: la mutación verifica que el actor sea miembro antes de escribir",
 
     // `programasGestionablesPorUsuario` responde "¿qué programas puede EDITAR este
-    // usuario?" (ADR 0016), el alcance de escritura de /productos y /recursos, que el
+    // usuario?" (ADR 0016), el alcance de escritura de /recursos, que el
     // ticket 094 deja explícitamente FUERA (eso ya lo contesta exigirAccesoAlPrograma).
     [path.join("lib", "queries", "programas.ts")]:
       "write-side: programasGestionablesPorUsuario es el alcance de EDICIÓN, no de lectura (fuera del 094)",

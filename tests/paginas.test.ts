@@ -118,17 +118,6 @@ vi.mock("@/lib/queries/vista-deals-contra-agendas", () => ({ vistaDealsContraAge
 const listarCohortes = vi.fn();
 vi.mock("@/lib/catalogo/cohortes", () => ({ listarCohortes }));
 
-// La pagina de productos (ADR 0016) lee los productos de cada programa; sin base en
-// los tests, se mockea la lectura para probar solo las guardas. `/mi-dia` (ticket
-// 003) tambien lee `productosActivos` del mismo modulo.
-const listarProductos = vi.fn();
-const productosActivos = vi.fn();
-vi.mock("@/lib/catalogo/productos", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/catalogo/productos")>()),
-  listarProductos,
-  productosActivos,
-}));
-
 // `/mi-dia` (ticket 003) ofrece solo los catalogos ACTIVOS. Sin base en los tests se
 // mockea `.listar()` de cada catalogo para que la guarda de rol sea lo unico bajo
 // prueba, pero se preservan los demas exports (esquemas zod) que otras paginas
@@ -208,10 +197,6 @@ beforeEach(() => {
   listarCohortes.mockResolvedValue([]);
   programasGestionablesPorUsuario.mockReset();
   programasGestionablesPorUsuario.mockResolvedValue([]);
-  listarProductos.mockReset();
-  listarProductos.mockResolvedValue([]);
-  productosActivos.mockReset();
-  productosActivos.mockResolvedValue([]);
   listarVacio.mockClear();
   historialDePersona.mockReset();
   historialDePersona.mockResolvedValue(HISTORIAL_VACIO);
@@ -587,30 +572,6 @@ describe("cohortes de un programa /ajustes/programas/[slug] (ticket 014)", () =>
     auth.mockResolvedValue(sesionGerente);
     programaPorSlug.mockResolvedValue(null);
     expect(await correrCohortes("no-existe")).toBe("notFound");
-  });
-});
-
-describe("pagina de productos /productos (ADR 0016)", () => {
-  const RUTA = "@/app/(app)/productos/page";
-
-  it("deja pasar a un gerente", async () => {
-    auth.mockResolvedValue(sesionGerente);
-    expect(await destinoDe(RUTA)).toBeNull();
-  });
-
-  it("deja pasar a un closer (ambos roles la administran)", async () => {
-    auth.mockResolvedValue(sesionCloser);
-    expect(await destinoDe(RUTA)).toBeNull();
-  });
-
-  it("deja pasar a un developer (acceso total, ADR 0025)", async () => {
-    auth.mockResolvedValue(sesionDeveloper);
-    expect(await destinoDe(RUTA)).toBeNull();
-  });
-
-  it("manda al login a quien no tiene sesion", async () => {
-    auth.mockResolvedValue(null);
-    expect(await destinoDe(RUTA)).toBe("/login");
   });
 });
 

@@ -15,7 +15,6 @@ import {
 import { estadosDeLlegada } from "../lib/catalogo/estados-llegada";
 import { ESTADOS_LLEGADA_BASE, PLANTILLA_LEAD_BASE } from "./estados-llegada-base";
 import { crearCohorte } from "../lib/catalogo/cohortes";
-import { crearProducto } from "../lib/catalogo/productos";
 import { activarFuente, crearFuente, rotarSecretoDeFuente } from "../lib/catalogo/fuentes";
 import { crearUsuario } from "../lib/catalogo/usuarios";
 import { motivos } from "../lib/catalogo/motivos";
@@ -57,7 +56,7 @@ function patLocal(nombre: string): string | undefined {
  *  - Trabaja sobre la base local de Docker (127.0.0.1:54329).
  *  - Posee guardia estricta contra producción.
  *  - Pasa 100% por las funciones de `lib/`:
- *      * Catálogo: `lib/catalogo/` (programas, cohortes, productos, fuentes, usuarios, motivos, áreas).
+ *      * Catálogo: `lib/catalogo/` (programas, cohortes, fuentes, usuarios, motivos, áreas).
  *      * Leads: `ingerirEntradas` de `lib/ingesta/`.
  *      * Etapas: `abrirDeal` y `moverEtapa` de `lib/deals/`.
  *      * Llamadas: `agregarLlamada`, `pegarGrain`, `marcarFallida` de `lib/deals/llamadas`.
@@ -132,7 +131,6 @@ interface ProgramaVolumen {
   formUrl: string;
   fuenteId: string;
   cohorteId: string;
-  productoId: string;
   totalLeads: number;
   comisionPorcentaje: string;
   prefijo: "p1" | "p2";
@@ -327,9 +325,6 @@ async function sembrarVolumen(
         actorId,
         fechaEtapa: instanteDeBogota(DIAS_HABILES_SEPTIEMBRE[indiceFecha + 2], 10 + (indice % 7)),
         ownerUserId: owner.id,
-        productoId: ["compromiso_verbal", "abonado", "completo"].includes(etapaFinal)
-          ? grupo.programa.productoId
-          : null,
         cohortId: grupo.programa.cohorteId,
         submissionOrigenId: indice % 10 === 0 ? null : envioPorLead.get(lead.id),
       };
@@ -625,29 +620,7 @@ export async function sembrarLocal(): Promise<void> {
     estado: "activo",
   });
 
-  // 7. Productos
-  console.log("[seed:local] Creando productos...");
-  const prod1Completo = await crearProducto(db, actor, {
-    programId: prog1.id,
-    nombre: "Programa Completo ComunicArte",
-    precioLista: "797.00",
-    moneda: "USD",
-  });
-  await crearProducto(db, actor, {
-    programId: prog1.id,
-    nombre: "Reserva de Cupo",
-    precioLista: "400.00",
-    moneda: "USD",
-  });
-
-  const prod2Completo = await crearProducto(db, actor, {
-    programId: prog2.id,
-    nombre: "Programa Completo Tactical",
-    precioLista: "1500.00",
-    moneda: "USD",
-  });
-
-  // 8. Fuentes Webhook activas
+  // 7. Fuentes Webhook activas
   console.log("[seed:local] Creando fuentes webhook activas...");
   const f1 = await crearFuente(db, actor, {
     programId: prog1.id,
@@ -890,7 +863,6 @@ export async function sembrarLocal(): Promise<void> {
     actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
     ownerUserId: closer2.id,
     cohortId: coh1.id,
-    productoId: prod1Completo.id,
     fechaLimitePago: "2026-10-10",
   });
 
@@ -904,7 +876,6 @@ export async function sembrarLocal(): Promise<void> {
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
     cohortId: coh1.id,
-    productoId: prod1Completo.id,
     fechaLimitePago: "2026-10-05",
   });
   await crearConRastro(
@@ -941,7 +912,6 @@ export async function sembrarLocal(): Promise<void> {
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
     cohortId: coh1.id,
-    productoId: prod1Completo.id,
     fechaLimitePago: "2026-10-01",
   });
   await crearConRastro(
@@ -1025,7 +995,6 @@ export async function sembrarLocal(): Promise<void> {
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
     cohortId: coh2.id,
-    productoId: prod2Completo.id,
     fechaLimitePago: "2026-10-15",
   });
   await crearConRastro(
@@ -1096,7 +1065,6 @@ export async function sembrarLocal(): Promise<void> {
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
     cohortId: coh2.id,
-    productoId: prod2Completo.id,
     fechaLimitePago: "2026-09-20",
   });
 
@@ -1112,7 +1080,6 @@ export async function sembrarLocal(): Promise<void> {
         formUrl: "https://form.typeform.com/to/comunicarte-demo",
         fuenteId: f1.id,
         cohorteId: coh1.id,
-        productoId: prod1Completo.id,
         totalLeads: 150,
         comisionPorcentaje: "10.04",
         prefijo: "p1",
@@ -1138,7 +1105,6 @@ export async function sembrarLocal(): Promise<void> {
         formUrl: "https://form.typeform.com/to/tactical-demo",
         fuenteId: f2.id,
         cohorteId: coh2.id,
-        productoId: prod2Completo.id,
         totalLeads: 120,
         comisionPorcentaje: "6.67",
         prefijo: "p2",

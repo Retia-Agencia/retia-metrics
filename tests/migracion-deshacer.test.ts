@@ -13,7 +13,6 @@ import {
   deals,
   leads,
   miembrosPrograma,
-  productos,
   programs,
   rarezasMigracion,
   users,
@@ -59,7 +58,6 @@ async function crearPrograma(slug: string): Promise<Programa> {
     fechaInicioClases: "2026-08-20",
     estado: "cerrado",
   });
-  await db.insert(productos).values({ programId: p.id, nombre: "Programa", precioLista: "1500" });
   await db.insert(miembrosPrograma).values({ userId: maru, programId: p.id, activo: true });
   await db
     .insert(leads)

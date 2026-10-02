@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fecha, fechaHoraEnBogota, hoyEnBogota, monto, saldoLegible } from "@/lib/format";
+import { fecha, fechaHoraEnBogota, hoyEnBogota, monto, pct, saldoLegible, usd } from "@/lib/format";
 import type { FichaDeAbono, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import {
   anularAbonoAccion,
@@ -26,8 +26,7 @@ import { useAccion } from "./uso-accion";
  *   Los abonos anulados se muestran tachados y no entran en ninguna cifra.
  * - El acuerdo de pago es TEXTO (ADR 0053): no hay cuotas pactadas que pintar.
  * - Registrar un abono mueve la etapa SOLO (Abonado o Completo, por el saldo): el closer
- *   nunca mueve el deal a mano por dinero. Si el programa no tiene cohorte activa, el deal
- *   queda sin cohorte y la pantalla lo dice.
+ *   nunca mueve el deal a mano por dinero. El primer abono congela el ticket de la cohorte.
  */
 
 type Dialogo =
@@ -65,20 +64,41 @@ export function FichaPago({
     <Card>
       <CardHeader>
         <CardTitle>Pago</CardTitle>
-        {abonosActivos ? (
-          <CardAction>
-            <Button size="sm" variant="outline" onClick={() => setDialogo({ tipo: "abono" })} disabled={ficha.valorVendidoUsd == null}>
-              Registrar abono
-            </Button>
+        {abonosActivos || (puedeTrabajar && !anulado) ? (
+          <CardAction className="flex gap-2">
+            {puedeTrabajar && !anulado ? (
+              <Button size="sm" variant="ghost" onClick={() => setDialogo({ tipo: "cohorte" })}>
+                Cambiar cohorte
+              </Button>
+            ) : null}
+            {abonosActivos ? (
+              <Button size="sm" variant="outline" onClick={() => setDialogo({ tipo: "abono" })}>
+                Registrar abono
+              </Button>
+            ) : null}
           </CardAction>
         ) : null}
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <dl className="grid grid-cols-3 gap-3">
+        <dl className="grid grid-cols-2 gap-3 md:grid-cols-5">
           <div>
-            <dt className="text-xs text-muted-foreground">Valor vendido</dt>
-            <dd className="cifra text-sm">{s.precio != null ? monto(s.precio, moneda) : "Sin valor vendido"}</dd>
+            <dt className="text-xs text-muted-foreground">Ticket</dt>
+            <dd className="cifra text-sm">
+              {ficha.ticket
+                ? `${ficha.ticket.codigo}${ficha.ticket.esActivaSugerida ? " (cohorte activa)" : ""} · ${usd(ficha.ticket.precioUsd)}`
+                : "Sin cohorte"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">Descuento</dt>
+            <dd className="cifra text-sm">
+              {ficha.descuento ? `${usd(ficha.descuento.usd)} · ${pct(ficha.descuento.porcentaje)}` : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">Total a pagar</dt>
+            <dd className="cifra text-sm">{s.precio != null ? monto(s.precio, moneda) : "Sin total"}</dd>
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">Abonado</dt>
@@ -91,9 +111,6 @@ export function FichaPago({
         </dl>
         {s.sinSaldoPorque === "moneda_distinta" ? (
           <p className="text-xs text-tono-alerta">Hay abonos en otra moneda que el valor vendido: el saldo no se calcula ni se convierte.</p>
-        ) : null}
-        {abonosActivos && ficha.valorVendidoUsd == null ? (
-          <p className="text-xs text-muted-foreground">Escribe el valor vendido (Editar) antes de registrar un abono.</p>
         ) : null}
 
         {/* El acuerdo de pago: texto y fecha limite (ADR 0053), no cuotas. */}
@@ -169,7 +186,7 @@ export function FichaPago({
 
       {/* Los abonos: los anulados se ven tachados, con quien y por que (ADR 0026 punto 4). */}
       {ficha.abonos.length === 0 ? (
-        <Vacio>Aún no hay abonos.{abonosActivos && ficha.valorVendidoUsd != null ? " Registra el primero arriba." : ""}</Vacio>
+        <Vacio>Aún no hay abonos.{abonosActivos ? " Registra el primero arriba." : ""}</Vacio>
       ) : (
         <ul className="divide-y border-t">
           {ficha.abonos.map((a) => {

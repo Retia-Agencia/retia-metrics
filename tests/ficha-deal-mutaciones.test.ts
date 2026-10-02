@@ -10,7 +10,6 @@ import {
   leads,
   miembrosPrograma,
   motivos,
-  productos,
   programs,
   users,
 } from "@/lib/db/schema";
@@ -23,7 +22,6 @@ import { editarDeal } from "@/lib/deals/editar-deal";
 import { puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { ErrorDeApp } from "@/lib/errors";
 import { embudoDelRango, vistaDeCohorteActiva } from "@/lib/queries/dashboard";
-import { saldosDeDeals } from "@/lib/queries/saldo";
 import { tableroKanban } from "@/lib/queries/kanban";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -34,7 +32,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
  * actividad) y la pregunta "¿puede este actor tocar este deal?", que ahora vive en un solo
  * modulo (`lib/deals/permiso.ts`).
  *
- * Producto de 1.000 USD. Cada mutacion: deja rastro en `change_log`, rechaza al closer ajeno,
+ * Cohorte con ticket de 1.000 USD. Cada mutación deja rastro en `change_log`, rechaza al closer ajeno,
  * deja pasar a quien administra (gerente y developer) y NO escribe nada cuando rechaza.
  */
 
@@ -42,7 +40,6 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
-let productoId: string;
 let areaId: string;
 let leadN = 0;
 let closer: string;
@@ -68,8 +65,6 @@ beforeEach(async () => {
     })
     .returning();
   cohortId = c.id;
-  const [prod] = await db.insert(productos).values({ programId, nombre: "Programa", precioLista: "1000" }).returning();
-  productoId = prod.id;
   const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
   areaId = area.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
@@ -102,7 +97,7 @@ async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferIns
     .returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer, productoId, valorVendidoUsd: "1000", areaDeclaradaId: areaId, ...extra })
+    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer,valorVendidoUsd: "1000", areaDeclaradaId: areaId, ...extra })
     .returning();
   return d.id;
 }
@@ -141,23 +136,10 @@ describe("puedeTrabajarDeal: una sola respuesta", () => {
 });
 
 describe("editarDeal", () => {
-  it("un campo tocado deja UNA fila de change_log, con el actor de la sesión", async () => {
-    const dealId = await nuevoDeal("atendido");
-    const [otro] = await db.insert(productos).values({ programId, nombre: "Otro", precioLista: "500" }).returning();
-
-    const cambio = await editarDeal(db, comoCloser(), { dealId, productoId: otro.id });
-
-    expect(cambio).toBe(true);
-    expect((await deal(dealId)).productoId).toBe(otro.id);
-    const filas = await rastro(dealId);
-    expect(filas).toHaveLength(1);
-    expect(filas[0]).toMatchObject({ campo: "productoId", valorAnterior: productoId, valorNuevo: otro.id, userId: closer });
-  });
-
   it("varios campos: una fila por campo tocado; sin cambios no escribe ni rastro", async () => {
     const dealId = await nuevoDeal("atendido");
-    await editarDeal(db, comoCloser(), { dealId, fechaSeguimiento: "2026-10-05", productoId });
-    // El producto ya era ese: solo la fecha cambio.
+    await editarDeal(db, comoCloser(), { dealId, fechaSeguimiento: "2026-10-05" });
+    // Solo la fecha cambió.
     expect((await rastro(dealId)).map((f) => f.campo)).toEqual(["fechaSeguimiento"]);
 
     const otraVez = await editarDeal(db, comoCloser(), { dealId, fechaSeguimiento: "2026-10-05" });
@@ -258,53 +240,6 @@ describe("editarDeal", () => {
 
       expect((await deal(dealId)).motivoId).toBe(despues);
       expect((await rastro(dealId)).map((f) => f.campo)).toEqual(["motivoId"]);
-    });
-  });
-
-  describe("el producto", () => {
-    it("uno de otro programa no existe para este deal", async () => {
-      const [otroPrograma] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "500" }).returning();
-      const [ajeno] = await db.insert(productos).values({ programId: otroPrograma.id, nombre: "Ajeno", precioLista: "500" }).returning();
-      const dealId = await nuevoDeal("atendido");
-      expect((await capturar(editarDeal(db, comoCloser(), { dealId, productoId: ajeno.id }))).status).toBe(422);
-      expect((await deal(dealId)).productoId).toBe(productoId);
-    });
-
-    it("el producto ya no cambia el saldo del deal", async () => {
-      const dealId = await nuevoDeal("atendido");
-      await registrarAbono(db, comoCloser(), { dealId, fecha: "2026-09-28", monto: "600", comprobanteUrl: "https://drive.google.com/c" });
-      const [barato] = await db.insert(productos).values({ programId, nombre: "Barato", precioLista: "500" }).returning();
-      await editarDeal(db, comoCloser(), { dealId, productoId: barato.id });
-      expect((await deal(dealId)).productoId).toBe(barato.id);
-      expect((await saldosDeDeals(db, [dealId])).get(dealId)?.saldo).toBe(400);
-    });
-  });
-
-  describe("el valor vendido", () => {
-    it("no baja de lo abonado y deja la fila intacta cuando se rechaza", async () => {
-      const dealId = await nuevoDeal("atendido", { valorVendidoUsd: "797" });
-      await registrarAbono(db, comoCloser(), { dealId, fecha: "2026-09-28", monto: "500", comprobanteUrl: "https://drive.google.com/c" });
-
-      const e = await capturar(editarDeal(db, comoCloser(), { dealId, valorVendidoUsd: 499.99 }));
-
-      expect(e).toMatchObject({ status: 422 });
-      expect(e.message).toContain("USD 499,99");
-      expect(e.message).toContain("USD 500,00");
-      expect((await deal(dealId)).valorVendidoUsd).toBe("797.00");
-    });
-
-    it("al subirlo escribe change_log", async () => {
-      const dealId = await nuevoDeal("atendido", { valorVendidoUsd: "797" });
-      await editarDeal(db, comoCloser(), { dealId, valorVendidoUsd: 900 });
-      expect((await deal(dealId)).valorVendidoUsd).toBe("900.00");
-      expect(await rastro(dealId)).toContainEqual(expect.objectContaining({ campo: "valorVendidoUsd", valorAnterior: "797.00", valorNuevo: "900", userId: closer }));
-    });
-
-    it("en Completo devuelve 409", async () => {
-      const dealId = await nuevoDeal("completo", { valorVendidoUsd: "797" });
-      const e = await capturar(editarDeal(db, comoCloser(), { dealId, valorVendidoUsd: 900 }));
-      expect(e).toMatchObject({ status: 409, message: "El deal está completo: cambiar su valor vendido movería su saldo." });
-      expect((await deal(dealId)).valorVendidoUsd).toBe("797.00");
     });
   });
 

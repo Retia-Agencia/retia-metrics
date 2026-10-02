@@ -20,7 +20,6 @@ export interface EnlaceUI {
   /** Siempre presente (la columna es NOT NULL). Decide si un closer puede editarlo. */
   programId: string;
   programaNombre: string | null;
-  productoNombre: string | null;
   plataformaNombre: string | null;
 }
 

@@ -33,6 +33,25 @@ export interface SaldoDeDeal {
   sinSaldoPorque: "sin_valor_vendido" | "moneda_distinta" | null;
 }
 
+export interface DescuentoDeDeal {
+  usd: number;
+  /** Fracción del ticket: 0,125 representa 12,5 %. */
+  porcentaje: number;
+}
+
+/** Descuento derivado del ticket de la cohorte y el total congelado del deal. */
+export function descuentoDeDeal(
+  ticketUsd: number | string | null | undefined,
+  valorVendidoUsd: number | string | null | undefined,
+): DescuentoDeDeal | null {
+  if (ticketUsd == null || valorVendidoUsd == null) return null;
+  const ticket = Number(ticketUsd);
+  const valor = Number(valorVendidoUsd);
+  if (!Number.isFinite(ticket) || ticket <= 0 || !Number.isFinite(valor)) return null;
+  const descuento = Math.round((ticket - valor) * 100) / 100;
+  return { usd: descuento, porcentaje: descuento / ticket };
+}
+
 /** El saldo de varios deals de una vez, por id. Un deal que no existe no aparece. */
 export async function saldosDeDeals(db: Db, dealIds: readonly string[]): Promise<Map<string, SaldoDeDeal>> {
   const resultado = new Map<string, SaldoDeDeal>();

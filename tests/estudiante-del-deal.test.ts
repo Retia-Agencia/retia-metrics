@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { changeLog, cohorts, dealActividades, deals, leads, productos, programs, users } from "@/lib/db/schema";
+import { changeLog, cohorts, dealActividades, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals/estudiante";
@@ -20,7 +20,6 @@ let programId: string;
 let agosto: string;
 let septiembre: string;
 let octubre: string;
-let productoId: string;
 let closer: string;
 let otroCloser: string;
 let gerente: string;
@@ -47,8 +46,6 @@ beforeEach(async () => {
     .values({ ...base, codigo: "Octubre", fechaInicioClases: "2026-10-15", fechaCierreVentas: "2026-10-10", estado: "futuro" })
     .returning();
   octubre = o.id;
-  const [prod] = await db.insert(productos).values({ programId, nombre: "Programa", precioLista: "1000" }).returning();
-  productoId = prod.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
   const [u2] = await db.insert(users).values({ email: "jero@retiagrowth.com", rol: "closer", closerId: "Jero" }).returning();
@@ -67,7 +64,7 @@ async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferIns
   const [l] = await db.insert(leads).values({ programId: programa, emailNormalizado: `l${++leadN}@correo.co`, nombre: `Lead ${leadN}` }).returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId: programa, cohortId: septiembre, etapa, ownerUserId: closer, productoId, ...extra })
+    .values({ leadId: l.id, programId: programa, cohortId: septiembre, etapa, ownerUserId: closer,...extra })
     .returning();
   return d.id;
 }
@@ -211,9 +208,10 @@ describe("cambiarCohorte", () => {
     expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, dealId))).toHaveLength(0);
   });
 
-  it("solo un estudiante, y solo el dueño o un administrador", async () => {
+  it("cualquier deal vigente del actor cambia; otro closer no", async () => {
     const enContacto = await nuevoDeal("atendido");
-    expect((await capturar(cambiarCohorte(db, comoCloser(), { dealId: enContacto, cohortId: octubre, motivo: "x" }))).status).toBe(409);
+    await cambiarCohorte(db, comoCloser(), { dealId: enContacto, cohortId: octubre, motivo: "x" });
+    expect((await fila(enContacto)).cohortId).toBe(octubre);
     const dealId = await nuevoDeal("abonado");
     expect((await capturar(cambiarCohorte(db, { userId: otroCloser, rol: "closer" }, { dealId, cohortId: octubre, motivo: "x" }))).status).toBe(403);
     await cambiarCohorte(db, { userId: gerente, rol: "gerente" }, { dealId, cohortId: octubre, motivo: "Lo pidió el estudiante" });
@@ -246,7 +244,7 @@ describe("estudiantesDe: Students es una consulta sobre la etapa", () => {
     await nuevoDeal("cierre_perdido");
     await nuevoDeal("abonado", { anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
     const [otroProg] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
-    await nuevoDeal("abonado", { cohortId: null, productoId: null }, otroProg.id);
+    await nuevoDeal("abonado", { cohortId: null,}, otroProg.id);
 
     const lista = await estudiantesDe(db, programId);
     expect(lista.map((e) => e.dealId).sort()).toEqual([abonado, completo].sort());

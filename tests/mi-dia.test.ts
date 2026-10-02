@@ -6,7 +6,6 @@ import {
   miembrosPrograma,
   leads,
   plataformasPago,
-  productos,
   programs,
   users,
 } from "@/lib/db/schema";
@@ -39,7 +38,6 @@ let programaB: string;
 async function limpiar(): Promise<void> {
   await db.delete(changeLog);
   await db.delete(abonos);
-  await db.delete(productos);
   await db.delete(leads);
   await db.delete(miembrosPrograma);
   await db.delete(programs);
@@ -102,7 +100,7 @@ describe("buscarPersonas", () => {
    * gerente no necesita membresias, asi que no encontraba a nadie nunca, y como
    * `/personas/[id]` solo se alcanza desde el buscador, no tenia NINGUNA forma de
    * abrir el historial de un lead. La pregunta era del rol y se contestaba con la
-   * membresia, misma familia que el bug de `/productos`.
+   * membresía, una confusión entre alcance de lectura y permiso de escritura.
    */
   it("un gerente busca en TODOS los programas activos, sin membresias", async () => {
     await sembrarPersona(programaA, { nombre: "Persona de A", emailNormalizado: "a@correo.co" });

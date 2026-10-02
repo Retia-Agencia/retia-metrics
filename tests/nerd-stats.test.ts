@@ -147,8 +147,8 @@ describe("ultimosCambiosDesdeLaApp", () => {
         detectadoEn: new Date("2026-09-17T10:00:00Z"),
       },
       {
-        tabla: "productos",
-        campo: "precioLista",
+        tabla: "motivos",
+        campo: "nombre",
         origen: "app",
         userId: gerenteId,
         detectadoEn: new Date("2026-09-17T11:00:00Z"),
@@ -163,14 +163,14 @@ describe("ultimosCambiosDesdeLaApp", () => {
     ]);
 
     const filas = await ultimosCambiosDesdeLaApp(15, db);
-    expect(filas.map((f) => f.tabla)).toEqual(["cohorts", "productos"]);
+    expect(filas.map((f) => f.tabla)).toEqual(["cohorts", "motivos"]);
     expect(filas[0].quien).toBe("gerente@retiagrowth.com");
   });
 
   it("respeta el limite", async () => {
     await db.insert(changeLog).values(
       Array.from({ length: 5 }, (_, i) => ({
-        tabla: "productos",
+        tabla: "motivos",
         campo: `campo-${i}`,
         origen: "app" as const,
         detectadoEn: new Date(Date.UTC(2026, 8, 17, 10, i)),

@@ -284,11 +284,9 @@ describe.each(CATALOGOS)("molde de catalogo — $titulo", (caso) => {
  * El guardian estatico del ticket 011 exigia que el molde NUNCA borrara. El ticket 030
  * lo enmienda (ADR 0026 punto 5): el molde SI borra, pero SOLO por `borrarSiNoSeUso` y
  * SOLO cuando no hay referencias. La garantia que protege el historial se conserva
- * afinada, no aflojada: (1) el unico archivo de `lib/catalogo/` que contiene un DELETE
- * es `molde.ts` —ningun catalogo concreto borra a mano—, y (2) ese DELETE vive dentro
- * de `borrarSiNoSeUso`, que cuenta referencias antes. El "no hay DELETE cuando hay
- * referencias" se prueba ademas contra la base en `tests/productos.test.ts`, donde un
- * producto con una venta NO se borra.
+ * afinada, no aflojada: (1) el único archivo de `lib/catalogo/` que contiene un DELETE
+ * es `molde.ts` —ningún catálogo concreto borra a mano—, y (2) ese DELETE vive dentro
+ * de `borrarSiNoSeUso`, que cuenta referencias antes.
  */
 /**
  * Las tablas PUENTE cuyo borrado se permite fuera del molde, en minusculas (el

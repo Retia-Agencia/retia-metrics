@@ -9,11 +9,11 @@ import { esAdministrador, type Rol } from "@/lib/auth/roles";
  * modulo (ADR 0016, ADR 0025, y la regla de AGENTS.md: si dos lugares responden la
  * misma pregunta, la respuesta vive en un modulo y los dos la importan).
  *
- * Nacio privada dentro de `lib/catalogo/productos.ts`. Cuando los recursos y los
+ * Nació en el primer catálogo acotado a programa. Cuando los recursos y los
  * enlaces de pago tambien pasaron a poder crearlos un closer (decision de Mani,
  * 19-sep, con el molde del ADR 0016), copiarla habria dejado dos lugares
  * respondiendo lo mismo —justo lo que se desincroniza—. Por eso vive aca y la
- * importan productos y recursos.
+ * importan varios catálogos.
  *
  * La regla: quien ADMINISTRA (`esAdministrador`: gerente o developer, ADR 0025)
  * entra a cualquier programa; un closer solo a los programas donde tiene una

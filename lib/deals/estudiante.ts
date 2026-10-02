@@ -117,7 +117,7 @@ export interface CohorteCambiada {
 }
 
 /**
- * Cambia la cohorte de un estudiante (Abonado o Completo), con quién y por qué. Es como se
+ * Cambia la cohorte de cualquier deal vigente del actor, con quién y por qué. Es como se
  * representan los 12 estudiantes que compraron en agosto y pasaron a septiembre: **no hace
  * falta una relación N:N**.
  *
@@ -134,7 +134,7 @@ export async function cambiarCohorte(db: Db, actor: ActorDeEstudiante, datos: Da
   return normalizando(async () => {
     const { dealId, cohortId, motivo } = esquemaCambiarCohorte.parse(datos);
     return (db as unknown as Transaccion).transaction(async (tx) => {
-      const { deal, emailLead } = await estudianteDelActor(tx, dealId, actor);
+      const { deal, emailLead } = await estudianteDelActor(tx, dealId, actor, { soloEstudiante: false });
 
       const [destino] = await tx.select().from(cohorts).where(eq(cohorts.id, cohortId));
       if (!destino || destino.programId !== deal.programId) {

@@ -10,7 +10,6 @@ import {
   dealEtapaHistorial,
   deals,
   miembrosPrograma,
-  productos,
   programs,
   sources,
   users,
@@ -65,7 +64,6 @@ vi.mock("@/lib/ingesta/regla-de-deals", async (importOriginal) => {
 let db: Db;
 let cerrar: () => Promise<void>;
 let programId: string;
-let cohortId: string;
 let areaId: string;
 let webhookSourceId: string;
 let closer: string;
@@ -130,7 +128,7 @@ beforeEach(async () => {
   await sembrarEstadosDeLlegada(db, programId);
 
   // Cohorte activa que arranca el 15-oct: el tope del plazo de pago y la que se asigna sola.
-  const [c] = await db
+  await db
     .insert(cohorts)
     .values({
       programId,
@@ -141,9 +139,7 @@ beforeEach(async () => {
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-10",
       estado: "activo",
-    })
-    .returning();
-  cohortId = c.id;
+    });
   const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
   areaId = area.id;
 
@@ -185,9 +181,8 @@ describe("E2 — la cita cae en su deal, el Grain lo atiende, el dinero lo mueve
     expect(llamada).toMatchObject({ resultado: "agendada", huellaFila: "calendly:inv-uuid-777" });
     expect(llamada.fechaAgenda?.toISOString()).toBe("2026-10-05T16:00:00.000Z");
 
-    // El closer reclama el deal (070, fuera de E2) y elige el producto (074, la pantalla).
-    const [prod] = await db.insert(productos).values({ programId, nombre: "Programa", precioLista: "1500" }).returning();
-    await db.update(deals).set({ ownerUserId: closer, productoId: prod.id, valorVendidoUsd: "1500.00", areaDeclaradaId: areaId }).where(eq(deals.id, dealId));
+    // El closer reclama el deal (070, fuera de E2) y registra el descuento (074, la pantalla).
+    await db.update(deals).set({ ownerUserId: closer, valorVendidoUsd: "1500.00", areaDeclaradaId: areaId }).where(eq(deals.id, dealId));
 
     // 2. El Grain de ESA llamada la marca como sucedida y pasa el deal a Atendido (T10).
     const grain = await pegarGrain(db, comoCloser(), { callId: llamada.id, linkGrain: "https://grain.com/share/recording/e2" });
@@ -204,7 +199,7 @@ describe("E2 — la cita cae en su deal, el Grain lo atiende, el dinero lo mueve
       monto: "400",
       comprobanteUrl: "https://drive.google.com/comprobante-1",
     });
-    expect(primero).toMatchObject({ etapa: "abonado", movioElDeal: true, saldo: 1100, cohorteAsignada: cohortId });
+    expect(primero).toMatchObject({ etapa: "abonado", movioElDeal: true, saldo: 1100, cohorteAsignada: null });
     expect((await estudiantesDe(db, programId)).map((e) => [e.dealId, e.etapa, e.codigoCohorte])).toEqual([[dealId, "abonado", "Octubre"]]);
 
     // El acuerdo de pago: la fecha límite no puede pasar del inicio de clases (15-oct).

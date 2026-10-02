@@ -209,7 +209,7 @@ export async function crearVariosConRastro(
  * anterior y el nuevo.
  *
  * Guardar la fila entera en cada edicion es caro y, peor, ilegible: la pregunta
- * que alguien hace tres meses despues es "¿quien cambio el producto de este deal?",
+ * que alguien hace tres meses despues es "¿quien cambio el descuento de este deal?",
  * y una copia completa de la fila obliga a diffear a mano para contestarla. Guardar
  * solo un "se edito" pierde el dato. El campo tocado con sus dos valores es lo
  * unico que contesta la pregunta directamente, y es ademas la forma que

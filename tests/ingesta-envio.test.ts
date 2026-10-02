@@ -169,7 +169,8 @@ describe("construirEnvio", () => {
 
   it('una UTM que el mapeo de la fuente no apunta queda en respuestas, sin el centinela "xxxxx"', () => {
     const [base] = entradasDesdeMatriz([ENCABEZADOS, FILA.map((v, i) => (i === 8 ? "XXXXX" : v))], FUENTE);
-    const { utmContent: _sinApuntar, ...campos } = base.campos;
+    const campos = { ...base.campos };
+    delete campos.utmContent;
     const r = construirEnvio({ ...base, campos });
     if (!r.ok) throw new Error("debia construir");
     expect(r.envio.utmContent).toBeNull();

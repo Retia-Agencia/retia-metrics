@@ -8,7 +8,6 @@ import {
   deals,
   leads,
   motivos,
-  productos,
   programs,
   sources,
   submissions,
@@ -33,7 +32,6 @@ let cerrar: () => Promise<void>;
 let programId: string;
 let otroPrograma: string;
 let cohortId: string;
-let productoId: string;
 let closer: string;
 let dealId: string;
 
@@ -57,8 +55,6 @@ beforeEach(async () => {
     })
     .returning();
   cohortId = c.id;
-  const [prod] = await db.insert(productos).values({ programId, nombre: "Programa", precioLista: "1000" }).returning();
-  productoId = prod.id;
   const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru", nombre: "Maru" }).returning();
   closer = u.id;
@@ -73,7 +69,7 @@ beforeEach(async () => {
     .returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, submissionOrigenId: env.id, programId, cohortId, etapa: "atendido", ownerUserId: closer, productoId, valorVendidoUsd: "1000.00", areaDeclaradaId: area.id, acuerdoPago: "30% en octubre" })
+    .values({ leadId: l.id, submissionOrigenId: env.id, programId, cohortId, etapa: "atendido", ownerUserId: closer,valorVendidoUsd: "1000.00", areaDeclaradaId: area.id, acuerdoPago: "30% en octubre" })
     .returning();
   dealId = d.id;
 }, 60_000);
@@ -95,7 +91,6 @@ describe("fichaDeDeal", () => {
       lead: { email: "ana@correo.co", nombre: "Ana" },
       origen: { utmSource: "facebook", utmMedium: "cpc", utmCampaign: null },
       owner: { id: closer, nombre: "Maru" },
-      producto: { nombre: "Programa", moneda: "USD" },
       cohorte: { codigo: "C1", inicioClases: "2026-10-01" },
       acuerdoPago: "30% en octubre",
       fechaLimiteSugerida: "2026-10-01",
@@ -189,13 +184,10 @@ describe("fichaDeDeal", () => {
 });
 
 describe("opcionesDeFicha", () => {
-  it("ofrece solo lo del programa: productos activos, cohortes no cerradas y los closers con membresia", async () => {
-    await db.insert(productos).values({ programId: otroPrograma, nombre: "Ajeno", precioLista: "10" });
-    await db.insert(productos).values({ programId, nombre: "Viejo", precioLista: "10", activo: false });
+  it("ofrece solo lo del programa: cohortes no cerradas y los closers con membresia", async () => {
 
     const o = await opcionesDeFicha(db, programId, closer);
 
-    expect(o.productos.map((p) => p.nombre)).toEqual(["Programa"]);
     expect(o.cohortes.map((c) => c.nombre)).toEqual(["C1"]);
     // El dueño actual aparece aunque no tenga membresia (para no dejar el selector sin su valor).
     expect(o.owners.map((x) => x.id)).toEqual([closer]);

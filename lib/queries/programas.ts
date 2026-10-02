@@ -66,13 +66,14 @@ export async function programaActivoPorSlug(
 export async function programaPorSlug(
   slug: string,
   db: Db = dbDeLaApp,
-): Promise<{ id: string; slug: string; nombre: string; activo: boolean } | null> {
+): Promise<{ id: string; slug: string; nombre: string; activo: boolean; ticketUsd: string } | null> {
   const [programa] = await db
     .select({
       id: programs.id,
       slug: programs.slug,
       nombre: programs.nombre,
       activo: programs.activo,
+      ticketUsd: programs.ticketUsd,
     })
     .from(programs)
     .where(eq(programs.slug, slug))
@@ -82,10 +83,9 @@ export async function programaPorSlug(
 }
 
 /**
- * Programas activos que un usuario puede gestionar en `/productos` (ticket 017,
- * ADR 0016). Un gerente los ve todos; un closer solo aquellos donde tiene una
- * membresia ACTIVA. Devuelve id + nombre (la pantalla agrupa los productos por
- * programa y necesita el id para crear). Los programas salen de la base: ningun
+ * Programas activos que un usuario puede gestionar en catálogos por programa.
+ * Un gerente los ve todos; un closer solo aquellos donde tiene una membresía ACTIVA.
+ * Devuelve id + nombre. Los programas salen de la base: ningún
  * literal en el codigo.
  */
 export async function programasGestionablesPorUsuario(

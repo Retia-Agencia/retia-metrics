@@ -159,7 +159,7 @@ describe("el rastro de las tablas operativas (ADR 0042)", () => {
       path.join(dir, "sucio.ts"),
       [
         "export async function cerrar(db: Db, id: string) {",
-        "  await db.update(deals).set({ productoId: p }).where(eq(deals.id, id));",
+        "  await db.update(deals).set({}).where(eq(deals.id, id));",
         "  await db.insert(abonos).values({ dealId: id, monto: m });",
         "}",
       ].join("\n"),

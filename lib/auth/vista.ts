@@ -6,7 +6,7 @@ import { esAccesoTotal, esRolValido, type Rol } from "./roles";
  * al ADR 0025).
  *
  * El problema de fondo que resuelve: la pregunta "¿con que rol pinto esta pantalla?"
- * vivia contestada a mano en `/mi-dia`, `/recursos` y `/productos`, con tres
+ * vivía contestada a mano en `/mi-dia`, `/recursos` y otros catálogos, con tres
  * expresiones distintas (`rol === "closer" ? ... : ...`, `esAdministrador`, y su
  * propia inversion). Tres copias que se desincronizan: fue la causa de que el hueco
  * de `/recursos` sobreviviera al 024. `rolDeVista` es LA definicion, una sola: ninguna
