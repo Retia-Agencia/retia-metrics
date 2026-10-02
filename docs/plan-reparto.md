@@ -160,7 +160,7 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
   en `tests/`.
 - **Checkpoints:** `cp-20261001-1` (`e5319e2`: 095 y 135), `cp-20261002-1` (`526a105`: 139 y 150) y
   **`cp-20261002-2`** (`3f8509a`: 142, 140, 100, 073 y 091; el 117 sigue en curso con sus dos fases de código en
-  `main`; producción sirve ese commit).
+  `main`; producción sirve ese commit). **`cp-20261002-3`** (`e1f90ab`: 151, CI verde).
 
 **La cola de migraciones de la ola**, en este orden (una abierta a la vez):
 

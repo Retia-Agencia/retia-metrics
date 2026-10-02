@@ -3,7 +3,7 @@ id: 151
 etapa: NC2
 serves: "ADR 0073; comercial.md GC-27; manual §3.1"
 depends: [142, 117]
-status: en_curso
+status: done
 ---
 
 # 151 — Un reenvío sube el deal a la etapa de entrada de su mejor envío, y el CRM avisa los envíos repetidos
