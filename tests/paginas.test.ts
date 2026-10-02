@@ -119,6 +119,12 @@ const embudoDelFormulario = vi.fn(async () => ({
 vi.mock("@/lib/queries/embudo-formulario", () => ({ embudoDelFormulario }));
 const registrosYAgendasPorCanal = vi.fn(async () => ({ filas: [], total: { registros: 0, agendas: 0 } }));
 vi.mock("@/lib/queries/registros-agendas-canal", () => ({ registrosYAgendasPorCanal }));
+// Los nombres de canal del bloque Origen por canal (129), igual: sin base, catalogo vacio.
+const nombresDeCanales = vi.fn(async () => new Map());
+vi.mock("@/lib/queries/dashboard", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/queries/dashboard")>(),
+  nombresDeCanales,
+}));
 // Deals creados contra agendas (138), igual: sin base, la gráfica no disponible.
 const vistaDealsContraAgendas = vi.fn(async () => ({ disponible: false }));
 vi.mock("@/lib/queries/vista-deals-contra-agendas", () => ({ vistaDealsContraAgendas }));
