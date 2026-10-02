@@ -51,8 +51,9 @@ leer es libre, escribir pide el ok de Mani.
   - 🩸 **El primer deploy falló** (`0b9d422`): un componente cliente importaba un valor de un modulo que carga la base
     y el build de Vercel no encontro `fs`. Produccion sirvio el codigo viejo contra la 0058 ~5 min (2:33 a 2:38). Arreglado
     en `d08760a` con props, `next build` local en verde, deploy Ready y aliaseado. Regla nueva en AGENTS.md (Conventions).
-  - **Para retomar:** que el checkpoint que incluya el 142 salga verde para marcarlo `done`; después 143, 128, 118 y la
-    cola de migraciones 092 → 102.
+    Tres tests más con literales viejos los cazó el CI (`b0b8d32`); **CI de `b0b8d32` verde con la suite completa**.
+  - **Para retomar:** Mani pone el tag del checkpoint sobre `b0b8d32` (o la punta verde que lo incluya) y marca el 142
+    en el tracker; el archivo del ticket ya está en `done` con su cierre. Después 143, 128, 118 y la cola 092 → 102.
 - **2026-10-02 (Mani, sesión del 142): esquema y migración 0058 de las etapas de 30X en rama, brief de Codex listo.**
   - **Hecho:** rama `142-etapas-30x` (worktree `.claude/worktrees/142`), commit `fe64ded`: `schema.ts` + migración
     0058 reescrita a mano y probada en PGlite (11 casos). **Sin aplicar en producción.** Brief de la tanda 1 en

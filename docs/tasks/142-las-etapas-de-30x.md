@@ -3,7 +3,7 @@ id: 142
 etapa: NC2
 serves: "comercial.md R-1, GC-01, GC-03, GC-04, §4"
 depends: [QD-8]
-status: en_curso
+status: done
 ---
 
 # 142 — Las etapas de 30X: enum, transiciones, requisitos y la traducción en una migración
@@ -95,3 +95,28 @@ requisitos remapeados.
   etapas de ganado, el valor vendido obligatorio al entrar a ganado (ADR 0065), Atendido sin Grain (ADR 0066), re-agenda siempre con motivo, Seguimiento con fecha y Próxima Cohorte con
   cohorte de origen y destino (ADR 0070).
 - Después: el `--aplicar` del 078 (R-11) y las secciones del dashboard (148).
+
+## Cierre (2-oct, madrugada)
+
+Contra el Alcance, punto por punto:
+
+- [x] **Los pendientes (ADR 0070):** `pendiente_deal`, `deals.pendiente`, historial con `pendiente_de`/`pendiente_a`;
+  flechas PR1, PR2, PS1 a PS3, PC y RET (`lib/deals/etapas.ts`); `unaCitaMueveAAgendado` = setteo o Agendado/Atendido
+  con pendiente; mudanza de cohorte con `change_log` salvo en Cierre perdido; el guardián del 046 cubre `pendiente`;
+  Inbox y Kanban leen el pendiente.
+- [x] El enum, `mapa-transiciones.ts`, `requisitos.ts`, Kanban, Inbox, embudo y toda consulta con etapa: typecheck del
+  repo entero en cero; ningún literal viejo fuera de la traducción histórica (`rg`).
+- [x] **Una sola migración** (0058) que traduce deals, historial y `estados_llegada`; aplicada en producción el 2-oct
+  (59 migraciones). Medido después: 144 Registrado, 3 Potencial, 3 Calificado, 93 Agendado y 3 Agendado + Re-agenda.
+- [x] Lo que no cambia, sostenido por sus tests: `moverEtapa()` único escritor, anulado ≠ Cierre perdido, venta = las
+  dos de ganado, valor vendido al entrar a ganado, Atendido sin Grain, re-agenda con motivo (PR2), Seguimiento con
+  fecha, Próxima Cohorte con cohorte destino.
+- [x] La pregunta de la etapa (ADR 0072 puntos 1 y 2) en la ficha, el Kanban y Calls, con la vista previa por ensayo
+  del motor (`structure.md` §3.1.1).
+- [x] Nivel 1 en verde, `next build` en verde, y el **CI de `b0b8d32` en verde con la suite completa** (145 archivos).
+  `AGENTS.md` al día (build antes de empujar un cambio a un componente cliente).
+
+**Quedó fuera, a propósito:** la cortesía (ADR 0071 p10, sin decidir); el área declarada al entrar a Atendido (143);
+las alertas (128); el orden de la cola del closer (ADR 0072 p5). Deuda chica: `tests/142-nuevas-*.ts`.
+**El tracker lo marca Mani en el próximo checkpoint** (`plan-reparto.md` §6); la punta `b0b8d32` ya está verde.
+
