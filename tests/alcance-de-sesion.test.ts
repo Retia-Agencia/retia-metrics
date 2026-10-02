@@ -18,7 +18,8 @@ import {
   programaVisiblePorSlug,
   programasVisibles,
 } from "@/lib/auth/alcance";
-import { buscarPersonas, historialDePersona } from "@/lib/queries/personas";
+import { buscarPersonas } from "@/lib/queries/personas";
+import { slugDelLeadVisible } from "@/lib/queries/ficha-lead";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -174,23 +175,23 @@ describe("la función de alcance (ADR 0048, ticket 094)", () => {
     await db.delete(leads).where(eq(leads.id, pb.id));
   });
 
-  it("historialDePersona 404 (null) si la persona es de un programa fuera del alcance", async () => {
+  it("slugDelLeadVisible 404 (null) si la persona es de un programa fuera del alcance", async () => {
     const [pb] = await db
       .insert(leads)
       .values({ programId: programaB, emailNormalizado: "ficha-b@correo.co", nombre: "Ficha B" })
       .returning();
 
-    // Un closer de A abre el id de una persona de B: null, indistinguible de un id
-    // inexistente. La ruta lo traduce a 404, nunca a 403.
-    expect(await historialDePersona(pb.id, anaUserId, "closer", db)).toBeNull();
+    // Un closer de A abre el id de una persona de B por `/personas/[id]`: null,
+    // indistinguible de un id inexistente. La ruta lo traduce a 404, nunca a 403, y la
+    // redireccion nunca revela a que programa pertenece (ticket 073).
+    expect(await slugDelLeadVisible(pb.id, anaUserId, "closer", db)).toBeNull();
 
     // El gerente sí la ve.
-    const comoGerente = await historialDePersona(pb.id, gerenteId, "gerente", db);
-    expect(comoGerente?.persona.id).toBe(pb.id);
+    expect(await slugDelLeadVisible(pb.id, gerenteId, "gerente", db)).toBe(slugB);
 
     // Un id que no existe también es null, para todos.
     expect(
-      await historialDePersona("00000000-0000-4000-8000-000000000000", gerenteId, "gerente", db),
+      await slugDelLeadVisible("00000000-0000-4000-8000-000000000000", gerenteId, "gerente", db),
     ).toBeNull();
 
     await db.delete(leads).where(eq(leads.id, pb.id));

@@ -164,7 +164,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
                   <li key={f.id} className="flex flex-wrap items-start justify-between gap-2 py-3 text-sm">
                     <div className="min-w-0 space-y-1">
                       <Link
-                        href={`/personas/${f.id}`}
+                        href={`/p/${programa.slug}/leads/${f.id}`}
                         className="block truncate font-medium text-marca-texto underline-offset-2 outline-none hover:underline focus-visible:underline"
                       >
                         {f.nombre ?? f.email}
@@ -228,6 +228,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
             correoSinConfirmar: d.correoSinConfirmar,
           }))}
           puedeGestionar={trabajaLeads(rol) || esAdministrador(rol)}
+          slug={programa.slug}
         />
       </div>
     </PageShell>

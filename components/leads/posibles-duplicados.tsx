@@ -27,7 +27,16 @@ export interface DuplicadoVista {
   correoSinConfirmar: string;
 }
 
-export function PosiblesDuplicados({ filas, puedeGestionar }: { filas: DuplicadoVista[]; puedeGestionar: boolean }) {
+export function PosiblesDuplicados({
+  filas,
+  puedeGestionar,
+  slug,
+}: {
+  filas: DuplicadoVista[];
+  puedeGestionar: boolean;
+  /** El programa de la tab: la ficha del lead vive dentro de el (ticket 073). */
+  slug: string;
+}) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
   const [porSeparar, setPorSeparar] = useState<string | null>(null);
@@ -62,7 +71,7 @@ export function PosiblesDuplicados({ filas, puedeGestionar }: { filas: Duplicado
               <li key={f.contactoId} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                 <div className="min-w-0 space-y-1">
                   <Link
-                    href={`/personas/${f.leadId}`}
+                    href={`/p/${slug}/leads/${f.leadId}`}
                     className="block truncate font-medium text-marca-texto underline-offset-2 outline-none hover:underline focus-visible:underline"
                   >
                     {f.nombreLead ?? f.correoPrincipal}
