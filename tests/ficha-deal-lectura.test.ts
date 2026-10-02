@@ -67,7 +67,7 @@ beforeEach(async () => {
   closer = u.id;
   const [l] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana", telefono: "300" })
+    .values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana", telefono: "300", numAplicaciones: 3 })
     .returning();
   const [fuente] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
   const [env] = await db
@@ -95,7 +95,7 @@ describe("fichaDeDeal", () => {
     expect(f).toMatchObject({
       dealId,
       etapa: "atendido",
-      lead: { email: "ana@correo.co", nombre: "Ana" },
+      lead: { email: "ana@correo.co", nombre: "Ana", envios: 3 },
       origen: { utm: { source: "facebook", medium: "cpc", campaign: null } },
       owner: { id: closer, nombre: "Maru" },
       cohorte: { codigo: "C1", inicioClases: "2026-10-01" },

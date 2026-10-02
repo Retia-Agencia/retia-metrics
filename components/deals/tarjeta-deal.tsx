@@ -119,6 +119,7 @@ export function TarjetaDealCard({
         {tarjeta.pendiente ? (
           <Badge variant={TONO_DE_PENDIENTE[tarjeta.pendiente]}>{nombreDePendiente[tarjeta.pendiente]}</Badge>
         ) : null}
+        {tarjeta.envios >= 2 ? <Badge variant="info">{tarjeta.envios} envíos</Badge> : null}
         {tarjeta.leadQuality ? <Badge variant="info">Calidad: {tarjeta.leadQuality}</Badge> : null}
         {tarjeta.leadValue ? <Badge variant="neutro">Valor: {tarjeta.leadValue}</Badge> : null}
         {saldoTexto ? (

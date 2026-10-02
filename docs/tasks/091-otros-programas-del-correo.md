@@ -37,7 +37,9 @@ Que la pantalla muestre el hecho **no significa que el embudo lo sume**.
 
 ## Done cuando
 
-- [ ] La ficha de uno de los 5 correos reales muestra el aviso (recorrido de la sesion principal).
+- [x] La ficha muestra el aviso (recorrido de la sesion principal, 2-oct): con un correo sembrado en los dos programas
+  de la base local sale "Este correo tambien es lead de otro programa: ComunicArte Local · sin deal". En produccion
+  (los 5 reales) no se miro: la sesion no entra a produccion por la interfaz.
 - [x] Un test verifica que la funcion **no la llama** ningun modulo de `lib/queries/dashboard.ts` ni
       ninguna consulta de metrica.
 - [x] Cero esquema nuevo, cero migracion.

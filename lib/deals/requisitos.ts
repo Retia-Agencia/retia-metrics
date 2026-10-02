@@ -75,6 +75,7 @@ function requisitosDe(t: Transicion | TransicionPendiente): CodigoReal[] {
   const segunDestino = (destino: EtapaDeal): CodigoReal[] =>
     destino === "ganado_parcial" ? [...pago, "saldo_pendiente"] : [...pago, "saldo_en_cero"];
   switch (t.id) {
+    case "S1": case "S2": case "S3": return [];
     case "E1": return ["dueno", "actividad"];
     case "E2": case "E3": case "PS2": return ["contacto"];
     case "E4": case "E7": case "E9": return ["llamada_con_fecha"];

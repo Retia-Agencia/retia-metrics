@@ -160,6 +160,23 @@ describe("mover y dejar historial", () => {
 });
 
 describe("quien puede tomar cada flecha", () => {
+  it.each([
+    ["S1", "potencial", "registrado"],
+    ["S2", "potencial", "calificado"],
+    ["S3", "registrado", "calificado"],
+  ] as const)("%s solo la toma el sistema: una persona recibe 403 y no escribe; el sistema mueve", async (_id, de, a) => {
+    const dealId = await nuevoDeal(de, { ownerUserId: closer });
+
+    const e = await rechazo(moverEtapa(db, { dealId, a, actor: comoCloser() }));
+    expect(e.status).toBe(403);
+    expect(await etapaDe(dealId)).toBe(de);
+    expect(await historial(dealId)).toEqual([]);
+
+    await moverEtapa(db, { dealId, a, actor: sistema });
+    expect(await etapaDe(dealId)).toBe(a);
+    expect(await historial(dealId)).toMatchObject([{ de, a, userId: null }]);
+  });
+
   it("el dueño mueve Agendado a Atendido sin Grain y la llamada queda como show con rastro", async () => {
     const dealId = await nuevoDeal("agendado", { ownerUserId: closer });
     const fechaAgenda = new Date("2026-09-20T12:00:00-05:00");

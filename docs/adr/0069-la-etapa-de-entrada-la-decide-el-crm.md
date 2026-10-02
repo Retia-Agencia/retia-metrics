@@ -2,6 +2,8 @@
 
 - **Estado:** aceptado · 1-oct-2026 (Mani: *"terminar de usar estado por completo, definir las etapas desde el
   CRM y no el formulario; estandarizado para todos los programas"*). **Reemplaza** al ADR 0061 cuando se construya con las etapas de 30X; hasta entonces rige el código del 117.
+- **Enmendado por el [ADR 0073](./0073-un-reenvio-sube-el-deal-a-su-mejor-etapa-de-entrada.md)** (2-oct): la tabla vale
+  para cada envío y sube un deal abierto que sigue en una puerta (S1 a S3); el parcial Low nace en Potencial.
 - **Relacionadas:** ADR 0061 (la tabla de Estados de llegada, ticket 117), ADR 0064 (varios formularios),
   `docs/comercial.md` (la operación de 30X, la misma para todos los programas; GC-27: ningún lead se descarta).
 

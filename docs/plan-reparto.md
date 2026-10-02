@@ -138,10 +138,10 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 |---|---|---|---|---|
 | O1-a | ✅ [135] Atendido sin Grain (`cp-20261001-1`) | Mani | el motor | S |
 | O1-b | ✅ [139] la ficha del deal por bloques: done en `cp-20261002-1`; recorrido visual hecho; lo que salió quedó en A-15 a A-18 | Mani | · | M |
-| O1-c | [140] crear un deal a mano | Alejo (propuesto, el dominio es de Mani) | · | M |
+| O1-c | ✅ [140] crear un deal a mano (`cp-20261002-2`) | Alejo (propuesto, el dominio es de Mani) | · | M |
 | O1-d | ✅ [095] (`cp-20261001-1`) el dashboard con "todos" solo sumable | Mani | el dashboard | M |
-| O1-e | [100] la tab Programs | Alejo | · | M |
-| O1-f | [073] ficha del lead → [091] | Alejo | · | M + S |
+| O1-e | ✅ [100] la tab Programs (`cp-20261002-2`) | Alejo | · | M |
+| O1-f | ✅ [073] ficha del lead → [091] (`cp-20261002-2`) | Alejo | · | M + S |
 | O1-g | [066] Urgencias → [068] → [076] (lecturas) | Alejo | · | M + S + S |
 | O1-h | los cabos del [117] (el [072] se cerró el 1-oct) | Alejo | la etapa de entrada | S |
 | O1-i | ✅ [150] tests rápidos: base migrada una vez por corrida: en `main` el 1-oct (`0e65c15`, `4f6b63c`), CI verde (vitest 372 s → 274 s), done en `cp-20261002-1`; queda `npm run test:cambios` | Mani | `tests/helpers/`, `vitest.config` | M |
@@ -158,8 +158,9 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
   esperando la vieja). 🩸 Los dos se colaron porque el nivel 1 de cada sesión corre **sus** tests, no los de
   quien lee lo que cambió: antes de empujar un cambio de forma en una función de `lib/`, `rg` por sus lectores
   en `tests/`.
-- **Checkpoints:** `cp-20261001-1` (`e5319e2`: 095 y 135) y `cp-20261002-1` (`526a105`: 139 y 150; producción
-  sirve ese commit).
+- **Checkpoints:** `cp-20261001-1` (`e5319e2`: 095 y 135), `cp-20261002-1` (`526a105`: 139 y 150) y
+  **`cp-20261002-2`** (`3f8509a`: 142, 140, 100, 073 y 091; el 117 sigue en curso con sus dos fases de código en
+  `main`; producción sirve ese commit). **`cp-20261002-3`** (`e1f90ab`: 151, CI verde).
 
 **La cola de migraciones de la ola**, en este orden (una abierta a la vez):
 
@@ -172,7 +173,11 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
    enum de etapas, los requisitos y la traducción de todos los deals). El 092 y el 102 esperan detrás, aunque su
    código puede avanzar en su rama sin generar la migración.
 
-**No entran a O1** (y por qué): [128], [143], [118], [148], [065] esperan al 142 · [129] espera dos decisiones de
+**Desbloqueados por el 142 (`cp-20261002-2`), entran a la ola:** [143] propiedades por etapa (Mani, el motor) ·
+[128] alertas del deal (Mani) · [118] "se perdió en el Calendly" (Mani) · [148] y [065] (después de 143 y 128, que
+fijan qué se alerta). La cola de migraciones sigue con 092 → 102.
+
+**No entran a O1** (y por qué): [129] espera dos decisiones de
 Mani (están en el ticket) · [144] a [147] esperan QM-3, QM-5, QM-6, QM-7, QM-11 y GC-17 · [119], [120], [123],
 [125] esperan el token de Meta · [122] y [126] parte B tienen migración y son de pauta: entran a la cola después
 del 142 · [035] espera el formato del comprobante.

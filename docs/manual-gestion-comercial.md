@@ -68,7 +68,7 @@ alrededor de ellas, y esas sirven:
   que Lead Value ordena). ¿Lead Value hace de HVM, con las cuatro etiquetas y sus tiempos de respuesta?
 - **M-6. El origen del deal.** 30X lo pide obligatorio al entrar a Atendido; aquí el área declarada se pide en
   Compromiso Verbal y en ganado (121). ¿Se adelanta a Atendido?
-- **D-7** (§10) sigue abierta y va con el 118.
+- ✅ **D-7** (§10) decidida con el 118: Calificado por un parcial, sin completo a los 5 minutos.
 
 ### El orden hasta tenerlo en vivo
 
@@ -163,30 +163,35 @@ formulario (✅ ADR 0069; QD-3):
 | cualquiera | cualquiera | sí | **Agendado** (§3.4) |
 | parcial o completo | High | no | **Calificado** |
 | completo | Low o Mid | no | **Registrado** |
-| parcial | sin calidad | no | **Potencial** |
+| parcial | Low, Mid o sin calidad | no | **Potencial** |
 
 - **Ningún envío se descarta:** todo envío abre un deal o actualiza el abierto (✅ GC-27, ADR 0069).
 - **Lead Value no cambia la etapa:** se guarda y ordena el trabajo dentro de la etapa (✅ ADR 0069 punto 4;
   GC-29). Lead Quality y Lead Value se muestran en el deal (✅ QD-10, QD-12).
-- Si el lead **ya tiene un deal abierto** en el programa, el envío nuevo se guarda, se avisa al dueño y la
-  etapa no cambia (✅ ADR 0037).
+- **La regla vale para cada envío, no solo para el primero** (✅ ADR 0073, Mani 2-oct). Si el lead ya tiene un deal
+  abierto que **sigue en una puerta** (Potencial o Registrado), el envío nuevo lo sube a la etapa que le tocaría:
+  Potencial → Registrado al llegar el completo, Potencial o Registrado → Calificado al llegar calidad High. Solo hacia
+  arriba, lo hace el sistema y deja nota en el log del deal. Si el deal ya está En gestión o más adelante, alguien lo
+  trabaja y el envío no lo mueve (salvo la cita, §3.4).
+- **El parcial y su completo son el mismo envío** (✅ ADR 0073): el parcial se va actualizando y, al terminar, el completo
+  lo absorbe; se ve y se cuenta como uno. Volver a llenar el formulario es un envío nuevo.
+- **Todos los envíos de un lead quedan guardados y a la vista** (✅ ADR 0073): ninguno se reemplaza ni se fusiona; la
+  ficha del lead los muestra con lo que cambió entre uno y otro, y la tarjeta y la ficha del deal avisan "N envíos"
+  cuando la persona aplicó más de una vez. Un reenvío nunca abre un segundo deal ni reabre uno cerrado (ADR 0037).
 
 **Potencial**
 
 - **Significa:** empezó el formulario y no lo terminó; no hay calidad todavía.
 - **Entra:** solo el sistema, al llegar un envío parcial sin calidad y sin agenda.
 - **Tiene:** lead, envío de origen, cohorte activa del programa (✅ ADR 0065, segunda enmienda), sin dueño.
-- **Sale a:** En gestión · Calificado o Registrado si llega la versión completa del mismo envío · Agendado ·
-  Cierre perdido.
-- 🟡 **Cuando llega el completo del mismo envío** (mismo token, ADR 0036), el sistema lo mueve a la puerta
-  que le toque por calidad (Registrado o Calificado), o a Agendado si agendó. Hoy el CRM ya hace esto con la
-  agenda (`structure.md` §2.1, "llega la completa con cita").
+- **Sale a:** En gestión · Registrado o Calificado cuando llega otro envío que le toca esa puerta (✅ S1, S2, ADR
+  0073) · Agendado · Cierre perdido.
 
 **Registrado**
 
 - **Significa:** terminó el formulario con calidad baja o media (Low o Mid) y no agendó.
-- **Entra:** solo el sistema. **Tiene:** lo mismo que Potencial, más su calidad.
-- **Sale a:** En gestión · Agendado · Cierre perdido.
+- **Entra:** solo el sistema, al nacer o al subir desde Potencial (S1). **Tiene:** lo mismo que Potencial, más su calidad.
+- **Sale a:** En gestión · Calificado si llega un envío con calidad High (✅ S3, ADR 0073) · Agendado · Cierre perdido.
 
 **Calificado**
 
@@ -200,7 +205,7 @@ formulario (✅ ADR 0069; QD-3):
 - **Sale a:** Agendado · Compromiso Verbal o ganado sin llamada (§4, venta por chat) · Cierre perdido.
 - **Alerta:** "se perdió en el Calendly" (ticket 118) cuando llegó a la pantalla del Calendly y a los
   minutos no agendó. 🔴 Con la variable `estado` retirada (ADR 0069 punto 5), la regla del 118 se reescribe
-  sobre "nació en Calificado por un parcial y no llegó su completo" (§10, D-7).
+  sobre "nació en Calificado por un parcial y no llegó su completo" (§10, D-7 ✅: a los 5 minutos).
 
 ### 3.2 En gestión
 
@@ -354,7 +359,7 @@ En gestión y Contactado.
 | De → a | Qué la dispara | Quién | Requisito | Hoy | Estado |
 |---|---|---|---|---|---|
 | (nada) → Potencial, Registrado, Calificado o Agendado | llega un envío sin deal abierto | sistema | la regla de §3.1 | 052, 117 | ✅ ADR 0069 |
-| Potencial → Registrado, Calificado o Agendado | llega el completo del mismo envío | sistema | la regla de §3.1 | (el paso a Agendado ya existe) | 🟡 |
+| Potencial → Registrado o Calificado; Registrado → Calificado | llega otro envío que le toca esa puerta | sistema | la regla de §3.1 | S1, S2, S3 | ✅ ADR 0073 |
 | Potencial o Registrado → En gestión | se reclama o se asigna el deal | sistema | dueño | (nuevo; en 30X, W1) | 🔴 D-1 |
 | En gestión → Contactado | primer contacto | dueño | dueño + actividad de contacto con fecha y canal | T1 | 🔴 D-2 |
 | En gestión o Contactado → Calificado | el contacto confirma que califica | dueño | actividad de contacto | (nuevo) | 🟡 |
@@ -445,7 +450,7 @@ Todas se calculan al leer: nada se guarda ni la apaga un clic (ADR 0024).
 | Para avanzar le falta... | lo que pide la siguiente flecha (§4) | amarillo en la ficha | 128 |
 | Atendido sin Grain | llamada que ocurrió sin link de Grain | rojo en ficha y tarjeta; "N de M shows sin Grain, X%" en el dashboard | ADR 0066, 135 |
 | Llamada sin resultado ("no value") | la llamada ya pasó y nadie dijo cómo terminó | rojo; Inbox | GC-32, 128 |
-| Se perdió en el Calendly | llegó al Calendly y no agendó en X minutos | arriba del Inbox | 118 (🔴 D-7) |
+| Se perdió en el Calendly | llegó al Calendly y no agendó en X minutos | arriba del Inbox | 118 (D-7 ✅, 5 min) |
 | Re-agenda sin fecha | estado Re-agenda sin llamada nueva | Inbox | 071, 128 |
 | Compromiso vencido · cartera vencida | fecha límite pasada sin pago, o con saldo | Inbox, ficha | ADR 0053, 071 |
 | Deal estancado | sin actividad más días hábiles que los del programa | Inbox | 071 |
@@ -500,7 +505,7 @@ Todas se calculan al leer: nada se guarda ni la apaga un clic (ADR 0024).
 > D-5, el deal a mano nace en En gestión · D-6, sin setter en v1 · D-8, el Parcial que desiste es Cierre
 > perdido · D-9, los cerrados sin monto entran a ganado y se corrigen con el equipo ya en vivo · QM-12,
 > cortesía = deal con 100% de descuento y marca. Además: los tres intentos se cuentan y alertan, no cierran
-> solos. **Sigue abierta la D-7**, que se decide con el 118 y no bloquea al 142.
+> solos. **La D-7 se decidió con el 118** (2-oct).
 
 - **D-1. Cuándo pasa un deal a En gestión.** 30X lo mueve en minutos, pero solo si la ingesta ya le asignó
   dueño (W1). Aquí los deals nacen sin dueño y se reclaman (ADR 0037 punto 6). Si se mueve al nacer,
@@ -527,7 +532,8 @@ Todas se calculan al leer: nada se guarda ni la apaga un clic (ADR 0024).
   rol de setter y el dueño hace las dos cosas. ¿Se mantiene así en v1?
 - **D-7. "Se perdió en el Calendly" sin `estado`.** El 118 se define con la variable `estado`
   (`con_calendly_sin_agenda` y sus `alerta_minutos`), que el ADR 0069 retira. ¿Se reescribe como "nació en
-  Calificado por un parcial y su completo no llegó en X minutos", y dónde vive la X?
+  Calificado por un parcial y su completo no llegó en X minutos", y dónde vive la X? ✅ **Sí (Mani, 2-oct)**: X = 5
+  minutos, una constante del código; ver el ticket 118.
 - **D-8. Ganado Pago Parcial que se pierde.** El ADR 0037 deja perder un Abonado (lo abonado sigue en la caja),
   pero entonces deja de ser venta (no está en ganado) y su gente deja de ser Student. En 30X Ganado Pago
   Parcial es "Won" y un *Refund* es motivo de pérdida. ¿Se cuenta como venta perdida, como venta con

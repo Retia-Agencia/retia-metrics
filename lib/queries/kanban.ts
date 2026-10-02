@@ -58,6 +58,7 @@ export interface AvisosDeTarjeta {
 export interface TarjetaDeal {
   dealId: string;
   leadId: string;
+  envios: number;
   nombreLead: string | null;
   emailLead: string;
   etapa: EtapaDeal;
@@ -175,6 +176,7 @@ export async function tableroKanban(
       createdAt: deals.createdAt,
       nombreLead: leads.nombre,
       emailLead: leads.emailNormalizado,
+      envios: leads.numAplicaciones,
       // El origen es del envio que abrio el deal (ADR 0060), nunca un resumen del lead.
       utmSource: submissions.utmSource,
       utmMedium: submissions.utmMedium,
@@ -235,6 +237,7 @@ export async function tableroKanban(
     return {
       dealId: f.dealId,
       leadId: f.leadId,
+      envios: f.envios,
       nombreLead: f.nombreLead,
       emailLead: f.emailLead,
       etapa: f.etapa,

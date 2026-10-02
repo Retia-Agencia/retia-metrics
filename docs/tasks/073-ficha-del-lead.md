@@ -30,7 +30,10 @@ Que se pueda ver, de una persona, **todo lo que dijo y cuando lo dijo**. Reempla
 - [x] Un lead con tres envios muestra los tres y las diferencias entre ellos.
 - [x] Una columna que no existia en el envio viejo se ve como "no habia", no como vacia.
 - [x] Los deals cerrados se ven sin tener que buscarlos.
-- [ ] Recorrido visual con clic en todo lo que se abre (lo hace la sesion principal: el worktree no corre `next dev`).
+- [x] Recorrido visual con clic en todo lo que se abre (sesion principal, 2-oct, base local con un lead de dos envios
+  sembrado por `ingerirEntradas`): el diff "no habia → Me cambie de trabajo" se ve; consola limpia. Arreglados en el
+  mismo recorrido: el correo de Contactos se partia letra por letra en la columna angosta (`min-w-48`), y el badge
+  "Sin estado" (la variable que el ADR 0069 retiro) paso a "Sin calidad", la alarma del 117 fase 2.
 
 ## Kiro
 

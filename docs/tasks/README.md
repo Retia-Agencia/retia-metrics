@@ -70,7 +70,7 @@ parten en **dos lotes** por dependencia (`comercial.md` §8): el lote 1 no depen
 
 | ✓ | # | Ticket | Bloqueado por | Estado |
 |---|---|---|---|---|
-| [ ] | 142 | [Las etapas de 30X](./142-las-etapas-de-30x.md) | QM-10, QD-8 | en `main` · 2-oct (madrugada): las tres tandas en `main` y la **0058 aplicada en producción** el mismo momento; falta el checkpoint verde que lo incluya para marcarlo `done`. Antes, 2-oct: **desbloqueado**. QM-10 en el ADR 0070; manual aprobado y D-1 a D-9 y QM-12 en el ADR 0071. Salta al frente de la cola de migraciones (`plan-reparto.md` §4) · carril Mani |
+| [x] | 142 | [Las etapas de 30X](./142-las-etapas-de-30x.md) | QM-10, QD-8 | done · `cp-20261002-2` · 2-oct (madrugada): las tres tandas en `main` y la **0058 aplicada en producción** el mismo momento; falta el checkpoint verde que lo incluya para marcarlo `done`. Antes, 2-oct: **desbloqueado**. QM-10 en el ADR 0070; manual aprobado y D-1 a D-9 y QM-12 en el ADR 0071. Salta al frente de la cola de migraciones (`plan-reparto.md` §4) · carril Mani |
 | [ ] | 143 | [Etiquetas y propiedades por etapa](./143-etiquetas-y-propiedades-por-etapa.md) | 142, QD-8 | bloqueado · 1-oct: QD-10 sin etiquetas (solo Lead Value y Lead Quality); QD-4, toda obligatoria vacía es alerta roja. Cuáles son obligatorias sale del manual |
 | [ ] | 144 | [Próxima fecha de pago y cartera](./144-proxima-fecha-de-pago-y-cartera.md) | 132, QM-3, GC-17 | bloqueado |
 | [ ] | 145 | [Rol Customer Success y onboarding](./145-rol-customer-success-y-onboarding.md) | QM-5 | bloqueado |
@@ -78,6 +78,7 @@ parten en **dos lotes** por dependencia (`comercial.md` §8): el lote 1 no depen
 | [ ] | 147 | [Alertas por persistencia](./147-alertas-por-persistencia.md) | 136, QM-11 | bloqueado · QD-6 contestada (1-oct): 5 hábiles, configurable; falta la lista de métricas (QM-11) · NC2 carril Alejo |
 | [ ] | 148 | [Las secciones del dashboard](./148-las-secciones-del-dashboard.md) | 142, 095, 137 | bloqueado |
 | [ ] | 149 | [El manual de uso del CRM, por rol](./149-manual-de-uso-por-rol.md) | 075 | todo · 1-oct (QD-7) · E9, sesión principal |
+| [x] | 151 | [Un reenvío sube la etapa de entrada y el CRM avisa los envíos repetidos](./151-el-reenvio-sube-la-etapa-de-entrada.md) | 142, 117 | done · `cp-20261002-3` · 2-oct · carril Mani · ADR 0073: S1 a S3 (solo sistema, solo hacia arriba, con nota), badge "N envíos" en tarjeta y ficha del deal, el parcial absorbido por su completo en la ficha del lead. Typecheck, lint, build y tests del cambio en verde; recorrido hecho (2-oct). |
 | [x] | 6 | Reordenar `plan.md` §5 y `plan-reparto.md`: v1 comercial primero, pauta después | 5 | done · 1-oct · Mani · `plan-reparto.md` §4: etapas **NC1** (lote 1), **NC2** (lote 2, el 078 y el corte) y **NC3** (dashboard comercial = v1 comercial), antes de E7 y E8 |
 
 ⏸️ **Mientras tanto: el `--aplicar` del 078 espera** a que se cierren las etapas (paso 4) y QD-2. Meter
@@ -292,18 +293,18 @@ se abre**. Este repo no tiene tests de componentes y el 20-sep dos bugs pasaron 
 | [x] | 072 | [Base de Leads con filtros](./072-base-de-leads-con-filtros.md) (E6-4) | 069 | done · 1-oct · Alejo · tab Leads, filtros y separar/confirmar; recorrido en escritorio contra la base local sin errores de consola. El de 390 px se descartó (Alejo, 1-oct: ya no interesa) |
 | [x] | 098 | [La tab Calls](./098-tab-calls.md) | 057, 096, 097 | done · 29-sep · ruta `/p/<programa>/calls`, filtros, llamadas sueltas, Grain y resultados; recorrido visual funcional a 390 px realizado con consola |
 | [x] | 099 | [La tab Students por cohorte](./099-tab-students-por-cohorte.md) | 060, 061, 097 | done · 30-sep · Alejo · recorrido visual hecho (claro/oscuro, 390 px, consola); un deal en Completo ya no muestra fecha límite |
-| [ ] | 100 | [La tab Programs](./100-tab-programs-ficha-del-programa.md) | 097, 101 | todo · 24-sep · destinos, Calendly, comisión, equipo |
-| [ ] | 073 | [Ficha del Lead, con el diff entre envíos](./073-ficha-del-lead.md) (E6-5) | 072 | todo |
+| [x] | 100 | [La tab Programs](./100-tab-programs-ficha-del-programa.md) | 097, 101 | done · `cp-20261002-2` · 2-oct (Alejo) · ficha del programa: destinos, Calendly, comisión, cohortes, fuentes y equipo; recorrido visual hecho |
+| [x] | 073 | [Ficha del Lead, con el diff entre envíos](./073-ficha-del-lead.md) (E6-5) | 072 | done · `cp-20261002-2` · 2-oct (Alejo; recorrido de la sesión principal, con dos arreglos de pantalla) |
 | [x] | 074 | [Ficha del Deal](./074-ficha-del-deal.md) (E6-6) | 069, 060 | done · 29-sep · `/p/<programa>/deals/<id>`: cabecera, llamadas, pago y abonos, actividades e historial en una pantalla; `editarDeal`, `anularDeal` (rechaza con abonos vigentes y anula en cascada sus llamadas), `registrarActividad`; `puedeTrabajarDeal` (`lib/deals/permiso.ts`) y `duenosPosibles` (`lib/deals/duenos.ts`) en un solo lugar. Recorrido contra la base local (escritorio y 390 px) y permiso mordido forjando la acción. 1.415 tests. Falta: celular de verdad y ver el prellenado de Compromiso Verbal con un deal Atendido |
 | [ ] | 075 | [Revisión profunda de TODA la UI](./075-revision-profunda-de-la-ui.md) (E6-8) | 069-074 | todo |
-| [ ] | 128 | [Las alertas del Deal: qué urge y qué le falta para avanzar](./128-alertas-del-deal.md) | 074, 071, 135 | todo · 30-sep · sale de `docs/anotaciones.md` A-13; reutiliza `queLeFalta` y la atención del Inbox · enmendado el 1-oct (sin Grain, valor vendido) |
+| [ ] | 128 | [Las alertas del Deal: qué urge y qué le falta para avanzar](./128-alertas-del-deal.md) | 074, 071, 135 | en `main` · 2-oct · Mani (Codex + Claude) · en curso · el bloque de la ficha está en `main` (rojo del Inbox, amarillo de `queLeFalta`, aviso en En gestión; se muestra mientras quede algo); falta el checkpoint que lo incluya para marcarlo `done`; sin Grain. Opcional si hay tiempo: el indicador del Kanban, solo por lotes (ver el ticket) |
 | [ ] | 129 | [Motivos de pérdida y Origen del lead salen vacíos en el Dashboard](./129-dashboard-motivos-y-origen-vacios.md) | — | todo · 30-sep · diagnóstico en el ticket; dos decisiones de Mani |
 | [x] | 130 | [El adaptador de Dapta Forms](./130-el-adaptador-de-dapta.md) | 117 | done · 1-oct (Mani) · seis envíos reales en ComunicArte revisados en la base; 🩸 las UTM de Dapta se perdían (`utm.utm_source`), arregladas y verificadas en producción; contrato de proveedores con cuerpos reales |
 | [x] | 131 | [Varios formularios activos por programa](./131-varios-formularios-activos-por-programa.md) | — | done · 30-sep · 0050 aplicada · el link de captación sigue en `programs.form_url` (A11) |
 | [x] | 114 | [Auditoría de cálculos y reglas fijas](./114-auditoria-de-calculos-fijos.md) | · | done · 30-sep · A1-A3 arreglados; B5 (0046, `sources.calificacion` fuera) y C6 (solo USD) hechos; B4 pasa al 117 |
 | [x] | 115 | [El origen es del envío; el deal recuerda el envío que lo abrió](./115-el-origen-es-del-envio.md) | · | done · 29-sep · el deal guarda el envío que lo abrió; relleno 69/69; migración 0043 quita `leads.utm_*` (con `lock_timeout`) |
 | [ ] | 076 | [Bitácora en Nerd Stats](./076-bitacora-en-nerd-stats.md) (E6-7) | 068, 041 | todo · es la **pantalla** de un rastro que se escribe desde E1 |
-| [ ] | 091 | [`otrosProgramasDelCorreo`: visibilidad cruzada](./091-otros-programas-del-correo.md) | 073 | todo · una consulta, **no** una tabla. Ninguna métrica la usa |
+| [x] | 091 | [`otrosProgramasDelCorreo`: visibilidad cruzada](./091-otros-programas-del-correo.md) | 073 | done · `cp-20261002-2` · 2-oct (Alejo) · el aviso en la ficha del lead; una consulta, ninguna métrica la usa |
 
 ## E7 · Migración one-time
 

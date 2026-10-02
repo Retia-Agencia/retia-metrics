@@ -9,9 +9,11 @@ import {
   dealEtapaHistorial,
   deals,
   leads,
+  motivos,
   programs,
   sources,
   submissions,
+  users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EntradaEnvio } from "@/lib/ingesta/envio";
@@ -20,6 +22,7 @@ import { ingerirEntradas } from "@/lib/ingesta/ingerir";
 import { decidirAccionDeDeal, type ResultadoCita } from "@/lib/ingesta/regla-de-deals";
 import { agendoElEnvio, esCalidadAlta, etapaDeEntrada } from "@/lib/ingesta/etapa-de-entrada";
 import { esViolacionCheck } from "@/lib/db/errores";
+import { moverEtapa } from "@/lib/deals/mover-etapa";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { sinComentarios } from "./helpers/codigo-fuente";
@@ -93,9 +96,34 @@ describe("decidirAccionDeDeal: la tabla del insumo §3.1, fila por fila", () => 
     expect(decidirAccionDeDeal(etapa, null)).toEqual({ tipo: "abrir", etapa });
   });
 
-  it.each(["potencial", "registrado", "calificado"] as const)("entra en %s con deal abierto: no hace nada", (etapa) => {
-    expect(decidirAccionDeDeal(etapa, conDeal("registrado")).tipo).toBe("nada");
-    expect(decidirAccionDeDeal(etapa, conDeal("potencial")).tipo).toBe("nada");
+  it("sube de Potencial a Registrado cuando llega un completo Low o sin calidad", () => {
+    expect(decidirAccionDeDeal("registrado", conDeal("potencial"))).toEqual({
+      tipo: "subir",
+      a: "registrado",
+      nota: "Llegó la respuesta completa del formulario: el deal pasó de Potencial a Registrado.",
+    });
+  });
+
+  it("sube de Potencial o Registrado a Calificado cuando llega calidad High", () => {
+    expect(decidirAccionDeDeal("calificado", conDeal("potencial"))).toEqual({
+      tipo: "subir",
+      a: "calificado",
+      nota: "Llegó un envío con calidad High: el deal pasó de Potencial a Calificado.",
+    });
+    expect(decidirAccionDeDeal("calificado", conDeal("registrado"))).toEqual({
+      tipo: "subir",
+      a: "calificado",
+      nota: "Llegó un envío con calidad High: el deal pasó de Registrado a Calificado.",
+    });
+  });
+
+  it.each([
+    ["registrado", "registrado"],
+    ["calificado", "calificado"],
+    ["en_gestion", "calificado"],
+    ["contactado", "calificado"],
+  ] as const)("un deal en %s con entrada %s no sube sin flecha S", (etapa, entrada) => {
+    expect(decidirAccionDeDeal(entrada, conDeal(etapa)).tipo).toBe("nada");
   });
 
   it("entra en Agendado + cita vigente, sin deal, abre en Agendado con la llamada", () => {
@@ -302,6 +330,66 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     expect(r.reglaDeDeals).toHaveLength(1);
     expect(r.reglaDeDeals[0].accion).toEqual({ tipo: "abrir", etapa: "registrado" });
     expect(r.reglaDeDeals[0].dealAbiertoId).toBe(deal.id);
+  });
+
+  it("un parcial sin calidad y luego un completo High nuevo sube a Calificado con historial y nota del sistema", async () => {
+    await ingerirEntradas(
+      db,
+      programId,
+      [entrada({ token: "parcial-1", correo: "sube@correo.co", esParcial: true })],
+      { aplicarReglaDeDeals: true },
+    );
+
+    const r = await ingerirEntradas(
+      db,
+      programId,
+      [entrada({ token: "completo-2", correo: "sube@correo.co", leadQuality: "High" })],
+      { aplicarReglaDeDeals: true },
+    );
+
+    const lead = await leadDeCorreo("sube@correo.co");
+    const [deal] = await db.select().from(deals).where(eq(deals.leadId, lead.id));
+    expect(deal.etapa).toBe("calificado");
+    expect(r.reglaDeDeals[0]).toMatchObject({ accion: { tipo: "subir", a: "calificado" }, rechazo: undefined });
+
+    const movimientos = await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, deal.id));
+    expect(movimientos.filter((m) => m.de !== null)).toMatchObject([
+      { de: "potencial", a: "calificado", userId: null },
+    ]);
+    expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, deal.id))).toMatchObject([
+      {
+        tipo: "nota",
+        userId: null,
+        nota: "Llegó un envío con calidad High: el deal pasó de Potencial a Calificado.",
+      },
+    ]);
+  });
+
+  it("un deal que una persona llevó a En gestión no sube por un re-envío High", async () => {
+    await ingerirEntradas(
+      db,
+      programId,
+      [entrada({ token: "t-inicial", correo: "avanzado@correo.co" })],
+      { aplicarReglaDeDeals: true },
+    );
+    const lead = await leadDeCorreo("avanzado@correo.co");
+    const [deal] = await db.select().from(deals).where(eq(deals.leadId, lead.id));
+    const [gerente] = await db.insert(users).values({ email: "gerente@correo.co", rol: "gerente" }).returning();
+    const [perdida] = await db.insert(motivos).values({ nombre: "No era el momento", tipo: "perdida" }).returning();
+    const [recuperacion] = await db.insert(motivos).values({ nombre: "Volvió", tipo: "recuperacion" }).returning();
+    const actor = { tipo: "usuario" as const, userId: gerente.id, rol: "gerente" as const };
+    await moverEtapa(db, { dealId: deal.id, a: "cierre_perdido", actor, motivoId: perdida.id });
+    await moverEtapa(db, { dealId: deal.id, a: "en_gestion", actor, motivoId: recuperacion.id });
+
+    const r = await ingerirEntradas(
+      db,
+      programId,
+      [entrada({ token: "t-high", correo: "avanzado@correo.co", leadQuality: "High" })],
+      { aplicarReglaDeDeals: true },
+    );
+
+    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].etapa).toBe("en_gestion");
+    expect(r.reglaDeDeals[0].accion.tipo).toBe("nada");
   });
 
   it("con_calendly + cita vigente, sin deal, abre en Agendado con historial y CREA su llamada", async () => {
@@ -594,14 +682,14 @@ describe("la etapa de entrada la decide el CRM con agenda y calidad, no el formu
     expect(historial.map((h) => h.a)).toEqual(["calificado", "agendado"]);
   });
 
-  it("parcial sin calidad y luego su completa High sin agenda: el deal se queda en Potencial (no sube solo)", async () => {
-    // El motor no tiene flecha Potencial → Calificado, y con deal abierto la etapa no
-    // cambia (ADR 0037). Queda para decidir con Mani (manual §3.1, 🟡).
+  it("parcial sin calidad y luego su completa High sin agenda: el deal sube de Potencial a Calificado (S2, ADR 0073)", async () => {
+    // Antes se quedaba en Potencial (no había flecha); Mani decidió el 2-oct que la etapa de
+    // entrada refleja el mejor envío, solo hacia arriba y solo mientras nadie lo trabaja.
     await ingerir([entrada({ token: "tok-1", correo: "ana@correo.co", esParcial: true, fecha: null })]);
     const r = await ingerir([entrada({ token: "tok-1", correo: "ana@correo.co", leadQuality: "High" })]);
-    expect(r.reglaDeDeals[0].accion.tipo).toBe("nada");
+    expect(r.reglaDeDeals[0].accion.tipo).toBe("subir");
     const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("potencial");
+    expect(deal.etapa).toBe("calificado");
   });
 
   describe("🩸 los dos puntos parciales comparten token: el viejo no pisa al nuevo (revisión de Codex)", () => {

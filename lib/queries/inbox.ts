@@ -1,4 +1,4 @@
-import { and, eq, inArray, notInArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, lte, notInArray, or } from "drizzle-orm";
 import {
   calls,
   deals,
@@ -15,6 +15,7 @@ import { carteraVencida } from "@/lib/queries/cartera";
 import { vigente } from "@/lib/queries/vigente";
 import { ultimaActividadPorDeal } from "@/lib/queries/ultima-actividad";
 import { sueltaPorAsignar } from "@/lib/calendly/suelta";
+import type { OrigenDeFila } from "@/lib/queries/inbox-sin-dueno";
 
 /**
  * El READ MODEL del Inbox (ticket 071, ADR 0050): lo que un closer tiene que hacer HOY,
@@ -108,6 +109,100 @@ export interface Inbox {
 
 /** El alcance del Inbox: un dueño (el closer) o todo el equipo (quien administra). */
 export type AlcanceInbox = { ownerUserId: string } | "equipo";
+
+/**
+ * ponytail: el techo es un solo valor para todos los programas. Si uno necesita otro,
+ * el camino de mejora es una columna en `programs` con su migracion.
+ */
+export const MINUTOS_PERDIDO_EN_CALENDLY = 5;
+
+export interface FilaPerdidoEnCalendly {
+  dealId: string;
+  leadNombre: string | null;
+  leadEmail: string;
+  /** Instante del envio parcial que abrio el deal. */
+  desde: Date;
+  /** Minutos completos transcurridos desde el envio parcial. */
+  minutos: number;
+  origen: OrigenDeFila;
+}
+
+/**
+ * Deals Calificados sin dueno cuyo parcial de Calendly nunca tuvo su envio completo.
+ * Es una lista de equipo: no recibe ni aplica el alcance del Inbox.
+ */
+export async function perdidosEnCalendly(
+  db: Db,
+  programId: string,
+  ahora: Date = new Date(),
+): Promise<FilaPerdidoEnCalendly[]> {
+  const limite = new Date(ahora.getTime() - MINUTOS_PERDIDO_EN_CALENDLY * 60_000);
+  const candidatos = await db
+    .select({
+      dealId: deals.id,
+      leadNombre: leads.nombre,
+      leadEmail: leads.emailNormalizado,
+      sourceId: submissions.sourceId,
+      token: submissions.token,
+      fechaEnvio: submissions.fechaEnvio,
+      createdAt: submissions.createdAt,
+      utmSource: submissions.utmSource,
+      utmMedium: submissions.utmMedium,
+      utmCampaign: submissions.utmCampaign,
+    })
+    .from(deals)
+    .innerJoin(leads, eq(deals.leadId, leads.id))
+    .innerJoin(submissions, eq(deals.submissionOrigenId, submissions.id))
+    .where(
+      and(
+        eq(deals.programId, programId),
+        vigente(deals),
+        isNull(deals.ownerUserId),
+        eq(deals.etapa, "calificado"),
+        eq(submissions.esParcial, true),
+        or(
+          lte(submissions.fechaEnvio, limite),
+          and(isNull(submissions.fechaEnvio), lte(submissions.createdAt, limite)),
+        ),
+      ),
+    );
+
+  if (candidatos.length === 0) return [];
+
+  const pares = new Map(
+    candidatos.map((fila) => [`${fila.sourceId}\u0000${fila.token}`, { sourceId: fila.sourceId, token: fila.token }]),
+  );
+  const completos = await db
+    .select({ sourceId: submissions.sourceId, token: submissions.token })
+    .from(submissions)
+    .where(
+      and(
+        eq(submissions.esParcial, false),
+        or(...[...pares.values()].map((par) => and(eq(submissions.sourceId, par.sourceId), eq(submissions.token, par.token)))),
+      ),
+    );
+  const paresCompletos = new Set(completos.map((fila) => `${fila.sourceId}\u0000${fila.token}`));
+
+  return candidatos
+    .filter((fila) => !paresCompletos.has(`${fila.sourceId}\u0000${fila.token}`))
+    .map((fila) => {
+      const desde = fila.fechaEnvio ?? fila.createdAt;
+      return {
+        dealId: fila.dealId,
+        leadNombre: fila.leadNombre,
+        leadEmail: fila.leadEmail,
+        desde,
+        minutos: Math.floor((ahora.getTime() - desde.getTime()) / 60_000),
+        origen: {
+          utmSource: fila.utmSource,
+          utmMedium: fila.utmMedium,
+          utmCampaign: fila.utmCampaign,
+          traidoPorNombre: null,
+        },
+      };
+    })
+    .sort((a, b) => a.desde.getTime() - b.desde.getTime());
+}
 
 export async function inboxDelPrograma(
   db: Db,

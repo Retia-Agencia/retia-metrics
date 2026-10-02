@@ -7,13 +7,12 @@ import {
   dealEtapaHistorial,
   deals,
   motivos,
-  origenes,
   leads,
   programs,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { cajaRecaudada, embudoDelRango, embudoPorCloser, embudoPorOrigen, leadsDelRango, llamadasPorMotivo, vistaDeCohorteActiva } from "@/lib/queries/dashboard";
+import { cajaRecaudada, dealsPerdidosPorMotivo, embudoDelRango, embudoPorCanal, embudoPorCloser, leadsDelRango, vistaDeCohorteActiva } from "@/lib/queries/dashboard";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -490,35 +489,55 @@ describe("leadsDelRango", () => {
   });
 });
 
-// ─────────────────────────────────────── 13. llamadas por motivo
+// ─────────────────────────────────────── 13. deals perdidos por motivo
 
-describe("llamadasPorMotivo", () => {
-  it("agrupa por el catalogo; una llamada con motivoPerdida en texto libre y sin motivoId no aparece", async () => {
-    // El catalogo `motivos` ya viene sembrado por la migracion 0004; se reusan sus filas.
+describe("dealsPerdidosPorMotivo", () => {
+  it("cuenta cierres perdidos vigentes del programa y respeta el owner del closer", async () => {
     const catalogo = await db.select().from(motivos);
     const dinero = catalogo.find((m) => m.nombre === "Dinero")!;
     const horario = catalogo.find((m) => m.nombre === "Horario")!;
     const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
     const fecha = new Date("2026-09-15T14:00:00Z");
+    const programaB = await crearPrograma("programa-b-motivos", "Programa B motivos");
+    const ana = await sembrarCloser("Ana-motivos");
+    const beto = await sembrarCloser("Beto-motivos");
+    const datos = [
+      { programId: programaA, motivoId: dinero.id, ownerUserId: ana },
+      { programId: programaA, motivoId: dinero.id, ownerUserId: beto },
+      { programId: programaB, motivoId: dinero.id, ownerUserId: ana },
+      {
+        programId: programaA,
+        motivoId: horario.id,
+        ownerUserId: ana,
+        anuladoEn: fecha,
+        anuladoPor: ana,
+        motivoAnulacion: "Prueba de deal anulado",
+      },
+    ];
+    for (const dato of datos) {
+      const dealId = await sembrarDeal(dato.programId, { ...dato, etapa: "cierre_perdido" });
+      await db.insert(dealEtapaHistorial).values({
+        dealId,
+        de: null,
+        a: "cierre_perdido",
+        fecha,
+        userId: dato.ownerUserId,
+      });
+    }
 
-    await db.insert(calls).values([
-      { programId: programaA, fechaAgenda: fecha, resultado: "perdida", motivoId: dinero.id },
-      { programId: programaA, fechaAgenda: fecha, resultado: "perdida", motivoId: dinero.id },
-      { programId: programaA, fechaAgenda: fecha, resultado: "perdida", motivoId: horario.id },
-      // Fila vieja de Sheets: motivo como texto libre, sin motivoId. Queda fuera.
-      { programId: programaA, fechaAgenda: fecha, resultado: "perdida", motivoPerdida: "sin fit libre" },
+    // No hay ninguna call con motivoId: el bloque sale exclusivamente de deals.
+    expect(await dealsPerdidosPorMotivo({ programId: programaA, rango }, db)).toEqual([
+      { motivo: "Dinero", deals: 2 },
     ]);
-
-    const porMotivo = await llamadasPorMotivo({ programId: programaA, rango: rango }, db);
-    const mapa = Object.fromEntries(porMotivo.map((m) => [m.motivo, m.llamadas]));
-    expect(mapa).toEqual({ Dinero: 2, Horario: 1 });
-    expect(porMotivo.some((m) => m.motivo === "sin fit libre")).toBe(false);
+    expect(await dealsPerdidosPorMotivo({ programId: programaA, rango, closerId: "Ana-motivos" }, db)).toEqual([
+      { motivo: "Dinero", deals: 1 },
+    ]);
   });
 });
 
-// ─────────────────────────────────────── 14. por closer y por origen
+// ─────────────────────────────────────── 14. por closer y por canal
 
-describe("embudoPorCloser y embudoPorOrigen suman lo mismo que el total", () => {
+describe("embudoPorCloser", () => {
   it("los grupos por closer suman el total del programa; un closer con solo abonos aparece", async () => {
     const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
     const fecha = new Date("2026-09-15T14:00:00Z");
@@ -567,29 +586,29 @@ describe("embudoPorCloser y embudoPorOrigen suman lo mismo que el total", () => 
     expect(usdPorCloser).toBe(usdTotal);
   });
 
-  it("los grupos por origen suman el total de llamadas, con un grupo null para las llamadas sin origen", async () => {
-    const catalogo = await db.select().from(origenes);
-    const agenda = catalogo[0];
-    const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
-    const fecha = new Date("2026-09-15T14:00:00Z");
+});
 
-    await db.insert(calls).values([
-      { programId: programaA, origenId: agenda.id, fechaAgenda: fecha, resultado: "show" },
-      { programId: programaA, origenId: agenda.id, fechaAgenda: fecha, resultado: "cerrada" },
-      // Sin origenId: va al grupo null, no se descarta.
-      { programId: programaA, fechaAgenda: fecha, resultado: "no_show" },
-    ]);
+describe("embudoPorCanal", () => {
+  it("separa canales, sin UTM y sin clasificar sin cambiar los totales", () => {
+    const dimensiones = { programId: programaA, dia: "2026-09-15", duenoUserId: null, cohorteId: null };
+    const hechos = [
+      { ...dimensiones, areaId: "area-a", canalId: "canal-a", origen: "canal" as const, envios: 2, agendas: 1, shows: 1, ventas: 0 },
+      { ...dimensiones, areaId: "area-a", canalId: "canal-a", origen: "canal" as const, envios: 3, agendas: 2, shows: 1, ventas: 1 },
+      { ...dimensiones, areaId: null, canalId: null, origen: "sin_utm" as const, envios: 4, agendas: 0, shows: 0, ventas: 0 },
+      { ...dimensiones, areaId: null, canalId: null, origen: "sin_clasificar" as const, envios: 1, agendas: 1, shows: 0, ventas: 0 },
+    ];
+    const filas = embudoPorCanal(
+      hechos,
+      new Map([["canal-a", { canal: "Meta", area: "Pauta" }]]),
+    );
 
-    const total = await embudoDelRango({ programId: programaA, rango: rango }, db);
-    const porOrigen = await embudoPorOrigen({ programId: programaA, rango: rango }, db);
-
-    const sumaAgendas = porOrigen.reduce((acc, o) => acc + o.agendas, 0);
-    expect(sumaAgendas).toBe(total.agendas);
-    expect(sumaAgendas).toBe(3);
-
-    const grupoNull = porOrigen.find((o) => o.origen === null);
-    expect(grupoNull).toBeDefined();
-    expect(grupoNull!.agendas).toBe(1);
+    expect(filas.map((fila) => fila.origen)).toEqual(["canal", "sin_clasificar", "sin_utm"]);
+    expect(filas[0]).toMatchObject({ canal: "Meta", area: "Pauta", envios: 5, agendas: 3, shows: 2, ventas: 1 });
+    for (const medida of ["envios", "agendas", "shows", "ventas"] as const) {
+      expect(filas.reduce((total, fila) => total + fila[medida], 0)).toBe(
+        hechos.reduce((total, hecho) => total + hecho[medida], 0),
+      );
+    }
   });
 });
 
@@ -736,24 +755,20 @@ describe("pendientes y desgloses acotados a un closer", () => {
   const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
   const fecha = new Date("2026-09-15T14:00:00Z");
 
-  it("los motivos de perdida y los origenes se acotan al closer", async () => {
+  it("los motivos de perdida se acotan al closer", async () => {
     const catalogoMotivos = await db.select().from(motivos);
     const dinero = catalogoMotivos.find((m) => m.nombre === "Dinero")!;
-    const catalogoOrigenes = await db.select().from(origenes);
-    const origen = catalogoOrigenes[0];
+    const ana = await sembrarCloser("Ana-motivo-individual");
+    const beto = await sembrarCloser("Beto-motivo-individual");
+    for (const ownerUserId of [ana, beto]) {
+      const dealId = await sembrarDeal(programaA, { etapa: "cierre_perdido", motivoId: dinero.id, ownerUserId });
+      await db.insert(dealEtapaHistorial).values({ dealId, de: null, a: "cierre_perdido", fecha, userId: ownerUserId });
+    }
 
-    await db.insert(calls).values([
-      { programId: programaA, closerId: "Ana", fechaAgenda: fecha, resultado: "perdida", motivoId: dinero.id, origenId: origen.id },
-      { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "perdida", motivoId: dinero.id, origenId: origen.id },
-      { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "show", origenId: origen.id },
-    ]);
-
-    const motivosDeAna = await llamadasPorMotivo({ programId: programaA, rango, closerId: "Ana" }, db);
-    expect(motivosDeAna).toEqual([{ motivo: "Dinero", llamadas: 1 }]);
-
-    const origenesDeBeto = await embudoPorOrigen({ programId: programaA, rango, closerId: "Beto" }, db);
-    expect(origenesDeBeto).toHaveLength(1);
-    expect(origenesDeBeto[0].agendas).toBe(2);
-    expect(origenesDeBeto[0].llamadasConShow).toBe(2);
+    const motivosDeAna = await dealsPerdidosPorMotivo(
+      { programId: programaA, rango, closerId: "Ana-motivo-individual" },
+      db,
+    );
+    expect(motivosDeAna).toEqual([{ motivo: "Dinero", deals: 1 }]);
   });
 });

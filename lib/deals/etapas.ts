@@ -59,6 +59,9 @@ const SE_PUEDEN_PERDER: readonly EtapaDeal[] = [
   "atendido", "compromiso_verbal", "ganado_parcial",
 ];
 const FILAS_ETAPA: readonly FilaEtapa[] = [
+  ["S1", "potencial", "registrado", "sistema"],
+  ["S2", "potencial", "calificado", "sistema"],
+  ["S3", "registrado", "calificado", "sistema"],
   ["E1", ["potencial", "registrado"], "en_gestion", "sistema"],
   ["E2", "en_gestion", "contactado", "sistema"],
   ["E3", ["en_gestion", "contactado"], "calificado", "closer"],

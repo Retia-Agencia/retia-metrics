@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { fecha, fechaHoraEnBogota, saldoLegible, usd, pct } from "@/lib/format";
@@ -14,11 +15,13 @@ import { Dato } from "./campos";
 export function FichaCabecera({
   ficha,
   nombre,
+  programaSlug,
   nombreDeEtapa,
   tonoDeEtapa,
 }: {
   ficha: FichaDeDeal;
   nombre: string;
+  programaSlug: string;
   nombreDeEtapa: Record<EtapaDeal, string>;
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
 }) {
@@ -26,7 +29,7 @@ export function FichaCabecera({
   const saldo = saldoLegible(ficha.saldo.saldo, ficha.saldo.moneda ?? "USD");
 
   return (
-    <Card>
+    <Card id="campos" className="scroll-mt-24">
       <CardContent className="space-y-4">
         {ficha.anulado ? (
           <div className="rounded-lg bg-tono-peligro-suave p-3 text-sm text-tono-peligro">
@@ -53,6 +56,18 @@ export function FichaCabecera({
             ) : null}
           </div>
         </div>
+
+        {ficha.lead.envios >= 2 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="info">{ficha.lead.envios} envíos</Badge>
+            <Link
+              href={`/p/${programaSlug}/leads/${ficha.lead.id}`}
+              className="text-sm text-muted-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Ver los envíos
+            </Link>
+          </div>
+        ) : null}
 
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-5">
           <Dato etiqueta="Dueño">{ficha.owner ? (ficha.owner.nombre ?? "Sin nombre") : "Sin dueño"}</Dato>

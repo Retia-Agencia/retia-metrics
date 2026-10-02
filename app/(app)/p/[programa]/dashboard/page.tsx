@@ -7,6 +7,7 @@ import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { parsearPeriodoUrl } from "@/lib/periodo";
 import { fecha, num, hoyEnBogota } from "@/lib/format";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
+import { embudoPorCanal, nombresDeCanales } from "@/lib/queries/dashboard";
 import { pautaInterina, type FiltrosPauta } from "@/lib/queries/pauta-interina";
 import { hechosDelEmbudo } from "@/lib/queries/hechos-embudo";
 import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
@@ -115,6 +116,9 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
   });
   const porCanal = await registrosYAgendasPorCanal(db, programa.id, vista.seleccion.rango, hoy);
   const hechosFiltrados = areaId === undefined ? hechos : hechos.filter((fila) => fila.areaId === areaId);
+  const origenPorCanal = vista.closerId !== null
+    ? null
+    : embudoPorCanal(hechosFiltrados, await nombresDeCanales(db));
   const resumenSerie = hechosFiltrados.reduce(
     (total, fila) => ({
       envios: total.envios + fila.envios,
@@ -157,7 +161,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
           closers={vista.closers}
           cohorteDisponible={vista.cohorte?.ventana != null}
         />
-        <DashboardPrograma vista={vista} detalles={detalles} />
+        <DashboardPrograma vista={vista} detalles={detalles} origenPorCanal={origenPorCanal} />
         <DealsContraAgendas vista={dealsContraAgendas} />
         <Card aria-labelledby="resumen-serie">
           <CardHeader>

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, monto, num, pct, usd } from "@/lib/format";
-import type { CajaPorMoneda } from "@/lib/queries/dashboard";
+import type { CajaPorMoneda, FilaEmbudoPorCanal } from "@/lib/queries/dashboard";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 
 /**
@@ -75,8 +75,16 @@ function Tabla({ cabeceras, children }: { cabeceras: string[]; children: ReactNo
   );
 }
 
-export function DashboardPrograma({ vista, detalles }: { vista: VistaDelDashboard; detalles?: DetallesDelDashboard }) {
-  const { embudo, sinGrain, caja, leads, cohorte, comparativo, comisionPorcentaje, motivos, origenes, closerId } = vista;
+export function DashboardPrograma({
+  vista,
+  detalles,
+  origenPorCanal,
+}: {
+  vista: VistaDelDashboard;
+  detalles?: DetallesDelDashboard;
+  origenPorCanal: FilaEmbudoPorCanal[] | null;
+}) {
+  const { embudo, sinGrain, caja, leads, cohorte, comparativo, comisionPorcentaje, motivos, closerId } = vista;
 
   return (
     <div className="space-y-6">
@@ -269,14 +277,14 @@ export function DashboardPrograma({ vista, detalles }: { vista: VistaDelDashboar
           <CardContent>
             {motivos.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Ninguna llamada perdida con motivo del catálogo en este rango.
+                Ningún deal perdido con motivo en este rango.
               </p>
             ) : (
-              <Tabla cabeceras={["Motivo", "Llamadas"]}>
+              <Tabla cabeceras={["Motivo", "Deals"]}>
                 {motivos.map((m) => (
                   <tr key={m.motivo} className="tabular-nums">
                     <td className="py-2">{m.motivo}</td>
-                    <td className="py-2 text-right">{num(m.llamadas)}</td>
+                    <td className="py-2 text-right">{num(m.deals)}</td>
                   </tr>
                 ))}
               </Tabla>
@@ -284,26 +292,41 @@ export function DashboardPrograma({ vista, detalles }: { vista: VistaDelDashboar
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Origen del lead</CardTitle>
           </CardHeader>
           <CardContent>
-            {origenes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin llamadas en este rango.</p>
+            {origenPorCanal === null ? (
+              <p className="text-sm text-muted-foreground">
+                El origen por canal es del programa entero: quita el filtro de closer para verlo.
+              </p>
+            ) : origenPorCanal.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin envíos ni llamadas en este rango.</p>
             ) : (
-              <Tabla cabeceras={["Origen", "Agendas", "Show", "% show", "Cierres"]}>
-                {origenes.map((o) => (
-                  <tr key={o.origen ?? "sin-origen"} className="tabular-nums">
+              <Tabla cabeceras={["Canal", "Área", "Envíos", "Agendas", "Show", "% show", "Ventas"]}>
+                {origenPorCanal.map((o) => {
+                  const etiquetas = {
+                    sin_clasificar: "Sin clasificar",
+                    sin_utm: "Sin UTM",
+                    sin_envio_origen: "Sin envío de origen",
+                  } as const;
+                  return (
+                  <tr key={`${o.origen}:${o.canalId ?? "sin-canal"}`} className="tabular-nums">
                     <td className="py-2">
-                      {o.origen ?? <span className="text-muted-foreground">sin origen</span>}
+                      {o.origen === "canal" ? o.canal : (
+                        <span className="text-muted-foreground">{etiquetas[o.origen]}</span>
+                      )}
                     </td>
+                    <td className="py-2">{o.area ?? "—"}</td>
+                    <td className="py-2 text-right">{num(o.envios)}</td>
                     <td className="py-2 text-right">{num(o.agendas)}</td>
-                    <td className="py-2 text-right">{num(o.llamadasConShow)}</td>
+                    <td className="py-2 text-right">{num(o.shows)}</td>
                     <td className="py-2 text-right">{tasa(o.pctShow)}</td>
-                    <td className="py-2 text-right">{num(o.cierres)}</td>
+                    <td className="py-2 text-right">{num(o.ventas)}</td>
                   </tr>
-                ))}
+                  );
+                })}
               </Tabla>
             )}
           </CardContent>

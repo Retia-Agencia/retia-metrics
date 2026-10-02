@@ -70,6 +70,7 @@ afterEach(async () => {
 
 interface OpcDeal {
   etapa: EtapaDeal;
+  envios?: number;
   pendiente?: "reagenda" | "seguimiento" | "proxima_cohorte" | null;
   owner?: string;
   cohort?: string | null;
@@ -91,6 +92,7 @@ async function deal(o: OpcDeal): Promise<string> {
       programId,
       emailNormalizado: `l${++leadN}@correo.co`,
       nombre: `Lead ${leadN}`,
+      numAplicaciones: o.envios ?? 1,
     })
     .returning();
   // El canal es del envío que abrió el deal (ADR 0060), no del lead.
@@ -170,6 +172,12 @@ describe("tableroKanban", () => {
     expect(setteo.tarjetas).toHaveLength(1);
     expect([owner1, owner2]).toContain(enContacto.tarjetas[0].ownerUserId);
     expect(enContacto.tarjetas.some((x) => x.ownerNombre === "Maria")).toBe(true);
+  });
+
+  it("expone el número de envíos del lead en la tarjeta", async () => {
+    await deal({ etapa: "registrado", envios: 3 });
+    const t = await tableroKanban(db, programId, {}, HOY);
+    expect(t.columnas.find((c) => c.etapa === "registrado")!.tarjetas[0].envios).toBe(3);
   });
 
   it("filtra por dueño", async () => {

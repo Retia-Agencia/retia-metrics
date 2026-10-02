@@ -11,13 +11,14 @@ import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
-import { inboxDelPrograma, type AlcanceInbox } from "@/lib/queries/inbox";
+import { inboxDelPrograma, perdidosEnCalendly, type AlcanceInbox } from "@/lib/queries/inbox";
 import { PageShell } from "@/components/page-shell";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { InboxSinDueno } from "@/components/deals/inbox-sin-dueno";
 import { InboxLlamadasDeHoy } from "@/components/deals/inbox-llamadas-de-hoy";
 import { InboxLlamadasSueltas } from "@/components/deals/inbox-llamadas-sueltas";
 import { InboxAtencion } from "@/components/deals/inbox-atencion";
+import { InboxPerdidosEnCalendly } from "@/components/deals/inbox-perdidos-en-calendly";
 
 export const dynamic = "force-dynamic";
 
@@ -56,8 +57,9 @@ export default async function InboxDelProgramaPage({ params }: Props) {
   // Un administrador ve el equipo entero; el closer (y el developer en vista closer) ve lo suyo.
   const alcance: AlcanceInbox = administra ? "equipo" : { ownerUserId: session.user.id };
 
-  const [inbox, secciones, duenos, plataformas, motivosFilas, areasFilas] = await Promise.all([
+  const [inbox, perdidos, secciones, duenos, plataformas, motivosFilas, areasFilas] = await Promise.all([
     inboxDelPrograma(db, programa.id, alcance),
+    perdidosEnCalendly(db, programa.id),
     seccionesSinDueno(db, programa.id),
     duenosPosibles(db, programa.id),
     plataformasDelPrograma(db, programa.id),
@@ -73,6 +75,8 @@ export default async function InboxDelProgramaPage({ params }: Props) {
   return (
     <PageShell titulo={programa.nombre} descripcion="Inbox">
       <div className="space-y-4">
+        <InboxPerdidosEnCalendly filas={perdidos} slug={programa.slug} />
+
         {/* 1 · Llamadas de hoy sin resultado (el dolor número uno, va primera). */}
         <InboxLlamadasDeHoy
           llamadas={inbox.llamadasDeHoy}
