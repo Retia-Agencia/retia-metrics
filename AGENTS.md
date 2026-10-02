@@ -395,6 +395,16 @@ The agent should run these to get fast signal on whether code works. Keep them c
   Linux (faltaban `@emnapi/core` y `@emnapi/runtime` 1.11.3), y desde ahí `npm ci` pasa en el CI. Si te
   vuelve a fallar, `npm install --package-lock-only` y commit del lock, nunca `--no-package-lock`. Si ves 46 tests caídos por `drizzle-orm/postgres-js`,
   a tu `node_modules` le falta el driver `postgres`: es entorno, no regresión.
+- 🩸 **La suite COMPLETA no se corre en local; la corre el CI** (Mani, 1-oct). Se cortó tres veces a los 480 s
+  en una Mac con 16,5 GB de swap y la espera llegó a 25 minutos. En local los tests **no son bloqueantes**: typecheck
+  y lint siempre; los archivos de tests del cambio (`npm test -- tests/x.test.ts`) solo si la máquina tiene
+  aire, y eso se mide antes de correr: carga (`uptime`, por debajo del número de núcleos) y swap
+  (`sysctl vm.swapusage`, sin varios GB usados). Si no hay aire, se empuja y decide el CI. La suite completa la valida el CI de cada
+  push (~6,5 min de `npm test`, ~8 min la corrida; no usa la máquina de nadie), y **un cambio no está terminado
+  hasta ver el CI en verde** (`gh run list --limit 3`). El CI además corre lo que en local se salta: los tests
+  contra Postgres real (`DATABASE_URL_PRUEBA_POSTGRES`), que el 1-oct estuvieron rojos 3 h sin que nadie mirara.
+  Ojo: el CI cancela la corrida anterior al empujar otro commit (`cancel-in-progress`), así que no se empuja
+  encima de una verificación pendiente. Pendiente: volcado migrado una vez por corrida y CI también en ramas.
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Worktree restringido en Windows:** si PowerShell bloquea `npm.ps1`, usar `npm.cmd`. Si Vite no
   puede escribir en `node_modules/.vite-temp` porque las dependencias son compartidas, usar

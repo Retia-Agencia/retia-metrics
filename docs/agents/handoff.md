@@ -174,6 +174,9 @@ empuja al mismo main y el numero de migracion puede chocar.
     del cambio; la suite completa la corre el CI. Propuesta abierta (ticket por crear): volcado migrado UNA vez
     por corrida en `globalSetup` (hoy es una vez por archivo, ~850 ms × 92), `vitest --changed` como bucle local
     y CI también en ramas.
+  - **Arreglo del CI empujado** (`3fd1340`): el fixture del test de concurrencia ahora le da al deal su valor
+    vendido (1.000); la reja del sobrepago no se tocó. Lo verifica el CI (en local no hay Postgres prendido).
+    Si sale rojo, es la primera tarea. La regla nueva de tests quedó en `AGENTS.md` (Feedback loops).
   - 🔴 **CI EN ROJO desde el 132** (todo `main` desde las 18:47 del 1-oct): falla SOLO
     `tests/abonos-concurrencia-postgres.test.ts` ("dos conexiones abonan 600 sobre un saldo de 600", espera un
     abono y entran 0). Ese test corre solo con `DATABASE_URL_PRUEBA_POSTGRES` (en local se salta, por eso nadie lo
