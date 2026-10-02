@@ -202,5 +202,9 @@ ajustados a GC-27. Corridos 27 archivos de ingesta, Calendly, webhook, costura y
 - Guardián nuevo en `tests/ingesta-estado.test.ts`: solo `lib/db/schema.ts` nombra `estadosLlegada`; mordido en los
   dos sentidos.
 
-**Falta (con el ok de Mani):** la migración que borra la tabla `estados_llegada` (y su tipo en el esquema). El código
-ya no la lee, así que se puede aplicar en cualquier momento después de este deploy.
+**Migración 0059 aplicada en producción el 2-oct** (ok de Mani): `DROP TABLE estados_llegada` sin CASCADE y `DROP TYPE
+prioridad_llegada`, con `lock_timeout`. Verificado después: la tabla y el tipo ya no existen, 60 migraciones. Las filas de
+`change_log` que hablan de la tabla se quedan como historia.
+
+**Lo que le queda al 117:** el reproceso de los 23 de Tactical (ok de Mani; ya sin la decisión de los 14) y anotar el
+primer parcial real de Typeform cuando llegue (O-7).
