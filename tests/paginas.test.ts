@@ -185,6 +185,14 @@ vi.mock("@/lib/queries/nerd-stats", () => ({
   fuentesConSalud: vi.fn(async () => []),
   textoDeFuentesLeidas: vi.fn(() => "—"),
 }));
+// La bitacora (076): se mockean SOLO las lecturas, para ver si la pagina llega a ellas.
+const paginaDeBitacora = vi.fn(async () => ({ entradas: [], total: 0, pagina: 1, paginas: 1 }));
+const opcionesDeBitacora = vi.fn(async () => ({ tablas: [], usuarios: [] }));
+vi.mock("@/lib/queries/bitacora", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/queries/bitacora")>()),
+  paginaDeBitacora,
+  opcionesDeBitacora,
+}));
 
 /** El `redirect` real interrumpe el render lanzando. El mock imita eso. */
 class Redireccion extends Error {
@@ -937,6 +945,68 @@ describe("pagina de developer /nerd-stats (ticket 025)", () => {
   it("manda al login a quien no tiene sesion", async () => {
     auth.mockResolvedValue(null);
     expect(await destinoDe(RUTA)).toBe("/login");
+  });
+});
+
+/**
+ * La bitacora (ticket 076) es exclusiva del developer, y se prueba FORJANDO la peticion: se
+ * invoca la pagina real con filtros en la URL, como lo haria alguien que adivina la ruta,
+ * desde cada sesion que no deberia entrar. La guarda corre antes de leer un filtro: la
+ * consulta ni se llama.
+ */
+describe("bitacora /nerd-stats/bitacora (ticket 076)", () => {
+  const FILTROS = { usuario: "sistema", tabla: "deals", desde: "2026-09-01", hasta: "2026-09-30", pagina: "2" };
+
+  async function correr(sesion: unknown, vista?: string): Promise<string | null> {
+    auth.mockResolvedValue(sesion);
+    ponerVista(vista);
+    paginaDeBitacora.mockClear();
+    opcionesDeBitacora.mockClear();
+    const modulo = (await import("@/app/(app)/nerd-stats/bitacora/page")) as {
+      default: (props: { searchParams: Promise<Record<string, string>> }) => Promise<unknown>;
+    };
+    try {
+      await modulo.default({ searchParams: Promise.resolve(FILTROS) });
+      return null;
+    } catch (e) {
+      if (e instanceof Redireccion) return e.destino;
+      throw e;
+    }
+  }
+
+  it("un gerente con filtros forjados es rebotado y la consulta no corre", async () => {
+    programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
+    expect(await correr(sesionGerente)).toBe("/p/programa-a/dashboard");
+    expect(paginaDeBitacora).not.toHaveBeenCalled();
+    expect(opcionesDeBitacora).not.toHaveBeenCalled();
+  });
+
+  it("un closer con filtros forjados es rebotado y la consulta no corre", async () => {
+    expect(await correr(sesionCloser)).toBe("/mi-dia");
+    expect(paginaDeBitacora).not.toHaveBeenCalled();
+  });
+
+  it("un developer en vista gerente tampoco entra: la vista estrecha la guarda (ticket 028)", async () => {
+    programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
+    expect(await correr(sesionDeveloper, "gerente")).not.toBeNull();
+    expect(paginaDeBitacora).not.toHaveBeenCalled();
+  });
+
+  it("sin sesion va al login", async () => {
+    expect(await correr(null)).toBe("/login");
+    expect(paginaDeBitacora).not.toHaveBeenCalled();
+  });
+
+  it("el developer entra y la consulta recibe los filtros validados de la URL", async () => {
+    expect(await correr(sesionDeveloper)).toBeNull();
+    expect(paginaDeBitacora).toHaveBeenCalledTimes(1);
+    expect((paginaDeBitacora.mock.calls[0] as unknown[])[0]).toEqual({
+      usuario: "sistema",
+      tabla: "deals",
+      desde: "2026-09-01",
+      hasta: "2026-09-30",
+      pagina: 2,
+    });
   });
 });
 

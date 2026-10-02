@@ -216,7 +216,12 @@ export default async function NerdStatsPage() {
           <CardContent>
             <p className="mb-3 text-xs text-muted-foreground">
               Qué tabla y qué campo se tocaron, quién y cuándo. Los valores no se muestran a
-              propósito: la bitácora guarda datos de leads y esta pantalla no los expone.
+              propósito: la bitácora guarda datos de leads y esta pantalla no los expone. Todo, con
+              los movimientos de etapa y filtros por usuario, tabla y rango, en la{" "}
+              <Link href="/nerd-stats/bitacora" className="text-marca-texto underline-offset-4 outline-none hover:underline focus-visible:underline">
+                bitácora
+              </Link>
+              .
             </p>
             {cambios.length === 0 ? (
               <p className="text-sm text-muted-foreground">
