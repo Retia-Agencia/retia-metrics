@@ -285,6 +285,9 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
       deal: deals,
       lead: leads,
       envioId: submissions.id,
+      // La fecha del ENVIO (cuando la persona lo lleno), no la de ingesta (A-31). Sin ella,
+      // la de llegada, igual que la ficha del lead.
+      envioFechaEnvio: submissions.fechaEnvio,
       envioFecha: submissions.createdAt,
       envioCalificacion: submissions.calificacion,
       ...columnasUtmDelEnvio,
@@ -423,7 +426,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
     origen: deal.submissionOrigenId && fila.envioId && fila.envioFecha
       ? {
           envioId: fila.envioId,
-          fecha: fila.envioFecha,
+          fecha: fila.envioFechaEnvio ?? fila.envioFecha,
           calificacion: fila.envioCalificacion,
           utm: utmsDelEnvio(fila),
         }

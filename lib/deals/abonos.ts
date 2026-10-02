@@ -3,6 +3,7 @@ import { z } from "zod";
 import { abonos, cohorts, deals, leads, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
+import { usd } from "@/lib/format";
 import { normalizando } from "@/lib/errors-zod";
 import { esAdministrador, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { esquemaAbono } from "@/lib/abonos/esquema";
@@ -95,8 +96,6 @@ async function closerDeLaCuenta(tx: Db, userId: string): Promise<string | null> 
   const [u] = await tx.select({ closerId: users.closerId }).from(users).where(eq(users.id, userId));
   return u?.closerId ?? null;
 }
-
-const usd = (n: number) => `${n.toFixed(2)} USD`;
 
 export async function registrarAbono(
   db: Db,

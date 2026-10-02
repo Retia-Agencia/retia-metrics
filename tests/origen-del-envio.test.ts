@@ -109,6 +109,8 @@ describe("el deal que abre la ingesta recuerda el envio que lo abrio", () => {
       envioId: deal.submissionOrigenId,
       utm: { source: "instagram", medium: "stories", campaign: null },
     });
+    // A-31: la fecha del origen es la del ENVIO (20-sep), no la de ingesta (hoy).
+    expect(ficha!.origen!.fecha.toISOString()).toBe("2026-09-20T15:00:00.000Z");
   });
 
   it("un lead con deal Completo que vuelve a enviar abre un deal nuevo con el envio nuevo; el cerrado no cambia", async () => {

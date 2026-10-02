@@ -222,7 +222,9 @@ describe("registrarAbono: las rejas", () => {
     const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "400.01")));
 
     expect(e.status).toBe(422);
-    expect(e.message).toContain("400.00 USD");
+    // A-24: con el formato del contrato (`usd` de lib/format.ts), coma decimal.
+    expect(e.message).toContain("(USD 400,00)");
+    expect(e.message).toContain("(USD 400,01)");
     expect(await abonosDe(dealId)).toHaveLength(1);
     expect(await etapaDe(dealId)).toBe("ganado_parcial");
   });

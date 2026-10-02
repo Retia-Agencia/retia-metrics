@@ -247,7 +247,7 @@ export function FichaPago({
       )}
 
       {dialogo?.tipo === "abono" ? <DialogoAbono ficha={ficha} opciones={opciones} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} /> : null}
-      {dialogo?.tipo === "anular" ? <DialogoAnularAbono abono={dialogo.abono} onCerrar={cerrar} /> : null}
+      {dialogo?.tipo === "anular" ? <DialogoAnularAbono abono={dialogo.abono} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "acuerdo" ? <DialogoAcuerdo ficha={ficha} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "cohorte" ? <DialogoCohorte ficha={ficha} opciones={opciones} onCerrar={cerrar} /> : null}
     </Card>
@@ -378,7 +378,15 @@ function DialogoAbono({
   );
 }
 
-function DialogoAnularAbono({ abono, onCerrar }: { abono: FichaDeAbono; onCerrar: () => void }) {
+function DialogoAnularAbono({
+  abono,
+  nombreDeEtapa,
+  onCerrar,
+}: {
+  abono: FichaDeAbono;
+  nombreDeEtapa: Record<EtapaDeal, string>;
+  onCerrar: () => void;
+}) {
   const { pendiente, correr } = useAccion();
   const [motivo, setMotivo] = useState("");
   return (
@@ -394,7 +402,7 @@ function DialogoAnularAbono({ abono, onCerrar }: { abono: FichaDeAbono; onCerrar
         enCurso: "Anulando…",
         onClick: () =>
           correr(() => anularAbonoAccion({ abonoId: abono.id, motivo }), {
-            exito: (r) => (r.movioElDeal ? `Abono anulado. El deal volvió a ${r.etapa}.` : "Abono anulado."),
+            exito: (r) => (r.movioElDeal ? `Abono anulado. El deal volvió a ${nombreDeEtapa[r.etapa as EtapaDeal]}.` : "Abono anulado."),
             alExito: onCerrar,
           }),
       }}
