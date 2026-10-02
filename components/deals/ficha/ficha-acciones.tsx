@@ -19,7 +19,7 @@ import { useAccion } from "./uso-accion";
 
 /**
  * Las acciones del encabezado de la ficha (ticket 074): editar y anular. La etapa se
- * cambia respondiendo la pregunta de la etapa (`FichaPregunta`, ADR 0072), no aqui.
+ * cambia desde la sección Transición (`FichaTransicion`, ADR 0075), no aquí.
  *
  * - **Editar** solo ofrece lo que el servidor va a aceptar; la reja de verdad es de
  *   `editarDeal`. La etapa NO se edita aqui (solo `moverEtapa`).

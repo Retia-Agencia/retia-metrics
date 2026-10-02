@@ -21,6 +21,8 @@ import { diaDeCalendario } from "@/lib/dias-habiles";
 import { filtroDeFechaDeLaUrl, type FiltroDeFecha } from "@/lib/periodo";
 import { cerradosEn, fechaAnclaDealCreado } from "@/lib/queries/metricas-filtros";
 import { ultimaActividadPorDeal } from "@/lib/queries/ultima-actividad";
+import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
+import type { AlcanceDeals } from "@/lib/auth/alcance-deals";
 
 /**
  * Los deals de un programa agrupados por etapa, para el Kanban (ticket 069).
@@ -53,6 +55,8 @@ export interface AvisosDeTarjeta {
   seguimientoVencido: boolean;
   /** El lead tiene un contacto sin confirmar: "unido por telefono" (ADR 0035 punto 4). */
   leadUnidoPorTelefono: boolean;
+  /** Hay plata vigente sin soporte: no bloquea la venta, pero exige atención. */
+  abonoSinComprobante: boolean;
 }
 
 export interface TarjetaDeal {
@@ -155,6 +159,7 @@ export function parsearFiltros(
 export async function tableroKanban(
   db: Db,
   programId: string,
+  alcance: AlcanceDeals,
   filtros: FiltrosKanban = {},
   hoy: string = hoyEnBogota(),
   ahora: Date = new Date(),
@@ -192,6 +197,7 @@ export async function tableroKanban(
       and(
         eq(deals.programId, programId),
         vigente(deals),
+        alcance.tipo === "dueno" ? eq(deals.ownerUserId, alcance.userId) : undefined,
         // Creado y cierre se deciden en SQL con la MISMA definicion que el dashboard (138, 141).
         creado ? between(fechaAnclaDealCreado(), creado.desde, creado.hasta) : undefined,
         // Un arreglo vacio en `inArray` no filtra nada: sin cerrados, la condicion es falsa.
@@ -226,6 +232,7 @@ export async function tableroKanban(
   // Contactos SIN confirmar por lead: "unido por telefono" (ADR 0035 punto 4). Un lead
   // con al menos uno lleva el aviso. Se agrupa aparte.
   const sinConfirmar = await leadsConContactoSinConfirmar(db, leadIds);
+  const sinComprobante = await dealsConAbonoSinComprobante(db, dealIds);
 
   const tarjetas: TarjetaDeal[] = filas.map((f) => {
     const saldo = saldos.get(f.dealId);
@@ -257,11 +264,13 @@ export async function tableroKanban(
         carteraVencida: enCartera.has(f.dealId),
         seguimientoVencido,
         leadUnidoPorTelefono: sinConfirmar.has(f.leadId),
+        abonoSinComprobante: sinComprobante.has(f.dealId),
       },
     };
   });
 
-  const filtradas = tarjetas.filter((t) => pasaFiltros(t, filtros));
+  const filtrosVisibles = alcance.tipo === "dueno" ? { ...filtros, ownerUserId: null } : filtros;
+  const filtradas = tarjetas.filter((t) => pasaFiltros(t, filtrosVisibles));
 
   const porEtapa = new Map<EtapaDeal, TarjetaDeal[]>();
   for (const etapa of ETAPAS_EN_ORDEN) porEtapa.set(etapa, []);

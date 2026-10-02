@@ -17,7 +17,6 @@ const ANCLA_DE_REQUISITO: Record<RequisitoFaltante["codigo"], string> = {
   cohorte_destino: "pago",
   fecha_seguimiento: "campos",
   abono: "pago",
-  comprobante: "pago",
   saldo_pendiente: "pago",
   saldo_en_cero: "pago",
   sin_abonos: "pago",
@@ -56,13 +55,11 @@ function Destino({ destino }: { destino: AlertasDelDeal["paraAvanzar"][number] }
 }
 
 export function FichaAlertas({ alertas }: { alertas: AlertasDelDeal | null }) {
-  if (!alertas) return null;
-  const feliz = alertas.paraAvanzar.find((destino) => destino.caminoFeliz);
+  const feliz = alertas?.paraAvanzar.find((destino) => destino.caminoFeliz);
   // Se esconde solo cuando no queda nada: ni urgentes, ni aviso, ni una ruta con faltantes.
-  const quedaAlgo = alertas.urgentes.length > 0 || alertas.aviso != null
-    || alertas.paraAvanzar.some((destino) => destino.faltan.length > 0);
-  if (!quedaAlgo) return null;
-  const alternos = alertas.paraAvanzar.filter((destino) => !destino.caminoFeliz);
+  const quedaAlgo = alertas != null && (alertas.urgentes.length > 0 || alertas.aviso != null
+    || alertas.paraAvanzar.some((destino) => destino.faltan.length > 0));
+  const alternos = alertas?.paraAvanzar.filter((destino) => !destino.caminoFeliz) ?? [];
 
   return (
     <Card>
@@ -70,7 +67,8 @@ export function FichaAlertas({ alertas }: { alertas: AlertasDelDeal | null }) {
         <CardTitle>Alertas</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {alertas.urgentes.length > 0 ? (
+        {!quedaAlgo ? <p className="text-sm text-muted-foreground">Nada pendiente</p> : null}
+        {alertas && alertas.urgentes.length > 0 ? (
           <section className="rounded-lg bg-tono-peligro-suave p-3 text-tono-peligro">
             <Badge variant="peligro">Urgente</Badge>
             <ul className="mt-2 space-y-1 text-sm">
@@ -79,7 +77,7 @@ export function FichaAlertas({ alertas }: { alertas: AlertasDelDeal | null }) {
           </section>
         ) : null}
 
-        {alertas.aviso || feliz || alternos.length > 0 ? (
+        {alertas && quedaAlgo && (alertas.aviso || feliz || alternos.length > 0) ? (
           <section className="rounded-lg bg-tono-alerta-suave p-3 text-tono-alerta">
             <Badge variant="alerta">Para avanzar</Badge>
             {alertas.aviso ? <p className="mt-2 text-sm">{alertas.aviso}</p> : null}

@@ -136,6 +136,7 @@ export function TarjetaDealCard({
         <div className="mt-2 flex flex-wrap gap-1">
           {avisos.compromisoVencido ? <Badge variant="peligro">Compromiso vencido</Badge> : null}
           {avisos.carteraVencida ? <Badge variant="peligro">Cartera vencida</Badge> : null}
+          {avisos.abonoSinComprobante ? <Badge variant="peligro">Abono sin comprobante</Badge> : null}
           {avisos.seguimientoVencido ? <Badge variant="alerta">Seguimiento vencido</Badge> : null}
           {avisos.leadUnidoPorTelefono ? <Badge variant="info">Unido por teléfono</Badge> : null}
         </div>
@@ -145,5 +146,5 @@ export function TarjetaDealCard({
 }
 
 function tieneAvisos(a: TarjetaDeal["avisos"]): boolean {
-  return a.compromisoVencido || a.carteraVencida || a.seguimientoVencido || a.leadUnidoPorTelefono;
+  return a.compromisoVencido || a.carteraVencida || a.abonoSinComprobante || a.seguimientoVencido || a.leadUnidoPorTelefono;
 }

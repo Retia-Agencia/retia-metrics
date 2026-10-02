@@ -65,7 +65,7 @@ export const esquemaAgregarLlamada = z.object({
   fechaAgenda: z.date({ message: "Falta la fecha de la cita." }),
   linkCalendly: z
     .string()
-    .url("El link de Calendly no es una URL válida.")
+    .url("El link de la reunión no es una URL válida.")
     .optional(),
   notas: z.string().trim().min(1).optional(),
 });
@@ -156,7 +156,7 @@ export const esquemaCompletarAgendada = z.object({
   fechaAgenda: z.date({ message: "Falta la fecha de la cita." }),
   linkCalendly: z
     .string()
-    .url("El link de Calendly no es una URL válida.")
+    .url("El link de la reunión no es una URL válida.")
     .optional(),
 });
 

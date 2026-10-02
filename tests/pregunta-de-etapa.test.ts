@@ -13,6 +13,7 @@ import {
   PREGUNTA_DE_ETAPA,
   respuestasDe,
   respuestasHacia,
+  respuestasPorDestino,
   type PreguntaDeEtapa,
   type Respuesta,
 } from "@/components/deals/pregunta-de-etapa";
@@ -179,5 +180,26 @@ describe("respuestasHacia: soltar en una columna del Kanban (ADR 0072 punto 2)",
     expect(respuestasHacia("calificado", null, "calificado")).toEqual([]);
     expect(ids(respuestasHacia("atendido", null, "agendado"))).toEqual([]);
     expect(ids(respuestasHacia("atendido", "reagenda", "agendado"))).toEqual(["agendo"]);
+  });
+});
+
+describe("respuestasPorDestino: Transición (ADR 0075)", () => {
+  it("cada respuesta que cambia de etapa cae en exactamente un botón", () => {
+    for (const etapa of ETAPAS) {
+      const grupos = respuestasPorDestino(etapa, "reagenda", ETAPAS);
+      const agrupadas = grupos.destinos.flatMap((grupo) => grupo.respuestas);
+      for (const respuesta of respuestasDe(etapa, "reagenda")) {
+        const cambia = respuesta.accion.tipo === "abono"
+          || ETAPAS.some((destino) => destino !== etapa && respuestasHacia(etapa, "reagenda", destino).includes(respuesta));
+        expect(agrupadas.filter((r) => r === respuesta), `${etapa}/${respuesta.id}`).toHaveLength(cambia ? 1 : 0);
+      }
+    }
+  });
+
+  it("Pago Parcial y Completo forman un solo destino Ganado", () => {
+    const grupos = respuestasPorDestino("atendido", null, ETAPAS);
+    expect(grupos.destinos.filter((grupo) => grupo.destino === "ganado")).toMatchObject([
+      { respuestas: [{ id: "abono" }] },
+    ]);
   });
 });

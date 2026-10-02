@@ -164,7 +164,7 @@ export function respuestasDe(etapa: EtapaDeal, pendiente: PendienteDeal | null):
 }
 
 /** Si la respuesta deja la tarjeta en la columna `columna` del Kanban. */
-function llevaA(accion: AccionDeRespuesta, etapa: EtapaDeal, columna: EtapaDeal): boolean {
+export function llevaA(accion: AccionDeRespuesta, etapa: EtapaDeal, columna: EtapaDeal): boolean {
   switch (accion.tipo) {
     case "mover":
       return accion.a === columna && accion.a !== etapa;
@@ -179,6 +179,49 @@ function llevaA(accion: AccionDeRespuesta, etapa: EtapaDeal, columna: EtapaDeal)
     case "llamada":
       return accion.uso === "agendar" && columna === "agendado";
   }
+}
+
+export type ClaveDestino = EtapaDeal | "ganado";
+
+export interface GrupoDeRespuestas {
+  destino: ClaveDestino;
+  respuestas: Respuesta[];
+}
+
+/**
+ * Agrupa la pregunta por el destino que se presenta en pantalla (ADR 0075). Cada
+ * respuesta que cambia de etapa queda en un solo boton; las dos etapas de pago son
+ * una sola intencion porque el saldo decide cual escribe el motor.
+ */
+export function respuestasPorDestino(
+  etapa: EtapaDeal,
+  pendiente: PendienteDeal | null,
+  orden: readonly EtapaDeal[],
+): { destinos: GrupoDeRespuestas[]; sinCambio: Respuesta[] } {
+  const grupos = new Map<ClaveDestino, Respuesta[]>();
+  const sinCambio: Respuesta[] = [];
+
+  for (const respuesta of respuestasDe(etapa, pendiente)) {
+    if (respuesta.accion.tipo === "abono") {
+      grupos.set("ganado", [...(grupos.get("ganado") ?? []), respuesta]);
+      continue;
+    }
+    const destinos = orden.filter((destino) => llevaA(respuesta.accion, etapa, destino));
+    const destino = destinos.at(-1);
+    if (!destino) {
+      sinCambio.push(respuesta);
+      continue;
+    }
+    grupos.set(destino, [...(grupos.get(destino) ?? []), respuesta]);
+  }
+
+  const indice = (destino: ClaveDestino) => orden.indexOf(destino === "ganado" ? "ganado_parcial" : destino);
+  return {
+    destinos: [...grupos]
+      .map(([destino, respuestas]) => ({ destino, respuestas }))
+      .sort((a, b) => indice(a.destino) - indice(b.destino)),
+    sinCambio,
+  };
 }
 
 /**

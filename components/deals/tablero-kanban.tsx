@@ -10,9 +10,8 @@ import type { ColumnaKanban, OpcionCatalogo, TarjetaDeal } from "@/lib/queries/k
 import type { MapaTransiciones } from "./transiciones";
 import type { TonoEtapa } from "./etapa-tono";
 import { TarjetaDealCard } from "./tarjeta-deal";
-import { DialogoForm } from "./ficha/campos";
-import { PREGUNTA_DE_ETAPA, respuestasHacia, type Respuesta } from "./pregunta-de-etapa";
-import { BotonesDeRespuesta, useResponder, type DealQueResponde } from "./responder-pregunta";
+import { respuestasHacia } from "./pregunta-de-etapa";
+import { useResponder, type DealQueResponde } from "./responder-pregunta";
 
 /**
  * El tablero Kanban (ticket 069): columnas por etapa y tarjetas de deal, con arrastre
@@ -72,11 +71,9 @@ export function TableroKanban({
   // que se está soltando (para el resaltado).
   const [arrastrando, setArrastrando] = useState<TarjetaDeal | null>(null);
   const [columnaHover, setColumnaHover] = useState<EtapaDeal | null>(null);
-  // Soltar en una columna a la que llevan varias respuestas: se escoge entre ellas.
-  const [eleccion, setEleccion] = useState<{ tarjeta: TarjetaDeal; respuestas: Respuesta[] } | null>(null);
   // El servidor ya escribió: se refresca la pantalla actual (router.refresh), NO
   // revalidatePath, que no refresca la ruta que acaba de escribir (AGENTS.md).
-  const { elegir, dialogo } = useResponder(mapa, { areas, cohortes, motivos }, nombreDeEtapa, () => router.refresh());
+  const { elegir, abrirDestino, dialogo } = useResponder(mapa, { areas, cohortes, motivos }, nombreDeEtapa, () => router.refresh());
 
   function dealDe(t: TarjetaDeal): DealQueResponde {
     return {
@@ -100,8 +97,7 @@ export function TableroKanban({
       toast.error(`Desde ${nombreDeEtapa[tarjeta.etapa]} no se pasa a ${nombreDeEtapa[columna]}.`);
       return;
     }
-    if (respuestas.length === 1) elegir(dealDe(tarjeta), respuestas[0]);
-    else setEleccion({ tarjeta, respuestas });
+    abrirDestino(dealDe(tarjeta), columna, respuestas);
   }
 
   return (
@@ -183,25 +179,6 @@ export function TableroKanban({
         })}
       </div>
 
-      {eleccion ? (
-        <DialogoForm
-          titulo={PREGUNTA_DE_ETAPA[eleccion.tarjeta.etapa].pregunta ?? "¿Qué pasó?"}
-          descripcion={eleccion.tarjeta.nombreLead ?? eleccion.tarjeta.emailLead}
-          pendiente={false}
-          onCerrar={() => setEleccion(null)}
-          deshabilitarConfirmar
-          confirmar={{ texto: "Elige una opción", enCurso: "Elige una opción", onClick: () => undefined }}
-        >
-          <BotonesDeRespuesta
-            respuestas={eleccion.respuestas}
-            onElegir={(r) => {
-              const { tarjeta } = eleccion;
-              setEleccion(null);
-              elegir(dealDe(tarjeta), r);
-            }}
-          />
-        </DialogoForm>
-      ) : null}
       {dialogo}
     </div>
   );

@@ -9,7 +9,8 @@ import type { OpcionCatalogo } from "@/lib/queries/kanban";
 import { moverDeal } from "@/app/(app)/p/[programa]/deals/acciones";
 import { DialogoMover, type DatosDialogo, type MovimientoDelDialogo } from "./dialogo-mover";
 import { accionDeFicha, enlaceDeAccion } from "./ficha/accion-pedida";
-import { PREGUNTA_DE_ETAPA, type Respuesta } from "./pregunta-de-etapa";
+import { DialogoForm } from "./ficha/campos";
+import { PREGUNTA_DE_ETAPA, type ClaveDestino, type Respuesta } from "./pregunta-de-etapa";
 import type { FlechaCliente, MapaTransiciones } from "./transiciones";
 
 /**
@@ -57,9 +58,18 @@ export function useResponder(
   opciones: OpcionesDeRespuesta,
   nombreDeEtapa: Record<EtapaDeal, string>,
   alTerminar: () => void,
-): { elegir: (deal: DealQueResponde, r: Respuesta) => void; dialogo: ReactNode } {
+): {
+  elegir: (deal: DealQueResponde, r: Respuesta) => void;
+  abrirDestino: (deal: DealQueResponde, destino: ClaveDestino, respuestas: readonly Respuesta[]) => void;
+  dialogo: ReactNode;
+} {
   const router = useRouter();
   const [abierta, setAbierta] = useState<{ deal: DealQueResponde; respuesta: Respuesta; flecha: FlechaCliente } | null>(null);
+  const [destinoAbierto, setDestinoAbierto] = useState<{
+    deal: DealQueResponde;
+    destino: ClaveDestino;
+    respuestas: readonly Respuesta[];
+  } | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   function elegir(deal: DealQueResponde, r: Respuesta) {
@@ -74,6 +84,11 @@ export function useResponder(
       return;
     }
     setAbierta({ deal, respuesta: r, flecha });
+  }
+
+  function abrirDestino(deal: DealQueResponde, destino: ClaveDestino, respuestas: readonly Respuesta[]) {
+    if (respuestas.length === 1) elegir(deal, respuestas[0]);
+    else if (respuestas.length > 1) setDestinoAbierto({ deal, destino, respuestas });
   }
 
   async function confirmar(deal: DealQueResponde, datos: DatosDialogo, destino: EtapaDeal, pendiente: PendienteDeal | null) {
@@ -102,7 +117,25 @@ export function useResponder(
     }
   }
 
-  let dialogo: ReactNode = null;
+  let dialogo: ReactNode = destinoAbierto ? (
+    <DialogoForm
+      titulo={destinoAbierto.destino === "ganado" ? "Ganado · registrar pago" : nombreDeEtapa[destinoAbierto.destino]}
+      descripcion={destinoAbierto.deal.nombreLead}
+      pendiente={false}
+      onCerrar={() => setDestinoAbierto(null)}
+      deshabilitarConfirmar
+      confirmar={{ texto: "Elige una opción", enCurso: "Elige una opción", onClick: () => undefined }}
+    >
+      <BotonesDeRespuesta
+        respuestas={destinoAbierto.respuestas}
+        onElegir={(respuesta) => {
+          const { deal } = destinoAbierto;
+          setDestinoAbierto(null);
+          elegir(deal, respuesta);
+        }}
+      />
+    </DialogoForm>
+  ) : null;
   if (abierta) {
     const { deal } = abierta;
     const accion = abierta.respuesta.accion;
@@ -130,7 +163,7 @@ export function useResponder(
       />
     );
   }
-  return { elegir, dialogo };
+  return { elegir, abrirDestino, dialogo };
 }
 
 /** Los botones de las respuestas, en el orden de la tabla. */

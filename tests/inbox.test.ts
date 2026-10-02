@@ -261,7 +261,7 @@ describe("inboxDelPrograma — atención: compromiso verbal vencido (b)", () => 
 describe("inboxDelPrograma — atención: pago vencido con saldo (c)", () => {
   it("positivo: abonado con fecha límite pasada y saldo entra con su saldo", async () => {
     const { dealId } = await crearDeal({ etapa: "ganado_parcial", fechaLimitePago: "2026-09-20" });
-    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-19", monto: "400", moneda: "USD" });
+    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-19", monto: "400", moneda: "USD", comprobanteUrl: "https://soporte.test/400" });
     const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
     const fila = inbox.atencion.find((f) => f.dealId === dealId)!;
     expect(fila.motivo).toBe("pago_vencido");
@@ -271,9 +271,28 @@ describe("inboxDelPrograma — atención: pago vencido con saldo (c)", () => {
 
   it("negativo: abonado pagado completo (saldo 0) no entra", async () => {
     const { dealId } = await crearDeal({ etapa: "ganado_parcial", fechaLimitePago: "2026-09-20" });
-    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-19", monto: "1000", moneda: "USD" });
+    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-19", monto: "1000", moneda: "USD", comprobanteUrl: "https://soporte.test/1000" });
     const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
     expect(inbox.atencion.find((f) => f.dealId === dealId)?.motivo).not.toBe("pago_vencido");
+  });
+});
+
+describe("inboxDelPrograma — atención: abono sin comprobante", () => {
+  it("aparece antes que los otros motivos y un abono anulado no cuenta", async () => {
+    const { dealId } = await crearDeal({ etapa: "ganado_parcial", fechaLimitePago: "2026-09-20" });
+    const [abono] = await db.insert(abonos).values({
+      dealId,
+      programId,
+      fecha: "2026-09-19",
+      monto: "400",
+      moneda: "USD",
+    }).returning();
+    expect((await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY)).atencion.find((f) => f.dealId === dealId)?.motivo)
+      .toBe("abono_sin_comprobante");
+
+    await db.update(abonos).set({ anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "Duplicado" }).where(eq(abonos.id, abono.id));
+    expect((await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY)).atencion.find((f) => f.dealId === dealId)?.motivo)
+      .not.toBe("abono_sin_comprobante");
   });
 });
 

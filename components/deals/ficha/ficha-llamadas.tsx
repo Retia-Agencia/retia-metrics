@@ -123,7 +123,7 @@ export function FichaLlamadas({
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
                   {c.linkCalendly ? (
                     <a className="text-marca-texto underline-offset-2 hover:underline" href={c.linkCalendly} target="_blank" rel="noreferrer">
-                      Cita en Calendly
+                      {c.origen === "calendly" ? "Cita en Calendly" : "Abrir reunión"}
                     </a>
                   ) : null}
                   {c.linkGrain ? (
@@ -199,7 +199,7 @@ function CamposDeCita({
           <input type="time" className={claseInput} value={hora} onChange={(e) => setHora(e.target.value)} />
         </Campo>
       </div>
-      <Campo etiqueta="Link de Calendly (opcional)">
+      <Campo etiqueta="Link de la reunión (opcional)" ayuda="Calendly, Meet, Zoom o el que acordaron">
         <input type="url" className={claseInput} value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://calendly.com/…" />
       </Campo>
     </>

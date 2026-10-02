@@ -96,7 +96,6 @@ const DONDE: Partial<Record<CodigoRequisito, string>> = {
   llamada_sucedio: "Pega el Grain o confírmala en Llamadas.",
   llamada_fallida: "Márcala en Llamadas.",
   abono: "Regístralo en Facturación.",
-  comprobante: "Agrégalo al abono en Facturación.",
 };
 
 interface Revision {
@@ -120,7 +119,6 @@ const ETIQUETA: Record<CodigoRequisito, string> = {
   llamada_sucedio: "",
   llamada_fallida: "",
   abono: "",
-  comprobante: "",
   saldo_pendiente: "",
   saldo_en_cero: "",
   sin_abonos: "",
@@ -389,7 +387,6 @@ const NOMBRE_DE_REQUISITO: Record<CodigoRequisito, string> = {
   cohorte_destino: "Tiene la cohorte a la que quiere entrar",
   fecha_seguimiento: "Tiene fecha de seguimiento",
   abono: "Tiene un abono",
-  comprobante: "El abono tiene comprobante",
   saldo_pendiente: "Queda saldo por pagar",
   saldo_en_cero: "El saldo está en cero",
   sin_abonos: "No tiene abonos vigentes",

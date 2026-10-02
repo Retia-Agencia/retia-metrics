@@ -15,7 +15,7 @@ import { abonos, calls, deals } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { instanteDeBogota } from "@/lib/format";
-import { registrarAbono, anularAbono } from "@/lib/deals/abonos";
+import { registrarAbono, anularAbono, pegarComprobante } from "@/lib/deals/abonos";
 import { registrarActividad } from "@/lib/deals/actividades";
 import { anularDeal } from "@/lib/deals/anular-deal";
 import { editarDeal } from "@/lib/deals/editar-deal";
@@ -212,6 +212,21 @@ export async function registrarAbonoAccion(
   });
 }
 
+const esquemaComprobanteAccion = z.object({
+  abonoId: id("Abono inválido."),
+  comprobanteUrl: z.string().url("El comprobante debe ser una URL válida."),
+});
+export type EntradaPegarComprobante = z.input<typeof esquemaComprobanteAccion>;
+
+export async function pegarComprobanteAccion(entrada: EntradaPegarComprobante): Promise<ResultadoFicha> {
+  return correr(async (ctx) => {
+    const datos = esquemaComprobanteAccion.parse(entrada);
+    await exigirAbonoVisible(ctx, datos.abonoId);
+    await pegarComprobante(db, ctx.actor, datos);
+    return {};
+  });
+}
+
 const esquemaAnularAbonoAccion = z.object({ abonoId: id("Abono inválido."), motivo: z.string() });
 export type EntradaAnularAbono = z.input<typeof esquemaAnularAbonoAccion>;
 
@@ -269,7 +284,7 @@ const esquemaAgregarLlamada = z.object({
   dealId: id("Deal inválido."),
   dia,
   hora,
-  linkCalendly: textoOpcional(z.string().url("El link de Calendly no es una URL válida.")),
+  linkCalendly: textoOpcional(z.string().url("El link de la reunión no es una URL válida.")),
   notas: textoOpcional(z.string().max(2000)),
 });
 export type EntradaAgregarLlamada = z.input<typeof esquemaAgregarLlamada>;
@@ -288,7 +303,7 @@ const esquemaCompletar = z.object({
   callId: id("Llamada inválida."),
   dia,
   hora,
-  linkCalendly: textoOpcional(z.string().url("El link de Calendly no es una URL válida.")),
+  linkCalendly: textoOpcional(z.string().url("El link de la reunión no es una URL válida.")),
 });
 export type EntradaCompletarAgendada = z.input<typeof esquemaCompletar>;
 

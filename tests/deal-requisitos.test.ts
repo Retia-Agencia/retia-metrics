@@ -11,7 +11,7 @@ type Codigo = Exclude<CodigoRequisito, "transicion_no_permitida">;
 
 const REQUISITOS_A1: Codigo[] = ["sin_abonos"];
 const REQUISITOS_A2: Codigo[] = ["saldo_pendiente"];
-const REQUISITOS_E13: Codigo[] = ["valor_vendido", "saldo_en_cero", "comprobante", "area_declarada"];
+const REQUISITOS_E13: Codigo[] = ["valor_vendido", "saldo_en_cero", "area_declarada"];
 
 /** Un deal que no cumple nada. */
 const NADA: HechosDelDeal = {
@@ -31,7 +31,6 @@ const NADA: HechosDelDeal = {
   fechaUltimoContacto: null,
   fechaSeguimiento: null,
   abonosVigentes: 0,
-  abonoConComprobante: false,
   saldo: null,
   motivoId: null,
 };
@@ -50,7 +49,6 @@ const CUMPLIR: Record<Codigo, Partial<HechosDelDeal>> = {
   cohorte_destino: { cohorteDestinoId: "coh-2" },
   fecha_seguimiento: { fechaSeguimiento: "2026-10-01" },
   abono: { abonosVigentes: 1 },
-  comprobante: { abonoConComprobante: true },
   saldo_pendiente: { saldo: 300 },
   saldo_en_cero: { saldo: 0 },
   sin_abonos: { abonosVigentes: 0 },
@@ -72,14 +70,13 @@ describe("lo que no es un requisito", () => {
     expect(queLeFalta("atendido", "ganado_parcial", NADA).map((f) => f.codigo)).toEqual([
       "valor_vendido",
       "abono",
-      "comprobante",
       "saldo_pendiente",
       "area_declarada",
     ]);
   });
 
   it("un deal sin valor vendido no tiene saldo contra el cual ir a Completo", () => {
-    const hechos = { ...cumpliendo(["abono", "comprobante", "area_declarada"]), saldo: null };
+    const hechos = { ...cumpliendo(["abono", "area_declarada"]), saldo: null };
     expect(queLeFalta("ganado_parcial", "ganado_completo", hechos).map((f) => f.codigo)).toEqual(["valor_vendido", "saldo_en_cero"]);
   });
 
@@ -99,7 +96,7 @@ describe("lo que no es un requisito", () => {
   });
 
   it("un sobrepago que se colo cuenta como pagado: el deal no queda trabado en Abonado", () => {
-    const hechos = { ...cumpliendo(["valor_vendido", "abono", "comprobante", "area_declarada"]), saldo: -50 };
+    const hechos = { ...cumpliendo(["valor_vendido", "abono", "area_declarada"]), saldo: -50 };
     expect(queLeFalta("ganado_parcial", "ganado_completo", hechos)).toEqual([]);
   });
 });

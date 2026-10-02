@@ -1,6 +1,5 @@
 import { and, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import {
-  abonos,
   calls,
   cohorts,
   dealActividades,
@@ -732,7 +731,6 @@ const HECHOS_VACIOS: HechosDelDeal = {
   fechaUltimoContacto: null,
   fechaSeguimiento: null,
   abonosVigentes: 0,
-  abonoConComprobante: false,
   saldo: null,
   motivoId: null,
 };
@@ -805,13 +803,6 @@ export async function leerHechos(
     .where(and(eq(calls.dealId, deal.id), vigente(calls)))
     .orderBy(desc(calls.createdAt));
 
-  const [ultimoAbono] = await tx
-    .select({ comprobanteUrl: abonos.comprobanteUrl })
-    .from(abonos)
-    .where(and(eq(abonos.dealId, deal.id), vigente(abonos)))
-    .orderBy(desc(abonos.createdAt))
-    .limit(1);
-
   // Un motivo cuenta solo si existe, esta activo y es de la LISTA que la flecha pide
   // (punto 2, Mani 27-sep): un motivo de perdida no sirve para una re-agenda. Un motivo
   // inactivo o de otra lista es "no motivo" —el requisito lo reporta como faltante— sin
@@ -862,7 +853,6 @@ export async function leerHechos(
     fechaUltimoContacto: contacto?.fecha ?? null,
     fechaSeguimiento: deal.fechaSeguimiento,
     abonosVigentes: saldo?.abonosVigentes ?? 0,
-    abonoConComprobante: ultimoAbono?.comprobanteUrl != null && ultimoAbono.comprobanteUrl.trim() !== "",
     saldo: saldo?.saldo ?? null,
     motivoId: motivoValido[0]?.id ?? null,
   };

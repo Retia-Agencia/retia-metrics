@@ -214,6 +214,7 @@ export interface AlertasDelDeal {
 }
 
 const MENSAJE_URGENTE: Record<MotivoAtencion | "llamada_sin_resultado" | "atendida_sin_grain", string> = {
+  abono_sin_comprobante: "Hay un abono sin comprobante.",
   reagenda_sin_fecha: "La re-agenda no tiene fecha.",
   compromiso_vencido: "El compromiso verbal se venció.",
   pago_vencido: "La fecha de pago se venció y queda saldo.",
@@ -229,7 +230,7 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
     .select()
     .from(deals)
     .where(and(eq(deals.id, dealId), eq(deals.programId, programId), vigente(deals)));
-  if (!deal || deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido") return null;
+  if (!deal || deal.etapa === "cierre_perdido") return null;
 
   const [inbox, hechos, llamadasVigentes] = await Promise.all([
     inboxDelPrograma(db, programId, "equipo"),

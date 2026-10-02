@@ -14,6 +14,7 @@ import { TableroKanban } from "@/components/deals/tablero-kanban";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { NuevoDeal } from "@/components/deals/nuevo-deal";
 import { ETAPA_DE_ENTRADA } from "@/lib/deals/crear-a-mano";
+import { alcanceDeDeals } from "@/lib/auth/alcance-deals";
 
 export const dynamic = "force-dynamic";
 
@@ -46,9 +47,10 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa) notFound();
 
+  const alcanceDeals = await alcanceDeDeals(session);
   const filtros = parsearFiltros(await searchParams);
   const [tablero, opciones] = await Promise.all([
-    tableroKanban(db, programa.id, filtros),
+    tableroKanban(db, programa.id, alcanceDeals, filtros),
     opcionesDeTablero(db, programa.id),
   ]);
 
@@ -68,6 +70,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
       <div className="space-y-4">
         <FiltroFechaLista campos={CAMPOS_DE_FECHA} filtro={filtros.fecha ?? null} />
         <FiltroKanban
+          mostrarDueno={alcanceDeals.tipo === "todos"}
           ownerUserId={filtros.ownerUserId ?? null}
           cohorteId={filtros.cohorteId ?? null}
           canal={filtros.canal ?? null}

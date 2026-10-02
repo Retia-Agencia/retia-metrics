@@ -5,7 +5,7 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { aceptaAbono, NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
+import { aceptaAbono, ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { nombreDelDeal } from "@/lib/deals/nombre";
@@ -13,7 +13,7 @@ import { alertasDelDeal, fichaDeDeal, opcionesDeFicha } from "@/lib/queries/fich
 import { PageShell } from "@/components/page-shell";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { FichaAcciones } from "@/components/deals/ficha/ficha-acciones";
-import { FichaPregunta } from "@/components/deals/ficha/ficha-pregunta";
+import { FichaTransicion } from "@/components/deals/ficha/ficha-transicion";
 import { FichaActividades } from "@/components/deals/ficha/ficha-actividades";
 import { FichaCabecera } from "@/components/deals/ficha/ficha-cabecera";
 import { FichaHistorial } from "@/components/deals/ficha/ficha-historial";
@@ -23,6 +23,7 @@ import { FichaOrigen } from "@/components/deals/ficha/ficha-origen";
 import { FichaPerfil } from "@/components/deals/ficha/ficha-perfil";
 import { FichaLead } from "@/components/deals/ficha/ficha-lead";
 import { FichaAlertas } from "@/components/deals/ficha/ficha-alertas";
+import { alcanceDeDeals, dealVisiblePara } from "@/lib/auth/alcance-deals";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,8 @@ export default async function FichaDelDealPage({ params }: Props) {
 
   const ficha = await fichaDeDeal(db, programa.id, id);
   if (!ficha) notFound();
+  const alcanceDeals = await alcanceDeDeals(session);
+  if (!dealVisiblePara(alcanceDeals, ficha.owner?.id ?? null)) notFound();
   const [opciones, alertas] = await Promise.all([
     opcionesDeFicha(db, programa.id, ficha.owner?.id ?? null),
     alertasDelDeal(db, programa.id, ficha.dealId),
@@ -85,8 +88,6 @@ export default async function FichaDelDealPage({ params }: Props) {
           ← Volver a los deals
         </Link>
 
-        <FichaAlertas alertas={alertas} />
-
         <FichaCabecera
           ficha={ficha}
           nombre={nombre}
@@ -94,14 +95,19 @@ export default async function FichaDelDealPage({ params }: Props) {
           nombreDeEtapa={NOMBRE_DE_ETAPA}
           tonoDeEtapa={TONO_DE_ETAPA}
         />
-        <FichaPregunta
-          ficha={ficha}
-          opciones={opciones}
-          mapa={mapaDeTransiciones()}
-          nombreDeEtapa={NOMBRE_DE_ETAPA}
-          rutaDeLaFicha={`/p/${programa.slug}/deals/${ficha.dealId}`}
-          puedeTrabajar={puedeTrabajar}
-        />
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:items-start">
+          <FichaTransicion
+            ficha={ficha}
+            opciones={opciones}
+            mapa={mapaDeTransiciones()}
+            ordenDeEtapas={ETAPAS_EN_ORDEN}
+            nombreDeEtapa={NOMBRE_DE_ETAPA}
+            tonoDeEtapa={TONO_DE_ETAPA}
+            rutaDeLaFicha={`/p/${programa.slug}/deals/${ficha.dealId}`}
+            puedeTrabajar={puedeTrabajar}
+          />
+          <FichaAlertas alertas={alertas} />
+        </div>
 
         <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
           <div className="space-y-4">

@@ -130,7 +130,7 @@ describe("141: la lista de deals y la base de leads, contra la base", () => {
   afterEach(() => vi.useRealTimers());
 
   async function idsDelTablero(busqueda: Record<string, string>) {
-    const tablero = await tableroKanban(db, programId, parsearFiltros(busqueda, "2026-10-01"), "2026-10-01");
+    const tablero = await tableroKanban(db, programId, { tipo: "todos" }, parsearFiltros(busqueda, "2026-10-01"), "2026-10-01");
     return new Set(tablero.columnas.flatMap((c) => c.tarjetas.map((t) => t.dealId)));
   }
 
@@ -141,7 +141,7 @@ describe("141: la lista de deals y la base de leads, contra la base", () => {
     const filtros = parsearFiltros({ fecha: "creado", periodo: "ayer" });
     expect(filtros.fecha!.periodo.a).toEqual({ desde: "2026-09-30", hasta: "2026-09-30" });
     vi.useRealTimers();
-    const tablero = await tableroKanban(db, programId, filtros, "2026-10-01");
+    const tablero = await tableroKanban(db, programId, { tipo: "todos" }, filtros, "2026-10-01");
     const ids = new Set(tablero.columnas.flatMap((c) => c.tarjetas.map((t) => t.dealId)));
     expect(ids).toEqual(new Set([id.ayerTarde]));
   });
@@ -178,7 +178,7 @@ describe("141: la lista de deals y la base de leads, contra la base", () => {
   it("una cita futura no cuenta como última actividad en la lista", async () => {
     const tablero = async (dia: string) => {
       const filtros = parsearFiltros({ fecha: "actividad", periodo: "custom", a_desde: dia, a_hasta: dia }, "2026-10-01");
-      const t = await tableroKanban(db, programId, filtros, "2026-10-01", bogota("2026-10-01", "18:00"));
+      const t = await tableroKanban(db, programId, { tipo: "todos" }, filtros, "2026-10-01", bogota("2026-10-01", "18:00"));
       return new Set(t.columnas.flatMap((c) => c.tarjetas.map((x) => x.dealId)));
     };
     expect((await tablero("2026-10-06")).has(id.conCitaFutura)).toBe(false);

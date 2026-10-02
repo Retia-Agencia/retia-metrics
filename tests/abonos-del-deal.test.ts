@@ -14,7 +14,8 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
-import { anularAbono, registrarAbono } from "@/lib/deals/abonos";
+import { anularAbono, pegarComprobante, registrarAbono } from "@/lib/deals/abonos";
+import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
 import { ErrorDeApp } from "@/lib/errors";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import * as moduloSaldo from "@/lib/queries/saldo";
@@ -160,6 +161,16 @@ describe("registrarAbono: el dinero mueve el deal", () => {
     expect(await etapaDe(dealId)).toBe("ganado_completo");
   });
 
+  it.each([
+    { monto: "300", etapa: "ganado_parcial" as const },
+    { monto: "1000", etapa: "ganado_completo" as const },
+  ])("un abono sin comprobante lleva a $etapa y queda en la consulta de atención", async ({ monto, etapa }) => {
+    const dealId = await nuevoDeal("atendido");
+    const r = await registrarAbono(db, comoCloser(), abono(dealId, monto, { comprobanteUrl: undefined }));
+    expect(r.etapa).toBe(etapa);
+    expect(await dealsConAbonoSinComprobante(db, [dealId])).toEqual(new Set([dealId]));
+  });
+
   it("un segundo abono en Abonado no mueve nada; el que deja saldo cero lo lleva a Completo", async () => {
     const dealId = await nuevoDeal("compromiso_verbal");
     await registrarAbono(db, comoCloser(), abono(dealId, "400"));
@@ -203,16 +214,15 @@ describe("registrarAbono: las rejas", () => {
     expect(await etapaDe(dealId)).toBe("ganado_parcial");
   });
 
-  it("el ultimo abono sin comprobante no cierra el deal ni queda escrito", async () => {
+  it("el ultimo abono sin comprobante cierra el deal y queda como alerta", async () => {
     const dealId = await nuevoDeal("atendido");
     await registrarAbono(db, comoCloser(), abono(dealId, "400"));
-    const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "600", { comprobanteUrl: undefined })));
-    expect(e.message).toContain("comprobante");
-    expect(await etapaDe(dealId)).toBe("ganado_parcial");
+    await registrarAbono(db, comoCloser(), abono(dealId, "600", { comprobanteUrl: undefined }));
+    expect(await etapaDe(dealId)).toBe("ganado_completo");
     const filas = await abonosDe(dealId);
-    expect(filas).toHaveLength(1);
-    expect(filas[0].anuladoEn).toBeNull();
-    expect((await saldosDeDeals(db, [dealId])).get(dealId)?.saldo).toBe(600);
+    expect(filas).toHaveLength(2);
+    expect(await dealsConAbonoSinComprobante(db, [dealId])).toEqual(new Set([dealId]));
+    expect((await saldosDeDeals(db, [dealId])).get(dealId)?.saldo).toBe(0);
   });
 
   it("un sobrepago se rechaza y no escribe nada", async () => {
@@ -244,13 +254,12 @@ describe("registrarAbono: las rejas", () => {
     expect(await abonosDe(dealId)).toHaveLength(0);
   });
 
-  it("el abono que movería el deal sin comprobante se rechaza entero: ni abono ni movimiento", async () => {
+  it("el abono que mueve el deal no exige comprobante", async () => {
     const dealId = await nuevoDeal("atendido");
-    const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "300", { comprobanteUrl: undefined })));
-    expect(e.message).toContain("comprobante");
-    expect(await abonosDe(dealId)).toHaveLength(0);
-    expect(await etapaDe(dealId)).toBe("atendido");
-    expect(await historial(dealId)).toHaveLength(0);
+    await registrarAbono(db, comoCloser(), abono(dealId, "300", { comprobanteUrl: undefined }));
+    expect(await abonosDe(dealId)).toHaveLength(1);
+    expect(await etapaDe(dealId)).toBe("ganado_parcial");
+    expect((await historial(dealId)).map((fila) => fila.a)).toEqual(["ganado_parcial"]);
   });
 
   it.each([
@@ -473,6 +482,46 @@ describe("anularAbono: la etapa se recalcula", () => {
     const [a] = await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-01", monto: "100", closerId: "Maru" }).returning();
     const r = await anularAbono(db, { userId: gerente, rol: "gerente" }, { abonoId: a.id, motivo: "Devuelto" });
     expect(r).toMatchObject({ etapa: "cierre_perdido", movioElDeal: false });
+  });
+});
+
+describe("comprobante posterior", () => {
+  it("ignora abonos anulados y pegar el link deja rastro", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const registrado = await registrarAbono(db, comoCloser(), abono(dealId, "300", { comprobanteUrl: undefined }));
+    expect(await dealsConAbonoSinComprobante(db, [dealId])).toEqual(new Set([dealId]));
+
+    await pegarComprobante(db, comoCloser(), { abonoId: registrado.abonoId, comprobanteUrl: "https://drive.google.com/soporte" });
+    expect(await dealsConAbonoSinComprobante(db, [dealId])).toEqual(new Set());
+    expect((await abonosDe(dealId))[0].comprobanteUrl).toBe("https://drive.google.com/soporte");
+    expect(await db.select().from(changeLog).where(and(eq(changeLog.tabla, "abonos"), eq(changeLog.registroId, registrado.abonoId), eq(changeLog.campo, "comprobanteUrl")))).toHaveLength(1);
+
+    const otro = await nuevoDeal("atendido");
+    const anulado = await registrarAbono(db, comoCloser(), abono(otro, "100", { comprobanteUrl: undefined }));
+    await anularAbono(db, comoCloser(), { abonoId: anulado.abonoId, motivo: "Duplicado" });
+    expect(await dealsConAbonoSinComprobante(db, [otro])).toEqual(new Set());
+  });
+
+  it("rechaza al closer que no es dueño", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const registrado = await registrarAbono(db, comoCloser(), abono(dealId, "300", { comprobanteUrl: undefined }));
+    const error = await capturar(pegarComprobante(db, { userId: otroCloser, rol: "closer" }, {
+      abonoId: registrado.abonoId,
+      comprobanteUrl: "https://drive.google.com/ajeno",
+    }));
+    expect(error.status).toBe(403);
+    expect((await abonosDe(dealId))[0].comprobanteUrl).toBeNull();
+  });
+
+  it("rechaza un link que no es URL", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const registrado = await registrarAbono(db, comoCloser(), abono(dealId, "300", { comprobanteUrl: undefined }));
+    const error = await capturar(pegarComprobante(db, comoCloser(), {
+      abonoId: registrado.abonoId,
+      comprobanteUrl: "no-es-url",
+    }));
+    expect(error.status).toBe(400);
+    expect((await abonosDe(dealId))[0].comprobanteUrl).toBeNull();
   });
 });
 

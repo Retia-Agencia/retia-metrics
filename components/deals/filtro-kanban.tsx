@@ -32,6 +32,7 @@ const ANTIGUEDADES = [
 ];
 
 export interface FiltroKanbanProps {
+  mostrarDueno: boolean;
   ownerUserId: string | null;
   cohorteId: string | null;
   canal: string | null;
@@ -46,6 +47,7 @@ export interface FiltroKanbanProps {
 }
 
 export function FiltroKanban({
+  mostrarDueno,
   ownerUserId,
   cohorteId,
   canal,
@@ -78,7 +80,7 @@ export function FiltroKanban({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Select
+      {mostrarDueno ? <Select
         value={ownerUserId ?? TODOS}
         items={[{ value: TODOS, label: "Todos los dueños" }, ...owners.map((o) => ({ value: o.id, label: o.nombre }))]}
         onValueChange={(v: string | null) => navegar({ owner: !v || v === TODOS ? null : v })}
@@ -94,7 +96,7 @@ export function FiltroKanban({
             </SelectItem>
           ))}
         </SelectContent>
-      </Select>
+      </Select> : null}
       <Select value={leadQuality ?? TODOS} items={[{ value: TODOS, label: "Todas las calidades" }, ...leadQualities.map((v) => ({ value: v, label: v }))]} onValueChange={(v: string | null) => navegar({ leadQuality: !v || v === TODOS ? null : v })}>
         <SelectTrigger className="w-44" aria-label="Calidad del lead"><SelectValue /></SelectTrigger>
         <SelectContent><SelectItem value={TODOS}>Todas las calidades</SelectItem>{leadQualities.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>

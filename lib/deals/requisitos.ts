@@ -17,7 +17,6 @@ export interface HechosDelDeal {
   fechaUltimoContacto: Date | null;
   fechaSeguimiento: string | null;
   abonosVigentes: number;
-  abonoConComprobante: boolean;
   saldo: number | null;
   motivoId: string | null;
 }
@@ -25,7 +24,7 @@ export type CodigoRequisito =
   | "transicion_no_permitida" | "dueno" | "actividad" | "contacto"
   | "llamada_con_fecha" | "llamada_sucedio" | "llamada_fallida"
   | "valor_vendido" | "area_declarada" | "fecha_limite_pago" | "cohorte_destino"
-  | "fecha_seguimiento" | "abono" | "comprobante" | "saldo_pendiente"
+  | "fecha_seguimiento" | "abono" | "saldo_pendiente"
   | "saldo_en_cero" | "sin_abonos" | "motivo";
 export interface RequisitoFaltante { codigo: CodigoRequisito; mensaje: string }
 type CodigoReal = Exclude<CodigoRequisito, "transicion_no_permitida">;
@@ -44,7 +43,6 @@ export const MENSAJES: Record<CodigoReal, string> = {
   cohorte_destino: "Falta la cohorte a la que quiere entrar.",
   fecha_seguimiento: "Falta la fecha de seguimiento.",
   abono: "Falta registrar un abono.",
-  comprobante: "El abono no tiene comprobante.",
   saldo_pendiente: "El saldo ya está en cero: el deal va a Ganado Pagado Completo, no a Ganado Pago Parcial.",
   saldo_en_cero: "Todavía queda saldo por pagar.",
   sin_abonos: "El deal todavía tiene abonos vigentes.",
@@ -63,7 +61,6 @@ const CUMPLE: Record<CodigoReal, (h: HechosDelDeal) => boolean> = {
   cohorte_destino: (h) => h.cohorteDestinoId != null,
   fecha_seguimiento: (h) => h.fechaSeguimiento != null,
   abono: (h) => h.abonosVigentes > 0,
-  comprobante: (h) => h.abonoConComprobante,
   saldo_pendiente: (h) => h.saldo != null && h.saldo > 0,
   saldo_en_cero: (h) => h.saldo != null && h.saldo <= 0,
   sin_abonos: (h) => h.abonosVigentes === 0,
@@ -71,7 +68,7 @@ const CUMPLE: Record<CodigoReal, (h: HechosDelDeal) => boolean> = {
 };
 
 function requisitosDe(t: Transicion | TransicionPendiente): CodigoReal[] {
-  const pago: CodigoReal[] = ["valor_vendido", "abono", "comprobante"];
+  const pago: CodigoReal[] = ["valor_vendido", "abono"];
   const segunDestino = (destino: EtapaDeal): CodigoReal[] =>
     destino === "ganado_parcial" ? [...pago, "saldo_pendiente"] : [...pago, "saldo_en_cero"];
   switch (t.id) {
@@ -82,7 +79,7 @@ function requisitosDe(t: Transicion | TransicionPendiente): CodigoReal[] {
     case "E5": case "E10": return ["fecha_limite_pago", "area_declarada"];
     case "E6": case "E11": case "E12": return [...segunDestino((t as Transicion).a), "area_declarada"];
     case "E8": return ["llamada_sucedio"];
-    case "E13": return ["valor_vendido", "saldo_en_cero", "comprobante", "area_declarada"];
+    case "E13": return ["valor_vendido", "saldo_en_cero", "area_declarada"];
     case "RETRO": return ["fecha_seguimiento"];
     case "R": return [];
     case "A1": return ["sin_abonos"];

@@ -100,7 +100,7 @@ describe("el deal que abre la ingesta recuerda el envio que lo abrio", () => {
     const esperado = { utmSource: "instagram", utmMedium: "stories", utmCampaign: null };
     const { pendienteSetteo } = await seccionesSinDueno(db, programId);
     expect(pendienteSetteo[0].origen).toMatchObject(esperado);
-    const tablero = await tableroKanban(db, programId, {}, "2026-09-21");
+    const tablero = await tableroKanban(db, programId, { tipo: "todos" }, {}, "2026-09-21");
     const tarjeta = tablero.columnas.flatMap((c) => c.tarjetas)[0];
     expect([tarjeta.utmSource, tarjeta.utmMedium]).toEqual(["instagram", "stories"]);
     const ficha = await fichaDeDeal(db, programId, deal.id);

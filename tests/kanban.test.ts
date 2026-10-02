@@ -143,7 +143,7 @@ async function deal(o: OpcDeal): Promise<string> {
 
 describe("tableroKanban", () => {
   it("las once columnas salen siempre, en el orden del recorrido, aunque esten vacias", async () => {
-    const t = await tableroKanban(db, programId, {}, HOY);
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
     const orden = t.columnas.map((c) => c.etapa);
     // Todas las etapas, cada una una vez: el orden de pantalla no pierde ninguna.
     expect([...orden].sort()).toEqual([...ETAPAS].sort());
@@ -155,7 +155,7 @@ describe("tableroKanban", () => {
   it("un deal ANULADO no aparece en ninguna columna", async () => {
     await deal({ etapa: "contactado" });
     await deal({ etapa: "contactado", anulado: true });
-    const t = await tableroKanban(db, programId, {}, HOY);
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
     expect(t.total).toBe(1);
     const enContacto = t.columnas.find((c) => c.etapa === "contactado")!;
     expect(enContacto.tarjetas).toHaveLength(1);
@@ -165,7 +165,7 @@ describe("tableroKanban", () => {
     await deal({ etapa: "registrado", owner: owner1 });
     await deal({ etapa: "contactado", owner: owner2 });
     await deal({ etapa: "contactado", owner: owner1 });
-    const t = await tableroKanban(db, programId, {}, HOY);
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
     const enContacto = t.columnas.find((c) => c.etapa === "contactado")!;
     const setteo = t.columnas.find((c) => c.etapa === "registrado")!;
     expect(enContacto.tarjetas).toHaveLength(2);
@@ -176,29 +176,44 @@ describe("tableroKanban", () => {
 
   it("expone el número de envíos del lead en la tarjeta", async () => {
     await deal({ etapa: "registrado", envios: 3 });
-    const t = await tableroKanban(db, programId, {}, HOY);
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
     expect(t.columnas.find((c) => c.etapa === "registrado")!.tarjetas[0].envios).toBe(3);
   });
 
   it("filtra por dueño", async () => {
     await deal({ etapa: "contactado", owner: owner1 });
     await deal({ etapa: "contactado", owner: owner2 });
-    const t = await tableroKanban(db, programId, { ownerUserId: owner2 }, HOY);
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, { ownerUserId: owner2 }, HOY);
     expect(t.total).toBe(1);
     expect(t.columnas.find((c) => c.etapa === "contactado")!.tarjetas[0].ownerUserId).toBe(owner2);
+  });
+
+  it("el alcance de dueño ignora un owner ajeno forjado en la URL", async () => {
+    await deal({ etapa: "contactado", owner: owner1 });
+    await deal({ etapa: "contactado", owner: owner2 });
+    const t = await tableroKanban(db, programId, { tipo: "dueno", userId: owner1 }, { ownerUserId: owner2 }, HOY);
+    const tarjetas = t.columnas.flatMap((columna) => columna.tarjetas);
+    expect(tarjetas.map((tarjeta) => tarjeta.ownerUserId)).toEqual([owner1]);
+  });
+
+  it("gerente y developer usan alcance todos", async () => {
+    await deal({ etapa: "contactado", owner: owner1 });
+    await deal({ etapa: "contactado", owner: owner2 });
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
+    expect(t.columnas.flatMap((columna) => columna.tarjetas)).toHaveLength(2);
   });
 
   it("filtra por canal (source|medium del envío de origen)", async () => {
     await deal({ etapa: "contactado", utmSource: "meta", utmMedium: "cpc" });
     await deal({ etapa: "contactado", utmSource: "google", utmMedium: "cpc" });
-    const t = await tableroKanban(db, programId, { canal: "google|cpc" }, HOY);
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, { canal: "google|cpc" }, HOY);
     expect(t.total).toBe(1);
   });
 
   it("filtra por antiguedad minima en la etapa", async () => {
     await deal({ etapa: "contactado", entrada: "2026-10-01" }); // 19 dias
     await deal({ etapa: "contactado", entrada: HOY }); // 0 dias
-    const t = await tableroKanban(db, programId, { antiguedadMinima: 7 }, HOY);
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, { antiguedadMinima: 7 }, HOY);
     expect(t.total).toBe(1);
     expect(t.columnas.find((c) => c.etapa === "contactado")!.tarjetas[0].diasEnEtapa).toBe(19);
   });
@@ -218,20 +233,20 @@ describe("tableroKanban", () => {
       .returning();
     await deal({ etapa: "contactado", cohort: cohortId });
     await deal({ etapa: "contactado", cohort: otra.id });
-    const t = await tableroKanban(db, programId, { cohorteId: otra.id }, HOY);
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, { cohorteId: otra.id }, HOY);
     expect(t.total).toBe(1);
   });
 
   it("aviso: compromiso verbal con fecha limite pasada", async () => {
     await deal({ etapa: "compromiso_verbal", fechaLimitePago: "2026-10-01" });
-    const t = await tableroKanban(db, programId, {}, HOY);
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
     const tarjeta = t.columnas.find((c) => c.etapa === "compromiso_verbal")!.tarjetas[0];
     expect(tarjeta.avisos.compromisoVencido).toBe(true);
   });
 
   it("aviso: seguimiento con fecha de seguimiento pasada", async () => {
     await deal({ etapa: "atendido", pendiente: "seguimiento", fechaSeguimiento: "2026-10-01" });
-    const t = await tableroKanban(db, programId, {}, HOY);
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
     const tarjeta = t.columnas.find((c) => c.etapa === "atendido")!.tarjetas[0];
     expect(tarjeta.pendiente).toBe("seguimiento");
     expect(tarjeta.avisos.seguimientoVencido).toBe(true);
@@ -239,7 +254,7 @@ describe("tableroKanban", () => {
 
   it("aviso: cartera vencida (abonado, saldo > 0, fecha limite pasada) sale de carteraVencida", async () => {
     await deal({ etapa: "ganado_parcial", abono: "400", fechaLimitePago: "2026-10-01" });
-    const t = await tableroKanban(db, programId, {}, HOY);
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
     const tarjeta = t.columnas.find((c) => c.etapa === "ganado_parcial")!.tarjetas[0];
     expect(tarjeta.avisos.carteraVencida).toBe(true);
     expect(tarjeta.saldo).toBe(600);
@@ -248,7 +263,7 @@ describe("tableroKanban", () => {
 
   it("aviso: lead unido por telefono (contacto sin confirmar)", async () => {
     await deal({ etapa: "contactado", contactoSinConfirmar: true });
-    const t = await tableroKanban(db, programId, {}, HOY);
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
     const tarjeta = t.columnas.find((c) => c.etapa === "contactado")!.tarjetas[0];
     expect(tarjeta.avisos.leadUnidoPorTelefono).toBe(true);
   });

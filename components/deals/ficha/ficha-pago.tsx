@@ -16,6 +16,7 @@ import {
   desmarcarOnboardedAccion,
   editarAcuerdoAccion,
   marcarOnboardedAccion,
+  pegarComprobanteAccion,
   registrarAbonoAccion,
 } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Campo, claseInput, claseTextarea, DialogoForm, Vacio } from "./campos";
@@ -36,6 +37,7 @@ import { cn } from "@/lib/utils";
 type Dialogo =
   | { tipo: "abono" }
   | { tipo: "anular"; abono: FichaDeAbono }
+  | { tipo: "comprobante"; abono: FichaDeAbono }
   | { tipo: "acuerdo" }
   | { tipo: "cohorte" };
 
@@ -231,6 +233,10 @@ export function FichaPago({
                     <a className="text-xs text-marca-texto underline-offset-2 hover:underline" href={a.comprobanteUrl} target="_blank" rel="noreferrer">
                       Comprobante
                     </a>
+                  ) : !anulada && puedeTrabajar && !anulado ? (
+                    <Button size="xs" variant="secondary" onClick={() => setDialogo({ tipo: "comprobante", abono: a })}>
+                      Pegar comprobante
+                    </Button>
                   ) : null}
                   {!anulada && puedeRegistrar && !anulado ? (
                     <Button size="xs" variant="ghost" className="ml-auto" onClick={() => setDialogo({ tipo: "anular", abono: a })}>
@@ -251,6 +257,7 @@ export function FichaPago({
 
       {dialogo?.tipo === "abono" ? <DialogoAbono ficha={ficha} opciones={opciones} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "anular" ? <DialogoAnularAbono abono={dialogo.abono} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} /> : null}
+      {dialogo?.tipo === "comprobante" ? <DialogoComprobante abono={dialogo.abono} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "acuerdo" ? <DialogoAcuerdo ficha={ficha} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "cohorte" ? <DialogoCohorte ficha={ficha} opciones={opciones} onCerrar={cerrar} /> : null}
     </Card>
@@ -374,8 +381,34 @@ function DialogoAbono({
           </SelectContent>
         </Select>
       </Campo>
-      <Campo etiqueta="Comprobante (link)" ayuda="Sin comprobante el deal no pasa a Ganado.">
+      <Campo etiqueta="Comprobante (link)" ayuda="Si no lo tienes ahora, lo pegas después.">
         <input type="url" className={claseInput} value={comprobante} onChange={(e) => setComprobante(e.target.value)} placeholder="https://drive.google.com/…" />
+      </Campo>
+    </DialogoForm>
+  );
+}
+
+function DialogoComprobante({ abono, onCerrar }: { abono: FichaDeAbono; onCerrar: () => void }) {
+  const { pendiente, correr } = useAccion();
+  const [url, setUrl] = useState("");
+  return (
+    <DialogoForm
+      titulo="Pegar comprobante"
+      descripcion={`${monto(Number(abono.monto), abono.moneda)} del ${fecha(abono.fecha)}.`}
+      pendiente={pendiente}
+      onCerrar={onCerrar}
+      deshabilitarConfirmar={url.trim() === ""}
+      confirmar={{
+        texto: "Guardar comprobante",
+        enCurso: "Guardando…",
+        onClick: () => correr(() => pegarComprobanteAccion({ abonoId: abono.id, comprobanteUrl: url.trim() }), {
+          exito: "Comprobante guardado.",
+          alExito: onCerrar,
+        }),
+      }}
+    >
+      <Campo etiqueta="Comprobante (link)">
+        <input type="url" className={claseInput} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://drive.google.com/…" />
       </Campo>
     </DialogoForm>
   );

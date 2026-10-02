@@ -72,6 +72,12 @@ export interface AbonoRegistrado {
   cohorteAsignada: string | null;
 }
 
+export const esquemaPegarComprobante = z.object({
+  abonoId: z.string().uuid("El abono no es válido."),
+  comprobanteUrl: z.string().url("El comprobante debe ser una URL válida."),
+});
+export type DatosPegarComprobante = z.input<typeof esquemaPegarComprobante>;
+
 type FilaDeal = typeof deals.$inferSelect;
 
 /**
@@ -206,6 +212,35 @@ export async function registrarAbono(
         datos: { areaDeclaradaId: entrada.areaDeclaradaId },
       });
       return { abonoId, etapa: destino, movioElDeal: true, saldo, cohorteAsignada };
+    });
+  });
+}
+
+/** Agrega el soporte que faltaba sin alterar la caja ni la etapa del deal. */
+export async function pegarComprobante(
+  db: Db,
+  actor: ActorDeAbono,
+  datos: DatosPegarComprobante,
+): Promise<void> {
+  return normalizando(async () => {
+    const entrada = esquemaPegarComprobante.parse(datos);
+    await (db as unknown as Transaccion).transaction(async (tx) => {
+      const [referencia] = await tx
+        .select({ dealId: abonos.dealId })
+        .from(abonos)
+        .where(and(eq(abonos.id, entrada.abonoId), vigente(abonos)));
+      if (!referencia) throw new ErrorDeApp("No existe el abono vigente.", 404);
+
+      const { deal, emailLead } = await dealBloqueado(tx, referencia.dealId);
+      if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado.", 409);
+      if (!puedeTrabajarDeal(actor, deal)) {
+        throw new ErrorDeApp("Solo el dueño del deal puede pegar el comprobante.", 403);
+      }
+      await editarConRastro(
+        { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead },
+        entrada.abonoId,
+        { comprobanteUrl: entrada.comprobanteUrl },
+      );
     });
   });
 }

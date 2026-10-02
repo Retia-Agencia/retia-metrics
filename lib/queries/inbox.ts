@@ -16,6 +16,7 @@ import { vigente } from "@/lib/queries/vigente";
 import { ultimaActividadPorDeal } from "@/lib/queries/ultima-actividad";
 import { sueltaPorAsignar } from "@/lib/calendly/suelta";
 import type { OrigenDeFila } from "@/lib/queries/inbox-sin-dueno";
+import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
 
 /**
  * El READ MODEL del Inbox (ticket 071, ADR 0050): lo que un closer tiene que hacer HOY,
@@ -32,9 +33,9 @@ import type { OrigenDeFila } from "@/lib/queries/inbox-sin-dueno";
  *  3. **Llamadas sueltas** del programa (ADR 0049, decisión K2): llamadas vigentes de
  *     Calendly con `deal_id` nulo (`sueltaPorAsignar`), que un closer asigna a un deal desde
  *     aquí. Las de la hoja que la migración no pudo colgar no entran: son rareza (078).
- *  4. **Lo mío que necesita atención**: MIS deals abiertos y vigentes, cada uno en UN solo
- *     bucket, el primero que casa en este orden: re-agenda sin fecha, compromiso vencido,
- *     fecha límite vencida con saldo, re-envío sin atender, estancado.
+ *  4. **Lo mío que necesita atención**: MIS deals vigentes, cada uno en UN solo bucket,
+ *     el primero que casa en este orden: abono sin comprobante, re-agenda sin fecha,
+ *     compromiso vencido, fecha límite vencida con saldo, re-envío sin atender, estancado.
  *
  * ## Alcance: `mío` vs `equipo`
  * Un closer ve SUS deals (dueño = él). Quien administra (`esAdministrador`, la pantalla lo
@@ -63,6 +64,7 @@ export type MotivoAtencion =
   | "reagenda_sin_fecha"
   | "compromiso_vencido"
   | "pago_vencido"
+  | "abono_sin_comprobante"
   | "reenvio_sin_atender"
   | "estancado";
 
@@ -314,9 +316,9 @@ async function seccionLlamadasSueltas(db: Db, programId: string): Promise<FilaLl
 // ───────────────────────────────────────────── sección 4: lo mío que necesita atención
 
 /**
- * Los deals abiertos y vigentes del alcance, cada uno en el PRIMER bucket que casa
- * (orden: re-agenda sin fecha, compromiso vencido, pago vencido, re-envío sin atender,
- * estancado). Un deal aparece una sola vez.
+ * Los deals vigentes del alcance, cada uno en el PRIMER bucket que casa (orden: abono sin
+ * comprobante, re-agenda sin fecha, compromiso vencido, pago vencido, re-envío sin
+ * atender, estancado). Completo solo entra por el primer motivo. Un deal aparece una vez.
  *
  * La "última actividad" no es una subconsulta correlacionada: se traen las cinco fuentes
  * (actividades, llamadas por creación y por cita, abonos, movimientos de etapa, y el
@@ -352,7 +354,7 @@ async function seccionAtencion(
       and(
         eq(deals.programId, programId),
         vigente(deals),
-        notInArray(deals.etapa, CERRADAS),
+        notInArray(deals.etapa, ["cierre_perdido"]),
         alcanceDeDeal(alcance),
       ),
     );
@@ -363,6 +365,7 @@ async function seccionAtencion(
 
   // (a) Re-agenda: ¿tiene una llamada vigente agendada a futuro? Si no, entra al bucket.
   const conCitaFutura = await citasFuturasPorDeal(db, dealIds, hoy);
+  const sinComprobante = await dealsConAbonoSinComprobante(db, dealIds);
 
   // (c) Pago vencido con saldo: la MISMA cifra de la cartera (ADR 0024), acotada a estos deals.
   const cartera = await carteraVencida(db, programId, hoy);
@@ -388,6 +391,14 @@ async function seccionAtencion(
       fecha: null as string | null,
       diasSinActividad: null as number | null,
     };
+
+    // El soporte faltante no invalida la venta, pero es la primera alerta operativa.
+    if (sinComprobante.has(d.dealId)) {
+      filas.push({ ...base, motivo: "abono_sin_comprobante" });
+      continue;
+    }
+    // Un Completo solo vuelve al Inbox si le falta el soporte del pago.
+    if (d.etapa === "ganado_completo") continue;
 
     // (a) Re-agenda sin nueva fecha.
     if (d.pendiente === "reagenda" && !conCitaFutura.has(d.dealId)) {
@@ -432,11 +443,12 @@ async function seccionAtencion(
 
   // El orden de la lista respeta el orden de los buckets: los más urgentes arriba.
   const ORDEN: Record<MotivoAtencion, number> = {
-    reagenda_sin_fecha: 0,
-    compromiso_vencido: 1,
-    pago_vencido: 2,
-    reenvio_sin_atender: 3,
-    estancado: 4,
+    abono_sin_comprobante: 0,
+    reagenda_sin_fecha: 1,
+    compromiso_vencido: 2,
+    pago_vencido: 3,
+    reenvio_sin_atender: 4,
+    estancado: 5,
   };
   filas.sort((a, b) => ORDEN[a.motivo] - ORDEN[b.motivo] || a.leadEmail.localeCompare(b.leadEmail));
   return filas;

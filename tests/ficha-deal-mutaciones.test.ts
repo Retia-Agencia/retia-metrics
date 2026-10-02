@@ -327,14 +327,14 @@ describe("anularDeal", () => {
     await nuevoDeal("atendido");
 
     const antes = await vistaDeCohorteActiva({ programId }, "2026-09-15", db);
-    const tableroAntes = await tableroKanban(db, programId, {}, "2026-09-15");
+    const tableroAntes = await tableroKanban(db, programId, { tipo: "todos" }, {}, "2026-09-15");
     expect(antes?.vendidos).toBe(1);
     expect(tableroAntes.total).toBe(2);
 
     await anularDeal(db, comoGerente(), { dealId: vendido, motivo: "lo registré sobre el lead equivocado" });
 
     const despues = await vistaDeCohorteActiva({ programId }, "2026-09-15", db);
-    const tableroDespues = await tableroKanban(db, programId, {}, "2026-09-15");
+    const tableroDespues = await tableroKanban(db, programId, { tipo: "todos" }, {}, "2026-09-15");
     expect(despues?.vendidos).toBe(0);
     expect(tableroDespues.total).toBe(1);
   });
@@ -366,7 +366,7 @@ describe("anularDeal", () => {
     const perdido = await nuevoDeal("cierre_perdido");
     const otro = await nuevoDeal("atendido");
     await anularDeal(db, comoCloser(), { dealId: otro, motivo: "lo registré mal" });
-    const tablero = await tableroKanban(db, programId, {}, "2026-09-15");
+    const tablero = await tableroKanban(db, programId, { tipo: "todos" }, {}, "2026-09-15");
     const ids = tablero.columnas.flatMap((c) => c.tarjetas.map((t) => t.dealId));
     expect(ids).toEqual([perdido]);
   });

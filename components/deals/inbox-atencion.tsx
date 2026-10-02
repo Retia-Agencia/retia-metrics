@@ -80,6 +80,8 @@ export function InboxAtencion({
 function porQue(fila: FilaAtencion): string {
   const motivo: MotivoAtencion = fila.motivo;
   switch (motivo) {
+    case "abono_sin_comprobante":
+      return "Hay un abono sin comprobante: pega el soporte en Facturación.";
     case "reagenda_sin_fecha":
       return "En Re-agenda y sin una nueva cita: agéndale una llamada.";
     case "compromiso_vencido":

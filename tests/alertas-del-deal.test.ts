@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { calls, dealActividades, deals, leads, programs, users } from "@/lib/db/schema";
+import { abonos, calls, dealActividades, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { transicion, type EtapaDeal } from "@/lib/deals/etapas";
 import { MovimientoRechazado, moverEtapa } from "@/lib/deals/mover-etapa";
@@ -177,7 +177,7 @@ describe("alertasDelDeal — urgencia y fronteras", () => {
     expect((await alertasDelDeal(db, programId, contactado))!.aviso).toBeNull();
   });
 
-  it("devuelve null para anulados, cerrados y deals de otro programa", async () => {
+  it("Ganado Completo conserva la alerta del comprobante; los demás fuera de alcance devuelven null", async () => {
     const anulado = await crearDeal("contactado", {
       anuladoEn: new Date(),
       anuladoPor: closer,
@@ -188,8 +188,17 @@ describe("alertasDelDeal — urgencia y fronteras", () => {
     const ajeno = await crearDeal("contactado", { programId: otroProgramId });
 
     await expect(alertasDelDeal(db, programId, anulado)).resolves.toBeNull();
-    await expect(alertasDelDeal(db, programId, ganado)).resolves.toBeNull();
+    await expect(alertasDelDeal(db, programId, ganado)).resolves.toMatchObject({ urgentes: [] });
     await expect(alertasDelDeal(db, programId, perdido)).resolves.toBeNull();
     await expect(alertasDelDeal(db, programId, ajeno)).resolves.toBeNull();
+  });
+
+  it("un Ganado Completo con abono vigente sin comprobante muestra la alerta roja", async () => {
+    const ganado = await crearDeal("ganado_completo");
+    await db.insert(abonos).values({ dealId: ganado, programId, fecha: "2026-10-01", monto: "1000" });
+    expect((await alertasDelDeal(db, programId, ganado))!.urgentes).toContainEqual({
+      motivo: "abono_sin_comprobante",
+      mensaje: "Hay un abono sin comprobante.",
+    });
   });
 });
