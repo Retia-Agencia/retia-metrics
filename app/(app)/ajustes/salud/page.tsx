@@ -2,7 +2,7 @@ import { paginaConRol } from "@/lib/auth/page-guards";
 import { programasActivos } from "@/lib/queries/programas";
 import { entregasDePrograma, entregasHuerfanas } from "@/lib/queries/entregas-webhook";
 import { conciliarProgramaConHoja } from "@/lib/queries/conciliacion-sheets";
-import { HORAS_SIN_ESTADO, saludDeFuentes, type EstadoDeFuente } from "@/lib/queries/salud-fuentes";
+import { HORAS_SIN_CALIDAD, saludDeFuentes, type EstadoDeFuente } from "@/lib/queries/salud-fuentes";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -118,9 +118,9 @@ export default async function SaludPage({
                         · {num(s.sobresPendientes)} sobres sin procesar
                       </span>
                     ) : null}
-                    {s.sinEstado > 0 ? (
+                    {s.sinCalidad > 0 ? (
                       <span className="text-tono-alerta">
-                        · {num(s.sinEstado)} {s.sinEstado === 1 ? "envío" : "envíos"} sin estado en {HORAS_SIN_ESTADO} h
+                        · {num(s.sinCalidad)} {s.sinCalidad === 1 ? "envío" : "envíos"} completos sin calidad en {HORAS_SIN_CALIDAD} h
                       </span>
                     ) : null}
                   </div>

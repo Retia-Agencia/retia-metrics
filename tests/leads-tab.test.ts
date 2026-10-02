@@ -3,7 +3,7 @@ import { deals, leadContactos, leads, programs, sources, submissions, users } fr
 import type { Db } from "@/lib/db/tipos";
 import { leadsDelPrograma } from "@/lib/queries/leads";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 072 — la tab Leads. Cada filtro es un hecho: con o sin deal vigente, el estado (o "sin
@@ -26,7 +26,6 @@ beforeEach(async () => {
     ])
     .returning();
   programId = p.id;
-  await sembrarEstadosDeLlegada(db, programId);
   const [f] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
   const [u] = await db.insert(users).values({ email: "g@retiagrowth.com", rol: "gerente" }).returning();
 
@@ -34,11 +33,11 @@ beforeEach(async () => {
     .insert(leads)
     .values([
       // 23:30 del 1-sep en Bogotá: ya es 2-sep en UTC. Tiene que contar como 1-sep.
-      { programId, emailNormalizado: "con-deal@c.co", calificacion: "con_calendly", fechaUltimaAplicacion: new Date("2026-09-02T04:30:00Z") },
+      { programId, emailNormalizado: "con-deal@c.co", calificacion: "con_calendly", leadQuality: "High", fechaUltimaAplicacion: new Date("2026-09-02T04:30:00Z") },
       { programId, emailNormalizado: "sin-estado@c.co", calificacion: null, fechaUltimaAplicacion: new Date("2026-09-10T15:00:00Z") },
       { programId, emailNormalizado: "parcial@c.co", calificacion: null, fechaUltimaAplicacion: new Date("2026-09-20T15:00:00Z") },
-      { programId, emailNormalizado: "setteo@c.co", calificacion: "setteo_no_calificado", fechaUltimaAplicacion: new Date("2026-09-25T15:00:00Z") },
-      { programId, emailNormalizado: "anulado@c.co", calificacion: "setteo_no_calificado", fechaUltimaAplicacion: new Date("2026-09-26T15:00:00Z") },
+      { programId, emailNormalizado: "setteo@c.co", calificacion: "setteo_no_calificado", leadQuality: "Low", fechaUltimaAplicacion: new Date("2026-09-25T15:00:00Z") },
+      { programId, emailNormalizado: "anulado@c.co", calificacion: "setteo_no_calificado", leadQuality: " low ", fechaUltimaAplicacion: new Date("2026-09-26T15:00:00Z") },
       { programId: q.id, emailNormalizado: "ajeno@c.co", calificacion: null },
     ])
     .returning();
@@ -75,23 +74,16 @@ describe("leadsDelPrograma", () => {
     expect(await correos({ deal: "sin" })).toEqual(["anulado@c.co", "parcial@c.co", "setteo@c.co", "sin-estado@c.co"]);
   });
 
-  it("estado, y 'sin estado' para lo que llegó vacío", async () => {
-    expect(await correos({ estado: "setteo_no_calificado" })).toEqual(["anulado@c.co", "setteo@c.co"]);
-    expect(await correos({ estado: "sin_estado" })).toEqual(["parcial@c.co", "sin-estado@c.co"]);
+  it("calidad (ADR 0069), sin importar mayúsculas ni blancos, y 'sin calidad' para lo que no la trajo", async () => {
+    expect(await correos({ calidad: "high" })).toEqual(["con-deal@c.co"]);
+    expect(await correos({ calidad: "low" })).toEqual(["anulado@c.co", "setteo@c.co"]);
+    expect(await correos({ calidad: "mid" })).toEqual([]);
+    expect(await correos({ calidad: "sin_calidad" })).toEqual(["parcial@c.co", "sin-estado@c.co"]);
   });
 
-  it("'sin estado' incluye un valor que el programa no tiene; el filtro por valor no distingue mayusculas (117)", async () => {
-    await db.insert(leads).values([
-      { programId, emailNormalizado: "raro@c.co", calificacion: "valor_raro" },
-      { programId, emailNormalizado: "mayus@c.co", calificacion: "SETTEO_no_calificado" },
-    ]);
-    expect(await correos({ estado: "sin_estado" })).toEqual(["parcial@c.co", "raro@c.co", "sin-estado@c.co"]);
-    expect(await correos({ estado: "setteo_no_calificado" })).toEqual(["anulado@c.co", "mayus@c.co", "setteo@c.co"]);
-    const { filas } = await leadsDelPrograma(db, programId);
-    const de = Object.fromEntries(filas.map((f) => [f.email, f]));
-    expect(de["raro@c.co"].estadoReconocido).toBe(false);
-    expect(de["mayus@c.co"].estadoReconocido).toBe(true);
-    expect(de["sin-estado@c.co"].estadoReconocido).toBe(false);
+  it("la variable estado ya no filtra ni marca nada: un valor raro es solo un lead más", async () => {
+    await db.insert(leads).values({ programId, emailNormalizado: "raro@c.co", calificacion: "valor_raro", leadQuality: "Mid" });
+    expect(await correos({ calidad: "mid" })).toEqual(["raro@c.co"]);
   });
 
   it("abandonó el formulario: solo quien tiene TODOS sus envíos parciales", async () => {

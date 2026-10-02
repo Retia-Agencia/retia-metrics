@@ -3,7 +3,6 @@ import type { Db } from "@/lib/db/tipos";
 import { changeLog, leadContactos, leads, sources, submissions } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import type { Calificacion } from "./calificacion";
-import { estadosDeLlegadaDelPrograma, motivoSinEstado } from "./estados-llegada";
 import { construirEnvio, type EntradaEnvio, type Envio } from "./envio";
 import { envioMasReciente, type EnvioCandidato } from "./envio-de-origen";
 import { aplicarReglaDeDeal, type AccionDeDeal, type ResultadoCita } from "./regla-de-deals";
@@ -34,11 +33,10 @@ import {
  * veces da lo mismo, y cuando llega la completa de una parcial el lead se corrige
  * solo (ADR 0036 punto 4: "el CRM recalcula cuando llega la hermana").
  *
- * Cada envio guarda el Estado que le puso el FORMULARIO tal como llego (ADR 0061): el
- * CRM no califica ni deduce. Un envio COMPLETO sin Estado, o con un valor que el
- * programa no tiene en `estados_llegada`, entra igual y queda contado en `sinCalificar`
- * con el motivo (error visible, ADR 0061 punto 5). Un envio PARCIAL sin Estado no es
- * error: es el parcial del WhatsApp, que no abre deal.
+ * Cada envio guarda lo que le puso el FORMULARIO tal como llego (su variable `estado`, su
+ * `lead_quality`, su `lead_value`): el CRM no califica ni deduce. Desde el ADR 0069 la
+ * variable `estado` ya no enruta nada; el formulario que deja de mandar su calidad lo
+ * marca la salud de la fuente ("sin calidad", `lib/queries/salud-fuentes.ts`).
  *
  * Fuera de alcance, a proposito: el deal (ticket 052, espera al motor de etapas).
  */
@@ -60,8 +58,6 @@ export interface ResultadoIngesta {
   /** Para el gerente (etapa 6): uniones por telefono y telefonos de otro lead. */
   posiblesDuplicados: PosibleDuplicado[];
   cambiosRegistrados: number;
-  /** Envios COMPLETOS que entraron sin Estado reconocible, agrupados por motivo. */
-  sinCalificar: { motivo: string; envios: number }[];
   /**
    * Lo que la regla de deals (ticket 052) hizo con cada lead tocado. Vacio cuando no se
    * pidio (`aplicarReglaDeDeals` en false: el traslado desde Sheets). Incluye los
@@ -128,7 +124,6 @@ export async function ingerirEntradas(
     contactosNuevos: 0,
     posiblesDuplicados: [],
     cambiosRegistrados: 0,
-    sinCalificar: [],
     reglaDeDeals: [],
   };
   if (entradas.length === 0) return resultado;
@@ -174,27 +169,16 @@ export async function ingerirEntradas(
   if (envios.length === 0) return resultado;
 
   // 1b. El Estado de cada envio es el que trae del formulario (ya traducido en
-  // `construirEnvio`). El CRM no califica: solo reporta lo que no reconoce. El puntaje
+  // `construirEnvio`), y se guarda sin decidir nada con el (ADR 0069). El puntaje
   // (ticket 070, decision del 29-sep) tambien lo TRAE el formulario, no lo calcula el
   // CRM (decision A8): es el `e.puntaje` que el adaptador leyo de la variable de score, o
   // null si la fuente no la nombra o el valor no era numero. `versionPuntaje` sigue nulo:
   // no hay pesos del CRM que versionar (el formulario es quien pondera).
   type Nota = { calificacion: Calificacion | null; puntaje: number | null; versionPuntaje: number | null };
   const notaDe = new Map<string, Nota>();
-  const motivos = new Map<string, number>();
-  const contar = (motivo: string) => motivos.set(motivo, (motivos.get(motivo) ?? 0) + 1);
-  // Que Estados reconoce el programa lo dice su tabla (ticket 117), leida una vez.
-  const estados = await estadosDeLlegadaDelPrograma(db, programId);
   for (const e of envios) {
     notaDe.set(llaveDeEnvio(e), { calificacion: e.estado, puntaje: e.puntaje, versionPuntaje: null });
-    // Un COMPLETO sin Estado reconocido es un error visible; un PARCIAL sin Estado no
-    // (el parcial del WhatsApp llega sin el, y marcarlo llenaria el reporte). Un parcial
-    // CON un valor que el programa no tiene si se cuenta: ese si es un formulario mal editado.
-    if (e.esParcial && e.estado === null) continue;
-    const motivo = motivoSinEstado(e.estado, estados);
-    if (motivo !== null) contar(motivo);
   }
-  resultado.sinCalificar = [...motivos].map(([motivo, n]) => ({ motivo, envios: n }));
 
   return (db as { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> }).transaction(
     async (tx) => {

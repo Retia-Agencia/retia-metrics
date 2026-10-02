@@ -76,7 +76,6 @@ interface ReporteFuente {
     enviosSinLead: number;
     /** Uniones por telefono y telefonos de otro lead: explican leads nuevos < correos unicos. */
     posiblesDuplicados: { unidosPorTelefono: number; telefonoDeOtroLead: number };
-    sinCalificar: { motivo: string; envios: number }[];
   };
   error?: string;
 }
@@ -111,7 +110,6 @@ function reporteDesdeIngesta(r: ResultadoIngesta): NonNullable<ReporteFuente["in
       unidosPorTelefono: r.posiblesDuplicados.filter((d) => d.motivo === "unido_por_telefono").length,
       telefonoDeOtroLead: r.posiblesDuplicados.filter((d) => d.motivo === "telefono_de_otro_lead").length,
     },
-    sinCalificar: r.sinCalificar,
   };
 }
 
@@ -262,7 +260,6 @@ function imprimirReporte(reportes: ReportePrograma[], aplicar: boolean): void {
         console.log(`      → contactos nuevos  : ${g.contactosNuevos}`);
         console.log(`      → posibles duplicados : ${g.posiblesDuplicados.unidosPorTelefono} unidos por teléfono, ${g.posiblesDuplicados.telefonoDeOtroLead} teléfono de otro lead`);
         if (g.enviosSinLead > 0) console.log(`      → envíos sin lead   : ${g.enviosSinLead}`);
-        for (const s of g.sinCalificar) console.log(`      → sin calificar     : ${s.envios}  (${s.motivo})`);
       }
     }
   }

@@ -10,7 +10,7 @@ import { tableroKanban } from "@/lib/queries/kanban";
 import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
 import { fichaDeDeal } from "@/lib/queries/ficha-deal";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 115, ADR 0060: el origen es del envio y el deal recuerda el que lo abrio. Ninguna
@@ -63,7 +63,6 @@ beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "t", nombre: "T", ticketUsd: "1500" }).returning();
   programId = p.id;
-  await sembrarEstadosDeLlegada(db, programId);
   const [f] = await db.insert(sources).values({ programId, nombre: "Typeform", tipo: "google_sheet" }).returning();
   sourceId = f.id;
 }, 60_000);

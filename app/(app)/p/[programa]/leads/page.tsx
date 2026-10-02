@@ -5,8 +5,8 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { estadosDeLlegadaDelPrograma, llaveDeEstado } from "@/lib/ingesta/estados-llegada";
 import {
+  CALIDADES_DE_LEAD,
   CAMPOS_DE_FECHA_DE_LEAD,
   LEADS_POR_PAGINA,
   leadsDelPrograma,
@@ -32,14 +32,13 @@ function uno(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-/**
- * El Estado se muestra como lo manda el formulario (ADR 0004), solo mas legible: sin guiones
- * bajos y con mayuscula inicial. Los valores viven en `estados_llegada`, no aqui (ADR 0061).
- */
-function nombreDeEstado(valor: string): string {
-  const texto = valor.replaceAll("_", " ").trim();
-  return texto.charAt(0).toUpperCase() + texto.slice(1);
-}
+/** Las opciones del filtro de calidad (ADR 0069): lo que manda el formulario y la cubeta vacía. */
+const CALIDADES = [
+  { valor: "high", etiqueta: "High" },
+  { valor: "mid", etiqueta: "Mid" },
+  { valor: "low", etiqueta: "Low" },
+  { valor: "sin_calidad", etiqueta: "Sin calidad" },
+] as const satisfies readonly { valor: (typeof CALIDADES_DE_LEAD)[number]; etiqueta: string }[];
 
 /** Las claves de la URL que forman el filtro de fecha (141): el campo y las del selector. */
 const CLAVES_DE_FECHA = ["fecha", "periodo", "a_desde", "a_hasta"] as const;
@@ -53,7 +52,7 @@ const CAMPOS = [
 
 /**
  * La tab Leads (ticket 072, ADR 0050): la base del programa, sobre todo lo que existe y todavía no
- * es una oportunidad. Filtros por hecho (deal, estado, abandonó el formulario, posible duplicado,
+ * es una oportunidad. Filtros por hecho (deal, calidad, abandonó el formulario, posible duplicado,
  * fechas) y la lista de posibles duplicados con confirmar o separar.
  *
  * Los filtros viajan en la URL y ninguno es un dato personal (AGENTS.md): no hay búsqueda por
@@ -66,18 +65,14 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa || !esRolValido(rol)) notFound();
 
-  const estados = [...(await estadosDeLlegadaDelPrograma(db, programa.id)).values()];
   const q = await searchParams;
   const deal = uno(q.deal);
-  const estado = uno(q.estado);
+  const calidad = CALIDADES_DE_LEAD.find((c) => c === uno(q.calidad)) ?? null;
   const filtroDeFecha = filtroDeFechaDeLaUrl(q, CAMPOS_DE_FECHA_DE_LEAD, hoyEnBogota());
   const pagina = Math.max(0, Number.parseInt(uno(q.pagina) ?? "0", 10) || 0);
   const filtro: FiltroLeads = {
     deal: deal === "con" || deal === "sin" ? deal : null,
-    estado:
-      estado === "sin_estado" || estados.some((e) => llaveDeEstado(e.valor) === llaveDeEstado(estado ?? ""))
-        ? (estado ?? null)
-        : null,
+    calidad,
     abandono: uno(q.abandono) === "1",
     duplicado: uno(q.duplicado) === "1",
     fecha: filtroDeFecha ? { campo: filtroDeFecha.campo, rango: filtroDeFecha.periodo.a } : null,
@@ -113,15 +108,14 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
             </select>
           </label>
           <label className="grid gap-1 text-sm">
-            Estado
-            <select name="estado" defaultValue={filtro.estado ?? ""} className={control}>
-              <option value="">Todos</option>
-              {estados.map((e) => (
-                <option key={e.valor} value={e.valor}>
-                  {nombreDeEstado(e.valor)}
+            Calidad
+            <select name="calidad" defaultValue={filtro.calidad ?? ""} className={control}>
+              <option value="">Todas</option>
+              {CALIDADES.map((c) => (
+                <option key={c.valor} value={c.valor}>
+                  {c.etiqueta}
                 </option>
               ))}
-              <option value="sin_estado">Sin estado</option>
             </select>
           </label>
           {/* El filtro de fecha vive arriba, en la URL: el formulario GET lo conserva al filtrar. */}
@@ -171,17 +165,16 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
                       </Link>
                       {f.nombre ? <p className="truncate text-xs text-muted-foreground">{f.email}</p> : null}
                       <div className="flex flex-wrap items-center gap-1.5">
-                        {f.estadoReconocido && f.calificacion ? (
-                          <Badge variant="neutro">{nombreDeEstado(f.calificacion)}</Badge>
+                        {f.leadQuality ? (
+                          <Badge variant="neutro">{f.leadQuality}</Badge>
                         ) : (
-                          <Badge variant="alerta" title={f.calificacion ? `El formulario mandó "${f.calificacion}", que el programa no tiene.` : undefined}>
-                            Sin estado
+                          <Badge variant="alerta" title="El formulario no mandó lead_quality: su deal entró en Registrado o Potencial.">
+                            Sin calidad
                           </Badge>
                         )}
                         {f.tieneDeal ? <Badge variant="info">Con deal</Badge> : null}
                         {f.soloParciales ? <Badge variant="alerta">Abandonó el formulario</Badge> : null}
                         {f.correosSinConfirmar > 0 ? <Badge variant="alerta">Posible duplicado</Badge> : null}
-                        {f.leadQuality ? <Badge variant="secondary">{f.leadQuality}</Badge> : null}
                         {f.leadValue ? <Badge variant="secondary">{f.leadValue}</Badge> : null}
                       </div>
                     </div>

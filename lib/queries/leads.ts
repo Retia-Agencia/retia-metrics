@@ -3,7 +3,6 @@ import { deals, leadContactos, leads, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { vigente } from "@/lib/queries/vigente";
 import type { Rango } from "@/lib/queries/dashboard";
-import { estadosDeLlegadaDelPrograma, llaveDeEstado, resolverEstadoDeLlegada } from "@/lib/ingesta/estados-llegada";
 
 /**
  * La tab Leads (ticket 072, ADR 0050): la base del programa, sobre todo lo que existe y todavía
@@ -12,8 +11,8 @@ import { estadosDeLlegadaDelPrograma, llaveDeEstado, resolverEstadoDeLlegada } f
  *
  * Los filtros son hechos, nada se adivina:
  * - **deal:** con o sin deal vigente (cualquier etapa; un deal anulado no cuenta, ADR 0038).
- * - **estado:** la calificación del lead, o "sin estado": llegó vacía o con un valor que el
- *   programa no tiene activo en `estados_llegada` (ADR 0061 punto 5, ticket 117).
+ * - **calidad:** el `lead_quality` que mandó el formulario (High, Mid, Low), o "sin calidad".
+ *   Es lo que decide la etapa de entrada desde el ADR 0069; la variable `estado` ya no filtra.
  * - **abandonó el formulario:** todos sus envíos son parciales (ADR 0061 punto 6).
  * - **posible duplicado:** tiene un correo que entró por teléfono y nadie confirmó (ADR 0035).
  * - **fecha (141):** la de creación o la del último envío, en días de Bogotá, dentro del periodo A
@@ -27,8 +26,8 @@ import { estadosDeLlegadaDelPrograma, llaveDeEstado, resolverEstadoDeLlegada } f
 
 export interface FiltroLeads {
   deal?: "con" | "sin" | null;
-  /** Un valor de `estados_llegada` del programa, o "sin_estado". */
-  estado?: string | null;
+  /** High, Mid o Low (sin importar mayúsculas), o "sin_calidad". */
+  calidad?: CalidadDeLead | null;
   abandono?: boolean;
   duplicado?: boolean;
   /** Sobre qué fecha y en qué días `YYYY-MM-DD` de Bogotá, inclusive (ticket 141). */
@@ -39,6 +38,10 @@ export interface FiltroLeads {
 
 export const LEADS_POR_PAGINA = 100;
 
+/** Las calidades que manda un formulario (ADR 0069; 30X tiene tres) y la cubeta de las que faltan. */
+export const CALIDADES_DE_LEAD = ["high", "mid", "low", "sin_calidad"] as const;
+export type CalidadDeLead = (typeof CALIDADES_DE_LEAD)[number];
+
 /** Sobre qué fecha filtra la base de leads (ticket 141). */
 export const CAMPOS_DE_FECHA_DE_LEAD = ["creado", "ultimo_envio"] as const;
 export type CampoDeFechaDeLead = (typeof CAMPOS_DE_FECHA_DE_LEAD)[number];
@@ -48,8 +51,6 @@ export interface FilaLead {
   nombre: string | null;
   email: string;
   calificacion: string | null;
-  /** Si el programa reconoce su Estado (fila activa en `estados_llegada`). */
-  estadoReconocido: boolean;
   leadQuality: string | null;
   leadValue: string | null;
   fechaUltimaAplicacion: Date | null;
@@ -86,15 +87,14 @@ export async function leadsDelPrograma(
   programId: string,
   filtro: FiltroLeads = {},
 ): Promise<{ total: number; filas: FilaLead[] }> {
-  const estados = await estadosDeLlegadaDelPrograma(db, programId);
-  const llaveDelLead = sql<string>`lower(trim(${leads.calificacion}))`;
+  const calidadDelLead = sql<string>`lower(trim(${leads.leadQuality}))`;
   const condiciones: (SQL | undefined)[] = [eq(leads.programId, programId)];
   if (filtro.deal === "con") condiciones.push(inArray(leads.id, conDeal(db)));
   if (filtro.deal === "sin") condiciones.push(notInArray(leads.id, conDeal(db)));
-  if (filtro.estado === "sin_estado") {
-    condiciones.push(or(isNull(leads.calificacion), notInArray(llaveDelLead, [...estados.keys()])));
-  } else if (filtro.estado) {
-    condiciones.push(eq(llaveDelLead, llaveDeEstado(filtro.estado)));
+  if (filtro.calidad === "sin_calidad") {
+    condiciones.push(or(isNull(leads.leadQuality), eq(calidadDelLead, "")));
+  } else if (filtro.calidad) {
+    condiciones.push(eq(calidadDelLead, filtro.calidad));
   }
   if (filtro.abandono) condiciones.push(inArray(leads.id, soloParciales(db)));
   if (filtro.duplicado) condiciones.push(inArray(leads.id, conCorreoSinConfirmar(db)));
@@ -149,7 +149,6 @@ export async function leadsDelPrograma(
     total,
     filas: base.map((b) => ({
       ...b,
-      estadoReconocido: resolverEstadoDeLlegada(b.calificacion, estados) !== null,
       tieneDeal: tienenDeal.has(b.id),
       soloParciales: soloPar.has(b.id),
       correosSinConfirmar: sinConfirmar.get(b.id) ?? 0,

@@ -117,7 +117,7 @@ flowchart TD
 | El lead vuelve a aplicar con su deal cerrado | deal nuevo; la ficha muestra los anteriores | ADR 0037 |
 | Lead que ya existía antes del corte | no abre deal por la ingesta: entra con la migración, con su estado de gestión | ADR 0037 |
 
-**La etapa en que nace el deal la decide el CRM** con tres hechos del envío (ADR 0069, 2-oct; reemplaza al 0061): agendó → Agendado; `lead_quality` High → Calificado; completo con otra calidad o sin ella → Registrado; parcial → Potencial (`lib/ingesta/etapa-de-entrada.ts`). Ningún envío se queda sin deal (GC-27). La variable `estado` del formulario se guarda como llegó y ya no enruta; `estados_llegada` queda en pie sin decidir nada hasta su retiro (117, fase 2). "Agendó" es el hecho que pone el adaptador: la pregunta de agenda del mapeo trae un link de Calendly (ticket 106).
+**La etapa en que nace el deal la decide el CRM** con tres hechos del envío (ADR 0069, 2-oct; reemplaza al 0061): agendó → Agendado; `lead_quality` High → Calificado; completo con otra calidad o sin ella → Registrado; parcial → Potencial (`lib/ingesta/etapa-de-entrada.ts`). Ningún envío se queda sin deal (GC-27). La variable `estado` del formulario se guarda como llegó y ya no enruta. La pantalla de Estados de llegada se retiró (117, fase 2) y la tabla `estados_llegada` espera su migración sin que nadie la lea. Un formulario que deja de mandar `lead_quality` lo marca la salud de la fuente ("sin calidad"). "Agendó" es el hecho que pone el adaptador: la pregunta de agenda del mapeo trae un link de Calendly (ticket 106).
 
 ### 2.2 Cómo se cuelga cada llamada de su deal (Calendly)
 
@@ -379,7 +379,7 @@ flowchart LR
   CE["construirEnvio<br/>una fila y un payload dan el mismo Envío"] --> ID["resolverIdentidad<br/>el correo manda; el teléfono une y marca"]
   ID --> ING["ingerirEntradas<br/>una transacción, por lotes, idempotente"]
   ING --> W1["leads + submissions + lead_contactos<br/>con change_log"]
-  ING --> CAL["estados_llegada<br/>el Estado del form a su etapa, ADR 0061"]
+  ING --> CAL["etapa de entrada<br/>agenda + calidad, ADR 0069"]
   CAL --> REG["Regla de deals, 052<br/>por construir"]
   REG --> MOT["moverEtapa<br/>por construir"]
 ```

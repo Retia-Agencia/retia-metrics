@@ -185,3 +185,22 @@ Mientras tanto siguen en pie y no deciden nada.
 Tests: `tests/ingesta-regla-de-deals.test.ts` (la tabla del ADR fila por fila, la variable `estado` ignorada con
 cinco valores, parciales en orden y fuera de orden), `tests/webhook-matriz.test.ts` y `tests/origen-del-envio.test.ts`
 ajustados a GC-27. Corridos 27 archivos de ingesta, Calendly, webhook, costura y páginas: verdes.
+
+## Fase 2, el código (2-oct, Alejo): nadie lee `estados_llegada`
+
+**Hecho, sin migración.** Lo que solo servía a la tabla se fue y su alarma se reemplazó:
+- **Fuera:** la sección "Estados de llegada" de `/ajustes/fuentes` (componente, acciones, `lib/catalogo/`,
+  `lib/queries/` y `lib/ingesta/estados-llegada.ts`), `npm run cargar-estados-llegada`, la siembra en `seed:local` y
+  en los tests, y `sinCalificar` del resultado de la ingesta y del traslado.
+- **"Sin estado" pasa a "sin calidad"** en la salud de la fuente (`/ajustes/fuentes` y `/ajustes/salud`): completos de
+  las últimas 24 h sin `lead_quality`. 🩸 Con el ADR 0069, un Typeform que deja de mandar la calidad manda a todos a
+  Registrado sin un error: es el mismo agujero del 29-sep con otra variable. Medido en producción el 2-oct (3 días):
+  13 completos de Typeform sin calidad, así que las dos fuentes de Typeform van a salir marcadas; hay que revisar por
+  qué esos envíos no traen `lead_quality`.
+- **Leads filtra por calidad** (High, Mid, Low, sin calidad) en vez de por estado, y la fila muestra la calidad.
+- `scripts/estados-llegada-base.ts` pasa a `scripts/plantilla-lead-base.ts` (solo la plantilla de lead).
+- Guardián nuevo en `tests/ingesta-estado.test.ts`: solo `lib/db/schema.ts` nombra `estadosLlegada`; mordido en los
+  dos sentidos.
+
+**Falta (con el ok de Mani):** la migración que borra la tabla `estados_llegada` (y su tipo en el esquema). El código
+ya no la lee, así que se puede aplicar en cualquier momento después de este deploy.

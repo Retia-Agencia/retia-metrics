@@ -6,7 +6,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { abrirDeal } from "@/lib/deals/mover-etapa";
 import { buscarLlamadaDelDeal, linkDeAgendaDelEnvio } from "@/lib/calendly/buscar-llamada";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * "Buscar llamada" (ticket 096): vuelve a preguntarle a Calendly por la cita de un deal.
@@ -62,7 +62,6 @@ beforeEach(async () => {
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
     .returning();
   programId = p.id;
-  await sembrarEstadosDeLlegada(db, programId);
   await db.insert(sources).values({
     programId,
     nombre: "Typeform",

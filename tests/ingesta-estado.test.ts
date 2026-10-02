@@ -2,17 +2,12 @@ import { describe, expect, it } from "vitest";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import { estadoDesdeTexto } from "@/lib/ingesta/estado";
-import {
-  motivoSinEstado,
-  resolverEstadoDeLlegada,
-  type EstadoDeLlegada,
-} from "@/lib/ingesta/estados-llegada";
 
 /**
  * `estadoDesdeTexto` (ticket 051, reescrito en el 117): LIMPIA el texto del Estado, no lo
  * califica ni lo valida. El valor del formulario se guarda tal cual (recortado) y la
- * etiqueta exacta de la hoja se traduce a su valor. Si el valor abre deal lo dice
- * `estados_llegada`, no esta funcion.
+ * etiqueta exacta de la hoja se traduce a su valor. Desde el ADR 0069 el valor ya no decide
+ * nada: la etapa de entrada sale de la agenda y la calidad (`etapa-de-entrada.ts`).
  */
 describe("estadoDesdeTexto", () => {
   it.each([
@@ -46,29 +41,23 @@ describe("estadoDesdeTexto", () => {
 });
 
 /**
- * Que significa un Estado lo dice la fila del programa (ADR 0061). La comparacion es la del
- * indice unico (`lower(trim())`), y lo que no tiene fila no se adivina.
+ * 117 fase 2 (ADR 0069 punto 5): la tabla `estados_llegada` sigue en el esquema hasta su
+ * migración, pero NADIE la lee. Si una consulta vuelve a mirarla, la variable `estado` del
+ * formulario vuelve a decidir en silencio, que es justo lo que el 0069 retiró.
  */
-describe("resolverEstadoDeLlegada y motivoSinEstado", () => {
-  const setteo: EstadoDeLlegada = { valor: "setteo_no_calificado", etapaEntrada: "registrado", prioridad: "normal", alertaMinutos: null };
-  const estados = new Map([["setteo_no_calificado", setteo]]);
-
-  it("encuentra la fila sin importar mayusculas ni blancos", () => {
-    expect(resolverEstadoDeLlegada("setteo_no_calificado", estados)).toBe(setteo);
-    expect(resolverEstadoDeLlegada("  SETTEO_no_calificado ", estados)).toBe(setteo);
-    expect(motivoSinEstado("Setteo_No_Calificado", estados)).toBeNull();
-  });
-
-  it("vacio es 'sin estado'; un valor sin fila es 'no reconocido' con el valor", () => {
-    expect(resolverEstadoDeLlegada(null, estados)).toBeNull();
-    expect(motivoSinEstado(null, estados)).toBe("sin estado");
-    expect(motivoSinEstado("  ", estados)).toBe("sin estado");
-    expect(resolverEstadoDeLlegada("otra_cosa", estados)).toBeNull();
-    expect(motivoSinEstado("otra_cosa", estados)).toBe("estado no reconocido: otra_cosa");
-  });
-
-  it("un programa sin filas no reconoce nada", () => {
-    expect(motivoSinEstado("setteo_no_calificado", new Map())).toBe("estado no reconocido: setteo_no_calificado");
+describe("nadie lee estados_llegada (ADR 0069)", () => {
+  function archivos(dir: string): string[] {
+    const raiz = fileURLToPath(new URL(`../${dir}/`, import.meta.url));
+    return (fs.readdirSync(raiz, { recursive: true }) as string[])
+      .filter((n) => /\.tsx?$/.test(n) && fs.statSync(raiz + n).isFile())
+      .map((n) => `${dir}/${n.replaceAll("\\", "/")}`);
+  }
+  it("solo lib/db/schema.ts nombra la tabla", () => {
+    const lectores = ["lib", "app", "components", "scripts"]
+      .flatMap(archivos)
+      .filter((ruta) => ruta !== "lib/db/schema.ts")
+      .filter((ruta) => /\bestadosLlegada\b/.test(fs.readFileSync(fileURLToPath(new URL(`../${ruta}`, import.meta.url)), "utf8")));
+    expect(lectores).toEqual([]);
   });
 });
 

@@ -7,10 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num, pct } from "@/lib/format";
 import { FuentesAdmin, type ProgramaConFuentes } from "@/components/admin/fuentes-admin";
-import { EstadosLlegadaAdmin } from "@/components/admin/estados-llegada-admin";
-import { ETIQUETA_ETAPA_DE_ENTRADA } from "@/lib/catalogo/estados-llegada";
-import { estadosDeLlegadaParaAdmin } from "@/lib/queries/estados-llegada";
-import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +18,6 @@ export default async function FuentesPage() {
   const { programas, fuentes } = await fuentesParaAdmin();
   // Ticket 107: solo las activas tienen salud; una inactiva no recibe a proposito.
   const saludPorFuente = new Map((await saludDeFuentes()).map((s) => [s.sourceId, s]));
-  // Ticket 117: que Estado del formulario abre deal, por programa.
-  const { estados, sinFila } = await estadosDeLlegadaParaAdmin(db);
 
   // Se arma la vista por programa para la administracion: cada programa con sus
   // fuentes. El sheetId viaja completo (lo necesita el formulario de edicion) y se
@@ -54,7 +48,7 @@ export default async function FuentesPage() {
         salud: (() => {
           const s = saludPorFuente.get(f.id);
           return s
-            ? { estado: s.estado, ultimoHace: haceCuanto(s.ultimo), sobresPendientes: s.sobresPendientes, sinEstado: s.sinEstado }
+            ? { estado: s.estado, ultimoHace: haceCuanto(s.ultimo), sobresPendientes: s.sobresPendientes, sinCalidad: s.sinCalidad }
             : null;
         })(),
       })),
@@ -99,13 +93,6 @@ export default async function FuentesPage() {
         </div>
 
         <FuentesAdmin programas={programasConFuentes} />
-
-        <EstadosLlegadaAdmin
-          programas={programas.map((p) => ({ id: p.id, nombre: p.nombre }))}
-          estados={estados}
-          sinFila={sinFila}
-          etiquetaDeEntrada={ETIQUETA_ETAPA_DE_ENTRADA}
-        />
 
         <Card>
           <CardHeader>

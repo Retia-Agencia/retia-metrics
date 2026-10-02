@@ -20,7 +20,7 @@ import { entradasDesdeMatriz } from "@/lib/ingesta/adaptador-sheets";
 import { ingerirEntradas } from "@/lib/ingesta/ingerir";
 import { apartarLasQueYaEntraron } from "@/lib/sheets/traslado";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import real from "./fixtures/typeform-real-tactical.json";
 
 /**
@@ -154,7 +154,6 @@ beforeEach(async () => {
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
     .returning();
   programId = p.id;
-  await sembrarEstadosDeLlegada(db, programId);
 
   // Un closer con membresía activa del programa (ADR 0048): trabaja los leads de aquí.
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer" }).returning();

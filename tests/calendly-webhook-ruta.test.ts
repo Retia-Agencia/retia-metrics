@@ -7,7 +7,7 @@ import { abrirDeal } from "@/lib/deals/mover-etapa";
 import { aplicarReglaDeDeal } from "@/lib/ingesta/regla-de-deals";
 import { entregasDePrograma, entregasHuerfanas } from "@/lib/queries/entregas-webhook";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * El webhook de Calendly (ticket 096, A5) invocando la RUTA real con eventos firmados,
@@ -94,7 +94,6 @@ beforeEach(async () => {
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500", calendlySigningKey: CLAVE })
     .returning();
   programId = p.id;
-  await sembrarEstadosDeLlegada(db, programId);
   const [o] = await db
     .insert(programs)
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "797", calendlySigningKey: CLAVE_OTRO })

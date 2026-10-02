@@ -27,7 +27,6 @@
     "cargar-motivos": "tsx scripts/cargar-motivos.ts",
     "cargar-areas": "tsx scripts/cargar-areas.ts",
     "cargar-canales": "tsx scripts/cargar-canales.ts",
-    "cargar-estados-llegada": "tsx scripts/cargar-estados-llegada.ts",
     "cargar-plantillas-lead": "tsx scripts/cargar-plantillas-lead.ts",
     "db:local": "tsx scripts/db-local.ts",
     "dev:local": "tsx scripts/dev-local.ts",

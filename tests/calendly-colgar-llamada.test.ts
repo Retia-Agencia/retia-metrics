@@ -18,7 +18,7 @@ import { abrirDeal, moverEtapa } from "@/lib/deals/mover-etapa";
 import { asignarLlamadaSuelta, registrarLlamadaDeCalendly, type CitaDeCalendly } from "@/lib/calendly/colgar-llamada";
 import { aplicarReglaDeDeal } from "@/lib/ingesta/regla-de-deals";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * El escritor de las llamadas de Calendly (ticket 096, ADR 0049), contra PGlite: lee la
@@ -63,7 +63,6 @@ beforeEach(async () => {
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
     .returning();
   programId = p.id;
-  await sembrarEstadosDeLlegada(db, programId);
   const [o] = await db
     .insert(programs)
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "797" })

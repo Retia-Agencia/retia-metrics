@@ -5,7 +5,7 @@ import { calls, deals, leadContactos, leads, programs, sobresCrudos, sources, su
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import completo from "./fixtures/typeform-completo.json";
-import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * La ruta del webhook (ticket 106, ADR 0055), contra PGlite con TODAS las migraciones:
@@ -80,7 +80,6 @@ beforeEach(async () => {
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
     .returning();
   programId = p.id;
-  await sembrarEstadosDeLlegada(db, programId);
   const [f] = await db
     .insert(sources)
     .values({

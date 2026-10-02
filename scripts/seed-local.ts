@@ -13,8 +13,7 @@ import {
   guardarTokenCalendly,
   reactivarPrograma,
 } from "../lib/catalogo/programas";
-import { estadosDeLlegada } from "../lib/catalogo/estados-llegada";
-import { ESTADOS_LLEGADA_BASE, PLANTILLA_LEAD_BASE } from "./estados-llegada-base";
+import { PLANTILLA_LEAD_BASE } from "./plantilla-lead-base";
 import { crearCohorte } from "../lib/catalogo/cohortes";
 import { activarFuente, crearFuente, rotarSecretoDeFuente } from "../lib/catalogo/fuentes";
 import { crearUsuario } from "../lib/catalogo/usuarios";
@@ -590,11 +589,8 @@ export async function sembrarLocal(): Promise<void> {
 
   // 5b. Estados de llegada y plantilla de lead (ticket 117): sin ellos ningun envio abre
   // deal y el webhook no sabe que pregunta trae el correo.
-  console.log("[seed:local] Sembrando estados de llegada y plantillas de lead...");
+  console.log("[seed:local] Sembrando plantillas de lead...");
   for (const programa of [prog1, prog2]) {
-    for (const estado of ESTADOS_LLEGADA_BASE) {
-      await estadosDeLlegada(db).crear(actorId, { programId: programa.id, ...estado });
-    }
     await editarPlantillaLead(db, actorId, programa.id, PLANTILLA_LEAD_BASE);
   }
 

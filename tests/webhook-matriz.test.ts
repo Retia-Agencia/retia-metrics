@@ -14,7 +14,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import real from "./fixtures/typeform-real-tactical.json";
 import daptaParcial from "./fixtures/dapta-parcial.json";
 import daptaCompleto from "./fixtures/dapta-completo.json";
@@ -171,7 +171,6 @@ beforeEach(async () => {
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
     .returning();
   programId = p.id;
-  await sembrarEstadosDeLlegada(db, programId);
   const [f] = await db
     .insert(sources)
     .values({
@@ -338,7 +337,6 @@ describe("caso 5 — la cita no está vigente o Calendly falla: Calificado, lead
         plantillaLead: PROGRAMA_DE_PRUEBA.plantillaLead,
       })
       .returning();
-    await sembrarEstadosDeLlegada(db, sinToken.id);
     const [fuenteSinToken] = await db
       .insert(sources)
       .values({

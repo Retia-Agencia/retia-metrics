@@ -2,7 +2,7 @@ import "./load-env";
 import { db } from "../lib/db";
 import { editarPlantillaLead, listarProgramas } from "../lib/catalogo/programas";
 import { actorDelScript } from "./actor";
-import { PLANTILLA_LEAD_BASE } from "./estados-llegada-base";
+import { PLANTILLA_LEAD_BASE } from "./plantilla-lead-base";
 
 /**
  * Carga la plantilla de lead de cada programa que NO tiene una (ticket 117, B4 del 114),
@@ -18,7 +18,7 @@ import { PLANTILLA_LEAD_BASE } from "./estados-llegada-base";
  *   npm run cargar-plantillas-lead            # ensayo
  *   npm run cargar-plantillas-lead -- --aplicar
  *
- * La plantilla vive en `estados-llegada-base.ts` (la comparte `seed-local`).
+ * La plantilla vive en `plantilla-lead-base.ts` (la comparte `seed-local`).
  */
 
 async function main() {

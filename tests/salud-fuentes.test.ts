@@ -3,7 +3,7 @@ import { programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { saludDeFuente, saludDeFuentes } from "@/lib/queries/salud-fuentes";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
-import { PROGRAMA_DE_PRUEBA, sembrarEstadosDeLlegada } from "./helpers/programa-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 107: una fuente que dejo de recibir se ve en la app. Umbrales de Mani
@@ -17,59 +17,59 @@ const UMBRALES = { umbralSinRespuestaHoras: 48, umbralMuertaHoras: 120 };
 
 describe("saludDeFuente (pura)", () => {
   it("con un envio reciente esta al dia", () => {
-    const s = saludDeFuente({ ...UMBRALES, ultimo: hace(2), penultimo: hace(5), sobresPendientes: 0, sinEstado: 0 }, AHORA);
+    const s = saludDeFuente({ ...UMBRALES, ultimo: hace(2), penultimo: hace(5), sobresPendientes: 0, sinCalidad: 0 }, AHORA);
     expect(s.estado).toBe("al_dia");
     expect(s.marcada).toBe(false);
   });
 
   it("pasadas 48 h sin envios queda sin respuestas", () => {
-    const s = saludDeFuente({ ...UMBRALES, ultimo: hace(49), penultimo: hace(50), sobresPendientes: 0, sinEstado: 0 }, AHORA);
+    const s = saludDeFuente({ ...UMBRALES, ultimo: hace(49), penultimo: hace(50), sobresPendientes: 0, sinCalidad: 0 }, AHORA);
     expect(s.estado).toBe("sin_respuestas");
     expect(s.marcada).toBe(true);
   });
 
   it("pasados 5 dias queda muerta", () => {
-    const s = saludDeFuente({ ...UMBRALES, ultimo: hace(121), penultimo: null, sobresPendientes: 0, sinEstado: 0 }, AHORA);
+    const s = saludDeFuente({ ...UMBRALES, ultimo: hace(121), penultimo: null, sobresPendientes: 0, sinCalidad: 0 }, AHORA);
     expect(s.estado).toBe("muerta");
     expect(s.marcada).toBe(true);
   });
 
   it("un envio despues de un hueco mayor al umbral quita la marca y avisa que volvio", () => {
-    const s = saludDeFuente({ ...UMBRALES, ultimo: hace(1), penultimo: hace(70), sobresPendientes: 0, sinEstado: 0 }, AHORA);
+    const s = saludDeFuente({ ...UMBRALES, ultimo: hace(1), penultimo: hace(70), sobresPendientes: 0, sinCalidad: 0 }, AHORA);
     expect(s.estado).toBe("volvio");
     expect(s.marcada).toBe(false);
   });
 
   it("tambien vuelve una fuente que estuvo muerta", () => {
-    const s = saludDeFuente({ ...UMBRALES, ultimo: hace(1), penultimo: hace(200), sobresPendientes: 0, sinEstado: 0 }, AHORA);
+    const s = saludDeFuente({ ...UMBRALES, ultimo: hace(1), penultimo: hace(200), sobresPendientes: 0, sinCalidad: 0 }, AHORA);
     expect(s.estado).toBe("volvio");
   });
 
   it("una fuente que nunca recibio se marca, sin inventarle una fecha", () => {
-    const s = saludDeFuente({ ...UMBRALES, ultimo: null, penultimo: null, sobresPendientes: 0, sinEstado: 0 }, AHORA);
+    const s = saludDeFuente({ ...UMBRALES, ultimo: null, penultimo: null, sobresPendientes: 0, sinCalidad: 0 }, AHORA);
     expect(s.estado).toBe("sin_envios");
     expect(s.marcada).toBe(true);
   });
 
   it("los umbrales son los de la fuente, no fijos", () => {
     const s = saludDeFuente(
-      { umbralSinRespuestaHoras: 6, umbralMuertaHoras: 24, ultimo: hace(7), penultimo: hace(8), sobresPendientes: 0, sinEstado: 0 },
+      { umbralSinRespuestaHoras: 6, umbralMuertaHoras: 24, ultimo: hace(7), penultimo: hace(8), sobresPendientes: 0, sinCalidad: 0 },
       AHORA,
     );
     expect(s.estado).toBe("sin_respuestas");
   });
 
   it("una fuente al dia con sobres pendientes tambien se marca", () => {
-    const s = saludDeFuente({ ...UMBRALES, ultimo: hace(1), penultimo: hace(2), sobresPendientes: 3, sinEstado: 0 }, AHORA);
+    const s = saludDeFuente({ ...UMBRALES, ultimo: hace(1), penultimo: hace(2), sobresPendientes: 3, sinCalidad: 0 }, AHORA);
     expect(s.estado).toBe("al_dia");
     expect(s.sobresPendientes).toBe(3);
     expect(s.marcada).toBe(true);
   });
 
-  it("🩸 una fuente al dia con envios SIN ESTADO tambien se marca (el 29-sep de Tactical)", () => {
-    const s = saludDeFuente({ ...UMBRALES, ultimo: hace(1), penultimo: hace(2), sobresPendientes: 0, sinEstado: 23 }, AHORA);
+  it("🩸 una fuente al dia con envios SIN CALIDAD tambien se marca (ADR 0069; el 29-sep de Tactical)", () => {
+    const s = saludDeFuente({ ...UMBRALES, ultimo: hace(1), penultimo: hace(2), sobresPendientes: 0, sinCalidad: 23 }, AHORA);
     expect(s.estado).toBe("al_dia");
-    expect(s.sinEstado).toBe(23);
+    expect(s.sinCalidad).toBe(23);
     expect(s.marcada).toBe(true);
   });
 });
@@ -132,19 +132,18 @@ describe("saludDeFuentes (contra la base)", () => {
     expect(s.marcada).toBe(true);
   });
 
-  it("cuenta los envios completos del ultimo dia sin un Estado que el programa reconozca", async () => {
+  it("cuenta los envios COMPLETOS del ultimo dia sin lead_quality (ADR 0069)", async () => {
     const id = await fuente("Typeform");
-    await sembrarEstadosDeLlegada(db, programId);
     await db.insert(submissions).values([
-      { sourceId: id, token: "vacio", createdAt: hace(1), calificacion: null }, // sin estado
-      { sourceId: id, token: "raro", createdAt: hace(2), calificacion: "otra_cosa" }, // desconocido
-      { sourceId: id, token: "ok", createdAt: hace(3), calificacion: "SETTEO_no_calificado" }, // reconocido
-      { sourceId: id, token: "viejo", createdAt: hace(30), calificacion: null }, // fuera de la ventana
-      { sourceId: id, token: "parcial", createdAt: hace(1), calificacion: null, esParcial: true }, // el del WhatsApp: no cuenta
-      { sourceId: id, token: "parcial-roto", createdAt: hace(1), calificacion: "con_calendly_sin_agendaa", esParcial: true }, // si cuenta
+      { sourceId: id, token: "sin", createdAt: hace(1), leadQuality: null }, // cuenta
+      { sourceId: id, token: "sin-2", createdAt: hace(2), leadQuality: null, calificacion: "setteo_no_calificado" }, // cuenta: el estado ya no importa
+      { sourceId: id, token: "high", createdAt: hace(3), leadQuality: "High" }, // tiene calidad
+      { sourceId: id, token: "low", createdAt: hace(3), leadQuality: "Low" }, // tiene calidad
+      { sourceId: id, token: "viejo", createdAt: hace(30), leadQuality: null }, // fuera de la ventana
+      { sourceId: id, token: "parcial", createdAt: hace(1), leadQuality: null, esParcial: true }, // un parcial no cuenta
     ]);
     const [s] = await saludDeFuentes(db, AHORA);
-    expect(s.sinEstado).toBe(3);
+    expect(s.sinCalidad).toBe(2);
     expect(s.marcada).toBe(true);
   });
 
