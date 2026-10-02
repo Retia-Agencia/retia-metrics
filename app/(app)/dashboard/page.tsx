@@ -72,10 +72,11 @@ export default async function DashboardDeTodosPage({ searchParams }: Props) {
       <div className="space-y-6">
         <SelectorPeriodo periodo={vista.periodo} cohorteDisponible={false} anteriorDisponible={false} mostrarCohortes={false} />
         {vista.periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{vista.periodo.aviso}</p> : null}
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="Totales entre programas">
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Totales entre programas">
           <TarjetaConteo titulo="Leads" actual={vista.a.leads} anterior={vista.b?.leads} detalle={vista.detalles.leads} />
           <TarjetaConteo titulo="Agendas" actual={vista.a.agendas} anterior={vista.b?.agendas} detalle={vista.detalles.agendas} />
           <TarjetaConteo titulo="Shows" actual={vista.a.shows} anterior={vista.b?.shows} detalle={vista.detalles.shows} />
+          <TarjetaConteo titulo="Shows sin Grain" actual={vista.a.showsSinGrain} anterior={vista.b?.showsSinGrain} detalle={vista.detalles.shows_sin_grain} />
           <TarjetaConteo titulo="Cierres" actual={vista.a.cierres} anterior={vista.b?.cierres} detalle={vista.detalles.cierres} />
           {(vista.a.caja.length > 0 ? vista.a.caja : [dinero("USD", 0)]).map((c) => <TarjetaDinero key={c.moneda} actual={c} anterior={anteriorPorMoneda.get(c.moneda)} detalle={vista.detalles.caja} />)}
         </section>
@@ -84,13 +85,14 @@ export default async function DashboardDeTodosPage({ searchParams }: Props) {
           <CardHeader><CardTitle>Tasas, metas y comisión por programa</CardTitle></CardHeader>
           <CardContent className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left"><th>Programa</th><th>% show</th><th>% cierre</th><th>Meta cupos</th><th>Meta dinámica</th><th>Vendidos</th><th>Comisión</th></tr></thead>
+              <thead><tr className="text-left"><th>Programa</th><th>% show</th><th>% cierre</th><th>% sin Grain</th><th>Meta cupos</th><th>Meta dinámica</th><th>Vendidos</th><th>Comisión</th></tr></thead>
               <tbody className="divide-y">
                 {vista.programas.map((fila) => (
                   <tr key={fila.programa.id}>
                     <td className="py-3"><Link className="font-medium underline-offset-4 hover:underline" href={fila.href}>{fila.programa.nombre}</Link></td>
                     <td className="cifra">{fila.pctShow.valor === null ? "—" : pct(fila.pctShow.valor)}</td>
                     <td className="cifra">{fila.pctCierre.valor === null ? "—" : pct(fila.pctCierre.valor)}</td>
+                    <td className="cifra">{fila.pctSinGrain.valor === null ? "—" : pct(fila.pctSinGrain.valor)}</td>
                     <td className="cifra">{fila.metaCupos ? num(fila.metaCupos.valor) : "—"}</td>
                     <td className="cifra">{fila.metaDinamica ? num(fila.metaDinamica.valor) : "—"}</td>
                     <td className="cifra">{fila.vendidos ? num(fila.vendidos.valor) : "—"}</td>
