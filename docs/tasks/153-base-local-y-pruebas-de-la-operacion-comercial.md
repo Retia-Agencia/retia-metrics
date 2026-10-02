@@ -3,7 +3,7 @@ id: 153
 etapa: NC2
 serves: "Hito B: probar a mano la operación comercial completa antes de migrar y de meter closers"
 depends: [142, 151, 128, 118]
-status: todo
+status: en curso
 ---
 
 # 153 — La base local para operar como closer, y la lista de pruebas de la operación comercial
@@ -28,6 +28,6 @@ verificar que todo está en orden y se ve.
 
 ## Done cuando
 
-- [ ] `npm run db:local` + `npm run dev:local` levantan con todas las etapas pobladas.
+- [x] `npm run db:local` + `npm run dev:local` levantan con todas las etapas pobladas.
 - [ ] La lista está escrita y recorrida una vez por la sesión (sin errores en consola), y Mani la recorre como closer.
 - [ ] No toca producción.
