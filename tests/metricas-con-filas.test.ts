@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { cajaRecaudada, embudoDelRango, leadsDelRango } from "@/lib/queries/dashboard";
 import { desglosesDelResumen, listaDeMetrica, resumenDeMetrica, TAMANO_PAGINA, type Metrica, type FilaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { codigoDeCloser, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
+import { showsSinGrain } from "@/lib/queries/sin-grain";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -13,7 +14,7 @@ let programaA: string;
 let programaB: string;
 const rango = { desde: "2026-06-01", hasta: "2026-10-02" };
 const hoy = "2026-10-01";
-const metricas = ["caja", "agendas", "shows", "cierres", "leads"] as const;
+const metricas = ["caja", "agendas", "shows", "shows_sin_grain", "cierres", "leads"] as const;
 type MetricaDelTablero = (typeof metricas)[number];
 
 beforeAll(async () => {
@@ -106,6 +107,7 @@ async function cifra(metrica: MetricaDelTablero, programId: string, closerId?: s
   const alcance = { programId, rango, closerId };
   if (metrica === "caja") return Object.fromEntries((await cajaRecaudada(alcance, db)).map((c) => [c.moneda, c.total]));
   if (metrica === "leads") return (await leadsDelRango(alcance, db)).leads;
+  if (metrica === "shows_sin_grain") return (await showsSinGrain(alcance, db)).sinGrain;
   const embudo = await embudoDelRango(alcance, db);
   return metrica === "shows" ? embudo.llamadasConShow : embudo[metrica];
 }
@@ -116,7 +118,7 @@ describe("137: la cifra, el resumen y todas las páginas cuentan exactamente lo 
     const [resumen] = await resumenDeMetrica(metrica, { programId: programaA, rango, hoy }, db);
     expect(metrica === "caja" ? suma(filas) : filas.length).toEqual(await cifra(metrica, programaA));
     expect(resumen.subtotal.cantidad).toBe(filas.length);
-    expect(filas.length).toBe(metrica === "leads" ? 54 : metrica === "shows" ? 18 : 53);
+    expect(filas.length).toBe(metrica === "leads" ? 54 : metrica === "shows" || metrica === "shows_sin_grain" ? 18 : 53);
     expect(resumen.grupos.reduce((n, g) => n + g.cantidad, 0)).toBe(filas.length);
     expect(filas.map((f) => f.fecha)).toEqual(filas.map((f) => f.fecha).sort());
     if (metrica === "caja") expect(Object.fromEntries(resumen.subtotal.caja.map((c) => [c.moneda, c.total]))).toEqual(suma(filas));
@@ -144,7 +146,7 @@ describe("137: la cifra, el resumen y todas las páginas cuentan exactamente lo 
     expect(segunda.subtotal).toEqual(primera.subtotal);
   });
 
-  it.each(["caja", "agendas", "shows", "cierres"] as const)("%s conserva la identidad normalizada del closer", async (metrica) => {
+  it.each(["caja", "agendas", "shows", "shows_sin_grain", "cierres"] as const)("%s conserva la identidad normalizada del closer", async (metrica) => {
     const filas = await todas(metrica, programaA, "ana");
     expect(metrica === "caja" ? suma(filas) : filas.length).toEqual(await cifra(metrica, programaA, "ana"));
     expect(filas.length).toBeGreaterThan(0);

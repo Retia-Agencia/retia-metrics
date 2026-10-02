@@ -130,7 +130,7 @@ export interface LeadsDelRango {
 }
 
 /** Tasa que nunca divide por cero: `null` cuando el denominador es 0. */
-function tasa(numerador: number, denominador: number): number | null {
+export function tasa(numerador: number, denominador: number): number | null {
   return denominador === 0 ? null : numerador / denominador;
 }
 

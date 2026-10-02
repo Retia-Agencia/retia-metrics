@@ -277,12 +277,13 @@ export interface GrainPegado {
  *
  * ## Qué transición se usa, y de qué etapa
  *
- * Atendido se alcanza por dos flechas, **ambas del sistema** (`lib/deals/etapas.ts`):
+ * Atendido se alcanza por dos flechas que puede tomar el sistema o el closer
+ * (`lib/deals/etapas.ts`):
  * T10 (Agendado → Atendido) y T7 (Pendiente Re-agenda → Atendido). Desde Agendado es
  * lo esperado. Las dos exigen `llamada_sucedio`, y `resultado = "show"` lo cumple
- * (`RESULTADOS_QUE_OCURRIERON` en `mover-etapa.ts`). Como son flechas de sistema, el
- * movimiento lo toma `{ tipo: "sistema" }`: pegar el Grain es el hecho que el CRM
- * observa, no una decisión a mano.
+ * (`RESULTADOS_QUE_OCURRIERON` en `mover-etapa.ts`). Al pegar Grain el movimiento lo
+ * toma `{ tipo: "sistema" }`: el enlace es el hecho que el CRM observa. A mano, el
+ * closer puede dar por atendida la ultima llamada vigente con fecha sin inventar Grain.
  *
  * Si el deal ya está en Atendido —o en cualquier etapa desde la que la tabla no tiene
  * flecha a Atendido (por ejemplo Compromiso Verbal o Seguimiento)— **no se mueve**: se
@@ -327,8 +328,8 @@ export async function pegarGrain(
       );
 
       // Mover a Atendido SOLO si la tabla tiene la flecha desde la etapa actual. Las dos
-      // flechas a Atendido son de sistema (T7, T10): pegar el Grain es el hecho, no una
-      // decisión a mano. Si no hay flecha (ya está en Atendido o más adelante), no se
+      // flechas a Atendido admiten al sistema (T7, T10): pegar el Grain es el hecho.
+      // Si no hay flecha (ya está en Atendido o más adelante), no se
       // mueve y no se inventa una transición.
       if (transicion(deal.etapa, "atendido") != null) {
         const hecho = await moverEtapa(db, {

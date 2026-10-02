@@ -34,7 +34,7 @@ export function nombreDeEtapa(etapa: string): string {
 }
 
 /** Las cifras de las tarjetas del dashboard; las del 138 viven en su propia vista. */
-const METRICAS_DEL_TABLERO = ["caja", "agendas", "shows", "cierres", "leads"] as const;
+const METRICAS_DEL_TABLERO = ["caja", "agendas", "shows", "shows_sin_grain", "cierres", "leads"] as const;
 export type DetallesDelDashboard = Record<(typeof METRICAS_DEL_TABLERO)[number], DetalleDeCifra>;
 
 export function urlDeLista(slug: string, metrica: Metrica, periodo: PeriodoResuelto, closer?: string | null, moneda?: string): string {

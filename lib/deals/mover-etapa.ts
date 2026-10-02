@@ -143,6 +143,10 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
     // deshace. La etapa NUNCA se toca aca: la mueve el update de mas abajo.
     const dealActualizado = await escribirDatos(tx, deal, mov);
 
+    if ((t.id === "T7" || t.id === "T10") && mov.actor.tipo === "usuario") {
+      await darPorAtendida(tx, dealActualizado, mov.actor.userId);
+    }
+
     const hechos = await leerHechos(tx, dealActualizado, mov.motivoId ?? null, t.tipoDeMotivo);
     const faltantes = queLeFalta(de, mov.a, hechos);
     if (faltantes.length > 0) {
@@ -642,6 +646,37 @@ const HECHOS_VACIOS: HechosDelDeal = {
   saldo: null,
   motivoId: null,
 };
+
+async function darPorAtendida(tx: Db, deal: FilaDeal, actorUserId: string): Promise<void> {
+  const [call] = await tx
+    .select()
+    .from(calls)
+    .where(and(eq(calls.dealId, deal.id), vigente(calls)))
+    .orderBy(desc(calls.createdAt))
+    .limit(1);
+
+  if (!call || call.fechaAgenda == null) {
+    const mensaje = "No hay una llamada con fecha que dar por atendida. Crea o agenda la llamada primero.";
+    throw new MovimientoRechazado(mensaje, [{ codigo: "llamada_con_fecha", mensaje }], 422);
+  }
+
+  if ((RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(call.resultado)) return;
+
+  await editarConRastro(
+    {
+      db: tx,
+      tabla: calls,
+      nombreTabla: "calls",
+      actorId: actorUserId,
+      etiqueta: call.emailLead ?? call.id,
+    },
+    call.id,
+    {
+      resultado: "show" as const,
+      ...(call.fechaLlamada == null ? { fechaLlamada: call.fechaAgenda } : {}),
+    },
+  );
+}
 
 /**
  * Resultados de llamada que prueban que la llamada OCURRIO. Mientras `calls` no tenga

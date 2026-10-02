@@ -19,6 +19,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { MovimientoRechazado, abrirDeal, moverEtapa, type Actor } from "@/lib/deals/mover-etapa";
 import { crearConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
+import { embudoDelRango } from "@/lib/queries/dashboard";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -172,16 +173,77 @@ describe("mover y dejar historial", () => {
 });
 
 describe("quien puede tomar cada flecha", () => {
-  it("una persona no mueve a Atendido: la mueve el sistema cuando la llamada ocurrio", async () => {
-    const dealId = await nuevoDeal("agendado");
-    await db.insert(calls).values({ dealId, programId, resultado: "show", origen: "app" });
+  it("el dueño mueve Agendado a Atendido sin Grain y la llamada queda como show con rastro", async () => {
+    const dealId = await nuevoDeal("agendado", { ownerUserId: closer });
+    const fechaAgenda = new Date("2026-09-20T12:00:00-05:00");
+    const [call] = await db.insert(calls).values({
+      dealId,
+      programId,
+      emailLead: "ana@correo.co",
+      fechaAgenda,
+      resultado: "agendada",
+      origen: "app",
+    }).returning();
 
-    const e = await rechazo(moverEtapa(db, { dealId, a: "atendido", actor: comoCloser() }));
-    expect(e.status).toBe(403);
-
-    await moverEtapa(db, { dealId, a: "atendido", actor: sistema });
+    await moverEtapa(db, { dealId, a: "atendido", actor: comoCloser() });
     expect(await etapaDe(dealId)).toBe("atendido");
-    expect((await historial(dealId))[0].userId).toBeNull();
+    const [guardada] = await db.select().from(calls).where(eq(calls.id, call.id));
+    expect(guardada).toMatchObject({ resultado: "show", linkGrain: null });
+    expect(guardada.fechaLlamada?.getTime()).toBe(fechaAgenda.getTime());
+    expect(await db.select().from(changeLog).where(eq(changeLog.registroId, call.id)))
+      .toEqual(expect.arrayContaining([expect.objectContaining({ campo: "resultado" })]));
+    expect((await historial(dealId))[0].userId).toBe(closer);
+    expect((await embudoDelRango({
+      programId,
+      rango: { desde: "2026-09-20", hasta: "2026-09-20" },
+    }, db)).llamadasConShow).toBe(1);
+  });
+
+  it("el dueño mueve Pendiente Re-agenda a Atendido y convierte el ultimo no_show en show", async () => {
+    const dealId = await nuevoDeal("pendiente_reagenda", { ownerUserId: closer });
+    const [call] = await db.insert(calls).values({
+      dealId,
+      programId,
+      fechaAgenda: new Date("2026-09-21T12:00:00-05:00"),
+      resultado: "no_show",
+      origen: "app",
+    }).returning();
+    await moverEtapa(db, { dealId, a: "atendido", actor: comoCloser() });
+    expect(await etapaDe(dealId)).toBe("atendido");
+    expect((await db.select().from(calls).where(eq(calls.id, call.id)))[0].resultado).toBe("show");
+  });
+
+  it("rechaza si la unica llamada esta anulada y deshace todo", async () => {
+    const dealId = await nuevoDeal("agendado", { ownerUserId: closer });
+    const [call] = await db.insert(calls).values({
+      dealId,
+      programId,
+      fechaAgenda: new Date("2026-09-21T12:00:00-05:00"),
+      resultado: "agendada",
+      origen: "app",
+      anuladoEn: new Date("2026-09-21T13:00:00-05:00"),
+      anuladoPor: closer,
+      motivoAnulacion: "duplicada",
+    }).returning();
+    const e = await rechazo(moverEtapa(db, { dealId, a: "atendido", actor: comoCloser() }));
+    expect(e.status).toBe(422);
+    expect(e.message).toBe("No hay una llamada con fecha que dar por atendida. Crea o agenda la llamada primero.");
+    expect(await etapaDe(dealId)).toBe("agendado");
+    expect((await db.select().from(calls).where(eq(calls.id, call.id)))[0].resultado).toBe("agendada");
+  });
+
+  it("un closer que no es dueño no mueve Agendado a Atendido", async () => {
+    const dealId = await nuevoDeal("agendado", { ownerUserId: closer });
+    await db.insert(calls).values({
+      dealId,
+      programId,
+      fechaAgenda: new Date("2026-09-21T12:00:00-05:00"),
+      resultado: "agendada",
+      origen: "app",
+    });
+    const e = await rechazo(moverEtapa(db, { dealId, a: "atendido", actor: comoOtroCloser() }));
+    expect(e.status).toBe(403);
+    expect(await etapaDe(dealId)).toBe("agendado");
   });
 
   it("el sistema no decide por el closer que un lead se perdio", async () => {

@@ -20,6 +20,7 @@ import {
   type VistaDeCohorte,
 } from "@/lib/queries/dashboard";
 import { comisionesPorCloser } from "@/lib/queries/comision";
+import { showsSinGrain } from "@/lib/queries/sin-grain";
 
 /**
  * Arma de una sola vez todo lo que pinta `/p/[programa]/dashboard` (tickets 005 y 097).
@@ -59,6 +60,7 @@ export interface VistaDelDashboard {
   /** Los closers que puede elegir el selector. */
   closers: string[];
   embudo: EmbudoDelRango;
+  sinGrain: Awaited<ReturnType<typeof showsSinGrain>>;
   caja: CajaPorMoneda[];
   leads: LeadsDelRango;
   cohorte: VistaDeCohorte | null;
@@ -99,8 +101,9 @@ export async function armarVistaDelDashboard(
 
   const alcance = { programId, rango, closerId };
 
-  const [embudo, caja, leads, motivos, origenes, porCloser, comisiones, [programa]] = await Promise.all([
+  const [embudo, sinGrain, caja, leads, motivos, origenes, porCloser, comisiones, [programa]] = await Promise.all([
     embudoDelRango(alcance, db),
+    showsSinGrain(alcance, db),
     cajaRecaudada(alcance, db),
     leadsDelRango(alcance, db),
     llamadasPorMotivo(alcance, db),
@@ -131,6 +134,7 @@ export async function armarVistaDelDashboard(
     closerId,
     closers,
     embudo,
+    sinGrain,
     caja,
     leads,
     cohorte,

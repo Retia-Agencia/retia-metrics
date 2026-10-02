@@ -161,7 +161,7 @@ pinta siempre con el mismo tono (§9).
 | 2 | En Contacto | el dueño registra el primer contacto | closer | `neutro` |
 | 4 | Agendado | hay una llamada con fecha | sistema / closer | `info` |
 | 3 | Pendiente Re-agenda | la llamada falló o hace falta otra, siempre con motivo | sistema / closer | `alerta` |
-| 5 | Atendido | la llamada ocurrió (se pegó el Grain) | sistema | `info` |
+| 5 | Atendido | la llamada ocurrió (Grain, o el closer la da por atendida) | sistema / closer | `info` |
 | 11 | Seguimiento | la llamada ocurrió y hay que volver a contactarlo | closer | `info` |
 | 6 | Compromiso Verbal | dijo que sí: producto y fecha límite de pago | closer | `alerta` |
 | 7 | Abonado | entró el primer pago y queda saldo | sistema | `exito` |
@@ -233,10 +233,10 @@ el requisito antes de aceptar. La implementa el ticket 043.
 | T4 | 2 → 6 | acepta por chat, sin llamada | closer | producto + fecha límite de pago | existen ventas sin llamada (Jero: 10 estudiantes, 0 llamadas) |
 | T5 | 2 → 7 u 8 | paga por chat de una vez | sistema, al registrar el abono | producto + abono con comprobante | no inventar un Compromiso de cero minutos |
 | T6 | 3 → 4 | se crea una llamada nueva con fecha | sistema / closer | llamada con fecha | la cita fallida se reprogramó |
-| T7 | 3 → 5 | se pega el Grain de una llamada que sí ocurrió | sistema | Grain (o "sucedió") | corrige un no-show mal marcado |
+| T7 | 3 → 5 | se pega el Grain de una llamada que sí ocurrió, o el closer la da por atendida | sistema / closer | Grain (sistema) o, a mano, una llamada vigente con fecha que queda en show (ADR 0066) | corrige un no-show mal marcado |
 | T8 | 4 → 3 | la llamada queda en no-show o cancelada | sistema | el resultado es el motivo | la cita falló y tiene que quedar a la vista |
 | T9 | 4 → 4 | la cita se mueve antes de ocurrir | sistema | llamada vieja `reagendada` + nueva con fecha | mover una cita no es avanzar ni retroceder |
-| T10 | 4 → 5 | se pega el Grain | sistema | Grain (o "sucedió" para el caso raro sin grabar) | el Grain es la prueba de que la llamada ocurrió |
+| T10 | 4 → 5 | se pega el Grain, o el closer la da por atendida | sistema / closer | Grain (sistema) o, a mano, una llamada vigente con fecha que queda en show (ADR 0066) | el Grain es la prueba de que la llamada ocurrió |
 | T11 | · | reemplazada el 24-sep por Seguimiento (T24) | · | · | · |
 | T12 | 5 → 6 | dijo que sí, paga después | closer | producto + fecha límite de pago (ADR 0053) | sin fecha no hay compromiso que vigilar |
 | T13 | 5 → 7 | pagó en la llamada y queda saldo | sistema, al registrar el abono | producto + abono con comprobante | la etapa la mueve la plata |

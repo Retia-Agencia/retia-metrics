@@ -147,10 +147,10 @@ const FILAS: readonly Fila[] = [
   ["T4", "en_contacto", "compromiso_verbal", "closer"],
   ["T5", "en_contacto", ["abonado", "completo"], "sistema"],
   ["T6", "pendiente_reagenda", "agendado", "ambos"],
-  ["T7", "pendiente_reagenda", "atendido", "sistema"],
+  ["T7", "pendiente_reagenda", "atendido", "ambos"],
   ["T8", "agendado", "pendiente_reagenda", "sistema"],
   ["T9", "agendado", "agendado", "sistema"],
-  ["T10", "agendado", "atendido", "sistema"],
+  ["T10", "agendado", "atendido", "ambos"],
   // T11 se reemplazo el 24-sep por Seguimiento (T24).
   ["T12", "atendido", "compromiso_verbal", "closer"],
   ["T13", "atendido", "abonado", "sistema"],
