@@ -3,7 +3,7 @@ id: 155
 etapa: O2
 serves: "docs/anotaciones.md A-20, A-21, A-22, A-24, A-25, A-26, A-27, A-28, A-29, A-31, A-32, A-33 · descarta A-23"
 depends: [128, 153]
-status: en curso
+status: done
 ---
 
 # 155 — Los hallazgos de UI de los recorridos 3 y 4 (153)
@@ -38,29 +38,47 @@ Sin decisión pendiente (se argumenta aquí):
 
 ## Done cuando
 
-- [ ] **A-20** El mensaje del requisito `contacto` ya no habla de fecha ni canal, y el formulario de
+- [x] **A-20** El mensaje del requisito `contacto` ya no habla de fecha ni canal, y el formulario de
       actividades dice por qué "Registrar" está deshabilitado (la nota es obligatoria).
-- [ ] **A-21** "Registrar abono" no aparece en la ficha ni en el Inbox para un deal cuya etapa no acepta abono;
+- [x] **A-21** "Registrar abono" no aparece en la ficha ni en el Inbox para un deal cuya etapa no acepta abono;
       la regla vive en un solo módulo de `lib/deals/` y la usan la reja del servidor y las dos pantallas.
-- [ ] **A-22 / A-26** La sección 1 del Inbox y la alerta roja de la ficha solo incluyen llamadas cuya cita ya
+- [x] **A-22 / A-26** La sección 1 del Inbox y la alerta roja de la ficha solo incluyen llamadas cuya cita ya
       pasó (instante, no día), con los textos nuevos. Test con una cita de hoy más tarde (no entra) y una de
       ayer (entra).
-- [ ] **A-24** El mensaje de sobrepago usa `usd` de `lib/format.ts` (coma decimal).
-- [ ] **A-25** "Otra ruta" no lista flechas del sistema. Test sobre Ganado Pago Parcial.
-- [ ] **A-27** Un deal con una llamada atendida sin Grain (`esAtendidaSinGrain`) muestra la alerta roja en el
+- [x] **A-24** El mensaje de sobrepago usa `usd` de `lib/format.ts` (coma decimal).
+- [x] **A-25** "Otra ruta" no lista flechas del sistema. Test sobre Ganado Pago Parcial.
+- [x] **A-27** Un deal con una llamada atendida sin Grain (`esAtendidaSinGrain`) muestra la alerta roja en el
       bloque de Alertas. Test.
-- [ ] **A-28** El Log de eventos titula "Deal editado" las ediciones que llenan un campo vacío; solo el primer
+- [x] **A-28** El Log de eventos titula "Deal editado" las ediciones que llenan un campo vacío; solo el primer
       grupo de un registro es "creado". Test.
-- [ ] **A-29** Los toasts de anular abono dicen el nombre de pantalla de la etapa (`nombreDeEtapa`, por props).
-- [ ] **A-31** "Fecha del envío" en el bloque Origen muestra `submissions.fecha_envio` (con respaldo a
+- [x] **A-29** Los toasts de anular abono dicen el nombre de pantalla de la etapa (`nombreDeEtapa`, por props).
+- [x] **A-31** "Fecha del envío" en el bloque Origen muestra `submissions.fecha_envio` (con respaldo a
       `created_at` si viene nula), igual que la ficha del lead.
-- [ ] **A-32** Ubicado el componente que emite "Encountered a script tag while rendering React component"
+- [x] **A-32** Ubicado el componente que emite "Encountered a script tag while rendering React component"
       y corregido, o documentado por qué es del entorno.
-- [ ] **A-33** La cabecera no muestra "Motivo del cierre" fuera de Cierre perdido.
-- [ ] Typecheck, lint, los tests del cambio y `npm run build` (toca componentes cliente) en verde.
-- [ ] Recorrido en `dev:local` de cada hallazgo, con la consola abierta.
-- [ ] Cada A-NN marcada en `docs/anotaciones.md` (resuelta con fecha, A-23 descartada con su razón).
+- [x] **A-33** La cabecera no muestra "Motivo del cierre" fuera de Cierre perdido.
+- [x] Typecheck, lint, los tests del cambio y `npm run build` (toca componentes cliente) en verde.
+- [x] Recorrido en `dev:local` de cada hallazgo, con la consola abierta.
+- [x] Cada A-NN marcada en `docs/anotaciones.md` (resuelta con fecha, A-23 descartada con su razón).
 
 ## Notas de cierre
 
-(pendiente)
+2-oct · Mani · implementó Codex (effort medium) en la rama `155-hallazgos-recorridos`, revisado contra este
+"Done cuando" por la sesión principal. Un arreglo de tipos a mano (`fechaDelEnvio`, el leftJoin deja nullable el
+`created_at`).
+
+- **Verificado:** typecheck, lint y `npm run build` en verde. Los tests del cambio (`inbox`, `alertas-del-deal`,
+  `ficha-deal-lectura`, `abonos-del-deal`, `deal-etapas`) **no se corrieron en local**: la máquina tenía 9,5 GB de
+  swap (regla de `AGENTS.md`); los valida el CI y el checkpoint.
+- **Recorrido** en `dev:local` (puerto 3155, `mani.closer`, base local sin resembrar): título nuevo del Inbox;
+  Agendado sin "Registrar abono"; alerta de Grain en Atendido y en Ganado Pago Parcial; "Fecha del envío" del
+  18-sep (no la de ingesta); Ganado Pago Parcial sin rutas del sistema; anular abono → "volvió a Compromiso
+  Verbal"; el log titula "Abono editado" la anulación; aviso de la nota en Actividades. A-24, A-28 (relleno de
+  campo vacío) y A-33 quedan cubiertos por test o por lectura del diff: la base local no tenía un deal recuperado
+  ni uno con valor vendido a mano.
+- **A-32** reproducido en el 404: es el `<script>` de `next-themes` 0.4.6; sin cambio (ver la anotación).
+- **Choque con O2-d:** mientras corría este ticket, otra sesión empujó `37f558c` con A-24, A-29, A-31 y A-33
+  resueltos de forma equivalente. Al rebasar se conservó la versión de `main` en esos cuatro (y sus filas en
+  `docs/anotaciones.md`); de este ticket quedan A-20, A-21, A-22, A-25, A-26, A-27, A-28 y A-32, más el test de
+  respaldo de `fecha_envio` en `tests/ficha-deal-lectura.test.ts`.
+- **Decisiones:** las de arriba; A-23 descartada. Sin ADR: ninguna es de arquitectura.
