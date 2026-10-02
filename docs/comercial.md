@@ -348,7 +348,7 @@ Mani las contestó en la sesión del 1-oct, en nombre del equipo comercial. Lo q
 - **QM-8:** ✅ en parte (Mani, 30-sep): **el norte comercial es la prioridad.** Sigue abierto qué hace el
   carril de Alejo mientras tanto con lo de pauta (119, 120, 125, 126): ¿se pausa o sigue en paralelo
   mientras no toque etapas ni dinero?
-- **QM-10 (1-oct, de QD-1):** Pendiente Re-agenda, Seguimiento y Próxima Cohorte son **estados dentro del
+- ✅ **QM-10 (1-oct, de QD-1), cerrada por el [ADR 0070](./adr/0070-re-agenda-seguimiento-y-proxima-cohorte-son-pendientes-del-deal.md):** son **Pendientes** del deal (enum nullable, a lo sumo uno), el deal se queda en su etapa y `moverEtapa()` escribe los dos. La pregunta original: Pendiente Re-agenda, Seguimiento y Próxima Cohorte son **estados dentro del
   deal** (Dani). ¿Qué son en la base: una propiedad del deal con su lista (fila de catálogo, ADR 0012), que
   convive con la etapa? ¿Y en qué etapa de 30X queda el deal mientras tiene uno de esos estados? Se decide con
   `/grill-with-docs` antes del 142, porque cambia el enum y la tabla de transiciones.

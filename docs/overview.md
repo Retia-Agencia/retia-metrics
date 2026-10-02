@@ -351,6 +351,9 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   Como máximo uno abierto por lead y programa.
 - **Etapa:** en cuál de los once pasos está un deal. La escribe el CRM. *No confundir con el **Estado**,
   la clasificación de llegada del envío (Descartado, Setteo, Con Calendly).*
+- **Pendiente:** lo que el closer tiene que hacer con un deal que no avanzó: re-agendar, hacer el
+  seguimiento o esperar la próxima cohorte. El deal se queda en su etapa mientras lo tiene, y tiene a lo sumo
+  uno. *No es una etapa ni un Estado* (ADR 0070).
 - **Dueño:** el closer responsable de un deal. Los deals nacen sin dueño y se reclaman.
 - **Atendido sin Grain:** una llamada que ocurrió (cuenta como show) y no tiene link de Grain. Es una
   alarma que se calcula y se apaga sola al pegar el Grain (ADR 0066).
