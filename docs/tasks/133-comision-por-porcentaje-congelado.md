@@ -3,7 +3,7 @@ id: 133
 etapa: NC1
 serves: "ADR 0065 punto 7 · comercial.md R-4, GC-12, QD-5"
 depends: [132]
-status: todo
+status: done
 ---
 
 # 133 — La comisión es un porcentaje del valor vendido, congelado al vender
@@ -36,10 +36,10 @@ mañana cambia el % de ComunicArte, la comisión de septiembre no se mueve (ADR 
 
 ## Done cuando
 
-- [ ] Cambiar el % del programa no cambia la comisión de un deal ya vendido (test en los dos sentidos).
-- [ ] Corregir el valor vendido de una venta cambia su comisión (el % congelado se mantiene).
-- [ ] Un programa sin % muestra "sin porcentaje cargado", no USD 0.
-- [ ] El agregado de "todos los programas" no compila con la comisión (molde del 095).
+- [x] Cambiar el % del programa no cambia la comisión de un deal ya vendido (test en los dos sentidos).
+- [x] Corregir el valor vendido de una venta cambia su comisión (el % congelado se mantiene).
+- [x] Un programa sin % muestra "sin porcentaje cargado", no USD 0.
+- [ ] El agregado de "todos los programas" no compila con la comisión (molde del 095). **Pasa al 095** (1-oct): ese molde todavía no existe.
 
 ## Codex
 

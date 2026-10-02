@@ -49,7 +49,7 @@ parten en **dos lotes** por dependencia (`comercial.md` §8): el lote 1 no depen
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 132 | [El valor vendido del deal](./132-valor-vendido-del-deal.md) | · | done · 1-oct · Mani · 0053 en producción; saldo y rejas del pago leen el valor vendido; Compromiso Verbal ya no pide producto. El 134 cambia la entrada a descuento (enmienda del ADR 0065) |
-| [ ] | 133 | [La comisión por porcentaje congelado](./133-comision-por-porcentaje-congelado.md) | 132 | todo · migración · `high` |
+| [x] | 133 | [La comisión por porcentaje congelado](./133-comision-por-porcentaje-congelado.md) | 132 | done · 1-oct · Mani · 0054 en producción; % congelado al entrar a venta, comisión por closer sobre sus mismos cierres. Falta: cargar 10,04/6,67 en producción y la migración que quita `comision_por_venta_usd`; el criterio del agregado pasa al 095 |
 | [ ] | 134 | [El ticket base es de la cohorte y `productos` se retira](./134-ticket-base-de-la-cohorte-y-adios-productos.md) | 132 | todo · migración destructiva · enmendado el 1-oct: el closer escribe el descuento |
 | [ ] | 135 | [Atendido sin Grain](./135-atendido-sin-grain.md) | · | todo |
 | [x] | 136 | [Selector de periodo A contra B, número y %](./136-selector-de-periodo-y-numero-y-porcentaje.md) | · | done · 1-oct · Alejo · selector en el dashboard; 137, 138 y 141 quedan listos |

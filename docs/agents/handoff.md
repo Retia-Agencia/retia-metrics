@@ -146,7 +146,14 @@ empuja al mismo main y el numero de migracion puede chocar.
   - **Abierto:** un deal en Abonado cuyo valor se edita hasta igualar lo abonado queda con saldo 0 sin pasar a
     Completo (solo un abono lo dispara). Cortesía (QM-12). `docs/insumos/reu-danieltovar.md` recortado (`fe7b026`),
     sigue en el historial de git.
-  - **Siguiente:** 133 (comisión %, `high`, migración) y 134 (ticket base + descuento + adiós productos).
+  - **133 hecho el mismo día** (`3101c80`): 0054 en producción (`comision_porcentaje` en programs y deals,
+    CHECK 0-100). `moverEtapa` copia el % del programa al entrar a venta si el deal no tenía; `comisionesPorCloser`
+    suma los mismos deals que la columna de cierres; ventas sin % o sin valor van aparte ("N sin % o sin valor").
+    Recorrido local: 10,04 guardado; venta nueva de 1.000 = USD 100,40; programa a 5% y la venta sigue en 100,40.
+    **Falta:** cargar 10,04 (ComunicArte) y 6,67 (Tactical) en producción desde `/ajustes/programas`, y la
+    migración que quita `programs.comision_por_venta_usd` (el código ya no la lee). Un closer cuyas ventas son
+    todas sin % muestra "USD 0,00 · N sin %": se lee bien con la nota, pero se puede pulir a "—".
+  - **Siguiente:** 134 (ticket base + descuento + adiós productos).
 
 - **2026-10-01 (Alejo, sesión 68): recorridos de 072 y 117, plantilla de PR, 126 parte A y 088.**
   - **072:** recorrido con clics en la base local: los filtros cuadran con la base, separar y confirmar, selector de
