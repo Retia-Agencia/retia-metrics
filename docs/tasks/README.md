@@ -91,7 +91,7 @@ Lo nuevo de la ola O1 que no tenía ticket:
 | ✓ | # | Tarea | Depende de | Estado |
 |---|---|---|---|---|
 | [ ] | 150 | [Tests rápidos: la base migrada una vez por corrida](./150-tests-rapidos-base-migrada-una-vez.md) | · | todo · ola O1, sesión O1-i · acelera los checkpoints |
-| [ ] | 0057 | Aplicar la migración 0057 (quita `cohorts.trm_cohorte`) en producción | · | todo · cola de O1, primera · ok de Mani. El ROAS sin TRM queda abierto para E7 (`plan.md` §7) |
+| [x] | 0057 | Aplicar la migración 0057 (quita `cohorts.trm_cohorte`) en producción | · | done · 1-oct · Mani · aplicada con producción sirviendo `77665a1` (código sin la columna); 58 migraciones. El ROAS sin TRM queda abierto para E7 (`plan.md` §7) |
 
 ## Reparto para dos (28-sep a 1-oct, reemplazado por las olas)
 

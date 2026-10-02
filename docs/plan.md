@@ -55,8 +55,8 @@ El avance ticket por ticket vive **solo** en [`tasks/README.md`](./tasks/README.
 - `main` al 1-oct: **~1.810 tests**; la suite completa ya no se corre en local, la corre el CI (112) en cada
   push y valida los **checkpoints** (`plan-reparto.md` §6). Sin protección de `main` (Mani, 28-sep y 1-oct). Producción: https://retia-metrics-seven.vercel.app, que
   despliega cada push a `main`.
-- **Base:** una sola, y es producción ("CRM Retia", ADR 0047 enmendado). 58 migraciones (0000 a 0057);
-  aplicadas hasta la 0056, la 0057 (quita la TRM de la cohorte) espera el ok de Mani. Para probar pantallas hay base local en Docker con login local (113, 069).
+- **Base:** una sola, y es producción ("CRM Retia", ADR 0047 enmendado). 58 migraciones (0000 a 0057),
+  todas aplicadas (la 0057, que quita la TRM de la cohorte, el 1-oct). Para probar pantallas hay base local en Docker con login local (113, 069).
 - **Datos en producción:** los leads del traslado de Sheets (111, 28-sep: ComunicArte 2.478, Tactical
   2.891, conciliación en 0) y los que entran por el webhook de formularios (106). Los deals de la operación
   vieja todavía no: el `--aplicar` del 078 espera las etapas de 30X (142). Los closers siguen trabajando en

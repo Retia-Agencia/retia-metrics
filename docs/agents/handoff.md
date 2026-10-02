@@ -22,8 +22,8 @@ empuja mientras corre; verde = tag cp-AAAAMMDD-N; rojo = el culpable esta entre 
 
 Ola vigente: O1 (plan-reparto §4). Camino critico de la v1 comercial: QM-10 (ADR de los estados dentro del
 deal, Mani) y el manual de gestion comercial (QD-8, Alejo) desbloquean el 142, y del 142 cuelgan 143, 128,
-118, el 117 enmendado (ADR 0069), el --aplicar del 078, el corte y el 148. Cola de migraciones: aplicar la
-0057 -> 092 (ADR 0068) -> 102 -> el 142 cuando se destrabe. Abierta para E7: A12, el ROAS sin la TRM de la
+118, el 117 enmendado (ADR 0069), el --aplicar del 078, el corte y el 148. Cola de migraciones: 0057 aplicada;
+sigue 092 (ADR 0068) -> 102 -> el 142 cuando se destrabe. Abierta para E7: A12, el ROAS sin la TRM de la
 cohorte (plan.md §7).
 
 Antes de una pantalla: docs/structure.md §9 (Tinta) y docs/anotaciones.md. Produccion es la unica base:
@@ -3807,7 +3807,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 ### Now
 
 - 🌊 **1-oct: olas y checkpoints** (`docs/plan-reparto.md` §1, §4 a §6). Ola O1 abierta; camino crítico: QM-10 y el
-  manual de gestión comercial (QD-8) → 142. Cola de migraciones: 0057 → 092 → 102 → 142.
+  manual de gestión comercial (QD-8) → 142. Cola de migraciones: ~~0057~~ (aplicada el 1-oct) → 092 → 102 → 142. Manual de
+  gestión comercial en borrador (Alejo, `docs/manual-gestion-comercial.md`): falta que Mani lo apruebe.
 - **1-oct, documentación reconectada:** `plan.md` §2 re-medido (58 migraciones, 0057 sin aplicar; C3 y comisión %
   verificadas en producción), O-5 cerrada, A12 nueva (TRM del ROAS, antes de E7), `comercial.md` §8 al día, A-01
   marcada obsoleta (134), 092 con el ADR 0068 en la cola, ticket 150 (tests rápidos) creado.

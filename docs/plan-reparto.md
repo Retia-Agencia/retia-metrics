@@ -148,7 +148,7 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 
 **La cola de migraciones de la ola**, en este orden (una abierta a la vez):
 
-1. Aplicar la **0057** (quita `cohorts.trm_cohorte`): ya está en `main`; solo falta el ok de Mani. La TRM del ROAS
+1. ✅ ~~Aplicar la **0057**~~ (quita `cohorts.trm_cohorte`): aplicada el 1-oct. La TRM del ROAS
    queda como decisión abierta de E7 (`plan.md` §7).
 2. [092] con el **ADR 0068**: `sources.url_publica` y la fuente principal por programa. Sube de E8 a esta ola
    porque ComunicArte recibe por Typeform y por Dapta y hoy el CRM solo puede repartir un link.
