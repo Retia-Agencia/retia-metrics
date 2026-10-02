@@ -31,6 +31,8 @@ interface SelectorPeriodoProps {
   anteriorDisponible: boolean;
   /** Solo el rango A, sin comparación: el de las listas (ticket 141). */
   soloA?: boolean;
+  /** El agregado entre programas no tiene una ventana de cohorte común. */
+  mostrarCohortes?: boolean;
 }
 
 /**
@@ -46,10 +48,13 @@ export function SelectorPeriodo({
   cohorteDisponible,
   anteriorDisponible,
   soloA = false,
+  mostrarCohortes = true,
 }: SelectorPeriodoProps) {
   const letras = soloA ? (["a"] as const) : (["a", "b"] as const);
   // Una lista no tiene ventana de cohorte: sus atajos ni se ofrecen.
-  const atajos = Object.entries(atajosDePeriodo).filter(([valor]) => !soloA || !valor.startsWith("cohorte"));
+  const atajos = Object.entries(atajosDePeriodo).filter(
+    ([valor]) => (mostrarCohortes && !soloA) || !valor.startsWith("cohorte"),
+  );
   const [abierto, setAbierto] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -120,10 +125,10 @@ export function SelectorPeriodo({
               <SelectItem value="custom">Personalizado</SelectItem>
             </SelectContent>
           </Select>
-          {!soloA && !cohorteDisponible && (
+          {!soloA && mostrarCohortes && !cohorteDisponible && (
             <p className="text-sm text-muted-foreground">Sin cohorte actual con ventana de venta.</p>
           )}
-          {!soloA && !anteriorDisponible && (
+          {!soloA && mostrarCohortes && !anteriorDisponible && (
             <p className="text-sm text-muted-foreground">Sin cohorte anterior con ventana de venta.</p>
           )}
           <form
