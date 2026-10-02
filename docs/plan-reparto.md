@@ -144,7 +144,7 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 | O1-f | [073] ficha del lead → [091] | Alejo | · | M + S |
 | O1-g | [066] Urgencias → [068] → [076] (lecturas) | Alejo | · | M + S + S |
 | O1-h | los cabos del [117] (el [072] se cerró el 1-oct) | Alejo | la etapa de entrada | S |
-| O1-i | [150] tests rápidos: base migrada una vez por corrida | Mani | `tests/helpers/`, `vitest.config` | M |
+| O1-i | ✅ [150] tests rápidos: base migrada una vez por corrida: en `main` el 1-oct (`0e65c15`, `4f6b63c`), CI verde (vitest 372 s → 274 s), **falta el checkpoint**; queda `npm run test:cambios` | Mani | `tests/helpers/`, `vitest.config` | M |
 
 **Avance de la ola** (lo que ya está en `main` y espera el checkpoint verde para contar como hecho, §6):
 
@@ -564,7 +564,7 @@ checkpoint cae como máximo medio día después. Si un rojo llega a producción 
 ticket (el CI ya corre en cada PR sin cancelarse entre ellos).
 
 **Lo que acelera los checkpoints:** el [150] (la base de prueba migrada una vez por corrida, no una vez por
-archivo).
+archivo): hecho el 1-oct, `npm test` en el CI bajó de 372 s a 274 s (-26%). Sigue pendiente el CI también en ramas.
 
 **Cerrar un ticket** (lo hace su sesión, en el archivo del ticket):
 

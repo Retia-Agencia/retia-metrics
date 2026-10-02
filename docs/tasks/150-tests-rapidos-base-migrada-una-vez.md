@@ -3,7 +3,7 @@ id: 150
 etapa: O1
 serves: "plan-reparto.md §6 (checkpoints) · AGENTS.md, Feedback loops"
 depends: []
-status: todo
+status: done
 ---
 
 # 150 — Tests rápidos: la base de prueba se migra una vez por corrida, no una vez por archivo
@@ -38,8 +38,23 @@ nadie puede empujar.
 
 ## Done cuando
 
-- [ ] `npm test` en el CI tarda menos que antes, con las dos cifras medidas en la nota de cierre.
-- [ ] Una migración con SQL roto (probada a mano en una rama y descartada) hace fallar la corrida con el error
+- [x] `npm test` en el CI tarda menos que antes, con las dos cifras medidas en la nota de cierre.
+- [x] Una migración con SQL roto (probada a mano en una rama y descartada) hace fallar la corrida con el error
       de la migración.
-- [ ] `npm test -- tests/x.test.ts` sigue funcionando solo, con o sin el volcado global.
-- [ ] `AGENTS.md` (Feedback loops) dice el tiempo nuevo y, si existe, el bucle `test:cambios`.
+- [x] `npm test -- tests/x.test.ts` sigue funcionando solo, con o sin el volcado global.
+- [x] `AGENTS.md` (Feedback loops) dice el tiempo nuevo y, si existe, el bucle `test:cambios`.
+
+## Nota de cierre (1-oct, Mani)
+
+- **Hecho** (`0e65c15`): `tests/helpers/volcado-global.ts` (globalSetup) migra y vuelca la base una vez por
+  corrida a una carpeta temporal que borra al terminar; `crearBaseDePrueba` la carga y, si no existe, migra por
+  archivo como antes. La migración y el volcado viven en `tests/helpers/volcar-base-migrada.ts`, una sola copia.
+  Nuevo `npm run test:cambios` (`vitest run --changed`, mismo candado).
+- **Medido:** CI, vitest **372 s → 274 s** (paso `npm test` 6 min 12 s → 4 min 34 s; corridas `36959521832` y
+  `36964729770`). Un archivo suelto en local no gana: ~3,7 s → ~4,2 s, porque la migración se paga igual una vez
+  y se suma escribir y leer el volcado.
+- **Migración rota:** probada en una rama desechable (`SELEC` en la 0057): la corrida sale con código 1 y el error
+  de la migración, una vez, antes de cualquier test.
+- 🩸 **El sandbox de Codex no puede correr `npm test`:** `scripts/test.mjs` llama a `ps` y el sandbox lo niega
+  (`spawnSync ps EPERM`). Los tests de un ticket delegado los corre la sesión principal.
+- **Queda:** el checkpoint verde que lo incluya (y ahí marcarlo en `docs/tasks/README.md`); CI también en ramas.
