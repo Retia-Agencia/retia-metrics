@@ -3,7 +3,7 @@ id: 129
 etapa: E6
 serves: "Dashboard: bloques Motivos de pérdida y Origen del lead"
 depends: []
-status: todo
+status: done
 ---
 
 # 129 — Motivos de pérdida y Origen del lead salen vacíos en el Dashboard
@@ -37,3 +37,10 @@ con 216 deals, 15 en Cierre Perdido con motivo, los dos bloques siguen vacíos.
 - Con la base local sembrada (`docker compose down -v && npm run db:local`), el Dashboard de
   ComunicArte Local en `?rango=mes` muestra motivos con conteo y el origen según lo decidido.
 - Test de la consulta sobre PGlite con un deal perdido con motivo y sin llamada con motivo.
+
+## Resolución
+
+- Motivos cuenta deals vigentes en `cierre_perdido`, cerrados en el rango y agrupados por
+  `deals.motivo_id`; el owner del deal aplica el alcance por closer.
+- Origen usa los hechos vigentes del embudo agrupados por canal y área, y conserva separados
+  `sin_clasificar`, `sin_utm` y `sin_envio_origen`.

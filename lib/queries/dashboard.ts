@@ -1,15 +1,16 @@
 import { sumaDeAbonos } from "@/lib/queries/saldo";
-import { delCloser, ETAPAS_VENDIDAS, fechaAnclaCall, filtroCaja, filtroCierres, filtroLeads, filtroLlamadas, llamadaOcurrio, vendidosEn } from "@/lib/queries/metricas-filtros";
+import { cerradosEn, delCloser, ETAPAS_VENDIDAS, fechaAnclaCall, filtroCaja, filtroCierres, filtroLeads, filtroLlamadas, llamadaOcurrio, vendidosEn } from "@/lib/queries/metricas-filtros";
 export { fechaAnclaCall, vendidosEn, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { and, between, eq, inArray, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import {
   abonos,
+  areas,
   calls,
+  canales,
   deals,
-  motivos,
-  origenes,
   leads,
+  motivos,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -17,6 +18,7 @@ import { diaHabilDe, diasHabilesEntre, metaDinamica, metaLineal } from "@/lib/di
 import { claveDeCloser, claveDeCloserSql, igualCloser } from "@/lib/closers/identidad";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { vigente } from "@/lib/queries/vigente";
+import type { FilaHechosDelEmbudo, OrigenDelHecho } from "@/lib/queries/hechos-embudo";
 
 /**
  * Consultas del dashboard (ticket 004). Todo lo que pide el reporte diario de Retia
@@ -241,28 +243,29 @@ export async function embudoDelRango(
   };
 }
 
-/**
- * Conteo de llamadas del rango agrupadas por motivo del catalogo `motivos` (join por
- * `calls.motivoId`, decision de Mani). Las filas viejas de Sheets que traen
- * `calls.motivoPerdida` como texto libre y sin `motivoId` quedan fuera del conteo:
- * el join interno las descarta. Se anclan por `coalesce(fechaAgenda, fechaLlamada)`
- * como todo el embudo de llamadas. Ordenado de mas a menos llamadas.
- */
-export async function llamadasPorMotivo(
+/** Deals que cerraron como perdidos en el rango, agrupados por su motivo. */
+export async function dealsPerdidosPorMotivo(
   { programId, rango, closerId }: Alcance,
   db: Db = dbDeLaApp,
-): Promise<{ motivo: string; llamadas: number }[]> {
+): Promise<{ motivo: string; deals: number }[]> {
+  const idsCerrados = await cerradosEn(db, programId, rango);
+  if (idsCerrados.length === 0) return [];
+
   return db
     .select({
       motivo: motivos.nombre,
-      llamadas: sql<number>`count(*)::int`,
+      deals: sql<number>`count(*)::int`,
     })
-    .from(calls)
-    .innerJoin(motivos, eq(motivos.id, calls.motivoId))
+    .from(deals)
+    .innerJoin(motivos, eq(motivos.id, deals.motivoId))
+    .leftJoin(users, eq(users.id, deals.ownerUserId))
     .where(
       and(
-        filtroLlamadas({ programId, rango, closerId }),
-        vigente(calls),
+        eq(deals.etapa, "cierre_perdido"),
+        vigente(deals),
+        eq(deals.programId, programId),
+        inArray(deals.id, idsCerrados),
+        delCloser(users.closerId, closerId),
       ),
     )
     .groupBy(motivos.nombre)
@@ -383,87 +386,67 @@ export async function embudoPorCloser(
   return [...porClave.values()];
 }
 
-/**
- * El embudo de llamadas del rango desglosado por origen del lead. Las agendas y
- * shows salen de `calls`; los cierres salen de deals vendidos vinculados a una
- * llamada del origen. Las llamadas sin `origenId` van a un grupo con `origen: null`,
- * no se descartan. Los conteos de llamadas se anclan por `coalesce(fechaAgenda,
- * fechaLlamada)` y los cierres por la fecha de su movimiento de etapa.
- */
-export async function embudoPorOrigen(
-  { programId, rango, closerId }: Alcance,
-  db: Db = dbDeLaApp,
-): Promise<
-  {
-    origen: string | null;
-    agendas: number;
-    llamadasConShow: number;
-    cierres: number;
-    pctShow: number | null;
-    pctCierre: number | null;
-  }[]
-> {
-  const filas = await db
-    .select({
-      origen: origenes.nombre,
-      agendas: sql<number>`count(*)::int`,
-      llamadasConShow: sql<number>`count(*) filter (where ${llamadaOcurrio()})::int`,
-    })
-    .from(calls)
-    // leftJoin para no perder las llamadas sin origenId: caen en el grupo null.
-    .leftJoin(origenes, eq(origenes.id, calls.origenId))
-    .where(
-      and(
-        filtroLlamadas({ programId, rango, closerId }),
-        vigente(calls),
-      ),
-    )
-    .groupBy(origenes.nombre);
+export interface FilaEmbudoPorCanal {
+  origen: OrigenDelHecho;
+  canalId: string | null;
+  canal: string | null;
+  area: string | null;
+  envios: number;
+  agendas: number;
+  shows: number;
+  ventas: number;
+  pctShow: number | null;
+}
 
-  const cierres = await db
-    .select({
-      origen: origenes.nombre,
-      cierres: sql<number>`count(distinct ${deals.id})::int`,
-    })
-    .from(deals)
-    .innerJoin(calls, eq(calls.dealId, deals.id))
-    .leftJoin(origenes, eq(origenes.id, calls.origenId))
-    .leftJoin(users, eq(users.id, deals.ownerUserId))
-    .where(
-      and(
-        eq(deals.programId, programId),
-        inArray(deals.id, vendidosEn(db, rango)),
-        delCloser(users.closerId, closerId),
-        vigente(deals),
-        vigente(calls),
-      ),
-    )
-    .groupBy(origenes.nombre);
+/** Reagrupa los hechos ya filtrados sin cambiar su universo. */
+export function embudoPorCanal(
+  hechos: FilaHechosDelEmbudo[],
+  nombres: ReadonlyMap<string, { canal: string; area: string | null }>,
+): FilaEmbudoPorCanal[] {
+  const filas = new Map<string, FilaEmbudoPorCanal>();
 
-  const cierresPorOrigen = new Map(cierres.map((fila) => [fila.origen, fila.cierres]));
-  const resultado = filas.map((f) => ({
-    origen: f.origen,
-    agendas: f.agendas,
-    llamadasConShow: f.llamadasConShow,
-    cierres: cierresPorOrigen.get(f.origen) ?? 0,
-    pctShow: tasa(f.llamadasConShow, f.agendas),
-    pctCierre: tasa(cierresPorOrigen.get(f.origen) ?? 0, f.llamadasConShow),
-  }));
-
-  for (const fila of cierres) {
-    if (!filas.some((f) => f.origen === fila.origen)) {
-      resultado.push({
-        origen: fila.origen,
-        agendas: 0,
-        llamadasConShow: 0,
-        cierres: fila.cierres,
-        pctShow: null,
-        pctCierre: null,
-      });
-    }
+  for (const hecho of hechos) {
+    const clave = hecho.origen === "canal" ? `canal:${hecho.canalId ?? ""}` : hecho.origen;
+    const nombre = hecho.canalId === null ? undefined : nombres.get(hecho.canalId);
+    const fila = filas.get(clave) ?? {
+      origen: hecho.origen,
+      canalId: hecho.origen === "canal" ? hecho.canalId : null,
+      canal: hecho.origen === "canal" ? (nombre?.canal ?? null) : null,
+      area: hecho.origen === "canal" ? (nombre?.area ?? null) : null,
+      envios: 0,
+      agendas: 0,
+      shows: 0,
+      ventas: 0,
+      pctShow: null,
+    };
+    fila.envios += hecho.envios;
+    fila.agendas += hecho.agendas;
+    fila.shows += hecho.shows;
+    fila.ventas += hecho.ventas;
+    filas.set(clave, fila);
   }
 
-  return resultado;
+  const conTasa = [...filas.values()]
+    .filter((fila) => fila.envios + fila.agendas + fila.shows + fila.ventas > 0)
+    .map((fila) => ({ ...fila, pctShow: tasa(fila.shows, fila.agendas) }));
+  const canalesAgrupados = conTasa
+    .filter((fila) => fila.origen === "canal")
+    .sort((a, b) => b.envios - a.envios || (a.canal ?? "").localeCompare(b.canal ?? ""));
+  const ordenHuerfanos: OrigenDelHecho[] = ["sin_clasificar", "sin_utm", "sin_envio_origen"];
+  return [
+    ...canalesAgrupados,
+    ...ordenHuerfanos.flatMap((origen) => conTasa.filter((fila) => fila.origen === origen)),
+  ];
+}
+
+export async function nombresDeCanales(
+  db: Db,
+): Promise<Map<string, { canal: string; area: string | null }>> {
+  const filas = await db
+    .select({ id: canales.id, canal: canales.nombre, area: areas.nombre })
+    .from(canales)
+    .leftJoin(areas, eq(areas.id, canales.areaId));
+  return new Map(filas.map((fila) => [fila.id, { canal: fila.canal, area: fila.area }]));
 }
 
 /**

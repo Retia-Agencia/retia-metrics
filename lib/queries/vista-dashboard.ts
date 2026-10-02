@@ -8,11 +8,10 @@ import { parsearPeriodoUrl, resolverPeriodo, type EntradaDePeriodo, type Periodo
 import { ventanasAnterioresDeCohorte } from "@/lib/queries/ventanas-de-cohortes";
 import {
   cajaRecaudada,
+  dealsPerdidosPorMotivo,
   embudoDelRango,
   embudoPorCloser,
-  embudoPorOrigen,
   leadsDelRango,
-  llamadasPorMotivo,
   vistaDeCohorteActiva,
   type CajaPorMoneda,
   type EmbudoDelRango,
@@ -64,8 +63,7 @@ export interface VistaDelDashboard {
   caja: CajaPorMoneda[];
   leads: LeadsDelRango;
   cohorte: VistaDeCohorte | null;
-  motivos: { motivo: string; llamadas: number }[];
-  origenes: Awaited<ReturnType<typeof embudoPorOrigen>>;
+  motivos: { motivo: string; deals: number }[];
   /**
    * El comparativo entre closers, con la comision de sus ventas del rango (ticket 133).
    */
@@ -101,13 +99,12 @@ export async function armarVistaDelDashboard(
 
   const alcance = { programId, rango, closerId };
 
-  const [embudo, sinGrain, caja, leads, motivos, origenes, porCloser, comisiones, [programa]] = await Promise.all([
+  const [embudo, sinGrain, caja, leads, motivos, porCloser, comisiones, [programa]] = await Promise.all([
     embudoDelRango(alcance, db),
     showsSinGrain(alcance, db),
     cajaRecaudada(alcance, db),
     leadsDelRango(alcance, db),
-    llamadasPorMotivo(alcance, db),
-    embudoPorOrigen(alcance, db),
+    dealsPerdidosPorMotivo(alcance, db),
     embudoPorCloser({ programId, rango }, db),
     comisionesPorCloser({ programId, rango }, db),
     db.select({ comisionPorcentaje: programs.comisionPorcentaje }).from(programs).where(eq(programs.id, programId)),
@@ -139,7 +136,6 @@ export async function armarVistaDelDashboard(
     leads,
     cohorte,
     motivos,
-    origenes,
     comparativo,
     comisionPorcentaje: programa?.comisionPorcentaje ?? null,
   };
