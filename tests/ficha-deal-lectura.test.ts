@@ -177,17 +177,24 @@ describe("fichaDeDeal", () => {
       fecha: new Date("2026-09-10T10:00:00Z"),
     });
     await db.insert(changeLog).values([
-      { tabla: "deals", registroId: dealId, campo: "owner_user_id", valorAnterior: null, valorNuevo: closer, userId: closer, detectadoEn: new Date("2026-09-12T10:00:00Z"), origen: "app" },
-      { tabla: "abonos", registroId: abono.id, campo: "monto", valorAnterior: "90", valorNuevo: "100", detectadoEn: new Date("2026-09-11T10:00:00Z"), origen: "app" },
+      { tabla: "deals", registroId: dealId, campo: "owner_user_id", valorAnterior: "anterior", valorNuevo: closer, userId: closer, detectadoEn: new Date("2026-09-12T10:00:00Z"), origen: "app" },
+      { tabla: "abonos", registroId: abono.id, campo: "deal_id", valorAnterior: null, valorNuevo: dealId, detectadoEn: new Date("2026-09-11T10:00:00Z"), origen: "app" },
+      { tabla: "abonos", registroId: abono.id, campo: "monto", valorAnterior: null, valorNuevo: "100", detectadoEn: new Date("2026-09-11T10:00:00Z"), origen: "app" },
+      { tabla: "abonos", registroId: abono.id, campo: "moneda", valorAnterior: null, valorNuevo: "USD", detectadoEn: new Date("2026-09-11T10:00:00Z"), origen: "app" },
       { tabla: "deals", registroId: otroDeal.id, campo: "etapa", valorAnterior: "agendado", valorNuevo: "atendido", detectadoEn: new Date("2026-09-13T10:00:00Z"), origen: "app" },
     ]);
 
     const f = (await fichaDeDeal(db, programId, dealId))!;
-    expect(f.log.map((e) => [e.tipo, e.tabla, e.campo])).toEqual([
-      ["cambio", "deals", "owner_user_id"],
-      ["cambio", "abonos", "monto"],
-      ["etapa", undefined, undefined],
+    expect(f.log).toMatchObject([
+      { tipo: "cambio", tabla: "deals", accion: "editado", campos: [{ campo: "owner_user_id", valorAnterior: "anterior", valorNuevo: closer }] },
+      { tipo: "cambio", tabla: "abonos", accion: "creado", campos: expect.arrayContaining([
+        { campo: "deal_id", valorAnterior: null, valorNuevo: dealId },
+        { campo: "monto", valorAnterior: null, valorNuevo: "100" },
+        { campo: "moneda", valorAnterior: null, valorNuevo: "USD" },
+      ]) },
+      { tipo: "etapa", de: "agendado", a: "atendido" },
     ]);
+    expect(f.log).toHaveLength(3);
     expect(f.log[0].porNombre).toBe("Maru");
   });
 

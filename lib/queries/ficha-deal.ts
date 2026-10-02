@@ -92,19 +92,25 @@ export interface FichaDeMovimiento {
   motivoNombre: string | null;
 }
 
-export interface FichaDeEvento {
+interface FichaDeEventoBase {
   id: string;
   fecha: Date;
-  tipo: "etapa" | "cambio";
-  tabla?: string;
-  campo?: string;
-  valorAnterior?: string | null;
-  valorNuevo?: string | null;
-  de?: EtapaDeal | null;
-  a?: EtapaDeal;
   porNombre: string | null;
-  motivoNombre?: string | null;
 }
+
+export type FichaDeEvento =
+  | (FichaDeEventoBase & {
+      tipo: "etapa";
+      de: EtapaDeal | null;
+      a: EtapaDeal;
+      motivoNombre: string | null;
+    })
+  | (FichaDeEventoBase & {
+      tipo: "cambio";
+      tabla: string;
+      accion: "creado" | "editado";
+      campos: { campo: string; valorAnterior: string | null; valorNuevo: string | null }[];
+    });
 
 function respuestaLegible(valor: unknown): string | null {
   if (valor === null || valor === "") return null;
@@ -275,6 +281,31 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
   }
   const nombreDe = (id: string | null | undefined) => (id ? (nombres.get(id) ?? null) : null);
 
+  const cambiosAgrupados = new Map<string, Extract<FichaDeEvento, { tipo: "cambio" }>>();
+  for (const cambio of cambiosFilas) {
+    const clave = [cambio.tabla, cambio.registroId, cambio.detectadoEn.toISOString(), cambio.userId ?? ""].join("\u0000");
+    const existente = cambiosAgrupados.get(clave);
+    const campo = {
+      campo: cambio.campo,
+      valorAnterior: cambio.valorAnterior,
+      valorNuevo: cambio.valorNuevo,
+    };
+    if (existente) {
+      existente.campos.push(campo);
+      if (cambio.valorAnterior !== null) existente.accion = "editado";
+    } else {
+      cambiosAgrupados.set(clave, {
+        id: cambio.id,
+        fecha: cambio.detectadoEn,
+        tipo: "cambio",
+        tabla: cambio.tabla,
+        accion: cambio.valorAnterior === null ? "creado" : "editado",
+        campos: [campo],
+        porNombre: nombreDe(cambio.userId),
+      });
+    }
+  }
+
   const areaDeclarada = deal.areaDeclaradaId
     ? (await catalogoAreas(db).listar()).find((a) => a.id === deal.areaDeclaradaId) ?? null
     : null;
@@ -412,16 +443,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
         porNombre: nombreDe(h.userId),
         motivoNombre: nombreDeMotivo(h.motivoId),
       })),
-      ...cambiosFilas.map((c): FichaDeEvento => ({
-        id: c.id,
-        fecha: c.detectadoEn,
-        tipo: "cambio",
-        tabla: c.tabla,
-        campo: c.campo,
-        valorAnterior: c.valorAnterior,
-        valorNuevo: c.valorNuevo,
-        porNombre: nombreDe(c.userId),
-      })),
+      ...cambiosAgrupados.values(),
     ].sort((a, b) => b.fecha.getTime() - a.fecha.getTime()),
     enlacesDePago,
   };
