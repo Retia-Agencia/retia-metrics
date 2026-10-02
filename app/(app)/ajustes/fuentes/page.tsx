@@ -45,6 +45,8 @@ export default async function FuentesPage() {
         orden: f.orden,
         umbralSinRespuestaHoras: f.umbralSinRespuestaHoras,
         umbralMuertaHoras: f.umbralMuertaHoras,
+        urlPublica: f.urlPublica ?? null,
+        principal: Boolean(f.principal),
         salud: (() => {
           const s = saludPorFuente.get(f.id);
           return s

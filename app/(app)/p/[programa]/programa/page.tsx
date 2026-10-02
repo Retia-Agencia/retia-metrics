@@ -52,7 +52,7 @@ export default async function FichaDelProgramaPage({ params }: Props) {
   const administra = esAdministrador(rol);
   const { programa, cohortes, checkouts, fuentes, equipo } = ficha;
   const activa = cohortes.find((c) => c.estado === "activo") ?? null;
-  const aviso = avisoDelFormulario(programa.formUrl);
+  const aviso = avisoDelFormulario(programa.formulario);
 
   return (
     <PageShell
@@ -102,14 +102,21 @@ export default async function FichaDelProgramaPage({ params }: Props) {
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Formulario</p>
-                {programa.formUrl ? (
-                  <a href={programa.formUrl} target="_blank" rel="noreferrer" className={`${ENLACE} break-all`}>
-                    {programa.formUrl}
+                <p className="text-xs text-muted-foreground">
+                  Formulario{programa.formulario ? ` (fuente principal: ${programa.formulario.fuente})` : ""}
+                </p>
+                {programa.formulario ? (
+                  <a
+                    href={programa.formulario.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`${ENLACE} break-all`}
+                  >
+                    {programa.formulario.url}
                   </a>
                 ) : (
                   <div className="space-y-1">
-                    <Badge variant="peligro">Sin URL del formulario</Badge>
+                    <Badge variant="peligro">Sin fuente principal</Badge>
                     <p className="text-muted-foreground">{aviso}</p>
                   </div>
                 )}

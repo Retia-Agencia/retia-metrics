@@ -15,6 +15,7 @@ import {
   desactivarFuenteAccion,
   editarFuenteAccion,
   editarPlantillaLeadAccion,
+  marcarFuentePrincipalAccion,
   probarFuenteAccion,
   rotarSecretoFuenteAccion,
   type ResultadoAccion,
@@ -62,6 +63,10 @@ export interface FuenteVista {
   orden: number;
   umbralSinRespuestaHoras: number;
   umbralMuertaHoras: number;
+  /** Donde la gente llena el formulario (ADR 0068): el destino de los links de captación. */
+  urlPublica: string | null;
+  /** La fuente que el generador de links usa por defecto; a lo sumo una por programa. */
+  principal: boolean;
   /** Solo en las fuentes activas (ticket 107): se calcula en el servidor, no aqui. */
   salud: SaludVista | null;
 }
@@ -89,6 +94,7 @@ interface Borrador {
   tipo: TipoBorrador;
   proveedor: ProveedorFormulario;
   nombre: string;
+  urlPublica: string;
   sheetId: string;
   tab: string;
   rango: string;
@@ -101,6 +107,7 @@ const BORRADOR_VACIO: Borrador = {
   tipo: "google_sheet",
   proveedor: PROVEEDORES_FORMULARIO[0],
   nombre: "",
+  urlPublica: "",
   sheetId: "",
   tab: "",
   rango: "A1:BZ",
@@ -114,6 +121,7 @@ function aBorrador(f: FuenteVista): Borrador {
     tipo: f.tipo === "webhook" ? "webhook" : "google_sheet",
     proveedor: f.proveedor ?? PROVEEDORES_FORMULARIO[0],
     nombre: f.nombre,
+    urlPublica: f.urlPublica ?? "",
     sheetId: f.sheetId ?? "",
     tab: f.tab ?? "",
     rango: f.rango,
@@ -246,6 +254,9 @@ function ProgramaCard({ programa }: { programa: ProgramaConFuentes }) {
               pendiente={pendiente}
               onEditar={() => setEditando(f.id)}
               onActivar={() => correr(() => activarFuenteAccion(f.id), "Fuente activada")}
+              onMarcarPrincipal={() =>
+                correr(() => marcarFuentePrincipalAccion(f.id), "Ahora es la fuente principal")
+              }
               onDesactivar={() =>
                 correr(() => desactivarFuenteAccion(f.id), "Fuente desactivada")
               }
@@ -263,12 +274,14 @@ function FilaFuente({
   onEditar,
   onActivar,
   onDesactivar,
+  onMarcarPrincipal,
 }: {
   fuente: FuenteVista;
   pendiente: boolean;
   onEditar: () => void;
   onActivar: () => void;
   onDesactivar: () => void;
+  onMarcarPrincipal: () => void;
 }) {
   const router = useRouter();
   const [probando, startProbar] = useTransition();
@@ -341,8 +354,12 @@ function FilaFuente({
               </span>
             </>
           )}
+          <span className="block break-all text-xs text-muted-foreground">
+            {fuente.urlPublica ? `formulario: ${fuente.urlPublica}` : "sin URL del formulario (no se reparte)"}
+          </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {fuente.principal ? <Badge>principal</Badge> : null}
           {fuente.salud ? <MarcaDeSalud salud={fuente.salud} /> : null}
           {esWebhook && !fuente.tieneSecreto ? (
             <Badge variant="outline" className="text-muted-foreground">
@@ -376,8 +393,19 @@ function FilaFuente({
             {probando ? "Probando…" : "Probar"}
           </Button>
         )}
+        {fuente.activo && fuente.urlPublica && !fuente.principal ? (
+          <Button size="sm" variant="ghost" disabled={pendiente} onClick={onMarcarPrincipal}>
+            Marcar como principal
+          </Button>
+        ) : null}
         {fuente.activo ? (
-          <Button size="sm" variant="ghost" disabled={pendiente} onClick={onDesactivar}>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={pendiente || fuente.principal}
+            title={fuente.principal ? "Es la principal: marca otra antes de desactivarla" : undefined}
+            onClick={onDesactivar}
+          >
             Desactivar
           </Button>
         ) : (
@@ -435,6 +463,8 @@ function aEntrada(b: Borrador, programId: string) {
   const umbrales = {
     umbralSinRespuestaHoras: Number(b.umbralSinRespuestaHoras),
     umbralMuertaHoras: Number(b.umbralMuertaHoras),
+    // Vacío quita la URL; la lógica rechaza dejar sin URL a la principal (ADR 0068).
+    urlPublica: b.urlPublica.trim() === "" ? null : b.urlPublica.trim(),
   };
   if (b.tipo === "webhook") {
     return {
@@ -545,6 +575,20 @@ function FormularioFuente({
                 required
                 className={CLASE_INPUT}
                 aria-label="Nombre"
+              />
+            </label>
+
+            <label className="block space-y-1 text-sm sm:col-span-2">
+              <span className="text-muted-foreground">
+                URL del formulario (donde la gente lo llena; destino de los links de captación)
+              </span>
+              <input
+                type="url"
+                value={borrador.urlPublica}
+                onChange={(e) => setBorrador({ ...borrador, urlPublica: e.target.value })}
+                placeholder="https://form.typeform.com/to/…"
+                className={CLASE_INPUT}
+                aria-label="URL del formulario"
               />
             </label>
 

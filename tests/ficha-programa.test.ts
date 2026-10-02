@@ -182,10 +182,29 @@ describe("fichaDelPrograma", () => {
     await expect(fichaDelPrograma("no-es-uuid", db)).rejects.toMatchObject({ status: 400 });
   });
 
-  it("sin URL del formulario lo dice", async () => {
+  it("sin fuente principal lo dice (ADR 0068)", async () => {
     const { avisoDelFormulario } = await import("@/lib/queries/ficha-programa");
-    expect(avisoDelFormulario(null)).toMatch(/no tiene URL del formulario/);
-    expect(avisoDelFormulario("https://form.typeform.com/to/x")).toBeNull();
+    expect(avisoDelFormulario(null)).toMatch(/no tiene fuente principal/);
+    expect(avisoDelFormulario({ fuente: "Typeform", url: "https://form.typeform.com/to/x" })).toBeNull();
+  });
+
+  it("el formulario de la ficha es la fuente principal, no programs.form_url", async () => {
+    const { fichaDelPrograma } = await import("@/lib/queries/ficha-programa");
+    const { sources } = await import("@/lib/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const antes = await fichaDelPrograma(programaA, db);
+    expect(antes!.programa.formulario).toBeNull();
+    const [fuente] = await db.select().from(sources).where(eq(sources.programId, programaA)).limit(1);
+    await db
+      .update(sources)
+      .set({ activo: true, urlPublica: "https://form.typeform.com/to/principal", principal: true })
+      .where(eq(sources.id, fuente.id));
+    const despues = await fichaDelPrograma(programaA, db);
+    expect(despues!.programa.formulario).toEqual({
+      fuente: fuente.nombre,
+      url: "https://form.typeform.com/to/principal",
+    });
+    await db.update(sources).set({ principal: false }).where(eq(sources.id, fuente.id));
   });
 });
 

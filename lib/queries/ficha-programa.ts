@@ -32,8 +32,11 @@ export interface DatosDelPrograma {
   ticketUsd: string;
   /** El porcentaje vigente (ADR 0065 punto 7). Nulo = no cargado, nunca 0. */
   comisionPorcentaje: string | null;
-  /** El destino del formulario (ADR 0057). Nulo = no hay a donde mandar un link. */
-  formUrl: string | null;
+  /**
+   * El destino del formulario: la fuente principal del programa (ADR 0068). Nulo = no hay a
+   * donde mandar un link. Ya no sale de `programs.form_url`, que se retira en dos pasos.
+   */
+  formulario: { fuente: string; url: string } | null;
   calendlyUrl: string | null;
   tieneTokenCalendly: boolean;
   webhookCalendlyConectado: boolean;
@@ -48,6 +51,9 @@ export interface FuenteDeLaFicha {
   activo: boolean;
   /** `activa` o `rota` (ticket 055): una fuente rota sigue activa y la app avisa. */
   estado: string;
+  /** Donde la gente llena este formulario (ADR 0068). */
+  urlPublica: string | null;
+  principal: boolean;
 }
 
 export interface MiembroDeLaFicha {
@@ -136,7 +142,7 @@ export async function fichaDelPrograma(
       activo: Boolean(programa.activo),
       ticketUsd: String(programa.ticketUsd),
       comisionPorcentaje: programa.comisionPorcentaje == null ? null : String(programa.comisionPorcentaje),
-      formUrl: (programa.formUrl as string | null) ?? null,
+      formulario: formularioPrincipal(fuentes),
       calendlyUrl: (programa.calendlyUrl as string | null) ?? null,
       tieneTokenCalendly: programa.tieneTokenCalendly,
       webhookCalendlyConectado: programa.webhookCalendlyConectado,
@@ -163,6 +169,8 @@ export async function fichaDelPrograma(
       proveedor: f.proveedor,
       activo: Boolean(f.activo),
       estado: String(f.estado),
+      urlPublica: f.urlPublica ?? null,
+      principal: Boolean(f.principal),
     })),
     equipo: miembros.map((m) => ({
       membresiaId: m.id,
@@ -174,14 +182,22 @@ export async function fichaDelPrograma(
   };
 }
 
+/** La fuente principal, si la hay (ADR 0068 punto 2: la base garantiza que es repartible). */
+function formularioPrincipal(
+  fuentes: readonly { nombre: string; urlPublica?: string | null; principal?: boolean }[],
+): DatosDelPrograma["formulario"] {
+  const principal = fuentes.find((f) => f.principal && f.urlPublica);
+  return principal?.urlPublica ? { fuente: principal.nombre, url: principal.urlPublica } : null;
+}
+
 /**
  * Lo que la ficha dice sobre el destino del formulario. Es la respuesta de la ficha a "¿hay
- * a donde mandar un link de captacion?": sin URL, no hay link que repartir y se dice, en vez
- * de mostrar uno roto. El generador de links (ticket 092) lo resuelve con la fuente
- * principal (ADR 0068); hasta entonces el destino es `programs.form_url`.
+ * a donde mandar un link de captacion?": sin fuente principal no hay link que repartir y se
+ * dice, en vez de mostrar uno roto (ADR 0068 punto 4). El generador (092) hace la misma
+ * pregunta con `destinoDeCaptacion`.
  */
-export function avisoDelFormulario(formUrl: string | null): string | null {
-  return formUrl
+export function avisoDelFormulario(formulario: DatosDelPrograma["formulario"]): string | null {
+  return formulario
     ? null
-    : "Este programa no tiene URL del formulario: no hay a dónde mandar un link de captación, y el programa no se puede activar de nuevo sin ella.";
+    : "Este programa no tiene fuente principal: no hay a dónde mandar un link de captación. Márcala en Ajustes → Fuentes.";
 }

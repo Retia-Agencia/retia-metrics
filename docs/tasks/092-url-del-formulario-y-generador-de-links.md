@@ -3,7 +3,7 @@ id: 092
 etapa: E1b
 serves: "ADR 0046 · plan v2 §12.12"
 depends: [101]
-status: todo
+status: en curso
 ---
 
 # 092 — La URL del formulario y el generador de links
@@ -101,3 +101,39 @@ Replica el builder de 30X, adaptado:
   `form_url` no deja generar links" pasa a ser "sin principal".
 - `programs.form_url` se retira en dos pasos (ADR 0068 punto 5): el valor de hoy se copia a la fuente que Mani
   diga, y la columna y su parte del CHECK de la 0031 se quitan con el código ya desplegado sin ellas.
+
+---
+
+## Avance 2026-10-02 (Alejo + Claude): paso 1 del ADR 0068 en código, falta aplicar la 0060
+
+- **Migración `0060_fuente-principal`** (aditiva, con `lock_timeout`): `sources.url_publica`, `sources.principal`,
+  `sources_una_principal_por_programa_idx` (único parcial) y el CHECK `sources_principal_repartible`. No marca ninguna
+  principal: cuál es la de cada programa la decide Mani desde `/ajustes/fuentes`.
+- **Catálogo (`lib/catalogo/fuentes.ts`):** `urlPublica` en el esquema (https; vacío la quita; omitida se conserva).
+  `marcarFuentePrincipal` es el único escritor de `principal`: bloquea las fuentes del programa, cambia la principal y
+  deja el rastro de las dos filas en la misma transacción. Rejas (422, sin tocar la fila): desactivar la principal,
+  dejarla sin URL y **mover una fuente de programa** (ADR 0043, vale para toda fuente).
+- **Generador (`lib/atribucion/link-de-captacion.ts`):** `generarLink` (sanea campaña, content y term; source y medium
+  salen del Canal tal cual; borra todo `utm_*` del destino), `destinosDelPrograma` y `destinoDeCaptacion` (la
+  principal por defecto u otra fuente activa del programa; sin principal no hay link, tampoco escogiendo otra).
+- **Lectores:** la ficha del programa muestra la fuente principal en vez de `programs.form_url`; `/ajustes/fuentes`
+  edita la URL y marca la principal.
+- **Tests:** `tests/fuente-principal.test.ts` (índice y CHECK en la base, rastro, rejas, destino, cambiar la URL cambia
+  el link) y `tests/link-de-captacion.test.ts` (**el emparejador reconoce el link que el generador produce**, para
+  canal exacto, comodín y closer; guardián del generador único mordido en los dos sentidos).
+- **Revisión:** Codex (cadenero) encontró 5 defectos, todos corregidos con test: destino escogido sin principal,
+  `utm_id` heredado del destino, mudar la principal de programa, carrera en el rastro y un guardián evadible.
+
+**Done cuando, estado:** punto 1 ✅ (sin principal, 422) · punto 2 ✅ (reescrito tras DP-25: ya no hay `utm_patron`;
+el test lo hace `emparejar`) · punto 3 ✅ · punto 4: el generador es uno y el guardián lo vigila; que el 086 lo
+importe se verifica cuando se construya el 086.
+
+**Falta, en este orden:**
+1. **Aplicar la 0060 (sesión principal de Mani, con su ok) ANTES de empujar el código:** drizzle pide las columnas
+   por nombre, y el código en `main` sin la columna rompería toda lectura de `sources` en producción.
+2. Push y checkpoint.
+3. Mani marca la principal de cada programa (ComunicArte: ¿Typeform o Dapta?) y carga su URL.
+4. **Paso 2 del ADR 0068** (otro commit, otra migración): `reactivarPrograma` exige principal en vez de `form_url`,
+   se quitan `programs.form_url`, su campo en `/ajustes/programas` y su parte del CHECK de la 0031.
+5. Fuera de este ticket: la pantalla del builder vive en la tab Campañas (125) y el enlace del closer en el 086;
+   los dos llaman a `generarLink` sobre `destinoDeCaptacion`.

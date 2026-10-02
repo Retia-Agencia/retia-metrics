@@ -75,7 +75,8 @@ Cada pieza vive en UN lugar, y ninguna se duplica:
 | Fuente webhook | `/ajustes/fuentes`, proveedor del formulario, **mapeo vacío** para Dapta | administrador | la URL `/api/webhooks/formularios/<id>` que se pega en el proveedor. Un programa puede tener varias activas (131) |
 | Secreto de la fuente | se genera en `/ajustes/fuentes`, se ve una vez | administrador, **a mano** | firma del webhook. Nunca pasa por un chat ni un script |
 | Activar la fuente | `/ajustes/fuentes` | administrador | inactiva = 404 a todo |
-| `form_url` del programa | `/ajustes/programas` | administrador | el generador de links de captación (092). **Se muda a la fuente** (`sources.url_publica`, una principal por programa) cuando se construya el 092 (ADR 0068) |
+| `form_url` del programa | `/ajustes/programas` | administrador | la reja de activar el programa (CHECK de la 0031), y nada más: desde el 092 el link sale de la fuente principal. Se retira en el paso 2 del ADR 0068 |
+| URL del formulario y fuente principal | `/ajustes/fuentes` (campo URL; "Marcar como principal") | administrador | el destino de los links de captación (092, ADR 0068). Una por programa, activa y con URL; sin ella el programa no genera links |
 
 **Orden que funcionó:** programa → token de Calendly → formulario en borrador → fuente + secreto + activar → pegar URL y
 secreto en el proveedor → **"enviar prueba"** (el CRM la recibe y no crea lead: se ve en `sobres_crudos`) →

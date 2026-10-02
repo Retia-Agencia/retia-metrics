@@ -413,6 +413,18 @@ export const sources = pgTable(
      */
     umbralSinRespuestaHoras: integer("umbral_sin_respuesta_horas").notNull().default(48),
     umbralMuertaHoras: integer("umbral_muerta_horas").notNull().default(120),
+    /**
+     * Donde la gente LLENA este formulario (ADR 0068, ticket 092). No es donde caen las
+     * respuestas (la hoja o la URL del webhook): es el destino de un link de captacion.
+     * Nula = esta fuente no se reparte.
+     */
+    urlPublica: text("url_publica"),
+    /**
+     * La fuente que el generador de links usa por defecto (ADR 0068 punto 2). A lo sumo
+     * una por programa, por indice; y una principal siempre es repartible, por CHECK.
+     * La escribe solo `marcarFuentePrincipal`, nunca la edicion de datos.
+     */
+    principal: boolean("principal").notNull().default(false),
     ultimaSync: timestamp("ultima_sync", { withTimezone: true }),
     activo: boolean("activo").notNull().default(true),
     orden: integer("orden").notNull().default(0),
@@ -436,6 +448,13 @@ export const sources = pgTable(
     check(
       "sources_umbrales_en_orden",
       sql`${t.umbralSinRespuestaHoras} > 0 AND ${t.umbralMuertaHoras} > ${t.umbralSinRespuestaHoras}`,
+    ),
+    /** A lo sumo una fuente principal por programa (ADR 0068 punto 2, ADR 0005). */
+    uniqueIndex("sources_una_principal_por_programa_idx").on(t.programId).where(sql`${t.principal}`),
+    /** Una principal siempre se puede repartir: activa y con URL publica (ADR 0068 punto 2). */
+    check(
+      "sources_principal_repartible",
+      sql`NOT ${t.principal} OR (${t.activo} AND ${t.urlPublica} IS NOT NULL)`,
     ),
   ],
 );

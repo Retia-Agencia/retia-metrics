@@ -68,6 +68,17 @@ export { PROVEEDORES_FORMULARIO, rutaDelWebhook, type ProveedorFormulario } from
  * aqui porque es la fuente de verdad de esa decision. No necesita migracion:
  * `mapeo_columnas` ya es jsonb.
  */
+/** La URL publica de un formulario (ADR 0068): https, o vacia para quitarla. */
+const esquemaUrlPublica = z.preprocess(
+  (v) => (typeof v === "string" && v.trim() === "" ? null : v),
+  z
+    .string()
+    .trim()
+    .url("La URL del formulario no es válida.")
+    .refine((v) => v.startsWith("https://"), "La URL del formulario tiene que empezar con https://.")
+    .nullable(),
+);
+
 const esquemaMapeo: z.ZodType<MapeoColumnas> = z.record(
   z.string(),
   z.union([z.string(), z.array(z.string())]),
@@ -96,6 +107,11 @@ const camposComunes = {
    */
   umbralSinRespuestaHoras: z.coerce.number().int("Horas enteras.").min(1, "Mínimo 1 hora.").optional(),
   umbralMuertaHoras: z.coerce.number().int("Horas enteras.").min(1, "Mínimo 1 hora.").optional(),
+  /**
+   * Donde la gente llena el formulario (ADR 0068). Opcional por la misma razon que los
+   * umbrales: al editar, `undefined` conserva el valor actual y `null` (o vacio) lo quita.
+   */
+  urlPublica: esquemaUrlPublica.optional(),
 };
 
 /** "Muerta" va despues de "sin respuestas"; la base lo exige con `sources_umbrales_en_orden`. */
@@ -157,6 +173,9 @@ export interface FuenteVista extends FilaCatalogo {
   tieneSecreto: boolean;
   umbralSinRespuestaHoras: number;
   umbralMuertaHoras: number;
+  urlPublica: string | null;
+  /** Si es la fuente que el generador de links usa por defecto (ADR 0068). */
+  principal: boolean;
   ultimaSync: Date | null;
   orden: number;
 }
@@ -191,6 +210,7 @@ type CamposFuente = {
   activo: boolean;
   umbralSinRespuestaHoras?: number;
   umbralMuertaHoras?: number;
+  urlPublica?: string | null;
 };
 
 function moldeFuentes(db: Db) {
@@ -300,6 +320,12 @@ export async function editarFuente(
     if (datos.tipo !== actual.tipo) {
       throw new ErrorDeApp("El tipo de una fuente no se cambia: crea una fuente nueva.", 422);
     }
+    // Ni de programa (ADR 0043: el programa es frontera). Sus envios dicen de que programa
+    // vinieron, y una principal movida dejaria a un programa sin destino y al otro
+    // repartiendo un formulario ajeno (ADR 0068).
+    if (datos.programId !== actual.programId) {
+      throw new ErrorDeApp("Una fuente no cambia de programa: crea una fuente nueva.", 422);
+    }
 
     // El invariante no es "se probo al activar": es **una fuente ACTIVA siempre tiene
     // un mapeo que cuadra**, y hay que defenderlo tambien por esta puerta. Sin esto,
@@ -336,9 +362,19 @@ export async function editarFuente(
     if (!umbralesEnOrden(umbrales)) {
       throw new ErrorDeApp("El umbral de fuente muerta tiene que ser mayor que el de sin respuestas.", 400);
     }
+    const urlPublica = datos.urlPublica === undefined ? actual.urlPublica : datos.urlPublica;
+    // Una principal siempre es repartible (ADR 0068 punto 2). La base lo exige con
+    // `sources_principal_repartible`; se dice aqui antes, con un mensaje que explica que hacer.
+    if (actual.principal && urlPublica === null) {
+      throw new ErrorDeApp(
+        "Es la fuente principal de su programa: no puede quedar sin URL del formulario. Marca otra como principal antes.",
+        422,
+      );
+    }
     const fila = await moldeFuentes(db).editar(actor.id, objetivoId, {
       ...datos,
       ...umbrales,
+      urlPublica,
       activo: actual.activo,
     });
     return sinSecreto(fila);
@@ -431,8 +467,79 @@ export async function desactivarFuente(
     const objetivoId = idValido(id);
     const actual = await leerFuente(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
+    // Apagar la principal obliga a escoger otra antes (ADR 0068 punto 2): si no, el
+    // programa se queda sin a donde mandar sus links sin que nadie lo decida.
+    if (actual.principal) {
+      throw new ErrorDeApp(
+        "Es la fuente principal de su programa: marca otra como principal antes de desactivarla.",
+        422,
+      );
+    }
     const fila = await moldeFuentes(db).desactivar(actor.id, objetivoId);
     return sinSecreto(fila);
+  });
+}
+
+/**
+ * Marca una fuente como la principal de su programa (ADR 0068), y le quita la marca a la
+ * que la tenia, en la MISMA transaccion y con su rastro. Es el UNICO escritor de
+ * `sources.principal`: la edicion de datos no la toca.
+ *
+ * Solo puede ser principal una fuente activa y con URL publica; la base lo exige con
+ * `sources_principal_repartible` y aqui se dice antes con un 422. El orden de las dos
+ * escrituras importa: primero se quita la vieja, porque el indice unico parcial se
+ * comprueba en cada sentencia.
+ */
+export async function marcarFuentePrincipal(
+  db: Db,
+  actor: Actor,
+  id: string,
+): Promise<FuenteVista> {
+  return normalizando(async () => {
+    exigirAdministrador(actor);
+    const objetivoId = idValido(id);
+    const actual = await leerFuente(db, objetivoId);
+    if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
+    if (!actual.activo || actual.urlPublica === null) {
+      throw new ErrorDeApp(
+        "Solo una fuente activa y con URL del formulario puede ser la principal.",
+        422,
+      );
+    }
+    if (actual.principal) return actual;
+
+    await db.transaction(async (tx) => {
+      // Se bloquean TODAS las fuentes del programa antes de leer cual es la principal: dos
+      // cambios simultaneos se ordenan, y el rastro dice exactamente que fila se desmarco.
+      const delPrograma = await tx
+        .select({ id: sources.id, nombre: sources.nombre, principal: sources.principal })
+        .from(sources)
+        .where(eq(sources.programId, actual.programId))
+        .for("update");
+      const anteriores = delPrograma.filter((f) => f.principal && f.id !== objetivoId);
+      for (const a of anteriores) {
+        await tx.update(sources).set({ principal: false }).where(eq(sources.id, a.id));
+      }
+      await tx.update(sources).set({ principal: true }).where(eq(sources.id, objetivoId));
+      const rastro = [
+        ...anteriores.map((a) => ({ id: a.id, nombre: a.nombre, antes: "true", despues: "false" })),
+        { id: objetivoId, nombre: actual.nombre, antes: "false", despues: "true" },
+      ];
+      await tx.insert(changeLog).values(
+        rastro.map((r) => ({
+          tabla: "sources",
+          registroId: r.id,
+          etiqueta: r.nombre,
+          campo: "principal",
+          valorAnterior: r.antes,
+          valorNuevo: r.despues,
+          origen: "app" as const,
+          userId: actor.id,
+        })),
+      );
+    });
+    const fila = await leerFuente(db, objetivoId);
+    return fila!;
   });
 }
 

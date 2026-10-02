@@ -12,6 +12,7 @@ import {
   crearFuente,
   desactivarFuente,
   editarFuente,
+  marcarFuentePrincipal,
   probarFuente,
   rotarSecretoDeFuente,
   type Actor,
@@ -139,6 +140,22 @@ export async function desactivarFuenteAccion(id: string): Promise<ResultadoAccio
     const session = await requireRole("gerente");
     await desactivarFuente(db, await actorDe(session), id);
     revalidar();
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+/**
+ * Marca la fuente principal del programa (ADR 0068): la que el generador de links usa por
+ * defecto. La ficha del programa lee lo mismo, asi que tambien se invalida.
+ */
+export async function marcarFuentePrincipalAccion(id: string): Promise<ResultadoAccion> {
+  try {
+    const session = await requireRole("gerente");
+    await marcarFuentePrincipal(db, await actorDe(session), id);
+    revalidar();
+    revalidatePath("/p/[programa]/programa", "page");
     return { ok: true };
   } catch (error) {
     return aResultado(error);
