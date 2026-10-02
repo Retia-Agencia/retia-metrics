@@ -171,6 +171,12 @@ vendido). Hoy manda el setteo a Registrado/Contactado y no escribe el valor vend
 4. **Estudiantes:** valor vendido = `Precio final`; abono = `Cash collected`; Ganado parcial o completo según el saldo
    (`saldosDeDeals`). Sin monto cobrado → Compromiso Verbal + rareza (no se inventa).
 5. **Comisión histórica:** nula (ADR 0023: un porcentaje inventado mide mal a una persona).
+6. **Valor vendido de todo deal migrado con dinero (A-30, Mani 2-oct):** la migración **intenta mapearlo** desde la
+   hoja (`Precio final` y lo que el barrido del paso 0 encuentre como precio pactado), no solo en estudiantes. Si la
+   fila de verdad no lo tiene, queda **nulo** y va a las rarezas del ensayo con su conteo; no se inventa con el ticket
+   de la cohorte. Por qué: un deal histórico sin valor vendido tiene saldo desconocido, y anular un abono sobre él no
+   lo baja de Completo a Parcial (A1 no corre, `lib/deals/abonos.ts`). Mani acepta ese límite solo para los que no
+   tienen precio en la fuente.
 
 **Orden por programa (cada paso para y pide el ok de Mani):**
 
