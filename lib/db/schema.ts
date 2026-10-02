@@ -887,7 +887,7 @@ export const deals = pgTable(
     }),
     /**
      * El area que dice el closer ("¿como nos conociste?", ticket 121, ADR 0062 punto 5).
-     * La exige el motor al entrar a Compromiso Verbal, Abonado o Completo; un deal
+     * La exige el motor al entrar a Compromiso Verbal, Ganado Pago Parcial o Ganado Pagado Completo; un deal
      * historico (con `huellaMigracion`) queda exento. **No es atribucion y nunca se
      * mezcla con el UTM**: solo alimenta la burbuja "sin UTM · segun el comercial".
      */

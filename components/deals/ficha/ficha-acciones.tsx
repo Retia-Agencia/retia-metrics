@@ -1,20 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -24,20 +12,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { EtapaDeal } from "@/lib/deals/etapas";
 import type { FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
-import { moverDeal } from "@/app/(app)/p/[programa]/deals/acciones";
 import { anularDealAccion, editarDealAccion, type EntradaEditarDeal } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
-import { DialogoMover, type DatosDialogo } from "../dialogo-mover";
-import { flechaPideDatos, flechasDesde, type FlechaCliente, type MapaTransiciones } from "../transiciones";
 import { Campo, claseInput, claseTextarea } from "./campos";
 import { useAccion } from "./uso-accion";
 
 /**
- * Las acciones del encabezado de la ficha (ticket 074): mover de etapa, editar y anular.
+ * Las acciones del encabezado de la ficha (ticket 074): editar y anular. La etapa se
+ * cambia respondiendo la pregunta de la etapa (`FichaPregunta`, ADR 0072), no aqui.
  *
- * - **Mover** reusa el motor y el dialogo del Kanban (`moverDeal`, `DialogoMover`): la ficha no
- *   tiene otro camino para cambiar la etapa. Las flechas del sistema se muestran apagadas.
  * - **Editar** solo ofrece lo que el servidor va a aceptar; la reja de verdad es de
  *   `editarDeal`. La etapa NO se edita aqui (solo `moverEtapa`).
  * - **Anular** deja la diferencia con Cierre Perdido escrita en el dialogo (decision 6):
@@ -48,120 +31,27 @@ import { useAccion } from "./uso-accion";
 export interface FichaAccionesProps {
   ficha: FichaDeDeal;
   opciones: OpcionesDeFicha;
-  mapa: MapaTransiciones;
-  nombreDeEtapa: Record<EtapaDeal, string>;
-  /** Puede mover, editar y anular ESTE deal: su dueño o quien administra (proyeccion, la reja es el servidor). */
+  /** Puede editar y anular ESTE deal: su dueño o quien administra (proyeccion, la reja es el servidor). */
   puedeTrabajar: boolean;
   /** Puede reasignar el dueño: quien administra. */
   administra: boolean;
 }
 
-export function FichaAcciones({ ficha, opciones, mapa, nombreDeEtapa, puedeTrabajar, administra }: FichaAccionesProps) {
-  const router = useRouter();
-  const [moviendo, setMoviendo] = useState(false);
-  const [dialogoMover, setDialogoMover] = useState<FlechaCliente | null>(null);
+export function FichaAcciones({ ficha, opciones, puedeTrabajar, administra }: FichaAccionesProps) {
   const [editando, setEditando] = useState(false);
   const [anulando, setAnulando] = useState(false);
 
-  // Un deal anulado no se mueve, ni se edita, ni se vuelve a anular.
+  // Un deal anulado no se edita, ni se vuelve a anular.
   if (!puedeTrabajar || ficha.anulado) return null;
-
-  const flechas = flechasDesde(mapa, ficha.etapa);
-  const dePersona = flechas.filter((f) => f.quien !== "sistema");
-  const deSistema = flechas.filter((f) => f.quien === "sistema");
-
-  async function mover(flecha: FlechaCliente, datos: DatosDialogo) {
-    setMoviendo(true);
-    const r = await moverDeal({
-      dealId: ficha.dealId,
-      a: flecha.a,
-      motivoId: datos.motivoId ?? null,
-      datos: {
-        descuentoUsd: datos.descuentoUsd,
-        areaDeclaradaId: datos.areaDeclaradaId,
-        fechaLimitePago: datos.fechaLimitePago,
-        cohorteDestinoId: datos.cohorteDestinoId,
-        fechaSeguimiento: datos.fechaSeguimiento,
-      },
-    });
-    setMoviendo(false);
-    if (r.ok) {
-      toast.success(`Movido a ${nombreDeEtapa[flecha.a]}.`);
-      setDialogoMover(null);
-      router.refresh();
-    } else {
-      // Se dice QUE falta, no un generico (ticket 044).
-      toast.error(r.faltantes.length > 0 ? r.faltantes.map((f) => f.mensaje).join(" ") : r.error, { duration: 6000 });
-    }
-  }
-
-  function elegir(flecha: FlechaCliente) {
-    if (flechaPideDatos(flecha)) setDialogoMover(flecha);
-    else void mover(flecha, {});
-  }
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={<Button variant="default" size="default" disabled={moviendo} />}
-        >
-          {moviendo ? "Moviendo…" : "Mover de etapa"}
-          <ChevronDown data-icon="inline-end" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>Mover a…</DropdownMenuLabel>
-            {dePersona.length > 0 ? (
-              dePersona.map((f) => (
-                <DropdownMenuItem key={f.a} onClick={() => elegir(f)}>
-                  {nombreDeEtapa[f.a]}
-                </DropdownMenuItem>
-              ))
-            ) : (
-              <DropdownMenuItem disabled>No hay movimientos a mano</DropdownMenuItem>
-            )}
-          </DropdownMenuGroup>
-          {deSistema.length > 0 ? (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>Los pone el sistema</DropdownMenuLabel>
-                {deSistema.map((f) => (
-                  <DropdownMenuItem key={f.a} disabled>
-                    {nombreDeEtapa[f.a]}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuGroup>
-            </>
-          ) : null}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
       <Button variant="outline" onClick={() => setEditando(true)}>
         Editar
       </Button>
       <Button variant="destructive" onClick={() => setAnulando(true)}>
         Anular deal
       </Button>
-
-      {dialogoMover ? (
-        <DialogoMover
-          abierto
-          onAbrir={(v) => {
-            if (!v) setDialogoMover(null);
-          }}
-          flecha={dialogoMover}
-          etapaDestinoNombre={nombreDeEtapa[dialogoMover.a]}
-          nombreLead={ficha.lead.nombre ?? ficha.lead.email}
-          areas={opciones.areas}
-          cohortes={opciones.cohortes}
-          motivos={opciones.motivos}
-          fechaLimiteSugerida={ficha.fechaLimiteSugerida}
-          pendiente={moviendo}
-          onConfirmar={(datos) => void mover(dialogoMover, datos)}
-        />
-      ) : null}
 
       {editando ? (
         <DialogoEditar ficha={ficha} opciones={opciones} administra={administra} onCerrar={() => setEditando(false)} />
@@ -217,7 +107,7 @@ function DialogoEditar({
           <DialogTitle>Editar deal</DialogTitle>
           <DialogDescription>
             Corrige un dato mal puesto. Cada cambio queda en el historial con quién lo hizo. El acuerdo de pago y la
-            cohorte se editan en su tarjeta; la etapa solo se cambia con “Mover de etapa”.
+            cohorte se editan en su tarjeta; la etapa solo se cambia respondiendo la pregunta de la etapa.
           </DialogDescription>
         </DialogHeader>
 

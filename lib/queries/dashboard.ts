@@ -135,7 +135,7 @@ export function tasa(numerador: number, denominador: number): number | null {
 }
 
 /**
- * Cuenta los deals cuya VENTA (`vendidosEn`: su primera entrada a Abonado o Completo)
+ * Cuenta los deals cuya VENTA (`vendidosEn`: su primera entrada a Ganado Pago Parcial o Ganado Pagado Completo)
  * cae en el rango. Cada venta cuenta en un solo periodo.
  *
  * La fecha de venta es la del movimiento de etapa, no la del abono ni la de la
@@ -205,7 +205,7 @@ export async function cajaRecaudada(
  * `calls` ancladas en `coalesce(fechaAgenda, fechaLlamada)`.
  *
  * ⚠️ `ventas` se fue con `sales` (ticket 038) y **no se reemplaza por un conteo de
- * deals**. Una venta es un deal en Abonado o Completo (ADR 0037) y contar deals a
+ * deals**. Una venta es un deal en Ganado Pago Parcial o Ganado Pagado Completo (ADR 0037) y contar deals a
  * secas inflaria la cifra sin lanzar ningun error — la trampa que el propio ticket
  * nombra. Pero ademas esta consulta necesita una FECHA de venta para acotar el
  * rango, y esa fecha es el instante del movimiento a Abonado: vive en

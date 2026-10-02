@@ -30,7 +30,8 @@ export type CodigoRequisito =
 export interface RequisitoFaltante { codigo: CodigoRequisito; mensaje: string }
 type CodigoReal = Exclude<CodigoRequisito, "transicion_no_permitida">;
 
-const MENSAJES: Record<CodigoReal, string> = {
+/** Lo que dice la pantalla cuando el requisito falta. */
+export const MENSAJES: Record<CodigoReal, string> = {
   dueno: "El deal no tiene dueño.",
   actividad: "Falta registrar una actividad: llamada, WhatsApp o correo.",
   contacto: "Falta registrar el contacto, con fecha y canal.",

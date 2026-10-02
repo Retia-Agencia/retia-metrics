@@ -1,0 +1,191 @@
+import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
+
+/**
+ * La pregunta de cada etapa y sus respuestas (ADR 0072 punto 1; Atendido, ADR 0071
+ * punto 5). La respuesta ES la flecha: elige el destino y dice qué dato pide, y
+ * `moverEtapa()` valida y escribe como siempre. La ficha la muestra en vez de un menú
+ * de "mover", y el Kanban la abre al soltar una tarjeta (punto 2).
+ *
+ * Que ninguna respuesta apunte a una flecha que no existe, y que ninguna flecha que
+ * toma una persona se quede sin respuesta, lo garantiza `tests/pregunta-de-etapa.test.ts`
+ * contra la tabla del motor.
+ *
+ * `import type` se borra en compilacion: este archivo es client-safe, como
+ * `etapa-tono.ts`, y no arrastra el motor al bundle.
+ */
+export type AccionDeRespuesta =
+  /** Una flecha del motor: a otra etapa, o la misma etapa con otro pendiente. */
+  | { tipo: "mover"; a: EtapaDeal; pendiente: PendienteDeal | null }
+  /** El retroceso de Compromiso Verbal: el destino lo calcula el motor del historial. */
+  | { tipo: "retroceder"; destinos: readonly EtapaDeal[] }
+  /** Registrar una actividad: `registrarActividad` mueve el deal (ADR 0071 puntos 1 y 2). */
+  | { tipo: "actividad"; actividad: "contacto" | "intento" }
+  /** A ganado solo se entra con plata (ADR 0037). */
+  | { tipo: "abono" }
+  /** Los formularios de llamada: una cita con fecha mueve, una fallida pone Re-agenda. */
+  | { tipo: "llamada"; uso: "agendar" | "reprogramar" | "fallida" };
+
+export interface Respuesta {
+  id: string;
+  etiqueta: string;
+  accion: AccionDeRespuesta;
+  /** Solo se ofrece cuando el deal ya tiene un pendiente (E9, y PC desde Agendado). */
+  soloConPendiente?: boolean;
+}
+
+export interface PreguntaDeEtapa {
+  pregunta: string | null;
+  respuestas: readonly Respuesta[];
+}
+
+const descartar = (etiqueta = "Descartar"): Respuesta => ({
+  id: "descartar",
+  etiqueta,
+  accion: { tipo: "mover", a: "cierre_perdido", pendiente: null },
+});
+
+const proximaCohorte = (etapa: EtapaDeal, soloConPendiente = false): Respuesta => ({
+  id: "proxima_cohorte",
+  etiqueta: "Próxima cohorte",
+  accion: { tipo: "mover", a: etapa, pendiente: "proxima_cohorte" },
+  ...(soloConPendiente ? { soloConPendiente } : {}),
+});
+
+const registrarContacto: Respuesta = {
+  id: "contacto",
+  etiqueta: "Registrar contacto",
+  accion: { tipo: "actividad", actividad: "contacto" },
+};
+const registrarIntento: Respuesta = {
+  id: "intento",
+  etiqueta: "Registrar intento",
+  accion: { tipo: "actividad", actividad: "intento" },
+};
+const pago = (etiqueta: string): Respuesta => ({ id: "abono", etiqueta, accion: { tipo: "abono" } });
+
+export const PREGUNTA_DE_ETAPA: Readonly<Record<EtapaDeal, PreguntaDeEtapa>> = {
+  potencial: {
+    pregunta: null,
+    respuestas: [registrarContacto, registrarIntento, proximaCohorte("potencial"), descartar()],
+  },
+  registrado: {
+    pregunta: null,
+    respuestas: [registrarContacto, registrarIntento, proximaCohorte("registrado"), descartar()],
+  },
+  en_gestion: {
+    pregunta: "¿Se logró el contacto?",
+    respuestas: [
+      { ...registrarContacto, etiqueta: "Sí" },
+      { ...registrarIntento, etiqueta: "No, fue un intento" },
+      proximaCohorte("en_gestion"),
+      descartar(),
+    ],
+  },
+  contactado: {
+    pregunta: "¿Califica?",
+    respuestas: [
+      { id: "califica", etiqueta: "Sí", accion: { tipo: "mover", a: "calificado", pendiente: null } },
+      { id: "negocia", etiqueta: "Negocia", accion: { tipo: "mover", a: "compromiso_verbal", pendiente: null } },
+      proximaCohorte("contactado"),
+      descartar("No califica"),
+    ],
+  },
+  calificado: {
+    pregunta: "¿Qué pasó?",
+    respuestas: [
+      { id: "agendo", etiqueta: "Agendó", accion: { tipo: "llamada", uso: "agendar" } },
+      { id: "negocia", etiqueta: "Negocia", accion: { tipo: "mover", a: "compromiso_verbal", pendiente: null } },
+      pago("Pagó"),
+      {
+        id: "seguimiento",
+        etiqueta: "Interesado, más adelante",
+        accion: { tipo: "mover", a: "calificado", pendiente: "seguimiento" },
+      },
+      proximaCohorte("calificado"),
+      descartar(),
+    ],
+  },
+  agendado: {
+    pregunta: "¿Cómo va la cita?",
+    respuestas: [
+      { id: "termino", etiqueta: "Terminó", accion: { tipo: "mover", a: "atendido", pendiente: null } },
+      { id: "se_movio", etiqueta: "Se movió", accion: { tipo: "llamada", uso: "reprogramar" } },
+      { id: "fallida", etiqueta: "No asistió o canceló", accion: { tipo: "llamada", uso: "fallida" } },
+      proximaCohorte("agendado", true),
+      descartar(),
+    ],
+  },
+  atendido: {
+    pregunta: "¿Cómo terminó?",
+    respuestas: [
+      { id: "agendo", etiqueta: "Agendó", accion: { tipo: "llamada", uso: "agendar" }, soloConPendiente: true },
+      pago("Pagó ahora"),
+      { id: "compromiso", etiqueta: "Compromiso", accion: { tipo: "mover", a: "compromiso_verbal", pendiente: null } },
+      { id: "seguimiento", etiqueta: "Seguimiento", accion: { tipo: "mover", a: "atendido", pendiente: "seguimiento" } },
+      { id: "otra_llamada", etiqueta: "Otra llamada", accion: { tipo: "mover", a: "atendido", pendiente: "reagenda" } },
+      proximaCohorte("atendido"),
+      descartar("Perdido"),
+    ],
+  },
+  compromiso_verbal: {
+    pregunta: "¿Cómo va la negociación?",
+    respuestas: [
+      pago("Pagó"),
+      {
+        id: "revisando",
+        etiqueta: "Revisando propuesta",
+        accion: { tipo: "mover", a: "compromiso_verbal", pendiente: "seguimiento" },
+      },
+      {
+        id: "retroceso",
+        etiqueta: "Se echó para atrás",
+        accion: { tipo: "retroceder", destinos: ["atendido", "contactado", "calificado"] },
+      },
+      proximaCohorte("compromiso_verbal"),
+      descartar(),
+    ],
+  },
+  ganado_parcial: {
+    pregunta: null,
+    respuestas: [pago("Registrar abono"), descartar("Desistió")],
+  },
+  ganado_completo: { pregunta: null, respuestas: [] },
+  cierre_perdido: {
+    pregunta: "¿Se recupera?",
+    respuestas: [
+      { id: "recuperar", etiqueta: "A gestión", accion: { tipo: "mover", a: "en_gestion", pendiente: null } },
+    ],
+  },
+};
+
+/** Las respuestas que el deal puede tomar hoy, según tenga o no un pendiente. */
+export function respuestasDe(etapa: EtapaDeal, pendiente: PendienteDeal | null): Respuesta[] {
+  return PREGUNTA_DE_ETAPA[etapa].respuestas.filter((r) => !r.soloConPendiente || pendiente != null);
+}
+
+/** Si la respuesta deja la tarjeta en la columna `columna` del Kanban. */
+function llevaA(accion: AccionDeRespuesta, etapa: EtapaDeal, columna: EtapaDeal): boolean {
+  switch (accion.tipo) {
+    case "mover":
+      return accion.a === columna && accion.a !== etapa;
+    case "retroceder":
+      return accion.destinos.includes(columna);
+    case "abono":
+      return columna === "ganado_parcial" || columna === "ganado_completo";
+    case "actividad":
+      return accion.actividad === "contacto"
+        ? columna === "en_gestion" || columna === "contactado"
+        : columna === "en_gestion" && etapa !== "en_gestion";
+    case "llamada":
+      return accion.uso === "agendar" && columna === "agendado";
+  }
+}
+
+/**
+ * Las respuestas que llevan la tarjeta a la columna donde se soltó (ADR 0072 punto 2).
+ * Ninguna: la tarjeta vuelve. Una: se abre ya elegida. Varias: se escoge entre ellas.
+ */
+export function respuestasHacia(etapa: EtapaDeal, pendiente: PendienteDeal | null, columna: EtapaDeal): Respuesta[] {
+  if (columna === etapa) return [];
+  return respuestasDe(etapa, pendiente).filter((r) => llevaA(r.accion, etapa, columna));
+}

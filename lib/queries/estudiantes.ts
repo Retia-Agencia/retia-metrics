@@ -9,7 +9,7 @@ import { vigente } from "@/lib/queries/vigente";
 
 /**
  * Los estudiantes de un programa: **una consulta sobre `etapa`, no una tabla ni una columna**
- * (ticket 063). Un estudiante es un deal vigente en Abonado o Completo. Las listas por
+ * (ticket 063). Un estudiante es un deal vigente en Ganado Pago Parcial o Ganado Pagado Completo. Las listas por
  * programa y por cohorte son filtros de esta misma consulta.
  *
  * El programa es frontera (ADR 0043): recibe UNO y no admite "todos". La cohorte, si se pide,

@@ -172,7 +172,8 @@ export interface FichaDeDeal {
   vendido: boolean;
   areaDeclarada: { id: string; nombre: string } | null;
   cohorte: { id: string; codigo: string; inicioClases: string } | null;
-  cohorteDestino: { id: string; codigo: string } | null;
+  /** `inicioVentas`: desde cuándo un contacto retoma un Próxima Cohorte (RET). */
+  cohorteDestino: { id: string; codigo: string; inicioVentas: string | null } | null;
   acuerdoPago: string | null;
   fechaLimitePago: string | null;
   /**
@@ -377,7 +378,9 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
     vendido: saldo.abonosVigentes > 0 || (ETAPAS_VENDIDAS as readonly string[]).includes(deal.etapa),
     areaDeclarada: areaDeclarada ? { id: areaDeclarada.id, nombre: String(areaDeclarada.nombre) } : null,
     cohorte: cohorte ? { id: cohorte.id, codigo: cohorte.codigo, inicioClases: cohorte.fechaInicioClases } : null,
-    cohorteDestino: cohorteDestino ? { id: cohorteDestino.id, codigo: cohorteDestino.codigo } : null,
+    cohorteDestino: cohorteDestino
+      ? { id: cohorteDestino.id, codigo: cohorteDestino.codigo, inicioVentas: cohorteDestino.fechaInicioVentas }
+      : null,
     acuerdoPago: deal.acuerdoPago,
     fechaLimitePago: deal.fechaLimitePago,
     fechaLimiteSugerida,

@@ -219,6 +219,23 @@ Anular el deal entero no es una flecha: es una marca aparte que lo saca de todas
 
 **Lo que el sistema decide solo, lo explica en el log del deal** (Mani, 2-oct). Cada movimiento del sistema que no sale de una acción de la persona (Calendly marca no-show o cancelada, una cita nueva quita un pendiente, una cita fallida hace nacer el deal en Calificado, un re-envío del formulario que solo agrega la llamada o solo avisa) deja una nota firmada "Sistema" en `deal_actividades`, en la misma transacción (`lib/deals/nota-del-sistema.ts`). Una nota nunca mueve el deal ni cuenta como actividad comercial.
 
+### 3.1.1 La pregunta de la etapa: cómo se toma una flecha en pantalla
+
+Nadie elige "mover a" una etapa: cada etapa tiene **una pregunta**, y su respuesta es la flecha (ADR 0072). La tabla
+vive en `components/deals/pregunta-de-etapa.ts` (datos planos, entra al navegador) y `tests/pregunta-de-etapa.test.ts`
+garantiza contra el motor que toda respuesta es una flecha de persona y que toda flecha de persona tiene respuesta,
+salvo una lista nombrada (E3 desde En gestión, E4 antes de Calificado, R a Agendado). La misma respuesta se toma desde
+tres lugares, por un solo componente (`useResponder`): la ficha (tarjeta bajo la cabecera), el Kanban (soltar abre la
+respuesta que lleva a esa columna, o deja escoger si hay varias; sin ninguna, la tarjeta no se mueve y se dice por qué)
+y "¿Cómo terminó?" en Calls.
+
+- Una respuesta que es **flecha** abre un diálogo con lo que pide y, en verde y rojo, lo que el deal tiene y le falta.
+  Esa lista no la calcula la pantalla: `revisarMovimiento` es un **ensayo** de `moverEtapa` dentro de una transacción
+  que siempre se deshace, así que no puede decir algo distinto de lo que el motor acepta. Confirmar se activa solo con
+  todo en verde y con la revisión de los datos que hay en pantalla.
+- Una respuesta que es **actividad, llamada o abono** abre su formulario de siempre en la ficha (`?accion=…`): no hay
+  un segundo camino para registrar nada, y el motor mueve el deal desde ahí.
+
 ### 3.2 “¿Cómo terminó?”: lo que pasa después de cada llamada
 
 Después de una llamada atendida, una sola pregunta decide el siguiente paso (ADR 0071, 0072). No existe “no cerró” sin decir qué sigue.

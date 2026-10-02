@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { calls, deals, leads, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { esSueltaPorAsignar } from "@/lib/calendly/suelta";
 import { vigente } from "@/lib/queries/vigente";
@@ -20,6 +20,7 @@ export interface FilaLlamadaPrograma {
   leadEmail: string | null;
   resultado: (typeof calls.$inferSelect)["resultado"];
   etapa: EtapaDeal | null;
+  pendiente: PendienteDeal | null;
   fechaAgenda: Date | null;
   fechaLlamada: Date | null;
   linkCalendly: string | null;
@@ -51,6 +52,7 @@ export async function llamadasDelPrograma(
       emailSuelta: calls.emailLead,
       resultado: calls.resultado,
       etapa: deals.etapa,
+      pendiente: deals.pendiente,
       fechaAgenda: calls.fechaAgenda,
       fechaLlamada: calls.fechaLlamada,
       linkCalendly: calls.linkCalendly,
@@ -83,6 +85,7 @@ export async function llamadasDelPrograma(
       leadEmail: f.leadEmail ?? f.emailSuelta,
       resultado: f.resultado,
       etapa: f.etapa,
+      pendiente: f.pendiente,
       fechaAgenda: f.fechaAgenda,
       fechaLlamada: f.fechaLlamada,
       linkCalendly: f.linkCalendly,

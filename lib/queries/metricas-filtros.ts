@@ -39,11 +39,11 @@ export function delCloser(columna: PgColumn, closerId: string | null | undefined
 
 export { ETAPAS_VENDIDAS };
 /**
- * La fecha de VENTA de cada deal: el dia (Bogota) de su PRIMERA entrada a Abonado o Completo.
+ * La fecha de VENTA de cada deal: el dia (Bogota) de su PRIMERA entrada a Ganado Pago Parcial o Ganado Pagado Completo.
  * Es la unica respuesta a "¿cuando se vendio?": la usan las consultas de cierres de este modulo
  * y la burbuja del origen declarado (`origen-declarado.ts`, ticket 121).
  *
- * 🩸 Contar cualquier fila del historial que llegue a Abonado o Completo dentro del rango
+ * 🩸 Contar cualquier fila del historial que llegue a Ganado Pago Parcial o Ganado Pagado Completo dentro del rango
  * (como se hacia hasta el 29-sep) cuenta la MISMA venta en dos periodos: un deal que pasa a
  * Abonado en septiembre y a Completo en octubre salia como cierre en los dos meses, y la
  * comision (ticket 062) se habria pagado dos veces. Sin error y con cifras creibles.

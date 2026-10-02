@@ -16,7 +16,7 @@ import type { DealTemplate, Extraccion, LlamadaTemplate, RarezaTemplate } from "
  *   marcando `movidoDesde` en el template (los "cohorte pasada" del 080): entonces el deal de
  *   la cohorte de origen no se crea y el que queda lleva la nota del traslado.
  * - **La etapa de un deal del Setteo la decide su ultima llamada** (decisiones del 080): Show
- *   No → Pendiente Re-agenda; Show Si → Atendido. Nunca Cierre Perdido: una categoria de
+ *   No → Agendado con Re-agenda pendiente; Show Si → Atendido. Nunca Cierre Perdido: una categoria de
  *   perdida queda como rareza para que la cierre un closer (Mani, 28-sep). A un deal de
  *   Estudiantes su etapa se la da la pestaña de Estudiantes y ninguna llamada la cambia.
  *

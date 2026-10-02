@@ -35,7 +35,15 @@ import {
   type Transicion,
   type TransicionPendiente,
 } from "./etapas";
-import { queLeFalta, queLeFaltaTransicion, type HechosDelDeal, type RequisitoFaltante } from "./requisitos";
+import {
+  MENSAJES,
+  queLeFalta,
+  queLeFaltaTransicion,
+  requisitosDeTransicion,
+  type CodigoRequisito,
+  type HechosDelDeal,
+  type RequisitoFaltante,
+} from "./requisitos";
 import { congelarValorVendido } from "./valor-vendido";
 
 /**
@@ -128,6 +136,32 @@ export interface MovimientoHecho {
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
 
+/**
+ * Qué flecha toma un movimiento y con qué pendiente queda el deal. Pura: la usan
+ * `moverEtapa` y `revisarMovimiento`, así que la vista previa y el motor no pueden
+ * resolver distinto. Si `a` es otra etapa, es una flecha de etapa (el pendiente queda
+ * nulo, salvo RETRO, que deja Seguimiento, y R a En gestión con Próxima Cohorte). Si es
+ * la misma etapa con un pendiente, es una flecha de pendiente. Si es la misma sin
+ * pendiente, solo E7 (Agendado) o RET.
+ */
+export function resolverTransicion(
+  de: EtapaDeal,
+  pendienteDe: PendienteDeal | null,
+  a: EtapaDeal,
+  pendiente: PendienteDeal | null,
+): { transicion: Transicion | TransicionPendiente | null; pendienteA: PendienteDeal | null } {
+  if (a !== de) {
+    const t = transicion(de, a);
+    if (t?.id === "RETRO") return { transicion: t, pendienteA: "seguimiento" };
+    if (t?.id === "R" && a === "en_gestion" && pendiente === "proxima_cohorte") {
+      return { transicion: t, pendienteA: "proxima_cohorte" };
+    }
+    return { transicion: t, pendienteA: null };
+  }
+  if (pendiente != null) return { transicion: transicionPendiente(de, pendiente), pendienteA: pendiente };
+  return { transicion: de === "agendado" ? transicion(de, de) : transicionRetomar(de, pendienteDe), pendienteA: null };
+}
+
 export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHecho> {
   return (db as unknown as Transaccion).transaction(async (tx) => {
     const [deal] = await tx
@@ -141,20 +175,7 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
 
     const de = deal.etapa;
     const pendienteDe = deal.pendiente;
-    let pendienteA: PendienteDeal | null = null;
-    let t: Transicion | TransicionPendiente | null;
-    if (mov.a !== de) {
-      t = transicion(de, mov.a);
-      if (t?.id === "RETRO") pendienteA = "seguimiento";
-      if (t?.id === "R" && mov.a === "en_gestion" && mov.pendiente === "proxima_cohorte") {
-        pendienteA = "proxima_cohorte";
-      }
-    } else if (mov.pendiente != null) {
-      pendienteA = mov.pendiente;
-      t = transicionPendiente(de, mov.pendiente);
-    } else {
-      t = de === "agendado" ? transicion(de, de) : transicionRetomar(de, pendienteDe);
-    }
+    const { transicion: t, pendienteA } = resolverTransicion(de, pendienteDe, mov.a, mov.pendiente ?? null);
     if (!t) {
       const faltantes = mov.a === de
         ? [{ codigo: "transicion_no_permitida" as const, mensaje: `Este movimiento no está permitido en ${NOMBRE_DE_ETAPA[de]}.` }]
@@ -872,7 +893,7 @@ export async function etapaALaQueVuelve(tx: Db, dealId: string): Promise<EtapaDe
   return fila?.de ?? "compromiso_verbal";
 }
 
-async function etapaAntesDeCompromiso(tx: Db, dealId: string): Promise<EtapaDeal | null> {
+export async function etapaAntesDeCompromiso(tx: Db, dealId: string): Promise<EtapaDeal | null> {
   const [fila] = await tx
     .select({ de: dealEtapaHistorial.de })
     .from(dealEtapaHistorial)
@@ -884,4 +905,86 @@ async function etapaAntesDeCompromiso(tx: Db, dealId: string): Promise<EtapaDeal
     .orderBy(desc(dealEtapaHistorial.fecha))
     .limit(1);
   return fila?.de ?? null;
+}
+
+/** Un requisito de la flecha y si el deal ya lo cumple. */
+export interface RequisitoRevisado {
+  codigo: CodigoRequisito;
+  mensaje: string;
+  cumple: boolean;
+}
+
+export interface RevisionDeMovimiento {
+  /** Lo que la flecha pide, en verde (cumple) y en rojo (falta). */
+  requisitos: RequisitoRevisado[];
+  /** Por qué no se puede aunque se llene todo: no hay flecha, o no le toca a este actor. */
+  bloqueo: string | null;
+  /** RETRO: la etapa a la que vuelve, según el historial. */
+  destinoRetro: EtapaDeal | null;
+}
+
+/** El ensayo termina siempre deshaciendo: este error lo marca. */
+class EnsayoDeshecho extends Error {}
+
+/**
+ * Lo que el deal tiene y le falta para un movimiento, sin moverlo (ADR 0072 punto 2).
+ *
+ * Es un ENSAYO de `moverEtapa`: corre el movimiento de verdad dentro de una transaccion
+ * que siempre se deshace, y devuelve lo que el motor contesto. Asi la vista previa no
+ * puede decir algo distinto de lo que el motor acepta o rechaza: es el mismo codigo,
+ * con los mismos datos. Para el retroceso de Compromiso Verbal (`retroceso`), el destino
+ * lo dice el historial, no quien llama.
+ */
+export async function revisarMovimiento(
+  db: Db,
+  mov: Omit<Movimiento, "a"> & { a: EtapaDeal | "retroceso" },
+): Promise<RevisionDeMovimiento> {
+  const [deal] = await db
+    .select({ etapa: deals.etapa, pendiente: deals.pendiente })
+    .from(deals)
+    .where(and(eq(deals.id, mov.dealId), incluyendoAnulados(deals)));
+  if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
+
+  let a: EtapaDeal;
+  let destinoRetro: EtapaDeal | null = null;
+  if (mov.a === "retroceso") {
+    destinoRetro = await etapaAntesDeCompromiso(db, mov.dealId);
+    if (destinoRetro == null) {
+      return { requisitos: [], bloqueo: "El historial no dice desde qué etapa entró a Compromiso Verbal.", destinoRetro };
+    }
+    a = destinoRetro;
+  } else {
+    a = mov.a;
+  }
+
+  const { transicion: t } = resolverTransicion(deal.etapa, deal.pendiente, a, mov.pendiente ?? null);
+  const codigos = t ? requisitosDeTransicion(t) : [];
+
+  let faltan: RequisitoFaltante[] = [];
+  let bloqueo: string | null = null;
+  try {
+    await (db as unknown as Transaccion).transaction(async (tx) => {
+      await moverEtapa(tx, { ...mov, a });
+      throw new EnsayoDeshecho();
+    });
+  } catch (e) {
+    if (e instanceof MovimientoRechazado) {
+      faltan = e.faltantes;
+      // Un rechazo sin faltantes de la flecha (403, 409, sin flecha) no se arregla
+      // llenando campos: se dice tal cual.
+      if (faltan.length === 0 || faltan.every((f) => !codigos.includes(f.codigo))) bloqueo = e.message;
+    } else if (!(e instanceof EnsayoDeshecho)) {
+      throw e;
+    }
+  }
+
+  const requisitos = codigos.map((codigo) => {
+    const falta = faltan.find((f) => f.codigo === codigo);
+    return {
+      codigo,
+      mensaje: falta?.mensaje ?? (codigo === "transicion_no_permitida" ? "" : MENSAJES[codigo]),
+      cumple: !falta,
+    };
+  });
+  return { requisitos, bloqueo, destinoRetro };
 }

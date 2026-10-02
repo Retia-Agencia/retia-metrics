@@ -16,7 +16,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
-import { MovimientoRechazado, abrirDeal, moverEtapa, type Actor } from "@/lib/deals/mover-etapa";
+import { MovimientoRechazado, abrirDeal, moverEtapa, revisarMovimiento, type Actor } from "@/lib/deals/mover-etapa";
 import { crearConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { embudoDelRango } from "@/lib/queries/dashboard";
@@ -692,6 +692,50 @@ describe("saltos, retrocesos y recuperacion (ticket 047)", () => {
 
     await moverEtapa(db, { dealId, a: "en_gestion", actor: comoCloser(), motivoId: motivoRecuperacion });
     expect(await historial(dealId)).toMatchObject([{ de: "cierre_perdido", a: "en_gestion", motivoId: motivoRecuperacion }]);
+  });
+});
+
+describe("revisarMovimiento: la vista previa es un ensayo del motor (ADR 0072 punto 2)", () => {
+  it("lo que marca en rojo es lo que el motor rechaza, y no mueve nada", async () => {
+    const dealId = await nuevoDeal("contactado", { ownerUserId: closer });
+    const r = await revisarMovimiento(db, { dealId, a: "compromiso_verbal", actor: comoCloser() });
+    expect(r.bloqueo).toBeNull();
+    expect(r.requisitos.filter((q) => !q.cumple).map((q) => q.codigo)).toEqual(["fecha_limite_pago"]);
+    expect(r.requisitos.filter((q) => q.cumple).map((q) => q.codigo)).toContain("area_declarada");
+    const e = await rechazo(moverEtapa(db, { dealId, a: "compromiso_verbal", actor: comoCloser() }));
+    expect(e.faltantes.map((f) => f.codigo)).toEqual(["fecha_limite_pago"]);
+    expect(await etapaDe(dealId)).toBe("contactado");
+    expect(await historial(dealId)).toEqual([]);
+  });
+
+  it("con los datos que pide, todo sale en verde, se deshace, y el motor sí mueve", async () => {
+    const dealId = await nuevoDeal("contactado", { ownerUserId: closer });
+    const datos = { fechaLimitePago: "2026-10-30" };
+    const r = await revisarMovimiento(db, { dealId, a: "compromiso_verbal", actor: comoCloser(), datos });
+    expect(r.requisitos.every((q) => q.cumple)).toBe(true);
+    const [d] = await db.select().from(deals).where(eq(deals.id, dealId));
+    expect(d.fechaLimitePago).toBeNull();
+    expect(await etapaDe(dealId)).toBe("contactado");
+    await moverEtapa(db, { dealId, a: "compromiso_verbal", actor: comoCloser(), datos });
+    expect(await etapaDe(dealId)).toBe("compromiso_verbal");
+  });
+
+  it("lo que no se arregla llenando campos sale como bloqueo: sin flecha, o un deal ajeno", async () => {
+    const dealId = await nuevoDeal("potencial", { ownerUserId: closer });
+    expect((await revisarMovimiento(db, { dealId, a: "atendido", actor: comoCloser() })).bloqueo).toMatch(/no puede pasar/);
+    const ajeno = await nuevoDeal("contactado", { ownerUserId: closer, leadId: (await db.insert(leads).values({ programId, emailNormalizado: "beto@correo.co" }).returning())[0].id });
+    const r = await revisarMovimiento(db, { dealId: ajeno, a: "calificado", actor: comoOtroCloser() });
+    expect(r.bloqueo).not.toBeNull();
+    expect(await etapaDe(ajeno)).toBe("contactado");
+  });
+
+  it("el retroceso toma el destino del historial, no de quien llama", async () => {
+    const dealId = await nuevoDeal("compromiso_verbal", { ownerUserId: closer });
+    await db.insert(dealEtapaHistorial).values({ dealId, de: "calificado", a: "compromiso_verbal" });
+    const r = await revisarMovimiento(db, { dealId, a: "retroceso", actor: comoCloser() });
+    expect(r.destinoRetro).toBe("calificado");
+    expect(r.requisitos.filter((q) => !q.cumple).map((q) => q.codigo).sort()).toEqual(["fecha_seguimiento", "motivo"]);
+    expect(await etapaDe(dealId)).toBe("compromiso_verbal");
   });
 });
 

@@ -80,7 +80,7 @@ export async function conteosPorPrograma(db: Db = dbDeLaApp) {
     activo: p.activo,
     personas: dePersonas.get(p.id) ?? 0,
     llamadas: deLlamadas.get(p.id) ?? 0,
-    // Son DEALS, no ventas: una venta es un deal en Abonado o Completo (ADR 0037) y
+    // Son DEALS, no ventas: una venta es un deal en Ganado Pago Parcial o Ganado Pagado Completo (ADR 0037) y
     // llamar "ventas" a todos los deals inflaria la cifra sin lanzar un error. El
     // desglose por etapa es de E5-2; aqui el conteo dice lo que cuenta.
     deals: deDeals.get(p.id) ?? 0,

@@ -4,7 +4,7 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
+import { NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { opcionesDeTablero, parsearFiltros, tableroKanban, type CampoDeFechaDeDeal } from "@/lib/queries/kanban";
 import { PageShell } from "@/components/page-shell";
@@ -75,6 +75,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
           total={tablero.total}
           mapa={mapaDeTransiciones()}
           nombreDeEtapa={NOMBRE_DE_ETAPA}
+          nombreDePendiente={NOMBRE_DE_PENDIENTE}
           tonoDeEtapa={TONO_DE_ETAPA}
           programaSlug={programa.slug}
           areas={opciones.areas}

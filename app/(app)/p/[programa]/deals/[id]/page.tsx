@@ -13,6 +13,7 @@ import { fichaDeDeal, opcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { PageShell } from "@/components/page-shell";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { FichaAcciones } from "@/components/deals/ficha/ficha-acciones";
+import { FichaPregunta } from "@/components/deals/ficha/ficha-pregunta";
 import { FichaActividades } from "@/components/deals/ficha/ficha-actividades";
 import { FichaCabecera } from "@/components/deals/ficha/ficha-cabecera";
 import { FichaHistorial } from "@/components/deals/ficha/ficha-historial";
@@ -69,14 +70,7 @@ export default async function FichaDelDealPage({ params }: Props) {
       titulo={nombre}
       descripcion={`${programa.nombre} · Deal`}
       acciones={
-        <FichaAcciones
-          ficha={ficha}
-          opciones={opciones}
-          mapa={mapaDeTransiciones()}
-          nombreDeEtapa={NOMBRE_DE_ETAPA}
-          puedeTrabajar={puedeTrabajar}
-          administra={esAdministrador(rol)}
-        />
+        <FichaAcciones ficha={ficha} opciones={opciones} puedeTrabajar={puedeTrabajar} administra={esAdministrador(rol)} />
       }
     >
       <div className="space-y-4">
@@ -88,6 +82,14 @@ export default async function FichaDelDealPage({ params }: Props) {
         </Link>
 
         <FichaCabecera ficha={ficha} nombre={nombre} nombreDeEtapa={NOMBRE_DE_ETAPA} tonoDeEtapa={TONO_DE_ETAPA} />
+        <FichaPregunta
+          ficha={ficha}
+          opciones={opciones}
+          mapa={mapaDeTransiciones()}
+          nombreDeEtapa={NOMBRE_DE_ETAPA}
+          rutaDeLaFicha={`/p/${programa.slug}/deals/${ficha.dealId}`}
+          puedeTrabajar={puedeTrabajar}
+        />
 
         <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
           <div className="space-y-4">
@@ -105,7 +107,7 @@ export default async function FichaDelDealPage({ params }: Props) {
               puedeRegistrar={puedeRegistrar && !cerrado}
             />
             <FichaActividades actividades={ficha.actividades} dealId={ficha.dealId} puedeRegistrar={puedeTrabajar} />
-            <FichaPago ficha={ficha} opciones={opciones} puedeTrabajar={puedeTrabajar} puedeRegistrar={puedeRegistrar} />
+            <FichaPago ficha={ficha} opciones={opciones} puedeTrabajar={puedeTrabajar} puedeRegistrar={puedeRegistrar} nombreDeEtapa={NOMBRE_DE_ETAPA} />
           </div>
         </div>
       </div>

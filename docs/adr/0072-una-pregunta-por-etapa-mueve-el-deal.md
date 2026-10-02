@@ -24,7 +24,7 @@ para los closers, sin perder el arrastre del Kanban.
    |---|---|---|
    | Potencial, Registrado | ninguna | registrar la primera actividad → En gestión (ADR 0071) |
    | En gestión | ¿Se logró el contacto? | Sí → Contactado · No → se anota el intento y se queda (al tercero, alerta, ADR 0071) |
-   | Contactado | ¿Califica? | Sí → Calificado · No → Cierre perdido (motivo) |
+   | Contactado | ¿Califica? | Sí → Calificado · Negocia → Compromiso Verbal (Mani, 2-oct) · No → Cierre perdido (motivo) |
    | Calificado | ¿Qué pasó? | Agendó → Agendado (la cita) · Negocia → Compromiso Verbal · Pagó → registrar abono (ganado) · Interesado, más adelante → Seguimiento (fecha) · Próxima cohorte · Descartado → Cierre perdido |
    | Agendado | ¿Cómo va la cita? | Terminó → Atendido · Se movió → nueva fecha, se queda · No asistió o canceló → Re-agenda (ADR 0070) · Descartar → Cierre perdido |
    | Atendido | ¿Cómo terminó? | los seis botones (ADR 0071) |

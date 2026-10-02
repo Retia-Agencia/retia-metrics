@@ -1,32 +1,32 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import type { ColumnaKanban, OpcionCatalogo, TarjetaDeal } from "@/lib/queries/kanban";
-import type { FlechaCliente, MapaTransiciones } from "./transiciones";
-import { flechaPideDatos, sePuedeArrastrar } from "./transiciones";
+import type { MapaTransiciones } from "./transiciones";
 import type { TonoEtapa } from "./etapa-tono";
 import { TarjetaDealCard } from "./tarjeta-deal";
-import { DialogoMover, type DatosDialogo } from "./dialogo-mover";
-import { moverDeal } from "@/app/(app)/p/[programa]/deals/acciones";
+import { DialogoForm } from "./ficha/campos";
+import { PREGUNTA_DE_ETAPA, respuestasHacia, type Respuesta } from "./pregunta-de-etapa";
+import { BotonesDeRespuesta, useResponder, type DealQueResponde } from "./responder-pregunta";
 
 /**
  * El tablero Kanban (ticket 069): columnas por etapa y tarjetas de deal, con arrastre
- * HTML5 nativo (sin dependencia nueva) y un menú "Mover a…" para celular y teclado.
+ * HTML5 nativo (sin dependencia nueva) y, en cada tarjeta, la pregunta de su etapa para
+ * celular y teclado.
  *
+ * - **Soltar abre la pregunta de la etapa** (ADR 0072 punto 2): con la respuesta que lleva
+ *   a esa columna ya elegida (o a escoger, si hay varias), su dialogo pide los datos y
+ *   muestra lo que el deal tiene y le falta. Si ninguna respuesta lleva ahí, la tarjeta no
+ *   se mueve y se dice por qué. Soltar en una columna de ganado abre el abono en la ficha:
+ *   a ganado solo se entra con plata (ADR 0037).
  * - **Todo movimiento pasa por la server action `moverDeal`**, que llama `moverEtapa()`:
  *   la reja de verdad está en el servidor. El cliente solo decide el resaltado del
- *   arrastre con el mapa de transiciones que el SERVIDOR le pasó como props (no importa
- *   drizzle: `transiciones.ts` es datos planos).
- * - **Optimista:** al soltar, la tarjeta salta a la nueva columna; si el servidor
- *   rechaza, vuelve a su sitio y se muestran los `faltantes` (qué falta), nunca un
- *   genérico "no se puede" (ticket 044).
- * - **Las flechas que piden datos** (descuento, fechas, cohorte, motivo) abren un diálogo;
- *   lo recogido va en la MISMA acción (una transacción).
+ *   arrastre con la tabla de preguntas (`pregunta-de-etapa.ts`, datos planos).
  * - **Las columnas hacen scroll horizontal**; la página no se desplaza de lado en
  *   celular. `prefers-reduced-motion` se respeta en las tarjetas.
  */
@@ -36,6 +36,7 @@ export interface TableroKanbanProps {
   total: number;
   mapa: MapaTransiciones;
   nombreDeEtapa: Record<EtapaDeal, string>;
+  nombreDePendiente: Record<PendienteDeal, string>;
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
   programaSlug: string;
   areas: OpcionCatalogo[];
@@ -50,17 +51,12 @@ export interface TableroKanbanProps {
   administra: boolean;
 }
 
-/** Lo que un movimiento pendiente necesita saber para abrir su diálogo. */
-interface MovimientoPendiente {
-  tarjeta: TarjetaDeal;
-  flecha: FlechaCliente;
-}
-
 export function TableroKanban({
   columnas,
   total,
   mapa,
   nombreDeEtapa,
+  nombreDePendiente,
   tonoDeEtapa,
   programaSlug,
   areas,
@@ -72,89 +68,40 @@ export function TableroKanban({
   administra,
 }: TableroKanbanProps) {
   const router = useRouter();
-  const [pendiente, iniciar] = useTransition();
-
-  // Movimiento OPTIMISTA: qué deal se muestra en qué etapa mientras el servidor responde.
-  const [movidoOptimista, setMovidoOptimista] = useState<Record<string, EtapaDeal>>({});
   // La tarjeta que se está arrastrando (para el efecto "levantar") y la columna sobre la
   // que se está soltando (para el resaltado).
   const [arrastrando, setArrastrando] = useState<TarjetaDeal | null>(null);
   const [columnaHover, setColumnaHover] = useState<EtapaDeal | null>(null);
-  const [dialogo, setDialogo] = useState<MovimientoPendiente | null>(null);
+  // Soltar en una columna a la que llevan varias respuestas: se escoge entre ellas.
+  const [eleccion, setEleccion] = useState<{ tarjeta: TarjetaDeal; respuestas: Respuesta[] } | null>(null);
+  // El servidor ya escribió: se refresca la pantalla actual (router.refresh), NO
+  // revalidatePath, que no refresca la ruta que acaba de escribir (AGENTS.md).
+  const { elegir, dialogo } = useResponder(mapa, { areas, cohortes, motivos }, nombreDeEtapa, () => router.refresh());
 
-  // La etapa efectiva de una tarjeta: la optimista si la hay, o la real.
-  const etapaDe = (t: TarjetaDeal): EtapaDeal => movidoOptimista[t.dealId] ?? t.etapa;
-
-  function ejecutar(tarjeta: TarjetaDeal, flecha: FlechaCliente, datos: DatosDialogo) {
-    const etapaOriginal = tarjeta.etapa;
-    setMovidoOptimista((prev) => ({ ...prev, [tarjeta.dealId]: flecha.a }));
-    iniciar(async () => {
-      const r = await moverDeal({
-        dealId: tarjeta.dealId,
-        a: flecha.a,
-        motivoId: datos.motivoId ?? null,
-        datos: {
-          descuentoUsd: datos.descuentoUsd,
-          areaDeclaradaId: datos.areaDeclaradaId,
-          fechaLimitePago: datos.fechaLimitePago,
-          cohorteDestinoId: datos.cohorteDestinoId,
-          fechaSeguimiento: datos.fechaSeguimiento,
-        },
-      });
-      if (r.ok) {
-        toast.success(`Movido a ${nombreDeEtapa[flecha.a]}.`);
-        setDialogo(null);
-        // El servidor ya escribió: se refresca la pantalla actual (router.refresh),
-        // NO revalidatePath, que no refresca la ruta que acaba de escribir (AGENTS.md).
-        router.refresh();
-        // Se limpia la marca optimista tras el refresh: los datos nuevos ya reflejan el
-        // movimiento y dejarla haría un doble estado.
-        setMovidoOptimista((prev) => {
-          const copia = { ...prev };
-          delete copia[tarjeta.dealId];
-          return copia;
-        });
-      } else {
-        // Rechazo: la tarjeta vuelve a su columna y se dice QUÉ falta (los faltantes),
-        // no un genérico. La base no se movió (lo garantiza el motor).
-        setMovidoOptimista((prev) => {
-          const copia = { ...prev };
-          copia[tarjeta.dealId] = etapaOriginal;
-          delete copia[tarjeta.dealId];
-          return copia;
-        });
-        const detalle = r.faltantes.length > 0 ? r.faltantes.map((f) => f.mensaje).join(" ") : r.error;
-        toast.error(detalle, { duration: 6000 });
-      }
-    });
+  function dealDe(t: TarjetaDeal): DealQueResponde {
+    return {
+      dealId: t.dealId,
+      etapa: t.etapa,
+      pendiente: t.pendiente,
+      nombreLead: t.nombreLead ?? t.emailLead,
+      rutaDeLaFicha: `/p/${programaSlug}/deals/${t.dealId}`,
+      // La cohorte del deal; sin ella, la activa del programa (la que se le asignara al pagar).
+      fechaLimiteSugerida: t.cohortId ? (inicioDeClases[t.cohortId] ?? null) : inicioDeLaCohorteActiva,
+    };
   }
 
-  /** Elegir un destino: si la flecha pide datos, abre el diálogo; si no, mueve directo. */
-  function elegirDestino(tarjeta: TarjetaDeal, flecha: FlechaCliente) {
-    if (flechaPideDatos(flecha)) {
-      setDialogo({ tarjeta, flecha });
-    } else {
-      ejecutar(tarjeta, flecha, {});
-    }
-  }
-
-  function soltarEn(etapaDestino: EtapaDeal) {
+  function soltarEn(columna: EtapaDeal) {
     const tarjeta = arrastrando;
     setArrastrando(null);
     setColumnaHover(null);
-    if (!tarjeta) return;
-    const de = etapaDe(tarjeta);
-    if (de === etapaDestino) return;
-    const flecha = mapa.find((f) => f.de === de && f.a === etapaDestino);
-    if (!flecha || flecha.quien === "sistema") {
-      toast.error(
-        flecha
-          ? "Ese paso lo pone el sistema cuando pasa el hecho; no se arrastra a mano."
-          : `No se puede pasar de ${nombreDeEtapa[de]} a ${nombreDeEtapa[etapaDestino]}.`,
-      );
+    if (!tarjeta || tarjeta.etapa === columna) return;
+    const respuestas = respuestasHacia(tarjeta.etapa, tarjeta.pendiente, columna);
+    if (respuestas.length === 0) {
+      toast.error(`Desde ${nombreDeEtapa[tarjeta.etapa]} no se pasa a ${nombreDeEtapa[columna]}.`);
       return;
     }
-    elegirDestino(tarjeta, flecha);
+    if (respuestas.length === 1) elegir(dealDe(tarjeta), respuestas[0]);
+    else setEleccion({ tarjeta, respuestas });
   }
 
   return (
@@ -167,16 +114,9 @@ export function TableroKanban({
       <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 sm:snap-none">
         {columnas.map((columna) => {
           const destinoPermitido =
-            arrastrando != null && sePuedeArrastrar(mapa, etapaDe(arrastrando), columna.etapa);
-          const destinoProhibido =
-            arrastrando != null &&
-            etapaDe(arrastrando) !== columna.etapa &&
-            !sePuedeArrastrar(mapa, etapaDe(arrastrando), columna.etapa);
-
-          // Las tarjetas de esta columna según la etapa efectiva (optimista incluida).
-          const tarjetas = columnas
-            .flatMap((c) => c.tarjetas)
-            .filter((t) => etapaDe(t) === columna.etapa);
+            arrastrando != null && respuestasHacia(arrastrando.etapa, arrastrando.pendiente, columna.etapa).length > 0;
+          const destinoProhibido = arrastrando != null && arrastrando.etapa !== columna.etapa && !destinoPermitido;
+          const tarjetas = columna.tarjetas;
 
           return (
             <section
@@ -224,8 +164,7 @@ export function TableroKanban({
                     <TarjetaDealCard
                       key={tarjeta.dealId}
                       tarjeta={tarjeta}
-                      mapa={mapa}
-                      nombreDeEtapa={nombreDeEtapa}
+                      nombreDePendiente={nombreDePendiente}
                       programaSlug={programaSlug}
                       arrastrando={arrastrando?.dealId === tarjeta.dealId}
                       puedeMover={administra || tarjeta.ownerUserId === userId}
@@ -234,7 +173,7 @@ export function TableroKanban({
                         setArrastrando(null);
                         setColumnaHover(null);
                       }}
-                      onElegirDestino={(flecha) => elegirDestino(tarjeta, flecha)}
+                      onElegirRespuesta={(r) => elegir(dealDe(tarjeta), r)}
                     />
                   ))
                 )}
@@ -244,26 +183,26 @@ export function TableroKanban({
         })}
       </div>
 
-      {dialogo ? (
-        <DialogoMover
-          abierto={dialogo != null}
-          onAbrir={(v) => {
-            if (!v) setDialogo(null);
-          }}
-          flecha={dialogo.flecha}
-          etapaDestinoNombre={nombreDeEtapa[dialogo.flecha.a]}
-          nombreLead={dialogo.tarjeta.nombreLead ?? dialogo.tarjeta.emailLead}
-          areas={areas}
-          cohortes={cohortes}
-          motivos={motivos}
-          // La cohorte del deal; sin ella, la activa del programa (la que se le asignara al pagar).
-          fechaLimiteSugerida={
-            dialogo.tarjeta.cohortId ? (inicioDeClases[dialogo.tarjeta.cohortId] ?? null) : inicioDeLaCohorteActiva
-          }
-          pendiente={pendiente}
-          onConfirmar={(datos) => ejecutar(dialogo.tarjeta, dialogo.flecha, datos)}
-        />
+      {eleccion ? (
+        <DialogoForm
+          titulo={PREGUNTA_DE_ETAPA[eleccion.tarjeta.etapa].pregunta ?? "¿Qué pasó?"}
+          descripcion={eleccion.tarjeta.nombreLead ?? eleccion.tarjeta.emailLead}
+          pendiente={false}
+          onCerrar={() => setEleccion(null)}
+          deshabilitarConfirmar
+          confirmar={{ texto: "Elige una opción", enCurso: "Elige una opción", onClick: () => undefined }}
+        >
+          <BotonesDeRespuesta
+            respuestas={eleccion.respuestas}
+            onElegir={(r) => {
+              const { tarjeta } = eleccion;
+              setEleccion(null);
+              elegir(dealDe(tarjeta), r);
+            }}
+          />
+        </DialogoForm>
       ) : null}
+      {dialogo}
     </div>
   );
 }

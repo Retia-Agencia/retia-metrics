@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { ID_DE_SECCION, useAccionPedida } from "./accion-pedida";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fecha, fechaHoraEnBogota, hoyEnBogota, monto, pct, saldoLegible, usd } from "@/lib/format";
-import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
+import type { EtapaDeal } from "@/lib/deals/etapas";
 import type { FichaDeAbono, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import {
   anularAbonoAccion,
@@ -28,7 +29,7 @@ import { cn } from "@/lib/utils";
  * - **Abonado y saldo salen de `saldosDeDeals`** (ADR 0024); esta pantalla no suma abonos.
  *   Los abonos anulados se muestran tachados y no entran en ninguna cifra.
  * - El acuerdo de pago es TEXTO (ADR 0053): no hay cuotas pactadas que pintar.
- * - Registrar un abono mueve la etapa SOLO (Abonado o Completo, por el saldo): el closer
+ * - Registrar un abono mueve la etapa SOLO (Ganado Pago Parcial o Ganado Pagado Completo, por el saldo): el closer
  *   nunca mueve el deal a mano por dinero. El primer abono congela el ticket de la cohorte.
  */
 
@@ -43,9 +44,12 @@ export function FichaPago({
   opciones,
   puedeTrabajar,
   puedeRegistrar,
+  nombreDeEtapa,
 }: {
   ficha: FichaDeDeal;
   opciones: OpcionesDeFicha;
+  /** Del servidor: `lib/deals/etapas.ts` no entra al bundle del cliente. */
+  nombreDeEtapa: Record<EtapaDeal, string>;
   /** Su dueño o quien administra, sobre un deal que cuenta. */
   puedeTrabajar: boolean;
   /** Ademas trabaja leads (un gerente administra pero no registra plata, ADR 0003). */
@@ -54,6 +58,8 @@ export function FichaPago({
   const { pendiente, correr } = useAccion();
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
   const cerrar = () => setDialogo(null);
+  // "Pagó" en la pregunta de la etapa abre el abono: a ganado solo se entra con plata (ADR 0037).
+  useAccionPedida(["abono"], () => setDialogo({ tipo: "abono" }));
 
   const s = ficha.saldo;
   const moneda = s.moneda ?? "USD";
@@ -64,7 +70,7 @@ export function FichaPago({
   const abonosActivos = puedeRegistrar && !anulado && !cerrado;
 
   return (
-    <Card>
+    <Card id={ID_DE_SECCION.pago} className="scroll-mt-24">
       <CardHeader>
         <CardTitle>Facturación</CardTitle>
         {abonosActivos || (puedeTrabajar && !anulado) ? (
@@ -240,7 +246,7 @@ export function FichaPago({
         </ul>
       )}
 
-      {dialogo?.tipo === "abono" ? <DialogoAbono ficha={ficha} opciones={opciones} onCerrar={cerrar} /> : null}
+      {dialogo?.tipo === "abono" ? <DialogoAbono ficha={ficha} opciones={opciones} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "anular" ? <DialogoAnularAbono abono={dialogo.abono} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "acuerdo" ? <DialogoAcuerdo ficha={ficha} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "cohorte" ? <DialogoCohorte ficha={ficha} opciones={opciones} onCerrar={cerrar} /> : null}
@@ -276,7 +282,17 @@ function AccionesEnlacePago({ url }: { url: string }) {
   );
 }
 
-function DialogoAbono({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opciones: OpcionesDeFicha; onCerrar: () => void }) {
+function DialogoAbono({
+  ficha,
+  opciones,
+  nombreDeEtapa,
+  onCerrar,
+}: {
+  ficha: FichaDeDeal;
+  opciones: OpcionesDeFicha;
+  nombreDeEtapa: Record<EtapaDeal, string>;
+  onCerrar: () => void;
+}) {
   const { pendiente, correr } = useAccion();
   const [dia, setDia] = useState(hoyEnBogota());
   const [valor, setValor] = useState("");
@@ -308,7 +324,7 @@ function DialogoAbono({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opcio
                   !ficha.cohorte && r.cohorteAsignada == null
                     ? " El programa no tiene cohorte activa: el deal queda sin cohorte."
                     : "";
-                return `Abono registrado. ${r.movioElDeal ? `El deal pasó a ${NOMBRE_DE_ETAPA[r.etapa]}.` : ""}${sinCohorte}`.trim();
+                return `Abono registrado. ${r.movioElDeal ? `El deal pasó a ${nombreDeEtapa[r.etapa as EtapaDeal]}.` : ""}${sinCohorte}`.trim();
               },
               alExito: onCerrar,
             },
@@ -355,7 +371,7 @@ function DialogoAbono({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opcio
           </SelectContent>
         </Select>
       </Campo>
-      <Campo etiqueta="Comprobante (link)" ayuda="Sin comprobante el deal no pasa a Abonado.">
+      <Campo etiqueta="Comprobante (link)" ayuda="Sin comprobante el deal no pasa a Ganado.">
         <input type="url" className={claseInput} value={comprobante} onChange={(e) => setComprobante(e.target.value)} placeholder="https://drive.google.com/…" />
       </Campo>
     </DialogoForm>

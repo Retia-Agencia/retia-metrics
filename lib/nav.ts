@@ -113,7 +113,7 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
       icono: "calls",
       roles: ["gerente", "closer"],
     });
-    // Students: los deals en Abonado o Completo por cohorte (ticket 099). Reemplaza las
+    // Students: los deals en Ganado Pago Parcial o Ganado Pagado Completo por cohorte (ticket 099). Reemplaza las
     // pestañas `Estudiantes <cohorte>` de las hojas; mismo alcance que Deals.
     items.push({
       href: rutaDePrograma(programa, "students"),

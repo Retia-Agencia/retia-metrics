@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ID_DE_SECCION, useAccionPedida } from "./accion-pedida";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardAction } from "@/components/ui/card";
@@ -24,7 +25,7 @@ import { useAccion } from "./uso-accion";
  * - **Agregar** una llamada con su fecha (mueve a Agendado desde las etapas que la tabla permite).
  * - **Completar** la agendada que el sistema dejo sin fecha (la de Calendly).
  * - **Pegar el Grain** = "la llamada sucedio": un link y el deal pasa a Atendido.
- * - **Marcar fallida** (no_show o cancelada) = Pendiente Re-agenda. Desde Atendido pide motivo de re-agenda.
+ * - **Marcar fallida** (no_show o cancelada) = Re-agenda pendiente (PR1). Desde Atendido pide motivo de re-agenda.
  *
  * Las fechas se escriben en Bogota: el servidor arma el instante con `-05:00` explicito.
  */
@@ -75,9 +76,19 @@ export function FichaLlamadas({
 }) {
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
   const cerrar = () => setDialogo(null);
+  // La pregunta de la etapa llega aquí con el formulario ya elegido (ADR 0072): "Agendó" y
+  // "Se movió" agregan una llamada con fecha (el motor mueve a Agendado: E4, E7 o E9);
+  // "No asistió o canceló" marca fallida la cita vigente más reciente (PR1).
+  useAccionPedida(["agendar", "reprogramar", "fallida"], (accion) => {
+    if (accion !== "fallida") return setDialogo({ tipo: "agregar" });
+    const vigente = llamadas
+      .filter((c) => c.resultado === "agendada" && c.anuladoEn == null)
+      .sort((x, y) => (y.fechaAgenda?.getTime() ?? 0) - (x.fechaAgenda?.getTime() ?? 0))[0];
+    if (vigente) setDialogo({ tipo: "fallida", llamada: vigente });
+  });
 
   return (
-    <Card>
+    <Card id={ID_DE_SECCION.llamadas} className="scroll-mt-24">
       <CardHeader>
         <CardTitle>Llamadas</CardTitle>
         {puedeRegistrar ? (
@@ -294,7 +305,7 @@ function DialogoFallida({
   const { pendiente, correr } = useAccion();
   const [resultado, setResultado] = useState<"no_show" | "cancelada">("no_show");
   const [motivoId, setMotivoId] = useState<string | null>(null);
-  // Desde Atendido la flecha a Re-agenda exige un motivo de la lista de re-agenda (T29).
+  // Desde Atendido la flecha a Re-agenda exige un motivo de la lista de re-agenda (PR2).
   const pideMotivo = etapa === "atendido";
   const motivos = opciones.motivos.filter((m) => m.tipo === "reagenda");
   const resultados = [
@@ -304,7 +315,7 @@ function DialogoFallida({
   return (
     <DialogoForm
       titulo="La llamada no se dio"
-      descripcion="El deal pasa a Pendiente Re-agenda. No aparecer y cancelar avisando son cosas distintas: elige la que fue."
+      descripcion="El deal queda con Re-agenda pendiente. No aparecer y cancelar avisando son cosas distintas: elige la que fue."
       pendiente={pendiente}
       onCerrar={onCerrar}
       deshabilitarConfirmar={pideMotivo && !motivoId}
@@ -313,7 +324,7 @@ function DialogoFallida({
         enCurso: "Guardando…",
         onClick: () =>
           correr(() => marcarFallidaAccion({ callId: llamada.id, resultado, motivoId: pideMotivo ? (motivoId ?? undefined) : undefined }), {
-            exito: "Marcada: el deal pasó a Pendiente Re-agenda.",
+            exito: "Marcada: el deal quedó con Re-agenda pendiente.",
             alExito: onCerrar,
           }),
       }}

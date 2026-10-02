@@ -27,7 +27,7 @@ function uno(value: string | string[] | undefined): string | undefined {
 
 /**
  * La tab Students (ticket 099): reemplaza las pestañas `Estudiantes <cohorte>` de las hojas.
- * Un estudiante es un deal vigente en Abonado o Completo (ticket 063); la cohorte define la
+ * Un estudiante es un deal vigente en Ganado Pago Parcial o Ganado Pagado Completo (ticket 063); la cohorte define la
  * lista (Mani, 24-sep), y por defecto se ve la activa.
  *
  * Solo muestra y filtra: el onboarding se marca y la cohorte se cambia en la ficha del deal,
@@ -115,7 +115,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
               <p className="text-sm text-muted-foreground">
                 {cohortes.length === 0
                   ? "Este programa no tiene cohortes todavía. Créalas en Ajustes → Programas y cohortes."
-                  : "No hay estudiantes con estos filtros. Un deal aparece aquí cuando entra en Abonado o Completo."}
+                  : "No hay estudiantes con estos filtros. Un deal aparece aquí cuando entra en Ganado Pago Parcial o Ganado Pagado Completo."}
               </p>
             ) : (
               <ul className="divide-y divide-border">

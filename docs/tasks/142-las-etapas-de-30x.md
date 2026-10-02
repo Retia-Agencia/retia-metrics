@@ -57,6 +57,22 @@ las reglas de movimiento no se pueden reescribir. No se toca nada de etapas ante
 >   código viejo no lee el enum nuevo y el nuevo no lee el viejo. Hoy los closers aún no trabajan en el CRM (el
 >   corte es después), así que la ventana es tolerable.
 
+> **2-oct (madrugada), las tres tandas hechas en la rama `142-etapas-30x`:**
+> - **Tanda 1** (Codex, `75dfe98`): el motor. Codex había borrado tests de reglas vivas (abonos 31 → 4); se le devolvió
+>   y los restauró (441 tests). E7 pasó de "sistema" a "ambos" (error del brief: el historial perdía quién agregó la llamada).
+> - **Tanda 2** (Codex hasta quedarse sin cuota, cerrada por Claude, `8acf69d`): consumidores, `structure.md` §3, notas
+>   del sistema en el log del deal (Mani, 2-oct). Se restauró el camino PR2 de `marcarFallida` (Atendido + Re-agenda con
+>   motivo), que la tanda 1 había perdido sin que sus tests lo vieran.
+> - **Tanda 3** (Claude): la pregunta de la etapa en ficha, Kanban y Calls; `revisarMovimiento` (ensayo del motor);
+>   "Negocia" en Contactado (Mani, 2-oct, ADR 0072 enmendado). Recorrido en el navegador contra la base local, sin errores
+>   de consola.
+> - **0058 corregida** antes de aplicarse: un deal que nació directo en Re-agenda o Seguimiento caía en la puerta
+>   (Registrado + Re-agenda, combinación que el motor no produce). Producción no tiene ese caso hoy (3 en Re-agenda,
+>   los 3 venían de Agendado, medido en solo lectura); test en `tests/migracion-0058.test.ts`. Probada en Postgres 17
+>   real con la base local. ⚠️ Una base local que ya aplicó la 0058 vieja no la vuelve a correr.
+> - **Falta:** el ok de Mani para aplicar la 0058 en producción en el mismo momento que la rama llega a `main`, y el
+>   checkpoint verde. La cortesía (ADR 0071 p10) sigue sin decidir.
+
 ## Objetivo
 
 Que `deals.etapa` tenga las once etapas de 30X (`comercial.md` §4) y que `moverEtapa()` las mueva con los

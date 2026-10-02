@@ -171,7 +171,7 @@ export async function editarAcuerdoAccion(entrada: EntradaAcuerdo): Promise<Resu
 
 const esquemaActividad = z.object({
   dealId: id("Deal inválido."),
-  tipo: z.enum(["contacto", "nota"]),
+  tipo: z.enum(["contacto", "intento", "nota"]),
   canal: textoOpcional(z.string().max(60)),
   nota: z.string(),
 });
