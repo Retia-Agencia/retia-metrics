@@ -146,6 +146,21 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 | O1-h | los cabos del [117] (el [072] se cerró el 1-oct) | Alejo | la etapa de entrada | S |
 | O1-i | [150] tests rápidos: base migrada una vez por corrida | Mani | `tests/helpers/`, `vitest.config` | M |
 
+**Avance de la ola** (lo que ya está en `main` y espera el checkpoint verde para contar como hecho, §6):
+
+- **O1-d · [095], 1-oct** (`a60601a`, `54cb540`, `d13a95e`; cierre en su archivo): `/dashboard` es "Todos los
+  programas" y suma solo conteos y caja por moneda; tasas, metas y comisión van por programa. La garantía es de
+  tipo (`sumarConteos`, `sumarDinero`). Integra la cifra de shows sin Grain del [135] sin reimplementarla. Lo que
+  ve el paid trafficker queda para el [102]. El archivo caliente del dashboard queda libre.
+- **El CI de ese push salió rojo por dos tests de otros tickets**, arreglados por la sesión del 095:
+  `deal-etapas` (T7 pasó a "ambos" con el 135; lo arregló su sesión en `51f9e67`) y `origen-del-envio` (el
+  [139] cambió la forma de `fichaDeDeal(...).origen` a `{ envioId, fecha, calificacion, utm }` y el test seguía
+  esperando la vieja). 🩸 Los dos se colaron porque el nivel 1 de cada sesión corre **sus** tests, no los de
+  quien lee lo que cambió: antes de empujar un cambio de forma en una función de `lib/`, `rg` por sus lectores
+  en `tests/`.
+- **Primer checkpoint pendiente:** no hay ningún tag `cp-*` todavía. Debe salir de la punta con 095, 135, 139 y
+  150 juntos.
+
 **La cola de migraciones de la ola**, en este orden (una abierta a la vez):
 
 1. ✅ ~~Aplicar la **0057**~~ (quita `cohorts.trm_cohorte`): aplicada el 1-oct. La TRM del ROAS

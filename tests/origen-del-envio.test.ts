@@ -105,7 +105,11 @@ describe("el deal que abre la ingesta recuerda el envio que lo abrio", () => {
     const tarjeta = tablero.columnas.flatMap((c) => c.tarjetas)[0];
     expect([tarjeta.utmSource, tarjeta.utmMedium]).toEqual(["instagram", "stories"]);
     const ficha = await fichaDeDeal(db, programId, deal.id);
-    expect(ficha!.origen).toEqual(esperado);
+    // Desde el 139 la ficha devuelve el envío de origen con sus seis UTM crudos (`utmsDelEnvio`).
+    expect(ficha!.origen).toMatchObject({
+      envioId: deal.submissionOrigenId,
+      utm: { source: "instagram", medium: "stories", campaign: null },
+    });
   });
 
   it("un lead con deal Completo que vuelve a enviar abre un deal nuevo con el envio nuevo; el cerrado no cambia", async () => {
