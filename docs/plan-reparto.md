@@ -137,7 +137,7 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 | Sesión | Ticket | Dueño | Archivo caliente | Tamaño |
 |---|---|---|---|---|
 | O1-a | [135] Atendido sin Grain | Mani | el motor | S |
-| O1-b | [139] la ficha del deal por bloques | Mani | · | M |
+| O1-b | ✅ [139] la ficha del deal por bloques: en `main` local el 1-oct (`0eec9bf`, `81372a6`), **sin empujar y sin checkpoint**; recorrido visual hecho; lo que salió quedó en A-15 a A-18 | Mani | · | M |
 | O1-c | [140] crear un deal a mano | Alejo (propuesto, el dominio es de Mani) | · | M |
 | O1-d | [095] el dashboard con "todos" solo sumable | Mani | el dashboard | M |
 | O1-e | [100] la tab Programs | Alejo | · | M |
@@ -383,7 +383,7 @@ Backend puro.
 ### NC1 · El dinero del deal (lote 1 comercial) — abre el 1-oct
 
 > 1-oct: 132, 133, 134, 136, 137, 138 y 141 hechos. Lo que queda (135, 139, 140, el cierre del 072 y del 117 y el
-> manual) se repartió en la ola O1.
+> manual) se repartió en la ola O1. El 139 quedó en `main` local el 1-oct (falta el checkpoint).
 
 | Mani | Alejo |
 |---|---|
@@ -497,7 +497,9 @@ El [075] se parte en dos y cada uno revisa lo que construyó el otro.
 | → [091] · S | → 075: revisa las pantallas que hizo Mani · M |
 | → 075: revisa las pantallas que hizo Alejo · M | |
 
-- **Decidir antes:** cómo mandan el comprobante los closers (foto, link o PDF).
+- **Decidir antes:** cómo mandan el comprobante los closers (foto, link o PDF) · **A-18**: qué respuestas oculta el
+  bloque Perfil de la ficha del deal además de los `utm_*` (correo, WhatsApp, `variable:*` de Typeform).
+- **El 075 también recoge A-15, A-16 y A-17** (Facturación de la ficha del deal, del recorrido del 139).
 - **Al final, sesión principal:** [149], el manual de uso del CRM por rol, enlazado dentro del CRM (QD-7).
 - **Sale cuando:** criterio de UI escrito, recorrido completo en celular y escritorio, y el manual publicado.
 
