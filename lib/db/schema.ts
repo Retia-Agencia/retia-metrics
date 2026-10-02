@@ -29,52 +29,60 @@ import {
 export const rolEnum = pgEnum("rol", ["gerente", "closer", "developer"]);
 
 /**
- * Las once etapas del Deal (ADR 0037). Son un `pgEnum` —o sea TIPOS— y no un
- * catalogo editable, y eso NO contradice al ADR 0012: la regla de ese ADR es "si el
- * codigo decide segun el valor, es tipo", y aqui **todo** decide segun la etapa (el
- * embudo, quien es Student, la cartera vencida, los movimientos automaticos).
+ * Las once etapas del Deal: las de 30X desde el ticket 142 (ADR 0037, ADR 0070 a 0072).
+ * Son un `pgEnum` —o sea TIPOS— y no un catalogo editable, y eso NO contradice al ADR
+ * 0012: la regla de ese ADR es "si el codigo decide segun el valor, es tipo", y aqui
+ * **todo** decide segun la etapa (el embudo, quien es Student, la cartera vencida, los
+ * movimientos automaticos).
  *
  * Es la direccion contraria a `leads.estado`, que paso a texto por el ADR 0032
  * porque nadie decide con el. Las dos decisiones contestan la misma pregunta sobre
  * datos distintos.
  *
  * ⚠️ El orden de este arreglo **no es el orden de un embudo**: `cierre_perdido` es
- * alcanzable desde casi cualquier etapa y `pendiente_reagenda` es un retroceso
- * normal. Ninguna consulta debe comparar etapas por su posicion (ADR 0037).
- * `seguimiento` (la etapa 11) va al final porque Postgres agrega los valores
- * nuevos al final (migracion 0024), aunque en el camino viva despues de `atendido`:
- * el numero es un nombre, no el orden.
+ * alcanzable desde casi cualquier etapa y Potencial, Registrado y Calificado son tres
+ * puertas de entrada, no tres pasos. Ninguna consulta debe comparar etapas por su
+ * posicion (ADR 0037).
+ *
+ * Re-agenda, Seguimiento y Proxima Cohorte ya NO son etapas: son el Pendiente del deal
+ * (`pendienteDealEnum`, ADR 0070).
  *
  * Que movimiento entre ellas es legal NO vive aca: vive en `lib/deals/etapas.ts`
  * (ticket 043), como dato.
  */
 export const etapaDealEnum = pgEnum("etapa_deal", [
-  "pendiente_setteo",
-  "en_contacto",
-  "pendiente_reagenda",
+  "potencial",
+  "registrado",
+  "en_gestion",
+  "contactado",
+  "calificado",
   "agendado",
   "atendido",
   "compromiso_verbal",
-  "abonado",
-  "completo",
-  "proxima_cohorte",
+  "ganado_parcial",
+  "ganado_completo",
   "cierre_perdido",
-  "seguimiento",
 ]);
 
 /**
- * Que clase de contacto es una fila de `lead_contactos` (ADR 0035). Es tipo y no
- * catalogo porque el codigo decide con el: el correo es la llave del dedup y el
- * telefono solo UNE Y MARCA.
+ * Lo que el closer tiene que hacer con un deal que no avanzo (ADR 0070): re-agendar,
+ * hacer el seguimiento o esperar la proxima cohorte. Enum y no catalogo porque el codigo
+ * decide con el (Inbox, Kanban, la cita que mueve a Agendado). Un deal tiene a lo sumo
+ * uno (`deals.pendiente`, nullable) y poner uno NO mueve la etapa. Solo `moverEtapa()`
+ * lo escribe.
  */
+export const pendienteDealEnum = pgEnum("pendiente_deal", ["reagenda", "seguimiento", "proxima_cohorte"]);
+
 export const tipoContactoEnum = pgEnum("tipo_contacto", ["correo", "telefono"]);
 
 /**
- * Que clase de actividad quedo registrada sobre un deal (ADR 0037). Es tipo porque
- * el codigo decide con el: un `contacto` con fecha es lo que habilita la entrada a
- * la etapa En Contacto; una `nota` no mueve nada.
+ * Que clase de actividad quedo registrada sobre un deal (ADR 0037, ADR 0071). Es tipo
+ * porque el codigo decide con el: un `contacto` (logrado) con fecha mueve a Contactado;
+ * un `intento` (fallido) se cuenta para la alerta de los tres intentos (128). Los dos
+ * son actividad comercial y sacan a Potencial o Registrado hacia En gestion. Una `nota`
+ * no mueve nada. `intento` va al final porque Postgres agrega los valores al final.
  */
-export const tipoActividadEnum = pgEnum("tipo_actividad", ["contacto", "nota"]);
+export const tipoActividadEnum = pgEnum("tipo_actividad", ["contacto", "nota", "intento"]);
 
 /**
  * A que lista pertenece un motivo (Mani, 27-sep, ticket 103). Es TIPO y no catalogo
@@ -454,9 +462,10 @@ export const sources = pgTable(
  * - `valor`: el texto tal como lo manda el formulario (ADR 0004). Se compara con
  *   `lower(trim())`; el indice unico hace imposible que dos filas digan cosas distintas
  *   del mismo valor en un programa.
- * - `etapaEntrada`: Pendiente Setteo o Agendado; nulo = el valor se reconoce pero no abre
- *   deal. Entrar a Agendado exige leer la cita en Calendly (ADR 0057): sin cita vigente
- *   el deal nace en Pendiente Setteo con la nota del sistema.
+ * - `etapaEntrada`: Potencial, Registrado, Calificado o Agendado; nulo = el valor se reconoce
+ *   pero no abre deal. Entrar a Agendado exige leer la cita en Calendly (ADR 0057): sin cita
+ *   vigente el deal nace en Registrado con la nota del sistema. La tabla entera se retira con
+ *   el 117 enmendado (ADR 0069); el 142 solo traduce sus etapas.
  * - `alertaMinutos`: pasados esos minutos sin la completa de su token, el deal es urgente
  *   (118). Nulo = sin alerta.
  */
@@ -474,10 +483,10 @@ export const estadosLlegada = pgTable(
   },
   (t) => [
     uniqueIndex("estados_llegada_programa_valor_idx").on(t.programId, sql`lower(trim(${t.valor}))`),
-    /** Un deal solo nace en Pendiente Setteo o en Agendado (ADR 0037); nulo = no abre. */
+    /** Un deal solo nace en una puerta de entrada (ADR 0069); nulo = no abre. */
     check(
       "estados_llegada_etapa_de_entrada",
-      sql`${t.etapaEntrada} IS NULL OR ${t.etapaEntrada}::text IN ('pendiente_setteo', 'agendado')`,
+      sql`${t.etapaEntrada} IS NULL OR ${t.etapaEntrada}::text IN ('potencial', 'registrado', 'calificado', 'agendado')`,
     ),
     check("estados_llegada_alerta_positiva", sql`${t.alertaMinutos} IS NULL OR ${t.alertaMinutos} > 0`),
     check("estados_llegada_valor_no_vacio", sql`length(trim(${t.valor})) > 0`),
@@ -816,7 +825,7 @@ export const entregasWebhook = pgTable(
  * lo que ya se vendió.
  *
  * Derivados, nunca almacenados (ADR 0037 punto 6, ADR 0024): `abonado`, `saldo`,
- * `es_student` (`etapa in (abonado, completo)`) y la comision.
+ * `es_student` (`etapa in (ganado_parcial, ganado_completo)`) y la comision.
  *
  * ⚠️ `etapa` **no se escribe a mano desde ninguna parte**: el unico camino es
  * `moverEtapa()` de la etapa 2, que valida y escribe `dealEtapaHistorial`. Es la
@@ -839,7 +848,14 @@ export const deals = pgTable(
      * el closer reclama. El reparto ciego del script desaparece.
      */
     ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "restrict" }),
-    etapa: etapaDealEnum("etapa").notNull().default("pendiente_setteo"),
+    etapa: etapaDealEnum("etapa").notNull().default("registrado"),
+    /**
+     * El Pendiente del deal (ADR 0070): nulo = ninguno. Poner uno no mueve la etapa y todo
+     * cambio de etapa lo limpia. Sus datos viven en `fechaSeguimiento`, `cohorteDestinoId`
+     * y el motivo de la fila del historial que lo puso. Como `etapa`, solo lo escribe
+     * `moverEtapa()`.
+     */
+    pendiente: pendienteDealEnum("pendiente"),
     /**
      * El acuerdo de pago, como lo conversaron (ADR 0053): *"el otro 30% en tal fecha y
      * el 20% en tal otra"*. Texto libre y opcional: no hay cuotas en v1.
@@ -847,11 +863,11 @@ export const deals = pgTable(
     acuerdoPago: text("acuerdo_pago"),
     /**
      * La fecha limite de pago (ADR 0053). Es la "fecha prometida" que exige Compromiso
-     * Verbal (T4, T12, T25), y la cartera vencida es saldo > 0 con esta fecha pasada.
+     * Verbal, y la cartera vencida es saldo > 0 con esta fecha pasada.
      * Fecha de negocio de Bogota: `date`, sin hora.
      */
     fechaLimitePago: date("fecha_limite_pago"),
-    /** Cuando hay que volver a contactarlo: lo exige entrar a Seguimiento (T24). */
+    /** Cuando hay que volver a contactarlo: lo exige el pendiente Seguimiento (ADR 0070). */
     fechaSeguimiento: date("fecha_seguimiento"),
     /** Motivo del Cierre Perdido (catalogo, ADR 0015). Obligatorio al cerrar, no aqui. */
     motivoId: uuid("motivo_id").references(() => motivos.id, { onDelete: "restrict" }),
@@ -864,7 +880,7 @@ export const deals = pgTable(
     /**
      * Proxima Cohorte guarda las DOS cohortes (Mani, 27-sep, ticket 103): `cohortId`
      * sigue siendo la de origen, asi su conversion no pierde el deal, y esta es a la
-     * que va. Sin ella la etapa 9 es un cementerio (T19-T21, T28).
+     * que va (pendiente Proxima Cohorte, ADR 0070 punto 8).
      */
     cohorteDestinoId: uuid("cohorte_destino_id").references(() => cohorts.id, {
       onDelete: "restrict",
@@ -890,6 +906,12 @@ export const deals = pgTable(
      * monto nunca se guarda. Nulo = el programa no tenia % cargado al vender.
      */
     comisionPorcentaje: numeric("comision_porcentaje", { precision: 5, scale: 2 }),
+    /**
+     * Cortesia (ADR 0071 punto 10): un deal con 100% de descuento. Es Student como
+     * cualquiera, pero no cuenta en ventas, ni en la tasa de cierre, ni en la comision, y
+     * se ve aparte. El motor acepta valor vendido 0 SOLO con esta marca.
+     */
+    cortesia: boolean("cortesia").notNull().default(false),
     /**
      * Quien lo creo. **Nulo significa el sync**, igual que `changeLog.userId`: en
      * un movimiento del sistema no hay usuario, y un id inventado ahi seria peor
@@ -951,7 +973,7 @@ export const deals = pgTable(
      */
     uniqueIndex("deals_uno_abierto_por_lead_y_programa_idx")
       .on(t.leadId, t.programId)
-      .where(sql`${t.etapa} not in ('completo', 'cierre_perdido') and ${t.anuladoEn} is null`),
+      .where(sql`${t.etapa} not in ('ganado_completo', 'cierre_perdido') and ${t.anuladoEn} is null`),
     index("deals_programa_etapa_idx").on(t.programId, t.etapa),
     index("deals_owner_idx").on(t.ownerUserId),
     index("deals_cohorte_idx").on(t.cohortId),
@@ -988,6 +1010,13 @@ export const dealEtapaHistorial = pgTable(
     /** Nulo solo en la primera fila: el deal no venia de ninguna etapa. */
     de: etapaDealEnum("de"),
     a: etapaDealEnum("a").notNull(),
+    /**
+     * El Pendiente antes y despues del movimiento (ADR 0070 punto 5). Poner, cambiar o
+     * quitar un pendiente es un movimiento aunque la etapa no cambie: de aqui sale
+     * "cuantos deals pasaron por Re-agenda" y cuanto tardaron.
+     */
+    pendienteDe: pendienteDealEnum("pendiente_de"),
+    pendienteA: pendienteDealEnum("pendiente_a"),
     /** Nulo = lo movio el sistema (el sync, o un abono registrado). */
     userId: uuid("user_id").references(() => users.id, { onDelete: "restrict" }),
     /** Obligatorio para un retroceso y para el Cierre Perdido; lo exige el motor. */
