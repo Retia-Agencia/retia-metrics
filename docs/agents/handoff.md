@@ -174,7 +174,13 @@ empuja al mismo main y el numero de migracion puede chocar.
     del cambio; la suite completa la corre el CI. Propuesta abierta (ticket por crear): volcado migrado UNA vez
     por corrida en `globalSetup` (hoy es una vez por archivo, ~850 ms × 92), `vitest --changed` como bucle local
     y CI también en ramas.
-  - **Siguiente (NC1):** aplicar la 0057; 135 (Atendido sin Grain) y 139 (ficha por bloques, ya desbloqueado).
+  - 🔴 **CI EN ROJO desde el 132** (todo `main` desde las 18:47 del 1-oct): falla SOLO
+    `tests/abonos-concurrencia-postgres.test.ts` ("dos conexiones abonan 600 sobre un saldo de 600", espera un
+    abono y entran 0). Ese test corre solo con `DATABASE_URL_PRUEBA_POSTGRES` (en local se salta, por eso nadie lo
+    vio): su fixture no le da valor vendido ni cohorte con precio al deal, y desde el 132/134 el abono se
+    rechaza. Casi seguro es el fixture, no la reja; arreglarlo PRIMERO y correr ese archivo contra la base de
+    Docker (`DATABASE_URL_PRUEBA_POSTGRES` apuntando a ella), no la suite.
+  - **Siguiente (NC1):** CI en verde (arriba); aplicar la 0057; 135 (Atendido sin Grain) y 139 (ficha por bloques).
 
 - **2026-10-01 (Alejo, sesión 68): recorridos de 072 y 117, plantilla de PR, 126 parte A y 088.**
   - **072:** recorrido con clics en la base local: los filtros cuadran con la base, separar y confirmar, selector de
