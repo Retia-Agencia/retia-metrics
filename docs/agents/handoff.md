@@ -43,10 +43,10 @@ leer es libre, escribir pide el ok de Mani.
     `ps`). Esta vez el resultado sirve, pero el brief de la próxima delegación tiene que prohibirlo de forma explícita:
     si no puede correr `npm test`, que lo diga y los corre la sesión principal.
   - **Después (Mani):** el bloque se muestra mientras quede algo en cualquier ruta, no solo en el camino feliz
-    (hecho). Y quiere el **indicador del Kanban**: queda como lo que falta para cerrar el 128, con su decisión
-    abierta (lectura de hechos por lotes) escrita en el ticket.
-  - **Para retomar:** decidir la lectura por lotes y delegar el indicador; después, el checkpoint. Opcional: "se
-    perdió en el Calendly" como alerta roja de la ficha.
+    (hecho). El **indicador del Kanban** queda como opcional, si hay tiempo, y solo escalable (lectura por lotes):
+    no bloquea el cierre del 128.
+  - **Para retomar:** el checkpoint que incluya el 128 (con eso queda `done`). Opcionales: el indicador del Kanban
+    por lotes y "se perdió en el Calendly" como alerta roja de la ficha.
 - **2026-10-02 (mañana, Mani + Claude): checkpoint `cp-20261002-2` sobre `3f8509a` (CI verde, producción sirve ese commit).**
   - **Hecho:** 142 (Mani), 140, 100, 073 y 091 (Alejo) quedan `done`. El 117 sigue en curso: fase 1 (la etapa de
     entrada por agenda, calidad y parcial, `lib/ingesta/etapa-de-entrada.ts`) y fase 2 de código (nadie lee

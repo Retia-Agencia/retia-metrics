@@ -82,18 +82,17 @@ Sí, con revisión visual.
 - Tests: `tests/alertas-del-deal.test.ts` (amarillo contra el rechazo real de `moverEtapa`, rojo contra el Inbox en
   los dos sentidos). Corridos por Codex; en local la máquina no tenía aire tras rebasar sobre el 118, los valida el CI.
 
-## Falta para cerrar el 128: el indicador del Kanban (Mani lo quiere, 2-oct)
+## Opcional, si hay tiempo: el indicador del Kanban (Mani, 2-oct)
+
+**No bloquea el cierre del 128.** El ticket se cierra con el bloque de la ficha en el checkpoint verde.
 
 Qué es: en cada tarjeta del tablero de Deals, una marca chica que dice si ese deal tiene alertas **sin abrirlo**.
-Rojo con el número de urgentes si tiene alguno; si no, amarillo con el número de faltantes de su camino feliz; nada
-si no queda nada. Sirve para que el closer vea de un vistazo qué tarjetas atender primero.
+Rojo con el número de urgentes si tiene alguno; si no, amarillo con el número de faltantes; nada si no queda nada.
 
-- **Mismo origen que el bloque:** las cifras salen de lo mismo que `alertasDelDeal`, nunca de una regla nueva. La
-  tarjeta recibe solo `{ urgentes: number; faltan: number }` por props (cliente sin valores de `lib/`).
-- **Decisión abierta antes de delegar:** el tablero tiene muchos deals y `alertasDelDeal` lee el Inbox entero y los
-  hechos de UN deal. Para el tablero hace falta una versión por lotes: el Inbox una sola vez por pantalla, y los
-  hechos de todos los deals visibles sin una consulta por tarjeta (`leerHechos` es por deal). Hay que decidir si se
-  agrega una lectura por lotes de hechos en `lib/deals/` (y quién es dueño de ese archivo en la ola) o si se acepta
-  N consultas a esta escala.
+- **Solo se hace escalable** (Mani): una lectura POR LOTES, el Inbox una vez por pantalla y los hechos de todos los
+  deals visibles en una sola pasada (hoy `leerHechos` es por deal). Una consulta por tarjeta queda descartada.
+  Antes de delegar, ver quién es dueño de `lib/deals/` en la ola vigente.
+- **Mismo origen que el bloque:** las cifras salen de lo mismo que `alertasDelDeal`, nunca de una regla nueva; la
+  tarjeta recibe solo `{ urgentes: number; faltan: number }` por props.
 - **Done cuando:** un test compara el indicador con `alertasDelDeal` para los mismos deals (rojo, amarillo y nada), y
   el recorrido del tablero a 390 px con la consola abierta.
