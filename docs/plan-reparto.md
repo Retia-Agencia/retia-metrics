@@ -130,7 +130,7 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 | Qué | Quién | Destraba |
 |---|---|---|
 | ✅ ~~**QM-10**~~: cerrada el 1-oct por el [ADR 0070](./adr/0070-re-agenda-seguimiento-y-proxima-cohorte-son-pendientes-del-deal.md) (son **Pendientes** del deal, no etapas) | Mani | 142 → 143, 128, 118, el 117 enmendado, el `--aplicar` del 078, el corte, 148 |
-| **Manual de gestión comercial** (QD-8): **borrador en [`manual-gestion-comercial.md`](./manual-gestion-comercial.md) desde el 1-oct**; falta que Mani lo apruebe | Alejo → Mani | 142 y 143 (qué es obligatorio por etapa) |
+| ✅ ~~**Manual de gestión comercial** (QD-8)~~: aprobado el 2-oct; dudas contestadas en el [ADR 0071](./adr/0071-como-se-mueve-un-deal-por-las-etapas-de-30x.md) (D-7 queda para el 118) | Alejo → Mani | 142 y 143 (qué es obligatorio por etapa) |
 
 **Tickets listos, una sesión cada uno:**
 
@@ -168,8 +168,9 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 2. [092] con el **ADR 0068**: `sources.url_publica` y la fuente principal por programa. Sube de E8 a esta ola
    porque ComunicArte recibe por Typeform y por Dapta y hoy el CRM solo puede repartir un link.
 3. [102] el rol Paid Trafficker (valor nuevo del enum de roles).
-4. Cuando el manual esté (la QM-10 ya se cerró, ADR 0070): **el [142] salta al frente** y la cola se congela hasta que se aplique (toca el
-   enum de etapas, los requisitos y la traducción de todos los deals).
+4. ✅ El manual se aprobó el 2-oct (ADR 0071): **el [142] salta al frente** y la cola se congela hasta que se aplique (toca el
+   enum de etapas, los requisitos y la traducción de todos los deals). El 092 y el 102 esperan detrás, aunque su
+   código puede avanzar en su rama sin generar la migración.
 
 **No entran a O1** (y por qué): [128], [143], [118], [148], [065] esperan al 142 · [129] espera dos decisiones de
 Mani (están en el ticket) · [144] a [147] esperan QM-3, QM-5, QM-6, QM-7, QM-11 y GC-17 · [119], [120], [123],

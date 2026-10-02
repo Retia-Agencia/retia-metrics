@@ -8,7 +8,13 @@
 > **Para quién:** closers, gerencia y quien construya el 142. Está escrito para leerse sin saber de código;
 > las referencias técnicas van entre paréntesis para quien las necesite.
 >
-> **Estado: borrador del 1-oct-2026, para revisar con Mani.** No es un ADR y no decide nada que no esté
+> **Estado: aprobado el 2-oct-2026 por Mani**, con las dudas de §10 contestadas en el
+> [ADR 0071](./adr/0071-como-se-mueve-un-deal-por-las-etapas-de-30x.md) y la QM-10 en el
+> [ADR 0070](./adr/0070-re-agenda-seguimiento-y-proxima-cohorte-son-pendientes-del-deal.md). Donde este texto
+> diga 🟡 o 🔴 sobre algo que esos ADR deciden, mandan los ADR. Norte de 30X:
+> [`insumos/30x-ciclo-de-vida.md`](./insumos/30x-ciclo-de-vida.md).
+>
+> **Borrador del 1-oct-2026.** No es un ADR y no decide nada que no esté
 > decidido: junta lo que ya dicen `comercial.md`, los ADR vigentes y lo que se leyó del HubSpot de 30X
 > ([`insumos/hubspot-30x-workflow.md`](./insumos/hubspot-30x-workflow.md)), y **marca como pendiente** lo
 > que espera una decisión (QM-10, QM-12, QD-2 y las dudas de §10). Lo que este manual propone y nadie ha
@@ -429,6 +435,13 @@ Todas se calculan al leer: nada se guarda ni la apaga un clic (ADR 0024).
 ---
 
 ## 10. Dudas para Mani (contradicciones y huecos entre fuentes)
+
+> **Contestadas el 2-oct (ADR 0071):** D-1, primera actividad comercial → En gestión (no al reclamar) ·
+> D-2, el contacto logrado mueve a Contactado · D-3, seis botones · D-4 y D-10, avisos: los arregla el 142 ·
+> D-5, el deal a mano nace en En gestión · D-6, sin setter en v1 · D-8, el Parcial que desiste es Cierre
+> perdido · D-9, los cerrados sin monto entran a ganado y se corrigen con el equipo ya en vivo · QM-12,
+> cortesía = deal con 100% de descuento y marca. Además: los tres intentos se cuentan y alertan, no cierran
+> solos. **Sigue abierta la D-7**, que se decide con el 118 y no bloquea al 142.
 
 - **D-1. Cuándo pasa un deal a En gestión.** 30X lo mueve en minutos, pero solo si la ingesta ya le asignó
   dueño (W1). Aquí los deals nacen sin dueño y se reclaman (ADR 0037 punto 6). Si se mueve al nacer,

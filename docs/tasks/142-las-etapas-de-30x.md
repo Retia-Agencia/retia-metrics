@@ -3,7 +3,7 @@ id: 142
 etapa: NC2
 serves: "comercial.md R-1, GC-01, GC-03, GC-04, §4"
 depends: [QD-8]
-status: bloqueado
+status: todo
 ---
 
 # 142 — Las etapas de 30X: enum, transiciones, requisitos y la traducción en una migración
@@ -19,6 +19,13 @@ las reglas de movimiento no se pueden reescribir. No se toca nada de etapas ante
 > tres valores, a lo sumo uno por deal. El deal se queda en su etapa (salvo el retroceso de Compromiso Verbal, que
 > vuelve a la etapa previa del historial). Solo `moverEtapa()` escribe etapa y pendiente, y cada movimiento deja
 > huella en `deal_etapa_historial`. Este ticket ya no espera la QM-10; sigue esperando el manual (QD-8).
+
+> **2-oct, desbloqueado:** el manual de gestión comercial (QD-8) quedó aprobado y sus dudas, contestadas en el
+> [ADR 0071](../adr/0071-como-se-mueve-un-deal-por-las-etapas-de-30x.md): primera actividad → En gestión, contacto
+> logrado → Contactado, Calificado con dos entradas, deal a mano en En gestión, seis botones en Atendido, los tres
+> intentos se cuentan y alertan (con el 128), la cortesía es un deal con 100% de descuento y marca (el motor acepta
+> valor 0 solo con ella), y el Parcial que desiste es Cierre perdido. Las reglas por etapa están en el manual §3 y §4;
+> el norte de 30X, en `insumos/30x-ciclo-de-vida.md`.
 
 ## Objetivo
 
