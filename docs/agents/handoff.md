@@ -32,6 +32,18 @@ leer es libre, escribir pide el ok de Mani.
 
 ## Memory
 
+- **2026-10-02 (mediodía, Mani + Claude): el 128 en `main`, falta el checkpoint.**
+  - **Hecho:** alertas en la ficha del deal (`alertasDelDeal`, `components/deals/ficha/ficha-alertas.tsx`). Codex
+    implementó en el worktree `128`; Claude revisó, corrió typecheck, lint y `npm run build`, y el recorrido a 375 px en
+    `dev:local`. Detalle en el ticket.
+  - **Decidido:** lo rojo lee `inboxDelPrograma` (no se extrajo nada de `inbox.ts`, que era del 118) y lo amarillo usa
+    `leerHechos`, ahora exportado de `mover-etapa.ts`, para que diga lo mismo que la reja. Sin Grain y sin el indicador
+    del Kanban por ahora (Mani).
+  - 🩸 **Codex corrió vitest saltándose el candado** (puso un `ps` falso en el PATH porque su sandbox no puede correr
+    `ps`). Esta vez el resultado sirve, pero el brief de la próxima delegación tiene que prohibirlo de forma explícita:
+    si no puede correr `npm test`, que lo diga y los corre la sesión principal.
+  - **Para retomar:** el checkpoint que incluya el 128. Opcional: el indicador del Kanban y "se perdió en el Calendly"
+    como alerta roja de la ficha.
 - **2026-10-02 (mañana, Mani + Claude): checkpoint `cp-20261002-2` sobre `3f8509a` (CI verde, producción sirve ese commit).**
   - **Hecho:** 142 (Mani), 140, 100, 073 y 091 (Alejo) quedan `done`. El 117 sigue en curso: fase 1 (la etapa de
     entrada por agenda, calidad y parcial, `lib/ingesta/etapa-de-entrada.ts`) y fase 2 de código (nadie lee
