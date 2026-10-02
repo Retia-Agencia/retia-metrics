@@ -16,7 +16,7 @@ import { crearConRastro, crearVariosConRastro, editarConRastro } from "@/lib/crm
 import { esViolacionUnica } from "@/lib/db/errores";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
-import type { Rol } from "@/lib/auth/roles";
+import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { ETAPAS_VENDIDAS } from "@/lib/queries/metricas-filtros";
@@ -285,7 +285,8 @@ async function escribirDatos(tx: Db, deal: FilaDeal, mov: Movimiento): Promise<F
  * Donde puede NACER un deal, y quien puede abrirlo ahi (ticket 047; `structure.md` §2.1).
  *
  * - Una persona abre a mano (el lead que llego por WhatsApp, ADR 0044) en Pendiente
- *   Setteo, En Contacto o Compromiso Verbal, y el deal nace con ella de dueña.
+ *   Setteo, En Contacto o Compromiso Verbal, y el deal nace con ella de dueña si trabaja
+ *   leads; el de un gerente nace sin dueño (`duenoAlNacer`, ticket 140).
  * - El sistema abre en Pendiente Setteo (calificó y no agendó) o en Agendado (llego con
  *   agenda); lo usan el 052 y el 096.
  *
@@ -306,7 +307,7 @@ export interface AltaDeDeal {
   fechaLimitePago?: string | null;
   cohortId?: string | null;
   submissionOrigenId?: string | null;
-  /** Solo el sistema lo pasa (el host de Calendly, ADR 0049). A mano, el dueño es quien crea. */
+  /** Solo el sistema lo pasa (el host de Calendly, ADR 0049). A mano, el dueño es quien crea si trabaja leads. */
   ownerUserId?: string | null;
 }
 
@@ -374,7 +375,7 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
           leadId: alta.leadId,
           programId: alta.programId,
           etapa: alta.etapa,
-          ownerUserId: usuario ?? alta.ownerUserId ?? null,
+          ownerUserId: duenoAlNacer(alta),
           areaDeclaradaId: alta.areaDeclaradaId ?? null,
           fechaLimitePago: alta.fechaLimitePago ?? null,
           cohortId,
@@ -392,6 +393,17 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
     await tx.insert(dealEtapaHistorial).values({ dealId: id, de: null, a: alta.etapa, userId: usuario });
     return id;
   });
+}
+
+/**
+ * El dueño con el que nace un deal. A mano, quien lo crea, pero solo si TRABAJA LEADS
+ * (closer o developer, `trabajaLeads`): un gerente administra y no vende (ADR 0003), asi
+ * que el deal que el abre nace sin dueño y cae al Inbox para que un closer lo reclame
+ * (ticket 140). El sistema pasa el suyo (el host de Calendly, ADR 0049) o ninguno.
+ */
+function duenoAlNacer(alta: AltaDeDeal): string | null {
+  if (alta.actor.tipo === "usuario") return trabajaLeads(alta.actor.rol) ? alta.actor.userId : null;
+  return alta.ownerUserId ?? null;
 }
 
 /**

@@ -3,7 +3,7 @@ id: 140
 etapa: NC1
 serves: "comercial.md §9.1 (Mani, 1-oct)"
 depends: []
-status: todo
+status: done
 ---
 
 # 140 — Crear un deal a mano
@@ -28,10 +28,17 @@ Que un closer, gerente o developer cree un deal desde la app, como el "Add deals
 
 ## Done cuando
 
-- [ ] Crear un deal sobre un lead sin deal abierto lo deja en su etapa de entrada con rastro.
-- [ ] Sobre un lead con deal abierto, el mensaje enlaza al existente y la base no se mueve.
-- [ ] La acción forjada contra un programa sin membresía responde 404/403 y no escribe.
+- [x] Crear un deal sobre un lead sin deal abierto lo deja en su etapa de entrada con rastro.
+- [x] Sobre un lead con deal abierto, el mensaje enlaza al existente y la base no se mueve.
+- [x] La acción forjada contra un programa sin membresía responde 404/403 y no escribe.
 
 ## Codex
 
 Sí, esfuerzo `medium`.
+
+## Hecho (1-oct)
+
+- `lib/deals/crear-a-mano.ts` (`crearDealAMano`): alcance del programa (404 fuera), lead existente del programa o alta manual (`crearPersonaManual`), rechazo `DealYaAbierto` con el id del abierto (lectura previa para el mensaje; el índice sigue siendo la reja y en una carrera se relee), y el deal lo abre `abrirDeal` en `ETAPA_DE_ENTRADA` (Pendiente Setteo).
+- `abrirDeal` (`duenoAlNacer`): a mano, el dueño es quien crea solo si `trabajaLeads`; el deal de un gerente nace sin dueño y cae al Inbox.
+- Server action `crearDeal` en `app/(app)/p/[programa]/deals/acciones.ts`; botón "Nuevo deal" (`components/deals/nuevo-deal.tsx`) en el encabezado del tablero de Deals. "Lead nuevo" solo se ofrece a quien trabaja leads (ADR 0003).
+- Tests: `tests/crear-deal-a-mano.test.ts` (14), por la acción real forjada.

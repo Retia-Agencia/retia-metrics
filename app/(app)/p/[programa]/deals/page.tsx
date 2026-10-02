@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador } from "@/lib/auth/roles";
+import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
@@ -12,6 +12,8 @@ import { FiltroKanban } from "@/components/deals/filtro-kanban";
 import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
 import { TableroKanban } from "@/components/deals/tablero-kanban";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
+import { NuevoDeal } from "@/components/deals/nuevo-deal";
+import { ETAPA_DE_ENTRADA } from "@/lib/deals/crear-a-mano";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +56,14 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
     <PageShell
       titulo={programa.nombre}
       descripcion="Deals · tablero"
+      acciones={
+        <NuevoDeal
+          programId={programa.id}
+          programaSlug={programa.slug}
+          nombreEtapaDeEntrada={NOMBRE_DE_ETAPA[ETAPA_DE_ENTRADA]}
+          puedeCrearLead={trabajaLeads(rol)}
+        />
+      }
     >
       <div className="space-y-4">
         <FiltroFechaLista campos={CAMPOS_DE_FECHA} filtro={filtros.fecha ?? null} />

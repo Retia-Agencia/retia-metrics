@@ -15,6 +15,7 @@ import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
 import type { RequisitoFaltante } from "@/lib/deals/requisitos";
 import { esquemaDescuentoUsdOpcional } from "@/lib/deals/valor-vendido";
+import { crearDealAMano, DealYaAbierto, type EntradaDealAMano } from "@/lib/deals/crear-a-mano";
 
 /**
  * Server action del Kanban (ticket 069): mover un deal de etapa.
@@ -104,4 +105,34 @@ function aResultado(error: unknown): { ok: false; error: string; faltantes: Requ
   if (error instanceof ErrorDeApp) return { ok: false, error: error.message, faltantes: [], status: error.status };
   console.error("[deals] error no controlado al mover", error);
   return { ok: false, error: "Error interno.", faltantes: [], status: 500 };
+}
+
+export type ResultadoCrearDeal =
+  | { ok: true; dealId: string; leadCreado: boolean }
+  /** `dealExistenteId`: el deal abierto que ya tiene el lead, para enlazarlo (ticket 140). */
+  | { ok: false; error: string; status: number; dealExistenteId?: string };
+
+/**
+ * Crear un deal a mano (ticket 140). La guarda de la ruta es la misma del Kanban; el
+ * alcance del programa, el lead y la reja del deal abierto los decide `crearDealAMano`,
+ * que abre el deal por el motor (`abrirDeal`). El actor sale de la sesion con el ROL DE
+ * VISTA (ticket 028), y el `closerId` de la sesion (ADR 0011), nunca del input.
+ */
+export async function crearDeal(entrada: EntradaDealAMano): Promise<ResultadoCrearDeal> {
+  try {
+    const session = await requireRole("gerente", "closer");
+    const { userId, rol } = await actorDe(session);
+    const r = await crearDealAMano(db, { userId, rol, closerId: session.user.closerId ?? null }, entrada);
+    return { ok: true, dealId: r.dealId, leadCreado: r.leadCreado };
+  } catch (error) {
+    if (error instanceof DealYaAbierto) {
+      return { ok: false, error: error.message, status: error.status, dealExistenteId: error.dealId };
+    }
+    if (error instanceof ErrorDeApp) return { ok: false, error: error.message, status: error.status };
+    if (error instanceof z.ZodError) {
+      return { ok: false, error: error.issues[0]?.message ?? "Petición inválida.", status: 400 };
+    }
+    console.error("[deals] error no controlado al crear", error);
+    return { ok: false, error: "Error interno.", status: 500 };
+  }
 }
