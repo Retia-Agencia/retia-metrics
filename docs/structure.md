@@ -112,7 +112,7 @@ flowchart TD
 | Nuevo envío de un lead con deal abierto | se guarda, se avisa al dueño, la etapa no cambia | ADR 0037 |
 | Envío parcial y luego su completa | se guardan los dos; la completa manda | ADR 0036 |
 | Teléfono igual, correo distinto | se une al lead existente y se marca para revisión | ADR 0035 |
-| Lead a mano | nace en 1, 2 o 6 con dueño = quien lo crea; no genera envío | ADR 0044 |
+| Lead a mano | su deal nace en En gestión con dueño = quien lo crea; no genera envío | ADR 0044, ADR 0071 punto 6 |
 | Deal a mano ("Nuevo deal" del tablero) | sobre un lead del programa (o creado con el alta manual), nace en En gestión por `abrirDeal`, con quien lo crea como dueño; si el lead ya tiene deal abierto, se enlaza ese | ticket 140, ADR 0037, ADR 0071 punto 6 |
 | El lead vuelve a aplicar con su deal cerrado | deal nuevo; la ficha muestra los anteriores | ADR 0037 |
 | Lead que ya existía antes del corte | no abre deal por la ingesta: entra con la migración, con su estado de gestión | ADR 0037 |
