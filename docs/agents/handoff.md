@@ -32,6 +32,21 @@ leer es libre, escribir pide el ok de Mani.
 
 ## Memory
 
+- **2026-10-02 (mañana, Mani + Claude): checkpoint `cp-20261002-2` sobre `3f8509a` (CI verde, producción sirve ese commit).**
+  - **Hecho:** 142 (Mani), 140, 100, 073 y 091 (Alejo) quedan `done`. El 117 sigue en curso: fase 1 (la etapa de
+    entrada por agenda, calidad y parcial, `lib/ingesta/etapa-de-entrada.ts`) y fase 2 de código (nadie lee
+    `estados_llegada`; la alarma pasa a "sin calidad") están en `main`; falta la migración que retira la tabla.
+  - **Revisado en este checkpoint:** el 117 se monta limpio sobre la regla del 142 (`decidirAccionDeDeal` igual, la
+    etapa de entrada pasa a ser pura). Producción sana (lecturas): 114 formularios y 39 eventos de Calendly en 24 h, 4
+    sobres con error viejos (1-oct); 38 deals nacidos hoy, todos por el motor (29 Registrado, 8 Agendado, 1 Calificado).
+    Recorrido de 073 y 091 en la base local (los dejaban a la sesión principal), con dos arreglos de la ficha del lead:
+    el correo de Contactos se partía letra por letra y el badge "Sin estado" pasó a "Sin calidad".
+  - **Abierto (de Mani, lo dejó Alejo en el 117):** (1) un parcial Low nace en Potencial; (2) un parcial sin calidad
+    que después manda su completa High sin agenda **se queda en Potencial**, porque el motor no tiene Potencial →
+    Calificado y un deal abierto no cambia de etapa por un reenvío. 🟡 en el manual §3.1. Además: 13 completos de
+    Typeform sin calidad en 3 días, así que las dos fuentes de Typeform van a salir con la alarma "sin calidad".
+  - **Para retomar:** la ola tiene libres 143, 128 y 118 (Mani) y la cola de migraciones 092 → 102; el 117 pide el ok
+    de Mani para su migración y para reprocesar los 23 de Tactical.
 - **2026-10-02 (madrugada, Mani + Claude): el 142 completo en `main` y la 0058 aplicada en producción.**
   - **Hecho:** tanda 1 (Codex) el motor en `lib/deals/`; tanda 2 (Codex, cerrada por Claude al quedarse sin cuota)
     los consumidores y `structure.md` §3; tanda 3 (Claude) la pregunta de la etapa en ficha, Kanban y Calls (ADR 0072),
@@ -3844,6 +3859,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   con la pregunta, solo alertas, Lead Value ordena). Para retomarlo: el 142 a Codex con `/delegate` (la migración la genera y aplica la sesión principal),
   y el orden hasta el corte está en el manual §0. **Al 2-oct (madrugada): el 142 completo en `main` y la 0058
   aplicada en producción; falta el checkpoint verde.**
+- ✅ **2-oct, checkpoint `cp-20261002-2`** (`3f8509a`, CI verde, producción sirve ese commit): 142, 140, 100, 073 y
+  091 done. Desbloqueados 143, 128 y 118.
 - ✅ **2-oct, checkpoint `cp-20261002-1`** (`526a105`, CI verde, producción sirve ese commit): 139 y 150 done
   (095 y 135 ya estaban en `cp-20261001-1`).
 - 🌊 **1-oct: olas y checkpoints** (`docs/plan-reparto.md` §1, §4 a §6). Ola O1 abierta; camino crítico: QM-10 y el
