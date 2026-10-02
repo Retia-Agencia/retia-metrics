@@ -604,7 +604,6 @@ export async function sembrarLocal(): Promise<void> {
     fechaInicioClases: "2026-11-01",
     fechaInicioVentas: "2026-09-01",
     fechaCierreVentas: "2026-10-31",
-    trmCohorte: "4100.00",
     estado: "activo",
   });
 
@@ -616,7 +615,6 @@ export async function sembrarLocal(): Promise<void> {
     fechaInicioClases: "2026-11-15",
     fechaInicioVentas: "2026-09-01",
     fechaCierreVentas: "2026-11-14",
-    trmCohorte: "4100.00",
     estado: "activo",
   });
 

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { num, usd } from "@/lib/format";
+import { usd } from "@/lib/format";
 import {
   activarCohorteAccion,
   crearCohorteAccion,
@@ -39,7 +39,6 @@ export interface CohorteVista {
   fechaInicioClases: string;
   fechaInicioVentas: string | null;
   fechaCierreVentas: string;
-  trmCohorte: string;
   estado: Estado;
 }
 
@@ -51,7 +50,6 @@ interface Borrador {
   fechaInicioClases: string;
   fechaInicioVentas: string;
   fechaCierreVentas: string;
-  trmCohorte: string;
   estado: Estado;
 }
 
@@ -63,7 +61,6 @@ const BORRADOR_VACIO: Borrador = {
   fechaInicioClases: "",
   fechaInicioVentas: "",
   fechaCierreVentas: "",
-  trmCohorte: "4000",
   estado: "futuro",
 };
 
@@ -76,7 +73,6 @@ function aBorrador(c: CohorteVista): Borrador {
     fechaInicioClases: c.fechaInicioClases,
     fechaInicioVentas: c.fechaInicioVentas ?? "",
     fechaCierreVentas: c.fechaCierreVentas,
-    trmCohorte: c.trmCohorte,
     estado: c.estado,
   };
 }
@@ -170,8 +166,8 @@ export function CohortesAdmin({
                       </Badge>
                     </span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      meta {c.metaCupos} · precio {usd(Number(c.precioUsd))} · TRM {num(Number(c.trmCohorte), 2)} ·{" "}
-                      {c.fechaInicioClases} → {c.fechaCierreVentas}
+                      meta {c.metaCupos} · precio {usd(Number(c.precioUsd))} · ventas {c.fechaInicioVentas ?? "—"} →{" "}
+                      {c.fechaCierreVentas} · clases {c.fechaInicioClases}
                     </span>
                   </div>
                   <span className="flex items-center gap-1">
@@ -229,7 +225,6 @@ function aEntrada(b: Borrador, programId: string) {
     fechaInicioClases: b.fechaInicioClases,
     fechaInicioVentas: b.fechaInicioVentas === "" ? null : b.fechaInicioVentas,
     fechaCierreVentas: b.fechaCierreVentas,
-    trmCohorte: b.trmCohorte,
     estado: b.estado,
   };
 }
@@ -328,18 +323,6 @@ function FormularioCohorte({
               required
               className={claseInput}
               aria-label="Precio en USD"
-            />
-          </label>
-
-          <label className="block space-y-1 text-sm">
-            <span className="text-muted-foreground">TRM de la cohorte (COP/USD)</span>
-            <input
-              value={borrador.trmCohorte}
-              onChange={(e) => setBorrador({ ...borrador, trmCohorte: e.target.value })}
-              inputMode="decimal"
-              required
-              className={claseInput}
-              aria-label="TRM de la cohorte"
             />
           </label>
 

@@ -163,7 +163,18 @@ empuja al mismo main y el numero de migracion puede chocar.
   - **Datos (con ok de Mani):** 208 deals sin cohorte → C2 (script con rastro y nota); Mani creó las C3 y 214
     deals vivos (ninguno con abonos) pasaron a la C3 por `cambiarCohorte` con motivo. Ojo: la C3 de ComunicArte
     tiene inicio de ventas el 22-oct estando activa el 1-oct; confirmar con Mani.
-  - **Siguiente (NC1):** 135 (Atendido sin Grain) y 139 (ficha por bloques, ya desbloqueado).
+  - **TRM retirada (Mani):** fuera del formulario, del catálogo y del esquema de cohortes; las tarjetas de
+    cohorte muestran "ventas inicio → fin · clases". **La migración 0057 (DROP `cohorts.trm_cohorte`) está
+    commiteada pero NO aplicada:** aplicarla cuando Vercel sirva este commit (la columna tiene default 4000, así
+    que dejarla un rato no rompe nada). Lint, typecheck y build limpios; la suite local no terminó (ver abajo) y
+    la valida el CI de este push. Mani corrigió la fecha de inicio de ventas de la C3 de ComunicArte.
+  - 🩸 **La suite completa local ya no es sostenible:** se cortó 3 veces a los 480 s. Causa medida: la Mac con
+    16,5 GB de swap de 17,4 (7 días sin reiniciar) más ~92 archivos que levantan PGlite y aplican las 57
+    migraciones cada uno. Mani: *"NO SE PUEDEN CORRER MÁS FULL SUITES"*. Desde ahora: local solo los archivos
+    del cambio; la suite completa la corre el CI. Propuesta abierta (ticket por crear): volcado migrado UNA vez
+    por corrida en `globalSetup` (hoy es una vez por archivo, ~850 ms × 92), `vitest --changed` como bucle local
+    y CI también en ramas.
+  - **Siguiente (NC1):** aplicar la 0057; 135 (Atendido sin Grain) y 139 (ficha por bloques, ya desbloqueado).
 
 - **2026-10-01 (Alejo, sesión 68): recorridos de 072 y 117, plantilla de PR, 126 parte A y 088.**
   - **072:** recorrido con clics en la base local: los filtros cuadran con la base, separar y confirmar, selector de

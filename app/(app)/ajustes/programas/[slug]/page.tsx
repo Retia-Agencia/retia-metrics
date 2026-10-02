@@ -35,14 +35,13 @@ export default async function CohortesPage({ params }: Props) {
     fechaInicioClases: c.fechaInicioClases,
     fechaInicioVentas: c.fechaInicioVentas ?? null,
     fechaCierreVentas: c.fechaCierreVentas,
-    trmCohorte: String(c.trmCohorte),
     estado: c.estado,
   }));
 
   return (
     <PageShell
       titulo={`Cohortes · ${programa.nombre}`}
-      descripcion="Código, fechas, metas, precio de referencia y TRM. Máximo una cohorte activa por programa."
+      descripcion="Código, fechas, metas, precio de referencia. Máximo una cohorte activa por programa."
     >
       <CohortesAdmin slug={programa.slug} programId={programa.id} ticketUsd={String(programa.ticketUsd)} cohortes={vista} />
     </PageShell>

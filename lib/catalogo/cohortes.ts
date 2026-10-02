@@ -74,7 +74,6 @@ export const esquemaCohorte = z.object({
     .optional()
     .transform((v) => (v === undefined || v === "" ? null : v)),
   fechaCierreVentas: fechaIso("La fecha de cierre de ventas"),
-  trmCohorte: monto("La TRM"),
   estado: z.enum(estadoCohorteEnum.enumValues),
 }).superRefine((datos, ctx) => {
   // Una cohorte activa no puede quedar sin inicio de ventas (ADR 0022).

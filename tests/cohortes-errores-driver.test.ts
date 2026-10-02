@@ -75,7 +75,6 @@ function entrada(sobre: Partial<EntradaCohorte> = {}): EntradaCohorte {
     fechaInicioClases: "2026-10-01",
     fechaInicioVentas: "2026-09-01",
     fechaCierreVentas: "2026-09-30",
-    trmCohorte: "4000.00",
     estado: "futuro",
     ...sobre,
   } as EntradaCohorte;

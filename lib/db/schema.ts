@@ -325,8 +325,6 @@ export const cohorts = pgTable(
      * clases y otros hasta la vispera (ADR 0022).
      */
     fechaCierreVentas: date("fecha_cierre_ventas").notNull(),
-    /** Editable por cohorte. Los links de pago se generan manualmente segun la TRM del momento. */
-    trmCohorte: numeric("trm_cohorte", { precision: 10, scale: 2 }).notNull().default("4000"),
     estado: estadoCohorteEnum("estado").notNull().default("futuro"),
     notas: text("notas"),
   },
