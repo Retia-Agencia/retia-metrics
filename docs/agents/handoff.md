@@ -20,10 +20,10 @@ Tests: nivel 1 antes de cada push (typecheck, lint y los tests del ticket; nunca
 Push directo a main. La suite completa la valida un CHECKPOINT dos veces al dia (plan-reparto §6): nadie
 empuja mientras corre; verde = tag cp-AAAAMMDD-N; rojo = el culpable esta entre el ultimo tag y la punta.
 
-Ola vigente: O1 (plan-reparto §4). Camino critico de la v1 comercial: QM-10 (ADR de los estados dentro del
-deal, Mani) y el manual de gestion comercial (QD-8, Alejo) desbloquean el 142, y del 142 cuelgan 143, 128,
+Ola vigente: O1 (plan-reparto §4). Camino critico de la v1 comercial: el 142, DESBLOQUEADO el 2-oct (ADR 0070 y
+0071; el metodo es el ciclo de vida de 30X, docs/manual-gestion-comercial.md §0, con M-1 a M-6 por contestar antes), y del 142 cuelgan 143, 128,
 118, el 117 enmendado (ADR 0069), el --aplicar del 078, el corte y el 148. Cola de migraciones: 0057 aplicada;
-sigue 092 (ADR 0068) -> 102 -> el 142 cuando se destrabe. Abierta para E7: A12, el ROAS sin la TRM de la
+sigue el 142 al frente, despues 092 (ADR 0068) -> 102. Abierta para E7: A12, el ROAS sin la TRM de la
 cohorte (plan.md §7).
 
 Antes de una pantalla: docs/structure.md §9 (Tinta) y docs/anotaciones.md. Produccion es la unica base:
@@ -3806,9 +3806,14 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
+- 🎯 **2-oct, EL MÉTODO COMERCIAL: el ciclo de vida de 30X es como se maneja Retia** (Mani). Transcrito en
+  `docs/insumos/30x-ciclo-de-vida.md`; manual aprobado (`docs/manual-gestion-comercial.md`, su §0 es el punto de
+  entrada) y dudas D-1 a D-9 y QM-12 en el ADR 0071. **El 142 está desbloqueado y al frente de la cola de
+  migraciones (142 → 092 → 102).** Para retomarlo: primero M-1 a M-6 (manual §0, decisiones cortas que cambian el
+  diseño del 142), después el 142 a Codex con `/delegate` (la migración la genera y aplica la sesión principal),
+  y el orden hasta el corte está en el manual §0.
 - ✅ **2-oct, checkpoint `cp-20261002-1`** (`526a105`, CI verde, producción sirve ese commit): 139 y 150 done
-  (095 y 135 ya estaban en `cp-20261001-1`). Sigue: Mani contesta D-1, D-2, D-3 y D-5 del manual y lo aprueba
-  para destrabar el 142; la cola de migraciones sigue en el 092.
+  (095 y 135 ya estaban en `cp-20261001-1`).
 - 🌊 **1-oct: olas y checkpoints** (`docs/plan-reparto.md` §1, §4 a §6). Ola O1 abierta; camino crítico: QM-10 y el
   manual de gestión comercial (QD-8) → 142. Cola de migraciones: ~~0057~~ (aplicada el 1-oct) → 092 → 102 → 142. Manual de
   gestión comercial en borrador (Alejo, `docs/manual-gestion-comercial.md`): falta que Mani lo apruebe.

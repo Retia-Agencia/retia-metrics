@@ -25,6 +25,59 @@ decisión abierta · ⚫ lo hace 30X y aquí no se copia.
 
 ---
 
+## 0. El método de Retia desde el 2-oct: el ciclo de vida de 30X
+
+**Mani, 2-oct:** *el diagrama del ciclo de vida de 30X es como se maneja la gestión comercial en Retia.* Está
+transcrito en [`insumos/30x-ciclo-de-vida.md`](./insumos/30x-ciclo-de-vida.md). Donde Retia se aparta, lo dice
+un ADR: la etapa de entrada (0069), los pendientes (0070) y las reglas de movimiento (0071). Lo demás de este
+manual baja de ahí.
+
+**El manual en PDF de 30X (junio) no define las etapas** (el diagrama es más nuevo), pero sí trae las reglas
+alrededor de ellas, y esas sirven:
+
+| Del manual de 30X | En Retia | Dónde |
+|---|---|---|
+| *El comercial llena propiedades; el sistema mueve los deals* | el motor (`moverEtapa()`) ya es el único que escribe la etapa | ADR 0037; ver M-1 y M-2 |
+| Propiedades condicionales: cada etapa pide solo lo suyo | las propiedades obligatorias por etapa | 143, §6 |
+| Prioridad HVM × Lead Quality y tiempo de respuesta por etiqueta; 15 deals por bloque | el orden de la cola del closer | hub del closer (QD-12, 075); ver M-5 |
+| Flag DESATENDIDO (+2 días sin contacto, sin próximo paso, con contacto previo) | alerta calculada al leer, no mueve el deal | 128, 071 |
+| Reglas de oro (no arrastrar, registrar todo, motivo al perder, 3 intentos) | lo que se le enseña al closer en el corte | este manual; `operations.md` §12 |
+
+### Lo que falta decidir para dejarlo igual al diagrama (antes o durante el 142)
+
+- **M-1. Una pregunta de resultado por etapa.** En 30X cada etapa tiene UNA propiedad cuya respuesta mueve el
+  deal: intento de contacto (En gestión), resultado del contacto (Contactado), resultado de la calificación
+  (Calificado), estado de agenda (Agendado), resultado de reunión (Atendido), estado de negociación (Compromiso
+  Verbal). Hoy Retia solo la tiene en Atendido (los seis botones). ¿Se extiende a todas las etapas? Cambia la
+  ficha, el 142 y el 143.
+- **M-2. El arrastre del Kanban.** Hoy el tablero deja arrastrar (`components/deals/tablero-kanban.tsx`, pasando
+  por el motor). 30X: *nadie arrastra tarjetas*. ¿Se quita, o se queda como atajo del motor?
+- **M-3. Seguimiento fuera de Atendido.** En el diagrama, "Interesado" en Calificado se queda con próximo
+  contacto, y "Revisando propuesta" en Compromiso Verbal se queda con tareas a T+3 y T+6. El ADR 0070 solo pone
+  Seguimiento desde Atendido. ¿Se permite también en Calificado y en Compromiso Verbal?
+- **M-4. Las automatizaciones** (cadencia de WhatsApp 1 h/24 h/48 h al calificado que no agenda, recordatorios de
+  la cita 24 h/1 h/15 min, reintentos del no-show, nutrición de los perdidos, tareas a T+n). ¿Entran a la v1, por
+  Kapso, o la v1 solo muestra alertas y lo demás viene después?
+- **M-5. La prioridad.** 30X usa HVM × Lead Quality. Retia tiene Lead Quality y Lead Value (el ADR 0069 ya dice
+  que Lead Value ordena). ¿Lead Value hace de HVM, con las cuatro etiquetas y sus tiempos de respuesta?
+- **M-6. El origen del deal.** 30X lo pide obligatorio al entrar a Atendido; aquí el área declarada se pide en
+  Compromiso Verbal y en ganado (121). ¿Se adelanta a Atendido?
+- **D-7** (§10) sigue abierta y va con el 118.
+
+### El orden hasta tenerlo en vivo
+
+1. Contestar M-1 a M-6 (una sesión corta de `/grill-me`, ADR si cambian algo decidido).
+2. **142**, las once etapas en una migración (Codex implementa; la sesión principal genera y aplica la migración
+   con el ok de Mani).
+3. **143** propiedades por etapa y **128** alertas (con los tres intentos y DESATENDIDO).
+4. **117** enmendado (la etapa de entrada por agenda y calidad) y **118** (D-7).
+5. **078 `--aplicar`**: la migración de las hojas a las etapas nuevas.
+6. **El corte** (`operations.md` §12): los closers pasan a trabajar en el CRM = **hito B**.
+7. **148** el dashboard comercial y el hub del closer; **082** apagar las pestañas de gestión de las hojas a la
+   semana hábil del corte = **hito C**.
+
+---
+
 ## 1. En una página
 
 **Un deal es la oportunidad de venderle un programa a un lead.** Tiene un dueño, una etapa, una cohorte y,
