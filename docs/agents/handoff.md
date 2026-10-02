@@ -3806,6 +3806,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
+- ✅ **2-oct, checkpoint `cp-20261002-1`** (`526a105`, CI verde, producción sirve ese commit): 139 y 150 done
+  (095 y 135 ya estaban en `cp-20261001-1`). Sigue: Mani contesta D-1, D-2, D-3 y D-5 del manual y lo aprueba
+  para destrabar el 142; la cola de migraciones sigue en el 092.
 - 🌊 **1-oct: olas y checkpoints** (`docs/plan-reparto.md` §1, §4 a §6). Ola O1 abierta; camino crítico: QM-10 y el
   manual de gestión comercial (QD-8) → 142. Cola de migraciones: ~~0057~~ (aplicada el 1-oct) → 092 → 102 → 142. Manual de
   gestión comercial en borrador (Alejo, `docs/manual-gestion-comercial.md`): falta que Mani lo apruebe.

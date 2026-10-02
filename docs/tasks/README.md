@@ -62,7 +62,7 @@ parten en **dos lotes** por dependencia (`comercial.md` §8): el lote 1 no depen
 | [x] | 136 | [Selector de periodo A contra B, número y %](./136-selector-de-periodo-y-numero-y-porcentaje.md) | · | done · 1-oct · Alejo · selector en el dashboard; 137, 138 y 141 quedan listos |
 | [x] | 137 | [Toda cifra abre su lista](./137-toda-cifra-abre-su-lista.md) | 136 | done · 1-oct · Alejo · caja, shows, agendas, cierres y leads; "todos" en la consulta, la pantalla es del 095 |
 | [x] | 138 | [Deals creados contra agendas](./138-deals-creados-contra-agendas.md) | 136 | done · 1-oct · Alejo · acumulado por hábil A contra B en el dashboard; `deals_creados` y `agendas_creadas` abren su lista |
-| [ ] | 139 | [La ficha del deal por bloques](./139-ficha-del-deal-por-bloques.md) | 132, 134 | todo · enmienda el 074 · ola O1, sesión O1-b |
+| [x] | 139 | [La ficha del deal por bloques](./139-ficha-del-deal-por-bloques.md) | 132, 134 | done · 1-oct · Mani · checkpoint `cp-20261002-1` · enmienda el 074: cabecera con nombre derivado, Origen con los UTM crudos, Perfil, Lead y contactos, Log agrupado por objeto y momento, Facturación. El recorrido dejó A-15 a A-17 (al 075) y A-18 (E9) |
 | [ ] | 140 | [Crear un deal a mano](./140-crear-un-deal-a-mano.md) | · | todo · ola O1, sesión O1-c · propuesto para Alejo (el dominio es de Mani) |
 | [x] | 141 | [Filtros de fecha relativos en las listas](./141-filtros-de-fecha-relativos-en-listas.md) | 136 | done · 1-oct · Alejo · deals por creado, actividad y cierre; leads por creado y último envío; selector del 136 en modo solo A |
 
@@ -90,7 +90,7 @@ Lo nuevo de la ola O1 que no tenía ticket:
 
 | ✓ | # | Tarea | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 150 | [Tests rápidos: la base migrada una vez por corrida](./150-tests-rapidos-base-migrada-una-vez.md) | · | todo · ola O1, sesión O1-i · acelera los checkpoints |
+| [x] | 150 | [Tests rápidos: la base migrada una vez por corrida](./150-tests-rapidos-base-migrada-una-vez.md) | · | done · 1-oct · Mani · checkpoint `cp-20261002-1` · vitest en el CI 372 s → 274 s; migración rota revienta la corrida una vez; `npm run test:cambios` |
 | [x] | 0057 | Aplicar la migración 0057 (quita `cohorts.trm_cohorte`) en producción | · | done · 1-oct · Mani · aplicada con producción sirviendo `77665a1` (código sin la columna); 58 migraciones. El ROAS sin TRM queda abierto para E7 (`plan.md` §7) |
 
 ## Reparto para dos (28-sep a 1-oct, reemplazado por las olas)
@@ -273,7 +273,7 @@ Aquí es donde `estado` por fin se lee: cierra **F-01**, abierta desde agosto.
 | [x] | 088 | [Registros vs agendas por canal](./088-registros-vs-agendas-por-canal.md) | 049, 052, 085 | done · 1-oct · Alejo · reagrupa la serie de Pauta (093) por canal, con área y tasa; tarjeta en el dashboard |
 | [x] | 089 | [Series con dimensiones, no escalares](./089-series-con-dimensiones.md) | 064, 085 | done · 30-sep · Mani · `lib/queries/serie.ts` (tipo con `programId` obligatorio, `periodoAnterior`) y `hechosDelEmbudo` en `lib/queries/hechos-embudo.ts` (día × área × canal × dueño × cohorte; primer llamador real de `emparejar`); filtro `?area=` en el dashboard; `dashboard.ts` no se reescribió |
 | [ ] | 090 | [Rendimiento por área](./090-rendimiento-por-area.md) | 085, 088, 089 | todo · la vista de **Gerencia**. Estados con acción, no una tabla |
-| [ ] | 095 | [La tab Dashboard: un programa o "todos" solo con lo sumable](./095-dashboard-con-selector-y-todos-los-programas.md) | 064, 089, 094, 136, 137 | todo · 24-sep, ADR 0048 y 0050 · la garantía vive en el tipo · enmendado el 1-oct (ADR 0067) |
+| [x] | 095 | [La tab Dashboard: un programa o "todos" solo con lo sumable](./095-dashboard-con-selector-y-todos-los-programas.md) | 064, 089, 094, 136, 137 | done · 1-oct · Mani · checkpoint `cp-20261001-1` · `sumarConteos` y `sumarDinero`: "todos" solo suma conteos y caja por moneda; tasas, metas y comisión por programa. Lo del paid trafficker queda para el 102 |
 | [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) (E5-6) | 064, 065, 066, 067 | **congelado hasta aquí** · se descongela con el dashboard nuevo, no antes |
 
 ## E6 · UI

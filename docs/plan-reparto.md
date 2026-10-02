@@ -136,15 +136,15 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 
 | Sesión | Ticket | Dueño | Archivo caliente | Tamaño |
 |---|---|---|---|---|
-| O1-a | [135] Atendido sin Grain | Mani | el motor | S |
-| O1-b | ✅ [139] la ficha del deal por bloques: en `main` local el 1-oct (`0eec9bf`, `81372a6`), **sin empujar y sin checkpoint**; recorrido visual hecho; lo que salió quedó en A-15 a A-18 | Mani | · | M |
+| O1-a | ✅ [135] Atendido sin Grain (`cp-20261001-1`) | Mani | el motor | S |
+| O1-b | ✅ [139] la ficha del deal por bloques: done en `cp-20261002-1`; recorrido visual hecho; lo que salió quedó en A-15 a A-18 | Mani | · | M |
 | O1-c | [140] crear un deal a mano | Alejo (propuesto, el dominio es de Mani) | · | M |
-| O1-d | [095] el dashboard con "todos" solo sumable | Mani | el dashboard | M |
+| O1-d | ✅ [095] (`cp-20261001-1`) el dashboard con "todos" solo sumable | Mani | el dashboard | M |
 | O1-e | [100] la tab Programs | Alejo | · | M |
 | O1-f | [073] ficha del lead → [091] | Alejo | · | M + S |
 | O1-g | [066] Urgencias → [068] → [076] (lecturas) | Alejo | · | M + S + S |
 | O1-h | los cabos del [117] (el [072] se cerró el 1-oct) | Alejo | la etapa de entrada | S |
-| O1-i | ✅ [150] tests rápidos: base migrada una vez por corrida: en `main` el 1-oct (`0e65c15`, `4f6b63c`), CI verde (vitest 372 s → 274 s), **falta el checkpoint**; queda `npm run test:cambios` | Mani | `tests/helpers/`, `vitest.config` | M |
+| O1-i | ✅ [150] tests rápidos: base migrada una vez por corrida: en `main` el 1-oct (`0e65c15`, `4f6b63c`), CI verde (vitest 372 s → 274 s), done en `cp-20261002-1`; queda `npm run test:cambios` | Mani | `tests/helpers/`, `vitest.config` | M |
 
 **Avance de la ola** (lo que ya está en `main` y espera el checkpoint verde para contar como hecho, §6):
 
@@ -158,8 +158,8 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
   esperando la vieja). 🩸 Los dos se colaron porque el nivel 1 de cada sesión corre **sus** tests, no los de
   quien lee lo que cambió: antes de empujar un cambio de forma en una función de `lib/`, `rg` por sus lectores
   en `tests/`.
-- **Primer checkpoint pendiente:** no hay ningún tag `cp-*` todavía. Debe salir de la punta con 095, 135, 139 y
-  150 juntos.
+- **Checkpoints:** `cp-20261001-1` (`e5319e2`: 095 y 135) y `cp-20261002-1` (`526a105`: 139 y 150; producción
+  sirve ese commit).
 
 **La cola de migraciones de la ola**, en este orden (una abierta a la vez):
 

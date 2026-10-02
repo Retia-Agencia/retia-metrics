@@ -3,7 +3,7 @@ id: 139
 etapa: NC1
 serves: "comercial.md §9.3 · enmienda el 074"
 depends: [132, 134]
-status: todo
+status: done
 ---
 
 # 139 — La ficha del deal, reorganizada por bloques
@@ -27,10 +27,23 @@ Que el closer tenga a mano todo lo del deal en una pantalla, en el orden de §9.
 
 ## Done cuando
 
-- [ ] Todos los bloques cargan con datos reales de un deal de producción en la base local (`dev:local`).
-- [ ] Los UTM salen tal como llegaron (test sobre la consulta de la ficha).
-- [ ] Recorrido visual: abrir cada bloque y cada acción, 390 px, claro y oscuro, consola limpia.
+- [x] Todos los bloques cargan con datos reales de un deal de producción en la base local (`dev:local`).
+- [x] Los UTM salen tal como llegaron (test sobre la consulta de la ficha).
+- [x] Recorrido visual: abrir cada bloque y cada acción, 390 px, claro y oscuro, consola limpia.
 
 ## Codex
 
 Sí, esfuerzo `medium`, con revisión visual.
+
+## Cierre (1-oct, Mani; checkpoint `cp-20261002-1`)
+
+- **Hecho** (`0eec9bf`, `0c1ac3b`): cabecera con el nombre derivado (`lib/deals/nombre.ts`, nunca guardado),
+  valor vendido, ticket base, descuento y saldo; Origen con los seis UTM crudos por `utmsDelEnvio` (ADR 0004);
+  Perfil; Lead y contactos con copiar; Log de eventos; Facturación con el link de pago del programa.
+- **El log agrupa la bitácora por objeto y momento:** una fila de `change_log` por campo lo volvía ilegible
+  (crear un abono eran ~9 filas). Ahora es un evento por registro e instante, con los campos en un desplegable.
+- **Cambió la forma de `fichaDeDeal(...).origen`** a `{ envioId, fecha, calificacion, utm }`; el test de
+  `origen-del-envio` se actualizó en `e5319e2`.
+- **Queda:** lo que salió del recorrido visual, en `docs/anotaciones.md`: A-15 a A-17 van al 075; A-18 se
+  decide en E9. Las alertas del 128 no se tocaron.
+
