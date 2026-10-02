@@ -3,7 +3,7 @@ id: 072
 etapa: E6
 serves: "plan v2 §6 etapa 6 · tarea E6-4 · insumo §4.3, ADR 0032"
 depends: [069]
-status: en curso
+status: done
 ---
 
 # 072 — La base de Leads: lo que existe y todavia no es una oportunidad
