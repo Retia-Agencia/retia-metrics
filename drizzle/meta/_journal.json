@@ -414,6 +414,13 @@
       "when": 1790920809467,
       "tag": "0058_etapas-30x",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1790950040605,
+      "tag": "0059_retirar-estados-llegada",
+      "breakpoints": true
     }
   ]
 }
