@@ -10,17 +10,17 @@ import { MAPEO_FORMULARIO, type MapeoColumnas } from "../lib/sheets/mapeo";
 
 /**
  * Los Estados de llegada de hoy en los dos Typeform (ADR 0061):
- *  - `setteo_no_calificado`: completó sin pasar por el Calendly → Pendiente Setteo.
- *  - `con_calendly_sin_agenda`: el parcial previo al Calendly → Pendiente Setteo, alta, 5 min.
+ *  - `setteo_no_calificado`: completó sin pasar por el Calendly → Registrado.
+ *  - `con_calendly_sin_agenda`: el parcial previo al Calendly → Calificado, alta, 5 min.
  *  - `con_calendly`: lo pone el CRM cuando la pregunta de agenda trae link → Agendado.
- *  - `descartado`: mientras un formulario lo mande → Pendiente Setteo (Mani, 29-sep: todo
+ *  - `descartado`: mientras un formulario lo mande → Registrado (Mani, 29-sep: todo
  *    el que llena el formulario es contacto; el `lead_value` lo ordena al final).
  */
 export const ESTADOS_LLEGADA_BASE: readonly Omit<EntradaEstadoLlegada, "programId">[] = [
-  { valor: "setteo_no_calificado", etapaEntrada: "pendiente_setteo", prioridad: "normal", alertaMinutos: null },
-  { valor: "con_calendly_sin_agenda", etapaEntrada: "pendiente_setteo", prioridad: "alta", alertaMinutos: 5 },
+  { valor: "setteo_no_calificado", etapaEntrada: "registrado", prioridad: "normal", alertaMinutos: null },
+  { valor: "con_calendly_sin_agenda", etapaEntrada: "calificado", prioridad: "alta", alertaMinutos: 5 },
   { valor: "con_calendly", etapaEntrada: "agendado", prioridad: "normal", alertaMinutos: null },
-  { valor: "descartado", etapaEntrada: "pendiente_setteo", prioridad: "normal", alertaMinutos: null },
+  { valor: "descartado", etapaEntrada: "registrado", prioridad: "normal", alertaMinutos: null },
 ];
 
 /**

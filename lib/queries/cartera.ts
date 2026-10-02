@@ -67,7 +67,7 @@ export async function carteraVencida(db: Db, programId: string, hoy: string = ho
     .from(deals)
     .innerJoin(leads, eq(leads.id, deals.leadId))
     .leftJoin(cohorts, and(eq(cohorts.id, deals.cohortId), eq(cohorts.programId, deals.programId)))
-    .where(and(eq(deals.programId, programId), eq(deals.etapa, "abonado"), vigente(deals)));
+    .where(and(eq(deals.programId, programId), eq(deals.etapa, "ganado_parcial"), vigente(deals)));
   if (filas.length === 0) return { vencidos: [], sinFechaDeReferencia: 0 };
 
   const inicioDeLaActiva = (await cohorteActiva(programId, db))?.fechaInicioClases ?? null;

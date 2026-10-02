@@ -46,7 +46,7 @@ beforeEach(async () => {
 
   await db.insert(deals).values([
     { leadId: id["con-deal"], programId, etapa: "agendado" },
-    { leadId: id.anulado, programId, etapa: "pendiente_setteo", anuladoEn: new Date(), anuladoPor: u.id, motivoAnulacion: "error" },
+    { leadId: id.anulado, programId, etapa: "registrado", anuladoEn: new Date(), anuladoPor: u.id, motivoAnulacion: "error" },
   ]);
   await db.insert(submissions).values([
     { leadId: id.parcial, sourceId: f.id, token: "t1", esParcial: true },

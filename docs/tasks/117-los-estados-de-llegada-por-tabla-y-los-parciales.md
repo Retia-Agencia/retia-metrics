@@ -120,7 +120,7 @@ deal?"), `lib/queries/estados-llegada.ts` y `components/admin/estados-llegada-ad
 `/ajustes/fuentes`, con los valores que llegaron sin fila y un botón para crearla), conteo `sinEstado` en
 `lib/queries/salud-fuentes.ts` (24 h, marca la fuente), filtro y badge en Leads.
 
-**Payload del primer parcial real:** pendiente. Se anota cuando Typeform mande el primero (tras la O-7).
+**Payload del primer parcial real:** pendiente. Se anota cuando Typeform mande el primero (tras la O-7). Medido en producción el 1-oct (solo lectura): **0 parciales de Typeform**; los 6 parciales por webhook son de Dapta (ComunicArte, 130), con llaves `email`, `whatsapp`, las preguntas, `outcome`, `form.*`, `visit.pageUri` y `utm.*`, sin `lead_value` ni `estado`.
 
 ## Producción: orden obligatorio (cada paso con el ok de Mani)
 

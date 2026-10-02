@@ -9,10 +9,10 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { deals, etapaDealEnum } from "@/lib/db/schema";
+import { deals, etapaDealEnum, pendienteDealEnum } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
-import { moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
+import { moverEtapa, MovimientoRechazado, revisarMovimiento, type RevisionDeMovimiento } from "@/lib/deals/mover-etapa";
 import type { RequisitoFaltante } from "@/lib/deals/requisitos";
 import { esquemaDescuentoUsdOpcional } from "@/lib/deals/valor-vendido";
 import { crearDealAMano, DealYaAbierto, type EntradaDealAMano } from "@/lib/deals/crear-a-mano";
@@ -50,6 +50,7 @@ const esquemaDatos = z
 const esquemaMover = z.object({
   dealId: z.string().uuid("Deal inválido."),
   a: z.enum(etapaDealEnum.enumValues),
+  pendiente: z.enum(pendienteDealEnum.enumValues).nullable().optional(),
   motivoId: z.string().uuid().nullable().optional(),
   datos: esquemaDatos,
 });
@@ -87,12 +88,57 @@ export async function moverDeal(entrada: EntradaMover): Promise<ResultadoMover> 
       moverEtapa(db, {
         dealId: mov.dealId,
         a: mov.a,
+        pendiente: mov.pendiente,
         actor,
         motivoId: mov.motivoId ?? null,
         datos: mov.datos,
       }),
     );
     return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+const esquemaRevisar = esquemaMover.extend({
+  a: z.union([z.enum(etapaDealEnum.enumValues), z.literal("retroceso")]),
+});
+
+export type EntradaRevisar = z.input<typeof esquemaRevisar>;
+
+export type ResultadoRevisar =
+  | ({ ok: true } & RevisionDeMovimiento)
+  | { ok: false; error: string; faltantes: { codigo: string; mensaje: string }[]; status: number };
+
+/**
+ * Lo que el deal tiene y le falta para un movimiento, sin moverlo (ADR 0072 punto 2):
+ * la lista en verde y rojo de la pregunta de la etapa. Misma guarda que `moverDeal`, y
+ * el mismo motor: es un ensayo de `moverEtapa` que se deshace (`revisarMovimiento`).
+ */
+export async function revisarMovimientoAccion(entrada: EntradaRevisar): Promise<ResultadoRevisar> {
+  const session = await requireRole("gerente", "closer");
+  try {
+    const mov = esquemaRevisar.parse(entrada);
+    const actor = await actorDe(session);
+    const [deal] = await db
+      .select({ programId: deals.programId })
+      .from(deals)
+      .where(and(eq(deals.id, mov.dealId), incluyendoAnulados(deals)));
+    if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
+    if (!(await programaEnAlcance(actor.userId, actor.rol, deal.programId, db))) {
+      throw new ErrorDeApp("No puedes mover un deal de otro programa.", 403);
+    }
+    const revision = await normalizando(() =>
+      revisarMovimiento(db, {
+        dealId: mov.dealId,
+        a: mov.a,
+        pendiente: mov.pendiente,
+        actor,
+        motivoId: mov.motivoId ?? null,
+        datos: mov.datos,
+      }),
+    );
+    return { ok: true, ...revision };
   } catch (error) {
     return aResultado(error);
   }

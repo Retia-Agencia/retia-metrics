@@ -26,8 +26,9 @@ import type { EtapaDeal } from "./etapas";
  *  - **Nunca un deal sin lead.** O se elige un lead del programa, o se crea primero con el
  *    alta manual de siempre (`crearPersonaManual`, ticket 026), con su dedup y su reja de
  *    quien puede crear personas.
- *  - **Nace en la etapa de entrada** (`ETAPA_DE_ENTRADA`): elegir una etapa avanzada al
- *    crear esta fuera del alcance; lo demas lo mueve el motor.
+ *  - **Nace en la etapa de entrada** (`ETAPA_DE_ENTRADA`, En gestión, ADR 0071 punto 6)
+ *    con quien lo crea como dueño, como lo decide `abrirDeal`: elegir otra etapa al crear
+ *    esta fuera del alcance; lo demas lo mueve el motor.
  *  - **Si el lead ya tiene un deal abierto**, se rechaza con el id de ese deal para que la
  *    pantalla lo enlace (`DealYaAbierto`). La reja es el indice
  *    `deals_uno_abierto_por_lead_y_programa_idx`; la lectura previa solo arma el mensaje,
@@ -36,8 +37,11 @@ import type { EtapaDeal } from "./etapas";
  * El actor sale SIEMPRE de la sesion (quien llama lo arma), nunca del input.
  */
 
-/** Donde nace un deal creado a mano: la primera etapa del tablero (structure.md §2.1). */
-export const ETAPA_DE_ENTRADA: EtapaDeal = "pendiente_setteo";
+/**
+ * Donde nace un deal creado a mano: En gestión (ADR 0071 punto 6, D-5), la unica etapa
+ * de nacimiento que el motor le permite a una persona (`NACIMIENTOS.usuario`).
+ */
+export const ETAPA_DE_ENTRADA: EtapaDeal = "en_gestion";
 
 /** Quien crea. `closerId` lo exige el alta manual del lead (ADR 0011). */
 export interface ActorDeAlta {
@@ -75,7 +79,8 @@ export class DealYaAbierto extends ErrorDeApp {
   }
 }
 
-const CERRADAS: EtapaDeal[] = ["completo", "cierre_perdido"];
+/** Las etapas que liberan el cupo, las mismas del indice `deals_uno_abierto_por_lead_y_programa_idx`. */
+const CERRADAS: EtapaDeal[] = ["ganado_completo", "cierre_perdido"];
 
 /** El deal abierto (no cerrado, no anulado) del lead en el programa, si lo hay. */
 async function dealAbiertoDe(db: Db, leadId: string, programId: string): Promise<string | null> {

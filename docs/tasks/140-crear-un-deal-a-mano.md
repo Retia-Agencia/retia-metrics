@@ -38,7 +38,7 @@ Sí, esfuerzo `medium`.
 
 ## Hecho (1-oct)
 
-- `lib/deals/crear-a-mano.ts` (`crearDealAMano`): alcance del programa (404 fuera), lead existente del programa o alta manual (`crearPersonaManual`), rechazo `DealYaAbierto` con el id del abierto (lectura previa para el mensaje; el índice sigue siendo la reja y en una carrera se relee), y el deal lo abre `abrirDeal` en `ETAPA_DE_ENTRADA` (Pendiente Setteo).
-- `abrirDeal` (`duenoAlNacer`): a mano, el dueño es quien crea solo si `trabajaLeads`; el deal de un gerente nace sin dueño y cae al Inbox.
+- `lib/deals/crear-a-mano.ts` (`crearDealAMano`): alcance del programa (404 fuera), lead existente del programa o alta manual (`crearPersonaManual`), rechazo `DealYaAbierto` con el id del abierto (lectura previa para el mensaje; el índice sigue siendo la reja y en una carrera se relee), y el deal lo abre `abrirDeal` en `ETAPA_DE_ENTRADA` (En gestión, ADR 0071 punto 6) con quien lo crea como dueño; el dueño lo decide el motor, no este módulo.
+- 🔴 Duda abierta: el ADR 0071 hace dueño a quien crea, también a un gerente, y el ADR 0003 dice que el gerente administra y no vende (`trabajaLeads`). Hoy un deal creado por un gerente queda con el gerente de dueño.
 - Server action `crearDeal` en `app/(app)/p/[programa]/deals/acciones.ts`; botón "Nuevo deal" (`components/deals/nuevo-deal.tsx`) en el encabezado del tablero de Deals. "Lead nuevo" solo se ofrece a quien trabaja leads (ADR 0003).
 - Tests: `tests/crear-deal-a-mano.test.ts` (14), por la acción real forjada.

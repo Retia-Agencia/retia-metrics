@@ -8,12 +8,12 @@ import { normalizando } from "@/lib/errors-zod";
 import { esAdministrador } from "@/lib/auth/roles";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
-import { ETAPAS_VENDIDAS } from "@/lib/queries/metricas-filtros";
 import { usd } from "@/lib/format";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { esDuenoPosible } from "./duenos";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
 import { moverEtapa } from "./mover-etapa";
+import { ETAPAS_VENDIDAS } from "./etapas";
 import { congelarValorVendido, esquemaDescuentoUsdOpcional } from "./valor-vendido";
 
 /**
@@ -114,7 +114,7 @@ export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarD
       }
 
       if (fechaSeguimiento !== undefined) {
-        if (deal.etapa === "completo" || deal.etapa === "cierre_perdido") {
+        if (deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido") {
           throw new ErrorDeApp("El deal está cerrado: no tiene fecha de seguimiento.", 409);
         }
         cambios.fechaSeguimiento = fechaSeguimiento;
@@ -154,10 +154,10 @@ export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarD
 
       if (cambioDeVenta) {
         const despues = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
-        if (deal.etapa === "abonado" && despues?.saldo === 0) {
-          await moverEtapa(tx, { dealId: deal.id, a: "completo", actor: { tipo: "sistema" } });
-        } else if (deal.etapa === "completo" && despues?.saldo != null && despues.saldo > 0) {
-          await moverEtapa(tx, { dealId: deal.id, a: "abonado", actor: { tipo: "sistema" } });
+        if (deal.etapa === "ganado_parcial" && despues?.saldo === 0) {
+          await moverEtapa(tx, { dealId: deal.id, a: "ganado_completo", actor: { tipo: "sistema" } });
+        } else if (deal.etapa === "ganado_completo" && despues?.saldo != null && despues.saldo > 0) {
+          await moverEtapa(tx, { dealId: deal.id, a: "ganado_parcial", actor: { tipo: "sistema" } });
         }
       }
       return cambioDeVenta || editoCampos;

@@ -125,9 +125,9 @@ export function extraerEstudiantes(matriz: readonly (readonly unknown[])[], op: 
         detalle: `No se sabe cuánto se cobró (tipo de pago "${String(celda(fila, col.tipo) ?? "")}", precio "${String(precioCrudo ?? "")}"): entra en Compromiso Verbal sin abono.`,
       });
     } else if (precio != null && Number(cobrado) >= Number(precio)) {
-      etapa = "completo";
+      etapa = "ganado_completo";
     } else {
-      etapa = "abonado";
+      etapa = "ganado_parcial";
     }
     if (precio == null) {
       salida.rarezas.push({

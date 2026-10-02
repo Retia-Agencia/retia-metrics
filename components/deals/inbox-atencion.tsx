@@ -233,7 +233,7 @@ function DialogoAbono({
   return (
     <DialogoForm
       titulo="Registrar abono"
-      descripcion="Un pago recibido sobre este deal. El deal pasa a Abonado (o Completo) según el saldo."
+      descripcion="Un pago recibido sobre este deal. El deal pasa a Ganado Pago Parcial (o Ganado Pagado Completo) según el saldo."
       pendiente={pendiente}
       onCerrar={onCerrar}
       deshabilitarConfirmar={!dia || montoStr.trim() === "" || (!areaDeclaradaIdActual && !areaDeclaradaId)}

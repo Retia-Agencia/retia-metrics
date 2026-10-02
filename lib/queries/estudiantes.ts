@@ -1,7 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { cohorts, deals, leads, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import { ETAPAS_VENDIDAS, type EtapaDeal } from "@/lib/deals/etapas";
 import { hoyEnBogota } from "@/lib/format";
 import { carteraVencida } from "@/lib/queries/cartera";
 import { saldosDeDeals, type SaldoDeDeal } from "@/lib/queries/saldo";
@@ -9,13 +9,13 @@ import { vigente } from "@/lib/queries/vigente";
 
 /**
  * Los estudiantes de un programa: **una consulta sobre `etapa`, no una tabla ni una columna**
- * (ticket 063). Un estudiante es un deal vigente en Abonado o Completo. Las listas por
+ * (ticket 063). Un estudiante es un deal vigente en Ganado Pago Parcial o Ganado Pagado Completo. Las listas por
  * programa y por cohorte son filtros de esta misma consulta.
  *
  * El programa es frontera (ADR 0043): recibe UNO y no admite "todos". La cohorte, si se pide,
  * se filtra dentro de ese programa, así que una cohorte ajena no devuelve nada.
  */
-export const ETAPAS_DE_ESTUDIANTE: readonly EtapaDeal[] = ["abonado", "completo"];
+export const ETAPAS_DE_ESTUDIANTE: readonly EtapaDeal[] = ETAPAS_VENDIDAS;
 
 export interface Estudiante {
   dealId: string;

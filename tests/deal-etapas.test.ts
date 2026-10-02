@@ -2,64 +2,41 @@ import { describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import { deals, leads, programs } from "@/lib/db/schema";
 import {
-  ETAPAS,
-  NOMBRE_DE_ETAPA,
-  NUMERO_DE_ETAPA,
-  TRANSICIONES,
-  esTransicionPermitida,
-  siguientesDe,
-  transicion,
-  type EtapaDeal,
+  ETAPAS, NOMBRE_DE_ETAPA, TRANSICIONES, TRANSICIONES_PENDIENTE,
+  esTransicionPermitida, siguientesDe, transicion, type EtapaDeal,
 } from "@/lib/deals/etapas";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
-/**
- * Ticket 043 — las once etapas y la tabla de transiciones (`docs/structure.md`
- * §3.1, adoptada el 24-sep).
- *
- * La matriz esperada de abajo esta escrita A MANO, con los numeros que usa
- * Comercial, copiando la tabla del documento: no se deriva de `TRANSICIONES`. Si
- * alguien toca una fila del codigo sin tocar el documento (o al reves), este test
- * es el que lo dice. Recorre las 121 combinaciones: las que estan pasan, las que
- * no estan se rechazan.
- */
-const ESPERADAS: Record<number, number[]> = {
-  1: [2, 4, 10], // T1, T2, P
-  2: [4, 6, 7, 8, 9, 10], // T3, T4, T5, T19, P
-  3: [4, 5, 10], // T6, T7, P
-  4: [3, 4, 5, 10], // T8, T9, T10, P
-  5: [3, 6, 7, 8, 9, 10, 11], // T29, T12, T13, T14, T20, P, T24
-  6: [7, 8, 9, 10, 11], // T16, T17, T21, P, T15
-  7: [2, 5, 6, 8, 10, 11], // A1 (etapa previa), T18, P
-  8: [7], // A2: Completo es terminal salvo por la anulacion de un abono
-  9: [2, 4, 10], // T22, T23, P
-  10: [2, 4, 9], // R
-  11: [4, 6, 7, 8, 9, 10], // T27, T25, T26, T28, P
+/** Matriz manual del ticket 142: cubre las 121 combinaciones sin derivarse del motor. */
+const ESPERADAS: Readonly<Record<EtapaDeal, readonly EtapaDeal[]>> = {
+  potencial: ["en_gestion", "agendado", "cierre_perdido"],
+  registrado: ["en_gestion", "agendado", "cierre_perdido"],
+  en_gestion: ["contactado", "calificado", "agendado", "cierre_perdido"],
+  contactado: ["calificado", "agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"],
+  calificado: ["agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"],
+  agendado: ["agendado", "atendido", "cierre_perdido"],
+  atendido: ["agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"],
+  compromiso_verbal: ["contactado", "calificado", "atendido", "ganado_parcial", "ganado_completo", "cierre_perdido"],
+  ganado_parcial: ["contactado", "calificado", "atendido", "compromiso_verbal", "ganado_completo", "cierre_perdido"],
+  ganado_completo: ["ganado_parcial"],
+  cierre_perdido: ["en_gestion", "agendado"],
 };
 
-const porNumero = new Map(ETAPAS.map((e) => [NUMERO_DE_ETAPA[e], e] as const));
-const etapa = (n: number): EtapaDeal => porNumero.get(n)!;
-
 describe("las once etapas", () => {
-  it("son once, con numeros del 1 al 11 sin repetir, y todas tienen nombre", () => {
+  it("son once, no se repiten y todas tienen nombre", () => {
     expect(ETAPAS).toHaveLength(11);
-    expect([...porNumero.keys()].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
-    for (const e of ETAPAS) expect(NOMBRE_DE_ETAPA[e]).toBeTruthy();
-    expect(etapa(11)).toBe("seguimiento");
+    expect(new Set(ETAPAS).size).toBe(11);
+    for (const etapa of ETAPAS) expect(NOMBRE_DE_ETAPA[etapa]).toBeTruthy();
   });
 });
 
 describe("la tabla de transiciones", () => {
   it("recorre las 121 combinaciones: las de la tabla pasan y el resto se rechaza", () => {
     const errores: string[] = [];
-    for (let de = 1; de <= 11; de++) {
-      for (let a = 1; a <= 11; a++) {
-        const esperada = ESPERADAS[de].includes(a);
-        if (esTransicionPermitida(etapa(de), etapa(a)) !== esperada) {
-          errores.push(`${de} → ${a} deberia ${esperada ? "pasar" : "rechazarse"}`);
-        }
-      }
+    for (const de of ETAPAS) for (const a of ETAPAS) {
+      const esperada = ESPERADAS[de].includes(a);
+      if (esTransicionPermitida(de, a) !== esperada) errores.push(`${de} → ${a} deberia ${esperada ? "pasar" : "rechazarse"}`);
     }
     expect(errores).toEqual([]);
   });
@@ -69,100 +46,83 @@ describe("la tabla de transiciones", () => {
     expect(new Set(pares).size).toBe(pares.length);
   });
 
-  it("trae cada id del documento: T1 a T29 sin la T11, mas P, R, A1 y A2", () => {
+  it("trae cada id del documento: E1 a E13, RETRO, P, R, A1 y A2", () => {
     const ids = new Set(TRANSICIONES.map((t) => t.id));
-    const esperados = [
-      ...Array.from({ length: 29 }, (_, i) => `T${i + 1}`).filter((id) => id !== "T11"),
-      "P",
-      "R",
-      "A1",
-      "A2",
-    ];
+    const esperados = [...Array.from({ length: 13 }, (_, i) => `E${i + 1}`), "RETRO", "P", "R", "A1", "A2"];
     expect([...ids].sort()).toEqual(esperados.sort());
   });
 
   it("siguientesDe coincide con la tabla", () => {
-    for (let de = 1; de <= 11; de++) {
-      expect(siguientesDe(etapa(de)).map((e) => NUMERO_DE_ETAPA[e]).sort((a, b) => a - b)).toEqual(ESPERADAS[de]);
-    }
+    for (const de of ETAPAS) expect(new Set(siguientesDe(de))).toEqual(new Set(ESPERADAS[de]));
   });
 });
 
-describe("las reglas generales del ADR 0037", () => {
-  it("Cierre Perdido es alcanzable desde las nueve abiertas y nunca desde Completo", () => {
-    const hacia = ETAPAS.filter((e) => esTransicionPermitida(e, "cierre_perdido"));
-    expect(hacia.map((e) => NUMERO_DE_ETAPA[e]).sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 9, 11]);
-    expect(esTransicionPermitida("completo", "cierre_perdido")).toBe(false);
+describe("las reglas generales del motor", () => {
+  it("Cierre Perdido es alcanzable desde las nueve abiertas y nunca desde Ganado Pagado Completo", () => {
+    const hacia = ETAPAS.filter((etapa) => esTransicionPermitida(etapa, "cierre_perdido"));
+    expect(new Set(hacia)).toEqual(new Set([
+      "potencial", "registrado", "en_gestion", "contactado", "calificado", "agendado",
+      "atendido", "compromiso_verbal", "ganado_parcial",
+    ]));
+    expect(esTransicionPermitida("ganado_completo", "cierre_perdido")).toBe(false);
   });
 
-  it("un perdido se recupera solo hacia En Contacto, Agendado o Proxima Cohorte, y con motivo", () => {
-    expect(siguientesDe("cierre_perdido")).toEqual(["en_contacto", "agendado", "proxima_cohorte"]);
+  it("un perdido se recupera solo hacia En gestión o Agendado, y con motivo", () => {
+    expect(new Set(siguientesDe("cierre_perdido"))).toEqual(new Set(["en_gestion", "agendado"]));
     for (const a of siguientesDe("cierre_perdido")) expect(transicion("cierre_perdido", a)!.exigeMotivo).toBe(true);
   });
 
-  it("a Atendido, Abonado y Completo solo entra el sistema: un evento, no una mano", () => {
-    for (const t of TRANSICIONES.filter((t) => ["atendido", "abonado", "completo"].includes(t.a))) {
+  it("a Ganado Pago Parcial y Ganado Pagado Completo solo entra el sistema", () => {
+    for (const t of TRANSICIONES.filter((t) => ["ganado_parcial", "ganado_completo"].includes(t.a))) {
       expect(t.quien, `${t.id} ${t.de} → ${t.a}`).toBe("sistema");
     }
   });
 
-  it("exigen motivo exactamente Perdido, Recuperar y los retrocesos (las anulaciones llevan el suyo en el abono)", () => {
-    const conMotivo = new Set(TRANSICIONES.filter((t) => t.exigeMotivo).map((t) => t.id));
-    expect([...conMotivo].sort()).toEqual(["P", "R", "T15", "T29"].sort());
+  it("a Atendido entra una cita, un retroceso o la anulacion de un abono, con el actor de cada flecha", () => {
+    const aAtendido = TRANSICIONES.filter((t) => t.a === "atendido");
+    expect(new Set(aAtendido.map((t) => t.id))).toEqual(new Set(["E8", "RETRO", "A1"]));
+    expect(aAtendido.find((t) => t.id === "E8")?.quien).toBe("ambos");
+    expect(aAtendido.find((t) => t.id === "RETRO")?.quien).toBe("closer");
+    expect(aAtendido.find((t) => t.id === "A1")?.quien).toBe("sistema");
   });
 
-  it("cada flecha con lista de motivos (tipoDeMotivo) tiene su lista, y coincide con la decision de Mani (punto 2)", () => {
-    // La flecha decide la lista: P pierde, T29 re-agenda, T15 se echa atras, R recupera.
-    // Las anulaciones (A1, A2) no piden motivo del catalogo: su motivo es el de la anulacion
-    // del abono (ADR 0026), que ya es obligatorio (Mani, 28-sep).
-    const esperado: Record<string, string | null> = {
-      P: "perdida",
-      T29: "reagenda",
-      T15: "retroceso",
-      R: "recuperacion",
-    };
-    for (const t of TRANSICIONES.filter((t) => t.exigeMotivo)) {
-      expect(t.tipoDeMotivo, `${t.id}`).toBe(esperado[t.id]);
-    }
-    // Y ninguna flecha SIN motivo declara una lista.
-    for (const t of TRANSICIONES.filter((t) => !t.exigeMotivo)) {
-      expect(t.tipoDeMotivo, `${t.id}`).toBeNull();
-    }
+  it("exigen motivo exactamente Perdido, Recuperar, Retroceso y Re-agenda manual", () => {
+    const todas = [...TRANSICIONES, ...TRANSICIONES_PENDIENTE];
+    expect(new Set(todas.filter((t) => t.exigeMotivo).map((t) => t.id))).toEqual(new Set(["P", "R", "RETRO", "PR2"]));
   });
 
-  it("la unica flecha sobre si misma es mover una cita de Agendado (T9)", () => {
-    const bucles = TRANSICIONES.filter((t) => t.de === t.a);
-    expect(bucles.map((t) => t.id)).toEqual(["T9"]);
+  it("cada flecha con lista de motivos tiene la lista correcta y las demas no declaran una", () => {
+    const esperado: Record<string, string> = { P: "perdida", R: "recuperacion", RETRO: "retroceso", PR2: "reagenda" };
+    const todas = [...TRANSICIONES, ...TRANSICIONES_PENDIENTE];
+    for (const t of todas.filter((t) => t.exigeMotivo)) expect(t.tipoDeMotivo, t.id).toBe(esperado[t.id]);
+    for (const t of todas.filter((t) => !t.exigeMotivo)) expect(t.tipoDeMotivo, t.id).toBeNull();
+  });
+
+  it("la unica flecha de etapa sobre si misma es reprogramar una cita Agendada (E7)", () => {
+    expect(TRANSICIONES.filter((t) => t.de === t.a).map((t) => t.id)).toEqual(["E7"]);
   });
 
   it("devuelve null para un movimiento que no esta en la tabla", () => {
-    expect(transicion("pendiente_setteo", "completo")).toBeNull();
-    expect(transicion("atendido", "seguimiento")).toMatchObject({ id: "T24", quien: "closer" });
+    expect(transicion("registrado", "ganado_completo")).toBeNull();
+    expect(transicion("atendido", "atendido")).toBeNull();
   });
 });
 
-describe("la base acepta la etapa nueva (migracion 0024)", () => {
-  it("el enum de Postgres tiene las once, y un deal puede quedar en Seguimiento", async () => {
+describe("la base acepta el modelo del ticket 142", () => {
+  it("el enum de Postgres tiene las once etapas, y un deal puede quedar Atendido con Seguimiento", async () => {
     const { db, cerrar } = await crearBaseDePrueba();
     try {
-      const filas = await db.execute<{ valor: string }>(
-        sql`select unnest(enum_range(null::etapa_deal))::text as valor`,
-      );
+      const filas = await db.execute<{ valor: string }>(sql`select unnest(enum_range(null::etapa_deal))::text as valor`);
       const enBase = ("rows" in filas ? filas.rows : filas) as { valor: string }[];
       expect(enBase.map((f) => f.valor).sort()).toEqual([...ETAPAS].sort());
-
       const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
-      const [l] = await db
-        .insert(leads)
-        .values({ programId: p.id, emailNormalizado: "a@b.co" })
-        .returning();
-      const [d] = await db
-        .insert(deals)
-        .values({ leadId: l.id, programId: p.id, etapa: "seguimiento" })
-        .returning();
-      expect(d.etapa).toBe("seguimiento");
+      const [l] = await db.insert(leads).values({ programId: p.id, emailNormalizado: "a@b.co" }).returning();
+      const [d] = await db.insert(deals).values({ leadId: l.id, programId: p.id, etapa: "atendido", pendiente: "seguimiento" }).returning();
+      expect(d).toMatchObject({ etapa: "atendido", pendiente: "seguimiento" });
     } finally {
       await cerrar();
     }
   });
 });
+
+import "./142-nuevas-deal-etapas";

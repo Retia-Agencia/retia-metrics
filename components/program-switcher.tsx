@@ -8,7 +8,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { rutaAlCambiarDePrograma } from "@/lib/nav";
+import {
+  RUTA_DASHBOARD_TODOS,
+  VALOR_PROGRAMA_TODOS,
+  rutaAlCambiarDePrograma,
+} from "@/lib/nav";
 
 type Programa = { slug: string; nombre: string };
 
@@ -31,14 +35,21 @@ export function ProgramSwitcher({
   const pathname = usePathname();
 
   if (programas.length === 0 || !actual) return null;
+  const ofreceTodos = programas.length >= 2;
+  const enTodos = pathname === RUTA_DASHBOARD_TODOS || pathname.startsWith(`${RUTA_DASHBOARD_TODOS}/`);
+  const seleccionado = ofreceTodos && enTodos ? VALOR_PROGRAMA_TODOS : actual;
+  const items = [
+    ...(ofreceTodos ? [{ value: VALOR_PROGRAMA_TODOS, label: "Todos los programas" }] : []),
+    ...programas.map((p) => ({ value: p.slug, label: p.nombre })),
+  ];
 
   return (
     <Select
-      value={actual}
+      value={seleccionado}
       // Sin `items`, Base UI pinta el VALOR (el slug) en el trigger, no el nombre.
-      items={programas.map((p) => ({ value: p.slug, label: p.nombre }))}
+      items={items}
       onValueChange={(slug) => {
-        if (typeof slug === "string" && slug !== actual) {
+        if (typeof slug === "string" && slug !== seleccionado) {
           router.push(rutaAlCambiarDePrograma(pathname, slug));
         }
       }}
@@ -47,6 +58,9 @@ export function ProgramSwitcher({
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
+        {ofreceTodos ? (
+          <SelectItem value={VALOR_PROGRAMA_TODOS}>Todos los programas</SelectItem>
+        ) : null}
         {programas.map((p) => (
           <SelectItem key={p.slug} value={p.slug}>
             {p.nombre}

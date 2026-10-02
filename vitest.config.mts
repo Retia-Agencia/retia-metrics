@@ -5,6 +5,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // ~92 archivos pagaban cada uno PGlite (~700 ms) y migraciones (~150 ms).
+    globalSetup: ["./tests/helpers/volcado-global.ts"],
     // Los tests de base levantan un PGlite en memoria y le aplican TODAS las
     // migraciones (ADR 0020). Con los archivos corriendo en paralelo eso no cabe
     // en los 5s por defecto y el fallo es del reloj, no del codigo.

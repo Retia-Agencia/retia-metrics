@@ -76,7 +76,7 @@ function Tabla({ cabeceras, children }: { cabeceras: string[]; children: ReactNo
 }
 
 export function DashboardPrograma({ vista, detalles }: { vista: VistaDelDashboard; detalles?: DetallesDelDashboard }) {
-  const { embudo, caja, leads, cohorte, comparativo, comisionPorcentaje, motivos, origenes, closerId } = vista;
+  const { embudo, sinGrain, caja, leads, cohorte, comparativo, comisionPorcentaje, motivos, origenes, closerId } = vista;
 
   return (
     <div className="space-y-6">
@@ -90,6 +90,18 @@ export function DashboardPrograma({ vista, detalles }: { vista: VistaDelDashboar
           titulo="Llamadas"
           valor={<><CifraConLista titulo="Shows" detalle={detalles?.shows}>{num(embudo.llamadasConShow)}</CifraConLista>{" de "}<CifraConLista titulo="Agendas" detalle={detalles?.agendas}>{num(embudo.agendas)}</CifraConLista></>}
           nota={`${tasa(embudo.pctShow)} de show`}
+        />
+        <Tarjeta
+          titulo="Shows sin Grain"
+          valor={
+            <>
+              <span className={sinGrain.sinGrain > 0 ? "text-tono-peligro" : undefined}>
+                <CifraConLista titulo="Shows sin Grain" detalle={detalles?.shows_sin_grain}>{num(sinGrain.sinGrain)}</CifraConLista>
+              </span>
+              {` de ${num(sinGrain.shows)}`}
+            </>
+          }
+          nota={`${tasa(sinGrain.pct)} de los shows no tiene grabación`}
         />
         <Tarjeta
           titulo="% de cierre"

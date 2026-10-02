@@ -77,7 +77,7 @@ beforeEach(async () => {
     .values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana" })
     .returning();
   leadId = l.id;
-  dealId = await abrirDeal(db, { leadId, programId, etapa: "pendiente_setteo", actor: { tipo: "sistema" } });
+  dealId = await abrirDeal(db, { leadId, programId, etapa: "registrado", actor: { tipo: "sistema" } });
   const [d] = await db.insert(users).values({ email: "dev@retiagrowth.com", rol: "developer" }).returning();
   developer = d.id;
   const [c] = await db.insert(users).values({ email: "otra@retiagrowth.com", rol: "closer" }).returning();
@@ -114,7 +114,7 @@ describe("buscarLlamadaDelDeal", () => {
     expect(r).toEqual({ encontrada: false, motivo: "La cita de Calendly está cancelada." });
 
     const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
-    expect(deal.etapa).toBe("pendiente_setteo");
+    expect(deal.etapa).toBe("registrado");
     expect(await db.select().from(calls)).toHaveLength(0);
     expect(await db.select().from(dealActividades)).toHaveLength(0);
   });

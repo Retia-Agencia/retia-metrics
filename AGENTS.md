@@ -27,8 +27,9 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    contexto limpia y cita lo que sirve. Nunca se salta del producto al código sin pasar por un ticket.
    **`docs/tasks/README.md` es el único tracker de avance**: se toma un ticket cuyas dependencias estén
    todas en `done`, y al cerrarlo se marca ahí y se pone `status: done` en su archivo.
-   **`docs/plan-reparto.md`** complementa el plan con el orden para dos personas: etapas en serie, un
-   carril por persona dentro de cada etapa, y una etapa solo cierra cuando todo quedó en `main`.
+   **`docs/plan-reparto.md`** complementa el plan con el reparto para dos personas con varias sesiones
+   cada una: **olas de tickets listos** (desde el 1-oct), la cola de migraciones, los archivos calientes y los
+   **checkpoints** donde se corre la suite completa. La ola vigente está en su §4.
    **`docs/analytics.md`** mapea la reunión con Pauta (29-sep) al alcance: lo pedido y lo medido, las
    decisiones DP-1 a DP-25, el grid de requisitos con su ticket (116 a 126), el modelo de datos y **las
    fórmulas de cada métrica** (§6). Léelo antes de tocar atribución, pauta, métricas o el dashboard.
@@ -390,11 +391,31 @@ The agent should run these to get fast signal on whether code works. Keep them c
   de 480 s; ver Conventions). 1.810 pasando al 1-oct; entre 60 y 190 s según la máquina.
   Un programa de prueba ACTIVO se crea con `PROGRAMA_DE_PRUEBA` (`tests/helpers/programa-de-prueba.ts`):
   desde la 0031 un programa nace inactivo y la base exige Forms Link y token para activarlo. Los tests que necesitan base usan PGlite en
-  memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020).
+  memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020). **Desde el 1-oct
+  (ticket 150) la base se migra UNA vez por corrida** en el `globalSetup` (`tests/helpers/volcado-global.ts`) y
+  cada archivo carga ese volcado; si no existe, migra por su cuenta como antes. Una migración con SQL roto
+  revienta la corrida entera, una vez, con el error de la migración (probado en una rama desechable).
+  **Bucle local opcional: `npm run test:cambios`** (`vitest run --changed`, mismo candado): solo los tests
+  afectados por lo que no está commiteado.
   El lock se resincronizó otra vez el 28-sep (`649bf2c`): la primera corrida del CI lo midió roto en
   Linux (faltaban `@emnapi/core` y `@emnapi/runtime` 1.11.3), y desde ahí `npm ci` pasa en el CI. Si te
   vuelve a fallar, `npm install --package-lock-only` y commit del lock, nunca `--no-package-lock`. Si ves 46 tests caídos por `drizzle-orm/postgres-js`,
   a tu `node_modules` le falta el driver `postgres`: es entorno, no regresión.
+- 🩸 **La suite COMPLETA no se corre en local; la corre el CI** (Mani, 1-oct). Se cortó tres veces a los 480 s
+  en una Mac con 16,5 GB de swap y la espera llegó a 25 minutos. En local los tests **no son bloqueantes**: typecheck
+  y lint siempre; los archivos de tests del cambio (`npm test -- tests/x.test.ts`) solo si la máquina tiene
+  aire, y eso se mide antes de correr: carga (`uptime`, por debajo del número de núcleos) y swap
+  (`sysctl vm.swapusage`, sin varios GB usados). Si no hay aire, se empuja y decide el CI. La suite completa la valida el CI de cada
+  push (no usa la máquina de nadie). `npm test` en el CI, medido con el ticket 150: **vitest 372 s → 274 s**
+  (paso de 6 min 12 s a 4 min 34 s; ~8 min la corrida entera). Un archivo suelto en local no gana: ~3,7 s
+  antes y ~4,2 s después, porque la migración sigue pagándose una vez. **Desde el 1-oct la valida un
+  checkpoint** (`docs/plan-reparto.md` §6): dos al día, nadie empuja mientras corre, y si sale verde se marca con
+  el tag `cp-AAAAMMDD-N`; si sale rojo, el culpable está entre el último tag y la punta. **Un ticket no está
+  terminado hasta el checkpoint verde que lo incluye.** Antes de empujar, cada sesión corre su nivel 1:
+  typecheck, lint y los tests de su ticket. El CI además corre lo que en local se salta: los tests
+  contra Postgres real (`DATABASE_URL_PRUEBA_POSTGRES`), que el 1-oct estuvieron rojos 3 h sin que nadie mirara.
+  Ojo: el CI cancela la corrida anterior al empujar otro commit (`cancel-in-progress`): entre checkpoints es
+  alarma, no reja, y durante un checkpoint no se empuja. Pendiente: CI también en ramas.
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
 - **Worktree restringido en Windows:** si PowerShell bloquea `npm.ps1`, usar `npm.cmd`. Si Vite no
   puede escribir en `node_modules/.vite-temp` porque las dependencias son compartidas, usar
@@ -457,6 +478,13 @@ The agent should run these to get fast signal on whether code works. Keep them c
   declararse sobre `@auth/core/jwt` o no aplica (ver `types/next-auth.d.ts`).
 - **`LayoutProps` / `PageProps` los genera `next build`.** No dependas de ellos: tipa las props a
   mano para que `tsc --noEmit` corra limpio sin build previo.
+- 🩸 **Un cambio que toca un componente cliente (`"use client"`) corre `npm run build` antes de empujar** (2-oct, 142).
+  Typecheck, lint y tests pasan con un import que mete la base al navegador: un cliente que importa un VALOR de un
+  modulo de `lib/` que carga `lib/db` (aunque sea un nombre de etapa) revienta solo en el build de Vercel
+  (`Module not found: 'fs'`). Paso el 2-oct con `components/admin/estados-llegada-admin.tsx` y la base ya migrada:
+  produccion sirvio el codigo viejo contra la 0058 unos 5 minutos. Lo que un cliente necesita de `lib/` llega por
+  props desde la pagina del servidor (como `nombreDeEtapa`); `import type` si se puede. En un worktree, `next build`
+  corre con la copia APFS de `node_modules` (abajo), no con el enlace.
 - **Worktree para delegar: los tests sí, Turbopack no** (1-oct). Un worktree con `node_modules` enlazado
   (junction a la del checkout principal) corre `npm test`, typecheck y lint, pero `next build` y `next dev`
   fallan ("Symlink ... points out of the filesystem root"). La build y el recorrido visual se hacen en el
@@ -464,6 +492,13 @@ The agent should run these to get fast signal on whether code works. Keep them c
   enlace, no la carpeta real) y después `git worktree remove`. Y **Next 16 deja UN solo `next dev` por
   carpeta**: si `dev:local` dice "Another next dev server is already running", mira de quién es el PID antes de
   matarlo (un `npm run dev` escribe en producción); una `next build` en la misma carpeta rompe un `dev` vivo.
+  **Si el checkout principal está ocupado por otra sesión, el recorrido sale del worktree** (095, 1-oct): se
+  cambia el enlace por una copia APFS (`rm node_modules && cp -cR <principal>/node_modules .`, unos 14 s y sin
+  gastar disco) y `PORT=3095 npm run dev:local`. 🍪 **Dos `next dev` en `localhost` se pisan la sesión**: las
+  cookies no distinguen puertos, así que el login de una pestaña tumba el de la otra (vuelves a `/login` sin
+  error). Tampoco sirve `127.0.0.1`: Next dev responde 403 a sus propios recursos, la página no hidrata y los
+  diálogos no abren. Entra por un subdominio de `localhost` (`app095.localhost:3095`), que tiene sus propias
+  cookies; uno distinto por rol (`closer095.localhost`) para tener dos sesiones a la vez.
 - **Un paquete no se instala antes del codigo que lo usa.** Instalar por adelantado es
   abstraccion especulativa (ADR 0006).
 - **Dentro de una plantilla `sql` de drizzle, las columnas salen SIN calificar.**
@@ -505,7 +540,8 @@ The agent should run these to get fast signal on whether code works. Keep them c
   `DATABASE_URL` a proposito** y se trabaja todo en `main`. La regla de Mani: **asegurar la integridad
   antes de publicar.** En la practica: (1) una migracion se prueba primero en PGlite, que aplica TODAS
   las migraciones en cada `npm test`, y su SQL se lee antes de aplicarla; (2) nada se empuja a `main`
-  sin `npm test`, `npm run typecheck`, `npm run lint` y `npm run build` limpios; (3) toda escritura de
+  sin typecheck, lint y los tests del cambio limpios, y la suite completa la valida el checkpoint (Feedback
+  loops); (3) toda escritura de
   datos a mano o por script pide el ok de Mani; (4) antes de escribir, **mirar el ref dentro de la
   connection string** (`postgres.<ref>@...`), no el nombre de la variable. Lo que PGlite no ve y solo
   aparece en la base real: el pooler (`prepare: false`). 🩸 **La Data API de Supabase va APAGADA**:
@@ -541,6 +577,8 @@ The agent should run these to get fast signal on whether code works. Keep them c
   despliega el codigo sin ellas: drizzle las pide por nombre en cada `select()`.
 - **Un `CHECK` nuevo se crea despues de arreglar los datos**, en la misma migracion. El de la
   0009 habria fallado con las cohortes activas que estaban sin inicio de ventas.
+- **Trabajo en paralelo: olas de tickets listos, varias sesiones por persona** (1-oct, `docs/plan-reparto.md`
+  §1): se ordenan solo las migraciones (una cola), los archivos calientes (un dueño por ola) y las decisiones.
 - **Trabajo en paralelo: el reparto se hace por ARCHIVOS, no por el grafo de dependencias**
   (17-sep, tres sesiones sin choques). Los puntos de colision son las migraciones (journal +
   snapshot + `schema.ts`), `docs/tasks/README.md`, `docs/agents/handoff.md` y los commits. Cada

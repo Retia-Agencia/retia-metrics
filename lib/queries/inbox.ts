@@ -21,7 +21,7 @@ import { sueltaPorAsignar } from "@/lib/calendly/suelta";
  * sin filtrar nada. Reemplaza a `/mi-dia`. UNA sola función, `inboxDelPrograma`, que arma
  * cada sección con consultas simples unidas en memoria.
  *
- * Las secciones "sin dueño" (Pendiente Setteo y Agendados sin dueño) NO están aquí: viven
+ * Las secciones "sin dueño" (Por settear y Agendados sin dueño) NO están aquí: viven
  * en `lib/queries/inbox-sin-dueno.ts` (ticket 070) y la pantalla las intercala. Aquí van:
  *
  *  1. **Llamadas de hoy sin resultado** — el dolor número uno (reunión con closers,
@@ -55,7 +55,7 @@ import { sueltaPorAsignar } from "@/lib/calendly/suelta";
  */
 
 /** Las etapas cerradas: nunca aparecen en "lo mío" ni cuentan como abiertas. */
-const CERRADAS: EtapaDeal[] = ["completo", "cierre_perdido"];
+const CERRADAS: EtapaDeal[] = ["ganado_completo", "cierre_perdido"];
 
 /** El motivo por el que un deal cayó en "lo mío que necesita atención". */
 export type MotivoAtencion =
@@ -240,6 +240,7 @@ async function seccionAtencion(
       leadId: deals.leadId,
       areaDeclaradaId: deals.areaDeclaradaId,
       etapa: deals.etapa,
+      pendiente: deals.pendiente,
       fechaLimitePago: deals.fechaLimitePago,
       createdAt: deals.createdAt,
       ownerUserId: deals.ownerUserId,
@@ -292,7 +293,7 @@ async function seccionAtencion(
     };
 
     // (a) Re-agenda sin nueva fecha.
-    if (d.etapa === "pendiente_reagenda" && !conCitaFutura.has(d.dealId)) {
+    if (d.pendiente === "reagenda" && !conCitaFutura.has(d.dealId)) {
       filas.push({ ...base, motivo: "reagenda_sin_fecha" });
       continue;
     }

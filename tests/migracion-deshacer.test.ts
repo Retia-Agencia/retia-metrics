@@ -69,7 +69,7 @@ function template(slug: string): Extraccion {
   const deal = (correo: string, extra: Partial<DealTemplate> = {}): DealTemplate => ({
     huella: `sheets:${slug}:setteo:${correo}`,
     correo,
-    etapa: "en_contacto",
+    etapa: "contactado",
     closer: "Maru",
     fechaEtapa: "2026-08-05T05:00:00.000Z",
     cohorte: null,
@@ -83,7 +83,7 @@ function template(slug: string): Extraccion {
   t.deals.push(
     // Sin closer en la hoja: nace sin dueño y se puede reclamar.
     deal("ana@c.co", { closer: null }),
-    deal("beto@c.co", { huella: `sheets:${slug}:estudiantes-julio:beto@c.co`, etapa: "completo", cohorte: "C1", precio: "1500.00", notas: [] }),
+    deal("beto@c.co", { huella: `sheets:${slug}:estudiantes-julio:beto@c.co`, etapa: "ganado_completo", cohorte: "C1", precio: "1500.00", notas: [] }),
   );
   t.abonos.push({
     huella: `sheets:${slug}:estudiantes-julio:beto@c.co:abono`,
@@ -143,7 +143,7 @@ describe("deshacerMigracion", () => {
   it("deja el programa como antes de migrar, con lo del webhook y el otro programa intactos", async () => {
     // Lo que entró por el webhook antes de migrar: un deal nativo y una llamada de Calendly.
     const [caro] = await db.select({ id: leads.id }).from(leads).where(and(eq(leads.programId, a.id), eq(leads.emailNormalizado, "caro@c.co")));
-    await abrirDeal(db, { leadId: caro.id, programId: a.id, etapa: "pendiente_setteo", actor: { tipo: "sistema" } });
+    await abrirDeal(db, { leadId: caro.id, programId: a.id, etapa: "registrado", actor: { tipo: "sistema" } });
     await db.insert(calls).values({ programId: a.id, origen: "calendly", huellaFila: "calendly:uuid-1", resultado: "agendada", emailLead: "caro@c.co" });
     const antes = await conteos(a.id);
 
@@ -236,7 +236,7 @@ describe("deshacerMigracion se niega si alguien trabajo encima", () => {
 
   it("alguien movió la etapa", async () => {
     const d = await dealMigrado("ana@c.co");
-    await db.insert(dealEtapaHistorial).values({ dealId: d.id, de: "en_contacto", a: "agendado", userId: maru });
+    await db.insert(dealEtapaHistorial).values({ dealId: d.id, de: "contactado", a: "agendado", userId: maru });
     await esperarNegativa("etapa_movida");
   });
 

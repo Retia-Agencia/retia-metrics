@@ -1,4 +1,4 @@
-# Reparto en paralelo: Mani y Alejo
+# Reparto en paralelo: Mani y Alejo, por olas
 
 > **Complemento de [`plan.md`](./plan.md), no reemplazo.** Qué se construye y cómo lo dicen el plan, los
 > tickets y los ADR, y mandan ellos: si algo aquí contradice un ticket o un ADR, gana el ticket o el ADR
@@ -16,51 +16,77 @@
 > dashboard comercial, que es la v1 comercial). La pauta que espera a Meta (119, 120, 102) y lo de E7 y E8
 > va después.
 >
+> 🌊 **1-oct (Mani): se pasa de etapas en serie con dos carriles a olas de tickets listos** (§1). Cada uno
+> trabaja con varias sesiones; solo se ordenan las migraciones (una cola), los archivos calientes (un dueño
+> por ola) y las decisiones. La ola vigente (O1) está al principio de §4. El código llega a `main` por push
+> directo y se valida por checkpoints (§6).
+>
 > **Quién es quién:** "Alejo" en este documento es **Alejandro Dávila**, dev (`alejandrod-24`). El Alejo
 > gerente de [`overview.md`](./overview.md) §4 es **Alejo Carvajal**, que aquí solo aparece como quien
 > decide áreas y umbrales.
 
 ---
 
-## 1. La regla
+## 1. La regla: olas de tickets listos (desde el 1-oct)
 
-- **Las etapas van en serie.** No se abre la etapa N+1 hasta que la N cierre, y cerrar significa que
-  **todo** quedó en `main`: el código de los dos carriles, la migración, los tickets, el tracker y el
-  handoff (§6). Lo que no está en `main` no existe para la etapa siguiente.
-- **Dentro de una etapa hay dos carriles en paralelo**, uno por persona, sobre archivos distintos.
-- **Dentro de un carril sí hay orden** (057 → 058 → 059: es la misma persona). Lo que no existe es que un
-  carril espere al otro en la misma etapa.
-- **Solo se construye sobre `main`.** Un carril usa únicamente lo que ya se mergeó en una etapa
-  anterior, nunca el trabajo a medias del otro. Así, cuando alguien usa una pieza, ya está revisada y
-  probada.
+Hasta el 1-oct el trabajo iba en **etapas en serie con un carril por persona**. Se cambió (Mani, 1-oct)
+porque cada persona trabaja ahora con **varias sesiones a la vez** (Claude orquesta, Codex implementa, cada
+sesión en su worktree: `~/.claude/CLAUDE.md` §5), y con dos carriles la mitad de esa capacidad se quedaba
+quieta. Lo que de verdad choca no es la persona, son tres cosas, y **solo esas se ordenan**:
 
-Tamaño estimado por ticket: **S** pequeño, **M** mediano, **L** grande. Es relativo, para equilibrar
-los carriles; no son días. Se re-mide al cerrar cada etapa y se rebalancea la siguiente.
+1. **Las migraciones van en una cola, una a la vez.** La aplica la sesión principal de Mani con su ok (ya era
+   regla de `AGENTS.md`). Un ticket con migración espera su turno; uno sin migración no espera a nadie. Mientras
+   una migración está abierta (escrita y sin aplicar), nadie más genera otra: así no se repite la 0024, que
+   existía en la base y no en el repo (handoff, CIERRE 32).
+2. **Los archivos calientes tienen un solo dueño por ola** (tabla de §2). Dos tickets que tocan el mismo
+   archivo caliente van **en serie dentro de la misma sesión**, nunca en dos sesiones a la vez.
+3. **Un ticket que espera una decisión no entra a la ola.** Se lista en §7 con quién la debe.
+
+Lo que queda de antes:
+
+- **La unidad es el ticket listo**: sus dependencias en `done`, sin pregunta abierta y, si lleva migración,
+  con su turno en la cola. Cada ticket listo puede tener su propia sesión.
+- **Una ola es la foto de los tickets listos**, repartidos entre los dos. Se rearma en cada checkpoint (§6): lo
+  cerrado sale y lo que quedó listo entra. No hay que esperar a que "cierre" una ola para abrir un ticket nuevo.
+- **Solo se construye sobre `main`.** Un ticket usa únicamente lo que ya está en `main`, nunca el trabajo a
+  medias de otra sesión.
+- **Los hitos siguen** (B: los closers operan en el CRM; v1 comercial; C: se apagan las pestañas), como destino,
+  no como reja. NC1, NC2, NC3, E7, E8 y E9 de §4 quedan como **mapa de qué hay detrás de cada hito**.
+- **Más sesiones no acortan el camino crítico.** Lo que frena la v1 comercial son las decisiones (§7), no las
+  manos: cada ola nombra primero lo que destraba el camino crítico.
+
+Tamaño estimado por ticket: **S** pequeño, **M** mediano, **L** grande. Es relativo, no son días.
 
 ---
 
-## 2. Los carriles: cada uno, su dominio
+## 2. Dueños de dominio y archivos calientes
 
-| Carril | Dominio | Carpetas de las que es dueño |
+Cada dominio tiene un dueño, que decide su contrato y revisa lo que entra ahí. El dueño **no** tiene que
+construirlo todo: si sus sesiones están llenas, el otro toma el ticket avisando y reclamándolo en el tracker.
+
+| Dueño | Dominio | Carpetas |
 |---|---|---|
-| **Mani** | motor, dinero y pantallas de trabajo | `lib/deals/`, `lib/crm/`, `lib/abonos/`, `lib/queries/saldo.ts`, `lib/queries/dashboard.ts`, pantallas de Deals, Inbox y Dashboard |
+| **Mani** | motor, dinero y pantallas de trabajo | `lib/deals/`, `lib/crm/`, `lib/queries/saldo.ts`, `lib/queries/dashboard.ts`, pantallas de Deals, Inbox y Dashboard |
 | **Alejo** | entradas, historia de Sheets e integraciones | `lib/ingesta/`, `lib/sheets/`, `lib/calendly/`, `app/api/webhooks/`, `lib/nav.ts`, `lib/auth/`, scripts de traslado y migración |
 
-**Por qué por dominio:** cada uno lleva su dominio del backend a la pantalla, así una sola cabeza decide
-el contrato de cada pieza y la pantalla que la usa. Mani toma el motor, el dinero y las pantallas porque
-ahí están las decisiones de producto que quiere tomar él (consultando a Alejo cuando haga falta). Alejo
-toma las entradas y las integraciones, que son las que menos decisiones de producto piden.
+Mani además coordina, decide (§7), aplica las migraciones y corre los checkpoints (§6).
 
-- **Descartado, uno backend y otro pantallas:** el de pantallas espera en cada etapa, y el contrato de
-  cada función lo interpretan dos personas distintas.
-- **Descartado, el ticket suelto a quien esté libre:** trae choques de archivos y de migraciones. Pasó
-  el 27-sep con E2 (handoff, CIERRE 33).
+**Archivos calientes** (los toca una sola sesión a la vez; se reasignan al rearmar la ola):
 
-Mani además coordina, decide (§7) y aplica las migraciones, así que su carril es el más cargado. Si una
-etapa se le aprieta, lo primero que pasa a Alejo es lo que no decide producto (consultas de reportes,
-tickets de lectura), nunca el motor.
+| Archivo | Por qué | Dueño en la ola O1 |
+|---|---|---|
+| `lib/db/schema.ts`, `drizzle/` | migraciones | la cola (sesión principal de Mani) |
+| `lib/deals/mover-etapa.ts`, `requisitos.ts`, `mapa-transiciones.ts`, `etapas.ts` | el motor | sesión del [135]; después la del [142] |
+| `lib/queries/dashboard.ts` y `app/(app)/p/[programa]/dashboard/` | el dashboard | sesión del [095] |
+| `lib/ingesta/regla-de-deals.ts`, `estados-llegada.ts` | la etapa de entrada | sesión del [117] |
+| `lib/crm/rastro.ts`, `lib/auth/roles.ts` | contratos transversales | un cambio se pide y lo aprueba el otro |
+| `docs/tasks/README.md`, `docs/agents/handoff.md`, `docs/plan.md`, este documento | coordinación | Mani, en el checkpoint |
 
-Tocar una carpeta del otro se pide antes. Los archivos compartidos tienen reglas propias (§5).
+Cada sesión escribe su estado y su nota de cierre **en el archivo de su ticket**; el tracker y el handoff los
+actualiza Mani en el checkpoint, leyendo esas notas. Así ocho sesiones no chocan en dos archivos.
+
+**Descartado, el ticket suelto a quien esté libre sin reglas:** trajo choques de archivos y de migraciones el
+27-sep con E2 (handoff, CIERRE 33). Las tres reglas de §1 existen justo por eso.
 
 ---
 
@@ -92,7 +118,72 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ---
 
-## 4. Las etapas
+## 4. La ola vigente y el mapa de etapas
+
+### 🌊 Ola O1 · abierta el 1-oct
+
+Se llama "O" para no confundirla con las olas 0, 1 y 2 de Pauta (`analytics.md` §7). Una fila es una sesión.
+
+**Primero, el camino crítico.** La v1 comercial cuelga del [142] (las once etapas en una migración), y el 142
+espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones adelanta el hito B:
+
+| Qué | Quién | Destraba |
+|---|---|---|
+| ✅ ~~**QM-10**~~: cerrada el 1-oct por el [ADR 0070](./adr/0070-re-agenda-seguimiento-y-proxima-cohorte-son-pendientes-del-deal.md) (son **Pendientes** del deal, no etapas) | Mani | 142 → 143, 128, 118, el 117 enmendado, el `--aplicar` del 078, el corte, 148 |
+| ✅ ~~**Manual de gestión comercial** (QD-8)~~: aprobado el 2-oct; dudas contestadas en el [ADR 0071](./adr/0071-como-se-mueve-un-deal-por-las-etapas-de-30x.md) (D-7 queda para el 118) | Alejo → Mani | 142 y 143 (qué es obligatorio por etapa) |
+
+**Tickets listos, una sesión cada uno:**
+
+| Sesión | Ticket | Dueño | Archivo caliente | Tamaño |
+|---|---|---|---|---|
+| O1-a | ✅ [135] Atendido sin Grain (`cp-20261001-1`) | Mani | el motor | S |
+| O1-b | ✅ [139] la ficha del deal por bloques: done en `cp-20261002-1`; recorrido visual hecho; lo que salió quedó en A-15 a A-18 | Mani | · | M |
+| O1-c | [140] crear un deal a mano | Alejo (propuesto, el dominio es de Mani) | · | M |
+| O1-d | ✅ [095] (`cp-20261001-1`) el dashboard con "todos" solo sumable | Mani | el dashboard | M |
+| O1-e | [100] la tab Programs | Alejo | · | M |
+| O1-f | [073] ficha del lead → [091] | Alejo | · | M + S |
+| O1-g | [066] Urgencias → [068] → [076] (lecturas) | Alejo | · | M + S + S |
+| O1-h | los cabos del [117] (el [072] se cerró el 1-oct) | Alejo | la etapa de entrada | S |
+| O1-i | ✅ [150] tests rápidos: base migrada una vez por corrida: en `main` el 1-oct (`0e65c15`, `4f6b63c`), CI verde (vitest 372 s → 274 s), done en `cp-20261002-1`; queda `npm run test:cambios` | Mani | `tests/helpers/`, `vitest.config` | M |
+
+**Avance de la ola** (lo que ya está en `main` y espera el checkpoint verde para contar como hecho, §6):
+
+- **O1-d · [095], 1-oct** (`a60601a`, `54cb540`, `d13a95e`; cierre en su archivo): `/dashboard` es "Todos los
+  programas" y suma solo conteos y caja por moneda; tasas, metas y comisión van por programa. La garantía es de
+  tipo (`sumarConteos`, `sumarDinero`). Integra la cifra de shows sin Grain del [135] sin reimplementarla. Lo que
+  ve el paid trafficker queda para el [102]. El archivo caliente del dashboard queda libre.
+- **El CI de ese push salió rojo por dos tests de otros tickets**, arreglados por la sesión del 095:
+  `deal-etapas` (T7 pasó a "ambos" con el 135; lo arregló su sesión en `51f9e67`) y `origen-del-envio` (el
+  [139] cambió la forma de `fichaDeDeal(...).origen` a `{ envioId, fecha, calificacion, utm }` y el test seguía
+  esperando la vieja). 🩸 Los dos se colaron porque el nivel 1 de cada sesión corre **sus** tests, no los de
+  quien lee lo que cambió: antes de empujar un cambio de forma en una función de `lib/`, `rg` por sus lectores
+  en `tests/`.
+- **Checkpoints:** `cp-20261001-1` (`e5319e2`: 095 y 135) y `cp-20261002-1` (`526a105`: 139 y 150; producción
+  sirve ese commit).
+
+**La cola de migraciones de la ola**, en este orden (una abierta a la vez):
+
+1. ✅ ~~Aplicar la **0057**~~ (quita `cohorts.trm_cohorte`): aplicada el 1-oct. La TRM del ROAS
+   queda como decisión abierta de E7 (`plan.md` §7).
+2. [092] con el **ADR 0068**: `sources.url_publica` y la fuente principal por programa. Sube de E8 a esta ola
+   porque ComunicArte recibe por Typeform y por Dapta y hoy el CRM solo puede repartir un link.
+3. [102] el rol Paid Trafficker (valor nuevo del enum de roles).
+4. ✅ El manual se aprobó el 2-oct (ADR 0071): **el [142] salta al frente**. ✅ **0058 aplicada el 2-oct (madrugada)**: la cola se descongela (092 → 102). Toca el
+   enum de etapas, los requisitos y la traducción de todos los deals). El 092 y el 102 esperan detrás, aunque su
+   código puede avanzar en su rama sin generar la migración.
+
+**No entran a O1** (y por qué): [128], [143], [118], [148], [065] esperan al 142 · [129] espera dos decisiones de
+Mani (están en el ticket) · [144] a [147] esperan QM-3, QM-5, QM-6, QM-7, QM-11 y GC-17 · [119], [120], [123],
+[125] esperan el token de Meta · [122] y [126] parte B tienen migración y son de pauta: entran a la cola después
+del 142 · [035] espera el formato del comprobante.
+
+**Prueba de costura de la ola:** un deal creado a mano (140) entra por `abrirDeal`, se ve en la ficha nueva
+(139) y cuenta en el dashboard con "todos" (095) solo en las cifras sumables.
+
+### El mapa de etapas (lo que hay detrás de cada hito)
+
+Desde el 1-oct estas etapas **ya no son rejas en serie**: dicen qué tickets llevan a cada hito. E0 a E6 están
+cerradas o con sus cabos repartidos en la ola O1; NC1 a E9 se vacían ola por ola.
 
 | Etapa | Nombre | Hito al cerrar |
 |---|---|---|
@@ -292,6 +383,9 @@ Backend puro.
 
 ### NC1 · El dinero del deal (lote 1 comercial) — abre el 1-oct
 
+> 1-oct: 132, 133, 134, 136, 137, 138 y 141 hechos. Lo que queda (135, 139, 140, el cierre del 072 y del 117 y el
+> manual) se repartió en la ola O1. El 139 quedó en `main` local el 1-oct (falta el checkpoint).
+
 | Mani | Alejo |
 |---|---|
 | [132] valor vendido (migración, `high`) · L | Cerrar [072] (390 px en vivo) y los cabos del [117] · S |
@@ -372,10 +466,12 @@ Backend puro.
 - **Decidir antes:** DP-23 y DP-24 (Mani) · PQ3 y PQ4 (Pauta: conversión, ritmo, desfase y objetivos) ·
   PQ5 (Gerencia: cortesías). ROAS y Juanito ya respondidos (Mani, 28-sep).
 - **Prueba de costura:** una venta de un anuncio con gasto cargado sale en su área, su campaña y su anuncio,
-  con su costo por venta y su ROAS a la TRM de la cohorte, igual en la consulta del 123 y en el 088.
+  con su costo por venta y su ROAS a la TRM que decida A12 (`plan.md` §7; la de la cohorte se quitó el 1-oct), igual en la consulta del 123 y en el 088.
 - **Al cerrar:** Typeform deja de escribir en Sheets y se borra el Apps Script.
 
 ### E8 · El dashboard completo
+
+> 1-oct: el [092] sube a la ola O1 (cola de migraciones) por el ADR 0068: el link sale de la fuente principal.
 
 | Mani | Alejo |
 |---|---|
@@ -402,78 +498,97 @@ El [075] se parte en dos y cada uno revisa lo que construyó el otro.
 | → [091] · S | → 075: revisa las pantallas que hizo Mani · M |
 | → 075: revisa las pantallas que hizo Alejo · M | |
 
-- **Decidir antes:** cómo mandan el comprobante los closers (foto, link o PDF).
+- **Decidir antes:** cómo mandan el comprobante los closers (foto, link o PDF) · **A-18**: qué respuestas oculta el
+  bloque Perfil de la ficha del deal además de los `utm_*` (correo, WhatsApp, `variable:*` de Typeform).
+- **El 075 también recoge A-15, A-16 y A-17** (Facturación de la ficha del deal, del recorrido del 139).
 - **Al final, sesión principal:** [149], el manual de uso del CRM por rol, enlazado dentro del CRM (QD-7).
 - **Sale cuando:** criterio de UI escrito, recorrido completo en celular y escritorio, y el manual publicado.
 
 ---
 
-## 5. Cómo se trabaja en paralelo
+## 5. Cómo se trabaja con varias sesiones
 
-Las reglas de `AGENTS.md` siguen todas. Estas se suman porque ahora son dos personas:
+Las reglas de `AGENTS.md` siguen todas. Estas se suman:
 
-- **Una migración por etapa, al arrancar.** La escribe quien más la necesita, la revisa el otro y la
-  aplica Mani (dueño de la base) antes de que arranquen los carriles: aditiva, compatible con el código
-  anterior y con el SQL leído línea por línea.
-  - Si a mitad de etapa hace falta otra, se avisa, y el otro no genera ninguna hasta que esté en `main`.
-    Así no se repite la 0024, que existía en la base y no en el repo (handoff, CIERRE 32).
-- **Sin protección de `main` ni PR obligatorio (Mani, 28-sep: *"no quiero nada complejo, necesitamos
-  velocidad de implementación"*).** Se empuja directo a `main` con test, typecheck, lint y build
-  corridos en local; el CI corre en cada push como **alarma, no como reja**, y un CI en rojo se arregla
-  antes de seguir. El cadenero de `AGENTS.md` sigue: quien no escribió el código lo revisa contra el
-  "Done cuando" y los contratos, en un PR si ayuda o sobre el commit.
-  - Si implementó un agente (Kiro, Codex), quien revisa corre `npm test` completo: Kiro ya reportó
-    "todo limpio" con un guardián en rojo.
-- **Una prueba de costura por etapa:** un test que cruza los dos carriles (en cada etapa de §4).
-- **Reclamar antes de tocar.** El commit de arranque de cada etapa marca en el tracker "en curso · Alejo"
-  o "en curso · Mani". Antes de tomar cualquier cosa, `git fetch`.
-- **Archivos compartidos:**
-
-  | Archivo | Regla |
-  |---|---|
-  | `lib/db/schema.ts` y `drizzle/` | solo la migración de arranque |
-  | `docs/tasks/README.md`, `docs/agents/handoff.md`, `docs/plan.md` y este documento | solo Mani, al abrir y al cerrar la etapa |
-  | cada ticket | su dueño escribe su estado y su nota de cierre ahí durante la etapa |
-  | `lib/crm/rastro.ts`, `lib/auth/roles.ts` | un cambio se pide y lo aprueba el otro |
-
-- **Si un carril termina antes:** no toma nada de la etapa siguiente. En este orden: revisa los PR del
-  otro, prepara la migración y los tickets de la etapa siguiente, y baja deuda del tracker.
-- **Si un carril se atrasa mucho:** se parte la etapa. Lo terminado sube a `main` y lo pendiente pasa a
-  la siguiente, revisando sus dependencias. Nunca se abre una etapa con la anterior a medias.
+- **Una sesión, un ticket, un worktree.** Al abrirla: `git fetch`, reclamar el ticket en **su archivo**
+  (`status: en curso` y quién, en un commit que se empuja ya) y mirar que ningún archivo caliente que toque
+  tenga otro dueño en la ola (§2). Los tests corren en el worktree; `next build` y `next dev` solo en el
+  checkout principal (`AGENTS.md`, Conventions).
+- **Lo que corre cada sesión antes de empujar (nivel 1):** `npm run typecheck`, `npm run lint` y los tests de
+  su ticket (`npm test -- tests/x.test.ts ...`), más el guardián del contrato que toque (vigencia, rastro,
+  identidad del closer, atribución, catálogo). La suite completa **no** se corre en local (Mani, 1-oct).
+- **Push directo a `main`, sin PR obligatorio** (Mani, 28-sep y 1-oct: velocidad). Se empuja cuando el ticket, o
+  una tajada coherente de él, pasó el nivel 1; no en cada commit. Antes: `git pull --rebase`. Un ticket de agente
+  (Codex) no se empuja sin que la sesión que orquesta haya leído el diff contra el "Done cuando".
+- **Una migración aditiva se aplica antes del push del código que la usa**, con el ok de Mani; una que quita
+  columnas, después de que el código sin ellas esté desplegado (`AGENTS.md`).
+- **El cadenero sigue:** quien no escribió el código lo revisa contra el "Done cuando" y los contratos, sobre el
+  commit. Lo hace otra sesión, no la que lo escribió.
+- **Una prueba de costura por ola:** un test que cruza tickets de la ola (en la ola de §4).
+- **Si una sesión termina:** se rearma con el siguiente ticket listo de la ola; si no queda ninguno, ayuda a
+  destrabar el camino crítico (§4) o baja deuda del tracker. Nunca toma un ticket bloqueado "para adelantar".
 - **Pantallas y permisos:**
-  - Toda pantalla se prueba en la base local haciendo clic en todo lo que se abre, con la consola
-    abierta y en celular.
+  - Toda pantalla se prueba en la base local haciendo clic en todo lo que se abre, con la consola abierta y en
+    celular.
   - Todo permiso se prueba forjando la petición.
   - Tinta es obligatorio (`structure.md` §9).
 
 ---
 
-## 6. Cerrar una etapa: "todo anotado en `main`"
+## 6. Checkpoints: donde se corre la suite completa
 
-Si falta una casilla, la etapa no cierra.
+Entre checkpoints, `main` recibe pushes de varias sesiones y el CI de cada push puede quedar cancelado por el
+siguiente (`cancel-in-progress`): es **alarma, no reja**. Si alguien ve un CI terminado en rojo con un commit
+suyo, lo arregla antes de seguir. La validación de verdad es el checkpoint.
 
-- [ ] Cada ticket de la etapa tiene su "Done cuando" marcado, `status: done` y una nota de cierre (qué se
-      hizo, qué se decidió, qué quedó).
-- [ ] Los dos carriles están en `main` con CI verde, y el deploy de producción es el commit correcto
-      (`vercel ls` + `vercel inspect`).
-- [ ] La prueba de costura existe y pasa.
-- [ ] La migración está en `drizzle/` y se aplicó en producción con el ok de Mani, antes del deploy.
-- [ ] El tracker está al día, con una sola entrada de handoff por etapa. La escribe Mani con las notas de
-      cierre de los tickets, así el handoff no choca.
-- [ ] Hay un ADR por cada decisión de arquitectura de la etapa, y la decisión salió de `plan.md` §7.
-- [ ] `AGENTS.md` está al día si cambió un comando o una convención.
-- [ ] Producción está sana: `/ajustes/fuentes` dice "recibiendo" y no hay sobres crudos con error.
-- [ ] Las decisiones que necesita la etapa siguiente (§7) están cerradas.
+**Cuándo:** dos al día (mediodía y cierre), y además antes de aplicar una migración y antes de cualquier escritura
+grande en producción (el `--aplicar` del 078, el corte).
+
+**Cómo** (lo corre Mani o quien él diga):
+
+1. Avisar "checkpoint" a todas las sesiones: nadie empuja hasta que termine. Un push en medio cancela el CI y
+   reinicia el reloj (~8 min).
+2. Esperar el CI del commit de la punta de `main` (`gh run watch`).
+3. **Verde:** marcar el punto con un tag, `cp-AAAAMMDD-N` (`git tag cp-20261002-1 && git push origin
+   cp-20261002-1`). Después, en el mismo commit de coordinación: el tracker al día con las notas de cierre de los
+   tickets, **una** entrada de handoff por checkpoint, el deploy correcto (`vercel ls` + `vercel inspect`),
+   producción sana (`/ajustes/fuentes` dice "recibiendo", sin sobres crudos con error) y la ola rearmada (§4).
+4. **Rojo:** el culpable está entre el tag anterior y la punta (`git log cp-...-N..HEAD`). Como cada sesión
+   empujó con su nivel 1 en verde, casi siempre es un choque entre dos tickets. Se corre en local el archivo que
+   falla, se ubica el commit y lo arregla su sesión. Nadie empuja a `main` hasta el verde; las demás sesiones
+   siguen trabajando en su worktree.
+
+**Por qué así y no PR por ticket:** Mani prefirió el push directo (1-oct). El precio, dicho claro: entre dos
+checkpoints producción puede servir código que la suite completa no ha validado, porque Vercel despliega cada
+push. Lo mitigan el nivel 1 obligatorio, que las migraciones solo se aplican en un checkpoint, y que el
+checkpoint cae como máximo medio día después. Si un rojo llega a producción y rompe algo, se pasa a PR por
+ticket (el CI ya corre en cada PR sin cancelarse entre ellos).
+
+**Lo que acelera los checkpoints:** el [150] (la base de prueba migrada una vez por corrida, no una vez por
+archivo): hecho el 1-oct, `npm test` en el CI bajó de 372 s a 274 s (-26%). Sigue pendiente el CI también en ramas.
+
+**Cerrar un ticket** (lo hace su sesión, en el archivo del ticket):
+
+- [ ] Su "Done cuando" marcado, `status: done` y una nota de cierre (qué se hizo, qué se decidió, qué quedó).
+- [ ] Nivel 1 en verde y empujado; si tuvo migración, aplicada en producción con el ok de Mani.
+- [ ] Un ADR por cada decisión de arquitectura, y la decisión salió de `plan.md` §7.
+- [ ] `AGENTS.md` al día si cambió un comando o una convención.
+
+El tracker lo marca Mani en el siguiente checkpoint verde. **Un ticket no cuenta como hecho hasta ese
+checkpoint.**
 
 ---
 
-## 7. Las decisiones, por etapa
+## 7. Las decisiones, por etapa y por ola
 
 Son las de [`plan.md`](./plan.md) §7, ordenadas por cuándo frenan. Propuesta: una sola reunión con los
 closers durante E1 que cubra E2 a E5; Gerencia durante E4; Pauta durante E5.
 
 | Antes de | Qué | Quién |
 |---|---|---|
+| **O1 → 142** | ✅ ~~QM-10~~ (ADR 0070) · **manual de gestión comercial** (QD-8) · QM-12 (cortesías) · confirmar QD-2 | Mani · Alejo |
+| O1 | Aplicar la 0057 · las dos decisiones del [129] · quién toma el [140] | Mani |
+| E7 | 🆕 **El ROAS sin TRM de la cohorte** (la 0057 la quita; el ADR 0063 la usa): `plan.md` §7 | Mani |
 | E1 | §3 de este documento; base local sí o no (113) | Mani |
 | ~~E1~~ | ~~ROAS, Juanito, consolidados de C2~~ ✅ respondidas por Mani el 28-sep (`plan.md` §7.E) | Mani |
 | E2 | ~~D3 · A5~~ ✅ · K2 (dónde se asigna la llamada suelta, `plan.md` §7) | Mani |
@@ -493,10 +608,10 @@ closers durante E1 que cubra E2 a E5; Gerencia durante E4; Pauta durante E5.
 
 ## 8. Mantener este documento
 
-- Cambia solo si cambia el orden o el reparto. El avance de cada ticket no se anota aquí: va en el
-  tracker.
-- Al cerrar una etapa, Mani revisa si la siguiente sigue siendo válida (tamaños, decisiones que
-  llegaron tarde, dependencias nuevas) y la ajusta aquí, en el mismo commit del cierre.
+- Cambia cuando cambia el reparto o la ola. El avance de cada ticket no se anota aquí: va en su archivo y, en el
+  checkpoint, en el tracker.
+- En cada checkpoint verde, Mani rearma la ola de §4: saca lo cerrado, mete lo que quedó listo, reasigna los
+  archivos calientes y revisa que la cola de migraciones siga en orden.
 
 [007]: ./tasks/007-onboarding-closer-id.md
 [021]: ./tasks/021-snapshot-del-dashboard.md
@@ -583,3 +698,4 @@ closers durante E1 que cubra E2 a E5; Gerencia durante E4; Pauta durante E5.
 [147]: ./tasks/147-alertas-por-persistencia.md
 [148]: ./tasks/148-las-secciones-del-dashboard.md
 [149]: ./tasks/149-manual-de-uso-por-rol.md
+[150]: ./tasks/150-tests-rapidos-base-migrada-una-vez.md

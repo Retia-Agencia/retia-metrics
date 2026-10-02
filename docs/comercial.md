@@ -274,7 +274,7 @@ Mani las contestó en la sesión del 1-oct, en nombre del equipo comercial. Lo q
 | QD-5 | **Esos**: ComunicArte **10,04%** (80 sobre 797), Tactical **6,67%** (100 sobre 1.500) | Dato del 133; se carga por programa, no cambia el diseño | ✅ |
 | QD-6 | Cinco días hábiles seguidos por debajo, **configurable**. "¿Umbrales de qué?": las métricas con umbral son las de la meta y el semáforo (DP-24); falta la lista | El 147 deja de estar bloqueado por el número; la lista de métricas es **QM-11** | 🟡 |
 | QD-7 | El precio se elige **al crear el programa**; no se carga ahora. La configuración de la app (programas, precios, cohortes) **la hacen los usuarios según su rol**, no el equipo de desarrollo. Lo que sí se hace al final: un **manual de uso del CRM por rol**, enlazado dentro del CRM | Ticket nuevo **149** (manual por rol), al cierre de v1 | ✅ |
-| QD-8 | El manual de gestión comercial **lo escribe Alejo** (Alejandro Dávila), con lo que ya leyó del HubSpot de 30X | Tarea de docs del carril de Alejo en NC1 (`plan-reparto.md`); el 142 lo espera | 🟡 Alejo |
+| QD-8 | El manual de gestión comercial **lo escribe Alejo** (Alejandro Dávila), con lo que ya leyó del HubSpot de 30X | Tarea de docs del carril de Alejo en NC1 (`plan-reparto.md`); el 142 lo espera. Borrador: [`manual-gestion-comercial.md`](./manual-gestion-comercial.md) | 🟡 Alejo |
 | QD-9 | **"Corte" es Cohorte**, y ese es el nombre que se usa. Cortesía: un deal con **100% de descuento** (no cubre nada del valor), o una persona creada **directo como estudiante**, sin deal | Cuál de las dos es **QM-12** | 🔴 QM-12 |
 | QD-10 | Las etiquetas de 30X **no se usan**. Solo **Lead Value** y **Lead Quality**, las que calcula el formulario | El 143 se encoge: sin catálogo de etiquetas, solo propiedades por etapa | ✅ |
 | QD-11 | Si no cuadran es problema de 30X: los pantallazos eran referencia de qué sirve para Retia | Se cierra sin acción | ✅ |
@@ -348,7 +348,7 @@ Mani las contestó en la sesión del 1-oct, en nombre del equipo comercial. Lo q
 - **QM-8:** ✅ en parte (Mani, 30-sep): **el norte comercial es la prioridad.** Sigue abierto qué hace el
   carril de Alejo mientras tanto con lo de pauta (119, 120, 125, 126): ¿se pausa o sigue en paralelo
   mientras no toque etapas ni dinero?
-- **QM-10 (1-oct, de QD-1):** Pendiente Re-agenda, Seguimiento y Próxima Cohorte son **estados dentro del
+- ✅ **QM-10 (1-oct, de QD-1), cerrada por el [ADR 0070](./adr/0070-re-agenda-seguimiento-y-proxima-cohorte-son-pendientes-del-deal.md):** son **Pendientes** del deal (enum nullable, a lo sumo uno), el deal se queda en su etapa y `moverEtapa()` escribe los dos. La pregunta original: Pendiente Re-agenda, Seguimiento y Próxima Cohorte son **estados dentro del
   deal** (Dani). ¿Qué son en la base: una propiedad del deal con su lista (fila de catálogo, ADR 0012), que
   convive con la etapa? ¿Y en qué etapa de 30X queda el deal mientras tiene uno de esos estados? Se decide con
   `/grill-with-docs` antes del 142, porque cambia el enum y la tabla de transiciones.
@@ -372,14 +372,14 @@ detalle"*).
 | **1** | El inventario de la reunión contra el repo | este documento | ✅ 30-sep |
 | **2** | Leer el HubSpot de 30X, solo lectura: las etapas con su definición, las etiquetas y propiedades de cada una (cuáles son obligatorias), "fecha corte" y "cortesías" (GC-52), y el dashboard "Gestión Comercial" gráfica por gráfica, con pantallazos | §4 lleno; §9 (lo leído y el inventario de gráficas de GC-30); QD-8 a QD-12 y QM-9 | ✅ 1-oct, con pantallazos de Mani (Claude in Chrome no respondió). Lo que HubSpot no dice (reglas de movimiento, obligatorias, fecha corte, cortesías) quedó como pregunta |
 | **3** | Las preguntas a Dani (QD-1 a QD-12) y a Mani (QM-2 a QM-9); Mani habla con 2 o 3 closers sobre abonos (GC-17) | §7 contestado | ✅ 1-oct, Mani (§7.0). Quedan QM-10 a QM-12 y el manual (QD-8, Alejo); falta GC-17 con los closers |
-| **4** | Las decisiones, con `/grill-with-docs`: el pipeline de 30X (reemplaza partes del ADR 0037 y el 0056), el valor vendido y la comisión por porcentaje (ADR 0016), Atendido sin Grain, el rol Customer Success, la meta del mes, los periodos flexibles | ADR nuevos y enmiendas | · |
-| **5** | Los tickets: enmendar los vivos (117, 118, 078, 080, 122, 124, 089, 095, 128, 065, 069, 070, 071, 102, 062) y crear los nuevos | `tasks/` y el tracker | · |
-| **6** | El orden: v1 comercial primero (R-9), y el cambio de etapas **antes** del `--aplicar` del 078. El 117 sigue: corrige el bug de Tactical (`analytics.md` §2.4) y su `etapa_entrada` se traduce en la misma migración que traduce `deals.etapa` | `plan.md` §5 y `plan-reparto.md` | ✅ 1-oct: etapas NC1 y NC2 en `plan-reparto.md` §4 |
+| **4** | Las decisiones, con `/grill-with-docs`: el pipeline de 30X (reemplaza partes del ADR 0037 y el 0056), el valor vendido y la comisión por porcentaje (ADR 0016), Atendido sin Grain, el rol Customer Success, la meta del mes, los periodos flexibles | ADR nuevos y enmiendas || ✅ lote 1, 1-oct: ADR 0065, 0066 y 0067. El lote 2 espera QM-10 y el manual (QD-8) |
+| **5** | Los tickets: enmendar los vivos (117, 118, 078, 080, 122, 124, 089, 095, 128, 065, 069, 070, 071, 102, 062) y crear los nuevos | `tasks/` y el tracker || ✅ lote 1, 1-oct: enmendados 017, 044, 058, 060, 062, 072, 074, 089, 095 y 128; creados 132 a 149. Los del lote 2, cuando se desbloqueen |
+| **6** | El orden: v1 comercial primero (R-9), y el cambio de etapas **antes** del `--aplicar` del 078. El 117 sigue: corrige el bug de Tactical (`analytics.md` §2.4) y su `etapa_entrada` se traduce en la misma migración que traduce `deals.etapa` | `plan.md` §5 y `plan-reparto.md` | ✅ 1-oct: etapas NC1 a NC3 en `plan-reparto.md` §4; desde el mismo día se trabaja por olas (ola O1) |
 
 **Los dos lotes (Mani, 1-oct).** Los pasos 3 a 5 ya no van en serie para todo: el paso 3 espera a Dani, y la
 mitad del trabajo no depende de él. Se parte en dos **lotes** por **dependencia**, no por persona. No es un plan
-aparte: cada lote se reparte con los **carriles** de [`plan-reparto.md`](./plan-reparto.md) §2 (Mani y Alejo,
-por dominio), y la etapa de `plan-reparto` sigue cerrando solo cuando todo quedó en `main`.
+aparte: cada lote se reparte en las **olas** de [`plan-reparto.md`](./plan-reparto.md) §4 (desde el 1-oct; antes,
+carriles por persona).
 
 | Lote | Qué entra | Espera a | Carril |
 |---|---|---|---|

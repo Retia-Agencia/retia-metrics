@@ -192,7 +192,7 @@ function DialogoFallida({
   return (
     <DialogoForm
       titulo="La llamada no se dio"
-      descripcion="El deal pasa a Pendiente Re-agenda. No aparecer y cancelar avisando son cosas distintas: elige la que fue."
+      descripcion="El deal queda con Re-agenda pendiente. No aparecer y cancelar avisando son cosas distintas: elige la que fue."
       pendiente={pendiente}
       onCerrar={onCerrar}
       confirmar={{
@@ -200,7 +200,7 @@ function DialogoFallida({
         enCurso: "Guardando…",
         onClick: () =>
           correr(() => marcarFallidaAccion({ callId, resultado, motivoId: motivoId ?? undefined }), {
-            exito: "Marcada: el deal pasó a Pendiente Re-agenda.",
+            exito: "Marcada: el deal quedó con Re-agenda pendiente.",
             alExito: onCerrar,
           }),
       }}

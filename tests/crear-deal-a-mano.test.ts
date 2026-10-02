@@ -82,7 +82,7 @@ async function foto() {
 }
 
 describe("crear un deal sobre un lead sin deal abierto", () => {
-  it("nace en Pendiente Setteo, con el closer de dueño, su historial y su rastro", async () => {
+  it("nace en En gestión (ADR 0071 punto 6), con el closer de dueño, su historial y su rastro", async () => {
     const leadId = await nuevoLead(programaA);
     auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
 
@@ -91,10 +91,10 @@ describe("crear un deal sobre un lead sin deal abierto", () => {
     expect(r).toMatchObject({ ok: true, leadCreado: false });
     const dealId = (r as { dealId: string }).dealId;
     const [d] = await dealsDe(leadId);
-    expect(d).toMatchObject({ id: dealId, etapa: "pendiente_setteo", ownerUserId: closerA, creadoPor: closerA, programId: programaA });
+    expect(d).toMatchObject({ id: dealId, etapa: "en_gestion", ownerUserId: closerA, creadoPor: closerA, programId: programaA });
 
     const historial = await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, dealId));
-    expect(historial).toEqual([expect.objectContaining({ de: null, a: "pendiente_setteo", userId: closerA })]);
+    expect(historial).toEqual([expect.objectContaining({ de: null, a: "en_gestion", userId: closerA })]);
 
     const rastro = await db
       .select()
@@ -113,16 +113,18 @@ describe("crear un deal sobre un lead sin deal abierto", () => {
       lead: { tipo: "existente", leadId },
       userId: gerente,
       ownerUserId: gerente,
-      etapa: "abonado",
+      etapa: "ganado_parcial",
     } as never);
 
     expect(r).toMatchObject({ ok: true });
     const [d] = await dealsDe(leadId);
     expect(d.ownerUserId).toBe(closerA);
-    expect(d.etapa).toBe("pendiente_setteo");
+    expect(d.etapa).toBe("en_gestion");
   });
 
-  it("un gerente lo crea sin dueño: administra, no vende (ADR 0003), y el deal cae al Inbox", async () => {
+  // ADR 0071 punto 6: "con quien lo crea como dueño", y `abrirDeal` lo aplica a toda persona.
+  // Con un gerente choca con el ADR 0003 (administra, no vende): duda abierta del ticket 140.
+  it("un gerente lo crea y queda de dueño, como lo decide el motor", async () => {
     const leadId = await nuevoLead(programaB);
     auth.mockResolvedValue(sesion(gerente, "gerente", null));
 
@@ -130,7 +132,7 @@ describe("crear un deal sobre un lead sin deal abierto", () => {
 
     expect(r).toMatchObject({ ok: true });
     const [d] = await dealsDe(leadId);
-    expect(d.ownerUserId).toBeNull();
+    expect(d.ownerUserId).toBe(gerente);
     expect(d.creadoPor).toBe(gerente);
   });
 
@@ -157,7 +159,7 @@ describe("crear un deal sobre un lead sin deal abierto", () => {
     const [l] = await db.select().from(leads).where(eq(leads.emailNormalizado, "nuevo@correo.co"));
     expect(l).toMatchObject({ programId: programaA, entrada: "crm", nombre: "Nuevo" });
     const [d] = await dealsDe(l.id);
-    expect(d).toMatchObject({ etapa: "pendiente_setteo", ownerUserId: closerA });
+    expect(d).toMatchObject({ etapa: "en_gestion", ownerUserId: closerA });
   });
 
   it("reaplicar tras un Cierre Perdido abre un deal nuevo: el cerrado no ocupa el cupo", async () => {
@@ -191,7 +193,7 @@ describe("sobre un lead con deal abierto", () => {
 
   it("tambien si el lead llega por correo en el alta manual: el dedup lo encuentra y enlaza su deal", async () => {
     const leadId = await nuevoLead(programaA);
-    const [abierto] = await db.insert(deals).values({ leadId, programId: programaA, etapa: "pendiente_setteo" }).returning();
+    const [abierto] = await db.insert(deals).values({ leadId, programId: programaA, etapa: "en_gestion" }).returning();
     const [l] = await db.select().from(leads).where(eq(leads.id, leadId));
     auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
     const antes = await foto();
@@ -207,7 +209,7 @@ describe("sobre un lead con deal abierto", () => {
     await db.insert(deals).values({
       leadId,
       programId: programaA,
-      etapa: "pendiente_setteo",
+      etapa: "en_gestion",
       anuladoEn: new Date(),
       anuladoPor: closerA,
       motivoAnulacion: "lead equivocado",

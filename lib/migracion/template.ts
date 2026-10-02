@@ -1,4 +1,4 @@
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 
 /**
  * El template canonico de la migracion de las pestañas de gestion (ADR 0059 punto 4).
@@ -65,6 +65,7 @@ export interface DealTemplate {
   huella: string;
   correo: string;
   etapa: EtapaDeal;
+  pendiente?: PendienteDeal | null;
   /** El nombre como lo escribio la hoja; el dueño lo resuelve el importador. */
   closer: string | null;
   /** Instante ISO en que entro a la etapa, si la hoja lo sabe. */

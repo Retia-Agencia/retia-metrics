@@ -63,7 +63,7 @@ describe("extraerSetteo (decision de Mani del 28-sep)", () => {
     expect(r.deals[0]).toMatchObject({
       huella: "sheets:prog-a:setteo:ana@correo.co",
       correo: "ana@correo.co",
-      etapa: "en_contacto",
+      etapa: "contactado",
       closer: "Andrea",
     });
     expect(r.deals[0].notas.map((n) => n.texto)).toEqual(["Registro 1: Le escribí", "Registro 2: No contesta"]);
@@ -81,7 +81,7 @@ describe("extraerSetteo (decision de Mani del 28-sep)", () => {
     ];
     const r = extraerSetteo(m, OP);
     expect(r.deals.map((d) => d.correo)).toEqual(["nuevo@c.co"]);
-    expect(r.deals[0].etapa).toBe("pendiente_setteo");
+    expect(r.deals[0].etapa).toBe("registrado");
     expect(r.sinDeal).toEqual([{ huella: "sheets:prog-a:setteo:viejo@c.co", razon: "pendiente_viejo_sin_actividad" }]);
 
     const total = extraerSetteo(m, { ...OP, alcance: "total" });
@@ -91,14 +91,14 @@ describe("extraerSetteo (decision de Mani del 28-sep)", () => {
   it("un Pendiente viejo con solo `Fecha de ultimo contacto` es trabajado (revision de Codex)", () => {
     const fila = ["1/07/2026", "N", "3", "t@c.co", "", "", "", "Pendiente", "Jero", "", "", "20/09/2026", "", "", "", ""];
     const r = extraerSetteo([CAB_SETTEO_TI, fila], OP);
-    expect(r.deals.map((d) => d.etapa)).toEqual(["pendiente_setteo"]);
+    expect(r.deals.map((d) => d.etapa)).toEqual(["registrado"]);
     expect(r.rarezas.map((x) => x.tipo)).toEqual(["pendiente_con_notas"]);
     expect(r.sinDeal).toEqual([]);
   });
 
   it("Pendiente con notas → Pendiente Setteo y rareza, no se adivina la etapa", () => {
     const r = extraerSetteo([CAB_SETTEO_CA, filaCA({ fecha: "1/07/2026", correo: "a@c.co", estado: "Pendiente", r1: "hablé" })], OP);
-    expect(r.deals[0].etapa).toBe("pendiente_setteo");
+    expect(r.deals[0].etapa).toBe("registrado");
     expect(r.rarezas.map((x) => x.tipo)).toEqual(["pendiente_con_notas"]);
   });
 
@@ -127,7 +127,7 @@ describe("extraerSetteo (decision de Mani del 28-sep)", () => {
       ],
       OP,
     );
-    expect(r.deals.map((d) => [d.correo, d.etapa])).toEqual([["a@c.co", "en_contacto"]]);
+    expect(r.deals.map((d) => [d.correo, d.etapa])).toEqual([["a@c.co", "contactado"]]);
     expect(r.rarezas.map((x) => x.tipo)).toEqual(["agendado_por_decidir", "estado_desconocido", "sin_correo", "correo_repetido"]);
     expect(r.rarezas[2].huella).toBe("sheets:prog-a:setteo:fila-4");
   });
@@ -135,7 +135,7 @@ describe("extraerSetteo (decision de Mani del 28-sep)", () => {
   it("Tactical: `Columna 1` es la deteccion, `Responsable` el closer, y el ultimo Registro lleva la fecha de ultimo contacto", () => {
     const fila = ["20/09/2026", "N", "3", "t@c.co", "", "", "", "En proceso", "Jero", "2/09/2026", "uno", "10/09/2026", "dos", "", "", ""];
     const r = extraerSetteo([CAB_SETTEO_TI, fila], OP);
-    expect(r.deals[0]).toMatchObject({ closer: "Jero", etapa: "en_contacto" });
+    expect(r.deals[0]).toMatchObject({ closer: "Jero", etapa: "contactado" });
     const [n1, n2] = r.deals[0].notas;
     expect(n1.fecha).toBe(new Date("2026-09-02T00:00:00-05:00").toISOString());
     expect(n2.fecha).toBe(new Date("2026-09-10T00:00:00-05:00").toISOString());
@@ -247,7 +247,7 @@ describe("extraerEstudiantes (ADR 0059 puntos 6 y 7)", () => {
 
   it("Julio Total → Completo con un abono por el precio y fecha aproximada", () => {
     const r = extraerEstudiantes([CAB_JULIO_TI, julio("a@c.co", "$1,500", "Total")], OPJ);
-    expect(r.deals[0]).toMatchObject({ etapa: "completo", cohorte: "C1", precio: "1500.00", mailOnboarding: true, closer: "Jero" });
+    expect(r.deals[0]).toMatchObject({ etapa: "ganado_completo", cohorte: "C1", precio: "1500.00", mailOnboarding: true, closer: "Jero" });
     expect(r.abonos).toEqual([
       { huella: "sheets:prog-a:estudiantes-julio:a@c.co:abono", dealHuella: "sheets:prog-a:estudiantes-julio:a@c.co", fecha: null, monto: "1500.00", plataforma: "Hotmart", closer: "Jero" },
     ]);
@@ -272,7 +272,7 @@ describe("extraerEstudiantes (ADR 0059 puntos 6 y 7)", () => {
       [CAB_SEPT_CA, sept("5/09/2026", "a@c.co", "400", "797"), sept("6/09/2026", "b@c.co", "797", "797")],
       { programa: "prog-b", pestana: "estudiantes-septiembre", cohorte: "C2" },
     );
-    expect(r.deals.map((d) => d.etapa)).toEqual(["abonado", "completo"]);
+    expect(r.deals.map((d) => d.etapa)).toEqual(["ganado_parcial", "ganado_completo"]);
     expect(r.deals[0].acuerdoPago).toBeNull();
     expect(r.abonos.map((a) => [a.fecha, a.monto])).toEqual([["2026-09-05", "400.00"], ["2026-09-06", "797.00"]]);
     expect(r.rarezas).toEqual([]);

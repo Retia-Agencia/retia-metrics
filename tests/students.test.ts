@@ -66,11 +66,11 @@ async function deal(etapa: EtapaDeal, pagado: string, extra: Partial<typeof deal
 
 describe("studentsDelPrograma", () => {
   it("la lista de una cohorte son sus deals vigentes en Abonado o Completo, y nada más", async () => {
-    const abonado = await deal("abonado", "400");
-    const completo = await deal("completo", "1000");
+    const abonado = await deal("ganado_parcial", "400");
+    const completo = await deal("ganado_completo", "1000");
     await deal("compromiso_verbal", "0");
-    await deal("completo", "1000", { cohortId: c1 });
-    await deal("abonado", "400", { anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error" });
+    await deal("ganado_completo", "1000", { cohortId: c1 });
+    await deal("ganado_parcial", "400", { anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error" });
 
     const filas = await studentsDelPrograma(db, programId, { cohortId: c2 }, HOY);
 
@@ -79,8 +79,8 @@ describe("studentsDelPrograma", () => {
   });
 
   it("trae el saldo del módulo, el dueño y la cartera vencida con su fecha y días", async () => {
-    const vencido = await deal("abonado", "400", { fechaLimitePago: "2026-10-10", acuerdoPago: "el resto el 10" });
-    const alDia = await deal("abonado", "400", { fechaLimitePago: "2026-10-30" });
+    const vencido = await deal("ganado_parcial", "400", { fechaLimitePago: "2026-10-10", acuerdoPago: "el resto el 10" });
+    const alDia = await deal("ganado_parcial", "400", { fechaLimitePago: "2026-10-30" });
 
     const filas = await studentsDelPrograma(db, programId, { cohortId: c2 }, HOY);
     const v = filas.find((f) => f.dealId === vencido.id)!;
@@ -92,15 +92,15 @@ describe("studentsDelPrograma", () => {
   });
 
   it("filtra por onboarding", async () => {
-    const hecho = await deal("completo", "1000", { onboardedAt: new Date("2026-10-02T15:00:00Z") });
-    const falta = await deal("completo", "1000");
+    const hecho = await deal("ganado_completo", "1000", { onboardedAt: new Date("2026-10-02T15:00:00Z") });
+    const falta = await deal("ganado_completo", "1000");
 
     expect((await studentsDelPrograma(db, programId, { onboarded: "si" }, HOY)).map((f) => f.dealId)).toEqual([hecho.id]);
     expect((await studentsDelPrograma(db, programId, { onboarded: "no" }, HOY)).map((f) => f.dealId)).toEqual([falta.id]);
   });
 
   it("el programa es frontera: los estudiantes de otro programa no aparecen", async () => {
-    await deal("completo", "1000", { cohortId: null }, otroPrograma);
+    await deal("ganado_completo", "1000", { cohortId: null }, otroPrograma);
     expect(await studentsDelPrograma(db, programId, {}, HOY)).toEqual([]);
   });
 });

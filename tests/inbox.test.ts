@@ -75,6 +75,7 @@ afterEach(async () => {
 /** Crea un lead con su deal. Devuelve el id del deal (y del lead por si hace falta). */
 async function crearDeal(o: {
   etapa: EtapaDeal;
+  pendiente?: "reagenda" | "seguimiento" | "proxima_cohorte" | null;
   programa?: string;
   owner?: string | null;
   anulado?: boolean;
@@ -95,6 +96,7 @@ async function crearDeal(o: {
       programId: prog,
       cohortId: o.cohorte === false ? null : prog === programId ? cohortId : null,
       etapa: o.etapa,
+      pendiente: o.pendiente ?? null,
       ownerUserId: o.owner === undefined ? closer : o.owner,
       valorVendidoUsd: prog === programId ? "1000.00" : null,
       fechaLimitePago: o.fechaLimitePago ?? null,
@@ -177,7 +179,7 @@ describe("inboxDelPrograma — llamadas de hoy sin resultado", () => {
   it("excluye una llamada anulada y una de un deal cerrado o de otro programa", async () => {
     const { dealId } = await crearDeal({ etapa: "agendado" });
     await crearLlamada({ dealId, fechaAgenda: enBogota(HOY), anulada: true });
-    const cerrado = await crearDeal({ etapa: "completo" });
+    const cerrado = await crearDeal({ etapa: "ganado_completo" });
     await crearLlamada({ dealId: cerrado.dealId, fechaAgenda: enBogota(HOY) });
     const ajeno = await crearDeal({ etapa: "agendado", programa: otroProgramId, owner: closer });
     await crearLlamada({ dealId: ajeno.dealId, programa: otroProgramId, fechaAgenda: enBogota(HOY) });
@@ -227,14 +229,14 @@ async function motivosPorDeal(alcance: Parameters<typeof inboxDelPrograma>[2]) {
 }
 
 describe("inboxDelPrograma — atención: re-agenda sin nueva fecha (a)", () => {
-  it("positivo: pendiente_reagenda sin cita futura entra", async () => {
-    const { dealId } = await crearDeal({ etapa: "pendiente_reagenda" });
+  it("positivo: Re-agenda pendiente sin cita futura entra", async () => {
+    const { dealId } = await crearDeal({ etapa: "agendado", pendiente: "reagenda" });
     const m = await motivosPorDeal({ ownerUserId: closer });
     expect(m.get(dealId)).toBe("reagenda_sin_fecha");
   });
 
-  it("negativo: pendiente_reagenda CON cita futura no entra por (a)", async () => {
-    const { dealId } = await crearDeal({ etapa: "pendiente_reagenda" });
+  it("negativo: Re-agenda pendiente CON cita futura no entra por (a)", async () => {
+    const { dealId } = await crearDeal({ etapa: "agendado", pendiente: "reagenda" });
     await crearLlamada({ dealId, fechaAgenda: enBogota("2026-09-30") }); // futura
     const m = await motivosPorDeal({ ownerUserId: closer });
     expect(m.get(dealId)).not.toBe("reagenda_sin_fecha");
@@ -257,7 +259,7 @@ describe("inboxDelPrograma — atención: compromiso verbal vencido (b)", () => 
 
 describe("inboxDelPrograma — atención: pago vencido con saldo (c)", () => {
   it("positivo: abonado con fecha límite pasada y saldo entra con su saldo", async () => {
-    const { dealId } = await crearDeal({ etapa: "abonado", fechaLimitePago: "2026-09-20" });
+    const { dealId } = await crearDeal({ etapa: "ganado_parcial", fechaLimitePago: "2026-09-20" });
     await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-19", monto: "400", moneda: "USD" });
     const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
     const fila = inbox.atencion.find((f) => f.dealId === dealId)!;
@@ -267,7 +269,7 @@ describe("inboxDelPrograma — atención: pago vencido con saldo (c)", () => {
   });
 
   it("negativo: abonado pagado completo (saldo 0) no entra", async () => {
-    const { dealId } = await crearDeal({ etapa: "abonado", fechaLimitePago: "2026-09-20" });
+    const { dealId } = await crearDeal({ etapa: "ganado_parcial", fechaLimitePago: "2026-09-20" });
     await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-19", monto: "1000", moneda: "USD" });
     const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
     expect(inbox.atencion.find((f) => f.dealId === dealId)?.motivo).not.toBe("pago_vencido");
@@ -277,7 +279,7 @@ describe("inboxDelPrograma — atención: pago vencido con saldo (c)", () => {
 describe("inboxDelPrograma — atención: re-envío sin atender (d)", () => {
   it("positivo: un envío completo posterior a la última actividad del deal entra", async () => {
     // Deal creado hace tiempo, con actividad vieja.
-    const { dealId, leadId } = await crearDeal({ etapa: "en_contacto", createdAt: enBogota("2026-09-01") });
+    const { dealId, leadId } = await crearDeal({ etapa: "contactado", createdAt: enBogota("2026-09-01") });
     await db.insert(dealActividades).values({ dealId, tipo: "contacto", userId: closer, fecha: enBogota("2026-09-10") });
     // Re-envío COMPLETO más nuevo que la actividad.
     await db.insert(submissions).values({ leadId, sourceId, token: "t1", esParcial: false, fechaEnvio: enBogota("2026-09-24") });
@@ -286,7 +288,7 @@ describe("inboxDelPrograma — atención: re-envío sin atender (d)", () => {
   });
 
   it("negativo: se limpia cuando se registra una actividad DESPUÉS del re-envío", async () => {
-    const { dealId, leadId } = await crearDeal({ etapa: "en_contacto", createdAt: enBogota("2026-09-01") });
+    const { dealId, leadId } = await crearDeal({ etapa: "contactado", createdAt: enBogota("2026-09-01") });
     await db.insert(submissions).values({ leadId, sourceId, token: "t1", esParcial: false, fechaEnvio: enBogota("2026-09-24") });
     // Actividad posterior al re-envío: ya lo atendió.
     await db.insert(dealActividades).values({ dealId, tipo: "contacto", userId: closer, fecha: enBogota("2026-09-26") });
@@ -295,7 +297,7 @@ describe("inboxDelPrograma — atención: re-envío sin atender (d)", () => {
   });
 
   it("un envío PARCIAL no dispara el re-envío", async () => {
-    const { dealId, leadId } = await crearDeal({ etapa: "en_contacto", createdAt: enBogota("2026-09-01") });
+    const { dealId, leadId } = await crearDeal({ etapa: "contactado", createdAt: enBogota("2026-09-01") });
     await db.insert(dealActividades).values({ dealId, tipo: "contacto", userId: closer, fecha: enBogota("2026-09-10") });
     await db.insert(submissions).values({ leadId, sourceId, token: "t1", esParcial: true, fechaEnvio: enBogota("2026-09-24") });
     const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
@@ -306,14 +308,14 @@ describe("inboxDelPrograma — atención: re-envío sin atender (d)", () => {
 describe("inboxDelPrograma — atención: estancado (e), en días hábiles", () => {
   it("positivo: sin actividad hace más de 3 días hábiles entra como estancado", async () => {
     // Última actividad el lunes anterior (2026-09-21); a hoy (lunes 28) van 5 hábiles sin actividad.
-    const { dealId } = await crearDeal({ etapa: "en_contacto", createdAt: enBogota("2026-09-21") });
+    const { dealId } = await crearDeal({ etapa: "contactado", createdAt: enBogota("2026-09-21") });
     const m = await motivosPorDeal({ ownerUserId: closer });
     expect(m.get(dealId)).toBe("estancado");
   });
 
   it("negativo: actividad reciente (ayer hábil) no está estancado", async () => {
     // El deal se creó viejo pero tuvo actividad el viernes (2026-09-25): 1 día hábil sin actividad.
-    const { dealId } = await crearDeal({ etapa: "en_contacto", createdAt: enBogota("2026-09-01") });
+    const { dealId } = await crearDeal({ etapa: "contactado", createdAt: enBogota("2026-09-01") });
     await db.insert(dealActividades).values({ dealId, tipo: "contacto", userId: closer, fecha: enBogota("2026-09-25") });
     const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
     expect(inbox.atencion.find((f) => f.dealId === dealId)?.motivo).not.toBe("estancado");
@@ -323,14 +325,14 @@ describe("inboxDelPrograma — atención: estancado (e), en días hábiles", () 
     // Umbral del programa en 1 día hábil para aislar el conteo viernes→lunes.
     await db.update(programs).set({ diasSinActividad: 1 }).where(eq(programs.id, programId));
     // Actividad el viernes 25; hoy lunes 28 -> 1 día hábil sin actividad -> estancado con umbral 1.
-    const { dealId } = await crearDeal({ etapa: "en_contacto", createdAt: enBogota("2026-09-01") });
+    const { dealId } = await crearDeal({ etapa: "contactado", createdAt: enBogota("2026-09-01") });
     await db.insert(dealActividades).values({ dealId, tipo: "contacto", userId: closer, fecha: enBogota("2026-09-25") });
     const m = await motivosPorDeal({ ownerUserId: closer });
     expect(m.get(dealId)).toBe("estancado");
   });
 
   it("un abono o un movimiento de etapa cuentan como actividad y sacan del estancamiento", async () => {
-    const { dealId } = await crearDeal({ etapa: "abonado", createdAt: enBogota("2026-09-01"), fechaLimitePago: null });
+    const { dealId } = await crearDeal({ etapa: "ganado_parcial", createdAt: enBogota("2026-09-01"), fechaLimitePago: null });
     await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-25", monto: "100", moneda: "USD" });
     const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
     expect(inbox.atencion.find((f) => f.dealId === dealId)?.motivo).not.toBe("estancado");
@@ -339,8 +341,8 @@ describe("inboxDelPrograma — atención: estancado (e), en días hábiles", () 
 
 describe("inboxDelPrograma — atención: un deal en UN solo bucket, y alcance/frontera", () => {
   it("un deal que cumple varios buckets aparece una vez, en el primero (re-agenda gana)", async () => {
-    // pendiente_reagenda sin cita futura (a) y sin actividad hace mucho (e): debe ser (a).
-    const { dealId } = await crearDeal({ etapa: "pendiente_reagenda", createdAt: enBogota("2026-09-01") });
+    // Re-agenda pendiente sin cita futura (a) y sin actividad hace mucho (e): debe ser (a).
+    const { dealId } = await crearDeal({ etapa: "agendado", pendiente: "reagenda", createdAt: enBogota("2026-09-01") });
     const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
     const suyas = inbox.atencion.filter((f) => f.dealId === dealId);
     expect(suyas).toHaveLength(1);
@@ -348,7 +350,7 @@ describe("inboxDelPrograma — atención: un deal en UN solo bucket, y alcance/f
   });
 
   it("los deals de otro closer no salen para un closer, pero sí para el equipo", async () => {
-    const ajeno = await crearDeal({ etapa: "pendiente_reagenda", owner: otroCloser, createdAt: enBogota("2026-09-01") });
+    const ajeno = await crearDeal({ etapa: "agendado", pendiente: "reagenda", owner: otroCloser, createdAt: enBogota("2026-09-01") });
 
     const comoCloser = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
     expect(comoCloser.atencion.find((f) => f.dealId === ajeno.dealId)).toBeUndefined();
@@ -360,14 +362,14 @@ describe("inboxDelPrograma — atención: un deal en UN solo bucket, y alcance/f
   });
 
   it("un deal de otro programa nunca aparece", async () => {
-    const ajeno = await crearDeal({ etapa: "pendiente_reagenda", programa: otroProgramId, owner: closer, createdAt: enBogota("2026-09-01") });
+    const ajeno = await crearDeal({ etapa: "agendado", pendiente: "reagenda", programa: otroProgramId, owner: closer, createdAt: enBogota("2026-09-01") });
     const inbox = await inboxDelPrograma(db, programId, "equipo", HOY);
     expect(inbox.atencion.find((f) => f.dealId === ajeno.dealId)).toBeUndefined();
   });
 
   it("un deal anulado nunca aparece, ni cerrado", async () => {
-    await crearDeal({ etapa: "pendiente_reagenda", anulado: true, createdAt: enBogota("2026-09-01") });
-    await crearDeal({ etapa: "completo", createdAt: enBogota("2026-09-01") });
+    await crearDeal({ etapa: "agendado", pendiente: "reagenda", anulado: true, createdAt: enBogota("2026-09-01") });
+    await crearDeal({ etapa: "ganado_completo", createdAt: enBogota("2026-09-01") });
     await crearDeal({ etapa: "cierre_perdido", createdAt: enBogota("2026-09-01") });
     const inbox = await inboxDelPrograma(db, programId, "equipo", HOY);
     expect(inbox.atencion).toHaveLength(0);

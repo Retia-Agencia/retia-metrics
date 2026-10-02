@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { puedeAcceder, esRolValido, trabajaLeads } from "@/lib/auth/roles";
-import { navParaRol, programaDeRuta, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
+import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
 describe("trabajaLeads", () => {
@@ -176,6 +176,11 @@ describe("el programa en la URL (ticket 097)", () => {
     expect(rutaAlCambiarDePrograma("/p/programa-a/dashboard", "programa-b")).toBe(
       "/p/programa-b/dashboard",
     );
+  });
+
+  it("la opción Todos navega a la ruta superior y desde ella un programa abre su dashboard", () => {
+    expect(rutaAlCambiarDePrograma("/p/programa-a/dashboard", VALOR_PROGRAMA_TODOS)).toBe("/dashboard");
+    expect(rutaAlCambiarDePrograma("/dashboard", "programa-b")).toBe("/p/programa-b/dashboard");
   });
 
   it("suelta lo que venga detras de la tab: un id es del programa anterior", () => {

@@ -8,15 +8,20 @@ import { db } from "@/lib/db";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { puedeTrabajarDeal } from "@/lib/deals/permiso";
+import { nombreDelDeal } from "@/lib/deals/nombre";
 import { fichaDeDeal, opcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { PageShell } from "@/components/page-shell";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { FichaAcciones } from "@/components/deals/ficha/ficha-acciones";
+import { FichaPregunta } from "@/components/deals/ficha/ficha-pregunta";
 import { FichaActividades } from "@/components/deals/ficha/ficha-actividades";
 import { FichaCabecera } from "@/components/deals/ficha/ficha-cabecera";
 import { FichaHistorial } from "@/components/deals/ficha/ficha-historial";
 import { FichaLlamadas } from "@/components/deals/ficha/ficha-llamadas";
 import { FichaPago } from "@/components/deals/ficha/ficha-pago";
+import { FichaOrigen } from "@/components/deals/ficha/ficha-origen";
+import { FichaPerfil } from "@/components/deals/ficha/ficha-perfil";
+import { FichaLead } from "@/components/deals/ficha/ficha-lead";
 
 export const dynamic = "force-dynamic";
 
@@ -52,21 +57,20 @@ export default async function FichaDelDealPage({ params }: Props) {
   const puedeTrabajar = !ficha.anulado && puedeTrabajarDeal(actor, { ownerUserId: ficha.owner?.id ?? null });
   // Registrar llamadas y plata es trabajar el lead: el gerente administra pero no registra (ADR 0003).
   const puedeRegistrar = puedeTrabajar && trabajaLeads(rol);
-  const cerrado = ficha.etapa === "completo" || ficha.etapa === "cierre_perdido";
+  const cerrado = ficha.etapa === "ganado_completo" || ficha.etapa === "cierre_perdido";
+  const nombre = nombreDelDeal({
+    leadNombre: ficha.lead.nombre,
+    leadEmail: ficha.lead.email,
+    programaNombre: programa.nombre,
+    cohorteCodigo: ficha.cohorte?.codigo ?? null,
+  });
 
   return (
     <PageShell
-      titulo={ficha.lead.nombre ?? ficha.lead.email}
+      titulo={nombre}
       descripcion={`${programa.nombre} · Deal`}
       acciones={
-        <FichaAcciones
-          ficha={ficha}
-          opciones={opciones}
-          mapa={mapaDeTransiciones()}
-          nombreDeEtapa={NOMBRE_DE_ETAPA}
-          puedeTrabajar={puedeTrabajar}
-          administra={esAdministrador(rol)}
-        />
+        <FichaAcciones ficha={ficha} opciones={opciones} puedeTrabajar={puedeTrabajar} administra={esAdministrador(rol)} />
       }
     >
       <div className="space-y-4">
@@ -77,9 +81,23 @@ export default async function FichaDelDealPage({ params }: Props) {
           ← Volver a los deals
         </Link>
 
-        <FichaCabecera ficha={ficha} nombreDeEtapa={NOMBRE_DE_ETAPA} tonoDeEtapa={TONO_DE_ETAPA} />
+        <FichaCabecera ficha={ficha} nombre={nombre} nombreDeEtapa={NOMBRE_DE_ETAPA} tonoDeEtapa={TONO_DE_ETAPA} />
+        <FichaPregunta
+          ficha={ficha}
+          opciones={opciones}
+          mapa={mapaDeTransiciones()}
+          nombreDeEtapa={NOMBRE_DE_ETAPA}
+          rutaDeLaFicha={`/p/${programa.slug}/deals/${ficha.dealId}`}
+          puedeTrabajar={puedeTrabajar}
+        />
 
         <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+          <div className="space-y-4">
+            <FichaOrigen ficha={ficha} />
+            <FichaPerfil perfil={ficha.perfil} />
+            <FichaLead ficha={ficha} />
+            <FichaHistorial log={ficha.log} nombreDeEtapa={NOMBRE_DE_ETAPA} tonoDeEtapa={TONO_DE_ETAPA} />
+          </div>
           <div className="space-y-4">
             <FichaLlamadas
               llamadas={ficha.llamadas}
@@ -89,10 +107,7 @@ export default async function FichaDelDealPage({ params }: Props) {
               puedeRegistrar={puedeRegistrar && !cerrado}
             />
             <FichaActividades actividades={ficha.actividades} dealId={ficha.dealId} puedeRegistrar={puedeTrabajar} />
-          </div>
-          <div className="space-y-4">
-            <FichaPago ficha={ficha} opciones={opciones} puedeTrabajar={puedeTrabajar} puedeRegistrar={puedeRegistrar} />
-            <FichaHistorial historial={ficha.historial} nombreDeEtapa={NOMBRE_DE_ETAPA} tonoDeEtapa={TONO_DE_ETAPA} />
+            <FichaPago ficha={ficha} opciones={opciones} puedeTrabajar={puedeTrabajar} puedeRegistrar={puedeRegistrar} nombreDeEtapa={NOMBRE_DE_ETAPA} />
           </div>
         </div>
       </div>

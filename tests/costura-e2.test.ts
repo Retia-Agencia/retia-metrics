@@ -199,8 +199,8 @@ describe("E2 — la cita cae en su deal, el Grain lo atiende, el dinero lo mueve
       monto: "400",
       comprobanteUrl: "https://drive.google.com/comprobante-1",
     });
-    expect(primero).toMatchObject({ etapa: "abonado", movioElDeal: true, saldo: 1100, cohorteAsignada: null });
-    expect((await estudiantesDe(db, programId)).map((e) => [e.dealId, e.etapa, e.codigoCohorte])).toEqual([[dealId, "abonado", "Octubre"]]);
+    expect(primero).toMatchObject({ etapa: "ganado_parcial", movioElDeal: true, saldo: 1100, cohorteAsignada: null });
+    expect((await estudiantesDe(db, programId)).map((e) => [e.dealId, e.etapa, e.codigoCohorte])).toEqual([[dealId, "ganado_parcial", "Octubre"]]);
 
     // El acuerdo de pago: la fecha límite no puede pasar del inicio de clases (15-oct).
     await expect(editarAcuerdoDePago(db, comoCloser(), { dealId, fechaLimitePago: "2026-10-16" })).rejects.toMatchObject({ status: 422 });
@@ -221,11 +221,11 @@ describe("E2 — la cita cae en su deal, el Grain lo atiende, el dinero lo mueve
       monto: "1100",
       comprobanteUrl: "https://drive.google.com/comprobante-2",
     });
-    expect(cierre).toMatchObject({ etapa: "completo", movioElDeal: true, saldo: 0 });
+    expect(cierre).toMatchObject({ etapa: "ganado_completo", movioElDeal: true, saldo: 0 });
     expect((await saldosDeDeals(db, [dealId])).get(dealId)).toMatchObject({ abonado: 1500, saldo: 0 });
     // Ya pagó todo: deja la cartera y sigue siendo estudiante.
     expect((await carteraVencida(db, programId, HOY)).vencidos).toHaveLength(0);
-    expect((await estudiantesDe(db, programId)).map((e) => e.etapa)).toEqual(["completo"]);
+    expect((await estudiantesDe(db, programId)).map((e) => e.etapa)).toEqual(["ganado_completo"]);
 
     // 6. El onboarding lo marca el closer; el gerente puede borrar la marca; se puede volver a poner.
     await marcarOnboarded(db, comoCloser(), { dealId });
@@ -235,7 +235,7 @@ describe("E2 — la cita cae en su deal, el Grain lo atiende, el dinero lo mueve
 
     // 7. Anular el abono que cerró el deal lo saca de Completo: vuelve a Abonado y a la cartera.
     const anulado = await anularAbono(db, comoCloser(), { abonoId: cierre.abonoId, motivo: "El comprobante era de otro cliente" });
-    expect(anulado).toMatchObject({ etapa: "abonado", movioElDeal: true });
+    expect(anulado).toMatchObject({ etapa: "ganado_parcial", movioElDeal: true });
     expect((await saldosDeDeals(db, [dealId])).get(dealId)).toMatchObject({ abonado: 400, saldo: 1100 });
     expect((await carteraVencida(db, programId, HOY)).vencidos.map((v) => v.dealId)).toEqual([dealId]);
 
@@ -251,10 +251,10 @@ describe("E2 — la cita cae en su deal, el Grain lo atiende, el dinero lo mueve
     expect(historial.map((h) => [h.de, h.a])).toEqual([
       [null, "agendado"], // el alta del sistema, desde la cita de Calendly
       ["agendado", "atendido"], // el Grain
-      ["atendido", "abonado"], // el primer abono
-      ["abonado", "completo"], // el abono que salda
-      ["completo", "abonado"], // A2: se anula el que cerró
-      ["abonado", "atendido"], // A1: se anula el único que queda
+      ["atendido", "ganado_parcial"], // el primer abono
+      ["ganado_parcial", "ganado_completo"], // el abono que salda
+      ["ganado_completo", "ganado_parcial"], // A2: se anula el que cerró
+      ["ganado_parcial", "atendido"], // A1: se anula el único que queda
     ]);
     // Los movimientos del dinero los toma el sistema, y ninguno lo hizo una persona a mano.
     expect(historial.slice(1).filter((h) => h.userId !== null).map((h) => h.a)).toEqual([]);

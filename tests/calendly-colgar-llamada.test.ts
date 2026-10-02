@@ -75,7 +75,7 @@ beforeEach(async () => {
     .values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana" })
     .returning();
   leadId = l.id;
-  dealId = await abrirDeal(db, { leadId, programId, etapa: "pendiente_setteo", actor: { tipo: "sistema" } });
+  dealId = await abrirDeal(db, { leadId, programId, etapa: "registrado", actor: { tipo: "sistema" } });
 
   const [m] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer" }).returning();
   maru = m.id;
@@ -167,13 +167,13 @@ describe("registrarLlamadaDeCalendly: suelta", () => {
     expect(r).toMatchObject({ tipo: "suelta", motivo: "sin_lead" });
     const [llamada] = await db.select().from(calls);
     expect(llamada).toMatchObject({ dealId: null, programId, origen: "calendly" });
-    expect((await deal()).etapa).toBe("pendiente_setteo");
+    expect((await deal()).etapa).toBe("registrado");
   });
 
   it("el programa es frontera: el mismo correo en OTRO programa no cuelga nada aqui", async () => {
     const r = await registrarLlamadaDeCalendly(db, otroProgramId, cita());
     expect(r).toMatchObject({ tipo: "suelta", motivo: "sin_lead" });
-    expect((await deal()).etapa).toBe("pendiente_setteo");
+    expect((await deal()).etapa).toBe("registrado");
   });
 
   it("un correo que entro unido por telefono y nadie confirmo no decide", async () => {
@@ -181,7 +181,7 @@ describe("registrarLlamadaDeCalendly: suelta", () => {
       .insert(leads)
       .values({ programId, emailNormalizado: "beto@correo.co", nombre: "Beto" })
       .returning();
-    await abrirDeal(db, { leadId: l.id, programId, etapa: "pendiente_setteo", actor: { tipo: "sistema" } });
+    await abrirDeal(db, { leadId: l.id, programId, etapa: "registrado", actor: { tipo: "sistema" } });
     await db
       .insert(leadContactos)
       .values({ leadId: l.id, programId, tipo: "correo", valor: "beto.alt@correo.co", confirmado: false });
@@ -264,7 +264,7 @@ describe("asignarLlamadaSuelta", () => {
     const dealAjeno = await abrirDeal(db, {
       leadId: l.id,
       programId: otroProgramId,
-      etapa: "pendiente_setteo",
+      etapa: "registrado",
       actor: { tipo: "sistema" },
     });
     await expect(

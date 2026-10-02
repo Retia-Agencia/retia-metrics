@@ -287,12 +287,12 @@ describe("crearConRastro y editarConRastro", () => {
     const id = await crearConRastro(ctx(), { leadId: leadA, programId: programaA });
     await db.delete(changeLog);
     // En una variable, que es justo lo que el guardian estatico no alcanza a ver.
-    const valores: Record<string, unknown> = { etapa: "completo", ownerUserId: gerente };
+    const valores: Record<string, unknown> = { etapa: "ganado_completo", ownerUserId: gerente };
 
     await expect(editarConRastro(ctx(), id, valores)).rejects.toThrow(/moverEtapa\(\)/);
 
     const [d] = await db.select().from(deals).where(eq(deals.id, id));
-    expect(d).toMatchObject({ etapa: "pendiente_setteo", ownerUserId: null });
+    expect(d).toMatchObject({ etapa: "registrado", ownerUserId: null });
     expect(await db.select().from(changeLog)).toHaveLength(0);
   });
 

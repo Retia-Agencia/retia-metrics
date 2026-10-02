@@ -33,7 +33,7 @@ export async function sembrarEstadosDeLlegada(
   programId: string,
   filas: readonly {
     valor: string;
-    etapaEntrada: "pendiente_setteo" | "agendado" | null;
+    etapaEntrada: "potencial" | "registrado" | "calificado" | "agendado" | null;
     prioridad: "normal" | "alta";
     alertaMinutos: number | null;
   }[] = ESTADOS_DE_PRUEBA,

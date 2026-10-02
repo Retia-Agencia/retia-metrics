@@ -22,6 +22,11 @@ export type TabDePrograma = (typeof TABS_DE_PROGRAMA)[number];
 /** La tab con la que se entra a un programa cuando no se viene de otra. */
 export const TAB_POR_DEFECTO: TabDePrograma = "dashboard";
 
+/** Ruta del comparativo permitido entre todos los programas visibles (ADR 0048). */
+export const RUTA_DASHBOARD_TODOS = "/dashboard";
+/** No puede ser un slug: los slugs no admiten dos puntos. */
+export const VALOR_PROGRAMA_TODOS = ":todos";
+
 /** La ruta de una tab dentro de un programa. */
 export function rutaDePrograma(slug: string, tab: TabDePrograma = TAB_POR_DEFECTO): string {
   return `/p/${slug}/${tab}`;
@@ -41,6 +46,7 @@ export function programaDeRuta(pathname: string): string | null {
  * catálogos) se entra por la pestaña por defecto.
  */
 export function rutaAlCambiarDePrograma(pathname: string, nuevoSlug: string): string {
+  if (nuevoSlug === VALOR_PROGRAMA_TODOS) return RUTA_DASHBOARD_TODOS;
   const [primero, slug, tab] = pathname.split("/").filter(Boolean);
   if (primero === "p" && slug && (TABS_DE_PROGRAMA as readonly string[]).includes(tab ?? "")) {
     return rutaDePrograma(nuevoSlug, tab as TabDePrograma);
@@ -91,7 +97,7 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
       icono: "deals",
       roles: ["gerente", "closer"],
     });
-    // Inbox: las dos listas por las que un deal consigue dueño —Pendiente Setteo y
+    // Inbox: las dos listas por las que un deal consigue dueño —Por settear y
     // Agendados sin dueño— (ADR 0050, ticket 070). Junto a Deals, del mismo programa; un
     // closer solo en sus programas. El boton de reclamar lo ve quien trabaja leads, pero
     // la reja de verdad es el servidor.
@@ -107,7 +113,7 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
       icono: "calls",
       roles: ["gerente", "closer"],
     });
-    // Students: los deals en Abonado o Completo por cohorte (ticket 099). Reemplaza las
+    // Students: los deals en Ganado Pago Parcial o Ganado Pagado Completo por cohorte (ticket 099). Reemplaza las
     // pestañas `Estudiantes <cohorte>` de las hojas; mismo alcance que Deals.
     items.push({
       href: rutaDePrograma(programa, "students"),

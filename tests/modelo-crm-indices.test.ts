@@ -68,7 +68,7 @@ describe("un deal ABIERTO por lead y programa (ADR 0037)", () => {
   });
 
   it("tambien convive con uno en Completo: una segunda venta es otro deal", async () => {
-    await db.insert(deals).values({ leadId: leadA, programId: programaA, etapa: "completo" });
+    await db.insert(deals).values({ leadId: leadA, programId: programaA, etapa: "ganado_completo" });
     await db.insert(deals).values({ leadId: leadA, programId: programaA });
 
     expect(await db.select().from(deals)).toHaveLength(2);
@@ -79,7 +79,7 @@ describe("un deal ABIERTO por lead y programa (ADR 0037)", () => {
     await db.insert(deals).values([
       { leadId: leadA, programId: programaA, etapa: "cierre_perdido" },
       { leadId: leadA, programId: programaA, etapa: "cierre_perdido" },
-      { leadId: leadA, programId: programaA, etapa: "completo" },
+      { leadId: leadA, programId: programaA, etapa: "ganado_completo" },
     ]);
 
     expect(await db.select().from(deals)).toHaveLength(3);
@@ -88,7 +88,7 @@ describe("un deal ABIERTO por lead y programa (ADR 0037)", () => {
   it("`proxima_cohorte` SI ocupa el cupo: es un deal abierto, no un cierre", async () => {
     await db
       .insert(deals)
-      .values({ leadId: leadA, programId: programaA, etapa: "proxima_cohorte" });
+      .values({ leadId: leadA, programId: programaA, etapa: "registrado", pendiente: "proxima_cohorte" });
 
     await expect(
       db.insert(deals).values({ leadId: leadA, programId: programaA }),

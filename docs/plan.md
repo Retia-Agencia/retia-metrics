@@ -48,20 +48,23 @@ cuando los closers operan en el CRM y lo histórico ya migró. Los hitos interme
 
 ---
 
-## 2. Dónde estamos (medido el 29-sep, no copiado)
+## 2. Dónde estamos (medido el 1-oct, no copiado)
 
 El avance ticket por ticket vive **solo** en [`tasks/README.md`](./tasks/README.md); aquí va la foto.
 
-- `main` al 29-sep: **1.482 tests en verde**, typecheck, lint y build limpios; el CI (112) corre en cada
-  push, sin protección de `main` (Mani, 28-sep). Producción: https://retia-metrics-seven.vercel.app, que
+- `main` al 1-oct: **~1.810 tests**; la suite completa ya no se corre en local, la corre el CI (112) en cada
+  push y valida los **checkpoints** (`plan-reparto.md` §6). Sin protección de `main` (Mani, 28-sep y 1-oct). Producción: https://retia-metrics-seven.vercel.app, que
   despliega cada push a `main`.
-- **Base:** una sola, y es producción ("CRM Retia", ADR 0047 enmendado). 41 migraciones (0000 a 0040),
-  todas aplicadas. Para probar pantallas hay base local en Docker con login local (113, 069).
+- **Base:** una sola, y es producción ("CRM Retia", ADR 0047 enmendado). 58 migraciones (0000 a 0057),
+  todas aplicadas (la 0057, que quita la TRM de la cohorte, el 1-oct). Para probar pantallas hay base local en Docker con login local (113, 069).
 - **Datos en producción:** los leads del traslado de Sheets (111, 28-sep: ComunicArte 2.478, Tactical
   2.891, conciliación en 0) y los que entran por el webhook de formularios (106). Los deals de la operación
-  vieja todavía no: eso es la migración de E3/E4 (077, 078, 080). Los closers siguen trabajando en Sheets.
+  vieja todavía no: el `--aplicar` del 078 espera las etapas de 30X (142). Los closers siguen trabajando en
+  Sheets. Las C3 de los dos programas existen y la comisión por porcentaje está cargada (10,04 y 6,67).
+- **Cómo se trabaja desde el 1-oct:** por olas de tickets listos, varias sesiones por persona
+  ([`plan-reparto.md`](./plan-reparto.md) §1 y §4).
 
-| Pieza | Estado al 29-sep | Qué falta |
+| Pieza | Estado (filas al 29-sep; ver la nota de abajo) | Qué falta |
 |---|---|---|
 | Esquema del modelo (Lead, Envío, Contacto, Deal, historial, actividades, Calls, Abonos) | ✅ live | · |
 | Webhook de formularios + ingesta (`ingerirEntradas`), caja negra y salud (106, 110) | ✅ live | · |
@@ -75,6 +78,11 @@ El avance ticket por ticket vive **solo** en [`tasks/README.md`](./tasks/README.
 | Atribución, dashboard sobre deals, pauta | ❌ construir · ✅ mapeado el 29-sep con Pauta ([`analytics.md`](./analytics.md)) | E5 (093, vista interina) a E8; tickets 116 a 126 |
 | Estado de llegada | 🩸 el 29-sep el Typeform de Tactical dejó de mandar `estado` y no se abrieron deals por horas; parche aplicado en el Typeform | 117 (tabla por programa, ADR 0061) |
 | Migración de las pestañas de gestión | ❌ | E3 (077, 078) y E4 (080) |
+
+🆕 **1-oct, lo que cambió desde la tabla:** el dinero del deal (valor vendido, comisión por porcentaje congelado,
+ticket base de la cohorte, adiós `productos`: 132 a 134), el selector de periodo A contra B, toda cifra abre su
+lista y deals contra agendas (136 a 138), filtros de fecha relativos (141), el 117 en producción y Dapta en
+ComunicArte (130, 131). Lo que falta para la v1 comercial: las etapas de 30X (142) y lo que cuelga de ellas.
 
 ## 3. Qué construye cada track, en un diagrama
 
@@ -373,6 +381,9 @@ corrige un bug vivo y su columna de etapa se traduce junto con `deals.etapa`.
 > etapas de 30X en una migración, el `--aplicar` del 078 y el corte = hito B) y **NC3** (el dashboard
 > comercial = v1 comercial, y el hito C). La pauta que espera a Meta (119, 120, 102) y los pasos 5 y 6 de
 > abajo que no son comerciales van después. La tabla de abajo queda como **mapa de tracks**, no como orden.
+>
+> 🌊 **1-oct: el trabajo va por olas de tickets listos** ([`plan-reparto.md`](./plan-reparto.md) §1); la ola vigente
+> y la cola de migraciones están en su §4.
 
 El orden oficial es el de **P1, operación antes que analítica** (decidido el 24-sep): E2 → E3 mínimo
 → E4 → E6 mínimo → E1b → E5 → E7. Lo que este plan agrega es **dónde cae cada track** y dónde entran las
@@ -442,8 +453,9 @@ cierra, baja a un ADR (con `/grill-with-docs`) o a su ticket, y sale de esta lis
 | K5 | ~~¿Hace falta una entidad Cliente por encima del programa?~~ ✅ 29-sep (Mani): **no.** Al CRM solo entra gente de Retia, y **el programa identifica al cliente** que Retia maneja. Un cliente nuevo es un programa nuevo (fila, fuente con su mapeo, token de Calendly, membresías): configuración, no código. Si algún día entra gente del cliente, esta decisión se reabre antes | · | cerrada |
 | PQ8 | ~~Ok a DP-23, DP-24 y DP-25~~ ✅ aprobadas por Mani el 29-sep | · | cerrada |
 | O-1 | ~~Agregar el campo oculto `utm_id` a los dos Typeform~~ ✅ hecho el 29-sep por API. Falta que Pauta aplique la plantilla en Meta (PQ2) | · | cerrada |
-| O-5 | 🚨 **Crear la C3 de cada programa** (meta 60 según Pauta, con su ventana de venta). Tactical vende C3 desde el 30-sep y en la base no existe: sin cohorte activa, el primer abono no tiene a qué cohorte asignarse (063) | cumplimiento (124), Students | cuando se verifiquen las fechas de cada C3 (Mani, 29-sep) |
+| O-5 | ~~Crear la C3 de cada programa~~ ✅ existen en los dos (verificado el 1-oct). Texto anterior: **Crear la C3 de cada programa** (meta 60 según Pauta, con su ventana de venta). Tactical vende C3 desde el 30-sep y en la base no existe: sin cohorte activa, el primer abono no tiene a qué cohorte asignarse (063) | cumplimiento (124), Students | cuando se verifiquen las fechas de cada C3 (Mani, 29-sep) |
 | S1 | 🚨 **Supabase Pro: pagar o no. URGENTE, con el equipo.** El plan gratis no trae respaldos: la única base es producción y, si un script o una migración borra datos, no hay a dónde volver. Desde el corte (hito B) la historia de las pestañas de gestión vivirá solo ahí. El tamaño no es el motivo (30 MB de 500 al 29-sep) | el corte (hito B) | antes del corte |
+| A12 | 🆕 **El ROAS sin la TRM de la cohorte.** La 0057 quita `cohorts.trm_cohorte` (Mani, 1-oct), pero el ADR 0063 (DP-7), `analytics.md` §6 y los tickets 123 y 067 calculan el ROAS y el ad profit con esa TRM. Hay que decidir de dónde sale la tasa (al calcular, sin convertir, otra fuente) | 123, 067, la prueba de costura de E7 | antes de E7 (Mani, 1-oct: se decide ahí) |
 
 **G. Gerencia, reunión del 30-sep (Dani y Michael)** 🎯 prioridad: las preguntas viven en
 [`comercial.md`](./comercial.md) §7, con su recomendación, para no copiarlas aquí. **A Dani** (QD-1 a QD-7):
@@ -452,8 +464,9 @@ formulario es "no calificado" y cuál "calificado sin agenda", las propiedades o
 porcentaje de comisión, los umbrales y los días seguidos de una alerta, y el precio de Francisco. **A Mani**
 (QM-1 a QM-8): qué queda de los productos, cuál es el ticket base, la próxima fecha de pago frente a la fecha
 límite, Grain por API, los pasos del onboarding como filas, la meta del mes por día hábil, las ventas de una
-cohorte en la ventana de la siguiente y qué hace el carril de pauta mientras tanto. Bloquean los pasos 4 y 5
-de ese documento.
+cohorte en la ventana de la siguiente y qué hace el carril de pauta mientras tanto. ~~Bloquean los pasos 4 y 5 de ese documento.~~ ✅ **QD-1 a QD-12 contestadas por Mani el
+1-oct** (`comercial.md` §7.0). Siguen abiertas QM-10 (bloquea el 142), QM-11, QM-12 y el manual de gestión
+comercial (QD-8, Alejo).
 
 **A2. Para después (Mani, 28-sep):** revisar si las alertas de la app (fuente sin envíos, 107; y las
 que vengan) se mandan también por correo, de forma estandarizada y simple: un solo mecanismo para todas,

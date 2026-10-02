@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0068)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0073)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -28,7 +28,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0069](./0069-la-etapa-de-entrada-la-decide-el-crm.md) | La etapa de entrada la decide el CRM con la agenda y la calidad; el formulario ya no manda `estado` (reemplaza al 0061) |
 | [0061](./0061-el-estado-de-llegada-se-mapea-por-una-tabla.md) | El Estado de llegada lo manda el formulario y una tabla por programa lo lleva a su etapa (reemplaza el 0054) |
 | [0055](./0055-el-webhook-estandar-de-formularios.md) | Un webhook estándar para cualquier formulario; el programa sale de la URL |
-| [0056](./0056-el-motor-decide-quien-mueve-con-que-motivo-y-datos.md) | El motor decide quién mueve, con qué motivo (cuatro listas) y con qué datos |
+| [0056](./0056-el-motor-decide-quien-mueve-con-que-motivo-y-datos.md) | El motor decide quién mueve, con qué motivo (cuatro listas) y con qué datos (**el punto 1 lo enmienda el 0070: la cohorte se muda al retomar**) |
 | [0057](./0057-el-programa-lleva-su-formulario-y-su-token-de-calendly.md) | El programa lleva su formulario y su token de Calendly (segundo secreto en la base) |
 | [0058](./0058-el-webhook-no-pierde-nada.md) | El webhook no pierde nada: caja negra, variables genéricas, un solo mapeo, nombre del lead, re-agenda |
 | [0059](./0059-el-deal-historico-nace-en-su-etapa.md) | El deal histórico nace en su etapa, por un template y con su huella (migración de las pestañas de gestión) |
@@ -38,7 +38,10 @@ comentarios; esta tabla es la que los resuelve.
 
 | # | Decisión |
 |---|---|
-| [0037](./0037-el-deal-y-las-once-etapas.md) | El Deal es el objeto central, con once etapas y un solo motor que las mueve (**el punto 2 lo reemplaza el 0065; el Grain como requisito lo enmienda el 0066**) |
+| [0037](./0037-el-deal-y-las-once-etapas.md) | El Deal es el objeto central, con once etapas y un solo motor que las mueve (**el punto 2 lo reemplaza el 0065; el Grain como requisito lo enmienda el 0066; las etapas 3, 9 y 11 las reemplaza el 0070**) |
+| [0070](./0070-re-agenda-seguimiento-y-proxima-cohorte-son-pendientes-del-deal.md) | Re-agenda, Seguimiento y Próxima Cohorte son pendientes del deal, no etapas: el deal se queda en su etapa y el motor escribe los dos |
+| [0071](./0071-como-se-mueve-un-deal-por-las-etapas-de-30x.md) | Cómo se mueve un deal por las etapas de 30X: primera actividad → En gestión, contacto → Contactado, los tres intentos alertan y no cierran, cortesía = 100% de descuento con marca (**enmienda el punto 7 del 0059**) |
+| [0072](./0072-una-pregunta-por-etapa-mueve-el-deal.md) | Una pregunta por etapa mueve el deal, también al arrastrar el Kanban (muestra lo que tiene y le falta); solo alertas, nada automatizado en v1; Lead Value ordena la cola |
 | [0066](./0066-atendido-sin-grain-es-una-alarma.md) | Atendido sin Grain se acepta, cuenta como show y prende una alarma derivada |
 | [0015](./0015-resultado-de-llamada-ampliado.md) | La llamada dice qué pasó (ocho resultados); el motor decide qué significa |
 | [0049](./0049-calendly-cuelga-llamadas-de-deals.md) | Calendly cuelga cada llamada de su deal; si hay duda, la llamada queda suelta |

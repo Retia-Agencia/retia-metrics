@@ -13,7 +13,7 @@ import { puedeTrabajarDeal } from "./permiso";
 /**
  * Lo único del onboarding que entra al CRM y el único movimiento extraordinario de un deal
  * sobre su cohorte (ticket 063, ADR 0037, ADR 0042). Un **estudiante** no es una tabla ni una
- * columna: es un deal en Abonado o Completo (`lib/queries/estudiantes.ts`).
+ * columna: es un deal en Ganado Pago Parcial o Ganado Pagado Completo.
  *
  * Quién puede (Mani, 28-sep): el closer dueño del deal, o quien administra (gerente y
  * developer, `esAdministrador`, ADR 0025). Nunca `rol === "..."` a mano.
@@ -48,8 +48,8 @@ async function estudianteDelActor(
   if (!fila) throw new ErrorDeApp("No existe el deal.", 404);
   const { deal } = fila;
   if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado: no cuenta en ninguna métrica.", 409);
-  if (soloEstudiante && deal.etapa !== "abonado" && deal.etapa !== "completo") {
-    throw new ErrorDeApp("Solo un estudiante (deal en Abonado o Completo) tiene onboarding y cohorte propios.", 409);
+  if (soloEstudiante && deal.etapa !== "ganado_parcial" && deal.etapa !== "ganado_completo") {
+    throw new ErrorDeApp("Solo un estudiante (deal ganado) tiene onboarding y cohorte propios.", 409);
   }
   if (!puedeTrabajarDeal(actor, deal)) {
     throw new ErrorDeApp("Solo el closer dueño del deal o un administrador pueden hacerlo.", 403);
@@ -86,7 +86,7 @@ export async function marcarOnboarded(db: Db, actor: ActorDeEstudiante, datos: D
  * Borra la marca de onboarding (Mani, 28-sep): para corregir un error de quien la puso. Lo hace
  * quien puede marcarla (el closer dueño o un administrador) y queda en `change_log` con quién y
  * el valor anterior. **No exige que el deal siga siendo estudiante**: si una anulación lo sacó de
- * Abonado o Completo, la marca vieja tiene que poder quitarse, o volvería a aparecer como un
+ * una etapa ganada, la marca vieja tiene que poder quitarse, o volvería a aparecer como un
  * onboarding que ya no corresponde cuando el deal vuelva a pagar.
  */
 export async function desmarcarOnboarded(db: Db, actor: ActorDeEstudiante, datos: DatosMarcarOnboarded): Promise<void> {

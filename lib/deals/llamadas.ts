@@ -9,7 +9,7 @@ import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { moverEtapa, RESULTADOS_FALLIDOS } from "./mover-etapa";
 import { puedeTrabajarDeal } from "./permiso";
-import { ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO, transicion, type EtapaDeal } from "./etapas";
+import { transicion, transicionPendiente, unaCitaMueveAAgendado, type EtapaDeal } from "./etapas";
 
 /**
  * Agregar una llamada NATIVA a un deal, y completar la `agendada` que el sistema dejó
@@ -49,21 +49,7 @@ export interface ActorDeLlamada {
   rol: Rol;
 }
 
-/**
- * Las etapas desde las que agregar una llamada MUEVE el deal a Agendado (decisión del
- * 24-sep, ADR 0049 punto 4): 1, 2, 3, 9 y 11. La lista es UNA y vive en
- * `lib/deals/etapas.ts` (`ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO`), importada aquí: la
- * misma pregunta la contestaban tres módulos por copia y ya había divergido (hallazgo
- * A1 del ticket 114). Las flechas son T2, T3, T6, T23 y T27, todas hacia Agendado y ya
- * en la tabla de transiciones; si alguna faltara, `moverEtapa()` la rechazaría y el
- * error saldría a la luz en vez de inventarse una transición.
- *
- * ⚠️ Ninguna regla compara NÚMEROS de etapa: el número es un nombre, no un orden
- * (`lib/deals/etapas.ts`). Cada etapa va por su nombre del enum.
- */
-
-// En 5, 6 y 7 (atendido, compromiso_verbal, abonado) agregar una llamada NO cambia la
-// etapa (decisión del 24-sep): el lead ya está más adelante que "acaba de agendar".
+/** `unaCitaMueveAAgendado` es la única regla para el efecto de una cita nueva. */
 
 type Transaccion = {
   transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T>;
@@ -89,7 +75,7 @@ export type DatosAgregarLlamada = z.input<typeof esquemaAgregarLlamada>;
 /** Lo que dejó `agregarLlamada`: el id de la llamada y si el deal se movió a Agendado. */
 export interface LlamadaAgregada {
   callId: string;
-  /** `true` si el deal pasó a Agendado (etapas 1, 2, 3, 9, 11); `false` si no cambió. */
+  /** `true` si el deal pasó a Agendado (`unaCitaMueveAAgendado`); `false` si no cambió. */
   movioAAgendado: boolean;
 }
 
@@ -143,10 +129,8 @@ export async function agregarLlamada(
         },
       );
 
-      // La etapa NUNCA se escribe aquí: si el deal está en 1, 2, 3, 9 u 11 se mueve a
-      // Agendado por `moverEtapa()`, que ya ve la llamada recién creada (misma `db`) y
-      // pasa el requisito `llamada_con_fecha`. En 5, 6 o 7 no se mueve.
-      if (ETAPAS_QUE_UNA_CITA_MUEVE_A_AGENDADO.includes(deal.etapa)) {
+      // La etapa nunca se escribe aquí: el motor ve la llamada recién creada en la misma transacción.
+      if (unaCitaMueveAAgendado(deal.etapa, deal.pendiente)) {
         await moverEtapa(db, {
           dealId: deal.id,
           a: "agendado",
@@ -155,9 +139,7 @@ export async function agregarLlamada(
         return { callId, movioAAgendado: true };
       }
 
-      // En 5, 6 o 7 la etapa no cambia (decisión del 24-sep). Cualquier otra etapa
-      // abierta que no esté en ninguna de las dos listas se deja también sin mover: la
-      // llamada queda registrada y no se inventa una transición que la tabla no tiene.
+      // Si la regla no mueve, la llamada queda registrada sin inventar una transición.
       return { callId, movioAAgendado: false };
     });
   });
@@ -202,46 +184,27 @@ export async function completarAgendada(
 
     exigirQueTrabajeLeads(actor);
 
-    const [call] = await db
-      .select()
-      .from(calls)
-      .where(and(eq(calls.id, callId), vigente(calls)));
-    if (!call)
-      throw new ErrorDeApp("No existe la llamada, o está anulada.", 404);
-    if (call.resultado !== "agendada") {
-      throw new ErrorDeApp("Solo se completa una llamada agendada.", 409);
-    }
-    if (call.closerUserId != null) {
-      throw new ErrorDeApp(
-        "Esta llamada ya tiene closer: no se vuelve a completar.",
-        409,
-      );
-    }
-    if (call.dealId == null) {
-      throw new ErrorDeApp(
-        "La llamada está suelta: asígnala a un deal antes de completarla.",
-        409,
-      );
-    }
+    return (db as unknown as Transaccion).transaction(async (tx) => {
+      const [call] = await tx.select().from(calls).where(and(eq(calls.id, callId), vigente(calls)));
+      if (!call) throw new ErrorDeApp("No existe la llamada, o está anulada.", 404);
+      if (call.resultado !== "agendada") throw new ErrorDeApp("Solo se completa una llamada agendada.", 409);
+      if (call.closerUserId != null) throw new ErrorDeApp("Esta llamada ya tiene closer: no se vuelve a completar.", 409);
+      if (call.dealId == null) throw new ErrorDeApp("La llamada está suelta: asígnala a un deal antes de completarla.", 409);
 
-    // Que el actor sea el dueño del deal abierto de la llamada, y que el deal cuente.
-    await dealAbiertoDelActor(db, call.dealId, actor);
-
-    await editarConRastro(
-      {
-        db,
-        tabla: calls,
-        nombreTabla: "calls",
-        actorId: actor.userId,
-        etiqueta: call.emailLead ?? call.id,
-      },
-      call.id,
-      {
-        fechaAgenda,
-        closerUserId: actor.userId,
-        ...(linkCalendly !== undefined ? { linkCalendly } : {}),
-      },
-    );
+      const { deal } = await dealAbiertoDelActor(tx, call.dealId, actor);
+      await editarConRastro(
+        { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: call.emailLead ?? call.id },
+        call.id,
+        { fechaAgenda, closerUserId: actor.userId, ...(linkCalendly !== undefined ? { linkCalendly } : {}) },
+      );
+      if (unaCitaMueveAAgendado(deal.etapa, deal.pendiente)) {
+        await moverEtapa(tx, {
+          dealId: deal.id,
+          a: "agendado",
+          actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol },
+        });
+      }
+    });
   });
 }
 
@@ -277,12 +240,10 @@ export interface GrainPegado {
  *
  * ## Qué transición se usa, y de qué etapa
  *
- * Atendido se alcanza por dos flechas, **ambas del sistema** (`lib/deals/etapas.ts`):
- * T10 (Agendado → Atendido) y T7 (Pendiente Re-agenda → Atendido). Desde Agendado es
- * lo esperado. Las dos exigen `llamada_sucedio`, y `resultado = "show"` lo cumple
- * (`RESULTADOS_QUE_OCURRIERON` en `mover-etapa.ts`). Como son flechas de sistema, el
- * movimiento lo toma `{ tipo: "sistema" }`: pegar el Grain es el hecho que el CRM
- * observa, no una decisión a mano.
+ * Atendido se alcanza desde Agendado por E8. Exige `llamada_sucedio`, y `resultado = "show"` lo cumple
+ * (`RESULTADOS_QUE_OCURRIERON` en `mover-etapa.ts`). Al pegar Grain el movimiento lo
+ * toma `{ tipo: "sistema" }`: el enlace es el hecho que el CRM observa. A mano, el
+ * closer puede dar por atendida la ultima llamada vigente con fecha sin inventar Grain.
  *
  * Si el deal ya está en Atendido —o en cualquier etapa desde la que la tabla no tiene
  * flecha a Atendido (por ejemplo Compromiso Verbal o Seguimiento)— **no se mueve**: se
@@ -326,9 +287,8 @@ export async function pegarGrain(
         },
       );
 
-      // Mover a Atendido SOLO si la tabla tiene la flecha desde la etapa actual. Las dos
-      // flechas a Atendido son de sistema (T7, T10): pegar el Grain es el hecho, no una
-      // decisión a mano. Si no hay flecha (ya está en Atendido o más adelante), no se
+      // Mover a Atendido solo si la tabla tiene la flecha desde la etapa actual.
+      // Si no hay flecha (ya está en Atendido o más adelante), no se
       // mueve y no se inventa una transición.
       if (transicion(deal.etapa, "atendido") != null) {
         const hecho = await moverEtapa(db, {
@@ -344,12 +304,12 @@ export async function pegarGrain(
   });
 }
 
-// ─────────────────────────────── 059 · no_show / cancelada → Pendiente Re-agenda
+// ─────────────────────────────── 059 · no_show / cancelada → pendiente Re-agenda
 
 /**
  * Los dos resultados de una llamada fallida (ADR 0015). **Siguen siendo distintos**
  * —aviso antes (`cancelada`) no es lo mismo que no apareció (`no_show`)—: que disparen
- * el mismo movimiento a Pendiente Re-agenda no los fusiona.
+ * el mismo pendiente Re-agenda no los fusiona.
  *
  * La lista es UNA y vive en `lib/deals/mover-etapa.ts` (el motor la lee para el hecho
  * `llamada_fallida`); aquí se re-exporta para no romper a quien la importa desde este
@@ -359,9 +319,7 @@ export async function pegarGrain(
 export { RESULTADOS_FALLIDOS };
 
 /**
- * Datos para marcar una llamada como fallida (ticket 059). El `motivoId` solo hace
- * falta cuando la flecha lo exige (desde Atendido, T29 con motivo de la lista
- * `reagenda`); desde Agendado (T8) no se pide y se ignora.
+ * Datos para marcar una llamada como fallida (ticket 059).
  */
 export const esquemaMarcarFallida = z.object({
   callId: z.string().uuid("La llamada no es válida."),
@@ -379,19 +337,8 @@ export interface LlamadaFallida {
 }
 
 /**
- * Marca una llamada como `no_show` o `cancelada` y manda el deal a **Pendiente
- * Re-agenda** (etapa 3) por `moverEtapa()`, en la misma transacción (ticket 059,
- * decisión del 24-sep que reemplaza la propuesta "la segunda llamada no hace
- * retroceder").
- *
- * ## Qué flecha, según la etapa
- *
- * Re-agenda se alcanza desde dos etapas (`lib/deals/etapas.ts`):
- *  - **Agendado → Re-agenda (T8, sistema)**: la cita se cayó antes de suceder. No pide
- *    motivo; el hecho lo observa el CRM, así que la toma `{ tipo: "sistema" }`.
- *  - **Atendido → Re-agenda (T29, closer, con motivo de la lista `reagenda`)**: hubo
- *    llamada y hace falta otra. La toma la persona y el motor exige el motivo, así que
- *    va `{ tipo: "usuario" }` con `motivoId`.
+ * Marca una llamada como `no_show` o `cancelada` y pone Re-agenda mediante PR1,
+ * sin cambiar la etapa Agendado.
  *
  * En las dos, el requisito de dato es `llamada_fallida`, que mira la ÚLTIMA llamada del
  * deal (`mover-etapa.ts`); por eso el `resultado` se escribe ANTES de mover, en la
@@ -427,20 +374,18 @@ export async function marcarFallida(
         { resultado },
       );
 
-      // La flecha a Re-agenda decide quién la toma: desde Agendado es de sistema (T8),
-      // desde Atendido es de closer con motivo (T29). Se pregunta a la tabla y se arma el
-      // actor en consecuencia; si no hay flecha, el motor rechaza y no se inventa nada.
-      const t = transicion(deal.etapa, "pendiente_reagenda");
-      const quienMueve =
-        t?.quien === "sistema"
-          ? ({ tipo: "sistema" } as const)
-          : ({ tipo: "usuario", userId: actor.userId, rol: actor.rol } as const);
-
+      // La flecha a Re-agenda decide quién la toma: desde Agendado es del sistema (PR1, el
+      // resultado de la llamada es el hecho), desde Atendido es del closer con motivo (PR2).
+      // Se pregunta a la tabla; si no hay flecha, el motor rechaza y no se inventa nada.
+      const t = transicionPendiente(deal.etapa, "reagenda");
       const hecho = await moverEtapa(db, {
         dealId: deal.id,
-        a: "pendiente_reagenda",
-        actor: quienMueve,
-        motivoId: motivoId ?? null,
+        a: deal.etapa,
+        pendiente: "reagenda",
+        actor: t?.quien === "sistema"
+          ? { tipo: "sistema" }
+          : { tipo: "usuario", userId: actor.userId, rol: actor.rol },
+        ...(motivoId !== undefined ? { motivoId } : {}),
       });
 
       return { etapa: hecho.a };
@@ -528,7 +473,7 @@ async function dealAbiertoDelActor(
       409,
     );
   }
-  if (deal.etapa === "completo" || deal.etapa === "cierre_perdido") {
+  if (deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido") {
     throw new ErrorDeApp(
       "El deal está cerrado: no se le agregan llamadas nuevas.",
       409,

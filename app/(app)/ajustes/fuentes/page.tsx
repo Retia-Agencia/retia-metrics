@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num, pct } from "@/lib/format";
 import { FuentesAdmin, type ProgramaConFuentes } from "@/components/admin/fuentes-admin";
 import { EstadosLlegadaAdmin } from "@/components/admin/estados-llegada-admin";
+import { ETIQUETA_ETAPA_DE_ENTRADA } from "@/lib/catalogo/estados-llegada";
 import { estadosDeLlegadaParaAdmin } from "@/lib/queries/estados-llegada";
 import { db } from "@/lib/db";
 
@@ -103,6 +104,7 @@ export default async function FuentesPage() {
           programas={programas.map((p) => ({ id: p.id, nombre: p.nombre }))}
           estados={estados}
           sinFila={sinFila}
+          etiquetaDeEntrada={ETIQUETA_ETAPA_DE_ENTRADA}
         />
 
         <Card>

@@ -122,7 +122,7 @@ describe("separarCorreo", () => {
   });
 
   it("si un envío que se movería abrió un deal vigente, 409 y nada cambia", async () => {
-    await db.insert(deals).values({ leadId: ana, programId, etapa: "pendiente_setteo", submissionOrigenId: queTrajoABeto });
+    await db.insert(deals).values({ leadId: ana, programId, etapa: "registrado", submissionOrigenId: queTrajoABeto });
 
     await expect(separarCorreo(db, closer, { contactoId: marca })).rejects.toMatchObject({ status: 409 });
 

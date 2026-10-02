@@ -1,18 +1,19 @@
 import { z } from "zod";
-import { dealActividades } from "@/lib/db/schema";
+import { dealActividades, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { crearConRastro } from "@/lib/crm/rastro";
+import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
+import { trabajaLeads } from "@/lib/auth/roles";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
+import { moverEtapa } from "./mover-etapa";
 
 /**
- * Registrar una actividad de un deal: un `contacto` (le escribi, lo llame) o una `nota`
- * (ticket 074, ADR 0037). Reemplazan las cinco columnas `Registro 1-5` de la hoja.
+ * Registrar una actividad de un deal: contacto, intento fallido o nota.
  *
- * - **Registrar un contacto NO mueve la etapa.** Es un hecho que el motor LEE
- *   (`tieneContactoRegistrado`, la flecha a En Contacto); moverla es decision del closer.
+ * - La primera actividad comercial mueve Potencial/Registrado a En gestión; un contacto
+ *   logrado continúa a Contactado. Una nota nunca mueve.
  * - **`canal` es texto libre**, no catalogo: la UI sugiere WhatsApp, Llamada, Correo con un
  *   `datalist` y deja escribir otro. Si algun dia hay que reportar por canal, pasa a molde.
  * - Quien la registra sale de la sesion (`userId` = el actor), nunca del input. Un contacto
@@ -24,7 +25,7 @@ import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
  */
 export const esquemaRegistrarActividad = z.object({
   dealId: z.string().uuid("El deal no es válido."),
-  tipo: z.enum(["contacto", "nota"], { message: "El tipo tiene que ser contacto o nota." }),
+  tipo: z.enum(["contacto", "nota", "intento"], { message: "El tipo tiene que ser contacto, intento o nota." }),
   canal: z.string().trim().max(60, "El canal es muy largo.").optional(),
   fecha: z.date({ message: "La fecha no es válida." }).optional(),
   nota: z.string().trim().min(1, "Escribe qué pasó.").max(4000, "La nota es muy larga."),
@@ -40,7 +41,8 @@ export async function registrarActividad(db: Db, actor: ActorDeDeal, datos: Dato
     return (db as unknown as Transaccion).transaction(async (tx) => {
       const { deal, emailLead } = await dealBloqueadoConLead(tx, dealId);
       if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado: no recibe actividades.", 409);
-      if (!puedeTrabajarDeal(actor, deal)) {
+      const seAdueña = deal.ownerUserId == null && trabajaLeads(actor.rol);
+      if (!seAdueña && !puedeTrabajarDeal(actor, deal)) {
         throw new ErrorDeApp(
           deal.ownerUserId == null
             ? "Este deal no tiene dueño: reclámalo antes de registrar una actividad."
@@ -49,7 +51,15 @@ export async function registrarActividad(db: Db, actor: ActorDeDeal, datos: Dato
         );
       }
 
-      return crearConRastro(
+      if (seAdueña) {
+        await editarConRastro(
+          { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: emailLead },
+          deal.id,
+          { ownerUserId: actor.userId },
+        );
+      }
+
+      const actividadId = await crearConRastro(
         { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: actor.userId, etiqueta: emailLead },
         {
           dealId: deal.id,
@@ -60,6 +70,24 @@ export async function registrarActividad(db: Db, actor: ActorDeDeal, datos: Dato
           nota,
         },
       );
+
+      let etapa = deal.etapa;
+      let pendiente = deal.pendiente;
+      const sistema = { tipo: "sistema" } as const;
+      if ((tipo === "contacto" || tipo === "intento") && (etapa === "potencial" || etapa === "registrado")) {
+        const hecho = await moverEtapa(tx, { dealId: deal.id, a: "en_gestion", actor: sistema });
+        etapa = hecho.a;
+        pendiente = hecho.pendienteA;
+      }
+      if (tipo === "contacto" && etapa === "en_gestion") {
+        const hecho = await moverEtapa(tx, { dealId: deal.id, a: "contactado", actor: sistema });
+        etapa = hecho.a;
+        pendiente = hecho.pendienteA;
+      }
+      if (tipo === "contacto" && pendiente === "proxima_cohorte") {
+        await moverEtapa(tx, { dealId: deal.id, a: etapa, pendiente: null, actor: sistema });
+      }
+      return actividadId;
     });
   });
 }

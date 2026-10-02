@@ -94,7 +94,7 @@ async function crearVenta(
       programId: origen.programId,
       submissionOrigenId: origen.envioId,
       ownerUserId,
-      etapa: "abonado",
+      etapa: "ganado_parcial",
       ...(opciones.anulada
         ? { anuladoEn: new Date(), anuladoPor: ownerUserId, motivoAnulacion: "error" }
         : {}),
@@ -103,7 +103,7 @@ async function crearVenta(
   await db.insert(dealEtapaHistorial).values({
     dealId: deal.id,
     de: "compromiso_verbal",
-    a: "abonado",
+    a: "ganado_parcial",
     fecha: new Date("2026-09-12T11:00:00-05:00"),
     userId: ownerUserId,
   });

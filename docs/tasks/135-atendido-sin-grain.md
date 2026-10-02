@@ -3,7 +3,7 @@ id: 135
 etapa: NC1
 serves: "ADR 0066 · comercial.md R-2, GC-20"
 depends: []
-status: todo
+status: done
 ---
 
 # 135 — Atendido sin Grain: se acepta, cuenta como show y se ve en rojo
@@ -29,10 +29,10 @@ grabación.
 
 ## Done cuando
 
-- [ ] Mover a Atendido sin Grain deja el deal en Atendido y la llamada en show; el show-up la cuenta.
-- [ ] Esa llamada aparece en "sin Grain"; al pegarle el Grain desaparece sin tocar nada más.
-- [ ] El "sucedió sin grabar" también cuenta como sin Grain (test).
-- [ ] Sin llamada vigente, la flecha se rechaza con un mensaje claro.
+- [x] Mover a Atendido sin Grain deja el deal en Atendido y la llamada en show; el show-up la cuenta.
+- [x] Esa llamada aparece en "sin Grain"; al pegarle el Grain desaparece sin tocar nada más.
+- [x] El "sucedió sin grabar" también cuenta como sin Grain (test).
+- [x] Sin llamada vigente, la flecha se rechaza con un mensaje claro.
 
 ## Codex
 

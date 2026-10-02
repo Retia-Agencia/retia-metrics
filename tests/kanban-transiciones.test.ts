@@ -1,22 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
-import {
-  camposDeDialogo,
-  destinosArrastrables,
-  flechaPideDatos,
-  flechasDesde,
-  razonSistema,
-  sePuedeArrastrar,
-} from "@/components/deals/transiciones";
+import { camposDeDialogo, type FlechaCliente } from "@/components/deals/transiciones";
 
 /**
- * Ticket 069: la logica cliente del arrastre, pura. El mapa que el servidor pasa sale de
- * `mapaDeTransiciones()` (aplanado de la tabla del motor), y estas funciones deciden que
- * se puede arrastrar, que no, y que abre un dialogo. La reja de verdad la vuelve a
- * aplicar el servidor en `moverEtapa()`; esto es solo el resaltado.
+ * Ticket 069 y 142: el mapa que el servidor le pasa al cliente sale de
+ * `mapaDeTransiciones()` (aplanado de la tabla del motor), y `camposDeDialogo` dice qué
+ * pide el dialogo de una flecha. Qué se puede soltar en cada columna ya no sale del mapa
+ * sino de la pregunta de la etapa (`tests/pregunta-de-etapa.test.ts`). La reja de
+ * verdad la vuelve a aplicar el servidor en `moverEtapa()`.
  */
 
 const MAPA = mapaDeTransiciones();
+const etapa = (de: string, a: string): FlechaCliente => MAPA.find((f) => f.tipo === "etapa" && f.de === de && f.a === a)!;
 
 describe("mapaDeTransiciones", () => {
   it("aplana la tabla a datos planos sin drizzle", () => {
@@ -28,71 +23,32 @@ describe("mapaDeTransiciones", () => {
       expect(typeof f.exigeMotivo).toBe("boolean");
       expect(Array.isArray(f.requisitos)).toBe(true);
     }
+    expect(() => JSON.stringify(MAPA)).not.toThrow();
+  });
+
+  it("incluye flechas de etapa y de pendiente; RET no, porque es automática", () => {
+    expect(new Set(MAPA.map((f) => f.tipo))).toEqual(new Set(["etapa", "pendiente"]));
+    expect(new Set(MAPA.filter((f) => f.tipo === "pendiente").map((f) => f.id))).toEqual(
+      new Set(["PR1", "PR2", "PS1", "PS2", "PS3", "PC"]),
+    );
   });
 });
 
-describe("sePuedeArrastrar", () => {
-  it("una flecha de closer se arrastra (T1: Pendiente Setteo -> En Contacto)", () => {
-    expect(sePuedeArrastrar(MAPA, "pendiente_setteo", "en_contacto")).toBe(true);
+describe("camposDeDialogo", () => {
+  it("E10 (Atendido -> Compromiso Verbal) pide fecha límite y área", () => {
+    expect(camposDeDialogo(etapa("atendido", "compromiso_verbal"))).toEqual(["fecha_limite_pago", "area_declarada"]);
   });
 
-  it("una flecha del SISTEMA no se arrastra (T13: Atendido -> Abonado, lo pone el abono)", () => {
-    expect(sePuedeArrastrar(MAPA, "atendido", "abonado")).toBe(false);
-    expect(razonSistema(MAPA, "atendido", "abonado")).not.toBeNull();
+  it("P (-> Cierre Perdido) pide solo el motivo", () => {
+    expect(camposDeDialogo(etapa("contactado", "cierre_perdido"))).toEqual(["motivo"]);
   });
 
-  it("una transicion inexistente no se arrastra (Pendiente Setteo -> Completo)", () => {
-    expect(sePuedeArrastrar(MAPA, "pendiente_setteo", "completo")).toBe(false);
-    expect(razonSistema(MAPA, "pendiente_setteo", "completo")).toBeNull();
+  it("E3 (Contactado -> Calificado) no pide datos tecleados: el contacto se mide en la base", () => {
+    expect(camposDeDialogo(etapa("contactado", "calificado"))).toEqual([]);
   });
 
-  it("`ambos` se arrastra (T2: Pendiente Setteo -> Agendado)", () => {
-    expect(sePuedeArrastrar(MAPA, "pendiente_setteo", "agendado")).toBe(true);
-  });
-});
-
-describe("destinosArrastrables", () => {
-  it("desde Atendido solo trae los destinos de PERSONA, nunca Abonado/Completo (sistema)", () => {
-    const destinos = destinosArrastrables(MAPA, "atendido");
-    // T12 (Compromiso Verbal), T24 (Seguimiento), T20 (Proxima Cohorte), T29 (Re-agenda),
-    // P (Cierre Perdido) son de closer/ambos; T13/T14 (Abonado/Completo) son del sistema.
-    expect(destinos.has("compromiso_verbal")).toBe(true);
-    expect(destinos.has("seguimiento")).toBe(true);
-    expect(destinos.has("abonado")).toBe(false);
-    expect(destinos.has("completo")).toBe(false);
-  });
-});
-
-describe("flechasDesde", () => {
-  it("no ofrece la flecha que vuelve a la misma etapa (T9, reagenda que sigue en Agendado)", () => {
-    const destinos = flechasDesde(MAPA, "agendado").map((f) => f.a);
-    expect(destinos).not.toContain("agendado");
-    expect(destinos).toContain("cierre_perdido");
-  });
-});
-
-describe("flechaPideDatos / camposDeDialogo", () => {
-  it("T12 (Atendido -> Compromiso Verbal) pide fecha límite y área: abre diálogo", () => {
-    const f = flechasDesde(MAPA, "atendido").find((x) => x.a === "compromiso_verbal")!;
-    expect(flechaPideDatos(f)).toBe(true);
-    expect(camposDeDialogo(f)).toEqual(["fecha_limite_pago", "area_declarada"]);
-  });
-
-  it("P (-> Cierre Perdido) exige motivo: abre dialogo con el campo motivo", () => {
-    const f = flechasDesde(MAPA, "en_contacto").find((x) => x.a === "cierre_perdido")!;
-    expect(flechaPideDatos(f)).toBe(true);
-    expect(camposDeDialogo(f)).toContain("motivo");
-  });
-
-  it("T1 (Pendiente Setteo -> En Contacto) NO pide datos tecleados (contacto/dueno se miden en la base)", () => {
-    const f = flechasDesde(MAPA, "pendiente_setteo").find((x) => x.a === "en_contacto")!;
-    expect(flechaPideDatos(f)).toBe(false);
-    expect(camposDeDialogo(f)).toEqual([]);
-  });
-
-  it("T24 (Atendido -> Seguimiento) pide la fecha de seguimiento", () => {
-    const f = flechasDesde(MAPA, "atendido").find((x) => x.a === "seguimiento")!;
-    expect(flechaPideDatos(f)).toBe(true);
+  it("PS1 (Atendido + Seguimiento) pide la fecha de seguimiento", () => {
+    const f = MAPA.find((x) => x.tipo === "pendiente" && x.de === "atendido" && x.pendienteA === "seguimiento")!;
     expect(camposDeDialogo(f)).toContain("fecha_seguimiento");
   });
 });

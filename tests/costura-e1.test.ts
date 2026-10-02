@@ -213,7 +213,7 @@ describe("caso 1 — el envío abre el deal, se agenda, se pega el Grain y queda
     const dealsIniciales = await db.select().from(deals);
     expect(dealsIniciales).toHaveLength(1);
     const dealId = dealsIniciales[0].id;
-    expect(dealsIniciales[0].etapa).toBe("pendiente_setteo");
+    expect(dealsIniciales[0].etapa).toBe("registrado");
     // El deal lo abrió el sistema: nace sin dueño (Unclaimed).
     expect(dealsIniciales[0].ownerUserId).toBeNull();
     expect(await db.select().from(calls)).toHaveLength(0);
@@ -267,8 +267,8 @@ describe("caso 1 — el envío abre el deal, se agenda, se pega el Grain y queda
       .where(eq(dealEtapaHistorial.dealId, dealId))
       .orderBy(dealEtapaHistorial.fecha);
     expect(historial.map((h) => [h.de, h.a])).toEqual([
-      [null, "pendiente_setteo"], // el alta del sistema (webhook)
-      ["pendiente_setteo", "agendado"], // agregarLlamada (por el closer)
+      [null, "registrado"], // el alta del sistema (webhook)
+      ["registrado", "agendado"], // agregarLlamada (por el closer)
       ["agendado", "atendido"], // pegarGrain (por el sistema)
     ]);
 

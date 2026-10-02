@@ -289,7 +289,7 @@ describe("POST /api/webhooks/formularios/[fuente]", () => {
     expect(filasCall[0].huellaFila).toBe("calendly:UU-9");
   });
 
-  it("Con Calendly con cita CANCELADA: el deal se abre en Pendiente Setteo, sin llamada", async () => {
+  it("Con Calendly con cita CANCELADA: el deal se abre en Calificado, sin llamada", async () => {
     const ORG = "https://api.calendly.com/organizations/ORG1";
     const EVENT = "https://api.calendly.com/scheduled_events/EV9";
     vi.stubGlobal(
@@ -316,7 +316,7 @@ describe("POST /api/webhooks/formularios/[fuente]", () => {
     expect(res.status).toBe(200);
 
     const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("pendiente_setteo");
+    expect(deal.etapa).toBe("calificado");
     expect(await db.select().from(calls)).toHaveLength(0);
   });
 });

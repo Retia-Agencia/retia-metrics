@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,10 +11,10 @@ import type { FilaLlamadaPrograma } from "@/lib/queries/llamadas";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { pegarGrainAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
-import { moverDeal } from "@/app/(app)/p/[programa]/deals/acciones";
-import { DialogoMover, type DatosDialogo } from "@/components/deals/dialogo-mover";
 import { Campo, claseInput, DialogoForm, Vacio } from "@/components/deals/ficha/campos";
-import { flechaPideDatos, flechasDesde, type FlechaCliente, type MapaTransiciones } from "@/components/deals/transiciones";
+import { PREGUNTA_DE_ETAPA, respuestasDe } from "@/components/deals/pregunta-de-etapa";
+import { BotonesDeRespuesta, useResponder, type DealQueResponde } from "@/components/deals/responder-pregunta";
+import type { MapaTransiciones } from "@/components/deals/transiciones";
 import { useAccion } from "@/components/deals/ficha/uso-accion";
 
 const ETIQUETA: Record<FilaLlamadaPrograma["resultado"], string> = {
@@ -94,9 +94,26 @@ function FilaLlamada({
   nombreDeEtapa: Record<EtapaDeal, string>;
   puedeTrabajar: boolean;
 }) {
+  const router = useRouter();
   const [dialogo, setDialogo] = useState<"grain" | "resultado" | null>(null);
-  const flechas = llamada.etapa ? flechasDesde(mapa, llamada.etapa).filter((f) => f.quien !== "sistema") : [];
   const nombre = llamada.leadNombre ?? llamada.leadEmail ?? "Llamada sin lead";
+  // "¿Cómo terminó?" es la pregunta de Atendido (ADR 0071 punto 5, ADR 0072): las mismas
+  // respuestas que en la ficha, por el mismo `useResponder`.
+  const deal: DealQueResponde | null =
+    llamada.dealId && llamada.etapa
+      ? {
+          dealId: llamada.dealId,
+          etapa: llamada.etapa,
+          pendiente: llamada.pendiente,
+          nombreLead: nombre,
+          rutaDeLaFicha: `/p/${programaSlug}/deals/${llamada.dealId}`,
+        }
+      : null;
+  const { elegir, dialogo: dialogoDeRespuesta } = useResponder(mapa, opciones, nombreDeEtapa, () => {
+    setDialogo(null);
+    router.refresh();
+  });
+  const respuestas = llamada.etapa === "atendido" ? respuestasDe("atendido", llamada.pendiente) : [];
   return (
     <li className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0 space-y-1">
@@ -122,21 +139,31 @@ function FilaLlamada({
       {puedeTrabajar && llamada.dealId ? (
         <div className="flex flex-wrap gap-2">
           {!llamada.linkGrain ? <Button size="sm" variant="secondary" onClick={() => setDialogo("grain")}>Pegar Grain</Button> : null}
-          {llamada.resultado === "show" && flechas.length > 0 ? (
+          {llamada.resultado === "show" && respuestas.length > 0 ? (
             <Button size="sm" variant="outline" onClick={() => setDialogo("resultado")}>Elegir resultado</Button>
           ) : null}
         </div>
       ) : null}
       {dialogo === "grain" ? <DialogoGrain callId={llamada.callId} onCerrar={() => setDialogo(null)} /> : null}
-      {dialogo === "resultado" && llamada.etapa && llamada.dealId ? (
-        <DialogoResultado
-          dealId={llamada.dealId}
-          flechas={flechas}
-          opciones={opciones}
-          nombreDeEtapa={nombreDeEtapa}
+      {dialogo === "resultado" ? (
+        <DialogoForm
+          titulo={PREGUNTA_DE_ETAPA.atendido.pregunta ?? "¿Cómo terminó?"}
+          descripcion="Elige una salida; el motor valida los datos y mueve el deal."
+          pendiente={false}
           onCerrar={() => setDialogo(null)}
-        />
+          deshabilitarConfirmar
+          confirmar={{ texto: "Elige una opción", enCurso: "Elige una opción", onClick: () => undefined }}
+        >
+          <BotonesDeRespuesta
+            respuestas={respuestas}
+            onElegir={(r) => {
+              setDialogo(null);
+              if (deal) elegir(deal, r);
+            }}
+          />
+        </DialogoForm>
       ) : null}
+      {dialogoDeRespuesta}
     </li>
   );
 }
@@ -158,39 +185,3 @@ function DialogoGrain({ callId, onCerrar }: { callId: string; onCerrar: () => vo
   );
 }
 
-function DialogoResultado({
-  dealId, flechas, opciones, nombreDeEtapa, onCerrar,
-}: {
-  dealId: string;
-  flechas: FlechaCliente[];
-  opciones: OpcionesDeFicha;
-  nombreDeEtapa: Record<EtapaDeal, string>;
-  onCerrar: () => void;
-}) {
-  const [flecha, setFlecha] = useState<FlechaCliente | null>(null);
-  const [pendiente, setPendiente] = useState(false);
-  async function mover(f: FlechaCliente, datos: DatosDialogo) {
-    setPendiente(true);
-    const r = await moverDeal({ dealId, a: f.a, datos: { descuentoUsd: datos.descuentoUsd, areaDeclaradaId: datos.areaDeclaradaId, fechaLimitePago: datos.fechaLimitePago, cohorteDestinoId: datos.cohorteDestinoId, fechaSeguimiento: datos.fechaSeguimiento }, motivoId: datos.motivoId ?? null });
-    setPendiente(false);
-    if (r.ok) { toast.success(`Deal movido a ${nombreDeEtapa[f.a]}.`); onCerrar(); }
-    else toast.error(r.faltantes.length ? r.faltantes.map((x) => x.mensaje).join(" ") : r.error, { duration: 6000 });
-  }
-  if (flecha) {
-    return <DialogoMover abierto onAbrir={(abierto) => !abierto && onCerrar()} flecha={flecha} etapaDestinoNombre={nombreDeEtapa[flecha.a]} nombreLead="el lead" areas={opciones.areas} cohortes={opciones.cohortes} motivos={opciones.motivos} pendiente={pendiente} onConfirmar={(datos) => void mover(flecha, datos)} />;
-  }
-  return (
-    <DialogoForm
-      titulo="¿Cómo terminó la llamada?"
-      descripcion="Elige una salida; el motor valida los datos y mueve el deal."
-      pendiente={false}
-      onCerrar={onCerrar}
-      deshabilitarConfirmar
-      confirmar={{ texto: "Elige una opción", enCurso: "Elige una opción", onClick: () => undefined }}
-    >
-      <div className="grid gap-2">
-        {flechas.map((f) => <Button key={f.a} type="button" variant="outline" onClick={() => setFlecha(f)}>{nombreDeEtapa[f.a]}{flechaPideDatos(f) ? "…" : ""}</Button>)}
-      </div>
-    </DialogoForm>
-  );
-}

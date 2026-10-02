@@ -113,7 +113,7 @@ flowchart TD
 | Envío parcial y luego su completa | se guardan los dos; la completa manda | ADR 0036 |
 | Teléfono igual, correo distinto | se une al lead existente y se marca para revisión | ADR 0035 |
 | Lead a mano | nace en 1, 2 o 6 con dueño = quien lo crea; no genera envío | ADR 0044 |
-| Deal a mano ("Nuevo deal" del tablero) | sobre un lead del programa (o creado con el alta manual), nace en 1 por `abrirDeal`; dueño = quien lo crea si trabaja leads, sin dueño si lo crea un gerente; si el lead ya tiene deal abierto, se enlaza ese | ticket 140, ADR 0037 |
+| Deal a mano ("Nuevo deal" del tablero) | sobre un lead del programa (o creado con el alta manual), nace en En gestión por `abrirDeal`, con quien lo crea como dueño; si el lead ya tiene deal abierto, se enlaza ese | ticket 140, ADR 0037, ADR 0071 punto 6 |
 | El lead vuelve a aplicar con su deal cerrado | deal nuevo; la ficha muestra los anteriores | ADR 0037 |
 | Lead que ya existía antes del corte | no abre deal por la ingesta: entra con la migración, con su estado de gestión | ADR 0037 |
 
@@ -153,139 +153,106 @@ flowchart TD
 
 ## 3. El motor de etapas
 
-Un deal está siempre en una sola etapa, y **solo `moverEtapa()` la cambia** (ADR 0037). La etapa se
-pinta siempre con el mismo tono (§9).
+Un deal está siempre en una de once etapas, y puede tener a lo sumo un pendiente. La etapa dice hasta dónde llegó; el pendiente dice qué falta hacer sin falsear el embudo (ADR 0070). **Solo `moverEtapa()` escribe `deals.etapa` y `deals.pendiente`**. Cada movimiento deja ambos valores, antes y después, en `deal_etapa_historial` (ADR 0070, 0071).
 
-| # | Etapa | Entra cuando | La mueve | Tono |
+| Etapa | Entra cuando | Tono |
+|---|---|---|
+| Potencial | llega un formulario parcial sin calidad (ADR 0069) | `neutro` |
+| Registrado | llega un formulario completo sin calidad alta, sin actividad comercial (ADR 0069) | `neutro` |
+| En gestión | nace a mano o se registra la primera actividad sobre Potencial/Registrado | `neutro` |
+| Contactado | se registra un contacto logrado | `neutro` |
+| Calificado | llega con calidad alta, o el closer confirma que califica | `neutro` |
+| Agendado | existe una cita vigente | `info` |
+| Atendido | la llamada ocurrió | `info` |
+| Compromiso Verbal | dijo que sí y todavía no pagó | `alerta` |
+| Ganado Pago Parcial | entró dinero y queda saldo | `exito` |
+| Ganado Pagado Completo | el saldo llegó a cero | `exito` |
+| Cierre perdido | la oportunidad terminó sin venta, con motivo | `peligro` |
+
+Las etapas se nombran una por una; nunca se comparan por orden. Potencial, Registrado, En gestión, Contactado y Calificado forman el setteo. Ganado Pago Parcial y Ganado Pagado Completo son ventas. Ganado Pagado Completo y Cierre perdido son cierres.
+
+Los pendientes son tres (ADR 0070, ampliado por ADR 0072):
+
+| Pendiente | Qué significa | Quién lo pone | Cómo se limpia | Tono |
 |---|---|---|---|---|
-| 1 | Pendiente Setteo | calificó pero no agendó, o deal a mano | sistema / closer | `neutro` |
-| 2 | En Contacto | el dueño registra el primer contacto | closer | `neutro` |
-| 4 | Agendado | hay una llamada con fecha | sistema / closer | `info` |
-| 3 | Pendiente Re-agenda | la llamada falló o hace falta otra, siempre con motivo | sistema / closer | `alerta` |
-| 5 | Atendido | la llamada ocurrió (se pegó el Grain) | sistema | `info` |
-| 11 | Seguimiento | la llamada ocurrió y hay que volver a contactarlo | closer | `info` |
-| 6 | Compromiso Verbal | dijo que sí: producto y fecha límite de pago | closer | `alerta` |
-| 7 | Abonado | entró el primer pago y queda saldo | sistema | `exito` |
-| 8 | Completo | saldo en cero | sistema | `exito` |
-| 9 | Próxima Cohorte | quiere entrar en la siguiente (con cohorte destino) | closer | `neutro` |
-| 10 | Cierre Perdido | dijo que no; motivo obligatorio | closer | `peligro` |
+| Re-agenda | la cita falló o hace falta otra llamada | Calendly en Agendado; el dueño en Atendido con motivo | una cita nueva lleva el deal a Agendado | `alerta` |
+| Seguimiento | hay que volver a contactar en una fecha | el dueño en Calificado, Atendido o Compromiso Verbal; también el retroceso | un cambio de etapa o un hecho que retoma el deal | `info` |
+| Próxima Cohorte | espera una cohorte destino | el dueño en setteo, Agendado, Atendido o Compromiso Verbal | un contacto desde el inicio de ventas de la cohorte destino (RET), o cualquier cambio de etapa salvo Cierre perdido: muda la cohorte, con su `change_log` | `neutro` |
 
-El número es un nombre, **no el orden**: Re-agenda (3) viene después de Agendado (4), y Seguimiento
-(11) después de Atendido (5).
+Poner un pendiente no cambia la etapa. Todo cambio de etapa lo limpia por defecto. Re-agenda guarda el resultado de la llamada; Seguimiento exige fecha; Próxima Cohorte exige una cohorte destino del mismo programa. No hay reloj que los quite: lo vencido aparece como alerta al leer (ADR 0070).
 
-```mermaid
-timeline
-  title El camino de un deal, de izquierda a derecha
-  section Antes de la llamada
-    1 Pendiente Setteo : Llega cuando el lead calificó pero no agendó : Avanza cuando el closer lo contacta o cuando agenda : Se pierde si dice que no o nunca responde
-    2 En Contacto : Llega cuando el closer registra el primer contacto : Avanza cuando agenda, o cuando acepta o paga por chat : Se pierde si dice que no
-    4 Agendado : Llega cuando hay una llamada con fecha : Avanza cuando se pega el Grain de la llamada : Si no llega o cancela, pasa a Re-agenda
-  section La llamada
-    5 Atendido : Llega cuando la llamada ocurrió : Avanza cuando dice que sí o paga : Si hay que volver a contactarlo, pasa a Seguimiento : Si hace falta otra llamada, pasa a Re-agenda
-    11 Seguimiento : Llega cuando la llamada ocurrió y lo va a pensar : Avanza cuando dice que sí, paga o agenda otra llamada : Se pierde si dice que no
-  section El pago
-    6 Compromiso Verbal : Llega cuando dijo que sí y promete pagar en una fecha : Avanza cuando entra el primer pago : Si se echa para atrás pero sigue interesado, vuelve a Seguimiento : Se pierde si desiste
-    7 Abonado : Llega con el primer pago, si queda saldo : Avanza cuando termina de pagar : Si desiste, lo abonado igual cuenta en la caja
-    8 Completo : Llega cuando el saldo queda en cero : Fin del camino
-```
+### 3.1 La tabla de transiciones
 
-```mermaid
-timeline
-  title Desvíos del camino
-  section Vuelve al camino
-    3 Pendiente Re-agenda : Llega cuando la llamada falló o hace falta otra, siempre con un motivo : Vuelve a Agendado con una llamada nueva : Se pierde si ya no quiere
-    9 Próxima Cohorte : Llega cuando quiere entrar, pero en la siguiente cohorte : Vuelve al camino cuando esa cohorte abre ventas : Se pierde si desiste
-  section Sale del camino
-    10 Cierre Perdido : Llega cuando dijo que no, siempre con un motivo : Se puede recuperar si vuelve a interesarse
-```
+“Sistema” = el CRM mueve cuando ocurre el hecho. “Closer” = una persona responde la pregunta de la etapa. “Ambos” admite cualquiera de los dos caminos, siempre por el motor. Las preguntas y requisitos siguen ADR 0071 y ADR 0072.
 
-```mermaid
-flowchart LR
-  subgraph AB["Etapas abiertas"]
-    direction TB
-    S1["1 Pendiente Setteo"]
-    S2["2 En Contacto"]
-    S4["4 Agendado"]
-    S3["3 Pendiente Re-agenda"]
-    S5["5 Atendido"]
-    S11["11 Seguimiento"]
-    S6["6 Compromiso Verbal"]
-    S7["7 Abonado"]
-    S9["9 Próxima Cohorte"]
-  end
-  S10["10 Cierre Perdido"]
-  S1 & S2 & S4 & S3 & S5 & S11 & S6 & S7 & S9 -- "P motivo obligatorio" --> S10
-  S10 -. "R recuperar con motivo" .-> R2["vuelve a 2 En Contacto"]
-  S10 -. "R recuperar con motivo" .-> R4["vuelve a 4 Agendado"]
-  S10 -. "R recuperar con motivo" .-> R9["vuelve a 9 Próxima Cohorte"]
-  S8["8 Completo es terminal: no se pierde"]
-```
+| Id | De → a | Quién | Qué la dispara o exige |
+|---|---|---|---|
+| E1 | Potencial o Registrado → En gestión | sistema | primera actividad comercial |
+| E2 | En gestión → Contactado | sistema | contacto logrado |
+| E3 | En gestión o Contactado → Calificado | closer | confirma que califica |
+| E4 | cualquier etapa de setteo → Agendado | ambos | llamada vigente con fecha |
+| E5 | Contactado o Calificado → Compromiso Verbal | closer | valor vendido, área declarada y fecha límite |
+| E6 | Contactado o Calificado → cualquiera de las dos Ganado | sistema | primer abono y requisitos de venta |
+| E7 | Agendado → Agendado | ambos | cita nueva o reagendada; limpia el pendiente |
+| E8 | Agendado → Atendido | ambos | la llamada ocurrió |
+| E9 | Atendido con pendiente → Agendado | ambos | llega una cita nueva |
+| E10 | Atendido → Compromiso Verbal | closer | compromiso con sus datos |
+| E11 | Atendido → cualquiera de las dos Ganado | sistema | entra el primer abono |
+| E12 | Compromiso Verbal → cualquiera de las dos Ganado | sistema | entra el primer abono |
+| E13 | Ganado Pago Parcial → Ganado Pagado Completo | sistema | saldo en cero |
+| RETRO | Compromiso Verbal → Atendido, Contactado o Calificado | closer | motivo de retroceso; deja Seguimiento |
+| P | Potencial, Registrado, En gestión, Contactado, Calificado, Agendado, Atendido, Compromiso Verbal o Ganado Pago Parcial → Cierre perdido | closer | motivo de pérdida |
+| R | Cierre perdido → En gestión o Agendado | closer | motivo de recuperación |
+| A1 | Ganado Pago Parcial → Contactado, Calificado, Atendido o Compromiso Verbal | sistema | se anula el único abono |
+| A2 | Ganado Pagado Completo → Ganado Pago Parcial | sistema | se anula un abono y vuelve a quedar saldo |
 
-### 3.1 La tabla de transiciones ✅ (adoptada por Mani el 24-sep)
-
-"Sistema" = el CRM mueve el deal cuando pasa el evento; "closer" = lo mueve una persona y el motor exige
-el requisito antes de aceptar. La implementa el ticket 043.
-
-| Id | De → a | Qué la dispara | Quién | Requisito | Por qué existe |
-|---|---|---|---|---|---|
-| T1 | 1 → 2 | primer contacto registrado | closer | deal con dueño; actividad con fecha y canal | reemplaza `Registro 1-5`: prueba que alguien lo trabaja |
-| T2 | 1 → 4 | llega la agenda de Calendly, o el closer crea la llamada | sistema / closer | llamada con fecha | 🩸 9 leads de Setteo agendaron solos y la hoja no lo vio |
-| T3 | 2 → 4 | el contacto consigue la agenda | sistema / closer | llamada con fecha | es el objetivo del setteo |
-| T4 | 2 → 6 | acepta por chat, sin llamada | closer | producto + fecha límite de pago | existen ventas sin llamada (Jero: 10 estudiantes, 0 llamadas) |
-| T5 | 2 → 7 u 8 | paga por chat de una vez | sistema, al registrar el abono | producto + abono con comprobante | no inventar un Compromiso de cero minutos |
-| T6 | 3 → 4 | se crea una llamada nueva con fecha | sistema / closer | llamada con fecha | la cita fallida se reprogramó |
-| T7 | 3 → 5 | se pega el Grain de una llamada que sí ocurrió | sistema | Grain (o "sucedió") | corrige un no-show mal marcado |
-| T8 | 4 → 3 | la llamada queda en no-show o cancelada | sistema | el resultado es el motivo | la cita falló y tiene que quedar a la vista |
-| T9 | 4 → 4 | la cita se mueve antes de ocurrir | sistema | llamada vieja `reagendada` + nueva con fecha | mover una cita no es avanzar ni retroceder |
-| T10 | 4 → 5 | se pega el Grain | sistema | Grain (o "sucedió" para el caso raro sin grabar) | el Grain es la prueba de que la llamada ocurrió |
-| T11 | · | reemplazada el 24-sep por Seguimiento (T24) | · | · | · |
-| T12 | 5 → 6 | dijo que sí, paga después | closer | producto + fecha límite de pago (ADR 0053) | sin fecha no hay compromiso que vigilar |
-| T13 | 5 → 7 | pagó en la llamada y queda saldo | sistema, al registrar el abono | producto + abono con comprobante | la etapa la mueve la plata |
-| T14 | 5 → 8 | pagó todo en la llamada | sistema | abono igual al precio | mismo principio |
-| T15 | 6 → 11 | el sí se echa para atrás pero sigue interesado | closer | motivo | vuelve a donde se re-contacta |
-| T16 | 6 → 7 | primer abono, queda saldo | sistema | abono con comprobante | la plata cumple el compromiso |
-| T17 | 6 → 8 | paga todo de una vez | sistema | abono igual al precio | igual que T14 |
-| T18 | 7 → 8 | la suma de abonos llega al precio | sistema | saldo en cero | Completo es un hecho contable |
-| T19, T20, T21 | 2, 5 o 6 → 9 | quiere entrar, pero a la siguiente cohorte | closer | **cohorte destino** | sin cohorte destino la etapa se vuelve un cementerio |
-| T22 | 9 → 2 | la cohorte destino abre ventas y el closer lo recontacta | closer | contacto nuevo | el deal reaparece en el Inbox cuando su cohorte abre |
-| T23 | 9 → 4 | agenda para la nueva cohorte | sistema / closer | llamada con fecha | igual que T2 |
-| T24 | 5 → 11 | la llamada ocurrió y hay que volver a contactarlo | closer | fecha de seguimiento | separa lo que salió bien de lo que hay que re-contactar |
-| T25 | 11 → 6 | en el seguimiento dijo que sí | closer | producto + fecha límite | igual que T12 |
-| T26 | 11 → 7 u 8 | en el seguimiento pagó | sistema, al registrar el abono | abono con comprobante | la etapa la mueve la plata |
-| T27 | 11 → 4 | se agenda otra llamada | sistema / closer | llamada con fecha | una segunda llamada es parte del mismo deal |
-| T28 | 11 → 9 | quiere la siguiente cohorte | closer | cohorte destino | igual que T19 |
-| T29 | 5 → 3 | la llamada no alcanzó y hace falta otra | closer | **motivo** | "si falla y no cierra, pasa a Re-agenda con motivo; no se duplica el deal" (Mani) |
-| P | 1 a 7, 9 y 11 → 10 | dijo que no, no responde o desistió | closer | **motivo obligatorio** | Cierre Perdido cuenta en el embudo |
-| R | 10 → 2, 4 o 9 | se recupera un perdido | closer | motivo | a 5-8 solo se entra por un evento (Grain, abono) |
-| A1 | 7 → la etapa previa | se anula el único abono | sistema | anulación con motivo (el texto de la anulación del abono, no un motivo del catálogo) | si el abono no existe, Abonado tampoco |
-| A2 | 8 → 7 | se anula un abono y vuelve a quedar saldo | sistema | anulación con motivo | igual que A1 |
-
-Anular el deal entero no es una flecha: es una marca aparte que lo saca de todas las métricas, esté en
-la etapa que esté (ADR 0038). Las reglas generales (un deal muchas llamadas, la conversión cuenta deals
-distintos, no hay relojes, ninguna regla compara números de etapa) están en el ADR 0037.
-
-### 3.2 "¿Cómo terminó?": lo que pasa después de cada llamada
-
-Después de pegar el Grain, una sola pregunta con seis botones. No existe "no cerró" sin decir qué sigue.
-
-| Botón | El deal pasa a | Se exige | Categoría vieja de la hoja | Id |
+| Id | Etapa | Pendiente después | Quién | Requisito |
 |---|---|---|---|---|
-| Pagó ahora | 7 Abonado u 8 Completo | producto + abono con comprobante | · | T13, T14 |
-| Compromiso | 6 Compromiso Verbal | producto + fecha límite de pago | FU con fecha | T12 |
-| Seguimiento | 11 Seguimiento | fecha de seguimiento | FU-1 a FU-5 | T24 |
-| Otra llamada | 3 Pendiente Re-agenda | motivo | PRA | T29 |
-| Próxima cohorte | 9 Próxima Cohorte | cohorte destino | a veces FIN | T20 |
-| Perdido | 10 Cierre Perdido | motivo | FIN, FIT, RD | P |
+| PR1 | Agendado | Re-agenda | sistema | llamada cancelada o no-show |
+| PR2 | Atendido | Re-agenda | closer | motivo de re-agenda |
+| PS1 | Atendido | Seguimiento | closer | fecha de seguimiento |
+| PS2 | Calificado | Seguimiento | closer | contacto previo y fecha |
+| PS3 | Compromiso Verbal | Seguimiento | closer | fecha de seguimiento |
+| PC | setteo, Agendado, Atendido o Compromiso Verbal | Próxima Cohorte | closer | cohorte destino |
+| RET | cualquier etapa con Próxima Cohorte | ninguno | sistema | un contacto registrado desde el inicio de ventas de la cohorte destino |
 
-Qué le hace cada **resultado de llamada** al deal: ADR 0015.
+Anular el deal entero no es una flecha: es una marca aparte que lo saca de todas las métricas (ADR 0038). Los T1–T29 del 24-sep se retiraron con el 142.
 
-**Los motivos van en cuatro listas** (ADR 0056): Perdido pide uno de `perdida`, Otra llamada (T29) uno
-de `reagenda`, el sí que se echa atrás (T15) uno de `retroceso` y recuperar (R) uno de `recuperacion`.
-El contenido de cada lista sale de la taxonomía que el equipo ya usa en las hojas (`_ListasDropdown`:
-FIN, FIT, FU, RD, PRA), estandarizada en 13 motivos (ticket 104). Quién mueve y con qué datos: también
-ADR 0056.
+**Lo que el sistema decide solo, lo explica en el log del deal** (Mani, 2-oct). Cada movimiento del sistema que no sale de una acción de la persona (Calendly marca no-show o cancelada, una cita nueva quita un pendiente, una cita fallida hace nacer el deal en Calificado, un re-envío del formulario que solo agrega la llamada o solo avisa) deja una nota firmada "Sistema" en `deal_actividades`, en la misma transacción (`lib/deals/nota-del-sistema.ts`). Una nota nunca mueve el deal ni cuenta como actividad comercial.
 
----
+### 3.1.1 La pregunta de la etapa: cómo se toma una flecha en pantalla
+
+Nadie elige "mover a" una etapa: cada etapa tiene **una pregunta**, y su respuesta es la flecha (ADR 0072). La tabla
+vive en `components/deals/pregunta-de-etapa.ts` (datos planos, entra al navegador) y `tests/pregunta-de-etapa.test.ts`
+garantiza contra el motor que toda respuesta es una flecha de persona y que toda flecha de persona tiene respuesta,
+salvo una lista nombrada (E3 desde En gestión, E4 antes de Calificado, R a Agendado). La misma respuesta se toma desde
+tres lugares, por un solo componente (`useResponder`): la ficha (tarjeta bajo la cabecera), el Kanban (soltar abre la
+respuesta que lleva a esa columna, o deja escoger si hay varias; sin ninguna, la tarjeta no se mueve y se dice por qué)
+y "¿Cómo terminó?" en Calls.
+
+- Una respuesta que es **flecha** abre un diálogo con lo que pide y, en verde y rojo, lo que el deal tiene y le falta.
+  Esa lista no la calcula la pantalla: `revisarMovimiento` es un **ensayo** de `moverEtapa` dentro de una transacción
+  que siempre se deshace, así que no puede decir algo distinto de lo que el motor acepta. Confirmar se activa solo con
+  todo en verde y con la revisión de los datos que hay en pantalla.
+- Una respuesta que es **actividad, llamada o abono** abre su formulario de siempre en la ficha (`?accion=…`): no hay
+  un segundo camino para registrar nada, y el motor mueve el deal desde ahí.
+
+### 3.2 “¿Cómo terminó?”: lo que pasa después de cada llamada
+
+Después de una llamada atendida, una sola pregunta decide el siguiente paso (ADR 0071, 0072). No existe “no cerró” sin decir qué sigue.
+
+| Botón | Resultado | Se exige | Flecha |
+|---|---|---|---|
+| Pagó ahora | Ganado Pago Parcial o Ganado Pagado Completo | valor vendido, área y abono con comprobante | E11 |
+| Compromiso | Compromiso Verbal | valor vendido, área y fecha límite | E10 |
+| Seguimiento | se queda en Atendido con Seguimiento | fecha de seguimiento | PS1 |
+| Otra llamada | se queda en Atendido con Re-agenda | motivo | PR2 |
+| Próxima cohorte | se queda en Atendido con Próxima Cohorte | cohorte destino | PC |
+| Perdido | Cierre perdido | motivo | P |
+
+Una llamada `no_show` o `cancelada` sobre Agendado pone Re-agenda por PR1. Una cita nueva limpia Re-agenda: en Agendado usa E7 y desde Atendido con pendiente usa E9. Grain o la confirmación manual de que ocurrió llevan Agendado a Atendido por E8.
+
+Los motivos conservan cuatro listas (ADR 0056): pérdida para P, re-agenda para PR2, retroceso para RETRO y recuperación para R. El resultado de la llamada es el hecho de PR1; no pide un motivo escrito por el closer.
 
 ## 4. La arquitectura técnica
 

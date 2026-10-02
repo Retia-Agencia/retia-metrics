@@ -104,6 +104,7 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
       leadId,
       programId: op.programId,
       etapa: d.etapa,
+      pendiente: d.pendiente ?? null,
       huella: d.huella,
       actorId: op.actorId,
       fechaEtapa: d.fechaEtapa ? new Date(d.fechaEtapa) : null,

@@ -87,7 +87,7 @@ const comoCloser = () => ({ userId: closer, rol: "closer" as const });
 
 describe("marcarOnboarded", () => {
   it("el closer dueño lo marca en un Abonado y en un Completo, con timestamp y rastro", async () => {
-    for (const etapa of ["abonado", "completo"] as const) {
+    for (const etapa of ["ganado_parcial", "ganado_completo"] as const) {
       const dealId = await nuevoDeal(etapa);
       const antes = Date.now();
       const { onboardedAt } = await marcarOnboarded(db, comoCloser(), { dealId });
@@ -100,8 +100,8 @@ describe("marcarOnboarded", () => {
   });
 
   it("el gerente y el developer también pueden, sin ser dueños", async () => {
-    const a = await nuevoDeal("abonado");
-    const b = await nuevoDeal("completo");
+    const a = await nuevoDeal("ganado_parcial");
+    const b = await nuevoDeal("ganado_completo");
     await marcarOnboarded(db, { userId: gerente, rol: "gerente" }, { dealId: a });
     await marcarOnboarded(db, { userId: developer, rol: "developer" }, { dealId: b });
     expect((await fila(a)).onboardedAt).not.toBeNull();
@@ -109,7 +109,7 @@ describe("marcarOnboarded", () => {
   });
 
   it("otro closer no; marcar dos veces no pisa la fecha original", async () => {
-    const dealId = await nuevoDeal("abonado");
+    const dealId = await nuevoDeal("ganado_parcial");
     expect((await capturar(marcarOnboarded(db, { userId: otroCloser, rol: "closer" }, { dealId }))).status).toBe(403);
     expect((await fila(dealId)).onboardedAt).toBeNull();
 
@@ -123,14 +123,14 @@ describe("marcarOnboarded", () => {
     for (const etapa of ["atendido", "compromiso_verbal", "cierre_perdido"] as const) {
       expect((await capturar(marcarOnboarded(db, comoCloser(), { dealId: await nuevoDeal(etapa) }))).status).toBe(409);
     }
-    const anulado = await nuevoDeal("abonado", { anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
+    const anulado = await nuevoDeal("ganado_parcial", { anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
     expect((await capturar(marcarOnboarded(db, comoCloser(), { dealId: anulado }))).status).toBe(409);
   });
 });
 
 describe("desmarcarOnboarded", () => {
   it("borra la marca con su rastro (valor anterior y quién) y se puede volver a marcar", async () => {
-    const dealId = await nuevoDeal("abonado");
+    const dealId = await nuevoDeal("ganado_parcial");
     await marcarOnboarded(db, comoCloser(), { dealId });
     await desmarcarOnboarded(db, comoCloser(), { dealId });
     expect((await fila(dealId)).onboardedAt).toBeNull();
@@ -147,7 +147,7 @@ describe("desmarcarOnboarded", () => {
   });
 
   it("lo hacen el gerente y el developer; otro closer no; sin marca es 409", async () => {
-    const dealId = await nuevoDeal("completo");
+    const dealId = await nuevoDeal("ganado_completo");
     expect((await capturar(desmarcarOnboarded(db, comoCloser(), { dealId }))).status).toBe(409);
     await marcarOnboarded(db, comoCloser(), { dealId });
     expect((await capturar(desmarcarOnboarded(db, { userId: otroCloser, rol: "closer" }, { dealId }))).status).toBe(403);
@@ -159,19 +159,19 @@ describe("desmarcarOnboarded", () => {
   });
 
   it("se puede quitar aunque el deal ya no sea estudiante (una anulación lo sacó de Abonado)", async () => {
-    const dealId = await nuevoDeal("abonado", { onboardedAt: new Date() });
+    const dealId = await nuevoDeal("ganado_parcial", { onboardedAt: new Date() });
     await db.update(deals).set({ etapa: "atendido" }).where(eq(deals.id, dealId));
     await desmarcarOnboarded(db, comoCloser(), { dealId });
     expect((await fila(dealId)).onboardedAt).toBeNull();
     // Y un deal anulado no se toca.
-    const anulado = await nuevoDeal("abonado", { onboardedAt: new Date(), anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
+    const anulado = await nuevoDeal("ganado_parcial", { onboardedAt: new Date(), anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
     expect((await capturar(desmarcarOnboarded(db, comoCloser(), { dealId: anulado }))).status).toBe(409);
   });
 });
 
 describe("cambiarCohorte", () => {
   it("mueve al estudiante con quién y por qué, y la venta cuenta donde asiste", async () => {
-    const dealId = await nuevoDeal("completo", { cohortId: agosto });
+    const dealId = await nuevoDeal("ganado_completo", { cohortId: agosto });
     await cambiarCohorte(db, comoCloser(), { dealId, cohortId: septiembre, motivo: "No pudo empezar en agosto" });
 
     expect((await fila(dealId)).cohortId).toBe(septiembre);
@@ -189,13 +189,13 @@ describe("cambiarCohorte", () => {
   });
 
   it("el motivo es obligatorio", async () => {
-    const dealId = await nuevoDeal("abonado");
+    const dealId = await nuevoDeal("ganado_parcial");
     expect((await capturar(cambiarCohorte(db, comoCloser(), { dealId, cohortId: octubre, motivo: "   " }))).status).toBe(400);
     expect((await fila(dealId)).cohortId).toBe(septiembre);
   });
 
   it("solo a cohortes futuras o activas, del mismo programa y distintas de la actual", async () => {
-    const dealId = await nuevoDeal("abonado");
+    const dealId = await nuevoDeal("ganado_parcial");
     expect((await capturar(cambiarCohorte(db, comoCloser(), { dealId, cohortId: agosto, motivo: "x" }))).status).toBe(422);
     expect((await capturar(cambiarCohorte(db, comoCloser(), { dealId, cohortId: septiembre, motivo: "x" }))).status).toBe(422);
     const [otroProg] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
@@ -212,14 +212,14 @@ describe("cambiarCohorte", () => {
     const enContacto = await nuevoDeal("atendido");
     await cambiarCohorte(db, comoCloser(), { dealId: enContacto, cohortId: octubre, motivo: "x" });
     expect((await fila(enContacto)).cohortId).toBe(octubre);
-    const dealId = await nuevoDeal("abonado");
+    const dealId = await nuevoDeal("ganado_parcial");
     expect((await capturar(cambiarCohorte(db, { userId: otroCloser, rol: "closer" }, { dealId, cohortId: octubre, motivo: "x" }))).status).toBe(403);
     await cambiarCohorte(db, { userId: gerente, rol: "gerente" }, { dealId, cohortId: octubre, motivo: "Lo pidió el estudiante" });
     expect((await fila(dealId)).cohortId).toBe(octubre);
   });
 
   it("si la fecha límite de pago pasa del inicio de clases de la cohorte nueva, se baja a ese inicio", async () => {
-    const dealId = await nuevoDeal("abonado", { cohortId: octubre, fechaLimitePago: "2026-10-15" });
+    const dealId = await nuevoDeal("ganado_parcial", { cohortId: octubre, fechaLimitePago: "2026-10-15" });
     const r = await cambiarCohorte(db, comoCloser(), { dealId, cohortId: septiembre, motivo: "Adelanta su inicio" });
     expect(r.fechaLimiteAjustada).toBe("2026-09-15");
     expect((await fila(dealId)).fechaLimitePago).toBe("2026-09-15");
@@ -229,7 +229,7 @@ describe("cambiarCohorte", () => {
   });
 
   it("una fecha límite que sí cabe no se toca", async () => {
-    const dealId = await nuevoDeal("abonado", { cohortId: septiembre, fechaLimitePago: "2026-09-01" });
+    const dealId = await nuevoDeal("ganado_parcial", { cohortId: septiembre, fechaLimitePago: "2026-09-01" });
     const r = await cambiarCohorte(db, comoCloser(), { dealId, cohortId: octubre, motivo: "Prefiere octubre" });
     expect(r.fechaLimiteAjustada).toBeNull();
     expect((await fila(dealId)).fechaLimitePago).toBe("2026-09-01");
@@ -238,13 +238,13 @@ describe("cambiarCohorte", () => {
 
 describe("estudiantesDe: Students es una consulta sobre la etapa", () => {
   it("solo Abonado y Completo vigentes, de UN programa", async () => {
-    const abonado = await nuevoDeal("abonado");
-    const completo = await nuevoDeal("completo");
+    const abonado = await nuevoDeal("ganado_parcial");
+    const completo = await nuevoDeal("ganado_completo");
     await nuevoDeal("atendido");
     await nuevoDeal("cierre_perdido");
-    await nuevoDeal("abonado", { anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
+    await nuevoDeal("ganado_parcial", { anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
     const [otroProg] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
-    await nuevoDeal("abonado", { cohortId: null,}, otroProg.id);
+    await nuevoDeal("ganado_parcial", { cohortId: null,}, otroProg.id);
 
     const lista = await estudiantesDe(db, programId);
     expect(lista.map((e) => e.dealId).sort()).toEqual([abonado, completo].sort());
@@ -252,7 +252,7 @@ describe("estudiantesDe: Students es una consulta sobre la etapa", () => {
   });
 
   it("una cohorte de otro programa no devuelve a nadie del programa pedido", async () => {
-    await nuevoDeal("abonado");
+    await nuevoDeal("ganado_parcial");
     const [otroProg] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
     const [ajena] = await db
       .insert(cohorts)
@@ -262,7 +262,7 @@ describe("estudiantesDe: Students es una consulta sobre la etapa", () => {
   });
 
   it("refleja el onboarding", async () => {
-    const dealId = await nuevoDeal("abonado");
+    const dealId = await nuevoDeal("ganado_parcial");
     await marcarOnboarded(db, comoCloser(), { dealId });
     const [e] = await estudiantesDe(db, programId);
     expect(e.onboardedAt).not.toBeNull();

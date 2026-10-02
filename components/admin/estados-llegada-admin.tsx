@@ -35,11 +35,6 @@ interface Borrador {
   alertaMinutos: string;
 }
 
-const ETIQUETA_ETAPA: Record<Exclude<Etapa, null>, string> = {
-  pendiente_setteo: "Pendiente Setteo",
-  agendado: "Agendado",
-};
-
 const claseControl =
   "h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
@@ -52,10 +47,16 @@ export function EstadosLlegadaAdmin({
   programas,
   estados,
   sinFila,
+  etiquetaDeEntrada,
 }: {
   programas: ProgramaEstadosVista[];
   estados: EstadoLlegadaVista[];
   sinFila: ValorSinEstado[];
+  /**
+   * Las etapas en las que puede nacer un deal, con su nombre. Viene del servidor:
+   * `lib/catalogo/estados-llegada.ts` carga la base y no puede entrar al bundle.
+   */
+  etiquetaDeEntrada: Readonly<Record<NonNullable<EstadoLlegadaVista["etapaEntrada"]>, string>>;
 }) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
@@ -63,7 +64,7 @@ export function EstadosLlegadaAdmin({
     id: null,
     programId,
     valor: "",
-    etapaEntrada: "pendiente_setteo",
+    etapaEntrada: "registrado",
     prioridad: "normal",
     alertaMinutos: "",
   });
@@ -161,7 +162,7 @@ export function EstadosLlegadaAdmin({
               value={borrador.etapaEntrada ?? ""}
               onChange={(e) => setBorrador({ ...borrador, etapaEntrada: (e.target.value || null) as Etapa })}
             >
-              {Object.entries(ETIQUETA_ETAPA).map(([valor, etiqueta]) => (
+              {Object.entries(etiquetaDeEntrada).map(([valor, etiqueta]) => (
                 <option key={valor} value={valor}>
                   {etiqueta}
                 </option>
@@ -233,7 +234,7 @@ export function EstadosLlegadaAdmin({
                     <td className="font-medium">
                       <code>{e.valor}</code>
                     </td>
-                    <td>{e.etapaEntrada ? ETIQUETA_ETAPA[e.etapaEntrada] : "No abre deal"}</td>
+                    <td>{e.etapaEntrada ? etiquetaDeEntrada[e.etapaEntrada] : "No abre deal"}</td>
                     <td>
                       {e.prioridad === "alta" ? <Badge variant="alerta">Alta</Badge> : <Badge variant="neutro">Normal</Badge>}
                     </td>

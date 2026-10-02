@@ -85,12 +85,12 @@ async function sembrarCloser(closerId: string): Promise<string> {
 async function marcarVenta(dealId: string, fecha: Date, ownerUserId?: string) {
   await db
     .update(deals)
-    .set({ etapa: "abonado", ownerUserId })
+    .set({ etapa: "ganado_parcial", ownerUserId })
     .where(eq(deals.id, dealId));
   await db.insert(dealEtapaHistorial).values({
     dealId,
     de: null,
-    a: "abonado",
+    a: "ganado_parcial",
     fecha,
     userId: ownerUserId,
   });
@@ -239,8 +239,8 @@ describe("% de show y % de cierre", () => {
     });
     const dealId = await sembrarDeal(programaA);
     await db.insert(dealEtapaHistorial).values([
-      { dealId, de: null, a: "abonado", fecha, userId: null },
-      { dealId, de: "abonado", a: "completo", fecha: new Date("2026-09-15T15:00:00Z"), userId: null },
+      { dealId, de: null, a: "ganado_parcial", fecha, userId: null },
+      { dealId, de: "ganado_parcial", a: "ganado_completo", fecha: new Date("2026-09-15T15:00:00Z"), userId: null },
     ]);
 
     const embudo = await embudoDelRango(
@@ -425,7 +425,7 @@ describe("meta dinamica no divide por cero", () => {
     const cohorteDeLaMeta = (await vistaDeCohorteActiva({ programId: programaA }, "2026-09-15", db))!
       .cohorteId;
     for (let i = 0; i < 5; i++) {
-      await sembrarDeal(programaA, { cohortId: cohorteDeLaMeta, etapa: "abonado" });
+      await sembrarDeal(programaA, { cohortId: cohorteDeLaMeta, etapa: "ganado_parcial" });
     }
 
     // hoy despues del cierre: 22-sep. habilesRestantes = 0.
@@ -709,9 +709,9 @@ describe("leads y cohorte acotados a un closer", () => {
     // resuelve por `users.closerId` con `igualCloser` (ADR 0030).
     const ana = await sembrarCloser("Ana");
     const beto = await sembrarCloser("Beto");
-    await sembrarDeal(programaA, { cohortId: cohorteId, ownerUserId: ana, etapa: "abonado" });
-    await sembrarDeal(programaA, { cohortId: cohorteId, ownerUserId: ana, etapa: "completo" });
-    await sembrarDeal(programaA, { cohortId: cohorteId, ownerUserId: beto, etapa: "abonado" });
+    await sembrarDeal(programaA, { cohortId: cohorteId, ownerUserId: ana, etapa: "ganado_parcial" });
+    await sembrarDeal(programaA, { cohortId: cohorteId, ownerUserId: ana, etapa: "ganado_completo" });
+    await sembrarDeal(programaA, { cohortId: cohorteId, ownerUserId: beto, etapa: "ganado_parcial" });
 
     const programa = await vistaDeCohorteActiva({ programId: programaA }, "2026-09-15", db);
     expect(programa!.vendidos).toBe(3);

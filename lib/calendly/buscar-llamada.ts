@@ -16,7 +16,7 @@ import { resolverCitaDeEnvio } from "./resolver-cita";
 /**
  * "Buscar llamada" (ticket 096, pedido de Mani del 28-sep): vuelve a preguntarle a
  * Calendly por la cita de un deal cuyo envio dijo "Con Calendly" pero la cita no
- * aparecio (o estaba cancelada) cuando llego. El 052 lo dejo en Pendiente Setteo con una
+ * aparecio (o estaba cancelada) cuando llego. El 052 lo dejo en Calificado con una
  * nota; esto cierra el ciclo a pedido, sin esperar el webhook o la consulta periodica
  * de Calendly (A5).
  *
@@ -82,7 +82,7 @@ export async function buscarLlamadaDelDeal(
   if (!fila || !(await programaEnAlcance(actor.userId, actor.rol, fila.programId, db))) {
     throw new ErrorDeApp("No existe el deal.", 404);
   }
-  if (fila.etapa === "completo" || fila.etapa === "cierre_perdido") {
+  if (fila.etapa === "ganado_completo" || fila.etapa === "cierre_perdido") {
     throw new ErrorDeApp("El deal está cerrado: no se le buscan llamadas.", 409);
   }
 

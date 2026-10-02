@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 
 /**
- * Ticket 046 — nadie escribe `deals.etapa` fuera del motor (ADR 0037 punto 4).
+ * Ticket 046 — nadie escribe `deals.etapa` ni `deals.pendiente` fuera del motor.
  *
  * `moverEtapa()` (`lib/deals/mover-etapa.ts`) es el unico camino: valida la flecha, lo
  * que le falta al deal y escribe el historial. Una escritura por fuera deja un deal en
@@ -78,21 +78,22 @@ function sentencia(texto: string, inicio: number): string {
   return texto.slice(inicio, fin === -1 ? undefined : fin);
 }
 
+const tocaEstado = (s: string) => /\b(etapa|pendiente)\b/.test(s);
 const PATRONES: { nombre: string; buscar: RegExp; tocaEtapa: (s: string) => boolean }[] = [
   {
-    nombre: "update(deals) que toca la etapa",
+    nombre: "update(deals) que toca etapa o pendiente",
     buscar: /\.update\(\s*deals\s*\)/g,
-    tocaEtapa: (s) => /\betapa\b/.test(s),
+    tocaEtapa: tocaEstado,
   },
   {
-    nombre: "SQL crudo que actualiza la etapa de deals",
+    nombre: "SQL crudo que actualiza etapa o pendiente de deals",
     buscar: /\bupdate\b/gi,
-    tocaEtapa: (s) => /\bdeals\b/.test(s) && /\betapa\b/.test(s) && /\bset\b/i.test(s),
+    tocaEtapa: (s) => /\bdeals\b/.test(s) && tocaEstado(s) && /\bset\b/i.test(s),
   },
   {
-    nombre: "editarConRastro sobre deals con la etapa",
+    nombre: "editarConRastro sobre deals con etapa o pendiente",
     buscar: /\beditarConRastro\s*\(/g,
-    tocaEtapa: (s) => /\bdeals\b/.test(s) && /\betapa\b/.test(s),
+    tocaEtapa: (s) => /\bdeals\b/.test(s) && tocaEstado(s),
   },
   {
     // La llave con la que `abrirDeal()` le dice a `crearConRastro` que la etapa viene del
@@ -151,10 +152,10 @@ describe("nadie escribe deals.etapa fuera del motor (ADR 0037, ticket 046)", () 
         "export async function cerrar(db: Db, id: string) {",
         "  await db",
         "    .update(deals)",
-        "    .set({ etapa: 'completo' })",
+        "    .set({ etapa: 'ganado_completo', pendiente: null })",
         "    .where(eq(deals.id, id));",
-        "  await db.execute(sql`update deals set etapa = 'abonado' where id = ${id}`);",
-        "  await editarConRastro({ db, tabla: deals, nombreTabla: 'deals', actorId, etiqueta }, id, { etapa: 'completo' });",
+        "  await db.execute(sql`update deals set pendiente = null where id = ${id}`);",
+        "  await editarConRastro({ db, tabla: deals, nombreTabla: 'deals', actorId, etiqueta }, id, { pendiente: null });",
         "  await crearConRastro({ db, tabla: deals, nombreTabla: 'deals', actorId, etiqueta, desdeElMotor: true }, valores);",
         "}",
       ].join("\n"),
@@ -168,7 +169,7 @@ describe("nadie escribe deals.etapa fuera del motor (ADR 0037, ticket 046)", () 
         "export async function editar(db: Db, id: string) {",
         "  await editarConRastro({ db, tabla: deals, nombreTabla: 'deals', actorId, etiqueta }, id, {});",
         "  const lista = await db.select({ etapa: deals.etapa }).from(deals);",
-        "  return moverEtapa(db, { dealId: id, a: 'en_contacto', actor });",
+        "  return moverEtapa(db, { dealId: id, a: 'contactado', actor });",
         "}",
       ].join("\n"),
     );
@@ -176,13 +177,13 @@ describe("nadie escribe deals.etapa fuera del motor (ADR 0037, ticket 046)", () 
     // El motor escribe la etapa, y es el unico que puede.
     fs.writeFileSync(
       path.join(motor, "mover-etapa.ts"),
-      "await tx.update(deals).set({ etapa: mov.a }).where(and(eq(deals.id, id), eq(deals.etapa, de)));",
+      "await tx.update(deals).set({ etapa: mov.a, pendiente: mov.pendiente }).where(and(eq(deals.id, id), eq(deals.etapa, de)));",
     );
 
     expect(escriturasDeEtapa(tmp)).toEqual([
-      path.join("lib", "mutations", "sucio.ts") + ":3: update(deals) que toca la etapa",
-      path.join("lib", "mutations", "sucio.ts") + ":6: SQL crudo que actualiza la etapa de deals",
-      path.join("lib", "mutations", "sucio.ts") + ":7: editarConRastro sobre deals con la etapa",
+      path.join("lib", "mutations", "sucio.ts") + ":3: update(deals) que toca etapa o pendiente",
+      path.join("lib", "mutations", "sucio.ts") + ":6: SQL crudo que actualiza etapa o pendiente de deals",
+      path.join("lib", "mutations", "sucio.ts") + ":7: editarConRastro sobre deals con etapa o pendiente",
       path.join("lib", "mutations", "sucio.ts") + ":8: la llave del motor (desdeElMotor) fuera del motor",
     ]);
   });

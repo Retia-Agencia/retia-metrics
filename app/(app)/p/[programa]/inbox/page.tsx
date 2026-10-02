@@ -36,7 +36,7 @@ type Props = { params: Promise<{ programa: string }> };
  *
  * ## Orden de las secciones (reunión con closers, 24-sep)
  *  1. Llamadas de hoy sin resultado — el dolor número uno, va PRIMERA.
- *  2. Sin dueño (ticket 070): Agendados sin dueño y Pendiente Setteo.
+ *  2. Sin dueño (ticket 070): Agendados sin dueño y Por settear.
  *  3. Llamadas sueltas (decisión K2: se asignan aquí).
  *  4. Lo mío que necesita atención.
  *
@@ -81,7 +81,7 @@ export default async function InboxDelProgramaPage({ params }: Props) {
           motivosReagenda={motivosDeReagenda}
         />
 
-        {/* 2 · Sin dueño (ticket 070): Agendados sin dueño y Pendiente Setteo. */}
+        {/* 2 · Sin dueño (ticket 070): Agendados sin dueño y Por settear. */}
         <InboxSinDueno
           pendienteSetteo={secciones.pendienteSetteo}
           unclaimed={secciones.unclaimed}

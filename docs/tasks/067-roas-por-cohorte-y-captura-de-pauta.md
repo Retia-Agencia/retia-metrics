@@ -82,3 +82,7 @@ ella dependia poder cruzar costo con leads:
 - **La fuente principal del gasto es la API de Meta** (119, 120, ADR 0062), por anuncio y por día, en `gasto_pauta` (reemplaza `ad_spend`). La captura manual de este ticket queda para otras plataformas, si existen (PQ1), por la misma función que escribe el gasto.
 - **ROAS sobre ventas contratadas, con la TRM de la cohorte a la vista** (ADR 0063); ad profit = contratado − gasto ÷ TRM. Los "tres cubos" son las áreas (paid, orgánico, referidos) más las dos cubetas de huérfanos.
 - Números de referencia de Pauta: ROAS del corte de julio 1,97, "0,30 sobre contrato" (PQ4).
+
+> ⚠️ **1-oct: abierto.** La migración 0057 quita `cohorts.trm_cohorte` (Mani). De dónde sale la TRM del ROAS es
+> la decisión A12 de `docs/plan.md` §7, y se toma antes de E7. Hasta entonces, lo que este documento dice de la
+> "TRM de la cohorte" describe la intención, no una columna que exista.

@@ -32,6 +32,15 @@ Bandeja única de lo que sale de recorrer la app a mano: cambios que queremos, a
 | A-13 | Ficha del Deal | cambio | Un bloque de **Alertas** en el Deal: en **rojo** lo urgente que falta llenar; en **amarillo**, dicho explícito, lo que el Deal necesita para pasar a la siguiente etapa. Que el closer no tenga que memorizar el flujo. | 128 (nuevo) | en ticket |
 | A-14 | Personas / Leads | aclaración | ¿Cuál es la diferencia entre Leads y Personas? Está muy confuso. | 072 | resuelta · 30-sep (abajo) |
 
+## Recorrido 2 · 1-oct · revisión visual del 139 (closer, base local con un envío real copiado de producción)
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-15 | Ficha del Deal → Facturación | cambio | "Cambiar cohorte" sale dos veces: en el encabezado del bloque y otra vez junto a la cohorte, abajo. Basta uno. Venía del 074. | 075 | abierta |
+| A-16 | Ficha del Deal → Facturación | cambio | A 375 px el encabezado del bloque (título, "Cambiar cohorte" y "Registrar abono") no cabe y el botón queda pegado al borde de la tarjeta. Venía del 074. | 075 | abierta |
+| A-17 | Ficha del Deal → Cabecera y Facturación | cambio | Cuando no hay valor vendido, el saldo dice "sin precio de contrato registrado" en la fuente de cifras (`cifra`); es texto, no una cifra, y se lee como un número roto. | 075 | abierta |
+| A-18 | Ficha del Deal → Perfil | aclaración | Las respuestas del formulario repiten datos que ya están en otros bloques: correo y WhatsApp (en Lead y contactos) y las variables de Typeform como `variable:lead_value` o `variable:tag_lead_quality` (ya arriba como lead value y quality). El 139 solo quita las llaves `utm_*`. ¿Se ocultan también estas, y con qué regla? Decisión de Mani. | sin ticket | abierta |
+
 ### Principios que salen del recorrido
 
 Reglas de UI que aplican a toda pantalla, no a una. El 075 las usa como criterio de revisión.
@@ -46,7 +55,9 @@ Reglas de UI que aplican a toda pantalla, no a una. El 075 las usa como criterio
 
 ### Respuestas
 
-**A-01 · Producto de un Deal.** Hay dos caminos, los dos en código (`lib/deals/editar-deal.ts`):
+**A-01 · Producto de un Deal.** ⚠️ **Obsoleta desde el 1-oct: el ticket 134 retiró `productos`.** El precio sale
+de la cohorte del deal y el closer escribe el descuento (ADR 0065); el saldo se mide contra el valor vendido. Lo
+que sigue es la respuesta del 30-sep, como historia. Había dos caminos, los dos en código (`lib/deals/editar-deal.ts`):
 1. En la **ficha del Deal**, la acción *Editar deal* tiene el selector **Producto** (solo productos
    activos del mismo programa). Desaparece cuando el deal está en Completo, porque cambiarlo movería
    su saldo.

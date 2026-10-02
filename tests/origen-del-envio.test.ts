@@ -105,7 +105,11 @@ describe("el deal que abre la ingesta recuerda el envio que lo abrio", () => {
     const tarjeta = tablero.columnas.flatMap((c) => c.tarjetas)[0];
     expect([tarjeta.utmSource, tarjeta.utmMedium]).toEqual(["instagram", "stories"]);
     const ficha = await fichaDeDeal(db, programId, deal.id);
-    expect(ficha!.origen).toEqual(esperado);
+    // Desde el 139 la ficha devuelve el envío de origen con sus seis UTM crudos (`utmsDelEnvio`).
+    expect(ficha!.origen).toMatchObject({
+      envioId: deal.submissionOrigenId,
+      utm: { source: "instagram", medium: "stories", campaign: null },
+    });
   });
 
   it("un lead con deal Completo que vuelve a enviar abre un deal nuevo con el envio nuevo; el cerrado no cambia", async () => {
@@ -117,7 +121,7 @@ describe("el deal que abre la ingesta recuerda el envio que lo abrio", () => {
     );
     const [primero] = await db.select().from(deals);
     // Prepara el estado directo en la base: no es lo que prueba este test.
-    await db.update(deals).set({ etapa: "completo" }).where(eq(deals.id, primero.id));
+    await db.update(deals).set({ etapa: "ganado_completo" }).where(eq(deals.id, primero.id));
 
     await ingerirEntradas(
       db,
@@ -157,7 +161,7 @@ describe("el deal que abre la ingesta recuerda el envio que lo abrio", () => {
       abrirDeal(db, {
         leadId: ana.id,
         programId,
-        etapa: "pendiente_setteo",
+        etapa: "registrado",
         actor: { tipo: "sistema" },
         submissionOrigenId: (await envioDeToken("t2")).id,
       }),
@@ -191,7 +195,7 @@ describe("rellenarOrigenDeDeals: el relleno unico de los deals viejos", () => {
       .values({
         leadId: l.id,
         programId,
-        etapa: "pendiente_setteo",
+        etapa: "registrado",
         createdAt: new Date(o.creado),
         ...(o.anulado ? { anuladoEn: new Date(), anuladoPor: actorId, motivoAnulacion: "error de tecleo" } : {}),
       })

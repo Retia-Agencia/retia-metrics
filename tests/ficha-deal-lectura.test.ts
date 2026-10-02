@@ -1,14 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import {
+  abonos,
   areas,
   calls,
+  changeLog,
   cohorts,
   dealActividades,
   dealEtapaHistorial,
   deals,
+  enlacesPago,
+  leadContactos,
   leads,
   motivos,
   programs,
+  plataformasPago,
   sources,
   submissions,
   users,
@@ -16,7 +22,8 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { anularAbono, registrarAbono } from "@/lib/deals/abonos";
 import { anularDeal } from "@/lib/deals/anular-deal";
-import { fichaDeDeal, opcionesDeFicha } from "@/lib/queries/ficha-deal";
+import { nombreDelDeal } from "@/lib/deals/nombre";
+import { fichaDeDeal, opcionesDeFicha, respuestasLegibles } from "@/lib/queries/ficha-deal";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -89,7 +96,7 @@ describe("fichaDeDeal", () => {
       dealId,
       etapa: "atendido",
       lead: { email: "ana@correo.co", nombre: "Ana" },
-      origen: { utmSource: "facebook", utmMedium: "cpc", utmCampaign: null },
+      origen: { utm: { source: "facebook", medium: "cpc", campaign: null } },
       owner: { id: closer, nombre: "Maru" },
       cohorte: { codigo: "C1", inicioClases: "2026-10-01" },
       acuerdoPago: "30% en octubre",
@@ -101,6 +108,106 @@ describe("fichaDeDeal", () => {
   it("de otro programa o inexistente devuelve null: la frontera no se cruza", async () => {
     expect(await fichaDeDeal(db, otroPrograma, dealId)).toBeNull();
     expect(await fichaDeDeal(db, programId, crypto.randomUUID())).toBeNull();
+  });
+
+  it("devuelve los UTM exactamente como llegaron y recupera utm_id de respuestas", async () => {
+    await db
+      .update(submissions)
+      .set({
+        utmSource: " Facebook ",
+        utmMedium: "CPC",
+        utmCampaign: "{{campaign.name}}",
+        utmContent: "Anuncio 1",
+        utmTerm: null,
+        utmId: null,
+        respuestas: { " utm_ID ": "42" },
+      })
+      .where(eq(submissions.token, "t1"));
+
+    const f = (await fichaDeDeal(db, programId, dealId))!;
+    expect(f.origen?.utm).toEqual({
+      source: " Facebook ",
+      medium: "CPC",
+      campaign: "{{campaign.name}}",
+      content: "Anuncio 1",
+      term: null,
+      id: "42",
+    });
+  });
+
+  it("sin envío de origen devuelve origen null", async () => {
+    await db.update(deals).set({ submissionOrigenId: null }).where(eq(deals.id, dealId));
+    expect((await fichaDeDeal(db, programId, dealId))!.origen).toBeNull();
+  });
+
+  it("toma lead quality y lead value del lead", async () => {
+    await db.update(leads).set({ leadQuality: "Alta", leadValue: "Premium" }).where(eq(leads.emailNormalizado, "ana@correo.co"));
+    await db.update(submissions).set({ respuestas: { Pregunta: "Respuesta" } }).where(eq(submissions.token, "t1"));
+    expect((await fichaDeDeal(db, programId, dealId))!.perfil).toEqual({
+      leadQuality: "Alta",
+      leadValue: "Premium",
+      respuestas: [{ pregunta: "Pregunta", respuesta: "Respuesta" }],
+    });
+  });
+
+  it("ordena los contactos con el principal primero y no mezcla otro lead", async () => {
+    const [otroLead] = await db.insert(leads).values({ programId, emailNormalizado: "otra@correo.co" }).returning();
+    await db.insert(leadContactos).values([
+      { leadId: otroLead.id, programId, tipo: "correo", valor: "otra@correo.co", esPrincipal: true },
+      { leadId: (await db.select({ id: leads.id }).from(leads).where(eq(leads.emailNormalizado, "ana@correo.co")))[0].id, programId, tipo: "telefono", valor: "301", esPrincipal: false },
+      { leadId: (await db.select({ id: leads.id }).from(leads).where(eq(leads.emailNormalizado, "ana@correo.co")))[0].id, programId, tipo: "correo", valor: "ana@correo.co", esPrincipal: true },
+    ]);
+
+    const f = (await fichaDeDeal(db, programId, dealId))!;
+    expect(f.contactos.map((c) => [c.tipo, c.valor, c.esPrincipal])).toEqual([
+      ["correo", "ana@correo.co", true],
+      ["telefono", "301", false],
+    ]);
+  });
+
+  it("combina etapas y cambios del deal y sus registros, excluye otros deals y ordena por fecha", async () => {
+    const [abono] = await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-10", monto: "100", moneda: "USD" }).returning();
+    const [otroLead] = await db.insert(leads).values({ programId, emailNormalizado: "otro-log@correo.co" }).returning();
+    const [otroDeal] = await db.insert(deals).values({ leadId: otroLead.id, programId, etapa: "atendido" }).returning();
+    await db.insert(dealEtapaHistorial).values({
+      dealId,
+      de: "agendado",
+      a: "atendido",
+      userId: closer,
+      fecha: new Date("2026-09-10T10:00:00Z"),
+    });
+    await db.insert(changeLog).values([
+      { tabla: "deals", registroId: dealId, campo: "owner_user_id", valorAnterior: "anterior", valorNuevo: closer, userId: closer, detectadoEn: new Date("2026-09-12T10:00:00Z"), origen: "app" },
+      { tabla: "abonos", registroId: abono.id, campo: "deal_id", valorAnterior: null, valorNuevo: dealId, detectadoEn: new Date("2026-09-11T10:00:00Z"), origen: "app" },
+      { tabla: "abonos", registroId: abono.id, campo: "monto", valorAnterior: null, valorNuevo: "100", detectadoEn: new Date("2026-09-11T10:00:00Z"), origen: "app" },
+      { tabla: "abonos", registroId: abono.id, campo: "moneda", valorAnterior: null, valorNuevo: "USD", detectadoEn: new Date("2026-09-11T10:00:00Z"), origen: "app" },
+      { tabla: "deals", registroId: otroDeal.id, campo: "etapa", valorAnterior: "agendado", valorNuevo: "atendido", detectadoEn: new Date("2026-09-13T10:00:00Z"), origen: "app" },
+    ]);
+
+    const f = (await fichaDeDeal(db, programId, dealId))!;
+    expect(f.log).toMatchObject([
+      { tipo: "cambio", tabla: "deals", accion: "editado", campos: [{ campo: "owner_user_id", valorAnterior: "anterior", valorNuevo: closer }] },
+      { tipo: "cambio", tabla: "abonos", accion: "creado", campos: expect.arrayContaining([
+        { campo: "deal_id", valorAnterior: null, valorNuevo: dealId },
+        { campo: "monto", valorAnterior: null, valorNuevo: "100" },
+        { campo: "moneda", valorAnterior: null, valorNuevo: "USD" },
+      ]) },
+      { tipo: "etapa", de: "agendado", a: "atendido" },
+    ]);
+    expect(f.log).toHaveLength(3);
+    expect(f.log[0].porNombre).toBe("Maru");
+  });
+
+  it("incluye solo enlaces de pago vigentes del programa", async () => {
+    const [plataforma] = await db.insert(plataformasPago).values({ nombre: "Pasarela vigente" }).returning();
+    const [otraPlataforma] = await db.insert(plataformasPago).values({ nombre: "Pasarela de otro programa" }).returning();
+    await db.insert(enlacesPago).values([
+      { programId, plataformaId: plataforma.id, url: "https://pago.test/vigente", monto: "100", moneda: "USD", vigente: true, activo: true },
+      { programId, plataformaId: plataforma.id, url: "https://pago.test/viejo", monto: "200", moneda: "USD", vigente: false, activo: true },
+      { programId: otroPrograma, plataformaId: otraPlataforma.id, url: "https://pago.test/otro", monto: "300", moneda: "USD", vigente: true, activo: true },
+    ]);
+
+    expect((await fichaDeDeal(db, programId, dealId))!.enlacesDePago.map((e) => e.url)).toEqual(["https://pago.test/vigente"]);
   });
 
   it("los abonos anulados se muestran marcados pero NO entran en abonado ni saldo", async () => {
@@ -147,8 +254,8 @@ describe("fichaDeDeal", () => {
   it("el historial dice quien movio (null = sistema) y el motivo; las actividades, su autor", async () => {
     const [m] = await db.insert(motivos).values({ nombre: "Sin dinero", tipo: "perdida" }).returning();
     await db.insert(dealEtapaHistorial).values([
-      { dealId, de: null, a: "pendiente_setteo", userId: null, fecha: new Date("2026-09-01T10:00:00Z") },
-      { dealId, de: "pendiente_setteo", a: "atendido", userId: closer, motivoId: m.id, fecha: new Date("2026-09-02T10:00:00Z") },
+      { dealId, de: null, a: "registrado", userId: null, fecha: new Date("2026-09-01T10:00:00Z") },
+      { dealId, de: "registrado", a: "atendido", userId: closer, motivoId: m.id, fecha: new Date("2026-09-02T10:00:00Z") },
     ]);
     await db.insert(dealActividades).values([
       { dealId, tipo: "contacto", canal: "WhatsApp", userId: closer, nota: "Le escribí", fecha: new Date("2026-09-03T10:00:00Z") },
@@ -158,8 +265,8 @@ describe("fichaDeDeal", () => {
     const f = (await fichaDeDeal(db, programId, dealId))!;
 
     expect(f.historial.map((h) => [h.de, h.a, h.porNombre, h.motivoNombre])).toEqual([
-      [null, "pendiente_setteo", null, null],
-      ["pendiente_setteo", "atendido", "Maru", "Sin dinero"],
+      [null, "registrado", null, null],
+      ["registrado", "atendido", "Maru", "Sin dinero"],
     ]);
     // Las actividades, de la mas nueva a la mas vieja.
     expect(f.actividades.map((a) => [a.tipo, a.autorNombre])).toEqual([
@@ -180,6 +287,37 @@ describe("fichaDeDeal", () => {
     expect((await fichaDeDeal(db, programId, dealId))!.fechaLimiteSugerida).toBe("2026-10-01");
     await db.update(cohorts).set({ estado: "cerrado" });
     expect((await fichaDeDeal(db, programId, dealId))!.fechaLimiteSugerida).toBeNull();
+  });
+});
+
+describe("bloques puros de la ficha", () => {
+  it("convierte respuestas en orden, omite UTM y vacíos y conserva los valores", () => {
+    expect(
+      respuestasLegibles({
+        Nombre: " Ana ",
+        utm_source: "facebook",
+        " UTM_ID ": "42",
+        Vacio: "",
+        Nulo: null,
+        Opciones: ["A", 2, true, null],
+        Puntaje: 7,
+        Extra: { a: 1 },
+      }),
+    ).toEqual([
+      { pregunta: "Nombre", respuesta: " Ana " },
+      { pregunta: "Opciones", respuesta: "A, 2, true" },
+      { pregunta: "Puntaje", respuesta: "7" },
+      { pregunta: "Extra", respuesta: '{"a":1}' },
+    ]);
+    expect(respuestasLegibles(null)).toEqual([]);
+    expect(respuestasLegibles(["no es objeto"])).toEqual([]);
+  });
+
+  it("deriva el nombre con y sin cohorte y usa el correo cuando falta el nombre", () => {
+    expect(nombreDelDeal({ leadNombre: "Ana", leadEmail: "ana@correo.co", programaNombre: "P", cohorteCodigo: "C1" })).toBe("Ana | P | C1");
+    expect(nombreDelDeal({ leadNombre: null, leadEmail: "ana@correo.co", programaNombre: "P", cohorteCodigo: null })).toBe(
+      "ana@correo.co | P | Sin cohorte",
+    );
   });
 });
 

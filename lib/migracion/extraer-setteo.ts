@@ -116,19 +116,19 @@ export function extraerSetteo(matriz: readonly (readonly unknown[])[], op: Opcio
         salida.sinDeal.push({ huella, razon: "cerrado" });
         return;
       case "en proceso":
-        deal("en_contacto", ultimo ?? contacto);
+        deal("contactado", ultimo ?? contacto);
         return;
       case "agendado":
-        deal("en_contacto", ultimo ?? contacto);
+        deal("contactado", ultimo ?? contacto);
         salida.rarezas.push({
           huella,
           tipo: "agendado_por_decidir",
-          detalle: "Setteo dice Agendado: entra en En Contacto y su etapa la decide la llamada (080).",
+          detalle: "Setteo dice Agendado: entra en Contactado y su etapa la decide la llamada (080).",
         });
         return;
       case "pendiente":
         if (conActividad) {
-          deal("pendiente_setteo", deteccion);
+          deal("registrado", deteccion);
           salida.rarezas.push({
             huella,
             tipo: "pendiente_con_notas",
@@ -137,14 +137,14 @@ export function extraerSetteo(matriz: readonly (readonly unknown[])[], op: Opcio
           return;
         }
         if (op.alcance === "total") {
-          deal("pendiente_setteo", deteccion);
+          deal("registrado", deteccion);
           return;
         }
         if (!deteccion) {
           salida.sinDeal.push({ huella, razon: "pendiente_sin_fecha" });
           return;
         }
-        if (diasEntre(diaDe(deteccion), op.hoy) <= op.diasDeCorte) deal("pendiente_setteo", deteccion);
+        if (diasEntre(diaDe(deteccion), op.hoy) <= op.diasDeCorte) deal("registrado", deteccion);
         else salida.sinDeal.push({ huella, razon: "pendiente_viejo_sin_actividad" });
         return;
       default:

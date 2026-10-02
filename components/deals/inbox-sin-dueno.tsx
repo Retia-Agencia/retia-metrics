@@ -19,7 +19,7 @@ import {
 import { Campo, claseInput, DialogoForm, Vacio } from "@/components/deals/ficha/campos";
 
 /**
- * Las dos secciones "sin dueño" del Inbox (ticket 070): Pendiente Setteo y Agendados sin
+ * Las dos secciones "sin dueño" del Inbox (ticket 070): Por settear y Agendados sin
  * dueño. El origen (UTM tal como llegó, y quién lo trajo cuando exista) va a la vista para
  * que el closer decida si reclama (ADR 0044 punto 5).
  *
@@ -240,7 +240,7 @@ function FilaAgendado({
   );
 }
 
-/** La fila de un Pendiente Setteo: reclamar (y reasignar si administra). Sin cita. */
+/** La fila de Por settear: reclamar (y reasignar si administra). Sin cita. */
 function FilaSetteo({
   fila,
   puedeReclamar,
@@ -306,7 +306,7 @@ export function InboxSinDueno({
 
       <Card>
         <CardHeader>
-          <CardTitle>Pendiente Setteo</CardTitle>
+          <CardTitle>Por settear</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {pendienteSetteo.length === 0 ? (

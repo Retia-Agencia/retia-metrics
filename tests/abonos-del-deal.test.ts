@@ -132,9 +132,9 @@ describe("registrarAbono: el dinero mueve el deal", () => {
     expect(await abonosDe(dealId)).toEqual([]);
 
     const r = await registrarAbono(db, comoCloser(), abono(dealId, "300", { areaDeclaradaId: areaId }));
-    expect(r.etapa).toBe("abonado");
+    expect(r.etapa).toBe("ganado_parcial");
     const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
-    expect(deal).toMatchObject({ etapa: "abonado", areaDeclaradaId: areaId });
+    expect(deal).toMatchObject({ etapa: "ganado_parcial", areaDeclaradaId: areaId });
   });
 
   it("el primer abono con saldo lleva a Abonado, por el sistema, con su historial y su rastro", async () => {
@@ -142,13 +142,13 @@ describe("registrarAbono: el dinero mueve el deal", () => {
 
     const r = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
 
-    expect(r).toMatchObject({ etapa: "abonado", movioElDeal: true, saldo: 700 });
-    expect(await etapaDe(dealId)).toBe("abonado");
+    expect(r).toMatchObject({ etapa: "ganado_parcial", movioElDeal: true, saldo: 700 });
+    expect(await etapaDe(dealId)).toBe("ganado_parcial");
     const [fila] = await abonosDe(dealId);
     // El programa sale del deal y el closer de la cuenta, no del input.
     expect(fila).toMatchObject({ programId, moneda: "USD", closerId: "Maru", origen: "app" });
     const h = await historial(dealId);
-    expect(h.map((x) => [x.de, x.a, x.userId])).toEqual([["atendido", "abonado", null]]);
+    expect(h.map((x) => [x.de, x.a, x.userId])).toEqual([["atendido", "ganado_parcial", null]]);
     const rastro = await db.select().from(changeLog).where(and(eq(changeLog.tabla, "abonos"), eq(changeLog.registroId, r.abonoId)));
     expect(rastro.length).toBeGreaterThan(0);
   });
@@ -156,8 +156,8 @@ describe("registrarAbono: el dinero mueve el deal", () => {
   it("el abono que salda el deal lo lleva a Completo, aunque venga directo de Atendido", async () => {
     const dealId = await nuevoDeal("atendido");
     const r = await registrarAbono(db, comoCloser(), abono(dealId, "1000"));
-    expect(r).toMatchObject({ etapa: "completo", saldo: 0 });
-    expect(await etapaDe(dealId)).toBe("completo");
+    expect(r).toMatchObject({ etapa: "ganado_completo", saldo: 0 });
+    expect(await etapaDe(dealId)).toBe("ganado_completo");
   });
 
   it("un segundo abono en Abonado no mueve nada; el que deja saldo cero lo lleva a Completo", async () => {
@@ -165,17 +165,17 @@ describe("registrarAbono: el dinero mueve el deal", () => {
     await registrarAbono(db, comoCloser(), abono(dealId, "400"));
 
     const segundo = await registrarAbono(db, comoCloser(), abono(dealId, "100"));
-    expect(segundo).toMatchObject({ etapa: "abonado", movioElDeal: false, saldo: 500 });
+    expect(segundo).toMatchObject({ etapa: "ganado_parcial", movioElDeal: false, saldo: 500 });
 
     const ultimo = await registrarAbono(db, comoCloser(), abono(dealId, "500"));
-    expect(ultimo).toMatchObject({ etapa: "completo", movioElDeal: true, saldo: 0 });
-    expect((await historial(dealId)).map((x) => x.a)).toEqual(["abonado", "completo"]);
+    expect(ultimo).toMatchObject({ etapa: "ganado_completo", movioElDeal: true, saldo: 0 });
+    expect((await historial(dealId)).map((x) => x.a)).toEqual(["ganado_parcial", "ganado_completo"]);
   });
 
   it("los centavos cuentan: 999.99 deja saldo y el ultimo centavo lo cierra", async () => {
     const dealId = await nuevoDeal("atendido");
-    expect(await registrarAbono(db, comoCloser(), abono(dealId, "999.99"))).toMatchObject({ etapa: "abonado", saldo: 0.01 });
-    expect(await registrarAbono(db, comoCloser(), abono(dealId, "0.01"))).toMatchObject({ etapa: "completo", saldo: 0 });
+    expect(await registrarAbono(db, comoCloser(), abono(dealId, "999.99"))).toMatchObject({ etapa: "ganado_parcial", saldo: 0.01 });
+    expect(await registrarAbono(db, comoCloser(), abono(dealId, "0.01"))).toMatchObject({ etapa: "ganado_completo", saldo: 0 });
   });
 });
 
@@ -192,7 +192,7 @@ describe("registrarAbono: las rejas", () => {
   });
 
   it("un saldo no calculable despues del insert deshace el abono con un error claro", async () => {
-    const dealId = await nuevoDeal("abonado");
+    const dealId = await nuevoDeal("ganado_parcial");
     const antes = await saldosDeDeals(db, [dealId]);
     vi.spyOn(moduloSaldo, "saldosDeDeals")
       .mockResolvedValueOnce(antes)
@@ -200,7 +200,7 @@ describe("registrarAbono: las rejas", () => {
     const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "400")));
     expect(e).toMatchObject({ status: 409, message: "No se puede calcular el saldo del deal después del abono: se deshace el registro." });
     expect(await abonosDe(dealId)).toHaveLength(0);
-    expect(await etapaDe(dealId)).toBe("abonado");
+    expect(await etapaDe(dealId)).toBe("ganado_parcial");
   });
 
   it("el ultimo abono sin comprobante no cierra el deal ni queda escrito", async () => {
@@ -208,7 +208,7 @@ describe("registrarAbono: las rejas", () => {
     await registrarAbono(db, comoCloser(), abono(dealId, "400"));
     const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "600", { comprobanteUrl: undefined })));
     expect(e.message).toContain("comprobante");
-    expect(await etapaDe(dealId)).toBe("abonado");
+    expect(await etapaDe(dealId)).toBe("ganado_parcial");
     const filas = await abonosDe(dealId);
     expect(filas).toHaveLength(1);
     expect(filas[0].anuladoEn).toBeNull();
@@ -224,7 +224,7 @@ describe("registrarAbono: las rejas", () => {
     expect(e.status).toBe(422);
     expect(e.message).toContain("400.00 USD");
     expect(await abonosDe(dealId)).toHaveLength(1);
-    expect(await etapaDe(dealId)).toBe("abonado");
+    expect(await etapaDe(dealId)).toBe("ganado_parcial");
   });
 
   it("sin valor vendido congela el ticket de la cohorte antes de recibir el abono", async () => {
@@ -232,7 +232,7 @@ describe("registrarAbono: las rejas", () => {
     await registrarAbono(db, comoCloser(), abono(dealId, "100"));
     expect(await abonosDe(dealId)).toHaveLength(1);
     expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].valorVendidoUsd).toBe("1000.00");
-    expect(await etapaDe(dealId)).toBe("abonado");
+    expect(await etapaDe(dealId)).toBe("ganado_parcial");
   });
 
   it("solo USD: otra moneda es un 400 y no toca la base", async () => {
@@ -251,10 +251,14 @@ describe("registrarAbono: las rejas", () => {
     expect(await historial(dealId)).toHaveLength(0);
   });
 
-  it.each(["pendiente_setteo", "agendado", "pendiente_reagenda", "proxima_cohorte"] as const)(
-    "desde %s no hay flecha a pagar: se rechaza y el abono se deshace",
-    async (etapa) => {
-      const dealId = await nuevoDeal(etapa);
+  it.each([
+    { nombre: "Registrado", etapa: "registrado" as const, pendiente: null },
+    { nombre: "Agendado", etapa: "agendado" as const, pendiente: null },
+    { nombre: "Agendado + Re-agenda", etapa: "agendado" as const, pendiente: "reagenda" as const },
+  ])(
+    "desde $nombre no hay flecha a pagar: se rechaza y el abono se deshace",
+    async ({ etapa, pendiente }) => {
+      const dealId = await nuevoDeal(etapa, { pendiente });
       const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "300")));
       expect(e.status).toBe(409);
       expect(await abonosDe(dealId)).toHaveLength(0);
@@ -263,7 +267,7 @@ describe("registrarAbono: las rejas", () => {
   );
 
   it("un deal cerrado o anulado no recibe abonos", async () => {
-    for (const etapa of ["completo", "cierre_perdido"] as const) {
+    for (const etapa of ["ganado_completo", "cierre_perdido"] as const) {
       const id = await nuevoDeal(etapa);
       expect((await capturar(registrarAbono(db, comoCloser(), abono(id, "10")))).status).toBe(409);
     }
@@ -357,15 +361,15 @@ describe("anularAbono: la etapa se recalcula", () => {
     const dealId = await nuevoDeal("compromiso_verbal");
     await registrarAbono(db, comoCloser(), abono(dealId, "400"));
     const cierre = await registrarAbono(db, comoCloser(), abono(dealId, "600"));
-    expect(await etapaDe(dealId)).toBe("completo");
+    expect(await etapaDe(dealId)).toBe("ganado_completo");
 
     const r = await anularAbono(db, comoCloser(), { abonoId: cierre.abonoId, motivo: "Monto mal tecleado" });
 
-    expect(r).toMatchObject({ etapa: "abonado", movioElDeal: true });
+    expect(r).toMatchObject({ etapa: "ganado_parcial", movioElDeal: true });
     expect((await historial(dealId)).map((x) => [x.de, x.a])).toEqual([
-      ["compromiso_verbal", "abonado"],
-      ["abonado", "completo"],
-      ["completo", "abonado"],
+      ["compromiso_verbal", "ganado_parcial"],
+      ["ganado_parcial", "ganado_completo"],
+      ["ganado_completo", "ganado_parcial"],
     ]);
     const saldo = (await saldosDeDeals(db, [dealId])).get(dealId)!;
     expect(saldo).toMatchObject({ abonado: 400, saldo: 600 });
@@ -375,14 +379,14 @@ describe("anularAbono: la etapa se recalcula", () => {
   });
 
   it("si el deal estaba en Completo por UN solo abono, vuelve a la etapa de donde venía", async () => {
-    const dealId = await nuevoDeal("en_contacto");
+    const dealId = await nuevoDeal("contactado");
     const unico = await registrarAbono(db, comoCloser(), abono(dealId, "1000"));
-    expect(await etapaDe(dealId)).toBe("completo");
+    expect(await etapaDe(dealId)).toBe("ganado_completo");
 
     const r = await anularAbono(db, comoCloser(), { abonoId: unico.abonoId, motivo: "Era otro cliente" });
 
-    expect(r).toMatchObject({ etapa: "en_contacto", movioElDeal: true });
-    expect(await etapaDe(dealId)).toBe("en_contacto");
+    expect(r).toMatchObject({ etapa: "contactado", movioElDeal: true });
+    expect(await etapaDe(dealId)).toBe("contactado");
   });
 
   it("anular el único abono de un Abonado lo devuelve a Atendido, no a otra etapa", async () => {
@@ -391,11 +395,11 @@ describe("anularAbono: la etapa se recalcula", () => {
     const r = await anularAbono(db, comoCloser(), { abonoId: primero.abonoId, motivo: "Duplicado" });
     expect(r.etapa).toBe("atendido");
     // Y puede volver a pagar: el deal quedó en una etapa desde donde hay flecha a pagar.
-    expect((await registrarAbono(db, comoCloser(), abono(dealId, "300"))).etapa).toBe("abonado");
+    expect((await registrarAbono(db, comoCloser(), abono(dealId, "300"))).etapa).toBe("ganado_parcial");
   });
 
   it("sin historial de pago (deal migrado) vuelve a Compromiso Verbal", async () => {
-    const dealId = await nuevoDeal("abonado");
+    const dealId = await nuevoDeal("ganado_parcial");
     const [a] = await db
       .insert(abonos)
       .values({ dealId, programId, fecha: "2026-09-01", monto: "300", closerId: "Maru" })
@@ -409,7 +413,7 @@ describe("anularAbono: la etapa se recalcula", () => {
     const a1 = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
     await registrarAbono(db, comoCloser(), abono(dealId, "200"));
     const r = await anularAbono(db, comoCloser(), { abonoId: a1.abonoId, motivo: "Error de tecleo" });
-    expect(r).toMatchObject({ etapa: "abonado", movioElDeal: false });
+    expect(r).toMatchObject({ etapa: "ganado_parcial", movioElDeal: false });
     expect((await saldosDeDeals(db, [dealId])).get(dealId)).toMatchObject({ abonado: 200, saldo: 800 });
   });
 
@@ -437,10 +441,10 @@ describe("anularAbono: la etapa se recalcula", () => {
   it("anular el abono de un Completo cuando el lead ya tiene otro deal abierto se bloquea con un 409 claro (D3)", async () => {
     const dealId = await nuevoDeal("atendido");
     const cierre = await registrarAbono(db, comoCloser(), abono(dealId, "1000"));
-    expect(await etapaDe(dealId)).toBe("completo");
+    expect(await etapaDe(dealId)).toBe("ganado_completo");
     // El lead vuelve a aplicar y abre un segundo deal: el cupo estaba libre porque el primero es Completo.
     const [d] = await db.select({ leadId: deals.leadId }).from(deals).where(eq(deals.id, dealId));
-    await db.insert(deals).values({ leadId: d.leadId, programId, cohortId, etapa: "en_contacto", ownerUserId: closer });
+    await db.insert(deals).values({ leadId: d.leadId, programId, cohortId, etapa: "contactado", ownerUserId: closer });
 
     const e = await capturar(anularAbono(db, comoCloser(), { abonoId: cierre.abonoId, motivo: "Error" }));
 
@@ -449,7 +453,7 @@ describe("anularAbono: la etapa se recalcula", () => {
     // No se escribio nada: el abono sigue vigente y el deal sigue Completo.
     const [fila] = await db.select().from(abonos).where(eq(abonos.id, cierre.abonoId));
     expect(fila.anuladoEn).toBeNull();
-    expect(await etapaDe(dealId)).toBe("completo");
+    expect(await etapaDe(dealId)).toBe("ganado_completo");
   });
 
   it("y si el otro deal ya se cerró o se anuló, la anulación sí procede", async () => {
@@ -457,7 +461,7 @@ describe("anularAbono: la etapa se recalcula", () => {
     const cierre = await registrarAbono(db, comoCloser(), abono(dealId, "1000"));
     const [d] = await db.select({ leadId: deals.leadId }).from(deals).where(eq(deals.id, dealId));
     await db.insert(deals).values({ leadId: d.leadId, programId, cohortId, etapa: "cierre_perdido", ownerUserId: closer });
-    await db.insert(deals).values({ leadId: d.leadId, programId, cohortId, etapa: "en_contacto", ownerUserId: closer, anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
+    await db.insert(deals).values({ leadId: d.leadId, programId, cohortId, etapa: "contactado", ownerUserId: closer, anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
     const r = await anularAbono(db, comoCloser(), { abonoId: cierre.abonoId, motivo: "Error" });
     expect(r.etapa).toBe("atendido");
   });
@@ -497,8 +501,10 @@ describe("registrarAbono: la cohorte se asigna sola la primera vez que el deal r
     await db.update(cohorts).set({ estado: "cerrado" }).where(eq(cohorts.id, cohortId));
     const dealId = await nuevoDeal("atendido", { cohortId: null });
     const r = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
-    expect(r).toMatchObject({ etapa: "abonado", cohorteAsignada: null });
+    expect(r).toMatchObject({ etapa: "ganado_parcial", cohorteAsignada: null });
     const [d] = await db.select({ cohortId: deals.cohortId }).from(deals).where(eq(deals.id, dealId));
     expect(d.cohortId).toBeNull();
   });
 });
+
+import "./142-nuevas-abonos-del-deal";

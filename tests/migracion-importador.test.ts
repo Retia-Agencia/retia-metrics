@@ -33,7 +33,7 @@ const P = "prog-a";
 const setteo = (correo: string, extra: Partial<DealTemplate> = {}): DealTemplate => ({
   huella: `sheets:${P}:setteo:${correo}`,
   correo,
-  etapa: "en_contacto",
+  etapa: "contactado",
   closer: "Maru",
   fechaEtapa: "2026-08-05T05:00:00.000Z",
   cohorte: null,
@@ -46,7 +46,7 @@ const setteo = (correo: string, extra: Partial<DealTemplate> = {}): DealTemplate
 const estudiante = (correo: string, extra: Partial<DealTemplate> = {}): DealTemplate => ({
   ...setteo(correo),
   huella: `sheets:${P}:estudiantes-julio:${correo}`,
-  etapa: "completo",
+  etapa: "ganado_completo",
   closer: "Jero",
   cohorte: "C1",
   precio: "1500.00",
@@ -119,7 +119,7 @@ describe("consolidar", () => {
     const c = consolidar(template());
     const beto = c.deals.filter((d) => d.correo === "beto@c.co");
     expect(beto).toHaveLength(1);
-    expect(beto[0].etapa).toBe("completo");
+    expect(beto[0].etapa).toBe("ganado_completo");
     expect(beto[0].notas.map((n) => n.texto)).toEqual(["Registro 1: le escribí"]);
     expect(c.sinDeal.map((s) => s.razon)).toContain("es_estudiante");
     expect(c.dealDeCorreo.get("beto@c.co")).toBe(`sheets:${P}:estudiantes-julio:beto@c.co`);
@@ -159,7 +159,7 @@ describe("consolidar: la ultima llamada decide la etapa del Setteo (decisiones d
     const nueva = llamada(9, "ana@c.co", "no_show", "2026-08-20T15:00:00.000Z");
     for (const orden of [[vieja, nueva], [nueva, vieja]]) {
       const [d] = con([setteo("ana@c.co")], orden).deals;
-      expect(d.etapa).toBe("pendiente_reagenda");
+      expect(d).toMatchObject({ etapa: "agendado", pendiente: "reagenda" });
       expect(d.fechaEtapa).toBe("2026-08-20T15:00:00.000Z");
     }
   });
@@ -178,7 +178,7 @@ describe("consolidar: la ultima llamada decide la etapa del Setteo (decisiones d
       [setteo("ana@c.co"), setteo("caro@c.co")],
       [llamada(2, "ana@c.co", "no_show", null, "RECHAZO DIRECTO"), llamada(3, "caro@c.co", "cerrada", null)],
     );
-    expect(c.deals.map((d) => d.etapa)).toEqual(["pendiente_reagenda", "atendido"]);
+    expect(c.deals.map((d) => [d.etapa, d.pendiente ?? null])).toEqual([["agendado", "reagenda"], ["atendido", null]]);
     expect(c.rarezas.map((r) => r.tipo)).toEqual(["perdida_por_decidir", "cerrada_sin_estudiante"]);
   });
 
@@ -187,7 +187,7 @@ describe("consolidar: la ultima llamada decide la etapa del Setteo (decisiones d
       [estudiante("beto@c.co"), setteo("ana@c.co")],
       [llamada(2, "beto@c.co", "no_show", null), llamada(3, "ana@c.co", "agendada", "2026-08-01T15:00:00.000Z")],
     );
-    expect(c.deals.map((d) => d.etapa)).toEqual(["completo", "en_contacto"]);
+    expect(c.deals.map((d) => d.etapa)).toEqual(["ganado_completo", "contactado"]);
   });
 
   it("un Agendado del Setteo resuelto por su llamada deja de estar por decidir; sin llamada, sigue marcado", () => {
@@ -220,7 +220,7 @@ describe("importarGestion (ADR 0059)", () => {
     const todos = await db.select().from(deals);
     const deAna = todos.find((d) => d.leadId === ana)!;
     expect(deAna.ownerUserId).toBe(maru);
-    const deBeto = todos.find((d) => d.etapa === "completo")!;
+    const deBeto = todos.find((d) => d.etapa === "ganado_completo")!;
     expect(deBeto.ownerUserId).toBeNull(); // Jero no tiene cuenta
 
     // El abono sin fecha toma el cierre de ventas de su cohorte, y la plataforma cruza sin espacios.
@@ -257,7 +257,7 @@ describe("importarGestion (ADR 0059)", () => {
   });
 
   it("gana el deal vivo: la fila queda como rareza y no se le cuelga nada", async () => {
-    const vivo = await abrirDeal(db, { leadId: ana, programId: programa, etapa: "pendiente_setteo", actor: { tipo: "sistema" } });
+    const vivo = await abrirDeal(db, { leadId: ana, programId: programa, etapa: "registrado", actor: { tipo: "sistema" } });
     const t = extraccionVacia();
     t.deals.push(setteo("ana@c.co"));
     t.llamadas.push({ huella: `sheets:${P}:registro:9`, correo: "ana@c.co", fecha: null, closer: null, resultado: "show", categoria: null, subcategoria: null, link: null, notas: null });
@@ -315,7 +315,7 @@ describe("importarGestion (ADR 0059)", () => {
 
     const todos = await db.select().from(deals);
     expect(todos.find((d) => d.leadId === ana)?.submissionOrigenId).toBe(nuevo.id);
-    expect(todos.find((d) => d.etapa === "completo")?.submissionOrigenId).toBeNull(); // beto no tiene envíos
+    expect(todos.find((d) => d.etapa === "ganado_completo")?.submissionOrigenId).toBeNull(); // beto no tiene envíos
   });
 
   it("lo que no cruza es rareza: plataforma fuera de catálogo", async () => {

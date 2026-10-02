@@ -10,18 +10,31 @@ import type { FichaDeActividad } from "@/lib/queries/ficha-deal";
 import { registrarActividadAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Campo, claseInput, claseTextarea, Vacio } from "./campos";
 import { useAccion } from "./uso-accion";
+import { ID_DE_SECCION, useAccionPedida } from "./accion-pedida";
 
 /**
  * Las actividades del deal (ticket 074, ADR 0037): contactos y notas, con canal, autor y
  * fecha. Reemplazan las cinco columnas `Registro 1-5` de la hoja.
  *
- * Registrar un contacto NO mueve la etapa. El canal es texto libre (no catalogo): el
- * `datalist` sugiere WhatsApp, Llamada y Correo, y deja escribir otro.
+ * Un contacto o un intento sobre un deal en Potencial o Registrado lo pasan a En gestión, y
+ * un contacto lo pasa además a Contactado (ADR 0071 puntos 1 y 2); lo mueve
+ * `registrarActividad`, no esta pantalla. Una nota nunca mueve. El canal es texto libre (no
+ * catalogo): el `datalist` sugiere WhatsApp, Llamada y Correo, y deja escribir otro.
  */
-const TIPOS = [
+type TipoDeActividad = "contacto" | "intento" | "nota";
+
+const TIPOS: { value: TipoDeActividad; label: string }[] = [
   { value: "contacto", label: "Contacto" },
+  { value: "intento", label: "Intento sin respuesta" },
   { value: "nota", label: "Nota" },
 ];
+
+const ETIQUETA_DE_TIPO: Record<TipoDeActividad, string> = { contacto: "Contacto", intento: "Intento", nota: "Nota" };
+const EXITO: Record<TipoDeActividad, string> = {
+  contacto: "Contacto registrado.",
+  intento: "Intento registrado.",
+  nota: "Nota guardada.",
+};
 
 export function FichaActividades({
   actividades,
@@ -34,12 +47,14 @@ export function FichaActividades({
   puedeRegistrar: boolean;
 }) {
   const { pendiente, correr } = useAccion();
-  const [tipo, setTipo] = useState<"contacto" | "nota">("contacto");
+  const [tipo, setTipo] = useState<TipoDeActividad>("contacto");
   const [canal, setCanal] = useState("");
   const [nota, setNota] = useState("");
+  // La pregunta de la etapa ("¿Se logró el contacto?") llega aquí con el tipo ya elegido.
+  useAccionPedida(["contacto", "intento"], (accion) => setTipo(accion === "intento" ? "intento" : "contacto"));
 
   return (
-    <Card>
+    <Card id={ID_DE_SECCION.actividades} className="scroll-mt-24">
       <CardHeader>
         <CardTitle>Actividades</CardTitle>
       </CardHeader>
@@ -51,7 +66,7 @@ export function FichaActividades({
             onSubmit={(e) => {
               e.preventDefault();
               correr(() => registrarActividadAccion({ dealId, tipo, canal, nota }), {
-                exito: tipo === "contacto" ? "Contacto registrado." : "Nota guardada.",
+                exito: EXITO[tipo],
                 alExito: () => {
                   setNota("");
                   setCanal("");
@@ -60,7 +75,7 @@ export function FichaActividades({
             }}
           >
             <Campo etiqueta="Tipo">
-              <Select value={tipo} items={TIPOS} onValueChange={(v: string | null) => v && setTipo(v as "contacto" | "nota")}>
+              <Select value={tipo} items={TIPOS} onValueChange={(v: string | null) => v && setTipo(v as TipoDeActividad)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -118,7 +133,7 @@ export function FichaActividades({
           {actividades.map((a) => (
             <li key={a.id} className="space-y-1 px-4 py-3 text-sm">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={a.tipo === "contacto" ? "info" : "neutro"}>{a.tipo === "contacto" ? "Contacto" : "Nota"}</Badge>
+                <Badge variant={a.tipo === "contacto" ? "info" : "neutro"}>{ETIQUETA_DE_TIPO[a.tipo]}</Badge>
                 {a.canal ? <span className="text-xs text-muted-foreground">{a.canal}</span> : null}
                 <span className="ml-auto text-xs text-muted-foreground">
                   {a.autorNombre ?? "Sistema"} · {fechaHoraEnBogota(a.fecha)}

@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { ID_DE_SECCION, useAccionPedida } from "./accion-pedida";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fecha, fechaHoraEnBogota, hoyEnBogota, monto, pct, saldoLegible, usd } from "@/lib/format";
+import type { EtapaDeal } from "@/lib/deals/etapas";
 import type { FichaDeAbono, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import {
   anularAbonoAccion,
@@ -17,6 +20,7 @@ import {
 } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Campo, claseInput, claseTextarea, DialogoForm, Vacio } from "./campos";
 import { useAccion } from "./uso-accion";
+import { cn } from "@/lib/utils";
 
 /**
  * El dinero y el pago del deal (ticket 074): precio, abonado y saldo, el acuerdo de pago,
@@ -25,7 +29,7 @@ import { useAccion } from "./uso-accion";
  * - **Abonado y saldo salen de `saldosDeDeals`** (ADR 0024); esta pantalla no suma abonos.
  *   Los abonos anulados se muestran tachados y no entran en ninguna cifra.
  * - El acuerdo de pago es TEXTO (ADR 0053): no hay cuotas pactadas que pintar.
- * - Registrar un abono mueve la etapa SOLO (Abonado o Completo, por el saldo): el closer
+ * - Registrar un abono mueve la etapa SOLO (Ganado Pago Parcial o Ganado Pagado Completo, por el saldo): el closer
  *   nunca mueve el deal a mano por dinero. El primer abono congela el ticket de la cohorte.
  */
 
@@ -40,9 +44,12 @@ export function FichaPago({
   opciones,
   puedeTrabajar,
   puedeRegistrar,
+  nombreDeEtapa,
 }: {
   ficha: FichaDeDeal;
   opciones: OpcionesDeFicha;
+  /** Del servidor: `lib/deals/etapas.ts` no entra al bundle del cliente. */
+  nombreDeEtapa: Record<EtapaDeal, string>;
   /** Su dueño o quien administra, sobre un deal que cuenta. */
   puedeTrabajar: boolean;
   /** Ademas trabaja leads (un gerente administra pero no registra plata, ADR 0003). */
@@ -51,19 +58,21 @@ export function FichaPago({
   const { pendiente, correr } = useAccion();
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
   const cerrar = () => setDialogo(null);
+  // "Pagó" en la pregunta de la etapa abre el abono: a ganado solo se entra con plata (ADR 0037).
+  useAccionPedida(["abono"], () => setDialogo({ tipo: "abono" }));
 
   const s = ficha.saldo;
   const moneda = s.moneda ?? "USD";
   const legible = saldoLegible(s.saldo, moneda);
   const anulado = ficha.anulado != null;
-  const cerrado = ficha.etapa === "completo" || ficha.etapa === "cierre_perdido";
-  const esEstudiante = ficha.etapa === "abonado" || ficha.etapa === "completo";
+  const cerrado = ficha.etapa === "ganado_completo" || ficha.etapa === "cierre_perdido";
+  const esEstudiante = ficha.etapa === "ganado_parcial" || ficha.etapa === "ganado_completo";
   const abonosActivos = puedeRegistrar && !anulado && !cerrado;
 
   return (
-    <Card>
+    <Card id={ID_DE_SECCION.pago} className="scroll-mt-24">
       <CardHeader>
-        <CardTitle>Pago</CardTitle>
+        <CardTitle>Facturación</CardTitle>
         {abonosActivos || (puedeTrabajar && !anulado) ? (
           <CardAction className="flex gap-2">
             {puedeTrabajar && !anulado ? (
@@ -112,6 +121,24 @@ export function FichaPago({
         {s.sinSaldoPorque === "moneda_distinta" ? (
           <p className="text-xs text-tono-alerta">Hay abonos en otra moneda que el valor vendido: el saldo no se calcula ni se convierte.</p>
         ) : null}
+
+        <section className="space-y-2">
+          <h3 className="text-sm font-medium">Link de pago</h3>
+          {ficha.enlacesDePago.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay links de pago vigentes para este programa.</p>
+          ) : (
+            <ul className="divide-y">
+              {ficha.enlacesDePago.map((enlace) => (
+                <li key={enlace.id} className="flex min-w-0 flex-wrap items-center gap-2 py-2">
+                  <span className="min-w-0 flex-1 break-words text-sm">
+                    {enlace.plataformaNombre ?? "Sin plataforma"} · <span className="cifra">{monto(Number(enlace.monto), enlace.moneda)}</span>
+                  </span>
+                  <AccionesEnlacePago url={enlace.url} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         {/* El acuerdo de pago: texto y fecha limite (ADR 0053), no cuotas. */}
         <div className="space-y-1 rounded-lg bg-muted/50 p-3 text-sm">
@@ -219,7 +246,7 @@ export function FichaPago({
         </ul>
       )}
 
-      {dialogo?.tipo === "abono" ? <DialogoAbono ficha={ficha} opciones={opciones} onCerrar={cerrar} /> : null}
+      {dialogo?.tipo === "abono" ? <DialogoAbono ficha={ficha} opciones={opciones} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "anular" ? <DialogoAnularAbono abono={dialogo.abono} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "acuerdo" ? <DialogoAcuerdo ficha={ficha} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "cohorte" ? <DialogoCohorte ficha={ficha} opciones={opciones} onCerrar={cerrar} /> : null}
@@ -227,7 +254,45 @@ export function FichaPago({
   );
 }
 
-function DialogoAbono({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opciones: OpcionesDeFicha; onCerrar: () => void }) {
+function AccionesEnlacePago({ url }: { url: string }) {
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copiado");
+    } catch {
+      toast.error("No se pudo copiar el link");
+    }
+  }
+
+  return (
+    <span className="flex shrink-0 items-center gap-1">
+      <Button size="xs" variant="ghost" onClick={copiar} aria-label="Copiar link de pago">
+        Copiar
+      </Button>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn(buttonVariants({ variant: "ghost", size: "xs" }))}
+        aria-label="Abrir link de pago"
+      >
+        Abrir
+      </a>
+    </span>
+  );
+}
+
+function DialogoAbono({
+  ficha,
+  opciones,
+  nombreDeEtapa,
+  onCerrar,
+}: {
+  ficha: FichaDeDeal;
+  opciones: OpcionesDeFicha;
+  nombreDeEtapa: Record<EtapaDeal, string>;
+  onCerrar: () => void;
+}) {
   const { pendiente, correr } = useAccion();
   const [dia, setDia] = useState(hoyEnBogota());
   const [valor, setValor] = useState("");
@@ -259,7 +324,7 @@ function DialogoAbono({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opcio
                   !ficha.cohorte && r.cohorteAsignada == null
                     ? " El programa no tiene cohorte activa: el deal queda sin cohorte."
                     : "";
-                return `Abono registrado. ${r.movioElDeal ? `El deal pasó a ${r.etapa === "completo" ? "Completo" : "Abonado"}.` : ""}${sinCohorte}`.trim();
+                return `Abono registrado. ${r.movioElDeal ? `El deal pasó a ${nombreDeEtapa[r.etapa as EtapaDeal]}.` : ""}${sinCohorte}`.trim();
               },
               alExito: onCerrar,
             },
@@ -306,7 +371,7 @@ function DialogoAbono({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opcio
           </SelectContent>
         </Select>
       </Campo>
-      <Campo etiqueta="Comprobante (link)" ayuda="Sin comprobante el deal no pasa a Abonado.">
+      <Campo etiqueta="Comprobante (link)" ayuda="Sin comprobante el deal no pasa a Ganado.">
         <input type="url" className={claseInput} value={comprobante} onChange={(e) => setComprobante(e.target.value)} placeholder="https://drive.google.com/…" />
       </Campo>
     </DialogoForm>

@@ -122,7 +122,7 @@ async function capturar(p: Promise<unknown>): Promise<ErrorDeApp> {
 
 describe("agregarLlamada: la llamada nace del deal", () => {
   it("hereda deal, programa, cohorte y closer, con resultado agendada y origen crm", async () => {
-    const dealId = await nuevoDeal("en_contacto");
+    const dealId = await nuevoDeal("contactado");
     const fecha = enUnaHora();
 
     const { callId, movioAAgendado } = await agregarLlamada(db, comoCloser(), {
@@ -148,7 +148,7 @@ describe("agregarLlamada: la llamada nace del deal", () => {
   });
 
   it("deja rastro en change_log de cada campo escrito", async () => {
-    const dealId = await nuevoDeal("en_contacto");
+    const dealId = await nuevoDeal("contactado");
     const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: enUnaHora() });
 
     const filas = await bitacoraDeCall(callId);
@@ -162,7 +162,7 @@ describe("agregarLlamada: la llamada nace del deal", () => {
   });
 
   it("el developer puede registrar (trabajaLeads incluye developer)", async () => {
-    const dealId = await nuevoDeal("en_contacto", { ownerUserId: developer });
+    const dealId = await nuevoDeal("contactado", { ownerUserId: developer });
     const { callId } = await agregarLlamada(db, { userId: developer, rol: "developer" }, {
       dealId,
       fechaAgenda: enUnaHora(),
@@ -174,17 +174,17 @@ describe("agregarLlamada: la llamada nace del deal", () => {
 });
 
 describe("agregarLlamada: el efecto sobre la etapa (decisión 24-sep)", () => {
-  const AVANZAN: EtapaDeal[] = [
-    "pendiente_setteo",
-    "en_contacto",
-    "pendiente_reagenda",
-    "proxima_cohorte",
-    "seguimiento",
+  const AVANZAN: { etapa: EtapaDeal; pendiente?: "reagenda" | "seguimiento" | "proxima_cohorte" }[] = [
+    { etapa: "registrado" },
+    { etapa: "contactado" },
+    { etapa: "agendado", pendiente: "reagenda" },
+    { etapa: "calificado", pendiente: "proxima_cohorte" },
+    { etapa: "atendido", pendiente: "seguimiento" },
   ];
 
-  for (const etapa of AVANZAN) {
+  for (const { etapa, pendiente } of AVANZAN) {
     it(`desde ${etapa} pasa a Agendado y deja fila de historial`, async () => {
-      const dealId = await nuevoDeal(etapa);
+      const dealId = await nuevoDeal(etapa, { pendiente });
       const { movioAAgendado } = await agregarLlamada(db, comoCloser(), {
         dealId,
         fechaAgenda: enUnaHora(),
@@ -196,7 +196,7 @@ describe("agregarLlamada: el efecto sobre la etapa (decisión 24-sep)", () => {
     });
   }
 
-  const NO_CAMBIAN: EtapaDeal[] = ["atendido", "compromiso_verbal", "abonado"];
+  const NO_CAMBIAN: EtapaDeal[] = ["atendido", "compromiso_verbal", "ganado_parcial"];
 
   for (const etapa of NO_CAMBIAN) {
     it(`desde ${etapa} la etapa no cambia pero la llamada queda`, async () => {
@@ -238,7 +238,7 @@ describe("agregarLlamada: rechazos", () => {
   });
 
   it("un deal anulado se rechaza", async () => {
-    const dealId = await nuevoDeal("en_contacto");
+    const dealId = await nuevoDeal("contactado");
     await db
       .update(deals)
       .set({ anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error de dedo" })
@@ -249,7 +249,7 @@ describe("agregarLlamada: rechazos", () => {
   });
 
   it("un deal cerrado (completo / cierre_perdido) se rechaza", async () => {
-    for (const etapa of ["completo", "cierre_perdido"] as EtapaDeal[]) {
+    for (const etapa of ["ganado_completo", "cierre_perdido"] as EtapaDeal[]) {
       const dealId = await nuevoDeal(etapa);
       const err = await capturar(agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: enUnaHora() }));
       expect(err.status).toBe(409);
@@ -258,7 +258,7 @@ describe("agregarLlamada: rechazos", () => {
   });
 
   it("un no-dueño se rechaza con 403 y no escribe nada", async () => {
-    const dealId = await nuevoDeal("en_contacto", { ownerUserId: closer });
+    const dealId = await nuevoDeal("contactado", { ownerUserId: closer });
     const err = await capturar(
       agregarLlamada(db, { userId: otroCloser, rol: "closer" }, { dealId, fechaAgenda: enUnaHora() }),
     );
@@ -267,14 +267,14 @@ describe("agregarLlamada: rechazos", () => {
   });
 
   it("un deal sin dueño se rechaza (reclamar es el ticket 070)", async () => {
-    const dealId = await nuevoDeal("en_contacto", { ownerUserId: null });
+    const dealId = await nuevoDeal("contactado", { ownerUserId: null });
     const err = await capturar(agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: enUnaHora() }));
     expect(err.status).toBe(409);
     expect(await llamadasDe(dealId)).toHaveLength(0);
   });
 
   it("un gerente no registra llamadas (administra pero no trabaja leads)", async () => {
-    const dealId = await nuevoDeal("en_contacto");
+    const dealId = await nuevoDeal("contactado");
     const err = await capturar(
       agregarLlamada(db, { userId: gerente, rol: "gerente" }, { dealId, fechaAgenda: enUnaHora() }),
     );
@@ -283,7 +283,7 @@ describe("agregarLlamada: rechazos", () => {
   });
 
   it("sin fecha de agenda es entrada inválida (400)", async () => {
-    const dealId = await nuevoDeal("en_contacto");
+    const dealId = await nuevoDeal("contactado");
     const err = await capturar(
       // @ts-expect-error probamos el borde: falta la fecha
       agregarLlamada(db, comoCloser(), { dealId }),
@@ -372,3 +372,5 @@ describe("completarAgendada: el dueño completa la agendada del sistema", () => 
     expect(err.status).toBe(404);
   });
 });
+
+import "./142-nuevas-llamadas-del-deal";

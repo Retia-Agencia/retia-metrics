@@ -177,8 +177,8 @@ describe("pegarGrain: pegar el link es decir que la llamada sucedió", () => {
     expect(await historial(dealId)).toMatchObject([{ de: "agendado", a: "atendido", userId: null }]);
   });
 
-  it("desde Pendiente Re-agenda también mueve a Atendido (T7)", async () => {
-    const dealId = await nuevoDeal("pendiente_reagenda");
+  it("desde Agendado con Re-agenda pendiente también mueve a Atendido", async () => {
+    const dealId = await nuevoDeal("agendado", { pendiente: "reagenda" });
     const call = await agendadaDe(dealId);
 
     const { movioAAtendido, etapa } = await pegarGrain(db, comoCloser(), {
@@ -188,7 +188,7 @@ describe("pegarGrain: pegar el link es decir que la llamada sucedió", () => {
 
     expect(movioAAtendido).toBe(true);
     expect(etapa).toBe("atendido");
-    expect(await historial(dealId)).toMatchObject([{ de: "pendiente_reagenda", a: "atendido" }]);
+    expect(await historial(dealId)).toMatchObject([{ de: "agendado", a: "atendido", pendienteDe: "reagenda", pendienteA: null }]);
   });
 
   it("no pisa la fecha de llamada si ya estaba", async () => {
@@ -295,7 +295,7 @@ describe("pegarGrain: rechazos", () => {
   });
 
   it("un deal cerrado se rechaza", async () => {
-    for (const etapa of ["completo", "cierre_perdido"] as EtapaDeal[]) {
+    for (const etapa of ["ganado_completo", "cierre_perdido"] as EtapaDeal[]) {
       const dealId = await nuevoDeal(etapa);
       const call = await agendadaDe(dealId);
       const err = await capturar(pegarGrain(db, comoCloser(), { callId: call.id, linkGrain: "https://grain.com/x" }));
@@ -331,11 +331,11 @@ describe("marcarFallida: no_show y cancelada mandan a Pendiente Re-agenda", () =
 
       const { etapa } = await marcarFallida(db, comoCloser(), { callId: call.id, resultado });
 
-      expect(etapa).toBe("pendiente_reagenda");
-      expect(await etapaDe(dealId)).toBe("pendiente_reagenda");
+      expect(etapa).toBe("agendado");
+      expect(await etapaDe(dealId)).toBe("agendado");
       expect(await callPorId(call.id).then((c) => c.resultado)).toBe(resultado);
       expect(await historial(dealId)).toMatchObject([
-        { de: "agendado", a: "pendiente_reagenda", userId: null },
+        { de: "agendado", a: "agendado", pendienteDe: null, pendienteA: "reagenda", userId: null },
       ]);
     });
   }
@@ -378,23 +378,34 @@ describe("marcarFallida: no_show y cancelada mandan a Pendiente Re-agenda", () =
     expect(await callPorId(c2.id).then((c) => c.resultado)).toBe("cancelada");
   });
 
-  it("desde Atendido mueve a Re-agenda (T29, closer con motivo) con historial y motivo", async () => {
-    const dealId = await nuevoDeal("atendido");
-    const call = await agendadaDe(dealId, { resultado: "show", fechaLlamada: enUnaHora() });
+  it("desde Agendado una llamada fallida deja Re-agenda pendiente", async () => {
+    const dealId = await nuevoDeal("agendado");
+    const call = await agendadaDe(dealId);
 
     const { etapa } = await marcarFallida(db, comoCloser(), {
       callId: call.id,
       resultado: "no_show",
-      motivoId: motivoReagenda,
     });
 
-    expect(etapa).toBe("pendiente_reagenda");
+    expect(etapa).toBe("agendado");
     expect(await historial(dealId)).toMatchObject([
-      { de: "atendido", a: "pendiente_reagenda", userId: closer, motivoId: motivoReagenda },
+      { de: "agendado", a: "agendado", pendienteDe: null, pendienteA: "reagenda", userId: null },
     ]);
   });
 
-  it("desde Atendido sin motivo se rechaza (T29 exige motivo) y no mueve", async () => {
+  it("desde Atendido con motivo se queda en Atendido con Re-agenda, y lo firma el closer (PR2)", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const call = await agendadaDe(dealId, { resultado: "show", fechaLlamada: enUnaHora() });
+
+    const { etapa } = await marcarFallida(db, comoCloser(), { callId: call.id, resultado: "cancelada", motivoId: motivoReagenda });
+
+    expect(etapa).toBe("atendido");
+    expect(await historial(dealId)).toMatchObject([
+      { de: "atendido", a: "atendido", pendienteDe: null, pendienteA: "reagenda", userId: closer, motivoId: motivoReagenda },
+    ]);
+  });
+
+  it("desde Atendido sin motivo se rechaza (PR2 exige motivo) y no mueve", async () => {
     const dealId = await nuevoDeal("atendido");
     const call = await agendadaDe(dealId, { resultado: "show", fechaLlamada: enUnaHora() });
 
@@ -423,7 +434,7 @@ describe("marcarFallida: no_show y cancelada mandan a Pendiente Re-agenda", () =
       { userId: developer, rol: "developer" },
       { callId: call.id, resultado: "cancelada" },
     );
-    expect(etapa).toBe("pendiente_reagenda");
+    expect(etapa).toBe("agendado");
   });
 });
 
@@ -475,8 +486,8 @@ describe("marcarFallida: rechazos", () => {
 // ─────────────────────── 059 · una Call nueva sobre un deal en Re-agenda lo devuelve
 
 describe("una Call nueva con fecha sobre un deal en Re-agenda lo devuelve a Agendado", () => {
-  it("agregarLlamada desde pendiente_reagenda mueve a Agendado (T6) con historial", async () => {
-    const dealId = await nuevoDeal("pendiente_reagenda");
+  it("agregarLlamada desde Agendado con Re-agenda pendiente limpia el pendiente", async () => {
+    const dealId = await nuevoDeal("agendado", { pendiente: "reagenda" });
 
     const { movioAAgendado } = await agregarLlamada(db, comoCloser(), {
       dealId,
@@ -486,7 +497,7 @@ describe("una Call nueva con fecha sobre un deal en Re-agenda lo devuelve a Agen
     expect(movioAAgendado).toBe(true);
     expect(await etapaDe(dealId)).toBe("agendado");
     expect(await historial(dealId)).toMatchObject([
-      { de: "pendiente_reagenda", a: "agendado", userId: closer },
+      { de: "agendado", a: "agendado", pendienteDe: "reagenda", pendienteA: null, userId: closer },
     ]);
   });
 });

@@ -84,6 +84,11 @@ vi.mock("@/lib/queries/recursos", () => ({
 // los tests se mockea para poder mirar CON QUE lo llama cada rol.
 const armarVistaDelDashboard = vi.fn();
 vi.mock("@/lib/queries/vista-dashboard", () => ({ armarVistaDelDashboard }));
+const armarVistaDeTodos = vi.fn();
+vi.mock("@/lib/queries/vista-todos", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/queries/vista-todos")>(),
+  armarVistaDeTodos,
+}));
 const detallesDelDashboard = vi.fn(async () => ({}));
 const vistaDeLista = vi.fn();
 vi.mock("@/lib/queries/vista-metrica", async (importOriginal) => ({
@@ -208,6 +213,8 @@ beforeEach(() => {
   historialesDeRecursos.mockResolvedValue(new Map());
   armarVistaDelDashboard.mockReset();
   armarVistaDelDashboard.mockResolvedValue(VISTA_VACIA);
+  armarVistaDeTodos.mockReset();
+  armarVistaDeTodos.mockResolvedValue(VISTA_TODOS_VACIA);
   // Por defecto, un gerente rechazado de una pagina de closer aterriza en su primer
   // programa activo. `destinoInicial("gerente")` consulta esta lista.
   programasActivos.mockResolvedValue([{ slug: "programa-a", nombre: "Programa A" }]);
@@ -239,6 +246,18 @@ const VISTA_VACIA = {
   motivos: [],
   origenes: [],
   comparativo: [],
+};
+
+const VISTA_TODOS_VACIA = {
+  periodo: VISTA_VACIA.periodo,
+  a: { leads: { tipo: "conteo", valor: 0 }, agendas: { tipo: "conteo", valor: 0 }, shows: { tipo: "conteo", valor: 0 }, cierres: { tipo: "conteo", valor: 0 }, caja: [] },
+  b: null,
+  detalles: Object.fromEntries(["leads", "agendas", "shows", "cierres", "caja"].map((metrica) => [metrica, {
+    resumen: { programId: "todos", disponible: true, subtotal: { cantidad: 0, caja: [] }, grupos: [] },
+    desgloses: { porCloser: [], porEtapa: [], porAntiguedad: [] },
+    href: `/dashboard/lista?metrica=${metrica}`,
+  }])),
+  programas: [],
 };
 
 /** Devuelve a donde redirigio la pagina, o null si dejo pasar. */
@@ -306,6 +325,56 @@ async function correrPrograma(
     throw e;
   }
 }
+
+/** Ejecuta el dashboard superior con los programas ya acotados por la sesión. */
+async function correrTodos(
+  busqueda: Record<string, string> = {},
+): Promise<"paso" | "login" | "midia" | "notFound"> {
+  const modulo = (await import("@/app/(app)/dashboard/page")) as {
+    default: (props: {
+      searchParams: Promise<Record<string, string | string[] | undefined>>;
+    }) => Promise<unknown>;
+  };
+  try {
+    await modulo.default({ searchParams: Promise.resolve(busqueda) });
+    return "paso";
+  } catch (e) {
+    if (e instanceof NoEncontrado) return "notFound";
+    if (e instanceof Redireccion) return e.destino === "/login" ? "login" : "midia";
+    throw e;
+  }
+}
+
+describe("dashboard de todos los programas (ticket 095)", () => {
+  it("requiere sesión", async () => {
+    auth.mockResolvedValue(null);
+    expect(await correrTodos()).toBe("login");
+  });
+
+  it("un closer solo entrega a la vista sus programas visibles", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    const suyo = { id: "p-1", slug: "programa-a", nombre: "Programa A" };
+    programasVisibles.mockResolvedValue([suyo]);
+
+    expect(await correrTodos()).toBe("paso");
+    expect(armarVistaDeTodos).toHaveBeenCalledWith(expect.objectContaining({ programas: [suyo] }));
+  });
+
+  it("un programa sin membresía nunca llega al constructor", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
+
+    await correrTodos();
+    const entrada = armarVistaDeTodos.mock.calls[0][0];
+    expect(entrada.programas.map((p: { slug: string }) => p.slug)).not.toContain("programa-ajeno");
+  });
+
+  it("sin programas visibles responde 404", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programasVisibles.mockResolvedValue([]);
+    expect(await correrTodos()).toBe("notFound");
+  });
+});
 
 describe("paginas de ajustes compartidas con el closer (enmienda 013, 20-sep)", () => {
   for (const [nombre, ruta] of PAGINAS_COMPARTIDAS_CON_CLOSER) {

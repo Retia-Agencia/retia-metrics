@@ -222,13 +222,13 @@ describe("caso 1 — completo con agenda vigente", () => {
 // ─────────────────────────────────── caso 2: completo sin agenda, setteo_no_calificado
 
 describe("caso 2 — completo sin link de agenda, setteo_no_calificado", () => {
-  it("deal en Pendiente Setteo, sin llamada", async () => {
+  it("deal en Calificado, sin llamada", async () => {
     const res = await enviar(conAgenda(fixture(), ""));
     expect(res.status).toBe(200);
     const [lead] = await db.select().from(leads);
     expect(lead.calificacion).toBe("setteo_no_calificado");
     const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("pendiente_setteo");
+    expect(deal.etapa).toBe("registrado");
     expect(await db.select().from(calls)).toHaveLength(0);
   });
 });
@@ -236,14 +236,14 @@ describe("caso 2 — completo sin link de agenda, setteo_no_calificado", () => {
 // ─────────────────────────────────────────────────────── caso 3: descartado
 
 describe("caso 3 — descartado sin agenda", () => {
-  it("el lead se guarda y abre en Pendiente Setteo: todo el que llena el formulario es contacto (ADR 0061)", async () => {
+  it("el lead se guarda y abre en Calificado: todo el que llena el formulario es contacto (ADR 0061)", async () => {
     vi.stubGlobal("fetch", fetchQueLanza());
     const res = await enviar(conAgenda(conEstado(fixture(), "descartado"), ""));
     expect(res.status).toBe(200);
     const [lead] = await db.select().from(leads);
     expect(lead.calificacion).toBe("descartado");
     const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("pendiente_setteo");
+    expect(deal.etapa).toBe("registrado");
   });
 });
 
@@ -285,15 +285,15 @@ describe("caso 4 — link de agenda con cualquier variable", () => {
 
 // ───────────────── caso 5: la cita no queda vigente / Calendly falla / sin token
 
-describe("caso 5 — la cita no está vigente o Calendly falla: Pendiente Setteo, lead SIEMPRE guardado", () => {
-  it("cita cancelada: Pendiente Setteo con nota del sistema, sin llamada", async () => {
+describe("caso 5 — la cita no está vigente o Calendly falla: Calificado, lead SIEMPRE guardado", () => {
+  it("cita cancelada: Calificado con nota del sistema, sin llamada", async () => {
     vi.stubGlobal("fetch", stubCalendly({ estado: "canceled" }));
     const res = await enviar(fixture());
     expect(res.status).toBe(200);
     const [lead] = await db.select().from(leads);
     expect(lead.calificacion).toBe("con_calendly");
     const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("pendiente_setteo");
+    expect(deal.etapa).toBe("calificado");
     expect(await db.select().from(calls)).toHaveLength(0);
     const notas = await db.select().from(dealActividades).where(eq(dealActividades.tipo, "nota"));
     expect(notas).toHaveLength(1);
@@ -301,29 +301,29 @@ describe("caso 5 — la cita no está vigente o Calendly falla: Pendiente Setteo
     expect(notas[0].nota).toContain("cancelada");
   });
 
-  it("cita no encontrada (evento sin ese uuid): Pendiente Setteo con nota", async () => {
+  it("cita no encontrada (evento sin ese uuid): Calificado con nota", async () => {
     vi.stubGlobal("fetch", stubCalendly({ eventoVacio: true }));
     const res = await enviar(fixture());
     expect(res.status).toBe(200);
     const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("pendiente_setteo");
+    expect(deal.etapa).toBe("calificado");
     const notas = await db.select().from(dealActividades).where(eq(dealActividades.tipo, "nota"));
     expect(notas[0].nota).toContain("No se encontró");
   });
 
-  it("Calendly lanza (5xx / red): Pendiente Setteo con nota, lead guardado, 200", async () => {
+  it("Calendly lanza (5xx / red): Calificado con nota, lead guardado, 200", async () => {
     vi.stubGlobal("fetch", stubCalendly({ lanza: true }));
     const res = await enviar(fixture());
     expect(res.status).toBe(200);
     const [lead] = await db.select().from(leads);
     expect(lead).toBeDefined();
     const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("pendiente_setteo");
+    expect(deal.etapa).toBe("calificado");
     const notas = await db.select().from(dealActividades).where(eq(dealActividades.tipo, "nota"));
     expect((notas[0].nota ?? "").toLowerCase()).toContain("calendly");
   });
 
-  it("programa sin token de Calendly: Pendiente Setteo con nota, lead guardado", async () => {
+  it("programa sin token de Calendly: Calificado con nota, lead guardado", async () => {
     // Un programa activo exige token (CHECK `programs_activo_con_formulario_y_token`).
     // Para simular la configuracion incompleta sin pelear con el CHECK, se usa un
     // programa NUEVO inactivo y sin token, con su propia fuente webhook.
@@ -356,7 +356,7 @@ describe("caso 5 — la cita no está vigente o Calendly falla: Pendiente Setteo
     const [lead] = await db.select().from(leads).where(eq(leads.programId, sinToken.id));
     expect(lead.calificacion).toBe("con_calendly");
     const [deal] = await db.select().from(deals).where(eq(deals.programId, sinToken.id));
-    expect(deal.etapa).toBe("pendiente_setteo");
+    expect(deal.etapa).toBe("calificado");
     const notas = await db.select().from(dealActividades).where(eq(dealActividades.tipo, "nota"));
     expect((notas[0].nota ?? "").toLowerCase()).toContain("token");
   });
@@ -419,7 +419,7 @@ describe("caso 7 — la misma persona re-aplica (fija el comportamiento actual)"
     desc.form_response.token = "t-desc";
     await enviar(desc);
     const [enSetteo] = await db.select().from(deals);
-    expect(enSetteo.etapa).toBe("pendiente_setteo");
+    expect(enSetteo.etapa).toBe("registrado");
 
     vi.stubGlobal("fetch", stubCalendly({}));
     const agenda = fixture();
@@ -455,12 +455,12 @@ describe("caso 7 — la misma persona re-aplica (fija el comportamiento actual)"
     expect(segunda.fechaAgenda?.toISOString()).toBe("2026-10-07T16:00:00.000Z");
   });
 
-  it("(d) setteo y luego agenda: el deal sube de Pendiente Setteo a Agendado", async () => {
+  it("(d) setteo y luego agenda: el deal sube de Calificado a Agendado", async () => {
     const setteo = conAgenda(fixture(), "");
     setteo.form_response.token = "t-setteo";
     await enviar(setteo);
     let [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("pendiente_setteo");
+    expect(deal.etapa).toBe("registrado");
 
     vi.stubGlobal("fetch", stubCalendly({}));
     const agenda = fixture();
@@ -513,7 +513,7 @@ describe("caso 7b — form_response_partial por la ruta real", () => {
     const [envioParcial] = await db.select().from(submissions);
     expect(envioParcial.esParcial).toBe(true);
     const [enSetteo] = await db.select().from(deals);
-    expect(enSetteo.etapa).toBe("pendiente_setteo");
+    expect(enSetteo.etapa).toBe("calificado");
 
     // La completa del MISMO token trae el link de la cita: el mismo deal sube a Agendado.
     vi.stubGlobal("fetch", stubCalendly({}));

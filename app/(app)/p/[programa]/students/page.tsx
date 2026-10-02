@@ -27,7 +27,7 @@ function uno(value: string | string[] | undefined): string | undefined {
 
 /**
  * La tab Students (ticket 099): reemplaza las pestañas `Estudiantes <cohorte>` de las hojas.
- * Un estudiante es un deal vigente en Abonado o Completo (ticket 063); la cohorte define la
+ * Un estudiante es un deal vigente en Ganado Pago Parcial o Ganado Pagado Completo (ticket 063); la cohorte define la
  * lista (Mani, 24-sep), y por defecto se ve la activa.
  *
  * Solo muestra y filtra: el onboarding se marca y la cohorte se cambia en la ficha del deal,
@@ -57,7 +57,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
   };
   const filas = await studentsDelPrograma(db, programa.id, filtro);
 
-  const completos = filas.filter((f) => f.etapa === "completo").length;
+  const completos = filas.filter((f) => f.etapa === "ganado_completo").length;
   const sinOnboarding = filas.filter((f) => f.onboardedAt == null).length;
   const vencidos = filas.filter((f) => f.vencido != null).length;
   const control =
@@ -115,7 +115,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
               <p className="text-sm text-muted-foreground">
                 {cohortes.length === 0
                   ? "Este programa no tiene cohortes todavía. Créalas en Ajustes → Programas y cohortes."
-                  : "No hay estudiantes con estos filtros. Un deal aparece aquí cuando entra en Abonado o Completo."}
+                  : "No hay estudiantes con estos filtros. Un deal aparece aquí cuando entra en Ganado Pago Parcial o Ganado Pagado Completo."}
               </p>
             ) : (
               <ul className="divide-y divide-border">
@@ -151,7 +151,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                           <Badge variant="peligro">
                             Vencida el {fecha(f.vencido.fechaLimite)} · <span className="cifra">{num(f.vencido.diasDeAtraso)}</span> días
                           </Badge>
-                        ) : f.fechaLimitePago && f.etapa !== "completo" ? (
+                        ) : f.fechaLimitePago && f.etapa !== "ganado_completo" ? (
                           <p className="text-xs text-muted-foreground">Fecha límite {fecha(f.fechaLimitePago)}</p>
                         ) : null}
                         {f.acuerdoPago ? <p className="text-xs whitespace-pre-line">{f.acuerdoPago}</p> : null}

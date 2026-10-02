@@ -9,30 +9,28 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { usd } from "@/lib/format";
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import type { PendienteDeal } from "@/lib/deals/etapas";
+import { TONO_DE_PENDIENTE } from "./etapa-tono";
 import type { TarjetaDeal } from "@/lib/queries/kanban";
-import type { FlechaCliente, MapaTransiciones } from "./transiciones";
-import { flechasDesde } from "./transiciones";
+import { PREGUNTA_DE_ETAPA, respuestasDe, type Respuesta } from "./pregunta-de-etapa";
 
 /**
  * Una tarjeta de deal en el Kanban (ticket 069). Muestra el lead, el dueño, el
  * saldo (USD con dos decimales y su moneda, `lib/format.ts`), los días en
  * la etapa y los avisos como `<Badge variant>` (nada de colores a mano, §9).
  *
- * Arrastrable con HTML5 nativo (sin dependencia nueva). Además, un menú "Mover a…" para
- * celular y teclado, que lista SOLO las flechas que una persona puede tomar; las del
- * sistema se muestran deshabilitadas con su razón (no se mueven a mano).
+ * Arrastrable con HTML5 nativo (sin dependencia nueva). Además, para celular y teclado,
+ * un menú con la pregunta de su etapa y sus respuestas (ADR 0072), las mismas de la ficha.
  */
 
 export interface TarjetaDealProps {
   tarjeta: TarjetaDeal;
-  mapa: MapaTransiciones;
-  nombreDeEtapa: Record<EtapaDeal, string>;
+  /** Los nombres de los pendientes, del servidor: `lib/deals/etapas.ts` no entra al bundle. */
+  nombreDePendiente: Record<PendienteDeal, string>;
   programaSlug: string;
   arrastrando: boolean;
   /**
@@ -43,23 +41,20 @@ export interface TarjetaDealProps {
   puedeMover: boolean;
   onArrastrarInicio: () => void;
   onArrastrarFin: () => void;
-  onElegirDestino: (flecha: FlechaCliente) => void;
+  onElegirRespuesta: (r: Respuesta) => void;
 }
 
 export function TarjetaDealCard({
   tarjeta,
-  mapa,
-  nombreDeEtapa,
+  nombreDePendiente,
   programaSlug,
   arrastrando,
   puedeMover,
   onArrastrarInicio,
   onArrastrarFin,
-  onElegirDestino,
+  onElegirRespuesta,
 }: TarjetaDealProps) {
-  const flechas = flechasDesde(mapa, tarjeta.etapa);
-  const dePersona = flechas.filter((f) => f.quien !== "sistema");
-  const deSistema = flechas.filter((f) => f.quien === "sistema");
+  const respuestas = respuestasDe(tarjeta.etapa, tarjeta.pendiente);
 
   const avisos = tarjeta.avisos;
   const saldoTexto = tarjeta.saldo != null ? usd(tarjeta.saldo) : null;
@@ -98,46 +93,32 @@ export function TarjetaDealCard({
           </div>
         </div>
 
-        {puedeMover ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            aria-label="Mover a…"
-            className="grid size-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors duration-150 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <MoreVertical className="size-4" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Mover a…</DropdownMenuLabel>
-              {dePersona.length > 0 ? (
-                dePersona.map((f) => (
-                  <DropdownMenuItem key={f.a} onClick={() => onElegirDestino(f)}>
-                    {nombreDeEtapa[f.a]}
+        {puedeMover && respuestas.length > 0 ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="Siguiente paso"
+              className="grid size-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors duration-150 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <MoreVertical className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>{PREGUNTA_DE_ETAPA[tarjeta.etapa].pregunta ?? "Siguiente paso"}</DropdownMenuLabel>
+                {respuestas.map((r) => (
+                  <DropdownMenuItem key={r.id} onClick={() => onElegirRespuesta(r)}>
+                    {r.etiqueta}
                   </DropdownMenuItem>
-                ))
-              ) : (
-                <DropdownMenuItem disabled>No hay movimientos a mano</DropdownMenuItem>
-              )}
-            </DropdownMenuGroup>
-            {deSistema.length > 0 ? (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>Los pone el sistema</DropdownMenuLabel>
-                  {deSistema.map((f) => (
-                    <DropdownMenuItem key={f.a} disabled>
-                      {nombreDeEtapa[f.a]}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuGroup>
-              </>
-            ) : null}
-          </DropdownMenuContent>
-        </DropdownMenu>
+                ))}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : null}
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {tarjeta.pendiente ? (
+          <Badge variant={TONO_DE_PENDIENTE[tarjeta.pendiente]}>{nombreDePendiente[tarjeta.pendiente]}</Badge>
+        ) : null}
         {tarjeta.leadQuality ? <Badge variant="info">Calidad: {tarjeta.leadQuality}</Badge> : null}
         {tarjeta.leadValue ? <Badge variant="neutro">Valor: {tarjeta.leadValue}</Badge> : null}
         {saldoTexto ? (
