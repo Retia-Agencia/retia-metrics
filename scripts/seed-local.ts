@@ -2,7 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 import { existsSync, readFileSync } from "node:fs";
 import { parse } from "dotenv";
 import { db } from "../lib/db";
-import { abonos, etapaDealEnum, leads, programs, submissions, users } from "../lib/db/schema";
+import { deals, etapaDealEnum, leads, programs, submissions, users } from "../lib/db/schema";
 import type { PendienteDeal } from "../lib/deals/etapas";
 import { actorDelScript } from "./actor";
 import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
@@ -23,8 +23,8 @@ import { canales } from "../lib/catalogo/canales";
 import { ingerirEntradas } from "../lib/ingesta/ingerir";
 import type { EntradaEnvio } from "../lib/ingesta/envio";
 import { abrirDeal, moverEtapa } from "../lib/deals/mover-etapa";
+import { registrarActividad } from "../lib/deals/actividades";
 import { agregarLlamada, marcarFallida, pegarGrain } from "../lib/deals/llamadas";
-import { crearConRastro } from "../lib/crm/rastro";
 import {
   abrirDealesHistoricos,
   registrarAbonosHistoricos,
@@ -33,8 +33,12 @@ import {
   type AltaHistorica,
   type LlamadaHistorica,
 } from "../lib/deals/historico";
-import { anularAbono } from "../lib/deals/abonos";
+import { anularAbono, registrarAbono } from "../lib/deals/abonos";
 import { anularDeal } from "../lib/deals/anular-deal";
+import { registrarLlamadaDeCalendly } from "../lib/calendly/colgar-llamada";
+import { ORIGEN_DE_SUELTA_ASIGNABLE } from "../lib/calendly/suelta";
+import { marcarOnboarded } from "../lib/deals/estudiante";
+import { vigente } from "../lib/queries/vigente";
 
 /**
  * Un PAT de Calendly para la base local (ticket 096), del entorno o de `.env.local`. De ese
@@ -60,7 +64,7 @@ function patLocal(nombre: string): string | undefined {
  *      * Leads: `ingerirEntradas` de `lib/ingesta/`.
  *      * Etapas: `abrirDeal` y `moverEtapa` de `lib/deals/`.
  *      * Llamadas: `agregarLlamada`, `pegarGrain`, `marcarFallida` de `lib/deals/llamadas`.
- *      * Abonos: `crearConRastro` con registro en `change_log`.
+ *      * Abonos: `registrarAbono`, que congela el valor vendido y deja su `change_log`.
  *  - Idempotencia: comprueba si la base ya tiene datos antes de sembrar; no duplica.
  *  - Cero datos reales de producción (todos ficticios con dominio `.local`).
  */
@@ -96,6 +100,7 @@ function entradaDePrueba(
     utmTerm?: string;
     utmId?: string;
     sinUtm?: boolean;
+    esParcial?: boolean;
   },
 ): EntradaEnvio {
   const vacio = o.sinUtm ? "" : undefined;
@@ -118,6 +123,7 @@ function entradaDePrueba(
       utm_id: vacio ?? o.utmId ?? "",
     },
     campos: { ...CAMPOS_MAPEO },
+    esParcial: o.esParcial,
   };
 }
 
@@ -273,7 +279,10 @@ function crearLeadsDeVolumen(
 async function sembrarVolumen(
   actorId: string,
   programasDeVolumen: readonly ProgramaVolumen[],
-  closers: readonly [{ id: string; closerId: string | null }, { id: string; closerId: string | null }],
+  closersPorPrograma: ReadonlyMap<
+    string,
+    { closers: readonly { id: string; closerId: string | null }[]; closerConMuestras?: { id: string; closerId: string | null } }
+  >,
   motivosPerdidaIds: readonly string[],
 ): Promise<void> {
   console.log("[seed:local] Sembrando volumen determinista para el dashboard...");
@@ -310,11 +319,23 @@ async function sembrarVolumen(
 
   const dealsCreados: DealDeVolumen[] = [];
   for (const grupo of leadsPorPrograma) {
+    const equipo = closersPorPrograma.get(grupo.programa.id);
+    if (!equipo || equipo.closers.length === 0) {
+      throw new Error(`El programa ${grupo.programa.nombre} no tiene closers para el volumen local.`);
+    }
+    const etapasConMuestra = new Set<EtapaVolumen>(["en_gestion", "contactado", "calificado", "agendado"]);
+    const muestrasAsignadas = new Set<EtapaVolumen>();
     const destinos = etapasDeVolumen(grupo.programa.distribucion, azar);
     const altas: AltaHistorica[] = grupo.leads.slice(0, destinos.length).map((leadVolumen, indice) => {
       const lead = leadPorCorreo.get(leadVolumen.correo)!;
-      const owner = closers[indice % closers.length];
       const destino = destinos[indice];
+      const asignarMuestra = equipo.closerConMuestras
+        && etapasConMuestra.has(destino.etapa)
+        && !muestrasAsignadas.has(destino.etapa);
+      const owner = asignarMuestra
+        ? equipo.closerConMuestras!
+        : equipo.closers[indice % equipo.closers.length];
+      if (asignarMuestra) muestrasAsignadas.add(destino.etapa);
       const indiceFecha = DIAS_HABILES_SEPTIEMBRE.indexOf(
         leadVolumen.fecha as (typeof DIAS_HABILES_SEPTIEMBRE)[number],
       );
@@ -336,7 +357,8 @@ async function sembrarVolumen(
       if (resultado.estado === "lead_con_deal_vivo") {
         throw new Error(`El lead de volumen ${grupo.leads[indice].correo} ya tenia un deal vivo.`);
       }
-      const owner = closers[indice % closers.length];
+      const alta = altas[indice];
+      const owner = equipo.closers.find((closer) => closer.id === alta.ownerUserId)!;
       const indiceFecha = DIAS_HABILES_SEPTIEMBRE.indexOf(
         grupo.leads[indice].fecha as (typeof DIAS_HABILES_SEPTIEMBRE)[number],
       );
@@ -445,6 +467,14 @@ async function sembrarVolumen(
     dealId: dealParaAnular.id,
     motivo: "Deal ficticio anulado para probar metricas vigentes.",
   });
+
+  for (const programa of programasDeVolumen) {
+    const estudiante = dealsCreados.find(
+      (deal) => deal.etapa === "ganado_completo" && leadPorCorreo.get(deal.correo)?.programId === programa.id,
+    );
+    if (!estudiante) throw new Error(`Falta un estudiante completo para ${programa.nombre}.`);
+    await marcarOnboarded(db, { userId: actorId, rol: "developer" }, { dealId: estudiante.id });
+  }
 
   for (const programa of programasDeVolumen) {
     const conteos = programa.distribucion.map((fila) => `${fila.etapa}${fila.pendiente ? `/${fila.pendiente}` : ""}=${fila.cantidad}`).join(", ");
@@ -640,8 +670,15 @@ export async function sembrarLocal(): Promise<void> {
   await rotarSecretoDeFuente(db, actor, f2.id);
   await activarFuente(db, actor, f2.id);
 
-  // 9. Closers con membresía
-  console.log("[seed:local] Creando closers con membresías...");
+  // 9. Usuarios locales con sus membresías
+  console.log("[seed:local] Creando usuarios locales con sus membresías...");
+  const gerente = await crearUsuario(db, actorId, {
+    email: "gerente@retia.local",
+    nombre: "Gerente Local",
+    rol: "gerente",
+    programas: [],
+  });
+
   const closer1 = await crearUsuario(db, actorId, {
     email: "carlos.closer@retia.local",
     nombre: "Carlos Closer",
@@ -656,6 +693,14 @@ export async function sembrarLocal(): Promise<void> {
     rol: "closer",
     closerId: "maria",
     programas: [prog1.id, prog2.id],
+  });
+
+  const closerMani = await crearUsuario(db, actorId, {
+    email: "mani.closer@retia.local",
+    nombre: "Mani Closer",
+    rol: "closer",
+    closerId: "mani-local",
+    programas: [prog1.id],
   });
 
   // 10. Leads vía ingerirEntradas
@@ -764,6 +809,54 @@ export async function sembrarLocal(): Promise<void> {
   await ingerirEntradas(db, prog1.id, entradasProg1, { aplicarReglaDeDeals: false });
   await ingerirEntradas(db, prog2.id, entradasProg2, { aplicarReglaDeDeals: false });
 
+  // Dos envíos por persona: el parcial guarda el avance y el completo aplica la regla 151.
+  for (const [programa, fuente, prefijo] of [
+    [prog1, f1, "p1"],
+    [prog2, f2, "p2"],
+  ] as const) {
+    const dobles = [1, 2].map((numero) => ({
+      correo: `doble-${prefijo}-${numero}@ejemplo.local`,
+      nombre: `Formulario doble ${prefijo.toUpperCase()} ${numero}`,
+      telefono: `+573009${prefijo === "p1" ? "1" : "2"}${String(numero).padStart(5, "0")}`,
+    }));
+    await ingerirEntradas(
+      db,
+      programa.id,
+      dobles.map((lead, indice) => entradaDePrueba(fuente.id, {
+        ...lead,
+        token: `tok-doble-${prefijo}-${indice + 1}-parcial`,
+        estado: "setteo_no_calificado",
+        fecha: `2026-09-29T${10 + indice}:00:00-05:00`,
+        esParcial: true,
+      })),
+    );
+    await ingerirEntradas(
+      db,
+      programa.id,
+      dobles.map((lead, indice) => entradaDePrueba(fuente.id, {
+        ...lead,
+        token: `tok-doble-${prefijo}-${indice + 1}-completo`,
+        estado: "setteo_no_calificado",
+        fecha: `2026-09-30T${10 + indice}:00:00-05:00`,
+        esParcial: false,
+      })),
+    );
+  }
+
+  // Una cita sin candidato por programa queda en el Inbox para asignarla a mano.
+  for (const [programa, prefijo] of [[prog1, "p1"], [prog2, "p2"]] as const) {
+    const llamada = await registrarLlamadaDeCalendly(db, programa.id, {
+      uuidInvitado: `seed-local-suelta-${prefijo}`,
+      inicio: instanteDeBogota("2026-10-01", prefijo === "p1" ? 10 : 11),
+      correoInvitado: `sin-lead-${prefijo}@ejemplo.local`,
+      correoHost: null,
+      linkCalendly: `https://calendly.com/retia-demo/suelta-${prefijo}`,
+    });
+    if (llamada.tipo !== "suelta") {
+      throw new Error(`La llamada ${prefijo} debia quedar ${ORIGEN_DE_SUELTA_ASIGNABLE} suelta.`);
+    }
+  }
+
   // 11. Cargar leads recién creados
   const todosLeadsP1 = await db.select().from(leads).where(eq(leads.programId, prog1.id));
   const todosLeadsP2 = await db.select().from(leads).where(eq(leads.programId, prog2.id));
@@ -791,15 +884,25 @@ export async function sembrarLocal(): Promise<void> {
 
   // Deal 2 -> Etapa: contactado
   const lead2 = mapaLeads.get("bernardo.gomez@ejemplo.local")!;
-  await abrirDeal(db, {
+  const deal2Id = await abrirDeal(db, {
     leadId: lead2.id,
     programId: prog1.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "contactado",
+    etapa: "en_gestion",
     actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
     ownerUserId: closer2.id,
     cohortId: coh1.id,
   });
+  await registrarActividad(
+    db,
+    { userId: closer2.id, rol: "closer" },
+    {
+      dealId: deal2Id,
+      tipo: "contacto",
+      canal: "WhatsApp",
+      nota: "Respondió y confirmó interés en el programa.",
+    },
+  );
 
   // Deal 3 -> Etapa: agendado (vía agregarLlamada)
   const lead3 = mapaLeads.get("camilo.rodriguez@ejemplo.local")!;
@@ -853,15 +956,30 @@ export async function sembrarLocal(): Promise<void> {
 
   // Deal 5 -> Etapa: compromiso_verbal
   const lead5 = mapaLeads.get("esteban.duque@ejemplo.local")!;
-  await abrirDeal(db, {
+  const deal5Id = await abrirDeal(db, {
     leadId: lead5.id,
     programId: prog1.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "compromiso_verbal",
+    etapa: "en_gestion",
     actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
     ownerUserId: closer2.id,
     cohortId: coh1.id,
     fechaLimitePago: "2026-10-10",
+  });
+  await registrarActividad(
+    db,
+    { userId: closer2.id, rol: "closer" },
+    {
+      dealId: deal5Id,
+      tipo: "contacto",
+      canal: "Llamada",
+      nota: "Confirmó que realizará el pago antes de la fecha acordada.",
+    },
+  );
+  await moverEtapa(db, {
+    dealId: deal5Id,
+    a: "compromiso_verbal",
+    actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
   });
 
   // Deal 6 -> Etapa: abonado (abono parcial con comprobante + moverEtapa sistema)
@@ -870,34 +988,33 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead6.id,
     programId: prog1.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "compromiso_verbal",
+    etapa: "en_gestion",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
     cohortId: coh1.id,
     fechaLimitePago: "2026-10-05",
   });
-  await crearConRastro(
-    {
-      db,
-      tabla: abonos,
-      nombreTabla: "abonos",
-      actorId: closer1.id,
-      etiqueta: "Abono inicial 300 USD",
-    },
+  await registrarActividad(
+    db,
+    { userId: closer1.id, rol: "closer" },
     {
       dealId: deal6Id,
-      programId: prog1.id,
-      fecha: "2026-09-26",
-      monto: "300.00",
-      moneda: "USD",
-      closerId: "carlos",
-      comprobanteUrl: "https://ejemplo.local/comprobantes/abono-felipe.pdf",
+      tipo: "contacto",
+      canal: "WhatsApp",
+      nota: "Acordó hacer un primer abono para reservar su cupo.",
     },
   );
   await moverEtapa(db, {
     dealId: deal6Id,
-    a: "ganado_parcial",
-    actor: { tipo: "sistema" },
+    a: "compromiso_verbal",
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+  });
+  // El abono por la puerta de la app: congela el valor vendido y mueve el deal a ganado.
+  await registrarAbono(db, { userId: closer1.id, rol: "closer" }, {
+    dealId: deal6Id,
+    fecha: "2026-09-26",
+    monto: "300.00",
+    comprobanteUrl: "https://ejemplo.local/comprobantes/abono-felipe.pdf",
   });
 
   // Deal 7 -> Etapa: completo (pago total con comprobante + moverEtapa sistema)
@@ -906,34 +1023,33 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead7.id,
     programId: prog1.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "compromiso_verbal",
+    etapa: "en_gestion",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
     cohortId: coh1.id,
     fechaLimitePago: "2026-10-01",
   });
-  await crearConRastro(
-    {
-      db,
-      tabla: abonos,
-      nombreTabla: "abonos",
-      actorId: closer1.id,
-      etiqueta: "Pago total 797 USD",
-    },
+  await registrarActividad(
+    db,
+    { userId: closer1.id, rol: "closer" },
     {
       dealId: deal7Id,
-      programId: prog1.id,
-      fecha: "2026-09-27",
-      monto: "797.00",
-      moneda: "USD",
-      closerId: "carlos",
-      comprobanteUrl: "https://ejemplo.local/comprobantes/completo-gloria.pdf",
+      tipo: "contacto",
+      canal: "Llamada",
+      nota: "Confirmó el pago total para ingresar a la cohorte.",
     },
   );
   await moverEtapa(db, {
     dealId: deal7Id,
-    a: "ganado_completo",
-    actor: { tipo: "sistema" },
+    a: "compromiso_verbal",
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+  });
+  // El abono por la puerta de la app: congela el valor vendido y mueve el deal a ganado.
+  await registrarAbono(db, { userId: closer1.id, rol: "closer" }, {
+    dealId: deal7Id,
+    fecha: "2026-09-27",
+    monto: "797.00",
+    comprobanteUrl: "https://ejemplo.local/comprobantes/completo-gloria.pdf",
   });
 
   // Deal 8 -> Etapa: agendado con Re-agenda pendiente (llamada fallida)
@@ -970,11 +1086,21 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead9.id,
     programId: prog1.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "contactado",
+    etapa: "en_gestion",
     actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
     ownerUserId: closer2.id,
     cohortId: coh1.id,
   });
+  await registrarActividad(
+    db,
+    { userId: closer2.id, rol: "closer" },
+    {
+      dealId: deal9Id,
+      tipo: "contacto",
+      canal: "WhatsApp",
+      nota: "Respondió, pero no cuenta con presupuesto para invertir ahora.",
+    },
+  );
   const motivoPerdidaId = mapaMotivos.get("perdida|Sin dinero para invertir ahora")!;
   await moverEtapa(db, {
     dealId: deal9Id,
@@ -989,34 +1115,33 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead10.id,
     programId: prog2.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "compromiso_verbal",
+    etapa: "en_gestion",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
     cohortId: coh2.id,
     fechaLimitePago: "2026-10-15",
   });
-  await crearConRastro(
-    {
-      db,
-      tabla: abonos,
-      nombreTabla: "abonos",
-      actorId: closer1.id,
-      etiqueta: "Abono Tactical 500 USD",
-    },
+  await registrarActividad(
+    db,
+    { userId: closer1.id, rol: "closer" },
     {
       dealId: deal10Id,
-      programId: prog2.id,
-      fecha: "2026-09-28",
-      monto: "500.00",
-      moneda: "USD",
-      closerId: "carlos",
-      comprobanteUrl: "https://ejemplo.local/comprobantes/abono-jorge.pdf",
+      tipo: "contacto",
+      canal: "Llamada",
+      nota: "Acordó iniciar con un abono de 500 USD.",
     },
   );
   await moverEtapa(db, {
     dealId: deal10Id,
-    a: "ganado_parcial",
-    actor: { tipo: "sistema" },
+    a: "compromiso_verbal",
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+  });
+  // El abono por la puerta de la app: congela el valor vendido y mueve el deal a ganado.
+  await registrarAbono(db, { userId: closer1.id, rol: "closer" }, {
+    dealId: deal10Id,
+    fecha: "2026-09-28",
+    monto: "500.00",
+    comprobanteUrl: "https://ejemplo.local/comprobantes/abono-jorge.pdf",
   });
 
   // Deal 11 -> Tactical: registrado
@@ -1055,15 +1180,30 @@ export async function sembrarLocal(): Promise<void> {
 
   // Deal 13 -> Tactical: compromiso_verbal (con fecha límite pasada, para ver el aviso)
   const lead13 = mapaLeads.get("marta.rios@ejemplo.local")!;
-  await abrirDeal(db, {
+  const deal13Id = await abrirDeal(db, {
     leadId: lead13.id,
     programId: prog2.id,
     areaDeclaradaId: areaDeclaradaSeed,
-    etapa: "compromiso_verbal",
+    etapa: "en_gestion",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
     cohortId: coh2.id,
     fechaLimitePago: "2026-09-20",
+  });
+  await registrarActividad(
+    db,
+    { userId: closer1.id, rol: "closer" },
+    {
+      dealId: deal13Id,
+      tipo: "contacto",
+      canal: "WhatsApp",
+      nota: "Prometió pagar antes de la fecha límite, que ya venció.",
+    },
+  );
+  await moverEtapa(db, {
+    dealId: deal13Id,
+    a: "compromiso_verbal",
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
   });
 
   // 12. Volumen adicional para recorrer todas las métricas y filtros del dashboard.
@@ -1083,7 +1223,10 @@ export async function sembrarLocal(): Promise<void> {
         prefijo: "p1",
         distribucion: [
           { etapa: "registrado", cantidad: 24 },
+          { etapa: "potencial", cantidad: 6 },
+          { etapa: "en_gestion", cantidad: 8 },
           { etapa: "contactado", cantidad: 18 },
+          { etapa: "calificado", cantidad: 8 },
           { etapa: "agendado", pendiente: "reagenda", cantidad: 8 },
           { etapa: "agendado", cantidad: 14 },
           { etapa: "atendido", cantidad: 12 },
@@ -1108,7 +1251,10 @@ export async function sembrarLocal(): Promise<void> {
         prefijo: "p2",
         distribucion: [
           { etapa: "registrado", cantidad: 20 },
+          { etapa: "potencial", cantidad: 5 },
+          { etapa: "en_gestion", cantidad: 6 },
           { etapa: "contactado", cantidad: 14 },
+          { etapa: "calificado", cantidad: 6 },
           { etapa: "agendado", pendiente: "reagenda", cantidad: 7 },
           { etapa: "agendado", cantidad: 11 },
           { etapa: "atendido", cantidad: 9 },
@@ -1121,15 +1267,49 @@ export async function sembrarLocal(): Promise<void> {
         ],
       },
     ],
-    [
-      { id: closer1.id, closerId: closer1.closerId },
-      { id: closer2.id, closerId: closer2.closerId },
-    ],
+    new Map([
+      [prog1.id, {
+        closers: [
+          { id: closer1.id, closerId: closer1.closerId },
+          { id: closer2.id, closerId: closer2.closerId },
+          { id: closerMani.id, closerId: closerMani.closerId },
+        ],
+        closerConMuestras: { id: closerMani.id, closerId: closerMani.closerId },
+      }],
+      [prog2.id, {
+        closers: [
+          { id: closer1.id, closerId: closer1.closerId },
+          { id: closer2.id, closerId: closer2.closerId },
+        ],
+      }],
+    ]),
     [
       motivoPerdidaId,
       mapaMotivos.get("perdida|El programa no se ajusta a su nivel o necesidad")!,
     ],
   );
+
+  const filasDeDeals = await db
+    .select({ programId: deals.programId, etapa: deals.etapa })
+    .from(deals)
+    .where(vigente(deals));
+  const nombresDePrograma = new Map([[prog1.id, prog1.nombre], [prog2.id, prog2.nombre]]);
+  console.log("\n[seed:local] Deals vigentes por programa y etapa:");
+  console.table(
+    [prog1, prog2].flatMap((programa) => etapaDealEnum.enumValues.map((etapa) => ({
+      programa: nombresDePrograma.get(programa.id),
+      etapa,
+      deals: filasDeDeals.filter((deal) => deal.programId === programa.id && deal.etapa === etapa).length,
+    }))),
+  );
+  console.log("[seed:local] Correos de acceso por rol:");
+  console.table([
+    { rol: "developer", email: correoActor },
+    { rol: gerente.rol, email: gerente.email },
+    { rol: closer1.rol, email: closer1.email },
+    { rol: closer2.rol, email: closer2.email },
+    { rol: closerMani.rol, email: closerMani.email },
+  ]);
 
   console.log("\n[seed:local] Siembra local finalizada exitosamente.");
 }
