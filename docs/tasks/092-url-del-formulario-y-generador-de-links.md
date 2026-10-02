@@ -129,7 +129,7 @@ el test lo hace `emparejar`) · punto 3 ✅ · punto 4: el generador es uno y el
 importe se verifica cuando se construya el 086.
 
 **Falta, en este orden:**
-1. **Aplicar la 0060 (sesión principal de Mani, con su ok) ANTES de empujar el código:** drizzle pide las columnas
+1. ✅ **0060 aplicada en producción el 2-oct** (ok de Mani; verificada: columnas, índice y CHECK; 61 migraciones; 0 principales). Era ANTES de empujar el código: drizzle pide las columnas
    por nombre, y el código en `main` sin la columna rompería toda lectura de `sources` en producción.
 2. Push y checkpoint.
 3. Mani marca la principal de cada programa (ComunicArte: ¿Typeform o Dapta?) y carga su URL.
