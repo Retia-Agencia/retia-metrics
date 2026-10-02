@@ -28,6 +28,9 @@ precio es de la cohorte.
   ticket, descuento, total a pagar, abonado y saldo. Sin cohorte o sin precio en la cohorte: no se vende
   ("La cohorte del deal no tiene precio"). Las rejas del 132 (no por debajo de lo abonado, no en Completo)
   se mantienen. Sin columna nueva.
+- **Dentro (segunda enmienda, 1-oct):** todo deal nace en la cohorte activa; `cambiarCohorte` sirve para
+  cualquier deal, no solo estudiantes; cambiar el descuento de una venta (también en Completo) exige motivo y
+  deja nota en `deal_actividades`, y reconcilia la etapa (saldo 0 → Completo, saldo > 0 en Completo → Abonado).
 - **Dentro:** la meta en cash de una cohorte = `meta_cupos × precio_usd` de la cohorte (donde hoy se lea
   `programs.ticket_usd` para eso: `lib/queries/vista-dashboard.ts`, `components/dashboard-programa.tsx`).
 - **Dentro:** `programs.ticket_usd` queda solo como valor por defecto al crear una cohorte (prellena el
