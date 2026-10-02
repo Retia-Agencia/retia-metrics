@@ -3,7 +3,7 @@ id: 007
 fase: F1
 serves: "spec §5 criterio 5; precondición de ADR 0011"
 depends: [015]
-status: en curso
+status: done
 ---
 
 # 007 — Dar de alta a los closers reales

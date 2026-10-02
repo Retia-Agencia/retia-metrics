@@ -142,8 +142,8 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 | O1-d | ✅ [095] (`cp-20261001-1`) el dashboard con "todos" solo sumable | Mani | el dashboard | M |
 | O1-e | ✅ [100] la tab Programs (`cp-20261002-2`) | Alejo | · | M |
 | O1-f | ✅ [073] ficha del lead → [091] (`cp-20261002-2`) | Alejo | · | M + S |
-| O1-g | [066] Urgencias → [068] → [076] (lecturas) | Alejo | · | M + S + S |
-| O1-h | los cabos del [117] (el [072] se cerró el 1-oct) | Alejo | la etapa de entrada | S |
+| O1-g | ✅ [066] Urgencias → [068] → [076] (lecturas) (`cp-20261002-4`) | Alejo | · | M + S + S |
+| O1-h | los cabos del [117]: fase 2 y reproceso hechos el 2-oct; solo falta anotar el primer parcial real de Typeform (el [072] se cerró el 1-oct) | Alejo | la etapa de entrada | S |
 | O1-i | ✅ [150] tests rápidos: base migrada una vez por corrida: en `main` el 1-oct (`0e65c15`, `4f6b63c`), CI verde (vitest 372 s → 274 s), done en `cp-20261002-1`; queda `npm run test:cambios` | Mani | `tests/helpers/`, `vitest.config` | M |
 
 **Avance de la ola** (lo que ya está en `main` y espera el checkpoint verde para contar como hecho, §6):
@@ -174,8 +174,8 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
    código puede avanzar en su rama sin generar la migración.
 
 **Desbloqueados por el 142 (`cp-20261002-2`), entran a la ola:** [143] propiedades por etapa (Mani, el motor) ·
-[128] alertas del deal (Mani) · [118] "se perdió en el Calendly" (Mani) · [148] y [065] (después de 143 y 128, que
-fijan qué se alerta). La cola de migraciones sigue con 092 → 102.
+✅ [128] alertas del deal y ✅ [118] "se perdió en el Calendly" (`cp-20261002-4`) · [148] y [065] (después del 143). La cola
+de migraciones sigue con 092 → 102 (la 0059 del 117 ya se aplicó el 2-oct).
 
 **No entran a O1** (y por qué): [129] espera dos decisiones de
 Mani (están en el ticket) · [144] a [147] esperan QM-3, QM-5, QM-6, QM-7, QM-11 y GC-17 · [119], [120], [123],

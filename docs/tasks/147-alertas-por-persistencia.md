@@ -2,7 +2,7 @@
 id: 147
 etapa: NC2
 serves: "comercial.md GC-39, GC-40"
-depends: [136, QD-6]
+depends: [136, QD-6, QM-11]
 status: bloqueado
 ---
 
