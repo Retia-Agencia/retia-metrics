@@ -61,7 +61,7 @@ ticket lo vuelve innecesario.
 - [ ] Parcial `con_calendly_sin_agenda` y luego su completa con cita: un lead, un deal, que termina en
       Agendado con su llamada; con test.
 - [ ] Parcial sin estado: lead sin deal, con test.
-- [ ] Los 23 envíos reprocesados, verificado con una consulta.
+- [x] Los 23 envíos reprocesados, verificado con una consulta.
 
 ## Kiro
 
@@ -206,5 +206,11 @@ ajustados a GC-27. Corridos 27 archivos de ingesta, Calendly, webhook, costura y
 prioridad_llegada`, con `lock_timeout`. Verificado después: la tabla y el tipo ya no existen, 60 migraciones. Las filas de
 `change_log` que hablan de la tabla se quedan como historia.
 
-**Lo que le queda al 117:** el reproceso de los 23 de Tactical (ok de Mani; ya sin la decisión de los 14) y anotar el
-primer parcial real de Typeform cuando llegue (O-7).
+**Reproceso de los 23 de Tactical, hecho el 2-oct (ok de Mani).** Los 23 envíos del 29-sep (11:40 a 20:11) eran de 21
+personas; cada sobre crudo pasó por `procesarSobre`, el mismo camino del webhook (adaptador con el mapeo de hoy, cita de
+Calendly y la regla del ADR 0069), con un script desechable que se borró. Ensayo primero (solo lectura) y después
+`--aplicar`: 23 de 23 procesados sin error. Verificado con una consulta: **19 deals nuevos** (11 en Registrado, 8 en
+Agendado con su llamada de Calendly); el lead que estaba en Calificado con cita pasó a Agendado con su nota; el que ya
+estaba en Registrado (3 envíos) no cambió. **Ningún lead de la ventana quedó sin deal.**
+
+**Lo único que le queda al 117:** anotar el primer parcial real de Typeform cuando llegue (O-7). No es código.
