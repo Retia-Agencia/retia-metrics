@@ -73,6 +73,21 @@ de los abonos y nunca se escribe a mano, ADR 0024). Cambia **cómo se escribe**:
 Se construye en el **134**, que es el que trae el ticket base de la cohorte. El 132 (en `main` desde el 1-oct)
 deja el campo "Valor vendido (USD)" en la pantalla hasta entonces; la base no cambia.
 
+## Enmienda 1-oct, segunda (Mani): cohorte desde que nace y todo cambio con explicación
+
+Medido al arrancar el 134: **ninguno de los 210 deals de producción tenía cohorte**, así que "sin cohorte no se
+vende" habría frenado toda venta.
+
+1. **Todo deal nace en la cohorte activa de su programa** (alta manual o automática). Los históricos traen la
+   suya del importador (078).
+2. **Si un deal llega a vender sin cohorte** (los 210 de antes), se le asigna la activa en ese momento y su
+   precio congela el valor vendido. Sin ninguna cohorte activa, no se vende.
+3. **Nada queda "fijo para siempre":** cambiar la cohorte de cualquier deal, o el descuento de una venta (también
+   en Completo), se permite, pero **siempre con una explicación obligatoria que queda como actividad del deal**
+   (Mani: *"visibilidad pura de todo"*). Cambiar de cohorte no reescribe el valor vendido: lo vendido no cambia,
+   y la ficha muestra el descuento contra el precio de la cohorte nueva. Si el descuento deja el saldo en 0, el
+   deal pasa solo a Completo; si lo sube en un Completo, vuelve solo a Abonado.
+
 ## Lo que queda abierto
 
 - **Deals históricos sin valor vendido** (los que traiga el 078 en Abonado o Completo): Mani, 1-oct, se
