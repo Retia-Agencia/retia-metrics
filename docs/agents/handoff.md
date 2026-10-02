@@ -32,6 +32,22 @@ leer es libre, escribir pide el ok de Mani.
 
 ## Memory
 
+- **2026-10-02 (tarde, Mani + Claude): el 153 recorrido entero por la sesión; falta el recorrido de Mani.**
+  - **Hecho:** A-19 en el seed (Codex escribió, Claude revisó y corrigió): 6 deals sin dueño en ComunicArte nacidos por
+    la regla real y 6 no históricos de `mani.closer` (`req-*`, sin área) donde los requisitos sí fallan. Recorridos 3 y
+    4 de `docs/pruebas-operacion-comercial.md` (33 pruebas): hallazgos A-19 a A-33 en `docs/anotaciones.md`. La lista se
+    corrigió contra el ADR 0071 (reclamar no mueve; la primera actividad saca a En gestión), Urgencias y las cuentas.
+  - 🩸 **`ingerirEntradas` NO aplica la regla de deals por defecto** (`aplicarReglaDeDeals` es opcional y falso). Un
+    script que quiera deals tiene que pedirla explícita: sin ella el seed dejaba "Por settear" vacío y la prueba 3
+    (reenvío que sube la puerta) nunca podía pasar, sin un solo error.
+  - 🩸 **La base local de Docker es UNA para todas las sesiones** (`retia-metrics-db-local`, puerto 54329). Un
+    `dev:local` olvidado en otro worktree (el del 142) la había resembrado con un seed viejo y el login local daba
+    AccessDenied. Antes de resembrar: `ps` por `dev-local` y `pg_stat_activity`; para borrarla, `docker compose down -v`.
+  - **Decisión pendiente de Mani antes del 078 (A-30):** anular un abono en un deal histórico sin valor vendido no lo
+    baja de Completo, porque el saldo es desconocido. O la migración escribe el valor vendido, o se acepta.
+  - **Para retomar:** Mani recorre la lista como closer (`mani.closer@retia.local`), y con eso el 153 queda `done`
+    tras el checkpoint. Los hallazgos de UI (A-20 a A-29, A-31 a A-33) no bloquean el 153.
+
 - **2026-10-02 (mediodía, Mani + Claude): el 128 en `main`, falta el checkpoint.**
   - **Hecho:** alertas en la ficha del deal (`alertasDelDeal`, `components/deals/ficha/ficha-alertas.tsx`). Codex
     implementó en el worktree `128`; Claude revisó, corrió typecheck, lint y `npm run build`, y el recorrido a 375 px en
