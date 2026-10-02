@@ -182,6 +182,8 @@ vi.mock("@/lib/queries/nerd-stats", () => ({
   conteosPorOrigen: vi.fn(async () => ({ llamadas: [], ventas: [] })),
   ultimosCambiosDesdeLaApp: vi.fn(async () => []),
   usuariosActivosPorRol: vi.fn(async () => []),
+  fuentesConSalud: vi.fn(async () => []),
+  textoDeFuentesLeidas: vi.fn(() => "—"),
 }));
 
 /** El `redirect` real interrumpe el render lanzando. El mock imita eso. */

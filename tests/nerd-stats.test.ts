@@ -1,9 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, changeLog, deals, leads, programs, users } from "@/lib/db/schema";
+import { readFileSync } from "node:fs";
+import {
+  abonos,
+  calls,
+  changeLog,
+  deals,
+  leadContactos,
+  leads,
+  programs,
+  sources,
+  submissions,
+  users,
+} from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
   conteosPorOrigen,
   conteosPorPrograma,
+  fuentesConSalud,
+  textoDeFuentesLeidas,
   ultimosCambiosDesdeLaApp,
   usuariosActivosPorRol,
 } from "@/lib/queries/nerd-stats";
@@ -202,5 +216,80 @@ describe("ultimosCambiosDesdeLaApp", () => {
     const serializada = JSON.stringify(filas[0]);
     expect(serializada).not.toContain(NOMBRE_LEAD);
     expect(serializada).not.toContain(CORREO_LEAD);
+  });
+});
+
+/**
+ * Ticket 068: lo que el modelo nuevo hace visible. Los envios por programa, los leads "unidos
+ * por telefono" sin resolver (050) y las fuentes marcadas (107, que reemplazo al 055).
+ */
+describe("conteosPorPrograma sobre el modelo nuevo (068)", () => {
+  it("cuenta envios completos y parciales del programa de su fuente, y los leads unidos sin resolver", async () => {
+    const [fuente] = await db.insert(sources).values({ programId: programaA, nombre: "Typeform" }).returning();
+    await db.insert(submissions).values([
+      { leadId: personaId, sourceId: fuente.id, token: "t1", esParcial: false },
+      { leadId: personaId, sourceId: fuente.id, token: "t1", esParcial: true },
+      { leadId: personaId, sourceId: fuente.id, token: "t2", esParcial: false },
+    ]);
+    // Dos correos sin confirmar en el MISMO lead cuentan un lead, no dos.
+    await db.insert(leadContactos).values([
+      { leadId: personaId, programId: programaA, tipo: "correo", valor: "otro1@ejemplo.com", confirmado: false },
+      { leadId: personaId, programId: programaA, tipo: "correo", valor: "otro2@ejemplo.com", confirmado: false },
+      // Confirmado: ya no es un pendiente.
+      { leadId: personaId, programId: programaA, tipo: "correo", valor: "bueno@ejemplo.com", confirmado: true },
+    ]);
+
+    const filas = await conteosPorPrograma(db);
+    expect(filas.find((f) => f.slug === "programa-a")).toMatchObject({ envios: 2, parciales: 1, unidosPorTelefono: 1 });
+    // El programa es frontera: nada de A se cuela en B.
+    expect(filas.find((f) => f.slug === "programa-b")).toMatchObject({ envios: 0, parciales: 0, unidosPorTelefono: 0 });
+  });
+});
+
+describe("fuentesConSalud (068)", () => {
+  it("lista las fuentes ACTIVAS con su salud, y una sin envios sale marcada", async () => {
+    await db.insert(sources).values([
+      { programId: programaA, nombre: "Activa" },
+      { programId: programaB, nombre: "Apagada", activo: false },
+    ]);
+    const filas = await fuentesConSalud(db);
+    expect(filas.map((f) => f.nombre)).toEqual(["Activa"]);
+    expect(filas[0]).toMatchObject({ programaNombre: "Programa A", estado: "sin_envios", marcada: true, rota: false });
+  });
+
+  it("una fuente al dia no se marca; la columna rota la marca aunque reciba", async () => {
+    const [fuente] = await db.insert(sources).values({ programId: programaA, nombre: "Typeform" }).returning();
+    const ahora = new Date("2026-09-20T12:00:00Z");
+    await db.insert(submissions).values({
+      leadId: personaId,
+      sourceId: fuente.id,
+      token: "t1",
+      esParcial: true,
+      createdAt: new Date("2026-09-20T11:00:00Z"),
+    });
+    expect((await fuentesConSalud(db, ahora))[0]).toMatchObject({ estado: "al_dia", marcada: false });
+
+    await db.update(sources).set({ estado: "rota" });
+    expect((await fuentesConSalud(db, ahora))[0]).toMatchObject({ estado: "al_dia", rota: true, marcada: true });
+  });
+});
+
+describe("textoDeFuentesLeidas (068, ADR 0031)", () => {
+  it("una corrida sin el dato muestra —, nunca un nombre inventado", () => {
+    expect(textoDeFuentesLeidas(null)).toBe("—");
+    expect(
+      textoDeFuentesLeidas([
+        { nombre: "Hoja", tab: "New form", filas: 1234 },
+        { nombre: "Forms", tab: "Viejo", filas: 55 },
+      ]),
+    ).toBe("Hoja (1.234) + Forms (55)");
+  });
+});
+
+describe("la guarda de /nerd-stats (068, ADR 0025)", () => {
+  it("no escribe el rol a mano: pasa por paginaDeAccesoTotal", () => {
+    const fuente = readFileSync("app/(app)/nerd-stats/page.tsx", "utf8");
+    expect(fuente).toContain("await paginaDeAccesoTotal()");
+    expect(fuente).not.toMatch(/paginaConRol\(|requireRole\(|"developer"/);
   });
 });

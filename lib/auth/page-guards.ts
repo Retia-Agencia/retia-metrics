@@ -49,3 +49,13 @@ export async function paginaConRol(...permitidos: Rol[]): Promise<Session> {
   }
   return session;
 }
+
+/**
+ * Una pagina que solo pasa quien tiene ACCESO TOTAL (`esAccesoTotal`, ADR 0025): hoy
+ * `/nerd-stats` y su bitacora. Es `paginaConRol` sin ningun rol permitido: gerente y
+ * closer, disjuntos entre si, quedan los dos afuera, y el unico que entra lo decide
+ * `puedeAcceder`. Asi el rol nunca se escribe a mano en la guarda (ticket 068).
+ */
+export async function paginaDeAccesoTotal(): Promise<Session> {
+  return paginaConRol();
+}
