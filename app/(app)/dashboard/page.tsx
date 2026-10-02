@@ -78,7 +78,7 @@ export default async function DashboardDeTodosPage({ searchParams }: Props) {
           <TarjetaConteo titulo="Shows" actual={vista.a.shows} anterior={vista.b?.shows} detalle={vista.detalles.shows} />
           <TarjetaConteo titulo="Shows sin Grain" actual={vista.a.showsSinGrain} anterior={vista.b?.showsSinGrain} detalle={vista.detalles.shows_sin_grain} />
           <TarjetaConteo titulo="Cierres" actual={vista.a.cierres} anterior={vista.b?.cierres} detalle={vista.detalles.cierres} />
-          {(vista.a.caja.length > 0 ? vista.a.caja : [dinero("USD", 0)]).map((c) => <TarjetaDinero key={c.moneda} actual={c} anterior={anteriorPorMoneda.get(c.moneda)} detalle={vista.detalles.caja} />)}
+          {(vista.a.caja.length > 0 ? vista.a.caja : [dinero("USD", 0)]).map((c) => <TarjetaDinero key={c.moneda} actual={c} anterior={vista.b ? (anteriorPorMoneda.get(c.moneda) ?? dinero(c.moneda, 0)) : undefined} detalle={vista.detalles.caja} />)}
         </section>
 
         <Card>
