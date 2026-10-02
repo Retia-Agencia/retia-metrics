@@ -10,8 +10,8 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /** Matriz manual del ticket 142: cubre las 121 combinaciones sin derivarse del motor. */
 const ESPERADAS: Readonly<Record<EtapaDeal, readonly EtapaDeal[]>> = {
-  potencial: ["en_gestion", "agendado", "cierre_perdido"],
-  registrado: ["en_gestion", "agendado", "cierre_perdido"],
+  potencial: ["registrado", "calificado", "en_gestion", "agendado", "cierre_perdido"],
+  registrado: ["calificado", "en_gestion", "agendado", "cierre_perdido"],
   en_gestion: ["contactado", "calificado", "agendado", "cierre_perdido"],
   contactado: ["calificado", "agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"],
   calificado: ["agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"],
@@ -46,9 +46,9 @@ describe("la tabla de transiciones", () => {
     expect(new Set(pares).size).toBe(pares.length);
   });
 
-  it("trae cada id del documento: E1 a E13, RETRO, P, R, A1 y A2", () => {
+  it("trae cada id del documento: S1 a S3, E1 a E13, RETRO, P, R, A1 y A2", () => {
     const ids = new Set(TRANSICIONES.map((t) => t.id));
-    const esperados = [...Array.from({ length: 13 }, (_, i) => `E${i + 1}`), "RETRO", "P", "R", "A1", "A2"];
+    const esperados = ["S1", "S2", "S3", ...Array.from({ length: 13 }, (_, i) => `E${i + 1}`), "RETRO", "P", "R", "A1", "A2"];
     expect([...ids].sort()).toEqual(esperados.sort());
   });
 

@@ -81,7 +81,13 @@ export default async function FichaDelDealPage({ params }: Props) {
           ← Volver a los deals
         </Link>
 
-        <FichaCabecera ficha={ficha} nombre={nombre} nombreDeEtapa={NOMBRE_DE_ETAPA} tonoDeEtapa={TONO_DE_ETAPA} />
+        <FichaCabecera
+          ficha={ficha}
+          nombre={nombre}
+          programaSlug={programa.slug}
+          nombreDeEtapa={NOMBRE_DE_ETAPA}
+          tonoDeEtapa={TONO_DE_ETAPA}
+        />
         <FichaPregunta
           ficha={ficha}
           opciones={opciones}

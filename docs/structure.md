@@ -200,6 +200,9 @@ Poner un pendiente no cambia la etapa. Todo cambio de etapa lo limpia por defect
 | E11 | Atendido → cualquiera de las dos Ganado | sistema | entra el primer abono |
 | E12 | Compromiso Verbal → cualquiera de las dos Ganado | sistema | entra el primer abono |
 | E13 | Ganado Pago Parcial → Ganado Pagado Completo | sistema | saldo en cero |
+| S1 | Potencial → Registrado | sistema | llega el completo sin calidad alta ni agenda (ADR 0073) |
+| S2 | Potencial → Calificado | sistema | llega un envío con calidad High sin agenda (ADR 0073) |
+| S3 | Registrado → Calificado | sistema | llega un envío con calidad High sin agenda (ADR 0073) |
 | RETRO | Compromiso Verbal → Atendido, Contactado o Calificado | closer | motivo de retroceso; deja Seguimiento |
 | P | Potencial, Registrado, En gestión, Contactado, Calificado, Agendado, Atendido, Compromiso Verbal o Ganado Pago Parcial → Cierre perdido | closer | motivo de pérdida |
 | R | Cierre perdido → En gestión o Agendado | closer | motivo de recuperación |

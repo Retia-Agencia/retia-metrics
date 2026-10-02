@@ -41,6 +41,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0037](./0037-el-deal-y-las-once-etapas.md) | El Deal es el objeto central, con once etapas y un solo motor que las mueve (**el punto 2 lo reemplaza el 0065; el Grain como requisito lo enmienda el 0066; las etapas 3, 9 y 11 las reemplaza el 0070**) |
 | [0070](./0070-re-agenda-seguimiento-y-proxima-cohorte-son-pendientes-del-deal.md) | Re-agenda, Seguimiento y Próxima Cohorte son pendientes del deal, no etapas: el deal se queda en su etapa y el motor escribe los dos |
 | [0071](./0071-como-se-mueve-un-deal-por-las-etapas-de-30x.md) | Cómo se mueve un deal por las etapas de 30X: primera actividad → En gestión, contacto → Contactado, los tres intentos alertan y no cierran, cortesía = 100% de descuento con marca (**enmienda el punto 7 del 0059**) |
+| [0073](./0073-un-reenvio-sube-el-deal-a-su-mejor-etapa-de-entrada.md) | Un reenvío sube el deal abierto que sigue en una puerta a la etapa de entrada de su mejor envío (S1 a S3, solo hacia arriba); el CRM avisa cuando un lead tiene dos o más envíos |
 | [0072](./0072-una-pregunta-por-etapa-mueve-el-deal.md) | Una pregunta por etapa mueve el deal, también al arrastrar el Kanban (muestra lo que tiene y le falta); solo alertas, nada automatizado en v1; Lead Value ordena la cola |
 | [0066](./0066-atendido-sin-grain-es-una-alarma.md) | Atendido sin Grain se acepta, cuenta como show y prende una alarma derivada |
 | [0015](./0015-resultado-de-llamada-ampliado.md) | La llamada dice qué pasó (ocho resultados); el motor decide qué significa |

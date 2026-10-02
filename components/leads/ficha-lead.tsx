@@ -195,6 +195,11 @@ function TarjetaEnvio({ envio }: { envio: EnvioDeLaFicha }) {
           </span>
           {envio.esParcial ? <Badge variant="alerta">Parcial</Badge> : <Badge variant="neutro">Completo</Badge>}
           {envio.calificacion ? <Badge variant="secondary">{envio.calificacion}</Badge> : null}
+          {envio.empezoComoParcial ? (
+            <span className="text-xs text-muted-foreground">
+              empezó como parcial el {fechaHoraEnBogota(envio.empezoComoParcial)}
+            </span>
+          ) : null}
         </div>
         <span className="text-xs text-muted-foreground">
           {envio.fechaEsDeLlegada ? "Recibido " : ""}

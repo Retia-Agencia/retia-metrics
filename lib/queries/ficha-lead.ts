@@ -44,6 +44,12 @@ export interface EnvioDeLaFicha {
   /** 1 = el primero que hizo. Es el numero con el que la ficha lo nombra. */
   numero: number;
   esParcial: boolean;
+  /**
+   * Si este completo empezó como parcial: cuándo llegó ese parcial. El parcial y su completo son
+   * el MISMO envío para quien mira (mismo token, ADR 0073); se guardan como dos filas hermanas
+   * (ADR 0036 punto 4) y aquí se muestran como uno.
+   */
+  empezoComoParcial: Date | null;
   /** La fecha que trae el formulario (en un parcial puede ser aproximada) o, sin ella, cuando llego. */
   fecha: Date;
   fechaEsDeLlegada: boolean;
@@ -207,6 +213,24 @@ export function ordenarEnvios<T extends { posicionEnHoja: number | null; created
   });
 }
 
+/** El envío para quien mira: misma fuente y mismo token (el parcial y su completo). */
+const llaveDeToken = (e: { sourceId: string; token: string }) => `${e.sourceId}\u0000${e.token}`;
+
+/**
+ * Un envío por token: el completo absorbe a su parcial hermano (mismo `sourceId` y `token`), y el
+ * parcial solo queda solo si nunca se completó (abandonó). Devuelve cada fila con la llegada del
+ * parcial que absorbió, si hubo. Pura, para poder probarla sin base.
+ */
+export function unirParcialesConSuCompleto<
+  T extends { sourceId: string; token: string; esParcial: boolean; fechaEnvio: Date | null; createdAt: Date },
+>(envios: T[]): (T & { empezoComoParcial: Date | null })[] {
+  const completos = new Set(envios.filter((e) => !e.esParcial).map(llaveDeToken));
+  const parcialDe = new Map(envios.filter((e) => e.esParcial).map((e) => [llaveDeToken(e), e.fechaEnvio ?? e.createdAt] as const));
+  return envios
+    .filter((e) => !e.esParcial || !completos.has(llaveDeToken(e)))
+    .map((e) => ({ ...e, empezoComoParcial: e.esParcial ? null : (parcialDe.get(llaveDeToken(e)) ?? null) }));
+}
+
 /** La ficha de un lead de ESTE programa, o `null` si no existe o es de otro. */
 export async function fichaDeLead(db: Db, programId: string, leadId: string): Promise<FichaDeLead | null> {
   const [lead] = await db
@@ -219,6 +243,8 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
   const enviosFilas = await db
     .select({
       id: submissions.id,
+      sourceId: submissions.sourceId,
+      token: submissions.token,
       esParcial: submissions.esParcial,
       fechaEnvio: submissions.fechaEnvio,
       createdAt: submissions.createdAt,
@@ -253,8 +279,14 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
       ? await db.select({ id: cohorts.id, codigo: cohorts.codigo }).from(cohorts).where(inArray(cohorts.id, idsDeCohortes))
       : [];
 
-  const ordenados = ordenarEnvios(enviosFilas);
+  const ordenados = ordenarEnvios(unirParcialesConSuCompleto(enviosFilas));
   const numeroDe = new Map(ordenados.map((e, i) => [e.id, i + 1] as const));
+  // Un parcial absorbido por su completo lleva el número de ese completo: un contacto o un deal
+  // que nació del parcial nació del MISMO envío.
+  const numeroPorToken = new Map(ordenados.map((e) => [llaveDeToken(e), numeroDe.get(e.id)!] as const));
+  for (const e of enviosFilas) {
+    if (!numeroDe.has(e.id)) numeroDe.set(e.id, numeroPorToken.get(llaveDeToken(e))!);
+  }
   let previos: CampoDelEnvio[] | null = null;
   const envios: EnvioDeLaFicha[] = [];
   for (const [i, e] of ordenados.entries()) {
@@ -263,6 +295,7 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
       id: e.id,
       numero: i + 1,
       esParcial: e.esParcial,
+      empezoComoParcial: e.empezoComoParcial,
       fecha: e.fechaEnvio ?? e.createdAt,
       fechaEsDeLlegada: e.fechaEnvio === null,
       posicionEnHoja: e.posicionEnHoja,

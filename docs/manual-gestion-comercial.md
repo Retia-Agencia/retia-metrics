@@ -163,30 +163,35 @@ formulario (✅ ADR 0069; QD-3):
 | cualquiera | cualquiera | sí | **Agendado** (§3.4) |
 | parcial o completo | High | no | **Calificado** |
 | completo | Low o Mid | no | **Registrado** |
-| parcial | sin calidad | no | **Potencial** |
+| parcial | Low, Mid o sin calidad | no | **Potencial** |
 
 - **Ningún envío se descarta:** todo envío abre un deal o actualiza el abierto (✅ GC-27, ADR 0069).
 - **Lead Value no cambia la etapa:** se guarda y ordena el trabajo dentro de la etapa (✅ ADR 0069 punto 4;
   GC-29). Lead Quality y Lead Value se muestran en el deal (✅ QD-10, QD-12).
-- Si el lead **ya tiene un deal abierto** en el programa, el envío nuevo se guarda, se avisa al dueño y la
-  etapa no cambia (✅ ADR 0037).
+- **La regla vale para cada envío, no solo para el primero** (✅ ADR 0073, Mani 2-oct). Si el lead ya tiene un deal
+  abierto que **sigue en una puerta** (Potencial o Registrado), el envío nuevo lo sube a la etapa que le tocaría:
+  Potencial → Registrado al llegar el completo, Potencial o Registrado → Calificado al llegar calidad High. Solo hacia
+  arriba, lo hace el sistema y deja nota en el log del deal. Si el deal ya está En gestión o más adelante, alguien lo
+  trabaja y el envío no lo mueve (salvo la cita, §3.4).
+- **El parcial y su completo son el mismo envío** (✅ ADR 0073): el parcial se va actualizando y, al terminar, el completo
+  lo absorbe; se ve y se cuenta como uno. Volver a llenar el formulario es un envío nuevo.
+- **Todos los envíos de un lead quedan guardados y a la vista** (✅ ADR 0073): ninguno se reemplaza ni se fusiona; la
+  ficha del lead los muestra con lo que cambió entre uno y otro, y la tarjeta y la ficha del deal avisan "N envíos"
+  cuando la persona aplicó más de una vez. Un reenvío nunca abre un segundo deal ni reabre uno cerrado (ADR 0037).
 
 **Potencial**
 
 - **Significa:** empezó el formulario y no lo terminó; no hay calidad todavía.
 - **Entra:** solo el sistema, al llegar un envío parcial sin calidad y sin agenda.
 - **Tiene:** lead, envío de origen, cohorte activa del programa (✅ ADR 0065, segunda enmienda), sin dueño.
-- **Sale a:** En gestión · Calificado o Registrado si llega la versión completa del mismo envío · Agendado ·
-  Cierre perdido.
-- 🟡 **Cuando llega el completo del mismo envío** (mismo token, ADR 0036), el sistema lo mueve a la puerta
-  que le toque por calidad (Registrado o Calificado), o a Agendado si agendó. Hoy el CRM ya hace esto con la
-  agenda (`structure.md` §2.1, "llega la completa con cita").
+- **Sale a:** En gestión · Registrado o Calificado cuando llega otro envío que le toca esa puerta (✅ S1, S2, ADR
+  0073) · Agendado · Cierre perdido.
 
 **Registrado**
 
 - **Significa:** terminó el formulario con calidad baja o media (Low o Mid) y no agendó.
-- **Entra:** solo el sistema. **Tiene:** lo mismo que Potencial, más su calidad.
-- **Sale a:** En gestión · Agendado · Cierre perdido.
+- **Entra:** solo el sistema, al nacer o al subir desde Potencial (S1). **Tiene:** lo mismo que Potencial, más su calidad.
+- **Sale a:** En gestión · Calificado si llega un envío con calidad High (✅ S3, ADR 0073) · Agendado · Cierre perdido.
 
 **Calificado**
 
@@ -354,7 +359,7 @@ En gestión y Contactado.
 | De → a | Qué la dispara | Quién | Requisito | Hoy | Estado |
 |---|---|---|---|---|---|
 | (nada) → Potencial, Registrado, Calificado o Agendado | llega un envío sin deal abierto | sistema | la regla de §3.1 | 052, 117 | ✅ ADR 0069 |
-| Potencial → Registrado, Calificado o Agendado | llega el completo del mismo envío | sistema | la regla de §3.1 | (el paso a Agendado ya existe) | 🟡 |
+| Potencial → Registrado o Calificado; Registrado → Calificado | llega otro envío que le toca esa puerta | sistema | la regla de §3.1 | S1, S2, S3 | ✅ ADR 0073 |
 | Potencial o Registrado → En gestión | se reclama o se asigna el deal | sistema | dueño | (nuevo; en 30X, W1) | 🔴 D-1 |
 | En gestión → Contactado | primer contacto | dueño | dueño + actividad de contacto con fecha y canal | T1 | 🔴 D-2 |
 | En gestión o Contactado → Calificado | el contacto confirma que califica | dueño | actividad de contacto | (nuevo) | 🟡 |

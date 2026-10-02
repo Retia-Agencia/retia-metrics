@@ -5,7 +5,7 @@ import { esViolacionUnica } from "@/lib/db/errores";
 import { vigente } from "@/lib/queries/vigente";
 import { crearConRastro } from "@/lib/crm/rastro";
 import { abrirDeal, moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
-import { unaCitaMueveAAgendado, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
+import { NOMBRE_DE_ETAPA, transicion, unaCitaMueveAAgendado, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
 import { dejarNotaDelSistema } from "@/lib/deals/nota-del-sistema";
 import { fechaHoraEnBogota } from "@/lib/format";
 import { closerHost } from "@/lib/calendly/emparejar-llamada";
@@ -112,6 +112,14 @@ export function notaDeCita(cita: Exclude<ResultadoCita, { estado: "vigente" }>):
   }
 }
 
+/** Explica por que un re-envio subio un deal que seguia en una etapa de entrada. */
+function notaDeSubida(de: EtapaDeal, a: EtapaDeEntrada): string {
+  if (a === "registrado") {
+    return "Llegó la respuesta completa del formulario: el deal pasó de Potencial a Registrado.";
+  }
+  return `Llegó un envío con calidad High: el deal pasó de ${NOMBRE_DE_ETAPA[de]} a Calificado.`;
+}
+
 /**
  * Que hace la regla ante un lead. Cada variante es una fila de la tabla del insumo:
  *  - `nada`: un caso que no cambia el deal (el lead ya tiene uno abierto). Puede
@@ -122,6 +130,8 @@ export function notaDeCita(cita: Exclude<ResultadoCita, { estado: "vigente" }>):
  *    con `nota`.
  *  - `mover`: `unaCitaMueveAAgendado` dice que si y "Con Calendly" con cita vigente lo
  *    avanza a Agendado, creando antes la `llamada`.
+ *  - `subir`: un re-envio mejora la etapa de entrada de un deal que sigue en Potencial
+ *    o Registrado, segun una flecha S del motor.
  *  - `agregar_llamada`: el deal ya esta avanzado (`ETAPAS_AVANZADAS`) y llega una cita VIGENTE: no
  *    se mueve, pero la cita queda como otra llamada del mismo deal (Mani, 28-sep: una
  *    re-agenda con fecha nueva no se pierde). La misma cita dos veces no duplica: la
@@ -133,6 +143,7 @@ export type AccionDeDeal =
   | { tipo: "nada"; motivo: string; nota?: string }
   | { tipo: "abrir"; etapa: EtapaDeal; llamada?: LlamadaDeCita; nota?: string }
   | { tipo: "mover"; a: EtapaDeal; llamada: LlamadaDeCita; nota: string }
+  | { tipo: "subir"; a: EtapaDeEntrada; nota: string }
   | { tipo: "agregar_llamada"; etapa: EtapaDeal; llamada: LlamadaDeCita; nota: string }
   | { tipo: "notificar_reenvio"; etapa: EtapaDeal; nota: string };
 
@@ -151,7 +162,11 @@ export interface LlamadaDeCita {
  * | etapa de entrada        | deal abierto        | cita           | accion                        |
  * |-------------------------|---------------------|----------------|-------------------------------|
  * | Potencial, Registrado,  | ninguno             | —              | abrir en esa etapa            |
- * |   Calificado            | (cualquiera)        | —              | nada (ya tiene deal)          |
+ * |   Calificado            |                     |                |                               |
+ * | Potencial, Registrado,  | Potencial/Registrado| —              | sube si hay flecha S; si no,  |
+ * |   Calificado            |                     |                | nada                           |
+ * | Potencial, Registrado,  | otra etapa          | —              | nada                           |
+ * |   Calificado            |                     |                |                               |
  * | Agendado                | ninguno             | vigente        | abrir en Agendado + llamada   |
  * | Agendado                | ninguno             | no vigente     | abrir en Calificado + nota    |
  * | Agendado                | cita mueve (*)      | vigente        | mover a Agendado + llamada    |
@@ -172,9 +187,15 @@ export function decidirAccionDeDeal(
   cita?: ResultadoCita,
 ): AccionDeDeal {
   if (entrada !== "agendado") {
-    // Solo abre si no hay deal; si ya tiene uno, la regla no lo toca (ADR 0037; los
-    // historicos no re-abren, enmienda del 24-sep).
     if (dealAbierto === null) return { tipo: "abrir", etapa: entrada };
+    const flecha = transicion(dealAbierto.etapa, entrada);
+    if (flecha && (flecha.id === "S1" || flecha.id === "S2" || flecha.id === "S3")) {
+      return {
+        tipo: "subir",
+        a: entrada,
+        nota: notaDeSubida(dealAbierto.etapa, entrada),
+      };
+    }
     return { tipo: "nada", motivo: "el lead ya tiene un deal abierto" };
   }
 
@@ -402,6 +423,19 @@ export async function aplicarReglaDeDeal(
     // falta un requisito. `moverEtapa` envuelve su trabajo en su propia transacción (un
     // savepoint cuando `db` ya es una transacción), así que el rechazo deshace SOLO ese
     // movimiento; el envío recién ingerido y la llamada sobreviven. Se captura y se reporta.
+    try {
+      await moverEtapa(db, { dealId: dealAbierto.id, a: accion.a, actor: { tipo: "sistema" } });
+      await dejarNotaDelSistema(db, dealAbierto.id, accion.nota);
+    } catch (e) {
+      if (e instanceof MovimientoRechazado) {
+        return { leadId: lead.id, accion, rechazo: e.message };
+      }
+      throw e;
+    }
+    return { leadId: lead.id, accion };
+  }
+
+  if (accion.tipo === "subir" && dealAbierto !== null) {
     try {
       await moverEtapa(db, { dealId: dealAbierto.id, a: accion.a, actor: { tipo: "sistema" } });
       await dejarNotaDelSistema(db, dealAbierto.id, accion.nota);

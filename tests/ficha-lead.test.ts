@@ -8,6 +8,7 @@ import {
   ordenarEnvios,
   type CampoDelEnvio,
   type EnvioParaComparar,
+  unirParcialesConSuCompleto,
 } from "@/lib/queries/ficha-lead";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -212,5 +213,29 @@ describe("fichaDeLead (PGlite)", () => {
     const [m] = await db.insert(leads).values({ programId, emailNormalizado: "manual@correo.co", entrada: "crm" }).returning();
     const f = (await fichaDeLead(db, programId, m.id))!;
     expect(f).toMatchObject({ entrada: "crm", envios: [], deals: [], contactos: [], soloParciales: false });
+  });
+});
+
+describe("el parcial y su completo son el mismo envío (ADR 0073)", () => {
+  const fila = (token: string, esParcial: boolean, minuto: number) => ({
+    sourceId: "f1",
+    token,
+    esParcial,
+    fechaEnvio: null,
+    createdAt: new Date(Date.UTC(2026, 9, 2, 15, minuto)),
+  });
+
+  it("el completo absorbe a su parcial hermano y dice cuándo empezó", () => {
+    const r = unirParcialesConSuCompleto([fila("t1", true, 0), fila("t1", false, 5)]);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ token: "t1", esParcial: false, empezoComoParcial: new Date(Date.UTC(2026, 9, 2, 15, 0)) });
+  });
+
+  it("un parcial que nunca se completó se queda solo, y otro token es otro envío", () => {
+    const r = unirParcialesConSuCompleto([fila("t1", true, 0), fila("t2", false, 9)]);
+    expect(r.map((e) => [e.token, e.esParcial, e.empezoComoParcial])).toEqual([
+      ["t1", true, null],
+      ["t2", false, null],
+    ]);
   });
 });

@@ -25,6 +25,7 @@ const ROMPER: Record<Codigo, Partial<HechosDelDeal>> = {
 const clave = (t: Transicion | TransicionPendiente) =>
   ["E6", "E11", "E12"].includes(t.id) ? `${t.id}>${(t as Transicion).a}` : t.id;
 const ESPERADOS: Record<string, Codigo[]> = {
+  S1: [], S2: [], S3: [],
   E1: ["dueno", "actividad"], E2: ["contacto"], E3: ["contacto"], E4: ["llamada_con_fecha"],
   E5: ["fecha_limite_pago", "area_declarada"],
   "E6>ganado_parcial": ["valor_vendido", "abono", "comprobante", "saldo_pendiente", "area_declarada"],
@@ -66,4 +67,3 @@ describe("requisitos de cada flecha", () => {
     expect(queLeFaltaTransicion(ret, { ...TODO, fechaUltimoContacto: new Date("2026-09-30T23:59:59-05:00") }).map((f) => f.codigo)).toEqual(["contacto"]);
   });
 });
-

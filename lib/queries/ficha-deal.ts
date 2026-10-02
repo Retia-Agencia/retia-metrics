@@ -140,6 +140,7 @@ export interface FichaDeDeal {
   pendiente: PendienteDeal | null;
   lead: {
     id: string;
+    envios: number;
     nombre: string | null;
     email: string;
     telefono: string | null;
@@ -336,6 +337,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
     pendiente: deal.pendiente,
     lead: {
       id: lead.id,
+      envios: lead.numAplicaciones,
       nombre: lead.nombre,
       email: lead.emailNormalizado,
       telefono: lead.telefono,
