@@ -64,8 +64,7 @@ Sin decisión pendiente (se argumenta aquí):
 ## Notas de cierre
 
 2-oct · Mani · implementó Codex (effort medium) en la rama `155-hallazgos-recorridos`, revisado contra este
-"Done cuando" por la sesión principal. Un arreglo de tipos a mano (`fechaDelEnvio`, el leftJoin deja nullable el
-`created_at`).
+"Done cuando" por la sesión principal.
 
 - **Verificado:** typecheck, lint y `npm run build` en verde. Los tests del cambio (`inbox`, `alertas-del-deal`,
   `ficha-deal-lectura`, `abonos-del-deal`, `deal-etapas`) **no se corrieron en local**: la máquina tenía 9,5 GB de
