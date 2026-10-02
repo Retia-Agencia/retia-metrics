@@ -68,7 +68,7 @@ alrededor de ellas, y esas sirven:
   que Lead Value ordena). ¿Lead Value hace de HVM, con las cuatro etiquetas y sus tiempos de respuesta?
 - **M-6. El origen del deal.** 30X lo pide obligatorio al entrar a Atendido; aquí el área declarada se pide en
   Compromiso Verbal y en ganado (121). ¿Se adelanta a Atendido?
-- **D-7** (§10) sigue abierta y va con el 118.
+- ✅ **D-7** (§10) decidida con el 118: Calificado por un parcial, sin completo a los 5 minutos.
 
 ### El orden hasta tenerlo en vivo
 
@@ -205,7 +205,7 @@ formulario (✅ ADR 0069; QD-3):
 - **Sale a:** Agendado · Compromiso Verbal o ganado sin llamada (§4, venta por chat) · Cierre perdido.
 - **Alerta:** "se perdió en el Calendly" (ticket 118) cuando llegó a la pantalla del Calendly y a los
   minutos no agendó. 🔴 Con la variable `estado` retirada (ADR 0069 punto 5), la regla del 118 se reescribe
-  sobre "nació en Calificado por un parcial y no llegó su completo" (§10, D-7).
+  sobre "nació en Calificado por un parcial y no llegó su completo" (§10, D-7 ✅: a los 5 minutos).
 
 ### 3.2 En gestión
 
@@ -450,7 +450,7 @@ Todas se calculan al leer: nada se guarda ni la apaga un clic (ADR 0024).
 | Para avanzar le falta... | lo que pide la siguiente flecha (§4) | amarillo en la ficha | 128 |
 | Atendido sin Grain | llamada que ocurrió sin link de Grain | rojo en ficha y tarjeta; "N de M shows sin Grain, X%" en el dashboard | ADR 0066, 135 |
 | Llamada sin resultado ("no value") | la llamada ya pasó y nadie dijo cómo terminó | rojo; Inbox | GC-32, 128 |
-| Se perdió en el Calendly | llegó al Calendly y no agendó en X minutos | arriba del Inbox | 118 (🔴 D-7) |
+| Se perdió en el Calendly | llegó al Calendly y no agendó en X minutos | arriba del Inbox | 118 (D-7 ✅, 5 min) |
 | Re-agenda sin fecha | estado Re-agenda sin llamada nueva | Inbox | 071, 128 |
 | Compromiso vencido · cartera vencida | fecha límite pasada sin pago, o con saldo | Inbox, ficha | ADR 0053, 071 |
 | Deal estancado | sin actividad más días hábiles que los del programa | Inbox | 071 |
@@ -505,7 +505,7 @@ Todas se calculan al leer: nada se guarda ni la apaga un clic (ADR 0024).
 > D-5, el deal a mano nace en En gestión · D-6, sin setter en v1 · D-8, el Parcial que desiste es Cierre
 > perdido · D-9, los cerrados sin monto entran a ganado y se corrigen con el equipo ya en vivo · QM-12,
 > cortesía = deal con 100% de descuento y marca. Además: los tres intentos se cuentan y alertan, no cierran
-> solos. **Sigue abierta la D-7**, que se decide con el 118 y no bloquea al 142.
+> solos. **La D-7 se decidió con el 118** (2-oct).
 
 - **D-1. Cuándo pasa un deal a En gestión.** 30X lo mueve en minutos, pero solo si la ingesta ya le asignó
   dueño (W1). Aquí los deals nacen sin dueño y se reclaman (ADR 0037 punto 6). Si se mueve al nacer,
@@ -532,7 +532,8 @@ Todas se calculan al leer: nada se guarda ni la apaga un clic (ADR 0024).
   rol de setter y el dueño hace las dos cosas. ¿Se mantiene así en v1?
 - **D-7. "Se perdió en el Calendly" sin `estado`.** El 118 se define con la variable `estado`
   (`con_calendly_sin_agenda` y sus `alerta_minutos`), que el ADR 0069 retira. ¿Se reescribe como "nació en
-  Calificado por un parcial y su completo no llegó en X minutos", y dónde vive la X?
+  Calificado por un parcial y su completo no llegó en X minutos", y dónde vive la X? ✅ **Sí (Mani, 2-oct)**: X = 5
+  minutos, una constante del código; ver el ticket 118.
 - **D-8. Ganado Pago Parcial que se pierde.** El ADR 0037 deja perder un Abonado (lo abonado sigue en la caja),
   pero entonces deja de ser venta (no está en ganado) y su gente deja de ser Student. En 30X Ganado Pago
   Parcial es "Won" y un *Refund* es motivo de pérdida. ¿Se cuenta como venta perdida, como venta con
