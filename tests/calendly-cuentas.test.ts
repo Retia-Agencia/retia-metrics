@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { cuentasDeCalendly, cuentasPorPrograma } from "@/lib/calendly/cuentas";
 import { ErrorDeCalendly } from "@/lib/calendly/cita";
 import { asignarCalendlyDeMembresia } from "@/lib/catalogo/usuarios";
+import { AuthorizationError } from "@/lib/auth/roles";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -55,6 +56,8 @@ describe("vincular la cuenta de una membresia", () => {
   let cerrar: () => Promise<void>;
   let programId: string;
   let admin: string;
+  let maru: string;
+  let andrea: string;
   let membresiaMaru: string;
   let membresiaAndrea: string;
 
@@ -69,6 +72,8 @@ describe("vincular la cuenta de una membresia", () => {
     admin = a.id;
     const [m] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer" }).returning();
     const [n] = await db.insert(users).values({ email: "andrea@retiagrowth.com", rol: "closer" }).returning();
+    maru = m.id;
+    andrea = n.id;
     [{ id: membresiaMaru }, { id: membresiaAndrea }] = await db
       .insert(miembrosPrograma)
       .values([
@@ -83,6 +88,36 @@ describe("vincular la cuenta de una membresia", () => {
   });
 
   const ORGANIZACION = [{ email: "maru@calendly.co", name: "Maru" }, { email: "andrea@calendly.co" }];
+
+  it("la closer asigna y cambia su propia cuenta; cada cambio deja su rastro", async () => {
+    const fetch = calendly(ORGANIZACION);
+    await asignarCalendlyDeMembresia(db, maru, { membresiaId: membresiaMaru, calendlyEmail: "maru@calendly.co" }, { fetch });
+    await asignarCalendlyDeMembresia(db, maru, { membresiaId: membresiaMaru, calendlyEmail: "andrea@calendly.co" }, { fetch });
+
+    const [m] = await db.select().from(miembrosPrograma).where(eq(miembrosPrograma.id, membresiaMaru));
+    expect(m.calendlyEmail).toBe("andrea@calendly.co");
+    const rastros = await db
+      .select()
+      .from(changeLog)
+      .where(and(eq(changeLog.registroId, membresiaMaru), eq(changeLog.campo, "calendlyEmail")));
+    expect(rastros).toHaveLength(2);
+    expect(rastros.map((r) => r.userId)).toEqual([maru, maru]);
+  });
+
+  it("otra closer recibe 403 y no mueve la membresia ni la bitacora", async () => {
+    const intento = asignarCalendlyDeMembresia(
+      db,
+      andrea,
+      { membresiaId: membresiaMaru, calendlyEmail: "maru@calendly.co" },
+      { fetch: calendly(ORGANIZACION) },
+    );
+    await expect(intento).rejects.toBeInstanceOf(AuthorizationError);
+    await expect(intento).rejects.toMatchObject({ status: 403 });
+    const [m] = await db.select().from(miembrosPrograma).where(eq(miembrosPrograma.id, membresiaMaru));
+    expect(m.calendlyEmail).toBeNull();
+    const rastros = await db.select().from(changeLog).where(eq(changeLog.registroId, membresiaMaru));
+    expect(rastros).toHaveLength(0);
+  });
 
   it("guarda una cuenta de la organizacion, con rastro de quien la vinculo", async () => {
     await asignarCalendlyDeMembresia(
@@ -113,11 +148,11 @@ describe("vincular la cuenta de una membresia", () => {
     expect(m.calendlyEmail).toBeNull();
   });
 
-  it("la misma cuenta no se vincula a dos closers del programa: 409", async () => {
+  it("una cuenta tomada por otra closer del programa se rechaza con 409", async () => {
     const fetch = calendly(ORGANIZACION);
-    await asignarCalendlyDeMembresia(db, admin, { membresiaId: membresiaMaru, calendlyEmail: "maru@calendly.co" }, { fetch });
+    await asignarCalendlyDeMembresia(db, maru, { membresiaId: membresiaMaru, calendlyEmail: "maru@calendly.co" }, { fetch });
     await expect(
-      asignarCalendlyDeMembresia(db, admin, { membresiaId: membresiaAndrea, calendlyEmail: "maru@calendly.co" }, { fetch }),
+      asignarCalendlyDeMembresia(db, andrea, { membresiaId: membresiaAndrea, calendlyEmail: "maru@calendly.co" }, { fetch }),
     ).rejects.toMatchObject({ status: 409 });
   });
 

@@ -1,10 +1,14 @@
 import { paginaConSesion } from "@/lib/auth/page-guards";
-import { esAdministrador } from "@/lib/auth/roles";
+import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { PerfilPropio } from "@/components/perfil-propio";
-import { usuarioPorId } from "@/lib/catalogo/usuarios";
+import { CalendlyMembresias } from "@/components/calendly-membresias";
+import { membresiasConCalendlyDe, usuarioPorId } from "@/lib/catalogo/usuarios";
+import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
+import { programasActivos } from "@/lib/queries/programas";
+import { asignarMiCalendlyAccion } from "./acciones";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +30,14 @@ export default async function PerfilPage() {
   const puedeEditar = esAdministrador(rol);
 
   const usuario = await usuarioPorId(session.user.id, db);
+  const membresias = trabajaLeads(rol)
+    ? await membresiasConCalendlyDe(db, session.user.id)
+    : [];
+  const programIds = membresias.map((m) => m.programId);
+  const programas = trabajaLeads(rol)
+    ? (await programasActivos()).filter((p) => programIds.includes(p.id))
+    : [];
+  const cuentas = trabajaLeads(rol) ? await cuentasPorPrograma(db, programIds) : {};
 
   return (
     <PageShell
@@ -38,6 +50,16 @@ export default async function PerfilPage() {
         closerId={usuario?.closerId ?? null}
         puedeEditar={puedeEditar}
       />
+      {membresias.length > 0 ? (
+        <div className="mt-6">
+          <CalendlyMembresias
+            membresias={membresias}
+            programas={programas}
+            cuentas={cuentas}
+            accion={asignarMiCalendlyAccion}
+          />
+        </div>
+      ) : null}
     </PageShell>
   );
 }

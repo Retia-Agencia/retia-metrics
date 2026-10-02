@@ -44,6 +44,15 @@ export function esAdministrador(rol: Rol | undefined | null): boolean {
   return rol === "gerente" || rol === "developer";
 }
 
+/** El dueño de la membresía o quien administra puede cambiarla (ADR 0074). */
+export function puedeTocarMembresia(
+  rol: Rol | null | undefined,
+  actorId: string,
+  duenoId: string,
+): boolean {
+  return esAdministrador(rol) || actorId === duenoId;
+}
+
 /**
  * Quien trabaja leads: tiene `closerId` propio, membresias de programa, puede ser
  * responsable de una persona y registrar llamadas y abonos.

@@ -3,7 +3,7 @@ id: 152
 etapa: NC2
 serves: "ADR 0074; operación comercial: closers nuevos sin pasar por el gerente"
 depends: [096, 031]
-status: todo
+status: en curso
 ---
 
 # 152 — El closer asigna y cambia su propia cuenta de Calendly por programa

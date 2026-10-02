@@ -2,12 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth/guards";
-import { AuthorizationError } from "@/lib/auth/roles";
-import { esAdministrador } from "@/lib/auth/roles";
+import { AuthorizationError, esAdministrador, trabajaLeads } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
-import { editarCloserIdPropio, type EntradaCloserIdPropio } from "@/lib/catalogo/usuarios";
+import {
+  asignarCalendlyDeMembresia,
+  editarCloserIdPropio,
+  type EntradaCalendlyDeMembresia,
+  type EntradaCloserIdPropio,
+} from "@/lib/catalogo/usuarios";
 
 /**
  * Server action del perfil propio (ticket 031): un usuario se carga su propio
@@ -50,6 +54,25 @@ export async function guardarCloserIdPropioAccion(
     // El objetivo es SIEMPRE la propia fila: el id sale de la sesion, no del input.
     await editarCloserIdPropio(db, session.user.id, session.user.id, input);
     revalidatePath("/perfil");
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+/** Vincula la cuenta de Calendly del actor en una membresia propia (ADR 0074). */
+export async function asignarMiCalendlyAccion(
+  input: EntradaCalendlyDeMembresia,
+): Promise<ResultadoAccion> {
+  try {
+    const session = await requireSession();
+    const rol = await rolDeVista(session);
+    if (!trabajaLeads(rol)) {
+      throw new AuthorizationError("Solo quien trabaja leads tiene cuenta de Calendly.");
+    }
+    await asignarCalendlyDeMembresia(db, session.user.id, input);
+    revalidatePath("/perfil");
+    revalidatePath("/ajustes/usuarios");
     return { ok: true };
   } catch (error) {
     return aResultado(error);

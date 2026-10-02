@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { users } from "@/lib/db/schema";
+import { miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 031 — la server action del perfil propio.
@@ -48,7 +49,10 @@ vi.mock("next/headers", () => ({
 let cerrar: () => Promise<void>;
 let gerenteId: string;
 let closerId: string;
+let otraCloserId: string;
 let developerId: string;
+let membresiaCloserId: string;
+let membresiaOtraCloserId: string;
 
 beforeEach(async () => {
   auth.mockReset();
@@ -59,15 +63,55 @@ beforeEach(async () => {
     .values([
       { email: "gerente@retiagrowth.com", rol: "gerente", nombre: "Gerencia" },
       { email: "closer@retiagrowth.com", rol: "closer", nombre: "Closer", closerId: "Dana" },
+      { email: "otra@retiagrowth.com", rol: "closer", nombre: "Otra", closerId: "Maru" },
       { email: "dev@retiagrowth.com", rol: "developer", nombre: "Dev" },
     ])
     .returning();
   gerenteId = insertados.find((u) => u.rol === "gerente")!.id;
-  closerId = insertados.find((u) => u.rol === "closer")!.id;
+  closerId = insertados.find((u) => u.email === "closer@retiagrowth.com")!.id;
+  otraCloserId = insertados.find((u) => u.email === "otra@retiagrowth.com")!.id;
   developerId = insertados.find((u) => u.rol === "developer")!.id;
+  const [programa] = await db
+    .insert(programs)
+    .values({
+      ...PROGRAMA_DE_PRUEBA,
+      slug: "programa-perfil",
+      nombre: "Programa perfil",
+      ticketUsd: "797",
+      calendlyToken: "pat",
+    })
+    .returning();
+  [{ id: membresiaCloserId }, { id: membresiaOtraCloserId }] = await db
+    .insert(miembrosPrograma)
+    .values([
+      { userId: closerId, programId: programa.id },
+      { userId: otraCloserId, programId: programa.id },
+    ])
+    .returning();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      const json = (cuerpo: unknown) => ({ ok: true, status: 200, json: async () => cuerpo });
+      if (url.endsWith("/users/me")) {
+        return json({ resource: { current_organization: "https://api.calendly.com/organizations/o" } });
+      }
+      if (url.includes("/organization_memberships?")) {
+        return json({
+          collection: [
+            { user: { email: "closer@calendly.co", name: "Closer" } },
+            { user: { email: "otra@calendly.co", name: "Otra" } },
+          ],
+          pagination: {},
+        });
+      }
+      throw new Error(`URL inesperada ${url}`);
+    }),
+  );
 });
 
 afterEach(async () => {
+  vi.unstubAllGlobals();
   await cerrar();
 });
 
@@ -79,6 +123,46 @@ async function closerIdEnBase(id: string): Promise<string | null> {
   const [u] = await db.select().from(users).where(eq(users.id, id));
   return u.closerId;
 }
+
+async function calendlyEnMembresia(id: string): Promise<string | null> {
+  const [m] = await db.select().from(miembrosPrograma).where(eq(miembrosPrograma.id, id));
+  return m.calendlyEmail;
+}
+
+describe("asignarMiCalendlyAccion", () => {
+  it("una closer vincula su propia membresia", async () => {
+    auth.mockResolvedValue({ user: { id: closerId, email: "closer@retiagrowth.com", rol: "closer" } });
+    const { asignarMiCalendlyAccion } = await accion();
+    const res = await asignarMiCalendlyAccion({
+      membresiaId: membresiaCloserId,
+      calendlyEmail: "closer@calendly.co",
+    });
+    expect(res).toEqual({ ok: true });
+    expect(await calendlyEnMembresia(membresiaCloserId)).toBe("closer@calendly.co");
+  });
+
+  it("una closer no puede vincular la membresia de otra", async () => {
+    auth.mockResolvedValue({ user: { id: closerId, email: "closer@retiagrowth.com", rol: "closer" } });
+    const { asignarMiCalendlyAccion } = await accion();
+    const res = await asignarMiCalendlyAccion({
+      membresiaId: membresiaOtraCloserId,
+      calendlyEmail: "otra@calendly.co",
+    });
+    expect(res).toEqual({ ok: false, error: "Solo puedes cambiar tu propia cuenta de Calendly." });
+    expect(await calendlyEnMembresia(membresiaOtraCloserId)).toBeNull();
+  });
+
+  it("un gerente no trabaja leads y la accion lo rechaza", async () => {
+    auth.mockResolvedValue({ user: { id: gerenteId, email: "gerente@retiagrowth.com", rol: "gerente" } });
+    const { asignarMiCalendlyAccion } = await accion();
+    const res = await asignarMiCalendlyAccion({
+      membresiaId: membresiaCloserId,
+      calendlyEmail: "closer@calendly.co",
+    });
+    expect(res).toEqual({ ok: false, error: "Solo quien trabaja leads tiene cuenta de Calendly." });
+    expect(await calendlyEnMembresia(membresiaCloserId)).toBeNull();
+  });
+});
 
 describe("guardarCloserIdPropioAccion — quien PUEDE", () => {
   it("un gerente se carga su propio closerId", async () => {

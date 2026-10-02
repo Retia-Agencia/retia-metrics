@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
 import { changeLog, miembrosPrograma, programs, users } from "@/lib/db/schema";
@@ -9,7 +9,7 @@ import { cuentasDeCalendly } from "@/lib/calendly/cuentas";
 import { ErrorDeCalendly, type FetchLike } from "@/lib/calendly/cita";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { esAdministrador, ROLES } from "@/lib/auth/roles";
+import { AuthorizationError, esAdministrador, puedeTocarMembresia, ROLES } from "@/lib/auth/roles";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
 /**
@@ -491,9 +491,8 @@ export type EntradaCalendlyDeMembresia = z.input<typeof esquemaCalendlyDeMembres
  * (ticket 096, ADR 0049). La cuenta decide de quien es un deal (la closer host se lo
  * queda), asi que:
  *
- *  - **Solo administra quien `esAdministrador`**, igual que el `closerId`: una closer no
- *    puede reclamar una cuenta ajena. Lo reenforza la server action; aqui se recibe el
- *    actor ya autorizado, como el resto de este modulo.
+ *  - **Solo el dueño de la membresía o quien administra puede cambiarla** (ADR 0074).
+ *    La mutación lo comprueba con el actor autenticado antes de consultar Calendly.
  *  - **El correo tiene que ser una cuenta de la organizacion de Calendly del programa**,
  *    comprobado contra la API con el token del programa en el momento de guardar. Nadie
  *    teclea un correo: la pantalla ofrece la lista y el servidor no confia en ella.
@@ -513,6 +512,7 @@ export async function asignarCalendlyDeMembresia(
     const [m] = await db
       .select({
         id: miembrosPrograma.id,
+        userId: miembrosPrograma.userId,
         activo: miembrosPrograma.activo,
         actual: miembrosPrograma.calendlyEmail,
         email: users.email,
@@ -523,6 +523,10 @@ export async function asignarCalendlyDeMembresia(
       .innerJoin(programs, eq(programs.id, miembrosPrograma.programId))
       .where(eq(miembrosPrograma.id, membresiaId));
     if (!m || !m.activo) throw new ErrorDeApp("No existe esa membresía activa.", 404);
+    const [actor] = await db.select().from(users).where(eq(users.id, actorId));
+    if (!actor || !actor.activo || !puedeTocarMembresia(actor.rol, actorId, m.userId)) {
+      throw new AuthorizationError("Solo puedes cambiar tu propia cuenta de Calendly.");
+    }
     if (m.actual === calendlyEmail) return;
 
     if (calendlyEmail !== null) {
@@ -585,6 +589,25 @@ export async function membresiasConCalendly(
 ): Promise<MembresiaConCalendly[]> {
   const condiciones = [eq(miembrosPrograma.activo, true), eq(users.activo, true)];
   if (programId !== undefined) condiciones.push(eq(miembrosPrograma.programId, programId));
+  return consultarMembresiasConCalendly(db, condiciones);
+}
+
+/** Las membresias activas del usuario, para que vincule su propia cuenta de Calendly. */
+export async function membresiasConCalendlyDe(
+  db: Db,
+  userId: string,
+): Promise<MembresiaConCalendly[]> {
+  return consultarMembresiasConCalendly(db, [
+    eq(miembrosPrograma.activo, true),
+    eq(users.activo, true),
+    eq(miembrosPrograma.userId, userId),
+  ]);
+}
+
+async function consultarMembresiasConCalendly(
+  db: Db,
+  condiciones: SQL[],
+): Promise<MembresiaConCalendly[]> {
   const filas = await db
     .select({
       id: miembrosPrograma.id,

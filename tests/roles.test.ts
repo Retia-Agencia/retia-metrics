@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { puedeAcceder, esRolValido, trabajaLeads } from "@/lib/auth/roles";
+import { puedeAcceder, esRolValido, puedeTocarMembresia, trabajaLeads } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
@@ -16,6 +16,15 @@ describe("trabajaLeads", () => {
   it("sin rol no trabaja leads", () => {
     expect(trabajaLeads(null)).toBe(false);
     expect(trabajaLeads(undefined)).toBe(false);
+  });
+});
+
+describe("puedeTocarMembresia", () => {
+  it("permite al dueño, a quien administra y al developer; rechaza a otro closer", () => {
+    expect(puedeTocarMembresia("closer", "dueño", "dueño")).toBe(true);
+    expect(puedeTocarMembresia("gerente", "admin", "dueño")).toBe(true);
+    expect(puedeTocarMembresia("closer", "otro", "dueño")).toBe(false);
+    expect(puedeTocarMembresia("developer", "dev", "dueño")).toBe(true);
   });
 });
 

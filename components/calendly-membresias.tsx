@@ -7,11 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CuentasDelPrograma } from "@/lib/calendly/cuentas";
-import type { MembresiaConCalendly } from "@/lib/catalogo/usuarios";
-import { asignarCalendlyDeMembresiaAccion } from "@/app/(app)/ajustes/usuarios/acciones";
+import type { EntradaCalendlyDeMembresia, MembresiaConCalendly } from "@/lib/catalogo/usuarios";
 
 /**
- * La cuenta de Calendly de cada closer, por programa (ticket 096). Solo administrador.
+ * La cuenta de Calendly de cada closer, por programa. La usan `/ajustes/usuarios` y
+ * `/perfil` para el dueño de la membresía (ADR 0074).
  *
  * Nadie escribe un correo: cada programa ofrece las cuentas de SU organizacion de
  * Calendly, leidas con su token. La cuenta cuyo correo es el mismo del login viene
@@ -25,10 +25,14 @@ export function CalendlyMembresias({
   membresias,
   programas,
   cuentas,
+  accion,
 }: {
   membresias: MembresiaConCalendly[];
   programas: { id: string; nombre: string }[];
   cuentas: Record<string, CuentasDelPrograma>;
+  accion: (
+    input: EntradaCalendlyDeMembresia,
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
 }) {
   return (
     <Card>
@@ -51,7 +55,12 @@ export function CalendlyMembresias({
               ) : null}
               <ul className="divide-y rounded-md border">
                 {deEste.map((m) => (
-                  <FilaMembresia key={m.id} membresia={m} cuentas={lista?.ok ? lista.cuentas : null} />
+                  <FilaMembresia
+                    key={m.id}
+                    membresia={m}
+                    cuentas={lista?.ok ? lista.cuentas : null}
+                    accion={accion}
+                  />
                 ))}
               </ul>
             </section>
@@ -65,9 +74,13 @@ export function CalendlyMembresias({
 function FilaMembresia({
   membresia,
   cuentas,
+  accion,
 }: {
   membresia: MembresiaConCalendly;
   cuentas: { nombre: string | null; correo: string }[] | null;
+  accion: (
+    input: EntradaCalendlyDeMembresia,
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -86,7 +99,7 @@ function FilaMembresia({
 
   function guardar() {
     startTransition(async () => {
-      const res = await asignarCalendlyDeMembresiaAccion({
+      const res = await accion({
         membresiaId: membresia.id,
         calendlyEmail: valor === SIN_CUENTA ? null : valor,
       });

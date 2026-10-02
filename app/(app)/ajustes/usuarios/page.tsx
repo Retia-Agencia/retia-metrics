@@ -7,6 +7,7 @@ import { listarUsuarios, membresiasConCalendly } from "@/lib/catalogo/usuarios";
 import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
 import { trabajaLeads } from "@/lib/auth/roles";
 import { programasActivos } from "@/lib/queries/programas";
+import { asignarCalendlyDeMembresiaAccion } from "./acciones";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,12 @@ export default async function UsuariosPage() {
       />
       {membresias.length > 0 ? (
         <div className="mt-6">
-          <CalendlyMembresias membresias={membresias} programas={programas} cuentas={cuentas} />
+          <CalendlyMembresias
+            membresias={membresias}
+            programas={programas}
+            cuentas={cuentas}
+            accion={asignarCalendlyDeMembresiaAccion}
+          />
         </div>
       ) : null}
     </PageShell>
