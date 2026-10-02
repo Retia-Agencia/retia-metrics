@@ -168,7 +168,7 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 2. [092] con el **ADR 0068**: `sources.url_publica` y la fuente principal por programa. Sube de E8 a esta ola
    porque ComunicArte recibe por Typeform y por Dapta y hoy el CRM solo puede repartir un link.
 3. [102] el rol Paid Trafficker (valor nuevo del enum de roles).
-4. ✅ El manual se aprobó el 2-oct (ADR 0071): **el [142] salta al frente** y la cola se congela hasta que se aplique (toca el
+4. ✅ El manual se aprobó el 2-oct (ADR 0071): **el [142] salta al frente**. ✅ **0058 aplicada el 2-oct (madrugada)**: la cola se descongela (092 → 102). Toca el
    enum de etapas, los requisitos y la traducción de todos los deals). El 092 y el 102 esperan detrás, aunque su
    código puede avanzar en su rama sin generar la migración.
 

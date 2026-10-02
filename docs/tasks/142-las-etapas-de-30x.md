@@ -70,8 +70,8 @@ las reglas de movimiento no se pueden reescribir. No se toca nada de etapas ante
 >   (Registrado + Re-agenda, combinación que el motor no produce). Producción no tiene ese caso hoy (3 en Re-agenda,
 >   los 3 venían de Agendado, medido en solo lectura); test en `tests/migracion-0058.test.ts`. Probada en Postgres 17
 >   real con la base local. ⚠️ Una base local que ya aplicó la 0058 vieja no la vuelve a correr.
-> - **Falta:** el ok de Mani para aplicar la 0058 en producción en el mismo momento que la rama llega a `main`, y el
->   checkpoint verde. La cortesía (ADR 0071 p10) sigue sin decidir.
+> - ✅ **En `main` y 0058 aplicada en producción** el mismo momento (ok de Mani por `/goal`, 2-oct). Falta el checkpoint
+>   verde que lo incluya para marcarlo `done`. La cortesía (ADR 0071 p10) sigue sin decidir.
 
 ## Objetivo
 

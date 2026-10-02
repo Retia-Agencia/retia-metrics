@@ -32,6 +32,24 @@ leer es libre, escribir pide el ok de Mani.
 
 ## Memory
 
+- **2026-10-02 (madrugada, Mani + Claude): el 142 completo en `main` y la 0058 aplicada en producción.**
+  - **Hecho:** tanda 1 (Codex) el motor en `lib/deals/`; tanda 2 (Codex, cerrada por Claude al quedarse sin cuota)
+    los consumidores y `structure.md` §3; tanda 3 (Claude) la pregunta de la etapa en ficha, Kanban y Calls (ADR 0072),
+    con `revisarMovimiento`, un ensayo de `moverEtapa` que se deshace, como vista previa en verde y rojo. Recorrido en el
+    navegador contra la base local. Commits `75dfe98` a `e0212bf` y el de cierre. Detalle en el ticket 142.
+  - **Cazado en la revisión:** Codex borró tests de reglas vivas (restaurados); la tanda 1 perdió PR2 en
+    `marcarFallida` (restaurado con test); la 0058 dejaba "Registrado con Re-agenda" a un deal nacido en un pendiente
+    (corregida antes de aplicar, `tests/migracion-0058.test.ts`); dos pantallas cliente importaban el motor (drizzle al
+    bundle), ahora por props. 🩸 Codex no puede correr `npm test` en su sandbox (`spawnSync ps EPERM`): los tests los
+    corre siempre la sesión principal.
+  - **Decidido (Mani, 2-oct):** cita de Calendly fallida sin deal nace en Calificado; la bandeja "Pendiente Setteo" se
+    llama "Por settear"; tonos de §3; "Negocia" en Contactado (ADR 0072 enmendado); lo que el sistema decide solo deja
+    una nota "Sistema" en el log del deal.
+  - **Abierto:** la cortesía (ADR 0071 p10). Deuda chica: `tests/142-nuevas-*.ts` (dependen del `beforeEach` del test
+    que los importa). Una base local que aplicó la 0058 vieja tiene deals "Registrado con Re-agenda": `docker compose
+    down -v && npm run db:local` la rehace.
+  - **Para retomar:** que el checkpoint que incluya el 142 salga verde para marcarlo `done`; después 143, 128, 118 y la
+    cola de migraciones 092 → 102.
 - **2026-10-02 (Mani, sesión del 142): esquema y migración 0058 de las etapas de 30X en rama, brief de Codex listo.**
   - **Hecho:** rama `142-etapas-30x` (worktree `.claude/worktrees/142`), commit `fe64ded`: `schema.ts` + migración
     0058 reescrita a mano y probada en PGlite (11 casos). **Sin aplicar en producción.** Brief de la tanda 1 en
@@ -3820,8 +3838,8 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   entrada) y dudas D-1 a D-9 y QM-12 en el ADR 0071. **El 142 está desbloqueado y al frente de la cola de
   migraciones (142 → 092 → 102).** M-1 a M-6 contestadas el mismo día (ADR 0072: una pregunta por etapa, arrastre
   con la pregunta, solo alertas, Lead Value ordena). Para retomarlo: el 142 a Codex con `/delegate` (la migración la genera y aplica la sesión principal),
-  y el orden hasta el corte está en el manual §0. **Al 2-oct (noche): esquema + migración 0058 en la rama
-  `142-etapas-30x`, sin aplicar; el brief de la tanda 1 listo en `docs/tasks/142-brief-codex-tanda-1.md`, sin despachar.**
+  y el orden hasta el corte está en el manual §0. **Al 2-oct (madrugada): el 142 completo en `main` y la 0058
+  aplicada en producción; falta el checkpoint verde.**
 - ✅ **2-oct, checkpoint `cp-20261002-1`** (`526a105`, CI verde, producción sirve ese commit): 139 y 150 done
   (095 y 135 ya estaban en `cp-20261001-1`).
 - 🌊 **1-oct: olas y checkpoints** (`docs/plan-reparto.md` §1, §4 a §6). Ola O1 abierta; camino crítico: QM-10 y el

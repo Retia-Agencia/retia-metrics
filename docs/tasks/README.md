@@ -70,7 +70,7 @@ parten en **dos lotes** por dependencia (`comercial.md` §8): el lote 1 no depen
 
 | ✓ | # | Ticket | Bloqueado por | Estado |
 |---|---|---|---|---|
-| [ ] | 142 | [Las etapas de 30X](./142-las-etapas-de-30x.md) | QM-10, QD-8 | todo · 2-oct: **desbloqueado**. QM-10 en el ADR 0070; manual aprobado y D-1 a D-9 y QM-12 en el ADR 0071. Salta al frente de la cola de migraciones (`plan-reparto.md` §4) · carril Mani |
+| [ ] | 142 | [Las etapas de 30X](./142-las-etapas-de-30x.md) | QM-10, QD-8 | en `main` · 2-oct (madrugada): las tres tandas en `main` y la **0058 aplicada en producción** el mismo momento; falta el checkpoint verde que lo incluya para marcarlo `done`. Antes, 2-oct: **desbloqueado**. QM-10 en el ADR 0070; manual aprobado y D-1 a D-9 y QM-12 en el ADR 0071. Salta al frente de la cola de migraciones (`plan-reparto.md` §4) · carril Mani |
 | [ ] | 143 | [Etiquetas y propiedades por etapa](./143-etiquetas-y-propiedades-por-etapa.md) | 142, QD-8 | bloqueado · 1-oct: QD-10 sin etiquetas (solo Lead Value y Lead Quality); QD-4, toda obligatoria vacía es alerta roja. Cuáles son obligatorias sale del manual |
 | [ ] | 144 | [Próxima fecha de pago y cartera](./144-proxima-fecha-de-pago-y-cartera.md) | 132, QM-3, GC-17 | bloqueado |
 | [ ] | 145 | [Rol Customer Success y onboarding](./145-rol-customer-success-y-onboarding.md) | QM-5 | bloqueado |
