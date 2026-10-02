@@ -182,13 +182,13 @@ export interface FuenteEnNerdStats {
   nombre: string;
   programaNombre: string;
   estado: EstadoDeFuente;
-  /** Si la app la marca: silenciosa, con sobres sin procesar o con envios sin Estado (107). */
+  /** Si la app la marca: silenciosa, con sobres sin procesar o con completos sin calidad (107, ADR 0069). */
   marcada: boolean;
   /** `sources.estado = 'rota'` (039/055). Nadie la escribe desde que el sync se retiro; se muestra si aparece. */
   rota: boolean;
   ultimo: Date | null;
   sobresPendientes: number;
-  sinEstado: number;
+  sinCalidad: number;
 }
 
 /**
@@ -213,7 +213,7 @@ export async function fuentesConSalud(db: Db = dbDeLaApp, ahora: Date = new Date
     rota: esRota.has(f.sourceId),
     ultimo: f.ultimo,
     sobresPendientes: f.sobresPendientes,
-    sinEstado: f.sinEstado,
+    sinCalidad: f.sinCalidad,
   }));
 }
 

@@ -156,7 +156,7 @@ export default async function NerdStatsPage() {
               </p>
             ) : (
               <Tabla
-                encabezados={["Programa", "Fuente", "Estado", "Último envío", "Sobres sin procesar", "Sin Estado (24 h)"]}
+                encabezados={["Programa", "Fuente", "Estado", "Último envío", "Sobres sin procesar", "Sin calidad (24 h)"]}
                 filas={fuentes.map((f) => ({
                   clave: f.sourceId,
                   celdas: [
@@ -168,7 +168,7 @@ export default async function NerdStatsPage() {
                     </span>,
                     haceCuanto(f.ultimo),
                     num(f.sobresPendientes),
-                    num(f.sinEstado),
+                    num(f.sinCalidad),
                   ],
                 }))}
               />
