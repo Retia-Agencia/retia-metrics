@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, fechaDeInstanteEnBogota, fechaHoraEnBogota, num } from "@/lib/format";
 import { NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
 import type { DealDeLaFicha, EnvioDeLaFicha, FichaDeLead, ValorDeCampo } from "@/lib/queries/ficha-lead";
+import type { LeadEnOtroPrograma } from "@/lib/queries/otros-programas-del-correo";
 import { TONO_DE_ETAPA, TONO_DE_PENDIENTE } from "@/components/deals/etapa-tono";
 
 /**
@@ -279,3 +280,43 @@ export function FichaLeadEnvios({ ficha }: { ficha: FichaDeLead }) {
     </Card>
   );
 }
+
+/**
+ * El aviso de "a esta persona ya la conocemos del otro programa" (ticket 091, ADR 0043 punto 6).
+ * Es un aviso, no una cifra: no suma nada. De los programas que la sesion ve se muestra el nombre,
+ * la etapa y el enlace; de los que no ve, solo que existen (ADR 0048: el alcance no se ensancha).
+ */
+export function AvisoOtrosProgramas({ visibles, ocultos }: { visibles: LeadEnOtroPrograma[]; ocultos: number }) {
+  if (visibles.length === 0 && ocultos === 0) return null;
+  return (
+    <div className="space-y-2 rounded-xl bg-tono-info-suave p-4 text-sm text-tono-info" role="note">
+      <p className="font-medium">Este correo también es lead de otro programa.</p>
+      {visibles.length > 0 ? (
+        <ul className="space-y-1.5">
+          {visibles.map((o) => (
+            <li key={o.leadId} className="flex flex-wrap items-center gap-2">
+              <Link
+                href={`/p/${o.programaSlug}/leads/${o.leadId}`}
+                className="rounded-lg font-medium underline underline-offset-2 outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                {o.programaNombre}
+              </Link>
+              {o.deal ? (
+                <Badge variant={TONO_DE_ETAPA[o.deal.etapa]}>{NOMBRE_DE_ETAPA[o.deal.etapa]}</Badge>
+              ) : (
+                <span className="text-xs">sin deal</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {ocultos > 0 ? (
+        <p className="text-xs">
+          {ocultos === 1 ? "Está en un programa" : `Está en ${num(ocultos)} programas`} que tu cuenta no ve.
+        </p>
+      ) : null}
+      <p className="text-xs">Son leads distintos: cada programa lo trabaja y lo mide por su lado.</p>
+    </div>
+  );
+}
+

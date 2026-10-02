@@ -62,7 +62,8 @@ vi.mock("@/lib/queries/programas", () => ({
 // para poder simular "este programa esta / no esta dentro del alcance de la sesion".
 const programaVisiblePorSlug = vi.fn();
 const programasVisibles = vi.fn();
-vi.mock("@/lib/auth/alcance", () => ({ programaVisiblePorSlug, programasVisibles }));
+const idsDeProgramasVisibles = vi.fn();
+vi.mock("@/lib/auth/alcance", () => ({ programaVisiblePorSlug, programasVisibles, idsDeProgramasVisibles }));
 
 // La ficha del lead (ticket 073) y la redireccion de `/personas/[id]` leen la base; sin
 // base en los tests se mockean las queries para que las guardas y el 404 sean lo unico
@@ -70,6 +71,8 @@ vi.mock("@/lib/auth/alcance", () => ({ programaVisiblePorSlug, programasVisibles
 const fichaDeLead = vi.fn();
 const slugDelLeadVisible = vi.fn();
 vi.mock("@/lib/queries/ficha-lead", () => ({ fichaDeLead, slugDelLeadVisible }));
+const otrosProgramasDelCorreo = vi.fn();
+vi.mock("@/lib/queries/otros-programas-del-correo", () => ({ otrosProgramasDelCorreo }));
 
 // La pagina de recursos (ticket 023) lee la base; sin base en los tests se mockean
 // las lecturas para que las guardas sean lo unico bajo prueba.
@@ -209,6 +212,10 @@ beforeEach(() => {
   fichaDeLead.mockResolvedValue(FICHA_VACIA);
   slugDelLeadVisible.mockReset();
   slugDelLeadVisible.mockResolvedValue("programa-a");
+  otrosProgramasDelCorreo.mockReset();
+  otrosProgramasDelCorreo.mockResolvedValue([]);
+  idsDeProgramasVisibles.mockReset();
+  idsDeProgramasVisibles.mockResolvedValue(new Set());
   recursosVigentes.mockReset();
   recursosVigentes.mockResolvedValue([]);
   enlacesDePagoVigentes.mockReset();
