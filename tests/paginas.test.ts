@@ -122,6 +122,17 @@ vi.mock("@/lib/queries/registros-agendas-canal", () => ({ registrosYAgendasPorCa
 // Deals creados contra agendas (138), igual: sin base, la gráfica no disponible.
 const vistaDealsContraAgendas = vi.fn(async () => ({ disponible: false }));
 vi.mock("@/lib/queries/vista-deals-contra-agendas", () => ({ vistaDealsContraAgendas }));
+// Urgencias (066), igual: sin base, el dia observado sin agendas.
+const urgenciasDelPrograma = vi.fn(async () => ({
+  dia: "2026-09-14",
+  ventana: ["2026-09-03", "2026-09-04", "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11"],
+  agendas: 0,
+  registros: 0,
+  promedioAgendas: 0,
+  semaforo: null,
+  filas: [],
+}));
+vi.mock("@/lib/queries/urgencias", () => ({ urgenciasDelPrograma }));
 
 // La pagina de cohortes lee las cohortes del programa; sin base en los tests, se
 // mockea la lectura para que la guarda sea lo unico bajo prueba.
@@ -501,6 +512,47 @@ describe("dashboard de programa /p/[programa]/dashboard (ADR 0048 + 0012)", () =
     auth.mockResolvedValue(sesionCloser);
     programaVisiblePorSlug.mockResolvedValue(null);
     expect(await correrPrograma("programa-ajeno")).toBe("notFound");
+  });
+});
+
+/**
+ * Urgencias (ticket 066): mismo alcance que el dashboard del programa (ADR 0048). Un programa
+ * fuera del alcance es 404, nunca 403, y la guarda corre antes de mirar el slug.
+ */
+describe("urgencias /p/[programa]/urgencias (ticket 066)", () => {
+  async function correr(slug: string): Promise<"paso" | "login" | "otro" | "notFound"> {
+    const modulo = (await import("@/app/(app)/p/[programa]/urgencias/page")) as {
+      default: (props: { params: Promise<{ programa: string }> }) => Promise<unknown>;
+    };
+    try {
+      await modulo.default({ params: Promise.resolve({ programa: slug }) });
+      return "paso";
+    } catch (e) {
+      if (e instanceof NoEncontrado) return "notFound";
+      if (e instanceof Redireccion) return e.destino === "/login" ? "login" : "otro";
+      throw e;
+    }
+  }
+
+  it("deja pasar a closer, gerente y developer dentro de su alcance, con el programa de la ruta", async () => {
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
+    for (const sesion of [sesionCloser, sesionGerente, sesionDeveloper]) {
+      auth.mockResolvedValue(sesion);
+      expect(await correr("programa-a")).toBe("paso");
+      expect((urgenciasDelPrograma.mock.calls.at(-1) as unknown[] | undefined)?.[1]).toBe("p-1");
+    }
+  });
+
+  it("un programa fuera del alcance es 404", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programaVisiblePorSlug.mockResolvedValue(null);
+    expect(await correr("programa-ajeno")).toBe("notFound");
+  });
+
+  it("sin sesion va al login antes de mirar el slug", async () => {
+    auth.mockResolvedValue(null);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
+    expect(await correr("programa-a")).toBe("login");
   });
 });
 
