@@ -99,8 +99,9 @@ transiciones.
 ## H. Inbox, alertas y urgencias
 
 - [ ] **27. Llamada suelta.** Inbox → la cita de Calendly sin deal aparece suelta. Asígnala a un deal.
-- [ ] **28. "Se perdió en el Calendly" (118).** Arriba del Inbox, si el seed dejó un caso, aparece. Si no hay
-  ninguno, anótalo como aclaración.
+- [ ] **28. "Se perdió en el Calendly" (118).** Arriba del Inbox de ComunicArte aparecen "Perdido en Calendly 1" y
+  "2": llenaron el formulario con calidad High, llegaron al Calendly y no agendaron (parcial sin su completo, deal
+  en Calificado sin dueño).
 - [ ] **29. Alertas de la ficha (128).** En un deal al que le falta algo de su etapa, la ficha lo dice en rojo
   y "Para avanzar le falta…" en amarillo. Una llamada pasada sin resultado sale en rojo y en el Inbox.
 - [ ] **30. Urgencias.** `/p/comunicarte-local/urgencias` carga el semáforo del día hábil anterior: agendas

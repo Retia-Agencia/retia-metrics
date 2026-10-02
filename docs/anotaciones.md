@@ -29,7 +29,7 @@ Bandeja única de lo que sale de recorrer la app a mano: cambios que queremos, a
 | A-10 | Cohortes | aclaración + cambio | ¿Dónde se manejan las cohortes? Hay que poder crearlas, asociarlas a su programa y darles fecha de inicio. | 014 (existe), 100 | resuelta la aclaración · lo visible queda en 100 |
 | A-11 | Personas / Leads | aclaración + cambio | ¿Por qué existe Personas si ya hay Leads? Leads es la que debe tener todo lo de A-09 (y la búsqueda). Personas se retira. | 072 | en ticket |
 | A-12 | Leads → Posibles duplicados | cambio | El aviso de posible duplicado tiene que traer **pegado el lead que cree que es el mismo**, lado a lado y con la razón (el teléfono en común), para decidir ahí sin buscar a nadie. Es un caso del principio P-1. | 072, 075 | en ticket |
-| A-13 | Ficha del Deal | cambio | Un bloque de **Alertas** en el Deal: en **rojo** lo urgente que falta llenar; en **amarillo**, dicho explícito, lo que el Deal necesita para pasar a la siguiente etapa. Que el closer no tenga que memorizar el flujo. | 128 (nuevo) | en ticket |
+| A-13 | Ficha del Deal | cambio | Un bloque de **Alertas** en el Deal: en **rojo** lo urgente que falta llenar; en **amarillo**, dicho explícito, lo que el Deal necesita para pasar a la siguiente etapa. Que el closer no tenga que memorizar el flujo. | 128 | resuelta · 2-oct (128): bloque de Alertas en la ficha, rojo lo urgente y amarillo "Para avanzar" con lo que pide el motor |
 | A-14 | Personas / Leads | aclaración | ¿Cuál es la diferencia entre Leads y Personas? Está muy confuso. | 072 | resuelta · 30-sep (abajo) |
 
 ## Recorrido 2 · 1-oct · revisión visual del 139 (closer, base local con un envío real copiado de producción)

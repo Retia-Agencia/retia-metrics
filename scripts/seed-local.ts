@@ -101,6 +101,7 @@ function entradaDePrueba(
     utmId?: string;
     sinUtm?: boolean;
     esParcial?: boolean;
+    leadQuality?: string;
   },
 ): EntradaEnvio {
   const vacio = o.sinUtm ? "" : undefined;
@@ -124,6 +125,7 @@ function entradaDePrueba(
     },
     campos: { ...CAMPOS_MAPEO },
     esParcial: o.esParcial,
+    leadQuality: o.leadQuality,
   };
 }
 
@@ -871,6 +873,24 @@ export async function sembrarLocal(): Promise<void> {
       estado: "setteo_no_calificado",
       fecha: `2026-10-01T${12 + numero}:00:00-05:00`,
       esParcial: false,
+    })),
+    { aplicarReglaDeDeals: true },
+  );
+
+  // Prueba 28 (118): "se perdió en el Calendly". Parcial con calidad High y sin su completo:
+  // la regla abre el deal en Calificado sin dueño, y el Inbox lo lista pasados unos minutos.
+  await ingerirEntradas(
+    db,
+    prog1.id,
+    [1, 2].map((numero) => entradaDePrueba(f1.id, {
+      token: `tok-perdido-calendly-${numero}`,
+      correo: `perdido-calendly-${numero}@ejemplo.local`,
+      nombre: `Perdido en Calendly ${numero}`,
+      telefono: `+57300840000${numero}`,
+      estado: "setteo_no_calificado",
+      fecha: `2026-10-01T${15 + numero}:00:00-05:00`,
+      esParcial: true,
+      leadQuality: "High",
     })),
     { aplicarReglaDeDeals: true },
   );
