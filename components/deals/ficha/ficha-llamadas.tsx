@@ -100,6 +100,7 @@ export function FichaLlamadas({
               <li key={c.id} className={anulada ? "space-y-1 px-4 py-3 text-sm opacity-60" : "space-y-1 px-4 py-3 text-sm"}>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={TONO[c.resultado]}>{ETIQUETA[c.resultado]}</Badge>
+                  {/* ponytail: aquí va la marca "sin Grain" del 135 (función única de lib/), no se reimplementa aquí. */}
                   <span className={anulada ? "cifra line-through" : "cifra"}>
                     {c.fechaAgenda ? `Cita ${fechaHoraEnBogota(c.fechaAgenda)}` : "Sin fecha de cita"}
                   </span>

@@ -2,53 +2,62 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { fechaHoraEnBogota } from "@/lib/format";
 import type { EtapaDeal } from "@/lib/deals/etapas";
-import type { FichaDeMovimiento } from "@/lib/queries/ficha-deal";
+import type { FichaDeEvento } from "@/lib/queries/ficha-deal";
 import type { TonoEtapa } from "../etapa-tono";
 import { Vacio } from "./campos";
 
 /**
- * El historial de etapas del deal (ticket 074, ADR 0037): cada movimiento con quien lo hizo
- * ("Sistema" si nadie: un abono, el Grain) y su motivo. Del mas viejo al mas nuevo, como se vivio.
+ * El log del deal une los movimientos de etapa y su bitacora operativa, del mas reciente
+ * al mas antiguo. Los valores largos conservan el contenido completo en `title`.
  */
 export function FichaHistorial({
-  historial,
+  log,
   nombreDeEtapa,
   tonoDeEtapa,
 }: {
-  historial: FichaDeMovimiento[];
+  log: FichaDeEvento[];
   nombreDeEtapa: Record<EtapaDeal, string>;
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Historial de etapas</CardTitle>
+        <CardTitle>Log de eventos</CardTitle>
       </CardHeader>
-      {historial.length === 0 ? (
-        <Vacio>Este deal todavía no tiene movimientos de etapa.</Vacio>
+      {log.length === 0 ? (
+        <Vacio>Este deal todavía no tiene eventos registrados.</Vacio>
       ) : (
         <ol className="divide-y">
-          {historial.map((h) => (
-            <li key={h.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
-              <span className="flex flex-wrap items-center gap-1.5">
-                {h.de ? (
-                  <>
-                    <Badge variant={tonoDeEtapa[h.de]}>{nombreDeEtapa[h.de]}</Badge>
-                    <span aria-hidden className="text-muted-foreground">
-                      →
-                    </span>
-                  </>
+          {log.map((evento) => {
+            const anterior = evento.valorAnterior ?? "—";
+            const nuevo = evento.valorNuevo ?? "—";
+            const recortar = (valor: string) => (valor.length > 80 ? `${valor.slice(0, 77)}…` : valor);
+            return (
+              <li key={`${evento.tipo}-${evento.id}`} className="flex min-w-0 flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
+                {evento.tipo === "etapa" && evento.a ? (
+                  <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                    {evento.de ? (
+                      <>
+                        <Badge variant={tonoDeEtapa[evento.de]}>{nombreDeEtapa[evento.de]}</Badge>
+                        <span aria-hidden className="text-muted-foreground">→</span>
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Alta en</span>
+                    )}
+                    <Badge variant={tonoDeEtapa[evento.a]}>{nombreDeEtapa[evento.a]}</Badge>
+                    {evento.motivoNombre ? <span className="text-muted-foreground">· {evento.motivoNombre}</span> : null}
+                  </span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Alta en</span>
+                  <span className="min-w-0 break-words" title={`${evento.tabla}.${evento.campo}: ${anterior} → ${nuevo}`}>
+                    <span className="font-medium">{evento.tabla}.{evento.campo}:</span> {recortar(anterior)} → {recortar(nuevo)}
+                  </span>
                 )}
-                <Badge variant={tonoDeEtapa[h.a]}>{nombreDeEtapa[h.a]}</Badge>
-                {h.motivoNombre ? <span className="text-muted-foreground">· {h.motivoNombre}</span> : null}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {h.porNombre ?? "Sistema"} · {fechaHoraEnBogota(h.fecha)}
-              </span>
-            </li>
-          ))}
+                <span className="text-xs text-muted-foreground">
+                  {evento.porNombre ?? "Sistema"} · {fechaHoraEnBogota(evento.fecha)}
+                </span>
+              </li>
+            );
+          })}
         </ol>
       )}
     </Card>

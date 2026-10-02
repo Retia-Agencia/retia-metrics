@@ -1,11 +1,13 @@
-import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, or } from "drizzle-orm";
 import {
   abonos,
   calls,
+  changeLog,
   cohorts,
   dealActividades,
   dealEtapaHistorial,
   deals,
+  leadContactos,
   leads,
   motivos,
   plataformasPago,
@@ -22,6 +24,8 @@ import { descuentoDeDeal, saldosDeDeals, type DescuentoDeDeal, type SaldoDeDeal 
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { ETAPAS_VENDIDAS } from "@/lib/queries/metricas-filtros";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
+import { columnasUtmDelEnvio, utmsDelEnvio, type UtmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
+import { enlacesDePagoVigentes, type EnlaceDeLaPantalla } from "@/lib/queries/recursos";
 
 /**
  * Todo lo de UN deal para su ficha (ticket 074): cabecera, llamadas, abonos, actividades e
@@ -85,6 +89,41 @@ export interface FichaDeMovimiento {
   motivoNombre: string | null;
 }
 
+export interface FichaDeEvento {
+  id: string;
+  fecha: Date;
+  tipo: "etapa" | "cambio";
+  tabla?: string;
+  campo?: string;
+  valorAnterior?: string | null;
+  valorNuevo?: string | null;
+  de?: EtapaDeal | null;
+  a?: EtapaDeal;
+  porNombre: string | null;
+  motivoNombre?: string | null;
+}
+
+function respuestaLegible(valor: unknown): string | null {
+  if (valor === null || valor === "") return null;
+  if (typeof valor === "string") return valor;
+  if (typeof valor === "number" || typeof valor === "boolean") return String(valor);
+  if (Array.isArray(valor)) {
+    const partes = valor.map(respuestaLegible).filter((x): x is string => x !== null);
+    return partes.length > 0 ? partes.join(", ") : null;
+  }
+  if (typeof valor === "object") return JSON.stringify(valor);
+  return String(valor);
+}
+
+/** Convierte las respuestas crudas del formulario sin alterar sus llaves ni su orden. */
+export function respuestasLegibles(respuestas: unknown): { pregunta: string; respuesta: string }[] {
+  if (respuestas === null || typeof respuestas !== "object" || Array.isArray(respuestas)) return [];
+  return Object.entries(respuestas)
+    .filter(([pregunta]) => !pregunta.trim().toLowerCase().startsWith("utm_"))
+    .map(([pregunta, valor]) => ({ pregunta, respuesta: respuestaLegible(valor) }))
+    .filter((x): x is { pregunta: string; respuesta: string } => x.respuesta !== null);
+}
+
 export interface FichaDeDeal {
   dealId: string;
   programId: string;
@@ -103,7 +142,19 @@ export interface FichaDeDeal {
    * El origen del deal: los UTM del envio que lo abrio, completos (ADR 0060). `null` = el
    * deal no tiene envio de origen, y la pantalla lo dice en vez de inventar un canal.
    */
-  origen: { utmSource: string | null; utmMedium: string | null; utmCampaign: string | null } | null;
+  origen: { envioId: string; fecha: Date; calificacion: string | null; utm: UtmsDelEnvio } | null;
+  perfil: {
+    leadQuality: string | null;
+    leadValue: string | null;
+    respuestas: { pregunta: string; respuesta: string }[];
+  };
+  contactos: {
+    id: string;
+    tipo: "correo" | "telefono";
+    valor: string;
+    esPrincipal: boolean;
+    confirmado: boolean;
+  }[];
   owner: { id: string; nombre: string | null } | null;
   valorVendidoUsd: number | null;
   ticket: { cohorteId: string; codigo: string; precioUsd: number; esActivaSugerida: boolean } | null;
@@ -131,6 +182,8 @@ export interface FichaDeDeal {
   abonos: FichaDeAbono[];
   actividades: FichaDeActividad[];
   historial: FichaDeMovimiento[];
+  log: FichaDeEvento[];
+  enlacesDePago: EnlaceDeLaPantalla[];
 }
 
 function fechaDeLlamada(c: { fechaAgenda: Date | null; fechaLlamada: Date | null }): Date | null {
@@ -145,9 +198,10 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
     .select({
       deal: deals,
       lead: leads,
-      origenSource: submissions.utmSource,
-      origenMedium: submissions.utmMedium,
-      origenCampaign: submissions.utmCampaign,
+      envioId: submissions.id,
+      envioFecha: submissions.createdAt,
+      envioCalificacion: submissions.calificacion,
+      ...columnasUtmDelEnvio,
     })
     .from(deals)
     .innerJoin(leads, eq(leads.id, deals.leadId))
@@ -179,6 +233,22 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
     .from(dealEtapaHistorial)
     .where(eq(dealEtapaHistorial.dealId, deal.id))
     .orderBy(asc(dealEtapaHistorial.fecha));
+  const contactosFilas = await db
+    .select()
+    .from(leadContactos)
+    .where(and(eq(leadContactos.leadId, lead.id), eq(leadContactos.programId, deal.programId)))
+    .orderBy(desc(leadContactos.esPrincipal), asc(leadContactos.createdAt));
+  const idsRelacionados = [...llamadasFilas, ...abonosFilas, ...actividadesFilas].map((x) => x.id);
+  const cambiosFilas = await db
+    .select()
+    .from(changeLog)
+    .where(
+      idsRelacionados.length > 0
+        ? or(and(eq(changeLog.tabla, "deals"), eq(changeLog.registroId, deal.id)), inArray(changeLog.registroId, idsRelacionados))
+        : and(eq(changeLog.tabla, "deals"), eq(changeLog.registroId, deal.id)),
+    )
+    .orderBy(desc(changeLog.detectadoEn));
+  const enlacesDePago = await enlacesDePagoVigentes({ programId: deal.programId }, db);
 
   // Nombres de personas: una sola consulta con todos los ids que aparecen.
   const idsDeUsuarios = new Set<string>();
@@ -191,6 +261,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
   abonosFilas.forEach((a) => sumar(a.anuladoPor));
   actividadesFilas.forEach((a) => sumar(a.userId));
   historialFilas.forEach((h) => sumar(h.userId));
+  cambiosFilas.forEach((c) => sumar(c.userId));
   const nombres = new Map<string, string | null>();
   if (idsDeUsuarios.size > 0) {
     const us = await db
@@ -236,9 +307,26 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
       ciudad: lead.ciudad,
       pais: lead.pais,
     },
-    origen: deal.submissionOrigenId
-      ? { utmSource: fila.origenSource, utmMedium: fila.origenMedium, utmCampaign: fila.origenCampaign }
+    origen: deal.submissionOrigenId && fila.envioId && fila.envioFecha
+      ? {
+          envioId: fila.envioId,
+          fecha: fila.envioFecha,
+          calificacion: fila.envioCalificacion,
+          utm: utmsDelEnvio(fila),
+        }
       : null,
+    perfil: {
+      leadQuality: lead.leadQuality,
+      leadValue: lead.leadValue,
+      respuestas: respuestasLegibles(fila.respuestas),
+    },
+    contactos: contactosFilas.map((c) => ({
+      id: c.id,
+      tipo: c.tipo,
+      valor: c.valor,
+      esPrincipal: c.esPrincipal,
+      confirmado: c.confirmado,
+    })),
     owner: deal.ownerUserId ? { id: deal.ownerUserId, nombre: nombreDe(deal.ownerUserId) } : null,
     valorVendidoUsd,
     ticket: cohorteDelTicket
@@ -310,6 +398,28 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
       porNombre: nombreDe(h.userId),
       motivoNombre: nombreDeMotivo(h.motivoId),
     })),
+    log: [
+      ...historialFilas.map((h): FichaDeEvento => ({
+        id: h.id,
+        fecha: h.fecha,
+        tipo: "etapa",
+        de: h.de,
+        a: h.a,
+        porNombre: nombreDe(h.userId),
+        motivoNombre: nombreDeMotivo(h.motivoId),
+      })),
+      ...cambiosFilas.map((c): FichaDeEvento => ({
+        id: c.id,
+        fecha: c.detectadoEn,
+        tipo: "cambio",
+        tabla: c.tabla,
+        campo: c.campo,
+        valorAnterior: c.valorAnterior,
+        valorNuevo: c.valorNuevo,
+        porNombre: nombreDe(c.userId),
+      })),
+    ].sort((a, b) => b.fecha.getTime() - a.fecha.getTime()),
+    enlacesDePago,
   };
 }
 

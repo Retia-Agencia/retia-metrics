@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fecha, fechaHoraEnBogota, hoyEnBogota, monto, pct, saldoLegible, usd } from "@/lib/format";
@@ -17,6 +18,7 @@ import {
 } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Campo, claseInput, claseTextarea, DialogoForm, Vacio } from "./campos";
 import { useAccion } from "./uso-accion";
+import { cn } from "@/lib/utils";
 
 /**
  * El dinero y el pago del deal (ticket 074): precio, abonado y saldo, el acuerdo de pago,
@@ -63,7 +65,7 @@ export function FichaPago({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Pago</CardTitle>
+        <CardTitle>Facturación</CardTitle>
         {abonosActivos || (puedeTrabajar && !anulado) ? (
           <CardAction className="flex gap-2">
             {puedeTrabajar && !anulado ? (
@@ -112,6 +114,24 @@ export function FichaPago({
         {s.sinSaldoPorque === "moneda_distinta" ? (
           <p className="text-xs text-tono-alerta">Hay abonos en otra moneda que el valor vendido: el saldo no se calcula ni se convierte.</p>
         ) : null}
+
+        <section className="space-y-2">
+          <h3 className="text-sm font-medium">Link de pago</h3>
+          {ficha.enlacesDePago.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay links de pago vigentes para este programa.</p>
+          ) : (
+            <ul className="divide-y">
+              {ficha.enlacesDePago.map((enlace) => (
+                <li key={enlace.id} className="flex min-w-0 flex-wrap items-center gap-2 py-2">
+                  <span className="min-w-0 flex-1 break-words text-sm">
+                    {enlace.plataformaNombre ?? "Sin plataforma"} · <span className="cifra">{monto(Number(enlace.monto), enlace.moneda)}</span>
+                  </span>
+                  <AccionesEnlacePago url={enlace.url} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         {/* El acuerdo de pago: texto y fecha limite (ADR 0053), no cuotas. */}
         <div className="space-y-1 rounded-lg bg-muted/50 p-3 text-sm">
@@ -224,6 +244,34 @@ export function FichaPago({
       {dialogo?.tipo === "acuerdo" ? <DialogoAcuerdo ficha={ficha} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "cohorte" ? <DialogoCohorte ficha={ficha} opciones={opciones} onCerrar={cerrar} /> : null}
     </Card>
+  );
+}
+
+function AccionesEnlacePago({ url }: { url: string }) {
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copiado");
+    } catch {
+      toast.error("No se pudo copiar el link");
+    }
+  }
+
+  return (
+    <span className="flex shrink-0 items-center gap-1">
+      <Button size="xs" variant="ghost" onClick={copiar} aria-label="Copiar link de pago">
+        Copiar
+      </Button>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn(buttonVariants({ variant: "ghost", size: "xs" }))}
+        aria-label="Abrir link de pago"
+      >
+        Abrir
+      </a>
+    </span>
   );
 }
 

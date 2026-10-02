@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { fecha, fechaHoraEnBogota } from "@/lib/format";
+import { fecha, fechaHoraEnBogota, saldoLegible, usd, pct } from "@/lib/format";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import type { FichaDeDeal } from "@/lib/queries/ficha-deal";
 import type { TonoEtapa } from "../etapa-tono";
@@ -13,15 +13,17 @@ import { Dato } from "./campos";
  */
 export function FichaCabecera({
   ficha,
+  nombre,
   nombreDeEtapa,
   tonoDeEtapa,
 }: {
   ficha: FichaDeDeal;
+  nombre: string;
   nombreDeEtapa: Record<EtapaDeal, string>;
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
 }) {
-  const { lead } = ficha;
   const anulado = ficha.anulado != null;
+  const saldo = saldoLegible(ficha.saldo.saldo, ficha.saldo.moneda ?? "USD");
 
   return (
     <Card>
@@ -37,10 +39,9 @@ export function FichaCabecera({
 
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className={anulado ? "text-lg font-semibold line-through text-muted-foreground" : "text-lg font-semibold"}>
-              {lead.nombre ?? lead.email}
+            <h2 className={anulado ? "break-words text-lg font-semibold line-through text-muted-foreground" : "break-words text-lg font-semibold"}>
+              {nombre}
             </h2>
-            <p className="text-sm text-muted-foreground">{lead.nombre ? lead.email : null}</p>
           </div>
           <Badge variant={anulado ? "neutro" : tonoDeEtapa[ficha.etapa]}>
             {nombreDeEtapa[ficha.etapa]}
@@ -48,24 +49,22 @@ export function FichaCabecera({
           </Badge>
         </div>
 
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-5">
           <Dato etiqueta="Dueño">{ficha.owner ? (ficha.owner.nombre ?? "Sin nombre") : "Sin dueño"}</Dato>
-          <Dato etiqueta="Área de origen">{ficha.areaDeclarada?.nombre ?? null}</Dato>
-          <Dato etiqueta="Cohorte">
-            {ficha.cohorte?.codigo ?? null}
-            {ficha.cohorteDestino ? ` → ${ficha.cohorteDestino.codigo}` : null}
+          <Dato etiqueta="Valor vendido">
+            <span className="cifra">{ficha.valorVendidoUsd == null ? "—" : usd(ficha.valorVendidoUsd)}</span>
           </Dato>
+          <Dato etiqueta="Ticket base">
+            <span className="cifra">{ficha.ticket ? usd(ficha.ticket.precioUsd) : "—"}</span>
+          </Dato>
+          <Dato etiqueta="Descuento">
+            <span className="cifra">{ficha.descuento ? `${usd(ficha.descuento.usd)} · ${pct(ficha.descuento.porcentaje)}` : "—"}</span>
+          </Dato>
+          <Dato etiqueta={saldo.etiqueta}>
+            <span className="cifra">{saldo.valor}</span>
+          </Dato>
+          {ficha.cohorteDestino ? <Dato etiqueta="Cambia a cohorte">{ficha.cohorteDestino.codigo}</Dato> : null}
           <Dato etiqueta="Seguimiento">{ficha.fechaSeguimiento ? fecha(ficha.fechaSeguimiento) : null}</Dato>
-          <Dato etiqueta="Teléfono">{lead.telefono}</Dato>
-          <Dato etiqueta="Empresa">{[lead.empresa, lead.cargo].filter(Boolean).join(" · ") || null}</Dato>
-          <Dato etiqueta="Ubicación">{[lead.ciudad, lead.pais].filter(Boolean).join(", ") || null}</Dato>
-          <Dato etiqueta="Canal">
-            {ficha.origen === null
-              ? "Sin envío de origen"
-              : ficha.origen.utmSource || ficha.origen.utmMedium
-                ? `${ficha.origen.utmSource ?? "—"} / ${ficha.origen.utmMedium ?? "—"}`
-                : "Sin UTM"}
-          </Dato>
           {ficha.motivo ? <Dato etiqueta="Motivo del cierre">{ficha.motivo.nombre}</Dato> : null}
           <Dato etiqueta="Creado">{fechaHoraEnBogota(ficha.creadoEn)}</Dato>
         </dl>

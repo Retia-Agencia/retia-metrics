@@ -32,7 +32,7 @@ export function Dato({ etiqueta, children }: { etiqueta: string; children: React
   return (
     <div className="min-w-0">
       <dt className="text-xs text-muted-foreground">{etiqueta}</dt>
-      <dd className="truncate text-sm">{children ?? "—"}</dd>
+      <dd className="break-words text-sm">{children ?? "—"}</dd>
     </div>
   );
 }
