@@ -3,7 +3,7 @@ id: 128
 etapa: E6
 serves: "docs/anotaciones.md A-13 · principio P-1 · ADR 0050"
 depends: [074, 071, 135]
-status: todo
+status: done
 ---
 
 # 128 — Las alertas del Deal: qué urge y qué le falta para avanzar
@@ -45,11 +45,11 @@ closer aprendería a no creerle. Por eso:
 
 ## Done cuando
 
-- [ ] Para cada flecha del camino feliz, lo que dice el amarillo es exactamente lo que `moverEtapa`
+- [x] Para cada flecha del camino feliz, lo que dice el amarillo es exactamente lo que `moverEtapa`
       rechazaría (test que compara las dos salidas, como `tests/saldo-centralizado.test.ts`).
-- [ ] Un deal que aparece en "necesita atención" del Inbox muestra la misma alerta en rojo en su
+- [x] Un deal que aparece en "necesita atención" del Inbox muestra la misma alerta en rojo en su
       ficha, y uno que no, no (mismo test en los dos sentidos).
-- [ ] Resolver la alerta desde el bloque la hace desaparecer sin recargar a mano (`router.refresh()`).
+- [x] Resolver la alerta desde el bloque la hace desaparecer sin recargar a mano (`router.refresh()`).
 - [ ] Recorrido visual a 390 px con la consola abierta.
 
 ## Kiro
@@ -63,3 +63,5 @@ Sí, con revisión visual.
 
 - **Rojo nuevo: atendido sin Grain** (ADR 0066), con la función del **135**, no una copia. Depende del 135.
 - **Amarillo:** "Falta el producto" pasa a "Falta el valor vendido" (132), y sale de `queLeFalta` como todo lo demás.
+
+Implementado 2-oct: sin la alerta de Grain y sin el indicador del Kanban (fuera de esta entrega); amarillo extra en En gestión.

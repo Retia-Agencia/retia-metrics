@@ -29,7 +29,7 @@ export function FichaCabecera({
   const saldo = saldoLegible(ficha.saldo.saldo, ficha.saldo.moneda ?? "USD");
 
   return (
-    <Card>
+    <Card id="campos" className="scroll-mt-24">
       <CardContent className="space-y-4">
         {ficha.anulado ? (
           <div className="rounded-lg bg-tono-peligro-suave p-3 text-sm text-tono-peligro">

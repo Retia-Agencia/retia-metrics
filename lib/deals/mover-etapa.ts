@@ -786,7 +786,7 @@ export const RESULTADOS_FALLIDOS = ["no_show", "cancelada"] as const;
 type FilaDeal = typeof deals.$inferSelect;
 
 /** Los hechos del deal, leidos de la base dentro de la misma transaccion. */
-async function leerHechos(
+export async function leerHechos(
   tx: Db,
   deal: FilaDeal,
   motivoId: string | null,

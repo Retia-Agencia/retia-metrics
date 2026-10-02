@@ -15,8 +15,11 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
+import { ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA, siguientesDe, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
+import { leerHechos } from "@/lib/deals/mover-etapa";
+import { queLeFalta, type RequisitoFaltante } from "@/lib/deals/requisitos";
 import { fechaLimiteMaxima } from "@/lib/deals/pago";
+import { fecha } from "@/lib/format";
 import { duenosPosibles } from "@/lib/deals/duenos";
 import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
@@ -24,7 +27,8 @@ import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { descuentoDeDeal, saldosDeDeals, type DescuentoDeDeal, type SaldoDeDeal } from "@/lib/queries/saldo";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { ETAPAS_VENDIDAS } from "@/lib/queries/metricas-filtros";
-import { incluyendoAnulados } from "@/lib/queries/vigente";
+import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
+import { inboxDelPrograma, type MotivoAtencion } from "@/lib/queries/inbox";
 import { columnasUtmDelEnvio, utmsDelEnvio, type UtmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { enlacesDePagoVigentes, type EnlaceDeLaPantalla } from "@/lib/queries/recursos";
 
@@ -196,6 +200,76 @@ export interface FichaDeDeal {
   historial: FichaDeMovimiento[];
   log: FichaDeEvento[];
   enlacesDePago: EnlaceDeLaPantalla[];
+}
+
+export interface AlertasDelDeal {
+  urgentes: { motivo: MotivoAtencion | "llamada_sin_resultado"; mensaje: string }[];
+  paraAvanzar: {
+    destino: EtapaDeal;
+    nombreDestino: string;
+    caminoFeliz: boolean;
+    faltan: RequisitoFaltante[];
+  }[];
+  aviso: string | null;
+}
+
+const MENSAJE_URGENTE: Record<MotivoAtencion | "llamada_sin_resultado", string> = {
+  reagenda_sin_fecha: "La re-agenda no tiene fecha.",
+  compromiso_vencido: "El compromiso verbal se venció.",
+  pago_vencido: "La fecha de pago se venció y queda saldo.",
+  reenvio_sin_atender: "El lead volvió a llenar el formulario.",
+  estancado: "El deal lleva días sin actividad.",
+  llamada_sin_resultado: "La llamada de hoy no tiene resultado.",
+};
+
+/** Lo urgente y lo que falta para mover este deal, calculado por los módulos que deciden ambas cosas. */
+export async function alertasDelDeal(db: Db, programId: string, dealId: string): Promise<AlertasDelDeal | null> {
+  const [deal] = await db
+    .select()
+    .from(deals)
+    .where(and(eq(deals.id, dealId), eq(deals.programId, programId), vigente(deals)));
+  if (!deal || deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido") return null;
+
+  const [inbox, hechos] = await Promise.all([
+    inboxDelPrograma(db, programId, "equipo"),
+    leerHechos(db, deal, null, null),
+  ]);
+
+  const urgentes = new Map<MotivoAtencion | "llamada_sin_resultado", string>();
+  for (const fila of inbox.atencion) {
+    if (fila.dealId !== dealId || urgentes.has(fila.motivo)) continue;
+    const mensaje = fila.motivo === "pago_vencido" && fila.fecha
+      ? `La fecha de pago (${fecha(fila.fecha)}) se venció y queda saldo.`
+      : fila.motivo === "estancado" && fila.diasSinActividad != null
+        ? `El deal lleva ${fila.diasSinActividad} días hábiles sin actividad.`
+        : MENSAJE_URGENTE[fila.motivo];
+    urgentes.set(fila.motivo, mensaje);
+  }
+  if (inbox.llamadasDeHoy.some((fila) => fila.dealId === dealId)) {
+    urgentes.set("llamada_sin_resultado", MENSAJE_URGENTE.llamada_sin_resultado);
+  }
+
+  const destinos = siguientesDe(deal.etapa);
+  const indiceActual = ETAPAS_EN_ORDEN.indexOf(deal.etapa);
+  const caminoFeliz = ETAPAS_EN_ORDEN.find(
+    (destino, indice) => indice > indiceActual && destinos.includes(destino),
+  );
+  const paraAvanzar = destinos
+    .map((destino) => ({
+      destino,
+      nombreDestino: NOMBRE_DE_ETAPA[destino],
+      caminoFeliz: destino === caminoFeliz,
+      faltan: queLeFalta(deal.etapa, destino, hechos).filter((falta) => falta.codigo !== "motivo"),
+    }))
+    .sort((a, b) => Number(b.caminoFeliz) - Number(a.caminoFeliz));
+
+  return {
+    urgentes: [...urgentes].map(([motivo, mensaje]) => ({ motivo, mensaje })),
+    paraAvanzar,
+    aviso: deal.etapa === "en_gestion"
+      ? "Para registrar un pago, primero marca el contacto como logrado."
+      : null,
+  };
 }
 
 function fechaDeLlamada(c: { fechaAgenda: Date | null; fechaLlamada: Date | null }): Date | null {
