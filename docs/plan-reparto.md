@@ -129,7 +129,7 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 
 | Qué | Quién | Destraba |
 |---|---|---|
-| **QM-10**: los estados dentro del deal (Pendiente Re-agenda, Seguimiento, Próxima Cohorte), `/grill-with-docs` y su ADR | Mani | 142 → 143, 128, 118, el 117 enmendado, el `--aplicar` del 078, el corte, 148 |
+| ✅ ~~**QM-10**~~: cerrada el 1-oct por el [ADR 0070](./adr/0070-re-agenda-seguimiento-y-proxima-cohorte-son-pendientes-del-deal.md) (son **Pendientes** del deal, no etapas) | Mani | 142 → 143, 128, 118, el 117 enmendado, el `--aplicar` del 078, el corte, 148 |
 | **Manual de gestión comercial** (QD-8): **borrador en [`manual-gestion-comercial.md`](./manual-gestion-comercial.md) desde el 1-oct**; falta que Mani lo apruebe | Alejo → Mani | 142 y 143 (qué es obligatorio por etapa) |
 
 **Tickets listos, una sesión cada uno:**
@@ -153,7 +153,7 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 2. [092] con el **ADR 0068**: `sources.url_publica` y la fuente principal por programa. Sube de E8 a esta ola
    porque ComunicArte recibe por Typeform y por Dapta y hoy el CRM solo puede repartir un link.
 3. [102] el rol Paid Trafficker (valor nuevo del enum de roles).
-4. Cuando QM-10 y el manual estén: **el [142] salta al frente** y la cola se congela hasta que se aplique (toca el
+4. Cuando el manual esté (la QM-10 ya se cerró, ADR 0070): **el [142] salta al frente** y la cola se congela hasta que se aplique (toca el
    enum de etapas, los requisitos y la traducción de todos los deals).
 
 **No entran a O1** (y por qué): [128], [143], [118], [148], [065] esperan al 142 · [129] espera dos decisiones de
@@ -568,7 +568,7 @@ closers durante E1 que cubra E2 a E5; Gerencia durante E4; Pauta durante E5.
 
 | Antes de | Qué | Quién |
 |---|---|---|
-| **O1 → 142** | **QM-10** (estados dentro del deal, ADR) · **manual de gestión comercial** (QD-8) · QM-12 (cortesías) · confirmar QD-2 | Mani · Alejo |
+| **O1 → 142** | ✅ ~~QM-10~~ (ADR 0070) · **manual de gestión comercial** (QD-8) · QM-12 (cortesías) · confirmar QD-2 | Mani · Alejo |
 | O1 | Aplicar la 0057 · las dos decisiones del [129] · quién toma el [140] | Mani |
 | E7 | 🆕 **El ROAS sin TRM de la cohorte** (la 0057 la quita; el ADR 0063 la usa): `plan.md` §7 | Mani |
 | E1 | §3 de este documento; base local sí o no (113) | Mani |
