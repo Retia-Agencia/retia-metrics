@@ -8,14 +8,12 @@ import type { AccionDeRespuesta } from "../pregunta-de-etapa";
  * Una respuesta de la pregunta de la etapa que no es una flecha directa (ADR 0072): abre el
  * formulario que ya existe en su sección de la ficha. La ficha y el Kanban la piden igual,
  * por la URL (`?accion=abono#pago`), así no hay un segundo camino para registrar nada: la
- * actividad, la llamada y el abono se escriben con sus formularios de siempre, y el motor
- * mueve el deal desde ahí.
+ * llamada y el abono se escriben con sus formularios de siempre, y el motor mueve el deal
+ * desde ahí. Las actividades abren su propio dialogo desde `useResponder`.
  */
-export type AccionDeFicha = "contacto" | "intento" | "agendar" | "reprogramar" | "fallida" | "abono";
+export type AccionDeFicha = "agendar" | "reprogramar" | "fallida" | "abono";
 
 const SECCION: Record<AccionDeFicha, string> = {
-  contacto: "actividades",
-  intento: "actividades",
   agendar: "llamadas",
   reprogramar: "llamadas",
   fallida: "llamadas",
@@ -25,8 +23,6 @@ const SECCION: Record<AccionDeFicha, string> = {
 /** El formulario que abre una respuesta, o `null` si la respuesta es una flecha. */
 export function accionDeFicha(accion: AccionDeRespuesta): AccionDeFicha | null {
   switch (accion.tipo) {
-    case "actividad":
-      return accion.actividad;
     case "llamada":
       return accion.uso;
     case "abono":
@@ -42,7 +38,7 @@ export function enlaceDeAccion(rutaDeLaFicha: string, accion: AccionDeFicha): st
 }
 
 /** El id del `Card` de cada sección, para que el enlace llegue a ella. */
-export const ID_DE_SECCION = { actividades: "actividades", llamadas: "llamadas", pago: "pago" } as const;
+export const ID_DE_SECCION = { llamadas: "llamadas", pago: "pago" } as const;
 
 /**
  * Cuando la URL pide una de las acciones de `acepta`, llama a `alPedir` UNA vez, lleva la

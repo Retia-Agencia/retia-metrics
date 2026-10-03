@@ -8,9 +8,9 @@ import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import type { OpcionCatalogo } from "@/lib/queries/kanban";
 import { moverDeal } from "@/app/(app)/p/[programa]/deals/acciones";
 import { DialogoMover, type DatosDialogo, type MovimientoDelDialogo } from "./dialogo-mover";
-import { marcarLinkEnviadoAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
+import { marcarLinkEnviadoAccion, registrarActividadAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { accionDeFicha, enlaceDeAccion } from "./ficha/accion-pedida";
-import { claseInput, DialogoForm } from "./ficha/campos";
+import { Campo, claseInput, claseTextarea, DialogoForm } from "./ficha/campos";
 import { PREGUNTA_DE_ETAPA, type ClaveDestino, type Respuesta } from "./pregunta-de-etapa";
 import type { FlechaCliente, MapaTransiciones } from "./transiciones";
 
@@ -21,8 +21,8 @@ import type { FlechaCliente, MapaTransiciones } from "./transiciones";
  *
  * - una flecha (`mover`, `retroceder`) abre `DialogoMover`, que pide sus datos y muestra lo
  *   que el deal tiene y le falta, y confirma con `moverDeal`;
- * - una actividad, una llamada o un abono abren su formulario de siempre en la ficha
- *   (`?accion=…`): no hay un segundo camino para registrar nada.
+ * - una actividad abre su pop-up aquí;
+ * - una llamada o un abono abren su formulario de siempre en la ficha (`?accion=…`).
  */
 export interface DealQueResponde {
   dealId: string;
@@ -41,6 +41,20 @@ export interface OpcionesDeRespuesta {
   cohortes: OpcionCatalogo[];
   motivos: { id: string; nombre: string; tipo: string }[];
 }
+
+type TipoDeActividad = "contacto" | "intento" | "nota";
+
+const TITULO_DE_ACTIVIDAD: Record<TipoDeActividad, string> = {
+  contacto: "Registrar contacto",
+  intento: "Registrar intento",
+  nota: "Nota",
+};
+
+const EXITO_DE_ACTIVIDAD: Record<TipoDeActividad, string> = {
+  contacto: "Contacto registrado.",
+  intento: "Intento registrado.",
+  nota: "Nota guardada.",
+};
 
 /** La flecha del mapa que toma una respuesta, para saber qué datos pide. */
 function flechaDe(mapa: MapaTransiciones, deal: DealQueResponde, r: Respuesta): FlechaCliente | null {
@@ -63,6 +77,7 @@ export function useResponder(
   alTerminar: () => void,
 ): {
   elegir: (deal: DealQueResponde, r: Respuesta) => void;
+  registrar: (deal: DealQueResponde, tipo: TipoDeActividad) => void;
   abrirDestino: (deal: DealQueResponde, destino: ClaveDestino, respuestas: readonly Respuesta[]) => void;
   dialogo: ReactNode;
 } {
@@ -76,8 +91,23 @@ export function useResponder(
   const [enviando, setEnviando] = useState(false);
   const [agendaAbierta, setAgendaAbierta] = useState<DealQueResponde | null>(null);
   const [marcandoLink, setMarcandoLink] = useState(false);
+  const [actividadAbierta, setActividadAbierta] = useState<{ deal: DealQueResponde; tipo: TipoDeActividad } | null>(null);
+  const [canal, setCanal] = useState("");
+  const [nota, setNota] = useState("");
+  const [guardando, setGuardando] = useState(false);
+
+  function registrar(deal: DealQueResponde, tipo: TipoDeActividad) {
+    setCanal("");
+    setNota("");
+    setGuardando(false);
+    setActividadAbierta({ deal, tipo });
+  }
 
   function elegir(deal: DealQueResponde, r: Respuesta) {
+    if (r.accion.tipo === "actividad") {
+      registrar(deal, r.accion.actividad);
+      return;
+    }
     if (r.accion.tipo === "llamada" && r.accion.uso === "agendar" && !deal.tieneCitaVigente) {
       setAgendaAbierta(deal);
       return;
@@ -126,7 +156,67 @@ export function useResponder(
     }
   }
 
-  let dialogo: ReactNode = agendaAbierta ? (
+  const ayudaActividad = actividadAbierta
+    ? actividadAbierta.tipo === "contacto" && ["potencial", "registrado", "en_gestion"].includes(actividadAbierta.deal.etapa)
+      ? `El deal pasa a ${nombreDeEtapa.contactado}.`
+      : actividadAbierta.tipo === "intento" && ["potencial", "registrado"].includes(actividadAbierta.deal.etapa)
+        ? `El deal pasa a ${nombreDeEtapa.en_gestion}.`
+        : undefined
+    : undefined;
+
+  let dialogo: ReactNode = actividadAbierta ? (
+    <DialogoForm
+      titulo={TITULO_DE_ACTIVIDAD[actividadAbierta.tipo]}
+      descripcion={actividadAbierta.deal.nombreLead}
+      pendiente={guardando}
+      onCerrar={() => setActividadAbierta(null)}
+      deshabilitarConfirmar={nota.trim() === ""}
+      confirmar={{
+        texto: "Registrar",
+        enCurso: "Guardando…",
+        onClick: async () => {
+          setGuardando(true);
+          const r = await registrarActividadAccion({
+            dealId: actividadAbierta.deal.dealId,
+            tipo: actividadAbierta.tipo,
+            canal,
+            nota,
+          });
+          setGuardando(false);
+          if (r.ok) {
+            toast.success(EXITO_DE_ACTIVIDAD[actividadAbierta.tipo]);
+            setActividadAbierta(null);
+            alTerminar();
+          } else toast.error(r.error, { duration: 6000 });
+        },
+      }}
+    >
+      <Campo etiqueta="Canal">
+        <input
+          className={claseInput}
+          list="canales-de-contacto"
+          value={canal}
+          onChange={(e) => setCanal(e.target.value)}
+          placeholder="WhatsApp, Llamada…"
+          maxLength={60}
+        />
+        <datalist id="canales-de-contacto">
+          <option value="WhatsApp" />
+          <option value="Llamada" />
+          <option value="Correo" />
+        </datalist>
+      </Campo>
+      <Campo etiqueta="¿Qué pasó?" ayuda={ayudaActividad}>
+        <textarea
+          className={claseTextarea}
+          value={nota}
+          onChange={(e) => setNota(e.target.value)}
+          rows={3}
+          placeholder="Le escribí, quedó de responder el jueves…"
+        />
+      </Campo>
+    </DialogoForm>
+  ) : agendaAbierta ? (
     <DialogoForm
       titulo="Agendar llamada"
       descripcion={agendaAbierta.nombreLead}
@@ -223,7 +313,7 @@ export function useResponder(
       />
     );
   }
-  return { elegir, abrirDestino, dialogo };
+  return { elegir, registrar, abrirDestino, dialogo };
 }
 
 /** Los botones de las respuestas, en el orden de la tabla. */

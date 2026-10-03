@@ -1,14 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { fecha } from "@/lib/format";
 import type { FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
+import { BotonDeEtapa } from "../boton-de-etapa";
 import { respuestasPorDestino } from "../pregunta-de-etapa";
-import { BotonesDeRespuesta, useResponder, type DealQueResponde } from "../responder-pregunta";
+import { useResponder, type DealQueResponde } from "../responder-pregunta";
 import type { MapaTransiciones } from "../transiciones";
 import type { TonoEtapa } from "../etapa-tono";
 
@@ -32,7 +32,7 @@ export function FichaTransicion({
   puedeTrabajar: boolean;
 }) {
   const router = useRouter();
-  const { elegir, abrirDestino, dialogo } = useResponder(mapa, opciones, nombreDeEtapa, () => router.refresh());
+  const { elegir, registrar, abrirDestino, dialogo } = useResponder(mapa, opciones, nombreDeEtapa, () => router.refresh());
   const deal: DealQueResponde = {
     dealId: ficha.dealId,
     etapa: ficha.etapa,
@@ -44,29 +44,62 @@ export function FichaTransicion({
     tieneCitaVigente: ficha.tieneCitaVigente,
   };
   const grupos = respuestasPorDestino(ficha.etapa, ficha.pendiente, ordenDeEtapas);
-  if (!puedeTrabajar || ficha.anulado || (grupos.destinos.length === 0 && grupos.sinCambio.length === 0)) return null;
+  const etiquetasDestino = grupos.destinos.map((grupo) =>
+    grupo.destino === "ganado" ? "Ganado · registrar pago" : nombreDeEtapa[grupo.destino],
+  );
+  const anchoCh = etiquetasDestino.length > 0 ? Math.max(...etiquetasDestino.map((etiqueta) => etiqueta.length)) : 0;
+  const respuestasSinCambio = grupos.sinCambio.filter((respuesta) => respuesta.accion.tipo !== "actividad");
+  if (!puedeTrabajar || ficha.anulado) return null;
 
   return (
     <Card>
       <CardHeader><CardTitle>Transición</CardTitle></CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2">
-          {grupos.destinos.map((grupo) => {
-            const etapaVisual = grupo.destino === "ganado" ? "ganado_completo" : grupo.destino;
-            const etiqueta = grupo.destino === "ganado" ? "Ganado · registrar pago" : nombreDeEtapa[grupo.destino];
-            return (
-              <Button key={grupo.destino} type="button" size="sm" variant="outline" onClick={() => abrirDestino(deal, grupo.destino, grupo.respuestas)}>
-                <Badge variant={tonoDeEtapa[etapaVisual]}>{etiqueta}</Badge>
-              </Button>
-            );
-          })}
-        </div>
-        {grupos.sinCambio.length > 0 ? (
+        {grupos.destinos.length > 0 ? (
           <section className="space-y-2">
-            <h3 className="text-sm font-medium">Sin cambiar de etapa</h3>
-            <BotonesDeRespuesta respuestas={grupos.sinCambio} onElegir={(respuesta) => elegir(deal, respuesta)} />
+            <h3 className="text-sm font-medium">Mover a</h3>
+            <div className="flex flex-wrap gap-2">
+              {grupos.destinos.map((grupo, i) => {
+                const etapaVisual = grupo.destino === "ganado" ? "ganado_completo" : grupo.destino;
+                return (
+                  <BotonDeEtapa
+                    key={grupo.destino}
+                    tono={tonoDeEtapa[etapaVisual]}
+                    anchoCh={anchoCh}
+                    onClick={() => abrirDestino(deal, grupo.destino, grupo.respuestas)}
+                  >
+                    {etiquetasDestino[i]}
+                  </BotonDeEtapa>
+                );
+              })}
+            </div>
           </section>
         ) : null}
+        <section className="space-y-2">
+          <h3 className="text-sm font-medium">Registrar</h3>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="secondary" onClick={() => registrar(deal, "contacto")}>
+              Contacto
+            </Button>
+            <Button type="button" size="sm" variant="secondary" onClick={() => registrar(deal, "intento")}>
+              Intento
+            </Button>
+            <Button type="button" size="sm" variant="secondary" onClick={() => registrar(deal, "nota")}>
+              Nota
+            </Button>
+            {respuestasSinCambio.map((respuesta) => (
+              <Button
+                key={respuesta.id}
+                type="button"
+                size="sm"
+                variant={respuesta.id === "descartar" ? "outline" : "secondary"}
+                onClick={() => elegir(deal, respuesta)}
+              >
+                {respuesta.etiqueta}
+              </Button>
+            ))}
+          </div>
+        </section>
         {ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestino?.inicioVentas ? (
           <p className="text-xs text-muted-foreground">
             Se retoma solo cuando se registre un contacto desde el {fecha(ficha.cohorteDestino.inicioVentas)}.

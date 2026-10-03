@@ -124,7 +124,7 @@ export default async function FichaDelDealPage({ params }: Props) {
               opciones={opciones}
               puedeRegistrar={puedeRegistrar && !cerrado}
             />
-            <FichaActividades actividades={ficha.actividades} dealId={ficha.dealId} puedeRegistrar={puedeTrabajar} />
+            <FichaActividades actividades={ficha.actividades} puedeRegistrar={puedeTrabajar} />
             <FichaPago
               ficha={ficha}
               opciones={opciones}
