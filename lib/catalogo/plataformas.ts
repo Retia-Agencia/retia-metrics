@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   abonos,
@@ -302,4 +302,63 @@ export async function crearPlataformaConProgramas(
     await asociarPrograma(db, actor, creada.id, programId);
   }
   return creada;
+}
+
+
+/**
+ * Crea una plataforma por nombre libre y la deja servida en el programa, o la vincula
+ * si ya existia (ticket 171).
+ *
+ * Es la puerta de la seccion "Plataformas de pago" de la tab Programa: el gerente o el
+ * closer teclean el nombre del medio de cobro y queda listo para cargarle links. No es
+ * un selector del catalogo entero —ese seria un acople de Ajustes—, es "dame esta
+ * plataforma en este programa". El acceso se verifica ANTES de cualquier escritura,
+ * igual que las demas funciones de este modulo.
+ *
+ * Resuelve el nombre contra el catalogo por su forma normalizada (`lower(trim())`),
+ * la misma que protege el indice unico de `plataformas_pago` para que "PayPal" y
+ * "paypal" no sean dos filas:
+ *  - no existe → se crea asociada a ESTE programa (`crearPlataformaConProgramas`).
+ *  - existe y esta ACTIVA → se asocia (idempotente) y se devuelve: dos programas
+ *    comparten la misma fila, que es el punto de la tabla puente (ADR 0034).
+ *  - existe pero esta DESACTIVADA → 409: reactivarla es otra decision (vive en
+ *    Ajustes) y crear una segunda chocaria con el indice unico; se dice en claro en
+ *    vez de dejar un 500 del driver.
+ */
+export async function crearOVincularPlataforma(
+  db: Db,
+  actor: ActorConAcceso,
+  nombre: string,
+  programId: string,
+): Promise<FilaCatalogo> {
+  // Se valida aca y no se deja al molde: el molde lanza `ZodError`, que la server
+  // action no reconoce y convertiria en "Error interno." en vez de un 400 legible.
+  const entrada = esquemaPlataformaPago.safeParse({ nombre });
+  if (!entrada.success) {
+    throw new ErrorDeApp(entrada.error.issues[0]?.message ?? "Petición inválida.", 400);
+  }
+
+  // El acceso se exige antes de leer el catalogo o escribir: un programa ajeno no debe
+  // ni poder enterarse de que plataformas existen.
+  await exigirAccesoAlPrograma(db, actor, uuidValido(programId), NEGADO_PLATAFORMA);
+
+  // La busqueda es por la forma NORMALIZADA, no por igualdad cruda: el indice unico de
+  // la tabla vive sobre `lower(nombre)`, asi que "PayPal" ya tecleado tiene que
+  // reconocerse aunque llegue como "paypal" y no intentar crear un duplicado que el
+  // indice rechazaria con un 500.
+  const [existente] = await db
+    .select()
+    .from(plataformasPago)
+    .where(eq(sql`lower(trim(${plataformasPago.nombre}))`, entrada.data.nombre.toLowerCase()))
+    .limit(1);
+
+  if (existente) {
+    if (!existente.activo) {
+      throw new ErrorDeApp("Esa plataforma existe pero está desactivada.", 409);
+    }
+    await asociarPrograma(db, actor, existente.id, programId);
+    return existente;
+  }
+
+  return crearPlataformaConProgramas(db, actor, entrada.data, [programId]);
 }

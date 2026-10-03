@@ -12,6 +12,7 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import {
   asociarPrograma,
+  crearOVincularPlataforma,
   crearPlataformaConProgramas,
   desasociarPrograma,
   plataformasDelPrograma,
@@ -257,6 +258,79 @@ describe("crear una plataforma y asociarla en la misma operacion (Mani, 20-sep)"
 
   it("un nombre vacio es un 400 legible, no un ZodError que termina en 'Error interno.'", async () => {
     const error = await crearPlataformaConProgramas(db, gerente, { nombre: "   " }, []).catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(400);
+  });
+});
+
+/**
+ * Ticket 171: la seccion "Plataformas de pago" de la tab Programa da de alta un medio de
+ * cobro por nombre libre. `crearOVincularPlataforma` resuelve el nombre contra el catalogo
+ * por su forma normalizada —la misma que protege el indice unico sobre `lower(nombre)`—:
+ * si no existe lo crea asociado al programa, si existe activo lo vincula sin duplicar, y
+ * si existe pero esta desactivado se niega con un 409 en claro.
+ */
+describe("crearOVincularPlataforma (ticket 171)", () => {
+  async function porNombreNormalizado(nombre: string) {
+    return db
+      .select()
+      .from(plataformasPago)
+      .where(eq(plataformasPago.nombre, nombre));
+  }
+
+  it("un nombre nuevo crea la plataforma y la vincula al programa", async () => {
+    const creada = await crearOVincularPlataforma(db, gerente, "Wise", programaA);
+    expect(await porNombreNormalizado("Wise")).toHaveLength(1);
+    expect((await plataformasDelPrograma(db, programaA)).map((p) => p.id)).toContain(creada.id);
+  });
+
+  it("un nombre que ya existe con OTRAS mayusculas vincula, no crea una segunda fila", async () => {
+    // PayPal ya existe (sembrada por la migracion). "paypal" tiene que reconocerla.
+    const resuelta = await crearOVincularPlataforma(db, gerente, "paypal", programaA);
+    expect(resuelta.id).toBe(plataforma);
+
+    // Sigue habiendo UNA sola fila PayPal: no se duplico.
+    expect(
+      await db.select().from(plataformasPago).where(eq(plataformasPago.id, plataforma)),
+    ).toHaveLength(1);
+    // Y quedo vinculada a A.
+    expect((await plataformasDelPrograma(db, programaA)).map((p) => p.id)).toContain(plataforma);
+    // No se creo ninguna fila nueva con el nombre tecleado.
+    expect(await porNombreNormalizado("paypal")).toHaveLength(0);
+  });
+
+  it("vincular una que ya esta vinculada es idempotente", async () => {
+    await crearOVincularPlataforma(db, gerente, "PayPal", programaA);
+    await crearOVincularPlataforma(db, gerente, "PayPal", programaA);
+
+    const vinculadas = await db
+      .select()
+      .from(plataformasPrograma)
+      .where(eq(plataformasPrograma.plataformaId, plataforma));
+    expect(vinculadas).toHaveLength(1);
+  });
+
+  it("una plataforma DESACTIVADA que ya existe se niega con 409, no se duplica", async () => {
+    await db.update(plataformasPago).set({ activo: false }).where(eq(plataformasPago.id, plataforma));
+    const error = await crearOVincularPlataforma(db, gerente, "PayPal", programaA).catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(409);
+    // No se creo una segunda PayPal ni se vinculo nada.
+    expect(
+      await db.select().from(plataformasPago).where(eq(plataformasPago.id, plataforma)),
+    ).toHaveLength(1);
+    expect(await plataformasDelPrograma(db, programaA)).toHaveLength(0);
+  });
+
+  it("un closer en un programa AJENO (B) se rechaza con 403 y nada se escribe", async () => {
+    const error = await crearOVincularPlataforma(db, closer, "Wise", programaB).catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(403);
+    expect(await porNombreNormalizado("Wise")).toHaveLength(0);
+  });
+
+  it("un nombre vacio es un 400 legible, no un ZodError", async () => {
+    const error = await crearOVincularPlataforma(db, gerente, "   ", programaA).catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(400);
   });

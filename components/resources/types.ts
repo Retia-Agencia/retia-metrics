@@ -4,7 +4,6 @@ export interface RecursoUI {
   id: string;
   titulo: string;
   url: string;
-  categoriaNombre: string | null;
   /** Nulo = recurso global. Decide si un closer puede editarlo (solo sus programas). */
   programId: string | null;
   programaNombre: string | null;
@@ -27,16 +26,4 @@ export interface ProgramaOpcion {
   id: string;
   slug: string;
   nombre: string;
-}
-
-export interface CategoriaOpcion {
-  id: string;
-  nombre: string;
-}
-
-export interface PlataformaOpcion {
-  id: string;
-  nombre: string;
-  /** Los programas a los que sirve (ADR 0034). El selector se acota con esto. */
-  programas: string[];
 }

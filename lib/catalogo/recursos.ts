@@ -45,7 +45,10 @@ export const esquemaUrlHttps = z
 export const esquemaRecurso = z.object({
   // Nulo = recurso global. `undefined` tambien se admite como global.
   programId: z.string().uuid("Programa inválido.").nullable().optional().default(null),
-  categoriaId: z.string().uuid("Categoría inválida."),
+  // Un recurso ya no se categoriza (ticket 171): la categoria era un catalogo que nadie
+  // leia para decidir nada ni para agrupar una metrica (ADR 0077). Ausente => null; la
+  // columna ya es nullable (migracion 0062). El catalogo se retira en el ticket 175.
+  categoriaId: z.string().uuid("Categoría inválida.").nullable().optional().default(null),
   titulo: z.string().trim().min(1, "El título es obligatorio.").max(120, "Máximo 120 caracteres."),
   url: esquemaUrlHttps,
 });
@@ -58,7 +61,7 @@ export type RecursoValidado = z.output<typeof esquemaRecurso>;
 /** Un recurso tal como lo ve el llamador (fila del molde con columnas tipadas). */
 export interface RecursoVista extends FilaCatalogo {
   programId: string | null;
-  categoriaId: string;
+  categoriaId: string | null;
   titulo: string;
   url: string;
   vigente: boolean;
@@ -68,7 +71,7 @@ export interface RecursoVista extends FilaCatalogo {
 /** Columnas de `recursos` que el molde administra al crear/editar. */
 type CamposRecurso = {
   programId: string | null;
-  categoriaId: string;
+  categoriaId: string | null;
   titulo: string;
   url: string;
 };

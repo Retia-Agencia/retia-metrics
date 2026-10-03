@@ -2,9 +2,8 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Check, ChevronDown, Copy, ExternalLink, History, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, Copy, ExternalLink, History, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,38 +15,34 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { monto as formatoMonto } from "@/lib/format";
-import { MONEDAS } from "@/lib/monedas";
 import {
   borrarRecursoAccion,
-  crearEnlacePagoAccion,
-  crearPlataformaDesdeRecursosAccion,
   crearRecursoAccion,
-  desactivarEnlacePagoAccion,
   desactivarRecursoAccion,
-  reemplazarEnlacePagoAccion,
   reemplazarRecursoAccion,
   type ResultadoAccion,
 } from "@/app/(app)/recursos/acciones";
 import { agruparEnlaces, GLOBAL, TODOS } from "@/components/resources/helpers";
 import type {
-  CategoriaOpcion,
   EnlaceUI,
-  PlataformaOpcion,
   ProgramaOpcion,
   RecursoUI,
 } from "@/components/resources/types";
 export type {
-  CategoriaOpcion,
   EnlaceUI,
-  PlataformaOpcion,
   ProgramaOpcion,
   RecursoUI,
 } from "@/components/resources/types";
 
 /**
- * Pantalla de recursos (ticket 023, ADR 0017): lista los brochures y links de pago
- * vigentes, deja copiarlos o abrirlos en un clic, y —solo al gerente— crearlos,
- * reemplazarlos y desactivarlos.
+ * Pantalla de recursos (ticket 023, ADR 0017; enmienda del ticket 171): lista los
+ * recursos libres (brochures, guiones, Calendly…) y los links de pago vigentes, y deja
+ * copiarlos o abrirlos en un clic.
+ *
+ * Desde el ticket 171 los recursos ya NO se categorizan (ADR 0077: la categoria era un
+ * catalogo que nadie leia para decidir) y los links de pago son de SOLO LECTURA aqui:
+ * se administran en la seccion "Plataformas de pago" de la tab Programa. Crear o
+ * reemplazar un recurso sigue viviendo aqui.
  *
  * MOBILE-FIRST (criterio de aceptacion: los closers trabajan desde el telefono, sin
  * scroll horizontal): nada de tablas de ancho fijo, todo son tarjetas y listas que
@@ -58,11 +53,11 @@ export type {
  * personal, asi que —a diferencia de `/mi-dia`— si conviene que viaje en la URL. El
  * programa viaja como SLUG (id opaco, nunca un dato personal).
  *
- * `esAdmin` + `programasEditables` deciden quien ve los controles de edicion, pero
- * NO son la barrera de seguridad: cada server action vuelve a exigir el rol y el
- * acceso por programa en el servidor (ADR 0003). Un administrador (gerente o
- * developer) edita todo, incluido lo global; un closer solo los recursos y enlaces de
- * los programas donde tiene membresia activa, y NUNCA un recurso global.
+ * `esAdmin` + `programasEditables` deciden quien ve los controles de edicion de los
+ * recursos, pero NO son la barrera de seguridad: cada server action vuelve a exigir el
+ * rol y el acceso por programa en el servidor (ADR 0003). Un administrador (gerente o
+ * developer) edita todo, incluido lo global; un closer solo los recursos de los
+ * programas donde tiene membresia activa, y NUNCA un recurso global.
  */
 
 interface Props {
@@ -73,8 +68,6 @@ interface Props {
   slugPrograma: string | null;
   q: string | null;
   programas: ProgramaOpcion[];
-  categorias: CategoriaOpcion[];
-  plataformas: PlataformaOpcion[];
   recursos: RecursoUI[];
   enlaces: EnlaceUI[];
 }
@@ -88,8 +81,6 @@ export function RecursosPantalla({
   slugPrograma,
   q,
   programas,
-  categorias,
-  plataformas,
   recursos,
   enlaces,
 }: Props) {
@@ -111,11 +102,6 @@ export function RecursosPantalla({
   function puedeEditarRecurso(r: RecursoUI): boolean {
     if (esAdmin) return true;
     return r.programId !== null && editables.has(r.programId);
-  }
-
-  /** ¿Puede el usuario editar/desactivar/reemplazar este enlace de pago? */
-  function puedeEditarEnlace(e: EnlaceUI): boolean {
-    return esAdmin || editables.has(e.programId);
   }
 
   function navegar(cambios: Record<string, string | null>) {
@@ -216,7 +202,6 @@ export function RecursosPantalla({
 
         {puedeCrear ? (
           <CrearRecurso
-            categorias={categorias}
             programas={programasParaCrear}
             permitirGlobal={esAdmin}
             pendiente={pendiente}
@@ -249,27 +234,9 @@ export function RecursosPantalla({
         )}
       </section>
 
-      {/* ── Enlaces de pago ── */}
+      {/* ── Enlaces de pago (solo lectura; se administran en la tab Programa) ── */}
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground">Enlaces de pago</h2>
-
-        {puedeCrear && programasParaCrear.length > 0 ? (
-          <CrearEnlace
-            programas={programasParaCrear}
-            plataformas={plataformas}
-            pendiente={pendiente}
-            onCrear={(entrada, reset) =>
-              correr(() => crearEnlacePagoAccion(entrada), "Enlace de pago creado", reset)
-            }
-            onCrearPlataforma={(nombre, programId, alTerminar) =>
-              correr(
-                () => crearPlataformaDesdeRecursosAccion(nombre, programId),
-                "Plataforma creada",
-                alTerminar,
-              )
-            }
-          />
-        ) : null}
 
         {enlacesAgrupados.length === 0 ? (
           <p className="text-sm text-muted-foreground">No hay enlaces de pago que coincidan.</p>
@@ -283,22 +250,7 @@ export function RecursosPantalla({
                 <CardContent className="space-y-4">
                   <ul className="space-y-2">
                     {grupo.enlaces.map((e) => (
-                          <EnlaceItem
-                            key={e.id}
-                            enlace={e}
-                            puedeEditar={puedeEditarEnlace(e)}
-                            pendiente={pendiente}
-                            onReemplazar={(nuevaUrl, reset) =>
-                              correr(
-                                () => reemplazarEnlacePagoAccion(e.id, nuevaUrl),
-                                "Enlace reemplazado",
-                                reset,
-                              )
-                            }
-                            onDesactivar={() =>
-                              correr(() => desactivarEnlacePagoAccion(e.id), "Enlace desactivado")
-                            }
-                          />
+                      <EnlaceItem key={e.id} enlace={e} />
                     ))}
                   </ul>
                 </CardContent>
@@ -409,11 +361,6 @@ function RecursoItem({
         <div className="min-w-0 space-y-1">
           <span className="flex flex-wrap items-center gap-2">
             <span className="font-medium">{recurso.titulo}</span>
-            {recurso.categoriaNombre ? (
-              <Badge variant="outline" className="text-muted-foreground">
-                {recurso.categoriaNombre}
-              </Badge>
-            ) : null}
             <span className="text-xs text-muted-foreground">
               {recurso.programaNombre ?? "Global"}
             </span>
@@ -500,32 +447,19 @@ function RecursoItem({
   );
 }
 
-function EnlaceItem({
-  enlace,
-  puedeEditar,
-  pendiente,
-  onReemplazar,
-  onDesactivar,
-}: {
-  enlace: EnlaceUI;
-  puedeEditar: boolean;
-  pendiente: boolean;
-  onReemplazar: (nuevaUrl: string, reset: () => void) => void;
-  onDesactivar: () => void;
-}) {
-  const [reemplazando, setReemplazando] = useState(false);
-
+/** Un enlace de pago vigente, en SOLO LECTURA: copiar o abrir. Se edita en la tab Programa. */
+function EnlaceItem({ enlace }: { enlace: EnlaceUI }) {
   return (
     <li className="rounded-md border p-3 text-sm">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
           <span className="flex flex-wrap items-center gap-2">
             {/* La moneda SIEMPRE al lado del monto, con `monto()` (AGENTS.md). */}
-            <span className="font-medium">{formatoMonto(Number(enlace.monto), enlace.moneda)}</span>
+            <span className="cifra font-medium">
+              {formatoMonto(Number(enlace.monto), enlace.moneda)}
+            </span>
             {enlace.plataformaNombre ? (
-              <Badge variant="outline" className="text-muted-foreground">
-                {enlace.plataformaNombre}
-              </Badge>
+              <span className="text-xs text-muted-foreground">{enlace.plataformaNombre}</span>
             ) : null}
           </span>
           <a
@@ -539,57 +473,29 @@ function EnlaceItem({
         </div>
         <AccionesEnlace url={enlace.url} />
       </div>
-
-      {puedeEditar ? (
-        <div className="mt-2 flex flex-wrap items-center gap-1">
-          <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => setReemplazando((v) => !v)}>
-            Reemplazar
-          </Button>
-          <Button size="sm" variant="ghost" disabled={pendiente} onClick={onDesactivar}>
-            Desactivar
-          </Button>
-        </div>
-      ) : null}
-
-      {reemplazando && puedeEditar ? (
-        <FormularioReemplazar
-          pendiente={pendiente}
-          etiqueta="Nueva URL del enlace de pago"
-          onGuardar={(nuevaUrl, reset) =>
-            onReemplazar(nuevaUrl, () => {
-              reset();
-              setReemplazando(false);
-            })
-          }
-          onCancelar={() => setReemplazando(false)}
-        />
-      ) : null}
     </li>
   );
 }
 
 /** Formulario en linea para crear un recurso (gerente, developer o closer). */
 function CrearRecurso({
-  categorias,
   programas,
   permitirGlobal,
   pendiente,
   onCrear,
 }: {
-  categorias: CategoriaOpcion[];
   programas: ProgramaOpcion[];
   /** Solo un administrador puede crear un recurso global; un closer, no (asimetria). */
   permitirGlobal: boolean;
   pendiente: boolean;
   onCrear: (
-    entrada: { programId: string | null; categoriaId: string; titulo: string; url: string },
+    entrada: { programId: string | null; titulo: string; url: string },
     reset: () => void,
   ) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [titulo, setTitulo] = useState("");
   const [url, setUrl] = useState("");
-  const [categoriaId, setCategoriaId] = useState(categorias[0]?.id ?? "");
   // GLOBAL = recurso global (sin programa). El resto es el uuid del programa. Un
   // closer no puede crear globales, asi que arranca en su primer programa.
   const programIdInicial = permitirGlobal ? GLOBAL : (programas[0]?.id ?? "");
@@ -599,7 +505,6 @@ function CrearRecurso({
     setTitulo("");
     setUrl("");
     setProgramId(programIdInicial);
-    setCategoriaId(categorias[0]?.id ?? "");
     setAbierto(false);
   }
 
@@ -609,7 +514,7 @@ function CrearRecurso({
         size="sm"
         variant="outline"
         onClick={() => setAbierto(true)}
-        disabled={categorias.length === 0 || (!permitirGlobal && programas.length === 0)}
+        disabled={!permitirGlobal && programas.length === 0}
       >
         Nuevo recurso
       </Button>
@@ -624,7 +529,6 @@ function CrearRecurso({
         onCrear(
           {
             programId: programId === GLOBAL ? null : programId,
-            categoriaId,
             titulo: titulo.trim(),
             url: url.trim(),
           },
@@ -656,22 +560,6 @@ function CrearRecurso({
         />
       </label>
       <label className="block space-y-1 text-sm">
-        <span className="text-muted-foreground">Categoría</span>
-        <select
-          value={categoriaId}
-          onChange={(e) => setCategoriaId(e.target.value)}
-          required
-          className={cn(claseInput, "sm:w-44")}
-          aria-label="Categoría"
-        >
-          {categorias.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nombre}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block space-y-1 text-sm">
         <span className="text-muted-foreground">Programa</span>
         <select
           value={programId}
@@ -689,235 +577,7 @@ function CrearRecurso({
         </select>
       </label>
       <div className="flex items-center gap-1">
-        <Button type="submit" size="sm" disabled={pendiente || !titulo.trim() || !url.trim() || !categoriaId}>
-          Crear
-        </Button>
-        <Button type="button" size="icon-sm" variant="ghost" onClick={reset} aria-label="Cancelar">
-          <X className="size-4" />
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-/** Formulario en linea para crear un enlace de pago (solo gerente). */
-function CrearEnlace({
-  programas,
-  plataformas,
-  pendiente,
-  onCrear,
-  onCrearPlataforma,
-}: {
-  programas: ProgramaOpcion[];
-  plataformas: PlataformaOpcion[];
-  pendiente: boolean;
-  onCrear: (
-    entrada: {
-      programId: string;
-      plataformaId: string;
-      monto: string;
-      moneda: (typeof MONEDAS)[number];
-      url: string;
-    },
-    reset: () => void,
-  ) => void;
-  onCrearPlataforma: (nombre: string, programId: string, alTerminar: () => void) => void;
-}) {
-  const [abierto, setAbierto] = useState(false);
-  // El enlace de pago SIEMPRE es de un programa (columna NOT NULL); no hay opcion
-  // global. La plataforma sale del catalogo activo (ADR 0012), no se escribe a mano.
-  const [programId, setProgramId] = useState<string>(programas[0]?.id ?? "");
-  const [plataformaId, setPlataformaId] = useState("");
-  const [plataformaNueva, setPlataformaNueva] = useState<string | null>(null);
-  const [montoValor, setMontoValor] = useState("");
-  const [moneda, setMoneda] = useState<(typeof MONEDAS)[number]>("USD");
-  const [url, setUrl] = useState("");
-
-  // Solo las plataformas del programa elegido (ADR 0034): al registrar un cobro de un
-  // programa no tiene por que aparecer el medio de pago del otro.
-  const plataformasDelPrograma = plataformas.filter((p) => p.programas.includes(programId));
-  // El valor efectivo cae a la primera del programa: cambiar de programa no puede
-  // dejar seleccionada una plataforma que ya no esta en la lista.
-  const plataformaElegida =
-    plataformasDelPrograma.find((p) => p.id === plataformaId)?.id ??
-    plataformasDelPrograma[0]?.id ??
-    "";
-
-  function reset() {
-    setProgramId(programas[0]?.id ?? "");
-    setPlataformaId("");
-    setPlataformaNueva(null);
-    setMontoValor("");
-    setMoneda("USD");
-    setUrl("");
-    setAbierto(false);
-  }
-
-  if (!abierto) {
-    return (
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => setAbierto(true)}
-        disabled={programas.length === 0}
-      >
-        Nuevo enlace de pago
-      </Button>
-    );
-  }
-
-  return (
-    <form
-      className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:flex-wrap sm:items-end"
-      onSubmit={(e) => {
-        e.preventDefault();
-        onCrear(
-          {
-            programId,
-            plataformaId: plataformaElegida,
-            monto: montoValor.trim(),
-            moneda,
-            url: url.trim(),
-          },
-          reset,
-        );
-      }}
-    >
-      <label className="block space-y-1 text-sm">
-        <span className="text-muted-foreground">Programa</span>
-        <select
-          value={programId}
-          onChange={(e) => setProgramId(e.target.value)}
-          required
-          className={cn(claseInput, "sm:w-44")}
-          aria-label="Programa del enlace"
-        >
-          {programas.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block space-y-1 text-sm">
-        <span className="text-muted-foreground">Plataforma</span>
-        {/* Crear la plataforma aca y no mandar al usuario a /ajustes/catalogos: el
-            medio de cobro que falta se descubre justo al cargar el link, y salir del
-            formulario pierde lo escrito. Nace asociada a ESTE programa. */}
-        {plataformaNueva === null ? (
-          <span className="flex gap-1">
-            <select
-              value={plataformaElegida}
-              onChange={(e) => setPlataformaId(e.target.value)}
-              required
-              className={cn(claseInput, "sm:w-44")}
-              aria-label="Plataforma de pago"
-            >
-              {plataformasDelPrograma.length === 0 ? (
-                <option value="">Ninguna en este programa</option>
-              ) : null}
-              {plataformasDelPrograma.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
-                </option>
-              ))}
-            </select>
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="outline"
-              disabled={pendiente}
-              onClick={() => setPlataformaNueva("")}
-              aria-label="Crear una plataforma nueva"
-            >
-              <Plus className="size-4" />
-            </Button>
-          </span>
-        ) : (
-          <span className="flex gap-1">
-            <input
-              value={plataformaNueva}
-              onChange={(e) => setPlataformaNueva(e.target.value)}
-              placeholder="Nombre de la plataforma"
-              aria-label="Nombre de la plataforma nueva"
-              maxLength={80}
-              autoFocus
-              className={cn(claseInput, "sm:w-44")}
-            />
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="secondary"
-              disabled={pendiente || !plataformaNueva.trim()}
-              onClick={() =>
-                onCrearPlataforma(plataformaNueva.trim(), programId, () => setPlataformaNueva(null))
-              }
-              aria-label="Guardar la plataforma nueva"
-            >
-              <Check className="size-4" />
-            </Button>
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="ghost"
-              onClick={() => setPlataformaNueva(null)}
-              aria-label="Cancelar la plataforma nueva"
-            >
-              <X className="size-4" />
-            </Button>
-          </span>
-        )}
-      </label>
-      <label className="block space-y-1 text-sm">
-        <span className="text-muted-foreground">Monto</span>
-        <input
-          value={montoValor}
-          onChange={(e) => setMontoValor(e.target.value)}
-          inputMode="decimal"
-          required
-          className={cn(claseInput, "sm:w-28")}
-          aria-label="Monto"
-        />
-      </label>
-      <label className="block space-y-1 text-sm">
-        <span className="text-muted-foreground">Moneda</span>
-        <select
-          value={moneda}
-          onChange={(e) => setMoneda(e.target.value as (typeof MONEDAS)[number])}
-          className={cn(claseInput, "sm:w-24")}
-          aria-label="Moneda"
-        >
-          {MONEDAS.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block space-y-1 text-sm">
-        <span className="text-muted-foreground">URL</span>
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          type="url"
-          required
-          placeholder="https://…"
-          className={cn(claseInput, "sm:w-56")}
-          aria-label="URL del enlace de pago"
-        />
-      </label>
-      <div className="flex items-center gap-1">
-        <Button
-          type="submit"
-          size="sm"
-          // `plataformaElegida`, NO `plataformaId`: el estado crudo arranca vacio y solo
-          // se llena si el usuario TOCA el select, asi que mirarlo a el dejaba el boton
-          // deshabilitado con el formulario entero bien lleno. Lo encontro el recorrido
-          // visual; los 669 tests estaban en verde.
-          disabled={
-            pendiente || !programId || !plataformaElegida || !montoValor.trim() || !url.trim()
-          }
-        >
+        <Button type="submit" size="sm" disabled={pendiente || !titulo.trim() || !url.trim()}>
           Crear
         </Button>
         <Button type="button" size="icon-sm" variant="ghost" onClick={reset} aria-label="Cancelar">

@@ -234,3 +234,85 @@ describe("historialDeRecurso — versiones anteriores en orden tras dos reemplaz
     expect(await historialDeRecurso(v1.id, db)).toEqual([]);
   });
 });
+
+/**
+ * Ticket 171: `/recursos` se acota a los programas que ve la sesion (ADR 0048) con el
+ * nuevo `programIds`. Para los recursos los globales SIEMPRE entran; para los enlaces de
+ * pago no hay globales. Un alcance vacio no debe emitir un `inArray([])` (lista vacia
+ * invalida en SQL): deja solo los globales en recursos, y nada en enlaces.
+ */
+describe("alcance por programIds (ticket 171, ADR 0048)", () => {
+  it("recursosVigentes con programIds excluye otros programas pero conserva los globales", async () => {
+    await crearRecurso(db, actor, {
+      programId: programaA,
+      categoriaId: categoriaBrochure,
+      titulo: "De A",
+      url: "https://drive.google.com/a",
+    });
+    await crearRecurso(db, actor, {
+      programId: programaB,
+      categoriaId: categoriaBrochure,
+      titulo: "De B",
+      url: "https://drive.google.com/b",
+    });
+    await crearRecurso(db, actor, {
+      programId: null,
+      categoriaId: categoriaGuion,
+      titulo: "Global",
+      url: "https://drive.google.com/g",
+    });
+
+    const filas = await recursosVigentes({ programIds: [programaA] }, db);
+    expect(filas.map((f) => f.titulo).sort()).toEqual(["De A", "Global"]);
+  });
+
+  it("recursosVigentes con programIds vacio deja SOLO los globales (sin inArray([]))", async () => {
+    await crearRecurso(db, actor, {
+      programId: programaA,
+      categoriaId: categoriaBrochure,
+      titulo: "De A",
+      url: "https://drive.google.com/a",
+    });
+    await crearRecurso(db, actor, {
+      programId: null,
+      categoriaId: categoriaGuion,
+      titulo: "Global",
+      url: "https://drive.google.com/g",
+    });
+
+    const filas = await recursosVigentes({ programIds: [] }, db);
+    expect(filas.map((f) => f.titulo)).toEqual(["Global"]);
+  });
+
+  it("enlacesDePagoVigentes con programIds excluye los de otros programas", async () => {
+    await crearEnlacePago(db, actor, {
+      programId: programaA,
+      plataformaId: plataforma,
+      monto: "797.00",
+      moneda: "USD",
+      url: "https://paypal.com/a",
+    });
+    await crearEnlacePago(db, actor, {
+      programId: programaB,
+      plataformaId: plataforma,
+      monto: "1500.00",
+      moneda: "USD",
+      url: "https://paypal.com/b",
+    });
+
+    const filas = await enlacesDePagoVigentes({ programIds: [programaA] }, db);
+    expect(filas.map((f) => f.url)).toEqual(["https://paypal.com/a"]);
+  });
+
+  it("enlacesDePagoVigentes con programIds vacio no devuelve ninguno (sin inArray([]))", async () => {
+    await crearEnlacePago(db, actor, {
+      programId: programaA,
+      plataformaId: plataforma,
+      monto: "797.00",
+      moneda: "USD",
+      url: "https://paypal.com/a",
+    });
+
+    expect(await enlacesDePagoVigentes({ programIds: [] }, db)).toHaveLength(0);
+  });
+});

@@ -793,15 +793,19 @@ describe("pagina de recursos /recursos (ticket 023)", () => {
 
   it("el filtro de la URL (programa y titulo) llega a la consulta", async () => {
     auth.mockResolvedValue(sesionGerente);
-    programasActivos.mockResolvedValue([
+    // El selector y la resolucion del slug salen del ALCANCE (ADR 0048, ticket 171),
+    // no de `programasActivos`.
+    programasVisibles.mockResolvedValue([
       { id: "p-1", slug: "comunicarte", nombre: "Comunicarte" },
     ]);
     expect(await correrRecursos({ programa: "comunicarte", q: "brochure" })).toBeNull();
     expect(recursosVigentes).toHaveBeenCalled();
-    // El slug se resolvio al uuid del programa y ambos filtros llegaron a la consulta.
+    // El slug se resolvio al uuid del programa y ambos filtros llegaron a la consulta;
+    // el alcance (`programIds`) acota a lo que ve la sesion.
     expect(recursosVigentes.mock.calls.at(-1)![0]).toMatchObject({
       programId: "p-1",
       q: "brochure",
+      programIds: ["p-1"],
     });
   });
 

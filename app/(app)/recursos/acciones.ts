@@ -15,24 +15,19 @@ import {
   type Actor,
   type EntradaRecurso,
 } from "@/lib/catalogo/recursos";
-import { crearPlataformaConProgramas } from "@/lib/catalogo/plataformas";
-import {
-  crearEnlacePago,
-  desactivarEnlacePago,
-  reemplazarEnlacePago,
-  type EntradaEnlacePago,
-} from "@/lib/catalogo/enlaces-pago";
 
 /**
- * Server actions de la pantalla `/recursos` (ticket 023, ADR 0017; enmienda del
- * 19-sep).
+ * Server actions de la pantalla `/recursos` (ticket 023, ADR 0017; enmiendas del
+ * 19-sep y del ticket 171).
  *
- * Administrar recursos y enlaces de pago lo pueden hacer gerente Y closer: el closer
- * se topa primero con "necesito el link que no
- * esta". La barrera de rol es de servidor, en cada accion (ADR 0003): pasa por
- * `requireRole("gerente","closer")`, y la regla mas fina —un closer solo toca sus
- * programas, y NUNCA un recurso global— la aplica `lib/catalogo/{recursos,enlaces-pago}`
- * contra la base. Un boton oculto no es seguridad.
+ * Administrar recursos lo pueden hacer gerente Y closer. La barrera de rol es de
+ * servidor, en cada accion (ADR 0003): pasa por `requireRole("gerente","closer")`, y la
+ * regla mas fina —un closer solo toca sus programas, y NUNCA un recurso global— la
+ * aplica `lib/catalogo/recursos` contra la base. Un boton oculto no es seguridad.
+ *
+ * Los enlaces de pago y las plataformas YA NO se administran aqui (ticket 171, ADR 0077):
+ * viven en la seccion "Plataformas de pago" de la tab Programa, y sus acciones estan en
+ * `app/(app)/p/[programa]/programa/acciones.ts`. `/recursos` solo los LISTA en lectura.
  *
  * El actor se arma con `rolDeVista(session)`, NO con `session.user.rol` crudo
  * (ADR 0028): un developer en vista `closer` se acota a sus membresias como un closer
@@ -126,72 +121,5 @@ export async function borrarRecursoAccion(id: string): Promise<ResultadoBorradoA
     if (error instanceof ErrorDeApp) return { ok: false, error: error.message };
     console.error("[recursos] error no controlado", error);
     return { ok: false, error: "Error interno." };
-  }
-}
-
-// ─────────────────────────────────────────────────────────── enlaces de pago
-
-export async function crearEnlacePagoAccion(input: EntradaEnlacePago): Promise<ResultadoAccion> {
-  try {
-    const session = await requireRole("gerente", "closer");
-    await crearEnlacePago(db, await actorDe(session), input);
-    revalidatePath("/recursos");
-    return { ok: true };
-  } catch (error) {
-    return aResultado(error);
-  }
-}
-
-export async function reemplazarEnlacePagoAccion(
-  id: string,
-  nuevaUrl: string,
-): Promise<ResultadoAccion> {
-  try {
-    const session = await requireRole("gerente", "closer");
-    await reemplazarEnlacePago(db, await actorDe(session), id, nuevaUrl);
-    revalidatePath("/recursos");
-    return { ok: true };
-  } catch (error) {
-    return aResultado(error);
-  }
-}
-
-export async function desactivarEnlacePagoAccion(id: string): Promise<ResultadoAccion> {
-  try {
-    const session = await requireRole("gerente", "closer");
-    await desactivarEnlacePago(db, await actorDe(session), id);
-    revalidatePath("/recursos");
-    return { ok: true };
-  } catch (error) {
-    return aResultado(error);
-  }
-}
-
-
-/**
- * Crea una plataforma de pago sin salir de `/recursos` (enmienda del ticket 013).
- *
- * Es el momento en que hace falta: el closer esta cargando el link de un medio de
- * cobro que todavia no existe en el catalogo, y mandarlo a `/ajustes/catalogos` a
- * mitad del formulario es perder lo que llevaba escrito. Nace asociada al programa
- * del enlace, que es la unica forma de que la vea enseguida en el selector.
- *
- * La logica es la MISMA de la pantalla de catalogos —una sola funcion en
- * `lib/catalogo/plataformas`—, no una copia: dos caminos para crear lo mismo son dos
- * reglas que se desincronizan.
- */
-export async function crearPlataformaDesdeRecursosAccion(
-  nombre: string,
-  programId: string,
-): Promise<ResultadoAccion> {
-  try {
-    const session = await requireRole("gerente", "closer");
-    await crearPlataformaConProgramas(db, await actorDe(session), { nombre }, [programId]);
-    revalidatePath("/recursos");
-    revalidatePath("/ajustes/catalogos");
-    revalidatePath("/mi-dia");
-    return { ok: true };
-  } catch (error) {
-    return aResultado(error);
   }
 }

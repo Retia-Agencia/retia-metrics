@@ -34,6 +34,13 @@ import type { Db } from "@/lib/db/tipos";
 export interface FiltroRecursos {
   /** Id del programa. Ausente = "Todos": trae todos los programas y los globales. */
   programId?: string;
+  /**
+   * Acota a un conjunto de programas (los que ve la sesion, ADR 0048). Los globales
+   * (`program_id IS NULL`) SIEMPRE entran. Un arreglo vacio no trae ninguna fila de
+   * programa —pero si los globales—; nunca se emite un `inArray([])`, que en SQL es
+   * una lista vacia invalida.
+   */
+  programIds?: string[];
   /** Texto a buscar en el titulo (ILIKE, insensible a mayusculas). */
   q?: string;
 }
@@ -74,6 +81,17 @@ export async function recursosVigentes(
   if (filtro.programId) {
     // El programa pedido O los globales: un global aparece con cualquier filtro.
     condiciones.push(or(eq(recursos.programId, filtro.programId), isNull(recursos.programId))!);
+  }
+
+  // Alcance de la sesion (ADR 0048): solo los programas que ve, mas los globales. Un
+  // arreglo vacio NO emite `inArray([])` (lista vacia invalida en SQL): deja solo los
+  // globales, que sirven para todos.
+  if (filtro.programIds) {
+    const scope =
+      filtro.programIds.length > 0
+        ? or(inArray(recursos.programId, filtro.programIds), isNull(recursos.programId))!
+        : isNull(recursos.programId);
+    condiciones.push(scope);
   }
 
   const termino = filtro.q?.trim() ?? "";
@@ -118,11 +136,19 @@ export interface EnlaceDeLaPantalla {
  * globales: un enlace de pago siempre tiene programa (la columna es `NOT NULL`).
  */
 export async function enlacesDePagoVigentes(
-  filtro: { programId?: string } = {},
+  filtro: { programId?: string; programIds?: string[] } = {},
   db: Db = dbDeLaApp,
 ): Promise<EnlaceDeLaPantalla[]> {
   const condiciones = [eq(enlacesPago.vigente, true), eq(enlacesPago.activo, true)];
   if (filtro.programId) condiciones.push(eq(enlacesPago.programId, filtro.programId));
+
+  // Alcance de la sesion (ADR 0048): solo los programas que ve. Un enlace SIEMPRE tiene
+  // programa (la columna es NOT NULL), asi que no hay globales que preservar: un alcance
+  // vacio no devuelve ninguna fila, y nunca se emite `inArray([])`.
+  if (filtro.programIds) {
+    if (filtro.programIds.length === 0) return [];
+    condiciones.push(inArray(enlacesPago.programId, filtro.programIds));
+  }
 
   return db
     .select({

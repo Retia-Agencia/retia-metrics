@@ -77,6 +77,7 @@ export interface CheckoutDeLaFicha {
   url: string;
   monto: string;
   moneda: string;
+  plataformaId: string;
   plataforma: string | null;
 }
 
@@ -174,6 +175,7 @@ export async function fichaDelPrograma(
       url: e.url,
       monto: String(e.monto),
       moneda: e.moneda,
+      plataformaId: e.plataformaId,
       plataforma: e.plataformaNombre,
     })),
     fuentes: fuentes.map((f) => ({

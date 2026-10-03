@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import {
   categoriasRecurso,
+  changeLog,
   enlacesPago,
   plataformasPrograma,
   miembrosPrograma,
@@ -134,6 +135,14 @@ async function acciones() {
   return import("@/app/(app)/recursos/acciones");
 }
 
+/**
+ * Las acciones de la seccion "Plataformas de pago" de la tab Programa (ticket 171): los
+ * enlaces de pago y la plataforma viven aqui desde que `/recursos` paso a solo lectura.
+ */
+async function accionesPrograma() {
+  return import("@/app/(app)/p/[programa]/programa/acciones");
+}
+
 const recursoEn = (programId: string | null) => ({
   programId,
   categoriaId: categoria,
@@ -163,7 +172,7 @@ describe("acciones de recursos — closer en su programa (A)", () => {
   });
 
   it("un closer crea un enlace de pago en SU programa", async () => {
-    const { crearEnlacePagoAccion } = await acciones();
+    const { crearEnlacePagoAccion } = await accionesPrograma();
     const res = await crearEnlacePagoAccion(enlaceEn(programaA));
     expect(res.ok).toBe(true);
   });
@@ -176,7 +185,7 @@ describe("acciones de recursos — closer en su programa (A)", () => {
   });
 
   it("un closer NO puede crear un enlace de pago en un programa donde no vende (B)", async () => {
-    const { crearEnlacePagoAccion } = await acciones();
+    const { crearEnlacePagoAccion } = await accionesPrograma();
     const res = await crearEnlacePagoAccion(enlaceEn(programaB));
     expect(res.ok).toBe(false);
     expect(await db.select().from(enlacesPago)).toHaveLength(0);
@@ -238,6 +247,26 @@ describe("acciones de recursos — un administrador entra a todo", () => {
     const res = await crearRecursoAccion({ ...recursoEn(programaA), url: "http://inseguro.com" });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error.length).toBeGreaterThan(0);
+  });
+
+  it("crea un recurso SIN categoriaId (ticket 171) y deja su rastro en change_log", async () => {
+    const { crearRecursoAccion } = await acciones();
+    // Sin la propiedad `categoriaId`: el esquema la trata como `null` (recurso libre).
+    const res = await crearRecursoAccion({
+      programId: programaA,
+      titulo: "Guion",
+      url: "https://drive.google.com/guion",
+    });
+    expect(res.ok).toBe(true);
+
+    const [creado] = await db.select().from(recursos).where(eq(recursos.programId, programaA));
+    expect(creado).toBeDefined();
+    expect(creado.categoriaId).toBeNull();
+
+    // La escritura por el molde siempre registra en change_log (ADR 0012/0029).
+    const log = await db.select().from(changeLog).where(eq(changeLog.registroId, creado.id));
+    expect(log.length).toBeGreaterThan(0);
+    expect(log.every((l) => l.tabla === "recursos")).toBe(true);
   });
 
   it("reemplaza un recurso conservando el historial", async () => {
@@ -364,7 +393,7 @@ describe("crear un enlace de pago vincula la plataforma con el programa (ADR 003
     auth.mockResolvedValue(sesionCloser);
     expect(await db.select().from(plataformasPrograma)).toHaveLength(0);
 
-    const { crearEnlacePagoAccion } = await acciones();
+    const { crearEnlacePagoAccion } = await accionesPrograma();
     expect((await crearEnlacePagoAccion(enlaceEn(programaA))).ok).toBe(true);
 
     const vinculos = await db.select().from(plataformasPrograma);
@@ -375,7 +404,7 @@ describe("crear un enlace de pago vincula la plataforma con el programa (ADR 003
 
   it("dos enlaces de la misma plataforma y programa no duplican el vinculo", async () => {
     auth.mockResolvedValue(sesionCloser);
-    const { crearEnlacePagoAccion } = await acciones();
+    const { crearEnlacePagoAccion } = await accionesPrograma();
     await crearEnlacePagoAccion(enlaceEn(programaA));
     await crearEnlacePagoAccion({ ...enlaceEn(programaA), url: "https://paypal.com/otro" });
 
@@ -385,8 +414,63 @@ describe("crear un enlace de pago vincula la plataforma con el programa (ADR 003
 
   it("un enlace rechazado por acceso no deja vinculo (el closer no vende en B)", async () => {
     auth.mockResolvedValue(sesionCloser);
-    const { crearEnlacePagoAccion } = await acciones();
+    const { crearEnlacePagoAccion } = await accionesPrograma();
     expect((await crearEnlacePagoAccion(enlaceEn(programaB))).ok).toBe(false);
     expect(await db.select().from(plataformasPrograma)).toHaveLength(0);
+  });
+});
+
+/**
+ * Ticket 171: las plataformas de pago se dan de alta en la tab Programa con un nombre
+ * libre (`crearOVincularPlataformaAccion`). La reja sigue siendo de servidor: un closer
+ * forjando la accion en un programa donde no vende recibe `ok:false` y la base no se
+ * mueve, aunque la seccion aparezca en la pantalla.
+ */
+describe("acciones de plataformas de la tab Programa (ticket 171)", () => {
+  it("un closer da de alta una plataforma por nombre en SU programa", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    const { crearOVincularPlataformaAccion } = await accionesPrograma();
+    const res = await crearOVincularPlataformaAccion("Wise", programaA);
+    expect(res.ok).toBe(true);
+
+    const [creada] = await db
+      .select()
+      .from(plataformasPago)
+      .where(eq(plataformasPago.nombre, "Wise"));
+    expect(creada).toBeDefined();
+    const vinculos = await db
+      .select()
+      .from(plataformasPrograma)
+      .where(eq(plataformasPrograma.plataformaId, creada.id));
+    expect(vinculos).toHaveLength(1);
+    expect(vinculos[0].programId).toBe(programaA);
+  });
+
+  it("un closer forjando la accion en un programa ajeno (B) recibe ok:false y nada se escribe", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    const { crearOVincularPlataformaAccion } = await accionesPrograma();
+    const res = await crearOVincularPlataformaAccion("Wise", programaB);
+    expect(res.ok).toBe(false);
+    expect(await db.select().from(plataformasPago).where(eq(plataformasPago.nombre, "Wise"))).toHaveLength(0);
+    expect(await db.select().from(plataformasPrograma)).toHaveLength(0);
+  });
+
+  it("un nombre que ya existe (PayPal) con otras mayusculas vincula, no duplica", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    const { crearOVincularPlataformaAccion } = await accionesPrograma();
+    expect((await crearOVincularPlataformaAccion("paypal", programaA)).ok).toBe(true);
+
+    // Sigue habiendo UNA sola fila PayPal: se reuso la existente.
+    const paypal = await db
+      .select()
+      .from(plataformasPago)
+      .where(eq(plataformasPago.id, plataforma));
+    expect(paypal).toHaveLength(1);
+    const vinculos = await db
+      .select()
+      .from(plataformasPrograma)
+      .where(eq(plataformasPrograma.plataformaId, plataforma));
+    expect(vinculos).toHaveLength(1);
+    expect(vinculos[0].programId).toBe(programaA);
   });
 });

@@ -13,7 +13,7 @@ import {
   fuentesDelProgramaParaAdmin,
   type CohorteVista,
 } from "@/lib/queries/ficha-programa";
-import { fecha, monto, num, usd } from "@/lib/format";
+import { fecha, num, usd } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
 import { CohortesAdmin } from "@/components/cohortes-admin";
 import { FuentesAdmin } from "@/components/admin/fuentes-admin";
@@ -64,8 +64,7 @@ export default async function FichaDelProgramaPage({ params }: Props) {
 
   const administra = esAdministrador(rol);
   const { programa, cohortes, checkouts, fuentes, equipo, plataformas, plataformasDisponibles } =
-    ficha;
-  const activa = cohortes.find((c) => c.estado === "activo") ?? null;
+    ficha;  const activa = cohortes.find((c) => c.estado === "activo") ?? null;
   const aviso = avisoDelFormulario(programa.formulario);
   const faltan = faltaParaActivar(programa);
   const programaParaEditar = {
@@ -189,29 +188,6 @@ export default async function FichaDelProgramaPage({ params }: Props) {
                   </div>
                 )}
               </div>
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Checkouts (links de pago vigentes)</p>
-                {checkouts.length === 0 ? (
-                  <p className="text-muted-foreground">
-                    Sin links de pago vigentes. Se cargan en{" "}
-                    <Link href="/recursos" className={ENLACE}>
-                      Recursos
-                    </Link>
-                    .
-                  </p>
-                ) : (
-                  <ul className="divide-y divide-border">
-                    {checkouts.map((c) => (
-                      <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                        <a href={c.url} target="_blank" rel="noreferrer" className={ENLACE}>
-                          {c.plataforma ?? "Plataforma sin nombre"}
-                        </a>
-                        <span className="cifra">{monto(Number(c.monto), c.moneda)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
             </CardContent>
           </Card>
 
@@ -272,15 +248,19 @@ export default async function FichaDelProgramaPage({ params }: Props) {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Plataformas de pago</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Las que salen al registrar un abono en este programa.
-            </p>
           </CardHeader>
           <CardContent>
             <PlataformasDelPrograma
               programId={programa.id}
               plataformas={plataformas}
               disponibles={plataformasDisponibles}
+              enlaces={checkouts.map((c) => ({
+                id: c.id,
+                url: c.url,
+                monto: c.monto,
+                moneda: c.moneda,
+                plataformaId: c.plataformaId,
+              }))}
             />
           </CardContent>
         </Card>

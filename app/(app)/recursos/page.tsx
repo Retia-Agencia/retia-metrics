@@ -1,11 +1,10 @@
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { esAdministrador } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
+import { programasVisibles } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
-import { categoriasDeRecurso } from "@/lib/catalogo/categorias-recurso";
-import { plataformasDePago, vinculosDePlataformas } from "@/lib/catalogo/plataformas";
-import { programasActivos, programasGestionablesPorUsuario } from "@/lib/queries/programas";
+import { programasGestionablesPorUsuario } from "@/lib/queries/programas";
 import {
   enlacesDePagoVigentes,
   historialesDeRecursos,
@@ -54,38 +53,40 @@ export default async function RecursosPage({ searchParams }: Props) {
   // exigir el rol y el acceso por programa (ADR 0003).
   const rolVista = await rolDeVista(session);
   const esAdmin = esAdministrador(rolVista);
-  // Los programas que un closer puede editar: sus membresias activas. Para un admin no
-  // importa (edita todo), asi que solo se consulta cuando es closer.
+
+  // El ALCANCE de la sesion (ADR 0048): los programas que esta sesion ve. Un admin ve
+  // todos los activos; un closer, solo los de su membresia activa. La misma lista
+  // alimenta el selector del filtro, acota los recursos (mas los globales) y los links
+  // de pago (solo de estos programas) para que un closer no vea los de un programa ajeno.
+  const programas = await programasVisibles(session.user.id, rolVista, db);
+  const idsVisibles = programas.map((p) => p.id);
+
+  // Los programas que un closer puede EDITAR: sus membresias activas (un subconjunto de
+  // lo que ve, pero se consulta aparte porque un admin ve todo sin ser miembro). Para un
+  // admin no importa (edita todo), asi que solo se consulta cuando es closer.
   const programasEditables =
     !esAdmin && rolVista === "closer"
       ? (await programasGestionablesPorUsuario(session.user.id, "closer", db)).map((p) => p.id)
       : [];
-  // Ve los formularios de creacion quien administra o quien tiene algun programa editable.
-  const puedeCrear = esAdmin || programasEditables.length > 0;
 
   const busqueda = await searchParams;
   const slug = texto(busqueda.programa);
   const q = texto(busqueda.q);
 
-  // Los programas activos con id, slug y nombre: el filtro usa el slug (va a la URL,
-  // id opaco) y los formularios de creacion usan el uuid.
-  const programas = await programasActivos(db);
-
-  // El slug de la URL se traduce a un uuid; un slug que no cuadra cae a "Todos".
+  // El slug de la URL se traduce a un uuid DENTRO del alcance; un slug que no cuadra
+  // —no existe, o es de un programa que esta sesion no ve— cae a "Todos", igual que
+  // hoy con un slug desconocido.
   const programaFiltro = slug ? programas.find((p) => p.slug === slug) : undefined;
   const programId = programaFiltro?.id;
 
-  const [recursos, enlaces, categorias, plataformas] = await Promise.all([
-    recursosVigentes({ programId, q }, db),
-    enlacesDePagoVigentes({ programId }, db),
-    // Los catalogos del formulario solo hacen falta para quien puede crear.
-    puedeCrear ? categoriasDeRecurso(db).listar({ soloActivos: true }) : Promise.resolve([]),
-    puedeCrear ? plataformasDePago(db).listar({ soloActivos: true }) : Promise.resolve([]),
+  const [recursos, enlaces] = await Promise.all([
+    // `programIds` acota al alcance e incluye SIEMPRE los globales; `programId` es el
+    // filtro de la URL (un programa concreto) y tambien deja pasar los globales.
+    recursosVigentes({ programId, programIds: idsVisibles, q }, db),
+    // Un enlace de pago siempre es de un programa: `programIds` lo acota al alcance sin
+    // globales. Un alcance vacio (un closer sin membresias) no trae ninguno.
+    enlacesDePagoVigentes({ programId, programIds: idsVisibles }, db),
   ]);
-
-  // Que programas sirve cada plataforma (ADR 0034), en UNA consulta: el formulario
-  // del enlace ofrece solo las del programa elegido.
-  const vinculos = puedeCrear ? await vinculosDePlataformas(db) : new Map<string, string[]>();
 
   // El historial de cada recurso se resuelve en el servidor: el desplegable ya trae
   // sus versiones anteriores, sin un ida y vuelta de cliente.
@@ -94,7 +95,6 @@ export default async function RecursosPage({ searchParams }: Props) {
     id: r.id,
     titulo: r.titulo,
     url: r.url,
-    categoriaNombre: r.categoriaNombre,
     programId: r.programId,
     programaNombre: r.programaNombre,
     historial: (historiales.get(r.id) ?? []).map((v) => ({ id: v.id, url: v.url })),
@@ -111,12 +111,6 @@ export default async function RecursosPage({ searchParams }: Props) {
         slugPrograma={slug ?? null}
         q={q ?? null}
         programas={programas.map((p) => ({ id: p.id, slug: p.slug, nombre: p.nombre }))}
-        categorias={categorias.map((c) => ({ id: String(c.id), nombre: String(c.nombre) }))}
-        plataformas={plataformas.map((p) => ({
-          id: String(p.id),
-          nombre: String(p.nombre),
-          programas: vinculos.get(String(p.id)) ?? [],
-        }))}
         recursos={conHistorial}
         enlaces={enlaces.map((e) => ({
           id: e.id,
