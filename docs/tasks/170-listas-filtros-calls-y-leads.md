@@ -3,7 +3,7 @@ id: 170
 etapa: O3
 serves: "docs/anotaciones.md A-60, A-61, A-62, A-65, A-68 (y A-09, A-11); ADR 0075 (el closer ve solo lo suyo); ADR 0077"
 depends: []
-status: entregado (S3, 3-oct; lo marca done la sesión central tras el checkpoint)
+status: done
 ---
 
 # 170 — Las listas: filtros que se aplican solos, Calls de cada closer y Leads en tabla

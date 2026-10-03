@@ -3,7 +3,7 @@ id: 171
 etapa: O3
 serves: "docs/anotaciones.md A-63, A-70, A-71, A-72 (Recursos), A-75; ADR 0077 punto 1; enmienda ADR 0034"
 depends: []
-status: entregado (S4, 3-oct; lo marca done la sesión central tras el checkpoint)
+status: done
 ---
 
 > **3-oct (sesión central):** la migración **0062** hace nula `recursos.categoria_id` (`lib/queries/recursos.ts` ya tipa `categoriaId: string | null`). Un recurso libre se guarda sin categoría. **Aplicada en producción el 3-oct** con el ok de Mani (columna nula verificada).
