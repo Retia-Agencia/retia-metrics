@@ -147,6 +147,9 @@ describe("guardian: solo `conectarCalendly` escribe la clave de firma", () => {
       .flatMap((d) => archivos(path.join(RAIZ, d)))
       .map((f) => path.relative(RAIZ, f))
       .filter((f) => f !== ESCRITOR && f !== path.join("lib", "db", "schema.ts"))
+      // Excepción nombrada (ticket 169): `simular:cita` solo corre contra la base local
+      // (`validarUrlLocal`) y le pone una clave de prueba al programa local que no la tiene.
+      .filter((f) => f !== path.join("scripts", "simular-cita.ts"))
       .filter((f) => escribe(fs.readFileSync(path.join(RAIZ, f), "utf8")));
     expect(culpables).toEqual([]);
   });

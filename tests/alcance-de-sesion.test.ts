@@ -230,6 +230,12 @@ describe("guardián: el alcance se pregunta por la función, no con un join prop
     [path.join("lib", "calendly", "colgar-llamada.ts")]:
       "identidad de la host: qué closer es dueña de una cuenta de Calendly en el programa",
 
+    // Qué cuentas de Calendly del programa ya tiene otra membresía (ticket 169): el selector
+    // ofrece solo las libres. Es la misma pregunta de identidad que colgar-llamada; no acota
+    // ninguna lectura a una sesión.
+    [path.join("lib", "calendly", "cuentas.ts")]:
+      "identidad de la host: qué cuentas de Calendly del programa ya están tomadas",
+
     // "¿Quién puede ser dueño de un deal de este programa?" (ticket 074): decide de quién
     // puede ser una fila, para la lista de reasignar y para la reja de editarDeal. No acota
     // ninguna lectura a una sesión.
