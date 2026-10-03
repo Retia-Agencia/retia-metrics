@@ -3,7 +3,7 @@ id: 169
 etapa: O3
 serves: "docs/anotaciones.md A-54, A-62 (host sin cuenta), A-67, A-69; ADR 0077 punto 5; ADR 0076"
 depends: []
-status: en curso (S2, sesión de Mani, 3-oct)
+status: en curso (código en main; falta el recorrido y el relleno, sesión principal)
 ---
 
 # 169 — La llamada siempre tiene closer, y el handoff se prueba en local
@@ -63,8 +63,8 @@ línea del script), el manual. **No toca** la página `/perfil` (172) ni la fich
 - [ ] Una cita con host registrado deja la llamada con closer y el deal con ese dueño; probado con `simular:cita` en
   `dev:local` y en tests de la ruta real.
 - [x] Una cita con host sin cuenta sale en rojo en el Inbox y no se pierde.
-- [x] El relleno en seco reporta cuántas llamadas casan y cuáles no; aplicado solo con el ok de Mani.
-- [x] El desplegable muestra solo correos libres y guarda al elegir; elegir una cuenta ya tomada, forjando la acción, da
+- [ ] El relleno en seco reporta cuántas llamadas casan y cuáles no; aplicado solo con el ok de Mani.
+- [ ] El desplegable muestra solo correos libres y guarda al elegir; elegir una cuenta ya tomada, forjando la acción, da
   error sin mover la base.
 - [ ] `npm run build` en verde; recorrido del handoff en `dev:local`, consola abierta.
 
@@ -79,3 +79,16 @@ ruta firmada, rastro, vigencia y frontera por programa.
 Verificado: `npm run typecheck`, `npm run lint` y 200 pruebas focalizadas en 11 archivos. El wrapper `npm test` no pudo
 usar `ps` por la restricción del sandbox; los mismos archivos pasaron con Vitest y `--configLoader runner`. Quedan para
 la sesión con Mani el relleno aplicado, el recorrido en `dev:local` y el build, que esta sesión tenía prohibido correr.
+
+## Estado al empujar (S2, 3-oct)
+
+- Hecho y comprobado por la sesión: typecheck, lint y `npm run build` en verde (build en el worktree con copia APFS).
+  Los tests del ticket los corrió Codex (200 en 11 archivos, verdes); la sesión no los repitió porque la máquina
+  tenía 8,5 GB de swap en uso (AGENTS.md): los valida el CI y el checkpoint.
+- Revisión del diff contra el alcance: el closer se escribe en los caminos A, B/C, la reagenda y la suelta asignada,
+  siempre con rastro y `vigente()`. La sesión pasó el bloque "Hosts sin cuenta" del Inbox a `Card` (Tinta, sin borde
+  a mano).
+- **Pendiente, sesión principal (Mani):** el recorrido del handoff en `dev:local` con `npm run simular:cita`
+  (consola abierta), forjar la acción de Calendly con una cuenta tomada (409 y base quieta), y el relleno en seco
+  contra producción (`npm run rellenar:closer-llamadas`, solo lee; `--aplicar` con el ok de Mani). Por eso quedan
+  sin marcar el primero, el tercero, el cuarto y el quinto punto del "Done cuando".
