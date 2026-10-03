@@ -144,10 +144,12 @@ describe("alertasDelDeal — urgencia y fronteras", () => {
       origen: "app",
     });
 
-    expect((await alertasDelDeal(db, programId, dealId))!.urgentes).toContainEqual({
+    const alertas = (await alertasDelDeal(db, programId, dealId))!;
+    expect(alertas.urgentes).toContainEqual({
       motivo: "atendida_sin_grain",
       mensaje: "La llamada atendida no tiene el link de Grain.",
     });
+    expect(alertas.propiedades.filter((f) => f.codigo === "llamada_sucedio")).toEqual([]);
   });
 
   it("refleja en ambos sentidos los motivos de atención del Inbox", async () => {
@@ -189,7 +191,11 @@ describe("alertasDelDeal — urgencia y fronteras", () => {
 
     await expect(alertasDelDeal(db, programId, anulado)).resolves.toBeNull();
     await expect(alertasDelDeal(db, programId, ganado)).resolves.toMatchObject({ urgentes: [] });
-    await expect(alertasDelDeal(db, programId, perdido)).resolves.toBeNull();
+    await expect(alertasDelDeal(db, programId, perdido)).resolves.toMatchObject({
+      propiedades: [{ codigo: "motivo", mensaje: "Falta el motivo." }],
+      urgentes: [],
+      paraAvanzar: [],
+    });
     await expect(alertasDelDeal(db, programId, ajeno)).resolves.toBeNull();
   });
 

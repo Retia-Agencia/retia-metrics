@@ -105,6 +105,7 @@ interface Revision {
 }
 
 const ETIQUETA: Record<CodigoRequisito, string> = {
+  cohorte: "Cohorte",
   valor_vendido: "Descuento (USD)",
   area_declarada: "Área de origen (según el closer)",
   fecha_limite_pago: "Fecha límite de pago",
@@ -375,6 +376,7 @@ function ListaDeRequisitos({ revision, error }: { revision: Revision | null; err
 /** Como se nombra un requisito que el deal ya cumple. */
 const NOMBRE_DE_REQUISITO: Record<CodigoRequisito, string> = {
   transicion_no_permitida: "",
+  cohorte: "Tiene cohorte",
   dueno: "Tiene dueño",
   actividad: "Tiene una actividad comercial",
   contacto: "Tiene un contacto registrado",

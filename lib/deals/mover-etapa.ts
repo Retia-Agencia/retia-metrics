@@ -783,6 +783,28 @@ export const RESULTADOS_FALLIDOS = ["no_show", "cancelada"] as const;
 
 type FilaDeal = typeof deals.$inferSelect;
 
+/**
+ * "¿Esta actividad es un contacto registrado?" y "¿qué dicen las llamadas del deal?": UNA
+ * respuesta para el motor (`leerHechos`) y para el Kanban (143), que las arma por lote.
+ * Si divergieran, la ficha y la tarjeta dirían cosas distintas del mismo deal sin un error.
+ */
+export function esContactoRegistrado(a: { tipo: string; canal: string | null }): boolean {
+  return a.tipo === "contacto" && a.canal != null;
+}
+
+/** Los hechos de llamada de un deal. `llamadas` llega de la más reciente a la más vieja. */
+export function hechosDeLlamadas(llamadas: readonly { resultado: string; fechaAgenda: Date | null }[]) {
+  // "Sucedió" mira SOLO la última (punto 4, Mani 27-sep), no `some()` sobre todas. Con "un
+  // deal, muchas llamadas" (ADR 0037), un `show` viejo no puede llevar a Atendido si la
+  // última llamada —una agenda nueva— todavía no ocurrió.
+  const ultima = llamadas[0];
+  return {
+    tieneLlamadaConFecha: llamadas.some((l) => l.resultado === "agendada" && l.fechaAgenda != null),
+    llamadaSucedio: ultima != null && (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(ultima.resultado),
+    llamadaFallida: ultima != null && (RESULTADOS_FALLIDOS as readonly string[]).includes(ultima.resultado),
+  };
+}
+
 /** Los hechos del deal, leidos de la base dentro de la misma transaccion. */
 export async function leerHechos(
   tx: Db,
@@ -795,7 +817,7 @@ export async function leerHechos(
     .from(dealActividades)
     .where(eq(dealActividades.dealId, deal.id))
     .orderBy(desc(dealActividades.fecha));
-  const contacto = actividades.find((a) => a.tipo === "contacto" && a.canal != null);
+  const contacto = actividades.find(esContactoRegistrado);
 
   const llamadas = await tx
     .select({ resultado: calls.resultado, fechaAgenda: calls.fechaAgenda })
@@ -825,22 +847,13 @@ export async function leerHechos(
     ? await tx.select({ fechaInicioVentas: cohorts.fechaInicioVentas }).from(cohorts).where(eq(cohorts.id, deal.cohorteDestinoId))
     : [];
 
-  // La llamada mas reciente (`orderBy createdAt desc`, ya aplicado): "sucedio" mira SOLO
-  // la ultima (punto 4, Mani 27-sep), no `some()` sobre todas. Con "un deal, muchas
-  // llamadas" (ADR 0037), un `show` viejo no puede llevar a Atendido si la ultima
-  // llamada —una agenda nueva— todavia no ocurrio.
-  const ultimaLlamada = llamadas[0];
-
   return {
     tieneDueno: deal.ownerUserId != null,
     tieneActividadComercial: actividades.some((a) => a.tipo === "contacto" || a.tipo === "intento"),
     tieneContactoRegistrado: contacto != null,
     pendienteActual: deal.pendiente,
-    tieneLlamadaConFecha: llamadas.some((l) => l.resultado === "agendada" && l.fechaAgenda != null),
-    llamadaSucedio:
-      ultimaLlamada != null && (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(ultimaLlamada.resultado),
-    llamadaFallida:
-      ultimaLlamada != null && (RESULTADOS_FALLIDOS as readonly string[]).includes(ultimaLlamada.resultado),
+    // `llamadas` ya viene ordenada de la más reciente a la más vieja.
+    ...hechosDeLlamadas(llamadas),
     valorVendidoUsd: deal.valorVendidoUsd == null ? null : Number(deal.valorVendidoUsd),
     areaDeclaradaId: deal.areaDeclaradaId,
     esHistorico: deal.huellaMigracion != null,

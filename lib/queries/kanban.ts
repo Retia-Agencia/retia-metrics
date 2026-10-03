@@ -2,6 +2,7 @@ import { and, between, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   cohorts,
   calls,
+  dealActividades,
   dealEtapaHistorial,
   deals,
   leadContactos,
@@ -25,6 +26,8 @@ import { ultimaActividadPorDeal } from "@/lib/queries/ultima-actividad";
 import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
 import type { AlcanceDeals } from "@/lib/auth/alcance-deals";
 import { linkEnviadoSinCita } from "@/lib/deals/handoff";
+import { esContactoRegistrado, hechosDeLlamadas } from "@/lib/deals/mover-etapa";
+import { propiedadesQueLeFaltan } from "@/lib/deals/requisitos";
 
 /**
  * Los deals de un programa agrupados por etapa, para el Kanban (ticket 069).
@@ -49,6 +52,8 @@ import { linkEnviadoSinCita } from "@/lib/deals/handoff";
 
 /** Los avisos de una tarjeta. Cada uno se pinta con su `<Badge variant>` en la UI. */
 export interface AvisosDeTarjeta {
+  /** Propiedades acumuladas que exige la etapa actual (rojo). */
+  faltanALaEtapa: number;
   /** Compromiso Verbal con fecha limite de pago ya pasada (rojo). */
   compromisoVencido: boolean;
   /** Deal en cartera vencida: Abonado, saldo > 0, fecha limite pasada (rojo). */
@@ -182,6 +187,9 @@ export async function tableroKanban(
       fechaLimitePago: deals.fechaLimitePago,
       fechaSeguimiento: deals.fechaSeguimiento,
       cohortId: deals.cohortId,
+      areaDeclaradaId: deals.areaDeclaradaId,
+      valorVendidoUsd: deals.valorVendidoUsd,
+      motivoId: deals.motivoId,
       createdAt: deals.createdAt,
       handoffEn: deals.handoffEn,
       nombreLead: leads.nombre,
@@ -238,11 +246,24 @@ export async function tableroKanban(
   // con al menos uno lleva el aviso. Se agrupa aparte.
   const sinConfirmar = await leadsConContactoSinConfirmar(db, leadIds);
   const sinComprobante = await dealsConAbonoSinComprobante(db, dealIds);
-  const citas = await db
-    .select({ dealId: calls.dealId })
+  const llamadas = await db
+    .select({ dealId: calls.dealId, resultado: calls.resultado, fechaAgenda: calls.fechaAgenda, createdAt: calls.createdAt })
     .from(calls)
-    .where(and(inArray(calls.dealId, dealIds), eq(calls.resultado, "agendada"), vigente(calls)));
-  const conCitaVigente = new Set(citas.flatMap((c) => c.dealId ? [c.dealId] : []));
+    .where(and(inArray(calls.dealId, dealIds), vigente(calls)))
+    .orderBy(desc(calls.createdAt));
+  const actividades = await db
+    .select({ dealId: dealActividades.dealId, tipo: dealActividades.tipo, canal: dealActividades.canal })
+    .from(dealActividades)
+    .where(inArray(dealActividades.dealId, dealIds));
+  const conCitaVigente = new Set(llamadas.flatMap((c) => c.dealId && c.resultado === "agendada" ? [c.dealId] : []));
+  const llamadasPorDeal = new Map<string, typeof llamadas>();
+  for (const llamada of llamadas) {
+    if (!llamada.dealId) continue;
+    const suyas = llamadasPorDeal.get(llamada.dealId) ?? [];
+    suyas.push(llamada);
+    llamadasPorDeal.set(llamada.dealId, suyas);
+  }
+  const contactos = new Set(actividades.filter(esContactoRegistrado).map((a) => a.dealId));
 
   const tarjetas: TarjetaDeal[] = filas.map((f) => {
     const saldo = saldos.get(f.dealId);
@@ -251,6 +272,20 @@ export async function tableroKanban(
       f.etapa === "compromiso_verbal" && f.fechaLimitePago != null && f.fechaLimitePago < hoy;
     const seguimientoVencido =
       f.pendiente === "seguimiento" && f.fechaSeguimiento != null && f.fechaSeguimiento < hoy;
+    const { tieneLlamadaConFecha, llamadaSucedio } = hechosDeLlamadas(llamadasPorDeal.get(f.dealId) ?? []);
+    const faltanALaEtapa = propiedadesQueLeFaltan(f.etapa, {
+      tieneCohorte: f.cohortId != null,
+      tieneDueno: f.ownerUserId != null,
+      tieneContactoRegistrado: contactos.has(f.dealId),
+      tieneLlamadaConFecha,
+      llamadaSucedio,
+      areaDeclaradaId: f.areaDeclaradaId,
+      fechaLimitePago: f.fechaLimitePago,
+      valorVendidoUsd: f.valorVendidoUsd == null ? null : Number(f.valorVendidoUsd),
+      abonosVigentes: saldo?.abonosVigentes ?? 0,
+      saldo: saldo?.saldo ?? null,
+      motivoId: f.motivoId,
+    }).length;
     return {
       dealId: f.dealId,
       leadId: f.leadId,
@@ -270,6 +305,7 @@ export async function tableroKanban(
       leadValue: f.leadValue,
       diasEnEtapa: diasDesde(entrada, hoy),
       avisos: {
+        faltanALaEtapa,
         compromisoVencido,
         carteraVencida: enCartera.has(f.dealId),
         seguimientoVencido,

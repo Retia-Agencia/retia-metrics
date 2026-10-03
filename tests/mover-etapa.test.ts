@@ -439,7 +439,8 @@ describe("el motivo", () => {
     // lead y programa.
     const dealEnLeadNuevo = async (etapa: EtapaDeal, correo: string) => {
       const [l] = await db.insert(leads).values({ programId, emailNormalizado: correo }).returning();
-      const [d] = await db.insert(deals).values({ leadId: l.id, programId, etapa, ownerUserId: closer }).returning();
+      // Con área: desde Atendido toda salida la pide (143), y aquí se prueba solo el motivo.
+      const [d] = await db.insert(deals).values({ leadId: l.id, programId, etapa, ownerUserId: closer, areaDeclaradaId: areaId }).returning();
       return d.id;
     };
 

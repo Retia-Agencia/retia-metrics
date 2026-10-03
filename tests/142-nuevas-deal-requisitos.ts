@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { TRANSICIONES, TRANSICIONES_PENDIENTE, transicionRetomar, type Transicion, type TransicionPendiente } from "@/lib/deals/etapas";
 import { queLeFaltaTransicion, requisitosDeTransicion, type CodigoRequisito, type HechosDelDeal } from "@/lib/deals/requisitos";
 
-type Codigo = Exclude<CodigoRequisito, "transicion_no_permitida">;
+type Codigo = Exclude<CodigoRequisito, "transicion_no_permitida" | "cohorte">;
 const TODO: HechosDelDeal = {
   tieneDueno: true, tieneActividadComercial: true, tieneContactoRegistrado: true,
   pendienteActual: null,
@@ -46,7 +46,12 @@ describe("requisitos de cada flecha", () => {
   const ret = transicionRetomar("calificado", "proxima_cohorte")!;
   const flechas = [...TRANSICIONES, ...TRANSICIONES_PENDIENTE, ret];
   for (const t of flechas) {
-    const esperados = ESPERADOS[clave(t)];
+    const base = ESPERADOS[clave(t)];
+    // E9 es la cita nueva que mueve el deal sola: no pide área (143).
+    const saleDeAtendido = t.tipo === "etapa" ? t.de === "atendido" && t.id !== "E9" : t.etapa === "atendido";
+    const esperados = saleDeAtendido && !base.includes("area_declarada")
+      ? [...base.filter((codigo) => codigo !== "motivo"), "area_declarada" as const, ...base.filter((codigo) => codigo === "motivo")]
+      : base;
     it(`${t.id} tiene el contrato de requisitos esperado`, () => {
       expect(requisitosDeTransicion(t)).toEqual(esperados);
     });

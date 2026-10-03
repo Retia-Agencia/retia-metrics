@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { queLeFalta, type CodigoRequisito, type HechosDelDeal } from "@/lib/deals/requisitos";
+import { propiedadesQueLeFaltan, queLeFalta, type CodigoRequisito, type HechosDelDeal, type PropiedadesDelDeal } from "@/lib/deals/requisitos";
 
 /**
  * Ticket 044 — los requisitos de cada flecha, como predicados puros.
@@ -7,7 +7,7 @@ import { queLeFalta, type CodigoRequisito, type HechosDelDeal } from "@/lib/deal
  * La matriz completa del ticket 142 se importa al final; estos casos conservan
  * las rejas transversales que ya cubría este archivo.
  */
-type Codigo = Exclude<CodigoRequisito, "transicion_no_permitida">;
+type Codigo = Exclude<CodigoRequisito, "transicion_no_permitida" | "cohorte">;
 
 const REQUISITOS_A1: Codigo[] = ["sin_abonos"];
 const REQUISITOS_A2: Codigo[] = ["saldo_pendiente"];
@@ -98,6 +98,43 @@ describe("lo que no es un requisito", () => {
   it("un sobrepago que se colo cuenta como pagado: el deal no queda trabado en Abonado", () => {
     const hechos = { ...cumpliendo(["valor_vendido", "abono", "area_declarada"]), saldo: -50 };
     expect(queLeFalta("ganado_parcial", "ganado_completo", hechos)).toEqual([]);
+  });
+});
+
+const PROPIEDADES_COMPLETAS: PropiedadesDelDeal = {
+  tieneCohorte: true, tieneDueno: true, tieneContactoRegistrado: true,
+  tieneLlamadaConFecha: true, llamadaSucedio: true, areaDeclaradaId: "area",
+  fechaLimitePago: "2026-10-15", valorVendidoUsd: 1000,
+  abonosVigentes: 1, saldo: 0, motivoId: "motivo",
+};
+const FALTANTES_POR_ETAPA = {
+  potencial: ["cohorte"], registrado: ["cohorte"], calificado: ["cohorte"],
+  en_gestion: ["cohorte", "dueno"], contactado: ["cohorte", "dueno", "contacto"],
+  agendado: ["cohorte", "dueno", "llamada_con_fecha"],
+  atendido: ["cohorte", "dueno", "llamada_sucedio", "area_declarada"],
+  compromiso_verbal: ["cohorte", "dueno", "area_declarada", "fecha_limite_pago"],
+  ganado_parcial: ["cohorte", "dueno", "area_declarada", "valor_vendido", "abono", "fecha_limite_pago"],
+  ganado_completo: ["cohorte", "dueno", "area_declarada", "valor_vendido", "abono", "saldo_en_cero"],
+  cierre_perdido: ["motivo"],
+} as const;
+
+describe("propiedades acumuladas de la etapa", () => {
+  for (const [etapa, esperados] of Object.entries(FALTANTES_POR_ETAPA)) {
+    it(`${etapa}: lista las faltantes y queda vacío al completarlas`, () => {
+      const vacias: PropiedadesDelDeal = {
+        tieneCohorte: false, tieneDueno: false, tieneContactoRegistrado: false,
+        tieneLlamadaConFecha: false, llamadaSucedio: false, areaDeclaradaId: null,
+        fechaLimitePago: null, valorVendidoUsd: null, abonosVigentes: 0, saldo: null, motivoId: null,
+      };
+      expect(propiedadesQueLeFaltan(etapa as keyof typeof FALTANTES_POR_ETAPA, vacias).map((f) => f.codigo)).toEqual(esperados);
+      expect(propiedadesQueLeFaltan(etapa as keyof typeof FALTANTES_POR_ETAPA, PROPIEDADES_COMPLETAS)).toEqual([]);
+    });
+  }
+
+  it("no exime al histórico ni agrega comprobante", () => {
+    const faltan = propiedadesQueLeFaltan("ganado_parcial", { ...PROPIEDADES_COMPLETAS, areaDeclaradaId: null, valorVendidoUsd: null });
+    expect(faltan.map((f) => f.codigo)).toEqual(["area_declarada", "valor_vendido"]);
+    expect(faltan.some((f) => (f.codigo as string) === "comprobante")).toBe(false);
   });
 });
 

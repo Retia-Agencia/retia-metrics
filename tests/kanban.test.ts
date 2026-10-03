@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   abonos,
+  calls,
   cohorts,
   dealEtapaHistorial,
   deals,
@@ -159,6 +160,33 @@ describe("tableroKanban", () => {
     expect(t.total).toBe(1);
     const enContacto = t.columnas.find((c) => c.etapa === "contactado")!;
     expect(enContacto.tarjetas).toHaveLength(1);
+  });
+
+  it("cuenta las propiedades faltantes de etapas distintas y excluye el deal anulado", async () => {
+    await deal({ etapa: "registrado" });
+    await deal({ etapa: "contactado" });
+    await deal({ etapa: "contactado", anulado: true, cohort: null });
+
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
+    expect(t.total).toBe(2);
+    expect(t.columnas.find((c) => c.etapa === "registrado")!.tarjetas[0].avisos.faltanALaEtapa).toBe(0);
+    expect(t.columnas.find((c) => c.etapa === "contactado")!.tarjetas[0].avisos.faltanALaEtapa).toBe(1);
+  });
+
+  it("no cuenta llamadas ni abonos anulados como propiedades de la etapa", async () => {
+    const atendido = await deal({ etapa: "atendido" });
+    const ganado = await deal({ etapa: "ganado_completo" });
+    const anulacion = { anuladoEn: new Date(), anuladoPor: owner1, motivoAnulacion: "error" };
+    await db.insert(calls).values({
+      dealId: atendido, programId, resultado: "show", origen: "app", ...anulacion,
+    });
+    await db.insert(abonos).values({
+      dealId: ganado, programId, fecha: "2026-10-01", monto: "1000", ...anulacion,
+    });
+
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
+    expect(t.columnas.find((c) => c.etapa === "atendido")!.tarjetas[0].avisos.faltanALaEtapa).toBe(2);
+    expect(t.columnas.find((c) => c.etapa === "ganado_completo")!.tarjetas[0].avisos.faltanALaEtapa).toBe(3);
   });
 
   it("agrupa por etapa y muestra el dueño", async () => {

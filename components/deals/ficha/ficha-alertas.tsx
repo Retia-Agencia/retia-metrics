@@ -5,6 +5,7 @@ import type { RequisitoFaltante } from "@/lib/deals/requisitos";
 
 const ANCLA_DE_REQUISITO: Record<RequisitoFaltante["codigo"], string> = {
   transicion_no_permitida: "campos",
+  cohorte: "campos",
   dueno: "campos",
   actividad: "actividades",
   contacto: "actividades",
@@ -57,7 +58,7 @@ function Destino({ destino }: { destino: AlertasDelDeal["paraAvanzar"][number] }
 export function FichaAlertas({ alertas }: { alertas: AlertasDelDeal | null }) {
   const feliz = alertas?.paraAvanzar.find((destino) => destino.caminoFeliz);
   // Se esconde solo cuando no queda nada: ni urgentes, ni aviso, ni una ruta con faltantes.
-  const quedaAlgo = alertas != null && (alertas.urgentes.length > 0 || alertas.aviso != null
+  const quedaAlgo = alertas != null && (alertas.propiedades.length > 0 || alertas.urgentes.length > 0 || alertas.aviso != null
     || alertas.paraAvanzar.some((destino) => destino.faltan.length > 0));
   const alternos = alertas?.paraAvanzar.filter((destino) => !destino.caminoFeliz) ?? [];
 
@@ -74,6 +75,13 @@ export function FichaAlertas({ alertas }: { alertas: AlertasDelDeal | null }) {
             <ul className="mt-2 space-y-1 text-sm">
               {alertas.urgentes.map((alerta) => <li key={alerta.motivo}>{alerta.mensaje}</li>)}
             </ul>
+          </section>
+        ) : null}
+
+        {alertas && alertas.propiedades.length > 0 ? (
+          <section className="rounded-lg bg-tono-peligro-suave p-3 text-tono-peligro">
+            <Badge variant="peligro">Le falta a su etapa</Badge>
+            <Requisitos faltan={alertas.propiedades} />
           </section>
         ) : null}
 

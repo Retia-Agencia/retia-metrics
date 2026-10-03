@@ -18,7 +18,7 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA, siguientesDe, transicion, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
 import { leerHechos } from "@/lib/deals/mover-etapa";
-import { queLeFalta, type RequisitoFaltante } from "@/lib/deals/requisitos";
+import { propiedadesQueLeFaltan, queLeFalta, type RequisitoFaltante } from "@/lib/deals/requisitos";
 import { fechaLimiteMaxima } from "@/lib/deals/pago";
 import { fecha } from "@/lib/format";
 import { duenosPosibles } from "@/lib/deals/duenos";
@@ -209,6 +209,7 @@ export interface FichaDeDeal {
 }
 
 export interface AlertasDelDeal {
+  propiedades: RequisitoFaltante[];
   urgentes: { motivo: MotivoAtencion | "llamada_sin_resultado" | "atendida_sin_grain"; mensaje: string }[];
   paraAvanzar: {
     destino: EtapaDeal;
@@ -237,11 +238,19 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
     .select()
     .from(deals)
     .where(and(eq(deals.id, dealId), eq(deals.programId, programId), vigente(deals)));
-  if (!deal || deal.etapa === "cierre_perdido") return null;
+  if (!deal) return null;
 
-  const [inbox, hechos, llamadasVigentes] = await Promise.all([
+  const hechos = await leerHechos(db, deal, deal.motivoId, null);
+  let propiedades = propiedadesQueLeFaltan(deal.etapa, {
+    ...hechos,
+    tieneCohorte: deal.cohortId != null,
+  });
+  if (deal.etapa === "cierre_perdido") {
+    return { propiedades, urgentes: [], paraAvanzar: [], aviso: null };
+  }
+
+  const [inbox, llamadasVigentes] = await Promise.all([
     inboxDelPrograma(db, programId, "equipo"),
-    leerHechos(db, deal, null, null),
     db.select().from(calls).where(and(eq(calls.dealId, dealId), vigente(calls))),
   ]);
 
@@ -260,6 +269,7 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
   }
   if (llamadasVigentes.some(esAtendidaSinGrain)) {
     urgentes.set("atendida_sin_grain", MENSAJE_URGENTE.atendida_sin_grain);
+    propiedades = propiedades.filter((falta) => falta.codigo !== "llamada_sucedio");
   }
 
   const destinos = siguientesDe(deal.etapa);
@@ -278,6 +288,7 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
     .sort((a, b) => Number(b.caminoFeliz) - Number(a.caminoFeliz));
 
   return {
+    propiedades,
     urgentes: [...urgentes].map(([motivo, mensaje]) => ({ motivo, mensaje })),
     paraAvanzar,
     aviso: deal.etapa === "en_gestion"
