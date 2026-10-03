@@ -1,7 +1,7 @@
 ---
 id: 173
 etapa: O3
-serves: "docs/anotaciones.md A-72, A-73, A-74; ADR 0077 puntos 1 y 4; ADR 0052 (ticket 102)"
+serves: "docs/anotaciones.md A-72, A-73, A-74, A-81; ADR 0077 puntos 1 y 4; ADR 0052 (ticket 102)"
 depends: [171]
 status: todo
 ---
@@ -19,7 +19,7 @@ lleva migración: la genera y aplica la sesión principal con el ok de Mani; la 
 
 1. **Ajustes queda con cinco secciones:** Usuarios, Canales, Webhook Health, Motivos y Áreas. El índice
    (`app/(app)/ajustes/page.tsx`) pierde Programas, Fuentes y las pestañas de Catálogos que se fueron (Plataformas
-   al 171, Orígenes y categorías de recurso al 175). La descripción del índice en una línea.
+   al 171, Orígenes y categorías de recurso al 175). La descripción del índice en una línea. **A-81:** toda tarjeta, ruta o texto de Ajustes que hable de algo que ya vive en Programa o Mi espacio se quita (Programas y cohortes, Fuentes de datos, "en qué programas vende cada closer" en Usuarios, la mención a Sheets y sincronización); `/ajustes/programas` y `/ajustes/fuentes` dejan de redirigir y se borran si nada las enlaza. "Rarezas de la migración" se queda hasta que el 078 cierre.
 2. **Webhook Health (A-73).** "Salud del CRM" se llama **Webhook Health** (título, nav y textos). La lista de
    entregas muestra **las últimas 25** y pagina en el servidor bajo demanda ("Ver anteriores", cursor por fecha e
    id, sin `OFFSET` que crezca); `LIMITE_ENTREGAS = 200` de `lib/queries/entregas-webhook.ts` se va. El filtro usa el

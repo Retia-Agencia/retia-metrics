@@ -166,6 +166,12 @@ vive en la pantalla de su objeto, y lo que no se usa se quita. Reparto en `docs/
 | A-75 | Membresías | aclaración + cambio | ¿Qué es una membresía? El permiso de un usuario para trabajar en un programa, y donde vive su cuenta de Calendly de ese programa. Hoy se asigna escondida en Ajustes → Usuarios; pasa a la sección Equipo del programa. | 171 | en ticket |
 | A-76 | Toda la app | cambio | Bajar el sobrediseño y la complejidad de operación; centralizar lo que va junto. ADR 0077. | 168-175 | en ticket |
 
+| A-77 | Ficha del Deal → Transición | cambio | La diferencia entre "Mover a" y "Registrar" no es clara: si mueve la etapa no es Registrar. "Para avanzar" hace la tarjeta muy grande: va en el pop-up de cada transición. | 176 | en ticket |
+| A-78 | Ficha del Deal → Llamadas | cambio | Un botón para cada cosa estorba. El link de Grain (grabación y transcripción) es un campo siempre visible; los botones se van y queda uno, "Resultado" (show, no show, etc.). | 176 | en ticket |
+| A-79 | Ficha del Deal → Registrar | aclaración + cambio | ¿Hacen falta tantos botones? ¿Qué llenan? Llenan Actividades (contacto, intento, nota): cuentan para la alerta de tres intentos (161) y el aviso de estancado. Decidido: un solo "Registrar actividad"; lo que mueve la etapa pasa a Mover a y los pendientes a "Dejar en espera". | 176 | en ticket |
+| A-80 | Ficha del Deal → Facturación | aclaración + cambio | ¿En qué etapas se abona? En Contactado, Calificado, Atendido, Compromiso Verbal y Ganado Pago Parcial (`aceptaAbono`). Fuera de ellas el botón se ve deshabilitado con la razón, y cada acción dice qué cambia. | 176 | en ticket |
+| A-81 | Ajustes | cambio | Lo que se mudó a Programa y Mi espacio deja tarjetas obsoletas en Ajustes: se quitan. | 173 | en ticket |
+
 - **P-3 · Cada dato vive en la pantalla de su objeto (A-76, ADR 0077).** Programa, Perfil, Deal y Lead; Ajustes solo
   lo que no es de ningún objeto. Antes de agregar una pantalla, un campo o un catálogo, se busca qué quitar.
 

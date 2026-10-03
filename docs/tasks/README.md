@@ -323,7 +323,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 13 · Ola O3 · simplificación y centralización (3-oct)
 
-8 tickets, 4 abiertos. Salen del recorrido 7 de Mani (`docs/anotaciones.md` A-52 a A-76) y del ADR 0077. Reparto
+9 tickets, 5 abiertos. Salen del recorrido 7 de Mani (`docs/anotaciones.md` A-52 a A-76) y del ADR 0077. Reparto
 y orden en [`plan-reparto.md`](../plan-reparto.md) §4, ola O3. El 164 queda reemplazado por el 172 y el 102 lo
 construye el 173.
 
@@ -335,6 +335,7 @@ construye el 173.
 | [ ] | 171 | [Todo lo del programa vive en la tab Programa](./171-todo-lo-del-programa-en-programa.md) | · | done · `cp-20261003-2` · 3-oct · S4 · recorrido de la sesión central hecho |
 | [ ] | 172 | [Mi espacio y "Ver como" a un closer de verdad](./172-mi-espacio-todo-lo-del-usuario.md) | 169, 170, 171 | todo · 3-oct · S5, parte 2 · reemplaza el 164 |
 | [ ] | 173 | [Ajustes solo con lo que no es de nadie](./173-ajustes-solo-lo-que-no-es-de-nadie.md) | 171 | todo · 3-oct · S6, parte 2 · absorbe el 102 · migración |
+| [ ] | 176 | [Transición y Llamadas, segunda pasada](./176-transicion-y-llamadas-segunda-pasada.md) | 168 | todo · 3-oct · S9, parte 2 · después del pulido de la parte 1 |
 | [ ] | 174 | [Volver a donde estaba](./174-volver-a-donde-estaba.md) | 168, 170-173 | todo · 3-oct · S7, parte 3 |
 | [ ] | 175 | [Limpieza: lo que no usa nadie](./175-limpieza-lo-que-no-se-usa.md) | 170-173 | todo · 3-oct · S8, parte 3 · migración |
 
