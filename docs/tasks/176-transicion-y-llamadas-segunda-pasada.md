@@ -140,3 +140,5 @@ las cuatro salidas y su línea, y "Registrar abono" deshabilitado con la razón;
 **Al 177:** "Resultado → Reagendada" crea la cita nueva y deja la vieja `agendada` para siempre (sigue en "ya pasaron
 sin resultado"); y el botón "Elige una opción" del diálogo se ve activo. **Pendiente de Mani:** el supuesto de "Show"
 (solo pone el foco en el campo de Grain, no marca show).
+
+**3-oct, decisión de Mani:** "Show" se marca en un clic y el Grain no bloquea (alerta, no requisito). Va al **177** punto 4.

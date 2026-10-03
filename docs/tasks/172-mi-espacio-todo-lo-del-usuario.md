@@ -164,3 +164,5 @@ No corrió `/codex:adversarial-review` (Codex sin cupo); la reja se mordió a ma
 Al 177: la reja también bloquea las acciones que solo leen (el ensayo del pop-up de mover), el texto de Mi espacio para
 el developer, el nombre en el perfil y la barra que se monta al hacer scroll. **Pendiente de Mani:** si las tabs de Mi
 espacio filtran siempre por el usuario (como quedó) o por el alcance del rol.
+
+**3-oct, decisión de Mani:** Mi espacio muestra solo lo de la persona y sus secciones dependen del rol. Va al **179**.

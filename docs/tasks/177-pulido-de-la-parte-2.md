@@ -46,12 +46,23 @@ El recorrido en `dev:local` encontró tres cosas que ningún test veía:
    devuelve la lista de faltantes y un `moverDeal` forjado sigue dando el 403 de solo lectura.
 3. Los cinco detalles del punto 3.
 
+4. **"Show" se marca y ya; el Grain no bloquea (decisión de Mani, 3-oct).** Hoy "Show" solo pone el foco en el campo
+   de Grain. Pasa a marcar la llamada `show` en un clic (una acción nueva en `lib/deals/llamadas.ts`, hermana de
+   `pegarGrain`, que hace lo mismo sin el link: `resultado = "show"`, `fecha_llamada` y el movimiento a Atendido por E8,
+   en una transacción y con rastro). El motor ya lo permite: `llamada_sucedio` se cumple con `resultado = "show"`
+   (`RESULTADOS_QUE_OCURRIERON`); solo cambia el mensaje del requisito en `lib/deals/requisitos.ts` ("Falta marcar la
+   llamada como show", no "Falta el link de Grain"). El Grain sigue siendo un campo para pegar el transcript, opcional:
+   pegarlo marca show si no lo estaba (lo de hoy). **Una llamada show sin Grain no bloquea ningún movimiento: sale
+   como alerta amarilla en la ficha** ("La llamada no tiene el link de Grain") y en la métrica "Shows sin Grain" que ya
+   existe; nunca como requisito. Tests: marcar show sin Grain mueve a Atendido; el deal sigue a Compromiso Verbal sin
+   Grain; la alerta aparece y desaparece al pegarlo.
+
 ## Archivos
 
 `components/deals/ficha/acciones-de-llamada.tsx`, `lib/deals/llamadas.ts` (solo si Reagendada necesita juntar dos
 pasos), `lib/auth/guards.ts`, `app/(app)/p/[programa]/deals/acciones.ts`, `app/(app)/p/[programa]/inbox/acciones.ts`,
 `app/(app)/mi-espacio/page.tsx`, `components/mi-espacio/perfil-de-mi-espacio.tsx`, `components/barra-suplantacion.tsx`,
-`app/(app)/ajustes/canales/acciones.ts`. Tests: `tests/llamadas-del-deal.test.ts`, `tests/reja-solo-lectura.test.ts`,
+`app/(app)/ajustes/canales/acciones.ts`, `lib/deals/requisitos.ts` (solo el mensaje), la alerta en `ficha-alertas.tsx`. Tests: `tests/llamadas-del-deal.test.ts`, `tests/reja-solo-lectura.test.ts`,
 `tests/mi-espacio.test.ts`.
 
 **No toca** `components/page-shell.tsx` ni los enlaces de las listas (son del 174) ni lo que borra el 175.
@@ -61,5 +72,6 @@ pasos), `lib/auth/guards.ts`, `app/(app)/p/[programa]/deals/acciones.ts`, `app/(
 - Reagendada desde la ficha deja la cita vieja `reagendada` y una nueva `agendada`; el Inbox ya no muestra la vieja.
 - Viendo como un closer, el pop-up de mover muestra lo que falta; cualquier escritura forjada sigue en 403 y la base
   no se mueve (se muerde con `Next-Action`).
+- "Show" se marca en un clic sin Grain, el deal pasa a Atendido y sale la alerta amarilla; pegando el Grain se va.
 - Los cinco detalles, vistos en `dev:local` como closer, developer y "como closer", escritorio y 375 px.
 - Typecheck, lint, los tests del ticket y `npm run build` (hay componentes cliente).

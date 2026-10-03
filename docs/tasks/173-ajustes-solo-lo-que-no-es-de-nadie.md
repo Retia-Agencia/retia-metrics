@@ -3,7 +3,7 @@ id: 173
 etapa: O3
 serves: "docs/anotaciones.md A-72, A-73, A-74, A-81; ADR 0077 puntos 1 y 4; ADR 0052 (ticket 102)"
 depends: [171]
-status: entregado-sin-validar
+status: done
 ---
 
 > **3-oct (sesión central):** el valor `paid_trafficker` del enum `rol` **no** se adelantó: al agregarlo, `users.rol` deja de caber en `Rol` (`lib/auth/roles.ts`) y rompe `lib/catalogo/usuarios.ts`, `lib/deals/duenos.ts` y `scripts/usuarios.ts`. Va en el mismo cambio que `ROLES`, `manejaPauta` y la etiqueta del rol: la sesión entrega `schema.ts` y el código, y la sesión central genera y aplica la migración (`ALTER TYPE "rol" ADD VALUE IF NOT EXISTS 'paid_trafficker'`, con `SET lock_timeout`).
@@ -80,3 +80,5 @@ en local) sin errores; el paid trafficker aterriza en Canales, solo ve Ajustes y
 
 Lo no hecho (rutas viejas de Programas y Fuentes, Motivos para closers) va al **178**. El Dashboard del paid trafficker
 sigue fuera de alcance.
+
+**3-oct, cierre:** 0063 aplicada en producción con el ok de Mani (ref `hfqmiyiuyqapdsbywrag`, 64 de 64, sin transacciones largas antes). El enum `rol` ya tiene `paid_trafficker`.
