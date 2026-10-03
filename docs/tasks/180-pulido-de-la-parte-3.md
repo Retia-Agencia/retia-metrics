@@ -3,7 +3,7 @@ id: 180
 etapa: O3
 serves: "Recorrido de la sesión central de la parte 3 (3-oct, noche) sobre 174, 177 y 178"
 depends: [174, 177, 178]
-status: todo
+status: done
 ---
 
 # 180 — Pulido de la parte 3: el Grain a la vista después de Show, y tres textos
@@ -39,3 +39,19 @@ del colapsable con su campo; `volver.ts`: `vista` ya no cuenta como filtro, test
 por defecto webhook; `responder-pregunta.tsx`: botón muerto quitado). Typecheck, lint, `tests/volver.test.ts` (27) y
 `npm run build` limpios. **Falta el recorrido en `dev:local`** (escritorio y 375 px, consola, pegar Grain y ver que la
 alerta se apaga): había un `next-server` ajeno en :3000 sobre esta carpeta y no se tocó.
+
+## Recorrido (3-oct, sesión central)
+
+En `dev:local`, escritorio y 375 px, consola sin errores, sin scroll horizontal:
+
+1. Como closer: Resultado → Show en un clic; la llamada queda fuera del colapsable con su campo de Grain (dos deals,
+   uno en cada ancho). Pegado el link: "Grain guardado.", la alerta "La llamada no tiene el link de Grain" se apaga y la
+   llamada pasa a "Llamadas anteriores".
+2. Leads en vista Tabla → ficha del lead: "← Leads" (sin "filtrados") y vuelve a `?vista=tabla`.
+3. Como gerente, tab Programa → Nueva fuente: Tipo arranca en "Webhook de formulario".
+4. Kanban: soltar un deal Potencial en En gestión abre el diálogo con "Registrar contacto", "Registrar intento" y
+   "Cancelar", sin el botón muerto.
+
+Visto de paso, sin arreglar (chico, para un ticket futuro si Mani quiere): el campo de Grain guarda al pegar o al salir,
+no con Enter; su ayuda ("Al pegarlo, la llamada queda como show…") sobra cuando la llamada ya es Show; y la llamada
+del seed queda "Sin closer" aunque la marcó el dueño del deal.

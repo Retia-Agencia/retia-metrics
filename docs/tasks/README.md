@@ -341,7 +341,7 @@ construye el 173.
 | [ ] | 177 | [Pulido de la parte 2: Reagendada, la reja deja leer, Mi espacio claro](./177-pulido-de-la-parte-2.md) | 172, 176 | done · `cp-20261003-5` · 3-oct · S10 · recorrido de la sesión central (Show, Grain, Reagendada, ensayo bajo "ver como") · lo que quedó, al 180 |
 | [ ] | 178 | [Ajustes sin rutas viejas: Programas y Fuentes se mudan a Programa](./178-ajustes-sin-rutas-viejas.md) | 173 | done · `cp-20261003-5` · 3-oct · S11 · recorrido de la sesión central (cada diálogo de la tab Programa, consola limpia) |
 | [ ] | 179 | [Mi espacio curado por rol](./179-mi-espacio-por-rol.md) | 172, 173 | todo · 3-oct · S12, parte 3 · decisión de Mani · después del 177 |
-| [ ] | 180 | [Pulido de la parte 3: el Grain a la vista después de Show](./180-pulido-de-la-parte-3.md) | 174, 177, 178 | todo · 3-oct · S13 · sale del recorrido de la parte 3 |
+| [ ] | 180 | [Pulido de la parte 3: el Grain a la vista después de Show](./180-pulido-de-la-parte-3.md) | 174, 177, 178 | done · 3-oct · S13 · recorrido de la sesión central (Grain tras Show en escritorio y 375 px, Volver, fuente webhook, Kanban) · falta el checkpoint |
 
 ## Tracker — Retia CRM
 
