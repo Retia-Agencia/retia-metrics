@@ -3,7 +3,7 @@ id: 172
 etapa: O3
 serves: "docs/anotaciones.md A-46, A-64, A-66 (y A-04, A-05); ADR 0077 punto 1; enmienda ADR 0028; reemplaza el 164"
 depends: [170, 171, 169]
-status: todo
+status: done
 ---
 
 # 172 — Mi espacio: todo lo del usuario en un lugar, y "Ver como" a un closer de verdad
@@ -141,3 +141,26 @@ Implementó **Kiro** (Codex estaba sin cupo hasta las 3:32 PM); Claude revisó e
 **Para la sesión central, en orden:** (1) un solo `npm test -- tests/vista.test.ts tests/mi-espacio.test.ts tests/reja-solo-lectura.test.ts tests/reja-solo-lectura-handlers.test.ts tests/paginas.test.ts tests/roles.test.ts`
 y los de nav; (2) `npm run build`; (3) el recorrido de "Falta probar a mano" de arriba, forjando la acción con `Next-Action`
 bajo suplantación; (4) `/codex:adversarial-review` del diff (toca auth, ADR 0028); (5) si todo pasa, `status: done` aquí y en el tracker.
+
+## Revisión de la sesión central (3-oct, tarde) · DONE en `cp-20261003-4`
+
+CI completo en verde (2.367 tests y build). Lo que encontró la revisión y quedó arreglado en `main`:
+
+- 🩸 **Build roto:** `user-menu.tsx` (cliente) importaba `VISTAS` de `lib/auth/vista.ts`, que ahora carga la base. Vercel
+  falló cinco deploys seguidos (producción se quedó en el anterior, nada roto en vivo). Las vistas llegan por props.
+  Un `import()` perezoso NO sirve: Turbopack también lo mete al bundle del cliente.
+- **El suplantado conservaba el nombre del developer:** la barra y el 403 decían "Estás viendo como Dev". `sesionEfectiva`
+  pone nombre, correo y foto del closer.
+- **El 403 de solo lectura salía como excepción** (pantalla de error en producción): en la ficha, el Kanban, Leads y el
+  Inbox la guarda estaba fuera del `try`. Ahora vuelve como `{ ok: false, error }` y la pantalla lo muestra.
+- Tests: `/mi-dia` redirige a `/mi-espacio`, mocks de `sesionEfectiva`.
+
+**Recorrido** (`dev:local`): closer con tres programas (perfil, Calendly por programa, cuatro tabs, programa forjado = 404,
+cookie `closer:<id>` puesta a mano = sigue siendo él); developer → "Ver como closer → María" (submenú abre, barra con su
+nombre, "Salir" funciona); **escritura forjada con `Next-Action` bajo suplantación: "Estás viendo como María Closer: solo
+lectura." y la base quieta** (actividades, `change_log` y llamadas sin cambio); 375 px sin scroll horizontal.
+No corrió `/codex:adversarial-review` (Codex sin cupo); la reja se mordió a mano.
+
+Al 177: la reja también bloquea las acciones que solo leen (el ensayo del pop-up de mover), el texto de Mi espacio para
+el developer, el nombre en el perfil y la barra que se monta al hacer scroll. **Pendiente de Mani:** si las tabs de Mi
+espacio filtran siempre por el usuario (como quedó) o por el alcance del rol.

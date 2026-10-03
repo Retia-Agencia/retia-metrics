@@ -141,6 +141,8 @@ los de otra. Una parte arranca cuando la anterior está en `main`.
 | 2 | **S9** | [176] Transición y Llamadas, segunda pasada (el pulido de la parte 1 ya está en `main`, `cp-20261003-3`: lista para abrir) | notas del 3-oct (A-77 a A-80) | la ficha: `ficha-transicion`, `ficha-alertas`, `ficha-llamadas`, `ficha-pago`, `pregunta-de-etapa`, `responder-pregunta`, `dialogo-mover`, `detalle-de-llamada`, `llamadas-programa`, `inbox-llamadas-de-hoy` | no |
 | 3 | **S7** | [174] Volver a donde estaba | 6 | `page-shell.tsx`, el helper de enlaces y los enlaces de las listas | no |
 | 3 | **S8** | [175] Limpieza | 17 (Orígenes), lo que el ADR 0077 punto 3 quita | lo que borra, y la migración | **sí** (quita `origenes` y categorías de recurso) |
+| 3 | **S10** | [177] Pulido de la parte 2 | revisión central del 3-oct (172, 176) | `acciones-de-llamada.tsx`, `lib/auth/guards.ts` (lecturas), `deals/acciones.ts`, `inbox/acciones.ts`, `mi-espacio/page.tsx`, `perfil-de-mi-espacio.tsx`, `barra-suplantacion.tsx`, `ajustes/canales/acciones.ts` | no |
+| 3 | **S11** | [178] Ajustes sin rutas viejas | A-81 (lo que el 173 no pudo borrar) | `ajustes/programas/**` y `ajustes/fuentes/**` (se van), `p/[programa]/programa/**`, los imports de `program-switcher`, `cohortes-admin`, `fuentes-admin`, `equipo-del-programa`, `editar-programa`, `ajustes/catalogos/**` | no |
 
 **Lo compartido en la parte 1:** `lib/queries/inbox.ts` lo tocan S1 (motivo "Próximo contacto vencido") y S2 (motivo
 "host sin cuenta"): cada una agrega su motivo y no edita el de la otra; quien llegue segunda a `main` rebasa.
@@ -151,13 +153,18 @@ S3 cambia solo un enlace; S6 la rehace en la parte 2.
 
 > Toma el ticket `docs/tasks/1NN-….md` de la ola O3. Lee `AGENTS.md`, `docs/plan-reparto.md` §4 (ola O3), el
 > ADR 0077, las anotaciones que cita el ticket y `docs/structure.md` §9 si toca pantallas. Trabaja en un worktree
-> propio; implementa Codex por `/delegate` (effort medium) y tú revisas el diff contra el "Done cuando". Toca solo
+> propio; implementa Kiro por `kiro-rescue` y tú revisas el diff contra el "Done cuando". Toca solo
 > los archivos que el ticket y la tabla de la ola O3 dicen que son tuyos. Antes de empujar: typecheck, lint, los
 > tests del ticket y `npm run build` si tocaste un componente cliente; recorrido en `dev:local` con la consola
 > abierta, haciendo clic en todo lo que se abre, y las reglas de permiso mordidas forjando la petición. No corras
 > la suite completa ni generes o apliques migraciones: entrega el cambio de `schema.ts` y avisa. No toques
 > `docs/tasks/README.md`, `docs/agents/handoff.md` ni este documento: escribe tu estado y tu nota de cierre en el
 > archivo del ticket. Ninguna escritura en producción sin el ok de Mani. Empuja a `main` nombrando tus archivos.
+
+**Parte 2 cerrada en `cp-20261003-4` (3-oct, tarde):** 172 y 176 done; 173 con el código en `main` y la **0063** generada,
+pendiente de aplicar con el ok de Mani. La parte 3 arranca: S7, S8, S10 y S11 corren a la vez. **Por esta ola implementa
+Kiro** (`kiro-rescue`), no Codex (Mani, 3-oct). Cruces de la parte 3: `mi-espacio/page.tsx` lo tocan S7 (enlaces) y S10
+(texto del developer); `inbox/acciones.ts` y `deals/acciones.ts`, solo S10. Quien llegue segunda a `main` rebasa.
 
 **Migraciones de la ola:** la **0062** (`recursos.categoria_id` nula, para el 171) está aplicada en producción desde el 3-oct. El rol `paid_trafficker` sale con el código del 173 y el borrado de `origenes` y `categorias_recurso` con el del 175, después de desplegar ese código (orden en cada ticket).
 

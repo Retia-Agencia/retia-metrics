@@ -67,3 +67,16 @@ Tests: `tests/salud-crm.test.ts`, `tests/canales.test.ts`, `tests/roles.test.ts`
 3. Fuera de alcance, sin construir: Dashboard del paid trafficker, su alcance por membresía (`lib/auth/alcance.ts`) y ocultarle el comparativo entre closers y la comisión.
 
 **⚠️ `main` con typecheck roto al empujar el 173 (`1a9c555`), y no es del 173.** Cruce del 172 con el 176: `components/mi-espacio/tab-mis-llamadas.tsx:35` pasa `opciones` (+ `mapa`, `nombreDeEtapa`) a `llamadas-programa`, que tras el 176 pide `motivosReagenda` y ya no tiene `opciones`. Antes de rebasar sobre el 176 el typecheck del 173 estaba limpio. Lo arregla la sesión que dueña de esos archivos (S5 el tab, S9 `llamadas-programa`) o la central; el CI y el checkpoint saldrán rojos hasta entonces. Causa del push en rojo: un `typecheck | tail && git push` encadenado, donde `tail` ocultó el código de salida; ya no se encadena así.
+
+## Revisión de la sesión central (3-oct, tarde) · código en `cp-20261003-4`, falta la migración
+
+CI completo en verde. **Migración `0063_rol-paid-trafficker.sql` generada y leída** (`SET lock_timeout = '5s'` +
+`ALTER TYPE "public"."rol" ADD VALUE IF NOT EXISTS 'paid_trafficker'`, aditiva). El código ya está desplegado, así que el
+orden se cumple; **se aplica con el ok de Mani**. Hasta entonces, asignar el rol en producción falla con un error de enum.
+
+**Recorrido** (`dev:local`): índice con las seis tarjetas; Webhook Health con 25 y "Ver anteriores" hasta 32 (sembradas 30
+en local) sin errores; el paid trafficker aterriza en Canales, solo ve Ajustes y crea un canal; **un closer forjando
+`crearCanalAccion` recibe 403 y la fila no existe**. Ojo: el 403 dice "solo para: gerente, paid_trafficker" (rol crudo, al 177).
+
+Lo no hecho (rutas viejas de Programas y Fuentes, Motivos para closers) va al **178**. El Dashboard del paid trafficker
+sigue fuera de alcance.

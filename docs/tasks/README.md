@@ -323,7 +323,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 13 · Ola O3 · simplificación y centralización (3-oct)
 
-9 tickets, 5 abiertos. Salen del recorrido 7 de Mani (`docs/anotaciones.md` A-52 a A-76) y del ADR 0077. Reparto
+11 tickets, 6 abiertos. Salen del recorrido 7 de Mani (`docs/anotaciones.md` A-52 a A-76) y del ADR 0077. Reparto
 y orden en [`plan-reparto.md`](../plan-reparto.md) §4, ola O3. El 164 queda reemplazado por el 172 y el 102 lo
 construye el 173.
 
@@ -333,11 +333,13 @@ construye el 173.
 | [ ] | 169 | [La llamada siempre tiene closer, y el handoff se prueba en local](./169-la-llamada-siempre-tiene-closer.md) | · | done · `cp-20261003-2` · 3-oct · S2 · relleno aplicado en producción con el ok de Mani: 134 llamadas con su closer, el re-ensayo da 0 pendientes y 0 hosts sin cuenta |
 | [ ] | 170 | [Las listas: filtros solos, Calls de cada closer, Leads en tabla, Personas fuera](./170-listas-filtros-calls-y-leads.md) | · | done · `cp-20261003-2` · 3-oct · S3 · recorrido de la sesión central hecho |
 | [ ] | 171 | [Todo lo del programa vive en la tab Programa](./171-todo-lo-del-programa-en-programa.md) | · | done · `cp-20261003-2` · 3-oct · S4 · recorrido de la sesión central hecho |
-| [ ] | 172 | [Mi espacio y "Ver como" a un closer de verdad](./172-mi-espacio-todo-lo-del-usuario.md) | 169, 170, 171 | todo · 3-oct · S5, parte 2 · reemplaza el 164 |
-| [ ] | 173 | [Ajustes solo con lo que no es de nadie](./173-ajustes-solo-lo-que-no-es-de-nadie.md) | 171 | todo · 3-oct · S6, parte 2 · absorbe el 102 · migración |
-| [ ] | 176 | [Transición y Llamadas, segunda pasada](./176-transicion-y-llamadas-segunda-pasada.md) | 168 | todo · 3-oct · S9, parte 2 · después del pulido de la parte 1 |
+| [ ] | 172 | [Mi espacio y "Ver como" a un closer de verdad](./172-mi-espacio-todo-lo-del-usuario.md) | 169, 170, 171 | done · `cp-20261003-4` · 3-oct · S5 · revisión y recorrido de la sesión central (3 bugs arreglados: build, nombre del suplantado, 403 sin capturar) · lo que quedó, al 177 |
+| [ ] | 173 | [Ajustes solo con lo que no es de nadie](./173-ajustes-solo-lo-que-no-es-de-nadie.md) | 171 | código en `cp-20261003-4` · 3-oct · S6 · **falta aplicar la 0063** (rol `paid_trafficker`) con el ok de Mani · rutas viejas y Motivos, al 178 |
+| [ ] | 176 | [Transición y Llamadas, segunda pasada](./176-transicion-y-llamadas-segunda-pasada.md) | 168 | done · `cp-20261003-4` · 3-oct · S9 · recorrido de la sesión central · Reagendada que deja la cita vieja colgada, al 177 |
 | [ ] | 174 | [Volver a donde estaba](./174-volver-a-donde-estaba.md) | 168, 170-173 | todo · 3-oct · S7, parte 3 |
 | [ ] | 175 | [Limpieza: lo que no usa nadie](./175-limpieza-lo-que-no-se-usa.md) | 170-173 | todo · 3-oct · S8, parte 3 · migración |
+| [ ] | 177 | [Pulido de la parte 2: Reagendada, la reja deja leer, Mi espacio claro](./177-pulido-de-la-parte-2.md) | 172, 176 | todo · 3-oct · S10, parte 3 · sale de la revisión de la parte 2 |
+| [ ] | 178 | [Ajustes sin rutas viejas: Programas y Fuentes se mudan a Programa](./178-ajustes-sin-rutas-viejas.md) | 173 | todo · 3-oct · S11, parte 3 · cierra A-81 |
 
 ## Tracker — Retia CRM
 

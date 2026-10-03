@@ -3,7 +3,7 @@ id: 176
 etapa: O3
 serves: "docs/anotaciones.md A-77, A-78, A-79, A-80; ADR 0077 punto 6; ADR 0075"
 depends: [168]
-status: todo
+status: done
 ---
 
 # 176 — Transición y Llamadas, segunda pasada: tres verbos claros y un solo "Resultado"
@@ -128,3 +128,15 @@ worktree tiene `node_modules` enlazado.
   enlazado del worktree.
 - "Se movió" y "No asistió o canceló" de la etapa Agendado quedan en "Dejar en espera" (no cambian la etapa);
   revisar en el recorrido que ese encuadre se lea bien para quien no es técnico.
+
+## Revisión de la sesión central (3-oct, tarde) · DONE en `cp-20261003-4`
+
+CI completo en verde. El cruce con el 172 (`tab-mis-llamadas` pasaba `opciones` en vez de `motivosReagenda`) rompió el
+typecheck de `main`; arreglado en `d514ded`. **Recorrido** como closer en Potencial (Mover a: En gestión, Contactado,
+Cierre perdido; Dejar en espera: Próxima cohorte; Registrar actividad solo con Nota, porque Contacto e Intento mueven),
+el pop-up de Contactado pide canal y nota y dice a dónde pasa; en Agendado, el campo de Grain visible, "Resultado" con
+las cuatro salidas y su línea, y "Registrar abono" deshabilitado con la razón; 375 px sin scroll horizontal.
+
+**Al 177:** "Resultado → Reagendada" crea la cita nueva y deja la vieja `agendada` para siempre (sigue en "ya pasaron
+sin resultado"); y el botón "Elige una opción" del diálogo se ve activo. **Pendiente de Mani:** el supuesto de "Show"
+(solo pone el foco en el campo de Grain, no marca show).
