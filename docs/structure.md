@@ -484,41 +484,38 @@ UTM** y **sin clasificar**, se muestran siempre con su conteo y su porcentaje.
 ## 8. Pantallas, roles y quién ve qué
 
 Tabs a la izquierda, un selector de programa arriba (ADR 0050). Las tabs de programa viven en
-`/p/<programa>/<tab>`. Puesto al día el 2-oct contra `app/`; el componente de cada pantalla es el de
+`/p/<programa>/<tab>`. Puesto al día el 3-oct contra `app/` (ola O3, ADR 0077); el componente de cada pantalla es el de
 [`plan.md`](./plan.md) §4.
 
 | Pantalla | Ruta | Componente | Qué es | Estado |
 |---|---|---|---|---|
+| **Mi espacio** | `/mi-espacio` | 3, 10 | el perfil y lo de la persona según su rol (179): closer, sus pendientes, deals, llamadas y students; gerente, lo que tiene por decidir; paid trafficker, sus canales. `/mi-dia` y `/perfil` redirigen aquí hasta después del 10-oct | ✅ |
 | **Inbox** | `/p/<programa>/inbox` | 3 | lo sin dueño (Setteo ordenado), llamadas sueltas, "se perdió en el Calendly" y lo que necesita atención | ✅ |
-| **Urgencias** | `/p/<programa>/urgencias` | 3 | la réplica del semáforo `🚨 Urgencias` de la hoja, con desglose por canal (066) | ✅ |
 | **Dashboard** | `/p/<programa>/dashboard` y `/dashboard` ("todos") | 9 | un programa o "todos los programas" (solo lo sumable), cada cifra abre su lista (`.../dashboard/lista`) | ✅ · secciones en el 148 |
 | **Leads** | `/p/<programa>/leads` y `/leads/<id>` | 1 | la base de personas del programa, con o sin deal, y su ficha | ✅ · falta buscador por texto |
 | **Deals** | `/p/<programa>/deals` y `/deals/<id>` | 2 | Kanban por etapas y la ficha del deal | ✅ · vista tabla pendiente |
 | **Calls** | `/p/<programa>/calls` | 4 | llamadas de hoy y próximas, sin resultado, sueltas | ✅ |
 | **Students** | `/p/<programa>/students` | 6 | estudiantes por cohorte: saldo, fecha límite, cartera vencida, onboarding | ✅ |
-| **Programa** | `/p/<programa>/programa` | 10 | ficha del programa: cohortes, destinos, Calendly, fuentes, comisión, equipo | ✅ |
+| **Programa** | `/p/<programa>/programa` | 10 | todo lo del programa (ADR 0077): crear y editar el programa, cohortes, destinos, Calendly, fuentes, plataformas, comisión, equipo | ✅ |
 | **Campañas** | (sin ruta) | 8 | el árbol de Meta con su embudo y el builder de orgánico y closers (125) | ❌ |
 | **Recursos** | `/recursos` (`/documentos` redirige) | 10 | brochures y links de pago | ✅ |
-| **Perfil** | `/perfil` | 10 | lo propio: el Calendly del closer por programa (ADR 0074) | 🟡 152 |
-| **Ajustes** | `/ajustes/*` | 10, 1, 7, 12 | programas y cohortes, usuarios y membresías, catálogos, fuentes, canales, salud, migración | ✅ |
+| **Ajustes** | `/ajustes/*` | 1, 7, 12 | solo lo que no es de ningún objeto (ADR 0077): usuarios y roles, Canales, Webhook Health (`/salud`), Motivos (`/catalogos`), Áreas, migración | ✅ |
 | **Nerd Stats** | `/nerd-stats` y `/nerd-stats/bitacora` | 11 | salud del sistema y bitácora (solo developer) | ✅ |
-| Mi día | `/mi-dia` | 3 | del MVP; respaldo para un closer sin programas | legado (K-1) |
-| Personas | `/personas` y `/personas/<id>` | 1 | del MVP; buscador entre programas | legado (K-2) |
 
-Products se retiró con el 134 (el precio es de la cohorte). `/programas/<slug>` redirige al Dashboard.
+Products se retiró con el 134 (el precio es de la cohorte). Personas salió con el 170; Urgencias, `/programas/<slug>`, `/documentos` y Orígenes con el 175.
 
-| Pantalla | Closer (y setter) | Gerente | Paid Trafficker ⛔ | Customer Success ⛔ | Developer |
+| Pantalla | Closer (y setter) | Gerente | Paid Trafficker | Customer Success ⛔ | Developer |
 |---|---|---|---|---|---|
-| Inbox, Urgencias | lo suyo + sin dueño de sus programas | todo el programa | · | · | todo |
-| Dashboard | sus programas, completos | todos | sus programas, menos el comparativo entre closers y la comisión (ADR 0052) | · | todo |
+| Mi espacio | Pendientes, Mis deals, Mis llamadas, Mis students y su Calendly | Por decidir: sin dueño, por settear, sueltas, hosts sin cuenta, Webhook Health | Canales: pares sin clasificar y envíos por canal | · | según su vista; en `todo`, un mensaje |
+| Inbox | lo suyo + sin dueño de sus programas | todo el programa | · | · | todo |
+| Dashboard | sus programas, completos | todos | ⛔ sus programas, menos el comparativo entre closers y la comisión (ADR 0052, resto del 102) | · | todo |
 | Leads, Calls | sus programas | todos | · | · | todo |
 | Deals | **solo sus deals** (ADR 0075) | todos | · | · | todo |
 | Students | sus programas | todos | · | solo esta tab, marca el onboarding (145) | todo |
 | Campañas | "Mi link" (086) | todo | árbol, embudo, links de orgánico, conexión con Meta | · | todo |
 | Programa | lectura de los suyos | edita | · | · | todo |
 | Recursos | lee y crea en sus programas | edita | · | · | todo |
-| Perfil | su Calendly | lo suyo | · | · | todo |
-| Ajustes | catálogos permitidos | todo | · | · | todo |
+| Ajustes | catálogos permitidos | todo | solo Canales (`manejaPauta`) | · | todo |
 | Nerd Stats | · | · | · | · | solo él |
 
 Esconder una tab no es seguridad: cada ruta y cada server action valida en el servidor, y se prueba

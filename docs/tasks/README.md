@@ -176,7 +176,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [ ] | 067 | [ROAS por cohorte y captura de pauta](./067-roas-por-cohorte-y-captura-de-pauta.md) (E5-4) | 064, 120 | todo |
-| [ ] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | todo · se construye dentro del 173 (ola O3, 3-oct) · 24-sep, ADR 0052 · migración de la sesión principal |
+| [ ] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | en parte · el 173 construyó el rol, `manejaPauta` y Canales (0063 en producción); el 179, su Mi espacio. **Falta:** su Dashboard acotado a sus programas (alcance por membresía), sin el comparativo entre closers ni la comisión |
 | [ ] | 119 | [La conexión con Meta: token por portafolio y cuentas por programa](./119-la-conexion-con-meta.md) | — | todo · carril Alejo · migración · espera el token de Anderson |
 | [ ] | 120 | [La pauta de Meta: árbol y gasto por anuncio y día](./120-la-pauta-de-meta-por-anuncio-y-dia.md) | 119 | todo · carril Alejo · migración (retira `ad_spend`) |
 | [ ] | 122 | [Los objetivos de la cohorte y el reparto de cupos por área](./122-los-objetivos-de-la-cohorte.md) | 083 | todo · carril Mani · migración |
@@ -323,25 +323,25 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 13 · Ola O3 · simplificación y centralización (3-oct)
 
-13 tickets, 2 abiertos. Salen del recorrido 7 de Mani (`docs/anotaciones.md` A-52 a A-76) y del ADR 0077. Reparto
+13 tickets, todos cerrados (`cp-20261003-7`). Salen del recorrido 7 de Mani (`docs/anotaciones.md` A-52 a A-76) y del ADR 0077. Reparto
 y orden en [`plan-reparto.md`](../plan-reparto.md) §4, ola O3. El 164 queda reemplazado por el 172 y el 102 lo
 construye el 173.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 168 | [La ficha del deal se entiende sola](./168-la-ficha-del-deal-se-entiende-sola.md) | · | done · `cp-20261003-2` · 3-oct · S1 · recorrido de la sesión central hecho |
-| [ ] | 169 | [La llamada siempre tiene closer, y el handoff se prueba en local](./169-la-llamada-siempre-tiene-closer.md) | · | done · `cp-20261003-2` · 3-oct · S2 · relleno aplicado en producción con el ok de Mani: 134 llamadas con su closer, el re-ensayo da 0 pendientes y 0 hosts sin cuenta |
-| [ ] | 170 | [Las listas: filtros solos, Calls de cada closer, Leads en tabla, Personas fuera](./170-listas-filtros-calls-y-leads.md) | · | done · `cp-20261003-2` · 3-oct · S3 · recorrido de la sesión central hecho |
-| [ ] | 171 | [Todo lo del programa vive en la tab Programa](./171-todo-lo-del-programa-en-programa.md) | · | done · `cp-20261003-2` · 3-oct · S4 · recorrido de la sesión central hecho |
-| [ ] | 172 | [Mi espacio y "Ver como" a un closer de verdad](./172-mi-espacio-todo-lo-del-usuario.md) | 169, 170, 171 | done · `cp-20261003-4` · 3-oct · S5 · revisión y recorrido de la sesión central (3 bugs arreglados: build, nombre del suplantado, 403 sin capturar) · lo que quedó, al 177 |
-| [ ] | 173 | [Ajustes solo con lo que no es de nadie](./173-ajustes-solo-lo-que-no-es-de-nadie.md) | 171 | done · `cp-20261003-4` · 3-oct · S6 · 0063 aplicada en producción con el ok de Mani · rutas viejas y Motivos, al 178 |
-| [ ] | 176 | [Transición y Llamadas, segunda pasada](./176-transicion-y-llamadas-segunda-pasada.md) | 168 | done · `cp-20261003-4` · 3-oct · S9 · recorrido de la sesión central · Reagendada que deja la cita vieja colgada, al 177 |
-| [ ] | 174 | [Volver a donde estaba](./174-volver-a-donde-estaba.md) | 168, 170-173 | done · `cp-20261003-5` · 3-oct · S7 · recorrido de la sesión central (Volver con vista, `//evil.com` ignorado, login devuelve a la ficha) |
-| [ ] | 175 | [Limpieza: lo que no usa nadie](./175-limpieza-lo-que-no-se-usa.md) | 170-173 | done · `cp-20261003-5` · 3-oct · S8 · 0064 reescrita y aplicada en producción con el ok de Mani |
-| [ ] | 177 | [Pulido de la parte 2: Reagendada, la reja deja leer, Mi espacio claro](./177-pulido-de-la-parte-2.md) | 172, 176 | done · `cp-20261003-5` · 3-oct · S10 · recorrido de la sesión central (Show, Grain, Reagendada, ensayo bajo "ver como") · lo que quedó, al 180 |
-| [ ] | 178 | [Ajustes sin rutas viejas: Programas y Fuentes se mudan a Programa](./178-ajustes-sin-rutas-viejas.md) | 173 | done · `cp-20261003-5` · 3-oct · S11 · recorrido de la sesión central (cada diálogo de la tab Programa, consola limpia) |
-| [ ] | 179 | [Mi espacio curado por rol](./179-mi-espacio-por-rol.md) | 172, 173 | todo · 3-oct · S12, parte 3 · decisión de Mani · después del 177 |
-| [ ] | 180 | [Pulido de la parte 3: el Grain a la vista después de Show](./180-pulido-de-la-parte-3.md) | 174, 177, 178 | done · `cp-20261003-6` · 3-oct · S13 · recorrido de la sesión central (Grain tras Show en escritorio y 375 px, Volver, fuente webhook, Kanban) |
+| [x] | 168 | [La ficha del deal se entiende sola](./168-la-ficha-del-deal-se-entiende-sola.md) | · | done · `cp-20261003-2` · 3-oct · S1 · recorrido de la sesión central hecho |
+| [x] | 169 | [La llamada siempre tiene closer, y el handoff se prueba en local](./169-la-llamada-siempre-tiene-closer.md) | · | done · `cp-20261003-2` · 3-oct · S2 · relleno aplicado en producción con el ok de Mani: 134 llamadas con su closer, el re-ensayo da 0 pendientes y 0 hosts sin cuenta |
+| [x] | 170 | [Las listas: filtros solos, Calls de cada closer, Leads en tabla, Personas fuera](./170-listas-filtros-calls-y-leads.md) | · | done · `cp-20261003-2` · 3-oct · S3 · recorrido de la sesión central hecho |
+| [x] | 171 | [Todo lo del programa vive en la tab Programa](./171-todo-lo-del-programa-en-programa.md) | · | done · `cp-20261003-2` · 3-oct · S4 · recorrido de la sesión central hecho |
+| [x] | 172 | [Mi espacio y "Ver como" a un closer de verdad](./172-mi-espacio-todo-lo-del-usuario.md) | 169, 170, 171 | done · `cp-20261003-4` · 3-oct · S5 · revisión y recorrido de la sesión central (3 bugs arreglados: build, nombre del suplantado, 403 sin capturar) · lo que quedó, al 177 |
+| [x] | 173 | [Ajustes solo con lo que no es de nadie](./173-ajustes-solo-lo-que-no-es-de-nadie.md) | 171 | done · `cp-20261003-4` · 3-oct · S6 · 0063 aplicada en producción con el ok de Mani · rutas viejas y Motivos, al 178 |
+| [x] | 176 | [Transición y Llamadas, segunda pasada](./176-transicion-y-llamadas-segunda-pasada.md) | 168 | done · `cp-20261003-4` · 3-oct · S9 · recorrido de la sesión central · Reagendada que deja la cita vieja colgada, al 177 |
+| [x] | 174 | [Volver a donde estaba](./174-volver-a-donde-estaba.md) | 168, 170-173 | done · `cp-20261003-5` · 3-oct · S7 · recorrido de la sesión central (Volver con vista, `//evil.com` ignorado, login devuelve a la ficha) |
+| [x] | 175 | [Limpieza: lo que no usa nadie](./175-limpieza-lo-que-no-se-usa.md) | 170-173 | done · `cp-20261003-5` · 3-oct · S8 · 0064 reescrita y aplicada en producción con el ok de Mani |
+| [x] | 177 | [Pulido de la parte 2: Reagendada, la reja deja leer, Mi espacio claro](./177-pulido-de-la-parte-2.md) | 172, 176 | done · `cp-20261003-5` · 3-oct · S10 · recorrido de la sesión central (Show, Grain, Reagendada, ensayo bajo "ver como") · lo que quedó, al 180 |
+| [x] | 178 | [Ajustes sin rutas viejas: Programas y Fuentes se mudan a Programa](./178-ajustes-sin-rutas-viejas.md) | 173 | done · `cp-20261003-5` · 3-oct · S11 · recorrido de la sesión central (cada diálogo de la tab Programa, consola limpia) |
+| [x] | 179 | [Mi espacio curado por rol](./179-mi-espacio-por-rol.md) | 172, 173 | done · `cp-20261003-7` · 3-oct · S12 · recorrido de la sesión central (closer, gerente, paid trafficker, developer en `todo`, "Como gerente", "Como closer" y "Ver como", escritorio y 375 px, `?tab=` forjado) · arreglado el mensaje del dueño |
+| [x] | 180 | [Pulido de la parte 3: el Grain a la vista después de Show](./180-pulido-de-la-parte-3.md) | 174, 177, 178 | done · `cp-20261003-6` · 3-oct · S13 · recorrido de la sesión central (Grain tras Show en escritorio y 375 px, Volver, fuente webhook, Kanban) |
 
 ## Tracker — Retia CRM
 

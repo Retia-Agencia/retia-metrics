@@ -9,20 +9,35 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia. PRIORIDAD: la operación comercial lista en el CRM; Memorable (Nicolás y Francisco)
-arranca el lunes 5-oct. Lee AGENTS.md y docs/plan-reparto.md §4, "Ola O2": frente 0, frente A (Memorable) y la
-tabla "Las sesiones de código de la ola". S1 a S4 (162, 163, 161+160, 165+166) están hechas (cp-20261003-1).
-Siguen S5 = 164 (Mi espacio, el hub del closer) y S6 = 167 (quién cobró es FK; lleva migración, la aplica la
-sesión principal con el ok de Mani). De Mani: A.2 a A.7 (crear Memorable, C1 del 5 al 28-oct, alta de los dos
-closers con closer_id hasta el 167), S1 Supabase Pro, y recorrer 143, 156, 157 y 162 a 166.
+Seguimos con el CRM de Retia. PRIORIDAD: Memorable (Nicolás y Francisco) arranca el lunes 5-oct. La ola O3
+(simplificación, ADR 0077) quedó cerrada el 3-oct en cp-20261003-7: lo de un programa vive en la tab Programa, lo de
+una persona en Mi espacio (curado por rol), Ajustes solo con lo que no es de nadie. Lee AGENTS.md y
+docs/plan-reparto.md §4, ola O2: frente 0 y frente A (A.2 a A.10) siguen abiertos, y el 167 (quién cobró es FK,
+migración con el ok de Mani). De Mani: el frente A, S1 Supabase Pro, y recorrer como closer 143, 156, 157, 162 a 166
+y la lista del 153. Abiertos de producto: 102 (Dashboard del paid trafficker), 075, 078 y el corte.
 
-Reglas: Codex implementa por /delegate y la sesion principal revisa; migraciones solo con el ok de Mani; nivel 1
-antes de cada push (typecheck, lint, tests del ticket), la suite completa la corre el CI en los checkpoints
-(plan-reparto §6). Produccion es la unica base: leer es libre, escribir pide el ok de Mani. Al terminar un
-recorrido local, apagar dev:local y Docker (la Mac anda con swap).
+Reglas: implementa un agente (Codex o Kiro) y la sesion principal revisa y recorre; migraciones solo con el ok de
+Mani; nivel 1 antes de cada push (typecheck, lint, tests del ticket), la suite completa la corre el CI en los
+checkpoints (plan-reparto §6). Produccion es la unica base: leer es libre, escribir pide el ok de Mani. Al terminar
+un recorrido local, apagar dev:local (y Docker si nadie mas lo usa: la Mac anda con swap).
 ```
 
 ## Memory
+
+- **2026-10-03 (noche, Mani + Claude, sesión central): la ola O3 cerrada.**
+  - **Recorridos:** 180 (Grain a la vista tras Show, Volver sin "filtrados", fuente nueva por webhook, Kanban sin
+    botón muerto) y 179 (Mi espacio por rol con closer, gerente, paid trafficker, developer y "Ver como"), escritorio
+    y 375 px. Tags `cp-20261003-6` y `cp-20261003-7`.
+  - **Arreglado en la revisión del 179:** el developer en "Como closer" sin membresías veía "pídele a tu gerente";
+    vuelve el mensaje del dueño, y el texto ya no dice que Mi espacio es solo de closers.
+  - **Decidido con Mani:** las redirecciones `/comunicarte` y `/tactical-investor` de `next.config.ts` se borran
+    (apuntaban a `/programas/<slug>`, que el 175 quitó: daban 404).
+  - **Docs al día:** `structure.md` §8 (Mi espacio, Ajustes, Programa, sin Perfil/Mi día/Personas/Urgencias),
+    `operations.md` y `docs/dapta/README.md` (las rutas `/ajustes/programas` y `/ajustes/fuentes` son la tab
+    Programa), `plan.md` §4.3 y K-1/K-2, `plan-reparto` (A.3, A.5, O3 cerrada), `AGENTS.md` (`manejaPauta` ya
+    existe), el mapa del CRM en lo que tocaba y el tracker (filas de O3 en `[x]`, 102 en parte).
+  - **Visto y sin ticket:** el campo de Grain no guarda con Enter y su ayuda sobra tras Show; "Ver como" no tiene
+    paid trafficker; el gerente ve las sueltas pero no las cuelga (por diseño, ADR 0049).
 
 - **2026-10-02/03 (noche 4, Mani + Claude, sesión central): audit de la operación comercial, ola O2 en sesiones, S1 a S4 hechas.**
   - **De dónde sale:** 7 notas de Mani probando el CRM (Transición y Actividades, botones, llamadas, hub del closer,

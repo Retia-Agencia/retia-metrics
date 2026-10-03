@@ -193,9 +193,9 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   de un closer sin membresias). "Administrar" es OTRA pregunta: `esAdministrador` la cumplen el
   gerente y el developer, y es la que usa la salvaguarda del ultimo administrador. Y hay una
   TERCERA, `trabajaLeads`: quien tiene `closer_id`, membresias, puede ser responsable de una
-  persona y registrar. La cumplen el closer y el developer, **no el gerente** (ADR 0003). **Decidida el
-  24-sep y sin construir: una CUARTA, `manejaPauta`** (ADR 0052), para el rol nuevo `paid_trafficker`,
-  que cumplen el paid trafficker, el gerente y el developer; y la pregunta de **alcance**, *"¿que
+  persona y registrar. La cumplen el closer y el developer, **no el gerente** (ADR 0003). **Y una
+  CUARTA, `manejaPauta`** (ADR 0052, construida el 3-oct con el 173), para el rol `paid_trafficker`,
+  que cumplen el paid trafficker, el gerente y el developer: abre Canales y su Mi espacio (179); y la pregunta de **alcance**, *"¿que
   programas ve esta sesion?"* (ADR 0048), tambien en `lib/auth/`. Son preguntas distintas y funciones
   distintas: una pantalla que pregunte `rol === "closer"` a mano deja al developer
   afuera, que es justo como `/ajustes/usuarios` quedo sin poder cargarle su `closer_id` (18-sep).

@@ -120,7 +120,7 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ## 4. La ola vigente y el mapa de etapas
 
-### 🌊 Ola O3 · menos complejidad, cada dato en su objeto · abierta el 3-oct
+### 🌊 Ola O3 · menos complejidad, cada dato en su objeto · abierta y cerrada el 3-oct
 
 **La meta (Mani, 3-oct):** bajar el sobrediseño y la complejidad de operar el CRM, y centralizar lo que va junto:
 lo de un programa en Programa, lo de un usuario en su perfil (Mi espacio). La regla es el
@@ -167,6 +167,10 @@ aplicada en producción el mismo día con el ok de Mani (173 done). La parte 3 a
 Kiro** (`kiro-rescue`), no Codex (Mani, 3-oct). Cruces de la parte 3: `mi-espacio/page.tsx` lo tocan S7 (enlaces) y S10
 (texto del developer); `inbox/acciones.ts` y `deals/acciones.ts`, solo S10. Quien llegue segunda a `main` rebasa.
 
+**Parte 3 cerrada en `cp-20261003-7` (3-oct, noche):** 174, 175, 177 y 178 (`cp-20261003-5`), 180 (`cp-20261003-6`) y 179,
+cada uno con el recorrido de la sesión central. **La ola O3 queda cerrada**; lo que sigue vivo es el frente A de O2
+(Memorable el lunes 5-oct) y el 167.
+
 **Migraciones de la ola:** la **0062** (`recursos.categoria_id` nula, para el 171) está aplicada en producción desde el 3-oct. El rol `paid_trafficker` sale con el código del 173 y el borrado de `origenes` y `categorias_recurso` con el del 175, después de desplegar ese código (orden en cada ticket).
 
 **La sesión central** (la del 3-oct que armó esta ola) revisa cada entrega en `main` contra su "Done cuando", genera
@@ -209,9 +213,9 @@ abriendo deal en Potencial** y las etapas se manejan como están (A-41 cerrada, 
 |---|---|---|---|
 | A.1 | ✅ **Memorable en Instagram & TikTok** (Mani, 2-oct; deck en sus descargas): virtual, 6 semanas, 12 sesiones, **USD 1.200**, clases desde el **3-nov**, la dicta Nicolás Martínez. Lo venden **Nicolás y Francisco** (closers). **C1: ventas del lunes 5-oct al 28-oct** (Mani). Falta la meta de cupos | Mani | nombre, ticket USD y ventana de la C1 escritos aquí |
 | A.2 | Crear cada programa de punta a punta, en el orden de `operations.md` §2.1: programa → token de Calendly → formulario en Dapta (`docs/dapta/`) con agenda, Lead Quality y Lead Value → fuente + secreto + activar → URL y secreto en el proveedor → "enviar prueba" → Calendly en el formulario → publicar | Mani (secretos a mano) y sesión (JSON del formulario) | el programa activo, con su fuente principal (092) |
-| A.3 | La cohorte C1 de cada programa: ventana de venta, meta de cupos, ticket base | Mani | `/ajustes/programas/<slug>` con la cohorte activa |
+| A.3 | La cohorte C1 de cada programa: ventana de venta, meta de cupos, ticket base | Mani | la tab Programa (`/p/<slug>/programa`) con la cohorte activa |
 | A.4 | Dar de alta a Nicolás y Francisco en `/ajustes/usuarios`: rol closer, **`closer_id` (obligatorio por ahora, ver 159)**, membresía en su programa | Mani | los dos entran con su Google y ven su programa |
-| A.5 | Invitarlos a la organización de Calendly del programa (round robin y su disponibilidad, que configura Michael) y que cada uno asigne su cuenta desde `/perfil` | Mani y ellos | una cita de prueba con cada uno cae en el deal correcto, no suelta |
+| A.5 | Invitarlos a la organización de Calendly del programa (round robin y su disponibilidad, que configura Michael) y que cada uno asigne su cuenta desde Mi espacio | Mani y ellos | una cita de prueba con cada uno cae en el deal correcto, no suelta |
 | A.6 | Recursos del programa: brochure y enlaces de pago, con sus plataformas vinculadas | Mani o el closer | el closer los copia en un clic desde Recursos |
 | A.7 | Comisión del programa (% congelado al vender) | Mani | cargada en la ficha del programa |
 | A.8 | **Un envío real por camino** antes de compartir el link: parcial, completo sin agenda, completo High, con agenda, con las seis UTM. Y el recorrido completo de un deal: setteo → cita → Grain → "¿Cómo terminó?" → abono → Student. Los de prueba se anulan | Mani y sesión | cada camino revisado en la base; ningún sobre crudo con error |
@@ -703,7 +707,7 @@ grande en producción (el `--aplicar` del 078, el corte).
 3. **Verde:** marcar el punto con un tag, `cp-AAAAMMDD-N` (`git tag cp-20261002-1 && git push origin
    cp-20261002-1`). Después, en el mismo commit de coordinación: el tracker al día con las notas de cierre de los
    tickets, **una** entrada de handoff por checkpoint, el deploy correcto (`vercel ls` + `vercel inspect`),
-   producción sana (`/ajustes/fuentes` dice "recibiendo", sin sobres crudos con error) y la ola rearmada (§4).
+   producción sana (las fuentes de la tab Programa dicen "recibiendo", sin sobres crudos con error) y la ola rearmada (§4).
 4. **Rojo:** el culpable está entre el tag anterior y la punta (`git log cp-...-N..HEAD`). Como cada sesión
    empujó con su nivel 1 en verde, casi siempre es un choque entre dos tickets. Se corre en local el archivo que
    falla, se ubica el commit y lo arregla su sesión. Nadie empuja a `main` hasta el verde; las demás sesiones

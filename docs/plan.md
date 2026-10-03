@@ -206,21 +206,20 @@ programa. **Pantallas:** Inbox. Es una proyección: no guarda nada propio, lee d
 
 - ✅ Sin dueño y Pendiente Setteo con reclamo (070), "lo mío que necesita atención" (071), llamadas sueltas,
   "se perdió en el Calendly" arriba (118), Urgencias (066).
-- Falta: el **hub del closer** (mis deals, mis llamadas, mis students) y la **cola ordenada por Lead Value**,
-  días en etapa y próximo paso (ADR 0072 M-5, QD-12) · mensaje claro para un closer sin programas (A-04) ·
-  retirar `/mi-dia`, que sigue vivo como respaldo (A-05).
-- Frena: 🔴 **A-05** ¿el hub es el Inbox ampliado o un filtro fijo en cada tab?
+- ✅ (3-oct) el **hub del closer** es **Mi espacio** (172, 179): sus pendientes, deals, llamadas y students, y el
+  mensaje para un closer sin programas (A-04); A-05 cerrada. `/mi-dia` y `/perfil` redirigen hasta después del 10-oct.
+- Falta: la **cola ordenada por Lead Value**, días en etapa y próximo paso (ADR 0072 M-5, QD-12).
 
 ### 4.4 Llamadas y Calendly
 
 **Contesta:** ¿qué llamadas hay, de qué deal y qué pasó en cada una? **Actores:** el sistema cuelga; el
 setter entrega; el closer da la llamada y la cierra. **Pantallas:** Calls, la ficha del deal (Llamadas),
-Inbox (sueltas), Perfil. **Garantías:** una llamada se cuelga solo sin duda; el teléfono no empareja; la
+Inbox (sueltas), Mi espacio. **Garantías:** una llamada se cuelga solo sin duda; el teléfono no empareja; la
 llamada que cuenta es la más reciente (ADR 0015, 0049, 0057, 0066, 0076).
 
 - ✅ Webhook firmado de Calendly en los dos programas (096), calls del deal, Grain = sucedió, no-show y
   cancelada a Re-agenda (057 a 059), tab Calls (098), link de reunión genérico (156).
-- 🟡 **152** el closer asigna su cuenta de Calendly desde `/perfil` (ADR 0074) · **157** handoff del setter
+- ✅ **152** el closer asigna su cuenta de Calendly desde Mi espacio (ADR 0074) · **157** handoff del setter
   al closer por la cita (ADR 0076).
 - Falta: recorrido con un webhook de Calendly firmado en `dev:local` (no se pudo por swap) · borrar
   `lib/calendly/buscar-llamada.ts`, que ya nadie importa (K1 decidió retirarlo).
@@ -344,8 +343,8 @@ Lo que el mapa destapa. Son **candidatos, no decisiones**: cada uno se decide en
 
 | # | Qué | Por qué importa | Dónde se resuelve |
 |---|---|---|---|
-| K-1 | `/mi-dia` sigue vivo al lado del Inbox | dos puertas a "qué hago hoy" | 075 (A-05) |
-| K-2 | `/personas` y `/personas/[id]` al lado de Leads | dos puertas al mismo objeto, una cruza programas | 075 (A-11, A-14): falta el buscador en Leads |
+| K-1 | ✅ `/mi-dia` se fundió en Mi espacio (172); solo redirige hasta después del 10-oct | · | 175 |
+| K-2 | ✅ `/personas` salió con el 170 | · | falta el buscador en Leads (075) |
 | K-3 | `lib/calendly/buscar-llamada.ts` sin ningún importador | código que envejece sin que nadie lo mire | borrar (K1, 29-sep) |
 | K-4 | El orden del trabajo vive en tres lugares: este plan (antes los tracks), `plan-reparto.md` (olas y etapas E0 a E9, NC1 a NC3) y `tasks/README.md` (épocas) | tres formas de leer qué sigue | este plan dice el qué por componente; `plan-reparto` el cuándo; el tracker solo el estado |
 | K-5 | La operación comercial se describe en `manual-gestion-comercial.md`, en el HTML de operación comercial, en `structure.md` §3 y en los ADR 0070 a 0076 | ya se contradijeron (el setter, el 2-oct) | el manual de gestión manda sobre el HTML; los ADR mandan sobre el manual |

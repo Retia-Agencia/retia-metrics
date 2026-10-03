@@ -53,8 +53,8 @@ servicio, nunca con "cualquiera con el enlace"**. Los scripts siguen leyendo los
 | Formulario (Dapta, 30-sep) | `forms.dapta.ai/4bgty3/f/postulacion-evento-comunicarte`, publicado con Calendly real; fuente Dapta activa junto a la de Typeform (131). Redirects finales aún en `example.com` | 🔴 no hay. Memorable (programa nuevo, USD 1.200, inactivo): `forms.dapta.ai/rx4i7a/f/postulacion-memorable`, publicado **sin Calendly**; fuente Dapta activa |
 | Landing | `programavirtual.eventoscomunicarte.com/landing.html` (el contenido vive en ese iframe) | 🔴 falta |
 | Calendly | una organización por programa, un solo tipo de evento ("Postulación Método Comunicarte"); token verificado el 28-sep | una organización, evento "Postulación: De Cero a Tactical Investor"; token verificado el 28-sep (451 citas en ±3 meses) |
-| `form_url` / `calendly_token` en la base (producción) | cargados por Mani el 28-sep desde `/ajustes/programas` | cargados por Mani el 28-sep |
-| **PAT de Calendly** (uno por programa, ADR 0057). **No trae llamadas** (eso lo hace el webhook): el CRM lo usa para preguntarle a Calendly en cuatro momentos, listados en `plan.md` §4.3c | en `programs.calendly_token`, verificado presente el 28-sep (sin leer el valor). Lo cambia un administrador en `/ajustes/programas`; ninguna lectura lo devuelve. En local: `CALENDLY_PAT_LOCAL_COMUNICARTE` (§3) | en `programs.calendly_token`, verificado presente el 28-sep. En local: `CALENDLY_PAT_LOCAL_TACTICAL` |
+| `form_url` / `calendly_token` en la base (producción) | cargados por Mani el 28-sep (entonces desde `/ajustes/programas`; hoy la tab Programa) | cargados por Mani el 28-sep |
+| **PAT de Calendly** (uno por programa, ADR 0057). **No trae llamadas** (eso lo hace el webhook): el CRM lo usa para preguntarle a Calendly en cuatro momentos, listados en `plan.md` §4.3c | en `programs.calendly_token`, verificado presente el 28-sep (sin leer el valor). Lo cambia un administrador en la tab Programa (`/p/<slug>/programa`); ninguna lectura lo devuelve. En local: `CALENDLY_PAT_LOCAL_COMUNICARTE` (§3) | en `programs.calendly_token`, verificado presente el 28-sep. En local: `CALENDLY_PAT_LOCAL_TACTICAL` |
 | Cuenta de Calendly de cada closer (096) | por membresía, en `miembros_programa.calendly_email`: se elige en `/ajustes/usuarios` → "Cuentas de Calendly por programa", de la lista que da el PAT. 🔴 Vincular a las closers al desplegar la 0038 | igual |
 | `web_url` / `calendly_url` en la base | vacías, y desde el 28-sep fuera del formulario (nada las lee) | vacías |
 
@@ -67,16 +67,16 @@ Cada pieza vive en UN lugar, y ninguna se duplica:
 
 | Pieza | Dónde vive | Quién la pone | Para qué |
 |---|---|---|---|
-| El programa (nombre, slug, ticket USD) | `/ajustes/programas` (o un script por el molde, ADR 0029) | administrador | nace **inactivo** |
-| Token de Calendly (PAT) | `/ajustes/programas`, `programs.calendly_token` | administrador | que el CRM le pregunte a Calendly por las citas. Sin token no se activa el programa (ADR 0057) |
+| El programa (nombre, slug, ticket USD) | "Nuevo programa" en el menú lateral, y se edita en la tab Programa (o un script por el molde, ADR 0029) | administrador | nace **inactivo** |
+| Token de Calendly (PAT) | tab Programa, `programs.calendly_token` | administrador | que el CRM le pregunte a Calendly por las citas. Sin token no se activa el programa (ADR 0057) |
 | Webhook de Calendly | Calendly → CRM, uno por programa (096) | ya montado en ComunicArte y Tactical | cuelga la cita del lead **por correo**. **El link de Calendly NO se guarda en el CRM** |
 | Link de Calendly | el paso de agenda del formulario (Dapta) | quien edita el formulario | lo que la persona ve para agendar. En Dapta, conectar Calendly en *Integrations* con la cuenta dueña del evento y escogerlo |
 | El formulario | Dapta, generado por `docs/dapta/generar-base.mjs` | Claude carga el JSON; Mani publica | ver `docs/dapta/README.md` |
-| Fuente webhook | `/ajustes/fuentes`, proveedor del formulario, **mapeo vacío** para Dapta | administrador | la URL `/api/webhooks/formularios/<id>` que se pega en el proveedor. Un programa puede tener varias activas (131) |
-| Secreto de la fuente | se genera en `/ajustes/fuentes`, se ve una vez | administrador, **a mano** | firma del webhook. Nunca pasa por un chat ni un script |
-| Activar la fuente | `/ajustes/fuentes` | administrador | inactiva = 404 a todo |
-| `form_url` del programa | `/ajustes/programas` | administrador | la reja de activar el programa (CHECK de la 0031), y nada más: desde el 092 el link sale de la fuente principal. Se retira en el paso 2 del ADR 0068 |
-| URL del formulario y fuente principal | `/ajustes/fuentes` (campo URL; "Marcar como principal") | administrador | el destino de los links de captación (092, ADR 0068). Una por programa, activa y con URL; sin ella el programa no genera links |
+| Fuente webhook | tab Programa → Formularios → "Nueva fuente", proveedor del formulario, **mapeo vacío** para Dapta | administrador | la URL `/api/webhooks/formularios/<id>` que se pega en el proveedor. Un programa puede tener varias activas (131) |
+| Secreto de la fuente | se genera en la tab Programa (Formularios), se ve una vez | administrador, **a mano** | firma del webhook. Nunca pasa por un chat ni un script |
+| Activar la fuente | tab Programa (Formularios) | administrador | inactiva = 404 a todo |
+| `form_url` del programa | tab Programa | administrador | la reja de activar el programa (CHECK de la 0031), y nada más: desde el 092 el link sale de la fuente principal. Se retira en el paso 2 del ADR 0068 |
+| URL del formulario y fuente principal | tab Programa, Formularios (campo URL; "Marcar como principal") | administrador | el destino de los links de captación (092, ADR 0068). Una por programa, activa y con URL; sin ella el programa no genera links |
 
 **Orden que funcionó:** programa → token de Calendly → formulario en borrador → fuente + secreto + activar → pegar URL y
 secreto en el proveedor → **"enviar prueba"** (el CRM la recibe y no crea lead: se ve en `sobres_crudos`) →
@@ -98,7 +98,7 @@ editor) y en Vercel.
 | `SUPABASE_DB_PASSWORD` | `.env.local` arma las dos URLs con ella | local |
 | `DB_PROD` | sin uso desde el 28-sep: hay una sola base y `DATABASE_URL` ya es producción | local |
 | `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_URL` | login con Google (Auth.js) | local, Vercel |
-| `GOOGLE_SERVICE_ACCOUNT_JSON_B64` | la cuenta de servicio que lee las hojas: "probar" y activar una fuente de hoja en `/ajustes/fuentes`, los scripts y el traslado | local, Vercel |
+| `GOOGLE_SERVICE_ACCOUNT_JSON_B64` | la cuenta de servicio que lee las hojas: "probar" y activar una fuente de hoja en la tab Programa (Formularios), los scripts y el traslado | local, Vercel |
 | `SHEET_ID_COMUNICARTE`, `SHEET_ID_TACTICAL` | los IDs de las hojas, para los scripts | local |
 | `SCRIPT_ACTOR_EMAIL` | quién firma el rastro de un script que escribe en una base viva (ADR 0029) | local |
 | `SEED_GERENTE_EMAIL`, `SEED_GERENTE_NOMBRE` | el gerente que siembra `seed:users` | local |

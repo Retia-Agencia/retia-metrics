@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactElement } from "react";
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
+import { requireSesionReal } from "@/lib/auth/guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAccesoTotal, esRolValido, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { programasVisibles, programaVisiblePorSlug } from "@/lib/auth/alcance";
@@ -80,7 +81,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
             rol={rol}
           />
           <p className="max-w-prose text-sm text-muted-foreground">
-            Mi espacio es de quien trabaja leads: muestra los pendientes, deals, llamadas y students de un closer en cada programa. Como tienes acceso total, no hay un espacio propio que mostrar aquí; usa &quot;Ver como closer&quot; en el menú de tu usuario para ver el espacio de un closer.
+            {MENSAJE_DEL_DUENO}
           </p>
         </div>
       </PageShell>
@@ -101,12 +102,20 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   // Calendly por programa (169) y, sin membresías, el mensaje A-04. El gerente y el paid
   // trafficker NO pasan por aquí (no trabajan leads): no ven ni Calendly ni ese mensaje.
   if (puedeTrabajar && membresias.length === 0) {
+    // El dueño en vista `closer` (sin suplantar) tampoco tiene membresías: no se le pide que
+    // le hable a su gerente. Se decide por la cuenta de VERDAD (excepción nombrada en el
+    // guardián de `rol-de-vista-centralizado`); bajo "ver como" la sesión efectiva es la del
+    // closer suplantado y el mensaje es el suyo.
+    const real = await requireSesionReal();
+    const esDueno = esAccesoTotal(real.user.rol) && real.user.id === userId;
     return (
       <PageShell titulo="Mi espacio" descripcion="Tu perfil y tu trabajo por programa.">
         <div className="space-y-6">
           {perfil}
           <p className="max-w-prose text-sm text-muted-foreground">
-            Todavía no tienes programas asignados; pídele a tu gerente que te agregue al equipo de un programa.
+            {esDueno
+              ? MENSAJE_DEL_DUENO
+              : "Todavía no tienes programas asignados; pídele a tu gerente que te agregue al equipo de un programa."}
           </p>
         </div>
       </PageShell>
@@ -188,6 +197,10 @@ function Seccion({
       return programa ? <TabPorDecidir programId={programa.id} slug={programa.slug} /> : null;
   }
 }
+
+/** Lo que ve el dueño (acceso total), que no tiene un espacio propio. */
+const MENSAJE_DEL_DUENO =
+  "Mi espacio muestra el trabajo de una persona según su rol: los pendientes, deals, llamadas y students de un closer, lo que tiene por decidir un gerente, los canales de un paid trafficker. Como tienes acceso total, no tienes uno propio; cambia la vista a \"Como gerente\" o usa \"Ver como closer\" en el menú de tu usuario.";
 
 /** El Calendly por programa (componente del 169), solo de los programas con membresía. */
 async function bloqueCalendly(

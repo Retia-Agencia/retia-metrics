@@ -3,7 +3,7 @@ id: 179
 etapa: O3
 serves: "Decisión de Mani (3-oct): Mi espacio curado por rol; ADR 0077 punto 1; cierra la decisión abierta del 172"
 depends: [172, 173]
-status: todo
+status: done
 ---
 
 # 179 — Mi espacio curado por rol: cada quien ve solo lo suyo y solo lo de su trabajo
@@ -62,3 +62,23 @@ con los tres roles y "Ver como", escritorio y 375 px, y forjar `?tab=`.
 
 Abiertas: el gerente no puede colgar llamadas sueltas (no trabaja leads); un developer en vista `closer` sin membresías ve el
 mensaje del closer, no el del dueño.
+
+## Recorrido y cierre (3-oct, sesión central)
+
+En `dev:local`, escritorio y 375 px, sin scroll horizontal ni errores de la app en consola:
+
+- **Closer** (carlos): Pendientes, Mis deals, Mis llamadas, Mis students y su Calendly. `?tab=canales`,
+  `?tab=por-decidir` y `?tab=xyz` caen en Pendientes.
+- **Gerente**: solo "Por decidir" (agendados sin dueño, por settear con "Asignar a…" que abre, sueltas, hosts sin
+  cuenta, Webhook Health) con selector de programa; cualquier `?tab=` forjado cae ahí; `?programa=no-existe` da 404.
+- **Paid trafficker**: aterriza en Mi espacio, solo Mi espacio y Ajustes en el menú; Canales con los pares sin
+  clasificar y los envíos por canal; los `?tab=` de otras secciones caen en Canales.
+- **Developer**: en `todo`, el mensaje; "Como gerente" ve lo del gerente; "Ver como" Carlos ve exactamente lo de Carlos.
+
+**Arreglado en la revisión:** (1) el developer en "Como closer" (sin suplantar, sin membresías) veía "pídele a tu
+gerente que te agregue"; vuelve a ver el mensaje del dueño, decidido por la cuenta real y solo si no está suplantando
+(`requireSesionReal`, excepción ya nombrada en el guardián). (2) Ese mensaje decía que Mi espacio "es de quien trabaja
+leads"; ahora explica que depende del rol y nombra "Como gerente" y "Ver como closer".
+
+Queda abierto, sin ticket: el gerente ve las llamadas sueltas pero no las cuelga (las asigna un closer, ADR 0049); y el
+menú "Ver como" no tiene "Como paid trafficker" (la vista solo estrecha a gerente o closer, ADR 0028).

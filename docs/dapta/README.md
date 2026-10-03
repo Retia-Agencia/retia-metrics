@@ -71,7 +71,7 @@ El Typeform no redirige, muestra un mensaje final: sin redirect, Dapta mostrarí
 3. **Anti-spam apagado:** con él prendido, Dapta no manda el parcial por webhook.
 4. No borrar la pregunta 10: es el campo oculto `utm_id`, que se llena desde la URL.
 5. La destinación webhook de Dapta con URL y **secreto** de la fuente del CRM. El secreto se genera en
-   `/ajustes/fuentes` (se muestra una vez) y se pega a mano: nunca pasa por un chat ni un script. La URL es
+   la tab Programa, en Formularios (se muestra una vez) y se pega a mano: nunca pasa por un chat ni un script. La URL es
    `/api/webhooks/formularios/<id de la fuente>`, y la fuente tiene que estar **activa** (inactiva = 404).
 6. **Un envío real por camino** (descalificado, sin agenda, con agenda, con las seis UTM) revisado en la base antes de
    repartir el link (el 117 ya está en producción desde el 1-oct).
@@ -115,7 +115,7 @@ de ComunicArte hay además un formulario viejo, **"Postulación Método ComunicA
 trabajo y no se toca. El enlace público del nuevo será `forms.dapta.ai/4bgty3/f/postulacion-evento-comunicarte`
 (`4bgty3` es el código de la cuenta) cuando se publique.
 
-## Fuentes en el CRM (30-sep: activas y con secreto, puestos por Mani en `/ajustes/fuentes`)
+## Fuentes en el CRM (30-sep: activas y con secreto, puestos por Mani en `/ajustes/fuentes`, que desde el 178 vive en la tab Programa)
 
 **El mapeo de una fuente Dapta va VACÍO.** El adaptador encuentra solo `nombre`, `email` y `whatsapp`; las UTM salen
 de su lugar fijo, y el Estado, `lead_value`, `lead_quality` y el puntaje salen del outcome y del score, no del
