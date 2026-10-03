@@ -1,29 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { RotateCcw, X } from "lucide-react";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { num, usd } from "@/lib/format";
-import {
-  conectarCalendlyAccion,
-  desactivarProgramaAccion,
-  editarProgramaAccion,
-  reactivarProgramaAccion,
-  type ResultadoAccion,
-} from "@/app/(app)/ajustes/programas/acciones";
 
 /**
- * Administracion de programas (ticket 014), solo gerente.
- *
- * Lista los programas (activos e inactivos, estos ultimos atenuados) y permite
- * crear, editar, desactivar y reactivar. Desde cada programa se entra a sus
- * cohortes. El slug no se puede cambiar despues de creado, asi que al editar el
+ * El formulario de un programa (ticket 014; desde el 171 vive en el pop-up "Editar" de
+ * la tab Programa). El slug no se puede cambiar despues de creado, asi que al editar el
  * campo queda bloqueado. Las mutaciones son server actions que ya enforzan
  * `requireRole("gerente")` en el servidor.
  */
@@ -74,154 +56,6 @@ export function aBorrador(p: ProgramaVista): Borrador {
   };
 }
 
-export function ProgramasAdmin({ programas }: { programas: ProgramaVista[] }) {
-  const router = useRouter();
-  const [pendiente, startTransition] = useTransition();
-  const [editando, setEditando] = useState<string | null>(null);
-
-  function correr(accion: () => Promise<ResultadoAccion>, exito: string, alExito?: () => void) {
-    startTransition(async () => {
-      const res = await accion();
-      if (res.ok) {
-        toast.success(exito);
-        alExito?.();
-        router.refresh();
-      } else {
-        toast.error("No se pudo guardar", { description: res.error });
-      }
-    });
-  }
-
-  const ordenados = [...programas].sort((a, b) => {
-    if (a.activo !== b.activo) return a.activo ? -1 : 1;
-    return a.nombre.localeCompare(b.nombre, "es");
-  });
-
-  return (
-    <div className="space-y-4">
-      <ul className="divide-y rounded-md border">
-        {ordenados.length === 0 ? (
-          <li className="px-3 py-4 text-sm text-muted-foreground">Todavía no hay programas.</li>
-        ) : (
-          ordenados.map((p) => (
-            <li key={p.id} className={cn("px-3 py-3 text-sm", !p.activo && "opacity-50")}>
-              {editando === p.id ? (
-                <FormularioPrograma
-                  titulo={`Editar ${p.nombre}`}
-                  inicial={aBorrador(p)}
-                  pendiente={pendiente}
-                  slugBloqueado
-                  tieneTokenCalendly={p.tieneTokenCalendly}
-                  onCancelar={() => setEditando(null)}
-                  onGuardar={(b) =>
-                    correr(
-                      () => editarProgramaAccion(p.id, aEntrada(b), b.tokenCalendly),
-                      "Programa actualizado",
-                      () => setEditando(null),
-                    )
-                  }
-                />
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span className="truncate font-medium">{p.nombre}</span>
-                        {!p.activo ? (
-                          <Badge variant="outline" className="text-muted-foreground">
-                            inactivo
-                          </Badge>
-                        ) : null}
-                        {p.tieneTokenCalendly ? (
-                          <Badge variant="secondary">token cargado</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-muted-foreground">
-                            sin token
-                          </Badge>
-                        )}
-                        {p.webhookCalendlyConectado ? (
-                          <Badge variant="secondary">webhook conectado</Badge>
-                        ) : null}
-                      </span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        /{p.slug} · ticket {usd(Number(p.ticketUsd))}
-                        {p.comisionPorcentaje != null
-                          ? ` · comisión ${num(Number(p.comisionPorcentaje), 2)} %`
-                          : null}
-                      </span>
-                    </div>
-                    <span className="flex items-center gap-1">
-                      {p.activo ? (
-                        <>
-                          {/* `nativeButton={false}`: se renderiza como <a>, no como
-                              <button>. Sin eso Base UI avisa en consola que se pierde
-                              la semantica nativa de boton. */}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            nativeButton={false}
-                            disabled={pendiente}
-                            render={<Link href={`/ajustes/programas/${p.slug}`}>Cohortes</Link>}
-                          />
-                          {p.tieneTokenCalendly ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={pendiente}
-                              onClick={() =>
-                                correr(
-                                  () => conectarCalendlyAccion(p.id),
-                                  p.webhookCalendlyConectado ? "Webhook de Calendly rehecho" : "Calendly conectado",
-                                )
-                              }
-                            >
-                              {p.webhookCalendlyConectado ? "Rehacer webhook" : "Conectar Calendly"}
-                            </Button>
-                          ) : null}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={pendiente}
-                            onClick={() => setEditando(p.id)}
-                          >
-                            Editar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={pendiente}
-                            onClick={() =>
-                              correr(() => desactivarProgramaAccion(p.id), "Programa desactivado")
-                            }
-                          >
-                            Desactivar
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={pendiente}
-                          onClick={() =>
-                            correr(() => reactivarProgramaAccion(p.id), "Programa reactivado")
-                          }
-                        >
-                          <RotateCcw className="size-4" />
-                          Reactivar
-                        </Button>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </li>
-          ))
-        )}
-      </ul>
-    </div>
-  );
-}
-
 /** Convierte el borrador del formulario a la entrada que espera la server action. */
 export function aEntrada(b: Borrador) {
   return {
@@ -237,7 +71,6 @@ export function aEntrada(b: Borrador) {
 }
 
 export function FormularioPrograma({
-  titulo,
   inicial,
   pendiente,
   slugBloqueado,
@@ -245,7 +78,6 @@ export function FormularioPrograma({
   onCancelar,
   onGuardar,
 }: {
-  titulo: string;
   inicial: Borrador;
   pendiente: boolean;
   slugBloqueado?: boolean;
@@ -260,136 +92,125 @@ export function FormularioPrograma({
     "h-8 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
   return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
-        <CardTitle className="text-base">{titulo}</CardTitle>
-        <Button size="icon-sm" variant="ghost" onClick={onCancelar} aria-label="Cancelar">
-          <X className="size-4" />
+    <form
+      className="grid gap-3 sm:grid-cols-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onGuardar(borrador);
+      }}
+    >
+      <label className="block space-y-1 text-sm">
+        <span className="text-muted-foreground">Nombre</span>
+        <input
+          value={borrador.nombre}
+          onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })}
+          maxLength={120}
+          required
+          className={claseInput}
+          aria-label="Nombre"
+        />
+      </label>
+
+      <label className="block space-y-1 text-sm">
+        <span className="text-muted-foreground">
+          Slug {slugBloqueado ? "(El slug no se cambia: está en los enlaces)" : "(minúsculas, números y guiones)"}
+        </span>
+        <input
+          value={borrador.slug}
+          onChange={(e) => setBorrador({ ...borrador, slug: e.target.value })}
+          disabled={slugBloqueado}
+          maxLength={60}
+          required
+          className={claseInput}
+          aria-label="Slug"
+        />
+      </label>
+
+      <label className="block space-y-1 text-sm">
+        <span className="text-muted-foreground">Ticket (USD)</span>
+        <input
+          value={borrador.ticketUsd}
+          onChange={(e) => setBorrador({ ...borrador, ticketUsd: e.target.value })}
+          inputMode="decimal"
+          required
+          className={claseInput}
+          aria-label="Ticket en USD"
+        />
+      </label>
+
+      <label className="block space-y-1 text-sm">
+        <span className="text-muted-foreground">Estancado tras N días</span>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          value={borrador.diasSinActividad}
+          onChange={(e) => setBorrador({ ...borrador, diasSinActividad: e.target.value })}
+          required
+          className={claseInput}
+          aria-label="Días sin actividad"
+        />
+      </label>
+
+      <label className="block space-y-1 text-sm">
+        <span className="text-muted-foreground">Comisión (% del valor vendido)</span>
+        <input
+          type="number"
+          min="0"
+          max="100"
+          step="0.01"
+          value={borrador.comisionPorcentaje}
+          onChange={(e) => setBorrador({ ...borrador, comisionPorcentaje: e.target.value })}
+          inputMode="decimal"
+          placeholder="Por ejemplo 10,04"
+          className={claseInput}
+          aria-label="Comisión en porcentaje del valor vendido"
+        />
+      </label>
+
+      {/* `webUrl` y `calendlyUrl` ya no se muestran (vacias en produccion y sin
+          lector, 28-sep): el borrador las pasa tal cual para no pisar nada. */}
+      <label className="block space-y-1 text-sm sm:col-span-2">
+        <span className="text-muted-foreground">Forms Link</span>
+        <input
+          type="url"
+          value={borrador.formUrl}
+          onChange={(e) => setBorrador({ ...borrador, formUrl: e.target.value })}
+          required
+          placeholder="https://form.typeform.com/to/..."
+          className={claseInput}
+          aria-label="Forms Link"
+        />
+      </label>
+
+      <label className="block space-y-1 text-sm sm:col-span-2">
+        <span className="text-muted-foreground">Calendly Token</span>
+        {/* type="password": se ve con puntos y se puede pegar. El valor guardado
+            nunca vuelve al navegador (ADR 0057), asi que el campo arranca vacio;
+            autoComplete="new-password" evita que el gestor del navegador lo llene. */}
+        <input
+          type="password"
+          autoComplete="new-password"
+          value={borrador.tokenCalendly}
+          onChange={(e) => setBorrador({ ...borrador, tokenCalendly: e.target.value })}
+          placeholder={tieneTokenCalendly ? "Cargado. Déjalo vacío para conservarlo" : ""}
+          className={claseInput}
+          aria-label="Calendly Token"
+        />
+      </label>
+
+      <div className="flex justify-end gap-2 sm:col-span-2">
+        <Button type="button" size="sm" variant="ghost" onClick={onCancelar}>
+          Cancelar
         </Button>
-      </CardHeader>
-      <CardContent>
-        <form
-          className="grid gap-3 sm:grid-cols-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            onGuardar(borrador);
-          }}
+        <Button
+          type="submit"
+          size="sm"
+          disabled={pendiente || !borrador.nombre.trim() || !borrador.slug.trim()}
         >
-          <label className="block space-y-1 text-sm">
-            <span className="text-muted-foreground">Nombre</span>
-            <input
-              value={borrador.nombre}
-              onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })}
-              maxLength={120}
-              required
-              className={claseInput}
-              aria-label="Nombre"
-            />
-          </label>
-
-          <label className="block space-y-1 text-sm">
-            <span className="text-muted-foreground">
-              Slug {slugBloqueado ? "(El slug no se cambia: está en los enlaces)" : "(minúsculas, números y guiones)"}
-            </span>
-            <input
-              value={borrador.slug}
-              onChange={(e) => setBorrador({ ...borrador, slug: e.target.value })}
-              disabled={slugBloqueado}
-              maxLength={60}
-              required
-              className={claseInput}
-              aria-label="Slug"
-            />
-          </label>
-
-          <label className="block space-y-1 text-sm">
-            <span className="text-muted-foreground">Ticket (USD)</span>
-            <input
-              value={borrador.ticketUsd}
-              onChange={(e) => setBorrador({ ...borrador, ticketUsd: e.target.value })}
-              inputMode="decimal"
-              required
-              className={claseInput}
-              aria-label="Ticket en USD"
-            />
-          </label>
-
-          <label className="block space-y-1 text-sm">
-            <span className="text-muted-foreground">Estancado tras N días</span>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={borrador.diasSinActividad}
-              onChange={(e) => setBorrador({ ...borrador, diasSinActividad: e.target.value })}
-              required
-              className={claseInput}
-              aria-label="Días sin actividad"
-            />
-          </label>
-
-          <label className="block space-y-1 text-sm">
-            <span className="text-muted-foreground">Comisión (% del valor vendido)</span>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              value={borrador.comisionPorcentaje}
-              onChange={(e) => setBorrador({ ...borrador, comisionPorcentaje: e.target.value })}
-              inputMode="decimal"
-              placeholder="Por ejemplo 10,04"
-              className={claseInput}
-              aria-label="Comisión en porcentaje del valor vendido"
-            />
-          </label>
-
-          {/* `webUrl` y `calendlyUrl` ya no se muestran (vacias en produccion y sin
-              lector, 28-sep): el borrador las pasa tal cual para no pisar nada. */}
-          <label className="block space-y-1 text-sm sm:col-span-2">
-            <span className="text-muted-foreground">Forms Link</span>
-            <input
-              type="url"
-              value={borrador.formUrl}
-              onChange={(e) => setBorrador({ ...borrador, formUrl: e.target.value })}
-              required
-              placeholder="https://form.typeform.com/to/..."
-              className={claseInput}
-              aria-label="Forms Link"
-            />
-          </label>
-
-          <label className="block space-y-1 text-sm sm:col-span-2">
-            <span className="text-muted-foreground">Calendly Token</span>
-            {/* type="password": se ve con puntos y se puede pegar. El valor guardado
-                nunca vuelve al navegador (ADR 0057), asi que el campo arranca vacio;
-                autoComplete="new-password" evita que el gestor del navegador lo llene. */}
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={borrador.tokenCalendly}
-              onChange={(e) => setBorrador({ ...borrador, tokenCalendly: e.target.value })}
-              required={!tieneTokenCalendly}
-              placeholder={tieneTokenCalendly ? "Cargado. Déjalo vacío para conservarlo" : ""}
-              className={claseInput}
-              aria-label="Calendly Token"
-            />
-          </label>
-
-          <div className="flex justify-end gap-2 sm:col-span-2">
-            <Button type="button" size="sm" variant="ghost" onClick={onCancelar}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={pendiente || !borrador.nombre.trim() || !borrador.slug.trim()}
-            >
-              Guardar
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+          Guardar
+        </Button>
+      </div>
+    </form>
   );
 }

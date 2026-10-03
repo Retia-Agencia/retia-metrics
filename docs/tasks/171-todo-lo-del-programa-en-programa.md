@@ -3,7 +3,7 @@ id: 171
 etapa: O3
 serves: "docs/anotaciones.md A-63, A-70, A-71, A-72 (Recursos), A-75; ADR 0077 punto 1; enmienda ADR 0034"
 depends: []
-status: todo
+status: entregado (S4, 3-oct; lo marca done la sesión central tras el checkpoint)
 ---
 
 > **3-oct (sesión central):** la migración **0062** hace nula `recursos.categoria_id` (`lib/queries/recursos.ts` ya tipa `categoriaId: string | null`). Un recurso libre se guarda sin categoría. **Aplicada en producción el 3-oct** con el ok de Mani (columna nula verificada).
@@ -74,3 +74,51 @@ Tests: `tests/plataformas-programa.test.ts`, `tests/acciones-recursos.test.ts`, 
 - Se crea una plataforma nueva, se le pone un link y el closer lo copia desde Recursos.
 - Un closer crea un recurso libre en Recursos; no edita el programa (403 forjando la acción, base sin moverse).
 - `npm run build` en verde; recorrido en `dev:local` como gerente y como closer, consola abierta, escritorio y 375 px.
+
+## Cierre 3-oct (S4: Codex implementa la tanda (a), Kiro la (b) por límite de uso de Codex; Claude revisa; rama `o3-171-programa`, sin migración)
+
+**Qué quedó.** Tanda (a): "Editar" abre un pop-up con el formulario del programa (el slug se ve y no se cambia:
+`editarPrograma` lo prohíbe a propósito); "Estancado tras N días" es editable por primera vez (`diasSinActividad` en
+`esquemaPrograma`, ≥ 1). Un programa inactivo lo abre solo quien administra (`programaDeLaFichaPorSlug`) con la lista
+"Le falta para activarse" (Forms Link, Calendly Token, fuente principal; `faltaParaActivar`), y "Activar"
+(`activarProgramaDesdeFichaAccion`) vuelve a comprobar los tres en el servidor. "Nuevo programa" vive en el selector y
+crea el programa inactivo con nombre, slug y ticket. Formularios reusa `FuentesAdmin`; Equipo agrega y quita
+membresías (`agregarMembresia`/`quitarMembresia` sobre `sincronizarMembresias`: `change_log`, nunca DELETE; el gerente
+no es elegible, ADR 0003) y reusa `CalendlyMembresias` tal cual. Tanda (b): Plataformas de pago en la tab
+(`crearOVincularPlataforma`: un nombre ya existente se vincula en vez de duplicarse, uno desactivado da 409) con sus
+links (crear, cambiar URL, retirar); Recursos queda con recursos libres sin categoría y links de solo lectura, acotado
+a `programasVisibles`, y adopta `FiltroSelect` del 170.
+
+**Fuera de la lista de archivos, mínimo y por necesidad:** `lib/auth/alcance.ts` (dos funciones nuevas),
+`lib/catalogo/programas.ts` (solo el campo), `lib/catalogo/usuarios.ts` (`programas` opcional: si no viene, no se tocan
+las membresías — sin eso, quitar las casillas de Usuarios dejaba al closer sin programas al editarlo, sin error; y se
+quita "un closer necesita al menos un programa"), `app/(app)/layout.tsx` y `components/app-sidebar.tsx` (pasan
+inactivos y `puedeCrear` al selector), `scripts/usuarios.ts` (compatibilidad), `components/resources/helpers.ts`.
+
+**Encontrado en el camino.** (1) Recursos le mostraba a un closer los links de TODOS los programas (usaba
+`programasActivos`): rompía la frontera del ADR 0048; ahora sale de `programasVisibles`. (2) El filtro de Programa de
+Recursos mostraba el valor crudo `todos` (Select de Base UI sin `items`); se arregló al adoptar `FiltroSelect`.
+(3) `ProgramasAdmin` quedó sin uso con la redirección y se borró; `FormularioPrograma` perdió su tarjeta (se veía
+doble marco en el pop-up) y el Calendly Token dejó de ser `required` (bloqueaba guardar el Forms Link de un programa a
+medias; la lista de lo que falta ya lo cubre).
+
+**Para el 175.** Con `categoria_id` nula, el índice `recursos_vigente_idx` (`programa, categoria, lower(titulo)`) ya
+no impide dos recursos libres vigentes con el mismo título en un programa (Postgres trata los NULL como distintos). Al
+quitar la columna, rehacer el índice sobre `(coalesce(programa), lower(titulo))`.
+
+**Queda igual a propósito.** "Editar" un link de pago cambia solo la URL (`reemplazarEnlacePago` de siempre): otro
+monto es retirar y crear. Las plataformas y sus links los maneja también el closer del programa (ADR 0016 y 0034); las
+acciones exigen membresía. `app/(app)/ajustes/catalogos/acciones.ts` conserva sus acciones de plataformas para el 173.
+
+**Verificado.** Typecheck, lint y `npm run build` en verde tras rebasar sobre `dc9e477` (169 y 170). Tests del ticket
+en local: 13 archivos, 278 en verde, más `roles`, `bitacora-jsonb` y re-corrida tras la limpieza (185). Recorrido en
+`dev:local` (base local con la 0062 aplicada): como gerente se creó "Memorable Prueba" desde el selector, se completó
+(Forms Link, token falso, días, comisión, fuente webhook con secreto, activa y principal) y se activó desde la tab sin
+SQL; plataforma "Wompi Prueba" y su link creados en la tab; Carlos agregado al Equipo (el gerente no sale en la lista).
+Como closer: sin "Editar" ni controles de Equipo; Mani Closer (sin membresía en Memorable) no ve su link en Recursos,
+Carlos sí y con "Copiar"; Mani crea un recurso libre. Forjando con la cabecera `Next-Action` desde la sesión de Mani
+Closer: activar, agregar al Equipo, crear plataforma y crear link en Memorable → los cuatro rechazados, y los conteos de
+`miembros_programa`, `enlaces_pago`, `plataformas_pago`, `plataformas_programa` y `change_log` idénticos antes y
+después. `/ajustes/programas` y `/ajustes/fuentes` redirigen (closer a su inicio, gerente a la tab `#formularios`).
+375 px sin scroll horizontal, pop-up dentro de la pantalla; consola sin errores. "Copiar" no se pudo comprobar: el panel
+del navegador niega el portapapeles (`writeText` directo da `NotAllowedError`); ese código no cambió.

@@ -6,13 +6,6 @@ import { ChevronDown, Copy, ExternalLink, History, Trash2, X } from "lucide-reac
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { monto as formatoMonto } from "@/lib/format";
 import {
@@ -22,7 +15,8 @@ import {
   reemplazarRecursoAccion,
   type ResultadoAccion,
 } from "@/app/(app)/recursos/acciones";
-import { agruparEnlaces, GLOBAL, TODOS } from "@/components/resources/helpers";
+import { agruparEnlaces, GLOBAL } from "@/components/resources/helpers";
+import { FiltroSelect } from "@/components/filtros/filtro-select";
 import type {
   EnlaceUI,
   ProgramaOpcion,
@@ -65,7 +59,6 @@ interface Props {
   esAdmin: boolean;
   /** Programas (uuids) que un closer puede editar. Vacio para quien no edita nada. */
   programasEditables: string[];
-  slugPrograma: string | null;
   q: string | null;
   programas: ProgramaOpcion[];
   recursos: RecursoUI[];
@@ -78,7 +71,6 @@ const claseInput =
 export function RecursosPantalla({
   esAdmin,
   programasEditables,
-  slugPrograma,
   q,
   programas,
   recursos,
@@ -163,25 +155,14 @@ export function RecursosPantalla({
   return (
     <div className="space-y-8">
       {/* Filtro: vive en la URL (ADR 0023). Envuelve en pantallas angostas. */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <Select
-          value={slugPrograma ?? TODOS}
-          onValueChange={(valor: string | null) =>
-            navegar({ programa: valor === null || valor === TODOS ? null : valor })
-          }
-        >
-          <SelectTrigger className="w-full sm:w-56" aria-label="Programa">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={TODOS}>Todos los programas</SelectItem>
-            {programas.map((p) => (
-              <SelectItem key={p.slug} value={p.slug}>
-                {p.nombre}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+        <FiltroSelect
+          nombre="programa"
+          etiqueta="Programa"
+          todos="Todos los programas"
+          className="w-full sm:w-56"
+          opciones={programas.map((p) => ({ value: p.slug, label: p.nombre }))}
+        />
 
         <input
           type="search"

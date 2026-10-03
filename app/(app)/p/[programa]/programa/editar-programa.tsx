@@ -70,7 +70,6 @@ export function EditarPrograma({
           El token guardado nunca se muestra. Déjalo vacío para conservarlo.
         </DialogDescription>
         <FormularioPrograma
-          titulo={programa.nombre}
           inicial={aBorrador(programa)}
           pendiente={pendiente}
           slugBloqueado

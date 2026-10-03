@@ -108,7 +108,6 @@ export default async function RecursosPage({ searchParams }: Props) {
       <RecursosPantalla
         esAdmin={esAdmin}
         programasEditables={programasEditables}
-        slugPrograma={slug ?? null}
         q={q ?? null}
         programas={programas.map((p) => ({ id: p.id, slug: p.slug, nombre: p.nombre }))}
         recursos={conHistorial}

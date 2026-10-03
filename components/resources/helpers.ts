@@ -1,6 +1,5 @@
 import type { EnlaceUI } from "./types";
 
-export const TODOS = "todos";
 export const GLOBAL = "__global__";
 
 /** Agrupa los enlaces por programa. */
