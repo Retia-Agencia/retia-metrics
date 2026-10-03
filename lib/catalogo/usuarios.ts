@@ -1,4 +1,4 @@
-import { and, eq, sql, type SQL } from "drizzle-orm";
+import { and, asc, eq, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
 import { changeLog, miembrosPrograma, programs, users } from "@/lib/db/schema";
@@ -352,6 +352,29 @@ export async function usuarioPorId(
   const objetivoId = idValido(id);
   const todos = await listarUsuarios(db);
   return todos.find((u) => u.id === objetivoId) ?? null;
+}
+
+/** Un closer de la lista "ver como" del developer (ticket 172). */
+export interface CloserActivo {
+  id: string;
+  nombre: string;
+  email: string;
+}
+
+/**
+ * Los closers ACTIVOS, ordenados por nombre. Es la lista que el developer ve en "Ver
+ * como closer →" (ticket 172): solo cuentas con rol `closer` y `activo = true`, que son
+ * las únicas que `sesionEfectiva` acepta suplantar. Se lee en el servidor
+ * (`app/(app)/layout.tsx`) y entra al menú por props; el componente cliente nunca
+ * importa `lib/db`.
+ */
+export async function closersActivos(db: Db = dbDeLaApp): Promise<CloserActivo[]> {
+  const filas = await db
+    .select({ id: users.id, nombre: users.nombre, email: users.email })
+    .from(users)
+    .where(and(eq(users.rol, "closer"), eq(users.activo, true)))
+    .orderBy(asc(users.nombre));
+  return filas.map((f) => ({ id: f.id, nombre: f.nombre ?? f.email, email: f.email }));
 }
 
 /** Crea un usuario y sus membresias. La entrada se valida con el esquema compartido. */

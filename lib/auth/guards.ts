@@ -8,16 +8,55 @@ import {
   puedeAcceder,
   type Rol,
 } from "./roles";
-import { rolDeVista } from "./vista";
+import { rolDeVista, sesionEfectiva } from "./vista";
 
 /**
  * Guardas de servidor. TODO route handler y server action pasa por aca.
  * La verificacion es en el servidor, no escondiendo componentes en el cliente.
  */
 
-export async function requireSession(): Promise<Session> {
+/**
+ * La sesion REAL, sin resolver la suplantacion ni aplicar la reja de solo lectura. Es
+ * la ÚNICA excepción nombrada a `requireSession` (ticket 172): `cambiarVista` la usa
+ * para decidir con el rol REAL quién puede cambiar de vista (`esAccesoTotal`) y para que
+ * "Salir" funcione aunque la vista esté suplantando a un closer —si usara la sesión
+ * efectiva, saldría como un closer sin acceso total y no podría salir de la vista—.
+ * No es un bypass genérico: solo cambia la cookie, nunca toca datos del negocio.
+ */
+export async function requireSesionReal(): Promise<Session> {
   const session = await auth();
   if (!session?.user?.id) throw new AuthenticationError();
+  return session;
+}
+
+/**
+ * ¿La invocación actual es una ESCRITURA? Hoy = una server action, que Next marca con la
+ * cabecera `next-action`. Las server actions son el único camino de escritura de datos
+ * de la app (los webhooks POST no pasan por aquí; `/api/me` y `/api/admin/ping` son GET).
+ *
+ * ⚠️ Esta reja NO cubre route handlers: desde dentro de la guarda no se puede saber el
+ * método HTTP (no es una cabecera, y `requireSession` no recibe el `Request`). Mientras
+ * todo write sea una server action esto basta; el día que se agregue un route handler de
+ * escritura que pase por aquí, hay que pasarle el método a la guarda (opción B del
+ * análisis de la decisión 7). Lo vigila `tests/reja-solo-lectura-handlers.test.ts`.
+ */
+async function esEscritura(): Promise<boolean> {
+  const { headers } = await import("next/headers");
+  const h = await headers();
+  return h.get("next-action") != null;
+}
+
+export async function requireSession(): Promise<Session> {
+  const real = await requireSesionReal();
+  const session = await sesionEfectiva(real);
+  // Reja de solo lectura (ticket 172): una sesión suplantada ("ver como") puede LEER
+  // todo lo del closer, pero no ESCRIBIR nada. La reja vive en UN solo lugar —aquí, por
+  // donde pasa toda server action— y da el mismo mensaje que ve la barra fija.
+  if (session.user.suplantadoPor && (await esEscritura())) {
+    throw new AuthorizationError(
+      `Estás viendo como ${session.user.suplantadoPor.nombre}: solo lectura.`,
+    );
+  }
   return session;
 }
 

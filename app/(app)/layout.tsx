@@ -1,12 +1,19 @@
 import type { ReactNode } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
+import { BarraSuplantacion } from "@/components/barra-suplantacion";
 import { paginaConSesion } from "@/lib/auth/page-guards";
+import { requireSesionReal } from "@/lib/auth/guards";
 import { esAccesoTotal, esAdministrador } from "@/lib/auth/roles";
 import { rolDeVista, vistaActual } from "@/lib/auth/vista";
 import { programasInactivosParaAdministrar, programasVisibles } from "@/lib/auth/alcance";
+import { closersActivos } from "@/lib/catalogo/usuarios";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
+  // La sesión EFECTIVA (ya suplantada si el developer está "viendo como"): con ella se
+  // proyecta la nav y el alcance de los programas. La sesión REAL decide quién ve el
+  // selector de vista y carga los closers que puede suplantar.
   const session = await paginaConSesion();
+  const real = await requireSesionReal();
 
   // El nav y la etiqueta del menu se pintan con el ROL DE VISTA (ticket 028): un
   // developer en vista `closer` ve la nav de un closer. El selector de "ver como", en
@@ -19,8 +26,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const programas = await programasVisibles(session.user.id, rolVista);
   const inactivos = await programasInactivosParaAdministrar(rolVista);
   const puedeCrear = esAdministrador(rolVista);
-  const puedeCambiarVista = esAccesoTotal(session.user.rol);
+  const puedeCambiarVista = esAccesoTotal(real.user.rol);
   const vista = await vistaActual();
+  // Los closers que el developer puede suplantar (ticket 172). Solo se cargan si de
+  // verdad puede cambiar de vista; para los demás, lista vacía.
+  const closers = puedeCambiarVista ? await closersActivos() : [];
 
   return (
     <div className="flex min-h-full flex-1 flex-col md:flex-row">
@@ -34,8 +44,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         puedeCrear={puedeCrear}
         puedeCambiarVista={puedeCambiarVista}
         vista={vista}
+        closers={closers}
       />
-      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {session.user.suplantadoPor ? (
+          <BarraSuplantacion nombre={session.user.name ?? session.user.email ?? "este closer"} />
+        ) : null}
+        {children}
+      </div>
     </div>
   );
 }

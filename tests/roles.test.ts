@@ -71,7 +71,7 @@ describe("navegacion por rol", () => {
   it("el closer no ve las rutas de administracion exclusivas de gerente", () => {
     // `/nerd-stats` es la unica ruta exclusiva que queda en la nav (ticket 025).
     expect(rutasDe("closer")).not.toContain("/nerd-stats");
-    expect(rutasDe("closer")).toContain("/mi-dia");
+    expect(rutasDe("closer")).toContain("/mi-espacio");
   });
 
   it("los tres roles ven /ajustes desde el 20-sep (enmienda del ticket 013)", () => {
@@ -131,30 +131,30 @@ describe("navegacion por rol", () => {
     }
   });
 
-  it("el gerente aterriza en el Dashboard del primer programa; el closer en el Inbox de su primer programa (ticket 071)", () => {
+  it("el gerente aterriza en el Dashboard del primer programa; el closer en Mi espacio (ticket 172)", () => {
     expect(rutaInicial("gerente", "programa-a")).toBe("/p/programa-a/dashboard");
-    expect(rutaInicial("closer", "programa-a")).toBe("/p/programa-a/inbox");
+    expect(rutaInicial("closer", "programa-a")).toBe("/mi-espacio");
   });
 
   it("un gerente sin programas activos aterriza en ajustes", () => {
     expect(rutaInicial("gerente", null)).toBe("/ajustes");
   });
 
-  it("un closer sin programas visibles cae en /mi-dia de respaldo (ticket 071)", () => {
-    expect(rutaInicial("closer", null)).toBe("/mi-dia");
+  it("un closer siempre aterriza en Mi espacio, con o sin programas (ticket 172)", () => {
+    expect(rutaInicial("closer", null)).toBe("/mi-espacio");
   });
 
-  it("el developer ve la union de items: mi-dia, dashboard, recursos y ajustes (ADR 0025)", () => {
+  it("el developer ve la union de items: mi-espacio, dashboard, recursos y ajustes (ADR 0025)", () => {
     const rutas = rutasDe("developer");
-    expect(rutas).toContain("/mi-dia");
+    expect(rutas).toContain("/mi-espacio");
     expect(rutas).toContain("/p/programa-a/dashboard");
     expect(rutas).not.toContain("/productos");
     expect(rutas).toContain("/recursos");
     expect(rutas).toContain("/ajustes");
   });
 
-  it("el gerente no ve Mi dia: no trabaja leads (ADR 0003)", () => {
-    expect(rutasDe("gerente")).not.toContain("/mi-dia");
+  it("el gerente no ve Mi espacio: no trabaja leads (ADR 0003)", () => {
+    expect(rutasDe("gerente")).not.toContain("/mi-espacio");
   });
 
   it("Nerd Stats es SOLO del developer: ni gerente ni closer lo ven (ticket 025)", () => {

@@ -13,6 +13,13 @@ declare module "next-auth" {
       id: string;
       rol: Rol | null;
       closerId: string | null;
+      /**
+       * Presente SOLO cuando un developer está suplantando a un closer ("ver como",
+       * ticket 172): el id y el nombre del developer REAL detrás de la vista. Las
+       * guardas la ponen al resolver la sesión efectiva; la barra fija de solo lectura
+       * y la reja de escritura la leen.
+       */
+      suplantadoPor?: { id: string; nombre: string };
     } & DefaultSession["user"];
   }
 }

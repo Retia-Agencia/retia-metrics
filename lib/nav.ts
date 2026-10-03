@@ -4,7 +4,7 @@ import { esAccesoTotal, trabajaLeads } from "@/lib/auth/roles";
 export type ItemNav = {
   href: string;
   etiqueta: string;
-  icono: "dashboard" | "deals" | "inbox" | "calls" | "recursos" | "ajustes" | "midia" | "nerdstats" | "students" | "leads" | "programa";
+  icono: "dashboard" | "deals" | "inbox" | "calls" | "recursos" | "ajustes" | "miespacio" | "nerdstats" | "students" | "leads" | "programa";
   roles: readonly Rol[];
 };
 
@@ -66,10 +66,11 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
 
   const items: ItemNav[] = [];
 
-  // Mi dia: quien trabaja leads (closer y developer, ADR 0025). Se queda hasta que el
-  // Inbox (ticket 071) lo reemplace; el ADR 0050 no quiere dos pantallas de inicio.
+  // Mi espacio: todo lo del usuario en una ruta (perfil + sus pendientes, deals, llamadas
+  // y students por programa). Para quien trabaja leads (closer y developer, ADR 0025).
+  // Reemplaza a `/mi-dia` y a `/perfil` (ticket 172).
   if (trabajaLeads(rol)) {
-    items.push({ href: "/mi-dia", etiqueta: "Mi día", icono: "midia", roles: ["closer"] });
+    items.push({ href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles: ["closer"] });
   }
 
   // Dashboard del programa elegido. Lo ven todos los roles, cada uno en SUS programas
@@ -160,13 +161,14 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
  * A donde mandar a alguien que entra a "/" segun su rol.
  * Sin rol no hay destino valido dentro de la app: va al login.
  * El gerente y el developer (ADR 0025) aterrizan en el Dashboard del primer programa
- * (ADR 0050); si no hay ninguno, en ajustes. El closer aterriza en el **Inbox** de su
- * primer programa visible (ticket 071, ADR 0050: el Inbox es su tab de inicio); si no ve
- * ninguno, cae en `/mi-dia`, que sigue existiendo como respaldo. El primer programa se
- * resuelve fuera (contra la base, segun el alcance del rol) y entra como dato.
+ * (ADR 0050); si no hay ninguno, en ajustes. El closer aterriza en **Mi espacio**
+ * (ticket 172), donde ve su perfil y, por programa, sus pendientes, deals, llamadas y
+ * students, con Pendientes arriba. El primer programa se resuelve fuera (contra la base,
+ * segun el alcance del rol) y entra como dato; para el closer ya no hace falta, pero se
+ * conserva la firma porque el gerente y el developer sí lo usan.
  */
 export function rutaInicial(rol: Rol | null, primerPrograma: string | null): string {
   if (!rol) return "/login";
-  if (rol === "closer") return primerPrograma ? rutaDePrograma(primerPrograma, "inbox") : "/mi-dia";
+  if (rol === "closer") return "/mi-espacio";
   return primerPrograma ? rutaDePrograma(primerPrograma, "dashboard") : "/ajustes";
 }

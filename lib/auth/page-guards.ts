@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import type { Session } from "next-auth";
 import { auth } from "./index";
 import { puedeAcceder, type Rol } from "./roles";
-import { rolDeVista } from "./vista";
+import { rolDeVista, sesionEfectiva } from "./vista";
 import { rutaInicial } from "@/lib/nav";
 import { programasVisibles } from "@/lib/auth/alcance";
 
@@ -32,7 +32,11 @@ export async function destinoInicial(userId: string, rol: Rol | null): Promise<s
 export async function paginaConSesion(): Promise<Session> {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  return session;
+  // La sesión EFECTIVA: si un developer suplanta a un closer ("ver como", ticket 172),
+  // esta sesión ya trae el id, el rol y el closerId del suplantado, así que TODA lectura
+  // de la página proyecta con ese usuario sin tocar una línea más. Las páginas son
+  // lectura (GET): la reja de solo lectura vive en `requireSession`, no aquí.
+  return sesionEfectiva(session);
 }
 
 export async function paginaConRol(...permitidos: Rol[]): Promise<Session> {

@@ -74,6 +74,12 @@ export interface FiltroStudents {
   /** Nulo = todas las cohortes del programa. */
   cohortId?: string | null;
   onboarded?: "si" | "no" | null;
+  /**
+   * Solo los estudiantes de ESTE dueño (ticket 172, "Mis students" de Mi espacio). Nulo
+   * = todos los del programa. El programa sigue siendo frontera; esto solo acota al
+   * closer dentro de su programa.
+   */
+  ownerUserId?: string | null;
 }
 
 /**
@@ -89,8 +95,9 @@ export async function studentsDelPrograma(
   hoy: string = hoyEnBogota(),
 ): Promise<FilaStudents[]> {
   const todos = await estudiantesDe(db, programId, filtro.cohortId ? { cohortId: filtro.cohortId } : {});
+  const porDueno = filtro.ownerUserId ? todos.filter((e) => e.ownerUserId === filtro.ownerUserId) : todos;
   const filas =
-    filtro.onboarded == null ? todos : todos.filter((e) => (e.onboardedAt != null) === (filtro.onboarded === "si"));
+    filtro.onboarded == null ? porDueno : porDueno.filter((e) => (e.onboardedAt != null) === (filtro.onboarded === "si"));
   if (filas.length === 0) return [];
 
   const [saldos, cartera] = await Promise.all([

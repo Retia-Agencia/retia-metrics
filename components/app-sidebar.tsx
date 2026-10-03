@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, CalendarCheck, ChartNoAxesColumn, Contact, GraduationCap, Inbox, KanbanSquare, Layers, Library, LineChart, Menu, Settings, X } from "lucide-react";
+import { Activity, ChartNoAxesColumn, Contact, GraduationCap, Inbox, KanbanSquare, Layers, Library, LineChart, Menu, Settings, UserCircle, X } from "lucide-react";
 import { navParaRol, programaDeRuta, type ItemNav } from "@/lib/nav";
 import type { Rol } from "@/lib/auth/roles";
 import type { Vista } from "@/lib/auth/vista";
+import type { CloserActivo } from "@/lib/catalogo/usuarios";
 import { cn } from "@/lib/utils";
 import { Marca } from "@/components/marca";
 import { ProgramSwitcher } from "@/components/program-switcher";
@@ -20,7 +21,7 @@ const ICONOS: Record<ItemNav["icono"], typeof LineChart> = {
   calls: ChartNoAxesColumn,
   recursos: Library,
   ajustes: Settings,
-  midia: CalendarCheck,
+  miespacio: UserCircle,
   nerdstats: Activity,
   students: GraduationCap,
   leads: Contact,
@@ -41,6 +42,8 @@ type Props = {
   puedeCambiarVista: boolean;
   /** La vista marcada hoy en la cookie. */
   vista: Vista;
+  /** Los closers activos que el developer puede suplantar (ticket 172). */
+  closers: readonly CloserActivo[];
 };
 
 /**
@@ -66,6 +69,7 @@ export function AppSidebar({
   puedeCrear,
   puedeCambiarVista,
   vista,
+  closers,
 }: Props) {
   const pathname = usePathname();
   const [abiertoEn, setAbiertoEn] = useState<string | null>(null);
@@ -200,6 +204,7 @@ export function AppSidebar({
             rol={rol}
             puedeCambiarVista={puedeCambiarVista}
             vista={vista}
+            closers={closers}
           />
         </div>
       </aside>

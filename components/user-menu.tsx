@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Eye, User } from "lucide-react";
+import { LogOut, Eye, UserCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -17,10 +17,14 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cambiarVista } from "@/app/(app)/acciones-vista";
+import { cambiarVista, verComoCloser } from "@/app/(app)/acciones-vista";
 import { VISTAS, type Vista } from "@/lib/auth/vista";
+import type { CloserActivo } from "@/lib/catalogo/usuarios";
 
 import type { Rol } from "@/lib/auth/roles";
 
@@ -55,6 +59,12 @@ type Props = {
   puedeCambiarVista: boolean;
   /** La vista marcada hoy en la cookie, para pintar el radio. */
   vista: Vista;
+  /**
+   * Los closers activos que el developer puede suplantar ("Ver como closer →", ticket
+   * 172). Se cargan en el servidor (layout) y entran por props: este componente es
+   * cliente y NUNCA importa `lib/db` (solo el `type`).
+   */
+  closers: readonly CloserActivo[];
 };
 
 export function UserMenu({
@@ -64,6 +74,7 @@ export function UserMenu({
   rol,
   puedeCambiarVista,
   vista,
+  closers,
 }: Props) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
@@ -84,6 +95,14 @@ export function UserMenu({
     if (valor === vista) return;
     iniciar(async () => {
       await cambiarVista(valor as Vista);
+      router.refresh();
+    });
+  }
+
+  /** Suplanta a un closer de verdad: escribe la cookie y refresca (ticket 172). */
+  function elegirCloser(userId: string) {
+    iniciar(async () => {
+      await verComoCloser(userId);
       router.refresh();
     });
   }
@@ -152,17 +171,45 @@ export function UserMenu({
                 </DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>
+            {/*
+             * "Ver como closer →" (ticket 172): suplanta a un closer de VERDAD, con sus
+             * membresías, deals y Calendly, en SOLO LECTURA. Es otra cosa que la vista
+             * `closer` del radio (que solo estrecha el rol del developer): aquí cambia la
+             * identidad con la que se leen los datos. Solo aparece si hay closers.
+             */}
+            {closers.length > 0 ? (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Eye className="size-3.5" />
+                  Ver como closer
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="max-h-72 w-56 overflow-y-auto">
+                  {closers.map((c) => (
+                    <DropdownMenuItem
+                      key={c.id}
+                      onClick={() => elegirCloser(c.id)}
+                      disabled={pendiente}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate">{c.nombre}</span>
+                        <span className="block truncate text-xs text-muted-foreground">{c.email}</span>
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            ) : null}
           </>
         ) : null}
         <DropdownMenuSeparator />
         {/*
-         * "Mi perfil" (ticket 031): todo usuario ve su closerId; solo un administrador
-         * lo edita. La guarda real esta en la pagina y la server action, no aca. Base UI
-         * quiere `render` para que el item sea un enlace, no `asChild`.
+         * "Mi espacio" (ticket 172): todo lo del usuario —perfil, pendientes, deals,
+         * llamadas y students por programa— en una ruta. Reemplaza el enlace a "Mi
+         * perfil". Base UI quiere `render` para que el item sea un enlace, no `asChild`.
          */}
-        <DropdownMenuItem render={<Link href="/perfil" />}>
-          <User className="size-4" />
-          Mi perfil
+        <DropdownMenuItem render={<Link href="/mi-espacio" />}>
+          <UserCircle className="size-4" />
+          Mi espacio
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => signOut({ redirectTo: "/login" })}>
           <LogOut className="size-4" />

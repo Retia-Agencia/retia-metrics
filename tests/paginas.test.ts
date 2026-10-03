@@ -453,7 +453,7 @@ describe("paginas de gerente", () => {
   for (const [nombre, ruta] of PAGINAS_DE_GERENTE) {
     it(`${nombre} rechaza a un closer y lo manda a su vista`, async () => {
       auth.mockResolvedValue(sesionCloser);
-      expect(await destinoDe(ruta)).toBe("/mi-dia");
+      expect(await destinoDe(ruta)).toBe("/mi-espacio");
     });
 
     it(`${nombre} manda al login a quien no tiene sesion`, async () => {
@@ -464,12 +464,37 @@ describe("paginas de gerente", () => {
 });
 
 /**
- * El developer (ADR 0025) pasa TODA guarda de pagina. No se afirma renderizando
- * cada pagina (varias leen la base y aqui no hay base), sino sobre `paginaConRol`,
- * que es lo unico que la pagina evalua para decidir el acceso: si la guarda no
- * redirige, la pagina entra. Se cubre una guarda exclusiva de gerente y una
- * exclusiva de closer; el mecanismo es el mismo para todas.
+ * `/mi-dia` y `/perfil` se fusionaron en Mi espacio (ticket 172): ahora solo redirigen,
+ * conservando su guarda. Se invoca el componente real: la guarda corre antes del
+ * redirect, así que sin sesión manda a login y con sesión manda a `/mi-espacio`.
  */
+describe("mi-dia y perfil redirigen a Mi espacio (ticket 172)", () => {
+  it("/mi-dia manda a /mi-espacio a un closer", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/mi-espacio");
+  });
+
+  it("/mi-dia manda al login a quien no tiene sesion (conserva su guarda)", async () => {
+    auth.mockResolvedValue(null);
+    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/login");
+  });
+
+  it("/mi-dia rebota a un gerente: la guarda de closer sigue vigente (ADR 0003)", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    // Un gerente no trabaja leads: la guarda lo manda a su inicio, no a /mi-espacio.
+    expect(await destinoDe("@/app/(app)/mi-dia/page")).not.toBe("/mi-espacio");
+  });
+
+  it("/perfil manda a /mi-espacio a cualquiera con sesion", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    expect(await destinoDe("@/app/(app)/perfil/page")).toBe("/mi-espacio");
+  });
+
+  it("/perfil manda al login a quien no tiene sesion", async () => {
+    auth.mockResolvedValue(null);
+    expect(await destinoDe("@/app/(app)/perfil/page")).toBe("/login");
+  });
+});
 describe("developer pasa toda guarda de pagina (ADR 0025)", () => {
   it("no lo redirige una guarda exclusiva de gerente", async () => {
     auth.mockResolvedValue(sesionDeveloper);
