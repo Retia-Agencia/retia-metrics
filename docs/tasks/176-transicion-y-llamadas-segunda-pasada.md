@@ -72,3 +72,59 @@ nuevo), `tests/acciones-ficha-deal.test.ts`, `tests/llamadas-del-deal.test.ts`.
 - "Registrar abono" fuera de su etapa se ve deshabilitado con la razón.
 - `npm run build` en verde; recorrido en `dev:local` como closer, clic en cada botón de cada grupo en tres etapas
   distintas, consola abierta, escritorio y 375 px.
+
+## Estado de la sesión (S9, O3 parte 2)
+
+Implementadas las cuatro decisiones (solo UI de la ficha; el motor, `mover-etapa.ts`, `requisitos.ts` y
+`schema.ts` no se tocaron). `npm run typecheck` y `npm run lint` quedan limpios. **No se corrió la suite**
+(instrucción de la sesión): el `npm run build` y el recorrido en `dev:local` quedan pendientes porque el
+worktree tiene `node_modules` enlazado.
+
+### Hecho
+
+- **Decisión 1 — tres grupos en Transición.** `components/deals/pregunta-de-etapa.ts` suma
+  `cambiaLaEtapa`, `actividadesQueNoMueven`, `TIPOS_DE_ACTIVIDAD` y `gruposDeTransicion`, que parte las
+  respuestas en `moverA` (cambian la etapa, incluidas Contacto/Intento que mueven según
+  `etapaTrasActividad`), `enEspera` (misma etapa con pendiente) y `actividades` (los tipos que NO mueven).
+  La regla única: si cambia la etapa, va en Mover a. `ficha-transicion.tsx` dibuja los tres grupos: "Mover a"
+  (botones de etapa), "Dejar en espera" (línea "El deal no cambia de etapa") y "Registrar actividad" (UN botón
+  que abre el pop-up con tipo Contacto/Intento/Nota, canal y nota; línea "Cuenta para los tres intentos y para
+  el aviso de estancado"). El pop-up de actividad con selector de tipo vive en `responder-pregunta.tsx`
+  (`registrarActividad`).
+- **Decisión 2 — fuera "Para avanzar".** La tarjeta ya no lista `alertas.paraAvanzar`; las propiedades en rojo
+  de la etapa actual quedan en una línea y la insignia "Camino principal" se pinta sobre el botón de su
+  destino (sale de `alertas.paraAvanzar[].caminoFeliz`). Lo que falta para cada destino lo sigue mostrando el
+  pop-up de la transición (`DialogoMover`, que ya ensaya el motor con `revisarMovimientoAccion`): no se tocó.
+- **Decisión 3 — Llamadas con Grain como campo y un solo "Resultado".** Nuevo `campo-grain.tsx` (campo
+  siempre visible que guarda al pegar o al salir, por `pegarGrainAccion`) y `acciones-de-llamada.tsx`
+  (componente compartido: Grain + botón "Resultado" con Show/No show/Cancelada/Reagendada, cada opción con su
+  línea). Show no abre sub-flujo: pone el foco en el campo de Grain. No show/Cancelada → `marcarFallidaAccion`;
+  Reagendada → `agregarLlamadaAccion`; "Poner fecha de la cita" pasó a campo (`completarAgendadaAccion`).
+  Se usa en `ficha-llamadas.tsx`, y la fila de `llamadas-programa.tsx` e `inbox-llamadas-de-hoy.tsx` abre el
+  `detalle-de-llamada.tsx`, que ahora muestra Grain + Resultado; sin botones sueltos. No se creó `marcarShow`
+  ni se tocó el motor.
+- **Decisión 4 — Facturación se explica sola (A-80).** `ficha-pago.tsx`: fuera de `aceptaAbono` el botón
+  "Registrar abono" se ve deshabilitado con la razón ("Se abona desde Contactado; este deal está en …"). Cada
+  acción lleva su línea (Registrar abono → pasa a Ganado; Editar descuento → cambia el valor vendido; Acuerdo
+  de pago → fija la fecha límite y la de pago). Sin datos nuevos.
+- **Guardián nuevo** en `tests/pregunta-de-etapa.test.ts`: recorre las once etapas (con y sin pendiente) y
+  falla si una respuesta que cambia la etapa queda fuera de "Mover a", si una de "Dejar en espera" cambia la
+  etapa, o si "Registrar actividad" ofrece un tipo que mueve. Los tests existentes de ese archivo se
+  mantuvieron (siguen usando `respuestasPorDestino`, que no se quitó).
+- `tests/acciones-ficha-deal.test.ts` y `tests/llamadas-del-deal.test.ts` **no se tocaron**: prueban server
+  actions y funciones del motor, que esta sesión no cambió.
+
+### Supuesto a confirmar con Mani
+
+- **Show no abre sub-flujo.** La opción "Show" del menú "Resultado" conserva la línea "Se marca al pegar el
+  link de Grain; el deal pasa a Atendido" y, al elegirla, solo pone el foco en el campo "Link de Grain" ya
+  visible (no hay acción `marcarShow`, no se tocó el motor). Confirmar que ese es el gesto esperado y no un
+  botón que marque show directamente.
+
+### Pendiente
+
+- `npm run build` en verde y el recorrido en `dev:local` como closer (clic en cada botón de cada grupo en tres
+  etapas distintas, consola abierta, escritorio y 375 px). No se hizo en esta sesión por el `node_modules`
+  enlazado del worktree.
+- "Se movió" y "No asistió o canceló" de la etapa Agendado quedan en "Dejar en espera" (no cambian la etapa);
+  revisar en el recorrido que ese encuadre se lea bien para quien no es técnico.

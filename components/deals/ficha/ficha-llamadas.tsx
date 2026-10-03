@@ -7,72 +7,60 @@ import { DetalleDeLlamada } from "@/components/deals/detalle-de-llamada";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardAction } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fechaHoraEnBogota, hoyEnBogota } from "@/lib/format";
-import type { EtapaDeal } from "@/lib/deals/etapas";
 import { citaActiva, ETIQUETA_DE_RESULTADO, TONO_DE_RESULTADO } from "@/lib/deals/estado-de-llamada";
 import type { FichaDeLlamada, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import {
   agregarLlamadaAccion,
   completarAgendadaAccion,
-  marcarFallidaAccion,
-  pegarGrainAccion,
 } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Campo, claseInput, claseTextarea, DialogoForm, Vacio } from "./campos";
+import { CampoGrain } from "./campo-grain";
+import { AccionesDeLlamada } from "./acciones-de-llamada";
 import { useAccion } from "./uso-accion";
 
 /**
- * Las llamadas del deal (ticket 074, ADR 0037, ADR 0015): todas las del deal, con las
- * anuladas tachadas. Aqui se conectan los backends de los tickets 057 a 059:
- *
- * - **Agregar** una llamada con su fecha (mueve a Agendado desde las etapas que la tabla permite).
- * - **Completar** la agendada que el sistema dejo sin fecha (la de Calendly).
- * - **Pegar el Grain** = "la llamada sucedio": un link y el deal pasa a Atendido.
- * - **Marcar fallida** (no_show o cancelada) = Re-agenda pendiente (PR1). Desde Atendido pide motivo de re-agenda.
+ * Las llamadas del deal (ticket 074, ADR 0037, ADR 0015; segunda pasada, ticket 176):
+ * todas las del deal, con las anuladas tachadas. En la cita activa (y en su detalle) el
+ * **Link de Grain** es un campo siempre visible que guarda al pegar o al salir del campo, y
+ * hay **un solo botón "Resultado"** (Show, No show, Cancelada, Reagendada), todo en el
+ * componente compartido `AccionesDeLlamada`. "Poner fecha de la cita" dejó de ser un botón:
+ * es un campo de fecha (`completarAgendadaAccion`) cuando el sistema creó la cita sin fecha.
  *
  * Las fechas se escriben en Bogota: el servidor arma el instante con `-05:00` explicito.
  */
 
-type Dialogo =
-  | { tipo: "agregar" }
-  | { tipo: "completar"; llamada: FichaDeLlamada }
-  | { tipo: "grain"; llamada: FichaDeLlamada }
-  | { tipo: "fallida"; llamada: FichaDeLlamada };
-
 export function FichaLlamadas({
   llamadas,
   dealId,
-  etapa,
   opciones,
   puedeRegistrar,
 }: {
   llamadas: FichaDeLlamada[];
   dealId: string;
-  etapa: EtapaDeal;
   opciones: OpcionesDeFicha;
   /** Trabaja leads Y es el dueño (o administra) Y el deal esta abierto. Proyeccion: la reja es el servidor. */
   puedeRegistrar: boolean;
 }) {
   const { programa: programaSlug } = useParams<{ programa: string }>();
-  const [dialogo, setDialogo] = useState<Dialogo | null>(null);
+  const [agregando, setAgregando] = useState(false);
   const [detalleId, setDetalleId] = useState<string | null>(null);
-  const cerrar = () => setDialogo(null);
+  // La pregunta de la etapa de Agendado abre "Resultado" sobre la cita activa (ADR 0072):
+  // "Se movió" y "No asistió o canceló" se eligen ahí. "Agendar" agrega una cita nueva. Se
+  // remonta el bloque de acciones con una llave para abrir el diálogo sin un efecto.
+  const [pedirResultado, setPedirResultado] = useState(0);
   const activaId = citaActiva(llamadas);
   const activa = llamadas.find((llamada) => llamada.id === activaId) ?? null;
   const anteriores = llamadas.filter((llamada) => llamada.id !== activaId);
-  // La pregunta de la etapa llega aquí con el formulario ya elegido (ADR 0072): "Agendó" y
-  // "Se movió" agregan una llamada con fecha (el motor mueve a Agendado: E4, E7 o E9);
-  // "No asistió o canceló" marca fallida la cita vigente más reciente (PR1).
   useAccionPedida(["agendar", "reprogramar", "fallida"], (accion) => {
-    if (accion !== "fallida") return setDialogo({ tipo: "agregar" });
-    const vigenteId = citaActiva(llamadas);
-    const vigente = llamadas.find((llamada) => llamada.id === vigenteId);
-    if (vigente) setDialogo({ tipo: "fallida", llamada: vigente });
+    if (accion === "agendar") return setAgregando(true);
+    if (activa) setPedirResultado((n) => n + 1);
   });
 
   const filaDe = (c: FichaDeLlamada, esActiva: boolean) => {
     const anulada = c.anuladoEn != null;
     const sinCompletar = c.resultado === "agendada" && !c.closerNombre;
+    const puedeRegistrarEnEsta = puedeRegistrar && !anulada;
     return (
       <li key={c.id} className={anulada ? "space-y-1 px-4 py-3 text-sm opacity-60" : "space-y-1 px-4 py-3 text-sm"}>
         <button type="button" className="-mx-2 flex w-[calc(100%+1rem)] cursor-pointer flex-wrap items-center gap-2 rounded-lg px-2 py-2 text-left outline-none transition-colors duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setDetalleId(c.id)}>
@@ -92,12 +80,21 @@ export function FichaLlamadas({
         </div>
         {c.notas ? <p className="whitespace-pre-wrap text-muted-foreground">{c.notas}</p> : null}
         {anulada ? <p className="text-xs text-muted-foreground"><Badge variant="neutro">Anulada</Badge> {c.anuladoPorNombre ?? ""} · {c.motivoAnulacion}</p> : null}
-        {puedeRegistrar && !anulada ? (
+        {puedeRegistrarEnEsta && esActiva ? (
           <div className="space-y-2 pt-1">
-            {sinCompletar ? <div className="flex flex-wrap items-center gap-2"><Button size="xs" variant="secondary" onClick={() => setDialogo({ tipo: "completar", llamada: c })}>Poner fecha de la cita</Button><span className="text-xs text-muted-foreground">La cita llegó sin fecha; queda a tu nombre.</span></div> : null}
-            {!c.linkGrain ? <div className="flex flex-wrap items-center gap-2"><Button size="xs" variant="secondary" onClick={() => setDialogo({ tipo: "grain", llamada: c })}>Link de Grain</Button><span className="text-xs text-muted-foreground">La llamada sucedió; el deal pasa a Atendido.</span></div> : null}
-            {c.resultado === "agendada" || c.resultado === "show" ? <div className="flex flex-wrap items-center gap-2"><Button size="xs" variant="outline" onClick={() => setDialogo({ tipo: "fallida", llamada: c })}>No se dio</Button><span className="text-xs text-muted-foreground">No show o cancelada; queda para re-agendar.</span></div> : null}
+            {sinCompletar ? <CompletarFecha llamada={c} /> : null}
+            <AccionesDeLlamada
+              key={pedirResultado}
+              callId={c.id}
+              dealId={dealId}
+              linkGrain={c.linkGrain}
+              motivosReagenda={opciones.motivos}
+              abrirInicial={pedirResultado > 0 ? "resultado" : null}
+            />
           </div>
+        ) : null}
+        {puedeRegistrarEnEsta && !esActiva && !c.linkGrain ? (
+          <div className="pt-1"><CampoGrain callId={c.id} valor={c.linkGrain} /></div>
         ) : null}
       </li>
     );
@@ -109,7 +106,7 @@ export function FichaLlamadas({
         <CardTitle>Llamadas</CardTitle>
         {puedeRegistrar ? (
           <CardAction>
-            <Button size="sm" variant="outline" onClick={() => setDialogo({ tipo: "agregar" })}>
+            <Button size="sm" variant="outline" onClick={() => setAgregando(true)}>
               Agregar llamada
             </Button>
           </CardAction>
@@ -137,18 +134,15 @@ export function FichaLlamadas({
         </>
       )}
 
-      {dialogo?.tipo === "agregar" ? <DialogoAgregar dealId={dealId} onCerrar={cerrar} /> : null}
-      {dialogo?.tipo === "completar" ? <DialogoCompletar llamada={dialogo.llamada} onCerrar={cerrar} /> : null}
-      {dialogo?.tipo === "grain" ? <DialogoGrain llamada={dialogo.llamada} onCerrar={cerrar} /> : null}
-      {dialogo?.tipo === "fallida" ? (
-        <DialogoFallida llamada={dialogo.llamada} etapa={etapa} opciones={opciones} onCerrar={cerrar} />
-      ) : null}
+      {agregando ? <DialogoAgregar dealId={dealId} onCerrar={() => setAgregando(false)} /> : null}
       {detalleId ? (
         <DetalleDeLlamada
           programaSlug={programaSlug}
           callId={detalleId}
           esActiva={detalleId === activaId}
           conIrAlDeal={false}
+          puedeRegistrar={puedeRegistrar}
+          motivosReagenda={opciones.motivos}
           onCerrar={() => setDetalleId(null)}
         />
       ) : null}
@@ -156,23 +150,15 @@ export function FichaLlamadas({
   );
 }
 
-function CamposDeCita({
-  dia,
-  setDia,
-  hora,
-  setHora,
-  link,
-  setLink,
-}: {
-  dia: string;
-  setDia: (v: string) => void;
-  hora: string;
-  setHora: (v: string) => void;
-  link: string;
-  setLink: (v: string) => void;
-}) {
+/** El campo de fecha de la cita que el sistema creó sin ella (`completarAgendadaAccion`). */
+function CompletarFecha({ llamada }: { llamada: FichaDeLlamada }) {
+  const { pendiente, correr } = useAccion();
+  const [dia, setDia] = useState(hoyEnBogota());
+  const [hora, setHora] = useState("");
+  const [link, setLink] = useState(llamada.linkCalendly ?? "");
   return (
-    <>
+    <div className="space-y-2 rounded-lg bg-muted/50 p-3">
+      <p className="text-xs text-muted-foreground">La cita llegó sin fecha; al ponerla, queda a tu nombre.</p>
       <div className="grid grid-cols-2 gap-3">
         <Campo etiqueta="Día de la cita" ayuda="Hora de Bogotá.">
           <input type="date" className={claseInput} value={dia} onChange={(e) => setDia(e.target.value)} />
@@ -184,7 +170,19 @@ function CamposDeCita({
       <Campo etiqueta="Link de la reunión (opcional)" ayuda="Calendly, Meet, Zoom o el que acordaron">
         <input type="url" className={claseInput} value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://calendly.com/…" />
       </Campo>
-    </>
+      <Button
+        size="xs"
+        variant="secondary"
+        disabled={pendiente || !dia || !hora}
+        onClick={() =>
+          correr(() => completarAgendadaAccion({ callId: llamada.id, dia, hora, linkCalendly: link }), {
+            exito: "Llamada completada.",
+          })
+        }
+      >
+        {pendiente ? "Guardando…" : "Poner fecha de la cita"}
+      </Button>
+    </div>
   );
 }
 
@@ -211,139 +209,20 @@ function DialogoAgregar({ dealId, onCerrar }: { dealId: string; onCerrar: () => 
           }),
       }}
     >
-      <CamposDeCita dia={dia} setDia={setDia} hora={hora} setHora={setHora} link={link} setLink={setLink} />
+      <div className="grid grid-cols-2 gap-3">
+        <Campo etiqueta="Día de la cita" ayuda="Hora de Bogotá.">
+          <input type="date" className={claseInput} value={dia} onChange={(e) => setDia(e.target.value)} />
+        </Campo>
+        <Campo etiqueta="Hora">
+          <input type="time" className={claseInput} value={hora} onChange={(e) => setHora(e.target.value)} />
+        </Campo>
+      </div>
+      <Campo etiqueta="Link de la reunión (opcional)" ayuda="Calendly, Meet, Zoom o el que acordaron">
+        <input type="url" className={claseInput} value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://calendly.com/…" />
+      </Campo>
       <Campo etiqueta="Notas (opcional)">
         <textarea className={claseTextarea} value={notas} onChange={(e) => setNotas(e.target.value)} />
       </Campo>
-    </DialogoForm>
-  );
-}
-
-function DialogoCompletar({ llamada, onCerrar }: { llamada: FichaDeLlamada; onCerrar: () => void }) {
-  const { pendiente, correr } = useAccion();
-  const [dia, setDia] = useState(hoyEnBogota());
-  const [hora, setHora] = useState("");
-  const [link, setLink] = useState(llamada.linkCalendly ?? "");
-  return (
-    <DialogoForm
-      titulo="Poner fecha de la cita"
-      descripcion="La cita llegó sin fecha; al completarla, queda a tu nombre."
-      pendiente={pendiente}
-      onCerrar={onCerrar}
-      deshabilitarConfirmar={!dia || !hora}
-      confirmar={{
-        texto: "Completar",
-        enCurso: "Guardando…",
-        onClick: () =>
-          correr(() => completarAgendadaAccion({ callId: llamada.id, dia, hora, linkCalendly: link }), {
-            exito: "Llamada completada.",
-            alExito: onCerrar,
-          }),
-      }}
-    >
-      <CamposDeCita dia={dia} setDia={setDia} hora={hora} setHora={setHora} link={link} setLink={setLink} />
-    </DialogoForm>
-  );
-}
-
-function DialogoGrain({ llamada, onCerrar }: { llamada: FichaDeLlamada; onCerrar: () => void }) {
-  const { pendiente, correr } = useAccion();
-  const [link, setLink] = useState("");
-  return (
-    <DialogoForm
-      titulo="Link de Grain"
-      descripcion="La llamada sucedió; el deal pasa a Atendido."
-      pendiente={pendiente}
-      onCerrar={onCerrar}
-      deshabilitarConfirmar={link.trim() === ""}
-      confirmar={{
-        texto: "Guardar",
-        enCurso: "Guardando…",
-        onClick: () =>
-          correr(() => pegarGrainAccion({ callId: llamada.id, linkGrain: link }), {
-            exito: (r) => (r.movioAAtendido ? "Grain guardado: el deal pasó a Atendido." : "Grain guardado."),
-            alExito: onCerrar,
-          }),
-      }}
-    >
-      {llamada.fechaLlamada == null && llamada.fechaAgenda != null && llamada.fechaAgenda <= new Date() ? (
-        <p className="text-sm text-muted-foreground">Se anota que ocurrió el {fechaHoraEnBogota(llamada.fechaAgenda)}.</p>
-      ) : null}
-      <Campo etiqueta="Link de la grabación">
-        <input type="url" className={claseInput} value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://grain.com/…" />
-      </Campo>
-    </DialogoForm>
-  );
-}
-
-function DialogoFallida({
-  llamada,
-  etapa,
-  opciones,
-  onCerrar,
-}: {
-  llamada: FichaDeLlamada;
-  etapa: EtapaDeal;
-  opciones: OpcionesDeFicha;
-  onCerrar: () => void;
-}) {
-  const { pendiente, correr } = useAccion();
-  const [resultado, setResultado] = useState<"no_show" | "cancelada">("no_show");
-  const [motivoId, setMotivoId] = useState<string | null>(null);
-  // Desde Atendido la flecha a Re-agenda exige un motivo de la lista de re-agenda (PR2).
-  const pideMotivo = etapa === "atendido";
-  const motivos = opciones.motivos.filter((m) => m.tipo === "reagenda");
-  const resultados = [
-    { value: "no_show", label: "No apareció (no show)" },
-    { value: "cancelada", label: "Avisó y canceló" },
-  ];
-  return (
-    <DialogoForm
-      titulo="La llamada no se dio"
-      descripcion="El deal queda con Re-agenda pendiente. No aparecer y cancelar avisando son cosas distintas: elige la que fue."
-      pendiente={pendiente}
-      onCerrar={onCerrar}
-      deshabilitarConfirmar={pideMotivo && !motivoId}
-      confirmar={{
-        texto: "Marcar",
-        enCurso: "Guardando…",
-        onClick: () =>
-          correr(() => marcarFallidaAccion({ callId: llamada.id, resultado, motivoId: pideMotivo ? (motivoId ?? undefined) : undefined }), {
-            exito: "Marcada: el deal quedó con Re-agenda pendiente.",
-            alExito: onCerrar,
-          }),
-      }}
-    >
-      <Campo etiqueta="¿Qué pasó?">
-        <Select value={resultado} items={resultados} onValueChange={(v: string | null) => v && setResultado(v as "no_show" | "cancelada")}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {resultados.map((r) => (
-              <SelectItem key={r.value} value={r.value}>
-                {r.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Campo>
-      {pideMotivo ? (
-        <Campo etiqueta="Motivo de la re-agenda">
-          <Select value={motivoId} items={motivos.map((m) => ({ value: m.id, label: m.nombre }))} onValueChange={(v: string | null) => setMotivoId(v)}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Elige un motivo" />
-            </SelectTrigger>
-            <SelectContent>
-              {motivos.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {m.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Campo>
-      ) : null}
     </DialogoForm>
   );
 }

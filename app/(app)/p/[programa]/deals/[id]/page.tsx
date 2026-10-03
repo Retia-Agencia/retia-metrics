@@ -122,7 +122,6 @@ export default async function FichaDelDealPage({ params }: Props) {
             <FichaLlamadas
               llamadas={ficha.llamadas}
               dealId={ficha.dealId}
-              etapa={ficha.etapa}
               opciones={opciones}
               puedeRegistrar={puedeRegistrar && !cerrado}
             />

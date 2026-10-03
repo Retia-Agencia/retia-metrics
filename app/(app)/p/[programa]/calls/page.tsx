@@ -5,8 +5,6 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
-import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { opcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { llamadasDelPrograma, opcionesDeLlamadas, type FiltroLlamadas } from "@/lib/queries/llamadas";
 import { PageShell } from "@/components/page-shell";
@@ -76,9 +74,7 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
         <LlamadasPrograma
           llamadas={llamadas}
           programaSlug={programa.slug}
-          opciones={opcionesFicha}
-          mapa={mapaDeTransiciones()}
-          nombreDeEtapa={NOMBRE_DE_ETAPA}
+          motivosReagenda={opcionesFicha.motivos}
           puedeTrabajar={trabajaLeads(rol) || esAdministrador(rol)}
         />
       </div>
