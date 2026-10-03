@@ -197,7 +197,7 @@ espera dos cosas que no son código. Sin ellas, ninguna cantidad de sesiones ade
 
 **Desbloqueados por el 142 (`cp-20261002-2`), entran a la ola:** [143] propiedades por etapa (Mani, el motor) ·
 ✅ [128] alertas del deal y ✅ [118] "se perdió en el Calendly" (`cp-20261002-4`) · [148] y [065] (después del 143). La cola
-de migraciones sigue con 092 → 102 (la 0059 del 117 ya se aplicó el 2-oct).
+de migraciones sigue con 092 → 102 (la 0059 del 117 ya se aplicó el 2-oct). ✅ **0061 del [157] aplicada el 2-oct (noche)** con el ok de Mani (`setter_user_id`, `handoff_en`); sigue el 102.
 
 **No entran a O1** (y por qué): [129] espera dos decisiones de
 Mani (están en el ticket) · [144] a [147] esperan QM-3, QM-5, QM-6, QM-7, QM-11 y GC-17 · [119], [120], [123],

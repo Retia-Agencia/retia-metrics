@@ -814,6 +814,17 @@ export const deals = pgTable(
      * el closer reclama. El reparto ciego del script desaparece.
      */
     ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "restrict" }),
+    /**
+     * El credito del setter (ADR 0076 punto 3): el dueno anterior cuando una cita pasa el
+     * deal a quien da la llamada. Se escribe UNA vez (un re-agendamiento no lo pisa) y
+     * solo lo escribe `darDealAlHost`. Nulo = el deal llego agendado o nadie lo setteo.
+     */
+    setterUserId: uuid("setter_user_id").references(() => users.id, { onDelete: "restrict" }),
+    /**
+     * Cuando el setter marco "Link enviado" (ADR 0076 punto 1). El deal sigue siendo suyo;
+     * con esta marca y sin llamada vigente, a 1 dia habil sale la alerta.
+     */
+    handoffEn: timestamp("handoff_en", { withTimezone: true }),
     etapa: etapaDealEnum("etapa").notNull().default("registrado"),
     /**
      * El Pendiente del deal (ADR 0070): nulo = ninguno. Poner uno no mueve la etapa y todo
