@@ -6,7 +6,7 @@ depends: []
 status: todo
 ---
 
-> **3-oct (sesión central):** la migración **0062** hace nula `recursos.categoria_id` (`lib/queries/recursos.ts` ya tipa `categoriaId: string | null`). Un recurso libre se guarda sin categoría; si la 0062 aún no está aplicada en producción cuando empujes, avisa antes.
+> **3-oct (sesión central):** la migración **0062** hace nula `recursos.categoria_id` (`lib/queries/recursos.ts` ya tipa `categoriaId: string | null`). Un recurso libre se guarda sin categoría. **Aplicada en producción el 3-oct** con el ok de Mani (columna nula verificada).
 
 
 # 171 — Todo lo del programa vive en la tab Programa

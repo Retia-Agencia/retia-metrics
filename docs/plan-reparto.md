@@ -158,6 +158,8 @@ S3 cambia solo un enlace; S6 la rehace en la parte 2.
 > `docs/tasks/README.md`, `docs/agents/handoff.md` ni este documento: escribe tu estado y tu nota de cierre en el
 > archivo del ticket. Ninguna escritura en producción sin el ok de Mani. Empuja a `main` nombrando tus archivos.
 
+**Migraciones de la ola:** la **0062** (`recursos.categoria_id` nula, para el 171) está aplicada en producción desde el 3-oct. El rol `paid_trafficker` sale con el código del 173 y el borrado de `origenes` y `categorias_recurso` con el del 175, después de desplegar ese código (orden en cada ticket).
+
 **La sesión central** (la del 3-oct que armó esta ola) revisa cada entrega en `main` contra su "Done cuando", genera
 y aplica las migraciones de S6 y S8 con el ok de Mani, corre el checkpoint de cada parte (§6) y marca el tracker.
 
