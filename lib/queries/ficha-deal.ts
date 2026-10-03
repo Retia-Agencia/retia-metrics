@@ -302,7 +302,7 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
     (destino, indice) => indice > indiceActual && destinos.includes(destino),
   );
   const paraAvanzar = destinos
-    .filter((destino) => transicion(deal.etapa, destino)?.quien !== "sistema")
+    .filter((destino) => destino !== deal.etapa && transicion(deal.etapa, destino)?.quien !== "sistema")
     .map((destino) => ({
       destino,
       nombreDestino: NOMBRE_DE_ETAPA[destino],

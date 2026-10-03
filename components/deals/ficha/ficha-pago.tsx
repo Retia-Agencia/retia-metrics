@@ -109,7 +109,7 @@ export function FichaPago({
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">Descuento</dt>
-            <dd className="flex items-center gap-2 text-sm">
+            <dd className="flex flex-col items-start gap-1 text-sm">
               <span className="cifra">{ficha.descuento ? `${usd(ficha.descuento.usd)} · ${pct(ficha.descuento.porcentaje)}` : "—"}</span>
               {puedeTrabajar && !anulado ? (
                 <Button size="xs" variant="ghost" onClick={() => setDialogo({ tipo: "descuento" })}>Editar descuento</Button>

@@ -97,8 +97,10 @@ export function FichaTransicion({
             <h3 className="text-sm font-medium">Para avanzar</h3>
             {alertas.paraAvanzar.map((destino) => (
               <div key={destino.destino} className="space-y-1">
-                <p className="text-sm font-medium">{destino.caminoFeliz ? "Camino principal" : destino.nombreDestino}</p>
-                {destino.caminoFeliz ? <p className="text-xs text-muted-foreground">{destino.nombreDestino}</p> : null}
+                <p className="flex items-center gap-2 text-sm font-medium">
+                  {destino.nombreDestino}
+                  {destino.caminoFeliz ? <Badge variant="exito">Camino principal</Badge> : null}
+                </p>
                 <Requisitos faltan={destino.faltan} />
               </div>
             ))}

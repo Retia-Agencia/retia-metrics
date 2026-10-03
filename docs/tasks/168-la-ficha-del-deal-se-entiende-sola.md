@@ -3,7 +3,7 @@ id: 168
 etapa: O3
 serves: "docs/anotaciones.md A-52, A-53, A-55, A-56, A-58, A-59; ADR 0077 puntos 1 y 6"
 depends: []
-status: en curso (S1, sesión de Mani, 3-oct)
+status: review
 ---
 
 # 168 — La ficha del deal se entiende sola
@@ -75,3 +75,59 @@ los de alertas (128, 161) y uno nuevo de Próximo contacto (prellenado, fecha pa
 - Editar solo tiene Área de origen y Dueño; el descuento se edita en Facturación.
 - Próximo contacto llega prellenado, rechaza una fecha pasada forjando la acción y su vencimiento sale en amarillo.
 - `npm run build` en verde y recorrido en `dev:local`: clic en todo lo que se abre, consola abierta, escritorio y 375 px.
+
+## Cierre 2026-10-03 (rama `o3-168-ficha-del-deal`, sin migración)
+
+**Estado: `review`**: código, typecheck, lint, build y recorrido en `dev:local` (closer y gerente, escritorio y
+375 px) hechos; pasa a `done` con el checkpoint verde. Los tests con base del ticket los corrió Codex en verde
+(214 en 15 archivos); los cambios posteriores de la sesión solo corrieron los tests puros (la máquina estaba sin
+aire, 7,8 GB de swap): **los tests con base los valida el CI**.
+
+**Qué se construyó**
+
+- **Qué hace cada botón (A-52).** `queHace` en `components/deals/pregunta-de-etapa.ts`, un solo módulo, texto
+  visible debajo de cada botón. La consecuencia se deriva, no se escribe por etapa. Para Contacto e Intento sale
+  de `etapaTrasActividad` (`lib/deals/actividad-mueve.ts`, nueva), **la misma función con la que
+  `registrarActividad` mueve el deal**: `llevaA` (la regla de columnas del Kanban) prometía "pasa a Contactado"
+  desde Calificado en adelante, cosa que el motor no hace.
+- **Tres franjas (A-55).** Urgente y Alertas son dos tarjetas que solo se pintan con algo adentro; Transición
+  lleva lo que le falta a la etapa actual, cada destino con su nombre (el camino principal con insignia) y los
+  botones. Borde del tono e insignia, fondo normal. Sin "Otra ruta". La etapa actual ya no sale como destino.
+- **Clasificación** (en `lib/queries/ficha-deal.ts`, un `Record` exhaustivo):
+
+  | Urgente | Alertas |
+  |---|---|
+  | llamada sin resultado, agotó intentos, abono sin comprobante, link sin cita, compromiso vencido, pago vencido, re-agenda sin fecha | estancado, reenvío del formulario, atendida sin Grain, próximo contacto vencido |
+
+  Re-agenda sin fecha no estaba en ninguna lista del ticket: va en Urgente porque hay que agendar ya.
+- **Llamadas (A-53).** Fila entera clicable (hover, cursor, foco), la activa arriba y las demás plegadas en
+  "Llamadas anteriores (N)"; "Link de la cita" y "Link de Grain" en la fila y en el detalle. "Pegar Grain" →
+  "Link de Grain"; "No se dio" con su línea. Al pegar el Grain de una cita ya pasada, `pegarGrain`
+  (`lib/deals/llamadas.ts`) anota `fecha_llamada` = la fecha de la cita, y el pop-up lo dice.
+  **Desvío del ticket:** "Completar fecha" NO anota `fecha_llamada`: es `completarAgendada`, que pone la fecha de
+  la CITA a una llamada que el sistema creó sin fecha y la deja a nombre de quien la completa. Llamarlo
+  "¿Cuándo ocurrió?" habría mentido; se llama **"Poner fecha de la cita"**.
+- **Orden de bloques (A-56):** Lead y contactos, Origen, Perfil, Log.
+- **Editar (A-58):** Área de origen y Dueño (y el motivo si está perdido). El descuento se edita en
+  Facturación con la misma `editarDealAccion`. `fechaSeguimiento` salió de `esquemaEditarDeal` y de la acción:
+  solo se pone por la transición.
+- **Próximo contacto (A-59).** `lib/deals/proximo-contacto.ts` (puro): `proximoContactoSugerido` (+2 hábiles),
+  `esquemaProximoContacto` (rechaza hoy y fechas pasadas) y `proximoContactoVencido`, la única respuesta que usan
+  la ficha, el Inbox (motivo nuevo `proximo_contacto_vencido`) y el filtro del Kanban (`lib/queries/kanban.ts`,
+  una línea). La reja está en `moverDeal` y `revisarMovimientoAccion`. El mensaje del requisito en
+  `lib/deals/requisitos.ts` cambió de texto (sin cambio de lógica).
+
+**Bug encontrado en el recorrido y arreglado (anterior a este ticket).** `DialogoMover` arrancaba SIEMPRE con
+`descuentoUsd: 0` y la fecha límite sugerida, y los mandaba en cualquier movimiento aunque la flecha no los
+pidiera: mover a Atendido **borró el descuento de USD 50 recién puesto** (747 → 797 en `change_log`) y escribió
+una fecha límite que nadie pidió, sin error. Con el descuento ahora en Facturación, el siguiente movimiento lo
+habría deshecho. Ahora el diálogo solo arranca con lo que `camposDeDialogo` pide; probado: descuento 50, "Otra
+llamada", el valor sigue en 747. **Revisar en producción** si hay deals cuyo descuento se perdió así
+(`change_log` de `valorVendidoUsd` escrito en el mismo instante que un cambio de `etapa`).
+
+**Mordido forjando la petición:** con el `min` del input quitado, una fecha pasada en Próximo contacto vuelve con
+"El próximo contacto tiene que ser una fecha futura." y la base no se mueve.
+
+**Fuera de alcance, anotado:** el Inbox sigue diciendo "Pegar Grain" en sus filas (no es de este ticket); la
+fecha de "Próximo contacto" sigue visible en la cabecera después de que el pendiente cambió (es el dato del
+deal, no se borra al mover).

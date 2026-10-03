@@ -219,7 +219,7 @@ export function queHace(
               ? "Anota la cita con fecha."
               : accion.uso === "reprogramar"
                 ? "La cita cambió de fecha."
-                : "No asistió o canceló: queda para re-agendar."
+                : "Queda para re-agendar."
             : actividad === "contacto"
               ? "Hablaste con el lead."
               : actividad === "intento"

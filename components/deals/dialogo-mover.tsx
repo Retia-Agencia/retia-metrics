@@ -149,9 +149,11 @@ export function DialogoMover({
   const campos = camposDeDialogo(flecha);
   const hoy = hoyEnBogota();
   const manana = fechaDeInstanteEnBogota(new Date(new Date(`${hoy}T12:00:00-05:00`).getTime() + 86_400_000));
+  // Solo arranca lleno lo que esta flecha pide: un dato que no se pide no viaja, porque
+  // `moverEtapa` escribe todo lo que llega y pisaria el descuento o la fecha que ya tenia.
   const inicial = (): DatosDialogo => ({
-    descuentoUsd: 0,
-    fechaLimitePago: fechaLimiteSugerida,
+    ...(campos.includes("valor_vendido") ? { descuentoUsd: 0 } : {}),
+    ...(campos.includes("fecha_limite_pago") ? { fechaLimitePago: fechaLimiteSugerida } : {}),
     ...(campos.includes("fecha_seguimiento") ? { fechaSeguimiento: proximoContactoSugerido(hoy) } : {}),
   });
   const [datos, setDatos] = useState<DatosDialogo>(inicial);
