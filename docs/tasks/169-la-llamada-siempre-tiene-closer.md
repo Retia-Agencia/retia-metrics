@@ -3,7 +3,7 @@ id: 169
 etapa: O3
 serves: "docs/anotaciones.md A-54, A-62 (host sin cuenta), A-67, A-69; ADR 0077 punto 5; ADR 0076"
 depends: []
-status: todo
+status: en curso (S2, sesión de Mani, 3-oct)
 ---
 
 # 169 — La llamada siempre tiene closer, y el handoff se prueba en local
