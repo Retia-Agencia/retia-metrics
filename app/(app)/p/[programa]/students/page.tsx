@@ -103,11 +103,11 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                 {filas.map((f) => {
                   const saldo = f.saldo ? saldoLegible(f.saldo.saldo, f.saldo.moneda ?? "USD") : null;
                   return (
-                    <li key={f.dealId} className="grid gap-2 py-3 text-sm sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] sm:items-start">
+                    <li key={f.dealId} className="relative grid cursor-pointer gap-2 py-3 text-sm hover:bg-muted/50 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] sm:items-start">
                       <div className="min-w-0 space-y-1">
                         <Link
                           href={`/p/${programa.slug}/deals/${f.dealId}`}
-                          className="block truncate font-medium text-marca-texto underline-offset-2 outline-none hover:underline focus-visible:underline"
+                          className="block truncate rounded-md font-medium text-marca-texto underline-offset-2 after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           {f.nombre ?? f.email}
                         </Link>

@@ -96,9 +96,9 @@ function FilaLlamada({
   });
   const respuestas = llamada.etapa === "atendido" ? respuestasDe("atendido", llamada.pendiente) : [];
   return (
-    <li className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+    <li className="relative flex cursor-pointer flex-col gap-2 px-4 py-3 hover:bg-muted/50 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0 space-y-1">
-        <button type="button" className="block w-full min-w-0 space-y-1 text-left" onClick={() => setVerDetalle(true)}>
+        <button type="button" className="block w-full min-w-0 space-y-1 rounded-md text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setVerDetalle(true)}>
           <span className="flex flex-wrap items-center gap-2">
             <span className="truncate text-sm font-medium text-marca-texto">{nombre}</span>
             <Badge variant={TONO_DE_RESULTADO[llamada.resultado]}>{ETIQUETA_DE_RESULTADO[llamada.resultado]}</Badge>
@@ -109,14 +109,14 @@ function FilaLlamada({
             {llamada.fechaAgenda ? `Cita ${fechaHoraEnBogota(llamada.fechaAgenda)}` : llamada.fechaLlamada ? `Ocurrió ${fechaHoraEnBogota(llamada.fechaLlamada)}` : "Sin fecha"}
           </span>
         </button>
-        <div className="flex flex-wrap gap-x-4 text-xs">
+        <div className="relative z-10 flex flex-wrap gap-x-4 text-xs">
           {llamada.linkCalendly ? <a className="text-marca-texto underline-offset-2 hover:underline" href={llamada.linkCalendly} target="_blank" rel="noreferrer">Cita en Calendly</a> : null}
           {llamada.linkGrain ? <a className="text-marca-texto underline-offset-2 hover:underline" href={llamada.linkGrain} target="_blank" rel="noreferrer">Grabación</a> : null}
         </div>
         {llamada.notas ? <p className="whitespace-pre-wrap text-sm text-muted-foreground">{llamada.notas}</p> : null}
       </div>
       {puedeTrabajar && llamada.dealId ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="relative z-10 flex flex-wrap gap-2">
           {!llamada.linkGrain ? <Button size="sm" variant="secondary" onClick={() => setDialogo("grain")}>Pegar Grain</Button> : null}
           {llamada.resultado === "show" && respuestas.length > 0 ? (
             <Button size="sm" variant="outline" onClick={() => setDialogo("resultado")}>Elegir resultado</Button>

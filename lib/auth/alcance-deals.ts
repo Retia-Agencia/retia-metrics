@@ -16,3 +16,14 @@ export async function alcanceDeDeals(session: Session): Promise<AlcanceDeals> {
 export function dealVisiblePara(alcance: AlcanceDeals, ownerUserId: string | null): boolean {
   return alcance.tipo === "todos" || ownerUserId == null || ownerUserId === alcance.userId;
 }
+
+export function llamadaVisiblePara(
+  alcance: AlcanceDeals,
+  llamada: { ownerUserId: string | null; closerUserId: string | null },
+): boolean {
+  return (
+    alcance.tipo === "todos" ||
+    llamada.ownerUserId === alcance.userId ||
+    llamada.closerUserId === alcance.userId
+  );
+}

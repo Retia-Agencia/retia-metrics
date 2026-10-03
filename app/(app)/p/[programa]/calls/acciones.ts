@@ -4,10 +4,12 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth/guards";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { rolDeVista } from "@/lib/auth/vista";
+import { alcanceDeDeals, llamadaVisiblePara } from "@/lib/auth/alcance-deals";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { detalleDeLlamada, type DetalleDeLlamada } from "@/lib/queries/detalle-llamada";
+import { visibilidadDeLlamada } from "@/lib/queries/llamadas";
 
 export type ResultadoDetalleDeLlamada =
   | { ok: true; detalle: DetalleDeLlamada }
@@ -28,6 +30,17 @@ export async function detalleDeLlamadaAccion(
       const rol = await rolDeVista(session);
       const programa = await programaVisiblePorSlug(session.user.id, rol, programaSlug);
       if (!programa) return { ok: false, error: "Esa llamada no existe." };
+
+      const [alcance, visibilidad] = await Promise.all([
+        alcanceDeDeals(session),
+        visibilidadDeLlamada(db, programa.id, callId),
+      ]);
+      if (
+        !visibilidad ||
+        (visibilidad.dealId != null && !llamadaVisiblePara(alcance, visibilidad))
+      ) {
+        return { ok: false, error: "Esa llamada no existe." };
+      }
 
       const detalle = await detalleDeLlamada(db, programa.id, callId);
       return detalle
