@@ -8,6 +8,7 @@ const ETIQUETA_ROL: Record<Rol, string> = {
   gerente: "Gerencia comercial",
   closer: "Closer",
   developer: "Desarrollo",
+  paid_trafficker: "Paid Trafficker",
 };
 
 /**
