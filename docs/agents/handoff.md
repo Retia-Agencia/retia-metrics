@@ -36,8 +36,9 @@ un recorrido local, apagar dev:local (y Docker si nadie mas lo usa: la Mac anda 
     `operations.md` y `docs/dapta/README.md` (las rutas `/ajustes/programas` y `/ajustes/fuentes` son la tab
     Programa), `plan.md` §4.3 y K-1/K-2, `plan-reparto` (A.3, A.5, O3 cerrada), `AGENTS.md` (`manejaPauta` ya
     existe), el mapa del CRM en lo que tocaba y el tracker (filas de O3 en `[x]`, 102 en parte).
-  - **Visto y sin ticket:** el campo de Grain no guarda con Enter y su ayuda sobra tras Show; "Ver como" no tiene
-    paid trafficker; el gerente ve las sueltas pero no las cuelga (por diseño, ADR 0049).
+  - **Detalles arreglados después (Mani):** el campo de Grain guarda con Enter y su ayuda cambia tras Show; "Ver como"
+    tiene "Como paid trafficker" (vista nueva en `lib/auth/vista.ts`, solo estrecha). El gerente sigue viendo las
+    sueltas sin colgarlas: por diseño (ADR 0049), Mani lo deja así. Las 14 worktrees de O2/O3, borradas.
 
 - **2026-10-02/03 (noche 4, Mani + Claude, sesión central): audit de la operación comercial, ola O2 en sesiones, S1 a S4 hechas.**
   - **De dónde sale:** 7 notas de Mani probando el CRM (Transición y Actividades, botones, llamadas, hub del closer,

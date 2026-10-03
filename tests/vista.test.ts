@@ -15,6 +15,7 @@ describe("proyectarRol (ticket 028)", () => {
     expect(proyectarRol("developer", "todo")).toBe("developer");
     expect(proyectarRol("developer", "gerente")).toBe("gerente");
     expect(proyectarRol("developer", "closer")).toBe("closer");
+    expect(proyectarRol("developer", "paid_trafficker")).toBe("paid_trafficker");
   });
 
   it("un no-developer IGNORA la vista: devuelve su rol real (no ensancha)", () => {
@@ -25,6 +26,9 @@ describe("proyectarRol (ticket 028)", () => {
     // Un gerente con cualquier vista sigue siendo gerente.
     expect(proyectarRol("gerente", "closer")).toBe("gerente");
     expect(proyectarRol("gerente", "todo")).toBe("gerente");
+    // La vista solo estrecha: un gerente o un closer con la cookie de paid trafficker sigue en su rol.
+    expect(proyectarRol("gerente", "paid_trafficker")).toBe("gerente");
+    expect(proyectarRol("closer", "paid_trafficker")).toBe("closer");
   });
 
   it("sin rol no hay proyeccion", () => {

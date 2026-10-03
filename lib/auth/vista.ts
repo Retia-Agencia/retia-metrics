@@ -39,7 +39,7 @@ export const COOKIE_VISTA = "vista";
  * cosas distintas: la primera solo estrecha el rol, la segunda cambia TAMBIÉN la
  * identidad (id, closerId, membresías) con la que se leen los datos.
  */
-export const VISTAS = ["todo", "gerente", "closer"] as const;
+export const VISTAS = ["todo", "gerente", "closer", "paid_trafficker"] as const;
 export type Vista = (typeof VISTAS)[number];
 
 /**
@@ -70,6 +70,7 @@ export function esVistaValida(valor: unknown): valor is Vista {
  *   - `todo` (por defecto) → `developer`: pasa toda guarda, proyeccion mas ancha.
  *   - `gerente` → `gerente`: guarda y proyeccion de gerente.
  *   - `closer` → `closer`: guarda y proyeccion de closer.
+ *   - `paid_trafficker` → `paid_trafficker`: Mi espacio con Canales y Ajustes (179).
  *
  * El literal `"developer"` NO se escribe en ningun `requireRole` ni `paginaConRol`
  * (ADR 0025): la excepcion sigue viviendo en `esAccesoTotal`. Aca se decide con
@@ -81,6 +82,7 @@ export function proyectarRol(rol: Rol | null, vista: Vista): Rol | null {
   if (!esAccesoTotal(rol)) return rol;
   if (vista === "gerente") return "gerente";
   if (vista === "closer") return "closer";
+  if (vista === "paid_trafficker") return "paid_trafficker";
   return rol; // vista `todo`: el developer se proyecta como si mismo.
 }
 

@@ -103,7 +103,7 @@ export function FichaLlamadas({
           </div>
         ) : null}
         {puedeRegistrarEnEsta && !esActiva && !c.linkGrain ? (
-          <div className="pt-1"><CampoGrain callId={c.id} valor={c.linkGrain} /></div>
+          <div className="pt-1"><CampoGrain callId={c.id} valor={c.linkGrain} yaEsShow={c.resultado === "show"} /></div>
         ) : null}
       </li>
     );
