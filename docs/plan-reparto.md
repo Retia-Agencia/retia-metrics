@@ -143,6 +143,7 @@ los de otra. Una parte arranca cuando la anterior está en `main`.
 | 3 | **S8** | [175] Limpieza | 17 (Orígenes), lo que el ADR 0077 punto 3 quita | lo que borra, y la migración | **sí** (quita `origenes` y categorías de recurso) |
 | 3 | **S10** | [177] Pulido de la parte 2 | revisión central del 3-oct (172, 176) | `acciones-de-llamada.tsx`, `lib/auth/guards.ts` (lecturas), `deals/acciones.ts`, `inbox/acciones.ts`, `mi-espacio/page.tsx`, `perfil-de-mi-espacio.tsx`, `barra-suplantacion.tsx`, `ajustes/canales/acciones.ts` | no |
 | 3 | **S11** | [178] Ajustes sin rutas viejas | A-81 (lo que el 173 no pudo borrar) | `ajustes/programas/**` y `ajustes/fuentes/**` (se van), `p/[programa]/programa/**`, los imports de `program-switcher`, `cohortes-admin`, `fuentes-admin`, `equipo-del-programa`, `editar-programa`, `ajustes/catalogos/**` | no |
+| 3 | **S12** | [179] Mi espacio curado por rol | decisión de Mani del 3-oct | `app/(app)/mi-espacio/`, `components/mi-espacio/`, el registro de secciones nuevo, `rutaInicial` del paid trafficker en `lib/nav.ts` | no |
 
 **Lo compartido en la parte 1:** `lib/queries/inbox.ts` lo tocan S1 (motivo "Próximo contacto vencido") y S2 (motivo
 "host sin cuenta"): cada una agrega su motivo y no edita el de la otra; quien llegue segunda a `main` rebasa.
@@ -162,7 +163,7 @@ S3 cambia solo un enlace; S6 la rehace en la parte 2.
 > archivo del ticket. Ninguna escritura en producción sin el ok de Mani. Empuja a `main` nombrando tus archivos.
 
 **Parte 2 cerrada en `cp-20261003-4` (3-oct, tarde):** 172 y 176 done; 173 con el código en `main` y la **0063** generada,
-pendiente de aplicar con el ok de Mani. La parte 3 arranca: S7, S8, S10 y S11 corren a la vez. **Por esta ola implementa
+aplicada en producción el mismo día con el ok de Mani (173 done). La parte 3 arranca: S7, S8, S10 y S11 corren a la vez; S12 (179) después del 177, porque los dos tocan Mi espacio. **Por esta ola implementa
 Kiro** (`kiro-rescue`), no Codex (Mani, 3-oct). Cruces de la parte 3: `mi-espacio/page.tsx` lo tocan S7 (enlaces) y S10
 (texto del developer); `inbox/acciones.ts` y `deals/acciones.ts`, solo S10. Quien llegue segunda a `main` rebasa.
 
