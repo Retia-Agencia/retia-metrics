@@ -7,6 +7,7 @@ import {
   enlacesPago,
   miembrosPrograma,
   plataformasPago,
+  plataformasPrograma,
   programs,
   sources,
   users,
@@ -165,6 +166,43 @@ describe("fichaDelPrograma", () => {
     expect(ficha!.checkouts.map((c) => c.url)).toEqual(["https://paypal.me/a"]);
     expect(ficha!.equipo.map((m) => m.nombre)).toEqual(["Ana"]);
     expect(ficha!.equipo[0].calendlyEmail).toBe("ana@calendly.com");
+  });
+
+  it("separa las plataformas activas vinculadas de las disponibles", async () => {
+    const [vinculada, disponible, inactiva, vinculadaAlOtroPrograma] = await db
+      .insert(plataformasPago)
+      .values([
+        { nombre: "Vinculada A" },
+        { nombre: "Disponible A" },
+        { nombre: "Inactiva A", activo: false },
+        { nombre: "Vinculada B" },
+      ])
+      .returning();
+    await db.insert(plataformasPrograma).values([
+      { programId: programaA, plataformaId: vinculada.id },
+      { programId: programaA, plataformaId: inactiva.id },
+      { programId: programaB, plataformaId: vinculadaAlOtroPrograma.id },
+    ]);
+
+    const { fichaDelPrograma } = await import("@/lib/queries/ficha-programa");
+    const ficha = await fichaDelPrograma(programaA, db);
+
+    expect(ficha!.plataformas).toContainEqual({ id: vinculada.id, nombre: "Vinculada A" });
+    expect(ficha!.plataformasDisponibles).toEqual(
+      expect.arrayContaining([
+        { id: disponible.id, nombre: "Disponible A" },
+        { id: vinculadaAlOtroPrograma.id, nombre: "Vinculada B" },
+      ]),
+    );
+    expect(ficha!.plataformasDisponibles).not.toContainEqual(
+      expect.objectContaining({ id: vinculada.id }),
+    );
+    expect(ficha!.plataformas).not.toContainEqual(
+      expect.objectContaining({ id: vinculadaAlOtroPrograma.id }),
+    );
+    expect([...ficha!.plataformas, ...ficha!.plataformasDisponibles]).not.toContainEqual(
+      expect.objectContaining({ id: inactiva.id }),
+    );
   });
 
   it("dice si hay token y webhook, nunca cuáles, y no trae el secreto de la fuente", async () => {

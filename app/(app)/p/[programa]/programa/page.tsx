@@ -10,6 +10,7 @@ import { avisoDelFormulario, fichaDelPrograma, type CohorteVista } from "@/lib/q
 import { fecha, monto, num, usd } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
 import { CohortesAdmin } from "@/components/cohortes-admin";
+import { PlataformasDelPrograma } from "./plataformas-del-programa";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,8 +34,8 @@ const NOMBRE_DE_ESTADO_COHORTE = { activo: "Activa", futuro: "Futura", cerrado: 
  * programa ajeno es 404, igual que uno que no existe. La ficha se LEE; quien administra
  * (`esAdministrador`: gerente o developer) edita las cohortes AQUÍ con el mismo
  * `CohortesAdmin` y las mismas acciones de Ajustes (A-10: las cohortes se encuentran desde el
- * programa), y entra a Ajustes por lo demás: la edición no se duplica (alcance del ticket).
- * La reja de verdad son esas acciones (`requireRole("gerente")`), no que el botón aparezca.
+ * programa). Las plataformas se vinculan aquí para todos los que ven la ficha; la reja de verdad
+ * son sus acciones (`requireRole` y alcance del programa), no que el control aparezca.
  *
  * Ningún secreto llega aquí: la ficha dice SI hay token de Calendly y webhook conectado, nunca
  * cuál (ADR 0057); lo garantiza `programaPorId`, que pasa por el mismo `sinToken` del catálogo.
@@ -50,7 +51,8 @@ export default async function FichaDelProgramaPage({ params }: Props) {
   if (!ficha) notFound();
 
   const administra = esAdministrador(rol);
-  const { programa, cohortes, checkouts, fuentes, equipo } = ficha;
+  const { programa, cohortes, checkouts, fuentes, equipo, plataformas, plataformasDisponibles } =
+    ficha;
   const activa = cohortes.find((c) => c.estado === "activo") ?? null;
   const aviso = avisoDelFormulario(programa.formulario);
 
@@ -198,6 +200,22 @@ export default async function FichaDelProgramaPage({ params }: Props) {
             ) : (
               <ListaDeCohortes cohortes={cohortes} />
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Plataformas de pago</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Las que salen al registrar un abono en este programa.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <PlataformasDelPrograma
+              programId={programa.id}
+              plataformas={plataformas}
+              disponibles={plataformasDisponibles}
+            />
           </CardContent>
         </Card>
 

@@ -3,7 +3,7 @@ id: 166
 etapa: O2
 serves: "docs/anotaciones.md A-48; ADR 0034"
 depends: [100]
-status: todo
+status: review
 ---
 
 # 166 — Las plataformas de pago de un programa, a la vista

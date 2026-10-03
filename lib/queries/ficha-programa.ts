@@ -3,6 +3,7 @@ import type { Cohorte } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { listarCohortes } from "@/lib/catalogo/cohortes";
 import { listarFuentes } from "@/lib/catalogo/fuentes";
+import { plataformasDePago, plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 import { programaPorId } from "@/lib/catalogo/programas";
 import { membresiasConCalendly } from "@/lib/catalogo/usuarios";
 import { enlacesDePagoVigentes } from "@/lib/queries/recursos";
@@ -95,6 +96,8 @@ export interface FichaDelPrograma {
   checkouts: CheckoutDeLaFicha[];
   fuentes: FuenteDeLaFicha[];
   equipo: MiembroDeLaFicha[];
+  plataformas: { id: string; nombre: string }[];
+  plataformasDisponibles: { id: string; nombre: string }[];
 }
 
 /**
@@ -127,12 +130,16 @@ export async function fichaDelPrograma(
   const programa = await programaPorId(db, programId);
   if (!programa) return null;
 
-  const [cohortes, fuentes, enlaces, miembros] = await Promise.all([
-    listarCohortes(db, programId),
-    listarFuentes(db, programId),
-    enlacesDePagoVigentes({ programId }, db),
-    membresiasConCalendly(db, programId),
-  ]);
+  const [cohortes, fuentes, enlaces, miembros, plataformas, catalogoDePlataformas] =
+    await Promise.all([
+      listarCohortes(db, programId),
+      listarFuentes(db, programId),
+      enlacesDePagoVigentes({ programId }, db),
+      membresiasConCalendly(db, programId),
+      plataformasDelPrograma(db, programId),
+      plataformasDePago(db).listar({ soloActivos: true }),
+    ]);
+  const idsVinculados = new Set(plataformas.map((plataforma) => plataforma.id));
 
   return {
     programa: {
@@ -179,6 +186,11 @@ export async function fichaDelPrograma(
       email: m.emailUsuario,
       calendlyEmail: m.calendlyEmail,
     })),
+    plataformas: plataformas.map(({ id, nombre }) => ({ id, nombre: String(nombre) })),
+    plataformasDisponibles: catalogoDePlataformas
+      .filter((plataforma) => !idsVinculados.has(plataforma.id))
+      .map(({ id, nombre }) => ({ id, nombre: String(nombre) }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
   };
 }
 

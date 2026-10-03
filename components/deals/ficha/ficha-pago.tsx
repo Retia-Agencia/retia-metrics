@@ -364,22 +364,28 @@ function DialogoAbono({
         </Campo>
       ) : null}
       <Campo etiqueta="Plataforma de pago (opcional)">
-        <Select
-          value={plataformaId}
-          items={opciones.plataformas.map((p) => ({ value: p.id, label: p.nombre }))}
-          onValueChange={(v: string | null) => setPlataformaId(v)}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Sin plataforma" />
-          </SelectTrigger>
-          <SelectContent>
-            {opciones.plataformas.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.nombre}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {opciones.plataformas.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Este programa no tiene plataformas de pago; agrégalas en Programs.
+          </p>
+        ) : (
+          <Select
+            value={plataformaId}
+            items={opciones.plataformas.map((p) => ({ value: p.id, label: p.nombre }))}
+            onValueChange={(v: string | null) => setPlataformaId(v)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Sin plataforma" />
+            </SelectTrigger>
+            <SelectContent>
+              {opciones.plataformas.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </Campo>
       <Campo etiqueta="Comprobante (link)" ayuda="Si no lo tienes ahora, lo pegas después.">
         <input type="url" className={claseInput} value={comprobante} onChange={(e) => setComprobante(e.target.value)} placeholder="https://drive.google.com/…" />

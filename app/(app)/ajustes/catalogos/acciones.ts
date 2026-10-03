@@ -165,6 +165,8 @@ export async function asociarProgramaAccion(
     // `revalidatePath` es para LAS OTRAS.
     revalidatePath("/recursos");
     revalidatePath("/mi-dia");
+    revalidatePath("/p/[programa]/programa", "page");
+    revalidatePath("/p/[programa]/deals/[id]", "page");
     return { ok: true };
   } catch (error) {
     return aResultado(error);
@@ -182,6 +184,8 @@ export async function desasociarProgramaAccion(
     revalidatePath("/ajustes/catalogos");
     revalidatePath("/recursos");
     revalidatePath("/mi-dia");
+    revalidatePath("/p/[programa]/programa", "page");
+    revalidatePath("/p/[programa]/deals/[id]", "page");
     return { ok: true };
   } catch (error) {
     return aResultado(error);
