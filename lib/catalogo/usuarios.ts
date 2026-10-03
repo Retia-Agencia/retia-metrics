@@ -599,7 +599,7 @@ export async function asignarCalendlyDeMembresia(
     }
 
     try {
-      await (db as { transaction: (fn: (tx: Db) => Promise<void>) => Promise<void> }).transaction(
+      await db.transaction(
         async (tx) => {
           await tx.update(miembrosPrograma).set({ calendlyEmail }).where(eq(miembrosPrograma.id, membresiaId));
           await tx.insert(changeLog).values({
