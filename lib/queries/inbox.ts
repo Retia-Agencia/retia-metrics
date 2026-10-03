@@ -24,6 +24,7 @@ import { normalizarTelefono } from "@/lib/ingesta/envio";
 import { linkEnviadoSinCita } from "@/lib/deals/handoff";
 import type { OrigenDeFila } from "@/lib/queries/inbox-sin-dueno";
 import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
+import { INTENTOS_PARA_ALERTA, intentosEnEtapaPorDeal } from "@/lib/queries/intentos";
 
 /**
  * El READ MODEL del Inbox (ticket 071, ADR 0050): lo que un closer tiene que hacer HOY,
@@ -42,7 +43,8 @@ import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
  *     aquí. Las de la hoja que la migración no pudo colgar no entran: son rareza (078).
  *  4. **Lo mío que necesita atención**: MIS deals vigentes, cada uno en UN solo bucket,
  *     el primero que casa en este orden: abono sin comprobante, re-agenda sin fecha,
- *     compromiso vencido, fecha límite vencida con saldo, re-envío sin atender, estancado.
+ *     compromiso vencido, fecha límite vencida con saldo, re-envío sin atender,
+ *     intentos agotados, link sin cita, estancado.
  *
  * ## Alcance: `mío` vs `equipo`
  * Un closer ve SUS deals (dueño = él). Quien administra (`esAdministrador`, la pantalla lo
@@ -73,6 +75,7 @@ export type MotivoAtencion =
   | "pago_vencido"
   | "abono_sin_comprobante"
   | "reenvio_sin_atender"
+  | "intentos_agotados"
   | "link_sin_cita"
   | "estancado";
 
@@ -115,6 +118,8 @@ export interface FilaAtencion {
   fecha: string | null;
   /** Días hábiles sin actividad, solo en `estancado`. */
   diasSinActividad: number | null;
+  /** Intentos sin respuesta en la etapa actual, solo en `intentos_agotados`. */
+  intentos: number | null;
 }
 
 export interface Inbox {
@@ -447,6 +452,7 @@ async function seccionAtencion(
   // (d) Re-envío sin atender: último envío COMPLETO del lead vs. última actividad del deal.
   const ultimoEnvioCompleto = await ultimoEnvioCompletoPorLead(db, leadIds);
   const ultimaActividad = await ultimaActividadPorDeal(db, dealIds, abiertos);
+  const intentosPorDeal = await intentosEnEtapaPorDeal(db, abiertos);
 
   const filas: FilaAtencion[] = [];
   for (const d of abiertos) {
@@ -463,6 +469,7 @@ async function seccionAtencion(
       moneda: null as string | null,
       fecha: null as string | null,
       diasSinActividad: null as number | null,
+      intentos: null as number | null,
     };
 
     // El soporte faltante no invalida la venta, pero es la primera alerta operativa.
@@ -501,6 +508,12 @@ async function seccionAtencion(
       continue;
     }
 
+    const intentos = intentosPorDeal.get(d.dealId) ?? 0;
+    if (intentos >= INTENTOS_PARA_ALERTA) {
+      filas.push({ ...base, motivo: "intentos_agotados", intentos });
+      continue;
+    }
+
     if (linkEnviadoSinCita({ handoffEn: d.handoffEn, tieneCitaVigente: conCitaVigente.has(d.dealId), hoy })) {
       filas.push({ ...base, motivo: "link_sin_cita" });
       continue;
@@ -526,8 +539,9 @@ async function seccionAtencion(
     compromiso_vencido: 2,
     pago_vencido: 3,
     reenvio_sin_atender: 4,
-    link_sin_cita: 5,
-    estancado: 6,
+    intentos_agotados: 5,
+    link_sin_cita: 6,
+    estancado: 7,
   };
   filas.sort((a, b) => ORDEN[a.motivo] - ORDEN[b.motivo] || a.leadEmail.localeCompare(b.leadEmail));
   return filas;

@@ -5,6 +5,7 @@ import {
   calls,
   cohorts,
   dealActividades,
+  dealEtapaHistorial,
   deals,
   leads,
   leadContactos,
@@ -269,6 +270,44 @@ async function motivosPorDeal(alcance: Parameters<typeof inboxDelPrograma>[2]) {
   const inbox = await inboxDelPrograma(db, programId, alcance, HOY);
   return new Map(inbox.atencion.map((f) => [f.dealId, f.motivo]));
 }
+
+describe("inboxDelPrograma — atención: agotó intentos", () => {
+  it("con dos intentos no entra; con tres muestra el conteo", async () => {
+    const { dealId } = await crearDeal({ etapa: "contactado", createdAt: enBogota("2026-09-27") });
+    await db.insert(dealActividades).values([
+      { dealId, tipo: "intento", fecha: enBogota("2026-09-27") },
+      { dealId, tipo: "intento", fecha: enBogota("2026-09-27") },
+    ]);
+    let inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
+    expect(inbox.atencion.find((fila) => fila.dealId === dealId)).toBeUndefined();
+
+    await db.insert(dealActividades).values({ dealId, tipo: "intento", fecha: enBogota("2026-09-27") });
+    inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
+    expect(inbox.atencion.find((fila) => fila.dealId === dealId)).toMatchObject({
+      motivo: "intentos_agotados",
+      intentos: 3,
+    });
+  });
+
+  it("desaparece después de entrar a otra etapa", async () => {
+    const { dealId } = await crearDeal({ etapa: "en_gestion", createdAt: enBogota("2026-09-26") });
+    await db.insert(dealActividades).values([
+      { dealId, tipo: "intento", fecha: enBogota("2026-09-27") },
+      { dealId, tipo: "intento", fecha: enBogota("2026-09-27") },
+      { dealId, tipo: "intento", fecha: enBogota("2026-09-27") },
+    ]);
+    await db.update(deals).set({ etapa: "contactado" }).where(eq(deals.id, dealId));
+    await db.insert(dealEtapaHistorial).values({
+      dealId,
+      de: "en_gestion",
+      a: "contactado",
+      fecha: AHORA,
+    });
+
+    const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
+    expect(inbox.atencion.find((fila) => fila.dealId === dealId)).toBeUndefined();
+  });
+});
 
 describe("inboxDelPrograma — atención: re-agenda sin nueva fecha (a)", () => {
   it("positivo: Re-agenda pendiente sin cita futura entra", async () => {

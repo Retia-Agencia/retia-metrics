@@ -226,6 +226,7 @@ const MENSAJE_URGENTE: Record<MotivoAtencion | "llamada_sin_resultado" | "atendi
   compromiso_vencido: "El compromiso verbal se venció.",
   pago_vencido: "La fecha de pago se venció y queda saldo.",
   reenvio_sin_atender: "El lead volvió a llenar el formulario.",
+  intentos_agotados: "Agotó intentos: tres sin respuesta en esta etapa. Decide: Cierre perdido con motivo o sigue intentando.",
   link_sin_cita: "Mandaste el link de agenda y el lead no ha agendado.",
   estancado: "El deal lleva días sin actividad.",
   llamada_sin_resultado: "La llamada ya pasó y no tiene resultado.",
@@ -261,7 +262,9 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
       ? `La fecha de pago (${fecha(fila.fecha)}) se venció y queda saldo.`
       : fila.motivo === "estancado" && fila.diasSinActividad != null
         ? `El deal lleva ${fila.diasSinActividad} días hábiles sin actividad.`
-        : MENSAJE_URGENTE[fila.motivo];
+        : fila.motivo === "intentos_agotados" && fila.intentos != null
+          ? `Agotó intentos: ${fila.intentos} sin respuesta en esta etapa. Decide: Cierre perdido con motivo o sigue intentando.`
+          : MENSAJE_URGENTE[fila.motivo];
     urgentes.set(fila.motivo, mensaje);
   }
   if (inbox.llamadasDeHoy.some((fila) => fila.dealId === dealId)) {
