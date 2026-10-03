@@ -3,7 +3,7 @@ id: 175
 etapa: O3
 serves: "docs/anotaciones.md A-72 (Orígenes), A-76; ADR 0077 punto 3"
 depends: [170, 171, 172, 173]
-status: todo
+status: done
 ---
 
 > **3-oct (sesión central), medido en producción (solo lectura):** `origenes` 7 filas activas, **0** llamadas con `origen_id`, 0 filas en `change_log`; `categorias_recurso` 6 filas, **0** recursos. Nada que decidir con Mani: cero referencias. El orden es obligatorio: (1) se empuja y despliega el código sin `origenes` ni `categoriasRecurso`, (2) la sesión central genera la migración (`ALTER TABLE calls DROP COLUMN origen_id; DROP TABLE origenes; ALTER TABLE recursos DROP COLUMN categoria_id; DROP TABLE categorias_recurso;`, sin `CASCADE`, con `SET lock_timeout`), (3) se aplica. Al revés, drizzle pide las columnas por nombre y producción revienta.
@@ -44,3 +44,17 @@ Sesión **S8**, ola O3 parte 3. **Lleva migración** (la genera y aplica la sesi
 - **⚠️ Índice `recursos_vigente_idx` cambió de forma:** era `(coalesce(program_id), categoria_id, lower(titulo))` y ahora es `(coalesce(program_id), lower(titulo))` (`WHERE vigente AND activo`). Al soltar `categoria_id` Postgres tira el índice viejo solo; la migración debe crear el nuevo. **Antes, comprobar que no haya dos recursos vigentes y activos con el mismo título en el mismo programa** (con categoría nula el índice viejo no los chocaba): si hay, el `CREATE UNIQUE INDEX` falla.
 - **No se tocó:** "Registros por origen" de Nerd Stats lee `calls.origen` (texto hoja/app), otra columna; `/mi-dia` y `/perfil` siguen redirigiendo (172 es de hoy, el ticket pide más de una semana). Quitarlos queda para después del 10-oct.
 - **Verificado:** typecheck y lint limpios. `grep` de `origenes|categoriasRecurso|/urgencias|/documentos` en `app components lib scripts`: solo la variable local de Nerd Stats. **No corrí** los tests (la máquina tenía carga 16 y swap casi lleno, AGENTS.md) ni `build` (ningún componente cliente tocado) ni el recorrido en `dev:local`: lo valida el CI y el checkpoint.
+
+## Cierre de la sesión central (3-oct, tarde) · migración 0064 aplicada
+
+El borrador de `drizzle-kit` traía el defecto de la 0020: `DROP TABLE ... CASCADE` antes de los `DROP CONSTRAINT`
+(habría fallado). Reescrita: `SET lock_timeout`, primero las columnas (sus FK y el índice viejo se van con ellas),
+después el índice nuevo `recursos_vigente_idx (programa, lower(titulo))` y al final las tablas **sin CASCADE**. Antes,
+en producción y solo lectura: 0 llamadas con `origen_id`, 0 recursos con categoría, 0 duplicados para el índice nuevo,
+solo esas dos FK, ninguna transacción larga. Probada en el Postgres local de Docker, y aplicada con el ok de Mani
+después de confirmar que el deploy vivo (`8537d3b`) ya no leía las columnas. Producción: 65 de 65.
+
+Las filas borradas, por si alguien pregunta (catálogo, sin referencias): **Orígenes:** Agenda del día, Follow-up, Cola
+de descartados, Cola de setteo, Masivos, Lanzamiento, Referido. **Categorías de recurso:** Brochure, Pagina web, Guion,
+Formulario, Calendly, Drive. El CI del 175 caía en `tests/recursos.test.ts` justamente porque el índice nuevo solo
+existe con esta migración.
