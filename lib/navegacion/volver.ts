@@ -69,7 +69,7 @@ function partirRuta(origen: string): { path: string; query: string } {
 
 /**
  * El nombre de la lista de la que vino, por su path. Lo que no se reconoce es "Atras".
- * Si el origen trae un filtro (cualquier query distinto de solo `pagina`), agrega
+ * Si el origen trae un filtro (cualquier query distinto de `pagina` y `vista`), agrega
  * " · filtrados": la lista no esta en su estado natural.
  */
 export function etiquetaDeOrigen(origen: string): string {
@@ -99,18 +99,17 @@ function etiquetaDePath(path: string): string {
 }
 
 /**
- * ¿El origen esta filtrado? Cualquier query no vacio cuenta como filtrado, salvo que el
- * UNICO parametro sea `pagina` (pasar de pagina no cambia los filtros). No se inventan
- * nombres de parametro: lo que exista cuenta.
+ * ¿El origen esta filtrado? Cualquier query cuenta como filtrado, salvo que solo traiga
+ * `pagina` o `vista`: pasar de pagina o cambiar la vista (Tabla/Kanban) no cambia los
+ * filtros. No se inventan nombres de parametro: lo que exista cuenta.
  */
+const PARAMETROS_QUE_NO_FILTRAN = new Set(["pagina", "vista"]);
+
 function estaFiltrado(query: string): boolean {
-  if (query === "") return false;
-  const nombres = query
+  return query
     .split("&")
     .filter((p) => p !== "")
-    .map((p) => p.split("=")[0]);
-  if (nombres.length === 0) return false;
-  return !nombres.every((n) => n === "pagina");
+    .some((p) => !PARAMETROS_QUE_NO_FILTRAN.has(p.split("=")[0]));
 }
 
 /** El destino de "Volver": el origen si es valido, con su etiqueta; si no, el por defecto. */

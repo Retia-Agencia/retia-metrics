@@ -31,3 +31,11 @@ sesión (los archivos no se cruzan, salvo que los dos toquen la ficha: no lo hac
 - Marcar Show deja el campo de Grain visible sin desplegar nada; pegarlo quita la alerta.
 - Los tres textos/defaults, vistos en `dev:local`, escritorio y 375 px, consola limpia.
 - Typecheck, lint, tests tocados y `npm run build`.
+
+## Estado (3-oct, S13)
+
+Código listo, sin empujar: los cuatro puntos hechos (`ficha-llamadas.tsx`: la última llamada con Show y sin Grain sale
+del colapsable con su campo; `volver.ts`: `vista` ya no cuenta como filtro, test agregado; `fuentes-admin.tsx`: Tipo
+por defecto webhook; `responder-pregunta.tsx`: botón muerto quitado). Typecheck, lint, `tests/volver.test.ts` (27) y
+`npm run build` limpios. **Falta el recorrido en `dev:local`** (escritorio y 375 px, consola, pegar Grain y ver que la
+alerta se apaga): había un `next-server` ajeno en :3000 sobre esta carpeta y no se tocó.

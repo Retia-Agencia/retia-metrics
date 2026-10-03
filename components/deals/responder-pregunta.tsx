@@ -319,8 +319,6 @@ export function useResponder(
       descripcion={destinoAbierto.deal.nombreLead}
       pendiente={false}
       onCerrar={() => setDestinoAbierto(null)}
-      deshabilitarConfirmar
-      confirmar={{ texto: "Elige una opción", enCurso: "Elige una opción", onClick: () => undefined }}
     >
       <BotonesDeRespuesta
         respuestas={destinoAbierto.respuestas}

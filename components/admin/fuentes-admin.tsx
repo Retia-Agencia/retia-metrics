@@ -104,7 +104,7 @@ interface Borrador {
 }
 
 const BORRADOR_VACIO: Borrador = {
-  tipo: "google_sheet",
+  tipo: "webhook",
   proveedor: PROVEEDORES_FORMULARIO[0],
   nombre: "",
   urlPublica: "",

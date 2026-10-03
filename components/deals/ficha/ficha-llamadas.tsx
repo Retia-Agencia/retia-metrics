@@ -51,7 +51,16 @@ export function FichaLlamadas({
   const [pedirResultado, setPedirResultado] = useState(0);
   const activaId = citaActiva(llamadas);
   const activa = llamadas.find((llamada) => llamada.id === activaId) ?? null;
-  const anteriores = llamadas.filter((llamada) => llamada.id !== activaId);
+  const sinActiva = llamadas.filter((llamada) => llamada.id !== activaId);
+  // Tras marcar Show la cita deja de ser activa y cae al colapsable: la última con Show y
+  // sin Grain se queda a la vista con su campo, porque es justo cuando se tiene el link (180).
+  const pendienteDeGrain =
+    puedeRegistrar
+      ? sinActiva
+          .filter((llamada) => llamada.sinGrain && llamada.anuladoEn == null)
+          .sort((a, b) => instanteDe(b) - instanteDe(a))[0] ?? null
+      : null;
+  const anteriores = sinActiva.filter((llamada) => llamada.id !== pendienteDeGrain?.id);
   useAccionPedida(["agendar", "reprogramar", "fallida"], (accion) => {
     if (accion === "agendar") return setAgregando(true);
     if (activa) setPedirResultado((n) => n + 1);
@@ -118,7 +127,8 @@ export function FichaLlamadas({
       ) : (
         <>
           {activa ? <ul className="divide-y">{filaDe(activa, true)}</ul> : null}
-          {!activa && anteriores.length > 0 ? (
+          {pendienteDeGrain ? <ul className="divide-y border-t">{filaDe(pendienteDeGrain, false)}</ul> : null}
+          {!activa && sinActiva.length > 0 ? (
             <p className="px-4 pt-3 text-sm text-muted-foreground">Sin cita activa.</p>
           ) : null}
           {anteriores.length > 0 ? (
@@ -148,6 +158,10 @@ export function FichaLlamadas({
       ) : null}
     </Card>
   );
+}
+
+function instanteDe(c: FichaDeLlamada): number {
+  return new Date(c.fechaLlamada ?? c.fechaAgenda ?? 0).getTime();
 }
 
 /** El campo de fecha de la cita que el sistema creó sin ella (`completarAgendadaAccion`). */

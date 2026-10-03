@@ -124,6 +124,12 @@ describe("etiquetaDeOrigen", () => {
     expect(etiquetaDeOrigen("/p/x/leads?pagina=2")).toBe("Leads");
   });
 
+  it("la vista (tabla/kanban) NO cuenta como filtrado", () => {
+    expect(etiquetaDeOrigen("/p/x/deals?vista=tabla")).toBe("Deals");
+    expect(etiquetaDeOrigen("/p/x/deals?vista=tabla&pagina=2")).toBe("Deals");
+    expect(etiquetaDeOrigen("/p/x/deals?vista=tabla&canal=meta")).toBe("Deals · filtrados");
+  });
+
   it("un filtro ademas de pagina SI cuenta como filtrado", () => {
     expect(etiquetaDeOrigen("/p/x/leads?pagina=2&calidad=high")).toBe("Leads · filtrados");
   });
