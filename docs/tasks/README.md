@@ -323,7 +323,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 13 · Ola O3 · simplificación y centralización (3-oct)
 
-12 tickets, 6 abiertos. Salen del recorrido 7 de Mani (`docs/anotaciones.md` A-52 a A-76) y del ADR 0077. Reparto
+13 tickets, 2 abiertos. Salen del recorrido 7 de Mani (`docs/anotaciones.md` A-52 a A-76) y del ADR 0077. Reparto
 y orden en [`plan-reparto.md`](../plan-reparto.md) §4, ola O3. El 164 queda reemplazado por el 172 y el 102 lo
 construye el 173.
 
@@ -336,11 +336,12 @@ construye el 173.
 | [ ] | 172 | [Mi espacio y "Ver como" a un closer de verdad](./172-mi-espacio-todo-lo-del-usuario.md) | 169, 170, 171 | done · `cp-20261003-4` · 3-oct · S5 · revisión y recorrido de la sesión central (3 bugs arreglados: build, nombre del suplantado, 403 sin capturar) · lo que quedó, al 177 |
 | [ ] | 173 | [Ajustes solo con lo que no es de nadie](./173-ajustes-solo-lo-que-no-es-de-nadie.md) | 171 | done · `cp-20261003-4` · 3-oct · S6 · 0063 aplicada en producción con el ok de Mani · rutas viejas y Motivos, al 178 |
 | [ ] | 176 | [Transición y Llamadas, segunda pasada](./176-transicion-y-llamadas-segunda-pasada.md) | 168 | done · `cp-20261003-4` · 3-oct · S9 · recorrido de la sesión central · Reagendada que deja la cita vieja colgada, al 177 |
-| [ ] | 174 | [Volver a donde estaba](./174-volver-a-donde-estaba.md) | 168, 170-173 | todo · 3-oct · S7, parte 3 |
-| [ ] | 175 | [Limpieza: lo que no usa nadie](./175-limpieza-lo-que-no-se-usa.md) | 170-173 | todo · 3-oct · S8, parte 3 · migración |
-| [ ] | 177 | [Pulido de la parte 2: Reagendada, la reja deja leer, Mi espacio claro](./177-pulido-de-la-parte-2.md) | 172, 176 | todo · 3-oct · S10, parte 3 · sale de la revisión de la parte 2 |
-| [ ] | 178 | [Ajustes sin rutas viejas: Programas y Fuentes se mudan a Programa](./178-ajustes-sin-rutas-viejas.md) | 173 | todo · 3-oct · S11, parte 3 · cierra A-81 |
+| [ ] | 174 | [Volver a donde estaba](./174-volver-a-donde-estaba.md) | 168, 170-173 | done · `cp-20261003-5` · 3-oct · S7 · recorrido de la sesión central (Volver con vista, `//evil.com` ignorado, login devuelve a la ficha) |
+| [ ] | 175 | [Limpieza: lo que no usa nadie](./175-limpieza-lo-que-no-se-usa.md) | 170-173 | done · `cp-20261003-5` · 3-oct · S8 · 0064 reescrita y aplicada en producción con el ok de Mani |
+| [ ] | 177 | [Pulido de la parte 2: Reagendada, la reja deja leer, Mi espacio claro](./177-pulido-de-la-parte-2.md) | 172, 176 | done · `cp-20261003-5` · 3-oct · S10 · recorrido de la sesión central (Show, Grain, Reagendada, ensayo bajo "ver como") · lo que quedó, al 180 |
+| [ ] | 178 | [Ajustes sin rutas viejas: Programas y Fuentes se mudan a Programa](./178-ajustes-sin-rutas-viejas.md) | 173 | done · `cp-20261003-5` · 3-oct · S11 · recorrido de la sesión central (cada diálogo de la tab Programa, consola limpia) |
 | [ ] | 179 | [Mi espacio curado por rol](./179-mi-espacio-por-rol.md) | 172, 173 | todo · 3-oct · S12, parte 3 · decisión de Mani · después del 177 |
+| [ ] | 180 | [Pulido de la parte 3: el Grain a la vista después de Show](./180-pulido-de-la-parte-3.md) | 174, 177, 178 | todo · 3-oct · S13 · sale del recorrido de la parte 3 |
 
 ## Tracker — Retia CRM
 

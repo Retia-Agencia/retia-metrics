@@ -3,7 +3,7 @@ id: 177
 etapa: O3
 serves: "Revisión de la sesión central de la parte 2 (3-oct): hallazgos del recorrido de 172 y 176; ADR 0028 (enmienda del 172)"
 depends: [172, 176]
-status: todo
+status: done
 ---
 
 # 177 — Pulido de la parte 2: Reagendada cierra la cita vieja, la reja deja leer y Mi espacio habla claro
@@ -94,3 +94,12 @@ Implementado por Kiro en `wt-177` (rama `o3-177-pulido`), revisado el diff por C
   `DialogoForm`), `components/user-menu.tsx`, `lib/auth/roles.ts`.
 - Causa del nombre en Mi espacio (no aplicada): `lib/auth/config.ts` no mapea `users.nombre` a la sesión; el 177 lo lee de la membresía.
   Raíz: `token.nombre` en `revalidarToken` y `session.user.name` en el callback.
+
+## Recorrido de la sesión central (3-oct, noche) · DONE en `cp-20261003-5`
+
+Con navegador, en `dev:local`: "Resultado → Show" sin Grain mueve a Atendido ("Marcada como show: el deal pasó a
+Atendido"), habilita "Registrar abono" y deja la alerta "La llamada no tiene el link de Grain"; pegando el Grain se guarda
+y la alerta se va. "Reagendada" deja la vieja `reagendada` y la nueva `agendada` (10:30 de Bogotá = 15:30 UTC). Viendo
+como Carlos, el pop-up de mover hace el ensayo (`ok: true`, "Falta el motivo") y Confirmar devuelve el aviso de solo
+lectura (403), no una pantalla de error. Hallazgo: tras Show el campo de Grain queda escondido en "Llamadas anteriores"
+(colapsada). Va al **180** con el botón muerto de `responder-pregunta.tsx`.

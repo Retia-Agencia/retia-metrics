@@ -3,7 +3,7 @@ id: 174
 etapa: O3
 serves: "docs/anotaciones.md A-57; ADR 0077"
 depends: [168, 170, 171, 172, 173]
-status: review
+status: done
 ---
 
 # 174 — Volver a donde estaba
@@ -48,3 +48,8 @@ Implementado por Kiro, revisado por la sesión. Rama `o3-174-volver`, worktree `
 
 Verificado: typecheck, lint, `tests/volver.test.ts` (26) y `npm run build` en verde.
 **Recorrido (sin navegador: la extensión de Chrome no conectó):** login local y pedidos HTTP sobre `dev:local`. Los enlaces de Leads, Students, Inbox y Deals llevan `desde` con la ruta y su query; la ficha muestra "← Deals · filtrados" y vuelve a `/deals?q=1`; un `desde` con `//evil.com` o `https://` cae a la lista natural; deal → lead encadena el origen. Sin ver: Calls (sin filas para ese closer en la base local), clics reales, 375 px y la consola. Sin correr: `tests/paginas.test.ts` y `tests/alcance-deals.test.ts` (la suite los corre el checkpoint).
+
+## Recorrido de la sesión central (3-oct, noche) · DONE en `cp-20261003-5`
+
+Con clics: Leads en vista Tabla → lead → "← Leads · filtrados" → vuelve a `?vista=tabla`; `desde=//evil.com` cae a
+"← Leads"; el login devuelve a la ficha pedida. Detalle al **180**: dice "filtrados" aunque solo se cambió la vista.

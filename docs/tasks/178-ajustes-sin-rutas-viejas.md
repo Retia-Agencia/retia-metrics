@@ -3,7 +3,7 @@ id: 178
 etapa: O3
 serves: "docs/anotaciones.md A-81; lo que el 173 dejó sin hacer (su nota de cierre, puntos 1 y 2); ADR 0077"
 depends: [173]
-status: todo
+status: done
 ---
 
 # 178 — Ajustes sin rutas viejas: las acciones de Programas y Fuentes se mudan a Programa
@@ -72,3 +72,9 @@ Implementó Kiro; Claude revisó el diff contra el "Done cuando". Rebasado sobre
 **Pendiente para la sesión central (necesita navegador):** clic en cada diálogo de la tab Programa (crear, editar y activar programa, cohorte y fuente; el selector de programas) con la consola abierta, para ver que no hay errores de contexto de Base UI. No se corrieron tests en local (swap casi lleno): `tests/paginas.test.ts`, `acciones-programas`, `ficha-programa`, `roles` y `bitacora-jsonb` los valida el CI.
 
 **Para el 177 / siguientes**: `compartidoConClosers` y `vinculadoAProgramas` en `lib/catalogo/registro.ts` quedan sin lector en la página. `listarItems` todavía lee el primero.
+
+## Recorrido de la sesión central (3-oct, noche) · DONE en `cp-20261003-5`
+
+Como developer, en la tab Programa: Editar programa, Crear C2, Editar C1, Nuevo programa, Nueva plataforma, el selector
+de Vincular plataforma, Plantilla de lead, Nueva fuente y el selector de persona del Equipo abren sin un error en
+consola. Detalle al **180**: "Nueva fuente" arranca con Tipo = "Hoja de Google".
