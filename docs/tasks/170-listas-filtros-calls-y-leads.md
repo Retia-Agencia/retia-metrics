@@ -3,7 +3,7 @@ id: 170
 etapa: O3
 serves: "docs/anotaciones.md A-60, A-61, A-62, A-65, A-68 (y A-09, A-11); ADR 0075 (el closer ve solo lo suyo); ADR 0077"
 depends: []
-status: todo
+status: entregado (S3, 3-oct; lo marca done la sesión central tras el checkpoint)
 ---
 
 # 170 — Las listas: filtros que se aplican solos, Calls de cada closer y Leads en tabla
@@ -65,3 +65,42 @@ Tests: `tests/llamadas-programa.test.ts` (alcance por dueño, mordido en los dos
 - Leads tiene buscador y el toggle Tarjetas / Tabla; la tabla cabe a 375 px con scroll dentro de ella.
 - `/personas` no existe y nada la enlaza (`grep -rn "/personas" app components lib` vacío).
 - `npm run build` en verde; recorrido en `dev:local` como closer y como gerente, consola abierta, escritorio y 375 px.
+
+## Cierre 3-oct (S3: Codex implementa, Claude revisa; rama `o3-170-listas`, sin migración)
+
+- **Filtros (A-61).** `components/filtros/`: `query.ts` (puro: `siguienteQuery` siempre borra `pagina`;
+  `hayFiltrosActivos`), `use-filtros-url.ts`, `BarraDeFiltros` (pone "Quitar filtros" cuando hay alguno),
+  `FiltroSelect` (el Select de Base UI, como el Kanban) y `FiltroFecha`. Adoptado en Calls, Leads, Students, Bitácora,
+  Migración, Kanban, `filtro-dashboard`, `filtro-fecha-lista` y `selector-periodo`. No hay filtro de texto en la URL:
+  el buscador de Leads va por server action. En el período personalizado, una fecha aplica sin cerrar el diálogo (las
+  cuatro siguen siendo obligatorias, como antes con `required`); un atajo sí lo cierra.
+- **Calls de cada closer (A-62).** `llamadaVisiblePara` vive junto a `dealVisiblePara` en `lib/auth/alcance-deals.ts`
+  (dueño del deal o closer de la llamada; quien administra, todo). `llamadasDelPrograma` recibe `AlcanceDeals` como
+  parámetro obligatorio y excluye las sueltas para TODOS (el Inbox es el único lugar compartido). Para un closer no hay
+  selector de closer y un `?closer=` forjado se ignora. `detalleDeLlamadaAccion` responde "Esa llamada no existe." para
+  una ajena, igual que para una inexistente; una suelta sí abre (la usa el Inbox). Decisión que tomé y queda a la
+  vista: un deal sin dueño se abre para reclamarlo, pero su llamada con el closer de otro no.
+- **Filas clicables (A-60).** Calls, Students y Leads (tarjetas): enlace estirado (`after:absolute after:inset-0`) y
+  lo demás interactivo en `relative z-10`; en la tabla, cada celda enlaza a la ficha.
+- **Leads (A-68, A-09 en parte).** Toggle Tarjetas / Tabla en el `CardAction` (`?vista=tabla`). La tabla: una línea por
+  fila, encabezado fijo, scroll dentro de ella. `leadsDelPrograma` suma teléfono, etapa (el deal vigente abierto, si no
+  el más reciente) y canal (`utm_source / utm_medium` crudo del envío más reciente; "Sin UTM" si falta una mitad), en
+  lecturas por lote. La paginación sigue en 100 (las páginas de 25 o 50 de A-09 no entraron).
+- **Personas fuera (A-65, A-11).** `buscarLeads` (nombre, correo o teléfono, dentro del programa) en
+  `lib/queries/leads.ts` + `buscarLeadsAccion`; `BuscadorDeLeads` arriba de Leads (400 ms o Enter). `nuevo-deal.tsx` usa
+  esa acción. Borrados `app/(app)/personas/`, `components/personas-buscador.tsx`, `lib/queries/personas.ts`, el item de
+  `lib/nav.ts` (aviso para Alejo, dueño de nav en la parte 2) y `slugDelLeadVisible`, que quedó huérfana. Los enlaces
+  de Webhook Health y Migración van a `/p/<slug>/leads/<id>` (las entregas huérfanas, sin programa, quedan sin enlace).
+  El grep del "Done cuando" solo devuelve `lib/mutations/personas` (la creación manual de un lead, otra cosa).
+  `tests/personas.test.ts` no cambió: prueba esa mutación, no la pantalla.
+- **Tests:** `filtros-url` (nuevo), `llamadas-programa` (alcance en los dos sentidos), `leads-tab` (buscador, etapa,
+  canal), `acciones-mi-dia`, `alcance-de-sesion`, `mi-dia`, `roles`, `paginas`: 172 en verde en local. No se agregó un
+  caso de página para `?vista=tabla` (pediría mockear las consultas de Leads); lo cubrió el recorrido.
+- **Nivel 1:** typecheck, lint y `npm run build` en verde.
+- **Recorrido en `dev:local`** (gerente y closer, escritorio y 375 px): filtros sin botón y "Quitar filtros" en Calls,
+  Leads y Kanban; período A contra B; fila de Calls abre el detalle y "Pegar Grain" abre su diálogo; Students y la tabla
+  de Leads abren su destino; buscador por teléfono; `/personas` 404; a 375 px la página mide 375 y la tabla hace scroll
+  por dentro. Consola limpia. Bitácora y Migración no se recorrieron. **Mordido forjando la petición:** como Carlos
+  (closer), Calls lista 28 llamadas, las mismas que cuenta la base para él, y con `?closer=<María>` sigue en 28; la
+  acción del detalle, invocada a mano con el id de una llamada de Mani, devuelve lo mismo que con un id inexistente.
+

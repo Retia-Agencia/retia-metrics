@@ -22,7 +22,7 @@ import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
 import { FiltroSelect } from "@/components/filtros/filtro-select";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PosiblesDuplicados } from "@/components/leads/posibles-duplicados";
 import { BuscadorDeLeads } from "@/components/leads/buscador-de-leads";
 
@@ -114,11 +114,11 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
         </BarraDeFiltros>
 
         <Card>
-          <CardHeader className="flex-row items-center justify-between gap-3">
+          <CardHeader>
             <CardTitle className="text-base">
               Leads · <span className="cifra">{num(total)}</span>
             </CardTitle>
-            <div className="inline-flex rounded-full border bg-muted p-0.5 text-xs" role="group" aria-label="Vista de leads">
+            <CardAction className="inline-flex rounded-full border bg-muted p-0.5 text-xs" role="group" aria-label="Vista de leads">
               <Link
                 href={urlCon({ vista: null, pagina: null })}
                 aria-current={vista === "tarjetas" ? "page" : undefined}
@@ -133,7 +133,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
               >
                 <Table2 aria-hidden className="size-3.5" /> Tabla
               </Link>
-            </div>
+            </CardAction>
           </CardHeader>
           <CardContent>
             {filas.length === 0 ? (
@@ -175,7 +175,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
               </ul>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-[56rem] w-full border-collapse text-sm">
+                <table className="min-w-[56rem] w-full border-collapse whitespace-nowrap text-sm">
                   <thead className="sticky top-0 bg-card text-left text-xs text-muted-foreground">
                     <tr className="border-b">
                       <th className="px-2 py-1.5 font-medium">Nombre</th>
