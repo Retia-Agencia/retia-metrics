@@ -233,6 +233,7 @@ class NoEncontrado extends Error {
 const sesionGerente = { user: { id: "u-1", email: "gerente@retia.co", rol: "gerente", closerId: null } };
 const sesionCloser = { user: { id: "u-2", email: "closer@retia.co", rol: "closer", closerId: "andrea" } };
 const sesionDeveloper = { user: { id: "u-3", email: "dev@retia.co", rol: "developer", closerId: null } };
+const sesionPaidTrafficker = { user: { id: "u-4", email: "pauta@retia.co", rol: "paid_trafficker", closerId: null } };
 
 beforeEach(() => {
   auth.mockReset();
@@ -461,6 +462,68 @@ describe("paginas de gerente", () => {
       expect(await destinoDe(ruta)).toBe("/login");
     });
   }
+});
+
+/**
+ * Visibilidad del índice de Ajustes por rol (ticket 173). El índice proyecta tarjetas
+ * según la capacidad del rol —`esAdministrador` para casi todo, `manejaPauta` para
+ * Canales—, nunca por el literal del rol. Se renderiza la página real y se recogen los
+ * `href` de las tarjetas del árbol de React.
+ */
+async function hrefsDeAjustes(): Promise<string[]> {
+  const modulo = (await import("@/app/(app)/ajustes/page")) as { default: () => Promise<unknown> };
+  const arbol = await modulo.default();
+  const hrefs: string[] = [];
+  const visitar = (nodo: unknown): void => {
+    if (!nodo || typeof nodo !== "object") return;
+    if (Array.isArray(nodo)) {
+      for (const hijo of nodo) visitar(hijo);
+      return;
+    }
+    const props = (nodo as { props?: Record<string, unknown> }).props;
+    if (props) {
+      if (typeof props.href === "string") hrefs.push(props.href);
+      if ("children" in props) visitar(props.children);
+    }
+  };
+  visitar(arbol);
+  return hrefs.sort();
+}
+
+describe("índice de Ajustes por rol (ticket 173)", () => {
+  it("el administrador (gerente) ve las cinco secciones y las rarezas de migración, no Canales por pauta exclusiva", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const hrefs = await hrefsDeAjustes();
+    expect(hrefs).toContain("/ajustes/usuarios");
+    expect(hrefs).toContain("/ajustes/canales");
+    expect(hrefs).toContain("/ajustes/salud");
+    expect(hrefs).toContain("/ajustes/catalogos");
+    expect(hrefs).toContain("/ajustes/areas");
+    expect(hrefs).toContain("/ajustes/migracion");
+    // Lo que se fue (A-81): programas y fuentes ya no están en el índice.
+    expect(hrefs).not.toContain("/ajustes/programas");
+    expect(hrefs).not.toContain("/ajustes/fuentes");
+  });
+
+  it("el developer ve lo mismo que el administrador (ADR 0025)", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
+    const hrefs = await hrefsDeAjustes();
+    expect(hrefs).toContain("/ajustes/usuarios");
+    expect(hrefs).toContain("/ajustes/canales");
+    expect(hrefs).toContain("/ajustes/areas");
+  });
+
+  it("el paid trafficker SOLO ve Canales (maneja pauta, no administra)", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    const hrefs = await hrefsDeAjustes();
+    expect(hrefs).toEqual(["/ajustes/canales"]);
+  });
+
+  it("un closer no ve ninguna tarjeta: ni administra ni maneja pauta", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    const hrefs = await hrefsDeAjustes();
+    expect(hrefs).toEqual([]);
+  });
 });
 
 /**

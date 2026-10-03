@@ -3,7 +3,7 @@ id: 173
 etapa: O3
 serves: "docs/anotaciones.md A-72, A-73, A-74, A-81; ADR 0077 puntos 1 y 4; ADR 0052 (ticket 102)"
 depends: [171]
-status: todo
+status: entregado-sin-validar
 ---
 
 > **3-oct (sesión central):** el valor `paid_trafficker` del enum `rol` **no** se adelantó: al agregarlo, `users.rol` deja de caber en `Rol` (`lib/auth/roles.ts`) y rompe `lib/catalogo/usuarios.ts`, `lib/deals/duenos.ts` y `scripts/usuarios.ts`. Va en el mismo cambio que `ROLES`, `manejaPauta` y la etiqueta del rol: la sesión entrega `schema.ts` y el código, y la sesión central genera y aplica la migración (`ALTER TYPE "rol" ADD VALUE IF NOT EXISTS 'paid_trafficker'`, con `SET lock_timeout`).
@@ -50,3 +50,18 @@ Tests: `tests/salud-crm.test.ts`, `tests/canales.test.ts`, `tests/roles.test.ts`
 - Un paid trafficker crea un canal; un closer, forjando la acción, recibe 403 y la base no se mueve.
 - `manejaPauta` vive solo en `lib/auth/roles.ts`; ningún `rol === "paid_trafficker"` fuera de ahí.
 - Migración leída y aplicada por la sesión principal; `npm run build` en verde; recorrido en `dev:local`.
+
+## Estado y nota de cierre (S6, 3-oct) · ENTREGADO SIN VALIDAR
+
+**Para la sesión principal: revisa si la implementación ya está completa.** Implementó Kiro (el cupo de Codex se agotó hasta las 3:32 PM); Claude revisó el diff. Por decisión de Mani **no se corrieron tests** (swap 10,7 de 11,3 GB) ni `npm run build`. Typecheck y lint salieron limpios en el worktree.
+
+**Por correr en la sesión central:** `npm test -- tests/roles.test.ts tests/paginas.test.ts tests/salud-crm.test.ts tests/canales-accion.test.ts tests/calendly-webhook-ruta.test.ts tests/rol-de-vista-centralizado.test.ts`, y `npm run build` (`components/admin/entregas-webhook.tsx` es cliente). Recorrido en `dev:local` y petición forjada de un closer a la acción de crear canal (espera 403 y base sin moverse).
+
+**Migración pendiente (sesión principal, con ok de Mani):** `ALTER TYPE "rol" ADD VALUE IF NOT EXISTS 'paid_trafficker'` con `SET lock_timeout = '5s'`, **después de desplegar este código**. `schema.ts` ya tiene el valor.
+
+**Hecho:** rol `paid_trafficker` y `manejaPauta` (solo en `lib/auth/roles.ts`); nav e inicio del rol por capacidad (solo Ajustes, aterriza en `/ajustes/canales`); Canales exige `manejaPauta` en página y acciones; Áreas en `/ajustes/areas`; Motivos titulada en `/ajustes/catalogos`; índice con Usuarios, Canales, Webhook Health, Motivos, Áreas y Rarezas de la migración; Webhook Health con 25 por página y cursor opaco por (fecha, id) sin `OFFSET`; `LIMITE_ENTREGAS` fuera.
+
+**No hecho / decisiones abiertas:**
+1. `/ajustes/programas` y `/ajustes/fuentes` **no se borraron**: `program-switcher`, `cohortes-admin`, `fuentes-admin`, `equipo-del-programa` y `editar-programa` importan sus `acciones.ts`. Solo se quitaron del índice. Mover esas acciones a Programa y borrar las rutas (A-81).
+2. `/ajustes/catalogos` (Motivos) sigue admitiendo closers; solo el índice les oculta la tarjeta. Propuesta: solo administradores.
+3. Fuera de alcance, sin construir: Dashboard del paid trafficker, su alcance por membresía (`lib/auth/alcance.ts`) y ocultarle el comparativo entre closers y la comisión.

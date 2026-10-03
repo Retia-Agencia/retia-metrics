@@ -26,7 +26,7 @@ import {
 
 // ─────────────────────────────────────────────────────────── enums
 
-export const rolEnum = pgEnum("rol", ["gerente", "closer", "developer"]);
+export const rolEnum = pgEnum("rol", ["gerente", "closer", "developer", "paid_trafficker"]);
 
 /**
  * Las once etapas del Deal: las de 30X desde el ticket 142 (ADR 0037, ADR 0070 a 0072).

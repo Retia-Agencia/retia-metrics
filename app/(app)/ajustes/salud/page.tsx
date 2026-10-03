@@ -16,16 +16,19 @@ import {
 export const dynamic = "force-dynamic";
 
 /**
- * `/ajustes/salud`: la salud del CRM (ticket 110, pedido de Mani del 28-sep). Un lugar
- * donde ver cada entrega del webhook —el codigo HTTP, el motivo y el lead que trajo—,
- * la conciliacion con la hoja mientras las dos convivan, y el aviso de salud de la
- * fuente (ticket 107).
+ * `/ajustes/salud`: Webhook Health (ticket 110, renombrado por el 173). Un lugar donde
+ * ver cada entrega del webhook —el codigo HTTP, el motivo y el lead que trajo—, la
+ * conciliacion con la hoja mientras las dos convivan, y el aviso de salud de la fuente
+ * (ticket 107).
  *
  * La ve quien administra (`esAdministrador`: gerente y developer). `paginaConRol("gerente")`
  * lo enforza en el servidor: el developer pasa por `puedeAcceder` (ADR 0025) y un closer
  * es rebotado —nunca se compara `rol === "..."` a mano—. Es una pantalla por programa: el
  * programa es frontera y NUNCA se cruzan dos (ADR 0043). El programa sale del slug de la
  * URL (id opaco), no de la sesion.
+ *
+ * La lista de entregas muestra las ultimas 25 y carga mas bajo demanda (keyset por
+ * fecha e id, sin `OFFSET`): el historial puede ser enorme y traerlo entero no escala.
  */
 
 /** El tono del estado de una fuente: bien, atento o mal. */
@@ -57,11 +60,11 @@ export default async function SaludPage({
   const programas = await programasActivos();
   if (programas.length === 0) {
     return (
-      <PageShell titulo="Salud del CRM" descripcion="Cada entrega del webhook, por programa.">
+      <PageShell titulo="Webhook Health" descripcion="Cada entrega del webhook, por programa.">
         <Card>
           <CardContent className="py-8 text-sm text-muted-foreground">
-            No hay programas activos todavía. Crea uno en Ajustes → Programas y cohortes para ver la
-            salud de su intake.
+            No hay programas activos todavía. Crea uno desde la ficha de un programa para ver la salud
+            de su intake.
           </CardContent>
         </Card>
       </PageShell>
@@ -71,7 +74,7 @@ export default async function SaludPage({
   const { programa: slugPedido } = await searchParams;
   const programa = programas.find((p) => p.slug === slugPedido) ?? programas[0];
 
-  const [entregas, huerfanas, salud, conciliacion] = await Promise.all([
+  const [paginaEntregas, paginaHuerfanas, salud, conciliacion] = await Promise.all([
     entregasDePrograma(programa.id),
     entregasHuerfanas(),
     saludDeFuentes(),
@@ -79,18 +82,18 @@ export default async function SaludPage({
   ]);
 
   const saludDelPrograma = salud.filter((s) => s.programId === programa.id);
-  const entregasVista: EntregaVista[] = entregas.map((e) => ({
+  const entregasVista: EntregaVista[] = paginaEntregas.entregas.map((e) => ({
     ...e,
     recibidoEn: e.recibidoEn.toISOString(),
   }));
-  const huerfanasVista: EntregaVista[] = huerfanas.map((e) => ({
+  const huerfanasVista: EntregaVista[] = paginaHuerfanas.entregas.map((e) => ({
     ...e,
     recibidoEn: e.recibidoEn.toISOString(),
   }));
 
   return (
     <PageShell
-      titulo="Salud del CRM"
+      titulo="Webhook Health"
       descripcion="Cada entrega del webhook, por programa: el código, el motivo y el lead que trajo."
       acciones={<SelectorYRefresco programas={programas} slugActual={programa.slug} />}
     >
@@ -103,7 +106,7 @@ export default async function SaludPage({
           <CardContent>
             {saludDelPrograma.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Este programa no tiene una fuente activa. Actívala en Ajustes → Fuentes de datos para
+                Este programa no tiene una fuente activa. Actívala desde la ficha del programa para
                 empezar a recibir leads.
               </p>
             ) : (
@@ -130,11 +133,12 @@ export default async function SaludPage({
           </CardContent>
         </Card>
 
-        {/* Las entregas del programa. */}
+        {/* Las entregas del programa, 25 por página y "Ver anteriores" bajo demanda. */}
         <EntregasWebhook
           entregas={entregasVista}
           titulo={`Entregas — ${programa.nombre}`}
           programaSlug={programa.slug}
+          cursorInicial={paginaEntregas.cursor}
         />
 
         {/* La conciliacion con la hoja mientras convivan (ticket 110). */}
@@ -180,6 +184,7 @@ export default async function SaludPage({
           <EntregasWebhook
             entregas={huerfanasVista}
             titulo="Entregas huérfanas (sin fuente reconocida)"
+            cursorInicial={paginaHuerfanas.cursor}
           />
         ) : null}
       </div>

@@ -12,8 +12,8 @@ import {
   desactivarAreaAccion,
   reactivarAreaAccion,
   renombrarAreaAccion,
-  type ResultadoCanalAccion,
-} from "@/app/(app)/ajustes/canales/acciones";
+  type ResultadoAreaAccion,
+} from "@/app/(app)/ajustes/areas/acciones";
 
 export interface AreaVista {
   id: string;
@@ -32,7 +32,7 @@ export function AreasAdmin({ areas }: { areas: AreaVista[] }) {
   const [editando, setEditando] = useState<string | null>(null);
   const [nombre, setNombre] = useState("");
 
-  function correr(accion: () => Promise<ResultadoCanalAccion>, mensaje: string) {
+  function correr(accion: () => Promise<ResultadoAreaAccion>, mensaje: string) {
     iniciar(async () => {
       const resultado = await accion();
       if (!resultado.ok) {

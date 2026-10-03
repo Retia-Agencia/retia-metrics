@@ -72,8 +72,8 @@ export default async function CatalogosPage() {
 
   return (
     <PageShell
-      titulo="Catálogos"
-      descripcion="Listas que el equipo amplía sin tocar código."
+      titulo="Motivos"
+      descripcion="Se usan al perder, retroceder o recuperar un deal."
     >
       <CatalogosAdmin catalogos={catalogos} />
     </PageShell>

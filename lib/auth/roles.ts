@@ -5,7 +5,7 @@ import { ErrorDeApp } from "@/lib/errors";
  * Se testea aislada y la usan tanto el servidor como el proxy.
  */
 
-export const ROLES = ["gerente", "closer", "developer"] as const;
+export const ROLES = ["gerente", "closer", "developer", "paid_trafficker"] as const;
 export type Rol = (typeof ROLES)[number];
 
 /** Error de autorizacion. Los route handlers lo traducen a 403. */
@@ -83,6 +83,21 @@ export function puedeAcceder(rol: Rol | undefined | null, permitidos: readonly R
   if (!rol) return false;
   if (esAccesoTotal(rol)) return true;
   return permitidos.includes(rol);
+}
+
+/**
+ * Quien maneja la pauta: ve y configura los Canales y lo de tráfico pagado de sus
+ * programas (ADR 0052). Es la CUARTA pregunta de esta familia, distinta de las otras
+ * tres: no administra la app (`esAdministrador` responde `false`) y no trabaja leads
+ * (`trabajaLeads` responde `false`), porque un paid trafficker no registra llamadas ni
+ * abonos ni es dueño de un deal. La cumplen el paid trafficker, el gerente y el
+ * developer; el developer responde `true` por ser la excepción de acceso total (ADR
+ * 0025), y por eso su excepción sigue viviendo en UN solo lugar por pregunta y nunca
+ * escrita a mano. Nunca se compara `rol === "paid_trafficker"` fuera de aquí: la ruta
+ * que alguien agregue el mes que viene se olvidaría del gerente y del developer.
+ */
+export function manejaPauta(rol: Rol | undefined | null): boolean {
+  return rol === "paid_trafficker" || rol === "gerente" || rol === "developer";
 }
 
 export function esRolValido(valor: unknown): valor is Rol {

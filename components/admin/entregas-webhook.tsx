@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RefreshCw, RotateCcw } from "lucide-react";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fechaHoraEnBogota } from "@/lib/format";
-import { reprocesarSobreAccion } from "@/app/(app)/ajustes/salud/acciones";
+import { cargarMasEntregasAccion, reprocesarSobreAccion } from "@/app/(app)/ajustes/salud/acciones";
 
 /**
  * La tabla de entregas del webhook (ticket 110), la mas reciente arriba. Sistema
@@ -55,16 +55,25 @@ function tonoDe(entrega: EntregaVista): "exito" | "alerta" | "peligro" {
 }
 
 export function EntregasWebhook({
-  entregas,
+  entregas: entregasIniciales,
   titulo,
   programaSlug,
+  cursorInicial = null,
 }: {
   entregas: EntregaVista[];
   titulo: string;
+  /** El slug del programa; ausente = las huérfanas. También enruta "Ver anteriores". */
   programaSlug?: string;
+  /** El cursor de la página siguiente, o `null` si estas 25 son todo lo que hay. */
+  cursorInicial?: string | null;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
+  // Las entregas se acumulan en el cliente: "Ver anteriores" agrega las siguientes 25
+  // sin recargar. El cursor marca por dónde seguir; `null` oculta el botón (última
+  // página). La seguridad no vive aquí: la server action re-verifica el rol (ADR 0025).
+  const [entregas, setEntregas] = useState<EntregaVista[]>(entregasIniciales);
+  const [cursor, setCursor] = useState<string | null>(cursorInicial);
 
   function reprocesar(sobreId: string) {
     startTransition(async () => {
@@ -72,6 +81,19 @@ export function EntregasWebhook({
       if (r.ok) {
         toast.success(`Reprocesado: ${TEXTO_MOTIVO[r.motivo] ?? r.motivo}.`);
         router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
+
+  function verAnteriores() {
+    if (!cursor) return;
+    startTransition(async () => {
+      const r = await cargarMasEntregasAccion(programaSlug ?? null, cursor);
+      if (r.ok) {
+        setEntregas((previas) => [...previas, ...r.entregas]);
+        setCursor(r.cursor);
       } else {
         toast.error(r.error);
       }
@@ -127,6 +149,13 @@ export function EntregasWebhook({
             ))}
           </div>
         )}
+        {cursor ? (
+          <div className="pt-3">
+            <Button size="sm" variant="outline" disabled={pendiente} onClick={verAnteriores}>
+              Ver anteriores
+            </Button>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

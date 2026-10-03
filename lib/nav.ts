@@ -1,5 +1,5 @@
 import type { Rol } from "@/lib/auth/roles";
-import { esAccesoTotal, trabajaLeads } from "@/lib/auth/roles";
+import { esAccesoTotal, esAdministrador, manejaPauta, trabajaLeads } from "@/lib/auth/roles";
 
 export type ItemNav = {
   href: string;
@@ -63,6 +63,15 @@ export function rutaAlCambiarDePrograma(pathname: string, nuevoSlug: string): st
  */
 export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] {
   if (!rol) return [];
+
+  // El paid trafficker (ADR 0052) solo entra a Ajustes, y adentro solo ve Canales (lo
+  // proyecta el índice): maneja pauta pero no administra la app ni trabaja leads, asi
+  // que no tiene Dashboard (follow-up), ni tabs de programa, ni Recursos. Se pregunta
+  // por capacidad —`manejaPauta` sin administrar ni trabajar leads—, nunca por el
+  // literal del rol (ADR 0025): un `rol === "paid_trafficker"` a mano repetiria el bug.
+  if (manejaPauta(rol) && !esAdministrador(rol) && !trabajaLeads(rol)) {
+    return [{ href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["paid_trafficker"] }];
+  }
 
   const items: ItemNav[] = [];
 
@@ -170,5 +179,8 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
 export function rutaInicial(rol: Rol | null, primerPrograma: string | null): string {
   if (!rol) return "/login";
   if (rol === "closer") return "/mi-espacio";
+  // El paid trafficker aterriza en Canales, lo único que ve: maneja pauta pero no
+  // administra ni trabaja leads. Por capacidad, nunca por el literal del rol (ADR 0025).
+  if (manejaPauta(rol) && !esAdministrador(rol) && !trabajaLeads(rol)) return "/ajustes/canales";
   return primerPrograma ? rutaDePrograma(primerPrograma, "dashboard") : "/ajustes";
 }

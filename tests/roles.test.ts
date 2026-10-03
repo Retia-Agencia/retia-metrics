@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { puedeAcceder, esRolValido, puedeTocarMembresia, trabajaLeads } from "@/lib/auth/roles";
+import { esAdministrador, manejaPauta, puedeAcceder, esRolValido, puedeTocarMembresia, trabajaLeads } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
@@ -16,6 +16,32 @@ describe("trabajaLeads", () => {
   it("sin rol no trabaja leads", () => {
     expect(trabajaLeads(null)).toBe(false);
     expect(trabajaLeads(undefined)).toBe(false);
+  });
+});
+
+describe("manejaPauta (ADR 0052, ticket 173)", () => {
+  // La cuarta pregunta de la familia: la cumplen paid trafficker, gerente y developer.
+  it("el paid trafficker, el gerente y el developer manejan pauta; el closer no", () => {
+    expect(manejaPauta("paid_trafficker")).toBe(true);
+    expect(manejaPauta("gerente")).toBe(true);
+    expect(manejaPauta("developer")).toBe(true);
+    expect(manejaPauta("closer")).toBe(false);
+  });
+
+  it("sin rol no maneja pauta", () => {
+    expect(manejaPauta(null)).toBe(false);
+    expect(manejaPauta(undefined)).toBe(false);
+  });
+
+  // El paid trafficker maneja pauta pero NO administra la app ni trabaja leads: no
+  // registra, no es dueño de un deal y no toca usuarios ni motivos (ADR 0052).
+  it("el paid trafficker no administra ni trabaja leads", () => {
+    expect(esAdministrador("paid_trafficker")).toBe(false);
+    expect(trabajaLeads("paid_trafficker")).toBe(false);
+  });
+
+  it("el rol paid_trafficker es válido (está en ROLES)", () => {
+    expect(esRolValido("paid_trafficker")).toBe(true);
   });
 });
 
@@ -161,6 +187,19 @@ describe("navegacion por rol", () => {
     expect(rutasDe("developer")).toContain("/nerd-stats");
     expect(rutasDe("gerente")).not.toContain("/nerd-stats");
     expect(rutasDe("closer")).not.toContain("/nerd-stats");
+  });
+
+  it("el paid trafficker solo ve Ajustes (ADR 0052, ticket 173): nada de tabs, Recursos ni Mi día", () => {
+    const rutas = rutasDe("paid_trafficker");
+    expect(rutas).toEqual(["/ajustes"]);
+    expect(rutas).not.toContain("/mi-dia");
+    expect(rutas).not.toContain("/recursos");
+    expect(rutas.some((r) => r.startsWith("/p/"))).toBe(false);
+  });
+
+  it("el paid trafficker aterriza en Canales (ticket 173)", () => {
+    expect(rutaInicial("paid_trafficker", "programa-a")).toBe("/ajustes/canales");
+    expect(rutaInicial("paid_trafficker", null)).toBe("/ajustes/canales");
   });
 
   it("el developer aterriza en el Dashboard del primer programa, como el gerente", () => {

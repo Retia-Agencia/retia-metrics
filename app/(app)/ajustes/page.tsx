@@ -1,111 +1,103 @@
 import Link from "next/link";
-import { Activity, Boxes, Database, FileWarning, ListChecks, Radio, Users } from "lucide-react";
+import { Activity, FileWarning, ListChecks, Radio, Shapes, Users } from "lucide-react";
 import { paginaConRol } from "@/lib/auth/page-guards";
-import { esAdministrador } from "@/lib/auth/roles";
+import { esAdministrador, manejaPauta, type Rol } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { PageShell } from "@/components/page-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 /**
- * Indice de ajustes (enmienda del ticket 013, Mani 20-sep).
+ * Índice de Ajustes (ticket 173, ADR 0077 punto 1): queda SOLO lo que no es de ningún
+ * objeto —usuarios y roles, canales, webhook, motivos y áreas— más las rarezas de la
+ * migración mientras el 078 no cierre. Lo que vive en un Programa o en Mi espacio
+ * (programas y cohortes, fuentes, dónde vende cada closer) se fue de aquí (A-81).
  *
- * Deja de ser exclusivo de gerente y la guarda baja a cada subpagina: hoy un closer
- * administra las plataformas de pago, asi que necesita una puerta. Lo que entra aca
- * es PROYECCION, no permiso — un enlace que no ve igual lo rebotaria su propia
- * guarda—: sin proyectar, el closer veria tres tarjetas que lo devuelven a `/mi-dia`,
- * que es peor que no verlas.
- *
- * La pregunta es `esAdministrador` sobre el ROL DE VISTA, no `rol === "gerente"`
- * (ADR 0025 punto 5, ADR 0028): el developer administra y no puede quedarse afuera
- * de su propia app.
+ * Lo que entra es PROYECCIÓN, no permiso: cada subpágina conserva su guarda de servidor
+ * (esconder un enlace no es seguridad). La pregunta se hace por capacidad sobre el ROL
+ * DE VISTA (ADR 0025 punto 5, ADR 0028), nunca `rol === "..."`: `esAdministrador` para
+ * casi todo, `manejaPauta` para Canales (ADR 0052). Un rol que no ve ninguna tarjeta
+ * (hoy el paid trafficker sin acceso a nada más que Canales) recibe un estado vacío.
  */
 const ENLACES = [
   {
-    href: "/ajustes/programas",
-    icono: Boxes,
-    titulo: "Programas y cohortes",
-    descripcion:
-      "Los programas con su slug, Forms Link y Calendly Token, y las cohortes de cada uno: se crean y desactivan sin tocar código.",
-    soloAdministradores: true,
-  },
-  {
-    href: "/ajustes/fuentes",
-    icono: Database,
-    titulo: "Fuentes de datos",
-    descripcion:
-      "Qué hojas lee la app, cuándo fue la última sincronización y cuántas personas hay en la base.",
-    soloAdministradores: true,
-  },
-  {
-    href: "/ajustes/catalogos",
-    icono: ListChecks,
-    titulo: "Catálogos",
-    descripcion:
-      "Plataformas de pago, motivos de pérdida y orígenes del lead: se agregan, renombran y desactivan sin tocar código.",
-    // Lo que el closer ve ADENTRO es solo la pestaña de plataformas, asi que la
-    // descripcion de arriba le prometeria dos catalogos que no puede tocar. Lo
-    // encontro el recorrido visual en vista `closer`.
-    descripcionSinAdministrar:
-      "Las plataformas de pago con las que cobras, y en qué programas aparece cada una.",
-    soloAdministradores: false,
+    href: "/ajustes/usuarios",
+    icono: Users,
+    titulo: "Usuarios",
+    descripcion: "Quién puede entrar y con qué rol: se agregan, editan y desactivan sin CLI.",
+    requisito: "administra",
   },
   {
     href: "/ajustes/canales",
     icono: Radio,
     titulo: "Canales",
-    descripcion: "De qué canal y área viene cada envío",
-    soloAdministradores: true,
-  },
-  {
-    href: "/ajustes/usuarios",
-    icono: Users,
-    titulo: "Usuarios",
-    descripcion:
-      "Quién puede entrar, con qué rol y en qué programas vende cada closer: se agregan, editan y desactivan sin CLI.",
-    soloAdministradores: true,
+    descripcion: "De qué canal y área viene cada envío.",
+    requisito: "pauta",
   },
   {
     href: "/ajustes/salud",
     icono: Activity,
-    titulo: "Salud del CRM",
-    descripcion:
-      "Cada entrega del webhook por programa —código HTTP, motivo y el lead que trajo—, la conciliación con Sheets y el aviso de fuentes en silencio.",
-    soloAdministradores: true,
+    titulo: "Webhook Health",
+    descripcion: "Cada entrega del webhook por programa, la conciliación y el aviso de fuentes en silencio.",
+    requisito: "administra",
+  },
+  {
+    href: "/ajustes/catalogos",
+    icono: ListChecks,
+    titulo: "Motivos",
+    descripcion: "Los motivos que se usan al perder, retroceder o recuperar un deal.",
+    requisito: "administra",
+  },
+  {
+    href: "/ajustes/areas",
+    icono: Shapes,
+    titulo: "Áreas",
+    descripcion: "Agrupan los canales por área de origen, para el rendimiento por área.",
+    requisito: "administra",
   },
   {
     href: "/ajustes/migracion",
     icono: FileWarning,
     titulo: "Rarezas de la migración",
-    descripcion:
-      "Lo que la migración de las pestañas de gestión no pudo clasificar, por programa y por tipo, con el deal o el lead al que apunta.",
-    soloAdministradores: true,
+    descripcion: "Lo que la migración no pudo clasificar, por programa y por tipo, con el deal o lead que apunta.",
+    requisito: "administra",
   },
 ] as const;
 
+/** ¿Este actor ve esta tarjeta? Por capacidad, nunca por el literal del rol (ADR 0025). */
+function puedeVer(requisito: (typeof ENLACES)[number]["requisito"], rol: Rol | null): boolean {
+  return requisito === "pauta" ? manejaPauta(rol) : esAdministrador(rol);
+}
+
 export default async function AjustesPage() {
-  const session = await paginaConRol("gerente", "closer");
-  const esAdmin = esAdministrador(await rolDeVista(session));
-  const visibles = ENLACES.filter((e) => esAdmin || !e.soloAdministradores);
+  // Los tres roles base entran al índice (paid_trafficker incluido): la proyección y
+  // la guarda de cada subpágina deciden qué puede tocar cada uno.
+  const session = await paginaConRol("gerente", "closer", "paid_trafficker");
+  const rol = await rolDeVista(session);
+  const visibles = ENLACES.filter((e) => puedeVer(e.requisito, rol));
 
   return (
-    <PageShell titulo="Ajustes" descripcion="Fuentes de datos, usuarios y parámetros de cohorte.">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {visibles.map(({ href, icono: Icono, titulo, descripcion, ...resto }) => (
-          <Link key={href} href={href} className="block">
-            <Card className="h-full transition-colors hover:bg-accent/40">
-              <CardHeader className="flex-row items-center gap-2 space-y-0">
-                <Icono className="size-4 text-muted-foreground" />
-                <CardTitle className="text-base">{titulo}</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                {!esAdmin && "descripcionSinAdministrar" in resto
-                  ? resto.descripcionSinAdministrar
-                  : descripcion}
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+    <PageShell titulo="Ajustes" descripcion="Usuarios y roles, canales, webhook, motivos y áreas.">
+      {visibles.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-sm text-muted-foreground">
+            No hay ajustes disponibles para tu rol.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {visibles.map(({ href, icono: Icono, titulo, descripcion }) => (
+            <Link key={href} href={href} className="block">
+              <Card className="h-full transition-colors hover:bg-accent/40">
+                <CardHeader className="flex-row items-center gap-2 space-y-0">
+                  <Icono className="size-4 text-muted-foreground" />
+                  <CardTitle className="text-base">{titulo}</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">{descripcion}</CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
     </PageShell>
   );
 }

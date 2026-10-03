@@ -12,6 +12,8 @@ import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import {
+  cifrarCursor,
+  descifrarCursor,
   purgarRechazosVencidos,
   registrarEntrega,
   entregasDePrograma,
@@ -224,8 +226,8 @@ describe("404 fuente inexistente", () => {
     expect(entrega.programId).toBeNull();
 
     // La lectura de huérfanas la trae; la de un programa no.
-    expect(await entregasHuerfanas(db)).toHaveLength(1);
-    expect(await entregasDePrograma(programId, db)).toHaveLength(0);
+    expect((await entregasHuerfanas(null, db)).entregas).toHaveLength(1);
+    expect((await entregasDePrograma(programId, null, db)).entregas).toHaveLength(0);
   });
 });
 
@@ -417,7 +419,7 @@ describe("entregasDePrograma", () => {
       { programId: null, sourceId: null, codigoHttp: 404, motivo: "fuente_no_encontrada", recibidoEn: nuevo },
     ]);
 
-    const lista = await entregasDePrograma(programId, db);
+    const { entregas: lista } = await entregasDePrograma(programId, null, db);
     expect(lista).toHaveLength(2);
     // La más reciente arriba.
     expect(lista[0].motivo).toBe("firma_invalida");
@@ -431,5 +433,78 @@ describe("entregasDePrograma", () => {
       .from(entregasWebhook)
       .where(and(isNull(entregasWebhook.sourceId), eq(entregasWebhook.motivo, "fuente_no_encontrada")));
     expect(orphan).toHaveLength(1);
+  });
+});
+
+// ─────────────────────────────────────────── paginación keyset (ticket 173)
+
+describe("paginación de entregas (keyset por fecha e id, 25 por página)", () => {
+  /** Siembra n entregas, las k primeras con la MISMA fecha, para probar el desempate por id. */
+  async function sembrar(n: number, empatadas = 0): Promise<void> {
+    const base = Date.now();
+    const filas = Array.from({ length: n }, (_, i) => ({
+      programId,
+      sourceId,
+      codigoHttp: 200 as const,
+      motivo: "procesado" as const,
+      // Las `empatadas` primeras caen todas en el MISMO instante; el resto, separadas.
+      recibidoEn: new Date(i < empatadas ? base : base - (i + 1) * 1000),
+    }));
+    await db.insert(entregasWebhook).values(filas);
+  }
+
+  it("la primera página trae 25 y un cursor; la base no se recorre con OFFSET", async () => {
+    await sembrar(30);
+    const pagina = await entregasDePrograma(programId, null, db);
+    expect(pagina.entregas).toHaveLength(25);
+    expect(pagina.cursor).not.toBeNull();
+  });
+
+  it("el cursor trae las siguientes sin solape ni hueco, y la última página no tiene cursor", async () => {
+    await sembrar(30);
+    const primera = await entregasDePrograma(programId, null, db);
+    const cursor = descifrarCursor(primera.cursor);
+    const segunda = await entregasDePrograma(programId, cursor, db);
+
+    // Las 5 restantes y ya no hay más.
+    expect(segunda.entregas).toHaveLength(5);
+    expect(segunda.cursor).toBeNull();
+
+    // Sin solape ni hueco: las 30 ids, cada una una vez.
+    const ids = new Set([...primera.entregas, ...segunda.entregas].map((e) => e.id));
+    expect(ids.size).toBe(30);
+  });
+
+  it("desempata por id cuando varias caen en el mismo instante (ni se saltan ni se repiten)", async () => {
+    // 30 entregas, todas con la MISMA fecha: sin el id en el keyset se saltarían o repetirían.
+    await sembrar(30, 30);
+    const primera = await entregasDePrograma(programId, null, db);
+    const segunda = await entregasDePrograma(programId, descifrarCursor(primera.cursor), db);
+
+    expect(primera.entregas).toHaveLength(25);
+    expect(segunda.entregas).toHaveLength(5);
+    expect(segunda.cursor).toBeNull();
+    const ids = new Set([...primera.entregas, ...segunda.entregas].map((e) => e.id));
+    expect(ids.size).toBe(30);
+  });
+
+  it("exactamente 25 no deja cursor: no hay página siguiente", async () => {
+    await sembrar(25);
+    const pagina = await entregasDePrograma(programId, null, db);
+    expect(pagina.entregas).toHaveLength(25);
+    expect(pagina.cursor).toBeNull();
+  });
+
+  it("un cursor malformado se trata como primera página, no revienta", () => {
+    expect(descifrarCursor("no-es-base64-valido-ni-tiene-barra")).toBeNull();
+    expect(descifrarCursor("")).toBeNull();
+    expect(descifrarCursor(null)).toBeNull();
+  });
+
+  it("cifrar y descifrar un cursor es ida y vuelta", () => {
+    const fecha = new Date("2026-10-02T15:00:00.000Z");
+    const cursor = descifrarCursor(cifrarCursor({ recibidoEn: fecha, id: "abc-123" }));
+    expect(cursor?.recibidoEn.toISOString()).toBe(fecha.toISOString());
+    expect(cursor?.id).toBe("abc-123");
   });
 });

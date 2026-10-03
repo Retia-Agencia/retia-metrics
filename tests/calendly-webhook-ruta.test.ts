@@ -119,7 +119,7 @@ describe("rechazos: la base no se mueve", () => {
     expect((await invocar(crypto.randomUUID(), cuerpo, firmar(cuerpo))).status).toBe(404);
     expect(await llamadas()).toHaveLength(0);
     expect(await db.select().from(sobresCrudos)).toHaveLength(0);
-    expect((await entregasHuerfanas(db)).map((e) => e.motivo)).toEqual(["fuente_no_encontrada", "fuente_no_encontrada"]);
+    expect((await entregasHuerfanas(null, db)).entregas.map((e) => e.motivo)).toEqual(["fuente_no_encontrada", "fuente_no_encontrada"]);
   });
 
   it("programa sin clave (no conectado): 401 sin_secreto", async () => {
@@ -162,9 +162,9 @@ describe("una cita nueva", () => {
 
     const [s] = await db.select().from(sobresCrudos);
     expect(s).toMatchObject({ origen: "calendly", sourceId: null, programId, error: null });
-    const [e] = await entregasDePrograma(programId, db);
+    const [e] = (await entregasDePrograma(programId, null, db)).entregas;
     expect(e).toMatchObject({ motivo: "procesado", codigoHttp: 200, fuenteNombre: "Calendly", reprocesable: false });
-    expect(await entregasHuerfanas(db)).toHaveLength(0);
+    expect((await entregasHuerfanas(null, db)).entregas).toHaveLength(0);
   });
 
   it("repetida (Calendly reintenta): una sola llamada", async () => {
