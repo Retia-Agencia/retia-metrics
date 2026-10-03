@@ -48,9 +48,9 @@ Tests que importen las rutas viejas (`grep` en `tests/`), `tests/paginas.test.ts
 - Un closer en `/ajustes/catalogos` rebota, y forjando la acción de Motivos recibe 403 con la base quieta.
 - Typecheck, lint, los tests tocados y `npm run build`.
 
-## Estado y nota de cierre (S11, 3-oct) · CÓDIGO LISTO, SIN RECORRIDO NI PUSH
+## Estado y nota de cierre (S11, 3-oct) · ENTREGADO, FALTA EL RECORRIDO EN NAVEGADOR
 
-Implementó Kiro; Claude revisó el diff contra el "Done cuando". Rama `o3-178-rutas-viejas` (worktree `wt-178`).
+Implementó Kiro; Claude revisó el diff contra el "Done cuando". Rebasado sobre `main` con 174, 175 y 177.
 
 **Hecho**
 - Las acciones se movieron con `git mv`, sin tocar lógica ni guardas: `ajustes/programas/acciones.ts` pasó a `p/[programa]/programa/acciones-programa.ts` y `ajustes/fuentes/acciones.ts` pasó a `acciones-fuentes.ts`. `acciones.ts` (plataformas, 171) no se tocó.
@@ -61,11 +61,14 @@ Implementó Kiro; Claude revisó el diff contra el "Done cuando". Rama `o3-178-r
 - Tests ajustados: imports, filas de rutas borradas, `/ajustes/catalogos` pasa a la tabla exclusiva de gerente, y la aserción del índice ahora es un regex.
 - `grep -rnE "ajustes/(programas|fuentes)" app components lib tests scripts` sale vacío.
 
-**Verificado**: `npm run typecheck`, `npm run lint` y `npm run build` limpios (build con copia APFS de `node_modules`).
+**Verificado sobre la punta de `main`**: `npm run typecheck`, `npm run lint` y `npm run build` limpios. Ojo: tras un build o un `dev` en un worktree, `.next/types` queda con rutas de páginas ya borradas y el typecheck falla; se mueve `.next` y se repite.
 
-**Sin verificar**
-- No se corrieron tests (swap 10,3 de 11,3 GB). Los deja el CI: `tests/paginas.test.ts`, `acciones-programas`, `ficha-programa`, `roles`, `bitacora-jsonb`.
-- No se hizo el recorrido en `dev:local` (Docker apagado): crear, editar y activar programa, cohorte y fuente desde la tab Programa, con consola abierta.
-- No se mordió la regla de permiso: un closer en `/ajustes/catalogos` debe rebotar, y forjando `crearPlataformaAccion` debe recibir 403 con la base quieta.
+**Recorrido en `dev:local` (HTTP con sesión por proveedor local, sin navegador)**
+- Con la base local: gerente y developer ven `/ajustes/catalogos` (200). El closer rebota a `/mi-espacio` (307) y el paid trafficker a `/ajustes/canales` (307).
+- `/ajustes/programas` y `/ajustes/fuentes` responden 404 para los cuatro roles. `/p/<programa>/programa` responde 200 para gerente, closer y developer. El paid trafficker rebota a `/ajustes/canales`.
+- Mordidas con la cabecera `Next-Action` forjada como closer: `crearPlataformaAccion`, `agregarAccion` (motivos), `asociarProgramaAccion`, `crearProgramaInactivoAccion`, `desactivarProgramaAccion`, `crearFuenteAccion` y `quitarDelProgramaAccion` devuelven "Esta vista es solo para: gerente." y la base queda quieta (plataformas, motivos, programas, cohortes y fuentes sin cambio).
+- Control: el gerente crea una plataforma y `crearProgramaInactivoAccion` (desde su ubicación nueva) con `ok: true`. Esas filas de prueba se borraron.
 
-**Para el 175 / 177**: `compartidoConClosers` y `vinculadoAProgramas` en `lib/catalogo/registro.ts` quedan sin lector en la página. `listarItems` todavía lee el primero. La página de Motivos sigue mostrando todo el registro (plataformas, orígenes, categorías, áreas); lo que sobre lo quita el 175.
+**Pendiente para la sesión central (necesita navegador):** clic en cada diálogo de la tab Programa (crear, editar y activar programa, cohorte y fuente; el selector de programas) con la consola abierta, para ver que no hay errores de contexto de Base UI. No se corrieron tests en local (swap casi lleno): `tests/paginas.test.ts`, `acciones-programas`, `ficha-programa`, `roles` y `bitacora-jsonb` los valida el CI.
+
+**Para el 177 / siguientes**: `compartidoConClosers` y `vinculadoAProgramas` en `lib/catalogo/registro.ts` quedan sin lector en la página. `listarItems` todavía lee el primero.
