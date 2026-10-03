@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
+  areas,
   calls,
   changeLog,
   cohorts,
@@ -85,6 +86,12 @@ beforeEach(async () => {
 afterEach(async () => {
   await cerrar();
 });
+
+/** Desde Atendido toda respuesta pide el área (143): estos casos prueban el motivo, no el área. */
+async function conArea(): Promise<Partial<typeof deals.$inferInsert>> {
+  const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
+  return { areaDeclaradaId: area.id };
+}
 
 async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferInsert> = {}) {
   const [d] = await db
@@ -394,7 +401,7 @@ describe("marcarFallida: no_show y cancelada mandan a Pendiente Re-agenda", () =
   });
 
   it("desde Atendido con motivo se queda en Atendido con Re-agenda, y lo firma el closer (PR2)", async () => {
-    const dealId = await nuevoDeal("atendido");
+    const dealId = await nuevoDeal("atendido", await conArea());
     const call = await agendadaDe(dealId, { resultado: "show", fechaLlamada: enUnaHora() });
 
     const { etapa } = await marcarFallida(db, comoCloser(), { callId: call.id, resultado: "cancelada", motivoId: motivoReagenda });
@@ -406,7 +413,7 @@ describe("marcarFallida: no_show y cancelada mandan a Pendiente Re-agenda", () =
   });
 
   it("desde Atendido sin motivo se rechaza (PR2 exige motivo) y no mueve", async () => {
-    const dealId = await nuevoDeal("atendido");
+    const dealId = await nuevoDeal("atendido", await conArea());
     const call = await agendadaDe(dealId, { resultado: "show", fechaLlamada: enUnaHora() });
 
     const err = await capturar(marcarFallida(db, comoCloser(), { callId: call.id, resultado: "cancelada" }));
