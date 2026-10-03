@@ -3,7 +3,7 @@ id: 168
 etapa: O3
 serves: "docs/anotaciones.md A-52, A-53, A-55, A-56, A-58, A-59; ADR 0077 puntos 1 y 6"
 depends: []
-status: todo
+status: en curso (S1, sesión de Mani, 3-oct)
 ---
 
 # 168 — La ficha del deal se entiende sola
