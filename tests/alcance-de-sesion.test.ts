@@ -14,9 +14,11 @@ import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba, type BaseDePrueba } from "./helpers/base-de-prueba";
 import {
   idsDeProgramasVisibles,
+  programaDeLaFichaPorSlug,
   programaEnAlcance,
   programaVisiblePorSlug,
   programasVisibles,
+  programasInactivosParaAdministrar,
 } from "@/lib/auth/alcance";
 import { buscarLeads } from "@/lib/queries/leads";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -146,6 +148,18 @@ describe("la función de alcance (ADR 0048, ticket 094)", () => {
     expect(await programaVisiblePorSlug(anaUserId, "closer", "no-existe", db)).toBeNull();
     // El gerente sí ve el ajeno.
     expect((await programaVisiblePorSlug(gerenteId, "gerente", slugB, db))?.id).toBe(programaB);
+  });
+
+  it("solo un administrador abre la ficha de un programa inactivo", async () => {
+    await db.update(programs).set({ activo: false }).where(eq(programs.id, programaB));
+    expect((await programaDeLaFichaPorSlug(gerenteId, "gerente", slugB, db))?.activo).toBe(false);
+    expect(await programaDeLaFichaPorSlug(anaUserId, "closer", slugB, db)).toBeNull();
+    expect(await programaDeLaFichaPorSlug(anaUserId, "closer", slugA, db)).not.toBeNull();
+    expect(await programasInactivosParaAdministrar("closer", db)).toEqual([]);
+    expect(await programasInactivosParaAdministrar("gerente", db)).toEqual([
+      { slug: slugB, nombre: "Programa B" },
+    ]);
+    await db.update(programs).set({ activo: true }).where(eq(programs.id, programaB));
   });
 
   it("programaEnAlcance: true para el propio, false para el ajeno", async () => {
@@ -317,6 +331,7 @@ describe("guardián: el alcance se pregunta por la función, no con un join prop
     expect(typeof modulo.programasVisibles).toBe("function");
     expect(typeof modulo.idsDeProgramasVisibles).toBe("function");
     expect(typeof modulo.programaVisiblePorSlug).toBe("function");
+    expect(typeof modulo.programaDeLaFichaPorSlug).toBe("function");
     expect(typeof modulo.programaEnAlcance).toBe("function");
   });
 

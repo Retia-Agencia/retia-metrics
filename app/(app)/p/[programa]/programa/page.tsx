@@ -4,13 +4,25 @@ import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador } from "@/lib/auth/roles";
-import { programaVisiblePorSlug } from "@/lib/auth/alcance";
+import { programaDeLaFichaPorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { avisoDelFormulario, fichaDelPrograma, type CohorteVista } from "@/lib/queries/ficha-programa";
+import {
+  avisoDelFormulario,
+  fichaDelPrograma,
+  faltaParaActivar,
+  fuentesDelProgramaParaAdmin,
+  type CohorteVista,
+} from "@/lib/queries/ficha-programa";
 import { fecha, monto, num, usd } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
 import { CohortesAdmin } from "@/components/cohortes-admin";
+import { FuentesAdmin } from "@/components/admin/fuentes-admin";
+import { listarUsuarios, membresiasConCalendly } from "@/lib/catalogo/usuarios";
+import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
+import { trabajaLeads } from "@/lib/auth/roles";
 import { PlataformasDelPrograma } from "./plataformas-del-programa";
+import { ActivarPrograma, EditarPrograma } from "./editar-programa";
+import { EquipoDelPrograma } from "./equipo-del-programa";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,7 +56,7 @@ export default async function FichaDelProgramaPage({ params }: Props) {
   const session = await paginaConRol("gerente", "closer");
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
-  const visible = await programaVisiblePorSlug(session.user.id, rol, slug);
+  const visible = await programaDeLaFichaPorSlug(session.user.id, rol, slug);
   if (!visible) notFound();
 
   const ficha = await fichaDelPrograma(visible.id, db);
@@ -55,6 +67,34 @@ export default async function FichaDelProgramaPage({ params }: Props) {
     ficha;
   const activa = cohortes.find((c) => c.estado === "activo") ?? null;
   const aviso = avisoDelFormulario(programa.formulario);
+  const faltan = faltaParaActivar(programa);
+  const programaParaEditar = {
+    id: programa.id,
+    slug: programa.slug,
+    nombre: programa.nombre,
+    ticketUsd: programa.ticketUsd,
+    comisionPorcentaje: programa.comisionPorcentaje,
+    webUrl: null,
+    calendlyUrl: programa.calendlyUrl,
+    formUrl: programa.formUrl,
+    tieneTokenCalendly: programa.tieneTokenCalendly,
+    webhookCalendlyConectado: programa.webhookCalendlyConectado,
+    diasSinActividad: programa.diasSinActividad,
+    activo: programa.activo,
+  };
+
+  const [fuentesAdmin, membresias, usuarios, cuentas] = administra
+    ? await Promise.all([
+        fuentesDelProgramaParaAdmin(programa.id, db),
+        membresiasConCalendly(db, programa.id),
+        listarUsuarios(db),
+        cuentasPorPrograma(db, [programa.id]),
+      ])
+    : [null, [], [], {}];
+  const miembros = new Set(membresias.map((m) => m.userId));
+  const elegibles = usuarios
+    .filter((usuario) => usuario.activo && trabajaLeads(usuario.rol) && !miembros.has(usuario.id))
+    .map(({ id, nombre, email }) => ({ id, nombre, email }));
 
   return (
     <PageShell
@@ -62,16 +102,42 @@ export default async function FichaDelProgramaPage({ params }: Props) {
       descripcion="Programa"
       acciones={
         administra ? (
-          <Button
-            size="sm"
-            variant="secondary"
-            nativeButton={false}
-            render={<Link href="/ajustes/programas">Editar en Ajustes</Link>}
-          />
+          <div className="flex items-center gap-2">
+            {!programa.activo ? <Badge variant="neutro">Inactivo</Badge> : null}
+            <EditarPrograma programa={programaParaEditar} />
+          </div>
         ) : null
       }
     >
       <div className="space-y-4">
+        {!programa.activo && administra ? (
+          <Card>
+            <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+              <CardTitle className="text-base">Le falta para activarse</CardTitle>
+              <ActivarPrograma id={programa.id} habilitado={faltan.length === 0} />
+            </CardHeader>
+            <CardContent>
+              {faltan.length === 0 ? (
+                <p className="text-sm text-muted-foreground">El programa está listo para activarse.</p>
+              ) : (
+                <ul className="space-y-2 text-sm">
+                  {faltan.map((item) => (
+                    <li key={item.clave} className="flex items-center justify-between gap-3">
+                      <span>{item.texto}</span>
+                      {item.clave === "fuente_principal" ? (
+                        <Button size="sm" variant="ghost" nativeButton={false} render={<Link href="#formularios" />}>
+                          Ir a Formularios
+                        </Button>
+                      ) : (
+                        <EditarPrograma programa={programaParaEditar} trigger="Editar" />
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Kpi etiqueta="Ticket de referencia">
             <p className="cifra text-2xl font-semibold">{usd(Number(programa.ticketUsd))}</p>
@@ -219,24 +285,25 @@ export default async function FichaDelProgramaPage({ params }: Props) {
           </CardContent>
         </Card>
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
+        {administra && fuentesAdmin ? (
+          <Card id="formularios">
+            <CardHeader>
+              <CardTitle className="text-base">Formularios</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FuentesAdmin programas={[fuentesAdmin]} />
+            </CardContent>
+          </Card>
+        ) : (
+          <Card id="formularios">
             <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
               <CardTitle className="text-base">Fuentes de leads</CardTitle>
-              {administra ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  nativeButton={false}
-                  render={<Link href="/ajustes/fuentes">Administrar</Link>}
-                />
-              ) : null}
             </CardHeader>
             <CardContent className="text-sm">
               {fuentes.length === 0 ? (
                 <p className="text-muted-foreground">
                   Este programa no tiene fuentes de leads: ningún formulario le está entregando envíos.
-                  {administra ? " Créala en Ajustes → Fuentes." : " Quien administra la crea en Ajustes."}
+                  Quien administra la crea en Formularios.
                 </p>
               ) : (
                 <ul className="divide-y divide-border">
@@ -256,26 +323,26 @@ export default async function FichaDelProgramaPage({ params }: Props) {
               )}
             </CardContent>
           </Card>
+        )}
 
-          <Card>
+        <Card id="equipo">
             <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
               <CardTitle className="text-base">
                 Equipo <span className="cifra text-muted-foreground">· {num(equipo.length)}</span>
               </CardTitle>
-              {administra ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  nativeButton={false}
-                  render={<Link href="/ajustes/usuarios">Administrar</Link>}
-                />
-              ) : null}
             </CardHeader>
             <CardContent className="text-sm">
-              {equipo.length === 0 ? (
+              {administra ? (
+                <EquipoDelPrograma
+                  programa={{ id: programa.id, nombre: programa.nombre }}
+                  membresias={membresias}
+                  elegibles={elegibles}
+                  cuentas={cuentas}
+                />
+              ) : equipo.length === 0 ? (
                 <p className="text-muted-foreground">
                   Nadie tiene membresía activa en este programa.
-                  {administra ? " Se asigna en Ajustes → Usuarios." : " Quien administra la asigna en Ajustes."}
+                  Quien administra la asigna en Equipo.
                 </p>
               ) : (
                 <ul className="divide-y divide-border">
@@ -296,7 +363,6 @@ export default async function FichaDelProgramaPage({ params }: Props) {
               )}
             </CardContent>
           </Card>
-        </div>
       </div>
     </PageShell>
   );

@@ -63,6 +63,7 @@ async function actorDe(session: Session): Promise<Actor> {
 /** Revalida la pantalla de fuentes tras una escritura. */
 function revalidar() {
   revalidatePath("/ajustes/fuentes");
+  revalidatePath("/p/[programa]/programa", "page");
 }
 
 export async function crearFuenteAccion(input: EntradaFuente): Promise<ResultadoAccion> {

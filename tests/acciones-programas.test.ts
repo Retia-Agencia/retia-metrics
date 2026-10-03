@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { cohorts, programs, users } from "@/lib/db/schema";
+import { cohorts, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -93,6 +93,10 @@ describe("acciones de programas — barrera de rol (ADR 0003)", () => {
       editarProgramaAccion,
       desactivarProgramaAccion,
       reactivarProgramaAccion,
+      activarProgramaDesdeFichaAccion,
+      crearProgramaInactivoAccion,
+      agregarAlProgramaAccion,
+      quitarDelProgramaAccion,
     } = await acciones();
 
     for (const llamada of [
@@ -100,10 +104,16 @@ describe("acciones de programas — barrera de rol (ADR 0003)", () => {
       () => editarProgramaAccion(UUID, programaValido, "tok"),
       () => desactivarProgramaAccion(UUID),
       () => reactivarProgramaAccion(UUID),
+      () => activarProgramaDesdeFichaAccion(programId),
+      () => crearProgramaInactivoAccion({ nombre: "Forjado", slug: "forjado", ticketUsd: "100" }),
+      () => agregarAlProgramaAccion({ userId: UUID, programId }),
+      () => quitarDelProgramaAccion({ userId: UUID, programId }),
     ]) {
       const res = await llamada();
       expect(res.ok).toBe(false);
     }
+    expect(await db.select().from(programs)).toHaveLength(1);
+    expect(await db.select().from(miembrosPrograma)).toHaveLength(0);
   });
 
   it("un closer es rechazado en todas las acciones de cohorte", async () => {
@@ -165,6 +175,37 @@ describe("acciones de programas — el gerente administra", () => {
     const res = await crearProgramaAccion({ ...programaValido, slug: "Con Mayusculas" }, "tok");
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error.length).toBeGreaterThan(0);
+  });
+
+  it("crea un programa inactivo sin token ni activacion", async () => {
+    const { crearProgramaInactivoAccion } = await acciones();
+    const resultado = await crearProgramaInactivoAccion({
+      nombre: "Programa incompleto",
+      slug: "programa-incompleto",
+      ticketUsd: "900",
+    });
+    expect(resultado).toEqual({ ok: true, slug: "programa-incompleto" });
+    const [creado] = await db.select().from(programs).where(eq(programs.slug, "programa-incompleto"));
+    expect(creado.activo).toBe(false);
+    expect(creado.calendlyToken).toBeNull();
+  });
+
+  it("activar desde la ficha rechaza faltantes y deja el programa inactivo", async () => {
+    const { activarProgramaDesdeFichaAccion } = await acciones();
+    await db
+      .update(programs)
+      .set({ activo: false, formUrl: null, calendlyToken: null })
+      .where(eq(programs.id, programId));
+    const resultado = await activarProgramaDesdeFichaAccion(programId);
+    expect(resultado.ok).toBe(false);
+    const [programa] = await db.select().from(programs).where(eq(programs.id, programId));
+    expect(programa.activo).toBe(false);
+  });
+
+  it("esquemaPrograma acepta diasSinActividad y rechaza cero", async () => {
+    const { esquemaPrograma } = await import("@/lib/catalogo/programas");
+    expect(esquemaPrograma.parse({ ...programaValido, diasSinActividad: "9" }).diasSinActividad).toBe(9);
+    expect(() => esquemaPrograma.parse({ ...programaValido, diasSinActividad: 0 })).toThrow();
   });
 
   it("activar una segunda cohorte en el mismo programa devuelve ok:false con mensaje claro", async () => {

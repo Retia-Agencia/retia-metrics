@@ -5,12 +5,14 @@ import { changeLog, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import {
+  agregarMembresia,
   crearUsuario,
   desactivarUsuario,
   editarUsuario,
   esquemaUsuario,
   listarUsuarios,
   parsearEntradaUsuario,
+  quitarMembresia,
   reactivarUsuario,
 } from "@/lib/catalogo/usuarios";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -95,8 +97,8 @@ describe("esquema de usuario", () => {
     ).toThrow(ZodError);
   });
 
-  it("un closer sin programas no valida", () => {
-    expect(() => esquemaUsuario.parse({ ...closerValido, programas: [] })).toThrow(ZodError);
+  it("los programas son opcionales", () => {
+    expect(esquemaUsuario.parse(closerValido).programas).toEqual([]);
   });
 
   it("un gerente no necesita closerId ni programas", () => {
@@ -174,17 +176,26 @@ describe("crear usuario", () => {
     expect((error as ErrorDeApp).status).toBe(400);
   });
 
-  it("un closer sin programa es un 400", async () => {
-    const error = await crearUsuario(db, gerenteId, {
-      ...closerValido,
-      programas: [],
-    }).catch((e) => e);
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(400);
+  it("un closer puede nacer sin membresias", async () => {
+    const creado = await crearUsuario(db, gerenteId, closerValido);
+    expect(await membresiasDe(creado.id)).toHaveLength(0);
   });
 });
 
 describe("editar usuario", () => {
+  it("sin programas conserva las membresias actuales", async () => {
+    const creado = await crearUsuario(db, gerenteId, { ...closerValido, programas: [programaAId] });
+    await editarUsuario(db, gerenteId, creado.id, {
+      email: closerValido.email,
+      nombre: "Andrea editada",
+      rol: "closer",
+      closerId: "Andrea",
+    });
+    expect((await membresiasDe(creado.id)).filter((m) => m.activo).map((m) => m.programId)).toEqual([
+      programaAId,
+    ]);
+  });
+
   it("sincroniza membresias: agrega la nueva, desactiva la removida, nunca borra", async () => {
     const creado = await crearUsuario(db, gerenteId, {
       ...closerValido,
@@ -248,6 +259,40 @@ describe("editar usuario", () => {
     }).catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(400);
+  });
+});
+
+describe("membresias desde la ficha del programa", () => {
+  it("agrega y quita con change_log, sin borrar la fila", async () => {
+    const creado = await crearUsuario(db, gerenteId, closerValido);
+    await agregarMembresia(db, gerenteId, creado.id, programaAId);
+    let membresias = await membresiasDe(creado.id);
+    expect(membresias).toHaveLength(1);
+    expect(membresias[0].activo).toBe(true);
+    expect(await logDe(membresias[0].id)).not.toHaveLength(0);
+
+    await quitarMembresia(db, gerenteId, creado.id, programaAId);
+    membresias = await membresiasDe(creado.id);
+    expect(membresias).toHaveLength(1);
+    expect(membresias[0].activo).toBe(false);
+    expect((await logDe(membresias[0].id)).some((fila) => fila.valorNuevo === "false")).toBe(true);
+  });
+
+  it("acepta un programa inactivo", async () => {
+    const creado = await crearUsuario(db, gerenteId, closerValido);
+    await db.update(programs).set({ activo: false }).where(eq(programs.id, programaBId));
+    await expect(agregarMembresia(db, gerenteId, creado.id, programaBId)).resolves.toBeUndefined();
+  });
+
+  it("rechaza gerente e usuario inactivo", async () => {
+    await expect(agregarMembresia(db, gerenteId, gerenteId, programaAId)).rejects.toMatchObject({
+      status: 400,
+    });
+    const creado = await crearUsuario(db, gerenteId, closerValido);
+    await db.update(users).set({ activo: false }).where(eq(users.id, creado.id));
+    await expect(agregarMembresia(db, gerenteId, creado.id, programaAId)).rejects.toMatchObject({
+      status: 400,
+    });
   });
 });
 

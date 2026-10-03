@@ -97,7 +97,8 @@ async function agregar(email: string, rol: string, closerId?: string, ...program
 
   // Sincroniza membresias: activa/inserta las elegidas (nunca borra). El CLI de
   // emergencia no desactiva membresias viejas; para eso esta la pantalla.
-  for (const programId of datos.programas) {
+  const programasElegidos = datos.programas ?? [];
+  for (const programId of programasElegidos) {
     await db
       .insert(miembrosPrograma)
       .values({ userId, programId, activo: true })
@@ -106,8 +107,8 @@ async function agregar(email: string, rol: string, closerId?: string, ...program
         set: { activo: true },
       });
   }
-  if (datos.programas.length > 0) {
-    console.log(`  ${datos.programas.length} programa(s) asignado(s).`);
+  if (programasElegidos.length > 0) {
+    console.log(`  ${programasElegidos.length} programa(s) asignado(s).`);
   }
   console.log("");
 }

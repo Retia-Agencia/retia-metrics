@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { paginaConSesion } from "@/lib/auth/page-guards";
-import { esAccesoTotal } from "@/lib/auth/roles";
+import { esAccesoTotal, esAdministrador } from "@/lib/auth/roles";
 import { rolDeVista, vistaActual } from "@/lib/auth/vista";
-import { programasVisibles } from "@/lib/auth/alcance";
+import { programasInactivosParaAdministrar, programasVisibles } from "@/lib/auth/alcance";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await paginaConSesion();
@@ -17,6 +17,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // closer no ve el link del otro programa en el sidebar. La misma funcion de alcance
   // que el dashboard y el selector, no `programasActivos`.
   const programas = await programasVisibles(session.user.id, rolVista);
+  const inactivos = await programasInactivosParaAdministrar(rolVista);
+  const puedeCrear = esAdministrador(rolVista);
   const puedeCambiarVista = esAccesoTotal(session.user.rol);
   const vista = await vistaActual();
 
@@ -28,6 +30,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         email={session.user.email ?? ""}
         imagen={session.user.image}
         programas={programas}
+        inactivos={inactivos}
+        puedeCrear={puedeCrear}
         puedeCambiarVista={puedeCambiarVista}
         vista={vista}
       />

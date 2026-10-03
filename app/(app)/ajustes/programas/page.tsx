@@ -1,43 +1,15 @@
+import { redirect } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
-import { db } from "@/lib/db";
-import { PageShell } from "@/components/page-shell";
-import { ProgramasAdmin, type ProgramaVista } from "@/components/programas-admin";
-import { listarProgramas } from "@/lib/catalogo/programas";
+import { rolDeVista } from "@/lib/auth/vista";
+import { programasInactivosParaAdministrar, programasVisibles } from "@/lib/auth/alcance";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Pantalla de administracion de programas (ticket 014, ADR 0012), solo gerente. El
- * guard corre primero: un closer nunca llega a leer la base.
- *
- * Los programas salen de la base (ningun literal en el codigo). Crear uno lo hace
- * aparecer en el sidebar sin desplegar; desactivarlo lo saca sin borrar sus datos.
- * Las cohortes de cada programa viven en `./[slug]`.
- */
 export default async function ProgramasPage() {
-  await paginaConRol("gerente");
-
-  const programas = await listarProgramas(db);
-  const vista: ProgramaVista[] = programas.map((p) => ({
-    id: p.id,
-    slug: String(p.slug),
-    nombre: String(p.nombre),
-    ticketUsd: String(p.ticketUsd),
-    comisionPorcentaje: p.comisionPorcentaje == null ? null : String(p.comisionPorcentaje),
-    webUrl: (p.webUrl as string | null) ?? null,
-    calendlyUrl: (p.calendlyUrl as string | null) ?? null,
-    formUrl: (p.formUrl as string | null) ?? null,
-    tieneTokenCalendly: p.tieneTokenCalendly,
-    webhookCalendlyConectado: p.webhookCalendlyConectado,
-    activo: p.activo,
-  }));
-
-  return (
-    <PageShell
-      titulo="Programas"
-      descripcion="Cada programa con su slug, ticket, Forms Link y Calendly Token. Sin los dos no se activa."
-    >
-      <ProgramasAdmin programas={vista} />
-    </PageShell>
-  );
+  const session = await paginaConRol("gerente");
+  const rol = await rolDeVista(session);
+  const activos = await programasVisibles(session.user.id, rol);
+  if (activos[0]) redirect(`/p/${activos[0].slug}/programa`);
+  const inactivos = await programasInactivosParaAdministrar(rol);
+  redirect(inactivos[0] ? `/p/${inactivos[0].slug}/programa` : "/");
 }

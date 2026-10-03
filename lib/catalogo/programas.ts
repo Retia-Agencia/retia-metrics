@@ -76,6 +76,11 @@ export const esquemaPrograma = z.object({
     .optional()
     .refine((v) => v == null || v === "" || Number(v) <= 100, "La comisión debe estar entre 0 y 100.")
     .transform((v) => (v && v.length > 0 ? v : null)),
+  diasSinActividad: z.coerce
+    .number()
+    .int("Los días sin actividad deben ser un entero.")
+    .min(1, "Los días sin actividad deben ser al menos 1.")
+    .optional(),
 });
 
 /** Entrada validada de un programa (lo que el llamador escribe). */

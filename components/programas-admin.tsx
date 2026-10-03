@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, RotateCcw, X } from "lucide-react";
+import { RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { num, usd } from "@/lib/format";
 import {
   conectarCalendlyAccion,
-  crearProgramaAccion,
   desactivarProgramaAccion,
   editarProgramaAccion,
   reactivarProgramaAccion,
@@ -44,10 +43,11 @@ export interface ProgramaVista {
   tieneTokenCalendly: boolean;
   /** Si el webhook de Calendly esta conectado. La clave nunca llega al cliente (ticket 096). */
   webhookCalendlyConectado: boolean;
+  diasSinActividad: number;
   activo: boolean;
 }
 
-interface Borrador {
+export interface Borrador {
   nombre: string;
   slug: string;
   ticketUsd: string;
@@ -57,20 +57,10 @@ interface Borrador {
   formUrl: string;
   /** Lo que se teclea o pega en Calendly Token. Nunca se rellena con el guardado. */
   tokenCalendly: string;
+  diasSinActividad: string;
 }
 
-const BORRADOR_VACIO: Borrador = {
-  nombre: "",
-  slug: "",
-  ticketUsd: "",
-  comisionPorcentaje: "",
-  webUrl: "",
-  calendlyUrl: "",
-  formUrl: "",
-  tokenCalendly: "",
-};
-
-function aBorrador(p: ProgramaVista): Borrador {
+export function aBorrador(p: ProgramaVista): Borrador {
   return {
     nombre: p.nombre,
     slug: p.slug,
@@ -80,13 +70,13 @@ function aBorrador(p: ProgramaVista): Borrador {
     calendlyUrl: p.calendlyUrl ?? "",
     formUrl: p.formUrl ?? "",
     tokenCalendly: "",
+    diasSinActividad: String(p.diasSinActividad),
   };
 }
 
 export function ProgramasAdmin({ programas }: { programas: ProgramaVista[] }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
-  const [creando, setCreando] = useState(false);
   const [editando, setEditando] = useState<string | null>(null);
 
   function correr(accion: () => Promise<ResultadoAccion>, exito: string, alExito?: () => void) {
@@ -109,27 +99,6 @@ export function ProgramasAdmin({ programas }: { programas: ProgramaVista[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button size="sm" disabled={pendiente || creando} onClick={() => setCreando(true)}>
-          <Plus className="size-4" />
-          Nuevo programa
-        </Button>
-      </div>
-
-      {creando ? (
-        <FormularioPrograma
-          titulo="Nuevo programa"
-          inicial={BORRADOR_VACIO}
-          pendiente={pendiente}
-          onCancelar={() => setCreando(false)}
-          onGuardar={(b) =>
-            correr(() => crearProgramaAccion(aEntrada(b), b.tokenCalendly), "Programa creado", () =>
-              setCreando(false),
-            )
-          }
-        />
-      ) : null}
-
       <ul className="divide-y rounded-md border">
         {ordenados.length === 0 ? (
           <li className="px-3 py-4 text-sm text-muted-foreground">Todavía no hay programas.</li>
@@ -254,7 +223,7 @@ export function ProgramasAdmin({ programas }: { programas: ProgramaVista[] }) {
 }
 
 /** Convierte el borrador del formulario a la entrada que espera la server action. */
-function aEntrada(b: Borrador) {
+export function aEntrada(b: Borrador) {
   return {
     nombre: b.nombre,
     slug: b.slug,
@@ -263,10 +232,11 @@ function aEntrada(b: Borrador) {
     webUrl: b.webUrl,
     calendlyUrl: b.calendlyUrl,
     formUrl: b.formUrl,
+    diasSinActividad: b.diasSinActividad || undefined,
   };
 }
 
-function FormularioPrograma({
+export function FormularioPrograma({
   titulo,
   inicial,
   pendiente,
@@ -319,7 +289,7 @@ function FormularioPrograma({
 
           <label className="block space-y-1 text-sm">
             <span className="text-muted-foreground">
-              Slug {slugBloqueado ? "(no se puede cambiar)" : "(minúsculas, números y guiones)"}
+              Slug {slugBloqueado ? "(El slug no se cambia: está en los enlaces)" : "(minúsculas, números y guiones)"}
             </span>
             <input
               value={borrador.slug}
@@ -341,6 +311,20 @@ function FormularioPrograma({
               required
               className={claseInput}
               aria-label="Ticket en USD"
+            />
+          </label>
+
+          <label className="block space-y-1 text-sm">
+            <span className="text-muted-foreground">Estancado tras N días</span>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={borrador.diasSinActividad}
+              onChange={(e) => setBorrador({ ...borrador, diasSinActividad: e.target.value })}
+              required
+              className={claseInput}
+              aria-label="Días sin actividad"
             />
           </label>
 

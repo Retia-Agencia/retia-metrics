@@ -61,9 +61,17 @@ vi.mock("@/lib/queries/programas", () => ({
 // funcion de alcance (ADR 0048, ticket 094), no contra `programasActivos`. Se mockea
 // para poder simular "este programa esta / no esta dentro del alcance de la sesion".
 const programaVisiblePorSlug = vi.fn();
+const programaDeLaFichaPorSlug = vi.fn();
+const programasInactivosParaAdministrar = vi.fn();
 const programasVisibles = vi.fn();
 const idsDeProgramasVisibles = vi.fn();
-vi.mock("@/lib/auth/alcance", () => ({ programaVisiblePorSlug, programasVisibles, idsDeProgramasVisibles }));
+vi.mock("@/lib/auth/alcance", () => ({
+  programaVisiblePorSlug,
+  programaDeLaFichaPorSlug,
+  programasInactivosParaAdministrar,
+  programasVisibles,
+  idsDeProgramasVisibles,
+}));
 
 // La ficha del lead (ticket 073) lee la base; sin
 // base en los tests se mockean las queries para que las guardas y el 404 sean lo unico
@@ -490,7 +498,7 @@ describe("dashboard de programa /p/[programa]/dashboard (ADR 0048 + 0012)", () =
   const SLUG_EXISTE = "programa-a";
   const SLUG_NO_EXISTE = "no-existe";
 
-  it("deja pasar a un gerente con un slug existente", async () => {
+  it("redirige al gerente a la tab Programa con un slug existente", async () => {
     auth.mockResolvedValue(sesionGerente);
     programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
     expect(await correrPrograma(SLUG_EXISTE)).toBe("paso");
@@ -700,31 +708,31 @@ describe("cohortes de un programa /ajustes/programas/[slug] (ticket 014)", () =>
 
   it("rechaza a un closer y lo manda a su vista (solo gerente, ADR 0003)", async () => {
     auth.mockResolvedValue(sesionCloser);
-    programaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
+    programaDeLaFichaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
     expect(await correrCohortes(SLUG)).toBe("midia");
   });
 
   it("manda al login a quien no tiene sesion, aun con un slug existente", async () => {
     auth.mockResolvedValue(null);
-    programaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
+    programaDeLaFichaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
     expect(await correrCohortes(SLUG)).toBe("login");
   });
 
   it("deja pasar a un gerente con un slug existente", async () => {
     auth.mockResolvedValue(sesionGerente);
-    programaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
-    expect(await correrCohortes(SLUG)).toBe("paso");
+    programaDeLaFichaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
+    expect(await correrCohortes(SLUG)).toBe("midia");
   });
 
-  it("deja pasar a un developer con un slug existente (ADR 0025)", async () => {
+  it("redirige al developer a la tab Programa con un slug existente (ADR 0025)", async () => {
     auth.mockResolvedValue(sesionDeveloper);
-    programaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
-    expect(await correrCohortes(SLUG)).toBe("paso");
+    programaDeLaFichaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
+    expect(await correrCohortes(SLUG)).toBe("midia");
   });
 
   it("un slug inexistente, con sesion de gerente, es 404", async () => {
     auth.mockResolvedValue(sesionGerente);
-    programaPorSlug.mockResolvedValue(null);
+    programaDeLaFichaPorSlug.mockResolvedValue(null);
     expect(await correrCohortes("no-existe")).toBe("notFound");
   });
 });

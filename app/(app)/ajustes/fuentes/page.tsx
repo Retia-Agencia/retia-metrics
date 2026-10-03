@@ -1,129 +1,14 @@
+import { redirect } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
-import { estadoDeFuentes, fuentesParaAdmin } from "@/lib/queries/fuentes";
-import { saludDeFuentes } from "@/lib/queries/salud-fuentes";
-import { PageShell } from "@/components/page-shell";
-import { haceCuanto } from "@/lib/format";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { num, pct } from "@/lib/format";
-import { FuentesAdmin, type ProgramaConFuentes } from "@/components/admin/fuentes-admin";
+import { rolDeVista } from "@/lib/auth/vista";
+import { programasInactivosParaAdministrar, programasVisibles } from "@/lib/auth/alcance";
 
 export const dynamic = "force-dynamic";
 
-type MapeoColumnas = Record<string, string | string[]>;
-
 export default async function FuentesPage() {
-  await paginaConRol("gerente");
-  const { conteos, corridas, cambios } = await estadoDeFuentes();
-  const { programas, fuentes } = await fuentesParaAdmin();
-  // Ticket 107: solo las activas tienen salud; una inactiva no recibe a proposito.
-  const saludPorFuente = new Map((await saludDeFuentes()).map((s) => [s.sourceId, s]));
-
-  // Se arma la vista por programa para la administracion: cada programa con sus
-  // fuentes. El sheetId viaja completo (lo necesita el formulario de edicion) y se
-  // trunca al PINTAR (S-13, `truncarId`), no aca.
-  const programasConFuentes: ProgramaConFuentes[] = programas.map((p) => ({
-    id: p.id,
-    slug: p.slug,
-    nombre: p.nombre,
-    plantillaLead: (p.plantillaLead as MapeoColumnas | null) ?? null,
-    fuentes: fuentes
-      .filter((f) => f.programId === p.id)
-      .map((f) => ({
-        id: f.id,
-        programId: f.programId,
-        nombre: f.nombre,
-        tipo: f.tipo,
-        sheetId: f.sheetId,
-        tab: f.tab,
-        rango: f.rango,
-        mapeoColumnas: (f.mapeoColumnas as MapeoColumnas) ?? {},
-        proveedor: f.proveedor,
-        tieneSecreto: f.tieneSecreto,
-        activo: f.activo,
-        ultimaSync: f.ultimaSync ? f.ultimaSync.toISOString() : null,
-        orden: f.orden,
-        umbralSinRespuestaHoras: f.umbralSinRespuestaHoras,
-        umbralMuertaHoras: f.umbralMuertaHoras,
-        urlPublica: f.urlPublica ?? null,
-        principal: Boolean(f.principal),
-        salud: (() => {
-          const s = saludPorFuente.get(f.id);
-          return s
-            ? { estado: s.estado, ultimoHace: haceCuanto(s.ultimo), sobresPendientes: s.sobresPendientes, sinCalidad: s.sinCalidad }
-            : null;
-        })(),
-      })),
-  }));
-
-  return (
-    <PageShell
-      titulo="Fuentes de datos"
-      descripcion="De dónde lee la app, cómo se mapean sus columnas y cuándo fue la última sincronización."
-    >
-      <div className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-3">
-          {conteos.map((c) => {
-            const dup = c.aplicaciones ? 1 - c.personas / c.aplicaciones : 0;
-            return (
-              <Card key={c.slug}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {c.nombre}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-semibold tabular-nums">{num(c.personas)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    personas · {num(c.aplicaciones)} aplicaciones · {pct(dup)} duplicados
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Cambios registrados
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold tabular-nums">{num(cambios)}</p>
-              <p className="text-xs text-muted-foreground">en la bitácora</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <FuentesAdmin programas={programasConFuentes} />
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Últimas sincronizaciones</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {corridas.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Todavía no se ha corrido ninguna.</p>
-            ) : (
-              <div className="space-y-1 text-sm">
-                {corridas.map((c) => (
-                  <div key={c.id} className="flex flex-wrap items-center gap-2">
-                    <Badge
-                      variant={c.estado === "ok" ? "secondary" : c.estado === "error" ? "destructive" : "outline"}
-                    >
-                      {c.estado}
-                    </Badge>
-                    <span className="text-muted-foreground">{haceCuanto(c.iniciado)}</span>
-                    <span className="tabular-nums">
-                      {num(c.filasLeidas)} filas · {num(c.personasNuevas)} nuevas ·{" "}
-                      {num(c.personasActualizadas)} actualizadas
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </PageShell>
-  );
+  const session = await paginaConRol("gerente");
+  const rol = await rolDeVista(session);
+  const activos = await programasVisibles(session.user.id, rol);
+  const primero = activos[0] ?? (await programasInactivosParaAdministrar(rol))[0];
+  redirect(primero ? `/p/${primero.slug}/programa#formularios` : "/");
 }

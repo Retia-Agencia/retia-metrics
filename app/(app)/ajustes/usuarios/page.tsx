@@ -42,17 +42,15 @@ export default async function UsuariosPage() {
     closerId: u.closerId,
     calendlyEmail: u.calendlyEmail,
     activo: u.activo,
-    programas: u.programas,
   }));
 
   return (
     <PageShell
       titulo="Usuarios"
-      descripcion="Quién puede entrar, con qué rol y en qué programas vende cada closer."
+      descripcion="Quién puede entrar y con qué rol. Las membresías se administran en la tab Programa."
     >
       <UsuariosAdmin
         usuarios={vista}
-        programas={programas}
         usuarioActualId={session.user.id}
       />
       {membresias.length > 0 ? (

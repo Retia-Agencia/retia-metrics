@@ -13,6 +13,8 @@ import {
   type EntradaPrograma,
 } from "@/lib/catalogo/programas";
 import { conectarCalendly } from "@/lib/calendly/suscripcion";
+import { agregarMembresia, quitarMembresia } from "@/lib/catalogo/usuarios";
+import { fichaDelPrograma, faltaParaActivar } from "@/lib/queries/ficha-programa";
 import {
   activarCohorte,
   crearCohorte,
@@ -48,7 +50,26 @@ function aResultado(error: unknown): ResultadoAccion {
 function revalidarNav(slug?: string) {
   revalidatePath("/ajustes/programas");
   revalidatePath("/", "layout");
+  revalidatePath("/p/[programa]/programa", "page");
   if (slug) revalidatePath(`/ajustes/programas/${slug}`);
+}
+
+type EntradaProgramaNuevo = Pick<EntradaPrograma, "nombre" | "slug" | "ticketUsd">;
+type ResultadoCreacion = { ok: true; slug: string } | { ok: false; error: string };
+
+/** Crea el cascaron inactivo; se completa y activa desde su propia ficha. */
+export async function crearProgramaInactivoAccion(
+  input: EntradaProgramaNuevo,
+): Promise<ResultadoCreacion> {
+  try {
+    const session = await requireRole("gerente");
+    const programa = await crearPrograma(db, session.user.id, input);
+    revalidarNav();
+    return { ok: true, slug: String(programa.slug) };
+  } catch (error) {
+    const resultado = aResultado(error);
+    return resultado.ok ? { ok: false, error: "Error interno." } : resultado;
+  }
 }
 
 /**
@@ -111,6 +132,55 @@ export async function reactivarProgramaAccion(id: string): Promise<ResultadoAcci
   try {
     const session = await requireRole("gerente");
     await reactivarPrograma(db, session.user.id, id);
+    revalidarNav();
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+/** La ficha vuelve a comprobar todos los requisitos antes de activar. */
+export async function activarProgramaDesdeFichaAccion(id: string): Promise<ResultadoAccion> {
+  try {
+    const session = await requireRole("gerente");
+    const ficha = await fichaDelPrograma(id, db);
+    if (!ficha) throw new ErrorDeApp("No existe el programa.", 404);
+    const faltan = faltaParaActivar(ficha.programa);
+    if (faltan.length > 0) {
+      throw new ErrorDeApp(
+        `No se puede activar: falta ${faltan.map((item) => item.texto).join(", ")}.`,
+        422,
+      );
+    }
+    await reactivarPrograma(db, session.user.id, id);
+    revalidarNav(ficha.programa.slug);
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+export async function agregarAlProgramaAccion(input: {
+  userId: string;
+  programId: string;
+}): Promise<ResultadoAccion> {
+  try {
+    const session = await requireRole("gerente");
+    await agregarMembresia(db, session.user.id, input.userId, input.programId);
+    revalidarNav();
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+export async function quitarDelProgramaAccion(input: {
+  userId: string;
+  programId: string;
+}): Promise<ResultadoAccion> {
+  try {
+    const session = await requireRole("gerente");
+    await quitarMembresia(db, session.user.id, input.userId, input.programId);
     revalidarNav();
     return { ok: true };
   } catch (error) {

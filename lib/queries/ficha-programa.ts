@@ -7,6 +7,10 @@ import { plataformasDePago, plataformasDelPrograma } from "@/lib/catalogo/plataf
 import { programaPorId } from "@/lib/catalogo/programas";
 import { membresiasConCalendly } from "@/lib/catalogo/usuarios";
 import { enlacesDePagoVigentes } from "@/lib/queries/recursos";
+import { fuentesParaAdmin } from "@/lib/queries/fuentes";
+import { saludDeFuentes } from "@/lib/queries/salud-fuentes";
+import { haceCuanto } from "@/lib/format";
+import type { ProgramaConFuentes } from "@/components/admin/fuentes-admin";
 
 /**
  * La ficha del programa (ticket 100, ADR 0050): todo lo que define un programa en una
@@ -33,6 +37,8 @@ export interface DatosDelPrograma {
   ticketUsd: string;
   /** El porcentaje vigente (ADR 0065 punto 7). Nulo = no cargado, nunca 0. */
   comisionPorcentaje: string | null;
+  /** Link de configuracion; no reemplaza a la fuente principal como destino visible. */
+  formUrl: string | null;
   /**
    * El destino del formulario: la fuente principal del programa (ADR 0068). Nulo = no hay a
    * donde mandar un link. Ya no sale de `programs.form_url`, que se retira en dos pasos.
@@ -149,6 +155,7 @@ export async function fichaDelPrograma(
       activo: Boolean(programa.activo),
       ticketUsd: String(programa.ticketUsd),
       comisionPorcentaje: programa.comisionPorcentaje == null ? null : String(programa.comisionPorcentaje),
+      formUrl: (programa.formUrl as string | null) ?? null,
       formulario: formularioPrincipal(fuentes),
       calendlyUrl: (programa.calendlyUrl as string | null) ?? null,
       tieneTokenCalendly: programa.tieneTokenCalendly,
@@ -211,5 +218,77 @@ function formularioPrincipal(
 export function avisoDelFormulario(formulario: DatosDelPrograma["formulario"]): string | null {
   return formulario
     ? null
-    : "Este programa no tiene fuente principal: no hay a dónde mandar un link de captación. Márcala en Ajustes → Fuentes.";
+    : "Este programa no tiene fuente principal: no hay a dónde mandar un link de captación. Márcala en Formularios.";
+}
+
+export type FaltaParaActivar = {
+  clave: "forms_link" | "calendly_token" | "fuente_principal";
+  texto: string;
+};
+
+/** Lista estable de lo que impide activar un programa. */
+export function faltaParaActivar(
+  programa: Pick<DatosDelPrograma, "formUrl" | "tieneTokenCalendly" | "formulario">,
+): FaltaParaActivar[] {
+  const faltan: FaltaParaActivar[] = [];
+  if (!programa.formUrl) faltan.push({ clave: "forms_link", texto: "Forms Link" });
+  if (!programa.tieneTokenCalendly) {
+    faltan.push({ clave: "calendly_token", texto: "Calendly Token" });
+  }
+  if (!programa.formulario) {
+    faltan.push({ clave: "fuente_principal", texto: "Fuente principal" });
+  }
+  return faltan;
+}
+
+type MapeoColumnas = Record<string, string | string[]>;
+
+/** La vista completa de FuentesAdmin, acotada a un solo programa. */
+export async function fuentesDelProgramaParaAdmin(
+  programId: string,
+  db: Db = dbDeLaApp,
+): Promise<ProgramaConFuentes | null> {
+  const { programas, fuentes } = await fuentesParaAdmin(db);
+  const programa = programas.find((p) => p.id === programId);
+  if (!programa) return null;
+  const saludPorFuente = new Map((await saludDeFuentes(db)).map((s) => [s.sourceId, s]));
+
+  return {
+    id: programa.id,
+    slug: programa.slug,
+    nombre: programa.nombre,
+    plantillaLead: (programa.plantillaLead as MapeoColumnas | null) ?? null,
+    fuentes: fuentes
+      .filter((fuente) => fuente.programId === programId)
+      .map((fuente) => {
+        const salud = saludPorFuente.get(fuente.id);
+        return {
+          id: fuente.id,
+          programId: fuente.programId,
+          nombre: fuente.nombre,
+          tipo: fuente.tipo,
+          sheetId: fuente.sheetId,
+          tab: fuente.tab,
+          rango: fuente.rango,
+          mapeoColumnas: (fuente.mapeoColumnas as MapeoColumnas) ?? {},
+          proveedor: fuente.proveedor,
+          tieneSecreto: fuente.tieneSecreto,
+          activo: fuente.activo,
+          ultimaSync: fuente.ultimaSync ? fuente.ultimaSync.toISOString() : null,
+          orden: fuente.orden,
+          umbralSinRespuestaHoras: fuente.umbralSinRespuestaHoras,
+          umbralMuertaHoras: fuente.umbralMuertaHoras,
+          urlPublica: fuente.urlPublica ?? null,
+          principal: Boolean(fuente.principal),
+          salud: salud
+            ? {
+                estado: salud.estado,
+                ultimoHace: haceCuanto(salud.ultimo),
+                sobresPendientes: salud.sobresPendientes,
+                sinCalidad: salud.sinCalidad,
+              }
+            : null,
+        };
+      }),
+  };
 }

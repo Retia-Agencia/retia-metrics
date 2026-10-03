@@ -38,6 +38,10 @@ export interface ProgramaVisible {
   nombre: string;
 }
 
+export interface ProgramaDeLaFicha extends ProgramaVisible {
+  activo: boolean;
+}
+
 /**
  * Los programas ACTIVOS que ve esta sesión, ordenados por nombre.
  *
@@ -110,6 +114,41 @@ export async function programaVisiblePorSlug(
 ): Promise<ProgramaVisible | null> {
   const visibles = await programasVisibles(userId, rol, db);
   return visibles.find((p) => p.slug === slug) ?? null;
+}
+
+/**
+ * La ficha admite completar un programa inactivo, pero solo para quien administra.
+ * Las demas tabs conservan `programaVisiblePorSlug` y por tanto siguen cerradas.
+ */
+export async function programaDeLaFichaPorSlug(
+  userId: string,
+  rol: Rol | null,
+  slug: string,
+  db: Db = dbDeLaApp,
+): Promise<ProgramaDeLaFicha | null> {
+  const visible = await programaVisiblePorSlug(userId, rol, slug, db);
+  if (visible) return { ...visible, activo: true };
+  if (!esAdministrador(rol)) return null;
+
+  const [inactivo] = await db
+    .select({ id: programs.id, slug: programs.slug, nombre: programs.nombre, activo: programs.activo })
+    .from(programs)
+    .where(and(eq(programs.slug, slug), eq(programs.activo, false)))
+    .limit(1);
+  return inactivo ?? null;
+}
+
+/** Programas inactivos que un administrador puede terminar de configurar. */
+export async function programasInactivosParaAdministrar(
+  rol: Rol | null,
+  db: Db = dbDeLaApp,
+): Promise<{ slug: string; nombre: string }[]> {
+  if (!esAdministrador(rol)) return [];
+  return db
+    .select({ slug: programs.slug, nombre: programs.nombre })
+    .from(programs)
+    .where(eq(programs.activo, false))
+    .orderBy(asc(programs.nombre));
 }
 
 /**

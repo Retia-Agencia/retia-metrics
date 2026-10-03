@@ -35,6 +35,8 @@ type Props = {
   imagen?: string | null;
   /** Los programas que ESTA sesion ve (ADR 0048), ya acotados en el servidor. */
   programas: readonly { slug: string; nombre: string }[];
+  inactivos: readonly { slug: string; nombre: string }[];
+  puedeCrear: boolean;
   /** Si el usuario REAL es developer: solo el ve el selector de "ver como". */
   puedeCambiarVista: boolean;
   /** La vista marcada hoy en la cookie. */
@@ -60,6 +62,8 @@ export function AppSidebar({
   email,
   imagen,
   programas,
+  inactivos,
+  puedeCrear,
   puedeCambiarVista,
   vista,
 }: Props) {
@@ -71,8 +75,12 @@ export function AppSidebar({
   // Un slug en la URL que no esta en la lista (inexistente o ajeno) no se elige: la
   // pagina ya responde 404 y el selector no tiene por que nombrarlo.
   const deLaRuta = programaDeRuta(pathname);
-  const programa =
-    programas.find((p) => p.slug === deLaRuta)?.slug ?? programas[0]?.slug ?? null;
+  const programa = programas.find((p) => p.slug === deLaRuta)?.slug ?? programas[0]?.slug ?? null;
+  const actual =
+    programas.find((p) => p.slug === deLaRuta)?.slug ??
+    inactivos.find((p) => p.slug === deLaRuta)?.slug ??
+    programas[0]?.slug ??
+    null;
 
   // La lista viene filtrada por el ROL DE VISTA. Esconder no es seguridad: cada ruta
   // valida en servidor, tambien contra el rol de vista (ticket 028).
@@ -132,12 +140,17 @@ export function AppSidebar({
           </div>
         </div>
 
-        {programa ? (
+        {actual || puedeCrear ? (
           <div className="px-4 pb-2">
             <p className="pb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
               Programa
             </p>
-            <ProgramSwitcher programas={programas} actual={programa} />
+            <ProgramSwitcher
+              programas={programas}
+              inactivos={inactivos}
+              puedeCrear={puedeCrear}
+              actual={actual}
+            />
           </div>
         ) : null}
 

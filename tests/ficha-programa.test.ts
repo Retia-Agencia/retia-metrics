@@ -155,6 +155,31 @@ async function abrirFicha(slug: string) {
 }
 
 describe("fichaDelPrograma", () => {
+  it.each([
+    ["forms_link", { formUrl: null, tieneTokenCalendly: true, formulario: { fuente: "F", url: "https://f.co" } }],
+    ["calendly_token", { formUrl: "https://f.co", tieneTokenCalendly: false, formulario: { fuente: "F", url: "https://f.co" } }],
+    ["fuente_principal", { formUrl: "https://f.co", tieneTokenCalendly: true, formulario: null }],
+  ] as const)("faltaParaActivar incluye %s solo cuando falta", async (clave, programa) => {
+    const { faltaParaActivar } = await import("@/lib/queries/ficha-programa");
+    expect(faltaParaActivar(programa).map((item) => item.clave)).toEqual([clave]);
+  });
+
+  it("faltaParaActivar no reporta requisitos presentes y conserva el orden", async () => {
+    const { faltaParaActivar } = await import("@/lib/queries/ficha-programa");
+    expect(
+      faltaParaActivar({ formUrl: null, tieneTokenCalendly: false, formulario: null }).map(
+        (item) => item.clave,
+      ),
+    ).toEqual(["forms_link", "calendly_token", "fuente_principal"]);
+    expect(
+      faltaParaActivar({
+        formUrl: "https://f.co",
+        tieneTokenCalendly: true,
+        formulario: { fuente: "F", url: "https://f.co" },
+      }),
+    ).toEqual([]);
+  });
+
   it("trae solo lo del programa pedido", async () => {
     const { fichaDelPrograma } = await import("@/lib/queries/ficha-programa");
     const ficha = await fichaDelPrograma(programaA, db);

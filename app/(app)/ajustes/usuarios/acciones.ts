@@ -27,6 +27,11 @@ import {
 
 export type ResultadoAccion = { ok: true } | { ok: false; error: string };
 
+function revalidar() {
+  revalidatePath("/ajustes/usuarios");
+  revalidatePath("/p/[programa]/programa", "page");
+}
+
 function aResultado(error: unknown): ResultadoAccion {
   if (error instanceof ErrorDeApp) return { ok: false, error: error.message };
   console.error("[usuarios] error no controlado", error);
@@ -37,7 +42,7 @@ export async function crearUsuarioAccion(input: EntradaUsuario): Promise<Resulta
   try {
     const session = await requireRole("gerente");
     await crearUsuario(db, session.user.id, input);
-    revalidatePath("/ajustes/usuarios");
+    revalidar();
     return { ok: true };
   } catch (error) {
     return aResultado(error);
@@ -51,7 +56,7 @@ export async function editarUsuarioAccion(
   try {
     const session = await requireRole("gerente");
     await editarUsuario(db, session.user.id, id, input);
-    revalidatePath("/ajustes/usuarios");
+    revalidar();
     return { ok: true };
   } catch (error) {
     return aResultado(error);
@@ -62,7 +67,7 @@ export async function desactivarUsuarioAccion(id: string): Promise<ResultadoAcci
   try {
     const session = await requireRole("gerente");
     await desactivarUsuario(db, session.user.id, id);
-    revalidatePath("/ajustes/usuarios");
+    revalidar();
     return { ok: true };
   } catch (error) {
     return aResultado(error);
@@ -73,7 +78,7 @@ export async function reactivarUsuarioAccion(id: string): Promise<ResultadoAccio
   try {
     const session = await requireRole("gerente");
     await reactivarUsuario(db, session.user.id, id);
-    revalidatePath("/ajustes/usuarios");
+    revalidar();
     return { ok: true };
   } catch (error) {
     return aResultado(error);
@@ -91,7 +96,7 @@ export async function asignarCalendlyDeMembresiaAccion(
   try {
     const session = await requireRole("gerente");
     await asignarCalendlyDeMembresia(db, session.user.id, input);
-    revalidatePath("/ajustes/usuarios");
+    revalidar();
     return { ok: true };
   } catch (error) {
     return aResultado(error);

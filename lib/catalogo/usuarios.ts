@@ -9,7 +9,7 @@ import { cuentasDeCalendly } from "@/lib/calendly/cuentas";
 import { ErrorDeCalendly, type FetchLike } from "@/lib/calendly/cita";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { AuthorizationError, esAdministrador, puedeTocarMembresia, ROLES } from "@/lib/auth/roles";
+import { AuthorizationError, esAdministrador, puedeTocarMembresia, ROLES, trabajaLeads } from "@/lib/auth/roles";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
 /**
@@ -78,7 +78,7 @@ export const esquemaUsuario = z
       .or(z.literal(""))
       .transform((v) => (v && v.length > 0 ? v : null)),
     /** Programas donde el usuario vende. Cada uno es un uuid de `programs`. */
-    programas: z.array(z.string().uuid("Programa inválido.")).default([]),
+    programas: z.array(z.string().uuid("Programa inválido.")).optional(),
   })
   .superRefine((datos, ctx) => {
     if (datos.rol === "closer") {
@@ -87,13 +87,6 @@ export const esquemaUsuario = z
           code: z.ZodIssueCode.custom,
           path: ["closerId"],
           message: "Un closer necesita su closer_id de la BBDD.",
-        });
-      }
-      if (datos.programas.length === 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["programas"],
-          message: "Un closer necesita al menos un programa.",
         });
       }
     }
@@ -177,7 +170,7 @@ function moldeUsuarios(db: Db) {
 }
 
 /** Separa los campos de la fila `users` del arreglo de programas. */
-function separar(datos: UsuarioValidado): { campos: CamposUsuario; programas: string[] } {
+function separar(datos: UsuarioValidado): { campos: CamposUsuario; programas?: string[] } {
   const { programas, ...campos } = datos;
   return { campos, programas };
 }
@@ -370,7 +363,7 @@ export async function crearUsuario(
     const datos = esquemaUsuario.parse(input);
     const { campos, programas } = separar(datos);
     const fila = await moldeUsuarios(db).crear(actorId, campos);
-    await sincronizarMembresias(db, actorId, fila.id, campos.email, programas);
+    if (programas) await sincronizarMembresias(db, actorId, fila.id, campos.email, programas);
     return {
       ...(fila as UsuarioConProgramas),
       programas: await programasDe(db, fila.id),
@@ -391,11 +384,57 @@ export async function editarUsuario(
     await protegerAdministrador(db, actorId, objetivoId, { rolNuevo: datos.rol });
     const { campos, programas } = separar(datos);
     const fila = await moldeUsuarios(db).editar(actorId, objetivoId, campos);
-    await sincronizarMembresias(db, actorId, objetivoId, campos.email, programas);
+    if (programas) await sincronizarMembresias(db, actorId, objetivoId, campos.email, programas);
     return {
       ...(fila as UsuarioConProgramas),
       programas: await programasDe(db, objetivoId),
     };
+  });
+}
+
+/** Agrega o reactiva una membresia usando el mismo camino auditado del editor. */
+export async function agregarMembresia(
+  db: Db,
+  actorId: string,
+  userId: string,
+  programId: string,
+): Promise<void> {
+  return normalizando(async () => {
+    const objetivoId = idValido(userId);
+    const programaId = idValido(programId);
+    const [usuario] = await db.select().from(users).where(eq(users.id, objetivoId));
+    if (!usuario) throw new ErrorDeApp("No existe el usuario.", 404);
+    if (!usuario.activo) throw new ErrorDeApp("No se puede agregar un usuario inactivo.", 400);
+    if (!trabajaLeads(usuario.rol)) {
+      throw new ErrorDeApp("Este usuario no trabaja leads y no puede pertenecer al equipo.", 400);
+    }
+    const [programa] = await db.select({ id: programs.id }).from(programs).where(eq(programs.id, programaId));
+    if (!programa) throw new ErrorDeApp("No existe el programa.", 404);
+    const actuales = await programasDe(db, objetivoId);
+    await sincronizarMembresias(db, actorId, objetivoId, usuario.email, [...new Set([...actuales, programaId])]);
+  });
+}
+
+/** Desactiva una membresia; la fila y su historia se conservan. */
+export async function quitarMembresia(
+  db: Db,
+  actorId: string,
+  userId: string,
+  programId: string,
+): Promise<void> {
+  return normalizando(async () => {
+    const objetivoId = idValido(userId);
+    const programaId = idValido(programId);
+    const [usuario] = await db.select().from(users).where(eq(users.id, objetivoId));
+    if (!usuario) throw new ErrorDeApp("No existe el usuario.", 404);
+    const actuales = await programasDe(db, objetivoId);
+    await sincronizarMembresias(
+      db,
+      actorId,
+      objetivoId,
+      usuario.email,
+      actuales.filter((id) => id !== programaId),
+    );
   });
 }
 

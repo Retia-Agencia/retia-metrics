@@ -26,11 +26,6 @@ import {
  * son server actions que ya enforzan `requireRole("gerente")` en el servidor.
  */
 
-export interface ProgramaOpcion {
-  id: string;
-  nombre: string;
-}
-
 export interface UsuarioVista {
   id: string;
   email: string;
@@ -39,7 +34,6 @@ export interface UsuarioVista {
   closerId: string | null;
   calendlyEmail: string | null;
   activo: boolean;
-  programas: string[];
 }
 
 interface Borrador {
@@ -48,7 +42,6 @@ interface Borrador {
   rol: Rol;
   closerId: string;
   calendlyEmail: string;
-  programas: string[];
 }
 
 const BORRADOR_VACIO: Borrador = {
@@ -57,7 +50,6 @@ const BORRADOR_VACIO: Borrador = {
   rol: "closer",
   closerId: "",
   calendlyEmail: "",
-  programas: [],
 };
 
 function aBorrador(u: UsuarioVista): Borrador {
@@ -67,17 +59,14 @@ function aBorrador(u: UsuarioVista): Borrador {
     rol: u.rol,
     closerId: u.closerId ?? "",
     calendlyEmail: u.calendlyEmail ?? "",
-    programas: [...u.programas],
   };
 }
 
 export function UsuariosAdmin({
   usuarios,
-  programas,
   usuarioActualId,
 }: {
   usuarios: UsuarioVista[];
-  programas: ProgramaOpcion[];
   usuarioActualId: string;
 }) {
   const router = useRouter();
@@ -116,7 +105,6 @@ export function UsuariosAdmin({
         <FormularioUsuario
           titulo="Nuevo usuario"
           inicial={BORRADOR_VACIO}
-          programas={programas}
           pendiente={pendiente}
           onCancelar={() => setCreando(false)}
           onGuardar={(borrador) =>
@@ -137,7 +125,6 @@ export function UsuariosAdmin({
                 <FormularioUsuario
                   titulo={`Editar ${u.email}`}
                   inicial={aBorrador(u)}
-                  programas={programas}
                   pendiente={pendiente}
                   emailBloqueado
                   onCancelar={() => setEditando(null)}
@@ -166,9 +153,6 @@ export function UsuariosAdmin({
                     <span className="block truncate text-xs text-muted-foreground">
                       {u.email}
                       {u.closerId ? ` · closer_id: ${u.closerId}` : ""}
-                      {u.programas.length > 0
-                        ? ` · ${u.programas.length} programa(s)`
-                        : ""}
                     </span>
                   </div>
                   <span className="flex items-center gap-1">
@@ -226,14 +210,12 @@ function aEntrada(b: Borrador) {
     rol: b.rol,
     closerId: b.closerId,
     calendlyEmail: b.calendlyEmail,
-    programas: b.programas,
   };
 }
 
 function FormularioUsuario({
   titulo,
   inicial,
-  programas,
   pendiente,
   emailBloqueado,
   onCancelar,
@@ -241,7 +223,6 @@ function FormularioUsuario({
 }: {
   titulo: string;
   inicial: Borrador;
-  programas: ProgramaOpcion[];
   pendiente: boolean;
   emailBloqueado?: boolean;
   onCancelar: () => void;
@@ -255,15 +236,6 @@ function FormularioUsuario({
 
   const claseInput =
     "h-8 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-
-  function alternarPrograma(id: string) {
-    setBorrador((b) => ({
-      ...b,
-      programas: b.programas.includes(id)
-        ? b.programas.filter((p) => p !== id)
-        : [...b.programas, id],
-    }));
-  }
 
   return (
     <Card>
@@ -340,30 +312,6 @@ function FormularioUsuario({
           {/* La cuenta de Calendly ya no es del usuario sino de cada membresia (ticket 096):
               se vincula en "Cuentas de Calendly por programa", debajo de la lista. */}
 
-          {trabajaConLeads ? (
-            <fieldset className="space-y-1 text-sm sm:col-span-2">
-              <legend className="text-muted-foreground">Programas donde vende</legend>
-              {programas.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  No hay programas activos. Crea uno antes de asignar closers.
-                </p>
-              ) : (
-                <div className="flex flex-wrap gap-3">
-                  {programas.map((p) => (
-                    <label key={p.id} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={borrador.programas.includes(p.id)}
-                        onChange={() => alternarPrograma(p.id)}
-                        className="size-4 rounded border-border"
-                      />
-                      <span>{p.nombre}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </fieldset>
-          ) : null}
 
           <div className="flex justify-end gap-2 sm:col-span-2">
             <Button type="button" size="sm" variant="ghost" onClick={onCancelar}>
