@@ -72,6 +72,7 @@ export type MotivoSuelta =
 export type Emparejamiento =
   | {
       tipo: "colgada";
+      llave: "codigo" | "correo";
       leadId: string;
       dealId: string;
       dueno: {
@@ -103,7 +104,10 @@ export function emparejarLlamada(
   llamada: LlamadaDeCalendly,
   candidatos: readonly LeadCandidato[],
   closers: readonly CloserDelPrograma[],
+  dealPorCodigo?: (DealAbierto & { leadId: string }) | null,
 ): Emparejamiento {
+  if (dealPorCodigo) return colgada(dealPorCodigo.leadId, dealPorCodigo, llamada, closers, "codigo");
+
   const correo = normalizarEmail(llamada.correoInvitado);
   if (!correo) return { tipo: "suelta", motivo: "sin_correo" };
 
@@ -122,11 +126,22 @@ export function emparejarLlamada(
   if (deals.size > 1) return { tipo: "suelta", motivo: "varios_deals_abiertos" };
 
   const [deal] = [...deals.values()];
+  return colgada(lead.leadId, deal, llamada, closers, "correo");
+}
+
+function colgada(
+  leadId: string,
+  deal: DealAbierto,
+  llamada: LlamadaDeCalendly,
+  closers: readonly CloserDelPrograma[],
+  llave: "codigo" | "correo",
+): Extract<Emparejamiento, { tipo: "colgada" }> {
   const host = closerHost(llamada.correoHost, closers);
   const despues = host ?? deal.ownerUserId;
   return {
     tipo: "colgada",
-    leadId: lead.leadId,
+    llave,
+    leadId,
     dealId: deal.dealId,
     dueno: {
       antes: deal.ownerUserId,

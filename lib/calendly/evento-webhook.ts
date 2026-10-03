@@ -70,6 +70,9 @@ export type EventoDeCalendly =
       inicio: Date;
       correoInvitado: string | null;
       correoHost: string | null;
+      utmContent: string | null;
+      nombreInvitado: string | null;
+      telefonoInvitado: string | null;
       /** Si es una REAGENDA: el uuid del invitado de la cita vieja (`old_invitee`). */
       uuidAnterior: string | null;
     }
@@ -83,6 +86,32 @@ export type EventoDeCalendly =
   | { tipo: "no_show_retirado"; uuidInvitado: string }
   /** Un evento que el CRM no escucha (p. ej. `routing_form_submission.created`). */
   | { tipo: "ignorado"; evento: string };
+
+/** Campos del invitado que viajan hasta el escritor sin que otros módulos interpreten tracking. */
+export interface CamposDeInvitadoCalendly {
+  utmContent?: string | null;
+  nombreInvitado?: string | null;
+  telefonoInvitado?: string | null;
+}
+
+export function camposDeInvitadoCalendly(
+  datos: CamposDeInvitadoCalendly,
+): Required<CamposDeInvitadoCalendly> {
+  return {
+    utmContent: datos.utmContent ?? null,
+    nombreInvitado: datos.nombreInvitado ?? null,
+    telefonoInvitado: datos.telefonoInvitado ?? null,
+  };
+}
+
+export function codigoDeDealDelInvitado(datos: CamposDeInvitadoCalendly): string | null {
+  return datos.utmContent ?? null;
+}
+
+export function rawDelInvitado(datos: CamposDeInvitadoCalendly): Record<string, string | null> {
+  const campos = camposDeInvitadoCalendly(datos);
+  return { nombre: campos.nombreInvitado, telefono: campos.telefonoInvitado, utmContent: campos.utmContent };
+}
 
 export type LecturaDeEvento = { ok: true; evento: EventoDeCalendly } | { ok: false; error: string };
 
@@ -151,6 +180,9 @@ export function leerEventoDeCalendly(cuerpoCrudo: string): LecturaDeEvento {
           inicio,
           correoInvitado: typeof p.email === "string" ? p.email : null,
           correoHost: correoDelHost(cita),
+          utmContent: esObjeto(p.tracking) && typeof p.tracking.utm_content === "string" ? p.tracking.utm_content : null,
+          nombreInvitado: typeof p.name === "string" ? p.name : null,
+          telefonoInvitado: typeof p.text_reminder_number === "string" ? p.text_reminder_number : null,
           uuidAnterior: uuidDeInvitado(p.old_invitee),
         },
       };

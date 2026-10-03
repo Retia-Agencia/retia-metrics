@@ -58,7 +58,7 @@ export default async function InboxDelProgramaPage({ params }: Props) {
   const alcance: AlcanceInbox = administra ? "equipo" : { ownerUserId: session.user.id };
 
   const [inbox, perdidos, secciones, duenos, plataformas, motivosFilas, areasFilas] = await Promise.all([
-    inboxDelPrograma(db, programa.id, alcance),
+    inboxDelPrograma(db, programa.id, alcance, undefined, undefined, { userId: session.user.id, rol }),
     perdidosEnCalendly(db, programa.id),
     seccionesSinDueno(db, programa.id),
     duenosPosibles(db, programa.id),
@@ -98,7 +98,6 @@ export default async function InboxDelProgramaPage({ params }: Props) {
         <InboxLlamadasSueltas
           llamadas={inbox.llamadasSueltas}
           programId={programa.id}
-          puedeAsignar={puedeTrabajar}
         />
 
         {/* 4 · Lo mío que necesita atención. */}

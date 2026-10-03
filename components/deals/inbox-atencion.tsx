@@ -96,6 +96,8 @@ function porQue(fila: FilaAtencion): string {
     }
     case "reenvio_sin_atender":
       return "Volvió a llenar el formulario después de tu última actividad: contáctalo.";
+    case "link_sin_cita":
+      return "Mandaste el link de agenda y el lead no ha agendado.";
     case "estancado":
       return `Sin actividad hace ${fila.diasSinActividad ?? "varios"} días hábiles.`;
   }

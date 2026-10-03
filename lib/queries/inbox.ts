@@ -2,6 +2,7 @@ import { and, eq, inArray, isNull, lte, notInArray, or } from "drizzle-orm";
 import {
   calls,
   deals,
+  leadContactos,
   leads,
   programs,
   submissions,
@@ -15,6 +16,12 @@ import { carteraVencida } from "@/lib/queries/cartera";
 import { vigente } from "@/lib/queries/vigente";
 import { ultimaActividadPorDeal } from "@/lib/queries/ultima-actividad";
 import { sueltaPorAsignar } from "@/lib/calendly/suelta";
+import { puedeColgarSuelta } from "@/lib/calendly/suelta";
+import { closerHost, type CloserDelPrograma } from "@/lib/calendly/emparejar-llamada";
+import { closersConCalendly } from "@/lib/calendly/colgar-llamada";
+import type { Rol } from "@/lib/auth/roles";
+import { normalizarTelefono } from "@/lib/ingesta/envio";
+import { linkEnviadoSinCita } from "@/lib/deals/handoff";
 import type { OrigenDeFila } from "@/lib/queries/inbox-sin-dueno";
 import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
 
@@ -66,7 +73,14 @@ export type MotivoAtencion =
   | "pago_vencido"
   | "abono_sin_comprobante"
   | "reenvio_sin_atender"
+  | "link_sin_cita"
   | "estancado";
+
+export interface SugerenciaDeSuelta {
+  dealId: string;
+  leadNombre: string | null;
+  leadEmail: string;
+}
 
 /** Una llamada de hoy sin resultado (sección 1) o suelta (sección 3): comparten forma. */
 export interface FilaLlamada {
@@ -79,6 +93,8 @@ export interface FilaLlamada {
   linkCalendly: string | null;
   /** El dueño del deal de la llamada, para "equipo" (nulo en las sueltas y en "mío"). */
   ownerNombre: string | null;
+  puedeColgar?: boolean;
+  sugerencias?: SugerenciaDeSuelta[];
 }
 
 /** Una fila de "lo mío que necesita atención" (sección 4). */
@@ -213,6 +229,7 @@ export async function inboxDelPrograma(
   alcance: AlcanceInbox,
   hoy: string = hoyEnBogota(),
   ahora: Date = new Date(),
+  actor?: { userId: string; rol: Rol },
 ): Promise<Inbox> {
   // Cuántos días hábiles sin actividad marcan "estancado" (por programa, ADR 0012).
   const [programa] = await db
@@ -223,7 +240,7 @@ export async function inboxDelPrograma(
 
   const [llamadasDeHoy, llamadasSueltas, atencion] = await Promise.all([
     seccionLlamadasDeHoy(db, programId, alcance, ahora),
-    seccionLlamadasSueltas(db, programId),
+    llamadasSueltasDelPrograma(db, programId, actor),
     seccionAtencion(db, programId, alcance, hoy, diasEstancado),
   ]);
 
@@ -290,17 +307,43 @@ async function seccionLlamadasDeHoy(
  * Llamadas VIGENTES de Calendly con `deal_id` nulo (ADR 0049, `sueltaPorAsignar`): un closer
  * las cuelga de un deal desde aquí. Es de programa, no de dueño: una suelta no tiene dueño todavía.
  */
-async function seccionLlamadasSueltas(db: Db, programId: string): Promise<FilaLlamada[]> {
+export async function llamadasSueltasDelPrograma(
+  db: Db,
+  programId: string,
+  actor?: { userId: string; rol: Rol },
+): Promise<FilaLlamada[]> {
   const filas = await db
     .select({
       callId: calls.id,
       fechaAgenda: calls.fechaAgenda,
       linkCalendly: calls.linkCalendly,
       emailLead: calls.emailLead,
+      host: calls.calendlyHostEmail,
+      raw: calls.raw,
     })
     .from(calls)
     .where(and(eq(calls.programId, programId), sueltaPorAsignar(), vigente(calls)));
 
+  const [closers, abiertos, telefonos] = await Promise.all([
+    closersConCalendly(db, programId),
+    db
+      .select({ dealId: deals.id, leadId: deals.leadId, leadNombre: leads.nombre, leadEmail: leads.emailNormalizado })
+      .from(deals)
+      .innerJoin(leads, eq(leads.id, deals.leadId))
+      .where(and(eq(deals.programId, programId), notInArray(deals.etapa, CERRADAS), vigente(deals))),
+    db
+      .select({ leadId: leadContactos.leadId, valor: leadContactos.valor })
+      .from(leadContactos)
+      .where(and(eq(leadContactos.programId, programId), eq(leadContactos.tipo, "telefono"))),
+  ]);
+  const telefonosPorLead = new Map<string, Set<string>>();
+  for (const telefono of telefonos) {
+    const normalizado = normalizarTelefono(telefono.valor);
+    if (!normalizado) continue;
+    const delLead = telefonosPorLead.get(telefono.leadId) ?? new Set<string>();
+    delLead.add(normalizado);
+    telefonosPorLead.set(telefono.leadId, delLead);
+  }
   filas.sort((a, b) => (a.fechaAgenda?.getTime() ?? 0) - (b.fechaAgenda?.getTime() ?? 0));
   return filas.map((f) => ({
     callId: f.callId,
@@ -310,7 +353,35 @@ async function seccionLlamadasSueltas(db: Db, programId: string): Promise<FilaLl
     fechaAgenda: f.fechaAgenda,
     linkCalendly: f.linkCalendly,
     ownerNombre: null,
+    puedeColgar: actor
+      ? puedeColgarSuelta({ actorUserId: actor.userId, rol: actor.rol, hostUserId: closerHost(f.host, closers as CloserDelPrograma[]) })
+      : false,
+    sugerencias: sugerenciasDeSuelta(f.raw, abiertos, telefonosPorLead),
   }));
+}
+
+function nombreComparable(valor: unknown): string | null {
+  if (typeof valor !== "string") return null;
+  const limpio = valor.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase().replace(/\s+/g, " ");
+  return limpio || null;
+}
+
+function sugerenciasDeSuelta(
+  raw: unknown,
+  abiertos: readonly { dealId: string; leadId: string; leadNombre: string | null; leadEmail: string }[],
+  telefonosPorLead: ReadonlyMap<string, ReadonlySet<string>>,
+): SugerenciaDeSuelta[] {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return [];
+  const datos = raw as Record<string, unknown>;
+  const nombre = nombreComparable(datos.nombre);
+  const telefono = normalizarTelefono(datos.telefono);
+  if (!nombre && !telefono) return [];
+  return abiertos
+    .filter((d) =>
+      (nombre !== null && nombreComparable(d.leadNombre) === nombre)
+      || (telefono !== null && telefonosPorLead.get(d.leadId)?.has(telefono) === true),
+    )
+    .map(({ dealId, leadNombre, leadEmail }) => ({ dealId, leadNombre, leadEmail }));
 }
 
 // ───────────────────────────────────────────── sección 4: lo mío que necesita atención
@@ -341,6 +412,7 @@ async function seccionAtencion(
       pendiente: deals.pendiente,
       fechaLimitePago: deals.fechaLimitePago,
       createdAt: deals.createdAt,
+      handoffEn: deals.handoffEn,
       ownerUserId: deals.ownerUserId,
       leadNombre: leads.nombre,
       leadEmail: leads.emailNormalizado,
@@ -365,6 +437,7 @@ async function seccionAtencion(
 
   // (a) Re-agenda: ¿tiene una llamada vigente agendada a futuro? Si no, entra al bucket.
   const conCitaFutura = await citasFuturasPorDeal(db, dealIds, hoy);
+  const conCitaVigente = await dealsConCitaVigente(db, dealIds);
   const sinComprobante = await dealsConAbonoSinComprobante(db, dealIds);
 
   // (c) Pago vencido con saldo: la MISMA cifra de la cartera (ADR 0024), acotada a estos deals.
@@ -428,6 +501,11 @@ async function seccionAtencion(
       continue;
     }
 
+    if (linkEnviadoSinCita({ handoffEn: d.handoffEn, tieneCitaVigente: conCitaVigente.has(d.dealId), hoy })) {
+      filas.push({ ...base, motivo: "link_sin_cita" });
+      continue;
+    }
+
     // (e) Estancado: pasó más de X días HÁBILES sin actividad (por programa, ADR 0012).
     // `diasHabilesEntre` es inclusivo en ambos extremos, así que cuenta el día de la
     // actividad y hoy; el tramo transcurrido SIN actividad excluye el propio día de la
@@ -448,10 +526,20 @@ async function seccionAtencion(
     compromiso_vencido: 2,
     pago_vencido: 3,
     reenvio_sin_atender: 4,
-    estancado: 5,
+    link_sin_cita: 5,
+    estancado: 6,
   };
   filas.sort((a, b) => ORDEN[a.motivo] - ORDEN[b.motivo] || a.leadEmail.localeCompare(b.leadEmail));
   return filas;
+}
+
+async function dealsConCitaVigente(db: Db, dealIds: string[]): Promise<Set<string>> {
+  if (dealIds.length === 0) return new Set();
+  const filas = await db
+    .select({ dealId: calls.dealId })
+    .from(calls)
+    .where(and(inArray(calls.dealId, dealIds), eq(calls.resultado, "agendada"), vigente(calls)));
+  return new Set(filas.flatMap((fila) => fila.dealId ? [fila.dealId] : []));
 }
 
 /** El predicado de alcance sobre `deals`: un dueño concreto, o todo (equipo). */

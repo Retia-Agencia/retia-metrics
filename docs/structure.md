@@ -121,33 +121,49 @@ flowchart TD
 
 ### 2.2 Cómo se cuelga cada llamada de su deal (Calendly)
 
-Un solo objetivo: poner cada llamada en su deal sin trabajo manual. **No es forzosa: si hay duda, la
-llamada queda suelta** y un closer la asigna (ADR 0049).
+Cada llamada entra por uno de cuatro caminos. Si ninguna llave basta, queda suelta. El host de
+Calendly se queda con el deal y el dueño anterior conserva el crédito de setter (ADR 0076).
 
 ```mermaid
 flowchart TD
-  CAL["Calendly del programa reporta una llamada: nueva, movida o cancelada"] --> Q1{"¿El correo del invitado es de un solo lead del programa con un solo deal abierto?"}
-  Q1 -- "sí, sin duda" --> AUTO["La llamada se cuelga sola de ese deal, con fecha real y host"]
-  Q1 -- "no, o hay duda" --> SUELTA["Llamada suelta en el Inbox"]
-  SUELTA -- "el closer la asigna a un deal" --> AUTO
-  AUTO --> ET{"¿En qué etapa está el deal?"}
-  ET -- "1, 2, 3, 9 u 11" --> A4["Pasa a 4 Agendado y se avisa al dueño"]
-  ET -- "4" --> A4B["Sigue en 4, ahora con la fecha real"]
-  ET -- "5, 6 o 7" --> SEG["Se agrega al deal y se avisa al dueño; la etapa no cambia"]
-  AUTO --> OW{"¿El deal ya tiene dueño?"}
-  OW -- "no, y el host es closer del programa" --> HO["Dueño = el host del Round Robin"]
-  OW -- "no, y el host no está registrado" --> INB["Sigue sin dueño, en el Inbox"]
-  OW -- "sí" --> KEEP["Se respeta el dueño; si el host es otro, se avisa"]
+  A["A. Formulario con Calendly"] --> ID["ID del invitado del envío"]
+  B["B. Link enviado por setter"] --> COD["Código del deal en utm_content"]
+  COD -- "no casa" --> CORREO
+  C["C. Link genérico"] --> CORREO["Correo único, lead único, deal abierto único"]
+  D["D. Re-agenda hablada"] --> MANUAL["Closer agrega la cita a mano en su deal"]
+  ID --> COLGADA["Llamada colgada"]
+  COD -- "casa en el mismo programa" --> COLGADA
+  CORREO -- "sin duda" --> COLGADA
+  CORREO -- "no casa o hay duda" --> SUELTA["Llamada suelta"]
+  MANUAL --> COLGADA
+  SUELTA --> PERMISO{"¿Es el host o administra?"}
+  PERMISO -- "sí" --> SUG["Sugiere deals por nombre o teléfono y permite colgar"]
+  PERMISO -- "no" --> BLOQ["No muestra acción y el servidor rechaza"]
+  SUG --> COLGADA
+  COLGADA --> HOST["Dueño = host; dueño anterior = setter una sola vez"]
+  LINK["Setter marca link enviado; conserva el deal"] --> RELOJ{"¿Llegó el siguiente día hábil sin cita vigente?"}
+  RELOJ -- "sí" --> ALERTA["Alerta: link enviado sin cita"]
+  RELOJ -- "no, o ya hay cita" --> OK["Sin alerta"]
 ```
 
-- Se empareja **solo por correo**, nunca por teléfono (el lead a veces pone un teléfono en el
-  formulario y otro en la agenda).
-- 🟡 Si la llamada llega antes que el envío, queda suelta y se reintenta cuando llega el envío.
-- 🔴 De quién es el deal si el host es otra closer que la que ya lo trabajaba: no se alcanzó a
-  preguntar.
-- 🔴 Webhook (tiempo real, exige plan Standard de Calendly) o consulta periódica (cada 15 minutos exige
-  Vercel Pro); dónde vive la credencial de cada programa.
-- Sin la integración, el closer crea la llamada con fecha y link a mano y el modelo funciona igual.
+| Camino | Llave | Si no casa |
+|---|---|---|
+| A. Calendly del formulario | ID del invitado que trae el envío | Pendiente Setteo con nota del sistema |
+| B. Link de agenda del deal | Código opaco del deal en `utm_content` | Sigue al camino C |
+| C. Link genérico | Correo confirmado de un solo lead con un solo deal abierto | Queda suelta |
+| D. Re-agenda hablada | El closer agrega la cita en el propio deal | No aplica |
+
+Una llamada suelta solo la cuelga su host o quien administra. Si el host no está registrado, solo
+quien administra. El Inbox sugiere deals abiertos del mismo programa por nombre o teléfono, pero la
+persona decide. La marca de link enviado no cambia dueño ni etapa y se puede repetir para reiniciar
+el reloj. El siguiente día hábil, si todavía no existe una llamada vigente agendada, aparece la
+alerta en Inbox, ficha y tarjeta.
+
+- Una cita colgada mueve el deal a Agendado desde las etapas de entrada y setteo, y le quita el
+  pendiente (`unaCitaMueveAAgendado`); en Agendado se queda con la fecha real; más adelante es una
+  llamada más y la etapa no cambia.
+- El teléfono **nunca** empareja (el lead a veces pone uno en el formulario y otro en la agenda).
+- Si la cita llega antes que el envío, entra suelta y el envío la adopta al llegar (ADR 0049 punto 7).
 
 ---
 

@@ -30,6 +30,9 @@ function evento(event: string, payload: Record<string, unknown>): string {
 const CREADO = {
   uri: INVITADO,
   email: "Ana@Correo.co",
+  name: "Ana Pérez",
+  text_reminder_number: "+57 300 123 4567",
+  tracking: { utm_content: "0123456789abcdef0123456789abcdef" },
   rescheduled: false,
   old_invitee: null,
   scheduled_event: {
@@ -74,6 +77,9 @@ describe("leerEventoDeCalendly", () => {
         inicio: new Date("2026-10-02T15:00:00.000Z"),
         correoInvitado: "Ana@Correo.co",
         correoHost: "maru.tactical@calendly.co",
+        utmContent: "0123456789abcdef0123456789abcdef",
+        nombreInvitado: "Ana Pérez",
+        telefonoInvitado: "+57 300 123 4567",
         uuidAnterior: null,
       },
     });

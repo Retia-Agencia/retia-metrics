@@ -19,6 +19,7 @@ import { registrarAbono, anularAbono, pegarComprobante } from "@/lib/deals/abono
 import { registrarActividad } from "@/lib/deals/actividades";
 import { anularDeal } from "@/lib/deals/anular-deal";
 import { editarDeal } from "@/lib/deals/editar-deal";
+import { marcarLinkEnviado } from "@/lib/deals/handoff";
 import { agregarLlamada, completarAgendada, marcarFallida, pegarGrain, RESULTADOS_FALLIDOS } from "@/lib/deals/llamadas";
 import { editarAcuerdoDePago } from "@/lib/deals/pago";
 import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals/estudiante";
@@ -146,6 +147,17 @@ export async function anularDealAccion(entrada: EntradaAnularDeal): Promise<Resu
     const { dealId, motivo } = esquemaAnular.parse(entrada);
     await exigirDealVisible(ctx, dealId);
     await anularDeal(db, actor, { dealId, motivo });
+    return {};
+  });
+}
+
+const esquemaLinkEnviado = z.object({ dealId: id("Deal inválido.") });
+
+export async function marcarLinkEnviadoAccion(entrada: z.input<typeof esquemaLinkEnviado>): Promise<ResultadoFicha> {
+  return correr(async (ctx) => {
+    const { dealId } = esquemaLinkEnviado.parse(entrada);
+    await exigirDealVisible(ctx, dealId);
+    await marcarLinkEnviado(db, ctx.actor, dealId);
     return {};
   });
 }

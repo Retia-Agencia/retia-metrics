@@ -11,6 +11,7 @@ import { llamadasDelPrograma, opcionesDeLlamadas, type FiltroLlamadas } from "@/
 import { PageShell } from "@/components/page-shell";
 import { LlamadasPrograma } from "@/components/deals/llamadas-programa";
 import { InboxLlamadasSueltas } from "@/components/deals/inbox-llamadas-sueltas";
+import { llamadasSueltasDelPrograma } from "@/lib/queries/inbox";
 
 export const dynamic = "force-dynamic";
 
@@ -51,22 +52,12 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
     desde: uno(query.desde) || null,
     hasta: uno(query.hasta) || null,
   };
-  const [llamadas, opciones, opcionesFicha] = await Promise.all([
+  const [llamadas, opciones, opcionesFicha, sueltas] = await Promise.all([
     llamadasDelPrograma(db, programa.id, filtro),
     opcionesDeLlamadas(db, programa.id),
     opcionesDeFicha(db, programa.id, null),
+    llamadasSueltasDelPrograma(db, programa.id, { userId: session.user.id, rol }),
   ]);
-  const sueltas = llamadas
-    .filter((c) => c.porAsignar)
-    .map((c) => ({
-      callId: c.callId,
-      dealId: null,
-      leadNombre: c.leadNombre,
-      leadEmail: c.leadEmail,
-      fechaAgenda: c.fechaAgenda,
-      linkCalendly: c.linkCalendly,
-      ownerNombre: null,
-    }));
 
   return (
     <PageShell titulo={programa.nombre} descripcion="Calls">
@@ -102,7 +93,6 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
         <InboxLlamadasSueltas
           llamadas={sueltas}
           programId={programa.id}
-          puedeAsignar={trabajaLeads(rol)}
         />
       </div>
     </PageShell>

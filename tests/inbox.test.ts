@@ -7,6 +7,8 @@ import {
   dealActividades,
   deals,
   leads,
+  leadContactos,
+  miembrosPrograma,
   programs,
   sources,
   submissions,
@@ -83,6 +85,7 @@ async function crearDeal(o: {
   fechaLimitePago?: string | null;
   cohorte?: boolean;
   createdAt?: Date;
+  handoffEn?: Date | null;
 }): Promise<{ dealId: string; leadId: string }> {
   const prog = o.programa ?? programId;
   const [l] = await db
@@ -102,6 +105,7 @@ async function crearDeal(o: {
       valorVendidoUsd: prog === programId ? "1000.00" : null,
       fechaLimitePago: o.fechaLimitePago ?? null,
       ...(o.createdAt ? { createdAt: o.createdAt } : {}),
+      ...(o.handoffEn ? { handoffEn: o.handoffEn } : {}),
       ...marca,
     })
     .returning();
@@ -117,6 +121,8 @@ async function crearLlamada(o: {
   anulada?: boolean;
   createdAt?: Date;
   origen?: string;
+  raw?: unknown;
+  host?: string | null;
 }): Promise<string> {
   const marca = o.anulada ? { anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error" } : {};
   const [c] = await db
@@ -128,6 +134,8 @@ async function crearLlamada(o: {
       fechaAgenda: o.fechaAgenda ?? null,
       emailLead: "lead@correo.co",
       origen: o.origen ?? "calendly",
+      raw: o.raw,
+      calendlyHostEmail: o.host,
       ...(o.createdAt ? { createdAt: o.createdAt } : {}),
       ...marca,
     })
@@ -218,6 +226,39 @@ describe("inboxDelPrograma — llamadas sueltas", () => {
     await crearLlamada({ dealId: null, fechaAgenda: enBogota(HOY), origen: "sheets" });
     const inbox = await inboxDelPrograma(db, programId, "equipo", HOY);
     expect(inbox.llamadasSueltas.map((f) => f.callId)).toEqual([deCalendly]);
+  });
+
+  it("solo el host puede colgar y sugiere por nombre normalizado o teléfono", async () => {
+    await db.insert(miembrosPrograma).values({ userId: closer, programId, calendlyEmail: "host@calendly.co" });
+    const porNombre = await crearDeal({ etapa: "calificado" });
+    await db.update(leads).set({ nombre: "Ána   Pérez" }).where(eq(leads.id, porNombre.leadId));
+    const porTelefono = await crearDeal({ etapa: "calificado" });
+    await db.insert(leadContactos).values({ leadId: porTelefono.leadId, programId, tipo: "telefono", valor: "573001234567" });
+    const callId = await crearLlamada({
+      dealId: null,
+      host: "HOST@calendly.co",
+      raw: { nombre: " ana perez ", telefono: "+57 (300) 123-4567" },
+    });
+
+    const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY, AHORA, { userId: closer, rol: "closer" });
+    const fila = inbox.llamadasSueltas.find((f) => f.callId === callId)!;
+    expect(fila.puedeColgar).toBe(true);
+    expect(new Set(fila.sugerencias?.map((d) => d.dealId))).toEqual(new Set([porNombre.dealId, porTelefono.dealId]));
+
+    const ajeno = await inboxDelPrograma(db, programId, { ownerUserId: otroCloser }, HOY, AHORA, { userId: otroCloser, rol: "closer" });
+    expect(ajeno.llamadasSueltas.find((f) => f.callId === callId)?.puedeColgar).toBe(false);
+  });
+});
+
+describe("inboxDelPrograma — atención: link enviado sin cita", () => {
+  it("el lunes alerta un link del viernes y una cita vigente lo limpia", async () => {
+    const { dealId } = await crearDeal({ etapa: "calificado", handoffEn: new Date("2026-09-25T15:00:00Z") });
+    let inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY, AHORA);
+    expect(inbox.atencion.find((f) => f.dealId === dealId)?.motivo).toBe("link_sin_cita");
+
+    await crearLlamada({ dealId, fechaAgenda: enBogota("2026-10-01") });
+    inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY, AHORA);
+    expect(inbox.atencion.find((f) => f.dealId === dealId)?.motivo).not.toBe("link_sin_cita");
   });
 });
 

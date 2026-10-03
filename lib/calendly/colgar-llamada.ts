@@ -1,15 +1,21 @@
-import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, notInArray } from "drizzle-orm";
 import { z } from "zod";
 import { calls, dealActividades, deals, leadContactos, leads, miembrosPrograma, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { esViolacionUnica } from "@/lib/db/errores";
-import { trabajaLeads, type Rol } from "@/lib/auth/roles";
+import type { Rol } from "@/lib/auth/roles";
 import { programaEnAlcance } from "@/lib/auth/alcance";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
-import { sueltaPorAsignar } from "./suelta";
+import { puedeColgarSuelta, sueltaPorAsignar } from "./suelta";
+import { dealDeCodigo } from "./link-de-agenda";
+import {
+  codigoDeDealDelInvitado,
+  rawDelInvitado,
+  type CamposDeInvitadoCalendly,
+} from "./evento-webhook";
 import { moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
 import { NOMBRE_DE_PENDIENTE, unaCitaMueveAAgendado } from "@/lib/deals/etapas";
 import { dejarNotaDelSistema } from "@/lib/deals/nota-del-sistema";
@@ -50,7 +56,7 @@ import {
  */
 
 /** Una cita de Calendly tal como la entrega quien la lee (webhook o consulta, A5). */
-export interface CitaDeCalendly {
+export interface CitaDeCalendly extends CamposDeInvitadoCalendly {
   /** El uuid del invitado: la huella `calendly:<uuid>` que impide duplicar. */
   uuidInvitado: string;
   inicio: Date;
@@ -164,7 +170,21 @@ export async function registrarLlamadaDeCalendly(
     const correo = normalizarEmail(cita.correoInvitado);
     const candidatos = correo ? await candidatosPorCorreo(tx, programId, correo) : [];
     const closers = await closersConCalendly(tx, programId);
-    const decision = emparejarLlamada(cita, candidatos, closers);
+    const idPorCodigo = dealDeCodigo(codigoDeDealDelInvitado(cita));
+    const [dealPorCodigo] = idPorCodigo
+      ? await tx
+          .select({ dealId: deals.id, leadId: deals.leadId, ownerUserId: deals.ownerUserId })
+          .from(deals)
+          .where(
+            and(
+              eq(deals.id, idPorCodigo),
+              eq(deals.programId, programId),
+              notInArray(deals.etapa, ["ganado_completo", "cierre_perdido"]),
+              vigente(deals),
+            ),
+          )
+      : [];
+    const decision = emparejarLlamada(cita, candidatos, closers, dealPorCodigo ?? null);
 
     const valores = {
       programId,
@@ -175,6 +195,7 @@ export async function registrarLlamadaDeCalendly(
       resultado: "agendada" as const,
       origen: "calendly",
       huellaFila: huellaDeCita(cita.uuidInvitado),
+      raw: rawDelInvitado(cita),
     };
 
     if (decision.tipo === "suelta") {
@@ -309,10 +330,17 @@ export async function darDealAlHost(
   etiqueta: string,
 ): Promise<string | null> {
   if (host === null || host === ownerActual) return null;
+  const [actual] = await tx
+    .select({ setterUserId: deals.setterUserId })
+    .from(deals)
+    .where(and(eq(deals.id, dealId), vigente(deals)));
   await editarConRastro(
     { db: tx, tabla: deals, nombreTabla: "deals", actorId: null, etiqueta },
     dealId,
-    { ownerUserId: host },
+    {
+      ownerUserId: host,
+      ...(ownerActual !== null && actual?.setterUserId == null ? { setterUserId: ownerActual } : {}),
+    },
   );
   if (ownerActual === null) return null;
   await crearConRastro(
@@ -343,7 +371,7 @@ export interface ActorDeAsignacion {
 
 /**
  * Un closer cuelga una llamada SUELTA de un deal (ADR 0049 punto 6), con rastro. Lo hace
- * quien `trabajaLeads` y ve el programa (ADR 0048); el deal tiene que estar abierto y ser
+ * su host o quien administra y ve el programa; el deal tiene que estar abierto y ser
  * del MISMO programa que la llamada (ADR 0043). El efecto es el mismo que si el
  * emparejador la hubiera colgado sola.
  */
@@ -354,10 +382,6 @@ export async function asignarLlamadaSuelta(
 ): Promise<{ movioAAgendado: boolean; duenoAnterior: string | null; rechazo?: string }> {
   return normalizando(async () => {
     const { callId, dealId } = esquemaAsignarSuelta.parse(datos);
-    if (!actor.rol || !trabajaLeads(actor.rol)) {
-      throw new ErrorDeApp("Asignar una llamada es trabajar el lead: lo hace un closer.", 403);
-    }
-
     return enTransaccion(db, async (tx) => {
       const [llamada] = await tx
         .select({
@@ -372,6 +396,10 @@ export async function asignarLlamadaSuelta(
       // Inexistente, ya asignada, anulada o de un programa ajeno: el mismo 404.
       if (!llamada || !(await programaEnAlcance(actor.userId, actor.rol, llamada.programId, tx))) {
         throw new ErrorDeApp("No existe esa llamada suelta.", 404);
+      }
+      const host = closerHost(llamada.host, await closersConCalendly(tx, llamada.programId));
+      if (!puedeColgarSuelta({ actorUserId: actor.userId, rol: actor.rol, hostUserId: host })) {
+        throw new ErrorDeApp("Esta llamada la hospeda otra closer: la cuelga ella o quien administra.", 403);
       }
 
       const [deal] = await tx
@@ -389,7 +417,6 @@ export async function asignarLlamadaSuelta(
         llamada.id,
         { dealId: deal.id, cohortId: deal.cohortId },
       );
-      const host = closerHost(llamada.host, await closersConCalendly(tx, llamada.programId));
       return efectoSobreElDeal(tx, deal.id, host, etiqueta, llamada.fechaAgenda);
     });
   });

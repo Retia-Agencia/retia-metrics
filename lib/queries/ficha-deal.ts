@@ -11,6 +11,7 @@ import {
   leads,
   motivos,
   plataformasPago,
+  programs,
   submissions,
   users,
 } from "@/lib/db/schema";
@@ -31,6 +32,7 @@ import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { inboxDelPrograma, type MotivoAtencion } from "@/lib/queries/inbox";
 import { columnasUtmDelEnvio, utmsDelEnvio, type UtmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { enlacesDePagoVigentes, type EnlaceDeLaPantalla } from "@/lib/queries/recursos";
+import { linkDeAgenda } from "@/lib/calendly/link-de-agenda";
 
 /**
  * Todo lo de UN deal para su ficha (ticket 074): cabecera, llamadas, abonos, actividades e
@@ -171,6 +173,10 @@ export interface FichaDeDeal {
     confirmado: boolean;
   }[];
   owner: { id: string; nombre: string | null } | null;
+  setter: { id: string; nombre: string | null } | null;
+  handoffEn: Date | null;
+  linkAgenda: string | null;
+  tieneCitaVigente: boolean;
   valorVendidoUsd: number | null;
   ticket: { cohorteId: string; codigo: string; precioUsd: number; esActivaSugerida: boolean } | null;
   descuento: DescuentoDeDeal | null;
@@ -219,6 +225,7 @@ const MENSAJE_URGENTE: Record<MotivoAtencion | "llamada_sin_resultado" | "atendi
   compromiso_vencido: "El compromiso verbal se venció.",
   pago_vencido: "La fecha de pago se venció y queda saldo.",
   reenvio_sin_atender: "El lead volvió a llenar el formulario.",
+  link_sin_cita: "Mandaste el link de agenda y el lead no ha agendado.",
   estancado: "El deal lleva días sin actividad.",
   llamada_sin_resultado: "La llamada ya pasó y no tiene resultado.",
   atendida_sin_grain: "La llamada atendida no tiene el link de Grain.",
@@ -298,9 +305,11 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
       envioFecha: submissions.createdAt,
       envioCalificacion: submissions.calificacion,
       ...columnasUtmDelEnvio,
+      calendlyUrl: programs.calendlyUrl,
     })
     .from(deals)
     .innerJoin(leads, eq(leads.id, deals.leadId))
+    .innerJoin(programs, eq(programs.id, deals.programId))
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .where(and(eq(deals.id, dealId), eq(deals.programId, programId), incluyendoAnulados(deals)));
   if (!fila) return null;
@@ -352,6 +361,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
     if (id) idsDeUsuarios.add(id);
   };
   sumar(deal.ownerUserId);
+  sumar(deal.setterUserId);
   sumar(deal.anuladoPor);
   llamadasFilas.forEach((c) => (sumar(c.closerUserId), sumar(c.anuladoPor)));
   abonosFilas.forEach((a) => sumar(a.anuladoPor));
@@ -467,6 +477,10 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
       confirmado: c.confirmado,
     })),
     owner: deal.ownerUserId ? { id: deal.ownerUserId, nombre: nombreDe(deal.ownerUserId) } : null,
+    setter: deal.setterUserId ? { id: deal.setterUserId, nombre: nombreDe(deal.setterUserId) } : null,
+    handoffEn: deal.handoffEn,
+    linkAgenda: fila.calendlyUrl ? linkDeAgenda(fila.calendlyUrl, deal.id) : null,
+    tieneCitaVigente: llamadasFilas.some((c) => c.anuladoEn === null && c.resultado === "agendada"),
     valorVendidoUsd,
     ticket: cohorteDelTicket
       ? {

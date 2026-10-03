@@ -9,7 +9,7 @@ import type { PendienteDeal } from "@/lib/deals/etapas";
 import { dejarNotaDelSistema } from "@/lib/deals/nota-del-sistema";
 import { fechaHoraEnBogota } from "@/lib/format";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
-import type { EventoDeCalendly } from "./evento-webhook";
+import { camposDeInvitadoCalendly, rawDelInvitado, type EventoDeCalendly } from "./evento-webhook";
 import { closerHost } from "./emparejar-llamada";
 import {
   closersConCalendly,
@@ -79,6 +79,7 @@ export async function aplicarEventoDeCalendly(
           inicio: evento.inicio,
           correoInvitado: evento.correoInvitado,
           correoHost: evento.correoHost,
+          ...camposDeInvitadoCalendly(evento),
         }),
       };
     case "cancelada":
@@ -154,6 +155,7 @@ async function reagendar(
       fechaAgenda: cita.inicio,
       calendlyHostEmail: cita.correoHost,
       resultado: "agendada",
+      raw: rawDelInvitado(cita),
     });
 
     if (!vieja.dealId || vieja.etapa === null || vieja.etapa === "ganado_completo" || vieja.etapa === "cierre_perdido") {

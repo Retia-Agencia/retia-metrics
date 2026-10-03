@@ -25,12 +25,9 @@ import { Campo, claseInput, DialogoForm, Vacio } from "@/components/deals/ficha/
 export function InboxLlamadasSueltas({
   llamadas,
   programId,
-  puedeAsignar,
 }: {
   llamadas: FilaLlamada[];
   programId: string;
-  /** Trabaja leads: ve "Asignar a un deal". Proyección: la reja es el servidor. */
-  puedeAsignar: boolean;
 }) {
   return (
     <Card>
@@ -46,7 +43,7 @@ export function InboxLlamadasSueltas({
         ) : (
           <ul className="divide-y">
             {llamadas.map((fila) => (
-              <FilaSuelta key={fila.callId} fila={fila} programId={programId} puedeAsignar={puedeAsignar} />
+              <FilaSuelta key={fila.callId} fila={fila} programId={programId} />
             ))}
           </ul>
         )}
@@ -58,13 +55,26 @@ export function InboxLlamadasSueltas({
 function FilaSuelta({
   fila,
   programId,
-  puedeAsignar,
 }: {
   fila: FilaLlamada;
   programId: string;
-  puedeAsignar: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
+  const [asignando, setAsignando] = useState<string | null>(null);
+  const router = useRouter();
+
+  async function colgar(dealId: string) {
+    setAsignando(dealId);
+    try {
+      const r = await asignarLlamadaSueltaAccion({ callId: fila.callId, dealId });
+      if (r.ok) {
+        toast.success(r.movioAAgendado ? "Llamada asignada: el deal pasó a Agendado." : "Llamada asignada.");
+        router.refresh();
+      } else toast.error(r.error, { duration: 6000 });
+    } finally {
+      setAsignando(null);
+    }
+  }
   return (
     <li className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0 space-y-1">
@@ -83,8 +93,13 @@ function FilaSuelta({
           </a>
         ) : null}
       </div>
-      {puedeAsignar ? (
+      {fila.puedeColgar ? (
         <div className="flex flex-wrap items-center gap-2">
+          {fila.sugerencias?.map((deal) => (
+            <Button key={deal.dealId} size="sm" variant="secondary" disabled={asignando !== null} onClick={() => void colgar(deal.dealId)}>
+              {asignando === deal.dealId ? "Colgando…" : `Colgar aquí · ${deal.leadNombre ?? deal.leadEmail}`}
+            </Button>
+          ))}
           <Button size="sm" variant="default" onClick={() => setAbierto(true)}>
             Asignar a un deal
           </Button>

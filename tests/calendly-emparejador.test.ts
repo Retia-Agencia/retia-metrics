@@ -42,7 +42,18 @@ describe("emparejarLlamada: a que deal va", () => {
       tipo: "colgada",
       leadId: "l-ana",
       dealId: "d-ana",
+      llave: "correo",
     });
+  });
+
+  it("el deal resuelto por código gana aunque el correo sea distinto", () => {
+    expect(
+      emparejarLlamada(llamada("otra@correo.co"), [], CLOSERS, {
+        leadId: "l-codigo",
+        dealId: "d-codigo",
+        ownerUserId: ANDREA,
+      }),
+    ).toMatchObject({ tipo: "colgada", llave: "codigo", leadId: "l-codigo", dealId: "d-codigo" });
   });
 
   it("el correo se compara normalizado, como la llave del lead", () => {

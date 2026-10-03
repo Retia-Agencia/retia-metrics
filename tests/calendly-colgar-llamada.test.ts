@@ -15,10 +15,12 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
 import { abrirDeal, moverEtapa } from "@/lib/deals/mover-etapa";
+import { agregarLlamada } from "@/lib/deals/llamadas";
 import { asignarLlamadaSuelta, registrarLlamadaDeCalendly, type CitaDeCalendly } from "@/lib/calendly/colgar-llamada";
 import { aplicarReglaDeDeal } from "@/lib/ingesta/regla-de-deals";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { codigoDeDeal } from "@/lib/calendly/link-de-agenda";
 
 /**
  * El escritor de las llamadas de Calendly (ticket 096, ADR 0049), contra PGlite: lee la
@@ -114,6 +116,7 @@ describe("registrarLlamadaDeCalendly: colgada", () => {
     const r = await registrarLlamadaDeCalendly(db, programId, cita({ correoHost: "MARU.tactical@calendly.co" }));
     expect(r).toMatchObject({ tipo: "colgada", duenoAnterior: null });
     expect((await deal()).ownerUserId).toBe(maru);
+    expect((await deal()).setterUserId).toBeNull();
     expect(await db.select().from(dealActividades)).toHaveLength(0);
   });
 
@@ -122,9 +125,39 @@ describe("registrarLlamadaDeCalendly: colgada", () => {
     const r = await registrarLlamadaDeCalendly(db, programId, cita({ correoHost: HOST_MARU }));
     expect(r).toMatchObject({ tipo: "colgada", duenoAnterior: andrea });
     expect((await deal()).ownerUserId).toBe(maru);
+    expect((await deal()).setterUserId).toBe(andrea);
     const notas = await db.select().from(dealActividades).where(eq(dealActividades.dealId, dealId));
     expect(notas).toHaveLength(1);
     expect(notas[0]).toMatchObject({ tipo: "nota", userId: null });
+  });
+
+  it("un re-agendamiento no pisa el crédito del setter", async () => {
+    await db.update(deals).set({ ownerUserId: andrea }).where(eq(deals.id, dealId));
+    await registrarLlamadaDeCalendly(db, programId, cita({ correoHost: HOST_MARU }));
+    await registrarLlamadaDeCalendly(db, programId, cita({ correoHost: "andrea@calendly.co" }));
+    expect(await deal()).toMatchObject({ ownerUserId: andrea, setterUserId: andrea });
+  });
+
+  it("el código válido cuelga el deal aunque el correo sea distinto y guarda el raw", async () => {
+    const r = await registrarLlamadaDeCalendly(db, programId, cita({
+      correoInvitado: "otra@correo.co",
+      utmContent: codigoDeDeal(dealId),
+      nombreInvitado: "Ana Pérez",
+      telefonoInvitado: "+57 300 123 4567",
+    }));
+    expect(r).toMatchObject({ tipo: "colgada", dealId });
+    const [llamada] = await db.select().from(calls).where(eq(calls.dealId, dealId));
+    expect(llamada.raw).toEqual({ nombre: "Ana Pérez", telefono: "+57 300 123 4567", utmContent: codigoDeDeal(dealId) });
+  });
+
+  it("un código ajeno o cerrado no casa y cae a la regla de correo", async () => {
+    const [leadAjeno] = await db.insert(leads).values({ programId: otroProgramId, emailNormalizado: "ajeno@correo.co" }).returning();
+    const dealAjeno = await abrirDeal(db, { leadId: leadAjeno.id, programId: otroProgramId, etapa: "registrado", actor: { tipo: "sistema" } });
+    expect(await registrarLlamadaDeCalendly(db, programId, cita({ utmContent: codigoDeDeal(dealAjeno) }))).toMatchObject({ tipo: "colgada", dealId });
+
+    const [leadCerrado] = await db.insert(leads).values({ programId, emailNormalizado: "cerrado@correo.co" }).returning();
+    const [cerrado] = await db.insert(deals).values({ programId, leadId: leadCerrado.id, etapa: "cierre_perdido" }).returning();
+    expect(await registrarLlamadaDeCalendly(db, programId, cita({ utmContent: codigoDeDeal(cerrado.id) }))).toMatchObject({ tipo: "colgada", dealId });
   });
 
   it("una host que no esta registrada no toca al dueño", async () => {
@@ -201,11 +234,11 @@ describe("registrarLlamadaDeCalendly: suelta", () => {
 });
 
 describe("asignarLlamadaSuelta", () => {
-  async function suelta(): Promise<string> {
+  async function suelta(host = HOST_MARU): Promise<string> {
     const r = await registrarLlamadaDeCalendly(
       db,
       programId,
-      cita({ correoInvitado: "agenda-distinta@correo.co", correoHost: HOST_MARU }),
+      cita({ correoInvitado: "agenda-distinta@correo.co", correoHost: host }),
     );
     expect(r.tipo).toBe("suelta");
     return r.callId;
@@ -213,7 +246,7 @@ describe("asignarLlamadaSuelta", () => {
 
   it("un closer del programa la cuelga del deal: Agendado, dueño la host y rastro con su nombre", async () => {
     const callId = await suelta();
-    const r = await asignarLlamadaSuelta(db, { userId: andrea, rol: "closer" }, { callId, dealId });
+    const r = await asignarLlamadaSuelta(db, { userId: maru, rol: "closer" }, { callId, dealId });
     expect(r).toMatchObject({ movioAAgendado: true });
 
     const d = await deal();
@@ -224,24 +257,36 @@ describe("asignarLlamadaSuelta", () => {
       .from(changeLog)
       .where(and(eq(changeLog.registroId, callId), eq(changeLog.campo, "dealId")));
     expect(rastro).toHaveLength(1);
-    expect(rastro[0]).toMatchObject({ userId: andrea, valorAnterior: null, valorNuevo: dealId });
+    expect(rastro[0]).toMatchObject({ userId: maru, valorAnterior: null, valorNuevo: dealId });
   });
 
   it("una llamada ya asignada no se reasigna: 404", async () => {
     const callId = await suelta();
-    await asignarLlamadaSuelta(db, { userId: andrea, rol: "closer" }, { callId, dealId });
-    await expect(asignarLlamadaSuelta(db, { userId: andrea, rol: "closer" }, { callId, dealId })).rejects.toMatchObject({
+    await asignarLlamadaSuelta(db, { userId: maru, rol: "closer" }, { callId, dealId });
+    await expect(asignarLlamadaSuelta(db, { userId: maru, rol: "closer" }, { callId, dealId })).rejects.toMatchObject({
       status: 404,
     });
   });
 
-  it("un gerente administra pero no registra: 403, y la base no se mueve", async () => {
+  it("un closer que no es host recibe 403 y la base no se mueve", async () => {
     const callId = await suelta();
-    await expect(asignarLlamadaSuelta(db, { userId: gerente, rol: "gerente" }, { callId, dealId })).rejects.toMatchObject({
+    await expect(asignarLlamadaSuelta(db, { userId: andrea, rol: "closer" }, { callId, dealId })).rejects.toMatchObject({
       status: 403,
     });
     const [llamada] = await db.select().from(calls).where(eq(calls.id, callId));
     expect(llamada.dealId).toBeNull();
+    expect((await deal()).ownerUserId).toBeNull();
+  });
+
+  it("quien administra puede colgarla aunque no sea el host", async () => {
+    const callId = await suelta();
+    await expect(asignarLlamadaSuelta(db, { userId: gerente, rol: "gerente" }, { callId, dealId })).resolves.toMatchObject({ movioAAgendado: true });
+  });
+
+  it("sin host registrado solo quien administra puede colgarla", async () => {
+    const callId = await suelta("externa@calendly.co");
+    await expect(asignarLlamadaSuelta(db, { userId: maru, rol: "closer" }, { callId, dealId })).rejects.toMatchObject({ status: 403 });
+    await expect(asignarLlamadaSuelta(db, { userId: gerente, rol: "gerente" }, { callId, dealId })).resolves.toMatchObject({ movioAAgendado: true });
   });
 
   it("un closer sin membresia en el programa recibe 404", async () => {
@@ -267,7 +312,7 @@ describe("asignarLlamadaSuelta", () => {
       actor: { tipo: "sistema" },
     });
     await expect(
-      asignarLlamadaSuelta(db, { userId: andrea, rol: "closer" }, { callId, dealId: dealAjeno }),
+      asignarLlamadaSuelta(db, { userId: maru, rol: "closer" }, { callId, dealId: dealAjeno }),
     ).rejects.toMatchObject({ status: 404 });
   });
 });
@@ -308,6 +353,7 @@ describe("el 052 con la host de la cita", () => {
     );
     const [d] = await db.select().from(deals).where(eq(deals.id, r.dealAbiertoId!));
     expect(d).toMatchObject({ etapa: "agendado", ownerUserId: maru });
+    expect(d.setterUserId).toBeNull();
     const [llamada] = await db.select().from(calls).where(eq(calls.dealId, d.id));
     expect(llamada.calendlyHostEmail).toBe(HOST_MARU);
   });
@@ -324,5 +370,18 @@ describe("el 052 con la host de la cita", () => {
     );
     const [d] = await db.select().from(deals).where(eq(deals.id, r.dealAbiertoId!));
     expect(d.ownerUserId).toBeNull();
+  });
+});
+
+describe("camino D: la closer agrega la cita a mano", () => {
+  it("la llamada queda en su deal, conserva la dueña y no inventa setter", async () => {
+    await db.update(deals).set({ ownerUserId: maru }).where(eq(deals.id, dealId));
+    const r = await agregarLlamada(db, { userId: maru, rol: "closer" }, {
+      dealId,
+      fechaAgenda: new Date("2026-10-03T15:00:00Z"),
+    });
+    const [llamada] = await db.select().from(calls).where(eq(calls.id, r.callId));
+    expect(llamada).toMatchObject({ dealId, origen: "crm", resultado: "agendada" });
+    expect(await deal()).toMatchObject({ ownerUserId: maru, setterUserId: null, etapa: "agendado" });
   });
 });

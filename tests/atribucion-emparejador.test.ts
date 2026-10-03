@@ -215,6 +215,7 @@ describe("guardian: los UTM detallados se leen solo dentro de atribucion", () =>
     [path.join("lib", "ingesta", "adaptador-typeform.ts"), "mapea el campo oculto de Typeform a la columna; no interpreta"],
     [path.join("lib", "ingesta", "adaptador-dapta.ts"), "mapea las UTM de Dapta a la columna; no interpreta"],
     [path.join("lib", "ingesta", "mapeo-webhook.ts"), "traduce la llave del mapeo de la fuente; no interpreta"],
+    [path.join("lib", "calendly", "evento-webhook.ts"), "lee el tracking del invitado de Calendly para el codigo del deal (ADR 0076); no interpreta UTM de atribucion"],
     [path.join("scripts", "seed-local.ts"), "arma envios ficticios para la base local; escribe y no interpreta"],
   ]);
 

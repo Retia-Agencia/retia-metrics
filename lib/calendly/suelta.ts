@@ -1,5 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { calls } from "@/lib/db/schema";
+import { esAdministrador, trabajaLeads, type Rol } from "@/lib/auth/roles";
 
 /**
  * ¿Esta llamada sin deal se asigna a mano? Solo si la trajo Calendly (ADR 0049; Mani, 30-sep).
@@ -23,4 +24,13 @@ export function sueltaPorAsignar() {
 /** El mismo predicado sobre una fila ya leida. */
 export function esSueltaPorAsignar(llamada: { dealId: string | null; origen: string }): boolean {
   return llamada.dealId == null && llamada.origen === ORIGEN_DE_SUELTA_ASIGNABLE;
+}
+
+/** Solo la host de Calendly, o quien administra, puede colgar una llamada suelta. */
+export function puedeColgarSuelta(args: {
+  actorUserId: string;
+  rol: Rol | null;
+  hostUserId: string | null;
+}): boolean {
+  return esAdministrador(args.rol) || (trabajaLeads(args.rol) && args.hostUserId === args.actorUserId);
 }

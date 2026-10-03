@@ -8,8 +8,9 @@ import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import type { OpcionCatalogo } from "@/lib/queries/kanban";
 import { moverDeal } from "@/app/(app)/p/[programa]/deals/acciones";
 import { DialogoMover, type DatosDialogo, type MovimientoDelDialogo } from "./dialogo-mover";
+import { marcarLinkEnviadoAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { accionDeFicha, enlaceDeAccion } from "./ficha/accion-pedida";
-import { DialogoForm } from "./ficha/campos";
+import { claseInput, DialogoForm } from "./ficha/campos";
 import { PREGUNTA_DE_ETAPA, type ClaveDestino, type Respuesta } from "./pregunta-de-etapa";
 import type { FlechaCliente, MapaTransiciones } from "./transiciones";
 
@@ -31,6 +32,8 @@ export interface DealQueResponde {
   /** `/p/<programa>/deals/<id>`: donde viven los formularios. */
   rutaDeLaFicha: string;
   fechaLimiteSugerida?: string | null;
+  linkAgenda?: string | null;
+  tieneCitaVigente?: boolean;
 }
 
 export interface OpcionesDeRespuesta {
@@ -71,8 +74,14 @@ export function useResponder(
     respuestas: readonly Respuesta[];
   } | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [agendaAbierta, setAgendaAbierta] = useState<DealQueResponde | null>(null);
+  const [marcandoLink, setMarcandoLink] = useState(false);
 
   function elegir(deal: DealQueResponde, r: Respuesta) {
+    if (r.accion.tipo === "llamada" && r.accion.uso === "agendar" && !deal.tieneCitaVigente) {
+      setAgendaAbierta(deal);
+      return;
+    }
     const formulario = accionDeFicha(r.accion);
     if (formulario) {
       router.push(enlaceDeAccion(deal.rutaDeLaFicha, formulario));
@@ -117,7 +126,58 @@ export function useResponder(
     }
   }
 
-  let dialogo: ReactNode = destinoAbierto ? (
+  let dialogo: ReactNode = agendaAbierta ? (
+    <DialogoForm
+      titulo="Agendar llamada"
+      descripcion={agendaAbierta.nombreLead}
+      pendiente={marcandoLink}
+      onCerrar={() => setAgendaAbierta(null)}
+      confirmar={{
+        texto: "Agregar la cita a mano",
+        enCurso: "Abriendo…",
+        onClick: () => {
+          router.push(enlaceDeAccion(agendaAbierta.rutaDeLaFicha, "agendar"));
+          setAgendaAbierta(null);
+        },
+      }}
+    >
+      <div className="space-y-3">
+        {agendaAbierta.linkAgenda ? (
+          <section className="space-y-2">
+            <h3 className="text-sm font-medium">Link de agenda</h3>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input className={claseInput} readOnly value={agendaAbierta.linkAgenda} aria-label="Link de agenda" />
+              <Button type="button" variant="outline" onClick={() => void navigator.clipboard.writeText(agendaAbierta.linkAgenda!)}>
+                Copiar
+              </Button>
+            </div>
+            <Button
+              type="button"
+              disabled={marcandoLink}
+              onClick={async () => {
+                setMarcandoLink(true);
+                const r = await marcarLinkEnviadoAccion({ dealId: agendaAbierta.dealId });
+                setMarcandoLink(false);
+                if (r.ok) {
+                  toast.success("Link marcado como enviado.");
+                  setAgendaAbierta(null);
+                  alTerminar();
+                } else toast.error(r.error, { duration: 6000 });
+              }}
+            >
+              {marcandoLink ? "Guardando…" : "Ya se lo mandé"}
+            </Button>
+          </section>
+        ) : (
+          <p className="text-sm text-muted-foreground">El programa no tiene link de Calendly.</p>
+        )}
+        <div className="border-t border-border pt-3">
+          <p className="text-sm font-medium">Agregar la cita a mano</p>
+          <p className="text-xs text-muted-foreground">Usa el formulario si la cita no llegó por Calendly.</p>
+        </div>
+      </div>
+    </DialogoForm>
+  ) : destinoAbierto ? (
     <DialogoForm
       titulo={destinoAbierto.destino === "ganado" ? "Ganado · registrar pago" : nombreDeEtapa[destinoAbierto.destino]}
       descripcion={destinoAbierto.deal.nombreLead}

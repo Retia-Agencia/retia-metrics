@@ -40,6 +40,8 @@ export function FichaTransicion({
     nombreLead: ficha.lead.nombre ?? ficha.lead.email,
     rutaDeLaFicha,
     fechaLimiteSugerida: ficha.fechaLimiteSugerida,
+    linkAgenda: ficha.linkAgenda,
+    tieneCitaVigente: ficha.tieneCitaVigente,
   };
   const grupos = respuestasPorDestino(ficha.etapa, ficha.pendiente, ordenDeEtapas);
   if (!puedeTrabajar || ficha.anulado || (grupos.destinos.length === 0 && grupos.sinCambio.length === 0)) return null;

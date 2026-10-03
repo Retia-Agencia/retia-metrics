@@ -5,6 +5,7 @@ import type { CanalActivo } from "@/lib/atribucion/canal";
 import { ARBOL_VACIO, emparejar } from "@/lib/atribucion/emparejar";
 import { generarLink, sanearUtm } from "@/lib/atribucion/link-de-captacion";
 import type { UtmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
+import { codigoDeDeal, dealDeCodigo, linkDeAgenda } from "@/lib/calendly/link-de-agenda";
 
 /**
  * Ticket 092 — el generador de links de captacion. El corazon del ticket: **el emparejador
@@ -99,6 +100,27 @@ describe("generarLink", () => {
     expect(() => generarLink("https://x.co/f", { source: "", medium: "bio", campaign: "c" })).toThrow(
       expect.objectContaining({ status: 400 }),
     );
+  });
+});
+
+describe("link de agenda del deal", () => {
+  it("hace round trip del UUID y usa el generador único, reemplazando UTM previos", () => {
+    const dealId = "01234567-89ab-cdef-0123-456789abcdef";
+    const link = linkDeAgenda("https://calendly.com/retia/cita?x=1&utm_source=viejo&utm_term=borrar", dealId);
+    const url = new URL(link);
+    expect(codigoDeDeal(dealId)).toBe("0123456789abcdef0123456789abcdef");
+    expect(dealDeCodigo(url.searchParams.get("utm_content"))).toBe(dealId);
+    expect(url.searchParams.get("utm_source")).toBe("crm");
+    expect(url.searchParams.get("utm_medium")).toBe("setter");
+    expect(url.searchParams.get("utm_campaign")).toBe("agenda");
+    expect(url.searchParams.has("utm_term")).toBe(false);
+    expect(url.searchParams.get("x")).toBe("1");
+  });
+
+  it("rechaza códigos que no sean exactamente 32 hex", () => {
+    expect(dealDeCodigo(null)).toBeNull();
+    expect(dealDeCodigo("xyz")).toBeNull();
+    expect(dealDeCodigo("0123456789abcdef0123456789abcdeg")).toBeNull();
   });
 });
 

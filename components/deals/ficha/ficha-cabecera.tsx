@@ -71,6 +71,8 @@ export function FichaCabecera({
 
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-5">
           <Dato etiqueta="Dueño">{ficha.owner ? (ficha.owner.nombre ?? "Sin nombre") : "Sin dueño"}</Dato>
+          {ficha.setter ? <Dato etiqueta="Setteado por">{ficha.setter.nombre ?? "Sin nombre"}</Dato> : null}
+          {ficha.handoffEn ? <Dato etiqueta="Link enviado el">{fechaHoraEnBogota(ficha.handoffEn)}</Dato> : null}
           <Dato etiqueta="Valor vendido">
             <span className="cifra">{ficha.valorVendidoUsd == null ? "—" : usd(ficha.valorVendidoUsd)}</span>
           </Dato>

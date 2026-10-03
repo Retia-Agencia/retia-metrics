@@ -1,6 +1,7 @@
 import { and, between, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   cohorts,
+  calls,
   dealEtapaHistorial,
   deals,
   leadContactos,
@@ -23,6 +24,7 @@ import { cerradosEn, fechaAnclaDealCreado } from "@/lib/queries/metricas-filtros
 import { ultimaActividadPorDeal } from "@/lib/queries/ultima-actividad";
 import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
 import type { AlcanceDeals } from "@/lib/auth/alcance-deals";
+import { linkEnviadoSinCita } from "@/lib/deals/handoff";
 
 /**
  * Los deals de un programa agrupados por etapa, para el Kanban (ticket 069).
@@ -57,6 +59,8 @@ export interface AvisosDeTarjeta {
   leadUnidoPorTelefono: boolean;
   /** Hay plata vigente sin soporte: no bloquea la venta, pero exige atención. */
   abonoSinComprobante: boolean;
+  /** El setter marcó el link y llegó el siguiente hábil sin cita. */
+  linkSinCita: boolean;
 }
 
 export interface TarjetaDeal {
@@ -179,6 +183,7 @@ export async function tableroKanban(
       fechaSeguimiento: deals.fechaSeguimiento,
       cohortId: deals.cohortId,
       createdAt: deals.createdAt,
+      handoffEn: deals.handoffEn,
       nombreLead: leads.nombre,
       emailLead: leads.emailNormalizado,
       envios: leads.numAplicaciones,
@@ -233,6 +238,11 @@ export async function tableroKanban(
   // con al menos uno lleva el aviso. Se agrupa aparte.
   const sinConfirmar = await leadsConContactoSinConfirmar(db, leadIds);
   const sinComprobante = await dealsConAbonoSinComprobante(db, dealIds);
+  const citas = await db
+    .select({ dealId: calls.dealId })
+    .from(calls)
+    .where(and(inArray(calls.dealId, dealIds), eq(calls.resultado, "agendada"), vigente(calls)));
+  const conCitaVigente = new Set(citas.flatMap((c) => c.dealId ? [c.dealId] : []));
 
   const tarjetas: TarjetaDeal[] = filas.map((f) => {
     const saldo = saldos.get(f.dealId);
@@ -265,6 +275,11 @@ export async function tableroKanban(
         seguimientoVencido,
         leadUnidoPorTelefono: sinConfirmar.has(f.leadId),
         abonoSinComprobante: sinComprobante.has(f.dealId),
+        linkSinCita: linkEnviadoSinCita({
+          handoffEn: f.handoffEn,
+          tieneCitaVigente: conCitaVigente.has(f.dealId),
+          hoy,
+        }),
       },
     };
   });

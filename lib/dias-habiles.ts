@@ -58,6 +58,13 @@ export function esDiaHabil(fecha: FechaCalendario): boolean {
   return esHabil(numeroDeDia(fecha));
 }
 
+/** El primer día hábil posterior al día de calendario recibido. */
+export function diaHabilSiguiente(fecha: FechaCalendario): string {
+  let dia = numeroDeDia(fecha) + 1;
+  while (!esHabil(dia)) dia += 1;
+  return new Date(dia * MS_POR_DIA).toISOString().slice(0, 10);
+}
+
 /**
  * Dias habiles entre dos fechas de calendario, inclusive en ambos extremos.
  * Devuelve 0 si `fin` es anterior a `inicio`.
