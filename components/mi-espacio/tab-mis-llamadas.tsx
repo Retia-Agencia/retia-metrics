@@ -1,8 +1,6 @@
 import { db } from "@/lib/db";
 import type { Rol } from "@/lib/auth/roles";
 import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
-import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
-import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { opcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { llamadasDelPrograma } from "@/lib/queries/llamadas";
 import { LlamadasPrograma } from "@/components/deals/llamadas-programa";
@@ -32,9 +30,7 @@ export async function TabMisLlamadas({
     <LlamadasPrograma
       llamadas={llamadas}
       programaSlug={slug}
-      opciones={opcionesFicha}
-      mapa={mapaDeTransiciones()}
-      nombreDeEtapa={NOMBRE_DE_ETAPA}
+      motivosReagenda={opcionesFicha.motivos}
       puedeTrabajar={trabajaLeads(rol) || esAdministrador(rol)}
     />
   );
