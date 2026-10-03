@@ -188,8 +188,8 @@ describe("navegacion por rol", () => {
     expect(rutas).toContain("/ajustes");
   });
 
-  it("el gerente no ve Mi espacio: no trabaja leads (ADR 0003)", () => {
-    expect(rutasDe("gerente")).not.toContain("/mi-espacio");
+  it("el gerente ve Mi espacio (ticket 179): su sección Por decidir, no las del closer", () => {
+    expect(rutasDe("gerente")).toContain("/mi-espacio");
   });
 
   it("Nerd Stats es SOLO del developer: ni gerente ni closer lo ven (ticket 025)", () => {
@@ -198,17 +198,17 @@ describe("navegacion por rol", () => {
     expect(rutasDe("closer")).not.toContain("/nerd-stats");
   });
 
-  it("el paid trafficker solo ve Ajustes (ADR 0052, ticket 173): nada de tabs, Recursos ni Mi día", () => {
+  it("el paid trafficker ve Mi espacio y Ajustes (tickets 173, 179): nada de tabs, Recursos ni Mi día", () => {
     const rutas = rutasDe("paid_trafficker");
-    expect(rutas).toEqual(["/ajustes"]);
+    expect(rutas).toEqual(["/mi-espacio", "/ajustes"]);
     expect(rutas).not.toContain("/mi-dia");
     expect(rutas).not.toContain("/recursos");
     expect(rutas.some((r) => r.startsWith("/p/"))).toBe(false);
   });
 
-  it("el paid trafficker aterriza en Canales (ticket 173)", () => {
-    expect(rutaInicial("paid_trafficker", "programa-a")).toBe("/ajustes/canales");
-    expect(rutaInicial("paid_trafficker", null)).toBe("/ajustes/canales");
+  it("el paid trafficker aterriza en Mi espacio (ticket 179), ya no en Canales", () => {
+    expect(rutaInicial("paid_trafficker", "programa-a")).toBe("/mi-espacio");
+    expect(rutaInicial("paid_trafficker", null)).toBe("/mi-espacio");
   });
 
   it("el developer aterriza en el Dashboard del primer programa, como el gerente", () => {

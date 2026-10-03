@@ -64,22 +64,27 @@ export function rutaAlCambiarDePrograma(pathname: string, nuevoSlug: string): st
 export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] {
   if (!rol) return [];
 
-  // El paid trafficker (ADR 0052) solo entra a Ajustes, y adentro solo ve Canales (lo
-  // proyecta el índice): maneja pauta pero no administra la app ni trabaja leads, asi
-  // que no tiene Dashboard (follow-up), ni tabs de programa, ni Recursos. Se pregunta
-  // por capacidad —`manejaPauta` sin administrar ni trabajar leads—, nunca por el
-  // literal del rol (ADR 0025): un `rol === "paid_trafficker"` a mano repetiria el bug.
+  // El paid trafficker (ADR 0052) entra a Ajustes —adentro solo ve Canales (lo proyecta
+  // el índice)— y, desde el ticket 179, a Mi espacio, su propia sección Canales (pares sin
+  // clasificar y conteo por canal). No administra la app ni trabaja leads, así que no tiene
+  // Dashboard, tabs de programa ni Recursos. Se pregunta por capacidad —`manejaPauta` sin
+  // administrar ni trabajar leads—, nunca por el literal del rol (ADR 0025).
   if (manejaPauta(rol) && !esAdministrador(rol) && !trabajaLeads(rol)) {
-    return [{ href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["paid_trafficker"] }];
+    return [
+      { href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles: ["paid_trafficker"] },
+      { href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["paid_trafficker"] },
+    ];
   }
 
   const items: ItemNav[] = [];
 
-  // Mi espacio: todo lo del usuario en una ruta (perfil + sus pendientes, deals, llamadas
-  // y students por programa). Para quien trabaja leads (closer y developer, ADR 0025).
-  // Reemplaza a `/mi-dia` y a `/perfil` (ticket 172).
-  if (trabajaLeads(rol)) {
-    items.push({ href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles: ["closer"] });
+  // Mi espacio: todo lo del usuario en una ruta (perfil + sus secciones por rol, ticket
+  // 179). Lo ven quien trabaja leads (closer y developer), quien administra (gerente) y el
+  // developer por `esAccesoTotal`. El paid trafficker lo tiene por su rama de arriba. Es por
+  // CAPACIDAD, nunca por el literal del rol (ADR 0025).
+  if (trabajaLeads(rol) || esAdministrador(rol)) {
+    const roles: Rol[] = trabajaLeads(rol) ? ["closer"] : ["gerente"];
+    items.push({ href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles });
   }
 
   // Dashboard del programa elegido. Lo ven todos los roles, cada uno en SUS programas
@@ -170,17 +175,19 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
  * A donde mandar a alguien que entra a "/" segun su rol.
  * Sin rol no hay destino valido dentro de la app: va al login.
  * El gerente y el developer (ADR 0025) aterrizan en el Dashboard del primer programa
- * (ADR 0050); si no hay ninguno, en ajustes. El closer aterriza en **Mi espacio**
- * (ticket 172), donde ve su perfil y, por programa, sus pendientes, deals, llamadas y
- * students, con Pendientes arriba. El primer programa se resuelve fuera (contra la base,
- * segun el alcance del rol) y entra como dato; para el closer ya no hace falta, pero se
- * conserva la firma porque el gerente y el developer sí lo usan.
+ * (ADR 0050); si no hay ninguno, en ajustes. El closer y el paid trafficker aterrizan en
+ * **Mi espacio** (tickets 172 y 179): el closer ve su perfil y, por programa, sus
+ * pendientes, deals, llamadas y students; el paid trafficker ve su sección Canales. El
+ * primer programa se resuelve fuera (contra la base, segun el alcance del rol) y entra como
+ * dato; para el closer y el paid trafficker ya no hace falta, pero se conserva la firma
+ * porque el gerente y el developer sí lo usan.
  */
 export function rutaInicial(rol: Rol | null, primerPrograma: string | null): string {
   if (!rol) return "/login";
   if (rol === "closer") return "/mi-espacio";
-  // El paid trafficker aterriza en Canales, lo único que ve: maneja pauta pero no
-  // administra ni trabaja leads. Por capacidad, nunca por el literal del rol (ADR 0025).
-  if (manejaPauta(rol) && !esAdministrador(rol) && !trabajaLeads(rol)) return "/ajustes/canales";
+  // El paid trafficker aterriza en Mi espacio (ticket 179): su sección Canales (pares sin
+  // clasificar y conteo por canal) es ahora su punto de entrada, no `/ajustes/canales`.
+  // Por capacidad, nunca por el literal del rol (ADR 0025).
+  if (manejaPauta(rol) && !esAdministrador(rol) && !trabajaLeads(rol)) return "/mi-espacio";
   return primerPrograma ? rutaDePrograma(primerPrograma, "dashboard") : "/ajustes";
 }

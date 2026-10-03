@@ -20,8 +20,7 @@ import { InboxLlamadasDeHoy } from "@/components/deals/inbox-llamadas-de-hoy";
 import { InboxLlamadasSueltas } from "@/components/deals/inbox-llamadas-sueltas";
 import { InboxAtencion } from "@/components/deals/inbox-atencion";
 import { InboxPerdidosEnCalendly } from "@/components/deals/inbox-perdidos-en-calendly";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HostsSinCuenta } from "@/components/mi-espacio/hosts-sin-cuenta";
 
 export const dynamic = "force-dynamic";
 
@@ -108,23 +107,7 @@ export default async function InboxDelProgramaPage({ params }: Props) {
         />
 
         {inbox.llamadasSinCloser.length > 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                Hosts sin cuenta <Badge variant="destructive">Urgente</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ul className="divide-y">
-                {inbox.llamadasSinCloser.map((llamada) => (
-                  <li key={llamada.callId} className="px-4 py-3 text-sm">
-                    La cita la hospeda {llamada.hostEmail}, que no tiene cuenta en el CRM. Asígnala en el Equipo del programa.
-                    <span className="block text-xs text-muted-foreground">{llamada.leadNombre ?? llamada.leadEmail}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+          <HostsSinCuenta filas={inbox.llamadasSinCloser} />
         ) : null}
 
         {/* 4 · Lo mío que necesita atención. */}

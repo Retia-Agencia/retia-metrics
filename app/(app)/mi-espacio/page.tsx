@@ -1,23 +1,26 @@
 import Link from "next/link";
+import type { ReactElement } from "react";
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
-import { requireSesionReal } from "@/lib/auth/guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAccesoTotal, esRolValido } from "@/lib/auth/roles";
+import { esAccesoTotal, esRolValido, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { programasVisibles, programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { membresiasConCalendlyDe } from "@/lib/catalogo/usuarios";
 import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
 import { programasActivos } from "@/lib/queries/programas";
+import { seccionPedida, seccionesDeRol, type SeccionMiEspacio } from "@/lib/mi-espacio/secciones";
 import { PageShell } from "@/components/page-shell";
 import { PerfilDeMiEspacio } from "@/components/mi-espacio/perfil-de-mi-espacio";
-import { TabsDeMiEspacio, type TabMiEspacio } from "@/components/mi-espacio/tabs-de-mi-espacio";
+import { TabsDeMiEspacio } from "@/components/mi-espacio/tabs-de-mi-espacio";
 import { CalendlyMembresias } from "@/components/calendly-membresias";
 import { asignarMiCalendlyAccion } from "./acciones";
 import { TabPendientes } from "@/components/mi-espacio/tab-pendientes";
 import { TabMisDeals } from "@/components/mi-espacio/tab-mis-deals";
 import { TabMisLlamadas } from "@/components/mi-espacio/tab-mis-llamadas";
 import { TabMisStudents } from "@/components/mi-espacio/tab-mis-students";
+import { TabCanales } from "@/components/mi-espacio/tab-canales";
+import { TabPorDecidir } from "@/components/mi-espacio/tab-por-decidir";
 
 export const dynamic = "force-dynamic";
 
@@ -29,119 +32,179 @@ function uno(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-const TABS: readonly TabMiEspacio[] = ["pendientes", "deals", "llamadas", "students"];
-
 /**
- * Mi espacio (ticket 172): todo lo del usuario en una ruta. Arriba el **perfil** (nombre,
- * foto y rol de Google, y la cuenta de Calendly por programa con el componente del 169);
- * debajo, con selector de programa obligatorio (el programa es frontera, ADR 0043) y en
- * tabs, lo del usuario EN ese programa: Pendientes (Inbox), Mis deals (Kanban), Mis
- * llamadas y Mis students, todo acotado al usuario (ADR 0075: deals y llamadas propios).
+ * Mi espacio (tickets 172, 179): el perfil arriba y, debajo, SOLO lo que le corresponde a
+ * esa persona y SOLO las secciones del trabajo de su rol (ADR 0077 punto 1). Dos ejes que
+ * no se mezclan (decisión de Mani, 3-oct):
+ *  - **De quién:** siempre la persona de la sesión; nunca "todo lo que el rol alcanza"
+ *    (eso vive en las tabs del programa).
+ *  - **Qué secciones:** las del trabajo de su rol, dirigidas por el registro
+ *    `lib/mi-espacio/secciones.ts` (nunca `rol === "..."`, ADR 0025).
  *
- * Reemplaza a `/mi-dia` y a `/perfil` (que ahora redirigen). La guarda es la de quien
- * trabaja leads (`paginaConRol("closer")`: closer y developer por `esAccesoTotal`), igual
- * que `/mi-dia`. `closer_id` NO se muestra (167, 159).
+ * Quién ve qué, por capacidad:
+ *  - `trabajaLeads` (closer, setter): Pendientes, Mis deals, Mis llamadas, Mis students,
+ *    con selector de programa y, sin membresías, el mensaje A-04. El Calendly y ese mensaje
+ *    SOLO aplican a quien trabaja leads.
+ *  - `manejaPauta` sin administrar ni trabajar leads (paid trafficker): Canales. Sin
+ *    selector de programa ni mensaje de membresías.
+ *  - `esAdministrador` sin trabajar leads (gerente): Por decidir, con selector de programa.
+ *  - El developer: ve las secciones de su ROL DE VISTA; en vista `todo` (acceso total) no
+ *    hay secciones propias, así que se muestra el mensaje que lo explica y ofrece "Ver como
+ *    closer". Se decide con `esAccesoTotal` del rol REAL (`requireSesionReal`), nunca con
+ *    el literal del rol.
  *
- * El alcance es SIEMPRE el del usuario de la sesión (su id), no el de administrador: Mi
- * espacio es "lo mío". Un developer que suplanta a un closer ("ver como", ticket 172) ve
- * exactamente lo de ese closer, porque la sesión efectiva ya trae su id, rol y membresías.
+ * La guarda admite los tres roles base (`paginaConRol("gerente", "closer",
+ * "paid_trafficker")`); el developer pasa por `esAccesoTotal`. El filtro de la vista corre
+ * en `rolDeVista`. `closer_id` NO se muestra (167, 159).
  */
 export default async function MiEspacioPage({ searchParams }: Props) {
-  const session = await paginaConRol("closer");
+  const session = await paginaConRol("gerente", "closer", "paid_trafficker");
   const rol = await rolDeVista(session);
   if (!esRolValido(rol)) notFound();
 
   const userId = session.user.id;
-  const membresias = await membresiasConCalendlyDe(db, userId);
+  const query = await searchParams;
 
-  // El nombre del perfil sale de `users.nombre` (no del correo): la membresía ya lo trae
-  // (`usuario`), igual que el nombre de la sesión bajo suplantación. Local login no mete
-  // `users.nombre` en la sesión, así que sin este preferir saldría el correo (A-??, 177).
-  const nombrePerfil = membresias[0]?.usuario ?? session.user.name ?? session.user.email ?? "Usuario";
-
-  // Perfil: nombre, foto y rol vienen de Google / la sesión; no se editan aquí.
-  const perfil = (
-    <PerfilDeMiEspacio
-      nombre={nombrePerfil}
-      imagen={session.user.image ?? null}
-      rol={rol}
-    />
-  );
-
-  // Sin membresías no hay pantalla vacía (A-04): un mensaje y el perfil, nada más. Para el
-  // DUEÑO (acceso total por su rol REAL, nunca `rol === "developer"` a mano; ADR 0025), Mi
-  // espacio no aplica —es de quien trabaja leads— y el mensaje lo explica y ofrece "Ver
-  // como closer". Bajo suplantación la sesión efectiva ya no es acceso total, por eso se
-  // decide con el rol REAL.
-  if (membresias.length === 0) {
-    const real = await requireSesionReal();
-    const esDueno = esAccesoTotal(real.user.rol);
+  // El developer en vista `todo` (acceso total) no tiene secciones propias: Mi espacio es
+  // de la persona, y en `todo` no se suplanta a nadie. Se muestra el mensaje del dueño con
+  // "Ver como closer". Se decide con el rol de vista (bajo suplantación la sesión efectiva
+  // ya no es acceso total y cae por el camino del closer). Va ANTES de cargar membresías:
+  // el dueño no tiene espacio propio por programa.
+  if (esAccesoTotal(rol)) {
     return (
       <PageShell titulo="Mi espacio" descripcion="Tu perfil y tu trabajo por programa.">
         <div className="space-y-6">
-          {perfil}
+          <PerfilDeMiEspacio
+            nombre={session.user.name ?? session.user.email ?? "Usuario"}
+            imagen={session.user.image ?? null}
+            rol={rol}
+          />
           <p className="max-w-prose text-sm text-muted-foreground">
-            {esDueno
-              ? "Mi espacio es de quien trabaja leads: muestra los pendientes, deals, llamadas y students de un closer en cada programa. Como no tienes membresías, no hay nada que mostrar aquí; usa \"Ver como closer\" en el menú de tu usuario para ver el espacio de un closer."
-              : "Todavía no tienes programas asignados; pídele a tu gerente que te agregue al equipo de un programa."}
+            Mi espacio es de quien trabaja leads: muestra los pendientes, deals, llamadas y students de un closer en cada programa. Como tienes acceso total, no hay un espacio propio que mostrar aquí; usa &quot;Ver como closer&quot; en el menú de tu usuario para ver el espacio de un closer.
           </p>
         </div>
       </PageShell>
     );
   }
 
-  // El Calendly por programa (componente del 169), solo de los programas con membresía.
-  const programIds = membresias.map((m) => m.programId);
-  const programasDeCalendly = (await programasActivos()).filter((p) => programIds.includes(p.id));
-  const cuentas = await cuentasPorPrograma(db, programIds);
+  // Perfil: nombre, foto y rol vienen de Google / la sesión. Para quien trabaja leads el
+  // nombre sale de la membresía (local login no mete `users.nombre` en la sesión); el
+  // gerente y el paid trafficker no cargan membresías, así que usan el de la sesión.
+  const puedeTrabajar = trabajaLeads(rol);
+  const membresias = puedeTrabajar ? await membresiasConCalendlyDe(db, userId) : [];
+  const nombrePerfil = membresias[0]?.usuario ?? session.user.name ?? session.user.email ?? "Usuario";
+  const perfil = (
+    <PerfilDeMiEspacio nombre={nombrePerfil} imagen={session.user.image ?? null} rol={rol} />
+  );
 
-  const query = await searchParams;
+  // El trabajo de quien trabaja leads vive por programa, así que necesita membresías: el
+  // Calendly por programa (169) y, sin membresías, el mensaje A-04. El gerente y el paid
+  // trafficker NO pasan por aquí (no trabajan leads): no ven ni Calendly ni ese mensaje.
+  if (puedeTrabajar && membresias.length === 0) {
+    return (
+      <PageShell titulo="Mi espacio" descripcion="Tu perfil y tu trabajo por programa.">
+        <div className="space-y-6">
+          {perfil}
+          <p className="max-w-prose text-sm text-muted-foreground">
+            Todavía no tienes programas asignados; pídele a tu gerente que te agregue al equipo de un programa.
+          </p>
+        </div>
+      </PageShell>
+    );
+  }
 
-  // Selector de programa obligatorio por URL. Un slug ajeno es 404 (igual que las tabs de
-  // programa); sin `?programa` se toma el primero visible.
-  const visibles = await programasVisibles(userId, rol);
-  const pedido = uno(query.programa);
-  const programa = pedido
-    ? await programaVisiblePorSlug(userId, rol, pedido)
-    : (visibles[0] ?? null);
-  if (!programa) notFound();
+  // Las secciones del rol de vista (dirigidas por el registro). La pedida, si el rol la
+  // cumple; si no (sin `?tab=` o una `?tab=` de otra sección forjada a mano), la primera.
+  const secciones = seccionesDeRol(rol);
+  const seccion = seccionPedida(rol, uno(query.tab));
+  if (!seccion) notFound();
 
-  const tabPedida = uno(query.tab);
-  const tab: TabMiEspacio = TABS.includes(tabPedida as TabMiEspacio)
-    ? (tabPedida as TabMiEspacio)
-    : "pendientes";
+  // El Calendly solo para quien trabaja leads, y solo de los programas con membresía (169).
+  const calendly = puedeTrabajar ? await bloqueCalendly(membresias) : null;
+
+  // Selector de programa solo para las secciones que lo usan. El programa es frontera: un
+  // slug ajeno es 404 (igual que las tabs de programa); sin `?programa` se toma el primero
+  // visible.
+  let programa: { id: string; slug: string; nombre: string } | null = null;
+  let visibles: { id: string; slug: string; nombre: string }[] = [];
+  if (seccion.usaSelectorDePrograma) {
+    visibles = await programasVisibles(userId, rol);
+    const pedido = uno(query.programa);
+    programa = pedido
+      ? await programaVisiblePorSlug(userId, rol, pedido)
+      : (visibles[0] ?? null);
+    if (!programa) notFound();
+  }
 
   return (
     <PageShell titulo="Mi espacio" descripcion="Tu perfil y tu trabajo por programa.">
       <div className="space-y-6">
         {perfil}
-
-        <CalendlyMembresias
-          membresias={membresias}
-          programas={programasDeCalendly}
-          cuentas={cuentas}
-          accion={asignarMiCalendlyAccion}
-        />
+        {calendly}
 
         <div className="space-y-4">
-          <SelectorDePrograma programas={visibles} actual={programa.slug} tab={tab} />
-          <TabsDeMiEspacio slug={programa.slug} actual={tab} />
+          <TabsDeMiEspacio secciones={secciones} actual={seccion.id} slug={programa?.slug ?? null} />
+          {programa ? (
+            <SelectorDePrograma programas={visibles} actual={programa.slug} tab={seccion.id} />
+          ) : null}
 
-          {tab === "pendientes" ? (
-            <TabPendientes programId={programa.id} slug={programa.slug} userId={userId} rol={rol} />
-          ) : null}
-          {tab === "deals" ? (
-            <TabMisDeals programId={programa.id} slug={programa.slug} userId={userId} rol={rol} busqueda={query} />
-          ) : null}
-          {tab === "llamadas" ? (
-            <TabMisLlamadas programId={programa.id} slug={programa.slug} userId={userId} rol={rol} />
-          ) : null}
-          {tab === "students" ? (
-            <TabMisStudents programId={programa.id} slug={programa.slug} userId={userId} />
-          ) : null}
+          {Seccion({ seccion, programa, userId, rol, busqueda: query })}
         </div>
       </div>
     </PageShell>
+  );
+}
+
+/**
+ * El elemento de la sección elegida (función, no componente, a propósito: así el árbol de
+ * la página contiene el elemento real de la tab —`<TabPendientes/>`, `<TabCanales/>`…— y no
+ * un envoltorio opaco). Las de programa reciben el programa ya resuelto.
+ */
+function Seccion({
+  seccion,
+  programa,
+  userId,
+  rol,
+  busqueda,
+}: {
+  seccion: SeccionMiEspacio;
+  programa: { id: string; slug: string } | null;
+  userId: string;
+  rol: Rol;
+  busqueda: Record<string, string | string[] | undefined>;
+}): ReactElement | null {
+  switch (seccion.id) {
+    case "pendientes":
+      return programa ? <TabPendientes programId={programa.id} slug={programa.slug} userId={userId} rol={rol} /> : null;
+    case "deals":
+      return programa ? <TabMisDeals programId={programa.id} slug={programa.slug} userId={userId} rol={rol} busqueda={busqueda} /> : null;
+    case "llamadas":
+      return programa ? <TabMisLlamadas programId={programa.id} slug={programa.slug} userId={userId} rol={rol} /> : null;
+    case "students":
+      return programa ? <TabMisStudents programId={programa.id} slug={programa.slug} userId={userId} /> : null;
+    case "canales":
+      return <TabCanales />;
+    case "por-decidir":
+      return programa ? <TabPorDecidir programId={programa.id} slug={programa.slug} /> : null;
+  }
+}
+
+/** El Calendly por programa (componente del 169), solo de los programas con membresía. */
+async function bloqueCalendly(
+  membresias: Awaited<ReturnType<typeof membresiasConCalendlyDe>>,
+) {
+  const programIds = membresias.map((m) => m.programId);
+  const [programasDeCalendly, cuentas] = await Promise.all([
+    programasActivos().then((ps) => ps.filter((p) => programIds.includes(p.id))),
+    cuentasPorPrograma(db, programIds),
+  ]);
+  return (
+    <CalendlyMembresias
+      membresias={membresias}
+      programas={programasDeCalendly}
+      cuentas={cuentas}
+      accion={asignarMiCalendlyAccion}
+    />
   );
 }
 
@@ -153,7 +216,7 @@ function SelectorDePrograma({
 }: {
   programas: readonly { slug: string; nombre: string }[];
   actual: string;
-  tab: TabMiEspacio;
+  tab: string;
 }) {
   if (programas.length <= 1) return null;
   return (

@@ -47,3 +47,18 @@ Dos ejes que no se mezclan:
 - Ninguna sección pregunta por el literal del rol (el guardián de `rol-de-vista-centralizado` lo caza).
 - Typecheck, lint, tests de `tests/mi-espacio.test.ts`, `npm run build`; recorrido en `dev:local` con los tres roles y
   "Ver como", escritorio y 375 px.
+
+## Estado S12 (3-oct)
+
+Decisión de Mani para el gerente: sección **Por decidir** (deals sin dueño y por settear, llamadas sueltas, hosts sin cuenta,
+Webhook Health con alarma), sin Calendly; las métricas siguen siendo del Dashboard. Paid trafficker: sección **Canales** (pares
+sin clasificar y envíos por canal, sin filtrar por membresía: no tiene), su `rutaInicial` es Mi espacio.
+
+Implementado (Kiro) y revisado contra el "Done cuando": registro `lib/mi-espacio/secciones.ts`, `tab-canales`, `tab-por-decidir`,
+`hosts-sin-cuenta` (extraído del Inbox), página y nav. `typecheck`, `lint` y 160 tests (mi-espacio, secciones, roles, paginas,
+rol-de-vista) en verde. **Sin recorrido en navegador** (extensión de Chrome desconectada) ni `npm run build` (sin componentes
+cliente nuevos); tests del inbox sin correr (máquina sin aire): valida el CI. Pendiente para la sesión central: recorrido
+con los tres roles y "Ver como", escritorio y 375 px, y forjar `?tab=`.
+
+Abiertas: el gerente no puede colgar llamadas sueltas (no trabaja leads); un developer en vista `closer` sin membresías ve el
+mensaje del closer, no el del dueño.

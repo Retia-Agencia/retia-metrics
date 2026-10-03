@@ -58,6 +58,14 @@ const sesionCloser = {
   user: { id: "u-closer", rol: "closer", closerId: "Nico", name: "Nicolás", email: "nico@x.co", image: null },
 };
 
+const sesionGerente = {
+  user: { id: "u-gerente", rol: "gerente", closerId: null, name: "Geraldine", email: "gere@x.co", image: null },
+};
+
+const sesionPaidTrafficker = {
+  user: { id: "u-pauta", rol: "paid_trafficker", closerId: null, name: "Pablo", email: "pauta@x.co", image: null },
+};
+
 async function correr(busqueda: Record<string, string> = {}): Promise<"render" | "notFound" | "login"> {
   const modulo = (await import("@/app/(app)/mi-espacio/page")) as {
     default: (props: { searchParams: Promise<Record<string, string | string[] | undefined>> }) => Promise<unknown>;
@@ -90,6 +98,25 @@ function textoDelArbol(nodo: unknown): string {
     return textoDelArbol(props?.children);
   }
   return "";
+}
+
+/**
+ * Busca en el árbol de elementos el PRIMER componente cuyo `type` se llama `nombre`
+ * (p. ej. `TabCanales`, `TabPorDecidir`, `TabPendientes`). Las secciones de Mi espacio son
+ * elementos perezosos: no se ejecutan al correr la página, así que se identifican por el
+ * nombre de su función. Devuelve `null` si no aparece.
+ */
+function tieneComponente(nodo: unknown, nombre: string): boolean {
+  if (nodo == null || typeof nodo === "boolean") return false;
+  if (Array.isArray(nodo)) return nodo.some((n) => tieneComponente(n, nombre));
+  if (typeof nodo !== "object") return false;
+  const el = nodo as { type?: unknown; props?: { children?: unknown } };
+  const type = el.type;
+  if (typeof type === "function") {
+    const fn = type as { name?: string; displayName?: string };
+    if (fn.name === nombre || fn.displayName === nombre) return true;
+  }
+  return tieneComponente(el.props?.children, nombre);
 }
 
 describe("/mi-espacio (ticket 172)", () => {
@@ -170,5 +197,103 @@ describe("/mi-espacio (ticket 172)", () => {
     const texto = textoDelArbol(arbol);
     expect(texto).toContain("pídele a tu gerente");
     expect(texto).not.toContain("Ver como closer");
+  });
+
+  // ─────────────────────────── ticket 179: curado por rol ───────────────────────────
+
+  it("el paid trafficker rinde sin membresías y sin A-04: solo su sección Canales", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    // No carga membresías (no trabaja leads): no debe tocarlas ni ver el mensaje A-04.
+    expect(await correr()).toBe("render");
+    expect(membresiasConCalendlyDe).not.toHaveBeenCalled();
+    // Canales no usa selector de programa: no resuelve alcance.
+    expect(programasVisibles).not.toHaveBeenCalled();
+    expect(programaVisiblePorSlug).not.toHaveBeenCalled();
+    const arbol = await renderizar();
+    expect(tieneComponente(arbol, "TabCanales")).toBe(true);
+    expect(textoDelArbol(arbol)).not.toContain("pídele a tu gerente");
+    expect(textoDelArbol(arbol)).not.toContain("Ver como closer");
+  });
+
+  it("el gerente rinde sin membresías y sin A-04: su sección Por decidir con selector de programa", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    programasVisibles.mockResolvedValue([PROG_A, PROG_B]);
+    expect(await correr()).toBe("render");
+    // No trabaja leads: ni carga membresías ni ve el mensaje A-04.
+    expect(membresiasConCalendlyDe).not.toHaveBeenCalled();
+    // Por decidir usa selector: resuelve el alcance (el primero visible sin ?programa).
+    expect(programasVisibles).toHaveBeenCalled();
+    const arbol = await renderizar();
+    expect(tieneComponente(arbol, "TabPorDecidir")).toBe(true);
+    expect(textoDelArbol(arbol)).not.toContain("pídele a tu gerente");
+  });
+
+  it("el gerente NO ve las secciones del closer (solo lo de su rol)", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    programasVisibles.mockResolvedValue([PROG_A]);
+    const arbol = await renderizar();
+    expect(tieneComponente(arbol, "TabPendientes")).toBe(false);
+    expect(tieneComponente(arbol, "TabMisDeals")).toBe(false);
+    expect(tieneComponente(arbol, "TabCanales")).toBe(false);
+  });
+
+  it("un closer que forja ?tab=canales NO ve Canales: cae en su primera sección (Pendientes)", async () => {
+    membresiasConCalendlyDe.mockResolvedValue([
+      { id: "m-a", userId: "u-closer", usuario: "Nicolás", emailUsuario: "nico@x.co", programId: "p-a", calendlyEmail: null },
+    ]);
+    programasVisibles.mockResolvedValue([PROG_A]);
+    const arbol = await renderizar({ tab: "canales" });
+    expect(tieneComponente(arbol, "TabCanales")).toBe(false);
+    expect(tieneComponente(arbol, "TabPendientes")).toBe(true);
+  });
+
+  it("un closer que forja ?tab=por-decidir tampoco la ve: cae en Pendientes", async () => {
+    membresiasConCalendlyDe.mockResolvedValue([
+      { id: "m-a", userId: "u-closer", usuario: "Nicolás", emailUsuario: "nico@x.co", programId: "p-a", calendlyEmail: null },
+    ]);
+    programasVisibles.mockResolvedValue([PROG_A]);
+    const arbol = await renderizar({ tab: "por-decidir" });
+    expect(tieneComponente(arbol, "TabPorDecidir")).toBe(false);
+    expect(tieneComponente(arbol, "TabPendientes")).toBe(true);
+  });
+
+  it("el developer en vista closer ve las secciones del closer (lo del closer suplantado)", async () => {
+    // Suplantación: la sesión efectiva ya llega como un closer de verdad (rol closer, su
+    // id y membresías). La página la trata igual que a un closer real.
+    auth.mockResolvedValue({
+      user: { id: "u-closer", rol: "closer", closerId: "Nico", name: "Nicolás", email: "nico@x.co", image: null, suplantadoPor: { id: "u-dev", nombre: "Dev" } },
+    });
+    membresiasConCalendlyDe.mockResolvedValue([
+      { id: "m-a", userId: "u-closer", usuario: "Nicolás", emailUsuario: "nico@x.co", programId: "p-a", calendlyEmail: null },
+    ]);
+    programasVisibles.mockResolvedValue([PROG_A]);
+    const arbol = await renderizar();
+    expect(tieneComponente(arbol, "TabPendientes")).toBe(true);
+    expect(tieneComponente(arbol, "TabPorDecidir")).toBe(false);
+  });
+
+  it("el developer en vista gerente ve las secciones del gerente", async () => {
+    // Vista `gerente`: `rolDeVista` proyecta a gerente, así que la página pinta Por decidir.
+    cookieVista = "gerente";
+    auth.mockResolvedValue({
+      user: { id: "u-dev", rol: "developer", closerId: null, name: "Dev", email: "dev@x.co", image: null },
+    });
+    programasVisibles.mockResolvedValue([PROG_A]);
+    const arbol = await renderizar();
+    expect(tieneComponente(arbol, "TabPorDecidir")).toBe(true);
+    expect(tieneComponente(arbol, "TabPendientes")).toBe(false);
+  });
+
+  it("el developer en vista todo ve el mensaje que lo explica (no hay sección propia)", async () => {
+    cookieVista = "todo";
+    auth.mockResolvedValue({
+      user: { id: "u-dev", rol: "developer", closerId: null, name: "Dev", email: "dev@x.co", image: null },
+    });
+    const arbol = await renderizar();
+    const texto = textoDelArbol(arbol);
+    expect(texto).toContain("Ver como closer");
+    expect(texto).toContain("trabaja leads");
+    expect(tieneComponente(arbol, "TabPendientes")).toBe(false);
+    expect(tieneComponente(arbol, "TabPorDecidir")).toBe(false);
   });
 });
