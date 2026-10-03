@@ -45,6 +45,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0074](./0074-lo-propio-del-closer-lo-edita-el-closer.md) | Lo propio del closer (su cuenta de Calendly por programa) lo edita el closer; rol, membresías y `closer_id` siguen siendo de quien administra |
 | [0075](./0075-la-ficha-se-opera-por-etapa-destino.md) | El deal se mueve con botones de etapa destino (ficha y Kanban, un solo pop-up), las alertas son su recuadro, el comprobante no bloquea (alerta roja) y el closer ve solo sus deals |
 | [0076](./0076-el-setter-entrega-el-deal-al-closer-por-la-cita.md) | El setter entrega el deal al closer por la cita: handoff sin soltar el deal (alerta a 1 hábil), crédito en `deals.setter_user_id`, cuatro caminos de una llamada con su llave, y una suelta solo la cuelga su host |
+| [0077](./0077-cada-dato-vive-en-la-pantalla-de-su-objeto.md) | Cada dato vive en la pantalla de su objeto (Programa, Perfil, Deal, Lead) y lo que no se usa se quita; la llamada siempre tiene closer; los canales los crea quien `manejaPauta`; tres franjas en la ficha |
 | [0072](./0072-una-pregunta-por-etapa-mueve-el-deal.md) | Una pregunta por etapa mueve el deal, también al arrastrar el Kanban (muestra lo que tiene y le falta); solo alertas, nada automatizado en v1; Lead Value ordena la cola |
 | [0066](./0066-atendido-sin-grain-es-una-alarma.md) | Atendido sin Grain se acepta, cuenta como show y prende una alarma derivada |
 | [0015](./0015-resultado-de-llamada-ampliado.md) | La llamada dice qué pasó (ocho resultados); el motor decide qué significa |

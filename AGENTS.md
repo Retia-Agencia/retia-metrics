@@ -243,6 +243,11 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
 
 **Arquitectura**
 
+- **Cada dato vive en la pantalla de su objeto, y lo que no se usa se quita (ADR 0077, Mani, 3-oct).** Los objetos
+  son Programa, Perfil (Mi espacio), Deal y Lead; Ajustes solo guarda lo que no es de ningún objeto (usuarios y
+  roles, Canales, Webhook Health, Motivos, Áreas). Antes de agregar una pantalla, un campo o un catálogo, se busca
+  qué quitar: un catálogo existe solo si el código decide con su valor o una métrica lo agrupa. Quienes usan el CRM
+  no son técnicos; la complejidad de operación cuenta como deuda, igual que la del código.
 - **La estructura se organiza por dominio, no por tamaño ni por tipo técnico.** Las pantallas,
   tipos y helpers que pertenecen a un mismo límite viven juntos: por ejemplo,
   `components/resources/` y `components/admin/`. Las rutas en `app/` coordinan; las consultas y

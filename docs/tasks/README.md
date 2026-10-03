@@ -116,7 +116,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 152 | [El closer asigna su propia cuenta de Calendly](./152-el-closer-asigna-su-calendly.md) | 096, 031 | done · `cp-20261002-5` · 2-oct |
 | [x] | 157 | [El setter entrega el deal al closer por la cita](./157-handoff-del-setter-al-closer.md) | 156 | done · `cp-20261002-5` · 2-oct · falta el recorrido de Mani (link de agenda, "Ya se lo mandé", Setteado por, suelta ajena 403) |
 | [x] | 163 | [El detalle de una llamada, el mismo en la ficha y en Calls](./163-detalle-de-llamada.md) | 157 | done · `cp-20261003-1` · 3-oct (S2) · `DetalleDeLlamada` + `detalleDeLlamada` en ficha y Calls, con "Ir al deal"; recorrido hecho |
-| [ ] | 164 | [Mi espacio: el hub del closer](./164-mi-espacio-el-hub-del-closer.md) | 163 | todo · 2-oct · A-46 (cierra A-05) · semana 1 |
+| [x] | 164 | [Mi espacio: el hub del closer](./164-mi-espacio-el-hub-del-closer.md) | 163 | reemplazado · 3-oct · por el 172 (ola O3) |
 
 ## 5 · Dinero
 
@@ -176,7 +176,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [ ] | 067 | [ROAS por cohorte y captura de pauta](./067-roas-por-cohorte-y-captura-de-pauta.md) (E5-4) | 064, 120 | todo |
-| [ ] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | todo · 24-sep, ADR 0052 · migración de la sesión principal |
+| [ ] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | todo · se construye dentro del 173 (ola O3, 3-oct) · 24-sep, ADR 0052 · migración de la sesión principal |
 | [ ] | 119 | [La conexión con Meta: token por portafolio y cuentas por programa](./119-la-conexion-con-meta.md) | — | todo · carril Alejo · migración · espera el token de Anderson |
 | [ ] | 120 | [La pauta de Meta: árbol y gasto por anuncio y día](./120-la-pauta-de-meta-por-anuncio-y-dia.md) | 119 | todo · carril Alejo · migración (retira `ad_spend`) |
 | [ ] | 122 | [Los objetivos de la cohorte y el reparto de cupos por área](./122-los-objetivos-de-la-cohorte.md) | 083 | todo · carril Mani · migración |
@@ -320,6 +320,23 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | E0-6 · Tickets 036 a 082 creados y registrados aquí | done · 21-sep |
 
 # Historia (el texto original de cada época, sin las filas de tickets)
+
+## 13 · Ola O3 · simplificación y centralización (3-oct)
+
+8 tickets, 8 abiertos. Salen del recorrido 7 de Mani (`docs/anotaciones.md` A-52 a A-76) y del ADR 0077. Reparto
+y orden en [`plan-reparto.md`](../plan-reparto.md) §4, ola O3. El 164 queda reemplazado por el 172 y el 102 lo
+construye el 173.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 168 | [La ficha del deal se entiende sola](./168-la-ficha-del-deal-se-entiende-sola.md) | · | todo · 3-oct · S1, parte 1 |
+| [ ] | 169 | [La llamada siempre tiene closer, y el handoff se prueba en local](./169-la-llamada-siempre-tiene-closer.md) | · | todo · 3-oct · S2, parte 1 · prioridad · relleno con ok de Mani |
+| [ ] | 170 | [Las listas: filtros solos, Calls de cada closer, Leads en tabla, Personas fuera](./170-listas-filtros-calls-y-leads.md) | · | todo · 3-oct · S3, parte 1 |
+| [ ] | 171 | [Todo lo del programa vive en la tab Programa](./171-todo-lo-del-programa-en-programa.md) | · | todo · 3-oct · S4, parte 1 |
+| [ ] | 172 | [Mi espacio y "Ver como" a un closer de verdad](./172-mi-espacio-todo-lo-del-usuario.md) | 169, 170, 171 | todo · 3-oct · S5, parte 2 · reemplaza el 164 |
+| [ ] | 173 | [Ajustes solo con lo que no es de nadie](./173-ajustes-solo-lo-que-no-es-de-nadie.md) | 171 | todo · 3-oct · S6, parte 2 · absorbe el 102 · migración |
+| [ ] | 174 | [Volver a donde estaba](./174-volver-a-donde-estaba.md) | 168, 170-173 | todo · 3-oct · S7, parte 3 |
+| [ ] | 175 | [Limpieza: lo que no usa nadie](./175-limpieza-lo-que-no-se-usa.md) | 170-173 | todo · 3-oct · S8, parte 3 · migración |
 
 ## Tracker — Retia CRM
 

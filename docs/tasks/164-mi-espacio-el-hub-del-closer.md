@@ -3,8 +3,10 @@ id: 164
 etapa: O2
 serves: "docs/anotaciones.md A-46, A-05 (decidida el 2-oct)"
 depends: [163]
-status: todo
+status: reemplazado
 ---
+
+> **3-oct:** reemplazado por el [172](./172-mi-espacio-todo-lo-del-usuario.md) (ola O3), que absorbe este alcance entero.
 
 # 164 — Mi espacio: el hub del closer
 

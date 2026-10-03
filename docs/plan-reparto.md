@@ -120,6 +120,47 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ## 4. La ola vigente y el mapa de etapas
 
+### 🌊 Ola O3 · menos complejidad, cada dato en su objeto · abierta el 3-oct
+
+**La meta (Mani, 3-oct):** bajar el sobrediseño y la complejidad de operar el CRM, y centralizar lo que va junto:
+lo de un programa en Programa, lo de un usuario en su perfil (Mi espacio). La regla es el
+[ADR 0077](../adr/0077-cada-dato-vive-en-la-pantalla-de-su-objeto.md); las notas, `anotaciones.md` A-52 a A-76.
+Convive con O2: el frente A (Memorable el lunes 5-oct) sigue mandando, y nada de O3 lo frena.
+
+**Tres partes.** Dentro de cada parte las sesiones corren a la vez: cada una es dueña de sus archivos y ninguna toca
+los de otra. Una parte arranca cuando la anterior está en `main`.
+
+| Parte | Sesión | Ticket | Puntos de Mani (mensaje del 3-oct) | Archivos que son suyos | Migración |
+|---|---|---|---|---|---|
+| 1 | **S1** | [168] La ficha del deal se entiende sola | 1, 2 (ficha), 4, 5, 7 y Próximo contacto | `components/deals/ficha/*`, `detalle-de-llamada.tsx`, `dialogo-mover.tsx`, `responder-pregunta.tsx`, `pregunta-de-etapa.ts`, `lib/queries/ficha-deal.ts`, `detalle-llamada.ts`, `lib/deals/editar-deal.ts` | no |
+| 1 | **S2** | [169] La llamada siempre tiene closer | 3, 14, 10 (host sin cuenta), 12 (Calendly: solo correo, libres, guarda al elegir) | `lib/calendly/*`, `lib/deals/handoff.ts`, `components/calendly-membresias.tsx`, `app/(app)/perfil/acciones.ts`, `scripts/simular-cita.ts`, el manual | no (relleno de datos con ok de Mani) |
+| 1 | **S3** | [170] Las listas | 8, 9, 10 (Calls de cada closer), 12 (Personas fuera), 13 | `components/filtros/` (nuevo), Calls, Leads, Students, `llamadas-programa.tsx`, `filtro-kanban.tsx`, `filtro-dashboard.tsx`, `selector-periodo.tsx`, `lib/queries/llamadas.ts`, `leads.ts`, `personas.ts`, `nuevo-deal.tsx`, `lib/nav.ts` (solo Personas) | no |
+| 1 | **S4** | [171] Todo lo del programa en Programa | 11, 15, 16, 17 (Recursos libre), membresías → Equipo | `app/(app)/p/[programa]/programa/*`, `programas-admin.tsx`, `cohortes-admin.tsx`, `fuentes-admin.tsx`, `ajustes/programas/*`, `ajustes/fuentes/*`, `usuarios-admin.tsx`, `program-switcher.tsx`, `lib/catalogo/plataformas.ts`, `enlaces-pago.ts`, `recursos.ts`, `components/resources/*`, `app/(app)/recursos/*` | no |
+| 2 | **S5** | [172] Mi espacio y "Ver como" | 12 (perfil, tabs, ver como) | `app/(app)/mi-espacio/`, `mi-dia/`, `perfil/`, `perfil-propio.tsx`, `user-menu.tsx`, `app-sidebar.tsx`, `lib/nav.ts`, `lib/auth/vista.ts` y la reja de solo lectura | no |
+| 2 | **S6** | [173] Ajustes solo con lo que no es de nadie (+102) | 17 (Motivos, Áreas), 18, 19 | `app/(app)/ajustes/page.tsx`, `salud/*`, `canales/*`, `catalogos/*`, `entregas-webhook.tsx`, `canales-admin.tsx`, `catalogos-admin.tsx`, `lib/queries/entregas-webhook.ts`, `lib/auth/roles.ts` | **sí** (rol `paid_trafficker`) |
+| 3 | **S7** | [174] Volver a donde estaba | 6 | `page-shell.tsx`, el helper de enlaces y los enlaces de las listas | no |
+| 3 | **S8** | [175] Limpieza | 17 (Orígenes), lo que el ADR 0077 punto 3 quita | lo que borra, y la migración | **sí** (quita `origenes` y categorías de recurso) |
+
+**Lo compartido en la parte 1:** `lib/queries/inbox.ts` lo tocan S1 (motivo "Próximo contacto vencido") y S2 (motivo
+"host sin cuenta"): cada una agrega su motivo y no edita el de la otra; quien llegue segunda a `main` rebasa.
+`lib/nav.ts` es de S3 en la parte 1 y de S5 en la parte 2 (Alejo avisado). `components/admin/entregas-webhook.tsx`:
+S3 cambia solo un enlace; S6 la rehace en la parte 2.
+
+**Cómo arranca cada sesión** (el prompt que se pega en una sesión nueva, cambiando el número):
+
+> Toma el ticket `docs/tasks/1NN-….md` de la ola O3. Lee `AGENTS.md`, `docs/plan-reparto.md` §4 (ola O3), el
+> ADR 0077, las anotaciones que cita el ticket y `docs/structure.md` §9 si toca pantallas. Trabaja en un worktree
+> propio; implementa Codex por `/delegate` (effort medium) y tú revisas el diff contra el "Done cuando". Toca solo
+> los archivos que el ticket y la tabla de la ola O3 dicen que son tuyos. Antes de empujar: typecheck, lint, los
+> tests del ticket y `npm run build` si tocaste un componente cliente; recorrido en `dev:local` con la consola
+> abierta, haciendo clic en todo lo que se abre, y las reglas de permiso mordidas forjando la petición. No corras
+> la suite completa ni generes o apliques migraciones: entrega el cambio de `schema.ts` y avisa. No toques
+> `docs/tasks/README.md`, `docs/agents/handoff.md` ni este documento: escribe tu estado y tu nota de cierre en el
+> archivo del ticket. Ninguna escritura en producción sin el ok de Mani. Empuja a `main` nombrando tus archivos.
+
+**La sesión central** (la del 3-oct que armó esta ola) revisa cada entrega en `main` contra su "Done cuando", genera
+y aplica las migraciones de S6 y S8 con el ok de Mani, corre el checkpoint de cada parte (§6) y marca el tracker.
+
 ### 🌊 Ola O2 · la operación comercial lista en el CRM · reescrita el 2-oct (noche)
 
 **La meta (Mani, 2-oct):** que toda la operación comercial, de la entrada del lead a student, se maneje en el CRM.
@@ -201,10 +242,10 @@ worktree cada una, Codex en `medium` por `/delegate`. La sesión central revisa 
 | S2 ✅ | [163] Detalle de llamada | ya | `ficha-llamadas`, `llamadas-programa` |
 | S3 ✅ | [161] → [160] (en serie, misma sesión) | ya | `lib/deals/requisitos.ts` (motor), `lib/queries/inbox.ts`, alertas |
 | S4 ✅ | [165] → [166] (en serie) | ya | `lib/catalogo/cohortes.ts`, `lib/deals/actividades.ts`, `opcionesDeFicha`, tab Programs |
-| S5 | [164] Mi espacio | semana 1, después del 163 | `app/(app)/mi-dia/`, `lib/nav.ts` (avisar a Alejo) |
+| S5 | [164] Mi espacio → **reemplazado por el [172] de la ola O3** | · | `app/(app)/mi-dia/`, `lib/nav.ts` (avisar a Alejo) |
 | S6 | [167] Quién cobró es una FK | semana 1, después del 160 | la cola de migraciones, `lib/queries/comision.ts`, `metricas-filtros.ts` |
 
-✅ S1 a S4 en `main` la misma noche (2-oct), CI verde y `cp-20261003-1`; recorrido de la sesión central hecho en `dev:local`. Sigue S5 (164) y S6 (167). Antes: el lunes, A.8 antes de compartir el link. Sin el 167, A.4 sigue
+✅ S1 a S4 en `main` la misma noche (2-oct), CI verde y `cp-20261003-1`; recorrido de la sesión central hecho en `dev:local`. Sigue S6 (167); el 164 pasó al 172 (ola O3). Antes: el lunes, A.8 antes de compartir el link. Sin el 167, A.4 sigue
 pidiendo `closer_id` al dar de alta a Nicolás y Francisco.
 
 **Después de esta ola** (no es operación, es lectura): 148 dashboard por secciones, 065, 090, 159 (`closer_id` se

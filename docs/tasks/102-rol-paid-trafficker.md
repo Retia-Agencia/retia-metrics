@@ -6,6 +6,9 @@ depends: [094]
 status: todo
 ---
 
+> **3-oct:** lo construye la sesión S6 de la ola O3 dentro del [173](./173-ajustes-solo-lo-que-no-es-de-nadie.md) (Canales los crea quien `manejaPauta`). La migración la aplica la sesión principal.
+
+
 # 102 — El rol Paid Trafficker y la pregunta `manejaPauta`
 
 ## Objetivo

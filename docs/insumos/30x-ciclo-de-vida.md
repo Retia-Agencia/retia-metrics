@@ -1,8 +1,8 @@
 # 30X: el ciclo de vida del cliente y su manual de gestión comercial (leídos el 2-oct-2026)
 
-Transcripción de dos documentos internos de 30X que Mani compartió el 2-oct. No están en el repo: los
-originales son PDF (`Manual_Gestion_Comercial_30X.pdf`, junio 2026, 12 páginas; y `Ciclo de vida del
-cliente 30X — flujo único horizontal.pdf`, un diagrama). Sirven de norte para las once etapas
+Transcripción de dos documentos internos de 30X que Mani compartió el 2-oct. Los originales están en el repo
+desde el 3-oct: [`30x/manual-gestion-comercial-30x.pdf`](./30x/manual-gestion-comercial-30x.pdf) (junio 2026,
+12 páginas) y [`30x/ciclo-de-vida-30x.pdf`](./30x/ciclo-de-vida-30x.pdf) (un diagrama). Sirven de norte para las once etapas
 (ADR 0071); la operación de 30X hoy tiene más cosas (ver `hubspot-30x-workflow.md`, leído por API el 1-oct).
 
 ## El principio

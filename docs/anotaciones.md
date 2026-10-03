@@ -133,6 +133,42 @@ Reglas de UI que aplican a toda pantalla, no a una. El 075 las usa como criterio
 - **P-2 · Nada crece sin tope y nada se apila (A-06).** Paginado o limitado; las subsecciones se eligen,
   no se recorren.
 
+## Recorrido 7 · 3-oct · Mani (gerente y "como closer") + audit de la sesión central
+
+Diecinueve notas de Mani y el audit del repo que las acompañó. El principio que las ordena es el ADR 0077: cada dato
+vive en la pantalla de su objeto, y lo que no se usa se quita. Reparto en `docs/plan-reparto.md` §4, ola O3.
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-52 | Ficha del Deal → Transición | cambio | No se sabe qué hace cada botón de "Registrar" (Contacto, Intento, Nota, Próxima cohorte) ni qué implica. Cada uno dice en una línea qué registra y qué mueve, sacado del motor y no escrito a mano. | 168 | en ticket |
+| A-53 | Ficha del Deal → Llamadas | cambio | La llamada no se ve clicable (sin hover). No se entiende "Completar fecha" (anota cuándo OCURRIÓ, no la cita), "Pegar Grain" ni "No se dio". No se distingue la cita activa de las viejas. El link de la cita (`calls.link_calendly`, ya guardado) no sale en ninguna parte, ni en el detalle. | 168 | en ticket |
+| A-54 | Detalle de llamada → Closer y Setter | cambio | "Sin closer" en una cita de Calendly. Audit: la llamada nace sin `closer_user_id` a propósito (`lib/calendly/colgar-llamada.ts`). Decidido: el closer de la llamada es SIEMPRE el host emparejado por su cuenta de Calendly; el setter, el dueño anterior (ADR 0076). Explicarlo en el manual. | 169 | en ticket |
+| A-55 | Ficha del Deal → Alertas | cambio | El fondo amarillo y rojo se ve feo y "Otra ruta" con desplegable no sirve. Tres franjas: Urgente (rojo), Alertas (amarillo, solo las de verdad) y Transición (verde, a dónde puede ir y qué le falta). ADR 0077 punto 6. | 168 | en ticket |
+| A-56 | Ficha del Deal → bloques | cambio | Subir "Lead y contactos" a donde está Origen; después Origen y Perfil. | 168 | en ticket |
+| A-57 | Toda la app | cambio | No hay forma de volver a la pantalla de la que se venía. | 174 | en ticket |
+| A-58 | Ficha del Deal → Editar | cambio | El descuento se edita en Facturación. La fecha de seguimiento sale de Editar. Menos texto de descripción. | 168 | en ticket |
+| A-59 | Pendiente Seguimiento | aclaración + cambio | ¿Existe la etapa Seguimiento? No: es un pendiente (ADR 0070), como en 30X ("Interesado" se queda en Atendido con próximo contacto). Decidido: se llama **Próximo contacto**, se pide solo en la transición, llega prellenado a +2 días hábiles y solo acepta fechas futuras; vencido = alerta amarilla. | 168 | en ticket |
+| A-60 | Calls | cambio | Las llamadas no se ven clicables (sin hover). | 170 | en ticket |
+| A-61 | Filtros (toda la app) | cambio | El filtro se aplica solo al elegir y salir del desplegable, sin botón "Filtrar"; siempre hay "Quitar filtros". Un componente para todas las listas. | 170 | en ticket |
+| A-62 | Calls e Inbox | cambio | El closer ve SOLO sus llamadas, como en Deals (ADR 0075). Audit: `llamadasDelPrograma` no filtra por dueño y Calls muestra las sueltas. El Inbox es el único lugar compartido (llamadas y deals sin dueño). | 170, 169 | en ticket |
+| A-63 | Ajustes → Programas | bug | Memorable quedó inactivo y no se puede editar: "Editar" solo sale en programas activos y activarlo exige formulario y token. Registro muerto. | 171 | en ticket |
+| A-64 | Ver como closer | cambio | "Como closer" no se ve nada porque usa las membresías del developer (cero). Decidido: elegir a qué closer ver, en solo lectura. | 172 | en ticket |
+| A-65 | Personas | cambio | Personas se va (A-11); Leads la reemplaza. Adelantado a la ola O3. | 170 | en ticket |
+| A-66 | Mi perfil | cambio | Pocos datos, `closer_id` todavía visible y sin Calendly por programa. Todo lo del usuario vive en su perfil (Mi espacio). Lo que el closer edita: su cuenta de Calendly por programa; el nombre y la foto vienen de Google. | 172 | en ticket |
+| A-67 | Perfil y Equipo → cuenta de Calendly | cambio | El desplegable muestra solo el correo, ofrece solo las cuentas libres de la organización y se guarda (y verifica) al elegir. | 169 | en ticket |
+| A-68 | Leads | cambio | Toggle arriba a la derecha entre tarjetas y vista tabla tipo hoja (filas delgadas, celdas y columnas); el elegido se marca con un tono más claro. | 170 | en ticket |
+| A-69 | Handoff del setter | cambio | No hay cómo verificarlo. Recrear el caso en local con una cita de Calendly simulada y firmada, repetible. | 169 | en ticket |
+| A-70 | Tab Programa y Ajustes | cambio | Todo lo del programa va en la tab Programa: formularios (Fuentes), token de Calendly y lo demás en un pop-up desde "Editar". Ajustes → Programas y Fuentes desaparecen. | 171 | en ticket |
+| A-71 | Plataformas y links de pago | cambio | Plataformas en Programa y links en Recursos: desconectado. Todo en Programa: crear plataformas, asociarles links; los closers los copian desde Recursos. Audit: ya es una tabla, no un enum; solo falta moverlo. | 171 | en ticket |
+| A-72 | Ajustes → Catálogos | aclaración + cambio | Mucho que mantener. Audit: Orígenes del lead no lo lee ninguna métrica (se retira); Motivos y Áreas los usa el motor y la atribución (se quedan); Recursos se crea libre en su tab, sin categorías. | 171, 173, 175 | en ticket |
+| A-73 | Salud del CRM | cambio | Se llama Webhook Health; muestra las últimas 25 y pagina bajo demanda. | 173 | en ticket |
+| A-74 | Canales | aclaración | ¿Se crean solos? No (ADR 0077 punto 4): los crea quien `manejaPauta` (Paid Trafficker, gerente, developer) con un clic desde el par sin canal. El builder estandariza los links. | 173 | en ticket |
+| A-75 | Membresías | aclaración + cambio | ¿Qué es una membresía? El permiso de un usuario para trabajar en un programa, y donde vive su cuenta de Calendly de ese programa. Hoy se asigna escondida en Ajustes → Usuarios; pasa a la sección Equipo del programa. | 171 | en ticket |
+| A-76 | Toda la app | cambio | Bajar el sobrediseño y la complejidad de operación; centralizar lo que va junto. ADR 0077. | 168-175 | en ticket |
+
+- **P-3 · Cada dato vive en la pantalla de su objeto (A-76, ADR 0077).** Programa, Perfil, Deal y Lead; Ajustes solo
+  lo que no es de ningún objeto. Antes de agregar una pantalla, un campo o un catálogo, se busca qué quitar.
+
 ### Respuestas
 
 **A-01 · Producto de un Deal.** ⚠️ **Obsoleta desde el 1-oct: el ticket 134 retiró `productos`.** El precio sale
