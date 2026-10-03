@@ -21,7 +21,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 1 · Entrada y lead
 
-29 tickets, 2 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
+211 tickets, 4 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -58,7 +58,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 2 · Deal y motor de etapas
 
-22 tickets, 6 abiertos.
+24 tickets, 8 abiertos.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -84,6 +84,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 156 | [La operación comercial intuitiva](./156-operacion-comercial-intuitiva.md) | 155 | en main · 2-oct · espera CI, build y recorrido · Codex implementó, revisó la sesión principal (typecheck y lint limpios, tests al CI por swap) · ADR 0075 · A-34 a A-39 (onboarding de closers): Transición por etapa destino, un pop-up para ficha y Kanban, alertas en su recuadro, comprobante sin reja, el closer ve lo suyo · sin migración · carril Mani |
 | [ ] | 160 | [Marcar una cortesía en el deal](./160-marcar-una-cortesia.md) | 142, 143 | todo · 2-oct · la columna existe (0058), falta escribirla y leerla |
 | [ ] | 161 | [La alerta "agotó intentos"](./161-alerta-de-tres-intentos.md) | 128, 142 | todo · 2-oct · ADR 0071 punto 4, sin construir |
+| [ ] | 162 | [Una sola tarjeta de Transición, con botones de etapa redondos](./162-transicion-unica-y-botones-de-etapa.md) | 156 | todo · 2-oct · A-43, A-44 · sin migración · S1 de la ola O2 |
+| [ ] | 165 | [Crear la siguiente cohorte, y que Próxima cohorte respete la fecha](./165-la-siguiente-cohorte.md) | 142 | todo · 2-oct · A-47, A-49, A-50 · sin migración · S4 de la ola O2 |
 
 ## 3 · Inbox
 
@@ -113,10 +115,12 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 098 | [La tab Calls](./098-tab-calls.md) | 057, 096, 097 | done · 29-sep · ruta `/p/<programa>/calls`, filtros, llamadas sueltas, Grain y resultados; recorrido visual funcional a 390 px realizado con consola |
 | [ ] | 152 | [El closer asigna su propia cuenta de Calendly](./152-el-closer-asigna-su-calendly.md) | 096, 031 | en main · 2-oct · espera checkpoint · `puedeTocarMembresia` (dueño o quien administra) en la mutación; `/perfil` con `asignarMiCalendlyAccion`; recorrido en `dev:local` como closer y la acción forjada con un `membresiaId` ajeno: 403, base quieta · ADR 0074: lo propio del closer lo edita el closer; acceso y atribución, quien administra · carril Mani · S |
 | [ ] | 157 | [El setter entrega el deal al closer por la cita](./157-handoff-del-setter-al-closer.md) | 156 | en main · 2-oct (noche) · `bbe7f9e` + test `52de822`; migración 0061 aplicada en producción con el ok de Mani · Codex implementó, revisó la sesión principal (typecheck, lint, build; tests del cambio por Codex, 125) · falta checkpoint verde y el recorrido de Mani (link de agenda, "Ya se lo mandé", Setteado por, suelta ajena 403) · ADR 0076 |
+| [ ] | 163 | [El detalle de una llamada, el mismo en la ficha y en Calls](./163-detalle-de-llamada.md) | 157 | todo · 2-oct · A-45 · sin migración · S2 de la ola O2 |
+| [ ] | 164 | [Mi espacio: el hub del closer](./164-mi-espacio-el-hub-del-closer.md) | 163 | todo · 2-oct · A-46 (cierra A-05) · semana 1 |
 
 ## 5 · Dinero
 
-12 tickets, 2 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
+14 tickets, 4 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -133,6 +137,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 133 | [La comisión por porcentaje congelado](./133-comision-por-porcentaje-congelado.md) | 132 | done · 1-oct · Mani · 0054 en producción; % congelado al entrar a venta, comisión por closer sobre sus mismos cierres. La 0055 ya quitó `comision_por_venta_usd` (en producción). 10,04/6,67 cargados en producción (verificado el 1-oct); el criterio del agregado pasa al 095 |
 | [x] | 134 | [El ticket base es de la cohorte y `productos` se retira](./134-ticket-base-de-la-cohorte-y-adios-productos.md) | 132 | done · 1-oct · Mani · 0056 en producción (sin `productos`); descuento contra la cohorte, deals nacen en la activa, cambios de una venta con motivo; 214 deals movidos a la C3 |
 | [ ] | 144 | [Próxima fecha de pago y cartera](./144-proxima-fecha-de-pago-y-cartera.md) | 132, QM-3, GC-17 | bloqueado |
+| [ ] | 166 | [Las plataformas de pago de un programa, a la vista](./166-plataformas-de-pago-visibles.md) | 100 | todo · 2-oct · A-48 · sin migración · S4 de la ola O2 |
+| [ ] | 167 | [Quién cobró es una FK a `users`, y un usuario nuevo no necesita `closer_id`](./167-quien-cobro-es-una-fk.md) | · | todo · 2-oct · A-51 · migración (cola) · semana 1; el 159 queda con lo del corte |
 
 ## 6 · Students y onboarding
 
@@ -252,7 +258,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 113 | [Base local para desarrollar pantallas](./113-base-local-para-pantallas.md) | · | done · 28-sep: `npm run db:local` (Docker, 38 migraciones, seed por `lib/`) y `npm run dev:local`, probado de punta a punta. Falta un modo de login local (Auth.js solo tiene Google) · sembrar contra Postgres real destapó el `Date` en `moverEtapa` (arreglado) |
 | [x] | 114 | [Auditoría de cálculos y reglas fijas](./114-auditoria-de-calculos-fijos.md) | · | done · 30-sep · A1-A3 arreglados; B5 (0046, `sources.calificacion` fuera) y C6 (solo USD) hechos; B4 pasa al 117 |
 | [x] | 150 | [Tests rápidos: la base migrada una vez por corrida](./150-tests-rapidos-base-migrada-una-vez.md) | · | done · 1-oct · Mani · checkpoint `cp-20261002-1` · vitest en el CI 372 s → 274 s; migración rota revienta la corrida una vez; `npm run test:cambios` |
-| [ ] | 159 | [`closer_id` se retira: quién cobró y quién vendió son FK a `users`](./159-closer-id-se-retira.md) | 078 | todo · 2-oct · después del corte; mientras tanto todo closer nuevo se da de alta con `closer_id` |
+| [ ] | 159 | [`closer_id` se retira: quién cobró y quién vendió son FK a `users`](./159-closer-id-se-retira.md) | 078, 167 | todo · 2-oct · después del corte; mientras tanto todo closer nuevo se da de alta con `closer_id` |
 
 ## 12 · Migración y corte
 

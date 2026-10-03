@@ -155,7 +155,7 @@ abriendo deal en Potencial** y las etapas se manejan como están (A-41 cerrada, 
 
 | # | Qué | Quién | Hecho cuando |
 |---|---|---|---|
-| A.1 | 🔴 **Confirmar qué programa vende cada uno** (Nicolás, Francisco), su precio de lista y si la cohorte arranca ya | Mani | nombre, ticket USD y ventana de la C1 escritos aquí |
+| A.1 | ✅ **Memorable en Instagram & TikTok** (Mani, 2-oct; deck en sus descargas): virtual, 6 semanas, 12 sesiones, **USD 1.200**, clases desde el **3-nov**, la dicta Nicolás Martínez. Lo venden **Nicolás y Francisco** (closers). **C1: ventas del lunes 5-oct al 28-oct** (Mani). Falta la meta de cupos | Mani | nombre, ticket USD y ventana de la C1 escritos aquí |
 | A.2 | Crear cada programa de punta a punta, en el orden de `operations.md` §2.1: programa → token de Calendly → formulario en Dapta (`docs/dapta/`) con agenda, Lead Quality y Lead Value → fuente + secreto + activar → URL y secreto en el proveedor → "enviar prueba" → Calendly en el formulario → publicar | Mani (secretos a mano) y sesión (JSON del formulario) | el programa activo, con su fuente principal (092) |
 | A.3 | La cohorte C1 de cada programa: ventana de venta, meta de cupos, ticket base | Mani | `/ajustes/programas/<slug>` con la cohorte activa |
 | A.4 | Dar de alta a Nicolás y Francisco en `/ajustes/usuarios`: rol closer, **`closer_id` (obligatorio por ahora, ver 159)**, membresía en su programa | Mani | los dos entran con su Google y ven su programa |
@@ -188,6 +188,24 @@ cada ticket o en `plan.md` §7.
 | QM-5: los pasos del onboarding | 145: rol Customer Success | semana 2 | filas por programa |
 | QM-6 · QM-7: la meta del mes | 146: página de Metas | semana 2 | pareja por día hábil |
 | QM-11: métricas con umbral | 147: alertas por persistencia | semana 2 | solo las del semáforo de la meta |
+
+#### Las sesiones de código de la ola (sesión central del 2-oct noche)
+
+Salen de las notas de Mani (A-43 a A-51) y del audit. **Ninguna de las cuatro primeras lleva migración** y cada una
+toca archivos distintos (cada ticket nombra lo que toca y lo que no), así que corren a la vez, una sesión y un
+worktree cada una, Codex en `medium` por `/delegate`. La sesión central revisa cada diff contra el "Done cuando".
+
+| Sesión | Ticket | Cuándo | Archivo caliente que es suyo en la ola |
+|---|---|---|---|
+| S1 | [162] Transición única y botones de etapa | ya (fin de semana) | `ficha-transicion`, `ficha-actividades`, `responder-pregunta`, `pregunta-de-etapa` |
+| S2 | [163] Detalle de llamada | ya | `ficha-llamadas`, `llamadas-programa` |
+| S3 | [161] → [160] (en serie, misma sesión) | ya | `lib/deals/requisitos.ts` (motor), `lib/queries/inbox.ts`, alertas |
+| S4 | [165] → [166] (en serie) | ya | `lib/catalogo/cohortes.ts`, `lib/deals/actividades.ts`, `opcionesDeFicha`, tab Programs |
+| S5 | [164] Mi espacio | semana 1, después del 163 | `app/(app)/mi-dia/`, `lib/nav.ts` (avisar a Alejo) |
+| S6 | [167] Quién cobró es una FK | semana 1, después del 160 | la cola de migraciones, `lib/queries/comision.ts`, `metricas-filtros.ts` |
+
+Checkpoint el domingo en la noche con S1 a S4; el lunes, A.8 antes de compartir el link. Sin el 167, A.4 sigue
+pidiendo `closer_id` al dar de alta a Nicolás y Francisco.
 
 **Después de esta ola** (no es operación, es lectura): 148 dashboard por secciones, 065, 090, 159 (`closer_id` se
 retira), la pauta.
@@ -780,3 +798,11 @@ closers durante E1 que cubra E2 a E5; Gerencia durante E4; Pauta durante E5.
 [148]: ./tasks/148-las-secciones-del-dashboard.md
 [149]: ./tasks/149-manual-de-uso-por-rol.md
 [150]: ./tasks/150-tests-rapidos-base-migrada-una-vez.md
+[160]: ./tasks/160-marcar-una-cortesia.md
+[161]: ./tasks/161-alerta-de-tres-intentos.md
+[162]: ./tasks/162-transicion-unica-y-botones-de-etapa.md
+[163]: ./tasks/163-detalle-de-llamada.md
+[164]: ./tasks/164-mi-espacio-el-hub-del-closer.md
+[165]: ./tasks/165-la-siguiente-cohorte.md
+[166]: ./tasks/166-plataformas-de-pago-visibles.md
+[167]: ./tasks/167-quien-cobro-es-una-fk.md

@@ -2,7 +2,7 @@
 id: 159
 etapa: después del corte
 serves: "ADR 0030, ADR 0011; pregunta de Mani del 2-oct"
-depends: [078]
+depends: [078, 167]
 status: todo
 ---
 
@@ -26,6 +26,10 @@ como herencia del MVP y de las hojas.
 
 **Mientras tanto:** todo closer nuevo se da de alta con `closer_id` (su nombre, una vez). Sin él, sus abonos
 salen sin closer y su caja no aparece en el comparativo.
+
+**2-oct (Mani): se parte en dos.** La primera mitad (FK en abonos, lecturas por la FK y alta sin `closer_id`)
+va YA como el [167](./167-quien-cobro-es-una-fk.md). Este ticket queda con lo que espera al corte: borrar
+`users.closer_id`, su índice y el guardián que ya no tenga objeto.
 
 ## Objetivo
 
