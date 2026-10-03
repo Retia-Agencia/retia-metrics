@@ -22,7 +22,7 @@ lugar, sin copias entre documentos.** Léelos en este orden:
 
 1. **Este archivo** (`AGENTS.md`): las reglas duras, los contratos, los comandos y las convenciones.
 2. **Plan + tickets** (`docs/plan.md`, `docs/tasks/`) — **el punto de entrada del trabajo**: el norte, los
-   tres tracks (CRM, UI/UX, Integraciones), el orden por pasos con hitos, qué paso cumple cada criterio
+   **doce componentes del CRM cruzados con los actores** (desde el 2-oct; antes tres tracks), el orden por hitos, qué componente cumple cada criterio
    de aceptación y **la lista única de decisiones abiertas**. Cada ticket cabe en una ventana de
    contexto limpia y cita lo que sirve. Nunca se salta del producto al código sin pasar por un ticket.
    **`docs/tasks/README.md` es el único tracker de avance**: se toma un ticket cuyas dependencias estén
@@ -30,6 +30,9 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    **`docs/plan-reparto.md`** complementa el plan con el reparto para dos personas con varias sesiones
    cada una: **olas de tickets listos** (desde el 1-oct), la cola de migraciones, los archivos calientes y los
    **checkpoints** donde se corre la suite completa. La ola vigente está en su §4.
+   **`docs/manuales/mapa-crm.html`** es el mapa visual del CRM (actores × componentes, traspasos, bordes y lo que
+   falta): una vista de `overview.md` §4, `plan.md` §4 y `structure.md` §8. **No se edita suelto**: cuando
+   cambian esos tres, se regenera.
    **`docs/analytics.md`** mapea la reunión con Pauta (29-sep) al alcance: lo pedido y lo medido, las
    decisiones DP-1 a DP-25, el grid de requisitos con su ticket (116 a 126), el modelo de datos y **las
    fórmulas de cada métrica** (§6). Léelo antes de tocar atribución, pauta, métricas o el dashboard.

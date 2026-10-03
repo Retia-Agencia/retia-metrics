@@ -311,25 +311,31 @@ flowchart TD
 sobre `postgres-js`, Supabase (PostgreSQL y Storage), Auth.js v5 con sesiones JWT, shadcn/ui sobre Base
 UI, zod en el borde, Vitest con PGlite, npm.
 
-### 4.1 Las piezas del código
+### 4.1 Las piezas del código, por componente
 
-| Módulo | Qué contesta | Estado |
-|---|---|---|
-| `lib/auth/` | quién es la sesión y qué puede: `roles.ts` (`esAccesoTotal`, `esAdministrador`, `trabajaLeads`), `guards.ts`, `page-guards.ts`, `vista.ts` (`rolDeVista`), `revalidacion.ts`, `origen.ts` | ✅ · falta `manejaPauta` (102) y la función de alcance por programa (094) |
-| `lib/catalogo/` | el molde de toda entidad configurable: esquema zod, crear, editar, desactivar, `borrarSiNoSeUso`, `exigirAccesoAlPrograma` | ✅ · faltan áreas, canales, campañas, destinos |
-| `lib/ingesta/` | la puerta única de entrada de leads: `construirEnvio`, `entradasDesdeMatriz` (Sheets), `resolverIdentidad`, `ingerirEntradas`, `calificarEnvio` | ✅ código · falta el adaptador del webhook |
-| `lib/crm/rastro.ts` | escribir con rastro: `crearConRastro`, `editarConRastro` | ✅ |
-| `lib/deals/etapas.ts` · `requisitos.ts` · `mover-etapa.ts` | la tabla de transiciones (043), lo que le falta a un deal (044), y `moverEtapa()` y `abrirDeal()`, los únicos escritores de la etapa (045, 047), vigilados por un guardián (046) | ✅ 27-sep |
-| `lib/queries/vigente.ts` | qué registros cuentan: `vigente`, `incluyendoAnulados` | ✅ |
-| `lib/queries/saldo.ts` | lo abonado y el saldo, una sola definición | ❌ lo recrea el 060 |
-| `lib/atribucion/emparejar.ts` | a qué canal, área, campaña y anuncio pertenece un envío, y hasta qué nivel llega su traza | ❌ ticket 085 (ADR 0062) |
-| `lib/pauta/` | la conexión con Meta, la sincronización del árbol y el único escritor del gasto (`registrarGasto`) | ❌ tickets 119 y 120 |
-| `lib/archivos/` | guardar y servir comprobantes | ❌ ticket 035 |
-| `lib/closers/identidad.ts` | si dos textos son el mismo closer (histórico) | ✅ |
-| `lib/db/` | el esquema, la conexión, `ejecutarJuntas`, los códigos de error de Postgres | ✅ |
-| `lib/format.ts`, `lib/dias-habiles.ts`, `lib/rangos.ts` | formato de números y fechas de Bogotá, días hábiles, rangos del dashboard | ✅ |
-| `lib/sheets/` | el sync de Sheets y su lectura | legado: se retira tras el traslado (decisión A6 del plan) |
-| `components/ui/` · `components/admin/` · `components/resources/` | primitivas visuales y pantallas por dominio (ADR 0033) | ✅ |
+Los mismos doce componentes de [`plan.md`](./plan.md) §4 (reordenado el 2-oct). Aquí va **dónde vive el
+código** de cada uno; qué falta, en el plan. Las consultas de lectura viven todas en `lib/queries/` y las
+pantallas en `components/`: la columna dice cuáles son de cada componente.
+
+| Componente | Escritura y reglas (`lib/`) | Lecturas (`lib/queries/`) | Pantallas (`components/`, `app/`) |
+|---|---|---|---|
+| 1 · Entrada y lead | `ingesta/` (adaptadores Typeform, Dapta y Sheets, `ingerir.ts`, `identidad.ts`, `etapa-de-entrada.ts`, `regla-de-deals.ts`, caja negra), `mutations/personas.ts` (alta manual del MVP) | `leads.ts`, `ficha-lead.ts`, `otros-programas-del-correo.ts`, `salud-fuentes.ts`, `entregas-webhook.ts`, `embudo-formulario.ts` | `leads/`, `embudo-formulario.tsx`; `app/api/webhooks/formularios/` |
+| 2 · Deal y motor | `deals/` (`etapas.ts`, `requisitos.ts`, `mover-etapa.ts`, `mapa-transiciones.ts`, `editar-deal.ts`, `anular-deal.ts`, `crear-a-mano.ts`, `actividades.ts`, `permiso.ts`, `duenos.ts`, `nota-del-sistema.ts`), `crm/rastro.ts` | `kanban.ts`, `ficha-deal.ts`, `ultima-actividad.ts`, `sin-grain.ts` | `deals/` (tablero, tarjeta, ficha, `dialogo-mover`, `pregunta-de-etapa`, `transiciones`) |
+| 3 · Inbox | `deals/reclamar.ts` | `inbox.ts`, `inbox-sin-dueno.ts`, `urgencias.ts` | `deals/inbox-*.tsx`, `urgencias.tsx` |
+| 4 · Llamadas y Calendly | `calendly/` (webhook, `colgar-llamada.ts`, `emparejar-llamada.ts`, `suelta.ts`, `cuentas.ts`, `link-de-agenda.ts`), `deals/llamadas.ts`, `deals/handoff.ts` | `llamadas.ts` | `deals/llamadas-programa.tsx`, `calendly-membresias.tsx`, `perfil-propio.tsx`; `app/api/webhooks/calendly/` |
+| 5 · Dinero | `deals/abonos.ts`, `deals/valor-vendido.ts`, `deals/pago.ts`, `deals/abono-sin-comprobante.ts`, `abonos/` | `saldo.ts`, `cartera.ts`, `comision.ts` | la ficha del deal (Facturación) |
+| 6 · Students | `deals/estudiante.ts` | `estudiantes.ts`, `cohortes.ts` | `app/(app)/p/[programa]/students/` |
+| 7 · Origen y atribución | `atribucion/` (`canal.ts`, `emparejar.ts`, `link-de-captacion.ts`, `utm-del-envio.ts`), `deals/rellenar-origen.ts` | `origen-declarado.ts`, `registros-agendas-canal.ts`, `pauta-interina.ts` | `admin/canales-admin.tsx`, `admin/areas-admin.tsx`, `pauta-interina.tsx`, `registros-agendas-canal.tsx` |
+| 8 · Pauta | ❌ `lib/pauta/` (119, 120) | ❌ | ❌ tab Campañas (125) |
+| 9 · Métricas y metas | `periodo.ts`, `variacion.ts`, `series-alineadas.ts`, `dias-habiles.ts`, `rangos.ts` | `dashboard.ts`, `vista-*.ts`, `metricas-*.ts`, `serie.ts`, `hechos-embudo.ts`, `agregado-programas.ts`, `deals-contra-agendas.ts`, `ventanas-de-cohortes.ts` | `dashboard-programa.tsx`, `cifra-con-lista.tsx`, `selector-periodo.tsx`, `series-lineales.tsx`, `deals-contra-agendas.tsx`, `variacion.tsx` |
+| 10 · Configuración | `catalogo/` (el molde y una entidad por archivo: programas, cohortes, usuarios, fuentes, motivos, plataformas, enlaces de pago, recursos, áreas, canales) | `programas.ts`, `ficha-programa.ts`, `fuentes.ts`, `recursos.ts` | `admin/`, `programas-admin.tsx`, `cohortes-admin.tsx`, `usuarios-admin.tsx`, `catalogos-admin.tsx`, `resources/` |
+| 11 · Plataforma | `auth/` (roles, guardas, alcance, vista, revalidación), `db/`, `errors.ts`, `errors-zod.ts`, `format.ts`, `closers/identidad.ts` | `vigente.ts`, `nerd-stats.ts`, `bitacora.ts` | `app-sidebar.tsx`, `program-switcher.tsx`, `user-menu.tsx`, `ui/` |
+| 12 · Migración | `migracion/` (extractores, `importar.ts`, `deshacer.ts`), `sheets/` (lectura una vez) | `conciliacion-sheets.ts` | `app/(app)/ajustes/migracion/` |
+
+**Dos olores de acoplamiento que el cuadro destapa** (candidatos en `plan.md` §4.14): `lib/queries/` agrupa
+por tipo técnico (40 archivos de todos los componentes en una carpeta) y unos 30 componentes viven sueltos en
+la raíz de `components/`, contra el ADR 0033 (por dominio, no por tipo). No se mueven en masa: se migran
+cuando un ticket toque su componente.
 
 **Reglas que cumple toda mutación nueva** (salen de la auditoría del 19-sep, que encontró las dos
 violaciones en el MVP):
@@ -477,35 +483,43 @@ UTM** y **sin clasificar**, se muestran siempre con su conteo y su porcentaje.
 
 ## 8. Pantallas, roles y quién ve qué
 
-Tabs a la izquierda, un selector de programa arriba (ADR 0050). El contenido de cada tab se afina al
-construirla.
+Tabs a la izquierda, un selector de programa arriba (ADR 0050). Las tabs de programa viven en
+`/p/<programa>/<tab>`. Puesto al día el 2-oct contra `app/`; el componente de cada pantalla es el de
+[`plan.md`](./plan.md) §4.
 
-| Tab | Qué es | Filtros clave |
-|---|---|---|
-| **Inbox** | reemplaza "Mi día": deals sin dueño (Setteo ordenado), llamadas sueltas y lo que necesita atención | tipo de pendiente, antigüedad |
-| **Dashboard** | un programa o "todos los programas" (solo lo sumable) | programa, fechas, cohorte, closer, área, canal, campaña |
-| **Leads** | la base de personas del programa, con o sin deal | estado de llegada, canal, área, campaña, traído por, parcial, con o sin deal |
-| **Deals** | Kanban por etapas y vista de tabla | etapa, dueño, cohorte, canal, antigüedad, "necesita atención" |
-| **Calls** | llamadas de hoy y próximas, sin resultado, sueltas | closer, resultado, fecha |
-| **Students** | estudiantes por cohorte: saldo, acuerdo de pago, fecha límite, cartera vencida, onboarding | cohorte (por defecto la activa), saldo, vencida |
-| **Campañas** | el árbol de Meta (campaña, conjunto, anuncio) con su embudo, gasto, costos y ROAS por fila; el builder de orgánico y closers (125, ADR 0062) | fecha, cohorte, canal, placement, formato |
-| **Programs** | ficha del programa: cohortes, destinos, Calendly, fuente, comisión, equipo | · |
-| **Products** | productos y precios | · |
-| **Resources** | brochures y links de pago | categoría |
-| **Ajustes** | usuarios, membresías y su Calendly por programa, catálogos, fuentes, áreas, canales | · |
-| **Nerd Stats** | salud del sistema y bitácora (solo developer) | · |
-
-| Tab | Closer | Gerente | Paid Trafficker | Developer |
+| Pantalla | Ruta | Componente | Qué es | Estado |
 |---|---|---|---|---|
-| Inbox | lo suyo + sin dueño de sus programas | todo el programa | · | todo |
-| Dashboard | sus programas, completos | todos | sus programas, menos el comparativo entre closers y la comisión (ADR 0052 enmendado) | todo |
-| Leads, Deals, Calls, Students | sus programas | todos | · | todo |
-| Campañas | "Mi link" | todo | ve el árbol y el embudo de sus programas, crea links de orgánico y conecta la cuenta de Meta | todo |
-| Programs | lectura de los suyos | edita | · | todo |
-| Products | edita en sus programas | edita | · | todo |
-| Resources | lee y crea en sus programas | edita | · | todo |
-| Ajustes | catálogos permitidos | todo | · | todo |
-| Nerd Stats | · | · | · | solo él |
+| **Inbox** | `/p/<programa>/inbox` | 3 | lo sin dueño (Setteo ordenado), llamadas sueltas, "se perdió en el Calendly" y lo que necesita atención | ✅ |
+| **Urgencias** | `/p/<programa>/urgencias` | 3 | la réplica del semáforo `🚨 Urgencias` de la hoja, con desglose por canal (066) | ✅ |
+| **Dashboard** | `/p/<programa>/dashboard` y `/dashboard` ("todos") | 9 | un programa o "todos los programas" (solo lo sumable), cada cifra abre su lista (`.../dashboard/lista`) | ✅ · secciones en el 148 |
+| **Leads** | `/p/<programa>/leads` y `/leads/<id>` | 1 | la base de personas del programa, con o sin deal, y su ficha | ✅ · falta buscador por texto |
+| **Deals** | `/p/<programa>/deals` y `/deals/<id>` | 2 | Kanban por etapas y la ficha del deal | ✅ · vista tabla pendiente |
+| **Calls** | `/p/<programa>/calls` | 4 | llamadas de hoy y próximas, sin resultado, sueltas | ✅ |
+| **Students** | `/p/<programa>/students` | 6 | estudiantes por cohorte: saldo, fecha límite, cartera vencida, onboarding | ✅ |
+| **Programa** | `/p/<programa>/programa` | 10 | ficha del programa: cohortes, destinos, Calendly, fuentes, comisión, equipo | ✅ |
+| **Campañas** | (sin ruta) | 8 | el árbol de Meta con su embudo y el builder de orgánico y closers (125) | ❌ |
+| **Recursos** | `/recursos` (`/documentos` redirige) | 10 | brochures y links de pago | ✅ |
+| **Perfil** | `/perfil` | 10 | lo propio: el Calendly del closer por programa (ADR 0074) | 🟡 152 |
+| **Ajustes** | `/ajustes/*` | 10, 1, 7, 12 | programas y cohortes, usuarios y membresías, catálogos, fuentes, canales, salud, migración | ✅ |
+| **Nerd Stats** | `/nerd-stats` y `/nerd-stats/bitacora` | 11 | salud del sistema y bitácora (solo developer) | ✅ |
+| Mi día | `/mi-dia` | 3 | del MVP; respaldo para un closer sin programas | legado (K-1) |
+| Personas | `/personas` y `/personas/<id>` | 1 | del MVP; buscador entre programas | legado (K-2) |
+
+Products se retiró con el 134 (el precio es de la cohorte). `/programas/<slug>` redirige al Dashboard.
+
+| Pantalla | Closer (y setter) | Gerente | Paid Trafficker ⛔ | Customer Success ⛔ | Developer |
+|---|---|---|---|---|---|
+| Inbox, Urgencias | lo suyo + sin dueño de sus programas | todo el programa | · | · | todo |
+| Dashboard | sus programas, completos | todos | sus programas, menos el comparativo entre closers y la comisión (ADR 0052) | · | todo |
+| Leads, Calls | sus programas | todos | · | · | todo |
+| Deals | **solo sus deals** (ADR 0075) | todos | · | · | todo |
+| Students | sus programas | todos | · | solo esta tab, marca el onboarding (145) | todo |
+| Campañas | "Mi link" (086) | todo | árbol, embudo, links de orgánico, conexión con Meta | · | todo |
+| Programa | lectura de los suyos | edita | · | · | todo |
+| Recursos | lee y crea en sus programas | edita | · | · | todo |
+| Perfil | su Calendly | lo suyo | · | · | todo |
+| Ajustes | catálogos permitidos | todo | · | · | todo |
+| Nerd Stats | · | · | · | · | solo él |
 
 Esconder una tab no es seguridad: cada ruta y cada server action valida en el servidor, y se prueba
 forjando la petición.
@@ -525,7 +539,7 @@ en otro programa. Cada tarjeta lleva a su lista ya filtrada.
 | Origen | por canal y campaña: registros, agendas, ventas; las dos cubetas de huérfanos | sí, los conteos |
 | Flujo de caja | caja por fecha de abono, saldo por cobrar, cartera vencida | sí (todo en USD) |
 | Atribución por área | los cinco KPI (ventas contratadas, caja, ventas, agendas, registros) con su reparto por área y su comparativo; composición semanal; calidad de la traza; "sin UTM · según el comercial" (123) | los conteos y el dinero sí; los % no |
-| Inversión y costos por etapa | gasto de Meta, costo por lead, agenda, llamada, calificada, show y venta, ROAS y ad profit con la TRM de la cohorte, por área, campaña, conjunto y anuncio (123) | el gasto sí; lo demás por programa |
+| Inversión y costos por etapa | gasto de Meta, costo por lead, agenda, llamada, calificada, show y venta, ROAS y ad profit (la tasa COP/USD es la decisión A12 del plan), por área, campaña, conjunto y anuncio (123) | el gasto sí; lo demás por programa |
 | Cumplimiento de la cohorte | por área: meta, vendidas, faltan, requeridas por día, ritmo, proyección y semáforo; tabla día a día (124) | no |
 | Formulario | embudo por pregunta (Insights de Typeform) y por canal (126); sin UTM de hoy (093) | los conteos sí |
 

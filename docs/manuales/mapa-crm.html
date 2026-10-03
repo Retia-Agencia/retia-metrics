@@ -1,0 +1,504 @@
+<title>Mapa del CRM Retia</title>
+<meta name="description" content="Mapa del CRM de Retia: actores, componentes, traspasos entre roles y lo que falta en cada parte.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<style>
+/* Layout: mapa de consulta. Índice fijo que sigue al scroll; lo principal a la vista y el detalle en desplegables.
+   Colores del sistema "Tinta" del CRM (los mismos del manual de operación comercial).
+   VISTA de overview.md §4, plan.md §4 y §7, structure.md §8: se regenera desde ellos. */
+:root {
+  --bg: #f6f4f9; --surface: #ffffff; --fg: #16121c; --muted: #625a6e; --line: #e4dfeb;
+  --accent: #820ad1; --accent-soft: #f3e8fc; --accent-ink: #5c0794; --on-accent: #ffffff;
+  --t-neutro: #6b6478;  --t-neutro-bg: #efedf3;
+  --t-info: #1f5fbf;    --t-info-bg: #e6eefb;
+  --t-alerta: #9a6200;  --t-alerta-bg: #fbf1dc;
+  --t-ok: #1d7a46;      --t-ok-bg: #e2f4e9;
+  --t-mal: #b3362a;     --t-mal-bg: #fbe6e3;
+  --f-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --f-body: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d0b10; --surface: #17141c; --fg: #ece8f2; --muted: #a59eb1; --line: #2a2531;
+    --accent: #b57bff; --accent-soft: rgb(181 123 255 / .14); --accent-ink: #e4d2ff; --on-accent: #17101f;
+    --t-neutro: #b1aabd; --t-neutro-bg: #24202a; --t-info: #8db4f5; --t-info-bg: rgb(80 140 240 / .16);
+    --t-alerta: #f0c063; --t-alerta-bg: rgb(240 180 60 / .14); --t-ok: #6fd39a; --t-ok-bg: rgb(80 200 130 / .14);
+    --t-mal: #f28b7a; --t-mal-bg: rgb(240 110 90 / .15);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d0b10; --surface: #17141c; --fg: #ece8f2; --muted: #a59eb1; --line: #2a2531;
+  --accent: #b57bff; --accent-soft: rgb(181 123 255 / .14); --accent-ink: #e4d2ff; --on-accent: #17101f;
+  --t-neutro: #b1aabd; --t-neutro-bg: #24202a; --t-info: #8db4f5; --t-info-bg: rgb(80 140 240 / .16);
+  --t-alerta: #f0c063; --t-alerta-bg: rgb(240 180 60 / .14); --t-ok: #6fd39a; --t-ok-bg: rgb(80 200 130 / .14);
+  --t-mal: #f28b7a; --t-mal-bg: rgb(240 110 90 / .15);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { background: var(--bg); color: var(--fg); font: 15.5px/1.55 var(--f-body); margin: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 36px 96px;
+  display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 48px; }
+@media (max-width: 900px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 20px; padding-inline: 16px; padding-block: 20px 64px; } }
+
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 14px; }
+nav.toc p { font: 500 11px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; border-left: 1px solid var(--line); }
+nav.toc a { display: block; padding: 5px 12px; margin-left: -1px; border-left: 2px solid transparent; color: var(--muted); text-decoration: none; transition: color .15s, border-color .15s, background .15s; }
+nav.toc a:hover { color: var(--fg); }
+nav.toc a[aria-current="true"] { color: var(--accent-ink); border-left-color: var(--accent); background: var(--accent-soft); font-weight: 500; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 900px) {
+  nav.toc { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 8px; margin-inline: -16px; padding-inline: 16px; border-bottom: 1px solid var(--line); }
+  nav.toc p { display: none; }
+  nav.toc ol { display: flex; gap: 6px; overflow-x: auto; border: 0; scrollbar-width: none; }
+  nav.toc a { white-space: nowrap; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; margin: 0; background: var(--surface); }
+  nav.toc a[aria-current="true"] { border-color: var(--accent); }
+}
+
+main { min-width: 0; }
+.eyebrow { font: 500 12px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
+h1 { font: 600 clamp(32px, 4.6vw, 46px)/1.05 var(--f-display); letter-spacing: -.01em; margin: 0 0 12px; text-wrap: balance; }
+.lede { font-size: 17px; color: var(--muted); max-width: 60ch; margin: 0; }
+.hechos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 22px; }
+@media (max-width: 1000px) { .hechos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.hecho { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; }
+.hecho b { display: block; font: 600 24px/1.1 var(--f-mono); font-variant-numeric: tabular-nums; }
+.hecho span { font-size: 13.5px; color: var(--muted); }
+.hecho.rojo b { color: var(--t-mal); }
+
+section { padding-top: 48px; scroll-margin-top: 16px; }
+@media (max-width: 900px) { section { scroll-margin-top: 64px; } }
+h2 { font: 600 26px/1.15 var(--f-display); margin: 0 0 4px; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0 0 16px; font-size: 14.5px; }
+strong { font-weight: 600; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; font: 500 12px/1 var(--f-body); padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.neutro { color: var(--t-neutro); background: var(--t-neutro-bg); }
+.info { color: var(--t-info); background: var(--t-info-bg); }
+.acento { color: var(--accent-ink); background: var(--accent-soft); }
+.alerta { color: var(--t-alerta); background: var(--t-alerta-bg); }
+.ok { color: var(--t-ok); background: var(--t-ok-bg); }
+.mal { color: var(--t-mal); background: var(--t-mal-bg); }
+.leyenda { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 13px; color: var(--muted); align-items: center; margin: 0 0 14px; }
+.t { font: 500 11.5px/1 var(--f-mono); color: var(--muted); }
+
+/* flujo */
+.flujo { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; counter-reset: f; }
+.flujo li { counter-increment: f; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px; display: grid; gap: 6px; align-content: start; }
+.flujo li.tras { border-color: var(--accent); }
+.flujo .n { font: 500 11px/1 var(--f-mono); color: var(--accent); }
+.flujo .n::before { content: counter(f); }
+.flujo b { font-size: 14px; line-height: 1.25; }
+.flujo .pill { justify-self: start; }
+@media (max-width: 1100px) { .flujo { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .flujo { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* desplegables */
+details.d { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+details.d + details.d { margin-top: 8px; }
+details.d summary { list-style: none; cursor: pointer; padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+details.d summary::-webkit-details-marker { display: none; }
+details.d summary::after { content: "+"; margin-left: auto; font: 500 18px/1 var(--f-mono); color: var(--muted); }
+details.d[open] summary::after { content: "−"; }
+details.d summary .nom { font: 600 16.5px/1.2 var(--f-display); }
+details.d summary .num { font: 500 12px/1 var(--f-mono); color: var(--accent); min-width: 18px; }
+details.d summary .q { color: var(--muted); font-size: 14px; flex-basis: 100%; }
+@media (min-width: 700px) { details.d summary .q { flex-basis: auto; } }
+details.d .cuerpo { padding: 0 16px 14px; border-top: 1px dashed var(--line); display: grid; gap: 10px; padding-top: 12px; }
+.cuerpo ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.cuerpo li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: start; font-size: 14px; line-height: 1.45; }
+.cuerpo p { margin: 0; font-size: 14px; color: var(--muted); max-width: 75ch; }
+.cuerpo .lab { font: 500 10.5px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: block; }
+.dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 6px; display: inline-block; }
+.dot.ok { background: var(--t-ok); } .dot.alerta { background: var(--t-alerta); } .dot.neutro { background: var(--t-neutro); } .dot.mal { background: var(--t-mal); }
+
+.filtros { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.filtros button { font: 500 13px/1 var(--f-body); color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; cursor: pointer; }
+.filtros button[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent-soft); border-color: var(--accent); }
+
+/* tablas */
+.tabla { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 11px; border-bottom: 1px solid var(--line); }
+th { font: 500 11px/1.3 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+.mono { font-family: var(--f-mono); font-size: 12px; color: var(--accent); white-space: nowrap; }
+.matriz table { min-width: 860px; }
+.matriz th:first-child, .matriz td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; font-weight: 600; white-space: nowrap; }
+.matriz th:first-child { background: var(--bg); }
+.matriz button.col { all: unset; cursor: pointer; border-radius: 4px; padding: 2px 4px; }
+.matriz button.col:hover { color: var(--fg); background: var(--accent-soft); }
+.matriz .sel { background: var(--accent-soft); }
+.k { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 5px; font: 600 11px/1 var(--f-mono); margin-right: 5px; vertical-align: 1px; }
+.k-s { color: var(--t-info); background: var(--t-info-bg); }
+.k-o { color: var(--accent-ink); background: var(--accent-soft); }
+.k-a { color: var(--on-accent); background: var(--accent); }
+.k-v { color: var(--t-neutro); background: var(--t-neutro-bg); }
+.nada { color: var(--line); font-family: var(--f-mono); }
+
+/* pasos */
+.pasos { list-style: none; padding: 0; margin: 0; counter-reset: p; display: grid; }
+.pasos li { counter-increment: p; position: relative; padding: 0 0 16px 42px; max-width: 78ch; }
+.pasos li::before { content: counter(p); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; font: 600 12.5px/1 var(--f-mono); color: var(--accent-ink); background: var(--accent-soft); }
+.pasos li::after { content: ""; position: absolute; left: 13.5px; top: 32px; bottom: 4px; width: 1px; background: var(--line); }
+.pasos li:last-child::after { display: none; }
+.pasos b { display: block; }
+.pasos span { font-size: 14px; color: var(--muted); }
+
+footer.fin { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); font: 400 12.5px/1.6 var(--f-mono); color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Índice">
+    <p>En este mapa</p>
+    <ol>
+      <li><a href="#flujo">El flujo</a></li>
+      <li><a href="#operar">Para operar</a></li>
+      <li><a href="#actores">Actores</a></li>
+      <li><a href="#matriz">Actor × componente</a></li>
+      <li><a href="#traspasos">Traspasos</a></li>
+      <li><a href="#componentes">Componentes</a></li>
+      <li><a href="#mas">Bordes y redundancia</a></li>
+      <li><a href="#decisiones">Decisiones</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header>
+      <p class="eyebrow">CRM de Retia · 2 de octubre de 2026</p>
+      <h1>Quién hace qué en el CRM, y qué falta</h1>
+      <p class="lede">7 actores, 12 componentes y los puntos donde se cruzan. Lo principal está a la vista; el detalle, en cada desplegable.</p>
+      <div class="hechos">
+        <div class="hecho"><b>174</b><span>envíos en 48 h, cada uno con su deal</span></div>
+        <div class="hecho rojo"><b>0</b><span>deals trabajados y 0 abonos: nadie opera aún</span></div>
+        <div class="hecho"><b>4</b><span>tickets en main sin recorrido</span></div>
+        <div class="hecho"><b>62</b><span>migraciones en producción</span></div>
+      </div>
+    </header>
+
+    <section id="flujo">
+      <h2>El flujo</h2>
+      <p class="sub">Del formulario a estudiante. Borde morado: un actor le entrega el deal a otro.</p>
+      <ol class="flujo">
+        <li><span class="n"></span><b>Llega el envío</b><span class="pill info">Sistema</span></li>
+        <li><span class="n"></span><b>Nace en su puerta</b><span class="pill info">Sistema</span></li>
+        <li class="tras"><span class="n"></span><b>En gestión</b><span class="pill acento">Setter</span></li>
+        <li class="tras"><span class="n"></span><b>Agendado</b><span class="pill info">Calendly</span></li>
+        <li><span class="n"></span><b>Atendido</b><span class="pill acento">Closer</span></li>
+        <li><span class="n"></span><b>¿Cómo terminó?</b><span class="pill acento">Closer</span></li>
+        <li><span class="n"></span><b>Ganado</b><span class="pill acento">Closer</span></li>
+        <li class="tras"><span class="n"></span><b>Student</b><span class="pill neutro">Customer Success</span></li>
+      </ol>
+    </section>
+
+    <section id="operar">
+      <h2>Lo que falta para operar</h2>
+      <p class="sub">Ola O2. Hasta el paso 6, los closers siguen en las hojas.</p>
+      <ol class="pasos">
+        <li><b>Configurar lo nuevo antes del lunes 5-oct</b><span>Programas nuevos de punta a punta; alta de Nicolás y Francisco con su membresía.</span></li>
+        <li><b>Recorrer la lista del 153 como closer</b><span>33 pruebas en la base local. Lo que falle va a anotaciones.</span></li>
+        <li><b>Checkpoint verde y recorrido de 143, 152, 156 y 157</b><span>Propiedades en rojo, Calendly propio, Transición, handoff del setter.</span></li>
+        <li><b>Migrar ComunicArte y después Tactical (078)</b><span>Con un pg_dump el día de cada aplicación.</span></li>
+        <li><b>Decidir S1: Supabase Pro</b><span>Desde el corte, la historia vive solo en la base.</span></li>
+        <li><b>El corte, con capacitación</b><span>Los closers trabajan en el CRM: hito B.</span></li>
+        <li><b>A la semana hábil, apagar las pestañas (082)</b><span>Hito C: el CRM es la única fuente.</span></li>
+      </ol>
+    </section>
+
+    <section id="actores">
+      <h2>Los actores</h2>
+      <div class="leyenda"><span><span class="dot ok"></span> construido</span><span><span class="dot alerta"></span> en main, sin recorrido</span><span><span class="dot neutro"></span> sin construir</span><span><span class="dot mal"></span> espera decisión</span></div>
+      <details class="d"><summary><span class="nom">El Sistema</span><span class="pill info">webhook, Calendly, motor</span><span class="q">Mueve más etapas que nadie</span></summary>
+        <div class="cuerpo"><ul>
+          <li><span class="dot ok"></span>Abre el deal en su puerta y lo sube si llega un envío mejor.</li>
+          <li><span class="dot ok"></span>Cuelga cada cita de su deal; si duda, la deja suelta.</li>
+          <li><span class="dot ok"></span>Atendido con el Grain; ganado con el abono.</li>
+          <li><span class="dot ok"></span>Calcula saldo, comisión, cartera y alertas. Nunca mueve por tiempo.</li>
+        </ul></div></details>
+      <details class="d"><summary><span class="nom">Setter</span><span class="pill acento">función, no rol</span><span class="q">Una cuenta de closer que settea</span></summary>
+        <div class="cuerpo"><ul>
+          <li><span class="dot ok"></span>Trabaja la cola de En gestión desde el Inbox.</li>
+          <li><span class="dot alerta"></span>Manda el link de agenda; la cita entrega el deal al closer y el setter queda con su crédito.</li>
+          <li><span class="dot alerta"></span>Alerta si a 1 día hábil no hay cita.</li>
+        </ul></div></details>
+      <details class="d"><summary><span class="nom">Closer</span><span class="pill acento">Andrea, Maru, Jero, Nicolás, Francisco</span><span class="q">Ve sus programas y, en Deals, solo lo suyo</span></summary>
+        <div class="cuerpo"><ul>
+          <li><span class="dot ok"></span>Inbox: lo sin dueño, sus sueltas y lo que necesita atención.</li>
+          <li><span class="dot ok"></span>Mueve con botones de etapa destino o arrastrando; los dos abren la misma pregunta.</li>
+          <li><span class="dot ok"></span>Grain, "¿Cómo terminó?", valor vendido y abono.</li>
+          <li><span class="dot ok"></span>Dashboard completo de sus programas, con comparativo y comisión.</li>
+          <li><span class="dot alerta"></span>Lo obligatorio que falta, en rojo · su Calendly desde Perfil.</li>
+          <li><span class="dot neutro"></span>Su link de captación (086).</li>
+          <li><span class="dot mal"></span>Su reporte del día desde el CRM (158).</li>
+        </ul></div></details>
+      <details class="d"><summary><span class="nom">Gerente</span><span class="pill ok">Alejo Carvajal, Daniel Tovar</span><span class="q">Ops: Mani, desde que Michael sale</span></summary>
+        <div class="cuerpo"><ul>
+          <li><span class="dot ok"></span>Dashboard de un programa o de "todos"; cada cifra abre su lista.</li>
+          <li><span class="dot ok"></span>Todos los deals: reasigna, revisa cartera, anula.</li>
+          <li><span class="dot ok"></span>Administra programas, cohortes, usuarios, catálogos, fuentes, canales.</li>
+          <li><span class="dot neutro"></span>Dashboard comercial por secciones (148).</li>
+          <li><span class="dot mal"></span>Meta del mes y página de Metas (146).</li>
+        </ul></div></details>
+      <details class="d"><summary><span class="nom">Paid Trafficker</span><span class="pill neutro">sin construir · 102</span><span class="q">Anderson, César, Daniela</span></summary>
+        <div class="cuerpo"><ul>
+          <li><span class="dot ok"></span>Sus UTM de Meta con macros llegan al CRM.</li>
+          <li><span class="dot neutro"></span>Conecta Meta y ve costos por etapa y la tab Campañas, sin comparativo ni comisión.</li>
+        </ul></div></details>
+      <details class="d"><summary><span class="nom">Customer Success</span><span class="pill neutro">sin construir · 145</span><span class="q">Solo Students</span></summary>
+        <div class="cuerpo"><ul>
+          <li><span class="dot mal"></span>Marca los cuatro pasos del onboarding: WhatsApp, grupo, correo, Circle (espera QM-5).</li>
+        </ul></div></details>
+      <details class="d"><summary><span class="nom">Developer</span><span class="pill ok">todo</span><span class="q">Mani</span></summary>
+        <div class="cuerpo"><ul>
+          <li><span class="dot ok"></span>Pasa toda guarda. Nerd Stats, bitácora, "ver como". Corre la migración.</li>
+        </ul></div></details>
+    </section>
+
+    <section id="matriz">
+      <h2>Actor × componente</h2>
+      <p class="sub">Toca un actor para resaltar su columna.</p>
+      <div class="leyenda"><span><span class="k k-s">S</span>sistema</span><span><span class="k k-o">O</span>opera</span><span><span class="k k-v">V</span>ve</span><span><span class="k k-a">A</span>administra</span><span><span class="nada">·</span> nada</span></div>
+      <div class="tabla matriz">
+        <table id="tabla-matriz">
+          <thead><tr><th scope="col">Componente</th>
+            <th scope="col"><button class="col" type="button" data-col="1">Sistema</button></th>
+            <th scope="col"><button class="col" type="button" data-col="2">Setter</button></th>
+            <th scope="col"><button class="col" type="button" data-col="3">Closer</button></th>
+            <th scope="col"><button class="col" type="button" data-col="4">Gerente</button></th>
+            <th scope="col"><button class="col" type="button" data-col="5">Paid Tr.</button></th>
+            <th scope="col"><button class="col" type="button" data-col="6">C. Success</button></th>
+            <th scope="col"><button class="col" type="button" data-col="7">Developer</button></th></tr></thead>
+          <tbody>
+            <tr><td>1 · Entrada</td><td><span class="k k-s">S</span>abre el deal</td><td><span class="k k-v">V</span></td><td><span class="k k-v">V</span>alta manual</td><td><span class="k k-v">V</span>duplicados</td><td><span class="nada">·</span></td><td><span class="nada">·</span></td><td><span class="k k-a">A</span></td></tr>
+            <tr><td>2 · Deal y motor</td><td><span class="k k-s">S</span>4 movimientos</td><td><span class="k k-o">O</span>hasta Agendado</td><td><span class="k k-o">O</span>sus deals</td><td><span class="k k-o">O</span>todos, reasigna</td><td><span class="nada">·</span></td><td><span class="nada">·</span></td><td><span class="k k-a">A</span></td></tr>
+            <tr><td>3 · Inbox</td><td><span class="k k-s">S</span>arma la cola</td><td><span class="k k-o">O</span>reclama</td><td><span class="k k-o">O</span>lo suyo</td><td><span class="k k-v">V</span></td><td><span class="nada">·</span></td><td><span class="nada">·</span></td><td><span class="k k-a">A</span></td></tr>
+            <tr><td>4 · Llamadas</td><td><span class="k k-s">S</span>cuelga citas</td><td><span class="k k-o">O</span>link de agenda</td><td><span class="k k-o">O</span>Grain, resultado</td><td><span class="k k-a">A</span>Calendly</td><td><span class="nada">·</span></td><td><span class="nada">·</span></td><td><span class="k k-a">A</span></td></tr>
+            <tr><td>5 · Dinero</td><td><span class="k k-s">S</span>saldo, comisión</td><td><span class="nada">·</span></td><td><span class="k k-o">O</span>valor y abono</td><td><span class="k k-v">V</span>anula</td><td><span class="nada">·</span></td><td><span class="nada">·</span></td><td><span class="k k-a">A</span></td></tr>
+            <tr><td>6 · Students</td><td><span class="k k-s">S</span>cohorte</td><td><span class="nada">·</span></td><td><span class="k k-o">O</span>onboarding</td><td><span class="k k-o">O</span>cambia cohorte</td><td><span class="nada">·</span></td><td><span class="k k-o">O</span>4 pasos</td><td><span class="k k-a">A</span></td></tr>
+            <tr><td>7 · Atribución</td><td><span class="k k-s">S</span>empareja</td><td><span class="nada">·</span></td><td><span class="k k-o">O</span>área, Mi link</td><td><span class="k k-a">A</span>canales</td><td><span class="k k-o">O</span>UTM, builder</td><td><span class="nada">·</span></td><td><span class="k k-a">A</span></td></tr>
+            <tr><td>8 · Pauta</td><td><span class="k k-s">S</span>gasto</td><td><span class="nada">·</span></td><td><span class="nada">·</span></td><td><span class="k k-v">V</span></td><td><span class="k k-o">O</span>Meta</td><td><span class="nada">·</span></td><td><span class="k k-a">A</span></td></tr>
+            <tr><td>9 · Métricas</td><td><span class="k k-s">S</span>calcula</td><td><span class="k k-v">V</span></td><td><span class="k k-v">V</span>completo</td><td><span class="k k-v">V</span>y "todos"</td><td><span class="k k-v">V</span>parcial</td><td><span class="nada">·</span></td><td><span class="k k-a">A</span></td></tr>
+            <tr><td>10 · Configuración</td><td><span class="nada">·</span></td><td><span class="k k-o">O</span>su Calendly</td><td><span class="k k-o">O</span>su Calendly</td><td><span class="k k-a">A</span>todo</td><td><span class="nada">·</span></td><td><span class="nada">·</span></td><td><span class="k k-a">A</span></td></tr>
+            <tr><td>11 · Plataforma</td><td><span class="k k-s">S</span>rastro, salud</td><td><span class="nada">·</span></td><td><span class="nada">·</span></td><td><span class="nada">·</span></td><td><span class="nada">·</span></td><td><span class="nada">·</span></td><td><span class="k k-a">A</span></td></tr>
+            <tr><td>12 · Migración</td><td><span class="nada">·</span></td><td><span class="k k-v">V</span></td><td><span class="k k-v">V</span>revisa</td><td><span class="k k-v">V</span></td><td><span class="nada">·</span></td><td><span class="nada">·</span></td><td><span class="k k-o">O</span>corre</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="traspasos">
+      <h2>Traspasos</h2>
+      <p class="sub">Donde un actor le entrega algo a otro: ahí se rompen los procesos y ahí están las mejoras.</p>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>#</th><th>De → a</th><th>Qué pasa</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">X1</td><td>Sistema → Setter</td><td>el deal nace; En gestión es la cola</td><td><span class="pill ok">funciona</span></td></tr>
+            <tr><td class="mono">X2</td><td>Setter → Closer</td><td>la cita por Calendly entrega el deal</td><td><span class="pill alerta">157</span></td></tr>
+            <tr><td class="mono">X3</td><td>Sistema → Closer</td><td>Calendly cuelga la llamada o la deja suelta</td><td><span class="pill ok">funciona</span></td></tr>
+            <tr><td class="mono">X4</td><td>Closer → Sistema</td><td>Grain → Atendido; abono → ganado</td><td><span class="pill ok">funciona</span></td></tr>
+            <tr><td class="mono">X5</td><td>Closer → C. Success</td><td>un ganado es Student; onboarding</td><td><span class="pill mal">145</span></td></tr>
+            <tr><td class="mono">X6</td><td>Closer → Pauta</td><td>área declarada y Mi link</td><td><span class="pill ok">área</span> <span class="pill neutro">086</span></td></tr>
+            <tr><td class="mono">X7</td><td>Gerente ↔ Closer</td><td>reasignar, cartera, anular</td><td><span class="pill ok">funciona</span></td></tr>
+            <tr><td class="mono">X8</td><td>Closer → Gerencia</td><td>reporte del día, hoy por WhatsApp</td><td><span class="pill mal">158</span></td></tr>
+            <tr><td class="mono">X9</td><td>Pauta → Sistema</td><td>UTM con macros; gasto por API</td><td><span class="pill ok">UTM</span> <span class="pill neutro">120</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="componentes">
+      <h2>Componentes</h2>
+      <p class="sub">Abre uno para ver qué falta y qué lo frena.</p>
+      <div class="filtros" role="group" aria-label="Filtrar componentes">
+        <button type="button" data-f="todos" aria-pressed="true">Todos</button>
+        <button type="button" data-f="comercial" aria-pressed="false">v1 comercial</button>
+        <button type="button" data-f="frenado" aria-pressed="false">Frenados por decisión</button>
+        <button type="button" data-f="pauta" aria-pressed="false">Pauta</button>
+      </div>
+      <div id="comps">
+        <details class="d" data-g="comercial frenado"><summary><span class="num">1</span><span class="nom">Entrada y lead</span><span class="pill ok">producción</span><span class="q">¿Quién llegó y dónde nace su deal?</span></summary>
+          <div class="cuerpo"><div><span class="lab">Falta</span><ul>
+            <li><span class="pill neutro">117</span>anotar el primer parcial real</li>
+            <li><span class="pill neutro">126 B</span>embudo por pregunta</li>
+            <li><span class="pill neutro">075</span>buscador en Leads para retirar Personas</li></ul></div>
+            <p><strong>Frena:</strong> A-41 parciales · B2 preguntas que no deciden nada</p></div></details>
+        <details class="d" data-g="comercial"><summary><span class="num">2</span><span class="nom">Deal y motor</span><span class="pill ok">11 etapas</span><span class="q">¿En qué va y qué le falta?</span></summary>
+          <div class="cuerpo"><div><span class="lab">Falta</span><ul>
+            <li><span class="pill alerta">143</span>propiedades en rojo (recorrido)</li>
+            <li><span class="pill alerta">156</span>Transición por etapa destino (recorrido)</li>
+            <li><span class="pill neutro">·</span>marca de cortesía y alerta de tres intentos</li>
+            <li><span class="pill neutro">075</span>revisión profunda de la UI</li></ul></div></div></details>
+        <details class="d" data-g="comercial frenado"><summary><span class="num">3</span><span class="nom">Inbox</span><span class="pill ok">funciona</span><span class="q">¿Qué hago ahora?</span></summary>
+          <div class="cuerpo"><div><span class="lab">Falta</span><ul>
+            <li><span class="pill neutro">075</span>hub del closer y cola por Lead Value</li>
+            <li><span class="pill neutro">075</span>retirar Mi día</li></ul></div>
+            <p><strong>Frena:</strong> A-05 ¿Inbox ampliado o filtro fijo?</p></div></details>
+        <details class="d" data-g="comercial frenado"><summary><span class="num">4</span><span class="nom">Llamadas y Calendly</span><span class="pill ok">funciona</span><span class="q">¿Qué llamadas hay y qué pasó?</span></summary>
+          <div class="cuerpo"><div><span class="lab">Falta</span><ul>
+            <li><span class="pill alerta">152</span>Calendly propio desde Perfil</li>
+            <li><span class="pill alerta">157</span>handoff del setter</li></ul></div>
+            <p><strong>Frena:</strong> QM-4 Grain por API</p></div></details>
+        <details class="d" data-g="comercial frenado"><summary><span class="num">5</span><span class="nom">Dinero</span><span class="pill ok">funciona</span><span class="q">¿Cuánto se vendió y cobró?</span></summary>
+          <div class="cuerpo"><div><span class="lab">Falta</span><ul>
+            <li><span class="pill neutro">035</span>comprobante con foto</li>
+            <li><span class="pill mal">144</span>próxima fecha de pago</li></ul></div>
+            <p><strong>Frena:</strong> QM-3 y GC-17, hablar con los closers</p></div></details>
+        <details class="d" data-g="comercial frenado"><summary><span class="num">6</span><span class="nom">Students</span><span class="pill ok">una marca</span><span class="q">¿Quién es estudiante?</span></summary>
+          <div class="cuerpo"><div><span class="lab">Falta</span><ul><li><span class="pill mal">145</span>Customer Success y cuatro pasos</li></ul></div>
+            <p><strong>Frena:</strong> QM-5 pasos fijos o por programa</p></div></details>
+        <details class="d" data-g="pauta"><summary><span class="num">7</span><span class="nom">Origen y atribución</span><span class="pill ok">emparejador</span><span class="q">¿De dónde vino cada venta?</span></summary>
+          <div class="cuerpo"><div><span class="lab">Falta</span><ul>
+            <li><span class="pill alerta">092</span>link desde la fuente principal</li>
+            <li><span class="pill neutro">086</span>Mi link por closer</li></ul></div>
+            <p><strong>Frena:</strong> convención del orgánico (Pauta y Media)</p></div></details>
+        <details class="d" data-g="pauta frenado"><summary><span class="num">8</span><span class="nom">Pauta (Meta)</span><span class="pill neutro">sin construir</span><span class="q">¿Qué anuncio vende?</span></summary>
+          <div class="cuerpo"><div><span class="lab">Falta</span><ul>
+            <li><span class="pill neutro">102</span>rol Paid Trafficker</li>
+            <li><span class="pill neutro">119 · 120</span>Meta: árbol y gasto</li>
+            <li><span class="pill neutro">122 a 125 · 067</span>costos, cumplimiento, Campañas, ROAS</li></ul></div>
+            <p><strong>Frena:</strong> token de Meta · A12 la tasa del ROAS</p></div></details>
+        <details class="d" data-g="comercial frenado"><summary><span class="num">9</span><span class="nom">Métricas y metas</span><span class="pill ok">base</span><span class="q">¿Cómo vamos?</span></summary>
+          <div class="cuerpo"><div><span class="lab">Falta</span><ul>
+            <li><span class="pill neutro">148</span>secciones del dashboard (listo)</li>
+            <li><span class="pill neutro">065 · 090</span>tiempo en etapa, por área</li>
+            <li><span class="pill mal">146 · 147 · 158</span>meta del mes, alertas, reporte del día</li></ul></div>
+            <p><strong>Frena:</strong> QM-6, QM-7, QM-11 · objeciones</p></div></details>
+        <details class="d" data-g="comercial"><summary><span class="num">10</span><span class="nom">Configuración</span><span class="pill ok">funciona</span><span class="q">¿Qué programas y usuarios existen?</span></summary>
+          <div class="cuerpo"><div><span class="lab">Falta</span><ul>
+            <li><span class="pill alerta">ops</span>programas nuevos y alta de Nicolás y Francisco</li>
+            <li><span class="pill neutro">149</span>manual por rol</li></ul></div></div></details>
+        <details class="d" data-g="comercial frenado"><summary><span class="num">11</span><span class="nom">Plataforma</span><span class="pill ok">funciona</span><span class="q">¿Quién puede qué y está sano?</span></summary>
+          <div class="cuerpo"><div><span class="lab">Falta</span><ul>
+            <li><span class="pill neutro">R2</span>rastro por triggers, después del corte</li></ul></div>
+            <p><strong>Frena:</strong> S1 respaldos, antes del corte</p></div></details>
+        <details class="d" data-g="comercial"><summary><span class="num">12</span><span class="nom">Migración y corte</span><span class="pill neutro">temporal</span><span class="q">¿Cuándo se dejan las hojas?</span></summary>
+          <div class="cuerpo"><div><span class="lab">Falta</span><ul>
+            <li><span class="pill neutro">078</span>ComunicArte y Tactical</li>
+            <li><span class="pill neutro">corte · 082</span>hitos B y C</li></ul></div></div></details>
+      </div>
+    </section>
+
+    <section id="mas">
+      <h2>Bordes y redundancia</h2>
+      <details class="d"><summary><span class="nom">Los bordes</span><span class="q">Lo que toca al CRM sin vivir en él</span></summary>
+        <div class="cuerpo"><div class="tabla"><table>
+          <thead><tr><th>Borde</th><th>Conexión</th><th>Dónde se corta</th></tr></thead>
+          <tbody>
+            <tr><td>Typeform · Dapta</td><td>webhook</td><td><span class="pill ok">nada se pierde</span></td></tr>
+            <tr><td>Calendly</td><td>webhook y token</td><td>cita con otro correo: suelta</td></tr>
+            <tr><td>Grain</td><td>link pegado</td><td>sin API</td></tr>
+            <tr><td>Meta Ads</td><td>API, sin construir</td><td><span class="pill mal">el gasto no entra</span></td></tr>
+            <tr><td>Juanito · Kapso · WhatsApp</td><td>ninguna</td><td>confirmaciones y chats no llegan</td></tr>
+            <tr><td>Circle · grupos</td><td>ninguna</td><td>solo la marca de onboarding</td></tr>
+            <tr><td>Checkouts</td><td>el closer registra</td><td>la venta no vuelve sola</td></tr>
+            <tr><td>Sheets</td><td>migración única</td><td>se apagan en el 082</td></tr>
+          </tbody></table></div></div></details>
+      <details class="d"><summary><span class="nom">Redundancia y acoplamiento</span><span class="q">10 candidatos, se deciden en su ticket</span></summary>
+        <div class="cuerpo"><div class="tabla"><table>
+          <thead><tr><th>#</th><th>Qué</th><th>Dónde</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">K-1</td><td>Mi día al lado del Inbox</td><td>075</td></tr>
+            <tr><td class="mono">K-2</td><td>Personas al lado de Leads</td><td>075</td></tr>
+            <tr><td class="mono">K-3</td><td>un módulo de Calendly que nadie importa</td><td>borrar</td></tr>
+            <tr><td class="mono">K-4</td><td>el orden del trabajo en tres lugares</td><td>plan = qué · reparto = cuándo · tracker = estado</td></tr>
+            <tr><td class="mono">K-5</td><td>la operación comercial descrita en cuatro lugares</td><td>ADR &gt; manual &gt; HTML</td></tr>
+            <tr><td class="mono">K-6</td><td>el setter con cuenta de closer</td><td>157 · 158</td></tr>
+            <tr><td class="mono">K-7</td><td>los parciales abren deal</td><td>A-41</td></tr>
+            <tr><td class="mono">K-8</td><td>el reporte del día a mano</td><td>158</td></tr>
+            <tr><td class="mono">K-9 · K-10</td><td>lecturas y pantallas agrupadas por tipo, no por dominio</td><td>al tocar cada componente</td></tr>
+          </tbody></table></div></div></details>
+    </section>
+
+    <section id="decisiones">
+      <h2>Decisiones abiertas</h2>
+      <p class="sub">La lista única vive en plan.md §7.</p>
+      <details class="d" open><summary><span class="nom">Mani</span><span class="pill mal">11</span></summary>
+        <div class="cuerpo"><ul>
+          <li><span class="mono">S1</span>Supabase Pro, antes del corte</li>
+          <li><span class="mono">A-41</span>los parciales, con Gerencia</li>
+          <li><span class="mono">A-05</span>el hub del closer</li>
+          <li><span class="mono">QM-3</span>próxima fecha de pago, con los closers</li>
+          <li><span class="mono">QM-5</span>pasos del onboarding</li>
+          <li><span class="mono">QM-6 · 7</span>meta del mes</li>
+          <li><span class="mono">QM-11</span>métricas con umbral</li>
+          <li><span class="mono">obj.</span>cómo se registran las objeciones</li>
+          <li><span class="mono">QM-4</span>Grain por API</li>
+          <li><span class="mono">QM-8</span>el carril de pauta mientras tanto</li>
+          <li><span class="mono">A12</span>la tasa del ROAS</li>
+        </ul></div></details>
+      <details class="d"><summary><span class="nom">Gerencia</span><span class="pill neutro">4</span></summary>
+        <div class="cuerpo"><ul>
+          <li><span class="mono">PQ7</span>nombre de las áreas</li>
+          <li><span class="mono">PQ4</span>umbrales del dashboard</li>
+          <li><span class="mono">·</span>límite de descuentos y comisión por lead traído</li>
+          <li><span class="mono">R10</span>construir y no comprar HubSpot</li>
+        </ul></div></details>
+      <details class="d"><summary><span class="nom">Closers</span><span class="pill neutro">3</span></summary>
+        <div class="cuerpo"><ul>
+          <li><span class="mono">035</span>cómo mandan el comprobante</li>
+          <li><span class="mono">·</span>celular y pago de la comisión</li>
+          <li><span class="mono">104</span>revisar los 13 motivos</li>
+        </ul></div></details>
+      <details class="d"><summary><span class="nom">Pauta y Media</span><span class="pill neutro">3</span></summary>
+        <div class="cuerpo"><ul>
+          <li><span class="mono">PQ1 a PQ4</span>fuera de Meta, plantilla, conversión, objetivos</li>
+          <li><span class="mono">PQ6 · PQ9</span>convención del orgánico y agrupación de UTM</li>
+          <li><span class="mono">·</span>checkouts y leads sin UTM de Tactical</li>
+        </ul></div></details>
+    </section>
+
+    <footer class="fin">Generado el 2-oct-2026 desde overview.md §4, plan.md §4 y §7 y structure.md §8. Para cambiarlo se cambian esos documentos y se regenera.</footer>
+  </main>
+</div>
+
+<script>
+(function () {
+  var tabla = document.getElementById('tabla-matriz'), actual = null;
+  tabla.querySelectorAll('button.col').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var c = Number(b.dataset.col);
+      actual = actual === c ? null : c;
+      tabla.querySelectorAll('tr').forEach(function (tr) {
+        Array.prototype.forEach.call(tr.children, function (cell, i) { cell.classList.toggle('sel', actual !== null && i === actual); });
+      });
+    });
+  });
+
+  var botones = document.querySelectorAll('.filtros button'), comps = document.querySelectorAll('#comps details');
+  botones.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var f = b.dataset.f;
+      botones.forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      comps.forEach(function (c) { c.hidden = f !== 'todos' && c.dataset.g.split(' ').indexOf(f) === -1; });
+    });
+  });
+
+  // El índice sigue al scroll: resalta la última sección cuyo inicio ya pasó el tercio superior.
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+  var secciones = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
+  var marcar = function () {
+    var linea = window.innerHeight * 0.33, activa = 0;
+    secciones.forEach(function (s, i) { if (s && s.getBoundingClientRect().top <= linea) activa = i; });
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) activa = secciones.length - 1;
+    links.forEach(function (a, i) {
+      var on = i === activa;
+      if (on) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
+      if (on && window.innerWidth <= 900 && a.scrollIntoView) { var ol = a.parentNode.parentNode; ol.scrollLeft = a.offsetLeft - 16; }
+    });
+  };
+  var pendiente = false;
+  window.addEventListener('scroll', function () { if (!pendiente) { pendiente = true; requestAnimationFrame(function () { pendiente = false; marcar(); }); } }, { passive: true });
+  window.addEventListener('resize', marcar);
+  marcar();
+})();
+</script>

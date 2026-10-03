@@ -32,6 +32,20 @@ leer es libre, escribir pide el ok de Mani.
 
 ## Memory
 
+- **2026-10-02 (noche 3, Mani + Claude): el plan va por componentes, y hay un mapa del CRM.**
+  - **Decidido con Mani:** eje actores × componentes (no solo roles: un rol dice quién, un componente qué, y
+    el acoplamiento es por el qué); los md mandan y `docs/manuales/mapa-crm.html` es una vista que se regenera; el mapa
+    cubre el CRM más sus bordes (Juanito, Kapso, Grain, Meta, Circle); el setter es una función, no un rol.
+  - **Hecho (solo docs, sin código):** `plan.md` reescrito: 12 componentes (§4) con su matriz de actores y los
+    traspasos X1 a X9 (§4.0), bordes (§4.13), candidatos de redundancia K-1 a K-10 (§4.14), §7 solo con lo
+    abierto (lo cerrado sale; texto viejo en `git show 951b62a:docs/plan.md`). `overview.md` §4 es la ficha
+    canónica de cada actor (Sistema, setter, closer, gerente, paid trafficker, customer success, developer) y §5
+    va con las etapas de 30X; vocabulario al día. `structure.md` §4.1 = código por componente y §8 = pantallas
+    reales. Arreglado lo desactualizado: setter en `manual-gestion-comercial.md`, 092 y 007 en el tracker, el
+    143 en el manual HTML, los tracks en `AGENTS.md`. Mapa publicado: https://claude.ai/artifact/L7gb5GmWQCXgq9JmsEPw5K
+  - **Abierto:** quiénes son los dos closers nuevos y en qué programa; quién queda con el papel de Ops de
+    Michael; si `tasks/README.md` también se reagrupa por componente (hoy sigue por épocas). Nada commiteado.
+
 - **2026-10-02 (noche 2, Mani + Claude): 157 y 143 en `main`, la 0061 aplicada, el manual al día.**
   - **Hecho:** 0061 (`deals.setter_user_id`, `deals.handoff_en`) aplicada en producción con el ok de Mani y verificada
     (62 migraciones). 157 en `bbe7f9e` (Codex; revisión: guardianes intactos, crédito una vez, reja de la suelta antes

@@ -10,6 +10,7 @@ Un manual por rol, escrito para quien opera el CRM, no para quien lo construye. 
 | Manual | Para quién | Archivo |
 |---|---|---|
 | Operación comercial | closers (y gerencia, para entender el flujo) | [`operacion-comercial.html`](./operacion-comercial.html) |
+| Mapa del CRM | gerencia y quien construye: actores, componentes, traspasos y lo que falta. **Excepción a "sin jerga":** cita tickets y decisiones, porque es para planear. Es una vista de `overview.md` §4, `plan.md` §4 y `structure.md` §8 y se regenera desde ellos | [`mapa-crm.html`](./mapa-crm.html) |
 
 ## Reglas para escribirlos
 

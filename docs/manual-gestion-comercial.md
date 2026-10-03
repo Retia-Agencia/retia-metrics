@@ -134,13 +134,16 @@ Lo que **no cambia** con las etapas nuevas (`comercial.md` §4, ticket 142):
 | **El dueño del deal** (un closer) | Todas las flechas de persona sobre **sus** deals | ADR 0056 punto 3 |
 | **Quien administra** (gerente y developer) | Todas las flechas de persona sobre cualquier deal, tenga o no dueño | ADR 0056 punto 3, ADR 0025 |
 | Un closer que **no** es el dueño | Nada, hasta **reclamar** el deal (si no tiene dueño) o que un gerente se lo asigne | ADR 0037 punto 6, ADR 0056 |
+| **El setter** (un closer en otra función) | Las flechas de En gestión hasta Agendado sobre sus deals; la cita entrega el deal a quien da la llamada | ADR 0076 |
 | Customer Success (rol nuevo, 145) | Ninguna etapa: solo marca los pasos del onboarding en Students | `comercial.md` GC-42 |
 
 - **Los deals nacen sin dueño** y un closer los reclama desde el Inbox. Excepción: si llega agendado por
   Calendly y el host es un closer registrado en el programa, ese closer queda como dueño (ADR 0037 punto 6,
   ADR 0049). ⚫ En 30X la app de ingesta asigna el dueño; aquí no.
-- **Setter:** en Retia no es un rol. El setteo (contactar a quien no agendó) lo hace el closer dueño del deal
-  (`overview.md` §11). 🔴 Si 30X separa setter y closer y Retia quiere hacerlo, es una decisión aparte (§10, D-6).
+- **Setter:** no es un rol, es una **función** (ADR 0076, 2-oct, que reemplaza la D-6): una persona con cuenta
+  de closer trabaja la cola de En gestión, manda el link de agenda y entrega el deal por la cita a quien da la
+  llamada. El deal no se suelta mientras tanto; el setter queda con su crédito (`deals.setter_user_id`) y, si a
+  1 día hábil no hay cita, sale una alerta.
 - Toda flecha de persona pide los datos que le faltan **en el mismo movimiento** (como en HubSpot): si el
   movimiento se rechaza, no queda nada escrito (ADR 0056 punto 4).
 
@@ -486,15 +489,18 @@ Todas se calculan al leer: nada se guarda ni la apaga un clic (ADR 0024).
 
 ## 9. Lo que queda pendiente
 
+Puesto al día el 2-oct. Lo cerrado: QM-10 (ADR 0070), QM-12 y D-1 a D-9 (ADR 0071; D-6 reemplazada por el
+ADR 0076), QD-2 (confirmada el 2-oct). La lista única de lo abierto vive en `plan.md` §7; lo que toca a este
+manual:
+
 | # | Qué | Quién decide | Bloquea |
 |---|---|---|---|
-| QM-10 | Cómo se guardan Pendiente Re-agenda, Seguimiento y Próxima Cohorte, y en qué etapa queda el deal (§5) | Mani, con ADR | 142 |
-| QM-12 | La cortesía: deal con 100% de descuento y una marca, o estudiante sin deal (§3.7) | Mani | 142 (la flecha a ganado con valor 0) |
-| QD-2 | Confirmar: cola del setter = En gestión; cerrados = Ganado Parcial o Completo según su saldo | Mani | 078 `--aplicar` |
 | QM-3 · GC-17 | La próxima fecha de pago al lado de la fecha límite; cómo pactan los abonos los closers | Mani con 2 o 3 closers | 144 |
 | QM-11 | De qué métricas son los umbrales de la alerta por persistencia | Mani | 147 |
 | QM-5 | Los cuatro pasos del onboarding, fijos o por programa | Mani | 145 |
-| D-1 a D-8 | Las dudas de §10 | Mani | 142 |
+| A-41 | Qué se hace con los parciales (hoy abren deal en Potencial) | Mani con Michael y Gerencia | · |
+| Objeciones | Cómo se registran al responder "¿Cómo terminó?" | Mani con Michael | 158 |
+| · | Construir la marca de cortesía y la alerta de tres intentos (ya decididas en el ADR 0071) | · | · |
 
 ---
 
@@ -502,7 +508,7 @@ Todas se calculan al leer: nada se guarda ni la apaga un clic (ADR 0024).
 
 > **Contestadas el 2-oct (ADR 0071):** D-1, primera actividad comercial → En gestión (no al reclamar) ·
 > D-2, el contacto logrado mueve a Contactado · D-3, seis botones · D-4 y D-10, avisos: los arregla el 142 ·
-> D-5, el deal a mano nace en En gestión · D-6, sin setter en v1 · D-8, el Parcial que desiste es Cierre
+> D-5, el deal a mano nace en En gestión · D-6, sin setter en v1 (⚠️ reemplazada el mismo día por el ADR 0076: el setter es una función) · D-8, el Parcial que desiste es Cierre
 > perdido · D-9, los cerrados sin monto entran a ganado y se corrigen con el equipo ya en vivo · QM-12,
 > cortesía = deal con 100% de descuento y marca. Además: los tres intentos se cuentan y alertan, no cierran
 > solos. **La D-7 se decidió con el 118** (2-oct).

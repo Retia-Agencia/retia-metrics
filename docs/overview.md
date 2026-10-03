@@ -52,7 +52,7 @@ etapa con el gasto de Meta, y cómo va la cohorte contra su meta cada día (reun
 **Lo que tiene que trackear, sí o sí:**
 
 1. **El camino de cada deal**, desde que llega el lead hasta que se pierde o se paga completo, con todo
-   colgado: programa, producto, cohorte, closer, llamadas, Grain, abonos, comprobantes, acuerdo de
+   colgado: programa, cohorte, valor vendido, closer, llamadas, Grain, abonos, comprobantes, acuerdo de
    pago e historial.
 2. **El origen de cada lead**: UTM estandarizado cruzado con la inversión en pauta, para saber qué
    canal, qué campaña, qué anuncio y qué closer convierten. El gasto entra por la API de Meta (ADR 0062).
@@ -64,7 +64,7 @@ etapa con el gasto de Meta, y cómo va la cohorte contra su meta cada día (reun
 - **Cero error humano en los campos.** Cada etapa tiene requisitos; el sistema mueve el deal cuando el
   requisito se cumple y bloquea cuando no. Nada que decida se escribe a mano.
 - **Base normalizada:** lo derivable se calcula, no se guarda.
-- **Nada escrito a mano en el código que el negocio deba poder cambiar:** programas, productos,
+- **Nada escrito a mano en el código que el negocio deba poder cambiar:** programas, cohortes,
   campañas, closers y motivos son filas que el equipo crea (ADR 0012). *"El equipo crea sus productos;
   Mani construye la herramienta."*
 - **Cada programa es independiente:** la misma persona en dos programas son dos leads, y las tasas de
@@ -93,96 +93,137 @@ ventana, meta y precio (ADR 0022). Las URLs de cada programa están en `operatio
 **Medios de pago en uso:** PayPal, MercadoPago, Hotmart, Bancolombia, Zelle, DollarApp, Global66 y
 Binance/USDT. Los abonos se registran siempre en **USD** (Michael, 16-sep).
 
-## 4. Quién lo usa
+## 4. Quién lo usa: los actores
 
-| Rol | Quiénes | Su momento de tensión hoy |
+**Esta sección es la ficha canónica de cada actor** (Mani, 2-oct): quiénes son, qué historias de usuario
+tienen, qué ven y qué operan. Qué hace cada actor en cada componente del CRM está en la matriz de
+[`plan.md`](./plan.md) §4.0; qué pantalla ve cada uno, en [`structure.md`](./structure.md) §8. Leyenda: ✅
+construido · 🟡 en `main`, sin recorrido · ⛔ decidido, sin construir.
+
+| Actor | Quiénes | Su momento de tensión hoy |
 |---|---|---|
-| **Closer** | Andrea Machado y Maru Marquez (confirmadas por Michael el 16-sep) y Jero (Jerónimo, del equipo de Vieira), los tres en la reunión del 24-sep. La spec nombraba además a Sebastián Salazar y Sebastián Rodríguez, sin confirmar | al colgar una llamada: sale a mandar un screenshot al grupo o a pedir un link de PayPal |
-| **Gerente** | Alejandro Carvajal (Alejo) y Daniel Tovar; Michael Castellanos (Ops) está saliendo | preguntar en el grupo "¿cuántas calls, cuántos no-show, cuántas ventas hoy?" y esperar el PDF |
-| **Paid Trafficker** | el equipo de pauta: Anderson, César y Daniela Rodríguez (entra full time) | reconciliar a mano cada día Meta, la hoja de ventas y Calendly para saber qué canal y qué creativo vende, y cómo va la cohorte |
+| **El Sistema** | el webhook de formularios, Calendly, el motor de etapas | · (no se cansa, pero si una fuente deja de mandar algo, falla en silencio: por eso las alarmas) |
+| **Setter** (función, no rol) | una persona con cuenta de closer que contacta a quien no agendó (ADR 0076) | mandar el link de agenda y no saber si el lead agendó |
+| **Closer** | Andrea Machado, Maru Marquez y Jero (equipo de Vieira); desde el 2-oct, Nicolás y Francisco (closers nuevos, Mani 2-oct) | al colgar una llamada: sale a mandar un screenshot al grupo o a pedir un link de PayPal |
+| **Gerente** | Alejandro Carvajal (Alejo) y Daniel Tovar; Michael Castellanos (Ops) está saliendo y su papel lo toma Mani (2-oct) | preguntar en el grupo "¿cuántas calls, cuántos no-show, cuántas ventas hoy?" y esperar el PDF |
+| **Paid Trafficker** ⛔ (102) | el equipo de pauta: Anderson, César y Daniela Rodríguez | reconciliar a mano Meta, la hoja de ventas y Calendly para saber qué creativo vende |
+| **Customer Success** ⛔ (145) | por definir | hacer el onboarding (WhatsApp, grupo, correo, Circle) sin que quede registro |
 | **Developer** | Mani y quien mantenga la herramienta | saber si algo falló o qué cambió sin abrir la base a mano |
 
 **Cuentas.** Cada closer entra con **su propia cuenta de Google**, así sus llamadas y pagos quedan a su
-nombre. Los gerentes comparten `administrativa@retiagrowth.com`, que no registra llamadas atribuidas a
-un closer. El developer entra con cualquier cuenta a la que se le asigne el rol. Quien controla el
-acceso es la tabla `users`, no Google.
+nombre. Los gerentes comparten `administrativa@retiagrowth.com`, que no registra llamadas atribuidas a un
+closer. El developer entra con cualquier cuenta a la que se le asigne el rol. Quien controla el acceso es la
+tabla `users`, no Google. Hoy el enum de roles tiene tres valores (gerente, closer, developer); paid
+trafficker y customer success llegan con sus tickets.
 
-Retia se organiza además en **cuatro áreas** (Gerencial, Comercial, Pauta y Media), que no son roles:
-agrupan leads y deals según su origen (ADR 0043).
+Retia se organiza además en **áreas** (Gerencial, Comercial, Pauta y Media), que no son roles: agrupan leads
+y deals según su origen (ADR 0043).
 
-### Lo que cada rol hace en el CRM terminado
+### Lo que hace cada actor
 
-**Closer** (ve solo los programas de su membresía, ADR 0048):
+**El Sistema** (nadie lo opera; su trabajo se ve en el historial como "sistema"):
 
-1. Abre el **Inbox** de su programa: lo que no tiene dueño, las llamadas que Calendly no pudo colgar sin
-   duda, y lo suyo que necesita atención (llamada de hoy sin resultado, re-agenda sin fecha, compromiso
-   vencido, fecha límite de pago vencida con saldo).
-2. **Reclama** el Setteo, que viene ordenado por ingreso declarado y por recencia. El reparto por turno
-   de la hoja se retira.
-3. Registra cada contacto con canal y nota (reemplaza las columnas `Registro 1-5`).
-4. Después de la llamada **pega el link de Grain** y el deal pasa solo a Atendido. Responde **"¿Cómo
-   terminó?"** con uno de seis botones: pagó ahora, compromiso, seguimiento, otra llamada, próxima
-   cohorte o perdido. No existe "no cerró" sin decir qué sigue.
-5. Si cerró: elige el producto (el precio viene del producto), registra el abono con su comprobante
-   (foto o link) y, si queda saldo, la **fecha límite de pago** (prellenada con el inicio de clases) y
-   una nota del acuerdo. El deal pasa solo a Abonado, y a Completo con saldo cero.
-6. Encuentra brochures y links de pago en **Resources**, en un clic.
-7. Ve el **Dashboard** de sus programas completo, incluido el comparativo entre closers, y su comisión
-   calculada.
-8. Tiene **su link de captación** por programa, para que el lead que trae cuente como suyo.
+1. ✅ Recibe cada envío del formulario, identifica al lead y abre el deal en su **puerta de entrada**:
+   Potencial (parcial), Registrado (completo sin calidad alta), Calificado (Lead Quality High) o Agendado
+   (agendó) (ADR 0069). Si la persona vuelve a llenar el formulario con un envío mejor, sube el deal (ADR
+   0073).
+2. ✅ Cuelga cada cita de Calendly de su deal y lo mueve a Agendado; si tiene duda, deja la llamada suelta
+   (ADR 0049). Mueve reagendas, cancelaciones y no-shows.
+3. ✅ Mueve a Atendido cuando se pega el Grain, y a las dos etapas de ganado cuando se registra o anula un
+   abono.
+4. ✅ Calcula saldo, comisión, cartera vencida y alertas al leer; nunca mueve un deal porque pasó el tiempo.
 
-Deja de hacer: mandar el comprobante al grupo, llenar el registro a mano, escribir Sí/No, buscar links
-en WhatsApp, calcular su comisión.
+**Setter** (ADR 0076; mismos permisos que un closer):
 
-**Gerente:** abre el **Dashboard** de un programa o de "todos los programas" (ahí solo aparece lo que
-se puede sumar); ve cierres, show, caja, meta y meta dinámica, rendimiento por closer, por canal y por
-área, y el origen de cada venta hasta la campaña; revisa la cartera vencida y los deals sin dueño y
-reasigna; registra campañas y su gasto y genera los links con UTM; administra programas, cohortes,
-productos, usuarios y membresías.
+1. ✅ Trabaja la cola de **En gestión** desde el Inbox: reclama, contacta y registra cada intento.
+2. 🟡 Manda el **link de agenda** y marca "Ya se lo mandé". La cita por Calendly entrega el deal a quien da
+   la llamada; el setter queda con su crédito (`setter_user_id`). Si a 1 día hábil no hay cita, alerta.
+3. Ve el dashboard de sus programas como cualquier closer.
 
-**Paid Trafficker:** arma sus UTM de Meta con macros y el CRM las recibe; el gasto de sus anuncios entra
-solo por la API de Meta (ADR 0062). Genera en el builder los links de orgánico. Ve el Dashboard de sus
-programas (atribución por área, costos por etapa, ROAS, cumplimiento de la cohorte) y la tab Campañas con
-el embudo por anuncio, **menos el comparativo entre closers y la comisión**; no ve deals, llamadas ni
-abonos sueltos (ADR 0052 enmendado, Mani 29-sep).
+**Closer** (ve solo los programas de su membresía, ADR 0048, y en Deals solo los suyos, ADR 0075):
 
-**Developer:** todo, sin restricción, más Nerd Stats (salud de la herramienta y bitácora de cambios) y
-"ver como" gerente o closer (ADR 0025, 0028).
+1. ✅ Abre el **Inbox** de su programa: lo sin dueño, las llamadas que Calendly no pudo colgar sin duda y lo
+   suyo que necesita atención (llamada de hoy sin resultado, pendiente sin fecha, compromiso vencido, fecha de
+   pago vencida, deal sin actividad).
+2. ✅ Mueve sus deals con los **botones de etapa destino** de la ficha o arrastrando en el Kanban; los dos
+   abren la misma pregunta con lo que el deal tiene y le falta (ADR 0072, 0075). 🟡 Lo obligatorio que falta
+   sale en rojo (143).
+3. ✅ Después de la llamada pega el link de **Grain** (pasa solo a Atendido) y responde **"¿Cómo terminó?"**:
+   pagó, compromiso, seguimiento, otra llamada, próxima cohorte o perdido. No existe "no cerró" sin decir qué
+   sigue.
+4. ✅ Si cerró: escribe el **valor vendido** (el descuento sale contra el ticket base de la cohorte), registra
+   el abono (el comprobante no bloquea: si falta, queda una alerta roja), la fecha límite y la nota del
+   acuerdo, y declara el **área** por la que llegó el lead. El deal pasa solo a Ganado Pago Parcial o a Ganado
+   Pagado Completo.
+5. ✅ Marca el onboarding de sus estudiantes (una sola marca hasta el 145).
+6. ✅ Encuentra brochures y links de pago en **Recursos**, en un clic, y crea los de sus programas.
+7. ✅ Ve el **Dashboard** de sus programas completo, incluido el comparativo entre closers y su comisión.
+8. 🟡 Asigna su propia cuenta de Calendly por programa desde **Perfil** (ADR 0074).
+9. ⛔ Tiene **su link de captación** por programa, para que el lead que trae cuente como suyo (086).
+10. ⛔ Su **reporte del día** sale del CRM en vez de escribirlo en WhatsApp (158).
+
+Deja de hacer: mandar el comprobante al grupo, llenar el registro a mano, escribir Sí/No, buscar links en
+WhatsApp, calcular su comisión.
+
+**Gerente:** ✅ abre el **Dashboard** de un programa o de "todos los programas" (ahí solo aparece lo que se
+puede sumar), con cada cifra abriendo su lista y el periodo A contra B; ✅ ve todos los deals del programa,
+reasigna dueños, revisa la cartera vencida y anula lo que no debió existir; ✅ administra programas,
+cohortes, usuarios, membresías, catálogos, fuentes y canales, y conecta el Calendly del programa; ⛔ ve la
+meta del mes y la página de Metas (146) y el dashboard comercial por secciones (148); ⛔ ve el origen de
+cada venta hasta el anuncio y los costos por etapa cuando entre la pauta (8 · Pauta).
+
+**Paid Trafficker** ⛔ (ADR 0052 enmendado, Mani 29-sep): arma sus UTM de Meta con macros y el CRM las
+recibe; el gasto de sus anuncios entra solo por la API de Meta (ADR 0062). Genera en el builder los links de
+orgánico. Ve el Dashboard de sus programas (atribución por área, costos por etapa, ROAS, cumplimiento de la
+cohorte) y la tab Campañas, **menos el comparativo entre closers y la comisión**; no ve deals, llamadas ni
+abonos sueltos.
+
+**Customer Success** ⛔ (GC-42, GC-43; ticket 145): solo ve Students y marca los cuatro pasos del onboarding
+(mensaje de bienvenida por WhatsApp interno, grupo de WhatsApp, correo de bienvenida, Circle), cada uno con
+quién y cuándo. No mueve etapas.
+
+**Developer:** todo, sin restricción, más Nerd Stats (salud de la herramienta y bitácora de cambios) y "ver
+como" gerente o closer (ADR 0025, 0028).
+
+### Dónde se cruzan
+
+Un actor le entrega algo a otro en nueve puntos (setter → closer por la cita, closer → Customer Success al
+ganar, closer → Pauta con el área declarada, gerente ↔ closer al reasignar, y los del sistema). La tabla con
+su estado está en `plan.md` §4.0 ("Los traspasos entre actores").
 
 ## 5. El recorrido de un lead, de principio a fin
 
-1. **Llega el envío.** La persona llena el formulario del programa (Typeform hoy; Dapta Forms es la
-   alternativa evaluada) y el envío llega al CRM por webhook, con todas sus respuestas y sus UTM. Se
-   guarda aunque esté a medias: un envío parcial es un abandono contactable. Hay dos puntos parciales:
-   tras dejar el WhatsApp y justo antes del Calendly (ADR 0061).
-2. **Se identifica a la persona.** Mismo correo, mismo lead. Mismo teléfono con otro correo: se une y
-   se marca para que un gerente lo revise, nunca se fusiona a ciegas.
-3. **Se clasifica.** El formulario manda su **Estado** y una tabla por programa dice en qué etapa nace el
-   deal (ADR 0061): Setteo (completó sin agendar: Pendiente Setteo, sin dueño), "va hacia el Calendly"
-   (llegó al Calendly: Pendiente Setteo con prioridad alta; si en 5 minutos no agenda, sale urgente en el
-   Inbox) y Con Calendly (agendó: Agendado). **Todo el que llena el formulario es contacto:** Descartado
-   desaparece. Quien abandona tras dejar el WhatsApp queda como lead sin deal, visible en Leads.
-4. **Se trabaja.** El closer reclama el Setteo desde el Inbox y lo contacta (En Contacto). Cuando hay
-   cita, Calendly cuelga la llamada del deal con su fecha real y su host; si no hay certeza de a qué
-   deal va, queda suelta en el Inbox.
-5. **La llamada.** Si ocurre, se pega el Grain (Atendido). Si falla, el deal va a Re-agenda con motivo.
-   Un deal tiene todas las llamadas que haga falta y nunca se duplica.
-6. **Cómo terminó.** Pagó (Abonado o Completo), dijo que sí y paga después (Compromiso Verbal, con
-   fecha límite), lo va a pensar (Seguimiento), quiere la siguiente cohorte (Próxima Cohorte), o dijo
-   que no (Cierre Perdido, con motivo).
-7. **El pago.** Cada abono es una fila con su comprobante. La etapa la mueve la plata: primer abono,
-   Abonado; saldo en cero, Completo.
-8. **Estudiante.** Un deal en Abonado o Completo es un estudiante de la cohorte de su deal. Se marca
-   cuándo se le hizo el onboarding (`onboarded_at`), sin checklist.
-9. **El origen.** Cada envío lleva su canal, su área, su campaña, su anuncio y, si lo trajo un closer,
-   quién; la venta hereda el del envío que abrió su deal (ADR 0060). Con el gasto de Meta por anuncio, el
-   CRM dice qué canal, qué campaña y qué creativo convierten. Al cerrar, el closer declara además el área
-   por la que llegó ("¿cómo nos conociste?"): solo cuenta para las ventas sin UTM, y nunca se mezcla con él.
+1. **Llega el envío.** La persona llena el formulario del programa (Typeform o Dapta Forms) y el envío llega
+   al CRM por webhook, con todas sus respuestas, sus UTM, su **Lead Quality** y su **Lead Value**. Se guarda
+   aunque esté a medias: un envío parcial también abre deal (GC-27; 🔴 A-41 lo cuestiona).
+2. **Se identifica a la persona.** Mismo correo, mismo lead. Mismo teléfono con otro correo: se une y se
+   marca para que un gerente lo revise, nunca se fusiona a ciegas.
+3. **Nace el deal en su puerta.** El CRM decide la etapa con tres hechos del envío (ADR 0069): agendó →
+   Agendado; Lead Quality High → Calificado; completo con otra calidad → Registrado; parcial → Potencial. Si
+   llegó al Calendly y a los 5 minutos no agendó, sale urgente en el Inbox ("se perdió en el Calendly").
+4. **Se trabaja.** Con la primera actividad comercial el deal pasa a **En gestión**, la cola del setter; un
+   contacto logrado lo pasa a **Contactado** (ADR 0071). El setter manda el link de agenda; cuando la cita
+   entra por Calendly, el deal pasa a **Agendado** y queda de quien da la llamada (ADR 0076). Si no hay
+   certeza de a qué deal va la cita, queda suelta en el Inbox.
+5. **La llamada.** Si ocurre, se pega el Grain (**Atendido**). Si falla, el deal se queda en su etapa con el
+   pendiente Re-agenda (ADR 0070). Un deal tiene todas las llamadas que haga falta y nunca se duplica.
+6. **Cómo terminó.** Pagó (Ganado Pago Parcial o Ganado Pagado Completo), dijo que sí y paga después
+   (**Compromiso Verbal**, con fecha límite), lo va a pensar (pendiente Seguimiento), quiere la siguiente
+   cohorte (pendiente Próxima Cohorte), o dijo que no (**Cierre perdido**, con motivo).
+7. **El pago.** El closer escribe el valor vendido; cada abono es una fila con su comprobante. La etapa la
+   mueve la plata: primer abono, Ganado Pago Parcial; saldo en cero, Ganado Pagado Completo.
+8. **Estudiante.** Un deal en ganado es un estudiante de la cohorte de su deal desde el primer pago (GC-41).
+   Hoy se marca cuándo se le hizo el onboarding (`onboarded_at`); con el 145, sus cuatro pasos.
+9. **El origen.** Cada envío lleva su canal, su área, su campaña, su anuncio y, si lo trajo un closer, quién;
+   la venta hereda el del envío que abrió su deal (ADR 0060). Con el gasto de Meta por anuncio, el CRM dirá
+   qué canal, qué campaña y qué creativo convierten. Al cerrar, el closer declara además el área por la que
+   llegó ("¿cómo nos conociste?"): solo cuenta para las ventas sin UTM, y nunca se mezcla con él.
 
-**Las once etapas del deal** (el número es un nombre, no el orden): 1 Pendiente Setteo · 2 En Contacto ·
-4 Agendado · 3 Pendiente Re-agenda · 5 Atendido · 11 Seguimiento · 6 Compromiso Verbal · 7 Abonado ·
-8 Completo · 9 Próxima Cohorte · 10 Cierre Perdido. Qué mueve cada una y con qué requisito, en
-`structure.md` (el motor de etapas).
+**Las once etapas del deal** (las del HubSpot de 30X, GC-01): Potencial · Registrado · Calificado · En
+gestión · Contactado · Agendado · Atendido · Compromiso Verbal · Ganado Pago Parcial · Ganado Pagado Completo
+· Cierre perdido. Re-agenda, Seguimiento y Próxima Cohorte son **pendientes** del deal, no etapas (ADR 0070).
+Qué mueve cada una y con qué requisito: [`manual-gestion-comercial.md`](./manual-gestion-comercial.md) y
+`structure.md` §3.
 
 ## 6. Qué información guarda, y las reglas que no se rompen
 
@@ -200,7 +241,7 @@ abonos sueltos (ADR 0052 enmendado, Mani 29-sep).
 - **Toda tasa se cuenta sobre personas, nunca sobre filas.** Contar filas infla las tasas cerca de un
   60% (Tactical tenía ~2.950 filas que eran ~1.840 personas).
 - **Caja recaudada ≠ ventas.** La caja es la suma de los abonos por la fecha del abono; las ventas son
-  los deals en Abonado o Completo. Nunca se deriva una de la otra.
+  los deals en Ganado Pago Parcial o Ganado Pagado Completo. Nunca se deriva una de la otra.
 - **Anular ≠ Cierre Perdido.** Perdido es "el lead dijo que no" y cuenta en el embudo. Anulado es "este
   registro nunca debió existir" y no cuenta en ninguna métrica.
 - **Nunca se convierte moneda en silencio.** El ticket va en USD, la pauta en COP; la moneda va al lado
@@ -228,7 +269,7 @@ abonos sueltos (ADR 0052 enmendado, Mani 29-sep).
 | Conversión etapa a etapa y tiempo en etapa | cuenta deals distintos, no entradas |
 | Registros vs agendas por canal | la métrica de Media: TikTok puede traer muchos registros y pocas agendas |
 | CPL, costo por agenda, por llamada, por llamada calificada, por show y por venta (CAC) | gasto del área Pauta ÷ el conteo de Pauta, por área, campaña, conjunto y anuncio; sin gasto, "sin pauta" en vez de $0. Umbrales de Pauta (29-sep, en COP): costo por agenda meta 60.000, aceptable 80.000 (antes: estándar de Daniel Tovar, USD 20 y alerta en USD 100) |
-| ROAS y ad profit | sobre ventas **contratadas** (precio de los deals vendidos), con la TRM de la cohorte a la vista (ADR 0063) |
+| ROAS y ad profit | sobre ventas **contratadas** (valor vendido de los deals vendidos) frente al gasto de Meta (ADR 0063). 🔴 De dónde sale la tasa COP/USD está abierto (`plan.md` §7, A12): la 0057 quitó la TRM de la cohorte |
 | Llamada calificada | llamada que ocurrió de un lead cuyo `lead_value` del formulario está en el conjunto calificado del programa (por defecto MUY ALTO y ALTO VALOR) |
 | Calidad de la traza | % de ventas por nivel de origen: anuncio, campaña, canal o sin UTM |
 | Cumplimiento por área | la meta de la cohorte repartida en cupos por área (paid, orgánico, referidos): vendidas, faltan, requeridas por día, ritmo y proyección, con semáforo |
@@ -253,10 +294,10 @@ no casa con ningún canal o campaña: se arregla con una fila y repara hacia atr
 
 **Entra en v1:** leads por formulario y alta manual; deals con once etapas y Kanban; llamadas colgadas
 del deal, con Calendly; abonos con comprobante (link o foto); acuerdo de pago como nota con fecha
-límite; Students por cohorte con onboarding; productos, recursos y links de pago; Inbox; Dashboard por
+límite; Students por cohorte con onboarding; recursos y links de pago; Inbox; Dashboard por
 programa y agregado de lo sumable; atribución por canal, campaña, anuncio y área, con el gasto de Meta por su API; costos por etapa y
 cumplimiento de la cohorte por área; builder de links para orgánico y closers; roles
-closer, gerente, paid trafficker y developer; Nerd Stats con bitácora; snapshot del dashboard en PDF (lo toman todos los roles y recibe el mismo
+closer (que también hace de setter), gerente, paid trafficker, customer success y developer; Nerd Stats con bitácora; snapshot del dashboard en PDF (lo toman todos los roles y recibe el mismo
 objeto que pintó la pantalla, 19-sep);
 el traslado y la migración de lo que hay en Sheets.
 
@@ -280,7 +321,7 @@ el traslado y la migración de lo que hay en Sheets.
 ## 9. Criterios de aceptación
 
 1. Un closer registra una llamada cerrada con su venta y su primer abono, y quedan con su closer,
-   cohorte, programa y producto correctos, visibles en el dashboard sin usar WhatsApp.
+   cohorte, programa y valor vendido correctos, visibles en el dashboard sin usar WhatsApp.
 2. Un cierre de cualquier closer lo ven igual otro closer **del mismo programa** y un gerente; un closer
    sin membresía en ese programa no lo ve.
 3. Un gerente que filtra por programa y fechas ve agendas, show, ventas, % de cierre y caja calculados
@@ -349,18 +390,23 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   todavía (tabla `sobres_crudos`, ticket 106).
 - **Deal:** la oportunidad de venderle un programa a un lead. Tiene dueño, etapa, valor vendido y cohorte.
   Como máximo uno abierto por lead y programa.
-- **Etapa:** en cuál de los once pasos está un deal. La escribe el CRM. *No confundir con el **Estado**,
-  la clasificación de llegada del envío (Descartado, Setteo, Con Calendly).*
+- **Etapa:** en cuál de los once pasos está un deal (los del HubSpot de 30X). La escribe el CRM, siempre por
+  el motor. *No confundir con el Pendiente ni con la Lead Quality del envío.*
+- **Puerta de entrada:** las tres etapas donde nace un deal sin agenda (Potencial, Registrado, Calificado),
+  más Agendado si agendó en el formulario. La decide el CRM con agenda y calidad (ADR 0069).
 - **Pendiente:** lo que el closer tiene que hacer con un deal que no avanzó: re-agendar, hacer el
   seguimiento o esperar la próxima cohorte. El deal se queda en su etapa mientras lo tiene, y tiene a lo sumo
   uno. *No es una etapa ni un Estado* (ADR 0070).
-- **Dueño:** el closer responsable de un deal. Los deals nacen sin dueño y se reclaman.
+- **Dueño:** el closer responsable de un deal. Los deals nacen sin dueño y se reclaman; un deal con llamada
+  es siempre de quien da la llamada (ADR 0076).
+- **Lead Quality y Lead Value:** las dos etiquetas que manda el formulario con su scoring. Quality decide la
+  puerta de entrada (High → Calificado); Value ordena la cola. El CRM no las calcula.
 - **Atendido sin Grain:** una llamada que ocurrió (cuenta como show) y no tiene link de Grain. Es una
   alarma que se calcula y se apaga sola al pegar el Grain (ADR 0066).
 - **Llamada suelta:** una llamada de Calendly que no se pudo colgar de un deal sin duda; espera en el
   Inbox.
-- **Student:** un deal en Abonado o Completo, en la cohorte de su deal. Es una vista, no una tabla. 🔴 Si
-  "estudiante" empieza en el primer abono o con el pago completo está por confirmar.
+- **Student:** un deal en Ganado Pago Parcial o Ganado Pagado Completo, en la cohorte de su deal, desde el
+  primer pago (GC-41). Es una vista, no una tabla.
 - **Deal histórico:** un deal que vino de las pestañas de gestión de la hoja (migración de E7). Nace en la
   etapa que dice la hoja, sin recorrer el motor, y lleva su **huella de migración** (ADR 0059).
 - **Rareza:** una fila de la hoja que entró (o no pudo entrar) sin poder clasificarse del todo: fecha
@@ -398,7 +444,6 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Plataforma de pago:** por dónde entra un pago (PayPal, MercadoPago...). **Enlace de pago:** un link
   de cobro concreto de un programa ("PayPal 797 USD"). Un enlace siempre es de un programa; una
   plataforma puede servir a varios.
-- **TRM de la cohorte:** la tasa COP/USD de referencia de una cohorte.
 
 **El origen**
 
@@ -416,8 +461,8 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Macro sin expandir:** un UTM que llegó como `{{campaign.name}}`: un centinela, no un dato.
 - **Origen declarado:** el área que el closer marca al cerrar ("¿cómo nos conociste?"). Solo informa las
   ventas sin UTM; nunca se mezcla con el UTM.
-- **Estado de llegada:** el valor que manda el formulario en su variable `estado`; una tabla por programa lo
-  lleva a la etapa donde nace el deal (ADR 0061). *No confundir con la Etapa.*
+- **Estado de llegada:** el valor que mandaba el formulario en su variable `estado`. Desde el ADR 0069 ya no
+  enruta: se guarda como llegó en `calificacion` y nada más. *Retirado como concepto operativo.*
 - **Se perdió en el Calendly:** llegó a la pantalla del Calendly (envío parcial) y a los minutos de su
   estado no agendó: urgente en el Inbox.
 
@@ -427,7 +472,7 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Agenda:** una llamada agendada, contada el día en que se agendó.
 - **Llamada calificada:** ocurrió y el `lead_value` del lead está en el conjunto calificado del programa.
 - **Contratado:** la suma del valor vendido de las ventas. *No confundir con la caja (lo abonado).*
-- **ROAS y ad profit:** contratado frente al gasto, con la TRM de la cohorte a la vista.
+- **ROAS y ad profit:** contratado frente al gasto. La tasa COP/USD está por decidir (A12).
 - **Objetivo:** la meta y el nivel aceptable de una métrica en una cohorte, total o por área; dice si va en
   ruta o atrasado. **Reparto por área:** la meta de cupos de la cohorte dividida entre paid, orgánico y
   referidos (no entre closers, ADR 0023).
@@ -435,12 +480,16 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 
 **El equipo y el acceso**
 
-- **Closer:** vende y trabaja leads. **Gerente:** además administra. **Paid Trafficker:** crea campañas y
-  links. **Developer:** acceso total, la única excepción a la disjunción de roles.
+- **Closer:** vende y trabaja leads. **Setter:** función, no rol: una persona con cuenta de closer que
+  contacta a quien no agendó y entrega el deal por la cita (ADR 0076). **Gerente:** además administra.
+  **Paid Trafficker:** campañas, links y gasto (102). **Customer Success:** solo el onboarding de Students
+  (145). **Developer:** acceso total, la única excepción a la disjunción de roles. **El Sistema:** el
+  webhook, Calendly y el motor cuando mueven algo sin una persona.
 - **Membresía:** a qué programas pertenece un usuario; define qué programas ve un closer.
 - **Vista ("ver como"):** con qué rol se proyecta una pantalla del developer. Solo estrecha, nunca
   ensancha.
-- **Setteo:** contactar a quien calificó pero no agendó, para convertirlo en agenda.
+- **Setteo:** contactar a quien no agendó, para convertirlo en agenda. Lo hace el setter desde la cola de En
+  gestión.
 - **Grain:** la grabación de la llamada; pegar su link es la prueba de que ocurrió.
 - **Juanito:** la automatización que manda los recordatorios de las llamadas. **Kapso:** la plataforma
   de WhatsApp para contactar y enviar masivos. Ninguno vive dentro del CRM.
