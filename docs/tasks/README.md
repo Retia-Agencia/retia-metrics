@@ -323,14 +323,14 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 13 · Ola O3 · simplificación y centralización (3-oct)
 
-8 tickets, 5 abiertos. Salen del recorrido 7 de Mani (`docs/anotaciones.md` A-52 a A-76) y del ADR 0077. Reparto
+8 tickets, 4 abiertos. Salen del recorrido 7 de Mani (`docs/anotaciones.md` A-52 a A-76) y del ADR 0077. Reparto
 y orden en [`plan-reparto.md`](../plan-reparto.md) §4, ola O3. El 164 queda reemplazado por el 172 y el 102 lo
 construye el 173.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [ ] | 168 | [La ficha del deal se entiende sola](./168-la-ficha-del-deal-se-entiende-sola.md) | · | done · `cp-20261003-2` · 3-oct · S1 · recorrido de la sesión central hecho |
-| [ ] | 169 | [La llamada siempre tiene closer, y el handoff se prueba en local](./169-la-llamada-siempre-tiene-closer.md) | · | en curso · `cp-20261003-2` · 3-oct · S2 · código y recorrido hechos (`simular:cita`: host registrada → deal y llamada a ella, setter queda; host sin cuenta → rojo en el Inbox). Falta: `--aplicar` del relleno en producción (ensayo: 134 llamadas casan, 0 hosts sin cuenta), con ok de Mani |
+| [ ] | 169 | [La llamada siempre tiene closer, y el handoff se prueba en local](./169-la-llamada-siempre-tiene-closer.md) | · | done · `cp-20261003-2` · 3-oct · S2 · relleno aplicado en producción con el ok de Mani: 134 llamadas con su closer, el re-ensayo da 0 pendientes y 0 hosts sin cuenta |
 | [ ] | 170 | [Las listas: filtros solos, Calls de cada closer, Leads en tabla, Personas fuera](./170-listas-filtros-calls-y-leads.md) | · | done · `cp-20261003-2` · 3-oct · S3 · recorrido de la sesión central hecho |
 | [ ] | 171 | [Todo lo del programa vive en la tab Programa](./171-todo-lo-del-programa-en-programa.md) | · | done · `cp-20261003-2` · 3-oct · S4 · recorrido de la sesión central hecho |
 | [ ] | 172 | [Mi espacio y "Ver como" a un closer de verdad](./172-mi-espacio-todo-lo-del-usuario.md) | 169, 170, 171 | todo · 3-oct · S5, parte 2 · reemplaza el 164 |

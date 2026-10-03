@@ -3,7 +3,7 @@ id: 169
 etapa: O3
 serves: "docs/anotaciones.md A-54, A-62 (host sin cuenta), A-67, A-69; ADR 0077 punto 5; ADR 0076"
 depends: []
-status: en curso (código en main; falta el recorrido y el relleno, sesión principal)
+status: done
 ---
 
 # 169 — La llamada siempre tiene closer, y el handoff se prueba en local
@@ -92,3 +92,8 @@ la sesión con Mani el relleno aplicado, el recorrido en `dev:local` y el build,
   (consola abierta), forjar la acción de Calendly con una cuenta tomada (409 y base quieta), y el relleno en seco
   contra producción (`npm run rellenar:closer-llamadas`, solo lee; `--aplicar` con el ok de Mani). Por eso quedan
   sin marcar el primero, el tercero, el cuarto y el quinto punto del "Done cuando".
+
+
+## Cierre de la sesión central (3-oct)
+
+CI verde en `eb99ffc` (dos excepciones nombradas en los guardianes de alcance y de la clave de firma) y checkpoint `cp-20261003-2`. Recorrido con `simular:cita` en `dev:local`: host registrada → el deal y la llamada pasan a ella y el setter queda; host sin cuenta → rojo en el Inbox. Relleno aplicado en producción con el ok de Mani: 134 llamadas, re-ensayo en 0. Hueco que cierra el pulido de la parte 1: al asignar una cuenta de Calendly, sus llamadas sin closer se asignan solas.
