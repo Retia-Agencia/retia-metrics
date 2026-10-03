@@ -20,7 +20,7 @@ interface Props {
 }
 
 const esquema = z.object({
-  metrica: z.enum(["caja", "agendas", "shows", "shows_sin_grain", "cierres", "leads", "deals_creados", "agendas_creadas"]),
+  metrica: z.enum(["caja", "agendas", "shows", "shows_sin_grain", "cierres", "cortesias", "leads", "deals_creados", "agendas_creadas"]),
   closer: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   moneda: z.string().regex(/^[A-Z]{3}$/).optional(),
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
@@ -32,6 +32,7 @@ const titulos = {
   shows: "Shows",
   shows_sin_grain: "Shows sin Grain",
   cierres: "Cierres",
+  cortesias: "Cortesías",
   leads: "Leads",
   deals_creados: "Deals creados",
   agendas_creadas: "Agendas creadas",

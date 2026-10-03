@@ -23,6 +23,7 @@ import { marcarLinkEnviado } from "@/lib/deals/handoff";
 import { agregarLlamada, completarAgendada, marcarFallida, pegarGrain, RESULTADOS_FALLIDOS } from "@/lib/deals/llamadas";
 import { editarAcuerdoDePago } from "@/lib/deals/pago";
 import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals/estudiante";
+import { marcarCortesia } from "@/lib/deals/cortesia";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 
 /**
@@ -263,6 +264,16 @@ export async function marcarOnboardedAccion(entrada: EntradaSoloDeal): Promise<R
     const datos = esquemaSoloDeal.parse(entrada);
     await exigirDealVisible(ctx, datos.dealId);
     await marcarOnboarded(db, actor, datos);
+    return {};
+  });
+}
+
+export async function marcarCortesiaAccion(entrada: EntradaSoloDeal): Promise<ResultadoFicha> {
+  return correr(async (ctx) => {
+    const { actor } = ctx;
+    const datos = esquemaSoloDeal.parse(entrada);
+    await exigirDealVisible(ctx, datos.dealId);
+    await marcarCortesia(db, actor, datos);
     return {};
   });
 }

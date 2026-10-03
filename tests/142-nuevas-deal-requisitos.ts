@@ -4,6 +4,7 @@ import { queLeFaltaTransicion, requisitosDeTransicion, type CodigoRequisito, typ
 
 type Codigo = Exclude<CodigoRequisito, "transicion_no_permitida" | "cohorte">;
 const TODO: HechosDelDeal = {
+  cortesia: false,
   tieneDueno: true, tieneActividadComercial: true, tieneContactoRegistrado: true,
   pendienteActual: null,
   tieneLlamadaConFecha: true, llamadaSucedio: true, llamadaFallida: true,

@@ -10,11 +10,11 @@ import { vigente } from "@/lib/queries/vigente";
 import { atendidaSinGrain } from "@/lib/queries/sin-grain";
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaLead, filtroAgendasCreadas,
-  filtroCaja, filtroCierres, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
+  filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
   primerosMovimientosDeVenta,
 } from "@/lib/queries/metricas-filtros";
 
-export type Metrica = "caja" | "agendas" | "shows" | "shows_sin_grain" | "cierres" | "leads" | "deals_creados" | "agendas_creadas";
+export type Metrica = "caja" | "agendas" | "shows" | "shows_sin_grain" | "cierres" | "cortesias" | "leads" | "deals_creados" | "agendas_creadas";
 
 /** Las métricas que no se atribuyen a un closer: con closer no hay cifra ("—"), nunca el programa entero. */
 export const METRICAS_SIN_CLOSER: readonly Metrica[] = ["leads", "deals_creados", "agendas_creadas"];
@@ -81,6 +81,7 @@ function fuenteDe(metrica: Metrica): FuenteDeMetrica {
     case "leads":
       return { id: leads.id, fecha: fechaAnclaLead(), columnaCloser: users.closerId };
     case "cierres":
+    case "cortesias":
       return {
         id: deals.id,
         fecha: sql<string>`(${dealEtapaHistorial.fecha} AT TIME ZONE 'America/Bogota')::date`,
@@ -212,6 +213,19 @@ function consultaDe(
           ),
         )
         .where(and(filtroCierres(alcance, db), vigente(deals)));
+    case "cortesias":
+      return db
+        .select(campos)
+        .from(deals)
+        .leftJoin(users, eq(users.id, deals.ownerUserId))
+        .innerJoin(
+          dealEtapaHistorial,
+          and(
+            eq(dealEtapaHistorial.dealId, deals.id),
+            inArray(dealEtapaHistorial.id, primerosMovimientosDeVenta(db)),
+          ),
+        )
+        .where(and(filtroCortesias(alcance, db), vigente(deals)));
     case "deals_creados":
       return db
         .select(campos)

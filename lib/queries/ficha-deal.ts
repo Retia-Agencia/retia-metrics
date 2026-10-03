@@ -142,6 +142,7 @@ export function respuestasLegibles(respuestas: unknown): { pregunta: string; res
 export interface FichaDeDeal {
   dealId: string;
   programId: string;
+  cortesia: boolean;
   etapa: EtapaDeal;
   pendiente: PendienteDeal | null;
   lead: {
@@ -244,6 +245,7 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
   const hechos = await leerHechos(db, deal, deal.motivoId, null);
   let propiedades = propiedadesQueLeFaltan(deal.etapa, {
     ...hechos,
+    cortesia: deal.cortesia,
     tieneCohorte: deal.cohortId != null,
   });
   if (deal.etapa === "cierre_perdido") {
@@ -457,6 +459,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
   return {
     dealId: deal.id,
     programId: deal.programId,
+    cortesia: deal.cortesia,
     etapa: deal.etapa,
     pendiente: deal.pendiente,
     lead: {

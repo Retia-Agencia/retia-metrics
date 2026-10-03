@@ -135,6 +135,18 @@ describe("anular el deal, forjando la peticion", () => {
   });
 });
 
+describe("marcar cortesía, forjando la petición", () => {
+  it("el closer dueño recibe el 403 del dominio y la base queda quieta", async () => {
+    const dealId = await nuevoDeal(programaA, closerA);
+    auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
+
+    const r = await (await acciones()).marcarCortesiaAccion({ dealId });
+
+    expect(r).toEqual({ ok: false, error: "Marcar una cortesía es de quien administra." });
+    expect(await deal(dealId)).toMatchObject({ etapa: "atendido", cortesia: false, valorVendidoUsd: null });
+  });
+});
+
 describe("editar el deal, forjando la peticion", () => {
   it("mover un deal de otro programa devuelve 403 y no lo cambia", async () => {
     const dealId = await nuevoDeal(programaB, closerA);

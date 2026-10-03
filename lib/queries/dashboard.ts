@@ -1,5 +1,5 @@
 import { sumaDeAbonos } from "@/lib/queries/saldo";
-import { cerradosEn, delCloser, ETAPAS_VENDIDAS, fechaAnclaCall, filtroCaja, filtroCierres, filtroLeads, filtroLlamadas, llamadaOcurrio, vendidosEn } from "@/lib/queries/metricas-filtros";
+import { cerradosEn, delCloser, ETAPAS_VENDIDAS, fechaAnclaCall, filtroCaja, filtroCierres, filtroCortesias, filtroLeads, filtroLlamadas, llamadaOcurrio, vendidosEn } from "@/lib/queries/metricas-filtros";
 export { fechaAnclaCall, vendidosEn, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { and, between, eq, inArray, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
@@ -155,6 +155,18 @@ async function ventasDelRango(
     .leftJoin(users, eq(users.id, deals.ownerUserId))
     .where(and(condiciones, vigente(deals)));
   return fila?.ventas ?? 0;
+}
+
+export async function contarCortesias(
+  { programId, rango, closerId }: Alcance,
+  db: Db = dbDeLaApp,
+): Promise<number> {
+  const [fila] = await db
+    .select({ cortesias: sql<number>`count(distinct ${deals.id})::int` })
+    .from(deals)
+    .leftJoin(users, eq(users.id, deals.ownerUserId))
+    .where(and(filtroCortesias({ programId, rango, closerId }, db), vigente(deals)));
+  return fila?.cortesias ?? 0;
 }
 
 async function ventasPorCloser(
@@ -473,6 +485,7 @@ async function ventasDeCohorte(
   const deLaCohorte = and(
     eq(deals.cohortId, cohorteId),
     inArray(deals.etapa, [...ETAPAS_VENDIDAS]),
+    eq(deals.cortesia, false),
   );
   const conteo = { n: sql<number>`count(*)::int` };
 

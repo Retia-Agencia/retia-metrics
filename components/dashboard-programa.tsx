@@ -84,7 +84,7 @@ export function DashboardPrograma({
   detalles?: DetallesDelDashboard;
   origenPorCanal: FilaEmbudoPorCanal[] | null;
 }) {
-  const { embudo, sinGrain, caja, leads, cohorte, comparativo, comisionPorcentaje, motivos, closerId } = vista;
+  const { embudo, sinGrain, caja, cortesias, leads, cohorte, comparativo, comisionPorcentaje, motivos, closerId } = vista;
 
   return (
     <div className="space-y-6">
@@ -114,7 +114,7 @@ export function DashboardPrograma({
         <Tarjeta
           titulo="% de cierre"
           valor={tasa(embudo.pctCierre)}
-          nota={<><CifraConLista titulo="Cierres" detalle={detalles?.cierres}>{num(embudo.cierres)} cierres</CifraConLista>{" sobre llamadas con show"}</>}
+          nota={<><CifraConLista titulo="Cierres" detalle={detalles?.cierres}>{num(embudo.cierres)} cierres</CifraConLista>{" sobre llamadas con show · "}<CifraConLista titulo="Cortesías" detalle={detalles?.cortesias}>{num(cortesias)} {cortesias === 1 ? "cortesía" : "cortesías"}</CifraConLista>{" aparte"}</>}
         />
         <Tarjeta
           titulo="Leads"

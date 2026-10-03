@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
-import { anularDealAccion, editarDealAccion, type EntradaEditarDeal } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
+import { anularDealAccion, editarDealAccion, marcarCortesiaAccion, type EntradaEditarDeal } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Campo, claseInput, claseTextarea } from "./campos";
 import { useAccion } from "./uso-accion";
 
@@ -40,15 +41,22 @@ export interface FichaAccionesProps {
 export function FichaAcciones({ ficha, opciones, puedeTrabajar, administra }: FichaAccionesProps) {
   const [editando, setEditando] = useState(false);
   const [anulando, setAnulando] = useState(false);
+  const [marcandoCortesia, setMarcandoCortesia] = useState(false);
 
   // Un deal anulado no se edita, ni se vuelve a anular.
   if (!puedeTrabajar || ficha.anulado) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {ficha.cortesia ? <Badge variant="info">Cortesía</Badge> : null}
       <Button variant="outline" onClick={() => setEditando(true)}>
         Editar
       </Button>
+      {administra && !ficha.cortesia && (["contactado", "calificado", "atendido", "compromiso_verbal"] as readonly string[]).includes(ficha.etapa) ? (
+        <Button variant="outline" onClick={() => setMarcandoCortesia(true)}>
+          Marcar como cortesía
+        </Button>
+      ) : null}
       <Button variant="destructive" onClick={() => setAnulando(true)}>
         Anular deal
       </Button>
@@ -57,7 +65,35 @@ export function FichaAcciones({ ficha, opciones, puedeTrabajar, administra }: Fi
         <DialogoEditar ficha={ficha} opciones={opciones} administra={administra} onCerrar={() => setEditando(false)} />
       ) : null}
       {anulando ? <DialogoAnular ficha={ficha} onCerrar={() => setAnulando(false)} /> : null}
+      {marcandoCortesia ? <DialogoCortesia ficha={ficha} onCerrar={() => setMarcandoCortesia(false)} /> : null}
     </div>
+  );
+}
+
+function DialogoCortesia({ ficha, onCerrar }: { ficha: FichaDeDeal; onCerrar: () => void }) {
+  const { pendiente, correr } = useAccion();
+  return (
+    <Dialog open onOpenChange={(v) => !v && onCerrar()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Marcar como cortesía</DialogTitle>
+          <DialogDescription>
+            El deal pasa a Ganado Pagado Completo con valor vendido 0. Cuenta como Student, pero no como venta, ni en la
+            tasa de cierre, ni en la comisión.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={onCerrar} disabled={pendiente}>Cancelar</Button>
+          <Button
+            type="button"
+            disabled={pendiente}
+            onClick={() => correr(() => marcarCortesiaAccion({ dealId: ficha.dealId }), { exito: "Cortesía marcada.", alExito: onCerrar })}
+          >
+            {pendiente ? "Marcando…" : "Marcar cortesía"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

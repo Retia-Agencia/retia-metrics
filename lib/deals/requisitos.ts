@@ -1,6 +1,7 @@
 import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal, type PendienteDeal, type Transicion, type TransicionPendiente } from "./etapas";
 
 export interface HechosDelDeal {
+  cortesia: boolean;
   tieneDueno: boolean;
   tieneActividadComercial: boolean;
   tieneContactoRegistrado: boolean;
@@ -21,6 +22,7 @@ export interface HechosDelDeal {
   motivoId: string | null;
 }
 export interface PropiedadesDelDeal {
+  cortesia: boolean;
   tieneCohorte: boolean;
   tieneDueno: boolean;
   tieneContactoRegistrado: boolean;
@@ -71,12 +73,12 @@ const CUMPLE: Record<CodigoReal, (h: HechosEvaluables, eximirHistorico?: boolean
   llamada_con_fecha: (h) => h.tieneLlamadaConFecha,
   llamada_sucedio: (h) => h.llamadaSucedio,
   llamada_fallida: (h) => h.llamadaFallida === true,
-  valor_vendido: (h, eximir) => (h.valorVendidoUsd ?? 0) > 0 || (eximir === true && h.esHistorico === true),
+  valor_vendido: (h, eximir) => h.cortesia === true || (h.valorVendidoUsd ?? 0) > 0 || (eximir === true && h.esHistorico === true),
   area_declarada: (h, eximir) => h.areaDeclaradaId != null || (eximir === true && h.esHistorico === true),
   fecha_limite_pago: (h) => h.fechaLimitePago != null,
   cohorte_destino: (h) => h.cohorteDestinoId != null,
   fecha_seguimiento: (h) => h.fechaSeguimiento != null,
-  abono: (h) => h.abonosVigentes > 0,
+  abono: (h) => h.abonosVigentes > 0 || h.cortesia === true,
   saldo_pendiente: (h) => h.saldo != null && h.saldo > 0,
   saldo_en_cero: (h) => h.saldo != null && h.saldo <= 0,
   sin_abonos: (h) => h.abonosVigentes === 0,

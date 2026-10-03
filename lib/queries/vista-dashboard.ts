@@ -8,6 +8,7 @@ import { parsearPeriodoUrl, resolverPeriodo, type EntradaDePeriodo, type Periodo
 import { ventanasAnterioresDeCohorte } from "@/lib/queries/ventanas-de-cohortes";
 import {
   cajaRecaudada,
+  contarCortesias,
   dealsPerdidosPorMotivo,
   embudoDelRango,
   embudoPorCloser,
@@ -61,6 +62,7 @@ export interface VistaDelDashboard {
   embudo: EmbudoDelRango;
   sinGrain: Awaited<ReturnType<typeof showsSinGrain>>;
   caja: CajaPorMoneda[];
+  cortesias: number;
   leads: LeadsDelRango;
   cohorte: VistaDeCohorte | null;
   motivos: { motivo: string; deals: number }[];
@@ -99,10 +101,11 @@ export async function armarVistaDelDashboard(
 
   const alcance = { programId, rango, closerId };
 
-  const [embudo, sinGrain, caja, leads, motivos, porCloser, comisiones, [programa]] = await Promise.all([
+  const [embudo, sinGrain, caja, cortesias, leads, motivos, porCloser, comisiones, [programa]] = await Promise.all([
     embudoDelRango(alcance, db),
     showsSinGrain(alcance, db),
     cajaRecaudada(alcance, db),
+    contarCortesias(alcance, db),
     leadsDelRango(alcance, db),
     dealsPerdidosPorMotivo(alcance, db),
     embudoPorCloser({ programId, rango }, db),
@@ -133,6 +136,7 @@ export async function armarVistaDelDashboard(
     embudo,
     sinGrain,
     caja,
+    cortesias,
     leads,
     cohorte,
     motivos,

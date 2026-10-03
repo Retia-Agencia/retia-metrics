@@ -15,6 +15,7 @@ const REQUISITOS_E13: Codigo[] = ["valor_vendido", "saldo_en_cero", "area_declar
 
 /** Un deal que no cumple nada. */
 const NADA: HechosDelDeal = {
+  cortesia: false,
   tieneDueno: false,
   tieneActividadComercial: false,
   tieneContactoRegistrado: false,
@@ -102,6 +103,7 @@ describe("lo que no es un requisito", () => {
 });
 
 const PROPIEDADES_COMPLETAS: PropiedadesDelDeal = {
+  cortesia: false,
   tieneCohorte: true, tieneDueno: true, tieneContactoRegistrado: true,
   tieneLlamadaConFecha: true, llamadaSucedio: true, areaDeclaradaId: "area",
   fechaLimitePago: "2026-10-15", valorVendidoUsd: 1000,
@@ -122,6 +124,7 @@ describe("propiedades acumuladas de la etapa", () => {
   for (const [etapa, esperados] of Object.entries(FALTANTES_POR_ETAPA)) {
     it(`${etapa}: lista las faltantes y queda vacío al completarlas`, () => {
       const vacias: PropiedadesDelDeal = {
+        cortesia: false,
         tieneCohorte: false, tieneDueno: false, tieneContactoRegistrado: false,
         tieneLlamadaConFecha: false, llamadaSucedio: false, areaDeclaradaId: null,
         fechaLimitePago: null, valorVendidoUsd: null, abonosVigentes: 0, saldo: null, motivoId: null,
@@ -135,6 +138,12 @@ describe("propiedades acumuladas de la etapa", () => {
     const faltan = propiedadesQueLeFaltan("ganado_parcial", { ...PROPIEDADES_COMPLETAS, areaDeclaradaId: null, valorVendidoUsd: null });
     expect(faltan.map((f) => f.codigo)).toEqual(["area_declarada", "valor_vendido"]);
     expect(faltan.some((f) => (f.codigo as string) === "comprobante")).toBe(false);
+  });
+
+  it("solo la marca de cortesía permite valor cero y ningún abono en Completo", () => {
+    const sinMarca = { ...PROPIEDADES_COMPLETAS, cortesia: false, valorVendidoUsd: 0, abonosVigentes: 0, saldo: 0 };
+    expect(propiedadesQueLeFaltan("ganado_completo", sinMarca).map((f) => f.codigo)).toEqual(["valor_vendido", "abono"]);
+    expect(propiedadesQueLeFaltan("ganado_completo", { ...sinMarca, cortesia: true })).toEqual([]);
   });
 });
 

@@ -180,6 +180,7 @@ export async function tableroKanban(
   let filas = await db
     .select({
       dealId: deals.id,
+      cortesia: deals.cortesia,
       leadId: deals.leadId,
       etapa: deals.etapa,
       pendiente: deals.pendiente,
@@ -274,6 +275,7 @@ export async function tableroKanban(
       f.pendiente === "seguimiento" && f.fechaSeguimiento != null && f.fechaSeguimiento < hoy;
     const { tieneLlamadaConFecha, llamadaSucedio } = hechosDeLlamadas(llamadasPorDeal.get(f.dealId) ?? []);
     const faltanALaEtapa = propiedadesQueLeFaltan(f.etapa, {
+      cortesia: f.cortesia,
       tieneCohorte: f.cohortId != null,
       tieneDueno: f.ownerUserId != null,
       tieneContactoRegistrado: contactos.has(f.dealId),

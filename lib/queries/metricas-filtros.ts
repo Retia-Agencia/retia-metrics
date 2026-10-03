@@ -54,6 +54,7 @@ function diaDeVenta() {
 
 /**
  * Las dos piezas que definen una venta: que movimientos cuentan y en que dia cae la primera.
+ * Una cortesía no es una venta (ADR 0071 punto 10).
  * `vendidosEn` y `ventasConDiaEn` solo difieren en la proyeccion (ticket 089): sin subconsulta,
  * para que el guardian de vigencia siga leyendo cada cadena.
  */
@@ -64,6 +65,7 @@ export function vendidosEn(db: Db, rango: Rango) {
   return db
     .select({ dealId: dealEtapaHistorial.dealId })
     .from(dealEtapaHistorial)
+    .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.cortesia, false), vigente(deals)))
     .where(esMovimientoDeVenta())
     .groupBy(dealEtapaHistorial.dealId)
     .having(vendidoEnElRango(rango));
@@ -116,6 +118,7 @@ export function ventasConDiaEn(db: Db, rango: Rango) {
   return db
     .select({ dealId: dealEtapaHistorial.dealId, dia: diaDeVenta() })
     .from(dealEtapaHistorial)
+    .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.cortesia, false), vigente(deals)))
     .where(esMovimientoDeVenta())
     .groupBy(dealEtapaHistorial.dealId)
     .having(vendidoEnElRango(rango));
@@ -147,6 +150,24 @@ export function filtroCierres(alcance: Alcance, db: Db) {
   return and(
     eq(deals.programId, alcance.programId),
     inArray(deals.id, vendidosEn(db, alcance.rango)),
+    delCloser(users.closerId, alcance.closerId),
+  );
+}
+
+export function cortesiasEn(db: Db, rango: Rango) {
+  return db
+    .select({ dealId: dealEtapaHistorial.dealId })
+    .from(dealEtapaHistorial)
+    .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.cortesia, true), vigente(deals)))
+    .where(esMovimientoDeVenta())
+    .groupBy(dealEtapaHistorial.dealId)
+    .having(vendidoEnElRango(rango));
+}
+
+export function filtroCortesias(alcance: Alcance, db: Db) {
+  return and(
+    eq(deals.programId, alcance.programId),
+    inArray(deals.id, cortesiasEn(db, alcance.rango)),
     delCloser(users.closerId, alcance.closerId),
   );
 }

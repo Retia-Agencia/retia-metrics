@@ -715,6 +715,7 @@ function quienNoPuede(t: FlechaBase & { a?: EtapaDeal }, actor: Actor, deal: Fil
 }
 
 const HECHOS_VACIOS: HechosDelDeal = {
+  cortesia: false,
   tieneDueno: false,
   tieneActividadComercial: false,
   tieneContactoRegistrado: false,
@@ -848,6 +849,7 @@ export async function leerHechos(
     : [];
 
   return {
+    cortesia: deal.cortesia,
     tieneDueno: deal.ownerUserId != null,
     tieneActividadComercial: actividades.some((a) => a.tipo === "contacto" || a.tipo === "intento"),
     tieneContactoRegistrado: contacto != null,
