@@ -47,4 +47,4 @@ Implementado por Kiro, revisado por la sesión. Rama `o3-174-volver`, worktree `
 - No pasan por el helper, a propósito: `AvisoOtrosProgramas` (cruza de programa), `ajustes/migracion`, `nerd-stats/bitacora`, `entregas-webhook`, `posibles-duplicados`.
 
 Verificado: typecheck, lint, `tests/volver.test.ts` (26) y `npm run build` en verde.
-**Pendiente:** recorrido en `dev:local` (escritorio y 375 px) y `tests/paginas.test.ts` + `tests/alcance-deals.test.ts`: Docker estaba apagado y la máquina sin aire (swap 13 GB).
+**Recorrido (sin navegador: la extensión de Chrome no conectó):** login local y pedidos HTTP sobre `dev:local`. Los enlaces de Leads, Students, Inbox y Deals llevan `desde` con la ruta y su query; la ficha muestra "← Deals · filtrados" y vuelve a `/deals?q=1`; un `desde` con `//evil.com` o `https://` cae a la lista natural; deal → lead encadena el origen. Sin ver: Calls (sin filas para ese closer en la base local), clics reales, 375 px y la consola. Sin correr: `tests/paginas.test.ts` y `tests/alcance-deals.test.ts` (la suite los corre el checkpoint).
