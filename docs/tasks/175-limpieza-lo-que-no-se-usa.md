@@ -6,6 +6,9 @@ depends: [170, 171, 172, 173]
 status: todo
 ---
 
+> **3-oct (sesión central), medido en producción (solo lectura):** `origenes` 7 filas activas, **0** llamadas con `origen_id`, 0 filas en `change_log`; `categorias_recurso` 6 filas, **0** recursos. Nada que decidir con Mani: cero referencias. El orden es obligatorio: (1) se empuja y despliega el código sin `origenes` ni `categoriasRecurso`, (2) la sesión central genera la migración (`ALTER TABLE calls DROP COLUMN origen_id; DROP TABLE origenes; ALTER TABLE recursos DROP COLUMN categoria_id; DROP TABLE categorias_recurso;`, sin `CASCADE`, con `SET lock_timeout`), (3) se aplica. Al revés, drizzle pide las columnas por nombre y producción revienta.
+
+
 # 175 — Limpieza: se quita lo que ya no usa nadie
 
 Sesión **S8**, ola O3 parte 3. **Lleva migración** (la genera y aplica la sesión principal con el ok de Mani).

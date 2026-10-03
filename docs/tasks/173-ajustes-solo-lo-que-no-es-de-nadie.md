@@ -6,6 +6,9 @@ depends: [171]
 status: todo
 ---
 
+> **3-oct (sesión central):** el valor `paid_trafficker` del enum `rol` **no** se adelantó: al agregarlo, `users.rol` deja de caber en `Rol` (`lib/auth/roles.ts`) y rompe `lib/catalogo/usuarios.ts`, `lib/deals/duenos.ts` y `scripts/usuarios.ts`. Va en el mismo cambio que `ROLES`, `manejaPauta` y la etiqueta del rol: la sesión entrega `schema.ts` y el código, y la sesión central genera y aplica la migración (`ALTER TYPE "rol" ADD VALUE IF NOT EXISTS 'paid_trafficker'`, con `SET lock_timeout`).
+
+
 # 173 — Ajustes solo con lo que no es de nadie: Webhook Health, Canales del Paid Trafficker, Motivos y Áreas
 
 Sesión **S6**, ola O3 parte 2 (después del 171). **Absorbe el 102** (el rol Paid Trafficker y `manejaPauta`), que

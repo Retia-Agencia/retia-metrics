@@ -43,7 +43,7 @@ export interface RecursoDeLaPantalla {
   id: string;
   titulo: string;
   url: string;
-  categoriaId: string;
+  categoriaId: string | null;
   categoriaNombre: string | null;
   /** Nulo = recurso global (sirve para todos los programas). */
   programId: string | null;

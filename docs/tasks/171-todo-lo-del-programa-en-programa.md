@@ -6,6 +6,9 @@ depends: []
 status: todo
 ---
 
+> **3-oct (sesión central):** la migración **0062** hace nula `recursos.categoria_id` (`lib/queries/recursos.ts` ya tipa `categoriaId: string | null`). Un recurso libre se guarda sin categoría; si la 0062 aún no está aplicada en producción cuando empujes, avisa antes.
+
+
 # 171 — Todo lo del programa vive en la tab Programa
 
 Sesión **S4** de la ola O3. Dos tandas **en serie** en la misma sesión: (a) puntos 1 a 3, (b) puntos 4 y 5. Sin

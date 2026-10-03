@@ -1562,9 +1562,8 @@ export const recursos = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     /** Nulo = recurso global, no atado a un programa. */
     programId: uuid("program_id").references(() => programs.id, { onDelete: "cascade" }),
-    categoriaId: uuid("categoria_id")
-      .notNull()
-      .references(() => categoriasRecurso.id, { onDelete: "restrict" }),
+    /** Nula desde la 0062 (ADR 0077): un recurso libre no tiene categoria. La columna se va en el 175. */
+    categoriaId: uuid("categoria_id").references(() => categoriasRecurso.id, { onDelete: "restrict" }),
     titulo: text("titulo").notNull(),
     url: text("url").notNull(),
     vigente: boolean("vigente").notNull().default(true),
