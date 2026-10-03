@@ -1,4 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { fileURLToPath } from "node:url";
+import fs from "node:fs";
+import path from "node:path";
 import { users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba, type BaseDePrueba } from "./helpers/base-de-prueba";
@@ -95,6 +98,23 @@ describe("reja de solo lectura al suplantar (ticket 172)", () => {
     expect(session.user.suplantadoPor).toMatchObject({ id: developerId });
   });
 
+  it("bajo suplantación con next-action: la guarda de LECTURA pasa y la de ESCRITURA (requireRole) da 403", async () => {
+    cookieVista = `closer:${closerId}`;
+    nextAction = "accion-forjada"; // una server action forjada, como la que arma moverDeal
+    const { requireRole, requireRoleDeLectura } = await import("@/lib/auth/guards");
+
+    // La guarda de lectura (revisarMovimiento, buscarDealsAbiertos) pasa con la sesión del closer.
+    const lectura = await requireRoleDeLectura("gerente", "closer");
+    expect(lectura.user.id).toBe(closerId);
+    expect(lectura.user.suplantadoPor).toMatchObject({ id: developerId });
+
+    // La guarda de escritura (la que usa moverDeal) sigue dando el 403 de solo lectura.
+    await expect(requireRole("gerente", "closer")).rejects.toMatchObject({
+      status: 403,
+      message: "Estás viendo como Nicolás: solo lectura.",
+    });
+  });
+
   it("sin suplantar, una escritura del developer pasa (la reja solo aplica a la vista suplantada)", async () => {
     cookieVista = undefined;
     nextAction = "accion-forjada";
@@ -120,5 +140,80 @@ describe("reja de solo lectura al suplantar (ticket 172)", () => {
     const { cambiarVista } = await import("@/app/(app)/acciones-vista");
     // No lanza: usa el rol REAL (developer) y escribe la cookie.
     await expect(cambiarVista("todo")).resolves.toBeUndefined();
+  });
+});
+
+/**
+ * Ticket 177 — la guarda de SOLO LECTURA (`requireRoleDeLectura` / `requireSessionDeLectura`):
+ * una server action que solo LEE puede correr bajo suplantación. La lista de las que la usan
+ * ES la excepción (`ACCIONES_DE_SOLO_LECTURA`), y este guardián falla si una server action usa
+ * la guarda de lectura sin estar nombrada. Molde de barrido como `TABLAS_PUENTE_BORRABLES`.
+ */
+describe("ACCIONES_DE_SOLO_LECTURA: la lista es la excepción (ticket 177)", () => {
+  const RAIZ = fileURLToPath(new URL("../", import.meta.url));
+  const GUARDAS = ["requireRoleDeLectura", "requireSessionDeLectura"];
+
+  function archivosDe(dir: string): string[] {
+    const abs = path.join(RAIZ, dir);
+    if (!fs.existsSync(abs)) return [];
+    const salida: string[] = [];
+    for (const entrada of fs.readdirSync(abs, { withFileTypes: true })) {
+      const ruta = path.join(abs, entrada.name);
+      if (entrada.isDirectory()) salida.push(...archivosDe(path.join(dir, entrada.name)));
+      else if (entrada.name.endsWith(".ts") || entrada.name.endsWith(".tsx")) salida.push(ruta);
+    }
+    return salida;
+  }
+
+  /** Las server actions exportadas de un archivo que, en su cuerpo, usan la guarda de lectura. */
+  function accionesConGuardaDeLectura(fuente: string): string[] {
+    if (!GUARDAS.some((g) => fuente.includes(g))) return [];
+    const encontradas: string[] = [];
+    // Corta por cada export de función y mira si su cuerpo (hasta el próximo export) usa la guarda.
+    const re = /export\s+async\s+function\s+([A-Za-z0-9_]+)/g;
+    const marcas: { nombre: string; indice: number }[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(fuente)) !== null) marcas.push({ nombre: m[1], indice: m.index });
+    for (let i = 0; i < marcas.length; i++) {
+      const inicio = marcas[i].indice;
+      const fin = i + 1 < marcas.length ? marcas[i + 1].indice : fuente.length;
+      const cuerpo = fuente.slice(inicio, fin);
+      if (GUARDAS.some((g) => cuerpo.includes(`${g}(`))) encontradas.push(marcas[i].nombre);
+    }
+    return encontradas;
+  }
+
+  it("ninguna server action usa la guarda de lectura sin estar en la lista", async () => {
+    const { ACCIONES_DE_SOLO_LECTURA } = await import("@/lib/auth/guards");
+    const permitidas = new Set<string>(ACCIONES_DE_SOLO_LECTURA);
+    const sinNombrar: string[] = [];
+    for (const archivo of archivosDe("app")) {
+      const fuente = fs.readFileSync(archivo, "utf8");
+      for (const accion of accionesConGuardaDeLectura(fuente)) {
+        if (!permitidas.has(accion)) sinNombrar.push(`${path.relative(RAIZ, archivo)} → ${accion}`);
+      }
+    }
+    expect(sinNombrar).toEqual([]);
+  });
+
+  it("el guardián NO es trivial: una acción nueva con la guarda, sin nombrar, se caza", () => {
+    const fuente = `
+      import { requireRoleDeLectura } from "@/lib/auth/guards";
+      export async function accionNuevaForjada() {
+        await requireRoleDeLectura("gerente", "closer");
+        return { ok: true };
+      }
+    `;
+    const detectadas = accionesConGuardaDeLectura(fuente);
+    expect(detectadas).toContain("accionNuevaForjada");
+    // Y como no está en la lista real, el guardián de arriba fallaría por ella.
+    const permitidas = new Set<string>(["revisarMovimientoAccion", "buscarDealsAbiertosAccion"]);
+    expect(detectadas.some((a) => !permitidas.has(a))).toBe(true);
+  });
+
+  it("las dos acciones nombradas existen y están en la lista", async () => {
+    const { ACCIONES_DE_SOLO_LECTURA } = await import("@/lib/auth/guards");
+    expect(ACCIONES_DE_SOLO_LECTURA).toContain("revisarMovimientoAccion");
+    expect(ACCIONES_DE_SOLO_LECTURA).toContain("buscarDealsAbiertosAccion");
   });
 });

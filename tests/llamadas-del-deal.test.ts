@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
+  areas,
   calls,
   changeLog,
   cohorts,
@@ -13,7 +14,8 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { ErrorDeApp } from "@/lib/errors";
-import { agregarLlamada, completarAgendada } from "@/lib/deals/llamadas";
+import { agregarLlamada, completarAgendada, marcarShow, reagendarLlamada } from "@/lib/deals/llamadas";
+import { moverEtapa } from "@/lib/deals/mover-etapa";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -370,6 +372,127 @@ describe("completarAgendada: el dueño completa la agendada del sistema", () => 
       }),
     );
     expect(err.status).toBe(404);
+  });
+});
+
+describe("marcarShow: show en un clic, sin Grain (ticket 177)", () => {
+  it("marca show sin Grain, mueve a Atendido y deja rastro en change_log", async () => {
+    const dealId = await nuevoDeal("agendado");
+    const fecha = enUnaHora();
+    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: fecha });
+
+    const r = await marcarShow(db, comoCloser(), { callId });
+    expect(r.movioAAtendido).toBe(true);
+    expect(r.etapa).toBe("atendido");
+
+    const [call] = await db.select().from(calls).where(eq(calls.id, callId));
+    expect(call.resultado).toBe("show");
+    expect(call.linkGrain).toBeNull();
+    // `fecha_llamada` se llena desde la de agenda (ya pasó) o ahora: nunca queda vacía.
+    expect(call.fechaLlamada).not.toBeNull();
+
+    const [d] = await db.select({ etapa: deals.etapa }).from(deals).where(eq(deals.id, dealId));
+    expect(d.etapa).toBe("atendido");
+
+    const campos = (await bitacoraDeCall(callId)).map((f) => f.campo);
+    expect(campos).toContain("resultado");
+  });
+
+  it("el deal sigue a Compromiso Verbal aunque la llamada show no tenga Grain", async () => {
+    const dealId = await nuevoDeal("agendado");
+    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: enUnaHora() });
+    await marcarShow(db, comoCloser(), { callId });
+
+    // El área se pide al salir de Atendido; se declara para no toparse con ese requisito.
+    const [area] = await db.insert(areas).values({ nombre: "Referido", activo: true }).returning();
+    await moverEtapa(db, {
+      dealId,
+      a: "compromiso_verbal",
+      actor: { tipo: "usuario", userId: closer, rol: rolCloser },
+      datos: { fechaLimitePago: "2026-09-15", areaDeclaradaId: area.id },
+    });
+    const [d] = await db.select({ etapa: deals.etapa }).from(deals).where(eq(deals.id, dealId));
+    expect(d.etapa).toBe("compromiso_verbal");
+  });
+
+  it("una llamada que ya tiene resultado no se vuelve a marcar show (409)", async () => {
+    const dealId = await nuevoDeal("agendado");
+    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: enUnaHora() });
+    await marcarShow(db, comoCloser(), { callId });
+    const err = await capturar(marcarShow(db, comoCloser(), { callId }));
+    expect(err.status).toBe(409);
+  });
+
+  it("la alerta amarilla 'sin Grain' aparece con un show sin Grain y se va al pegarlo", async () => {
+    const { alertasDelDeal } = await import("@/lib/queries/ficha-deal");
+    const { pegarGrain } = await import("@/lib/deals/llamadas");
+    const dealId = await nuevoDeal("agendado");
+    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: enUnaHora() });
+    await marcarShow(db, comoCloser(), { callId });
+
+    const conAlerta = await alertasDelDeal(db, programId, dealId);
+    expect(conAlerta?.alertas.some((a) => a.motivo === "atendida_sin_grain")).toBe(true);
+    expect(conAlerta?.alertas.find((a) => a.motivo === "atendida_sin_grain")?.mensaje).toBe(
+      "La llamada no tiene el link de Grain.",
+    );
+    // "Falta marcar la llamada como show" NO sale como propiedad: la llamada ya ocurrió.
+    expect(conAlerta?.propiedades.some((p) => p.codigo === "llamada_sucedio")).toBe(false);
+
+    await pegarGrain(db, comoCloser(), { callId, linkGrain: "https://grain.com/abc" });
+    const sinAlerta = await alertasDelDeal(db, programId, dealId);
+    expect(sinAlerta?.alertas.some((a) => a.motivo === "atendida_sin_grain")).toBe(false);
+  });
+});
+
+describe("reagendarLlamada: cierra la cita vieja y crea la nueva (ticket 177)", () => {
+  it("deja la vieja reagendada y una nueva agendada; la vieja ya no cuenta como sin resultado", async () => {
+    const { inboxDelPrograma } = await import("@/lib/queries/inbox");
+    // Cita vieja que YA pasó: sin reagendar, saldría en "ya pasaron sin resultado".
+    const dealId = await nuevoDeal("agendado");
+    const haceUnaHora = new Date(Date.now() - 60 * 60 * 1000);
+    const { callId: vieja } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: haceUnaHora });
+
+    const antes = await inboxDelPrograma(db, programId, "equipo");
+    expect(antes.llamadasDeHoy.some((f) => f.callId === vieja)).toBe(true);
+
+    const { callId: nueva, movioAAgendado } = await reagendarLlamada(db, comoCloser(), {
+      callId: vieja,
+      fechaAgenda: enUnaHora(),
+    });
+    expect(movioAAgendado).toBe(false); // ya estaba en Agendado
+    expect(nueva).not.toBe(vieja);
+
+    const [viejaFila] = await db.select().from(calls).where(eq(calls.id, vieja));
+    const [nuevaFila] = await db.select().from(calls).where(eq(calls.id, nueva));
+    expect(viejaFila.resultado).toBe("reagendada");
+    expect(nuevaFila.resultado).toBe("agendada");
+
+    // La vieja ya no sale en "ya pasaron sin resultado"; la nueva es futura, tampoco.
+    const despues = await inboxDelPrograma(db, programId, "equipo");
+    expect(despues.llamadasDeHoy.some((f) => f.callId === vieja)).toBe(false);
+    expect(await llamadasDe(dealId)).toHaveLength(2);
+  });
+
+  it("desde una etapa previa, reagendar mueve el deal a Agendado", async () => {
+    const dealId = await nuevoDeal("agendado");
+    const { callId: vieja } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: enUnaHora() });
+    // El deal retrocede a contactado a mano para probar que la cita nueva lo sube.
+    await db.update(deals).set({ etapa: "contactado" }).where(eq(deals.id, dealId));
+
+    const { movioAAgendado } = await reagendarLlamada(db, comoCloser(), { callId: vieja, fechaAgenda: enUnaHora() });
+    expect(movioAAgendado).toBe(true);
+    const [d] = await db.select({ etapa: deals.etapa }).from(deals).where(eq(deals.id, dealId));
+    expect(d.etapa).toBe("agendado");
+  });
+
+  it("reagendar una llamada que no está agendada es 409 (ya tiene resultado)", async () => {
+    const dealId = await nuevoDeal("agendado");
+    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: enUnaHora() });
+    await marcarShow(db, comoCloser(), { callId });
+    const err = await capturar(reagendarLlamada(db, comoCloser(), { callId, fechaAgenda: enUnaHora() }));
+    expect(err.status).toBe(409);
+    // No se creó una cita nueva: sigue habiendo una sola llamada.
+    expect(await llamadasDe(dealId)).toHaveLength(1);
   });
 });
 

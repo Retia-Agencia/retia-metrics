@@ -60,7 +60,8 @@ export function DialogoForm({
   titulo: string;
   descripcion?: ReactNode;
   pendiente: boolean;
-  confirmar: { texto: string; enCurso: string; onClick: () => void };
+  /** Sin `confirmar` el diálogo solo tiene "Cancelar": las opciones son botones propios (177). */
+  confirmar?: { texto: string; enCurso: string; onClick: () => void };
   deshabilitarConfirmar?: boolean;
   peligro?: boolean;
   onCerrar: () => void;
@@ -78,14 +79,16 @@ export function DialogoForm({
           <Button type="button" variant="ghost" onClick={onCerrar} disabled={pendiente}>
             Cancelar
           </Button>
-          <Button
-            type="button"
-            variant={peligro ? "destructive" : "default"}
-            onClick={confirmar.onClick}
-            disabled={pendiente || deshabilitarConfirmar}
-          >
-            {pendiente ? confirmar.enCurso : confirmar.texto}
-          </Button>
+          {confirmar ? (
+            <Button
+              type="button"
+              variant={peligro ? "destructive" : "default"}
+              onClick={confirmar.onClick}
+              disabled={pendiente || deshabilitarConfirmar}
+            >
+              {pendiente ? confirmar.enCurso : confirmar.texto}
+            </Button>
+          ) : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>

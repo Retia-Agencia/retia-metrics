@@ -72,6 +72,26 @@ async function correr(busqueda: Record<string, string> = {}): Promise<"render" |
   }
 }
 
+/** Invoca la página y devuelve el árbol de elementos (para inspeccionar el texto). */
+async function renderizar(busqueda: Record<string, string> = {}): Promise<unknown> {
+  const modulo = (await import("@/app/(app)/mi-espacio/page")) as {
+    default: (props: { searchParams: Promise<Record<string, string | string[] | undefined>> }) => Promise<unknown>;
+  };
+  return modulo.default({ searchParams: Promise.resolve(busqueda) });
+}
+
+/** Todo el texto plano del árbol de un elemento de React, concatenado. */
+function textoDelArbol(nodo: unknown): string {
+  if (nodo == null || typeof nodo === "boolean") return "";
+  if (typeof nodo === "string" || typeof nodo === "number") return String(nodo);
+  if (Array.isArray(nodo)) return nodo.map(textoDelArbol).join(" ");
+  if (typeof nodo === "object" && "props" in (nodo as Record<string, unknown>)) {
+    const props = (nodo as { props?: { children?: unknown } }).props;
+    return textoDelArbol(props?.children);
+  }
+  return "";
+}
+
 describe("/mi-espacio (ticket 172)", () => {
   beforeEach(() => {
     auth.mockReset();
@@ -129,5 +149,26 @@ describe("/mi-espacio (ticket 172)", () => {
   it("sin sesión manda al login (conserva la guarda de quien trabaja leads)", async () => {
     auth.mockResolvedValue(null);
     expect(await correr()).toBe("login");
+  });
+
+  it("el developer sin membresías ve el mensaje del dueño con 'Ver como closer' (ticket 177)", async () => {
+    auth.mockResolvedValue({
+      user: { id: "u-dev", rol: "developer", closerId: null, name: "Dev", email: "dev@x.co", image: null },
+    });
+    membresiasConCalendlyDe.mockResolvedValue([]);
+    const arbol = await renderizar();
+    const texto = textoDelArbol(arbol);
+    expect(texto).toContain("Ver como closer");
+    expect(texto).toContain("trabaja leads");
+    // No le muestra el mensaje de "pídele a tu gerente": no aplica al dueño (ADR 0025).
+    expect(texto).not.toContain("pídele a tu gerente");
+  });
+
+  it("un closer sin membresías ve el mensaje de 'pídele a tu gerente', no el del dueño", async () => {
+    membresiasConCalendlyDe.mockResolvedValue([]);
+    const arbol = await renderizar();
+    const texto = textoDelArbol(arbol);
+    expect(texto).toContain("pídele a tu gerente");
+    expect(texto).not.toContain("Ver como closer");
   });
 });

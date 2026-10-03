@@ -18,6 +18,10 @@ import { cambiarVista } from "@/app/(app)/acciones-vista";
  *
  * Sin colores a mano (sistema "Tinta", docs/structure.md §9): usa los tokens del acento
  * morado (`bg-marca-suave`, `text-marca`) y un `Button` del sistema.
+ *
+ * NO es sticky (ticket 177): la cabecera de cada pantalla (`PageShell`) ya es `sticky
+ * top-0`, y una barra sticky encima se montaba sobre ella al hacer scroll. Siendo un aviso
+ * normal del flujo, se desplaza con la página y deja que la cabecera se fije sola.
  */
 export function BarraSuplantacion({ nombre }: { nombre: string }) {
   const router = useRouter();
@@ -31,7 +35,7 @@ export function BarraSuplantacion({ nombre }: { nombre: string }) {
   }
 
   return (
-    <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 bg-marca-suave px-4 py-2 text-sm text-marca">
+    <div className="flex flex-wrap items-center justify-between gap-2 bg-marca-suave px-4 py-2 text-sm text-marca">
       <span className="flex items-center gap-2">
         <Eye className="size-4 shrink-0" aria-hidden />
         <span>

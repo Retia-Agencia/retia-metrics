@@ -1,26 +1,32 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { hoyEnBogota } from "@/lib/format";
 import {
-  agregarLlamadaAccion,
   marcarFallidaAccion,
+  marcarShowAccion,
+  reagendarLlamadaAccion,
 } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { Campo, claseInput, claseTextarea, DialogoForm } from "./campos";
 import { CampoGrain } from "./campo-grain";
 import { useAccion } from "./uso-accion";
 
-type DialogoLlamada = "resultado" | "no_show" | "cancelada" | "agregar" | null;
+type DialogoLlamada = "resultado" | "no_show" | "cancelada" | "reagendar" | null;
 
 /**
  * Las acciones de una cita, iguales en la ficha, en Calls, en el Inbox y en el detalle
- * (ticket 176, decisión 3): el **Link de Grain** siempre visible y **un solo botón
- * "Resultado"** con Show, No show, Cancelada y Reagendada. Show no abre sub-flujo: pone el
- * foco en el campo de Grain. No show y Cancelada van a `marcarFallidaAccion` (deal a
- * Re-agenda); Reagendada agrega una nueva cita con `agregarLlamadaAccion`.
+ * (ticket 176, decisión 3; pulido en el 177): el **Link de Grain** siempre visible y **un
+ * solo botón "Resultado"** con Show, No show, Cancelada y Reagendada.
+ *
+ * - **Show** se marca en un clic (`marcarShowAccion`, ticket 177): el deal pasa a Atendido
+ *   y el Grain queda opcional. Ya no abre un sub-flujo ni pone el foco en el campo de Grain.
+ * - **No show** y **Cancelada** van a `marcarFallidaAccion` (deal a Re-agenda).
+ * - **Reagendada** cierra la cita vieja (`reagendada`) y crea una nueva, en un solo acto
+ *   (`reagendarLlamadaAccion`, ticket 177): la vieja deja de salir en "ya pasaron sin
+ *   resultado" del Inbox.
  *
  * No conocemos la etapa del deal aquí, así que el motivo de re-agenda se ofrece siempre que
  * la lista tenga alguno; el servidor lo exige (desde Atendido) o lo ignora.
@@ -43,14 +49,24 @@ export function AccionesDeLlamada({
   motivosReagenda: OpcionesDeFicha["motivos"];
   abrirInicial?: "resultado" | null;
 }) {
-  const grainRef = useRef<HTMLInputElement>(null);
+  const { pendiente, correr } = useAccion();
   const [dialogo, setDialogo] = useState<DialogoLlamada>(abrirInicial);
+
+  function marcarShow() {
+    setDialogo(null);
+    correr(() => marcarShowAccion({ callId }), {
+      exito: (r) =>
+        r.movioAAtendido
+          ? "Marcada como show: el deal pasó a Atendido."
+          : "Marcada como show.",
+    });
+  }
 
   return (
     <div className="space-y-2">
-      <CampoGrain ref={grainRef} callId={callId} valor={linkGrain} />
+      <CampoGrain callId={callId} valor={linkGrain} />
       <div className="flex flex-wrap items-center gap-2">
-        <Button size="xs" variant="outline" onClick={() => setDialogo("resultado")}>Resultado</Button>
+        <Button size="xs" variant="outline" disabled={pendiente} onClick={() => setDialogo("resultado")}>Resultado</Button>
         <span className="text-xs text-muted-foreground">Show, no show, cancelada o reagendada.</span>
       </div>
 
@@ -58,25 +74,22 @@ export function AccionesDeLlamada({
         <DialogoResultado
           conReagenda={dealId != null}
           onCerrar={() => setDialogo(null)}
-          onShow={() => {
-            setDialogo(null);
-            grainRef.current?.focus();
-          }}
+          onShow={marcarShow}
           onFallida={(resultado) => setDialogo(resultado)}
-          onReagendada={() => setDialogo("agregar")}
+          onReagendada={() => setDialogo("reagendar")}
         />
       ) : null}
       {dialogo === "no_show" || dialogo === "cancelada" ? (
         <DialogoFallida callId={callId} resultado={dialogo} motivos={motivosReagenda} onCerrar={() => setDialogo(null)} />
       ) : null}
-      {dialogo === "agregar" && dealId ? (
-        <DialogoAgregar dealId={dealId} onCerrar={() => setDialogo(null)} />
+      {dialogo === "reagendar" ? (
+        <DialogoReagendar callId={callId} onCerrar={() => setDialogo(null)} />
       ) : null}
     </div>
   );
 }
 
-/** Las cuatro salidas de una cita, cada una con su línea de lo que provoca. */
+/** Las cuatro salidas de una cita, cada una un botón con la línea de lo que provoca. */
 function DialogoResultado({
   conReagenda,
   onCerrar,
@@ -91,11 +104,11 @@ function DialogoResultado({
   onReagendada: () => void;
 }) {
   const opciones: { etiqueta: string; linea: string; onClick: () => void }[] = [
-    { etiqueta: "Show", linea: "Se marca al pegar el link de Grain; el deal pasa a Atendido.", onClick: onShow },
+    { etiqueta: "Show", linea: "Se marca en un clic; el deal pasa a Atendido. El link de Grain es opcional.", onClick: onShow },
     { etiqueta: "No show", linea: "No apareció; el deal queda en Re-agenda.", onClick: () => onFallida("no_show") },
     { etiqueta: "Cancelada", linea: "Avisó y canceló; el deal queda en Re-agenda.", onClick: () => onFallida("cancelada") },
     ...(conReagenda
-      ? [{ etiqueta: "Reagendada", linea: "Se agenda una nueva cita con su fecha.", onClick: onReagendada }]
+      ? [{ etiqueta: "Reagendada", linea: "Cierra esta cita y agenda una nueva con su fecha.", onClick: onReagendada }]
       : []),
   ];
   return (
@@ -104,8 +117,6 @@ function DialogoResultado({
       descripcion="Elige qué pasó con esta cita."
       pendiente={false}
       onCerrar={onCerrar}
-      deshabilitarConfirmar
-      confirmar={{ texto: "Elige una opción", enCurso: "Elige una opción", onClick: () => undefined }}
     >
       <div className="space-y-3">
         {opciones.map((opcion) => (
@@ -190,7 +201,7 @@ function DialogoFallida({
   );
 }
 
-function DialogoAgregar({ dealId, onCerrar }: { dealId: string; onCerrar: () => void }) {
+function DialogoReagendar({ callId, onCerrar }: { callId: string; onCerrar: () => void }) {
   const { pendiente, correr } = useAccion();
   const [dia, setDia] = useState(hoyEnBogota());
   const [hora, setHora] = useState("");
@@ -199,16 +210,16 @@ function DialogoAgregar({ dealId, onCerrar }: { dealId: string; onCerrar: () => 
   return (
     <DialogoForm
       titulo="Reagendar: nueva cita"
-      descripcion="Una llamada nueva con su fecha. Si el deal está en una etapa previa, pasa a Agendado."
+      descripcion="Esta cita queda como reagendada y se crea una nueva con su fecha. Si el deal está en una etapa previa, pasa a Agendado."
       pendiente={pendiente}
       onCerrar={onCerrar}
       deshabilitarConfirmar={!dia || !hora}
       confirmar={{
-        texto: "Agregar",
-        enCurso: "Agregando…",
+        texto: "Reagendar",
+        enCurso: "Reagendando…",
         onClick: () =>
-          correr(() => agregarLlamadaAccion({ dealId, dia, hora, linkCalendly: link, notas }), {
-            exito: (r) => (r.movioAAgendado ? "Llamada agregada: el deal pasó a Agendado." : "Llamada agregada."),
+          correr(() => reagendarLlamadaAccion({ callId, dia, hora, linkCalendly: link, notas }), {
+            exito: (r) => (r.movioAAgendado ? "Reagendada: el deal pasó a Agendado." : "Reagendada: la nueva cita quedó agendada."),
             alExito: onCerrar,
           }),
       }}

@@ -8,6 +8,26 @@ import { ErrorDeApp } from "@/lib/errors";
 export const ROLES = ["gerente", "closer", "developer", "paid_trafficker"] as const;
 export type Rol = (typeof ROLES)[number];
 
+/**
+ * Cómo se nombra cada rol en la interfaz y en los mensajes (ticket 177). UNA sola copia:
+ * antes estaba duplicada en `user-menu.tsx` y `perfil-de-mi-espacio.tsx`, y el 403 de
+ * `requireRole` mostraba el rol crudo ("gerente, paid_trafficker"). Es un `Record<Rol,
+ * string>` a propósito: sumar un rol a `ROLES` obliga a nombrarlo aquí (el typecheck lo
+ * exige) en vez de dejar que caiga en silencio. Módulo puro, sin base: lo pueden importar
+ * los componentes cliente.
+ */
+export const ETIQUETA_ROL: Record<Rol, string> = {
+  gerente: "Gerencia comercial",
+  closer: "Closer",
+  developer: "Desarrollo",
+  paid_trafficker: "Paid Trafficker",
+};
+
+/** La etiqueta de un rol para la interfaz y los mensajes de permiso. */
+export function etiquetaDeRol(rol: Rol): string {
+  return ETIQUETA_ROL[rol];
+}
+
 /** Error de autorizacion. Los route handlers lo traducen a 403. */
 export class AuthorizationError extends ErrorDeApp {
   constructor(mensaje = "No tienes permiso para ver esto.") {

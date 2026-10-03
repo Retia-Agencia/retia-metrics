@@ -167,7 +167,7 @@ describe("alertasDelDeal — urgencia y fronteras", () => {
     const alertas = (await alertasDelDeal(db, programId, dealId))!;
     expect(alertas.alertas).toContainEqual({
       motivo: "atendida_sin_grain",
-      mensaje: "La llamada atendida no tiene el link de Grain.",
+      mensaje: "La llamada no tiene el link de Grain.",
     });
     expect(alertas.propiedades.filter((f) => f.codigo === "llamada_sucedio")).toEqual([]);
   });

@@ -75,3 +75,22 @@ pasos), `lib/auth/guards.ts`, `app/(app)/p/[programa]/deals/acciones.ts`, `app/(
 - "Show" se marca en un clic sin Grain, el deal pasa a Atendido y sale la alerta amarilla; pegando el Grain se va.
 - Los cinco detalles, vistos en `dev:local` como closer, developer y "como closer", escritorio y 375 px.
 - Typecheck, lint, los tests del ticket y `npm run build` (hay componentes cliente).
+
+## Estado (S10, 3-oct)
+
+Implementado por Kiro en `wt-177` (rama `o3-177-pulido`), revisado el diff por Claude. Sin commit ni push todavía.
+
+- Hecho: Reagendada en un acto (`reagendarLlamada`), Show en un clic (`marcarShow`, cuerpo común con `pegarGrain`), guarda de lectura
+  (`requireSessionDeLectura`/`requireRoleDeLectura` + `ACCIONES_DE_SOLO_LECTURA` con guardián), mensaje del developer, nombre en el
+  perfil, barra de suplantación sin `sticky`, diálogo Resultado sin botón muerto, `etiquetaDeRol` única en `lib/auth/roles.ts`.
+- Verificado (3-oct): typecheck, lint y `npm run build` limpios; tests del ticket y vecinos en verde (llamadas-del-deal, reja-solo-lectura,
+  mi-espacio, roles, alertas-del-deal, guards, paginas, ficha-deal-*, vigencia, rol-de-vista, rastro, inbox). Dos tests ajenos cayeron y
+  se arreglaron: el texto de la alerta en `alertas-del-deal` y una excepción nombrada para `mi-espacio/page.tsx` en `rol-de-vista-centralizado`.
+- Recorrido por curl en `dev:local`: Mi espacio muestra "Carlos Closer" al closer y el mensaje "Ver como closer" al developer.
+- Pendiente para la sesión central (con browser): clics en Resultado/Show/Reagendada, barra "Estás viendo como…" con scroll, 375 px,
+  y la mordida con `Next-Action` (el guardián de `reja-solo-lectura.test.ts` ya la cubre contra las guardas reales).
+- Aviso: `components/deals/responder-pregunta.tsx:323` tiene el mismo botón muerto "Elige una opción" (archivo del 176, no se tocó).
+- Fuera de la lista del ticket, tocados a propósito: `deals/[id]/acciones.ts`, `components/deals/ficha/campos.tsx` (confirmar opcional en
+  `DialogoForm`), `components/user-menu.tsx`, `lib/auth/roles.ts`.
+- Causa del nombre en Mi espacio (no aplicada): `lib/auth/config.ts` no mapea `users.nombre` a la sesión; el 177 lo lee de la membresía.
+  Raíz: `token.nombre` en `revalidarToken` y `session.user.name` en el callback.

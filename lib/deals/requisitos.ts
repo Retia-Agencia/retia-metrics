@@ -51,7 +51,7 @@ export const MENSAJES: Record<CodigoReal, string> = {
   actividad: "Falta registrar una actividad: llamada, WhatsApp o correo.",
   contacto: "Falta registrar un contacto con el lead.",
   llamada_con_fecha: "Falta una llamada con fecha.",
-  llamada_sucedio: "Falta el link de Grain de la llamada.",
+  llamada_sucedio: "Falta marcar la llamada como show.",
   llamada_fallida: "La llamada no quedó en no-show ni cancelada.",
   valor_vendido: "Falta el valor vendido.",
   area_declarada: "Falta el área: ¿cómo nos conoció?",

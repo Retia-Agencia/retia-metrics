@@ -235,7 +235,7 @@ const MENSAJE_ALERTA: Record<MotivoAlertaDeal, string> = {
   link_sin_cita: "Mandaste el link de agenda y el lead no ha agendado.",
   estancado: "El deal lleva días sin actividad.",
   llamada_sin_resultado: "La llamada ya pasó y no tiene resultado.",
-  atendida_sin_grain: "La llamada atendida no tiene el link de Grain.",
+  atendida_sin_grain: "La llamada no tiene el link de Grain.",
   proximo_contacto_vencido: "El próximo contacto se venció.",
 };
 
@@ -293,6 +293,11 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
   }
   if (llamadasVigentes.some(esAtendidaSinGrain)) {
     encontradas.set("atendida_sin_grain", MENSAJE_ALERTA.atendida_sin_grain);
+    // Hay una llamada que sucedió (un show) sin Grain: la falta del link es una alerta
+    // amarilla, nunca un requisito (ticket 177). Si por una cita posterior la ÚLTIMA
+    // llamada no cuenta como ocurrida, `llamada_sucedio` saldría como propiedad faltante
+    // ("Falta marcar la llamada como show") al lado de la alerta de Grain, repitiendo lo
+    // mismo; se quita de propiedades y queda solo la alerta amarilla.
     propiedades = propiedades.filter((falta) => falta.codigo !== "llamada_sucedio");
   }
 

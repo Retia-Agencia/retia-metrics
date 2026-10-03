@@ -103,6 +103,12 @@ const EXCEPCIONES: Record<string, string> = {
     "identidad al entrar: destinoInicial usa el rol real de quien inicia sesion",
   [path.join("app", "login", "page.tsx")]:
     "identidad al entrar: destinoInicial usa el rol real de quien ya tiene sesion",
+
+  // Mi espacio sin membresias (ticket 177): el MENSAJE depende de quien es la cuenta de
+  // verdad (el dueño, `esAccesoTotal`), no de la vista: bajo "ver como" la sesion efectiva
+  // ya es un closer y el texto "usa Ver como closer" no tendria sentido para el.
+  [path.join("app", "(app)", "mi-espacio", "page.tsx")]:
+    "identidad: el mensaje de un espacio vacio se decide por el rol real (esAccesoTotal)",
 };
 
 /**

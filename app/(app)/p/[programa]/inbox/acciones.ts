@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Session } from "next-auth";
-import { requireRole } from "@/lib/auth/guards";
+import { requireRole, requireRoleDeLectura } from "@/lib/auth/guards";
 import { esRolValido, type Rol } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaEnAlcance } from "@/lib/auth/alcance";
@@ -44,8 +44,10 @@ interface Contexto {
   actor: { userId: string; rol: Rol };
 }
 
-async function contextoDe(): Promise<Contexto> {
-  const session = await requireRole("gerente", "closer");
+async function contextoDe(soloLectura = false): Promise<Contexto> {
+  const session = soloLectura
+    ? await requireRoleDeLectura("gerente", "closer")
+    : await requireRole("gerente", "closer");
   const rol = await rolDeVista(session);
   if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
   return { session, actor: { userId: session.user.id, rol } };
@@ -207,7 +209,10 @@ export async function buscarDealsAbiertosAccion(
   entrada: EntradaBuscarDeals,
 ): Promise<ResultadoInbox<{ deals: DealAbiertoBuscado[] }>> {
   try {
-    const ctx = await contextoDe();
+    // SOLO LECTURA (ticket 177): el buscador del selector no muta nada, así que un
+    // developer que suplanta a un closer puede usarlo. El resto de las acciones del Inbox
+    // sigue con la reja: solo esta pasa `soloLectura`. Está en `ACCIONES_DE_SOLO_LECTURA`.
+    const ctx = await contextoDe(true);
     const { programId, texto } = esquemaBuscar.parse(entrada);
     await exigirProgramaVisible(ctx, programId);
     const encontrados = await buscarDealsAbiertos(db, programId, texto);

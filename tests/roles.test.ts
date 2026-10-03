@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esAdministrador, manejaPauta, puedeAcceder, esRolValido, puedeTocarMembresia, trabajaLeads } from "@/lib/auth/roles";
+import { esAdministrador, etiquetaDeRol, manejaPauta, puedeAcceder, esRolValido, puedeTocarMembresia, trabajaLeads } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
@@ -42,6 +42,15 @@ describe("manejaPauta (ADR 0052, ticket 173)", () => {
 
   it("el rol paid_trafficker es válido (está en ROLES)", () => {
     expect(esRolValido("paid_trafficker")).toBe(true);
+  });
+});
+
+describe("etiquetaDeRol (ticket 177)", () => {
+  it("nombra cada rol para la interfaz y los mensajes de permiso", () => {
+    expect(etiquetaDeRol("gerente")).toBe("Gerencia comercial");
+    expect(etiquetaDeRol("closer")).toBe("Closer");
+    expect(etiquetaDeRol("developer")).toBe("Desarrollo");
+    expect(etiquetaDeRol("paid_trafficker")).toBe("Paid Trafficker");
   });
 });
 

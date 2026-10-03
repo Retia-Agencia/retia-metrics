@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import type { Session } from "next-auth";
-import { requireRole } from "@/lib/auth/guards";
+import { requireRole, requireRoleDeLectura } from "@/lib/auth/guards";
 import { programaEnAlcance } from "@/lib/auth/alcance";
 import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -118,7 +118,10 @@ export type ResultadoRevisar =
  */
 export async function revisarMovimientoAccion(entrada: EntradaRevisar): Promise<ResultadoRevisar> {
   try {
-    const session = await requireRole("gerente", "closer");
+    // SOLO LECTURA (ticket 177): es un ensayo del motor que se deshace, no muta nada. Por
+    // eso usa `requireRoleDeLectura`, para que un developer que suplanta a un closer pueda
+    // ver qué le falta a un deal para moverse. Está en `ACCIONES_DE_SOLO_LECTURA`.
+    const session = await requireRoleDeLectura("gerente", "closer");
     const mov = await normalizando(async () => esquemaRevisar.parse(entrada));
     const actor = await actorDe(session);
     const [deal] = await db

@@ -5,6 +5,7 @@ import { auth } from "./index";
 import {
   AuthenticationError,
   AuthorizationError,
+  etiquetaDeRol,
   puedeAcceder,
   type Rol,
 } from "./roles";
@@ -14,6 +15,19 @@ import { rolDeVista, sesionEfectiva } from "./vista";
  * Guardas de servidor. TODO route handler y server action pasa por aca.
  * La verificacion es en el servidor, no escondiendo componentes en el cliente.
  */
+
+/**
+ * Las server actions que pueden usar la guarda de SOLO LECTURA (`requireSessionDeLectura`
+ * / `requireRoleDeLectura`, ticket 177): las que no mutan nada y por eso un developer que
+ * suplanta a un closer ("ver como") debe poder correrlas. La lista ES la excepción, como
+ * `TABLAS_PUENTE_BORRABLES`: `tests/reja-solo-lectura.test.ts` barre el código y falla si
+ * una server action usa la guarda de lectura sin estar nombrada aquí. Agregar una nueva es
+ * una decisión visible, no un bypass silencioso.
+ */
+export const ACCIONES_DE_SOLO_LECTURA = [
+  "revisarMovimientoAccion",
+  "buscarDealsAbiertosAccion",
+] as const;
 
 /**
  * La sesion REAL, sin resolver la suplantacion ni aplicar la reja de solo lectura. Es
@@ -61,11 +75,29 @@ export async function requireSession(): Promise<Session> {
 }
 
 /**
- * Exige uno de los roles indicados. Lanza AuthorizationError (403) si no cuadra.
- * Un closer NUNCA pasa un requireRole("gerente"), sin importar la ruta.
+ * La sesión efectiva SIN la reja de solo lectura (ticket 177). Es la hermana de
+ * `requireSession` para una server action que **solo LEE**: bajo suplantación ("ver como")
+ * una lectura por server action tiene la misma cabecera `next-action` que una escritura, y
+ * `requireSession` la rechazaría igual (172). Una acción que de verdad no muta nada —el
+ * ensayo del motor, el buscador del Inbox— la usa en vez de `requireSession`.
+ *
+ * ⚠️ Esto NO es un bypass genérico: la lista de acciones que pueden usarla es cerrada y
+ * nombrada en `ACCIONES_DE_SOLO_LECTURA`, y `tests/reja-solo-lectura.test.ts` falla si una
+ * server action usa esta guarda sin estar en la lista. Resuelve la suplantación igual que
+ * `requireSession` (así la lectura proyecta con el closer suplantado), solo que no mira la
+ * cabecera `next-action`.
  */
-export async function requireRole(...permitidos: Rol[]): Promise<Session> {
-  const session = await requireSession();
+export async function requireSessionDeLectura(): Promise<Session> {
+  const real = await requireSesionReal();
+  return sesionEfectiva(real);
+}
+
+/**
+ * El acceso por rol, dado una forma de resolver la sesión. Lo comparten `requireRole` (con
+ * la reja de solo lectura) y `requireRoleDeLectura` (sin ella): la única diferencia es qué
+ * sesión reciben.
+ */
+async function exigirRol(session: Session, permitidos: Rol[]): Promise<Session> {
   // Se evalua contra el ROL DE VISTA (ticket 028): un developer en vista `closer` es
   // un closer para el servidor, y en vista `gerente` vuelve a tener prohibido lo del
   // closer (ADR 0003). Estrechar nunca otorga: un no-developer ignora la cookie y
@@ -73,10 +105,28 @@ export async function requireRole(...permitidos: Rol[]): Promise<Session> {
   const rol = await rolDeVista(session);
   if (!puedeAcceder(rol, permitidos)) {
     throw new AuthorizationError(
-      `Esta vista es solo para: ${permitidos.join(", ")}.`,
+      `Esta vista es solo para: ${permitidos.map(etiquetaDeRol).join(", ")}.`,
     );
   }
   return session;
+}
+
+/**
+ * Exige uno de los roles indicados. Lanza AuthorizationError (403) si no cuadra.
+ * Un closer NUNCA pasa un requireRole("gerente"), sin importar la ruta.
+ */
+export async function requireRole(...permitidos: Rol[]): Promise<Session> {
+  return exigirRol(await requireSession(), permitidos);
+}
+
+/**
+ * Como `requireRole` pero SIN la reja de solo lectura (ticket 177): para una server action
+ * que solo lee y necesita además comprobar el rol. Misma lógica de rol que `requireRole`,
+ * sin duplicarla. Su uso está acotado por `ACCIONES_DE_SOLO_LECTURA` y lo vigila
+ * `tests/reja-solo-lectura.test.ts`.
+ */
+export async function requireRoleDeLectura(...permitidos: Rol[]): Promise<Session> {
+  return exigirRol(await requireSessionDeLectura(), permitidos);
 }
 
 /** Azucar para el caso mas comun. */

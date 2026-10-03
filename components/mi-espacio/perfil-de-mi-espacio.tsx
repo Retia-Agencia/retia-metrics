@@ -1,15 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import type { Rol } from "@/lib/auth/roles";
-
-/** Cómo se nombra cada rol en la interfaz (ticket 172). */
-const ETIQUETA_ROL: Record<Rol, string> = {
-  gerente: "Gerencia comercial",
-  closer: "Closer",
-  developer: "Desarrollo",
-  paid_trafficker: "Paid Trafficker",
-};
+import { ETIQUETA_ROL, type Rol } from "@/lib/auth/roles";
 
 /**
  * El perfil de Mi espacio (ticket 172): nombre, foto y rol, todo de Google / la sesión y

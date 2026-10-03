@@ -26,19 +26,7 @@ import { cambiarVista, verComoCloser } from "@/app/(app)/acciones-vista";
 import type { Vista } from "@/lib/auth/vista";
 import type { CloserActivo } from "@/lib/catalogo/usuarios";
 
-import type { Rol } from "@/lib/auth/roles";
-
-/**
- * Como se nombra cada rol en la interfaz. Es un `Record<Rol, string>` a proposito:
- * al sumar un rol a `ROLES`, el typecheck exige nombrarlo aca en vez de dejar que
- * caiga en silencio a "Sin rol".
- */
-const ETIQUETA_ROL: Record<Rol, string> = {
-  gerente: "Gerencia comercial",
-  closer: "Closer",
-  developer: "Desarrollo",
-  paid_trafficker: "Paid Trafficker",
-};
+import { ETIQUETA_ROL, type Rol } from "@/lib/auth/roles";
 
 /** Como se nombra cada VISTA del "ver como" (ticket 028). */
 const ETIQUETA_VISTA: Record<Vista, string> = {

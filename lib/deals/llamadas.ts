@@ -265,45 +265,208 @@ export async function pegarGrain(
 
     exigirQueTrabajeLeads(actor);
 
+    // Pegar el Grain escribe el `link_grain` ADEMÁS de marcar el show: el cuerpo común
+    // (resultado show, fecha si estaba vacía, movimiento a Atendido) vive en
+    // `marcarComoShow`; aquí solo se le suma el campo del enlace.
     return (db as unknown as Transaccion).transaction(async (db) => {
       const { call, deal } = await llamadaVigenteDeDealAbierto(db, callId, actor);
-      const ahora = new Date();
-      const fechaLlamada = call.fechaAgenda != null && call.fechaAgenda <= ahora
-        ? call.fechaAgenda
-        : ahora;
+      return marcarComoShow(db, actor, call, deal, { linkGrain });
+    });
+  });
+}
 
-      // `fecha_llamada` se llena SOLO si estaba vacía: pegar el Grain no reescribe una
-      // fecha que ya se conocía (por ejemplo la que trajo Calendly). `resultado` y
-      // `link_grain` sí se escriben siempre: son el gesto de este ticket.
+// ─────────────────────────────────────────── 177 · "Show" en un clic (sin Grain)
+
+/** Datos para marcar una llamada como show en un clic (ticket 177): solo la llamada. */
+export const esquemaMarcarShow = z.object({
+  callId: z.string().uuid("La llamada no es válida."),
+});
+
+export type DatosMarcarShow = z.input<typeof esquemaMarcarShow>;
+
+/**
+ * Marcar una llamada como **show** en un clic (ticket 177, decisión de Mani del 3-oct),
+ * sin pegar el link de Grain. Hermana de `pegarGrain`: mismo molde (transacción,
+ * `llamadaVigenteDeDealAbierto`, `editarConRastro`), misma regla de `fecha_llamada` (se
+ * llena solo si estaba vacía) y el mismo movimiento a **Atendido** por `moverEtapa()` si
+ * la tabla tiene la flecha desde la etapa actual.
+ *
+ * El Grain deja de ser requisito para decir "la llamada sucedió": `resultado = "show"`
+ * cumple `llamada_sucedio` (`RESULTADOS_QUE_OCURRIERON`). Una llamada show sin Grain no
+ * bloquea ningún movimiento; su falta de link sale como alerta amarilla, nunca como reja.
+ *
+ * Si la llamada ya tiene un resultado (no sigue `agendada`), se rechaza con 409: "marcar
+ * show" es la salida de una cita pendiente, no un re-marcado de una llamada ya resuelta
+ * (quien pega el Grain sobre una ya atendida usa `pegarGrain`, que solo suma el link).
+ */
+export async function marcarShow(
+  db: Db,
+  actor: ActorDeLlamada,
+  datos: DatosMarcarShow,
+): Promise<GrainPegado> {
+  return normalizando(async () => {
+    const { callId } = esquemaMarcarShow.parse(datos);
+
+    exigirQueTrabajeLeads(actor);
+
+    return (db as unknown as Transaccion).transaction(async (db) => {
+      const { call, deal } = await llamadaVigenteDeDealAbierto(db, callId, actor);
+      if (call.resultado !== "agendada") {
+        throw new ErrorDeApp("Solo se marca como show una llamada agendada.", 409);
+      }
+      return marcarComoShow(db, actor, call, deal, {});
+    });
+  });
+}
+
+/**
+ * El cuerpo COMÚN de `pegarGrain` y `marcarShow` (ticket 058, 177): sobre una llamada
+ * vigente de un deal abierto del actor (ya leídos por el llamador), escribe
+ * `resultado = "show"`, llena `fecha_llamada` SOLO si estaba vacía, y mueve el deal a
+ * **Atendido** por `moverEtapa()` si la tabla tiene la flecha desde la etapa actual. El
+ * movimiento lo toma el SISTEMA: el hecho (la llamada sucedió) lo observa el CRM.
+ *
+ * `extra` suma lo que diferencia a cada llamador: `pegarGrain` pasa `{ linkGrain }` y
+ * `marcarShow` no pasa nada. Debe correr DENTRO de una transacción (la abren sus dos
+ * llamadores): la escritura de la llamada y el movimiento van juntos o nada.
+ */
+async function marcarComoShow(
+  db: Db,
+  actor: ActorDeLlamada,
+  call: typeof calls.$inferSelect,
+  deal: FilaDeal,
+  extra: { linkGrain?: string },
+): Promise<GrainPegado> {
+  const ahora = new Date();
+  const fechaLlamada = call.fechaAgenda != null && call.fechaAgenda <= ahora
+    ? call.fechaAgenda
+    : ahora;
+
+  await editarConRastro(
+    {
+      db,
+      tabla: calls,
+      nombreTabla: "calls",
+      actorId: actor.userId,
+      etiqueta: call.emailLead ?? call.id,
+    },
+    call.id,
+    {
+      ...(extra.linkGrain !== undefined ? { linkGrain: extra.linkGrain } : {}),
+      resultado: "show" as const,
+      ...(call.fechaLlamada == null ? { fechaLlamada } : {}),
+    },
+  );
+
+  // Mover a Atendido solo si la tabla tiene la flecha desde la etapa actual. Si no hay
+  // flecha (ya está en Atendido o más adelante), no se mueve y no se inventa una transición.
+  if (transicion(deal.etapa, "atendido") != null) {
+    const hecho = await moverEtapa(db, {
+      dealId: deal.id,
+      a: "atendido",
+      actor: { tipo: "sistema" },
+    });
+    return { movioAAtendido: true, etapa: hecho.a };
+  }
+
+  return { movioAAtendido: false, etapa: deal.etapa };
+}
+
+// ─────────────────────────────────────────── 177 · Reagendar: cierra la cita vieja
+
+/**
+ * Datos para reagendar una cita (ticket 177): la llamada vieja que se cierra y los datos
+ * de la nueva, iguales a los de `agregarLlamada`.
+ */
+export const esquemaReagendar = z.object({
+  callId: z.string().uuid("La llamada no es válida."),
+  fechaAgenda: z.date({ message: "Falta la fecha de la cita." }),
+  linkCalendly: z
+    .string()
+    .url("El link de la reunión no es una URL válida.")
+    .optional(),
+  notas: z.string().trim().min(1).optional(),
+});
+
+export type DatosReagendar = z.input<typeof esquemaReagendar>;
+
+/**
+ * Reagendar una cita en un solo acto (ticket 177): marca la cita vieja `reagendada` y
+ * crea la nueva, TODO en la misma transacción. Antes esto era "agregar una llamada" y
+ * dejaba la vieja `agendada` sin resultado para siempre, saliendo en "Llamadas que ya
+ * pasaron sin resultado" del Inbox (176). Calendly ya cierra la vieja (ADR 0049,
+ * `eventos-de-cita.ts`); esto hace lo mismo desde la ficha.
+ *
+ * Solo se reagenda una llamada que sigue `agendada`: una que ya tiene resultado se
+ * rechaza con 409 (ya se resolvió con un show, un no-show o una cancelación). La cita
+ * nueva nace y mueve el deal con los MISMOS helpers que `agregarLlamada` —no se copia la
+ * lógica—: `dealAbiertoDelActor`, `unaCitaMueveAAgendado` y `moverEtapa`.
+ */
+export async function reagendarLlamada(
+  db: Db,
+  actor: ActorDeLlamada,
+  datos: DatosReagendar,
+): Promise<LlamadaAgregada> {
+  return normalizando(async () => {
+    const { callId, fechaAgenda, linkCalendly, notas } = esquemaReagendar.parse(datos);
+
+    exigirQueTrabajeLeads(actor);
+
+    return (db as unknown as Transaccion).transaction(async (db) => {
+      // La cita vieja y su deal, con las mismas rejas que las demás mutaciones de llamada.
+      const { call: vieja, deal } = await llamadaVigenteDeDealAbierto(db, callId, actor);
+      if (vieja.resultado !== "agendada") {
+        throw new ErrorDeApp("Solo se reagenda una llamada agendada.", 409);
+      }
+
+      // La vieja queda `reagendada`: deja de contar como "cita sin resultado" y sale del
+      // Inbox (seccionLlamadasDeHoy filtra `resultado = 'agendada'`).
       await editarConRastro(
         {
           db,
           tabla: calls,
           nombreTabla: "calls",
           actorId: actor.userId,
-          etiqueta: call.emailLead ?? call.id,
+          etiqueta: vieja.emailLead ?? vieja.id,
         },
-        call.id,
+        vieja.id,
+        { resultado: "reagendada" as const },
+      );
+
+      // La nueva cita nace exactamente como en `agregarLlamada`: heredando del deal,
+      // `agendada`, `origen = "crm"`, y moviendo a Agendado si la regla lo pide.
+      const callId2 = await crearConRastro(
         {
-          linkGrain,
-          resultado: "show" as const,
-          ...(call.fechaLlamada == null ? { fechaLlamada } : {}),
+          db,
+          tabla: calls,
+          nombreTabla: "calls",
+          actorId: actor.userId,
+          etiqueta: vieja.emailLead ?? deal.id,
+        },
+        {
+          dealId: deal.id,
+          programId: deal.programId,
+          cohortId: deal.cohortId,
+          emailLead: vieja.emailLead,
+          closerUserId: actor.userId,
+          fechaAgenda,
+          linkCalendly: linkCalendly ?? null,
+          resultado: "agendada" as const,
+          origen: "crm",
+          notas: notas ?? null,
         },
       );
 
-      // Mover a Atendido solo si la tabla tiene la flecha desde la etapa actual.
-      // Si no hay flecha (ya está en Atendido o más adelante), no se
-      // mueve y no se inventa una transición.
-      if (transicion(deal.etapa, "atendido") != null) {
-        const hecho = await moverEtapa(db, {
+      if (unaCitaMueveAAgendado(deal.etapa, deal.pendiente)) {
+        await moverEtapa(db, {
           dealId: deal.id,
-          a: "atendido",
-          actor: { tipo: "sistema" },
+          a: "agendado",
+          actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol },
         });
-        return { movioAAtendido: true, etapa: hecho.a };
+        return { callId: callId2, movioAAgendado: true };
       }
 
-      return { movioAAtendido: false, etapa: deal.etapa };
+      return { callId: callId2, movioAAgendado: false };
     });
   });
 }

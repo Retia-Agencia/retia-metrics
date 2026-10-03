@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
+import { requireSesionReal } from "@/lib/auth/guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esRolValido } from "@/lib/auth/roles";
+import { esAccesoTotal, esRolValido } from "@/lib/auth/roles";
 import { programasVisibles, programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { membresiasConCalendlyDe } from "@/lib/catalogo/usuarios";
@@ -53,24 +54,36 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   const userId = session.user.id;
   const membresias = await membresiasConCalendlyDe(db, userId);
 
+  // El nombre del perfil sale de `users.nombre` (no del correo): la membresía ya lo trae
+  // (`usuario`), igual que el nombre de la sesión bajo suplantación. Local login no mete
+  // `users.nombre` en la sesión, así que sin este preferir saldría el correo (A-??, 177).
+  const nombrePerfil = membresias[0]?.usuario ?? session.user.name ?? session.user.email ?? "Usuario";
+
   // Perfil: nombre, foto y rol vienen de Google / la sesión; no se editan aquí.
   const perfil = (
     <PerfilDeMiEspacio
-      nombre={session.user.name ?? session.user.email ?? "Usuario"}
+      nombre={nombrePerfil}
       imagen={session.user.image ?? null}
       rol={rol}
     />
   );
 
-  // Sin membresías no hay pantalla vacía (A-04): un mensaje y el perfil, nada más.
+  // Sin membresías no hay pantalla vacía (A-04): un mensaje y el perfil, nada más. Para el
+  // DUEÑO (acceso total por su rol REAL, nunca `rol === "developer"` a mano; ADR 0025), Mi
+  // espacio no aplica —es de quien trabaja leads— y el mensaje lo explica y ofrece "Ver
+  // como closer". Bajo suplantación la sesión efectiva ya no es acceso total, por eso se
+  // decide con el rol REAL.
   if (membresias.length === 0) {
+    const real = await requireSesionReal();
+    const esDueno = esAccesoTotal(real.user.rol);
     return (
       <PageShell titulo="Mi espacio" descripcion="Tu perfil y tu trabajo por programa.">
         <div className="space-y-6">
           {perfil}
           <p className="max-w-prose text-sm text-muted-foreground">
-            Todavía no tienes programas asignados; pídele a tu gerente que te agregue al
-            equipo de un programa.
+            {esDueno
+              ? "Mi espacio es de quien trabaja leads: muestra los pendientes, deals, llamadas y students de un closer en cada programa. Como no tienes membresías, no hay nada que mostrar aquí; usa \"Ver como closer\" en el menú de tu usuario para ver el espacio de un closer."
+              : "Todavía no tienes programas asignados; pídele a tu gerente que te agregue al equipo de un programa."}
           </p>
         </div>
       </PageShell>
