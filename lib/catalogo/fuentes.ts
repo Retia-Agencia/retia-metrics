@@ -15,7 +15,7 @@ import { PROVEEDORES_FORMULARIO, type ProveedorFormulario } from "./fuentes-webh
  * Fuentes de datos por programa (ticket 016, ADR 0012, ADR 0019), sobre el molde de
  * catalogo. Revierte la desviacion declarada de editar el mapeo en
  * `scripts/seed-datos.ts` y re-sembrar: ahora un gerente conecta la hoja de un
- * programa nuevo desde `/ajustes/fuentes`, sin cambio de codigo (spec §5 criterio 4).
+ * programa nuevo desde la tab Programa, sin cambio de codigo (spec §5 criterio 4).
  *
  * La tabla `sources` tiene `id` y `activo`, asi que el molde maneja
  * crear/editar/desactivar/reactivar + `change_log` por campo que cambia. Lo que el

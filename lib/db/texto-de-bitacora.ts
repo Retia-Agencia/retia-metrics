@@ -11,7 +11,7 @@
  *
  * 🩸 Ese `String(valor)` no solo ensuciaba la bitacora: rompia el DIFF de la edicion.
  * El molde y el rastro deciden que cambio comparando `aTexto(actual) !== aTexto(nuevo)`,
- * y editar un campo jsonb (por ejemplo `sources.mapeo_columnas` desde `/ajustes/fuentes`)
+ * y editar un campo jsonb (por ejemplo `sources.mapeo_columnas` desde la tab Programa)
  * daba `"[object Object]" !== "[object Object]"` = `false`. Resultado: el cambio no se
  * registraba EN change_log y, cuando el jsonb era lo UNICO que cambiaba, el `update`
  * tampoco se escribia (el molde corta con `if (cambiados.length === 0) return actual`).

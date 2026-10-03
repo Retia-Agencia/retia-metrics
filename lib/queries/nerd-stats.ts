@@ -19,7 +19,7 @@ import { vigente } from "./vigente";
  * reescriben (ADR 0024).
  *
  * Las corridas de sync NO se leen aca: viven en `lib/queries/fuentes.ts`, porque
- * `/ajustes/fuentes` hace exactamente la misma pregunta (ADR 0024). Desde el 108 son
+ * la tab Programa hace exactamente la misma pregunta (ADR 0024). Desde el 108 son
  * historial de solo lectura.
  *
  * **Ningun dato personal sale de aca, y no es por cuidado al escribir sino por
@@ -193,7 +193,7 @@ export interface FuenteEnNerdStats {
 
 /**
  * Las fuentes ACTIVAS con su salud (ticket 107) y la marca `rota` de la columna. La salud no
- * se recalcula aca: es la misma respuesta que da `/ajustes/fuentes`.
+ * se recalcula aca: es la misma respuesta que da la tab Programa.
  */
 export async function fuentesConSalud(db: Db = dbDeLaApp, ahora: Date = new Date()): Promise<FuenteEnNerdStats[]> {
   const [salud, rotas] = await Promise.all([

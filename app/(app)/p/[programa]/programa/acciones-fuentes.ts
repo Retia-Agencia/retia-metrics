@@ -22,7 +22,9 @@ import { editarPlantillaLead, type EntradaPlantillaLead } from "@/lib/catalogo/p
 import type { ColumnaResuelta } from "@/lib/sheets/probar-fuente";
 
 /**
- * Server actions de la administracion de fuentes (ticket 016, ADR 0019).
+ * Server actions de la administracion de fuentes (ticket 016, ADR 0019). Viven en la
+ * tab Programa (`/p/[programa]/programa`, ADR 0077: cada dato vive en la pantalla de su
+ * objeto); antes vivian en la seccion Fuentes de Ajustes.
  *
  * Son la unica cara publica: enforzan el rol en el SERVIDOR con
  * `requireRole("gerente")`. El developer entra igual porque `puedeAcceder` lo deja
@@ -62,7 +64,6 @@ async function actorDe(session: Session): Promise<Actor> {
 
 /** Revalida la pantalla de fuentes tras una escritura. */
 function revalidar() {
-  revalidatePath("/ajustes/fuentes");
   revalidatePath("/p/[programa]/programa", "page");
 }
 

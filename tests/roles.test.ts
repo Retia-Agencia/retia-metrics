@@ -223,7 +223,7 @@ describe("el programa en la URL (ticket 097)", () => {
     expect(programaDeRuta("/p/programa-a/dashboard")).toBe("programa-a");
     expect(programaDeRuta("/p/programa-a")).toBe("programa-a");
     expect(programaDeRuta("/p")).toBeNull();
-    expect(programaDeRuta("/ajustes/programas/programa-a")).toBeNull();
+    expect(programaDeRuta("/ajustes/canales/programa-a")).toBeNull();
     expect(programaDeRuta("/programas/programa-a")).toBeNull();
   });
 

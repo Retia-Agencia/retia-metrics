@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   agregarAlProgramaAccion,
   quitarDelProgramaAccion,
-} from "@/app/(app)/ajustes/programas/acciones";
+} from "@/app/(app)/p/[programa]/programa/acciones-programa";
 import { asignarCalendlyDeMembresiaAccion } from "@/app/(app)/ajustes/usuarios/acciones";
 import { FilaMembresia } from "@/components/calendly-membresias";
 import { Button } from "@/components/ui/button";

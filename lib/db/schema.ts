@@ -227,9 +227,9 @@ export const programs = pgTable(
     nombre: text("nombre").notNull(),
     /** Solo prellena el precio al crear una cohorte; ninguna métrica lee este valor. */
     ticketUsd: numeric("ticket_usd", { precision: 10, scale: 2 }).notNull(),
-    /** Pagina de venta del programa. Editable desde /ajustes/programas (ticket 014). */
+    /** Pagina de venta del programa. Editable desde la tab Programa (ticket 014). */
     webUrl: text("web_url"),
-    /** Calendly del programa, para cruzar agendamientos. Editable desde /ajustes/programas (ticket 014). */
+    /** Calendly del programa, para cruzar agendamientos. Editable desde la tab Programa (ticket 014). */
     calendlyUrl: text("calendly_url"),
     /**
      * URL base del formulario del programa (ADR 0057). Un programa no se activa sin ella.

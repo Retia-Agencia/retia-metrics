@@ -15,7 +15,7 @@ import type { Db } from "@/lib/db/tipos";
  * Se mira el `created_at` del envio (cuando llego al CRM) y no `fecha_envio` (lo que
  * dice el formulario): la pregunta es si el webhook sigue entregando.
  *
- * La usa `/ajustes/fuentes` hoy y la pantalla de salud del 110 despues: una pregunta,
+ * La usa la tab Programa hoy y la pantalla de salud del 110 despues: una pregunta,
  * un modulo.
  */
 

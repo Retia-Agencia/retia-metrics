@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { Session } from "next-auth";
 import { requireRole } from "@/lib/auth/guards";
-import { esRolValido } from "@/lib/auth/roles";
+import { esAdministrador, esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
@@ -133,17 +133,20 @@ async function actorDe(session: Session): Promise<ActorConAcceso> {
 /**
  * Crea una plataforma de pago y la asocia a sus programas en una sola operacion.
  *
- * Es la UNICA accion de esta pantalla que un closer puede disparar sobre el catalogo
- * (decision de Mani, 20-sep): crear y vincular a SUS programas. Renombrar, desactivar
- * y borrar siguen pasando por `requireRole("gerente")`, que ya incluye al developer.
+ * Desde el ticket 178 (ADR 0077) solo administra quien administra: un closer ya no
+ * crea plataformas aqui (lo hace desde la tab Programa). La guarda es de servidor
+ * —`requireRole("gerente")` admite al developer por `puedeAcceder` (ADR 0025)— y
+ * `esAdministrador` sobre el ROL DE VISTA (ADR 0028) rechaza una vista `closer`.
  */
 export async function crearPlataformaAccion(
   nombre: string,
   programIds: readonly string[],
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente", "closer");
-    await crearPlataformaConProgramas(db, await actorDe(session), { nombre }, programIds);
+    const session = await requireRole("gerente");
+    const actor = await actorDe(session);
+    if (!esAdministrador(actor.rol)) throw new ErrorDeApp("No autorizado.", 403);
+    await crearPlataformaConProgramas(db, actor, { nombre }, programIds);
     revalidatePath("/ajustes/catalogos");
     return { ok: true };
   } catch (error) {
@@ -151,14 +154,16 @@ export async function crearPlataformaAccion(
   }
 }
 
-/** Asocia una plataforma a un programa. Un closer, solo donde vende. */
+/** Asocia una plataforma a un programa. Solo quien administra (ticket 178). */
 export async function asociarProgramaAccion(
   plataformaId: string,
   programId: string,
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente", "closer");
-    await asociarPrograma(db, await actorDe(session), plataformaId, programId);
+    const session = await requireRole("gerente");
+    const actor = await actorDe(session);
+    if (!esAdministrador(actor.rol)) throw new ErrorDeApp("No autorizado.", 403);
+    await asociarPrograma(db, actor, plataformaId, programId);
     revalidatePath("/ajustes/catalogos");
     // El selector de plataformas de estas dos pantallas cambia con el vinculo, asi que
     // su cache de ruta queda vieja. La pantalla actual la refresca `router.refresh()`;
@@ -179,8 +184,10 @@ export async function desasociarProgramaAccion(
   programId: string,
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente", "closer");
-    await desasociarPrograma(db, await actorDe(session), plataformaId, programId);
+    const session = await requireRole("gerente");
+    const actor = await actorDe(session);
+    if (!esAdministrador(actor.rol)) throw new ErrorDeApp("No autorizado.", 403);
+    await desasociarPrograma(db, actor, plataformaId, programId);
     revalidatePath("/ajustes/catalogos");
     revalidatePath("/recursos");
     revalidatePath("/mi-dia");

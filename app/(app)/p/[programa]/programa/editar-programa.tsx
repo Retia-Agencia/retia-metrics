@@ -8,7 +8,7 @@ import {
   conectarCalendlyAccion,
   desactivarProgramaAccion,
   editarProgramaAccion,
-} from "@/app/(app)/ajustes/programas/acciones";
+} from "@/app/(app)/p/[programa]/programa/acciones-programa";
 import {
   FormularioPrograma,
   aBorrador,

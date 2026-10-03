@@ -24,7 +24,9 @@ import {
 } from "@/lib/catalogo/cohortes";
 
 /**
- * Server actions de la administracion de programas y cohortes (ticket 014).
+ * Server actions de la administracion de programas y cohortes (ticket 014). Viven en la
+ * tab Programa (`/p/[programa]/programa`, ADR 0077: cada dato vive en la pantalla de su
+ * objeto); antes vivian en la seccion Programas de Ajustes.
  *
  * Son la unica cara publica: enforzan `requireRole("gerente")` en el servidor
  * (ADR 0003: un closer nunca entra, esconder un boton no es seguridad), envuelven la
@@ -33,9 +35,8 @@ import {
  * lanza al cliente — porque las server actions se invocan por red y una excepcion no
  * viaja con su tipo (mismo patron que las acciones de catalogos y usuarios).
  *
- * Se revalida `/ajustes/programas` (la lista), la pagina del programa tocado y la
- * raiz `/` para que el sidebar (010), que lee los programas activos de la base,
- * refleje un alta o una baja sin desplegar.
+ * Se revalida la pagina del programa tocado y la raiz `/` para que el sidebar (010),
+ * que lee los programas activos de la base, refleje un alta o una baja sin desplegar.
  */
 
 export type ResultadoAccion = { ok: true } | { ok: false; error: string };
@@ -46,12 +47,13 @@ function aResultado(error: unknown): ResultadoAccion {
   return { ok: false, error: "Error interno." };
 }
 
-/** Revalida las rutas que dependen de la lista de programas (incluido el sidebar). */
-function revalidarNav(slug?: string) {
-  revalidatePath("/ajustes/programas");
+/**
+ * Revalida las rutas que dependen de la lista de programas (incluido el sidebar). Ya
+ * no hay una pagina propia de la lista: todo vive en la tab Programa.
+ */
+function revalidarNav() {
   revalidatePath("/", "layout");
   revalidatePath("/p/[programa]/programa", "page");
-  if (slug) revalidatePath(`/ajustes/programas/${slug}`);
 }
 
 type EntradaProgramaNuevo = Pick<EntradaPrograma, "nombre" | "slug" | "ticketUsd">;
@@ -153,7 +155,7 @@ export async function activarProgramaDesdeFichaAccion(id: string): Promise<Resul
       );
     }
     await reactivarPrograma(db, session.user.id, id);
-    revalidarNav(ficha.programa.slug);
+    revalidarNav();
     return { ok: true };
   } catch (error) {
     return aResultado(error);
@@ -213,7 +215,7 @@ export async function crearCohorteAccion(
   try {
     const session = await requireRole("gerente");
     await crearCohorte(db, session.user.id, input);
-    revalidarNav(slug);
+    revalidarNav();
     return { ok: true };
   } catch (error) {
     return aResultado(error);
@@ -228,7 +230,7 @@ export async function editarCohorteAccion(
   try {
     const session = await requireRole("gerente");
     await editarCohorte(db, session.user.id, id, input);
-    revalidarNav(slug);
+    revalidarNav();
     return { ok: true };
   } catch (error) {
     return aResultado(error);
@@ -239,7 +241,7 @@ export async function activarCohorteAccion(slug: string, id: string): Promise<Re
   try {
     const session = await requireRole("gerente");
     await activarCohorte(db, session.user.id, id);
-    revalidarNav(slug);
+    revalidarNav();
     return { ok: true };
   } catch (error) {
     return aResultado(error);
@@ -250,7 +252,7 @@ export async function desactivarCohorteAccion(slug: string, id: string): Promise
   try {
     const session = await requireRole("gerente");
     await desactivarCohorte(db, session.user.id, id);
-    revalidarNav(slug);
+    revalidarNav();
     return { ok: true };
   } catch (error) {
     return aResultado(error);

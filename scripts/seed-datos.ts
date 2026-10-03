@@ -10,12 +10,12 @@ import { MAPEO_FORMULARIO } from "../lib/sheets/mapeo";
  *
  * SOLO ES LA SEMILLA INICIAL (ADR 0012, ticket 014). El dia a dia —crear un
  * programa, editar sus URLs, abrir o cerrar una cohorte, cambiar la meta o la TRM—
- * se hace desde `/ajustes/programas` sin tocar codigo ni correr este script. Este
+ * se hace desde la tab Programa sin tocar codigo ni correr este script. Este
  * archivo existe para arrancar una base vacia (local, `dev` o produccion la primera
  * vez), no para administrar el catalogo despues.
  *
  * Los programas nacen INACTIVOS (migracion 0031, ADR 0057): se activan desde
- * `/ajustes/programas` cuando tengan Forms Link y token de Calendly.
+ * la tab Programa cuando tengan Forms Link y token de Calendly.
  */
 
 /**

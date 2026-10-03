@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * Desde ADR 0009 (15 sep 2026), el dashboard de programa dejo de ser exclusivo de
  * gerente: un closer tambien ve ahi caja, pauta y el comparativo entre closers
  * ("todos ven todo"). Lo que sigue siendo exclusivo de gerente es la administracion
- * del sistema: `/ajustes` y `/ajustes/fuentes`.
+ * del sistema: `/ajustes` y `/ajustes/usuarios`.
  *
  * El dashboard vive en una ruta dinamica `/p/[programa]/dashboard` (ADR 0012): un solo
  * componente sirve a todos los programas, que salen de la base. La guarda corre
@@ -307,22 +307,21 @@ async function destinoDe(ruta: string): Promise<string | null> {
 }
 
 const PAGINAS_DE_GERENTE = [
-  ["/ajustes/fuentes", "@/app/(app)/ajustes/fuentes/page"],
   ["/ajustes/usuarios", "@/app/(app)/ajustes/usuarios/page"],
-  ["/ajustes/programas", "@/app/(app)/ajustes/programas/page"],
   ["/ajustes/migracion", "@/app/(app)/ajustes/migracion/page"],
+  ["/ajustes/catalogos", "@/app/(app)/ajustes/catalogos/page"],
 ] as const;
 
 /**
- * `/ajustes` y `/ajustes/catalogos` dejaron de ser exclusivas de gerente el 20-sep
- * (enmienda del ticket 013): un closer administra las plataformas de pago, asi que
- * entra a las dos. La guarda baja a cada SUBPAGINA — las de arriba siguen rebotandolo—
- * y lo que el closer ve adentro es una PROYECCION, no un permiso: las server actions
- * vuelven a exigir el rol.
+ * `/ajustes` dejo de ser exclusiva de gerente el 20-sep (enmienda del ticket 013): un
+ * closer administra las plataformas de pago desde la tab Programa, pero la pagina
+ * raiz le muestra la proyeccion que le toca. La guarda baja a cada SUBPAGINA — las de
+ * arriba siguen rebotandolo— y lo que el closer ve adentro es una PROYECCION, no un
+ * permiso: las server actions vuelven a exigir el rol. `/ajustes/catalogos` (Motivos)
+ * volvio a ser exclusiva de gerente el 3-oct (ticket 178, ADR 0077).
  */
 const PAGINAS_COMPARTIDAS_CON_CLOSER = [
   ["/ajustes", "@/app/(app)/ajustes/page"],
-  ["/ajustes/catalogos", "@/app/(app)/ajustes/catalogos/page"],
 ] as const;
 
 /**
@@ -480,8 +479,7 @@ describe("índice de Ajustes por rol (ticket 173)", () => {
     expect(hrefs).toContain("/ajustes/areas");
     expect(hrefs).toContain("/ajustes/migracion");
     // Lo que se fue (A-81): programas y fuentes ya no están en el índice.
-    expect(hrefs).not.toContain("/ajustes/programas");
-    expect(hrefs).not.toContain("/ajustes/fuentes");
+    expect(hrefs.filter((h) => /^\/ajustes\/(programas|fuentes)/.test(h))).toEqual([]);
   });
 
   it("el developer ve lo mismo que el administrador (ADR 0025)", async () => {
@@ -698,55 +696,6 @@ describe("redirecciones al programa como segmento (ticket 097)", () => {
     expect(await destinoConParams("@/app/(app)/p/[programa]/page", { programa: "programa-a" })).toBe(
       "/p/programa-a/dashboard",
     );
-  });
-});
-
-describe("cohortes de un programa /ajustes/programas/[slug] (ticket 014)", () => {
-  const RUTA_COHORTES = "@/app/(app)/ajustes/programas/[slug]/page";
-  const SLUG = "programa-a";
-
-  async function correrCohortes(slug: string): Promise<"paso" | "login" | "midia" | "notFound"> {
-    const modulo = (await import(/* @vite-ignore */ RUTA_COHORTES)) as {
-      default: (props: { params: Promise<{ slug: string }> }) => Promise<unknown>;
-    };
-    try {
-      await modulo.default({ params: Promise.resolve({ slug }) });
-      return "paso";
-    } catch (e) {
-      if (e instanceof NoEncontrado) return "notFound";
-      if (e instanceof Redireccion) return e.destino === "/login" ? "login" : "midia";
-      throw e;
-    }
-  }
-
-  it("rechaza a un closer y lo manda a su vista (solo gerente, ADR 0003)", async () => {
-    auth.mockResolvedValue(sesionCloser);
-    programaDeLaFichaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
-    expect(await correrCohortes(SLUG)).toBe("midia");
-  });
-
-  it("manda al login a quien no tiene sesion, aun con un slug existente", async () => {
-    auth.mockResolvedValue(null);
-    programaDeLaFichaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
-    expect(await correrCohortes(SLUG)).toBe("login");
-  });
-
-  it("deja pasar a un gerente con un slug existente", async () => {
-    auth.mockResolvedValue(sesionGerente);
-    programaDeLaFichaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
-    expect(await correrCohortes(SLUG)).toBe("midia");
-  });
-
-  it("redirige al developer a la tab Programa con un slug existente (ADR 0025)", async () => {
-    auth.mockResolvedValue(sesionDeveloper);
-    programaDeLaFichaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A", activo: true });
-    expect(await correrCohortes(SLUG)).toBe("midia");
-  });
-
-  it("un slug inexistente, con sesion de gerente, es 404", async () => {
-    auth.mockResolvedValue(sesionGerente);
-    programaDeLaFichaPorSlug.mockResolvedValue(null);
-    expect(await correrCohortes("no-existe")).toBe("notFound");
   });
 });
 

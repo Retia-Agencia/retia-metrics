@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { crearProgramaInactivoAccion } from "@/app/(app)/ajustes/programas/acciones";
+import { crearProgramaInactivoAccion } from "@/app/(app)/p/[programa]/programa/acciones-programa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {

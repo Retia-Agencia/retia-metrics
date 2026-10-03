@@ -6,7 +6,7 @@ import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
- * Ticket 014: las server actions de `/ajustes/programas`. Cada accion envuelve la
+ * Ticket 014: las server actions de programas (en la tab Programa). Cada accion envuelve la
  * logica pura de `lib/catalogo/{programas,cohortes}` y devuelve un resultado
  * serializable (`{ ok }` | `{ ok:false, error }`), igual que las acciones de
  * catalogos (013) y usuarios (015): una excepcion no viaja al cliente con su tipo.
@@ -61,7 +61,7 @@ afterEach(async () => {
 });
 
 async function acciones() {
-  return import("@/app/(app)/ajustes/programas/acciones");
+  return import("@/app/(app)/p/[programa]/programa/acciones-programa");
 }
 
 const programaValido = {

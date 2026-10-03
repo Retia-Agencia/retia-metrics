@@ -312,7 +312,7 @@ describe("forjar la escritura desde un closer con membresía", () => {
 
   it("crear una cohorte se rechaza y la base no se mueve", async () => {
     auth.mockResolvedValue(sesion(ids.closerA, "closer"));
-    const { crearCohorteAccion } = await import("@/app/(app)/ajustes/programas/acciones");
+    const { crearCohorteAccion } = await import("@/app/(app)/p/[programa]/programa/acciones-programa");
     const antes = await bitacora();
     const r = await crearCohorteAccion("a", {
       programId: programaA,
@@ -330,7 +330,7 @@ describe("forjar la escritura desde un closer con membresía", () => {
 
   it("editar la comisión del programa se rechaza y la base no se mueve", async () => {
     auth.mockResolvedValue(sesion(ids.closerA, "closer"));
-    const { editarProgramaAccion } = await import("@/app/(app)/ajustes/programas/acciones");
+    const { editarProgramaAccion } = await import("@/app/(app)/p/[programa]/programa/acciones-programa");
     const antes = await bitacora();
     const r = await editarProgramaAccion(
       programaA,

@@ -176,7 +176,7 @@ export function fecha(iso: string): string {
 
 /**
  * Hace cuanto paso un instante, en palabras. Vive aca y no dentro de una pantalla
- * porque lo preguntan dos (`/ajustes/fuentes` y `/nerd-stats`) y la respuesta tiene
+ * porque lo preguntan dos (la tab Programa y `/nerd-stats`) y la respuesta tiene
  * que ser la misma (ADR 0024). Es un INSTANTE (timestamp), no un dia de calendario:
  * por eso pasa por `Date` y `fecha()` no.
  */

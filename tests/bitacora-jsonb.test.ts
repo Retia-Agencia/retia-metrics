@@ -9,7 +9,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * El bug del 28-sep, probado de punta a punta contra PGlite: editar un campo jsonb de
- * una fuente por el molde (como lo hace `/ajustes/fuentes`) tiene que registrar el JSON
+ * una fuente por el molde (como lo hace la tab Programa) tiene que registrar el JSON
  * REAL en `change_log`, y editar con el MISMO objeto (aunque llegue con las llaves en
  * otro orden) NO debe escribir ninguna fila ni tocar la fila.
  *

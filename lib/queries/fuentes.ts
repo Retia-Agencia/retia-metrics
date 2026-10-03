@@ -8,7 +8,7 @@ import type { Db } from "@/lib/db/tipos";
  *
  * `ultimasCorridasDeSync` vive aca y NO se reescribe en `/nerd-stats` (ADR 0024):
  * "cuales fueron las ultimas corridas" es UNA pregunta que hacen dos pantallas
- * distintas —`/ajustes/fuentes`, que la mira como salud de las hojas, y
+ * distintas —la tab Programa, que la mira como salud de las hojas, y
  * `/nerd-stats`, que la mira como salud de la herramienta—. El predicado (orden y
  * corte) es del modulo; cuantas filas pedir y que columnas pintar es de cada
  * llamador.

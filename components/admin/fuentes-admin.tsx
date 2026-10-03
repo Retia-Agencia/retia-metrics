@@ -19,7 +19,7 @@ import {
   probarFuenteAccion,
   rotarSecretoFuenteAccion,
   type ResultadoAccion,
-} from "@/app/(app)/ajustes/fuentes/acciones";
+} from "@/app/(app)/p/[programa]/programa/acciones-fuentes";
 import { PROVEEDORES_FORMULARIO, rutaDelWebhook, type ProveedorFormulario } from "@/lib/catalogo/fuentes-webhook";
 import type { ColumnaResuelta } from "@/lib/sheets/probar-fuente";
 import type { EstadoDeFuente } from "@/lib/queries/salud-fuentes";

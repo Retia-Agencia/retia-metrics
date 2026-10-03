@@ -16,7 +16,7 @@ import {
   desactivarCohorteAccion,
   editarCohorteAccion,
   type ResultadoAccion,
-} from "@/app/(app)/ajustes/programas/acciones";
+} from "@/app/(app)/p/[programa]/programa/acciones-programa";
 
 /**
  * Administracion de las cohortes de un programa (ticket 014), solo gerente.
