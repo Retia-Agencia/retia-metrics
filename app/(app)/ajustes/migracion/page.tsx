@@ -111,7 +111,7 @@ export default async function MigracionPage(props: {
                         </Link>
                       ) : null}
                       {r.leadId ? (
-                        <Link href={`/personas/${r.leadId}`} className="text-marca-texto underline-offset-2 hover:underline">
+                        <Link href={`/p/${programa.slug}/leads/${r.leadId}`} className="text-marca-texto underline-offset-2 hover:underline">
                           Ver lead
                         </Link>
                       ) : null}

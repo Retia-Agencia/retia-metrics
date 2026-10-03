@@ -13,7 +13,7 @@ import type { Db } from "@/lib/db/tipos";
  * Lecturas de la pantalla `/recursos` (ticket 023, ADR 0017). Solo SELECT: lo que
  * escribe ya vive en `lib/catalogo/{recursos,enlaces-pago}.ts` (ticket 022). La base
  * entra por inyeccion (por defecto la de la app) para correr los tests sobre PGlite,
- * igual que `lib/queries/personas.ts`.
+ * igual que las demás consultas de pantalla.
  *
  * Este modulo existe porque el `listar` del molde devuelve filas SIN joins: la
  * pantalla necesita el NOMBRE de la categoria y del programa ya resueltos (nunca

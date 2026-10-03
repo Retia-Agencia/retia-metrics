@@ -4,7 +4,7 @@ import { PageShell } from "@/components/page-shell";
 
 /**
  * El 404 de adentro de la app: lo que ve alguien con sesion cuando pide un id que no
- * existe (`/personas/<uuid>` que no esta, o con forma invalida) o una ruta que no hay.
+ * existe (una ficha con id inexistente o inválido) o una ruta que no hay.
  *
  * Existe porque el de Next viene en ingles y sin estilo ("404 · This page could not be
  * found"), y la UI de este proyecto es en espanol (AGENTS.md). Se renderiza DENTRO del

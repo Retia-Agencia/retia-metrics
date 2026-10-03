@@ -54,7 +54,15 @@ function tonoDe(entrega: EntregaVista): "exito" | "alerta" | "peligro" {
   return entrega.motivo === "procesado" ? "exito" : "alerta";
 }
 
-export function EntregasWebhook({ entregas, titulo }: { entregas: EntregaVista[]; titulo: string }) {
+export function EntregasWebhook({
+  entregas,
+  titulo,
+  programaSlug,
+}: {
+  entregas: EntregaVista[];
+  titulo: string;
+  programaSlug?: string;
+}) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
 
@@ -93,9 +101,9 @@ export function EntregasWebhook({ entregas, titulo }: { entregas: EntregaVista[]
                 {e.fuenteNombre ? (
                   <span className="text-muted-foreground">· {e.fuenteNombre}</span>
                 ) : null}
-                {e.leadId ? (
+                {e.leadId && programaSlug ? (
                   <Link
-                    href={`/personas/${e.leadId}`}
+                    href={`/p/${programaSlug}/leads/${e.leadId}`}
                     className="text-marca-texto underline-offset-4 hover:underline"
                   >
                     {e.leadNombre ?? "Ver lead"}

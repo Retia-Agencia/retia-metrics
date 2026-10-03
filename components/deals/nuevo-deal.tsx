@@ -16,9 +16,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { buscarPersonasAccion } from "@/app/(app)/personas/acciones";
+import { buscarLeadsAccion } from "@/app/(app)/p/[programa]/leads/acciones";
 import { crearDeal } from "@/app/(app)/p/[programa]/deals/acciones";
-import type { PersonaEncontrada } from "@/lib/queries/personas";
+import type { LeadEncontrado } from "@/lib/queries/leads";
 import { cn } from "@/lib/utils";
 
 /**
@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
  * esta pantalla solo las explica.
  *
  * El texto de busqueda NO va a la URL (dato personal, AGENTS.md): viaja en el payload de
- * la server action, como en `/personas`.
+ * la server action de Leads.
  */
 
 export interface NuevoDealProps {
@@ -46,7 +46,7 @@ export function NuevoDeal({ programId, programaSlug, nombreEtapaDeEntrada, puede
   const [abierto, setAbierto] = useState(false);
   const [modo, setModo] = useState<Modo>("existente");
   const [texto, setTexto] = useState("");
-  const [resultados, setResultados] = useState<PersonaEncontrada[] | null>(null);
+  const [resultados, setResultados] = useState<LeadEncontrado[] | null>(null);
   const [elegido, setElegido] = useState<string | null>(null);
   const [nuevo, setNuevo] = useState({ correo: "", nombre: "", telefono: "" });
   const [error, setError] = useState<string | null>(null);
@@ -73,15 +73,13 @@ export function NuevoDeal({ programId, programaSlug, nombreEtapaDeEntrada, puede
     setError(null);
     setDealExistente(null);
     empezarBusqueda(async () => {
-      const res = await buscarPersonasAccion(q);
+      const res = await buscarLeadsAccion({ programaSlug, texto: q });
       if (!res.ok) {
         setError(res.error);
         setResultados([]);
         return;
       }
-      // El buscador cubre todo el alcance de la sesion; aqui solo sirven los leads de
-      // ESTE programa, que es frontera (ADR 0043).
-      setResultados(res.personas.filter((p) => p.programId === programId));
+      setResultados(res.leads);
       setElegido(null);
     });
   }

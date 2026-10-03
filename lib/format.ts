@@ -71,7 +71,7 @@ export function monto(valor: number, moneda: string): string {
  * devolviera el numero, cada pantalla tendria que decidir la etiqueta por su cuenta
  * y volveriamos a tener la misma pregunta contestada en dos sitios (ADR 0024).
  *
- * Lo preguntan `/mi-dia` y `/personas/[id]`.
+ * Lo preguntan `/mi-dia` y la ficha del lead.
  */
 export function saldoLegible(
   saldo: string | number | null,

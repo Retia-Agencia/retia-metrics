@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { LayoutList, Table2 } from "lucide-react";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
@@ -14,6 +15,7 @@ import {
   type FiltroLeads,
 } from "@/lib/queries/leads";
 import { fecha, fechaDeInstanteEnBogota, hoyEnBogota, num } from "@/lib/format";
+import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { filtroDeFechaDeLaUrl } from "@/lib/periodo";
 import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
 import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
@@ -22,6 +24,7 @@ import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PosiblesDuplicados } from "@/components/leads/posibles-duplicados";
+import { BuscadorDeLeads } from "@/components/leads/buscador-de-leads";
 
 export const dynamic = "force-dynamic";
 
@@ -54,8 +57,8 @@ const CAMPOS = [
  * es una oportunidad. Filtros por hecho (deal, calidad, abandonó el formulario, posible duplicado,
  * fechas) y la lista de posibles duplicados con confirmar o separar.
  *
- * Los filtros viajan en la URL y ninguno es un dato personal (AGENTS.md): no hay búsqueda por
- * texto aquí; para buscar a alguien está Personas. El alcance es el de Deals (ADR 0048).
+ * Los filtros y la vista viajan en la URL; el texto de búsqueda no, porque puede contener datos
+ * personales (AGENTS.md). El alcance es el de Deals (ADR 0048).
  */
 export default async function LeadsDelProgramaPage({ params, searchParams }: Props) {
   const session = await paginaConRol("gerente", "closer");
@@ -69,6 +72,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   const calidad = CALIDADES_DE_LEAD.find((c) => c === uno(q.calidad)) ?? null;
   const filtroDeFecha = filtroDeFechaDeLaUrl(q, CAMPOS_DE_FECHA_DE_LEAD, hoyEnBogota());
   const pagina = Math.max(0, Number.parseInt(uno(q.pagina) ?? "0", 10) || 0);
+  const vista = uno(q.vista) === "tabla" ? "tabla" : "tarjetas";
   const filtro: FiltroLeads = {
     deal: deal === "con" || deal === "sin" ? deal : null,
     calidad,
@@ -83,16 +87,24 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   ]);
 
   const paginas = Math.max(1, Math.ceil(total / LEADS_POR_PAGINA));
-  const conPagina = (p: number) => {
+  const urlCon = (cambios: Record<string, string | null>) => {
     const u = new URLSearchParams();
-    for (const [k, v] of Object.entries(q)) if (k !== "pagina" && typeof v === "string" && v) u.set(k, v);
-    if (p > 0) u.set("pagina", String(p));
+    for (const [k, valor] of Object.entries(q)) {
+      if (k in cambios) continue;
+      if (Array.isArray(valor)) valor.forEach((v) => u.append(k, v));
+      else if (valor) u.set(k, valor);
+    }
+    for (const [k, valor] of Object.entries(cambios)) if (valor) u.set(k, valor);
     const s = u.toString();
     return `/p/${programa.slug}/leads${s ? `?${s}` : ""}`;
+  };
+  const conPagina = (p: number) => {
+    return urlCon({ pagina: p > 0 ? String(p) : null });
   };
   return (
     <PageShell titulo={programa.nombre} descripcion="Leads">
       <div className="space-y-4">
+        <BuscadorDeLeads programaSlug={programa.slug} />
         <FiltroFechaLista campos={CAMPOS} filtro={filtroDeFecha} />
         <BarraDeFiltros nombres={["deal", "calidad", "abandono", "duplicado"]}>
           <FiltroSelect nombre="deal" etiqueta="Deal" opciones={[{ value: "sin", label: "Sin deal" }, { value: "con", label: "Con deal" }]} />
@@ -102,22 +114,38 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
         </BarraDeFiltros>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row items-center justify-between gap-3">
             <CardTitle className="text-base">
               Leads · <span className="cifra">{num(total)}</span>
             </CardTitle>
+            <div className="inline-flex rounded-full border bg-muted p-0.5 text-xs" role="group" aria-label="Vista de leads">
+              <Link
+                href={urlCon({ vista: null, pagina: null })}
+                aria-current={vista === "tarjetas" ? "page" : undefined}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${vista === "tarjetas" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+              >
+                <LayoutList aria-hidden className="size-3.5" /> Tarjetas
+              </Link>
+              <Link
+                href={urlCon({ vista: "tabla", pagina: null })}
+                aria-current={vista === "tabla" ? "page" : undefined}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${vista === "tabla" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+              >
+                <Table2 aria-hidden className="size-3.5" /> Tabla
+              </Link>
+            </div>
           </CardHeader>
           <CardContent>
             {filas.length === 0 ? (
               <p className="text-sm text-muted-foreground">No hay leads con estos filtros.</p>
-            ) : (
+            ) : vista === "tarjetas" ? (
               <ul className="divide-y divide-border">
                 {filas.map((f) => (
-                  <li key={f.id} className="flex flex-wrap items-start justify-between gap-2 py-3 text-sm">
+                  <li key={f.id} className="relative flex flex-wrap items-start justify-between gap-2 rounded-md px-2 py-3 text-sm hover:bg-muted/50">
                     <div className="min-w-0 space-y-1">
                       <Link
                         href={`/p/${programa.slug}/leads/${f.id}`}
-                        className="block truncate font-medium text-marca-texto underline-offset-2 outline-none hover:underline focus-visible:underline"
+                        className="block truncate font-medium text-marca-texto underline-offset-2 outline-none after:absolute after:inset-0 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
                       >
                         {f.nombre ?? f.email}
                       </Link>
@@ -126,7 +154,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
                         {f.leadQuality ? (
                           <Badge variant="neutro">{f.leadQuality}</Badge>
                         ) : (
-                          <Badge variant="alerta" title="El formulario no mandó lead_quality: su deal entró en Registrado o Potencial.">
+                          <Badge variant="alerta" className="relative z-10" title="El formulario no mandó lead_quality: su deal entró en Registrado o Potencial.">
                             Sin calidad
                           </Badge>
                         )}
@@ -145,6 +173,43 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
                   </li>
                 ))}
               </ul>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-[56rem] w-full border-collapse text-sm">
+                  <thead className="sticky top-0 bg-card text-left text-xs text-muted-foreground">
+                    <tr className="border-b">
+                      <th className="px-2 py-1.5 font-medium">Nombre</th>
+                      <th className="px-2 py-1.5 font-medium">Correo</th>
+                      <th className="px-2 py-1.5 font-medium">Teléfono</th>
+                      <th className="px-2 py-1.5 font-medium">Calidad</th>
+                      <th className="px-2 py-1.5 font-medium">Etapa del deal</th>
+                      <th className="px-2 py-1.5 font-medium">Canal</th>
+                      <th className="px-2 py-1.5 font-medium">Último envío</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filas.map((f) => {
+                      const href = `/p/${programa.slug}/leads/${f.id}`;
+                      const clase = "block px-2 py-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+                      return (
+                        <tr key={f.id} className="cursor-pointer border-b hover:bg-muted/50">
+                          <td><Link href={href} className={`${clase} font-medium text-marca-texto`}>{f.nombre ?? f.email}</Link></td>
+                          <td><Link href={href} tabIndex={-1} className={clase}>{f.email}</Link></td>
+                          <td><Link href={href} tabIndex={-1} className={`${clase} cifra`}>{f.telefono ?? "—"}</Link></td>
+                          <td><Link href={href} tabIndex={-1} className={clase}>{f.leadQuality ?? "Sin calidad"}</Link></td>
+                          <td><Link href={href} tabIndex={-1} className={clase}>{f.etapa ? NOMBRE_DE_ETAPA[f.etapa] : "Sin deal"}</Link></td>
+                          <td><Link href={href} tabIndex={-1} className={clase}>{f.canal ?? "Sin UTM"}</Link></td>
+                          <td>
+                            <Link href={href} tabIndex={-1} className={`${clase} cifra`}>
+                              {f.fechaUltimaAplicacion ? fecha(fechaDeInstanteEnBogota(f.fechaUltimaAplicacion)) : "—"}
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
             {paginas > 1 ? (
               <nav className="flex items-center justify-between pt-3 text-sm" aria-label="Páginas">

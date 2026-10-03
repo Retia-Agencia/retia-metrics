@@ -1,15 +1,13 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
-import { cohorts, deals, leadContactos, leads, programs, submissions, users } from "@/lib/db/schema";
+import { cohorts, deals, leadContactos, leads, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import type { Rol } from "@/lib/auth/roles";
-import { programaEnAlcance } from "@/lib/auth/alcance";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 
 /**
  * La ficha del Lead (ticket 073): de una persona dentro de un programa, **todo lo que dijo y
- * cuando lo dijo**. Reemplaza al historial de `/personas/[id]`.
+ * cuando lo dijo**. Es el historial de la ficha del lead.
  *
  * - **El programa es frontera** (ADR 0043): recibe `programId` Y `leadId`; un lead de otro
  *   programa devuelve `null`, igual que uno inexistente, y la ruta responde 404 sin decir cual.
@@ -363,26 +361,4 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
     contactos,
     deals: dealsDeLaFicha,
   };
-}
-
-/**
- * A que programa (por su slug) pertenece un lead, si la sesion lo ve; `null` si no existe o
- * queda fuera del alcance (ADR 0048). Lo usa `/personas/[id]`, que desde el 073 solo redirige
- * a la ficha del lead dentro de su programa: los enlaces viejos siguen llevando al mismo lead.
- */
-export async function slugDelLeadVisible(
-  leadId: string,
-  userId: string,
-  rol: Rol | null,
-  db: Db,
-): Promise<string | null> {
-  const [fila] = await db
-    .select({ programId: leads.programId, slug: programs.slug })
-    .from(leads)
-    .innerJoin(programs, eq(programs.id, leads.programId))
-    .where(eq(leads.id, leadId))
-    .limit(1);
-  if (!fila) return null;
-  if (!(await programaEnAlcance(userId, rol, fila.programId, db))) return null;
-  return fila.slug;
 }

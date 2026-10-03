@@ -65,12 +65,11 @@ const programasVisibles = vi.fn();
 const idsDeProgramasVisibles = vi.fn();
 vi.mock("@/lib/auth/alcance", () => ({ programaVisiblePorSlug, programasVisibles, idsDeProgramasVisibles }));
 
-// La ficha del lead (ticket 073) y la redireccion de `/personas/[id]` leen la base; sin
+// La ficha del lead (ticket 073) lee la base; sin
 // base en los tests se mockean las queries para que las guardas y el 404 sean lo unico
 // bajo prueba.
 const fichaDeLead = vi.fn();
-const slugDelLeadVisible = vi.fn();
-vi.mock("@/lib/queries/ficha-lead", () => ({ fichaDeLead, slugDelLeadVisible }));
+vi.mock("@/lib/queries/ficha-lead", () => ({ fichaDeLead }));
 const otrosProgramasDelCorreo = vi.fn();
 vi.mock("@/lib/queries/otros-programas-del-correo", () => ({ otrosProgramasDelCorreo }));
 
@@ -237,8 +236,6 @@ beforeEach(() => {
   listarVacio.mockClear();
   fichaDeLead.mockReset();
   fichaDeLead.mockResolvedValue(FICHA_VACIA);
-  slugDelLeadVisible.mockReset();
-  slugDelLeadVisible.mockResolvedValue("programa-a");
   otrosProgramasDelCorreo.mockReset();
   otrosProgramasDelCorreo.mockResolvedValue([]);
   idsDeProgramasVisibles.mockReset();
@@ -830,43 +827,6 @@ describe("pagina de recursos /recursos (ticket 023)", () => {
   });
 });
 
-describe("pagina de personas /personas (18-sep: la puerta al historial)", () => {
-  const RUTA = "@/app/(app)/personas/page";
-
-  async function correrPersonas(): Promise<string | null> {
-    const modulo = (await import(/* @vite-ignore */ RUTA)) as {
-      default: () => Promise<unknown>;
-    };
-    try {
-      await modulo.default();
-      return null;
-    } catch (e) {
-      if (e instanceof Redireccion) return e.destino;
-      throw e;
-    }
-  }
-
-  /**
-   * El punto entero de esta pagina: `/personas/[id]` ya dejaba entrar al gerente,
-   * pero el unico enlace hacia alla vivia en `/mi-dia`, exclusiva de closer, asi que
-   * el gerente no tenia ruta al historial de ningun lead.
-   */
-  it("deja pasar a un gerente, que antes no tenia ruta al historial", async () => {
-    auth.mockResolvedValue(sesionGerente);
-    expect(await correrPersonas()).toBeNull();
-  });
-
-  it("deja pasar a un closer (ADR 0009)", async () => {
-    auth.mockResolvedValue(sesionCloser);
-    expect(await correrPersonas()).toBeNull();
-  });
-
-  it("manda al login a quien no tiene sesion", async () => {
-    auth.mockResolvedValue(null);
-    expect(await correrPersonas()).toBe("/login");
-  });
-});
-
 describe("pagina de documentos /documentos redirige a /recursos (ticket 023)", () => {
   const RUTA = "@/app/(app)/documentos/page";
 
@@ -1049,53 +1009,6 @@ const FICHA_VACIA = {
   contactos: [],
   deals: [],
 };
-
-/**
- * `/personas/[id]` (ticket 006, 073): ya no pinta nada, redirige a la ficha del lead dentro
- * de su programa. La guarda corre ANTES de mirar el id: sin sesion va al login aunque el id
- * sea basura, sin filtrar que ids existen. Un lead fuera del alcance es 404, igual que uno
- * inexistente: la redireccion nunca revela su programa.
- */
-async function correrPersona(id: string): Promise<string> {
-  const modulo = (await import(/* @vite-ignore */ "@/app/(app)/personas/[id]/page")) as {
-    default: (props: { params: Promise<{ id: string }> }) => Promise<unknown>;
-  };
-  try {
-    await modulo.default({ params: Promise.resolve({ id }) });
-    return "paso";
-  } catch (e) {
-    if (e instanceof NoEncontrado) return "notFound";
-    if (e instanceof Redireccion) return e.destino;
-    throw e;
-  }
-}
-
-describe("/personas/[id] redirige a la ficha del lead (ticket 073)", () => {
-  const ID = "3f8a1c2e-0000-4000-8000-000000000001";
-
-  it.each([sesionGerente, sesionCloser, sesionDeveloper])("lleva a la ficha dentro del programa", async (sesion) => {
-    auth.mockResolvedValue(sesion);
-    expect(await correrPersona(ID)).toBe(`/p/programa-a/leads/${ID}`);
-  });
-
-  it("manda al login a quien no tiene sesion, sin mirar el id", async () => {
-    auth.mockResolvedValue(null);
-    expect(await correrPersona(ID)).toBe("/login");
-    expect(slugDelLeadVisible).not.toHaveBeenCalled();
-  });
-
-  it("un lead inexistente o fuera del alcance es 404", async () => {
-    auth.mockResolvedValue(sesionCloser);
-    slugDelLeadVisible.mockResolvedValue(null);
-    expect(await correrPersona(ID)).toBe("notFound");
-  });
-
-  it("un id que no es uuid es 404 y nunca llega a la base", async () => {
-    auth.mockResolvedValue(sesionGerente);
-    expect(await correrPersona("lead@correo.co")).toBe("notFound");
-    expect(slugDelLeadVisible).not.toHaveBeenCalled();
-  });
-});
 
 describe("la ficha del lead /p/[programa]/leads/[id] (ticket 073)", () => {
   const ID = "3f8a1c2e-0000-4000-8000-000000000001";

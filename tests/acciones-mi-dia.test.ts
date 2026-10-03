@@ -135,9 +135,8 @@ async function acciones() {
   return import("@/app/(app)/mi-dia/acciones");
 }
 
-/** La busqueda vive en `personas/`: la comparten `/mi-dia` y `/personas`. */
-async function accionesPersonas() {
-  return import("@/app/(app)/personas/acciones");
+async function accionesLeads() {
+  return import("@/app/(app)/p/[programa]/leads/acciones");
 }
 
 // ─────────────────────────────────────────────── barrera de rol (ADR 0003)
@@ -152,15 +151,15 @@ describe("la pantalla es del closer: el gerente no registra (ADR 0003)", () => {
    * de un lead. Lo que el ADR 0003 prohibe es que el gerente REGISTRE (los tests de
    * abajo), no que mire. Se cambio a conciencia.
    */
-  it("un gerente SI puede buscar personas (ve todos los programas activos)", async () => {
+  it("un gerente puede buscar leads de un programa activo", async () => {
     await db
       .insert(leads)
       .values({ programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" });
 
-    const { buscarPersonasAccion } = await accionesPersonas();
-    const res = await buscarPersonasAccion("Juan");
+    const { buscarLeadsAccion } = await accionesLeads();
+    const res = await buscarLeadsAccion({ programaSlug: "programa-a", texto: "Juan" });
     expect(res.ok).toBe(true);
-    if (res.ok) expect(res.personas).toHaveLength(1);
+    if (res.ok) expect(res.leads).toHaveLength(1);
   });
 
   it("un gerente no puede crear una persona manual", async () => {
@@ -174,8 +173,8 @@ describe("sin sesion no pasa nada", () => {
   beforeEach(() => auth.mockResolvedValue(null));
 
   it("buscar sin sesion falla", async () => {
-    const { buscarPersonasAccion } = await accionesPersonas();
-    const res = await buscarPersonasAccion("juan");
+    const { buscarLeadsAccion } = await accionesLeads();
+    const res = await buscarLeadsAccion({ programaSlug: "programa-a", texto: "juan" });
     expect(res.ok).toBe(false);
   });
 });
@@ -185,18 +184,32 @@ describe("sin sesion no pasa nada", () => {
 describe("un closer registra en su programa", () => {
   beforeEach(() => auth.mockResolvedValue(sesionCloser));
 
-  it("busca personas de su programa y las recibe en el payload", async () => {
+  it("busca leads de su programa y los recibe en el payload", async () => {
     await db
       .insert(leads)
       .values({ programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" });
 
-    const { buscarPersonasAccion } = await accionesPersonas();
-    const res = await buscarPersonasAccion("Juan");
+    const { buscarLeadsAccion } = await accionesLeads();
+    const res = await buscarLeadsAccion({ programaSlug: "programa-a", texto: "Juan" });
     expect(res.ok).toBe(true);
     if (res.ok) {
-      expect(res.personas).toHaveLength(1);
-      expect(res.personas[0].nombre).toBe("Juan");
+      expect(res.leads).toHaveLength(1);
+      expect(res.leads[0].nombre).toBe("Juan");
     }
+  });
+
+  it("no puede buscar en un programa sin membresia activa", async () => {
+    const { buscarLeadsAccion } = await accionesLeads();
+    expect(await buscarLeadsAccion({ programaSlug: "programa-b", texto: "Juan" })).toEqual({
+      ok: false,
+      error: "Ese programa no existe.",
+    });
+  });
+
+  it("un texto de menos de dos caracteres devuelve vacio", async () => {
+    const { buscarLeadsAccion } = await accionesLeads();
+    const res = await buscarLeadsAccion({ programaSlug: "programa-a", texto: "a" });
+    expect(res).toEqual({ ok: true, leads: [] });
   });
 
   it("crea una persona manual con entrada 'crm'", async () => {
@@ -228,13 +241,12 @@ describe("developer con 'ver como' (ticket 028)", () => {
     ]);
     ponerVista("closer");
 
-    const { buscarPersonasAccion } = await accionesPersonas();
-    const res = await buscarPersonasAccion("Ana");
-    expect(res.ok).toBe(true);
-    if (res.ok) {
-      // En vista closer la membresia vuelve a importar: solo el lead de A.
-      expect(res.personas.map((p) => p.nombre)).toEqual(["Ana En A"]);
-    }
+    const { buscarLeadsAccion } = await accionesLeads();
+    const res = await buscarLeadsAccion({ programaSlug: "programa-b", texto: "Ana" });
+    expect(res).toEqual({ ok: false, error: "Ese programa no existe." });
+    const propio = await buscarLeadsAccion({ programaSlug: "programa-a", texto: "Ana" });
+    expect(propio.ok).toBe(true);
+    if (propio.ok) expect(propio.leads.map((p) => p.nombre)).toEqual(["Ana En A"]);
   });
 
   it("en vista 'todo' (por defecto) busca en TODOS los programas activos", async () => {
@@ -244,9 +256,9 @@ describe("developer con 'ver como' (ticket 028)", () => {
     ]);
     // Sin cookie: vista `todo`, el developer administra y ve todo.
 
-    const { buscarPersonasAccion } = await accionesPersonas();
-    const res = await buscarPersonasAccion("Ana");
+    const { buscarLeadsAccion } = await accionesLeads();
+    const res = await buscarLeadsAccion({ programaSlug: "programa-b", texto: "Ana" });
     expect(res.ok).toBe(true);
-    if (res.ok) expect(res.personas).toHaveLength(2);
+    if (res.ok) expect(res.leads.map((p) => p.nombre)).toEqual(["Ana En B"]);
   });
 });

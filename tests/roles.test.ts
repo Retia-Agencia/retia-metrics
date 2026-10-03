@@ -118,11 +118,9 @@ describe("navegacion por rol", () => {
     expect(rutasDe("gerente").some((r) => r.startsWith("/programas/"))).toBe(false);
   });
 
-  it("los tres roles ven /personas, la puerta al historial (18-sep)", () => {
-    // El gerente es el caso que motivo la ruta: podia abrir `/personas/[id]` y no
-    // tenia como llegar, porque el unico enlace vivia en `/mi-dia`.
+  it("la navegación ya no contiene la pantalla Personas", () => {
     for (const rol of ["gerente", "closer", "developer"] as const) {
-      expect(rutasDe(rol)).toContain("/personas");
+      expect(rutasDe(rol)).not.toContain("/personas");
     }
   });
 

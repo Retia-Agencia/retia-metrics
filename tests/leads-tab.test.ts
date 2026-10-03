@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { deals, leadContactos, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { leadsDelPrograma } from "@/lib/queries/leads";
+import { buscarLeads, leadsDelPrograma } from "@/lib/queries/leads";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -14,6 +14,8 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 let db: Db;
 let cerrar: () => Promise<void>;
 let programId: string;
+let otroProgramId: string;
+let sourceId: string;
 const id: Record<string, string> = {};
 
 beforeEach(async () => {
@@ -26,7 +28,9 @@ beforeEach(async () => {
     ])
     .returning();
   programId = p.id;
+  otroProgramId = q.id;
   const [f] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
+  sourceId = f.id;
   const [u] = await db.insert(users).values({ email: "g@retiagrowth.com", rol: "gerente" }).returning();
 
   const filas = await db
@@ -103,5 +107,58 @@ describe("leadsDelPrograma", () => {
     const ultimo = (desde: string, hasta: string) => ({ fecha: { campo: "ultimo_envio" as const, rango: { desde, hasta } } });
     expect(await correos(ultimo("2026-09-01", "2026-09-01"))).toEqual(["con-deal@c.co"]);
     expect(await correos(ultimo("2026-09-02", "2026-09-20"))).toEqual(["parcial@c.co", "sin-estado@c.co"]);
+  });
+
+  it("devuelve la etapa del deal abierto preferida y el canal del envío más reciente", async () => {
+    await db.insert(deals).values({
+      leadId: id["con-deal"],
+      programId,
+      etapa: "ganado_completo",
+      createdAt: new Date("2026-10-03T12:00:00Z"),
+    });
+    await db.insert(submissions).values([
+      {
+        leadId: id["con-deal"], sourceId, token: "canal-viejo", esParcial: false,
+        fechaEnvio: new Date("2026-10-01T12:00:00Z"), utmSource: "facebook", utmMedium: "cpc",
+      },
+      {
+        leadId: id["con-deal"], sourceId, token: "canal-nuevo", esParcial: false,
+        fechaEnvio: new Date("2026-10-02T12:00:00Z"), utmSource: "instagram", utmMedium: "paid_social",
+      },
+      {
+        leadId: id.parcial, sourceId, token: "canal-incompleto", esParcial: false,
+        fechaEnvio: new Date("2026-10-03T12:00:00Z"), utmSource: "organico", utmMedium: null,
+      },
+    ]);
+
+    const { filas } = await leadsDelPrograma(db, programId);
+    const porCorreo = Object.fromEntries(filas.map((fila) => [fila.email, fila]));
+    expect(porCorreo["con-deal@c.co"]).toMatchObject({ etapa: "agendado", canal: "instagram / paid_social" });
+    expect(porCorreo["parcial@c.co"].canal).toBeNull();
+  });
+});
+
+describe("buscarLeads", () => {
+  it("busca por teléfono, no cruza programas y escapa los comodines de ILIKE", async () => {
+    const [propio] = await db.insert(leads).values({
+      programId,
+      nombre: "Nombre 100% real",
+      emailNormalizado: "telefono@c.co",
+      telefono: "+57 300 123 4567",
+    }).returning();
+    await db.insert(leads).values({
+      programId: otroProgramId,
+      nombre: "Nombre 100% ajeno",
+      emailNormalizado: "ajeno-telefono@c.co",
+      telefono: "+57 300 123 4567",
+    });
+    await db.insert(leads).values({
+      programId,
+      nombre: "Nombre 1000 real",
+      emailNormalizado: "comodin@c.co",
+    });
+
+    expect((await buscarLeads(db, programId, "300 123")).map((fila) => fila.id)).toEqual([propio.id]);
+    expect((await buscarLeads(db, programId, "100% real")).map((fila) => fila.id)).toEqual([propio.id]);
   });
 });

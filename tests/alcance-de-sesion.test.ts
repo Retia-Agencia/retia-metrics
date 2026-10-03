@@ -18,8 +18,7 @@ import {
   programaVisiblePorSlug,
   programasVisibles,
 } from "@/lib/auth/alcance";
-import { buscarPersonas } from "@/lib/queries/personas";
-import { slugDelLeadVisible } from "@/lib/queries/ficha-lead";
+import { buscarLeads } from "@/lib/queries/leads";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -155,7 +154,7 @@ describe("la función de alcance (ADR 0048, ticket 094)", () => {
     expect(await programaEnAlcance(gerenteId, "gerente", programaB, db)).toBe(true);
   });
 
-  it("buscarPersonas no cruza a un programa fuera del alcance del closer", async () => {
+  it("buscarLeads queda acotado al programa recibido", async () => {
     const [pa] = await db
       .insert(leads)
       .values({ programId: programaA, emailNormalizado: "persona-a@correo.co", nombre: "Persona A" })
@@ -165,35 +164,10 @@ describe("la función de alcance (ADR 0048, ticket 094)", () => {
       .values({ programId: programaB, emailNormalizado: "persona-b@correo.co", nombre: "Persona B" })
       .returning();
 
-    const closer = await buscarPersonas(anaUserId, "closer", "Persona", db);
-    expect(closer.map((r) => r.id)).toEqual([pa.id]);
-
-    const gerente = await buscarPersonas(gerenteId, "gerente", "Persona", db);
-    expect(gerente.map((r) => r.id).sort()).toEqual([pa.id, pb.id].sort());
+    expect((await buscarLeads(db, programaA, "Persona")).map((r) => r.id)).toEqual([pa.id]);
+    expect((await buscarLeads(db, programaB, "Persona")).map((r) => r.id)).toEqual([pb.id]);
 
     await db.delete(leads).where(eq(leads.id, pa.id));
-    await db.delete(leads).where(eq(leads.id, pb.id));
-  });
-
-  it("slugDelLeadVisible 404 (null) si la persona es de un programa fuera del alcance", async () => {
-    const [pb] = await db
-      .insert(leads)
-      .values({ programId: programaB, emailNormalizado: "ficha-b@correo.co", nombre: "Ficha B" })
-      .returning();
-
-    // Un closer de A abre el id de una persona de B por `/personas/[id]`: null,
-    // indistinguible de un id inexistente. La ruta lo traduce a 404, nunca a 403, y la
-    // redireccion nunca revela a que programa pertenece (ticket 073).
-    expect(await slugDelLeadVisible(pb.id, anaUserId, "closer", db)).toBeNull();
-
-    // El gerente sí la ve.
-    expect(await slugDelLeadVisible(pb.id, gerenteId, "gerente", db)).toBe(slugB);
-
-    // Un id que no existe también es null, para todos.
-    expect(
-      await slugDelLeadVisible("00000000-0000-4000-8000-000000000000", gerenteId, "gerente", db),
-    ).toBeNull();
-
     await db.delete(leads).where(eq(leads.id, pb.id));
   });
 });

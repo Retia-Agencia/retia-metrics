@@ -39,7 +39,7 @@ export type CampoEnvio =
  * `respuestas`. Y lo promovido NO se repite adentro (opcion A' del ADR 0036).
  *
  * `nombre` se promueve (migracion 0033) porque el resumen del lead (`leads.nombre`, lo
- * que busca Personas en `lib/queries/personas.ts`) se recalcula desde los envios, y
+ * que busca Leads) se recalcula desde los envios, y
  * `respuestas` no dice cual pregunta es la del nombre.
  *
  * Las seis UTM de la plantilla de Pauta se promueven (ADR 0062, ticket 116): `utm_id` es la

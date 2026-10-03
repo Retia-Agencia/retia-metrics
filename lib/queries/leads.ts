@@ -1,6 +1,7 @@
-import { and, between, count, desc, eq, inArray, isNull, notInArray, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, between, count, desc, eq, ilike, inArray, isNull, notInArray, or, sql, type SQL } from "drizzle-orm";
 import { deals, leadContactos, leads, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import type { EtapaDeal } from "@/lib/deals/etapas";
 import { vigente } from "@/lib/queries/vigente";
 import type { Rango } from "@/lib/queries/dashboard";
 
@@ -20,8 +21,8 @@ import type { Rango } from "@/lib/queries/dashboard";
  *   no tiene, y usa su alta. No es el ancla del dashboard (`fechaAnclaLead`), que solo cuenta
  *   los del formulario: aquí la pregunta es "¿cuándo entró a la base?".
  *
- * No hay búsqueda por texto en esta consulta a propósito: los filtros viajan en la URL y un
- * correo en la URL está prohibido (AGENTS.md). Para buscar a alguien está Personas.
+ * La búsqueda por texto vive en `buscarLeads`: nunca viaja en la URL porque puede contener
+ * datos personales (AGENTS.md).
  */
 
 export interface FiltroLeads {
@@ -50,6 +51,7 @@ export interface FilaLead {
   id: string;
   nombre: string | null;
   email: string;
+  telefono: string | null;
   calificacion: string | null;
   leadQuality: string | null;
   leadValue: string | null;
@@ -58,6 +60,40 @@ export interface FilaLead {
   tieneDeal: boolean;
   soloParciales: boolean;
   correosSinConfirmar: number;
+  etapa: EtapaDeal | null;
+  canal: string | null;
+}
+
+export interface LeadEncontrado {
+  id: string;
+  nombre: string | null;
+  emailNormalizado: string;
+  telefono: string | null;
+}
+
+const MINIMO_TEXTO = 2;
+const MAXIMO_FILAS = 20;
+
+/** Busca dentro de UN programa; el texto viaja en el cuerpo de una server action, nunca en la URL. */
+export async function buscarLeads(db: Db, programId: string, texto: string): Promise<LeadEncontrado[]> {
+  const termino = texto.trim();
+  if (termino.length < MINIMO_TEXTO) return [];
+
+  const patron = `%${termino.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  return db
+    .select({
+      id: leads.id,
+      nombre: leads.nombre,
+      emailNormalizado: leads.emailNormalizado,
+      telefono: leads.telefono,
+    })
+    .from(leads)
+    .where(and(
+      eq(leads.programId, programId),
+      or(ilike(leads.nombre, patron), ilike(leads.emailNormalizado, patron), ilike(leads.telefono, patron)),
+    ))
+    .orderBy(asc(leads.nombre), asc(leads.emailNormalizado))
+    .limit(MAXIMO_FILAS);
 }
 
 /** Los leads con al menos un deal vigente. */
@@ -113,6 +149,7 @@ export async function leadsDelPrograma(
       id: leads.id,
       nombre: leads.nombre,
       email: leads.emailNormalizado,
+      telefono: leads.telefono,
       calificacion: leads.calificacion,
       leadQuality: leads.leadQuality,
       leadValue: leads.leadValue,
@@ -126,10 +163,17 @@ export async function leadsDelPrograma(
     .offset(pagina * LEADS_POR_PAGINA);
   if (base.length === 0) return { total, filas: [] };
 
-  // Las marcas de la página, en tres lecturas sobre SUS ids (no subconsultas correlacionadas).
+  // Las marcas de la página, en lecturas por lote sobre SUS ids (no subconsultas correlacionadas).
   const ids = base.map((b) => b.id);
-  const [conDeals, parciales, marcas] = await Promise.all([
-    db.select({ leadId: deals.leadId }).from(deals).where(and(inArray(deals.leadId, ids), vigente(deals))),
+  const [dealsVigentes, parciales, marcas, envios] = await Promise.all([
+    db
+      .select({ leadId: deals.leadId, etapa: deals.etapa })
+      .from(deals)
+      .where(and(inArray(deals.leadId, ids), vigente(deals)))
+      .orderBy(
+        sql`case when ${deals.etapa} not in ('ganado_completo', 'cierre_perdido') then 0 else 1 end`,
+        desc(deals.createdAt),
+      ),
     db
       .select({ leadId: submissions.leadId, todosParciales: sql<boolean>`bool_and(${submissions.esParcial})` })
       .from(submissions)
@@ -140,8 +184,25 @@ export async function leadsDelPrograma(
       .from(leadContactos)
       .where(and(inArray(leadContactos.leadId, ids), eq(leadContactos.tipo, "correo"), eq(leadContactos.confirmado, false)))
       .groupBy(leadContactos.leadId),
+    db
+      .select({
+        leadId: submissions.leadId,
+        utmSource: submissions.utmSource,
+        utmMedium: submissions.utmMedium,
+      })
+      .from(submissions)
+      .where(inArray(submissions.leadId, ids))
+      .orderBy(sql`${submissions.fechaEnvio} desc nulls last`, desc(submissions.createdAt)),
   ]);
-  const tienenDeal = new Set(conDeals.map((d) => d.leadId));
+  const etapaPorLead = new Map<string, EtapaDeal>();
+  for (const deal of dealsVigentes) if (!etapaPorLead.has(deal.leadId)) etapaPorLead.set(deal.leadId, deal.etapa);
+  const canalPorLead = new Map<string, string | null>();
+  for (const envio of envios) {
+    if (envio.leadId && !canalPorLead.has(envio.leadId)) {
+      canalPorLead.set(envio.leadId, envio.utmSource && envio.utmMedium ? `${envio.utmSource} / ${envio.utmMedium}` : null);
+    }
+  }
+  const tienenDeal = new Set(dealsVigentes.map((d) => d.leadId));
   const soloPar = new Set(parciales.filter((p) => p.todosParciales).map((p) => p.leadId));
   const sinConfirmar = new Map(marcas.map((m) => [m.leadId, m.n]));
 
@@ -152,6 +213,8 @@ export async function leadsDelPrograma(
       tieneDeal: tienenDeal.has(b.id),
       soloParciales: soloPar.has(b.id),
       correosSinConfirmar: sinConfirmar.get(b.id) ?? 0,
+      etapa: etapaPorLead.get(b.id) ?? null,
+      canal: canalPorLead.get(b.id) ?? null,
     })),
   };
 }

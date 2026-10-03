@@ -26,7 +26,7 @@ const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * La ficha del Lead (ticket 073): todos sus envios con lo que cambio entre uno y otro, sus
  * contactos con el envio del que llego cada uno, sus deals abiertos y cerrados, y el aviso si el
  * correo tambien es lead de otro programa (ticket 091). Reemplaza a
- * `/personas/[id]`, que ahora solo redirige aqui.
+ * La ficha canónica vive aquí, dentro de la frontera del programa.
  *
  * Misma guarda y mismo alcance que la ficha del deal: un lead inexistente, de OTRO programa o
  * de un programa que la sesion no ve responde 404, igual que un slug inexistente (ADR 0048). La

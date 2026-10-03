@@ -4,7 +4,7 @@ import { esAccesoTotal, trabajaLeads } from "@/lib/auth/roles";
 export type ItemNav = {
   href: string;
   etiqueta: string;
-  icono: "dashboard" | "deals" | "inbox" | "calls" | "recursos" | "ajustes" | "midia" | "nerdstats" | "personas" | "students" | "leads" | "programa";
+  icono: "dashboard" | "deals" | "inbox" | "calls" | "recursos" | "ajustes" | "midia" | "nerdstats" | "students" | "leads" | "programa";
   roles: readonly Rol[];
 };
 
@@ -134,7 +134,6 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
 
   // Personas: la puerta al historial de un lead. Busca en todos los programas visibles;
   // pasa a ser la tab Leads, de un programa, con el ticket 072.
-  items.push({ href: "/personas", etiqueta: "Personas", icono: "personas", roles: ["gerente", "closer"] });
 
   // Recursos: ambos roles leen (brochures y links de pago vigentes). Solo quien
   // ADMINISTRA ve los controles de edicion (`esAdministrador`, ADR 0025 punto 5), y

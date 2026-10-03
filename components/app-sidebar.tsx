@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, CalendarCheck, ChartNoAxesColumn, Contact, GraduationCap, Inbox, KanbanSquare, Layers, Library, LineChart, Menu, Settings, Users, X } from "lucide-react";
+import { Activity, CalendarCheck, ChartNoAxesColumn, Contact, GraduationCap, Inbox, KanbanSquare, Layers, Library, LineChart, Menu, Settings, X } from "lucide-react";
 import { navParaRol, programaDeRuta, type ItemNav } from "@/lib/nav";
 import type { Rol } from "@/lib/auth/roles";
 import type { Vista } from "@/lib/auth/vista";
@@ -22,7 +22,6 @@ const ICONOS: Record<ItemNav["icono"], typeof LineChart> = {
   ajustes: Settings,
   midia: CalendarCheck,
   nerdstats: Activity,
-  personas: Users,
   students: GraduationCap,
   leads: Contact,
   programa: Layers,

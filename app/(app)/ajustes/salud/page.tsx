@@ -131,7 +131,11 @@ export default async function SaludPage({
         </Card>
 
         {/* Las entregas del programa. */}
-        <EntregasWebhook entregas={entregasVista} titulo={`Entregas — ${programa.nombre}`} />
+        <EntregasWebhook
+          entregas={entregasVista}
+          titulo={`Entregas — ${programa.nombre}`}
+          programaSlug={programa.slug}
+        />
 
         {/* La conciliacion con la hoja mientras convivan (ticket 110). */}
         <Card>

@@ -35,7 +35,7 @@ export function vigente(tabla: PgTable): SQL {
  * Marca explicita de que esta consulta **quiere** ver lo anulado, y por eso no
  * filtra. Es una condicion que no filtra nada; lo que aporta es el nombre.
  *
- * Existe por el ADR 0026 punto 4: el historial de `/personas/[id]` muestra lo anulado
+ * Existe por el ADR 0026 punto 4: el historial de la ficha del lead muestra lo anulado
  * tachado, con quien y cuando, porque "aqui hubo una venta que se anulo porque el
  * pago se cayo" es informacion, no ruido. Esconderlo ahi convertiria la anulacion en
  * un borrado con otro nombre.
