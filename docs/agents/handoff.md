@@ -9,19 +9,41 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia. PRIORIDAD: dejar la operación comercial lista en el CRM. Lee AGENTS.md y despues
-docs/plan-reparto.md §4, "Ola O2": es la lista completa en tres frentes. Frente 0 (base común: checkpoint,
-recorridos de Mani, tickets 160 y 161, S1, manual 154), frente A (PRIORIDAD: los programas que nacen en el CRM,
-los que venden Nicolás y Francisco, antes del lunes 5-oct) y frente B (ComunicArte y Tactical: migrar con el 078,
-corte y 082). Empieza por 0.1 (empujar y marcar el checkpoint) y A.1 (preguntarle a Mani qué programa vende cada
-closer). Los parciales siguen abriendo deal (A-41 cerrada). El mapa de actores y componentes: docs/plan.md §4.0.
+Seguimos con el CRM de Retia. PRIORIDAD: la operación comercial lista en el CRM; Memorable (Nicolás y Francisco)
+arranca el lunes 5-oct. Lee AGENTS.md y docs/plan-reparto.md §4, "Ola O2": frente 0, frente A (Memorable) y la
+tabla "Las sesiones de código de la ola". S1 a S4 (162, 163, 161+160, 165+166) están hechas (cp-20261003-1).
+Siguen S5 = 164 (Mi espacio, el hub del closer) y S6 = 167 (quién cobró es FK; lleva migración, la aplica la
+sesión principal con el ok de Mani). De Mani: A.2 a A.7 (crear Memorable, C1 del 5 al 28-oct, alta de los dos
+closers con closer_id hasta el 167), S1 Supabase Pro, y recorrer 143, 156, 157 y 162 a 166.
 
 Reglas: Codex implementa por /delegate y la sesion principal revisa; migraciones solo con el ok de Mani; nivel 1
 antes de cada push (typecheck, lint, tests del ticket), la suite completa la corre el CI en los checkpoints
-(plan-reparto §6). Produccion es la unica base: leer es libre, escribir pide el ok de Mani.
+(plan-reparto §6). Produccion es la unica base: leer es libre, escribir pide el ok de Mani. Al terminar un
+recorrido local, apagar dev:local y Docker (la Mac anda con swap).
 ```
 
 ## Memory
+
+- **2026-10-02/03 (noche 4, Mani + Claude, sesión central): audit de la operación comercial, ola O2 en sesiones, S1 a S4 hechas.**
+  - **De dónde sale:** 7 notas de Mani probando el CRM (Transición y Actividades, botones, llamadas, hub del closer,
+    cohortes, plataformas, `closer_id`) + audit del repo. Quedaron como A-43 a A-51 y tickets 162 a 167.
+  - **Decidido con Mani:** Memorable en Instagram & TikTok es el programa de Nicolás y Francisco (USD 1.200, clases
+    3-nov, C1 de ventas del 5 al 28-oct). `/mi-dia` pasa a "Mi espacio" y el Inbox sigue como cola compartida (164,
+    cierra A-05). La siguiente cohorte la crea quien administra con "Crear C{n+1}" (165). La identidad de un usuario
+    es `users.id`; no se genera otro código; `closer_id` se retira en dos pasos (167 ahora, 159 tras el corte).
+  - **Hallazgos del audit, arreglados en el 165:** Próxima cohorte se retomaba con cualquier contacto (A-49) y el
+    selector ofrecía la cohorte actual (A-50).
+  - **Hecho:** cuatro sesiones en paralelo, sin migraciones y sin choques (cada ticket nombraba lo que toca y lo que
+    no): 162, 163, 161 → 160, 165 → 166. CI verde en `676b97e`, producción sirve ese commit. Tags `cp-20261002-5`
+    (143, 152, 156, 157) y `cp-20261003-1`. La sesión central cambió "en Programs" por "en la pestaña Programa" en dos
+    avisos y recorrió en `dev:local` (closer y gerente): botones de etapa, Nota, Próxima cohorte (solo C2), detalle de
+    llamada en Calls y en la ficha con "Ir al deal", alerta de intentos en el Inbox, plataformas y "Crear C3"; consola
+    limpia. 17 worktrees ya mergeados borrados.
+  - **Pendiente:** S5 (164) y S6 (167, migración). Recorrido de Mani de 143/156/157 y lo nuevo. Frente A (A.2 a A.10)
+    y S1 (Supabase Pro). Siguen sin ticket A-17 (saldo "sin precio" en `cifra`) y A-18.
+  - **Aprendido:** el swap de la Mac lo comían SonarLint (2,9 GB de node + 0,5 GB de java), la VM de Docker (2,6 GB
+    con un Postgres de 36 MB) y Angular Language Service (1,1 GB, en un repo sin Angular). Desactivar una extensión de
+    VS Code no la apaga hasta "Reload Window". `osascript quit app "Docker"` no cierra Docker: es `"Docker Desktop"`.
 
 - **2026-10-02 (noche 3, Mani + Claude): el plan va por componentes, y hay un mapa del CRM.**
   - **Decidido con Mani:** eje actores × componentes (no solo roles: un rol dice quién, un componente qué, y

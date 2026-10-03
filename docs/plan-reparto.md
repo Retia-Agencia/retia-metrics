@@ -142,12 +142,12 @@ abriendo deal en Potencial** y las etapas se manejan como están (A-41 cerrada, 
 
 | # | Qué | Quién | Ticket | Hecho cuando |
 |---|---|---|---|---|
-| 0.1 | Empujar `main` y marcar el checkpoint (último CI pendiente: `52de822`) | sesión | · | tag `cp-AAAAMMDD-N` en verde: 143, 152, 156 y 157 cuentan como hechos |
+| 0.1 | ✅ `cp-20261002-5` (2-oct) y `cp-20261003-1` (3-oct). Empujar `main` y marcar el checkpoint (último CI pendiente: `52de822`) | sesión | · | tag `cp-AAAAMMDD-N` en verde: 143, 152, 156 y 157 cuentan como hechos |
 | 0.2 | Recorrer la lista de pruebas como closer (`docs/pruebas-operacion-comercial.md`, 33 pruebas) | Mani | 153 | cada prueba marcada; lo que falle, en `anotaciones.md` con su id |
 | 0.3 | Recorrer lo nuevo: propiedades en rojo (143), Transición y pop-up (156), Calendly propio (152), handoff del setter: link de agenda, "Ya se lo mandé", "Setteado por", suelta ajena = 403 (157) | Mani | 143, 152, 156, 157 | sin hallazgos abiertos, o cada uno con su ticket |
 | 0.4 | Arreglar lo que salga de 0.2 y 0.3 | Codex → sesión | uno por hallazgo | en `main` con su nivel 1 |
-| 0.5 | Marcar una cortesía | Codex → sesión | 160 | ver el ticket |
-| 0.6 | La alerta "agotó intentos" | Codex → sesión | 161 | ver el ticket |
+| 0.5 | ✅ (160, `cp-20261003-1`) Marcar una cortesía | Codex → sesión | 160 | ver el ticket |
+| 0.6 | ✅ (161, `cp-20261003-1`) La alerta "agotó intentos" | Codex → sesión | 161 | ver el ticket |
 | 0.7 | 🔴 **Decidir S1: Supabase Pro.** Aplica a los dos frentes: desde el día 1 los programas nuevos también viven solo en la base | Mani con el equipo | · | Pro pagado, o el `pg_dump` diario como regla escrita en `operations.md` |
 | 0.8 | Manual de operación comercial al día (incluye la versión corta de las 11 etapas) y publicado para los closers | sesión | 154 | "Lo que le falta al CRM" refleja 0.1 a 0.6 |
 
@@ -197,14 +197,14 @@ worktree cada una, Codex en `medium` por `/delegate`. La sesión central revisa 
 
 | Sesión | Ticket | Cuándo | Archivo caliente que es suyo en la ola |
 |---|---|---|---|
-| S1 | [162] Transición única y botones de etapa | ya (fin de semana) | `ficha-transicion`, `ficha-actividades`, `responder-pregunta`, `pregunta-de-etapa` |
-| S2 | [163] Detalle de llamada | ya | `ficha-llamadas`, `llamadas-programa` |
-| S3 | [161] → [160] (en serie, misma sesión) | ya | `lib/deals/requisitos.ts` (motor), `lib/queries/inbox.ts`, alertas |
-| S4 | [165] → [166] (en serie) | ya | `lib/catalogo/cohortes.ts`, `lib/deals/actividades.ts`, `opcionesDeFicha`, tab Programs |
+| S1 ✅ | [162] Transición única y botones de etapa | ya (fin de semana) | `ficha-transicion`, `ficha-actividades`, `responder-pregunta`, `pregunta-de-etapa` |
+| S2 ✅ | [163] Detalle de llamada | ya | `ficha-llamadas`, `llamadas-programa` |
+| S3 ✅ | [161] → [160] (en serie, misma sesión) | ya | `lib/deals/requisitos.ts` (motor), `lib/queries/inbox.ts`, alertas |
+| S4 ✅ | [165] → [166] (en serie) | ya | `lib/catalogo/cohortes.ts`, `lib/deals/actividades.ts`, `opcionesDeFicha`, tab Programs |
 | S5 | [164] Mi espacio | semana 1, después del 163 | `app/(app)/mi-dia/`, `lib/nav.ts` (avisar a Alejo) |
 | S6 | [167] Quién cobró es una FK | semana 1, después del 160 | la cola de migraciones, `lib/queries/comision.ts`, `metricas-filtros.ts` |
 
-Checkpoint el domingo en la noche con S1 a S4; el lunes, A.8 antes de compartir el link. Sin el 167, A.4 sigue
+✅ S1 a S4 en `main` la misma noche (2-oct), CI verde y `cp-20261003-1`; recorrido de la sesión central hecho en `dev:local`. Sigue S5 (164) y S6 (167). Antes: el lunes, A.8 antes de compartir el link. Sin el 167, A.4 sigue
 pidiendo `closer_id` al dar de alta a Nicolás y Francisco.
 
 **Después de esta ola** (no es operación, es lectura): 148 dashboard por secciones, 065, 090, 159 (`closer_id` se

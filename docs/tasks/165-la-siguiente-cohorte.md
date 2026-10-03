@@ -3,7 +3,7 @@ id: 165
 etapa: O2
 serves: "docs/anotaciones.md A-47, A-49, A-50; ADR 0070"
 depends: [142]
-status: review
+status: done
 ---
 
 # 165 — Crear la siguiente cohorte, y que Próxima cohorte respete la fecha

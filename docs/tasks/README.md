@@ -21,7 +21,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 1 · Entrada y lead
 
-211 tickets, 4 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
+30 tickets, 2 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -58,7 +58,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 2 · Deal y motor de etapas
 
-24 tickets, 8 abiertos.
+24 tickets, 2 abiertos.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -78,14 +78,14 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 139 | [La ficha del deal por bloques](./139-ficha-del-deal-por-bloques.md) | 132, 134 | done · 1-oct · Mani · checkpoint `cp-20261002-1` · enmienda el 074: cabecera con nombre derivado, Origen con los UTM crudos, Perfil, Lead y contactos, Log agrupado por objeto y momento, Facturación. El recorrido dejó A-15 a A-17 (al 075) y A-18 (E9) |
 | [x] | 140 | [Crear un deal a mano](./140-crear-un-deal-a-mano.md) | · | done · 2-oct · Alejo (ok de Mani) · "Nuevo deal" en el tablero de Deals: lead del programa o alta manual, `abrirDeal` en En gestión con historial y rastro, dueño = quien lo crea (ADR 0071 punto 6, también si es un gerente: ok de Mani). Lead con deal abierto: el rechazo lo enlaza y la base no se mueve; programa fuera del alcance: 404 sin escribir. `lib/deals/crear-a-mano.ts`, `tests/crear-deal-a-mano.test.ts` (14) |
 | [x] | 142 | [Las etapas de 30X](./142-las-etapas-de-30x.md) | QM-10, QD-8 | done · `cp-20261002-2` · 2-oct (madrugada): las tres tandas en `main` y la **0058 aplicada en producción**. QM-10 en el ADR 0070; manual aprobado y D-1 a D-9 y QM-12 en el ADR 0071 · carril Mani |
-| [ ] | 143 | [Etiquetas y propiedades por etapa](./143-etiquetas-y-propiedades-por-etapa.md) | 142, QD-8 | en main · 2-oct (noche) · `02fd1b8` · decisiones de Mani en el ticket; el área al contestar "¿Cómo terminó?" menos E9 (enmienda ADR 0072 punto 6) · rojo por etapa en ficha y tarjeta; la cifra queda al 148 · 510 tests de 9 archivos en verde en local · falta checkpoint verde y recorrido |
+| [x] | 143 | [Etiquetas y propiedades por etapa](./143-etiquetas-y-propiedades-por-etapa.md) | 142, QD-8 | done · `cp-20261002-5` · 2-oct · falta el recorrido de Mani |
 | [ ] | 153 | [Base local y lista de pruebas de la operación comercial](./153-base-local-y-pruebas-de-la-operacion-comercial.md) | 142, 151, 128, 118 | en curso · 2-oct: seed con las 11 etapas, deals por settear y no históricos (A-19 resuelta); lista de 33 pruebas recorrida entera por la sesión (recorridos 3 y 4, hallazgos A-19 a A-33 en `docs/anotaciones.md`). Falta: que Mani la recorra como closer · carril Mani |
 | [x] | 155 | [Los hallazgos de UI de los recorridos 3 y 4](./155-hallazgos-de-los-recorridos-3-y-4.md) | 128, 153 | done · 2-oct · CI verde en `2854fef` · carril Mani · A-20 a A-33 (A-24, A-29, A-31 y A-33 entraron antes por O2-d `37f558c`, se conservó esa versión; A-23 descartada: se confía en el closer; A-30 sigue en el 078); `aceptaAbono` en `lib/deals/etapas.ts`, llamadas cuya hora ya pasó, alerta de atendida sin Grain, log "creado" solo el primer grupo · typecheck, lint y build en verde, tests del cambio al CI (swap); recorrido en `dev:local` · sin migración · S |
-| [ ] | 156 | [La operación comercial intuitiva](./156-operacion-comercial-intuitiva.md) | 155 | en main · 2-oct · espera CI, build y recorrido · Codex implementó, revisó la sesión principal (typecheck y lint limpios, tests al CI por swap) · ADR 0075 · A-34 a A-39 (onboarding de closers): Transición por etapa destino, un pop-up para ficha y Kanban, alertas en su recuadro, comprobante sin reja, el closer ve lo suyo · sin migración · carril Mani |
-| [ ] | 160 | [Marcar una cortesía en el deal](./160-marcar-una-cortesia.md) | 142, 143 | todo · 2-oct · la columna existe (0058), falta escribirla y leerla |
-| [ ] | 161 | [La alerta "agotó intentos"](./161-alerta-de-tres-intentos.md) | 128, 142 | todo · 2-oct · ADR 0071 punto 4, sin construir |
-| [ ] | 162 | [Una sola tarjeta de Transición, con botones de etapa redondos](./162-transicion-unica-y-botones-de-etapa.md) | 156 | todo · 2-oct · A-43, A-44 · sin migración · S1 de la ola O2 |
-| [ ] | 165 | [Crear la siguiente cohorte, y que Próxima cohorte respete la fecha](./165-la-siguiente-cohorte.md) | 142 | todo · 2-oct · A-47, A-49, A-50 · sin migración · S4 de la ola O2 |
+| [x] | 156 | [La operación comercial intuitiva](./156-operacion-comercial-intuitiva.md) | 155 | done · `cp-20261002-5` · 2-oct · falta el recorrido de Mani |
+| [x] | 160 | [Marcar una cortesía en el deal](./160-marcar-una-cortesia.md) | 142, 143 | done · `cp-20261003-1` · 3-oct (S3) · marca solo de quien administra; fuera de ventas, cierres y comisión; cifra aparte en el dashboard |
+| [x] | 161 | [La alerta "agotó intentos"](./161-alerta-de-tres-intentos.md) | 128, 142 | done · `cp-20261003-1` · 3-oct (S3) · alerta roja al tercer intento en la etapa, en ficha e Inbox; un anulado no cuenta |
+| [x] | 162 | [Una sola tarjeta de Transición, con botones de etapa redondos](./162-transicion-unica-y-botones-de-etapa.md) | 156 | done · `cp-20261003-1` · 3-oct (S1) · Transición con "Mover a" y "Registrar" (Contacto, Intento, Nota en las once etapas); Actividades solo lista; botones redondos de igual ancho; el Kanban abre el mismo pop-up. Recorrido de la sesión central hecho |
+| [x] | 165 | [Crear la siguiente cohorte, y que Próxima cohorte respete la fecha](./165-la-siguiente-cohorte.md) | 142 | done · `cp-20261003-1` · 3-oct (S4) · "Crear C{n+1}" del administrador; selector solo futuras; retomar respeta el inicio de ventas (A-49, A-50); recorrido hecho |
 
 ## 3 · Inbox
 
@@ -101,7 +101,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 4 · Llamadas y Calendly
 
-9 tickets, 2 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
+12 tickets, 1 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -113,14 +113,14 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 059 | [`no_show` y `cancelada` van a Re-agenda](./059-no-show-y-cancelada-van-a-reagenda.md) (E4-3) | 057 | done · 28-sep · `marcarFallida`: Re-agenda desde Agendado (T8) y desde Atendido con motivo (T29) |
 | [x] | 096 | [Calendly: cada llamada a su deal; si hay duda, suelta](./096-calendly-cuelga-llamadas-de-deals.md) | 057, 045 | done · 29-sep · código completo y live; webhook verificado en los dos programas; 0038 y 0039 aplicadas; Maru creada y cuentas vinculadas en producción desde `/ajustes/usuarios` (ComunicArte: `soymarumarquez@gmail.com`; Tactical: `equipo@ttrading.co`) |
 | [x] | 098 | [La tab Calls](./098-tab-calls.md) | 057, 096, 097 | done · 29-sep · ruta `/p/<programa>/calls`, filtros, llamadas sueltas, Grain y resultados; recorrido visual funcional a 390 px realizado con consola |
-| [ ] | 152 | [El closer asigna su propia cuenta de Calendly](./152-el-closer-asigna-su-calendly.md) | 096, 031 | en main · 2-oct · espera checkpoint · `puedeTocarMembresia` (dueño o quien administra) en la mutación; `/perfil` con `asignarMiCalendlyAccion`; recorrido en `dev:local` como closer y la acción forjada con un `membresiaId` ajeno: 403, base quieta · ADR 0074: lo propio del closer lo edita el closer; acceso y atribución, quien administra · carril Mani · S |
-| [ ] | 157 | [El setter entrega el deal al closer por la cita](./157-handoff-del-setter-al-closer.md) | 156 | en main · 2-oct (noche) · `bbe7f9e` + test `52de822`; migración 0061 aplicada en producción con el ok de Mani · Codex implementó, revisó la sesión principal (typecheck, lint, build; tests del cambio por Codex, 125) · falta checkpoint verde y el recorrido de Mani (link de agenda, "Ya se lo mandé", Setteado por, suelta ajena 403) · ADR 0076 |
-| [ ] | 163 | [El detalle de una llamada, el mismo en la ficha y en Calls](./163-detalle-de-llamada.md) | 157 | todo · 2-oct · A-45 · sin migración · S2 de la ola O2 |
+| [x] | 152 | [El closer asigna su propia cuenta de Calendly](./152-el-closer-asigna-su-calendly.md) | 096, 031 | done · `cp-20261002-5` · 2-oct |
+| [x] | 157 | [El setter entrega el deal al closer por la cita](./157-handoff-del-setter-al-closer.md) | 156 | done · `cp-20261002-5` · 2-oct · falta el recorrido de Mani (link de agenda, "Ya se lo mandé", Setteado por, suelta ajena 403) |
+| [x] | 163 | [El detalle de una llamada, el mismo en la ficha y en Calls](./163-detalle-de-llamada.md) | 157 | done · `cp-20261003-1` · 3-oct (S2) · `DetalleDeLlamada` + `detalleDeLlamada` en ficha y Calls, con "Ir al deal"; recorrido hecho |
 | [ ] | 164 | [Mi espacio: el hub del closer](./164-mi-espacio-el-hub-del-closer.md) | 163 | todo · 2-oct · A-46 (cierra A-05) · semana 1 |
 
 ## 5 · Dinero
 
-14 tickets, 4 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
+15 tickets, 4 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -137,7 +137,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 133 | [La comisión por porcentaje congelado](./133-comision-por-porcentaje-congelado.md) | 132 | done · 1-oct · Mani · 0054 en producción; % congelado al entrar a venta, comisión por closer sobre sus mismos cierres. La 0055 ya quitó `comision_por_venta_usd` (en producción). 10,04/6,67 cargados en producción (verificado el 1-oct); el criterio del agregado pasa al 095 |
 | [x] | 134 | [El ticket base es de la cohorte y `productos` se retira](./134-ticket-base-de-la-cohorte-y-adios-productos.md) | 132 | done · 1-oct · Mani · 0056 en producción (sin `productos`); descuento contra la cohorte, deals nacen en la activa, cambios de una venta con motivo; 214 deals movidos a la C3 |
 | [ ] | 144 | [Próxima fecha de pago y cartera](./144-proxima-fecha-de-pago-y-cartera.md) | 132, QM-3, GC-17 | bloqueado |
-| [ ] | 166 | [Las plataformas de pago de un programa, a la vista](./166-plataformas-de-pago-visibles.md) | 100 | todo · 2-oct · A-48 · sin migración · S4 de la ola O2 |
+| [x] | 166 | [Las plataformas de pago de un programa, a la vista](./166-plataformas-de-pago-visibles.md) | 100 | done · `cp-20261003-1` · 3-oct (S4) · bloque "Plataformas de pago" en la ficha del programa y aviso en el abono; recorrido hecho |
 | [ ] | 167 | [Quién cobró es una FK a `users`, y un usuario nuevo no necesita `closer_id`](./167-quien-cobro-es-una-fk.md) | · | todo · 2-oct · A-51 · migración (cola) · semana 1; el 159 queda con lo del corte |
 
 ## 6 · Students y onboarding
@@ -186,7 +186,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 9 · Métricas, dashboard y metas
 
-19 tickets, 7 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
+20 tickets, 8 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -237,7 +237,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 11 · Plataforma
 
-18 tickets, 1 abierto.
+18 tickets, 1 abiertos.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|

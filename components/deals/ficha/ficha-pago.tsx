@@ -366,7 +366,7 @@ function DialogoAbono({
       <Campo etiqueta="Plataforma de pago (opcional)">
         {opciones.plataformas.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Este programa no tiene plataformas de pago; agrégalas en Programs.
+            Este programa no tiene plataformas de pago; agrégalas en la pestaña Programa.
           </p>
         ) : (
           <Select

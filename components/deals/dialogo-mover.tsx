@@ -253,7 +253,7 @@ export function DialogoMover({
               {campo === "cohorte_destino" ? (
                 cohortes.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    No hay próxima cohorte creada. Pídele a quien administra que la cree en Programs.
+                    No hay próxima cohorte creada. Pídele a quien administra que la cree en la pestaña Programa.
                   </p>
                 ) : (
                   <Select

@@ -3,7 +3,7 @@ id: 162
 etapa: O2
 serves: "docs/anotaciones.md A-43, A-44; ADR 0075 (enmienda de UI)"
 depends: [156]
-status: in_progress
+status: done
 ---
 
 > **2-oct (noche):** reclamado por la sesión S1 de la ola O2. Codex implementó en `.claude/worktrees/162`. En `main`; cuenta como hecho con el checkpoint verde que lo incluya.
