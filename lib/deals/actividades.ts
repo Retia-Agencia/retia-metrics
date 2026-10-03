@@ -8,6 +8,7 @@ import { trabajaLeads } from "@/lib/auth/roles";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
 import { moverEtapa, MovimientoRechazado } from "./mover-etapa";
+import { etapaTrasActividad } from "./actividad-mueve";
 
 /**
  * Registrar una actividad de un deal: contacto, intento fallido o nota.
@@ -74,12 +75,14 @@ export async function registrarActividad(db: Db, actor: ActorDeDeal, datos: Dato
       let etapa = deal.etapa;
       let pendiente = deal.pendiente;
       const sistema = { tipo: "sistema" } as const;
-      if ((tipo === "contacto" || tipo === "intento") && (etapa === "potencial" || etapa === "registrado")) {
+      // A dónde va lo decide `etapaTrasActividad`, la misma regla con la que la ficha lo explica.
+      const destino = tipo === "nota" ? etapa : etapaTrasActividad(etapa, tipo);
+      if (destino !== etapa && etapa !== "en_gestion") {
         const hecho = await moverEtapa(tx, { dealId: deal.id, a: "en_gestion", actor: sistema });
         etapa = hecho.a;
         pendiente = hecho.pendienteA;
       }
-      if (tipo === "contacto" && etapa === "en_gestion") {
+      if (destino === "contactado" && etapa === "en_gestion") {
         const hecho = await moverEtapa(tx, { dealId: deal.id, a: "contactado", actor: sistema });
         etapa = hecho.a;
         pendiente = hecho.pendienteA;

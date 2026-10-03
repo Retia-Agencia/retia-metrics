@@ -20,6 +20,7 @@ import {
   type PreguntaDeEtapa,
   type Respuesta,
 } from "@/components/deals/pregunta-de-etapa";
+import { etapaTrasActividad } from "@/lib/deals/actividad-mueve";
 
 type Tabla = Readonly<Record<EtapaDeal, PreguntaDeEtapa>>;
 
@@ -202,6 +203,41 @@ describe("respuestasPorDestino: Transición (ADR 0075)", () => {
     }
     for (const accion of ["contacto", "intento", "nota"] as const) {
       expect(queHace("atendido", null, accion, ETAPAS, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE)).not.toBe("");
+    }
+  });
+
+  it("Contacto e Intento dicen lo que hace el motor, en toda etapa (A-52)", () => {
+    for (const etapa of ETAPAS) {
+      for (const tipo of ["contacto", "intento"] as const) {
+        const texto = queHace(etapa, null, tipo, ETAPAS, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE);
+        const destino = etapaTrasActividad(etapa, tipo);
+        expect(texto, `${etapa}/${tipo}`).toContain(
+          destino === etapa ? "No cambia la etapa." : `El deal pasa a ${NOMBRE_DE_ETAPA[destino]}.`,
+        );
+      }
+    }
+    const texto = (etapa: EtapaDeal, tipo: "contacto" | "intento" | "nota") =>
+      queHace(etapa, null, tipo, ETAPAS, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE);
+    expect(texto("potencial", "contacto")).toBe("Hablaste con el lead. El deal pasa a Contactado.");
+    expect(texto("registrado", "intento")).toBe("Lo intentaste y no hubo respuesta. El deal pasa a En gestión.");
+    expect(texto("calificado", "contacto")).toBe("Hablaste con el lead. No cambia la etapa.");
+    expect(texto("calificado", "nota")).toBe("Una nota en el historial. No cambia la etapa.");
+  });
+
+  it("sin frase propia, la respuesta dice solo lo que cambia", () => {
+    const califica = respuestasDe("contactado", null).find((r) => r.id === "califica")!;
+    expect(queHace("contactado", null, califica, ETAPAS, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE))
+      .toBe(`El deal pasa a ${NOMBRE_DE_ETAPA.calificado}.`);
+  });
+});
+
+describe("etapaTrasActividad: la regla de registrarActividad", () => {
+  it("contacto lleva a Contactado y el intento a En gestión, solo desde las etapas de entrada", () => {
+    for (const etapa of ETAPAS) {
+      const entrada = etapa === "potencial" || etapa === "registrado";
+      expect(etapaTrasActividad(etapa, "contacto"), etapa)
+        .toBe(entrada || etapa === "en_gestion" ? "contactado" : etapa);
+      expect(etapaTrasActividad(etapa, "intento"), etapa).toBe(entrada ? "en_gestion" : etapa);
     }
   });
 

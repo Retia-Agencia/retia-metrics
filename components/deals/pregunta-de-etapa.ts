@@ -1,4 +1,5 @@
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
+import { etapaTrasActividad } from "@/lib/deals/actividad-mueve";
 
 /**
  * La pregunta de cada etapa y sus respuestas (ADR 0072 punto 1; Atendido, ADR 0071
@@ -202,6 +203,9 @@ export function queHace(
   const respuesta = typeof accionOId === "string" ? null : accionOId;
   const accion = respuesta?.accion;
   const id = typeof accionOId === "string" ? accionOId : accionOId.id;
+  const actividad = id === "contacto" || id === "intento"
+    ? id
+    : accion?.tipo === "actividad" ? accion.actividad : null;
   const registro = id === "nota"
     ? "Una nota en el historial."
     : id === "descartar"
@@ -216,21 +220,22 @@ export function queHace(
               : accion.uso === "reprogramar"
                 ? "La cita cambió de fecha."
                 : "No asistió o canceló: queda para re-agendar."
-            : id === "contacto" || (accion?.tipo === "actividad" && accion.actividad === "contacto")
+            : actividad === "contacto"
               ? "Hablaste con el lead."
-              : id === "intento" || (accion?.tipo === "actividad" && accion.actividad === "intento")
+              : actividad === "intento"
                 ? "Lo intentaste y no hubo respuesta."
-                : "Registra la respuesta.";
+                : null;
+  const con = (consecuencia: string) => (registro ? `${registro} ${consecuencia}` : consecuencia);
+  const pasaA = (destino: EtapaDeal | undefined) =>
+    destino && destino !== etapa ? con(`El deal pasa a ${nombreDeEtapa[destino]}.`) : con("No cambia la etapa.");
 
-  if (accion?.tipo === "abono") return `${registro} El deal pasa a Ganado.`;
+  // Una actividad mueve con la regla del motor, no con la de las columnas del Kanban.
+  if (actividad) return pasaA(etapaTrasActividad(etapa, actividad));
+  if (accion?.tipo === "abono") return con("El deal pasa a Ganado.");
   if (accion?.tipo === "mover" && accion.a === etapa && accion.pendiente != null) {
-    return `${registro} Queda en ${nombreDeEtapa[etapa]} con ${nombreDePendiente[accion.pendiente]}.`;
+    return con(`Queda en ${nombreDeEtapa[etapa]} con ${nombreDePendiente[accion.pendiente]}.`);
   }
-  if (accion) {
-    const destino = orden.filter((candidato) => llevaA(accion, etapa, candidato)).at(-1);
-    if (destino) return `${registro} El deal pasa a ${nombreDeEtapa[destino]}.`;
-  }
-  return `${registro} No cambia la etapa.`;
+  return pasaA(accion ? orden.filter((candidato) => llevaA(accion, etapa, candidato)).at(-1) : undefined);
 }
 
 /**
