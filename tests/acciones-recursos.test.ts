@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import {
-  categoriasRecurso,
   changeLog,
   enlacesPago,
   plataformasPrograma,
@@ -59,7 +58,6 @@ let closerId: string;
 let developerId: string;
 let programaA: string;
 let programaB: string;
-let categoria: string;
 let plataforma: string;
 
 const sesionGerente = {
@@ -109,9 +107,6 @@ beforeEach(async () => {
     .returning();
   programaB = b.id;
 
-  const [cat] = await db.insert(categoriasRecurso).values({ nombre: "Brochure" }).returning();
-  categoria = cat.id;
-
   // PayPal ya viene sembrada por la migracion 0003; se reusa en vez de insertarla.
   const [pl] = await db
     .select()
@@ -145,7 +140,6 @@ async function accionesPrograma() {
 
 const recursoEn = (programId: string | null) => ({
   programId,
-  categoriaId: categoria,
   titulo: "Brochure",
   url: "https://drive.google.com/brochure",
 });
@@ -261,7 +255,6 @@ describe("acciones de recursos — un administrador entra a todo", () => {
 
     const [creado] = await db.select().from(recursos).where(eq(recursos.programId, programaA));
     expect(creado).toBeDefined();
-    expect(creado.categoriaId).toBeNull();
 
     // La escritura por el molde siempre registra en change_log (ADR 0012/0029).
     const log = await db.select().from(changeLog).where(eq(changeLog.registroId, creado.id));

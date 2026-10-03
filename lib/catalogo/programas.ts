@@ -18,7 +18,7 @@ import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
  * que el molde NO expresa vive aca:
  *
  *  - **El slug no se puede cambiar despues de creado.** Las URLs guardadas (y las
- *    rutas `/programas/[slug]`) dependen de el; editarlo con otro slug es un 400.
+ *    rutas `/p/[slug]`) dependen de el; editarlo con otro slug es un 400.
  *  - **Un solo esquema zod** valida el alta y la edicion: nombre, slug con formato
  *    `^[a-z0-9-]+$`, ticket en USD y las dos URLs opcionales.
  *
@@ -45,7 +45,7 @@ const urlOpcional = z
  * cualquier codigo: una sola validacion de la misma entidad.
  *
  * El slug se restringe a `^[a-z0-9-]+$` (minusculas, digitos y guion): es lo que
- * cabe en una URL sin escapar y lo que la ruta `/programas/[slug]` espera.
+ * cabe en una URL sin escapar y lo que la ruta `/p/[slug]` espera.
  */
 export const esquemaPrograma = z.object({
   nombre: z.string().trim().min(1, "El nombre es obligatorio.").max(120, "Máximo 120 caracteres."),

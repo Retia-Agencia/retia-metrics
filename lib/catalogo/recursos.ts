@@ -21,7 +21,7 @@ import { exigirAccesoAlPrograma, type ActorConAcceso } from "./acceso-programa";
  *    escrituras y la exclusion mutua viven en `lib/catalogo/versionar.ts`.
  *  - **`programId` nulo = recurso global** (sirve para todos los programas). El
  *    indice unico parcial de la base usa `coalesce` para que dos globales vigentes
- *    con el mismo titulo y categoria SI choquen (Postgres trata dos NULL como
+ *    con el mismo titulo SI choquen (Postgres trata dos NULL como
  *    distintos): ese choque debe salir como 409, nunca como 500.
  *
  * Un solo esquema zod. La URL solo puede ser https:// (ADR 0017). La base se recibe
@@ -45,10 +45,6 @@ export const esquemaUrlHttps = z
 export const esquemaRecurso = z.object({
   // Nulo = recurso global. `undefined` tambien se admite como global.
   programId: z.string().uuid("Programa inválido.").nullable().optional().default(null),
-  // Un recurso ya no se categoriza (ticket 171): la categoria era un catalogo que nadie
-  // leia para decidir nada ni para agrupar una metrica (ADR 0077). Ausente => null; la
-  // columna ya es nullable (migracion 0062). El catalogo se retira en el ticket 175.
-  categoriaId: z.string().uuid("Categoría inválida.").nullable().optional().default(null),
   titulo: z.string().trim().min(1, "El título es obligatorio.").max(120, "Máximo 120 caracteres."),
   url: esquemaUrlHttps,
 });
@@ -61,7 +57,6 @@ export type RecursoValidado = z.output<typeof esquemaRecurso>;
 /** Un recurso tal como lo ve el llamador (fila del molde con columnas tipadas). */
 export interface RecursoVista extends FilaCatalogo {
   programId: string | null;
-  categoriaId: string | null;
   titulo: string;
   url: string;
   vigente: boolean;
@@ -71,7 +66,6 @@ export interface RecursoVista extends FilaCatalogo {
 /** Columnas de `recursos` que el molde administra al crear/editar. */
 type CamposRecurso = {
   programId: string | null;
-  categoriaId: string | null;
   titulo: string;
   url: string;
 };
@@ -148,7 +142,7 @@ export type Actor = ActorConAcceso;
  * Crea un recurso vigente. El actor debe poder gestionar el programa destino
  * (administrador siempre; closer solo en sus programas activos, y NUNCA un recurso
  * global). La entrada se valida con el esquema compartido y el molde escribe
- * `change_log`. Un duplicado vigente (mismo programa/global, misma categoria y
+ * `change_log`. Un duplicado vigente (mismo programa/global, mismo
  * titulo) choca con el indice parcial y sale como 409, no como 500.
  */
 export async function crearRecurso(
@@ -165,7 +159,7 @@ export async function crearRecurso(
 }
 
 /**
- * Edita un recurso (titulo, url, categoria, programa). Un cambio de URL puntual va
+ * Edita un recurso (titulo, url, programa). Un cambio de URL puntual va
  * mejor por `reemplazar`, que conserva el historial; `editar` corrige un dato mal
  * escrito sin crear una version nueva.
  *

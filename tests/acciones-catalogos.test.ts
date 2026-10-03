@@ -111,15 +111,15 @@ describe("operaciones de catalogos — el gerente administra", () => {
 
   it("desactivar marca inactivo y reactivar lo vuelve activo, ambos en change_log", async () => {
     const { crearItem, desactivarItem, reactivarItem, listarItems } = await ops();
-    const creada = await crearItem(db, "origenes", { nombre: "Webinar" });
+    const creada = await crearItem(db, "motivos", { nombre: "Webinar" });
 
-    const desactivada = await desactivarItem(db, "origenes", creada.id);
+    const desactivada = await desactivarItem(db, "motivos", creada.id);
     expect(desactivada.activo).toBe(false);
 
-    const reactivada = await reactivarItem(db, "origenes", creada.id);
+    const reactivada = await reactivarItem(db, "motivos", creada.id);
     expect(reactivada.activo).toBe(true);
 
-    const activos = await listarItems(db, "origenes");
+    const activos = await listarItems(db, "motivos");
     expect(activos.find((i) => i.id === creada.id)?.activo).toBe(true);
 
     const log = await db.select().from(changeLog).where(eq(changeLog.registroId, creada.id));

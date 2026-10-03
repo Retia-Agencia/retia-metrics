@@ -6,7 +6,7 @@ import type { Db } from "@/lib/db/tipos";
 /**
  * Los programas salen de la tabla `programs` (ADR 0012): agregar una fila los hace
  * aparecer en la navegacion y en su ruta, sin tocar codigo. Aqui viven las lecturas
- * que necesitan la nav, la ruta `/programas/[slug]` y la administracion (ticket 014).
+ * que necesitan la nav, la ruta `/p/[slug]` y la administracion (ticket 014).
  *
  * La base se recibe por inyeccion (por defecto la de la app) para poder correr los
  * tests sobre PGlite sin Neon, igual que el molde de catalogo.

@@ -10,13 +10,12 @@ import type { Catalogo } from "@/lib/catalogo/molde";
 import { ErrorDeApp } from "@/lib/errors";
 import { plataformasDePago } from "@/lib/catalogo/plataformas";
 import { motivos } from "@/lib/catalogo/motivos";
-import { origenes } from "@/lib/catalogo/origenes";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
- * Ticket 011 estreno el molde con plataformas de pago; el ticket 012 agrega los
- * catalogos `motivos` y `origenes`. Los tres cumplen el mismo contrato (ADR 0012),
+ * Ticket 011 estreno el molde con plataformas de pago; el ticket 012 agrega el
+ * catalogo `motivos`. Ambos cumplen el mismo contrato (ADR 0012),
  * asi que las conductas se prueban una sola vez, parametrizadas por catalogo. Si
  * un catalogo nuevo entra al molde, se agrega una fila a `CATALOGOS` y hereda toda
  * la bateria, sin copiar tests.
@@ -116,29 +115,6 @@ const CATALOGOS: CasoCatalogo[] = [
       duplicable: "Indeciso",
       editarA: "Muy indeciso",
       desactivar: "Distancia",
-    },
-  },
-  {
-    titulo: "origenes",
-    fabrica: origenes,
-    nombreTabla: "origenes",
-    semillas: [
-      "Agenda del día",
-      "Follow-up",
-      "Cola de descartados",
-      "Cola de setteo",
-      "Masivos",
-      "Lanzamiento",
-      "Referido",
-    ],
-    entidad: "un origen",
-    semillaExistente: "Referido",
-    semillaEnOtraCaja: "referido",
-    nuevos: {
-      crear: "Webinar",
-      duplicable: "Evento",
-      editarA: "Evento presencial",
-      desactivar: "Podcast",
     },
   },
 ];

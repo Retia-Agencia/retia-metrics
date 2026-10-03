@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
-  categoriasRecurso,
   plataformasPago,
   programs,
   users,
@@ -20,7 +19,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 023: las lecturas de la pantalla `/recursos`. El molde del 022 devuelve
- * filas sin joins; la pantalla necesita el nombre de la categoria y del programa ya
+ * filas sin joins; la pantalla necesita el nombre del programa ya
  * resueltos (nunca uuids), el filtro por programa que incluye los globales, la
  * busqueda por titulo, y el historial de versiones. Todo SELECT, sobre PGlite.
  */
@@ -30,8 +29,6 @@ let cerrar: () => Promise<void>;
 let actor: { id: string; rol: "gerente" };
 let programaA: string;
 let programaB: string;
-let categoriaBrochure: string;
-let categoriaGuion: string;
 let plataforma: string;
 
 beforeEach(async () => {
@@ -54,11 +51,6 @@ beforeEach(async () => {
     .returning();
   programaB = b.id;
 
-  const [cb] = await db.insert(categoriasRecurso).values({ nombre: "Brochure" }).returning();
-  categoriaBrochure = cb.id;
-  const [cg] = await db.insert(categoriasRecurso).values({ nombre: "Guion" }).returning();
-  categoriaGuion = cg.id;
-
   // PayPal ya viene sembrada por la migracion 0003; se reusa en vez de insertarla.
   const [pl] = await db
     .select()
@@ -75,19 +67,16 @@ describe("recursosVigentes — filtro por programa incluye los globales", () => 
   it("un filtro por programa trae los del programa Y los globales", async () => {
     await crearRecurso(db, actor, {
       programId: programaA,
-      categoriaId: categoriaBrochure,
       titulo: "Brochure Comunicarte",
       url: "https://drive.google.com/comunicarte",
     });
     await crearRecurso(db, actor, {
       programId: programaB,
-      categoriaId: categoriaBrochure,
       titulo: "Brochure Tactical",
       url: "https://drive.google.com/tactical",
     });
     await crearRecurso(db, actor, {
       programId: null,
-      categoriaId: categoriaGuion,
       titulo: "Guion global",
       url: "https://drive.google.com/guion",
     });
@@ -99,16 +88,14 @@ describe("recursosVigentes — filtro por programa incluye los globales", () => 
     expect(titulos).not.toContain("Brochure Tactical");
   });
 
-  it("sin filtro de programa trae todos, con el nombre de categoria y programa resueltos", async () => {
+  it("sin filtro de programa trae todos, con el nombre del programa resuelto", async () => {
     await crearRecurso(db, actor, {
       programId: programaA,
-      categoriaId: categoriaBrochure,
       titulo: "Brochure Comunicarte",
       url: "https://drive.google.com/comunicarte",
     });
     await crearRecurso(db, actor, {
       programId: null,
-      categoriaId: categoriaGuion,
       titulo: "Guion global",
       url: "https://drive.google.com/guion",
     });
@@ -116,7 +103,6 @@ describe("recursosVigentes — filtro por programa incluye los globales", () => 
     const filas = await recursosVigentes({}, db);
     expect(filas).toHaveLength(2);
     const brochure = filas.find((f) => f.titulo === "Brochure Comunicarte")!;
-    expect(brochure.categoriaNombre).toBe("Brochure");
     expect(brochure.programaNombre).toBe("Comunicarte");
     const global = filas.find((f) => f.titulo === "Guion global")!;
     expect(global.programaNombre).toBeNull();
@@ -125,13 +111,11 @@ describe("recursosVigentes — filtro por programa incluye los globales", () => 
   it("la busqueda por titulo encuentra sin distinguir mayusculas", async () => {
     await crearRecurso(db, actor, {
       programId: programaA,
-      categoriaId: categoriaBrochure,
       titulo: "Brochure Comunicarte",
       url: "https://drive.google.com/comunicarte",
     });
     await crearRecurso(db, actor, {
       programId: programaA,
-      categoriaId: categoriaGuion,
       titulo: "Guion de ventas",
       url: "https://drive.google.com/guion",
     });
@@ -143,7 +127,6 @@ describe("recursosVigentes — filtro por programa incluye los globales", () => 
   it("solo devuelve las versiones vigentes, no el historial", async () => {
     const creado = await crearRecurso(db, actor, {
       programId: programaA,
-      categoriaId: categoriaBrochure,
       titulo: "Brochure",
       url: "https://drive.google.com/v1",
     });
@@ -184,7 +167,6 @@ describe("historialDeRecurso — versiones anteriores en orden tras dos reemplaz
   it("devuelve las versiones anteriores, de la mas reciente a la mas vieja", async () => {
     const v1 = await crearRecurso(db, actor, {
       programId: programaA,
-      categoriaId: categoriaBrochure,
       titulo: "Brochure",
       url: "https://drive.google.com/v1",
     });
@@ -203,7 +185,6 @@ describe("historialDeRecurso — versiones anteriores en orden tras dos reemplaz
   it("carga varios historiales con una sola consulta", async () => {
     const v1 = await crearRecurso(db, actor, {
       programId: programaA,
-      categoriaId: categoriaBrochure,
       titulo: "Brochure",
       url: "https://drive.google.com/v1",
     });
@@ -211,7 +192,6 @@ describe("historialDeRecurso — versiones anteriores en orden tras dos reemplaz
     const v3 = await reemplazarRecurso(db, actor, v2.id, "https://drive.google.com/v3");
     const otro = await crearRecurso(db, actor, {
       programId: programaA,
-      categoriaId: categoriaGuion,
       titulo: "Guion",
       url: "https://drive.google.com/guion",
     });
@@ -227,7 +207,6 @@ describe("historialDeRecurso — versiones anteriores en orden tras dos reemplaz
   it("un recurso sin reemplazos tiene historial vacio", async () => {
     const v1 = await crearRecurso(db, actor, {
       programId: programaA,
-      categoriaId: categoriaBrochure,
       titulo: "Solo uno",
       url: "https://drive.google.com/unico",
     });
@@ -245,19 +224,16 @@ describe("alcance por programIds (ticket 171, ADR 0048)", () => {
   it("recursosVigentes con programIds excluye otros programas pero conserva los globales", async () => {
     await crearRecurso(db, actor, {
       programId: programaA,
-      categoriaId: categoriaBrochure,
       titulo: "De A",
       url: "https://drive.google.com/a",
     });
     await crearRecurso(db, actor, {
       programId: programaB,
-      categoriaId: categoriaBrochure,
       titulo: "De B",
       url: "https://drive.google.com/b",
     });
     await crearRecurso(db, actor, {
       programId: null,
-      categoriaId: categoriaGuion,
       titulo: "Global",
       url: "https://drive.google.com/g",
     });
@@ -269,13 +245,11 @@ describe("alcance por programIds (ticket 171, ADR 0048)", () => {
   it("recursosVigentes con programIds vacio deja SOLO los globales (sin inArray([]))", async () => {
     await crearRecurso(db, actor, {
       programId: programaA,
-      categoriaId: categoriaBrochure,
       titulo: "De A",
       url: "https://drive.google.com/a",
     });
     await crearRecurso(db, actor, {
       programId: null,
-      categoriaId: categoriaGuion,
       titulo: "Global",
       url: "https://drive.google.com/g",
     });

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { and, eq, isNull } from "drizzle-orm";
-import { categoriasRecurso, changeLog, programs, recursos, users } from "@/lib/db/schema";
+import { changeLog, programs, recursos, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import {
@@ -28,8 +28,6 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let gerenteId: string;
 let programaA: string;
-let catBrochure: string;
-let catGuion: string;
 
 /** El actor gerente (id + rol). Los recursos ahora reciben `{ id, rol }` (ADR 0016). */
 let actorGerente: { id: string; rol: "gerente" };
@@ -51,11 +49,6 @@ beforeEach(async () => {
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
     .returning();
   programaA = a.id;
-
-  const [b] = await db.insert(categoriasRecurso).values({ nombre: "Brochure" }).returning();
-  catBrochure = b.id;
-  const [g] = await db.insert(categoriasRecurso).values({ nombre: "Guion" }).returning();
-  catGuion = g.id;
 });
 
 afterEach(async () => {
@@ -68,7 +61,6 @@ async function logDe(registroId: string) {
 
 const recursoValido = (over: Partial<Record<string, unknown>> = {}) => ({
   programId: programaA,
-  categoriaId: catBrochure,
   titulo: "Brochure Comunicarte",
   url: "https://drive.google.com/brochure",
   ...over,
@@ -124,7 +116,7 @@ describe("crear recurso", () => {
     expect((error as ErrorDeApp).status).toBe(400);
   });
 
-  it("dos recursos globales (programId nulo) vigentes con mismo titulo y categoria chocan con 400", async () => {
+  it("dos recursos globales (programId nulo) vigentes con mismo titulo chocan con 400", async () => {
     await crearRecurso(db, actorGerente, recursoValido({ programId: null, titulo: "Guia" }));
     const error = await crearRecurso(
       db,
@@ -146,14 +138,14 @@ describe("reemplazar recurso", () => {
     const v2 = await reemplazarRecurso(db, actorGerente, v1.id, "https://drive.google.com/v2");
     const v3 = await reemplazarRecurso(db, actorGerente, v2.id, "https://drive.google.com/v3");
 
-    // Exactamente una fila vigente para (programa, categoria, titulo).
+    // Exactamente una fila vigente para (programa, titulo).
     const vigentes = await db
       .select()
       .from(recursos)
       .where(
         and(
           eq(recursos.programId, programaA),
-          eq(recursos.categoriaId, catBrochure),
+          eq(recursos.titulo, "Brochure Comunicarte"),
           eq(recursos.vigente, true),
         ),
       );
@@ -169,7 +161,7 @@ describe("reemplazar recurso", () => {
     const todas = await db
       .select()
       .from(recursos)
-      .where(eq(recursos.categoriaId, catBrochure));
+      .where(eq(recursos.titulo, "Brochure Comunicarte"));
     expect(todas.length).toBe(3);
     const v1f = todas.find((r) => r.id === v1.id)!;
     const v2f = todas.find((r) => r.id === v2.id)!;
@@ -188,7 +180,7 @@ describe("reemplazar recurso", () => {
           .where(
             and(
               eq(recursos.programId, programaA),
-              eq(recursos.categoriaId, catBrochure),
+              eq(recursos.titulo, "Brochure Comunicarte"),
               eq(recursos.vigente, true),
             ),
           )
@@ -275,8 +267,6 @@ describe("desactivar y reactivar recurso (nunca DELETE)", () => {
       .select()
       .from(recursos)
       .where(and(isNull(recursos.programId), eq(recursos.vigente, true), eq(recursos.activo, true)));
-    expect(globalesVigentes.filter((r) => r.categoriaId === catBrochure).length).toBe(1);
-    // silence unused
-    void catGuion;
+    expect(globalesVigentes.filter((r) => r.titulo === "Global").length).toBe(1);
   });
 });

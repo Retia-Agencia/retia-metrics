@@ -3,8 +3,6 @@ import type { Db } from "@/lib/db/tipos";
 import type { Catalogo } from "./molde";
 import { esquemaPlataformaPago, plataformasDePago } from "./plataformas";
 import { esquemaMotivo, motivos } from "./motivos";
-import { esquemaOrigen, origenes } from "./origenes";
-import { categoriasDeRecurso, esquemaCategoriaRecurso } from "./categorias-recurso";
 import { areas, esquemaArea } from "./areas";
 
 /**
@@ -13,7 +11,7 @@ import { areas, esquemaArea } from "./areas";
  * Es la UNICA fuente de verdad de que catalogos administra la pantalla. Agregar un
  * catalogo nuevo (que ya cumpla el molde) es una sola linea aca: la pantalla, las
  * pestañas y las operaciones lo heredan sin tocar nada mas. Un test
- * (`tests/registro-catalogos.test.ts`) fija que aparezcan los cinco del molde.
+ * (`tests/registro-catalogos.test.ts`) fija que aparezcan los del molde.
  */
 
 /** La entrada minima comun a todos los catalogos del molde: un nombre. */
@@ -29,7 +27,7 @@ export interface DefinicionCatalogo {
    *
    * Solo las plataformas de pago: un closer se topa con "necesito cobrar por un medio
    * que no esta" y no deberia esperar a un gerente. Los motivos de perdida y los
-   * origenes del lead siguen siendo de administracion — son las etiquetas con las que
+   * son las etiquetas con las que
    * se mide a todo el equipo.
    *
    * Es una propiedad del CATALOGO, no un `rol === "closer"` escrito en la pantalla:
@@ -71,22 +69,6 @@ export const REGISTRO_CATALOGOS: readonly DefinicionCatalogo[] = [
     nombre: "Motivos de pérdida",
     esquema: esquemaMotivo,
     fabrica: motivos,
-  },
-  {
-    slug: "origenes",
-    vinculadoAProgramas: false,
-    compartidoConClosers: false,
-    nombre: "Orígenes del lead",
-    esquema: esquemaOrigen,
-    fabrica: origenes,
-  },
-  {
-    slug: "categorias-recurso",
-    vinculadoAProgramas: false,
-    compartidoConClosers: false,
-    nombre: "Categorías de recurso",
-    esquema: esquemaCategoriaRecurso,
-    fabrica: categoriasDeRecurso,
   },
   {
     slug: "areas",

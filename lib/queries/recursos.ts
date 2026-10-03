@@ -1,7 +1,6 @@
 import { and, asc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import {
-  categoriasRecurso,
   enlacesPago,
   plataformasPago,
   programs,
@@ -16,7 +15,7 @@ import type { Db } from "@/lib/db/tipos";
  * igual que las demás consultas de pantalla.
  *
  * Este modulo existe porque el `listar` del molde devuelve filas SIN joins: la
- * pantalla necesita el NOMBRE de la categoria y del programa ya resueltos (nunca
+ * pantalla necesita el NOMBRE del programa ya resuelto (nunca
  * uuids), el filtro por programa que SIEMPRE incluye los globales, la busqueda por
  * titulo y el historial de versiones. El molde no expresa nada de eso.
  *
@@ -50,8 +49,6 @@ export interface RecursoDeLaPantalla {
   id: string;
   titulo: string;
   url: string;
-  categoriaId: string | null;
-  categoriaNombre: string | null;
   /** Nulo = recurso global (sirve para todos los programas). */
   programId: string | null;
   /** Nulo cuando el recurso es global. */
@@ -67,8 +64,8 @@ function patronDe(texto: string): string {
 }
 
 /**
- * Recursos VIGENTES y activos, con el nombre de su categoria y de su programa ya
- * resueltos (nunca uuids). Un `programId` en el filtro trae los de ese programa Y
+ * Recursos VIGENTES y activos, con el nombre de su programa ya
+ * resuelto (nunca uuids). Un `programId` en el filtro trae los de ese programa Y
  * los globales (`program_id IS NULL`): un recurso global sirve para todos y debe
  * aparecer con cualquier filtro. Sin `programId` trae todos.
  */
@@ -104,15 +101,12 @@ export async function recursosVigentes(
       id: recursos.id,
       titulo: recursos.titulo,
       url: recursos.url,
-      categoriaId: recursos.categoriaId,
-      categoriaNombre: categoriasRecurso.nombre,
       programId: recursos.programId,
       programaNombre: programs.nombre,
     })
     .from(recursos)
     // El programa entra por leftJoin: un recurso global no tiene programa y debe
-    // salir igual. La categoria es obligatoria, pero se deja leftJoin por simetria.
-    .leftJoin(categoriasRecurso, eq(categoriasRecurso.id, recursos.categoriaId))
+    // salir igual.
     .leftJoin(programs, eq(programs.id, recursos.programId))
     .where(and(...condiciones))
     .orderBy(asc(recursos.titulo));

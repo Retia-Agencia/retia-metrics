@@ -39,7 +39,6 @@ const CAMPO_CANONICO: Record<string, string> = {
   program_id: "programId",
   cohort_id: "cohortId",
   huella_fila: "huellaFila",
-  origen_id: "origenId",
   fecha_agenda: "fechaAgenda",
   fecha_llamada: "fechaLlamada",
   fecha_seguimiento: "fechaSeguimiento",
@@ -78,7 +77,7 @@ const ETIQUETA_DE_CAMPO: Record<string, string> = {
   motivoAnulacion: "Motivo de anulación",
 };
 
-const CAMPOS_OCULTOS = new Set(["programId", "cohortId", "huellaFila", "raw", "origenId"]);
+const CAMPOS_OCULTOS = new Set(["programId", "cohortId", "huellaFila", "raw"]);
 const CAMPOS_FECHA = new Set(["fechaAgenda", "fechaLlamada", "fechaSeguimiento", "anuladoEn"]);
 const CAMPOS_CON_NOMBRE = new Set(["closerUserId", "anuladoPor", "motivoId"]);
 

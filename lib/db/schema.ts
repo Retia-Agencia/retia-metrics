@@ -1120,8 +1120,6 @@ export const calls = pgTable(
     fechaSeguimiento: timestamp("fecha_seguimiento", { withTimezone: true }),
     /** Motivo de perdida como catalogo (ADR 0015). `motivoPerdida` queda solo para filas viejas de Sheets. */
     motivoId: uuid("motivo_id").references(() => motivos.id, { onDelete: "restrict" }),
-    /** Origen del lead como catalogo (ADR 0015). */
-    origenId: uuid("origen_id").references(() => origenes.id, { onDelete: "restrict" }),
     notas: text("notas"),
     origen: text("origen").notNull().default("sheets"),
     /** Huella de la fila de origen, para no duplicar en cada sync. */
@@ -1450,22 +1448,6 @@ export const motivos = pgTable(
 );
 
 /**
- * Origenes del lead (agenda del dia, follow-up, referido, ...). Catalogo del molde
- * (ADR 0012): el codigo no decide nada segun su valor, asi que vive como fila
- * editable desde la app.
- */
-export const origenes = pgTable(
-  "origenes",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    nombre: text("nombre").notNull(),
-    activo: boolean("activo").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex("origenes_nombre_idx").on(sql`lower(${t.nombre})`)],
-);
-
-/**
  * Areas de Retia (ticket 083, ADR 0043): agrupan leads y deals por origen. Area NO
  * es rol. El area de un lead se deriva de su Canal (ticket 101), nunca se guarda en
  * leads ni deals. La unica excepcion es `deals.area_declarada_id` (ticket 121): lo que
@@ -1525,23 +1507,7 @@ export const canales = pgTable(
   ],
 );
 
-/**
 // ─────────────────────────────────────────────────────────── recursos y enlaces de pago
-
-/**
- * Categoria de un recurso (Brochure, Pagina web, Guion, ...). Es un catalogo mas
- * sobre el molde (ADR 0012): agregar una categoria es una fila, nunca un literal.
- */
-export const categoriasRecurso = pgTable(
-  "categorias_recurso",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    nombre: text("nombre").notNull(),
-    activo: boolean("activo").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex("categorias_recurso_nombre_idx").on(sql`lower(${t.nombre})`)],
-);
 
 /**
  * Un link del equipo: brochure, pagina web, guion, formulario, Calendly, Drive
@@ -1562,8 +1528,6 @@ export const recursos = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     /** Nulo = recurso global, no atado a un programa. */
     programId: uuid("program_id").references(() => programs.id, { onDelete: "cascade" }),
-    /** Nula desde la 0062 (ADR 0077): un recurso libre no tiene categoria. La columna se va en el 175. */
-    categoriaId: uuid("categoria_id").references(() => categoriasRecurso.id, { onDelete: "restrict" }),
     titulo: text("titulo").notNull(),
     url: text("url").notNull(),
     vigente: boolean("vigente").notNull().default(true),
@@ -1576,7 +1540,7 @@ export const recursos = pgTable(
   },
   (t) => [
     /**
-     * Una sola version VIGENTE por (programa, categoria, titulo). La garantia vive
+     * Una sola version VIGENTE por (programa, titulo). La garantia vive
      * en la base y no solo en el codigo (ADR 0005), igual que la cohorte activa.
      *
      * Dos detalles que no son adorno:
@@ -1590,7 +1554,6 @@ export const recursos = pgTable(
     uniqueIndex("recursos_vigente_idx")
       .on(
         sql`coalesce(${t.programId}, '00000000-0000-0000-0000-000000000000'::uuid)`,
-        t.categoriaId,
         sql`lower(${t.titulo})`,
       )
       .where(sql`${t.vigente} = true and ${t.activo} = true`),
@@ -1659,8 +1622,6 @@ export type Cambio = typeof changeLog.$inferSelect;
 export type PlataformaPago = typeof plataformasPago.$inferSelect;
 export type PlataformaPrograma = typeof plataformasPrograma.$inferSelect;
 export type Motivo = typeof motivos.$inferSelect;
-export type Origen = typeof origenes.$inferSelect;
-export type CategoriaRecurso = typeof categoriasRecurso.$inferSelect;
 export type Recurso = typeof recursos.$inferSelect;
 export type EnlacePago = typeof enlacesPago.$inferSelect;
 export type SobreCrudo = typeof sobresCrudos.$inferSelect;

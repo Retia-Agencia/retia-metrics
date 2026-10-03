@@ -8,9 +8,9 @@ import { REGISTRO_CATALOGOS, catalogoPorSlug } from "@/lib/catalogo/registro";
  * registro incluye los catalogos del molde y ni uno mas escrito a mano.
  */
 describe("registro de catalogos (ticket 013)", () => {
-  it("incluye exactamente plataformas, motivos, origenes, categorias de recurso y areas", () => {
+  it("incluye exactamente plataformas, motivos y areas", () => {
     const slugs = REGISTRO_CATALOGOS.map((c) => c.slug).sort();
-    expect(slugs).toEqual(["areas", "categorias-recurso", "motivos", "origenes", "plataformas"]);
+    expect(slugs).toEqual(["areas", "motivos", "plataformas"]);
   });
 
   it("cada definicion trae nombre visible, esquema y fabrica del catalogo", () => {

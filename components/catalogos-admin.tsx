@@ -25,7 +25,7 @@ import {
  *
  * Recibe la lista de definiciones (slug + nombre visible) y los items ya leidos de
  * cada catalogo, y arma una pestaña por catalogo sobre UN solo componente. No sabe
- * nada de plataformas, motivos ni origenes: todo llega como dato, incluido si el
+ * nada de plataformas ni motivos: todo llega como dato, incluido si el
  * catalogo se vincula a programas (`programas`) y si este actor puede administrarlo
  * (`puedeAdministrar`). Agregar un catalogo nuevo no toca este archivo — solo el
  * registro (ADR 0012).
