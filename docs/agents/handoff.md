@@ -32,6 +32,21 @@ leer es libre, escribir pide el ok de Mani.
 
 ## Memory
 
+- **2026-10-02 (noche 2, Mani + Claude): 157 y 143 en `main`, la 0061 aplicada, el manual al día.**
+  - **Hecho:** 0061 (`deals.setter_user_id`, `deals.handoff_en`) aplicada en producción con el ok de Mani y verificada
+    (62 migraciones). 157 en `bbe7f9e` (Codex; revisión: guardianes intactos, crédito una vez, reja de la suelta antes
+    de escribir, build). 154 en `e4e61c3` (Transición, comprobante sin reja, handoff, cuatro caminos, 11 etapas en un
+    minuto). 143 en `02fd1b8`: Codex + tres correcciones de la sesión (E9 sin área, predicados de llamada y contacto
+    compartidos entre motor y Kanban en `lib/deals/mover-etapa.ts`, tests alineados).
+  - **CI:** `4fb64f2` cayó en `tests/inbox-asignar-suelta.test.ts` (afirmaba el contrato viejo de la suelta);
+    arreglado en `52de822` con el caso forjado del closer no-host. Mirar que la corrida de `52de822` salga verde y
+    marcar checkpoint.
+  - **Pendiente:** recorrido de Mani del 156, 157 y 143; el recorrido con webhook de Calendly firmado en `dev:local`
+    (no se hizo: 11 GB de swap). Cortesía: un deal de cortesía sale rojo en valor y abono hasta que exista la marca.
+  - **Aprendido:** el brief tiene que nombrar los tests que afirman el contrato que cambia (Codex no corre la suite
+    y no los encuentra solo: el de la suelta cayó en CI, el de E9 en el nivel 1 de la sesión). Y una salida de
+    Atendido que puede disparar el sistema (E9) no puede pedir un dato de una persona.
+
 - **2026-10-02 (noche, Mani + Claude): onboarding de los closers nuevos → ADR 0075 y 0076, el 156 en `main`.**
   - **De dónde sale:** la llamada de onboarding con los dos closers nuevos y Michael. Mani mandó 8 puntos; quedaron
     como A-34 a A-42 en `docs/anotaciones.md` (recorrido 5), con lo que no es código (programas de Nicolás y

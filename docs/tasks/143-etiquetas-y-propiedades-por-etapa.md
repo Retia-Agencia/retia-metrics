@@ -3,7 +3,7 @@ id: 143
 etapa: NC2
 serves: "comercial.md GC-02, GC-32, §9.2"
 depends: [142, QD-4, QD-10]
-status: todo
+status: in_progress
 ---
 
 > **2-oct (Mani, sesión del 142):** el área declarada al entrar a Atendido (ADR 0072 punto 6) se construye AQUÍ, no
