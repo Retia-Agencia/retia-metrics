@@ -41,8 +41,8 @@ describe("cuentasDeCalendly", () => {
       ]),
     });
     expect(cuentas).toEqual([
-      { correo: "andrea@calendly.co", nombre: "Andrea" },
-      { correo: "maru@calendly.co", nombre: "Maru" },
+      { correo: "andrea@calendly.co", nombre: "Andrea", membresiaId: null },
+      { correo: "maru@calendly.co", nombre: "Maru", membresiaId: null },
     ]);
   });
 
@@ -153,7 +153,11 @@ describe("vincular la cuenta de una membresia", () => {
     await asignarCalendlyDeMembresia(db, maru, { membresiaId: membresiaMaru, calendlyEmail: "maru@calendly.co" }, { fetch });
     await expect(
       asignarCalendlyDeMembresia(db, andrea, { membresiaId: membresiaAndrea, calendlyEmail: "maru@calendly.co" }, { fetch }),
-    ).rejects.toMatchObject({ status: 409 });
+    ).rejects.toMatchObject({
+      status: 409,
+      message: "Esa cuenta de Calendly ya la tiene otra persona del programa.",
+    });
+    expect((await db.select().from(miembrosPrograma).where(eq(miembrosPrograma.id, membresiaAndrea)))[0].calendlyEmail).toBeNull();
   });
 
   it("desvincular no consulta Calendly", async () => {
@@ -185,5 +189,24 @@ describe("vincular la cuenta de una membresia", () => {
     const r = await cuentasPorPrograma(db, [programId, sin.id], { fetch: calendly(ORGANIZACION) });
     expect(r[programId]).toMatchObject({ ok: true });
     expect(r[sin.id]).toEqual({ ok: false, error: "El programa no tiene token de Calendly." });
+  });
+
+  it("cuentasPorPrograma marca la membresía que ocupa la cuenta solo dentro de ese programa", async () => {
+    await db.update(miembrosPrograma).set({ calendlyEmail: "maru@calendly.co", activo: false }).where(eq(miembrosPrograma.id, membresiaMaru));
+    const [otro] = await db
+      .insert(programs)
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-ocupado", nombre: "Otro", ticketUsd: "797", calendlyToken: "pat" })
+      .returning();
+    await db.insert(miembrosPrograma).values({ userId: maru, programId: otro.id });
+
+    const r = await cuentasPorPrograma(db, [programId, otro.id], { fetch: calendly(ORGANIZACION) });
+    expect(r[programId]).toMatchObject({
+      ok: true,
+      cuentas: expect.arrayContaining([{ correo: "maru@calendly.co", nombre: "Maru", membresiaId: membresiaMaru }]),
+    });
+    expect(r[otro.id]).toMatchObject({
+      ok: true,
+      cuentas: expect.arrayContaining([{ correo: "maru@calendly.co", nombre: "Maru", membresiaId: null }]),
+    });
   });
 });

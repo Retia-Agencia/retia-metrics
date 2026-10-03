@@ -150,10 +150,12 @@ async function reagendar(
     if (!vieja) return null;
 
     const etiqueta = vieja.emailLead ?? normalizarEmail(cita.correoInvitado) ?? vieja.id;
+    const host = closerHost(cita.correoHost, await closersConCalendly(tx, programId));
     await editarConRastro({ db: tx, tabla: calls, nombreTabla: "calls", actorId: null, etiqueta }, vieja.id, {
       huellaFila: huellaDeCita(cita.uuidInvitado),
       fechaAgenda: cita.inicio,
       calendlyHostEmail: cita.correoHost,
+      closerUserId: host,
       resultado: "agendada",
       raw: rawDelInvitado(cita),
     });
@@ -161,7 +163,6 @@ async function reagendar(
     if (!vieja.dealId || vieja.etapa === null || vieja.etapa === "ganado_completo" || vieja.etapa === "cierre_perdido") {
       return { tipo: "reagendada", callId: vieja.id, movioAAgendado: false } as const;
     }
-    const host = closerHost(cita.correoHost, await closersConCalendly(tx, programId));
     const efecto = await efectoSobreElDeal(tx, vieja.dealId, host, etiqueta, cita.inicio);
     return { tipo: "reagendada", callId: vieja.id, movioAAgendado: efecto.movioAAgendado, rechazo: efecto.rechazo };
   });

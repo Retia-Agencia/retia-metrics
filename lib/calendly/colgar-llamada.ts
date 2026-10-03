@@ -52,7 +52,8 @@ import {
  * la membresia). Si tenia otro dueño, pasa a la host y queda una nota del sistema en el
  * deal: es el aviso, hasta que exista el canal de notificaciones.
  *
- * La llamada nace SIN `closer_user_id`, igual que la del 052: la reclama el dueño del deal.
+ * La llamada toma como closer a la host registrada en el programa (ADR 0077 punto 5).
+ * Solo queda sin `closer_user_id` cuando la host no tiene cuenta vinculada.
  */
 
 /** Una cita de Calendly tal como la entrega quien la lee (webhook o consulta, A5). */
@@ -170,6 +171,7 @@ export async function registrarLlamadaDeCalendly(
     const correo = normalizarEmail(cita.correoInvitado);
     const candidatos = correo ? await candidatosPorCorreo(tx, programId, correo) : [];
     const closers = await closersConCalendly(tx, programId);
+    const host = closerHost(cita.correoHost, closers);
     const idPorCodigo = dealDeCodigo(codigoDeDealDelInvitado(cita));
     const [dealPorCodigo] = idPorCodigo
       ? await tx
@@ -195,6 +197,7 @@ export async function registrarLlamadaDeCalendly(
       resultado: "agendada" as const,
       origen: "calendly",
       huellaFila: huellaDeCita(cita.uuidInvitado),
+      closerUserId: host,
       raw: rawDelInvitado(cita),
     };
 
@@ -211,7 +214,7 @@ export async function registrarLlamadaDeCalendly(
     const callId = await crearLlamada(tx, { ...valores, dealId: deal.id, cohortId: deal.cohortId }, correo);
     if (!callId) return { tipo: "repetida", callId: (await llamadaPorHuella(tx, programId, cita.uuidInvitado))! };
 
-    const efecto = await efectoSobreElDeal(tx, deal.id, closerHost(cita.correoHost, closers), correo, cita.inicio);
+    const efecto = await efectoSobreElDeal(tx, deal.id, host, correo, cita.inicio);
     return { tipo: "colgada", callId, dealId: deal.id, ...efecto };
   });
 }
@@ -389,6 +392,7 @@ export async function asignarLlamadaSuelta(
           programId: calls.programId,
           emailLead: calls.emailLead,
           host: calls.calendlyHostEmail,
+          closerUserId: calls.closerUserId,
           fechaAgenda: calls.fechaAgenda,
         })
         .from(calls)
@@ -415,7 +419,11 @@ export async function asignarLlamadaSuelta(
       await editarConRastro(
         { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta },
         llamada.id,
-        { dealId: deal.id, cohortId: deal.cohortId },
+        {
+          dealId: deal.id,
+          cohortId: deal.cohortId,
+          ...(llamada.closerUserId === null && host !== null ? { closerUserId: host } : {}),
+        },
       );
       return efectoSobreElDeal(tx, deal.id, host, etiqueta, llamada.fechaAgenda);
     });

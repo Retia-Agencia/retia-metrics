@@ -317,6 +317,7 @@ async function crearLlamadaDeCita(
   // La cita pudo entrar antes por el webhook de Calendly, suelta: se adopta (096).
   const previa = await adoptarSueltaDeCita(db, deal.programId, llamada.uuidInvitado, deal);
   if (previa !== "no_existe") return;
+  const host = closerHost(llamada.correoHost ?? null, await closersConCalendly(db, deal.programId));
   try {
     await crearConRastro(
       {
@@ -333,6 +334,7 @@ async function crearLlamadaDeCita(
         emailLead,
         fechaAgenda: llamada.inicio,
         calendlyHostEmail: llamada.correoHost ?? null,
+        closerUserId: host,
         resultado: "agendada" as const,
         origen: "calendly",
         huellaFila: huellaDeCita(llamada.uuidInvitado),

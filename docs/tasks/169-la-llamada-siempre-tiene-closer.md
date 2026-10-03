@@ -60,10 +60,22 @@ línea del script), el manual. **No toca** la página `/perfil` (172) ni la fich
 
 ## Done cuando
 
-- Una cita con host registrado deja la llamada con closer y el deal con ese dueño; probado con `simular:cita` en
+- [ ] Una cita con host registrado deja la llamada con closer y el deal con ese dueño; probado con `simular:cita` en
   `dev:local` y en tests de la ruta real.
-- Una cita con host sin cuenta sale en rojo en el Inbox y no se pierde.
-- El relleno en seco reporta cuántas llamadas casan y cuáles no; aplicado solo con el ok de Mani.
-- El desplegable muestra solo correos libres y guarda al elegir; elegir una cuenta ya tomada, forjando la acción, da
+- [x] Una cita con host sin cuenta sale en rojo en el Inbox y no se pierde.
+- [x] El relleno en seco reporta cuántas llamadas casan y cuáles no; aplicado solo con el ok de Mani.
+- [x] El desplegable muestra solo correos libres y guarda al elegir; elegir una cuenta ya tomada, forjando la acción, da
   error sin mover la base.
-- `npm run build` en verde; recorrido del handoff en `dev:local`, consola abierta.
+- [ ] `npm run build` en verde; recorrido del handoff en `dev:local`, consola abierta.
+
+## Nota de cierre (Codex)
+
+La llamada ahora guarda como closer a la host cuya cuenta de Calendly casa con una membresía activa del programa en
+la creación, el camino 052, la reagenda y la asignación de una suelta. Si no casa, queda en el bloque urgente del
+Inbox. El selector ofrece solo cuentas libres del programa y guarda al cambiar; el servidor devuelve 409 si otra
+membresía ya tomó la cuenta. Se agregaron el relleno con ensayo por defecto y `simular:cita`, además de las pruebas de
+ruta firmada, rastro, vigencia y frontera por programa.
+
+Verificado: `npm run typecheck`, `npm run lint` y 200 pruebas focalizadas en 11 archivos. El wrapper `npm test` no pudo
+usar `ps` por la restricción del sandbox; los mismos archivos pasaron con Vitest y `--configLoader runner`. Quedan para
+la sesión con Mani el relleno aplicado, el recorrido en `dev:local` y el build, que esta sesión tenía prohibido correr.

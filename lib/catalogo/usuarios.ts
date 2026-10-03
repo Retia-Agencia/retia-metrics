@@ -1,4 +1,4 @@
-import { and, eq, type SQL } from "drizzle-orm";
+import { and, eq, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
 import { changeLog, miembrosPrograma, programs, users } from "@/lib/db/schema";
@@ -515,6 +515,7 @@ export async function asignarCalendlyDeMembresia(
         userId: miembrosPrograma.userId,
         activo: miembrosPrograma.activo,
         actual: miembrosPrograma.calendlyEmail,
+        programId: miembrosPrograma.programId,
         email: users.email,
         token: programs.calendlyToken,
       })
@@ -530,6 +531,18 @@ export async function asignarCalendlyDeMembresia(
     if (m.actual === calendlyEmail) return;
 
     if (calendlyEmail !== null) {
+      const [ocupada] = await db
+        .select({ id: miembrosPrograma.id })
+        .from(miembrosPrograma)
+        .where(
+          and(
+            eq(miembrosPrograma.programId, m.programId),
+            eq(sql`lower(${miembrosPrograma.calendlyEmail})`, calendlyEmail),
+          ),
+        );
+      if (ocupada && ocupada.id !== membresiaId) {
+        throw new ErrorDeApp("Esa cuenta de Calendly ya la tiene otra persona del programa.", 409);
+      }
       if (!m.token) {
         throw new ErrorDeApp("El programa no tiene token de Calendly: cárgalo antes de vincular cuentas.", 409);
       }
@@ -561,7 +574,7 @@ export async function asignarCalendlyDeMembresia(
       ]);
     } catch (e) {
       if (esViolacionUnica(e)) {
-        throw new ErrorDeApp("Esa cuenta de Calendly ya está vinculada a otra closer en este programa.", 409);
+        throw new ErrorDeApp("Esa cuenta de Calendly ya la tiene otra persona del programa.", 409);
       }
       throw e;
     }

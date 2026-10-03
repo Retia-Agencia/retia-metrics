@@ -51,7 +51,7 @@ async function invocar(programa: string, cuerpo: string, firma: string | null): 
 
 const uri = (uuid: string) => `https://api.calendly.com/scheduled_events/EV/invitees/${uuid}`;
 
-function creado(uuid: string, extra: { inicio?: string; viejo?: string; correo?: string } = {}) {
+function creado(uuid: string, extra: { inicio?: string; viejo?: string; correo?: string; host?: string } = {}) {
   return {
     event: "invitee.created",
     payload: {
@@ -61,7 +61,7 @@ function creado(uuid: string, extra: { inicio?: string; viejo?: string; correo?:
       old_invitee: extra.viejo ? uri(extra.viejo) : null,
       scheduled_event: {
         start_time: extra.inicio ?? "2026-10-02T15:00:00.000000Z",
-        event_memberships: [{ user_email: "maru.tactical@calendly.co" }],
+        event_memberships: [{ user_email: extra.host ?? "maru.tactical@calendly.co" }],
       },
     },
   };
@@ -157,6 +157,7 @@ describe("una cita nueva", () => {
     const [c] = await llamadas();
     expect(c.dealId).toBe(dealId);
     expect(c.fechaAgenda?.toISOString()).toBe("2026-10-02T15:00:00.000Z");
+    expect(c.closerUserId).toBe(maru);
     expect(await etapa()).toEqual({ etapa: "agendado", owner: maru, pendiente: null });
 
     const [s] = await db.select().from(sobresCrudos);
@@ -253,6 +254,17 @@ describe("reagenda: la MISMA llamada, en los dos ordenes", () => {
     await enviar(cancelado("VIEJA", true));
     await enviar(creado("NUEVA", { viejo: "VIEJA", inicio: "2026-10-05T16:00:00Z" }));
     await verificar();
+  });
+
+  it("una reagenda con otra host cambia el closer de la misma llamada", async () => {
+    const [andrea] = await db.insert(users).values({ email: "andrea@retiagrowth.com", rol: "closer" }).returning();
+    await db.insert(miembrosPrograma).values({ userId: andrea.id, programId, calendlyEmail: "andrea@calendly.co" });
+    await enviar(creado("VIEJA"));
+    const [antes] = await llamadas();
+    await enviar(creado("NUEVA", { viejo: "VIEJA", host: "andrea@calendly.co" }));
+    const [despues] = await llamadas();
+    expect(despues.id).toBe(antes.id);
+    expect(despues.closerUserId).toBe(andrea.id);
   });
 
   it("si la vieja ya estaba cancelada (la cancelacion llego sin marca), la nueva la revive y el deal vuelve a Agendado", async () => {

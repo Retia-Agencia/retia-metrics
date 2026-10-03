@@ -1,8 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createHmac } from "node:crypto";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { calls, changeLog, deals, leads, programs, users } from "@/lib/db/schema";
+import { calls, changeLog, deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { linkEnviadoSinCita, marcarLinkEnviado } from "@/lib/deals/handoff";
+import { codigoDeDeal } from "@/lib/calendly/link-de-agenda";
+import { inboxDelPrograma } from "@/lib/queries/inbox";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -12,21 +15,66 @@ let dealId: string;
 let ownerId: string;
 let otroId: string;
 let programId: string;
+let hostId: string;
+const CLAVE = "clave-handoff-local";
+const holder: { db: Db | null } = { db: null };
+
+vi.mock("@/lib/db", () => ({
+  get db() {
+    return holder.db;
+  },
+}));
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "handoff", nombre: "Handoff", ticketUsd: "1000" }).returning();
+  holder.db = db;
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "handoff", nombre: "Handoff", ticketUsd: "1000", calendlySigningKey: CLAVE }).returning();
   programId = programa.id;
   const [owner] = await db.insert(users).values({ email: "setter@retia.co", rol: "closer" }).returning();
   const [otro] = await db.insert(users).values({ email: "otro@retia.co", rol: "closer" }).returning();
   ownerId = owner.id;
   otroId = otro.id;
+  const [host] = await db.insert(users).values({ email: "host@retia.co", rol: "closer" }).returning();
+  hostId = host.id;
+  await db.insert(miembrosPrograma).values({ userId: hostId, programId, calendlyEmail: "host@calendly.co" });
   const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "lead@correo.co" }).returning();
   const [deal] = await db.insert(deals).values({ programId, leadId: lead.id, ownerUserId: ownerId, etapa: "calificado" }).returning();
   dealId = deal.id;
 });
 
-afterEach(async () => cerrar());
+afterEach(async () => {
+  holder.db = null;
+  await cerrar();
+});
+
+async function enviarCita(host: string, uuid: string): Promise<Response> {
+  const cuerpo = JSON.stringify({
+    event: "invitee.created",
+    payload: {
+      uri: `https://api.calendly.com/scheduled_events/H/invitees/${uuid}`,
+      email: "lead@correo.co",
+      tracking: { utm_content: codigoDeDeal(dealId) },
+      scheduled_event: {
+        start_time: "2026-10-04T15:00:00.000Z",
+        event_memberships: [{ user_email: host }],
+      },
+    },
+  });
+  const t = Math.floor(Date.now() / 1000);
+  const firma = createHmac("sha256", CLAVE).update(`${t}.${cuerpo}`, "utf8").digest("hex");
+  const { POST } = await import("@/app/api/webhooks/calendly/[programa]/route");
+  return POST(
+    new Request(`http://localhost/api/webhooks/calendly/${programId}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "calendly-webhook-signature": `t=${t},v1=${firma}`,
+      },
+      body: cuerpo,
+    }),
+    { params: Promise.resolve({ programa: programId }) },
+  );
+}
 
 describe("marcarLinkEnviado", () => {
   it("escribe handoff_en y su change_log con el actor", async () => {
@@ -60,5 +108,34 @@ describe("linkEnviadoSinCita", () => {
   it("alerta el lunes y se limpia cuando existe una cita vigente", () => {
     expect(linkEnviadoSinCita({ handoffEn: viernes, tieneCitaVigente: false, hoy: "2026-10-05" })).toBe(true);
     expect(linkEnviadoSinCita({ handoffEn: viernes, tieneCitaVigente: true, hoy: "2026-10-05" })).toBe(false);
+  });
+});
+
+describe("handoff por la ruta real de Calendly", () => {
+  it("con host vinculada pasa el deal, conserva el setter y asigna la llamada", async () => {
+    await marcarLinkEnviado(db, { userId: ownerId, rol: "closer" }, dealId);
+    expect((await enviarCita("host@calendly.co", "HANDOFF-1")).status).toBe(200);
+
+    const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
+    expect(deal).toMatchObject({ ownerUserId: hostId, setterUserId: ownerId, etapa: "agendado" });
+    const [llamada] = await db.select().from(calls).where(eq(calls.dealId, dealId));
+    expect(llamada.closerUserId).toBe(hostId);
+  });
+
+  it("sin cuenta guarda la llamada sin closer y la muestra en el Inbox del programa", async () => {
+    await marcarLinkEnviado(db, { userId: ownerId, rol: "closer" }, dealId);
+    expect((await enviarCita("externa@calendly.co", "HANDOFF-2")).status).toBe(200);
+
+    const [llamada] = await db.select().from(calls).where(eq(calls.dealId, dealId));
+    expect(llamada.closerUserId).toBeNull();
+    const inbox = await inboxDelPrograma(db, programId, "equipo");
+    expect(inbox.llamadasSinCloser).toEqual([
+      expect.objectContaining({
+        callId: llamada.id,
+        dealId,
+        hostEmail: "externa@calendly.co",
+        leadEmail: "lead@correo.co",
+      }),
+    ]);
   });
 });

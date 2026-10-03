@@ -9,6 +9,7 @@ import {
   dealEtapaHistorial,
   deals,
   leads,
+  miembrosPrograma,
   motivos,
   programs,
   sources,
@@ -393,9 +394,11 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
   });
 
   it("con_calendly + cita vigente, sin deal, abre en Agendado con historial y CREA su llamada", async () => {
+    const [host] = await db.insert(users).values({ email: "host@retia.co", rol: "closer" }).returning();
+    await db.insert(miembrosPrograma).values({ userId: host.id, programId, calendlyEmail: "host@calendly.co" });
     const r = await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: "con_calendly" })], {
       aplicarReglaDeDeals: true,
-      citasPorCorreo: citas("ana@correo.co", CITA_VIGENTE),
+      citasPorCorreo: citas("ana@correo.co", { ...CITA_VIGENTE, correoHost: "host@calendly.co" }),
     });
 
     const [deal] = await db.select().from(deals);
@@ -405,12 +408,13 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     expect(historial[0].de).toBeNull();
     expect(historial[0].a).toBe("agendado");
 
-    // La llamada de Calendly, colgada del deal, con la fecha real, sin closer.
+    // La llamada de Calendly queda colgada del deal, con la fecha real y la host como closer.
     const filasCall = await db.select().from(calls).where(eq(calls.dealId, deal.id));
     expect(filasCall).toHaveLength(1);
     expect(filasCall[0].resultado).toBe("agendada");
     expect(filasCall[0].fechaAgenda?.toISOString()).toBe(CITA_VIGENTE.inicio.toISOString());
     expect(filasCall[0].closerId).toBeNull();
+    expect(filasCall[0].closerUserId).toBe(host.id);
     expect(filasCall[0].origen).toBe("calendly");
     expect(filasCall[0].huellaFila).toBe("calendly:UU-1");
 

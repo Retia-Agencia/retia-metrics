@@ -1,5 +1,5 @@
-import { inArray } from "drizzle-orm";
-import { programs } from "@/lib/db/schema";
+import { and, inArray, isNotNull } from "drizzle-orm";
+import { miembrosPrograma, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { BASE, coleccionCompleta, ErrorDeCalendly, organizacionDelToken, type FetchLike } from "./cita";
 
@@ -21,6 +21,8 @@ export interface CuentaDeCalendly {
   nombre: string | null;
   /** En minusculas y sin espacios: la forma con la que se compara y se guarda. */
   correo: string;
+  /** Membresia de ESTE programa que ya tiene la cuenta, activa o no. */
+  membresiaId: string | null;
 }
 
 export async function cuentasDeCalendly({
@@ -48,7 +50,11 @@ export async function cuentasDeCalendly({
     const { email, name } = usuario as { email?: unknown; name?: unknown };
     if (typeof email !== "string" || !email.includes("@")) continue;
     const correo = email.trim().toLowerCase();
-    porCorreo.set(correo, { correo, nombre: typeof name === "string" && name.trim() ? name.trim() : null });
+    porCorreo.set(correo, {
+      correo,
+      nombre: typeof name === "string" && name.trim() ? name.trim() : null,
+      membresiaId: null,
+    });
   }
   return [...porCorreo.values()].sort((a, b) => (a.nombre ?? a.correo).localeCompare(b.nombre ?? b.correo, "es"));
 }
@@ -70,12 +76,33 @@ export async function cuentasPorPrograma(
     .select({ id: programs.id, token: programs.calendlyToken })
     .from(programs)
     .where(inArray(programs.id, [...programIds]));
+  const ocupadas = await db
+    .select({
+      programId: miembrosPrograma.programId,
+      membresiaId: miembrosPrograma.id,
+      correo: miembrosPrograma.calendlyEmail,
+    })
+    .from(miembrosPrograma)
+    .where(and(inArray(miembrosPrograma.programId, [...programIds]), isNotNull(miembrosPrograma.calendlyEmail)));
+  const membresiaPorCuenta = new Map(
+    ocupadas.map((m) => [`${m.programId}:${m.correo!.toLowerCase()}`, m.membresiaId]),
+  );
 
   const pares = await Promise.all(
     filas.map(async (p): Promise<[string, CuentasDelPrograma]> => {
       if (!p.token) return [p.id, { ok: false, error: "El programa no tiene token de Calendly." }];
       try {
-        return [p.id, { ok: true, cuentas: await cuentasDeCalendly({ token: p.token, fetch: opciones.fetch }) }];
+        const cuentas = await cuentasDeCalendly({ token: p.token, fetch: opciones.fetch });
+        return [
+          p.id,
+          {
+            ok: true,
+            cuentas: cuentas.map((cuenta) => ({
+              ...cuenta,
+              membresiaId: membresiaPorCuenta.get(`${p.id}:${cuenta.correo}`) ?? null,
+            })),
+          },
+        ];
       } catch (e) {
         if (e instanceof ErrorDeCalendly) return [p.id, { ok: false, error: e.message }];
         throw e;

@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, lte, notInArray, or } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, lte, notInArray, or } from "drizzle-orm";
 import {
   calls,
   deals,
@@ -15,7 +15,7 @@ import { hoyEnBogota } from "@/lib/format";
 import { carteraVencida } from "@/lib/queries/cartera";
 import { vigente } from "@/lib/queries/vigente";
 import { ultimaActividadPorDeal } from "@/lib/queries/ultima-actividad";
-import { sueltaPorAsignar } from "@/lib/calendly/suelta";
+import { ORIGEN_DE_SUELTA_ASIGNABLE, sueltaPorAsignar } from "@/lib/calendly/suelta";
 import { puedeColgarSuelta } from "@/lib/calendly/suelta";
 import { closerHost, type CloserDelPrograma } from "@/lib/calendly/emparejar-llamada";
 import { closersConCalendly } from "@/lib/calendly/colgar-llamada";
@@ -100,6 +100,15 @@ export interface FilaLlamada {
   sugerencias?: SugerenciaDeSuelta[];
 }
 
+export interface FilaLlamadaSinCloser {
+  callId: string;
+  dealId: string | null;
+  leadNombre: string | null;
+  leadEmail: string | null;
+  fechaAgenda: Date | null;
+  hostEmail: string;
+}
+
 /** Una fila de "lo mío que necesita atención" (sección 4). */
 export interface FilaAtencion {
   dealId: string;
@@ -127,6 +136,8 @@ export interface Inbox {
   llamadasDeHoy: FilaLlamada[];
   /** Sección 3: llamadas sueltas del programa, la más vieja primero. */
   llamadasSueltas: FilaLlamada[];
+  /** Citas de Calendly cuya host no tiene cuenta vinculada en el programa. */
+  llamadasSinCloser: FilaLlamadaSinCloser[];
   /** Sección 4: lo mío que necesita atención, agrupado por motivo (en orden de bucket). */
   atencion: FilaAtencion[];
 }
@@ -243,13 +254,14 @@ export async function inboxDelPrograma(
     .where(eq(programs.id, programId));
   const diasEstancado = programa?.diasSinActividad ?? 3;
 
-  const [llamadasDeHoy, llamadasSueltas, atencion] = await Promise.all([
+  const [llamadasDeHoy, llamadasSueltas, llamadasSinCloser, atencion] = await Promise.all([
     seccionLlamadasDeHoy(db, programId, alcance, ahora),
     llamadasSueltasDelPrograma(db, programId, actor),
+    llamadasSinCloserDelPrograma(db, programId),
     seccionAtencion(db, programId, alcance, hoy, diasEstancado),
   ]);
 
-  return { llamadasDeHoy, llamadasSueltas, atencion };
+  return { llamadasDeHoy, llamadasSueltas, llamadasSinCloser, atencion };
 }
 
 // ───────────────────────────────────────────── sección 1: llamadas que ya pasaron sin resultado
@@ -304,6 +316,55 @@ async function seccionLlamadasDeHoy(
     linkCalendly: f.linkCalendly,
     ownerNombre: alcance === "equipo" ? (f.ownerNombre ?? f.ownerEmail ?? null) : null,
   }));
+}
+
+/** Citas vigentes cuya host no casa con una cuenta del equipo. Son del programa entero. */
+export async function llamadasSinCloserDelPrograma(
+  db: Db,
+  programId: string,
+): Promise<FilaLlamadaSinCloser[]> {
+  const filas = await db
+    .select({
+      callId: calls.id,
+      dealId: calls.dealId,
+      emailLead: calls.emailLead,
+      fechaAgenda: calls.fechaAgenda,
+      hostEmail: calls.calendlyHostEmail,
+    })
+    .from(calls)
+    .where(
+      and(
+        eq(calls.programId, programId),
+        eq(calls.origen, ORIGEN_DE_SUELTA_ASIGNABLE),
+        eq(calls.resultado, "agendada"),
+        isNull(calls.closerUserId),
+        isNotNull(calls.calendlyHostEmail),
+        vigente(calls),
+      ),
+    );
+  const dealIds = filas.flatMap((fila) => (fila.dealId ? [fila.dealId] : []));
+  const personas = dealIds.length
+    ? await db
+        .select({ dealId: deals.id, leadNombre: leads.nombre, leadEmail: leads.emailNormalizado })
+        .from(deals)
+        .innerJoin(leads, eq(leads.id, deals.leadId))
+        .where(and(eq(deals.programId, programId), inArray(deals.id, dealIds), vigente(deals)))
+    : [];
+  const personaPorDeal = new Map(personas.map((persona) => [persona.dealId, persona]));
+
+  return filas
+    .map((fila) => {
+      const persona = fila.dealId ? personaPorDeal.get(fila.dealId) : null;
+      return {
+        callId: fila.callId,
+        dealId: fila.dealId,
+        leadNombre: persona?.leadNombre ?? null,
+        leadEmail: persona?.leadEmail ?? fila.emailLead,
+        fechaAgenda: fila.fechaAgenda,
+        hostEmail: fila.hostEmail!,
+      };
+    })
+    .sort((a, b) => (a.fechaAgenda?.getTime() ?? 0) - (b.fechaAgenda?.getTime() ?? 0));
 }
 
 // ───────────────────────────────────────────── sección 3: llamadas sueltas del programa

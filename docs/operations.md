@@ -82,6 +82,7 @@ Cada pieza vive en UN lugar, y ninguna se duplica:
 secreto en el proveedor → **"enviar prueba"** (el CRM la recibe y no crea lead: se ve en `sobres_crudos`) →
 conectar Calendly en el formulario y escoger el evento → cambiar los placeholders → publicar → **un envío real por
 camino** (descalificado, sin agenda, con agenda, con las seis UTM) revisado en la base antes de compartir el link.
+Antes de compartir un link de agenda, `npm run simular:cita -- --programa <slug> --host <correo> --lead <correo>` prueba el webhook firmado contra `dev:local`.
 El puntaje del formulario sigue el estándar único (`docs/dapta/README.md`, "Estándar de puntaje"). Desde el ADR 0069
 el formulario no decide la etapa: manda agenda, calidad y valor, y el CRM enruta (se construye con las etapas de 30X).
 
