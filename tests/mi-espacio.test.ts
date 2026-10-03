@@ -186,8 +186,21 @@ describe("/mi-espacio (ticket 172)", () => {
     const arbol = await renderizar();
     const texto = textoDelArbol(arbol);
     expect(texto).toContain("Ver como closer");
-    expect(texto).toContain("trabaja leads");
+    expect(texto).toContain("según su rol");
     // No le muestra el mensaje de "pídele a tu gerente": no aplica al dueño (ADR 0025).
+    expect(texto).not.toContain("pídele a tu gerente");
+  });
+
+  it("el developer en vista closer sin membresías ve el mensaje del dueño, no el de 'pídele a tu gerente' (179)", async () => {
+    // Vista `closer` sin suplantar: el rol de vista trabaja leads, pero la cuenta de verdad
+    // es el dueño y no está suplantando a nadie. Antes del arreglo le pedía hablar con su gerente.
+    cookieVista = "closer";
+    auth.mockResolvedValue({
+      user: { id: "u-dev", rol: "developer", closerId: null, name: "Dev", email: "dev@x.co", image: null },
+    });
+    membresiasConCalendlyDe.mockResolvedValue([]);
+    const texto = textoDelArbol(await renderizar());
+    expect(texto).toContain("Ver como closer");
     expect(texto).not.toContain("pídele a tu gerente");
   });
 
@@ -292,7 +305,7 @@ describe("/mi-espacio (ticket 172)", () => {
     const arbol = await renderizar();
     const texto = textoDelArbol(arbol);
     expect(texto).toContain("Ver como closer");
-    expect(texto).toContain("trabaja leads");
+    expect(texto).toContain("según su rol");
     expect(tieneComponente(arbol, "TabPendientes")).toBe(false);
     expect(tieneComponente(arbol, "TabPorDecidir")).toBe(false);
   });
