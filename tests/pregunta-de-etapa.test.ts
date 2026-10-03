@@ -13,6 +13,9 @@ import {
 } from "@/lib/deals/etapas";
 import {
   PREGUNTA_DE_ETAPA,
+  actividadesQueNoMueven,
+  cambiaLaEtapa,
+  gruposDeTransicion,
   queHace,
   respuestasDe,
   respuestasHacia,
@@ -258,5 +261,50 @@ describe("etapaTrasActividad: la regla de registrarActividad", () => {
     expect(grupos.destinos.filter((grupo) => grupo.destino === "ganado")).toMatchObject([
       { respuestas: [{ id: "abono" }] },
     ]);
+  });
+});
+
+describe("gruposDeTransicion: guardián de 'Mover a' (ticket 176, decisión 1)", () => {
+  // La regla única: si una respuesta cambia la etapa, va en "Mover a". El guardián recorre
+  // las once etapas (con y sin pendiente) y falla si una respuesta que cambia la etapa
+  // —otra etapa, o una actividad que mueve según `etapaTrasActividad`— queda fuera de ese
+  // grupo (en "Dejar en espera" o suelta como actividad).
+  it("ninguna respuesta que cambie la etapa queda fuera de 'Mover a'", () => {
+    for (const etapa of ETAPAS) {
+      for (const pendiente of [null, "reagenda"] as const) {
+        const { moverA, enEspera, actividades } = gruposDeTransicion(etapa, pendiente, ETAPAS);
+        const enMoverA = new Set(moverA.flatMap((grupo) => grupo.respuestas));
+
+        for (const respuesta of respuestasDe(etapa, pendiente)) {
+          if (!cambiaLaEtapa(etapa, respuesta.accion)) continue;
+          expect(enMoverA.has(respuesta), `${etapa}/${pendiente}/${respuesta.id} debería estar en Mover a`).toBe(true);
+          expect(enEspera.includes(respuesta), `${etapa}/${pendiente}/${respuesta.id} no debe estar en Dejar en espera`).toBe(false);
+        }
+
+        // "Dejar en espera" nunca cambia la etapa (solo pendientes).
+        for (const respuesta of enEspera) {
+          expect(cambiaLaEtapa(etapa, respuesta.accion), `${etapa}/${respuesta.id} en espera cambia la etapa`).toBe(false);
+        }
+
+        // El botón "Registrar actividad" solo ofrece tipos que NO mueven la etapa.
+        for (const tipo of actividades) {
+          if (tipo === "nota") continue;
+          expect(etapaTrasActividad(etapa, tipo), `${etapa}/${tipo}`).toBe(etapa);
+        }
+      }
+    }
+  });
+
+  it("en Potencial, Contacto e Intento son destinos de Mover a y no quedan como actividad", () => {
+    const { moverA, actividades } = gruposDeTransicion("potencial", null, ETAPAS);
+    const destinos = moverA.map((grupo) => grupo.destino);
+    expect(destinos).toContain("contactado");
+    expect(destinos).toContain("en_gestion");
+    // Lo único que no mueve en Potencial es la Nota.
+    expect(actividades).toEqual(["nota"]);
+  });
+
+  it("en Calificado nada se mueve con una actividad: las tres entran por 'Registrar actividad'", () => {
+    expect(actividadesQueNoMueven("calificado")).toEqual(["contacto", "intento", "nota"]);
   });
 });

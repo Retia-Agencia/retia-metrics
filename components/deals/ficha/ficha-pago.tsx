@@ -76,22 +76,34 @@ export function FichaPago({
   const cerrado = ficha.etapa === "ganado_completo" || ficha.etapa === "cierre_perdido";
   const esEstudiante = ficha.etapa === "ganado_parcial" || ficha.etapa === "ganado_completo";
   const abonosActivos = puedeRegistrar && aceptaAbono && !anulado && !cerrado;
+  // Fuera de las etapas de `aceptaAbono` el botón se ve deshabilitado con la razón (A-80):
+  // se abona desde Contactado en adelante, no antes.
+  const razonSinAbono = `Se abona desde Contactado; este deal está en ${nombreDeEtapa[ficha.etapa]}.`;
 
   return (
     <Card id={ID_DE_SECCION.pago} className="scroll-mt-24">
       <CardHeader>
         <CardTitle>Facturación</CardTitle>
-        {abonosActivos || (puedeTrabajar && !anulado) ? (
-          <CardAction className="flex gap-2">
-            {puedeTrabajar && !anulado ? (
+        {puedeTrabajar && !anulado ? (
+          <CardAction className="flex flex-col items-end gap-2">
+            <div className="flex gap-2">
               <Button size="sm" variant="ghost" onClick={() => setDialogo({ tipo: "cohorte" })}>
                 Cambiar cohorte
               </Button>
-            ) : null}
+              {abonosActivos ? (
+                <Button size="sm" variant="outline" onClick={() => setDialogo({ tipo: "abono" })}>
+                  Registrar abono
+                </Button>
+              ) : puedeRegistrar && !cerrado ? (
+                <Button size="sm" variant="outline" disabled title={razonSinAbono}>
+                  Registrar abono
+                </Button>
+              ) : null}
+            </div>
             {abonosActivos ? (
-              <Button size="sm" variant="outline" onClick={() => setDialogo({ tipo: "abono" })}>
-                Registrar abono
-              </Button>
+              <p className="text-xs text-muted-foreground">Registrar abono: el deal pasa a Ganado.</p>
+            ) : puedeRegistrar && !cerrado ? (
+              <p className="text-xs text-muted-foreground">{razonSinAbono}</p>
             ) : null}
           </CardAction>
         ) : null}
@@ -112,7 +124,10 @@ export function FichaPago({
             <dd className="flex flex-col items-start gap-1 text-sm">
               <span className="cifra">{ficha.descuento ? `${usd(ficha.descuento.usd)} · ${pct(ficha.descuento.porcentaje)}` : "—"}</span>
               {puedeTrabajar && !anulado ? (
-                <Button size="xs" variant="ghost" onClick={() => setDialogo({ tipo: "descuento" })}>Editar descuento</Button>
+                <>
+                  <Button size="xs" variant="ghost" onClick={() => setDialogo({ tipo: "descuento" })}>Editar descuento</Button>
+                  <span className="text-xs text-muted-foreground">Cambia el valor vendido.</span>
+                </>
               ) : null}
             </dd>
           </div>
@@ -166,6 +181,9 @@ export function FichaPago({
             Fecha límite: {ficha.fechaLimitePago ? fecha(ficha.fechaLimitePago) : "sin fecha"}
             {ficha.fechaLimiteSugerida ? ` · inicio de clases ${fecha(ficha.fechaLimiteSugerida)}` : ""}
           </p>
+          {puedeTrabajar && !anulado && !cerrado ? (
+            <p className="text-xs text-muted-foreground">Fija la fecha límite y la de pago; no cambia la etapa.</p>
+          ) : null}
         </div>
 
         {/* Estudiante: onboarding y cohorte (ticket 063). */}

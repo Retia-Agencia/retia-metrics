@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import type { OpcionCatalogo } from "@/lib/queries/kanban";
 import { moverDeal } from "@/app/(app)/p/[programa]/deals/acciones";
@@ -11,7 +12,7 @@ import { DialogoMover, type DatosDialogo, type MovimientoDelDialogo } from "./di
 import { marcarLinkEnviadoAccion, registrarActividadAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { accionDeFicha, enlaceDeAccion } from "./ficha/accion-pedida";
 import { Campo, claseInput, claseTextarea, DialogoForm } from "./ficha/campos";
-import { PREGUNTA_DE_ETAPA, type ClaveDestino, type Respuesta } from "./pregunta-de-etapa";
+import { PREGUNTA_DE_ETAPA, type ClaveDestino, type Respuesta, type TipoDeActividad } from "./pregunta-de-etapa";
 import type { FlechaCliente, MapaTransiciones } from "./transiciones";
 
 /**
@@ -43,11 +44,15 @@ export interface OpcionesDeRespuesta {
   motivos: { id: string; nombre: string; tipo: string }[];
 }
 
-type TipoDeActividad = "contacto" | "intento" | "nota";
-
 const TITULO_DE_ACTIVIDAD: Record<TipoDeActividad, string> = {
   contacto: "Registrar contacto",
   intento: "Registrar intento",
+  nota: "Nota",
+};
+
+const ETIQUETA_DE_ACTIVIDAD: Record<TipoDeActividad, string> = {
+  contacto: "Contacto",
+  intento: "Intento",
   nota: "Nota",
 };
 
@@ -79,6 +84,7 @@ export function useResponder(
 ): {
   elegir: (deal: DealQueResponde, r: Respuesta) => void;
   registrar: (deal: DealQueResponde, tipo: TipoDeActividad) => void;
+  registrarActividad: (deal: DealQueResponde, tipos: readonly TipoDeActividad[]) => void;
   abrirDestino: (deal: DealQueResponde, destino: ClaveDestino, respuestas: readonly Respuesta[]) => void;
   dialogo: ReactNode;
 } {
@@ -92,16 +98,33 @@ export function useResponder(
   const [enviando, setEnviando] = useState(false);
   const [agendaAbierta, setAgendaAbierta] = useState<DealQueResponde | null>(null);
   const [marcandoLink, setMarcandoLink] = useState(false);
-  const [actividadAbierta, setActividadAbierta] = useState<{ deal: DealQueResponde; tipo: TipoDeActividad } | null>(null);
+  // El pop-up de actividad guarda los tipos que se pueden elegir y el que esta elegido: con
+  // un solo tipo no hay selector; con varios ("Registrar actividad"), se escoge dentro.
+  const [actividadAbierta, setActividadAbierta] = useState<{
+    deal: DealQueResponde;
+    tipos: readonly TipoDeActividad[];
+    tipo: TipoDeActividad;
+  } | null>(null);
   const [canal, setCanal] = useState("");
   const [nota, setNota] = useState("");
   const [guardando, setGuardando] = useState(false);
 
-  function registrar(deal: DealQueResponde, tipo: TipoDeActividad) {
+  function abrirActividad(deal: DealQueResponde, tipos: readonly TipoDeActividad[]) {
+    if (tipos.length === 0) return;
     setCanal("");
     setNota("");
     setGuardando(false);
-    setActividadAbierta({ deal, tipo });
+    setActividadAbierta({ deal, tipos, tipo: tipos[0] });
+  }
+
+  /** Un tipo fijo (cuando "Mover a" dispara un contacto o un intento que mueve la etapa). */
+  function registrar(deal: DealQueResponde, tipo: TipoDeActividad) {
+    abrirActividad(deal, [tipo]);
+  }
+
+  /** El unico boton "Registrar actividad": pide el tipo entre los que no mueven. */
+  function registrarActividad(deal: DealQueResponde, tipos: readonly TipoDeActividad[]) {
+    abrirActividad(deal, tipos);
   }
 
   function elegir(deal: DealQueResponde, r: Respuesta) {
@@ -162,12 +185,12 @@ export function useResponder(
       ? `El deal pasa a ${nombreDeEtapa.contactado}.`
       : actividadAbierta.tipo === "intento" && ["potencial", "registrado"].includes(actividadAbierta.deal.etapa)
         ? `El deal pasa a ${nombreDeEtapa.en_gestion}.`
-        : undefined
+        : "No cambia la etapa; cuenta para los tres intentos y para el aviso de estancado."
     : undefined;
 
   let dialogo: ReactNode = actividadAbierta ? (
     <DialogoForm
-      titulo={TITULO_DE_ACTIVIDAD[actividadAbierta.tipo]}
+      titulo={actividadAbierta.tipos.length > 1 ? "Registrar actividad" : TITULO_DE_ACTIVIDAD[actividadAbierta.tipo]}
       descripcion={actividadAbierta.deal.nombreLead}
       pendiente={guardando}
       onCerrar={() => setActividadAbierta(null)}
@@ -192,6 +215,28 @@ export function useResponder(
         },
       }}
     >
+      {actividadAbierta.tipos.length > 1 ? (
+        <Campo etiqueta="Tipo">
+          <Select
+            value={actividadAbierta.tipo}
+            items={actividadAbierta.tipos.map((t) => ({ value: t, label: ETIQUETA_DE_ACTIVIDAD[t] }))}
+            onValueChange={(v: string | null) =>
+              v && setActividadAbierta((a) => (a ? { ...a, tipo: v as TipoDeActividad } : a))
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {actividadAbierta.tipos.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {ETIQUETA_DE_ACTIVIDAD[t]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Campo>
+      ) : null}
       <Campo etiqueta="Canal">
         <input
           className={claseInput}
@@ -314,7 +359,7 @@ export function useResponder(
       />
     );
   }
-  return { elegir, registrar, abrirDestino, dialogo };
+  return { elegir, registrar, registrarActividad, abrirDestino, dialogo };
 }
 
 /** Los botones de las respuestas, en el orden de la tabla. */

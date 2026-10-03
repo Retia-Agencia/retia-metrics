@@ -282,3 +282,64 @@ export function respuestasHacia(etapa: EtapaDeal, pendiente: PendienteDeal | nul
   if (columna === etapa) return [];
   return respuestasDe(etapa, pendiente).filter((r) => llevaA(r.accion, etapa, columna));
 }
+
+/** Si la respuesta cambia la etapa del deal (va al grupo "Mover a" de Transición, ticket 176). */
+export function cambiaLaEtapa(etapa: EtapaDeal, accion: AccionDeRespuesta): boolean {
+  switch (accion.tipo) {
+    case "mover":
+      return accion.a !== etapa;
+    case "retroceder":
+      return accion.destinos.length > 0;
+    case "abono":
+      return true;
+    case "actividad":
+      // Una actividad mueve con la regla del motor (`etapaTrasActividad`), no con las columnas.
+      return etapaTrasActividad(etapa, accion.actividad) !== etapa;
+    case "llamada":
+      // "Agendó" mueve a Agendado; reprogramar y fallida dejan la MISMA etapa con un pendiente.
+      return accion.uso === "agendar";
+  }
+}
+
+export type TipoDeActividad = "contacto" | "intento" | "nota";
+
+export const TIPOS_DE_ACTIVIDAD: readonly TipoDeActividad[] = ["contacto", "intento", "nota"];
+
+/**
+ * Los tipos de actividad que NO cambian la etapa en esta etapa (ticket 176, decisión 1):
+ * son los que ofrece el único botón "Registrar actividad". Contacto e Intento que mueven
+ * (Potencial, Registrado, En gestión) viven en "Mover a" y salen de aquí; una Nota nunca
+ * mueve, así que siempre está. La regla la decide `etapaTrasActividad`, no una lista.
+ */
+export function actividadesQueNoMueven(etapa: EtapaDeal): TipoDeActividad[] {
+  return TIPOS_DE_ACTIVIDAD.filter(
+    (tipo) => tipo === "nota" || etapaTrasActividad(etapa, tipo) === etapa,
+  );
+}
+
+export interface GruposDeTransicion {
+  /** Cambian la etapa: un grupo por destino, cada grupo con sus respuestas. */
+  moverA: GrupoDeRespuestas[];
+  /** Misma etapa, queda un pendiente con fecha (Seguimiento, Re-agenda, Próxima cohorte). */
+  enEspera: Respuesta[];
+  /** Los tipos de actividad que no mueven y abre el único botón "Registrar actividad". */
+  actividades: TipoDeActividad[];
+}
+
+/**
+ * Los tres grupos de la tarjeta Transición (ticket 176, decisión 1): lo que cambia la
+ * etapa ("Mover a"), lo que deja un pendiente con fecha ("Dejar en espera") y las
+ * actividades que no mueven, que entran por un único botón "Registrar actividad". La
+ * regla única: si una respuesta cambia la etapa, va en "Mover a".
+ */
+export function gruposDeTransicion(
+  etapa: EtapaDeal,
+  pendiente: PendienteDeal | null,
+  orden: readonly EtapaDeal[],
+): GruposDeTransicion {
+  const { destinos, sinCambio } = respuestasPorDestino(etapa, pendiente, orden);
+  // En "sinCambio" quedan los pendientes (mover a la misma etapa con pendiente) y las
+  // actividades que no mueven; estas últimas se ofrecen por el botón de actividad, no sueltas.
+  const enEspera = sinCambio.filter((respuesta) => respuesta.accion.tipo !== "actividad");
+  return { moverA: destinos, enEspera, actividades: actividadesQueNoMueven(etapa) };
+}

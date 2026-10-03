@@ -21,6 +21,8 @@ import {
 } from "@/lib/deals/estado-de-llamada";
 import { fechaHoraEnBogota } from "@/lib/format";
 import type { DetalleDeLlamada as Detalle } from "@/lib/queries/detalle-llamada";
+import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
+import { AccionesDeLlamada } from "@/components/deals/ficha/acciones-de-llamada";
 
 export function DetalleDeLlamada({
   programaSlug,
@@ -28,12 +30,17 @@ export function DetalleDeLlamada({
   onCerrar,
   esActiva = false,
   conIrAlDeal = false,
+  puedeRegistrar = false,
+  motivosReagenda = [],
 }: {
   programaSlug: string;
   callId: string;
   onCerrar: () => void;
   esActiva?: boolean;
   conIrAlDeal?: boolean;
+  /** Si se puede registrar sobre esta llamada: muestra el Grain y el botón "Resultado" (ticket 176). */
+  puedeRegistrar?: boolean;
+  motivosReagenda?: OpcionesDeFicha["motivos"];
 }) {
   const [detalle, setDetalle] = useState<Detalle | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +55,9 @@ export function DetalleDeLlamada({
     return () => { vigente = false; };
   }, [callId, programaSlug]);
 
+  // Solo una cita abierta (no anulada) acepta un resultado o un Grain nuevo.
+  const puedeActuar = puedeRegistrar && detalle != null && detalle.anuladoEn == null && detalle.dealId != null;
+
   return (
     <Dialog open onOpenChange={(abierto) => { if (!abierto) onCerrar(); }}>
       <DialogContent className="max-h-[85vh] min-w-0 overflow-x-hidden overflow-y-auto">
@@ -59,6 +69,17 @@ export function DetalleDeLlamada({
         {!detalle && !error ? <p className="text-sm text-muted-foreground">Cargando detalle…</p> : null}
         {error ? <p className="text-sm text-tono-peligro">{error}</p> : null}
         {detalle ? <Contenido detalle={detalle} esActiva={esActiva} /> : null}
+
+        {puedeActuar ? (
+          <div className="border-t pt-4">
+            <AccionesDeLlamada
+              callId={callId}
+              dealId={detalle!.dealId}
+              linkGrain={detalle!.linkGrain}
+              motivosReagenda={motivosReagenda}
+            />
+          </div>
+        ) : null}
 
         <DialogFooter>
           {detalle?.dealId && conIrAlDeal ? (
