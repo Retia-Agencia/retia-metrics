@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Plus } from "lucide-react";
 import { crearProgramaInactivoAccion } from "@/app/(app)/ajustes/programas/acciones";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,7 +105,8 @@ export function ProgramSwitcher({
 
       {puedeCrear ? (
         <Dialog open={abierto} onOpenChange={setAbierto}>
-          <DialogTrigger render={<Button size="sm" variant="ghost" className="w-full" />}>
+          <DialogTrigger render={<Button size="sm" variant="outline" className="w-full" />}>
+            <Plus />
             Nuevo programa
           </DialogTrigger>
           <DialogContent>

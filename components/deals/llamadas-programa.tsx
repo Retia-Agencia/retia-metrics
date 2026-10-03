@@ -117,7 +117,7 @@ function FilaLlamada({
       </div>
       {puedeTrabajar && llamada.dealId ? (
         <div className="relative z-10 flex flex-wrap gap-2">
-          {!llamada.linkGrain ? <Button size="sm" variant="secondary" onClick={() => setDialogo("grain")}>Pegar Grain</Button> : null}
+          {!llamada.linkGrain ? <Button size="sm" variant="secondary" onClick={() => setDialogo("grain")}>Link de Grain</Button> : null}
           {llamada.resultado === "show" && respuestas.length > 0 ? (
             <Button size="sm" variant="outline" onClick={() => setDialogo("resultado")}>Elegir resultado</Button>
           ) : null}

@@ -121,6 +121,9 @@ export function FichaLlamadas({
       ) : (
         <>
           {activa ? <ul className="divide-y">{filaDe(activa, true)}</ul> : null}
+          {!activa && anteriores.length > 0 ? (
+            <p className="px-4 pt-3 text-sm text-muted-foreground">Sin cita activa.</p>
+          ) : null}
           {anteriores.length > 0 ? (
             <details className="border-t">
               <summary className="cursor-pointer px-4 py-3 text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">

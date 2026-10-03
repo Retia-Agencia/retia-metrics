@@ -115,7 +115,7 @@ function FilaDeHoy({
       {puedeRegistrar && fila.callId ? (
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" variant="secondary" onClick={() => setDialogo("grain")}>
-            Pegar Grain
+            Link de Grain
           </Button>
           <Button size="sm" variant="outline" onClick={() => setDialogo("fallida")}>
             No se dio

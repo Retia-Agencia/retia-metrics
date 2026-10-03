@@ -8,8 +8,7 @@ import {
   quitarDelProgramaAccion,
 } from "@/app/(app)/ajustes/programas/acciones";
 import { asignarCalendlyDeMembresiaAccion } from "@/app/(app)/ajustes/usuarios/acciones";
-import { CalendlyMembresias } from "@/components/calendly-membresias";
-import { Badge } from "@/components/ui/badge";
+import { FilaMembresia } from "@/components/calendly-membresias";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,6 +44,7 @@ export function EquipoDelPrograma({
   const [pendiente, startTransition] = useTransition();
   const [userId, setUserId] = useState<string | null>(null);
   const [aQuitar, setAQuitar] = useState<MembresiaConCalendly | null>(null);
+  const listaCuentas = cuentas[programa.id];
 
   function agregar() {
     if (!userId) return;
@@ -79,26 +79,26 @@ export function EquipoDelPrograma({
       {membresias.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nadie tiene membresía activa en este programa.</p>
       ) : (
-        <ul className="divide-y divide-border text-sm">
-          {membresias.map((membresia) => (
-            <li key={membresia.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-              <div className="min-w-0">
-                <p className="truncate font-medium">{membresia.usuario}</p>
-                <p className="truncate text-xs text-muted-foreground">{membresia.emailUsuario}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {membresia.calendlyEmail ? (
-                  <span className="text-xs text-muted-foreground">Calendly: {membresia.calendlyEmail}</span>
-                ) : (
-                  <Badge variant="alerta">Sin cuenta de Calendly</Badge>
-                )}
-                <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => setAQuitar(membresia)}>
-                  Quitar
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <>
+          {listaCuentas && !listaCuentas.ok ? (
+            <p className="text-xs text-destructive">No se pudieron leer las cuentas de Calendly: {listaCuentas.error}</p>
+          ) : null}
+          <ul className="divide-y divide-border text-sm">
+            {membresias.map((membresia) => (
+              <FilaMembresia
+                key={membresia.id}
+                membresia={membresia}
+                cuentas={listaCuentas?.ok ? listaCuentas.cuentas : null}
+                accion={asignarCalendlyDeMembresiaAccion}
+                extra={
+                  <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => setAQuitar(membresia)}>
+                    Quitar
+                  </Button>
+                }
+              />
+            ))}
+          </ul>
+        </>
       )}
 
       {elegibles.length > 0 ? (
@@ -126,15 +126,6 @@ export function EquipoDelPrograma({
             Agregar
           </Button>
         </div>
-      ) : null}
-
-      {membresias.length > 0 ? (
-        <CalendlyMembresias
-          membresias={membresias}
-          programas={[programa]}
-          cuentas={cuentas}
-          accion={asignarCalendlyDeMembresiaAccion}
-        />
       ) : null}
 
       <Dialog open={aQuitar != null} onOpenChange={(abierto) => !abierto && setAQuitar(null)}>

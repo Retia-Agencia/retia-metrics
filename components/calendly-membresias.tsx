@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -69,16 +70,19 @@ export function CalendlyMembresias({
   );
 }
 
-function FilaMembresia({
+export function FilaMembresia({
   membresia,
   cuentas,
   accion,
+  extra,
 }: {
   membresia: MembresiaConCalendly;
   cuentas: CuentaDeCalendly[] | null;
   accion: (
     input: EntradaCalendlyDeMembresia,
   ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** Contenido opcional al final de la fila (p. ej. el botón Quitar del equipo). */
+  extra?: ReactNode;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -141,6 +145,7 @@ function FilaMembresia({
           ))}
         </select>
         {error ? <span className="max-w-64 text-xs text-destructive">{error}</span> : null}
+        {extra}
       </span>
     </li>
   );

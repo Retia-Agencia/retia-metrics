@@ -7,6 +7,7 @@ import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { esViolacionUnica } from "@/lib/db/errores";
 import { cuentasDeCalendly } from "@/lib/calendly/cuentas";
 import { ErrorDeCalendly, type FetchLike } from "@/lib/calendly/cita";
+import { asignarLlamadasDelHost } from "@/lib/calendly/rellenar-closer";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { AuthorizationError, esAdministrador, puedeTocarMembresia, ROLES, trabajaLeads } from "@/lib/auth/roles";
@@ -598,19 +599,31 @@ export async function asignarCalendlyDeMembresia(
     }
 
     try {
-      await ejecutarJuntas(db, (tx) => [
-        tx.update(miembrosPrograma).set({ calendlyEmail }).where(eq(miembrosPrograma.id, membresiaId)),
-        tx.insert(changeLog).values({
-          tabla: "miembros_programa",
-          registroId: membresiaId,
-          etiqueta: m.email,
-          campo: "calendlyEmail",
-          valorAnterior: m.actual,
-          valorNuevo: calendlyEmail,
-          origen: "app" as const,
-          userId: actorId,
-        }),
-      ]);
+      await (db as { transaction: (fn: (tx: Db) => Promise<void>) => Promise<void> }).transaction(
+        async (tx) => {
+          await tx.update(miembrosPrograma).set({ calendlyEmail }).where(eq(miembrosPrograma.id, membresiaId));
+          await tx.insert(changeLog).values({
+            tabla: "miembros_programa",
+            registroId: membresiaId,
+            etiqueta: m.email,
+            campo: "calendlyEmail",
+            valorAnterior: m.actual,
+            valorNuevo: calendlyEmail,
+            origen: "app" as const,
+            userId: actorId,
+          });
+          // Al vincular una cuenta, las citas que esa host ya hospedaba se le atribuyen y los
+          // deals abiertos con cita a futuro pasan a ella, en la MISMA transaccion (ADR 0049).
+          if (calendlyEmail !== null) {
+            await asignarLlamadasDelHost(tx, {
+              programId: m.programId,
+              correo: calendlyEmail,
+              userId: m.userId,
+              actorId,
+            });
+          }
+        },
+      );
     } catch (e) {
       if (esViolacionUnica(e)) {
         throw new ErrorDeApp("Esa cuenta de Calendly ya la tiene otra persona del programa.", 409);
