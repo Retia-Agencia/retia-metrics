@@ -3,7 +3,7 @@ id: 163
 etapa: O2
 serves: "docs/anotaciones.md A-45; A-02 (la parte de llamadas)"
 depends: [157]
-status: todo
+status: done
 ---
 
 # 163 — El detalle de una llamada, el mismo en la ficha y en Calls
@@ -46,3 +46,33 @@ Tests que afirman el contrato: `tests/llamadas-del-deal.test.ts`, `tests/llamada
 - Pedir el detalle de una llamada de otro programa (forjando el id) no devuelve nada.
 - Test de la consulta (incluye anulada y otro programa); `npm run build` en verde; recorrido en `dev:local` con
   consola abierta, escritorio y 375 px.
+
+## Hecho (2-oct, noche, S2)
+
+- Consulta `detalleDeLlamada(db, programId, callId)` en `lib/queries/detalle-llamada.ts`: lee con
+  `incluyendoAnulados(calls)` a propósito (el detalle de una anulada se muestra, marcada) y con
+  `incluyendoAnulados(deals)`. Otro programa o id inexistente devuelve `null`. Trae closer, lead, setter (sale del
+  deal, `deals.setter_user_id`), motivo (solo `calls.motivo_id`: el motivo de re-agenda del PR2 vive en el movimiento
+  del deal y no se infiere), anulación y el `change_log` de la llamada, con los ids del historial resueltos a nombres.
+- Server action `detalleDeLlamadaAccion` en `app/(app)/p/[programa]/calls/acciones.ts`: alcance por
+  `programaVisiblePorSlug`. Un programa ajeno o un id forjado responden "Esa llamada no existe." y no traen datos. Es
+  solo lectura.
+- `lib/deals/estado-de-llamada.ts` (sin `lib/db`, lo importan los clientes): las etiquetas y tonos del resultado
+  (antes copiados en `ficha-llamadas` y `llamadas-programa`), `etiquetaDeOrigen`, `citaActiva` (la agendada no
+  anulada con la cita más reciente; sin fecha cuenta como la más vieja, igual que el "No se dio" que ya existía y que
+  ahora usa esta función) y `cambioLegible` (el historial en palabras, fechas en Bogotá, sin campos internos).
+- `components/deals/detalle-de-llamada.tsx`: un solo pop-up (Dialog de Base UI), con scroll propio a 375 px. En la
+  ficha, la cita activa va primero y con su etiqueta, y cada llamada abre su detalle (sin "Ir al deal"). En Calls,
+  la fila abre el detalle con "Ir al deal". Las sueltas tienen "Ver detalle" y se siguen asignando desde su fila.
+  Ninguna acción cambió de lugar.
+- Tests: `tests/detalle-llamada.test.ts` (14): detalle completo, anulada, otro programa = `null`, historial ordenado
+  y sin filas de otro registro, nombres del historial, suelta, `citaActiva` y `cambioLegible`.
+- Nivel 1: typecheck, lint y `npm run build` en verde. Los tests corrieron en el entorno de Codex (14 del ticket y
+  68 de los archivos que cita el ticket); en local no, por swap (7,8 GB): los valida el CI.
+- Recorrido en `dev:local` (`app163.localhost:3163`, closer, escritorio y 375 px): Calls abre el detalle con "Ir al
+  deal"; la ficha marca la cita activa y abre el mismo detalle; sin scroll horizontal y sin errores en consola. El
+  primer recorrido mostró el historial en crudo (uuids, nombres de columna y la fecha en UTC), y se arregló antes de
+  cerrar.
+- Queda para quien lo use: el hub del closer (164) reusa `DetalleDeLlamada` tal cual (`programaSlug`, `callId`,
+  `conIrAlDeal`).
+

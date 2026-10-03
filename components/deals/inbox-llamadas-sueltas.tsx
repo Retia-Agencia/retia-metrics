@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { DetalleDeLlamada } from "@/components/deals/detalle-de-llamada";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fechaHoraEnBogota } from "@/lib/format";
 import type { DealAbiertoBuscado, FilaLlamada } from "@/lib/queries/inbox";
@@ -59,7 +60,9 @@ function FilaSuelta({
   fila: FilaLlamada;
   programId: string;
 }) {
+  const { programa: programaSlug } = useParams<{ programa: string }>();
   const [abierto, setAbierto] = useState(false);
+  const [verDetalle, setVerDetalle] = useState(false);
   const [asignando, setAsignando] = useState<string | null>(null);
   const router = useRouter();
 
@@ -93,8 +96,10 @@ function FilaSuelta({
           </a>
         ) : null}
       </div>
-      {fila.puedeColgar ? (
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="outline" onClick={() => setVerDetalle(true)}>Ver detalle</Button>
+        {fila.puedeColgar ? (
+          <>
           {fila.sugerencias?.map((deal) => (
             <Button key={deal.dealId} size="sm" variant="secondary" disabled={asignando !== null} onClick={() => void colgar(deal.dealId)}>
               {asignando === deal.dealId ? "Colgando…" : `Colgar aquí · ${deal.leadNombre ?? deal.leadEmail}`}
@@ -103,10 +108,14 @@ function FilaSuelta({
           <Button size="sm" variant="default" onClick={() => setAbierto(true)}>
             Asignar a un deal
           </Button>
-        </div>
-      ) : null}
+          </>
+        ) : null}
+      </div>
       {abierto ? (
         <DialogoAsignar callId={fila.callId} programId={programId} onCerrar={() => setAbierto(false)} />
+      ) : null}
+      {verDetalle ? (
+        <DetalleDeLlamada programaSlug={programaSlug} callId={fila.callId} conIrAlDeal onCerrar={() => setVerDetalle(false)} />
       ) : null}
     </li>
   );

@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useParams } from "next/navigation";
 import { ID_DE_SECCION, useAccionPedida } from "./accion-pedida";
+import { DetalleDeLlamada } from "@/components/deals/detalle-de-llamada";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardAction } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fechaHoraEnBogota, hoyEnBogota } from "@/lib/format";
 import type { EtapaDeal } from "@/lib/deals/etapas";
+import { citaActiva, ETIQUETA_DE_RESULTADO, TONO_DE_RESULTADO } from "@/lib/deals/estado-de-llamada";
 import type { FichaDeLlamada, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import {
   agregarLlamadaAccion,
@@ -30,30 +33,6 @@ import { useAccion } from "./uso-accion";
  * Las fechas se escriben en Bogota: el servidor arma el instante con `-05:00` explicito.
  */
 
-type Resultado = FichaDeLlamada["resultado"];
-
-const ETIQUETA: Record<Resultado, string> = {
-  agendada: "Agendada",
-  show: "Show",
-  no_show: "No show",
-  cancelada: "Cancelada",
-  reagendada: "Reagendada",
-  compromiso_pago: "Compromiso de pago",
-  cerrada: "Cerrada",
-  perdida: "Perdida",
-};
-
-const TONO: Record<Resultado, "neutro" | "info" | "alerta" | "exito" | "peligro"> = {
-  agendada: "info",
-  show: "exito",
-  no_show: "peligro",
-  cancelada: "alerta",
-  reagendada: "alerta",
-  compromiso_pago: "alerta",
-  cerrada: "exito",
-  perdida: "peligro",
-};
-
 type Dialogo =
   | { tipo: "agregar" }
   | { tipo: "completar"; llamada: FichaDeLlamada }
@@ -74,16 +53,21 @@ export function FichaLlamadas({
   /** Trabaja leads Y es el dueño (o administra) Y el deal esta abierto. Proyeccion: la reja es el servidor. */
   puedeRegistrar: boolean;
 }) {
+  const { programa: programaSlug } = useParams<{ programa: string }>();
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
+  const [detalleId, setDetalleId] = useState<string | null>(null);
   const cerrar = () => setDialogo(null);
+  const activaId = citaActiva(llamadas);
+  const llamadasOrdenadas = activaId
+    ? [...llamadas].sort((a, b) => Number(b.id === activaId) - Number(a.id === activaId))
+    : llamadas;
   // La pregunta de la etapa llega aquí con el formulario ya elegido (ADR 0072): "Agendó" y
   // "Se movió" agregan una llamada con fecha (el motor mueve a Agendado: E4, E7 o E9);
   // "No asistió o canceló" marca fallida la cita vigente más reciente (PR1).
   useAccionPedida(["agendar", "reprogramar", "fallida"], (accion) => {
     if (accion !== "fallida") return setDialogo({ tipo: "agregar" });
-    const vigente = llamadas
-      .filter((c) => c.resultado === "agendada" && c.anuladoEn == null)
-      .sort((x, y) => (y.fechaAgenda?.getTime() ?? 0) - (x.fechaAgenda?.getTime() ?? 0))[0];
+    const vigenteId = citaActiva(llamadas);
+    const vigente = llamadas.find((llamada) => llamada.id === vigenteId);
     if (vigente) setDialogo({ tipo: "fallida", llamada: vigente });
   });
 
@@ -104,13 +88,16 @@ export function FichaLlamadas({
         <Vacio>Este deal aún no tiene llamadas.{puedeRegistrar ? " Agrega la primera con su fecha." : ""}</Vacio>
       ) : (
         <ul className="divide-y">
-          {llamadas.map((c) => {
+          {llamadasOrdenadas.map((c) => {
             const anulada = c.anuladoEn != null;
+            const esActiva = c.id === activaId;
             const sinCompletar = c.resultado === "agendada" && !c.closerNombre;
             return (
               <li key={c.id} className={anulada ? "space-y-1 px-4 py-3 text-sm opacity-60" : "space-y-1 px-4 py-3 text-sm"}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={TONO[c.resultado]}>{ETIQUETA[c.resultado]}</Badge>
+                <button type="button" className="flex w-full flex-wrap items-center gap-2 text-left" onClick={() => setDetalleId(c.id)}>
+                  {esActiva
+                    ? <Badge variant="default">Cita activa</Badge>
+                    : <Badge variant={TONO_DE_RESULTADO[c.resultado]}>{ETIQUETA_DE_RESULTADO[c.resultado]}</Badge>}
                   {c.sinGrain ? <Badge variant="peligro">Sin Grain</Badge> : null}
                   <span className={anulada ? "cifra line-through" : "cifra"}>
                     {c.fechaAgenda ? `Cita ${fechaHoraEnBogota(c.fechaAgenda)}` : "Sin fecha de cita"}
@@ -119,7 +106,7 @@ export function FichaLlamadas({
                     <span className="cifra text-xs text-muted-foreground">Ocurrió {fechaHoraEnBogota(c.fechaLlamada)}</span>
                   ) : null}
                   <span className="ml-auto text-xs text-muted-foreground">{c.closerNombre ?? "Sin closer"}</span>
-                </div>
+                </button>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
                   {c.linkCalendly ? (
                     <a className="text-marca-texto underline-offset-2 hover:underline" href={c.linkCalendly} target="_blank" rel="noreferrer">
@@ -169,6 +156,15 @@ export function FichaLlamadas({
       {dialogo?.tipo === "grain" ? <DialogoGrain llamada={dialogo.llamada} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "fallida" ? (
         <DialogoFallida llamada={dialogo.llamada} etapa={etapa} opciones={opciones} onCerrar={cerrar} />
+      ) : null}
+      {detalleId ? (
+        <DetalleDeLlamada
+          programaSlug={programaSlug}
+          callId={detalleId}
+          esActiva={detalleId === activaId}
+          conIrAlDeal={false}
+          onCerrar={() => setDetalleId(null)}
+        />
       ) : null}
     </Card>
   );
