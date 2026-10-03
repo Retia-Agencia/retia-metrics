@@ -40,6 +40,7 @@ export interface TableroKanbanProps {
   programaSlug: string;
   areas: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
+  cohortesDestino: OpcionCatalogo[];
   motivos: { id: string; nombre: string; tipo: string }[];
   /** Inicio de clases por cohorte y el de la activa: prellenan la fecha limite de Compromiso Verbal. */
   inicioDeClases: Record<string, string>;
@@ -60,6 +61,7 @@ export function TableroKanban({
   programaSlug,
   areas,
   cohortes,
+  cohortesDestino,
   motivos,
   inicioDeClases,
   inicioDeLaCohorteActiva,
@@ -73,7 +75,7 @@ export function TableroKanban({
   const [columnaHover, setColumnaHover] = useState<EtapaDeal | null>(null);
   // El servidor ya escribió: se refresca la pantalla actual (router.refresh), NO
   // revalidatePath, que no refresca la ruta que acaba de escribir (AGENTS.md).
-  const { elegir, abrirDestino, dialogo } = useResponder(mapa, { areas, cohortes, motivos }, nombreDeEtapa, () => router.refresh());
+  const { elegir, abrirDestino, dialogo } = useResponder(mapa, { areas, cohortes, cohortesDestino, motivos }, nombreDeEtapa, () => router.refresh());
 
   function dealDe(t: TarjetaDeal): DealQueResponde {
     return {

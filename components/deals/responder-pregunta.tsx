@@ -39,6 +39,7 @@ export interface DealQueResponde {
 export interface OpcionesDeRespuesta {
   areas: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
+  cohortesDestino: OpcionCatalogo[];
   motivos: { id: string; nombre: string; tipo: string }[];
 }
 
@@ -305,7 +306,7 @@ export function useResponder(
         movimiento={movimiento}
         nombreDeEtapa={nombreDeEtapa}
         areas={opciones.areas}
-        cohortes={opciones.cohortes}
+        cohortes={opciones.cohortesDestino}
         motivos={opciones.motivos}
         fechaLimiteSugerida={deal.fechaLimiteSugerida ?? null}
         enviando={enviando}

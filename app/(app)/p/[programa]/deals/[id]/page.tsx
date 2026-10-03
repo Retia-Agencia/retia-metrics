@@ -55,7 +55,7 @@ export default async function FichaDelDealPage({ params }: Props) {
   const alcanceDeals = await alcanceDeDeals(session);
   if (!dealVisiblePara(alcanceDeals, ficha.owner?.id ?? null)) notFound();
   const [opciones, alertas] = await Promise.all([
-    opcionesDeFicha(db, programa.id, ficha.owner?.id ?? null),
+    opcionesDeFicha(db, programa.id, ficha.owner?.id ?? null, ficha.cohorte?.id ?? null),
     alertasDelDeal(db, programa.id, ficha.dealId),
   ]);
 

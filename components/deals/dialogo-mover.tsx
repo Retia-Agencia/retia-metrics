@@ -251,22 +251,28 @@ export function DialogoMover({
               ) : null}
 
               {campo === "cohorte_destino" ? (
-                <Select
-                  value={datos.cohorteDestinoId ?? null}
-                  items={cohortes.map((c) => ({ value: c.id, label: c.nombre }))}
-                  onValueChange={(v: string | null) => setDatos((d) => ({ ...d, cohorteDestinoId: v }))}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Elige la cohorte" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cohortes.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                cohortes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No hay próxima cohorte creada. Pídele a quien administra que la cree en Programs.
+                  </p>
+                ) : (
+                  <Select
+                    value={datos.cohorteDestinoId ?? null}
+                    items={cohortes.map((c) => ({ value: c.id, label: c.nombre }))}
+                    onValueChange={(v: string | null) => setDatos((d) => ({ ...d, cohorteDestinoId: v }))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Elige la cohorte" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cohortes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )
               ) : null}
 
               {campo === "motivo" ? (

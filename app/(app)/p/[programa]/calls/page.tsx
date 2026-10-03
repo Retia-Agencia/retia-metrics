@@ -55,7 +55,7 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
   const [llamadas, opciones, opcionesFicha, sueltas] = await Promise.all([
     llamadasDelPrograma(db, programa.id, filtro),
     opcionesDeLlamadas(db, programa.id),
-    opcionesDeFicha(db, programa.id, null),
+    opcionesDeFicha(db, programa.id, null, null),
     llamadasSueltasDelPrograma(db, programa.id, { userId: session.user.id, rol }),
   ]);
 

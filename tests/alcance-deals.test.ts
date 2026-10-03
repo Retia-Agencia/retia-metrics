@@ -56,7 +56,7 @@ beforeEach(() => {
   rolDeVista.mockReset().mockResolvedValue("closer");
   programaVisiblePorSlug.mockReset().mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
   fichaDeDeal.mockReset().mockResolvedValue(FICHA);
-  opcionesDeFicha.mockReset().mockResolvedValue({ areas: [], cohortes: [], motivos: [], owners: [], plataformas: [] });
+  opcionesDeFicha.mockReset().mockResolvedValue({ areas: [], cohortes: [], cohortesDestino: [], motivos: [], owners: [], plataformas: [] });
   alertasDelDeal.mockReset().mockResolvedValue(null);
   notFound.mockClear();
 });

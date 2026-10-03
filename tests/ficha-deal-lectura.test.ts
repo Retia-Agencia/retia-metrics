@@ -343,11 +343,19 @@ describe("bloques puros de la ficha", () => {
 });
 
 describe("opcionesDeFicha", () => {
-  it("ofrece solo lo del programa: cohortes no cerradas y los closers con membresia", async () => {
+  it("ofrece cohortes no cerradas y limita el destino a futuras distintas de la actual", async () => {
+    const [c2, c3] = await db.insert(cohorts).values([
+      { programId, codigo: "C2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-31", estado: "futuro" },
+      { programId, codigo: "C3", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30", estado: "futuro" },
+      { programId, codigo: "C4", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2027-01-01", fechaCierreVentas: "2026-12-31", estado: "cerrado" },
+      { programId: otroPrograma, codigo: "C5", metaCupos: 10, precioUsd: "500", fechaInicioClases: "2027-02-01", fechaCierreVentas: "2027-01-31", estado: "futuro" },
+    ]).returning();
+    await db.update(deals).set({ cohortId: c2.id }).where(eq(deals.id, dealId));
 
-    const o = await opcionesDeFicha(db, programId, closer);
+    const o = await opcionesDeFicha(db, programId, closer, c2.id);
 
-    expect(o.cohortes.map((c) => c.nombre)).toEqual(["C1"]);
+    expect(o.cohortes.map((c) => c.nombre)).toEqual(["C1", "C2", "C3"]);
+    expect(o.cohortesDestino.map((c) => c.nombre)).toEqual([c3.codigo]);
     // El dueño actual aparece aunque no tenga membresia (para no dejar el selector sin su valor).
     expect(o.owners.map((x) => x.id)).toEqual([closer]);
   });

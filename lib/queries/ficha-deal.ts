@@ -589,13 +589,19 @@ export interface OpcionesDeFicha {
   areas: { id: string; nombre: string }[];
   /** Cohortes futuras o activas del programa: a donde puede ir un deal (`cambiarCohorte`). */
   cohortes: { id: string; nombre: string }[];
+  cohortesDestino: { id: string; nombre: string }[];
   motivos: { id: string; nombre: string; tipo: string }[];
   plataformas: { id: string; nombre: string }[];
   /** Closers con membresia activa en el programa, mas el dueño actual: para reasignar. */
   owners: { id: string; nombre: string }[];
 }
 
-export async function opcionesDeFicha(db: Db, programId: string, ownerActualId: string | null): Promise<OpcionesDeFicha> {
+export async function opcionesDeFicha(
+  db: Db,
+  programId: string,
+  ownerActualId: string | null,
+  cohorteActualId: string | null,
+): Promise<OpcionesDeFicha> {
   const cohortesFilas = await db
     .select()
     .from(cohorts)
@@ -615,6 +621,10 @@ export async function opcionesDeFicha(db: Db, programId: string, ownerActualId: 
   return {
     areas: areasFilas.map((a) => ({ id: a.id, nombre: String(a.nombre) })),
     cohortes: cohortesFilas.map((c) => ({ id: c.id, nombre: c.codigo })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    cohortesDestino: cohortesFilas
+      .filter((c) => c.estado === "futuro" && c.id !== cohorteActualId)
+      .map((c) => ({ id: c.id, nombre: c.codigo }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
     motivos: motivosFilas.map((m) => ({ id: m.id, nombre: m.nombre, tipo: m.tipo })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
     plataformas: plataformasFilas.map((p) => ({ id: p.id, nombre: String(p.nombre) })),
     owners: [...owners].map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { usd } from "@/lib/format";
+import { siguienteCodigoDeCohorte } from "@/lib/catalogo/codigo-de-cohorte";
 import {
   activarCohorteAccion,
   crearCohorteAccion,
@@ -107,20 +108,21 @@ export function CohortesAdmin({
   }
 
   const ordenadas = [...cohortes].sort((a, b) => a.codigo.localeCompare(b.codigo, "es"));
+  const siguienteCodigo = siguienteCodigoDeCohorte(cohortes.map((c) => c.codigo));
 
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button size="sm" disabled={pendiente || creando} onClick={() => setCreando(true)}>
           <Plus className="size-4" />
-          Nueva cohorte
+          Crear {siguienteCodigo}
         </Button>
       </div>
 
       {creando ? (
         <FormularioCohorte
           titulo="Nueva cohorte"
-          inicial={{ ...BORRADOR_VACIO, precioUsd: ticketUsd }}
+          inicial={{ ...BORRADOR_VACIO, codigo: siguienteCodigo, precioUsd: ticketUsd }}
           pendiente={pendiente}
           onCancelar={() => setCreando(false)}
           onGuardar={(b) =>

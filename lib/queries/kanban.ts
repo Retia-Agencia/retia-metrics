@@ -398,6 +398,7 @@ export interface OpcionCanal {
 export interface OpcionesDeTablero {
   owners: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
+  cohortesDestino: OpcionCatalogo[];
   canales: OpcionCanal[];
   leadQualities: string[];
   leadValues: string[];
@@ -442,6 +443,11 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   const cohortes = cohorteFilas
     .map((c) => ({ id: c.id, nombre: c.codigo }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const cohortesDestino = (await db
+    .select({ id: cohorts.id, nombre: cohorts.codigo })
+    .from(cohorts)
+    .where(and(eq(cohorts.programId, programId), eq(cohorts.estado, "futuro"))))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   // Canales presentes: pares source+medium del envio de origen de los deals vigentes.
   const canalFilas = await db
@@ -476,7 +482,7 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   const inicioDeClases = Object.fromEntries(cohorteFilas.map((c) => [c.id, c.inicio] as const));
   const inicioDeLaCohorteActiva = (await cohorteActiva(programId, db))?.fechaInicioClases ?? null;
 
-  return { owners, cohortes, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, areas: listaAreas, motivos: listaMotivos };
+  return { owners, cohortes, cohortesDestino, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, areas: listaAreas, motivos: listaMotivos };
 }
 
 /** El rango del filtro de fecha, bajo la llave del campo que filtra; los otros dos, ausentes. */
