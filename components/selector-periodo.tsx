@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { atajosDePeriodo, type PeriodoResuelto } from "@/lib/periodo";
 import { fecha } from "@/lib/format";
+import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/select";
 
 // `pagina` tambien se va: con otro periodo, la pagina vieja ya no existe.
-const claves = ["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "rango", "desde", "hasta", "pagina"];
+const claves = ["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "rango", "desde", "hasta"];
+const FECHA_COMPLETA = /^\d{4}-\d{2}-\d{2}$/;
 const claseInput =
   "cifra w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none hover:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
 
@@ -56,16 +57,12 @@ export function SelectorPeriodo({
     ([valor]) => (mostrarCohortes && !soloA) || !valor.startsWith("cohorte"),
   );
   const [abierto, setAbierto] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
-  const busqueda = useSearchParams();
+  const { poner } = useFiltrosUrl();
 
-  function navegar(valores: Record<string, string>) {
-    const params = new URLSearchParams(busqueda.toString());
-    claves.forEach((clave) => params.delete(clave));
-    Object.entries(valores).forEach(([clave, valor]) => params.set(clave, valor));
-    router.push(`${pathname}?${params.toString()}`);
-    setAbierto(false);
+  // Un atajo cierra el dialogo; una fecha a mano lo deja abierto para seguir editando las otras.
+  function navegar(valores: Record<string, string>, cerrar = true) {
+    poner({ ...Object.fromEntries(claves.map((clave) => [clave, null])), ...valores });
+    if (cerrar) setAbierto(false);
   }
   const legible = (r: PeriodoResuelto["a"]) => r.desde === r.hasta
     ? fecha(r.desde)
@@ -140,12 +137,12 @@ export function SelectorPeriodo({
                 input.setCustomValidity("");
               }
             }}
-            onSubmit={(e) => {
-              e.preventDefault();
+            onChange={(e) => {
               const data = new FormData(e.currentTarget);
               const valores = Object.fromEntries(
                 letras.flatMap((l) => [`${l}_desde`, `${l}_hasta`]).map((k) => [k, String(data.get(k))]),
               );
+              if (Object.values(valores).some((valor) => !FECHA_COMPLETA.test(valor))) return;
 
               const invertida = letras.find((l) => valores[`${l}_desde`] > valores[`${l}_hasta`]);
               if (invertida) {
@@ -155,10 +152,7 @@ export function SelectorPeriodo({
                 return;
               }
 
-              navegar({
-                periodo: "custom",
-                ...valores,
-              });
+              navegar({ periodo: "custom", ...valores }, false);
             }}
           >
             {letras.map((letra) => (
@@ -180,7 +174,6 @@ export function SelectorPeriodo({
                 ))}
               </fieldset>
             ))}
-            <Button type="submit">{soloA ? "Aplicar" : "Aplicar A contra B"}</Button>
           </form>
         </DialogContent>
       </Dialog>

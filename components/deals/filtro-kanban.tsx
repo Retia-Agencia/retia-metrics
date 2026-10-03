@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
+import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
 import {
   Select,
   SelectContent,
@@ -20,9 +21,6 @@ import type { OpcionCanal, OpcionCatalogo } from "@/lib/queries/kanban";
  */
 
 const TODOS = "todos";
-
-const claseInput =
-  "h-8 rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 const ANTIGUEDADES = [
   { valor: "3", etiqueta: "3+ días" },
@@ -60,30 +58,14 @@ export function FiltroKanban({
   leadQualities,
   leadValues,
 }: FiltroKanbanProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const busqueda = useSearchParams();
-
-  function navegar(cambios: Record<string, string | null>) {
-    const params = new URLSearchParams(busqueda.toString());
-    for (const [clave, valor] of Object.entries(cambios)) {
-      if (valor === null) params.delete(clave);
-      else params.set(clave, valor);
-    }
-    const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
-  }
-
-  // "Limpiar" vuelve a la URL desnuda, asi que tambien quita el filtro de fecha (141): cuenta como filtro.
-  const hayFiltro =
-    ownerUserId || cohorteId || canal || antiguedadMinima != null || leadQuality || leadValue || busqueda.has("fecha");
+  const { poner } = useFiltrosUrl();
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <BarraDeFiltros nombres={["owner", "leadQuality", "leadValue", "cohorte", "canal", "antiguedad", "fecha", "periodo", "a_desde", "a_hasta", "rango", "desde", "hasta"]}>
       {mostrarDueno ? <Select
         value={ownerUserId ?? TODOS}
         items={[{ value: TODOS, label: "Todos los dueños" }, ...owners.map((o) => ({ value: o.id, label: o.nombre }))]}
-        onValueChange={(v: string | null) => navegar({ owner: !v || v === TODOS ? null : v })}
+        onValueChange={(v: string | null) => poner({ owner: !v || v === TODOS ? null : v })}
       >
         <SelectTrigger className="w-44" aria-label="Dueño">
           <SelectValue />
@@ -97,11 +79,11 @@ export function FiltroKanban({
           ))}
         </SelectContent>
       </Select> : null}
-      <Select value={leadQuality ?? TODOS} items={[{ value: TODOS, label: "Todas las calidades" }, ...leadQualities.map((v) => ({ value: v, label: v }))]} onValueChange={(v: string | null) => navegar({ leadQuality: !v || v === TODOS ? null : v })}>
+      <Select value={leadQuality ?? TODOS} items={[{ value: TODOS, label: "Todas las calidades" }, ...leadQualities.map((v) => ({ value: v, label: v }))]} onValueChange={(v: string | null) => poner({ leadQuality: !v || v === TODOS ? null : v })}>
         <SelectTrigger className="w-44" aria-label="Calidad del lead"><SelectValue /></SelectTrigger>
         <SelectContent><SelectItem value={TODOS}>Todas las calidades</SelectItem>{leadQualities.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
       </Select>
-      <Select value={leadValue ?? TODOS} items={[{ value: TODOS, label: "Todos los valores" }, ...leadValues.map((v) => ({ value: v, label: v }))]} onValueChange={(v: string | null) => navegar({ leadValue: !v || v === TODOS ? null : v })}>
+      <Select value={leadValue ?? TODOS} items={[{ value: TODOS, label: "Todos los valores" }, ...leadValues.map((v) => ({ value: v, label: v }))]} onValueChange={(v: string | null) => poner({ leadValue: !v || v === TODOS ? null : v })}>
         <SelectTrigger className="w-40" aria-label="Valor del lead"><SelectValue /></SelectTrigger>
         <SelectContent><SelectItem value={TODOS}>Todos los valores</SelectItem>{leadValues.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
       </Select>
@@ -109,7 +91,7 @@ export function FiltroKanban({
       <Select
         value={cohorteId ?? TODOS}
         items={[{ value: TODOS, label: "Todas las cohortes" }, ...cohortes.map((c) => ({ value: c.id, label: c.nombre }))]}
-        onValueChange={(v: string | null) => navegar({ cohorte: !v || v === TODOS ? null : v })}
+        onValueChange={(v: string | null) => poner({ cohorte: !v || v === TODOS ? null : v })}
       >
         <SelectTrigger className="w-40" aria-label="Cohorte">
           <SelectValue />
@@ -127,7 +109,7 @@ export function FiltroKanban({
       <Select
         value={canal ?? TODOS}
         items={[{ value: TODOS, label: "Todos los canales" }, ...canales.map((c) => ({ value: c.clave, label: `${c.utmSource} / ${c.utmMedium}` }))]}
-        onValueChange={(v: string | null) => navegar({ canal: !v || v === TODOS ? null : v })}
+        onValueChange={(v: string | null) => poner({ canal: !v || v === TODOS ? null : v })}
       >
         <SelectTrigger className="w-48" aria-label="Canal">
           <SelectValue />
@@ -145,7 +127,7 @@ export function FiltroKanban({
       <Select
         value={antiguedadMinima != null ? String(antiguedadMinima) : TODOS}
         items={[{ value: TODOS, label: "Cualquier antigüedad" }, ...ANTIGUEDADES.map((a) => ({ value: a.valor, label: a.etiqueta }))]}
-        onValueChange={(v: string | null) => navegar({ antiguedad: !v || v === TODOS ? null : v })}
+        onValueChange={(v: string | null) => poner({ antiguedad: !v || v === TODOS ? null : v })}
       >
         <SelectTrigger className="w-52" aria-label="Antigüedad en la etapa">
           <SelectValue />
@@ -160,15 +142,6 @@ export function FiltroKanban({
         </SelectContent>
       </Select>
 
-      {hayFiltro ? (
-        <button
-          type="button"
-          onClick={() => router.push(pathname)}
-          className={claseInput + " text-muted-foreground transition-colors duration-150 hover:text-foreground"}
-        >
-          Limpiar
-        </button>
-      ) : null}
-    </div>
+    </BarraDeFiltros>
   );
 }

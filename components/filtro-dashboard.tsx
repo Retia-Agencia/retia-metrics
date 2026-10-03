@@ -1,8 +1,9 @@
 "use client";
 
 import { SelectorPeriodo } from "@/components/selector-periodo";
+import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
+import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
 import type { PeriodoResuelto } from "@/lib/periodo";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Select,
   SelectContent,
@@ -39,28 +40,16 @@ export function FiltroDashboard({
   closers,
   cohorteDisponible,
 }: FiltroProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const busqueda = useSearchParams();
-
-  function navegar(cambios: Record<string, string | null>) {
-    const params = new URLSearchParams(busqueda.toString());
-    for (const [clave, valor] of Object.entries(cambios)) {
-      if (valor === null) params.delete(clave);
-      else params.set(clave, valor);
-    }
-    const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
-  }
+  const { poner } = useFiltrosUrl();
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <BarraDeFiltros nombres={["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "rango", "desde", "hasta", "closer"]}>
       <SelectorPeriodo periodo={periodo} cohorteDisponible={cohorteDisponible} anteriorDisponible={anteriorDisponible} />
 
       <Select
         value={closerId ?? TODOS}
         onValueChange={(valor: string | null) =>
-          navegar({ closer: valor === null || valor === TODOS ? null : valor })
+          poner({ closer: valor === null || valor === TODOS ? null : valor })
         }
       >
         <SelectTrigger className="w-44" aria-label="Closer">
@@ -75,6 +64,6 @@ export function FiltroDashboard({
           ))}
         </SelectContent>
       </Select>
-    </div>
+    </BarraDeFiltros>
   );
 }

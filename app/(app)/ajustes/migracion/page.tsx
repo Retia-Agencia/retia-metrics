@@ -4,9 +4,10 @@ import { programasActivos } from "@/lib/queries/programas";
 import { LIMITE_DE_RAREZAS, nombreDeRareza, rarezasDelPrograma } from "@/lib/migracion/rarezas";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num } from "@/lib/format";
+import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
+import { FiltroSelect } from "@/components/filtros/filtro-select";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,7 @@ export default async function MigracionPage(props: {
     <PageShell
       titulo="Rarezas de la migración"
       descripcion="Lo que la migración de las pestañas de gestión no pudo clasificar. Nada de esto se adivinó: cada fila dice qué tenía de raro y qué se hizo con ella."
-      acciones={<Filtros programas={programas} slug={programa.slug} tipos={rarezas.porTipo} tipo={tipo} />}
+      acciones={<Filtros programas={programas} tipos={rarezas.porTipo} />}
     >
       <div className="space-y-6">
         <Card>
@@ -128,42 +129,31 @@ export default async function MigracionPage(props: {
   );
 }
 
-/** Programa y tipo por un formulario GET: sin JavaScript de cliente y sin datos personales en la URL. */
+/** Programa y tipo viven en la URL, sin datos personales. */
 function Filtros({
   programas,
-  slug,
   tipos,
-  tipo,
 }: {
   programas: { slug: string; nombre: string }[];
-  slug: string;
   tipos: { tipo: string; total: number }[];
-  tipo: string | null;
 }) {
-  const clase =
-    "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+  const primero = programas[0];
   return (
-    // La `key` rehace los select al navegar por un chip: un `defaultValue` no se reinicia solo y el
-    // select se quedaba mostrando el tipo anterior (recorrido del 30-sep).
-    <form key={`${slug}:${tipo ?? ""}`} method="get" action="/ajustes/migracion" className="flex flex-wrap items-center gap-2">
-      <select name="programa" defaultValue={slug} className={clase} aria-label="Programa">
-        {programas.map((p) => (
-          <option key={p.slug} value={p.slug}>
-            {p.nombre}
-          </option>
-        ))}
-      </select>
-      <select name="tipo" defaultValue={tipo ?? ""} className={clase} aria-label="Tipo de rareza">
-        <option value="">Todos los tipos</option>
-        {tipos.map((t) => (
-          <option key={t.tipo} value={t.tipo}>
-            {nombreDeRareza(t.tipo)}
-          </option>
-        ))}
-      </select>
-      <Button type="submit" size="sm" variant="outline">
-        Ver
-      </Button>
-    </form>
+    <BarraDeFiltros nombres={["programa", "tipo"]}>
+      <FiltroSelect
+        nombre="programa"
+        etiqueta="Programa"
+        todos={primero.nombre}
+        opciones={programas.map((p) => ({ value: p.slug, label: p.nombre }))}
+        className="w-44"
+      />
+      <FiltroSelect
+        nombre="tipo"
+        etiqueta="Tipo de rareza"
+        todos="Todos los tipos"
+        opciones={tipos.map((t) => ({ value: t.tipo, label: nombreDeRareza(t.tipo) }))}
+        className="w-44"
+      />
+    </BarraDeFiltros>
   );
 }

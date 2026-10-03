@@ -1,7 +1,8 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SelectorPeriodo } from "@/components/selector-periodo";
+import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
+import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import {
   Select,
@@ -32,27 +33,22 @@ interface FiltroFechaListaProps {
  * la URL no guarde un rango que ya no filtra nada.
  */
 export function FiltroFechaLista({ campos, filtro }: FiltroFechaListaProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const busqueda = useSearchParams();
+  const { busqueda, poner } = useFiltrosUrl();
 
   function elegirCampo(valor: string | null) {
-    const params = new URLSearchParams(busqueda.toString());
-    params.delete("pagina");
-    CLAVES_VIEJAS.forEach((clave) => params.delete(clave));
+    const cambios: Record<string, string | null> = Object.fromEntries(CLAVES_VIEJAS.map((clave) => [clave, null]));
     if (!valor || valor === SIN_FECHA) {
-      params.delete("fecha");
-      CLAVES_DE_PERIODO.forEach((clave) => params.delete(clave));
+      cambios.fecha = null;
+      CLAVES_DE_PERIODO.forEach((clave) => { cambios[clave] = null; });
     } else {
-      params.set("fecha", valor);
-      if (!CLAVES_DE_PERIODO.some((clave) => params.has(clave))) params.set("periodo", "este_mes");
+      cambios.fecha = valor;
+      if (!CLAVES_DE_PERIODO.some((clave) => busqueda.has(clave))) cambios.periodo = "este_mes";
     }
-    const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
+    poner(cambios);
   }
 
   return (
-    <div className="flex flex-wrap items-start gap-2">
+    <BarraDeFiltros nombres={["fecha", ...CLAVES_DE_PERIODO, ...CLAVES_VIEJAS]}>
       <Select
         value={filtro?.campo ?? SIN_FECHA}
         // Sin `items`, Base UI pinta el valor crudo en el disparador.
@@ -74,6 +70,6 @@ export function FiltroFechaLista({ campos, filtro }: FiltroFechaListaProps) {
       {filtro ? (
         <SelectorPeriodo periodo={filtro.periodo} soloA cohorteDisponible={false} anteriorDisponible={false} />
       ) : null}
-    </div>
+    </BarraDeFiltros>
   );
 }

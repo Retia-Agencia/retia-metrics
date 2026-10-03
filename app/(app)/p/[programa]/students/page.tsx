@@ -13,6 +13,8 @@ import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
+import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
+import { FiltroSelect } from "@/components/filtros/filtro-select";
 
 export const dynamic = "force-dynamic";
 
@@ -60,42 +62,21 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
   const completos = filas.filter((f) => f.etapa === "ganado_completo").length;
   const sinOnboarding = filas.filter((f) => f.onboardedAt == null).length;
   const vencidos = filas.filter((f) => f.vencido != null).length;
-  const control =
-    "h-9 rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-
   return (
     <PageShell titulo={programa.nombre} descripcion="Students">
       <div className="space-y-4">
-        <form className="grid gap-3 rounded-xl bg-card p-4 shadow-tarjeta sm:grid-cols-3" method="get">
-          <label className="grid gap-1 text-sm">
-            Cohorte
-            <select name="cohorte" defaultValue={cohorte?.id ?? "todas"} className={control}>
-              <option value="todas">Todas las cohortes</option>
-              {cohortes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.codigo}
-                  {c.estado === "activo" ? " (activa)" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-1 text-sm">
-            Onboarding
-            <select name="onboarding" defaultValue={filtro.onboarded ?? ""} className={control}>
-              <option value="">Todos</option>
-              <option value="no">Sin onboarding</option>
-              <option value="si">Con onboarding</option>
-            </select>
-          </label>
-          <div className="flex items-end">
-            <button
-              className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors duration-150 hover:bg-primary/80 focus-visible:ring-3 focus-visible:ring-ring/50 outline-none"
-              type="submit"
-            >
-              Filtrar
-            </button>
-          </div>
-        </form>
+        <BarraDeFiltros nombres={["cohorte", "onboarding"]}>
+          <FiltroSelect
+            nombre="cohorte"
+            etiqueta="Cohorte"
+            todos={activa ? `${activa.codigo} (activa)` : "Todas las cohortes"}
+            opciones={[
+              { value: "todas", label: "Todas las cohortes" },
+              ...cohortes.map((c) => ({ value: c.id, label: `${c.codigo}${c.estado === "activo" ? " (activa)" : ""}` })),
+            ]}
+          />
+          <FiltroSelect nombre="onboarding" etiqueta="Onboarding" opciones={[{ value: "no", label: "Sin onboarding" }, { value: "si", label: "Con onboarding" }]} />
+        </BarraDeFiltros>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Kpi etiqueta="Estudiantes" valor={filas.length} />

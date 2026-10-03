@@ -12,6 +12,9 @@ import { PageShell } from "@/components/page-shell";
 import { LlamadasPrograma } from "@/components/deals/llamadas-programa";
 import { InboxLlamadasSueltas } from "@/components/deals/inbox-llamadas-sueltas";
 import { llamadasSueltasDelPrograma } from "@/lib/queries/inbox";
+import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
+import { FiltroFecha } from "@/components/filtros/filtro-fecha";
+import { FiltroSelect } from "@/components/filtros/filtro-select";
 
 export const dynamic = "force-dynamic";
 
@@ -62,25 +65,12 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
   return (
     <PageShell titulo={programa.nombre} descripcion="Calls">
       <div className="space-y-4">
-        <form className="grid gap-3 rounded-xl bg-card p-4 shadow-tarjeta sm:grid-cols-4" method="get">
-          <label className="grid gap-1 text-sm">
-            Closer
-            <select name="closer" defaultValue={filtro.closerUserId ?? ""} className="h-9 rounded-lg border border-input bg-background px-2">
-              <option value="">Todos</option>
-              {opciones.closers.map((closer) => <option key={closer.id} value={closer.id}>{closer.nombre}</option>)}
-            </select>
-          </label>
-          <label className="grid gap-1 text-sm">
-            Resultado
-            <select name="resultado" defaultValue={filtro.resultado ?? ""} className="h-9 rounded-lg border border-input bg-background px-2">
-              <option value="">Todos</option>
-              {RESULTADOS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
-          </label>
-          <label className="grid gap-1 text-sm">Desde<input type="date" name="desde" defaultValue={filtro.desde ?? ""} className="h-9 rounded-lg border border-input bg-background px-2" /></label>
-          <label className="grid gap-1 text-sm">Hasta<input type="date" name="hasta" defaultValue={filtro.hasta ?? ""} className="h-9 rounded-lg border border-input bg-background px-2" /></label>
-          <button className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground sm:col-span-4 sm:w-fit" type="submit">Filtrar llamadas</button>
-        </form>
+        <BarraDeFiltros nombres={["closer", "resultado", "desde", "hasta"]}>
+          <FiltroSelect nombre="closer" etiqueta="Closer" opciones={opciones.closers.map((closer) => ({ value: closer.id, label: closer.nombre }))} />
+          <FiltroSelect nombre="resultado" etiqueta="Resultado" opciones={RESULTADOS.map(([value, label]) => ({ value, label }))} />
+          <FiltroFecha nombre="desde" etiqueta="Desde" />
+          <FiltroFecha nombre="hasta" etiqueta="Hasta" />
+        </BarraDeFiltros>
 
         <LlamadasPrograma
           llamadas={llamadas.filter((llamada) => llamada.dealId != null)}

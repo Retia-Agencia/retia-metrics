@@ -16,6 +16,8 @@ import {
 import { fecha, fechaDeInstanteEnBogota, hoyEnBogota, num } from "@/lib/format";
 import { filtroDeFechaDeLaUrl } from "@/lib/periodo";
 import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
+import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
+import { FiltroSelect } from "@/components/filtros/filtro-select";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,9 +41,6 @@ const CALIDADES = [
   { valor: "low", etiqueta: "Low" },
   { valor: "sin_calidad", etiqueta: "Sin calidad" },
 ] as const satisfies readonly { valor: (typeof CALIDADES_DE_LEAD)[number]; etiqueta: string }[];
-
-/** Las claves de la URL que forman el filtro de fecha (141): el campo y las del selector. */
-const CLAVES_DE_FECHA = ["fecha", "periodo", "a_desde", "a_hasta"] as const;
 
 /** Las fechas que filtra la base de leads (ticket 141). */
 const CAMPOS = [
@@ -91,57 +90,16 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
     const s = u.toString();
     return `/p/${programa.slug}/leads${s ? `?${s}` : ""}`;
   };
-  const control =
-    "h-9 rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-
   return (
     <PageShell titulo={programa.nombre} descripcion="Leads">
       <div className="space-y-4">
         <FiltroFechaLista campos={CAMPOS} filtro={filtroDeFecha} />
-        <form className="grid gap-3 rounded-xl bg-card p-4 shadow-tarjeta sm:grid-cols-3 lg:grid-cols-5" method="get">
-          <label className="grid gap-1 text-sm">
-            Deal
-            <select name="deal" defaultValue={filtro.deal ?? ""} className={control}>
-              <option value="">Todos</option>
-              <option value="sin">Sin deal</option>
-              <option value="con">Con deal</option>
-            </select>
-          </label>
-          <label className="grid gap-1 text-sm">
-            Calidad
-            <select name="calidad" defaultValue={filtro.calidad ?? ""} className={control}>
-              <option value="">Todas</option>
-              {CALIDADES.map((c) => (
-                <option key={c.valor} value={c.valor}>
-                  {c.etiqueta}
-                </option>
-              ))}
-            </select>
-          </label>
-          {/* El filtro de fecha vive arriba, en la URL: el formulario GET lo conserva al filtrar. */}
-          {CLAVES_DE_FECHA.map((clave) => {
-            const valor = uno(q[clave]);
-            return filtroDeFecha && valor ? <input key={clave} type="hidden" name={clave} value={valor} /> : null;
-          })}
-          <div className="grid content-end gap-1 text-sm">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="abandono" value="1" defaultChecked={filtro.abandono} className="size-4 accent-primary" />
-              Abandonó el formulario
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="duplicado" value="1" defaultChecked={filtro.duplicado} className="size-4 accent-primary" />
-              Posible duplicado
-            </label>
-          </div>
-          <div className="flex items-end">
-            <button
-              className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground outline-none transition-colors duration-150 hover:bg-primary/80 focus-visible:ring-3 focus-visible:ring-ring/50"
-              type="submit"
-            >
-              Filtrar
-            </button>
-          </div>
-        </form>
+        <BarraDeFiltros nombres={["deal", "calidad", "abandono", "duplicado"]}>
+          <FiltroSelect nombre="deal" etiqueta="Deal" opciones={[{ value: "sin", label: "Sin deal" }, { value: "con", label: "Con deal" }]} />
+          <FiltroSelect nombre="calidad" etiqueta="Calidad" todos="Todas" opciones={CALIDADES.map((c) => ({ value: c.valor, label: c.etiqueta }))} />
+          <FiltroSelect nombre="abandono" etiqueta="Abandonó el formulario" todos="No" opciones={[{ value: "1", label: "Sí" }]} />
+          <FiltroSelect nombre="duplicado" etiqueta="Posible duplicado" todos="No" opciones={[{ value: "1", label: "Sí" }]} />
+        </BarraDeFiltros>
 
         <Card>
           <CardHeader>

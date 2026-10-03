@@ -15,6 +15,9 @@ import {
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
+import { FiltroFecha } from "@/components/filtros/filtro-fecha";
+import { FiltroSelect } from "@/components/filtros/filtro-select";
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +37,6 @@ export default async function BitacoraPage({ searchParams }: Props) {
 
   const filtro = filtroDeLaUrl(await searchParams);
   const [pagina, opciones] = await Promise.all([paginaDeBitacora(filtro, db), opcionesDeBitacora(db)]);
-  const control =
-    "h-9 rounded-lg border border-input bg-background px-2 text-sm outline-none transition-colors duration-150 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
   const enlace = "text-marca-texto underline-offset-4 outline-none hover:underline focus-visible:underline";
 
   return (
@@ -49,51 +50,18 @@ export default async function BitacoraPage({ searchParams }: Props) {
       }
     >
       <div className="space-y-4">
-        <form method="get" className="grid gap-3 rounded-xl bg-card p-4 shadow-tarjeta sm:grid-cols-5">
-          <label className="grid gap-1 text-sm">
-            Usuario
-            <select name="usuario" defaultValue={filtro.usuario ?? ""} className={control}>
-              <option value="">Todos</option>
-              <option value={USUARIO_SISTEMA}>Sistema (sin usuario)</option>
-              {opciones.usuarios.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.email}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-1 text-sm">
-            Tabla
-            <select name="tabla" defaultValue={filtro.tabla ?? ""} className={control}>
-              <option value="">Todas</option>
-              <option value={TABLA_MOVIMIENTOS}>Movimientos de etapa</option>
-              {opciones.tablas.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-1 text-sm">
-            Desde
-            <input type="date" name="desde" defaultValue={filtro.desde ?? ""} className={control} />
-          </label>
-          <label className="grid gap-1 text-sm">
-            Hasta
-            <input type="date" name="hasta" defaultValue={filtro.hasta ?? ""} className={control} />
-          </label>
-          <div className="flex items-end gap-3">
-            <button
-              type="submit"
-              className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground outline-none transition-colors duration-150 hover:bg-primary/80 focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              Filtrar
-            </button>
-            <Link href="/nerd-stats/bitacora" className="text-sm text-muted-foreground underline-offset-4 outline-none hover:underline focus-visible:underline">
-              Limpiar
-            </Link>
-          </div>
-        </form>
+        <BarraDeFiltros nombres={["usuario", "tabla", "desde", "hasta"]}>
+          <FiltroSelect nombre="usuario" etiqueta="Usuario" opciones={[
+            { value: USUARIO_SISTEMA, label: "Sistema (sin usuario)" },
+            ...opciones.usuarios.map((u) => ({ value: u.id, label: u.email })),
+          ]} />
+          <FiltroSelect nombre="tabla" etiqueta="Tabla" todos="Todas" opciones={[
+            { value: TABLA_MOVIMIENTOS, label: "Movimientos de etapa" },
+            ...opciones.tablas.map((t) => ({ value: t, label: t })),
+          ]} />
+          <FiltroFecha nombre="desde" etiqueta="Desde" />
+          <FiltroFecha nombre="hasta" etiqueta="Hasta" />
+        </BarraDeFiltros>
 
         <Card>
           <CardHeader>
