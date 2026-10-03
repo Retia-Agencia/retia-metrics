@@ -74,7 +74,8 @@ beforeEach(async () => {
 
   // Cada closer es miembro de SU programa, no del otro.
   await db.insert(miembrosPrograma).values([
-    { userId: closerDeA, programId: programaA },
+    // Ana hospeda la cita en su Calendly (ADR 0076: una suelta la cuelga su host).
+    { userId: closerDeA, programId: programaA, calendlyEmail: "ana@calendly.co" },
     { userId: closerDeB, programId: programaB },
   ]);
 
@@ -103,7 +104,7 @@ beforeEach(async () => {
   // Una llamada suelta (sin deal) del programa A.
   const [call] = await db
     .insert(calls)
-    .values({ programId: programaA, resultado: "agendada", emailLead: "lead@correo.co", origen: "calendly", huellaFila: "calendly:uuid-1" })
+    .values({ programId: programaA, resultado: "agendada", emailLead: "lead@correo.co", origen: "calendly", huellaFila: "calendly:uuid-1", calendlyHostEmail: "ana@calendly.co" })
     .returning();
   callSuelta = call.id;
 });
@@ -118,12 +119,23 @@ async function llamada(id: string) {
 }
 
 describe("asignarLlamadaSueltaAccion", () => {
-  it("un closer del MISMO programa la asigna: la llamada queda colgada del deal", async () => {
+  it("la closer HOST la asigna: la llamada queda colgada del deal", async () => {
     auth.mockResolvedValue(sesionCloserA);
     const { asignarLlamadaSueltaAccion } = await acciones();
     const r = await asignarLlamadaSueltaAccion({ callId: callSuelta, dealId: dealAbierto });
     expect(r.ok).toBe(true);
     expect((await llamada(callSuelta)).dealId).toBe(dealAbierto);
+  });
+
+  it("un closer del mismo programa que NO es el host es rechazado (403) y la base no se mueve (ADR 0076)", async () => {
+    const [carla] = await db.insert(users).values({ email: "carla@retiagrowth.com", rol: "closer", closerId: "Carla", nombre: "Carla" }).returning();
+    await db.insert(miembrosPrograma).values({ userId: carla.id, programId: programaA, calendlyEmail: "carla@calendly.co" });
+    auth.mockResolvedValue({ user: { id: carla.id, email: "carla@retiagrowth.com", rol: "closer", closerId: "Carla" } });
+    const { asignarLlamadaSueltaAccion } = await acciones();
+    const r = await asignarLlamadaSueltaAccion({ callId: callSuelta, dealId: dealAbierto });
+    expect(r.ok).toBe(false);
+    expect((await llamada(callSuelta)).dealId).toBeNull();
+    expect((await db.select().from(deals).where(eq(deals.id, dealAbierto)))[0].ownerUserId).toBe(closerDeA);
   });
 
   it("un closer de OTRO programa es rechazado (404) y la llamada NO se cuelga", async () => {
