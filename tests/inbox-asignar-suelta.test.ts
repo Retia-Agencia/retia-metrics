@@ -149,8 +149,11 @@ describe("asignarLlamadaSueltaAccion", () => {
   it("sin sesión no pasa nada (el guard de rol corta antes de tocar la base)", async () => {
     auth.mockResolvedValue(null);
     const { asignarLlamadaSueltaAccion } = await acciones();
-    // `requireRole` lanza AuthenticationError fuera del try de `correr`: la promesa rechaza.
-    await expect(asignarLlamadaSueltaAccion({ callId: callSuelta, dealId: dealAbierto })).rejects.toThrow();
+    // La guarda corre dentro del try de `correr`: el 401 vuelve como resultado, no como excepción.
+    expect(await asignarLlamadaSueltaAccion({ callId: callSuelta, dealId: dealAbierto })).toEqual({
+      ok: false,
+      error: "Necesitas iniciar sesion.",
+    });
     expect((await llamada(callSuelta)).dealId).toBeNull();
   });
 
