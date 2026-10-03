@@ -199,6 +199,15 @@ vi.mock("@/lib/queries/bitacora", async (importOriginal) => ({
   opcionesDeBitacora,
 }));
 
+// La tab Leads (ticket 170) lee la base; se mockean sus dos lecturas y se conservan las constantes.
+const leadsDelPrograma = vi.fn();
+const posiblesDuplicadosDelPrograma = vi.fn();
+vi.mock("@/lib/queries/leads", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/queries/leads")>()),
+  leadsDelPrograma,
+  posiblesDuplicadosDelPrograma,
+}));
+
 /** El `redirect` real interrumpe el render lanzando. El mock imita eso. */
 class Redireccion extends Error {
   constructor(readonly destino: string) {
@@ -1051,6 +1060,50 @@ describe("la ficha del lead /p/[programa]/leads/[id] (ticket 073)", () => {
     programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
     await expect(abrir("lead@correo.co")).rejects.toBeInstanceOf(NoEncontrado);
     expect(fichaDeLead).not.toHaveBeenCalled();
+  });
+});
+
+describe("la tab Leads /p/[programa]/leads (ticket 170)", () => {
+  async function abrir(busqueda: Record<string, string> = {}) {
+    const { default: pagina } = await import("@/app/(app)/p/[programa]/leads/page");
+    return pagina({ params: Promise.resolve({ programa: "programa-a" }), searchParams: Promise.resolve(busqueda) });
+  }
+
+  beforeEach(() => {
+    leadsDelPrograma.mockReset();
+    leadsDelPrograma.mockResolvedValue({ total: 1, filas: [{
+  id: "3f8a1c2e-0000-4000-8000-000000000001",
+  nombre: "Ana",
+  email: "ana@correo.co",
+  telefono: "3001234567",
+  calificacion: null,
+  leadQuality: "High",
+  leadValue: null,
+  fechaUltimaAplicacion: new Date("2026-10-01T15:00:00Z"),
+  numAplicaciones: 1,
+  tieneDeal: true,
+  soloParciales: false,
+  correosSinConfirmar: 0,
+  etapa: "calificado",
+  canal: "facebook / paid_social",
+}] });
+    posiblesDuplicadosDelPrograma.mockReset();
+    posiblesDuplicadosDelPrograma.mockResolvedValue([]);
+  });
+
+  it("un programa fuera del alcance es 404 antes de leer los leads", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programaVisiblePorSlug.mockResolvedValue(null);
+    await expect(abrir()).rejects.toBeInstanceOf(NoEncontrado);
+    expect(leadsDelPrograma).not.toHaveBeenCalled();
+  });
+
+  it.each<Record<string, string>>([{}, { vista: "tabla" }, { vista: "inventada" }])("pinta tarjetas o tabla sin romperse (%o)", async (busqueda) => {
+    auth.mockResolvedValue(sesionGerente);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
+    await expect(abrir(busqueda)).resolves.toBeTruthy();
+    // La vista no es un filtro: la consulta no la recibe.
+    expect(leadsDelPrograma).toHaveBeenCalledWith(expect.anything(), "p-1", expect.not.objectContaining({ vista: expect.anything() }));
   });
 });
 

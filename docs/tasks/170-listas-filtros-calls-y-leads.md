@@ -94,8 +94,8 @@ Tests: `tests/llamadas-programa.test.ts` (alcance por dueño, mordido en los dos
   El grep del "Done cuando" solo devuelve `lib/mutations/personas` (la creación manual de un lead, otra cosa).
   `tests/personas.test.ts` no cambió: prueba esa mutación, no la pantalla.
 - **Tests:** `filtros-url` (nuevo), `llamadas-programa` (alcance en los dos sentidos), `leads-tab` (buscador, etapa,
-  canal), `acciones-mi-dia`, `alcance-de-sesion`, `mi-dia`, `roles`, `paginas`: 172 en verde en local. No se agregó un
-  caso de página para `?vista=tabla` (pediría mockear las consultas de Leads); lo cubrió el recorrido.
+  canal), `acciones-mi-dia`, `alcance-de-sesion`, `mi-dia`, `roles`, `paginas` (la tab Leads: 404 fuera del alcance
+  y tarjetas, tabla o vista inválida sin romperse): en verde en local. CI verde en el push del 3-oct (`6bc3988`).
 - **Nivel 1:** typecheck, lint y `npm run build` en verde.
 - **Recorrido en `dev:local`** (gerente y closer, escritorio y 375 px): filtros sin botón y "Quitar filtros" en Calls,
   Leads y Kanban; período A contra B; fila de Calls abre el detalle y "Pegar Grain" abre su diálogo; Students y la tabla
