@@ -9,25 +9,16 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia. Lee AGENTS.md y despues docs/plan-reparto.md §1, §4, §5 y §6: desde el 1-oct
-se trabaja por OLAS de tickets listos, cada uno con varias sesiones (una sesion = un ticket = un worktree).
-Solo se ordenan tres cosas: la COLA de migraciones (una a la vez, la aplica la sesion principal de Mani con
-su ok), los ARCHIVOS CALIENTES (un dueño por ola: motor, dashboard, regla-de-deals, schema) y las
-DECISIONES (un ticket bloqueado no entra). El estado vive en el archivo de cada ticket y, tras cada
-checkpoint verde, en docs/tasks/README.md.
+Seguimos con el CRM de Retia. PRIORIDAD: dejar la operación comercial lista en el CRM. Lee AGENTS.md y despues
+docs/plan-reparto.md §4, "Ola O2": es la lista completa en tres frentes. Frente 0 (base común: checkpoint,
+recorridos de Mani, tickets 160 y 161, S1, manual 154), frente A (PRIORIDAD: los programas que nacen en el CRM,
+los que venden Nicolás y Francisco, antes del lunes 5-oct) y frente B (ComunicArte y Tactical: migrar con el 078,
+corte y 082). Empieza por 0.1 (empujar y marcar el checkpoint) y A.1 (preguntarle a Mani qué programa vende cada
+closer). Los parciales siguen abriendo deal (A-41 cerrada). El mapa de actores y componentes: docs/plan.md §4.0.
 
-Tests: nivel 1 antes de cada push (typecheck, lint y los tests del ticket; nunca la suite completa en local).
-Push directo a main. La suite completa la valida un CHECKPOINT dos veces al dia (plan-reparto §6): nadie
-empuja mientras corre; verde = tag cp-AAAAMMDD-N; rojo = el culpable esta entre el ultimo tag y la punta.
-
-Ola vigente: O1 (plan-reparto §4). Camino critico de la v1 comercial: el 142, DESBLOQUEADO el 2-oct (ADR 0070 y
-0071; el metodo es el ciclo de vida de 30X, docs/manual-gestion-comercial.md §0; ADR 0072: una pregunta por etapa), y del 142 cuelgan 143, 128,
-118, el 117 enmendado (ADR 0069), el --aplicar del 078, el corte y el 148. Cola de migraciones: 0057 aplicada;
-sigue el 142 al frente, despues 092 (ADR 0068) -> 102. Abierta para E7: A12, el ROAS sin la TRM de la
-cohorte (plan.md §7).
-
-Antes de una pantalla: docs/structure.md §9 (Tinta) y docs/anotaciones.md. Produccion es la unica base:
-leer es libre, escribir pide el ok de Mani.
+Reglas: Codex implementa por /delegate y la sesion principal revisa; migraciones solo con el ok de Mani; nivel 1
+antes de cada push (typecheck, lint, tests del ticket), la suite completa la corre el CI en los checkpoints
+(plan-reparto §6). Produccion es la unica base: leer es libre, escribir pide el ok de Mani.
 ```
 
 ## Memory
@@ -43,8 +34,11 @@ leer es libre, escribir pide el ok de Mani.
     va con las etapas de 30X; vocabulario al día. `structure.md` §4.1 = código por componente y §8 = pantallas
     reales. Arreglado lo desactualizado: setter en `manual-gestion-comercial.md`, 092 y 007 en el tracker, el
     143 en el manual HTML, los tracks en `AGENTS.md`. Mapa publicado: https://claude.ai/artifact/L7gb5GmWQCXgq9JmsEPw5K
-  - **Abierto:** quiénes son los dos closers nuevos y en qué programa; quién queda con el papel de Ops de
-    Michael; si `tasks/README.md` también se reagrupa por componente (hoy sigue por épocas). Nada commiteado.
+  - **Después (mismo día):** Nicolás y Francisco son closers; Ops es Mani; el tracker se reagrupó por componente
+    (179 filas antes y después, verificado por script); el mapa pasó a `docs/manuales/`. A-41 cerrada (los parciales
+    siguen). `closer_id` NO es solo de las hojas: sella abonos, caja por closer, comisión y crear a mano → ticket 159
+    para retirarlo tras el corte. Abiertos 160 (cortesía) y 161 (tres intentos), decididos en el ADR 0071 y sin
+    construir. La ola O2 de `plan-reparto.md` §4 es ahora la lista completa del cierre comercial.
 
 - **2026-10-02 (noche 2, Mani + Claude): 157 y 143 en `main`, la 0061 aplicada, el manual al día.**
   - **Hecho:** 0061 (`deals.setter_user_id`, `deals.handoff_en`) aplicada en producción con el ok de Mani y verificada

@@ -58,7 +58,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 2 · Deal y motor de etapas
 
-20 tickets, 4 abiertos.
+22 tickets, 6 abiertos.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -82,6 +82,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 153 | [Base local y lista de pruebas de la operación comercial](./153-base-local-y-pruebas-de-la-operacion-comercial.md) | 142, 151, 128, 118 | en curso · 2-oct: seed con las 11 etapas, deals por settear y no históricos (A-19 resuelta); lista de 33 pruebas recorrida entera por la sesión (recorridos 3 y 4, hallazgos A-19 a A-33 en `docs/anotaciones.md`). Falta: que Mani la recorra como closer · carril Mani |
 | [x] | 155 | [Los hallazgos de UI de los recorridos 3 y 4](./155-hallazgos-de-los-recorridos-3-y-4.md) | 128, 153 | done · 2-oct · CI verde en `2854fef` · carril Mani · A-20 a A-33 (A-24, A-29, A-31 y A-33 entraron antes por O2-d `37f558c`, se conservó esa versión; A-23 descartada: se confía en el closer; A-30 sigue en el 078); `aceptaAbono` en `lib/deals/etapas.ts`, llamadas cuya hora ya pasó, alerta de atendida sin Grain, log "creado" solo el primer grupo · typecheck, lint y build en verde, tests del cambio al CI (swap); recorrido en `dev:local` · sin migración · S |
 | [ ] | 156 | [La operación comercial intuitiva](./156-operacion-comercial-intuitiva.md) | 155 | en main · 2-oct · espera CI, build y recorrido · Codex implementó, revisó la sesión principal (typecheck y lint limpios, tests al CI por swap) · ADR 0075 · A-34 a A-39 (onboarding de closers): Transición por etapa destino, un pop-up para ficha y Kanban, alertas en su recuadro, comprobante sin reja, el closer ve lo suyo · sin migración · carril Mani |
+| [ ] | 160 | [Marcar una cortesía en el deal](./160-marcar-una-cortesia.md) | 142, 143 | todo · 2-oct · la columna existe (0058), falta escribirla y leerla |
+| [ ] | 161 | [La alerta "agotó intentos"](./161-alerta-de-tres-intentos.md) | 128, 142 | todo · 2-oct · ADR 0071 punto 4, sin construir |
 
 ## 3 · Inbox
 
@@ -229,7 +231,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 11 · Plataforma
 
-17 tickets, 0 abiertos.
+18 tickets, 1 abierto.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -250,6 +252,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 113 | [Base local para desarrollar pantallas](./113-base-local-para-pantallas.md) | · | done · 28-sep: `npm run db:local` (Docker, 38 migraciones, seed por `lib/`) y `npm run dev:local`, probado de punta a punta. Falta un modo de login local (Auth.js solo tiene Google) · sembrar contra Postgres real destapó el `Date` en `moverEtapa` (arreglado) |
 | [x] | 114 | [Auditoría de cálculos y reglas fijas](./114-auditoria-de-calculos-fijos.md) | · | done · 30-sep · A1-A3 arreglados; B5 (0046, `sources.calificacion` fuera) y C6 (solo USD) hechos; B4 pasa al 117 |
 | [x] | 150 | [Tests rápidos: la base migrada una vez por corrida](./150-tests-rapidos-base-migrada-una-vez.md) | · | done · 1-oct · Mani · checkpoint `cp-20261002-1` · vitest en el CI 372 s → 274 s; migración rota revienta la corrida una vez; `npm run test:cambios` |
+| [ ] | 159 | [`closer_id` se retira: quién cobró y quién vendió son FK a `users`](./159-closer-id-se-retira.md) | 078 | todo · 2-oct · después del corte; mientras tanto todo closer nuevo se da de alta con `closer_id` |
 
 ## 12 · Migración y corte
 

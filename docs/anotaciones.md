@@ -91,7 +91,7 @@ y el ADR 0076 (A-40, propuesto).
 | A-38 | Deals (Kanban) | cambio | Arrastrar una tarjeta a una etapa abre el MISMO pop-up de A-37. | 156 | en ticket |
 | A-39 | Deals (Kanban) | cambio | Un closer no ve todos los deals ni elige dueño: solo ve los suyos. | 156 | en ticket |
 | A-40 | Deal con llamada | cambio | Setter y closer son personas distintas con el mismo rol. Un deal con llamada es siempre de quien da la llamada; el setter queda con su crédito como marca, y el deal se queda con él hasta que la cita entra por Calendly. Riesgo: el lead agenda con otro correo. | 157 | en ticket (ADR 0076 aceptado, 2-oct) |
-| A-41 | Regla de entrada | aclaración | Nicolás (closer nuevo): un parcial es "basura" para un closer; se recupera con retargeting del píxel de Meta, no con el setter. Michael: a los parciales se les da contacto automático (IA, Kapso), nunca una reunión. Mani: se deja como está (GC-27, ningún envío sin deal) hasta hablarlo con Michael y Gerencia. | sin ticket | abierta |
+| A-41 | Regla de entrada | aclaración | Nicolás (closer nuevo): un parcial es "basura" para un closer; se recupera con retargeting del píxel de Meta, no con el setter. Michael: a los parciales se les da contacto automático (IA, Kapso), nunca una reunión. Mani: se deja como está (GC-27, ningún envío sin deal) hasta hablarlo con Michael y Gerencia. | sin ticket | ✅ cerrada (Mani, 2-oct): los parciales siguen abriendo deal en Potencial, como en 30X |
 | A-42 | Reporte del día | cambio | Michael pide un mensaje diario por closer (agendadas, canceladas, efectivas, ventas, objeciones, sin fit). Lo arma el CRM, no el closer a mano. | 158 | en ticket (falta decidir cómo se registran las objeciones) |
 
 ### Lo que dejó la llamada fuera de la pantalla (operación, no código)

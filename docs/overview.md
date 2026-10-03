@@ -195,7 +195,7 @@ su estado está en `plan.md` §4.0 ("Los traspasos entre actores").
 
 1. **Llega el envío.** La persona llena el formulario del programa (Typeform o Dapta Forms) y el envío llega
    al CRM por webhook, con todas sus respuestas, sus UTM, su **Lead Quality** y su **Lead Value**. Se guarda
-   aunque esté a medias: un envío parcial también abre deal (GC-27; 🔴 A-41 lo cuestiona).
+   aunque esté a medias: un envío parcial también abre deal, en Potencial (GC-27; A-41 cerrada el 2-oct: así se hace en 30X).
 2. **Se identifica a la persona.** Mismo correo, mismo lead. Mismo teléfono con otro correo: se une y se
    marca para que un gerente lo revise, nunca se fusiona a ciegas.
 3. **Nace el deal en su puerta.** El CRM decide la etapa con tres hechos del envío (ADR 0069): agendó →

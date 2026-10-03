@@ -120,27 +120,81 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ## 4. La ola vigente y el mapa de etapas
 
-### 🌊 Ola O2 · cerrar la operación comercial en el CRM · abierta el 2-oct
+### 🌊 Ola O2 · la operación comercial lista en el CRM · reescrita el 2-oct (noche)
 
-**Meta (Mani, 2-oct):** que toda la operación comercial, de la entrada del lead a student, se maneje en el CRM. Las
-métricas, el dashboard y la pauta siguen después, encima de esto. La migración va **al final**, cuando la operación
-esté probada a mano. Producción al 2-oct: la entrada funciona (174 envíos en 48 h, cada uno con su deal), pero nadie
-opera todavía (0 deals de En gestión en adelante, 0 abonos) y la cartera vive en las hojas.
+**La meta (Mani, 2-oct):** que toda la operación comercial, de la entrada del lead a student, se maneje en el CRM.
+**Es la prioridad.** Métricas finas, dashboard por secciones y pauta van encima, después. Esta sección es **la lista
+completa** para cerrarla: quien la tome en otra sesión no necesita nada más que esto, `AGENTS.md` y los tickets que
+cita. Producción al 2-oct: la entrada funciona (174 envíos en 48 h, cada uno con su deal), pero nadie opera (0 deals
+de En gestión en adelante, 0 abonos).
 
-| Orden | Sesión | Ticket | Dueño | Tamaño | Notas |
-|---|---|---|---|---|---|
-| 1 | O2-a | [152] el closer asigna su Calendly (ADR 0074) | Mani | S | en paralelo con O2-b |
-| 1 | O2-b | [153] base local y lista de pruebas | Mani | M | Mani recorre la lista como closer; lo que falle va a `anotaciones.md` y a su ticket |
-| 2 | O2-c | [143] propiedades obligatorias por etapa | Mani | M | dueño de `lib/deals/requisitos.ts`; después de que O2-b muestre qué falta |
-| 2 | O2-d | arreglos que salgan de la lista del 153 | Mani | · | un ticket por hallazgo que no quepa en el 153 |
-| 3 | O2-e | [078] migración de ComunicArte (plan de cierre en su archivo) | Mani | M | paso 0: barrido y tabla aprobada antes del código |
-| 3 | O2-f | [078] migración de Tactical | Mani | S | después de O2-e en `main` |
-| 4 | O2-g | [154] manual de operación comercial (artifact) | Mani | M | con la operación probada y migrada |
+**Dos frentes, y el primero manda** (Mani, 2-oct):
 
-**Lo de Mani que no es código:** invitar a los closers nuevos a la organización de Calendly de cada programa y darlos
-de alta en `/ajustes/usuarios` (rol, `closer_id`, membresías); el `pg_dump` de producción el día de cada `--aplicar`
-(paso 4 del plan del 078) mientras S1 siga abierta; avisar a los closers que revisen lo suyo después de migrar. El
-corte no tiene fecha (Mani, 2-oct): las hojas se dejan cuando la migración de los dos programas esté revisada.
+- **Frente A · Programas que nacen en el CRM** (los que venden Nicolás y Francisco): sin hojas, sin migración. Es la
+  **prioridad**: arrancan el lunes 5-oct.
+- **Frente B · Programas que ya tienen hojas** (ComunicArte y Tactical): migrar lo histórico (078), el corte y
+  apagar las pestañas.
+
+Los dos se apoyan en una **base común (frente 0)**. Decidido el 2-oct y que ya no se reabre: **los parciales siguen
+abriendo deal en Potencial** y las etapas se manejan como están (A-41 cerrada, así se hace en 30X).
+
+#### Frente 0 · Base común (bloquea A y B)
+
+| # | Qué | Quién | Ticket | Hecho cuando |
+|---|---|---|---|---|
+| 0.1 | Empujar `main` y marcar el checkpoint (último CI pendiente: `52de822`) | sesión | · | tag `cp-AAAAMMDD-N` en verde: 143, 152, 156 y 157 cuentan como hechos |
+| 0.2 | Recorrer la lista de pruebas como closer (`docs/pruebas-operacion-comercial.md`, 33 pruebas) | Mani | 153 | cada prueba marcada; lo que falle, en `anotaciones.md` con su id |
+| 0.3 | Recorrer lo nuevo: propiedades en rojo (143), Transición y pop-up (156), Calendly propio (152), handoff del setter: link de agenda, "Ya se lo mandé", "Setteado por", suelta ajena = 403 (157) | Mani | 143, 152, 156, 157 | sin hallazgos abiertos, o cada uno con su ticket |
+| 0.4 | Arreglar lo que salga de 0.2 y 0.3 | Codex → sesión | uno por hallazgo | en `main` con su nivel 1 |
+| 0.5 | Marcar una cortesía | Codex → sesión | 160 | ver el ticket |
+| 0.6 | La alerta "agotó intentos" | Codex → sesión | 161 | ver el ticket |
+| 0.7 | 🔴 **Decidir S1: Supabase Pro.** Aplica a los dos frentes: desde el día 1 los programas nuevos también viven solo en la base | Mani con el equipo | · | Pro pagado, o el `pg_dump` diario como regla escrita en `operations.md` |
+| 0.8 | Manual de operación comercial al día (incluye la versión corta de las 11 etapas) y publicado para los closers | sesión | 154 | "Lo que le falta al CRM" refleja 0.1 a 0.6 |
+
+#### Frente A · Programas que nacen en el CRM (prioridad, antes del lunes 5-oct)
+
+| # | Qué | Quién | Hecho cuando |
+|---|---|---|---|
+| A.1 | 🔴 **Confirmar qué programa vende cada uno** (Nicolás, Francisco), su precio de lista y si la cohorte arranca ya | Mani | nombre, ticket USD y ventana de la C1 escritos aquí |
+| A.2 | Crear cada programa de punta a punta, en el orden de `operations.md` §2.1: programa → token de Calendly → formulario en Dapta (`docs/dapta/`) con agenda, Lead Quality y Lead Value → fuente + secreto + activar → URL y secreto en el proveedor → "enviar prueba" → Calendly en el formulario → publicar | Mani (secretos a mano) y sesión (JSON del formulario) | el programa activo, con su fuente principal (092) |
+| A.3 | La cohorte C1 de cada programa: ventana de venta, meta de cupos, ticket base | Mani | `/ajustes/programas/<slug>` con la cohorte activa |
+| A.4 | Dar de alta a Nicolás y Francisco en `/ajustes/usuarios`: rol closer, **`closer_id` (obligatorio por ahora, ver 159)**, membresía en su programa | Mani | los dos entran con su Google y ven su programa |
+| A.5 | Invitarlos a la organización de Calendly del programa (round robin y su disponibilidad, que configura Michael) y que cada uno asigne su cuenta desde `/perfil` | Mani y ellos | una cita de prueba con cada uno cae en el deal correcto, no suelta |
+| A.6 | Recursos del programa: brochure y enlaces de pago, con sus plataformas vinculadas | Mani o el closer | el closer los copia en un clic desde Recursos |
+| A.7 | Comisión del programa (% congelado al vender) | Mani | cargada en la ficha del programa |
+| A.8 | **Un envío real por camino** antes de compartir el link: parcial, completo sin agenda, completo High, con agenda, con las seis UTM. Y el recorrido completo de un deal: setteo → cita → Grain → "¿Cómo terminó?" → abono → Student. Los de prueba se anulan | Mani y sesión | cada camino revisado en la base; ningún sobre crudo con error |
+| A.9 | Capacitar a los dos con el manual (0.8) y la llamada de prueba con Andrea | Mani | operan solos su primer lead |
+| A.10 | Vigilar la primera semana: `/ajustes/salud`, alarma "sin calidad", sueltas en el Inbox | sesión, a diario | cero envíos perdidos, cero sueltas sin asignar al cierre del día |
+
+#### Frente B · Programas con hojas (ComunicArte y Tactical)
+
+| # | Qué | Quién | Ticket | Hecho cuando |
+|---|---|---|---|---|
+| B.1 | ComunicArte: paso 0 (barrido de hoy y tabla de destinos aprobada por Mani), `pg_dump`, `--aplicar`, conciliación | Mani (la sesión principal aplica) | 078 | conciliación en 0 y los closers revisan lo suyo |
+| B.2 | Tactical: lo mismo | Mani | 078 | ídem |
+| B.3 | El corte con capacitación (`operations.md` §12): los closers de CA y TI dejan las hojas | Mani | · | **hito B** |
+| B.4 | A la semana hábil, apagar las pestañas de gestión | Mani | 082 | **hito C** |
+
+#### Las decisiones que acompañan el cierre (Mani)
+
+Ninguna frena el día 1 de operar; cada una destraba algo de la primera o segunda semana. Recomendación escrita en
+cada ticket o en `plan.md` §7.
+
+| Decisión | Destraba | Cuándo | Recomendación |
+|---|---|---|---|
+| Cómo se registran las objeciones (con Michael) | 158: el reporte del día sale del CRM y Michael deja de armarlo por WhatsApp | semana 1 | catálogo editable al responder "¿Cómo terminó?" |
+| A-05: el hub del closer | la cola ordenada por Lead Value, días en etapa y próximo paso (075) | semana 1 | el Inbox ampliado con "lo mío" |
+| QM-3 · GC-17: la próxima fecha de pago, hablando con 2 o 3 closers | 144: cartera por fecha | semana 2 | al lado de la fecha límite |
+| QM-5: los pasos del onboarding | 145: rol Customer Success | semana 2 | filas por programa |
+| QM-6 · QM-7: la meta del mes | 146: página de Metas | semana 2 | pareja por día hábil |
+| QM-11: métricas con umbral | 147: alertas por persistencia | semana 2 | solo las del semáforo de la meta |
+
+**Después de esta ola** (no es operación, es lectura): 148 dashboard por secciones, 065, 090, 159 (`closer_id` se
+retira), la pauta.
+
+**Cómo arrancar la sesión que la tome:** leer `AGENTS.md`, esta sección y `plan.md` §4.0. Empezar por 0.1 (el
+checkpoint) y A.1 (la pregunta a Mani). Codex implementa 0.4 a 0.6 por `/delegate`; la sesión principal revisa,
+genera y aplica migraciones con el ok de Mani, y marca aquí cada fila al cerrarla.
 
 ### 🌊 Ola O1 · abierta el 1-oct
 

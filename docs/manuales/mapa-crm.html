@@ -202,16 +202,34 @@ footer.fin { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--li
 
     <section id="operar">
       <h2>Lo que falta para operar</h2>
-      <p class="sub">Ola O2. Hasta el paso 6, los closers siguen en las hojas.</p>
-      <ol class="pasos">
-        <li><b>Configurar lo nuevo antes del lunes 5-oct</b><span>Programas nuevos de punta a punta; alta de Nicolás y Francisco con su membresía.</span></li>
-        <li><b>Recorrer la lista del 153 como closer</b><span>33 pruebas en la base local. Lo que falle va a anotaciones.</span></li>
-        <li><b>Checkpoint verde y recorrido de 143, 152, 156 y 157</b><span>Propiedades en rojo, Calendly propio, Transición, handoff del setter.</span></li>
-        <li><b>Migrar ComunicArte y después Tactical (078)</b><span>Con un pg_dump el día de cada aplicación.</span></li>
-        <li><b>Decidir S1: Supabase Pro</b><span>Desde el corte, la historia vive solo en la base.</span></li>
-        <li><b>El corte, con capacitación</b><span>Los closers trabajan en el CRM: hito B.</span></li>
-        <li><b>A la semana hábil, apagar las pestañas (082)</b><span>Hito C: el CRM es la única fuente.</span></li>
-      </ol>
+      <p class="sub">Ola O2, la prioridad. La lista completa con quién y cuándo: plan-reparto.md §4.</p>
+      <details class="d" open><summary><span class="nom">Base común</span><span class="pill alerta">bloquea los dos frentes</span></summary>
+        <div class="cuerpo"><ol class="pasos">
+          <li><b>Empujar y marcar el checkpoint</b><span>143, 152, 156 y 157 pasan a hechos.</span></li>
+          <li><b>Recorrer como closer</b><span>Las 33 pruebas del 153 y lo nuevo: rojo por etapa, Transición, Calendly propio, handoff del setter.</span></li>
+          <li><b>Arreglar lo que salga, la cortesía (160) y la alerta de tres intentos (161)</b><span>Codex implementa, la sesión revisa.</span></li>
+          <li><b>Decidir S1: respaldos</b><span>Desde el día 1, los programas nuevos también viven solo en la base.</span></li>
+          <li><b>Manual de operación al día</b><span>Con la versión corta de las 11 etapas.</span></li>
+        </ol></div></details>
+      <details class="d" open><summary><span class="nom">A · Programas que nacen en el CRM</span><span class="pill mal">prioridad · lunes 5-oct</span><span class="q">Los de Nicolás y Francisco</span></summary>
+        <div class="cuerpo"><ol class="pasos">
+          <li><b>Confirmar qué programa vende cada uno</b><span>Nombre, precio y ventana de la primera cohorte.</span></li>
+          <li><b>Crear el programa de punta a punta</b><span>Programa, Calendly, formulario en Dapta, fuente, secreto, cohorte, comisión, recursos.</span></li>
+          <li><b>Dar de alta a Nicolás y Francisco</b><span>Rol closer, closer_id y membresía; cada uno asigna su Calendly desde Perfil.</span></li>
+          <li><b>Un envío real por camino y un deal completo</b><span>Parcial, sin agenda, High, con agenda; de setteo a Student.</span></li>
+          <li><b>Capacitar y vigilar la primera semana</b><span>Salud, alarma "sin calidad", sueltas en el Inbox.</span></li>
+        </ol></div></details>
+      <details class="d"><summary><span class="nom">B · Programas con hojas</span><span class="pill neutro">ComunicArte y Tactical</span></summary>
+        <div class="cuerpo"><ol class="pasos">
+          <li><b>Migrar ComunicArte y después Tactical (078)</b><span>Barrido y tabla aprobada, pg_dump, aplicar, conciliar.</span></li>
+          <li><b>El corte, con capacitación</b><span>Hito B.</span></li>
+          <li><b>Apagar las pestañas a la semana hábil (082)</b><span>Hito C.</span></li>
+        </ol></div></details>
+      <details class="d"><summary><span class="nom">Decisiones que acompañan</span><span class="pill neutro">semanas 1 y 2</span></summary>
+        <div class="cuerpo"><ul>
+          <li><span class="mono">sem. 1</span>Objeciones (158, el reporte del día) · el hub del closer (A-05)</li>
+          <li><span class="mono">sem. 2</span>Próxima fecha de pago (144) · onboarding (145) · meta del mes (146) · umbrales (147)</li>
+        </ul></div></details>
     </section>
 
     <section id="actores">
@@ -331,12 +349,12 @@ footer.fin { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--li
             <li><span class="pill neutro">117</span>anotar el primer parcial real</li>
             <li><span class="pill neutro">126 B</span>embudo por pregunta</li>
             <li><span class="pill neutro">075</span>buscador en Leads para retirar Personas</li></ul></div>
-            <p><strong>Frena:</strong> A-41 parciales · B2 preguntas que no deciden nada</p></div></details>
+            <p><strong>Frena:</strong> B2 preguntas que no deciden nada · los parciales siguen abriendo deal (decidido)</p></div></details>
         <details class="d" data-g="comercial"><summary><span class="num">2</span><span class="nom">Deal y motor</span><span class="pill ok">11 etapas</span><span class="q">¿En qué va y qué le falta?</span></summary>
           <div class="cuerpo"><div><span class="lab">Falta</span><ul>
             <li><span class="pill alerta">143</span>propiedades en rojo (recorrido)</li>
             <li><span class="pill alerta">156</span>Transición por etapa destino (recorrido)</li>
-            <li><span class="pill neutro">·</span>marca de cortesía y alerta de tres intentos</li>
+            <li><span class="pill neutro">160 · 161</span>marca de cortesía y alerta de tres intentos</li>
             <li><span class="pill neutro">075</span>revisión profunda de la UI</li></ul></div></div></details>
         <details class="d" data-g="comercial frenado"><summary><span class="num">3</span><span class="nom">Inbox</span><span class="pill ok">funciona</span><span class="q">¿Qué hago ahora?</span></summary>
           <div class="cuerpo"><div><span class="lab">Falta</span><ul>
@@ -403,7 +421,7 @@ footer.fin { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--li
             <tr><td>Checkouts</td><td>el closer registra</td><td>la venta no vuelve sola</td></tr>
             <tr><td>Sheets</td><td>migración única</td><td>se apagan en el 082</td></tr>
           </tbody></table></div></div></details>
-      <details class="d"><summary><span class="nom">Redundancia y acoplamiento</span><span class="q">10 candidatos, se deciden en su ticket</span></summary>
+      <details class="d"><summary><span class="nom">Redundancia y acoplamiento</span><span class="q">9 candidatos, se deciden en su ticket</span></summary>
         <div class="cuerpo"><div class="tabla"><table>
           <thead><tr><th>#</th><th>Qué</th><th>Dónde</th></tr></thead>
           <tbody>
@@ -413,7 +431,6 @@ footer.fin { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--li
             <tr><td class="mono">K-4</td><td>el orden del trabajo en tres lugares</td><td>plan = qué · reparto = cuándo · tracker = estado</td></tr>
             <tr><td class="mono">K-5</td><td>la operación comercial descrita en cuatro lugares</td><td>ADR &gt; manual &gt; HTML</td></tr>
             <tr><td class="mono">K-6</td><td>el setter con cuenta de closer</td><td>157 · 158</td></tr>
-            <tr><td class="mono">K-7</td><td>los parciales abren deal</td><td>A-41</td></tr>
             <tr><td class="mono">K-8</td><td>el reporte del día a mano</td><td>158</td></tr>
             <tr><td class="mono">K-9 · K-10</td><td>lecturas y pantallas agrupadas por tipo, no por dominio</td><td>al tocar cada componente</td></tr>
           </tbody></table></div></div></details>
@@ -422,10 +439,9 @@ footer.fin { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--li
     <section id="decisiones">
       <h2>Decisiones abiertas</h2>
       <p class="sub">La lista única vive en plan.md §7.</p>
-      <details class="d" open><summary><span class="nom">Mani</span><span class="pill mal">11</span></summary>
+      <details class="d" open><summary><span class="nom">Mani</span><span class="pill mal">10</span></summary>
         <div class="cuerpo"><ul>
           <li><span class="mono">S1</span>Supabase Pro, antes del corte</li>
-          <li><span class="mono">A-41</span>los parciales, con Gerencia</li>
           <li><span class="mono">A-05</span>el hub del closer</li>
           <li><span class="mono">QM-3</span>próxima fecha de pago, con los closers</li>
           <li><span class="mono">QM-5</span>pasos del onboarding</li>

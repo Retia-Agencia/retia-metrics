@@ -62,7 +62,7 @@ El estado de cada componente, en una línea:
 
 | Componente | Estado | Lo que falta, en corto |
 |---|---|---|
-| 1 · Entrada y lead | ✅ en producción | 117: anotar el primer parcial real · qué se hace con los parciales (🔴 A-41) |
+| 1 · Entrada y lead | ✅ en producción | 117: anotar el primer parcial real |
 | 2 · Deal y motor de etapas | ✅ las 11 etapas de 30X | 🟡 143 y 156 (recorrido de Mani) · cortesía y alerta de tres intentos |
 | 3 · Inbox | ✅ | el hub del closer y la cola por Lead Value (075, 🔴 A-05) |
 | 4 · Llamadas y Calendly | ✅ | 🟡 152 y 157 · Grain por API (🔴 QM-4) |
@@ -181,7 +181,9 @@ etapa de entrada la decide el CRM con agenda y calidad (ADR 0004, 0005, 0035, 00
   traslado de leads desde Sheets (111), ficha del lead con el diff entre envíos (073, 091).
 - Falta: **117** anotar el primer parcial real de Typeform (no es código) · **126** parte B, el embudo por
   pregunta (migración) · buscador por texto en Leads para retirar `/personas` (A-11, al 075).
-- Frena: 🔴 **A-41** qué se hace con los parciales · 🔴 **B2** las preguntas del formulario que no deciden nada.
+- ✅ **A-41 cerrada (Mani, 2-oct): los parciales siguen abriendo deal en Potencial**, como en 30X; las etapas
+  se manejan como están.
+- Frena: 🔴 **B2** las preguntas del formulario que no deciden nada.
 
 ### 4.2 Deal y motor de etapas
 
@@ -348,7 +350,6 @@ Lo que el mapa destapa. Son **candidatos, no decisiones**: cada uno se decide en
 | K-4 | El orden del trabajo vive en tres lugares: este plan (antes los tracks), `plan-reparto.md` (olas y etapas E0 a E9, NC1 a NC3) y `tasks/README.md` (épocas) | tres formas de leer qué sigue | este plan dice el qué por componente; `plan-reparto` el cuándo; el tracker solo el estado |
 | K-5 | La operación comercial se describe en `manual-gestion-comercial.md`, en el HTML de operación comercial, en `structure.md` §3 y en los ADR 0070 a 0076 | ya se contradijeron (el setter, el 2-oct) | el manual de gestión manda sobre el HTML; los ADR mandan sobre el manual |
 | K-6 | El setter usa una cuenta de closer | sin separar, sus setteos se cuentan como del closer | 157 (`setter_user_id`) y 158 |
-| K-7 | Todo envío abre un deal, también los parciales | Potencial se llena de deals que nadie trabaja | 🔴 A-41 |
 | K-8 | El reporte del día se arma a mano por WhatsApp | el dato se pierde para las métricas | 158 |
 | K-9 | `lib/queries/` junta 40 lecturas de todos los componentes en una carpeta por tipo técnico | para tocar un componente hay que saber qué archivos de ahí son suyos (`structure.md` §4.1 lo dice) | migrar al dominio cuando un ticket toque el componente (ADR 0033), nunca en masa |
 | K-10 | Unos 30 componentes sueltos en la raíz de `components/` | el mismo olor, en la capa de pantalla | igual que K-9 |
@@ -362,7 +363,7 @@ El orden por sesiones vive en [`plan-reparto.md`](./plan-reparto.md) §4. En cor
 | Hito | Qué | Componentes | Termina cuando |
 |---|---|---|---|
 | ✅ A | los leads entran solos al CRM | 1 | hecho el 28-sep |
-| **O2** (vigente) | cerrar la operación comercial: 152, 153, 143, 156 y 157 recorridos; 078 en CA y después en TI; 154 | 2, 3, 4, 5, 12 | toda la operación de entrada a student se hace en el CRM |
+| **O2** (vigente, prioridad) | la operación comercial lista: frente 0 (checkpoint, recorridos, 160, 161, S1, manual), **frente A: programas que nacen en el CRM (Nicolás y Francisco, antes del 5-oct)** y frente B: CA y TI con hojas (078). La lista completa: `plan-reparto.md` §4 | 2, 3, 4, 5, 10, 12 | toda la operación de entrada a student se hace en el CRM |
 | **B** | el corte: los closers dejan las hojas, con capacitación. Antes: 🔴 S1 | 12 | los closers operan en el CRM |
 | **NC3** | la v1 comercial: 148, 065, 146, 147, 158, 144, 145 cuando se desbloqueen; 075 y 149 | 3, 5, 6, 9 | Gerencia ve su dashboard comercial |
 | **C** | 082: apagar las pestañas de gestión, a la semana hábil del corte | 12 | se deja de escribir en las hojas |
@@ -401,7 +402,6 @@ sigue en `git show 951b62a:docs/plan.md` §7.
 | # | Qué | Componente | Bloquea | Cuándo |
 |---|---|---|---|---|
 | S1 | 🚨 **Supabase Pro: pagar o no.** El plan gratis no trae respaldos y la única base es producción. Mientras siga abierta, un `pg_dump` el día de cada `--aplicar` | 11, 12 | el corte | antes del corte |
-| A-41 | Qué se hace con los parciales: hoy todo envío abre deal (GC-27); los closers y Michael dicen que un parcial se recupera con retargeting o contacto automático, no con un setter. Con Michael y Gerencia | 1, 2 | ruido en Potencial | antes del corte |
 | A-05 | El hub del closer: ¿Inbox ampliado con "lo mío", o un filtro fijo en cada tab? | 3 | 075 | con el 075 |
 | QM-3 · GC-17 | La próxima fecha de pago al lado de la fecha límite (recomendación: al lado), y cómo pactan los abonos los closers | 5 | 144 | NC3 |
 | QM-4 | La API de Grain: después de v1 o nunca | 4 | · | después del corte |

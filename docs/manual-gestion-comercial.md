@@ -498,7 +498,6 @@ manual:
 | QM-3 · GC-17 | La próxima fecha de pago al lado de la fecha límite; cómo pactan los abonos los closers | Mani con 2 o 3 closers | 144 |
 | QM-11 | De qué métricas son los umbrales de la alerta por persistencia | Mani | 147 |
 | QM-5 | Los cuatro pasos del onboarding, fijos o por programa | Mani | 145 |
-| A-41 | Qué se hace con los parciales (hoy abren deal en Potencial) | Mani con Michael y Gerencia | · |
 | Objeciones | Cómo se registran al responder "¿Cómo terminó?" | Mani con Michael | 158 |
 | · | Construir la marca de cortesía y la alerta de tres intentos (ya decididas en el ADR 0071) | · | · |
 
