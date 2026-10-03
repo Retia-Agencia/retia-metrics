@@ -13,6 +13,7 @@ import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
 import { inboxDelPrograma, perdidosEnCalendly, type AlcanceInbox } from "@/lib/queries/inbox";
 import { PageShell } from "@/components/page-shell";
+import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { InboxSinDueno } from "@/components/deals/inbox-sin-dueno";
 import { InboxLlamadasDeHoy } from "@/components/deals/inbox-llamadas-de-hoy";
@@ -73,11 +74,13 @@ export default async function InboxDelProgramaPage({ params }: Props) {
     .map((m) => ({ id: m.id, nombre: m.nombre, tipo: m.tipo }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   const plataformasOpcion = plataformas.map((p) => ({ id: p.id, nombre: String(p.nombre) }));
+  // El Inbox no tiene filtros en la URL: su origen es su ruta a secas (ticket 174).
+  const origen = origenDeLaPagina(`/p/${programa.slug}/inbox`, {});
 
   return (
     <PageShell titulo={programa.nombre} descripcion="Inbox">
       <div className="space-y-4">
-        <InboxPerdidosEnCalendly filas={perdidos} slug={programa.slug} />
+        <InboxPerdidosEnCalendly filas={perdidos} slug={programa.slug} origen={origen} />
 
         {/* 1 · Llamadas que ya pasaron sin resultado (el dolor número uno, va primera). */}
         <InboxLlamadasDeHoy
@@ -85,6 +88,7 @@ export default async function InboxDelProgramaPage({ params }: Props) {
           slug={programa.slug}
           puedeRegistrar={puedeTrabajar}
           motivosReagenda={motivosDeReagenda}
+          origen={origen}
         />
 
         {/* 2 · Sin dueño (ticket 070): Agendados sin dueño y Por settear. */}
@@ -100,6 +104,7 @@ export default async function InboxDelProgramaPage({ params }: Props) {
         <InboxLlamadasSueltas
           llamadas={inbox.llamadasSueltas}
           programId={programa.id}
+          origen={origen}
         />
 
         {inbox.llamadasSinCloser.length > 0 ? (
@@ -131,6 +136,7 @@ export default async function InboxDelProgramaPage({ params }: Props) {
           plataformas={plataformasOpcion}
           areas={areasFilas.map((a) => ({ id: a.id, nombre: String(a.nombre) }))}
           puedeRegistrar={puedeTrabajar}
+          origen={origen}
         />
       </div>
     </PageShell>

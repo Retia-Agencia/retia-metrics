@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -7,6 +6,7 @@ import { idsDeProgramasVisibles, programaVisiblePorSlug } from "@/lib/auth/alcan
 import { db } from "@/lib/db";
 import { fichaDeLead } from "@/lib/queries/ficha-lead";
 import { otrosProgramasDelCorreo } from "@/lib/queries/otros-programas-del-correo";
+import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import { PageShell } from "@/components/page-shell";
 import {
   AvisoOtrosProgramas,
@@ -18,7 +18,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ programa: string; id: string }> };
+type Props = { params: Promise<{ programa: string; id: string }>; searchParams?: Promise<{ desde?: string }> };
 
 const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -32,10 +32,11 @@ const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * de un programa que la sesion no ve responde 404, igual que un slug inexistente (ADR 0048). La
  * URL lleva el id opaco del lead, nunca su correo (AGENTS.md). Solo lectura (ADR 0004).
  */
-export default async function FichaDelLeadPage({ params }: Props) {
+export default async function FichaDelLeadPage({ params, searchParams }: Props) {
   const session = await paginaConRol("gerente", "closer");
 
   const { programa: slug, id } = await params;
+  const { desde } = (await searchParams) ?? {};
   const rol = await rolDeVista(session);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   // Un id con otra forma es 404 sin tocar la base: un uuid invalido sobre una columna uuid
@@ -53,23 +54,23 @@ export default async function FichaDelLeadPage({ params }: Props) {
   ]);
   const otrosVisibles = otros.filter((o) => visibles.has(o.programId));
 
-  return (
-    <PageShell titulo={ficha.nombre ?? ficha.email} descripcion={`${programa.nombre} · Lead`}>
-      <div className="space-y-4">
-        <Link
-          href={`/p/${programa.slug}/leads`}
-          className="inline-block text-sm text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          ← Volver a los leads
-        </Link>
+  // El origen de ESTA ficha, con su propio `desde`: lo hereda el enlace de aqui al deal.
+  const origenDeEstaFicha = enlaceConVuelta(`/p/${programa.slug}/leads/${ficha.id}`, desde ?? "");
 
+  return (
+    <PageShell
+      titulo={ficha.nombre ?? ficha.email}
+      descripcion={`${programa.nombre} · Lead`}
+      volver={{ desde, porDefecto: { href: `/p/${programa.slug}/leads`, etiqueta: "Leads" } }}
+    >
+      <div className="space-y-4">
         <AvisoOtrosProgramas visibles={otrosVisibles} ocultos={otros.length - otrosVisibles.length} />
         <FichaLeadCabecera ficha={ficha} />
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
           <FichaLeadEnvios ficha={ficha} />
           <div className="space-y-4">
-            <FichaLeadDeals ficha={ficha} slug={programa.slug} />
+            <FichaLeadDeals ficha={ficha} slug={programa.slug} origen={origenDeEstaFicha} />
             <FichaLeadContactos ficha={ficha} />
           </div>
         </div>

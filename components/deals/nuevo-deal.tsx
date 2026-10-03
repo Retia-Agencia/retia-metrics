@@ -19,6 +19,7 @@ import {
 import { buscarLeadsAccion } from "@/app/(app)/p/[programa]/leads/acciones";
 import { crearDeal } from "@/app/(app)/p/[programa]/deals/acciones";
 import type { LeadEncontrado } from "@/lib/queries/leads";
+import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import { cn } from "@/lib/utils";
 
 /**
@@ -37,11 +38,13 @@ export interface NuevoDealProps {
   nombreEtapaDeEntrada: string;
   /** Crear un lead es de quien trabaja leads (ADR 0003): el gerente solo elige uno existente. */
   puedeCrearLead: boolean;
+  /** El origen (la pantalla desde donde se crea), para que la ficha vuelva aqui (ticket 174). */
+  origen: string;
 }
 
 type Modo = "existente" | "nuevo";
 
-export function NuevoDeal({ programId, programaSlug, nombreEtapaDeEntrada, puedeCrearLead }: NuevoDealProps) {
+export function NuevoDeal({ programId, programaSlug, nombreEtapaDeEntrada, puedeCrearLead, origen }: NuevoDealProps) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [modo, setModo] = useState<Modo>("existente");
@@ -101,7 +104,7 @@ export function NuevoDeal({ programId, programaSlug, nombreEtapaDeEntrada, puede
       toast.success(res.leadCreado ? "Lead y deal creados." : "Deal creado.");
       setAbierto(false);
       reiniciar();
-      router.push(`/p/${programaSlug}/deals/${res.dealId}`);
+      router.push(enlaceConVuelta(`/p/${programaSlug}/deals/${res.dealId}`, origen));
     });
   }
 
@@ -255,7 +258,7 @@ export function NuevoDeal({ programId, programaSlug, nombreEtapaDeEntrada, puede
             {error}{" "}
             {dealExistente ? (
               <Link
-                href={`/p/${programaSlug}/deals/${dealExistente}`}
+                href={enlaceConVuelta(`/p/${programaSlug}/deals/${dealExistente}`, origen)}
                 className="font-medium text-marca-texto underline underline-offset-4"
               >
                 Abrir el deal existente

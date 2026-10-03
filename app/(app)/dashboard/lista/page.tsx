@@ -10,6 +10,7 @@ import { listaDeMetrica, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas"
 import { nombreDeEtapa } from "@/lib/queries/vista-metrica";
 import { queryDePeriodo } from "@/lib/queries/vista-todos";
 import { PageShell } from "@/components/page-shell";
+import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,6 +56,8 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
     return `/dashboard/lista?${copia}`;
   };
   const haySiguiente = secciones.some((s) => pagina * TAMANO_PAGINA < s.subtotal.cantidad);
+  // El origen de ESTA lista para "Ver deal" (ticket 174).
+  const origen = origenDeLaPagina("/dashboard/lista", busqueda);
 
   return (
     <PageShell titulo={titulos[metrica]} descripcion="Todos los programas visibles">
@@ -87,7 +90,7 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
                           <td>{fecha(fila.fecha)}</td>
                           <td className="cifra">{num(fila.antiguedad)}</td>
                           <td className="cifra">{fila.moneda && fila.monto !== null ? monto(fila.monto, fila.moneda) : "—"}</td>
-                          <td>{fila.dealId ? <Button variant="link" nativeButton={false} render={<Link href={`/p/${encodeURIComponent(programa.slug)}/deals/${fila.dealId}`} />}>Ver deal</Button> : "Sin deal"}</td>
+                          <td>{fila.dealId ? <Button variant="link" nativeButton={false} render={<Link href={enlaceConVuelta(`/p/${encodeURIComponent(programa.slug)}/deals/${fila.dealId}`, origen)} />}>Ver deal</Button> : "Sin deal"}</td>
                         </tr>
                       ))}
                     </tbody>

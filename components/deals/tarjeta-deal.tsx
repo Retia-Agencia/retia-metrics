@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { usd } from "@/lib/format";
+import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import type { PendienteDeal } from "@/lib/deals/etapas";
 import { TONO_DE_PENDIENTE } from "./etapa-tono";
 import type { TarjetaDeal } from "@/lib/queries/kanban";
@@ -32,6 +33,8 @@ export interface TarjetaDealProps {
   /** Los nombres de los pendientes, del servidor: `lib/deals/etapas.ts` no entra al bundle. */
   nombreDePendiente: Record<PendienteDeal, string>;
   programaSlug: string;
+  /** El origen de la lista, para que la ficha vuelva aqui (ticket 174). */
+  origen: string;
   arrastrando: boolean;
   /**
    * Si esta sesion puede mover ESTE deal (dueño o administrador). Es proyeccion, no
@@ -48,6 +51,7 @@ export function TarjetaDealCard({
   tarjeta,
   nombreDePendiente,
   programaSlug,
+  origen,
   arrastrando,
   puedeMover,
   onArrastrarInicio,
@@ -82,7 +86,7 @@ export function TarjetaDealCard({
           ) : null}
           <div className="min-w-0">
             <Link
-              href={`/p/${programaSlug}/deals/${tarjeta.dealId}`}
+              href={enlaceConVuelta(`/p/${programaSlug}/deals/${tarjeta.dealId}`, origen)}
               className="block truncate text-sm font-medium outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
             >
               {tarjeta.nombreLead ?? tarjeta.emailLead}

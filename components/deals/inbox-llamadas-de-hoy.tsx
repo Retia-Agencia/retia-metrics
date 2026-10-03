@@ -23,6 +23,7 @@ export function InboxLlamadasDeHoy({
   slug,
   puedeRegistrar,
   motivosReagenda,
+  origen,
 }: {
   llamadas: FilaLlamada[];
   slug: string;
@@ -30,6 +31,8 @@ export function InboxLlamadasDeHoy({
   puedeRegistrar: boolean;
   /** Motivos de re-agenda del programa, para el resultado "No se dio" desde Atendido. */
   motivosReagenda: OpcionesDeFicha["motivos"];
+  /** El origen de la pantalla, para que "Ir al deal" del detalle vuelva aqui (ticket 174). */
+  origen: string;
 }) {
   const [detalleId, setDetalleId] = useState<string | null>(null);
   return (
@@ -58,6 +61,7 @@ export function InboxLlamadasDeHoy({
           conIrAlDeal
           puedeRegistrar={puedeRegistrar}
           motivosReagenda={motivosReagenda}
+          origen={origen}
           onCerrar={() => setDetalleId(null)}
         />
       ) : null}

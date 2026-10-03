@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { fecha, fechaHoraEnBogota, saldoLegible, usd, pct } from "@/lib/format";
 import { NOMBRE_DE_PENDIENTE, type EtapaDeal } from "@/lib/deals/etapas";
 import type { FichaDeDeal } from "@/lib/queries/ficha-deal";
+import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import { TONO_DE_PENDIENTE, type TonoEtapa } from "../etapa-tono";
 import { Dato } from "./campos";
 
@@ -16,12 +17,15 @@ export function FichaCabecera({
   ficha,
   nombre,
   programaSlug,
+  origen,
   nombreDeEtapa,
   tonoDeEtapa,
 }: {
   ficha: FichaDeDeal;
   nombre: string;
   programaSlug: string;
+  /** La ruta de ESTA ficha (con su propio `desde`), para que el lead vuelva un paso (ticket 174). */
+  origen: string;
   nombreDeEtapa: Record<EtapaDeal, string>;
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
 }) {
@@ -61,7 +65,7 @@ export function FichaCabecera({
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="info">{ficha.lead.envios} envíos</Badge>
             <Link
-              href={`/p/${programaSlug}/leads/${ficha.lead.id}`}
+              href={enlaceConVuelta(`/p/${programaSlug}/leads/${ficha.lead.id}`, origen)}
               className="text-sm text-muted-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
             >
               Ver los envíos

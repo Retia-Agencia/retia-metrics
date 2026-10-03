@@ -26,9 +26,12 @@ import { Campo, claseInput, DialogoForm, Vacio } from "@/components/deals/ficha/
 export function InboxLlamadasSueltas({
   llamadas,
   programId,
+  origen,
 }: {
   llamadas: FilaLlamada[];
   programId: string;
+  /** El origen de la pantalla, para que "Ir al deal" del detalle vuelva aqui (ticket 174). */
+  origen: string;
 }) {
   return (
     <Card>
@@ -44,7 +47,7 @@ export function InboxLlamadasSueltas({
         ) : (
           <ul className="divide-y">
             {llamadas.map((fila) => (
-              <FilaSuelta key={fila.callId} fila={fila} programId={programId} />
+              <FilaSuelta key={fila.callId} fila={fila} programId={programId} origen={origen} />
             ))}
           </ul>
         )}
@@ -56,9 +59,11 @@ export function InboxLlamadasSueltas({
 function FilaSuelta({
   fila,
   programId,
+  origen,
 }: {
   fila: FilaLlamada;
   programId: string;
+  origen: string;
 }) {
   const { programa: programaSlug } = useParams<{ programa: string }>();
   const [abierto, setAbierto] = useState(false);
@@ -115,7 +120,7 @@ function FilaSuelta({
         <DialogoAsignar callId={fila.callId} programId={programId} onCerrar={() => setAbierto(false)} />
       ) : null}
       {verDetalle ? (
-        <DetalleDeLlamada programaSlug={programaSlug} callId={fila.callId} conIrAlDeal onCerrar={() => setVerDetalle(false)} />
+        <DetalleDeLlamada programaSlug={programaSlug} callId={fila.callId} conIrAlDeal origen={origen} onCerrar={() => setVerDetalle(false)} />
       ) : null}
     </li>
   );

@@ -20,6 +20,7 @@ import {
   TONO_DE_RESULTADO,
 } from "@/lib/deals/estado-de-llamada";
 import { fechaHoraEnBogota } from "@/lib/format";
+import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import type { DetalleDeLlamada as Detalle } from "@/lib/queries/detalle-llamada";
 import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { AccionesDeLlamada } from "@/components/deals/ficha/acciones-de-llamada";
@@ -32,6 +33,7 @@ export function DetalleDeLlamada({
   conIrAlDeal = false,
   puedeRegistrar = false,
   motivosReagenda = [],
+  origen,
 }: {
   programaSlug: string;
   callId: string;
@@ -41,6 +43,8 @@ export function DetalleDeLlamada({
   /** Si se puede registrar sobre esta llamada: muestra el Grain y el botón "Resultado" (ticket 176). */
   puedeRegistrar?: boolean;
   motivosReagenda?: OpcionesDeFicha["motivos"];
+  /** El origen de la pantalla, para que "Ir al deal" vuelva aqui (ticket 174). */
+  origen?: string;
 }) {
   const [detalle, setDetalle] = useState<Detalle | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +87,7 @@ export function DetalleDeLlamada({
 
         <DialogFooter>
           {detalle?.dealId && conIrAlDeal ? (
-            <Button nativeButton={false} render={<Link href={`/p/${programaSlug}/deals/${detalle.dealId}`} />}>
+            <Button nativeButton={false} render={<Link href={enlaceConVuelta(`/p/${programaSlug}/deals/${detalle.dealId}`, origen ?? "")} />}>
               Ir al deal
             </Button>
           ) : null}

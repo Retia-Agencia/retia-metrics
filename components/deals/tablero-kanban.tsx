@@ -49,6 +49,8 @@ export interface TableroKanbanProps {
   userId: string;
   /** Administra (gerente o developer, `esAdministrador`): mueve cualquier deal. */
   administra: boolean;
+  /** El origen de la lista para los enlaces a la ficha (ticket 174). */
+  origen: string;
 }
 
 export function TableroKanban({
@@ -67,6 +69,7 @@ export function TableroKanban({
   inicioDeLaCohorteActiva,
   userId,
   administra,
+  origen,
 }: TableroKanbanProps) {
   const router = useRouter();
   // La tarjeta que se está arrastrando (para el efecto "levantar") y la columna sobre la
@@ -164,6 +167,7 @@ export function TableroKanban({
                       tarjeta={tarjeta}
                       nombreDePendiente={nombreDePendiente}
                       programaSlug={programaSlug}
+                      origen={origen}
                       arrastrando={arrastrando?.dealId === tarjeta.dealId}
                       puedeMover={administra || tarjeta.ownerUserId === userId}
                       onArrastrarInicio={() => setArrastrando(tarjeta)}

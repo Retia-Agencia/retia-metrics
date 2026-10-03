@@ -7,6 +7,7 @@ import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { inboxDelPrograma, type AlcanceInbox } from "@/lib/queries/inbox";
+import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { InboxLlamadasDeHoy } from "@/components/deals/inbox-llamadas-de-hoy";
 import { InboxAtencion } from "@/components/deals/inbox-atencion";
@@ -44,6 +45,8 @@ export async function TabPendientes({
     .map((m) => ({ id: m.id, nombre: m.nombre, tipo: m.tipo }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   const plataformasOpcion = plataformas.map((p) => ({ id: p.id, nombre: String(p.nombre) }));
+  // Mi espacio → Pendientes: la ficha vuelve a esta tab (ticket 174).
+  const origen = origenDeLaPagina("/mi-espacio", { programa: slug, tab: "pendientes" });
 
   return (
     <div className="space-y-4">
@@ -52,6 +55,7 @@ export async function TabPendientes({
         slug={slug}
         puedeRegistrar={puedeRegistrar}
         motivosReagenda={motivosDeReagenda}
+        origen={origen}
       />
       <InboxAtencion
         filas={inbox.atencion}
@@ -61,6 +65,7 @@ export async function TabPendientes({
         plataformas={plataformasOpcion}
         areas={areasFilas.map((a) => ({ id: a.id, nombre: String(a.nombre) }))}
         puedeRegistrar={puedeRegistrar}
+        origen={origen}
       />
     </div>
   );

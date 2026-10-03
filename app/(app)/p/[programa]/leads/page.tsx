@@ -21,6 +21,7 @@ import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
 import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
 import { FiltroSelect } from "@/components/filtros/filtro-select";
 import { PageShell } from "@/components/page-shell";
+import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PosiblesDuplicados } from "@/components/leads/posibles-duplicados";
@@ -87,6 +88,9 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   ]);
 
   const paginas = Math.max(1, Math.ceil(total / LEADS_POR_PAGINA));
+  // El origen de ESTA lista (con sus filtros y pagina): lo heredan los enlaces al detalle,
+  // para que "Volver" devuelva a la lista tal como estaba (ticket 174).
+  const origen = origenDeLaPagina(`/p/${programa.slug}/leads`, q);
   const urlCon = (cambios: Record<string, string | null>) => {
     const u = new URLSearchParams();
     for (const [k, valor] of Object.entries(q)) {
@@ -104,7 +108,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   return (
     <PageShell titulo={programa.nombre} descripcion="Leads">
       <div className="space-y-4">
-        <BuscadorDeLeads programaSlug={programa.slug} />
+        <BuscadorDeLeads programaSlug={programa.slug} origen={origen} />
         <FiltroFechaLista campos={CAMPOS} filtro={filtroDeFecha} />
         <BarraDeFiltros nombres={["deal", "calidad", "abandono", "duplicado"]}>
           <FiltroSelect nombre="deal" etiqueta="Deal" opciones={[{ value: "sin", label: "Sin deal" }, { value: "con", label: "Con deal" }]} />
@@ -144,7 +148,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
                   <li key={f.id} className="relative flex flex-wrap items-start justify-between gap-2 rounded-md px-2 py-3 text-sm hover:bg-muted/50">
                     <div className="min-w-0 space-y-1">
                       <Link
-                        href={`/p/${programa.slug}/leads/${f.id}`}
+                        href={enlaceConVuelta(`/p/${programa.slug}/leads/${f.id}`, origen)}
                         className="block truncate font-medium text-marca-texto underline-offset-2 outline-none after:absolute after:inset-0 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
                       >
                         {f.nombre ?? f.email}
@@ -189,7 +193,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
                   </thead>
                   <tbody>
                     {filas.map((f) => {
-                      const href = `/p/${programa.slug}/leads/${f.id}`;
+                      const href = enlaceConVuelta(`/p/${programa.slug}/leads/${f.id}`, origen);
                       const clase = "block px-2 py-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
                       return (
                         <tr key={f.id} className="cursor-pointer border-b hover:bg-muted/50">

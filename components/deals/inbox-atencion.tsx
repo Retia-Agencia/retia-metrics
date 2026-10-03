@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fecha, hoyEnBogota, monto } from "@/lib/format";
+import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import type { FilaAtencion, MotivoAtencion } from "@/lib/queries/inbox";
 import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
@@ -36,6 +37,7 @@ export function InboxAtencion({
   plataformas,
   areas,
   puedeRegistrar,
+  origen,
 }: {
   filas: FilaAtencion[];
   slug: string;
@@ -46,6 +48,8 @@ export function InboxAtencion({
   areas: OpcionesDeFicha["areas"];
   /** Trabaja leads Y (dueño o administra). Proyección: la reja es el servidor. */
   puedeRegistrar: boolean;
+  /** El origen de la pantalla, para que la ficha vuelva aqui (ticket 174). */
+  origen: string;
 }) {
   return (
     <Card>
@@ -67,6 +71,7 @@ export function InboxAtencion({
                 plataformas={plataformas}
                 areas={areas}
                 puedeRegistrar={puedeRegistrar}
+                origen={origen}
               />
             ))}
           </ul>
@@ -115,6 +120,7 @@ function FilaAtencionItem({
   plataformas,
   areas,
   puedeRegistrar,
+  origen,
 }: {
   fila: FilaAtencion;
   slug: string;
@@ -123,6 +129,7 @@ function FilaAtencionItem({
   plataformas: OpcionesDeFicha["plataformas"];
   areas: OpcionesDeFicha["areas"];
   puedeRegistrar: boolean;
+  origen: string;
 }) {
   const [dialogo, setDialogo] = useState<"contacto" | "abono" | null>(null);
   return (
@@ -130,7 +137,7 @@ function FilaAtencionItem({
       <div className="min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <Link
-            href={`/p/${slug}/deals/${fila.dealId}`}
+            href={enlaceConVuelta(`/p/${slug}/deals/${fila.dealId}`, origen)}
             className="truncate text-sm font-medium text-marca-texto underline-offset-2 hover:underline"
           >
             {fila.leadNombre ?? fila.leadEmail}

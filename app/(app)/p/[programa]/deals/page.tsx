@@ -8,6 +8,7 @@ import { NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { opcionesDeTablero, parsearFiltros, tableroKanban, type CampoDeFechaDeDeal } from "@/lib/queries/kanban";
 import { PageShell } from "@/components/page-shell";
+import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { FiltroKanban } from "@/components/deals/filtro-kanban";
 import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
 import { TableroKanban } from "@/components/deals/tablero-kanban";
@@ -48,7 +49,9 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
   if (!programa) notFound();
 
   const alcanceDeals = await alcanceDeDeals(session);
-  const filtros = parsearFiltros(await searchParams);
+  const busqueda = await searchParams;
+  const filtros = parsearFiltros(busqueda);
+  const origen = origenDeLaPagina(`/p/${programa.slug}/deals`, busqueda);
   const [tablero, opciones] = await Promise.all([
     tableroKanban(db, programa.id, alcanceDeals, filtros),
     opcionesDeTablero(db, programa.id),
@@ -64,6 +67,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
           programaSlug={programa.slug}
           nombreEtapaDeEntrada={NOMBRE_DE_ETAPA[ETAPA_DE_ENTRADA]}
           puedeCrearLead={trabajaLeads(rol)}
+          origen={origen}
         />
       }
     >
@@ -99,6 +103,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
           inicioDeLaCohorteActiva={opciones.inicioDeLaCohorteActiva}
           userId={session.user.id}
           administra={esAdministrador(rol)}
+          origen={origen}
         />
       </div>
     </PageShell>

@@ -3,7 +3,7 @@ id: 174
 etapa: O3
 serves: "docs/anotaciones.md A-57; ADR 0077"
 depends: [168, 170, 171, 172, 173]
-status: todo
+status: review
 ---
 
 # 174 — Volver a donde estaba
@@ -36,3 +36,15 @@ Leads, Calls, Students, Inbox, Mi espacio, Dashboard → lista). Tests del helpe
 - Desde cualquier lista filtrada, abrir un detalle y pulsar "Volver" deja la lista con sus mismos filtros y página.
 - Un `desde` externo o malformado se ignora (test).
 - `npm run build` en verde; recorrido en `dev:local`, escritorio y 375 px.
+
+## Estado (3-oct, S7)
+
+Implementado por Kiro, revisado por la sesión. Rama `o3-174-volver`, worktree `wt-174`. Sin migración.
+
+- `lib/navegacion/volver.ts` (`origenValido`, `enlaceConVuelta`, `etiquetaDeOrigen`, `destinoDeVolver`, `origenDeLaPagina`), `components/volver.tsx`, prop `volver` en `PageShell`. Las dos fichas (deal y lead) lo usan y entre ellas se pasan su propio origen.
+- El origen llega por props desde la página de servidor a las listas (Deals, Kanban, Leads, Calls, Students, Inbox, Mi espacio, Dashboard → lista), sin `useSearchParams` ni Suspense. Se borró el hook `useOrigen` que nadie usaba.
+- Guardián en `tests/volver.test.ts`: nadie escribe `desde=` fuera del helper.
+- No pasan por el helper, a propósito: `AvisoOtrosProgramas` (cruza de programa), `ajustes/migracion`, `nerd-stats/bitacora`, `entregas-webhook`, `posibles-duplicados`.
+
+Verificado: typecheck, lint, `tests/volver.test.ts` (26) y `npm run build` en verde.
+**Pendiente:** recorrido en `dev:local` (escritorio y 375 px) y `tests/paginas.test.ts` + `tests/alcance-deals.test.ts`: Docker estaba apagado y la máquina sin aire (swap 13 GB).

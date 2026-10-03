@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { opcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { llamadasDelPrograma, opcionesDeLlamadas, type FiltroLlamadas } from "@/lib/queries/llamadas";
 import { PageShell } from "@/components/page-shell";
+import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { LlamadasPrograma } from "@/components/deals/llamadas-programa";
 import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
 import { FiltroFecha } from "@/components/filtros/filtro-fecha";
@@ -76,6 +77,7 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
           programaSlug={programa.slug}
           motivosReagenda={opcionesFicha.motivos}
           puedeTrabajar={trabajaLeads(rol) || esAdministrador(rol)}
+          origen={origenDeLaPagina(`/p/${programa.slug}/calls`, query)}
         />
       </div>
     </PageShell>

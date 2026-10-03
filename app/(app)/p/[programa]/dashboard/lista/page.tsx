@@ -8,6 +8,7 @@ import { nombreDeEtapa, vistaDeLista, urlDeLista } from "@/lib/queries/vista-met
 import { TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import { fecha, hoyEnBogota, monto, num } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
+import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -61,6 +62,8 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   if (!vista) notFound();
   const { lista, periodo, closerId } = vista;
   const enlace = urlDeLista(slug, metrica, periodo, closerId, moneda);
+  // El origen de ESTA lista para "Ver deal" (ticket 174).
+  const origen = origenDeLaPagina(`/p/${slug}/dashboard/lista`, busqueda);
   return (
     <PageShell titulo={titulos[metrica]} descripcion={programa.nombre}>
       <div className="space-y-4">
@@ -89,7 +92,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
                       <td>{fecha(fila.fecha)}</td>
                       <td className="cifra">{num(fila.antiguedad)}</td>
                       <td className="cifra">{fila.moneda && fila.monto !== null ? monto(fila.monto, fila.moneda) : "—"}</td>
-                      <td>{fila.dealId ? <Button variant="link" nativeButton={false} render={<Link href={`/p/${encodeURIComponent(slug)}/deals/${fila.dealId}`} />}>Ver deal</Button> : "Sin deal"}</td>
+                      <td>{fila.dealId ? <Button variant="link" nativeButton={false} render={<Link href={enlaceConVuelta(`/p/${encodeURIComponent(slug)}/deals/${fila.dealId}`, origen)} />}>Ver deal</Button> : "Sin deal"}</td>
                     </tr>
                   ))}
                 </tbody>

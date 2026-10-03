@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -11,6 +10,7 @@ import { puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { nombreDelDeal } from "@/lib/deals/nombre";
 import { alertasDelDeal, fichaDeDeal, opcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { PageShell } from "@/components/page-shell";
+import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { FichaAcciones } from "@/components/deals/ficha/ficha-acciones";
 import { FichaTransicion } from "@/components/deals/ficha/ficha-transicion";
@@ -27,7 +27,7 @@ import { alcanceDeDeals, dealVisiblePara } from "@/lib/auth/alcance-deals";
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ programa: string; id: string }> };
+type Props = { params: Promise<{ programa: string; id: string }>; searchParams?: Promise<{ desde?: string }> };
 
 const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -42,10 +42,11 @@ const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * Lo que se muestra como boton es proyeccion (dueño o administrador); la reja de verdad esta
  * en las funciones de `lib/deals/`, que rechazan igual una peticion forjada.
  */
-export default async function FichaDelDealPage({ params }: Props) {
+export default async function FichaDelDealPage({ params, searchParams }: Props) {
   const session = await paginaConRol("gerente", "closer");
 
   const { programa: slug, id } = await params;
+  const { desde } = (await searchParams) ?? {};
   const rol = await rolDeVista(session);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa || !ES_UUID.test(id) || !esRolValido(rol)) notFound();
@@ -72,26 +73,26 @@ export default async function FichaDelDealPage({ params }: Props) {
     cohorteCodigo: ficha.cohorte?.codigo ?? null,
   });
 
+  // El origen de ESTA ficha, con su propio `desde`: lo heredan los enlaces de aqui al lead,
+  // para que "Volver" desde el lead retroceda un paso (al origen del deal). `enlaceConVuelta`
+  // es la unica via de pegar un `desde` (ticket 174).
+  const origenDeEstaFicha = enlaceConVuelta(`/p/${programa.slug}/deals/${ficha.dealId}`, desde ?? "");
+
   return (
     <PageShell
       titulo={nombre}
       descripcion={`${programa.nombre} · Deal`}
+      volver={{ desde, porDefecto: { href: `/p/${programa.slug}/deals`, etiqueta: "Deals" } }}
       acciones={
         <FichaAcciones ficha={ficha} opciones={opciones} puedeTrabajar={puedeTrabajar} administra={esAdministrador(rol)} />
       }
     >
       <div className="space-y-4">
-        <Link
-          href={`/p/${programa.slug}/deals`}
-          className="inline-block text-sm text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          ← Volver a los deals
-        </Link>
-
         <FichaCabecera
           ficha={ficha}
           nombre={nombre}
           programaSlug={programa.slug}
+          origen={origenDeEstaFicha}
           nombreDeEtapa={NOMBRE_DE_ETAPA}
           tonoDeEtapa={TONO_DE_ETAPA}
         />
@@ -113,7 +114,7 @@ export default async function FichaDelDealPage({ params }: Props) {
 
         <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
           <div className="space-y-4">
-            <FichaLead ficha={ficha} rutaDelLead={`/p/${programa.slug}/leads/${ficha.lead.id}`} />
+            <FichaLead ficha={ficha} rutaDelLead={enlaceConVuelta(`/p/${programa.slug}/leads/${ficha.lead.id}`, origenDeEstaFicha)} />
             <FichaOrigen ficha={ficha} />
             <FichaPerfil perfil={ficha.perfil} />
             <FichaHistorial log={ficha.log} nombreDeEtapa={NOMBRE_DE_ETAPA} tonoDeEtapa={TONO_DE_ETAPA} />

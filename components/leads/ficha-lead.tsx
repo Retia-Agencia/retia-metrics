@@ -6,6 +6,7 @@ import { fecha, fechaDeInstanteEnBogota, fechaHoraEnBogota, num } from "@/lib/fo
 import { NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
 import type { DealDeLaFicha, EnvioDeLaFicha, FichaDeLead, ValorDeCampo } from "@/lib/queries/ficha-lead";
 import type { LeadEnOtroPrograma } from "@/lib/queries/otros-programas-del-correo";
+import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import { TONO_DE_ETAPA, TONO_DE_PENDIENTE } from "@/components/deals/etapa-tono";
 
 /**
@@ -102,13 +103,13 @@ export function FichaLeadContactos({ ficha }: { ficha: FichaDeLead }) {
   );
 }
 
-function FilaDeal({ deal, slug }: { deal: DealDeLaFicha; slug: string }) {
+function FilaDeal({ deal, slug, origen }: { deal: DealDeLaFicha; slug: string; origen: string }) {
   const anulado = deal.anulado !== null;
   return (
     <li className="flex flex-wrap items-start justify-between gap-2 py-3 text-sm first:pt-0 last:pb-0">
       <div className="min-w-0 space-y-1">
         <Link
-          href={`/p/${slug}/deals/${deal.id}`}
+          href={enlaceConVuelta(`/p/${slug}/deals/${deal.id}`, origen)}
           className={
             anulado
               ? "font-medium text-muted-foreground line-through underline-offset-2 outline-none hover:underline focus-visible:underline"
@@ -140,7 +141,7 @@ function FilaDeal({ deal, slug }: { deal: DealDeLaFicha; slug: string }) {
   );
 }
 
-export function FichaLeadDeals({ ficha, slug }: { ficha: FichaDeLead; slug: string }) {
+export function FichaLeadDeals({ ficha, slug, origen }: { ficha: FichaDeLead; slug: string; origen: string }) {
   const abiertos = ficha.deals.filter((d) => !d.anulado && !d.cerrado);
   const otros = ficha.deals.filter((d) => d.anulado || d.cerrado);
   return (
@@ -162,7 +163,7 @@ export function FichaLeadDeals({ ficha, slug }: { ficha: FichaDeLead; slug: stri
               ) : (
                 <ul className="divide-y divide-border">
                   {abiertos.map((d) => (
-                    <FilaDeal key={d.id} deal={d} slug={slug} />
+                    <FilaDeal key={d.id} deal={d} slug={slug} origen={origen} />
                   ))}
                 </ul>
               )}
@@ -172,7 +173,7 @@ export function FichaLeadDeals({ ficha, slug }: { ficha: FichaDeLead; slug: stri
                 <h3 className="text-xs font-medium text-muted-foreground">Cerrados y anulados</h3>
                 <ul className="divide-y divide-border">
                   {otros.map((d) => (
-                    <FilaDeal key={d.id} deal={d} slug={slug} />
+                    <FilaDeal key={d.id} deal={d} slug={slug} origen={origen} />
                   ))}
                 </ul>
               </section>

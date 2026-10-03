@@ -19,11 +19,14 @@ export function LlamadasPrograma({
   programaSlug,
   motivosReagenda,
   puedeTrabajar,
+  origen,
 }: {
   llamadas: FilaLlamadaPrograma[];
   programaSlug: string;
   motivosReagenda: OpcionesDeFicha["motivos"];
   puedeTrabajar: boolean;
+  /** El origen de la pantalla, para que "Ir al deal" del detalle vuelva aqui (ticket 174). */
+  origen: string;
 }) {
   const [detalleId, setDetalleId] = useState<string | null>(null);
   return (
@@ -51,6 +54,7 @@ export function LlamadasPrograma({
           conIrAlDeal
           puedeRegistrar={puedeTrabajar}
           motivosReagenda={motivosReagenda}
+          origen={origen}
           onCerrar={() => setDetalleId(null)}
         />
       ) : null}

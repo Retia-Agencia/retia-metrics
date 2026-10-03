@@ -3,6 +3,7 @@ import type { Rol } from "@/lib/auth/roles";
 import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
 import { opcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { llamadasDelPrograma } from "@/lib/queries/llamadas";
+import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { LlamadasPrograma } from "@/components/deals/llamadas-programa";
 
 /**
@@ -32,6 +33,7 @@ export async function TabMisLlamadas({
       programaSlug={slug}
       motivosReagenda={opcionesFicha.motivos}
       puedeTrabajar={trabajaLeads(rol) || esAdministrador(rol)}
+      origen={origenDeLaPagina("/mi-espacio", { programa: slug, tab: "llamadas" })}
     />
   );
 }

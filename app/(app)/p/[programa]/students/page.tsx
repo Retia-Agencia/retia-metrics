@@ -10,6 +10,7 @@ import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { studentsDelPrograma, type FiltroStudents } from "@/lib/queries/estudiantes";
 import { fecha, fechaDeInstanteEnBogota, num, saldoLegible } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
+import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
@@ -59,6 +60,9 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
   };
   const filas = await studentsDelPrograma(db, programa.id, filtro);
 
+  // El origen de ESTA lista para los enlaces al detalle (ticket 174).
+  const origen = origenDeLaPagina(`/p/${programa.slug}/students`, query);
+
   const completos = filas.filter((f) => f.etapa === "ganado_completo").length;
   const sinOnboarding = filas.filter((f) => f.onboardedAt == null).length;
   const vencidos = filas.filter((f) => f.vencido != null).length;
@@ -106,7 +110,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                     <li key={f.dealId} className="relative grid cursor-pointer gap-2 py-3 text-sm hover:bg-muted/50 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] sm:items-start">
                       <div className="min-w-0 space-y-1">
                         <Link
-                          href={`/p/${programa.slug}/deals/${f.dealId}`}
+                          href={enlaceConVuelta(`/p/${programa.slug}/deals/${f.dealId}`, origen)}
                           className="block truncate rounded-md font-medium text-marca-texto underline-offset-2 after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           {f.nombre ?? f.email}

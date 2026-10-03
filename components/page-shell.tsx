@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
+import { Volver } from "@/components/volver";
 
 type Props = {
   titulo: string;
   descripcion?: string;
   acciones?: ReactNode;
+  /** El enlace "← {lista}" sobre el titulo (ticket 174), en las pantallas de detalle. */
+  volver?: { desde?: string; porDefecto: { href: string; etiqueta: string } };
   children: ReactNode;
 };
 
@@ -13,11 +16,16 @@ type Props = {
  * tarjetas se leen como hojas. Toda pantalla de la app entra por aqui, asi que el
  * encabezado es igual en todas.
  */
-export function PageShell({ titulo, descripcion, acciones, children }: Props) {
+export function PageShell({ titulo, descripcion, acciones, volver, children }: Props) {
   return (
     <>
       <header className="z-10 flex flex-wrap items-center justify-between gap-3 border-b bg-card/95 px-4 py-4 md:sticky md:top-0 md:px-6 backdrop-blur supports-[backdrop-filter]:bg-card/80 lg:px-8">
         <div className="min-w-0">
+          {volver ? (
+            <div className="mb-1">
+              <Volver {...volver} />
+            </div>
+          ) : null}
           <h1 className="text-lg font-semibold tracking-tight">{titulo}</h1>
           {descripcion ? (
             <p className="text-sm text-muted-foreground">{descripcion}</p>

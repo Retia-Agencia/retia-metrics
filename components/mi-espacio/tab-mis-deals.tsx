@@ -4,6 +4,7 @@ import { esAdministrador } from "@/lib/auth/roles";
 import { NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { opcionesDeTablero, parsearFiltros, tableroKanban } from "@/lib/queries/kanban";
+import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { TableroKanban } from "@/components/deals/tablero-kanban";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 
@@ -27,6 +28,7 @@ export async function TabMisDeals({
   busqueda: Record<string, string | string[] | undefined>;
 }) {
   const filtros = parsearFiltros(busqueda);
+  const origen = origenDeLaPagina("/mi-espacio", busqueda);
   const [tablero, opciones] = await Promise.all([
     tableroKanban(db, programId, { tipo: "dueno", userId }, filtros),
     opcionesDeTablero(db, programId),
@@ -49,6 +51,7 @@ export async function TabMisDeals({
       inicioDeLaCohorteActiva={opciones.inicioDeLaCohorteActiva}
       userId={userId}
       administra={esAdministrador(rol)}
+      origen={origen}
     />
   );
 }

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { studentsDelPrograma } from "@/lib/queries/estudiantes";
 import { fecha, fechaDeInstanteEnBogota, saldoLegible } from "@/lib/format";
+import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
@@ -23,6 +24,7 @@ export async function TabMisStudents({
   userId: string;
 }) {
   const filas = await studentsDelPrograma(db, programId, { ownerUserId: userId });
+  const origen = origenDeLaPagina("/mi-espacio", { programa: slug, tab: "students" });
 
   return (
     <Card>
@@ -46,7 +48,7 @@ export async function TabMisStudents({
                 >
                   <div className="min-w-0 space-y-1">
                     <Link
-                      href={`/p/${slug}/deals/${f.dealId}`}
+                      href={enlaceConVuelta(`/p/${slug}/deals/${f.dealId}`, origen)}
                       className="block truncate rounded-md font-medium text-marca-texto underline-offset-2 after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       {f.nombre ?? f.email}

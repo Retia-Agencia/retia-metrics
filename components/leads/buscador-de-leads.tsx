@@ -5,9 +5,10 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { buscarLeadsAccion } from "@/app/(app)/p/[programa]/leads/acciones";
 import type { LeadEncontrado } from "@/lib/queries/leads";
+import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import { Input } from "@/components/ui/input";
 
-export function BuscadorDeLeads({ programaSlug }: { programaSlug: string }) {
+export function BuscadorDeLeads({ programaSlug, origen }: { programaSlug: string; origen: string }) {
   const [texto, setTexto] = useState("");
   const [resultados, setResultados] = useState<LeadEncontrado[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +79,7 @@ export function BuscadorDeLeads({ programaSlug }: { programaSlug: string }) {
           {resultados.map((lead) => (
             <li key={lead.id}>
               <Link
-                href={`/p/${programaSlug}/leads/${lead.id}`}
+                href={enlaceConVuelta(`/p/${programaSlug}/leads/${lead.id}`, origen)}
                 className="block min-w-0 px-3 py-2 text-sm outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 <span className="block truncate font-medium">{lead.nombre ?? lead.emailNormalizado}</span>
