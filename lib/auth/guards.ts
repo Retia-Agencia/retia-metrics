@@ -54,7 +54,7 @@ export async function requireSession(): Promise<Session> {
   // donde pasa toda server action— y da el mismo mensaje que ve la barra fija.
   if (session.user.suplantadoPor && (await esEscritura())) {
     throw new AuthorizationError(
-      `Estás viendo como ${session.user.suplantadoPor.nombre}: solo lectura.`,
+      `Estás viendo como ${session.user.name ?? session.user.email}: solo lectura.`,
     );
   }
   return session;

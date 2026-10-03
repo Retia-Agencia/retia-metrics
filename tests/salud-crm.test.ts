@@ -62,6 +62,7 @@ vi.mock("@/lib/auth/index", () => ({
 // `rolDeVista` de un actor sin cookie devuelve su rol real: se replica sin next/headers.
 vi.mock("@/lib/auth/vista", () => ({
   rolDeVista: async (session: { user?: { rol?: string } }) => session?.user?.rol ?? null,
+  sesionEfectiva: async <T,>(session: T) => session,
 }));
 
 let db: Db;

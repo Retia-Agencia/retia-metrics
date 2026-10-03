@@ -173,6 +173,11 @@ export async function sesionEfectiva(
     user: {
       ...session.user,
       id: suplantado.id,
+      // Nombre, correo y foto también son del suplantado: la barra, el perfil de Mi
+      // espacio y el mensaje de solo lectura dicen a QUIÉN se está viendo.
+      name: suplantado.nombre ?? suplantado.email,
+      email: suplantado.email,
+      image: null,
       rol: "closer",
       closerId: suplantado.closerId,
       suplantadoPor: {

@@ -963,7 +963,8 @@ describe("pagina de closer", () => {
     auth.mockResolvedValue(sesionCloser);
     // Un closer con un programa donde vende: la pagina arma su contexto y renderiza.
     programasGestionablesPorUsuario.mockResolvedValue([{ id: "p-1", nombre: "Programa A" }]);
-    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBeNull();
+    // Pasa la guarda y la ruta vieja redirige a Mi espacio (ticket 172).
+    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/mi-espacio");
   });
 
   it("/mi-dia deja pasar a un developer (acceso total, ADR 0025)", async () => {
@@ -971,7 +972,8 @@ describe("pagina de closer", () => {
     // Un developer no es miembro de ningun programa, pero ve la union: la pagina le
     // pide los programas con la proyeccion de gerente, no con la de closer.
     programasGestionablesPorUsuario.mockResolvedValue([{ id: "p-1", nombre: "Programa A" }]);
-    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBeNull();
+    // Pasa la guarda y la ruta vieja redirige a Mi espacio (ticket 172).
+    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/mi-espacio");
   });
 
   it("/mi-dia niega el registro a un developer en vista 'gerente' (ADR 0003 recuperado, ticket 028)", async () => {
@@ -988,7 +990,8 @@ describe("pagina de closer", () => {
     ponerVista("closer");
     // En vista closer se proyecta como closer: acotado a sus programas por membresia.
     programasGestionablesPorUsuario.mockResolvedValue([]);
-    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBeNull();
+    // Pasa la guarda y la ruta vieja redirige a Mi espacio (ticket 172).
+    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/mi-espacio");
   });
 });
 
@@ -1014,7 +1017,7 @@ describe("pagina de developer /nerd-stats (ticket 025)", () => {
 
   it("rechaza a un closer y lo manda a su vista", async () => {
     auth.mockResolvedValue(sesionCloser);
-    expect(await destinoDe(RUTA)).toBe("/mi-dia");
+    expect(await destinoDe(RUTA)).toBe("/mi-espacio");
   });
 
   it("manda al login a quien no tiene sesion", async () => {
@@ -1057,7 +1060,7 @@ describe("bitacora /nerd-stats/bitacora (ticket 076)", () => {
   });
 
   it("un closer con filtros forjados es rebotado y la consulta no corre", async () => {
-    expect(await correr(sesionCloser)).toBe("/mi-dia");
+    expect(await correr(sesionCloser)).toBe("/mi-espacio");
     expect(paginaDeBitacora).not.toHaveBeenCalled();
   });
 
