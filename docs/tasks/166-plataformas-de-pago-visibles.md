@@ -37,3 +37,30 @@ Tests: `tests/plataformas-programa.test.ts`, `tests/ficha-programa.test.ts`.
 - La ficha de Memorable muestra sus plataformas y se vinculan desde ahí, con `change_log`.
 - Un programa sin plataformas avisa en el abono; uno con plataformas las ofrece.
 - Vincular, forjado desde un closer sin membresía en ese programa: 403 y la base quieta.
+
+## Cierre 2026-10-02 (rama `t166-plataformas-visibles`, sin migración)
+
+**Estado: `review`**: código, tests del ticket, build y recorrido hechos; pasa a `done` con el checkpoint verde.
+
+**Qué se construyó**
+
+- `fichaDelPrograma` (`lib/queries/ficha-programa.ts`) trae `plataformas` (vinculadas y activas, por
+  `plataformasDelPrograma`) y `plataformasDisponibles` (activas del catálogo sin vínculo, por el molde
+  `plataformasDePago(db).listar`). Sin segunda copia del `select` sobre `plataformas_programa`.
+- Bloque **"Plataformas de pago"** en la ficha del programa (`plataformas-del-programa.tsx`, cliente, en la
+  carpeta de la página): lista con quitar y un selector + "Vincular". Lo ve todo el que llega a la ficha (un
+  closer sin membresía ya recibe 404); la reja son las acciones de siempre, `asociarProgramaAccion` /
+  `desasociarProgramaAccion` (`requireRole` + `exigirAccesoAlPrograma`, `change_log`), que ahora además
+  revalidan la ficha del programa y la del deal.
+- El pop-up de abono dice "Este programa no tiene plataformas de pago; agrégalas en Programs." en vez de un
+  selector vacío. Sigue siendo proyección: el abono se registra igual (ADR 0034).
+- `lib/catalogo/plataformas.ts` no cambió: ya tenía todo.
+
+**Verificado:** typecheck, lint, build; tests `ficha-programa`, `plataformas-programa`, `paginas`. Recorrido en
+`dev:local` (`closer166.localhost:3166`), con ComunicArte Local sin plataformas: el abono muestra el aviso; el
+closer vincula PayPal desde la ficha, queda la fila con su `change_log` y el abono ofrece PayPal; la acción de
+vincular, forjada desde un closer sin membresía en Tactical, responde "No puedes gestionar las plataformas de un
+programa donde no vendes." y la base sigue igual (0 vínculos en Tactical, 1 fila de `change_log`).
+
+**Detalle para Mani:** los dos avisos (este y el de Próxima cohorte del [165]) dicen "Programs", como el ticket,
+pero la pestaña del menú se llama **"Programa"**. Si se prefiere el nombre del menú, es cambiar dos textos.
