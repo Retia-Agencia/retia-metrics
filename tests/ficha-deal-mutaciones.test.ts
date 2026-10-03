@@ -138,24 +138,24 @@ describe("puedeTrabajarDeal: una sola respuesta", () => {
 describe("editarDeal", () => {
   it("varios campos: una fila por campo tocado; sin cambios no escribe ni rastro", async () => {
     const dealId = await nuevoDeal("atendido");
-    await editarDeal(db, comoCloser(), { dealId, fechaSeguimiento: "2026-10-05" });
-    // Solo la fecha cambió.
-    expect((await rastro(dealId)).map((f) => f.campo)).toEqual(["fechaSeguimiento"]);
+    await editarDeal(db, comoCloser(), { dealId, areaDeclaradaId: null });
+    expect((await rastro(dealId)).map((f) => f.campo)).toEqual(["areaDeclaradaId"]);
 
-    const otraVez = await editarDeal(db, comoCloser(), { dealId, fechaSeguimiento: "2026-10-05" });
+    const otraVez = await editarDeal(db, comoCloser(), { dealId, areaDeclaradaId: null });
     expect(otraVez).toBe(false);
     expect(await rastro(dealId)).toHaveLength(1);
   });
 
-  it("la fecha de seguimiento se puede borrar con null", async () => {
+  it("la fecha de seguimiento ya no se edita por esta puerta", async () => {
     const dealId = await nuevoDeal("atendido", { pendiente: "seguimiento", fechaSeguimiento: "2026-10-05" });
-    await editarDeal(db, comoCloser(), { dealId, fechaSeguimiento: null });
-    expect((await deal(dealId)).fechaSeguimiento).toBeNull();
+    await editarDeal(db, comoCloser(), { dealId, fechaSeguimiento: null } as never);
+    expect((await deal(dealId)).fechaSeguimiento).toBe("2026-10-05");
+    expect(await rastro(dealId)).toHaveLength(0);
   });
 
   it("un closer ajeno es rechazado y la base no se mueve", async () => {
     const dealId = await nuevoDeal("atendido");
-    const e = await capturar(editarDeal(db, comoOtroCloser(), { dealId, fechaSeguimiento: "2026-10-05" }));
+    const e = await capturar(editarDeal(db, comoOtroCloser(), { dealId, areaDeclaradaId: null }));
     expect(e.status).toBe(403);
     expect((await deal(dealId)).fechaSeguimiento).toBeNull();
     expect(await rastro(dealId)).toHaveLength(0);
@@ -163,25 +163,25 @@ describe("editarDeal", () => {
 
   it("un deal sin dueño lo edita quien administra, no un closer", async () => {
     const dealId = await nuevoDeal("registrado", { ownerUserId: null });
-    expect((await capturar(editarDeal(db, comoCloser(), { dealId, fechaSeguimiento: "2026-10-05" }))).status).toBe(403);
-    await editarDeal(db, comoGerente(), { dealId, fechaSeguimiento: "2026-10-05" });
-    expect((await deal(dealId)).fechaSeguimiento).toBe("2026-10-05");
+    expect((await capturar(editarDeal(db, comoCloser(), { dealId, areaDeclaradaId: null }))).status).toBe(403);
+    await editarDeal(db, comoGerente(), { dealId, areaDeclaradaId: null });
+    expect((await deal(dealId)).areaDeclaradaId).toBeNull();
   });
 
   it("el gerente y el developer editan el deal de cualquiera", async () => {
     const a = await nuevoDeal("atendido");
     const b = await nuevoDeal("atendido");
-    await editarDeal(db, comoGerente(), { dealId: a, fechaSeguimiento: "2026-10-06" });
-    await editarDeal(db, comoDeveloper(), { dealId: b, fechaSeguimiento: "2026-10-07" });
+    await editarDeal(db, comoGerente(), { dealId: a, areaDeclaradaId: null });
+    await editarDeal(db, comoDeveloper(), { dealId: b, areaDeclaradaId: null });
     expect((await rastro(a))[0].userId).toBe(gerente);
     expect((await rastro(b))[0].userId).toBe(developer);
   });
 
   it("la etapa no se edita: un `etapa` en la entrada se ignora y no deja rastro", async () => {
     const dealId = await nuevoDeal("atendido");
-    await editarDeal(db, comoCloser(), { dealId, etapa: "ganado_completo", fechaSeguimiento: "2026-10-05" } as never);
+    await editarDeal(db, comoCloser(), { dealId, etapa: "ganado_completo", areaDeclaradaId: null } as never);
     expect((await deal(dealId)).etapa).toBe("atendido");
-    expect((await rastro(dealId)).map((f) => f.campo)).toEqual(["fechaSeguimiento"]);
+    expect((await rastro(dealId)).map((f) => f.campo)).toEqual(["areaDeclaradaId"]);
   });
 
   describe("el dueño", () => {
@@ -246,7 +246,7 @@ describe("editarDeal", () => {
   it("un deal anulado no se edita", async () => {
     const dealId = await nuevoDeal("atendido");
     await anularDeal(db, comoCloser(), { dealId, motivo: "lo registré mal" });
-    expect((await capturar(editarDeal(db, comoGerente(), { dealId, fechaSeguimiento: "2026-10-05" }))).status).toBe(409);
+    expect((await capturar(editarDeal(db, comoGerente(), { dealId, areaDeclaradaId: null }))).status).toBe(409);
   });
 });
 

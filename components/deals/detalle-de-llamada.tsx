@@ -111,11 +111,11 @@ function Contenido({ detalle, esActiva }: { detalle: Detalle; esActiva: boolean 
       <div className="flex flex-wrap gap-x-4 gap-y-2">
         {detalle.linkCalendly ? (
           <a className="text-marca-texto underline-offset-2 hover:underline" href={detalle.linkCalendly} target="_blank" rel="noreferrer">
-            {detalle.origen === "calendly" ? "Abrir en Calendly" : "Abrir reunión"}
+            Link de la cita
           </a>
         ) : null}
         {detalle.linkGrain ? (
-          <a className="text-marca-texto underline-offset-2 hover:underline" href={detalle.linkGrain} target="_blank" rel="noreferrer">Abrir Grain</a>
+          <a className="text-marca-texto underline-offset-2 hover:underline" href={detalle.linkGrain} target="_blank" rel="noreferrer">Grain</a>
         ) : null}
       </div>
 

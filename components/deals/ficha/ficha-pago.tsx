@@ -5,6 +5,7 @@ import { ID_DE_SECCION, useAccionPedida } from "./accion-pedida";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fecha, fechaHoraEnBogota, hoyEnBogota, monto, pct, saldoLegible, usd } from "@/lib/format";
@@ -18,6 +19,7 @@ import {
   marcarOnboardedAccion,
   pegarComprobanteAccion,
   registrarAbonoAccion,
+  editarDealAccion,
 } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Campo, claseInput, claseTextarea, DialogoForm, Vacio } from "./campos";
 import { useAccion } from "./uso-accion";
@@ -39,7 +41,8 @@ type Dialogo =
   | { tipo: "anular"; abono: FichaDeAbono }
   | { tipo: "comprobante"; abono: FichaDeAbono }
   | { tipo: "acuerdo" }
-  | { tipo: "cohorte" };
+  | { tipo: "cohorte" }
+  | { tipo: "descuento" };
 
 export function FichaPago({
   ficha,
@@ -106,8 +109,11 @@ export function FichaPago({
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">Descuento</dt>
-            <dd className="cifra text-sm">
-              {ficha.descuento ? `${usd(ficha.descuento.usd)} · ${pct(ficha.descuento.porcentaje)}` : "—"}
+            <dd className="flex items-center gap-2 text-sm">
+              <span className="cifra">{ficha.descuento ? `${usd(ficha.descuento.usd)} · ${pct(ficha.descuento.porcentaje)}` : "—"}</span>
+              {puedeTrabajar && !anulado ? (
+                <Button size="xs" variant="ghost" onClick={() => setDialogo({ tipo: "descuento" })}>Editar descuento</Button>
+              ) : null}
             </dd>
           </div>
           <div>
@@ -260,7 +266,47 @@ export function FichaPago({
       {dialogo?.tipo === "comprobante" ? <DialogoComprobante abono={dialogo.abono} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "acuerdo" ? <DialogoAcuerdo ficha={ficha} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "cohorte" ? <DialogoCohorte ficha={ficha} opciones={opciones} onCerrar={cerrar} /> : null}
+      {dialogo?.tipo === "descuento" ? <DialogoDescuento ficha={ficha} onCerrar={cerrar} /> : null}
     </Card>
+  );
+}
+
+function DialogoDescuento({ ficha, onCerrar }: { ficha: FichaDeDeal; onCerrar: () => void }) {
+  const { pendiente, correr } = useAccion();
+  const actual = ficha.descuento?.usd ?? 0;
+  const [valor, setValor] = useState(String(actual));
+  const [motivo, setMotivo] = useState("");
+  const descuento = Number(valor);
+  const cambioValido = Number.isFinite(descuento) && descuento >= 0 && descuento !== actual;
+  return (
+    <DialogoForm
+      titulo="Editar descuento"
+      descripcion="Cambia el descuento de esta venta. El total a pagar se recalcula y el cambio queda en el historial."
+      pendiente={pendiente}
+      onCerrar={onCerrar}
+      deshabilitarConfirmar={!cambioValido || (ficha.vendido && motivo.trim() === "")}
+      confirmar={{
+        texto: "Guardar",
+        enCurso: "Guardando…",
+        onClick: () => correr(
+          () => editarDealAccion({
+            dealId: ficha.dealId,
+            descuentoUsd: descuento,
+            ...(ficha.vendido ? { motivoCambioVenta: motivo } : {}),
+          }),
+          { exito: "Descuento actualizado.", alExito: onCerrar },
+        ),
+      }}
+    >
+      <Campo etiqueta="Descuento (USD)">
+        <Input type="number" min="0" max="99999999.99" step="0.01" value={valor} onChange={(e) => setValor(e.currentTarget.value)} />
+      </Campo>
+      {ficha.vendido ? (
+        <Campo etiqueta="Motivo del cambio" ayuda="Obligatorio porque el deal ya es una venta.">
+          <textarea className={claseTextarea} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+        </Campo>
+      ) : null}
+    </DialogoForm>
   );
 }
 

@@ -100,6 +100,8 @@ function porQue(fila: FilaAtencion): string {
       return `Agotó intentos: ${fila.intentos ?? 3} sin respuesta en esta etapa. Decide: Cierre perdido con motivo o sigue intentando.`;
     case "link_sin_cita":
       return "Mandaste el link de agenda y el lead no ha agendado.";
+    case "proximo_contacto_vencido":
+      return "El próximo contacto se venció.";
     case "estancado":
       return `Sin actividad hace ${fila.diasSinActividad ?? "varios"} días hábiles.`;
   }

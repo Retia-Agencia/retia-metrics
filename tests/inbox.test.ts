@@ -84,6 +84,7 @@ async function crearDeal(o: {
   owner?: string | null;
   anulado?: boolean;
   fechaLimitePago?: string | null;
+  fechaSeguimiento?: string | null;
   cohorte?: boolean;
   createdAt?: Date;
   handoffEn?: Date | null;
@@ -105,6 +106,7 @@ async function crearDeal(o: {
       ownerUserId: o.owner === undefined ? closer : o.owner,
       valorVendidoUsd: prog === programId ? "1000.00" : null,
       fechaLimitePago: o.fechaLimitePago ?? null,
+      fechaSeguimiento: o.fechaSeguimiento ?? null,
       ...(o.createdAt ? { createdAt: o.createdAt } : {}),
       ...(o.handoffEn ? { handoffEn: o.handoffEn } : {}),
       ...marca,
@@ -335,6 +337,24 @@ describe("inboxDelPrograma — atención: compromiso verbal vencido (b)", () => 
     const { dealId } = await crearDeal({ etapa: "compromiso_verbal", fechaLimitePago: HOY });
     const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
     expect(inbox.atencion.find((f) => f.dealId === dealId)?.motivo).not.toBe("compromiso_vencido");
+  });
+});
+
+describe("inboxDelPrograma — atención: próximo contacto vencido", () => {
+  it("solo entra cuando el pendiente es seguimiento y la fecha ya pasó", async () => {
+    const { dealId } = await crearDeal({
+      etapa: "atendido",
+      pendiente: "seguimiento",
+      fechaSeguimiento: "2026-09-25",
+    });
+    expect((await motivosPorDeal({ ownerUserId: closer })).get(dealId)).toBe("proximo_contacto_vencido");
+
+    const vigente = await crearDeal({
+      etapa: "atendido",
+      pendiente: "seguimiento",
+      fechaSeguimiento: HOY,
+    });
+    expect((await motivosPorDeal({ ownerUserId: closer })).get(vigente.dealId)).not.toBe("proximo_contacto_vencido");
   });
 });
 

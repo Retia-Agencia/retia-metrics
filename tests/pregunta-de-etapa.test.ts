@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   ETAPAS,
+  NOMBRE_DE_ETAPA,
+  NOMBRE_DE_PENDIENTE,
   TRANSICIONES,
   TRANSICIONES_PENDIENTE,
   transicion,
@@ -11,6 +13,7 @@ import {
 } from "@/lib/deals/etapas";
 import {
   PREGUNTA_DE_ETAPA,
+  queHace,
   respuestasDe,
   respuestasHacia,
   respuestasPorDestino,
@@ -184,6 +187,24 @@ describe("respuestasHacia: soltar en una columna del Kanban (ADR 0072 punto 2)",
 });
 
 describe("respuestasPorDestino: Transición (ADR 0075)", () => {
+  it("explica todas las respuestas y nombra el mismo destino que su grupo", () => {
+    for (const etapa of ETAPAS) {
+      const grupos = respuestasPorDestino(etapa, "reagenda", ETAPAS);
+      for (const respuesta of respuestasDe(etapa, "reagenda")) {
+        const texto = queHace(etapa, "reagenda", respuesta, ETAPAS, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE);
+        expect(texto, `${etapa}/${respuesta.id}`).not.toBe("");
+        const grupo = grupos.destinos.find((candidato) => candidato.respuestas.includes(respuesta));
+        if (grupo) {
+          const nombre = grupo.destino === "ganado" ? "Ganado" : NOMBRE_DE_ETAPA[grupo.destino];
+          expect(texto, `${etapa}/${respuesta.id}`).toContain(nombre);
+        }
+      }
+    }
+    for (const accion of ["contacto", "intento", "nota"] as const) {
+      expect(queHace("atendido", null, accion, ETAPAS, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE)).not.toBe("");
+    }
+  });
+
   it("cada respuesta que cambia de etapa cae en exactamente un botón", () => {
     for (const etapa of ETAPAS) {
       const grupos = respuestasPorDestino(etapa, "reagenda", ETAPAS);

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +14,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { anularDealAccion, editarDealAccion, marcarCortesiaAccion, type EntradaEditarDeal } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
-import { Campo, claseInput, claseTextarea } from "./campos";
+import { Campo, claseTextarea } from "./campos";
 import { useAccion } from "./uso-accion";
 
 /**
@@ -111,28 +110,17 @@ function DialogoEditar({
   onCerrar: () => void;
 }) {
   const { pendiente, correr } = useAccion();
-  const [descuentoUsd, setDescuentoUsd] = useState(String(ficha.descuento?.usd ?? 0));
-  const [motivoCambioVenta, setMotivoCambioVenta] = useState("");
   const [areaDeclaradaId, setAreaDeclaradaId] = useState<string | null>(ficha.areaDeclarada?.id ?? null);
   const [ownerId, setOwnerId] = useState<string | null>(ficha.owner?.id ?? null);
-  const [seguimiento, setSeguimiento] = useState<string>(ficha.fechaSeguimiento ?? "");
   const [motivoId, setMotivoId] = useState<string | null>(ficha.motivo?.id ?? null);
 
-  const cerrado = ficha.etapa === "ganado_completo" || ficha.etapa === "cierre_perdido";
   const muestraMotivo = ficha.etapa === "cierre_perdido";
   const motivosDePerdida = opciones.motivos.filter((m) => m.tipo === "perdida");
 
   // Solo viaja lo que cambio: el servidor escribe un renglon de bitacora por campo tocado.
   const entrada: EntradaEditarDeal = { dealId: ficha.dealId };
-  const descuentoNormalizado = Number(descuentoUsd);
-  const cambioDescuento = Number.isFinite(descuentoNormalizado) && descuentoNormalizado !== (ficha.descuento?.usd ?? 0);
-  if (cambioDescuento) {
-    entrada.descuentoUsd = descuentoNormalizado;
-    if (ficha.vendido && motivoCambioVenta.trim()) entrada.motivoCambioVenta = motivoCambioVenta;
-  }
   if (areaDeclaradaId && areaDeclaradaId !== ficha.areaDeclarada?.id) entrada.areaDeclaradaId = areaDeclaradaId;
   if (administra && ownerId && ownerId !== ficha.owner?.id) entrada.ownerUserId = ownerId;
-  if (!cerrado && seguimiento !== (ficha.fechaSeguimiento ?? "")) entrada.fechaSeguimiento = seguimiento || null;
   if (muestraMotivo && motivoId && motivoId !== ficha.motivo?.id) entrada.motivoId = motivoId;
   const hayCambios = Object.keys(entrada).length > 1;
 
@@ -142,33 +130,11 @@ function DialogoEditar({
         <DialogHeader>
           <DialogTitle>Editar deal</DialogTitle>
           <DialogDescription>
-            Corrige un dato mal puesto. Cada cambio queda en el historial con quién lo hizo. El acuerdo de pago y la
-            cohorte se editan en su tarjeta; la etapa solo se cambia respondiendo la pregunta de la etapa.
+            Corrige el área de origen, el dueño o el motivo de pérdida; cada cambio queda en el historial.
           </DialogDescription>
         </DialogHeader>
 
         <div className="min-w-0 space-y-3">
-          <Campo etiqueta="Descuento (USD)">
-            <Input
-              type="number"
-              min="0"
-              max="99999999.99"
-              step="0.01"
-              value={descuentoUsd}
-              onChange={(e) => setDescuentoUsd(e.currentTarget.value)}
-            />
-          </Campo>
-
-          {ficha.vendido ? (
-            <Campo etiqueta="Motivo del cambio" ayuda="Obligatorio si cambias el descuento de una venta.">
-              <textarea
-                className={claseTextarea}
-                value={motivoCambioVenta}
-                onChange={(e) => setMotivoCambioVenta(e.target.value)}
-              />
-            </Campo>
-          ) : null}
-
           <Campo etiqueta="Área de origen (según el closer)">
             <Select
               value={areaDeclaradaId}
@@ -205,12 +171,6 @@ function DialogoEditar({
             </Campo>
           ) : null}
 
-          {!cerrado ? (
-            <Campo etiqueta="Fecha de seguimiento">
-              <input type="date" className={claseInput} value={seguimiento} onChange={(e) => setSeguimiento(e.target.value)} />
-            </Campo>
-          ) : null}
-
           {muestraMotivo ? (
             <Campo etiqueta="Motivo del Cierre Perdido">
               <Select
@@ -240,7 +200,7 @@ function DialogoEditar({
           </Button>
           <Button
             type="button"
-            disabled={pendiente || !hayCambios || (ficha.vendido && cambioDescuento && motivoCambioVenta.trim() === "")}
+            disabled={pendiente || !hayCambios}
             onClick={() => correr(() => editarDealAccion(entrada), { exito: "Deal actualizado.", alExito: onCerrar })}
           >
             {pendiente ? "Guardando…" : "Guardar"}

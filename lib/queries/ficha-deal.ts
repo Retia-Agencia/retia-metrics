@@ -209,9 +209,13 @@ export interface FichaDeDeal {
   enlacesDePago: EnlaceDeLaPantalla[];
 }
 
+type MotivoAlertaDeal = MotivoAtencion | "llamada_sin_resultado" | "atendida_sin_grain";
+type AlertaDeal = { motivo: MotivoAlertaDeal; mensaje: string };
+
 export interface AlertasDelDeal {
   propiedades: RequisitoFaltante[];
-  urgentes: { motivo: MotivoAtencion | "llamada_sin_resultado" | "atendida_sin_grain"; mensaje: string }[];
+  urgentes: AlertaDeal[];
+  alertas: AlertaDeal[];
   paraAvanzar: {
     destino: EtapaDeal;
     nombreDestino: string;
@@ -221,7 +225,7 @@ export interface AlertasDelDeal {
   aviso: string | null;
 }
 
-const MENSAJE_URGENTE: Record<MotivoAtencion | "llamada_sin_resultado" | "atendida_sin_grain", string> = {
+const MENSAJE_ALERTA: Record<MotivoAlertaDeal, string> = {
   abono_sin_comprobante: "Hay un abono sin comprobante.",
   reagenda_sin_fecha: "La re-agenda no tiene fecha.",
   compromiso_vencido: "El compromiso verbal se venció.",
@@ -232,6 +236,21 @@ const MENSAJE_URGENTE: Record<MotivoAtencion | "llamada_sin_resultado" | "atendi
   estancado: "El deal lleva días sin actividad.",
   llamada_sin_resultado: "La llamada ya pasó y no tiene resultado.",
   atendida_sin_grain: "La llamada atendida no tiene el link de Grain.",
+  proximo_contacto_vencido: "El próximo contacto se venció.",
+};
+
+const NIVEL_DE_ALERTA: Record<MotivoAlertaDeal, "urgente" | "alerta"> = {
+  llamada_sin_resultado: "urgente",
+  intentos_agotados: "urgente",
+  abono_sin_comprobante: "urgente",
+  link_sin_cita: "urgente",
+  compromiso_vencido: "urgente",
+  pago_vencido: "urgente",
+  reagenda_sin_fecha: "urgente",
+  estancado: "alerta",
+  reenvio_sin_atender: "alerta",
+  atendida_sin_grain: "alerta",
+  proximo_contacto_vencido: "alerta",
 };
 
 /** Lo urgente y lo que falta para mover este deal, calculado por los módulos que deciden ambas cosas. */
@@ -249,7 +268,7 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
     tieneCohorte: deal.cohortId != null,
   });
   if (deal.etapa === "cierre_perdido") {
-    return { propiedades, urgentes: [], paraAvanzar: [], aviso: null };
+    return { propiedades, urgentes: [], alertas: [], paraAvanzar: [], aviso: null };
   }
 
   const [inbox, llamadasVigentes] = await Promise.all([
@@ -257,23 +276,23 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
     db.select().from(calls).where(and(eq(calls.dealId, dealId), vigente(calls))),
   ]);
 
-  const urgentes = new Map<MotivoAtencion | "llamada_sin_resultado" | "atendida_sin_grain", string>();
+  const encontradas = new Map<MotivoAlertaDeal, string>();
   for (const fila of inbox.atencion) {
-    if (fila.dealId !== dealId || urgentes.has(fila.motivo)) continue;
+    if (fila.dealId !== dealId || encontradas.has(fila.motivo)) continue;
     const mensaje = fila.motivo === "pago_vencido" && fila.fecha
       ? `La fecha de pago (${fecha(fila.fecha)}) se venció y queda saldo.`
       : fila.motivo === "estancado" && fila.diasSinActividad != null
         ? `El deal lleva ${fila.diasSinActividad} días hábiles sin actividad.`
         : fila.motivo === "intentos_agotados" && fila.intentos != null
           ? `Agotó intentos: ${fila.intentos} sin respuesta en esta etapa. Decide: Cierre perdido con motivo o sigue intentando.`
-          : MENSAJE_URGENTE[fila.motivo];
-    urgentes.set(fila.motivo, mensaje);
+          : MENSAJE_ALERTA[fila.motivo];
+    encontradas.set(fila.motivo, mensaje);
   }
   if (inbox.llamadasDeHoy.some((fila) => fila.dealId === dealId)) {
-    urgentes.set("llamada_sin_resultado", MENSAJE_URGENTE.llamada_sin_resultado);
+    encontradas.set("llamada_sin_resultado", MENSAJE_ALERTA.llamada_sin_resultado);
   }
   if (llamadasVigentes.some(esAtendidaSinGrain)) {
-    urgentes.set("atendida_sin_grain", MENSAJE_URGENTE.atendida_sin_grain);
+    encontradas.set("atendida_sin_grain", MENSAJE_ALERTA.atendida_sin_grain);
     propiedades = propiedades.filter((falta) => falta.codigo !== "llamada_sucedio");
   }
 
@@ -294,7 +313,12 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
 
   return {
     propiedades,
-    urgentes: [...urgentes].map(([motivo, mensaje]) => ({ motivo, mensaje })),
+    urgentes: [...encontradas]
+      .filter(([motivo]) => NIVEL_DE_ALERTA[motivo] === "urgente")
+      .map(([motivo, mensaje]) => ({ motivo, mensaje })),
+    alertas: [...encontradas]
+      .filter(([motivo]) => NIVEL_DE_ALERTA[motivo] === "alerta")
+      .map(([motivo, mensaje]) => ({ motivo, mensaje })),
     paraAvanzar,
     aviso: deal.etapa === "en_gestion"
       ? "Para registrar un pago, primero marca el contacto como logrado."

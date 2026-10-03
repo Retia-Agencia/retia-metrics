@@ -16,6 +16,7 @@ import { moverEtapa, MovimientoRechazado, revisarMovimiento, type RevisionDeMovi
 import type { RequisitoFaltante } from "@/lib/deals/requisitos";
 import { esquemaDescuentoUsdOpcional } from "@/lib/deals/valor-vendido";
 import { crearDealAMano, DealYaAbierto, type EntradaDealAMano } from "@/lib/deals/crear-a-mano";
+import { esquemaProximoContacto } from "@/lib/deals/proximo-contacto";
 
 /**
  * Server action del Kanban (ticket 069): mover un deal de etapa.
@@ -43,7 +44,7 @@ const esquemaDatos = z
     fechaLimitePago: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida.").nullable().optional(),
     acuerdoPago: z.string().trim().max(500).nullable().optional(),
     cohorteDestinoId: z.string().uuid().nullable().optional(),
-    fechaSeguimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida.").nullable().optional(),
+    fechaSeguimiento: esquemaProximoContacto,
   })
   .optional();
 
@@ -74,7 +75,7 @@ export async function moverDeal(entrada: EntradaMover): Promise<ResultadoMover> 
   // acceso a la accion, no al deal.
   const session = await requireRole("gerente", "closer");
   try {
-    const mov = esquemaMover.parse(entrada);
+    const mov = await normalizando(async () => esquemaMover.parse(entrada));
     const actor = await actorDe(session);
     const [deal] = await db
       .select({ programId: deals.programId })
@@ -118,7 +119,7 @@ export type ResultadoRevisar =
 export async function revisarMovimientoAccion(entrada: EntradaRevisar): Promise<ResultadoRevisar> {
   const session = await requireRole("gerente", "closer");
   try {
-    const mov = esquemaRevisar.parse(entrada);
+    const mov = await normalizando(async () => esquemaRevisar.parse(entrada));
     const actor = await actorDe(session);
     const [deal] = await db
       .select({ programId: deals.programId })

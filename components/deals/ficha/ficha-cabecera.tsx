@@ -86,7 +86,7 @@ export function FichaCabecera({
             <span className="cifra">{saldo.valor}</span>
           </Dato>
           {ficha.cohorteDestino ? <Dato etiqueta="Cambia a cohorte">{ficha.cohorteDestino.codigo}</Dato> : null}
-          <Dato etiqueta="Seguimiento">{ficha.fechaSeguimiento ? fecha(ficha.fechaSeguimiento) : null}</Dato>
+          <Dato etiqueta="Próximo contacto">{ficha.fechaSeguimiento ? fecha(ficha.fechaSeguimiento) : null}</Dato>
           {/* Solo en Cierre perdido (A-33): un deal recuperado ya no está cerrado; el motivo queda en el log. */}
           {ficha.motivo && ficha.etapa === "cierre_perdido" ? <Dato etiqueta="Motivo del cierre">{ficha.motivo.nombre}</Dato> : null}
           <Dato etiqueta="Creado">{fechaHoraEnBogota(ficha.creadoEn)}</Dato>

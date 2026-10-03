@@ -188,6 +188,51 @@ export interface GrupoDeRespuestas {
   respuestas: Respuesta[];
 }
 
+type AccionDescriptible = Respuesta | "contacto" | "intento" | "nota";
+
+/** Explica una accion con la misma regla de destino que agrupa los botones de Transicion. */
+export function queHace(
+  etapa: EtapaDeal,
+  pendiente: PendienteDeal | null,
+  accionOId: AccionDescriptible,
+  orden: readonly EtapaDeal[],
+  nombreDeEtapa: Record<EtapaDeal, string>,
+  nombreDePendiente: Record<PendienteDeal, string>,
+): string {
+  const respuesta = typeof accionOId === "string" ? null : accionOId;
+  const accion = respuesta?.accion;
+  const id = typeof accionOId === "string" ? accionOId : accionOId.id;
+  const registro = id === "nota"
+    ? "Una nota en el historial."
+    : id === "descartar"
+      ? "Se pierde; pide el motivo."
+      : accion?.tipo === "abono"
+        ? "Registra el pago."
+        : accion?.tipo === "retroceder"
+          ? "Vuelve a la etapa anterior según el historial."
+          : accion?.tipo === "llamada"
+            ? accion.uso === "agendar"
+              ? "Anota la cita con fecha."
+              : accion.uso === "reprogramar"
+                ? "La cita cambió de fecha."
+                : "No asistió o canceló: queda para re-agendar."
+            : id === "contacto" || (accion?.tipo === "actividad" && accion.actividad === "contacto")
+              ? "Hablaste con el lead."
+              : id === "intento" || (accion?.tipo === "actividad" && accion.actividad === "intento")
+                ? "Lo intentaste y no hubo respuesta."
+                : "Registra la respuesta.";
+
+  if (accion?.tipo === "abono") return `${registro} El deal pasa a Ganado.`;
+  if (accion?.tipo === "mover" && accion.a === etapa && accion.pendiente != null) {
+    return `${registro} Queda en ${nombreDeEtapa[etapa]} con ${nombreDePendiente[accion.pendiente]}.`;
+  }
+  if (accion) {
+    const destino = orden.filter((candidato) => llevaA(accion, etapa, candidato)).at(-1);
+    if (destino) return `${registro} El deal pasa a ${nombreDeEtapa[destino]}.`;
+  }
+  return `${registro} No cambia la etapa.`;
+}
+
 /**
  * Agrupa la pregunta por el destino que se presenta en pantalla (ADR 0075). Cada
  * respuesta que cambia de etapa queda en un solo boton; las dos etapas de pago son

@@ -154,7 +154,7 @@ describe("alertasDelDeal — urgencia y fronteras", () => {
     expect(alerta.paraAvanzar.map((ruta) => ruta.destino)).toEqual(["cierre_perdido"]);
   });
 
-  it("marca como urgente una llamada atendida vigente sin link de Grain", async () => {
+  it("marca como alerta una llamada atendida vigente sin link de Grain", async () => {
     const dealId = await crearDeal("atendido");
     await db.insert(calls).values({
       dealId,
@@ -165,7 +165,7 @@ describe("alertasDelDeal — urgencia y fronteras", () => {
     });
 
     const alertas = (await alertasDelDeal(db, programId, dealId))!;
-    expect(alertas.urgentes).toContainEqual({
+    expect(alertas.alertas).toContainEqual({
       motivo: "atendida_sin_grain",
       mensaje: "La llamada atendida no tiene el link de Grain.",
     });
@@ -186,7 +186,8 @@ describe("alertasDelDeal — urgencia y fronteras", () => {
     const inbox = await inboxDelPrograma(db, programId, "equipo");
     const motivo = inbox.atencion.find((fila) => fila.dealId === urgente)?.motivo;
     expect(motivo).toBeDefined();
-    expect((await alertasDelDeal(db, programId, urgente))!.urgentes.map((a) => a.motivo)).toContain(motivo);
+    const alertas = (await alertasDelDeal(db, programId, urgente))!;
+    expect([...alertas.urgentes, ...alertas.alertas].map((a) => a.motivo)).toContain(motivo);
     expect(inbox.atencion.some((fila) => fila.dealId === reciente)).toBe(false);
     expect((await alertasDelDeal(db, programId, reciente))!.urgentes).toEqual([]);
   });

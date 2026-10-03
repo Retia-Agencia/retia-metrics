@@ -5,7 +5,7 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { aceptaAbono, ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
+import { aceptaAbono, ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { nombreDelDeal } from "@/lib/deals/nombre";
@@ -95,25 +95,27 @@ export default async function FichaDelDealPage({ params }: Props) {
           nombreDeEtapa={NOMBRE_DE_ETAPA}
           tonoDeEtapa={TONO_DE_ETAPA}
         />
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:items-start">
+        <div className="space-y-4">
+          <FichaAlertas alertas={alertas} />
           <FichaTransicion
             ficha={ficha}
             opciones={opciones}
             mapa={mapaDeTransiciones()}
             ordenDeEtapas={ETAPAS_EN_ORDEN}
             nombreDeEtapa={NOMBRE_DE_ETAPA}
+            nombreDePendiente={NOMBRE_DE_PENDIENTE}
             tonoDeEtapa={TONO_DE_ETAPA}
             rutaDeLaFicha={`/p/${programa.slug}/deals/${ficha.dealId}`}
             puedeTrabajar={puedeTrabajar}
+            alertas={alertas}
           />
-          <FichaAlertas alertas={alertas} />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
           <div className="space-y-4">
+            <FichaLead ficha={ficha} rutaDelLead={`/p/${programa.slug}/leads/${ficha.lead.id}`} />
             <FichaOrigen ficha={ficha} />
             <FichaPerfil perfil={ficha.perfil} />
-            <FichaLead ficha={ficha} rutaDelLead={`/p/${programa.slug}/leads/${ficha.lead.id}`} />
             <FichaHistorial log={ficha.log} nombreDeEtapa={NOMBRE_DE_ETAPA} tonoDeEtapa={TONO_DE_ETAPA} />
           </div>
           <div className="space-y-4">

@@ -57,7 +57,7 @@ export const MENSAJES: Record<CodigoReal, string> = {
   area_declarada: "Falta el área: ¿cómo nos conoció?",
   fecha_limite_pago: "Falta la fecha límite de pago.",
   cohorte_destino: "Falta la cohorte a la que quiere entrar.",
-  fecha_seguimiento: "Falta la fecha de seguimiento.",
+  fecha_seguimiento: "Falta el próximo contacto.",
   abono: "Falta registrar un abono.",
   saldo_pendiente: "El saldo ya está en cero: el deal va a Ganado Pagado Completo, no a Ganado Pago Parcial.",
   saldo_en_cero: "Todavía queda saldo por pagar.",

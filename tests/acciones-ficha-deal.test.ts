@@ -148,6 +148,18 @@ describe("marcar cortesía, forjando la petición", () => {
 });
 
 describe("editar el deal, forjando la peticion", () => {
+  it("mover rechaza un próximo contacto pasado antes de llamar al motor", async () => {
+    const dealId = await nuevoDeal(programaA, closerA);
+    auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
+    const r = await (await accionesMover()).moverDeal({
+      dealId,
+      a: "atendido",
+      pendiente: "seguimiento",
+      datos: { fechaSeguimiento: "2000-01-01" },
+    });
+    expect(r).toMatchObject({ ok: false, status: 400, error: "El próximo contacto tiene que ser una fecha futura." });
+  });
+
   it("mover un deal de otro programa devuelve 403 y no lo cambia", async () => {
     const dealId = await nuevoDeal(programaB, closerA);
     auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
@@ -177,7 +189,7 @@ describe("editar el deal, forjando la peticion", () => {
   it("un closer ajeno no edita el deal de otro", async () => {
     const dealId = await nuevoDeal(programaA, closerB);
     auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
-    const r = await (await acciones()).editarDealAccion({ dealId, fechaSeguimiento: "2026-10-05" });
+    const r = await (await acciones()).editarDealAccion({ dealId, descuentoUsd: 10 });
     expect(r.ok).toBe(false);
     expect((await deal(dealId)).fechaSeguimiento).toBeNull();
   });

@@ -21,7 +21,7 @@ import { congelarValorVendido, esquemaDescuentoUsdOpcional } from "./valor-vendi
  * Si editar fuera imposible, anular seria el unico remedio para un dato mal puesto y se
  * usaria para todo, que es justo lo que el ADR 0038 evita.
  *
- * Aqui van: descuento, dueño, fecha de seguimiento y motivo del Cierre Perdido. **Lo demas
+ * Aqui van: descuento, dueño, area declarada y motivo del Cierre Perdido. **Lo demas
  * ya tiene su puerta y no se duplica**: el acuerdo de pago y su fecha limite son
  * `editarAcuerdoDePago` (`pago.ts`), la cohorte es `cambiarCohorte` (`estudiante.ts`), y
  * **la etapa NUNCA se edita aqui**: solo `moverEtapa()` la escribe (ADR 0037). El esquema
@@ -39,12 +39,6 @@ export const esquemaEditarDeal = z.object({
   descuentoUsd: esquemaDescuentoUsdOpcional,
   motivoCambioVenta: z.string().trim().min(1, "El motivo es obligatorio para cambiar una venta.").optional(),
   ownerUserId: z.string().uuid("El dueño no es válido.").optional(),
-  fechaSeguimiento: z
-    .string()
-    .trim()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe ser YYYY-MM-DD.")
-    .nullable()
-    .optional(),
   motivoId: z.string().uuid("El motivo no es válido.").nullable().optional(),
   areaDeclaradaId: z.string().uuid("El área no es válida.").nullable().optional(),
 });
@@ -55,7 +49,7 @@ type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> 
 /** Devuelve `true` si algo cambio (si no, no se escribe ni rastro). */
 export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarDeal): Promise<boolean> {
   return normalizando(async () => {
-    const { dealId, descuentoUsd, motivoCambioVenta, ownerUserId, fechaSeguimiento, motivoId, areaDeclaradaId } = esquemaEditarDeal.parse(datos);
+    const { dealId, descuentoUsd, motivoCambioVenta, ownerUserId, motivoId, areaDeclaradaId } = esquemaEditarDeal.parse(datos);
 
     return (db as unknown as Transaccion).transaction(async (tx) => {
       const { deal, emailLead } = await dealBloqueadoConLead(tx, dealId);
@@ -111,13 +105,6 @@ export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarD
             },
           );
         }
-      }
-
-      if (fechaSeguimiento !== undefined) {
-        if (deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido") {
-          throw new ErrorDeApp("El deal está cerrado: no tiene fecha de seguimiento.", 409);
-        }
-        cambios.fechaSeguimiento = fechaSeguimiento;
       }
 
       if (areaDeclaradaId !== undefined) {

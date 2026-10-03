@@ -25,6 +25,7 @@ import { linkEnviadoSinCita } from "@/lib/deals/handoff";
 import type { OrigenDeFila } from "@/lib/queries/inbox-sin-dueno";
 import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
 import { INTENTOS_PARA_ALERTA, intentosEnEtapaPorDeal } from "@/lib/queries/intentos";
+import { proximoContactoVencido } from "@/lib/deals/proximo-contacto";
 
 /**
  * El READ MODEL del Inbox (ticket 071, ADR 0050): lo que un closer tiene que hacer HOY,
@@ -77,6 +78,7 @@ export type MotivoAtencion =
   | "reenvio_sin_atender"
   | "intentos_agotados"
   | "link_sin_cita"
+  | "proximo_contacto_vencido"
   | "estancado";
 
 export interface SugerenciaDeSuelta {
@@ -476,6 +478,7 @@ async function seccionAtencion(
       areaDeclaradaId: deals.areaDeclaradaId,
       etapa: deals.etapa,
       pendiente: deals.pendiente,
+      fechaSeguimiento: deals.fechaSeguimiento,
       fechaLimitePago: deals.fechaLimitePago,
       createdAt: deals.createdAt,
       handoffEn: deals.handoffEn,
@@ -580,6 +583,11 @@ async function seccionAtencion(
       continue;
     }
 
+    if (proximoContactoVencido(d, hoy)) {
+      filas.push({ ...base, motivo: "proximo_contacto_vencido", fecha: d.fechaSeguimiento });
+      continue;
+    }
+
     // (e) Estancado: pasó más de X días HÁBILES sin actividad (por programa, ADR 0012).
     // `diasHabilesEntre` es inclusivo en ambos extremos, así que cuenta el día de la
     // actividad y hoy; el tramo transcurrido SIN actividad excluye el propio día de la
@@ -602,7 +610,8 @@ async function seccionAtencion(
     reenvio_sin_atender: 4,
     intentos_agotados: 5,
     link_sin_cita: 6,
-    estancado: 7,
+    proximo_contacto_vencido: 7,
+    estancado: 8,
   };
   filas.sort((a, b) => ORDEN[a.motivo] - ORDEN[b.motivo] || a.leadEmail.localeCompare(b.leadEmail));
   return filas;

@@ -209,6 +209,16 @@ describe("pegarGrain: pegar el link es decir que la llamada sucedió", () => {
     expect(guardada.fechaLlamada?.getTime()).toBe(yaTenia.getTime());
   });
 
+  it("usa la fecha de la cita pasada cuando el Grain completa la fecha de llamada", async () => {
+    const dealId = await nuevoDeal("agendado");
+    const cita = new Date("2026-09-20T15:00:00-05:00");
+    const call = await agendadaDe(dealId, { fechaAgenda: cita });
+
+    await pegarGrain(db, comoCloser(), { callId: call.id, linkGrain: "https://grain.com/share/cita" });
+
+    expect((await callPorId(call.id)).fechaLlamada?.getTime()).toBe(cita.getTime());
+  });
+
   it("si el deal ya está en Atendido, no se mueve pero el Grain y el show se escriben", async () => {
     const dealId = await nuevoDeal("atendido");
     const call = await agendadaDe(dealId);

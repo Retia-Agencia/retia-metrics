@@ -58,9 +58,8 @@ export function FichaLlamadas({
   const [detalleId, setDetalleId] = useState<string | null>(null);
   const cerrar = () => setDialogo(null);
   const activaId = citaActiva(llamadas);
-  const llamadasOrdenadas = activaId
-    ? [...llamadas].sort((a, b) => Number(b.id === activaId) - Number(a.id === activaId))
-    : llamadas;
+  const activa = llamadas.find((llamada) => llamada.id === activaId) ?? null;
+  const anteriores = llamadas.filter((llamada) => llamada.id !== activaId);
   // La pregunta de la etapa llega aquí con el formulario ya elegido (ADR 0072): "Agendó" y
   // "Se movió" agregan una llamada con fecha (el motor mueve a Agendado: E4, E7 o E9);
   // "No asistió o canceló" marca fallida la cita vigente más reciente (PR1).
@@ -70,6 +69,39 @@ export function FichaLlamadas({
     const vigente = llamadas.find((llamada) => llamada.id === vigenteId);
     if (vigente) setDialogo({ tipo: "fallida", llamada: vigente });
   });
+
+  const filaDe = (c: FichaDeLlamada, esActiva: boolean) => {
+    const anulada = c.anuladoEn != null;
+    const sinCompletar = c.resultado === "agendada" && !c.closerNombre;
+    return (
+      <li key={c.id} className={anulada ? "space-y-1 px-4 py-3 text-sm opacity-60" : "space-y-1 px-4 py-3 text-sm"}>
+        <button type="button" className="-mx-2 flex w-[calc(100%+1rem)] cursor-pointer flex-wrap items-center gap-2 rounded-lg px-2 py-2 text-left outline-none transition-colors duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setDetalleId(c.id)}>
+          {esActiva
+            ? <Badge variant="default">Cita activa</Badge>
+            : <Badge variant={TONO_DE_RESULTADO[c.resultado]}>{ETIQUETA_DE_RESULTADO[c.resultado]}</Badge>}
+          {c.sinGrain ? <Badge variant="peligro">Sin Grain</Badge> : null}
+          <span className={anulada ? "cifra line-through" : "cifra"}>
+            {c.fechaAgenda ? `Cita ${fechaHoraEnBogota(c.fechaAgenda)}` : "Sin fecha de cita"}
+          </span>
+          {c.fechaLlamada ? <span className="cifra text-xs text-muted-foreground">Ocurrió {fechaHoraEnBogota(c.fechaLlamada)}</span> : null}
+          <span className="ml-auto text-xs text-muted-foreground">{c.closerNombre ?? "Sin closer"}</span>
+        </button>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+          {c.linkCalendly ? <a className="text-marca-texto underline-offset-2 hover:underline" href={c.linkCalendly} target="_blank" rel="noreferrer">Link de la cita</a> : null}
+          {c.linkGrain ? <a className="text-marca-texto underline-offset-2 hover:underline" href={c.linkGrain} target="_blank" rel="noreferrer">Grain</a> : null}
+        </div>
+        {c.notas ? <p className="whitespace-pre-wrap text-muted-foreground">{c.notas}</p> : null}
+        {anulada ? <p className="text-xs text-muted-foreground"><Badge variant="neutro">Anulada</Badge> {c.anuladoPorNombre ?? ""} · {c.motivoAnulacion}</p> : null}
+        {puedeRegistrar && !anulada ? (
+          <div className="space-y-2 pt-1">
+            {sinCompletar ? <div className="flex flex-wrap items-center gap-2"><Button size="xs" variant="secondary" onClick={() => setDialogo({ tipo: "completar", llamada: c })}>Poner fecha de la cita</Button><span className="text-xs text-muted-foreground">La cita llegó sin fecha; queda a tu nombre.</span></div> : null}
+            {!c.linkGrain ? <div className="flex flex-wrap items-center gap-2"><Button size="xs" variant="secondary" onClick={() => setDialogo({ tipo: "grain", llamada: c })}>Link de Grain</Button><span className="text-xs text-muted-foreground">La llamada sucedió; el deal pasa a Atendido.</span></div> : null}
+            {c.resultado === "agendada" || c.resultado === "show" ? <div className="flex flex-wrap items-center gap-2"><Button size="xs" variant="outline" onClick={() => setDialogo({ tipo: "fallida", llamada: c })}>No se dio</Button><span className="text-xs text-muted-foreground">No show o cancelada; queda para re-agendar.</span></div> : null}
+          </div>
+        ) : null}
+      </li>
+    );
+  };
 
   return (
     <Card id={ID_DE_SECCION.llamadas} className="scroll-mt-24">
@@ -87,68 +119,19 @@ export function FichaLlamadas({
       {llamadas.length === 0 ? (
         <Vacio>Este deal aún no tiene llamadas.{puedeRegistrar ? " Agrega la primera con su fecha." : ""}</Vacio>
       ) : (
-        <ul className="divide-y">
-          {llamadasOrdenadas.map((c) => {
-            const anulada = c.anuladoEn != null;
-            const esActiva = c.id === activaId;
-            const sinCompletar = c.resultado === "agendada" && !c.closerNombre;
-            return (
-              <li key={c.id} className={anulada ? "space-y-1 px-4 py-3 text-sm opacity-60" : "space-y-1 px-4 py-3 text-sm"}>
-                <button type="button" className="flex w-full flex-wrap items-center gap-2 text-left" onClick={() => setDetalleId(c.id)}>
-                  {esActiva
-                    ? <Badge variant="default">Cita activa</Badge>
-                    : <Badge variant={TONO_DE_RESULTADO[c.resultado]}>{ETIQUETA_DE_RESULTADO[c.resultado]}</Badge>}
-                  {c.sinGrain ? <Badge variant="peligro">Sin Grain</Badge> : null}
-                  <span className={anulada ? "cifra line-through" : "cifra"}>
-                    {c.fechaAgenda ? `Cita ${fechaHoraEnBogota(c.fechaAgenda)}` : "Sin fecha de cita"}
-                  </span>
-                  {c.fechaLlamada ? (
-                    <span className="cifra text-xs text-muted-foreground">Ocurrió {fechaHoraEnBogota(c.fechaLlamada)}</span>
-                  ) : null}
-                  <span className="ml-auto text-xs text-muted-foreground">{c.closerNombre ?? "Sin closer"}</span>
-                </button>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                  {c.linkCalendly ? (
-                    <a className="text-marca-texto underline-offset-2 hover:underline" href={c.linkCalendly} target="_blank" rel="noreferrer">
-                      {c.origen === "calendly" ? "Cita en Calendly" : "Abrir reunión"}
-                    </a>
-                  ) : null}
-                  {c.linkGrain ? (
-                    <a className="text-marca-texto underline-offset-2 hover:underline" href={c.linkGrain} target="_blank" rel="noreferrer">
-                      Grabación
-                    </a>
-                  ) : null}
-                </div>
-                {c.notas ? <p className="whitespace-pre-wrap text-muted-foreground">{c.notas}</p> : null}
-                {anulada ? (
-                  <p className="text-xs text-muted-foreground">
-                    <Badge variant="neutro">Anulada</Badge> {c.anuladoPorNombre ?? ""} · {c.motivoAnulacion}
-                  </p>
-                ) : null}
-
-                {puedeRegistrar && !anulada ? (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {sinCompletar ? (
-                      <Button size="xs" variant="secondary" onClick={() => setDialogo({ tipo: "completar", llamada: c })}>
-                        Completar fecha
-                      </Button>
-                    ) : null}
-                    {!c.linkGrain ? (
-                      <Button size="xs" variant="secondary" onClick={() => setDialogo({ tipo: "grain", llamada: c })}>
-                        Pegar Grain
-                      </Button>
-                    ) : null}
-                    {c.resultado === "agendada" || c.resultado === "show" ? (
-                      <Button size="xs" variant="outline" onClick={() => setDialogo({ tipo: "fallida", llamada: c })}>
-                        No se dio
-                      </Button>
-                    ) : null}
-                  </div>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
+        <>
+          {activa ? <ul className="divide-y">{filaDe(activa, true)}</ul> : null}
+          {anteriores.length > 0 ? (
+            <details className="border-t">
+              <summary className="cursor-pointer px-4 py-3 text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
+                Llamadas anteriores ({anteriores.length})
+              </summary>
+              <ul className="divide-y opacity-60">
+                {anteriores.map((c) => filaDe(c, false))}
+              </ul>
+            </details>
+          ) : null}
+        </>
       )}
 
       {dialogo?.tipo === "agregar" ? <DialogoAgregar dealId={dealId} onCerrar={cerrar} /> : null}
@@ -240,8 +223,8 @@ function DialogoCompletar({ llamada, onCerrar }: { llamada: FichaDeLlamada; onCe
   const [link, setLink] = useState(llamada.linkCalendly ?? "");
   return (
     <DialogoForm
-      titulo="Completar la llamada agendada"
-      descripcion="El sistema la dejó sin fecha. Al completarla, queda a tu nombre."
+      titulo="Poner fecha de la cita"
+      descripcion="La cita llegó sin fecha; al completarla, queda a tu nombre."
       pendiente={pendiente}
       onCerrar={onCerrar}
       deshabilitarConfirmar={!dia || !hora}
@@ -265,8 +248,8 @@ function DialogoGrain({ llamada, onCerrar }: { llamada: FichaDeLlamada; onCerrar
   const [link, setLink] = useState("");
   return (
     <DialogoForm
-      titulo="Pegar el link de Grain"
-      descripcion="Pegarlo es decir que la llamada sucedió: se marca como show y el deal pasa a Atendido."
+      titulo="Link de Grain"
+      descripcion="La llamada sucedió; el deal pasa a Atendido."
       pendiente={pendiente}
       onCerrar={onCerrar}
       deshabilitarConfirmar={link.trim() === ""}
@@ -280,6 +263,9 @@ function DialogoGrain({ llamada, onCerrar }: { llamada: FichaDeLlamada; onCerrar
           }),
       }}
     >
+      {llamada.fechaLlamada == null && llamada.fechaAgenda != null && llamada.fechaAgenda <= new Date() ? (
+        <p className="text-sm text-muted-foreground">Se anota que ocurrió el {fechaHoraEnBogota(llamada.fechaAgenda)}.</p>
+      ) : null}
       <Campo etiqueta="Link de la grabación">
         <input type="url" className={claseInput} value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://grain.com/…" />
       </Campo>

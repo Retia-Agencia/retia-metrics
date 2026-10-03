@@ -27,6 +27,8 @@ import { revisarMovimientoAccion } from "@/app/(app)/p/[programa]/deals/acciones
 import type { FlechaCliente } from "./transiciones";
 import { camposDeDialogo } from "./transiciones";
 import type { OpcionCatalogo } from "@/lib/queries/kanban";
+import { fechaDeInstanteEnBogota, hoyEnBogota } from "@/lib/format";
+import { proximoContactoSugerido } from "@/lib/deals/proximo-contacto";
 
 /**
  * El dialogo de una respuesta de la pregunta de la etapa (ADR 0072): recoge lo que la
@@ -110,7 +112,7 @@ const ETIQUETA: Record<CodigoRequisito, string> = {
   area_declarada: "Área de origen (según el closer)",
   fecha_limite_pago: "Fecha límite de pago",
   cohorte_destino: "Cohorte a la que quiere entrar",
-  fecha_seguimiento: "Fecha de seguimiento",
+  fecha_seguimiento: "Próximo contacto",
   motivo: "Motivo",
   actividad: "Actividad comercial",
   transicion_no_permitida: "",
@@ -145,8 +147,13 @@ export function DialogoMover({
   onConfirmar,
 }: DialogoMoverProps) {
   const campos = camposDeDialogo(flecha);
-  // Lo unico que arranca lleno es la fecha limite, con el inicio de clases de la cohorte.
-  const inicial = (): DatosDialogo => ({ descuentoUsd: 0, fechaLimitePago: fechaLimiteSugerida });
+  const hoy = hoyEnBogota();
+  const manana = fechaDeInstanteEnBogota(new Date(new Date(`${hoy}T12:00:00-05:00`).getTime() + 86_400_000));
+  const inicial = (): DatosDialogo => ({
+    descuentoUsd: 0,
+    fechaLimitePago: fechaLimiteSugerida,
+    ...(campos.includes("fecha_seguimiento") ? { fechaSeguimiento: proximoContactoSugerido(hoy) } : {}),
+  });
   const [datos, setDatos] = useState<DatosDialogo>(inicial);
   const [revision, setRevision] = useState<(Revision & { con: string }) | null>(null);
   const [errorDeRevision, setErrorDeRevision] = useState<string | null>(null);
@@ -315,6 +322,7 @@ export function DialogoMover({
                   type="date"
                   className={claseInput}
                   value={datos.fechaSeguimiento ?? ""}
+                  min={manana}
                   onChange={(e) => setDatos((d) => ({ ...d, fechaSeguimiento: e.target.value || null }))}
                 />
               ) : null}
@@ -330,7 +338,7 @@ export function DialogoMover({
           {a === "retroceso" && revision?.destinoRetro ? (
             <p className="text-sm">
               Vuelve a <strong>{nombreDeEtapa[revision.destinoRetro]}</strong>, la etapa en la que estaba antes del
-              compromiso, con Seguimiento.
+              compromiso, con próximo contacto.
             </p>
           ) : null}
           <ListaDeRequisitos revision={revision} error={errorDeRevision} />
@@ -393,7 +401,7 @@ const NOMBRE_DE_REQUISITO: Record<CodigoRequisito, string> = {
   area_declarada: "Tiene el área de origen",
   fecha_limite_pago: "Tiene fecha límite de pago",
   cohorte_destino: "Tiene la cohorte a la que quiere entrar",
-  fecha_seguimiento: "Tiene fecha de seguimiento",
+  fecha_seguimiento: "Tiene próximo contacto",
   abono: "Tiene un abono",
   saldo_pendiente: "Queda saldo por pagar",
   saldo_en_cero: "El saldo está en cero",

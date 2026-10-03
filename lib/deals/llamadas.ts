@@ -267,6 +267,10 @@ export async function pegarGrain(
 
     return (db as unknown as Transaccion).transaction(async (db) => {
       const { call, deal } = await llamadaVigenteDeDealAbierto(db, callId, actor);
+      const ahora = new Date();
+      const fechaLlamada = call.fechaAgenda != null && call.fechaAgenda <= ahora
+        ? call.fechaAgenda
+        : ahora;
 
       // `fecha_llamada` se llena SOLO si estaba vacía: pegar el Grain no reescribe una
       // fecha que ya se conocía (por ejemplo la que trajo Calendly). `resultado` y
@@ -283,7 +287,7 @@ export async function pegarGrain(
         {
           linkGrain,
           resultado: "show" as const,
-          ...(call.fechaLlamada == null ? { fechaLlamada: new Date() } : {}),
+          ...(call.fechaLlamada == null ? { fechaLlamada } : {}),
         },
       );
 

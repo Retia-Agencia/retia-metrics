@@ -28,6 +28,7 @@ import type { AlcanceDeals } from "@/lib/auth/alcance-deals";
 import { linkEnviadoSinCita } from "@/lib/deals/handoff";
 import { esContactoRegistrado, hechosDeLlamadas } from "@/lib/deals/mover-etapa";
 import { propiedadesQueLeFaltan } from "@/lib/deals/requisitos";
+import { proximoContactoVencido } from "@/lib/deals/proximo-contacto";
 
 /**
  * Los deals de un programa agrupados por etapa, para el Kanban (ticket 069).
@@ -271,8 +272,7 @@ export async function tableroKanban(
     const entrada = entradas.get(f.dealId) ?? f.createdAt;
     const compromisoVencido =
       f.etapa === "compromiso_verbal" && f.fechaLimitePago != null && f.fechaLimitePago < hoy;
-    const seguimientoVencido =
-      f.pendiente === "seguimiento" && f.fechaSeguimiento != null && f.fechaSeguimiento < hoy;
+    const seguimientoVencido = proximoContactoVencido(f, hoy);
     const { tieneLlamadaConFecha, llamadaSucedio } = hechosDeLlamadas(llamadasPorDeal.get(f.dealId) ?? []);
     const faltanALaEtapa = propiedadesQueLeFaltan(f.etapa, {
       cortesia: f.cortesia,
