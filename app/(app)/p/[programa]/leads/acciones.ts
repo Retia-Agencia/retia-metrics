@@ -56,8 +56,8 @@ export async function buscarLeadsAccion(entrada: {
 }
 
 async function correr(entrada: unknown, accion: "confirmar" | "separar"): Promise<ResultadoLeads> {
-  const session = await requireRole("gerente", "closer");
   try {
+    const session = await requireRole("gerente", "closer");
     await normalizando(async () => {
       const rol = await rolDeVista(session);
       if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);

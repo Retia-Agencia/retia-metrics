@@ -27,6 +27,7 @@ vi.mock("@/lib/auth/index", () => ({
 }));
 vi.mock("@/lib/auth/vista", () => ({
   rolDeVista: async (session: { user?: { rol?: string } }) => session?.user?.rol ?? null,
+  sesionEfectiva: async <T,>(session: T) => session,
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 

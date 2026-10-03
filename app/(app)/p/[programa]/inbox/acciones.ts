@@ -80,8 +80,8 @@ function aError(error: unknown): { ok: false; error: string } {
 }
 
 async function correr<T extends object>(cuerpo: (ctx: Contexto) => Promise<T>): Promise<ResultadoInbox<T>> {
-  const ctx = await contextoDe();
   try {
+    const ctx = await contextoDe();
     const extra = await normalizando(() => cuerpo(ctx));
     // El Inbox es la pantalla actual, pero el Kanban es otra ruta cuyo cache queda viejo.
     revalidatePath("/p/[programa]/inbox", "page");
@@ -206,8 +206,8 @@ export type EntradaBuscarDeals = z.input<typeof esquemaBuscar>;
 export async function buscarDealsAbiertosAccion(
   entrada: EntradaBuscarDeals,
 ): Promise<ResultadoInbox<{ deals: DealAbiertoBuscado[] }>> {
-  const ctx = await contextoDe();
   try {
+    const ctx = await contextoDe();
     const { programId, texto } = esquemaBuscar.parse(entrada);
     await exigirProgramaVisible(ctx, programId);
     const encontrados = await buscarDealsAbiertos(db, programId, texto);

@@ -42,6 +42,8 @@ type Props = {
   puedeCambiarVista: boolean;
   /** La vista marcada hoy en la cookie. */
   vista: Vista;
+  /** Las vistas del radio: llegan por props porque `lib/auth/vista` carga la base. */
+  vistas: readonly Vista[];
   /** Los closers activos que el developer puede suplantar (ticket 172). */
   closers: readonly CloserActivo[];
 };
@@ -69,6 +71,7 @@ export function AppSidebar({
   puedeCrear,
   puedeCambiarVista,
   vista,
+  vistas,
   closers,
 }: Props) {
   const pathname = usePathname();
@@ -204,6 +207,7 @@ export function AppSidebar({
             rol={rol}
             puedeCambiarVista={puedeCambiarVista}
             vista={vista}
+            vistas={vistas}
             closers={closers}
           />
         </div>

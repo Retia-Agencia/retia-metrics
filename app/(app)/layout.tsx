@@ -4,7 +4,7 @@ import { BarraSuplantacion } from "@/components/barra-suplantacion";
 import { paginaConSesion } from "@/lib/auth/page-guards";
 import { requireSesionReal } from "@/lib/auth/guards";
 import { esAccesoTotal, esAdministrador } from "@/lib/auth/roles";
-import { rolDeVista, vistaActual } from "@/lib/auth/vista";
+import { VISTAS, rolDeVista, vistaActual } from "@/lib/auth/vista";
 import { programasInactivosParaAdministrar, programasVisibles } from "@/lib/auth/alcance";
 import { closersActivos } from "@/lib/catalogo/usuarios";
 
@@ -44,6 +44,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         puedeCrear={puedeCrear}
         puedeCambiarVista={puedeCambiarVista}
         vista={vista}
+        vistas={VISTAS}
         closers={closers}
       />
       <div className="flex min-w-0 flex-1 flex-col">

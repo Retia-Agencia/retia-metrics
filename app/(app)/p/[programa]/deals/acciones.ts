@@ -73,8 +73,8 @@ export async function moverDeal(entrada: EntradaMover): Promise<ResultadoMover> 
   // La ruta la ven gerente y closer (developer por esAccesoTotal); quien puede mover
   // ESTE deal lo decide `moverEtapa` (dueno o administrador). La guarda de aca es el
   // acceso a la accion, no al deal.
-  const session = await requireRole("gerente", "closer");
   try {
+    const session = await requireRole("gerente", "closer");
     const mov = await normalizando(async () => esquemaMover.parse(entrada));
     const actor = await actorDe(session);
     const [deal] = await db
@@ -117,8 +117,8 @@ export type ResultadoRevisar =
  * el mismo motor: es un ensayo de `moverEtapa` que se deshace (`revisarMovimiento`).
  */
 export async function revisarMovimientoAccion(entrada: EntradaRevisar): Promise<ResultadoRevisar> {
-  const session = await requireRole("gerente", "closer");
   try {
+    const session = await requireRole("gerente", "closer");
     const mov = await normalizando(async () => esquemaRevisar.parse(entrada));
     const actor = await actorDe(session);
     const [deal] = await db

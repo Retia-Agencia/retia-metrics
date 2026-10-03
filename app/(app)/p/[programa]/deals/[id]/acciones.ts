@@ -89,8 +89,10 @@ function aError(error: unknown): { ok: false; error: string } {
 
 /** Corre una accion: contexto de la sesion y traduccion del error. Cada cuerpo valida su entrada Y su alcance. */
 async function correr<T extends object>(cuerpo: (ctx: Contexto) => Promise<T>): Promise<ResultadoFicha<T>> {
-  const ctx = await contextoDe();
   try {
+    // La guarda va DENTRO del try: un 403 (rol, o la reja de solo lectura del "ver como",
+    // ticket 172) vuelve como resultado y la pantalla lo muestra, no como excepción.
+    const ctx = await contextoDe();
     const extra = await normalizando(() => cuerpo(ctx));
     // El Kanban es otra ruta: su cache de ruta queda vieja (por PATRON, AGENTS.md).
     revalidatePath("/p/[programa]/deals", "page");

@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cambiarVista, verComoCloser } from "@/app/(app)/acciones-vista";
-import { VISTAS, type Vista } from "@/lib/auth/vista";
+import type { Vista } from "@/lib/auth/vista";
 import type { CloserActivo } from "@/lib/catalogo/usuarios";
 
 import type { Rol } from "@/lib/auth/roles";
@@ -61,6 +61,11 @@ type Props = {
   /** La vista marcada hoy en la cookie, para pintar el radio. */
   vista: Vista;
   /**
+   * Las vistas del radio. Llegan por props: `lib/auth/vista` carga la base desde el
+   * 172, y un import de VALOR de ahí mete el driver al navegador (AGENTS.md).
+   */
+  vistas: readonly Vista[];
+  /**
    * Los closers activos que el developer puede suplantar ("Ver como closer →", ticket
    * 172). Se cargan en el servidor (layout) y entran por props: este componente es
    * cliente y NUNCA importa `lib/db` (solo el `type`).
@@ -75,6 +80,7 @@ export function UserMenu({
   rol,
   puedeCambiarVista,
   vista,
+  vistas,
   closers,
 }: Props) {
   const router = useRouter();
@@ -166,7 +172,7 @@ export function UserMenu({
                 <Eye className="size-3.5" />
                 Ver como
               </DropdownMenuLabel>
-              {VISTAS.map((v) => (
+              {vistas.map((v) => (
                 <DropdownMenuRadioItem key={v} value={v} disabled={pendiente}>
                   {ETIQUETA_VISTA[v]}
                 </DropdownMenuRadioItem>
