@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import {
   abonos,
   areas,
@@ -456,6 +456,15 @@ describe("anularAbono: la etapa se recalcula", () => {
 
     const r = await anularAbono(db, { userId: gerente, rol: "gerente" }, { abonoId: a.abonoId, motivo: "Corrección del gerente" });
     expect(r.etapa).toBe("atendido");
+  });
+
+  it("dos closers sin closer_id: uno no anula el abono del otro; quién cobró lo dice la FK", async () => {
+    await db.update(users).set({ closerId: null }).where(inArray(users.id, [closer, otroCloser]));
+    const dealId = await nuevoDeal("atendido");
+    const a = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
+
+    expect((await capturar(anularAbono(db, { userId: otroCloser, rol: "closer" }, { abonoId: a.abonoId, motivo: "x" }))).status).toBe(403);
+    expect(await anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "Error de tecleo" })).toMatchObject({ etapa: "atendido" });
   });
 
   it("anular el abono de un Completo cuando el lead ya tiene otro deal abierto se bloquea con un 409 claro (D3)", async () => {

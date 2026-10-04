@@ -301,8 +301,13 @@ export async function anularAbono(
 
       if (!esAdministrador(actor.rol)) {
         if (!trabajaLeads(actor.rol)) throw new ErrorDeApp("No puedes anular este abono.", 403);
-        const miCloser = await closerDeLaCuenta(tx, actor.userId);
-        if (!mismoCloser(abono.closerId, miCloser)) {
+        // Quién cobró es la FK (167). El texto solo decide en un abono histórico sin FK, y nunca
+        // con los dos lados vacíos: dos closers sin `closer_id` no son el mismo closer.
+        const miCloser = abono.registradoPorUserId == null ? await closerDeLaCuenta(tx, actor.userId) : null;
+        const esSuyo = abono.registradoPorUserId != null
+          ? abono.registradoPorUserId === actor.userId
+          : miCloser != null && mismoCloser(abono.closerId, miCloser);
+        if (!esSuyo) {
           throw new ErrorDeApp("Solo puedes anular los abonos que registraste tú.", 403);
         }
         if (deal.cohortId != null) {
