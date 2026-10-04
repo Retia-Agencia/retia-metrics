@@ -164,6 +164,8 @@ describe("guardian: la identidad de un closer se pregunta por el modulo", () => 
   function sinFormasAutorizadas(codigo: string): string {
     return codigo
       .replace(/claveDeCloserSql\(\s*[\w.]+\s*\)/g, "CLAVE_NORMALIZADA")
+      // La claveCloser (183): la FK, y el texto historico solo cuando no hay FK.
+      .replace(/claveCloserSql\(\s*[\w.]+\s*,\s*[\w.]+\s*\)/g, "CLAVE_CLOSER")
       .replace(/igualCloser\(\s*[\w.]+\s*,/g, "IGUAL_NORMALIZADO(");
   }
 
@@ -219,6 +221,8 @@ describe("guardian: la identidad de un closer se pregunta por el modulo", () => 
     const correctas = [
       "      .groupBy(claveDeCloserSql(calls.closerId)),",
       "      .groupBy(claveDeCloserSql(abonos.closerId), abonos.moneda),",
+      "      .groupBy(claveCloserSql(users.id, calls.closerId)),",
+      "      .groupBy(claveCloserSql(users.id, abonos.closerId), abonos.moneda),",
       "        igualCloser(users.closerId, closerId),",
       "      if (!mismoCloser(datos.closerId, actor.closerId)) {",
       "        closerId: sql<string | null>`min(${calls.closerId})`,",
