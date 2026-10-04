@@ -3,7 +3,7 @@ id: 185
 etapa: O4
 serves: "docs/anotaciones.md A-86, A-88, A-95, A-06; ADR 0077"
 depends: [181, 183, 184, 186]
-status: todo
+status: en curso (S5, ola O5, 4-oct)
 ---
 
 # 185 — Pantalla fija en Leads, Calls, Inbox y Students: cada sección hace su propio scroll
@@ -41,6 +41,25 @@ quedan fuera (si después se quieren, es otro ticket).
      de este programa con el token guardado. Úsalo si las citas dejaron de llegar o si cambiaste el token."* (es
      `conectarCalendly`, `lib/calendly/suscripcion.ts`).
 4. La regla queda en `docs/structure.md` §9 (cuándo pantalla fija, cuándo sub-página, cuándo pop-up).
+
+## Decisiones (aprobadas por Mani el 4-oct)
+
+Medido en `dev:local` (ComunicArte local: 175 leads, 77 llamadas, 17 students; 1440×900, gerente): Leads 9.518 px,
+Calls 8.940 px, Inbox 5.370 px (6 secciones sin tope), Students 2.273 px (113 px por fila).
+
+| Pantalla | Fijo arriba (`shrink-0`) | Scroll por dentro | Sub-página o pop-up |
+|---|---|---|---|
+| Leads | Buscador, filtro de fecha, filtros | La lista; encabezado ("Leads · N", Tarjetas/Tabla) pegado arriba y paginación pegada abajo, dentro de la tarjeta | **Posibles duplicados → sub-página**: dos pestañas, "Leads" y "Posibles duplicados (N)", en la URL (`?seccion=duplicados`), para que "Volver" (174) regrese a ella |
+| Calls | Filtros | La lista, **paginada en el servidor** (50 por página, como Leads; toca `lib/queries/llamadas.ts`) | El detalle sigue en pop-up |
+| Inbox | Franja de aviso "Hosts sin cuenta" (alerta, no cola) | La sección elegida | **Las secciones → pestañas con su conteo**: Sin resultado · Sin dueño · Perdidos en Calendly · Sueltas · Atención. Abre en la primera con algo, en ese orden. En la URL (`?seccion=`) |
+| Students | Filtros y los 4 KPI en una franja compacta | La lista, con **filas compactas** (~56 px: saldo y vencimiento en la misma línea) | Ninguno |
+
+**375 px:** la pantalla fija aplica desde `md` (768 px), como Deals; por debajo vuelve el scroll de página. Las
+pestañas de Leads e Inbox se quedan también en móvil.
+
+**La regla (va a `docs/structure.md` §9):** pantalla fija para toda lista o cola de trabajo; sub-página (pestaña con
+URL) para una segunda lista con acciones o paginación propias; pop-up para el detalle de un registro o un formulario
+corto.
 
 ## Archivos
 
