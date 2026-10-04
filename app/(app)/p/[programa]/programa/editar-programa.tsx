@@ -96,11 +96,14 @@ export function EditarPrograma({
             size="sm"
             variant="outline"
             disabled={pendiente}
-            onClick={() => correr(() => conectarCalendlyAccion(programa.id), "Webhook rehecho")}
+            onClick={() => correr(() => conectarCalendlyAccion(programa.id), "Calendly reconectado")}
           >
-            Rehacer webhook
+            Reconectar Calendly
           </Button>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Reconectar Calendly vuelve a crear la suscripción de Calendly de este programa con el token guardado. Úsalo si las citas dejaron de llegar o si cambiaste el token.
+        </p>
       </DialogContent>
     </Dialog>
   );

@@ -3,7 +3,7 @@ id: 185
 etapa: O4
 serves: "docs/anotaciones.md A-86, A-88, A-95, A-06; ADR 0077"
 depends: [181, 183, 184, 186]
-status: en curso (S5, ola O5, 4-oct)
+status: done (S5, ola O5, 4-oct; falta el checkpoint verde)
 ---
 
 # 185 — Pantalla fija en Leads, Calls, Inbox y Students: cada sección hace su propio scroll
@@ -74,3 +74,23 @@ donde el reacomodo lo pida.
 - Programa explica "Sin fuente principal" y "Reconectar Calendly".
 - `npm run build` en verde; recorrido en `dev:local` de cada pantalla como closer y gerente, escritorio y 375 px,
   consola abierta, abriendo todo lo que se abre.
+
+## Nota de cierre (S5, 4-oct)
+
+Implementado por Codex (effort medium) y revisado contra la tabla. Medido en `dev:local` a 1440×900, como gerente y
+como closer: Leads, Calls, Inbox y Students ocupan 900 px (antes 9.518, 8.940, 5.370 y 2.273) y el scroll vive en la
+lista. Calls pagina de a 50 (`LLAMADAS_POR_PAGINA`, el corte se hace en la página sobre el resultado de
+`llamadasDelPrograma`, que no cambió). Inbox: el gerente ve 13 · 10 · 2 · 1 · 25; la closer, 5 · 10 · 2 · 1 · 8;
+"Volver" desde un deal regresa a la pestaña. Students: filas de 34 px (antes 113). A 375 px vuelve el scroll de página
+y las pestañas hacen scroll horizontal en su franja. Abiertos: detalle de llamada (pop-up), selector "Asignar a" de Sin
+dueño, Editar programa con "Reconectar Calendly". Consola limpia.
+
+Arreglos de la revisión, hechos aquí: la paginación de Calls pasaba JSX del servidor al componente cliente (warning de
+`key` de React); ahora pasa los enlaces ya armados, como `PosiblesDuplicados`. Las pestañas se partían en móvil.
+
+Verificado: typecheck, lint, `tests/llamadas-programa.test.ts` (9/9), `npm run build`. No hay reglas de permiso
+nuevas: las guardas de las cuatro páginas no cambiaron. "Sin fuente principal" no se pudo ver en la base local (ningún
+programa sembrado está sin fuente principal); el texto se revisó en el diff.
+
+Queda suelto: `avisoDelFormulario` (`lib/queries/ficha-programa.ts`) ya no lo usa ninguna pantalla, solo su test. No lo
+borré porque no es de este ticket; se quita en la próxima limpieza.

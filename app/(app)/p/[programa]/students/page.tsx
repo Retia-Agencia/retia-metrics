@@ -10,6 +10,7 @@ import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { studentsDelPrograma, type FiltroStudents } from "@/lib/queries/estudiantes";
 import { fecha, fechaDeInstanteEnBogota, num, saldoLegible } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
+import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,9 +68,10 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
   const sinOnboarding = filas.filter((f) => f.onboardedAt == null).length;
   const vencidos = filas.filter((f) => f.vencido != null).length;
   return (
-    <PageShell titulo={programa.nombre} descripcion="Students">
-      <div className="space-y-4">
-        <BarraDeFiltros nombres={["cohorte", "onboarding"]}>
+    <PageShell titulo={programa.nombre} descripcion="Students" fija>
+      <PantallaFija>
+        <div className="shrink-0">
+          <BarraDeFiltros nombres={["cohorte", "onboarding"]}>
           <FiltroSelect
             nombre="cohorte"
             etiqueta="Cohorte"
@@ -80,22 +82,25 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
             ]}
           />
           <FiltroSelect nombre="onboarding" etiqueta="Onboarding" opciones={[{ value: "no", label: "Sin onboarding" }, { value: "si", label: "Con onboarding" }]} />
-        </BarraDeFiltros>
-
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Kpi etiqueta="Estudiantes" valor={filas.length} />
-          <Kpi etiqueta="Completos" valor={completos} />
-          <Kpi etiqueta="Sin onboarding" valor={sinOnboarding} />
-          <Kpi etiqueta="En cartera vencida" valor={vencidos} />
+          </BarraDeFiltros>
         </div>
 
-        <Card>
-          <CardHeader>
+        <Card className="shrink-0" size="sm">
+          <CardContent className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
+            <span>Estudiantes <span className="cifra font-semibold text-foreground">{num(filas.length)}</span></span>
+            <span>Completos <span className="cifra font-semibold text-foreground">{num(completos)}</span></span>
+            <span>Sin onboarding <span className="cifra font-semibold text-foreground">{num(sinOnboarding)}</span></span>
+            <span>En cartera vencida <span className="cifra font-semibold text-foreground">{num(vencidos)}</span></span>
+          </CardContent>
+        </Card>
+
+        <Card className="flex min-h-0 flex-1 flex-col">
+          <CardHeader className="shrink-0">
             <CardTitle className="text-base">
               {cohorte ? `Cohorte ${cohorte.codigo}` : "Todas las cohortes"}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto md:min-h-0 md:flex-1 md:overflow-auto">
             {filas.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {cohortes.length === 0
@@ -103,63 +108,87 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                   : "No hay estudiantes con estos filtros. Un deal aparece aquí cuando entra en Ganado Pago Parcial o Ganado Pagado Completo."}
               </p>
             ) : (
-              <ul className="divide-y divide-border">
+              <table className="min-w-[72rem] w-full border-collapse whitespace-nowrap text-sm">
+                <thead className="sticky top-0 bg-card text-left text-xs text-muted-foreground">
+                  <tr className="border-b">
+                    <th className="px-2 py-1.5 font-medium">Nombre</th>
+                    <th className="px-2 py-1.5 font-medium">Etapa</th>
+                    {!cohorte ? <th className="px-2 py-1.5 font-medium">Cohorte</th> : null}
+                    <th className="px-2 py-1.5 font-medium">Onboarding</th>
+                    <th className="px-2 py-1.5 font-medium">Closer</th>
+                    <th className="px-2 py-1.5 font-medium">Saldo</th>
+                    <th className="px-2 py-1.5 font-medium">Vencimiento</th>
+                  </tr>
+                </thead>
+                <tbody>
                 {filas.map((f) => {
                   const saldo = f.saldo ? saldoLegible(f.saldo.saldo, f.saldo.moneda ?? "USD") : null;
+                  const href = enlaceConVuelta(`/p/${programa.slug}/deals/${f.dealId}`, origen);
+                  const clase = "block px-2 py-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
                   return (
-                    <li key={f.dealId} className="relative grid cursor-pointer gap-2 py-3 text-sm hover:bg-muted/50 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] sm:items-start">
-                      <div className="min-w-0 space-y-1">
-                        <Link
-                          href={enlaceConVuelta(`/p/${programa.slug}/deals/${f.dealId}`, origen)}
-                          className="block truncate rounded-md font-medium text-marca-texto underline-offset-2 after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
+                    <tr key={f.dealId} className="cursor-pointer border-b hover:bg-muted/50">
+                      <td>
+                        <Link href={href} className={`${clase} font-medium text-marca-texto`} title={f.email}>
                           {f.nombre ?? f.email}
                         </Link>
-                        {f.nombre ? <p className="truncate text-xs text-muted-foreground">{f.email}</p> : null}
-                        <div className="flex flex-wrap items-center gap-1.5">
+                      </td>
+                      <td>
+                        <Link href={href} tabIndex={-1} className={clase}>
                           <Badge variant={TONO_DE_ETAPA[f.etapa]}>{NOMBRE_DE_ETAPA[f.etapa]}</Badge>
-                          {!cohorte ? <Badge variant="neutro">{f.codigoCohorte ?? "Sin cohorte"}</Badge> : null}
+                        </Link>
+                      </td>
+                      {!cohorte ? (
+                        <td>
+                          <Link href={href} tabIndex={-1} className={clase}>
+                            {f.codigoCohorte ?? "Sin cohorte"}
+                          </Link>
+                        </td>
+                      ) : null}
+                      <td>
+                        <Link href={href} tabIndex={-1} className={clase}>
                           {f.onboardedAt ? (
-                            <Badge variant="exito">Onboarding {fecha(fechaDeInstanteEnBogota(f.onboardedAt))}</Badge>
+                            <Badge variant="exito">
+                              <span className="cifra">{fecha(fechaDeInstanteEnBogota(f.onboardedAt))}</span>
+                            </Badge>
                           ) : (
                             <Badge variant="alerta">Sin onboarding</Badge>
                           )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">{f.ownerNombre ?? (f.ownerUserId ? "Closer sin nombre" : "Sin dueño")}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">{saldo?.etiqueta ?? "Saldo pendiente"}</p>
-                        <p className="cifra">{saldo?.valor ?? "sin precio de contrato registrado"}</p>
-                      </div>
-                      <div className="space-y-1">
-                        {f.vencido ? (
-                          <Badge variant="peligro">
-                            Vencida el {fecha(f.vencido.fechaLimite)} · <span className="cifra">{num(f.vencido.diasDeAtraso)}</span> días
-                          </Badge>
-                        ) : f.fechaLimitePago && f.etapa !== "ganado_completo" ? (
-                          <p className="text-xs text-muted-foreground">Fecha límite {fecha(f.fechaLimitePago)}</p>
-                        ) : null}
-                        {f.acuerdoPago ? <p className="text-xs whitespace-pre-line">{f.acuerdoPago}</p> : null}
-                      </div>
-                    </li>
+                        </Link>
+                      </td>
+                      <td>
+                        <Link href={href} tabIndex={-1} className={clase}>
+                          {f.ownerNombre ?? (f.ownerUserId ? "Closer sin nombre" : "Sin dueño")}
+                        </Link>
+                      </td>
+                      <td>
+                        <Link href={href} tabIndex={-1} className={`${clase} cifra`} title={saldo?.etiqueta}>
+                          {saldo?.valor ?? "sin precio de contrato registrado"}
+                        </Link>
+                      </td>
+                      <td title={f.acuerdoPago ?? undefined}>
+                        <Link href={href} tabIndex={-1} className={clase}>
+                          {f.vencido ? (
+                            <Badge variant="peligro">
+                              Vencida el <span className="cifra">{fecha(f.vencido.fechaLimite)}</span> · <span className="cifra">{num(f.vencido.diasDeAtraso)}</span> días
+                            </Badge>
+                          ) : f.fechaLimitePago && f.etapa !== "ganado_completo" ? (
+                            <span className="text-xs text-muted-foreground">
+                              Límite <span className="cifra">{fecha(f.fechaLimitePago)}</span>
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </Link>
+                      </td>
+                    </tr>
                   );
                 })}
-              </ul>
+                </tbody>
+              </table>
             )}
           </CardContent>
         </Card>
-      </div>
+      </PantallaFija>
     </PageShell>
-  );
-}
-
-function Kpi({ etiqueta, valor }: { etiqueta: string; valor: number }) {
-  return (
-    <Card>
-      <CardContent className="space-y-1 py-4">
-        <p className="text-xs text-muted-foreground">{etiqueta}</p>
-        <p className="cifra text-2xl font-semibold">{num(valor)}</p>
-      </CardContent>
-    </Card>
   );
 }

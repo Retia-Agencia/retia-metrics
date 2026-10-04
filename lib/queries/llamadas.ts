@@ -6,6 +6,8 @@ import { diaDeCalendario } from "@/lib/dias-habiles";
 import { llamadaVisiblePara, type AlcanceDeals } from "@/lib/auth/alcance-deals";
 import { vigente } from "@/lib/queries/vigente";
 
+export const LLAMADAS_POR_PAGINA = 50;
+
 export type FiltroLlamadas = {
   closerUserId?: string | null;
   resultado?: (typeof calls.$inferSelect)["resultado"] | null;

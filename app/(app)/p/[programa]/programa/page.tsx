@@ -7,7 +7,6 @@ import { esAdministrador } from "@/lib/auth/roles";
 import { programaDeLaFichaPorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import {
-  avisoDelFormulario,
   fichaDelPrograma,
   faltaParaActivar,
   fuentesDelProgramaParaAdmin,
@@ -65,7 +64,6 @@ export default async function FichaDelProgramaPage({ params }: Props) {
   const administra = esAdministrador(rol);
   const { programa, cohortes, checkouts, fuentes, equipo, plataformas, plataformasDisponibles } =
     ficha;  const activa = cohortes.find((c) => c.estado === "activo") ?? null;
-  const aviso = avisoDelFormulario(programa.formulario);
   const faltan = faltaParaActivar(programa);
   const programaParaEditar = {
     id: programa.id,
@@ -184,7 +182,10 @@ export default async function FichaDelProgramaPage({ params }: Props) {
                 ) : (
                   <div className="space-y-1">
                     <Badge variant="peligro">Sin fuente principal</Badge>
-                    <p className="text-muted-foreground">{aviso}</p>
+                    <p className="text-muted-foreground">
+                      Ningún formulario está marcado como principal: es el que se usa para generar los links de captación (ADR 0068). Edita el formulario, pega su URL pública y márcalo como principal.
+                    </p>
+                    <Link href="#formularios" className={ENLACE}>Ir a Formularios</Link>
                   </div>
                 )}
               </div>

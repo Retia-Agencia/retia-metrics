@@ -22,6 +22,7 @@ import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
 import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
 import { FiltroSelect } from "@/components/filtros/filtro-select";
 import { PageShell } from "@/components/page-shell";
+import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,6 +77,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   const pagina = Math.max(0, Number.parseInt(uno(q.pagina) ?? "0", 10) || 0);
   const paginaDup = Math.max(0, Number.parseInt(uno(q.pdup) ?? "0", 10) || 0);
   const vista = uno(q.vista) === "tabla" ? "tabla" : "tarjetas";
+  const seccion = uno(q.seccion) === "duplicados" ? "duplicados" : "leads";
   const filtro: FiltroLeads = {
     deal: deal === "con" || deal === "sin" ? deal : null,
     calidad,
@@ -114,19 +116,39 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
     return urlCon({ pagina: p > 0 ? String(p) : null });
   };
   return (
-    <PageShell titulo={programa.nombre} descripcion="Leads">
-      <div className="space-y-4">
-        <BuscadorDeLeads programaSlug={programa.slug} origen={origen} />
-        <FiltroFechaLista campos={CAMPOS} filtro={filtroDeFecha} />
-        <BarraDeFiltros nombres={["deal", "calidad", "abandono", "duplicado"]}>
-          <FiltroSelect nombre="deal" etiqueta="Deal" opciones={[{ value: "sin", label: "Sin deal" }, { value: "con", label: "Con deal" }]} />
-          <FiltroSelect nombre="calidad" etiqueta="Calidad" todos="Todas" opciones={CALIDADES.map((c) => ({ value: c.valor, label: c.etiqueta }))} />
-          <FiltroSelect nombre="abandono" etiqueta="Abandonó el formulario" todos="No" opciones={[{ value: "1", label: "Sí" }]} />
-          <FiltroSelect nombre="duplicado" etiqueta="Posible duplicado" todos="No" opciones={[{ value: "1", label: "Sí" }]} />
-        </BarraDeFiltros>
+    <PageShell titulo={programa.nombre} descripcion="Leads" fija>
+      <PantallaFija>
+        <div className="shrink-0 space-y-4">
+          <BuscadorDeLeads programaSlug={programa.slug} origen={origen} />
+          <FiltroFechaLista campos={CAMPOS} filtro={filtroDeFecha} />
+          <BarraDeFiltros nombres={["deal", "calidad", "abandono", "duplicado"]}>
+            <FiltroSelect nombre="deal" etiqueta="Deal" opciones={[{ value: "sin", label: "Sin deal" }, { value: "con", label: "Con deal" }]} />
+            <FiltroSelect nombre="calidad" etiqueta="Calidad" todos="Todas" opciones={CALIDADES.map((c) => ({ value: c.valor, label: c.etiqueta }))} />
+            <FiltroSelect nombre="abandono" etiqueta="Abandonó el formulario" todos="No" opciones={[{ value: "1", label: "Sí" }]} />
+            <FiltroSelect nombre="duplicado" etiqueta="Posible duplicado" todos="No" opciones={[{ value: "1", label: "Sí" }]} />
+          </BarraDeFiltros>
+        </div>
 
-        <Card>
-          <CardHeader>
+        <div className="inline-flex max-w-full shrink-0 self-start overflow-x-auto rounded-full border bg-muted p-0.5 text-xs" role="group" aria-label="Sección de leads">
+          <Link
+            href={urlCon({ seccion: null, pagina: null, pdup: null })}
+            aria-current={seccion === "leads" ? "page" : undefined}
+            className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${seccion === "leads" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+          >
+            Leads · <span className="cifra">{num(total)}</span>
+          </Link>
+          <Link
+            href={urlCon({ seccion: "duplicados", pagina: null, pdup: null })}
+            aria-current={seccion === "duplicados" ? "page" : undefined}
+            className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${seccion === "duplicados" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+          >
+            Posibles duplicados · <span className="cifra">{num(duplicados.total)}</span>
+          </Link>
+        </div>
+
+        {seccion === "leads" ? (
+          <Card className="flex min-h-0 flex-1 flex-col">
+            <CardHeader className="shrink-0">
             <CardTitle className="text-base">
               Leads · <span className="cifra">{num(total)}</span>
             </CardTitle>
@@ -134,24 +156,25 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
               <Link
                 href={urlCon({ vista: null, pagina: null })}
                 aria-current={vista === "tarjetas" ? "page" : undefined}
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${vista === "tarjetas" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${vista === "tarjetas" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
               >
                 <LayoutList aria-hidden className="size-3.5" /> Tarjetas
               </Link>
               <Link
                 href={urlCon({ vista: "tabla", pagina: null })}
                 aria-current={vista === "tabla" ? "page" : undefined}
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${vista === "tabla" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${vista === "tabla" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
               >
                 <Table2 aria-hidden className="size-3.5" /> Tabla
               </Link>
             </CardAction>
-          </CardHeader>
-          <CardContent>
-            {filas.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No hay leads con estos filtros.</p>
-            ) : vista === "tarjetas" ? (
-              <ul className="divide-y divide-border">
+            </CardHeader>
+            <CardContent className="flex min-h-0 flex-1 flex-col">
+              <div className="overflow-x-auto md:min-h-0 md:flex-1 md:overflow-y-auto">
+                {filas.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No hay leads con estos filtros.</p>
+                ) : vista === "tarjetas" ? (
+                  <ul className="divide-y divide-border">
                 {filas.map((f) => (
                   <li key={f.id} className="relative flex flex-wrap items-start justify-between gap-2 rounded-md px-2 py-3 text-sm hover:bg-muted/50">
                     <div className="min-w-0 space-y-1">
@@ -184,10 +207,9 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
                     </div>
                   </li>
                 ))}
-              </ul>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-[56rem] w-full border-collapse whitespace-nowrap text-sm">
+                  </ul>
+                ) : (
+                  <table className="min-w-[56rem] w-full border-collapse whitespace-nowrap text-sm">
                   <thead className="sticky top-0 bg-card text-left text-xs text-muted-foreground">
                     <tr className="border-b">
                       <th className="px-2 py-1.5 font-medium">Nombre</th>
@@ -220,11 +242,11 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
                       );
                     })}
                   </tbody>
-                </table>
+                  </table>
+                )}
               </div>
-            )}
-            {paginas > 1 ? (
-              <nav className="flex items-center justify-between pt-3 text-sm" aria-label="Páginas">
+              {paginas > 1 ? (
+                <nav className="flex shrink-0 items-center justify-between pt-3 text-sm" aria-label="Páginas">
                 {pagina > 0 ? (
                   <Link href={conPagina(pagina - 1)} className="text-marca-texto underline-offset-2 hover:underline">
                     Anterior
@@ -242,12 +264,13 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
                 ) : (
                   <span />
                 )}
-              </nav>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <PosiblesDuplicados
+                </nav>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+            <PosiblesDuplicados
           filas={duplicados.filas.map((d) => ({
             contactoId: d.contactoId,
             leadId: d.leadId,
@@ -265,8 +288,10 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
             anteriorHref: paginaDup > 0 ? urlCon({ pdup: paginaDup > 1 ? String(paginaDup - 1) : null }) : null,
             siguienteHref: paginaDup + 1 < paginasDup ? urlCon({ pdup: String(paginaDup + 1) }) : null,
           }}
-        />
-      </div>
+            />
+          </div>
+        )}
+      </PantallaFija>
     </PageShell>
   );
 }

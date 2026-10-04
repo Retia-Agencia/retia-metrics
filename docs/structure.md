@@ -569,7 +569,7 @@ conoce de HubSpot, a propósito.
 | Firma de la app | `components/marca.tsx` |
 | Tarjeta, botón, badge, select, menú | `components/ui/*` (shadcn sobre Base UI) |
 
-`PantallaFija` junto con `PageShell fija` ocupa el alto disponible en escritorio y delega el scroll a sus hijos; Deals lo estrena y cada pantalla de la app adoptará esta estructura en el ticket 185.
+Desde `md`, toda lista o cola de trabajo usa pantalla fija y el scroll vive en la lista; una segunda lista con acciones o paginación propias es una subpágina (pestaña con `?seccion=` en la URL), mientras el detalle de un registro o un formulario corto usa un pop-up. Por debajo de `md` vuelve el scroll de página. Aplica a Deals, Leads, Calls, Inbox y Students (ticket 185).
 
 El selector de programa (ADR 0050) vive arriba de la barra, dentro del marco, y sigue la regla 7.
 
