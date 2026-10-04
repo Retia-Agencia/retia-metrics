@@ -197,6 +197,17 @@ Diez notas de Mani y un hallazgo del audit. Reparto en `docs/plan-reparto.md` §
 | A-95 | Leads, Calls, Inbox, Students | cambio | La pantalla fija va a esas cuatro tabs; Mani reorganiza antes cómo se muestra la información en cada una. | 185 | en ticket |
 | A-96 | Mi espacio → Mis métricas | bug | Sale error y pide recargar. Causa: la cuenta no tiene `closer_id` y Mis métricas lo exigía (choque del 167 con el 183). | fix-up O4 (Kiro, rama `o4-fix-closer`) | resuelta · 4-oct (cp-20261004-1) |
 
+
+## Recorrido 9 · 4-oct · Mani: la pantalla fija como estándar del CRM
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-97 | Inbox | cambio | Aún no es pantalla fija. Las pestañas mezclan llamadas y deals y sus nombres no dicen qué muestran: dos barras (Llamadas y Deals), nombres claros y una línea que explique cada pestaña. | 193 | en ticket |
+| A-98 | Programa | cambio | Crece sin fin con el equipo y lo demás: pantalla fija y el contenido agrupado en pestañas con la barra del Inbox. | 194 | en ticket |
+| A-99 | Recursos | cambio | Pantalla fija. | 195 | en ticket |
+| A-100 | Ajustes (cada tarjeta) | cambio | Las pantallas que abre cada tarjeta no son pantalla fija y no tienen cómo volver a Ajustes. | 196 | en ticket |
+| A-101 | Dashboard | cambio | Pantalla fija y las métricas agrupadas en pestañas con la barra del Inbox, para ver junto lo relacionado sin saturar. | 197 | en ticket |
+
 ### Respuestas
 
 **A-01 · Producto de un Deal.** ⚠️ **Obsoleta desde el 1-oct: el ticket 134 retiró `productos`.** El precio sale

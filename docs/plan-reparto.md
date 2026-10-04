@@ -137,6 +137,20 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 | 2 | — | [191] Banderas rojas del Pulso | después de D1 y D4: `pulso.tsx` | no |
 | 2 | — | [102] Dashboard del paid trafficker | después de D3: alcance del dashboard | no |
 
+**Frente de pantallas (agregado el 4-oct, Mani): la pantalla fija como estándar del CRM.** Corre en paralelo con D1
+a D4 porque no toca sus archivos.
+
+| Parte | Sesión | Ticket | Archivos que son suyos | Migración |
+|---|---|---|---|---|
+| 1 | **P1** | [193] La pieza de pestañas y el Inbox en Llamadas y Deals | `components/layout/pestanas.tsx` (nuevo), `p/[programa]/inbox/*`, `components/deals/inbox-*.tsx`, la barra de `leads/page.tsx`, `docs/structure.md` §9 | no |
+| 1 | **P4** | [196] Ajustes: pantalla fija y "← Ajustes" | `app/(app)/ajustes/*/page.tsx` (no `ajustes/page.tsx`), `components/admin/*` | no |
+| 2 | **P2** | [194] Programa en pestañas | `p/[programa]/programa/*` | no |
+| 2 | **P3** | [195] Recursos | `app/(app)/recursos/*`, `components/resources/*` | no |
+| 2 | **P5** | [197] Dashboard en pestañas | `p/[programa]/dashboard/page.tsx`, `components/dashboard-programa.tsx`, `components/filtro-dashboard.tsx`. **No** edita `components/dashboard/*` (son de D1, D2, D4) | no |
+
+La parte 2 arranca cuando el 193 está en `main`. `pestanas.tsx` es de P1: si P2, P3 o P5 necesitan algo de la pieza,
+lo piden a P1 o a la central, no la editan.
+
 **Lo compartido:** `pulso.tsx` es de D1; D4 solo agrega su línea al final. `dashboard.ts`: D1 edita las tasas, D2 y
 D3 solo importan. `lib/db/schema.ts`: solo D4. **Prueba de costura:** para el mismo closer y rango, el comparativo, Mi
 espacio y la lista de la tasa dan el mismo número, y la suma de dos programas en "todos" es la suma de sus dashboards.

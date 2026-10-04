@@ -304,6 +304,17 @@ personas). Reparto en [`plan-reparto.md`](../plan-reparto.md) §4, ola O6.
 | [ ] | 191 | [Las banderas rojas que faltan en el Pulso](./191-banderas-rojas-del-pulso.md) | 148 | todo |
 | [ ] | 192 | [El dashboard de todos los programas con las secciones nuevas](./192-todos-los-programas-con-las-secciones.md) | 148 | todo |
 
+**Frente de pantallas (Mani, 4-oct): la pantalla fija como estándar del CRM** (A-97 a A-101). Primero 193 y 196 en
+paralelo; 194, 195 y 197 cuando el 193 esté en `main` (usan su pieza de pestañas).
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 193 | [Las pestañas son una pieza, y el Inbox en Llamadas y Deals](./193-pestanas-y-el-inbox-en-dos-barras.md) | 185 | todo · P1 |
+| [ ] | 194 | [Programa: pantalla fija y su contenido en pestañas](./194-programa-en-pestanas.md) | 193 | todo · P2 |
+| [ ] | 195 | [Recursos: pantalla fija](./195-recursos-pantalla-fija.md) | 193 | todo · P3 |
+| [ ] | 196 | [Las pantallas de Ajustes: pantalla fija y "← Ajustes"](./196-ajustes-pantalla-fija-y-volver.md) | 185 | todo · P4 |
+| [ ] | 197 | [Dashboard: pantalla fija y cada sección en su pestaña](./197-dashboard-en-pestanas.md) | 193, 148 | todo · P5 |
+
 # Pasos y tareas sin ticket
 
 
