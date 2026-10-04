@@ -98,6 +98,12 @@ export interface TarjetaDeal {
   avisos: AvisosDeTarjeta;
 }
 
+/** Lo confirmado de una columna: solo existe en las etapas donde se abona; en el resto, `null`. */
+function confirmadoDeColumna(etapa: EtapaDeal, tarjetas: readonly TarjetaDeal[]): number | null {
+  if (!ETAPAS_VENDIDAS.includes(etapa)) return null;
+  return redondearUsd(tarjetas.reduce((total, tarjeta) => total + tarjeta.confirmadoUsd, 0));
+}
+
 /** Una columna del tablero: la etapa y sus tarjetas. */
 export interface ColumnaKanban {
   etapa: EtapaDeal;
@@ -249,7 +255,7 @@ export async function tableroKanban(
     );
 
   const columnasVacias = (): ColumnaKanban[] =>
-    ETAPAS_EN_ORDEN.map((etapa) => ({ etapa, tarjetas: [], potencialUsd: 0, confirmadoUsd: 0 }));
+    ETAPAS_EN_ORDEN.map((etapa) => ({ etapa, tarjetas: [], potencialUsd: 0, confirmadoUsd: confirmadoDeColumna(etapa, []) }));
   const orden = filtros.orden ?? ORDEN_PREDETERMINADO;
   let ultimaActividad = new Map<string, Date>();
   if ((actividad || orden.campo === "actividad") && filas.length > 0) {
@@ -374,9 +380,7 @@ export async function tableroKanban(
         etapa,
         tarjetas,
         potencialUsd: redondearUsd(tarjetas.reduce((total, tarjeta) => total + tarjeta.potencialUsd, 0)),
-        confirmadoUsd: ETAPAS_VENDIDAS.includes(etapa)
-          ? redondearUsd(tarjetas.reduce((total, tarjeta) => total + tarjeta.confirmadoUsd, 0))
-          : null,
+        confirmadoUsd: confirmadoDeColumna(etapa, tarjetas),
       };
     }),
     total: filtradas.length,
