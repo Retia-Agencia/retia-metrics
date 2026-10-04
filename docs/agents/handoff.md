@@ -23,6 +23,20 @@ un recorrido local, apagar dev:local (y Docker si nadie mas lo usa: la Mac anda 
 
 ## Memory
 
+- **2026-10-04 (mañana, Mani + Claude, sesión central): ola O5 abierta, `cp-20261004-2`.**
+  - **Arreglos de la central:** Leads se caía para todos (el 186 pasaba una función `hrefDePagina` a un componente
+    cliente; ahora llegan los enlaces armados). El Kanban muestra Confirmado solo en Ganado Pago Parcial y Pagado Completo
+    (`confirmadoDeColumna`; el primer intento dejó el tablero vacío con 0 y el CI lo cazó). Anular un abono decide con
+    `registrado_por_user_id`: con `closer_id` en texto, dos closers sin él (permitido desde el 167) se anulaban los abonos
+    entre sí.
+  - **Decidido con Mani:** QM-6 (meta del mes pareja por hábil), QM-7 (la venta cuenta a la cohorte del deal), QM-11 (solo
+    las métricas del semáforo llevan alerta), tiempo en etapa = suma de todos los tramos. El 158 lo descartó Mani: el
+    reporte del día ya está en Mi espacio › Métricas.
+  - **O5 en curso:** 065 hecho (M2); 148 (M1), 146 (M3) y 185 (S5) en sus worktrees. M1 encontró que el comparativo entre
+    closers agrupa llamadas por `calls.closer_id` y las de Calendly caen en "sin closer": lo arregla el 148.
+  - **Aprendido:** cinco sesiones empujando reclamos de ticket cancelaron cuatro CI seguidos. El reclamo va en el mismo
+    push que el código, o se avisa a la central antes.
+
 - **2026-10-04 (madrugada, Mani + Claude, sesión central): O4 partes 1 y 2 cerradas, `cp-20261004-1`.**
   - **Revisión de la parte 1 (181 a 184, 167):** CI rojo (7 tests: contrato viejo del 167, la ficha consultando la
     corrección contra un doble falso, alias de tabla en `ficha-lead.ts`); Deals seguía con scroll (`flex-1` le ganaba a

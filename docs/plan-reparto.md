@@ -131,16 +131,16 @@ quiere en esta ola. El frente A de O2 (Memorable, arranca el 5-oct) sigue mandan
 | 1 | **M1** | [148] Las secciones del dashboard: Pulso, Operación comercial y Dinero | `p/[programa]/dashboard/*`, `components/dashboard-programa.tsx`, `filtro-dashboard.tsx`, `series-lineales.tsx`, `lib/queries/dashboard.ts`, `vista-dashboard.ts` | no |
 | 1 | **M2** | [065] Conversión etapa a etapa, tiempo en etapa (suma de todos los tramos, decidido el 4-oct), abiertos por etapa y owner, sin dueño por antigüedad | Solo un módulo NUEVO en `lib/queries/` (p. ej. `embudo-etapas.ts`) y su test. **No toca pantallas**: el 148 lo monta | no |
 | 1 | **M3** | [146] Meta del mes (pareja por hábil; la venta cuenta a la cohorte del deal) y la página de Metas | Ruta nueva `p/[programa]/metas/*`, módulo nuevo `lib/queries/metas.ts`, `components/metas/*` (nuevo), y en `app-sidebar.tsx` solo su entrada. Importa de `dashboard.ts` (meta lineal, 020) sin editarlo | no (si resulta que sí, se avisa y espera turno) |
-| 1 | **M4** | [158] Reporte del día del closer, con objeciones como catálogo editable | Primero escribe el "Done cuando" en el ticket y lo aprueba Mani. Luego: `lib/deals/requisitos.ts` y `components/deals/pregunta-de-etapa.ts` (la objeción al responder "¿Cómo terminó?"), módulo nuevo de consulta del reporte, su lugar en Mi espacio (`components/mi-espacio/*`). Recomendación: la objeción es un `motivo` de tipo nuevo `objecion` (como `correccion` del 182), no una tabla aparte | **sí** (valor nuevo en `tipo_motivo`, la única de la ola) |
+| 1 | **M4** | ~~[158]~~ **descartado por Mani (4-oct):** el reporte del día ya está en Mi espacio › Métricas; medir objeciones era sobrediseño. La ola queda sin migración | — | — |
 | 1 | **S5** | [185] Pantalla fija en Leads, Calls, Inbox y Students, y los textos de Programa (A-88) | Las páginas de `leads`, `calls`, `inbox`, `students`, `page-shell.tsx`, `components/layout/*`, `programa/page.tsx` y `editar-programa.tsx` (solo textos). **No arranca con código:** propone a Mani, pantalla por pantalla y sobre la base local sembrada, qué bloque hace scroll y qué pasa a sub-página o pop-up; con la tabla aprobada en el ticket, codea | no |
 | 2 | — | [147] Alertas por persistencia (solo las métricas del semáforo, 5 hábiles, configurable) | se reparte al cerrar la parte 1: usa el semáforo que toca el 146 | **sí** (umbrales) |
 | 2 | — | [102] El dashboard del paid trafficker acotado a sus programas | se reparte al cerrar la parte 1: toca la pantalla del 148 | no |
 
 **Lo compartido:** `lib/queries/dashboard.ts` y `vista-dashboard.ts` son de M1; M2 y M3 solo importan de ellos. Si M1
 quiere mostrar lo del 065 antes de que M2 llegue a `main`, deja el hueco y lo monta después (rebasado). `page-shell.tsx`
-es de S5: si M3 necesita algo del marco, lo pide. `lib/db/schema.ts`: solo M4; la migración la genera y aplica la
-sesión central con el ok de Mani. **Prueba de costura de la ola:** una venta registrada en la base local aparece igual
-en el dashboard (148), en la meta del mes (146) y en el reporte del día del closer (158).
+es de S5: si M3 necesita algo del marco, lo pide. `lib/db/schema.ts`: nadie (el 158 se descartó; la ola no tiene migración). **Prueba de costura de la ola:** una venta registrada en la base local aparece igual
+en el dashboard (148), en la meta del mes (146) y en Mi espacio › Métricas del closer. **`cp-20261004-2`** (4-oct): 065 y los
+arreglos de la central (Leads, Confirmado, anular abonos por FK).
 
 **Cómo arranca cada sesión** (pegar en una sesión nueva, cambiando el número):
 

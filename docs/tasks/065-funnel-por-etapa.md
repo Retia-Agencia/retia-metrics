@@ -3,7 +3,7 @@ id: 065
 etapa: E5
 serves: "plan v2 §6 etapa 5 · tarea E5-2 · insumo §8, ADR 0037"
 depends: [064]
-status: en revisión (sesión M2, ola O5, 4-oct; done con el checkpoint verde que lo incluya)
+status: done
 ---
 
 # 065 — Lo que el modelo nuevo hace posible: conversion etapa a etapa y tiempo en etapa

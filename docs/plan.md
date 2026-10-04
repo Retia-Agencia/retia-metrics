@@ -368,7 +368,7 @@ El orden por sesiones vive en [`plan-reparto.md`](./plan-reparto.md) §4. En cor
 | ✅ A | los leads entran solos al CRM | 1 | hecho el 28-sep |
 | **O2** (prioridad: el frente A) | la operación comercial lista: frente 0 (checkpoint, recorridos, 160, 161, S1, manual), **frente A: programas que nacen en el CRM (Nicolás y Francisco, antes del 5-oct)** y frente B: CA y TI con hojas (078). La lista completa: `plan-reparto.md` §4 | 2, 3, 4, 5, 10, 12 | toda la operación de entrada a student se hace en el CRM |
 | ✅ O4 | la operación sin fricción: 181 a 184, 186 y el 167 (`cp-20261004-1`); el 185 pasa a la O5 | 1, 2, 3, 5, 9, 10, 11 | hecho el 4-oct |
-| **O5** (vigente) | las métricas comerciales y la pantalla fija: 148, 065, 146, 158, 185; después 147 y 102 (`plan-reparto.md` §4) | 3, 9, 10, 11 | Gerencia ve su dashboard comercial y ninguna lista crece sin fin |
+| **O5** (vigente) | las métricas comerciales y la pantalla fija: 148, 065 (✅), 146, 185 (el 158 se descartó); después 147 y 102 (`plan-reparto.md` §4) | 3, 9, 10, 11 | Gerencia ve su dashboard comercial y ninguna lista crece sin fin |
 | **B** | el corte: los closers dejan las hojas, con capacitación. Antes: 🔴 S1 | 12 | los closers operan en el CRM |
 | **NC3** | la v1 comercial: 148, 065, 146, 147, 158, 144, 145 cuando se desbloqueen; 075 y 149 | 3, 5, 6, 9 | Gerencia ve su dashboard comercial |
 | **C** | 082: apagar las pestañas de gestión, a la semana hábil del corte | 12 | se deja de escribir en las hojas |
