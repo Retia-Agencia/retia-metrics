@@ -1,11 +1,16 @@
-import { and, asc, between, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { and, asc, between, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { vigente } from "@/lib/queries/vigente";
 import type { Alcance } from "@/lib/queries/dashboard";
-import { claveDeCloserSql, igualCloser } from "@/lib/closers/identidad";
+import {
+  claveCloserSql,
+  claveDeCloserSql,
+  igualCloser,
+  parsearClaveCloser,
+} from "@/lib/closers/identidad";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import { ETAPAS_VENDIDAS } from "@/lib/deals/etapas";
 import type { Rango } from "@/lib/queries/dashboard";
@@ -27,14 +32,51 @@ export function fechaAnclaCall() {
 }
 
 /**
- * Condicion opcional de closer. `and()` de drizzle descarta los `undefined`, asi que
- * sin closer la consulta queda exactamente igual que antes del ticket 005: el filtro
- * no puede cambiar el total del programa.
+ * Condicion de closer sobre una fila que tiene FK + texto historico (ticket 167,
+ * Decision 7). `claveCloser` es `users.id` (cuenta) o `historico:<texto>`:
+ *
+ *  - cuenta: casa la FK, y ADEMAS las filas historicas SIN FK cuyo texto es el de
+ *    ESE usuario (subconsulta por id; si el usuario no tiene `closer_id`, la rama
+ *    historica no casa nada).
+ *  - historico: solo las filas sin FK cuyo texto normaliza igual.
+ *
+ * Nunca compara texto en crudo (ADR 0030). Devuelve `undefined` si la clave no es
+ * valida: el `and()` de drizzle lo descarta y la consulta no se filtra.
  */
-export function delCloser(columna: PgColumn, closerId: string | null | undefined) {
-  // Sin distinguir mayusculas (ADR 0030): `Mani` y `mani` son el mismo closer, y
-  // la respuesta a eso vive en `lib/closers/identidad.ts`, no aca.
-  return closerId == null ? undefined : igualCloser(columna, closerId);
+function porClaveConFk(
+  columnaUserId: PgColumn,
+  columnaTexto: PgColumn,
+  claveCloser: string | null | undefined,
+  db: Db,
+) {
+  const clave = parsearClaveCloser(claveCloser);
+  if (clave == null) return undefined;
+  if (clave.tipo === "historico") {
+    return and(isNull(columnaUserId), igualCloser(columnaTexto, clave.clave));
+  }
+  // El texto historico de ESTE usuario, resuelto por id: una fila vieja sin FK que
+  // trae el mismo texto que su `closer_id` tambien es suya. Sin `closer_id`, el
+  // `in (...)` queda vacio y la rama historica no suma nada.
+  const textoDelUsuario = db.select({ clave: claveDeCloserSql(users.closerId) })
+    .from(users)
+    .where(eq(users.id, clave.userId));
+  return or(
+    eq(columnaUserId, clave.userId),
+    and(isNull(columnaUserId), inArray(claveDeCloserSql(columnaTexto), textoDelUsuario)),
+  );
+}
+
+/**
+ * Condicion de closer sobre `deals`, cuyo dueno es SIEMPRE una FK (`owner_user_id`,
+ * ADR 0037). Para una clave de cuenta se filtra por el id; para una historica se cae
+ * al texto de `users.closerId` del dueno (el comportamiento previo al ticket 167),
+ * que exige el join de `users` por `deals.ownerUserId` del llamador.
+ */
+export function porClaveDeDeal(claveCloser: string | null | undefined) {
+  const clave = parsearClaveCloser(claveCloser);
+  if (clave == null) return undefined;
+  if (clave.tipo === "usuario") return eq(deals.ownerUserId, clave.userId);
+  return igualCloser(users.closerId, clave.clave);
 }
 
 /**
@@ -51,10 +93,7 @@ export function closerDeAbono() {
 
 /** Identidad de agrupacion: UUID para lo nuevo, texto normalizado solo para la historia. */
 export function claveDeRegistradorDeAbono() {
-  return sql<string>`case
-    when ${users.id} is not null then ${users.id}::text
-    else 'historico:' || coalesce(${claveDeCloserSql(abonos.closerId)}, '')
-  end`;
+  return claveCloserSql(abonos.registradoPorUserId, abonos.closerId);
 }
 
 export { ETAPAS_VENDIDAS };
@@ -150,27 +189,19 @@ export function llamadaOcurrio() {
 
 
 /** Una definición del universo por métrica; la vigencia queda visible en cada lector. */
-export function filtroCaja({ programId, rango, closerId }: Alcance, db: Db) {
-  const usuariosDelCloser = closerId == null
-    ? undefined
-    : db.select({ id: users.id }).from(users).where(igualCloser(users.closerId, closerId));
+export function filtroCaja({ programId, rango, claveCloser }: Alcance, db: Db) {
   return and(
     eq(abonos.programId, programId),
     between(abonos.fecha, rango.desde, rango.hasta),
-    closerId == null
-      ? undefined
-      : or(
-          and(isNotNull(abonos.registradoPorUserId), inArray(abonos.registradoPorUserId, usuariosDelCloser!)),
-          and(isNull(abonos.registradoPorUserId), igualCloser(abonos.closerId, closerId)),
-        ),
+    porClaveConFk(abonos.registradoPorUserId, abonos.closerId, claveCloser, db),
   );
 }
 
-export function filtroLlamadas({ programId, rango, closerId }: Alcance) {
+export function filtroLlamadas({ programId, rango, claveCloser }: Alcance, db: Db) {
   return and(
     eq(calls.programId, programId),
     between(fechaAnclaCall(), rango.desde, rango.hasta),
-    delCloser(calls.closerId, closerId),
+    porClaveConFk(calls.closerUserId, calls.closerId, claveCloser, db),
   );
 }
 
@@ -178,7 +209,7 @@ export function filtroCierres(alcance: Alcance, db: Db) {
   return and(
     eq(deals.programId, alcance.programId),
     inArray(deals.id, vendidosEn(db, alcance.rango)),
-    delCloser(users.closerId, alcance.closerId),
+    porClaveDeDeal(alcance.claveCloser),
   );
 }
 
@@ -196,7 +227,7 @@ export function filtroCortesias(alcance: Alcance, db: Db) {
   return and(
     eq(deals.programId, alcance.programId),
     inArray(deals.id, cortesiasEn(db, alcance.rango)),
-    delCloser(users.closerId, alcance.closerId),
+    porClaveDeDeal(alcance.claveCloser),
   );
 }
 
@@ -204,13 +235,13 @@ export function fechaAnclaLead() {
   return sql<string>`(${leads.fechaPrimeraAplicacion} AT TIME ZONE 'America/Bogota')::date`;
 }
 
-export function filtroLeads({ programId, rango, closerId }: Alcance) {
+export function filtroLeads({ programId, rango, claveCloser }: Alcance) {
   return and(
     eq(leads.programId, programId),
     eq(leads.entrada, "formulario"),
     between(fechaAnclaLead(), rango.desde, rango.hasta),
     // No hay atribución por closer de esta métrica: jamás devolver el programa entero.
-    closerId ? sql`false` : undefined,
+    claveCloser ? sql`false` : undefined,
   );
 }
 
@@ -236,19 +267,19 @@ export function fechaAnclaAgendaCreada() {
  * Generar deals y agendas es del programa, no de un closer: un deal nace sin dueño. Como los
  * leads, con closer no se devuelve nada, jamas el programa entero. Exige el join de arriba.
  */
-export function filtroDealsCreados({ programId, rango, closerId }: Alcance) {
+export function filtroDealsCreados({ programId, rango, claveCloser }: Alcance) {
   return and(
     eq(deals.programId, programId),
     between(fechaAnclaDealCreado(), rango.desde, rango.hasta),
-    closerId ? sql`false` : undefined,
+    claveCloser ? sql`false` : undefined,
   );
 }
 
-export function filtroAgendasCreadas({ programId, rango, closerId }: Alcance) {
+export function filtroAgendasCreadas({ programId, rango, claveCloser }: Alcance) {
   return and(
     eq(calls.programId, programId),
     between(fechaAnclaAgendaCreada(), rango.desde, rango.hasta),
-    closerId ? sql`false` : undefined,
+    claveCloser ? sql`false` : undefined,
   );
 }
 
@@ -262,6 +293,6 @@ export function primerosMovimientosDeVenta(db: Db) {
 }
 
 /** Las citas cuyo resultado explícito fue no show, dentro del universo común de llamadas. */
-export function filtroNoShows(alcance: Alcance) {
-  return and(filtroLlamadas(alcance), eq(calls.resultado, "no_show"));
+export function filtroNoShows(alcance: Alcance, db: Db) {
+  return and(filtroLlamadas(alcance, db), eq(calls.resultado, "no_show"));
 }

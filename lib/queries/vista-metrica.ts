@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import { claveDeCloser } from "@/lib/closers/identidad";
 import { parsearPeriodoUrl, resolverPeriodo, type PeriodoResuelto } from "@/lib/periodo";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { ventanasAnterioresDeCohorte } from "@/lib/queries/ventanas-de-cohortes";
@@ -16,9 +15,14 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { db as dbDeLaApp } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
 
-/** Código estable del texto histórico: también sirve para closers sin cuenta actual. */
-export function codigoDeCloser(closer: string): string {
-  return createHash("sha256").update(claveDeCloser(closer)).digest("hex");
+/**
+ * Codigo opaco estable de una CLAVE de closer (ticket 167): el sha256 de la
+ * `claveCloser` (`users.id` o `historico:<texto>`). Viaja en el href de la lista sin
+ * exponer el id interno ni el texto. Para un closer historico sin cuenta sigue
+ * sirviendo, porque la clave ya trae su texto normalizado.
+ */
+export function codigoDeCloser(claveCloser: string): string {
+  return createHash("sha256").update(claveCloser).digest("hex");
 }
 
 export interface DetalleDeCifra {
@@ -37,13 +41,13 @@ export function nombreDeEtapa(etapa: string): string {
 const METRICAS_DEL_TABLERO = ["caja", "agendas", "shows", "shows_sin_grain", "cierres", "cortesias", "leads"] as const;
 export type DetallesDelDashboard = Record<(typeof METRICAS_DEL_TABLERO)[number], DetalleDeCifra>;
 
-export function urlDeLista(slug: string, metrica: Metrica, periodo: PeriodoResuelto, closer?: string | null, moneda?: string): string {
+export function urlDeLista(slug: string, metrica: Metrica, periodo: PeriodoResuelto, claveCloser?: string | null, moneda?: string): string {
   const q = new URLSearchParams({ metrica, periodo: "custom", a_desde: periodo.a.desde, a_hasta: periodo.a.hasta });
   if (periodo.b) {
     q.set("b_desde", periodo.b.desde);
     q.set("b_hasta", periodo.b.hasta);
   }
-  if (closer) q.set("closer", codigoDeCloser(closer));
+  if (claveCloser) q.set("closer", codigoDeCloser(claveCloser));
   if (moneda) q.set("moneda", moneda);
   return `/p/${encodeURIComponent(slug)}/dashboard/lista?${q}`;
 }
@@ -53,7 +57,8 @@ export interface EntradaDeDetalles {
   slug: string;
   hoy: string;
   periodo: PeriodoResuelto;
-  closerId: string | null;
+  /** La clave de identidad del closer (ticket 167): `users.id` o `historico:<texto>`. */
+  claveCloser: string | null;
 }
 
 /** El resumen de UNA cifra del periodo A y el enlace a su lista. Solo agregados SQL. */
@@ -62,7 +67,7 @@ export async function detalleDeCifra(metrica: Metrica, entrada: EntradaDeDetalle
   return {
     resumen,
     desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
-    href: urlDeLista(entrada.slug, metrica, entrada.periodo, entrada.closerId),
+    href: urlDeLista(entrada.slug, metrica, entrada.periodo, entrada.claveCloser),
   };
 }
 
@@ -97,13 +102,13 @@ export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) 
     ...ventanas,
   });
   const filtros = { programId, hoy, rango: periodo.a, moneda };
-  let closerId: string | null = null;
+  let claveCloser: string | null = null;
   if (codigoCloser) {
     const [sinFiltro] = await resumenDeMetrica(metrica, filtros, db);
-    closerId = sinFiltro.grupos.map((g) => g.closer).find((c) => c && codigoDeCloser(c) === codigoCloser) ?? null;
+    claveCloser = sinFiltro.grupos.map((g) => g.claveCloser).find((c) => codigoDeCloser(c) === codigoCloser) ?? null;
     // Un código desconocido nunca ensancha el alcance al programa entero.
-    if (closerId === null) return null;
+    if (claveCloser === null) return null;
   }
-  const [lista] = await listaDeMetrica(metrica, { ...filtros, closerId }, pagina, db);
-  return { lista, periodo, closerId };
+  const [lista] = await listaDeMetrica(metrica, { ...filtros, claveCloser }, pagina, db);
+  return { lista, periodo, claveCloser };
 }

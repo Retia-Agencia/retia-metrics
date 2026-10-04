@@ -13,6 +13,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { cajaRecaudada, dealsPerdidosPorMotivo, embudoDelRango, embudoPorCanal, embudoPorCloser, leadsDelRango, vistaDeCohorteActiva } from "@/lib/queries/dashboard";
+import { claveHistorica } from "@/lib/closers/identidad";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -529,7 +530,7 @@ describe("dealsPerdidosPorMotivo", () => {
     expect(await dealsPerdidosPorMotivo({ programId: programaA, rango }, db)).toEqual([
       { motivo: "Dinero", deals: 2 },
     ]);
-    expect(await dealsPerdidosPorMotivo({ programId: programaA, rango, closerId: "Ana-motivos" }, db)).toEqual([
+    expect(await dealsPerdidosPorMotivo({ programId: programaA, rango, claveCloser: claveHistorica("Ana-motivos") }, db)).toEqual([
       { motivo: "Dinero", deals: 1 },
     ]);
   });
@@ -653,15 +654,15 @@ describe("alcance acotado a un closer", () => {
     const total = await embudoDelRango({ programId: programaA, rango }, db);
     expect(total.agendas).toBe(4);
 
-    const ana = await embudoDelRango({ programId: programaA, rango, closerId: "Ana" }, db);
+    const ana = await embudoDelRango({ programId: programaA, rango, claveCloser: claveHistorica("Ana") }, db);
     expect(ana.agendas).toBe(2);
     expect(ana.llamadasConShow).toBe(2);
     expect(ana.cierres).toBe(1);
 
-    expect(await cajaRecaudada({ programId: programaA, rango, closerId: "Ana" }, db)).toEqual([
+    expect(await cajaRecaudada({ programId: programaA, rango, claveCloser: claveHistorica("Ana") }, db)).toEqual([
       { moneda: "USD", total: 100 },
     ]);
-    expect(await cajaRecaudada({ programId: programaA, rango, closerId: "Beto" }, db)).toEqual([
+    expect(await cajaRecaudada({ programId: programaA, rango, claveCloser: claveHistorica("Beto") }, db)).toEqual([
       { moneda: "USD", total: 250 },
     ]);
   });
@@ -669,10 +670,10 @@ describe("alcance acotado a un closer", () => {
   it("un closerId sin actividad en el rango da ceros, no revienta", async () => {
     await sembrarDosClosers();
 
-    const nadie = await embudoDelRango({ programId: programaA, rango, closerId: "Zoe" }, db);
+    const nadie = await embudoDelRango({ programId: programaA, rango, claveCloser: claveHistorica("Zoe") }, db);
     expect(nadie.agendas).toBe(0);
     expect(nadie.pctShow).toBeNull();
-    expect(await cajaRecaudada({ programId: programaA, rango, closerId: "Zoe" }, db)).toEqual([]);
+    expect(await cajaRecaudada({ programId: programaA, rango, claveCloser: claveHistorica("Zoe") }, db)).toEqual([]);
   });
 });
 
@@ -706,7 +707,7 @@ describe("leads y cohorte acotados a un closer", () => {
     const programa = await leadsDelRango({ programId: programaA, rango }, db);
     expect(programa.leads).toBe(3);
 
-    const ana = await leadsDelRango({ programId: programaA, rango, closerId: "Ana" }, db);
+    const ana = await leadsDelRango({ programId: programaA, rango, claveCloser: claveHistorica("Ana") }, db);
     expect(ana.leads).toBeNull();
     // Sin conteo no hay cumplimiento, pero la meta SIGUE siendo la de la cohorte:
     // no se reparte entre closers (ADR 0023) y eso no cambio.
@@ -737,7 +738,7 @@ describe("leads y cohorte acotados a un closer", () => {
     expect(programa!.vendidosDelCloser).toBeNull();
 
     const vistaDeAna = await vistaDeCohorteActiva(
-      { programId: programaA, closerId: "Ana" },
+      { programId: programaA, claveCloser: claveHistorica("Ana") },
       "2026-09-15",
       db,
     );
@@ -766,7 +767,7 @@ describe("pendientes y desgloses acotados a un closer", () => {
     }
 
     const motivosDeAna = await dealsPerdidosPorMotivo(
-      { programId: programaA, rango, closerId: "Ana-motivo-individual" },
+      { programId: programaA, rango, claveCloser: claveHistorica("Ana-motivo-individual") },
       db,
     );
     expect(motivosDeAna).toEqual([{ motivo: "Dinero", deals: 1 }]);

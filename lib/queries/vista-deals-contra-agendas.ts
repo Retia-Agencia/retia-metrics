@@ -11,7 +11,7 @@ export interface EntradaDealsContraAgendas {
   hoy: string;
   /** El periodo del selector del dashboard (136). */
   periodo: PeriodoResuelto;
-  closerId: string | null;
+  claveCloser: string | null;
 }
 
 export type VistaDealsContraAgendas =
@@ -55,7 +55,7 @@ export async function vistaDealsContraAgendas(
   entrada: EntradaDealsContraAgendas,
   db: Db = dbDeLaApp,
 ): Promise<VistaDealsContraAgendas> {
-  if (entrada.closerId) return { disponible: false };
+  if (entrada.claveCloser) return { disponible: false };
 
   const { periodo, nota } = periodoDeLaGrafica(entrada.periodo, entrada.hoy);
   const detallesDe = { ...entrada, periodo };
