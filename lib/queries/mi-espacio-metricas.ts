@@ -1,4 +1,3 @@
-import { claveDeCloser } from "@/lib/closers/identidad";
 import { db as dbDeLaApp } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
 import type { EntradaDePeriodo, PeriodoResuelto } from "@/lib/periodo";
@@ -54,20 +53,19 @@ export interface VistaDeMisMetricas {
 
 function comisionDelCloser(
   filas: Awaited<ReturnType<typeof comisionesPorCloser>>,
-  closerId: string,
+  closerUserId: string,
 ): number {
-  const clave = claveDeCloser(closerId);
-  return filas.find((fila) => claveDeCloser(fila.closerId) === clave)?.comisionUsd ?? 0;
+  return filas.find((fila) => fila.userId === closerUserId)?.comisionUsd ?? 0;
 }
 
 async function cifrasDelPeriodo(
   programId: string,
   rango: PeriodoResuelto["a"],
-  closerId: string,
+  closerUserId: string,
   hoy: string,
   db: Db,
 ): Promise<CifrasDePeriodo> {
-  const alcance = { programId, rango, closerId };
+  const alcance = { programId, rango, claveCloser: closerUserId };
   const [embudo, caja, comisiones, [noShows]] = await Promise.all([
     embudoDelRango(alcance, db),
     cajaRecaudada(alcance, db),
@@ -81,7 +79,7 @@ async function cifrasDelPeriodo(
     cierres: embudo.cierres,
     pctCierre: embudo.pctCierre,
     caja,
-    comisionUsd: comisionDelCloser(comisiones, closerId),
+    comisionUsd: comisionDelCloser(comisiones, closerUserId),
   };
 }
 
@@ -89,31 +87,31 @@ async function cifrasDelPeriodo(
 export async function armarVistaDeMisMetricas(
   entrada: {
     programa: ProgramaDeMetricas;
-    closerId: string;
+    closerUserId: string;
     hoy: string;
     periodo: EntradaDePeriodo;
   },
   db: Db = dbDeLaApp,
 ): Promise<VistaDeMisMetricas> {
-  const { programa, closerId, hoy } = entrada;
+  const { programa, closerUserId, hoy } = entrada;
   const dashboard = await armarVistaDelDashboard({
     programId: programa.id,
     hoy,
     preset: "hoy",
     periodo: entrada.periodo,
-    closerId,
+    claveCloser: closerUserId,
   }, db);
   const periodo = dashboard.periodo;
   const [noShowsA, comisionesA, b, detalles] = await Promise.all([
-    resumenDeMetrica("no_shows", { programId: programa.id, rango: periodo.a, closerId, hoy }, db),
+    resumenDeMetrica("no_shows", { programId: programa.id, rango: periodo.a, claveCloser: closerUserId, hoy }, db),
     comisionesPorCloser({ programId: programa.id, rango: periodo.a }, db),
-    periodo.b ? cifrasDelPeriodo(programa.id, periodo.b, closerId, hoy, db) : null,
+    periodo.b ? cifrasDelPeriodo(programa.id, periodo.b, closerUserId, hoy, db) : null,
     Promise.all([
-      detalleDeCifra("agendas", { programId: programa.id, slug: programa.slug, hoy, periodo, closerId }, db),
-      detalleDeCifra("shows", { programId: programa.id, slug: programa.slug, hoy, periodo, closerId }, db),
-      detalleDeCifra("no_shows", { programId: programa.id, slug: programa.slug, hoy, periodo, closerId }, db),
-      detalleDeCifra("cierres", { programId: programa.id, slug: programa.slug, hoy, periodo, closerId }, db),
-      detalleDeCifra("caja", { programId: programa.id, slug: programa.slug, hoy, periodo, closerId }, db),
+      detalleDeCifra("agendas", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
+      detalleDeCifra("shows", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
+      detalleDeCifra("no_shows", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
+      detalleDeCifra("cierres", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
+      detalleDeCifra("caja", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
     ]),
   ]);
   // Mi espacio nunca muestra el texto interno del closer (A-159/167). El código opaco
@@ -135,7 +133,7 @@ export async function armarVistaDeMisMetricas(
       cierres: dashboard.embudo.cierres,
       pctCierre: dashboard.embudo.pctCierre,
       caja: dashboard.caja,
-      comisionUsd: comisionDelCloser(comisionesA, closerId),
+      comisionUsd: comisionDelCloser(comisionesA, closerUserId),
     },
     b,
     detalles: {
@@ -191,7 +189,7 @@ export interface VistaDeMisMetricasTodos {
 }
 
 export async function armarVistaDeMisMetricasTodos(
-  entrada: { programas: ProgramaDeMetricas[]; closerId: string; hoy: string; periodo: EntradaDePeriodo },
+  entrada: { programas: ProgramaDeMetricas[]; closerUserId: string; hoy: string; periodo: EntradaDePeriodo },
   db: Db = dbDeLaApp,
 ): Promise<VistaDeMisMetricasTodos> {
   const vistas = await Promise.all(entrada.programas.map((programa) => armarVistaDeMisMetricas({ ...entrada, programa }, db)));

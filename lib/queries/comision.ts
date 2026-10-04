@@ -20,6 +20,8 @@ export function comisionDeDeal(
 }
 
 export interface ComisionDeCloser {
+  /** El `users.id` del dueno, o `null` para un deal sin dueno (ticket 167). */
+  userId: string | null;
   closerId: string | null;
   comisionUsd: number;
   ventasSinComision: number;
@@ -48,6 +50,7 @@ export async function comisionesPorCloser(
     const clave = fila.userId ?? "\u0000sin-dueno";
     const etiqueta = fila.closerId ?? fila.nombre ?? fila.email ?? null;
     const acumulado = porCloser.get(clave) ?? {
+      userId: fila.userId ?? null,
       closerId: etiqueta,
       comisionUsd: 0,
       ventasSinComision: 0,

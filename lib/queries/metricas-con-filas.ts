@@ -5,12 +5,12 @@ import { db as dbDeLaApp } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
 import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
 import type { Alcance, CajaPorMoneda, Rango } from "@/lib/queries/dashboard";
-import { claveDeCloser, claveDeCloserSql } from "@/lib/closers/identidad";
+import { claveCloserSql, claveDeCloser, claveDeCloserSql } from "@/lib/closers/identidad";
 import { vigente } from "@/lib/queries/vigente";
 import { atendidaSinGrain } from "@/lib/queries/sin-grain";
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaLead, filtroAgendasCreadas,
-  claveDeRegistradorDeAbono, closerDeAbono, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
+  closerDeAbono, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
   primerosMovimientosDeVenta, filtroNoShows,
 } from "@/lib/queries/metricas-filtros";
 
@@ -23,7 +23,8 @@ export const TAMANO_PAGINA = 50;
 export interface FiltrosDeMetrica {
   programId: string | readonly string[];
   rango: Rango;
-  closerId?: string | null;
+  /** La clave de identidad del closer (ticket 167): `users.id` o `historico:<texto>`. */
+  claveCloser?: string | null;
   moneda?: string;
   /** Fecha de calendario que entrega hoyEnBogota(), nunca el reloj del navegador. */
   hoy: string;
@@ -34,6 +35,8 @@ export interface FilaDeMetrica {
   dealId: string | null;
   fecha: string;
   closer: string | null;
+  /** La clave de identidad del closer (ticket 167): `users.id` o `historico:<texto>`. */
+  claveCloser: string;
   etapa: string | null;
   antiguedad: number;
   bucket: string;
@@ -52,7 +55,7 @@ export interface ResumenDeMetrica {
   disponible: boolean;
   subtotal: SubtotalDeMetrica;
   /** Cruce de las tres dimensiones, agregado en SQL; nunca contiene filas de negocio. */
-  grupos: Pick<FilaDeMetrica, "closer" | "etapa" | "bucket" | "moneda" | "monto" | "cantidad">[];
+  grupos: Pick<FilaDeMetrica, "closer" | "claveCloser" | "etapa" | "bucket" | "moneda" | "monto" | "cantidad">[];
 }
 
 export interface ListaDeMetrica extends ResumenDeMetrica {
@@ -67,32 +70,61 @@ export interface ListaDeMetrica extends ResumenDeMetrica {
 interface FuenteDeMetrica {
   id: SQL | PgColumn;
   fecha: SQL<string>;
+  /** El texto visible del closer (etiqueta). */
   columnaCloser: PgColumn | SQL;
+  /** La clave de identidad del closer (ticket 167): `users.id` o `historico:<texto>`. */
+  claveCloser: SQL<string>;
 }
 
 function fuenteDe(metrica: Metrica): FuenteDeMetrica {
   switch (metrica) {
     case "caja":
-      return { id: abonos.id, fecha: sql<string>`${abonos.fecha}`, columnaCloser: closerDeAbono() };
+      return {
+        id: abonos.id,
+        fecha: sql<string>`${abonos.fecha}`,
+        columnaCloser: closerDeAbono(),
+        claveCloser: claveCloserSql(abonos.registradoPorUserId, abonos.closerId),
+      };
     case "agendas":
     case "shows":
     case "no_shows":
     case "shows_sin_grain":
-      return { id: calls.id, fecha: fechaAnclaCall(), columnaCloser: calls.closerId };
+      return {
+        id: calls.id,
+        fecha: fechaAnclaCall(),
+        columnaCloser: calls.closerId,
+        claveCloser: claveCloserSql(calls.closerUserId, calls.closerId),
+      };
     case "leads":
-      return { id: leads.id, fecha: fechaAnclaLead(), columnaCloser: users.closerId };
+      return {
+        id: leads.id,
+        fecha: fechaAnclaLead(),
+        columnaCloser: users.closerId,
+        claveCloser: claveCloserSql(users.id, users.closerId),
+      };
     case "cierres":
     case "cortesias":
       return {
         id: deals.id,
         fecha: sql<string>`(${dealEtapaHistorial.fecha} AT TIME ZONE 'America/Bogota')::date`,
         columnaCloser: users.closerId,
+        claveCloser: claveCloserSql(users.id, users.closerId),
       };
     // Ticket 138: el closer es solo contexto (el dueño del deal); estas métricas no se filtran por él.
     case "deals_creados":
-      return { id: deals.id, fecha: fechaAnclaDealCreado(), columnaCloser: users.closerId };
+      return {
+        id: deals.id,
+        fecha: fechaAnclaDealCreado(),
+        columnaCloser: users.closerId,
+        claveCloser: claveCloserSql(users.id, users.closerId),
+      };
     case "agendas_creadas":
-      return { id: calls.id, fecha: fechaAnclaAgendaCreada(), columnaCloser: users.closerId };
+      return {
+        id: calls.id,
+        fecha: fechaAnclaAgendaCreada(),
+        columnaCloser: users.closerId,
+        claveCloser: claveCloserSql(users.id, users.closerId),
+      };
   }
 }
 
@@ -126,6 +158,11 @@ function camposDe(metrica: Metrica, fuente: FuenteDeMetrica, hoy: string, resume
     closer: resumen
       ? sql<string | null>`min(${fuente.columnaCloser})`
       : sql<string | null>`${fuente.columnaCloser}`,
+    // La clave de identidad del closer (ticket 167): constante dentro del grupo
+    // (se agrupa por ella), asi que `min(...)` en el resumen la deja intacta.
+    claveCloser: resumen
+      ? sql<string>`min(${fuente.claveCloser})`
+      : fuente.claveCloser,
     etapa: sql<string | null>`${deals.etapa}::text`,
     antiguedad: resumen ? sql<number>`0::int` : edad,
     bucket: bucket.as("bucket_antiguedad"),
@@ -182,9 +219,9 @@ function consultaDe(
         .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
         .where(
           and(
-            filtroLlamadas(alcance),
+            filtroLlamadas(alcance, db),
             metrica === "shows" ? llamadaOcurrio() : undefined,
-            metrica === "no_shows" ? filtroNoShows(alcance) : undefined,
+            metrica === "no_shows" ? filtroNoShows(alcance, db) : undefined,
             metrica === "shows_sin_grain" ? atendidaSinGrain() : undefined,
             vigente(calls),
             vigente(deals),
@@ -277,7 +314,10 @@ async function leerMetrica(
     // El alias evita repetir el parámetro de hoy con posiciones distintas: Postgres no
     // considera $1 y $7 la misma expresión al validar un GROUP BY.
     const dimensiones: SQL[] = [
-      metrica === "caja" ? claveDeRegistradorDeAbono() : claveDeCloserSql(fuente.columnaCloser),
+      // Se agrupa por la CLAVE de identidad del closer (ticket 167): asi un mismo
+      // closer con cuenta no se parte entre su FK y una fila historica sin FK que
+      // trae su texto. El codigo opaco de la lista hashea exactamente esta clave.
+      fuente.claveCloser,
       sql`${deals.etapa}`,
       sql`"bucket_antiguedad"`,
     ];
@@ -313,9 +353,9 @@ export async function resumenDeMetrica(metrica: Metrica, filtros: FiltrosDeMetri
     const grupos = await leerMetrica(metrica, { ...filtros, programId }, filtros, null, db);
     return {
       programId,
-      disponible: !(METRICAS_SIN_CLOSER.includes(metrica) && filtros.closerId),
+      disponible: !(METRICAS_SIN_CLOSER.includes(metrica) && filtros.claveCloser),
       subtotal: subtotal(grupos),
-      grupos: grupos.map(({ closer, etapa, bucket, moneda, monto, cantidad }) => ({ closer, etapa, bucket, moneda, monto, cantidad })),
+      grupos: grupos.map(({ closer, claveCloser, etapa, bucket, moneda, monto, cantidad }) => ({ closer, claveCloser, etapa, bucket, moneda, monto, cantidad })),
     };
   }));
 }

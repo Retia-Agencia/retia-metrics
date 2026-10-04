@@ -80,3 +80,64 @@ export function claveDeCloserSql(columna: PgColumn | SQL) {
 export function claveDeCloser(valor: string | null | undefined): string {
   return normalizarCloserId(valor) ?? "\u0000sin-closer";
 }
+
+/**
+ * La CLAVE de identidad de un closer para filtrar y agrupar metricas (ticket 167,
+ * Decision 7). Un closer no es solo un texto: desde que `users.closer_id` es opcional
+ * y las filas nuevas apuntan por FK (`abonos.registrado_por_user_id`,
+ * `deals.owner_user_id`), hay DOS maneras de ser el mismo closer:
+ *
+ *  - **con cuenta**: su `users.id` (uuid). Es la identidad canonica.
+ *  - **historica**: `historico:<texto normalizado>` para las filas viejas que solo
+ *    traen el texto copiado (una llamada o un abono sin FK, un closer que ya no tiene
+ *    cuenta). Nunca cae a una comparacion de texto cruda (ADR 0030): el texto se
+ *    normaliza con `claveDeCloser`.
+ *
+ * Es exactamente la forma que ya produce `claveDeRegistradorDeAbono` en SQL
+ * (`lib/queries/metricas-filtros.ts`): aqui vive su contraparte de TypeScript, para
+ * que el que arma una `claveCloser` y el que la interpreta no puedan divergir.
+ */
+const PREFIJO_HISTORICO = "historico:";
+
+export type ClaveCloser =
+  | { tipo: "usuario"; userId: string }
+  | { tipo: "historico"; clave: string };
+
+/** La `claveCloser` de un closer con cuenta: su `users.id`. */
+export function claveDeUsuario(userId: string): string {
+  return userId;
+}
+
+/** La `claveCloser` de un closer solo historico (texto, sin cuenta). */
+export function claveHistorica(texto: string | null | undefined): string {
+  return `${PREFIJO_HISTORICO}${claveDeCloser(texto)}`;
+}
+
+const RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Lee una `claveCloser` y dice si es una cuenta (uuid) o un historico. Un valor que
+ * no es ni uuid ni `historico:...` no es una clave valida y devuelve `null`: el
+ * llamador decide (hoy, no filtra, igual que un `null`).
+ */
+export function parsearClaveCloser(clave: string | null | undefined): ClaveCloser | null {
+  if (clave == null) return null;
+  if (clave.startsWith(PREFIJO_HISTORICO)) {
+    return { tipo: "historico", clave: clave.slice(PREFIJO_HISTORICO.length) };
+  }
+  if (RE_UUID.test(clave)) return { tipo: "usuario", userId: clave };
+  return null;
+}
+
+/**
+ * La `claveCloser` en SQL: el `users.id` cuando la fila casa con una cuenta, y
+ * `historico:<texto normalizado>` cuando no. Es la generalizacion de
+ * `claveDeRegistradorDeAbono`: `columnaUserId` es la FK (puede ser `NULL`) y
+ * `columnaTexto` es el texto copiado historico.
+ */
+export function claveCloserSql(columnaUserId: PgColumn | SQL, columnaTexto: PgColumn | SQL): SQL<string> {
+  return sql<string>`case
+    when ${columnaUserId} is not null then ${columnaUserId}::text
+    else '${sql.raw(PREFIJO_HISTORICO)}' || coalesce(${claveDeCloserSql(columnaTexto)}, '')
+  end`;
+}

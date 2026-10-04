@@ -99,23 +99,23 @@ function Total({ titulo, actual, anterior }: { titulo: string; actual: number; a
 export async function TabMetricas({
   programas,
   programa,
-  closerId,
+  closerUserId,
   hoy,
   busqueda,
 }: {
   programas: ProgramaDeMetricas[];
   programa: ProgramaDeMetricas | null;
-  closerId: string;
+  closerUserId: string;
   hoy: string;
   busqueda: Busqueda;
 }) {
   const periodo = parsearPeriodoUrl(busqueda);
   if (programa) {
-    const vista = await armarVistaDeMisMetricas({ programa, closerId, hoy, periodo });
+    const vista = await armarVistaDeMisMetricas({ programa, closerUserId, hoy, periodo });
     return <BloqueDePrograma vista={vista} />;
   }
 
-  const todos = await armarVistaDeMisMetricasTodos({ programas, closerId, hoy, periodo });
+  const todos = await armarVistaDeMisMetricasTodos({ programas, closerUserId, hoy, periodo });
   const cajasB = new Map(todos.b?.caja.map((c) => [c.moneda, c.valor]));
   return (
     <div className="space-y-6">

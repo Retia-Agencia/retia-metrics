@@ -45,7 +45,7 @@ export async function showsSinGrain(
       shows: sql<number>`count(*)::int`,
     })
     .from(calls)
-    .where(and(filtroLlamadas(alcance), vigente(calls), llamadaOcurrio()));
+    .where(and(filtroLlamadas(alcance, db), vigente(calls), llamadaOcurrio()));
 
   const sinGrain = fila?.sinGrain ?? 0;
   const shows = fila?.shows ?? 0;

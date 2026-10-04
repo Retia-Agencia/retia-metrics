@@ -1,5 +1,5 @@
 import { sumaDeAbonos } from "@/lib/queries/saldo";
-import { claveDeRegistradorDeAbono, closerDeAbono, cerradosEn, delCloser, ETAPAS_VENDIDAS, fechaAnclaCall, filtroCaja, filtroCierres, filtroCortesias, filtroLeads, filtroLlamadas, llamadaOcurrio, vendidosEn } from "@/lib/queries/metricas-filtros";
+import { claveDeRegistradorDeAbono, closerDeAbono, cerradosEn, ETAPAS_VENDIDAS, fechaAnclaCall, filtroCaja, filtroCierres, filtroCortesias, filtroLeads, filtroLlamadas, llamadaOcurrio, porClaveDeDeal, vendidosEn } from "@/lib/queries/metricas-filtros";
 export { fechaAnclaCall, vendidosEn, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { and, between, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
@@ -15,7 +15,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaHabilDe, diasHabilesEntre, metaDinamica, metaLineal } from "@/lib/dias-habiles";
-import { claveDeCloser, claveDeCloserSql, igualCloser } from "@/lib/closers/identidad";
+import { claveDeCloser, claveDeCloserSql } from "@/lib/closers/identidad";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { vigente } from "@/lib/queries/vigente";
 import type { FilaHechosDelEmbudo, OrigenDelHecho } from "@/lib/queries/hechos-embudo";
@@ -56,16 +56,20 @@ export interface Rango {
  * un closer. Es UN concepto (el alcance de la pregunta), por eso va como objeto y
  * no como lista de argumentos posicionales.
  *
- * `closerId` ausente o `null` = todo el programa. Cuando trae un valor, la consulta
- * responde por ese closer solo (ticket 005). Es el texto copiado del closer
- * logueado (ADR 0011), no un id de `users`.
+ * `claveCloser` ausente o `null` = todo el programa. Cuando trae un valor, la
+ * consulta responde por ese closer solo (ticket 005). El closer se identifica por
+ * `users.id` (ticket 167, Decision 7): la clave es un `users.id` uuid cuando el
+ * closer tiene cuenta, o `historico:<texto normalizado>` para las filas viejas sin
+ * FK (una llamada o un abono historico, un closer sin cuenta). El texto copiado
+ * `closer_id` ya no filtra por si solo: solo casa las filas historicas sin FK
+ * (ADR 0030, ticket 159). La forma de la clave vive en `lib/closers/identidad.ts`.
  *
  * Lo que el filtro NO hace es partir las metas: la meta de cupos y la de leads/dia
  * son de la cohorte (ADR 0022) y no existe reparto por closer en la base.
  */
 export interface AlcanceDePrograma {
   programId: string;
-  closerId?: string | null;
+  claveCloser?: string | null;
 }
 
 export interface Alcance extends AlcanceDePrograma {
@@ -145,10 +149,10 @@ export function tasa(numerador: number, denominador: number): number | null {
  * oportunidad y no el texto histórico de una llamada.
  */
 async function ventasDelRango(
-  { programId, rango, closerId }: Alcance,
+  { programId, rango, claveCloser }: Alcance,
   db: Db,
 ): Promise<number> {
-  const condiciones = filtroCierres({ programId, rango, closerId }, db);
+  const condiciones = filtroCierres({ programId, rango, claveCloser }, db);
   const [fila] = await db
     .select({ ventas: sql<number>`count(distinct ${deals.id})::int` })
     .from(deals)
@@ -158,19 +162,19 @@ async function ventasDelRango(
 }
 
 export async function contarCortesias(
-  { programId, rango, closerId }: Alcance,
+  { programId, rango, claveCloser }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<number> {
   const [fila] = await db
     .select({ cortesias: sql<number>`count(distinct ${deals.id})::int` })
     .from(deals)
     .leftJoin(users, eq(users.id, deals.ownerUserId))
-    .where(and(filtroCortesias({ programId, rango, closerId }, db), vigente(deals)));
+    .where(and(filtroCortesias({ programId, rango, claveCloser }, db), vigente(deals)));
   return fila?.cortesias ?? 0;
 }
 
 async function ventasPorCloser(
-  { programId, rango }: Omit<Alcance, "closerId">,
+  { programId, rango }: Omit<Alcance, "claveCloser">,
   db: Db,
 ): Promise<{ closerId: string | null; cierres: number }[]> {
   return db
@@ -196,7 +200,7 @@ async function ventasPorCloser(
  * devuelve una fila por moneda presente en el rango.
  */
 export async function cajaRecaudada(
-  { programId, rango, closerId }: Alcance,
+  { programId, rango, claveCloser }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<CajaPorMoneda[]> {
   return db
@@ -207,7 +211,7 @@ export async function cajaRecaudada(
     .from(abonos)
     .where(
       and(
-        filtroCaja({ programId, rango, closerId }, db),
+        filtroCaja({ programId, rango, claveCloser }, db),
         vigente(abonos),
       ),
     )
@@ -226,7 +230,7 @@ export async function cajaRecaudada(
  * `deal_etapa_historial`, que no tiene una fila hasta la etapa 3. Lo reescribe E5-1.
  */
 export async function embudoDelRango(
-  { programId, rango, closerId }: Alcance,
+  { programId, rango, claveCloser }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<EmbudoDelRango> {
   const [llamadas] = await db
@@ -237,14 +241,14 @@ export async function embudoDelRango(
     .from(calls)
     .where(
       and(
-        filtroLlamadas({ programId, rango, closerId }),
+        filtroLlamadas({ programId, rango, claveCloser }, db),
         vigente(calls),
       ),
     );
 
   const agendas = llamadas?.agendas ?? 0;
   const llamadasConShow = llamadas?.llamadasConShow ?? 0;
-  const cierres = await ventasDelRango({ programId, rango, closerId }, db);
+  const cierres = await ventasDelRango({ programId, rango, claveCloser }, db);
 
   return {
     agendas,
@@ -257,7 +261,7 @@ export async function embudoDelRango(
 
 /** Deals que cerraron como perdidos en el rango, agrupados por su motivo. */
 export async function dealsPerdidosPorMotivo(
-  { programId, rango, closerId }: Alcance,
+  { programId, rango, claveCloser }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<{ motivo: string; deals: number }[]> {
   const idsCerrados = await cerradosEn(db, programId, rango);
@@ -277,11 +281,52 @@ export async function dealsPerdidosPorMotivo(
         vigente(deals),
         eq(deals.programId, programId),
         inArray(deals.id, idsCerrados),
-        delCloser(users.closerId, closerId),
+        porClaveDeDeal(claveCloser),
       ),
     )
     .groupBy(motivos.nombre)
     .orderBy(sql`count(*) desc`);
+}
+
+/** Una opcion del selector de closer: el `users.id` (valor) y su etiqueta visible. */
+export interface OpcionDeCloser {
+  id: string;
+  label: string;
+}
+
+/**
+ * Los closers CON CUENTA que tuvieron actividad en el rango (ticket 167, Decision 5):
+ * dueno de un deal del programa, o quien registro una llamada o un abono por su FK.
+ * Son las opciones del selector del dashboard, cuyo valor es el `users.id`. Los
+ * closers solo historicos (texto sin cuenta) NO se ofrecen aqui: el comparativo los
+ * sigue mostrando como filas, pero el filtro por URL es por id.
+ */
+export async function closersConCuenta(
+  { programId, rango }: Omit<Alcance, "claveCloser">,
+  db: Db = dbDeLaApp,
+): Promise<OpcionDeCloser[]> {
+  const owners = db
+    .select({ userId: deals.ownerUserId })
+    .from(deals)
+    .where(and(eq(deals.programId, programId), vigente(deals)));
+  const deCalls = db
+    .select({ userId: calls.closerUserId })
+    .from(calls)
+    .where(and(eq(calls.programId, programId), between(fechaAnclaCall(), rango.desde, rango.hasta), vigente(calls)));
+  const deAbonos = db
+    .select({ userId: abonos.registradoPorUserId })
+    .from(abonos)
+    .where(and(eq(abonos.programId, programId), between(abonos.fecha, rango.desde, rango.hasta), vigente(abonos)));
+
+  const filas = await db
+    .select({
+      id: users.id,
+      label: sql<string>`coalesce(${users.closerId}, ${users.nombre}, ${users.email})`,
+    })
+    .from(users)
+    .where(or(inArray(users.id, owners), inArray(users.id, deCalls), inArray(users.id, deAbonos)));
+
+  return filas.sort((a, b) => a.label.localeCompare(b.label));
 }
 
 /**
@@ -304,7 +349,7 @@ export async function dealsPerdidosPorMotivo(
  * (ADR 0009). El tipo lo impide; no es una convencion que haya que recordar.
  */
 export async function embudoPorCloser(
-  { programId, rango }: Omit<Alcance, "closerId">,
+  { programId, rango }: Omit<Alcance, "claveCloser">,
   db: Db = dbDeLaApp,
 ): Promise<(EmbudoDelRango & { closerId: string | null; caja: CajaPorMoneda[] })[]> {
   const ancla = fechaAnclaCall();
@@ -481,16 +526,16 @@ export async function nombresDeCanales(
  * comparativo—. Contar deals a secas seria la trampa que el ticket 038 nombra: una
  * cifra inflada que no lanza ningun error.
  *
- * Con `closerId` cuenta solo los de ese closer, que es su CONTRIBUCION a la cohorte;
- * la meta sigue siendo la de la cohorte y no se reparte (ADR 0023). El filtro llega
- * como el TEXTO del closer y el dueno del deal es una FK a `users`, asi que se
- * resuelve por `users.closerId` con `igualCloser` (ADR 0030): `Mani` y `mani` son
- * el mismo closer y una comparacion cruda los partiria en dos.
+ * Con `claveCloser` cuenta solo los de ese closer, que es su CONTRIBUCION a la
+ * cohorte; la meta sigue siendo la de la cohorte y no se reparte (ADR 0023). El
+ * dueno de un deal es una FK a `users`, asi que una clave de cuenta se resuelve por
+ * `deals.ownerUserId` y una historica cae al texto de `users.closerId` con
+ * `igualCloser` (ADR 0030, ticket 167): la respuesta vive en `porClaveDeDeal`.
  */
 async function ventasDeCohorte(
   cohorteId: string,
   db: Db,
-  closerId?: string | null,
+  claveCloser?: string | null,
 ): Promise<number> {
   const deLaCohorte = and(
     eq(deals.cohortId, cohorteId),
@@ -504,14 +549,14 @@ async function ventasDeCohorte(
   // lee cadena por cadena, y una condicion escondida en una variable le pasa por
   // debajo. Quien lee la consulta tiene que ver la decision ahi mismo.
   const [fila] =
-    closerId == null
+    claveCloser == null
       // Sin closer no hace falta el join: `deals` solo, que incluye los Unclaimed.
       ? await db.select(conteo).from(deals).where(and(deLaCohorte, vigente(deals)))
       : await db
           .select(conteo)
           .from(deals)
           .innerJoin(users, eq(users.id, deals.ownerUserId))
-          .where(and(deLaCohorte, vigente(deals), igualCloser(users.closerId, closerId)));
+          .where(and(deLaCohorte, vigente(deals), porClaveDeDeal(claveCloser)));
 
   return fila?.n ?? 0;
 }
@@ -527,7 +572,7 @@ async function ventasDeCohorte(
  * inventa ningun dia habil.
  */
 export async function vistaDeCohorteActiva(
-  { programId, closerId }: AlcanceDePrograma,
+  { programId, claveCloser }: AlcanceDePrograma,
   hoy: string,
   db: Db = dbDeLaApp,
 ): Promise<VistaDeCohorte | null> {
@@ -540,7 +585,7 @@ export async function vistaDeCohorteActiva(
   // contra un closer. Lo del closer va aparte, como contribucion.
   const vendidos = await ventasDeCohorte(cohorte.id, db);
   const vendidosDelCloser =
-    closerId == null ? null : await ventasDeCohorte(cohorte.id, db, closerId);
+    claveCloser == null ? null : await ventasDeCohorte(cohorte.id, db, claveCloser);
   const faltan = Math.max(meta - vendidos, 0);
 
   const base: VistaDeCohorte = {
@@ -594,20 +639,20 @@ export async function vistaDeCohorteActiva(
  * nunca divide por cero (null si no hay meta o es 0).
  */
 export async function leadsDelRango(
-  { programId, rango, closerId }: Alcance,
+  { programId, rango, claveCloser }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<LeadsDelRango> {
   // Filtrado por closer no hay a que preguntarle: la atribucion vivia en
   // `responsableCloserId` y se fue con el ADR 0035. Ver la nota de `LeadsDelRango`.
-  const [fila] = closerId
+  const [fila] = claveCloser
     ? [undefined]
     : await db
         .select({ n: sql<number>`count(*)::int` })
         .from(leads)
         .where(
-          filtroLeads({ programId, rango, closerId }),
+          filtroLeads({ programId, rango, claveCloser }),
         );
-  const conteoLeads = closerId ? null : (fila?.n ?? 0);
+  const conteoLeads = claveCloser ? null : (fila?.n ?? 0);
 
   const diasHabiles = diasHabilesEntre(rango.desde, rango.hasta);
 

@@ -43,6 +43,10 @@ const esquemaFiltrosPauta = z.object({
 
 const esquemaFiltroArea = z.string().uuid().optional().catch(undefined);
 
+// El filtro de closer de la URL es un `users.id` (ticket 167, Decision 5): un valor
+// que no es uuid se ignora (no filtra), igual que el filtro de area.
+const esquemaFiltroCloser = z.string().uuid().optional().catch(undefined);
+
 /** Un parametro de la URL solo sirve si vino una vez y como texto. */
 function texto(valor: string | string[] | undefined): string | undefined {
   return typeof valor === "string" && valor !== "" ? valor : undefined;
@@ -80,7 +84,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
     preset: texto(busqueda.rango) ?? "hoy",
     desde: texto(busqueda.desde),
     hasta: texto(busqueda.hasta),
-    closerId: texto(busqueda.closer) ?? null,
+    claveCloser: esquemaFiltroCloser.parse(texto(busqueda.closer)) ?? null,
   });
 
   const detalles = await detallesDelDashboard({
@@ -88,14 +92,14 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
     slug,
     hoy,
     periodo: vista.periodo,
-    closerId: vista.closerId,
+    claveCloser: vista.claveCloser,
   });
   const dealsContraAgendas = await vistaDealsContraAgendas({
     programId: programa.id,
     slug,
     hoy,
     periodo: vista.periodo,
-    closerId: vista.closerId,
+    claveCloser: vista.claveCloser,
   });
   const { desde, hasta } = vista.seleccion.rango;
 
@@ -117,7 +121,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
   const porCanal = await registrosYAgendasPorCanal(db, programa.id, vista.seleccion.rango, hoy);
   const hechosFiltrados = areaId === undefined ? hechos : hechos.filter((fila) => fila.areaId === areaId);
   // Con un closer en el filtro el bloque Origen por canal no se muestra (129).
-  const origenPorCanal = vista.closerId
+  const origenPorCanal = vista.claveCloser
     ? null
     : embudoPorCanal(hechosFiltrados, await nombresDeCanales(db));
   const resumenSerie = hechosFiltrados.reduce(
@@ -158,7 +162,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
         <FiltroDashboard
           periodo={vista.periodo}
           anteriorDisponible={vista.anteriorDisponible}
-          closerId={vista.closerId}
+          claveCloser={vista.claveCloser}
           closers={vista.closers}
           cohorteDisponible={vista.cohorte?.ventana != null}
         />

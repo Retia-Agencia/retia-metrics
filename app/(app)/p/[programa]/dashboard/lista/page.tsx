@@ -61,8 +61,14 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     pagina,
   });
   if (!vista) notFound();
-  const { lista, periodo, closerId } = vista;
-  const enlace = urlDeLista(slug, metrica, periodo, closerId, moneda);
+  const { lista, periodo, claveCloser } = vista;
+  const enlace = urlDeLista(slug, metrica, periodo, claveCloser, moneda);
+  // La etiqueta visible del closer filtrado sale de los grupos (nunca la clave
+  // interna, que puede ser un uuid o `historico:...`): todas las filas del filtro
+  // comparten closer. Sin filtro, "Todos los closers".
+  const etiquetaCloser = claveCloser
+    ? (lista.grupos.find((g) => g.closer)?.closer ?? "Sin closer")
+    : "Todos los closers";
   // El origen de ESTA lista para "Ver deal" (ticket 174).
   const origen = origenDeLaPagina(`/p/${slug}/dashboard/lista`, busqueda);
   return (
@@ -73,7 +79,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           <Badge variant="secondary">{titulos[metrica]}</Badge>
           <Badge variant="secondary">A: {fecha(periodo.a.desde)} a {fecha(periodo.a.hasta)}</Badge>
           {periodo.b ? <Badge variant="secondary">B: {fecha(periodo.b.desde)} a {fecha(periodo.b.hasta)}</Badge> : null}
-          <Badge variant="secondary">{closerId || "Todos los closers"}</Badge>
+          <Badge variant="secondary">{etiquetaCloser}</Badge>
           {moneda ? <Badge variant="secondary">{moneda}</Badge> : null}
         </div>
         {periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{periodo.aviso}</p> : null}

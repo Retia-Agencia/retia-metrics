@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, cohorts, deals, leads, programs } from "@/lib/db/schema";
+import { abonos, calls, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
+import { claveHistorica } from "@/lib/closers/identidad";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -62,7 +63,7 @@ describe("el closer elegido acota la vista, menos el comparativo", () => {
     await sembrarDosClosers();
 
     const vista = await armarVistaDelDashboard(
-      { programId: programaA, hoy: HOY, preset: "hoy", closerId: "Ana" },
+      { programId: programaA, hoy: HOY, preset: "hoy", claveCloser: claveHistorica("Ana") },
       db,
     );
 
@@ -109,20 +110,22 @@ describe("el preset que sale es el que de verdad se uso", () => {
 });
 
 describe("el selector de closer", () => {
-  it("no pierde al closer elegido aunque en ese rango no tenga nada registrado", async () => {
-    await sembrarDosClosers();
+  it("ofrece a los closers CON CUENTA que tuvieron actividad, con su users.id como valor", async () => {
+    // Un closer con cuenta que es dueño de un deal del programa: el selector lo ofrece
+    // con su `users.id` como valor y su etiqueta visible (Decision 5, ticket 167). Los
+    // closers solo históricos (texto sin cuenta) no se ofrecen; el comparativo los sigue
+    // mostrando como filas.
+    const [ana] = await db.insert(users).values({ email: "ana@retia.co", rol: "closer", closerId: "Ana" }).returning();
+    const [lead] = await db.insert(leads).values({ programId: programaA, emailNormalizado: "lead@retia.co" }).returning();
+    await db.insert(deals).values({ programId: programaA, leadId: lead.id, ownerUserId: ana.id, etapa: "ganado_parcial" });
 
-    // Un rango donde Ana no tiene ni llamadas ni ventas ni abonos. Si el selector
-    // solo listara a quien aparece en el comparativo, se borraria la seleccion sola
-    // y la pantalla diria "todos" mientras muestra los numeros de Ana.
     const vista = await armarVistaDelDashboard(
-      { programId: programaA, hoy: HOY, preset: "custom", desde: "2026-01-01", hasta: "2026-01-31", closerId: "Ana" },
+      { programId: programaA, hoy: HOY, preset: "custom", desde: "2026-01-01", hasta: "2026-01-31", claveCloser: ana.id },
       db,
     );
 
-    expect(vista.comparativo).toHaveLength(0);
-    expect(vista.closers).toContain("Ana");
-    expect(vista.closerId).toBe("Ana");
+    expect(vista.closers).toEqual([{ id: ana.id, label: "Ana" }]);
+    expect(vista.claveCloser).toBe(ana.id);
   });
 });
 

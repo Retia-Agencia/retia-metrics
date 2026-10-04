@@ -6,6 +6,7 @@ import { resolverPeriodo } from "@/lib/periodo";
 import { acumularPorHabil, serieDealsContraAgendas } from "@/lib/queries/deals-contra-agendas";
 import { listaDeMetrica, resumenDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { periodoDeLaGrafica, vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
+import { claveHistorica } from "@/lib/closers/identidad";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -156,16 +157,16 @@ describe("138: deals creados contra agendas, contra la base", () => {
   });
 
   it("con closer no hay cifra ni gráfica: nunca el programa entero", async () => {
-    const [resumen] = await resumenDeMetrica("deals_creados", { programId: programaA, rango: A, hoy: HOY, closerId: "Ana" }, db);
+    const [resumen] = await resumenDeMetrica("deals_creados", { programId: programaA, rango: A, hoy: HOY, claveCloser: claveHistorica("Ana") }, db);
     expect(resumen).toMatchObject({ disponible: false, subtotal: { cantidad: 0 } });
     const periodo = resolverPeriodo({ preset: "este_mes" }, { hoy: HOY });
-    expect(await vistaDealsContraAgendas({ programId: programaA, slug: "prueba-a", hoy: HOY, periodo, closerId: "Ana" }, db))
+    expect(await vistaDealsContraAgendas({ programId: programaA, slug: "prueba-a", hoy: HOY, periodo, claveCloser: claveHistorica("Ana") }, db))
       .toEqual({ disponible: false });
   });
 
   it("la vista arma A, B y el enlace de cada cifra a su lista con el periodo de la gráfica", async () => {
     const periodo = resolverPeriodo({ preset: "hoy" }, { hoy: HOY });
-    const vista = await vistaDealsContraAgendas({ programId: programaA, slug: "prueba-a", hoy: HOY, periodo, closerId: null }, db);
+    const vista = await vistaDealsContraAgendas({ programId: programaA, slug: "prueba-a", hoy: HOY, periodo, claveCloser: null }, db);
     if (!vista.disponible) throw new Error("debería estar disponible");
     expect(vista.a.puntos).toHaveLength(7);
     expect(vista.b!.puntos).toHaveLength(7);

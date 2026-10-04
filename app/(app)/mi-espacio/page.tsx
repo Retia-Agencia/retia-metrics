@@ -158,7 +158,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
             <SelectorDePrograma programas={visibles} actual={programa?.slug ?? "todos"} tab={seccion.id} busqueda={query} />
           ) : null}
 
-          {Seccion({ seccion, programa, programas: visibles, userId, rol, closerId: session.user.closerId, busqueda: query })}
+          {Seccion({ seccion, programa, programas: visibles, userId, rol, busqueda: query })}
         </div>
       </div>
     </PageShell>
@@ -176,7 +176,6 @@ function Seccion({
   programas,
   userId,
   rol,
-  closerId,
   busqueda,
 }: {
   seccion: SeccionMiEspacio;
@@ -184,18 +183,18 @@ function Seccion({
   programas: { id: string; slug: string; nombre: string }[];
   userId: string;
   rol: Rol;
-  closerId: string | null | undefined;
   busqueda: Record<string, string | string[] | undefined>;
 }): ReactElement | null {
   switch (seccion.id) {
     case "atencion":
       return programa ? <TabAtencion programId={programa.id} slug={programa.slug} userId={userId} rol={rol} /> : null;
     case "metricas": {
-      if (!closerId) throw new Error("La sesión efectiva no tiene closerId para mostrar Mis métricas.");
+      // El closer se identifica por su `users.id` (ticket 167): asi un closer sin el
+      // texto `closer_id` ve igual sus metricas. Ya no hay que exigir el texto.
       const seleccionado = programa
         ? { ...programa, nombre: programas.find((p) => p.id === programa.id)?.nombre ?? programa.slug }
         : null;
-      return <TabMetricas programas={programas} programa={seleccionado} closerId={closerId} hoy={hoyEnBogota()} busqueda={busqueda} />;
+      return <TabMetricas programas={programas} programa={seleccionado} closerUserId={userId} hoy={hoyEnBogota()} busqueda={busqueda} />;
     }
     case "canales":
       return <TabCanales />;

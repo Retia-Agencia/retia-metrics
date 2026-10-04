@@ -8,6 +8,7 @@ import { parsearPeriodoUrl, resolverPeriodo, type EntradaDePeriodo, type Periodo
 import { ventanasAnterioresDeCohorte } from "@/lib/queries/ventanas-de-cohortes";
 import {
   cajaRecaudada,
+  closersConCuenta,
   contarCortesias,
   dealsPerdidosPorMotivo,
   embudoDelRango,
@@ -17,6 +18,7 @@ import {
   type CajaPorMoneda,
   type EmbudoDelRango,
   type LeadsDelRango,
+  type OpcionDeCloser,
   type VistaDeCohorte,
 } from "@/lib/queries/dashboard";
 import { comisionesPorCloser } from "@/lib/queries/comision";
@@ -48,17 +50,18 @@ export interface EntradaDeVista {
   periodo?: EntradaDePeriodo;
   desde?: string;
   hasta?: string;
-  closerId?: string | null;
+  /** La clave de identidad del closer (ticket 167): un `users.id` uuid, o `null`. */
+  claveCloser?: string | null;
 }
 
 export interface VistaDelDashboard {
   seleccion: SeleccionDeRango;
   periodo: PeriodoResuelto;
   anteriorDisponible: boolean;
-  /** El closer al que se acoto la vista, o null si se esta mirando todo el programa. */
-  closerId: string | null;
-  /** Los closers que puede elegir el selector. */
-  closers: string[];
+  /** El closer al que se acoto la vista (su `users.id`), o null si se mira todo. */
+  claveCloser: string | null;
+  /** Los closers CON CUENTA que puede elegir el selector (valor = `users.id`). */
+  closers: OpcionDeCloser[];
   embudo: EmbudoDelRango;
   sinGrain: Awaited<ReturnType<typeof showsSinGrain>>;
   caja: CajaPorMoneda[];
@@ -82,9 +85,9 @@ export async function armarVistaDelDashboard(
   db: Db = dbDeLaApp,
 ): Promise<VistaDelDashboard> {
   const { programId, hoy, preset, desde, hasta } = entrada;
-  const closerId = entrada.closerId ?? null;
+  const claveCloser = entrada.claveCloser ?? null;
 
-  const cohorte = await vistaDeCohorteActiva({ programId, closerId }, hoy, db);
+  const cohorte = await vistaDeCohorteActiva({ programId, claveCloser }, hoy, db);
   const ventanas = cohorte
     ? await ventanasAnterioresDeCohorte(db, programId, cohorte.cohorteId)
     : { anterior: null, anteAnterior: null };
@@ -99,9 +102,9 @@ export async function armarVistaDelDashboard(
   };
   const rango = periodo.a;
 
-  const alcance = { programId, rango, closerId };
+  const alcance = { programId, rango, claveCloser };
 
-  const [embudo, sinGrain, caja, cortesias, leads, motivos, porCloser, comisiones, [programa]] = await Promise.all([
+  const [embudo, sinGrain, caja, cortesias, leads, motivos, porCloser, comisiones, closers, [programa]] = await Promise.all([
     embudoDelRango(alcance, db),
     showsSinGrain(alcance, db),
     cajaRecaudada(alcance, db),
@@ -110,6 +113,7 @@ export async function armarVistaDelDashboard(
     dealsPerdidosPorMotivo(alcance, db),
     embudoPorCloser({ programId, rango }, db),
     comisionesPorCloser({ programId, rango }, db),
+    closersConCuenta({ programId, rango }, db),
     db.select({ comisionPorcentaje: programs.comisionPorcentaje }).from(programs).where(eq(programs.id, programId)),
   ]);
   const comisionPorClave = new Map(comisiones.map((c) => [claveDeCloser(c.closerId), c]));
@@ -119,19 +123,11 @@ export async function armarVistaDelDashboard(
     ventasSinComision: comisionPorClave.get(claveDeCloser(c.closerId))?.ventasSinComision ?? 0,
   }));
 
-  // Las opciones del selector salen del comparativo (quien tiene actividad en el
-  // rango), mas el closer ya elegido: si no, cambiar de rango a uno donde no hizo
-  // nada le borraria la seleccion al usuario mientras la pantalla sigue mostrando
-  // los numeros de ese closer.
-  const closers = [...new Set(comparativo.map((c) => c.closerId).concat(closerId))]
-    .filter((c): c is string => c !== null)
-    .sort((a, b) => a.localeCompare(b));
-
   return {
     seleccion,
     periodo,
     anteriorDisponible: ventanas.anterior !== null,
-    closerId,
+    claveCloser,
     closers,
     embudo,
     sinGrain,

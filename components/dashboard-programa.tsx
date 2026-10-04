@@ -84,7 +84,9 @@ export function DashboardPrograma({
   detalles?: DetallesDelDashboard;
   origenPorCanal: FilaEmbudoPorCanal[] | null;
 }) {
-  const { embudo, sinGrain, caja, cortesias, leads, cohorte, comparativo, comisionPorcentaje, motivos, closerId } = vista;
+  const { embudo, sinGrain, caja, cortesias, leads, cohorte, comparativo, comisionPorcentaje, motivos, claveCloser, closers } = vista;
+  // La etiqueta visible del closer filtrado (nunca su `users.id`): sale del selector.
+  const etiquetaCloser = claveCloser === null ? null : (closers.find((c) => c.id === claveCloser)?.label ?? "este closer");
 
   return (
     <div className="space-y-6">
@@ -206,9 +208,9 @@ export function DashboardPrograma({
                 </p>
               )}
 
-              {closerId !== null ? (
+              {claveCloser !== null ? (
                 <p className="text-sm">
-                  Contribución de <span className="font-medium">{closerId}</span>:{" "}
+                  Contribución de <span className="font-medium">{etiquetaCloser}</span>:{" "}
                   <span className="tabular-nums">{num(cohorte.vendidosDelCloser ?? 0)}</span> de
                   los {num(cohorte.vendidos)} cupos vendidos. La meta es de la cohorte, no
                   individual.
@@ -333,9 +335,9 @@ export function DashboardPrograma({
         </Card>
       </div>
 
-      {closerId !== null ? (
+      {claveCloser !== null ? (
         <p className="text-xs text-muted-foreground">
-          Filtrado por <span className="font-medium">{closerId}</span>. Los leads no se
+          Filtrado por <span className="font-medium">{etiquetaCloser}</span>. Los leads no se
           muestran por closer: la atribución pasa a ser el dueño del deal y todavía no hay
           deals, así que un número aquí sería el del programa entero con el nombre de una
           persona encima.
