@@ -964,6 +964,28 @@ export async function etapaAntesDeCompromiso(tx: Db, dealId: string): Promise<Et
   return fila?.de ?? null;
 }
 
+type UltimoMovimiento = {
+  de: EtapaDeal | null;
+  a: EtapaDeal;
+  pendienteDe: PendienteDeal | null;
+  userId: string | null;
+  tipoMotivo: TipoMotivo | null;
+};
+
+/** La regla de la corrección, una sola: la usan la lectura de un deal y la del tablero. */
+function destinoDeCorreccion(
+  etapaActual: EtapaDeal,
+  ultima: UltimoMovimiento | undefined,
+): { a: EtapaDeal; pendiente: PendienteDeal | null } | null {
+  if (
+    ultima?.de == null
+    || ultima.userId == null
+    || ultima.tipoMotivo === "correccion"
+    || etapaActual !== ultima.a
+  ) return null;
+  return { a: ultima.de, pendiente: ultima.pendienteDe };
+}
+
 /** Destino de corregir el último movimiento humano, o `null` cuando no se ofrece. */
 export async function etapaDeCorreccion(
   tx: Db,
@@ -988,14 +1010,35 @@ export async function etapaDeCorreccion(
     .where(eq(dealEtapaHistorial.dealId, dealId))
     .orderBy(desc(dealEtapaHistorial.fecha), desc(dealEtapaHistorial.id))
     .limit(1);
+  return destinoDeCorreccion(deal.etapa, ultima);
+}
 
-  if (
-    ultima?.de == null
-    || ultima.userId == null
-    || ultima.tipoMotivo === "correccion"
-    || deal.etapa !== ultima.a
-  ) return null;
-  return { a: ultima.de, pendiente: ultima.pendienteDe };
+/** El tablero pregunta por todas sus tarjetas de una vez: una consulta, la misma regla. */
+export async function destinosDeCorreccion(
+  db: Db,
+  tarjetas: readonly { dealId: string; etapa: EtapaDeal }[],
+): Promise<Record<string, { a: EtapaDeal; pendiente: PendienteDeal | null }>> {
+  if (tarjetas.length === 0) return {};
+  const ultimas = await db
+    .selectDistinctOn([dealEtapaHistorial.dealId], {
+      dealId: dealEtapaHistorial.dealId,
+      de: dealEtapaHistorial.de,
+      a: dealEtapaHistorial.a,
+      pendienteDe: dealEtapaHistorial.pendienteDe,
+      userId: dealEtapaHistorial.userId,
+      tipoMotivo: motivos.tipo,
+    })
+    .from(dealEtapaHistorial)
+    .leftJoin(motivos, eq(dealEtapaHistorial.motivoId, motivos.id))
+    .where(inArray(dealEtapaHistorial.dealId, tarjetas.map((t) => t.dealId)))
+    .orderBy(dealEtapaHistorial.dealId, desc(dealEtapaHistorial.fecha), desc(dealEtapaHistorial.id));
+  const porDeal = new Map(ultimas.map((u) => [u.dealId, u]));
+  const destinos: Record<string, { a: EtapaDeal; pendiente: PendienteDeal | null }> = {};
+  for (const { dealId, etapa } of tarjetas) {
+    const destino = destinoDeCorreccion(etapa, porDeal.get(dealId));
+    if (destino) destinos[dealId] = destino;
+  }
+  return destinos;
 }
 
 /** Un requisito de la flecha y si el deal ya lo cumple. */

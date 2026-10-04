@@ -11,6 +11,8 @@ import { PageShell } from "@/components/page-shell";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { FiltroKanban } from "@/components/deals/filtro-kanban";
 import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
+import { correccionSerializable } from "@/lib/deals/mapa-transiciones";
+import { destinosDeCorreccion } from "@/lib/deals/mover-etapa";
 import { TableroKanban } from "@/components/deals/tablero-kanban";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { NuevoDeal } from "@/components/deals/nuevo-deal";
@@ -59,6 +61,14 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
     tableroKanban(db, programa.id, alcanceDeals, filtros),
     opcionesDeTablero(db, programa.id),
   ]);
+  const tarjetas = tablero.columnas.flatMap((c) => c.tarjetas);
+  const destinos = await destinosDeCorreccion(db, tarjetas);
+  const correcciones = Object.fromEntries(
+    tarjetas.flatMap((t) => {
+      const correccion = correccionSerializable(t.etapa, destinos[t.dealId] ?? null);
+      return correccion ? [[t.dealId, correccion] as const] : [];
+    }),
+  );
 
   return (
     <PageShell
@@ -98,6 +108,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
           columnas={tablero.columnas}
           total={tablero.total}
           mapa={mapaDeTransiciones()}
+          correcciones={correcciones}
           nombreDeEtapa={NOMBRE_DE_ETAPA}
           nombreDePendiente={NOMBRE_DE_PENDIENTE}
           tonoDeEtapa={TONO_DE_ETAPA}

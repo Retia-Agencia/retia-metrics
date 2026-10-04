@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { usd } from "@/lib/format";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import type { ColumnaKanban, OpcionCatalogo, TarjetaDeal } from "@/lib/queries/kanban";
-import type { MapaTransiciones } from "./transiciones";
+import type { CorreccionCliente, MapaTransiciones } from "./transiciones";
 import type { TonoEtapa } from "./etapa-tono";
 import { TarjetaDealCard } from "./tarjeta-deal";
 import { respuestasHacia } from "./pregunta-de-etapa";
@@ -35,6 +35,8 @@ export interface TableroKanbanProps {
   columnas: ColumnaKanban[];
   total: number;
   mapa: MapaTransiciones;
+  /** A que etapa se corrige cada deal del tablero (solo los que se pueden corregir), calculado en el servidor. */
+  correcciones: Record<string, CorreccionCliente>;
   nombreDeEtapa: Record<EtapaDeal, string>;
   nombreDePendiente: Record<PendienteDeal, string>;
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
@@ -54,8 +56,10 @@ export interface TableroKanbanProps {
   origen: string;
 }
 
-function claseDeDestino({ permitido, prohibido, enHover }: { permitido: boolean; prohibido: boolean; enHover: boolean }) {
+function claseDeDestino({ permitido, correccion, prohibido, enHover }: { permitido: boolean; correccion: boolean; prohibido: boolean; enHover: boolean }) {
   return cn(
+    correccion && "ring-1 ring-tono-peligro/40",
+    correccion && enHover && "bg-tono-peligro/10 ring-2 ring-tono-peligro",
     permitido && "ring-1 ring-primary/40",
     permitido && enHover && "bg-primary/10 ring-2 ring-primary",
     prohibido && "opacity-40",
@@ -67,6 +71,7 @@ export function TableroKanban({
   columnas,
   total,
   mapa,
+  correcciones,
   nombreDeEtapa,
   nombreDePendiente,
   tonoDeEtapa,
@@ -91,7 +96,7 @@ export function TableroKanban({
   const animacionRef = useRef<number | null>(null);
   // El servidor ya escribió: se refresca la pantalla actual (router.refresh), NO
   // revalidatePath, que no refresca la ruta que acaba de escribir (AGENTS.md).
-  const { elegir, abrirDestino, dialogo } = useResponder(mapa, { areas, cohortes, cohortesDestino, motivos }, nombreDeEtapa, () => router.refresh());
+  const { elegir, abrirDestino, corregir, dialogo } = useResponder(mapa, { areas, cohortes, cohortesDestino, motivos }, nombreDeEtapa, () => router.refresh());
 
   const detenerAutoScroll = useCallback(() => {
     velocidadRef.current = 0;
@@ -153,6 +158,11 @@ export function TableroKanban({
     setColumnaHover(null);
     if (!tarjeta || tarjeta.etapa === columna) return;
     const respuestas = respuestasHacia(tarjeta.etapa, tarjeta.pendiente, columna);
+    const correccion = correcciones[tarjeta.dealId];
+    if (respuestas.length === 0 && correccion?.a === columna) {
+      corregir(dealDe(tarjeta), correccion);
+      return;
+    }
     if (respuestas.length === 0) {
       toast.error(`Desde ${nombreDeEtapa[tarjeta.etapa]} no se pasa a ${nombreDeEtapa[columna]}.`);
       return;
@@ -181,7 +191,10 @@ export function TableroKanban({
         {columnas.map((columna) => {
           const destinoPermitido =
             arrastrando != null && respuestasHacia(arrastrando.etapa, arrastrando.pendiente, columna.etapa).length > 0;
-          const destinoProhibido = arrastrando != null && arrastrando.etapa !== columna.etapa && !destinoPermitido;
+          // Corregir pinta en rojo solo donde no hay un camino normal hacia la misma etapa.
+          const destinoCorreccion =
+            arrastrando != null && !destinoPermitido && correcciones[arrastrando.dealId]?.a === columna.etapa;
+          const destinoProhibido = arrastrando != null && arrastrando.etapa !== columna.etapa && !destinoPermitido && !destinoCorreccion;
           const tarjetas = columna.tarjetas;
 
           return (
@@ -190,7 +203,7 @@ export function TableroKanban({
               onDragOver={(e) => {
                 if (arrastrando) {
                   e.preventDefault();
-                  e.dataTransfer.dropEffect = destinoPermitido ? "move" : "none";
+                  e.dataTransfer.dropEffect = destinoPermitido || destinoCorreccion ? "move" : "none";
                   setColumnaHover(columna.etapa);
                 }
               }}
@@ -206,6 +219,7 @@ export function TableroKanban({
                 // y la que tiene el cursor encima se destaca.
                 claseDeDestino({
                   permitido: destinoPermitido,
+                  correccion: destinoCorreccion,
                   prohibido: destinoProhibido,
                   enHover: columnaHover === columna.etapa,
                 }),

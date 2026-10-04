@@ -82,6 +82,8 @@ sigue verde, `tests/pregunta-de-etapa.test.ts`.
 
 ## Estado
 
-Implementado el motor, la ficha en dos columnas, el diálogo compartido, el enum en `schema.ts`, las pruebas y la
-documentación. No se generó migración. El paso de Kanban quedó omitido porque el ticket 181 no aparece en
-`main..HEAD`, tal como exige el orden de trabajo de este ticket.
+Cerrado el 3-oct (noche). Motor de corrección (`CORR`, `etapaDeCorreccion` y `destinosDeCorreccion`), ficha en dos columnas,
+diálogo compartido, ADR 0078 y docs. Kanban: la etapa de corrección se pinta en rojo solo donde no hay un camino normal
+hacia la misma etapa, y soltar abre el mismo pop-up. Migración **0066** (`ADD VALUE IF NOT EXISTS 'correccion'`, aplicada en
+producción). **Falta sembrar los motivos de tipo `correccion`** ("Me equivoqué de etapa", "Lo movió otra persona por error")
+por el molde, con el ok de Mani. El arrastre en rojo no se probó a mano en el navegador (solo build, tipos y tests).

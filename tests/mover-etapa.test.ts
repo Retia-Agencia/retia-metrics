@@ -16,7 +16,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
-import { etapaDeCorreccion, MovimientoRechazado, abrirDeal, moverEtapa, revisarMovimiento, type Actor } from "@/lib/deals/mover-etapa";
+import { destinosDeCorreccion, etapaDeCorreccion, MovimientoRechazado, abrirDeal, moverEtapa, revisarMovimiento, type Actor } from "@/lib/deals/mover-etapa";
 import { crearConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { embudoDelRango } from "@/lib/queries/dashboard";
@@ -457,6 +457,20 @@ describe("corregir el último movimiento", () => {
       expect.objectContaining({ campo: "etapa", valorAnterior: "calificado", valorNuevo: "contactado", userId: closer }),
     ]));
     expect(await etapaDeCorreccion(db, dealId)).toBeNull();
+  });
+
+  it("el tablero calcula el destino de varias tarjetas con la misma regla", async () => {
+    const humano = await nuevoDeal("calificado", { ownerUserId: closer });
+    await db.insert(dealEtapaHistorial).values({ dealId: humano, de: "contactado", a: "calificado", userId: closer });
+    const sinHistorial = "00000000-0000-4000-8000-000000000000";
+
+    expect(await destinosDeCorreccion(db, [
+      { dealId: humano, etapa: "calificado" },
+      { dealId: sinHistorial, etapa: "calificado" },
+    ])).toEqual({ [humano]: { a: "contactado", pendiente: null } });
+    // Una etapa que ya no es la del último movimiento no se corrige.
+    expect(await destinosDeCorreccion(db, [{ dealId: humano, etapa: "agendado" }])).toEqual({});
+    expect(await destinosDeCorreccion(db, [])).toEqual({});
   });
 
   it("no se ofrece si el último movimiento fue del sistema", async () => {
