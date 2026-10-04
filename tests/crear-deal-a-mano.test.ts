@@ -162,6 +162,20 @@ describe("crear un deal sobre un lead sin deal abierto", () => {
     expect(d).toMatchObject({ etapa: "en_gestion", ownerUserId: closerA });
   });
 
+  it("un closer sin closer_id crea el lead y el deal con su users.id", async () => {
+    await db.update(users).set({ closerId: null }).where(eq(users.id, closerA));
+    auth.mockResolvedValue(sesion(closerA, "closer", null));
+
+    const r = await (await acciones()).crearDeal({
+      programId: programaA,
+      lead: { tipo: "nuevo", correo: "sin-codigo@correo.co" },
+    });
+
+    expect(r).toMatchObject({ ok: true, leadCreado: true });
+    const [lead] = await db.select().from(leads).where(eq(leads.emailNormalizado, "sin-codigo@correo.co"));
+    expect((await dealsDe(lead.id))[0]).toMatchObject({ ownerUserId: closerA, creadoPor: closerA });
+  });
+
   it("reaplicar tras un Cierre Perdido abre un deal nuevo: el cerrado no ocupa el cupo", async () => {
     const leadId = await nuevoLead(programaA);
     await db.insert(deals).values({ leadId, programId: programaA, etapa: "cierre_perdido" });

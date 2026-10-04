@@ -1,11 +1,11 @@
-import { and, asc, between, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, between, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { vigente } from "@/lib/queries/vigente";
 import type { Alcance } from "@/lib/queries/dashboard";
-import { igualCloser } from "@/lib/closers/identidad";
+import { claveDeCloserSql, igualCloser } from "@/lib/closers/identidad";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import { ETAPAS_VENDIDAS } from "@/lib/deals/etapas";
 import type { Rango } from "@/lib/queries/dashboard";
@@ -35,6 +35,26 @@ export function delCloser(columna: PgColumn, closerId: string | null | undefined
   // Sin distinguir mayusculas (ADR 0030): `Mani` y `mani` son el mismo closer, y
   // la respuesta a eso vive en `lib/closers/identidad.ts`, no aca.
   return closerId == null ? undefined : igualCloser(columna, closerId);
+}
+
+/**
+ * Etiqueta visible de quien registro un abono. La FK manda para filas nuevas; solo
+ * una fila historica sin FK cae al texto copiado, hasta el corte del ticket 159.
+ */
+export function closerDeAbono() {
+  return sql<string | null>`case
+    when ${abonos.registradoPorUserId} is not null
+      then coalesce(${users.closerId}, ${users.nombre}, ${users.email})
+    else ${abonos.closerId}
+  end`;
+}
+
+/** Identidad de agrupacion: UUID para lo nuevo, texto normalizado solo para la historia. */
+export function claveDeRegistradorDeAbono() {
+  return sql<string>`case
+    when ${users.id} is not null then ${users.id}::text
+    else 'historico:' || coalesce(${claveDeCloserSql(abonos.closerId)}, '')
+  end`;
 }
 
 export { ETAPAS_VENDIDAS };
@@ -130,11 +150,19 @@ export function llamadaOcurrio() {
 
 
 /** Una definición del universo por métrica; la vigencia queda visible en cada lector. */
-export function filtroCaja({ programId, rango, closerId }: Alcance) {
+export function filtroCaja({ programId, rango, closerId }: Alcance, db: Db) {
+  const usuariosDelCloser = closerId == null
+    ? undefined
+    : db.select({ id: users.id }).from(users).where(igualCloser(users.closerId, closerId));
   return and(
     eq(abonos.programId, programId),
     between(abonos.fecha, rango.desde, rango.hasta),
-    delCloser(abonos.closerId, closerId),
+    closerId == null
+      ? undefined
+      : or(
+          and(isNotNull(abonos.registradoPorUserId), inArray(abonos.registradoPorUserId, usuariosDelCloser!)),
+          and(isNull(abonos.registradoPorUserId), igualCloser(abonos.closerId, closerId)),
+        ),
   );
 }
 

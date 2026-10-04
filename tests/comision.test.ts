@@ -160,6 +160,23 @@ describe("comision del comparativo", () => {
     expect(v.comparativo[0]).toMatchObject({ cierres: 1, comisionUsd: 0, ventasSinComision: 1 });
     expect(textoComisionPrograma(v.comisionPorcentaje)).toBe("Comisión: sin porcentaje cargado.");
   });
+
+  it("un closer sin closer_id aparece por su users.id en caja y comisión", async () => {
+    const venta = await vender("10");
+    await db.update(users).set({ closerId: null }).where(eq(users.id, closer));
+    await db
+      .update(abonos)
+      .set({ registradoPorUserId: closer, closerId: null })
+      .where(eq(abonos.dealId, venta.id));
+
+    const fila = (await vista()).comparativo.find((f) => f.closerId === "ana@retiagrowth.com");
+    expect(fila).toMatchObject({
+      caja: [{ moneda: "USD", total: 500 }],
+      cierres: 1,
+      comisionUsd: 100,
+      ventasSinComision: 0,
+    });
+  });
 });
 
 describe("porcentaje editable del programa", () => {

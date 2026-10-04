@@ -298,13 +298,13 @@ function FormularioUsuario({
 
           {trabajaConLeads ? (
             <label className="block space-y-1 text-sm">
-              <span className="text-muted-foreground">closer_id (en la BBDD)</span>
+              <span className="text-muted-foreground">closer_id histórico (opcional)</span>
               <input
                 value={borrador.closerId}
                 onChange={(e) => setBorrador({ ...borrador, closerId: e.target.value })}
                 maxLength={80}
                 className={claseInput}
-                aria-label="closer_id (en la BBDD)"
+                aria-label="closer_id histórico (opcional)"
               />
             </label>
           ) : null}

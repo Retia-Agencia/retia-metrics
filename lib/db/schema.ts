@@ -1185,8 +1185,9 @@ export const calls = pgTable(
  * `USD`; la columna se mantiene para que la moneda siga visible y el esquema zod
  * (`lib/abonos/esquema.ts`) la restringe.
  *
- * `closerId` es texto copiado del closer logueado, no una relacion a `users`
- * (ADR 0011). `origen` distingue los abonos migrados de Sheets ('sheets') de los
+ * `registradoPorUserId` es la identidad de quien cobro (ticket 167). `closerId`
+ * queda solo para reconocer la historia importada hasta que el ticket 159 lo retire.
+ * `origen` distingue los abonos migrados de Sheets ('sheets') de los
  * nativos de la app ('app', ADR 0010).
  */
 export const abonos = pgTable(
@@ -1205,7 +1206,9 @@ export const abonos = pgTable(
     moneda: text("moneda").notNull().default("USD"),
     plataformaId: uuid("plataforma_id").references(() => plataformasPago.id, { onDelete: "restrict" }),
     comprobanteUrl: text("comprobante_url"),
-    /** Nombre del closer que registro el abono, copiado de su cuenta (ADR 0011). */
+    /** Identidad de quien registro el abono. Nula solo para la historia pendiente de relleno. */
+    registradoPorUserId: uuid("registrado_por_user_id").references(() => users.id, { onDelete: "restrict" }),
+    /** Texto historico para el corte de datos; no identifica abonos nuevos. */
     closerId: text("closer_id"),
     origen: text("origen").notNull().default("app"),
     /** Anulacion (ADR 0026). Ver la nota completa en `calls`. */

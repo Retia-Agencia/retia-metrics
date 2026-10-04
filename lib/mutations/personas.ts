@@ -8,7 +8,6 @@ import { esViolacionUnica } from "@/lib/db/errores";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import type { Rol } from "@/lib/auth/roles";
 import { trabajaLeads } from "@/lib/auth/roles";
-import { igualCloser } from "@/lib/closers/identidad";
 import type { Lead } from "@/lib/db/schema";
 
 /**
@@ -26,7 +25,7 @@ import type { Lead } from "@/lib/db/schema";
  * (ADR 0011).
  */
 
-/** Quien realiza la operacion: su id (para `change_log`), su rol y su closerId (ADR 0011). */
+/** Quien realiza la operacion: `users.id` es su identidad; `closerId` queda transitorio en la sesion. */
 export interface Actor {
   id: string;
   rol: Rol;
@@ -75,8 +74,8 @@ async function leerPorCorreo(
 
 /**
  * Es destino valido de un lead en un programa quien TRABAJA LEADS (closer o
- * developer, `trabajaLeads` en `lib/auth/roles.ts`), esta activo, tiene ese `closerId`
- * Y una membresia ACTIVA en el programa. Una sola regla que impide que un closer de
+ * developer, `trabajaLeads` en `lib/auth/roles.ts`), esta activo y tiene una membresia
+ * ACTIVA en el programa. Una sola regla que impide que un closer de
  * otro programa se robe personas ajenas y que un gerente asigne a alguien que no
  * vende ahi.
  *
@@ -84,11 +83,11 @@ async function leerPorCorreo(
  * pasaba ni con la vista `closer` puesta (ticket 028). El filtro por rol se relaja
  * usando `trabajaLeads`, NO escribiendo `"developer"` en la consulta: la excepcion del
  * developer vive en un solo lugar (ADR 0025). Se lee la columna `rol` y se decide en
- * memoria; a esta escala (una fila por closerId) es gratis.
+ * memoria; a esta escala (una fila por usuario) es gratis.
  */
 async function esCloserValidoEnPrograma(
   db: Db,
-  closerId: string,
+  userId: string,
   programId: string,
 ): Promise<boolean> {
   const [fila] = await db
@@ -97,8 +96,7 @@ async function esCloserValidoEnPrograma(
     .innerJoin(miembrosPrograma, eq(miembrosPrograma.userId, users.id))
     .where(
       and(
-        // Sin distinguir mayusculas (ADR 0030).
-        igualCloser(users.closerId, closerId),
+        eq(users.id, userId),
         eq(users.activo, true),
         eq(miembrosPrograma.programId, programId),
         eq(miembrosPrograma.activo, true),
@@ -106,15 +104,6 @@ async function esCloserValidoEnPrograma(
     )
     .limit(1);
   return Boolean(fila) && trabajaLeads(fila.rol as Rol);
-}
-
-/** El closer logueado debe tener su `closerId` cargado (precondicion del ADR 0011). */
-function exigirCloserIdCargado(actor: Actor): string {
-  const closerId = actor.closerId?.trim();
-  if (!closerId) {
-    throw new ErrorDeApp("Tu cuenta no tiene closerId cargado.", 400);
-  }
-  return closerId;
 }
 
 /**
@@ -147,11 +136,10 @@ export async function crearPersonaManual(
     if (!trabajaLeads(actor.rol)) {
       throw new ErrorDeApp("Registrar trabajo de venta es del closer.", 403);
     }
-    const closerId = exigirCloserIdCargado(actor);
     const datos = esquemaPersonaManual.parse(input);
 
     // El closer debe vender en el programa donde crea la persona.
-    if (!(await esCloserValidoEnPrograma(db, closerId, datos.programId))) {
+    if (!(await esCloserValidoEnPrograma(db, actor.id, datos.programId))) {
       throw new ErrorDeApp("No puedes crear personas en un programa donde no vendes.", 403);
     }
 

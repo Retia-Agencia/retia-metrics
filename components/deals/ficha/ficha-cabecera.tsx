@@ -87,7 +87,7 @@ export function FichaCabecera({
             <span className="cifra">{ficha.descuento ? `${usd(ficha.descuento.usd)} · ${pct(ficha.descuento.porcentaje)}` : "—"}</span>
           </Dato>
           <Dato etiqueta={saldo.etiqueta}>
-            <span className="cifra">{saldo.valor}</span>
+            <span className={ficha.saldo.saldo === null ? undefined : "cifra"}>{saldo.valor}</span>
           </Dato>
           {ficha.cohorteDestino ? <Dato etiqueta="Cambia a cohorte">{ficha.cohorteDestino.codigo}</Dato> : null}
           {ficha.pendiente === "seguimiento" ? (
