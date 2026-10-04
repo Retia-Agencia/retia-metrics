@@ -227,10 +227,62 @@ export interface PosibleDuplicado {
   correoPrincipal: string;
   correoSinConfirmar: string;
   creadoEn: Date;
+  /** El dueño del deal abierto del lead, o `null` si no hay deal abierto o no tiene dueño (186). */
+  duenoUserId?: string | null;
 }
 
-export async function posiblesDuplicadosDelPrograma(db: Db, programId: string): Promise<PosibleDuplicado[]> {
-  return db
+/** Por defecto 25 por página, como la lista de Leads (ticket 186, decisión 3). */
+export const DUPLICADOS_POR_PAGINA = 25;
+
+export interface OpcionesDuplicados {
+  /** El closer ve solo los duplicados cuyo deal abierto es SUYO; administra no pasa nada (todos). */
+  duenoUserId?: string;
+  /** Desde 0. */
+  pagina?: number;
+  porPagina?: number;
+}
+
+/**
+ * Los posibles duplicados del programa (072, 186), paginados en el servidor. El closer ve solo
+ * los de SUS deals (`duenoUserId`); quien administra ve los del programa (sin `duenoUserId`).
+ * El dueño es el del deal abierto del lead (misma frontera que
+ * `deals_uno_abierto_por_lead_y_programa_idx`: etapa no en Completo/Cierre Perdido, no anulado).
+ */
+export async function posiblesDuplicadosDelPrograma(
+  db: Db,
+  programId: string,
+  opciones: OpcionesDuplicados = {},
+): Promise<{ total: number; filas: PosibleDuplicado[] }> {
+  const porPagina = opciones.porPagina ?? DUPLICADOS_POR_PAGINA;
+  const pagina = Math.max(0, opciones.pagina ?? 0);
+
+  // El deal ABIERTO del lead (uno a lo sumo, por `deals_uno_abierto_por_lead_y_programa_idx`):
+  // misma frontera que ese índice, con `vigente(deals)` INLINE en cada JOIN (el guardián de
+  // vigencia lee cadena por cadena: un predicado izado a un const le pasa por debajo, AGENTS.md).
+  // Un lead sin deal abierto deja `deals.ownerUserId` en null.
+  const condiciones: (SQL | undefined)[] = [
+    eq(leadContactos.programId, programId),
+    eq(leads.programId, programId),
+    eq(leadContactos.tipo, "correo"),
+    eq(leadContactos.confirmado, false),
+  ];
+  // El closer: solo donde el deal abierto del lead es suyo (si no hay deal abierto, no lo ve).
+  if (opciones.duenoUserId) condiciones.push(eq(deals.ownerUserId, opciones.duenoUserId));
+  const donde = and(...condiciones);
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(leadContactos)
+    .innerJoin(leads, eq(leads.id, leadContactos.leadId))
+    .leftJoin(deals, and(
+      eq(deals.leadId, leads.id),
+      eq(deals.programId, programId),
+      notInArray(deals.etapa, ["ganado_completo", "cierre_perdido"]),
+      vigente(deals),
+    ))
+    .where(donde);
+
+  const filas = await db
     .select({
       contactoId: leadContactos.id,
       leadId: leads.id,
@@ -238,16 +290,20 @@ export async function posiblesDuplicadosDelPrograma(db: Db, programId: string): 
       correoPrincipal: leads.emailNormalizado,
       correoSinConfirmar: leadContactos.valor,
       creadoEn: leadContactos.createdAt,
+      duenoUserId: deals.ownerUserId,
     })
     .from(leadContactos)
     .innerJoin(leads, eq(leads.id, leadContactos.leadId))
-    .where(
-      and(
-        eq(leadContactos.programId, programId),
-        eq(leads.programId, programId),
-        eq(leadContactos.tipo, "correo"),
-        eq(leadContactos.confirmado, false),
-      ),
-    )
-    .orderBy(desc(leadContactos.createdAt));
+    .leftJoin(deals, and(
+      eq(deals.leadId, leads.id),
+      eq(deals.programId, programId),
+      notInArray(deals.etapa, ["ganado_completo", "cierre_perdido"]),
+      vigente(deals),
+    ))
+    .where(donde)
+    .orderBy(desc(leadContactos.createdAt))
+    .limit(porPagina)
+    .offset(pagina * porPagina);
+
+  return { total, filas };
 }

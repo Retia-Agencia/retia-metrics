@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, notInArray } from "drizzle-orm";
 import { z } from "zod";
 import { changeLog, deals, leadContactos, leads, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -9,6 +9,7 @@ import { normalizando } from "@/lib/errors-zod";
 import { exigirAccesoAlPrograma, type ActorConAcceso } from "@/lib/catalogo/acceso-programa";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { abrirDeal } from "@/lib/deals/mover-etapa";
+import { puedeDecidirDuplicado } from "@/lib/deals/permiso";
 import { vigente } from "@/lib/queries/vigente";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
 import { envioMasReciente } from "./envio-de-origen";
@@ -53,6 +54,22 @@ async function correoMarcado(tx: Db, actor: ActorConAcceso, contactoId: string) 
   await exigirAccesoAlPrograma(tx, actor, fila.contacto.programId, "No puedes gestionar leads de un programa donde no vendes.");
   if (fila.contacto.tipo !== "correo" || fila.contacto.confirmado) {
     throw new ErrorDeApp("Ese correo no está marcado como posible duplicado.", 409);
+  }
+  // Quién decide (ticket 186, ADR 0075): el dueño del deal abierto del lead o quien administra.
+  // El deal abierto es el mismo que acota `deals_uno_abierto_por_lead_y_programa_idx`
+  // (etapa no en Completo/Cierre Perdido, no anulado). Antes de cualquier escritura.
+  const [abierto] = await tx
+    .select({ ownerUserId: deals.ownerUserId })
+    .from(deals)
+    .where(and(
+      eq(deals.leadId, fila.lead.id),
+      eq(deals.programId, fila.contacto.programId),
+      notInArray(deals.etapa, ["ganado_completo", "cierre_perdido"]),
+      vigente(deals),
+    ))
+    .limit(1);
+  if (!puedeDecidirDuplicado(actor, abierto?.ownerUserId ?? null)) {
+    throw new ErrorDeApp("Solo el dueño del deal o quien administra decide este posible duplicado.", 403);
   }
   return fila;
 }

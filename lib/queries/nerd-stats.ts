@@ -89,7 +89,7 @@ export async function conteosPorPrograma(db: Db = dbDeLaApp) {
   const unidos = new Map(
     await Promise.all(
       lista.map(async (p) => {
-        const filas = await posiblesDuplicadosDelPrograma(db, p.id);
+        const { filas } = await posiblesDuplicadosDelPrograma(db, p.id, { porPagina: Number.MAX_SAFE_INTEGER });
         return [p.id, new Set(filas.map((f) => f.leadId)).size] as const;
       }),
     ),

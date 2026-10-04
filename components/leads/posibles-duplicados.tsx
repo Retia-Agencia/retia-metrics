@@ -16,7 +16,8 @@ import { enlaceConVuelta } from "@/lib/navegacion/volver";
  * un lead nuevo con ese correo y sus envíos. Separar pide una segunda confirmación en la misma
  * fila (sin diálogos del navegador).
  *
- * `puedeGestionar` es PROYECCIÓN: la reja de verdad vive en las server actions.
+ * `puedeGestionar` (por fila) es PROYECCIÓN: solo el dueño del deal abierto del lead o quien
+ * administra decide (186, ADR 0075); la reja de verdad vive en las server actions.
  * Funciona a 390px: la fila apila su info y los botones envuelven.
  */
 
@@ -26,20 +27,29 @@ export interface DuplicadoVista {
   nombreLead: string | null;
   correoPrincipal: string;
   correoSinConfirmar: string;
+  /** Solo el dueño del deal abierto o quien administra decide (186). La reja real está en la acción. */
+  puedeGestionar: boolean;
 }
 
 export function PosiblesDuplicados({
   filas,
-  puedeGestionar,
+  total,
   slug,
   origen,
+  verTodosHref,
+  paginacion,
 }: {
   filas: DuplicadoVista[];
-  puedeGestionar: boolean;
+  /** El total del programa (o del closer), para el encabezado y la paginación. */
+  total: number;
   /** El programa de la tab: la ficha del lead vive dentro de el (ticket 073). */
   slug: string;
   /** Vuelta a la pantalla que abrió la ficha; ausente conserva el enlace histórico. */
   origen?: string;
+  /** Mi espacio muestra 5 y enlaza a la lista completa de Leads (186). */
+  verTodosHref?: string;
+  /** Leads pagina de a 25 en el servidor (186); ausente no muestra navegación. */
+  paginacion?: { pagina: number; paginas: number; hrefDePagina: (p: number) => string };
 }) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
@@ -67,7 +77,9 @@ export function PosiblesDuplicados({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Posibles duplicados</CardTitle>
+        <CardTitle className="text-base">
+          Posibles duplicados · <span className="cifra">{total}</span>
+        </CardTitle>
         <p className="text-xs text-muted-foreground">
           Correos que llegaron con el teléfono de otro lead. Confirma si es la misma persona o sepáralos si son dos.
         </p>
@@ -92,7 +104,7 @@ export function PosiblesDuplicados({
                     <span className="truncate text-xs">{f.correoSinConfirmar}</span>
                   </div>
                 </div>
-                {puedeGestionar ? (
+                {f.puedeGestionar ? (
                   porSeparar === f.contactoId ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs text-muted-foreground">¿Crear un lead aparte con este correo?</span>
@@ -128,6 +140,34 @@ export function PosiblesDuplicados({
             ))}
           </ul>
         )}
+        {verTodosHref && total > filas.length ? (
+          <div className="pt-3 text-sm">
+            <Link href={verTodosHref} className="text-marca-texto underline-offset-2 hover:underline">
+              Ver todos
+            </Link>
+          </div>
+        ) : null}
+        {paginacion && paginacion.paginas > 1 ? (
+          <nav className="flex items-center justify-between pt-3 text-sm" aria-label="Páginas de posibles duplicados">
+            {paginacion.pagina > 0 ? (
+              <Link href={paginacion.hrefDePagina(paginacion.pagina - 1)} className="text-marca-texto underline-offset-2 hover:underline">
+                Anterior
+              </Link>
+            ) : (
+              <span />
+            )}
+            <span className="text-xs text-muted-foreground">
+              Página <span className="cifra">{paginacion.pagina + 1}</span> de <span className="cifra">{paginacion.paginas}</span>
+            </span>
+            {paginacion.pagina + 1 < paginacion.paginas ? (
+              <Link href={paginacion.hrefDePagina(paginacion.pagina + 1)} className="text-marca-texto underline-offset-2 hover:underline">
+                Siguiente
+              </Link>
+            ) : (
+              <span />
+            )}
+          </nav>
+        ) : null}
       </CardContent>
     </Card>
   );
