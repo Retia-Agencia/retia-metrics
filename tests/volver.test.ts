@@ -97,6 +97,7 @@ describe("etiquetaDeOrigen", () => {
     expect(etiquetaDeOrigen("/calls")).toBe("Calls");
     expect(etiquetaDeOrigen("/inbox")).toBe("Inbox");
     expect(etiquetaDeOrigen("/mi-espacio")).toBe("Mi espacio");
+    expect(etiquetaDeOrigen("/nerd-stats")).toBe("Nerd stats");
   });
 
   it("etiqueta las fichas", () => {
@@ -128,6 +129,10 @@ describe("etiquetaDeOrigen", () => {
     expect(etiquetaDeOrigen("/p/x/deals?vista=tabla")).toBe("Deals");
     expect(etiquetaDeOrigen("/p/x/deals?vista=tabla&pagina=2")).toBe("Deals");
     expect(etiquetaDeOrigen("/p/x/deals?vista=tabla&canal=meta")).toBe("Deals · filtrados");
+  });
+
+  it("la tab de Mi espacio NO cuenta como filtrado", () => {
+    expect(etiquetaDeOrigen("/mi-espacio?tab=canales")).toBe("Mi espacio");
   });
 
   it("un filtro ademas de pagina SI cuenta como filtrado", () => {

@@ -7,16 +7,22 @@ import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { ErrorDeApp } from "@/lib/errors";
 import { clasificacionDeEnvios } from "@/lib/atribucion/pares-sin-clasificar";
 import { PageShell } from "@/components/page-shell";
+import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { CanalesAdmin, type CanalVista } from "@/components/admin/canales-admin";
 
 export const dynamic = "force-dynamic";
 
-export default async function CanalesPage() {
+export default async function CanalesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ desde?: string }>;
+}) {
   // Los Canales los administra quien maneja pauta (ADR 0052, ADR 0077 punto 4): el
   // paid trafficker, el gerente y el developer. La guarda admite esos roles base y
   // `manejaPauta` sobre el ROL DE VISTA cierra la vista `closer` (ADR 0025, ADR 0028).
   const session = await paginaConRol("gerente", "paid_trafficker");
   if (!manejaPauta(await rolDeVista(session))) throw new ErrorDeApp("No autorizado.", 403);
+  const { desde } = await searchParams;
 
   const [filas, todasLasAreas, clasificacion] = await Promise.all([
     catalogoCanales(db).listar(),
@@ -39,16 +45,21 @@ export default async function CanalesPage() {
   }));
 
   return (
-    <PageShell titulo="Canales" descripcion="De qué canal y área viene cada envío.">
-      <div className="space-y-6">
+    <PageShell
+      titulo="Canales"
+      descripcion="De qué canal y área viene cada envío."
+      volver={{ desde, porDefecto: { href: "/ajustes", etiqueta: "Ajustes" } }}
+      fija
+    >
+      <PantallaFija>
         {/* Por qué no se crean solos y cómo se arma un link con UTM (builder, 092). */}
-        <p className="text-sm text-muted-foreground">
+        <p className="shrink-0 text-sm text-muted-foreground">
           Los canales no se crean automáticamente: un dedazo (<span className="cifra">fb</span>) o una
           macro de Meta sin expandir se volvería un canal y “sin clasificar” desaparecería. Los links
           con UTM se arman con el generador del CRM (el builder de captación), nunca a mano.
         </p>
         <CanalesAdmin canales={vista} areas={areasActivas} pares={clasificacion.paresSinClasificar} />
-      </div>
+      </PantallaFija>
     </PageShell>
   );
 }

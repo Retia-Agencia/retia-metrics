@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
@@ -65,9 +65,11 @@ function aBorrador(u: UsuarioVista): Borrador {
 export function UsuariosAdmin({
   usuarios,
   usuarioActualId,
+  children,
 }: {
   usuarios: UsuarioVista[];
   usuarioActualId: string;
+  children?: ReactNode;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -93,33 +95,36 @@ export function UsuariosAdmin({
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button size="sm" disabled={pendiente || creando} onClick={() => setCreando(true)}>
-          <Plus className="size-4" />
-          Nuevo usuario
-        </Button>
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="shrink-0 space-y-4">
+        <div className="flex justify-end">
+          <Button size="sm" disabled={pendiente || creando} onClick={() => setCreando(true)}>
+            <Plus className="size-4" />
+            Nuevo usuario
+          </Button>
+        </div>
+
+        {creando ? (
+          <FormularioUsuario
+            titulo="Nuevo usuario"
+            inicial={BORRADOR_VACIO}
+            pendiente={pendiente}
+            onCancelar={() => setCreando(false)}
+            onGuardar={(borrador) =>
+              correr(() => crearUsuarioAccion(aEntrada(borrador)), "Usuario creado", () =>
+                setCreando(false),
+              )
+            }
+          />
+        ) : null}
       </div>
 
-      {creando ? (
-        <FormularioUsuario
-          titulo="Nuevo usuario"
-          inicial={BORRADOR_VACIO}
-          pendiente={pendiente}
-          onCancelar={() => setCreando(false)}
-          onGuardar={(borrador) =>
-            correr(() => crearUsuarioAccion(aEntrada(borrador)), "Usuario creado", () =>
-              setCreando(false),
-            )
-          }
-        />
-      ) : null}
-
-      <ul className="divide-y rounded-md border">
-        {ordenados.length === 0 ? (
-          <li className="px-3 py-4 text-sm text-muted-foreground">Todavía no hay usuarios.</li>
-        ) : (
-          ordenados.map((u) => (
+      <div className="space-y-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <ul className="divide-y rounded-md border">
+          {ordenados.length === 0 ? (
+            <li className="px-3 py-4 text-sm text-muted-foreground">Todavía no hay usuarios.</li>
+          ) : (
+            ordenados.map((u) => (
             <li key={u.id} className={cn("px-3 py-3 text-sm", !u.activo && "opacity-50")}>
               {editando === u.id ? (
                 <FormularioUsuario
@@ -195,9 +200,11 @@ export function UsuariosAdmin({
                 </div>
               )}
             </li>
-          ))
-        )}
-      </ul>
+            ))
+          )}
+        </ul>
+        {children}
+      </div>
     </div>
   );
 }

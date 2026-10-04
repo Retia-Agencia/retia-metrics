@@ -5,6 +5,7 @@ import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { haceCuanto, num } from "@/lib/format";
+import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import type { EstadoDeFuente } from "@/lib/queries/salud-fuentes";
 import { ultimasCorridasDeSync } from "@/lib/queries/fuentes";
 import {
@@ -145,7 +146,10 @@ export default async function NerdStatsPage() {
                 ? "Ninguna fuente activa está marcada."
                 : `${num(fuentes.filter((f) => f.marcada).length)} de ${num(fuentes.length)} fuentes activas están marcadas.`}{" "}
               El detalle de cada entrega está en{" "}
-              <Link href="/ajustes/salud" className="text-marca-texto underline-offset-4 hover:underline focus-visible:underline">
+              <Link
+                href={enlaceConVuelta("/ajustes/salud", "/nerd-stats")}
+                className="text-marca-texto underline-offset-4 hover:underline focus-visible:underline"
+              >
                 Ajustes → Salud
               </Link>
               .

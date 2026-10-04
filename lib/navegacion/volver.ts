@@ -69,7 +69,7 @@ function partirRuta(origen: string): { path: string; query: string } {
 
 /**
  * El nombre de la lista de la que vino, por su path. Lo que no se reconoce es "Atras".
- * Si el origen trae un filtro (cualquier query distinto de `pagina` y `vista`), agrega
+ * Si el origen trae un filtro (cualquier query distinto de `pagina`, `vista` y `tab`), agrega
  * " · filtrados": la lista no esta en su estado natural.
  */
 export function etiquetaDeOrigen(origen: string): string {
@@ -94,16 +94,18 @@ function etiquetaDePath(path: string): string {
   if (path === "/inbox" || /^\/p\/[^/]+\/inbox$/.test(path)) return "Inbox";
   if (path === "/dashboard/lista") return "Dashboard · lista";
   if (path === "/dashboard") return "Dashboard";
+  if (path === "/nerd-stats") return "Nerd stats";
   if (path === "/mi-espacio") return "Mi espacio";
   return "Atras";
 }
 
 /**
  * ¿El origen esta filtrado? Cualquier query cuenta como filtrado, salvo que solo traiga
- * `pagina` o `vista`: pasar de pagina o cambiar la vista (Tabla/Kanban) no cambia los
- * filtros. No se inventan nombres de parametro: lo que exista cuenta.
+ * `pagina`, `vista` o `tab`: pasar de pagina, cambiar la vista (Tabla/Kanban) o cambiar la
+ * sección de Mi espacio no cambia los filtros. No se inventan nombres de parametro: lo que
+ * exista cuenta.
  */
-const PARAMETROS_QUE_NO_FILTRAN = new Set(["pagina", "vista"]);
+const PARAMETROS_QUE_NO_FILTRAN = new Set(["pagina", "vista", "tab"]);
 
 function estaFiltrado(query: string): boolean {
   return query

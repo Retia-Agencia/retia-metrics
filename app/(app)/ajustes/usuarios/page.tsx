@@ -1,6 +1,7 @@
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
+import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { UsuariosAdmin, type UsuarioVista } from "@/components/usuarios-admin";
 import { CalendlyMembresias } from "@/components/calendly-membresias";
 import { listarUsuarios, membresiasConCalendly } from "@/lib/catalogo/usuarios";
@@ -48,21 +49,24 @@ export default async function UsuariosPage() {
     <PageShell
       titulo="Usuarios"
       descripcion="Quién puede entrar y con qué rol. Las membresías se administran en la tab Programa."
+      volver={{ porDefecto: { href: "/ajustes", etiqueta: "Ajustes" } }}
+      fija
     >
-      <UsuariosAdmin
-        usuarios={vista}
-        usuarioActualId={session.user.id}
-      />
-      {membresias.length > 0 ? (
-        <div className="mt-6">
-          <CalendlyMembresias
-            membresias={membresias}
-            programas={programas}
-            cuentas={cuentas}
-            accion={asignarCalendlyDeMembresiaAccion}
-          />
-        </div>
-      ) : null}
+      <PantallaFija>
+        <UsuariosAdmin
+          usuarios={vista}
+          usuarioActualId={session.user.id}
+        >
+          {membresias.length > 0 ? (
+            <CalendlyMembresias
+              membresias={membresias}
+              programas={programas}
+              cuentas={cuentas}
+              accion={asignarCalendlyDeMembresiaAccion}
+            />
+          ) : null}
+        </UsuariosAdmin>
+      </PantallaFija>
     </PageShell>
   );
 }

@@ -4,6 +4,7 @@ import { entregasDePrograma, entregasHuerfanas } from "@/lib/queries/entregas-we
 import { conciliarProgramaConHoja } from "@/lib/queries/conciliacion-sheets";
 import { HORAS_SIN_CALIDAD, saludDeFuentes, type EstadoDeFuente } from "@/lib/queries/salud-fuentes";
 import { PageShell } from "@/components/page-shell";
+import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { haceCuanto, num } from "@/lib/format";
@@ -51,27 +52,34 @@ const TEXTO_ESTADO: Record<EstadoDeFuente, string> = {
 export default async function SaludPage({
   searchParams,
 }: {
-  searchParams: Promise<{ programa?: string }>;
+  searchParams: Promise<{ programa?: string; desde?: string }>;
 }) {
   await paginaConRol("gerente");
+  const { programa: slugPedido, desde } = await searchParams;
 
   // Quien administra ve todos los programas activos (no una membresia de closer): esta
   // pantalla es de operacion del sistema.
   const programas = await programasActivos();
   if (programas.length === 0) {
     return (
-      <PageShell titulo="Webhook Health" descripcion="Cada entrega del webhook, por programa.">
-        <Card>
-          <CardContent className="py-8 text-sm text-muted-foreground">
-            No hay programas activos todavía. Crea uno desde la ficha de un programa para ver la salud
-            de su intake.
-          </CardContent>
-        </Card>
+      <PageShell
+        titulo="Webhook Health"
+        descripcion="Cada entrega del webhook, por programa."
+        volver={{ desde, porDefecto: { href: "/ajustes", etiqueta: "Ajustes" } }}
+        fija
+      >
+        <PantallaFija>
+          <Card>
+            <CardContent className="py-8 text-sm text-muted-foreground">
+              No hay programas activos todavía. Crea uno desde la ficha de un programa para ver la salud
+              de su intake.
+            </CardContent>
+          </Card>
+        </PantallaFija>
       </PageShell>
     );
   }
 
-  const { programa: slugPedido } = await searchParams;
   const programa = programas.find((p) => p.slug === slugPedido) ?? programas[0];
 
   const [paginaEntregas, paginaHuerfanas, salud, conciliacion] = await Promise.all([
@@ -96,10 +104,12 @@ export default async function SaludPage({
       titulo="Webhook Health"
       descripcion="Cada entrega del webhook, por programa: el código, el motivo y el lead que trajo."
       acciones={<SelectorYRefresco programas={programas} slugActual={programa.slug} />}
+      volver={{ desde, porDefecto: { href: "/ajustes", etiqueta: "Ajustes" } }}
+      fija
     >
-      <div className="space-y-6">
+      <PantallaFija>
         {/* El aviso de salud de la fuente (ticket 107). */}
-        <Card>
+        <Card className="shrink-0">
           <CardHeader>
             <CardTitle className="text-base">Estado del intake</CardTitle>
           </CardHeader>
@@ -133,20 +143,21 @@ export default async function SaludPage({
           </CardContent>
         </Card>
 
-        {/* Las entregas del programa, 25 por página y "Ver anteriores" bajo demanda. */}
-        <EntregasWebhook
-          entregas={entregasVista}
-          titulo={`Entregas — ${programa.nombre}`}
-          programaSlug={programa.slug}
-          cursorInicial={paginaEntregas.cursor}
-        />
+        <div className="space-y-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
+          {/* Las entregas del programa, 25 por página y "Ver anteriores" bajo demanda. */}
+          <EntregasWebhook
+            entregas={entregasVista}
+            titulo={`Entregas — ${programa.nombre}`}
+            programaSlug={programa.slug}
+            cursorInicial={paginaEntregas.cursor}
+          />
 
-        {/* La conciliacion con la hoja mientras convivan (ticket 110). */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Conciliación con Sheets</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm">
+          {/* La conciliacion con la hoja mientras convivan (ticket 110). */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Conciliación con Sheets</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm">
             {conciliacion.estado === "sin_hoja" ? (
               <p className="text-muted-foreground">
                 Este programa no tiene una hoja de Google configurada, así que no hay nada que conciliar.
@@ -176,18 +187,19 @@ export default async function SaludPage({
                 />
               </div>
             )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Las entregas huerfanas: sin fuente resuelta, no son de ningun programa. */}
-        {huerfanasVista.length > 0 ? (
-          <EntregasWebhook
-            entregas={huerfanasVista}
-            titulo="Entregas huérfanas (sin fuente reconocida)"
-            cursorInicial={paginaHuerfanas.cursor}
-          />
-        ) : null}
-      </div>
+          {/* Las entregas huerfanas: sin fuente resuelta, no son de ningun programa. */}
+          {huerfanasVista.length > 0 ? (
+            <EntregasWebhook
+              entregas={huerfanasVista}
+              titulo="Entregas huérfanas (sin fuente reconocida)"
+              cursorInicial={paginaHuerfanas.cursor}
+            />
+          ) : null}
+        </div>
+      </PantallaFija>
     </PageShell>
   );
 }

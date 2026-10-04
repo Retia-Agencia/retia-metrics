@@ -4,6 +4,7 @@ import { canales as catalogoCanales } from "@/lib/catalogo/canales";
 import { clasificacionDeEnvios } from "@/lib/atribucion/pares-sin-clasificar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { enlaceConVuelta } from "@/lib/navegacion/volver";
 
 /**
  * Sección "Canales" de Mi espacio del paid trafficker (ticket 179): lo que le toca a quien
@@ -113,7 +114,10 @@ export async function TabCanales() {
       </Card>
 
       <p className="text-sm">
-        <Link href="/ajustes/canales" className="text-marca-texto underline-offset-2 hover:underline">
+        <Link
+          href={enlaceConVuelta("/ajustes/canales", "/mi-espacio?tab=canales")}
+          className="text-marca-texto underline-offset-2 hover:underline"
+        >
           Administrar los canales
         </Link>
       </p>

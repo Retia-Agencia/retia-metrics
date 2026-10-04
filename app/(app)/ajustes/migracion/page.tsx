@@ -3,6 +3,7 @@ import { paginaConRol } from "@/lib/auth/page-guards";
 import { programasActivos } from "@/lib/queries/programas";
 import { LIMITE_DE_RAREZAS, nombreDeRareza, rarezasDelPrograma } from "@/lib/migracion/rarezas";
 import { PageShell } from "@/components/page-shell";
+import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num } from "@/lib/format";
@@ -30,12 +31,19 @@ export default async function MigracionPage(props: {
   const programas = await programasActivos();
   if (programas.length === 0) {
     return (
-      <PageShell titulo="Rarezas de la migración" descripcion="Lo que la migración de la hoja no pudo clasificar.">
-        <Card>
-          <CardContent className="py-8 text-sm text-muted-foreground">
-            No hay programas activos todavía. Crea uno en Ajustes → Programas y cohortes.
-          </CardContent>
-        </Card>
+      <PageShell
+        titulo="Rarezas de la migración"
+        descripcion="Lo que la migración de la hoja no pudo clasificar."
+        volver={{ porDefecto: { href: "/ajustes", etiqueta: "Ajustes" } }}
+        fija
+      >
+        <PantallaFija>
+          <Card>
+            <CardContent className="py-8 text-sm text-muted-foreground">
+              No hay programas activos todavía. Crea uno en Ajustes → Programas y cohortes.
+            </CardContent>
+          </Card>
+        </PantallaFija>
       </PageShell>
     );
   }
@@ -51,9 +59,11 @@ export default async function MigracionPage(props: {
       titulo="Rarezas de la migración"
       descripcion="Lo que la migración de las pestañas de gestión no pudo clasificar. Nada de esto se adivinó: cada fila dice qué tenía de raro y qué se hizo con ella."
       acciones={<Filtros programas={programas} tipos={rarezas.porTipo} />}
+      volver={{ porDefecto: { href: "/ajustes", etiqueta: "Ajustes" } }}
+      fija
     >
-      <div className="space-y-6">
-        <Card>
+      <PantallaFija>
+        <Card className="shrink-0">
           <CardHeader>
             <CardTitle className="text-base">
               Por tipo — {programa.nombre} · <span className="cifra">{num(rarezas.total)}</span>
@@ -84,8 +94,8 @@ export default async function MigracionPage(props: {
         </Card>
 
         {rarezas.filas.length > 0 ? (
-          <Card>
-            <CardHeader>
+          <Card className="flex min-h-0 flex-1 flex-col">
+            <CardHeader className="shrink-0">
               <CardTitle className="text-base">
                 {tipo ? nombreDeRareza(tipo) : "Todas"} · <span className="cifra">{num(enLaLista)}</span>
               </CardTitle>
@@ -96,7 +106,7 @@ export default async function MigracionPage(props: {
                 </p>
               ) : null}
             </CardHeader>
-            <CardContent>
+            <CardContent className="md:min-h-0 md:flex-1 md:overflow-y-auto">
               <ul className="divide-y divide-border">
                 {rarezas.filas.map((r) => (
                   <li key={r.id} className="space-y-1 py-3 text-sm">
@@ -124,7 +134,7 @@ export default async function MigracionPage(props: {
             </CardContent>
           </Card>
         ) : null}
-      </div>
+      </PantallaFija>
     </PageShell>
   );
 }

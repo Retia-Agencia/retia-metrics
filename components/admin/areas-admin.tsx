@@ -47,11 +47,13 @@ export function AreasAdmin({ areas }: { areas: AreaVista[] }) {
   }
 
   return (
-    <Card>
-      <CardHeader><CardTitle className="text-base">Áreas</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
+    <Card className="flex min-h-0 flex-1 flex-col">
+      <CardHeader className="shrink-0">
+        <CardTitle className="text-base">Áreas</CardTitle>
+      </CardHeader>
+      <CardContent className="flex min-h-0 flex-1 flex-col gap-4">
         <form
-          className="flex flex-wrap items-end gap-2"
+          className="flex shrink-0 flex-wrap items-end gap-2"
           onSubmit={(evento) => {
             evento.preventDefault();
             correr(
@@ -67,7 +69,7 @@ export function AreasAdmin({ areas }: { areas: AreaVista[] }) {
           <Button type="submit" disabled={pendiente}>{editando ? "Guardar" : <><Plus className="size-4" />Crear</>}</Button>
           {editando ? <Button type="button" variant="ghost" onClick={() => { setEditando(null); setNombre(""); }}><X className="size-4" />Cancelar</Button> : null}
         </form>
-        <ul className="divide-y text-sm">
+        <ul className="divide-y text-sm md:min-h-0 md:flex-1 md:overflow-y-auto">
           {areas.map((area) => (
             <li key={area.id} className="flex flex-wrap items-center gap-3 py-2">
               <span className="font-medium">{area.nombre}</span>

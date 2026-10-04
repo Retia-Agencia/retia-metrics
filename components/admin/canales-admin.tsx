@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
@@ -51,6 +51,7 @@ export function CanalesAdmin({ canales, areas, pares }: { canales: CanalVista[];
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
   const [borrador, setBorrador] = useState<Borrador>(VACIO);
+  const nombreRef = useRef<HTMLInputElement>(null);
 
   function correr(accion: () => Promise<ResultadoCanalAccion>, mensaje: string, limpiar = false) {
     iniciar(async () => {
@@ -71,21 +72,21 @@ export function CanalesAdmin({ canales, areas, pares }: { canales: CanalVista[];
 
   function desdePar(par: ParCanalVista) {
     setBorrador({ id: null, nombre: `${par.source || "Cualquier source"} / ${par.medium || "sin medium"}`, utmSource: par.source, utmMedium: par.medium, areaId: "", formato: null });
-    document.getElementById("formulario-canal")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    nombreRef.current?.focus();
   }
 
   const entrada = { nombre: borrador.nombre, utmSource: borrador.utmSource, utmMedium: borrador.utmMedium, areaId: borrador.areaId, formato: borrador.formato };
 
   return (
-    <div className="space-y-6">
-      <Card id="formulario-canal" className="md:scroll-mt-28">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
+      <Card className="shrink-0">
         <CardHeader><CardTitle className="text-base">{borrador.id ? "Editar canal" : "Crear canal"}</CardTitle></CardHeader>
         <CardContent>
           <form className="grid gap-3 md:grid-cols-2 lg:grid-cols-3" onSubmit={(evento) => {
             evento.preventDefault();
             correr(() => borrador.id ? editarCanalAccion(borrador.id, entrada) : crearCanalAccion(entrada), borrador.id ? "Canal actualizado" : "Canal creado", true);
           }}>
-            <Campo etiqueta="Nombre"><input className={claseControl} maxLength={80} required value={borrador.nombre} onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })} /></Campo>
+            <Campo etiqueta="Nombre"><input ref={nombreRef} className={claseControl} maxLength={80} required value={borrador.nombre} onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })} /></Campo>
             <Campo etiqueta="UTM source (vacío = cualquiera)"><input className={claseControl} value={borrador.utmSource} onChange={(e) => setBorrador({ ...borrador, utmSource: e.target.value })} /></Campo>
             <Campo etiqueta="UTM medium"><input className={claseControl} required value={borrador.utmMedium} onChange={(e) => setBorrador({ ...borrador, utmMedium: e.target.value })} /></Campo>
             <Campo etiqueta="Área"><select className={claseControl} required value={borrador.areaId} onChange={(e) => setBorrador({ ...borrador, areaId: e.target.value })}><option value="">Selecciona un área</option>{areas.map((area) => <option key={area.id} value={area.id}>{area.nombre}</option>)}</select></Campo>
@@ -98,19 +99,21 @@ export function CanalesAdmin({ canales, areas, pares }: { canales: CanalVista[];
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Canales</CardTitle></CardHeader>
-        <CardContent className="overflow-x-auto">
-          {canales.length === 0 ? <p className="text-sm text-muted-foreground">Todavía no hay canales. Crea el primero arriba.</p> : <table className="w-full text-left text-sm [&_td]:pr-4 [&_th]:pr-4"><thead className="text-xs text-muted-foreground"><tr><th className="pb-2">Nombre</th><th className="pb-2">Source</th><th className="pb-2">Medium</th><th className="pb-2">Área</th><th className="pb-2">Formato</th><th className="pb-2 text-right">Envíos</th><th className="pb-2">Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody className="divide-y">{canales.map((canal) => <tr key={canal.id}><td className="py-3 font-medium">{canal.nombre}</td><td>{canal.utmSource ?? "cualquiera"}</td><td>{canal.utmMedium}</td><td>{canal.area}</td><td>{canal.formato ? ETIQUETA_FORMATO[canal.formato] : "—"}</td><td className="cifra text-right">{canal.envios === null ? "—" : canal.envios}</td><td><Badge variant={canal.activo ? "exito" : "neutro"}>{canal.activo ? "Activo" : "Inactivo"}</Badge></td><td><div className="flex justify-end gap-1"><Button size="sm" variant="ghost" onClick={() => editar(canal)}><Pencil className="size-4" />Editar</Button><Button size="sm" variant="ghost" disabled={pendiente} onClick={() => correr(() => canal.activo ? desactivarCanalAccion(canal.id) : reactivarCanalAccion(canal.id), canal.activo ? "Canal desactivado" : "Canal reactivado")}><RotateCcw className="size-4" />{canal.activo ? "Desactivar" : "Reactivar"}</Button></div></td></tr>)}</tbody></table>}
-        </CardContent>
-      </Card>
+      <div className="space-y-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Canales</CardTitle></CardHeader>
+          <CardContent className="overflow-x-auto">
+            {canales.length === 0 ? <p className="text-sm text-muted-foreground">Todavía no hay canales. Crea el primero arriba.</p> : <table className="w-full text-left text-sm [&_td]:pr-4 [&_th]:pr-4"><thead className="text-xs text-muted-foreground"><tr><th className="pb-2">Nombre</th><th className="pb-2">Source</th><th className="pb-2">Medium</th><th className="pb-2">Área</th><th className="pb-2">Formato</th><th className="pb-2 text-right">Envíos</th><th className="pb-2">Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody className="divide-y">{canales.map((canal) => <tr key={canal.id}><td className="py-3 font-medium">{canal.nombre}</td><td>{canal.utmSource ?? "cualquiera"}</td><td>{canal.utmMedium}</td><td>{canal.area}</td><td>{canal.formato ? ETIQUETA_FORMATO[canal.formato] : "—"}</td><td className="cifra text-right">{canal.envios === null ? "—" : canal.envios}</td><td><Badge variant={canal.activo ? "exito" : "neutro"}>{canal.activo ? "Activo" : "Inactivo"}</Badge></td><td><div className="flex justify-end gap-1"><Button size="sm" variant="ghost" onClick={() => editar(canal)}><Pencil className="size-4" />Editar</Button><Button size="sm" variant="ghost" disabled={pendiente} onClick={() => correr(() => canal.activo ? desactivarCanalAccion(canal.id) : reactivarCanalAccion(canal.id), canal.activo ? "Canal desactivado" : "Canal reactivado")}><RotateCcw className="size-4" />{canal.activo ? "Desactivar" : "Reactivar"}</Button></div></td></tr>)}</tbody></table>}
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Pares sin canal</CardTitle></CardHeader>
-        <CardContent className="overflow-x-auto">
-          {pares.length === 0 ? <p className="text-sm text-muted-foreground">Todos los pares UTM completos están clasificados.</p> : <table className="w-full text-left text-sm [&_td]:pr-4 [&_th]:pr-4"><thead className="text-xs text-muted-foreground"><tr><th className="pb-2">Programa</th><th className="pb-2">Source</th><th className="pb-2">Medium</th><th className="pb-2 text-right">Envíos</th><th /></tr></thead><tbody className="divide-y">{pares.map((par) => <tr key={`${par.programId}:${par.source}:${par.medium}`}><td className="py-3 font-medium">{par.programa}</td><td>{par.source || "—"}</td><td>{par.medium || "—"}</td><td className="cifra text-right">{par.envios}</td><td className="text-right"><Button size="sm" variant="outline" onClick={() => desdePar(par)}>Crear canal</Button></td></tr>)}</tbody></table>}
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Pares sin canal</CardTitle></CardHeader>
+          <CardContent className="overflow-x-auto">
+            {pares.length === 0 ? <p className="text-sm text-muted-foreground">Todos los pares UTM completos están clasificados.</p> : <table className="w-full text-left text-sm [&_td]:pr-4 [&_th]:pr-4"><thead className="text-xs text-muted-foreground"><tr><th className="pb-2">Programa</th><th className="pb-2">Source</th><th className="pb-2">Medium</th><th className="pb-2 text-right">Envíos</th><th /></tr></thead><tbody className="divide-y">{pares.map((par) => <tr key={`${par.programId}:${par.source}:${par.medium}`}><td className="py-3 font-medium">{par.programa}</td><td>{par.source || "—"}</td><td>{par.medium || "—"}</td><td className="cifra text-right">{par.envios}</td><td className="text-right"><Button size="sm" variant="outline" onClick={() => desdePar(par)}>Crear canal</Button></td></tr>)}</tbody></table>}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

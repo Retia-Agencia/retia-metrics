@@ -67,8 +67,8 @@ export function CatalogosAdmin({ catalogos }: { catalogos: CatalogoVista[] }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div role="tablist" aria-label="Catálogos" className="flex flex-wrap gap-2">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div role="tablist" aria-label="Catálogos" className="flex shrink-0 flex-wrap gap-2">
         {catalogos.map((c) => (
           <Button
             key={c.slug}
@@ -190,13 +190,13 @@ function PanelCatalogo({ catalogo }: { catalogo: CatalogoVista }) {
   });
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="flex min-h-0 flex-1 flex-col">
+      <CardHeader className="shrink-0">
         <CardTitle className="text-base">{catalogo.nombre}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
         <form
-          className="space-y-2"
+          className="shrink-0 space-y-2"
           onSubmit={(e) => {
             e.preventDefault();
             agregar();
@@ -243,7 +243,7 @@ function PanelCatalogo({ catalogo }: { catalogo: CatalogoVista }) {
           ) : null}
         </form>
 
-        <ul className="divide-y rounded-md border">
+        <ul className="divide-y rounded-md border md:min-h-0 md:flex-1 md:overflow-y-auto">
           {items.length === 0 ? (
             <li className="px-3 py-4 text-sm text-muted-foreground">
               Todavía no hay elementos en este catálogo.

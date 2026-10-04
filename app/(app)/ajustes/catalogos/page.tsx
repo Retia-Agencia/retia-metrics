@@ -4,6 +4,7 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import { PageShell } from "@/components/page-shell";
+import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { CatalogosAdmin, type CatalogoVista } from "@/components/catalogos-admin";
 import { REGISTRO_CATALOGOS } from "@/lib/catalogo/registro";
 import { vinculosDePlataformas } from "@/lib/catalogo/plataformas";
@@ -61,8 +62,12 @@ export default async function CatalogosPage() {
     <PageShell
       titulo="Motivos"
       descripcion="Se usan al perder, retroceder o recuperar un deal."
+      volver={{ porDefecto: { href: "/ajustes", etiqueta: "Ajustes" } }}
+      fija
     >
-      <CatalogosAdmin catalogos={catalogos} />
+      <PantallaFija>
+        <CatalogosAdmin catalogos={catalogos} />
+      </PantallaFija>
     </PageShell>
   );
 }

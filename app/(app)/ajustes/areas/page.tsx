@@ -6,6 +6,7 @@ import { canales as catalogoCanales } from "@/lib/catalogo/canales";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import { PageShell } from "@/components/page-shell";
+import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { AreasAdmin } from "@/components/admin/areas-admin";
 
 export const dynamic = "force-dynamic";
@@ -38,14 +39,19 @@ export default async function AreasPage() {
   }));
 
   return (
-    <PageShell titulo="Áreas" descripcion="Agrupan los canales por área de origen.">
-      <div className="space-y-6">
-        <p className="text-sm text-muted-foreground">
+    <PageShell
+      titulo="Áreas"
+      descripcion="Agrupan los canales por área de origen."
+      volver={{ porDefecto: { href: "/ajustes", etiqueta: "Ajustes" } }}
+      fija
+    >
+      <PantallaFija>
+        <p className="shrink-0 text-sm text-muted-foreground">
           Las áreas se usan en el origen declarado de un lead y en el rendimiento por área del
           dashboard. Desactivar un área deja sus canales en “Área inactiva”.
         </p>
         <AreasAdmin areas={vistaAreas} />
-      </div>
+      </PantallaFija>
     </PageShell>
   );
 }
