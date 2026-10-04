@@ -4,7 +4,7 @@ import { esAccesoTotal, esAdministrador, manejaPauta, trabajaLeads } from "@/lib
 export type ItemNav = {
   href: string;
   etiqueta: string;
-  icono: "dashboard" | "deals" | "inbox" | "calls" | "recursos" | "ajustes" | "miespacio" | "nerdstats" | "students" | "leads" | "programa";
+  icono: "dashboard" | "metas" | "deals" | "inbox" | "calls" | "recursos" | "ajustes" | "miespacio" | "nerdstats" | "students" | "leads" | "programa";
   roles: readonly Rol[];
 };
 
@@ -16,7 +16,7 @@ export type ItemNav = {
  * Solo entran las tabs que ya tienen pantalla (Alejo, 28-sep): cada ticket que construye
  * una (Leads 072, Deals 069, Calls 098, Students 099...) la agrega aqui y en la nav.
  */
-export const TABS_DE_PROGRAMA = ["dashboard", "leads", "deals", "inbox", "calls", "students", "programa"] as const;
+export const TABS_DE_PROGRAMA = ["dashboard", "metas", "leads", "deals", "inbox", "calls", "students", "programa"] as const;
 export type TabDePrograma = (typeof TABS_DE_PROGRAMA)[number];
 
 /** La tab con la que se entra a un programa cuando no se viene de otra. */
@@ -94,6 +94,12 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
       href: rutaDePrograma(programa, "dashboard"),
       etiqueta: "Dashboard",
       icono: "dashboard",
+      roles: ["gerente", "closer"],
+    });
+    items.push({
+      href: rutaDePrograma(programa, "metas"),
+      etiqueta: "Metas",
+      icono: "metas",
       roles: ["gerente", "closer"],
     });
     // Leads: la base del programa, lo que todavia no es oportunidad (ticket 072). Mismo

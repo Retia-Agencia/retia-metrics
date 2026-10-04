@@ -3,7 +3,7 @@ id: 146
 etapa: NC2
 serves: "comercial.md R-8, GC-44, GC-45, §5"
 depends: [136]
-status: en curso
+status: review
 sesion: M3 (ola O5, 4-oct)
 ---
 
@@ -68,18 +68,38 @@ las confirme al revisar.
 
 ## Done cuando
 
-- [ ] `lib/queries/metas.ts`: la cuenta pura (cohortes + ventas + hoy → meta del mes, esperado, deuda,
+- [x] `lib/queries/metas.ts`: la cuenta pura (cohortes + ventas + hoy → meta del mes, esperado, deuda,
       compensaciones) separada de la lectura de la base, con tests puros: el ejemplo de §5 (ventana del 31-ago al
       9-oct, 30 hábiles, 60 cupos) da 2 / 44 / 14 cupos para agosto, septiembre y octubre y USD 88.000 en
       septiembre a USD 2.000; dos cohortes en el mismo mes suman; un mes fuera de toda ventana da meta 0 y lo dice;
       hoy en sábado; 0 hábiles restantes no divide por cero.
-- [ ] Test con PGlite (`tests/metas.test.ts`): una venta de la C1 en la ventana de la C2 cuenta a la C1; un deal
+- [x] Test con PGlite (`tests/metas.test.ts`): una venta de la C1 en la ventana de la C2 cuenta a la C1; un deal
       anulado, una cortesía y una venta de otro programa no cuentan; un deal con Abonado en septiembre y Completo
       en octubre cuenta una vez, en septiembre; las ventas del mes son las mismas que la lista `cierres` del mismo
       rango; contratado = suma del valor vendido.
-- [ ] `/p/[programa]/metas` con Tinta (`structure.md` §9): meta del mes en cupos y USD, avance, deuda y las dos
+- [x] `/p/[programa]/metas` con Tinta (`structure.md` §9): meta del mes en cupos y USD, avance, deuda y las dos
       compensaciones, todo en número y %, tabla por cohorte; cifras de la lista con enlace.
-- [ ] La guarda mordida: un closer sin membresía en el programa recibe 404 (test de página en
-      `tests/paginas.test.ts` o propio).
-- [ ] Typecheck, lint, tests del ticket, `npm run build`; recorrido en `dev:local` como gerente y como closer, en
+- [x] La guarda mordida: un closer sin membresía en el programa recibe 404 (`tests/metas-pagina.test.ts`).
+- [x] Typecheck, lint, tests del ticket, `npm run build`; recorrido en `dev:local` como gerente y como closer, en
       escritorio y 375 px, con la consola limpia.
+
+## Nota de cierre (M3, 4-oct)
+
+Implementó Codex (dos pasadas) y revisó M3. Queda en `review` hasta el checkpoint verde que lo incluya.
+
+- **Archivos:** `lib/queries/metas.ts` (nuevo: `armarMetasDelMes` pura, `leerMetasDelMes`, `nombreDelMes`,
+  `moverMes`), `lib/queries/saldo.ts` (solo `contratadoDeDeals` nueva, ADR 0065 punto 6),
+  `app/(app)/p/[programa]/metas/page.tsx`, `components/metas/metas-del-mes.tsx`, `lib/nav.ts` (pestaña
+  `metas` tras Dashboard), `components/app-sidebar.tsx` (solo el icono), `tests/metas.test.ts`,
+  `tests/metas-pagina.test.ts`. No toca `dashboard.ts` ni `vista-dashboard.ts`: solo importa.
+- **Verificado:** typecheck, lint, `npm run build`; tests `metas`, `metas-pagina`, `vigencia-centralizada`,
+  `paginas`, `roles` y `ficha-programa` (160 en verde). Suite completa: la corre el CI.
+- **Recorrido en `dev:local`** (escritorio y 375 px, consola sin errores): gerente y closer ven la misma página;
+  la venta del mes (2) abre la lista `cierres` con 2 filas; la compensación de la cohorte (0,70) es la misma
+  meta dinámica del dashboard; el cambio de mes y el menú móvil abren. **Frontera mordida forjando la
+  petición:** `mani.closer` (solo ComunicArte) recibe 404 en `/p/tactical-local/metas` y 200 en ComunicArte.
+- **Para el 148 (M1):** el Pulso puede importar `leerMetasDelMes` y el tipo `MetasDelMes`, y el Dinero el
+  `contratadoDeDeals` de `saldo.ts`, en vez de recontar.
+- **Deuda nombrada:** las ventas por cohorte no abren lista (la lista no filtra por cohorte todavía); los 🔶 del
+  alcance (convención de hoy, punto 3) esperan el ok de Mani. En fin de semana la tarjeta de la semana dice lo
+  que quedó sin vender en vez de un ritmo por día.

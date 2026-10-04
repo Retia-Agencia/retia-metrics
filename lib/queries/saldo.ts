@@ -39,6 +39,29 @@ export interface DescuentoDeDeal {
   porcentaje: number;
 }
 
+export interface ContratadoDeDeals {
+  usd: number;
+  sinValorVendido: number;
+}
+
+/** Valor contratado de ventas ya elegidas por id, sin convertir ni inventar montos. */
+export async function contratadoDeDeals(db: Db, dealIds: readonly string[]): Promise<ContratadoDeDeals> {
+  if (dealIds.length === 0) return { usd: 0, sinValorVendido: 0 };
+
+  const filas = await db
+    .select({ valorVendidoUsd: deals.valorVendidoUsd })
+    .from(deals)
+    .where(and(inArray(deals.id, [...dealIds]), vigente(deals)));
+
+  return filas.reduce<ContratadoDeDeals>(
+    (total, fila) => ({
+      usd: total.usd + (fila.valorVendidoUsd == null ? 0 : Number(fila.valorVendidoUsd)),
+      sinValorVendido: total.sinValorVendido + (fila.valorVendidoUsd == null ? 1 : 0),
+    }),
+    { usd: 0, sinValorVendido: 0 },
+  );
+}
+
 /** Descuento derivado del ticket de la cohorte y el total congelado del deal. */
 export function descuentoDeDeal(
   ticketUsd: number | string | null | undefined,
