@@ -34,6 +34,10 @@ un recorrido local, apagar dev:local (y Docker si nadie mas lo usa: la Mac anda 
     reporte del día ya está en Mi espacio › Métricas.
   - **O5 en curso:** 065 hecho (M2); 148 (M1), 146 (M3) y 185 (S5) en sus worktrees. M1 encontró que el comparativo entre
     closers agrupa llamadas por `calls.closer_id` y las de Calendly caen en "sin closer": lo arregla el 148.
+  - **Cierre de la O5 (tarde):** 185 y 146 en `cp-20261004-3`; 148 en `cp-20261004-4` (su CI cayó por el guardián de
+    identidad, que no conocía `claveCloserSql`; arreglado en el test, no en el código). Mani decidió el % de cierre:
+    **ADR 0079**, toda tasa del embudo sobre el mismo grupo de personas (por deal, cohorte de citas del rango; por closer,
+    sobre sus shows). La O6 sale de ahí y de "Lo que sigue" del 148: tickets 187 a 192, más 147 y 102.
   - **Aprendido:** cinco sesiones empujando reclamos de ticket cancelaron cuatro CI seguidos. El reclamo va en el mismo
     push que el código, o se avisa a la central antes.
 

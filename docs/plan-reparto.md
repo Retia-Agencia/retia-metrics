@@ -120,6 +120,33 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ## 4. La ola vigente y el mapa de etapas
 
+### 🌊 Ola O6 · el dashboard confiable · abierta el 4-oct (tarde)
+
+**La meta (Mani, 4-oct):** que cada cifra del dashboard sea *"real y confiable a lo que dice y muestra"*. Sale de
+"Lo que sigue del dashboard" del 148 y del ADR 0079 (las tasas sobre el mismo grupo de personas). La O5 cerró con
+065, 146, 148 y 185 (el 158 se descartó).
+
+| Parte | Sesión | Ticket | Archivos que son suyos | Migración |
+|---|---|---|---|---|
+| 1 | **D1** | [187] Las tasas del embudo sobre el mismo grupo (ADR 0079) | Módulo nuevo en `lib/queries/` para la cohorte de citas; `lib/queries/dashboard.ts` y `vista-dashboard.ts` (solo las tasas), `mi-espacio-metricas.ts`, `metricas-con-filas.ts` (las tasas), `components/dashboard/operacion.tsx` y `pulso.tsx` (solo donde se pinta una tasa) | no |
+| 1 | **D2** | [190] Series por mes en Dinero | `components/dashboard/dinero.tsx`, `components/series-lineales.tsx`, un módulo nuevo de series; importa de `saldo.ts`, `metas.ts` y `dashboard.ts` sin editarlos | no |
+| 1 | **D3** | [192] Todos los programas con las secciones | `app/(app)/dashboard/*`, `lib/queries/agregado-programas.ts`, `vista-todos.ts`; importa las piezas de `components/dashboard/*` sin editarlas | no |
+| 1 | **D4** | [147] Alertas por persistencia (solo el semáforo, 5 hábiles, configurable) | Módulo nuevo de alertas, la tabla de umbrales en `schema.ts`, su pantalla de configuración, un componente nuevo `components/dashboard/alertas.tsx`. En `pulso.tsx` solo la línea que lo monta, al final y rebasado sobre D1 | **sí** (umbrales; la genera y aplica la central) |
+| 2 | — | [188] Cada cifra abre su lista | después de D1: comparte `metricas-con-filas.ts` y el comparativo | no |
+| 2 | — | [189] Agendas creadas, ocurridas y futuras | después de D1: usa su cohorte de citas | no |
+| 2 | — | [191] Banderas rojas del Pulso | después de D1 y D4: `pulso.tsx` | no |
+| 2 | — | [102] Dashboard del paid trafficker | después de D3: alcance del dashboard | no |
+
+**Lo compartido:** `pulso.tsx` es de D1; D4 solo agrega su línea al final. `dashboard.ts`: D1 edita las tasas, D2 y
+D3 solo importan. `lib/db/schema.ts`: solo D4. **Prueba de costura:** para el mismo closer y rango, el comparativo, Mi
+espacio y la lista de la tasa dan el mismo número, y la suma de dos programas en "todos" es la suma de sus dashboards.
+
+**Cómo arranca cada sesión:** el mismo prompt de la ola O5 (abajo), cambiando "O5" por "O6" y la sesión. **Regla nueva
+(aprendida el 4-oct):** el reclamo del ticket va en el MISMO push que el código; un push solo de docs cancela el CI de
+otra sesión. Y nadie empuja mientras corre un CI sin avisar a la central.
+
+**La sesión central** sigue con el prompt de la O5.
+
 ### 🌊 Ola O5 · las métricas comerciales y la pantalla fija · abierta el 4-oct
 
 **La meta (Mani, 4-oct):** pasar a las métricas. Con QM-6, QM-7, QM-11 y las objeciones cerradas el 4-oct, el 146, el

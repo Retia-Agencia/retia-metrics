@@ -3,7 +3,7 @@ id: 148
 etapa: NC2
 serves: "comercial.md §9.7, §9.8 · enmienda el 095"
 depends: [142, 095, 137]
-status: en curso
+status: done
 sesion: M1 (ola O5, 4-oct)
 ---
 

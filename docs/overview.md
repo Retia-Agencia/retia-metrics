@@ -261,8 +261,9 @@ Qué mueve cada una y con qué requisito: [`manual-gestion-comercial.md`](./manu
 |---|---|
 | Lead a venta | ventas ÷ leads (personas) |
 | Invitado a venta | ventas ÷ leads que agendaron. Umbral operativo 15%: por debajo, el problema es la operación, no el volumen de leads |
-| % de show | llamadas con show ÷ llamadas agendadas en el rango |
-| % de cierre | cierres ÷ llamadas con show. 🟡 Propuesta: el cierre se cuenta en deals, no en llamadas |
+| % de show | de los deals con una cita ya ocurrida en el rango, cuántos llegaron a una (ADR 0079) |
+| % de cierre | de esos deals con show, cuántos están vendidos hoy; por closer, sobre los shows que tomó (ADR 0079). Mismo grupo arriba y abajo: nunca pasa de 100% |
+| Agenda → venta | de los deals con cita en el rango, cuántos están vendidos hoy = % de show × % de cierre (ADR 0079) |
 | Caja recaudada | suma de abonos cuya fecha cae en el rango |
 | Meta de cupos y meta dinámica | de la cohorte; la dinámica es lo que falta ÷ días hábiles que quedan, cada día |
 | Contribución | las ventas de la cohorte de un closer. **No existe meta individual** (ADR 0023) |

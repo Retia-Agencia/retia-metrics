@@ -208,7 +208,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 141 | [Filtros de fecha relativos en las listas](./141-filtros-de-fecha-relativos-en-listas.md) | 136 | done · 1-oct · Alejo · deals por creado, actividad y cierre; leads por creado y último envío; selector del 136 en modo solo A |
 | [x] | 146 | [Meta del mes y página de Metas](./146-meta-del-mes-y-pagina-de-metas.md) | 136 | done · `cp-20261004-3` · O5 · M3 · meta del mes pareja por hábil, la venta cuenta a la cohorte del deal, hoy cuenta como transcurrido (Mani, 4-oct); página `/p/[programa]/metas`; deuda: ventas por cohorte sin lista |
 | [ ] | 147 | [Alertas por persistencia](./147-alertas-por-persistencia.md) | 136 | todo · 4-oct: QM-11 cerrada (solo las métricas del semáforo, DP-24); QD-6: 5 hábiles, configurable · NC2 carril Alejo |
-| [ ] | 148 | [Las secciones del dashboard](./148-las-secciones-del-dashboard.md) | 142, 095, 137 | todo · O5 · M1 · deps cumplidas el 2-oct; va después del 143 (el 128 ya fijó las alertas) |
+| [x] | 148 | [Las secciones del dashboard](./148-las-secciones-del-dashboard.md) | 142, 095, 137 | done · `cp-20261004-4` · O5 · M1 · Pulso, Operación comercial, Dinero y Pauta interina; monta 146 y 065; el comparativo cuenta las llamadas de Calendly por `closer_user_id`. Lo que sigue: O6 (187 a 192) |
 | [-] | 158 | [El reporte del día del closer sale del CRM](./158-el-reporte-del-dia-del-closer.md) | 156, 157 | descartado · 4-oct (Mani): el reporte del día ya está en Mi espacio › Métricas con el periodo en "hoy"; medir objeciones era sobrediseño |
 
 ## 10 · Configuración
@@ -288,6 +288,21 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 167 | [Quién cobró es una FK, y Facturación clara](./167-quien-cobro-es-una-fk.md) | · | done · `cp-20261004-1` · 4-oct · `abonos.registrado_por_user_id` (0065), `closer_id` opcional, Facturación A-15 a A-17, fuera `buscar-llamada.ts` |
 | [x] | 186 | [Los duplicados: cada closer decide solo los de sus deals, y la lista no crece](./186-duplicados-solo-de-mis-deals.md) | 184 | done · `cp-20261004-1` · 4-oct · cada closer ve y decide solo los duplicados de sus deals (forjado: rechazo sin escribir), paginados; recorrido hecho |
 | [x] | 185 | [Pantalla fija en Leads, Calls, Inbox y Students](./185-pantalla-fija-en-toda-la-app.md) | 181, 183, 184, 186 | done · `cp-20261004-3` · O5 · S5 · tabla aprobada por Mani; Calls de a 50, pestañas en Inbox y Leads, Students compacto; textos de Programa (A-88). Suelto: `avisoDelFormulario` sin uso |
+
+
+### Ola O6 · el dashboard confiable (abierta el 4-oct)
+
+Sale de "Lo que sigue del dashboard" del 148 y del ADR 0079 (Mani, 4-oct: las tasas sobre el mismo grupo de
+personas). Reparto en [`plan-reparto.md`](../plan-reparto.md) §4, ola O6.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 187 | [Las tasas del embudo sobre el mismo grupo de personas](./187-tasas-sobre-el-mismo-grupo.md) | 148 | todo · ADR 0079 |
+| [ ] | 188 | [Cada cifra del dashboard abre su lista: embudo por etapa y comparativo](./188-cada-cifra-del-dashboard-abre-su-lista.md) | 148, 065 | todo |
+| [ ] | 189 | [Agendas creadas, ocurridas y futuras, y el no-show por semana](./189-agendas-creadas-ocurridas-y-futuras.md) | 187 | todo |
+| [ ] | 190 | [Series por mes en Dinero y el acumulado contra el mes anterior](./190-series-mensuales-en-dinero.md) | 148, 146 | todo |
+| [ ] | 191 | [Las banderas rojas que faltan en el Pulso](./191-banderas-rojas-del-pulso.md) | 148 | todo |
+| [ ] | 192 | [El dashboard de todos los programas con las secciones nuevas](./192-todos-los-programas-con-las-secciones.md) | 148 | todo |
 
 # Pasos y tareas sin ticket
 
