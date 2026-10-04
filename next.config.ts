@@ -15,6 +15,8 @@ const cabecerasDeSeguridad = [
 ];
 
 const nextConfig: NextConfig = {
+  // Incluye el manual HTML en el despliegue de la ruta autenticada.
+  outputFileTracingIncludes: { "/manual": ["./docs/manuales/operacion-comercial.html"] },
   async headers() {
     return [{ source: "/:path*", headers: cabecerasDeSeguridad }];
   },
