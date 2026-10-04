@@ -263,6 +263,72 @@ function FilaSetteo({
   );
 }
 
+type PropsSeccionSinDueno = {
+  filas: FilaSinDueno[];
+  puedeReclamar: boolean;
+  administra: boolean;
+  duenos: DuenoPosible[];
+};
+
+export function InboxAgendadosSinDueno({
+  filas,
+  puedeReclamar,
+  administra,
+  duenos,
+}: PropsSeccionSinDueno) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Agendados sin dueño</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        {filas.length === 0 ? (
+          <Vacio>No hay Agendados esperando dueño. Cuando una cita entre sin closer, aparece acá.</Vacio>
+        ) : (
+          <ul className="divide-y">
+            {filas.map((fila) => (
+              <FilaAgendado
+                key={fila.dealId}
+                fila={fila}
+                puedeReclamar={puedeReclamar}
+                administra={administra}
+                duenos={duenos}
+              />
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function InboxPorSettear({ filas, puedeReclamar, administra, duenos }: PropsSeccionSinDueno) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Por settear</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        {filas.length === 0 ? (
+          <Vacio>No hay leads en cola para settear. Cuando entre uno nuevo, aparece acá, priorizado por score.</Vacio>
+        ) : (
+          <ul className="divide-y">
+            {filas.map((fila) => (
+              <FilaSetteo
+                key={fila.dealId}
+                fila={fila}
+                puedeReclamar={puedeReclamar}
+                administra={administra}
+                duenos={duenos}
+              />
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function InboxSinDueno({
   pendienteSetteo,
   unclaimed,
@@ -281,51 +347,8 @@ export function InboxSinDueno({
 }) {
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Agendados sin dueño</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {unclaimed.length === 0 ? (
-            <Vacio>No hay Agendados esperando dueño. Cuando una cita entre sin closer, aparece acá.</Vacio>
-          ) : (
-            <ul className="divide-y">
-              {unclaimed.map((fila) => (
-                <FilaAgendado
-                  key={fila.dealId}
-                  fila={fila}
-                  puedeReclamar={puedeReclamar}
-                  administra={administra}
-                  duenos={duenos}
-                />
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Por settear</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {pendienteSetteo.length === 0 ? (
-            <Vacio>No hay leads en cola para settear. Cuando entre uno nuevo, aparece acá, priorizado por score.</Vacio>
-          ) : (
-            <ul className="divide-y">
-              {pendienteSetteo.map((fila) => (
-                <FilaSetteo
-                  key={fila.dealId}
-                  fila={fila}
-                  puedeReclamar={puedeReclamar}
-                  administra={administra}
-                  duenos={duenos}
-                />
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      <InboxAgendadosSinDueno filas={unclaimed} puedeReclamar={puedeReclamar} administra={administra} duenos={duenos} />
+      <InboxPorSettear filas={pendienteSetteo} puedeReclamar={puedeReclamar} administra={administra} duenos={duenos} />
     </div>
   );
 }

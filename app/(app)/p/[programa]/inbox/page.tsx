@@ -1,5 +1,4 @@
 import { eq } from "drizzle-orm";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -15,10 +14,10 @@ import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
 import { inboxDelPrograma, perdidosEnCalendly, type AlcanceInbox } from "@/lib/queries/inbox";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
+import { Pestanas, pestanaActiva, urlConSeccion, type GrupoDePestanas } from "@/components/layout/pestanas";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
-import { num } from "@/lib/format";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
-import { InboxSinDueno } from "@/components/deals/inbox-sin-dueno";
+import { InboxAgendadosSinDueno, InboxPorSettear } from "@/components/deals/inbox-sin-dueno";
 import { InboxLlamadasDeHoy } from "@/components/deals/inbox-llamadas-de-hoy";
 import { InboxLlamadasSueltas } from "@/components/deals/inbox-llamadas-sueltas";
 import { InboxAtencion } from "@/components/deals/inbox-atencion";
@@ -36,6 +35,14 @@ function uno(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+const ID_ANTERIOR_DE_SECCION: Record<string, string> = {
+  "sin-resultado": "por-registrar",
+  sueltas: "sin-deal",
+  "sin-dueno": "agendados-sin-dueno",
+  perdidos: "no-agendaron",
+  atencion: "necesitan-accion",
+};
+
 /**
  * El Inbox de un programa (ADR 0050, tickets 070 y 071): con lo que un closer abre el día y
  * ve, sin filtrar nada, qué tiene que hacer. Misma guarda y alcance que Deals:
@@ -47,12 +54,9 @@ function uno(value: string | string[] | undefined): string | undefined {
  *   (`esAdministrador`: gerente o developer) ve todo el EQUIPO, con el dueño en cada fila.
  * - El programa es FRONTERA (ADR 0043): todo es del programa del selector, jamás cruza.
  *
- * ## Orden de las pestañas (reunión con closers, 24-sep; ticket 185)
- *  1. Llamadas que ya pasaron sin resultado — el dolor número uno, va PRIMERA.
- *  2. Sin dueño (ticket 070): Agendados sin dueño y Por settear.
- *  3. Perdidos en Calendly.
- *  4. Llamadas sueltas (decisión K2: se asignan aquí).
- *  5. Lo mío que necesita atención.
+ * ## Orden de las pestañas (reunión con closers, 24-sep; tickets 185 y 193)
+ *  1. Llamadas: Por registrar y Sin deal.
+ *  2. Deals: Agendados sin dueño, Por settear, No agendaron y Necesitan acción.
  *
  * Lo que se muestra como botón es proyección (`trabajaLeads`, `esAdministrador`); la reja
  * de verdad vive en las server actions y en `lib/`, que rechazan igual una petición forjada.
@@ -85,53 +89,79 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
     .map((m) => ({ id: m.id, nombre: m.nombre, tipo: m.tipo }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   const plataformasOpcion = plataformas.map((p) => ({ id: p.id, nombre: String(p.nombre) }));
-  const tabs = [
-    { id: "sin-resultado", etiqueta: "Sin resultado", total: inbox.llamadasDeHoy.length },
-    { id: "sin-dueno", etiqueta: "Sin dueño", total: secciones.pendienteSetteo.length + secciones.unclaimed.length },
-    { id: "perdidos", etiqueta: "Perdidos en Calendly", total: perdidos.length },
-    { id: "sueltas", etiqueta: "Sueltas", total: inbox.llamadasSueltas.length },
-    { id: "atencion", etiqueta: "Atención", total: inbox.atencion.length },
-  ] as const;
+  const base = `/p/${programa.slug}/inbox`;
+  const grupos: GrupoDePestanas[] = [
+    {
+      titulo: "Llamadas",
+      pestanas: [
+        {
+          id: "por-registrar",
+          etiqueta: "Por registrar",
+          total: inbox.llamadasDeHoy.length,
+          descripcion: "Llamadas que ya pasaron y nadie registró qué pasó. Registra si hubo show, si se reagendó o si se cayó.",
+          href: urlConSeccion(base, query, "por-registrar"),
+        },
+        {
+          id: "sin-deal",
+          etiqueta: "Sin deal",
+          total: inbox.llamadasSueltas.length,
+          descripcion: "Citas de Calendly que no se pudieron unir a un deal solas. Elige a qué deal pertenecen.",
+          href: urlConSeccion(base, query, "sin-deal"),
+        },
+      ],
+    },
+    {
+      titulo: "Deals",
+      pestanas: [
+        {
+          id: "agendados-sin-dueno",
+          etiqueta: "Agendados sin dueño",
+          total: secciones.unclaimed.length,
+          descripcion: "Deals con una cita ya agendada y sin closer. Lo más viejo primero.",
+          href: urlConSeccion(base, query, "agendados-sin-dueno"),
+        },
+        {
+          id: "por-settear",
+          etiqueta: "Por settear",
+          total: secciones.pendienteSetteo.length,
+          descripcion: "Deals sin closer que todavía no agendan. Reclámalos, del puntaje más alto al más bajo.",
+          href: urlConSeccion(base, query, "por-settear"),
+        },
+        {
+          id: "no-agendaron",
+          etiqueta: "No agendaron",
+          total: perdidos.length,
+          descripcion: "Leads calificados que abrieron Calendly y no terminaron de agendar hace más de 5 minutos.",
+          href: urlConSeccion(base, query, "no-agendaron"),
+        },
+        {
+          id: "necesitan-accion",
+          etiqueta: "Necesitan acción",
+          total: inbox.atencion.length,
+          descripcion: "Deals con un pago o un compromiso vencido, sin actividad o con los intentos agotados.",
+          href: urlConSeccion(base, query, "necesitan-accion"),
+        },
+      ],
+    },
+  ];
+  const pestanas = grupos.flatMap((grupo) => grupo.pestanas);
   const seccionPedida = uno(query.seccion);
-  const seccion = tabs.some((tab) => tab.id === seccionPedida)
-    ? seccionPedida
-    : (tabs.find((tab) => tab.total > 0)?.id ?? "sin-resultado");
+  const seccion = pestanaActiva(seccionPedida ? (ID_ANTERIOR_DE_SECCION[seccionPedida] ?? seccionPedida) : undefined, pestanas);
   const origen = origenDeLaPagina(`/p/${programa.slug}/inbox`, query);
-  const urlDeSeccion = (id: (typeof tabs)[number]["id"]) => {
-    const u = new URLSearchParams();
-    for (const [k, valor] of Object.entries(query)) {
-      if (k === "seccion") continue;
-      if (Array.isArray(valor)) valor.forEach((v) => u.append(k, v));
-      else if (valor) u.set(k, valor);
-    }
-    u.set("seccion", id);
-    return `/p/${programa.slug}/inbox?${u.toString()}`;
-  };
 
   return (
     <PageShell titulo={programa.nombre} descripcion="Inbox" fija>
       <PantallaFija>
         {inbox.llamadasSinCloser.length > 0 ? (
-          <div className="shrink-0">
+          <div className="shrink-0 md:max-h-40 md:overflow-y-auto">
             <HostsSinCuenta filas={inbox.llamadasSinCloser} />
           </div>
         ) : null}
 
-        <div className="inline-flex max-w-full shrink-0 self-start overflow-x-auto rounded-full border bg-muted p-0.5 text-xs" role="group" aria-label="Sección del inbox">
-          {tabs.map((tab) => (
-            <Link
-              key={tab.id}
-              href={urlDeSeccion(tab.id)}
-              aria-current={seccion === tab.id ? "page" : undefined}
-              className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${seccion === tab.id ? "bg-background shadow-sm" : "text-muted-foreground"}`}
-            >
-              {tab.etiqueta} · <span className="cifra">{num(tab.total)}</span>
-            </Link>
-          ))}
-        </div>
+        <Pestanas grupos={grupos} activa={seccion} etiqueta="Sección del inbox" />
 
         <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
-          {seccion === "sin-resultado" ? (
+          {seccion === "por-registrar" ? (
             <InboxLlamadasDeHoy
           llamadas={inbox.llamadasDeHoy}
           slug={programa.slug}
@@ -140,26 +170,33 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
           origen={origen}
             />
           ) : null}
-          {seccion === "sin-dueno" ? (
-            <InboxSinDueno
-          pendienteSetteo={secciones.pendienteSetteo}
-          unclaimed={secciones.unclaimed}
-          puedeReclamar={puedeTrabajar}
-          administra={administra}
-          duenos={duenos}
-            />
-          ) : null}
-          {seccion === "perdidos" ? (
-            <InboxPerdidosEnCalendly filas={perdidos} slug={programa.slug} origen={origen} />
-          ) : null}
-          {seccion === "sueltas" ? (
+          {seccion === "sin-deal" ? (
             <InboxLlamadasSueltas
           llamadas={inbox.llamadasSueltas}
           programId={programa.id}
           origen={origen}
             />
           ) : null}
-          {seccion === "atencion" ? (
+          {seccion === "agendados-sin-dueno" ? (
+            <InboxAgendadosSinDueno
+              filas={secciones.unclaimed}
+              puedeReclamar={puedeTrabajar}
+              administra={administra}
+              duenos={duenos}
+            />
+          ) : null}
+          {seccion === "por-settear" ? (
+            <InboxPorSettear
+              filas={secciones.pendienteSetteo}
+              puedeReclamar={puedeTrabajar}
+              administra={administra}
+              duenos={duenos}
+            />
+          ) : null}
+          {seccion === "no-agendaron" ? (
+            <InboxPerdidosEnCalendly filas={perdidos} slug={programa.slug} origen={origen} />
+          ) : null}
+          {seccion === "necesitan-accion" ? (
             <InboxAtencion
           filas={inbox.atencion}
           slug={programa.slug}

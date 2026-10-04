@@ -20,6 +20,7 @@ export function HostsSinCuenta({ filas }: { filas: readonly FilaLlamadaSinCloser
         <CardTitle className="flex items-center gap-2">
           Hosts sin cuenta <Badge variant="destructive">Urgente</Badge>
         </CardTitle>
+        <p className="text-sm text-muted-foreground">Dale cuenta a esa persona en el Equipo del programa o asigna la cita a un closer.</p>
       </CardHeader>
       <CardContent className="p-0">
         <ul className="divide-y">

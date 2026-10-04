@@ -23,6 +23,7 @@ import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
 import { FiltroSelect } from "@/components/filtros/filtro-select";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
+import { Pestanas } from "@/components/layout/pestanas";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -129,22 +130,28 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
           </BarraDeFiltros>
         </div>
 
-        <div className="inline-flex max-w-full shrink-0 self-start overflow-x-auto rounded-full border bg-muted p-0.5 text-xs" role="group" aria-label="Sección de leads">
-          <Link
-            href={urlCon({ seccion: null, pagina: null, pdup: null })}
-            aria-current={seccion === "leads" ? "page" : undefined}
-            className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${seccion === "leads" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
-          >
-            Leads · <span className="cifra">{num(total)}</span>
-          </Link>
-          <Link
-            href={urlCon({ seccion: "duplicados", pagina: null, pdup: null })}
-            aria-current={seccion === "duplicados" ? "page" : undefined}
-            className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${seccion === "duplicados" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
-          >
-            Posibles duplicados · <span className="cifra">{num(duplicados.total)}</span>
-          </Link>
-        </div>
+        <Pestanas
+          activa={seccion}
+          etiqueta="Sección de leads"
+          grupos={[{
+            pestanas: [
+              {
+                id: "leads",
+                etiqueta: "Leads",
+                total,
+                descripcion: "Todas las personas que llegaron por el formulario o se crearon a mano.",
+                href: urlCon({ seccion: null, pagina: null, pdup: null }),
+              },
+              {
+                id: "duplicados",
+                etiqueta: "Posibles duplicados",
+                total: duplicados.total,
+                descripcion: "Personas que podrían ser la misma. Confirma si lo son o sepáralas.",
+                href: urlCon({ seccion: "duplicados", pagina: null, pdup: null }),
+              },
+            ],
+          }]}
+        />
 
         {seccion === "leads" ? (
           <Card className="flex min-h-0 flex-1 flex-col">

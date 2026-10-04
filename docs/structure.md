@@ -571,6 +571,8 @@ conoce de HubSpot, a propósito.
 
 Desde `md`, toda lista o cola de trabajo usa pantalla fija y el scroll vive en la lista; una segunda lista con acciones o paginación propias es una subpágina (pestaña con `?seccion=` en la URL), mientras el detalle de un registro o un formulario corto usa un pop-up. Por debajo de `md` vuelve el scroll de página. Aplica a Deals, Leads, Calls, Inbox y Students (ticket 185).
 
+Las pestañas siempre usan `components/layout/pestanas.tsx`: la URL lleva `?seccion=` y conserva el resto de la query, el total opcional usa `cifra`, puede haber grupos con título y una sola pestaña activa entre todos, y `pestanaActiva` decide cuál es. Cada pestaña lleva una descripción de una línea que aparece debajo de la barra; si cambia su id, se conserva una traducción desde el anterior para que los enlaces guardados y Volver sigan llegando.
+
 El selector de programa (ADR 0050) vive arriba de la barra, dentro del marco, y sigue la regla 7.
 
 **Las reglas:**
