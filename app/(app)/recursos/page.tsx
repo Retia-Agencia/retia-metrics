@@ -4,6 +4,12 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { programasVisibles } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
+import {
+  Pestanas,
+  pestanaActiva,
+  urlConSeccion,
+  type GrupoDePestanas,
+} from "@/components/layout/pestanas";
 import { programasGestionablesPorUsuario } from "@/lib/queries/programas";
 import {
   enlacesDePagoVigentes,
@@ -100,15 +106,45 @@ export default async function RecursosPage({ searchParams }: Props) {
     historial: (historiales.get(r.id) ?? []).map((v) => ({ id: v.id, url: v.url })),
   }));
 
+  // Dos listas con acciones propias son DOS pestañas (regla de §9, ticket 193): la activa
+  // la decide `pestanaActiva` desde `?seccion=` en el SERVIDOR, y los href conservan el
+  // programa y la búsqueda con `urlConSeccion`. `Pestanas` es server-friendly, así que se
+  // renderiza aquí y se pasa como nodo al componente cliente: no arrastra nada de `lib/db`.
+  const grupos: GrupoDePestanas[] = [
+    {
+      pestanas: [
+        {
+          id: "recursos",
+          etiqueta: "Recursos",
+          total: conHistorial.length,
+          descripcion: "Brochures, guiones y material del programa. Cópialos en un clic.",
+          href: urlConSeccion("/recursos", busqueda, "recursos"),
+        },
+        {
+          id: "links-de-pago",
+          etiqueta: "Links de pago",
+          total: enlaces.length,
+          descripcion: "Los links de cobro vigentes por programa y plataforma.",
+          href: urlConSeccion("/recursos", busqueda, "links-de-pago"),
+        },
+      ],
+    },
+  ];
+  const pestanas = grupos.flatMap((grupo) => grupo.pestanas);
+  const seccion = pestanaActiva(texto(busqueda.seccion), pestanas);
+
   return (
     <PageShell
       titulo="Recursos"
       descripcion="Brochures, guiones y links de pago vigentes. Encuéntralos y cópialos en un clic."
+      fija
     >
       <RecursosPantalla
         esAdmin={esAdmin}
         programasEditables={programasEditables}
         q={q ?? null}
+        seccion={seccion}
+        pestanas={<Pestanas grupos={grupos} activa={seccion} etiqueta="Sección de recursos" />}
         programas={programas.map((p) => ({ id: p.id, slug: p.slug, nombre: p.nombre }))}
         recursos={conHistorial}
         enlaces={enlaces.map((e) => ({

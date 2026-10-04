@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, Copy, ExternalLink, History, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import {
 } from "@/app/(app)/recursos/acciones";
 import { agruparEnlaces, GLOBAL } from "@/components/resources/helpers";
 import { FiltroSelect } from "@/components/filtros/filtro-select";
+import { PantallaFija } from "@/components/layout/pantalla-fija";
 import type {
   EnlaceUI,
   ProgramaOpcion,
@@ -52,6 +53,13 @@ export type {
  * rol y el acceso por programa en el servidor (ADR 0003). Un administrador (gerente o
  * developer) edita todo, incluido lo global; un closer solo los recursos de los
  * programas donde tiene membresia activa, y NUNCA un recurso global.
+ *
+ * PANTALLA FIJA (ticket 195, A-99, regla de §9): el filtro, el buscador y las pestañas
+ * quedan fijos arriba (`shrink-0`); solo la lista de la pestaña activa tiene scroll
+ * propio desde `md`. Por debajo de `md` vuelve el scroll de página (los closers lo usan
+ * en el teléfono). Las dos listas —recursos y links de pago— son dos pestañas: la activa
+ * la decide el servidor (`?seccion=`) y llega en `seccion`. El buscador solo filtra
+ * recursos (la consulta de links no recibe `q`), así que solo aparece en esa pestaña.
  */
 
 interface Props {
@@ -60,6 +68,10 @@ interface Props {
   /** Programas (uuids) que un closer puede editar. Vacio para quien no edita nada. */
   programasEditables: string[];
   q: string | null;
+  /** La pestaña activa, decidida en el servidor desde `?seccion=`. */
+  seccion: string;
+  /** La barra de pestañas, renderizada en el servidor (`Pestanas` no toca `lib/db`). */
+  pestanas: ReactNode;
   programas: ProgramaOpcion[];
   recursos: RecursoUI[];
   enlaces: EnlaceUI[];
@@ -72,6 +84,8 @@ export function RecursosPantalla({
   esAdmin,
   programasEditables,
   q,
+  seccion,
+  pestanas,
   programas,
   recursos,
   enlaces,
@@ -153,9 +167,11 @@ export function RecursosPantalla({
   const enlacesAgrupados = useMemo(() => agruparEnlaces(enlaces), [enlaces]);
 
   return (
-    <div className="space-y-8">
-      {/* Filtro: vive en la URL (ADR 0023). Envuelve en pantallas angostas. */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+    <PantallaFija>
+      {/* Barra fija: filtro de programa (las dos pestañas) y buscador (solo recursos).
+          Vive en la URL (ADR 0023) y conserva la sección activa, porque `navegar` y
+          `FiltroSelect` parten de la query actual. Envuelve en pantallas angostas. */}
+      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
         <FiltroSelect
           nombre="programa"
           etiqueta="Programa"
@@ -164,83 +180,93 @@ export function RecursosPantalla({
           opciones={programas.map((p) => ({ value: p.slug, label: p.nombre }))}
         />
 
-        <input
-          type="search"
-          defaultValue={q ?? ""}
-          placeholder="Buscar por título…"
-          aria-label="Buscar por título"
-          className={cn(claseInput, "sm:w-64")}
-          onChange={(e) => {
-            const valor = e.target.value.trim();
-            navegar({ q: valor === "" ? null : valor });
-          }}
-        />
-      </div>
-
-      {/* ── Recursos ── */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground">Recursos</h2>
-
-        {puedeCrear ? (
-          <CrearRecurso
-            programas={programasParaCrear}
-            permitirGlobal={esAdmin}
-            pendiente={pendiente}
-            onCrear={(entrada, reset) =>
-              correr(() => crearRecursoAccion(entrada), "Recurso creado", reset)
-            }
+        {/* El buscador solo filtra recursos (la consulta de links no recibe `q`), así
+            que solo aparece en esa pestaña. */}
+        {seccion === "recursos" ? (
+          <input
+            type="search"
+            defaultValue={q ?? ""}
+            placeholder="Buscar por título…"
+            aria-label="Buscar por título"
+            className={cn(claseInput, "sm:w-64")}
+            onChange={(e) => {
+              const valor = e.target.value.trim();
+              navegar({ q: valor === "" ? null : valor });
+            }}
           />
         ) : null}
+      </div>
 
-        {recursos.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No hay recursos que coincidan.</p>
-        ) : (
-          <ul className="space-y-2">
-            {recursos.map((r) => (
-              <RecursoItem
-                key={r.id}
-                recurso={r}
-                puedeEditar={puedeEditarRecurso(r)}
+      {/* Las pestañas (renderizadas en el servidor) también quedan fijas. */}
+      {pestanas}
+
+      {/* Solo la lista de la pestaña activa, con scroll propio desde `md`. Por debajo de
+          `md` vuelve el scroll de página. */}
+      <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+        {seccion === "recursos" ? (
+          <section className="space-y-3">
+            {puedeCrear ? (
+              <CrearRecurso
+                programas={programasParaCrear}
+                permitirGlobal={esAdmin}
                 pendiente={pendiente}
-                onReemplazar={(nuevaUrl, reset) =>
-                  correr(() => reemplazarRecursoAccion(r.id, nuevaUrl), "Recurso reemplazado", reset)
+                onCrear={(entrada, reset) =>
+                  correr(() => crearRecursoAccion(entrada), "Recurso creado", reset)
                 }
-                onDesactivar={() =>
-                  correr(() => desactivarRecursoAccion(r.id), "Recurso desactivado")
-                }
-                onBorrar={() => borrarRecurso(r)}
               />
-            ))}
-          </ul>
-        )}
-      </section>
+            ) : null}
 
-      {/* ── Enlaces de pago (solo lectura; se administran en la tab Programa) ── */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground">Enlaces de pago</h2>
+            {recursos.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay recursos que coincidan.</p>
+            ) : (
+              <ul className="space-y-2">
+                {recursos.map((r) => (
+                  <RecursoItem
+                    key={r.id}
+                    recurso={r}
+                    puedeEditar={puedeEditarRecurso(r)}
+                    pendiente={pendiente}
+                    onReemplazar={(nuevaUrl, reset) =>
+                      correr(() => reemplazarRecursoAccion(r.id, nuevaUrl), "Recurso reemplazado", reset)
+                    }
+                    onDesactivar={() =>
+                      correr(() => desactivarRecursoAccion(r.id), "Recurso desactivado")
+                    }
+                    onBorrar={() => borrarRecurso(r)}
+                  />
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : null}
 
-        {enlacesAgrupados.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No hay enlaces de pago que coincidan.</p>
-        ) : (
-          <div className="space-y-4">
-            {enlacesAgrupados.map((grupo) => (
-              <Card key={grupo.programa}>
-                <CardHeader className="py-3">
-                  <CardTitle className="text-base">{grupo.programa}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ul className="space-y-2">
-                    {grupo.enlaces.map((e) => (
-                      <EnlaceItem key={e.id} enlace={e} />
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
+        {/* Enlaces de pago (solo lectura; se administran en la tab Programa). */}
+        {seccion === "links-de-pago" ? (
+          <section className="space-y-3">
+            {enlacesAgrupados.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay enlaces de pago que coincidan.</p>
+            ) : (
+              <div className="space-y-4">
+                {enlacesAgrupados.map((grupo) => (
+                  <Card key={grupo.programa}>
+                    <CardHeader className="py-3">
+                      <CardTitle className="text-base">{grupo.programa}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <ul className="space-y-2">
+                        {grupo.enlaces.map((e) => (
+                          <EnlaceItem key={e.id} enlace={e} />
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </section>
+        ) : null}
+      </div>
+    </PantallaFija>
   );
 }
 
