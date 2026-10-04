@@ -1,7 +1,7 @@
 import { sumaDeAbonos } from "@/lib/queries/saldo";
-import { cerradosEn, delCloser, ETAPAS_VENDIDAS, fechaAnclaCall, filtroCaja, filtroCierres, filtroCortesias, filtroLeads, filtroLlamadas, llamadaOcurrio, vendidosEn } from "@/lib/queries/metricas-filtros";
+import { claveDeRegistradorDeAbono, closerDeAbono, cerradosEn, delCloser, ETAPAS_VENDIDAS, fechaAnclaCall, filtroCaja, filtroCierres, filtroCortesias, filtroLeads, filtroLlamadas, llamadaOcurrio, vendidosEn } from "@/lib/queries/metricas-filtros";
 export { fechaAnclaCall, vendidosEn, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
-import { and, between, eq, inArray, sql } from "drizzle-orm";
+import { and, between, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import {
   abonos,
@@ -175,7 +175,7 @@ async function ventasPorCloser(
 ): Promise<{ closerId: string | null; cierres: number }[]> {
   return db
     .select({
-      closerId: sql<string | null>`min(${users.closerId})`,
+      closerId: sql<string | null>`min(coalesce(${users.closerId}, ${users.nombre}, ${users.email}))`,
       cierres: sql<number>`count(distinct ${deals.id})::int`,
     })
     .from(deals)
@@ -187,7 +187,7 @@ async function ventasPorCloser(
         vigente(deals),
       ),
     )
-    .groupBy(claveDeCloserSql(users.closerId));
+    .groupBy(users.id);
 }
 
 /**
@@ -207,7 +207,7 @@ export async function cajaRecaudada(
     .from(abonos)
     .where(
       and(
-        filtroCaja({ programId, rango, closerId }),
+        filtroCaja({ programId, rango, closerId }, db),
         vigente(abonos),
       ),
     )
@@ -287,9 +287,9 @@ export async function dealsPerdidosPorMotivo(
 /**
  * El mismo embudo del rango pero desglosado por closer, mas la caja de cada uno.
  *
- * Cruza DOS tablas por el texto `closerId` (`calls.closerId`, `abonos.closerId`):
- * es texto copiado del closer logueado, no una relacion a `users` (ADR 0011). Por
- * eso el desglose se arma en memoria uniendo las agregaciones por ese texto: un
+ * Las llamadas historicas conservan `closerId`; la caja nueva usa la FK de quien
+ * registro y solo cae al texto cuando la fila historica no tiene FK. El desglose se
+ * arma en memoria con una etiqueta compatible durante el corte: un
  * closer que en el rango solo tiene abonos (ninguna call) igual aparece en la lista,
  * con su caja y ceros en el embudo.
  *
@@ -330,11 +330,21 @@ export async function embudoPorCloser(
       .groupBy(claveDeCloserSql(calls.closerId)),
     db
       .select({
-        closerId: sql<string | null>`min(${abonos.closerId})`,
+        closerId: sql<string | null>`min(${closerDeAbono()})`,
         moneda: abonos.moneda,
         total: sql<number>`${sumaDeAbonos()}::float8`,
       })
       .from(abonos)
+      .leftJoin(
+        users,
+        or(
+          eq(users.id, abonos.registradoPorUserId),
+          and(
+            isNull(abonos.registradoPorUserId),
+            eq(claveDeCloserSql(users.closerId), claveDeCloserSql(abonos.closerId)),
+          ),
+        ),
+      )
       .where(
         and(
           eq(abonos.programId, programId),
@@ -342,7 +352,7 @@ export async function embudoPorCloser(
           vigente(abonos),
         ),
       )
-      .groupBy(claveDeCloserSql(abonos.closerId), abonos.moneda),
+      .groupBy(claveDeRegistradorDeAbono(), abonos.moneda),
     ventasPorCloser({ programId, rango }, db),
   ]);
 

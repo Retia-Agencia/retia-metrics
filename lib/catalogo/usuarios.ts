@@ -26,8 +26,8 @@ import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
  *    guardar se sincroniza `miembros_programa` (activa/inserta las elegidas,
  *    desactiva las quitadas — nunca DELETE, ADR 0012), y cada cambio va a
  *    `change_log` con el `userId` de quien lo hizo.
- *  - **Regla de negocio del rol.** Un closer necesita `closerId` (ADR 0011) y al
- *    menos un programa; un gerente no necesita ninguno. Lo enforza el esquema zod.
+ *  - **Regla de negocio del rol.** La identidad es `users.id`; `closerId` es opcional
+ *    y solo reconoce el texto historico de las hojas (ticket 167).
  *  - **Proteccion del ultimo administrador.** Un gerente no puede quitarse su
  *    propio rol ni desactivarse (evita quedar sin administradores). Es un 400.
  *
@@ -44,11 +44,9 @@ const esquemaId = z.string().uuid("El identificador no es válido.");
  * CLI de emergencia (`npm run usuarios`): una sola validacion de la misma entidad.
  *
  * `email` se normaliza a minusculas y sin espacios (es la llave del allowlist). La
- * regla del rol se aplica con `superRefine`: un closer necesita `closerId` y al
- * menos un programa; un gerente no necesita ninguno.
+ * `closerId` es opcional para todos los roles: ya no identifica al usuario.
  */
-export const esquemaUsuario = z
-  .object({
+export const esquemaUsuario = z.object({
     email: z
       .string()
       .trim()
@@ -80,17 +78,6 @@ export const esquemaUsuario = z
       .transform((v) => (v && v.length > 0 ? v : null)),
     /** Programas donde el usuario vende. Cada uno es un uuid de `programs`. */
     programas: z.array(z.string().uuid("Programa inválido.")).optional(),
-  })
-  .superRefine((datos, ctx) => {
-    if (datos.rol === "closer") {
-      if (!datos.closerId) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["closerId"],
-          message: "Un closer necesita su closer_id de la BBDD.",
-        });
-      }
-    }
   });
 
 /**

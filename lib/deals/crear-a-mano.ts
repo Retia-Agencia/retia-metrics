@@ -43,11 +43,10 @@ import type { EtapaDeal } from "./etapas";
  */
 export const ETAPA_DE_ENTRADA: EtapaDeal = "en_gestion";
 
-/** Quien crea. `closerId` lo exige el alta manual del lead (ADR 0011). */
+/** Quien crea. `userId` es la identidad y la membresia decide el alcance. */
 export interface ActorDeAlta {
   userId: string;
   rol: Rol;
-  closerId: string | null;
 }
 
 export const esquemaDealAMano = z.object({
@@ -129,7 +128,7 @@ export async function crearDealAMano(
     } else {
       const { persona, creada } = await crearPersonaManual(
         db,
-        { id: actor.userId, rol: actor.rol, closerId: actor.closerId },
+        { id: actor.userId, rol: actor.rol, closerId: null },
         {
           programId: datos.programId,
           correo: datos.lead.correo,

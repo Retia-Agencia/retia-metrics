@@ -147,11 +147,20 @@ describe("registrarAbono: el dinero mueve el deal", () => {
     expect(await etapaDe(dealId)).toBe("ganado_parcial");
     const [fila] = await abonosDe(dealId);
     // El programa sale del deal y el closer de la cuenta, no del input.
-    expect(fila).toMatchObject({ programId, moneda: "USD", closerId: "Maru", origen: "app" });
+    expect(fila).toMatchObject({ programId, moneda: "USD", registradoPorUserId: closer, closerId: "Maru", origen: "app" });
     const h = await historial(dealId);
     expect(h.map((x) => [x.de, x.a, x.userId])).toEqual([["atendido", "ganado_parcial", null]]);
     const rastro = await db.select().from(changeLog).where(and(eq(changeLog.tabla, "abonos"), eq(changeLog.registroId, r.abonoId)));
     expect(rastro.length).toBeGreaterThan(0);
+  });
+
+  it("un closer sin closer_id registra el abono con su users.id", async () => {
+    await db.update(users).set({ closerId: null }).where(eq(users.id, closer));
+    const dealId = await nuevoDeal("atendido");
+
+    await registrarAbono(db, comoCloser(), abono(dealId, "300"));
+
+    expect((await abonosDe(dealId))[0]).toMatchObject({ registradoPorUserId: closer, closerId: null });
   });
 
   it("el abono que salda el deal lo lleva a Completo, aunque venga directo de Atendido", async () => {

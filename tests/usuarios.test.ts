@@ -24,8 +24,8 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
  * Es la logica pura detras de la pantalla: valida con UN esquema zod, delega los
  * campos del usuario al molde de catalogo (ADR 0012), y sincroniza las membresias
  * de programa (`miembros_programa`) — nunca borra, siempre `change_log`. Dos reglas
- * de negocio propias que el molde no expresa: un closer necesita `closerId` y al
- * menos un programa; un gerente no puede quitarse su propio rol ni desactivarse
+ * de negocio propias que el molde no expresa: `closerId` es historico y opcional;
+ * un gerente no puede quitarse su propio rol ni desactivarse
  * (evita quedar sin administradores).
  *
  * Base PGlite nueva por test. Cada caso mira `change_log` y las membresias, asi que
@@ -91,10 +91,8 @@ describe("esquema de usuario", () => {
     ).toThrow(ZodError);
   });
 
-  it("un closer sin closerId no valida", () => {
-    expect(() =>
-      esquemaUsuario.parse({ ...closerValido, closerId: "", programas: [programaAId] }),
-    ).toThrow(ZodError);
+  it("un closer sin closerId valida y lo normaliza a null", () => {
+    expect(esquemaUsuario.parse({ ...closerValido, closerId: "", programas: [programaAId] }).closerId).toBeNull();
   });
 
   it("los programas son opcionales", () => {

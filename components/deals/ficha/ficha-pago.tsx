@@ -82,11 +82,11 @@ export function FichaPago({
 
   return (
     <Card id={ID_DE_SECCION.pago} className="scroll-mt-24">
-      <CardHeader>
+      <CardHeader className="grid-cols-1 gap-3 has-data-[slot=card-action]:grid-cols-1 sm:has-data-[slot=card-action]:grid-cols-[1fr_auto]">
         <CardTitle>Facturación</CardTitle>
         {puedeTrabajar && !anulado ? (
-          <CardAction className="flex flex-col items-end gap-2">
-            <div className="flex gap-2">
+          <CardAction className="col-start-1 row-start-2 flex w-full flex-col items-start gap-2 justify-self-stretch sm:col-start-2 sm:row-start-1 sm:w-auto sm:items-end sm:justify-self-end">
+            <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="ghost" onClick={() => setDialogo({ tipo: "cohorte" })}>
                 Cambiar cohorte
               </Button>
@@ -141,7 +141,7 @@ export function FichaPago({
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">{legible.etiqueta}</dt>
-            <dd className="cifra text-sm">{legible.valor}</dd>
+            <dd className={s.saldo === null ? "text-sm" : "cifra text-sm"}>{legible.valor}</dd>
           </div>
         </dl>
         {s.sinSaldoPorque === "moneda_distinta" ? (
@@ -225,15 +225,10 @@ export function FichaPago({
                 <span className="text-xs font-medium text-muted-foreground">Cohorte: </span>
                 {ficha.cohorte ? ficha.cohorte.codigo : <Badge variant="alerta">Sin cohorte</Badge>}
               </span>
-              {puedeTrabajar && !anulado ? (
-                <Button size="xs" variant="ghost" onClick={() => setDialogo({ tipo: "cohorte" })}>
-                  Cambiar cohorte
-                </Button>
-              ) : null}
             </div>
             {!ficha.cohorte ? (
               <p className="text-xs text-muted-foreground">
-                El programa no tenía una cohorte activa al pagar, así que el deal quedó sin cohorte. Asígnala con “Cambiar cohorte”.
+                El programa no tenía una cohorte activa al pagar, así que el deal quedó sin cohorte. Asígnala desde la acción de arriba.
               </p>
             ) : null}
           </div>

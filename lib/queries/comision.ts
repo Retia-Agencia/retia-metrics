@@ -1,5 +1,4 @@
 import { and, eq } from "drizzle-orm";
-import { claveDeCloser } from "@/lib/closers/identidad";
 import { db as dbDeLaApp } from "@/lib/db";
 import { deals, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -33,7 +32,10 @@ export async function comisionesPorCloser(
 ): Promise<ComisionDeCloser[]> {
   const filas = await db
     .select({
+      userId: users.id,
       closerId: users.closerId,
+      nombre: users.nombre,
+      email: users.email,
       valorVendidoUsd: deals.valorVendidoUsd,
       comisionPorcentaje: deals.comisionPorcentaje,
     })
@@ -43,9 +45,10 @@ export async function comisionesPorCloser(
 
   const porCloser = new Map<string, ComisionDeCloser>();
   for (const fila of filas) {
-    const clave = claveDeCloser(fila.closerId);
+    const clave = fila.userId ?? "\u0000sin-dueno";
+    const etiqueta = fila.closerId ?? fila.nombre ?? fila.email ?? null;
     const acumulado = porCloser.get(clave) ?? {
-      closerId: fila.closerId,
+      closerId: etiqueta,
       comisionUsd: 0,
       ventasSinComision: 0,
     };

@@ -182,6 +182,8 @@ export async function registrarAbono(
           moneda: entrada.moneda,
           plataformaId: entrada.plataformaId ?? null,
           comprobanteUrl: entrada.comprobanteUrl ?? null,
+          registradoPorUserId: actor.userId,
+          // Compatibilidad temporal para consumidores historicos; la identidad nueva es la FK.
           closerId: await closerDeLaCuenta(tx, actor.userId),
           origen: "app",
         },

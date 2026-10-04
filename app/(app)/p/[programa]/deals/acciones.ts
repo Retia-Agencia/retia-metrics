@@ -166,13 +166,13 @@ export type ResultadoCrearDeal =
  * Crear un deal a mano (ticket 140). La guarda de la ruta es la misma del Kanban; el
  * alcance del programa, el lead y la reja del deal abierto los decide `crearDealAMano`,
  * que abre el deal por el motor (`abrirDeal`). El actor sale de la sesion con el ROL DE
- * VISTA (ticket 028), y el `closerId` de la sesion (ADR 0011), nunca del input.
+ * VISTA (ticket 028), y el `users.id` de la sesion, nunca del input.
  */
 export async function crearDeal(entrada: EntradaDealAMano): Promise<ResultadoCrearDeal> {
   try {
     const session = await requireRole("gerente", "closer");
     const { userId, rol } = await actorDe(session);
-    const r = await crearDealAMano(db, { userId, rol, closerId: session.user.closerId ?? null }, entrada);
+    const r = await crearDealAMano(db, { userId, rol }, entrada);
     return { ok: true, dealId: r.dealId, leadCreado: r.leadCreado };
   } catch (error) {
     if (error instanceof DealYaAbierto) {

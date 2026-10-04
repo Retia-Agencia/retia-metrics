@@ -1,5 +1,5 @@
 import { sumaDeAbonos } from "@/lib/queries/saldo";
-import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
@@ -10,7 +10,7 @@ import { vigente } from "@/lib/queries/vigente";
 import { atendidaSinGrain } from "@/lib/queries/sin-grain";
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaLead, filtroAgendasCreadas,
-  filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
+  claveDeRegistradorDeAbono, closerDeAbono, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
   primerosMovimientosDeVenta, filtroNoShows,
 } from "@/lib/queries/metricas-filtros";
 
@@ -67,13 +67,13 @@ export interface ListaDeMetrica extends ResumenDeMetrica {
 interface FuenteDeMetrica {
   id: SQL | PgColumn;
   fecha: SQL<string>;
-  columnaCloser: PgColumn;
+  columnaCloser: PgColumn | SQL;
 }
 
 function fuenteDe(metrica: Metrica): FuenteDeMetrica {
   switch (metrica) {
     case "caja":
-      return { id: abonos.id, fecha: sql<string>`${abonos.fecha}`, columnaCloser: abonos.closerId };
+      return { id: abonos.id, fecha: sql<string>`${abonos.fecha}`, columnaCloser: closerDeAbono() };
     case "agendas":
     case "shows":
     case "no_shows":
@@ -154,9 +154,19 @@ function consultaDe(
         .select(campos)
         .from(abonos)
         .leftJoin(deals, and(eq(deals.id, abonos.dealId), eq(deals.programId, abonos.programId), vigente(deals)))
+        .leftJoin(
+          users,
+          or(
+            eq(users.id, abonos.registradoPorUserId),
+            and(
+              isNull(abonos.registradoPorUserId),
+              eq(claveDeCloserSql(users.closerId), claveDeCloserSql(abonos.closerId)),
+            ),
+          ),
+        )
         .where(
           and(
-            filtroCaja(alcance),
+            filtroCaja(alcance, db),
             filtros.moneda ? eq(abonos.moneda, filtros.moneda) : undefined,
             vigente(abonos),
             vigente(deals),
@@ -267,7 +277,7 @@ async function leerMetrica(
     // El alias evita repetir el parámetro de hoy con posiciones distintas: Postgres no
     // considera $1 y $7 la misma expresión al validar un GROUP BY.
     const dimensiones: SQL[] = [
-      claveDeCloserSql(fuente.columnaCloser),
+      metrica === "caja" ? claveDeRegistradorDeAbono() : claveDeCloserSql(fuente.columnaCloser),
       sql`${deals.etapa}`,
       sql`"bucket_antiguedad"`,
     ];

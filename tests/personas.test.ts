@@ -154,14 +154,13 @@ describe("crearPersonaManual", () => {
     expect((error as ErrorDeApp).status).toBe(400);
   });
 
-  it("un closer con closerId vacio recibe 400", async () => {
-    const error = await crearPersonaManual(
+  it("un closer con membresia crea aunque su closerId este vacio", async () => {
+    const resultado = await crearPersonaManual(
       db,
       { id: anaUserId, rol: "closer", closerId: null },
       { programId: programaA, correo: "x@correo.co" },
-    ).catch((e) => e);
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(400);
+    );
+    expect(resultado).toMatchObject({ creada: true, persona: { emailNormalizado: "x@correo.co" } });
   });
 });
 
