@@ -1,4 +1,4 @@
-import { and, asc, between, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, asc, between, eq, inArray, isNull, lte, notInArray, or, sql } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -12,7 +12,7 @@ import {
   parsearClaveCloser,
 } from "@/lib/closers/identidad";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
-import { ETAPAS_VENDIDAS } from "@/lib/deals/etapas";
+import { ETAPAS_VENDIDAS, type EtapaDeal } from "@/lib/deals/etapas";
 import type { Rango } from "@/lib/queries/dashboard";
 
 /**
@@ -295,4 +295,18 @@ export function primerosMovimientosDeVenta(db: Db) {
 /** Las citas cuyo resultado explícito fue no show, dentro del universo común de llamadas. */
 export function filtroNoShows(alcance: Alcance, db: Db) {
   return and(filtroLlamadas(alcance, db), eq(calls.resultado, "no_show"));
+}
+
+export const ETAPAS_CERRADAS: readonly EtapaDeal[] = ["ganado_completo", "cierre_perdido"];
+
+/**
+ * Una cita ya vencida cuyo resultado sigue pendiente. El reloj entra como parámetro.
+ * El llamador debe haber unido `deals`.
+ */
+export function llamadaPasadaSinResultado(ahora: Date) {
+  return and(
+    eq(calls.resultado, "agendada"),
+    lte(calls.fechaAgenda, ahora),
+    notInArray(deals.etapa, [...ETAPAS_CERRADAS]),
+  );
 }

@@ -21,9 +21,24 @@ interface Props {
 }
 
 const esquema = z.object({
-  metrica: z.enum(["caja", "agendas", "shows", "no_shows", "shows_sin_grain", "cierres", "cortesias", "leads", "deals_creados", "agendas_creadas"]),
+  metrica: z.enum([
+    "caja",
+    "agendas",
+    "shows",
+    "no_shows",
+    "shows_sin_grain",
+    "cierres",
+    "cortesias",
+    "leads",
+    "deals_creados",
+    "agendas_creadas",
+    "contratado",
+    "sin_resultado",
+    "cartera",
+  ]),
   closer: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   moneda: z.string().regex(/^[A-Z]{3}$/).optional(),
+  cohorte: z.string().uuid().optional().catch(undefined),
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
 });
 
@@ -38,6 +53,9 @@ const titulos = {
   leads: "Leads",
   deals_creados: "Deals creados",
   agendas_creadas: "Agendas creadas",
+  contratado: "Contratado",
+  sin_resultado: "Llamadas pasadas sin resultado",
+  cartera: "Cartera",
 };
 
 export default async function ListaDeCifraPage({ params, searchParams }: Props) {
@@ -49,7 +67,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const busqueda = await searchParams;
   const validado = esquema.safeParse(busqueda);
   if (!validado.success) notFound();
-  const { metrica, closer, moneda, pagina = 1 } = validado.data;
+  const { metrica, closer, moneda, cohorte, pagina = 1 } = validado.data;
   if (moneda && metrica !== "caja") notFound();
   const vista = await vistaDeLista({
     programId: programa.id,
@@ -58,11 +76,12 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     hoy: hoyEnBogota(),
     codigoCloser: closer,
     moneda,
+    cohorteId: cohorte,
     pagina,
   });
   if (!vista) notFound();
   const { lista, periodo, claveCloser } = vista;
-  const enlace = urlDeLista(slug, metrica, periodo, claveCloser, moneda);
+  const enlace = urlDeLista(slug, metrica, periodo, claveCloser, moneda, cohorte);
   // La etiqueta visible del closer filtrado sale de los grupos (nunca la clave
   // interna, que puede ser un uuid o `historico:...`): todas las filas del filtro
   // comparten closer. Sin filtro, "Todos los closers".
@@ -77,10 +96,18 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">{programa.nombre}</Badge>
           <Badge variant="secondary">{titulos[metrica]}</Badge>
-          <Badge variant="secondary">A: {fecha(periodo.a.desde)} a {fecha(periodo.a.hasta)}</Badge>
-          {periodo.b ? <Badge variant="secondary">B: {fecha(periodo.b.desde)} a {fecha(periodo.b.hasta)}</Badge> : null}
+          {/* La cartera es una foto de hoy: el periodo no la acota, así que no se muestra. */}
+          {metrica === "cartera" ? (
+            <Badge variant="secondary">A hoy, sin periodo</Badge>
+          ) : (
+            <>
+              <Badge variant="secondary">A: {fecha(periodo.a.desde)} a {fecha(periodo.a.hasta)}</Badge>
+              {periodo.b ? <Badge variant="secondary">B: {fecha(periodo.b.desde)} a {fecha(periodo.b.hasta)}</Badge> : null}
+            </>
+          )}
           <Badge variant="secondary">{etiquetaCloser}</Badge>
           {moneda ? <Badge variant="secondary">{moneda}</Badge> : null}
+          {cohorte ? <Badge variant="secondary">Cohorte filtrada</Badge> : null}
         </div>
         {periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{periodo.aviso}</p> : null}
         <p className="cifra">{lista.disponible ? num(lista.subtotal.cantidad) : "—"} registros</p>

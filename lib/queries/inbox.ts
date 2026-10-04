@@ -26,6 +26,10 @@ import type { OrigenDeFila } from "@/lib/queries/inbox-sin-dueno";
 import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
 import { INTENTOS_PARA_ALERTA, intentosEnEtapaPorDeal } from "@/lib/queries/intentos";
 import { proximoContactoVencido } from "@/lib/deals/proximo-contacto";
+import {
+  ETAPAS_CERRADAS,
+  llamadaPasadaSinResultado,
+} from "@/lib/queries/metricas-filtros";
 
 /**
  * El READ MODEL del Inbox (ticket 071, ADR 0050): lo que un closer tiene que hacer HOY,
@@ -67,7 +71,7 @@ import { proximoContactoVencido } from "@/lib/deals/proximo-contacto";
  */
 
 /** Las etapas cerradas: nunca aparecen en "lo mío" ni cuentan como abiertas. */
-const CERRADAS: EtapaDeal[] = ["ganado_completo", "cierre_perdido"];
+const CERRADAS = ETAPAS_CERRADAS;
 
 /** El motivo por el que un deal cayó en "lo mío que necesita atención". */
 export type MotivoAtencion =
@@ -270,8 +274,7 @@ export async function inboxDelPrograma(
 
 /**
  * Llamadas VIGENTES en `agendada` cuyo instante de cita ya pasó, de deals abiertos y
- * vigentes del alcance. No se interpola el `Date` en `sql`: se traen las agendadas del
- * programa y se filtran en memoria.
+ * vigentes del alcance. El instante entra al predicado compartido como parámetro Drizzle.
  */
 async function seccionLlamadasDeHoy(
   db: Db,
@@ -298,18 +301,16 @@ async function seccionLlamadasDeHoy(
     .where(
       and(
         eq(calls.programId, programId),
-        eq(calls.resultado, "agendada"),
+        llamadaPasadaSinResultado(ahora),
         vigente(calls),
         vigente(deals),
-        notInArray(deals.etapa, CERRADAS),
         alcanceDeDeal(alcance),
       ),
     );
 
-  const soloAlDia = filas.filter((f) => f.fechaAgenda != null && f.fechaAgenda <= ahora);
   // La más vieja primero: es la que más urge ponerse al día.
-  soloAlDia.sort((a, b) => (a.fechaAgenda?.getTime() ?? 0) - (b.fechaAgenda?.getTime() ?? 0));
-  return soloAlDia.map((f) => ({
+  filas.sort((a, b) => (a.fechaAgenda?.getTime() ?? 0) - (b.fechaAgenda?.getTime() ?? 0));
+  return filas.map((f) => ({
     callId: f.callId,
     dealId: f.dealId,
     leadNombre: f.leadNombre,
@@ -398,7 +399,11 @@ export async function llamadasSueltasDelPrograma(
       .select({ dealId: deals.id, leadId: deals.leadId, leadNombre: leads.nombre, leadEmail: leads.emailNormalizado })
       .from(deals)
       .innerJoin(leads, eq(leads.id, deals.leadId))
-      .where(and(eq(deals.programId, programId), notInArray(deals.etapa, CERRADAS), vigente(deals))),
+      .where(and(
+        eq(deals.programId, programId),
+        notInArray(deals.etapa, [...CERRADAS]),
+        vigente(deals),
+      )),
     db
       .select({ leadId: leadContactos.leadId, valor: leadContactos.valor })
       .from(leadContactos)
@@ -706,7 +711,11 @@ export async function buscarDealsAbiertos(
     })
     .from(deals)
     .innerJoin(leads, eq(leads.id, deals.leadId))
-    .where(and(eq(deals.programId, programId), vigente(deals), notInArray(deals.etapa, CERRADAS)));
+    .where(and(
+      eq(deals.programId, programId),
+      vigente(deals),
+      notInArray(deals.etapa, [...CERRADAS]),
+    ));
 
   const q = texto.trim().toLowerCase();
   const casan = q === "" ? filas : filas.filter((f) => (f.leadNombre ?? "").toLowerCase().includes(q) || f.leadEmail.toLowerCase().includes(q));

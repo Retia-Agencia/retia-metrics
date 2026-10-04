@@ -38,10 +38,28 @@ export function nombreDeEtapa(etapa: string): string {
 }
 
 /** Las cifras de las tarjetas del dashboard; las del 138 viven en su propia vista. */
-const METRICAS_DEL_TABLERO = ["caja", "agendas", "shows", "shows_sin_grain", "cierres", "cortesias", "leads"] as const;
+const METRICAS_DEL_TABLERO = [
+  "caja",
+  "agendas",
+  "shows",
+  "shows_sin_grain",
+  "cierres",
+  "cortesias",
+  "leads",
+  "contratado",
+  "sin_resultado",
+  "cartera",
+] as const;
 export type DetallesDelDashboard = Record<(typeof METRICAS_DEL_TABLERO)[number], DetalleDeCifra>;
 
-export function urlDeLista(slug: string, metrica: Metrica, periodo: PeriodoResuelto, claveCloser?: string | null, moneda?: string): string {
+export function urlDeLista(
+  slug: string,
+  metrica: Metrica,
+  periodo: PeriodoResuelto,
+  claveCloser?: string | null,
+  moneda?: string,
+  cohorteId?: string,
+): string {
   const q = new URLSearchParams({ metrica, periodo: "custom", a_desde: periodo.a.desde, a_hasta: periodo.a.hasta });
   if (periodo.b) {
     q.set("b_desde", periodo.b.desde);
@@ -49,6 +67,7 @@ export function urlDeLista(slug: string, metrica: Metrica, periodo: PeriodoResue
   }
   if (claveCloser) q.set("closer", codigoDeCloser(claveCloser));
   if (moneda) q.set("moneda", moneda);
+  if (cohorteId) q.set("cohorte", cohorteId);
   return `/p/${encodeURIComponent(slug)}/dashboard/lista?${q}`;
 }
 
@@ -63,11 +82,12 @@ export interface EntradaDeDetalles {
 
 /** El resumen de UNA cifra del periodo A y el enlace a su lista. Solo agregados SQL. */
 export async function detalleDeCifra(metrica: Metrica, entrada: EntradaDeDetalles, db: Db = dbDeLaApp): Promise<DetalleDeCifra> {
-  const [resumen] = await resumenDeMetrica(metrica, { ...entrada, rango: entrada.periodo.a }, db);
+  const claveCloser = metrica === "cartera" ? null : entrada.claveCloser;
+  const [resumen] = await resumenDeMetrica(metrica, { ...entrada, rango: entrada.periodo.a, claveCloser }, db);
   return {
     resumen,
     desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
-    href: urlDeLista(entrada.slug, metrica, entrada.periodo, entrada.claveCloser),
+    href: urlDeLista(entrada.slug, metrica, entrada.periodo, claveCloser),
   };
 }
 
@@ -87,12 +107,13 @@ export interface EntradaDeLista {
   hoy: string;
   codigoCloser?: string;
   moneda?: string;
+  cohorteId?: string;
   pagina: number;
 }
 
 /** Resuelve el mismo periodo del dashboard, sin cargar el resto de sus métricas. */
 export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) {
-  const { programId, hoy, metrica, codigoCloser, moneda, pagina } = entrada;
+  const { programId, hoy, metrica, codigoCloser, moneda, cohorteId, pagina } = entrada;
   const seleccion = parsearPeriodoUrl(entrada.busqueda);
   const cohorte = seleccion.preset.startsWith("cohorte") ? await cohorteActiva(programId, db) : null;
   const ventanas = cohorte ? await ventanasAnterioresDeCohorte(db, programId, cohorte.id) : {};
@@ -101,7 +122,7 @@ export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) 
     actual: cohorte?.fechaInicioVentas ? { inicio: cohorte.fechaInicioVentas, cierre: cohorte.fechaCierreVentas } : null,
     ...ventanas,
   });
-  const filtros = { programId, hoy, rango: periodo.a, moneda };
+  const filtros = { programId, hoy, rango: periodo.a, moneda, cohorteId, ahora: new Date() };
   let claveCloser: string | null = null;
   if (codigoCloser) {
     const [sinFiltro] = await resumenDeMetrica(metrica, filtros, db);

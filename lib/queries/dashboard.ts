@@ -1,12 +1,27 @@
-import { sumaDeAbonos } from "@/lib/queries/saldo";
-import { claveDeRegistradorDeAbono, closerDeAbono, cerradosEn, ETAPAS_VENDIDAS, fechaAnclaCall, filtroCaja, filtroCierres, filtroCortesias, filtroLeads, filtroLlamadas, llamadaOcurrio, porClaveDeDeal, vendidosEn } from "@/lib/queries/metricas-filtros";
+import { contratadoDeDeals, sumaDeAbonos, type ContratadoDeDeals } from "@/lib/queries/saldo";
+import {
+  closerDeAbono,
+  cerradosEn,
+  ETAPAS_VENDIDAS,
+  fechaAnclaCall,
+  filtroCaja,
+  filtroCierres,
+  filtroCortesias,
+  filtroLeads,
+  filtroLlamadas,
+  llamadaOcurrio,
+  llamadaPasadaSinResultado,
+  porClaveDeDeal,
+  vendidosEn,
+} from "@/lib/queries/metricas-filtros";
 export { fechaAnclaCall, vendidosEn, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
-import { and, between, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, asc, between, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import {
   abonos,
   areas,
   calls,
+  cohorts,
   canales,
   deals,
   leads,
@@ -15,10 +30,12 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaHabilDe, diasHabilesEntre, metaDinamica, metaLineal } from "@/lib/dias-habiles";
-import { claveDeCloser, claveDeCloserSql } from "@/lib/closers/identidad";
+import { claveCloserSql, claveDeCloserSql } from "@/lib/closers/identidad";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { vigente } from "@/lib/queries/vigente";
 import type { FilaHechosDelEmbudo, OrigenDelHecho } from "@/lib/queries/hechos-embudo";
+import { saldosDeDeals } from "@/lib/queries/saldo";
+import { carteraVencida } from "@/lib/queries/cartera";
 
 /**
  * Consultas del dashboard (ticket 004). Todo lo que pide el reporte diario de Retia
@@ -126,7 +143,6 @@ export interface LeadsDelRango {
    * justo la familia de bug de la que este repo ya sangro tres veces: una cifra
    * creible, equivocada, que no lanza ningun error. La pantalla muestra un guion.
    *
-   * Lo reescribe E5-1 sobre deals.
    */
   leads: number | null;
   diasHabiles: number;
@@ -176,9 +192,10 @@ export async function contarCortesias(
 async function ventasPorCloser(
   { programId, rango }: Omit<Alcance, "claveCloser">,
   db: Db,
-): Promise<{ closerId: string | null; cierres: number }[]> {
+): Promise<{ clave: string; closerId: string | null; cierres: number }[]> {
   return db
     .select({
+      clave: claveCloserSql(users.id, users.closerId),
       closerId: sql<string | null>`min(coalesce(${users.closerId}, ${users.nombre}, ${users.email}))`,
       cierres: sql<number>`count(distinct ${deals.id})::int`,
     })
@@ -191,7 +208,140 @@ async function ventasPorCloser(
         vigente(deals),
       ),
     )
-    .groupBy(users.id);
+    .groupBy(claveCloserSql(users.id, users.closerId));
+}
+
+export interface VentaDelRangoConValor {
+  dealId: string;
+  cohortId: string | null;
+  ticketUsd: string | null;
+  valorVendidoUsd: string | null;
+  comisionPorcentaje: string | null;
+}
+
+/** Las ventas del rango con los valores necesarios para dinero derivado. */
+export async function ventasDelRangoConValor(
+  alcance: Alcance,
+  db: Db = dbDeLaApp,
+): Promise<VentaDelRangoConValor[]> {
+  return db
+    .select({
+      dealId: deals.id,
+      cohortId: deals.cohortId,
+      ticketUsd: cohorts.precioUsd,
+      valorVendidoUsd: deals.valorVendidoUsd,
+      comisionPorcentaje: deals.comisionPorcentaje,
+    })
+    .from(deals)
+    .leftJoin(users, eq(users.id, deals.ownerUserId))
+    .leftJoin(cohorts, and(eq(cohorts.id, deals.cohortId), eq(cohorts.programId, deals.programId)))
+    .where(and(filtroCierres(alcance, db), vigente(deals)));
+}
+
+/** Valor vendido de las ventas del rango. Un valor ausente no se inventa. */
+export async function contratadoDelRango(
+  alcance: Alcance,
+  db: Db = dbDeLaApp,
+): Promise<ContratadoDeDeals> {
+  const ventas = await ventasDelRangoConValor(alcance, db);
+  return contratadoDeDeals(db, ventas.map((venta) => venta.dealId));
+}
+
+export interface VentasDeCohorte {
+  cohorteId: string | null;
+  codigo: string | null;
+  ventas: number;
+  contratadoUsd: number;
+}
+
+/** Ventas del rango por cohorte, incluidas las que aún no iniciaron clases. */
+export async function ventasPorCohorte(alcance: Alcance, db: Db = dbDeLaApp): Promise<VentasDeCohorte[]> {
+  const ventas = await db
+    .select({
+      dealId: deals.id,
+      cohorteId: deals.cohortId,
+      codigo: cohorts.codigo,
+      fechaInicioClases: cohorts.fechaInicioClases,
+    })
+    .from(deals)
+    .leftJoin(users, eq(users.id, deals.ownerUserId))
+    .leftJoin(cohorts, and(eq(cohorts.id, deals.cohortId), eq(cohorts.programId, deals.programId)))
+    .where(and(filtroCierres(alcance, db), vigente(deals)))
+    .orderBy(asc(cohorts.fechaInicioClases));
+
+  const grupos = new Map<string, typeof ventas>();
+  for (const venta of ventas) {
+    const clave = venta.cohorteId ?? "\u0000sin-cohorte";
+    const grupo = grupos.get(clave) ?? [];
+    grupo.push(venta);
+    grupos.set(clave, grupo);
+  }
+
+  return Promise.all([...grupos.values()].map(async (grupo) => ({
+    cohorteId: grupo[0]!.cohorteId,
+    codigo: grupo[0]!.codigo,
+    ventas: grupo.length,
+    contratadoUsd: (await contratadoDeDeals(db, grupo.map((venta) => venta.dealId))).usd,
+  })));
+}
+
+/** Citas pasadas pendientes, con el mismo universo que la primera sección del Inbox. */
+export async function sinResultadoDelRango(
+  alcance: Alcance,
+  ahora: Date,
+  db: Db = dbDeLaApp,
+): Promise<number> {
+  const [fila] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(calls)
+    .innerJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
+    .where(and(
+      filtroLlamadas(alcance, db),
+      llamadaPasadaSinResultado(ahora),
+      vigente(calls),
+      vigente(deals),
+    ));
+  return fila?.total ?? 0;
+}
+
+/** Foto de la cartera abierta del programa; no depende del rango elegido. */
+export async function carteraDelPrograma(
+  programId: string,
+  hoy: string,
+  db: Db = dbDeLaApp,
+): Promise<{
+  deals: number;
+  saldoUsd: number;
+  vencidos: number;
+  sinFechaDeReferencia: number;
+  sinSaldoCalculable: number;
+}> {
+  const filas = await db
+    .select({ id: deals.id })
+    .from(deals)
+    .where(and(
+      eq(deals.programId, programId),
+      eq(deals.cortesia, false),
+      eq(deals.etapa, "ganado_parcial"),
+      vigente(deals),
+    ));
+  const saldos = await saldosDeDeals(db, filas.map((fila) => fila.id));
+  const saldoUsd = [...saldos.values()].reduce(
+    (total, saldo) => total + (saldo.moneda === "USD" && saldo.saldo !== null ? saldo.saldo : 0),
+    0,
+  );
+  const sinSaldoCalculable = filas.filter((fila) => {
+    const saldo = saldos.get(fila.id);
+    return !saldo || saldo.saldo === null || saldo.moneda !== "USD";
+  }).length;
+  const vencida = await carteraVencida(db, programId, hoy);
+  return {
+    deals: filas.length,
+    saldoUsd: Math.round(saldoUsd * 100) / 100,
+    vencidos: vencida.vencidos.length,
+    sinFechaDeReferencia: vencida.sinFechaDeReferencia,
+    sinSaldoCalculable,
+  };
 }
 
 /**
@@ -222,12 +372,8 @@ export async function cajaRecaudada(
  * Embudo de llamadas del rango: `agendas`, `llamadasConShow` y `cierres` salen de
  * `calls` ancladas en `coalesce(fechaAgenda, fechaLlamada)`.
  *
- * ⚠️ `ventas` se fue con `sales` (ticket 038) y **no se reemplaza por un conteo de
- * deals**. Una venta es un deal en Ganado Pago Parcial o Ganado Pagado Completo (ADR 0037) y contar deals a
- * secas inflaria la cifra sin lanzar ningun error — la trampa que el propio ticket
- * nombra. Pero ademas esta consulta necesita una FECHA de venta para acotar el
- * rango, y esa fecha es el instante del movimiento a Abonado: vive en
- * `deal_etapa_historial`, que no tiene una fila hasta la etapa 3. Lo reescribe E5-1.
+ * Una venta es un deal cuya primera entrada a Ganado Pago Parcial o Ganado Pagado
+ * Completo cae en el rango. Contar deals a secas inflaría la cifra sin lanzar error.
  */
 export async function embudoDelRango(
   { programId, rango, claveCloser }: Alcance,
@@ -332,39 +478,37 @@ export async function closersConCuenta(
 /**
  * El mismo embudo del rango pero desglosado por closer, mas la caja de cada uno.
  *
- * Las llamadas historicas conservan `closerId`; la caja nueva usa la FK de quien
- * registro y solo cae al texto cuando la fila historica no tiene FK. El desglose se
- * arma en memoria con una etiqueta compatible durante el corte: un
- * closer que en el rango solo tiene abonos (ninguna call) igual aparece en la lista,
- * con su caja y ceros en el embudo.
- *
- * ⚠️ Eran TRES hasta el ticket 038. La columna de ventas por closer se fue con
- * `sales` y no se reemplaza: el dueno de un deal es `owner_user_id`, una FK a
- * `users`, y no el texto por el que se agrupan las otras dos. Unir un id con un
- * nombre escrito a mano es justo la clase de cruce por heuristica que el ADR 0027
- * prohibe. Lo reescribe E5-1, cuando las tres columnas hablen el mismo idioma.
+ * Las tres fuentes devuelven la misma clave de identidad: `users.id` para cuentas y
+ * `historico:<texto>` para filas viejas. Un closer que solo tiene abonos igual aparece.
  *
  * Es el comparativo entre closers, y por eso su alcance NO admite `closerId`: filtrarlo
- * lo dejaria en una fila y el comparativo es justo lo que "todos ven todo" garantiza
- * (ADR 0009). El tipo lo impide; no es una convencion que haya que recordar.
+ * lo dejaría en una fila y rompería el comparativo (ADR 0023). El tipo lo impide.
  */
 export async function embudoPorCloser(
   { programId, rango }: Omit<Alcance, "claveCloser">,
   db: Db = dbDeLaApp,
-): Promise<(EmbudoDelRango & { closerId: string | null; caja: CajaPorMoneda[] })[]> {
+): Promise<(EmbudoDelRango & { clave: string; closerId: string | null; caja: CajaPorMoneda[] })[]> {
   const ancla = fechaAnclaCall();
 
   const [llamadasPorCloser, abonosPorCloser, cierresPorCloser] = await Promise.all([
     db
       .select({
-        // Se agrupa por la clave NORMALIZADA (ADR 0030) y se devuelve un
-        // representante real de la ortografia con `min(...)`: la identidad es la
-        // clave, lo que se pinta es una de las formas en que esta escrito.
-        closerId: sql<string | null>`min(${calls.closerId})`,
+        clave: claveCloserSql(users.id, calls.closerId),
+        closerId: sql<string | null>`min(coalesce(${users.closerId}, ${users.nombre}, ${users.email}, ${calls.closerId}))`,
         agendas: sql<number>`count(*)::int`,
         llamadasConShow: sql<number>`count(*) filter (where ${llamadaOcurrio()})::int`,
       })
       .from(calls)
+      .leftJoin(
+        users,
+        or(
+          eq(users.id, calls.closerUserId),
+          and(
+            isNull(calls.closerUserId),
+            eq(claveDeCloserSql(users.closerId), claveDeCloserSql(calls.closerId)),
+          ),
+        ),
+      )
       .where(
         and(
           eq(calls.programId, programId),
@@ -372,9 +516,10 @@ export async function embudoPorCloser(
           vigente(calls),
         ),
       )
-      .groupBy(claveDeCloserSql(calls.closerId)),
+      .groupBy(claveCloserSql(users.id, calls.closerId)),
     db
       .select({
+        clave: claveCloserSql(users.id, abonos.closerId),
         closerId: sql<string | null>`min(${closerDeAbono()})`,
         moneda: abonos.moneda,
         total: sql<number>`${sumaDeAbonos()}::float8`,
@@ -397,28 +542,20 @@ export async function embudoPorCloser(
           vigente(abonos),
         ),
       )
-      .groupBy(claveDeRegistradorDeAbono(), abonos.moneda),
+      .groupBy(claveCloserSql(users.id, abonos.closerId), abonos.moneda),
     ventasPorCloser({ programId, rango }, db),
   ]);
 
-  // Clave estable para agrupar por closer. Es la NORMALIZADA (ADR 0030): las tres
-  // agregaciones vienen agrupadas por el texto crudo, asi que si una hoja trae
-  // `Mani` y la app escribio `mani`, es esta union en memoria la que los junta en
-  // una sola fila. Se conserva el texto original de la primera fila que llega para
-  // mostrarlo: la identidad es la clave, la ortografia que se pinta es un
-  // representante.
-  const claveDe = claveDeCloser;
-
   const porClave = new Map<
     string,
-    EmbudoDelRango & { closerId: string | null; caja: CajaPorMoneda[] }
+    EmbudoDelRango & { clave: string; closerId: string | null; caja: CajaPorMoneda[] }
   >();
 
-  const asegurar = (closerId: string | null) => {
-    const clave = claveDe(closerId);
+  const asegurar = (clave: string, closerId: string | null) => {
     let fila = porClave.get(clave);
     if (!fila) {
       fila = {
+        clave,
         closerId,
         agendas: 0,
         llamadasConShow: 0,
@@ -433,15 +570,15 @@ export async function embudoPorCloser(
   };
 
   for (const l of llamadasPorCloser) {
-    const fila = asegurar(l.closerId);
+    const fila = asegurar(l.clave, l.closerId);
     fila.agendas = l.agendas;
     fila.llamadasConShow = l.llamadasConShow;
   }
   for (const c of cierresPorCloser) {
-    asegurar(c.closerId).cierres = c.cierres;
+    asegurar(c.clave, c.closerId).cierres = c.cierres;
   }
   for (const a of abonosPorCloser) {
-    asegurar(a.closerId).caja.push({ moneda: a.moneda, total: a.total });
+    asegurar(a.clave, a.closerId).caja.push({ moneda: a.moneda, total: a.total });
   }
 
   // Las tasas se calculan una vez armados los conteos, sin dividir por cero.

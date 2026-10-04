@@ -14,7 +14,7 @@ import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
 import { registrosYAgendasPorCanal } from "@/lib/queries/registros-agendas-canal";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
-import { DashboardPrograma } from "@/components/dashboard-programa";
+import { DashboardPrograma, OrigenPorCanal } from "@/components/dashboard-programa";
 import { FiltroDashboard } from "@/components/filtro-dashboard";
 import { PautaInterina } from "@/components/pauta-interina";
 import { EmbudoFormulario } from "@/components/embudo-formulario";
@@ -166,32 +166,40 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
           closers={vista.closers}
           cohorteDisponible={vista.cohorte?.ventana != null}
         />
-        <DashboardPrograma vista={vista} detalles={detalles} origenPorCanal={origenPorCanal} />
-        <DealsContraAgendas vista={dealsContraAgendas} />
-        <Card aria-labelledby="resumen-serie">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <CardTitle id="resumen-serie">Serie del embudo</CardTitle>
-              {areaId !== undefined ? <Badge variant="info">Área filtrada</Badge> : null}
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {Object.entries({
-              Envíos: resumenSerie.envios,
-              Agendas: resumenSerie.agendas,
-              Shows: resumenSerie.shows,
-              Ventas: resumenSerie.ventas,
-            }).map(([etiqueta, valor]) => (
-              <div key={etiqueta}>
-                <p className="text-sm text-muted-foreground">{etiqueta}</p>
-                <p className="cifra text-lg font-semibold">{num(valor)}</p>
+        <DashboardPrograma
+          vista={vista}
+          detalles={detalles}
+          slug={slug}
+          dealsContraAgendas={<DealsContraAgendas vista={dealsContraAgendas} />}
+        />
+        <section id="pauta" className="scroll-mt-4 space-y-4">
+          <h2 className="text-xl font-semibold">Pauta y origen (interina)</h2>
+          <PautaInterina vista={pauta} filtros={filtrosPauta} hrefCon={hrefConFiltros} />
+          <OrigenPorCanal filas={origenPorCanal} />
+          <RegistrosAgendasCanal vista={porCanal} />
+          <EmbudoFormulario embudo={embudoFormulario} />
+          <Card aria-labelledby="resumen-serie">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CardTitle id="resumen-serie">Serie del embudo</CardTitle>
+                {areaId !== undefined ? <Badge variant="info">Área filtrada</Badge> : null}
               </div>
-            ))}
-          </CardContent>
-        </Card>
-        <PautaInterina vista={pauta} filtros={filtrosPauta} hrefCon={hrefConFiltros} />
-        <RegistrosAgendasCanal vista={porCanal} />
-        <EmbudoFormulario embudo={embudoFormulario} />
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {Object.entries({
+                Envíos: resumenSerie.envios,
+                Agendas: resumenSerie.agendas,
+                Shows: resumenSerie.shows,
+                Ventas: resumenSerie.ventas,
+              }).map(([etiqueta, valor]) => (
+                <div key={etiqueta}>
+                  <p className="text-sm text-muted-foreground">{etiqueta}</p>
+                  <p className="cifra text-lg font-semibold">{num(valor)}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
       </div>
     </PageShell>
   );

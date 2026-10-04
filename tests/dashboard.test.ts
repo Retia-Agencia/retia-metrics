@@ -587,6 +587,59 @@ describe("embudoPorCloser", () => {
     expect(usdPorCloser).toBe(usdTotal);
   });
 
+  it("une por users.id una llamada sin closer_id con los cierres y la caja de esa cuenta", async () => {
+    const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
+    const fecha = new Date("2026-09-15T14:00:00Z");
+    const [closer] = await db.insert(users).values({ email: "fk@retia.co", nombre: "Closer FK", rol: "closer", closerId: null }).returning();
+    const dealId = await sembrarDeal(programaA, { ownerUserId: closer.id, valorVendidoUsd: "100" });
+    await marcarVenta(dealId, fecha, closer.id);
+    await db.insert(calls).values({ programId: programaA, dealId, closerUserId: closer.id, closerId: null, fechaAgenda: fecha, resultado: "show" });
+    await db.insert(abonos).values({ programId: programaA, dealId, registradoPorUserId: closer.id, fecha: "2026-09-15", monto: "40", moneda: "USD" });
+
+    const filas = await embudoPorCloser({ programId: programaA, rango }, db);
+    expect(filas).toHaveLength(1);
+    expect(filas[0]).toMatchObject({
+      clave: closer.id,
+      closerId: "Closer FK",
+      agendas: 1,
+      llamadasConShow: 1,
+      cierres: 1,
+      caja: [{ moneda: "USD", total: 40 }],
+    });
+  });
+
+  it("une una llamada historica por closer normalizado con la venta de la cuenta", async () => {
+    const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
+    const fecha = new Date("2026-09-15T14:00:00Z");
+    const [closer] = await db
+      .insert(users)
+      .values({ email: "mani@retia.co", rol: "closer", closerId: "Mani" })
+      .returning();
+    const dealId = await sembrarDeal(programaA, {
+      ownerUserId: closer.id,
+      valorVendidoUsd: "100",
+    });
+    await marcarVenta(dealId, fecha, closer.id);
+    await db.insert(calls).values({
+      programId: programaA,
+      dealId,
+      closerUserId: null,
+      closerId: "mani ",
+      fechaAgenda: fecha,
+      resultado: "show",
+    });
+
+    const filas = await embudoPorCloser({ programId: programaA, rango }, db);
+
+    expect(filas).toHaveLength(1);
+    expect(filas[0]).toMatchObject({
+      clave: closer.id,
+      closerId: "Mani",
+      agendas: 1,
+      cierres: 1,
+    });
+  });
+
 });
 
 describe("embudoPorCanal", () => {

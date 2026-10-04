@@ -1,11 +1,12 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
+import { abonos, calls, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { cajaRecaudada, embudoDelRango, leadsDelRango } from "@/lib/queries/dashboard";
+import { cajaRecaudada, carteraDelPrograma, embudoDelRango, leadsDelRango, sinResultadoDelRango } from "@/lib/queries/dashboard";
 import { desglosesDelResumen, listaDeMetrica, resumenDeMetrica, TAMANO_PAGINA, type Metrica, type FilaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { codigoDeCloser, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
 import { claveHistorica } from "@/lib/closers/identidad";
 import { showsSinGrain } from "@/lib/queries/sin-grain";
+import { contratadoDeDeals } from "@/lib/queries/saldo";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -252,5 +253,91 @@ describe("ticket 167: el drill-down de la lista por clave de closer", () => {
     expect(vista?.claveCloser).toBe(claveHistorica("Caro"));
     expect(vista?.lista.subtotal.cantidad).toBe(1);
     expect(vista?.lista.filas.every((f) => f.closer === "Caro")).toBe(true);
+  });
+});
+
+describe("ticket 148: listas de contratado, sin resultado y cartera", () => {
+  let base: Db;
+  let cerrarBase: () => Promise<void>;
+  let prog: string;
+  let ajeno: string;
+  let owner: typeof users.$inferSelect;
+  const r = { desde: "2026-10-01", hasta: "2026-10-04" };
+  const ahora = new Date("2026-10-04T12:00:00-05:00");
+  let secuencia = 0;
+
+  beforeEach(async () => {
+    ({ db: base, cerrar: cerrarBase } = await crearBaseDePrueba());
+    const ps = await base.insert(programs).values([
+      { ...PROGRAMA_DE_PRUEBA, slug: "m148", nombre: "M148", ticketUsd: "100" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "m148-ajeno", nombre: "Ajeno", ticketUsd: "100" },
+    ]).returning();
+    [prog, ajeno] = ps.map((p) => p.id);
+    [owner] = await base.insert(users).values({ email: "m148@retia.co", rol: "closer", closerId: "M148" }).returning();
+  }, 60_000);
+  afterEach(async () => cerrarBase());
+
+  async function deal(programId: string, extra: Record<string, unknown> = {}) {
+    secuencia += 1;
+    const [lead] = await base.insert(leads).values({ programId, emailNormalizado: `m148-${secuencia}@retia.co` }).returning();
+    const [fila] = await base.insert(deals).values({ programId, leadId: lead.id, ownerUserId: owner.id, ...extra } as never).returning();
+    return fila;
+  }
+
+  async function vender(programId: string, extra: Record<string, unknown> = {}) {
+    const fila = await deal(programId, { etapa: "ganado_parcial", valorVendidoUsd: "80", ...extra });
+    await base.insert(dealEtapaHistorial).values({ dealId: fila.id, a: "ganado_parcial", fecha: new Date("2026-10-02T10:00:00-05:00") });
+    return fila;
+  }
+
+  it("contratado suma el valor de sus filas y cohorte acota sin incluir cortesía, anulado ni otro programa", async () => {
+    const cohortes = await base.insert(cohorts).values([
+      { programId: prog, codigo: "C1", metaCupos: 10, precioUsd: "100", fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-31", estado: "cerrado" },
+      { programId: prog, codigo: "C2", metaCupos: 10, precioUsd: "100", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30", estado: "cerrado" },
+    ]).returning();
+    await vender(prog, { cohortId: cohortes[0].id, valorVendidoUsd: "80" });
+    await vender(prog, { cohortId: cohortes[1].id, valorVendidoUsd: "70" });
+    await vender(prog, { cohortId: cohortes[0].id, valorVendidoUsd: "0", cortesia: true });
+    await vender(ajeno, { valorVendidoUsd: "900" });
+    await vender(prog, { valorVendidoUsd: "500", anuladoEn: ahora, anuladoPor: owner.id, motivoAnulacion: "Error de prueba" });
+
+    const filtros = { programId: prog, rango: r, hoy: "2026-10-04", ahora };
+    const [lista] = await listaDeMetrica("contratado", filtros, 1, base);
+    expect(lista.filas.map((fila) => fila.monto)).toEqual([80, 70]);
+    expect(lista.subtotal.caja).toEqual([{ moneda: "USD", total: 150 }]);
+    const ids = lista.filas.flatMap((fila) => fila.dealId ? [fila.dealId] : []);
+    expect(lista.subtotal.caja[0]?.total).toBe((await contratadoDeDeals(base, ids)).usd);
+    const [porCohorte] = await listaDeMetrica("contratado", { ...filtros, cohorteId: cohortes[0].id }, 1, base);
+    expect(porCohorte.filas.map((fila) => fila.monto)).toEqual([80]);
+    const href = urlDeLista("m148", "contratado", { preset: "custom", a: r, b: null }, null, undefined, cohortes[0].id);
+    expect(new URL(href, "https://retia.test").searchParams.get("cohorte")).toBe(cohortes[0].id);
+  });
+
+  it("sin_resultado y cartera cuentan exactamente las filas de sus listas", async () => {
+    const abierto = await deal(prog);
+    const cerrado = await deal(prog, { etapa: "ganado_completo" });
+    const pasado = new Date("2026-10-04T10:00:00-05:00");
+    const futuro = new Date("2026-10-04T14:00:00-05:00");
+    await base.insert(calls).values([
+      { programId: prog, dealId: abierto.id, fechaAgenda: pasado, resultado: "agendada" },
+      { programId: prog, dealId: abierto.id, fechaAgenda: futuro, resultado: "agendada" },
+      { programId: prog, dealId: abierto.id, fechaAgenda: pasado, resultado: "show" },
+      { programId: prog, dealId: cerrado.id, fechaAgenda: pasado, resultado: "agendada" },
+      { programId: prog, dealId: abierto.id, fechaAgenda: pasado, resultado: "agendada", anuladoEn: ahora, anuladoPor: owner.id, motivoAnulacion: "Error de prueba" },
+    ]);
+    await deal(prog, { etapa: "ganado_parcial", valorVendidoUsd: "100" });
+    await deal(prog, { etapa: "ganado_parcial", valorVendidoUsd: "100" });
+    await deal(prog, { etapa: "ganado_parcial", valorVendidoUsd: "0", cortesia: true });
+    await deal(prog, { etapa: "ganado_parcial", valorVendidoUsd: "100", anuladoEn: ahora, anuladoPor: owner.id, motivoAnulacion: "Error de prueba" });
+
+    const filtros = { programId: prog, rango: r, hoy: "2026-10-04", ahora };
+    const [sinResultado] = await listaDeMetrica("sin_resultado", filtros, 1, base);
+    expect(sinResultado.subtotal.cantidad).toBe(1);
+    expect(sinResultado.filas).toHaveLength(1);
+    expect(await sinResultadoDelRango({ programId: prog, rango: r }, ahora, base)).toBe(sinResultado.filas.length);
+    const [cartera] = await listaDeMetrica("cartera", filtros, 1, base);
+    expect(cartera.subtotal.cantidad).toBe(cartera.filas.length);
+    expect(cartera.filas).toHaveLength(2);
+    expect((await carteraDelPrograma(prog, "2026-10-04", base)).deals).toBe(cartera.filas.length);
   });
 });

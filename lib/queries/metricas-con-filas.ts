@@ -11,10 +11,23 @@ import { atendidaSinGrain } from "@/lib/queries/sin-grain";
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaLead, filtroAgendasCreadas,
   closerDeAbono, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
-  primerosMovimientosDeVenta, filtroNoShows,
+  primerosMovimientosDeVenta, filtroNoShows, llamadaPasadaSinResultado,
 } from "@/lib/queries/metricas-filtros";
 
-export type Metrica = "caja" | "agendas" | "shows" | "no_shows" | "shows_sin_grain" | "cierres" | "cortesias" | "leads" | "deals_creados" | "agendas_creadas";
+export type Metrica =
+  | "caja"
+  | "agendas"
+  | "shows"
+  | "no_shows"
+  | "shows_sin_grain"
+  | "cierres"
+  | "cortesias"
+  | "leads"
+  | "deals_creados"
+  | "agendas_creadas"
+  | "contratado"
+  | "sin_resultado"
+  | "cartera";
 
 /** Las métricas que no se atribuyen a un closer: con closer no hay cifra ("—"), nunca el programa entero. */
 export const METRICAS_SIN_CLOSER: readonly Metrica[] = ["leads", "deals_creados", "agendas_creadas"];
@@ -26,6 +39,10 @@ export interface FiltrosDeMetrica {
   /** La clave de identidad del closer (ticket 167): `users.id` o `historico:<texto>`. */
   claveCloser?: string | null;
   moneda?: string;
+  /** Solo acota ventas; nunca cambia el universo de las demás métricas. */
+  cohorteId?: string;
+  /** Instante compartido con el Inbox para decidir qué cita ya pasó. */
+  ahora?: Date;
   /** Fecha de calendario que entrega hoyEnBogota(), nunca el reloj del navegador. */
   hoy: string;
 }
@@ -89,10 +106,11 @@ function fuenteDe(metrica: Metrica): FuenteDeMetrica {
     case "shows":
     case "no_shows":
     case "shows_sin_grain":
+    case "sin_resultado":
       return {
         id: calls.id,
         fecha: fechaAnclaCall(),
-        columnaCloser: calls.closerId,
+        columnaCloser: sql<string | null>`coalesce(${users.closerId}, ${users.nombre}, ${users.email}, ${calls.closerId})`,
         claveCloser: claveCloserSql(calls.closerUserId, calls.closerId),
       };
     case "leads":
@@ -103,11 +121,19 @@ function fuenteDe(metrica: Metrica): FuenteDeMetrica {
         claveCloser: claveCloserSql(users.id, users.closerId),
       };
     case "cierres":
+    case "contratado":
     case "cortesias":
       return {
         id: deals.id,
         fecha: sql<string>`(${dealEtapaHistorial.fecha} AT TIME ZONE 'America/Bogota')::date`,
         columnaCloser: users.closerId,
+        claveCloser: claveCloserSql(users.id, users.closerId),
+      };
+    case "cartera":
+      return {
+        id: deals.id,
+        fecha: sql<string>`(${deals.createdAt} AT TIME ZONE 'America/Bogota')::date`,
+        columnaCloser: sql<string | null>`coalesce(${users.closerId}, ${users.nombre}, ${users.email})`,
         claveCloser: claveCloserSql(users.id, users.closerId),
       };
     // Ticket 138: el closer es solo contexto (el dueño del deal); estas métricas no se filtran por él.
@@ -134,6 +160,7 @@ function fuenteDe(metrica: Metrica): FuenteDeMetrica {
  */
 function camposDe(metrica: Metrica, fuente: FuenteDeMetrica, hoy: string, resumen: boolean) {
   const esCaja = metrica === "caja";
+  const esContratado = metrica === "contratado";
   // Las agendas futuras tienen edad cero; no se inventa un quinto bucket negativo.
   const edad = sql<number>`greatest(0, ${hoy}::date - (${fuente.fecha})::date)`;
   const bucket = sql<string>`case
@@ -149,6 +176,11 @@ function camposDe(metrica: Metrica, fuente: FuenteDeMetrica, hoy: string, resume
     montoDeLaFila = resumen
       ? sql<number | null>`${sumaDeAbonos()}::float8`
       : sql<number | null>`${abonos.monto}::float8`;
+  }
+  if (esContratado) {
+    montoDeLaFila = resumen
+      ? sql<number | null>`coalesce(sum(${deals.valorVendidoUsd}), 0)::float8`
+      : sql<number | null>`${deals.valorVendidoUsd}::float8`;
   }
 
   return {
@@ -166,7 +198,11 @@ function camposDe(metrica: Metrica, fuente: FuenteDeMetrica, hoy: string, resume
     etapa: sql<string | null>`${deals.etapa}::text`,
     antiguedad: resumen ? sql<number>`0::int` : edad,
     bucket: bucket.as("bucket_antiguedad"),
-    moneda: esCaja ? sql<string | null>`${abonos.moneda}` : nulo,
+    moneda: esCaja
+      ? sql<string | null>`${abonos.moneda}`
+      : esContratado
+        ? resumen ? sql<string>`min('USD'::text)` : sql<string>`'USD'::text`
+        : nulo,
     monto: montoDeLaFila,
     cantidad: resumen ? sql<number>`count(*)::int` : sql<number>`1::int`,
   };
@@ -217,12 +253,27 @@ function consultaDe(
         .select(campos)
         .from(calls)
         .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
+        .leftJoin(users, eq(users.id, calls.closerUserId))
         .where(
           and(
             filtroLlamadas(alcance, db),
             metrica === "shows" ? llamadaOcurrio() : undefined,
             metrica === "no_shows" ? filtroNoShows(alcance, db) : undefined,
             metrica === "shows_sin_grain" ? atendidaSinGrain() : undefined,
+            vigente(calls),
+            vigente(deals),
+          ),
+        );
+    case "sin_resultado":
+      return db
+        .select(campos)
+        .from(calls)
+        .innerJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
+        .leftJoin(users, eq(users.id, calls.closerUserId))
+        .where(
+          and(
+            filtroLlamadas(alcance, db),
+            llamadaPasadaSinResultado(filtros.ahora ?? new Date()),
             vigente(calls),
             vigente(deals),
           ),
@@ -251,6 +302,7 @@ function consultaDe(
         .where(and(filtroLeads(alcance), vigente(deals)));
     }
     case "cierres":
+    case "contratado":
       return db
         .select(campos)
         .from(deals)
@@ -262,7 +314,11 @@ function consultaDe(
             inArray(dealEtapaHistorial.id, primerosMovimientosDeVenta(db)),
           ),
         )
-        .where(and(filtroCierres(alcance, db), vigente(deals)));
+        .where(and(
+          filtroCierres(alcance, db),
+          filtros.cohorteId ? eq(deals.cohortId, filtros.cohorteId) : undefined,
+          vigente(deals),
+        ));
     case "cortesias":
       return db
         .select(campos)
@@ -291,6 +347,17 @@ function consultaDe(
         .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
         .where(and(filtroAgendasCreadas(alcance), vigente(calls), vigente(deals)));
+    case "cartera":
+      return db
+        .select(campos)
+        .from(deals)
+        .leftJoin(users, eq(users.id, deals.ownerUserId))
+        .where(and(
+          eq(deals.programId, alcance.programId),
+          eq(deals.cortesia, false),
+          eq(deals.etapa, "ganado_parcial"),
+          vigente(deals),
+        ));
   }
 }
 
@@ -355,13 +422,26 @@ export async function resumenDeMetrica(metrica: Metrica, filtros: FiltrosDeMetri
       programId,
       disponible: !(METRICAS_SIN_CLOSER.includes(metrica) && filtros.claveCloser),
       subtotal: subtotal(grupos),
-      grupos: grupos.map(({ closer, claveCloser, etapa, bucket, moneda, monto, cantidad }) => ({ closer, claveCloser, etapa, bucket, moneda, monto, cantidad })),
+      grupos: grupos.map(({ closer, claveCloser, etapa, bucket, moneda, monto, cantidad }) => ({
+        closer,
+        claveCloser,
+        etapa,
+        bucket,
+        moneda,
+        monto,
+        cantidad,
+      })),
     };
   }));
 }
 
 /** El total incluye todas las páginas; las filas solo la página pedida, de tama?o fijo. */
-export async function listaDeMetrica(metrica: Metrica, filtros: FiltrosDeMetrica, pagina = 1, db: Db = dbDeLaApp): Promise<ListaDeMetrica[]> {
+export async function listaDeMetrica(
+  metrica: Metrica,
+  filtros: FiltrosDeMetrica,
+  pagina = 1,
+  db: Db = dbDeLaApp,
+): Promise<ListaDeMetrica[]> {
   if (!Number.isSafeInteger(pagina) || pagina < 1 || pagina > 1_000_000) throw new Error("Página inválida");
   const secciones = await resumenDeMetrica(metrica, filtros, db);
   return Promise.all(secciones.map(async (seccion) => ({

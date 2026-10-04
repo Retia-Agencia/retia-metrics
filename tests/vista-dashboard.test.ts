@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
+import { abonos, calls, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { claveHistorica } from "@/lib/closers/identidad";
@@ -141,10 +141,71 @@ it("la anterior es del mismo programa y A nuevo alimenta las consultas existente
   ]);
   const vista = await armarVistaDelDashboard({ programId: programaA, hoy: HOY, preset: "hoy", periodo: { preset: "cohorte_actual" } }, db);
   expect(vista.periodo.b).toEqual({ desde: "2026-08-03", hasta: "2026-08-17" });
+  expect(vista.anterior).not.toBeNull();
   expect(vista.seleccion.rango).toEqual(vista.periodo.a);
   expect(vista.embudo.agendas).toBe(2);
   const previa = await armarVistaDelDashboard({ programId: programaA, hoy: HOY, preset: "hoy", periodo: { preset: "cohorte_anterior" } }, db);
   expect(previa.seleccion.rango).toEqual({ desde: "2026-08-03", hasta: "2026-08-31" });
   expect(previa.embudo.agendas).toBe(0);
   expect(previa.periodo.b).toBeNull();
+  expect(previa.anterior).toBeNull();
+});
+
+it("arma contratado, comisión, descuento, ventas por cohorte y cartera", async () => {
+  const [closer] = await db.insert(users).values({ email: "dinero@retia.co", rol: "closer", closerId: "Dinero" }).returning();
+  const [cohorte] = await db.insert(cohorts).values({
+    programId: programaA,
+    codigo: "DIN",
+    metaCupos: 10,
+    precioUsd: "100",
+    fechaInicioClases: "2026-10-01",
+    fechaInicioVentas: HOY,
+    fechaCierreVentas: "2026-09-30",
+    estado: "activo",
+  }).returning();
+  const [lead] = await db.insert(leads).values({ programId: programaA, emailNormalizado: "dinero@lead.co" }).returning();
+  const [deal] = await db.insert(deals).values({
+    programId: programaA,
+    leadId: lead.id,
+    ownerUserId: closer.id,
+    cohortId: cohorte.id,
+    etapa: "ganado_parcial",
+    valorVendidoUsd: "80",
+    comisionPorcentaje: "10",
+    fechaLimitePago: "2026-09-01",
+  }).returning();
+  const [leadSinSaldo] = await db
+    .insert(leads)
+    .values({ programId: programaA, emailNormalizado: "sin-saldo@lead.co" })
+    .returning();
+  await db.insert(deals).values({
+    programId: programaA,
+    leadId: leadSinSaldo.id,
+    ownerUserId: closer.id,
+    cohortId: cohorte.id,
+    etapa: "ganado_parcial",
+    valorVendidoUsd: null,
+  });
+  await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_parcial", fecha: new Date("2026-09-15T10:00:00-05:00") });
+  await db.insert(abonos).values({ programId: programaA, dealId: deal.id, registradoPorUserId: closer.id, fecha: HOY, monto: "30", moneda: "USD" });
+
+  const vista = await armarVistaDelDashboard({
+    programId: programaA,
+    hoy: HOY,
+    preset: "hoy",
+    periodo: { preset: "cohorte_actual" },
+    ahora: new Date("2026-09-15T12:00:00-05:00"),
+  }, db);
+
+  expect(vista.anterior).toBeNull();
+  expect(vista.contratadoUsd).toBe(80);
+  expect(vista.comision).toEqual({ totalUsd: 8, ventasSinComision: 0 });
+  expect(vista.descuento).toEqual({ promedioPct: 0.2, promedioUsd: 20, ventas: 1 });
+  expect(vista.ventasPorCohorte).toEqual([{ cohorteId: cohorte.id, codigo: "DIN", ventas: 1, contratadoUsd: 80 }]);
+  expect(vista.cartera).toMatchObject({
+    deals: 2,
+    saldoUsd: 50,
+    vencidos: 1,
+    sinSaldoCalculable: 1,
+  });
 });
