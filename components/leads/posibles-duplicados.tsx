@@ -48,8 +48,11 @@ export function PosiblesDuplicados({
   origen?: string;
   /** Mi espacio muestra 5 y enlaza a la lista completa de Leads (186). */
   verTodosHref?: string;
-  /** Leads pagina de a 25 en el servidor (186); ausente no muestra navegación. */
-  paginacion?: { pagina: number; paginas: number; hrefDePagina: (p: number) => string };
+  /**
+   * Leads pagina de a 25 en el servidor (186); ausente no muestra navegación. Los enlaces llegan
+   * ya armados: una función no cruza la frontera servidor → cliente y tumba la página entera.
+   */
+  paginacion?: { pagina: number; paginas: number; anteriorHref: string | null; siguienteHref: string | null };
 }) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
@@ -149,8 +152,8 @@ export function PosiblesDuplicados({
         ) : null}
         {paginacion && paginacion.paginas > 1 ? (
           <nav className="flex items-center justify-between pt-3 text-sm" aria-label="Páginas de posibles duplicados">
-            {paginacion.pagina > 0 ? (
-              <Link href={paginacion.hrefDePagina(paginacion.pagina - 1)} className="text-marca-texto underline-offset-2 hover:underline">
+            {paginacion.anteriorHref ? (
+              <Link href={paginacion.anteriorHref} className="text-marca-texto underline-offset-2 hover:underline">
                 Anterior
               </Link>
             ) : (
@@ -159,8 +162,8 @@ export function PosiblesDuplicados({
             <span className="text-xs text-muted-foreground">
               Página <span className="cifra">{paginacion.pagina + 1}</span> de <span className="cifra">{paginacion.paginas}</span>
             </span>
-            {paginacion.pagina + 1 < paginacion.paginas ? (
-              <Link href={paginacion.hrefDePagina(paginacion.pagina + 1)} className="text-marca-texto underline-offset-2 hover:underline">
+            {paginacion.siguienteHref ? (
+              <Link href={paginacion.siguienteHref} className="text-marca-texto underline-offset-2 hover:underline">
                 Siguiente
               </Link>
             ) : (

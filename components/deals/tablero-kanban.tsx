@@ -266,10 +266,12 @@ export function TableroKanban({
                   <span>Potencial</span>
                   <span className="cifra">{usd(columna.potencialUsd)}</span>
                 </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span>Confirmado</span>
-                  <span className="cifra">{usd(columna.confirmadoUsd)}</span>
-                </div>
+                {columna.confirmadoUsd != null ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <span>Confirmado</span>
+                    <span className="cifra">{usd(columna.confirmadoUsd)}</span>
+                  </div>
+                ) : null}
               </footer>
             </section>
           );

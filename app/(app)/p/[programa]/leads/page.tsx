@@ -95,6 +95,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   ]);
 
   const paginas = Math.max(1, Math.ceil(total / LEADS_POR_PAGINA));
+  const paginasDup = Math.max(1, Math.ceil(duplicados.total / DUPLICADOS_POR_PAGINA));
   // El origen de ESTA lista (con sus filtros y pagina): lo heredan los enlaces al detalle,
   // para que "Volver" devuelva a la lista tal como estaba (ticket 174).
   const origen = origenDeLaPagina(`/p/${programa.slug}/leads`, q);
@@ -260,8 +261,9 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
           origen={origen}
           paginacion={{
             pagina: paginaDup,
-            paginas: Math.max(1, Math.ceil(duplicados.total / DUPLICADOS_POR_PAGINA)),
-            hrefDePagina: (p) => urlCon({ pdup: p > 0 ? String(p) : null }),
+            paginas: paginasDup,
+            anteriorHref: paginaDup > 0 ? urlCon({ pdup: paginaDup > 1 ? String(paginaDup - 1) : null }) : null,
+            siguienteHref: paginaDup + 1 < paginasDup ? urlCon({ pdup: String(paginaDup + 1) }) : null,
           }}
         />
       </div>

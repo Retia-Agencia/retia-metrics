@@ -155,7 +155,11 @@ describe("tableroKanban", () => {
     // Los pendientes no crean columnas; Cierre Perdido cierra el tablero.
     expect(orden.at(-1)).toBe("cierre_perdido");
     expect(t.total).toBe(0);
-    expect(t.columnas.every((columna) => columna.potencialUsd === 0 && columna.confirmadoUsd === 0)).toBe(true);
+    expect(t.columnas.every((columna) => columna.potencialUsd === 0)).toBe(true);
+    // Confirmado solo existe donde se abona; en el resto no aplica.
+    for (const columna of t.columnas) {
+      expect(columna.confirmadoUsd).toBe(["ganado_parcial", "ganado_completo"].includes(columna.etapa) ? 0 : null);
+    }
   });
 
   it("ordena por actividad o creacion en ambos sentidos y desempata por creacion descendente", async () => {

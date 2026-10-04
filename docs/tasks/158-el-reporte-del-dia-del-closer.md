@@ -3,7 +3,7 @@ id: 158
 etapa: NC3
 serves: "docs/anotaciones.md A-42"
 depends: [156, 157]
-status: bloqueado
+status: todo
 ---
 
 # 158 — El reporte del día del closer sale del CRM
@@ -17,6 +17,9 @@ lo arma el CRM, por closer y por día (Bogotá, hábiles), y el closer solo agre
 
 **Bloqueado por:** la decisión de cómo se registran las objeciones (pregunta abajo) y por el 157 (setter y closer
 separados en los conteos).
+
+> **4-oct (Mani):** las objeciones son un **catálogo editable por programa** (ADR 0012), se elige una al
+> responder "¿Cómo terminó?". Con el 157 en done, queda desbloqueado.
 
 ## Lo que ya existe
 

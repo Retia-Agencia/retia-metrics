@@ -2,8 +2,8 @@
 id: 147
 etapa: NC2
 serves: "comercial.md GC-39, GC-40"
-depends: [136, QD-6, QM-11]
-status: bloqueado
+depends: [136]
+status: todo
 ---
 
 # 147 — Alertas por días hábiles seguidos bajo el umbral
@@ -11,6 +11,9 @@ status: bloqueado
 **Bloqueado por:** QD-6 (de qué métricas son los umbrales y cuántos días seguidos disparan la alerta).
 
 > **1-oct (Mani, `comercial.md` §7.0):** QD-6, **5 días hábiles** seguidos por debajo, **configurable**. Falta qué métricas llevan umbral (QM-11; recomendación: las del semáforo de la meta, DP-24). Carril de Alejo en NC2.
+
+> **4-oct (Mani): desbloqueado.** QM-11: llevan umbral y alerta **solo las métricas del semáforo de la meta**
+> (DP-24). No se inventan umbrales para otras.
 
 ## Objetivo
 

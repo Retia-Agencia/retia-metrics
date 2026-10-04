@@ -13,7 +13,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { ETAPAS_EN_ORDEN, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
+import { ETAPAS_EN_ORDEN, ETAPAS_VENDIDAS, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
 import { carteraVencida } from "@/lib/queries/cartera";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
@@ -103,7 +103,8 @@ export interface ColumnaKanban {
   etapa: EtapaDeal;
   tarjetas: TarjetaDeal[];
   potencialUsd: number;
-  confirmadoUsd: number;
+  /** Solo en las etapas donde se abona (Pago Parcial y Pagado Completo); en el resto, `null`: no aplica. */
+  confirmadoUsd: number | null;
 }
 
 export interface TableroKanban {
@@ -373,7 +374,9 @@ export async function tableroKanban(
         etapa,
         tarjetas,
         potencialUsd: redondearUsd(tarjetas.reduce((total, tarjeta) => total + tarjeta.potencialUsd, 0)),
-        confirmadoUsd: redondearUsd(tarjetas.reduce((total, tarjeta) => total + tarjeta.confirmadoUsd, 0)),
+        confirmadoUsd: ETAPAS_VENDIDAS.includes(etapa)
+          ? redondearUsd(tarjetas.reduce((total, tarjeta) => total + tarjeta.confirmadoUsd, 0))
+          : null,
       };
     }),
     total: filtradas.length,

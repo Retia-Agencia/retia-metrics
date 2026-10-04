@@ -409,9 +409,6 @@ sigue en `git show 951b62a:docs/plan.md` §7.
 | QM-3 · GC-17 | La próxima fecha de pago al lado de la fecha límite (recomendación: al lado), y cómo pactan los abonos los closers | 5 | 144 | NC3 |
 | QM-4 | La API de Grain: después de v1 o nunca | 4 | · | después del corte |
 | QM-5 | Los cuatro pasos del onboarding: fijos o filas por programa (recomendación: filas) | 6 | 145 | NC3 |
-| QM-6 · QM-7 | La meta del mes pareja por día hábil, y a qué meta cuenta una venta de una cohorte en la ventana de la siguiente | 9 | 146 | NC3 |
-| QM-11 | Qué métricas llevan umbral y alerta por persistencia (recomendación: las del semáforo de la meta) | 9 | 147 | NC3 |
-| Objeciones | Cómo se registran: catálogo editable al responder "¿Cómo terminó?" o nota libre (recomendación: catálogo). Con Michael | 4, 9 | 158 | NC3 |
 | QM-8 | Qué hace el carril de pauta mientras la v1 comercial no cierra | 8 | 119, 120, 125, 126 | ya |
 | QM-9 | Deal Insights con IA en la ficha (recomendación: después de v1) | 2 | · | después de v1 |
 | A12 | El ROAS sin la TRM de la cohorte (la 0057 la quitó): de dónde sale la tasa | 8 | 123, 067 | antes de E7 |

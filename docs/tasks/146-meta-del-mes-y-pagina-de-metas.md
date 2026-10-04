@@ -2,13 +2,17 @@
 id: 146
 etapa: NC2
 serves: "comercial.md R-8, GC-44, GC-45, §5"
-depends: [136, QM-6, QM-7]
-status: bloqueado
+depends: [136]
+status: todo
 ---
 
 # 146 — La meta del mes y la página de Metas
 
-**Bloqueado por:** QM-6 (la meta del mes repartida pareja por día hábil; Dani contó por semanas) y QM-7 (a qué
+> **4-oct (Mani): desbloqueado.** QM-6: la meta del mes se reparte **pareja por día hábil** (la misma regla de
+> la meta lineal, 020). QM-7: una venta cuenta a la meta de **la cohorte del deal**, no a la de la ventana abierta
+> en la fecha; la cohorte se elige al registrar el primer abono (por defecto, la activa).
+
+~~**Bloqueado por:**~~ QM-6 (la meta del mes repartida pareja por día hábil; Dani contó por semanas) y QM-7 (a qué
 meta cuenta una venta de la C1 hecha en la ventana de la C2, y si la cohorte del primer abono se elige).
 
 ## Objetivo

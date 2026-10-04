@@ -206,10 +206,10 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 137 | [Toda cifra abre su lista](./137-toda-cifra-abre-su-lista.md) | 136 | done · 1-oct · Alejo · caja, shows, agendas, cierres y leads; "todos" en la consulta, la pantalla es del 095 |
 | [x] | 138 | [Deals creados contra agendas](./138-deals-creados-contra-agendas.md) | 136 | done · 1-oct · Alejo · acumulado por hábil A contra B en el dashboard; `deals_creados` y `agendas_creadas` abren su lista |
 | [x] | 141 | [Filtros de fecha relativos en las listas](./141-filtros-de-fecha-relativos-en-listas.md) | 136 | done · 1-oct · Alejo · deals por creado, actividad y cierre; leads por creado y último envío; selector del 136 en modo solo A |
-| [ ] | 146 | [Meta del mes y página de Metas](./146-meta-del-mes-y-pagina-de-metas.md) | 136, QM-6, QM-7 | bloqueado |
-| [ ] | 147 | [Alertas por persistencia](./147-alertas-por-persistencia.md) | 136, QM-11 | bloqueado · QD-6 contestada (1-oct): 5 hábiles, configurable; falta la lista de métricas (QM-11) · NC2 carril Alejo |
+| [ ] | 146 | [Meta del mes y página de Metas](./146-meta-del-mes-y-pagina-de-metas.md) | 136 | todo · 4-oct: QM-6 (pareja por hábil) y QM-7 (cuenta a la cohorte del deal) cerradas por Mani |
+| [ ] | 147 | [Alertas por persistencia](./147-alertas-por-persistencia.md) | 136 | todo · 4-oct: QM-11 cerrada (solo las métricas del semáforo, DP-24); QD-6: 5 hábiles, configurable · NC2 carril Alejo |
 | [ ] | 148 | [Las secciones del dashboard](./148-las-secciones-del-dashboard.md) | 142, 095, 137 | todo · deps cumplidas el 2-oct; va después del 143 (el 128 ya fijó las alertas) |
-| [ ] | 158 | [El reporte del día del closer sale del CRM](./158-el-reporte-del-dia-del-closer.md) | 156, 157 | bloqueado · cómo se registran las objeciones (Mani y Michael) |
+| [ ] | 158 | [El reporte del día del closer sale del CRM](./158-el-reporte-del-dia-del-closer.md) | 156, 157 | todo · 4-oct: objeciones = catálogo editable por programa (Mani); 156 y 157 ya en done |
 
 ## 10 · Configuración
 
