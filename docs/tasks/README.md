@@ -315,6 +315,7 @@ paralelo; 194, 195 y 197 cuando el 193 esté en `main` (usan su pieza de pestañ
 | [x] | 196 | [Las pantallas de Ajustes: pantalla fija y "← Ajustes"](./196-ajustes-pantalla-fija-y-volver.md) | 185 | done · `cp-20261004-5` · P4 · seis pantallas fijas con "← Ajustes" |
 | [x] | 197 | [Dashboard: pantalla fija y cada sección en su pestaña](./197-dashboard-en-pestanas.md) | 193, 148 | done · `cp-20261004-6` · P5 · Pulso, Operación, Dinero, Pauta; Volver regresa a la pestaña |
 | [ ] | 198 | [La zona con scroll es una pieza de `pantalla-fija.tsx`](./198-la-zona-con-scroll-es-una-pieza.md) | 197 | todo · deuda del frente de pantallas |
+| [ ] | 199 | [El manual de uso se abre desde la app, detrás del login](./199-el-manual-de-uso-en-la-app.md) | · | todo · `/manual` y el botón en Mi espacio |
 
 # Pasos y tareas sin ticket
 
