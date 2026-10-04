@@ -154,7 +154,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       <PantallaFija>
         <Pestanas grupos={grupos} activa={seccion} etiqueta="Sección del programa" />
 
-        <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <div className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
           {seccion === "general" ? (
             <div className="space-y-4">
               {!programa.activo && administra ? (

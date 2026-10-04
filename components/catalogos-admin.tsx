@@ -243,7 +243,7 @@ function PanelCatalogo({ catalogo }: { catalogo: CatalogoVista }) {
           ) : null}
         </form>
 
-        <ul className="divide-y rounded-md border md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <ul className="divide-y rounded-md border md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
           {items.length === 0 ? (
             <li className="px-3 py-4 text-sm text-muted-foreground">
               Todavía no hay elementos en este catálogo.

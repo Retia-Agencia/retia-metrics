@@ -122,7 +122,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
   });
 
   // Cada cifra abre su lista y su "Volver" regresa a ESTA pestaña con ESTE filtro: el
-  // origen (path + query, con `seccion`) viaja como `?desde=` en el href de cada lista
+  // origen (path + query, con `seccion`) viaja como parámetro `desde` en el href de cada lista
   // (ticket 174, 197), SOLO por `enlaceConVuelta` dentro de `detalleDeCifra`.
   const origen = origenDeLaPagina(base, busqueda);
 
@@ -170,7 +170,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
         </div>
         <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del dashboard" />
 
-        <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <div className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
           {seccion === "pauta" ? (
             <SeccionPauta
               programId={programa.id}

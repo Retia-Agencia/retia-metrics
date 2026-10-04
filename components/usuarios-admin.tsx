@@ -119,7 +119,7 @@ export function UsuariosAdmin({
         ) : null}
       </div>
 
-      <div className="space-y-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
+      <div className="space-y-6 md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
         <ul className="divide-y rounded-md border">
           {ordenados.length === 0 ? (
             <li className="px-3 py-4 text-sm text-muted-foreground">Todavía no hay usuarios.</li>

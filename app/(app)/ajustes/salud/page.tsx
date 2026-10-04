@@ -143,7 +143,7 @@ export default async function SaludPage({
           </CardContent>
         </Card>
 
-        <div className="space-y-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <div className="space-y-6 md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
           {/* Las entregas del programa, 25 por página y "Ver anteriores" bajo demanda. */}
           <EntregasWebhook
             entregas={entregasVista}

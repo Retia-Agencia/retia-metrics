@@ -106,7 +106,7 @@ export default async function MigracionPage(props: {
                 </p>
               ) : null}
             </CardHeader>
-            <CardContent className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+            <CardContent className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
               <ul className="divide-y divide-border">
                 {rarezas.filas.map((r) => (
                   <li key={r.id} className="space-y-1 py-3 text-sm">

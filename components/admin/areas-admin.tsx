@@ -69,7 +69,7 @@ export function AreasAdmin({ areas }: { areas: AreaVista[] }) {
           <Button type="submit" disabled={pendiente}>{editando ? "Guardar" : <><Plus className="size-4" />Crear</>}</Button>
           {editando ? <Button type="button" variant="ghost" onClick={() => { setEditando(null); setNombre(""); }}><X className="size-4" />Cancelar</Button> : null}
         </form>
-        <ul className="divide-y text-sm md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <ul className="divide-y text-sm md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
           {areas.map((area) => (
             <li key={area.id} className="flex flex-wrap items-center gap-3 py-2">
               <span className="font-medium">{area.nombre}</span>

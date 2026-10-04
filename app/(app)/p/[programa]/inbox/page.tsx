@@ -160,7 +160,7 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
 
         <Pestanas grupos={grupos} activa={seccion} etiqueta="Sección del inbox" />
 
-        <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <div className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
           {seccion === "por-registrar" ? (
             <InboxLlamadasDeHoy
           llamadas={inbox.llamadasDeHoy}

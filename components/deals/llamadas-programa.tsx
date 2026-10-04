@@ -45,7 +45,7 @@ export function LlamadasPrograma({
           Llamadas · <span className="cifra">{num(total)}</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="md:min-h-0 md:flex-1 md:overflow-y-auto p-0">
+      <CardContent className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto p-0">
         {llamadas.length === 0 ? (
           <ul className="divide-y">
             <li className="px-4 py-6 text-center text-sm text-muted-foreground">

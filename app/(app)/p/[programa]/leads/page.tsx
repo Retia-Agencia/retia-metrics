@@ -177,7 +177,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
             </CardAction>
             </CardHeader>
             <CardContent className="flex min-h-0 flex-1 flex-col">
-              <div className="overflow-x-auto md:min-h-0 md:flex-1 md:overflow-y-auto">
+              <div className="overflow-x-auto md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
                 {filas.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No hay leads con estos filtros.</p>
                 ) : vista === "tarjetas" ? (
@@ -276,7 +276,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
             </CardContent>
           </Card>
         ) : (
-          <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+          <div className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
             <PosiblesDuplicados
           filas={duplicados.filas.map((d) => ({
             contactoId: d.contactoId,

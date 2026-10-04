@@ -202,7 +202,7 @@ export function RecursosPantalla({
 
       {/* Solo la lista de la pestaña activa, con scroll propio desde `md`. Por debajo de
           `md` vuelve el scroll de página. */}
-      <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+      <div className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
         {seccion === "recursos" ? (
           <section className="space-y-3">
             {puedeCrear ? (

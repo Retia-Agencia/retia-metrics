@@ -99,7 +99,7 @@ export function CanalesAdmin({ canales, areas, pares }: { canales: CanalVista[];
         </CardContent>
       </Card>
 
-      <div className="space-y-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
+      <div className="space-y-6 md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
         <Card>
           <CardHeader><CardTitle className="text-base">Canales</CardTitle></CardHeader>
           <CardContent className="overflow-x-auto">
