@@ -74,7 +74,7 @@ export async function registrarActividad(db: Db, actor: ActorDeDeal, datos: Dato
 
       let etapa = deal.etapa;
       let pendiente = deal.pendiente;
-      const sistema = { tipo: "sistema" } as const;
+      const sistema = { tipo: "sistema", porUsuario: actor.userId } as const;
       // A dónde va lo decide `etapaTrasActividad`, la misma regla con la que la ficha lo explica.
       const destino = tipo === "nota" ? etapa : etapaTrasActividad(etapa, tipo);
       if (destino !== etapa && etapa !== "en_gestion") {

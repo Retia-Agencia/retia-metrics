@@ -20,7 +20,7 @@ type Props = {
 export function PageShell({ titulo, descripcion, acciones, volver, fija, children }: Props) {
   if (fija) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col md:h-dvh md:overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col md:h-dvh md:max-h-dvh md:overflow-hidden">
         <header className="z-10 flex flex-wrap items-center justify-between gap-3 border-b bg-card/95 px-4 py-4 md:sticky md:top-0 md:px-6 backdrop-blur supports-[backdrop-filter]:bg-card/80 lg:px-8">
           <div className="min-w-0">
             {volver ? (

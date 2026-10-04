@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
-import { canales as tablaCanales, cohorts, deals, leadContactos, leads, sources, submissions, users } from "@/lib/db/schema";
+import { canales, cohorts, deals, leadContactos, leads, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
@@ -268,7 +268,7 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
     enviosFilas.length > 0
       ? db.select({ id: sources.id, nombre: sources.nombre }).from(sources).where(inArray(sources.id, [...new Set(enviosFilas.map((e) => e.sourceId))]))
       : Promise.resolve([]),
-    db.select().from(tablaCanales).where(eq(tablaCanales.activo, true)),
+    db.select().from(canales).where(eq(canales.activo, true)),
   ]);
   const dealsFilas = await db
     .select()

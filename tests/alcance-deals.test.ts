@@ -13,6 +13,10 @@ vi.mock("@/lib/auth/vista", () => ({ rolDeVista }));
 vi.mock("@/lib/auth/alcance", () => ({ programaVisiblePorSlug }));
 vi.mock("@/lib/db", () => ({ db: {} }));
 vi.mock("next/navigation", () => ({ notFound }));
+vi.mock("@/lib/deals/mover-etapa", async (original) => ({
+  ...(await original<typeof import("@/lib/deals/mover-etapa")>()),
+  etapaDeCorreccion: vi.fn(async () => null),
+}));
 vi.mock("@/lib/queries/ficha-deal", () => ({ fichaDeDeal, opcionesDeFicha, alertasDelDeal }));
 vi.mock("@/components/page-shell", () => ({ PageShell: () => null }));
 vi.mock("@/components/deals/ficha/ficha-acciones", () => ({ FichaAcciones: () => null }));

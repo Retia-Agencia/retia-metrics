@@ -164,14 +164,16 @@ describe("crear usuario", () => {
     expect(await membresiasDe(creado.id)).toHaveLength(0);
   });
 
-  it("un closer sin closerId es un 400", async () => {
-    const error = await crearUsuario(db, gerenteId, {
+  it("un closer sin closerId se crea: la identidad es users.id (167)", async () => {
+    const creado = await crearUsuario(db, gerenteId, {
       ...closerValido,
+      email: "sin-codigo@retiagrowth.com",
       closerId: "",
       programas: [programaAId],
-    }).catch((e) => e);
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(400);
+    });
+    expect(creado.rol).toBe("closer");
+    expect(creado.closerId).toBeNull();
+    expect(await membresiasDe(creado.id)).toHaveLength(1);
   });
 
   it("un closer puede nacer sin membresias", async () => {

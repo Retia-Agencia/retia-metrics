@@ -77,7 +77,12 @@ import { congelarValorVendido } from "./valor-vendido";
  * segunda puerta que alguien olvidaba, asi que vive con la reja y no afuera.
  */
 export type Actor =
-  | { tipo: "sistema" }
+  /**
+   * `porUsuario`: la flecha es del sistema, pero la disparó una persona (una actividad
+   * registrada desde "Mover a", ticket 176). El historial la nombra, y por eso ese
+   * movimiento se puede corregir (ADR 0078).
+   */
+  | { tipo: "sistema"; porUsuario?: string }
   | { tipo: "usuario"; userId: string; rol: Rol };
 
 /**
@@ -306,7 +311,7 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
       a: mov.a,
       pendienteDe,
       pendienteA,
-      userId: mov.actor.tipo === "usuario" ? mov.actor.userId : null,
+      userId: mov.actor.tipo === "usuario" ? mov.actor.userId : (mov.actor.porUsuario ?? null),
       motivoId: mov.motivoId ?? null,
       fecha: sql`clock_timestamp()`,
     });

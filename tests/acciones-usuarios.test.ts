@@ -121,16 +121,15 @@ describe("acciones de usuarios — el gerente administra", () => {
     expect(membresias).toHaveLength(1);
   });
 
-  it("un closer sin closerId devuelve ok:false con mensaje", async () => {
+  it("un closer sin closerId se crea (167: closerId es opcional)", async () => {
     const { crearUsuarioAccion } = await acciones();
     const res = await crearUsuarioAccion({
-      email: "malo@retiagrowth.com",
+      email: "sin-codigo@retiagrowth.com",
       rol: "closer",
       closerId: "",
       programas: [programaAId],
     });
-    expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error.length).toBeGreaterThan(0);
+    expect(res.ok).toBe(true);
   });
 
   it("un gerente no puede desactivarse a si mismo", async () => {
