@@ -12,6 +12,7 @@ import {
 } from "@/lib/queries/metricas-con-filas";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import type { EtapaDeal } from "@/lib/deals/etapas";
+import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import { db as dbDeLaApp } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
 
@@ -78,16 +79,23 @@ export interface EntradaDeDetalles {
   periodo: PeriodoResuelto;
   /** La clave de identidad del closer (ticket 167): `users.id` o `historico:<texto>`. */
   claveCloser: string | null;
+  /**
+   * El origen de la pantalla que arma estos detalles (ticket 174, 197): se pega como
+   * `?desde=` al href de cada lista para que su "Volver" regrese a la pestaña y el filtro
+   * de donde salió. Solo por `enlaceConVuelta`; sin un origen válido el href queda igual.
+   */
+  origen?: string;
 }
 
 /** El resumen de UNA cifra del periodo A y el enlace a su lista. Solo agregados SQL. */
 export async function detalleDeCifra(metrica: Metrica, entrada: EntradaDeDetalles, db: Db = dbDeLaApp): Promise<DetalleDeCifra> {
   const claveCloser = metrica === "cartera" ? null : entrada.claveCloser;
   const [resumen] = await resumenDeMetrica(metrica, { ...entrada, rango: entrada.periodo.a, claveCloser }, db);
+  const href = urlDeLista(entrada.slug, metrica, entrada.periodo, claveCloser);
   return {
     resumen,
     desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
-    href: urlDeLista(entrada.slug, metrica, entrada.periodo, claveCloser),
+    href: entrada.origen ? enlaceConVuelta(href, entrada.origen) : href,
   };
 }
 

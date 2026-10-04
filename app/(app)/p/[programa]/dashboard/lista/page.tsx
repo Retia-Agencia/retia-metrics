@@ -82,6 +82,10 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   if (!vista) notFound();
   const { lista, periodo, claveCloser } = vista;
   const enlace = urlDeLista(slug, metrica, periodo, claveCloser, moneda, cohorte);
+  // El `desde` de donde se abrió esta lista (ticket 174, 197): va al "Volver" de la
+  // cabecera y se conserva en los enlaces de paginación, siempre por `enlaceConVuelta`.
+  const desde = typeof busqueda.desde === "string" ? busqueda.desde : undefined;
+  const conVuelta = (href: string) => (desde ? enlaceConVuelta(href, desde) : href);
   // La etiqueta visible del closer filtrado sale de los grupos (nunca la clave
   // interna, que puede ser un uuid o `historico:...`): todas las filas del filtro
   // comparten closer. Sin filtro, "Todos los closers".
@@ -91,7 +95,11 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   // El origen de ESTA lista para "Ver deal" (ticket 174).
   const origen = origenDeLaPagina(`/p/${slug}/dashboard/lista`, busqueda);
   return (
-    <PageShell titulo={titulos[metrica]} descripcion={programa.nombre}>
+    <PageShell
+      titulo={titulos[metrica]}
+      descripcion={programa.nombre}
+      volver={{ desde, porDefecto: { href: `/p/${slug}/dashboard`, etiqueta: "Dashboard" } }}
+    >
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">{programa.nombre}</Badge>
@@ -135,9 +143,9 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           </CardContent>
         </Card>
         <nav aria-label="Paginación" className="flex items-center gap-3">
-          {pagina > 1 ? <Button variant="outline" nativeButton={false} render={<Link href={`${enlace}&pagina=${pagina - 1}`} />}>Anterior</Button> : <Button variant="outline" disabled>Anterior</Button>}
+          {pagina > 1 ? <Button variant="outline" nativeButton={false} render={<Link href={conVuelta(`${enlace}&pagina=${pagina - 1}`)} />}>Anterior</Button> : <Button variant="outline" disabled>Anterior</Button>}
           <span className="cifra">Página {num(pagina)}</span>
-          {pagina * TAMANO_PAGINA < lista.subtotal.cantidad ? <Button variant="outline" nativeButton={false} render={<Link href={`${enlace}&pagina=${pagina + 1}`} />}>Siguiente</Button> : <Button variant="outline" disabled>Siguiente</Button>}
+          {pagina * TAMANO_PAGINA < lista.subtotal.cantidad ? <Button variant="outline" nativeButton={false} render={<Link href={conVuelta(`${enlace}&pagina=${pagina + 1}`)} />}>Siguiente</Button> : <Button variant="outline" disabled>Siguiente</Button>}
         </nav>
       </div>
     </PageShell>
