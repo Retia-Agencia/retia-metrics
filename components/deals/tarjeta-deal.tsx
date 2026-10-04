@@ -75,7 +75,7 @@ export function TarjetaDealCard({
       onDragEnd={onArrastrarFin}
       data-deal-id={tarjeta.dealId}
       className={cn(
-        "group rounded-lg bg-card p-3 shadow-tarjeta transition-[transform,opacity] duration-150 motion-reduce:transition-none",
+        "group relative cursor-pointer rounded-lg bg-card p-3 shadow-tarjeta transition-[background-color,transform,opacity] duration-150 hover:bg-muted/40 motion-reduce:transition-none",
         arrastrando ? "scale-95 opacity-60" : "opacity-100",
       )}
     >
@@ -87,7 +87,8 @@ export function TarjetaDealCard({
           <div className="min-w-0">
             <Link
               href={enlaceConVuelta(`/p/${programaSlug}/deals/${tarjeta.dealId}`, origen)}
-              className="block truncate text-sm font-medium outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+              draggable={false}
+              className="block truncate text-sm font-medium outline-none after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:ring-2 focus-visible:ring-ring"
             >
               {tarjeta.nombreLead ?? tarjeta.emailLead}
             </Link>
@@ -101,11 +102,11 @@ export function TarjetaDealCard({
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label="Siguiente paso"
-              className="grid size-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors duration-150 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+              className="relative z-10 grid size-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors duration-150 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
             >
               <MoreVertical className="size-4" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="relative z-10">
               <DropdownMenuGroup>
                 <DropdownMenuLabel>{PREGUNTA_DE_ETAPA[tarjeta.etapa].pregunta ?? "Siguiente paso"}</DropdownMenuLabel>
                 {respuestas.map((r) => (

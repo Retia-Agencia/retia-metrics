@@ -16,6 +16,8 @@ import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { NuevoDeal } from "@/components/deals/nuevo-deal";
 import { ETAPA_DE_ENTRADA } from "@/lib/deals/crear-a-mano";
 import { alcanceDeDeals } from "@/lib/auth/alcance-deals";
+import { cohorteActiva } from "@/lib/queries/cohortes";
+import { PantallaFija } from "@/components/layout/pantalla-fija";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +52,8 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
 
   const alcanceDeals = await alcanceDeDeals(session);
   const busqueda = await searchParams;
-  const filtros = parsearFiltros(busqueda);
+  const activa = await cohorteActiva(programa.id, db);
+  const filtros = parsearFiltros(busqueda, undefined, activa?.id ?? null);
   const origen = origenDeLaPagina(`/p/${programa.slug}/deals`, busqueda);
   const [tablero, opciones] = await Promise.all([
     tableroKanban(db, programa.id, alcanceDeals, filtros),
@@ -61,6 +64,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
     <PageShell
       titulo={programa.nombre}
       descripcion="Deals · tablero"
+      fija
       acciones={
         <NuevoDeal
           programId={programa.id}
@@ -71,22 +75,25 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
         />
       }
     >
-      <div className="space-y-4">
-        <FiltroFechaLista campos={CAMPOS_DE_FECHA} filtro={filtros.fecha ?? null} />
-        <FiltroKanban
-          mostrarDueno={alcanceDeals.tipo === "todos"}
-          ownerUserId={filtros.ownerUserId ?? null}
-          cohorteId={filtros.cohorteId ?? null}
-          canal={filtros.canal ?? null}
-          antiguedadMinima={filtros.antiguedadMinima ?? null}
-          leadQuality={filtros.leadQuality ?? null}
-          leadValue={filtros.leadValue ?? null}
-          owners={opciones.owners}
-          cohortes={opciones.cohortes}
-          canales={opciones.canales}
-          leadQualities={opciones.leadQualities}
-          leadValues={opciones.leadValues}
-        />
+      <PantallaFija>
+        <div className="shrink-0 space-y-4">
+          <FiltroFechaLista campos={CAMPOS_DE_FECHA} filtro={filtros.fecha ?? null} />
+          <FiltroKanban
+            mostrarDueno={alcanceDeals.tipo === "todos"}
+            ownerUserId={filtros.ownerUserId ?? null}
+            cohorteId={busqueda.cohorte === "todas" ? null : filtros.cohorteId ?? null}
+            canal={filtros.canal ?? null}
+            antiguedadMinima={filtros.antiguedadMinima ?? null}
+            leadQuality={filtros.leadQuality ?? null}
+            leadValue={filtros.leadValue ?? null}
+            owners={opciones.owners}
+            cohortes={opciones.cohortes}
+            canales={opciones.canales}
+            leadQualities={opciones.leadQualities}
+            leadValues={opciones.leadValues}
+            orden={filtros.orden}
+          />
+        </div>
         <TableroKanban
           columnas={tablero.columnas}
           total={tablero.total}
@@ -105,7 +112,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
           administra={esAdministrador(rol)}
           origen={origen}
         />
-      </div>
+      </PantallaFija>
     </PageShell>
   );
 }

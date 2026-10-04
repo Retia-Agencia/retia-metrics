@@ -566,6 +566,8 @@ conoce de HubSpot, a propósito.
 | Firma de la app | `components/marca.tsx` |
 | Tarjeta, botón, badge, select, menú | `components/ui/*` (shadcn sobre Base UI) |
 
+`PantallaFija` junto con `PageShell fija` ocupa el alto disponible en escritorio y delega el scroll a sus hijos; Deals lo estrena y cada pantalla de la app adoptará esta estructura en el ticket 185.
+
 El selector de programa (ADR 0050) vive arriba de la barra, dentro del marco, y sigue la regla 7.
 
 **Las reglas:**

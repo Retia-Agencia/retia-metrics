@@ -84,6 +84,8 @@ interface OpcDeal {
   entrada?: string;
   contactoSinConfirmar?: boolean;
   abono?: string;
+  creado?: string;
+  valorVendido?: string | null;
 }
 
 async function deal(o: OpcDeal): Promise<string> {
@@ -116,7 +118,9 @@ async function deal(o: OpcDeal): Promise<string> {
       cohortId: o.cohort === undefined ? cohortId : o.cohort,
       etapa: o.etapa,
       pendiente: o.pendiente ?? null,
-      ownerUserId: o.owner ?? owner1,valorVendidoUsd: "1000.00",
+      ownerUserId: o.owner ?? owner1,
+      valorVendidoUsd: o.valorVendido === undefined ? "1000.00" : o.valorVendido,
+      ...(o.creado ? { createdAt: new Date(o.creado) } : {}),
       fechaLimitePago: o.fechaLimitePago ?? null,
       fechaSeguimiento: o.fechaSeguimiento ?? null,
       ...(o.anulado
@@ -151,6 +155,63 @@ describe("tableroKanban", () => {
     // Los pendientes no crean columnas; Cierre Perdido cierra el tablero.
     expect(orden.at(-1)).toBe("cierre_perdido");
     expect(t.total).toBe(0);
+    expect(t.columnas.every((columna) => columna.potencialUsd === 0 && columna.confirmadoUsd === 0)).toBe(true);
+  });
+
+  it("ordena por actividad o creacion en ambos sentidos y desempata por creacion descendente", async () => {
+    const a = await deal({ etapa: "contactado", creado: "2026-09-01T12:00:00-05:00", entrada: "2026-10-10" });
+    const b = await deal({ etapa: "contactado", creado: "2026-09-02T12:00:00-05:00", entrada: "2026-10-05" });
+    const c = await deal({ etapa: "contactado", creado: "2026-09-03T12:00:00-05:00", entrada: "2026-10-05" });
+    const ahora = new Date("2026-10-21T12:00:00-05:00");
+    const ids = async (campo: "actividad" | "creado", sentido: "asc" | "desc") => {
+      const tablero = await tableroKanban(db, programId, { tipo: "todos" }, { orden: { campo, sentido } }, HOY, ahora);
+      return tablero.columnas.find((columna) => columna.etapa === "contactado")!.tarjetas.map((tarjeta) => tarjeta.dealId);
+    };
+
+    expect(await ids("actividad", "desc")).toEqual([a, c, b]);
+    expect(await ids("actividad", "asc")).toEqual([c, b, a]);
+    expect(await ids("creado", "desc")).toEqual([c, b, a]);
+    expect(await ids("creado", "asc")).toEqual([a, b, c]);
+  });
+
+  it("desempata fechas iguales por deal id ascendente", async () => {
+    const fecha = "2026-09-01T12:00:00-05:00";
+    const uno = await deal({ etapa: "contactado", creado: fecha, entrada: "2026-10-05" });
+    const dos = await deal({ etapa: "contactado", creado: fecha, entrada: "2026-10-05" });
+    const tablero = await tableroKanban(
+      db,
+      programId,
+      { tipo: "todos" },
+      { orden: { campo: "actividad", sentido: "desc" } },
+      HOY,
+      new Date("2026-10-21T12:00:00-05:00"),
+    );
+    const ids = tablero.columnas.find((columna) => columna.etapa === "contactado")!.tarjetas.map((tarjeta) => tarjeta.dealId);
+    expect(ids).toEqual([uno, dos].sort());
+  });
+
+  it("suma potencial y confirmado visibles desde saldosDeDeals y el ticket de cohorte", async () => {
+    const vendido = await deal({ etapa: "ganado_completo", owner: owner1, valorVendido: "900.25", abono: "100.10" });
+    await db.insert(abonos).values({
+      dealId: vendido,
+      programId,
+      fecha: "2026-10-02",
+      monto: "500",
+      anuladoEn: new Date(),
+      anuladoPor: owner1,
+      motivoAnulacion: "error",
+    });
+    await deal({ etapa: "ganado_completo", owner: owner2, valorVendido: null, abono: "200.20" });
+
+    const completo = (await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY)).columnas
+      .find((columna) => columna.etapa === "ganado_completo")!;
+    expect(completo.potencialUsd).toBe(1900.25);
+    expect(completo.confirmadoUsd).toBe(300.3);
+
+    const filtrado = (await tableroKanban(db, programId, { tipo: "todos" }, { ownerUserId: owner1 }, HOY)).columnas
+      .find((columna) => columna.etapa === "ganado_completo")!;
+    expect(filtrado.potencialUsd).toBe(900.25);
+    expect(filtrado.confirmadoUsd).toBe(100.1);
   });
 
   it("un deal ANULADO no aparece en ninguna columna", async () => {
@@ -298,6 +359,11 @@ describe("tableroKanban", () => {
 });
 
 describe("opcionesDeTablero", () => {
+  it("incluye la cohorte activa aunque no tenga deals", async () => {
+    const o = await opcionesDeTablero(db, programId);
+    expect(o.cohortes).toEqual([{ id: cohortId, nombre: "C1" }]);
+  });
+
   it("trae owners, cohortes y canales presentes en los deals, y los catalogos", async () => {
     await deal({ etapa: "contactado", owner: owner1, utmSource: "meta", utmMedium: "cpc" });
     await deal({ etapa: "contactado", owner: owner2, utmSource: "google", utmMedium: "organic" });
@@ -321,16 +387,32 @@ describe("parsearFiltros", () => {
       cohorteId: "c1",
       canal: "meta|cpc",
       antiguedadMinima: 7,
+      orden: { campo: "actividad", sentido: "desc" },
     });
     expect(parsearFiltros({ owner: "", antiguedad: "abc" })).toEqual({
       ownerUserId: null,
       cohorteId: null,
       canal: null,
       antiguedadMinima: null,
+      orden: { campo: "actividad", sentido: "desc" },
     });
     // Un arreglo (parametro repetido) no es un valor de filtro.
     expect(parsearFiltros({ owner: ["a", "b"] }).ownerUserId).toBeNull();
     // antiguedad 0 no filtra (minimo 1).
     expect(parsearFiltros({ antiguedad: "0" }).antiguedadMinima).toBeNull();
+  });
+
+  it("valida el orden y usa sus defaults si falta o es invalido", () => {
+    expect(parsearFiltros({}).orden).toEqual({ campo: "actividad", sentido: "desc" });
+    expect(parsearFiltros({ orden: "creado", sentido: "asc" }).orden).toEqual({ campo: "creado", sentido: "asc" });
+    expect(parsearFiltros({ orden: "otro", sentido: "asc" }).orden).toEqual({ campo: "actividad", sentido: "desc" });
+    expect(parsearFiltros({ orden: "creado", sentido: "otro" }).orden).toEqual({ campo: "actividad", sentido: "desc" });
+  });
+
+  it("usa la cohorte activa por ausencia, todas como null y conserva un id explicito", () => {
+    expect(parsearFiltros({}, HOY, "activa").cohorteId).toBe("activa");
+    expect(parsearFiltros({ cohorte: "" }, HOY, "activa").cohorteId).toBe("activa");
+    expect(parsearFiltros({ cohorte: "todas" }, HOY, "activa").cohorteId).toBeNull();
+    expect(parsearFiltros({ cohorte: "c2" }, HOY, "activa").cohorteId).toBe("c2");
   });
 });

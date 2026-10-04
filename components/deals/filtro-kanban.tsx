@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { OpcionCanal, OpcionCatalogo } from "@/lib/queries/kanban";
+import type { OpcionCanal, OpcionCatalogo, OrdenKanban } from "@/lib/queries/kanban";
 
 /**
  * Filtros del Kanban: dueno, cohorte, canal y antiguedad en la etapa (ticket 069).
@@ -21,6 +21,7 @@ import type { OpcionCanal, OpcionCatalogo } from "@/lib/queries/kanban";
  */
 
 const TODOS = "todos";
+const TODAS_LAS_COHORTES = "todas";
 
 const ANTIGUEDADES = [
   { valor: "3", etiqueta: "3+ días" },
@@ -42,6 +43,7 @@ export interface FiltroKanbanProps {
   leadValue: string | null;
   leadQualities: string[];
   leadValues: string[];
+  orden: OrdenKanban;
 }
 
 export function FiltroKanban({
@@ -57,11 +59,12 @@ export function FiltroKanban({
   leadValue,
   leadQualities,
   leadValues,
+  orden,
 }: FiltroKanbanProps) {
   const { poner } = useFiltrosUrl();
 
   return (
-    <BarraDeFiltros nombres={["owner", "leadQuality", "leadValue", "cohorte", "canal", "antiguedad", "fecha", "periodo", "a_desde", "a_hasta", "rango", "desde", "hasta"]}>
+    <BarraDeFiltros nombres={["owner", "leadQuality", "leadValue", "cohorte", "canal", "antiguedad", "fecha", "periodo", "a_desde", "a_hasta", "rango", "desde", "hasta", "orden", "sentido"]}>
       {mostrarDueno ? <Select
         value={ownerUserId ?? TODOS}
         items={[{ value: TODOS, label: "Todos los dueños" }, ...owners.map((o) => ({ value: o.id, label: o.nombre }))]}
@@ -89,20 +92,46 @@ export function FiltroKanban({
       </Select>
 
       <Select
-        value={cohorteId ?? TODOS}
-        items={[{ value: TODOS, label: "Todas las cohortes" }, ...cohortes.map((c) => ({ value: c.id, label: c.nombre }))]}
-        onValueChange={(v: string | null) => poner({ cohorte: !v || v === TODOS ? null : v })}
+        value={cohorteId ?? TODAS_LAS_COHORTES}
+        items={[{ value: TODAS_LAS_COHORTES, label: "Todas las cohortes" }, ...cohortes.map((c) => ({ value: c.id, label: c.nombre }))]}
+        onValueChange={(v: string | null) => poner({ cohorte: !v ? TODAS_LAS_COHORTES : v })}
       >
         <SelectTrigger className="w-40" aria-label="Cohorte">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={TODOS}>Todas las cohortes</SelectItem>
+          <SelectItem value={TODAS_LAS_COHORTES}>Todas las cohortes</SelectItem>
           {cohortes.map((c) => (
             <SelectItem key={c.id} value={c.id}>
               {c.nombre}
             </SelectItem>
           ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={`${orden.campo}:${orden.sentido}`}
+        items={[
+          { value: "actividad:desc", label: "Actividad: más reciente" },
+          { value: "actividad:asc", label: "Actividad: más antigua" },
+          { value: "creado:desc", label: "Creación: más reciente" },
+          { value: "creado:asc", label: "Creación: más antigua" },
+        ]}
+        onValueChange={(valor: string | null) => {
+          const [campo, sentido] = valor?.split(":") ?? [];
+          if ((campo === "actividad" || campo === "creado") && (sentido === "desc" || sentido === "asc")) {
+            poner({ orden: campo, sentido });
+          }
+        }}
+      >
+        <SelectTrigger className="w-56" aria-label="Orden">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="actividad:desc">Actividad: más reciente</SelectItem>
+          <SelectItem value="actividad:asc">Actividad: más antigua</SelectItem>
+          <SelectItem value="creado:desc">Creación: más reciente</SelectItem>
+          <SelectItem value="creado:asc">Creación: más antigua</SelectItem>
         </SelectContent>
       </Select>
 

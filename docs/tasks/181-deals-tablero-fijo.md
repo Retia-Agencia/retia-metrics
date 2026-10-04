@@ -3,7 +3,7 @@ id: 181
 etapa: O4
 serves: "docs/anotaciones.md A-82, A-83, A-84, A-07, A-08; ADR 0024; ADR 0077"
 depends: []
-status: todo
+status: review
 ---
 
 # 181 — Deals: tablero fijo como HubSpot, dinero por etapa, orden, cohorte y tarjeta clicable
@@ -67,3 +67,13 @@ ticket base); `tests/saldo-centralizado.test.ts` sigue verde.
 - Toda la tarjeta abre la ficha, con hover; arrastrar y "Mover a…" siguen funcionando.
 - `npm run build` en verde; recorrido en `dev:local` como closer y gerente, escritorio y 375 px, consola abierta,
   arrastrando hasta el borde.
+
+## Nota de cierre (S1, 3-oct)
+
+Implementado por Codex, revisado el diff por Claude. Typecheck, lint y `npm run build` en verde. **Sin correr:** los tests
+(`kanban.test.ts`, `saldo-centralizado.test.ts`; la máquina sin aire, los decide el CI) y el recorrido en `dev:local`
+(lo hace el hilo principal: arrastre con tarjeta clicable, menú "Siguiente paso", autoscroll, 375 px, closer y gerente).
+
+- `PageShell` gana la prop `fija` (archivo de S6, cambio mínimo; con ella apagada el resultado es idéntico). El 185 rebasa sobre esto.
+- URL: `orden` (`actividad`|`creado`) + `sentido` (`desc`|`asc`); `cohorte` ausente = la activa, `cohorte=todas` = todas.
+- Resaltado del destino del arrastre: `claseDeDestino` en `tablero-kanban.tsx`, para que el 182 cambie solo el tono.

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { usd } from "@/lib/format";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import type { ColumnaKanban, OpcionCatalogo, TarjetaDeal } from "@/lib/queries/kanban";
 import type { MapaTransiciones } from "./transiciones";
@@ -53,6 +54,15 @@ export interface TableroKanbanProps {
   origen: string;
 }
 
+function claseDeDestino({ permitido, prohibido, enHover }: { permitido: boolean; prohibido: boolean; enHover: boolean }) {
+  return cn(
+    permitido && "ring-1 ring-primary/40",
+    permitido && enHover && "bg-primary/10 ring-2 ring-primary",
+    prohibido && "opacity-40",
+    prohibido && enHover && "cursor-not-allowed",
+  );
+}
+
 export function TableroKanban({
   columnas,
   total,
@@ -76,9 +86,53 @@ export function TableroKanban({
   // que se está soltando (para el resaltado).
   const [arrastrando, setArrastrando] = useState<TarjetaDeal | null>(null);
   const [columnaHover, setColumnaHover] = useState<EtapaDeal | null>(null);
+  const tableroRef = useRef<HTMLDivElement>(null);
+  const velocidadRef = useRef(0);
+  const animacionRef = useRef<number | null>(null);
   // El servidor ya escribió: se refresca la pantalla actual (router.refresh), NO
   // revalidatePath, que no refresca la ruta que acaba de escribir (AGENTS.md).
   const { elegir, abrirDestino, dialogo } = useResponder(mapa, { areas, cohortes, cohortesDestino, motivos }, nombreDeEtapa, () => router.refresh());
+
+  const detenerAutoScroll = useCallback(() => {
+    velocidadRef.current = 0;
+    if (animacionRef.current != null) cancelAnimationFrame(animacionRef.current);
+    animacionRef.current = null;
+  }, []);
+
+  function avanzarAutoScroll() {
+    const tablero = tableroRef.current;
+    if (!tablero || velocidadRef.current === 0) {
+      animacionRef.current = null;
+      return;
+    }
+    tablero.scrollLeft += velocidadRef.current;
+    animacionRef.current = requestAnimationFrame(avanzarAutoScroll);
+  }
+
+  function actualizarAutoScroll(clientX: number) {
+    const tablero = tableroRef.current;
+    if (!tablero) return;
+    const borde = 80;
+    const rect = tablero.getBoundingClientRect();
+    const distanciaIzquierda = clientX - rect.left;
+    const distanciaDerecha = rect.right - clientX;
+    const proximidad = distanciaIzquierda < borde
+      ? -(borde - Math.max(0, distanciaIzquierda)) / borde
+      : distanciaDerecha < borde
+        ? (borde - Math.max(0, distanciaDerecha)) / borde
+        : 0;
+    velocidadRef.current = proximidad === 0 ? 0 : Math.sign(proximidad) * Math.ceil(Math.abs(proximidad) * 18);
+    if (velocidadRef.current === 0) {
+      detenerAutoScroll();
+    } else if (animacionRef.current == null) {
+      animacionRef.current = requestAnimationFrame(avanzarAutoScroll);
+    }
+  }
+
+  useEffect(() => {
+    if (arrastrando == null) detenerAutoScroll();
+    return detenerAutoScroll;
+  }, [arrastrando, detenerAutoScroll]);
 
   function dealDe(t: TarjetaDeal): DealQueResponde {
     return {
@@ -93,6 +147,7 @@ export function TableroKanban({
   }
 
   function soltarEn(columna: EtapaDeal) {
+    detenerAutoScroll();
     const tarjeta = arrastrando;
     setArrastrando(null);
     setColumnaHover(null);
@@ -106,13 +161,23 @@ export function TableroKanban({
   }
 
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <p className="shrink-0 text-sm text-muted-foreground">
         {total} {total === 1 ? "deal" : "deals"}
       </p>
 
       {/* Scroll horizontal en el tablero; la página nunca se desplaza de lado. */}
-      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 sm:snap-none">
+      <div
+        ref={tableroRef}
+        onDragOver={(e) => {
+          if (arrastrando) actualizarAutoScroll(e.clientX);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) detenerAutoScroll();
+        }}
+        onDrop={detenerAutoScroll}
+        className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto pb-4 sm:snap-none"
+      >
         {columnas.map((columna) => {
           const destinoPermitido =
             arrastrando != null && respuestasHacia(arrastrando.etapa, arrastrando.pendiente, columna.etapa).length > 0;
@@ -135,18 +200,19 @@ export function TableroKanban({
                 soltarEn(columna.etapa);
               }}
               className={cn(
-                "flex w-[85vw] shrink-0 snap-start flex-col rounded-xl sm:w-72 bg-background/60 p-2 transition-colors duration-150 motion-reduce:transition-none",
+                "flex min-h-0 w-[85vw] shrink-0 snap-start flex-col rounded-xl sm:w-72 bg-background/60 p-2 transition-colors duration-150 motion-reduce:transition-none",
                 // Como en HubSpot: al levantar una tarjeta reacciona TODO el tablero, no solo
                 // la columna bajo el cursor. Las validas se marcan, las prohibidas se apagan,
                 // y la que tiene el cursor encima se destaca.
-                destinoPermitido && "ring-1 ring-primary/40",
-                destinoPermitido && columnaHover === columna.etapa && "bg-primary/10 ring-2 ring-primary",
-                destinoProhibido && "opacity-40",
-                destinoProhibido && columnaHover === columna.etapa && "cursor-not-allowed",
+                claseDeDestino({
+                  permitido: destinoPermitido,
+                  prohibido: destinoProhibido,
+                  enHover: columnaHover === columna.etapa,
+                }),
               )}
               aria-label={nombreDeEtapa[columna.etapa]}
             >
-              <div className="flex items-center justify-between px-1 py-1.5">
+              <div className="flex shrink-0 items-center justify-between px-1 py-1.5">
                 <Badge variant={tonoDeEtapa[columna.etapa]}>{nombreDeEtapa[columna.etapa]}</Badge>
                 <span className="cifra text-xs text-muted-foreground">{tarjetas.length}</span>
               </div>
@@ -155,7 +221,7 @@ export function TableroKanban({
                 <p className="px-1 pb-1 text-xs text-muted-foreground">Aquí no se puede soltar</p>
               ) : null}
 
-              <div className="flex flex-1 flex-col gap-2 p-1">
+              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-1">
                 {tarjetas.length === 0 ? (
                   <p className="px-1 py-4 text-center text-xs text-muted-foreground">
                     Sin deals en esta etapa.
@@ -172,6 +238,7 @@ export function TableroKanban({
                       puedeMover={administra || tarjeta.ownerUserId === userId}
                       onArrastrarInicio={() => setArrastrando(tarjeta)}
                       onArrastrarFin={() => {
+                        detenerAutoScroll();
                         setArrastrando(null);
                         setColumnaHover(null);
                       }}
@@ -180,6 +247,16 @@ export function TableroKanban({
                   ))
                 )}
               </div>
+              <footer className="shrink-0 space-y-1 border-t px-1 pt-2 text-xs text-muted-foreground">
+                <div className="flex items-center justify-between gap-2">
+                  <span>Potencial</span>
+                  <span className="cifra">{usd(columna.potencialUsd)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span>Confirmado</span>
+                  <span className="cifra">{usd(columna.confirmadoUsd)}</span>
+                </div>
+              </footer>
             </section>
           );
         })}

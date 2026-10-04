@@ -1,4 +1,5 @@
 import { and, between, desc, eq, inArray, sql } from "drizzle-orm";
+import { z } from "zod";
 import {
   cohorts,
   calls,
@@ -90,6 +91,10 @@ export interface TarjetaDeal {
   leadValue: string | null;
   /** Dias que el deal lleva en su etapa actual (dia de Bogota). */
   diasEnEtapa: number;
+  creadoEn: Date;
+  ultimaActividadEn: Date;
+  potencialUsd: number;
+  confirmadoUsd: number;
   avisos: AvisosDeTarjeta;
 }
 
@@ -97,6 +102,8 @@ export interface TarjetaDeal {
 export interface ColumnaKanban {
   etapa: EtapaDeal;
   tarjetas: TarjetaDeal[];
+  potencialUsd: number;
+  confirmadoUsd: number;
 }
 
 export interface TableroKanban {
@@ -105,7 +112,12 @@ export interface TableroKanban {
   total: number;
 }
 
-/** Los filtros del tablero, todos opcionales. Salen de la URL, nunca de la sesion (ADR 0023). */
+export interface OrdenKanban {
+  campo: "actividad" | "creado";
+  sentido: "desc" | "asc";
+}
+
+/** Los filtros del tablero salen de la URL, nunca de la sesion (ADR 0023). */
 export interface FiltrosKanban {
   /** Dueno del deal (`owner_user_id`). */
   ownerUserId?: string | null;
@@ -119,7 +131,16 @@ export interface FiltrosKanban {
   leadValue?: string | null;
   /** Fecha de creacion, de ultima actividad o de cierre en el periodo A del selector (ticket 141). */
   fecha?: FiltroDeFecha<CampoDeFechaDeDeal> | null;
+  orden: OrdenKanban;
 }
+
+type FiltrosDeEntradaKanban = Omit<FiltrosKanban, "orden"> & { orden?: OrdenKanban };
+
+const ordenSchema = z.object({
+  campo: z.enum(["actividad", "creado"]),
+  sentido: z.enum(["desc", "asc"]),
+});
+const ORDEN_PREDETERMINADO = { campo: "actividad", sentido: "desc" } as const;
 
 /** Sobre que fecha filtra la lista de deals (ticket 141), como en HubSpot. */
 export const CAMPOS_DE_FECHA_DE_DEAL = ["creado", "actividad", "cierre"] as const;
@@ -149,19 +170,23 @@ export function canalDeLead(utmSource: string | null, utmMedium: string | null):
 export function parsearFiltros(
   busqueda: Record<string, string | string[] | undefined>,
   hoy: string = hoyEnBogota(),
+  cohorteActivaId: string | null = null,
 ): FiltrosKanban {
   const fecha = filtroDeFechaDeLaUrl(busqueda, CAMPOS_DE_FECHA_DE_DEAL, hoy);
   const texto = (v: string | string[] | undefined): string | undefined =>
     typeof v === "string" && v !== "" ? v : undefined;
   const antiguedadCruda = texto(busqueda.antiguedad);
   const antiguedad = antiguedadCruda != null && /^\d+$/.test(antiguedadCruda) ? Number(antiguedadCruda) : null;
+  const orden = ordenSchema.safeParse({ campo: texto(busqueda.orden), sentido: texto(busqueda.sentido) });
+  const cohorte = texto(busqueda.cohorte);
   return {
     ownerUserId: texto(busqueda.owner) ?? null,
-    cohorteId: texto(busqueda.cohorte) ?? null,
+    cohorteId: cohorte === "todas" ? null : cohorte ?? cohorteActivaId,
     canal: texto(busqueda.canal) ?? null,
     ...(texto(busqueda.leadQuality) !== undefined ? { leadQuality: texto(busqueda.leadQuality) } : {}),
     ...(texto(busqueda.leadValue) !== undefined ? { leadValue: texto(busqueda.leadValue) } : {}),
     antiguedadMinima: antiguedad != null && antiguedad >= 1 ? antiguedad : null,
+    orden: orden.success ? orden.data : ORDEN_PREDETERMINADO,
     ...(fecha ? { fecha } : {}),
   };
 }
@@ -170,7 +195,7 @@ export async function tableroKanban(
   db: Db,
   programId: string,
   alcance: AlcanceDeals,
-  filtros: FiltrosKanban = {},
+  filtros: FiltrosDeEntradaKanban = {},
   hoy: string = hoyEnBogota(),
   ahora: Date = new Date(),
 ): Promise<TableroKanban> {
@@ -189,6 +214,7 @@ export async function tableroKanban(
       fechaLimitePago: deals.fechaLimitePago,
       fechaSeguimiento: deals.fechaSeguimiento,
       cohortId: deals.cohortId,
+      cohortePrecioUsd: cohorts.precioUsd,
       areaDeclaradaId: deals.areaDeclaradaId,
       valorVendidoUsd: deals.valorVendidoUsd,
       motivoId: deals.motivoId,
@@ -208,6 +234,7 @@ export async function tableroKanban(
     .innerJoin(leads, eq(leads.id, deals.leadId))
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .leftJoin(users, eq(users.id, deals.ownerUserId))
+    .leftJoin(cohorts, and(eq(cohorts.id, deals.cohortId), eq(cohorts.programId, programId)))
     .where(
       and(
         eq(deals.programId, programId),
@@ -220,13 +247,18 @@ export async function tableroKanban(
       ),
     );
 
-  const columnasVacias = (): ColumnaKanban[] => ETAPAS_EN_ORDEN.map((etapa) => ({ etapa, tarjetas: [] }));
-  if (actividad && filas.length > 0) {
+  const columnasVacias = (): ColumnaKanban[] =>
+    ETAPAS_EN_ORDEN.map((etapa) => ({ etapa, tarjetas: [], potencialUsd: 0, confirmadoUsd: 0 }));
+  const orden = filtros.orden ?? ORDEN_PREDETERMINADO;
+  let ultimaActividad = new Map<string, Date>();
+  if ((actividad || orden.campo === "actividad") && filas.length > 0) {
     // La ultima actividad sale de la funcion que decide "estancado" en el Inbox, no de una copia.
     // Solo lo que ya ocurrio: una cita agendada para el martes no es actividad de hoy.
-    const ultima = await ultimaActividadPorDeal(db, filas.map((f) => f.dealId), filas, ahora);
+    ultimaActividad = await ultimaActividadPorDeal(db, filas.map((f) => f.dealId), filas, ahora);
+  }
+  if (actividad) {
     filas = filas.filter((f) => {
-      const dia = diaDeCalendario(ultima.get(f.dealId) ?? f.createdAt);
+      const dia = diaDeCalendario(ultimaActividad.get(f.dealId) ?? f.createdAt);
       return dia >= actividad.desde && dia <= actividad.hasta;
     });
   }
@@ -306,6 +338,10 @@ export async function tableroKanban(
       leadQuality: f.leadQuality,
       leadValue: f.leadValue,
       diasEnEtapa: diasDesde(entrada, hoy),
+      creadoEn: f.createdAt,
+      ultimaActividadEn: ultimaActividad.get(f.dealId) ?? f.createdAt,
+      potencialUsd: redondearUsd(saldo?.precio ?? (f.cohortePrecioUsd == null ? 0 : Number(f.cohortePrecioUsd))),
+      confirmadoUsd: redondearUsd(saldo?.abonado ?? 0),
       avisos: {
         faltanALaEtapa,
         compromisoVencido,
@@ -328,18 +364,41 @@ export async function tableroKanban(
   const porEtapa = new Map<EtapaDeal, TarjetaDeal[]>();
   for (const etapa of ETAPAS_EN_ORDEN) porEtapa.set(etapa, []);
   for (const t of filtradas) porEtapa.get(t.etapa)!.push(t);
-  // Dentro de una columna, lo mas viejo en la etapa primero: es a lo que hay que
-  // prestarle atencion antes.
-  for (const lista of porEtapa.values()) lista.sort((a, b) => b.diasEnEtapa - a.diasEnEtapa || a.emailLead.localeCompare(b.emailLead));
+  for (const lista of porEtapa.values()) lista.sort((a, b) => compararTarjetas(a, b, orden));
 
   return {
-    columnas: ETAPAS_EN_ORDEN.map((etapa) => ({ etapa, tarjetas: porEtapa.get(etapa)! })),
+    columnas: ETAPAS_EN_ORDEN.map((etapa) => {
+      const tarjetas = porEtapa.get(etapa)!;
+      return {
+        etapa,
+        tarjetas,
+        potencialUsd: redondearUsd(tarjetas.reduce((total, tarjeta) => total + tarjeta.potencialUsd, 0)),
+        confirmadoUsd: redondearUsd(tarjetas.reduce((total, tarjeta) => total + tarjeta.confirmadoUsd, 0)),
+      };
+    }),
     total: filtradas.length,
   };
 }
 
+function redondearUsd(valor: number): number {
+  return Math.round(valor * 100) / 100;
+}
+
+function compararTarjetas(
+  a: TarjetaDeal,
+  b: TarjetaDeal,
+  orden: OrdenKanban,
+): number {
+  const fechaA = orden.campo === "actividad" ? a.ultimaActividadEn : a.creadoEn;
+  const fechaB = orden.campo === "actividad" ? b.ultimaActividadEn : b.creadoEn;
+  const porFecha = fechaA.getTime() - fechaB.getTime();
+  if (porFecha !== 0) return orden.sentido === "asc" ? porFecha : -porFecha;
+  const porCreacion = b.creadoEn.getTime() - a.creadoEn.getTime();
+  return porCreacion || a.dealId.localeCompare(b.dealId);
+}
+
 /** `true` si la tarjeta pasa todos los filtros dados. */
-function pasaFiltros(t: TarjetaDeal, f: FiltrosKanban): boolean {
+function pasaFiltros(t: TarjetaDeal, f: FiltrosDeEntradaKanban): boolean {
   if (f.ownerUserId && t.ownerUserId !== f.ownerUserId) return false;
   if (f.cohorteId && t.cohortId !== f.cohorteId) return false;
   if (f.canal && canalDeLead(t.utmSource, t.utmMedium) !== f.canal) return false;
@@ -442,9 +501,11 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
     .from(deals)
     .innerJoin(cohorts, eq(cohorts.id, deals.cohortId))
     .where(and(eq(deals.programId, programId), vigente(deals)));
+  const activa = await cohorteActiva(programId, db);
   const cohortes = cohorteFilas
-    .map((c) => ({ id: c.id, nombre: c.codigo }))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+    .map((c) => ({ id: c.id, nombre: c.codigo }));
+  if (activa && !cohortes.some((c) => c.id === activa.id)) cohortes.push({ id: activa.id, nombre: activa.codigo });
+  cohortes.sort((a, b) => a.nombre.localeCompare(b.nombre));
   const cohortesDestino = (await db
     .select({ id: cohorts.id, nombre: cohorts.codigo })
     .from(cohorts)
@@ -482,12 +543,13 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   }));
 
   const inicioDeClases = Object.fromEntries(cohorteFilas.map((c) => [c.id, c.inicio] as const));
-  const inicioDeLaCohorteActiva = (await cohorteActiva(programId, db))?.fechaInicioClases ?? null;
+  if (activa) inicioDeClases[activa.id] = activa.fechaInicioClases;
+  const inicioDeLaCohorteActiva = activa?.fechaInicioClases ?? null;
 
   return { owners, cohortes, cohortesDestino, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, areas: listaAreas, motivos: listaMotivos };
 }
 
 /** El rango del filtro de fecha, bajo la llave del campo que filtra; los otros dos, ausentes. */
-function rangosDeFecha(f: FiltrosKanban): Partial<Record<CampoDeFechaDeDeal, { desde: string; hasta: string }>> {
+function rangosDeFecha(f: FiltrosDeEntradaKanban): Partial<Record<CampoDeFechaDeDeal, { desde: string; hasta: string }>> {
   return f.fecha ? { [f.fecha.campo]: f.fecha.periodo.a } : {};
 }
