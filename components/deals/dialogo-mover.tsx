@@ -61,6 +61,9 @@ export interface MovimientoDelDialogo {
   /** `retroceso`: el destino lo dice el historial (RETRO), no quien llama. */
   a: EtapaDeal | "retroceso";
   pendiente: PendienteDeal | null;
+  correccion?: boolean;
+  /** Etapa que se deshace; solo se muestra en el modo corrección. */
+  de?: EtapaDeal;
 }
 
 export interface DialogoMoverProps {
@@ -171,6 +174,7 @@ export function DialogoMover({
         dealId,
         a,
         pendiente,
+        correccion: movimiento.correccion,
         motivoId: datos.motivoId ?? null,
         datos: {
           descuentoUsd: datos.descuentoUsd,
@@ -192,7 +196,7 @@ export function DialogoMover({
       vigente = false;
       clearTimeout(espera);
     };
-  }, [abierto, dealId, a, pendiente, datos]);
+  }, [abierto, dealId, a, pendiente, movimiento.correccion, datos]);
 
   const destino: EtapaDeal | null = a === "retroceso" ? (revision?.destinoRetro ?? null) : a;
   // Se confirma solo con la revision de los datos que hay AHORA: un campo recien cambiado
@@ -218,7 +222,7 @@ export function DialogoMover({
         <DialogHeader>
           <DialogTitle>{titulo}</DialogTitle>
           <DialogDescription>
-            {nombreLead}. Completa lo que pide este paso.
+            {nombreLead}. {movimiento.correccion ? "Elige el motivo de la corrección." : "Completa lo que pide este paso."}
           </DialogDescription>
         </DialogHeader>
 
@@ -341,6 +345,12 @@ export function DialogoMover({
             <p className="text-sm">
               Vuelve a <strong>{nombreDeEtapa[revision.destinoRetro]}</strong>, la etapa en la que estaba antes del
               compromiso, con próximo contacto.
+            </p>
+          ) : null}
+          {movimiento.correccion && movimiento.de ? (
+            <p className="text-sm">
+              Destino: <strong>{nombreDeEtapa[a as EtapaDeal]}</strong>. Se deshace el movimiento de
+              {" "}<strong>{nombreDeEtapa[movimiento.de]}</strong> a <strong>{nombreDeEtapa[a as EtapaDeal]}</strong>.
             </p>
           ) : null}
           <ListaDeRequisitos revision={revision} error={errorDeRevision} />

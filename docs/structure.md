@@ -224,6 +224,7 @@ Poner un pendiente no cambia la etapa. Todo cambio de etapa lo limpia por defect
 | R | Cierre perdido → En gestión o Agendado | closer | motivo de recuperación |
 | A1 | Ganado Pago Parcial → Contactado, Calificado, Atendido o Compromiso Verbal | sistema | se anula el único abono |
 | A2 | Ganado Pagado Completo → Ganado Pago Parcial | sistema | se anula un abono y vuelve a quedar saldo |
+| CORR | etapa actual → `de` del último movimiento humano | closer | motivo de corrección; restaura `pendiente_de` |
 
 | Id | Etapa | Pendiente después | Quién | Requisito |
 |---|---|---|---|---|
@@ -234,6 +235,8 @@ Poner un pendiente no cambia la etapa. Todo cambio de etapa lo limpia por defect
 | PS3 | Compromiso Verbal | Seguimiento | closer | fecha de seguimiento |
 | PC | setteo, Agendado, Atendido o Compromiso Verbal | Próxima Cohorte | closer | cohorte destino |
 | RET | cualquier etapa con Próxima Cohorte | ninguno | sistema | un contacto registrado desde el inicio de ventas de la cohorte destino |
+
+CORR es una flecha sintética y no una fila de `TRANSICIONES`: su destino es dinámico y sale de la última fila del historial. Solo aparece si esa fila la hizo una persona, tiene origen, coincide con la etapa actual y no fue otra corrección (ADR 0078).
 
 Anular el deal entero no es una flecha: es una marca aparte que lo saca de todas las métricas (ADR 0038). Los T1–T29 del 24-sep se retiraron con el 142.
 

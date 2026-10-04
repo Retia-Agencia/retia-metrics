@@ -79,3 +79,9 @@ sigue verde, `tests/pregunta-de-etapa.test.ts`.
 - En el Kanban, arrastrar a la etapa de corrección la pinta en rojo y abre el mismo pop-up.
 - Permiso mordido forjando la acción desde un closer que no es dueño (403, la base no se mueve).
 - `npm run build` en verde; recorrido en `dev:local` como closer y gerente, escritorio y 375 px, consola abierta.
+
+## Estado
+
+Implementado el motor, la ficha en dos columnas, el diálogo compartido, el enum en `schema.ts`, las pruebas y la
+documentación. No se generó migración. El paso de Kanban quedó omitido porque el ticket 181 no aparece en
+`main..HEAD`, tal como exige el orden de trabajo de este ticket.

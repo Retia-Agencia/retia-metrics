@@ -33,6 +33,13 @@ export interface FlechaCliente {
 /** El mapa completo de transiciones, tal como el servidor lo pasa. */
 export type MapaTransiciones = FlechaCliente[];
 
+/** Destino dinámico de corregir, calculado por el servidor desde el último historial. */
+export interface CorreccionCliente {
+  a: EtapaDeal;
+  pendiente: PendienteDeal | null;
+  flecha: FlechaCliente;
+}
+
 /**
  * Los datos que se TECLEAN en el dialogo de una flecha: motivo, valor vendido, fechas,
  * cohorte destino. Los requisitos que se prueban con un HECHO (contacto, llamada, abono)

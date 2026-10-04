@@ -96,6 +96,7 @@ export const tipoMotivoEnum = pgEnum("tipo_motivo", [
   "reagenda",
   "retroceso",
   "recuperacion",
+  "correccion",
 ]);
 
 export const resultadoLlamadaEnum = pgEnum("resultado_llamada", [

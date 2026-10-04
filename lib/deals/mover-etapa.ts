@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import {
   calls,
+  changeLog,
   cohorts,
   dealActividades,
   dealEtapaHistorial,
@@ -24,11 +25,13 @@ import { puedeTrabajarDeal } from "./permiso";
 import {
   NOMBRE_DE_ETAPA,
   ETAPAS_VENDIDAS,
+  FLECHA_CORRECCION,
   transicion,
   transicionPendiente,
   transicionRetomar,
   type EtapaDeal,
   type FlechaBase,
+  type FlechaCorreccion,
   type PendienteDeal,
   type TipoMotivo,
   type Transicion,
@@ -107,6 +110,8 @@ export interface Movimiento {
   actor: Actor;
   /** Del catalogo `motivos`. Lo exigen las flechas con `exigeMotivo` (043). */
   motivoId?: string | null;
+  /** Deshace el último movimiento hecho por una persona. El destino se valida contra el historial. */
+  correccion?: boolean;
   /**
    * Los campos que la flecha pide, escritos en la misma transaccion que el movimiento
    * (punto 6). Opcional: una flecha que no pide nada no los necesita.
@@ -130,7 +135,7 @@ export interface MovimientoHecho {
   a: EtapaDeal;
   pendienteDe: PendienteDeal | null;
   pendienteA: PendienteDeal | null;
-  transicion: Transicion | TransicionPendiente;
+  transicion: Transicion | TransicionPendiente | FlechaCorreccion;
 }
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
@@ -174,7 +179,21 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
 
     const de = deal.etapa;
     const pendienteDe = deal.pendiente;
-    const { transicion: t, pendienteA } = resolverTransicion(de, pendienteDe, mov.a, mov.pendiente ?? null);
+    const correccion = mov.correccion ? await etapaDeCorreccion(tx, deal.id) : null;
+    if (mov.correccion && correccion == null) {
+      throw new MovimientoRechazado("El último movimiento de este deal no se puede corregir.", [], 409);
+    }
+    if (mov.correccion && correccion && correccion.a !== mov.a) {
+      throw new MovimientoRechazado(
+        `La corrección vuelve a ${NOMBRE_DE_ETAPA[correccion.a]}, no a ${NOMBRE_DE_ETAPA[mov.a]}.`,
+        [],
+        409,
+      );
+    }
+    const resuelta = mov.correccion
+      ? { transicion: FLECHA_CORRECCION, pendienteA: correccion?.pendiente ?? null }
+      : resolverTransicion(de, pendienteDe, mov.a, mov.pendiente ?? null);
+    const { transicion: t, pendienteA } = resuelta;
     if (!t) {
       const faltantes = mov.a === de
         ? [{ codigo: "transicion_no_permitida" as const, mensaje: `Este movimiento no está permitido en ${NOMBRE_DE_ETAPA[de]}.` }]
@@ -241,7 +260,10 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
       }
     }
 
-    const mudaDeCohorte = pendienteDe === "proxima_cohorte" && pendienteA !== "proxima_cohorte" && t.id !== "P";
+    const mudaDeCohorte = !mov.correccion
+      && pendienteDe === "proxima_cohorte"
+      && pendienteA !== "proxima_cohorte"
+      && t.id !== "P";
     if (mudaDeCohorte && deal.cohorteDestinoId != null) {
       await editarConRastro(
         { db: tx, tabla: deals, nombreTabla: "deals", actorId: mov.actor.tipo === "usuario" ? mov.actor.userId : null, etiqueta: deal.id },
@@ -288,6 +310,36 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
       motivoId: mov.motivoId ?? null,
       fecha: sql`clock_timestamp()`,
     });
+
+    if (mov.correccion) {
+      const actorId = mov.actor.tipo === "usuario" ? mov.actor.userId : null;
+      await tx.insert(changeLog).values([
+        {
+          tabla: "deals",
+          registroId: deal.id,
+          etiqueta: deal.id,
+          campo: "etapa",
+          valorAnterior: de,
+          valorNuevo: mov.a,
+          origen: "app",
+          userId: actorId,
+        },
+        ...(
+          pendienteDe !== pendienteA
+            ? [{
+                tabla: "deals",
+                registroId: deal.id,
+                etiqueta: deal.id,
+                campo: "pendiente",
+                valorAnterior: pendienteDe,
+                valorNuevo: pendienteA,
+                origen: "app" as const,
+                userId: actorId,
+              }]
+            : []
+        ),
+      ]);
+    }
 
     return { de, a: mov.a, pendienteDe, pendienteA, transicion: t };
   });
@@ -912,6 +964,40 @@ export async function etapaAntesDeCompromiso(tx: Db, dealId: string): Promise<Et
   return fila?.de ?? null;
 }
 
+/** Destino de corregir el último movimiento humano, o `null` cuando no se ofrece. */
+export async function etapaDeCorreccion(
+  tx: Db,
+  dealId: string,
+): Promise<{ a: EtapaDeal; pendiente: PendienteDeal | null } | null> {
+  const [deal] = await tx
+    .select({ etapa: deals.etapa, anuladoEn: deals.anuladoEn })
+    .from(deals)
+    .where(and(eq(deals.id, dealId), incluyendoAnulados(deals)));
+  if (!deal || deal.anuladoEn) return null;
+
+  const [ultima] = await tx
+    .select({
+      de: dealEtapaHistorial.de,
+      a: dealEtapaHistorial.a,
+      pendienteDe: dealEtapaHistorial.pendienteDe,
+      userId: dealEtapaHistorial.userId,
+      tipoMotivo: motivos.tipo,
+    })
+    .from(dealEtapaHistorial)
+    .leftJoin(motivos, eq(dealEtapaHistorial.motivoId, motivos.id))
+    .where(eq(dealEtapaHistorial.dealId, dealId))
+    .orderBy(desc(dealEtapaHistorial.fecha), desc(dealEtapaHistorial.id))
+    .limit(1);
+
+  if (
+    ultima?.de == null
+    || ultima.userId == null
+    || ultima.tipoMotivo === "correccion"
+    || deal.etapa !== ultima.a
+  ) return null;
+  return { a: ultima.de, pendiente: ultima.pendienteDe };
+}
+
 /** Un requisito de la flecha y si el deal ya lo cumple. */
 export interface RequisitoRevisado {
   codigo: CodigoRequisito;
@@ -962,7 +1048,9 @@ export async function revisarMovimiento(
     a = mov.a;
   }
 
-  const { transicion: t } = resolverTransicion(deal.etapa, deal.pendiente, a, mov.pendiente ?? null);
+  const t = mov.correccion
+    ? FLECHA_CORRECCION
+    : resolverTransicion(deal.etapa, deal.pendiente, a, mov.pendiente ?? null).transicion;
   const codigos = t ? requisitosDeTransicion(t) : [];
 
   let faltan: RequisitoFaltante[] = [];

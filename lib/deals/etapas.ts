@@ -49,6 +49,20 @@ export interface TransicionPendiente extends FlechaBase {
   readonly etapa: EtapaDeal;
   readonly pone: PendienteDeal | null;
 }
+export interface FlechaCorreccion extends FlechaBase {
+  readonly tipo: "etapa";
+  readonly id: "CORR";
+  readonly soloConPendiente: false;
+}
+
+export const FLECHA_CORRECCION: FlechaCorreccion = {
+  tipo: "etapa",
+  id: "CORR",
+  quien: "closer",
+  exigeMotivo: true,
+  tipoDeMotivo: "correccion",
+  soloConPendiente: false,
+};
 
 type FilaEtapa = readonly [string, EtapaDeal | readonly EtapaDeal[], EtapaDeal | readonly EtapaDeal[], QuienMueve,
   { motivo?: TipoMotivo; soloConPendiente?: boolean }?];

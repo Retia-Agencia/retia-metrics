@@ -13,7 +13,7 @@ import { marcarLinkEnviadoAccion, registrarActividadAccion } from "@/app/(app)/p
 import { accionDeFicha, enlaceDeAccion } from "./ficha/accion-pedida";
 import { Campo, claseInput, claseTextarea, DialogoForm } from "./ficha/campos";
 import { PREGUNTA_DE_ETAPA, type ClaveDestino, type Respuesta, type TipoDeActividad } from "./pregunta-de-etapa";
-import type { FlechaCliente, MapaTransiciones } from "./transiciones";
+import type { CorreccionCliente, FlechaCliente, MapaTransiciones } from "./transiciones";
 
 /**
  * Responder la pregunta de la etapa (ADR 0072 puntos 1 y 2). Lo usan la ficha, el Kanban
@@ -86,6 +86,7 @@ export function useResponder(
   registrar: (deal: DealQueResponde, tipo: TipoDeActividad) => void;
   registrarActividad: (deal: DealQueResponde, tipos: readonly TipoDeActividad[]) => void;
   abrirDestino: (deal: DealQueResponde, destino: ClaveDestino, respuestas: readonly Respuesta[]) => void;
+  corregir: (deal: DealQueResponde, correccion: CorreccionCliente) => void;
   dialogo: ReactNode;
 } {
   const router = useRouter();
@@ -96,6 +97,7 @@ export function useResponder(
     respuestas: readonly Respuesta[];
   } | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [correccionAbierta, setCorreccionAbierta] = useState<{ deal: DealQueResponde; correccion: CorreccionCliente } | null>(null);
   const [agendaAbierta, setAgendaAbierta] = useState<DealQueResponde | null>(null);
   const [marcandoLink, setMarcandoLink] = useState(false);
   // El pop-up de actividad guarda los tipos que se pueden elegir y el que esta elegido: con
@@ -154,12 +156,23 @@ export function useResponder(
     else if (respuestas.length > 1) setDestinoAbierto({ deal, destino, respuestas });
   }
 
-  async function confirmar(deal: DealQueResponde, datos: DatosDialogo, destino: EtapaDeal, pendiente: PendienteDeal | null) {
+  function corregir(deal: DealQueResponde, correccion: CorreccionCliente) {
+    setCorreccionAbierta({ deal, correccion });
+  }
+
+  async function confirmar(
+    deal: DealQueResponde,
+    datos: DatosDialogo,
+    destino: EtapaDeal,
+    pendiente: PendienteDeal | null,
+    correccion = false,
+  ) {
     setEnviando(true);
     const r = await moverDeal({
       dealId: deal.dealId,
       a: destino,
       pendiente,
+      correccion,
       motivoId: datos.motivoId ?? null,
       datos: {
         descuentoUsd: datos.descuentoUsd,
@@ -171,8 +184,9 @@ export function useResponder(
     });
     setEnviando(false);
     if (r.ok) {
-      toast.success(destino === deal.etapa ? "Guardado." : `Movido a ${nombreDeEtapa[destino]}.`);
+      toast.success(correccion ? "Corrección guardada." : destino === deal.etapa ? "Guardado." : `Movido a ${nombreDeEtapa[destino]}.`);
       setAbierta(null);
+      setCorreccionAbierta(null);
       alTerminar();
     } else {
       // Se dice QUE falta, no un generico (ticket 044).
@@ -357,7 +371,34 @@ export function useResponder(
       />
     );
   }
-  return { elegir, registrar, registrarActividad, abrirDestino, dialogo };
+  if (correccionAbierta) {
+    const { deal, correccion } = correccionAbierta;
+    const movimiento: MovimientoDelDialogo = {
+      dealId: deal.dealId,
+      a: correccion.a,
+      pendiente: correccion.pendiente,
+      correccion: true,
+      de: deal.etapa,
+    };
+    dialogo = (
+      <DialogoMover
+        abierto
+        onAbrir={(v) => !v && setCorreccionAbierta(null)}
+        flecha={correccion.flecha}
+        titulo="Corregir último movimiento"
+        rutaDeLaFicha={deal.rutaDeLaFicha}
+        nombreLead={deal.nombreLead}
+        movimiento={movimiento}
+        nombreDeEtapa={nombreDeEtapa}
+        areas={opciones.areas}
+        cohortes={opciones.cohortesDestino}
+        motivos={opciones.motivos}
+        enviando={enviando}
+        onConfirmar={(datos, destino) => void confirmar(deal, datos, destino, correccion.pendiente, true)}
+      />
+    );
+  }
+  return { elegir, registrar, registrarActividad, abrirDestino, corregir, dialogo };
 }
 
 /** Los botones de las respuestas, en el orden de la tabla. */

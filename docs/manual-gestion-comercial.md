@@ -385,6 +385,7 @@ En gestión y Contactado.
 | Ganado Pagado Completo → Ganado Pago Parcial | se anula un abono, o sube el valor vendido, y queda saldo | sistema | saldo pendiente | A2, ADR 0065 | ✅ |
 | cualquier abierta → Cierre perdido | dijo que no, no responde, desistió | dueño / administra | motivo de pérdida | P | ✅ |
 | Cierre perdido → En gestión o Agendado | se recupera | dueño / administra | motivo de recuperación | R | 🟡 los destinos |
+| etapa actual → etapa anterior del último movimiento | se corrige un clic equivocado | dueño / administra | motivo de corrección | CORR | ✅ ADR 0078 |
 
 Reglas de la tabla que siguen igual (✅ ADR 0037):
 
@@ -464,17 +465,17 @@ Todas se calculan al leer: nada se guarda ni la apaga un clic (ADR 0024).
 
 ## 8. Perder, anular y recuperar
 
-**Cierre perdido y anular no son lo mismo, y confundirlos hace mentir la tasa de conversión** (ADR 0038).
+**Cierre perdido, anular y corregir no son lo mismo** (ADR 0038, ADR 0078).
 
-| | **Cierre perdido** | **Anular** |
-|---|---|---|
-| Qué es | el lead dijo que no | un error de registro: el deal nunca debió existir (duplicado, lead equivocado) |
-| ¿Cuenta en las métricas? | **sí**, es un deal perdido | **no**, en ninguna |
-| Cómo se dice en la pantalla | "el lead dijo que no" | "me equivoqué al registrar" |
-| Motivo | obligatorio, de la lista de pérdida | obligatorio, texto de la corrección |
-| ¿Es una etapa? | sí | no: es una marca. El deal guarda la etapa en la que estaba |
-| ¿Se recupera? | sí, con motivo de recuperación | no aplica: se corrige y ya |
-| ¿Se borra? | no | no: queda tachado con quién, cuándo y por qué |
+| | **Cierre perdido** | **Anular** | **Corregir** |
+|---|---|---|---|
+| Qué es | el lead dijo que no | el deal nunca debió existir | una persona eligió la etapa equivocada |
+| ¿Cuenta en las métricas? | **sí**, es un deal perdido | **no**, en ninguna | cuenta en su etapa corregida |
+| Cómo se dice en la pantalla | "el lead dijo que no" | "me equivoqué al registrar" | "corregir último movimiento" |
+| Motivo | lista de pérdida | texto de la anulación | lista de corrección |
+| ¿Es una etapa? | sí | no, es una marca | no, vuelve a la etapa anterior |
+| ¿Se recupera? | sí, con motivo de recuperación | no aplica | no aplica |
+| ¿Se borra? | no | no | no, queda en historial y bitácora |
 
 - **Un closer nunca usa Cierre perdido para limpiar un duplicado:** eso mete un "no" del cliente que nunca
   ocurrió. Lo correcto es anular (ADR 0038).

@@ -53,6 +53,7 @@ const esquemaMover = z.object({
   a: z.enum(etapaDealEnum.enumValues),
   pendiente: z.enum(pendienteDealEnum.enumValues).nullable().optional(),
   motivoId: z.string().uuid().nullable().optional(),
+  correccion: z.boolean().optional(),
   datos: esquemaDatos,
 });
 
@@ -92,6 +93,7 @@ export async function moverDeal(entrada: EntradaMover): Promise<ResultadoMover> 
         pendiente: mov.pendiente,
         actor,
         motivoId: mov.motivoId ?? null,
+        correccion: mov.correccion,
         datos: mov.datos,
       }),
     );
@@ -139,6 +141,7 @@ export async function revisarMovimientoAccion(entrada: EntradaRevisar): Promise<
         pendiente: mov.pendiente,
         actor,
         motivoId: mov.motivoId ?? null,
+        correccion: mov.correccion,
         datos: mov.datos,
       }),
     );

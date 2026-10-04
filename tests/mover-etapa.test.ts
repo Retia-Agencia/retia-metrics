@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   abonos,
   areas,
@@ -16,7 +16,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
-import { MovimientoRechazado, abrirDeal, moverEtapa, revisarMovimiento, type Actor } from "@/lib/deals/mover-etapa";
+import { etapaDeCorreccion, MovimientoRechazado, abrirDeal, moverEtapa, revisarMovimiento, type Actor } from "@/lib/deals/mover-etapa";
 import { crearConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { embudoDelRango } from "@/lib/queries/dashboard";
@@ -45,6 +45,7 @@ let motivoInactivo: string;
 let motivoReagenda: string;
 let motivoRetroceso: string;
 let motivoRecuperacion: string;
+let motivoCorreccion: string;
 
 const sistema: Actor = { tipo: "sistema" };
 const comoCloser = (): Actor => ({ tipo: "usuario", userId: closer, rol: "closer" });
@@ -53,6 +54,9 @@ const comoGerente = (): Actor => ({ tipo: "usuario", userId: gerente, rol: "gere
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
+  // El ticket entrega solo schema.ts; la sesión central genera la migración. La base de
+  // prueba necesita temporalmente el valor para ejercer el motor nuevo.
+  await db.execute(sql`ALTER TYPE tipo_motivo ADD VALUE IF NOT EXISTS 'correccion'`);
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
   programId = p.id;
   const [l] = await db.insert(leads).values({ programId, emailNormalizado: "ana@correo.co" }).returning();
@@ -70,11 +74,13 @@ beforeEach(async () => {
   const [m3] = await db.insert(motivos).values({ nombre: "Cita fallida", tipo: "reagenda" }).returning();
   const [m4] = await db.insert(motivos).values({ nombre: "Se lo pensó", tipo: "retroceso" }).returning();
   const [m5] = await db.insert(motivos).values({ nombre: "Volvió a escribir", tipo: "recuperacion" }).returning();
+  const [m6] = await db.insert(motivos).values({ nombre: "Me equivoqué de etapa", tipo: "correccion" }).returning();
   motivoActivo = m1.id;
   motivoInactivo = m2.id;
   motivoReagenda = m3.id;
   motivoRetroceso = m4.id;
   motivoRecuperacion = m5.id;
+  motivoCorreccion = m6.id;
 });
 
 afterEach(async () => {
@@ -417,6 +423,96 @@ describe("los datos van en el mismo movimiento, o no van (punto 6, Mani 27-sep)"
       moverEtapa(db, { dealId, a: "ganado_parcial", actor: sistema }),
     );
     expect(e.faltantes.map((f) => f.codigo)).toContain("abono");
+  });
+});
+
+describe("corregir el último movimiento", () => {
+  it("vuelve al origen, restaura el pendiente y deja historial y change_log", async () => {
+    const dealId = await nuevoDeal("calificado", { ownerUserId: closer });
+    await db.insert(dealEtapaHistorial).values({
+      dealId,
+      de: "contactado",
+      a: "calificado",
+      pendienteDe: "proxima_cohorte",
+      pendienteA: null,
+      userId: closer,
+      fecha: new Date("2026-10-03T15:00:00-05:00"),
+    });
+
+    expect(await etapaDeCorreccion(db, dealId)).toEqual({ a: "contactado", pendiente: "proxima_cohorte" });
+    await moverEtapa(db, {
+      dealId,
+      a: "contactado",
+      correccion: true,
+      actor: comoCloser(),
+      motivoId: motivoCorreccion,
+    });
+
+    const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
+    expect(deal).toMatchObject({ etapa: "contactado", pendiente: "proxima_cohorte" });
+    expect(await historial(dealId)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ de: "calificado", a: "contactado", pendienteA: "proxima_cohorte", motivoId: motivoCorreccion, userId: closer }),
+    ]));
+    expect(await db.select().from(changeLog).where(eq(changeLog.registroId, dealId))).toEqual(expect.arrayContaining([
+      expect.objectContaining({ campo: "etapa", valorAnterior: "calificado", valorNuevo: "contactado", userId: closer }),
+    ]));
+    expect(await etapaDeCorreccion(db, dealId)).toBeNull();
+  });
+
+  it("no se ofrece si el último movimiento fue del sistema", async () => {
+    const dealId = await nuevoDeal("calificado", { ownerUserId: closer });
+    await db.insert(dealEtapaHistorial).values({
+      dealId,
+      de: "registrado",
+      a: "calificado",
+      userId: null,
+    });
+
+    expect(await etapaDeCorreccion(db, dealId)).toBeNull();
+    const e = await rechazo(moverEtapa(db, {
+      dealId,
+      a: "registrado",
+      correccion: true,
+      actor: comoCloser(),
+      motivoId: motivoCorreccion,
+    }));
+    expect(e.status).toBe(409);
+    expect(await etapaDe(dealId)).toBe("calificado");
+  });
+
+  it("exige un motivo activo de corrección", async () => {
+    const dealId = await nuevoDeal("calificado", { ownerUserId: closer });
+    await db.insert(dealEtapaHistorial).values({ dealId, de: "contactado", a: "calificado", userId: closer });
+
+    let e = await rechazo(moverEtapa(db, { dealId, a: "contactado", correccion: true, actor: comoCloser() }));
+    expect(e.faltantes.map((f) => f.codigo)).toEqual(["motivo"]);
+    e = await rechazo(moverEtapa(db, {
+      dealId,
+      a: "contactado",
+      correccion: true,
+      actor: comoCloser(),
+      motivoId: motivoActivo,
+    }));
+    expect(e.faltantes.map((f) => f.codigo)).toEqual(["motivo"]);
+    expect(await etapaDe(dealId)).toBe("calificado");
+  });
+
+  it("un closer que no es dueño recibe 403 y la base no cambia", async () => {
+    const dealId = await nuevoDeal("calificado", { ownerUserId: closer });
+    await db.insert(dealEtapaHistorial).values({ dealId, de: "contactado", a: "calificado", userId: closer });
+
+    const antes = await historial(dealId);
+    const e = await rechazo(moverEtapa(db, {
+      dealId,
+      a: "contactado",
+      correccion: true,
+      actor: comoOtroCloser(),
+      motivoId: motivoCorreccion,
+    }));
+    expect(e.status).toBe(403);
+    expect(await etapaDe(dealId)).toBe("calificado");
+    expect(await historial(dealId)).toEqual(antes);
+    expect(await db.select().from(changeLog).where(eq(changeLog.registroId, dealId))).toEqual([]);
   });
 });
 

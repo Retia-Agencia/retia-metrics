@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import { fecha } from "@/lib/format";
@@ -10,13 +9,14 @@ import type { AlertasDelDeal, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries
 import { BotonDeEtapa } from "../boton-de-etapa";
 import { gruposDeTransicion, queHace } from "../pregunta-de-etapa";
 import { useResponder, type DealQueResponde } from "../responder-pregunta";
-import type { MapaTransiciones } from "../transiciones";
+import type { CorreccionCliente, MapaTransiciones } from "../transiciones";
 import type { TonoEtapa } from "../etapa-tono";
 
 export function FichaTransicion({
   ficha,
   opciones,
   mapa,
+  correccion,
   ordenDeEtapas,
   nombreDeEtapa,
   nombreDePendiente,
@@ -28,6 +28,7 @@ export function FichaTransicion({
   ficha: FichaDeDeal;
   opciones: OpcionesDeFicha;
   mapa: MapaTransiciones;
+  correccion: CorreccionCliente | null;
   ordenDeEtapas: readonly EtapaDeal[];
   nombreDeEtapa: Record<EtapaDeal, string>;
   nombreDePendiente: Record<PendienteDeal, string>;
@@ -37,7 +38,7 @@ export function FichaTransicion({
   alertas: AlertasDelDeal | null;
 }) {
   const router = useRouter();
-  const { elegir, registrarActividad, abrirDestino, dialogo } = useResponder(mapa, opciones, nombreDeEtapa, () => router.refresh());
+  const { elegir, registrarActividad, abrirDestino, corregir, dialogo } = useResponder(mapa, opciones, nombreDeEtapa, () => router.refresh());
   const deal: DealQueResponde = {
     dealId: ficha.dealId,
     etapa: ficha.etapa,
@@ -49,17 +50,12 @@ export function FichaTransicion({
     tieneCitaVigente: ficha.tieneCitaVigente,
   };
   const { moverA, enEspera, actividades } = gruposDeTransicion(ficha.etapa, ficha.pendiente, ordenDeEtapas);
-  const etiquetasDestino = moverA.map((grupo) =>
-    grupo.destino === "ganado" ? "Ganado · registrar pago" : nombreDeEtapa[grupo.destino],
-  );
-  const anchoCh = etiquetasDestino.length > 0 ? Math.max(...etiquetasDestino.map((etiqueta) => etiqueta.length)) : 0;
-  // El camino principal lo decide el servidor (alertas.paraAvanzar): es su destino.
-  const destinoFeliz = alertas?.paraAvanzar.find((d) => d.caminoFeliz)?.destino ?? null;
+  const etiquetasDestino = moverA.map((grupo) => grupo.destino === "ganado" ? "Ganado · registrar pago" : nombreDeEtapa[grupo.destino]);
   if (ficha.anulado) return null;
 
   return (
     <Card className="border-l-4 border-tono-exito">
-      <CardHeader><CardTitle className="flex items-center gap-2">Transición <Badge variant="exito">Siguiente paso</Badge></CardTitle></CardHeader>
+      <CardHeader><CardTitle>Transición</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         {alertas?.propiedades.length ? (
           <p className="text-sm text-tono-peligro">
@@ -67,54 +63,63 @@ export function FichaTransicion({
           </p>
         ) : null}
         {alertas?.aviso ? <p className="text-sm text-muted-foreground">{alertas.aviso}</p> : null}
-        {puedeTrabajar && moverA.length > 0 ? (
-          <section className="space-y-2">
-            <h3 className="text-sm font-medium">Mover a</h3>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {moverA.map((grupo, i) => {
-                const etapaVisual = grupo.destino === "ganado" ? "ganado_completo" : grupo.destino;
-                const esFeliz = grupo.destino !== "ganado" && grupo.destino === destinoFeliz;
-                return (
-                  <div key={grupo.destino} className="space-y-1">
-                    {esFeliz ? <Badge variant="exito">Camino principal</Badge> : null}
-                    <BotonDeEtapa tono={tonoDeEtapa[etapaVisual]} anchoCh={anchoCh} onClick={() => abrirDestino(deal, grupo.destino, grupo.respuestas)}>
+        {puedeTrabajar ? (
+          <div className="grid gap-6 md:grid-cols-2">
+            <section className="space-y-3">
+              <div>
+                <h3 className="text-sm font-medium">Mover a</h3>
+                <p className="text-xs text-muted-foreground">Cambia la etapa del deal.</p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {moverA.map((grupo, i) => {
+                  const etapaVisual = grupo.destino === "ganado" ? "ganado_completo" : grupo.destino;
+                  return (
+                    <BotonDeEtapa key={grupo.destino} tono={tonoDeEtapa[etapaVisual]} onClick={() => abrirDestino(deal, grupo.destino, grupo.respuestas)}>
                       {etiquetasDestino[i]}
                     </BotonDeEtapa>
-                    {grupo.respuestas.map((respuesta) => (
-                      <p key={respuesta.id} className="text-xs text-muted-foreground">
-                        {queHace(ficha.etapa, ficha.pendiente, respuesta, ordenDeEtapas, nombreDeEtapa, nombreDePendiente)}
-                      </p>
+                  );
+                })}
+                {correccion ? (
+                  <Button type="button" className="w-full" variant="destructive" onClick={() => corregir(deal, correccion)}>
+                    Corregir
+                  </Button>
+                ) : null}
+              </div>
+            </section>
+            <div className="space-y-5">
+              {actividades.length > 0 ? (
+                <section className="space-y-3">
+                  <div>
+                    <h3 className="text-sm font-medium">Registrar actividad</h3>
+                    <p className="text-xs text-muted-foreground">Cuenta para los intentos y el aviso de estancado.</p>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Button type="button" className="w-full" variant="secondary" onClick={() => registrarActividad(deal, actividades)}>
+                      Registrar actividad
+                    </Button>
+                  </div>
+                </section>
+              ) : null}
+              {enEspera.length > 0 ? (
+                <section className="space-y-3">
+                  <div>
+                    <h3 className="text-sm font-medium">Dejar en espera</h3>
+                    <p className="text-xs text-muted-foreground">El deal no cambia de etapa.</p>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {enEspera.map((respuesta) => (
+                      <div key={respuesta.id} className="space-y-1">
+                        <Button type="button" className="w-full" variant="secondary" onClick={() => elegir(deal, respuesta)}>
+                          {respuesta.etiqueta}
+                        </Button>
+                        <p className="text-xs text-muted-foreground">{queHace(ficha.etapa, ficha.pendiente, respuesta, ordenDeEtapas, nombreDeEtapa, nombreDePendiente)}</p>
+                      </div>
                     ))}
                   </div>
-                );
-              })}
+                </section>
+              ) : null}
             </div>
-          </section>
-        ) : null}
-        {puedeTrabajar && enEspera.length > 0 ? (
-          <section className="space-y-2">
-            <h3 className="text-sm font-medium">Dejar en espera</h3>
-            <p className="text-xs text-muted-foreground">El deal no cambia de etapa.</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {enEspera.map((respuesta) => (
-                <div key={respuesta.id} className="space-y-1">
-                  <Button type="button" size="sm" variant="secondary" onClick={() => elegir(deal, respuesta)}>
-                    {respuesta.etiqueta}
-                  </Button>
-                  <p className="text-xs text-muted-foreground">{queHace(ficha.etapa, ficha.pendiente, respuesta, ordenDeEtapas, nombreDeEtapa, nombreDePendiente)}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
-        {puedeTrabajar && actividades.length > 0 ? (
-          <section className="space-y-2">
-            <h3 className="text-sm font-medium">Registrar actividad</h3>
-            <p className="text-xs text-muted-foreground">Cuenta para los tres intentos y para el aviso de estancado.</p>
-            <Button type="button" size="sm" variant="secondary" onClick={() => registrarActividad(deal, actividades)}>
-              Registrar actividad
-            </Button>
-          </section>
+          </div>
         ) : null}
         {ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestino?.inicioVentas ? (
           <p className="text-xs text-muted-foreground">

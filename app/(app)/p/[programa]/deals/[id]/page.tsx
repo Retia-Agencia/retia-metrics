@@ -5,7 +5,8 @@ import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { aceptaAbono, ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
-import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
+import { correccionSerializable, mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
+import { etapaDeCorreccion } from "@/lib/deals/mover-etapa";
 import { puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { nombreDelDeal } from "@/lib/deals/nombre";
 import { alertasDelDeal, fichaDeDeal, opcionesDeFicha } from "@/lib/queries/ficha-deal";
@@ -55,9 +56,10 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
   if (!ficha) notFound();
   const alcanceDeals = await alcanceDeDeals(session);
   if (!dealVisiblePara(alcanceDeals, ficha.owner?.id ?? null)) notFound();
-  const [opciones, alertas] = await Promise.all([
+  const [opciones, alertas, correccion] = await Promise.all([
     opcionesDeFicha(db, programa.id, ficha.owner?.id ?? null, ficha.cohorte?.id ?? null),
     alertasDelDeal(db, programa.id, ficha.dealId),
+    etapaDeCorreccion(db, ficha.dealId),
   ]);
 
   const actor = { userId: session.user.id, rol };
@@ -102,6 +104,7 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
             ficha={ficha}
             opciones={opciones}
             mapa={mapaDeTransiciones()}
+            correccion={correccionSerializable(ficha.etapa, correccion)}
             ordenDeEtapas={ETAPAS_EN_ORDEN}
             nombreDeEtapa={NOMBRE_DE_ETAPA}
             nombreDePendiente={NOMBRE_DE_PENDIENTE}

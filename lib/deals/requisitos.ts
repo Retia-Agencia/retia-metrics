@@ -1,4 +1,4 @@
-import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal, type PendienteDeal, type Transicion, type TransicionPendiente } from "./etapas";
+import { NOMBRE_DE_ETAPA, transicion, type EtapaDeal, type FlechaCorreccion, type PendienteDeal, type Transicion, type TransicionPendiente } from "./etapas";
 
 export interface HechosDelDeal {
   cortesia: boolean;
@@ -85,7 +85,9 @@ const CUMPLE: Record<CodigoReal, (h: HechosEvaluables, eximirHistorico?: boolean
   motivo: (h) => h.motivoId != null,
 };
 
-function requisitosDe(t: Transicion | TransicionPendiente): CodigoReal[] {
+type FlechaConRequisitos = Transicion | TransicionPendiente | FlechaCorreccion;
+
+function requisitosDe(t: FlechaConRequisitos): CodigoReal[] {
   const pago: CodigoReal[] = ["valor_vendido", "abono"];
   const segunDestino = (destino: EtapaDeal): CodigoReal[] =>
     destino === "ganado_parcial" ? [...pago, "saldo_pendiente"] : [...pago, "saldo_en_cero"];
@@ -112,15 +114,19 @@ function requisitosDe(t: Transicion | TransicionPendiente): CodigoReal[] {
   // El área se pide al contestar "¿Cómo terminó?" (143): toda salida de Atendido, menos E9,
   // que es la cita nueva moviendo el deal sola (Calendly, sin nadie a quien preguntar). La
   // respuesta que lleva ahí, la Re-agenda (PR2), ya la pidió.
-  const saleDeAtendido = t.tipo === "etapa" ? t.de === "atendido" && t.id !== "E9" : t.etapa === "atendido";
+  const saleDeAtendido = t.tipo === "pendiente"
+    ? t.etapa === "atendido"
+    : "de" in t
+      ? t.de === "atendido" && t.id !== "E9"
+      : false;
   return saleDeAtendido && !requisitos.includes("area_declarada") ? [...requisitos, "area_declarada"] : requisitos;
 }
-export function requisitosDeTransicion(t: Transicion | TransicionPendiente): CodigoRequisito[] {
+export function requisitosDeTransicion(t: FlechaConRequisitos): CodigoRequisito[] {
   const codigos: CodigoRequisito[] = [...requisitosDe(t)];
   if (t.exigeMotivo) codigos.push("motivo");
   return codigos;
 }
-export function queLeFaltaTransicion(t: Transicion | TransicionPendiente, hechos: HechosDelDeal): RequisitoFaltante[] {
+export function queLeFaltaTransicion(t: FlechaConRequisitos, hechos: HechosDelDeal): RequisitoFaltante[] {
   const codigos: CodigoReal[] = requisitosDe(t);
   if (t.exigeMotivo) codigos.push("motivo");
   return codigos.filter((c) => {
