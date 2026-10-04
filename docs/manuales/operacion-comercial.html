@@ -241,7 +241,7 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
       <p class="eyebrow">Retia · Manual de operación comercial</p>
       <h1>Cómo se trabaja un deal en el CRM de Retia</h1>
       <p class="lede">De que una persona llena el formulario a que es student y paga todo: qué es cada cosa y qué haces en cada paso.</p>
-      <p class="meta">2 de octubre de 2026 · ComunicArte y Tactical Investor</p>
+      <p class="meta">4 de octubre de 2026 · ComunicArte, Tactical Investor y Memorable</p>
       <ol class="flujo" aria-label="El flujo en seis pasos">
         <li><a href="#llegada"><b>Llega el lead</b><span>Con su Quality y su Value</span></a></li>
         <li><a href="#deal"><b>Aparece el deal</b><span>En su etapa, sin dueño o tuyo</span></a></li>
@@ -328,7 +328,7 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
       </div>
       <ul>
         <li><strong>Mismo correo = mismo lead.</strong> El envío nuevo se suma y el deal muestra <span class="k">N envíos</span>.</li>
-        <li><strong>Mismo teléfono, otro correo:</strong> se une marcado <span class="pill info">Unido por teléfono</span> y gerencia confirma.</li>
+        <li><strong>Mismo teléfono, otro correo:</strong> se une marcado <span class="pill info">Unido por teléfono</span> y la ficha del deal muestra la alerta <span class="pill alerta">Posible duplicado</span>, con los dos datos lado a lado. Lo decide el dueño del deal: <b>Es la misma persona</b> lo deja como está; <b>Son dos personas</b> separa el correo y le abre su propio deal. Si el deal no tiene dueño, decide gerencia.</li>
         <li>Si la persona no termina, llega igual como <strong>parcial</strong>. Parcial y completo cuentan como un envío.</li>
       </ul>
     </section>
@@ -342,17 +342,17 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
       <ul>
         <li>"No, en este momento no cuento con los recursos"</li>
         <li>Urgencia: "No es prioridad"</li>
-        <li>Ingreso bajo: menos de 1.500 USD al mes en ComunicArte, menos de 1.000 en Tactical</li>
+        <li>Ingreso bajo: menos de 1.500 USD al mes en ComunicArte, menos de 1.000 en Tactical y en Memorable</li>
       </ul>
 
-      <h3>Lead Quality: ¿agendó en el formulario?</h3>
-      <p>El formulario termina con la pregunta <b>"Agenda aquí tu entrevista"</b>, que es el Calendly. Es obligatoria: para terminar el formulario hay que agendar.</p>
+      <h3>Lead Quality: ¿pasó el filtro?</h3>
+      <p>El formulario termina con la pregunta <b>"Agenda aquí tu entrevista"</b>, que es el Calendly. Solo la ve quien pasó el filtro, y es obligatoria: para terminar el formulario hay que agendar. Antes de la agenda, el formulario ya le avisa al CRM con un envío parcial, así que el deal aparece aunque la persona no termine de agendar.</p>
       <div class="tabla">
         <table>
           <thead><tr><th>Quality</th><th>Quién</th></tr></thead>
           <tbody>
-            <tr><td><span class="pill ok">High</span></td><td>No marcó ninguna respuesta de descarte y agendó en el Calendly del formulario.</td></tr>
-            <tr><td><span class="pill neutro">Low</span></td><td>Marcó al menos una respuesta de descarte, o se fue antes de agendar.</td></tr>
+            <tr><td><span class="pill ok">High</span></td><td>No marcó ninguna respuesta de descarte: el formulario le mostró la agenda.</td></tr>
+            <tr><td><span class="pill neutro">Low</span></td><td>Marcó al menos una respuesta de descarte: no ve la agenda.</td></tr>
           </tbody>
         </table>
       </div>
@@ -364,7 +364,7 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
           <thead><tr><th>Respuesta</th><th>0 puntos</th><th>10 puntos</th><th>20 puntos</th><th>30 puntos</th></tr></thead>
           <tbody class="num">
             <tr><td>Ingreso mensual, ComunicArte</td><td>menos de 700</td><td>700 a 1.500</td><td>1.500 a 3.000</td><td>más de 3.000</td></tr>
-            <tr><td>Ingreso mensual, Tactical</td><td>menos de 1.000</td><td>1.000 a 3.000</td><td>3.000 a 10.000</td><td>más de 10.000</td></tr>
+            <tr><td>Ingreso mensual, Tactical y Memorable</td><td>menos de 1.000</td><td>1.000 a 3.000</td><td>3.000 a 10.000</td><td>más de 10.000</td></tr>
             <tr><td>Situación profesional</td><td>otra</td><td>pensionado o 0 a 5 años</td><td>5 a 15 años o más de 15</td><td>·</td></tr>
           </tbody>
         </table>
@@ -429,7 +429,7 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
       </ul>
       <h3>Quién es el dueño</h3>
       <ul>
-        <li><strong>Agendó por tu Calendly</strong> (asignado en Mi perfil): nace tuyo. Siempre: la cita es de quien la hospeda.</li>
+        <li><strong>Agendó por tu Calendly</strong> (asignado en Mi espacio): nace tuyo. Siempre: la cita es de quien la hospeda.</li>
         <li><strong>Lo demás nace sin dueño</strong> en el Inbox. Lo tomas con <b>Reclamar</b>.</li>
         <li><strong>Nuevo deal</strong> (WhatsApp, referido): nace en En gestión, tuyo.</li>
         <li>Solo el dueño o gerencia mueven un deal. La ficha de un deal de otra persona no se abre.</li>
@@ -496,7 +496,8 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
       <p class="perdido-nota"><span class="pill mal">Cierre perdido</span> desde cualquier etapa abierta, con motivo. Nunca desde Ganado Pagado Completo.</p>
 
       <h3>Cómo se mueve un deal</h3>
-      <p>En la ficha, el recuadro <strong>Transición</strong> tiene un botón por cada etapa a la que el deal puede ir hoy. Tocas una y se abre una ventana que pide lo que haga falta, con lo que el deal tiene (verde) y lo que le falta (rojo). Si a esa etapa se llega de varias formas, la ventana te deja escoger. Debajo, <strong>Sin cambiar de etapa</strong>: Seguimiento, Próxima Cohorte, otra llamada o un intento. En el tablero también puedes <strong>arrastrar</strong> la tarjeta: se abre la misma ventana. Si no hay camino a esa columna, la tarjeta vuelve.</p>
+      <p>En la ficha, el recuadro <strong>Transición</strong> tiene un botón por cada etapa a la que el deal puede ir hoy. Tocas una y se abre una ventana que pide lo que haga falta, con lo que el deal tiene (verde) y lo que le falta (rojo). Si a esa etapa se llega de varias formas, la ventana te deja escoger. El recuadro tiene dos columnas: a la izquierda <strong>Mover a</strong> (las etapas, incluido Cierre perdido), y a la derecha <strong>Registrar actividad</strong> (un contacto, un intento, otra llamada) y <strong>Dejar en espera</strong> (Seguimiento, Próxima Cohorte, "No asistió o canceló"). En el tablero también puedes <strong>arrastrar</strong> la tarjeta: se abre la misma ventana. Si no hay camino a esa columna, la tarjeta vuelve.</p>
+      <div class="caja nota"><p><b>¿Lo moviste a la etapa equivocada? Usa Corregir.</b> En Mover a aparece <b>Corregir</b>, en rojo: devuelve el deal a la etapa de donde venía en su último movimiento, con un motivo. En el tablero, esa columna se pinta en rojo al arrastrar. Solo corrige lo que movió una persona; lo que movió el CRM solo (un abono, el Grain, una cita) se corrige anulando eso que lo movió. Una corrección no se corrige.</p></div>
       <p class="sub">Abre cada etapa para ver qué significa, cómo llega ahí y qué opciones tiene.</p>
 
       <div class="etapas">
@@ -817,12 +818,12 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
       <h2><span class="n">07</span>Perder y anular</h2>
       <div class="tabla">
         <table>
-          <thead><tr><th></th><th>Cierre perdido</th><th>Anular</th></tr></thead>
+          <thead><tr><th></th><th>Cierre perdido</th><th>Anular</th><th>Corregir</th></tr></thead>
           <tbody>
-            <tr><td>Es</td><td>Dijo que no</td><td>Me equivoqué al registrar</td></tr>
-            <tr><td>Cuenta en cifras</td><td>Sí</td><td>No</td></tr>
-            <tr><td>Pide</td><td>Motivo de la lista</td><td>Texto de la corrección</td></tr>
-            <tr><td>Después</td><td>Se recupera a En gestión</td><td>Queda tachado; el lead queda libre</td></tr>
+            <tr><td>Es</td><td>Dijo que no</td><td>Me equivoqué al registrar</td><td>Moví a la etapa equivocada</td></tr>
+            <tr><td>Cuenta en cifras</td><td>Sí</td><td>No</td><td>El deal sigue contando, en la etapa de antes</td></tr>
+            <tr><td>Pide</td><td>Motivo de la lista</td><td>Texto de la corrección</td><td>Motivo de corrección</td></tr>
+            <tr><td>Después</td><td>Se recupera a En gestión</td><td>Queda tachado; el lead queda libre</td><td>Vuelve a la etapa anterior</td></tr>
           </tbody>
         </table>
       </div>
@@ -835,41 +836,45 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
     <section id="dia">
       <h2><span class="n">08</span>Tu día en el CRM</h2>
       <ol class="pasos">
-        <li><b>Inbox de cada programa, de arriba abajo.</b></li>
-        <li><b>Primero lo que se enfría:</b> perdidos en el Calendly y llamadas sin resultado.</li>
-        <li><b>Toma deals nuevos:</b> Calificados primero, luego por Value.</li>
-        <li><b>Lo tuyo:</b> re-agendas, vencidos, envíos nuevos, links sin cita, estancados.</li>
+        <li><b>Abre Mi espacio › Necesita atención.</b> Es lo tuyo que pide algo hoy: alertas de tus deals, llamadas sin resultado, citas sueltas tuyas y posibles duplicados de tus deals. Cada fila te lleva a donde se resuelve.</li>
+        <li><b>Luego el Inbox de cada programa.</b> Primero la barra <b>Llamadas</b> (lo que se enfría), después la barra <b>Deals</b>.</li>
+        <li><b>Toma deals nuevos:</b> en Por settear, Calificados primero y luego por Value.</li>
         <li><b>Tras cada llamada:</b> Grain y "¿Cómo terminó?" el mismo día.</li>
-        <li><b>Al cerrar:</b> Urgencias, y ninguna tarjeta tuya en rojo.</li>
+        <li><b>Al cerrar:</b> Necesita atención vacío, y ninguna tarjeta tuya en rojo.</li>
       </ol>
+      <p>Las pantallas son fijas: la página no se desplaza, se desplaza la lista de adentro. Cuando una pantalla tiene pestañas, debajo de ellas una línea dice qué muestra cada una.</p>
       <div class="tabla">
         <table>
           <thead><tr><th>Pantalla</th><th>Para qué</th></tr></thead>
           <tbody>
-            <tr><td><b>Inbox</b></td><td>Por dónde empiezas</td></tr>
-            <tr><td><b>Deals</b></td><td>Tablero de tus deals por etapa, filtros y Nuevo deal</td></tr>
-            <tr><td><b>Leads</b></td><td>Personas y todos sus envíos</td></tr>
+            <tr><td><b>Mi espacio</b></td><td>Tu perfil, tu Calendly por programa, <b>Necesita atención</b> y <b>Mis métricas</b> (agendas, show, no show, cierres, % de cierre, caja y comisión, por hoy, semana, mes o cohorte). Arriba, el botón <b>Manual de uso</b> abre este manual</td></tr>
+            <tr><td><b>Dashboard</b></td><td>Cifras del programa en cuatro pestañas: Pulso, Operación, Dinero y Pauta. Toda cifra abre su lista</td></tr>
+            <tr><td><b>Metas</b></td><td>La meta del mes y de la cohorte: avance, lo que falta y cuánto toca por semana</td></tr>
+            <tr><td><b>Leads</b></td><td>Personas y todos sus envíos (cada envío se abre para ver sus respuestas)</td></tr>
+            <tr><td><b>Deals</b></td><td>Tablero de tus deals por etapa. Al pie de cada etapa, <b>Potencial</b> (lo que valen) y <b>Confirmado</b> (lo abonado). Ordena por creación o última actividad y filtra por cohorte (abre en la activa). Un clic en la tarjeta abre la ficha; arrastrarla la mueve. Aquí está Nuevo deal</td></tr>
+            <tr><td><b>Inbox</b></td><td>Lo que no tiene dueño o quedó sin resolver, en dos barras: Llamadas y Deals</td></tr>
             <tr><td><b>Calls</b></td><td>Llamadas: Grain y "¿Cómo terminó?"</td></tr>
-            <tr><td><b>Students</b></td><td>Compradores y onboarding</td></tr>
-            <tr><td><b>Urgencias</b></td><td>Todo lo vencido</td></tr>
-            <tr><td><b>Dashboard</b></td><td>Cifras de tus programas</td></tr>
-            <tr><td><b>Mi perfil</b></td><td>Tu Calendly por programa</td></tr>
+            <tr><td><b>Students</b></td><td>Compradores por cohorte, saldo y onboarding</td></tr>
+            <tr><td><b>Programa</b></td><td>La ficha del programa: General, Equipo, Captación y Ventas (cohortes y cómo se cobra)</td></tr>
+            <tr><td><b>Recursos</b></td><td>Brochures y material para copiar, y los links de pago vigentes</td></tr>
           </tbody>
         </table>
       </div>
       <h3>Secciones del Inbox</h3>
       <div class="tabla">
         <table>
+          <thead><tr><th>Barra</th><th>Pestaña</th><th>Qué hay y qué haces</th></tr></thead>
           <tbody>
-            <tr><td>Se perdieron en el Calendly</td><td>Escríbeles ya</td></tr>
-            <tr><td>Llamadas sin resultado</td><td>Grain, o "La llamada no se dio"</td></tr>
-            <tr><td>Por settear</td><td>Sin dueño ni cita: reclama</td></tr>
-            <tr><td>Agendados sin dueño</td><td>Con cita y sin closer: tómalos</td></tr>
-            <tr><td>Llamadas sueltas</td><td>Citas sin deal claro: las cuelga quien da la llamada</td></tr>
-            <tr><td>Lo mío que necesita atención</td><td>Tus deals con algo vencido</td></tr>
+            <tr><td>Llamadas</td><td>Por registrar</td><td>Llamadas que ya pasaron sin resultado: pega el Grain o di que no se dio</td></tr>
+            <tr><td>Llamadas</td><td>Sin deal</td><td>Citas de Calendly que el CRM no pudo unir a un deal: la cuelga quien da la llamada</td></tr>
+            <tr><td>Deals</td><td>Agendados sin dueño</td><td>Tienen cita y no tienen closer: tómalos, lo más viejo primero</td></tr>
+            <tr><td>Deals</td><td>Por settear</td><td>Sin dueño ni cita: reclámalos, del puntaje más alto al más bajo</td></tr>
+            <tr><td>Deals</td><td>No agendaron</td><td>Calificados que abrieron el Calendly y no agendaron hace más de 5 minutos: escríbeles ya</td></tr>
+            <tr><td>Deals</td><td>Necesitan acción</td><td>Pago o compromiso vencido, sin actividad o con los intentos agotados</td></tr>
           </tbody>
         </table>
       </div>
+      <p>El Inbox abre en la primera pestaña que tenga algo. Si una cita llegó de una cuenta de Calendly que no está en el CRM, sale una franja roja arriba: gerencia la asigna en el Equipo del programa.</p>
     </section>
 
     <section id="alertas">
@@ -908,7 +913,9 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
             <tr><td>La tarjeta vuelve al soltarla en Ganado</td><td>Usa Registrar abono</td></tr>
             <tr><td>"El abono supera el saldo"</td><td>Revisa monto o descuento</td></tr>
             <tr><td>No te deja crear el deal</td><td>Ya tiene uno abierto: el mensaje lo enlaza</td></tr>
-            <tr><td>Tus citas llegan sin dueño</td><td>Asigna tu Calendly en Mi perfil</td></tr>
+            <tr><td>Tus citas llegan sin dueño</td><td>Asigna tu Calendly en Mi espacio</td></tr>
+            <tr><td>Moviste un deal a la etapa equivocada</td><td>Transición → Corregir, con motivo</td></tr>
+            <tr><td>Un deal muestra "Posible duplicado"</td><td>Decide en la ficha: Es la misma persona o Son dos personas</td></tr>
             <tr><td>No te deja colgar una llamada suelta</td><td>La hospeda otra closer: la cuelga ella, o gerencia</td></tr>
             <tr><td>No encuentras el deal de un compañero</td><td>Solo ves los tuyos: pregúntale a él o a gerencia</td></tr>
             <tr><td>No ves un programa</td><td>Pide la membresía a gerencia</td></tr>
@@ -921,24 +928,19 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
 
     <section id="falta">
       <h2><span class="n">11</span>Lo que le falta al CRM</h2>
-      <p class="sub">Al 2 de octubre de 2026. Lo de arriba ya funciona; esto no todavía.</p>
+      <p class="sub">Al 4 de octubre de 2026. Lo de arriba ya funciona; esto no todavía.</p>
       <h3>Para empezar a operar</h3>
       <ul class="falta">
-        <li><span class="pill alerta">En pruebas</span><div><b>Recorrido completo y ajustes de pantalla</b><p>Ej.: la alerta de llamada sin resultado sale antes de la hora; "Registrar abono" aparece donde no aplica. Mientras: sigue el manual, no la pantalla.</p></div></li>
-        <li><span class="pill alerta">Pendiente</span><div><b>Traslado de las hojas al CRM</b><p>Mientras: se sigue gestionando en las hojas.</p></div></li>
-        <li><span class="pill alerta">Pendiente</span><div><b>El corte</b><p>El día en que se dejan las hojas, con capacitación. A la semana se apagan sus pestañas de gestión.</p></div></li>
-        <li><span class="pill alerta">En revisión</span><div><b>Tu Calendly desde Mi perfil</b><p>Mientras: gerencia lo asigna.</p></div></li>
-        <li><span class="pill alerta">En revisión</span><div><b>Lo que falta en cada etapa, en rojo</b><p>Mientras: usa "Para avanzar le falta…".</p></div></li>
-        <li><span class="pill alerta">En pruebas</span><div><b>El link de agenda del setter y la alerta de link sin cita</b><p>Mientras: manda el Calendly del programa y revisa tú si agendó.</p></div></li>
+        <li><span class="pill ok">Listo</span><div><b>Memorable</b><p>No tiene hojas: opera directo en el CRM desde el primer lead.</p></div></li>
+        <li><span class="pill alerta">Pendiente</span><div><b>Traslado de las hojas de ComunicArte y Tactical</b><p>Mientras: esos dos programas siguen gestionando en las hojas.</p></div></li>
+        <li><span class="pill alerta">Pendiente</span><div><b>El corte de ComunicArte y Tactical</b><p>El día en que se dejan las hojas, con capacitación. A la semana se apagan sus pestañas de gestión.</p></div></li>
       </ul>
       <h3>Después</h3>
       <ul class="falta">
-        <li><span class="pill neutro">Por construir</span><div><b>Tu cola ordenada por Value y el dashboard comercial</b><p>Mientras: filtra el tablero por Valor.</p></div></li>
         <li><span class="pill neutro">Por construir</span><div><b>Enlace de captación por closer</b><p>Mientras: el origen lo da el área declarada.</p></div></li>
+        <li><span class="pill neutro">Por construir</span><div><b>Alertas por métricas caídas</b><p>Mientras: revisa el Pulso del Dashboard.</p></div></li>
         <li><span class="pill mal">Espera decisión</span><div><b>Próxima fecha de pago y cartera por fecha</b><p>Mientras: anota el acuerdo en la nota del compromiso.</p></div></li>
         <li><span class="pill mal">Espera decisión</span><div><b>Onboarding por pasos y Customer Success</b><p>Mientras: una sola marca, "onboarded".</p></div></li>
-        <li><span class="pill mal">Espera decisión</span><div><b>Meta del mes</b><p>Solo existe la meta de la cohorte.</p></div></li>
-        <li><span class="pill mal">Espera decisión</span><div><b>Alertas por métricas caídas</b><p>Falta decidir qué métricas.</p></div></li>
       </ul>
     </section>
 
@@ -957,6 +959,9 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
         <dt>Show / no-show</dt><dd>Llegó o no llegó a la llamada.</dd>
         <dt>Grain</dt><dd>La grabación que prueba que la llamada ocurrió.</dd>
         <dt>Pendiente</dt><dd>Re-agenda, Seguimiento o Próxima Cohorte.</dd>
+        <dt>Corregir</dt><dd>Devolver un deal a la etapa de donde venía, cuando lo moviste por error.</dd>
+        <dt>Posible duplicado</dt><dd>Un correo nuevo con el mismo teléfono de un lead. Lo decide el dueño del deal.</dd>
+        <dt>Potencial / Confirmado</dt><dd>Al pie de cada etapa del tablero: lo que valen sus deals y lo que ya abonaron.</dd>
         <dt>Ticket base</dt><dd>Precio de la cohorte en USD, antes del descuento.</dd>
         <dt>Valor vendido</dt><dd>Ticket base menos descuento.</dd>
         <dt>Caja</dt><dd>Lo que entró en abonos.</dd>
@@ -966,7 +971,7 @@ nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--acc
       </dl>
     </section>
 
-    <footer>Retia · Manual de operación comercial · 2-oct-2026. Si el manual y el CRM no coinciden, manda el CRM: avisa a gerencia.</footer>
+    <footer>Retia · Manual de operación comercial · 4-oct-2026. Si el manual y el CRM no coinciden, manda el CRM: avisa a gerencia.</footer>
   </main>
 </div>
 

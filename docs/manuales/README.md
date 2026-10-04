@@ -23,5 +23,7 @@ Un manual por rol, escrito para quien opera el CRM, no para quien lo construye. 
 - **Formato de artifact:** el archivo empieza por `<title>` y `<style>` (sin `<!doctype>`, `<html>`, `<head>` ni
   `<body>`: el artifact los pone al publicar), colores como tokens con modo claro y oscuro, y funciona a ancho
   de teléfono.
-- **La sección "Lo que le falta al CRM"** se actualiza cuando se cierra un ticket que la toca (hoy: 153, 078, el
-  corte, 152, 143, la alerta de tres intentos del 128, 148, la cortesía en la ficha, 144, 145, 146, 147 y 086).
+- **La sección "Lo que le falta al CRM"** se actualiza cuando se cierra un ticket que la toca (hoy: 078, el corte, 086, 147,
+  144 y 145).
+- **En la app:** el CRM sirve `operacion-comercial.html` en `/manual`, detrás del login, y Mi espacio lo enlaza con
+  el botón "Manual de uso" (ticket 199). Editar el archivo y desplegar basta: no hay copia.
