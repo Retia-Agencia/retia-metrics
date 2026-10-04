@@ -149,9 +149,12 @@ function elementos(nodo: ReactNode, acc: ReactElement[] = []): ReactElement[] {
   return acc;
 }
 
-async function abrirFicha(slug: string) {
+async function abrirFicha(slug: string, seccion?: string) {
   const { default: Pagina } = await import("@/app/(app)/p/[programa]/programa/page");
-  return Pagina({ params: Promise.resolve({ programa: slug }) });
+  return Pagina({
+    params: Promise.resolve({ programa: slug }),
+    searchParams: Promise.resolve(seccion ? { seccion } : {}),
+  });
 }
 
 describe("fichaDelPrograma", () => {
@@ -282,7 +285,7 @@ describe("la página de la ficha", () => {
   it("un closer con membresía la lee, sin el editor de cohortes ni los enlaces a Ajustes", async () => {
     auth.mockResolvedValue(sesion(ids.closerA, "closer"));
     const { CohortesAdmin } = await import("@/components/cohortes-admin");
-    const arbol = elementos(await abrirFicha("a"));
+    const arbol = elementos(await abrirFicha("a", "ventas"));
     expect(arbol.some((e) => e.type === CohortesAdmin)).toBe(false);
     const hrefs = arbol.map((e) => (e.props as { href?: string }).href).filter(Boolean);
     expect(hrefs.some((h) => h!.startsWith("/ajustes"))).toBe(false);
@@ -292,7 +295,7 @@ describe("la página de la ficha", () => {
     const { CohortesAdmin } = await import("@/components/cohortes-admin");
     for (const s of [sesion(ids.gerente, "gerente"), sesion(ids.gerente, "developer")]) {
       auth.mockResolvedValue(s);
-      const arbol = elementos(await abrirFicha("a"));
+      const arbol = elementos(await abrirFicha("a", "ventas"));
       const editor = arbol.find((e) => e.type === CohortesAdmin);
       expect(editor).toBeDefined();
       expect((editor!.props as { programId: string }).programId).toBe(programaA);
