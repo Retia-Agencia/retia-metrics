@@ -3,7 +3,7 @@ id: 065
 etapa: E5
 serves: "plan v2 §6 etapa 5 · tarea E5-2 · insumo §8, ADR 0037"
 depends: [064]
-status: todo
+status: en revisión (sesión M2, ola O5, 4-oct; done con el checkpoint verde que lo incluya)
 ---
 
 # 065 — Lo que el modelo nuevo hace posible: conversion etapa a etapa y tiempo en etapa
@@ -87,3 +87,46 @@ Si.
 - 🟡 Prioridad baja (sale de la captura de Adpulze, nadie lo pidió de palabra): ranking de motivos de pérdida con los deals perdidos y el ticket estimado, como las "objeciones" de Adpulze (PT-34).
 
 - ✅ 29-sep (Mani): el ranking de objeciones **entra**, sin prioridad baja.
+
+---
+
+## Cierre de la sesión M2 (ola O5, 4-oct)
+
+**Qué hay:** `lib/queries/embudo-etapas.ts` y `tests/embudo-etapas.test.ts`. Sin pantalla: el 148 lo monta.
+`embudoPorEtapas(db, { programId, rango }, ahora?)` lee los deals vigentes del programa y su historial (dos
+consultas) y le pasa todo a `calcularEmbudoEtapas`, que es puro. Devuelve `conversion`, `tiempoEnEtapa`,
+`abiertos`, `sinDuenoPorAntiguedad` y `motivosDePerdida`. Cada cifra trae sus `dealIds` para abrir su lista
+(ADR 0067). El programa es obligatorio (frontera) y lo anulado no entra en ninguna, por `vigente(deals)`.
+
+**Las reglas, escritas:**
+- **Puerta de entrada:** la primera etapa del historial; sin historial, la etapa actual y `created_at`.
+- **Conversión:** cohorte = deals cuya entrada (día de Bogotá) cae en el rango. Pasos: En gestión, Contactado,
+  Calificado, Agendado, Atendido, Compromiso Verbal, Vendido (Ganado Pago Parcial o más) y Ganado Pagado
+  Completo. Un deal "llegó" a un paso si la etapa más lejana que tocó está en ese paso o después (Cierre perdido
+  no cuenta como lejanía): saltarse una etapa cuenta como pasar por ella, y el embudo nunca sube. Cuenta deals
+  distintos, no entradas.
+- **Con y sin "Setteo No Calificado":** esa etapa ya no existe. Con el ADR 0069 los no calificados entran por
+  Potencial (parcial) y Registrado (completo sin High), así que salen dos lecturas, `todas` y
+  `sinNoCalificados` (sin esas dos puertas), más `porPuerta`.
+- **Tiempo en etapa (Mani, 4-oct):** suma de todos los tramos que el deal pasó en la etapa. Un cambio solo de
+  pendiente no parte el tramo. Para el promedio cuenta el deal que ya salió de la etapa y cuya última salida cae
+  en el rango; el que sigue ahí está en `abiertos`. Días calendario, como "días en etapa" del Kanban. La línea
+  para la pantalla es `REGLA_TIEMPO_EN_ETAPA`. Ejemplo con retroceso: Calificado → Agendado → Calificado → Agendado
+  → Atendido suma los dos tramos de Calificado y los dos de Agendado, y cuenta en `dealsConVariosTramos`.
+- **Abiertos por etapa y owner** y **sin dueño por antigüedad:** foto de hoy, el rango no aplica. Abierto = ni
+  Ganado Pagado Completo ni Cierre perdido. La antigüedad cuenta desde la entrada, con los buckets de la lista del
+  ADR 0067 (0-7, 8-30, 31-90, >90).
+- **Motivos de pérdida (PT-34):** el universo es `cerradosEn` (el mismo de `dealsPerdidosPorMotivo`). El ticket
+  perdido estimado es el precio de la cohorte en USD; un deal sin cohorte va en `dealsSinTicket` y no se le
+  inventa uno.
+
+**Done cuando:**
+- [x] Las cuatro métricas (más los motivos) salen. Como `dev` ya no existe (una sola base, ADR 0047 enmendado),
+  se prueban en PGlite.
+- [x] Un deal con retroceso da un tiempo explicable, con la regla escrita arriba y en el test.
+- [x] Los anulados no aparecen (test con el loader real).
+- [x] La conversión se lee con y sin los no calificados.
+
+**Verificado en local:** typecheck, lint y `tests/vigencia-centralizada.test.ts`. **No corrí
+`tests/embudo-etapas.test.ts`** porque la máquina no tenía aire (6,9 GB de swap): lo valida el CI. Implementó
+Codex (effort medium), revisó la sesión M2.
