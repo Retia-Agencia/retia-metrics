@@ -303,7 +303,8 @@ describe("ticket 148: listas de contratado, sin resultado y cartera", () => {
 
     const filtros = { programId: prog, rango: r, hoy: "2026-10-04", ahora };
     const [lista] = await listaDeMetrica("contratado", filtros, 1, base);
-    expect(lista.filas.map((fila) => fila.monto)).toEqual([80, 70]);
+    // Misma fecha de venta: el desempate es por id (uuid aleatorio), asi que el orden no se fija.
+    expect(lista.filas.map((fila) => fila.monto ?? 0).sort((a, b) => a - b)).toEqual([70, 80]);
     expect(lista.subtotal.caja).toEqual([{ moneda: "USD", total: 150 }]);
     const ids = lista.filas.flatMap((fila) => fila.dealId ? [fila.dealId] : []);
     expect(lista.subtotal.caja[0]?.total).toBe((await contratadoDeDeals(base, ids)).usd);

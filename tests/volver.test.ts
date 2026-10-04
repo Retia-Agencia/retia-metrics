@@ -135,6 +135,11 @@ describe("etiquetaDeOrigen", () => {
     expect(etiquetaDeOrigen("/mi-espacio?tab=canales")).toBe("Mi espacio");
   });
 
+  it("la pestaña (seccion, ticket 193) NO cuenta como filtrado", () => {
+    expect(etiquetaDeOrigen("/p/x/inbox?seccion=por-settear")).toBe("Inbox");
+    expect(etiquetaDeOrigen("/p/x/inbox?seccion=por-settear&calidad=high")).toBe("Inbox · filtrados");
+  });
+
   it("un filtro ademas de pagina SI cuenta como filtrado", () => {
     expect(etiquetaDeOrigen("/p/x/leads?pagina=2&calidad=high")).toBe("Leads · filtrados");
   });
