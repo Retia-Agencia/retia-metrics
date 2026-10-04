@@ -197,7 +197,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 021 | [Snapshot del dashboard](./021-snapshot-del-dashboard.md) | 005 | **CONGELADO hasta la etapa 5** del plan v2 (21-sep): el dashboard que fotografiaria esta por ganar funnel por etapa, Urgencias y ROAS; hacerlo antes es hacerlo dos veces. Nota previa: desbloqueado 19-sep: formato PDF y lo toman los dos roles. Sigue de último |
 | [x] | 027 | [Ventana de venta de la cohorte](./027-ventana-de-venta-de-la-cohorte.md) (ADR 0022) | 014 | done · 17-sep (migración 0009 en `dev` y `production`) |
 | [x] | 064 | [Dashboard sobre deals](./064-dashboard-sobre-deals.md) (E5-1) | 060 | done · sesión 47 · cierres desde deal_etapa_historial, dueño por ownerUserId, show centralizado |
-| [ ] | 065 | [Conversión etapa a etapa y tiempo en etapa](./065-funnel-por-etapa.md) (E5-2) | 064 | todo |
+| [ ] | 065 | [Conversión etapa a etapa y tiempo en etapa](./065-funnel-por-etapa.md) (E5-2) | 064 | todo · O5 · M2 · 4-oct: tiempo en etapa = suma de todos los tramos (Mani) |
 | [x] | 089 | [Series con dimensiones, no escalares](./089-series-con-dimensiones.md) | 064, 085 | done · 30-sep · Mani · `lib/queries/serie.ts` (tipo con `programId` obligatorio, `periodoAnterior`) y `hechosDelEmbudo` en `lib/queries/hechos-embudo.ts` (día × área × canal × dueño × cohorte; primer llamador real de `emparejar`); filtro `?area=` en el dashboard; `dashboard.ts` no se reescribió |
 | [ ] | 090 | [Rendimiento por área](./090-rendimiento-por-area.md) | 085, 088, 089 | todo · la vista de **Gerencia**. Estados con acción, no una tabla |
 | [x] | 095 | [La tab Dashboard: un programa o "todos" solo con lo sumable](./095-dashboard-con-selector-y-todos-los-programas.md) | 064, 089, 094, 136, 137 | done · 1-oct · Mani · checkpoint `cp-20261001-1` · `sumarConteos` y `sumarDinero`: "todos" solo suma conteos y caja por moneda; tasas, metas y comisión por programa. Lo del paid trafficker queda para el 102 |
@@ -206,10 +206,10 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 137 | [Toda cifra abre su lista](./137-toda-cifra-abre-su-lista.md) | 136 | done · 1-oct · Alejo · caja, shows, agendas, cierres y leads; "todos" en la consulta, la pantalla es del 095 |
 | [x] | 138 | [Deals creados contra agendas](./138-deals-creados-contra-agendas.md) | 136 | done · 1-oct · Alejo · acumulado por hábil A contra B en el dashboard; `deals_creados` y `agendas_creadas` abren su lista |
 | [x] | 141 | [Filtros de fecha relativos en las listas](./141-filtros-de-fecha-relativos-en-listas.md) | 136 | done · 1-oct · Alejo · deals por creado, actividad y cierre; leads por creado y último envío; selector del 136 en modo solo A |
-| [ ] | 146 | [Meta del mes y página de Metas](./146-meta-del-mes-y-pagina-de-metas.md) | 136 | todo · 4-oct: QM-6 (pareja por hábil) y QM-7 (cuenta a la cohorte del deal) cerradas por Mani |
+| [ ] | 146 | [Meta del mes y página de Metas](./146-meta-del-mes-y-pagina-de-metas.md) | 136 | todo · O5 · M3 · 4-oct: QM-6 (pareja por hábil) y QM-7 (cuenta a la cohorte del deal) cerradas por Mani |
 | [ ] | 147 | [Alertas por persistencia](./147-alertas-por-persistencia.md) | 136 | todo · 4-oct: QM-11 cerrada (solo las métricas del semáforo, DP-24); QD-6: 5 hábiles, configurable · NC2 carril Alejo |
-| [ ] | 148 | [Las secciones del dashboard](./148-las-secciones-del-dashboard.md) | 142, 095, 137 | todo · deps cumplidas el 2-oct; va después del 143 (el 128 ya fijó las alertas) |
-| [ ] | 158 | [El reporte del día del closer sale del CRM](./158-el-reporte-del-dia-del-closer.md) | 156, 157 | todo · 4-oct: objeciones = catálogo editable por programa (Mani); 156 y 157 ya en done |
+| [ ] | 148 | [Las secciones del dashboard](./148-las-secciones-del-dashboard.md) | 142, 095, 137 | todo · O5 · M1 · deps cumplidas el 2-oct; va después del 143 (el 128 ya fijó las alertas) |
+| [ ] | 158 | [El reporte del día del closer sale del CRM](./158-el-reporte-del-dia-del-closer.md) | 156, 157 | todo · O5 · M4 · 4-oct: objeciones = catálogo editable por programa (Mani); 156 y 157 ya en done |
 
 ## 10 · Configuración
 
@@ -287,7 +287,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 184 | [Leads: envíos desplegables, y los duplicados se deciden donde se trabaja](./184-leads-envios-y-duplicados.md) | · | done · `cp-20261004-1` · 4-oct · envíos desplegables, separar abre el deal del lead nuevo, duplicado decidido en la ficha; recorrido hecho |
 | [x] | 167 | [Quién cobró es una FK, y Facturación clara](./167-quien-cobro-es-una-fk.md) | · | done · `cp-20261004-1` · 4-oct · `abonos.registrado_por_user_id` (0065), `closer_id` opcional, Facturación A-15 a A-17, fuera `buscar-llamada.ts` |
 | [x] | 186 | [Los duplicados: cada closer decide solo los de sus deals, y la lista no crece](./186-duplicados-solo-de-mis-deals.md) | 184 | done · `cp-20261004-1` · 4-oct · cada closer ve y decide solo los duplicados de sus deals (forjado: rechazo sin escribir), paginados; recorrido hecho |
-| [ ] | 185 | [Pantalla fija en Leads, Calls, Inbox y Students](./185-pantalla-fija-en-toda-la-app.md) | 181, 183, 184, 186 | todo · S6 · parte 3 · arranca con la reorganización de Mani |
+| [ ] | 185 | [Pantalla fija en Leads, Calls, Inbox y Students](./185-pantalla-fija-en-toda-la-app.md) | 181, 183, 184, 186 | todo · O5 · S5 (pasa de la O4) · arranca con la reorganización de Mani |
 
 # Pasos y tareas sin ticket
 

@@ -120,6 +120,54 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ## 4. La ola vigente y el mapa de etapas
 
+### 🌊 Ola O5 · las métricas comerciales y la pantalla fija · abierta el 4-oct
+
+**La meta (Mani, 4-oct):** pasar a las métricas. Con QM-6, QM-7, QM-11 y las objeciones cerradas el 4-oct, el 146, el
+147 y el 158 se desbloquearon; el 148 y el 065 ya estaban listos. Entra también el 185 (pantalla fija), que Mani
+quiere en esta ola. El frente A de O2 (Memorable, arranca el 5-oct) sigue mandando y no es código: lo hace Mani.
+
+| Parte | Sesión | Ticket | Archivos que son suyos | Migración |
+|---|---|---|---|---|
+| 1 | **M1** | [148] Las secciones del dashboard: Pulso, Operación comercial y Dinero | `p/[programa]/dashboard/*`, `components/dashboard-programa.tsx`, `filtro-dashboard.tsx`, `series-lineales.tsx`, `lib/queries/dashboard.ts`, `vista-dashboard.ts` | no |
+| 1 | **M2** | [065] Conversión etapa a etapa, tiempo en etapa (suma de todos los tramos, decidido el 4-oct), abiertos por etapa y owner, sin dueño por antigüedad | Solo un módulo NUEVO en `lib/queries/` (p. ej. `embudo-etapas.ts`) y su test. **No toca pantallas**: el 148 lo monta | no |
+| 1 | **M3** | [146] Meta del mes (pareja por hábil; la venta cuenta a la cohorte del deal) y la página de Metas | Ruta nueva `p/[programa]/metas/*`, módulo nuevo `lib/queries/metas.ts`, `components/metas/*` (nuevo), y en `app-sidebar.tsx` solo su entrada. Importa de `dashboard.ts` (meta lineal, 020) sin editarlo | no (si resulta que sí, se avisa y espera turno) |
+| 1 | **M4** | [158] Reporte del día del closer, con objeciones como catálogo editable | Primero escribe el "Done cuando" en el ticket y lo aprueba Mani. Luego: `lib/deals/requisitos.ts` y `components/deals/pregunta-de-etapa.ts` (la objeción al responder "¿Cómo terminó?"), módulo nuevo de consulta del reporte, su lugar en Mi espacio (`components/mi-espacio/*`). Recomendación: la objeción es un `motivo` de tipo nuevo `objecion` (como `correccion` del 182), no una tabla aparte | **sí** (valor nuevo en `tipo_motivo`, la única de la ola) |
+| 1 | **S5** | [185] Pantalla fija en Leads, Calls, Inbox y Students, y los textos de Programa (A-88) | Las páginas de `leads`, `calls`, `inbox`, `students`, `page-shell.tsx`, `components/layout/*`, `programa/page.tsx` y `editar-programa.tsx` (solo textos). **No arranca con código:** propone a Mani, pantalla por pantalla y sobre la base local sembrada, qué bloque hace scroll y qué pasa a sub-página o pop-up; con la tabla aprobada en el ticket, codea | no |
+| 2 | — | [147] Alertas por persistencia (solo las métricas del semáforo, 5 hábiles, configurable) | se reparte al cerrar la parte 1: usa el semáforo que toca el 146 | **sí** (umbrales) |
+| 2 | — | [102] El dashboard del paid trafficker acotado a sus programas | se reparte al cerrar la parte 1: toca la pantalla del 148 | no |
+
+**Lo compartido:** `lib/queries/dashboard.ts` y `vista-dashboard.ts` son de M1; M2 y M3 solo importan de ellos. Si M1
+quiere mostrar lo del 065 antes de que M2 llegue a `main`, deja el hueco y lo monta después (rebasado). `page-shell.tsx`
+es de S5: si M3 necesita algo del marco, lo pide. `lib/db/schema.ts`: solo M4; la migración la genera y aplica la
+sesión central con el ok de Mani. **Prueba de costura de la ola:** una venta registrada en la base local aparece igual
+en el dashboard (148), en la meta del mes (146) y en el reporte del día del closer (158).
+
+**Cómo arranca cada sesión** (pegar en una sesión nueva, cambiando el número):
+
+> Toma el ticket `docs/tasks/1NN-….md` de la ola O5. Lee `AGENTS.md`, `docs/plan-reparto.md` §4 (ola O5), el ticket y
+> lo que cita, `docs/comercial.md` y `docs/analytics.md` §6 si es una métrica, y `docs/structure.md` §9 (Tinta) si
+> toca pantallas. Reclama el ticket en su archivo (`status: en curso`, sesión M1…). Trabaja en un worktree propio dentro
+> de `.claude/worktrees/`; implementa Codex por `/delegate` (effort medium) y tú revisas el diff contra el "Done
+> cuando". Toca solo los archivos que la tabla de la ola O5 dice que son tuyos. Antes de empujar: typecheck, lint, los
+> tests del ticket si la máquina tiene aire (mira `uptime` y `sysctl vm.swapusage`) y `npm run build` si tocaste un
+> componente cliente; recorrido en `dev:local` con la consola abierta, haciendo clic en todo lo que se abre, y las
+> reglas de permiso mordidas forjando la petición. Toda cifra nueva abre su lista (ADR 0067) y respeta la frontera de
+> programa y los anulados. No corras la suite completa ni generes o apliques migraciones: entrega el cambio de
+> `schema.ts` y avisa. No toques `docs/tasks/README.md`, `docs/agents/handoff.md` ni este documento: tu estado y tu nota
+> de cierre van en el archivo del ticket. Ninguna escritura en producción sin el ok de Mani. Empuja a `main` nombrando
+> tus archivos y avisa a la sesión central con el commit.
+
+**La sesión central (revisor)** — el prompt:
+
+> Eres la sesión central de la ola O5 (`docs/plan-reparto.md` §4). No implementas tickets: revisas. Por cada entrega en
+> `main`, lee el diff contra el "Done cuando" del ticket y los contratos de `AGENTS.md` (frontera de programa, `vigente`,
+> dinero en un módulo, cifra que abre su lista, developer sin restricciones, Tinta); recorre en `dev:local` lo que
+> cambió, como closer y gerente, en escritorio y 375 px, con la consola abierta; y lo que no pase vuelve a su sesión
+> como fix-up (no lo reescribes tú salvo que sea trivial). Generas y aplicas la migración de M4 con el ok de Mani,
+> leyendo el SQL antes, con `lock_timeout` y mirando `pg_stat_activity`. Corres los checkpoints (§6): avisas, esperas
+> el CI, marcas el tag `cp-AAAAMMDD-N`, marcas el tracker, escribes una entrada de handoff y rearmas la parte 2 de la
+> ola. Revisa el `git status` del checkout principal en cada entrega (un agente ya escribió ahí por error).
+
 ### 🌊 Ola O4 · la operación sin fricción · abierta el 3-oct (noche)
 
 **La meta (Mani, 3-oct noche):** que operar el CRM no canse. Diez notas de Mani usándolo (`anotaciones.md` recorrido 8,

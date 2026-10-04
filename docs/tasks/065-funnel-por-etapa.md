@@ -27,9 +27,10 @@ ninguna pantalla la usara: **el dato es el instante del cambio y no se puede rec
 - **Dentro:** las cuatro consultas, con su rango de fechas y su filtro por programa.
 - **Dentro:** los deals **anulados** no cuentan en ninguna (ADR 0038).
 - **Dentro:** un deal que retrocede y vuelve a avanzar cuenta su tiempo **en cada paso**, no solo
-  el ultimo. Decidir y escribir como se suma (¿tiempo total en la etapa o solo el ultimo tramo?)
-  **antes** de pintar el numero: las dos respuestas son defendibles y elegir en silencio es como
-  nace una cifra que nadie sabe leer.
+  el ultimo. **Decidido (Mani, 4-oct): el tiempo en etapa es el TIEMPO REAL, la suma de todos los
+  tramos** que el deal paso en esa etapa (sale de `deal_etapa_historial`). Solo el ultimo tramo haria
+  ver rapido a un deal que rebota. La pantalla lo dice en una linea ("suma todas las veces que el deal
+  estuvo en esta etapa").
 - **Fuera:** el Kanban. Esto son consultas; la pantalla es el ticket 069.
 
 ## La pregunta abierta que esto destapa
