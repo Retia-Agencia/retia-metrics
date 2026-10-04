@@ -3,7 +3,7 @@ id: 185
 etapa: O4
 serves: "docs/anotaciones.md A-86, A-88, A-95, A-06; ADR 0077"
 depends: [181, 183, 184, 186]
-status: done (S5, ola O5, 4-oct; falta el checkpoint verde)
+status: done
 ---
 
 # 185 — Pantalla fija en Leads, Calls, Inbox y Students: cada sección hace su propio scroll

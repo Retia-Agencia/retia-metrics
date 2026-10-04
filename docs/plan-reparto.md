@@ -140,7 +140,7 @@ quiere en esta ola. El frente A de O2 (Memorable, arranca el 5-oct) sigue mandan
 quiere mostrar lo del 065 antes de que M2 llegue a `main`, deja el hueco y lo monta después (rebasado). `page-shell.tsx`
 es de S5: si M3 necesita algo del marco, lo pide. `lib/db/schema.ts`: nadie (el 158 se descartó; la ola no tiene migración). **Prueba de costura de la ola:** una venta registrada en la base local aparece igual
 en el dashboard (148), en la meta del mes (146) y en Mi espacio › Métricas del closer. **`cp-20261004-2`** (4-oct): 065 y los
-arreglos de la central (Leads, Confirmado, anular abonos por FK).
+arreglos de la central (Leads, Confirmado, anular abonos por FK). **`cp-20261004-3`**: 146 y 185. El 148 llegó en `6167fba`.
 
 **Cómo arranca cada sesión** (pegar en una sesión nueva, cambiando el número):
 

@@ -3,7 +3,7 @@ id: 146
 etapa: NC2
 serves: "comercial.md R-8, GC-44, GC-45, §5"
 depends: [136]
-status: review
+status: done
 sesion: M3 (ola O5, 4-oct)
 ---
 
@@ -35,7 +35,7 @@ las confirme al revisar.
    primera entrada a venta, sin cortesías, vigentes), **agrupadas por la cohorte del deal** (QM-7). Una venta de
    la C1 hecha en la ventana de la C2 suma a la fila de la C1 (cuya meta del mes puede ser 0) y al total. Un deal
    vendido sin cohorte va a una fila "sin cohorte" que suma al total y lo dice.
-3. 🔶 **Esperado a hoy y deuda.** Esperado = `metaLineal × hábiles de la ventana dentro del mes hasta hoy,
+3. ✅ **(Mani, 4-oct: confirmado, como el dashboard)** **Esperado a hoy y deuda.** Esperado = `metaLineal × hábiles de la ventana dentro del mes hasta hoy,
    inclusive`; deuda = `max(esperado − vendidos, 0)`, en número y % del esperado. Es la convención del 020 y del
    dashboard (`vistaDeCohorteActiva`: hoy cuenta como transcurrido para el esperado y como restante para la
    compensación). Con ella el ejemplo de Dani del miércoles da 2,33 por día en la semana, no 3,5: Dani contó

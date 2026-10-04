@@ -206,7 +206,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 137 | [Toda cifra abre su lista](./137-toda-cifra-abre-su-lista.md) | 136 | done · 1-oct · Alejo · caja, shows, agendas, cierres y leads; "todos" en la consulta, la pantalla es del 095 |
 | [x] | 138 | [Deals creados contra agendas](./138-deals-creados-contra-agendas.md) | 136 | done · 1-oct · Alejo · acumulado por hábil A contra B en el dashboard; `deals_creados` y `agendas_creadas` abren su lista |
 | [x] | 141 | [Filtros de fecha relativos en las listas](./141-filtros-de-fecha-relativos-en-listas.md) | 136 | done · 1-oct · Alejo · deals por creado, actividad y cierre; leads por creado y último envío; selector del 136 en modo solo A |
-| [ ] | 146 | [Meta del mes y página de Metas](./146-meta-del-mes-y-pagina-de-metas.md) | 136 | todo · O5 · M3 · 4-oct: QM-6 (pareja por hábil) y QM-7 (cuenta a la cohorte del deal) cerradas por Mani |
+| [x] | 146 | [Meta del mes y página de Metas](./146-meta-del-mes-y-pagina-de-metas.md) | 136 | done · `cp-20261004-3` · O5 · M3 · meta del mes pareja por hábil, la venta cuenta a la cohorte del deal, hoy cuenta como transcurrido (Mani, 4-oct); página `/p/[programa]/metas`; deuda: ventas por cohorte sin lista |
 | [ ] | 147 | [Alertas por persistencia](./147-alertas-por-persistencia.md) | 136 | todo · 4-oct: QM-11 cerrada (solo las métricas del semáforo, DP-24); QD-6: 5 hábiles, configurable · NC2 carril Alejo |
 | [ ] | 148 | [Las secciones del dashboard](./148-las-secciones-del-dashboard.md) | 142, 095, 137 | todo · O5 · M1 · deps cumplidas el 2-oct; va después del 143 (el 128 ya fijó las alertas) |
 | [-] | 158 | [El reporte del día del closer sale del CRM](./158-el-reporte-del-dia-del-closer.md) | 156, 157 | descartado · 4-oct (Mani): el reporte del día ya está en Mi espacio › Métricas con el periodo en "hoy"; medir objeciones era sobrediseño |
@@ -287,7 +287,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 184 | [Leads: envíos desplegables, y los duplicados se deciden donde se trabaja](./184-leads-envios-y-duplicados.md) | · | done · `cp-20261004-1` · 4-oct · envíos desplegables, separar abre el deal del lead nuevo, duplicado decidido en la ficha; recorrido hecho |
 | [x] | 167 | [Quién cobró es una FK, y Facturación clara](./167-quien-cobro-es-una-fk.md) | · | done · `cp-20261004-1` · 4-oct · `abonos.registrado_por_user_id` (0065), `closer_id` opcional, Facturación A-15 a A-17, fuera `buscar-llamada.ts` |
 | [x] | 186 | [Los duplicados: cada closer decide solo los de sus deals, y la lista no crece](./186-duplicados-solo-de-mis-deals.md) | 184 | done · `cp-20261004-1` · 4-oct · cada closer ve y decide solo los duplicados de sus deals (forjado: rechazo sin escribir), paginados; recorrido hecho |
-| [ ] | 185 | [Pantalla fija en Leads, Calls, Inbox y Students](./185-pantalla-fija-en-toda-la-app.md) | 181, 183, 184, 186 | todo · O5 · S5 (pasa de la O4) · arranca con la reorganización de Mani |
+| [x] | 185 | [Pantalla fija en Leads, Calls, Inbox y Students](./185-pantalla-fija-en-toda-la-app.md) | 181, 183, 184, 186 | done · `cp-20261004-3` · O5 · S5 · tabla aprobada por Mani; Calls de a 50, pestañas en Inbox y Leads, Students compacto; textos de Programa (A-88). Suelto: `avisoDelFormulario` sin uso |
 
 # Pasos y tareas sin ticket
 
