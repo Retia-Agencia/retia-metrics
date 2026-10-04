@@ -1,5 +1,8 @@
+import { BookOpen } from "lucide-react";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ETIQUETA_ROL, type Rol } from "@/lib/auth/roles";
 
@@ -37,6 +40,16 @@ export function PerfilDeMiEspacio({
             {ETIQUETA_ROL[rol]}
           </Badge>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          nativeButton={false}
+          render={<a href="/manual" target="_blank" rel="noopener noreferrer" />}
+          className="ml-auto text-muted-foreground"
+        >
+          <BookOpen aria-hidden />
+          Manual de uso
+        </Button>
       </CardContent>
     </Card>
   );
