@@ -102,7 +102,7 @@ function textoDelArbol(nodo: unknown): string {
 
 /**
  * Busca en el árbol de elementos el PRIMER componente cuyo `type` se llama `nombre`
- * (p. ej. `TabCanales`, `TabPorDecidir`, `TabPendientes`). Las secciones de Mi espacio son
+ * (p. ej. `TabCanales`, `TabPorDecidir`, `TabAtencion`). Las secciones de Mi espacio son
  * elementos perezosos: no se ejecutan al correr la página, así que se identifican por el
  * nombre de su función. Devuelve `null` si no aparece.
  */
@@ -245,29 +245,49 @@ describe("/mi-espacio (ticket 172)", () => {
     auth.mockResolvedValue(sesionGerente);
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar();
-    expect(tieneComponente(arbol, "TabPendientes")).toBe(false);
+    expect(tieneComponente(arbol, "TabAtencion")).toBe(false);
     expect(tieneComponente(arbol, "TabMisDeals")).toBe(false);
     expect(tieneComponente(arbol, "TabCanales")).toBe(false);
   });
 
-  it("un closer que forja ?tab=canales NO ve Canales: cae en su primera sección (Pendientes)", async () => {
+  it("un closer que forja ?tab=deals cae en Necesita atención", async () => {
     membresiasConCalendlyDe.mockResolvedValue([
       { id: "m-a", userId: "u-closer", usuario: "Nicolás", emailUsuario: "nico@x.co", programId: "p-a", calendlyEmail: null },
     ]);
     programasVisibles.mockResolvedValue([PROG_A]);
-    const arbol = await renderizar({ tab: "canales" });
+    const arbol = await renderizar({ tab: "deals" });
     expect(tieneComponente(arbol, "TabCanales")).toBe(false);
-    expect(tieneComponente(arbol, "TabPendientes")).toBe(true);
+    expect(tieneComponente(arbol, "TabAtencion")).toBe(true);
   });
 
-  it("un closer que forja ?tab=por-decidir tampoco la ve: cae en Pendientes", async () => {
+  it("un closer que forja ?tab=por-decidir tampoco la ve: cae en Necesita atención", async () => {
     membresiasConCalendlyDe.mockResolvedValue([
       { id: "m-a", userId: "u-closer", usuario: "Nicolás", emailUsuario: "nico@x.co", programId: "p-a", calendlyEmail: null },
     ]);
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar({ tab: "por-decidir" });
     expect(tieneComponente(arbol, "TabPorDecidir")).toBe(false);
-    expect(tieneComponente(arbol, "TabPendientes")).toBe(true);
+    expect(tieneComponente(arbol, "TabAtencion")).toBe(true);
+  });
+
+  it("Mis métricas usa el closer de la sesión efectiva, no uno de la URL", async () => {
+    membresiasConCalendlyDe.mockResolvedValue([
+      { id: "m-a", userId: "u-closer", usuario: "Nicolás", emailUsuario: "nico@x.co", programId: "p-a", calendlyEmail: null },
+    ]);
+    programasVisibles.mockResolvedValue([PROG_A]);
+    programaVisiblePorSlug.mockResolvedValue(PROG_A);
+    const arbol = await renderizar({ tab: "metricas", programa: "programa-a", closer: "forjado" });
+    expect(tieneComponente(arbol, "TabMetricas")).toBe(true);
+    expect(programaVisiblePorSlug).toHaveBeenCalledWith("u-closer", "closer", "programa-a");
+  });
+
+  it("Mis métricas devuelve 404 si el closer pide un programa sin membresía", async () => {
+    membresiasConCalendlyDe.mockResolvedValue([
+      { id: "m-a", userId: "u-closer", usuario: "Nicolás", emailUsuario: "nico@x.co", programId: "p-a", calendlyEmail: null },
+    ]);
+    programasVisibles.mockResolvedValue([PROG_A]);
+    programaVisiblePorSlug.mockResolvedValue(null);
+    expect(await correr({ tab: "metricas", programa: "programa-ajeno" })).toBe("notFound");
   });
 
   it("el developer en vista closer ve las secciones del closer (lo del closer suplantado)", async () => {
@@ -281,7 +301,7 @@ describe("/mi-espacio (ticket 172)", () => {
     ]);
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar();
-    expect(tieneComponente(arbol, "TabPendientes")).toBe(true);
+    expect(tieneComponente(arbol, "TabAtencion")).toBe(true);
     expect(tieneComponente(arbol, "TabPorDecidir")).toBe(false);
   });
 
@@ -294,7 +314,7 @@ describe("/mi-espacio (ticket 172)", () => {
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar();
     expect(tieneComponente(arbol, "TabPorDecidir")).toBe(true);
-    expect(tieneComponente(arbol, "TabPendientes")).toBe(false);
+    expect(tieneComponente(arbol, "TabAtencion")).toBe(false);
   });
 
   it("el developer en vista todo ve el mensaje que lo explica (no hay sección propia)", async () => {
@@ -306,7 +326,7 @@ describe("/mi-espacio (ticket 172)", () => {
     const texto = textoDelArbol(arbol);
     expect(texto).toContain("Ver como closer");
     expect(texto).toContain("según su rol");
-    expect(tieneComponente(arbol, "TabPendientes")).toBe(false);
+    expect(tieneComponente(arbol, "TabAtencion")).toBe(false);
     expect(tieneComponente(arbol, "TabPorDecidir")).toBe(false);
   });
 });

@@ -23,10 +23,8 @@ import { esAdministrador, manejaPauta, trabajaLeads } from "@/lib/auth/roles";
 
 /** El id de una sección: también el valor de `?tab=` en la URL. */
 export type SeccionId =
-  | "pendientes"
-  | "deals"
-  | "llamadas"
-  | "students"
+  | "atencion"
+  | "metricas"
   | "canales"
   | "por-decidir";
 
@@ -41,7 +39,7 @@ export interface SeccionMiEspacio {
 
 /**
  * El catálogo, en orden de aparición. Una sección por capacidad:
- *  - Las cuatro de quien trabaja leads (closer, setter): el trabajo diario de un closer.
+ *  - Las dos de quien trabaja leads: atención y métricas personales.
  *  - `canales` para quien maneja pauta sin administrar ni trabajar leads (paid trafficker).
  *  - `por-decidir` para quien administra sin trabajar leads (gerente): la operación del CRM
  *    que le toca decidir, NUNCA los deals de los closers.
@@ -53,26 +51,14 @@ export interface SeccionMiEspacio {
  */
 export const SECCIONES: readonly SeccionMiEspacio[] = [
   {
-    id: "pendientes",
-    etiqueta: "Pendientes",
+    id: "atencion",
+    etiqueta: "Necesita atención",
     habilita: (rol) => trabajaLeads(rol),
     usaSelectorDePrograma: true,
   },
   {
-    id: "deals",
-    etiqueta: "Mis deals",
-    habilita: (rol) => trabajaLeads(rol),
-    usaSelectorDePrograma: true,
-  },
-  {
-    id: "llamadas",
-    etiqueta: "Mis llamadas",
-    habilita: (rol) => trabajaLeads(rol),
-    usaSelectorDePrograma: true,
-  },
-  {
-    id: "students",
-    etiqueta: "Mis students",
+    id: "metricas",
+    etiqueta: "Mis métricas",
     habilita: (rol) => trabajaLeads(rol),
     usaSelectorDePrograma: true,
   },

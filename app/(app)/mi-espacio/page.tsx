@@ -10,16 +10,15 @@ import { db } from "@/lib/db";
 import { membresiasConCalendlyDe } from "@/lib/catalogo/usuarios";
 import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
 import { programasActivos } from "@/lib/queries/programas";
+import { hoyEnBogota } from "@/lib/format";
 import { seccionPedida, seccionesDeRol, type SeccionMiEspacio } from "@/lib/mi-espacio/secciones";
 import { PageShell } from "@/components/page-shell";
 import { PerfilDeMiEspacio } from "@/components/mi-espacio/perfil-de-mi-espacio";
 import { TabsDeMiEspacio } from "@/components/mi-espacio/tabs-de-mi-espacio";
 import { CalendlyMembresias } from "@/components/calendly-membresias";
 import { asignarMiCalendlyAccion } from "./acciones";
-import { TabPendientes } from "@/components/mi-espacio/tab-pendientes";
-import { TabMisDeals } from "@/components/mi-espacio/tab-mis-deals";
-import { TabMisLlamadas } from "@/components/mi-espacio/tab-mis-llamadas";
-import { TabMisStudents } from "@/components/mi-espacio/tab-mis-students";
+import { TabAtencion } from "@/components/mi-espacio/tab-atencion";
+import { TabMetricas } from "@/components/mi-espacio/tab-metricas";
 import { TabCanales } from "@/components/mi-espacio/tab-canales";
 import { TabPorDecidir } from "@/components/mi-espacio/tab-por-decidir";
 
@@ -43,7 +42,7 @@ function uno(value: string | string[] | undefined): string | undefined {
  *    `lib/mi-espacio/secciones.ts` (nunca `rol === "..."`, ADR 0025).
  *
  * Quién ve qué, por capacidad:
- *  - `trabajaLeads` (closer, setter): Pendientes, Mis deals, Mis llamadas, Mis students,
+ *  - `trabajaLeads` (closer, setter): Necesita atención y Mis métricas,
  *    con selector de programa y, sin membresías, el mensaje A-04. El Calendly y ese mensaje
  *    SOLO aplican a quien trabaja leads.
  *  - `manejaPauta` sin administrar ni trabajar leads (paid trafficker): Canales. Sin
@@ -139,10 +138,12 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   if (seccion.usaSelectorDePrograma) {
     visibles = await programasVisibles(userId, rol);
     const pedido = uno(query.programa);
-    programa = pedido
+    programa = seccion.id === "metricas" && pedido === "todos"
+      ? null
+      : pedido
       ? await programaVisiblePorSlug(userId, rol, pedido)
       : (visibles[0] ?? null);
-    if (!programa) notFound();
+    if (!programa && !(seccion.id === "metricas" && pedido === "todos" && visibles.length > 0)) notFound();
   }
 
   return (
@@ -153,11 +154,11 @@ export default async function MiEspacioPage({ searchParams }: Props) {
 
         <div className="space-y-4">
           <TabsDeMiEspacio secciones={secciones} actual={seccion.id} slug={programa?.slug ?? null} />
-          {programa ? (
-            <SelectorDePrograma programas={visibles} actual={programa.slug} tab={seccion.id} />
+          {seccion.usaSelectorDePrograma ? (
+            <SelectorDePrograma programas={visibles} actual={programa?.slug ?? "todos"} tab={seccion.id} busqueda={query} />
           ) : null}
 
-          {Seccion({ seccion, programa, userId, rol, busqueda: query })}
+          {Seccion({ seccion, programa, programas: visibles, userId, rol, closerId: session.user.closerId, busqueda: query })}
         </div>
       </div>
     </PageShell>
@@ -166,31 +167,36 @@ export default async function MiEspacioPage({ searchParams }: Props) {
 
 /**
  * El elemento de la sección elegida (función, no componente, a propósito: así el árbol de
- * la página contiene el elemento real de la tab —`<TabPendientes/>`, `<TabCanales/>`…— y no
+ * la página contiene el elemento real de la tab —`<TabAtencion/>`, `<TabCanales/>`…— y no
  * un envoltorio opaco). Las de programa reciben el programa ya resuelto.
  */
 function Seccion({
   seccion,
   programa,
+  programas,
   userId,
   rol,
+  closerId,
   busqueda,
 }: {
   seccion: SeccionMiEspacio;
   programa: { id: string; slug: string } | null;
+  programas: { id: string; slug: string; nombre: string }[];
   userId: string;
   rol: Rol;
+  closerId: string | null | undefined;
   busqueda: Record<string, string | string[] | undefined>;
 }): ReactElement | null {
   switch (seccion.id) {
-    case "pendientes":
-      return programa ? <TabPendientes programId={programa.id} slug={programa.slug} userId={userId} rol={rol} /> : null;
-    case "deals":
-      return programa ? <TabMisDeals programId={programa.id} slug={programa.slug} userId={userId} rol={rol} busqueda={busqueda} /> : null;
-    case "llamadas":
-      return programa ? <TabMisLlamadas programId={programa.id} slug={programa.slug} userId={userId} rol={rol} /> : null;
-    case "students":
-      return programa ? <TabMisStudents programId={programa.id} slug={programa.slug} userId={userId} /> : null;
+    case "atencion":
+      return programa ? <TabAtencion programId={programa.id} slug={programa.slug} userId={userId} rol={rol} /> : null;
+    case "metricas": {
+      if (!closerId) throw new Error("La sesión efectiva no tiene closerId para mostrar Mis métricas.");
+      const seleccionado = programa
+        ? { ...programa, nombre: programas.find((p) => p.id === programa.id)?.nombre ?? programa.slug }
+        : null;
+      return <TabMetricas programas={programas} programa={seleccionado} closerId={closerId} hoy={hoyEnBogota()} busqueda={busqueda} />;
+    }
     case "canales":
       return <TabCanales />;
     case "por-decidir":
@@ -200,7 +206,7 @@ function Seccion({
 
 /** Lo que ve el dueño (acceso total), que no tiene un espacio propio. */
 const MENSAJE_DEL_DUENO =
-  "Mi espacio muestra el trabajo de una persona según su rol: los pendientes, deals, llamadas y students de un closer, lo que tiene por decidir un gerente, los canales de un paid trafficker. Como tienes acceso total, no tienes uno propio; cambia la vista a \"Como gerente\" o usa \"Ver como closer\" en el menú de tu usuario.";
+  "Mi espacio muestra el trabajo de una persona según su rol: lo que necesita atención y las métricas de un closer, lo que tiene por decidir un gerente, los canales de un paid trafficker. Como tienes acceso total, no tienes uno propio; cambia la vista a \"Como gerente\" o usa \"Ver como closer\" en el menú de tu usuario.";
 
 /** El Calendly por programa (componente del 169), solo de los programas con membresía. */
 async function bloqueCalendly(
@@ -226,18 +232,30 @@ function SelectorDePrograma({
   programas,
   actual,
   tab,
+  busqueda,
 }: {
   programas: readonly { slug: string; nombre: string }[];
   actual: string;
   tab: string;
+  busqueda: Record<string, string | string[] | undefined>;
 }) {
-  if (programas.length <= 1) return null;
+  if (programas.length <= 1 && tab !== "metricas") return null;
+  const href = (programa: string) => {
+    const q = new URLSearchParams();
+    for (const [clave, valor] of Object.entries(busqueda)) if (typeof valor === "string") q.set(clave, valor);
+    q.set("programa", programa);
+    q.set("tab", tab);
+    return `/mi-espacio?${q}`;
+  };
+  const opciones = tab === "metricas"
+    ? [...programas, { slug: "todos", nombre: "Todos" }]
+    : programas;
   return (
     <nav className="flex flex-wrap gap-2" aria-label="Programa">
-      {programas.map((p) => (
+      {opciones.map((p) => (
         <Link
           key={p.slug}
-          href={`/mi-espacio?programa=${p.slug}&tab=${tab}`}
+          href={href(p.slug)}
           aria-current={p.slug === actual ? "page" : undefined}
           className={
             p.slug === actual

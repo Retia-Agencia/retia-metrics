@@ -232,3 +232,8 @@ export function primerosMovimientosDeVenta(db: Db) {
     .where(esMovimientoDeVenta())
     .orderBy(dealEtapaHistorial.dealId, dealEtapaHistorial.fecha, dealEtapaHistorial.id);
 }
+
+/** Las citas cuyo resultado explícito fue no show, dentro del universo común de llamadas. */
+export function filtroNoShows(alcance: Alcance) {
+  return and(filtroLlamadas(alcance), eq(calls.resultado, "no_show"));
+}

@@ -11,10 +11,10 @@ import { atendidaSinGrain } from "@/lib/queries/sin-grain";
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaLead, filtroAgendasCreadas,
   filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
-  primerosMovimientosDeVenta,
+  primerosMovimientosDeVenta, filtroNoShows,
 } from "@/lib/queries/metricas-filtros";
 
-export type Metrica = "caja" | "agendas" | "shows" | "shows_sin_grain" | "cierres" | "cortesias" | "leads" | "deals_creados" | "agendas_creadas";
+export type Metrica = "caja" | "agendas" | "shows" | "no_shows" | "shows_sin_grain" | "cierres" | "cortesias" | "leads" | "deals_creados" | "agendas_creadas";
 
 /** Las métricas que no se atribuyen a un closer: con closer no hay cifra ("—"), nunca el programa entero. */
 export const METRICAS_SIN_CLOSER: readonly Metrica[] = ["leads", "deals_creados", "agendas_creadas"];
@@ -76,6 +76,7 @@ function fuenteDe(metrica: Metrica): FuenteDeMetrica {
       return { id: abonos.id, fecha: sql<string>`${abonos.fecha}`, columnaCloser: abonos.closerId };
     case "agendas":
     case "shows":
+    case "no_shows":
     case "shows_sin_grain":
       return { id: calls.id, fecha: fechaAnclaCall(), columnaCloser: calls.closerId };
     case "leads":
@@ -163,6 +164,7 @@ function consultaDe(
         );
     case "agendas":
     case "shows":
+    case "no_shows":
     case "shows_sin_grain":
       return db
         .select(campos)
@@ -172,6 +174,7 @@ function consultaDe(
           and(
             filtroLlamadas(alcance),
             metrica === "shows" ? llamadaOcurrio() : undefined,
+            metrica === "no_shows" ? filtroNoShows(alcance) : undefined,
             metrica === "shows_sin_grain" ? atendidaSinGrain() : undefined,
             vigente(calls),
             vigente(deals),

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { confirmarCorreoAccion, separarCorreoAccion, type ResultadoLeads } from "@/app/(app)/p/[programa]/leads/acciones";
+import { enlaceConVuelta } from "@/lib/navegacion/volver";
 
 /**
  * Los posibles duplicados de la tab Leads (ticket 072, ADR 0035): correos que entraron por un
@@ -31,11 +32,14 @@ export function PosiblesDuplicados({
   filas,
   puedeGestionar,
   slug,
+  origen,
 }: {
   filas: DuplicadoVista[];
   puedeGestionar: boolean;
   /** El programa de la tab: la ficha del lead vive dentro de el (ticket 073). */
   slug: string;
+  /** Vuelta a la pantalla que abrió la ficha; ausente conserva el enlace histórico. */
+  origen?: string;
 }) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
@@ -71,7 +75,7 @@ export function PosiblesDuplicados({
               <li key={f.contactoId} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                 <div className="min-w-0 space-y-1">
                   <Link
-                    href={`/p/${slug}/leads/${f.leadId}`}
+                    href={enlaceConVuelta(`/p/${slug}/leads/${f.leadId}`, origen ?? "")}
                     className="block truncate font-medium text-marca-texto underline-offset-2 outline-none hover:underline focus-visible:underline"
                   >
                     {f.nombreLead ?? f.correoPrincipal}

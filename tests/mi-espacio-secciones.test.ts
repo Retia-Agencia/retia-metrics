@@ -15,8 +15,8 @@ import type { Rol } from "@/lib/auth/roles";
 const ids = (rol: Rol | null): SeccionId[] => seccionesDeRol(rol).map((s) => s.id);
 
 describe("seccionesDeRol: qué ve cada rol", () => {
-  it("el closer ve las cuatro secciones de quien trabaja leads, en orden", () => {
-    expect(ids("closer")).toEqual(["pendientes", "deals", "llamadas", "students"]);
+  it("el closer ve atención y métricas, en orden", () => {
+    expect(ids("closer")).toEqual(["atencion", "metricas"]);
   });
 
   it("el paid trafficker ve SOLO Canales", () => {
@@ -27,13 +27,13 @@ describe("seccionesDeRol: qué ve cada rol", () => {
     expect(ids("gerente")).toEqual(["por-decidir"]);
   });
 
-  it("el developer (acceso total) cae en las cuatro de quien trabaja leads", () => {
+  it("el developer (acceso total) cae en las dos de quien trabaja leads", () => {
     // El developer responde `true` a `trabajaLeads`, `manejaPauta` y `esAdministrador`.
     // `canales` exige `!esAdministrador && !trabajaLeads` y `por-decidir` exige
     // `!trabajaLeads`: ambas lo excluyen, así que por registro le quedan las del closer.
     // En la práctica la página NO las usa en vista `todo`: `esAccesoTotal` corta antes y
     // muestra el mensaje; en vista `gerente`/`closer` el rol de vista ya es ese rol.
-    expect(ids("developer")).toEqual(["pendientes", "deals", "llamadas", "students"]);
+    expect(ids("developer")).toEqual(["atencion", "metricas"]);
   });
 
   it("sin rol no hay secciones", () => {
@@ -43,31 +43,31 @@ describe("seccionesDeRol: qué ve cada rol", () => {
   it("ninguna de las secciones del closer se solapa con las de pauta o gerencia", () => {
     expect(ids("closer")).not.toContain("canales");
     expect(ids("closer")).not.toContain("por-decidir");
-    expect(ids("gerente")).not.toContain("pendientes");
-    expect(ids("paid_trafficker")).not.toContain("pendientes");
+    expect(ids("gerente")).not.toContain("atencion");
+    expect(ids("paid_trafficker")).not.toContain("atencion");
   });
 });
 
 describe("seccionPedida: la pedida si el rol la cumple, si no la primera", () => {
-  it("el closer sin ?tab cae en su primera sección (Pendientes)", () => {
-    expect(seccionPedida("closer", undefined)?.id).toBe("pendientes");
+  it("el closer sin ?tab cae en su primera sección (Necesita atención)", () => {
+    expect(seccionPedida("closer", undefined)?.id).toBe("atencion");
   });
 
-  it("el closer puede pedir una sección suya (Mis deals)", () => {
-    expect(seccionPedida("closer", "deals")?.id).toBe("deals");
+  it("el closer puede pedir Mis métricas", () => {
+    expect(seccionPedida("closer", "metricas")?.id).toBe("metricas");
   });
 
   it("un closer que forja ?tab=canales NO la ve: cae en la primera suya", () => {
-    expect(seccionPedida("closer", "canales")?.id).toBe("pendientes");
+    expect(seccionPedida("closer", "canales")?.id).toBe("atencion");
   });
 
   it("un closer que forja ?tab=por-decidir tampoco: cae en la primera suya", () => {
-    expect(seccionPedida("closer", "por-decidir")?.id).toBe("pendientes");
+    expect(seccionPedida("closer", "por-decidir")?.id).toBe("atencion");
   });
 
   it("el paid trafficker siempre cae en Canales, aunque pida otra", () => {
     expect(seccionPedida("paid_trafficker", undefined)?.id).toBe("canales");
-    expect(seccionPedida("paid_trafficker", "pendientes")?.id).toBe("canales");
+    expect(seccionPedida("paid_trafficker", "atencion")?.id).toBe("canales");
   });
 
   it("el gerente siempre cae en Por decidir, aunque pida otra", () => {
@@ -76,7 +76,7 @@ describe("seccionPedida: la pedida si el rol la cumple, si no la primera", () =>
   });
 
   it("sin rol no hay sección que mostrar", () => {
-    expect(seccionPedida(null, "pendientes")).toBeNull();
+    expect(seccionPedida(null, "atencion")).toBeNull();
   });
 });
 
@@ -85,7 +85,7 @@ describe("el contrato del registro", () => {
     const porId = new Map(SECCIONES.map((s) => [s.id, s]));
     expect(porId.get("canales")?.usaSelectorDePrograma).toBe(false);
     expect(porId.get("por-decidir")?.usaSelectorDePrograma).toBe(true);
-    for (const id of ["pendientes", "deals", "llamadas", "students"] as const) {
+    for (const id of ["atencion", "metricas"] as const) {
       expect(porId.get(id)?.usaSelectorDePrograma).toBe(true);
     }
   });

@@ -72,6 +72,8 @@ export function CifraConLista({ titulo, detalle, children }: Props) {
 function Desglose({ titulo, lineas, total }: { titulo: string; lineas: LineaDeDesglose[]; total: number }) {
   // Solo la caja trae montos: sin ellos la columna sobra y le quita ancho a la etiqueta.
   const conMonto = lineas.some((linea) => linea.caja.length > 0);
+  // Sin líneas no hay desglose que mostrar (Mi espacio no expone a los demás closers).
+  if (lineas.length === 0) return null;
 
   return (
     <section className="space-y-1">

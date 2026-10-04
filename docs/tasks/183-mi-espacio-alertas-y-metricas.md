@@ -3,7 +3,7 @@ id: 183
 etapa: O4
 serves: "docs/anotaciones.md A-87, A-90 (la mitad de Mi espacio); ADR 0023, 0048, 0067, 0077"
 depends: []
-status: todo
+status: done
 ---
 
 # 183 — Mi espacio: lo que necesita atención y las métricas de quien lo mira
@@ -57,3 +57,33 @@ el 095).
 - Las cifras cuadran con el dashboard filtrado por el mismo closer (test).
 - `npm run build` en verde; recorrido en `dev:local` como closer, gerente con "Ver como" y developer, escritorio y
   375 px, consola abierta.
+
+## Anotadas para después
+
+- Agendas futuras contra agendas pasadas.
+- Resultado de agendas sin cerrar, destacado en rojo.
+- Tiempo hasta el primer contacto.
+
+## Estado
+
+Hecho el 3-oct-2026, sin migración ni cambios de esquema.
+
+## Nota de cierre
+
+Mi espacio del closer quedó reducido a **Necesita atención** y **Mis métricas**. La primera reutiliza el Inbox
+personal y agrega los posibles duplicados; como `PosibleDuplicado` no contiene dueño ni deal, ese bloque muestra
+la lista del programa. La segunda reutiliza la vista del dashboard filtrada por el `closerId` de la sesión efectiva,
+las consultas de caja y comisión, el selector de periodo y las listas existentes con código opaco. Se agregó solo
+la pregunta que faltaba, `filtroNoShows`, al final de `metricas-filtros.ts`. En “Todos” el tipo permite sumar
+únicamente conteos y caja por moneda; tasa de cierre y comisión permanecen por programa.
+
+**Verificación (3-oct).** Typecheck, lint y `npm run build` en verde; los 6 archivos de tests del ticket pasaron
+(126). Recorrido en `dev:local` como closer (Carlos): Atención, Métricas por programa y en "Todos" con el periodo
+Este mes, diálogo de cifra y "Ver la lista completa" con el closer como código opaco (200), `?tab=deals` y un slug
+ajeno responden 404, 375 px sin scroll horizontal, consola sin errores. **No se recorrió** gerente con "Ver como"
+ni developer en pantalla (esas secciones no cambian; las cubren los tests de secciones por rol).
+
+**Fuera de la lista de archivos de la ola (tocados con motivo):** `components/leads/posibles-duplicados.tsx`
+(prop opcional `origen`, para que la ficha vuelva a Mi espacio; del 184, rebasa quien llegue segunda),
+`components/cifra-con-lista.tsx` (un desglose vacío no pinta su título; Mi espacio no expone a otros closers),
+`app/(app)/p/[programa]/dashboard/lista/page.tsx` y `lib/queries/metricas-con-filas.ts` (métrica `no_shows`).
