@@ -138,7 +138,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 134 | [El ticket base es de la cohorte y `productos` se retira](./134-ticket-base-de-la-cohorte-y-adios-productos.md) | 132 | done · 1-oct · Mani · 0056 en producción (sin `productos`); descuento contra la cohorte, deals nacen en la activa, cambios de una venta con motivo; 214 deals movidos a la C3 |
 | [ ] | 144 | [Próxima fecha de pago y cartera](./144-proxima-fecha-de-pago-y-cartera.md) | 132, QM-3, GC-17 | bloqueado |
 | [x] | 166 | [Las plataformas de pago de un programa, a la vista](./166-plataformas-de-pago-visibles.md) | 100 | done · `cp-20261003-1` · 3-oct (S4) · bloque "Plataformas de pago" en la ficha del programa y aviso en el abono; recorrido hecho |
-| [ ] | 167 | [Quién cobró es una FK a `users`, y un usuario nuevo no necesita `closer_id`](./167-quien-cobro-es-una-fk.md) | · | todo · 2-oct · A-51 · migración (cola) · semana 1; el 159 queda con lo del corte |
+| [ ] | 167 | [Quién cobró es una FK a `users`, y un usuario nuevo no necesita `closer_id`](./167-quien-cobro-es-una-fk.md) | · | todo · **ola O4, S5** (3-oct: ampliado con A-15 a A-17 y K-3) · migración (cola) · el 159 queda con lo del corte |
 
 ## 6 · Students y onboarding
 
@@ -273,6 +273,20 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 081 | [COP → USD a la tasa del día](./081-cop-a-usd-en-la-migracion.md) (E7-5) | 078 | descartado · 28-sep (Mani): *"solo usamos USD aquí"*. No hay conversión ni tasa ni marca de abono convertido; un monto que aparezca en COP al barrer se lista como rareza (080) y no se convierte |
 | [ ] | 082 | [Apagar las pestañas de gestión](./082-apagar-las-pestanas-de-gestion.md) (E7-6) | 079, 080 | todo · lo hace Mani |
 | [x] | 127 | [Deshacer la migración de un programa por su huella](./127-deshacer-la-migracion-por-huella.md) | 078 | done · 30-sep · Alejo (`87625fe`) · `npm run migracion:deshacer -- --programa <slug> [--aplicar]`: la reversa nivel 3 del corte (`operations.md` §12.3), probada en PGlite y en la base local; se niega sin borrar si alguien trabajó encima |
+
+## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
+
+6 tickets, 6 abiertos. Salen del recorrido 8 de Mani (`docs/anotaciones.md` A-82 a A-92). Reparto en
+[`plan-reparto.md`](../plan-reparto.md) §4, ola O4. Lo de código que falta para operar (el 167) va dentro.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 181 | [Deals: tablero fijo, dinero por etapa, orden, cohorte y tarjeta clicable](./181-deals-tablero-fijo.md) | · | todo · S1 · parte 1 |
+| [ ] | 182 | [Transición en dos columnas, y corregir el último movimiento](./182-transicion-en-dos-columnas-y-corregir.md) | · | todo · S2 · parte 1 · migración (enum de motivos) |
+| [ ] | 183 | [Mi espacio: lo que necesita atención y las métricas de quien lo mira](./183-mi-espacio-alertas-y-metricas.md) | · | todo · S3 · parte 1 |
+| [ ] | 184 | [Leads: envíos desplegables, y los duplicados se deciden donde se trabaja](./184-leads-envios-y-duplicados.md) | · | todo · S4 · parte 1 |
+| [ ] | 167 | [Quién cobró es una FK, y Facturación clara](./167-quien-cobro-es-una-fk.md) | · | todo · S5 · parte 1 · migración |
+| [ ] | 185 | [Pantalla fija en toda la app](./185-pantalla-fija-en-toda-la-app.md) | 181, 183, 184 | todo · S6 · parte 2 |
 
 # Pasos y tareas sin ticket
 

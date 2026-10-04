@@ -120,6 +120,45 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ## 4. La ola vigente y el mapa de etapas
 
+### 🌊 Ola O4 · la operación sin fricción · abierta el 3-oct (noche)
+
+**La meta (Mani, 3-oct noche):** que operar el CRM no canse. Diez notas de Mani usándolo (`anotaciones.md` recorrido 8,
+A-82 a A-92): pantallas fijas con el scroll dentro de cada sección, el Kanban con dinero por etapa, corregir un
+movimiento equivocado, Mi espacio como lugar de alertas y métricas del closer, y los duplicados decididos donde se
+trabaja. **Lo de código que falta para operar entra aquí** (el 167). El frente A de O2 (Memorable) sigue mandando
+y no es código: lo hace Mani (A.2 a A.10).
+
+| Parte | Sesión | Ticket | Notas | Archivos que son suyos | Migración |
+|---|---|---|---|---|---|
+| 1 | **S1** | [181] Deals: tablero fijo | 1, 2, 3 · A-07, A-08 | `deals/page.tsx`, `tablero-kanban.tsx`, `tarjeta-deal.tsx`, `filtro-kanban.tsx`, `lib/queries/kanban.ts`, `components/layout/pantalla-fija.tsx` (nuevo) | no |
+| 1 | **S2** | [182] Transición en dos columnas y corregir | 4, 8 | `lib/deals/etapas.ts`, `mover-etapa.ts`, `requisitos.ts`, `mapa-transiciones.ts`, `components/deals/transiciones.ts`, `dialogo-mover.tsx`, `boton-de-etapa.tsx`, `ficha-transicion.tsx`, `pregunta-de-etapa.ts`, `responder-pregunta.tsx`; `tablero-kanban.tsx` solo al final, rebasado sobre el 181 | **sí** (enum de motivos) |
+| 1 | **S3** | [183] Mi espacio: atención y métricas | 6, 9 (Mi espacio) | `app/(app)/mi-espacio/*`, `components/mi-espacio/*` | no |
+| 1 | **S4** | [184] Leads: envíos y duplicados | 9 (deal), 10 · A-92 | `components/leads/*`, `p/[programa]/leads/*`, `lib/ingesta/separar.ts`, `lib/queries/ficha-deal.ts`, `ficha-alertas.tsx` | no |
+| 1 | **S5** | [167] Quién cobró es FK, y Facturación clara | código para operar · A-15 a A-17 · K-3 | `lib/deals/abonos.ts`, `comision.ts`, `crear-a-mano.ts`, `lib/catalogo/usuarios.ts`, `usuarios-admin.tsx`, `ficha-pago.tsx` | **sí** (`abonos.registrado_por_user_id`) |
+| 2 | **S6** | [185] Pantalla fija en toda la app | 5, 7 | las páginas de `p/[programa]/*` salvo Deals, `page-shell.tsx`, `components/layout/*`, contenedores de Mi espacio y Ajustes, `programa/page.tsx`, `editar-programa.tsx` | no |
+
+**Lo compartido en la parte 1:** `lib/queries/metricas-filtros.ts` lo pueden tocar S3 y S5 (cada uno agrega, ninguno
+edita lo del otro; quien llegue segunda rebasa). `lib/queries/leads.ts` no cambia de firma (S3 importa la lista de
+duplicados; S4 solo agrega un campo opcional). `lib/db/schema.ts`: S2 (enum) y S5 (columna); las dos migraciones las
+genera y aplica la sesión central en cola, con el ok de Mani. El 185 arranca cuando 181, 183 y 184 estén en `main`, y
+primero entrega su tabla de decisiones por pantalla para que Mani la apruebe.
+
+**Cómo arranca cada sesión** (el prompt que se pega en una sesión nueva, cambiando el número):
+
+> Toma el ticket `docs/tasks/1NN-….md` de la ola O4. Lee `AGENTS.md`, `docs/plan-reparto.md` §4 (ola O4), las
+> anotaciones que cita el ticket y `docs/structure.md` §9 si toca pantallas. Trabaja en un worktree propio dentro de
+> `.claude/worktrees/`; implementa Codex por `/delegate` (effort medium) y tú revisas el diff contra el "Done cuando".
+> Toca solo los archivos que el ticket y la tabla de la ola O4 dicen que son tuyos. Antes de empujar: typecheck, lint,
+> los tests del ticket si la máquina tiene aire y `npm run build` si tocaste un componente cliente; recorrido en
+> `dev:local` con la consola abierta, haciendo clic en todo lo que se abre, y las reglas de permiso mordidas forjando la
+> petición. No corras la suite completa ni generes o apliques migraciones: entrega el cambio de `schema.ts` y avisa. No
+> toques `docs/tasks/README.md`, `docs/agents/handoff.md` ni este documento: escribe tu estado y tu nota de cierre en el
+> archivo del ticket. Ninguna escritura en producción sin el ok de Mani. Empuja a `main` nombrando tus archivos.
+
+**La sesión central** (la del 3-oct noche) revisa cada entrega en `main` contra su "Done cuando", arregla lo que haga
+falta, genera y aplica las migraciones de S2 y S5 con el ok de Mani, espera el CI, marca el checkpoint (§6), hace el
+recorrido y marca el tracker.
+
 ### 🌊 Ola O3 · menos complejidad, cada dato en su objeto · abierta y cerrada el 3-oct
 
 **La meta (Mani, 3-oct):** bajar el sobrediseño y la complejidad de operar el CRM, y centralizar lo que va junto:

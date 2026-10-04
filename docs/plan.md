@@ -46,33 +46,35 @@ el CRM y lo histórico ya migró. Los hitos intermedios están en §5.
 
 ---
 
-## 2. Dónde estamos (2-oct, medido)
+## 2. Dónde estamos (3-oct noche, medido)
 
-- **Base:** una sola, y es producción ("CRM Retia", ADR 0047 enmendado). **62 migraciones (0000 a 0061)**,
+- **Base:** una sola, y es producción ("CRM Retia", ADR 0047 enmendado). **65 migraciones (0000 a 0064)**,
   todas aplicadas. Hay base local en Docker con login local para probar pantallas (113, 069).
-- **`main`:** el último checkpoint verde es `cp-20261002-4`. En `main` sin checkpoint ni recorrido: **143,
-  152, 156 y 157**. La suite completa la corre el CI, no la máquina de nadie (`AGENTS.md`, Feedback loops).
-- **Producción:** la entrada funciona (**174 envíos en 48 h, cada uno con su deal**), pero **nadie opera
-  todavía**: 0 deals de En gestión en adelante, 0 abonos. Los closers y la cartera siguen en las hojas. Las
-  C3 de los dos programas existen y la comisión por porcentaje está cargada (10,04% y 6,67%).
-- **Cómo se trabaja:** por olas de tickets listos, varias sesiones por persona; la vigente es la **O2**
-  (`plan-reparto.md` §4).
+- **`main`:** el último checkpoint verde es `cp-20261003-8`. Las olas O2 (sesiones de código) y O3 están cerradas;
+  la vigente es la **O4** (`plan-reparto.md` §4), que sale del recorrido 8 de Mani (A-82 a A-92) y trae dentro el 167.
+- **Producción (consulta de solo lectura, 3-oct noche):** la entrada funciona (Typeform de ComunicArte 289 envíos,
+  Tactical 174, Dapta de ComunicArte 11), pero **nadie opera todavía**: 396 deals, todos en Registrado, Agendado,
+  Calificado o Contactado, y **0 abonos**. Ningún programa tiene **fuente principal** marcada (sin ella no hay links
+  de captación, ADR 0068).
+- **Memorable (arranca el lunes 5-oct) NO está listo:** el programa existe pero está **inactivo**, **sin token de
+  Calendly** y **sin cohorte**; su fuente Dapta está activa con 0 envíos; **Nicolás y Francisco no tienen cuenta**.
+  Lo que falta es configuración y lo hace Mani (frente A de O2, A.2 a A.10), no código.
 
 El estado de cada componente, en una línea:
 
 | Componente | Estado | Lo que falta, en corto |
 |---|---|---|
-| 1 · Entrada y lead | ✅ en producción | 117: anotar el primer parcial real |
-| 2 · Deal y motor de etapas | ✅ las 11 etapas de 30X | 🟡 143 y 156 (recorrido de Mani) · cortesía y alerta de tres intentos |
-| 3 · Inbox | ✅ | el hub del closer y la cola por Lead Value (075, 🔴 A-05) |
+| 1 · Entrada y lead | ✅ en producción | 117: anotar el primer parcial real · 184 duplicados donde se trabaja (y separar abre deal, A-92) |
+| 2 · Deal y motor de etapas | ✅ las 11 etapas de 30X, cortesía, tres intentos | 182 corregir el último movimiento y Transición en dos columnas · 181 Kanban fijo con dinero por etapa |
+| 3 · Inbox | ✅ · Mi espacio es el hub (172, 179) | 183 Mi espacio con alertas y métricas del closer · la cola por Lead Value |
 | 4 · Llamadas y Calendly | ✅ | 🟡 152 y 157 · Grain por API (🔴 QM-4) |
-| 5 · Dinero | ✅ valor vendido, abonos, comisión | ⛔ 144 · ❌ 035 comprobante con foto |
+| 5 · Dinero | ✅ valor vendido, abonos, comisión | 167 quién cobró es FK (O4) · ⛔ 144 · ❌ 035 comprobante con foto |
 | 6 · Students y onboarding | ✅ una marca | ⛔ 145 (rol Customer Success y cuatro pasos) |
 | 7 · Origen y atribución | ✅ canales, áreas, emparejador | 092 en curso · ❌ 086 (Mi link) |
 | 8 · Pauta | ❌ | 102, 119, 120, 122 a 125, 067; espera el token de Meta |
 | 9 · Métricas, dashboard y metas | ✅ base comercial | 148 listo · 065, 090 · ⛔ 146, 147, 158 |
-| 10 · Configuración | ✅ | programas nuevos (configuración, no código) · 149 manual por rol |
-| 11 · Plataforma | ✅ | 🔴 S1 respaldos antes del corte · R2 después del corte |
+| 10 · Configuración | ✅ | 🔴 Memorable sin montar · fuentes principales · 149 manual por rol · 185 textos de Programa |
+| 11 · Plataforma | ✅ | 🔴 S1 respaldos antes del corte · 185 pantalla fija en toda la app · R2 después del corte |
 | 12 · Migración y corte | ❌ | 078 (CA y TI) · el corte · 082 |
 
 ---
@@ -196,8 +198,10 @@ anular no es Cierre perdido; un solo deal abierto por lead (ADR 0037, 0038, 0042
   del deal (128), Atendido sin Grain (135), ficha por bloques (139), crear un deal a mano (140).
 - 🟡 **143** propiedades obligatorias en rojo por etapa · **156** Transición por etapa destino con un solo
   pop-up, el closer ve solo lo suyo. Los dos esperan checkpoint y recorrido de Mani.
-- Falta: la **marca de cortesía** (deal con 100% de descuento, ADR 0071) · la **alerta de tres intentos**
-  (ADR 0071) · **075** revisión profunda de la UI.
+- ✅ (3-oct) cortesía (160) y alerta de tres intentos (161).
+- Falta: **182** corregir el último movimiento hecho por una persona, con motivo (ADR 0078; los retrocesos que ya
+  existen: RETRO, perder y recuperar, E9, A1 y A2) y Transición en dos columnas · **181** Kanban fijo con potencial
+  y confirmado por etapa · **075** revisión profunda de la UI.
 
 ### 4.3 Inbox (la cola de trabajo)
 
@@ -362,7 +366,8 @@ El orden por sesiones vive en [`plan-reparto.md`](./plan-reparto.md) §4. En cor
 | Hito | Qué | Componentes | Termina cuando |
 |---|---|---|---|
 | ✅ A | los leads entran solos al CRM | 1 | hecho el 28-sep |
-| **O2** (vigente, prioridad) | la operación comercial lista: frente 0 (checkpoint, recorridos, 160, 161, S1, manual), **frente A: programas que nacen en el CRM (Nicolás y Francisco, antes del 5-oct)** y frente B: CA y TI con hojas (078). La lista completa: `plan-reparto.md` §4 | 2, 3, 4, 5, 10, 12 | toda la operación de entrada a student se hace en el CRM |
+| **O2** (prioridad: el frente A) | la operación comercial lista: frente 0 (checkpoint, recorridos, 160, 161, S1, manual), **frente A: programas que nacen en el CRM (Nicolás y Francisco, antes del 5-oct)** y frente B: CA y TI con hojas (078). La lista completa: `plan-reparto.md` §4 | 2, 3, 4, 5, 10, 12 | toda la operación de entrada a student se hace en el CRM |
+| **O4** (vigente) | la operación sin fricción: 181 a 185 y el 167 (`plan-reparto.md` §4) | 1, 2, 3, 5, 9, 10, 11 | las notas del recorrido 8 cerradas y recorridas |
 | **B** | el corte: los closers dejan las hojas, con capacitación. Antes: 🔴 S1 | 12 | los closers operan en el CRM |
 | **NC3** | la v1 comercial: 148, 065, 146, 147, 158, 144, 145 cuando se desbloqueen; 075 y 149 | 3, 5, 6, 9 | Gerencia ve su dashboard comercial |
 | **C** | 082: apagar las pestañas de gestión, a la semana hábil del corte | 12 | se deja de escribir en las hojas |
@@ -401,7 +406,6 @@ sigue en `git show 951b62a:docs/plan.md` §7.
 | # | Qué | Componente | Bloquea | Cuándo |
 |---|---|---|---|---|
 | S1 | 🚨 **Supabase Pro: pagar o no.** El plan gratis no trae respaldos y la única base es producción. Mientras siga abierta, un `pg_dump` el día de cada `--aplicar` | 11, 12 | el corte | antes del corte |
-| A-05 | El hub del closer: ¿Inbox ampliado con "lo mío", o un filtro fijo en cada tab? | 3 | 075 | con el 075 |
 | QM-3 · GC-17 | La próxima fecha de pago al lado de la fecha límite (recomendación: al lado), y cómo pactan los abonos los closers | 5 | 144 | NC3 |
 | QM-4 | La API de Grain: después de v1 o nunca | 4 | · | después del corte |
 | QM-5 | Los cuatro pasos del onboarding: fijos o filas por programa (recomendación: filas) | 6 | 145 | NC3 |

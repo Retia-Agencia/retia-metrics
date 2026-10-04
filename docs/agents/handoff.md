@@ -9,12 +9,12 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia. PRIORIDAD: Memorable (Nicolás y Francisco) arranca el lunes 5-oct. La ola O3
-(simplificación, ADR 0077) quedó cerrada el 3-oct en cp-20261003-7: lo de un programa vive en la tab Programa, lo de
-una persona en Mi espacio (curado por rol), Ajustes solo con lo que no es de nadie. Lee AGENTS.md y
-docs/plan-reparto.md §4, ola O2: frente 0 y frente A (A.2 a A.10) siguen abiertos, y el 167 (quién cobró es FK,
-migración con el ok de Mani). De Mani: el frente A, S1 Supabase Pro, y recorrer como closer 143, 156, 157, 162 a 166
-y la lista del 153. Abiertos de producto: 102 (Dashboard del paid trafficker), 075, 078 y el corte.
+Seguimos con el CRM de Retia. PRIORIDAD: Memorable (Nicolás y Francisco) arranca el lunes 5-oct y NO está montado
+(inactivo, sin token de Calendly, sin cohorte, sin cuentas de los closers: plan.md §2); es configuración de Mani
+(plan-reparto §4, O2 frente A). La ola vigente de código es la O4 (plan-reparto §4): 181 a 184 y el 167 en la parte 1,
+en paralelo; el 185 en la parte 2. Esta sesión es la CENTRAL: revisa cada entrega contra su "Done cuando", arregla,
+genera y aplica las migraciones de S2 (182) y S5 (167) con el ok de Mani, espera el CI, marca el checkpoint, recorre y
+marca el tracker. De Mani además: S1 Supabase Pro y la fuente principal de cada programa.
 
 Reglas: implementa un agente (Codex o Kiro) y la sesion principal revisa y recorre; migraciones solo con el ok de
 Mani; nivel 1 antes de cada push (typecheck, lint, tests del ticket), la suite completa la corre el CI en los
@@ -23,6 +23,18 @@ un recorrido local, apagar dev:local (y Docker si nadie mas lo usa: la Mac anda 
 ```
 
 ## Memory
+
+- **2026-10-03 (noche 2, Mani + Claude, sesión central): ola O4 abierta.**
+  - **De dónde sale:** 10 notas de Mani usando el CRM → A-82 a A-91; audit → A-92 (separar un duplicado deja al lead
+    nuevo sin deal, contra GC-27). Tickets 181 a 185; el 167 ampliado con A-15 a A-17 y K-3.
+  - **Decidido con Mani:** corregir el último movimiento hecho por una persona, con motivo de tipo `correccion`, el
+    mismo pop-up para todos y en el Kanban la etapa de corrección en rojo (182, ADR 0078 lo escribe la sesión S2). El
+    potencial por etapa cuenta el valor vendido o, sin él, el ticket base de la cohorte, en todas las etapas.
+  - **Medido en producción (solo lectura):** Memorable inactivo, sin token, sin cohorte, sin Nicolás ni Francisco;
+    ninguna fuente principal en ningún programa; los dos formularios de ComunicArte reciben bien; 0 abonos.
+  - **Docs:** anotaciones (recorrido 8, respuestas A-85, A-88, A-90, y 40 filas "en ticket" con ticket ya cerrado
+    pasadas a resueltas), tracker §14, plan-reparto §4 O4, plan.md §2, §4.2, §5 y §7 (A-05 sale: Mi espacio la cerró).
+  - **Pendiente:** regenerar `docs/manuales/mapa-crm.html` con la O4 cuando cierre.
 
 - **2026-10-03 (noche, Mani + Claude, sesión central): la ola O3 cerrada.**
   - **Recorridos:** 180 (Grain a la vista tras Show, Volver sin "filtrados", fuente nueva por webhook, Kanban sin

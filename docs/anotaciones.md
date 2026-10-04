@@ -25,9 +25,9 @@ Bandeja única de lo que sale de recorrer la app a mano: cambios que queremos, a
 | A-06 | Todas | cambio | Regla general: ninguna pantalla crece en scroll infinito con cada entrada nueva (paginar o limitar). Y las subsecciones no se apilan una encima de otra: se elige cuál se ve (tabs, filtros o plegables) para no tener que pasar por todas. | 075 (criterio transversal) | en ticket |
 | A-07 | Deals (Kanban) | cambio | La página no hace scroll vertical: es fija y cada etapa hace scroll por dentro. Al pie de cada etapa, el **valor total en USD** que hay sentado en ella en ese momento. | 075 | en ticket |
 | A-08 | Deals (Kanban) | cambio | Al arrastrar un Deal, acercarlo al borde tiene que desplazar el tablero a izquierda o derecha para llegar a las etapas que no caben en pantalla. | 075 | en ticket |
-| A-09 | Personas / Leads | cambio | Los leads se ven en tabla, como una hoja histórica, paginada de a 25 o 50, **sin esperar a que se busque a alguien**, y con los **campos crudos del envío**. | 072 | en ticket |
+| A-09 | Personas / Leads | cambio | Los leads se ven en tabla, como una hoja histórica, paginada de a 25 o 50, **sin esperar a que se busque a alguien**, y con los **campos crudos del envío**. | 072 | resuelta · cierra con 072 (marcado el 3-oct por la sesión central) |
 | A-10 | Cohortes | aclaración + cambio | ¿Dónde se manejan las cohortes? Hay que poder crearlas, asociarlas a su programa y darles fecha de inicio. | 014 (existe), 100 | resuelta la aclaración · lo visible queda en 100 |
-| A-11 | Personas / Leads | aclaración + cambio | ¿Por qué existe Personas si ya hay Leads? Leads es la que debe tener todo lo de A-09 (y la búsqueda). Personas se retira. | 072 | en ticket |
+| A-11 | Personas / Leads | aclaración + cambio | ¿Por qué existe Personas si ya hay Leads? Leads es la que debe tener todo lo de A-09 (y la búsqueda). Personas se retira. | 072 | resuelta · cierra con 072 (marcado el 3-oct por la sesión central) |
 | A-12 | Leads → Posibles duplicados | cambio | El aviso de posible duplicado tiene que traer **pegado el lead que cree que es el mismo**, lado a lado y con la razón (el teléfono en común), para decidir ahí sin buscar a nadie. Es un caso del principio P-1. | 072, 075 | en ticket |
 | A-13 | Ficha del Deal | cambio | Un bloque de **Alertas** en el Deal: en **rojo** lo urgente que falta llenar; en **amarillo**, dicho explícito, lo que el Deal necesita para pasar a la siguiente etapa. Que el closer no tenga que memorizar el flujo. | 128 | resuelta · 2-oct (128): bloque de Alertas en la ficha, rojo lo urgente y amarillo "Para avanzar" con lo que pide el motor |
 | A-14 | Personas / Leads | aclaración | ¿Cuál es la diferencia entre Leads y Personas? Está muy confuso. | 072 | resuelta · 30-sep (abajo) |
@@ -84,13 +84,13 @@ y el ADR 0076 (A-40, propuesto).
 
 | Id | Pantalla | Tipo | Anotación | Destino | Estado |
 |---|---|---|---|---|---|
-| A-34 | Ficha del Deal → Llamadas | cambio | Una re-agenda hablada con la persona lleva el link que sea (Meet, Zoom, Calendly), no solo de Calendly. | 156 | en ticket |
-| A-35 | Registrar abono | cambio | El comprobante no puede bloquear el abono: si no se tiene, el deal entra a Ganado igual y queda una alerta hasta pegarlo. | 156 | en ticket |
-| A-36 | Ficha del Deal → Alertas | cambio | Las alertas no van como franja encima del lead: son su propio recuadro. | 156 | en ticket |
-| A-37 | Ficha del Deal | cambio | Mover un deal pide mucha memoria. Una sección "Transición" con un botón por cada etapa a la que puede ir, con su tag; el botón abre el pop-up con lo necesario. | 156 | en ticket |
-| A-38 | Deals (Kanban) | cambio | Arrastrar una tarjeta a una etapa abre el MISMO pop-up de A-37. | 156 | en ticket |
-| A-39 | Deals (Kanban) | cambio | Un closer no ve todos los deals ni elige dueño: solo ve los suyos. | 156 | en ticket |
-| A-40 | Deal con llamada | cambio | Setter y closer son personas distintas con el mismo rol. Un deal con llamada es siempre de quien da la llamada; el setter queda con su crédito como marca, y el deal se queda con él hasta que la cita entra por Calendly. Riesgo: el lead agenda con otro correo. | 157 | en ticket (ADR 0076 aceptado, 2-oct) |
+| A-34 | Ficha del Deal → Llamadas | cambio | Una re-agenda hablada con la persona lleva el link que sea (Meet, Zoom, Calendly), no solo de Calendly. | 156 | resuelta · cierra con 156 (marcado el 3-oct por la sesión central) |
+| A-35 | Registrar abono | cambio | El comprobante no puede bloquear el abono: si no se tiene, el deal entra a Ganado igual y queda una alerta hasta pegarlo. | 156 | resuelta · cierra con 156 (marcado el 3-oct por la sesión central) |
+| A-36 | Ficha del Deal → Alertas | cambio | Las alertas no van como franja encima del lead: son su propio recuadro. | 156 | resuelta · cierra con 156 (marcado el 3-oct por la sesión central) |
+| A-37 | Ficha del Deal | cambio | Mover un deal pide mucha memoria. Una sección "Transición" con un botón por cada etapa a la que puede ir, con su tag; el botón abre el pop-up con lo necesario. | 156 | resuelta · cierra con 156 (marcado el 3-oct por la sesión central) |
+| A-38 | Deals (Kanban) | cambio | Arrastrar una tarjeta a una etapa abre el MISMO pop-up de A-37. | 156 | resuelta · cierra con 156 (marcado el 3-oct por la sesión central) |
+| A-39 | Deals (Kanban) | cambio | Un closer no ve todos los deals ni elige dueño: solo ve los suyos. | 156 | resuelta · cierra con 156 (marcado el 3-oct por la sesión central) |
+| A-40 | Deal con llamada | cambio | Setter y closer son personas distintas con el mismo rol. Un deal con llamada es siempre de quien da la llamada; el setter queda con su crédito como marca, y el deal se queda con él hasta que la cita entra por Calendly. Riesgo: el lead agenda con otro correo. | 157 | resuelta · cierra con 157 (marcado el 3-oct por la sesión central) |
 | A-41 | Regla de entrada | aclaración | Nicolás (closer nuevo): un parcial es "basura" para un closer; se recupera con retargeting del píxel de Meta, no con el setter. Michael: a los parciales se les da contacto automático (IA, Kapso), nunca una reunión. Mani: se deja como está (GC-27, ningún envío sin deal) hasta hablarlo con Michael y Gerencia. | sin ticket | ✅ cerrada (Mani, 2-oct): los parciales siguen abriendo deal en Potencial, como en 30X |
 | A-42 | Reporte del día | cambio | Michael pide un mensaje diario por closer (agendadas, canceladas, efectivas, ventas, objeciones, sin fit). Lo arma el CRM, no el closer a mano. | 158 | en ticket (falta decidir cómo se registran las objeciones) |
 
@@ -114,7 +114,7 @@ y el ADR 0076 (A-40, propuesto).
 | A-43 | Ficha del Deal → Actividades y Transición | cambio | El formulario de Actividades siempre abierto estorba. Una sola tarjeta de Transición con botones para cambiar de etapa y para registrar lo que no cambia de etapa (contacto, intento, nota, pendientes); cada botón abre su pop-up. | 162 | resuelta · 3-oct (162, `cp-20261003-1`) |
 | A-44 | Ficha del Deal → Transición | cambio | Los botones de etapa tienen un cuadro gris alrededor. Solo el botón redondo del color de la etapa, todos del mismo ancho (el del nombre más largo). | 162 | resuelta · 3-oct (162, `cp-20261003-1`) |
 | A-45 | Ficha del Deal → Llamadas y tab Calls | cambio | No se distingue la cita activa de las reagendadas, canceladas o tenidas. Clic en una llamada (ficha o Calls) abre su detalle con link y demás; en Calls, con botón "Ir al deal" en vez de navegar al deal. | 163 | resuelta · 3-oct (163, `cp-20261003-1`) |
-| A-46 | Mi día | cambio | Un landing por closer: su perfil, sus programas, sus deals en tarjetas con filtros, sus llamadas, sus students. Decidido: `/mi-dia` pasa a "Mi espacio"; el Inbox sigue como cola compartida del programa. Cierra la pregunta de A-05. | 164 | en ticket |
+| A-46 | Mi día | cambio | Un landing por closer: su perfil, sus programas, sus deals en tarjetas con filtros, sus llamadas, sus students. Decidido: `/mi-dia` pasa a "Mi espacio"; el Inbox sigue como cola compartida del programa. Cierra la pregunta de A-05. | 164 | resuelta · cierra con 164 (marcado el 3-oct por la sesión central) |
 | A-47 | Cohortes | cambio | ¿Cómo funciona Próxima cohorte? Se debe poder crear la siguiente (C{n+1}). Decidido: botón del administrador; el CRM pone el código. | 165 | resuelta · 3-oct (165, `cp-20261003-1`) |
 | A-48 | Registrar abono → plataforma | aclaración + cambio | ¿La plataforma es por programa? ¿Dónde se configura? Sí, por programa (ADR 0034), en `/ajustes/catalogos` o al crear un enlace de pago; no se ve en ningún lado y un programa sin plataformas muestra el selector vacío. | 166 | resuelta · 3-oct (166, `cp-20261003-1`) |
 | A-49 | Próxima cohorte (regla) | bug | La ficha dice que se retoma con un contacto desde el inicio de ventas de la destino, pero `lib/deals/actividades.ts` la retoma con cualquier contacto y muda el deal a una cohorte que no ha empezado. | 165 | resuelta · 3-oct (165, `cp-20261003-1`) |
@@ -140,40 +140,58 @@ vive en la pantalla de su objeto, y lo que no se usa se quita. Reparto en `docs/
 
 | Id | Pantalla | Tipo | Anotación | Destino | Estado |
 |---|---|---|---|---|---|
-| A-52 | Ficha del Deal → Transición | cambio | No se sabe qué hace cada botón de "Registrar" (Contacto, Intento, Nota, Próxima cohorte) ni qué implica. Cada uno dice en una línea qué registra y qué mueve, sacado del motor y no escrito a mano. | 168 | en ticket |
-| A-53 | Ficha del Deal → Llamadas | cambio | La llamada no se ve clicable (sin hover). No se entiende "Completar fecha" (anota cuándo OCURRIÓ, no la cita), "Pegar Grain" ni "No se dio". No se distingue la cita activa de las viejas. El link de la cita (`calls.link_calendly`, ya guardado) no sale en ninguna parte, ni en el detalle. | 168 | en ticket |
-| A-54 | Detalle de llamada → Closer y Setter | cambio | "Sin closer" en una cita de Calendly. Audit: la llamada nace sin `closer_user_id` a propósito (`lib/calendly/colgar-llamada.ts`). Decidido: el closer de la llamada es SIEMPRE el host emparejado por su cuenta de Calendly; el setter, el dueño anterior (ADR 0076). Explicarlo en el manual. | 169 | en ticket |
-| A-55 | Ficha del Deal → Alertas | cambio | El fondo amarillo y rojo se ve feo y "Otra ruta" con desplegable no sirve. Tres franjas: Urgente (rojo), Alertas (amarillo, solo las de verdad) y Transición (verde, a dónde puede ir y qué le falta). ADR 0077 punto 6. | 168 | en ticket |
-| A-56 | Ficha del Deal → bloques | cambio | Subir "Lead y contactos" a donde está Origen; después Origen y Perfil. | 168 | en ticket |
-| A-57 | Toda la app | cambio | No hay forma de volver a la pantalla de la que se venía. | 174 | en ticket |
-| A-58 | Ficha del Deal → Editar | cambio | El descuento se edita en Facturación. La fecha de seguimiento sale de Editar. Menos texto de descripción. | 168 | en ticket |
-| A-59 | Pendiente Seguimiento | aclaración + cambio | ¿Existe la etapa Seguimiento? No: es un pendiente (ADR 0070), como en 30X ("Interesado" se queda en Atendido con próximo contacto). Decidido: se llama **Próximo contacto**, se pide solo en la transición, llega prellenado a +2 días hábiles y solo acepta fechas futuras; vencido = alerta amarilla. | 168 | en ticket |
-| A-60 | Calls | cambio | Las llamadas no se ven clicables (sin hover). | 170 | en ticket |
-| A-61 | Filtros (toda la app) | cambio | El filtro se aplica solo al elegir y salir del desplegable, sin botón "Filtrar"; siempre hay "Quitar filtros". Un componente para todas las listas. | 170 | en ticket |
-| A-62 | Calls e Inbox | cambio | El closer ve SOLO sus llamadas, como en Deals (ADR 0075). Audit: `llamadasDelPrograma` no filtra por dueño y Calls muestra las sueltas. El Inbox es el único lugar compartido (llamadas y deals sin dueño). | 170, 169 | en ticket |
-| A-63 | Ajustes → Programas | bug | Memorable quedó inactivo y no se puede editar: "Editar" solo sale en programas activos y activarlo exige formulario y token. Registro muerto. | 171 | en ticket |
-| A-64 | Ver como closer | cambio | "Como closer" no se ve nada porque usa las membresías del developer (cero). Decidido: elegir a qué closer ver, en solo lectura. | 172 | en ticket |
-| A-65 | Personas | cambio | Personas se va (A-11); Leads la reemplaza. Adelantado a la ola O3. | 170 | en ticket |
-| A-66 | Mi perfil | cambio | Pocos datos, `closer_id` todavía visible y sin Calendly por programa. Todo lo del usuario vive en su perfil (Mi espacio). Lo que el closer edita: su cuenta de Calendly por programa; el nombre y la foto vienen de Google. | 172 | en ticket |
-| A-67 | Perfil y Equipo → cuenta de Calendly | cambio | El desplegable muestra solo el correo, ofrece solo las cuentas libres de la organización y se guarda (y verifica) al elegir. | 169 | en ticket |
-| A-68 | Leads | cambio | Toggle arriba a la derecha entre tarjetas y vista tabla tipo hoja (filas delgadas, celdas y columnas); el elegido se marca con un tono más claro. | 170 | en ticket |
-| A-69 | Handoff del setter | cambio | No hay cómo verificarlo. Recrear el caso en local con una cita de Calendly simulada y firmada, repetible. | 169 | en ticket |
-| A-70 | Tab Programa y Ajustes | cambio | Todo lo del programa va en la tab Programa: formularios (Fuentes), token de Calendly y lo demás en un pop-up desde "Editar". Ajustes → Programas y Fuentes desaparecen. | 171 | en ticket |
-| A-71 | Plataformas y links de pago | cambio | Plataformas en Programa y links en Recursos: desconectado. Todo en Programa: crear plataformas, asociarles links; los closers los copian desde Recursos. Audit: ya es una tabla, no un enum; solo falta moverlo. | 171 | en ticket |
-| A-72 | Ajustes → Catálogos | aclaración + cambio | Mucho que mantener. Audit: Orígenes del lead no lo lee ninguna métrica (se retira); Motivos y Áreas los usa el motor y la atribución (se quedan); Recursos se crea libre en su tab, sin categorías. | 171, 173, 175 | en ticket |
-| A-73 | Salud del CRM | cambio | Se llama Webhook Health; muestra las últimas 25 y pagina bajo demanda. | 173 | en ticket |
-| A-74 | Canales | aclaración | ¿Se crean solos? No (ADR 0077 punto 4): los crea quien `manejaPauta` (Paid Trafficker, gerente, developer) con un clic desde el par sin canal. El builder estandariza los links. | 173 | en ticket |
-| A-75 | Membresías | aclaración + cambio | ¿Qué es una membresía? El permiso de un usuario para trabajar en un programa, y donde vive su cuenta de Calendly de ese programa. Hoy se asigna escondida en Ajustes → Usuarios; pasa a la sección Equipo del programa. | 171 | en ticket |
-| A-76 | Toda la app | cambio | Bajar el sobrediseño y la complejidad de operación; centralizar lo que va junto. ADR 0077. | 168-175 | en ticket |
+| A-52 | Ficha del Deal → Transición | cambio | No se sabe qué hace cada botón de "Registrar" (Contacto, Intento, Nota, Próxima cohorte) ni qué implica. Cada uno dice en una línea qué registra y qué mueve, sacado del motor y no escrito a mano. | 168 | resuelta · cierra con 168 (marcado el 3-oct por la sesión central) |
+| A-53 | Ficha del Deal → Llamadas | cambio | La llamada no se ve clicable (sin hover). No se entiende "Completar fecha" (anota cuándo OCURRIÓ, no la cita), "Pegar Grain" ni "No se dio". No se distingue la cita activa de las viejas. El link de la cita (`calls.link_calendly`, ya guardado) no sale en ninguna parte, ni en el detalle. | 168 | resuelta · cierra con 168 (marcado el 3-oct por la sesión central) |
+| A-54 | Detalle de llamada → Closer y Setter | cambio | "Sin closer" en una cita de Calendly. Audit: la llamada nace sin `closer_user_id` a propósito (`lib/calendly/colgar-llamada.ts`). Decidido: el closer de la llamada es SIEMPRE el host emparejado por su cuenta de Calendly; el setter, el dueño anterior (ADR 0076). Explicarlo en el manual. | 169 | resuelta · cierra con 169 (marcado el 3-oct por la sesión central) |
+| A-55 | Ficha del Deal → Alertas | cambio | El fondo amarillo y rojo se ve feo y "Otra ruta" con desplegable no sirve. Tres franjas: Urgente (rojo), Alertas (amarillo, solo las de verdad) y Transición (verde, a dónde puede ir y qué le falta). ADR 0077 punto 6. | 168 | resuelta · cierra con 168 (marcado el 3-oct por la sesión central) |
+| A-56 | Ficha del Deal → bloques | cambio | Subir "Lead y contactos" a donde está Origen; después Origen y Perfil. | 168 | resuelta · cierra con 168 (marcado el 3-oct por la sesión central) |
+| A-57 | Toda la app | cambio | No hay forma de volver a la pantalla de la que se venía. | 174 | resuelta · cierra con 174 (marcado el 3-oct por la sesión central) |
+| A-58 | Ficha del Deal → Editar | cambio | El descuento se edita en Facturación. La fecha de seguimiento sale de Editar. Menos texto de descripción. | 168 | resuelta · cierra con 168 (marcado el 3-oct por la sesión central) |
+| A-59 | Pendiente Seguimiento | aclaración + cambio | ¿Existe la etapa Seguimiento? No: es un pendiente (ADR 0070), como en 30X ("Interesado" se queda en Atendido con próximo contacto). Decidido: se llama **Próximo contacto**, se pide solo en la transición, llega prellenado a +2 días hábiles y solo acepta fechas futuras; vencido = alerta amarilla. | 168 | resuelta · cierra con 168 (marcado el 3-oct por la sesión central) |
+| A-60 | Calls | cambio | Las llamadas no se ven clicables (sin hover). | 170 | resuelta · cierra con 170 (marcado el 3-oct por la sesión central) |
+| A-61 | Filtros (toda la app) | cambio | El filtro se aplica solo al elegir y salir del desplegable, sin botón "Filtrar"; siempre hay "Quitar filtros". Un componente para todas las listas. | 170 | resuelta · cierra con 170 (marcado el 3-oct por la sesión central) |
+| A-62 | Calls e Inbox | cambio | El closer ve SOLO sus llamadas, como en Deals (ADR 0075). Audit: `llamadasDelPrograma` no filtra por dueño y Calls muestra las sueltas. El Inbox es el único lugar compartido (llamadas y deals sin dueño). | 170, 169 | resuelta · cierra con 170, 169 (marcado el 3-oct por la sesión central) |
+| A-63 | Ajustes → Programas | bug | Memorable quedó inactivo y no se puede editar: "Editar" solo sale en programas activos y activarlo exige formulario y token. Registro muerto. | 171 | resuelta · cierra con 171 (marcado el 3-oct por la sesión central) |
+| A-64 | Ver como closer | cambio | "Como closer" no se ve nada porque usa las membresías del developer (cero). Decidido: elegir a qué closer ver, en solo lectura. | 172 | resuelta · cierra con 172 (marcado el 3-oct por la sesión central) |
+| A-65 | Personas | cambio | Personas se va (A-11); Leads la reemplaza. Adelantado a la ola O3. | 170 | resuelta · cierra con 170 (marcado el 3-oct por la sesión central) |
+| A-66 | Mi perfil | cambio | Pocos datos, `closer_id` todavía visible y sin Calendly por programa. Todo lo del usuario vive en su perfil (Mi espacio). Lo que el closer edita: su cuenta de Calendly por programa; el nombre y la foto vienen de Google. | 172 | resuelta · cierra con 172 (marcado el 3-oct por la sesión central) |
+| A-67 | Perfil y Equipo → cuenta de Calendly | cambio | El desplegable muestra solo el correo, ofrece solo las cuentas libres de la organización y se guarda (y verifica) al elegir. | 169 | resuelta · cierra con 169 (marcado el 3-oct por la sesión central) |
+| A-68 | Leads | cambio | Toggle arriba a la derecha entre tarjetas y vista tabla tipo hoja (filas delgadas, celdas y columnas); el elegido se marca con un tono más claro. | 170 | resuelta · cierra con 170 (marcado el 3-oct por la sesión central) |
+| A-69 | Handoff del setter | cambio | No hay cómo verificarlo. Recrear el caso en local con una cita de Calendly simulada y firmada, repetible. | 169 | resuelta · cierra con 169 (marcado el 3-oct por la sesión central) |
+| A-70 | Tab Programa y Ajustes | cambio | Todo lo del programa va en la tab Programa: formularios (Fuentes), token de Calendly y lo demás en un pop-up desde "Editar". Ajustes → Programas y Fuentes desaparecen. | 171 | resuelta · cierra con 171 (marcado el 3-oct por la sesión central) |
+| A-71 | Plataformas y links de pago | cambio | Plataformas en Programa y links en Recursos: desconectado. Todo en Programa: crear plataformas, asociarles links; los closers los copian desde Recursos. Audit: ya es una tabla, no un enum; solo falta moverlo. | 171 | resuelta · cierra con 171 (marcado el 3-oct por la sesión central) |
+| A-72 | Ajustes → Catálogos | aclaración + cambio | Mucho que mantener. Audit: Orígenes del lead no lo lee ninguna métrica (se retira); Motivos y Áreas los usa el motor y la atribución (se quedan); Recursos se crea libre en su tab, sin categorías. | 171, 173, 175 | resuelta · cierra con 171, 173, 175 (marcado el 3-oct por la sesión central) |
+| A-73 | Salud del CRM | cambio | Se llama Webhook Health; muestra las últimas 25 y pagina bajo demanda. | 173 | resuelta · cierra con 173 (marcado el 3-oct por la sesión central) |
+| A-74 | Canales | aclaración | ¿Se crean solos? No (ADR 0077 punto 4): los crea quien `manejaPauta` (Paid Trafficker, gerente, developer) con un clic desde el par sin canal. El builder estandariza los links. | 173 | resuelta · cierra con 173 (marcado el 3-oct por la sesión central) |
+| A-75 | Membresías | aclaración + cambio | ¿Qué es una membresía? El permiso de un usuario para trabajar en un programa, y donde vive su cuenta de Calendly de ese programa. Hoy se asigna escondida en Ajustes → Usuarios; pasa a la sección Equipo del programa. | 171 | resuelta · cierra con 171 (marcado el 3-oct por la sesión central) |
+| A-76 | Toda la app | cambio | Bajar el sobrediseño y la complejidad de operación; centralizar lo que va junto. ADR 0077. | 168-175 | resuelta · cierra con 168, 175 (marcado el 3-oct por la sesión central) |
 
-| A-77 | Ficha del Deal → Transición | cambio | La diferencia entre "Mover a" y "Registrar" no es clara: si mueve la etapa no es Registrar. "Para avanzar" hace la tarjeta muy grande: va en el pop-up de cada transición. | 176 | en ticket |
-| A-78 | Ficha del Deal → Llamadas | cambio | Un botón para cada cosa estorba. El link de Grain (grabación y transcripción) es un campo siempre visible; los botones se van y queda uno, "Resultado" (show, no show, etc.). | 176 | en ticket |
-| A-79 | Ficha del Deal → Registrar | aclaración + cambio | ¿Hacen falta tantos botones? ¿Qué llenan? Llenan Actividades (contacto, intento, nota): cuentan para la alerta de tres intentos (161) y el aviso de estancado. Decidido: un solo "Registrar actividad"; lo que mueve la etapa pasa a Mover a y los pendientes a "Dejar en espera". | 176 | en ticket |
-| A-80 | Ficha del Deal → Facturación | aclaración + cambio | ¿En qué etapas se abona? En Contactado, Calificado, Atendido, Compromiso Verbal y Ganado Pago Parcial (`aceptaAbono`). Fuera de ellas el botón se ve deshabilitado con la razón, y cada acción dice qué cambia. | 176 | en ticket |
-| A-81 | Ajustes | cambio | Lo que se mudó a Programa y Mi espacio deja tarjetas obsoletas en Ajustes: se quitan. | 173 | en ticket |
+| A-77 | Ficha del Deal → Transición | cambio | La diferencia entre "Mover a" y "Registrar" no es clara: si mueve la etapa no es Registrar. "Para avanzar" hace la tarjeta muy grande: va en el pop-up de cada transición. | 176 | resuelta · cierra con 176 (marcado el 3-oct por la sesión central) |
+| A-78 | Ficha del Deal → Llamadas | cambio | Un botón para cada cosa estorba. El link de Grain (grabación y transcripción) es un campo siempre visible; los botones se van y queda uno, "Resultado" (show, no show, etc.). | 176 | resuelta · cierra con 176 (marcado el 3-oct por la sesión central) |
+| A-79 | Ficha del Deal → Registrar | aclaración + cambio | ¿Hacen falta tantos botones? ¿Qué llenan? Llenan Actividades (contacto, intento, nota): cuentan para la alerta de tres intentos (161) y el aviso de estancado. Decidido: un solo "Registrar actividad"; lo que mueve la etapa pasa a Mover a y los pendientes a "Dejar en espera". | 176 | resuelta · cierra con 176 (marcado el 3-oct por la sesión central) |
+| A-80 | Ficha del Deal → Facturación | aclaración + cambio | ¿En qué etapas se abona? En Contactado, Calificado, Atendido, Compromiso Verbal y Ganado Pago Parcial (`aceptaAbono`). Fuera de ellas el botón se ve deshabilitado con la razón, y cada acción dice qué cambia. | 176 | resuelta · cierra con 176 (marcado el 3-oct por la sesión central) |
+| A-81 | Ajustes | cambio | Lo que se mudó a Programa y Mi espacio deja tarjetas obsoletas en Ajustes: se quitan. | 173 | resuelta · cierra con 173 (marcado el 3-oct por la sesión central) |
 
 - **P-3 · Cada dato vive en la pantalla de su objeto (A-76, ADR 0077).** Programa, Perfil, Deal y Lead; Ajustes solo
   lo que no es de ningún objeto. Antes de agregar una pantalla, un campo o un catálogo, se busca qué quitar.
+
+## Recorrido 8 · 3-oct (noche) · Mani usando el CRM + audit de la sesión central
+
+Diez notas de Mani y un hallazgo del audit. Reparto en `docs/plan-reparto.md` §4, ola O4.
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-82 | Deals (Kanban) | cambio | La página no hace scroll infinito: es fija, el tablero hace scroll horizontal y cada etapa por dentro (como HubSpot). Al pie de cada etapa, dos cifras: **potencial** (valor vendido, o el ticket base de la cohorte si no hay; todas las etapas) y **confirmado** por abonos. | 181 | en ticket |
+| A-83 | Deals (Kanban) | cambio | Ordenar por fecha de creación o de actividad, más reciente o más viejo primero; filtrar por cohorte, con la activa por defecto. | 181 | en ticket |
+| A-84 | Deals (Kanban) | cambio | Toda la tarjeta abre el deal, con hover; hoy solo el nombre. | 181 | en ticket |
+| A-85 | Ficha del Deal → Transición | aclaración + cambio | "Los deals solo avanzan." Ver la respuesta: hay retrocesos, pero no hay cómo corregir un clic equivocado. Decidido: **corregir el último movimiento** (si lo hizo una persona), con motivo, el mismo pop-up para todos, y en el Kanban la etapa de corrección en rojo. | 182 | en ticket |
+| A-86 | Toda la app | cambio | La regla del tablero para todo: página fija, el scroll dentro de cada sub-sección; decidir por pantalla si se reacomoda, pasa a sub-página o a pop-up. | 185 | en ticket |
+| A-87 | Mi espacio | cambio | Fuera Mis llamadas, Mis deals y Mis students (repiten las tabs). Mi espacio agrupa alertas y lo que necesita atención, y las métricas del closer con hoy, semana, mes y cohorte, por programa o en total. | 183 | en ticket |
+| A-88 | Programa | aclaración | "Sin fuente principal" con dos formularios, y qué hace "Rehacer webhook". Ver la respuesta. Los textos se arreglan en el 185. | 185 | en ticket |
+| A-89 | Ficha del Deal → Transición | cambio | Mucho texto sin jerarquía, botones sueltos a media tarjeta (Cierre perdido, No asistió o canceló), fuera "Camino principal". Dos columnas (mover · registrar), botones de un tamaño estándar, la tarjeta más baja. | 182 | en ticket |
+| A-90 | Leads, Mi espacio y Deal | aclaración + cambio | ¿Quién decide los posibles duplicados? Ver la respuesta. Que el closer los vea como alerta en Mi espacio y en el deal, y decida ahí: el mismo deal o dos deals. | 183, 184 | en ticket |
+| A-91 | Ficha del Lead | cambio | Cada envío es un desplegable estándar clicable entero, con hover, que muestra las respuestas; el deal asociado también es una tarjeta clicable. | 184 | en ticket |
+| A-92 | Separar un posible duplicado | bug | 🩸 Audit: `separarCorreo` crea el lead nuevo sin deal, contra GC-27 (ningún envío se queda sin deal). Sin error. | 184 | en ticket |
 
 ### Respuestas
 
@@ -252,3 +270,26 @@ en dos programas son dos leads, `docs/overview.md` §11). La tabla se llamaba `p
 al mismo objeto: **Leads** (por programa, lista y filtros, lo nuevo) y **Personas** (buscador entre
 programas, lo viejo). La confusión es real y la arregla A-11: la búsqueda y la ficha pasan a Leads,
 `/personas` redirige ahí, y la palabra "Personas" desaparece de la navegación.
+
+**A-85 · ¿Los deals solo avanzan?** No del todo. Hoy hay seis caminos hacia atrás (`lib/deals/etapas.ts`):
+Compromiso Verbal vuelve a Atendido, Contactado o Calificado con motivo de retroceso (RETRO); cualquier etapa abierta
+va a Cierre perdido (P) y de ahí se recupera a En gestión o Agendado (R); Atendido vuelve a Agendado si tiene un
+pendiente (E9); y al anular un abono el sistema devuelve el Ganado (A1, A2). Lo que no existe es **corregir un
+movimiento equivocado**: perder y recuperar mete un "no" del cliente que nunca pasó, y anular es para un deal que no
+debió existir (manual §8). Decidido con Mani: corregir el último movimiento hecho por una persona, con motivo; lo del
+sistema se corrige anulando su causa (ticket 182, ADR 0078).
+
+**A-88 · Fuente principal y "Rehacer webhook".** Los dos formularios de ComunicArte funcionan: Typeform recibió 289
+envíos (el último hoy) y Dapta 11 (el último el 1-oct), cada uno con su secreto. "Sin fuente principal" no dice que
+estén mal: dice que **ninguno está marcado como principal con su URL pública**, que es el que el CRM usa para generar
+los links de captación (ADR 0068, ticket 092). Pasa en los tres programas. Se arregla en la tab Programa: editar el
+formulario, pegar su URL pública y marcarlo como principal (para ComunicArte hay que elegir: ¿Typeform o Dapta?).
+"Rehacer webhook" vuelve a crear la suscripción de Calendly del programa con el token guardado
+(`conectarCalendly`): sirve si las citas dejaron de llegar o si se cambió el token. Pasa a llamarse "Reconectar
+Calendly" (185).
+
+**A-90 · ¿Quién decide un posible duplicado?** Hoy, quien trabaja el programa (closer con membresía activa) o quien
+administra, solo desde la tab Leads (ADR 0035 y 0060). Son dos cosas distintas: **"N envíos"** son reenvíos del mismo
+correo y no piden decisión; **"posible duplicado"** es un correo nuevo que llegó con un teléfono conocido, y esa sí.
+Confirmar deja una persona y un deal; separar crea un lead nuevo, y desde el 184 también su deal (hoy no lo crea: A-92).
+
