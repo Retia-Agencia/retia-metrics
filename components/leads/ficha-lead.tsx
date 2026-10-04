@@ -8,12 +8,12 @@ import type { DealDeLaFicha, EnvioDeLaFicha, FichaDeLead, ValorDeCampo } from "@
 import type { LeadEnOtroPrograma } from "@/lib/queries/otros-programas-del-correo";
 import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import { TONO_DE_ETAPA, TONO_DE_PENDIENTE } from "@/components/deals/etapa-tono";
+import { EnvioDesplegable } from "@/components/leads/envio-desplegable";
 
 /**
- * Las piezas de la ficha del Lead (ticket 073). Solo lectura y sin estado de cliente: lo unico
- * que se abre son las respuestas completas de cada envio, con `<details>` nativo (no hay contexto
- * de Base UI que pueda faltar). Sistema Tinta (docs/structure.md §9): tarjetas con sombra, tonos
- * por `<Badge variant>`, cifras en `cifra`, anulado tachado y sin tono.
+ * Las piezas de la ficha del Lead (tickets 073 y 184). Solo lectura: cada envio delega su
+ * apertura al desplegable accesible `EnvioDesplegable`. Sistema Tinta (docs/structure.md §9):
+ * tarjetas con sombra, tonos por `<Badge variant>`, cifras en `cifra`, anulado tachado y sin tono.
  */
 
 function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
@@ -106,37 +106,35 @@ export function FichaLeadContactos({ ficha }: { ficha: FichaDeLead }) {
 function FilaDeal({ deal, slug, origen }: { deal: DealDeLaFicha; slug: string; origen: string }) {
   const anulado = deal.anulado !== null;
   return (
-    <li className="flex flex-wrap items-start justify-between gap-2 py-3 text-sm first:pt-0 last:pb-0">
-      <div className="min-w-0 space-y-1">
-        <Link
-          href={enlaceConVuelta(`/p/${slug}/deals/${deal.id}`, origen)}
-          className={
-            anulado
-              ? "font-medium text-muted-foreground line-through underline-offset-2 outline-none hover:underline focus-visible:underline"
-              : "font-medium text-marca-texto underline-offset-2 outline-none hover:underline focus-visible:underline"
-          }
-        >
-          {deal.cohorteCodigo ?? "Sin cohorte"} · {deal.ownerNombre ?? "Sin dueño"}
-        </Link>
-        <p className="text-xs text-muted-foreground">
-          Abierto el {dia(deal.creadoEn)}
-          {deal.envioNumero ? ` · desde el envío #${deal.envioNumero}` : ""}
-        </p>
-        {deal.anulado ? (
-          <p className="text-xs text-muted-foreground">
-            Anulado el {dia(deal.anulado.en)}: {deal.anulado.motivo}. No cuenta en ninguna métrica.
+    <li className="py-1 first:pt-0 last:pb-0">
+      <Link
+        href={enlaceConVuelta(`/p/${slug}/deals/${deal.id}`, origen)}
+        className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-transparent p-3 text-sm outline-none transition-colors duration-150 hover:border-border hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <div className="min-w-0 space-y-1">
+          <p className={anulado ? "font-medium text-muted-foreground line-through" : "font-medium text-marca-texto"}>
+            {deal.cohorteCodigo ?? "Sin cohorte"} · {deal.ownerNombre ?? "Sin dueño"}
           </p>
-        ) : null}
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        <Badge variant={anulado ? "neutro" : TONO_DE_ETAPA[deal.etapa]}>
-          {NOMBRE_DE_ETAPA[deal.etapa]}
-          {anulado ? " (anulado)" : ""}
-        </Badge>
-        {deal.pendiente && !anulado ? (
-          <Badge variant={TONO_DE_PENDIENTE[deal.pendiente]}>{NOMBRE_DE_PENDIENTE[deal.pendiente]}</Badge>
-        ) : null}
-      </div>
+          <p className="text-xs text-muted-foreground">
+            Abierto el {dia(deal.creadoEn)}
+            {deal.envioNumero ? ` · desde el envío #${deal.envioNumero}` : ""}
+          </p>
+          {deal.anulado ? (
+            <p className="text-xs text-muted-foreground">
+              Anulado el {dia(deal.anulado.en)}: {deal.anulado.motivo}. No cuenta en ninguna métrica.
+            </p>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <Badge variant={anulado ? "neutro" : TONO_DE_ETAPA[deal.etapa]}>
+            {NOMBRE_DE_ETAPA[deal.etapa]}
+            {anulado ? " (anulado)" : ""}
+          </Badge>
+          {deal.pendiente && !anulado ? (
+            <Badge variant={TONO_DE_PENDIENTE[deal.pendiente]}>{NOMBRE_DE_PENDIENTE[deal.pendiente]}</Badge>
+          ) : null}
+        </div>
+      </Link>
     </li>
   );
 }
@@ -188,19 +186,15 @@ export function FichaLeadDeals({ ficha, slug, origen }: { ficha: FichaDeLead; sl
 function TarjetaEnvio({ envio }: { envio: EnvioDeLaFicha }) {
   const conValor = envio.campos.filter((c) => c.valor.tipo === "valor");
   return (
-    <li className="space-y-3 py-4 first:pt-0 last:pb-0">
+    <EnvioDesplegable cabecera={
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium">
             Envío <span className="cifra">#{envio.numero}</span>
           </span>
           {envio.esParcial ? <Badge variant="alerta">Parcial</Badge> : <Badge variant="neutro">Completo</Badge>}
-          {envio.calificacion ? <Badge variant="secondary">{envio.calificacion}</Badge> : null}
-          {envio.empezoComoParcial ? (
-            <span className="text-xs text-muted-foreground">
-              empezó como parcial el {fechaHoraEnBogota(envio.empezoComoParcial)}
-            </span>
-          ) : null}
+          <span className="text-xs text-muted-foreground">{envio.fuente}</span>
+          <Badge variant="secondary">{envio.canal}</Badge>
         </div>
         <span className="text-xs text-muted-foreground">
           {envio.fechaEsDeLlegada ? "Recibido " : ""}
@@ -208,6 +202,17 @@ function TarjetaEnvio({ envio }: { envio: EnvioDeLaFicha }) {
           {envio.esParcial && !envio.fechaEsDeLlegada ? " (fecha aproximada)" : ""}
         </span>
       </div>
+    }>
+      {envio.calificacion || envio.empezoComoParcial ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {envio.calificacion ? <Badge variant="secondary">{envio.calificacion}</Badge> : null}
+          {envio.empezoComoParcial ? (
+            <span className="text-xs text-muted-foreground">
+              Empezó como parcial el {fechaHoraEnBogota(envio.empezoComoParcial)}.
+            </span>
+          ) : null}
+        </div>
+      ) : null}
 
       {envio.cambios === null ? (
         <p className="text-xs text-muted-foreground">Primer envío: no hay con qué compararlo.</p>
@@ -239,10 +244,10 @@ function TarjetaEnvio({ envio }: { envio: EnvioDeLaFicha }) {
         </div>
       )}
 
-      <details className="group">
-        <summary className="cursor-pointer rounded-lg text-xs text-marca-texto underline-offset-2 outline-none transition-colors duration-150 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50">
-          Ver todas las respuestas (<span className="cifra">{num(conValor.length)}</span>)
-        </summary>
+      <div>
+        <p className="text-xs font-medium text-muted-foreground">
+          Respuestas (<span className="cifra">{num(conValor.length)}</span>)
+        </p>
         {conValor.length === 0 ? (
           <p className="pt-2 text-sm text-muted-foreground">Este envío llegó sin respuestas.</p>
         ) : (
@@ -257,8 +262,8 @@ function TarjetaEnvio({ envio }: { envio: EnvioDeLaFicha }) {
             ))}
           </dl>
         )}
-      </details>
-    </li>
+      </div>
+    </EnvioDesplegable>
   );
 }
 
@@ -330,4 +335,3 @@ export function AvisoOtrosProgramas({ visibles, ocultos }: { visibles: LeadEnOtr
     </div>
   );
 }
-

@@ -5,8 +5,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import type { Calificacion } from "./calificacion";
 import { construirEnvio, type EntradaEnvio, type Envio } from "./envio";
 import { envioMasReciente, type EnvioCandidato } from "./envio-de-origen";
-import { aplicarReglaDeDeal, type AccionDeDeal, type ResultadoCita } from "./regla-de-deals";
-import { agendoElEnvio } from "./etapa-de-entrada";
+import { aplicarReglaDeDeal, hechosDeEntradaDelEnvio, type AccionDeDeal, type ResultadoCita } from "./regla-de-deals";
 import {
   resolverIdentidad,
   type ContactoConocido,
@@ -363,11 +362,11 @@ export async function ingerirEntradas(
           const delLote = enviosDelLote.get(lead.id) ?? [];
           const origen = envioMasReciente(delLote);
           const envio = delLote.find((e) => e.id === origen);
-          const hechos = {
+          const hechos = hechosDeEntradaDelEnvio({
             esParcial: envio?.esParcial ?? false,
-            agendo: agendoElEnvio(envio?.calificacion ?? null),
+            calificacion: envio?.calificacion ?? null,
             leadQuality: envio?.leadQuality ?? null,
-          };
+          });
           const r = await aplicarReglaDeDeal(tx, { ...lead, hechos }, cita, origen);
           resultado.reglaDeDeals.push({
             leadId: r.leadId,

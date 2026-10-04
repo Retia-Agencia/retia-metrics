@@ -11,7 +11,7 @@ import { esRolValido, type Rol } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaEnAlcance } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { abonos, calls, deals } from "@/lib/db/schema";
+import { abonos, calls, deals, leadContactos } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { instanteDeBogota } from "@/lib/format";
@@ -25,6 +25,7 @@ import { editarAcuerdoDePago } from "@/lib/deals/pago";
 import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals/estudiante";
 import { marcarCortesia } from "@/lib/deals/cortesia";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
+import { confirmarCorreo, EnvioConDealVigenteError, esquemaContacto, separarCorreo } from "@/lib/ingesta/separar";
 
 /**
  * Server actions de la ficha del deal (ticket 074). Mismo patron que `../acciones.ts`:
@@ -44,7 +45,7 @@ import { incluyendoAnulados } from "@/lib/queries/vigente";
  * - Mover de etapa NO esta aqui: la ficha reusa `moverDeal` de `../acciones.ts`.
  */
 
-export type ResultadoFicha<T extends object = object> = ({ ok: true } & T) | { ok: false; error: string };
+export type ResultadoFicha<T extends object = object> = ({ ok: true } & T) | { ok: false; error: string; dealId?: string };
 
 interface Contexto {
   session: Session;
@@ -81,7 +82,8 @@ async function exigirAbonoVisible(ctx: Contexto, abonoId: string): Promise<void>
   await exigirProgramaVisible(ctx, a?.programId);
 }
 
-function aError(error: unknown): { ok: false; error: string } {
+function aError(error: unknown): { ok: false; error: string; dealId?: string } {
+  if (error instanceof EnvioConDealVigenteError) return { ok: false, error: error.message, dealId: error.dealId };
   if (error instanceof ErrorDeApp) return { ok: false, error: error.message };
   console.error("[ficha-deal] error no controlado", error);
   return { ok: false, error: "Error interno." };
@@ -151,6 +153,33 @@ export async function anularDealAccion(entrada: EntradaAnularDeal): Promise<Resu
     await anularDeal(db, actor, { dealId, motivo });
     return {};
   });
+}
+
+// ───────────────────────────────────────────── posible duplicado del lead
+
+async function decidirCorreoDesdeDeal(entrada: unknown, accion: "confirmar" | "separar"): Promise<ResultadoFicha> {
+  return correr(async (ctx) => {
+    const datos = esquemaContacto.parse(entrada);
+    const [contacto] = await db
+      .select({ programId: leadContactos.programId })
+      .from(leadContactos)
+      .where(eq(leadContactos.id, datos.contactoId));
+    if (!contacto || !(await programaEnAlcance(ctx.actor.userId, ctx.actor.rol, contacto.programId, db))) {
+      throw new ErrorDeApp("No existe ese contacto.", 404);
+    }
+    const actor = { id: ctx.actor.userId, rol: ctx.actor.rol };
+    if (accion === "confirmar") await confirmarCorreo(db, actor, datos);
+    else await separarCorreo(db, actor, datos);
+    return {};
+  });
+}
+
+export async function confirmarCorreoDesdeDealAccion(entrada: { contactoId: string }): Promise<ResultadoFicha> {
+  return decidirCorreoDesdeDeal(entrada, "confirmar");
+}
+
+export async function separarCorreoDesdeDealAccion(entrada: { contactoId: string }): Promise<ResultadoFicha> {
+  return decidirCorreoDesdeDeal(entrada, "separar");
 }
 
 const esquemaLinkEnviado = z.object({ dealId: id("Deal inválido.") });

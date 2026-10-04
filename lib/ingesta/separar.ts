@@ -8,8 +8,12 @@ import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { exigirAccesoAlPrograma, type ActorConAcceso } from "@/lib/catalogo/acceso-programa";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
+import { abrirDeal } from "@/lib/deals/mover-etapa";
 import { vigente } from "@/lib/queries/vigente";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
+import { envioMasReciente } from "./envio-de-origen";
+import { etapaDeEntrada } from "./etapa-de-entrada";
+import { hechosDeEntradaDelEnvio } from "./regla-de-deals";
 import { recalcularResumen } from "./ingerir";
 
 /**
@@ -92,6 +96,16 @@ export interface CorreoSeparado {
   enviosMovidos: number;
 }
 
+/** Conflicto que las pantallas convierten en un enlace real al deal que bloquea. */
+export class EnvioConDealVigenteError extends ErrorDeApp {
+  constructor(
+    readonly dealId: string,
+    etapa: (typeof deals.$inferSelect)["etapa"],
+  ) {
+    super(`Un envío de este correo abrió un deal (en ${NOMBRE_DE_ETAPA[etapa]}). Ábrelo y resuélvelo antes de separar.`, 409);
+  }
+}
+
 export async function separarCorreo(db: Db, actor: ActorConAcceso, datos: DatosContacto): Promise<CorreoSeparado> {
   return normalizando(async () => {
     const { contactoId } = esquemaContacto.parse(datos);
@@ -100,23 +114,35 @@ export async function separarCorreo(db: Db, actor: ActorConAcceso, datos: DatosC
       const correo = contacto.valor;
 
       const delLead = await tx
-        .select({ id: submissions.id, respuestas: submissions.respuestas })
+        .select({
+          id: submissions.id,
+          respuestas: submissions.respuestas,
+          fechaEnvio: submissions.fechaEnvio,
+          posicionEnHoja: submissions.posicionEnHoja,
+          esParcial: submissions.esParcial,
+          calificacion: submissions.calificacion,
+          leadQuality: submissions.leadQuality,
+        })
         .from(submissions)
         .where(eq(submissions.leadId, lead.id));
-      const aMover = delLead.filter((s) => s.id === contacto.submissionId || traeElCorreo(s.respuestas, correo)).map((s) => s.id);
+      const enviosAMover = delLead.filter((s) => s.id === contacto.submissionId || traeElCorreo(s.respuestas, correo));
+      const aMover = enviosAMover.map((s) => s.id);
 
       if (aMover.length > 0) {
         const [abierto] = await tx
-          .select({ etapa: deals.etapa })
+          .select({ id: deals.id, etapa: deals.etapa })
           .from(deals)
           .where(and(inArray(deals.submissionOrigenId, aMover), vigente(deals)))
           .limit(1);
         if (abierto) {
-          throw new ErrorDeApp(
-            `Un envío de este correo abrió un deal (en ${NOMBRE_DE_ETAPA[abierto.etapa]}): resuelve ese deal antes de separar.`,
-            409,
-          );
+          throw new EnvioConDealVigenteError(abierto.id, abierto.etapa);
         }
+      }
+
+      const submissionOrigenId = envioMasReciente(enviosAMover);
+      const envioDeOrigen = enviosAMover.find((envio) => envio.id === submissionOrigenId);
+      if (!envioDeOrigen) {
+        throw new ErrorDeApp("No se encontró el envío que trajo ese correo; no se puede separar sin dejarlo sin deal.", 409);
       }
 
       let leadNuevoId: string;
@@ -145,6 +171,13 @@ export async function separarCorreo(db: Db, actor: ActorConAcceso, datos: DatosC
       ]);
 
       await recalcularResumen(tx, [lead.id, leadNuevoId], new Set([leadNuevoId]), null, actor.id);
+      await abrirDeal(tx, {
+        leadId: leadNuevoId,
+        programId: contacto.programId,
+        etapa: etapaDeEntrada(hechosDeEntradaDelEnvio(envioDeOrigen)),
+        actor: { tipo: "sistema" },
+        submissionOrigenId,
+      });
       return { leadNuevoId, enviosMovidos: aMover.length };
     });
   });

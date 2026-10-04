@@ -53,7 +53,13 @@ export function PosiblesDuplicados({
         setPorSeparar(null);
         router.refresh();
       } else {
-        toast.error(r.error);
+        toast.error(r.error, r.dealId ? {
+          duration: 8000,
+          action: {
+            label: "Abrir deal",
+            onClick: () => router.push(`/p/${slug}/deals/${r.dealId}`),
+          },
+        } : undefined);
       }
     });
   }

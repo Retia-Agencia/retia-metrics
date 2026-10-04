@@ -599,6 +599,16 @@ El selector de programa (ADR 0050) vive arriba de la barra, dentro del marco, y 
 10. **Todo control interactivo tiene hover, foco visible y deshabilitado.** Sin foco visible no se
     mergea.
 
+**Tarjetas clicables y desplegables:**
+
+- Una tarjeta que abre una ficha tiene un solo enlace que ocupa toda su superficie. El hover cambia borde y fondo
+  con tokens de Tinta; el foco es visible sobre la tarjeta completa. Los controles secundarios que vivan dentro
+  detienen ese clic y conservan su propia semántica de botón.
+- Un desplegable usa un botón que ocupa todo su encabezado: cerrado resume lo necesario para decidir si abrirlo y
+  abierto muestra el detalle. Enter y Espacio funcionan por ser un botón nativo, `aria-expanded` refleja el estado
+  real, y el hover y el foco cubren toda la superficie activadora. El detalle no se esconde solo con estilos: usa
+  `hidden` para salir también del árbol accesible cuando está cerrado.
+
 **Toda cifra abre su lista (ADR 0067 puntos 5 y 6, ticket 137):**
 
 - Cada métrica clicable tiene UNA definición de su universo en `lib/queries/metricas-filtros.ts`

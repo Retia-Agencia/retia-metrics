@@ -97,7 +97,7 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
           tonoDeEtapa={TONO_DE_ETAPA}
         />
         <div className="space-y-4">
-          <FichaAlertas alertas={alertas} />
+          <FichaAlertas alertas={alertas} programaSlug={programa.slug} puedeGestionar={esAdministrador(rol) || trabajaLeads(rol)} />
           <FichaTransicion
             ficha={ficha}
             opciones={opciones}

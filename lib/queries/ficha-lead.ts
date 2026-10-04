@@ -1,9 +1,10 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
-import { cohorts, deals, leadContactos, leads, submissions, users } from "@/lib/db/schema";
+import { canales as tablaCanales, cohorts, deals, leadContactos, leads, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
+import { resolverCanal } from "@/lib/atribucion/canal";
 
 /**
  * La ficha del Lead (ticket 073): de una persona dentro de un programa, **todo lo que dijo y
@@ -54,6 +55,8 @@ export interface EnvioDeLaFicha {
   /** De la hoja (traslado) o por webhook. */
   posicionEnHoja: number | null;
   calificacion: string | null;
+  fuente: string;
+  canal: string;
   /** Todos los campos del envio, promovidos y crudos, en orden. */
   campos: CampoDelEnvio[];
   /** Lo que cambio respecto al envio anterior. `null` en el primero. */
@@ -261,6 +264,12 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
     .from(leadContactos)
     .where(and(eq(leadContactos.leadId, lead.id), eq(leadContactos.programId, programId)))
     .orderBy(asc(leadContactos.createdAt));
+  const [fuentesFilas, canalesFilas] = await Promise.all([
+    enviosFilas.length > 0
+      ? db.select({ id: sources.id, nombre: sources.nombre }).from(sources).where(inArray(sources.id, [...new Set(enviosFilas.map((e) => e.sourceId))]))
+      : Promise.resolve([]),
+    db.select().from(tablaCanales).where(eq(tablaCanales.activo, true)),
+  ]);
   const dealsFilas = await db
     .select()
     .from(deals)
@@ -278,6 +287,7 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
       : [];
 
   const ordenados = ordenarEnvios(unirParcialesConSuCompleto(enviosFilas));
+  const nombreDeFuente = new Map(fuentesFilas.map((f) => [f.id, String(f.nombre)] as const));
   const numeroDe = new Map(ordenados.map((e, i) => [e.id, i + 1] as const));
   // Un parcial absorbido por su completo lleva el número de ese completo: un contacto o un deal
   // que nació del parcial nació del MISMO envío.
@@ -289,6 +299,7 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
   const envios: EnvioDeLaFicha[] = [];
   for (const [i, e] of ordenados.entries()) {
     const campos = camposDelEnvio(e);
+    const canal = resolverCanal(utmsDelEnvio(e), canalesFilas);
     envios.push({
       id: e.id,
       numero: i + 1,
@@ -298,6 +309,8 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
       fechaEsDeLlegada: e.fechaEnvio === null,
       posicionEnHoja: e.posicionEnHoja,
       calificacion: e.calificacion,
+      fuente: nombreDeFuente.get(e.sourceId) ?? "Fuente desconocida",
+      canal: canal.tipo === "canal" ? canal.canal.nombre : canal.tipo === "sin_utm" ? "Sin UTM" : "Sin clasificar",
       campos,
       cambios: previos === null ? null : diferenciasEntreEnvios(previos, campos),
     });

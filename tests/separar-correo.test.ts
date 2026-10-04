@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { changeLog, deals, leadContactos, leads, miembrosPrograma, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { confirmarCorreo, separarCorreo } from "@/lib/ingesta/separar";
+import { alertasDelDeal } from "@/lib/queries/ficha-deal";
 import { posiblesDuplicadosDelPrograma } from "@/lib/queries/leads";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -96,6 +97,8 @@ describe("confirmarCorreo", () => {
 
 describe("separarCorreo", () => {
   it("deja dos leads: el correo y SUS envíos (el que lo trajo y el que lo trae) se van, el resto se queda", async () => {
+    // El envío más reciente que se mueve manda: High abre el deal separado en Calificado.
+    await db.update(submissions).set({ leadQuality: "High" }).where(eq(submissions.id, otroDeBeto));
     const r = await separarCorreo(db, closer, { contactoId: marca });
 
     expect(r.enviosMovidos).toBe(2);
@@ -119,16 +122,50 @@ describe("separarCorreo", () => {
     const rastro = await db.select().from(changeLog).where(eq(changeLog.userId, closer.id));
     expect(rastro.filter((x) => x.tabla === "submissions")).toHaveLength(2);
     expect(rastro.some((x) => x.tabla === "leads" && x.registroId === r.leadNuevoId)).toBe(true);
+
+    const [dealNuevo] = await db.select().from(deals).where(eq(deals.leadId, r.leadNuevoId));
+    expect(dealNuevo).toMatchObject({
+      programId,
+      etapa: "calificado",
+      submissionOrigenId: otroDeBeto,
+    });
+    const rastroDelDeal = await db
+      .select()
+      .from(changeLog)
+      .where(and(eq(changeLog.tabla, "deals"), eq(changeLog.registroId, dealNuevo.id)));
+    expect(rastroDelDeal.length).toBeGreaterThan(0);
+    expect(rastroDelDeal.every((fila) => fila.userId === null)).toBe(true);
   });
 
   it("si un envío que se movería abrió un deal vigente, 409 y nada cambia", async () => {
-    await db.insert(deals).values({ leadId: ana, programId, etapa: "registrado", submissionOrigenId: queTrajoABeto });
+    const [deal] = await db.insert(deals).values({ leadId: ana, programId, etapa: "registrado", submissionOrigenId: queTrajoABeto }).returning();
 
-    await expect(separarCorreo(db, closer, { contactoId: marca })).rejects.toMatchObject({ status: 409 });
+    await expect(separarCorreo(db, closer, { contactoId: marca })).rejects.toMatchObject({
+      status: 409,
+      dealId: deal.id,
+      message: expect.stringContaining("Ábrelo"),
+    });
 
     expect(await db.select().from(leads)).toHaveLength(1);
+    expect(await db.select().from(deals)).toHaveLength(1);
     const [c] = await db.select().from(leadContactos).where(eq(leadContactos.id, marca));
     expect(c).toMatchObject({ leadId: ana, confirmado: false });
+  });
+
+  it("la ficha del deal recibe los datos del posible duplicado y del envío que lo trajo", async () => {
+    const [deal] = await db.insert(deals).values({ leadId: ana, programId, etapa: "registrado" }).returning();
+
+    const alertas = await alertasDelDeal(db, programId, deal.id);
+
+    expect(alertas?.posiblesDuplicados).toEqual([
+      expect.objectContaining({
+        contactoId: marca,
+        correoPrincipal: "ana@c.co",
+        correoSinConfirmar: "beto@c.co",
+        telefonoEnComun: "+573000000000",
+        envio: expect.objectContaining({ id: queTrajoABeto, fuente: "Typeform" }),
+      }),
+    ]);
   });
 
   it("un closer sin membresía en el programa no puede (403); nada cambia", async () => {
@@ -139,5 +176,6 @@ describe("separarCorreo", () => {
       .from(leadContactos)
       .where(and(eq(leadContactos.id, marca), eq(leadContactos.confirmado, false)));
     expect(c).toBeDefined();
+    expect(await db.select().from(deals)).toHaveLength(0);
   });
 });

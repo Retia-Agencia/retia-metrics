@@ -3,7 +3,7 @@ id: 184
 etapa: O4
 serves: "docs/anotaciones.md A-90, A-91, A-92; ADR 0035, 0060; GC-27"
 depends: []
-status: todo
+status: done
 ---
 
 # 184 — Leads: envíos desplegables, y los posibles duplicados se deciden donde se trabaja
@@ -63,3 +63,18 @@ mueve).
 - La ficha del deal ofrece confirmar o separar un posible duplicado, con la explicación de cada botón.
 - `npm run build` en verde; recorrido en `dev:local` (sembrar un posible duplicado) como closer y gerente, consola
   abierta, escritorio y 375 px.
+
+## Cierre
+
+**3-oct-2026 — implementación terminada.** Cada envío de la ficha del lead quedó como desplegable accesible y la
+tarjeta completa del deal abre su ficha. Separar mueve los envíos, recalcula ambos leads y abre dentro de la misma
+transacción el deal del lead nuevo, en la etapa de su envío más reciente y con ese envío como origen. El 409 conserva
+el `dealId` y las dos pantallas ofrecen abrirlo. La ficha del deal muestra el posible duplicado, los dos correos, el
+teléfono y el envío, con las dos decisiones y su explicación; la reja sigue en el servidor.
+
+Validación de esta sesión: `npm run typecheck` y `npm run lint` limpios; `tests/separar-correo.test.ts` 7/7 y los
+relacionados (`ficha-lead`, `alertas-del-deal`, `ingesta-regla-de-deals`, `acciones-mi-dia`) 118/118. El lanzador
+`npm test -- tests/separar-correo.test.ts` no alcanzó a iniciar Vitest porque el sandbox bloqueó su `ps` de control de
+memoria (`EPERM`); se ejecutaron los mismos tests directamente con Vitest y `--configLoader runner`, necesario porque
+`node_modules` es un enlace en este worktree. El build y el recorrido visual quedan para el checkout principal, como
+indica la convención de worktrees.

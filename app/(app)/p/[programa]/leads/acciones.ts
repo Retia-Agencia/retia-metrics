@@ -10,7 +10,7 @@ import { db } from "@/lib/db";
 import { leadContactos } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { confirmarCorreo, esquemaContacto, separarCorreo } from "@/lib/ingesta/separar";
+import { confirmarCorreo, EnvioConDealVigenteError, esquemaContacto, separarCorreo } from "@/lib/ingesta/separar";
 import { buscarLeads, type LeadEncontrado } from "@/lib/queries/leads";
 
 /**
@@ -25,7 +25,7 @@ import { buscarLeads, type LeadEncontrado } from "@/lib/queries/leads";
  *   (ADR 0048). La pantalla se refresca en el cliente con `router.refresh()`.
  */
 
-export type ResultadoLeads = { ok: true } | { ok: false; error: string };
+export type ResultadoLeads = { ok: true } | { ok: false; error: string; dealId?: string };
 export type ResultadoBusquedaLeads =
   | { ok: true; leads: LeadEncontrado[] }
   | { ok: false; error: string };
@@ -75,6 +75,7 @@ async function correr(entrada: unknown, accion: "confirmar" | "separar"): Promis
     });
     return { ok: true };
   } catch (error) {
+    if (error instanceof EnvioConDealVigenteError) return { ok: false, error: error.message, dealId: error.dealId };
     if (error instanceof ErrorDeApp) return { ok: false, error: error.message };
     console.error("[leads] error no controlado", error);
     return { ok: false, error: "Error interno." };

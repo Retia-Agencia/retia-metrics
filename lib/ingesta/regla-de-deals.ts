@@ -15,7 +15,24 @@ import {
   darDealAlHost,
   huellaDeCita,
 } from "@/lib/calendly/colgar-llamada";
-import { etapaDeEntrada, type EtapaDeEntrada, type HechosDeEntrada } from "./etapa-de-entrada";
+import { agendoElEnvio, etapaDeEntrada, type EtapaDeEntrada, type HechosDeEntrada } from "./etapa-de-entrada";
+
+/**
+ * Los tres hechos con los que la regla enruta UN envio. Lo comparten la ingesta y
+ * la separacion de un posible duplicado: ninguna de las dos interpreta el resumen
+ * del lead ni vuelve a escribir esta traduccion por su cuenta.
+ */
+export function hechosDeEntradaDelEnvio(envio: {
+  esParcial: boolean;
+  calificacion: string | null;
+  leadQuality: string | null;
+}): HechosDeEntrada {
+  return {
+    esParcial: envio.esParcial,
+    agendo: agendoElEnvio(envio.calificacion),
+    leadQuality: envio.leadQuality,
+  };
+}
 
 /**
  * La regla de creacion y movimiento de deals de la ingesta (ticket 052, insumo §3.1,

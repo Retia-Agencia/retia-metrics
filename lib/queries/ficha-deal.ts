@@ -12,6 +12,7 @@ import {
   motivos,
   plataformasPago,
   programs,
+  sources,
   submissions,
   users,
 } from "@/lib/db/schema";
@@ -213,6 +214,13 @@ type MotivoAlertaDeal = MotivoAtencion | "llamada_sin_resultado" | "atendida_sin
 type AlertaDeal = { motivo: MotivoAlertaDeal; mensaje: string };
 
 export interface AlertasDelDeal {
+  posiblesDuplicados: {
+    contactoId: string;
+    correoPrincipal: string;
+    correoSinConfirmar: string;
+    telefonoEnComun: string | null;
+    envio: { id: string; fecha: Date; fuente: string | null } | null;
+  }[];
   propiedades: RequisitoFaltante[];
   urgentes: AlertaDeal[];
   alertas: AlertaDeal[];
@@ -262,13 +270,55 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
   if (!deal) return null;
 
   const hechos = await leerHechos(db, deal, deal.motivoId, null);
+  const duplicadosFilas = await db
+    .select({
+      contactoId: leadContactos.id,
+      correoPrincipal: leads.emailNormalizado,
+      correoSinConfirmar: leadContactos.valor,
+      telefonoEnComun: leads.telefono,
+      envioId: submissions.id,
+      envioFechaEnvio: submissions.fechaEnvio,
+      envioCreadoEn: submissions.createdAt,
+      fuente: sources.nombre,
+    })
+    .from(leadContactos)
+    .innerJoin(leads, eq(leads.id, leadContactos.leadId))
+    .leftJoin(submissions, eq(submissions.id, leadContactos.submissionId))
+    .leftJoin(sources, eq(sources.id, submissions.sourceId))
+    .where(and(
+      eq(leadContactos.leadId, deal.leadId),
+      eq(leadContactos.programId, programId),
+      eq(leadContactos.tipo, "correo"),
+      eq(leadContactos.confirmado, false),
+    ));
+  const [telefonoCompartido] = duplicadosFilas.length > 0
+    ? await db
+        .select({ valor: leadContactos.valor })
+        .from(leadContactos)
+        .where(and(
+          eq(leadContactos.leadId, deal.leadId),
+          eq(leadContactos.programId, programId),
+          eq(leadContactos.tipo, "telefono"),
+        ))
+        .orderBy(desc(leadContactos.esPrincipal), asc(leadContactos.createdAt))
+        .limit(1)
+    : [];
+  const posiblesDuplicados = duplicadosFilas.map((fila) => ({
+    contactoId: fila.contactoId,
+    correoPrincipal: fila.correoPrincipal,
+    correoSinConfirmar: fila.correoSinConfirmar,
+    telefonoEnComun: fila.telefonoEnComun ?? telefonoCompartido?.valor ?? null,
+    envio: fila.envioId && fila.envioCreadoEn
+      ? { id: fila.envioId, fecha: fila.envioFechaEnvio ?? fila.envioCreadoEn, fuente: fila.fuente }
+      : null,
+  }));
   let propiedades = propiedadesQueLeFaltan(deal.etapa, {
     ...hechos,
     cortesia: deal.cortesia,
     tieneCohorte: deal.cohortId != null,
   });
   if (deal.etapa === "cierre_perdido") {
-    return { propiedades, urgentes: [], alertas: [], paraAvanzar: [], aviso: null };
+    return { posiblesDuplicados, propiedades, urgentes: [], alertas: [], paraAvanzar: [], aviso: null };
   }
 
   const [inbox, llamadasVigentes] = await Promise.all([
@@ -317,6 +367,7 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
     .sort((a, b) => Number(b.caminoFeliz) - Number(a.caminoFeliz));
 
   return {
+    posiblesDuplicados,
     propiedades,
     urgentes: [...encontradas]
       .filter(([motivo]) => NIVEL_DE_ALERTA[motivo] === "urgente")

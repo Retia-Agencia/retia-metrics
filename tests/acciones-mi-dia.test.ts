@@ -2,9 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
   cohorts,
+  deals,
+  leadContactos,
   miembrosPrograma,
   leads,
   programs,
+  sources,
+  submissions,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -139,6 +143,10 @@ async function accionesLeads() {
   return import("@/app/(app)/p/[programa]/leads/acciones");
 }
 
+async function accionesFichaDeal() {
+  return import("@/app/(app)/p/[programa]/deals/[id]/acciones");
+}
+
 // ─────────────────────────────────────────────── barrera de rol (ADR 0003)
 
 describe("la pantalla es del closer: el gerente no registra (ADR 0003)", () => {
@@ -204,6 +212,36 @@ describe("un closer registra en su programa", () => {
       ok: false,
       error: "Ese programa no existe.",
     });
+  });
+
+  it("una accion forjada no decide el posible duplicado de un programa sin membresia", async () => {
+    const [fuente] = await db.insert(sources).values({ programId: programaB, nombre: "Formulario B" }).returning();
+    const [lead] = await db.insert(leads).values({ programId: programaB, emailNormalizado: "ana@b.co" }).returning();
+    const [envio] = await db.insert(submissions).values({
+      leadId: lead.id,
+      sourceId: fuente.id,
+      token: "forjado-b",
+      respuestas: { correo: "otra@b.co" },
+    }).returning();
+    const [contacto] = await db.insert(leadContactos).values({
+      leadId: lead.id,
+      programId: programaB,
+      tipo: "correo",
+      valor: "otra@b.co",
+      submissionId: envio.id,
+      confirmado: false,
+    }).returning();
+
+    const { separarCorreoDesdeDealAccion } = await accionesFichaDeal();
+    expect(await separarCorreoDesdeDealAccion({ contactoId: contacto.id })).toEqual({
+      ok: false,
+      error: "No existe ese contacto.",
+    });
+
+    const [sinMover] = await db.select().from(leadContactos).where(eq(leadContactos.id, contacto.id));
+    expect(sinMover).toMatchObject({ leadId: lead.id, confirmado: false });
+    expect(await db.select().from(leads).where(eq(leads.programId, programaB))).toHaveLength(1);
+    expect(await db.select().from(deals).where(eq(deals.programId, programaB))).toHaveLength(0);
   });
 
   it("un texto de menos de dos caracteres devuelve vacio", async () => {
