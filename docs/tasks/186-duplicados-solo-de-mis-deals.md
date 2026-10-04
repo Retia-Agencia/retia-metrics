@@ -3,7 +3,7 @@ id: 186
 etapa: O4
 serves: "docs/anotaciones.md A-93, A-94; ADR 0035, 0060, 0075"
 depends: [184]
-status: todo
+status: done
 ---
 
 # 186 — Los posibles duplicados: cada closer decide solo los de sus deals, y la lista no crece sin fin

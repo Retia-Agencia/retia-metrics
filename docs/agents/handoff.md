@@ -9,12 +9,11 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia. PRIORIDAD: Memorable (Nicolás y Francisco) arranca el lunes 5-oct y NO está montado
-(inactivo, sin token de Calendly, sin cohorte, sin cuentas de los closers: plan.md §2); es configuración de Mani
-(plan-reparto §4, O2 frente A). La ola vigente de código es la O4 (plan-reparto §4): 181 a 184 y el 167 en la parte 1,
-en paralelo; el 185 en la parte 2. Esta sesión es la CENTRAL: revisa cada entrega contra su "Done cuando", arregla,
-genera y aplica las migraciones de S2 (182) y S5 (167) con el ok de Mani, espera el CI, marca el checkpoint, recorre y
-marca el tracker. De Mani además: S1 Supabase Pro y la fuente principal de cada programa.
+Seguimos con el CRM de Retia. PRIORIDAD: Memorable (Nicolás y Francisco) arranca el lunes 5-oct y su configuración es de
+Mani (plan-reparto §4, O2 frente A; plan.md §2). La ola O4 cerró sus partes 1 y 2 en cp-20261004-1 (181 a 184, 167,
+186 y el fix-up de métricas por users.id). Lo único abierto de la O4 es el 185 (pantalla fija en Leads, Calls, Inbox y
+Students), que arranca con la reorganización de Mani de cada pantalla, no con código. De Mani además: S1 Supabase Pro,
+la fuente principal de cada programa, y ver en su recorrido el rojo del Kanban al arrastrar hacia atrás (182).
 
 Reglas: implementa un agente (Codex o Kiro) y la sesion principal revisa y recorre; migraciones solo con el ok de
 Mani; nivel 1 antes de cada push (typecheck, lint, tests del ticket), la suite completa la corre el CI en los
@@ -23,6 +22,23 @@ un recorrido local, apagar dev:local (y Docker si nadie mas lo usa: la Mac anda 
 ```
 
 ## Memory
+
+- **2026-10-04 (madrugada, Mani + Claude, sesión central): O4 partes 1 y 2 cerradas, `cp-20261004-1`.**
+  - **Revisión de la parte 1 (181 a 184, 167):** CI rojo (7 tests: contrato viejo del 167, la ficha consultando la
+    corrección contra un doble falso, alias de tabla en `ficha-lead.ts`); Deals seguía con scroll (`flex-1` le ganaba a
+    `h-dvh`: `md:max-h-dvh`); "Corregir" no salía tras "Mover a Contactado" porque el movimiento lo firmaba el sistema
+    (ahora `{ tipo: "sistema", porUsuario }` y el historial nombra a la persona). Arreglado en `792a456`.
+  - **Choque 167 × 183:** Mis métricas exigía `closer_id` y se caía (Mani es developer sin `closer_id`). Fix-up de Kiro:
+    el alcance por closer es `claveCloser` (`users.id` o `historico:<texto>`), en filtros, dashboard, lista y Mi espacio.
+  - **186 (Mani):** cada closer ve y decide solo los posibles duplicados de sus deals; paginados (73 en producción).
+    Forjado desde `mani.closer` contra el de Carlos: rechazo y la base quieta.
+  - **Producción (con el ok de Mani):** motivos de corrección sembrados con `npm run cargar-motivos` (ahora los trae).
+  - **Ojo:** `drizzle.__drizzle_migrations` tiene una fila huérfana (hash `5b9d578d…`): la 182 se aplicó como 0065 y otra
+    vez como 0066 tras renumerarse. Las dos agregan el mismo valor con `IF NOT EXISTS`; drizzle solo mira la fecha de la
+    última, así que no estorba. No se borra.
+  - **Aprendido:** dos sesiones paralelas con migración pelean el número; la que llega segunda renumera y la sesión
+    central debe aplicar (la regla ya lo decía; dos sesiones aplicaron solas). Kiro escribió una vez en el checkout
+    principal por error: revisar `git status` del principal al recibir cada entrega.
 
 - **2026-10-03 (noche 2, Mani + Claude, sesión central): ola O4 abierta.**
   - **De dónde sale:** 10 notas de Mani usando el CRM → A-82 a A-91; audit → A-92 (separar un duplicado deja al lead

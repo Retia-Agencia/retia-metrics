@@ -181,21 +181,21 @@ Diez notas de Mani y un hallazgo del audit. Reparto en `docs/plan-reparto.md` §
 
 | Id | Pantalla | Tipo | Anotación | Destino | Estado |
 |---|---|---|---|---|---|
-| A-82 | Deals (Kanban) | cambio | La página no hace scroll infinito: es fija, el tablero hace scroll horizontal y cada etapa por dentro (como HubSpot). Al pie de cada etapa, dos cifras: **potencial** (valor vendido, o el ticket base de la cohorte si no hay; todas las etapas) y **confirmado** por abonos. | 181 | en ticket |
-| A-83 | Deals (Kanban) | cambio | Ordenar por fecha de creación o de actividad, más reciente o más viejo primero; filtrar por cohorte, con la activa por defecto. | 181 | en ticket |
-| A-84 | Deals (Kanban) | cambio | Toda la tarjeta abre el deal, con hover; hoy solo el nombre. | 181 | en ticket |
-| A-85 | Ficha del Deal → Transición | aclaración + cambio | "Los deals solo avanzan." Ver la respuesta: hay retrocesos, pero no hay cómo corregir un clic equivocado. Decidido: **corregir el último movimiento** (si lo hizo una persona), con motivo, el mismo pop-up para todos, y en el Kanban la etapa de corrección en rojo. | 182 | en ticket |
+| A-82 | Deals (Kanban) | cambio | La página no hace scroll infinito: es fija, el tablero hace scroll horizontal y cada etapa por dentro (como HubSpot). Al pie de cada etapa, dos cifras: **potencial** (valor vendido, o el ticket base de la cohorte si no hay; todas las etapas) y **confirmado** por abonos. | 181 | resuelta · 4-oct (cp-20261004-1) |
+| A-83 | Deals (Kanban) | cambio | Ordenar por fecha de creación o de actividad, más reciente o más viejo primero; filtrar por cohorte, con la activa por defecto. | 181 | resuelta · 4-oct (cp-20261004-1) |
+| A-84 | Deals (Kanban) | cambio | Toda la tarjeta abre el deal, con hover; hoy solo el nombre. | 181 | resuelta · 4-oct (cp-20261004-1) |
+| A-85 | Ficha del Deal → Transición | aclaración + cambio | "Los deals solo avanzan." Ver la respuesta: hay retrocesos, pero no hay cómo corregir un clic equivocado. Decidido: **corregir el último movimiento** (si lo hizo una persona), con motivo, el mismo pop-up para todos, y en el Kanban la etapa de corrección en rojo. | 182 | resuelta · 4-oct (cp-20261004-1) |
 | A-86 | Toda la app | cambio | La regla del tablero para todo: página fija, el scroll dentro de cada sub-sección; decidir por pantalla si se reacomoda, pasa a sub-página o a pop-up. | 185 | en ticket |
-| A-87 | Mi espacio | cambio | Fuera Mis llamadas, Mis deals y Mis students (repiten las tabs). Mi espacio agrupa alertas y lo que necesita atención, y las métricas del closer con hoy, semana, mes y cohorte, por programa o en total. | 183 | en ticket |
+| A-87 | Mi espacio | cambio | Fuera Mis llamadas, Mis deals y Mis students (repiten las tabs). Mi espacio agrupa alertas y lo que necesita atención, y las métricas del closer con hoy, semana, mes y cohorte, por programa o en total. | 183 | resuelta · 4-oct (cp-20261004-1) |
 | A-88 | Programa | aclaración | "Sin fuente principal" con dos formularios, y qué hace "Rehacer webhook". Ver la respuesta. Los textos se arreglan en el 185. | 185 | en ticket |
-| A-89 | Ficha del Deal → Transición | cambio | Mucho texto sin jerarquía, botones sueltos a media tarjeta (Cierre perdido, No asistió o canceló), fuera "Camino principal". Dos columnas (mover · registrar), botones de un tamaño estándar, la tarjeta más baja. | 182 | en ticket |
-| A-90 | Leads, Mi espacio y Deal | aclaración + cambio | ¿Quién decide los posibles duplicados? Ver la respuesta. Que el closer los vea como alerta en Mi espacio y en el deal, y decida ahí: el mismo deal o dos deals. | 183, 184 | en ticket |
-| A-91 | Ficha del Lead | cambio | Cada envío es un desplegable estándar clicable entero, con hover, que muestra las respuestas; el deal asociado también es una tarjeta clicable. | 184 | en ticket |
-| A-92 | Separar un posible duplicado | bug | 🩸 Audit: `separarCorreo` crea el lead nuevo sin deal, contra GC-27 (ningún envío se queda sin deal). Sin error. | 184 | en ticket |
-| A-93 | Leads y Mi espacio → Posibles duplicados | cambio | La lista es un scroll infinito (73 en producción). Paginar y que no crezca. | 186 | en ticket |
-| A-94 | Posibles duplicados | cambio | Un closer solo decide los posibles duplicados de SUS deals; hoy decide y ve los del programa entero. | 186 | en ticket |
+| A-89 | Ficha del Deal → Transición | cambio | Mucho texto sin jerarquía, botones sueltos a media tarjeta (Cierre perdido, No asistió o canceló), fuera "Camino principal". Dos columnas (mover · registrar), botones de un tamaño estándar, la tarjeta más baja. | 182 | resuelta · 4-oct (cp-20261004-1) |
+| A-90 | Leads, Mi espacio y Deal | aclaración + cambio | ¿Quién decide los posibles duplicados? Ver la respuesta. Que el closer los vea como alerta en Mi espacio y en el deal, y decida ahí: el mismo deal o dos deals. | 183, 184 | resuelta · 4-oct (cp-20261004-1) |
+| A-91 | Ficha del Lead | cambio | Cada envío es un desplegable estándar clicable entero, con hover, que muestra las respuestas; el deal asociado también es una tarjeta clicable. | 184 | resuelta · 4-oct (cp-20261004-1) |
+| A-92 | Separar un posible duplicado | bug | 🩸 Audit: `separarCorreo` crea el lead nuevo sin deal, contra GC-27 (ningún envío se queda sin deal). Sin error. | 184 | resuelta · 4-oct (cp-20261004-1) |
+| A-93 | Leads y Mi espacio → Posibles duplicados | cambio | La lista es un scroll infinito (73 en producción). Paginar y que no crezca. | 186 | resuelta · 4-oct (cp-20261004-1) |
+| A-94 | Posibles duplicados | cambio | Un closer solo decide los posibles duplicados de SUS deals; hoy decide y ve los del programa entero. | 186 | resuelta · 4-oct (cp-20261004-1) |
 | A-95 | Leads, Calls, Inbox, Students | cambio | La pantalla fija va a esas cuatro tabs; Mani reorganiza antes cómo se muestra la información en cada una. | 185 | en ticket |
-| A-96 | Mi espacio → Mis métricas | bug | Sale error y pide recargar. Causa: la cuenta no tiene `closer_id` y Mis métricas lo exigía (choque del 167 con el 183). | fix-up O4 (Kiro, rama `o4-fix-closer`) | en ticket |
+| A-96 | Mi espacio → Mis métricas | bug | Sale error y pide recargar. Causa: la cuenta no tiene `closer_id` y Mis métricas lo exigía (choque del 167 con el 183). | fix-up O4 (Kiro, rama `o4-fix-closer`) | resuelta · 4-oct (cp-20261004-1) |
 
 ### Respuestas
 

@@ -138,7 +138,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 134 | [El ticket base es de la cohorte y `productos` se retira](./134-ticket-base-de-la-cohorte-y-adios-productos.md) | 132 | done · 1-oct · Mani · 0056 en producción (sin `productos`); descuento contra la cohorte, deals nacen en la activa, cambios de una venta con motivo; 214 deals movidos a la C3 |
 | [ ] | 144 | [Próxima fecha de pago y cartera](./144-proxima-fecha-de-pago-y-cartera.md) | 132, QM-3, GC-17 | bloqueado |
 | [x] | 166 | [Las plataformas de pago de un programa, a la vista](./166-plataformas-de-pago-visibles.md) | 100 | done · `cp-20261003-1` · 3-oct (S4) · bloque "Plataformas de pago" en la ficha del programa y aviso en el abono; recorrido hecho |
-| [ ] | 167 | [Quién cobró es una FK a `users`, y un usuario nuevo no necesita `closer_id`](./167-quien-cobro-es-una-fk.md) | · | todo · **ola O4, S5** (3-oct: ampliado con A-15 a A-17 y K-3) · migración (cola) · el 159 queda con lo del corte |
+| [x] | 167 | [Quién cobró es una FK a `users`, y un usuario nuevo no necesita `closer_id`](./167-quien-cobro-es-una-fk.md) | · | done · `cp-20261004-1` · ola O4 (ver §14) · el 159 queda con lo del corte |
 
 ## 6 · Students y onboarding
 
@@ -276,17 +276,17 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
 
-7 tickets, 7 abiertos (181 a 184 y 167 en `main`, `cp-20261003-9`; falta su cierre tras el fix-up de Mi espacio). Salen del recorrido 8 de Mani (`docs/anotaciones.md` A-82 a A-92). Reparto en
+7 tickets, 1 abierto (el 185, que arranca con la reorganización de Mani). Salen del recorrido 8 de Mani (`docs/anotaciones.md` A-82 a A-92). Reparto en
 [`plan-reparto.md`](../plan-reparto.md) §4, ola O4. Lo de código que falta para operar (el 167) va dentro.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 181 | [Deals: tablero fijo, dinero por etapa, orden, cohorte y tarjeta clicable](./181-deals-tablero-fijo.md) | · | todo · S1 · parte 1 |
-| [ ] | 182 | [Transición en dos columnas, y corregir el último movimiento](./182-transicion-en-dos-columnas-y-corregir.md) | · | todo · S2 · parte 1 · migración (enum de motivos) |
-| [ ] | 183 | [Mi espacio: lo que necesita atención y las métricas de quien lo mira](./183-mi-espacio-alertas-y-metricas.md) | · | todo · S3 · parte 1 |
-| [ ] | 184 | [Leads: envíos desplegables, y los duplicados se deciden donde se trabaja](./184-leads-envios-y-duplicados.md) | · | todo · S4 · parte 1 |
-| [ ] | 167 | [Quién cobró es una FK, y Facturación clara](./167-quien-cobro-es-una-fk.md) | · | todo · S5 · parte 1 · migración |
-| [ ] | 186 | [Los duplicados: cada closer decide solo los de sus deals, y la lista no crece](./186-duplicados-solo-de-mis-deals.md) | 184 | todo · S7 · parte 2 |
+| [x] | 181 | [Deals: tablero fijo, dinero por etapa, orden, cohorte y tarjeta clicable](./181-deals-tablero-fijo.md) | · | done · `cp-20261004-1` · 4-oct · tablero fijo (arreglo de la sesión central: `md:max-h-dvh`), dinero por etapa, orden, cohorte, tarjeta clicable; recorrido hecho |
+| [x] | 182 | [Transición en dos columnas, y corregir el último movimiento](./182-transicion-en-dos-columnas-y-corregir.md) | · | done · `cp-20261004-1` · 4-oct · corregir el último movimiento y Transición en dos columnas; migración 0066; motivos de corrección sembrados en producción con el ok de Mani; el movimiento que dispara una actividad lo firma la persona (sesión central); falta que Mani vea el rojo al arrastrar |
+| [x] | 183 | [Mi espacio: lo que necesita atención y las métricas de quien lo mira](./183-mi-espacio-alertas-y-metricas.md) | · | done · `cp-20261004-1` · 4-oct · Mi espacio con Necesita atención y Mis métricas; fix-up de Kiro: métricas por `users.id` (`claveCloser`), sin `closer_id` ya no se cae; recorrido hecho |
+| [x] | 184 | [Leads: envíos desplegables, y los duplicados se deciden donde se trabaja](./184-leads-envios-y-duplicados.md) | · | done · `cp-20261004-1` · 4-oct · envíos desplegables, separar abre el deal del lead nuevo, duplicado decidido en la ficha; recorrido hecho |
+| [x] | 167 | [Quién cobró es una FK, y Facturación clara](./167-quien-cobro-es-una-fk.md) | · | done · `cp-20261004-1` · 4-oct · `abonos.registrado_por_user_id` (0065), `closer_id` opcional, Facturación A-15 a A-17, fuera `buscar-llamada.ts` |
+| [x] | 186 | [Los duplicados: cada closer decide solo los de sus deals, y la lista no crece](./186-duplicados-solo-de-mis-deals.md) | 184 | done · `cp-20261004-1` · 4-oct · cada closer ve y decide solo los duplicados de sus deals (forjado: rechazo sin escribir), paginados; recorrido hecho |
 | [ ] | 185 | [Pantalla fija en Leads, Calls, Inbox y Students](./185-pantalla-fija-en-toda-la-app.md) | 181, 183, 184, 186 | todo · S6 · parte 3 · arranca con la reorganización de Mani |
 
 # Pasos y tareas sin ticket

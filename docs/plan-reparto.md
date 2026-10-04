@@ -142,8 +142,8 @@ y no es código: lo hace Mani (A.2 a A.10).
 edita lo del otro; quien llegue segunda rebasa). `lib/queries/leads.ts` no cambia de firma (S3 importa la lista de
 duplicados; S4 solo agrega un campo opcional). `lib/db/schema.ts`: S2 (enum) y S5 (columna); las dos migraciones las
 genera y aplica la sesión central en cola, con el ok de Mani. **Parte 1 en `main` con CI verde: `cp-20261003-9`** (3-oct noche), con los arreglos de la revisión central. Queda el
-fix-up de Mi espacio (Kiro, `o4-fix-closer`). Parte 2: el 186. Parte 3: el 185, que arranca con la reorganización de
-Mani de las cuatro pantallas.
+fix-up de Mi espacio (Kiro, `o4-fix-closer`). **Partes 1 y 2 cerradas en `cp-20261004-1`** (4-oct): 181 a 184, 167, 186 y el fix-up de métricas por `users.id`.
+Queda la parte 3: el 185, que arranca con la reorganización de Mani de las cuatro pantallas.
 
 **Cómo arranca cada sesión** (el prompt que se pega en una sesión nueva, cambiando el número):
 

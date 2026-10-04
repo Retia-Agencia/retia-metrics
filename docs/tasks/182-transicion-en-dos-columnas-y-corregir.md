@@ -3,7 +3,7 @@ id: 182
 etapa: O4
 serves: "docs/anotaciones.md A-85, A-89; ADR 0078 (nuevo); ADR 0037, 0038, 0075"
 depends: []
-status: todo
+status: done
 ---
 
 # 182 — Transición en dos columnas, y corregir el último movimiento

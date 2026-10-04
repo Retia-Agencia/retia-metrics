@@ -3,7 +3,7 @@ id: 181
 etapa: O4
 serves: "docs/anotaciones.md A-82, A-83, A-84, A-07, A-08; ADR 0024; ADR 0077"
 depends: []
-status: review
+status: done
 ---
 
 # 181 — Deals: tablero fijo como HubSpot, dinero por etapa, orden, cohorte y tarjeta clicable
