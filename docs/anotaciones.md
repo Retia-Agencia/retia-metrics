@@ -202,11 +202,11 @@ Diez notas de Mani y un hallazgo del audit. Reparto en `docs/plan-reparto.md` §
 
 | Id | Pantalla | Tipo | Anotación | Destino | Estado |
 |---|---|---|---|---|---|
-| A-97 | Inbox | cambio | Aún no es pantalla fija. Las pestañas mezclan llamadas y deals y sus nombres no dicen qué muestran: dos barras (Llamadas y Deals), nombres claros y una línea que explique cada pestaña. | 193 | en ticket |
-| A-98 | Programa | cambio | Crece sin fin con el equipo y lo demás: pantalla fija y el contenido agrupado en pestañas con la barra del Inbox. | 194 | en ticket |
-| A-99 | Recursos | cambio | Pantalla fija. | 195 | en ticket |
-| A-100 | Ajustes (cada tarjeta) | cambio | Las pantallas que abre cada tarjeta no son pantalla fija y no tienen cómo volver a Ajustes. | 196 | en ticket |
-| A-101 | Dashboard | cambio | Pantalla fija y las métricas agrupadas en pestañas con la barra del Inbox, para ver junto lo relacionado sin saturar. | 197 | en ticket |
+| A-97 | Inbox | cambio | Aún no es pantalla fija. Las pestañas mezclan llamadas y deals y sus nombres no dicen qué muestran: dos barras (Llamadas y Deals), nombres claros y una línea que explique cada pestaña. | 193 | resuelta · 4-oct (cp-20261004-5) |
+| A-98 | Programa | cambio | Crece sin fin con el equipo y lo demás: pantalla fija y el contenido agrupado en pestañas con la barra del Inbox. | 194 | resuelta · 4-oct (cp-20261004-6) |
+| A-99 | Recursos | cambio | Pantalla fija. | 195 | resuelta · 4-oct (cp-20261004-6) |
+| A-100 | Ajustes (cada tarjeta) | cambio | Las pantallas que abre cada tarjeta no son pantalla fija y no tienen cómo volver a Ajustes. | 196 | resuelta · 4-oct (cp-20261004-5) |
+| A-101 | Dashboard | cambio | Pantalla fija y las métricas agrupadas en pestañas con la barra del Inbox, para ver junto lo relacionado sin saturar. | 197 | resuelta · 4-oct (cp-20261004-6) |
 
 ### Respuestas
 

@@ -3,7 +3,7 @@ id: 197
 etapa: O6
 serves: "docs/anotaciones.md A-101; A-06, A-86; ticket 148"
 depends: [193, 148]
-status: todo
+status: done
 ---
 
 # 197 — Dashboard: pantalla fija y cada sección en su pestaña
@@ -53,3 +53,12 @@ pestañas se ve junta la información relacionada y no satura.
 - `tests/vista-dashboard.test.ts` y `tests/paginas.test.ts` siguen en verde; typecheck, lint, `npm run build`.
 - Recorrido en `dev:local` como gerente y closer, escritorio y 375 px, consola abierta, en cada pestaña cambiando el
   periodo y el closer y abriendo una lista.
+
+## Nota de cierre (central, 4-oct)
+
+Llegó en `f6bcac6` (P5); checkpoint `cp-20261004-6`. Pulso, Operación, Dinero y Pauta; el filtro conserva `seccion`
+(`useFiltrosUrl` parte del query actual) y "Volver" desde una lista regresa a la pestaña y al filtro (probado con Caja
+recaudada). Solo se calculan los detalles de la pestaña activa. Arreglos de la central en `81f9a8d`: (1) Operación medía
+1.847 px porque los `sr-only` de las gráficas, absolutos, se escapaban de la zona con scroll: `md:relative` en las 13
+copias de esa zona; (2) el CI de `9b3bcc5` cayó por el guardián de Volver, que leía `?desde=` en un comentario de la
+página. Faltó la nota de la sesión en este archivo.

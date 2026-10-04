@@ -23,6 +23,20 @@ un recorrido local, apagar dev:local (y Docker si nadie mas lo usa: la Mac anda 
 
 ## Memory
 
+- **2026-10-04 (tarde, Mani + Claude, sesión central): frente de pantallas de la O6 cerrado, `cp-20261004-5` y `-6`.**
+  - **Mani pidió la pantalla fija como estándar del CRM** (A-97 a A-101): tickets 193 a 197, cinco sesiones (P1 a P5). 193
+    hizo la pieza `components/layout/pestanas.tsx` (pestañas por URL `?seccion=`, grupos, conteo y línea descriptiva) y
+    partió el Inbox en Llamadas (Por registrar, Sin deal) y Deals (Agendados sin dueño, Por settear, No agendaron,
+    Necesitan acción). 196: las seis pantallas de Ajustes fijas con "← Ajustes". 194: Programa en General, Equipo,
+    Captación y Ventas. 195: Recursos y Links de pago. 197: el Dashboard en Pulso, Operación, Dinero y Pauta.
+  - **Arreglos de la central:** `seccion` ya no cuenta como filtro en "Volver"; el test de contratado del 148 no fija el
+    orden de un empate (CI rojo intermitente); la zona con scroll es `relative` (los `sr-only` de las gráficas estiraban
+    Operación); un comentario con `?desde=` tumbaba el guardián de Volver.
+  - **Deuda:** la zona con scroll está copiada 13 veces (ticket 198). Las cinco sesiones no dejaron nota de cierre: las
+    escribió la central. La D1 a D4 de la O6 (187, 190, 192, 147) siguen sin arrancar.
+  - **Aprendido:** un guardián que lee texto también lee los comentarios; y un hijo absoluto se sale de un contenedor con
+    scroll que no es `relative`, sin error y solo en la pantalla que tenga uno.
+
 - **2026-10-04 (mañana, Mani + Claude, sesión central): ola O5 abierta, `cp-20261004-2`.**
   - **Arreglos de la central:** Leads se caía para todos (el 186 pasaba una función `hrefDePagina` a un componente
     cliente; ahora llegan los enlaces armados). El Kanban muestra Confirmado solo en Ganado Pago Parcial y Pagado Completo

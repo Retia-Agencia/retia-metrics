@@ -3,7 +3,7 @@ id: 195
 etapa: O6
 serves: "docs/anotaciones.md A-99; A-06, A-86"
 depends: [193]
-status: todo
+status: done
 ---
 
 # 195 — Recursos: pantalla fija
@@ -38,3 +38,9 @@ pantalla fija como el resto del CRM.
 - Typecheck, lint, `npm run build` (`components/resources/` tiene clientes).
 - Recorrido en `dev:local` como closer y gerente, escritorio y 375 px, consola abierta: buscar, copiar, crear y editar
   un recurso, ver su historial, crear un link de pago.
+
+## Nota de cierre (central, 4-oct)
+
+Llegó en `348d9ab` (P3); checkpoint `cp-20261004-6`. Dos pestañas, Recursos y Links de pago (`links-de-pago`), con su
+conteo; la página mide 900 px. El buscador por título solo está en la pestaña Recursos (la consulta de links no recibe
+`q`). Faltó la nota de la sesión en este archivo.

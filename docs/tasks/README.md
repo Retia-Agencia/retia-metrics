@@ -310,10 +310,11 @@ paralelo; 194, 195 y 197 cuando el 193 esté en `main` (usan su pieza de pestañ
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 193 | [Las pestañas son una pieza, y el Inbox en Llamadas y Deals](./193-pestanas-y-el-inbox-en-dos-barras.md) | 185 | done · `cp-20261004-5` · P1 · pieza `pestanas.tsx`; Inbox en Llamadas y Deals |
-| [ ] | 194 | [Programa: pantalla fija y su contenido en pestañas](./194-programa-en-pestanas.md) | 193 | todo · P2 |
-| [ ] | 195 | [Recursos: pantalla fija](./195-recursos-pantalla-fija.md) | 193 | todo · P3 |
+| [x] | 194 | [Programa: pantalla fija y su contenido en pestañas](./194-programa-en-pestanas.md) | 193 | done · `cp-20261004-6` · P2 · General, Equipo, Captación, Ventas |
+| [x] | 195 | [Recursos: pantalla fija](./195-recursos-pantalla-fija.md) | 193 | done · `cp-20261004-6` · P3 · Recursos y Links de pago |
 | [x] | 196 | [Las pantallas de Ajustes: pantalla fija y "← Ajustes"](./196-ajustes-pantalla-fija-y-volver.md) | 185 | done · `cp-20261004-5` · P4 · seis pantallas fijas con "← Ajustes" |
-| [ ] | 197 | [Dashboard: pantalla fija y cada sección en su pestaña](./197-dashboard-en-pestanas.md) | 193, 148 | todo · P5 |
+| [x] | 197 | [Dashboard: pantalla fija y cada sección en su pestaña](./197-dashboard-en-pestanas.md) | 193, 148 | done · `cp-20261004-6` · P5 · Pulso, Operación, Dinero, Pauta; Volver regresa a la pestaña |
+| [ ] | 198 | [La zona con scroll es una pieza de `pantalla-fija.tsx`](./198-la-zona-con-scroll-es-una-pieza.md) | 197 | todo · deuda del frente de pantallas |
 
 # Pasos y tareas sin ticket
 

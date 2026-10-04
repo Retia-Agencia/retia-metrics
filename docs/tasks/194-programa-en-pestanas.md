@@ -3,7 +3,7 @@ id: 194
 etapa: O6
 serves: "docs/anotaciones.md A-98; A-06, A-86; ADR 0077"
 depends: [193]
-status: todo
+status: done
 ---
 
 # 194 — Programa: pantalla fija y su contenido en pestañas
@@ -51,3 +51,8 @@ misma barra del Inbox.
 - Recorrido en `dev:local` como gerente, developer y closer (lo que cada uno ve no cambió), escritorio y 375 px,
   consola abierta, abriendo cada diálogo de cada pestaña (editar programa, formulario, Reconectar Calendly, agregar
   miembro, cohorte, plataforma).
+
+## Nota de cierre (central, 4-oct)
+
+Llegó en `9b3bcc5` (P2); checkpoint `cp-20261004-6`. Revisado en `dev:local`: General, Equipo, Captación y Ventas miden
+900 px a 1440×900; como closer se ven las cuatro pestañas sin "Editar". Faltó la nota de la sesión en este archivo.
