@@ -3,7 +3,7 @@ id: 196
 etapa: O6
 serves: "docs/anotaciones.md A-100; A-06, A-86; ticket 174"
 depends: [185]
-status: todo
+status: done
 ---
 
 # 196 — Las pantallas de Ajustes: pantalla fija y "← Ajustes"
@@ -42,3 +42,10 @@ reacomodo lo pida.
 - Typecheck, lint, `npm run build` (`components/admin/` tiene clientes).
 - Recorrido en `dev:local` como gerente y developer, escritorio y 375 px, consola abierta: en cada pantalla, crear,
   editar y desactivar una fila, y abrir cada select y diálogo. Un closer sigue recibiendo la negativa de siempre.
+
+## Nota de cierre (central, 4-oct)
+
+Llegó en `6ec8d28` (P4); checkpoint `cp-20261004-5`. Revisado en `dev:local` como gerente: las seis pantallas tienen
+"← Ajustes" y miden 900 px con la lista desplazándose por dentro; en Canales, "Crear canal" desde un par deja el
+formulario arriba, prellenado y enfocado. Canales (desde Mi espacio) y Webhook Health (desde Nerd stats) reciben
+`desde`. Faltó la nota de la sesión en este archivo.

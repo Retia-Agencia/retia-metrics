@@ -3,7 +3,7 @@ id: 193
 etapa: O6
 serves: "docs/anotaciones.md A-97; A-06, A-86; ticket 185"
 depends: [185]
-status: todo
+status: done
 ---
 
 # 193 — Las pestañas son una pieza del CRM, y el Inbox se parte en Llamadas y Deals
@@ -73,3 +73,11 @@ quien enlace a `?seccion=` del Inbox, `docs/structure.md` §9.
   `lib/db` al cliente).
 - Recorrido en `dev:local` como closer y gerente, escritorio y 375 px, consola abierta, abriendo cada pestaña y lo que
   se abre adentro (registrar resultado, asignar suelta, reclamar, "Asignar a").
+
+## Nota de cierre (central, 4-oct)
+
+Llegó en `c19b3a0` (P1); checkpoint `cp-20261004-5`. Revisado en `dev:local` como gerente, 1440×900 y 375 px: el Inbox
+mide 900 px, dos barras con conteo y línea, los ids viejos abren la pestaña nueva (`sin-dueno` → Agendados sin dueño),
+a 375 px la página no pasa de 375 y la barra de Deals hace scroll en su franja. "Asignar a…" abre con teclado (el clic
+del navegador de prueba no lo abrió; el componente no cambió). Arreglo de la central en `de865cf`: `seccion` no cuenta
+como filtro en "Volver" (decía "← Inbox · filtrados"). Faltó la nota de la sesión en este archivo.

@@ -309,10 +309,10 @@ paralelo; 194, 195 y 197 cuando el 193 esté en `main` (usan su pieza de pestañ
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 193 | [Las pestañas son una pieza, y el Inbox en Llamadas y Deals](./193-pestanas-y-el-inbox-en-dos-barras.md) | 185 | todo · P1 |
+| [x] | 193 | [Las pestañas son una pieza, y el Inbox en Llamadas y Deals](./193-pestanas-y-el-inbox-en-dos-barras.md) | 185 | done · `cp-20261004-5` · P1 · pieza `pestanas.tsx`; Inbox en Llamadas y Deals |
 | [ ] | 194 | [Programa: pantalla fija y su contenido en pestañas](./194-programa-en-pestanas.md) | 193 | todo · P2 |
 | [ ] | 195 | [Recursos: pantalla fija](./195-recursos-pantalla-fija.md) | 193 | todo · P3 |
-| [ ] | 196 | [Las pantallas de Ajustes: pantalla fija y "← Ajustes"](./196-ajustes-pantalla-fija-y-volver.md) | 185 | todo · P4 |
+| [x] | 196 | [Las pantallas de Ajustes: pantalla fija y "← Ajustes"](./196-ajustes-pantalla-fija-y-volver.md) | 185 | done · `cp-20261004-5` · P4 · seis pantallas fijas con "← Ajustes" |
 | [ ] | 197 | [Dashboard: pantalla fija y cada sección en su pestaña](./197-dashboard-en-pestanas.md) | 193, 148 | todo · P5 |
 
 # Pasos y tareas sin ticket
