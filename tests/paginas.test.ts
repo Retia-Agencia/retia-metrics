@@ -643,7 +643,7 @@ describe("el dashboard no depende del rol dentro del alcance (ADR 0048, ticket 0
     expect(await correrPrograma(SLUG)).toBe("paso");
     expect(armarVistaDelDashboard.mock.calls.at(-1)![0]).toMatchObject({
       programId: "p-1",
-      closerId: null,
+      claveCloser: null,
     });
   });
 
@@ -657,13 +657,17 @@ describe("el dashboard no depende del rol dentro del alcance (ADR 0048, ticket 0
 
   it("el filtro de la URL llega a la vista", async () => {
     auth.mockResolvedValue(sesionGerente);
-    expect(await correrPrograma(SLUG, { rango: "custom", desde: "2026-09-01", hasta: "2026-09-10", closer: "Beto" })).toBe("paso");
+    const beto = "6f1c2a9e-3b4d-4c5e-8f70-1a2b3c4d5e6f";
+    expect(await correrPrograma(SLUG, { rango: "custom", desde: "2026-09-01", hasta: "2026-09-10", closer: beto })).toBe("paso");
     expect(armarVistaDelDashboard.mock.calls.at(-1)![0]).toMatchObject({
       preset: "custom",
       desde: "2026-09-01",
       hasta: "2026-09-10",
-      closerId: "Beto",
+      claveCloser: beto,
     });
+    // El closer va por su users.id (167): un texto como "Beto" no es una clave y se ignora.
+    expect(await correrPrograma(SLUG, { closer: "Beto" })).toBe("paso");
+    expect(armarVistaDelDashboard.mock.calls.at(-1)![0]).toMatchObject({ claveCloser: null });
   });
 });
 
