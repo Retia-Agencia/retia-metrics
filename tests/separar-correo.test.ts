@@ -24,24 +24,39 @@ let queTrajoABeto: string;
 let otroDeBeto: string;
 let closer: { id: string; rol: "closer" };
 let ajeno: { id: string; rol: "closer" };
+let gerente: { id: string; rol: "gerente" };
 
 const PREGUNTA = "¿Cuál es tu correo electrónico?";
+
+/** Un deal abierto sobre `ana`, con dueño, para que `closer` pueda decidir el duplicado (186). */
+async function abrirDealDe(dueno: string | null, submissionOrigenId: string | null = deAna) {
+  const [deal] = await db
+    .insert(deals)
+    .values({ leadId: ana, programId, etapa: "registrado", ownerUserId: dueno, submissionOrigenId })
+    .returning();
+  return deal;
+}
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
   programId = p.id;
   const [f] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
-  const [u1, u2] = await db
+  const [u1, u2, u3] = await db
     .insert(users)
     .values([
       { email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" },
       { email: "otro@retiagrowth.com", rol: "closer", closerId: "Otro" },
+      { email: "jefa@retiagrowth.com", rol: "gerente" },
     ])
     .returning();
-  await db.insert(miembrosPrograma).values({ userId: u1.id, programId, activo: true });
+  await db.insert(miembrosPrograma).values([
+    { userId: u1.id, programId, activo: true },
+    { userId: u2.id, programId, activo: true },
+  ]);
   closer = { id: u1.id, rol: "closer" };
   ajeno = { id: u2.id, rol: "closer" };
+  gerente = { id: u3.id, rol: "gerente" };
 
   const [l] = await db.insert(leads).values({ programId, emailNormalizado: "ana@c.co", nombre: "Ana", numAplicaciones: 3 }).returning();
   ana = l.id;
@@ -73,30 +88,70 @@ afterEach(async () => {
 
 describe("posiblesDuplicadosDelPrograma", () => {
   it("lista el correo sin confirmar con su lead", async () => {
-    const lista = await posiblesDuplicadosDelPrograma(db, programId);
-    expect(lista).toHaveLength(1);
-    expect(lista[0]).toMatchObject({ contactoId: marca, leadId: ana, correoSinConfirmar: "beto@c.co" });
+    const { total, filas } = await posiblesDuplicadosDelPrograma(db, programId);
+    expect(total).toBe(1);
+    expect(filas).toHaveLength(1);
+    expect(filas[0]).toMatchObject({ contactoId: marca, leadId: ana, correoSinConfirmar: "beto@c.co" });
+  });
+
+  it("trae el dueño del deal abierto del lead", async () => {
+    await abrirDealDe(closer.id);
+    const { filas } = await posiblesDuplicadosDelPrograma(db, programId);
+    expect(filas[0].duenoUserId).toBe(closer.id);
+  });
+
+  it("el closer ve solo los duplicados de SUS deals; otro dueño no los ve", async () => {
+    await abrirDealDe(ajeno.id);
+    const mios = await posiblesDuplicadosDelPrograma(db, programId, { duenoUserId: closer.id });
+    expect(mios.total).toBe(0);
+    expect(mios.filas).toHaveLength(0);
+    const ajenos = await posiblesDuplicadosDelPrograma(db, programId, { duenoUserId: ajeno.id });
+    expect(ajenos.total).toBe(1);
+    expect(ajenos.filas[0]).toMatchObject({ contactoId: marca, duenoUserId: ajeno.id });
+    // Quien administra (sin duenoUserId) ve el del programa igual.
+    const todos = await posiblesDuplicadosDelPrograma(db, programId);
+    expect(todos.total).toBe(1);
+  });
+
+  it("pagina de a 25 en el servidor y devuelve la segunda página", async () => {
+    // 29 duplicados más: cada uno su lead y su correo marcado por teléfono.
+    for (let i = 0; i < 29; i++) {
+      const [l] = await db.insert(leads).values({ programId, emailNormalizado: `p${i}@c.co` }).returning();
+      await db.insert(leadContactos).values({ leadId: l.id, programId, tipo: "correo", valor: `dup${i}@c.co`, confirmado: false });
+    }
+    const p0 = await posiblesDuplicadosDelPrograma(db, programId, { pagina: 0 });
+    expect(p0.total).toBe(30);
+    expect(p0.filas).toHaveLength(25);
+    const p1 = await posiblesDuplicadosDelPrograma(db, programId, { pagina: 1 });
+    expect(p1.total).toBe(30);
+    expect(p1.filas).toHaveLength(5);
+    // Ninguna fila se repite entre páginas.
+    const ids = new Set([...p0.filas, ...p1.filas].map((f) => f.contactoId));
+    expect(ids.size).toBe(30);
   });
 });
 
 describe("confirmarCorreo", () => {
-  it("quita la marca y deja rastro con quién", async () => {
+  it("el dueño del deal abierto quita la marca y deja rastro con quién", async () => {
+    await abrirDealDe(closer.id);
     await confirmarCorreo(db, closer, { contactoId: marca });
     const [c] = await db.select().from(leadContactos).where(eq(leadContactos.id, marca));
     expect(c.confirmado).toBe(true);
-    const [r] = await db.select().from(changeLog).where(eq(changeLog.registroId, marca));
+    const [r] = await db.select().from(changeLog).where(and(eq(changeLog.registroId, marca), eq(changeLog.campo, "confirmado")));
     expect(r).toMatchObject({ campo: "confirmado", valorAnterior: "false", valorNuevo: "true", userId: closer.id, origen: "app" });
-    expect(await posiblesDuplicadosDelPrograma(db, programId)).toEqual([]);
+    expect((await posiblesDuplicadosDelPrograma(db, programId)).filas).toEqual([]);
   });
 
   it("un correo ya confirmado es 409", async () => {
+    await abrirDealDe(closer.id);
     await confirmarCorreo(db, closer, { contactoId: marca });
     await expect(confirmarCorreo(db, closer, { contactoId: marca })).rejects.toMatchObject({ status: 409 });
   });
 });
 
 describe("separarCorreo", () => {
-  it("deja dos leads: el correo y SUS envíos (el que lo trajo y el que lo trae) se van, el resto se queda", async () => {
+  it("el dueño deja dos leads: el correo y SUS envíos (el que lo trajo y el que lo trae) se van, el resto se queda", async () => {
+    await abrirDealDe(closer.id);
     // El envío más reciente que se mueve manda: High abre el deal separado en Calificado.
     await db.update(submissions).set({ leadQuality: "High" }).where(eq(submissions.id, otroDeBeto));
     const r = await separarCorreo(db, closer, { contactoId: marca });
@@ -138,7 +193,10 @@ describe("separarCorreo", () => {
   });
 
   it("si un envío que se movería abrió un deal vigente, 409 y nada cambia", async () => {
-    const [deal] = await db.insert(deals).values({ leadId: ana, programId, etapa: "registrado", submissionOrigenId: queTrajoABeto }).returning();
+    const [deal] = await db
+      .insert(deals)
+      .values({ leadId: ana, programId, etapa: "registrado", ownerUserId: closer.id, submissionOrigenId: queTrajoABeto })
+      .returning();
 
     await expect(separarCorreo(db, closer, { contactoId: marca })).rejects.toMatchObject({
       status: 409,
@@ -169,13 +227,44 @@ describe("separarCorreo", () => {
   });
 
   it("un closer sin membresía en el programa no puede (403); nada cambia", async () => {
-    await expect(separarCorreo(db, ajeno, { contactoId: marca })).rejects.toMatchObject({ status: 403 });
-    await expect(confirmarCorreo(db, ajeno, { contactoId: marca })).rejects.toMatchObject({ status: 403 });
+    const [u] = await db.insert(users).values({ email: "sin@retiagrowth.com", rol: "closer", closerId: "Sin" }).returning();
+    const sinMembresia = { id: u.id, rol: "closer" as const };
+    await expect(separarCorreo(db, sinMembresia, { contactoId: marca })).rejects.toMatchObject({ status: 403 });
+    await expect(confirmarCorreo(db, sinMembresia, { contactoId: marca })).rejects.toMatchObject({ status: 403 });
     const [c] = await db
       .select()
       .from(leadContactos)
       .where(and(eq(leadContactos.id, marca), eq(leadContactos.confirmado, false)));
     expect(c).toBeDefined();
-    expect(await db.select().from(deals)).toHaveLength(0);
+  });
+
+  it("otro closer del MISMO programa (no dueño del deal) recibe 403 y la base no cambia", async () => {
+    await abrirDealDe(closer.id);
+    await expect(separarCorreo(db, ajeno, { contactoId: marca })).rejects.toMatchObject({ status: 403 });
+    await expect(confirmarCorreo(db, ajeno, { contactoId: marca })).rejects.toMatchObject({ status: 403 });
+    const [c] = await db.select().from(leadContactos).where(eq(leadContactos.id, marca));
+    expect(c).toMatchObject({ leadId: ana, confirmado: false });
+    expect(await db.select().from(leads)).toHaveLength(1);
+    expect(await db.select().from(deals)).toHaveLength(1);
+  });
+
+  it("lead sin deal abierto: el closer no decide (403); quien administra sí", async () => {
+    // Sin deal abierto en ana. El closer con membresía igual recibe 403.
+    await expect(confirmarCorreo(db, ajeno, { contactoId: marca })).rejects.toMatchObject({ status: 403 });
+    const [antes] = await db.select().from(leadContactos).where(eq(leadContactos.id, marca));
+    expect(antes.confirmado).toBe(false);
+    // El gerente administra: confirma sin problema.
+    await confirmarCorreo(db, gerente, { contactoId: marca });
+    const [c] = await db.select().from(leadContactos).where(eq(leadContactos.id, marca));
+    expect(c.confirmado).toBe(true);
+  });
+
+  it("deal abierto SIN dueño: el closer no decide (403); quien administra separa", async () => {
+    await abrirDealDe(null);
+    await expect(confirmarCorreo(db, closer, { contactoId: marca })).rejects.toMatchObject({ status: 403 });
+    const r = await separarCorreo(db, gerente, { contactoId: marca });
+    expect(r.leadNuevoId).toBeDefined();
+    const [c] = await db.select().from(leadContactos).where(eq(leadContactos.id, marca));
+    expect(c.leadId).toBe(r.leadNuevoId);
   });
 });

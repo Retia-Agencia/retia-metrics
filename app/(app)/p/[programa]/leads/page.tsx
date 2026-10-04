@@ -3,12 +3,13 @@ import { notFound } from "next/navigation";
 import { LayoutList, Table2 } from "lucide-react";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
+import { esAdministrador, esRolValido } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import {
   CALIDADES_DE_LEAD,
   CAMPOS_DE_FECHA_DE_LEAD,
+  DUPLICADOS_POR_PAGINA,
   LEADS_POR_PAGINA,
   leadsDelPrograma,
   posiblesDuplicadosDelPrograma,
@@ -73,6 +74,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   const calidad = CALIDADES_DE_LEAD.find((c) => c === uno(q.calidad)) ?? null;
   const filtroDeFecha = filtroDeFechaDeLaUrl(q, CAMPOS_DE_FECHA_DE_LEAD, hoyEnBogota());
   const pagina = Math.max(0, Number.parseInt(uno(q.pagina) ?? "0", 10) || 0);
+  const paginaDup = Math.max(0, Number.parseInt(uno(q.pdup) ?? "0", 10) || 0);
   const vista = uno(q.vista) === "tabla" ? "tabla" : "tarjetas";
   const filtro: FiltroLeads = {
     deal: deal === "con" || deal === "sin" ? deal : null,
@@ -82,9 +84,14 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
     fecha: filtroDeFecha ? { campo: filtroDeFecha.campo, rango: filtroDeFecha.periodo.a } : null,
     pagina,
   };
+  // El closer ve solo los duplicados de SUS deals (186); quien administra, los del programa.
+  const administra = esAdministrador(rol);
   const [{ total, filas }, duplicados] = await Promise.all([
     leadsDelPrograma(db, programa.id, filtro),
-    posiblesDuplicadosDelPrograma(db, programa.id),
+    posiblesDuplicadosDelPrograma(db, programa.id, {
+      duenoUserId: administra ? undefined : session.user.id,
+      pagina: paginaDup,
+    }),
   ]);
 
   const paginas = Math.max(1, Math.ceil(total / LEADS_POR_PAGINA));
@@ -240,15 +247,22 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
         </Card>
 
         <PosiblesDuplicados
-          filas={duplicados.map((d) => ({
+          filas={duplicados.filas.map((d) => ({
             contactoId: d.contactoId,
             leadId: d.leadId,
             nombreLead: d.nombreLead,
             correoPrincipal: d.correoPrincipal,
             correoSinConfirmar: d.correoSinConfirmar,
+            puedeGestionar: administra || d.duenoUserId === session.user.id,
           }))}
-          puedeGestionar={trabajaLeads(rol) || esAdministrador(rol)}
+          total={duplicados.total}
           slug={programa.slug}
+          origen={origen}
+          paginacion={{
+            pagina: paginaDup,
+            paginas: Math.max(1, Math.ceil(duplicados.total / DUPLICADOS_POR_PAGINA)),
+            hrefDePagina: (p) => urlCon({ pdup: p > 0 ? String(p) : null }),
+          }}
         />
       </div>
     </PageShell>

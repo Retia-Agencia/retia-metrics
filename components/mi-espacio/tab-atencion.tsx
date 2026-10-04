@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { motivos } from "@/lib/db/schema";
 import type { Rol } from "@/lib/auth/roles";
-import { trabajaLeads } from "@/lib/auth/roles";
+import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 import { areas as catalogoAreas } from "@/lib/catalogo/areas";
@@ -27,6 +27,7 @@ export async function TabAtencion({
   rol: Rol;
 }) {
   const puedeRegistrar = trabajaLeads(rol);
+  const administra = esAdministrador(rol);
   const alcance: AlcanceInbox = { ownerUserId: userId };
 
   const [inbox, plataformas, motivosFilas, areasFilas, duplicados] = await Promise.all([
@@ -34,7 +35,9 @@ export async function TabAtencion({
     plataformasDelPrograma(db, programId),
     db.select().from(motivos).where(eq(motivos.activo, true)),
     catalogoAreas(db).listar({ soloActivos: true }),
-    posiblesDuplicadosDelPrograma(db, programId),
+    // El closer ve solo los duplicados de SUS deals (186); administra, los del programa. Las 5 más
+    // recientes, con "Ver todos" a la lista completa de Leads.
+    posiblesDuplicadosDelPrograma(db, programId, { duenoUserId: administra ? undefined : userId, porPagina: 5 }),
   ]);
 
   const motivosDeReagenda = motivosFilas
@@ -56,8 +59,20 @@ export async function TabAtencion({
         puedeRegistrar={puedeRegistrar}
         origen={origen}
       />
-      {/* PosibleDuplicado no trae dueño ni deal: esta lista necesariamente es la del programa. */}
-      <PosiblesDuplicados filas={duplicados} puedeGestionar={puedeRegistrar} slug={slug} origen={origen} />
+      <PosiblesDuplicados
+        filas={duplicados.filas.map((d) => ({
+          contactoId: d.contactoId,
+          leadId: d.leadId,
+          nombreLead: d.nombreLead,
+          correoPrincipal: d.correoPrincipal,
+          correoSinConfirmar: d.correoSinConfirmar,
+          puedeGestionar: administra || d.duenoUserId === userId,
+        }))}
+        total={duplicados.total}
+        slug={slug}
+        origen={origen}
+        verTodosHref={`/p/${slug}/leads?duplicado=1`}
+      />
     </div>
   );
 }

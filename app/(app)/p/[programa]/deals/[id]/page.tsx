@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { aceptaAbono, ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
 import { correccionSerializable, mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { etapaDeCorreccion } from "@/lib/deals/mover-etapa";
-import { puedeTrabajarDeal } from "@/lib/deals/permiso";
+import { puedeDecidirDuplicado, puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { nombreDelDeal } from "@/lib/deals/nombre";
 import { alertasDelDeal, fichaDeDeal, opcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { PageShell } from "@/components/page-shell";
@@ -99,7 +99,7 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
           tonoDeEtapa={TONO_DE_ETAPA}
         />
         <div className="space-y-4">
-          <FichaAlertas alertas={alertas} programaSlug={programa.slug} puedeGestionar={esAdministrador(rol) || trabajaLeads(rol)} />
+          <FichaAlertas alertas={alertas} programaSlug={programa.slug} puedeGestionar={puedeDecidirDuplicado({ id: session.user.id, rol }, ficha.owner?.id ?? null)} />
           <FichaTransicion
             ficha={ficha}
             opciones={opciones}

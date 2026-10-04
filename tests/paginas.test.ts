@@ -1060,7 +1060,7 @@ describe("la tab Leads /p/[programa]/leads (ticket 170)", () => {
   canal: "facebook / paid_social",
 }] });
     posiblesDuplicadosDelPrograma.mockReset();
-    posiblesDuplicadosDelPrograma.mockResolvedValue([]);
+    posiblesDuplicadosDelPrograma.mockResolvedValue({ total: 0, filas: [] });
   });
 
   it("un programa fuera del alcance es 404 antes de leer los leads", async () => {
