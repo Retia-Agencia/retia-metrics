@@ -4,7 +4,7 @@ import { motivos, type EntradaMotivo } from "../lib/catalogo/motivos";
 import { actorDelScript } from "./actor";
 
 /**
- * Carga las cuatro listas de motivos (ticket 104, ADR 0056) y retira las 8 semillas de
+ * Carga las cinco listas de motivos (ticket 104, ADR 0056; la de correccion, ticket 182) y retira las 8 semillas de
  * arranque del 16-sep (migracion 0004), que se pusieron sin leer las hojas.
  *
  * Las listas salen de la taxonomia que el equipo ya usa en las dos hojas
@@ -36,6 +36,9 @@ const LISTAS: readonly Required<EntradaMotivo>[] = [
   // recuperacion (R, un perdido que vuelve) — sin equivalente en la hoja
   { tipo: "recuperacion", nombre: "Volvió a mostrar interés" },
   { tipo: "recuperacion", nombre: "Ya tiene cómo pagar" },
+  // correccion (corregir el último movimiento, ticket 182, ADR 0078; Mani, 3-oct)
+  { tipo: "correccion", nombre: "Me equivoqué de etapa" },
+  { tipo: "correccion", nombre: "Lo movió otra persona por error" },
 ];
 
 const SEMILLAS_VIEJAS = [

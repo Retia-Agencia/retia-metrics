@@ -192,6 +192,10 @@ Diez notas de Mani y un hallazgo del audit. Reparto en `docs/plan-reparto.md` §
 | A-90 | Leads, Mi espacio y Deal | aclaración + cambio | ¿Quién decide los posibles duplicados? Ver la respuesta. Que el closer los vea como alerta en Mi espacio y en el deal, y decida ahí: el mismo deal o dos deals. | 183, 184 | en ticket |
 | A-91 | Ficha del Lead | cambio | Cada envío es un desplegable estándar clicable entero, con hover, que muestra las respuestas; el deal asociado también es una tarjeta clicable. | 184 | en ticket |
 | A-92 | Separar un posible duplicado | bug | 🩸 Audit: `separarCorreo` crea el lead nuevo sin deal, contra GC-27 (ningún envío se queda sin deal). Sin error. | 184 | en ticket |
+| A-93 | Leads y Mi espacio → Posibles duplicados | cambio | La lista es un scroll infinito (73 en producción). Paginar y que no crezca. | 186 | en ticket |
+| A-94 | Posibles duplicados | cambio | Un closer solo decide los posibles duplicados de SUS deals; hoy decide y ve los del programa entero. | 186 | en ticket |
+| A-95 | Leads, Calls, Inbox, Students | cambio | La pantalla fija va a esas cuatro tabs; Mani reorganiza antes cómo se muestra la información en cada una. | 185 | en ticket |
+| A-96 | Mi espacio → Mis métricas | bug | Sale error y pide recargar. Causa: la cuenta no tiene `closer_id` y Mis métricas lo exigía (choque del 167 con el 183). | fix-up O4 (Kiro, rama `o4-fix-closer`) | en ticket |
 
 ### Respuestas
 

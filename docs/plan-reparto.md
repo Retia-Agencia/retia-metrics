@@ -135,13 +135,15 @@ y no es código: lo hace Mani (A.2 a A.10).
 | 1 | **S3** | [183] Mi espacio: atención y métricas | 6, 9 (Mi espacio) | `app/(app)/mi-espacio/*`, `components/mi-espacio/*` | no |
 | 1 | **S4** | [184] Leads: envíos y duplicados | 9 (deal), 10 · A-92 | `components/leads/*`, `p/[programa]/leads/*`, `lib/ingesta/separar.ts`, `lib/queries/ficha-deal.ts`, `ficha-alertas.tsx` | no |
 | 1 | **S5** | [167] Quién cobró es FK, y Facturación clara | código para operar · A-15 a A-17 · K-3 | `lib/deals/abonos.ts`, `comision.ts`, `crear-a-mano.ts`, `lib/catalogo/usuarios.ts`, `usuarios-admin.tsx`, `ficha-pago.tsx` | **sí** (`abonos.registrado_por_user_id`) |
-| 2 | **S6** | [185] Pantalla fija en toda la app | 5, 7 | las páginas de `p/[programa]/*` salvo Deals, `page-shell.tsx`, `components/layout/*`, contenedores de Mi espacio y Ajustes, `programa/page.tsx`, `editar-programa.tsx` | no |
+| 2 | **S7** | [186] Duplicados solo de mis deals, paginados | A-93, A-94 | `lib/ingesta/separar.ts`, `lib/queries/leads.ts` (duplicados), `lib/deals/permiso.ts`, `posibles-duplicados.tsx`, `tab-atencion.tsx`, `ficha-alertas.tsx` | no |
+| 3 | **S6** | [185] Pantalla fija en Leads, Calls, Inbox y Students (arranca con la reorganización de Mani) | 5, 7 · A-95 | las páginas de `leads`, `calls`, `inbox`, `students`, `page-shell.tsx`, `components/layout/*`, `programa/page.tsx` y `editar-programa.tsx` (solo los textos de A-88) | no |
 
 **Lo compartido en la parte 1:** `lib/queries/metricas-filtros.ts` lo pueden tocar S3 y S5 (cada uno agrega, ninguno
 edita lo del otro; quien llegue segunda rebasa). `lib/queries/leads.ts` no cambia de firma (S3 importa la lista de
 duplicados; S4 solo agrega un campo opcional). `lib/db/schema.ts`: S2 (enum) y S5 (columna); las dos migraciones las
-genera y aplica la sesión central en cola, con el ok de Mani. El 185 arranca cuando 181, 183 y 184 estén en `main`, y
-primero entrega su tabla de decisiones por pantalla para que Mani la apruebe.
+genera y aplica la sesión central en cola, con el ok de Mani. **Parte 1 en `main` con CI verde: `cp-20261003-9`** (3-oct noche), con los arreglos de la revisión central. Queda el
+fix-up de Mi espacio (Kiro, `o4-fix-closer`). Parte 2: el 186. Parte 3: el 185, que arranca con la reorganización de
+Mani de las cuatro pantallas.
 
 **Cómo arranca cada sesión** (el prompt que se pega en una sesión nueva, cambiando el número):
 

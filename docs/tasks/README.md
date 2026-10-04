@@ -276,7 +276,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
 
-6 tickets, 6 abiertos. Salen del recorrido 8 de Mani (`docs/anotaciones.md` A-82 a A-92). Reparto en
+7 tickets, 7 abiertos (181 a 184 y 167 en `main`, `cp-20261003-9`; falta su cierre tras el fix-up de Mi espacio). Salen del recorrido 8 de Mani (`docs/anotaciones.md` A-82 a A-92). Reparto en
 [`plan-reparto.md`](../plan-reparto.md) §4, ola O4. Lo de código que falta para operar (el 167) va dentro.
 
 | ✓ | # | Ticket | Depende de | Estado |
@@ -286,7 +286,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 183 | [Mi espacio: lo que necesita atención y las métricas de quien lo mira](./183-mi-espacio-alertas-y-metricas.md) | · | todo · S3 · parte 1 |
 | [ ] | 184 | [Leads: envíos desplegables, y los duplicados se deciden donde se trabaja](./184-leads-envios-y-duplicados.md) | · | todo · S4 · parte 1 |
 | [ ] | 167 | [Quién cobró es una FK, y Facturación clara](./167-quien-cobro-es-una-fk.md) | · | todo · S5 · parte 1 · migración |
-| [ ] | 185 | [Pantalla fija en toda la app](./185-pantalla-fija-en-toda-la-app.md) | 181, 183, 184 | todo · S6 · parte 2 |
+| [ ] | 186 | [Los duplicados: cada closer decide solo los de sus deals, y la lista no crece](./186-duplicados-solo-de-mis-deals.md) | 184 | todo · S7 · parte 2 |
+| [ ] | 185 | [Pantalla fija en Leads, Calls, Inbox y Students](./185-pantalla-fija-en-toda-la-app.md) | 181, 183, 184, 186 | todo · S6 · parte 3 · arranca con la reorganización de Mani |
 
 # Pasos y tareas sin ticket
 

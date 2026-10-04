@@ -1,12 +1,12 @@
 ---
 id: 185
 etapa: O4
-serves: "docs/anotaciones.md A-86, A-88, A-06; ADR 0077"
-depends: [181, 183, 184]
+serves: "docs/anotaciones.md A-86, A-88, A-95, A-06; ADR 0077"
+depends: [181, 183, 184, 186]
 status: todo
 ---
 
-# 185 — Pantalla fija en toda la app: cada sección hace su propio scroll
+# 185 — Pantalla fija en Leads, Calls, Inbox y Students: cada sección hace su propio scroll
 
 Sesión **S6**, ola O4 parte 2. Arranca cuando 181, 183 y 184 estén en `main` (toca las mismas pantallas). Sin
 migración.
@@ -21,10 +21,15 @@ migración.
 
 ## Alcance
 
-1. **Inventario primero, código después.** Una tabla en el ticket con cada pantalla (Leads lista y ficha, Calls,
-   Inbox, Students, Programa, Mi espacio, Dashboard y su lista, ficha del deal, Ajustes) y su decisión: **cabe** (se
-   reacomoda en columnas o tabs) · **sub-página** · **pop-up** · **se queda con scroll de página** (con la razón; por
-   ejemplo, la ficha del deal si partirla la vuelve peor). La sesión central la revisa con Mani **antes** de codear.
+**Acotado por Mani (3-oct, noche):** las pantallas son **Leads, Calls, Inbox y Students**. Mani va a **reorganizar
+cómo se muestra la información** en cada una, así que este ticket **no arranca con código**: arranca con la propuesta
+de Mani por pantalla, y la tabla de abajo la llena la sesión con él. Mi espacio, Dashboard, la ficha del deal y Ajustes
+quedan fuera (si después se quieren, es otro ticket).
+
+1. **Primero la reorganización de Mani, después el código.** Por cada una de las cuatro pantallas, la tabla dice qué
+   bloques tiene, cuál hace scroll por dentro y qué pasa a **sub-página** o a **pop-up**. La sesión central la revisa
+   con Mani **antes** de codear. Students probablemente también crece sin fin (sin datos reales todavía): se mide
+   con la base local sembrada.
 2. **Aplicar** `components/layout/pantalla-fija.tsx` (del 181) a lo decidido. Las listas largas paginan en el
    servidor o hacen scroll dentro de su tarjeta; ningún scroll anidado sin necesidad; a 375 px se vale volver al
    scroll de página si la pantalla fija no cabe (se decide y se escribe).
@@ -39,8 +44,7 @@ migración.
 
 ## Archivos
 
-Las páginas de `app/(app)/p/[programa]/*` (salvo Deals, ya hecho), `app/(app)/mi-espacio/page.tsx` solo el
-contenedor, `app/(app)/ajustes/*` el contenedor, `components/page-shell.tsx`, `components/layout/*`,
+`app/(app)/p/[programa]/leads/*`, `calls/*`, `inbox/*`, `students/*`, `components/page-shell.tsx`, `components/layout/*`,
 `app/(app)/p/[programa]/programa/page.tsx` y `editar-programa.tsx`. Los componentes internos de cada pantalla solo
 donde el reacomodo lo pida.
 
