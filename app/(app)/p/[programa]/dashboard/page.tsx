@@ -1,3 +1,4 @@
+import { alertasDelPrograma } from "@/lib/queries/alertas";
 import { detallesDeOperacion, detallesDelDashboard, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -211,6 +212,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
               // El embudo contra agendas es de Operación; fuera de esa pestaña no se arma.
               dealsContraAgendas={null}
               origen={origen}
+              alertas={seccion === "pulso" ? await alertasDelPrograma(programa.id, hoy) : undefined}
               seriesDinero={seccion === "dinero" ? await leerSeriesDeDinero({
                 programId: programa.id,
                 rango: vista.periodo.a,

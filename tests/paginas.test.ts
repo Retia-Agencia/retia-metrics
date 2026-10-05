@@ -115,6 +115,9 @@ const pautaInterina = vi.fn(async () => ({
   sinUtmHoy: [],
 }));
 vi.mock("@/lib/queries/pauta-interina", () => ({ pautaInterina }));
+// Las alertas por persistencia del Pulso (147), igual: sin base, ningún umbral.
+const alertasDelPrograma = vi.fn(async () => []);
+vi.mock("@/lib/queries/alertas", () => ({ alertasDelPrograma }));
 // La serie del embudo (089), igual: sin base, una serie vacia.
 const hechosDelEmbudo = vi.fn(async () => []);
 vi.mock("@/lib/queries/hechos-embudo", () => ({ hechosDelEmbudo }));

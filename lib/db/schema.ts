@@ -1511,6 +1511,42 @@ export const canales = pgTable(
   ],
 );
 
+// ─────────────────────────────────────────────────────────── alertas por persistencia
+
+/**
+ * Las métricas que llevan umbral y alerta (ticket 147, QM-11): SOLO las del semáforo de la meta
+ * (DP-24), cupos vendidos contra lo esperado a la fecha. Es un tipo porque el código calcula cada
+ * una a su manera (ADR 0012); los valores del umbral son filas.
+ *   meta_mes:     cumplimiento de la meta del mes (146)
+ *   meta_cohorte: cumplimiento de la meta de la cohorte activa (020)
+ */
+export const metricaConUmbralEnum = pgEnum("metrica_con_umbral", ["meta_mes", "meta_cohorte"]);
+
+/**
+ * El umbral de una métrica del semáforo en un programa (ticket 147, DP-23, GC-39): por debajo de
+ * `aceptable` (porcentaje de cumplimiento, 80 = 80 %) durante `dias_seguidos` días hábiles, sale la
+ * alerta (*"5 días seguidos, paila"*, QD-6). Lo carga quien administra mientras Dani lo usa en el
+ * daily; la alerta se calcula al leer, nunca se guarda. Uno por programa y métrica: el programa es
+ * frontera.
+ */
+export const umbralesAlerta = pgTable(
+  "umbrales_alerta",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
+    metrica: metricaConUmbralEnum("metrica").notNull(),
+    aceptable: numeric("aceptable", { precision: 5, scale: 2 }).notNull(),
+    diasSeguidos: integer("dias_seguidos").notNull().default(5),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("umbrales_alerta_programa_metrica_idx").on(t.programId, t.metrica),
+    check("umbrales_alerta_aceptable_check", sql`${t.aceptable} > 0 AND ${t.aceptable} <= 100`),
+    check("umbrales_alerta_dias_check", sql`${t.diasSeguidos} BETWEEN 1 AND 30`),
+  ],
+);
+
 // ─────────────────────────────────────────────────────────── recursos y enlaces de pago
 
 /**

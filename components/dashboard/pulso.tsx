@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, num, pct, usd } from "@/lib/format";
+import type { Alerta } from "@/lib/queries/alertas";
+import { Alertas } from "@/components/dashboard/alertas";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import type { DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import { CajaConVariacion, Tarjeta, tasa } from "@/components/dashboard/piezas";
@@ -151,10 +153,13 @@ export function Pulso({
   vista,
   detalles,
   slug,
+  alertas,
 }: {
   vista: VistaDelDashboard;
   detalles?: DetallesDelDashboard;
   slug: string;
+  /** Las alertas por persistencia del programa (147); sin ellas no se pinta la tarjeta. */
+  alertas?: Alerta[];
 }) {
   const notaContratado = (
     <>
@@ -216,9 +221,7 @@ export function Pulso({
         <Cohorte vista={vista} />
         <MetaDelMes vista={vista} slug={slug} />
       </div>
-      <p className="text-sm text-muted-foreground">
-        Alertas por persistencia: llegan con el ticket 147
-      </p>
+      {alertas ? <Alertas alertas={alertas} slug={slug} /> : null}
     </section>
   );
 }

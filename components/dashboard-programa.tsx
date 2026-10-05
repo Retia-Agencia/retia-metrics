@@ -5,6 +5,7 @@ import { Pulso } from "@/components/dashboard/pulso";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import type { DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import type { SeriesDeDinero } from "@/lib/queries/series-dinero";
+import type { Alerta } from "@/lib/queries/alertas";
 
 export { OrigenPorCanal } from "@/components/dashboard/origen-por-canal";
 export { textoComisionPrograma } from "@/components/dashboard/operacion";
@@ -30,6 +31,7 @@ export function DashboardPrograma({
   dealsContraAgendas,
   seriesDinero,
   origen,
+  alertas,
 }: {
   seccion: "pulso" | "operacion" | "dinero";
   vista: VistaDelDashboard;
@@ -39,9 +41,10 @@ export function DashboardPrograma({
   dealsContraAgendas: ReactNode;
   seriesDinero?: SeriesDeDinero;
   origen?: string;
+  alertas?: Alerta[];
 }) {
   if (seccion === "pulso") {
-    return <Pulso vista={vista} detalles={detalles} slug={slug} />;
+    return <Pulso vista={vista} detalles={detalles} slug={slug} alertas={alertas} />;
   }
   if (seccion === "operacion") {
     return (

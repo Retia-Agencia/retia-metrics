@@ -254,17 +254,15 @@ export function armarMetasDelMes(args: {
   };
 }
 
-export async function leerMetasDelMes(
+/**
+ * Las cohortes del programa y sus ventas con día en el rango: lo que `armarMetasDelMes` necesita.
+ * Lo usan la meta del mes y las alertas por persistencia (147), así que las dos cuentan lo mismo.
+ */
+export async function leerCohortesYVentas(
+  db: Db,
   programId: string,
-  mes: string,
-  hoy: string,
-  db: Db = dbDeLaApp,
-): Promise<MetasDelMes> {
-  const periodoMes = rangoDelMes(mes);
-  const semana = rangoDeLaSemana(hoy);
-  const rangoLectura = mes === hoy.slice(0, 7)
-    ? { desde: minFecha(periodoMes.desde, semana.desde), hasta: maxFecha(periodoMes.hasta, semana.hasta) }
-    : periodoMes;
+  rangoLectura: Rango,
+): Promise<{ cohortes: CohorteParaMetas[]; ventas: VentaParaMetas[] }> {
   const [filasCohortes, ventasConDia] = await Promise.all([
     db
       .select({
@@ -296,6 +294,21 @@ export async function leerMetasDelMes(
     ...venta,
     dia: diaPorDeal.get(venta.dealId)!,
   }));
+  return { cohortes, ventas };
+}
+
+export async function leerMetasDelMes(
+  programId: string,
+  mes: string,
+  hoy: string,
+  db: Db = dbDeLaApp,
+): Promise<MetasDelMes> {
+  const periodoMes = rangoDelMes(mes);
+  const semana = rangoDeLaSemana(hoy);
+  const rangoLectura = mes === hoy.slice(0, 7)
+    ? { desde: minFecha(periodoMes.desde, semana.desde), hasta: maxFecha(periodoMes.hasta, semana.hasta) }
+    : periodoMes;
+  const { cohortes, ventas } = await leerCohortesYVentas(db, programId, rangoLectura);
   const resultado = armarMetasDelMes({ cohortes, ventas, mes, hoy });
   const idsDelMes = ventas
     .filter((venta) => venta.dia >= resultado.periodoMes.desde && venta.dia <= resultado.periodoMes.hasta)

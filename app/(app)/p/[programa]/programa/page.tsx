@@ -22,6 +22,13 @@ import { listarUsuarios, membresiasConCalendly } from "@/lib/catalogo/usuarios";
 import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
 import { trabajaLeads } from "@/lib/auth/roles";
 import { PlataformasDelPrograma } from "./plataformas-del-programa";
+import { UmbralesDelPrograma } from "./umbrales-del-programa";
+import {
+  DIAS_SEGUIDOS_POR_DEFECTO,
+  METRICAS_CON_UMBRAL,
+  NOMBRE_DE_METRICA_CON_UMBRAL,
+  umbralesDelPrograma,
+} from "@/lib/catalogo/umbrales";
 import { ActivarPrograma, EditarPrograma } from "./editar-programa";
 import { EquipoDelPrograma } from "./equipo-del-programa";
 import { Badge } from "@/components/ui/badge";
@@ -128,7 +135,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
         {
           id: "ventas",
           etiqueta: "Ventas",
-          descripcion: "Las cohortes que se venden y cómo se cobra.",
+          descripcion: "Las cohortes que se venden, cómo se cobra y cuándo alerta la meta.",
           href: urlConSeccion(base, query, "ventas"),
         },
       ],
@@ -136,6 +143,18 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
   ];
   const pestanas = grupos.flatMap((grupo) => grupo.pestanas);
   const seccion = pestanaActiva(uno(query.seccion), pestanas, "general");
+  // Los umbrales de las alertas (147) solo se leen en su pestaña.
+  const umbrales = seccion === "ventas" ? await umbralesDelPrograma(db, programa.id) : [];
+  const umbralesEditables = METRICAS_CON_UMBRAL.map((metrica) => {
+    const fila = umbrales.find((u) => u.metrica === metrica);
+    return {
+      metrica,
+      nombre: NOMBRE_DE_METRICA_CON_UMBRAL[metrica],
+      aceptable: fila?.aceptable ?? null,
+      diasSeguidos: fila?.diasSeguidos ?? null,
+      activo: fila?.activo ?? false,
+    };
+  });
 
   return (
     <PageShell
@@ -408,6 +427,20 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                       moneda: c.moneda,
                       plataformaId: c.plataformaId,
                     }))}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-base">Alertas por persistencia</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <UmbralesDelPrograma
+                    programId={programa.id}
+                    umbrales={umbralesEditables}
+                    diasPorDefecto={DIAS_SEGUIDOS_POR_DEFECTO}
+                    editable={administra}
                   />
                 </CardContent>
               </Card>
