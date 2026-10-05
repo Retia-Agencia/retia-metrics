@@ -5,6 +5,7 @@ import { ventanasAnterioresDeCohorte } from "@/lib/queries/ventanas-de-cohortes"
 import {
   desglosesDelResumen,
   listaDeMetrica,
+  fechasDeMetrica,
   resumenDeDeals,
   resumenDeMetrica,
   type DesglosesDelResumen,
@@ -23,7 +24,9 @@ import {
   type SubconjuntoDelEmbudo,
 } from "@/lib/queries/embudo-con-filas";
 import { PASOS_DE_CONVERSION } from "@/lib/queries/embudo-etapas";
-import { grupoDeCitas, miembrosDe } from "@/lib/queries/tasas-del-grupo";
+import { grupoDeCitas, gruposPorSemana, miembrosDe } from "@/lib/queries/tasas-del-grupo";
+import { tasa, type Rango } from "@/lib/queries/dashboard";
+import { lunesDe, sumarDias } from "@/lib/rangos";
 import { db as dbDeLaApp } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -107,6 +110,8 @@ export interface EntradaDeDetalles {
    * de donde salió. Solo por `enlaceConVuelta`; sin un origen válido el href queda igual.
    */
   origen?: string;
+  /** El instante que decide qué cita ya pasó (las futuras); por defecto, ahora. */
+  ahora?: Date;
 }
 
 /** El resumen de UNA cifra del periodo A y el enlace a su lista. Solo agregados SQL. */
@@ -232,10 +237,106 @@ export async function detallesDelEmbudo(
   };
 }
 
-/** Lo que Operación comercial necesita además de las tarjetas: el comparativo y el embudo por etapas. */
+/**
+ * Una semana de agendas (ticket 189): las creadas en ella y las ocurridas (su grupo de citas del ADR
+ * 0079) con su show y su no-show. Las futuras van aparte (`ProximaSemana`).
+ */
+export interface SemanaDeAgendas {
+  semana: Rango;
+  creadas: DetalleDeCifra;
+  ocurridas: DetalleDeCifra;
+  shows: DetalleDeCifra;
+  noShows: DetalleDeCifra;
+  /** No-show ÷ ocurridas, sobre las mismas personas; `null` sin ocurridas. */
+  pctNoShow: number | null;
+}
+
+/** Una semana con agendas que todavía no llegan: agenda, no resultado. */
+export interface ProximaSemana {
+  semana: Rango;
+  futuras: DetalleDeCifra;
+}
+
+/**
+ * Las agendas futuras DESDE HOY, por la semana de la cita (ticket 189). No dependen del periodo A:
+ * "este mes" llega hasta hoy, así que dentro del rango casi nunca habría una. Solo las semanas que
+ * tienen alguna; cada una abre su lista con el rango de esa semana.
+ */
+export async function proximasPorSemana(
+  entrada: Omit<EntradaDeDetalles, "claveCloser" | "periodo">,
+  db: Db = dbDeLaApp,
+  ahora: Date = new Date(),
+): Promise<ProximaSemana[]> {
+  ahora = entrada.ahora ?? ahora;
+  const fechas = await fechasDeMetrica(
+    "agendas_futuras",
+    { programId: entrada.programId, hoy: entrada.hoy, rango: { desde: entrada.hoy, hasta: HASTA_SIEMPRE }, ahora },
+    db,
+  );
+  if (fechas.length === 0) return [];
+  // Solo las semanas con alguna cita, enteras de lunes a domingo; la primera empieza hoy. Se arman
+  // desde las fechas y no recorriendo el calendario: una cita tecleada en 2099 no cuesta mil semanas.
+  const semanas = [...new Set(fechas.map((f) => lunesDe(f)))].sort().map((lunes) => ({
+    desde: lunes < entrada.hoy ? entrada.hoy : lunes,
+    hasta: sumarDias(lunes, 6),
+  }));
+  return Promise.all(semanas.map(async (semana) => ({
+    semana,
+    futuras: await detalleDeCifra(
+      "agendas_futuras",
+      { ...entrada, periodo: { preset: "custom", a: semana, b: null }, claveCloser: null, ahora },
+      db,
+    ),
+  })));
+}
+
+/** El techo de "desde hoy en adelante": una fecha que ninguna cita alcanza. */
+const HASTA_SIEMPRE = "9999-12-31";
+
+/**
+ * Las semanas del periodo A, del programa entero (no se filtran por closer: crear agendas es del
+ * programa, ticket 138). Creadas y futuras son el resumen SQL de su lista con el rango de la semana;
+ * el grupo sale de UNA lectura de citas (`gruposPorSemana`).
+ */
+export async function detallesPorSemana(
+  entrada: Omit<EntradaDeDetalles, "claveCloser">,
+  db: Db = dbDeLaApp,
+  ahora: Date = new Date(),
+): Promise<SemanaDeAgendas[]> {
+  ahora = entrada.ahora ?? ahora;
+  const grupos = await gruposPorSemana(db, { programId: entrada.programId, rango: entrada.periodo.a, ahora });
+  return Promise.all(grupos.map(async ({ semana, grupo }) => {
+    const deLaSemana = { ...entrada, periodo: { preset: "custom" as const, a: semana, b: null }, claveCloser: null };
+    const delGrupo = (metrica: "grupo_citas" | "grupo_shows" | "grupo_sin_show") => detalleDeDeals(
+      deLaSemana,
+      metrica,
+      resumenDeDeals(
+        entrada.programId,
+        grupo.miembros.filter((m) => (metrica === "grupo_citas" ? true : metrica === "grupo_shows" ? m.conShow : !m.conShow)),
+        entrada.hoy,
+      ),
+      null,
+    );
+    const creadas = await detalleDeCifra("agendas_creadas", deLaSemana, db);
+    const ocurridas = delGrupo("grupo_citas");
+    const noShows = delGrupo("grupo_sin_show");
+    return {
+      semana,
+      creadas,
+      ocurridas,
+      shows: delGrupo("grupo_shows"),
+      noShows,
+      pctNoShow: tasa(noShows.resumen.subtotal.cantidad, ocurridas.resumen.subtotal.cantidad),
+    };
+  }));
+}
+
+/** Lo que Operación comercial necesita además de las tarjetas: el comparativo, el embudo por etapas y las semanas. */
 export interface DetallesDeOperacion {
   comparativo: DetallesDelComparativo;
   embudo: DetallesDelEmbudo;
+  semanas: SemanaDeAgendas[];
+  proximas: ProximaSemana[];
 }
 
 export async function detallesDeOperacion(
@@ -243,11 +344,13 @@ export async function detallesDeOperacion(
   clavesDelComparativo: readonly string[],
   db: Db = dbDeLaApp,
 ): Promise<DetallesDeOperacion> {
-  const [comparativo, embudo] = await Promise.all([
+  const [comparativo, embudo, semanas, proximas] = await Promise.all([
     detallesDelComparativo(entrada, clavesDelComparativo, db),
     detallesDelEmbudo(entrada, db),
+    detallesPorSemana(entrada, db),
+    proximasPorSemana(entrada, db),
   ]);
-  return { comparativo, embudo };
+  return { comparativo, embudo, semanas, proximas };
 }
 
 export interface EntradaDeLista {

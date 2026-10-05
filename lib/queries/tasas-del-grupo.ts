@@ -5,6 +5,7 @@ import { claveCloserSql, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/clo
 import { ETAPAS_VENDIDAS, type EtapaDeal } from "@/lib/deals/etapas";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import { diaDeCalendario } from "@/lib/dias-habiles";
+import { semanasDelRango } from "@/lib/rangos";
 import { fechaAnclaCall } from "@/lib/queries/metricas-filtros";
 import { vigente } from "@/lib/queries/vigente";
 import type { Rango } from "@/lib/queries/dashboard";
@@ -237,4 +238,30 @@ export async function grupoDeCitas(
 ): Promise<GrupoDeCitas> {
   const citas = await leerCitasDelGrupo(db, { programId, rango });
   return calcularTasasDelGrupo({ citas, rango, hoy: diaDeCalendario(ahora), ahora });
+}
+
+/**
+ * El grupo de citas de cada semana del rango (ticket 189), de lunes a domingo en Bogotá. Cada semana
+ * es SU grupo (las personas con cita ocurrida esa semana), el mismo que da `grupoDeCitas` con el rango
+ * de la semana, así que su lista es la de siempre; por eso las semanas no suman el grupo del rango. Las
+ * citas se leen UNA vez y la cuenta pura se repite por semana.
+ */
+export async function gruposPorSemana(
+  db: Db,
+  { programId, rango, ahora }: { programId: string; rango: Rango; ahora: Date },
+): Promise<{ semana: Rango; grupo: GrupoDeCitas }[]> {
+  const citas = await leerCitasDelGrupo(db, { programId, rango });
+  const hoy = diaDeCalendario(ahora);
+  return semanasDelRango(rango).map((semana) => ({
+    semana,
+    grupo: calcularTasasDelGrupo({
+      citas: citas.filter((c) => {
+        const dia = diaDeCalendario(c.instante);
+        return dia >= semana.desde && dia <= semana.hasta;
+      }),
+      rango: semana,
+      hoy,
+      ahora,
+    }),
+  }));
 }

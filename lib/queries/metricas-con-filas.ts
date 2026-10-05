@@ -11,7 +11,7 @@ import { atendidaSinGrain } from "@/lib/queries/sin-grain";
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaLead, filtroAgendasCreadas,
   closerDeAbono, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
-  primerosMovimientosDeVenta, filtroNoShows, llamadaPasadaSinResultado,
+  primerosMovimientosDeVenta, filtroNoShows, llamadaPasadaSinResultado, filtroAgendasFuturas,
 } from "@/lib/queries/metricas-filtros";
 import { grupoDeCitas, miembrosDe } from "@/lib/queries/tasas-del-grupo";
 import {
@@ -32,14 +32,18 @@ export type Metrica =
   | "leads"
   | "deals_creados"
   | "agendas_creadas"
+  | "agendas_futuras"
   | "contratado"
   | "sin_resultado"
   | "cartera"
   | MetricaDeGrupo
   | MetricaDeEmbudo;
 
-/** Las listas de las tasas (ADR 0079): deals del grupo de citas, con show, y con show vendidos hoy. */
-export const METRICAS_DE_GRUPO = ["grupo_citas", "grupo_shows", "grupo_vendidos"] as const;
+/**
+ * Las listas de las tasas (ADR 0079): deals del grupo de citas, con show, con show vendidos hoy, y
+ * sin show (el no-show por semana del ticket 189, la otra mitad del grupo).
+ */
+export const METRICAS_DE_GRUPO = ["grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show"] as const;
 export type MetricaDeGrupo = (typeof METRICAS_DE_GRUPO)[number];
 type MetricaSql = Exclude<Metrica, MetricaDeGrupo | MetricaDeEmbudo>;
 
@@ -125,6 +129,7 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
         claveCloser: claveCloserSql(abonos.registradoPorUserId, abonos.closerId),
       };
     case "agendas":
+    case "agendas_futuras":
     case "shows":
     case "no_shows":
     case "shows_sin_grain":
@@ -286,6 +291,23 @@ function consultaDe(
             vigente(deals),
           ),
         );
+    case "agendas_futuras":
+      // El deal se une SIN la vigencia en el join: así un deal anulado queda presente y `vigente`
+      // del where lo saca, en vez de convertirlo en una llamada suelta. Una futura de un deal anulado
+      // o de cortesía no viene a nada: cuando pase, el grupo de citas tampoco la contará (ADR 0079).
+      return db
+        .select(campos)
+        .from(calls)
+        .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId)))
+        .leftJoin(users, eq(users.id, calls.closerUserId))
+        .where(
+          and(
+            filtroAgendasFuturas(alcance, db, filtros.ahora ?? new Date()),
+            or(isNull(deals.id), eq(deals.cortesia, false)),
+            vigente(calls),
+            vigente(deals),
+          ),
+        );
     case "sin_resultado":
       return db
         .select(campos)
@@ -413,7 +435,10 @@ async function leerMetricaDeGrupo(
     ahora: filtros.ahora ?? new Date(),
   });
   const miembros = miembrosDe(grupo, filtros.claveCloser).filter((m) =>
-    metrica === "grupo_citas" ? true : metrica === "grupo_shows" ? m.conShow : m.conShow && m.vendido,
+    metrica === "grupo_citas" ? true
+      : metrica === "grupo_shows" ? m.conShow
+      : metrica === "grupo_sin_show" ? !m.conShow
+      : m.conShow && m.vendido,
   );
   return paginarOAgrupar(miembros.map((m) => filaDeDeal(m, filtros.hoy)), pagina);
 }
@@ -545,6 +570,21 @@ export async function resumenDeMetrica(metrica: Metrica, filtros: FiltrosDeMetri
       })),
     };
   }));
+}
+
+/**
+ * Las fechas de TODAS las filas de una métrica SQL, sin paginar (ticket 189): para repartir una
+ * cifra por semana cuando sus fechas no se conocen de antemano (las agendas futuras). Mismo universo
+ * que la cifra y la lista; solo para métricas de pocas filas.
+ */
+export async function fechasDeMetrica(
+  metrica: "agendas_futuras",
+  filtros: FiltrosDeMetrica & { programId: string },
+  db: Db = dbDeLaApp,
+): Promise<string[]> {
+  const fuente = fuenteDe(metrica);
+  const filas = await consultaDe(metrica, camposDe(metrica, fuente, filtros.hoy, false), filtros, filtros, db);
+  return filas.map((f) => f.fecha);
 }
 
 /**

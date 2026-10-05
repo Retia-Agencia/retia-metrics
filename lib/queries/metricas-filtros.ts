@@ -334,6 +334,19 @@ export function primerosMovimientosDeVenta(db: Db) {
     .orderBy(dealEtapaHistorial.dealId, dealEtapaHistorial.fecha, dealEtapaHistorial.id);
 }
 
+/**
+ * Una agenda FUTURA (ticket 189): la cita del rango cuya hora todavía no llega y que sigue
+ * agendada. Es agenda, no resultado: no entra al no-show ni a ninguna tasa. La cancelada y la
+ * reagendada no son una cita que viene (la reagendada la representa su cita nueva).
+ */
+export function filtroAgendasFuturas(alcance: Alcance, db: Db, ahora: Date) {
+  return and(
+    filtroLlamadas(alcance, db),
+    eq(calls.resultado, "agendada"),
+    or(gt(calls.fechaAgenda, ahora), and(isNull(calls.fechaAgenda), gt(calls.fechaLlamada, ahora))),
+  );
+}
+
 /** Las citas cuyo resultado explícito fue no show, dentro del universo común de llamadas. */
 export function filtroNoShows(alcance: Alcance, db: Db) {
   return and(filtroLlamadas(alcance, db), eq(calls.resultado, "no_show"));

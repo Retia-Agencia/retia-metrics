@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Variacion } from "@/components/variacion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { num, usd } from "@/lib/format";
+import { fecha, num, usd } from "@/lib/format";
 import { REGLA_TIEMPO_EN_ETAPA } from "@/lib/queries/embudo-etapas";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import {
@@ -104,6 +104,78 @@ function Comparativo({ vista, detalles }: { vista: VistaDelDashboard; detalles?:
         <p className="pt-1 text-xs text-muted-foreground">
           {textoComisionPrograma(vista.comisionPorcentaje)}
         </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Las agendas por semana (ticket 189): creadas, ocurridas con su show y su no-show sobre las mismas
+ * personas (ADR 0079), y las futuras aparte, porque una cita que viene es agenda y no resultado.
+ */
+function AgendasPorSemana({ semanas, proximas }: Pick<DetallesDeOperacion, "semanas" | "proximas">) {
+  if (semanas.length === 0 && proximas.length === 0) return null;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Agendas por semana</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Tabla cabeceras={["Semana", "Creadas", "Ocurridas", "Show", "No-show", "% no-show"]}>
+          {semanas.map((s) => {
+            const nombre = s.semana.desde === s.semana.hasta
+              ? fecha(s.semana.desde)
+              : `${fecha(s.semana.desde)} a ${fecha(s.semana.hasta)}`;
+            const cifra = (titulo: string, detalle: DetalleDeCifra) => (
+              <td className="py-2 text-right">
+                <Celda titulo={`${titulo} · ${nombre}`} detalle={detalle}>
+                  {num(detalle.resumen.subtotal.cantidad)}
+                </Celda>
+              </td>
+            );
+            return (
+              <tr key={s.semana.desde}>
+                <td className="py-2">{nombre}</td>
+                {cifra("Agendas creadas", s.creadas)}
+                {cifra("Deals con cita ocurrida", s.ocurridas)}
+                {cifra("Deals con show", s.shows)}
+                {cifra("Deals sin show", s.noShows)}
+                <td className="py-2 text-right">{tasa(s.pctNoShow)}</td>
+              </tr>
+            );
+          })}
+        </Tabla>
+        <p className="pt-3 text-xs text-muted-foreground">
+          Semanas de lunes a domingo en Bogotá, recortadas al rango; del programa entero, sin filtro de closer.
+          Creadas, por el día en que se agendó la cita; ocurridas, show y no-show, por deal y por el día de la
+          cita ya pasada (cada semana es su grupo, así que no suman el rango).
+        </p>
+        {proximas.length > 0 ? (
+          <div className="pt-4">
+            <h3 className="pb-2 text-sm font-medium">Próximas agendas, desde hoy</h3>
+            <Tabla cabeceras={["Semana", "Futuras"]}>
+              {proximas.map((p) => {
+                const nombre = p.semana.desde === p.semana.hasta
+                  ? fecha(p.semana.desde)
+                  : `${fecha(p.semana.desde)} a ${fecha(p.semana.hasta)}`;
+                return (
+                  <tr key={p.semana.desde}>
+                    <td className="py-2">{nombre}</td>
+                    <td className="py-2 text-right">
+                      <Celda titulo={`Agendas futuras · ${nombre}`} detalle={p.futuras}>
+                        {num(p.futuras.resumen.subtotal.cantidad)}
+                      </Celda>
+                    </td>
+                  </tr>
+                );
+              })}
+            </Tabla>
+            <p className="pt-2 text-xs text-muted-foreground">
+              Citas que siguen agendadas y aún no llegan: son agenda, no resultado, y no entran al no-show.
+              No dependen del periodo elegido.
+            </p>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -330,6 +402,7 @@ export function Operacion({
         </CardContent>
       </Card>
 
+      {detallesOperacion ? <AgendasPorSemana semanas={detallesOperacion.semanas} proximas={detallesOperacion.proximas} /> : null}
       {dealsContraAgendas}
       <Comparativo vista={vista} detalles={detallesOperacion?.comparativo} />
       <EmbudoPorEtapas vista={vista} detalles={detallesOperacion?.embudo} />

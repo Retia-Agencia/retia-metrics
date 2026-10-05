@@ -34,11 +34,27 @@ export function sumarDias(fecha: string, dias: number): string {
 }
 
 /** El lunes de la semana a la que pertenece la fecha (la semana arranca en lunes). */
-function lunesDe(fecha: string): string {
+export function lunesDe(fecha: string): string {
   const ms = aUtc(fecha);
   const dow = new Date(ms).getUTCDay(); // 0 = domingo
   const desdeElLunes = dow === 0 ? 6 : dow - 1;
   return aIso(ms - desdeElLunes * MS_POR_DIA);
+}
+
+/**
+ * Las semanas de lunes a domingo que tocan el rango, recortadas a sus bordes (ticket 189): un
+ * rango del miércoles al martes da tres tramos, miércoles-domingo, la semana entera y lunes-martes.
+ */
+export function semanasDelRango(rango: Rango): Rango[] {
+  const semanas: Rango[] = [];
+  for (let lunes = lunesDe(rango.desde); lunes <= rango.hasta; lunes = sumarDias(lunes, 7)) {
+    const domingo = sumarDias(lunes, 6);
+    semanas.push({
+      desde: lunes < rango.desde ? rango.desde : lunes,
+      hasta: domingo > rango.hasta ? rango.hasta : domingo,
+    });
+  }
+  return semanas;
 }
 
 /** El dia 1 del mes de la fecha. */
