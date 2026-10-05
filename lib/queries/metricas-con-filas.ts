@@ -5,7 +5,7 @@ import { db as dbDeLaApp } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
 import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
 import type { Alcance, CajaPorMoneda, Rango } from "@/lib/queries/dashboard";
-import { claveCloserSql, claveDeCloser, claveDeCloserSql } from "@/lib/closers/identidad";
+import { claveCloserSql, claveDeCloser, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { vigente } from "@/lib/queries/vigente";
 import { atendidaSinGrain } from "@/lib/queries/sin-grain";
 import {
@@ -14,6 +14,12 @@ import {
   primerosMovimientosDeVenta, filtroNoShows, llamadaPasadaSinResultado,
 } from "@/lib/queries/metricas-filtros";
 import { grupoDeCitas, miembrosDe } from "@/lib/queries/tasas-del-grupo";
+import {
+  esMetricaDeEmbudo,
+  leerEmbudoConMiembros,
+  miembrosDeLaCifra,
+  type MetricaDeEmbudo,
+} from "@/lib/queries/embudo-con-filas";
 
 export type Metrica =
   | "caja"
@@ -29,12 +35,13 @@ export type Metrica =
   | "contratado"
   | "sin_resultado"
   | "cartera"
-  | MetricaDeGrupo;
+  | MetricaDeGrupo
+  | MetricaDeEmbudo;
 
 /** Las listas de las tasas (ADR 0079): deals del grupo de citas, con show, y con show vendidos hoy. */
 export const METRICAS_DE_GRUPO = ["grupo_citas", "grupo_shows", "grupo_vendidos"] as const;
 export type MetricaDeGrupo = (typeof METRICAS_DE_GRUPO)[number];
-type MetricaSql = Exclude<Metrica, MetricaDeGrupo>;
+type MetricaSql = Exclude<Metrica, MetricaDeGrupo | MetricaDeEmbudo>;
 
 function esMetricaDeGrupo(metrica: Metrica): metrica is MetricaDeGrupo {
   return (METRICAS_DE_GRUPO as readonly string[]).includes(metrica);
@@ -56,6 +63,10 @@ export interface FiltrosDeMetrica {
   ahora?: Date;
   /** Fecha de calendario que entrega hoyEnBogota(), nunca el reloj del navegador. */
   hoy: string;
+  /** Solo el embudo por etapas (ticket 188): el paso o la etapa de la cifra. */
+  etapa?: string;
+  /** Solo el embudo por etapas (ticket 188): el tramo de "sin dueño por antigüedad". */
+  antiguedad?: string;
 }
 
 export interface FilaDeMetrica {
@@ -121,14 +132,14 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
       return {
         id: calls.id,
         fecha: fechaAnclaCall(),
-        columnaCloser: sql<string | null>`coalesce(${users.closerId}, ${users.nombre}, ${users.email}, ${calls.closerId})`,
+        columnaCloser: etiquetaDeCloserSql(calls.closerId),
         claveCloser: claveCloserSql(calls.closerUserId, calls.closerId),
       };
     case "leads":
       return {
         id: leads.id,
         fecha: fechaAnclaLead(),
-        columnaCloser: users.closerId,
+        columnaCloser: etiquetaDeCloserSql(),
         claveCloser: claveCloserSql(users.id, users.closerId),
       };
     case "cierres":
@@ -137,14 +148,14 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
       return {
         id: deals.id,
         fecha: sql<string>`(${dealEtapaHistorial.fecha} AT TIME ZONE 'America/Bogota')::date`,
-        columnaCloser: users.closerId,
+        columnaCloser: etiquetaDeCloserSql(),
         claveCloser: claveCloserSql(users.id, users.closerId),
       };
     case "cartera":
       return {
         id: deals.id,
         fecha: sql<string>`(${deals.createdAt} AT TIME ZONE 'America/Bogota')::date`,
-        columnaCloser: sql<string | null>`coalesce(${users.closerId}, ${users.nombre}, ${users.email})`,
+        columnaCloser: etiquetaDeCloserSql(),
         claveCloser: claveCloserSql(users.id, users.closerId),
       };
     // Ticket 138: el closer es solo contexto (el dueño del deal); estas métricas no se filtran por él.
@@ -152,14 +163,14 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
       return {
         id: deals.id,
         fecha: fechaAnclaDealCreado(),
-        columnaCloser: users.closerId,
+        columnaCloser: etiquetaDeCloserSql(),
         claveCloser: claveCloserSql(users.id, users.closerId),
       };
     case "agendas_creadas":
       return {
         id: calls.id,
         fecha: fechaAnclaAgendaCreada(),
-        columnaCloser: users.closerId,
+        columnaCloser: etiquetaDeCloserSql(),
         claveCloser: claveCloserSql(users.id, users.closerId),
       };
   }
@@ -404,19 +415,49 @@ async function leerMetricaDeGrupo(
   const miembros = miembrosDe(grupo, filtros.claveCloser).filter((m) =>
     metrica === "grupo_citas" ? true : metrica === "grupo_shows" ? m.conShow : m.conShow && m.vendido,
   );
-  const filas: FilaDeMetrica[] = miembros.map((m) => ({
+  return paginarOAgrupar(miembros.map((m) => filaDeDeal(m, filtros.hoy)), pagina);
+}
+
+/** Una fila de lista hecha de un deal que se decidió en memoria (grupo de citas o embudo). */
+function filaDeDeal(
+  m: { dealId: string; fecha: string; closer: string | null; claveCloser: string; etapa: string | null },
+  hoy: string,
+): FilaDeMetrica {
+  return {
     id: m.dealId,
     dealId: m.dealId,
     fecha: m.fecha,
     closer: m.closer,
     claveCloser: m.claveCloser,
     etapa: m.etapa,
-    ...edadYBucket(m.fecha, filtros.hoy),
+    ...edadYBucket(m.fecha, hoy),
     moneda: null,
     monto: null,
     cantidad: 1,
-  }));
+  };
+}
 
+/**
+ * Las listas del embudo por etapas (ticket 188): los deals que forman la cifra, del MISMO
+ * cálculo que la pinta (`embudo-con-filas.ts`). El dueño filtra igual que en toda lista.
+ */
+async function leerMetricaDeEmbudo(
+  metrica: MetricaDeEmbudo,
+  alcance: Alcance,
+  filtros: FiltrosDeMetrica,
+  pagina: number | null,
+  db: Db,
+): Promise<FilaDeMetrica[]> {
+  const embudo = await leerEmbudoConMiembros(db, { programId: alcance.programId, rango: alcance.rango }, filtros.ahora);
+  const miembros = miembrosDeLaCifra(embudo, metrica, filtros, filtros.claveCloser);
+  return paginarOAgrupar(miembros.map((m) => filaDeDeal(m, filtros.hoy)), pagina);
+}
+
+/**
+ * Una página de filas ya ordenadas, o (`pagina === null`) el resumen agrupado por closer, etapa
+ * y antigüedad, igual que el `GROUP BY` de las métricas SQL.
+ */
+function paginarOAgrupar(filas: FilaDeMetrica[], pagina: number | null): FilaDeMetrica[] {
   if (pagina !== null) {
     return filas.slice((pagina - 1) * TAMANO_PAGINA, pagina * TAMANO_PAGINA);
   }
@@ -442,6 +483,7 @@ async function leerMetrica(
   db: Db,
 ): Promise<FilaDeMetrica[]> {
   if (esMetricaDeGrupo(metrica)) return leerMetricaDeGrupo(metrica, alcance, filtros, pagina, db);
+  if (esMetricaDeEmbudo(metrica)) return leerMetricaDeEmbudo(metrica, alcance, filtros, pagina, db);
   const resumen = pagina === null;
   const fuente = fuenteDe(metrica);
   const campos = camposDe(metrica, fuente, filtros.hoy, resumen);
@@ -503,6 +545,32 @@ export async function resumenDeMetrica(metrica: Metrica, filtros: FiltrosDeMetri
       })),
     };
   }));
+}
+
+/**
+ * El resumen de una cifra cuyos deals ya se decidieron en memoria (el embudo por etapas, ticket
+ * 188): la misma agrupación que `resumenDeMetrica`, sin volver a la base por cada celda.
+ */
+export function resumenDeDeals(
+  programId: string,
+  miembros: readonly { dealId: string; fecha: string; closer: string | null; claveCloser: string; etapa: string | null }[],
+  hoy: string,
+): ResumenDeMetrica {
+  const grupos = paginarOAgrupar(miembros.map((m) => filaDeDeal(m, hoy)), null);
+  return {
+    programId,
+    disponible: true,
+    subtotal: subtotal(grupos),
+    grupos: grupos.map(({ closer, claveCloser, etapa, bucket, moneda, monto, cantidad }) => ({
+      closer,
+      claveCloser,
+      etapa,
+      bucket,
+      moneda,
+      monto,
+      cantidad,
+    })),
+  };
 }
 
 /** El total incluye todas las páginas; las filas solo la página pedida, de tama?o fijo. */

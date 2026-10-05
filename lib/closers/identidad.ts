@@ -1,5 +1,6 @@
 import { sql, type SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
+import { users } from "@/lib/db/schema";
 
 /**
  * Cuando dos textos nombran al MISMO closer (ADR 0030).
@@ -140,4 +141,26 @@ export function claveCloserSql(columnaUserId: PgColumn | SQL, columnaTexto: PgCo
     when ${columnaUserId} is not null then ${columnaUserId}::text
     else '${sql.raw(PREFIJO_HISTORICO)}' || coalesce(${claveDeCloserSql(columnaTexto)}, '')
   end`;
+}
+
+/**
+ * Cómo se LEE un closer en el dashboard y sus listas (ticket 188): su `closer_id`, o su
+ * nombre, o su correo; y para una fila histórica sin cuenta, el texto copiado de la fila.
+ * Es la etiqueta, no la identidad: dos filas se juntan por `claveCloserSql`, nunca por
+ * esto. Antes el comparativo usaba esta cadena y las listas solo `closer_id`, así que un
+ * closer sin `closer_id` se leía con su nombre en una tabla y como "Sin closer" en su lista.
+ */
+export function etiquetaDeCloserSql(textoDeLaFila?: PgColumn | SQL): SQL<string | null> {
+  return textoDeLaFila
+    ? sql<string | null>`coalesce(${users.closerId}, ${users.nombre}, ${users.email}, ${textoDeLaFila})`
+    : sql<string | null>`coalesce(${users.closerId}, ${users.nombre}, ${users.email})`;
+}
+
+/** La misma etiqueta en memoria, para lo que se calcula fuera de SQL (el embudo por etapas). */
+export function etiquetaDeCloser(usuario: {
+  closerId: string | null;
+  nombre: string | null;
+  email: string | null;
+}): string | null {
+  return usuario.closerId ?? usuario.nombre ?? usuario.email;
 }

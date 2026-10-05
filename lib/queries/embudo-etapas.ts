@@ -6,6 +6,7 @@ import { diaDeCalendario } from "@/lib/dias-habiles";
 import { cerradosEn, esReversaDeVenta } from "@/lib/queries/metricas-filtros";
 import { tasa, type Rango } from "@/lib/queries/dashboard";
 import { vigente } from "@/lib/queries/vigente";
+import { etiquetaDeCloser } from "@/lib/closers/identidad";
 
 /**
  * Lecturas del embudo por etapas (ticket 065).
@@ -187,8 +188,11 @@ export function calcularEmbudoEtapas({
     .sort((a, b) => posicion(a.etapa) - posicion(b.etapa) || compararOwner(a, b));
 
   const sinDueno = abiertosBase.filter((deal) => deal.ownerUserId === null);
+  // Días de calendario de Bogotá, la misma regla que la antigüedad de toda lista (ticket 188):
+  // en horas, un deal de las 18:00 seguía en "0-7" a la mañana del octavo día y su lista decía 8.
+  const hoyBogota = diaComoNumero(diaDeCalendario(ahora));
   const porAntiguedad = agrupar(sinDueno, (deal) => bucketDeAntiguedad(
-    Math.max(0, Math.floor((ahora.getTime() - entradaPorDeal.get(deal.id)!.instante.getTime()) / MS_POR_DIA)),
+    Math.max(0, hoyBogota - diaComoNumero(diaDeCalendario(entradaPorDeal.get(deal.id)!.instante))),
   ));
   const sinDuenoPorAntiguedad = BUCKETS.map((bucket) => {
     const grupo = porAntiguedad.get(bucket) ?? [];
@@ -323,11 +327,24 @@ export async function embudoPorEtapas(
   { programId, rango }: { programId: string; rango: Rango },
   ahora: Date = new Date(),
 ): Promise<ResultadoEmbudoEtapas> {
+  return calcularEmbudoEtapas(await cargarEntradaDelEmbudo(db, { programId, rango }, ahora));
+}
+
+/**
+ * Las filas que el nucleo puro necesita, tal como las lee la cifra del dashboard. La lista de
+ * cada cifra (ticket 188) carga LO MISMO y recalcula, asi que no puede discrepar de la cifra.
+ */
+export async function cargarEntradaDelEmbudo(
+  db: Db,
+  { programId, rango }: { programId: string; rango: Rango },
+  ahora: Date = new Date(),
+): Promise<EntradaCalculoEmbudo> {
   const [filasDeal, filasHistorial, idsCerrados] = await Promise.all([
     db.select({
       id: deals.id,
       etapa: deals.etapa,
       ownerUserId: deals.ownerUserId,
+      ownerCloserId: users.closerId,
       ownerNombre: users.nombre,
       ownerEmail: users.email,
       createdAt: deals.createdAt,
@@ -357,12 +374,15 @@ export async function embudoPorEtapas(
     cerradosEn(db, programId, rango),
   ]);
 
-  return calcularEmbudoEtapas({
+  return {
     deals: filasDeal.map((deal) => ({
       id: deal.id,
       etapa: deal.etapa,
       ownerUserId: deal.ownerUserId,
-      ownerNombre: deal.ownerNombre ?? deal.ownerEmail ?? null,
+      // La misma etiqueta que el comparativo y las listas (ticket 188).
+      ownerNombre: deal.ownerUserId === null
+        ? null
+        : etiquetaDeCloser({ closerId: deal.ownerCloserId, nombre: deal.ownerNombre, email: deal.ownerEmail }),
       createdAt: deal.createdAt,
       precioUsd: deal.precioUsd === null ? null : Number(deal.precioUsd),
       motivoNombre: deal.motivoNombre,
@@ -372,7 +392,19 @@ export async function embudoPorEtapas(
     idsCerrados,
     rango,
     ahora,
-  });
+  };
+}
+
+/**
+ * El instante en que cada deal entro al embudo: su primer movimiento o, sin historial, su
+ * creacion. Es la misma regla que usa `calcularEmbudoEtapas` para la cohorte y la antiguedad.
+ */
+export function entradasAlEmbudo(
+  filasDeal: readonly DealParaEmbudo[],
+  filasHistorial: readonly HistorialParaEmbudo[],
+): Map<string, Date> {
+  const historialPorDeal = agruparHistorial(filasHistorial);
+  return new Map(filasDeal.map((deal) => [deal.id, historialPorDeal.get(deal.id)?.[0]?.fecha ?? deal.createdAt]));
 }
 
 function agrupar<T, K>(filas: readonly T[], clave: (fila: T) => K): Map<K, T[]> {
@@ -406,6 +438,12 @@ function compararOwner(a: AbiertosPorEtapaYOwner, b: AbiertosPorEtapaYOwner): nu
   if (a.ownerUserId === null) return b.ownerUserId === null ? 0 : 1;
   if (b.ownerUserId === null) return -1;
   return (a.ownerNombre ?? "").localeCompare(b.ownerNombre ?? "", "es");
+}
+
+/** Un día `YYYY-MM-DD` como número de días, para restar días de calendario sin zona. */
+function diaComoNumero(dia: string): number {
+  const [a, m, d] = dia.split("-").map(Number);
+  return Math.floor(Date.UTC(a, m - 1, d) / MS_POR_DIA);
 }
 
 function bucketDeAntiguedad(dias: number): BucketAntiguedad {

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { monto, num, usd } from "@/lib/format";
 import { desglosesDelResumen } from "@/lib/queries/metricas-con-filas";
-import { detallesDelDashboard, nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
+import { detallesDeOperacion, detallesDelDashboard, nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { urlDeListaTodos, type FilaDePrograma, type VistaDeTodos } from "@/lib/queries/vista-todos";
 
@@ -186,11 +186,12 @@ export async function SeccionDeTodos({ vista, seccion, hoy }: { vista: VistaDeTo
       </>} />
     {await Promise.all(vista.programas.map(async (fila) => {
       const entrada = { programId: fila.programa.id, slug: fila.programa.slug, hoy, periodo: vista.periodo, claveCloser: null };
-      const [detalles, dealsContraAgendas] = await Promise.all([
+      const [detalles, dealsContraAgendas, detallesOperacion] = await Promise.all([
         detallesDelDashboard(entrada), vistaDealsContraAgendas(entrada),
+        detallesDeOperacion(entrada, fila.dashboard.comparativo.map((c) => c.clave)),
       ]);
       // La sección compartida tiene un ancla fija; aquí hay una instancia por programa.
-      const operacion = Operacion({ vista: fila.dashboard, detalles, dealsContraAgendas: <DealsContraAgendas vista={dealsContraAgendas} /> });
+      const operacion = Operacion({ vista: fila.dashboard, detalles, detallesOperacion, dealsContraAgendas: <DealsContraAgendas vista={dealsContraAgendas} /> });
       return <div key={fila.programa.id} className="space-y-3">
         <h3 className="text-lg font-semibold">{fila.programa.nombre}</h3>
         {cloneElement(operacion, { id: `operacion-${fila.programa.id}` })}

@@ -5,7 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num, usd } from "@/lib/format";
 import { REGLA_TIEMPO_EN_ETAPA } from "@/lib/queries/embudo-etapas";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
-import { nombreDeEtapa, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
+import {
+  claveDeAbiertos,
+  nombreDeEtapa,
+  type DetalleDeCifra,
+  type DetallesDeOperacion,
+  type DetallesDelDashboard,
+} from "@/lib/queries/vista-metrica";
 import { porcentajeConBase } from "@/lib/variacion";
 import { Caja, Tabla, Tarjeta, tasa } from "@/components/dashboard/piezas";
 
@@ -15,7 +21,12 @@ export function textoComisionPrograma(comisionPorcentaje: string | null): string
     : "Comisión: sin porcentaje cargado.";
 }
 
-function Comparativo({ vista }: { vista: VistaDelDashboard }) {
+/** Una cifra que abre su lista si tiene detalle; sin detalle (o sin filas) se pinta tal cual. */
+function Celda({ titulo, detalle, children }: { titulo: string; detalle?: DetalleDeCifra; children: ReactNode }) {
+  return <CifraConLista titulo={titulo} detalle={detalle}>{children}</CifraConLista>;
+}
+
+function Comparativo({ vista, detalles }: { vista: VistaDelDashboard; detalles?: DetallesDeOperacion["comparativo"] }) {
   return (
     <Card>
       <CardHeader>
@@ -39,17 +50,32 @@ function Comparativo({ vista }: { vista: VistaDelDashboard }) {
               "Comisión",
             ]}
           >
-            {vista.comparativo.map((fila) => (
+            {vista.comparativo.map((fila) => {
+              const celdas = detalles?.[fila.clave];
+              const quien = fila.closerId ?? "sin closer";
+              return (
               <tr key={fila.clave}>
                 <td className="py-2">
                   {fila.closerId ?? <span className="text-muted-foreground">sin closer</span>}
                 </td>
-                <td className="py-2 text-right">{num(fila.agendas)}</td>
-                <td className="py-2 text-right">{num(fila.llamadasConShow)}</td>
-                <td className="py-2 text-right">{tasa(fila.pctShow)}</td>
-                <td className="py-2 text-right">{num(fila.cierres)}</td>
-                <td className="py-2 text-right">{tasa(fila.pctCierre)}</td>
-                <td className="py-2 text-right"><Caja caja={fila.caja} /></td>
+                <td className="py-2 text-right">
+                  <Celda titulo={`Agendas de ${quien}`} detalle={celdas?.agendas}>{num(fila.agendas)}</Celda>
+                </td>
+                <td className="py-2 text-right">
+                  <Celda titulo={`Shows de ${quien}`} detalle={celdas?.shows}>{num(fila.llamadasConShow)}</Celda>
+                </td>
+                <td className="py-2 text-right">
+                  <Celda titulo={`Grupo de citas de ${quien} (base del % de show)`} detalle={celdas?.grupo_citas}>{tasa(fila.pctShow)}</Celda>
+                </td>
+                <td className="py-2 text-right">
+                  <Celda titulo={`Cierres de ${quien}`} detalle={celdas?.cierres}>{num(fila.cierres)}</Celda>
+                </td>
+                <td className="py-2 text-right">
+                  <Celda titulo={`Grupo con show de ${quien} (base del % de cierre)`} detalle={celdas?.grupo_shows}>{tasa(fila.pctCierre)}</Celda>
+                </td>
+                <td className="py-2 text-right">
+                  <Celda titulo={`Caja de ${quien}`} detalle={celdas?.caja}><Caja caja={fila.caja} /></Celda>
+                </td>
                 <td className="py-2 text-right">
                   {fila.comisionUsd === 0 && fila.ventasSinComision > 0 ? (
                     <span className="block text-muted-foreground">—</span>
@@ -63,7 +89,8 @@ function Comparativo({ vista }: { vista: VistaDelDashboard }) {
                   ) : null}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </Tabla>
         )}
         <p className="pt-3 text-xs text-muted-foreground">
@@ -82,7 +109,7 @@ function Comparativo({ vista }: { vista: VistaDelDashboard }) {
   );
 }
 
-function EmbudoPorEtapas({ vista }: { vista: VistaDelDashboard }) {
+function EmbudoPorEtapas({ vista, detalles }: { vista: VistaDelDashboard; detalles?: DetallesDeOperacion["embudo"] }) {
   const conversion = vista.embudoEtapas.conversion.todas;
 
   return (
@@ -95,7 +122,9 @@ function EmbudoPorEtapas({ vista }: { vista: VistaDelDashboard }) {
           <Tabla cabeceras={["Paso", "Deals", "% desde anterior", "% desde entrada"]}>
             <tr>
               <td className="py-2">Entraron</td>
-              <td className="py-2 text-right">{num(conversion.entraron)}</td>
+              <td className="py-2 text-right">
+                <Celda titulo="Entraron al embudo" detalle={detalles?.entraron}>{num(conversion.entraron)}</Celda>
+              </td>
               <td className="py-2 text-right">—</td>
               <td className="py-2 text-right">—</td>
             </tr>
@@ -108,7 +137,14 @@ function EmbudoPorEtapas({ vista }: { vista: VistaDelDashboard }) {
                   <td className="py-2">
                     {paso.paso === "vendido" ? "Vendido" : nombreDeEtapa(paso.paso)}
                   </td>
-                  <td className="py-2 text-right">{num(paso.llegaron)}</td>
+                  <td className="py-2 text-right">
+                    <Celda
+                      titulo={`Llegaron a ${paso.paso === "vendido" ? "Vendido" : nombreDeEtapa(paso.paso)}`}
+                      detalle={detalles?.pasos[paso.paso]}
+                    >
+                      {num(paso.llegaron)}
+                    </Celda>
+                  </td>
                   <td className="py-2 text-right">
                     {porcentajeConBase(paso.llegaron, base)}
                   </td>
@@ -131,7 +167,11 @@ function EmbudoPorEtapas({ vista }: { vista: VistaDelDashboard }) {
             {vista.embudoEtapas.tiempoEnEtapa.map((fila) => (
               <tr key={fila.etapa}>
                 <td className="py-2">{nombreDeEtapa(fila.etapa)}</td>
-                <td className="py-2 text-right">{num(fila.deals)}</td>
+                <td className="py-2 text-right">
+                  <Celda titulo={`Salieron de ${nombreDeEtapa(fila.etapa)}`} detalle={detalles?.tiempo[fila.etapa]}>
+                    {num(fila.deals)}
+                  </Celda>
+                </td>
                 <td className="py-2 text-right">
                   {fila.promedioDias === null ? "—" : num(fila.promedioDias, 1)}
                 </td>
@@ -157,7 +197,14 @@ function EmbudoPorEtapas({ vista }: { vista: VistaDelDashboard }) {
                   <tr key={`${fila.etapa}:${fila.ownerUserId ?? "sin-owner"}`}>
                     <td className="py-2">{nombreDeEtapa(fila.etapa)}</td>
                     <td>{fila.ownerNombre ?? "Sin dueño"}</td>
-                    <td className="text-right">{num(fila.deals)}</td>
+                    <td className="text-right">
+                      <Celda
+                        titulo={`Abiertos en ${nombreDeEtapa(fila.etapa)} · ${fila.ownerNombre ?? "sin dueño"}`}
+                        detalle={detalles?.abiertos[claveDeAbiertos(fila.etapa, fila.ownerUserId)]}
+                      >
+                        {num(fila.deals)}
+                      </Celda>
+                    </td>
                   </tr>
                 ))}
               </Tabla>
@@ -174,16 +221,17 @@ function EmbudoPorEtapas({ vista }: { vista: VistaDelDashboard }) {
               {vista.embudoEtapas.sinDuenoPorAntiguedad.map((fila) => (
                 <tr key={fila.bucket}>
                   <td className="py-2">{fila.bucket}</td>
-                  <td className="text-right">{num(fila.deals)}</td>
+                  <td className="text-right">
+                    <Celda titulo={`Sin dueño, ${fila.bucket} días`} detalle={detalles?.sinDueno[fila.bucket]}>
+                      {num(fila.deals)}
+                    </Celda>
+                  </td>
                 </tr>
               ))}
             </Tabla>
           </CardContent>
         </Card>
       </div>
-      <p className="text-sm text-muted-foreground">
-        El clic a la lista de estas cifras llega en un ticket aparte.
-      </p>
     </div>
   );
 }
@@ -192,10 +240,13 @@ function EmbudoPorEtapas({ vista }: { vista: VistaDelDashboard }) {
 export function Operacion({
   vista,
   detalles,
+  detallesOperacion,
   dealsContraAgendas,
 }: {
   vista: VistaDelDashboard;
   detalles?: DetallesDelDashboard;
+  /** El comparativo y el embudo por etapas, celda por celda (ticket 188). */
+  detallesOperacion?: DetallesDeOperacion;
   dealsContraAgendas: ReactNode;
 }) {
   const anterior = vista.anterior?.embudo;
@@ -280,8 +331,8 @@ export function Operacion({
       </Card>
 
       {dealsContraAgendas}
-      <Comparativo vista={vista} />
-      <EmbudoPorEtapas vista={vista} />
+      <Comparativo vista={vista} detalles={detallesOperacion?.comparativo} />
+      <EmbudoPorEtapas vista={vista} detalles={detallesOperacion?.embudo} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

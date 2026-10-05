@@ -7,6 +7,7 @@ import { vigente } from "@/lib/queries/vigente";
 import type { Alcance } from "@/lib/queries/dashboard";
 import {
   claveCloserSql,
+  etiquetaDeCloserSql,
   claveDeCloserSql,
   igualCloser,
   parsearClaveCloser,
@@ -52,6 +53,11 @@ function porClaveConFk(
   const clave = parsearClaveCloser(claveCloser);
   if (clave == null) return undefined;
   if (clave.tipo === "historico") {
+    // La clave histórica vacía es la fila "sin closer" del comparativo (ticket 188): sin FK y sin
+    // texto. Comparar el texto contra `null` no casaría nada y su celda no abriría lista.
+    if (clave.clave === "") {
+      return and(isNull(columnaUserId), sql`coalesce(${claveDeCloserSql(columnaTexto)}, '') = ''`);
+    }
     return and(isNull(columnaUserId), igualCloser(columnaTexto, clave.clave));
   }
   // El texto historico de ESTE usuario, resuelto por id: una fila vieja sin FK que
@@ -76,6 +82,8 @@ export function porClaveDeDeal(claveCloser: string | null | undefined) {
   const clave = parsearClaveCloser(claveCloser);
   if (clave == null) return undefined;
   if (clave.tipo === "usuario") return eq(deals.ownerUserId, clave.userId);
+  // La clave histórica vacía es "sin dueño" (ticket 188): la fila del comparativo sin closer.
+  if (clave.clave === "") return isNull(deals.ownerUserId);
   return igualCloser(users.closerId, clave.clave);
 }
 
@@ -86,7 +94,7 @@ export function porClaveDeDeal(claveCloser: string | null | undefined) {
 export function closerDeAbono() {
   return sql<string | null>`case
     when ${abonos.registradoPorUserId} is not null
-      then coalesce(${users.closerId}, ${users.nombre}, ${users.email})
+      then ${etiquetaDeCloserSql()}
     else ${abonos.closerId}
   end`;
 }

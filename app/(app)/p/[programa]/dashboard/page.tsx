@@ -1,4 +1,4 @@
-import { detallesDelDashboard, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
+import { detallesDeOperacion, detallesDelDashboard, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { paginaConRol } from "@/lib/auth/page-guards";
@@ -185,6 +185,10 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
               seccion="operacion"
               vista={vista}
               detalles={detalles}
+              detallesOperacion={await detallesDeOperacion(
+                { programId: programa.id, slug, hoy, periodo: vista.periodo, origen },
+                vista.comparativo.map((fila) => fila.clave),
+              )}
               slug={slug}
               dealsContraAgendas={
                 <DealsContraAgendas

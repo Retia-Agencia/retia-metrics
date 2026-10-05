@@ -30,7 +30,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaHabilDe, diasHabilesEntre, metaDinamica, metaLineal } from "@/lib/dias-habiles";
-import { claveCloserSql, claveDeCloserSql } from "@/lib/closers/identidad";
+import { claveCloserSql, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { vigente } from "@/lib/queries/vigente";
 import type { FilaHechosDelEmbudo, OrigenDelHecho } from "@/lib/queries/hechos-embudo";
@@ -207,7 +207,7 @@ async function ventasPorCloser(
   return db
     .select({
       clave: claveCloserSql(users.id, users.closerId),
-      closerId: sql<string | null>`min(coalesce(${users.closerId}, ${users.nombre}, ${users.email}))`,
+      closerId: sql<string | null>`min(${etiquetaDeCloserSql()})`,
       cierres: sql<number>`count(distinct ${deals.id})::int`,
     })
     .from(deals)
@@ -489,7 +489,7 @@ export async function closersConCuenta(
   const filas = await db
     .select({
       id: users.id,
-      label: sql<string>`coalesce(${users.closerId}, ${users.nombre}, ${users.email})`,
+      label: sql<string>`${etiquetaDeCloserSql()}`,
     })
     .from(users)
     .where(or(inArray(users.id, owners), inArray(users.id, deCalls), inArray(users.id, deAbonos)));
@@ -517,7 +517,7 @@ export async function embudoPorCloser(
     db
       .select({
         clave: claveCloserSql(users.id, calls.closerId),
-        closerId: sql<string | null>`min(coalesce(${users.closerId}, ${users.nombre}, ${users.email}, ${calls.closerId}))`,
+        closerId: sql<string | null>`min(${etiquetaDeCloserSql(calls.closerId)})`,
         agendas: sql<number>`count(*)::int`,
         llamadasConShow: sql<number>`count(*) filter (where ${llamadaOcurrio()})::int`,
       })

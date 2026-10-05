@@ -183,6 +183,18 @@ describe("137: la cifra, el resumen y todas las páginas cuentan exactamente lo 
     expect(await vistaDeLista({ programId: programaA, metrica: "caja", busqueda, hoy, codigoCloser: "a".repeat(64), pagina: 1 }, db)).toBeNull();
   });
 
+  it("ticket 188: la lista de un dashboard sin comparación no inventa un periodo B", async () => {
+    const sinB = urlDeLista("prueba-a", "caja", { preset: "custom", a: rango, b: null });
+    const busqueda = Object.fromEntries(new URL(sinB, "https://example.test").searchParams);
+    const vista = await vistaDeLista({ programId: programaA, metrica: "caja", busqueda, hoy, pagina: 1 }, db);
+    expect(vista?.periodo.b).toBeNull();
+    expect(vista?.periodo.aviso).toBeUndefined();
+    // Sin la marca, el mismo rango libre sí recibe su B por hábiles: la marca es la que decide.
+    const conB = { ...busqueda };
+    delete conB.sin_b;
+    expect((await vistaDeLista({ programId: programaA, metrica: "caja", busqueda: conB, hoy, pagina: 1 }, db))?.periodo.b).not.toBeNull();
+  });
+
   it.each(metricas)("%s: cada desglose del resumen (closer, etapa, antigüedad) suma el subtotal", async (metrica) => {
     const [resumen] = await resumenDeMetrica(metrica, { programId: programaA, rango, hoy }, db);
     const desgloses = desglosesDelResumen(resumen.grupos, (etapa) => etapa.toUpperCase());

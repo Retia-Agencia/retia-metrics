@@ -6,6 +6,13 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { nombreDeEtapa, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
 import { TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
+import {
+  BUCKETS_DE_ANTIGUEDAD,
+  METRICAS_DE_EMBUDO_SIN_PERIODO,
+  esMetricaDeEmbudo,
+} from "@/lib/queries/embudo-con-filas";
+import { PASOS_DE_CONVERSION } from "@/lib/queries/embudo-etapas";
+import { ETAPAS_EN_ORDEN } from "@/lib/deals/etapas";
 import { fecha, hoyEnBogota, monto, num } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
@@ -38,7 +45,15 @@ const esquema = z.object({
     "grupo_citas",
     "grupo_shows",
     "grupo_vendidos",
+    "etapa_entraron",
+    "etapa_paso",
+    "etapa_tiempo",
+    "etapa_abiertos",
+    "etapa_sin_dueno",
   ]),
+  // Solo el embudo por etapas (ticket 188): el paso o la etapa, y el tramo de antigüedad.
+  etapa: z.enum([...new Set([...ETAPAS_EN_ORDEN, ...PASOS_DE_CONVERSION])] as [string, ...string[]]).optional(),
+  antiguedad: z.enum(BUCKETS_DE_ANTIGUEDAD as [string, ...string[]]).optional(),
   closer: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   moneda: z.string().regex(/^[A-Z]{3}$/).optional(),
   cohorte: z.string().uuid().optional().catch(undefined),
@@ -62,7 +77,33 @@ const titulos = {
   grupo_citas: "Deals con cita ocurrida (grupo de las tasas)",
   grupo_shows: "Deals del grupo con show",
   grupo_vendidos: "Deals del grupo con show y vendidos hoy",
+  etapa_entraron: "Entraron al embudo",
+  etapa_paso: "Llegaron al paso",
+  etapa_tiempo: "Salieron de la etapa",
+  etapa_abiertos: "Abiertos en la etapa",
+  etapa_sin_dueno: "Abiertos sin dueño",
 };
+
+/** Qué subconjunto exige cada métrica del embudo: sin él, la lista no existe. */
+const SUBCONJUNTO_DEL_EMBUDO = {
+  etapa_entraron: null,
+  etapa_paso: "etapa",
+  etapa_tiempo: "etapa",
+  etapa_abiertos: "etapa",
+  etapa_sin_dueno: "antiguedad",
+} as const;
+
+/** El tono de la antigüedad (GC-35): de lo más nuevo a lo más viejo, con los tonos de Tinta. */
+const TONO_DE_ANTIGUEDAD = {
+  "0-7": "neutro",
+  "8-30": "info",
+  "31-90": "alerta",
+  ">90": "peligro",
+} as const;
+
+function tonoDeAntiguedad(bucket: string) {
+  return TONO_DE_ANTIGUEDAD[bucket as keyof typeof TONO_DE_ANTIGUEDAD] ?? "neutro";
+}
 
 export default async function ListaDeCifraPage({ params, searchParams }: Props) {
   const session = await paginaConRol("gerente", "closer");
@@ -73,8 +114,12 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const busqueda = await searchParams;
   const validado = esquema.safeParse(busqueda);
   if (!validado.success) notFound();
-  const { metrica, closer, moneda, cohorte, pagina = 1 } = validado.data;
+  const { metrica, closer, moneda, cohorte, etapa, antiguedad, pagina = 1 } = validado.data;
   if (moneda && metrica !== "caja") notFound();
+  // El subconjunto es del embudo por etapas y solo el que su métrica pide: un paso en otra lista,
+  // o una lista del embudo sin su paso, no existe (nunca cae al embudo entero).
+  const pide = esMetricaDeEmbudo(metrica) ? SUBCONJUNTO_DEL_EMBUDO[metrica] : null;
+  if ((pide === "etapa") !== (etapa !== undefined) || (pide === "antiguedad") !== (antiguedad !== undefined)) notFound();
   const vista = await vistaDeLista({
     programId: programa.id,
     metrica,
@@ -83,11 +128,16 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     codigoCloser: closer,
     moneda,
     cohorteId: cohorte,
+    etapa,
+    antiguedad,
     pagina,
   });
   if (!vista) notFound();
   const { lista, periodo, claveCloser } = vista;
-  const enlace = urlDeLista(slug, metrica, periodo, claveCloser, moneda, cohorte);
+  const enlace = urlDeLista(slug, metrica, periodo, claveCloser, moneda, cohorte, { etapa, antiguedad });
+  // La cartera y los abiertos del embudo son una foto de hoy: el periodo no los acota.
+  const sinPeriodo = metrica === "cartera" || (METRICAS_DE_EMBUDO_SIN_PERIODO as readonly string[]).includes(metrica);
+  const subtitulo = etapa ? (etapa === "vendido" ? "Vendido" : nombreDeEtapa(etapa)) : antiguedad ? `${antiguedad} días` : null;
   // El `desde` de donde se abrió esta lista (ticket 174, 197): va al "Volver" de la
   // cabecera y se conserva en los enlaces de paginación, siempre por `enlaceConVuelta`.
   const desde = typeof busqueda.desde === "string" ? busqueda.desde : undefined;
@@ -110,8 +160,8 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">{programa.nombre}</Badge>
           <Badge variant="secondary">{titulos[metrica]}</Badge>
-          {/* La cartera es una foto de hoy: el periodo no la acota, así que no se muestra. */}
-          {metrica === "cartera" ? (
+          {subtitulo ? <Badge variant="secondary">{subtitulo}</Badge> : null}
+          {sinPeriodo ? (
             <Badge variant="secondary">A hoy, sin periodo</Badge>
           ) : (
             <>
@@ -126,7 +176,10 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
         {periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{periodo.aviso}</p> : null}
         <p className="cifra">{lista.disponible ? num(lista.subtotal.cantidad) : "—"} registros</p>
         {lista.subtotal.caja.map((c) => <p className="cifra" key={c.moneda}>{monto(c.total, c.moneda)}</p>)}
-        <p className="text-sm text-muted-foreground">Más antiguos primero. Antigüedad en días calendario de Bogotá; fechas futuras: 0 días.</p>
+        <p className="text-sm text-muted-foreground">
+          Más antiguos primero. Antigüedad en días calendario de Bogotá; fechas futuras: 0 días.
+          {esMetricaDeEmbudo(metrica) ? " En el embudo por etapas, la fecha es la entrada del deal al embudo." : null}
+        </p>
         <Card>
           <CardContent className="overflow-x-auto pt-4">
             {lista.filas.length === 0 ? <p>No hay filas en esta página para los filtros elegidos.</p> : (
@@ -138,7 +191,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
                       <td className="py-3">{fila.closer || "Sin closer"}</td>
                       <td>{fila.etapa ? nombreDeEtapa(fila.etapa) : "Sin deal"}</td>
                       <td>{fecha(fila.fecha)}</td>
-                      <td className="cifra">{num(fila.antiguedad)}</td>
+                      <td><Badge variant={tonoDeAntiguedad(fila.bucket)} className="cifra">{num(fila.antiguedad)}</Badge></td>
                       <td className="cifra">{fila.moneda && fila.monto !== null ? monto(fila.monto, fila.moneda) : "—"}</td>
                       <td>{fila.dealId ? <Button variant="link" nativeButton={false} render={<Link href={enlaceConVuelta(`/p/${encodeURIComponent(slug)}/deals/${fila.dealId}`, origen)} />}>Ver deal</Button> : "Sin deal"}</td>
                     </tr>

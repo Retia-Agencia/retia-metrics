@@ -1,7 +1,7 @@
-import { and, between, eq, isNull, ne, or, sql } from "drizzle-orm";
+import { and, between, eq, isNull, ne, or } from "drizzle-orm";
 import { calls, deals, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { claveCloserSql, claveDeCloserSql } from "@/lib/closers/identidad";
+import { claveCloserSql, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { ETAPAS_VENDIDAS, type EtapaDeal } from "@/lib/deals/etapas";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import { diaDeCalendario } from "@/lib/dias-habiles";
@@ -185,7 +185,7 @@ export async function leerCitasDelGrupo(
       callId: calls.id,
       dealId: deals.id,
       claveCloser: claveCloserSql(users.id, calls.closerId),
-      closer: sql<string | null>`coalesce(${users.closerId}, ${users.nombre}, ${users.email}, ${calls.closerId})`,
+      closer: etiquetaDeCloserSql(calls.closerId),
       resultado: calls.resultado,
       fechaAgenda: calls.fechaAgenda,
       fechaLlamada: calls.fechaLlamada,
