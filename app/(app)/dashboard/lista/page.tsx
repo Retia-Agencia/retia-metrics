@@ -22,12 +22,12 @@ interface Props {
 }
 
 const esquema = z.object({
-  metrica: z.enum(["caja", "agendas", "shows", "shows_sin_grain", "cierres", "leads"]),
+  metrica: z.enum(["caja", "agendas", "shows", "shows_sin_grain", "sin_resultado", "cierres", "leads", "contratado", "cartera"]),
   moneda: z.string().regex(/^[A-Z]{3}$/).optional(),
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
 });
 
-const titulos = { caja: "Caja recaudada", agendas: "Agendas", shows: "Shows", shows_sin_grain: "Shows sin Grain", cierres: "Cierres", leads: "Leads" };
+const titulos = { caja: "Caja recaudada", agendas: "Agendas", shows: "Shows", shows_sin_grain: "Shows sin Grain", sin_resultado: "Llamadas pasadas sin resultado", cierres: "Cierres", leads: "Leads", contratado: "Contratado", cartera: "Cartera pendiente" };
 
 export default async function ListaDeTodosPage({ searchParams }: Props) {
   const session = await paginaConRol("gerente", "closer");
@@ -64,9 +64,10 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
       <div className="space-y-6">
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">Todos los programas</Badge>
-          <Badge variant="secondary">A: {fecha(periodo.a.desde)} a {fecha(periodo.a.hasta)}</Badge>
+          <Badge variant="secondary">{metrica === "cartera" ? `Foto de hoy: ${fecha(hoy)}` : `A: ${fecha(periodo.a.desde)} a ${fecha(periodo.a.hasta)}`}</Badge>
           {moneda ? <Badge variant="secondary">{moneda}</Badge> : null}
         </div>
+        {metrica === "cartera" ? <p className="text-sm text-muted-foreground">Deals en pago parcial vigentes. La cartera no depende del periodo A; abre un deal para ver su saldo y próxima fecha de pago.</p> : null}
         {periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{periodo.aviso}</p> : null}
         {secciones.map((seccion) => {
           const programa = programasPorId.get(seccion.programId);
@@ -105,7 +106,7 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
           <span className="cifra">Página {num(pagina)}</span>
           {haySiguiente ? <Button variant="outline" nativeButton={false} render={<Link href={hrefPagina(pagina + 1)} />}>Siguiente</Button> : <Button variant="outline" disabled>Siguiente</Button>}
         </nav>
-        <Button variant="outline" nativeButton={false} render={<Link href={`/dashboard?${queryDePeriodo(periodo)}`} />}>Volver al dashboard</Button>
+        <Button variant="outline" nativeButton={false} render={<Link href={`/dashboard?${queryDePeriodo(periodo)}&seccion=${metrica === "cartera" || metrica === "contratado" || metrica === "caja" ? "dinero" : metrica === "sin_resultado" || metrica === "shows_sin_grain" ? "pulso" : "operacion"}`} />}>Volver al dashboard</Button>
       </div>
     </PageShell>
   );

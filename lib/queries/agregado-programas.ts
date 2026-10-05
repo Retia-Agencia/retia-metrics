@@ -3,9 +3,9 @@ export interface Conteo {
   readonly valor: number;
 }
 
-export interface Dinero {
+export interface Dinero<Moneda extends string = string> {
   readonly tipo: "dinero";
-  readonly moneda: string;
+  readonly moneda: Moneda;
   readonly valor: number;
 }
 
@@ -17,7 +17,7 @@ export interface Tasa {
 export type Sumable = Conteo | Dinero;
 
 export const conteo = (valor: number): Conteo => ({ tipo: "conteo", valor });
-export const dinero = (moneda: string, valor: number): Dinero => ({ tipo: "dinero", moneda, valor });
+export const dinero = <Moneda extends string>(moneda: Moneda, valor: number): Dinero<Moneda> => ({ tipo: "dinero", moneda, valor });
 export const tasa = (valor: number | null): Tasa => ({ tipo: "tasa", valor });
 
 /**
@@ -28,6 +28,12 @@ export const tasa = (valor: number | null): Tasa => ({ tipo: "tasa", valor });
  */
 export function sumarConteos(xs: readonly Conteo[]): Conteo {
   return conteo(xs.reduce((total, item) => total + item.valor, 0));
+}
+
+/** Contratado y cartera ya vienen en USD: ni una tasa ni otra moneda caben aquí. */
+export function sumarUsd(xs: readonly Dinero<"USD">[]): Dinero<"USD"> {
+  const total = sumarDinero(xs.map((x) => [x]));
+  return dinero("USD", total[0]?.valor ?? 0);
 }
 
 /** El dinero se agrupa por moneda y nunca se convierte (AGENTS.md). */
