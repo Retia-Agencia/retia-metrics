@@ -86,7 +86,14 @@ export function AppSidebar({
   // Un slug en la URL que no esta en la lista (inexistente o ajeno) no se elige: la
   // pagina ya responde 404 y el selector no tiene por que nombrarlo.
   const deLaRuta = programaDeRuta(pathname);
-  const respaldo = elegirPrograma(programas, preferido)?.slug ?? null;
+  // El layout NO se vuelve a renderizar en una navegacion del cliente, asi que `preferido`
+  // (la cookie) se queda con el valor de la primera carga. El ultimo programa visto en la
+  // ruta se recuerda aqui, para que ir a Ajustes no salte de vuelta al primero.
+  const [recordado, setRecordado] = useState(preferido);
+  if (deLaRuta && deLaRuta !== recordado && programas.some((p) => p.slug === deLaRuta)) {
+    setRecordado(deLaRuta);
+  }
+  const respaldo = elegirPrograma(programas, recordado)?.slug ?? null;
   const programa = programas.find((p) => p.slug === deLaRuta)?.slug ?? respaldo;
   const actual =
     programas.find((p) => p.slug === deLaRuta)?.slug ??
