@@ -16,6 +16,8 @@ interface SerieParaPintar {
   punteada?: boolean;
   /** Índice de color; por defecto el de su posición. Sirve para que A y B de lo mismo compartan color. */
   color?: number;
+  /** Lista de las filas de cada punto; una meta no lleva enlace. */
+  enlaces?: Array<string | null>;
 }
 
 interface SeriesLinealesProps {
@@ -27,6 +29,8 @@ interface SeriesLinealesProps {
   etiquetas?: string[];
   /** Cómo se escribe un valor; por defecto `num`. */
   formato?: (valor: number) => string;
+  /** Tabla desplegable para consultar cifras también desde una pantalla táctil. */
+  mostrarTabla?: boolean;
 }
 
 /**
@@ -37,7 +41,7 @@ interface SeriesLinealesProps {
  * Los colores salen de Tinta y los trazos distinguen las series que exceden la
  * paleta. La tabla conserva los valores para quien no puede leer el SVG.
  */
-export function SeriesLineales({ datos, titulo, unidad, etiquetas, formato }: SeriesLinealesProps) {
+export function SeriesLineales({ datos, titulo, unidad, etiquetas, formato, mostrarTabla }: SeriesLinealesProps) {
   const escribir = formato ?? ((n: number) => num(n));
   const valores = datos.series.flatMap((s) => s.valores.filter((v): v is number => v !== null));
   if (!datos.dias.length || !valores.length) {
@@ -54,8 +58,11 @@ export function SeriesLineales({ datos, titulo, unidad, etiquetas, formato }: Se
         : undefined;
   const minimo = Math.min(0, ...valores);
   const maximo = Math.max(0, ...valores) || (minimo === 0 ? 1 : 0);
+  const escribirEje = (valor: number) => formato ? formato(valor) : num(valor, Number.isInteger(valor) ? 0 : 1);
+  const margen = Math.max(70, ...[0, 1, 2, 3, 4].map((i) =>
+    escribirEje(minimo + (maximo - minimo) * i / 4).length * 8 + 16));
   const x = (i: number) =>
-    70 + (datos.dias.length === 1 ? 270 : i * 540 / (datos.dias.length - 1));
+    margen + (datos.dias.length === 1 ? 270 : i * 540 / (datos.dias.length - 1));
   const y = (n: number) => 230 - (n - minimo) * 200 / (maximo - minimo);
   /** Los tramos sin hueco: un `null` corta la línea en vez de unir puntos que no existen. */
   const tramos = (vs: Array<number | null>) => {
@@ -70,8 +77,9 @@ export function SeriesLineales({ datos, titulo, unidad, etiquetas, formato }: Se
   return (
     <figure className="space-y-2">
       <figcaption className="text-sm font-medium">{titulo} · {unidad}</figcaption>
+      <div className="overflow-x-auto">
       <svg
-        viewBox="0 0 680 280"
+        viewBox={`0 0 ${margen + 610} 280`}
         role="img"
         aria-label={`${titulo}, ${unidad}. Ejes lineales.`}
         className="w-full cifra text-xs"
@@ -80,19 +88,19 @@ export function SeriesLineales({ datos, titulo, unidad, etiquetas, formato }: Se
           const valor = minimo + (maximo - minimo) * i / 4;
           return (
             <g key={i}>
-              <line x1="70" x2="610" y1={y(valor)} y2={y(valor)} stroke="var(--border)" />
+              <line x1={margen} x2={margen + 540} y1={y(valor)} y2={y(valor)} stroke="var(--border)" />
               <text
-                x="62"
+                x={margen - 8}
                 y={y(valor) + 4}
                 textAnchor="end"
                 fill="var(--muted-foreground)"
               >
-                {formato ? formato(valor) : num(valor, Number.isInteger(valor) ? 0 : 1)}
+                {escribirEje(valor)}
               </text>
             </g>
           );
         })}
-        <line x1="70" x2="70" y1="30" y2="230" stroke="var(--muted-foreground)" />
+        <line x1={margen} x2={margen} y1="30" y2="230" stroke="var(--muted-foreground)" />
         {datos.series.map((s, i) => (
           <g key={s.clave}>
             {tramos(s.valores).map((puntos, t) => (
@@ -105,7 +113,9 @@ export function SeriesLineales({ datos, titulo, unidad, etiquetas, formato }: Se
                 points={puntos.join(" ")}
               />
             ))}
-            {s.valores.map((v, j) => v === null ? null : (
+            {s.valores.map((v, j) => {
+              if (v === null) return null;
+              const punto = (
               <circle
                 key={j}
                 cx={x(j)}
@@ -116,7 +126,15 @@ export function SeriesLineales({ datos, titulo, unidad, etiquetas, formato }: Se
                 {/* Un solo texto: con varios nodos, React 19 no hidrata el <title> igual que el servidor. */}
                 <title>{`${s.clave} · ${etiqueta(j)}: ${escribir(v)} ${unidad}`}</title>
               </circle>
-            ))}
+              );
+              const href = s.enlaces?.[j];
+              return href ? (
+                <a key={j} href={href} aria-label={`${s.clave} · ${etiqueta(j)}: ${escribir(v)} ${unidad}. Ver lista.`}
+                  className="hover:opacity-70 focus-visible:outline-2 focus-visible:outline-ring">
+                  {punto}
+                </a>
+              ) : punto;
+            })}
           </g>
         ))}
         {[...new Set([0, Math.floor((datos.dias.length - 1) / 2), datos.dias.length - 1])].map((i) => (
@@ -131,6 +149,7 @@ export function SeriesLineales({ datos, titulo, unidad, etiquetas, formato }: Se
           </text>
         ))}
       </svg>
+      </div>
       <ul className="flex flex-wrap gap-4 text-sm" aria-label="Series">
         {datos.series.map((s, i) => (
           <li key={s.clave} className="flex items-center gap-2">
@@ -149,8 +168,12 @@ export function SeriesLineales({ datos, titulo, unidad, etiquetas, formato }: Se
         ))}
       </ul>
       {/* Una <table> no respeta el width:1px de sr-only y desborda la página: el div lo contiene. */}
-      <div className="sr-only">
-        <table>
+      <details className={mostrarTabla ? "text-sm" : "sr-only"} open={mostrarTabla ? undefined : true}>
+        <summary className="cursor-pointer rounded-lg px-2 py-1 hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring">
+          Ver cifras de {titulo}
+        </summary>
+        <div className="overflow-x-auto">
+        <table className="w-full cifra text-xs">
           <caption>{titulo}, {unidad}</caption>
           <thead>
             <tr>
@@ -164,13 +187,19 @@ export function SeriesLineales({ datos, titulo, unidad, etiquetas, formato }: Se
                 <th>{etiqueta(i)}</th>
                 {datos.series.map((s) => {
                   const v = s.valores[i];
-                  return <td key={s.clave}>{v === null || v === undefined ? "—" : escribir(v)}</td>;
+                  const href = s.enlaces?.[i];
+                  return <td key={s.clave} className="px-2 py-1 text-right whitespace-nowrap">
+                    {v === null || v === undefined ? "—" : href ? (
+                      <a href={href} className="text-primary underline hover:opacity-70 focus-visible:outline-2 focus-visible:outline-ring">{escribir(v)}</a>
+                    ) : escribir(v)}
+                  </td>;
                 })}
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+        </div>
+      </details>
     </figure>
   );
 }

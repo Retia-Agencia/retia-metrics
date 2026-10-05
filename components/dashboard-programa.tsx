@@ -4,6 +4,7 @@ import { Operacion } from "@/components/dashboard/operacion";
 import { Pulso } from "@/components/dashboard/pulso";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import type { DetallesDelDashboard } from "@/lib/queries/vista-metrica";
+import type { SeriesDeDinero } from "@/lib/queries/series-dinero";
 
 export { OrigenPorCanal } from "@/components/dashboard/origen-por-canal";
 export { textoComisionPrograma } from "@/components/dashboard/operacion";
@@ -26,12 +27,16 @@ export function DashboardPrograma({
   detalles,
   slug,
   dealsContraAgendas,
+  seriesDinero,
+  origen,
 }: {
   seccion: "pulso" | "operacion" | "dinero";
   vista: VistaDelDashboard;
   detalles?: DetallesDelDashboard;
   slug: string;
   dealsContraAgendas: ReactNode;
+  seriesDinero?: SeriesDeDinero;
+  origen?: string;
 }) {
   if (seccion === "pulso") {
     return <Pulso vista={vista} detalles={detalles} slug={slug} />;
@@ -45,5 +50,5 @@ export function DashboardPrograma({
       />
     );
   }
-  return <Dinero vista={vista} detalles={detalles} slug={slug} />;
+  return <Dinero vista={vista} detalles={detalles} slug={slug} series={seriesDinero} origen={origen} />;
 }

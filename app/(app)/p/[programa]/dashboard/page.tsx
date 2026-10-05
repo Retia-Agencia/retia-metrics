@@ -7,6 +7,7 @@ import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { parsearPeriodoUrl } from "@/lib/periodo";
 import { fecha, num, hoyEnBogota } from "@/lib/format";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
+import { leerSeriesDeDinero } from "@/lib/queries/series-dinero";
 import { embudoPorCanal, nombresDeCanales } from "@/lib/queries/dashboard";
 import { pautaInterina, type FiltrosPauta } from "@/lib/queries/pauta-interina";
 import { hechosDelEmbudo } from "@/lib/queries/hechos-embudo";
@@ -205,6 +206,13 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
               slug={slug}
               // El embudo contra agendas es de Operación; fuera de esa pestaña no se arma.
               dealsContraAgendas={null}
+              origen={origen}
+              seriesDinero={seccion === "dinero" ? await leerSeriesDeDinero({
+                programId: programa.id,
+                rango: vista.periodo.a,
+                claveCloser: vista.claveCloser,
+                hoy,
+              }) : undefined}
             />
           )}
         </div>
