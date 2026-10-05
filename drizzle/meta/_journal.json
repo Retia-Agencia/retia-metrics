@@ -477,6 +477,13 @@
       "when": 1791239601475,
       "tag": "0067_umbrales-alerta",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1791241591956,
+      "tag": "0068_rls-umbrales-alerta",
+      "breakpoints": true
     }
   ]
 }

@@ -45,5 +45,6 @@ umbrales son filas (DP-23) que Dani carga mientras lo usa en el daily. Se calcul
 - **Revisión del cadenero:** la meta de la cohorte contaba ventas por historial y el Pulso por etapa actual (una
   venta perdida o anterior al corte de lectura las separaba): ahora usa el mismo conjunto, con test de paridad. El
   mensaje del aceptable decía 1 a 100 y aceptaba 0,5: ahora el mínimo es 1.
+- **CI rojo de `06d7acc`:** la 0067 creó la tabla sin RLS (ADR 0047; lo cazó `rls-en-todas-las-tablas`, que en local no corrí). Arreglado con la **0068** (`ENABLE ROW LEVEL SECURITY`), aplicada en producción el mismo día: ninguna tabla de `public` queda sin RLS. Lección: una migración que crea tabla corre ese guardián antes de aplicarse.
 - **Falta:** el checkpoint; que Dani cargue los umbrales reales (GC-39); y el 191 (banderas del Pulso), que ya puede
   arrancar.

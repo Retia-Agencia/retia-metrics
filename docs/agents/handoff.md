@@ -9,20 +9,41 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia. PRIORIDAD: Memorable (Nicolás y Francisco) arranca el lunes 5-oct y su configuración es de
-Mani (plan-reparto §4, O2 frente A; plan.md §2). La ola vigente es la O6, el dashboard confiable (plan-reparto §4): la
-parte 1 (D1 187, D2 190, D3 192, D4 147 con migración) no ha arrancado; la parte 2 (188, 189, 191, 102) espera a D1 y
-D4. El frente de pantallas fijas cerró (193 a 197, cp-20261004-6); queda su deuda, el 198. El 200 (la venta revertida
-al anular su abono no cuenta) lo tomó Alejo el 5-oct. De Mani además: S1 Supabase Pro, la fuente principal de cada
-programa, y ver en su recorrido el rojo del Kanban al arrastrar hacia atrás (182).
+Seguimos con el CRM de Retia. PRIORIDAD: Memorable (Nicolás y Francisco) arrancó el 5-oct y su configuración es de
+Mani (plan-reparto §4, O2 frente A; plan.md §2). Ola vigente: O6, el dashboard confiable (plan-reparto §4). El 5-oct
+Alejo cerró en código 187, 188, 189, 190, 192, 198 y 147 (con la 0067 en producción) y el 200: todos en `main` con
+CI verde, **en revisión hasta el checkpoint** que los marque `done` (tag `cp-AAAAMMDD-N`). Lo que queda de la O6: el
+191 (banderas rojas del Pulso, ya desbloqueado por el 147) y el 102 (paid trafficker; está en el lote 2 a enmendar).
+Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
+Supabase Pro, la fuente principal de cada programa, y ver el rojo del Kanban al arrastrar hacia atrás (182).
 
-Reglas: implementa un agente (Codex o Kiro) y la sesion principal revisa y recorre; migraciones solo con el ok de
-Mani; nivel 1 antes de cada push (typecheck, lint, tests del ticket), la suite completa la corre el CI en los
-checkpoints (plan-reparto §6). Produccion es la unica base: leer es libre, escribir pide el ok de Mani. Al terminar
-un recorrido local, apagar dev:local (y Docker si nadie mas lo usa: la Mac anda con swap).
+Reglas: implementa un agente (Codex o Kiro; Codex sin cuota hasta el 12-oct) y la sesión principal revisa y recorre;
+la revisión del cadenero la hace otra sesión antes del commit; migraciones solo con el ok de Mani; nivel 1 antes de
+cada push (typecheck, lint, tests del ticket), la suite completa la corre el CI en los checkpoints (plan-reparto §6).
+Produccion es la unica base: leer es libre, escribir pide el ok de Mani. Al terminar un recorrido local, apagar
+dev:local (y Docker si nadie mas lo usa). En Windows, 375 px y 1440×900 se miden con Chrome headless por CDP (la
+ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un `dev:local` vivo.
 ```
 
 ## Memory
+
+- **2026-10-05 (tarde, Alejo + Claude): O6 casi cerrada en código: 187, 188, 189, 190, 192, 198, 147 y 200.**
+  - **Hecho:** 190 y 192 con build y recorrido (costura: la caja de todos es la suma de los programas). 188: cada cifra
+    del embudo por etapa y del comparativo abre su lista (`embudo-con-filas.ts`, un solo cálculo para cifra y lista),
+    `sin_b=1` para no inventar B, una etiqueta de closer (`etiquetaDeCloserSql`), tono por antigüedad. 189: agendas
+    por semana (creadas, ocurridas, show y no-show sobre el grupo del ADR 0079) y las próximas desde hoy aparte. 198:
+    `ZonaConScroll`/`clasesDeZonaConScroll` (14 copias). 147: umbrales de la meta del mes y de la cohorte
+    (decidido con Alejo), configurables en Programa › Ventas, alerta al final del Pulso; **0067 aplicada en producción**
+    con el ok de Mani.
+  - **Lo que cazaron los tests y el cadenero:** la fila "sin closer" del comparativo no abría su lista (clave histórica
+    vacía); "sin dueño por antigüedad" medía en horas y su lista en días; futuras de deals anulados o cortesía; la
+    meta de la cohorte de la alerta contaba distinto que el Pulso (ahora el mismo conjunto, con test de paridad).
+  - **Visto, sin tocar:** una agenda de un deal anulado sigue contando como agenda creada si la llamada está vigente
+    (regla del 138); el diálogo de "Abiertos" dice "registros del periodo A" aunque es foto de hoy.
+  - **CI rojo y arreglo:** la 0067 nació sin RLS (guardián `rls-en-todas-las-tablas`); la 0068 lo activó, aplicada en producción. Una migración que crea tabla corre ese test ANTES de aplicarse.
+  - **Aprendido:** en Windows la ventana de Chrome no se achica; 375 px y 1440×900 se miden con Chrome headless por
+    CDP (login local, `Emulation.setDeviceMetricsOverride`). Forjar una server action: el id sale de
+    `.next/dev/server/server-reference-manifest.json` y se invoca con `fetch` + header `Next-Action`.
 
 - **2026-10-04 (tarde, Mani + Claude, sesión central): frente de pantallas de la O6 cerrado, `cp-20261004-5` y `-6`.**
   - **Mani pidió la pantalla fija como estándar del CRM** (A-97 a A-101): tickets 193 a 197, cinco sesiones (P1 a P5). 193
