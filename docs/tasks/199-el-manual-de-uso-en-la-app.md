@@ -3,7 +3,7 @@ id: 199
 etapa: O6
 serves: "Manual de operación para los closers (Mani, 4-oct); regla 'nada de la app es público'"
 depends: []
-status: todo
+status: done
 ---
 
 # 199 — El manual de uso se abre desde la app, detrás del login

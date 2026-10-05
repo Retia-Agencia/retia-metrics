@@ -315,7 +315,8 @@ paralelo; 194, 195 y 197 cuando el 193 esté en `main` (usan su pieza de pestañ
 | [x] | 196 | [Las pantallas de Ajustes: pantalla fija y "← Ajustes"](./196-ajustes-pantalla-fija-y-volver.md) | 185 | done · `cp-20261004-5` · P4 · seis pantallas fijas con "← Ajustes" |
 | [x] | 197 | [Dashboard: pantalla fija y cada sección en su pestaña](./197-dashboard-en-pestanas.md) | 193, 148 | done · `cp-20261004-6` · P5 · Pulso, Operación, Dinero, Pauta; Volver regresa a la pestaña |
 | [ ] | 198 | [La zona con scroll es una pieza de `pantalla-fija.tsx`](./198-la-zona-con-scroll-es-una-pieza.md) | 197 | todo · deuda del frente de pantallas |
-| [ ] | 199 | [El manual de uso se abre desde la app, detrás del login](./199-el-manual-de-uso-en-la-app.md) | · | todo · `/manual` y el botón en Mi espacio |
+| [x] | 199 | [El manual de uso se abre desde la app, detrás del login](./199-el-manual-de-uso-en-la-app.md) | · | done · 4-oct · CI verde en `16e4b22` (sin tag de checkpoint aún) · `/manual` y el botón en Mi espacio |
+| [ ] | 200 | [La venta que se revierte al anular su abono no cuenta](./200-la-venta-revertida-no-cuenta.md) | · | en curso · Alejo · 5-oct · revisión del 4-oct: anular el único abono dejaba la venta contando (dashboard, meta del mes, Mi espacio, listas) y el embudo por etapas contaba cortesías |
 
 # Pasos y tareas sin ticket
 

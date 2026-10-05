@@ -1,5 +1,5 @@
-import { and, asc, between, eq, inArray, isNull, lte, notInArray, or, sql } from "drizzle-orm";
-import type { PgColumn } from "drizzle-orm/pg-core";
+import { and, asc, between, eq, gt, inArray, isNull, lte, notExists, notInArray, or, sql } from "drizzle-orm";
+import { alias, type PgColumn } from "drizzle-orm/pg-core";
 import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaDeCalendario } from "@/lib/dias-habiles";
@@ -12,7 +12,7 @@ import {
   parsearClaveCloser,
 } from "@/lib/closers/identidad";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
-import { ETAPAS_VENDIDAS, type EtapaDeal } from "@/lib/deals/etapas";
+import { ETAPAS_EN_ORDEN, ETAPAS_VENDIDAS, type EtapaDeal } from "@/lib/deals/etapas";
 import type { Rango } from "@/lib/queries/dashboard";
 
 /**
@@ -112,12 +112,46 @@ function diaDeVenta() {
 }
 
 /**
+ * La REVERSA de una venta (ticket 200): salir de Abonado o Completo hacia una etapa abierta. Solo la
+ * escribe A1, al anular el abono que habia vendido el deal: un error de tecleo, no un resultado del
+ * negocio. Completo -> Abonado (A2) sigue vendido y Abonado -> Cierre Perdido (P) es una venta que
+ * despues se perdio (ADR 0038): ninguna de las dos es reversa. La usan el SQL de abajo y el embudo
+ * por etapas en memoria (`esReversaDeVenta`), con la misma lista.
+ */
+export const DESTINOS_DE_REVERSA: readonly EtapaDeal[] = ETAPAS_EN_ORDEN.filter(
+  (etapa) => !ETAPAS_VENDIDAS.includes(etapa) && etapa !== "cierre_perdido",
+);
+
+export function esReversaDeVenta(de: EtapaDeal | null, a: EtapaDeal): boolean {
+  return de != null && ETAPAS_VENDIDAS.includes(de) && DESTINOS_DE_REVERSA.includes(a);
+}
+
+const reversaDeVenta = alias(dealEtapaHistorial, "reversa_de_venta");
+
+/**
  * Las dos piezas que definen una venta: que movimientos cuentan y en que dia cae la primera.
  * Una cortesía no es una venta (ADR 0071 punto 10).
- * `vendidosEn` y `ventasConDiaEn` solo difieren en la proyeccion (ticket 089): sin subconsulta,
- * para que el guardian de vigencia siga leyendo cada cadena.
+ * `vendidosEn` y `ventasConDiaEn` solo difieren en la proyeccion (ticket 089).
+ *
+ * Cuenta un movimiento que vendio el deal y que NINGUNA reversa posterior deshizo (ticket 200): el dia
+ * de la venta es la primera entrada a Abonado o Completo despues de la ultima reversa, y un deal cuyo
+ * unico abono se anulo deja de ser venta en toda metrica. La subconsulta va con operadores de drizzle
+ * sobre un alias, no con la plantilla `sql`, para que las columnas salgan calificadas (AGENTS.md).
  */
-export const esMovimientoDeVenta = () => inArray(dealEtapaHistorial.a, [...ETAPAS_VENDIDAS]);
+export const esMovimientoDeVenta = (db: Db) => and(
+  inArray(dealEtapaHistorial.a, [...ETAPAS_VENDIDAS]),
+  notExists(
+    db
+      .select({ id: reversaDeVenta.id })
+      .from(reversaDeVenta)
+      .where(and(
+        eq(reversaDeVenta.dealId, dealEtapaHistorial.dealId),
+        inArray(reversaDeVenta.de, [...ETAPAS_VENDIDAS]),
+        inArray(reversaDeVenta.a, [...DESTINOS_DE_REVERSA]),
+        gt(reversaDeVenta.fecha, dealEtapaHistorial.fecha),
+      )),
+  ),
+);
 const vendidoEnElRango = (rango: Rango) => between(diaDeVenta(), rango.desde, rango.hasta);
 
 export function vendidosEn(db: Db, rango: Rango) {
@@ -125,7 +159,7 @@ export function vendidosEn(db: Db, rango: Rango) {
     .select({ dealId: dealEtapaHistorial.dealId })
     .from(dealEtapaHistorial)
     .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.cortesia, false), vigente(deals)))
-    .where(esMovimientoDeVenta())
+    .where(esMovimientoDeVenta(db))
     .groupBy(dealEtapaHistorial.dealId)
     .having(vendidoEnElRango(rango));
 }
@@ -178,7 +212,7 @@ export function ventasConDiaEn(db: Db, rango: Rango) {
     .select({ dealId: dealEtapaHistorial.dealId, dia: diaDeVenta() })
     .from(dealEtapaHistorial)
     .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.cortesia, false), vigente(deals)))
-    .where(esMovimientoDeVenta())
+    .where(esMovimientoDeVenta(db))
     .groupBy(dealEtapaHistorial.dealId)
     .having(vendidoEnElRango(rango));
 }
@@ -218,7 +252,7 @@ export function cortesiasEn(db: Db, rango: Rango) {
     .select({ dealId: dealEtapaHistorial.dealId })
     .from(dealEtapaHistorial)
     .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.cortesia, true), vigente(deals)))
-    .where(esMovimientoDeVenta())
+    .where(esMovimientoDeVenta(db))
     .groupBy(dealEtapaHistorial.dealId)
     .having(vendidoEnElRango(rango));
 }
@@ -288,7 +322,7 @@ export function primerosMovimientosDeVenta(db: Db) {
   return db
     .selectDistinctOn([dealEtapaHistorial.dealId], { id: dealEtapaHistorial.id })
     .from(dealEtapaHistorial)
-    .where(esMovimientoDeVenta())
+    .where(esMovimientoDeVenta(db))
     .orderBy(dealEtapaHistorial.dealId, dealEtapaHistorial.fecha, dealEtapaHistorial.id);
 }
 

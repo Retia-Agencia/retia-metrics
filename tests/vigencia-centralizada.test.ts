@@ -308,6 +308,19 @@ function archivosDeCodigo(dir: string): string[] {
 }
 
 /**
+ * Los alias de drizzle declarados en un archivo: `const reversa = alias(dealEtapaHistorial, "…")`
+ * devuelve `reversa -> dealEtapaHistorial` (ticket 200). Solo cuenta un alias de un nombre del
+ * esquema; cualquier otra cosa sigue siendo una tabla desconocida.
+ */
+function aliasDeTablas(fuente: string): Map<string, string> {
+  const alias = new Map<string, string>();
+  for (const m of fuente.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*alias\(\s*([A-Za-z_$][\w$]*)\s*,/g)) {
+    if (NOMBRES_DEL_ESQUEMA.has(m[2])) alias.set(m[1], m[2]);
+  }
+  return alias;
+}
+
+/**
  * Recorre todo el codigo y devuelve las consultas que leen una tabla anulable —o una
  * tabla que entra por parametro— sin aplicar el predicado.
  */
@@ -320,6 +333,7 @@ function consultasSinPredicado(raiz: string): string[] {
       if (ruta === MODULO_DEL_PREDICADO || EXCEPCIONES.includes(ruta)) continue;
 
       const limpio = limpiar(fs.readFileSync(archivo, "utf8"));
+      const alias = aliasDeTablas(limpio);
       for (const { texto, desde } of cadenasDe(limpio)) {
         const linea = limpio.slice(0, desde).split("\n").length;
         const sospechosas = new Set<string>();
@@ -328,8 +342,11 @@ function consultasSinPredicado(raiz: string): string[] {
           // Un nombre del esquema que no es anulable (leads, programs, users…) no
           // tiene nada que excluir. Todo lo demas si: una anulable, o una tabla que
           // llega por parametro y podria ser cualquiera.
-          const conocida = NOMBRES_DEL_ESQUEMA.has(arg);
-          if (conocida && !TABLAS_ANULABLES.includes(arg as never)) continue;
+          // Un alias de drizzle (`const x = alias(tabla, "…")`) es la tabla que nombra: el de
+          // una no anulable pasa, el de una anulable sigue exigiendo `vigente(x)`.
+          const real = alias.get(arg) ?? arg;
+          const conocida = NOMBRES_DEL_ESQUEMA.has(real);
+          if (conocida && !TABLAS_ANULABLES.includes(real as never)) continue;
           if (!conocida && GENERICOS_SOBRE_CATALOGOS.includes(ruta)) continue;
           if (!IDENT.test(arg[0] ?? "")) continue;
           sospechosas.add(arg);
@@ -465,7 +482,21 @@ describe("vigencia centralizada (ADR 0026)", () => {
       ].join("\n"),
     );
 
+    // Alias de drizzle (ticket 200): el de una tabla NO anulable pasa sin predicado; el de
+    // `deals` se caza igual que `deals`, y con `vigente(alias)` pasa.
+    fs.writeFileSync(
+      path.join(dir, "alias.ts"),
+      [
+        "const reversa = alias(dealEtapaHistorial, 'reversa');",
+        "const otroDeal = alias(deals, 'otro_deal');",
+        "export const sinReversa = (db: Db) => db.select({ id: reversa.id }).from(reversa);",
+        "export const otro = (db: Db) => db.select({ id: otroDeal.id }).from(otroDeal);",
+        "export const otroBien = (db: Db) => db.select({ id: otroDeal.id }).from(otroDeal).where(vigente(otroDeal));",
+      ].join("\n"),
+    );
+
     expect(consultasSinPredicado(tmp)).toEqual([
+      `${path.join("lib", "queries", "alias.ts")}:4: lee 'otroDeal' sin vigente(otroDeal)`,
       `${path.join("lib", "queries", "deals-sin-filtro.ts")}:2: lee 'deals' sin vigente(deals)`,
       `${path.join("lib", "queries", "generica.ts")}:2: lee 'tabla' sin vigente(tabla)`,
       `${path.join("lib", "queries", "sucia.ts")}:6: lee 'abonos' sin vigente(abonos)`,

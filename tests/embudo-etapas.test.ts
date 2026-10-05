@@ -39,6 +39,7 @@ function deal(
     createdAt,
     precioUsd: null,
     motivoNombre: null,
+    cortesia: false,
     ...extra,
   };
 }

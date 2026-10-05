@@ -10,10 +10,11 @@
 
 ```
 Seguimos con el CRM de Retia. PRIORIDAD: Memorable (Nicolás y Francisco) arranca el lunes 5-oct y su configuración es de
-Mani (plan-reparto §4, O2 frente A; plan.md §2). La ola O4 cerró sus partes 1 y 2 en cp-20261004-1 (181 a 184, 167,
-186 y el fix-up de métricas por users.id). Lo único abierto de la O4 es el 185 (pantalla fija en Leads, Calls, Inbox y
-Students), que arranca con la reorganización de Mani de cada pantalla, no con código. De Mani además: S1 Supabase Pro,
-la fuente principal de cada programa, y ver en su recorrido el rojo del Kanban al arrastrar hacia atrás (182).
+Mani (plan-reparto §4, O2 frente A; plan.md §2). La ola vigente es la O6, el dashboard confiable (plan-reparto §4): la
+parte 1 (D1 187, D2 190, D3 192, D4 147 con migración) no ha arrancado; la parte 2 (188, 189, 191, 102) espera a D1 y
+D4. El frente de pantallas fijas cerró (193 a 197, cp-20261004-6); queda su deuda, el 198. El 200 (la venta revertida
+al anular su abono no cuenta) lo tomó Alejo el 5-oct. De Mani además: S1 Supabase Pro, la fuente principal de cada
+programa, y ver en su recorrido el rojo del Kanban al arrastrar hacia atrás (182).
 
 Reglas: implementa un agente (Codex o Kiro) y la sesion principal revisa y recorre; migraciones solo con el ok de
 Mani; nivel 1 antes de cada push (typecheck, lint, tests del ticket), la suite completa la corre el CI en los

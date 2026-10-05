@@ -1,9 +1,9 @@
 import { and, asc, eq } from "drizzle-orm";
 import { cohorts, deals, dealEtapaHistorial, motivos, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { ETAPAS_EN_ORDEN, type EtapaDeal } from "@/lib/deals/etapas";
+import { ETAPAS_EN_ORDEN, ETAPAS_VENDIDAS, type EtapaDeal } from "@/lib/deals/etapas";
 import { diaDeCalendario } from "@/lib/dias-habiles";
-import { cerradosEn } from "@/lib/queries/metricas-filtros";
+import { cerradosEn, esReversaDeVenta } from "@/lib/queries/metricas-filtros";
 import { tasa, type Rango } from "@/lib/queries/dashboard";
 import { vigente } from "@/lib/queries/vigente";
 
@@ -40,6 +40,8 @@ export interface DealParaEmbudo {
   createdAt: Date;
   precioUsd: number | null;
   motivoNombre: string | null;
+  /** Una cortesía no es una venta (ADR 0071 punto 10): nunca llega a los pasos vendidos. */
+  cortesia: boolean;
 }
 
 export interface HistorialParaEmbudo {
@@ -240,9 +242,26 @@ function lecturaConversion(
   return { entraron: cohorte.length, dealIds: ids(cohorte), pasos };
 }
 
+/**
+ * La etapa mas lejana a la que llego el deal. Una entrada a Abonado o Completo que una reversa
+ * posterior deshizo (anular su abono, ticket 200) no cuenta, y una cortesia no pasa de
+ * Compromiso Verbal: los pasos vendidos dicen lo mismo que `vendidosEn`.
+ */
 function etapaMasLejana(deal: DealParaEmbudo, historial: readonly HistorialParaEmbudo[]): number {
-  return [deal.etapa, ...historial.map((fila) => fila.a)]
-    .reduce((maximo, etapa) => Math.max(maximo, posicion(etapa)), -1);
+  const ultimaReversa = historial.reduce(
+    (ultima, fila) => (esReversaDeVenta(fila.de, fila.a) ? Math.max(ultima, fila.fecha.getTime()) : ultima),
+    -Infinity,
+  );
+  const alcanzadas = [
+    deal.etapa,
+    ...historial
+      // Misma regla que el SQL de `esMovimientoDeVenta`: solo una reversa ESTRICTAMENTE posterior
+      // deshace la venta, asi que en un empate de instante la venta se conserva en los dos lados.
+      .filter((fila) => !ETAPAS_VENDIDAS.includes(fila.a) || fila.fecha.getTime() >= ultimaReversa)
+      .map((fila) => fila.a),
+  ];
+  const maximo = alcanzadas.reduce((max, etapa) => Math.max(max, posicion(etapa)), -1);
+  return deal.cortesia ? Math.min(maximo, posicion("compromiso_verbal")) : maximo;
 }
 
 function calcularTiempos(
@@ -314,6 +333,7 @@ export async function embudoPorEtapas(
       createdAt: deals.createdAt,
       precioUsd: cohorts.precioUsd,
       motivoNombre: motivos.nombre,
+      cortesia: deals.cortesia,
     })
       .from(deals)
       .leftJoin(users, eq(users.id, deals.ownerUserId))
@@ -346,6 +366,7 @@ export async function embudoPorEtapas(
       createdAt: deal.createdAt,
       precioUsd: deal.precioUsd === null ? null : Number(deal.precioUsd),
       motivoNombre: deal.motivoNombre,
+      cortesia: deal.cortesia,
     })),
     historial: filasHistorial,
     idsCerrados,
