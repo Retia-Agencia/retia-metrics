@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   entradaDesdeTypeform,
+  esCorreoDePrueba,
   estadoConAgenda,
   payloadTypeformSchema,
   traeLinkDeCalendly,
@@ -114,6 +115,44 @@ describe("entradaDesdeTypeform", () => {
     const entrada = entradaDesdeTypeform(p, OPCIONES);
     expect(entrada.columnas["Notas"]).toBe("uno");
     expect(entrada.columnas["Notas (2)"]).toBe("dos");
+  });
+});
+
+describe("la entrega de prueba de Typeform (Send test request, 5-oct)", () => {
+  function conCorreo(correo: string): PayloadTypeform {
+    const p = payload();
+    const a = p.form_response.answers!.find((x) => x.field.id === "f-correo")!;
+    a.email = correo;
+    return p;
+  }
+
+  it("el correo de muestra de Typeform se rechaza: no se ingiere", () => {
+    expect(() => entradaDesdeTypeform(conCorreo("an_account@example.com"), OPCIONES)).toThrow(/prueba/);
+  });
+
+  it("un correo real pasa", () => {
+    expect(() => entradaDesdeTypeform(payload(), OPCIONES)).not.toThrow();
+  });
+
+  it("los dominios reservados del RFC 2606 son de prueba, sin importar mayusculas ni subdominio", () => {
+    for (const correo of [
+      "an_account@example.com",
+      "Ana@EXAMPLE.ORG",
+      "x@mail.example.net",
+      "x@algo.test",
+      "x@algo.example",
+      "x@algo.invalid",
+      "x@localhost",
+      " x@example.com. ",
+    ]) {
+      expect(esCorreoDePrueba(correo), correo).toBe(true);
+    }
+  });
+
+  it("un dominio que solo se parece no es de prueba, y sin correo no hay nada que decidir", () => {
+    for (const correo of ["x@example.co", "x@myexample.com", "x@gmail.com", "x@testing.co", "example.com", "", null]) {
+      expect(esCorreoDePrueba(correo), String(correo)).toBe(false);
+    }
   });
 });
 

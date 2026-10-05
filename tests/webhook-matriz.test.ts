@@ -658,6 +658,22 @@ describe("Dapta", () => {
   });
 });
 
+describe("la entrega de prueba de Typeform (Send test request, 5-oct)", () => {
+  it("responde 200, deja el sobre con el error y no crea lead, envio ni deal", async () => {
+    const p = conAgenda(fixture(), "");
+    // El correo de muestra que manda el boton "Send test request" de Typeform.
+    p.form_response.answers.find((a) => a.field.id === "f-correo")!.email = "an_account@example.com";
+    const res = await enviar(p);
+    expect(res.status).toBe(200);
+    const sobres = await db.select().from(sobresCrudos);
+    expect(sobres).toHaveLength(1);
+    expect(sobres[0].error).toContain("prueba");
+    expect(await db.select().from(submissions)).toHaveLength(0);
+    expect(await db.select().from(leads)).toHaveLength(0);
+    expect(await db.select().from(deals)).toHaveLength(0);
+  });
+});
+
 // ─────────────────────────────────── caso 9: correo/telefono ausentes o centinela
 
 describe("caso 9 — sin correo, solo teléfono, teléfono inválido", () => {

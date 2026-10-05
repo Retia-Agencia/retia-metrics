@@ -204,6 +204,32 @@ export function estadoConAgenda(
   return traeLinkDeCalendly(respuestas[campoAgenda]) ? ESTADO_CON_CALENDLY : estadoBase;
 }
 
+// ─────────────────────────────────────────────── la entrega de prueba
+
+/** Los dominios de segundo nivel reservados para ejemplos (RFC 2606). */
+const DOMINIOS_RESERVADOS = ["example.com", "example.net", "example.org"];
+/** Los TLD reservados (RFC 2606): ningun correo real termina en ellos. */
+const TLD_RESERVADOS = new Set(["test", "example", "invalid", "localhost"]);
+
+/**
+ * La entrega de prueba de Typeform ("Send test request" en la configuracion del webhook):
+ * va firmada y con la forma real, pero con respuestas de muestra (`an_account@example.com`,
+ * "Lorem ipsum dolor", hidden en `hidden_value`). Ingerirla creo un lead, un envio y un deal
+ * falsos en produccion el 5-oct, sin un solo error, asi que se rechaza como la de Dapta: el
+ * sobre queda guardado con el error y la ruta responde 200.
+ *
+ * El criterio es el DOMINIO del correo, no la firma de la muestra (decision de Mani, 5-oct):
+ * un dominio reservado (RFC 2606) no lo usa ningun lead real, y la regla no depende de que
+ * Typeform conserve sus valores de muestra. Bloquea tambien una prueba manual por el
+ * formulario real con `@example.com`, a proposito: esa prueba tambien ensucia el embudo.
+ */
+export function esCorreoDePrueba(correo: string | null | undefined): boolean {
+  const dominio = (correo ?? "").trim().toLowerCase().split("@").at(-1)?.replace(/\.$/, "") ?? "";
+  if (!correo?.includes("@") || dominio === "") return false;
+  if (DOMINIOS_RESERVADOS.some((d) => dominio === d || dominio.endsWith(`.${d}`))) return true;
+  return TLD_RESERVADOS.has(dominio.split(".").at(-1)!);
+}
+
 // ─────────────────────────────────────────────── el adaptador
 
 /** El texto de una respuesta de Typeform, sea cual sea su tipo. */
@@ -364,6 +390,11 @@ export function entradaDesdeTypeform(payload: PayloadTypeform, opciones: Opcione
     // reales, igual que el encabezado de una hoja.
     const encontrado = resolverContra(Object.keys(columnas), buscados);
     if (encontrado !== undefined) campos[campo as CampoEnvio] = encontrado;
+  }
+
+  const correo = campos.correo === undefined ? null : columnas[campos.correo];
+  if (esCorreoDePrueba(typeof correo === "string" ? correo : null)) {
+    throw new Error("Entrega de prueba de Typeform (correo de dominio reservado): llego bien y no se ingiere.");
   }
 
   return {
