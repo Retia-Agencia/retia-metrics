@@ -56,3 +56,10 @@ una tab no es seguridad. La matriz rol × tab está en `docs/structure.md`.
 | Un ítem por programa en la barra | Con N programas la barra crece por dato |
 | El programa como filtro dentro de cada lista, sin selector | Invita a listas que cruzan programas |
 | Conservar "Mi día" junto al Inbox | Dos pantallas de inicio que responden lo mismo |
+
+### Enmienda (5-oct): el último programa abierto
+
+El último programa abierto se recuerda en la cookie `programa_preferido` y se usa solo como fallback
+cuando la URL no indica programa. La URL siempre gana, como exige el ADR 0023. Antes de usar la
+cookie, el servidor valida el slug contra los programas visibles para la sesión; si no pertenece al
+alcance, usa el primer programa visible. La cookie recuerda navegación, nunca concede acceso ni es autoridad.

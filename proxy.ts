@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth/config";
+import { COOKIE_PROGRAMA_PREFERIDO, slugParaRecordar } from "@/lib/programa-preferido";
 
 /**
  * Next 16 renombro `middleware.ts` a `proxy.ts`.
@@ -26,7 +27,24 @@ export default auth((req) => {
 
   if (esRutaPublica) return NextResponse.next();
 
-  if (req.auth?.user?.id) return NextResponse.next();
+  if (req.auth?.user?.id) {
+    // Una precarga de Next no es una visita: si contara, un link precargado a otro
+    // programa cambiaria el recordado sin que nadie hiciera clic.
+    const esPrecarga = req.headers.has("next-router-prefetch") || req.headers.get("purpose") === "prefetch";
+    const slug = esPrecarga ? null : slugParaRecordar(pathname, req.nextUrl.searchParams);
+    const actual = req.cookies.get(COOKIE_PROGRAMA_PREFERIDO)?.value;
+    const response = NextResponse.next();
+    if (slug && slug !== actual) {
+      response.cookies.set(COOKIE_PROGRAMA_PREFERIDO, slug, {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365,
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
+    return response;
+  }
 
   // Las APIs responden 401 en JSON; las paginas redirigen al login.
   if (pathname.startsWith("/api/")) {

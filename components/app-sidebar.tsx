@@ -13,6 +13,7 @@ import { Marca } from "@/components/marca";
 import { ProgramSwitcher } from "@/components/program-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
+import { elegirPrograma } from "@/lib/programa-preferido";
 
 const ICONOS: Record<ItemNav["icono"], typeof LineChart> = {
   dashboard: LineChart,
@@ -37,6 +38,7 @@ type Props = {
   imagen?: string | null;
   /** Los programas que ESTA sesion ve (ADR 0048), ya acotados en el servidor. */
   programas: readonly { slug: string; nombre: string }[];
+  preferido: string | null;
   inactivos: readonly { slug: string; nombre: string }[];
   puedeCrear: boolean;
   /** Si el usuario REAL es developer: solo el ve el selector de "ver como". */
@@ -57,7 +59,7 @@ type Props = {
  *
  * Arriba, el selector de programa; abajo, una tab por objeto (ADR 0050, ticket 097). El
  * programa elegido sale de la URL (`/p/<programa>/...`), nunca de la sesion (ADR 0023);
- * fuera de una ruta de programa, las tabs de programa abren el primero visible.
+ * fuera de una ruta de programa, las tabs abren el ultimo visible recordado o el primero.
  *
  * En celular el marco es un cajon: una barra arriba con el boton que lo abre. Queda
  * abierto solo en la ruta donde se abrio, asi que navegar lo cierra sin un efecto.
@@ -68,6 +70,7 @@ export function AppSidebar({
   email,
   imagen,
   programas,
+  preferido,
   inactivos,
   puedeCrear,
   puedeCambiarVista,
@@ -83,12 +86,12 @@ export function AppSidebar({
   // Un slug en la URL que no esta en la lista (inexistente o ajeno) no se elige: la
   // pagina ya responde 404 y el selector no tiene por que nombrarlo.
   const deLaRuta = programaDeRuta(pathname);
-  const programa = programas.find((p) => p.slug === deLaRuta)?.slug ?? programas[0]?.slug ?? null;
+  const respaldo = elegirPrograma(programas, preferido)?.slug ?? null;
+  const programa = programas.find((p) => p.slug === deLaRuta)?.slug ?? respaldo;
   const actual =
     programas.find((p) => p.slug === deLaRuta)?.slug ??
     inactivos.find((p) => p.slug === deLaRuta)?.slug ??
-    programas[0]?.slug ??
-    null;
+    respaldo;
 
   // La lista viene filtrada por el ROL DE VISTA. Esconder no es seguridad: cada ruta
   // valida en servidor, tambien contra el rol de vista (ticket 028).

@@ -5,6 +5,8 @@ import { puedeAcceder, type Rol } from "./roles";
 import { rolDeVista, sesionEfectiva } from "./vista";
 import { rutaInicial } from "@/lib/nav";
 import { programasVisibles } from "@/lib/auth/alcance";
+import { elegirPrograma } from "@/lib/programa-preferido";
+import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
 
 /**
  * Guardas para paginas (no para APIs).
@@ -13,20 +15,23 @@ import { programasVisibles } from "@/lib/auth/alcance";
  */
 
 /**
- * A donde mandar a alguien segun su rol, resolviendo el primer programa contra la
- * base solo cuando hace falta. El slug del primer programa vive en la base
+ * A donde mandar a alguien segun su rol, resolviendo el programa preferido contra la
+ * base solo cuando hace falta. El slug de respaldo vive en la base
  * (ADR 0012), asi que no puede salir de `rutaInicial`, que es pura; se resuelve
  * aqui y se le pasa como dato.
  *
- * El primer programa se resuelve por el ALCANCE del rol (`programasVisibles`, ADR 0048):
+ * El programa se resuelve por el ALCANCE del rol (`programasVisibles`, ADR 0048):
  * el gerente y el developer ven todos los activos; el closer, solo aquellos donde tiene
  * membresia activa. Asi el closer aterriza en el Inbox de un programa que SI ve (ticket
  * 071); si no ve ninguno, `rutaInicial` lo lleva a `/mi-dia` de respaldo. El developer
  * nunca es redirigido en la practica (pasa toda guarda), pero se resuelve igual.
  */
 export async function destinoInicial(userId: string, rol: Rol | null): Promise<string> {
-  const visibles = await programasVisibles(userId, rol);
-  return rutaInicial(rol, visibles[0]?.slug ?? null);
+  const [visibles, preferido] = await Promise.all([
+    programasVisibles(userId, rol),
+    programaPreferidoDeCookie(),
+  ]);
+  return rutaInicial(rol, elegirPrograma(visibles, preferido)?.slug ?? null);
 }
 
 export async function paginaConSesion(): Promise<Session> {

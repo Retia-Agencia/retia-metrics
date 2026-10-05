@@ -13,6 +13,8 @@ import {
   SelectorYRefresco,
   type EntregaVista,
 } from "@/components/admin/entregas-webhook";
+import { elegirPrograma } from "@/lib/programa-preferido";
+import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +82,8 @@ export default async function SaludPage({
     );
   }
 
-  const programa = programas.find((p) => p.slug === slugPedido) ?? programas[0];
+  const preferido = await programaPreferidoDeCookie();
+  const programa = programas.find((p) => p.slug === slugPedido) ?? elegirPrograma(programas, preferido)!;
 
   const [paginaEntregas, paginaHuerfanas, salud, conciliacion] = await Promise.all([
     entregasDePrograma(programa.id),

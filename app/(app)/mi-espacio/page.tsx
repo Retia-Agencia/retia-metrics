@@ -21,6 +21,8 @@ import { TabAtencion } from "@/components/mi-espacio/tab-atencion";
 import { TabMetricas } from "@/components/mi-espacio/tab-metricas";
 import { TabCanales } from "@/components/mi-espacio/tab-canales";
 import { TabPorDecidir } from "@/components/mi-espacio/tab-por-decidir";
+import { elegirPrograma } from "@/lib/programa-preferido";
+import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
 
 export const dynamic = "force-dynamic";
 
@@ -131,18 +133,19 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   const calendly = puedeTrabajar ? await bloqueCalendly(membresias) : null;
 
   // Selector de programa solo para las secciones que lo usan. El programa es frontera: un
-  // slug ajeno es 404 (igual que las tabs de programa); sin `?programa` se toma el primero
-  // visible.
+  // slug ajeno es 404 (igual que las tabs de programa); sin `?programa` se toma el ultimo
+  // visible recordado o el primero.
   let programa: { id: string; slug: string; nombre: string } | null = null;
   let visibles: { id: string; slug: string; nombre: string }[] = [];
   if (seccion.usaSelectorDePrograma) {
     visibles = await programasVisibles(userId, rol);
     const pedido = uno(query.programa);
+    const preferido = await programaPreferidoDeCookie();
     programa = seccion.id === "metricas" && pedido === "todos"
       ? null
       : pedido
       ? await programaVisiblePorSlug(userId, rol, pedido)
-      : (visibles[0] ?? null);
+      : elegirPrograma(visibles, preferido);
     if (!programa && !(seccion.id === "metricas" && pedido === "todos" && visibles.length > 0)) notFound();
   }
 

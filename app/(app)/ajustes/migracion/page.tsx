@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num } from "@/lib/format";
 import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
 import { FiltroSelect } from "@/components/filtros/filtro-select";
+import { elegirPrograma } from "@/lib/programa-preferido";
+import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +51,8 @@ export default async function MigracionPage(props: {
   }
 
   const { programa: slugPedido, tipo: tipoPedido } = await props.searchParams;
-  const programa = programas.find((p) => p.slug === slugPedido) ?? programas[0];
+  const preferido = await programaPreferidoDeCookie();
+  const programa = programas.find((p) => p.slug === slugPedido) ?? elegirPrograma(programas, preferido)!;
   const rarezas = await rarezasDelPrograma(programa.id, tipoPedido || null);
   const { tipo } = rarezas;
   const enLaLista = tipo ? (rarezas.porTipo.find((t) => t.tipo === tipo)?.total ?? 0) : rarezas.total;

@@ -7,6 +7,7 @@ import { esAccesoTotal, esAdministrador } from "@/lib/auth/roles";
 import { VISTAS, rolDeVista, vistaActual } from "@/lib/auth/vista";
 import { programasInactivosParaAdministrar, programasVisibles } from "@/lib/auth/alcance";
 import { closersActivos } from "@/lib/catalogo/usuarios";
+import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   // La sesión EFECTIVA (ya suplantada si el developer está "viendo como"): con ella se
@@ -31,6 +32,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // Los closers que el developer puede suplantar (ticket 172). Solo se cargan si de
   // verdad puede cambiar de vista; para los demás, lista vacía.
   const closers = puedeCambiarVista ? await closersActivos() : [];
+  const preferido = await programaPreferidoDeCookie();
 
   return (
     <div className="flex min-h-full flex-1 flex-col md:flex-row">
@@ -40,6 +42,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         email={session.user.email ?? ""}
         imagen={session.user.image}
         programas={programas}
+        preferido={preferido}
         inactivos={inactivos}
         puedeCrear={puedeCrear}
         puedeCambiarVista={puedeCambiarVista}
