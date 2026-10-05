@@ -1,1000 +1,1378 @@
 <title>Operación comercial Retia</title>
-<meta name="description" content="Manual de operación comercial de Retia: cómo se manejan los deals en el CRM, de la llegada del lead al student.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600&display=swap">
 <style>
-/* Layout: un manual de consulta. Índice fijo a la izquierda en escritorio, una columna de lectura a ~68ch.
-   Colores del sistema "Tinta" del CRM: un solo acento morado y cinco tonos de estado. */
-:root {
-  --bg: #f6f4f9;
-  --surface: #ffffff;
-  --fg: #16121c;
-  --muted: #625a6e;
-  --line: #e4dfeb;
-  --accent: #820ad1;
-  --accent-soft: #f3e8fc;
-  --accent-ink: #5c0794;
-  /* tonos de estado */
-  --t-neutro: #6b6478;  --t-neutro-bg: #efedf3;
-  --t-info: #1f5fbf;    --t-info-bg: #e6eefb;
-  --t-alerta: #9a6200;  --t-alerta-bg: #fbf1dc;
-  --t-ok: #1d7a46;      --t-ok-bg: #e2f4e9;
-  --t-mal: #b3362a;     --t-mal-bg: #fbe6e3;
-  --f-display: "Fraunces", Georgia, "Times New Roman", serif;
-  --f-body: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --r: 10px;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0d0b10; --surface: #17141c; --fg: #ece8f2; --muted: #a59eb1; --line: #2a2531;
-    --accent: #b57bff; --accent-soft: rgb(181 123 255 / .14); --accent-ink: #e4d2ff;
-    --t-neutro: #b1aabd; --t-neutro-bg: #24202a;
-    --t-info: #8db4f5;   --t-info-bg: rgb(80 140 240 / .16);
-    --t-alerta: #f0c063; --t-alerta-bg: rgb(240 180 60 / .14);
-    --t-ok: #6fd39a;     --t-ok-bg: rgb(80 200 130 / .14);
-    --t-mal: #f28b7a;    --t-mal-bg: rgb(240 110 90 / .15);
-    color-scheme: dark;
+  :root{
+  --bg:#f6f4f9;
+  --surface:#fff;
+  --fg:#16121c;
+  --muted:#625a6e;
+  --line:#e4dfeb;
+  --accent:#820ad1;
+  --soft:#f3e8fc;
+  --ok:#1d7a46;
+  --okbg:#e2f4e9;
+  --bad:#b3362a;
+  --badbg:#fbe6e3;
+  --warn:#9a6200;
+  --warnbg:#fbf1dc;
+  --info:#1f5fbf;
+  --infobg:#e6eefb;
+  --r:10px;
+  font-family:system-ui,sans-serif
   }
-}
-:root[data-theme="dark"] {
-  --bg: #0d0b10; --surface: #17141c; --fg: #ece8f2; --muted: #a59eb1; --line: #2a2531;
-  --accent: #b57bff; --accent-soft: rgb(181 123 255 / .14); --accent-ink: #e4d2ff;
-  --t-neutro: #b1aabd; --t-neutro-bg: #24202a;
-  --t-info: #8db4f5;   --t-info-bg: rgb(80 140 240 / .16);
-  --t-alerta: #f0c063; --t-alerta-bg: rgb(240 180 60 / .14);
-  --t-ok: #6fd39a;     --t-ok-bg: rgb(80 200 130 / .14);
-  --t-mal: #f28b7a;    --t-mal-bg: rgb(240 110 90 / .15);
-  color-scheme: dark;
-}
-
-* { box-sizing: border-box; }
-body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--f-body); margin: 0; }
-.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 96px;
-  display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px; }
-@media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-inline: 16px; padding-block: 24px 64px; } }
-
-nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 14px; }
-nav.toc p { font: 500 11px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
-nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: s; }
-nav.toc a { display: block; padding: 5px 10px; border-radius: 6px; color: var(--muted); text-decoration: none; }
-nav.toc a:hover { color: var(--fg); background: var(--accent-soft); }
-nav.toc a:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-@media (max-width: 860px) {
-  nav.toc { position: static; }
-  nav.toc ol { display: flex; flex-wrap: wrap; gap: 6px; }
-  nav.toc a { border: 1px solid var(--line); background: var(--surface); padding: 4px 10px; }
-}
-
-main { min-width: 0; }
-header.hero { padding-bottom: 32px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
-.eyebrow { font: 500 12px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 14px; }
-h1 { font: 600 clamp(34px, 5vw, 52px)/1.05 var(--f-display); letter-spacing: -.01em; margin: 0 0 16px; text-wrap: balance; }
-.lede { font-size: 18px; color: var(--muted); max-width: 62ch; margin: 0; }
-.meta { margin-top: 18px; font: 400 13px/1.5 var(--f-mono); color: var(--muted); }
-
-section { padding-top: 48px; scroll-margin-top: 16px; }
-h2 { font: 600 28px/1.15 var(--f-display); margin: 0 0 6px; text-wrap: balance; }
-h2 .n { font: 500 13px/1 var(--f-mono); color: var(--accent); display: block; margin-bottom: 10px; letter-spacing: .06em; }
-h3 { font: 600 17px/1.3 var(--f-body); margin: 28px 0 8px; }
-p, li { max-width: 68ch; }
-.sub { color: var(--muted); margin: 0 0 20px; }
-ul, ol { padding-left: 1.2em; }
-li + li { margin-top: 4px; }
-strong { font-weight: 600; }
-code, .k { font: 500 .88em var(--f-mono); background: var(--accent-soft); color: var(--accent-ink); padding: 1px 6px; border-radius: 5px; }
-
-/* reglas de oro */
-.reglas { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-.reglas li { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; max-width: none; }
-.reglas b { display: block; font-weight: 600; margin-bottom: 4px; }
-.reglas span { color: var(--muted); font-size: 15px; }
-
-/* pastillas de etapa */
-.pill { display: inline-flex; align-items: center; gap: 6px; font: 500 13px/1 var(--f-body); padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
-.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.neutro { color: var(--t-neutro); background: var(--t-neutro-bg); }
-.info { color: var(--t-info); background: var(--t-info-bg); }
-.acento { color: var(--accent-ink); background: var(--accent-soft); }
-.alerta { color: var(--t-alerta); background: var(--t-alerta-bg); }
-.ok { color: var(--t-ok); background: var(--t-ok-bg); }
-.mal { color: var(--t-mal); background: var(--t-mal-bg); }
-
-/* tubería */
-.tuberia { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 20px 0 8px; }
-.tramo { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 8px; align-content: start; }
-.tramo h4 { margin: 0 0 2px; font: 500 11px/1.2 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.tramo .pill { justify-self: start; }
-.tramo small { color: var(--muted); font-size: 13px; line-height: 1.4; }
-@media (max-width: 900px) { .tuberia { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 480px) { .tuberia { grid-template-columns: minmax(0, 1fr); } }
-.perdido-nota { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
-
-/* tablas */
-.tabla { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); margin: 16px 0; }
-table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 560px; }
-th, td { text-align: left; vertical-align: top; padding: 11px 14px; border-bottom: 1px solid var(--line); }
-th { font: 500 11px/1.3 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
-tr:last-child td { border-bottom: 0; }
-td:first-child { white-space: nowrap; }
-.num { font-variant-numeric: tabular-nums; font-family: var(--f-mono); }
-
-/* relaciones */
-.relacion { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 20px 0; }
-.obj { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; }
-.obj b { display: block; font: 600 16px/1.2 var(--f-body); margin-bottom: 2px; }
-.obj .card { font: 500 11px/1 var(--f-mono); color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
-.obj p { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
-.cadena { font: 500 14px/1.7 var(--f-mono); background: var(--surface); border: 1px dashed var(--line); border-radius: var(--r); padding: 14px 16px; overflow-x: auto; white-space: nowrap; }
-.cadena span { color: var(--accent); }
-
-/* pasos */
-.pasos { list-style: none; padding: 0; margin: 16px 0; counter-reset: p; display: grid; gap: 0; }
-.pasos li { counter-increment: p; position: relative; padding: 0 0 22px 48px; margin: 0; max-width: 72ch; }
-.pasos li::before { content: counter(p); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%;
-  display: grid; place-items: center; font: 600 13px/1 var(--f-mono); color: var(--accent-ink); background: var(--accent-soft); }
-.pasos li::after { content: ""; position: absolute; left: 14.5px; top: 34px; bottom: 4px; width: 1px; background: var(--line); }
-.pasos li:last-child::after { display: none; }
-.pasos b { display: block; }
-.pasos .donde { font: 400 13px/1.5 var(--f-mono); color: var(--muted); }
-
-/* cajas */
-.caja { border-radius: var(--r); padding: 14px 18px; margin: 16px 0; font-size: 15px; }
-.caja p { margin: 0; }
-.caja.ojo { background: var(--t-alerta-bg); color: var(--fg); border-left: 3px solid var(--t-alerta); }
-.caja.nota { background: var(--accent-soft); border-left: 3px solid var(--accent); }
-.caja.no { background: var(--t-mal-bg); border-left: 3px solid var(--t-mal); }
-.caja b { font-weight: 600; }
-
-.dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-@media (max-width: 640px) { .dos { grid-template-columns: minmax(0, 1fr); } }
-.dos > div { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; min-width: 0; }
-.dos h4 { margin: 0 0 8px; font: 600 16px/1.3 var(--f-body); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.dos ul { margin: 0; padding-left: 1.1em; font-size: 15px; }
-
-dl.glosario { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 20px; margin: 16px 0; }
-dl.glosario dt { font-weight: 600; }
-dl.glosario dd { margin: 0; color: var(--muted); max-width: 64ch; }
-@media (max-width: 560px) { dl.glosario { grid-template-columns: minmax(0, 1fr); gap: 2px; } dl.glosario dd { margin-bottom: 10px; } }
-
-footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--line); font: 400 13px/1.6 var(--f-mono); color: var(--muted); }
-@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
-html { scroll-behavior: smooth; }
+  @media(prefers-color-scheme:dark){
+  :root{
+  --bg:#0d0b10;
+  --surface:#17141c;
+  --fg:#ece8f2;
+  --muted:#a59eb1;
+  --line:#2a2531;
+  --accent:#b57bff;
+  --soft:#251b30;
+  --ok:#6fd39a;
+  --okbg:#16291e;
+  --bad:#f28b7a;
+  --badbg:#301c1c;
+  --warn:#f0c063;
+  --warnbg:#2b2518;
+  --info:#8db4f5;
+  --infobg:#17233a;
+  color-scheme:dark
+  }
+  }
+  *{
+  box-sizing:border-box
+  }
+  body{
+  margin:0;
+  background:var(--bg);
+  color:var(--fg);
+  font:16px/1.55 system-ui,sans-serif
+  }
+  .wrap{
+  max-width:1100px;
+  margin:auto;
+  padding:32px 20px 70px;
+  display:grid;
+  grid-template-columns:225px minmax(0,1fr);
+  gap:45px
+  }
+  .toc{
+  position:sticky;
+  top:24px;
+  align-self:start;
+  font-size:14px
+  }
+  .toc ol{
+  list-style:none;
+  margin:0;
+  padding:0
+  }
+  .toc>ol{
+  display:grid;
+  gap:3px
+  }
+  .toc a{
+  display:block;
+  padding:6px 9px;
+  border-radius:6px;
+  color:var(--muted);
+  text-decoration:none
+  }
+  .toc a:hover,.toc a[aria-current=page]{
+  color:var(--accent);
+  background:var(--soft)
+  }
+  .group-link{
+  font-weight:650;
+  color:var(--fg)!important
+  }
+  .subnav{
+  margin-left:13px!important;
+  padding-left:7px!important;
+  border-left:1px solid var(--line)
+  }
+  .js .subnav{
+  display:none
+  }
+  .js .active-group .subnav{
+  display:grid
+  }
+  .mobilebar{
+  display:none
+  }
+  main{
+  min-width:0
+  }
+  .breadcrumb{
+  margin:0 0 22px;
+  color:var(--muted);
+  font:13px/1.4 monospace
+  }
+  .breadcrumb b{
+  color:var(--fg)
+  }
+  .hero{
+  padding-bottom:25px;
+  border-bottom:1px solid var(--line);
+  margin-bottom:26px
+  }
+  .js .hero{
+  display:none
+  }
+  .js[data-page=reglas] .hero{
+  display:block
+  }
+  .eyebrow,.n{
+  color:var(--accent);
+  font:12px/1.2 monospace;
+  letter-spacing:.06em
+  }
+  .eyebrow{
+  margin:0 0 10px;
+  text-transform:uppercase
+  }
+  h1{
+  font:650 clamp(34px,5vw,50px)/1.05 Georgia,serif;
+  margin:0 0 12px
+  }
+  h2{
+  font:650 29px/1.15 Georgia,serif;
+  margin:0 0 8px
+  }
+  .n{
+  display:block;
+  margin-bottom:8px
+  }
+  h3{
+  font-size:17px;
+  margin:22px 0 6px
+  }
+  p,li{
+  max-width:68ch
+  }
+  .sub{
+  color:var(--muted)
+  }
+  section{
+  padding-top:10px
+  }
+  .js main>section{
+  display:none
+  }
+  .js main>section.active{
+  display:block
+  }
+  .flujo,.cards,.dos{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px
+  }
+  .flujo{
+  list-style:none;
+  padding:0;
+  margin:22px 0 0
+  }
+  .flujo a,.card{
+  display:block;
+  height:100%;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  background:var(--surface);
+  color:var(--fg);
+  text-decoration:none
+  }
+  .flujo span,.muted,.card small{
+  display:block;
+  color:var(--muted);
+  font-size:14px
+  }
+  .reglas{
+  list-style:none;
+  padding:0;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px
+  }
+  .reglas li{
+  margin:0;
+  padding:13px;
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  background:var(--surface)
+  }
+  .pill{
+  display:inline-block;
+  padding:3px 8px;
+  border-radius:99px;
+  font-size:13px;
+  font-weight:600
+  }
+  .ok{
+  color:var(--ok);
+  background:var(--okbg)
+  }
+  .bad{
+  color:var(--bad);
+  background:var(--badbg)
+  }
+  .warn{
+  color:var(--warn);
+  background:var(--warnbg)
+  }
+  .info{
+  color:var(--info);
+  background:var(--infobg)
+  }
+  .tabla{
+  overflow-x:auto;
+  margin:13px 0;
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  background:var(--surface)
+  }
+  table{
+  border-collapse:collapse;
+  width:100%;
+  min-width:500px;
+  font-size:14px
+  }
+  th,td{
+  padding:8px 10px;
+  text-align:left;
+  vertical-align:top;
+  border-bottom:1px solid var(--line)
+  }
+  th{
+  color:var(--muted);
+  background:var(--bg);
+  font:11px/1.3 monospace;
+  text-transform:uppercase
+  }
+  tr:last-child td{
+  border:0
+  }
+  .nota{
+  padding:11px 14px;
+  border-left:3px solid var(--accent);
+  background:var(--soft)
+  }
+  details{
+  margin:7px 0;
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  background:var(--surface)
+  }
+  summary{
+  cursor:pointer;
+  padding:10px 13px;
+  font-weight:600
+  }
+  details p{
+  margin:0;
+  padding:0 13px 12px;
+  font-size:14.5px
+  }
+  .falta{
+  list-style:none;
+  padding:0
+  }
+  .falta li{
+  margin:7px 0;
+  padding:11px;
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  background:var(--surface)
+  }
+  .glosario{
+  display:grid;
+  grid-template-columns:max-content 1fr;
+  gap:7px 17px
+  }
+  .glosario dt{
+  font-weight:650
+  }
+  .glosario dd{
+  margin:0;
+  color:var(--muted)
+  }
+  .page-nav{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:38px;
+  padding-top:16px;
+  border-top:1px solid var(--line)
+  }
+  .page-nav a{
+  padding:11px;
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  background:var(--surface);
+  color:var(--fg);
+  text-decoration:none
+  }
+  .page-nav a:last-child{
+  text-align:right
+  }
+  .page-nav small{
+  display:block;
+  color:var(--muted);
+  text-transform:uppercase
+  }
+  footer{
+  margin-top:45px;
+  color:var(--muted);
+  font:13px/1.5 monospace
+  }
+  @media(max-width:860px){
+  .wrap{
+  display:block;
+  padding:70px 16px 50px
+  }
+  .desktop-crumb{
+  display:none
+  }
+  .mobilebar{
+  position:fixed;
+  z-index:3;
+  top:0;
+  left:0;
+  right:0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:56px;
+  padding:8px 13px;
+  border-bottom:1px solid var(--line);
+  background:var(--bg)
+  }
+  .mobilebar .breadcrumb{
+  flex:1;
+  margin:0;
+  font-size:12px
+  }
+  .mobilebar button{
+  padding:8px;
+  border:1px solid var(--line);
+  border-radius:7px;
+  background:var(--surface);
+  color:var(--fg)
+  }
+  .toc{
+  display:none;
+  position:fixed;
+  z-index:4;
+  top:56px;
+  left:0;
+  right:0;
+  max-height:calc(100vh - 56px);
+  overflow:auto;
+  padding:13px;
+  background:var(--bg);
+  border-bottom:1px solid var(--line)
+  }
+  .toc.open{
+  display:block
+  }
+  }
+  @media(max-width:600px){
+  .flujo,.cards,.dos,.reglas{
+  grid-template-columns:1fr
+  }
+  .glosario{
+  grid-template-columns:1fr;
+  gap:1px
+  }
+  .glosario dd{
+  margin-bottom:7px
+  }
+  .page-nav a{
+  font-size:14px;
+  padding:9px
+  }
+  }
 </style>
-
-<style>
-/* el flujo de arriba: seis tramos en orden, enlazados a su sección */
-.flujo { list-style: none; padding: 0; margin: 28px 0 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; counter-reset: f; }
-.flujo li { counter-increment: f; margin: 0; max-width: none; }
-.flujo a { display: grid; gap: 4px; height: 100%; padding: 12px 12px 14px; border-radius: var(--r); border: 1px solid var(--line); background: var(--surface); color: var(--fg); text-decoration: none; }
-.flujo a:hover { border-color: var(--accent); }
-.flujo a::before { content: "0" counter(f); font: 500 12px/1 var(--f-mono); color: var(--accent); }
-.flujo b { font-weight: 600; font-size: 15px; line-height: 1.25; }
-.flujo span { font-size: 13px; color: var(--muted); line-height: 1.35; }
-@media (max-width: 1000px) { .flujo { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 520px) { .flujo { grid-template-columns: minmax(0, 1fr); } }
-.parte { margin-top: 56px; padding-top: 10px; border-top: 2px solid var(--fg); font: 500 12px/1 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-.parte b { color: var(--fg); font-weight: 600; }
-.falta { list-style: none; padding: 0; display: grid; gap: 8px; margin: 12px 0; }
-.falta li { margin: 0; max-width: none; display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 4px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 16px; }
-.falta li > .pill { justify-self: start; align-self: start; }
-.falta b { font-weight: 600; }
-.falta p { margin: 2px 0 0; font-size: 14.5px; color: var(--muted); max-width: none; }
-@media (max-width: 560px) { .falta li { grid-template-columns: minmax(0, 1fr); } }
-/* etapas desplegables */
-.etapas { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin: 12px 0 20px; }
-.etapas details { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
-.etapas details[open] { border-color: var(--accent); }
-.etapas summary { list-style: none; cursor: pointer; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; padding: 12px 16px; }
-.etapas summary::-webkit-details-marker { display: none; }
-.etapas summary::after { content: "+"; margin-left: auto; font: 500 18px/1 var(--f-mono); color: var(--muted); }
-.etapas details[open] summary::after { content: "−"; }
-.etapas summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r); }
-.etapas .resumen { color: var(--muted); font-size: 15px; min-width: 0; }
-.etapas .cuerpo { padding: 0 16px 16px; display: grid; gap: 12px; min-width: 0; }
-.etapas dl { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 6px 12px; margin: 0; font-size: 15px; }
-.etapas dt { font: 500 11px/1.9 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-.etapas dd { margin: 0; }
-.etapas p { margin: 0; font-size: 15px; }
-.etapas .tip { color: var(--muted); font-size: 14px; }
-table.mov { min-width: 0; font-size: 14.5px; border: 1px solid var(--line); border-radius: 8px; border-collapse: separate; border-spacing: 0; overflow: hidden; }
-table.mov td:first-child { font-weight: 600; white-space: normal; }
-@media (max-width: 560px) { .etapas dl { grid-template-columns: minmax(0, 1fr); gap: 0 0; } .etapas dd { margin-bottom: 8px; } }
-/* las pastillas largas no se salen de su caja */
-.tramo .pill, .tabla .pill, .etapas .pill { white-space: normal; max-width: 100%; line-height: 1.25; }
-/* sección activa en el índice */
-nav.toc a[aria-current="true"] { color: var(--accent-ink); background: var(--accent-soft); font-weight: 600; }
-@media (max-width: 860px) { nav.toc a[aria-current="true"] { border-color: var(--accent); } }
-</style>
-
+<meta name="description" content="Manual de operación comercial de Retia.">
+<div class="mobilebar">
+  <p class="breadcrumb">
+    <span>
+    </span> › <b>
+    </b>
+  </p>
+  <button type="button" aria-expanded="false" aria-controls="toc">Secciones</button>
+</div>
 <div class="wrap">
-  <nav class="toc" aria-label="Contenido">
-    <p>Contenido</p>
+  <nav class="toc" id="toc" aria-label="Contenido">
     <ol>
-      <li><a href="#reglas">Reglas de oro</a></li>
-      <li><a href="#piezas">Las piezas</a></li>
-      <li><a href="#corta">Las 11 etapas en un minuto</a></li>
-      <li><a href="#llegada">1 · Llega el lead</a></li>
-      <li><a href="#calidad">Quality y Value</a></li>
-      <li><a href="#areas">Áreas</a></li>
-      <li><a href="#deal">2 · Aparece el deal</a></li>
-      <li><a href="#handoff">Del setter al closer</a></li>
-      <li><a href="#etapas">3 · Las 11 etapas</a></li>
-      <li><a href="#recorrido">Paso a paso</a></li>
-      <li><a href="#pendientes">Pendientes</a></li>
-      <li><a href="#cierre">4 · El cierre</a></li>
-      <li><a href="#plata">5 · El dinero</a></li>
-      <li><a href="#cohortes">Cohortes</a></li>
-      <li><a href="#students">6 · Students</a></li>
-      <li><a href="#perder">Perder y anular</a></li>
-      <li><a href="#dia">Tu día</a></li>
-      <li><a href="#alertas">Alertas</a></li>
-      <li><a href="#errores">Errores típicos</a></li>
-      <li><a href="#falta">Lo que falta</a></li>
-      <li><a href="#glosario">Glosario</a></li>
+      <li data-group="Antes de empezar">
+        <a class="group-link" href="#reglas">Antes de empezar</a>
+        <ol class="subnav">
+          <li>
+            <a href="#reglas">Reglas</a>
+          </li>
+          <li>
+            <a href="#piezas">Piezas</a>
+          </li>
+          <li>
+            <a href="#corta">Las 11 etapas</a>
+          </li>
+        </ol>
+      </li>
+      <li data-group="1 · Llega el lead">
+        <a class="group-link" href="#llegada">1 · Llega el lead</a>
+        <ol class="subnav">
+          <li>
+            <a href="#llegada">Llegada</a>
+          </li>
+          <li>
+            <a href="#calidad">Quality y Value</a>
+          </li>
+          <li>
+            <a href="#areas">Áreas</a>
+          </li>
+        </ol>
+      </li>
+      <li data-group="2 · Aparece el deal">
+        <a class="group-link" href="#deal">2 · Aparece el deal</a>
+        <ol class="subnav">
+          <li>
+            <a href="#deal">Deal</a>
+          </li>
+          <li>
+            <a href="#handoff">Del setter al closer</a>
+          </li>
+        </ol>
+      </li>
+      <li data-group="3 · Las etapas">
+        <a class="group-link" href="#etapas">3 · Las etapas</a>
+        <ol class="subnav">
+          <li>
+            <a href="#etapas">Las 11 etapas</a>
+          </li>
+          <li>
+            <a href="#recorrido">Recorrido</a>
+          </li>
+          <li>
+            <a href="#pendientes">Pendientes</a>
+          </li>
+        </ol>
+      </li>
+      <li data-group="4 · El cierre">
+        <a class="group-link" href="#cierre">4 · El cierre</a>
+        <ol class="subnav">
+          <li>
+            <a href="#cierre">El cierre</a>
+          </li>
+        </ol>
+      </li>
+      <li data-group="5 · El dinero">
+        <a class="group-link" href="#plata">5 · El dinero</a>
+        <ol class="subnav">
+          <li>
+            <a href="#plata">Dinero</a>
+          </li>
+          <li>
+            <a href="#cohortes">Cohortes</a>
+          </li>
+        </ol>
+      </li>
+      <li data-group="6 · Students y pérdidas">
+        <a class="group-link" href="#students">6 · Students y pérdidas</a>
+        <ol class="subnav">
+          <li>
+            <a href="#students">Students</a>
+          </li>
+          <li>
+            <a href="#perder">Perder y anular</a>
+          </li>
+        </ol>
+      </li>
+      <li data-group="7 · Tu día">
+        <a class="group-link" href="#dia">7 · Tu día</a>
+        <ol class="subnav">
+          <li>
+            <a href="#dia">Tu día</a>
+          </li>
+          <li>
+            <a href="#alertas">Alertas</a>
+          </li>
+          <li>
+            <a href="#errores">Errores</a>
+          </li>
+        </ol>
+      </li>
+      <li data-group="8 · Referencia">
+        <a class="group-link" href="#falta">8 · Referencia</a>
+        <ol class="subnav">
+          <li>
+            <a href="#falta">Lo que falta</a>
+          </li>
+          <li>
+            <a href="#glosario">Glosario</a>
+          </li>
+        </ol>
+      </li>
     </ol>
   </nav>
-
   <main>
+    <p class="breadcrumb desktop-crumb">
+      <span>
+      </span> › <b>
+      </b>
+    </p>
     <header class="hero">
       <p class="eyebrow">Retia · Manual de operación comercial</p>
-      <h1>Cómo se trabaja un deal en el CRM de Retia</h1>
-      <p class="lede">De que una persona llena el formulario a que es student y paga todo: qué es cada cosa y qué haces en cada paso.</p>
-      <p class="meta">4 de octubre de 2026 · ComunicArte, Tactical Investor y Memorable</p>
-      <ol class="flujo" aria-label="El flujo en seis pasos">
-        <li><a href="#llegada"><b>Llega el lead</b><span>Con su Quality y su Value</span></a></li>
-        <li><a href="#deal"><b>Aparece el deal</b><span>En su etapa, sin dueño o tuyo</span></a></li>
-        <li><a href="#etapas"><b>Se trabaja</b><span>Contacto, cita, llamada</span></a></li>
-        <li><a href="#cierre"><b>Se cierra</b><span>Compromiso, pago o perdido</span></a></li>
-        <li><a href="#plata"><b>Entra la plata</b><span>Abonos y saldo</span></a></li>
-        <li><a href="#students"><b>Es student</b><span>Cohorte y onboarding</span></a></li>
+      <h1>Cómo se trabaja un deal</h1>
+      <p>Del formulario al student: qué haces en cada paso.</p>
+      <p class="muted">5 de octubre de 2026 · ComunicArte, Tactical Investor y Memorable</p>
+      <ol class="flujo">
+        <li>
+          <a href="#llegada">
+            <b>Llega el lead</b>
+            <span>Quality y Value</span>
+          </a>
+        </li>
+        <li>
+          <a href="#deal">
+            <b>Aparece el deal</b>
+            <span>Etapa y dueño</span>
+          </a>
+        </li>
+        <li>
+          <a href="#etapas">
+            <b>Se trabaja</b>
+            <span>Contacto, cita, llamada</span>
+          </a>
+        </li>
+        <li>
+          <a href="#cierre">
+            <b>Se cierra</b>
+            <span>Compromiso, pago o perdido</span>
+          </a>
+        </li>
+        <li>
+          <a href="#plata">
+            <b>Entra la plata</b>
+            <span>Abonos y saldo</span>
+          </a>
+        </li>
+        <li>
+          <a href="#students">
+            <b>Es student</b>
+            <span>Cohorte y onboarding</span>
+          </a>
+        </li>
       </ol>
     </header>
 
     <section id="reglas">
-      <h2><span class="n">Antes de empezar</span>Reglas de oro</h2>
+      <h2>
+        <span class="n">Antes de empezar</span>Reglas de oro</h2>
       <ul class="reglas">
-        <li><b>Tocas a dónde va, el CRM revisa.</b><span>Eliges la etapa destino; el CRM te pide lo que falta y lo mueve.</span></li>
-        <li><b>Todo se registra.</b><span>Lo que no está en el CRM no pasó ni cuenta en tus cifras.</span></li>
-        <li><b>A ganado solo con plata.</b><span>Se entra registrando un abono. Sin comprobante queda una alerta roja hasta que lo pegues.</span></li>
-        <li><b>Perder lleva motivo.</b><span>Siempre de la lista.</span></li>
-        <li><b>Tres intentos y decides.</b><span>Lo pierdes con motivo o sigues. El CRM no lo cierra solo.</span></li>
-        <li><b>Perder no es anular.</b><span>Perder: dijo que no. Anular: me equivoqué al registrar.</span></li>
-        <li><b>El deal con llamada es de quien da la llamada.</b><span>El setter manda el link; la cita le pasa el deal al closer.</span></li>
+        <li>
+          <b>Tú eliges a dónde va; el CRM revisa.</b>
+          <small>Elige la etapa destino y el CRM te pedirá lo que falte antes de mover el deal.</small>
+        </li>
+        <li>
+          <b>Todo se registra.</b>
+          <small>Lo que no está en el CRM no pasó ni cuenta en tus cifras.</small>
+        </li>
+        <li>
+          <b>A Ganado solo llegas con plata.</b>
+          <small>Registra un abono; si falta el comprobante, verás una alerta roja hasta que lo pegues.</small>
+        </li>
+        <li>
+          <b>Cuando pierdes un deal, eliges un motivo de la lista.</b>
+        </li>
+        <li>
+          <b>Tres intentos y decides.</b>
+          <small>Después de tres intentos, lo pierdes con motivo o sigues; el CRM no lo cierra solo.</small>
+        </li>
+        <li>
+          <b>Perder no es anular.</b>
+          <small>Perder significa que la persona dijo que no; anular significa que tú te equivocaste al registrar.</small>
+        </li>
+        <li>
+          <b>El deal con llamada es de quien da la llamada.</b>
+          <small>El setter envía el link y la cita le pasa el deal al closer.</small>
+        </li>
       </ul>
     </section>
-
     <section id="piezas">
-      <h2><span class="n">Antes de empezar</span>Las piezas del CRM</h2>
-      <div class="relacion">
-        <div class="obj"><span class="card">La persona</span><b>Lead</b><p>Se identifica por su correo dentro de un programa.</p></div>
-        <div class="obj"><span class="card">Lo que mandó</span><b>Envío</b><p>Cada vez que llena el formulario. Todos quedan guardados.</p></div>
-        <div class="obj"><span class="card">La oportunidad</span><b>Deal</b><p>Tiene dueño, etapa y cohorte. Uno abierto por lead.</p></div>
-        <div class="obj"><span class="card">La reunión</span><b>Llamada</b><p>Llega de Calendly o la creas tú.</p></div>
-        <div class="obj"><span class="card">La plata</span><b>Abono</b><p>Un pago. Baja el saldo. Lleva su comprobante.</p></div>
-        <div class="obj"><span class="card">El resultado</span><b>Student</b><p>Quien tiene un deal en Ganado.</p></div>
-      </div>
-      <div class="cadena" role="img" aria-label="Lead, envíos, deal, llamadas y abonos, student">
-        Lead <span>→</span> Envíos <span>→</span> Deal <span>→</span> Llamadas + Abonos <span>→</span> Student
+      <h2>
+        <span class="n">Antes de empezar</span>Las piezas del CRM</h2>
+      <div class="cards">
+        <div class="card">
+          <b>Lead</b>
+          <small>La persona, identificada por su correo dentro de un programa.</small>
+        </div>
+        <div class="card">
+          <b>Envío</b>
+          <small>Cada vez que la persona llena el formulario, aunque no lo termine.</small>
+        </div>
+        <div class="card">
+          <b>Deal</b>
+          <small>La oportunidad, con dueño, etapa y cohorte. Hay una abierta por lead.</small>
+        </div>
+        <div class="card">
+          <b>Llamada</b>
+          <small>De Calendly o creada por ti.</small>
+        </div>
+        <div class="card">
+          <b>Abono</b>
+          <small>Un pago que baja el saldo y lleva su comprobante.</small>
+        </div>
+        <div class="card">
+          <b>Student</b>
+          <small>La persona que tiene un deal en Ganado.</small>
+        </div>
       </div>
       <ul>
-        <li><strong>El programa es una frontera:</strong> solo ves los tuyos, y cada lista es de un programa. La misma persona en dos programas son dos leads.</li>
-        <li><strong>Setter y closer:</strong> el setter toma deals, los contacta y le manda a la persona el link de agenda. El closer da la llamada y cierra. Los dos entran con una cuenta de closer.</li>
-        <li><strong>Ves tus deals:</strong> el tablero y la lista muestran solo los tuyos, más los sin dueño del Inbox. Gerencia ve todo, asigna y configura, pero no trabaja leads.</li>
+        <li>
+          <b>El programa es una frontera:</b> tú solo ves los tuyos y cada lista pertenece a un programa. La misma persona en dos programas son dos leads.</li>
+        <li>
+          <b>Setter y closer:</b> el setter toma deals, contacta y envía el link de agenda. El closer da la llamada y cierra. Ambos usan una cuenta de closer.</li>
+        <li>
+          <b>Ves tus deals:</b> el tablero y la lista muestran los tuyos y los que no tienen dueño en el Inbox. Gerencia ve todo, asigna y configura, pero no trabaja leads.</li>
       </ul>
     </section>
-
     <section id="corta">
-      <h2><span class="n">Antes de empezar</span>Las 11 etapas en un minuto</h2>
-      <p class="sub">Si eres nuevo, empieza aquí. El detalle de cada una está en el paso 3.</p>
+      <h2>
+        <span class="n">Antes de empezar</span>Las 11 etapas</h2>
       <div class="tabla">
         <table>
-          <thead><tr><th>Etapa</th><th>Quiere decir</th><th>La pone</th></tr></thead>
           <tbody>
-            <tr><td><span class="pill neutro">Potencial</span></td><td>Empezó el formulario y no lo terminó</td><td>El formulario</td></tr>
-            <tr><td><span class="pill neutro">Registrado</span></td><td>Lo terminó y no califica como High</td><td>El formulario</td></tr>
-            <tr><td><span class="pill neutro">Calificado</span></td><td>Llegó High, sin cita en el CRM</td><td>El formulario</td></tr>
-            <tr><td><span class="pill info">En gestión</span></td><td>Lo estás intentando contactar</td><td>Tú</td></tr>
-            <tr><td><span class="pill info">Contactado</span></td><td>Ya hablaste con la persona</td><td>Tú</td></tr>
-            <tr><td><span class="pill acento">Agendado</span></td><td>Tiene una llamada con fecha</td><td>La cita, sola, o tú</td></tr>
-            <tr><td><span class="pill acento">Atendido</span></td><td>La llamada ocurrió</td><td>Tú, con el Grain</td></tr>
-            <tr><td><span class="pill alerta">Compromiso Verbal</span></td><td>Dijo que sí y paga después</td><td>Tú</td></tr>
-            <tr><td><span class="pill ok">Ganado Pago Parcial</span></td><td>Pagó una parte</td><td>El abono</td></tr>
-            <tr><td><span class="pill ok">Ganado Pagado Completo</span></td><td>Pagó todo</td><td>El abono</td></tr>
-            <tr><td><span class="pill mal">Cierre perdido</span></td><td>Dijo que no, con motivo</td><td>Tú</td></tr>
+            <tr>
+              <td>Potencial</td>
+              <td>Formulario parcial Low</td>
+            </tr>
+            <tr>
+              <td>Registrado</td>
+              <td>Completo Low</td>
+            </tr>
+            <tr>
+              <td>Calificado</td>
+              <td>High sin cita</td>
+            </tr>
+            <tr>
+              <td>En gestión</td>
+              <td>Intentas contactar</td>
+            </tr>
+            <tr>
+              <td>Contactado</td>
+              <td>Ya hablaron</td>
+            </tr>
+            <tr>
+              <td>Agendado</td>
+              <td>Llamada con fecha</td>
+            </tr>
+            <tr>
+              <td>Atendido</td>
+              <td>Llamada ocurrida</td>
+            </tr>
+            <tr>
+              <td>Compromiso Verbal</td>
+              <td>Dijo sí; paga después</td>
+            </tr>
+            <tr>
+              <td>Ganado Pago Parcial</td>
+              <td>Pagó parte</td>
+            </tr>
+            <tr>
+              <td>Ganado Pagado Completo</td>
+              <td>Pagó todo</td>
+            </tr>
+            <tr>
+              <td>Cierre perdido</td>
+              <td>Dijo no, con motivo</td>
+            </tr>
           </tbody>
         </table>
       </div>
-      <div class="caja nota"><p><b>Lo normal:</b> el setter lleva el deal hasta que la persona agenda; desde Agendado lo lleva el closer. Re-agenda, Seguimiento y Próxima Cohorte no son etapas: son pendientes.</p></div>
     </section>
-
-    <p class="parte"><b>Paso 1</b> · Llega el lead</p>
 
     <section id="llegada">
-      <h2><span class="n">01</span>Llega el lead</h2>
-      <p class="sub">El formulario de cada programa llega al CRM al instante.</p>
-      <div class="tabla">
-        <table>
-          <thead><tr><th>Trae</th><th>Dónde lo ves</th></tr></thead>
-          <tbody>
-            <tr><td>Nombre, correo, WhatsApp</td><td>Ficha → Lead y contactos</td></tr>
-            <tr><td>Sus respuestas</td><td>Ficha → Perfil</td></tr>
-            <tr><td>Lead Quality y Lead Value</td><td>Tarjeta y ficha</td></tr>
-            <tr><td>La cita, si agendó</td><td>Ficha → Llamadas</td></tr>
-            <tr><td>Canal de origen (ej. <span class="k">facebook / paid_social</span>, o "sin UTM")</td><td>Ficha → Origen</td></tr>
-          </tbody>
-        </table>
-      </div>
+      <h2>
+        <span class="n">1 · Llega el lead</span>Llegada</h2>
+      <p>El formulario trae nombre, contactos, respuestas, Quality, Value, cita y canal. Todo queda en la ficha.</p>
       <ul>
-        <li><strong>Mismo correo = mismo lead.</strong> El envío nuevo se suma y el deal muestra <span class="k">N envíos</span>.</li>
-        <li><strong>Mismo teléfono, otro correo:</strong> se une marcado <span class="pill info">Unido por teléfono</span> y la ficha del deal muestra la alerta <span class="pill alerta">Posible duplicado</span>, con los dos datos lado a lado. Lo decide el dueño del deal: <b>Es la misma persona</b> lo deja como está; <b>Son dos personas</b> separa el correo y le abre su propio deal. Si el deal no tiene dueño, decide gerencia.</li>
-        <li>Si la persona no termina, llega igual como <strong>parcial</strong>. Parcial y completo cuentan como un envío.</li>
+        <li>
+          <b>Si llega el mismo correo, el CRM conserva el mismo lead.</b> El formulario nuevo se suma y el deal muestra <b>N envíos</b>.</li>
+        <li>
+          <b>Si llega el mismo teléfono con otro correo, revisa la alerta Posible duplicado.</b> Tú decides si es la misma persona o si son dos; si el deal no tiene dueño, decide gerencia.</li>
+        <li>
+          <b>Si la persona no termina, el formulario llega como parcial.</b> Tanto el parcial como el completo cuentan como un envío.</li>
       </ul>
     </section>
-
     <section id="calidad">
-      <h2><span class="n">01 · b</span>Cómo se calculan Quality y Value</h2>
-      <p class="sub">Los pone el formulario según lo que la persona responde. El CRM solo los recibe.</p>
-
+      <h2>
+        <span class="n">1 · Llega el lead</span>Quality y Value</h2>
+      <p>El formulario calcula Quality y Value; el CRM los recibe.</p>
       <h3>Las respuestas de descarte</h3>
-      <p>Son tres respuestas que dicen "hoy no puede comprar". Si la persona marca <strong>al menos una</strong>, el formulario la despide antes de la agenda y no puede agendar.</p>
-      <ul>
-        <li>"No, en este momento no cuento con los recursos"</li>
-        <li>Urgencia: "No es prioridad"</li>
-        <li>Ingreso bajo: menos de 1.500 USD al mes en ComunicArte, menos de 1.000 en Tactical y en Memorable</li>
-      </ul>
-
+      <p>Una respuesta de descarte impide agendar: no tiene recursos, dice "No es prioridad" o declara menos de 1.500 USD en ComunicArte y 1.000 en Tactical o Memorable.</p>
       <h3>Lead Quality: ¿pasó el filtro?</h3>
-      <p>El formulario termina con la pregunta <b>"Agenda aquí tu entrevista"</b>, que es el Calendly. Solo la ve quien pasó el filtro, y es obligatoria: para terminar el formulario hay que agendar. Antes de la agenda, el formulario ya le avisa al CRM con un envío parcial, así que el deal aparece aunque la persona no termine de agendar.</p>
-      <div class="tabla">
-        <table>
-          <thead><tr><th>Quality</th><th>Quién</th></tr></thead>
-          <tbody>
-            <tr><td><span class="pill ok">High</span></td><td>No marcó ninguna respuesta de descarte: el formulario le mostró la agenda.</td></tr>
-            <tr><td><span class="pill neutro">Low</span></td><td>Marcó al menos una respuesta de descarte: no ve la agenda.</td></tr>
-          </tbody>
-        </table>
-      </div>
-
+      <p>Sin descarte queda High y ve la agenda obligatoria; con uno queda Low y no agenda. Antes de la agenda ya llega un parcial, aunque no termine.</p>
       <h3>Lead Value: ¿cuánto vale el lead?</h3>
-      <p>Sale de sumar <b>puntos</b> por dos respuestas, y de si marcó o no alguna respuesta de descarte.</p>
+      <p>El Value suma puntos por ingreso y situación profesional, y considera si hubo descarte.</p>
       <div class="tabla">
         <table>
-          <thead><tr><th>Respuesta</th><th>0 puntos</th><th>10 puntos</th><th>20 puntos</th><th>30 puntos</th></tr></thead>
-          <tbody class="num">
-            <tr><td>Ingreso mensual, ComunicArte</td><td>menos de 700</td><td>700 a 1.500</td><td>1.500 a 3.000</td><td>más de 3.000</td></tr>
-            <tr><td>Ingreso mensual, Tactical y Memorable</td><td>menos de 1.000</td><td>1.000 a 3.000</td><td>3.000 a 10.000</td><td>más de 10.000</td></tr>
-            <tr><td>Situación profesional</td><td>otra</td><td>pensionado o 0 a 5 años</td><td>5 a 15 años o más de 15</td><td>·</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="sub">Ingresos en USD. Máximo: 30 + 20 = 50 puntos.</p>
-      <div class="tabla">
-        <table>
-          <thead><tr><th>Puntos</th><th>No marcó ninguna de descarte</th><th>Marcó al menos una de descarte</th></tr></thead>
-          <tbody class="num">
-            <tr><td>30 o más</td><td><span class="pill ok">MUY ALTO VALOR</span></td><td><span class="pill info">ALTO VALOR</span></td></tr>
-            <tr><td>15 a 29</td><td><span class="pill info">ALTO VALOR</span></td><td><span class="pill alerta">VALOR MEDIO</span></td></tr>
-            <tr><td>menos de 15</td><td><span class="pill alerta">VALOR MEDIO</span></td><td><span class="pill neutro">BAJO VALOR</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p><b>Ejemplo:</b> gana más de 3.000 USD (30) y tiene 10 años de experiencia (20) = 50 puntos. Si no marcó nada de descarte es MUY ALTO VALOR. Si dijo "No es prioridad", baja a ALTO VALOR: tiene con qué, pero no tiene afán.</p>
-      <div class="caja nota"><p><b>Quality decide dónde nace el deal. Value no mueve nada: ordena.</b> Dentro de una etapa, trabaja primero los de más valor.</p></div>
-      <div class="caja ojo"><p>Si de pronto todo llega Low o sin calidad, avisa a gerencia: alguien pudo editar el formulario.</p></div>
-    </section>
-
-        <section id="areas">
-      <h2><span class="n">01 · c</span>Las áreas: de dónde vienen los leads</h2>
-      <p class="sub">Todo lead pertenece a un área según el enlace por el que llegó. Las métricas y la meta de la cohorte se miran por área.</p>
-      <div class="tabla">
-        <table>
-          <thead><tr><th>Área</th><th>Qué es</th><th>Canales (fuente / medio)</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Respuesta</th>
+              <th>0</th>
+              <th>10</th>
+              <th>20</th>
+              <th>30</th>
+            </tr>
+          </thead>
           <tbody>
-            <tr><td><span class="pill acento">Paid</span></td><td>Pauta pagada en Meta (Facebook e Instagram).</td><td><span class="k">facebook / cpc</span> · <span class="k">fb / paid</span> · cualquier fuente con <span class="k">paid_social</span></td></tr>
-            <tr><td><span class="pill info">Orgánico</span></td><td>Contenido propio y sin pauta: redes, historias, ManyChat, linktree, WhatsApp, el lead magnet, entrada directa.</td><td><span class="k">instagram / stories</span>, <span class="k">tiktok / linktree</span>, <span class="k">youtube / linktree</span>, <span class="k">direct / organic</span>… (también las cuentas de Milena y Rosario)</td></tr>
-            <tr><td><span class="pill ok">Referidos</span></td><td>Leads que trae un closer con su enlace.</td><td><span class="k">closer / referido</span></td></tr>
+            <tr>
+              <td>Ingreso ComunicArte</td>
+              <td>&lt;700</td>
+              <td>700-1.500</td>
+              <td>1.500-3.000</td>
+              <td>&gt;3.000</td>
+            </tr>
+            <tr>
+              <td>Ingreso Tactical/Memorable</td>
+              <td>&lt;1.000</td>
+              <td>1.000-3.000</td>
+              <td>3.000-10.000</td>
+              <td>&gt;10.000</td>
+            </tr>
+            <tr>
+              <td>Situación</td>
+              <td>otra</td>
+              <td>pensionado o 0-5 años</td>
+              <td>5-15 o más de 15</td>
+              <td>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
-      <p>Y dos casos que no son error, pero se cuentan aparte:</p>
-      <ul>
-        <li><span class="pill neutro">Sin UTM</span> llegó sin datos de origen. No se puede recuperar; se arregla en los enlaces.</li>
-        <li><span class="pill alerta">Sin clasificar</span> trae origen, pero ningún canal lo reconoce. Gerencia lo agrega al catálogo y se corrige hacia atrás.</li>
-      </ul>
-      <div class="caja nota"><p><b>Área declarada:</b> además, al contestar cómo terminó la llamada (o al cerrar por chat, si no hubo llamada), le preguntas a la persona "¿cómo nos conoció?" y eliges Paid, Orgánico o Referidos. No reemplaza el origen del enlace: es un dato aparte, que sirve sobre todo para los que llegaron sin UTM.</p></div>
+      <p>El máximo es 50. Sin descarte: 30 o más es Muy Alto, 15 a 29 es Alto y menos de 15 es Medio. Con descarte quedan en Alto, Medio y Bajo.</p>
+      <p class="nota"><b>Quality decide dónde nace; Value ordena.</b> Trabaja el mayor primero. Si todo llega Low o sin calidad, avisa.</p>
     </section>
-
-    <p class="parte"><b>Paso 2</b> · Aparece el deal</p>
+    <section id="areas">
+      <h2>
+        <span class="n">1 · Llega el lead</span>Áreas</h2>
+      <ul>
+        <li>
+          <b>Paid:</b> reúne la pauta de Meta: facebook/cpc, fb/paid o paid_social.</li>
+        <li>
+          <b>Orgánico:</b> reúne redes, ManyChat, linktree, WhatsApp, lead magnet, entrada directa y cuentas de Milena y Rosario.</li>
+        <li>
+          <b>Referidos:</b> reúne los leads que traes con closer/referido.</li>
+        <li>
+          <b>Sin UTM:</b> llegó sin origen y no se recupera; corrige el enlace. <b>Sin clasificar:</b> trae origen; gerencia agrega el canal y corrige hacia atrás.</li>
+      </ul>
+      <p>Al terminar una llamada o cerrar por chat, pregunta "¿cómo nos conoció?". Esa área declarada no reemplaza el origen.</p>
+    </section>
 
     <section id="deal">
-      <h2><span class="n">02</span>Aparece el deal</h2>
-      <div class="tabla">
-        <table>
-          <thead><tr><th>Formulario</th><th>Quality</th><th>¿Agendó?</th><th>Nace en</th></tr></thead>
-          <tbody>
-            <tr><td>cualquiera</td><td>cualquiera</td><td>sí</td><td><span class="pill acento">Agendado</span></td></tr>
-            <tr><td>parcial o completo</td><td>High</td><td>no</td><td><span class="pill neutro">Calificado</span></td></tr>
-            <tr><td>completo</td><td>Low</td><td>no</td><td><span class="pill neutro">Registrado</span></td></tr>
-            <tr><td>parcial</td><td>Low</td><td>no</td><td><span class="pill neutro">Potencial</span></td></tr>
-          </tbody>
-        </table>
-      </div>
+      <h2>
+        <span class="n">2 · Aparece el deal</span>Deal</h2>
+      <p>El deal nace en Agendado con cita, Calificado con High sin cita, Registrado con un formulario Low completo y Potencial con uno Low parcial.</p>
       <ul>
-        <li><strong>Calificado sin cita:</strong> llegó con High pero su cita no llegó al CRM. Si a los 5 minutos sigue sin llegar, sale arriba del Inbox como "se perdió en el Calendly": escríbele ya.</li>
-        <li><strong>Si vuelve a llenar el formulario</strong> estando en Potencial o Registrado, el deal sube a la etapa que le toca. Solo sube.</li>
-        <li><strong>Más adelante de eso</strong>, un envío nuevo no lo mueve (salvo una cita, que lo lleva a Agendado).</li>
-        <li><strong>Si su deal ya estaba cerrado</strong>, se abre uno nuevo.</li>
+        <li>
+          <b>Escríbele a un Calificado que siga sin cita después de 5 minutos.</b> El Inbox lo muestra como perdido en Calendly.</li>
+        <li>
+          <b>Un envío nuevo solo sube deals en Potencial o Registrado.</b> Después solo una cita los mueve a Agendado; si estaban cerrados, abre un deal nuevo.</li>
       </ul>
       <h3>Quién es el dueño</h3>
       <ul>
-        <li><strong>Agendó por tu Calendly</strong> (asignado en Mi espacio): nace tuyo. Siempre: la cita es de quien la hospeda.</li>
-        <li><strong>Lo demás nace sin dueño</strong> en el Inbox. Lo tomas con <b>Reclamar</b>.</li>
-        <li><strong>Nuevo deal</strong> (WhatsApp, referido): nace en En gestión, tuyo.</li>
-        <li>Solo el dueño o gerencia mueven un deal. La ficha de un deal de otra persona no se abre.</li>
+        <li>
+          <b>Si agenda por tu Calendly, el deal nace tuyo</b> porque la cita pertenece a quien la hospeda.</li>
+        <li>
+          <b>Si no hay cita, reclámalo desde el Inbox.</b> Allí nace sin dueño.</li>
+        <li>
+          <b>Si lo creas por WhatsApp o referido, nace tuyo en En gestión.</b> Solo el dueño o gerencia pueden moverlo.</li>
       </ul>
       <h3>Cómo se ve</h3>
-      <div class="dos">
-        <div>
-          <h4>Tarjeta</h4>
-          <ul>
-            <li>Lead, dueño y días en la etapa</li>
-            <li>Calidad y Valor</li>
-            <li>Pendiente y <span class="k">N envíos</span></li>
-            <li>Saldo y avisos vencidos</li>
-          </ul>
-        </div>
-        <div>
-          <h4>Ficha</h4>
-          <ul>
-            <li>Cabecera: dueño, etapa, cohorte, quién lo setteó</li>
-            <li>Transición y Alertas, cada una en su recuadro</li>
-            <li>Origen, Perfil, Lead y contactos</li>
-            <li>Llamadas, Log y Facturación</li>
-          </ul>
-        </div>
-      </div>
+      <p>La tarjeta resume el deal. La ficha añade cohorte, setter, origen, perfil, contactos, llamadas, log y facturación.</p>
     </section>
-
     <section id="handoff">
-      <h2><span class="n">02 · b</span>Del setter al closer</h2>
-      <p class="sub">El setter no suelta el deal: lo entrega la cita.</p>
-      <ol class="pasos">
-        <li><b>El setter contacta y califica.</b> El deal es suyo.</li>
-        <li><b>Le manda el link de agenda.</b> En Transición toca <b>Agendado</b>: copia el link del deal y toca <b>Ya se lo mandé</b>. El deal sigue siendo suyo y en su etapa.<div class="donde">Ficha → Transición → Agendado</div></li>
-        <li><b>La persona agenda.</b> El deal pasa al closer que hospeda la cita y queda en Agendado. El setter queda anotado en el deal ("Setteado por"), y una re-agenda no lo borra.</li>
+      <h2>
+        <span class="n">2 · Aparece el deal</span>Del setter al closer</h2>
+      <ol>
+        <li>
+          <b>Como setter, tú contactas y calificas.</b> El deal sigue siendo tuyo.</li>
+        <li>
+          <b>Envía el link desde Transición › Agendado.</b> Pulsa "Ya se lo mandé"; todavía conserva dueño y etapa.</li>
+        <li>
+          <b>Cuando agenda, la cita entrega el deal</b> al closer que hospeda la llamada. "Setteado por" se conserva incluso si re-agenda.</li>
       </ol>
-      <p>El closer de la llamada es quien hospeda la cita en Calendly, identificado por la cuenta vinculada a su membresía. Si la host no tiene cuenta en el CRM, la llamada aparece en rojo en el Inbox: asigna esa cuenta en el Equipo del programa o desde el perfil. El setter se conserva aparte como <b>Setteado por</b>.</p>
-      <div class="caja ojo"><p><b>Link enviado sin cita:</b> si al día hábil siguiente la persona no ha agendado, sale una alerta en la ficha, la tarjeta y tu Inbox. O se enfrió y hay que empujarla, o agendó por otra puerta y su cita quedó suelta. Se apaga sola cuando la cita entra.</p></div>
-      <h3>Por dónde puede llegar una cita</h3>
-      <div class="tabla">
-        <table>
-          <thead><tr><th>Cómo agendó</th><th>Cómo la reconoce el CRM</th><th>Si no la reconoce</th></tr></thead>
-          <tbody>
-            <tr><td>En el Calendly del formulario</td><td>La cita viene con el formulario</td><td>Queda en Calificado y sale como "se perdió en el Calendly"</td></tr>
-            <tr><td>Con el link que mandó el setter</td><td>El link lleva la marca de ese deal</td><td>Prueba por el correo</td></tr>
-            <tr><td>Con un link cualquiera</td><td>Por el correo, si es de un solo lead con un solo deal abierto</td><td>Queda suelta en el Inbox</td></tr>
-            <tr><td>Una re-agenda hablada con la persona</td><td>El closer la agrega en su deal, con el link que sea</td><td>No aplica</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p><strong>Una llamada suelta la cuelga quien da la llamada</strong> (o gerencia). El Inbox le sugiere los deals con el mismo nombre o teléfono. Al colgarla, el deal pasa a esa closer y el setter queda anotado.</p>
+      <p>El CRM reconoce al host por Calendly. Si falta, la cita aparece roja y debes asignarla desde Equipo o el perfil. Sin cita al día hábil, verás "Link enviado sin cita".</p>
+      <p>El CRM une la cita por la marca o por correo si hay un solo deal. Si duda, quien llama, o gerencia, debe colgarla. Si acuerdas una cita, agrégala tú.</p>
     </section>
-
-    <p class="parte"><b>Paso 3</b> · Se trabaja</p>
 
     <section id="etapas">
-      <h2><span class="n">03</span>Las 11 etapas</h2>
-      <div class="tuberia">
-        <div class="tramo"><h4>Entrada</h4><span class="pill neutro">Potencial</span><span class="pill neutro">Registrado</span><span class="pill neutro">Calificado</span><small>Las pone el formulario.</small></div>
-        <div class="tramo"><h4>Setteo</h4><span class="pill info">En gestión</span><span class="pill info">Contactado</span><small>Contactar y agendar.</small></div>
-        <div class="tramo"><h4>Llamada</h4><span class="pill acento">Agendado</span><span class="pill acento">Atendido</span><small>Hay cita; ocurrió.</small></div>
-        <div class="tramo"><h4>Cierre</h4><span class="pill alerta">Compromiso Verbal</span><small>Dijo que sí.</small></div>
-        <div class="tramo"><h4>Ganado</h4><span class="pill ok">Ganado Pago Parcial</span><span class="pill ok">Ganado Pagado Completo</span><small>Es venta.</small></div>
-      </div>
-      <p class="perdido-nota"><span class="pill mal">Cierre perdido</span> desde cualquier etapa abierta, con motivo. Nunca desde Ganado Pagado Completo.</p>
-
+      <h2>
+        <span class="n">3 · Las etapas</span>Las 11 etapas</h2>
       <h3>Cómo se mueve un deal</h3>
-      <p>En la ficha, el recuadro <strong>Transición</strong> tiene un botón por cada etapa a la que el deal puede ir hoy. Tocas una y se abre una ventana que pide lo que haga falta, con lo que el deal tiene (verde) y lo que le falta (rojo). Si a esa etapa se llega de varias formas, la ventana te deja escoger. El recuadro tiene dos columnas: a la izquierda <strong>Mover a</strong> (las etapas, incluido Cierre perdido), y a la derecha <strong>Registrar actividad</strong> (un contacto, un intento, otra llamada) y <strong>Dejar en espera</strong> (Seguimiento, Próxima Cohorte, "No asistió o canceló"). En el tablero también puedes <strong>arrastrar</strong> la tarjeta: se abre la misma ventana. Si no hay camino a esa columna, la tarjeta vuelve.</p>
-      <div class="caja nota"><p><b>¿Lo moviste a la etapa equivocada? Usa Corregir.</b> En Mover a aparece <b>Corregir</b>, en rojo: devuelve el deal a la etapa de donde venía en su último movimiento, con un motivo. En el tablero, esa columna se pinta en rojo al arrastrar. Solo corrige lo que movió una persona; lo que movió el CRM solo (un abono, el Grain, una cita) se corrige anulando eso que lo movió. Una corrección no se corrige.</p></div>
-      <p class="sub">Abre cada etapa para ver qué significa, cómo llega ahí y qué opciones tiene.</p>
-
-      <div class="etapas">
-        <details id="e-potencial">
-          <summary><span class="pill neutro">Potencial</span><span class="resumen">Empezó el formulario y no lo terminó</span></summary>
-          <div class="cuerpo">
-            <dl>
-              <dt>Llega</dt><dd>Solo, por el formulario: parcial, Quality Low, sin cita. Sin dueño.</dd>
-              <dt>Sube solo</dt><dd>Si termina el formulario → Registrado. Si llega con High → Calificado.</dd>
-            </dl>
-            <table class="mov">
-              <thead><tr><th>Botón</th><th>Pasa a</th><th>Pide</th></tr></thead>
-              <tbody>
-                <tr><td>Registrar contacto</td><td><span class="pill info">Contactado</span></td><td>Fecha y canal</td></tr>
-                <tr><td>Registrar intento</td><td><span class="pill info">En gestión</span></td><td>Nota del intento</td></tr>
-                <tr><td>Próxima cohorte</td><td>se queda, con el pendiente</td><td>Cohorte destino</td></tr>
-                <tr><td>Descartar</td><td><span class="pill mal">Cierre perdido</span></td><td>Motivo</td></tr>
-              </tbody>
-            </table>
-            <p class="tip">Registrar una actividad en un deal sin dueño te lo asigna.</p>
-          </div>
-        </details>
-
-        <details id="e-registrado">
-          <summary><span class="pill neutro">Registrado</span><span class="resumen">Terminó el formulario con Quality Low y no agendó</span></summary>
-          <div class="cuerpo">
-            <dl>
-              <dt>Llega</dt><dd>Solo, por el formulario, o desde Potencial cuando termina. Sin dueño.</dd>
-              <dt>Sube solo</dt><dd>Si vuelve a llenar el formulario con High → Calificado.</dd>
-            </dl>
-            <p>Mismos botones que Potencial: <b>Registrar contacto</b> → Contactado · <b>Registrar intento</b> → En gestión · <b>Próxima cohorte</b> · <b>Descartar</b>.</p>
-          </div>
-        </details>
-
-        <details id="e-gestion">
-          <summary><span class="pill info">En gestión</span><span class="resumen">Alguien ya está intentando contactarlo</span></summary>
-          <div class="cuerpo">
-            <dl>
-              <dt>Llega</dt><dd>Con el primer intento sobre Potencial o Registrado. También nace aquí un deal creado a mano, y aquí vuelve un perdido que se recupera.</dd>
-              <dt>Pregunta</dt><dd>¿Se logró el contacto?</dd>
-            </dl>
-            <table class="mov">
-              <thead><tr><th>Botón</th><th>Pasa a</th><th>Pide</th></tr></thead>
-              <tbody>
-                <tr><td>Sí</td><td><span class="pill info">Contactado</span></td><td>Fecha y canal del contacto</td></tr>
-                <tr><td>No, fue un intento</td><td>se queda</td><td>Nota del intento</td></tr>
-                <tr><td>Próxima cohorte</td><td>se queda, con el pendiente</td><td>Cohorte destino</td></tr>
-                <tr><td>Descartar</td><td><span class="pill mal">Cierre perdido</span></td><td>Motivo</td></tr>
-              </tbody>
-            </table>
-            <p class="tip">Al tercer intento sin respuesta, la ficha y el Inbox te avisan en rojo: decide Descartar o seguir. Desde aquí no se puede cobrar ni comprometer.</p>
-          </div>
-        </details>
-
-        <details id="e-contactado">
-          <summary><span class="pill info">Contactado</span><span class="resumen">Ya hablaste con la persona</span></summary>
-          <div class="cuerpo">
-            <dl>
-              <dt>Llega</dt><dd>Al registrar un contacto logrado.</dd>
-              <dt>Pregunta</dt><dd>¿Califica?</dd>
-            </dl>
-            <table class="mov">
-              <thead><tr><th>Botón</th><th>Pasa a</th><th>Pide</th></tr></thead>
-              <tbody>
-                <tr><td>Sí</td><td><span class="pill neutro">Calificado</span></td><td>Nada más</td></tr>
-                <tr><td>Negocia</td><td><span class="pill alerta">Compromiso Verbal</span></td><td>Fecha límite de pago y área</td></tr>
-                <tr><td>Próxima cohorte</td><td>se queda, con el pendiente</td><td>Cohorte destino</td></tr>
-                <tr><td>No califica</td><td><span class="pill mal">Cierre perdido</span></td><td>Motivo</td></tr>
-              </tbody>
-            </table>
-            <p class="tip">Si paga ya por WhatsApp, usa Registrar abono: pasa directo a Ganado. Si acepta una cita, agrégala en Llamadas: pasa a Agendado.</p>
-          </div>
-        </details>
-
-        <details id="e-calificado">
-          <summary><span class="pill neutro">Calificado</span><span class="resumen">Lead bueno al que hay que ofrecerle la agenda</span></summary>
-          <div class="cuerpo">
-            <dl>
-              <dt>Llega</dt><dd>Solo, por el formulario con High cuando su cita no llegó, o cuando respondes "Sí" en Contactado.</dd>
-              <dt>Pregunta</dt><dd>¿Qué pasó?</dd>
-            </dl>
-            <table class="mov">
-              <thead><tr><th>Botón</th><th>Pasa a</th><th>Pide</th></tr></thead>
-              <tbody>
-                <tr><td>Agendó</td><td><span class="pill acento">Agendado</span></td><td>La llamada, con fecha</td></tr>
-                <tr><td>Negocia</td><td><span class="pill alerta">Compromiso Verbal</span></td><td>Fecha límite de pago y área</td></tr>
-                <tr><td>Pagó</td><td><span class="pill ok">Ganado</span></td><td>El abono (ver El cierre)</td></tr>
-                <tr><td>Interesado, más adelante</td><td>se queda, con Seguimiento</td><td>Fecha de seguimiento</td></tr>
-                <tr><td>Próxima cohorte</td><td>se queda, con el pendiente</td><td>Cohorte destino</td></tr>
-                <tr><td>Descartar</td><td><span class="pill mal">Cierre perdido</span></td><td>Motivo</td></tr>
-              </tbody>
-            </table>
-            <p class="tip">Va primero en tu cola. "Interesado, más adelante" solo funciona si ya registraste un contacto.</p>
-          </div>
-        </details>
-
-        <details id="e-agendado">
-          <summary><span class="pill acento">Agendado</span><span class="resumen">Hay una llamada con fecha</span></summary>
-          <div class="cuerpo">
-            <dl>
-              <dt>Llega</dt><dd>Solo, cuando la persona agenda por Calendly (el del formulario o el link que le mandó el setter). O tú, al agregar una cita hablada con la persona. Una cita nueva también saca de cualquier pendiente.</dd>
-              <dt>Pregunta</dt><dd>¿Cómo va la cita?</dd>
-            </dl>
-            <table class="mov">
-              <thead><tr><th>Botón</th><th>Pasa a</th><th>Pide</th></tr></thead>
-              <tbody>
-                <tr><td>Terminó</td><td><span class="pill acento">Atendido</span></td><td>El link de Grain (o queda la alerta)</td></tr>
-                <tr><td>Se movió</td><td>se queda</td><td>La fecha nueva</td></tr>
-                <tr><td>No asistió o canceló</td><td>se queda, con Re-agenda</td><td>Cuál de las dos</td></tr>
-                <tr><td>Descartar</td><td><span class="pill mal">Cierre perdido</span></td><td>Motivo</td></tr>
-              </tbody>
-            </table>
-            <p class="tip">Pegar el Grain en la llamada también lo pasa a Atendido. Si no se dio, márcalo el mismo día: una llamada pasada sin resultado sale en rojo.</p>
-          </div>
-        </details>
-
-        <details id="e-atendido">
-          <summary><span class="pill acento">Atendido</span><span class="resumen">La llamada ocurrió</span></summary>
-          <div class="cuerpo">
-            <dl>
-              <dt>Llega</dt><dd>Al pegar el Grain o responder "Terminó". Sin Grain queda en rojo hasta que lo pegues.</dd>
-              <dt>Pregunta</dt><dd>¿Cómo terminó?</dd>
-            </dl>
-            <table class="mov">
-              <thead><tr><th>Botón</th><th>Pasa a</th><th>Pide</th></tr></thead>
-              <tbody>
-                <tr><td>Pagó ahora</td><td><span class="pill ok">Ganado</span></td><td>El abono</td></tr>
-                <tr><td>Compromiso</td><td><span class="pill alerta">Compromiso Verbal</span></td><td>Fecha límite de pago y área</td></tr>
-                <tr><td>Seguimiento</td><td>se queda, con Seguimiento</td><td>Fecha de seguimiento</td></tr>
-                <tr><td>Otra llamada</td><td>se queda, con Re-agenda</td><td>Motivo</td></tr>
-                <tr><td>Próxima cohorte</td><td>se queda, con el pendiente</td><td>Cohorte destino</td></tr>
-                <tr><td>Perdido</td><td><span class="pill mal">Cierre perdido</span></td><td>Motivo</td></tr>
-              </tbody>
-            </table>
-            <p class="tip">Con un pendiente puesto, también aparece "Agendó": una cita nueva lo lleva a Agendado.</p>
-          </div>
-        </details>
-
-        <details id="e-compromiso">
-          <summary><span class="pill alerta">Compromiso Verbal</span><span class="resumen">Dijo que sí y promete pagar en una fecha</span></summary>
-          <div class="cuerpo">
-            <dl>
-              <dt>Llega</dt><dd>Con "Negocia" o "Compromiso" desde Contactado, Calificado o Atendido.</dd>
-              <dt>Pregunta</dt><dd>¿Cómo va la negociación?</dd>
-            </dl>
-            <table class="mov">
-              <thead><tr><th>Botón</th><th>Pasa a</th><th>Pide</th></tr></thead>
-              <tbody>
-                <tr><td>Pagó</td><td><span class="pill ok">Ganado</span></td><td>El abono</td></tr>
-                <tr><td>Revisando propuesta</td><td>se queda, con Seguimiento</td><td>Fecha de seguimiento</td></tr>
-                <tr><td>Se echó para atrás</td><td>la etapa de donde vino, con Seguimiento</td><td>Fecha y motivo</td></tr>
-                <tr><td>Próxima cohorte</td><td>se queda, con el pendiente</td><td>Cohorte destino</td></tr>
-                <tr><td>Descartar</td><td><span class="pill mal">Cierre perdido</span></td><td>Motivo</td></tr>
-              </tbody>
-            </table>
-            <p class="tip">Si pasa la fecha límite sin pago, sale "Compromiso vencido".</p>
-          </div>
-        </details>
-
-        <details id="e-parcial">
-          <summary><span class="pill ok">Ganado Pago Parcial</span><span class="resumen">Pagó una parte; queda saldo</span></summary>
-          <div class="cuerpo">
-            <dl>
-              <dt>Llega</dt><dd>Solo, al registrar un abono que deja saldo.</dd>
-            </dl>
-            <table class="mov">
-              <thead><tr><th>Botón</th><th>Pasa a</th><th>Pide</th></tr></thead>
-              <tbody>
-                <tr><td>Registrar abono</td><td>se queda, o <span class="pill ok">Completo</span> si el saldo llega a 0</td><td>Monto, y el comprobante si ya lo tienes</td></tr>
-                <tr><td>Desistió</td><td><span class="pill mal">Cierre perdido</span></td><td>Motivo</td></tr>
-              </tbody>
-            </table>
-            <p class="tip">Ya es venta y la persona ya es student. Si anulas su único abono, vuelve a la etapa anterior.</p>
-          </div>
-        </details>
-
-        <details id="e-completo">
-          <summary><span class="pill ok">Ganado Pagado Completo</span><span class="resumen">Pagó todo</span></summary>
-          <div class="cuerpo">
-            <dl>
-              <dt>Llega</dt><dd>Solo, cuando los abonos cubren el valor vendido.</dd>
-              <dt>Sale</dt><dd>No se pierde. Solo vuelve a Parcial si se anula un abono o cambia el descuento.</dd>
-            </dl>
-          </div>
-        </details>
-
-        <details id="e-perdido">
-          <summary><span class="pill mal">Cierre perdido</span><span class="resumen">Dijo que no, no responde o desistió</span></summary>
-          <div class="cuerpo">
-            <dl>
-              <dt>Llega</dt><dd>Con Descartar, No califica, Perdido o Desistió, desde cualquier etapa abierta. Siempre con motivo.</dd>
-              <dt>Pregunta</dt><dd>¿Se recupera?</dd>
-            </dl>
-            <table class="mov">
-              <thead><tr><th>Botón</th><th>Pasa a</th><th>Pide</th></tr></thead>
-              <tbody>
-                <tr><td>A gestión</td><td><span class="pill info">En gestión</span></td><td>Motivo de recuperación</td></tr>
-              </tbody>
-            </table>
-            <p class="tip">Cuenta como perdido en las cifras. No es lo mismo que anular (ver Perder y anular).</p>
-          </div>
-        </details>
-      </div>
-      <p>El CRM <strong>nunca</strong> mueve un deal porque pasó el tiempo: lo vencido se pinta y cae al Inbox.</p>
+      <p>En Transición eliges destino y completas requisitos. Mover a cambia etapa, Registrar actividad guarda lo que hiciste y Dejar en espera pone un pendiente. Arrastrar abre la misma ventana.</p>
+      <p class="nota"><b>Corregir</b> deshace el último movimiento humano. Si fue automático, anula el abono, Grain o cita. Una corrección no se corrige.</p>
+      <details>
+        <summary>Potencial</summary>
+        <p>
+          <b>Qué significa:</b> dejó el formulario incompleto, llegó Low y no tiene dueño.</p>
+        <p>
+          <b>Desde aquí puedes...</b>
+        </p>
+        <ul>
+          <li>Registra contacto o intento para tomarlo y avanzar.</li>
+          <li>Envíalo a Próxima Cohorte o descártalo. Si termina, sube de etapa.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>Registrado</summary>
+        <p>
+          <b>Qué significa:</b> terminó el formulario Low, no agendó y no tiene dueño.</p>
+        <p>
+          <b>Desde aquí puedes...</b>
+        </p>
+        <ul>
+          <li>Registra contacto o intento para avanzar.</li>
+          <li>Envíalo a Próxima Cohorte o descártalo. Un High lo sube a Calificado.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>En gestión</summary>
+        <p>
+          <b>Qué significa:</b> ya intentaste contactar. Aquí nacen deals manuales y vuelven recuperados.</p>
+        <p>
+          <b>Desde aquí puedes...</b>
+        </p>
+        <ul>
+          <li>Registra contacto para avanzar, o guarda otro intento.</li>
+          <li>Envíalo a Próxima Cohorte o descártalo. Al tercer intento decide; aquí no cobras ni comprometes.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>Contactado</summary>
+        <p>
+          <b>Qué significa:</b> ya hablaste y debes decidir si califica.</p>
+        <p>
+          <b>Desde aquí puedes...</b>
+        </p>
+        <ul>
+          <li>Pásalo a Calificado, Compromiso, Próxima Cohorte o Cierre perdido.</li>
+          <li>Si pagó, registra el abono; si aceptó cita, agrega la llamada.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>Calificado</summary>
+        <p>
+          <b>Qué significa:</b> es un lead High al que debes ofrecer agenda.</p>
+        <p>
+          <b>Desde aquí puedes...</b>
+        </p>
+        <ul>
+          <li>Agrega llamada, compromiso con fecha y área, o abono.</li>
+          <li>Tras el contacto, deja Seguimiento, Próxima Cohorte o descártalo.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>Agendado</summary>
+        <p>
+          <b>Qué significa:</b> tiene una llamada de Calendly o agregada por ti.</p>
+        <p>
+          <b>Desde aquí puedes...</b>
+        </p>
+        <ul>
+          <li>Pasa a Atendido y pega el Grain; sin él alerta. Registra el resultado ese día.</li>
+          <li>Cambia la fecha, deja Re-agenda o descarta. Otra cita quita pendientes.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>Atendido</summary>
+        <p>
+          <b>Qué significa:</b> la llamada ocurrió. Llegas con Grain o "Terminó"; sin Grain queda rojo.</p>
+        <p>
+          <b>Desde aquí puedes...</b>
+        </p>
+        <ul>
+          <li>Registra abono o Compromiso Verbal con fecha y área.</li>
+          <li>Deja un pendiente, agrega otra cita o cierra como perdido.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>Compromiso Verbal</summary>
+        <p>
+          <b>Qué significa:</b> prometió pagar en una fecha. Si vence, verás Compromiso vencido.</p>
+        <p>
+          <b>Desde aquí puedes...</b>
+        </p>
+        <ul>
+          <li>Registra el abono, deja Seguimiento o envíalo a Próxima Cohorte.</li>
+          <li>Devuélvelo a la etapa anterior con fecha y motivo, o descártalo.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>Ganado Pago Parcial</summary>
+        <p>
+          <b>Qué significa:</b> registraste un abono y queda saldo. Ya es venta y student.</p>
+        <p>
+          <b>Desde aquí puedes...</b>
+        </p>
+        <ul>
+          <li>Registra otro abono; con saldo sigue Parcial y en cero pasa a Completo.</li>
+          <li>Marca que desistió, o anula el único abono para volver atrás.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>Ganado Pagado Completo</summary>
+        <p>
+          <b>Qué significa:</b> los abonos cubren todo el valor vendido.</p>
+        <p>
+          <b>Desde aquí puedes...</b>
+        </p>
+        <ul>
+          <li>Mantenlo como venta completa; no puedes pasarlo a Cierre perdido.</li>
+          <li>Vuelve a Parcial al anular un abono o cambiar el descuento.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>Cierre perdido</summary>
+        <p>
+          <b>Qué significa:</b> dijo que no, no respondió o desistió. Lleva motivo y cuenta.</p>
+        <p>
+          <b>Desde aquí puedes...</b>
+        </p>
+        <ul>
+          <li>Recupéralo a En gestión y registra el motivo.</li>
+          <li>Déjalo cerrado; no confundas perder con anular un error.</li>
+        </ul>
+      </details>
+      <p>El tiempo no mueve deals; lo vencido alerta en Inbox.</p>
     </section>
-
     <section id="recorrido">
-      <h2><span class="n">03 · b</span>Paso a paso</h2>
-      <p class="sub">El camino normal. Si llegó agendado, empieza en el 4.</p>
-      <ol class="pasos">
-        <li><b>Reclama el deal.</b><div class="donde">Inbox → Por settear</div></li>
-        <li><b>Contáctalo.</b> Sin respuesta: "No, fue un intento". Con respuesta: "Sí", con fecha y canal.<div class="donde">Ficha → ¿Se logró el contacto?</div></li>
-        <li><b>Califícalo y mándale el link de agenda.</b> Transición → Agendado → "Ya se lo mandé". Si ya acordaron la hora, agrega la cita a mano.<div class="donde">Ficha → Transición</div></li>
-        <li><b>Haz la llamada y pega el Grain.</b> Pasa a Atendido.<div class="donde">Ficha → Llamadas, o Calls</div></li>
-        <li><b>Di cómo terminó.</b><div class="donde">Ficha → ¿Cómo terminó?</div></li>
-        <li><b>Registra el pago</b> y pega el comprobante. Ya es student.<div class="donde">Ficha → Facturación</div></li>
-        <li><b>Cobra el saldo</b> hasta cero.</li>
+      <h2>
+        <span class="n">3 · Las etapas</span>Recorrido</h2>
+      <ol>
+        <li>
+          <b>Reclama el deal</b> desde la sección Por settear del Inbox.</li>
+        <li>
+          <b>Contacta.</b> Sin respuesta, registra un intento; con respuesta, guarda fecha y canal.</li>
+        <li>
+          <b>Califica y envía la agenda.</b> Si acordaron una hora, crea la cita.</li>
+        <li>
+          <b>Haz la llamada y pega el Grain</b> para que el deal pase a Atendido.</li>
+        <li>
+          <b>Registra cómo terminó</b> la llamada el mismo día.</li>
+        <li>
+          <b>Registra abono y comprobante.</b> Con el primer pago ya es student.</li>
+        <li>
+          <b>Cobra el saldo</b> hasta que llegue a cero.</li>
       </ol>
     </section>
-
     <section id="pendientes">
-      <h2><span class="n">03 · c</span>Pendientes</h2>
-      <p class="sub">Lo que hay que hacer con un deal quieto. No es etapa: el deal se queda donde está, con la marca.</p>
-      <div class="tabla">
-        <table>
-          <thead><tr><th>Pendiente</th><th>Cuándo</th><th>Pide</th><th>Se quita</th></tr></thead>
-          <tbody>
-            <tr><td><span class="pill alerta">Re-agenda</span></td><td>No-show, cancelada u "Otra llamada"</td><td>Motivo</td><td>Agendando otra llamada</td></tr>
-            <tr><td><span class="pill alerta">Seguimiento</span></td><td>Interesado, pero no ahora</td><td>Fecha</td><td>Con el siguiente paso real</td></tr>
-            <tr><td><span class="pill alerta">Próxima Cohorte</span></td><td>Quiere la siguiente cohorte</td><td>Cohorte</td><td>Reaparece en tu Inbox cuando esa cohorte abre</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p>Uno a la vez. El tiempo no lo quita: vencido, sale como alerta.</p>
+      <h2>
+        <span class="n">3 · Las etapas</span>Pendientes</h2>
+      <ul>
+        <li>
+          <b>Usa Re-agenda</b> para no-show, cancelación u otra llamada. Registra el motivo; una cita lo quita.</li>
+        <li>
+          <b>Usa Seguimiento</b> cuando está interesada, pero no ahora. Elige fecha y registra el siguiente paso.</li>
+        <li>
+          <b>Usa Próxima Cohorte</b> cuando la persona quiere la siguiente. Elige la cohorte y el deal reaparecerá en tu Inbox cuando abra.</li>
+      </ul>
+      <p>Los pendientes no cambian etapa. Solo dejas uno; no caduca y, cuando vence, alerta.</p>
     </section>
-
-    <p class="parte"><b>Paso 4</b> · El cierre</p>
 
     <section id="cierre">
-      <h2><span class="n">04</span>El cierre</h2>
-      <div class="dos">
-        <div>
-          <h4><span class="pill alerta">Compromiso Verbal</span></h4>
-          <ul>
-            <li>Dijo que sí, paga después.</li>
-            <li>Pide <b>fecha límite</b> (prellenada con el inicio de clases) y <b>área</b>: "¿cómo nos conoció?".</li>
-          </ul>
-        </div>
-        <div>
-          <h4><span class="pill ok">Pagó</span></h4>
-          <ul>
-            <li>Registra el abono: <b>descuento</b>, <b>plataforma</b> y <b>área</b>. El <b>comprobante</b> puedes pegarlo después; mientras, alerta roja.</li>
-            <li>Con saldo → Parcial. Sin saldo → Completo.</li>
-          </ul>
-        </div>
-      </div>
-      <h3>Venta solo por WhatsApp</h3>
-      <p>Registra el contacto (pasa a Contactado) y luego el abono, o "Negocia" si paga después. <strong>Desde En gestión no se puede cobrar.</strong></p>
-      <p><strong>Venta</strong> = deal en Ganado Pago Parcial o Ganado Pagado Completo. Un Compromiso todavía no es venta.</p>
+      <h2>
+        <span class="n">4 · El cierre</span>El cierre</h2>
+      <ul>
+        <li>
+          <b>Si la persona se compromete a pagar después, registra un Compromiso Verbal.</b> El CRM pide una fecha límite, prellenada con el inicio de clases, y el área declarada.</li>
+        <li>
+          <b>Si la persona ya pagó, registra descuento, plataforma, área y abono.</b> Puedes pegar el comprobante después, pero verás una alerta hasta hacerlo. Con saldo queda Parcial; sin saldo queda
+          Completo.</li>
+        <li>
+          <b>Si cierras por WhatsApp, registra primero el contacto.</b> Después registra el abono, o elige Negocia si pagará más adelante. Desde En gestión no puedes cobrar.</li>
+      </ul>
+      <p>Una venta es un deal en Ganado Pago Parcial o Ganado Pagado Completo. Un Compromiso Verbal todavía no cuenta como venta.</p>
     </section>
-
-    <p class="parte"><b>Paso 5</b> · El dinero</p>
-
     <section id="plata">
-      <h2><span class="n">05</span>El dinero</h2>
-      <div class="dos">
-        <div>
-          <h4>La fórmula</h4>
-          <ul>
-            <li><b>Ticket base:</b> de la cohorte</li>
-            <li><b>Valor vendido</b> = ticket − descuento</li>
-            <li><b>Saldo</b> = valor vendido − abonos</li>
-            <li><b>Comisión:</b> % del programa el día de la venta</li>
-          </ul>
-        </div>
-        <div>
-          <h4>Ejemplo (ComunicArte)</h4>
-          <ul class="num">
-            <li>797,00 − 100,00 = 697,00 USD</li>
-            <li>Abona 300,00 → saldo 397,00 · <span class="pill ok">Parcial</span></li>
-            <li>Abona 397,00 → saldo 0,00 · <span class="pill ok">Completo</span></li>
-          </ul>
-        </div>
-      </div>
+      <h2>
+        <span class="n">5 · El dinero</span>Dinero</h2>
       <ul>
-        <li>No se puede abonar más que el saldo.</li>
-        <li>Todo en USD; el CRM no convierte monedas.</li>
-        <li><strong>Caja</strong> es lo que entró en abonos; <strong>ventas</strong> son deals en Ganado. Son cifras distintas.</li>
-        <li><strong>Cartera</strong> es lo que falta cobrar. Con la fecha límite pasada sale <b>Pago vencido</b>.</li>
-        <li><strong>Cortesía:</strong> 100% de descuento y su marca. Es student, no cuenta como venta.</li>
+        <li>
+          <b>Calcula el valor vendido</b> restando el descuento al ticket base de la cohorte. Calcula el saldo restando los abonos al valor vendido.</li>
+        <li>
+          <b>El CRM calcula tu comisión</b> con el porcentaje del programa que estaba vigente el día de la venta.</li>
+        <li>
+          <b>No puedes registrar un abono mayor que el saldo.</b> Todo se muestra en USD y el CRM no convierte monedas.</li>
+        <li>
+          <b>No confundas caja, ventas y cartera.</b> Caja es lo recibido en abonos, ventas son los deals Ganados y cartera es lo que falta cobrar. Una fecha vencida muestra Pago vencido.</li>
+        <li>
+          <b>Registra una cortesía con 100% de descuento y su marca.</b> La persona es student, pero no cuenta como venta.</li>
       </ul>
+      <p>Ejemplo: 797,00 - 100,00 = 697,00 USD. Tras abonar 300,00 quedan 397,00; con otros 397,00 queda Completo.</p>
     </section>
-
     <section id="cohortes">
-      <h2><span class="n">05 · b</span>Cohortes</h2>
+      <h2>
+        <span class="n">5 · El dinero</span>Cohortes</h2>
       <ul>
-        <li>Grupo que empieza clases en una fecha, con su <b>ticket base</b>. La configura gerencia.</li>
-        <li>El deal nace en la cohorte con ventas abiertas.</li>
-        <li><b>Próxima Cohorte:</b> cuenta en la de origen hasta que lo retomas; ahí se muda a la nueva.</li>
-        <li><b>La meta es de la cohorte.</b> Tú tienes contribución: tus ventas en ella.</li>
-        <li>La cohorte de un student se cambia en su ficha: Facturación → Cambiar cohorte.</li>
+        <li>
+          <b>Una cohorte es un grupo que empieza clases en una fecha y tiene un ticket base.</b> Gerencia la configura y el deal nace en la cohorte que tenga las ventas abiertas.</li>
+        <li>
+          <b>Un deal en Próxima Cohorte sigue contando en la cohorte de origen.</b> Cuando tú lo retomas, se muda a la nueva.</li>
+        <li>
+          <b>La meta pertenece a la cohorte, no a cada closer.</b> Tu contribución son las ventas que tú hiciste dentro de ella.</li>
+        <li>
+          <b>Si necesitas cambiar la cohorte de un student, hazlo en Facturación › Cambiar cohorte.</b>
+        </li>
       </ul>
     </section>
-
-    <p class="parte"><b>Paso 6</b> · Student</p>
-
     <section id="students">
-      <h2><span class="n">06</span>Students</h2>
+      <h2>
+        <span class="n">6 · Students y pérdidas</span>Students</h2>
       <ul>
-        <li><b>Student desde el primer pago.</b></li>
-        <li>La pantalla Students los lista por cohorte, con saldo y filtro de onboarding.</li>
-        <li><b>Onboarding:</b> marca "onboarded" en la ficha cuando ya está listo para empezar.</li>
-        <li>Si un Parcial desiste: Cierre perdido con motivo. Deja de ser student; lo pagado sigue en caja.</li>
+        <li>
+          <b>La persona se convierte en student desde el primer pago.</b>
+        </li>
+        <li>
+          <b>Usa la pantalla Students</b> para ver compradores por cohorte, revisar su saldo y filtrar el onboarding.</li>
+        <li>
+          <b>Marca onboarded en la ficha</b> cuando la persona esté lista para empezar.</li>
+        <li>
+          <b>Si un student Parcial desiste, pásalo a Cierre perdido con motivo.</b> Dejará de ser student, pero lo que ya pagó seguirá contando en caja.</li>
       </ul>
     </section>
-
     <section id="perder">
-      <h2><span class="n">07</span>Perder y anular</h2>
-      <div class="tabla">
-        <table>
-          <thead><tr><th></th><th>Cierre perdido</th><th>Anular</th><th>Corregir</th></tr></thead>
-          <tbody>
-            <tr><td>Es</td><td>Dijo que no</td><td>Me equivoqué al registrar</td><td>Moví a la etapa equivocada</td></tr>
-            <tr><td>Cuenta en cifras</td><td>Sí</td><td>No</td><td>El deal sigue contando, en la etapa de antes</td></tr>
-            <tr><td>Pide</td><td>Motivo de la lista</td><td>Texto de la corrección</td><td>Motivo de corrección</td></tr>
-            <tr><td>Después</td><td>Se recupera a En gestión</td><td>Queda tachado; el lead queda libre</td><td>Vuelve a la etapa anterior</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="caja no"><p><b>Un duplicado se anula, nunca se pierde.</b> Perderlo registra un "no" que nadie dijo.</p></div>
-      <p>Anular un abono recalcula la etapa: sin abonos vuelve atrás; con saldo, de Completo a Parcial.</p>
+      <h2>
+        <span class="n">6 · Students y pérdidas</span>Perder y anular</h2>
+      <p>
+        <b>Usa Cierre perdido</b> cuando dijo que no. Cuenta, pide motivo y puedes recuperarlo a En gestión.</p>
+      <p>
+        <b>Usa Anular</b> si registraste mal. No cuenta, queda tachado y libera el lead. Un duplicado se anula porque nadie dijo que no.</p>
+      <p>
+        <b>Usa Corregir</b> si elegiste mal la etapa. Pide motivo y vuelve a la anterior.</p>
+      <p>Si anulas un abono, el CRM recalcula la etapa: sin abonos vuelve atrás; si todavía queda saldo, pasa de Completo a Parcial.</p>
     </section>
-
-    <p class="parte"><b>Operación</b> · Día a día</p>
 
     <section id="dia">
-      <h2><span class="n">08</span>Tu día en el CRM</h2>
-      <ol class="pasos">
-        <li><b>Abre Mi espacio › Necesita atención.</b> Es lo tuyo que pide algo hoy: alertas de tus deals, llamadas sin resultado, citas sueltas tuyas y posibles duplicados de tus deals. Cada fila te lleva a donde se resuelve.</li>
-        <li><b>Luego el Inbox de cada programa.</b> Primero la barra <b>Llamadas</b> (lo que se enfría), después la barra <b>Deals</b>.</li>
-        <li><b>Toma deals nuevos:</b> en Por settear, Calificados primero y luego por Value.</li>
-        <li><b>Tras cada llamada:</b> Grain y "¿Cómo terminó?" el mismo día.</li>
-        <li><b>Al cerrar:</b> Necesita atención vacío, y ninguna tarjeta tuya en rojo.</li>
+      <h2>
+        <span class="n">7 · Tu día</span>Tu día</h2>
+      <ol>
+        <li>
+          <b>Abre Mi espacio › Necesita atención.</b> Allí ves tus alertas, llamadas sin resultado, citas sueltas y duplicados.</li>
+        <li>
+          <b>Después revisa el Inbox de cada programa.</b> Atiende primero Llamadas, porque se enfrían, y luego Deals.</li>
+        <li>
+          <b>Toma primero los Calificados y, entre ellos, los de mayor Value.</b> Son los leads con mejor posibilidad de compra.</li>
+        <li>
+          <b>Después de cada llamada, pega el Grain y registra cómo terminó.</b> Hazlo ese día para que no quede roja.</li>
+        <li>
+          <b>Antes de terminar, deja Necesita atención vacío y ninguna tarjeta tuya en rojo.</b>
+        </li>
       </ol>
-      <p>Las pantallas son fijas: la página no se desplaza, se desplaza la lista de adentro. Cuando una pantalla tiene pestañas, debajo de ellas una línea dice qué muestra cada una.</p>
-      <div class="tabla">
-        <table>
-          <thead><tr><th>Pantalla</th><th>Para qué</th></tr></thead>
-          <tbody>
-            <tr><td><b>Mi espacio</b></td><td>Tu perfil, tu Calendly por programa, <b>Necesita atención</b> y <b>Mis métricas</b> (agendas, show, no show, cierres, % de cierre, caja y comisión, por hoy, semana, mes o cohorte). Arriba, el botón <b>Manual de uso</b> abre este manual</td></tr>
-            <tr><td><b>Dashboard</b></td><td>Cifras del programa en cuatro pestañas: Pulso, Operación, Dinero y Pauta. Toda cifra abre su lista</td></tr>
-            <tr><td><b>Metas</b></td><td>La meta del mes y de la cohorte: avance, lo que falta y cuánto toca por semana</td></tr>
-            <tr><td><b>Leads</b></td><td>Personas y todos sus envíos (cada envío se abre para ver sus respuestas)</td></tr>
-            <tr><td><b>Deals</b></td><td>Tablero de tus deals por etapa. Al pie de cada etapa, <b>Potencial</b> (lo que valen) y <b>Confirmado</b> (lo abonado). Ordena por creación o última actividad y filtra por cohorte (abre en la activa). Un clic en la tarjeta abre la ficha; arrastrarla la mueve. Aquí está Nuevo deal</td></tr>
-            <tr><td><b>Inbox</b></td><td>Lo que no tiene dueño o quedó sin resolver, en dos barras: Llamadas y Deals</td></tr>
-            <tr><td><b>Calls</b></td><td>Llamadas: Grain y "¿Cómo terminó?"</td></tr>
-            <tr><td><b>Students</b></td><td>Compradores por cohorte, saldo y onboarding</td></tr>
-            <tr><td><b>Programa</b></td><td>La ficha del programa: General, Equipo, Captación y Ventas (cohortes y cómo se cobra)</td></tr>
-            <tr><td><b>Recursos</b></td><td>Brochures y material para copiar, y los links de pago vigentes</td></tr>
-          </tbody>
-        </table>
-      </div>
+      <p>
+        <b>Mi espacio</b> reúne perfil, Calendly, atención y métricas. <b>Dashboard</b> tiene Pulso, Operación, Dinero y Pauta; sus cifras abren listas. <b>Metas</b> muestra mes y cohorte. <b>Leads</b>
+        reúne personas y envíos. <b>Deals</b> es el tablero con Potencial, Confirmado, filtros, arrastre y Nuevo deal. <b>Calls</b> reúne llamadas. <b>Students</b> muestra saldo y onboarding. <b>Programa</b>
+        tiene General, Equipo, Captación y Ventas. <b>Recursos</b> guarda material y pagos.</p>
       <h3>Secciones del Inbox</h3>
-      <div class="tabla">
-        <table>
-          <thead><tr><th>Barra</th><th>Pestaña</th><th>Qué hay y qué haces</th></tr></thead>
-          <tbody>
-            <tr><td>Llamadas</td><td>Por registrar</td><td>Llamadas que ya pasaron sin resultado: pega el Grain o di que no se dio</td></tr>
-            <tr><td>Llamadas</td><td>Sin deal</td><td>Citas de Calendly que el CRM no pudo unir a un deal: la cuelga quien da la llamada</td></tr>
-            <tr><td>Deals</td><td>Agendados sin dueño</td><td>Tienen cita y no tienen closer: tómalos, lo más viejo primero</td></tr>
-            <tr><td>Deals</td><td>Por settear</td><td>Sin dueño ni cita: reclámalos, del puntaje más alto al más bajo</td></tr>
-            <tr><td>Deals</td><td>No agendaron</td><td>Calificados que abrieron el Calendly y no agendaron hace más de 5 minutos: escríbeles ya</td></tr>
-            <tr><td>Deals</td><td>Necesitan acción</td><td>Pago o compromiso vencido, sin actividad o con los intentos agotados</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p>El Inbox abre en la primera pestaña que tenga algo. Si una cita llegó de una cuenta de Calendly que no está en el CRM, sale una franja roja arriba: gerencia la asigna en el Equipo del programa.</p>
+      <ul>
+        <li>
+          <b>En Por registrar, resuelve llamadas pasadas.</b> Pega el Grain o indica que no se dio.</li>
+        <li>
+          <b>En Sin deal, cuelga citas sueltas.</b> Lo hace quien dará la llamada, o gerencia.</li>
+        <li>
+          <b>En Agendados sin dueño, toma el más viejo.</b> Ya tiene cita, pero no closer.</li>
+        <li>
+          <b>En Por settear, reclama el mayor puntaje.</b> Son deals sin dueño ni cita.</li>
+        <li>
+          <b>En No agendaron, escribe de inmediato.</b> Son Calificados sin cita después de 5 minutos.</li>
+        <li>
+          <b>En Necesitan acción, resuelve vencidos o estancados.</b> Allí aparecen pagos, compromisos e intentos agotados.</li>
+      </ul>
+      <p>El Inbox abre la primera pestaña con datos. Un Calendly desconocido muestra una franja roja para gerencia.</p>
     </section>
-
     <section id="alertas">
-      <h2><span class="n">09</span>Alertas</h2>
-      <p class="sub">No se apagan con un clic: se apagan haciendo lo que falta.</p>
+      <h2>
+        <span class="n">7 · Tu día</span>Alertas</h2>
       <div class="tabla">
         <table>
-          <thead><tr><th>Alerta</th><th>Se apaga</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Qué ves</th>
+              <th>Qué haces</th>
+            </tr>
+          </thead>
           <tbody>
-            <tr><td><span class="pill alerta">Para avanzar le falta…</span></td><td>Es una guía del siguiente paso</td></tr>
-            <tr><td><span class="pill mal">Atendido sin Grain</span></td><td>Pegando el Grain</td></tr>
-            <tr><td><span class="pill mal">Llamada sin resultado</span></td><td>Grain, no-show o cancelada</td></tr>
-            <tr><td><span class="pill alerta">Re-agenda sin fecha</span></td><td>Agendando</td></tr>
-            <tr><td><span class="pill alerta">Seguimiento vencido</span></td><td>Dando el siguiente paso</td></tr>
-            <tr><td><span class="pill mal">Compromiso vencido</span></td><td>Abono, Seguimiento o Perdido</td></tr>
-            <tr><td><span class="pill mal">Pago vencido</span></td><td>Abono</td></tr>
-            <tr><td><span class="pill alerta">Estancado</span></td><td>Registrando actividad</td></tr>
-            <tr><td><span class="pill info">Envío nuevo</span></td><td>Revisándolo y contactándolo</td></tr>
-            <tr><td><span class="pill mal">Abono sin comprobante</span></td><td>Pegando el comprobante en el abono</td></tr>
-            <tr><td><span class="pill alerta">Link enviado sin cita</span></td><td>Llega la cita, o empujas a la persona</td></tr>
+            <tr>
+              <td>Ves un deal Atendido sin Grain.</td>
+              <td>Pega el Grain para registrar que ocurrió.</td>
+            </tr>
+            <tr>
+              <td>Ves una llamada pasada sin resultado.</td>
+              <td>Pega el Grain o registra no-show o cancelación.</td>
+            </tr>
+            <tr>
+              <td>Ves una Re-agenda sin fecha.</td>
+              <td>Agenda otra llamada para quitar el pendiente.</td>
+            </tr>
+            <tr>
+              <td>Ves un Seguimiento vencido.</td>
+              <td>Contacta y registra el siguiente paso real.</td>
+            </tr>
+            <tr>
+              <td>Ves un Compromiso vencido.</td>
+              <td>Registra un abono, deja un Seguimiento o cierra como Perdido.</td>
+            </tr>
+            <tr>
+              <td>Ves un Pago vencido.</td>
+              <td>Cobra el saldo y registra el nuevo abono.</td>
+            </tr>
+            <tr>
+              <td>Ves un deal Estancado.</td>
+              <td>Haz la gestión y registra la actividad.</td>
+            </tr>
+            <tr>
+              <td>Ves un Envío nuevo.</td>
+              <td>Revisa las respuestas y contacta a la persona.</td>
+            </tr>
+            <tr>
+              <td>Ves un Abono sin comprobante.</td>
+              <td>Pega el comprobante dentro del abono.</td>
+            </tr>
+            <tr>
+              <td>Ves un Link enviado sin cita.</td>
+              <td>Contacta; la alerta se apaga cuando entra la cita.</td>
+            </tr>
           </tbody>
         </table>
       </div>
-      <p>Días hábiles = lunes a viernes, festivos incluidos. Toda hora es de Bogotá.</p>
+      <p>Días hábiles: lunes a viernes, festivos incluidos. Hora de Bogotá.</p>
     </section>
-
     <section id="errores">
-      <h2><span class="n">10</span>Errores típicos</h2>
+      <h2>
+        <span class="n">7 · Tu día</span>Errores</h2>
       <div class="tabla">
         <table>
-          <thead><tr><th>Ves</th><th>Haz</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Qué ves</th>
+              <th>Qué haces</th>
+            </tr>
+          </thead>
           <tbody>
-            <tr><td>"Falta registrar el contacto"</td><td>Registra el contacto primero</td></tr>
-            <tr><td>El abono se rechaza</td><td>En En gestión o Agendado no se cobra: registra contacto o llamada antes</td></tr>
-            <tr><td>"Falta el área"</td><td>Pregúntale cómo nos conoció</td></tr>
-            <tr><td>La tarjeta vuelve al soltarla en Ganado</td><td>Usa Registrar abono</td></tr>
-            <tr><td>"El abono supera el saldo"</td><td>Revisa monto o descuento</td></tr>
-            <tr><td>No te deja crear el deal</td><td>Ya tiene uno abierto: el mensaje lo enlaza</td></tr>
-            <tr><td>Tus citas llegan sin dueño</td><td>Asigna tu Calendly en Mi espacio</td></tr>
-            <tr><td>Moviste un deal a la etapa equivocada</td><td>Transición → Corregir, con motivo</td></tr>
-            <tr><td>Un deal muestra "Posible duplicado"</td><td>Decide en la ficha: Es la misma persona o Son dos personas</td></tr>
-            <tr><td>No te deja colgar una llamada suelta</td><td>La hospeda otra closer: la cuelga ella, o gerencia</td></tr>
-            <tr><td>No encuentras el deal de un compañero</td><td>Solo ves los tuyos: pregúntale a él o a gerencia</td></tr>
-            <tr><td>No ves un programa</td><td>Pide la membresía a gerencia</td></tr>
+            <tr>
+              <td>El CRM dice "Falta registrar el contacto".</td>
+              <td>Registra primero el contacto, con fecha y canal.</td>
+            </tr>
+            <tr>
+              <td>El CRM rechaza el abono.</td>
+              <td>Si está En gestión o Agendado, registra antes el contacto o la llamada.</td>
+            </tr>
+            <tr>
+              <td>El CRM dice "Falta el área".</td>
+              <td>Pregunta cómo nos conoció y registra la respuesta.</td>
+            </tr>
+            <tr>
+              <td>La tarjeta vuelve cuando la sueltas en Ganado.</td>
+              <td>Usa Registrar abono; a Ganado solo llegas con plata.</td>
+            </tr>
+            <tr>
+              <td>El CRM dice "El abono supera el saldo".</td>
+              <td>Revisa el monto del abono o el descuento aplicado.</td>
+            </tr>
+            <tr>
+              <td>El CRM no te deja crear otro deal.</td>
+              <td>Abre el deal activo enlazado en el mensaje.</td>
+            </tr>
+            <tr>
+              <td>Tus citas llegan sin dueño.</td>
+              <td>Asigna tu cuenta de Calendly desde Mi espacio.</td>
+            </tr>
+            <tr>
+              <td>Moviste un deal a la etapa equivocada.</td>
+              <td>Usa Transición › Corregir y escribe el motivo.</td>
+            </tr>
+            <tr>
+              <td>El deal muestra "Posible duplicado".</td>
+              <td>Decide en la ficha si es la misma persona o si son dos personas.</td>
+            </tr>
+            <tr>
+              <td>No puedes colgar una llamada suelta.</td>
+              <td>Pide a la host, o a gerencia, que la cuelgue.</td>
+            </tr>
+            <tr>
+              <td>No encuentras el deal de otra persona.</td>
+              <td>Pregunta a su dueño o a gerencia; tú solo ves los tuyos.</td>
+            </tr>
+            <tr>
+              <td>No ves un programa.</td>
+              <td>Pídele a gerencia que te asigne la membresía.</td>
+            </tr>
           </tbody>
         </table>
       </div>
     </section>
-
-    <p class="parte"><b>Estado</b> · Lo que falta</p>
 
     <section id="falta">
-      <h2><span class="n">11</span>Lo que le falta al CRM</h2>
-      <p class="sub">Al 4 de octubre de 2026. Lo de arriba ya funciona; esto no todavía.</p>
-      <h3>Para empezar a operar</h3>
+      <h2>
+        <span class="n">8 · Referencia</span>Lo que le falta al CRM</h2>
+      <p>Al 5 de octubre de 2026.</p>
       <ul class="falta">
-        <li><span class="pill ok">Listo</span><div><b>Memorable</b><p>No tiene hojas: opera directo en el CRM desde el primer lead.</p></div></li>
-        <li><span class="pill alerta">Pendiente</span><div><b>Traslado de las hojas de ComunicArte y Tactical</b><p>Mientras: esos dos programas siguen gestionando en las hojas.</p></div></li>
-        <li><span class="pill alerta">Pendiente</span><div><b>El corte de ComunicArte y Tactical</b><p>El día en que se dejan las hojas, con capacitación. A la semana se apagan sus pestañas de gestión.</p></div></li>
-      </ul>
-      <h3>Después</h3>
-      <ul class="falta">
-        <li><span class="pill neutro">Por construir</span><div><b>Enlace de captación por closer</b><p>Mientras: el origen lo da el área declarada.</p></div></li>
-        <li><span class="pill neutro">Por construir</span><div><b>Alertas por métricas caídas</b><p>Mientras: revisa el Pulso del Dashboard.</p></div></li>
-        <li><span class="pill mal">Espera decisión</span><div><b>Próxima fecha de pago y cartera por fecha</b><p>Mientras: anota el acuerdo en la nota del compromiso.</p></div></li>
-        <li><span class="pill mal">Espera decisión</span><div><b>Onboarding por pasos y Customer Success</b><p>Mientras: una sola marca, "onboarded".</p></div></li>
+        <li>
+          <span class="pill ok">Listo</span> <b>Memorable</b> opera en el CRM desde el primer lead.</li>
+        <li>
+          <span class="pill warn">Pendiente</span> <b>ComunicArte y Tactical</b> usan las hojas hasta terminar el traslado.</li>
+        <li>
+          <span class="pill warn">Pendiente</span> <b>El corte</b> incluye capacitación y apaga las pestañas una semana después.</li>
+        <li>
+          <b>Falta el enlace de captación por closer.</b> Mientras, registra el área declarada.</li>
+        <li>
+          <b>Faltan alertas por métricas caídas.</b> Mientras, revisa el Pulso.</li>
+        <li>
+          <span class="pill bad">Espera decisión</span> <b>La próxima fecha de pago y la cartera</b> siguen sin definir. Mientras, anota el acuerdo en el compromiso.</li>
+        <li>
+          <span class="pill bad">Espera decisión</span> <b>Onboarding por pasos y Customer Success</b> siguen sin definir. Mientras, usa onboarded.</li>
       </ul>
     </section>
-
     <section id="glosario">
-      <h2><span class="n">12</span>Glosario</h2>
+      <h2>
+        <span class="n">8 · Referencia</span>Glosario</h2>
       <dl class="glosario">
-        <dt>Lead Quality</dt><dd>High o Low. Decide si nace en Calificado.</dd>
-        <dt>Lead Value</dt><dd>De MUY ALTO a BAJO VALOR. Ordena tu cola.</dd>
-        <dt>Canal</dt><dd>De dónde vino el clic: fuente / medio.</dd>
-        <dt>Área</dt><dd>Paid, Orgánico o Referidos. Agrupa los canales.</dd>
-        <dt>Área declarada</dt><dd>El área que dice la persona: "¿cómo nos conoció?".</dd>
-        <dt>Setteo</dt><dd>Contactar a quien no agendó y conseguirle la cita.</dd>
-        <dt>Setter</dt><dd>Quien settea. Queda anotado en el deal cuando la cita lo pasa al closer.</dd>
-        <dt>Link de agenda</dt><dd>El Calendly del programa con la marca del deal. Sale de Transición → Agendado.</dd>
-        <dt>Llamada suelta</dt><dd>Una cita que el CRM no pudo pegar a un deal sin dudar.</dd>
-        <dt>Show / no-show</dt><dd>Llegó o no llegó a la llamada.</dd>
-        <dt>Grain</dt><dd>La grabación que prueba que la llamada ocurrió.</dd>
-        <dt>Pendiente</dt><dd>Re-agenda, Seguimiento o Próxima Cohorte.</dd>
-        <dt>Corregir</dt><dd>Devolver un deal a la etapa de donde venía, cuando lo moviste por error.</dd>
-        <dt>Posible duplicado</dt><dd>Un correo nuevo con el mismo teléfono de un lead. Lo decide el dueño del deal.</dd>
-        <dt>Potencial / Confirmado</dt><dd>Al pie de cada etapa del tablero: lo que valen sus deals y lo que ya abonaron.</dd>
-        <dt>Ticket base</dt><dd>Precio de la cohorte en USD, antes del descuento.</dd>
-        <dt>Valor vendido</dt><dd>Ticket base menos descuento.</dd>
-        <dt>Caja</dt><dd>Lo que entró en abonos.</dd>
-        <dt>Cartera</dt><dd>Lo que falta por cobrar.</dd>
-        <dt>Contribución</dt><dd>Tus ventas en una cohorte.</dd>
-        <dt>Cortesía</dt><dd>Cupo regalado; no cuenta como venta.</dd>
+        <dt>Lead Quality</dt>
+        <dd>Lead Quality es High o Low y decide si nace en Calificado.</dd>
+        <dt>Lead Value</dt>
+        <dd>Lead Value va de Muy Alto a Bajo y ordena tu cola.</dd>
+        <dt>Canal</dt>
+        <dd>El canal indica de dónde vino el clic: fuente y medio.</dd>
+        <dt>Área</dt>
+        <dd>El área agrupa los canales en Paid, Orgánico o Referidos.</dd>
+        <dt>Área declarada</dt>
+        <dd>El área declarada responde a la pregunta "¿cómo nos conoció?".</dd>
+        <dt>Setteo</dt>
+        <dd>El setteo consiste en contactar a quien no agendó y conseguir la cita.</dd>
+        <dt>Setter</dt>
+        <dd>El setter hace el setteo y queda anotado cuando entrega el deal.</dd>
+        <dt>Link de agenda</dt>
+        <dd>El link de agenda es el Calendly del programa con la marca del deal.</dd>
+        <dt>Llamada suelta</dt>
+        <dd>Una llamada suelta es una cita que el CRM no pudo unir con certeza.</dd>
+        <dt>Show/no-show</dt>
+        <dd>Show significa que asistió; no-show, que no asistió.</dd>
+        <dt>Grain</dt>
+        <dd>El Grain es la grabación que demuestra que la llamada ocurrió.</dd>
+        <dt>Pendiente</dt>
+        <dd>Un pendiente es Re-agenda, Seguimiento o Próxima Cohorte; no cambia la etapa.</dd>
+        <dt>Corregir</dt>
+        <dd>Corregir devuelve a la etapa anterior un deal que moviste por error.</dd>
+        <dt>Posible duplicado</dt>
+        <dd>Posible duplicado avisa de otro correo con el mismo teléfono.</dd>
+        <dt>Potencial/Confirmado</dt>
+        <dd>Potencial muestra lo que valen los deals y Confirmado lo que ya abonaron.</dd>
+        <dt>Ticket base</dt>
+        <dd>El ticket base es el precio de cohorte en USD antes del descuento.</dd>
+        <dt>Valor vendido</dt>
+        <dd>El valor vendido es el ticket base menos el descuento.</dd>
+        <dt>Caja</dt>
+        <dd>La caja es lo que entró mediante abonos.</dd>
+        <dt>Cartera</dt>
+        <dd>La cartera es lo que falta por cobrar.</dd>
+        <dt>Contribución</dt>
+        <dd>Tu contribución son tus ventas dentro de una cohorte.</dd>
+        <dt>Cortesía</dt>
+        <dd>Una cortesía es un cupo regalado: crea un student, pero no una venta.</dd>
       </dl>
     </section>
-
-    <footer>Retia · Manual de operación comercial · 4-oct-2026. Si el manual y el CRM no coinciden, manda el CRM: avisa a gerencia.</footer>
+    <footer>Retia · Manual de operación comercial · 5-oct-2026. Si el manual y el CRM no coinciden, manda el CRM: avisa a gerencia.</footer>
   </main>
 </div>
-
+<noscript>
+  <style>
+    .mobilebar{
+    display:none
+    }
+    @media(max-width:860px){
+    .toc{
+    display:block;
+    position:static;
+    max-height:none;
+    margin-bottom:25px
+    }
+    .wrap{
+    padding-top:30px
+    }
+    }
+  </style>
+</noscript>
 <script>
-// Resalta en el índice la sección que se está leyendo.
-(() => {
-  const enlaces = new Map();
-  document.querySelectorAll('nav.toc a[href^="#"]').forEach((a) => enlaces.set(a.getAttribute("href").slice(1), a));
-  const secciones = [...enlaces.keys()].map((id) => document.getElementById(id)).filter(Boolean);
-  const marcar = () => {
-    const linea = window.innerHeight * 0.3;
-    let actual = secciones[0];
-    for (const s of secciones) if (s.getBoundingClientRect().top <= linea) actual = s;
-    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) actual = secciones[secciones.length - 1];
-    enlaces.forEach((a, id) => a.setAttribute("aria-current", id === actual.id ? "true" : "false"));
+  (() => {
+  const p = [
+  ["reglas", "Antes de empezar", "Reglas"],
+  ["piezas", "Antes de empezar", "Piezas"],
+  ["corta", "Antes de empezar", "Las 11 etapas"],
+  ["llegada", "1 · Llega el lead", "Llegada"],
+  ["calidad", "1 · Llega el lead", "Quality y Value"],
+  ["areas", "1 · Llega el lead", "Áreas"],
+  ["deal", "2 · Aparece el deal", "Deal"],
+  ["handoff", "2 · Aparece el deal", "Del setter al closer"],
+  ["etapas", "3 · Las etapas", "Las 11 etapas"],
+  ["recorrido", "3 · Las etapas", "Recorrido"],
+  ["pendientes", "3 · Las etapas", "Pendientes"],
+  ["cierre", "4 · El cierre", "El cierre"],
+  ["plata", "5 · El dinero", "Dinero"],
+  ["cohortes", "5 · El dinero", "Cohortes"],
+  ["students", "6 · Students y pérdidas", "Students"],
+  ["perder", "6 · Students y pérdidas", "Perder y anular"],
+  ["dia", "7 · Tu día", "Tu día"],
+  ["alertas", "7 · Tu día", "Alertas"],
+  ["errores", "7 · Tu día", "Errores"],
+  ["falta", "8 · Referencia", "Lo que falta"],
+  ["glosario", "8 · Referencia", "Glosario"]
+  ];
+  const map = new Map(p.map((x, i) => [x[0], [x, i]]));
+  const root = document.documentElement;
+  const toc = document.querySelector(".toc");
+  const button = document.querySelector(".mobilebar button");
+  root.classList.add("js");
+  p.forEach((x, i) => {
+  const n = document.createElement("nav");
+  const a = p[i - 1];
+  const s = p[i + 1];
+  n.className = "page-nav";
+  n.setAttribute("aria-label", "Páginas del manual");
+  n.innerHTML = (a ? `<a href="#${a[0]}">
+  <small>← Anterior</small>${a[2]}</a>` : "<span></span>")
+  + (s ? `<a href="#${s[0]}">
+  <small>Siguiente →</small>${s[2]}</a>` : "<span></span>");
+  document.getElementById(x[0]).append(n);
+  });
+  function show() {
+  let id = location.hash.slice(1);
+  if (!map.has(id)) {
+  history.replaceState(null, "", "#reglas");
+  id = "reglas";
+  }
+  const x = map.get(id)[0];
+  root.dataset.page = id;
+  document.querySelectorAll("main>section").forEach(s => s.classList.toggle("active", s.id === id));
+  document.querySelectorAll(".toc>ol>li").forEach(l => l.classList.toggle("active-group", l.dataset.group === x[1]));
+  document.querySelectorAll(".toc a").forEach(a => {
+  if (!a.classList.contains("group-link") && a.hash === `#${id}`) a.setAttribute("aria-current", "page");
+  else a.removeAttribute("aria-current");
+  });
+  document.querySelectorAll(".breadcrumb").forEach(b => {
+  b.querySelector("span").textContent = x[1];
+  b.querySelector("b").textContent = x[2];
+  });
+  toc.classList.remove("open");
+  button.setAttribute("aria-expanded", "false");
+  scrollTo(0, 0);
+  }
+  button.onclick = () => {
+  const o = toc.classList.toggle("open");
+  button.setAttribute("aria-expanded", String(o));
   };
-  let pendiente = false;
-  window.addEventListener("scroll", () => {
-    if (pendiente) return;
-    pendiente = true;
-    requestAnimationFrame(() => { pendiente = false; marcar(); });
-  }, { passive: true });
-  window.addEventListener("resize", marcar);
-  marcar();
-})();
+  addEventListener("hashchange", show);
+  show();
+  })();
 </script>
