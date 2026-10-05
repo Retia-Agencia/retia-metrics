@@ -32,10 +32,11 @@ function TarjetaTasa({ vista }: { vista: VistaDeMisMetricas }) {
     <Card>
       <CardHeader className="pb-2"><CardTitle className="text-sm">% de cierre sobre atendidas</CardTitle></CardHeader>
       <CardContent className="space-y-2">
-        <CifraConLista titulo="Cierres" detalle={vista.detalles.cierres}>
+        <CifraConLista titulo="Con show y vendidos hoy" detalle={vista.detalles.grupoVendidos}>
           <span className="cifra text-2xl font-semibold">{vista.a.pctCierre === null ? "—" : pct(vista.a.pctCierre)}</span>
         </CifraConLista>
         {vista.b ? <p className="cifra text-xs text-muted-foreground">{textoDeVariacionDeTasa(vista.a.pctCierre, vista.b.pctCierre)}</p> : null}
+        {vista.a.madurando ? <p className="text-xs text-muted-foreground">Aún madurando: el rango terminó hace menos de 30 días.</p> : null}
       </CardContent>
     </Card>
   );

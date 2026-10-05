@@ -147,7 +147,7 @@ export async function armarVistaDelDashboard(
     [programa],
     anterior,
   ] = await Promise.all([
-    embudoDelRango(alcance, db),
+    embudoDelRango(alcance, db, ahora),
     showsSinGrain(alcance, db),
     cajaRecaudada(alcance, db),
     contratadoDelRango(alcance, db),
@@ -159,13 +159,13 @@ export async function armarVistaDelDashboard(
     leadsDelRango(alcance, db),
     leerMetasDelMes(programId, hoy.slice(0, 7), hoy, db),
     embudoPorEtapas(db, { programId, rango }, ahora),
-    embudoPorCloser({ programId, rango }, db),
+    embudoPorCloser({ programId, rango }, db, ahora),
     comisionesPorCloser({ programId, rango }, db),
     closersConCuenta({ programId, rango }, db),
     db.select({ comisionPorcentaje: programs.comisionPorcentaje }).from(programs).where(eq(programs.id, programId)),
     periodo.b
       ? Promise.all([
-          embudoDelRango({ programId, rango: periodo.b, claveCloser }, db),
+          embudoDelRango({ programId, rango: periodo.b, claveCloser }, db, ahora),
           cajaRecaudada({ programId, rango: periodo.b, claveCloser }, db),
           contratadoDelRango({ programId, rango: periodo.b, claveCloser }, db),
         ]).then(([embudoAnterior, cajaAnterior, contratadoAnterior]) => ({

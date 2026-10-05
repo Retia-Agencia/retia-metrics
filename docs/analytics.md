@@ -321,7 +321,11 @@ PDF y cualquier otra consulta (ADR 0024).
 | Llamada | llamada vigente cuya fecha de cita cae en el rango (el ancla del 064) | llamadas | sí |
 | Show | llamada que ocurrió (`llamadaOcurrio`, ya centralizado) | llamadas | sí |
 | Calificada | show de un lead con `lead_value` en `valores_calificados` | llamadas | sí |
-| Venta | deal que entró a Abonado o Completo en el rango (064) | deals | sí |
+| Venta | deal que entró a Abonado o Completo en el rango (064); una entrada deshecha al anular su abono no cuenta (200) | deals | sí |
+| Grupo de citas | deals vigentes, sin cortesía, con al menos una cita del rango cuya hora ya pasó y no fue reagendada (show, no-show, cancelada o sin resultado). Por closer, cada deal va al de su último show o, sin show, al de su última cita (ADR 0079, 187; `tasas-del-grupo.ts`) | deals | no (es la base de una tasa) |
+| % de show | deals del grupo con show ÷ deals del grupo | % | no |
+| % de cierre | deals del grupo con show que hoy están en Abonado o Completo ÷ deals del grupo con show | % | no |
+| Agenda → venta | deals del grupo con show y vendidos hoy ÷ deals del grupo = % de show × % de cierre. Un vendido sin show en el rango no entra a la cadena; sí a las ventas del periodo | % | no |
 | Contratado | Σ precio del producto de las ventas del rango (módulo de `saldo.ts`) | USD | sí |
 | Recaudado (caja) | Σ abonos por su fecha (ADR 0013) | USD | sí |
 | Gasto | Σ `gasto_pauta` por su fecha | moneda de la cuenta (COP) | sí, por moneda |

@@ -50,6 +50,9 @@ const METRICAS_DEL_TABLERO = [
   "contratado",
   "sin_resultado",
   "cartera",
+  "grupo_citas",
+  "grupo_shows",
+  "grupo_vendidos",
 ] as const;
 export type DetallesDelDashboard = Record<(typeof METRICAS_DEL_TABLERO)[number], DetalleDeCifra>;
 

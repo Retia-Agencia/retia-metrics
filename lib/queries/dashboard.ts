@@ -36,6 +36,7 @@ import { vigente } from "@/lib/queries/vigente";
 import type { FilaHechosDelEmbudo, OrigenDelHecho } from "@/lib/queries/hechos-embudo";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { carteraVencida } from "@/lib/queries/cartera";
+import { grupoDeCitas, tasasDelAlcance, type TasasDelGrupo } from "@/lib/queries/tasas-del-grupo";
 
 /**
  * Consultas del dashboard (ticket 004). Todo lo que pide el reporte diario de Retia
@@ -98,12 +99,22 @@ export interface CajaPorMoneda {
   total: number;
 }
 
+/**
+ * `agendas`, `llamadasConShow` y `cierres` son CANTIDADES del periodo, cada una por su fecha. Las tres
+ * tasas salen del grupo de citas del rango (ADR 0079, `tasas-del-grupo.ts`): nunca dividen dos
+ * cantidades de grupos distintos.
+ */
 export interface EmbudoDelRango {
   agendas: number;
   llamadasConShow: number;
   pctShow: number | null;
   cierres: number;
   pctCierre: number | null;
+  agendaAVenta: number | null;
+  /** El grupo detrás de las tasas: deals con cita ocurrida, con show y con show vendidos hoy. */
+  grupo: TasasDelGrupo;
+  /** El rango termina hace menos de 30 días: las tasas todavía pueden subir. */
+  madurando: boolean;
 }
 
 export interface VistaDeCohorte {  cohorteId: string;
@@ -374,10 +385,14 @@ export async function cajaRecaudada(
  *
  * Una venta es un deal cuya primera entrada a Ganado Pago Parcial o Ganado Pagado
  * Completo cae en el rango. Contar deals a secas inflaría la cifra sin lanzar error.
+ *
+ * Las tasas NO salen de esas cantidades: salen del grupo de citas (ADR 0079). Con closer,
+ * son las de su parte del grupo, la misma que muestra su fila del comparativo.
  */
 export async function embudoDelRango(
   { programId, rango, claveCloser }: Alcance,
   db: Db = dbDeLaApp,
+  ahora: Date = new Date(),
 ): Promise<EmbudoDelRango> {
   const [llamadas] = await db
     .select({
@@ -394,14 +409,21 @@ export async function embudoDelRango(
 
   const agendas = llamadas?.agendas ?? 0;
   const llamadasConShow = llamadas?.llamadasConShow ?? 0;
-  const cierres = await ventasDelRango({ programId, rango, claveCloser }, db);
+  const [cierres, grupo] = await Promise.all([
+    ventasDelRango({ programId, rango, claveCloser }, db),
+    grupoDeCitas(db, { programId, rango, ahora }),
+  ]);
+  const tasas = tasasDelAlcance(grupo, claveCloser);
 
   return {
     agendas,
     llamadasConShow,
-    pctShow: tasa(llamadasConShow, agendas),
+    pctShow: tasas.pctShow,
     cierres,
-    pctCierre: tasa(cierres, llamadasConShow),
+    pctCierre: tasas.pctCierre,
+    agendaAVenta: tasas.agendaAVenta,
+    grupo: tasas,
+    madurando: grupo.madurando,
   };
 }
 
@@ -487,10 +509,11 @@ export async function closersConCuenta(
 export async function embudoPorCloser(
   { programId, rango }: Omit<Alcance, "claveCloser">,
   db: Db = dbDeLaApp,
+  ahora: Date = new Date(),
 ): Promise<(EmbudoDelRango & { clave: string; closerId: string | null; caja: CajaPorMoneda[] })[]> {
   const ancla = fechaAnclaCall();
 
-  const [llamadasPorCloser, abonosPorCloser, cierresPorCloser] = await Promise.all([
+  const [llamadasPorCloser, abonosPorCloser, cierresPorCloser, grupo] = await Promise.all([
     db
       .select({
         clave: claveCloserSql(users.id, calls.closerId),
@@ -544,6 +567,7 @@ export async function embudoPorCloser(
       )
       .groupBy(claveCloserSql(users.id, abonos.closerId), abonos.moneda),
     ventasPorCloser({ programId, rango }, db),
+    grupoDeCitas(db, { programId, rango, ahora }),
   ]);
 
   const porClave = new Map<
@@ -562,6 +586,9 @@ export async function embudoPorCloser(
         pctShow: null,
         cierres: 0,
         pctCierre: null,
+        agendaAVenta: null,
+        grupo: tasasDelAlcance(grupo, clave),
+        madurando: grupo.madurando,
         caja: [],
       };
       porClave.set(clave, fila);
@@ -581,10 +608,15 @@ export async function embudoPorCloser(
     asegurar(a.clave, a.closerId).caja.push({ moneda: a.moneda, total: a.total });
   }
 
-  // Las tasas se calculan una vez armados los conteos, sin dividir por cero.
+  // Un closer con grupo y sin otra actividad del periodo igual tiene fila: su tasa existe.
+  for (const [clave, tasas] of grupo.porCloser) asegurar(clave, tasas.closer);
+
+  // Las tasas salen del grupo de citas (ADR 0079): cada deal cuenta en un solo closer.
   for (const fila of porClave.values()) {
-    fila.pctShow = tasa(fila.llamadasConShow, fila.agendas);
-    fila.pctCierre = tasa(fila.cierres, fila.llamadasConShow);
+    fila.grupo = tasasDelAlcance(grupo, fila.clave);
+    fila.pctShow = fila.grupo.pctShow;
+    fila.pctCierre = fila.grupo.pctCierre;
+    fila.agendaAVenta = fila.grupo.agendaAVenta;
   }
 
   return [...porClave.values()];

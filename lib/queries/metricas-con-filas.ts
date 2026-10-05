@@ -13,6 +13,7 @@ import {
   closerDeAbono, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
   primerosMovimientosDeVenta, filtroNoShows, llamadaPasadaSinResultado,
 } from "@/lib/queries/metricas-filtros";
+import { grupoDeCitas, miembrosDe } from "@/lib/queries/tasas-del-grupo";
 
 export type Metrica =
   | "caja"
@@ -27,7 +28,17 @@ export type Metrica =
   | "agendas_creadas"
   | "contratado"
   | "sin_resultado"
-  | "cartera";
+  | "cartera"
+  | MetricaDeGrupo;
+
+/** Las listas de las tasas (ADR 0079): deals del grupo de citas, con show, y con show vendidos hoy. */
+export const METRICAS_DE_GRUPO = ["grupo_citas", "grupo_shows", "grupo_vendidos"] as const;
+export type MetricaDeGrupo = (typeof METRICAS_DE_GRUPO)[number];
+type MetricaSql = Exclude<Metrica, MetricaDeGrupo>;
+
+function esMetricaDeGrupo(metrica: Metrica): metrica is MetricaDeGrupo {
+  return (METRICAS_DE_GRUPO as readonly string[]).includes(metrica);
+}
 
 /** Las métricas que no se atribuyen a un closer: con closer no hay cifra ("—"), nunca el programa entero. */
 export const METRICAS_SIN_CLOSER: readonly Metrica[] = ["leads", "deals_creados", "agendas_creadas"];
@@ -93,7 +104,7 @@ interface FuenteDeMetrica {
   claveCloser: SQL<string>;
 }
 
-function fuenteDe(metrica: Metrica): FuenteDeMetrica {
+function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
   switch (metrica) {
     case "caja":
       return {
@@ -158,7 +169,7 @@ function fuenteDe(metrica: Metrica): FuenteDeMetrica {
  * Las columnas de la consulta. En el resumen (`pagina === null`) se agrupa en Postgres y
  * las columnas de fila salen nulas: el resumen nunca transfiere filas de negocio.
  */
-function camposDe(metrica: Metrica, fuente: FuenteDeMetrica, hoy: string, resumen: boolean) {
+function camposDe(metrica: MetricaSql, fuente: FuenteDeMetrica, hoy: string, resumen: boolean) {
   const esCaja = metrica === "caja";
   const esContratado = metrica === "contratado";
   // Las agendas futuras tienen edad cero; no se inventa un quinto bucket negativo.
@@ -215,7 +226,7 @@ function camposDe(metrica: Metrica, fuente: FuenteDeMetrica, hoy: string, resume
  * dentro de cada cadena porque el guardián de vigencia la lee cadena por cadena.
  */
 function consultaDe(
-  metrica: Metrica,
+  metrica: MetricaSql,
   campos: ReturnType<typeof camposDe>,
   alcance: Alcance,
   filtros: FiltrosDeMetrica,
@@ -361,6 +372,64 @@ function consultaDe(
   }
 }
 
+/** Edad y bucket de una fila, con la misma regla que el SQL de `camposDe`. */
+function edadYBucket(fecha: string, hoy: string): { antiguedad: number; bucket: string } {
+  const dia = (f: string) => {
+    const [a, m, d] = f.split("-").map(Number);
+    return Math.floor(Date.UTC(a, m - 1, d) / 86_400_000);
+  };
+  const antiguedad = Math.max(0, dia(hoy) - dia(fecha));
+  const bucket = antiguedad <= 7 ? "0-7" : antiguedad <= 30 ? "8-30" : antiguedad <= 90 ? "31-90" : ">90";
+  return { antiguedad, bucket };
+}
+
+/**
+ * Las tres listas de las tasas (ADR 0079, ticket 187): los deals del grupo de citas, los que
+ * tuvieron show y los que con show están vendidos hoy. Salen del MISMO módulo que la cifra, así la
+ * lista tiene tantas filas como dice la tasa. La pertenencia se decide en memoria (la cohorte de
+ * citas), por eso el resumen se agrupa aquí; a esta escala el grupo son cientos de deals.
+ */
+async function leerMetricaDeGrupo(
+  metrica: MetricaDeGrupo,
+  alcance: Alcance,
+  filtros: FiltrosDeMetrica,
+  pagina: number | null,
+  db: Db,
+): Promise<FilaDeMetrica[]> {
+  const grupo = await grupoDeCitas(db, {
+    programId: alcance.programId,
+    rango: alcance.rango,
+    ahora: filtros.ahora ?? new Date(),
+  });
+  const miembros = miembrosDe(grupo, filtros.claveCloser).filter((m) =>
+    metrica === "grupo_citas" ? true : metrica === "grupo_shows" ? m.conShow : m.conShow && m.vendido,
+  );
+  const filas: FilaDeMetrica[] = miembros.map((m) => ({
+    id: m.dealId,
+    dealId: m.dealId,
+    fecha: m.fecha,
+    closer: m.closer,
+    claveCloser: m.claveCloser,
+    etapa: m.etapa,
+    ...edadYBucket(m.fecha, filtros.hoy),
+    moneda: null,
+    monto: null,
+    cantidad: 1,
+  }));
+
+  if (pagina !== null) {
+    return filas.slice((pagina - 1) * TAMANO_PAGINA, pagina * TAMANO_PAGINA);
+  }
+  const grupos = new Map<string, FilaDeMetrica>();
+  for (const fila of filas) {
+    const clave = `${fila.claveCloser}\u0000${fila.etapa}\u0000${fila.bucket}`;
+    const existente = grupos.get(clave);
+    if (existente) existente.cantidad += 1;
+    else grupos.set(clave, { ...fila, id: "", dealId: null, fecha: "", antiguedad: 0 });
+  }
+  return [...grupos.values()];
+}
+
 /**
  * Lee el resumen (`pagina === null`, agrupado en Postgres) o una página de filas
  * (`limit`/`offset` en Postgres, más antiguas primero). La proyección cambia; el universo no.
@@ -372,6 +441,7 @@ async function leerMetrica(
   pagina: number | null,
   db: Db,
 ): Promise<FilaDeMetrica[]> {
+  if (esMetricaDeGrupo(metrica)) return leerMetricaDeGrupo(metrica, alcance, filtros, pagina, db);
   const resumen = pagina === null;
   const fuente = fuenteDe(metrica);
   const campos = camposDe(metrica, fuente, filtros.hoy, resumen);

@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   abonos,
@@ -78,10 +79,15 @@ beforeEach(async () => {
     monto: "200000",
     moneda: "COP",
   });
+  // Las tasas van sobre personas (ADR 0079): cada cita cuelga de un deal. La del no-show es
+  // otra oportunidad del mismo lead, ya perdida, para no cambiar el conteo de leads.
+  const [ventaA] = await db.select({ id: deals.id, leadId: deals.leadId }).from(deals).where(eq(deals.programId, programas[0].id));
+  const [ventaB] = await db.select({ id: deals.id }).from(deals).where(eq(deals.programId, programas[1].id));
+  const [perdidoA] = await db.insert(deals).values({ programId: programas[0].id, leadId: ventaA.leadId, etapa: "cierre_perdido" }).returning();
   await db.insert(calls).values([
-    { programId: programas[0].id, closerId: "Ana", fechaAgenda: new Date("2026-09-15T14:00:00Z"), resultado: "show" },
-    { programId: programas[0].id, closerId: "Ana", fechaAgenda: new Date("2026-09-15T16:00:00Z"), resultado: "no_show" },
-    { programId: programas[1].id, closerId: "Beto", fechaAgenda: new Date("2026-09-15T17:00:00Z"), resultado: "show" },
+    { programId: programas[0].id, dealId: ventaA.id, closerId: "Ana", fechaAgenda: new Date("2026-09-15T14:00:00Z"), resultado: "show" },
+    { programId: programas[0].id, dealId: perdidoA.id, closerId: "Ana", fechaAgenda: new Date("2026-09-15T16:00:00Z"), resultado: "no_show" },
+    { programId: programas[1].id, dealId: ventaB.id, closerId: "Beto", fechaAgenda: new Date("2026-09-15T17:00:00Z"), resultado: "show" },
   ]);
 }, 60_000);
 

@@ -297,7 +297,7 @@ personas). Reparto en [`plan-reparto.md`](../plan-reparto.md) §4, ola O6.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 187 | [Las tasas del embudo sobre el mismo grupo de personas](./187-tasas-sobre-el-mismo-grupo.md) | 148 | todo · ADR 0079 |
+| [ ] | 187 | [Las tasas del embudo sobre el mismo grupo de personas](./187-tasas-sobre-el-mismo-grupo.md) | 148 | en curso · Alejo · 5-oct · `tasas-del-grupo.ts`; falta recorrido y checkpoint |
 | [ ] | 188 | [Cada cifra del dashboard abre su lista: embudo por etapa y comparativo](./188-cada-cifra-del-dashboard-abre-su-lista.md) | 148, 065 | todo |
 | [ ] | 189 | [Agendas creadas, ocurridas y futuras, y el no-show por semana](./189-agendas-creadas-ocurridas-y-futuras.md) | 187 | todo |
 | [ ] | 190 | [Series por mes en Dinero y el acumulado contra el mes anterior](./190-series-mensuales-en-dinero.md) | 148, 146 | todo |

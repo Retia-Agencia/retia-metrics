@@ -204,16 +204,16 @@ describe("% de show y % de cierre", () => {
     const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
     const fecha = new Date("2026-09-15T14:00:00Z");
 
-    // 4 agendas: 2 shows, 1 compromiso_pago (tambien show), 1 no_show.
-    // De las que hicieron show, 1 cerro.
+    // 4 agendas de 4 personas: 2 shows, 1 compromiso_pago (tambien show), 1 no_show.
+    // De las que hicieron show, 1 cerro. Las tasas van sobre esas personas (ADR 0079).
+    const [d1, d2, d3, d4] = await Promise.all([1, 2, 3, 4].map(() => sembrarDeal(programaA)));
     await db.insert(calls).values([
-      { programId: programaA, fechaAgenda: fecha, resultado: "show" },
-      { programId: programaA, fechaAgenda: fecha, resultado: "cerrada" },
-      { programId: programaA, fechaAgenda: fecha, resultado: "compromiso_pago" },
-      { programId: programaA, fechaAgenda: fecha, resultado: "no_show" },
+      { programId: programaA, dealId: d1, fechaAgenda: fecha, resultado: "show" },
+      { programId: programaA, dealId: d2, fechaAgenda: fecha, resultado: "cerrada" },
+      { programId: programaA, dealId: d3, fechaAgenda: fecha, resultado: "compromiso_pago" },
+      { programId: programaA, dealId: d4, fechaAgenda: fecha, resultado: "no_show" },
     ]);
-    const venta = await sembrarDeal(programaA);
-    await marcarVenta(venta, fecha);
+    await marcarVenta(d2, fecha);
 
     const embudo = await embudoDelRango({ programId: programaA, rango: rango }, db);
     expect(embudo.agendas).toBe(4);

@@ -29,6 +29,8 @@ export interface CifrasDePeriodo {
   noShows: number;
   cierres: number;
   pctCierre: number | null;
+  /** El rango termina hace menos de 30 días: el % de cierre todavía puede subir (ADR 0079). */
+  madurando: boolean;
   caja: CajaPorMoneda[];
   comisionUsd: number;
 }
@@ -38,6 +40,8 @@ export interface DetallesDeMisMetricas {
   shows: DetalleDeCifra;
   noShows: DetalleDeCifra;
   cierres: DetalleDeCifra;
+  /** La lista del % de cierre: los deals de su grupo con show que hoy están vendidos (ADR 0079). */
+  grupoVendidos: DetalleDeCifra;
   caja: DetalleDeCifra;
 }
 
@@ -78,6 +82,7 @@ async function cifrasDelPeriodo(
     noShows: noShows.subtotal.cantidad,
     cierres: embudo.cierres,
     pctCierre: embudo.pctCierre,
+    madurando: embudo.madurando,
     caja,
     comisionUsd: comisionDelCloser(comisiones, closerUserId),
   };
@@ -112,6 +117,7 @@ export async function armarVistaDeMisMetricas(
       detalleDeCifra("no_shows", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
       detalleDeCifra("cierres", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
       detalleDeCifra("caja", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
+      detalleDeCifra("grupo_vendidos", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
     ]),
   ]);
   // Mi espacio nunca muestra el texto interno del closer (A-159/167). El código opaco
@@ -132,6 +138,7 @@ export async function armarVistaDeMisMetricas(
       noShows: noShowsA[0].subtotal.cantidad,
       cierres: dashboard.embudo.cierres,
       pctCierre: dashboard.embudo.pctCierre,
+      madurando: dashboard.embudo.madurando,
       caja: dashboard.caja,
       comisionUsd: comisionDelCloser(comisionesA, closerUserId),
     },
@@ -142,6 +149,7 @@ export async function armarVistaDeMisMetricas(
       noShows: personal(detalles[2]),
       cierres: personal(detalles[3]),
       caja: personal(detalles[4]),
+      grupoVendidos: personal(detalles[5]),
     },
   };
 }

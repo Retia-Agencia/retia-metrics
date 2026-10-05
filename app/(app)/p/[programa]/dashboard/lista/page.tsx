@@ -35,6 +35,9 @@ const esquema = z.object({
     "contratado",
     "sin_resultado",
     "cartera",
+    "grupo_citas",
+    "grupo_shows",
+    "grupo_vendidos",
   ]),
   closer: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   moneda: z.string().regex(/^[A-Z]{3}$/).optional(),
@@ -56,6 +59,9 @@ const titulos = {
   contratado: "Contratado",
   sin_resultado: "Llamadas pasadas sin resultado",
   cartera: "Cartera",
+  grupo_citas: "Deals con cita ocurrida (grupo de las tasas)",
+  grupo_shows: "Deals del grupo con show",
+  grupo_vendidos: "Deals del grupo con show y vendidos hoy",
 };
 
 export default async function ListaDeCifraPage({ params, searchParams }: Props) {

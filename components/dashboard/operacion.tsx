@@ -71,7 +71,8 @@ function Comparativo({ vista }: { vista: VistaDelDashboard }) {
         </p>
         <p className="pt-1 text-xs text-muted-foreground">
           Agendas y shows van por quien tomó la llamada; cierres, caja y comisión por el
-          dueño del deal y quien cobró.
+          dueño del deal y quien cobró. El % de show y el % de cierre van sobre el grupo de citas:
+          cada deal cuenta en el closer de su último show o, sin show, de su última cita.
         </p>
         <p className="pt-1 text-xs text-muted-foreground">
           {textoComisionPrograma(vista.comisionPorcentaje)}
@@ -198,6 +199,7 @@ export function Operacion({
   dealsContraAgendas: ReactNode;
 }) {
   const anterior = vista.anterior?.embudo;
+  const grupo = vista.embudo.grupo;
   const filas = [
     {
       titulo: "Agendas",
@@ -210,14 +212,15 @@ export function Operacion({
       titulo: "Shows",
       actual: vista.embudo.llamadasConShow,
       previo: anterior?.llamadasConShow,
-      paso: porcentajeConBase(vista.embudo.llamadasConShow, vista.embudo.agendas),
+      // Las tasas del paso salen del grupo de citas (ADR 0079), no de dividir estas cantidades.
+      paso: porcentajeConBase(grupo.conShow, grupo.deals),
       detalle: detalles?.shows,
     },
     {
       titulo: "Cierres",
       actual: vista.embudo.cierres,
       previo: anterior?.cierres,
-      paso: porcentajeConBase(vista.embudo.cierres, vista.embudo.llamadasConShow),
+      paso: porcentajeConBase(grupo.vendidos, grupo.conShow),
       detalle: detalles?.cierres,
     },
   ];
@@ -253,6 +256,26 @@ export function Operacion({
               </tr>
             ))}
           </Tabla>
+          <p className="pt-3 text-xs text-muted-foreground">
+            Agendas, shows y cierres son cantidades del periodo. El % del paso va sobre el mismo grupo:{" "}
+            <CifraConLista titulo="Deals con cita ocurrida" detalle={detalles?.grupo_citas}>
+              {num(grupo.deals)}
+            </CifraConLista>{" "}
+            deals con cita ya ocurrida en el rango,{" "}
+            <CifraConLista titulo="Deals del grupo con show" detalle={detalles?.grupo_shows}>
+              {num(grupo.conShow)}
+            </CifraConLista>{" "}
+            con show y{" "}
+            <CifraConLista titulo="Deals del grupo con show y vendidos hoy" detalle={detalles?.grupo_vendidos}>
+              {num(grupo.vendidos)}
+            </CifraConLista>{" "}
+            de ellos vendidos hoy. Agenda → venta: {tasa(vista.embudo.agendaAVenta)}.
+          </p>
+          {vista.embudo.madurando ? (
+            <p className="pt-1 text-xs text-muted-foreground">
+              Aún madurando: el rango terminó hace menos de 30 días y su gente todavía puede comprar.
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 
