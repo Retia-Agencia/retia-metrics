@@ -20,6 +20,9 @@ Un manual por rol, escrito para quien opera el CRM, no para quien lo construye. 
   manda la pantalla y se corrige el manual.
 - **Son de Retia:** no se menciona de dónde se tomó el método.
 - **Sin jerga técnica:** nada de números de ticket, ADR, tablas ni nombres de funciones dentro del manual.
+- **Una página a la vez (5-oct):** cada `<section>` es una página que elige el hash; el índice lista las secciones
+  principales y abre solo las páginas de la activa, con la ruta arriba y Anterior/Siguiente abajo. Una página nueva se
+  agrega a su grupo en el script. Sin JS se ve todo. Frases completas con "tú": corto no es telegráfico.
 - **Formato de artifact:** el archivo empieza por `<title>` y `<style>` (sin `<!doctype>`, `<html>`, `<head>` ni
   `<body>`: el artifact los pone al publicar), colores como tokens con modo claro y oscuro, y funciona a ancho
   de teléfono.

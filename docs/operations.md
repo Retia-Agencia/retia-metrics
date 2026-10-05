@@ -83,6 +83,7 @@ secreto en el proveedor → **"enviar prueba"** (el CRM la recibe y no crea lead
 conectar Calendly en el formulario y escoger el evento → cambiar los placeholders → publicar → **un envío real por
 camino** (descalificado, sin agenda, con agenda, con las seis UTM) revisado en la base antes de compartir el link.
 Antes de compartir un link de agenda, `npm run simular:cita -- --programa <slug> --host <correo> --lead <correo>` prueba el webhook firmado contra `dev:local`.
+**Un Typeform nuevo copiado de otro se compara contra el de referencia vivo** (lógica, variables y ocultos por la API, 5-oct): la copia de Comunícate con Confianza salió de una versión vieja sin `lead_value` ni `utm_id`. Y su "Send test request" se guarda sin ingerir desde `67114fd`; antes creaba un lead falso.
 El puntaje del formulario sigue el estándar único (`docs/dapta/README.md`, "Estándar de puntaje"). Desde el ADR 0069
 el formulario no decide la etapa: manda agenda, calidad y valor, y el CRM enruta (se construye con las etapas de 30X).
 
@@ -103,8 +104,8 @@ editor) y en Vercel.
 | `SCRIPT_ACTOR_EMAIL` | quién firma el rastro de un script que escribe en una base viva (ADR 0029) | local |
 | `SEED_GERENTE_EMAIL`, `SEED_GERENTE_NOMBRE` | el gerente que siembra `seed:users` | local |
 | `ENLACES_PAGO_JSON` | los enlaces de pago que carga `cargar-enlaces-pago` (el JSON lo tiene Mani) | local |
-| `TYPEFORM_TOKEN` | token personal de Typeform, **por cuenta**: ve los dos forms (lectura de forms, variables, webhooks y respuestas). Solo para scripts y revisiones de devs; la app no lo lee | local |
-| `CALENDLY_ACCESS_TOKEN_COMUNICARTE`, `CALENDLY_ACCESS_TOKEN_TACTICAL` | un access token por programa, de una cuenta OWNER (ve miembros, tipos de evento, citas y webhooks de su organizacion). Solo para scripts y revisiones de devs; en produccion el token vive en la base (ADR 0057) | local |
+| `TYPEFORM_TOKEN` | token personal de Typeform, **por cuenta**: ve los forms de los tres programas (Comunícate con Confianza: `E5F4chVT`, en la cuenta de Francisco) (lectura de forms, variables, webhooks y respuestas). Solo para scripts y revisiones de devs; la app no lo lee | local |
+| `CALENDLY_ACCESS_TOKEN_COMUNICARTE`, `CALENDLY_ACCESS_TOKEN_TACTICAL`, `CALENDLY_ACCESS_TOKEN_COMUNICATE_CONFIANZA` | un access token por programa, de una cuenta OWNER (ve miembros, tipos de evento, citas y webhooks de su organizacion). Solo para scripts y revisiones de devs; en produccion el token vive en la base (ADR 0057) | local |
 | `CALENDLY_PAT_LOCAL_COMUNICARTE`, `CALENDLY_PAT_LOCAL_TACTICAL` | **no se usan** (Mani, 29-sep). Solo los lee `seed-local`; vacios va un token de mentira |
 
 `npm run build` no necesita `.env.local`: el cliente de la base se crea de forma perezosa.

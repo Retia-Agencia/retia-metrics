@@ -27,6 +27,31 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
 
 ## Memory
 
+- **2026-10-05 (noche, Mani + Claude): programa nuevo "Comunícate con Confianza", el CRM recuerda el programa y manual de closers ligero.**
+  - **Programa nuevo (`comunicate-confianza`), activo en producción:** Typeform `E5F4chVT` (cuenta de Francisco, se ve con
+    `TYPEFORM_TOKEN`), fuente webhook `740c7011-…` activa y **principal**, plantilla del lead y mapeo iguales a Tactical
+    (`agenda`, `puntaje`→`score`, `leadQuality`→`tag_lead_quality`, `leadValue`→`lead_value`). El Typeform era una copia
+    VIEJA de Tactical: le faltaban `hvm_points`/`hvm_tier`/`lead_value`, su lógica y el oculto `utm_id`, y traía un
+    `tag_lead_quality = Medium` fuera del estándar. Se le copiaron por API la lógica, las variables y los ocultos del
+    Typeform de Tactical vivo (ids de preguntas y opciones idénticos, verificado) con el ok de Mani.
+  - **El "Send test request" de Typeform creó un lead y un deal falsos en producción** (`an_account@example.com`); se
+    borraron con el ok de Mani en una transacción (sobre, envío, lead, 2 contactos, deal con historial y nota, entrega,
+    4 filas de `change_log`). El rechazo de la prueba lo cerró otra sesión el mismo día (`67114fd`).
+  - **El CRM recuerda el último programa** (`5ede069`, enmienda al ADR 0050): cookie `programa_preferido` escrita en
+    `proxy.ts` (ignora las precargas de Next) y validada contra el alcance al leerla (`lib/programa-preferido.ts`). Se usa
+    solo donde la URL no trae programa: `/`, Mi espacio, Ajustes de salud y de migración, y las tabs del sidebar. La URL
+    sigue mandando (ADR 0023). Implementó Codex; el filtro de precargas lo agregó Claude en la revisión.
+  - **Manual de closers** (`1f5bbef`): una página a la vez por hash, índice de 9 secciones que abre solo las páginas de la
+    activa, ruta arriba, Anterior/Siguiente; texto al 70% del original en frases completas (la primera versión de Codex,
+    al 46% y telegráfica, se rechazó). Revisado en navegador ancho y a 375 px.
+  - **Pendiente:** (1) en Typeform, cambiar el TEXTO de las preguntas que aún hablan de Tactical (motivación, "invertir
+    como un experto", "1.500 USD") sin borrar opciones, y confirmar el rango de ingreso que descalifica; (2) Calendly:
+    invitar a Nicolás y Juan José como seats a la organización de Francisco (plan Teams; hoy solo administrativa y
+    francisco), que conecten su Google Calendar Y pongan su horario, crear el evento round robin y escogerlo en el
+    Typeform; (3) en el CRM: cuentas de closer, membresía y correo de Calendly en la membresía; botón "Conectar
+    Calendly" del programa (no hay webhook de Calendly en esa organización); (4) recorrido de clics del programa
+    recordado (no se hizo: la máquina estaba sin memoria libre); (5) un envío real por camino antes de repartir el link.
+
 - **2026-10-05 (tarde, Alejo + Claude): O6 casi cerrada en código: 187, 188, 189, 190, 192, 198, 147 y 200.**
   - **Hecho:** 190 y 192 con build y recorrido (costura: la caja de todos es la suma de los programas). 188: cada cifra
     del embudo por etapa y del comparativo abre su lista (`embudo-con-filas.ts`, un solo cálculo para cifra y lista),

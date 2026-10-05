@@ -611,11 +611,11 @@ The agent should run these to get fast signal on whether code works. Keep them c
   el 29-sep solo con lecturas:
   - `DATABASE_URL` / `DATABASE_URL_DIRECTA`: la base de produccion (ref `hfqmiyiuyqapdsbywrag`). Leer: libre.
     Escribir: pide el ok de Mani y se mira el ref antes.
-  - `TYPEFORM_TOKEN`: token personal **por cuenta, no por programa**. Ve los dos forms (Tactical `GmPGBOf9`,
+  - `TYPEFORM_TOKEN`: token personal **por cuenta, no por programa**. Ve los forms de los tres programas (Comunícate con Confianza `E5F4chVT`, Tactical `GmPGBOf9`,
     ComunicArte `nkMLdeh8`), sus campos, variables, webhooks y respuestas (~3.100 y ~2.700), y ademas otros
     forms ajenos a Retia. **No es frontera de programa:** el script pasa siempre el form id explicito. Sus
     scopes no se ven por API: si una escritura da 403, falta `forms:write`.
-  - `CALENDLY_ACCESS_TOKEN_COMUNICARTE` y `CALENDLY_ACCESS_TOKEN_TACTICAL`: uno por programa, de una cuenta
+  - `CALENDLY_ACCESS_TOKEN_COMUNICARTE`, `CALENDLY_ACCESS_TOKEN_TACTICAL` y `CALENDLY_ACCESS_TOKEN_COMUNICATE_CONFIANZA` (5-oct): uno por programa, de una cuenta
     OWNER de su organizacion. Ven miembros, tipos de evento, citas y webhooks de esa organizacion. Cada
     programa usa SU token: nunca uno para consultar el otro. `CALENDLY_PAT_LOCAL_*` no se usa.
   - **Reglas:** leer es libre; **crear, editar o borrar en Typeform, Calendly o la base pide el ok de Mani**
