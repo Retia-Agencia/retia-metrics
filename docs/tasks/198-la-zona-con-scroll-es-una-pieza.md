@@ -3,7 +3,7 @@ id: 198
 etapa: O6
 serves: "A-86; tickets 185 y 193 a 197"
 depends: [197]
-status: todo
+status: en revisión
 ---
 
 # 198 — La zona con scroll es una pieza de `pantalla-fija.tsx`
@@ -27,3 +27,13 @@ pantalla que copie la versión vieja repite el bug.
 - Typecheck, lint, `npm run build` (varias copias viven en componentes cliente).
 - Recorrido en `dev:local`: Leads, Calls, Inbox, Students, Programa, Recursos, Dashboard y las seis de Ajustes siguen
   midiendo el alto de la ventana a 1440×900.
+
+## Nota de cierre (5-oct, Alejo + Claude)
+
+- `components/layout/pantalla-fija.tsx` exporta `ZonaConScroll` (un `div`) y `clasesDeZonaConScroll` (para una lista o
+  un `CardContent`), con el porqué del `relative` escrito al lado. Eran **14** copias, no 13: las 14 pasan por
+  `clasesDeZonaConScroll` conservando su elemento y sus clases extra, así que no hay cambio visual. El `grep` del
+  ticket solo encuentra la pieza. `docs/structure.md` §9 la nombra.
+- Typecheck, lint y `npm run build`. Recorrido en `dev:local` con Chrome headless a 1440×900: Leads, Calls, Inbox,
+  Students, Programa, Recursos, el Dashboard del programa y el de todos, y las seis de Ajustes miden 900 px, sin errores.
+- **Falta:** el checkpoint.

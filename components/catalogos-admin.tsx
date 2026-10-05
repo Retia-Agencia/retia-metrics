@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import {
   agregarAccion,
   asociarProgramaAccion,
@@ -243,7 +244,7 @@ function PanelCatalogo({ catalogo }: { catalogo: CatalogoVista }) {
           ) : null}
         </form>
 
-        <ul className="divide-y rounded-md border md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <ul className={clasesDeZonaConScroll("divide-y rounded-md border")}>
           {items.length === 0 ? (
             <li className="px-3 py-4 text-sm text-muted-foreground">
               Todavía no hay elementos en este catálogo.

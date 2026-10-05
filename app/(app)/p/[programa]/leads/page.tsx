@@ -22,7 +22,7 @@ import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
 import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
 import { FiltroSelect } from "@/components/filtros/filtro-select";
 import { PageShell } from "@/components/page-shell";
-import { PantallaFija } from "@/components/layout/pantalla-fija";
+import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas } from "@/components/layout/pestanas";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Badge } from "@/components/ui/badge";
@@ -177,7 +177,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
             </CardAction>
             </CardHeader>
             <CardContent className="flex min-h-0 flex-1 flex-col">
-              <div className="overflow-x-auto md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
+              <div className={clasesDeZonaConScroll("overflow-x-auto")}>
                 {filas.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No hay leads con estos filtros.</p>
                 ) : vista === "tarjetas" ? (
@@ -276,7 +276,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
             </CardContent>
           </Card>
         ) : (
-          <div className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
+          <div className={clasesDeZonaConScroll()}>
             <PosiblesDuplicados
           filas={duplicados.filas.map((d) => ({
             contactoId: d.contactoId,

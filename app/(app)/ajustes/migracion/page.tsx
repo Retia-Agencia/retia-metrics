@@ -3,7 +3,7 @@ import { paginaConRol } from "@/lib/auth/page-guards";
 import { programasActivos } from "@/lib/queries/programas";
 import { LIMITE_DE_RAREZAS, nombreDeRareza, rarezasDelPrograma } from "@/lib/migracion/rarezas";
 import { PageShell } from "@/components/page-shell";
-import { PantallaFija } from "@/components/layout/pantalla-fija";
+import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num } from "@/lib/format";
@@ -106,7 +106,7 @@ export default async function MigracionPage(props: {
                 </p>
               ) : null}
             </CardHeader>
-            <CardContent className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
+            <CardContent className={clasesDeZonaConScroll()}>
               <ul className="divide-y divide-border">
                 {rarezas.filas.map((r) => (
                   <li key={r.id} className="space-y-1 py-3 text-sm">

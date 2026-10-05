@@ -9,6 +9,7 @@ import { fechaHoraEnBogota, num } from "@/lib/format";
 import { ETIQUETA_DE_RESULTADO, TONO_DE_RESULTADO } from "@/lib/deals/estado-de-llamada";
 import type { FilaLlamadaPrograma } from "@/lib/queries/llamadas";
 import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
+import { clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 
 /**
  * Las llamadas del programa (ticket 074; segunda pasada, ticket 176): la fila abre el
@@ -45,7 +46,7 @@ export function LlamadasPrograma({
           Llamadas · <span className="cifra">{num(total)}</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto p-0">
+      <CardContent className={clasesDeZonaConScroll("p-0")}>
         {llamadas.length === 0 ? (
           <ul className="divide-y">
             <li className="px-4 py-6 text-center text-sm text-muted-foreground">

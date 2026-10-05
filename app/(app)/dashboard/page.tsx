@@ -6,7 +6,7 @@ import { parsearPeriodoUrl } from "@/lib/periodo";
 import { hoyEnBogota } from "@/lib/format";
 import { armarVistaDeTodos } from "@/lib/queries/vista-todos";
 import { PageShell } from "@/components/page-shell";
-import { PantallaFija } from "@/components/layout/pantalla-fija";
+import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas, pestanaActiva, urlConSeccion } from "@/components/layout/pestanas";
 import { SelectorPeriodo } from "@/components/selector-periodo";
 import { SeccionDeTodos } from "./secciones";
@@ -43,7 +43,7 @@ export default async function DashboardDeTodosPage({ searchParams }: Props) {
           {vista.periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{vista.periodo.aviso}</p> : null}
         </div>
         <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del dashboard" />
-        <div className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <div className={clasesDeZonaConScroll()}>
           {seccion === "pauta"
             ? <PautaPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} />
             : <SeccionDeTodos vista={vista} seccion={seccion === "operacion" || seccion === "dinero" ? seccion : "pulso"} hoy={hoy} />}

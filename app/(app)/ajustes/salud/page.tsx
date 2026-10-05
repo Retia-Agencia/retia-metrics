@@ -4,7 +4,7 @@ import { entregasDePrograma, entregasHuerfanas } from "@/lib/queries/entregas-we
 import { conciliarProgramaConHoja } from "@/lib/queries/conciliacion-sheets";
 import { HORAS_SIN_CALIDAD, saludDeFuentes, type EstadoDeFuente } from "@/lib/queries/salud-fuentes";
 import { PageShell } from "@/components/page-shell";
-import { PantallaFija } from "@/components/layout/pantalla-fija";
+import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { haceCuanto, num } from "@/lib/format";
@@ -143,7 +143,7 @@ export default async function SaludPage({
           </CardContent>
         </Card>
 
-        <div className="space-y-6 md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <div className={clasesDeZonaConScroll("space-y-6")}>
           {/* Las entregas del programa, 25 por página y "Ver anteriores" bajo demanda. */}
           <EntregasWebhook
             entregas={entregasVista}

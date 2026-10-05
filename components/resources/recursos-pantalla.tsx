@@ -17,7 +17,7 @@ import {
 } from "@/app/(app)/recursos/acciones";
 import { agruparEnlaces, GLOBAL } from "@/components/resources/helpers";
 import { FiltroSelect } from "@/components/filtros/filtro-select";
-import { PantallaFija } from "@/components/layout/pantalla-fija";
+import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import type {
   EnlaceUI,
   ProgramaOpcion,
@@ -202,7 +202,7 @@ export function RecursosPantalla({
 
       {/* Solo la lista de la pestaña activa, con scroll propio desde `md`. Por debajo de
           `md` vuelve el scroll de página. */}
-      <div className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
+      <div className={clasesDeZonaConScroll()}>
         {seccion === "recursos" ? (
           <section className="space-y-3">
             {puedeCrear ? (

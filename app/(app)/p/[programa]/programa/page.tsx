@@ -14,7 +14,7 @@ import {
 } from "@/lib/queries/ficha-programa";
 import { fecha, num, usd } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
-import { PantallaFija } from "@/components/layout/pantalla-fija";
+import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas, pestanaActiva, urlConSeccion, type GrupoDePestanas } from "@/components/layout/pestanas";
 import { CohortesAdmin } from "@/components/cohortes-admin";
 import { FuentesAdmin } from "@/components/admin/fuentes-admin";
@@ -154,7 +154,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       <PantallaFija>
         <Pestanas grupos={grupos} activa={seccion} etiqueta="Sección del programa" />
 
-        <div className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <div className={clasesDeZonaConScroll()}>
           {seccion === "general" ? (
             <div className="space-y-4">
               {!programa.activo && administra ? (

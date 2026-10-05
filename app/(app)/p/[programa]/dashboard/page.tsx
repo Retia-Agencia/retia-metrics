@@ -15,7 +15,7 @@ import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
 import { registrosYAgendasPorCanal } from "@/lib/queries/registros-agendas-canal";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
-import { PantallaFija } from "@/components/layout/pantalla-fija";
+import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas, pestanaActiva, urlConSeccion, type Pestana } from "@/components/layout/pestanas";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { DashboardPrograma, OrigenPorCanal } from "@/components/dashboard-programa";
@@ -171,7 +171,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
         </div>
         <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del dashboard" />
 
-        <div className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <div className={clasesDeZonaConScroll()}>
           {seccion === "pauta" ? (
             <SeccionPauta
               programId={programa.id}

@@ -13,7 +13,7 @@ import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
 import { inboxDelPrograma, perdidosEnCalendly, type AlcanceInbox } from "@/lib/queries/inbox";
 import { PageShell } from "@/components/page-shell";
-import { PantallaFija } from "@/components/layout/pantalla-fija";
+import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas, pestanaActiva, urlConSeccion, type GrupoDePestanas } from "@/components/layout/pestanas";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
@@ -160,7 +160,7 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
 
         <Pestanas grupos={grupos} activa={seccion} etiqueta="Sección del inbox" />
 
-        <div className="md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <div className={clasesDeZonaConScroll()}>
           {seccion === "por-registrar" ? (
             <InboxLlamadasDeHoy
           llamadas={inbox.llamadasDeHoy}

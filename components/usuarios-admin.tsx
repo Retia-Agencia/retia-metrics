@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROLES, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
+import { clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import {
   crearUsuarioAccion,
   desactivarUsuarioAccion,
@@ -119,7 +120,7 @@ export function UsuariosAdmin({
         ) : null}
       </div>
 
-      <div className="space-y-6 md:relative md:min-h-0 md:flex-1 md:overflow-y-auto">
+      <div className={clasesDeZonaConScroll("space-y-6")}>
         <ul className="divide-y rounded-md border">
           {ordenados.length === 0 ? (
             <li className="px-3 py-4 text-sm text-muted-foreground">Todavía no hay usuarios.</li>
