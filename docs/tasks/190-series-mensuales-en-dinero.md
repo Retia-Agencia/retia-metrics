@@ -38,5 +38,5 @@ status: done
 - Tests: `tests/series-dinero.test.ts` (mes = tarjeta del dashboard = Metas; anulada, revertida y otro programa no
   cuentan; closer; mismo hábil; cambio de año; mes futuro). Typecheck, lint y tests de dashboard, metas, páginas y
   guardianes en verde.
-- **Falta:** `npm run build` y el recorrido en `dev:local` con 375 px (desde el checkout principal tras el merge).
+- **5-oct (tarde):** `npm run build` limpio. Recorrido en `dev:local` como developer: Dinero de ComunicArte con las gráficas por mes, "Ver cifras" despliega la tabla con la meta del mes, y el punto de octubre abre su lista (2 ventas sin valor vendido, USD 0,00, igual al punto). Consola sin errores. **Falta:** 375 px (la ventana del navegador no se dejó achicar) y el checkpoint.
 

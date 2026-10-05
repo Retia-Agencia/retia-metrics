@@ -32,7 +32,7 @@ lado**, y la función del agregado no compila con una tasa (`lib/queries/agregad
 - Tests: `tests/vista-todos.test.ts` (la suma es la suma de los dashboards propios; un programa fuera del alcance no
   suma) y `tests/agregado-programas.test.ts` (`@ts-expect-error` con tasa y con COP). Typecheck, lint, guardianes y
   `paginas.test.ts` en verde.
-- **Falta:** `npm run build` y el recorrido en `dev:local` (desde el checkout principal tras el merge).
+- **5-oct (tarde):** `npm run build` limpio. Recorrido en `dev:local` como developer: Pulso, Operación, Dinero y Pauta cargan; Pauta y las tasas van por programa, lado a lado. Prueba de costura (mayo a 5-oct): caja de todos USD 19.940,30 = 8.190,30 + 11.750,00, y 28 sin valor vendido = 16 + 12. Consola sin errores. **Falta:** 375 px y el checkpoint.
 - Deuda: Operación de "todos" llama `Operacion(...)` como función y cambia su `id` con `cloneElement` para no repetir
   el ancla; si la pieza aceptara un `id`, sobraría.
 
