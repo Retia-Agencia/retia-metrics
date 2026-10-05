@@ -64,7 +64,7 @@ toda tasa sea real: el mismo grupo arriba y abajo.
   filtrado por Carlos y en su Mi espacio (con "Aún madurando"). Las listas `grupo_*` dan 65 (50 + 15 en dos
   páginas), 42 y 14, y con el código opaco de Carlos, 5. "Todos los programas" y Tactical cuadran (64% = 32/50,
   34,4% = 11/32). Los tres números del grupo son clicables. Servidor sin errores.
-- **Falta:** abrir los diálogos con clics y mirar la consola y los 375 px en un navegador; y el checkpoint.
+- **5-oct (tarde):** 375 px hechos el 5-oct con Chrome headless por CDP (viewport 375, móvil): sin scroll horizontal ni elementos fuera, sin errores (Operación, Mi espacio › Mis métricas como closer). Consola limpia en el navegador. **Falta:** el checkpoint.
 - **Revisión de Codex (solo lectura):** sin hallazgos en la identidad del closer (grupo y comparativo usan el mismo
   join), en la igualdad dashboard = comparativo = Mi espacio, en la frontera de programa, anulados, cortesías,
   citas futuras y fechas nulas. Tres hallazgos que quedan fuera, como lo que sigue:
