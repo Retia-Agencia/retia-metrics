@@ -9,8 +9,10 @@ import { Marca } from "@/components/marca";
 const MENSAJES_ERROR: Record<string, string> = {
   AccessDenied:
     "Tu correo no está autorizado. El acceso lo habilita la gerencia comercial uno por uno — no hay registro abierto.",
+  // Auth.js manda aqui tambien un login que se cruzo (PKCE "Invalid code verifier": dos
+  // pestanas, doble clic, "atras" en la vuelta de Google), no solo una mala configuracion.
   Configuration:
-    "La autenticación no está configurada correctamente. Avisa a la gerencia comercial.",
+    "No pudimos completar el ingreso. Cierra las otras pestañas del CRM e intenta de nuevo; si sigue pasando, avisa al equipo técnico.",
   Verification: "El enlace expiró. Intenta entrar de nuevo.",
 };
 
