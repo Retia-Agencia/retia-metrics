@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { conteo, dinero, sumarConteos, sumarDinero, tasa } from "@/lib/queries/agregado-programas";
+import { conteo, dinero, sumarConteos, sumarDinero, sumarUsd, tasa } from "@/lib/queries/agregado-programas";
 
 describe("agregado entre programas", () => {
   it("suma conteos", () => {
@@ -22,5 +22,14 @@ describe("agregado entre programas", () => {
     sumarConteos([conteo(1), tasa(0.5)]);
     // @ts-expect-error ADR 0048: una tasa no es dinero.
     sumarDinero([[tasa(0.5)]]);
+    // @ts-expect-error ADR 0048: el contratado y la cartera son USD; una tasa no cabe.
+    sumarUsd([tasa(0.5)]);
+    // @ts-expect-error Nunca convertir moneda en silencio: COP no entra a una suma en USD.
+    sumarUsd([dinero("COP", 1)]);
+  });
+
+  it("suma USD y da cero sin programas", () => {
+    expect(sumarUsd([dinero("USD", 797), dinero("USD", 1500)])).toEqual(dinero("USD", 2297));
+    expect(sumarUsd([])).toEqual(dinero("USD", 0));
   });
 });

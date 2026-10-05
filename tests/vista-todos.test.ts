@@ -15,6 +15,7 @@ import type { Db } from "@/lib/db/tipos";
 import { programasVisibles, type ProgramaVisible } from "@/lib/auth/alcance";
 import { cajaRecaudada } from "@/lib/queries/dashboard";
 import { armarVistaDeTodos } from "@/lib/queries/vista-todos";
+import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -135,5 +136,38 @@ describe("vista de todos los programas", () => {
     expect(visibles.map((p) => p.slug)).toEqual(["programa-a"]);
     expect(vista.programas.map((p) => p.programa.slug)).toEqual(["programa-a"]);
     expect(vista.a.leads.valor).toBe(1);
+  });
+
+  it("la suma de las secciones nuevas es la suma de los dashboards de cada programa (192)", async () => {
+    const vista = await armarVistaDeTodos({ programas, hoy: HOY, periodo: { preset: "hoy" } }, db);
+    const propios = await Promise.all(programas.map((p) => armarVistaDelDashboard({
+      programId: p.id, hoy: HOY, preset: "custom", periodo: { preset: "custom", a: RANGO },
+    }, db)));
+    const suma = (f: (v: (typeof propios)[number]) => number) => propios.reduce((n, v) => n + f(v), 0);
+
+    expect(vista.a.contratado).toEqual({ tipo: "dinero", moneda: "USD", valor: suma((v) => v.contratadoUsd) });
+    expect(vista.a.contratado.valor).toBe(2297);
+    expect(vista.a.cierres.valor).toBe(suma((v) => v.embudo.cierres));
+    expect(vista.a.shows.valor).toBe(suma((v) => v.embudo.llamadasConShow));
+    expect(vista.cartera.saldo.valor).toBe(suma((v) => v.cartera.saldoUsd));
+    expect(vista.cartera.deals.valor).toBe(suma((v) => v.cartera.deals));
+    expect(vista.cartera.deals.valor).toBe(2);
+    expect(vista.sinValorVendido.valor).toBe(suma((v) => v.sinValorVendido));
+    // Tasas, comisión y descuento siguen por programa, iguales a los del dashboard propio.
+    expect(vista.programas.map((p) => p.pctCierre.valor)).toEqual(propios.map((v) => v.embudo.pctCierre));
+    expect(vista.programas.map((p) => p.comision.valor)).toEqual(propios.map((v) => v.comision.totalUsd));
+    expect(vista.programas.map((p) => p.descuento.valor)).toEqual(propios.map((v) => v.descuento.promedioPct));
+  });
+
+  it("un programa ajeno no suma nada aunque exista en la base (192)", async () => {
+    const soloA = await armarVistaDeTodos({ programas: [programas[0]], hoy: HOY, periodo: { preset: "hoy" } }, db);
+    const propioA = await armarVistaDelDashboard({
+      programId: programas[0].id, hoy: HOY, preset: "custom", periodo: { preset: "custom", a: RANGO },
+    }, db);
+
+    expect(soloA.a.contratado.valor).toBe(propioA.contratadoUsd);
+    expect(soloA.a.contratado.valor).toBe(797);
+    expect(soloA.cartera.deals.valor).toBe(1);
+    expect(soloA.programas.map((p) => p.programa.slug)).toEqual(["programa-a"]);
   });
 });
