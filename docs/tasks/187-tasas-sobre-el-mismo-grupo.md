@@ -58,7 +58,13 @@ toda tasa sea real: el mismo grupo arriba y abajo.
   tenían llamadas sin deal con la definición vieja: ahora cada cita cuelga de un deal, con los mismos números.
 - Nivel 1: typecheck y lint limpios; tests de métricas, guardianes y páginas en verde. `npm run build` compila; su
   chequeo de tipos local cae solo por `.next/dev/types` viejo (rutas borradas), no por este cambio: lo valida el CI.
-- **Falta:** el recorrido en `dev:local` como gerente y closer a 375 px, y el checkpoint.
+- **Recorrido en `dev:local` (5-oct, por HTTP: la extensión de Chrome no conectó, otra cuenta de claude.ai).** Septiembre
+  en ComunicArte como developer: grupo 65, con show 42, vendidos 14 (65% × 33% = 21,5%); Carlos 22 shows y 5
+  vendidos (22,7%), María 20 y 9 (45%), que suman el grupo. El mismo 22,7% en el comparativo, en el dashboard
+  filtrado por Carlos y en su Mi espacio (con "Aún madurando"). Las listas `grupo_*` dan 65 (50 + 15 en dos
+  páginas), 42 y 14, y con el código opaco de Carlos, 5. "Todos los programas" y Tactical cuadran (64% = 32/50,
+  34,4% = 11/32). Los tres números del grupo son clicables. Servidor sin errores.
+- **Falta:** abrir los diálogos con clics y mirar la consola y los 375 px en un navegador; y el checkpoint.
 - **Revisión de Codex (solo lectura):** sin hallazgos en la identidad del closer (grupo y comparativo usan el mismo
   join), en la igualdad dashboard = comparativo = Mi espacio, en la frontera de programa, anulados, cortesías,
   citas futuras y fechas nulas. Tres hallazgos que quedan fuera, como lo que sigue:
