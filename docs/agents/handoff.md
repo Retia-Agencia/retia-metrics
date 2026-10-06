@@ -25,6 +25,16 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
 
 ## Memory
 
+- **2026-10-06 (mañana, Alejo + Claude): 117 cerrado, la calidad de los parciales arreglada en Typeform.**
+  - El primer parcial real (Confianza, 5-oct 22:09) llegó `tag_lead_quality=High` con 3 respuestas y nació en
+    Calificado. Causa: la única regla que pone `High` (pregunta 8) tenía la condición `score >= 0` sin mirar la
+    respuesta. Con el ok de Mani se corrigió en Confianza, Tactical y ComunicArte (`PUT /forms/{id}` contra respaldo;
+    solo cambia esa condición). Probado con un parcial real: Potencial → Calificado → Agendado. Detalle en el 117.
+  - El PAT de Typeform en la máquina de Alejo es `TYPEFORM_PAT_LOCAL`. Cada escritura a Typeform la frena el modo
+    automático hasta aprobarla con `/permissions`.
+  - Pendiente: ver un parcial de Tactical y de ComunicArte tras el cambio; revisar si `hvm_tier` y `lead_value` tienen
+    el mismo patrón (no enrutan).
+
 - **2026-10-05 (cierre, Alejo + Claude): checkpoint `cp-20261005-1` sobre `d974c76`.**
   - CI verde en la punta (suite completa, Postgres real y build). Deploy de producción en Vercel correcto (estado del
     commit en GitHub; el CLI de Vercel en la máquina de Alejo no está ligado al equipo `agencia-dani`, así que
