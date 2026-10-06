@@ -25,6 +25,14 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
 
 ## Memory
 
+- **2026-10-06 (tarde, Alejo + Claude): 092 cerrado, `programs.form_url` retirada.**
+  - Paso 2 del ADR 0068 (`c7f74ea`): `reactivarPrograma` exige fuente principal del mismo programa y token; el pop-up
+    de Editar y la ficha ya no piden Forms Link; un programa nuevo se activa desde su ficha. Cadenero aprobado.
+  - Con el ok de Mani: principales de ComunicArte (Typeform `nkMLdeh8`) y Tactical marcadas por el molde, y la **0069**
+    aplicada en producción tras CI verde y deploy (71 migraciones).
+  - Lo siguiente del frente: el 086 (enlace del closer) sobre `generarLink`. Pendiente del 117: un parcial real de
+    Tactical y de ComunicArte.
+
 - **2026-10-06 (mañana, Alejo + Claude): 117 cerrado, la calidad de los parciales arreglada en Typeform.**
   - El primer parcial real (Confianza, 5-oct 22:09) llegó `tag_lead_quality=High` con 3 respuestas y nació en
     Calificado. Causa: la única regla que pone `High` (pregunta 8) tenía la condición `score >= 0` sin mirar la

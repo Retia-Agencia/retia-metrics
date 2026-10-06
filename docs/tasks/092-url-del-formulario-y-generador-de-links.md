@@ -3,7 +3,7 @@ id: 092
 etapa: E1b
 serves: "ADR 0046 · plan v2 §12.12"
 depends: [101]
-status: en curso
+status: done
 ---
 
 # 092 — La URL del formulario y el generador de links
@@ -165,7 +165,8 @@ importe se verifica cuando se construya el 086.
   desechable: `url_publica` = el `form_url` de cada programa y `principal`, con su rastro en `change_log` (4 filas,
   con actor). Mapeos intactos. Los tres programas activos tienen principal.
 
-**Falta, en este orden:**
-1. Push y deploy verde en Vercel.
-2. Aplicar la 0069 en producción (ok de Mani dado el 6-oct), mirando antes `pg_stat_activity`.
-3. El 086 importa `generarLink` (punto 4 del "Done cuando").
+- **Push `c7f74ea`**, CI verde (suite completa, Postgres real y build) y deploy de Vercel correcto. Después, **0069
+  aplicada en producción** (sin transacciones abiertas en `pg_stat_activity`): `form_url` ya no existe, el CHECK es
+  `programs_activo_con_token`, 71 migraciones, los tres programas siguen activos.
+
+**Falta:** solo que el 086 importe `generarLink` (punto 4 del "Done cuando"); se verifica al construir el 086.
