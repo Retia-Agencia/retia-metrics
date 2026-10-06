@@ -3,7 +3,7 @@ id: 126
 etapa: E7
 serves: "docs/analytics.md PT-08, PT-47"
 depends: []
-status: todo
+status: in-progress
 ---
 
 # 126 — El embudo del formulario
@@ -71,3 +71,26 @@ fuente) espera el ok de Mani para la migración y QM-8.
 
 **Falta (parte B):** columna del token de Typeform en `sources` (decisión de Mani del 29-sep: reglas del secreto),
 el cliente del Insights con caché corta, y verificar si acepta rango de fechas.
+
+---
+
+## Parte B construida (6-oct, Alejo + Claude): el embudo por pregunta
+
+- **Medido contra la API real:** `GET /insights/{form}/summary` **no acepta rango de fechas** (`since`/`until`,
+  `from`/`to` y `date_from` devuelven lo mismo). La tarjeta dice "histórico acumulado" y no sigue el período.
+- **Token en la fuente** (`sources.typeform_token`, migración **0071**), con las reglas del secreto: lo escribe solo
+  `guardarTokenTypeform` (administradores, solo fuentes webhook de Typeform, rastro "(oculto)"), `sinSecreto` y
+  `fuentesParaAdmin` lo quitan de toda lectura. Se carga en Programa → Captación → Formularios ("Cargar token de
+  Typeform"). Excepción nombrada en `AGENTS.md`.
+- El form id sale de la URL pública de la fuente (`…typeform.com/to/<id>`, `formIdDeTypeform`); sin ella, la tarjeta lo dice.
+- `lib/typeform/insights.ts` (cliente con timeout de 8 s; un 401/403/5xx o una forma rara es un error visible, nunca un
+  embudo vacío) y `lib/queries/embudo-por-pregunta.ts` (fuentes activas de Typeform del programa, la principal primero;
+  caché en memoria de 5 min por fuente; un error no se cachea).
+- Tarjeta "Embudo por pregunta" (`components/embudo-por-pregunta.tsx`) bajo el embudo por canal, en el dashboard del
+  programa y en la Pauta de "todos": por pregunta, la vieron (% sobre la primera) y se fueron aquí (% sobre quien la vio).
+- Tests: `tests/typeform-insights.test.ts` (13; mordido: si `fuentesParaAdmin` deja pasar el token, cae).
+- Recorrido en `dev:local` con el token real y el form de Tactical: 9 preguntas, cifras iguales a la API (8.428 vieron
+  la primera, 3.518 se fueron ahí; 943 vieron el Calendly y 415 se fueron), consola limpia, sin desborde a 375 px.
+
+**Falta para cerrar:** el ok de Mani para aplicar la 0071 en producción (ANTES del push: el código nuevo lee la columna),
+cargar el token en las fuentes de Typeform de producción, y comparar contra el panel de Typeform el día de la prueba.

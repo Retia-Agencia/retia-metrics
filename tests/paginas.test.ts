@@ -131,6 +131,9 @@ const embudoDelFormulario = vi.fn(async () => ({
   sinCalidad: 0,
 }));
 vi.mock("@/lib/queries/embudo-formulario", () => ({ embudoDelFormulario }));
+// El embudo por pregunta (126 B) le pega a Typeform: sin base ni red, ningún formulario.
+const embudoPorPregunta = vi.fn(async () => []);
+vi.mock("@/lib/queries/embudo-por-pregunta", () => ({ embudoPorPregunta }));
 const registrosYAgendasPorCanal = vi.fn(async () => ({ filas: [], total: { registros: 0, agendas: 0 } }));
 vi.mock("@/lib/queries/registros-agendas-canal", () => ({ registrosYAgendasPorCanal }));
 // Los nombres de canal del bloque Origen por canal (129), igual: sin base, catalogo vacio.

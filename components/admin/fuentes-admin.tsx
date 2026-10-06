@@ -15,6 +15,7 @@ import {
   desactivarFuenteAccion,
   editarFuenteAccion,
   editarPlantillaLeadAccion,
+  guardarTokenTypeformAccion,
   marcarFuentePrincipalAccion,
   probarFuenteAccion,
   rotarSecretoFuenteAccion,
@@ -58,6 +59,8 @@ export interface FuenteVista {
   mapeoColumnas: MapeoColumnas;
   proveedor: ProveedorFormulario | null;
   tieneSecreto: boolean;
+  /** Si ya tiene el token de Typeform con que se lee el Insights (126). Nunca el valor. */
+  tieneTokenTypeform: boolean;
   activo: boolean;
   ultimaSync: string | null;
   orden: number;
@@ -290,7 +293,12 @@ function FilaFuente({
   // El secreto recien generado vive SOLO en el estado de este componente: no hay forma
   // de volver a pedirlo al servidor. Al recargar la pagina desaparece.
   const [secretoNuevo, setSecretoNuevo] = useState<string | null>(null);
+  // El token de Typeform (126) se pega aqui y no vuelve: el campo se vacia al guardar.
+  const [editandoToken, setEditandoToken] = useState(false);
+  const [token, setToken] = useState("");
+  const [guardandoToken, startGuardarToken] = useTransition();
   const esWebhook = fuente.tipo === "webhook";
+  const esTypeform = esWebhook && fuente.proveedor === "typeform";
   // El origen solo existe en el navegador: en el servidor es "" y React lo reemplaza
   // al hidratar, sin que los dos HTML discrepen.
   const origen = useSyncExternalStore(sinSuscripcion, origenDelNavegador, () => "");
@@ -312,6 +320,20 @@ function FilaFuente({
         router.refresh();
       } else {
         toast.error("No se pudo generar el secreto", { description: res.error });
+      }
+    });
+  }
+
+  function guardarToken() {
+    startGuardarToken(async () => {
+      const res = await guardarTokenTypeformAccion(fuente.id, token);
+      if (res.ok) {
+        setToken("");
+        setEditandoToken(false);
+        toast.success("Token de Typeform guardado");
+        router.refresh();
+      } else {
+        toast.error("No se pudo guardar el token", { description: res.error });
       }
     });
   }
@@ -361,6 +383,11 @@ function FilaFuente({
         <div className="flex flex-wrap items-center gap-2">
           {fuente.principal ? <Badge>principal</Badge> : null}
           {fuente.salud ? <MarcaDeSalud salud={fuente.salud} /> : null}
+          {esTypeform && !fuente.tieneTokenTypeform ? (
+            <Badge variant="outline" className="text-muted-foreground">
+              sin token de Typeform
+            </Badge>
+          ) : null}
           {esWebhook && !fuente.tieneSecreto ? (
             <Badge variant="outline" className="text-muted-foreground">
               sin secreto
@@ -387,6 +414,11 @@ function FilaFuente({
             <Button size="sm" variant="ghost" disabled={pendiente || rotando} onClick={rotar}>
               {rotando ? "Generando…" : fuente.tieneSecreto ? "Rotar secreto" : "Generar secreto"}
             </Button>
+            {esTypeform ? (
+              <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => setEditandoToken((v) => !v)}>
+                {fuente.tieneTokenTypeform ? "Reemplazar token de Typeform" : "Cargar token de Typeform"}
+              </Button>
+            ) : null}
           </>
         ) : (
           <Button size="sm" variant="ghost" disabled={pendiente || probando} onClick={probar}>
@@ -414,6 +446,45 @@ function FilaFuente({
           </Button>
         )}
       </div>
+      {editandoToken ? (
+        <form
+          className="mt-2 space-y-1 rounded-md bg-muted/50 p-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            guardarToken();
+          }}
+        >
+          <label htmlFor={`token-typeform-${fuente.id}`} className="block text-xs font-medium">
+            Token de la API de Typeform (de la cuenta dueña del formulario). Con él se lee el embudo por pregunta del
+            dashboard; una vez guardado no se vuelve a mostrar.
+          </label>
+          <input
+            id={`token-typeform-${fuente.id}`}
+            type="password"
+            autoComplete="off"
+            required
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            className="w-full rounded-md border bg-background px-2 py-1 text-xs"
+          />
+          <div className="flex gap-1">
+            <Button type="submit" size="sm" variant="outline" disabled={guardandoToken || token.trim() === ""}>
+              {guardandoToken ? "Guardando…" : "Guardar token"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setToken("");
+                setEditandoToken(false);
+              }}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      ) : null}
       {secretoNuevo ? (
         <div className="mt-2 space-y-1 rounded-md bg-muted/50 p-2">
           <p className="text-xs font-medium">

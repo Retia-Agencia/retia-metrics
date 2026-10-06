@@ -171,6 +171,8 @@ export interface FuenteVista extends FilaCatalogo {
   proveedor: ProveedorFormulario | null;
   /** Si la fuente ya tiene secreto. El valor nunca sale de aqui (ticket 105). */
   tieneSecreto: boolean;
+  /** Si la fuente ya tiene token de Typeform (126). El valor nunca sale de aqui. */
+  tieneTokenTypeform: boolean;
   umbralSinRespuestaHoras: number;
   umbralMuertaHoras: number;
   urlPublica: string | null;
@@ -181,12 +183,17 @@ export interface FuenteVista extends FilaCatalogo {
 }
 
 /**
- * Lo que devuelve este modulo nunca lleva el secreto: la fila se lee entera (el molde
- * hace `select()`), asi que se quita aqui, en UN solo lugar, antes de que salga.
+ * Lo que devuelve este modulo nunca lleva el secreto ni el token de Typeform: la fila se
+ * lee entera (el molde hace `select()`), asi que se quitan aqui, en UN solo lugar, antes
+ * de que salga.
  */
 function sinSecreto(fila: FilaCatalogo): FuenteVista {
-  const { secretoWebhook, ...resto } = fila;
-  return { ...resto, tieneSecreto: typeof secretoWebhook === "string" } as FuenteVista;
+  const { secretoWebhook, typeformToken, ...resto } = fila;
+  return {
+    ...resto,
+    tieneSecreto: typeof secretoWebhook === "string",
+    tieneTokenTypeform: typeof typeformToken === "string",
+  } as FuenteVista;
 }
 
 function idValido(id: string): string {
@@ -580,5 +587,42 @@ export async function rotarSecretoDeFuente(db: Db, actor: Actor, id: string): Pr
       });
     });
     return secreto;
+  });
+}
+
+const esquemaTokenTypeform = z.string().trim().min(1, "El token de Typeform es obligatorio.");
+
+/**
+ * Guarda (o reemplaza) el token de la API de Typeform de una fuente (ticket 126 parte B,
+ * decision de Mani del 29-sep). Es el UNICO escritor de `sources.typeform_token`, con las
+ * reglas del secreto del webhook: nunca pasa por el molde, el rastro va en la misma
+ * transaccion y dice que cambio SIN el valor, y ninguna lectura lo devuelve (`sinSecreto`).
+ * No devuelve nada: el valor lo pega quien administra, no hay que mostrarlo de vuelta.
+ *
+ * Solo una fuente webhook de Typeform lo tiene: es lo unico que el Insights sabe leer.
+ */
+export async function guardarTokenTypeform(db: Db, actor: Actor, id: string, token: string): Promise<void> {
+  return normalizando(async () => {
+    exigirAdministrador(actor);
+    const objetivoId = idValido(id);
+    const valor = esquemaTokenTypeform.parse(token);
+    const actual = await leerFuente(db, objetivoId);
+    if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
+    if (actual.tipo !== "webhook" || actual.proveedor !== "typeform") {
+      throw new ErrorDeApp("Solo una fuente de Typeform tiene token de Typeform.", 422);
+    }
+    await db.transaction(async (tx) => {
+      await tx.update(sources).set({ typeformToken: valor }).where(eq(sources.id, objetivoId));
+      await tx.insert(changeLog).values({
+        tabla: "sources",
+        registroId: objetivoId,
+        etiqueta: actual.nombre,
+        campo: "typeform_token",
+        valorAnterior: actual.tieneTokenTypeform ? SECRETO_OCULTO : null,
+        valorNuevo: SECRETO_OCULTO,
+        origen: "app",
+        userId: actor.id,
+      });
+    });
   });
 }

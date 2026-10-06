@@ -14,6 +14,7 @@ import { embudoPorCanal, nombresDeCanales } from "@/lib/queries/dashboard";
 import { pautaInterina, type FiltrosPauta } from "@/lib/queries/pauta-interina";
 import { hechosDelEmbudo } from "@/lib/queries/hechos-embudo";
 import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
+import { embudoPorPregunta } from "@/lib/queries/embudo-por-pregunta";
 import { registrosYAgendasPorCanal } from "@/lib/queries/registros-agendas-canal";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
@@ -24,6 +25,7 @@ import { DashboardPrograma, OrigenPorCanal } from "@/components/dashboard-progra
 import { FiltroDashboard } from "@/components/filtro-dashboard";
 import { PautaInterina } from "@/components/pauta-interina";
 import { EmbudoFormulario } from "@/components/embudo-formulario";
+import { EmbudoPorPregunta } from "@/components/embudo-por-pregunta";
 import { RegistrosAgendasCanal } from "@/components/registros-agendas-canal";
 import { DealsContraAgendas } from "@/components/deals-contra-agendas";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
@@ -260,10 +262,13 @@ async function SeccionPauta({
     medium: texto(busqueda.medium),
     campaign: texto(busqueda.campaign),
   });
+  // El Insights de Typeform (126 B) puede tardar hasta su timeout: va en paralelo, no en serie.
+  const porPreguntaPendiente = embudoPorPregunta(db, programId);
   const pauta = await pautaInterina(db, programId, rango, filtrosPauta, hoy);
   const areaId = esquemaFiltroArea.parse(texto(busqueda.area));
   const hechos = await hechosDelEmbudo(db, { programId, rango });
   const embudoFormulario = await embudoDelFormulario(db, { programId, rango });
+  const porPregunta = await porPreguntaPendiente;
   const porCanal = await registrosYAgendasPorCanal(db, programId, rango, hoy);
   const hechosFiltrados = areaId === undefined ? hechos : hechos.filter((fila) => fila.areaId === areaId);
   // Con un closer en el filtro el bloque Origen por canal no se muestra (129).
@@ -294,6 +299,7 @@ async function SeccionPauta({
       <OrigenPorCanal filas={origenPorCanal} />
       <RegistrosAgendasCanal vista={porCanal} />
       <EmbudoFormulario embudo={embudoFormulario} />
+      <EmbudoPorPregunta embudos={porPregunta} />
       <Card aria-labelledby="resumen-serie">
         <CardHeader>
           <div className="flex items-center gap-2">

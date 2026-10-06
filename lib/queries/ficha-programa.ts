@@ -271,6 +271,7 @@ export async function fuentesDelProgramaParaAdmin(
           mapeoColumnas: (fuente.mapeoColumnas as MapeoColumnas) ?? {},
           proveedor: fuente.proveedor,
           tieneSecreto: fuente.tieneSecreto,
+          tieneTokenTypeform: fuente.tieneTokenTypeform,
           activo: fuente.activo,
           ultimaSync: fuente.ultimaSync ? fuente.ultimaSync.toISOString() : null,
           orden: fuente.orden,

@@ -12,6 +12,7 @@ import {
   crearFuente,
   desactivarFuente,
   editarFuente,
+  guardarTokenTypeform,
   marcarFuentePrincipal,
   probarFuente,
   rotarSecretoDeFuente,
@@ -132,6 +133,21 @@ export async function rotarSecretoFuenteAccion(id: string): Promise<ResultadoSec
     const secreto = await rotarSecretoDeFuente(db, await actorDe(session), id);
     revalidar();
     return { ok: true, secreto };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+/**
+ * Guarda o reemplaza el token de Typeform de una fuente (126 parte B), con el que el
+ * dashboard lee el embudo por pregunta. El valor entra y no vuelve a salir.
+ */
+export async function guardarTokenTypeformAccion(id: string, token: string): Promise<ResultadoAccion> {
+  try {
+    const session = await requireRole("gerente");
+    await guardarTokenTypeform(db, await actorDe(session), id, token);
+    revalidar();
+    return { ok: true };
   } catch (error) {
     return aResultado(error);
   }

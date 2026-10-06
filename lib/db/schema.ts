@@ -402,6 +402,14 @@ export const sources = pgTable(
      */
     secretoWebhook: text("secreto_webhook"),
     /**
+     * El token de la API de Typeform con el que se lee el Insights del formulario (ticket
+     * 126 parte B, decision de Mani del 29-sep). Por fuente y no por programa: el token es
+     * de la CUENTA de Typeform, y dos fuentes de un programa pueden vivir en cuentas
+     * distintas. Mismas reglas que el secreto del webhook: nunca pasa por el molde ni por
+     * `change_log`, ninguna lectura lo devuelve, y lo escribe solo `guardarTokenTypeform`.
+     */
+    typeformToken: text("typeform_token"),
+    /**
      * Cuanto silencio aguanta ESTA fuente antes de que la app la marque (ticket 107).
      * Por fuente y no fijo (ADR 0012): un programa con pauta prendida recibe varios
      * envios al dia y uno sin pauta puede pasar dias sin ninguno. Los defectos son de

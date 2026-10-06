@@ -107,12 +107,17 @@ export async function fuentesParaAdmin(db: Db = dbDeLaApp) {
     .from(programs)
     .orderBy(programs.slug);
 
-  // Todas las columnas MENOS el secreto del webhook (ticket 105): esta lectura llega a
-  // una pagina, y lo que no se selecciona no se puede filtrar al cliente por descuido.
-  // En su lugar va si existe, que es lo unico que la pantalla necesita saber.
-  const { secretoWebhook, ...columnas } = getTableColumns(sources);
+  // Todas las columnas MENOS el secreto del webhook (ticket 105) y el token de Typeform
+  // (126): esta lectura llega a una pagina, y lo que no se selecciona no se puede filtrar
+  // al cliente por descuido. En su lugar va si existen, que es lo unico que la pantalla
+  // necesita saber.
+  const { secretoWebhook, typeformToken, ...columnas } = getTableColumns(sources);
   const fuentes = await db
-    .select({ ...columnas, tieneSecreto: sql<boolean>`${secretoWebhook} is not null` })
+    .select({
+      ...columnas,
+      tieneSecreto: sql<boolean>`${secretoWebhook} is not null`,
+      tieneTokenTypeform: sql<boolean>`${typeformToken} is not null`,
+    })
     .from(sources)
     .orderBy(sources.programId, sources.orden, sources.nombre);
 
