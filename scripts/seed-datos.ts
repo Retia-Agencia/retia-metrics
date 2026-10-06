@@ -15,7 +15,7 @@ import { MAPEO_FORMULARIO } from "../lib/sheets/mapeo";
  * vez), no para administrar el catalogo despues.
  *
  * Los programas nacen INACTIVOS (migracion 0031, ADR 0057): se activan desde
- * la tab Programa cuando tengan Forms Link y token de Calendly.
+ * la tab Programa cuando tengan token de Calendly y fuente principal (ADR 0068).
  */
 
 /**

@@ -70,7 +70,6 @@ const programaValido = {
   ticketUsd: "797.00",
   webUrl: "",
   calendlyUrl: "",
-  formUrl: "https://form.typeform.com/to/beta",
 };
 
 const cohorteValida = {
@@ -140,12 +139,12 @@ describe("acciones de programas — barrera de rol (ADR 0003)", () => {
 describe("acciones de programas — el gerente administra", () => {
   beforeEach(() => auth.mockResolvedValue(sesionGerente));
 
-  it("crea un programa con Forms Link y Calendly Token y queda ACTIVO (ADR 0057)", async () => {
+  it("crea un programa con Calendly Token y queda INACTIVO: sin fuentes no hay principal (ADR 0068)", async () => {
     const { crearProgramaAccion } = await acciones();
     const res = await crearProgramaAccion(programaValido, "token-beta");
     expect(res.ok).toBe(true);
     const [creado] = await db.select().from(programs).where(eq(programs.slug, "programa-beta"));
-    expect(creado?.activo).toBe(true);
+    expect(creado?.activo).toBe(false);
     expect(creado?.calendlyToken).toBe("token-beta");
   });
 
@@ -194,7 +193,7 @@ describe("acciones de programas — el gerente administra", () => {
     const { activarProgramaDesdeFichaAccion } = await acciones();
     await db
       .update(programs)
-      .set({ activo: false, formUrl: null, calendlyToken: null })
+      .set({ activo: false, calendlyToken: null })
       .where(eq(programs.id, programId));
     const resultado = await activarProgramaDesdeFichaAccion(programId);
     expect(resultado.ok).toBe(false);

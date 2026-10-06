@@ -184,7 +184,6 @@ describe("porcentaje editable del programa", () => {
     nombre: "Programa A",
     slug: "programa-a",
     ticketUsd: "1000.00",
-    formUrl: PROGRAMA_DE_PRUEBA.formUrl,
     comisionPorcentaje,
   });
 

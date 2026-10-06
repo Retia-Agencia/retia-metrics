@@ -19,8 +19,6 @@ export interface ProgramaVista {
   comisionPorcentaje: string | null;
   webUrl: string | null;
   calendlyUrl: string | null;
-  /** URL base del formulario (ADR 0057). Un programa no se activa sin ella ni sin token. */
-  formUrl: string | null;
   /** Si el programa ya tiene token de Calendly. El valor nunca llega al cliente (ADR 0057). */
   tieneTokenCalendly: boolean;
   /** Si el webhook de Calendly esta conectado. La clave nunca llega al cliente (ticket 096). */
@@ -36,7 +34,6 @@ export interface Borrador {
   comisionPorcentaje: string;
   webUrl: string;
   calendlyUrl: string;
-  formUrl: string;
   /** Lo que se teclea o pega en Calendly Token. Nunca se rellena con el guardado. */
   tokenCalendly: string;
   diasSinActividad: string;
@@ -50,7 +47,6 @@ export function aBorrador(p: ProgramaVista): Borrador {
     comisionPorcentaje: p.comisionPorcentaje ?? "",
     webUrl: p.webUrl ?? "",
     calendlyUrl: p.calendlyUrl ?? "",
-    formUrl: p.formUrl ?? "",
     tokenCalendly: "",
     diasSinActividad: String(p.diasSinActividad),
   };
@@ -65,7 +61,6 @@ export function aEntrada(b: Borrador) {
     comisionPorcentaje: b.comisionPorcentaje,
     webUrl: b.webUrl,
     calendlyUrl: b.calendlyUrl,
-    formUrl: b.formUrl,
     diasSinActividad: b.diasSinActividad || undefined,
   };
 }
@@ -170,19 +165,6 @@ export function FormularioPrograma({
 
       {/* `webUrl` y `calendlyUrl` ya no se muestran (vacias en produccion y sin
           lector, 28-sep): el borrador las pasa tal cual para no pisar nada. */}
-      <label className="block space-y-1 text-sm sm:col-span-2">
-        <span className="text-muted-foreground">Forms Link</span>
-        <input
-          type="url"
-          value={borrador.formUrl}
-          onChange={(e) => setBorrador({ ...borrador, formUrl: e.target.value })}
-          required
-          placeholder="https://form.typeform.com/to/..."
-          className={claseInput}
-          aria-label="Forms Link"
-        />
-      </label>
-
       <label className="block space-y-1 text-sm sm:col-span-2">
         <span className="text-muted-foreground">Calendly Token</span>
         {/* type="password": se ve con puntos y se puede pegar. El valor guardado

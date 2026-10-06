@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
-import { changeLog, programs } from "@/lib/db/schema";
+import { changeLog, programs, sources } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
@@ -61,12 +61,9 @@ export const esquemaPrograma = z.object({
     .regex(/^\d+(\.\d{1,2})?$/, "El ticket debe ser un monto en USD (por ejemplo 797 o 797.00)."),
   webUrl: urlOpcional,
   calendlyUrl: urlOpcional,
-  // La URL base del formulario (ADR 0057, ticket 109). Entra al molde como una URL
-  // opcional mas: vacia => null. Es la misma columna que el generador de links de
-  // captacion usa (ADR 0051, ticket 092). El token de Calendly NO esta aqui a
-  // proposito: es un secreto y lo escribe solo `guardarTokenCalendly` (ADR 0057
-  // punto 2), nunca el molde ni el `change_log`.
-  formUrl: urlOpcional,
+  // Sin URL del formulario: el destino de un link sale de la fuente principal (ADR 0068).
+  // El token de Calendly tampoco esta aqui, a proposito: es un secreto y lo escribe solo
+  // `guardarTokenCalendly` (ADR 0057 punto 2), nunca el molde ni el `change_log`.
   // Porcentaje de comision vigente (ticket 133). Se congela en cada deal al vender.
   comisionPorcentaje: z
     .string()
@@ -159,11 +156,11 @@ export async function programaPorId(db: Db, id: string): Promise<ProgramaVistaCa
 /**
  * Crea un programa. La entrada se valida con el esquema compartido.
  *
- * Nace INACTIVO: es el default de `programs.activo` y el CHECK
- * `programs_activo_con_formulario_y_token` (migracion 0031, ADR 0057) impide que un
- * programa este activo sin Forms Link y token de Calendly. El token no entra por el
- * alta (es secreto y no pasa por el molde): se guarda con `guardarTokenCalendly` y el
- * programa se activa despues con `reactivarPrograma`, que es la reja con el 422.
+ * Nace INACTIVO: es el default de `programs.activo`, y la base impide que un programa este
+ * activo sin token de Calendly (CHECK `programs_activo_con_token`). El token no entra por el
+ * alta (es secreto y no pasa por el molde): se guarda con `guardarTokenCalendly`. El
+ * programa se activa despues con `reactivarPrograma`, que ademas exige la fuente principal
+ * (ADR 0068), asi que un programa recien creado no se puede activar hasta tener una.
  */
 export async function crearPrograma(
   db: Db,
@@ -177,22 +174,26 @@ export async function crearPrograma(
 }
 
 /**
- * Comprueba que un programa tenga URL de formulario y token de Calendly antes de
- * quedar activo (ADR 0057 punto 1). Lanza un 422 que dice que falta y NO toca la
- * fila. La activacion vive en `reactivarPrograma`, que llama a esto primero.
+ * Comprueba que un programa tenga fuente principal (ADR 0068 punto 4) y token de
+ * Calendly (ADR 0057 punto 1) antes de quedar activo. Lanza un 422 que dice que falta y
+ * NO toca la fila. La activacion vive en `reactivarPrograma`, que llama a esto primero.
+ * Que un programa activo tenga principal no cabe en un indice (es entre dos tablas): esta
+ * es la reja.
  */
-function exigirLinkYToken(fila: {
-  formUrl: string | null;
-  calendlyToken: string | null;
-}): void {
+async function exigirPrincipalYToken(
+  db: Db,
+  programa: { id: string; calendlyToken: string | null },
+): Promise<void> {
+  const [principal] = await db
+    .select({ id: sources.id })
+    .from(sources)
+    .where(and(eq(sources.programId, programa.id), eq(sources.principal, true)));
   const faltan: string[] = [];
-  if (!fila.formUrl) faltan.push("la URL del formulario");
-  if (!fila.calendlyToken) faltan.push("el token de Calendly");
+  if (!principal) faltan.push("fuente principal");
+  if (!programa.calendlyToken) faltan.push("el token de Calendly");
   if (faltan.length > 0) {
-    throw new ErrorDeApp(
-      `No se puede activar el programa sin ${faltan.join(" ni ")}. Cárgalos y vuelve a intentar.`,
-      422,
-    );
+    const pista = principal ? "" : " La fuente principal se marca en Formularios.";
+    throw new ErrorDeApp(`No se puede activar el programa sin ${faltan.join(" ni ")}.${pista}`, 422);
   }
 }
 
@@ -218,8 +219,8 @@ export async function editarPrograma(
         400,
       );
     }
-    // Editar un programa ACTIVO que hoy no tiene link ni token (los dos programas
-    // reales estan asi) no se rompe: la reja solo aplica al ACTIVAR, no a editar los
+    // Editar un programa ACTIVO que hoy no tiene fuente principal (dos de produccion
+    // estaban asi el 6-oct) no se rompe: la reja solo aplica al ACTIVAR, no a editar los
     // datos de una fila que ya estaba activa.
     const fila = await moldePrograma(db).editar(actorId, objetivoId, datos);
     return sinToken(fila);
@@ -239,8 +240,8 @@ export async function desactivarPrograma(
 }
 
 /**
- * Reactiva un programa desactivado. Aplica la reja del ADR 0057: sin URL de
- * formulario y sin token de Calendly no se activa (422), y la fila no se mueve (ni
+ * Reactiva un programa desactivado. Aplica la reja de los ADR 0057 y 0068: sin fuente
+ * principal o sin token de Calendly no se activa (422), y la fila no se mueve (ni
  * `change_log`), porque la comprobacion corre ANTES de que el molde escriba nada.
  */
 export async function reactivarPrograma(
@@ -252,8 +253,8 @@ export async function reactivarPrograma(
     const objetivoId = idValido(id);
     const [actual] = await db.select().from(programs).where(eq(programs.id, objetivoId));
     if (!actual) throw new ErrorDeApp("No existe un programa con ese id.", 404);
-    exigirLinkYToken({
-      formUrl: (actual.formUrl as string | null) ?? null,
+    await exigirPrincipalYToken(db, {
+      id: objetivoId,
       calendlyToken: (actual.calendlyToken as string | null) ?? null,
     });
     const fila = await moldePrograma(db).reactivar(actorId, objetivoId);

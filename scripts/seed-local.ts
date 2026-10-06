@@ -15,7 +15,12 @@ import {
 } from "../lib/catalogo/programas";
 import { PLANTILLA_LEAD_BASE } from "./plantilla-lead-base";
 import { crearCohorte } from "../lib/catalogo/cohortes";
-import { activarFuente, crearFuente, rotarSecretoDeFuente } from "../lib/catalogo/fuentes";
+import {
+  activarFuente,
+  crearFuente,
+  marcarFuentePrincipal,
+  rotarSecretoDeFuente,
+} from "../lib/catalogo/fuentes";
 import { crearUsuario } from "../lib/catalogo/usuarios";
 import { motivos } from "../lib/catalogo/motivos";
 import { areas } from "../lib/catalogo/areas";
@@ -136,7 +141,6 @@ interface ProgramaVolumen {
   nombre: string;
   slug: string;
   ticketUsd: string;
-  formUrl: string;
   fuenteId: string;
   cohorteId: string;
   totalLeads: number;
@@ -295,7 +299,6 @@ async function sembrarVolumen(
       nombre: programa.nombre,
       slug: programa.slug,
       ticketUsd: programa.ticketUsd,
-      formUrl: programa.formUrl,
       comisionPorcentaje: programa.comisionPorcentaje,
     });
   }
@@ -595,7 +598,6 @@ export async function sembrarLocal(): Promise<void> {
     nombre: "ComunicArte Local",
     slug: "comunicarte-local",
     ticketUsd: "797.00",
-    formUrl: "https://form.typeform.com/to/comunicarte-demo",
   });
   await guardarTokenCalendly(
     db,
@@ -603,13 +605,13 @@ export async function sembrarLocal(): Promise<void> {
     p1.id,
     patLocal("CALENDLY_PAT_LOCAL_COMUNICARTE") ?? "calendly-token-local-comunicarte",
   );
-  const prog1 = await reactivarPrograma(db, actorId, p1.id);
+  // Se activan despues de tener fuente principal (paso 7): la reja la exige (ADR 0068).
+  let prog1 = p1;
 
   const p2 = await crearPrograma(db, actorId, {
     nombre: "Tactical Investor Local",
     slug: "tactical-local",
     ticketUsd: "1500.00",
-    formUrl: "https://form.typeform.com/to/tactical-demo",
   });
   await guardarTokenCalendly(
     db,
@@ -617,7 +619,7 @@ export async function sembrarLocal(): Promise<void> {
     p2.id,
     patLocal("CALENDLY_PAT_LOCAL_TACTICAL") ?? "calendly-token-local-tactical",
   );
-  const prog2 = await reactivarPrograma(db, actorId, p2.id);
+  let prog2 = p2;
 
   // 5b. Estados de llegada y plantilla de lead (ticket 117): sin ellos ningun envio abre
   // deal y el webhook no sabe que pregunta trae el correo.
@@ -658,9 +660,11 @@ export async function sembrarLocal(): Promise<void> {
     tipo: "webhook",
     proveedor: "typeform",
     mapeoColumnas: {},
+    urlPublica: "https://form.typeform.com/to/comunicarte-demo",
   });
   await rotarSecretoDeFuente(db, actor, f1.id);
   await activarFuente(db, actor, f1.id);
+  await marcarFuentePrincipal(db, actor, f1.id);
 
   const f2 = await crearFuente(db, actor, {
     programId: prog2.id,
@@ -668,9 +672,13 @@ export async function sembrarLocal(): Promise<void> {
     tipo: "webhook",
     proveedor: "typeform",
     mapeoColumnas: {},
+    urlPublica: "https://form.typeform.com/to/tactical-demo",
   });
   await rotarSecretoDeFuente(db, actor, f2.id);
   await activarFuente(db, actor, f2.id);
+  await marcarFuentePrincipal(db, actor, f2.id);
+  prog1 = await reactivarPrograma(db, actorId, p1.id);
+  prog2 = await reactivarPrograma(db, actorId, p2.id);
 
   // 9. Usuarios locales con sus membresías
   console.log("[seed:local] Creando usuarios locales con sus membresías...");
@@ -1353,7 +1361,6 @@ export async function sembrarLocal(): Promise<void> {
         nombre: "ComunicArte Local",
         slug: "comunicarte-local",
         ticketUsd: "797.00",
-        formUrl: "https://form.typeform.com/to/comunicarte-demo",
         fuenteId: f1.id,
         cohorteId: coh1.id,
         totalLeads: 150,
@@ -1381,7 +1388,6 @@ export async function sembrarLocal(): Promise<void> {
         nombre: "Tactical Investor Local",
         slug: "tactical-local",
         ticketUsd: "1500.00",
-        formUrl: "https://form.typeform.com/to/tactical-demo",
         fuenteId: f2.id,
         cohorteId: coh2.id,
         totalLeads: 120,

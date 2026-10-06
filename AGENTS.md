@@ -401,7 +401,7 @@ The agent should run these to get fast signal on whether code works. Keep them c
 - **Test:** `npm test` (Vitest por `scripts/test.mjs`: una suite por máquina, sin huérfanos, límite
   de 480 s; ver Conventions). 1.810 pasando al 1-oct; entre 60 y 190 s según la máquina.
   Un programa de prueba ACTIVO se crea con `PROGRAMA_DE_PRUEBA` (`tests/helpers/programa-de-prueba.ts`):
-  desde la 0031 un programa nace inactivo y la base exige Forms Link y token para activarlo. Los tests que necesitan base usan PGlite en
+  desde la 0031 un programa nace inactivo y la base exige el token para activarlo (`reactivarPrograma` exige además fuente principal, ADR 0068). Los tests que necesitan base usan PGlite en
   memoria con todas las migraciones aplicadas: `tests/helpers/base-de-prueba.ts` (ADR 0020). **Desde el 1-oct
   (ticket 150) la base se migra UNA vez por corrida** en el `globalSetup` (`tests/helpers/volcado-global.ts`) y
   cada archivo carga ese volcado; si no existe, migra por su cuenta como antes. Una migración con SQL roto

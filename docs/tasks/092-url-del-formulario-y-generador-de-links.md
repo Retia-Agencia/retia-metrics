@@ -137,3 +137,35 @@ importe se verifica cuando se construya el 086.
    se quitan `programs.form_url`, su campo en `/ajustes/programas` y su parte del CHECK de la 0031.
 5. Fuera de este ticket: la pantalla del builder vive en la tab Campañas (125) y el enlace del closer en el 086;
    los dos llaman a `generarLink` sobre `destinoDeCaptacion`.
+
+---
+
+## Avance 2026-10-06 (Alejo + Claude): paso 2 del ADR 0068 en código, la 0069 sin aplicar
+
+- **Código sin `programs.form_url`:** fuera del esquema de drizzle, del zod del programa, de la ficha, del formulario
+  "Editar" y del seed local. `reactivarPrograma` exige **fuente principal** y token (`exigirPrincipalYToken`, 422 sin
+  tocar la fila); `faltaParaActivar` ya no tiene `forms_link`. `crearProgramaAccion` deja el programa **inactivo**: uno
+  recién creado no tiene fuentes, así que se activa desde su ficha. El seed local marca la principal antes de activar.
+- **Migración `0069_quitar-form-url`** (con `lock_timeout`): quita el CHECK `programs_activo_con_formulario_y_token`, la
+  columna, y crea `programs_activo_con_token`. **No está aplicada.**
+- **Tests:** `programas-admin` (la reja en los dos sentidos: principal sin token, token sin principal, una activa sin
+  marcar no alcanza, la principal de otro programa no cuenta; el CHECK nuevo contra la base), `acciones-programas`,
+  `ficha-programa`, `comision`. Typecheck, lint y build en verde.
+- **Estado en producción (6-oct, lectura):** Confianza tiene principal con URL. Tactical y ComunicArte, **no**: los dos
+  siguen activos (la reja solo mira al activar). Valores de `form_url` hoy, para copiarlos a su fuente:
+  ComunicArte `https://metodocomunicarte.typeform.com/to/nkMLdeh8` (fuente "Typeform - Postulación Método
+  Comunicarte"; también hay Dapta activa), Tactical `https://postulacioness.typeform.com/to/GmPGBOf9` (fuente
+  "Typeform - De Cero a Tactical Investor", la única activa). Memorable está inactivo y sin `form_url`.
+
+**Hecho el mismo día:**
+- **Cadenero** (otra sesión, solo lectura): aprobado. Arreglados sus menores: docs y comentarios que aún hablaban del
+  Forms Link, y el test "la principal de OTRO programa" ahora comprueba que la fila y `change_log` no se mueven.
+  `crearProgramaAccion` queda documentada (ninguna pantalla la llama; la creación usa `crearProgramaInactivoAccion`).
+- **Principales marcadas en producción** con el ok de Mani (ComunicArte: Typeform), por el molde desde un script
+  desechable: `url_publica` = el `form_url` de cada programa y `principal`, con su rastro en `change_log` (4 filas,
+  con actor). Mapeos intactos. Los tres programas activos tienen principal.
+
+**Falta, en este orden:**
+1. Push y deploy verde en Vercel.
+2. Aplicar la 0069 en producción (ok de Mani dado el 6-oct), mirando antes `pg_stat_activity`.
+3. El 086 importa `generarLink` (punto 4 del "Done cuando").

@@ -244,4 +244,4 @@ marcha). Ninguno con error.
   (ADR 0073) y el completo con cita a Agendado. Tactical y ComunicArte, mismo cambio verificado contra su respaldo, sin
   parcial posterior todavía.
 - **Con esto el 117 queda completo:** el primer parcial real está anotado y lo que destapó, arreglado en la fuente.
-- No se tocó: las reglas de `hvm_tier` y `lead_value` de la #8 pueden tener el mismo patrón; `lead_value` no enruta.
+- Revisado el 6-oct (tarde, solo lectura de la API): `hvm_tier` y `lead_value` **no** tienen el defecto. Salen de `hvm_points`, que solo suma por respuestas reales (#4 y #7), así que un parcial que pasa por la #8 sin esas respuestas queda en C / "VALOR MEDIO", que es lo que corresponde. Igual en los tres formularios. Sin cambios.

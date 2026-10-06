@@ -233,11 +233,6 @@ export const programs = pgTable(
     /** Calendly del programa, para cruzar agendamientos. Editable desde la tab Programa (ticket 014). */
     calendlyUrl: text("calendly_url"),
     /**
-     * URL base del formulario del programa (ADR 0057). Un programa no se activa sin ella.
-     * Es tambien la base del generador de links de captacion (ADR 0051, ticket 092).
-     */
-    formUrl: text("form_url"),
-    /**
      * Token de Calendly de la organizacion del programa (ADR 0057): con el se lee la fecha
      * de una cita. Segunda excepcion nombrada a "secretos solo en .env.local y Vercel": lo
      * escribe SOLO `guardarTokenCalendly`, nunca pasa por el molde ni por `change_log`, y
@@ -280,15 +275,16 @@ export const programs = pgTable(
      */
     comisionPorcentaje: numeric("comision_porcentaje", { precision: 5, scale: 2 }),
     /**
-     * Nace INACTIVO (ADR 0057): un programa se activa solo con su Forms Link y su
-     * token de Calendly, y el CHECK de abajo lo garantiza en la base (ADR 0005).
+     * Nace INACTIVO (ADR 0057): un programa se activa solo con su token de Calendly, y el
+     * CHECK de abajo lo garantiza en la base (ADR 0005). La otra mitad, la fuente principal
+     * (ADR 0068), es entre dos tablas y la verifica `reactivarPrograma`.
      */
     activo: boolean("activo").notNull().default(false),
   },
   (t) => [
     check(
-      "programs_activo_con_formulario_y_token",
-      sql`NOT ${t.activo} OR (${t.formUrl} IS NOT NULL AND ${t.calendlyToken} IS NOT NULL)`,
+      "programs_activo_con_token",
+      sql`NOT ${t.activo} OR ${t.calendlyToken} IS NOT NULL`,
     ),
     check("programs_dias_sin_actividad_positivo", sql`${t.diasSinActividad} > 0`),
     check(

@@ -32,8 +32,8 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
     solo cambia esa condición). Probado con un parcial real: Potencial → Calificado → Agendado. Detalle en el 117.
   - El PAT de Typeform en la máquina de Alejo es `TYPEFORM_PAT_LOCAL`. Cada escritura a Typeform la frena el modo
     automático hasta aprobarla con `/permissions`.
-  - Pendiente: ver un parcial de Tactical y de ComunicArte tras el cambio; revisar si `hvm_tier` y `lead_value` tienen
-    el mismo patrón (no enrutan).
+  - Pendiente: ver un parcial de Tactical y de ComunicArte tras el cambio (al mediodía del 6-oct aún no llegaba ninguno).
+    `hvm_tier` y `lead_value` revisados: no tienen el defecto (salen de `hvm_points`, que solo suma por respuestas).
 
 - **2026-10-05 (cierre, Alejo + Claude): checkpoint `cp-20261005-1` sobre `d974c76`.**
   - CI verde en la punta (suite completa, Postgres real y build). Deploy de producción en Vercel correcto (estado del

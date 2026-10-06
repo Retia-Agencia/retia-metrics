@@ -324,7 +324,7 @@ describe("caso 5 — la cita no está vigente o Calendly falla: Calificado, lead
   });
 
   it("programa sin token de Calendly: Calificado con nota, lead guardado", async () => {
-    // Un programa activo exige token (CHECK `programs_activo_con_formulario_y_token`).
+    // Un programa activo exige token (CHECK `programs_activo_con_token`).
     // Para simular la configuracion incompleta sin pelear con el CHECK, se usa un
     // programa NUEVO inactivo y sin token, con su propia fuente webhook.
     const [sinToken] = await db

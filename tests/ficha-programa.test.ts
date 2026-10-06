@@ -159,9 +159,8 @@ async function abrirFicha(slug: string, seccion?: string) {
 
 describe("fichaDelPrograma", () => {
   it.each([
-    ["forms_link", { formUrl: null, tieneTokenCalendly: true, formulario: { fuente: "F", url: "https://f.co" } }],
-    ["calendly_token", { formUrl: "https://f.co", tieneTokenCalendly: false, formulario: { fuente: "F", url: "https://f.co" } }],
-    ["fuente_principal", { formUrl: "https://f.co", tieneTokenCalendly: true, formulario: null }],
+    ["calendly_token", { tieneTokenCalendly: false, formulario: { fuente: "F", url: "https://f.co" } }],
+    ["fuente_principal", { tieneTokenCalendly: true, formulario: null }],
   ] as const)("faltaParaActivar incluye %s solo cuando falta", async (clave, programa) => {
     const { faltaParaActivar } = await import("@/lib/queries/ficha-programa");
     expect(faltaParaActivar(programa).map((item) => item.clave)).toEqual([clave]);
@@ -170,13 +169,12 @@ describe("fichaDelPrograma", () => {
   it("faltaParaActivar no reporta requisitos presentes y conserva el orden", async () => {
     const { faltaParaActivar } = await import("@/lib/queries/ficha-programa");
     expect(
-      faltaParaActivar({ formUrl: null, tieneTokenCalendly: false, formulario: null }).map(
+      faltaParaActivar({ tieneTokenCalendly: false, formulario: null }).map(
         (item) => item.clave,
       ),
-    ).toEqual(["forms_link", "calendly_token", "fuente_principal"]);
+    ).toEqual(["calendly_token", "fuente_principal"]);
     expect(
       faltaParaActivar({
-        formUrl: "https://f.co",
         tieneTokenCalendly: true,
         formulario: { fuente: "F", url: "https://f.co" },
       }),
@@ -337,7 +335,7 @@ describe("forjar la escritura desde un closer con membresía", () => {
     const antes = await bitacora();
     const r = await editarProgramaAccion(
       programaA,
-      { nombre: "A", slug: "a", ticketUsd: "797", comisionPorcentaje: "50", formUrl: "https://form.typeform.com/to/prueba" },
+      { nombre: "A", slug: "a", ticketUsd: "797", comisionPorcentaje: "50" },
       "",
     );
     expect(r.ok).toBe(false);

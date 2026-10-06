@@ -37,11 +37,9 @@ export interface DatosDelPrograma {
   ticketUsd: string;
   /** El porcentaje vigente (ADR 0065 punto 7). Nulo = no cargado, nunca 0. */
   comisionPorcentaje: string | null;
-  /** Link de configuracion; no reemplaza a la fuente principal como destino visible. */
-  formUrl: string | null;
   /**
    * El destino del formulario: la fuente principal del programa (ADR 0068). Nulo = no hay a
-   * donde mandar un link. Ya no sale de `programs.form_url`, que se retira en dos pasos.
+   * donde mandar un link. Ya no sale de `programs.form_url`, que se retiro (paso 2 del ADR 0068).
    */
   formulario: { fuente: string; url: string } | null;
   calendlyUrl: string | null;
@@ -156,7 +154,6 @@ export async function fichaDelPrograma(
       activo: Boolean(programa.activo),
       ticketUsd: String(programa.ticketUsd),
       comisionPorcentaje: programa.comisionPorcentaje == null ? null : String(programa.comisionPorcentaje),
-      formUrl: (programa.formUrl as string | null) ?? null,
       formulario: formularioPrincipal(fuentes),
       calendlyUrl: (programa.calendlyUrl as string | null) ?? null,
       tieneTokenCalendly: programa.tieneTokenCalendly,
@@ -224,16 +221,15 @@ export function avisoDelFormulario(formulario: DatosDelPrograma["formulario"]): 
 }
 
 export type FaltaParaActivar = {
-  clave: "forms_link" | "calendly_token" | "fuente_principal";
+  clave: "calendly_token" | "fuente_principal";
   texto: string;
 };
 
 /** Lista estable de lo que impide activar un programa. */
 export function faltaParaActivar(
-  programa: Pick<DatosDelPrograma, "formUrl" | "tieneTokenCalendly" | "formulario">,
+  programa: Pick<DatosDelPrograma, "tieneTokenCalendly" | "formulario">,
 ): FaltaParaActivar[] {
   const faltan: FaltaParaActivar[] = [];
-  if (!programa.formUrl) faltan.push({ clave: "forms_link", texto: "Forms Link" });
   if (!programa.tieneTokenCalendly) {
     faltan.push({ clave: "calendly_token", texto: "Calendly Token" });
   }

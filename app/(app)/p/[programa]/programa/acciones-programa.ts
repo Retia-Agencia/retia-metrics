@@ -75,11 +75,11 @@ export async function crearProgramaInactivoAccion(
 }
 
 /**
- * Crea un programa desde el formulario, que trae Forms Link y Calendly Token juntos.
- * El token NO viaja por la entrada del molde (ADR 0057): se guarda aparte con
- * `guardarTokenCalendly`, y solo despues se activa por `reactivarPrograma`, que es la
- * reja (422 si falta el link o el token). Si algo falla a mitad, el programa queda
- * INACTIVO, nunca activo a medias.
+ * Crea un programa con su Calendly Token. El token NO viaja por la entrada del molde
+ * (ADR 0057): se guarda aparte con `guardarTokenCalendly`. El programa queda INACTIVO:
+ * activarlo exige fuente principal (ADR 0068), y un programa recien creado no tiene
+ * fuentes. Se activa desde su ficha, por `reactivarPrograma`. Ninguna pantalla la llama hoy
+ * (la creación usa `crearProgramaInactivoAccion`); queda para crear con token de una vez.
  */
 export async function crearProgramaAccion(
   input: EntradaPrograma,
@@ -89,7 +89,6 @@ export async function crearProgramaAccion(
     const session = await requireRole("gerente");
     const programa = await crearPrograma(db, session.user.id, input);
     await guardarTokenCalendly(db, session.user.id, programa.id, tokenCalendly);
-    await reactivarPrograma(db, session.user.id, programa.id);
     revalidarNav();
     return { ok: true };
   } catch (error) {

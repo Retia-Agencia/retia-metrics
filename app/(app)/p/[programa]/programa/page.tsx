@@ -91,7 +91,6 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     comisionPorcentaje: programa.comisionPorcentaje,
     webUrl: null,
     calendlyUrl: programa.calendlyUrl,
-    formUrl: programa.formUrl,
     tieneTokenCalendly: programa.tieneTokenCalendly,
     webhookCalendlyConectado: programa.webhookCalendlyConectado,
     diasSinActividad: programa.diasSinActividad,

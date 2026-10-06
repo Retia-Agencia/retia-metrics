@@ -20,6 +20,12 @@ import {
   esquemaCohorte,
   listarCohortes,
 } from "@/lib/catalogo/cohortes";
+import {
+  activarFuente,
+  crearFuente,
+  marcarFuentePrincipal,
+  rotarSecretoDeFuente,
+} from "@/lib/catalogo/fuentes";
 import { programasActivos } from "@/lib/queries/programas";
 import { esViolacionCheck } from "@/lib/db/errores";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -66,14 +72,33 @@ const programaValido = {
   ticketUsd: "797.00",
   webUrl: "https://retia.co/alfa",
   calendlyUrl: "https://calendly.com/retia/alfa",
-  formUrl: "https://form.typeform.com/to/alfa",
 };
 
+/** Una fuente webhook activa del programa, con URL publica, por el camino de la app. */
+async function fuenteActiva(base: Db, actorId: string, programId: string, nombre = "Formulario") {
+  const actor = { id: actorId, rol: "gerente" as const };
+  const fuente = await crearFuente(base, actor, {
+    programId,
+    nombre,
+    tipo: "webhook",
+    proveedor: "typeform",
+    urlPublica: "https://form.typeform.com/to/alfa",
+  });
+  await rotarSecretoDeFuente(base, actor, fuente.id);
+  await activarFuente(base, actor, fuente.id);
+  return fuente;
+}
+
+/** Le da al programa una fuente principal (ADR 0068). */
+async function darFuentePrincipal(base: Db, actorId: string, programId: string) {
+  const fuente = await fuenteActiva(base, actorId, programId);
+  await marcarFuentePrincipal(base, { id: actorId, rol: "gerente" }, fuente.id);
+}
+
 /**
- * Crea un programa y lo deja ACTIVO. Como la reja del ADR 0057 exige link y token
- * para activar, y `crearPrograma` nace inactivo (el token no viaja por el alta),
- * este helper carga el token con `guardarTokenCalendly` y reactiva. Devuelve la fila
- * ya activa.
+ * Crea un programa y lo deja ACTIVO. La reja (ADR 0057 y 0068) exige token y fuente
+ * principal, y `crearPrograma` nace inactivo (el token no viaja por el alta): este helper
+ * carga el token, le da una fuente principal y reactiva. Devuelve la fila ya activa.
  */
 async function crearProgramaActivo(
   base: Db,
@@ -82,6 +107,7 @@ async function crearProgramaActivo(
 ) {
   const creado = await crearPrograma(base, actorId, input);
   await guardarTokenCalendly(base, actorId, creado.id, "tok-calendly-de-prueba");
+  await darFuentePrincipal(base, actorId, creado.id);
   return reactivarPrograma(base, actorId, creado.id);
 }
 
@@ -110,11 +136,9 @@ describe("esquema de programa", () => {
     expect(datos.calendlyUrl).toBeNull();
   });
 
-  it("formUrl vacio se guarda como null; una url valida entra (ADR 0057)", () => {
-    const vacio = esquemaPrograma.parse({ ...programaValido, formUrl: "" });
-    expect(vacio.formUrl).toBeNull();
-    const conLink = esquemaPrograma.parse({ ...programaValido, formUrl: "https://form.co/x" });
-    expect(conLink.formUrl).toBe("https://form.co/x");
+  it("el esquema ya no lleva la URL del formulario: sale de la fuente principal (ADR 0068)", () => {
+    const datos = esquemaPrograma.parse({ ...programaValido, formUrl: "https://form.co/x" });
+    expect(datos).not.toHaveProperty("formUrl");
   });
 
   it("rechaza una url invalida", () => {
@@ -124,10 +148,10 @@ describe("esquema de programa", () => {
   });
 });
 
-describe("la reja de activación (ADR 0057)", () => {
-  it("reactivar sin link ni token es 422 y la fila no se mueve", async () => {
-    // Se crea sin formUrl: nace inactivo y sin token.
-    const creado = await crearPrograma(db, gerenteId, { ...programaValido, formUrl: "" });
+describe("la reja de activación (ADR 0057 y 0068)", () => {
+  it("reactivar sin fuente principal ni token es 422 y la fila no se mueve", async () => {
+    // Nace inactivo, sin token y sin fuentes.
+    const creado = await crearPrograma(db, gerenteId, programaValido);
     expect(creado.activo).toBe(false);
     const logAntes = await logDe(creado.id);
 
@@ -135,7 +159,7 @@ describe("la reja de activación (ADR 0057)", () => {
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(422);
     const msg = (error as ErrorDeApp).message.toLowerCase();
-    expect(msg).toContain("formulario");
+    expect(msg).toContain("fuente principal");
     expect(msg).toContain("token");
 
     // La fila sigue inactiva y no se escribió nada nuevo en change_log.
@@ -145,18 +169,45 @@ describe("la reja de activación (ADR 0057)", () => {
     expect(logDespues.length).toBe(logAntes.length);
   });
 
-  it("reactivar con link pero sin token es 422 y nombra solo el token", async () => {
-    // formUrl viene en la entrada; token sigue faltando.
+  it("reactivar con fuente principal pero sin token es 422 y nombra solo el token", async () => {
     const creado = await crearPrograma(db, gerenteId, programaValido);
+    await darFuentePrincipal(db, gerenteId, creado.id);
     const error = await reactivarPrograma(db, gerenteId, creado.id).catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(422);
     const msg = (error as ErrorDeApp).message.toLowerCase();
     expect(msg).toContain("token");
-    expect(msg).not.toContain("formulario");
+    expect(msg).not.toContain("fuente principal");
   });
 
-  it("con link y token cargados, reactivar activa el programa", async () => {
+  it("con token y una fuente activa que NO es principal, reactivar es 422 y no se mueve", async () => {
+    const creado = await crearPrograma(db, gerenteId, programaValido);
+    await guardarTokenCalendly(db, gerenteId, creado.id, "tok");
+    await fuenteActiva(db, gerenteId, creado.id, "Sin marcar");
+    const error = await reactivarPrograma(db, gerenteId, creado.id).catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(422);
+    const msg = (error as ErrorDeApp).message.toLowerCase();
+    expect(msg).toContain("fuente principal");
+    expect(msg).not.toContain("token");
+    const [enBase] = await db.select().from(programs).where(eq(programs.id, creado.id));
+    expect(enBase.activo).toBe(false);
+  });
+
+  it("la principal de OTRO programa no cuenta", async () => {
+    const otro = await crearPrograma(db, gerenteId, { ...programaValido, slug: "otro" });
+    await darFuentePrincipal(db, gerenteId, otro.id);
+    const creado = await crearPrograma(db, gerenteId, programaValido);
+    await guardarTokenCalendly(db, gerenteId, creado.id, "tok");
+    const logAntes = await logDe(creado.id);
+    const error = await reactivarPrograma(db, gerenteId, creado.id).catch((e) => e);
+    expect((error as ErrorDeApp).status).toBe(422);
+    const [enBase] = await db.select().from(programs).where(eq(programs.id, creado.id));
+    expect(enBase.activo).toBe(false);
+    expect((await logDe(creado.id)).length).toBe(logAntes.length);
+  });
+
+  it("con fuente principal y token cargados, reactivar activa el programa", async () => {
     const activo = await crearProgramaActivo(db, gerenteId);
     expect(activo.activo).toBe(true);
   });
@@ -250,7 +301,7 @@ describe("crear programa", () => {
     expect(log.some((l) => l.campo === "slug" && l.valorNuevo === "programa-alfa")).toBe(true);
   });
 
-  it("con token y link cargados se reactiva y aparece en los programas activos del sidebar", async () => {
+  it("con token y fuente principal se reactiva y aparece en los programas activos del sidebar", async () => {
     await crearProgramaActivo(db, gerenteId);
     const activos = await programasActivos(db);
     expect(activos.some((p) => p.slug === "programa-alfa")).toBe(true);
@@ -574,20 +625,16 @@ describe("cohortes de un programa", () => {
   });
 });
 
-describe("CHECK programs_activo_con_formulario_y_token (migracion 0031, ADR 0057)", () => {
-  it("la base rechaza un programa ACTIVO sin Forms Link o sin token, aunque se salte lib/", async () => {
-    const base = { slug: "directo", nombre: "Directo", ticketUsd: "100" };
-    for (const valores of [
-      { ...base, activo: true },
-      { ...base, activo: true, formUrl: "https://form.test/x" },
-      { ...base, activo: true, calendlyToken: "t" },
-    ]) {
-      const error = await db.insert(programs).values(valores).then(() => null, (e: unknown) => e);
-      expect(esViolacionCheck(error)).toBe(true);
-    }
+describe("CHECK programs_activo_con_token (ADR 0057; la mitad del formulario se fue con el ADR 0068)", () => {
+  it("la base rechaza un programa ACTIVO sin token, aunque se salte lib/", async () => {
+    const error = await db
+      .insert(programs)
+      .values({ slug: "directo", nombre: "Directo", ticketUsd: "100", activo: true })
+      .then(() => null, (e: unknown) => e);
+    expect(esViolacionCheck(error)).toBe(true);
   });
 
-  it("un programa nace inactivo por default y con los dos se puede activar", async () => {
+  it("un programa nace inactivo por default y con el token se puede activar", async () => {
     const [p] = await db
       .insert(programs)
       .values({ slug: "default", nombre: "Default", ticketUsd: "100" })
@@ -601,7 +648,7 @@ describe("CHECK programs_activo_con_formulario_y_token (migracion 0031, ADR 0057
     expect(esViolacionCheck(error)).toBe(true);
     await db
       .update(programs)
-      .set({ activo: true, formUrl: "https://form.test/x", calendlyToken: "t" })
+      .set({ activo: true, calendlyToken: "t" })
       .where(eq(programs.id, p!.id));
     const [tras] = await db.select().from(programs).where(eq(programs.id, p!.id));
     expect(tras!.activo).toBe(true);
