@@ -195,7 +195,10 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   TERCERA, `trabajaLeads`: quien tiene `closer_id`, membresias, puede ser responsable de una
   persona y registrar. La cumplen el closer y el developer, **no el gerente** (ADR 0003). **Y una
   CUARTA, `manejaPauta`** (ADR 0052, construida el 3-oct con el 173), para el rol `paid_trafficker`,
-  que cumplen el paid trafficker, el gerente y el developer: abre Canales y su Mi espacio (179); y la pregunta de **alcance**, *"¿que
+  que cumplen el paid trafficker, el gerente y el developer: abre Canales, su Mi espacio (179) y el Dashboard (102). **Una
+  QUINTA, `veEquipoComercial`** (102, 5-oct): quien ve el trabajo de los closers en el Dashboard (comparativo, comision,
+  abiertos por owner, filtro de closer y la lista detras de cada cifra); la cumplen gerente, closer y developer, no el paid
+  trafficker, y sus cifras se proyectan en el servidor con `sinListas`. Y la pregunta de **alcance**, *"¿que
   programas ve esta sesion?"* (ADR 0048), tambien en `lib/auth/`. Son preguntas distintas y funciones
   distintas: una pantalla que pregunte `rol === "closer"` a mano deja al developer
   afuera, que es justo como `/ajustes/usuarios` quedo sin poder cargarle su `closer_id` (18-sep).

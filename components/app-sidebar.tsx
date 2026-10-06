@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Activity, ChartNoAxesColumn, Contact, GraduationCap, Inbox, KanbanSquare, Layers, Library, LineChart, Menu, Settings, Target, UserCircle, X } from "lucide-react";
 import { navParaRol, programaDeRuta, type ItemNav } from "@/lib/nav";
-import type { Rol } from "@/lib/auth/roles";
+import { veEquipoComercial, type Rol } from "@/lib/auth/roles";
 import type { Vista } from "@/lib/auth/vista";
 import type { CloserActivo } from "@/lib/catalogo/usuarios";
 import { cn } from "@/lib/utils";
@@ -168,6 +168,7 @@ export function AppSidebar({
               inactivos={inactivos}
               puedeCrear={puedeCrear}
               actual={actual}
+              ofreceTodos={veEquipoComercial(rol)}
             />
           </div>
         ) : null}

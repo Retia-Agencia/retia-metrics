@@ -118,6 +118,15 @@ describe("la función de alcance (ADR 0048, ticket 094)", () => {
     expect(vistos.map((p) => p.id).sort()).toEqual([programaA, programaB].sort());
   });
 
+  it("un paid trafficker ve todos sin membresías: Pauta lleva todos los programas (ticket 102)", async () => {
+    const [pt] = await db
+      .insert(users)
+      .values({ email: "pauta@retiagrowth.com", rol: "paid_trafficker", nombre: "Pauta" })
+      .returning();
+    const vistos = await programasVisibles(pt.id, "paid_trafficker", db);
+    expect(vistos.map((p) => p.id).sort()).toEqual([programaA, programaB].sort());
+  });
+
   it("una membresía INACTIVA no cuenta", async () => {
     await db.insert(miembrosPrograma).values({ userId: anaUserId, programId: programaB, activo: false });
     const vistos = await programasVisibles(anaUserId, "closer", db);

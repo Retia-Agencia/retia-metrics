@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esAdministrador, etiquetaDeRol, manejaPauta, puedeAcceder, esRolValido, puedeTocarMembresia, trabajaLeads } from "@/lib/auth/roles";
+import { esAdministrador, etiquetaDeRol, manejaPauta, puedeAcceder, esRolValido, puedeTocarMembresia, trabajaLeads, veEquipoComercial } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
@@ -42,6 +42,18 @@ describe("manejaPauta (ADR 0052, ticket 173)", () => {
 
   it("el rol paid_trafficker es válido (está en ROLES)", () => {
     expect(esRolValido("paid_trafficker")).toBe(true);
+  });
+});
+
+describe("veEquipoComercial (ticket 102)", () => {
+  // La quinta pregunta: quién ve el trabajo de los closers en el Dashboard. El paid trafficker
+  // entra al Dashboard pero no la cumple; el developer sí (ADR 0025).
+  it("gerente, closer y developer ven el equipo comercial; el paid trafficker no", () => {
+    expect(veEquipoComercial("gerente")).toBe(true);
+    expect(veEquipoComercial("closer")).toBe(true);
+    expect(veEquipoComercial("developer")).toBe(true);
+    expect(veEquipoComercial("paid_trafficker")).toBe(false);
+    expect(veEquipoComercial(null)).toBe(false);
   });
 });
 
@@ -198,12 +210,14 @@ describe("navegacion por rol", () => {
     expect(rutasDe("closer")).not.toContain("/nerd-stats");
   });
 
-  it("el paid trafficker ve Mi espacio y Ajustes (tickets 173, 179): nada de tabs, Recursos ni Mi día", () => {
+  it("el paid trafficker ve Mi espacio, el Dashboard y Ajustes (tickets 173, 179, 102): ni otras tabs, ni Recursos ni Mi día", () => {
     const rutas = rutasDe("paid_trafficker");
-    expect(rutas).toEqual(["/mi-espacio", "/ajustes"]);
+    expect(rutas).toEqual(["/mi-espacio", `/p/${PROGRAMA}/dashboard`, "/ajustes"]);
     expect(rutas).not.toContain("/mi-dia");
     expect(rutas).not.toContain("/recursos");
-    expect(rutas.some((r) => r.startsWith("/p/"))).toBe(false);
+    expect(rutas.filter((r) => r.startsWith("/p/"))).toEqual([`/p/${PROGRAMA}/dashboard`]);
+    // Sin programa visible no hay Dashboard.
+    expect(rutasDe("paid_trafficker", null)).toEqual(["/mi-espacio", "/ajustes"]);
   });
 
   it("el paid trafficker aterriza en Mi espacio (ticket 179), ya no en Canales", () => {

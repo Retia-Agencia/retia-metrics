@@ -33,6 +33,8 @@ export interface FiltroProps {
   closers: readonly OpcionDeCloser[];
   /** Solo se ofrece el rango de la cohorte si hay una vendiendo con ventana (ADR 0022). */
   cohorteDisponible: boolean;
+  /** Sin equipo comercial (paid trafficker, ticket 102) no hay filtro de closer. */
+  filtraCloser?: boolean;
 }
 
 export function FiltroDashboard({
@@ -41,6 +43,7 @@ export function FiltroDashboard({
   claveCloser,
   closers,
   cohorteDisponible,
+  filtraCloser = true,
 }: FiltroProps) {
   const { poner } = useFiltrosUrl();
 
@@ -48,6 +51,7 @@ export function FiltroDashboard({
     <BarraDeFiltros nombres={["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "rango", "desde", "hasta", "closer"]}>
       <SelectorPeriodo periodo={periodo} cohorteDisponible={cohorteDisponible} anteriorDisponible={anteriorDisponible} />
 
+      {filtraCloser ? (
       <Select
         value={claveCloser ?? TODOS}
         onValueChange={(valor: string | null) =>
@@ -66,6 +70,7 @@ export function FiltroDashboard({
           ))}
         </SelectContent>
       </Select>
+      ) : null}
     </BarraDeFiltros>
   );
 }

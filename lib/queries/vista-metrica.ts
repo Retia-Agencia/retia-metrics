@@ -410,3 +410,30 @@ export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) 
   const [lista] = await listaDeMetrica(metrica, { ...filtros, claveCloser }, pagina, db);
   return { lista, periodo, claveCloser };
 }
+
+function esDetalleDeCifra(valor: unknown): valor is DetalleDeCifra {
+  return typeof valor === "object" && valor !== null && "resumen" in valor && "desgloses" in valor && "href" in valor;
+}
+
+/**
+ * Las cifras sin su lista, para quien no ve el trabajo del equipo comercial (`veEquipoComercial`,
+ * ticket 102): cada `DetalleDeCifra`, donde esté anidado, queda no disponible, sin grupos ni
+ * desgloses (que nombran a cada closer) y sin enlace. Se proyecta en el SERVIDOR: el desglose por
+ * closer nunca viaja al navegador. El número se conserva; `CifraConLista` lo pinta sin abrir nada.
+ */
+export function sinListas<T>(valor: T): T {
+  if (esDetalleDeCifra(valor)) {
+    return {
+      ...valor,
+      resumen: { ...valor.resumen, disponible: false, grupos: [] },
+      desgloses: { porCloser: [], porEtapa: [], porAntiguedad: [] },
+      href: "",
+    } as T;
+  }
+  if (Array.isArray(valor)) return valor.map(sinListas) as T;
+  // Solo objetos planos: un `Date` u otra clase se deja tal cual.
+  if (typeof valor === "object" && valor !== null && Object.getPrototypeOf(valor) === Object.prototype) {
+    return Object.fromEntries(Object.entries(valor).map(([clave, v]) => [clave, sinListas(v)])) as T;
+  }
+  return valor;
+}

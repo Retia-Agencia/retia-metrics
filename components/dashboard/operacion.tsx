@@ -181,7 +181,11 @@ function AgendasPorSemana({ semanas, proximas }: Pick<DetallesDeOperacion, "sema
   );
 }
 
-function EmbudoPorEtapas({ vista, detalles }: { vista: VistaDelDashboard; detalles?: DetallesDeOperacion["embudo"] }) {
+function EmbudoPorEtapas({ vista, detalles, veEquipo }: {
+  vista: VistaDelDashboard;
+  detalles?: DetallesDeOperacion["embudo"];
+  veEquipo: boolean;
+}) {
   const conversion = vista.embudoEtapas.conversion.todas;
 
   return (
@@ -256,7 +260,7 @@ function EmbudoPorEtapas({ vista, detalles }: { vista: VistaDelDashboard; detall
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        {veEquipo ? <Card>
           <CardHeader>
             <CardTitle className="text-base">Abiertos por etapa y owner</CardTitle>
           </CardHeader>
@@ -282,7 +286,7 @@ function EmbudoPorEtapas({ vista, detalles }: { vista: VistaDelDashboard; detall
               </Tabla>
             )}
           </CardContent>
-        </Card>
+        </Card> : null}
 
         <Card>
           <CardHeader>
@@ -314,9 +318,12 @@ export function Operacion({
   detalles,
   detallesOperacion,
   dealsContraAgendas,
+  veEquipo = true,
 }: {
   vista: VistaDelDashboard;
   detalles?: DetallesDelDashboard;
+  /** Sin equipo comercial (paid trafficker, ticket 102): sin comparativo ni abiertos por owner. */
+  veEquipo?: boolean;
   /** El comparativo y el embudo por etapas, celda por celda (ticket 188). */
   detallesOperacion?: DetallesDeOperacion;
   dealsContraAgendas: ReactNode;
@@ -404,8 +411,8 @@ export function Operacion({
 
       {detallesOperacion ? <AgendasPorSemana semanas={detallesOperacion.semanas} proximas={detallesOperacion.proximas} /> : null}
       {dealsContraAgendas}
-      <Comparativo vista={vista} detalles={detallesOperacion?.comparativo} />
-      <EmbudoPorEtapas vista={vista} detalles={detallesOperacion?.embudo} />
+      {veEquipo ? <Comparativo vista={vista} detalles={detallesOperacion?.comparativo} /> : null}
+      <EmbudoPorEtapas vista={vista} detalles={detallesOperacion?.embudo} veEquipo={veEquipo} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

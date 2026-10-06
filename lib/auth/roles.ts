@@ -120,6 +120,17 @@ export function manejaPauta(rol: Rol | undefined | null): boolean {
   return rol === "paid_trafficker" || rol === "gerente" || rol === "developer";
 }
 
+/**
+ * Quien ve el trabajo del equipo comercial en el Dashboard: el comparativo entre closers, la
+ * comisión, los abiertos por owner, el filtro de closer y las listas de deals, llamadas y abonos
+ * detrás de cada cifra. Es la QUINTA pregunta: la cumplen quien administra y quien trabaja leads
+ * (gerente, closer y developer). El paid trafficker entra al Dashboard (ADR 0052 enmendado el
+ * 29-sep, ticket 102) y ve las cifras, pero no el trabajo de cada closer ni un deal suelto.
+ */
+export function veEquipoComercial(rol: Rol | undefined | null): boolean {
+  return esAdministrador(rol) || trabajaLeads(rol);
+}
+
 export function esRolValido(valor: unknown): valor is Rol {
   return typeof valor === "string" && (ROLES as readonly string[]).includes(valor);
 }

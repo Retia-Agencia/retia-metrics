@@ -176,7 +176,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [ ] | 067 | [ROAS por cohorte y captura de pauta](./067-roas-por-cohorte-y-captura-de-pauta.md) (E5-4) | 064, 120 | todo |
-| [ ] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | en parte · el 173 construyó el rol, `manejaPauta` y Canales (0063 en producción); el 179, su Mi espacio. **Falta:** su Dashboard acotado a sus programas (alcance por membresía), sin el comparativo entre closers ni la comisión |
+| [ ] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | en revisión · Alejo · 5-oct · su Dashboard: ve todos los programas (ADR 0052 enmendado), sin comparativo, comisión ni listas (`veEquipoComercial`, `sinListas`); falta checkpoint |
 | [ ] | 119 | [La conexión con Meta: token por portafolio y cuentas por programa](./119-la-conexion-con-meta.md) | — | todo · carril Alejo · migración · espera el token de Anderson |
 | [ ] | 120 | [La pauta de Meta: árbol y gasto por anuncio y día](./120-la-pauta-de-meta-por-anuncio-y-dia.md) | 119 | todo · carril Alejo · migración (retira `ad_spend`) |
 | [ ] | 122 | [Los objetivos de la cohorte y el reparto de cupos por área](./122-los-objetivos-de-la-cohorte.md) | 083 | todo · carril Mani · migración |

@@ -19,12 +19,15 @@ export function Dinero({
   slug,
   series,
   origen,
+  veEquipo = true,
 }: {
   vista: VistaDelDashboard;
   detalles?: DetallesDelDashboard;
   slug: string;
   series?: SeriesDeDinero;
   origen?: string;
+  /** Sin equipo comercial (paid trafficker, ticket 102): sin comisión y sin enlaces a listas. */
+  veEquipo?: boolean;
 }) {
   return (
     <section id="dinero" className="scroll-mt-4 space-y-4">
@@ -42,7 +45,7 @@ export function Dinero({
             : undefined}
         />
         <CajaConVariacion vista={vista} detalles={detalles} />
-        <Tarjeta
+        {veEquipo ? <Tarjeta
           titulo="Comisión del periodo"
           valor={
             <CifraConLista titulo="Ventas de la comisión" detalle={detalles?.contratado}>
@@ -52,7 +55,7 @@ export function Dinero({
           nota={vista.comision.ventasSinComision > 0
             ? `${num(vista.comision.ventasSinComision)} sin % o sin valor`
             : undefined}
-        />
+        /> : null}
         <Tarjeta
           titulo="Descuento promedio"
           valor={
@@ -68,7 +71,7 @@ export function Dinero({
         />
       </div>
 
-      {series ? <GraficasDeDinero datos={series} slug={slug} claveCloser={vista.claveCloser} origen={origen} /> : null}
+      {series ? <GraficasDeDinero datos={series} slug={slug} claveCloser={vista.claveCloser} origen={origen} conListas={veEquipo} /> : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -81,7 +84,7 @@ export function Dinero({
             ) : (
               <Tabla cabeceras={["Cohorte", "Ventas", "Contratado"]}>
                 {vista.ventasPorCohorte.map((fila) => {
-                  const href = fila.cohorteId
+                  const href = veEquipo && fila.cohorteId
                     ? urlDeLista(
                         slug,
                         "contratado",
@@ -170,11 +173,12 @@ export function Dinero({
   );
 }
 
-function GraficasDeDinero({ datos, slug, claveCloser, origen }: {
+function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
   datos: SeriesDeDinero;
   slug: string;
   claveCloser: string | null;
   origen?: string;
+  conListas: boolean;
 }) {
   const { meses, acumulado } = datos;
   const ultimo = meses[meses.length - 1];
@@ -194,7 +198,7 @@ function GraficasDeDinero({ datos, slug, claveCloser, origen }: {
       decimales: moneda === "COP" ? 0 : 2, moneda })),
   ];
   const enlace = (metrica: "contratado" | "cierres" | "caja", rango: Rango, moneda?: string) => {
-    if (rango.desde > rango.hasta) return null;
+    if (!conListas || rango.desde > rango.hasta) return null;
     const href = urlDeLista(slug, metrica, { preset: "custom", a: rango, b: null }, claveCloser, moneda);
     return origen ? enlaceConVuelta(href, origen) : href;
   };

@@ -1160,3 +1160,106 @@ describe("la lista de una cifra respeta la frontera del dashboard (137)", () => 
     await expect(abrir({ metrica: "caja", closer: "a".repeat(64) })).rejects.toBeInstanceOf(NoEncontrado);
   });
 });
+
+/**
+ * Ticket 102: el paid trafficker entra al Dashboard de sus programas (todos, ADR 0052 enmendado
+ * el 5-oct) sin el trabajo del equipo comercial. Se decide en el servidor: el closer de la URL se
+ * ignora, las cifras llegan sin lista y la sección se arma con `veEquipo` en falso. Las listas de
+ * deals, llamadas y abonos y "todos los programas" lo rechazan aunque forje la URL.
+ */
+describe("el paid trafficker en el Dashboard (ticket 102)", () => {
+  const SLUG = "programa-a";
+  const BETO = "6f1c2a9e-3b4d-4c5e-8f70-1a2b3c4d5e6f";
+
+  /** Busca en el árbol que devuelve la página el primer elemento cuyo tipo se llama así. */
+  function buscar(nodo: unknown, nombre: string): { props: Record<string, unknown> } | null {
+    if (Array.isArray(nodo)) {
+      for (const hijo of nodo) {
+        const hallado = buscar(hijo, nombre);
+        if (hallado) return hallado;
+      }
+      return null;
+    }
+    if (typeof nodo !== "object" || nodo === null || !("props" in nodo)) return null;
+    const elemento = nodo as { type?: { name?: string }; props: Record<string, unknown> };
+    if (elemento.type?.name === nombre) return elemento;
+    for (const valor of Object.values(elemento.props)) {
+      const hallado = buscar(valor, nombre);
+      if (hallado) return hallado;
+    }
+    return null;
+  }
+
+  async function renderizar(busqueda: Record<string, string>) {
+    const { default: pagina } = await import(/* @vite-ignore */ RUTA_PROGRAMA) as {
+      default: (props: { params: Promise<{ programa: string }>; searchParams: Promise<Record<string, string>> }) => Promise<unknown>;
+    };
+    return pagina({ params: Promise.resolve({ programa: SLUG }), searchParams: Promise.resolve(busqueda) });
+  }
+
+  beforeEach(() => {
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A" });
+  });
+
+  it("entra al dashboard de su programa y el closer de la URL no lo acota", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    expect(await correrPrograma(SLUG, { closer: BETO })).toBe("paso");
+    expect(armarVistaDelDashboard.mock.calls.at(-1)![0]).toMatchObject({ programId: "p-1", claveCloser: null });
+  });
+
+  it("la sección se arma sin equipo y sus cifras llegan sin lista ni desglose por closer", async () => {
+    detallesDelDashboard.mockResolvedValueOnce({
+      agendas: {
+        resumen: { programId: "p-1", disponible: true, subtotal: { cantidad: 4, caja: [] }, grupos: [{ closer: "Ana" }] },
+        desgloses: { porCloser: [{ etiqueta: "Ana", cantidad: 4, caja: [] }], porEtapa: [], porAntiguedad: [] },
+        href: "/p/programa-a/dashboard/lista?metrica=agendas",
+      },
+    } as never);
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    const arbol = await renderizar({ seccion: "pulso" });
+    const seccion = buscar(arbol, "DashboardPrograma");
+    expect(seccion?.props.veEquipo).toBe(false);
+    const agendas = (seccion?.props.detalles as Record<string, { href: string; resumen: { disponible: boolean; grupos: unknown[] } }>).agendas;
+    expect(agendas.href).toBe("");
+    expect(agendas.resumen).toMatchObject({ disponible: false, grupos: [] });
+    expect(buscar(arbol, "FiltroDashboard")?.props).toMatchObject({ filtraCloser: false, closers: [] });
+  });
+
+  it("al gerente nada de eso le cambia (mordido en el otro sentido)", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const arbol = await renderizar({ seccion: "pulso" });
+    expect(buscar(arbol, "DashboardPrograma")?.props.veEquipo).toBe(true);
+    expect(buscar(arbol, "FiltroDashboard")?.props.filtraCloser).toBe(true);
+  });
+
+  it("la lista detrás de una cifra lo rechaza aunque forje la URL, sin consultar filas", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    vistaDeLista.mockReset();
+    const { default: pagina } = await import("@/app/(app)/p/[programa]/dashboard/lista/page");
+    await expect(
+      pagina({ params: Promise.resolve({ programa: SLUG }), searchParams: Promise.resolve({ metrica: "agendas" }) }),
+    ).rejects.toBeInstanceOf(Redireccion);
+    expect(vistaDeLista).not.toHaveBeenCalled();
+  });
+
+  it("'todos los programas' no es suyo: lo redirige sin armar la vista", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    armarVistaDeTodos.mockClear();
+    expect(await correrTodos()).toBe("midia");
+    expect(armarVistaDeTodos).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "@/app/(app)/p/[programa]/deals/page",
+    "@/app/(app)/p/[programa]/leads/page",
+    "@/app/(app)/p/[programa]/calls/page",
+  ])("una tab de deals, leads o llamadas forjada lo redirige: %s", async (ruta) => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    const modulo = (await import(/* @vite-ignore */ ruta)) as {
+      default: (props: { params: Promise<{ programa: string }>; searchParams: Promise<Record<string, string>> }) => Promise<unknown>;
+    };
+    await expect(
+      modulo.default({ params: Promise.resolve({ programa: SLUG }), searchParams: Promise.resolve({}) }),
+    ).rejects.toBeInstanceOf(Redireccion);
+  });
+});

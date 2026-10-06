@@ -1,5 +1,6 @@
 import { alertasDelPrograma } from "@/lib/queries/alertas";
-import { detallesDeOperacion, detallesDelDashboard, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
+import { detallesDeOperacion, detallesDelDashboard, sinListas, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
+import { veEquipoComercial } from "@/lib/auth/roles";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { paginaConRol } from "@/lib/auth/page-guards";
@@ -61,8 +62,9 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
   // La guarda corre PRIMERO, antes de mirar el slug: sin sesion redirige a login
   // aunque el programa no exista, y nunca filtra que slugs existen. El dashboard lo
   // ven gerente y closer por igual, pero el CLOSER solo en SUS programas (ADR 0048):
-  // el alcance decide cuales.
-  const session = await paginaConRol("gerente", "closer");
+  // el alcance decide cuales. El paid trafficker entra también (ADR 0052, ticket 102), sin
+  // el trabajo del equipo comercial (`veEquipoComercial`).
+  const session = await paginaConRol("gerente", "closer", "paid_trafficker");
 
   const { programa: slug } = await params;
   // El rol de vista, no `session.user.rol` crudo (ADR 0028). El programa se resuelve
@@ -74,6 +76,10 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
   // tres casos. `notFound()` lanza y corta el render; nunca 403, para no filtrar que
   // slugs existen.
   if (!programa) notFound();
+  // Sin equipo (paid trafficker): ni comparativo, ni comisión, ni filtro de closer, ni la
+  // lista detrás de una cifra. Se decide aquí, en el servidor, y se proyecta antes de pintar.
+  const veEquipo = veEquipoComercial(rol);
+  const proyectar = <T,>(valor: T): T => (veEquipo ? valor : sinListas(valor));
 
   const busqueda = await searchParams;
   const hoy = hoyEnBogota();
@@ -120,7 +126,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
     preset: texto(busqueda.rango) ?? "hoy",
     desde: texto(busqueda.desde),
     hasta: texto(busqueda.hasta),
-    claveCloser: esquemaFiltroCloser.parse(texto(busqueda.closer)) ?? null,
+    claveCloser: veEquipo ? esquemaFiltroCloser.parse(texto(busqueda.closer)) ?? null : null,
   });
 
   // Cada cifra abre su lista y su "Volver" regresa a ESTA pestaña con ESTE filtro: el
@@ -133,14 +139,14 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
   // pestaña. `armarVistaDelDashboard` sí calcula todo junto y se deja así.
   const necesitaDetalles = seccion === "pulso" || seccion === "operacion" || seccion === "dinero";
   const detalles: DetallesDelDashboard | undefined = necesitaDetalles
-    ? await detallesDelDashboard({
+    ? proyectar(await detallesDelDashboard({
         programId: programa.id,
         slug,
         hoy,
         periodo: vista.periodo,
         claveCloser: vista.claveCloser,
         origen,
-      })
+      }))
     : undefined;
 
   const { desde, hasta } = vista.seleccion.rango;
@@ -166,7 +172,8 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
             periodo={vista.periodo}
             anteriorDisponible={vista.anteriorDisponible}
             claveCloser={vista.claveCloser}
-            closers={vista.closers}
+            closers={veEquipo ? vista.closers : []}
+            filtraCloser={veEquipo}
             cohorteDisponible={vista.cohorte?.ventana != null}
           />
         </div>
@@ -186,20 +193,21 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
               seccion="operacion"
               vista={vista}
               detalles={detalles}
-              detallesOperacion={await detallesDeOperacion(
+              detallesOperacion={proyectar(await detallesDeOperacion(
                 { programId: programa.id, slug, hoy, periodo: vista.periodo, origen },
                 vista.comparativo.map((fila) => fila.clave),
-              )}
+              ))}
               slug={slug}
+              veEquipo={veEquipo}
               dealsContraAgendas={
                 <DealsContraAgendas
-                  vista={await vistaDealsContraAgendas({
+                  vista={proyectar(await vistaDealsContraAgendas({
                     programId: programa.id,
                     slug,
                     hoy,
                     periodo: vista.periodo,
                     claveCloser: vista.claveCloser,
-                  })}
+                  }))}
                 />
               }
             />
@@ -212,6 +220,7 @@ export default async function DashboardDelProgramaPage({ params, searchParams }:
               // El embudo contra agendas es de Operación; fuera de esa pestaña no se arma.
               dealsContraAgendas={null}
               origen={origen}
+              veEquipo={veEquipo}
               alertas={seccion === "pulso" ? await alertasDelPrograma(programa.id, hoy) : undefined}
               seriesDinero={seccion === "dinero" ? await leerSeriesDeDinero({
                 programId: programa.id,

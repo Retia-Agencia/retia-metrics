@@ -102,7 +102,7 @@ function Cohorte({ vista }: { vista: VistaDelDashboard }) {
   );
 }
 
-function MetaDelMes({ vista, slug }: { vista: VistaDelDashboard; slug: string }) {
+function MetaDelMes({ vista, slug, veEquipo }: { vista: VistaDelDashboard; slug: string; veEquipo: boolean }) {
   const meta = vista.metasDelMes;
   return (
     <Card>
@@ -135,14 +135,16 @@ function MetaDelMes({ vista, slug }: { vista: VistaDelDashboard; slug: string })
             La meta es del programa, no individual.
           </p>
         ) : null}
-        <Button
-          variant="link"
-          className="h-auto p-0"
-          nativeButton={false}
-          render={<Link href={`/p/${encodeURIComponent(slug)}/metas`} />}
-        >
-          Ver Metas
-        </Button>
+        {veEquipo ? (
+          <Button
+            variant="link"
+            className="h-auto p-0"
+            nativeButton={false}
+            render={<Link href={`/p/${encodeURIComponent(slug)}/metas`} />}
+          >
+            Ver Metas
+          </Button>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -154,10 +156,13 @@ export function Pulso({
   detalles,
   slug,
   alertas,
+  veEquipo = true,
 }: {
   vista: VistaDelDashboard;
   detalles?: DetallesDelDashboard;
   slug: string;
+  /** Sin equipo comercial (paid trafficker, ticket 102): sin enlaces a Metas ni a Programa. */
+  veEquipo?: boolean;
   /** Las alertas por persistencia del programa (147); sin ellas no se pinta la tarjeta. */
   alertas?: Alerta[];
 }) {
@@ -241,9 +246,9 @@ export function Pulso({
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <Cohorte vista={vista} />
-        <MetaDelMes vista={vista} slug={slug} />
+        <MetaDelMes vista={vista} slug={slug} veEquipo={veEquipo} />
       </div>
-      {alertas ? <Alertas alertas={alertas} slug={slug} /> : null}
+      {alertas ? <Alertas alertas={alertas} slug={slug} configurable={veEquipo} /> : null}
     </section>
   );
 }

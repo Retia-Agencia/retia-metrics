@@ -66,12 +66,16 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
 
   // El paid trafficker (ADR 0052) entra a Ajustes —adentro solo ve Canales (lo proyecta
   // el índice)— y, desde el ticket 179, a Mi espacio, su propia sección Canales (pares sin
-  // clasificar y conteo por canal). No administra la app ni trabaja leads, así que no tiene
-  // Dashboard, tabs de programa ni Recursos. Se pregunta por capacidad —`manejaPauta` sin
+  // clasificar y conteo por canal). Desde el ticket 102 ve el Dashboard del programa elegido,
+  // sin el trabajo del equipo comercial. No administra la app ni trabaja leads, así que no
+  // tiene las demás tabs de programa ni Recursos. Se pregunta por capacidad —`manejaPauta` sin
   // administrar ni trabajar leads—, nunca por el literal del rol (ADR 0025).
   if (manejaPauta(rol) && !esAdministrador(rol) && !trabajaLeads(rol)) {
     return [
       { href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles: ["paid_trafficker"] },
+      ...(programa
+        ? [{ href: rutaDePrograma(programa, "dashboard"), etiqueta: "Dashboard", icono: "dashboard", roles: ["paid_trafficker"] } satisfies ItemNav]
+        : []),
       { href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["paid_trafficker"] },
     ];
   }

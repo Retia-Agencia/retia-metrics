@@ -41,10 +41,13 @@ export function ProgramSwitcher({
   actual,
   inactivos,
   puedeCrear,
+  ofreceTodos: puedeVerTodos = true,
 }: {
   programas: readonly Programa[];
   inactivos: readonly Programa[];
   puedeCrear: boolean;
+  /** "Todos los programas" (ADR 0048) no es para quien no ve el equipo comercial (ticket 102). */
+  ofreceTodos?: boolean;
   /** El programa de la URL, o el que abren las tabs de programa si la ruta no tiene uno. */
   actual: string | null;
 }) {
@@ -54,7 +57,7 @@ export function ProgramSwitcher({
   const [pendiente, startTransition] = useTransition();
   const [nuevo, setNuevo] = useState({ nombre: "", slug: "", ticketUsd: "" });
 
-  const ofreceTodos = programas.length >= 2;
+  const ofreceTodos = puedeVerTodos && programas.length >= 2;
   const enTodos = pathname === RUTA_DASHBOARD_TODOS || pathname.startsWith(`${RUTA_DASHBOARD_TODOS}/`);
   const seleccionado = ofreceTodos && enTodos ? VALOR_PROGRAMA_TODOS : actual;
   const items = [

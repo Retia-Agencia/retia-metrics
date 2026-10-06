@@ -32,6 +32,7 @@ export function DashboardPrograma({
   seriesDinero,
   origen,
   alertas,
+  veEquipo = true,
 }: {
   seccion: "pulso" | "operacion" | "dinero";
   vista: VistaDelDashboard;
@@ -42,9 +43,15 @@ export function DashboardPrograma({
   seriesDinero?: SeriesDeDinero;
   origen?: string;
   alertas?: Alerta[];
+  /**
+   * Si la sesión ve el trabajo del equipo comercial (`veEquipoComercial`, ticket 102). Sin él
+   * (paid trafficker) no se pintan el comparativo, la comisión, los abiertos por owner ni los
+   * enlaces a Metas, Programa o una lista.
+   */
+  veEquipo?: boolean;
 }) {
   if (seccion === "pulso") {
-    return <Pulso vista={vista} detalles={detalles} slug={slug} alertas={alertas} />;
+    return <Pulso vista={vista} detalles={detalles} slug={slug} alertas={alertas} veEquipo={veEquipo} />;
   }
   if (seccion === "operacion") {
     return (
@@ -53,8 +60,9 @@ export function DashboardPrograma({
         detalles={detalles}
         detallesOperacion={detallesOperacion}
         dealsContraAgendas={dealsContraAgendas}
+        veEquipo={veEquipo}
       />
     );
   }
-  return <Dinero vista={vista} detalles={detalles} slug={slug} series={seriesDinero} origen={origen} />;
+  return <Dinero vista={vista} detalles={detalles} slug={slug} series={seriesDinero} origen={origen} veEquipo={veEquipo} />;
 }

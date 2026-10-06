@@ -52,3 +52,20 @@ Parcial. El código y los tests sí, con revisión de permisos. La migración, l
 - **El paid trafficker maneja los Canales:** `/ajustes/canales` (crear, editar, desactivar y ver los pares sin canal)
   pasa de `esAdministrador` a `manejaPauta`, en la página y en sus server actions. Mapear lo que llega es trabajo de
   Pauta; el CRM solo muestra lo que no casa.
+
+## Entrega 5-oct (Alejo + Claude): su Dashboard
+
+- **Alcance (decidido con Alejo):** ve todos los programas activos, sin membresías (enmienda del ADR 0052, 5-oct).
+- `veEquipoComercial` (quinta pregunta de `roles.ts`) y `sinListas` (`vista-metrica.ts`). La página
+  `/p/[programa]/dashboard` admite al paid trafficker; sin equipo: ni comparativo, ni comisión, ni abiertos por owner,
+  ni filtro de closer, ni enlaces a Metas, Programa o listas, y las cifras no abren. El selector no le ofrece "Todos los
+  programas"; su nav suma Dashboard.
+- Tests: `tests/roles.test.ts` (la pregunta y su nav), `tests/alcance-de-sesion.test.ts` (ve todos sin membresía),
+  `tests/sin-listas.test.ts` y `tests/paginas.test.ts` (la página real: closer de la URL ignorado, `veEquipo` falso,
+  cifras sin lista; la lista, "todos", deals, leads y calls lo redirigen; el gerente sin cambios). Mordido: con
+  `veEquipo` forzado a verdadero caen dos.
+- Recorrido en `dev:local` con un paid trafficker local: Pulso, Operación, Dinero y Pauta, 375 px sin scroll lateral,
+  URLs forjadas a la lista, "todos" y Deals terminan en Mi espacio; el developer sigue viendo Closers, comisión y listas.
+- Done cuando: nada pregunta `rol === "paid_trafficker"` (sí); una ruta de deals forjada lo saca sin tocar la base (sí,
+  redirige por la guarda); la vista `todo` del developer sigue siendo superset (sí, cumple las cinco preguntas).
+

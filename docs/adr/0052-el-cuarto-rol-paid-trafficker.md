@@ -49,3 +49,16 @@ programas (gasto, registros, agendas, CPL, costo por agenda), sin caja ni compar
 - **Punto 4, cerrado:** ve el Dashboard de sus programas **menos el comparativo entre closers y la
   comisión**. Sí ve ventas contratadas y caja, porque ROAS y ad profit las necesitan. Sigue sin ver deals,
   llamadas ni abonos sueltos.
+
+## Enmienda 2026-10-05 (Alejo, ticket 102)
+
+- **Punto 2, alcance:** el paid trafficker ve **todos los programas activos**, no los de su membresía. Las membresías
+  son del equipo que trabaja leads (`agregarMembresia` las exige, y `miembros_programa` alimenta dueños, Calendly y el
+  comparativo); darle una lo haría aparecer como closer. Pauta (Anderson, César, Daniela) lleva todos los programas.
+  Vive en `programasVisibles` (`lib/auth/alcance.ts`): `esAdministrador(rol) || manejaPauta(rol)`.
+- **Punto 4, cómo se construyó:** la quinta pregunta, `veEquipoComercial` en `lib/auth/roles.ts`, decide qué del
+  Dashboard es del equipo comercial. Sin ella no se pintan el comparativo entre closers, la comisión, los abiertos por
+  owner ni el filtro de closer (el de la URL se ignora), y cada cifra llega **sin su lista** (`sinListas`, proyectado en
+  el servidor: el desglose por closer no viaja al navegador). La lista de una cifra, "todos los programas", Metas y las
+  tabs de deals, leads y llamadas lo redirigen por su guarda. Sigue viendo contratado, caja, metas y la pestaña Pauta.
+

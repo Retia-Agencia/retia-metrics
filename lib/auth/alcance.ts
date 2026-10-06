@@ -2,7 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { miembrosPrograma, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { esAdministrador, type Rol } from "./roles";
+import { esAdministrador, manejaPauta, type Rol } from "./roles";
 
 /**
  * "¿Qué programas ve esta sesión?" — LA respuesta, en un solo módulo (ADR 0048
@@ -45,7 +45,7 @@ export interface ProgramaDeLaFicha extends ProgramaVisible {
 /**
  * Los programas ACTIVOS que ve esta sesión, ordenados por nombre.
  *
- * - Administrador (gerente o developer): todos los activos.
+ * - Administrador (gerente o developer) y paid trafficker (`manejaPauta`): todos los activos.
  * - Closer: solo aquellos donde tiene una membresía activa.
  *
  * Es la fuente única del selector de programa (ticket 097), de la guarda de toda
@@ -58,7 +58,10 @@ export async function programasVisibles(
 ): Promise<ProgramaVisible[]> {
   const columnas = { id: programs.id, slug: programs.slug, nombre: programs.nombre };
 
-  if (esAdministrador(rol)) {
+  // Quien maneja la pauta ve todos también (Alejo, 5-oct, ticket 102; enmienda el ADR 0052
+  // punto 2): el paid trafficker no tiene membresías —son del equipo que trabaja leads— y Pauta
+  // lleva todos los programas.
+  if (esAdministrador(rol) || manejaPauta(rol)) {
     return db
       .select(columnas)
       .from(programs)

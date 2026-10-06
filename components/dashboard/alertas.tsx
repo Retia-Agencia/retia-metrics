@@ -10,7 +10,16 @@ import type { Alerta } from "@/lib/queries/alertas";
  * bajo su aceptable N días hábiles cerrados seguidos. Se ve la alerta disparada, la racha que va
  * camino a dispararse, y cada día que la forma con su cumplimiento.
  */
-export function Alertas({ alertas, slug }: { alertas: Alerta[]; slug: string }) {
+export function Alertas({
+  alertas,
+  slug,
+  configurable = true,
+}: {
+  alertas: Alerta[];
+  slug: string;
+  /** Sin él (paid trafficker, ticket 102) no se ofrece el enlace a Programa. */
+  configurable?: boolean;
+}) {
   const configurar = `/p/${encodeURIComponent(slug)}/programa?seccion=ventas`;
   return (
     <Card>
@@ -20,8 +29,13 @@ export function Alertas({ alertas, slug }: { alertas: Alerta[]; slug: string }) 
       <CardContent className="space-y-4">
         {alertas.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Sin umbrales activos en este programa.{" "}
-            <Link className="text-primary underline-offset-4 hover:underline" href={configurar}>Configurarlos en Programa</Link>.
+            Sin umbrales activos en este programa.
+            {configurable ? (
+              <>
+                {" "}
+                <Link className="text-primary underline-offset-4 hover:underline" href={configurar}>Configurarlos en Programa</Link>.
+              </>
+            ) : null}
           </p>
         ) : (
           alertas.map((alerta) => (
