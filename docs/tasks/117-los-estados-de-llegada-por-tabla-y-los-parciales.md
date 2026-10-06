@@ -3,7 +3,7 @@ id: 117
 etapa: E6
 serves: "ADR 0061 · docs/analytics.md PT-01, PT-02, PT-05, PT-06, PT-07"
 depends: [115]
-status: en curso
+status: done
 ---
 
 # 117 — Los estados de llegada por tabla, y los envíos parciales por el webhook
@@ -120,7 +120,7 @@ deal?"), `lib/queries/estados-llegada.ts` y `components/admin/estados-llegada-ad
 `/ajustes/fuentes`, con los valores que llegaron sin fila y un botón para crearla), conteo `sinEstado` en
 `lib/queries/salud-fuentes.ts` (24 h, marca la fuente), filtro y badge en Leads.
 
-**Payload del primer parcial real:** pendiente. Se anota cuando Typeform mande el primero (tras la O-7). Medido en producción el 1-oct (solo lectura): **0 parciales de Typeform**; los 6 parciales por webhook son de Dapta (ComunicArte, 130), con llaves `email`, `whatsapp`, las preguntas, `outcome`, `form.*`, `visit.pageUri` y `utm.*`, sin `lead_value` ni `estado`.
+**Payload del primer parcial real:** anotado el 6-oct, abajo ("Primer parcial real de Typeform"). Lo de antes, como estaba: Medido en producción el 1-oct (solo lectura): **0 parciales de Typeform**; los 6 parciales por webhook son de Dapta (ComunicArte, 130), con llaves `email`, `whatsapp`, las preguntas, `outcome`, `form.*`, `visit.pageUri` y `utm.*`, sin `lead_value` ni `estado`.
 
 ## Producción: orden obligatorio (cada paso con el ok de Mani)
 
@@ -214,3 +214,30 @@ Agendado con su llamada de Calendly); el lead que estaba en Calificado con cita 
 estaba en Registrado (3 envíos) no cambió. **Ningún lead de la ventana quedó sin deal.**
 
 **Lo único que le queda al 117:** anotar el primer parcial real de Typeform cuando llegue (O-7). No es código.
+
+## Primer parcial real de Typeform (6-oct, solo lectura en producción)
+
+Llegaron el 5-oct entre las 22:09 y las 22:22 (Bogotá), todos de **Comunícate con Confianza** (`E5F4chVT`): 6 sobres
+`form_response_partial`, de 3 respuestas (3 tokens, 2 leads; por la hora y los UTM `xxxxx`, pruebas de la puesta en
+marcha). Ninguno con error.
+
+- **Typeform manda un parcial por tramo**: con 3 respuestas (texto, correo, teléfono) y otra vez con 8 (más opciones),
+  con el MISMO token. Entra como un solo envío parcial por token (`submissions_fuente_token_idx`); 6 sobres → 3 envíos.
+- **Payload:** los seis ocultos UTM (`utm_source/medium/campaign/content/term/id`; vacíos o `xxxxx`) y las variables
+  `estado`, `etapa` (`Setteo`), `hvm_points`, `hvm_tier`, `lead_value`, `score` y `tag_lead_quality`.
+  **`lead_value` sí viene en el parcial.** Sin pregunta de Calendly respondida en ningún parcial.
+- 🩸 **`tag_lead_quality` llega `High` desde el primer tramo**, con 0 puntos, tier C y `BAJO VALOR`. Con el ADR 0069
+  (parcial High → Calificado) el deal del parcial **nació en Calificado** (historial: ∅ → calificado → agendado al
+  completar con cita). La regla del CRM hace lo que dice el ADR; lo que no cuadraba era el dato.
+- **La causa (leída por API el 6-oct, `TYPEFORM_PAT_LOCAL`):** en los tres formularios la variable arranca en `Low`;
+  las respuestas malas de la #4, #6 y #8 restan 100 a `score`, y la ÚNICA regla que pone `High` vive en la #8 con la
+  condición `score >= 0`, que no mira la respuesta. `score` arranca en 0, así que en un parcial que no llegó a la #8
+  la condición ya se cumple y Typeform manda `High`. En un completo no se nota (el "No" de la #8 ya restó).
+- **El arreglo (ok de Mani, 6-oct):** la condición pasa a `(score >= 0 Y #8 = "Sí, tengo…") O (score >= 0 Y #8 = "Sí,
+  pero necesito facilidades…")` (Typeform exige OR de ANDs). En un completo es lo mismo; un parcial que no llegó a la
+  #8 queda `Low` y nace en Potencial; uno que contestó "Sí" sigue `High` y nace en Calificado. Por `PUT /forms/{id}`
+  con el JSON entero, comparando contra un respaldo leído antes: **aplicado y verificado en los tres** (Confianza
+  `E5F4chVT`, Tactical `GmPGBOf9`, ComunicArte `nkMLdeh8`): contra el respaldo solo cambian esa condición y
+  `last_updated_at`. Lo que ya entró no se reprocesa.
+- **Con esto el 117 queda completo:** el primer parcial real está anotado y lo que destapó, arreglado en la fuente.
+- No se tocó: las reglas de `hvm_tier` y `lead_value` de la #8 pueden tener el mismo patrón; `lead_value` no enruta.
