@@ -239,5 +239,9 @@ marcha). Ninguno con error.
   con el JSON entero, comparando contra un respaldo leído antes: **aplicado y verificado en los tres** (Confianza
   `E5F4chVT`, Tactical `GmPGBOf9`, ComunicArte `nkMLdeh8`): contra el respaldo solo cambian esa condición y
   `last_updated_at`. Lo que ya entró no se reprocesa.
+- **Probado con tráfico real (Confianza, 6-oct, 9:03 Bogotá, ~20 min después del cambio):** parcial con 3 respuestas
+  llegó `Low` y el deal nació en **Potencial**; el parcial con 8 ("Sí, tengo la disposición…") lo subió a Calificado
+  (ADR 0073) y el completo con cita a Agendado. Tactical y ComunicArte, mismo cambio verificado contra su respaldo, sin
+  parcial posterior todavía.
 - **Con esto el 117 queda completo:** el primer parcial real está anotado y lo que destapó, arreglado en la fuente.
 - No se tocó: las reglas de `hvm_tier` y `lead_value` de la #8 pueden tener el mismo patrón; `lead_value` no enruta.
