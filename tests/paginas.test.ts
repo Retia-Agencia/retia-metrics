@@ -103,11 +103,15 @@ vi.mock("@/lib/queries/vista-todos", async (importOriginal) => ({
 }));
 const detallesDelDashboard = vi.fn(async () => ({}));
 const vistaDeLista = vi.fn();
+const detallesDeOperacion = vi.fn(async () => ({ comparativo: {}, embudo: {}, semanas: [], proximas: [] }));
 vi.mock("@/lib/queries/vista-metrica", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/vista-metrica")>(),
   detallesDelDashboard,
+  detallesDeOperacion,
   vistaDeLista,
 }));
+const leerSeriesDeDinero = vi.fn(async () => ({ meses: [] }));
+vi.mock("@/lib/queries/series-dinero", () => ({ leerSeriesDeDinero }));
 // La vista interina de Pauta (093) tambien lee la base: aqui solo importa que la pagina pase.
 const pautaInterina = vi.fn(async () => ({
   filas: [],
@@ -1223,6 +1227,46 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     expect(agendas.href).toBe("");
     expect(agendas.resumen).toMatchObject({ disponible: false, grupos: [] });
     expect(buscar(arbol, "FiltroDashboard")?.props).toMatchObject({ filtraCloser: false, closers: [] });
+  });
+
+  /** Un detalle de cifra con lista, desglose por closer y enlace: lo que `sinListas` tiene que vaciar. */
+  const detalleConLista = () => ({
+    resumen: { programId: "p-1", disponible: true, subtotal: { cantidad: 3, caja: [] }, grupos: [{ closer: "Ana" }] },
+    desgloses: { porCloser: [{ etiqueta: "Ana", cantidad: 3, caja: [] }], porEtapa: [], porAntiguedad: [] },
+    href: "/p/programa-a/dashboard/lista?metrica=cierres",
+  });
+  type ConComparativo = { comparativo: Record<string, Record<string, ReturnType<typeof detalleConLista>>> };
+
+  it("en Operación el comparativo y el embudo contra agendas llegan sin lista ni closer", async () => {
+    detallesDeOperacion.mockResolvedValueOnce({ comparativo: { "u-ana": { cierres: detalleConLista() } }, embudo: {}, semanas: [], proximas: [] } as never);
+    vistaDealsContraAgendas.mockResolvedValueOnce({ disponible: true, cifras: { agendas: detalleConLista() } } as never);
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    const arbol = await renderizar({ seccion: "operacion" });
+    const seccion = buscar(arbol, "DashboardPrograma");
+    expect(seccion?.props).toMatchObject({ seccion: "operacion", veEquipo: false });
+    const cierres = (seccion?.props.detallesOperacion as ConComparativo).comparativo["u-ana"].cierres;
+    expect(cierres.href).toBe("");
+    expect(cierres.resumen).toMatchObject({ disponible: false, grupos: [] });
+    expect(JSON.stringify(seccion?.props.detallesOperacion)).not.toContain("Ana");
+    const contraAgendas = JSON.stringify(buscar(arbol, "DealsContraAgendas")?.props.vista);
+    expect(contraAgendas).not.toContain("Ana");
+    expect(contraAgendas).not.toContain("metrica=cierres");
+  });
+
+  it("en Dinero se arma sin equipo (sin comisión ni enlaces a las cohortes)", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    const arbol = await renderizar({ seccion: "dinero" });
+    expect(buscar(arbol, "DashboardPrograma")?.props).toMatchObject({ seccion: "dinero", veEquipo: false });
+  });
+
+  it.each(["operacion", "dinero"])("al gerente, %s le llega con equipo y con sus listas", async (pestana) => {
+    detallesDeOperacion.mockResolvedValueOnce({ comparativo: { "u-ana": { cierres: detalleConLista() } }, embudo: {}, semanas: [], proximas: [] } as never);
+    auth.mockResolvedValue(sesionGerente);
+    const seccion = buscar(await renderizar({ seccion: pestana }), "DashboardPrograma");
+    expect(seccion?.props.veEquipo).toBe(true);
+    if (pestana === "operacion") {
+      expect((seccion?.props.detallesOperacion as ConComparativo).comparativo["u-ana"].cierres.href).toBe(detalleConLista().href);
+    }
   });
 
   it("al gerente nada de eso le cambia (mordido en el otro sentido)", async () => {

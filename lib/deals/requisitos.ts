@@ -151,6 +151,12 @@ const PROPIEDADES_POR_ETAPA: Record<EtapaDeal, CodigoReal[]> = {
   cierre_perdido: ["motivo"],
 };
 
+/** Las etapas cuya ficha exige esta propiedad: la usa una consulta que no puede llamar a `CUMPLE` fila por fila. */
+export function etapasQueExigen(codigo: CodigoRequisito): EtapaDeal[] {
+  return (Object.keys(PROPIEDADES_POR_ETAPA) as EtapaDeal[])
+    .filter((etapa) => (PROPIEDADES_POR_ETAPA[etapa] as CodigoRequisito[]).includes(codigo));
+}
+
 export function propiedadesQueLeFaltan(etapa: EtapaDeal, hechos: PropiedadesDelDeal): RequisitoFaltante[] {
   return PROPIEDADES_POR_ETAPA[etapa]
     .filter((codigo) => !CUMPLE[codigo](hechos))

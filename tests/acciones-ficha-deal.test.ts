@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
+import { dealActividades, dealEtapaHistorial, deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -208,5 +208,38 @@ describe("registrar una actividad, forjando la peticion", () => {
     auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
     const r = await (await acciones()).registrarActividadAccion({ dealId, tipo: "contacto", canal: "WhatsApp", nota: "Le escribí" });
     expect(r).toEqual({ ok: true });
+  });
+});
+
+describe("el paid trafficker no toca deals, forjando la petición (102)", () => {
+  // Desde el 102 ve todos los programas (`programaEnAlcance` le dice que sí), así que la única reja
+  // de estas acciones es el rol: si alguien la afloja, esto lo dice.
+  async function pauta() {
+    const [p] = await db.insert(users).values({ email: "pauta@retiagrowth.com", rol: "paid_trafficker" }).returning();
+    return p.id;
+  }
+  async function historial(dealId: string) {
+    return db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, dealId));
+  }
+
+  it("mover: 403 y ni la etapa ni el historial se mueven", async () => {
+    const dealId = await nuevoDeal(programaA, closerA);
+    const antes = (await historial(dealId)).length;
+    auth.mockResolvedValue(sesion(await pauta(), "paid_trafficker", null));
+    const r = await (await accionesMover()).moverDeal({ dealId, a: "agendado", pendiente: "reagenda" });
+    expect(r).toMatchObject({ ok: false, status: 403 });
+    expect((await deal(dealId)).etapa).toBe("atendido");
+    expect(await historial(dealId)).toHaveLength(antes);
+  });
+
+  it("anular y registrar una actividad: rechazado y la base quieta", async () => {
+    const dealId = await nuevoDeal(programaA, closerA);
+    auth.mockResolvedValue(sesion(await pauta(), "paid_trafficker", null));
+    const a = await acciones();
+    expect(await a.anularDealAccion({ dealId, motivo: "forjado" })).toMatchObject({ ok: false });
+    expect((await deal(dealId)).anuladoEn).toBeNull();
+    const actividades = await db.select().from(dealActividades).where(eq(dealActividades.dealId, dealId));
+    expect(await a.registrarActividadAccion({ dealId, tipo: "nota", nota: "forjada" })).toMatchObject({ ok: false });
+    expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, dealId))).toHaveLength(actividades.length);
   });
 });

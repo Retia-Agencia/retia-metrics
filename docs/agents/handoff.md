@@ -11,9 +11,9 @@
 ```
 Seguimos con el CRM de Retia. PRIORIDAD: Memorable (Nicolás y Francisco) arrancó el 5-oct y su configuración es de
 Mani (plan-reparto §4, O2 frente A; plan.md §2). Ola vigente: O6, el dashboard confiable (plan-reparto §4). Checkpoint
-`cp-20261005-1` verde: 147, 187, 188, 189, 190, 192, 198 y 200 en `done`. **Siguen en revisión el 191 y el 102**: están
-en `main` con CI verde, pero ninguno pasó por el cadenero (otra sesión); se marcan `done` en el checkpoint que siga a esa
-revisión. Lo siguiente: el cadenero del 191 y el 102, y rearmar la ola. Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
+`cp-20261005-1` verde: 147, 187, 188, 189, 190, 192, 198 y 200 en `done`. El 191 y el 102 ya pasaron por el cadenero
+(5-oct, noche) y sus arreglos están en `main`; se marcan `done` en el próximo checkpoint verde. Lo siguiente: ese
+checkpoint y rearmar la ola. Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
 Supabase Pro, la fuente principal de cada programa, y ver el rojo del Kanban al arrastrar hacia atrás (182).
 
 Reglas: implementa un agente (Codex o Kiro; Codex sin cuota hasta el 12-oct) y la sesión principal revisa y recorre;
@@ -32,6 +32,10 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
     `vercel ls` no lo ve). Fuentes recibiendo (91 sobres en 24 h). Los 5 sobres crudos "con error" son entregas de
     prueba (4 de Dapta del 1-oct y 1 de Typeform de ComunicArte del 5-oct) que no se ingieren a propósito.
   - `done`: 147, 187, 188, 189, 190, 192, 198 y 200. **El 191 y el 102 quedan en revisión** hasta pasar por el cadenero.
+  - **Cadenero del 191 y el 102** (agente nuevo, solo lectura): el 191 bloqueó porque "sin valor" contaba Atendido y
+    Compromiso verbal con valor 0, donde el 128 no lo exige. Decidido con Alejo: solo en las etapas que exigen el valor
+    vendido, derivadas de `PROPIEDADES_POR_ETAPA` (`etapasQueExigen`). El 102 quedó aprobado; se le sumaron los tests de
+    petición forjada (mover, anular, actividad) y de Operación y Dinero, todos mordidos. Detalle en cada ticket.
 
 - **2026-10-05 (noche 2, Alejo + Claude): 191 y 102, la O6 cerrada en código.**
   - **191** (`e322478`, CI verde): banderas rojas del Pulso "Atendidos sin valor vendido" y "Atendidos sin Grain", foto de

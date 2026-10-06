@@ -3,7 +3,7 @@ id: 191
 etapa: O6
 serves: "148 (Lo que sigue, punto 8); comercial.md GC-20, GC-32"
 depends: [148]
-status: en curso
+status: en revisión
 ---
 
 # 191 — Las banderas rojas que faltan en el Pulso
@@ -36,3 +36,16 @@ status: en curso
 - **Ojo para producción:** los deals ganados históricos sin valor vendido (eximidos al moverse) cuentan como "sin
   valor". Es cierto, pero si son muchos la bandera se vuelve ruido.
 
+## Revisión del cadenero (otra sesión, 5-oct, noche)
+
+- **Bloqueó por "sin valor":** contaba Atendido y Compromiso verbal con valor 0, donde el 128 no exige el valor vendido
+  (`PROPIEDADES_POR_ETAPA`: solo Ganado parcial y Completo; antes de ganar es 0 por defecto). La bandera habría marcado
+  casi todo atendido sin ganar. **Decidido con Alejo (opción 1):** "sin valor" es el valor vendido en las etapas que lo
+  exigen, no "cualquier propiedad exigida" del 148 §8 (eso ya lo dice la ficha de cada deal). Las etapas salen de la
+  tabla del 128 (`etapasQueExigen("valor_vendido")` en `lib/deals/requisitos.ts`), sin una segunda regla. El
+  denominador sigue siendo todos los atendidos.
+- Test en los dos sentidos: Atendido y Compromiso verbal sin valor no cuentan; Ganado parcial y Completo con 0 sí.
+- Lo aprobado: "sin Grain", el universo, vigencia, frontera de programa, la suma en "todos" y `fotoDeHoy`.
+- Deuda (baja): sin test de `banderas` en `vista-todos.ts` (suma por programa) ni de `fotoDeHoy: true` en sus
+  detalles. El título sigue diciendo "Atendidos sin valor vendido" aunque hoy solo cuenta ganados; renombrarlo es de Mani.
+- **Falta:** el checkpoint.

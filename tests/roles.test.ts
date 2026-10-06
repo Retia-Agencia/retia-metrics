@@ -95,6 +95,12 @@ describe("puedeAcceder", () => {
     expect(puedeAcceder("developer", [])).toBe(true);
   });
 
+  it("el paid trafficker no pasa una guarda de gerente o closer (102: ve todos los programas, la reja es el rol)", () => {
+    expect(puedeAcceder("paid_trafficker", ["gerente", "closer"])).toBe(false);
+    expect(puedeAcceder("paid_trafficker", ["gerente"])).toBe(false);
+    expect(puedeAcceder("paid_trafficker", ["closer"])).toBe(false);
+  });
+
   it("sin rol no pasa nada", () => {
     expect(puedeAcceder(undefined, ["gerente", "closer"])).toBe(false);
     expect(puedeAcceder(null, ["closer"])).toBe(false);

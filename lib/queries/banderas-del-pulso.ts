@@ -3,6 +3,7 @@ import { db as dbDeLaApp } from "@/lib/db";
 import { calls, deals, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
+import { etapasQueExigen } from "@/lib/deals/requisitos";
 import { tasa } from "@/lib/queries/dashboard";
 import { porClaveDeDeal } from "@/lib/queries/metricas-filtros";
 import { atendidaSinGrain } from "@/lib/queries/sin-grain";
@@ -34,9 +35,16 @@ export function filtroAtendidos({ programId, claveCloser }: { programId: string;
   );
 }
 
-/** Sin el valor vendido que exige el 128 ("Falta el valor vendido"): nulo o cero. */
+/**
+ * Las etapas donde el 128 exige el valor vendido (Ganado parcial y Completo). Antes de ganar el valor
+ * es 0 por defecto (`comercial.md` §8) y la ficha no lo pide: contarlo ahí pintaba de rojo a todo
+ * atendido sin ganar (revisión del cadenero, 5-oct).
+ */
+export const ETAPAS_QUE_EXIGEN_VALOR: readonly EtapaDeal[] = etapasQueExigen("valor_vendido");
+
+/** Sin el valor vendido que exige el 128 ("Falta el valor vendido"): nulo o cero, en una etapa que lo exige. */
 export function sinValorVendido() {
-  return sql`coalesce(${deals.valorVendidoUsd}, 0) <= 0`;
+  return sql`(${inArray(deals.etapa, [...ETAPAS_QUE_EXIGEN_VALOR])} and coalesce(${deals.valorVendidoUsd}, 0) <= 0)`;
 }
 
 /**

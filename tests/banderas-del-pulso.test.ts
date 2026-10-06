@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { calls, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { banderasDelPulso } from "@/lib/queries/banderas-del-pulso";
+import { banderasDelPulso, ETAPAS_QUE_EXIGEN_VALOR } from "@/lib/queries/banderas-del-pulso";
 import { listaDeMetrica, resumenDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -67,11 +67,11 @@ beforeAll(async () => {
     { email: "beto@example.test", rol: "closer", closerId: "Beto" },
   ]).returning()).map((u) => u.id);
 
-  // Cuenta en las dos: atendido, sin valor y con un show sin Grain.
-  const ambas = await deal();
+  // Cuenta en las dos: ganado parcial, sin valor y con un show sin Grain.
+  const ambas = await deal({ etapa: "ganado_parcial" });
   await llamada(ambas.id);
   // Sin valor (cero cuenta como sin valor) y con Grain.
-  const soloValor = await deal({ etapa: "compromiso_verbal", valorVendidoUsd: "0" });
+  const soloValor = await deal({ etapa: "ganado_completo", valorVendidoUsd: "0" });
   await llamada(soloValor.id, { linkGrain: "https://grain.com/share/uno" });
   // Con valor y con un Grain en blanco: solo sin Grain. Es de Beto.
   const soloGrain = await deal({ etapa: "ganado_parcial", valorVendidoUsd: "800", ownerUserId: beto });
@@ -80,7 +80,14 @@ beforeAll(async () => {
   const completo = await deal({ etapa: "ganado_completo", valorVendidoUsd: "1000" });
   await llamada(completo.id, { linkGrain: "https://grain.com/share/dos" });
 
-  esperado.atendidos = new Set([ambas.id, soloValor.id, soloGrain.id, completo.id]);
+  // Atendido y Compromiso verbal sin valor, con Grain: entran al denominador y a ninguna bandera,
+  // porque el 128 no les exige el valor vendido (antes de ganar es 0 por defecto).
+  const atendidoSinValor = await deal();
+  await llamada(atendidoSinValor.id, { linkGrain: "https://grain.com/share/cuatro" });
+  const verbalSinValor = await deal({ etapa: "compromiso_verbal", valorVendidoUsd: "0" });
+  await llamada(verbalSinValor.id, { linkGrain: "https://grain.com/share/cinco" });
+
+  esperado.atendidos = new Set([ambas.id, soloValor.id, soloGrain.id, completo.id, atendidoSinValor.id, verbalSinValor.id]);
   esperado.sinValor = new Set([ambas.id, soloValor.id]);
   esperado.sinGrain = new Set([ambas.id, soloGrain.id]);
 
@@ -94,7 +101,7 @@ beforeAll(async () => {
   await llamada((await deal({ etapa: "cierre_perdido" })).id);
   await llamada((await deal({ etapa: "agendado" })).id, { resultado: "agendada" });
   // un deal del otro programa;
-  await deal({ programId: otroProgramId });
+  await deal({ programId: otroProgramId, etapa: "ganado_parcial" });
   // y la llamada sin Grain anulada no prende la bandera de un deal con valor.
   const conAnulada = await deal({ valorVendidoUsd: "500" });
   await llamada(conAnulada.id, anulado());
@@ -109,9 +116,9 @@ const filtros = (claveCloser: string | null = null) => ({ programId, rango, hoy,
 describe("banderas rojas del Pulso (191)", () => {
   it("cuenta atendidos, sin valor y sin Grain, con su %", async () => {
     expect(await banderasDelPulso({ programId }, db)).toEqual({
-      atendidos: 5,
-      sinValor: { cantidad: 2, pct: 2 / 5 },
-      sinGrain: { cantidad: 2, pct: 2 / 5 },
+      atendidos: 7,
+      sinValor: { cantidad: 2, pct: 2 / 7 },
+      sinGrain: { cantidad: 2, pct: 2 / 7 },
     });
   });
 
@@ -138,6 +145,13 @@ describe("banderas rojas del Pulso (191)", () => {
     }
     const deBeto = await banderasDelPulso({ programId, claveCloser: beto }, db);
     expect(deBeto).toEqual({ atendidos: 1, sinValor: { cantidad: 0, pct: 0 }, sinGrain: { cantidad: 1, pct: 1 } });
+  });
+
+  it("sin valor solo mira las etapas donde la ficha exige el valor vendido (128)", async () => {
+    expect([...ETAPAS_QUE_EXIGEN_VALOR].sort()).toEqual(["ganado_completo", "ganado_parcial"]);
+    const [lista] = await listaDeMetrica("atendidos_sin_valor", filtros(), 1, db);
+    expect(lista.filas.every((f) => f.dealId !== null && esperado.sinValor.has(f.dealId))).toBe(true);
+    expect(lista.filas).toHaveLength(esperado.sinValor.size);
   });
 
   it("sin Grain usa la regla de la ficha del deal (ADR 0066)", async () => {

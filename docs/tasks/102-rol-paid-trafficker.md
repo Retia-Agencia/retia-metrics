@@ -3,7 +3,7 @@ id: 102
 etapa: E1b
 serves: "ADR 0052"
 depends: [094]
-status: todo
+status: en revisión
 ---
 
 > **3-oct:** lo construye la sesión S6 de la ola O3 dentro del [173](./173-ajustes-solo-lo-que-no-es-de-nadie.md) (Canales los crea quien `manejaPauta`). La migración la aplica la sesión principal.
@@ -31,9 +31,9 @@ administrar nada más.
 
 ## Done cuando
 
-- [ ] Nada en `app/` ni `lib/` pregunta `rol === "paid_trafficker"` (el guardián de roles lo caza).
-- [ ] Un paid trafficker que forja la petición a una ruta de deals recibe 403, y la base no se mueve.
-- [ ] La vista `todo` del developer sigue siendo superset de todas (ticket 032).
+- [x] Nada en `app/` ni `lib/` pregunta `rol === "paid_trafficker"` (el guardián de roles lo caza).
+- [x] Un paid trafficker que forja la petición a una ruta de deals recibe 403, y la base no se mueve.
+- [x] La vista `todo` del developer sigue siendo superset de todas (ticket 032).
 
 ## Kiro
 
@@ -69,3 +69,17 @@ Parcial. El código y los tests sí, con revisión de permisos. La migración, l
 - Done cuando: nada pregunta `rol === "paid_trafficker"` (sí); una ruta de deals forjada lo saca sin tocar la base (sí,
   redirige por la guarda); la vista `todo` del developer sigue siendo superset (sí, cumple las cinco preguntas).
 
+## Revisión del cadenero (otra sesión, 5-oct, noche)
+
+Aprobado con observaciones: el permiso se enforza en el servidor y no hay fuga al cliente. Lo que pidió, hecho:
+- **El punto 2 del "Done cuando" no tenía test**, y desde que ve todos los programas `programaEnAlcance` le dice que sí:
+  la única reja de las acciones de deals es el rol. Ahora `tests/acciones-ficha-deal.test.ts` invoca `moverDeal`,
+  `anularDealAccion` y `registrarActividadAccion` como paid trafficker: 403/rechazo, etapa, historial, anulación y
+  actividades quietas (mordido: abrir la reja a `paid_trafficker` lo tumba). `tests/roles.test.ts`: `puedeAcceder`
+  le niega gerente, closer y los dos.
+- **Operación y Dinero sin test:** `tests/paginas.test.ts` ahora arma las dos pestañas como paid trafficker (comparativo
+  y embudo contra agendas sin lista ni closer; `veEquipo` falso) y como gerente (con listas). Mordido: quitar
+  `sinListas` de `proyectar` tumba Pulso y Operación.
+- Deuda (no bloquea): para el paid trafficker se calculan el comparativo, la comisión y los abiertos por owner y después
+  se vacían; no pedirlos ahorra consultas y quita la dependencia de que `sinListas` reconozca la forma de cada detalle.
+- **Falta:** el checkpoint.
