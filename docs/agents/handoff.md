@@ -12,8 +12,11 @@
 Seguimos con el CRM de Retia. PRIORIDAD: Memorable (Nicolás y Francisco) arrancó el 5-oct y su configuración es de
 Mani (plan-reparto §4, O2 frente A; plan.md §2). Ola vigente: O6, el dashboard confiable (plan-reparto §4). Checkpoint
 `cp-20261005-1` verde: 147, 187, 188, 189, 190, 192, 198 y 200 en `done`. El 191 y el 102 ya pasaron por el cadenero
-(5-oct, noche) y quedaron `done` en `cp-20261005-2`: la O6 está cerrada. Lo siguiente: rearmar la ola. Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
-Supabase Pro, la fuente principal de cada programa, y ver el rojo del Kanban al arrastrar hacia atrás (182).
+(5-oct, noche) y quedaron `done` en `cp-20261005-2`: la O6 está cerrada. El 6-oct cerraron además 117, 092
+(`programs.form_url` retirada, 0069; activar exige fuente principal; los tres programas activos ya la tienen) y 086
+(quién trajo al lead y "Tus enlaces de captación", 0070); CI verde en `30bfd4c`. Lo siguiente: rearmar la ola. Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
+Supabase Pro, ver el rojo del Kanban al arrastrar hacia atrás (182), y confirmar la regla del 086 (un lead de Meta
+que luego aplica con el enlace de un closer queda del closer). Del 117: ver un parcial real de Tactical y ComunicArte.
 
 Reglas: implementa un agente (Codex o Kiro; Codex sin cuota hasta el 12-oct) y la sesión principal revisa y recorre;
 la revisión del cadenero la hace otra sesión antes del commit; migraciones solo con el ok de Mani; nivel 1 antes de
