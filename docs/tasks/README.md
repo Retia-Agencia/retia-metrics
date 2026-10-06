@@ -176,7 +176,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [ ] | 067 | [ROAS por cohorte y captura de pauta](./067-roas-por-cohorte-y-captura-de-pauta.md) (E5-4) | 064, 120 | todo |
-| [ ] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | en revisión · Alejo · 5-oct · su Dashboard: ve todos los programas (ADR 0052 enmendado), sin comparativo, comisión ni listas (`veEquipoComercial`, `sinListas`); cadenero (5-oct): aprobado, con los tests de petición forjada y de Operación y Dinero; falta checkpoint |
+| [x] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | done · `cp-20261005-2` · Alejo · 5-oct · su Dashboard: ve todos los programas (ADR 0052 enmendado), sin comparativo, comisión ni listas (`veEquipoComercial`, `sinListas`); cadenero (5-oct): aprobado, con los tests de petición forjada y de Operación y Dinero |
 | [ ] | 119 | [La conexión con Meta: token por portafolio y cuentas por programa](./119-la-conexion-con-meta.md) | — | todo · carril Alejo · migración · espera el token de Anderson |
 | [ ] | 120 | [La pauta de Meta: árbol y gasto por anuncio y día](./120-la-pauta-de-meta-por-anuncio-y-dia.md) | 119 | todo · carril Alejo · migración (retira `ad_spend`) |
 | [ ] | 122 | [Los objetivos de la cohorte y el reparto de cupos por área](./122-los-objetivos-de-la-cohorte.md) | 083 | todo · carril Mani · migración |
@@ -301,7 +301,7 @@ personas). Reparto en [`plan-reparto.md`](../plan-reparto.md) §4, ola O6.
 | [x] | 188 | [Cada cifra del dashboard abre su lista: embudo por etapa y comparativo](./188-cada-cifra-del-dashboard-abre-su-lista.md) | 148, 065 | done · `cp-20261005-1` · Alejo · 5-oct · embudo por etapa y comparativo abren su lista; sin B; una etiqueta de closer; tono por antigüedad |
 | [x] | 189 | [Agendas creadas, ocurridas y futuras, y el no-show por semana](./189-agendas-creadas-ocurridas-y-futuras.md) | 187 | done · `cp-20261005-1` · Alejo · 5-oct · agendas por semana (creadas, ocurridas, show, no-show) y próximas desde hoy |
 | [x] | 190 | [Series por mes en Dinero y el acumulado contra el mes anterior](./190-series-mensuales-en-dinero.md) | 148, 146 | done · `cp-20261005-1` · Alejo · 5-oct · build, recorrido y 375 px hechos |
-| [ ] | 191 | [Las banderas rojas que faltan en el Pulso](./191-banderas-rojas-del-pulso.md) | 148 | en revisión · Alejo · 5-oct · `banderas-del-pulso.ts`: atendidos sin valor y sin Grain, foto de hoy, con su lista; cadenero (5-oct): "sin valor" solo en las etapas que exigen el valor vendido (128); falta checkpoint |
+| [x] | 191 | [Las banderas rojas que faltan en el Pulso](./191-banderas-rojas-del-pulso.md) | 148 | done · `cp-20261005-2` · Alejo · 5-oct · `banderas-del-pulso.ts`: atendidos sin valor y sin Grain, foto de hoy, con su lista; cadenero (5-oct): "sin valor" solo en las etapas que exigen el valor vendido (128) |
 | [x] | 192 | [El dashboard de todos los programas con las secciones nuevas](./192-todos-los-programas-con-las-secciones.md) | 148 | done · `cp-20261005-1` · Alejo · 5-oct · build, recorrido, costura (caja de todos = suma) y 375 px hechos |
 
 **Frente de pantallas (Mani, 4-oct): la pantalla fija como estándar del CRM** (A-97 a A-101). Primero 193 y 196 en

@@ -3,7 +3,7 @@ id: 191
 etapa: O6
 serves: "148 (Lo que sigue, punto 8); comercial.md GC-20, GC-32"
 depends: [148]
-status: en revisión
+status: done
 ---
 
 # 191 — Las banderas rojas que faltan en el Pulso
@@ -48,4 +48,4 @@ status: en revisión
 - Lo aprobado: "sin Grain", el universo, vigencia, frontera de programa, la suma en "todos" y `fotoDeHoy`.
 - Deuda (baja): sin test de `banderas` en `vista-todos.ts` (suma por programa) ni de `fotoDeHoy: true` en sus
   detalles. El título sigue diciendo "Atendidos sin valor vendido" aunque hoy solo cuenta ganados; renombrarlo es de Mani.
-- **Falta:** el checkpoint.
+- Checkpoint `cp-20261005-2` sobre `5910fcb`: CI verde.

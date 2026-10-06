@@ -3,7 +3,7 @@ id: 102
 etapa: E1b
 serves: "ADR 0052"
 depends: [094]
-status: en revisión
+status: done
 ---
 
 > **3-oct:** lo construye la sesión S6 de la ola O3 dentro del [173](./173-ajustes-solo-lo-que-no-es-de-nadie.md) (Canales los crea quien `manejaPauta`). La migración la aplica la sesión principal.
@@ -82,4 +82,4 @@ Aprobado con observaciones: el permiso se enforza en el servidor y no hay fuga a
   `sinListas` de `proyectar` tumba Pulso y Operación.
 - Deuda (no bloquea): para el paid trafficker se calculan el comparativo, la comisión y los abiertos por owner y después
   se vacían; no pedirlos ahorra consultas y quita la dependencia de que `sinListas` reconozca la forma de cada detalle.
-- **Falta:** el checkpoint.
+- Checkpoint `cp-20261005-2` sobre `5910fcb`: CI verde.

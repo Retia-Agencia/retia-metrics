@@ -12,8 +12,7 @@
 Seguimos con el CRM de Retia. PRIORIDAD: Memorable (Nicolás y Francisco) arrancó el 5-oct y su configuración es de
 Mani (plan-reparto §4, O2 frente A; plan.md §2). Ola vigente: O6, el dashboard confiable (plan-reparto §4). Checkpoint
 `cp-20261005-1` verde: 147, 187, 188, 189, 190, 192, 198 y 200 en `done`. El 191 y el 102 ya pasaron por el cadenero
-(5-oct, noche) y sus arreglos están en `main`; se marcan `done` en el próximo checkpoint verde. Lo siguiente: ese
-checkpoint y rearmar la ola. Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
+(5-oct, noche) y quedaron `done` en `cp-20261005-2`: la O6 está cerrada. Lo siguiente: rearmar la ola. Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
 Supabase Pro, la fuente principal de cada programa, y ver el rojo del Kanban al arrastrar hacia atrás (182).
 
 Reglas: implementa un agente (Codex o Kiro; Codex sin cuota hasta el 12-oct) y la sesión principal revisa y recorre;
