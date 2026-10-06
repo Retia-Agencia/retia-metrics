@@ -239,6 +239,13 @@ describe("guardián: el alcance se pregunta por la función, no con un join prop
     [path.join("lib", "calendly", "colgar-llamada.ts")]:
       "identidad de la host: qué closer es dueña de una cuenta de Calendly en el programa",
 
+    // De quién es un código de captación (ticket 086, ADR 0044): "¿qué miembro ACTIVO del
+    // programa trajo este lead?", y los programas donde un usuario puede ser acreditado (sus
+    // enlaces). Es la misma pregunta de identidad que colgar-llamada, en los dos sentidos: no
+    // acota ninguna lectura a una sesión, y la ingesta la hace sin sesión.
+    [path.join("lib", "atribucion", "captacion-del-closer.ts")]:
+      "identidad del closer que trajo al lead: a qué miembro activo del programa acredita un código",
+
     // Qué cuentas de Calendly del programa ya tiene otra membresía (ticket 169): el selector
     // ofrece solo las libres. Es la misma pregunta de identidad que colgar-llamada; no acota
     // ninguna lectura a una sesión.

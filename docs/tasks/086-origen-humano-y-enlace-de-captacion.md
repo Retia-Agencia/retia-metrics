@@ -3,7 +3,7 @@ id: 086
 etapa: E3
 serves: "plan v2 §12.8 · ADR 0044 puntos 1 a 5"
 depends: [085, 092]
-status: todo
+status: done
 ---
 
 # 086 — El origen humano del lead y el enlace de captacion del closer

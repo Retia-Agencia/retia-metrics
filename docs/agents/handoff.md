@@ -25,6 +25,16 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
 
 ## Memory
 
+- **2026-10-06 (noche, Alejo + Claude): 086 cerrado, quién trajo al lead.**
+  - `f79c1d4`: `leads.traido_por_user_id` (0070 aplicada en producción con el ok de Mani, ANTES del push). Código opaco
+    derivado del user id (`lib/atribucion/captacion-del-closer.ts`), enlaces sobre `generarLink`, la ingesta escribe solo
+    donde está vacío y solo para usuarios activos con membresía activa. Mi espacio: "Tus enlaces de captación".
+  - El cadenero frenó que el alta manual pusiera a su creador como "traído por" (contradice el ADR 0044 punto 2): quitado.
+  - 🔴 Para Mani: un lead de Meta que luego aplica con el enlace de un closer queda del closer (gana el primero que escribe).
+  - El CI cayó por el guardián de alcance del 094 (join propio a `miembros_programa`): es una pregunta de identidad,
+    quedó como excepción nombrada. Ese test no estaba entre los que corrí en local.
+  - Falta el recorrido de Mi espacio en `dev:local`.
+
 - **2026-10-06 (tarde, Alejo + Claude): 092 cerrado, `programs.form_url` retirada.**
   - Paso 2 del ADR 0068 (`c7f74ea`): `reactivarPrograma` exige fuente principal del mismo programa y token; el pop-up
     de Editar y la ficha ya no piden Forms Link; un programa nuevo se activa desde su ficha. Cadenero aprobado.
