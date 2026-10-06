@@ -10,11 +10,10 @@
 
 ```
 Seguimos con el CRM de Retia. PRIORIDAD: Memorable (Nicolás y Francisco) arrancó el 5-oct y su configuración es de
-Mani (plan-reparto §4, O2 frente A; plan.md §2). Ola vigente: O6, el dashboard confiable (plan-reparto §4). El 5-oct
-Alejo cerró en código 187, 188, 189, 190, 192, 198 y 147 (con la 0067 en producción) y el 200: todos en `main` con
-CI verde, **en revisión hasta el checkpoint** que los marque `done` (tag `cp-AAAAMMDD-N`). Lo que queda de la O6: el
-191 (banderas rojas del Pulso, ya desbloqueado por el 147) y el 102 (paid trafficker; está en el lote 2 a enmendar).
-Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
+Mani (plan-reparto §4, O2 frente A; plan.md §2). Ola vigente: O6, el dashboard confiable (plan-reparto §4), **cerrada
+en código**: el 5-oct Alejo cerró 187, 188, 189, 190, 191, 192, 198, 147 (0067 en producción), 200 y 102, todos en
+`main`, **en revisión hasta el checkpoint** que los marque `done` (tag `cp-AAAAMMDD-N`). Lo siguiente: el checkpoint de
+la O6, la revisión del cadenero del 191 y el 102 (ninguno pasó por otra sesión), y rearmar la ola. Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
 Supabase Pro, la fuente principal de cada programa, y ver el rojo del Kanban al arrastrar hacia atrás (182).
 
 Reglas: implementa un agente (Codex o Kiro; Codex sin cuota hasta el 12-oct) y la sesión principal revisa y recorre;
@@ -26,6 +25,22 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
 ```
 
 ## Memory
+
+- **2026-10-05 (noche 2, Alejo + Claude): 191 y 102, la O6 cerrada en código.**
+  - **191** (`e322478`, CI verde): banderas rojas del Pulso "Atendidos sin valor vendido" y "Atendidos sin Grain", foto de
+    hoy (deals vigentes de Atendido a Ganado, sin cortesías ni perdidos, por dueño), en `banderas-del-pulso.ts`; la cifra y
+    la lista comparten predicados; también en el Pulso de "todos". El diálogo de una cifra de hoy ya no dice "del periodo A"
+    (`fotoDeHoy`; arregla también la cartera y los abiertos del embudo, anotados el 5-oct tarde).
+  - **102** (`458a21a`): el Dashboard del paid trafficker. **Decidido con Alejo:** ve TODOS los programas (enmienda del
+    ADR 0052): las membresías son solo de quien trabaja leads. Quinta pregunta `veEquipoComercial` y `sinListas`
+    (proyección en el servidor): sin comparativo, comisión, abiertos por owner, filtro de closer ni listas; la lista,
+    "todos", deals, leads y calls lo redirigen. Su nav suma Dashboard; el selector no le ofrece "Todos".
+  - **Ojo en producción:** los ganados históricos sin valor vendido cuentan como "sin valor"; si son muchos, la bandera es
+    ruido. Ningún paid trafficker existe aún en producción (los de Pauta se crean en Ajustes › Usuarios).
+  - **Local:** quedó `pauta@retia.local` (paid trafficker) en la base de Docker para recorridos.
+  - **Aprendido:** el recorrido por CDP se cuelga si un Chrome huérfano queda en el mismo puerto: puerto aleatorio por
+    corrida. Y una mutación de prueba no se revierte con `git checkout` sobre un archivo con cambios sin commit: se lleva
+    los cambios (se recuperó de una copia).
 
 - **2026-10-05 (noche, Mani + Claude): programa nuevo "Comunícate con Confianza", el CRM recuerda el programa y manual de closers ligero.**
   - **Programa nuevo (`comunicate-confianza`), activo en producción:** Typeform `E5F4chVT` (cuenta de Francisco, se ve con
