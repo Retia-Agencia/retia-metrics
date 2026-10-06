@@ -28,6 +28,17 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
 
 ## Memory
 
+- **2026-10-06 (tarde-noche, Alejo + Claude): 126 parte B construida, el embudo por pregunta.**
+  - `b0cc4e8` (local, SIN push): `sources.typeform_token` (0071), `guardarTokenTypeform`, `lib/typeform/insights.ts`,
+    `embudoPorPregunta` (caché de 5 min por fuente y token) y la tarjeta en el dashboard (programa y Pauta de "todos").
+    Cadenero aprobado; sus dos arreglos (lectura en paralelo, caché que cae al cambiar el token) ya están en el commit.
+  - Medido: el Insights de Typeform **no acepta rango de fechas**; la tarjeta dice "histórico acumulado".
+  - 🔴 **Orden obligatorio:** aplicar la 0071 en producción (ok de Mani) y DESPUÉS empujar; el `select()` del molde pide la
+    columna por nombre y sin ella revientan la ficha de Programa y el dashboard. Luego cargar el token en las fuentes de
+    Typeform (Programa → Captación → Formularios) y comparar contra el panel de Typeform.
+  - Recorrido en `dev:local` hecho (token por la pantalla, 9 preguntas iguales a la API, 375 px sin desborde). La base de
+    Docker quedó con la 0071 y con la URL del Typeform real de Tactical en su fuente de Tactical.
+
 - **2026-10-06 (noche, Alejo + Claude): 086 cerrado, quién trajo al lead.**
   - `f79c1d4`: `leads.traido_por_user_id` (0070 aplicada en producción con el ok de Mani, ANTES del push). Código opaco
     derivado del user id (`lib/atribucion/captacion-del-closer.ts`), enlaces sobre `generarLink`, la ingesta escribe solo
