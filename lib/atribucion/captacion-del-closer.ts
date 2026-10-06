@@ -82,6 +82,9 @@ export async function miembrosActivos(db: Db, programId: string): Promise<string
   return filas.map((f) => f.userId);
 }
 
+const SIN_PRINCIPAL =
+  "Este programa todavía no tiene formulario principal. Pídele a tu gerente que lo marque en Programa → Captación.";
+
 /** El enlace de un programa, o por que no hay. */
 export type EnlaceDeCaptacion =
   | { programId: string; programa: string; ok: true; url: string; formulario: string }
@@ -123,7 +126,7 @@ export async function enlacesDeCaptacion(db: Db, userId: string): Promise<Enlace
           programId,
           programa,
           ok: false,
-          error: "No hay un canal de closer activo (Ajustes → Canales).",
+          error: "Falta el canal de closer (closer / referido). Pídele a tu gerente que lo active en Ajustes → Canales.",
         };
       }
       try {
@@ -136,6 +139,10 @@ export async function enlacesDeCaptacion(db: Db, userId: string): Promise<Enlace
         });
         return { programId, programa, ok: true, url, formulario: destino.nombre };
       } catch (e) {
+        // Quien ve esto es un closer, que no administra formularios: se le dice que pedir.
+        if (e instanceof ErrorDeApp && e.status === 422) {
+          return { programId, programa, ok: false, error: SIN_PRINCIPAL };
+        }
         if (e instanceof ErrorDeApp) return { programId, programa, ok: false, error: e.message };
         throw e;
       }

@@ -156,7 +156,7 @@ export default async function NerdStatsPage() {
             </p>
             {fuentes.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No hay fuentes activas: ningún programa está recibiendo leads. Se activan en Ajustes → Fuentes.
+                No hay fuentes activas: ningún programa está recibiendo leads. Se activan en Programa → Captación → Formularios.
               </p>
             ) : (
               <Tabla

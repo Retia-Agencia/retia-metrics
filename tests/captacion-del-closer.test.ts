@@ -285,7 +285,7 @@ describe("los enlaces de un closer", () => {
     const enlaces = await enlacesDeCaptacion(db, maru);
     const b = enlaces.find((e) => e.programId === programB)!;
     expect(b.ok).toBe(false);
-    if (!b.ok) expect(b.error).toMatch(/fuente principal/i);
+    if (!b.ok) expect(b.error).toMatch(/formulario principal.*gerente/i);
   });
 
   it("solo de los programas con membresia activa", async () => {

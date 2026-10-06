@@ -113,5 +113,13 @@ Tracker y archivo decían dependencias distintas; quedan alineados en 085 y 092.
 
 **Hecho también:** cadenero (aprobado; sus hallazgos arreglados arriba) y **0070 aplicada en producción** con el ok de Mani, antes del push (72 migraciones).
 
-**Falta:** confirmar con Mani la regla Meta → closer;
-recorrido de Mi espacio en `dev:local`.
+**Recorrido (6-oct, `dev:local`, Chrome headless por CDP, 1440 y 375 px, consola sin errores):** como closer, sin
+principal en ningún programa, la tarjeta da el motivo por programa y no ofrece Copiar; como dev, cargar la URL de la
+fuente y "Marcar como principal" desde Programa › Captación funciona; de vuelta como closer, ComunicArte da el enlace
+(`utm_source=closer&utm_medium=referido&utm_campaign=referidos&utm_content=<código>`, los `xxxxx` del destino
+borrados) y Copiar dice "Enlace copiado"; a 375 px no hay scroll horizontal y la URL se corta. **Hallazgo arreglado:** el
+motivo decía "Márcala en Ajustes → Fuentes", que ya no existe, y se lo pedía a un closer: ahora le dice que se lo pida
+a su gerente (y el mensaje general apunta a Programa → Captación → Formularios, también en Nerd Stats). En headless,
+Copiar necesita foco emulado (`Emulation.setFocusEmulationEnabled`); sin él falla el portapapeles, no el código.
+
+**Falta:** confirmar con Mani la regla Meta → closer.

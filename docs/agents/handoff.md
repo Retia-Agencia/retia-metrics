@@ -33,7 +33,10 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
   - 🔴 Para Mani: un lead de Meta que luego aplica con el enlace de un closer queda del closer (gana el primero que escribe).
   - El CI cayó por el guardián de alcance del 094 (join propio a `miembros_programa`): es una pregunta de identidad,
     quedó como excepción nombrada. Ese test no estaba entre los que corrí en local.
-  - Falta el recorrido de Mi espacio en `dev:local`.
+  - Recorrido de Mi espacio hecho en `dev:local` (detalle en el 086): un mensaje viejo ("Ajustes → Fuentes") arreglado.
+    En Windows sin la extensión de Chrome, el recorrido va por Chrome headless + CDP con Node puro (sin puppeteer); la
+    sesión del login local es cookie de sesión, así que cada corrida entra de nuevo, y Copiar exige foco emulado.
+    `TaskStop` sobre `npm run dev:local` deja vivo al hijo `next dev` (puerto 3000): hay que cerrarlo por PID.
 
 - **2026-10-06 (tarde, Alejo + Claude): 092 cerrado, `programs.form_url` retirada.**
   - Paso 2 del ADR 0068 (`c7f74ea`): `reactivarPrograma` exige fuente principal del mismo programa y token; el pop-up

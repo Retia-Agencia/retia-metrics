@@ -116,7 +116,7 @@ export async function destinoDeCaptacion(
   const principal = destinos.find((d) => d.principal);
   if (!principal) {
     throw new ErrorDeApp(
-      "Este programa no tiene fuente principal: no hay a dónde mandar un link de captación. Márcala en Ajustes → Fuentes.",
+      "Este programa no tiene fuente principal: no hay a dónde mandar un link de captación. Márcala en Programa → Captación → Formularios.",
       422,
     );
   }
