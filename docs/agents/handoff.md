@@ -29,7 +29,11 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
 ## Memory
 
 - **2026-10-06 (tarde-noche, Alejo + Claude): 126 parte B construida, el embudo por pregunta.**
-  - `b0cc4e8` (local, SIN push): `sources.typeform_token` (0071), `guardarTokenTypeform`, `lib/typeform/insights.ts`,
+  - **Cierre de la noche:** 0071 aplicada en producción con el ok de Mani, luego push; CI verde y deploy correcto
+    (`260a74f`). Token cargado en las 3 fuentes de Typeform por el escritor único (rastro "(oculto)"); las tres leen. Falta
+    solo comparar la tarjeta contra el panel de Typeform para cerrar el 126. El modo automático bloquea la escritura del
+    token en producción: hubo que pasar a manual para autorizarla.
+  - `b0cc4e8`: `sources.typeform_token` (0071), `guardarTokenTypeform`, `lib/typeform/insights.ts`,
     `embudoPorPregunta` (caché de 5 min por fuente y token) y la tarjeta en el dashboard (programa y Pauta de "todos").
     Cadenero aprobado; sus dos arreglos (lectura en paralelo, caché que cae al cambiar el token) ya están en el commit.
   - Medido: el Insights de Typeform **no acepta rango de fechas**; la tarjeta dice "histórico acumulado".

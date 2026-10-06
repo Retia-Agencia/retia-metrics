@@ -92,5 +92,10 @@ el cliente del Insights con caché corta, y verificar si acepta rango de fechas.
 - Recorrido en `dev:local` con el token real y el form de Tactical: 9 preguntas, cifras iguales a la API (8.428 vieron
   la primera, 3.518 se fueron ahí; 943 vieron el Calendly y 415 se fueron), consola limpia, sin desborde a 375 px.
 
-**Falta para cerrar:** el ok de Mani para aplicar la 0071 en producción (ANTES del push: el código nuevo lee la columna),
-cargar el token en las fuentes de Typeform de producción, y comparar contra el panel de Typeform el día de la prueba.
+**En producción (6-oct, noche):** la 0071 aplicada con el ok de Mani ANTES del push (el código nuevo lee la columna);
+CI verde y deploy de Vercel correcto en `260a74f`. Token cargado por `guardarTokenTypeform` en las tres fuentes de
+Typeform activas (es el mismo token de cuenta que el de desarrollo; lee los tres formularios), con 3 filas "(oculto)" en
+`change_log` y el valor en ninguna. Las tres leen: ComunicArte 14.003 vieron la primera y 8.067 se fueron; Tactical
+8.434/3.520; Confianza 84/74. Memorable solo tiene Dapta y no muestra la tarjeta.
+
+**Falta para cerrar:** abrir el panel de Typeform y comparar con la tarjeta el mismo día (el primer "Done cuando").
