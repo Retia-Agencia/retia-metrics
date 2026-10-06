@@ -301,7 +301,7 @@ personas). Reparto en [`plan-reparto.md`](../plan-reparto.md) §4, ola O6.
 | [ ] | 188 | [Cada cifra del dashboard abre su lista: embudo por etapa y comparativo](./188-cada-cifra-del-dashboard-abre-su-lista.md) | 148, 065 | en revisión · Alejo · 5-oct · embudo por etapa y comparativo abren su lista; sin B; una etiqueta de closer; tono por antigüedad; falta checkpoint |
 | [ ] | 189 | [Agendas creadas, ocurridas y futuras, y el no-show por semana](./189-agendas-creadas-ocurridas-y-futuras.md) | 187 | en revisión · Alejo · 5-oct · agendas por semana (creadas, ocurridas, show, no-show) y próximas desde hoy; falta checkpoint |
 | [ ] | 190 | [Series por mes en Dinero y el acumulado contra el mes anterior](./190-series-mensuales-en-dinero.md) | 148, 146 | en revisión · Alejo · 5-oct · build, recorrido y 375 px hechos; falta checkpoint |
-| [ ] | 191 | [Las banderas rojas que faltan en el Pulso](./191-banderas-rojas-del-pulso.md) | 148 | todo |
+| [ ] | 191 | [Las banderas rojas que faltan en el Pulso](./191-banderas-rojas-del-pulso.md) | 148 | en revisión · Alejo · 5-oct · `banderas-del-pulso.ts`: atendidos sin valor y sin Grain, foto de hoy, con su lista; falta checkpoint |
 | [ ] | 192 | [El dashboard de todos los programas con las secciones nuevas](./192-todos-los-programas-con-las-secciones.md) | 148 | en revisión · Alejo · 5-oct · build, recorrido, costura (caja de todos = suma) y 375 px hechos; falta checkpoint |
 
 **Frente de pantallas (Mani, 4-oct): la pantalla fija como estándar del CRM** (A-97 a A-101). Primero 193 y 196 en

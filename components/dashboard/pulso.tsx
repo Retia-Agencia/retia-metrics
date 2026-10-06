@@ -181,7 +181,7 @@ export function Pulso({
   return (
     <section id="pulso" className="scroll-mt-4 space-y-4">
       <h2 className="text-xl font-semibold">Pulso</h2>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Tarjeta
           titulo="Contratado"
           valor={
@@ -215,6 +215,28 @@ export function Pulso({
               </CifraConLista>
             </span>
           }
+        />
+        <Tarjeta
+          titulo="Atendidos sin valor vendido"
+          valor={
+            <span className={vista.banderas.sinValor.cantidad > 0 ? "text-tono-peligro" : undefined}>
+              <CifraConLista titulo="Atendidos sin valor vendido" detalle={detalles?.atendidos_sin_valor}>
+                {num(vista.banderas.sinValor.cantidad)}
+              </CifraConLista>
+            </span>
+          }
+          nota={`${tasa(vista.banderas.sinValor.pct)} de ${num(vista.banderas.atendidos)} atendidos · a hoy`}
+        />
+        <Tarjeta
+          titulo="Atendidos sin Grain"
+          valor={
+            <span className={vista.banderas.sinGrain.cantidad > 0 ? "text-tono-peligro" : undefined}>
+              <CifraConLista titulo="Atendidos sin Grain" detalle={detalles?.atendidos_sin_grain}>
+                {num(vista.banderas.sinGrain.cantidad)}
+              </CifraConLista>
+            </span>
+          }
+          nota={`${tasa(vista.banderas.sinGrain.pct)} de ${num(vista.banderas.atendidos)} atendidos · a hoy`}
         />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">

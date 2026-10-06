@@ -5,7 +5,7 @@ import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { nombreDeEtapa, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
-import { TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
+import { METRICAS_FOTO_DE_HOY, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import {
   BUCKETS_DE_ANTIGUEDAD,
   METRICAS_DE_EMBUDO_SIN_PERIODO,
@@ -43,6 +43,8 @@ const esquema = z.object({
     "contratado",
     "sin_resultado",
     "cartera",
+    "atendidos_sin_valor",
+    "atendidos_sin_grain",
     "grupo_citas",
     "grupo_shows",
     "grupo_vendidos",
@@ -77,6 +79,8 @@ const titulos = {
   contratado: "Contratado",
   sin_resultado: "Llamadas pasadas sin resultado",
   cartera: "Cartera",
+  atendidos_sin_valor: "Atendidos sin valor vendido",
+  atendidos_sin_grain: "Atendidos sin Grain",
   grupo_citas: "Deals con cita ocurrida (grupo de las tasas)",
   grupo_shows: "Deals del grupo con show",
   grupo_vendidos: "Deals del grupo con show y vendidos hoy",
@@ -139,8 +143,10 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   if (!vista) notFound();
   const { lista, periodo, claveCloser } = vista;
   const enlace = urlDeLista(slug, metrica, periodo, claveCloser, moneda, cohorte, { etapa, antiguedad });
-  // La cartera y los abiertos del embudo son una foto de hoy: el periodo no los acota.
-  const sinPeriodo = metrica === "cartera" || (METRICAS_DE_EMBUDO_SIN_PERIODO as readonly string[]).includes(metrica);
+  // La cartera, las banderas del Pulso (191) y los abiertos del embudo son una foto de hoy:
+  // el periodo no los acota.
+  const sinPeriodo = (METRICAS_FOTO_DE_HOY as readonly string[]).includes(metrica)
+    || (METRICAS_DE_EMBUDO_SIN_PERIODO as readonly string[]).includes(metrica);
   const subtitulo = etapa ? (etapa === "vendido" ? "Vendido" : nombreDeEtapa(etapa)) : antiguedad ? `${antiguedad} días` : null;
   // El `desde` de donde se abrió esta lista (ticket 174, 197): va al "Volver" de la
   // cabecera y se conserva en los enlaces de paginación, siempre por `enlaceConVuelta`.

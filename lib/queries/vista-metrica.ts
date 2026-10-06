@@ -6,6 +6,7 @@ import {
   desglosesDelResumen,
   listaDeMetrica,
   fechasDeMetrica,
+  METRICAS_FOTO_DE_HOY,
   resumenDeDeals,
   resumenDeMetrica,
   type DesglosesDelResumen,
@@ -18,6 +19,7 @@ import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import {
   BUCKETS_DE_ANTIGUEDAD,
   CLAVE_SIN_DUENO,
+  METRICAS_DE_EMBUDO_SIN_PERIODO,
   leerEmbudoConMiembros,
   miembrosDeLaCifra,
   type MetricaDeEmbudo,
@@ -46,6 +48,8 @@ export interface DetalleDeCifra {
   /** El resumen partido por closer, etapa y antigüedad (ADR 0067 punto 5), ya legible. */
   desgloses: DesglosesDelResumen;
   href: string;
+  /** Una foto de hoy que el periodo no acota (la cartera, las banderas del 191, los abiertos del embudo). */
+  fotoDeHoy?: boolean;
 }
 
 /** Cómo se lee una etapa en el resumen y en la lista. */
@@ -65,6 +69,8 @@ const METRICAS_DEL_TABLERO = [
   "contratado",
   "sin_resultado",
   "cartera",
+  "atendidos_sin_valor",
+  "atendidos_sin_grain",
   "grupo_citas",
   "grupo_shows",
   "grupo_vendidos",
@@ -123,6 +129,7 @@ export async function detalleDeCifra(metrica: Metrica, entrada: EntradaDeDetalle
     resumen,
     desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
     href: entrada.origen ? enlaceConVuelta(href, entrada.origen) : href,
+    fotoDeHoy: METRICAS_FOTO_DE_HOY.includes(metrica),
   };
 }
 
@@ -189,6 +196,7 @@ function detalleDeDeals(
     resumen,
     desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
     href: entrada.origen ? enlaceConVuelta(href, entrada.origen) : href,
+    fotoDeHoy: (METRICAS_DE_EMBUDO_SIN_PERIODO as readonly Metrica[]).includes(metrica),
   };
 }
 

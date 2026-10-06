@@ -42,7 +42,8 @@ export function CifraConLista({ titulo, detalle, children }: Props) {
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogTitle>{titulo}</DialogTitle>
         <DialogDescription>
-          <span className="cifra">{num(resumen.subtotal.cantidad)}</span> registros del periodo A.
+          <span className="cifra">{num(resumen.subtotal.cantidad)}</span>{" "}
+          {detalle.fotoDeHoy ? "registros a hoy; el periodo no los acota." : "registros del periodo A."}
         </DialogDescription>
         {resumen.subtotal.caja.map((c) => (
           <p className="cifra text-lg" key={c.moneda}>

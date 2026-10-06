@@ -8,6 +8,7 @@ import type { Alcance, CajaPorMoneda, Rango } from "@/lib/queries/dashboard";
 import { claveCloserSql, claveDeCloser, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { vigente } from "@/lib/queries/vigente";
 import { atendidaSinGrain } from "@/lib/queries/sin-grain";
+import { conLlamadaSinGrain, filtroAtendidos, sinValorVendido } from "@/lib/queries/banderas-del-pulso";
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaLead, filtroAgendasCreadas,
   closerDeAbono, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
@@ -36,6 +37,8 @@ export type Metrica =
   | "contratado"
   | "sin_resultado"
   | "cartera"
+  | "atendidos_sin_valor"
+  | "atendidos_sin_grain"
   | MetricaDeGrupo
   | MetricaDeEmbudo;
 
@@ -53,6 +56,8 @@ function esMetricaDeGrupo(metrica: Metrica): metrica is MetricaDeGrupo {
 
 /** Las métricas que no se atribuyen a un closer: con closer no hay cifra ("—"), nunca el programa entero. */
 export const METRICAS_SIN_CLOSER: readonly Metrica[] = ["leads", "deals_creados", "agendas_creadas"];
+/** Las métricas que son una foto de hoy: el periodo no las acota (la cartera y las banderas del 191). */
+export const METRICAS_FOTO_DE_HOY: readonly Metrica[] = ["cartera", "atendidos_sin_valor", "atendidos_sin_grain"];
 export const TAMANO_PAGINA = 50;
 
 export interface FiltrosDeMetrica {
@@ -157,6 +162,8 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
         claveCloser: claveCloserSql(users.id, users.closerId),
       };
     case "cartera":
+    case "atendidos_sin_valor":
+    case "atendidos_sin_grain":
       return {
         id: deals.id,
         fecha: sql<string>`(${deals.createdAt} AT TIME ZONE 'America/Bogota')::date`,
@@ -400,6 +407,18 @@ function consultaDe(
           eq(deals.programId, alcance.programId),
           eq(deals.cortesia, false),
           eq(deals.etapa, "ganado_parcial"),
+          vigente(deals),
+        ));
+    case "atendidos_sin_valor":
+    case "atendidos_sin_grain":
+      // Las banderas del Pulso (ticket 191): foto de hoy, con el mismo universo que su cifra.
+      return db
+        .select(campos)
+        .from(deals)
+        .leftJoin(users, eq(users.id, deals.ownerUserId))
+        .where(and(
+          filtroAtendidos(alcance),
+          metrica === "atendidos_sin_valor" ? sinValorVendido() : conLlamadaSinGrain(db),
           vigente(deals),
         ));
   }

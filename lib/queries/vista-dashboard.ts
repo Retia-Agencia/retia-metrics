@@ -27,6 +27,7 @@ import {
 } from "@/lib/queries/dashboard";
 import { comisionDeDeal, comisionesPorCloser } from "@/lib/queries/comision";
 import { showsSinGrain } from "@/lib/queries/sin-grain";
+import { banderasDelPulso, type BanderasDelPulso } from "@/lib/queries/banderas-del-pulso";
 import { descuentoDeDeal } from "@/lib/queries/saldo";
 import { leerMetasDelMes, type MetasDelMes } from "@/lib/queries/metas";
 import { embudoPorEtapas, type ResultadoEmbudoEtapas } from "@/lib/queries/embudo-etapas";
@@ -87,6 +88,8 @@ export interface VistaDelDashboard {
     sinSaldoCalculable: number;
   };
   sinResultado: number;
+  /** Atendidos sin valor y sin Grain (ticket 191): foto de hoy, acotada por el dueño del deal. */
+  banderas: BanderasDelPulso;
   cortesias: number;
   leads: LeadsDelRango;
   cohorte: VistaDeCohorte | null;
@@ -137,6 +140,7 @@ export async function armarVistaDelDashboard(
     porCohorte,
     cartera,
     sinResultado,
+    banderas,
     cortesias,
     leads,
     metasDelMes,
@@ -155,6 +159,7 @@ export async function armarVistaDelDashboard(
     ventasPorCohorte(alcance, db),
     carteraDelPrograma(programId, hoy, db),
     sinResultadoDelRango(alcance, ahora, db),
+    banderasDelPulso({ programId, claveCloser }, db),
     contarCortesias(alcance, db),
     leadsDelRango(alcance, db),
     leerMetasDelMes(programId, hoy.slice(0, 7), hoy, db),
@@ -218,6 +223,7 @@ export async function armarVistaDelDashboard(
     ventasPorCohorte: porCohorte,
     cartera,
     sinResultado,
+    banderas,
     cortesias,
     leads,
     cohorte,

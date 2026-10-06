@@ -24,6 +24,9 @@ import { nombreDeEtapa, type DetalleDeCifra } from "@/lib/queries/vista-metrica"
 
 const METRICAS = ["leads", "agendas", "shows", "shows_sin_grain", "sin_resultado", "cierres", "contratado", "caja"] as const;
 type MetricaDeTodos = (typeof METRICAS)[number];
+/** Las que son foto de hoy: no pertenecen a A ni se comparan con B. */
+const FOTOS_DE_HOY = ["cartera", "atendidos_sin_valor", "atendidos_sin_grain"] as const;
+type MetricaFotoDeHoy = (typeof FOTOS_DE_HOY)[number];
 
 interface TotalesDePeriodo {
   leads: Conteo;
@@ -55,7 +58,7 @@ export interface VistaDeTodos {
   periodo: PeriodoResuelto;
   a: TotalesDePeriodo;
   b: TotalesDePeriodo | null;
-  detalles: Record<MetricaDeTodos | "cartera", DetalleDeCifra>;
+  detalles: Record<MetricaDeTodos | MetricaFotoDeHoy, DetalleDeCifra>;
   /** Foto de hoy; no pertenece a A ni se compara con B. */
   cartera: {
     saldo: Dinero<"USD">;
@@ -65,6 +68,8 @@ export interface VistaDeTodos {
     sinSaldoCalculable: Conteo;
   };
   sinValorVendido: Conteo;
+  /** Las banderas del Pulso (ticket 191), foto de hoy: los conteos se suman; el % va por programa. */
+  banderas: { atendidos: Conteo; sinValor: Conteo; sinGrain: Conteo };
   programas: FilaDePrograma[];
 }
 
@@ -125,7 +130,7 @@ async function resumenesDelPeriodo(
 }
 
 function detalle(
-  metrica: MetricaDeTodos | "cartera",
+  metrica: MetricaDeTodos | MetricaFotoDeHoy,
   secciones: ResumenDeMetrica[],
   periodo: PeriodoResuelto,
 ): DetalleDeCifra {
@@ -144,6 +149,7 @@ function detalle(
     resumen,
     desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
     href: urlDeListaTodos(metrica, periodo),
+    fotoDeHoy: (FOTOS_DE_HOY as readonly string[]).includes(metrica),
   };
 }
 
@@ -153,10 +159,10 @@ export async function armarVistaDeTodos(
 ): Promise<VistaDeTodos> {
   const periodo = resolverPeriodo(entrada, { hoy, actual: null });
   const ids = programas.map((p) => p.id);
-  const [resumenesA, resumenesB, cartera, filas] = await Promise.all([
+  const [resumenesA, resumenesB, fotos, filas] = await Promise.all([
     resumenesDelPeriodo(ids, periodo.a, hoy, ahora, db),
     periodo.b ? resumenesDelPeriodo(ids, periodo.b, hoy, ahora, db) : null,
-    resumenDeMetrica("cartera", { programId: ids, rango: periodo.a, hoy }, db),
+    Promise.all(FOTOS_DE_HOY.map((metrica) => resumenDeMetrica(metrica, { programId: ids, rango: periodo.a, hoy }, db))),
     Promise.all(programas.map(async (programa): Promise<FilaDePrograma> => {
       // Una sola definición de tasas, comisión, descuento, metas y saldo (ADR 0024).
       // A/B se resuelven arriba: las ventanas de cada cohorte no cambian el rango común.
@@ -187,7 +193,7 @@ export async function armarVistaDeTodos(
     b: resumenesB ? totales(resumenesB) : null,
     detalles: {
       ...Object.fromEntries(METRICAS.map((m) => [m, detalle(m, resumenesA[m], periodo)])) as Record<MetricaDeTodos, DetalleDeCifra>,
-      cartera: detalle("cartera", cartera, periodo),
+      ...Object.fromEntries(FOTOS_DE_HOY.map((m, i) => [m, detalle(m, fotos[i], periodo)])) as Record<MetricaFotoDeHoy, DetalleDeCifra>,
     },
     cartera: {
       saldo: sumarUsd(filas.map((f) => dinero("USD", f.dashboard.cartera.saldoUsd))),
@@ -197,6 +203,11 @@ export async function armarVistaDeTodos(
       sinSaldoCalculable: sumarConteos(filas.map((f) => conteo(f.dashboard.cartera.sinSaldoCalculable))),
     },
     sinValorVendido: sumarConteos(filas.map((f) => conteo(f.dashboard.sinValorVendido))),
+    banderas: {
+      atendidos: sumarConteos(filas.map((f) => conteo(f.dashboard.banderas.atendidos))),
+      sinValor: sumarConteos(filas.map((f) => conteo(f.dashboard.banderas.sinValor.cantidad))),
+      sinGrain: sumarConteos(filas.map((f) => conteo(f.dashboard.banderas.sinGrain.cantidad))),
+    },
     programas: filas,
   };
 }

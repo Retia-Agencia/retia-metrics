@@ -93,6 +93,22 @@ function Conteos({ vista, pulso = false }: { vista: VistaDeTodos; pulso?: boolea
   ));
 }
 
+/** Las banderas del Pulso (ticket 191): foto de hoy, sin B; el % va por programa en su dashboard. */
+function Banderas({ vista }: { vista: VistaDeTodos }) {
+  const { banderas } = vista;
+  const campos = [
+    ["Atendidos sin valor vendido", "sinValor", "atendidos_sin_valor"],
+    ["Atendidos sin Grain", "sinGrain", "atendidos_sin_grain"],
+  ] as const;
+  return campos.map(([titulo, campo, metrica]) => (
+    <Tarjeta key={campo} titulo={titulo} valor={
+      <span className={banderas[campo].valor > 0 ? "text-tono-peligro" : undefined}>
+        <CifraConLista titulo={titulo} detalle={vista.detalles[metrica]}>{num(banderas[campo].valor)}</CifraConLista>
+      </span>
+    } nota={`de ${num(banderas.atendidos.valor)} atendidos · a hoy`} />
+  ));
+}
+
 function MetasPorPrograma({ vista }: { vista: VistaDeTodos }) {
   return <>
     <TablaPorPrograma titulo="Cohorte activa por programa" vista={vista} seccion="pulso"
@@ -154,7 +170,7 @@ function VentasPorCohorte({ vista }: { vista: VistaDeTodos }) {
 export async function SeccionDeTodos({ vista, seccion, hoy }: { vista: VistaDeTodos; seccion: Seccion; hoy: string }) {
   if (seccion === "pulso") return <section id="pulso" className="space-y-4">
     <h2 className="text-xl font-semibold">Pulso</h2>
-    <div className={GRILLA}><ContratadoYCaja vista={vista} /><Conteos vista={vista} pulso /></div>
+    <div className={GRILLA}><ContratadoYCaja vista={vista} /><Conteos vista={vista} pulso /><Banderas vista={vista} /></div>
     <MetasPorPrograma vista={vista} />
   </section>;
 
