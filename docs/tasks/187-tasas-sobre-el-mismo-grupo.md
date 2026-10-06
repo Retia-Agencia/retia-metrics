@@ -3,7 +3,7 @@ id: 187
 etapa: O6
 serves: "ADR 0079; 148 (Lo que sigue, punto 3); overview.md §7"
 depends: [148]
-status: en curso
+status: done
 ---
 
 # 187 — Las tasas del embudo sobre el mismo grupo de personas
@@ -73,3 +73,9 @@ toda tasa sea real: el mismo grupo arriba y abajo.
      pide la atribución por canal de cada deal (hechos del embudo). Va con el 188 o un ticket propio.
   3. `desglosesDelResumen` junta el desglose por closer por el NOMBRE y no por la clave: dos cuentas sin `closer_id`
      con el mismo nombre se funden (el subtotal cuadra). Ya existía; afecta a todas las listas.
+
+## Cierre (checkpoint, 5-oct)
+
+Checkpoint `cp-20261005-1` sobre `d974c76`: CI verde (suite completa, Postgres real y build), deploy de
+producción en Vercel correcto, fuentes recibiendo y sin sobres crudos con error real (los 5 pendientes son entregas
+de prueba que no se ingieren a propósito).

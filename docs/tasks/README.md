@@ -207,7 +207,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 138 | [Deals creados contra agendas](./138-deals-creados-contra-agendas.md) | 136 | done · 1-oct · Alejo · acumulado por hábil A contra B en el dashboard; `deals_creados` y `agendas_creadas` abren su lista |
 | [x] | 141 | [Filtros de fecha relativos en las listas](./141-filtros-de-fecha-relativos-en-listas.md) | 136 | done · 1-oct · Alejo · deals por creado, actividad y cierre; leads por creado y último envío; selector del 136 en modo solo A |
 | [x] | 146 | [Meta del mes y página de Metas](./146-meta-del-mes-y-pagina-de-metas.md) | 136 | done · `cp-20261004-3` · O5 · M3 · meta del mes pareja por hábil, la venta cuenta a la cohorte del deal, hoy cuenta como transcurrido (Mani, 4-oct); página `/p/[programa]/metas`; deuda: ventas por cohorte sin lista |
-| [ ] | 147 | [Alertas por persistencia](./147-alertas-por-persistencia.md) | 136 | en revisión · Alejo · 5-oct · meta del mes y de la cohorte; 0067 aplicada en producción con el ok de Mani; umbrales en Programa › Ventas, alerta en el Pulso; falta checkpoint y los umbrales de Dani |
+| [x] | 147 | [Alertas por persistencia](./147-alertas-por-persistencia.md) | 136 | done · `cp-20261005-1` · Alejo · 5-oct · meta del mes y de la cohorte; 0067 aplicada en producción con el ok de Mani; umbrales en Programa › Ventas, alerta en el Pulso; faltan los umbrales reales de Dani (dato, no código) |
 | [x] | 148 | [Las secciones del dashboard](./148-las-secciones-del-dashboard.md) | 142, 095, 137 | done · `cp-20261004-4` · O5 · M1 · Pulso, Operación comercial, Dinero y Pauta interina; monta 146 y 065; el comparativo cuenta las llamadas de Calendly por `closer_user_id`. Lo que sigue: O6 (187 a 192) |
 | [-] | 158 | [El reporte del día del closer sale del CRM](./158-el-reporte-del-dia-del-closer.md) | 156, 157 | descartado · 4-oct (Mani): el reporte del día ya está en Mi espacio › Métricas con el periodo en "hoy"; medir objeciones era sobrediseño |
 
@@ -297,12 +297,12 @@ personas). Reparto en [`plan-reparto.md`](../plan-reparto.md) §4, ola O6.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 187 | [Las tasas del embudo sobre el mismo grupo de personas](./187-tasas-sobre-el-mismo-grupo.md) | 148 | en revisión · Alejo · 5-oct · `tasas-del-grupo.ts`; recorrido y 375 px hechos; falta checkpoint |
-| [ ] | 188 | [Cada cifra del dashboard abre su lista: embudo por etapa y comparativo](./188-cada-cifra-del-dashboard-abre-su-lista.md) | 148, 065 | en revisión · Alejo · 5-oct · embudo por etapa y comparativo abren su lista; sin B; una etiqueta de closer; tono por antigüedad; falta checkpoint |
-| [ ] | 189 | [Agendas creadas, ocurridas y futuras, y el no-show por semana](./189-agendas-creadas-ocurridas-y-futuras.md) | 187 | en revisión · Alejo · 5-oct · agendas por semana (creadas, ocurridas, show, no-show) y próximas desde hoy; falta checkpoint |
-| [ ] | 190 | [Series por mes en Dinero y el acumulado contra el mes anterior](./190-series-mensuales-en-dinero.md) | 148, 146 | en revisión · Alejo · 5-oct · build, recorrido y 375 px hechos; falta checkpoint |
+| [x] | 187 | [Las tasas del embudo sobre el mismo grupo de personas](./187-tasas-sobre-el-mismo-grupo.md) | 148 | done · `cp-20261005-1` · Alejo · 5-oct · `tasas-del-grupo.ts`; recorrido y 375 px hechos |
+| [x] | 188 | [Cada cifra del dashboard abre su lista: embudo por etapa y comparativo](./188-cada-cifra-del-dashboard-abre-su-lista.md) | 148, 065 | done · `cp-20261005-1` · Alejo · 5-oct · embudo por etapa y comparativo abren su lista; sin B; una etiqueta de closer; tono por antigüedad |
+| [x] | 189 | [Agendas creadas, ocurridas y futuras, y el no-show por semana](./189-agendas-creadas-ocurridas-y-futuras.md) | 187 | done · `cp-20261005-1` · Alejo · 5-oct · agendas por semana (creadas, ocurridas, show, no-show) y próximas desde hoy |
+| [x] | 190 | [Series por mes en Dinero y el acumulado contra el mes anterior](./190-series-mensuales-en-dinero.md) | 148, 146 | done · `cp-20261005-1` · Alejo · 5-oct · build, recorrido y 375 px hechos |
 | [ ] | 191 | [Las banderas rojas que faltan en el Pulso](./191-banderas-rojas-del-pulso.md) | 148 | en revisión · Alejo · 5-oct · `banderas-del-pulso.ts`: atendidos sin valor y sin Grain, foto de hoy, con su lista; falta checkpoint |
-| [ ] | 192 | [El dashboard de todos los programas con las secciones nuevas](./192-todos-los-programas-con-las-secciones.md) | 148 | en revisión · Alejo · 5-oct · build, recorrido, costura (caja de todos = suma) y 375 px hechos; falta checkpoint |
+| [x] | 192 | [El dashboard de todos los programas con las secciones nuevas](./192-todos-los-programas-con-las-secciones.md) | 148 | done · `cp-20261005-1` · Alejo · 5-oct · build, recorrido, costura (caja de todos = suma) y 375 px hechos |
 
 **Frente de pantallas (Mani, 4-oct): la pantalla fija como estándar del CRM** (A-97 a A-101). Primero 193 y 196 en
 paralelo; 194, 195 y 197 cuando el 193 esté en `main` (usan su pieza de pestañas).
@@ -314,9 +314,9 @@ paralelo; 194, 195 y 197 cuando el 193 esté en `main` (usan su pieza de pestañ
 | [x] | 195 | [Recursos: pantalla fija](./195-recursos-pantalla-fija.md) | 193 | done · `cp-20261004-6` · P3 · Recursos y Links de pago |
 | [x] | 196 | [Las pantallas de Ajustes: pantalla fija y "← Ajustes"](./196-ajustes-pantalla-fija-y-volver.md) | 185 | done · `cp-20261004-5` · P4 · seis pantallas fijas con "← Ajustes" |
 | [x] | 197 | [Dashboard: pantalla fija y cada sección en su pestaña](./197-dashboard-en-pestanas.md) | 193, 148 | done · `cp-20261004-6` · P5 · Pulso, Operación, Dinero, Pauta; Volver regresa a la pestaña |
-| [ ] | 198 | [La zona con scroll es una pieza de `pantalla-fija.tsx`](./198-la-zona-con-scroll-es-una-pieza.md) | 197 | en revisión · Alejo · 5-oct · `ZonaConScroll` / `clasesDeZonaConScroll`; 14 copias reemplazadas; las 14 pantallas miden 900 a 1440×900; falta checkpoint |
+| [x] | 198 | [La zona con scroll es una pieza de `pantalla-fija.tsx`](./198-la-zona-con-scroll-es-una-pieza.md) | 197 | done · `cp-20261005-1` · Alejo · 5-oct · `ZonaConScroll` / `clasesDeZonaConScroll`; 14 copias reemplazadas; las 14 pantallas miden 900 a 1440×900 |
 | [x] | 199 | [El manual de uso se abre desde la app, detrás del login](./199-el-manual-de-uso-en-la-app.md) | · | done · 4-oct · CI verde en `16e4b22` (sin tag de checkpoint aún) · `/manual` y el botón en Mi espacio |
-| [ ] | 200 | [La venta que se revierte al anular su abono no cuenta](./200-la-venta-revertida-no-cuenta.md) | · | en revisión · Alejo · 5-oct · CI verde en `e0a0e73`, falta checkpoint · revisión del 4-oct: anular el único abono dejaba la venta contando (dashboard, meta del mes, Mi espacio, listas) y el embudo por etapas contaba cortesías |
+| [x] | 200 | [La venta que se revierte al anular su abono no cuenta](./200-la-venta-revertida-no-cuenta.md) | · | done · `cp-20261005-1` · Alejo · 5-oct · CI verde en `e0a0e73` · revisión del 4-oct: anular el único abono dejaba la venta contando (dashboard, meta del mes, Mi espacio, listas) y el embudo por etapas contaba cortesías |
 
 # Pasos y tareas sin ticket
 

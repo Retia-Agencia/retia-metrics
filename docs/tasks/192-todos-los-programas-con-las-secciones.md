@@ -36,3 +36,8 @@ lado**, y la función del agregado no compila con una tasa (`lib/queries/agregad
 - Deuda: Operación de "todos" llama `Operacion(...)` como función y cambia su `id` con `cloneElement` para no repetir
   el ancla; si la pieza aceptara un `id`, sobraría.
 
+## Cierre (checkpoint, 5-oct)
+
+Checkpoint `cp-20261005-1` sobre `d974c76`: CI verde (suite completa, Postgres real y build), deploy de
+producción en Vercel correcto, fuentes recibiendo y sin sobres crudos con error real (los 5 pendientes son entregas
+de prueba que no se ingieren a propósito).

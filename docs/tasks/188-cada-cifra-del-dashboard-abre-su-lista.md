@@ -3,7 +3,7 @@ id: 188
 etapa: O6
 serves: "ADR 0067; 148 (Lo que sigue, puntos 1, 2, 4, 6 y 13)"
 depends: [148, 065]
-status: en revisión
+status: done
 ---
 
 # 188 — Cada cifra del dashboard abre su lista: embudo por etapa y comparativo
@@ -60,3 +60,9 @@ closers. Y dos detalles de la lista que se ven raros.
   el embudo usa días de calendario de Bogotá, con test. Y que el comparativo cargaba el grupo de citas dos veces por
   closer: ahora una vez por programa.
 - **Falta:** el checkpoint.
+
+## Cierre (checkpoint, 5-oct)
+
+Checkpoint `cp-20261005-1` sobre `d974c76`: CI verde (suite completa, Postgres real y build), deploy de
+producción en Vercel correcto, fuentes recibiendo y sin sobres crudos con error real (los 5 pendientes son entregas
+de prueba que no se ingieren a propósito).

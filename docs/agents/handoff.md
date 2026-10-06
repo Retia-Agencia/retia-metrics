@@ -10,10 +10,10 @@
 
 ```
 Seguimos con el CRM de Retia. PRIORIDAD: Memorable (Nicolás y Francisco) arrancó el 5-oct y su configuración es de
-Mani (plan-reparto §4, O2 frente A; plan.md §2). Ola vigente: O6, el dashboard confiable (plan-reparto §4), **cerrada
-en código**: el 5-oct Alejo cerró 187, 188, 189, 190, 191, 192, 198, 147 (0067 en producción), 200 y 102, todos en
-`main`, **en revisión hasta el checkpoint** que los marque `done` (tag `cp-AAAAMMDD-N`). Lo siguiente: el checkpoint de
-la O6, la revisión del cadenero del 191 y el 102 (ninguno pasó por otra sesión), y rearmar la ola. Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
+Mani (plan-reparto §4, O2 frente A; plan.md §2). Ola vigente: O6, el dashboard confiable (plan-reparto §4). Checkpoint
+`cp-20261005-1` verde: 147, 187, 188, 189, 190, 192, 198 y 200 en `done`. **Siguen en revisión el 191 y el 102**: están
+en `main` con CI verde, pero ninguno pasó por el cadenero (otra sesión); se marcan `done` en el checkpoint que siga a esa
+revisión. Lo siguiente: el cadenero del 191 y el 102, y rearmar la ola. Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
 Supabase Pro, la fuente principal de cada programa, y ver el rojo del Kanban al arrastrar hacia atrás (182).
 
 Reglas: implementa un agente (Codex o Kiro; Codex sin cuota hasta el 12-oct) y la sesión principal revisa y recorre;
@@ -25,6 +25,13 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
 ```
 
 ## Memory
+
+- **2026-10-05 (cierre, Alejo + Claude): checkpoint `cp-20261005-1` sobre `d974c76`.**
+  - CI verde en la punta (suite completa, Postgres real y build). Deploy de producción en Vercel correcto (estado del
+    commit en GitHub; el CLI de Vercel en la máquina de Alejo no está ligado al equipo `agencia-dani`, así que
+    `vercel ls` no lo ve). Fuentes recibiendo (91 sobres en 24 h). Los 5 sobres crudos "con error" son entregas de
+    prueba (4 de Dapta del 1-oct y 1 de Typeform de ComunicArte del 5-oct) que no se ingieren a propósito.
+  - `done`: 147, 187, 188, 189, 190, 192, 198 y 200. **El 191 y el 102 quedan en revisión** hasta pasar por el cadenero.
 
 - **2026-10-05 (noche 2, Alejo + Claude): 191 y 102, la O6 cerrada en código.**
   - **191** (`e322478`, CI verde): banderas rojas del Pulso "Atendidos sin valor vendido" y "Atendidos sin Grain", foto de

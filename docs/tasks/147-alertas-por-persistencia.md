@@ -3,7 +3,7 @@ id: 147
 etapa: NC2
 serves: "comercial.md GC-39, GC-40"
 depends: [136]
-status: en revisión
+status: done
 ---
 
 # 147 — Alertas por días hábiles seguidos bajo el umbral
@@ -48,3 +48,9 @@ umbrales son filas (DP-23) que Dani carga mientras lo usa en el daily. Se calcul
 - **CI rojo de `06d7acc`:** la 0067 creó la tabla sin RLS (ADR 0047; lo cazó `rls-en-todas-las-tablas`, que en local no corrí). Arreglado con la **0068** (`ENABLE ROW LEVEL SECURITY`), aplicada en producción el mismo día: ninguna tabla de `public` queda sin RLS. Lección: una migración que crea tabla corre ese guardián antes de aplicarse.
 - **Falta:** el checkpoint; que Dani cargue los umbrales reales (GC-39); y el 191 (banderas del Pulso), que ya puede
   arrancar.
+
+## Cierre (checkpoint, 5-oct)
+
+Checkpoint `cp-20261005-1` sobre `d974c76`: CI verde (suite completa, Postgres real y build), deploy de
+producción en Vercel correcto, fuentes recibiendo y sin sobres crudos con error real (los 5 pendientes son entregas
+de prueba que no se ingieren a propósito).

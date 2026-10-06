@@ -3,7 +3,7 @@ id: 189
 etapa: O6
 serves: "148 (Lo que sigue, puntos 9 y 10); comercial.md §9.7 (#8 a #13)"
 depends: [187]
-status: en revisión
+status: done
 ---
 
 # 189 — Agendas creadas, ocurridas y futuras, y el no-show por semana
@@ -49,3 +49,9 @@ agendaron** en el periodo, cuántas **ocurrieron** y su resultado (show, no-show
   Arreglado lo que vio: una futura de un deal anulado o de cortesía contaba (ahora no, con test), el `ahora` de la
   entrada se ignoraba, y las próximas se arman desde las fechas (una cita tecleada en 2099 no recorre mil semanas).
 - **Falta:** el checkpoint.
+
+## Cierre (checkpoint, 5-oct)
+
+Checkpoint `cp-20261005-1` sobre `d974c76`: CI verde (suite completa, Postgres real y build), deploy de
+producción en Vercel correcto, fuentes recibiendo y sin sobres crudos con error real (los 5 pendientes son entregas
+de prueba que no se ingieren a propósito).

@@ -40,3 +40,8 @@ status: done
   guardianes en verde.
 - **5-oct (tarde):** `npm run build` limpio. Recorrido en `dev:local` como developer: Dinero de ComunicArte con las gráficas por mes, "Ver cifras" despliega la tabla con la meta del mes, y el punto de octubre abre su lista (2 ventas sin valor vendido, USD 0,00, igual al punto). Consola sin errores. 375 px hechos el 5-oct con Chrome headless por CDP (viewport 375, móvil): sin scroll horizontal ni elementos fuera, sin errores (Dinero del programa y de todos, la lista). **Falta:** el checkpoint.
 
+## Cierre (checkpoint, 5-oct)
+
+Checkpoint `cp-20261005-1` sobre `d974c76`: CI verde (suite completa, Postgres real y build), deploy de
+producción en Vercel correcto, fuentes recibiendo y sin sobres crudos con error real (los 5 pendientes son entregas
+de prueba que no se ingieren a propósito).

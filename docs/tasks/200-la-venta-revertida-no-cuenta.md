@@ -3,7 +3,7 @@ id: 200
 etapa: O6
 serves: "Regla 'un registro anulado no cuenta en ninguna métrica' (ADR 0026, 0038); ventas = deals en Abonado o Completo (ADR 0037); cortesía no es venta (ADR 0071 punto 10)"
 depends: []
-status: en curso
+status: done
 ---
 
 # 200 — La venta que se revierte al anular su abono no cuenta
@@ -55,3 +55,9 @@ más lejana del historial) y además cuenta las **cortesías** como vendidas, co
   `metricas-con-filas.ts` (verificado con `.toSQL()`); A2, P, R y CORR no cuentan como reversa; cartera, Kanban,
   Students y cohorte leen la etapa actual. Halló el empate de instante SQL ≠ memoria: corregido y con test.
 - Nivel 1: typecheck, lint y 13 archivos de tests de métricas en verde. Falta el checkpoint.
+
+## Cierre (checkpoint, 5-oct)
+
+Checkpoint `cp-20261005-1` sobre `d974c76`: CI verde (suite completa, Postgres real y build), deploy de
+producción en Vercel correcto, fuentes recibiendo y sin sobres crudos con error real (los 5 pendientes son entregas
+de prueba que no se ingieren a propósito).

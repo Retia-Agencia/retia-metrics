@@ -3,7 +3,7 @@ id: 198
 etapa: O6
 serves: "A-86; tickets 185 y 193 a 197"
 depends: [197]
-status: en revisión
+status: done
 ---
 
 # 198 — La zona con scroll es una pieza de `pantalla-fija.tsx`
@@ -37,3 +37,9 @@ pantalla que copie la versión vieja repite el bug.
 - Typecheck, lint y `npm run build`. Recorrido en `dev:local` con Chrome headless a 1440×900: Leads, Calls, Inbox,
   Students, Programa, Recursos, el Dashboard del programa y el de todos, y las seis de Ajustes miden 900 px, sin errores.
 - **Falta:** el checkpoint.
+
+## Cierre (checkpoint, 5-oct)
+
+Checkpoint `cp-20261005-1` sobre `d974c76`: CI verde (suite completa, Postgres real y build), deploy de
+producción en Vercel correcto, fuentes recibiendo y sin sobres crudos con error real (los 5 pendientes son entregas
+de prueba que no se ingieren a propósito).
