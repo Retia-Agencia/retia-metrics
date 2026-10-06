@@ -1,6 +1,9 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Db } from "@/lib/db/tipos";
-import { changeLog, leadContactos, leads, sources, submissions } from "@/lib/db/schema";
+import { canales, changeLog, leadContactos, leads, sources, submissions } from "@/lib/db/schema";
+import { ARBOL_VACIO, emparejar } from "@/lib/atribucion/emparejar";
+import { miembrosActivos, traidoPorDeEnvios } from "@/lib/atribucion/captacion-del-closer";
+import { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { ErrorDeApp } from "@/lib/errors";
 import type { Calificacion } from "./calificacion";
 import { construirEnvio, type EntradaEnvio, type Envio } from "./envio";
@@ -234,6 +237,7 @@ export async function ingerirEntradas(
       // gerente (ADR 0035), y una relectura de la hoja no la deshace.
       const leadDeEnvio = new Map(identidad.asignaciones.map((a) => [a.token, resolverLead(a.lead)]));
       const idDeEnvio = new Map<string, string>();
+      const escritos: (typeof submissions.$inferSelect)[] = [];
       // Los envios de ESTE lote por lead: el que dispara la regla de deals es el mas
       // reciente de ellos, y es el origen del deal que abra (ADR 0060).
       const enviosDelLote = new Map<
@@ -297,6 +301,7 @@ export async function ingerirEntradas(
           })
           .returning();
         for (const f of filas) {
+          escritos.push(f);
           idDeEnvio.set(llaveDeEnvio(f), f.id);
           if (f.leadId === null) resultado.enviosSinLead++;
           else enviosDelLote.set(f.leadId, [...(enviosDelLote.get(f.leadId) ?? []), f]);
@@ -339,7 +344,7 @@ export async function ingerirEntradas(
       const { actualizados, cambios } = await recalcularResumen(tx, tocados, creados, opciones.syncRunId ?? null);
       resultado.leadsNuevos = creados.size;
       resultado.leadsActualizados = actualizados;
-      resultado.cambiosRegistrados = cambios;
+      resultado.cambiosRegistrados = cambios + (await escribirTraidoPor(tx, programId, escritos, creados, opciones.syncRunId ?? null));
 
       // 8. La regla de deals (ticket 052), SOLO si el llamador la pidio. Corre DENTRO
       // de esta misma transaccion, despues del resumen. Decide con los hechos del ENVIO que
@@ -381,6 +386,57 @@ export async function ingerirEntradas(
       return resultado;
     },
   );
+}
+
+/**
+ * Quien trajo a cada lead (ticket 086, ADR 0044 punto 2): el codigo del closer en el
+ * enlace de captacion, resuelto contra los miembros activos del programa. **El primero
+ * gana**: solo se escribe donde el lead no tenia a nadie (`IS NULL` en el UPDATE, asi que
+ * ni un reintento ni otro webhook en paralelo lo reescriben). Un lead que YA existia deja
+ * su fila en `change_log`; uno recien creado no, igual que su resumen: su creacion es el
+ * envio, que queda guardado con el codigo. Devuelve cuantos cambios registro.
+ */
+async function escribirTraidoPor(
+  tx: Db,
+  programId: string,
+  escritos: (typeof submissions.$inferSelect)[],
+  creados: Set<string>,
+  syncRunId: string | null,
+): Promise<number> {
+  const conLead = escritos.filter((f) => f.leadId !== null);
+  if (conLead.length === 0) return 0;
+  const catalogo = await tx.select().from(canales).where(eq(canales.activo, true));
+  if (!catalogo.some((c) => c.formato === "closer")) return 0;
+  const candidatos = await miembrosActivos(tx, programId);
+  const traidos = traidoPorDeEnvios(
+    conLead.map((f) => ({
+      leadId: f.leadId,
+      fechaEnvio: f.fechaEnvio,
+      traza: emparejar(utmsDelEnvio(f), catalogo, ARBOL_VACIO),
+    })),
+    candidatos,
+  );
+  let cambios = 0;
+  for (const [leadId, userId] of traidos) {
+    const [lead] = await tx
+      .update(leads)
+      .set({ traidoPorUserId: userId })
+      .where(and(eq(leads.id, leadId), eq(leads.programId, programId), isNull(leads.traidoPorUserId)))
+      .returning();
+    if (!lead || creados.has(lead.id)) continue;
+    await tx.insert(changeLog).values({
+      tabla: "leads",
+      registroId: lead.id,
+      etiqueta: lead.nombre ?? lead.emailNormalizado,
+      campo: "traidoPorUserId",
+      valorAnterior: null,
+      valorNuevo: userId,
+      origen: "sync",
+      syncRunId,
+    });
+    cambios++;
+  }
+  return cambios;
 }
 
 /**

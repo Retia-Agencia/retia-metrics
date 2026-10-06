@@ -51,6 +51,9 @@ vi.mock("@/lib/calendly/cuentas", () => ({ cuentasPorPrograma }));
 const programasActivos = vi.fn();
 vi.mock("@/lib/queries/programas", () => ({ programasActivos }));
 
+// Los enlaces de captacion (086) se prueban contra la base en captacion-del-closer.test.ts.
+vi.mock("@/lib/atribucion/captacion-del-closer", () => ({ enlacesDeCaptacion: async () => [] }));
+
 const PROG_A = { id: "p-a", slug: "programa-a", nombre: "Programa A" };
 const PROG_B = { id: "p-b", slug: "programa-b", nombre: "Programa B" };
 

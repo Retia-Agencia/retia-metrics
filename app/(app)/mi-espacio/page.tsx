@@ -16,6 +16,8 @@ import { PageShell } from "@/components/page-shell";
 import { PerfilDeMiEspacio } from "@/components/mi-espacio/perfil-de-mi-espacio";
 import { TabsDeMiEspacio } from "@/components/mi-espacio/tabs-de-mi-espacio";
 import { CalendlyMembresias } from "@/components/calendly-membresias";
+import { EnlacesDeCaptacion } from "@/components/mi-espacio/enlaces-de-captacion";
+import { enlacesDeCaptacion } from "@/lib/atribucion/captacion-del-closer";
 import { asignarMiCalendlyAccion } from "./acciones";
 import { TabAtencion } from "@/components/mi-espacio/tab-atencion";
 import { TabMetricas } from "@/components/mi-espacio/tab-metricas";
@@ -131,6 +133,8 @@ export default async function MiEspacioPage({ searchParams }: Props) {
 
   // El Calendly solo para quien trabaja leads, y solo de los programas con membresía (169).
   const calendly = puedeTrabajar ? await bloqueCalendly(membresias) : null;
+  // Sus enlaces de captacion (086), de los mismos programas: calculados, nunca guardados.
+  const enlaces = puedeTrabajar ? await enlacesDeCaptacion(db, userId) : [];
 
   // Selector de programa solo para las secciones que lo usan. El programa es frontera: un
   // slug ajeno es 404 (igual que las tabs de programa); sin `?programa` se toma el ultimo
@@ -154,6 +158,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
       <div className="space-y-6">
         {perfil}
         {calendly}
+        <EnlacesDeCaptacion enlaces={enlaces} />
 
         <div className="space-y-4">
           <TabsDeMiEspacio secciones={secciones} actual={seccion.id} slug={programa?.slug ?? null} />

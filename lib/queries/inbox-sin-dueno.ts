@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
-import { calls, deals, leads, submissions } from "@/lib/db/schema";
+import { calls, deals, leads, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { vigente } from "@/lib/queries/vigente";
 import { ETAPAS_DE_SETTEO } from "@/lib/deals/etapas";
@@ -41,11 +41,9 @@ export interface OrigenDeFila {
   utmMedium: string | null;
   utmCampaign: string | null;
   /**
-   * Quien trajo al lead (`leads.traido_por_user_id` -> nombre del usuario), cuando este
-   * poblado (ticket 086). **Hoy siempre `null`:** la columna aun no existe en el esquema
-   * (el 086 la agrega), asi que no hay de donde leerla. El campo se deja en el contrato
-   * para que la pantalla y los tests no cambien cuando 086 la encienda; escribir la
-   * lectura ahora tocaria el esquema, que es de otro ticket.
+   * Quien trajo al lead (`leads.traido_por_user_id` -> nombre del usuario, o su correo),
+   * cuando este poblado (ticket 086). Traerlo no lo hace dueño (ADR 0044 punto 4): por
+   * eso se muestra aqui, donde se reclama. Nulo = nadie lo trajo.
    */
   traidoPorNombre: string | null;
 }
@@ -89,6 +87,9 @@ const COLUMNAS_LEAD = {
   utmSource: submissions.utmSource,
   utmMedium: submissions.utmMedium,
   utmCampaign: submissions.utmCampaign,
+  // Quien trajo al lead (ticket 086): su nombre, o su correo si no tiene nombre.
+  traidoPorNombre: users.nombre,
+  traidoPorEmail: users.email,
 } as const;
 
 type FilaCruda = {
@@ -101,6 +102,8 @@ type FilaCruda = {
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
+  traidoPorNombre: string | null;
+  traidoPorEmail: string | null;
 };
 
 function aFila(f: FilaCruda, llamadaPorCompletarId: string | null = null): FilaSinDueno {
@@ -115,8 +118,7 @@ function aFila(f: FilaCruda, llamadaPorCompletarId: string | null = null): FilaS
       utmSource: f.utmSource,
       utmMedium: f.utmMedium,
       utmCampaign: f.utmCampaign,
-      // Ver `OrigenDeFila.traidoPorNombre`: la columna la agrega el ticket 086.
-      traidoPorNombre: null,
+      traidoPorNombre: f.traidoPorNombre ?? f.traidoPorEmail,
     },
     llamadaPorCompletarId,
   };
@@ -132,6 +134,7 @@ export async function seccionesSinDueno(db: Db, programId: string): Promise<Secc
     .from(deals)
     .innerJoin(leads, eq(leads.id, deals.leadId))
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
+    .leftJoin(users, eq(users.id, leads.traidoPorUserId))
     .where(
       and(
         eq(deals.programId, programId),
@@ -151,6 +154,7 @@ export async function seccionesSinDueno(db: Db, programId: string): Promise<Secc
     .from(deals)
     .innerJoin(leads, eq(leads.id, deals.leadId))
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
+    .leftJoin(users, eq(users.id, leads.traidoPorUserId))
     .where(
       and(
         eq(deals.programId, programId),

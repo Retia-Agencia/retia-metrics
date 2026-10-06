@@ -516,6 +516,13 @@ export const leads = pgTable(
     leadValue: text("lead_value"),
     motivoDescarte: text("motivo_descarte"),
     cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "set null" }),
+    /**
+     * Quien TRAJO al lead (ADR 0044 punto 2, ticket 086): FK real a `users`, nunca texto
+     * (ADR 0030). La escribe la ingesta desde el codigo del closer en `utm_content` de su
+     * link de captacion, y el alta manual con quien la crea. **El primero gana**: nadie la
+     * reescribe una vez puesta. Traerlo no lo hace dueño (punto 4).
+     */
+    traidoPorUserId: uuid("traido_por_user_id").references(() => users.id, { onDelete: "restrict" }),
     /** Fila original tal como vino de la hoja, para auditar sin volver a Sheets. */
     raw: jsonb("raw"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

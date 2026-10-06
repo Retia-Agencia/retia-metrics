@@ -75,3 +75,43 @@ en cero en "leads por área" es un dato real, no un bug.
 ## Enmienda 2026-09-28 (plan de reparto §3, ok de Mani)
 
 Tracker y archivo decían dependencias distintas; quedan alineados en 085 y 092.
+
+---
+
+## Avance 2026-10-06 (Alejo + Claude): en código, la 0070 sin aplicar
+
+**Decisiones (tomadas en la sesión, revisables):**
+- **El código opaco se deriva, no se guarda:** los 12 primeros hex del sha256 de `captacion:<users.id>`
+  (`codigoDeCaptacion`). Sin columna ni catálogo nuevo (ADR 0024, ADR 0077). Distinto de `codigoDeCloser` de las
+  listas, que responde otra pregunta.
+- **La campaña es una sola, `referidos`** (`CAMPANA_DE_REFERIDOS`): quién trajo al lead lo dice el código, no la campaña.
+  `utm_source` y `utm_medium` salen del Canal con formato `closer` (en producción, `closer / referido`, área Referidos).
+- **Un código solo acredita a un usuario activo con membresía ACTIVA en el programa del envío** (ADR 0043). El de
+  alguien sin membresía ahí, desactivado, o uno que casara con dos, no acredita a nadie.
+- **El alta manual NO escribe `traido_por`** (ADR 0044 punto 2: solo la ingesta). Queda con `entrada = crm`; si después
+  aplica por el enlace de un closer, la ingesta lo acredita. El selector del ticket queda fuera hasta que haya un caso
+  (los closers no traen leads propios, 24-sep). La primera versión ponía a quien lo creaba; el cadenero lo frenó porque
+  contradecía el ADR.
+- 🔴 **Para confirmar con Mani:** "el primero gana" es el primero que ESCRIBE. Un lead que entró por Meta sin código y
+  después aplica con el enlace de un closer queda acreditado al closer (test lo fija).
+
+**Hecho:**
+- `leads.traido_por_user_id` (FK a `users`, `restrict`), migración **0070** con `lock_timeout`.
+- `lib/atribucion/captacion-del-closer.ts`: el código, `closerDelCodigo`, `traidoPorDeEnvios` (puro: el envío más antiguo
+  del canal closer con código que resuelve) y `enlacesDeCaptacion` (uno por programa activo con membresía activa, sobre
+  `generarLink` y `destinoDeCaptacion` del 092; sin principal o sin canal, el motivo).
+- Ingesta (`ingerirEntradas`, paso 7b `escribirTraidoPor`): escribe solo `WHERE traido_por_user_id IS NULL` (el primero
+  gana, también ante un reintento o un webhook en paralelo); un lead que ya existía deja su fila en `change_log`.
+- Inbox: "Traído por" en Agendados sin dueño, Por settear y "se perdió en el Calendly" (nombre o correo).
+- Mi espacio: "Tus enlaces de captación", con Copiar, para quien trabaja leads.
+- Tests (`tests/captacion-del-closer.test.ts`, 18; y "Traído por" en `tests/inbox-sin-dueno.test.ts`): el emparejador reconoce el enlace del generador y su código da el
+  closer; primero gana (mordido quitando el `IS NULL`); frontera de programa; membresía inactiva; usuario desactivado; Meta y luego closer; el código en
+  `utm_content` de otro canal no cuenta; alta manual sin envío ni traído por; dos programas, dos URL y nada guardado; guardián de
+  escritores de `traidoPorUserId`. Typecheck, lint y build en verde.
+
+**Done cuando:** 1 ✅ · 2 ✅ · 3 ✅ · 4 ✅ con origen `entrada = crm` (el deal manual sigue por `crearDealAMano`) · 5 ✅ (guardián: solo la ingesta).
+
+**Hecho también:** cadenero (aprobado; sus hallazgos arreglados arriba) y **0070 aplicada en producción** con el ok de Mani, antes del push (72 migraciones).
+
+**Falta:** confirmar con Mani la regla Meta → closer;
+recorrido de Mi espacio en `dev:local`.

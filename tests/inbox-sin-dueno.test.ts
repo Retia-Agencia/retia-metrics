@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import { cohorts, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
@@ -59,6 +60,7 @@ async function crear(o: {
   owner?: string | null;
   anulado?: boolean;
   createdAt?: Date;
+  traidoPor?: string;
 }): Promise<string> {
   const prog = o.programa ?? programId;
   const [l] = await db
@@ -69,6 +71,7 @@ async function crear(o: {
       nombre: `Lead ${leadN}`,
       puntaje: o.puntaje ?? null,
       fechaUltimaAplicacion: o.fecha == null ? null : new Date(o.fecha),
+      traidoPorUserId: o.traidoPor ?? null,
     })
     .returning();
   // El origen es del envío que abrió el deal (ADR 0060), no del lead.
@@ -109,7 +112,18 @@ describe("seccionesSinDueno — Pendiente Setteo", () => {
     expect(pendienteSetteo.at(-1)?.puntaje).toBeNull();
   });
 
-  it("el origen viaja tal cual (UTM sin normalizar) y traidoPorNombre es null (086 aún no existe)", async () => {
+  it("traidoPorNombre es el nombre de quien trajo al lead, o su correo si no tiene nombre (086)", async () => {
+    const [sinNombre] = await db.insert(users).values({ email: "jero@retiagrowth.com", rol: "closer" }).returning();
+    const conNombre = await crear({ etapa: "registrado", puntaje: 5, traidoPor: closer });
+    const conCorreo = await crear({ etapa: "agendado", traidoPor: sinNombre.id });
+    await db.update(users).set({ nombre: "Maru" }).where(eq(users.id, closer));
+    const { pendienteSetteo, unclaimed } = await seccionesSinDueno(db, programId);
+    expect(pendienteSetteo.find((f) => f.dealId === conNombre)?.origen.traidoPorNombre).toBe("Maru");
+    expect(unclaimed.find((f) => f.dealId === conCorreo)?.origen.traidoPorNombre).toBe("jero@retiagrowth.com");
+    expect(pendienteSetteo).toHaveLength(1);
+  });
+
+  it("el origen viaja tal cual (UTM sin normalizar) y sin traido por, traidoPorNombre es null", async () => {
     const dealId = await crear({ etapa: "registrado", puntaje: 5 });
     const { pendienteSetteo } = await seccionesSinDueno(db, programId);
     const fila = pendienteSetteo.find((f) => f.dealId === dealId)!;

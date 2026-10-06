@@ -190,10 +190,13 @@ export async function perdidosEnCalendly(
       utmSource: submissions.utmSource,
       utmMedium: submissions.utmMedium,
       utmCampaign: submissions.utmCampaign,
+      traidoPorNombre: users.nombre,
+      traidoPorEmail: users.email,
     })
     .from(deals)
     .innerJoin(leads, eq(deals.leadId, leads.id))
     .innerJoin(submissions, eq(deals.submissionOrigenId, submissions.id))
+    .leftJoin(users, eq(users.id, leads.traidoPorUserId))
     .where(
       and(
         eq(deals.programId, programId),
@@ -238,7 +241,7 @@ export async function perdidosEnCalendly(
           utmSource: fila.utmSource,
           utmMedium: fila.utmMedium,
           utmCampaign: fila.utmCampaign,
-          traidoPorNombre: null,
+          traidoPorNombre: fila.traidoPorNombre ?? fila.traidoPorEmail,
         },
       };
     })
