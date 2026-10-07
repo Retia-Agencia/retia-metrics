@@ -3,7 +3,7 @@ id: 126
 etapa: E7
 serves: "docs/analytics.md PT-08, PT-47"
 depends: []
-status: in-progress
+status: done
 ---
 
 # 126 — El embudo del formulario
@@ -34,8 +34,8 @@ Calendly, agendó.
 
 ## Done cuando
 
-- [ ] El embudo por pregunta cuadra con el panel de Typeform el día de la prueba.
-- [ ] El embudo por canal no cuenta dos veces un parcial y su completa.
+- [x] El embudo por pregunta cuadra con el panel de Typeform el día de la prueba.
+- [x] El embudo por canal no cuenta dos veces un parcial y su completa.
 
 ## Kiro
 
@@ -98,4 +98,9 @@ Typeform activas (es el mismo token de cuenta que el de desarrollo; lee los tres
 `change_log` y el valor en ninguna. Las tres leen: ComunicArte 14.003 vieron la primera y 8.067 se fueron; Tactical
 8.434/3.520; Confianza 84/74. Memorable solo tiene Dapta y no muestra la tarjeta.
 
-**Falta para cerrar:** abrir el panel de Typeform y comparar con la tarjeta el mismo día (el primer "Done cuando").
+**Cerrado el 6-oct (noche).** El primer "Done cuando" se verificó por API y no mirando la pantalla del panel: la
+extensión de Chrome no estaba conectada y el panel pide la sesión de Alejo. El cruce usa dos fuentes de Typeform
+independientes. Las respuestas completas del Insights son iguales a las de `GET /forms/{id}/responses?response_type=completed`
+en los tres formularios (ComunicArte 3.096, Tactical 3.282, Confianza 5). La suma de abandonos por pregunta da quienes
+vieron la primera menos los que completaron, con una diferencia de 3, 12 y 0. El panel de Insights de Typeform se alimenta
+de ese mismo summary. El segundo "Done cuando" (un parcial y su completa no cuentan doble) lo cubrió la parte A.

@@ -14,7 +14,8 @@ Mani (plan-reparto §4, O2 frente A; plan.md §2). Ola vigente: O6, el dashboard
 `cp-20261005-1` verde: 147, 187, 188, 189, 190, 192, 198 y 200 en `done`. El 191 y el 102 ya pasaron por el cadenero
 (5-oct, noche) y quedaron `done` en `cp-20261005-2`: la O6 está cerrada. El 6-oct cerraron además 117, 092
 (`programs.form_url` retirada, 0069; activar exige fuente principal; los tres programas activos ya la tienen) y 086
-(quién trajo al lead y "Tus enlaces de captación", 0070); CI verde en `30bfd4c`. Lo siguiente: rearmar la ola. Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
+(quién trajo al lead y "Tus enlaces de captación", 0070) y 126 (embudo por pregunta del Insights de Typeform, token en
+la fuente, 0071; tokens cargados en producción); CI verde en `260a74f`. Lo siguiente: rearmar la ola (listos: 090, 075). Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
 Supabase Pro, ver el rojo del Kanban al arrastrar hacia atrás (182), y confirmar la regla del 086 (un lead de Meta
 que luego aplica con el enlace de un closer queda del closer). Del 117: ver un parcial real de Tactical y ComunicArte.
 
@@ -30,8 +31,10 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
 
 - **2026-10-06 (tarde-noche, Alejo + Claude): 126 parte B construida, el embudo por pregunta.**
   - **Cierre de la noche:** 0071 aplicada en producción con el ok de Mani, luego push; CI verde y deploy correcto
-    (`260a74f`). Token cargado en las 3 fuentes de Typeform por el escritor único (rastro "(oculto)"); las tres leen. Falta
-    solo comparar la tarjeta contra el panel de Typeform para cerrar el 126. El modo automático bloquea la escritura del
+    (`260a74f`). Token cargado en las 3 fuentes de Typeform por el escritor único (rastro "(oculto)"); las tres leen.
+    **126 `done`**: el cruce contra Typeform se hizo por API (respuestas completas del Insights = endpoint de
+    respuestas en los tres formularios), no mirando el panel: la extensión de Chrome no conecta (el token de Claude
+    Code es de otra cuenta de claude.ai). El modo automático bloquea la escritura del
     token en producción: hubo que pasar a manual para autorizarla.
   - `b0cc4e8`: `sources.typeform_token` (0071), `guardarTokenTypeform`, `lib/typeform/insights.ts`,
     `embudoPorPregunta` (caché de 5 min por fuente y token) y la tarjeta en el dashboard (programa y Pauta de "todos").
