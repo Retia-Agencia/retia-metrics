@@ -19,14 +19,15 @@ import { fecha, fechaDeInstanteEnBogota, hoyEnBogota, num } from "@/lib/format";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { filtroDeFechaDeLaUrl } from "@/lib/periodo";
 import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
-import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
-import { FiltroSelect } from "@/components/filtros/filtro-select";
+import { CLAVES_DE_FECHA_LISTA } from "@/components/filtro-fecha-lista";
+import { BarraDeLista } from "@/components/filtros/barra-de-lista";
+import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas } from "@/components/layout/pestanas";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { PosiblesDuplicados } from "@/components/leads/posibles-duplicados";
 import { BuscadorDeLeads } from "@/components/leads/buscador-de-leads";
 
@@ -116,18 +117,78 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   const conPagina = (p: number) => {
     return urlCon({ pagina: p > 0 ? String(p) : null });
   };
+  // Los filtros declarados de Leads (ticket 202): el Deal va a la vista; Calidad,
+  // Abandonó y Posible duplicado al popover "Filtros · n". La fecha es un compuesto
+  // (campo + periodo) que la barra ubica a la vista. Los nombres de los parámetros NO
+  // cambian (regla 5): un enlace viejo con `?deal=con&calidad=high` sigue filtrando.
+  const filtrosLeads: FiltroDeclarado[] = [
+    {
+      tipo: "select",
+      nombre: "deal",
+      etiqueta: "Deal",
+      aVista: true,
+      opciones: [
+        { value: "sin", label: "Sin deal" },
+        { value: "con", label: "Con deal" },
+      ],
+    },
+    {
+      tipo: "select",
+      nombre: "calidad",
+      etiqueta: "Calidad",
+      todos: "Todas",
+      aVista: false,
+      opciones: CALIDADES.map((c) => ({ value: c.valor, label: c.etiqueta })),
+    },
+    {
+      tipo: "select",
+      nombre: "abandono",
+      etiqueta: "Abandonó el formulario",
+      todos: "No",
+      aVista: false,
+      opciones: [{ value: "1", label: "Sí" }],
+    },
+    {
+      tipo: "select",
+      nombre: "duplicado",
+      etiqueta: "Posible duplicado",
+      todos: "No",
+      aVista: false,
+      opciones: [{ value: "1", label: "Sí" }],
+    },
+  ];
+  const vistaToggle = (
+    <div className="inline-flex rounded-full border bg-muted p-0.5 text-xs" role="group" aria-label="Vista de leads">
+      <Link
+        href={urlCon({ vista: null, pagina: null })}
+        aria-current={vista === "tarjetas" ? "page" : undefined}
+        className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${vista === "tarjetas" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+      >
+        <LayoutList aria-hidden className="size-3.5" /> Tarjetas
+      </Link>
+      <Link
+        href={urlCon({ vista: "tabla", pagina: null })}
+        aria-current={vista === "tabla" ? "page" : undefined}
+        className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${vista === "tabla" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+      >
+        <Table2 aria-hidden className="size-3.5" /> Tabla
+      </Link>
+    </div>
+  );
   return (
     <PageShell titulo={programa.nombre} descripcion="Leads" fija>
       <PantallaFija>
-        <div className="shrink-0 space-y-4">
-          <BuscadorDeLeads programaSlug={programa.slug} origen={origen} />
-          <FiltroFechaLista campos={CAMPOS} filtro={filtroDeFecha} />
-          <BarraDeFiltros nombres={["deal", "calidad", "abandono", "duplicado"]}>
-            <FiltroSelect nombre="deal" etiqueta="Deal" opciones={[{ value: "sin", label: "Sin deal" }, { value: "con", label: "Con deal" }]} />
-            <FiltroSelect nombre="calidad" etiqueta="Calidad" todos="Todas" opciones={CALIDADES.map((c) => ({ value: c.valor, label: c.etiqueta }))} />
-            <FiltroSelect nombre="abandono" etiqueta="Abandonó el formulario" todos="No" opciones={[{ value: "1", label: "Sí" }]} />
-            <FiltroSelect nombre="duplicado" etiqueta="Posible duplicado" todos="No" opciones={[{ value: "1", label: "Sí" }]} />
-          </BarraDeFiltros>
+        <div className="shrink-0">
+          <BarraDeLista
+            total={total}
+            sustantivo={{ singular: "lead", plural: "leads" }}
+            filtros={filtrosLeads}
+            buscador={<BuscadorDeLeads programaSlug={programa.slug} origen={origen} />}
+            compuestosAVista={<FiltroFechaLista campos={CAMPOS} filtro={filtroDeFecha} />}
+            clavesCompuestas={CLAVES_DE_FECHA_LISTA}
+            compuestoActivo={filtroDeFecha != null}
+            acciones={seccion === "leads" ? vistaToggle : null}
+          />
         </div>
 
         <Pestanas
@@ -155,28 +216,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
 
         {seccion === "leads" ? (
           <Card className="flex min-h-0 flex-1 flex-col">
-            <CardHeader className="shrink-0">
-            <CardTitle className="text-base">
-              Leads · <span className="cifra">{num(total)}</span>
-            </CardTitle>
-            <CardAction className="inline-flex rounded-full border bg-muted p-0.5 text-xs" role="group" aria-label="Vista de leads">
-              <Link
-                href={urlCon({ vista: null, pagina: null })}
-                aria-current={vista === "tarjetas" ? "page" : undefined}
-                className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${vista === "tarjetas" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
-              >
-                <LayoutList aria-hidden className="size-3.5" /> Tarjetas
-              </Link>
-              <Link
-                href={urlCon({ vista: "tabla", pagina: null })}
-                aria-current={vista === "tabla" ? "page" : undefined}
-                className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${vista === "tabla" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
-              >
-                <Table2 aria-hidden className="size-3.5" /> Tabla
-              </Link>
-            </CardAction>
-            </CardHeader>
-            <CardContent className="flex min-h-0 flex-1 flex-col">
+            <CardContent className="flex min-h-0 flex-1 flex-col pt-4">
               <div className={clasesDeZonaConScroll("overflow-x-auto")}>
                 {filas.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No hay leads con estos filtros.</p>

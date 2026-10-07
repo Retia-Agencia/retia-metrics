@@ -104,3 +104,57 @@ elegir (A-61 ya lo hace).
   antes en la URL (mismos parámetros); un enlace viejo con filtros sigue filtrando.
 - Typecheck, lint, `npm test -- tests/filtros-url.test.ts tests/paginas.test.ts`, `npm run build`.
 - Recorrido en `dev:local` (la sesión central): abrir todo lo que se abre en las 7 pantallas, consola limpia.
+
+## Nota de cierre (Kiro)
+
+Sesión `barra-de-lista` (branch `t202`). Hecho:
+
+- **`components/ui/popover.tsx`**: Popover shadcn-on-base-ui (`@base-ui/react/popover`), mismo molde que
+  `dialog.tsx`; portal + positioner + popup, tokens de Tinta, sin dependencia nueva.
+- **`components/filtros/declaracion.ts`**: el modelo declarativo puro (`FiltroDeclarado`) y los helpers que
+  la barra deriva (`valorDeFiltro`, `etiquetaDelValor`, `filtroActivo`, `activosEnPopover`, `clavesABorrar`,
+  `clavesDelPopover`, `etiquetasActivas`, `hayAlgunActivo`). Tests nuevos en `tests/filtros-url.test.ts`
+  (8 casos: conteo del popover, claves a borrar con extras y sin duplicar, etiquetas activas en orden).
+- **`components/filtros/barra-de-lista.tsx`**: `BarraDeLista` (fila 32 px + línea de estado + popover) y
+  `ControlDeOrden`. `total` es opcional (el dashboard no es una lista con un conteo único). Chip activo con
+  el acento (`border-marca`), tags activos con × y "Quitar todo"; las claves salen de las declaraciones.
+- **`SelectorPeriodo`** gana `variante="chip"` (una línea "Periodo: Este mes", rango en el tooltip); diálogo
+  y lógica iguales. **`FiltroFechaLista`** pasa a un par de chips compactos (campo + periodo chip) y exporta
+  `CLAVES_DE_FECHA_LISTA`. **`BuscadorDeLeads`**: los resultados FLOTAN (`absolute` + `shadow-flotante`) en
+  vez de empujar la lista.
+- **`Pestanas`**: la descripción pasó de una línea debajo a `title` (tooltip); `PestanasProps` no cambió, así
+  que ningún llamador se tocó.
+- **7 pantallas migradas**: Leads, Deals (vía `FiltroKanban`, que ahora compone `BarraDeLista` + `ControlDeOrden`),
+  Calls, Students, Dashboard de programa (vía `FiltroDashboard`), Dashboard de todos y Recursos. Se quitaron los
+  encabezados de conteo que la línea de estado reemplaza ("Leads · N", resumen de Students, "N deals" del Kanban,
+  "Llamadas · N" de Calls). Los nombres de los parámetros de la URL NO cambiaron.
+- **Dos usuarios extra migrados por ser triviales**: `/ajustes/migracion` y `/nerd-stats/bitacora` (sus
+  `BarraDeFiltros`/`FiltroSelect` se cambiaron por `BarraDeLista` con filtros declarados; bitácora manda
+  Desde/Hasta al popover). Así `grep "BarraDeFiltros" app components` queda sin llamadores.
+- **Borrados**: `components/filtros/barra-de-filtros.tsx` y `components/filtros/filtro-select.tsx` (sin
+  llamadores). `components/filtros/filtro-fecha.tsx` SE CONSERVA: lo usan los popovers de rango de Calls y
+  Bitácora. `hayFiltrosActivos`/`siguienteQuery` en `query.ts` siguen (tests y `useFiltrosUrl`).
+
+Sin migrar y por qué:
+
+- **`components/mi-espacio/tab-metricas.tsx`** usa `SelectorPeriodo` en variante bloque (no es una lista con
+  barra de herramientas, es la cabecera de un panel de métricas de Mi espacio). No entra en los 7 y no es
+  trivial encajarlo en `BarraDeLista` sin cambiar su layout; se deja como está. El chip nuevo no lo afecta.
+
+Lo que la sesión central debe revisar en el recorrido visual (`dev:local`, consola abierta, Base UI lanza al
+ABRIR):
+
+- Abrir el popover **"Filtros · n"** en Leads, Deals, Calls, Students y Bitácora; abrir cada **select** dentro
+  (chips a la vista y filas del popover) y el **diálogo del periodo** desde su chip; abrir el **orden** en Deals.
+  Que no salte `MenuGroupContext`/`PopoverContext` ni un error de contexto.
+- **Leads a 1440×900**: medir la `top` de la zona con scroll antes/después (criterio del ticket: el primer
+  registro a menos de la mitad del alto de hoy). El buscador ahora FLOTA: comprobar que el panel de resultados
+  no empuja la lista y que tapa bien (z-index) las tarjetas de abajo.
+- **Mismos parámetros en la URL**: filtrar, quitar un filtro con ×, "Quitar todo", y pegar un enlace viejo
+  (`?deal=con&calidad=high`, `?cohorte=todas`, `?orden=creado&sentido=asc`, `?periodo=este_mes`) y confirmar
+  que sigue filtrando igual. Ojo con el chip de **cohorte** de Deals: sin `cohorte` en la URL muestra "Cohorte
+  activa" (su "todos"), "todas" es un valor real.
+- **Claro y oscuro**: el acento del chip activo (`border-marca`/`text-marca-texto`) y los tags de la línea de
+  estado se ven bien en los dos temas.
+- `npm run build` (no corre en este worktree con symlink de `node_modules`; hay que correrlo en el checkout
+  principal tras commit — regla de AGENTS.md para cambios en componentes cliente).

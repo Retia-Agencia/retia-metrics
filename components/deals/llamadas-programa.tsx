@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { DetalleDeLlamada } from "@/components/deals/detalle-de-llamada";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { fechaHoraEnBogota, num } from "@/lib/format";
 import { ETIQUETA_DE_RESULTADO, TONO_DE_RESULTADO } from "@/lib/deals/estado-de-llamada";
 import type { FilaLlamadaPrograma } from "@/lib/queries/llamadas";
@@ -22,7 +22,6 @@ export function LlamadasPrograma({
   motivosReagenda,
   puedeTrabajar,
   origen,
-  total,
   paginacion,
 }: {
   llamadas: FilaLlamadaPrograma[];
@@ -31,7 +30,6 @@ export function LlamadasPrograma({
   puedeTrabajar: boolean;
   /** El origen de la pantalla, para que "Ir al deal" del detalle vuelva aqui (ticket 174). */
   origen: string;
-  total: number;
   /**
    * Calls pagina de a 50 en el servidor (ticket 185). Los enlaces llegan ya armados: una función
    * no cruza la frontera servidor → cliente (el mismo molde de `PosiblesDuplicados`).
@@ -41,12 +39,9 @@ export function LlamadasPrograma({
   const [detalleId, setDetalleId] = useState<string | null>(null);
   return (
     <Card className="flex min-h-0 flex-1 flex-col">
-      <CardHeader className="shrink-0">
-        <CardTitle>
-          Llamadas · <span className="cifra">{num(total)}</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className={clasesDeZonaConScroll("p-0")}>
+      {/* El conteo "Llamadas · N" lo da ahora la línea de estado de la barra de lista
+          (ticket 202); aquí la tarjeta solo es la lista con su scroll. */}
+      <CardContent className={clasesDeZonaConScroll("p-0 pt-4")}>
         {llamadas.length === 0 ? (
           <ul className="divide-y">
             <li className="px-4 py-6 text-center text-sm text-muted-foreground">

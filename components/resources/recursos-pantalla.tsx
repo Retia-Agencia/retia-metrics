@@ -16,7 +16,8 @@ import {
   type ResultadoAccion,
 } from "@/app/(app)/recursos/acciones";
 import { agruparEnlaces, GLOBAL } from "@/components/resources/helpers";
-import { FiltroSelect } from "@/components/filtros/filtro-select";
+import { BarraDeLista } from "@/components/filtros/barra-de-lista";
+import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import type {
   EnlaceUI,
@@ -166,35 +167,48 @@ export function RecursosPantalla({
 
   const enlacesAgrupados = useMemo(() => agruparEnlaces(enlaces), [enlaces]);
 
+  // El filtro de programa (ticket 202): a la vista, declarado como dato. El buscador por
+  // título conserva su lógica (`navegar({ q })`) y solo aparece en la pestaña recursos.
+  // El total de la línea de estado es el de la pestaña activa.
+  const filtroPrograma: FiltroDeclarado = {
+    tipo: "select",
+    nombre: "programa",
+    etiqueta: "Programa",
+    todos: "Todos los programas",
+    aVista: true,
+    opciones: programas.map((p) => ({ value: p.slug, label: p.nombre })),
+  };
+  const buscador =
+    seccion === "recursos" ? (
+      <input
+        type="search"
+        defaultValue={q ?? ""}
+        placeholder="Buscar por título…"
+        aria-label="Buscar por título"
+        className={cn(claseInput, "h-8")}
+        onChange={(e) => {
+          const valor = e.target.value.trim();
+          navegar({ q: valor === "" ? null : valor });
+        }}
+      />
+    ) : undefined;
+
   return (
     <PantallaFija>
-      {/* Barra fija: filtro de programa (las dos pestañas) y buscador (solo recursos).
-          Vive en la URL (ADR 0023) y conserva la sección activa, porque `navegar` y
-          `FiltroSelect` parten de la query actual. Envuelve en pantallas angostas. */}
-      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
-        <FiltroSelect
-          nombre="programa"
-          etiqueta="Programa"
-          todos="Todos los programas"
-          className="w-full sm:w-56"
-          opciones={programas.map((p) => ({ value: p.slug, label: p.nombre }))}
+      {/* Barra de lista: filtro de programa (a la vista) y buscador (solo recursos).
+          Vive en la URL (ADR 0023) y conserva la sección activa, porque `navegar` y la
+          barra parten de la query actual. */}
+      <div className="shrink-0">
+        <BarraDeLista
+          total={seccion === "recursos" ? recursos.length : enlaces.length}
+          sustantivo={
+            seccion === "recursos"
+              ? { singular: "recurso", plural: "recursos" }
+              : { singular: "link de pago", plural: "links de pago" }
+          }
+          filtros={[filtroPrograma]}
+          buscador={buscador}
         />
-
-        {/* El buscador solo filtra recursos (la consulta de links no recibe `q`), así
-            que solo aparece en esa pestaña. */}
-        {seccion === "recursos" ? (
-          <input
-            type="search"
-            defaultValue={q ?? ""}
-            placeholder="Buscar por título…"
-            aria-label="Buscar por título"
-            className={cn(claseInput, "sm:w-64")}
-            onChange={(e) => {
-              const valor = e.target.value.trim();
-              navegar({ q: valor === "" ? null : valor });
-            }}
-          />
-        ) : null}
       </div>
 
       {/* Las pestañas (renderizadas en el servidor) también quedan fijas. */}

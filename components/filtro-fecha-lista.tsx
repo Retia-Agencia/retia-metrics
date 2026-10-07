@@ -1,7 +1,6 @@
 "use client";
 
 import { SelectorPeriodo } from "@/components/selector-periodo";
-import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
 import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import {
@@ -17,6 +16,9 @@ const CLAVES_DE_PERIODO = ["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta"
 /** Las claves de antes del 136 (`desde`, `hasta`, `rango`): un marcador viejo no debe decidir el periodo. */
 const CLAVES_VIEJAS = ["rango", "desde", "hasta"];
 
+/** Todas las claves de la URL que mueve este filtro: para que "Quitar todo" las limpie (ticket 202). */
+export const CLAVES_DE_FECHA_LISTA = ["fecha", ...CLAVES_DE_PERIODO, ...CLAVES_VIEJAS];
+
 interface FiltroFechaListaProps {
   /** Los campos que la lista sabe filtrar, con su etiqueta. */
   campos: readonly { valor: string; etiqueta: string }[];
@@ -25,12 +27,15 @@ interface FiltroFechaListaProps {
 }
 
 /**
- * El filtro de fecha de una lista (ticket 141): sobre qué fecha, y el mismo selector de periodo
- * del dashboard (136) en modo "solo A". Vive en la URL como el resto de los filtros; el cliente
- * nunca calcula el día, lo resuelve el servidor en Bogotá.
+ * El filtro de fecha de una lista (ticket 141), ahora como piezas compactas para la barra
+ * de lista (ticket 202): un chip de 32 px con el campo ("Fecha: Creado") y, cuando hay
+ * campo, el chip del periodo (`SelectorPeriodo variante="chip"`, modo "solo A"). Sin el
+ * contenedor `BarraDeFiltros` de antes: la barra las ubica en `compuestosAVista` y limpia
+ * sus claves con "Quitar todo".
  *
- * Elegir un campo sin periodo arranca en "Este mes"; quitarlo borra también el periodo, para que
- * la URL no guarde un rango que ya no filtra nada.
+ * Vive en la URL como el resto de los filtros; el cliente nunca calcula el día, lo
+ * resuelve el servidor en Bogotá. Elegir un campo sin periodo arranca en "Este mes";
+ * quitarlo borra también el periodo, para que la URL no guarde un rango que ya no filtra.
  */
 export function FiltroFechaLista({ campos, filtro }: FiltroFechaListaProps) {
   const { busqueda, poner } = useFiltrosUrl();
@@ -47,15 +52,22 @@ export function FiltroFechaLista({ campos, filtro }: FiltroFechaListaProps) {
     poner(cambios);
   }
 
+  const activo = filtro != null;
+
   return (
-    <BarraDeFiltros nombres={["fecha", ...CLAVES_DE_PERIODO, ...CLAVES_VIEJAS]}>
+    <>
       <Select
         value={filtro?.campo ?? SIN_FECHA}
         // Sin `items`, Base UI pinta el valor crudo en el disparador.
         items={[{ value: SIN_FECHA, label: "Sin filtro de fecha" }, ...campos.map((c) => ({ value: c.valor, label: c.etiqueta }))]}
         onValueChange={elegirCampo}
       >
-        <SelectTrigger className="w-52" aria-label="Filtrar por fecha">
+        <SelectTrigger
+          size="sm"
+          aria-label="Filtrar por fecha"
+          className={activo ? "border-marca/50 text-marca-texto" : undefined}
+        >
+          <span className="text-muted-foreground">Fecha:</span>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -68,8 +80,14 @@ export function FiltroFechaLista({ campos, filtro }: FiltroFechaListaProps) {
         </SelectContent>
       </Select>
       {filtro ? (
-        <SelectorPeriodo periodo={filtro.periodo} soloA cohorteDisponible={false} anteriorDisponible={false} />
+        <SelectorPeriodo
+          periodo={filtro.periodo}
+          soloA
+          cohorteDisponible={false}
+          anteriorDisponible={false}
+          variante="chip"
+        />
       ) : null}
-    </BarraDeFiltros>
+    </>
   );
 }

@@ -7,8 +7,8 @@ import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantall
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num } from "@/lib/format";
-import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
-import { FiltroSelect } from "@/components/filtros/filtro-select";
+import { BarraDeLista } from "@/components/filtros/barra-de-lista";
+import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 import { elegirPrograma } from "@/lib/programa-preferido";
 import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
 
@@ -151,22 +151,23 @@ function Filtros({
   tipos: { tipo: string; total: number }[];
 }) {
   const primero = programas[0];
-  return (
-    <BarraDeFiltros nombres={["programa", "tipo"]}>
-      <FiltroSelect
-        nombre="programa"
-        etiqueta="Programa"
-        todos={primero.nombre}
-        opciones={programas.map((p) => ({ value: p.slug, label: p.nombre }))}
-        className="w-44"
-      />
-      <FiltroSelect
-        nombre="tipo"
-        etiqueta="Tipo de rareza"
-        todos="Todos los tipos"
-        opciones={tipos.map((t) => ({ value: t.tipo, label: nombreDeRareza(t.tipo) }))}
-        className="w-44"
-      />
-    </BarraDeFiltros>
-  );
+  const filtros: FiltroDeclarado[] = [
+    {
+      tipo: "select",
+      nombre: "programa",
+      etiqueta: "Programa",
+      todos: primero.nombre,
+      aVista: true,
+      opciones: programas.map((p) => ({ value: p.slug, label: p.nombre })),
+    },
+    {
+      tipo: "select",
+      nombre: "tipo",
+      etiqueta: "Tipo de rareza",
+      todos: "Todos los tipos",
+      aVista: true,
+      opciones: tipos.map((t) => ({ value: t.tipo, label: nombreDeRareza(t.tipo) })),
+    },
+  ];
+  return <BarraDeLista filtros={filtros} />;
 }

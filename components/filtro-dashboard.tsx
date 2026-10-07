@@ -1,29 +1,23 @@
 "use client";
 
 import { SelectorPeriodo } from "@/components/selector-periodo";
-import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
-import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
+import { BarraDeLista } from "@/components/filtros/barra-de-lista";
+import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import type { OpcionDeCloser } from "@/lib/queries/dashboard";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 /**
- * Filtro del dashboard: rango de fechas y closer (ticket 005).
+ * Filtro del dashboard sobre la barra de lista (ticket 005, migrado por el ticket 202):
+ * el periodo (chip compacto) y el closer, los dos a la vista; sin popover (no hace
+ * falta). No lleva conteo de resultados: un dashboard no es una lista de un solo total.
  *
- * Vive en la URL, no en estado del componente: asi un dashboard filtrado se puede
- * compartir o recargar, y el servidor arma la vista sin un ida y vuelta de cliente.
- * Los identificadores que van a la URL son el preset, las dos fechas y el closer, que
- * desde el ticket 167 es el `users.id` del closer (Decision 5): ningun dato personal
- * de un lead (correo, telefono) pasa por aca.
+ * Vive en la URL, no en estado del componente: así un dashboard filtrado se puede
+ * compartir o recargar, y el servidor arma la vista sin un ida y vuelta de cliente. El
+ * closer de la URL es su `users.id` (Decisión 5, ticket 167); ningún dato personal de un
+ * lead pasa por acá. Las claves de periodo que se limpian son las mismas de siempre.
  */
 
-const TODOS = "todos";
+const CLAVES_DE_PERIODO = ["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "rango", "desde", "hasta"];
 
 export interface FiltroProps {
   periodo: PeriodoResuelto;
@@ -45,32 +39,34 @@ export function FiltroDashboard({
   cohorteDisponible,
   filtraCloser = true,
 }: FiltroProps) {
-  const { poner } = useFiltrosUrl();
+  void claveCloser; // El valor vigente lo lee la barra de la URL.
+  const filtros: FiltroDeclarado[] = filtraCloser
+    ? [
+        {
+          tipo: "select",
+          nombre: "closer",
+          etiqueta: "Closer",
+          todos: "Todos los closers",
+          aVista: true,
+          opciones: closers.map((c) => ({ value: c.id, label: c.label })),
+        },
+      ]
+    : [];
 
   return (
-    <BarraDeFiltros nombres={["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "rango", "desde", "hasta", "closer"]}>
-      <SelectorPeriodo periodo={periodo} cohorteDisponible={cohorteDisponible} anteriorDisponible={anteriorDisponible} />
-
-      {filtraCloser ? (
-      <Select
-        value={claveCloser ?? TODOS}
-        onValueChange={(valor: string | null) =>
-          poner({ closer: valor === null || valor === TODOS ? null : valor })
-        }
-      >
-        <SelectTrigger className="w-44" aria-label="Closer">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={TODOS}>Todos los closers</SelectItem>
-          {closers.map((c) => (
-            <SelectItem key={c.id} value={c.id}>
-              {c.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      ) : null}
-    </BarraDeFiltros>
+    <BarraDeLista
+      filtros={filtros}
+      compuestosAVista={
+        <SelectorPeriodo
+          periodo={periodo}
+          cohorteDisponible={cohorteDisponible}
+          anteriorDisponible={anteriorDisponible}
+          variante="chip"
+        />
+      }
+      clavesCompuestas={CLAVES_DE_PERIODO}
+      compuestoActivo={false}
+      aviso={periodo.aviso ? periodo.aviso : undefined}
+    />
   );
 }

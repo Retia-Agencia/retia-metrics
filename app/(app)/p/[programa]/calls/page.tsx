@@ -16,9 +16,9 @@ import { PageShell } from "@/components/page-shell";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { LlamadasPrograma } from "@/components/deals/llamadas-programa";
-import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
+import { BarraDeLista } from "@/components/filtros/barra-de-lista";
+import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 import { FiltroFecha } from "@/components/filtros/filtro-fecha";
-import { FiltroSelect } from "@/components/filtros/filtro-select";
 
 export const dynamic = "force-dynamic";
 
@@ -83,18 +83,48 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
     return `/p/${programa.slug}/calls${s ? `?${s}` : ""}`;
   };
 
+  // Los filtros declarados de Calls (ticket 202): Closer (solo cuando la sesión ve a
+  // todos) y Resultado van a la vista; Desde/Hasta son un rango compuesto en el popover.
+  // La visibilidad de Closer sale de lo que ya decide la página (`alcance`), no de un
+  // `rol === "..."` a mano.
+  const filtrosCalls: FiltroDeclarado[] = [
+    ...(alcance.tipo === "todos"
+      ? [
+          {
+            tipo: "select" as const,
+            nombre: "closer",
+            etiqueta: "Closer",
+            aVista: true,
+            opciones: opciones.closers.map((closer) => ({ value: closer.id, label: closer.nombre })),
+          },
+        ]
+      : []),
+    {
+      tipo: "select",
+      nombre: "resultado",
+      etiqueta: "Resultado",
+      aVista: true,
+      opciones: RESULTADOS.map(([value, label]) => ({ value, label })),
+    },
+  ];
+
   return (
     <PageShell titulo={programa.nombre} descripcion="Calls" fija>
       <PantallaFija>
         <div className="shrink-0">
-          <BarraDeFiltros nombres={["closer", "resultado", "desde", "hasta"]}>
-            {alcance.tipo === "todos" ? (
-              <FiltroSelect nombre="closer" etiqueta="Closer" opciones={opciones.closers.map((closer) => ({ value: closer.id, label: closer.nombre }))} />
-            ) : null}
-            <FiltroSelect nombre="resultado" etiqueta="Resultado" opciones={RESULTADOS.map(([value, label]) => ({ value, label }))} />
-            <FiltroFecha nombre="desde" etiqueta="Desde" />
-            <FiltroFecha nombre="hasta" etiqueta="Hasta" />
-          </BarraDeFiltros>
+          <BarraDeLista
+            total={llamadas.length}
+            sustantivo={{ singular: "llamada", plural: "llamadas" }}
+            filtros={filtrosCalls}
+            compuestosPopover={
+              <div className="grid grid-cols-2 gap-2">
+                <FiltroFecha nombre="desde" etiqueta="Desde" />
+                <FiltroFecha nombre="hasta" etiqueta="Hasta" />
+              </div>
+            }
+            clavesCompuestas={["desde", "hasta"]}
+            compuestoActivo={Boolean(filtro.desde || filtro.hasta)}
+          />
         </div>
 
         <LlamadasPrograma
@@ -103,7 +133,6 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
           motivosReagenda={opcionesFicha.motivos}
           puedeTrabajar={trabajaLeads(rol) || esAdministrador(rol)}
           origen={origenDeLaPagina(`/p/${programa.slug}/calls`, query)}
-          total={llamadas.length}
           paginacion={{
             pagina,
             paginas,

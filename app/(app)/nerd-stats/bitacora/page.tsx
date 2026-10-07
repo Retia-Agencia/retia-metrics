@@ -14,10 +14,10 @@ import {
 } from "@/lib/queries/bitacora";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { BarraDeLista } from "@/components/filtros/barra-de-lista";
+import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 import { FiltroFecha } from "@/components/filtros/filtro-fecha";
-import { FiltroSelect } from "@/components/filtros/filtro-select";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +39,31 @@ export default async function BitacoraPage({ searchParams }: Props) {
   const [pagina, opciones] = await Promise.all([paginaDeBitacora(filtro, db), opcionesDeBitacora(db)]);
   const enlace = "text-marca-texto underline-offset-4 outline-none hover:underline focus-visible:underline";
 
+  // Usuario y Tabla a la vista; Desde/Hasta son un rango compuesto en el popover (ticket 202).
+  const filtrosBitacora: FiltroDeclarado[] = [
+    {
+      tipo: "select",
+      nombre: "usuario",
+      etiqueta: "Usuario",
+      aVista: true,
+      opciones: [
+        { value: USUARIO_SISTEMA, label: "Sistema (sin usuario)" },
+        ...opciones.usuarios.map((u) => ({ value: u.id, label: u.email })),
+      ],
+    },
+    {
+      tipo: "select",
+      nombre: "tabla",
+      etiqueta: "Tabla",
+      todos: "Todas",
+      aVista: true,
+      opciones: [
+        { value: TABLA_MOVIMIENTOS, label: "Movimientos de etapa" },
+        ...opciones.tablas.map((t) => ({ value: t, label: t })),
+      ],
+    },
+  ];
+
   return (
     <PageShell
       titulo="Bitácora"
@@ -50,24 +75,22 @@ export default async function BitacoraPage({ searchParams }: Props) {
       }
     >
       <div className="space-y-4">
-        <BarraDeFiltros nombres={["usuario", "tabla", "desde", "hasta"]}>
-          <FiltroSelect nombre="usuario" etiqueta="Usuario" opciones={[
-            { value: USUARIO_SISTEMA, label: "Sistema (sin usuario)" },
-            ...opciones.usuarios.map((u) => ({ value: u.id, label: u.email })),
-          ]} />
-          <FiltroSelect nombre="tabla" etiqueta="Tabla" todos="Todas" opciones={[
-            { value: TABLA_MOVIMIENTOS, label: "Movimientos de etapa" },
-            ...opciones.tablas.map((t) => ({ value: t, label: t })),
-          ]} />
-          <FiltroFecha nombre="desde" etiqueta="Desde" />
-          <FiltroFecha nombre="hasta" etiqueta="Hasta" />
-        </BarraDeFiltros>
+        <BarraDeLista
+          total={pagina.total}
+          sustantivo={{ singular: "escritura", plural: "escrituras" }}
+          filtros={filtrosBitacora}
+          compuestosPopover={
+            <div className="grid grid-cols-2 gap-2">
+              <FiltroFecha nombre="desde" etiqueta="Desde" />
+              <FiltroFecha nombre="hasta" etiqueta="Hasta" />
+            </div>
+          }
+          clavesCompuestas={["desde", "hasta"]}
+          compuestoActivo={Boolean(filtro.desde || filtro.hasta)}
+        />
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">
-              <span className="cifra">{num(pagina.total)}</span> escrituras
-            </CardTitle>
             <p className="text-xs text-muted-foreground">
               Fechas en Bogotá. Un movimiento de etapa sale una vez, del historial del deal; los demás campos, de la
               bitácora de cambios.

@@ -15,8 +15,8 @@ import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
-import { BarraDeFiltros } from "@/components/filtros/barra-de-filtros";
-import { FiltroSelect } from "@/components/filtros/filtro-select";
+import { BarraDeLista } from "@/components/filtros/barra-de-lista";
+import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 
 export const dynamic = "force-dynamic";
 
@@ -67,32 +67,50 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
   const completos = filas.filter((f) => f.etapa === "ganado_completo").length;
   const sinOnboarding = filas.filter((f) => f.onboardedAt == null).length;
   const vencidos = filas.filter((f) => f.vencido != null).length;
+  // Los filtros declarados de Students (ticket 202): Cohorte a la vista, Onboarding en el
+  // popover. El resumen (completos, sin onboarding, cartera vencida) va a la línea de
+  // estado cuando no hay filtros activos.
+  const filtrosStudents: FiltroDeclarado[] = [
+    {
+      tipo: "select",
+      nombre: "cohorte",
+      etiqueta: "Cohorte",
+      todos: activa ? `${activa.codigo} (activa)` : "Todas las cohortes",
+      aVista: true,
+      opciones: [
+        { value: "todas", label: "Todas las cohortes" },
+        ...cohortes.map((c) => ({ value: c.id, label: `${c.codigo}${c.estado === "activo" ? " (activa)" : ""}` })),
+      ],
+    },
+    {
+      tipo: "select",
+      nombre: "onboarding",
+      etiqueta: "Onboarding",
+      aVista: false,
+      opciones: [
+        { value: "no", label: "Sin onboarding" },
+        { value: "si", label: "Con onboarding" },
+      ],
+    },
+  ];
+  const resumen = (
+    <>
+      <span>Completos <span className="cifra font-semibold text-foreground">{num(completos)}</span></span>
+      <span>Sin onboarding <span className="cifra font-semibold text-foreground">{num(sinOnboarding)}</span></span>
+      <span>En cartera vencida <span className="cifra font-semibold text-foreground">{num(vencidos)}</span></span>
+    </>
+  );
   return (
     <PageShell titulo={programa.nombre} descripcion="Students" fija>
       <PantallaFija>
         <div className="shrink-0">
-          <BarraDeFiltros nombres={["cohorte", "onboarding"]}>
-          <FiltroSelect
-            nombre="cohorte"
-            etiqueta="Cohorte"
-            todos={activa ? `${activa.codigo} (activa)` : "Todas las cohortes"}
-            opciones={[
-              { value: "todas", label: "Todas las cohortes" },
-              ...cohortes.map((c) => ({ value: c.id, label: `${c.codigo}${c.estado === "activo" ? " (activa)" : ""}` })),
-            ]}
+          <BarraDeLista
+            total={filas.length}
+            sustantivo={{ singular: "estudiante", plural: "estudiantes" }}
+            filtros={filtrosStudents}
+            resumen={<span className="flex flex-wrap items-center gap-x-4 gap-y-1">{resumen}</span>}
           />
-          <FiltroSelect nombre="onboarding" etiqueta="Onboarding" opciones={[{ value: "no", label: "Sin onboarding" }, { value: "si", label: "Con onboarding" }]} />
-          </BarraDeFiltros>
         </div>
-
-        <Card className="shrink-0" size="sm">
-          <CardContent className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
-            <span>Estudiantes <span className="cifra font-semibold text-foreground">{num(filas.length)}</span></span>
-            <span>Completos <span className="cifra font-semibold text-foreground">{num(completos)}</span></span>
-            <span>Sin onboarding <span className="cifra font-semibold text-foreground">{num(sinOnboarding)}</span></span>
-            <span>En cartera vencida <span className="cifra font-semibold text-foreground">{num(vencidos)}</span></span>
-          </CardContent>
-        </Card>
 
         <Card className="flex min-h-0 flex-1 flex-col">
           <CardHeader className="shrink-0">

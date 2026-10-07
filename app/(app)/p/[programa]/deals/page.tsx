@@ -10,7 +10,6 @@ import { opcionesDeTablero, parsearFiltros, tableroKanban, type CampoDeFechaDeDe
 import { PageShell } from "@/components/page-shell";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { FiltroKanban } from "@/components/deals/filtro-kanban";
-import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
 import { correccionSerializable } from "@/lib/deals/mapa-transiciones";
 import { destinosDeCorreccion } from "@/lib/deals/mover-etapa";
 import { TableroKanban } from "@/components/deals/tablero-kanban";
@@ -86,22 +85,20 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
       }
     >
       <PantallaFija>
-        <div className="shrink-0 space-y-4">
-          <FiltroFechaLista campos={CAMPOS_DE_FECHA} filtro={filtros.fecha ?? null} />
+        <div className="shrink-0">
           <FiltroKanban
+            total={tablero.total}
             mostrarDueno={alcanceDeals.tipo === "todos"}
-            ownerUserId={filtros.ownerUserId ?? null}
             cohorteId={busqueda.cohorte === "todas" ? null : filtros.cohorteId ?? null}
-            canal={filtros.canal ?? null}
             antiguedadMinima={filtros.antiguedadMinima ?? null}
-            leadQuality={filtros.leadQuality ?? null}
-            leadValue={filtros.leadValue ?? null}
             owners={opciones.owners}
             cohortes={opciones.cohortes}
             canales={opciones.canales}
             leadQualities={opciones.leadQualities}
             leadValues={opciones.leadValues}
             orden={filtros.orden}
+            fecha={filtros.fecha ?? null}
+            camposDeFecha={CAMPOS_DE_FECHA}
           />
         </div>
         <TableroKanban

@@ -9,6 +9,7 @@ import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas, pestanaActiva, urlConSeccion } from "@/components/layout/pestanas";
 import { SelectorPeriodo } from "@/components/selector-periodo";
+import { BarraDeLista } from "@/components/filtros/barra-de-lista";
 import { SeccionDeTodos } from "./secciones";
 import { PautaPorPrograma } from "./pauta";
 
@@ -39,8 +40,21 @@ export default async function DashboardDeTodosPage({ searchParams }: Props) {
     <PageShell titulo="Todos los programas" descripcion="Sumas en la misma unidad; tasas y metas por programa" fija>
       <PantallaFija>
         <div className="shrink-0">
-          <SelectorPeriodo periodo={vista.periodo} cohorteDisponible={false} anteriorDisponible={false} mostrarCohortes={false} />
-          {vista.periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{vista.periodo.aviso}</p> : null}
+          <BarraDeLista
+            filtros={[]}
+            compuestosAVista={
+              <SelectorPeriodo
+                periodo={vista.periodo}
+                cohorteDisponible={false}
+                anteriorDisponible={false}
+                mostrarCohortes={false}
+                variante="chip"
+              />
+            }
+            clavesCompuestas={["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "rango", "desde", "hasta"]}
+            compuestoActivo={false}
+            aviso={vista.periodo.aviso ? vista.periodo.aviso : undefined}
+          />
         </div>
         <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del dashboard" />
         <div className={clasesDeZonaConScroll()}>

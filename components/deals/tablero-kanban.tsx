@@ -69,7 +69,6 @@ function claseDeDestino({ permitido, correccion, prohibido, enHover }: { permiti
 
 export function TableroKanban({
   columnas,
-  total,
   mapa,
   correcciones,
   nombreDeEtapa,
@@ -172,9 +171,7 @@ export function TableroKanban({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <p className="shrink-0 text-sm text-muted-foreground">
-        {total} {total === 1 ? "deal" : "deals"}
-      </p>
+      {/* El conteo "N deals" lo da ahora la línea de estado de la barra de lista (ticket 202). */}
 
       {/* Scroll horizontal en el tablero; la página nunca se desplaza de lado. */}
       <div
