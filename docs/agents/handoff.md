@@ -15,7 +15,7 @@ Mani (plan-reparto §4, O2 frente A; plan.md §2). Ola vigente: O6, el dashboard
 (5-oct, noche) y quedaron `done` en `cp-20261005-2`: la O6 está cerrada. El 6-oct cerraron además 117, 092
 (`programs.form_url` retirada, 0069; activar exige fuente principal; los tres programas activos ya la tienen) y 086
 (quién trajo al lead y "Tus enlaces de captación", 0070) y 126 (embudo por pregunta del Insights de Typeform, token en
-la fuente, 0071; tokens cargados en producción); CI verde en `260a74f`. Lo siguiente: rearmar la ola (listos: 090, 075). Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
+la fuente, 0071; tokens cargados en producción); CI verde en `260a74f`. Ya de noche, el 201 (novedades de Deals y Calendly) y el 202 (la barra de lista, A-105) cerraron en `cp-20261006-1` (`3b68a82`): la O7 está cerrada. Lo siguiente: rearmar la ola (listos: 090, 075). Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
 Supabase Pro, ver el rojo del Kanban al arrastrar hacia atrás (182), y confirmar la regla del 086 (un lead de Meta
 que luego aplica con el enlace de un closer queda del closer). Del 117: ver un parcial real de Tactical y ComunicArte.
 
@@ -28,6 +28,19 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
 ```
 
 ## Memory
+
+- **2026-10-06 (noche, Mani + Claude): 202, la barra de lista, y checkpoint `cp-20261006-1` sobre `3b68a82`.**
+  - **202** (A-105): `BarraDeLista` (`components/filtros/`) reemplaza `BarraDeFiltros`/`FiltroSelect` y los `Select`
+    a mano en Leads, Deals, Calls, Students, los dos Dashboards, Recursos, Migración y Bitácora. Filtros declarados
+    como datos (`declaracion.ts`), popover "Filtros · n", orden aparte, línea de estado con conteo y etiquetas. Kiro
+    implementó en su worktree; la central revisó, corrió el build y recorrió en `dev:local`, y arregló tres cosas
+    (buscador de Leads que no se cerraba, "Quitar filtros" sin activos, relleno doble). Leads: la lista empieza en
+    247 px en vez de 409. Mi espacio (métricas) se quedó con el periodo en bloque, a propósito.
+  - **Checkpoint:** CI verde en la punta; deploy de producción `Ready` creado con el push; Typeform recibiendo en los
+    tres programas, Dapta sin envíos desde el 1-oct (igual que antes), los 5 sobres con error son de prueba. Entran:
+    086, 092, 117, 126, 201 y 202. La O7 queda cerrada.
+  - Para Mani: en el Dashboard el periodo dice "Periodo: Hoy" y las fechas A/B quedaron en el tooltip; si los
+    closers las necesitan a la vista, se vuelven a mostrar.
 
 - **2026-10-06 (tarde-noche, Alejo + Claude): 126 parte B construida, el embudo por pregunta.**
   - **Cierre de la noche:** 0071 aplicada en producción con el ok de Mani, luego push; CI verde y deploy correcto

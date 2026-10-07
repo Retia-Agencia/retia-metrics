@@ -173,4 +173,10 @@ ABRIR):
 - Tres arreglos de la central: el panel del buscador de Leads se cierra con Escape o con un clic afuera (antes
   tapaba la lista hasta borrar el texto); "Quitar filtros" del popover solo aparece si hay un filtro activo adentro;
   se quitó el `pt-4` que Kiro sumó sobre el `py-4` de la tarjeta en Leads y Calls (32 px vacíos).
-- **Falta:** el checkpoint.
+
+## Cierre (checkpoint, 6-oct)
+
+Checkpoint `cp-20261006-1` sobre `3b68a82`: CI verde (suite completa, Postgres real y build), deploy de producción
+en Vercel creado con el push (23:01:00 -05) y `Ready`. Fuentes de Typeform recibiendo (38, 14 y 39 envíos en 24 h);
+las dos de Dapta sin envíos desde el 1-oct, como en el checkpoint anterior. Los 5 sobres con error son las mismas
+entregas de prueba que no se ingieren a propósito.

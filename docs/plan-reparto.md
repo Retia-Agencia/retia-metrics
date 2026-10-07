@@ -122,6 +122,8 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ### 🌊 Ola O7 · lo nuevo avisa · abierta el 6-oct
 
+> **Cerrada el 6-oct (noche) en `cp-20261006-1`** (`3b68a82`): 201 y 202 `done`. La ola siguiente está por rearmar.
+
 | Sesión | Ticket | Archivos calientes | Migración |
 |---|---|---|---|
 | **Kiro N1** | [201] Novedades de Deals y Calendly para el closer | `lib/db/schema.ts`, dueño del Deal, `lib/calendly/*`, Kanban y Mi espacio | **sí**; Kiro cambia schema y la central genera/revisa/aplica |

@@ -98,7 +98,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 070 | [Pendiente Setteo y Unclaimed](./070-pendiente-setteo-y-unclaimed.md) (E6-2) | 069 | done · 29-sep · `/p/<programa>/inbox`: Agendados sin dueño (por antigüedad) y Pendiente Setteo (score de Typeform desc, sin score al final, luego recencia), con el origen por UTM. `reclamarDeal` (fila bloqueada: el segundo reclamo es 409) y reasignar por `editarDeal`. El score entra por la llave `puntaje` del mapeo de la fuente (sin defecto). Implementó Kiro; revisión, recorrido local y reclamo forjado por la sesión principal. Score, calidad y valor configurados el 29-sep en las dos fuentes (`puntaje`, `leadQuality`, `leadValue`); 0041 aplicada en producción; fix del resumen del lead (`decideValores`). Leads previos recalculados. Falta: verificar con un envío nuevo; "quién lo trajo" (llega con el 086) |
 | [x] | 071 | [El Inbox (antes Mis deals)](./071-mi-dia-del-closer.md) (E6-3) | 069, 061, 070, 096, 097 | done · 29-sep · código en `main`; recorrido visual funcional a 390 px realizado con consola y estados/interacciones revisados |
 | [x] | 118 | ["Se perdió en el Calendly": urgente arriba del Inbox](./118-se-perdio-en-el-calendly.md) | 117 | done · `cp-20261002-4` · 2-oct · Mani · "se perdió en el Calendly" arriba del Inbox (D-7 del ADR 0071) |
-| [x] | 201 | [Novedades de Deals y Calendly para el closer](./201-novedades-de-deals-y-calendly.md) | 183, 096, 157 | done · 6-oct · 0072 aplicada en producción; CI verde (`76c921c`) |
+| [x] | 201 | [Novedades de Deals y Calendly para el closer](./201-novedades-de-deals-y-calendly.md) | 183, 096, 157 | done · `cp-20261006-1` · 6-oct · 0072 aplicada en producción; CI verde (`76c921c`) |
 
 ## 4 · Llamadas y Calendly
 
@@ -118,7 +118,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 157 | [El setter entrega el deal al closer por la cita](./157-handoff-del-setter-al-closer.md) | 156 | done · `cp-20261002-5` · 2-oct · falta el recorrido de Mani (link de agenda, "Ya se lo mandé", Setteado por, suelta ajena 403) |
 | [x] | 163 | [El detalle de una llamada, el mismo en la ficha y en Calls](./163-detalle-de-llamada.md) | 157 | done · `cp-20261003-1` · 3-oct (S2) · `DetalleDeLlamada` + `detalleDeLlamada` en ficha y Calls, con "Ir al deal"; recorrido hecho |
 | [x] | 164 | [Mi espacio: el hub del closer](./164-mi-espacio-el-hub-del-closer.md) | 163 | reemplazado · 3-oct · por el 172 (ola O3) |
-| [x] | 201 | [Novedades de Deals y Calendly para el closer](./201-novedades-de-deals-y-calendly.md) | 183, 096, 157 | done · 6-oct · 0072 aplicada en producción; CI verde (`76c921c`) |
+| [x] | 201 | [Novedades de Deals y Calendly para el closer](./201-novedades-de-deals-y-calendly.md) | 183, 096, 157 | done · `cp-20261006-1` · 6-oct · 0072 aplicada en producción; CI verde (`76c921c`) |
 
 ## 5 · Dinero
 
@@ -319,7 +319,7 @@ paralelo; 194, 195 y 197 cuando el 193 esté en `main` (usan su pieza de pestañ
 | [x] | 198 | [La zona con scroll es una pieza de `pantalla-fija.tsx`](./198-la-zona-con-scroll-es-una-pieza.md) | 197 | done · `cp-20261005-1` · Alejo · 5-oct · `ZonaConScroll` / `clasesDeZonaConScroll`; 14 copias reemplazadas; las 14 pantallas miden 900 a 1440×900 |
 | [x] | 199 | [El manual de uso se abre desde la app, detrás del login](./199-el-manual-de-uso-en-la-app.md) | · | done · 4-oct · CI verde en `16e4b22` (sin tag de checkpoint aún) · `/manual` y el botón en Mi espacio |
 | [x] | 200 | [La venta que se revierte al anular su abono no cuenta](./200-la-venta-revertida-no-cuenta.md) | · | done · `cp-20261005-1` · Alejo · 5-oct · CI verde en `e0a0e73` · revisión del 4-oct: anular el único abono dejaba la venta contando (dashboard, meta del mes, Mi espacio, listas) y el embudo por etapas contaba cortesías |
-| [x] | 202 | [La barra de lista: búsqueda, filtros y orden en una fila](./202-barra-de-lista.md) | 170, 193, 198 | done · 6-oct · Kiro + central · `BarraDeLista` en 9 pantallas; Leads de 409 a 247 px · falta el checkpoint |
+| [x] | 202 | [La barra de lista: búsqueda, filtros y orden en una fila](./202-barra-de-lista.md) | 170, 193, 198 | done · `cp-20261006-1` · 6-oct · Kiro + central · `BarraDeLista` en 9 pantallas; Leads de 409 a 247 px |
 
 # Pasos y tareas sin ticket
 
