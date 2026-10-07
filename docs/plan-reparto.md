@@ -120,6 +120,15 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ## 4. La ola vigente y el mapa de etapas
 
+### 🌊 Ola O7 · lo nuevo avisa · abierta el 6-oct
+
+| Sesión | Ticket | Archivos calientes | Migración |
+|---|---|---|---|
+| **Kiro N1** | [201] Novedades de Deals y Calendly para el closer | `lib/db/schema.ts`, dueño del Deal, `lib/calendly/*`, Kanban y Mi espacio | **sí**; Kiro cambia schema y la central genera/revisa/aplica |
+
+El 201 cruza los componentes Deal, Inbox y Calendly y por eso vive en una sola sesión. La sesión central revisa el
+contrato de cambio de dueño, genera la migración y corre el checkpoint; Kiro no genera ni aplica SQL.
+
 ### 🌊 Ola O6 · el dashboard confiable · abierta el 4-oct (tarde)
 
 **La meta (Mani, 4-oct):** que cada cifra del dashboard sea *"real y confiable a lo que dice y muestra"*. Sale de

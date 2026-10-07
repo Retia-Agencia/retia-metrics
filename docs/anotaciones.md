@@ -208,6 +208,17 @@ Diez notas de Mani y un hallazgo del audit. Reparto en `docs/plan-reparto.md` §
 | A-100 | Ajustes (cada tarjeta) | cambio | Las pantallas que abre cada tarjeta no son pantalla fija y no tienen cómo volver a Ajustes. | 196 | resuelta · 4-oct (cp-20261004-5) |
 | A-101 | Dashboard | cambio | Pantalla fija y las métricas agrupadas en pestañas con la barra del Inbox, para ver junto lo relacionado sin saturar. | 197 | resuelta · 4-oct (cp-20261004-6) |
 
+## Recorrido 11 · 6-oct · Mani: que lo nuevo avise
+
+Los cambios hoy suceden sin que sea evidente cuándo algo cambió o es nuevo. Este recorrido agrega señales
+personales que se consumen al verlas, sin abrir otra pantalla.
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-102 | Mi espacio → Necesita atención | decisión + cambio | La cancelación de una llamada necesita una alerta propia. Va como novedad no leída arriba y conserva `Urgente` hasta que el closer la vea; después baja al historial gris. | 201 | en ticket |
+| A-103 | Deals (Kanban) | cambio | Un Deal nuevo para su dueño lleva resalte morado Tinta y badge `Nuevo` hasta que ese dueño abre la ficha. No se marcan los históricos; asignar o reasignar enciende la señal. | 201 | en ticket |
+| A-104 | Mi espacio → Necesita atención | cambio | Los cambios de Calendly (cita nueva, reagenda, cancelación, no-show y corrección) van en una cola personal arriba: no leídos primero, leídos grises debajo; abrir o marcar vista los consume. La cancelación conserva urgencia explícita. | 201 | en ticket |
+
 ### Respuestas
 
 **A-01 · Producto de un Deal.** ⚠️ **Obsoleta desde el 1-oct: el ticket 134 retiró `productos`.** El precio sale
@@ -307,4 +318,3 @@ Calendly" (185).
 administra, solo desde la tab Leads (ADR 0035 y 0060). Son dos cosas distintas: **"N envíos"** son reenvíos del mismo
 correo y no piden decisión; **"posible duplicado"** es un correo nuevo que llegó con un teléfono conocido, y esa sí.
 Confirmar deja una persona y un deal; separar crea un lead nuevo, y desde el 184 también su deal (hoy no lo crea: A-92).
-

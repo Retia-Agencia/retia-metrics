@@ -11,6 +11,7 @@ import { fechaHoraEnBogota } from "@/lib/format";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
 import { camposDeInvitadoCalendly, rawDelInvitado, type EventoDeCalendly } from "./evento-webhook";
 import { closerHost } from "./emparejar-llamada";
+import { registrarNovedadCalendly } from "@/lib/notificaciones-calendly/notificaciones";
 import {
   closersConCalendly,
   efectoSobreElDeal,
@@ -80,17 +81,18 @@ export async function aplicarEventoDeCalendly(
           correoInvitado: evento.correoInvitado,
           correoHost: evento.correoHost,
           ...camposDeInvitadoCalendly(evento),
+          claveEvento: evento.claveEvento,
         }),
       };
     case "cancelada":
       if (evento.reagendada) {
         return { tipo: "sin_cambio", motivo: "Es la mitad vieja de una reagenda: la mueve la cita nueva." };
       }
-      return marcarFallida(db, programId, evento.uuidInvitado, "cancelada");
+      return marcarFallida(db, programId, evento.uuidInvitado, "cancelada", evento.claveEvento);
     case "no_show":
-      return marcarFallida(db, programId, evento.uuidInvitado, "no_show");
+      return marcarFallida(db, programId, evento.uuidInvitado, "no_show", evento.claveEvento);
     case "no_show_retirado":
-      return retirarNoShow(db, programId, evento.uuidInvitado);
+      return retirarNoShow(db, programId, evento.uuidInvitado, evento.claveEvento);
   }
 }
 
@@ -160,6 +162,16 @@ async function reagendar(
       raw: rawDelInvitado(cita),
     });
 
+    if (vieja.dealId) {
+      await registrarNovedadCalendly(tx, {
+        programId,
+        dealId: vieja.dealId,
+        callId: vieja.id,
+        tipo: "cita_reagendada",
+        claveEvento: cita.claveEvento,
+      });
+    }
+
     if (!vieja.dealId || vieja.etapa === null || vieja.etapa === "ganado_completo" || vieja.etapa === "cierre_perdido") {
       return { tipo: "reagendada", callId: vieja.id, movioAAgendado: false } as const;
     }
@@ -178,6 +190,7 @@ async function marcarFallida(
   programId: string,
   uuidInvitado: string,
   resultado: "cancelada" | "no_show",
+  claveEvento: string,
 ): Promise<EfectoDeEvento> {
   return enTransaccion(db, async (tx) => {
     const llamada = await llamadaDeLaCita(tx, programId, uuidInvitado);
@@ -190,12 +203,21 @@ async function marcarFallida(
       llamada.id,
       { resultado },
     );
+    if (llamada.dealId) {
+      await registrarNovedadCalendly(tx, {
+        programId,
+        dealId: llamada.dealId,
+        callId: llamada.id,
+        tipo: resultado === "cancelada" ? "cita_cancelada" : "cita_no_show",
+        claveEvento,
+      });
+    }
     return moverDealDeLaLlamada(tx, llamada, "agendado", "reagenda", resultado);
   });
 }
 
 /** Calendly retira un no-show: la llamada vuelve a `agendada` y el deal de Re-agenda a Agendado. */
-async function retirarNoShow(db: Db, programId: string, uuidInvitado: string): Promise<EfectoDeEvento> {
+async function retirarNoShow(db: Db, programId: string, uuidInvitado: string, claveEvento: string): Promise<EfectoDeEvento> {
   return enTransaccion(db, async (tx) => {
     const llamada = await llamadaDeLaCita(tx, programId, uuidInvitado);
     if (!llamada) return { tipo: "desconocida", uuidInvitado } as const;
@@ -207,6 +229,15 @@ async function retirarNoShow(db: Db, programId: string, uuidInvitado: string): P
       llamada.id,
       { resultado: "agendada" },
     );
+    if (llamada.dealId) {
+      await registrarNovedadCalendly(tx, {
+        programId,
+        dealId: llamada.dealId,
+        callId: llamada.id,
+        tipo: "cita_no_show_corregida",
+        claveEvento,
+      });
+    }
     return moverDealDeLaLlamada(tx, llamada, "agendado", null, "agendada", "reagenda");
   });
 }

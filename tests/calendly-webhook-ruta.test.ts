@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { calls, deals, entregasWebhook, leads, miembrosPrograma, programs, sobresCrudos, users } from "@/lib/db/schema";
+import { calls, deals, entregasWebhook, leads, miembrosPrograma, notificacionesCalendly, programs, sobresCrudos, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { abrirDeal } from "@/lib/deals/mover-etapa";
 import { aplicarReglaDeDeal } from "@/lib/ingesta/regla-de-deals";
@@ -50,10 +50,13 @@ async function invocar(programa: string, cuerpo: string, firma: string | null): 
 }
 
 const uri = (uuid: string) => `https://api.calendly.com/scheduled_events/EV/invitees/${uuid}`;
+let secuenciaEvento = 0;
+const instanteEvento = () => new Date(Date.UTC(2026, 9, 6, 12, 0, secuenciaEvento++)).toISOString();
 
 function creado(uuid: string, extra: { inicio?: string; viejo?: string; correo?: string; host?: string } = {}) {
   return {
     event: "invitee.created",
+    created_at: instanteEvento(),
     payload: {
       uri: uri(uuid),
       email: extra.correo ?? "ana@correo.co",
@@ -68,10 +71,12 @@ function creado(uuid: string, extra: { inicio?: string; viejo?: string; correo?:
 }
 const cancelado = (uuid: string, reagendada = false) => ({
   event: "invitee.canceled",
+  created_at: instanteEvento(),
   payload: { uri: uri(uuid), rescheduled: reagendada },
 });
 const noShow = (uuid: string, retirado = false) => ({
   event: retirado ? "invitee_no_show.deleted" : "invitee_no_show.created",
+  created_at: instanteEvento(),
   payload: { uri: uri(uuid) },
 });
 
@@ -87,6 +92,7 @@ async function etapa() {
 }
 
 beforeEach(async () => {
+  secuenciaEvento = 0;
   ({ db, cerrar } = await crearBaseDePrueba());
   holder.db = db;
   const [p] = await db
@@ -159,6 +165,9 @@ describe("una cita nueva", () => {
     expect(c.fechaAgenda?.toISOString()).toBe("2026-10-02T15:00:00.000Z");
     expect(c.closerUserId).toBe(maru);
     expect(await etapa()).toEqual({ etapa: "agendado", owner: maru, pendiente: null });
+    expect(await db.select().from(notificacionesCalendly)).toMatchObject([
+      { userId: maru, programId, dealId, callId: c.id, tipo: "cita_nueva", leidaEn: null },
+    ]);
 
     const [s] = await db.select().from(sobresCrudos);
     expect(s).toMatchObject({ origen: "calendly", sourceId: null, programId, error: null });
@@ -168,9 +177,11 @@ describe("una cita nueva", () => {
   });
 
   it("repetida (Calendly reintenta): una sola llamada", async () => {
-    await enviar(creado("A"));
-    await enviar(creado("A"));
+    const entrega = creado("A");
+    await enviar(entrega);
+    await enviar(entrega);
     expect(await llamadas()).toHaveLength(1);
+    expect(await db.select().from(notificacionesCalendly)).toHaveLength(1);
   });
 
   it("antes que el envio: queda suelta y el 052 la ADOPTA en vez de chocar", async () => {
@@ -204,6 +215,10 @@ describe("cancelacion y no-show", () => {
     const [c] = await llamadas();
     expect(c.resultado).toBe("cancelada");
     expect(await etapa()).toMatchObject({ etapa: "agendado", pendiente: "reagenda" });
+    expect((await db.select().from(notificacionesCalendly)).map((n) => n.tipo)).toEqual([
+      "cita_nueva",
+      "cita_cancelada",
+    ]);
   });
 
   it("la cancelacion de una cita que el CRM no conoce: 200 y nada inventado", async () => {
@@ -220,6 +235,19 @@ describe("cancelacion y no-show", () => {
     await enviar(noShow("A", true));
     expect((await llamadas())[0].resultado).toBe("agendada");
     expect((await etapa()).etapa).toBe("agendado");
+  });
+
+  it("un segundo no-show después de corregir es un evento nuevo, no un retry silenciado", async () => {
+    await enviar(creado("A"));
+    await enviar(noShow("A"));
+    await enviar(noShow("A", true));
+    await enviar(noShow("A"));
+    expect((await db.select().from(notificacionesCalendly)).map((n) => n.tipo)).toEqual([
+      "cita_nueva",
+      "cita_no_show",
+      "cita_no_show_corregida",
+      "cita_no_show",
+    ]);
   });
 
   it("un no-show no pisa una llamada que ya ocurrio", async () => {

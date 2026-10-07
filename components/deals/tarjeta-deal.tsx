@@ -76,6 +76,7 @@ export function TarjetaDealCard({
       data-deal-id={tarjeta.dealId}
       className={cn(
         "group relative cursor-pointer rounded-lg bg-card p-3 shadow-tarjeta transition-[background-color,transform,opacity] duration-150 hover:bg-muted/40 motion-reduce:transition-none",
+        tarjeta.esNuevo && "ring-2 ring-primary",
         arrastrando ? "scale-95 opacity-60" : "opacity-100",
       )}
     >
@@ -121,6 +122,7 @@ export function TarjetaDealCard({
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {tarjeta.esNuevo ? <Badge>Nuevo</Badge> : null}
         {tarjeta.pendiente ? (
           <Badge variant={TONO_DE_PENDIENTE[tarjeta.pendiente]}>{nombreDePendiente[tarjeta.pendiente]}</Badge>
         ) : null}

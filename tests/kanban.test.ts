@@ -86,6 +86,7 @@ interface OpcDeal {
   abono?: string;
   creado?: string;
   valorVendido?: string | null;
+  nuevo?: boolean;
 }
 
 async function deal(o: OpcDeal): Promise<string> {
@@ -118,6 +119,7 @@ async function deal(o: OpcDeal): Promise<string> {
       cohortId: o.cohort === undefined ? cohortId : o.cohort,
       etapa: o.etapa,
       pendiente: o.pendiente ?? null,
+      ownerNovedadEn: o.nuevo ? new Date("2026-10-20T12:00:00Z") : null,
       ownerUserId: o.owner ?? owner1,
       valorVendidoUsd: o.valorVendido === undefined ? "1000.00" : o.valorVendido,
       ...(o.creado ? { createdAt: new Date(o.creado) } : {}),
@@ -287,6 +289,14 @@ describe("tableroKanban", () => {
     const t = await tableroKanban(db, programId, { tipo: "dueno", userId: owner1 }, { ownerUserId: owner2 }, HOY);
     const tarjetas = t.columnas.flatMap((columna) => columna.tarjetas);
     expect(tarjetas.map((tarjeta) => tarjeta.ownerUserId)).toEqual([owner1]);
+  });
+
+  it("Nuevo solo se proyecta al dueño; la vista de equipo no revela su lectura", async () => {
+    await deal({ etapa: "contactado", owner: owner1, nuevo: true });
+    const personal = await tableroKanban(db, programId, { tipo: "dueno", userId: owner1 }, {}, HOY);
+    const equipo = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
+    expect(personal.columnas.flatMap((c) => c.tarjetas)[0].esNuevo).toBe(true);
+    expect(equipo.columnas.flatMap((c) => c.tarjetas)[0].esNuevo).toBe(false);
   });
 
   it("gerente y developer usan alcance todos", async () => {

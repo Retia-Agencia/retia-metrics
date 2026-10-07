@@ -47,6 +47,7 @@ import {
   type RequisitoFaltante,
 } from "./requisitos";
 import { congelarValorVendido } from "./valor-vendido";
+import { camposDeDueno } from "./cambiar-dueno";
 
 /**
  * `moverEtapa()`: el UNICO camino para cambiar `deals.etapa` (ADR 0037 punto 4,
@@ -507,7 +508,11 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
           leadId: alta.leadId,
           programId: alta.programId,
           etapa: alta.etapa,
-          ownerUserId: usuario ?? alta.ownerUserId ?? null,
+          ...camposDeDueno(usuario ?? alta.ownerUserId ?? null, {
+            // Quien crea a mano ya está mirando su Deal; una asignación del sistema sí
+            // necesita avisar al dueño.
+            esNovedad: alta.actor.tipo === "sistema" && alta.ownerUserId != null,
+          }),
           areaDeclaradaId: alta.areaDeclaradaId ?? null,
           fechaLimitePago: alta.fechaLimitePago ?? null,
           cohortId,

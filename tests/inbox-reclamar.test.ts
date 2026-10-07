@@ -98,14 +98,16 @@ async function capturar(p: Promise<unknown>): Promise<ErrorDeApp> {
 }
 
 describe("reclamarDeal", () => {
-  it("un closer con membresía reclama y queda como dueño, con UNA fila de change_log", async () => {
+  it("un closer con membresía reclama y queda como dueño con novedad", async () => {
     const dealId = await nuevoDeal("registrado");
     await reclamarDeal(db, comoCloser(), { dealId });
 
-    expect((await deal(dealId)).ownerUserId).toBe(closer);
+    expect(await deal(dealId)).toMatchObject({ ownerUserId: closer });
+    expect((await deal(dealId)).ownerNovedadEn).toBeInstanceOf(Date);
     const filas = await rastro(dealId);
-    expect(filas).toHaveLength(1);
-    expect(filas[0]).toMatchObject({ campo: "ownerUserId", valorAnterior: null, valorNuevo: closer, userId: closer });
+    expect(filas).toHaveLength(2);
+    expect(filas).toContainEqual(expect.objectContaining({ campo: "ownerUserId", valorAnterior: null, valorNuevo: closer, userId: closer }));
+    expect(filas).toContainEqual(expect.objectContaining({ campo: "ownerNovedadEn", valorAnterior: null, userId: closer }));
   });
 
   it("el developer también puede reclamar (nunca rol === '...' a mano)", async () => {
@@ -151,7 +153,7 @@ describe("reclamarDeal", () => {
     expect(e.message).toMatch(/Ya lo reclamó otra persona/);
     // No se movió: sigue siendo del primero, y no hay una segunda fila de rastro del dueño.
     expect((await deal(dealId)).ownerUserId).toBe(closer);
-    expect(await rastro(dealId)).toHaveLength(1);
+    expect(await rastro(dealId)).toHaveLength(2);
   });
 
   it("un deal anulado no se reclama", async () => {

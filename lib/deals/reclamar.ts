@@ -1,13 +1,12 @@
 import { z } from "zod";
-import { deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { trabajaLeads } from "@/lib/auth/roles";
-import { editarConRastro } from "@/lib/crm/rastro";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { esDuenoPosible } from "./duenos";
 import type { ActorDeDeal } from "./permiso";
+import { cambiarDuenoDeal } from "./cambiar-dueno";
 
 /**
  * Reclamar un deal SIN dueño (ticket 070): el closer que ve el lead primero lo toma. Es el
@@ -74,11 +73,13 @@ export async function reclamarDeal(db: Db, actor: ActorDeDeal, datos: DatosRecla
         throw new ErrorDeApp("Para reclamar un deal tienes que tener membresía activa en su programa.", 403);
       }
 
-      await editarConRastro(
-        { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: emailLead },
-        deal.id,
-        { ownerUserId: actor.userId },
-      );
+      await cambiarDuenoDeal(tx, {
+        dealId: deal.id,
+        ownerActual: null,
+        ownerNuevo: actor.userId,
+        actorId: actor.userId,
+        etiqueta: emailLead,
+      });
     });
   });
 }

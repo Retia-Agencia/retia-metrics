@@ -80,6 +80,8 @@ export interface TarjetaDeal {
   pendiente: PendienteDeal | null;
   ownerUserId: string | null;
   ownerNombre: string | null;
+  /** Solo la ve el dueño en su alcance personal; para equipo siempre es false. */
+  esNuevo: boolean;
   /** El saldo tal como lo da `saldosDeDeals`: `null` sin total vendido. */
   saldo: number | null;
   moneda: string | null;
@@ -218,6 +220,7 @@ export async function tableroKanban(
       etapa: deals.etapa,
       pendiente: deals.pendiente,
       ownerUserId: deals.ownerUserId,
+      ownerNovedadEn: deals.ownerNovedadEn,
       fechaLimitePago: deals.fechaLimitePago,
       fechaSeguimiento: deals.fechaSeguimiento,
       cohortId: deals.cohortId,
@@ -337,6 +340,10 @@ export async function tableroKanban(
       pendiente: f.pendiente,
       ownerUserId: f.ownerUserId,
       ownerNombre: f.ownerNombre,
+      esNuevo:
+        alcance.tipo === "dueno" &&
+        f.ownerUserId === alcance.userId &&
+        f.ownerNovedadEn != null,
       saldo: saldo?.saldo ?? null,
       moneda: saldo?.moneda ?? null,
       cohortId: f.cohortId,

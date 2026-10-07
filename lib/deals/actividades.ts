@@ -3,12 +3,13 @@ import { dealActividades, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
+import { crearConRastro } from "@/lib/crm/rastro";
 import { trabajaLeads } from "@/lib/auth/roles";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
 import { moverEtapa, MovimientoRechazado } from "./mover-etapa";
 import { etapaTrasActividad } from "./actividad-mueve";
+import { cambiarDuenoDeal } from "./cambiar-dueno";
 
 /**
  * Registrar una actividad de un deal: contacto, intento fallido o nota.
@@ -53,11 +54,13 @@ export async function registrarActividad(db: Db, actor: ActorDeDeal, datos: Dato
       }
 
       if (seAdueña) {
-        await editarConRastro(
-          { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: emailLead },
-          deal.id,
-          { ownerUserId: actor.userId },
-        );
+        await cambiarDuenoDeal(tx, {
+          dealId: deal.id,
+          ownerActual: null,
+          ownerNuevo: actor.userId,
+          actorId: actor.userId,
+          etiqueta: emailLead,
+        });
       }
 
       const actividadId = await crearConRastro(

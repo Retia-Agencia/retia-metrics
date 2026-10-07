@@ -92,6 +92,7 @@ describe("crear un deal sobre un lead sin deal abierto", () => {
     const dealId = (r as { dealId: string }).dealId;
     const [d] = await dealsDe(leadId);
     expect(d).toMatchObject({ id: dealId, etapa: "en_gestion", ownerUserId: closerA, creadoPor: closerA, programId: programaA });
+    expect(d.ownerNovedadEn).toBeNull();
 
     const historial = await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, dealId));
     expect(historial).toEqual([expect.objectContaining({ de: null, a: "en_gestion", userId: closerA })]);

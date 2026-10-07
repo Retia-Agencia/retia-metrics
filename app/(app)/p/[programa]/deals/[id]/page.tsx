@@ -25,6 +25,8 @@ import { FichaPerfil } from "@/components/deals/ficha/ficha-perfil";
 import { FichaLead } from "@/components/deals/ficha/ficha-lead";
 import { FichaAlertas } from "@/components/deals/ficha/ficha-alertas";
 import { alcanceDeDeals, dealVisiblePara } from "@/lib/auth/alcance-deals";
+import { requireSesionReal } from "@/lib/auth/guards";
+import { marcarDealVisto } from "@/lib/deals/cambiar-dueno";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +58,17 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
   if (!ficha) notFound();
   const alcanceDeals = await alcanceDeDeals(session);
   if (!dealVisiblePara(alcanceDeals, ficha.owner?.id ?? null)) notFound();
+  // Una vista suplantada no consume la señal de la persona real. Para el dueño normal,
+  // abrir esta ficha es exactamente el gesto que marca el Deal como visto.
+  const real = await requireSesionReal();
+  if (real.user.id === session.user.id && ficha.owner?.id === session.user.id) {
+    await marcarDealVisto(db, {
+      dealId: ficha.dealId,
+      programId: programa.id,
+      userId: session.user.id,
+      etiqueta: ficha.lead.nombre ?? ficha.lead.email,
+    });
+  }
   const [opciones, alertas, correccion] = await Promise.all([
     opcionesDeFicha(db, programa.id, ficha.owner?.id ?? null, ficha.cohorte?.id ?? null),
     alertasDelDeal(db, programa.id, ficha.dealId),

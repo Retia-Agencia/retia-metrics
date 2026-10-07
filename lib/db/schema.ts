@@ -110,6 +110,15 @@ export const resultadoLlamadaEnum = pgEnum("resultado_llamada", [
   "perdida",
 ]);
 
+/** Cambios de Calendly que el closer consume en Mi espacio (ticket 201). */
+export const tipoNotificacionCalendlyEnum = pgEnum("tipo_notificacion_calendly", [
+  "cita_nueva",
+  "cita_reagendada",
+  "cita_cancelada",
+  "cita_no_show",
+  "cita_no_show_corregida",
+]);
+
 /** Por donde entro una persona al CRM (ADR 0021). */
 export const entradaPersonaEnum = pgEnum("entrada_persona", ["formulario", "crm"]);
 export const estadoCohorteEnum = pgEnum("estado_cohorte", ["cerrado", "activo", "futuro"]);
@@ -827,6 +836,12 @@ export const deals = pgTable(
      */
     ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "restrict" }),
     /**
+     * Desde cuándo la asignación actual es nueva para su dueño (ticket 201). Nulo = ya la
+     * vio, no tiene dueño o es historia anterior al ticket. Cambiar el dueño y esta marca
+     * es una sola operación en `lib/deals/cambiar-dueno.ts`.
+     */
+    ownerNovedadEn: timestamp("owner_novedad_en", { withTimezone: true }),
+    /**
      * El credito del setter (ADR 0076 punto 3): el dueno anterior cuando una cita pasa el
      * deal a quien da la llamada. Se escribe UNA vez (un re-agendamiento no lo pisa) y
      * solo lo escribe `darDealAlHost`. Nulo = el deal llego agendado o nadie lo setteo.
@@ -1179,6 +1194,43 @@ export const calls = pgTable(
           OR (${t.anuladoEn} IS NOT NULL AND ${t.anuladoPor} IS NOT NULL
               AND length(trim(${t.motivoAnulacion})) > 0)`,
     ),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────── novedades de Calendly
+
+/**
+ * Cola personal de cambios de Calendly (ticket 201). Es un hecho dirigido al dueño que
+ * tenía el Deal cuando ocurrió; por eso conserva `user_id` aunque el Deal se reasigne.
+ * La app siempre la consulta por usuario + programa: el programa sigue siendo frontera.
+ */
+export const notificacionesCalendly = pgTable(
+  "notificaciones_calendly",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
+    dealId: uuid("deal_id").notNull().references(() => deals.id, { onDelete: "restrict" }),
+    callId: uuid("call_id").notNull().references(() => calls.id, { onDelete: "restrict" }),
+    tipo: tipoNotificacionCalendlyEnum("tipo").notNull(),
+    /**
+     * Identidad durable de la entrega: tipo de Calendly + `created_at` de la entrega +
+     * UUID del invitado. Un retry conserva la clave; un ciclo legítimo posterior trae
+     * otro `created_at`, incluso si vuelve al mismo estado sobre la misma llamada.
+     */
+    claveEvento: text("clave_evento").notNull(),
+    leidaEn: timestamp("leida_en", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("notificaciones_calendly_evento_idx").on(t.programId, t.tipo, t.claveEvento),
+    index("notificaciones_calendly_no_leidas_idx")
+      .on(t.userId, t.programId, t.createdAt)
+      .where(sql`${t.leidaEn} is null`),
+    index("notificaciones_calendly_usuario_programa_idx").on(t.userId, t.programId, t.createdAt),
+    index("notificaciones_calendly_deal_idx").on(t.dealId),
+    index("notificaciones_calendly_call_idx").on(t.callId),
+    check("notificaciones_calendly_clave_no_vacia", sql`length(trim(${t.claveEvento})) > 0`),
   ],
 );
 

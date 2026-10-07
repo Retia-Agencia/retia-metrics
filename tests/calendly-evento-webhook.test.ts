@@ -81,6 +81,7 @@ describe("leerEventoDeCalendly", () => {
         nombreInvitado: "Ana Pérez",
         telefonoInvitado: "+57 300 123 4567",
         uuidAnterior: null,
+        claveEvento: "invitee.created:2026-09-28T20:00:00.000Z:INV-NUEVO",
       },
     });
   });
@@ -105,24 +106,24 @@ describe("leerEventoDeCalendly", () => {
   it("invitee.canceled distingue la cancelacion de la mitad vieja de una reagenda", () => {
     expect(leerEventoDeCalendly(evento("invitee.canceled", { uri: INVITADO, rescheduled: false }))).toEqual({
       ok: true,
-      evento: { tipo: "cancelada", uuidInvitado: "INV-NUEVO", reagendada: false },
+      evento: { tipo: "cancelada", uuidInvitado: "INV-NUEVO", reagendada: false, claveEvento: "invitee.canceled:2026-09-28T20:00:00.000Z:INV-NUEVO" },
     });
     expect(leerEventoDeCalendly(evento("invitee.canceled", { uri: INVITADO, rescheduled: true }))).toEqual({
       ok: true,
-      evento: { tipo: "cancelada", uuidInvitado: "INV-NUEVO", reagendada: true },
+      evento: { tipo: "cancelada", uuidInvitado: "INV-NUEVO", reagendada: true, claveEvento: "invitee.canceled:2026-09-28T20:00:00.000Z:INV-NUEVO" },
     });
   });
 
   it("no-show: el invitado sale de `uri` o, si la uri es del no-show, de `invitee`", () => {
     expect(leerEventoDeCalendly(evento("invitee_no_show.created", { uri: INVITADO }))).toEqual({
       ok: true,
-      evento: { tipo: "no_show", uuidInvitado: "INV-NUEVO" },
+      evento: { tipo: "no_show", uuidInvitado: "INV-NUEVO", claveEvento: "invitee_no_show.created:2026-09-28T20:00:00.000Z:INV-NUEVO" },
     });
     expect(
       leerEventoDeCalendly(
         evento("invitee_no_show.deleted", { uri: "https://api.calendly.com/invitee_no_shows/NS1", invitee: INVITADO }),
       ),
-    ).toEqual({ ok: true, evento: { tipo: "no_show_retirado", uuidInvitado: "INV-NUEVO" } });
+    ).toEqual({ ok: true, evento: { tipo: "no_show_retirado", uuidInvitado: "INV-NUEVO", claveEvento: "invitee_no_show.deleted:2026-09-28T20:00:00.000Z:INV-NUEVO" } });
   });
 
   it("un evento que no se escucha se ignora, no es un error", () => {
@@ -139,6 +140,14 @@ describe("leerEventoDeCalendly", () => {
     expect(
       leerEventoDeCalendly(evento("invitee.created", { ...CREADO, scheduled_event: { start_time: "mañana" } })).ok,
     ).toBe(false);
+  });
+
+  it("exige created_at porque es la identidad durable que separa ciclos legítimos", () => {
+    const sinInstante = JSON.stringify({ event: "invitee_no_show.created", payload: { uri: INVITADO } });
+    expect(leerEventoDeCalendly(sinInstante)).toEqual({
+      ok: false,
+      error: "El evento invitee_no_show.created no trae created_at válido.",
+    });
   });
 });
 

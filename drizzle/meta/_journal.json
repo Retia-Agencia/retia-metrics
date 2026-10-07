@@ -505,6 +505,13 @@
       "when": 1791326360204,
       "tag": "0071_typeform-token",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1791341739398,
+      "tag": "0072_novedades-calendly",
+      "breakpoints": true
     }
   ]
 }

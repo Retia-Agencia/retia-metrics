@@ -75,15 +75,17 @@ export type EventoDeCalendly =
       telefonoInvitado: string | null;
       /** Si es una REAGENDA: el uuid del invitado de la cita vieja (`old_invitee`). */
       uuidAnterior: string | null;
+      claveEvento: string;
     }
   | {
       tipo: "cancelada";
       uuidInvitado: string;
       /** La cancelacion es la mitad vieja de una reagenda (`rescheduled: true`). */
       reagendada: boolean;
+      claveEvento: string;
     }
-  | { tipo: "no_show"; uuidInvitado: string }
-  | { tipo: "no_show_retirado"; uuidInvitado: string }
+  | { tipo: "no_show"; uuidInvitado: string; claveEvento: string }
+  | { tipo: "no_show_retirado"; uuidInvitado: string; claveEvento: string }
   /** Un evento que el CRM no escucha (p. ej. `routing_form_submission.created`). */
   | { tipo: "ignorado"; evento: string };
 
@@ -164,6 +166,14 @@ export function leerEventoDeCalendly(cuerpoCrudo: string): LecturaDeEvento {
 
   const uuidInvitado = uuidDeInvitado(p.uri) ?? uuidDeInvitado(p.invitee);
   if (!uuidInvitado) return { ok: false, error: `El evento ${evento} no trae la URI del invitado.` };
+  // Calendly no entrega un id común para los cuatro tipos, pero sí el instante durable
+  // de creación de LA entrega. El retry conserva cuerpo y `created_at`; un ciclo legítimo
+  // posterior trae otro instante aunque vuelva al mismo estado sobre el mismo invitado.
+  const creadaEn = typeof cuerpo.created_at === "string" && !Number.isNaN(new Date(cuerpo.created_at).getTime())
+    ? cuerpo.created_at
+    : null;
+  if (!creadaEn) return { ok: false, error: `El evento ${evento} no trae created_at válido.` };
+  const claveEvento = `${evento}:${creadaEn}:${uuidInvitado}`;
 
   switch (evento) {
     case "invitee.created": {
@@ -184,14 +194,15 @@ export function leerEventoDeCalendly(cuerpoCrudo: string): LecturaDeEvento {
           nombreInvitado: typeof p.name === "string" ? p.name : null,
           telefonoInvitado: typeof p.text_reminder_number === "string" ? p.text_reminder_number : null,
           uuidAnterior: uuidDeInvitado(p.old_invitee),
+          claveEvento,
         },
       };
     }
     case "invitee.canceled":
-      return { ok: true, evento: { tipo: "cancelada", uuidInvitado, reagendada: p.rescheduled === true } };
+      return { ok: true, evento: { tipo: "cancelada", uuidInvitado, reagendada: p.rescheduled === true, claveEvento } };
     case "invitee_no_show.created":
-      return { ok: true, evento: { tipo: "no_show", uuidInvitado } };
+      return { ok: true, evento: { tipo: "no_show", uuidInvitado, claveEvento } };
     default:
-      return { ok: true, evento: { tipo: "no_show_retirado", uuidInvitado } };
+      return { ok: true, evento: { tipo: "no_show_retirado", uuidInvitado, claveEvento } };
   }
 }

@@ -89,7 +89,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 3 · Inbox
 
-5 tickets, 0 abiertos.
+6 tickets, 1 abierto.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -98,10 +98,11 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 070 | [Pendiente Setteo y Unclaimed](./070-pendiente-setteo-y-unclaimed.md) (E6-2) | 069 | done · 29-sep · `/p/<programa>/inbox`: Agendados sin dueño (por antigüedad) y Pendiente Setteo (score de Typeform desc, sin score al final, luego recencia), con el origen por UTM. `reclamarDeal` (fila bloqueada: el segundo reclamo es 409) y reasignar por `editarDeal`. El score entra por la llave `puntaje` del mapeo de la fuente (sin defecto). Implementó Kiro; revisión, recorrido local y reclamo forjado por la sesión principal. Score, calidad y valor configurados el 29-sep en las dos fuentes (`puntaje`, `leadQuality`, `leadValue`); 0041 aplicada en producción; fix del resumen del lead (`decideValores`). Leads previos recalculados. Falta: verificar con un envío nuevo; "quién lo trajo" (llega con el 086) |
 | [x] | 071 | [El Inbox (antes Mis deals)](./071-mi-dia-del-closer.md) (E6-3) | 069, 061, 070, 096, 097 | done · 29-sep · código en `main`; recorrido visual funcional a 390 px realizado con consola y estados/interacciones revisados |
 | [x] | 118 | ["Se perdió en el Calendly": urgente arriba del Inbox](./118-se-perdio-en-el-calendly.md) | 117 | done · `cp-20261002-4` · 2-oct · Mani · "se perdió en el Calendly" arriba del Inbox (D-7 del ADR 0071) |
+| [ ] | 201 | [Novedades de Deals y Calendly para el closer](./201-novedades-de-deals-y-calendly.md) | 183, 096, 157 | en curso · 6-oct · Kiro en worktree; migración reservada para la sesión central |
 
 ## 4 · Llamadas y Calendly
 
-12 tickets, 1 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
+13 tickets, 2 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -117,6 +118,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 157 | [El setter entrega el deal al closer por la cita](./157-handoff-del-setter-al-closer.md) | 156 | done · `cp-20261002-5` · 2-oct · falta el recorrido de Mani (link de agenda, "Ya se lo mandé", Setteado por, suelta ajena 403) |
 | [x] | 163 | [El detalle de una llamada, el mismo en la ficha y en Calls](./163-detalle-de-llamada.md) | 157 | done · `cp-20261003-1` · 3-oct (S2) · `DetalleDeLlamada` + `detalleDeLlamada` en ficha y Calls, con "Ir al deal"; recorrido hecho |
 | [x] | 164 | [Mi espacio: el hub del closer](./164-mi-espacio-el-hub-del-closer.md) | 163 | reemplazado · 3-oct · por el 172 (ola O3) |
+| [ ] | 201 | [Novedades de Deals y Calendly para el closer](./201-novedades-de-deals-y-calendly.md) | 183, 096, 157 | en curso · 6-oct · Kiro en worktree; migración reservada para la sesión central |
 
 ## 5 · Dinero
 

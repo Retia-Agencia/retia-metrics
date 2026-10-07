@@ -13,6 +13,8 @@ import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { InboxLlamadasDeHoy } from "@/components/deals/inbox-llamadas-de-hoy";
 import { InboxAtencion } from "@/components/deals/inbox-atencion";
 import { PosiblesDuplicados } from "@/components/leads/posibles-duplicados";
+import { novedadesCalendlyDeUsuario } from "@/lib/notificaciones-calendly/notificaciones";
+import { NovedadesCalendly } from "./novedades-calendly";
 
 /** Lo personal que necesita atención; importa las mismas preguntas del Inbox y Leads. */
 export async function TabAtencion({
@@ -30,7 +32,8 @@ export async function TabAtencion({
   const administra = esAdministrador(rol);
   const alcance: AlcanceInbox = { ownerUserId: userId };
 
-  const [inbox, plataformas, motivosFilas, areasFilas, duplicados] = await Promise.all([
+  const [novedades, inbox, plataformas, motivosFilas, areasFilas, duplicados] = await Promise.all([
+    novedadesCalendlyDeUsuario(db, { userId, programId }),
     inboxDelPrograma(db, programId, alcance, undefined, undefined, { userId, rol }),
     plataformasDelPrograma(db, programId),
     db.select().from(motivos).where(eq(motivos.activo, true)),
@@ -48,6 +51,7 @@ export async function TabAtencion({
 
   return (
     <div className="space-y-4">
+      <NovedadesCalendly {...novedades} programId={programId} />
       <InboxLlamadasDeHoy llamadas={inbox.llamadasDeHoy} slug={slug} puedeRegistrar={puedeRegistrar} motivosReagenda={motivosDeReagenda} origen={origen} />
       <InboxAtencion
         filas={inbox.atencion}

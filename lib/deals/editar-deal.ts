@@ -15,6 +15,7 @@ import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
 import { moverEtapa } from "./mover-etapa";
 import { ETAPAS_VENDIDAS } from "./etapas";
 import { congelarValorVendido, esquemaDescuentoUsdOpcional } from "./valor-vendido";
+import { cambiarDuenoDeal } from "./cambiar-dueno";
 
 /**
  * Editar los campos sueltos de un deal (ticket 074, ADR 0042): un deal NO es inmutable.
@@ -73,7 +74,6 @@ export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarD
         if (!(await esDuenoPosible(tx, deal.programId, ownerUserId))) {
           throw new ErrorDeApp("El dueño tiene que ser un closer activo con membresía en el programa del deal.", 422);
         }
-        cambios.ownerUserId = ownerUserId;
       }
 
       let cambioDeVenta = false;
@@ -139,6 +139,16 @@ export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarD
               cambios,
             );
 
+      const cambioDueno = ownerUserId === undefined
+        ? false
+        : await cambiarDuenoDeal(tx, {
+            dealId: deal.id,
+            ownerActual: deal.ownerUserId,
+            ownerNuevo: ownerUserId,
+            actorId: actor.userId,
+            etiqueta: emailLead,
+          });
+
       if (cambioDeVenta) {
         const despues = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
         if (deal.etapa === "ganado_parcial" && despues?.saldo === 0) {
@@ -147,7 +157,7 @@ export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarD
           await moverEtapa(tx, { dealId: deal.id, a: "ganado_parcial", actor: { tipo: "sistema" } });
         }
       }
-      return cambioDeVenta || editoCampos;
+      return cambioDeVenta || editoCampos || cambioDueno;
     });
   });
 }

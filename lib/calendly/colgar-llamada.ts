@@ -21,6 +21,8 @@ import { NOMBRE_DE_PENDIENTE, unaCitaMueveAAgendado } from "@/lib/deals/etapas";
 import { dejarNotaDelSistema } from "@/lib/deals/nota-del-sistema";
 import { fechaHoraEnBogota } from "@/lib/format";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
+import { cambiarDuenoDeal } from "@/lib/deals/cambiar-dueno";
+import { registrarNovedadCalendly } from "@/lib/notificaciones-calendly/notificaciones";
 import {
   closerHost,
   emparejarLlamada,
@@ -64,6 +66,8 @@ export interface CitaDeCalendly extends CamposDeInvitadoCalendly {
   correoInvitado: string | null;
   correoHost: string | null;
   linkCalendly?: string | null;
+  /** Identidad durable de la entrega; fuera del webhook basta la cita única. */
+  claveEvento?: string;
 }
 
 export type LlamadaRegistrada =
@@ -215,6 +219,13 @@ export async function registrarLlamadaDeCalendly(
     if (!callId) return { tipo: "repetida", callId: (await llamadaPorHuella(tx, programId, cita.uuidInvitado))! };
 
     const efecto = await efectoSobreElDeal(tx, deal.id, host, correo, cita.inicio);
+    await registrarNovedadCalendly(tx, {
+      programId,
+      dealId: deal.id,
+      callId,
+      tipo: "cita_nueva",
+      claveEvento: cita.claveEvento ?? `invitee.created:${cita.uuidInvitado}`,
+    });
     return { tipo: "colgada", callId, dealId: deal.id, ...efecto };
   });
 }
@@ -303,21 +314,25 @@ export async function adoptarSueltaDeCita(
   programId: string,
   uuidInvitado: string,
   deal: { id: string; cohortId: string | null },
-): Promise<"adoptada" | "ya_existe" | "no_existe"> {
+): Promise<
+  | { estado: "adoptada"; callId: string }
+  | { estado: "ya_existe"; callId: string }
+  | { estado: "no_existe" }
+> {
   const [fila] = await tx
     .select({ id: calls.id, dealId: calls.dealId, anuladoEn: calls.anuladoEn, emailLead: calls.emailLead })
     .from(calls)
     .where(
       and(eq(calls.programId, programId), eq(calls.huellaFila, huellaDeCita(uuidInvitado)), incluyendoAnulados(calls)),
     );
-  if (!fila) return "no_existe";
-  if (fila.dealId !== null || fila.anuladoEn !== null) return "ya_existe";
+  if (!fila) return { estado: "no_existe" };
+  if (fila.dealId !== null || fila.anuladoEn !== null) return { estado: "ya_existe", callId: fila.id };
   await editarConRastro(
     { db: tx, tabla: calls, nombreTabla: "calls", actorId: null, etiqueta: fila.emailLead ?? fila.id },
     fila.id,
     { dealId: deal.id, cohortId: deal.cohortId },
   );
-  return "adoptada";
+  return { estado: "adoptada", callId: fila.id };
 }
 
 /**
@@ -337,14 +352,15 @@ export async function darDealAlHost(
     .select({ setterUserId: deals.setterUserId })
     .from(deals)
     .where(and(eq(deals.id, dealId), vigente(deals)));
-  await editarConRastro(
-    { db: tx, tabla: deals, nombreTabla: "deals", actorId: null, etiqueta },
+  await cambiarDuenoDeal(tx, {
     dealId,
-    {
-      ownerUserId: host,
-      ...(ownerActual !== null && actual?.setterUserId == null ? { setterUserId: ownerActual } : {}),
-    },
-  );
+    ownerActual,
+    ownerNuevo: host,
+    actorId: null,
+    etiqueta,
+    cambiosAdicionales:
+      ownerActual !== null && actual?.setterUserId == null ? { setterUserId: ownerActual } : undefined,
+  });
   if (ownerActual === null) return null;
   await crearConRastro(
     { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: null, etiqueta },

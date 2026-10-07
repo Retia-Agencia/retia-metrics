@@ -16,6 +16,7 @@ import {
   huellaDeCita,
 } from "@/lib/calendly/colgar-llamada";
 import { agendoElEnvio, etapaDeEntrada, type EtapaDeEntrada, type HechosDeEntrada } from "./etapa-de-entrada";
+import { registrarNovedadCalendly } from "@/lib/notificaciones-calendly/notificaciones";
 
 /**
  * Los tres hechos con los que la regla enruta UN envio. Lo comparten la ingesta y
@@ -330,13 +331,14 @@ async function crearLlamadaDeCita(
   deal: { id: string; programId: string; cohortId: string | null },
   emailLead: string,
   llamada: LlamadaDeCita,
-): Promise<void> {
+): Promise<string | null> {
   // La cita pudo entrar antes por el webhook de Calendly, suelta: se adopta (096).
   const previa = await adoptarSueltaDeCita(db, deal.programId, llamada.uuidInvitado, deal);
-  if (previa !== "no_existe") return;
+  if (previa.estado === "ya_existe") return null;
+  if (previa.estado === "adoptada") return previa.callId;
   const host = closerHost(llamada.correoHost ?? null, await closersConCalendly(db, deal.programId));
   try {
-    await crearConRastro(
+    const callId = await crearConRastro(
       {
         db,
         tabla: calls,
@@ -357,12 +359,29 @@ async function crearLlamadaDeCita(
         huellaFila: huellaDeCita(llamada.uuidInvitado),
       },
     );
+    return callId;
   } catch (e) {
     // Re-envio del mismo envio: la llamada ya existe (misma huella). No es un error, es
     // la idempotencia funcionando; el deal ya tiene su llamada con fecha.
-    if (esViolacionUnica(e)) return;
+    if (esViolacionUnica(e)) return null;
     throw e;
   }
+}
+
+async function notificarCitaNueva(
+  db: Db,
+  deal: { id: string; programId: string },
+  callId: string | null,
+  uuidInvitado: string,
+): Promise<void> {
+  if (!callId) return;
+  await registrarNovedadCalendly(db, {
+    programId: deal.programId,
+    dealId: deal.id,
+    callId,
+    tipo: "cita_nueva",
+    claveEvento: `invitee.created:${uuidInvitado}`,
+  });
 }
 
 /**
@@ -414,12 +433,13 @@ export async function aplicarReglaDeDeal(
     // Con cita vigente el deal nace en Agendado y necesita su llamada (quita la
     // asimetria con el movimiento: abrir directo en Agendado también crea la llamada).
     if (accion.llamada) {
-      await crearLlamadaDeCita(
+      const callId = await crearLlamadaDeCita(
         db,
         { id: dealId, programId: lead.programId, cohortId: null },
         lead.emailNormalizado,
         accion.llamada,
       );
+      await notificarCitaNueva(db, { id: dealId, programId: lead.programId }, callId, accion.llamada.uuidInvitado);
     }
     if (accion.nota) await dejarNotaDelSistema(db, dealId, accion.nota);
     return { leadId: lead.id, accion, dealAbiertoId: dealId, nota: accion.nota };
@@ -429,13 +449,14 @@ export async function aplicarReglaDeDeal(
     // El deal abierto existe (lo garantiza la decisión, que salió de esta misma lectura).
     // La llamada de Calendly se crea ANTES de mover: es lo que hace que el motor pase el
     // requisito `llamada_con_fecha` de E4/E7/E9 sin aflojar la reja.
-    await crearLlamadaDeCita(
+    const callId = await crearLlamadaDeCita(
       db,
       { id: dealAbierto.id, programId: lead.programId, cohortId: dealAbierto.cohortId },
       lead.emailNormalizado,
       accion.llamada,
     );
     await darDealAlHost(db, dealAbierto.id, dealAbierto.ownerUserId, host, lead.emailNormalizado);
+    await notificarCitaNueva(db, { id: dealAbierto.id, programId: lead.programId }, callId, accion.llamada.uuidInvitado);
 
     // `moverEtapa` valida la flecha y escribe el historial; nunca la etapa a mano. Un
     // `MovimientoRechazado` NO es un error de datos: es el motor diciendo que al deal le
@@ -469,13 +490,14 @@ export async function aplicarReglaDeDeal(
 
   if (accion.tipo === "agregar_llamada" && dealAbierto !== null) {
     // No mueve el deal: solo registra la cita como otra llamada (idempotente por huella).
-    await crearLlamadaDeCita(
+    const callId = await crearLlamadaDeCita(
       db,
       { id: dealAbierto.id, programId: lead.programId, cohortId: dealAbierto.cohortId },
       lead.emailNormalizado,
       accion.llamada,
     );
     await darDealAlHost(db, dealAbierto.id, dealAbierto.ownerUserId, host, lead.emailNormalizado);
+    await notificarCitaNueva(db, { id: dealAbierto.id, programId: lead.programId }, callId, accion.llamada.uuidInvitado);
     await dejarNotaDelSistema(db, dealAbierto.id, accion.nota);
     return { leadId: lead.id, accion };
   }
