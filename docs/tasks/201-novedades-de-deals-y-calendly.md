@@ -3,7 +3,7 @@ id: 201
 etapa: O7
 serves: "docs/anotaciones.md A-102, A-103, A-104; ticket 183; ADR 0049, 0076, 0077"
 depends: [183, 096, 157]
-status: en curso
+status: done
 ---
 
 # 201 — Novedades de Deals y Calendly para el closer
