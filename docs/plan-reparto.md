@@ -125,6 +125,7 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 | Sesión | Ticket | Archivos calientes | Migración |
 |---|---|---|---|
 | **Kiro N1** | [201] Novedades de Deals y Calendly para el closer | `lib/db/schema.ts`, dueño del Deal, `lib/calendly/*`, Kanban y Mi espacio | **sí**; Kiro cambia schema y la central genera/revisa/aplica |
+| **Kiro N2** | [202] La barra de lista: búsqueda, filtros y orden en una fila | `components/filtros/*`, `components/layout/pestanas.tsx`, `selector-periodo`, las páginas de Leads, Deals, Calls, Students, Dashboard y Recursos | no |
 
 El 201 cruza los componentes Deal, Inbox y Calendly y por eso vive en una sola sesión. La sesión central revisa el
 contrato de cambio de dueño, genera la migración y corre el checkpoint; Kiro no genera ni aplica SQL.
