@@ -34,6 +34,12 @@ interface SelectorPeriodoProps {
   soloA?: boolean;
   /** El agregado entre programas no tiene una ventana de cohorte común. */
   mostrarCohortes?: boolean;
+  /**
+   * `chip`: una sola línea de 32 px ("Periodo: Este mes") con el rango en el tooltip,
+   * para la barra de lista (ticket 202). El diálogo y la lógica quedan iguales; solo
+   * cambia el disparador. Por defecto es el bloque de dos líneas de antes.
+   */
+  variante?: "bloque" | "chip";
 }
 
 /**
@@ -50,6 +56,7 @@ export function SelectorPeriodo({
   anteriorDisponible,
   soloA = false,
   mostrarCohortes = true,
+  variante = "bloque",
 }: SelectorPeriodoProps) {
   const letras = soloA ? (["a"] as const) : (["a", "b"] as const);
   // Una lista no tiene ventana de cohorte: sus atajos ni se ofrecen.
@@ -68,23 +75,35 @@ export function SelectorPeriodo({
     ? fecha(r.desde)
     : `${fecha(r.desde)} a ${fecha(r.hasta)}`;
 
+  const nombrePreset = periodo.preset === "custom" ? "Personalizado" : atajosDePeriodo[periodo.preset];
+  const rangoTexto = soloA
+    ? legible(periodo.a)
+    : `A: ${legible(periodo.a)} · B: ${periodo.b ? legible(periodo.b) : "Sin comparación"}`;
+
+  const disparador =
+    variante === "chip" ? (
+      <DialogTrigger
+        render={<Button type="button" variant="outline" size="sm" className="aria-expanded:border-ring" />}
+        title={rangoTexto}
+      >
+        <span className="text-muted-foreground">Periodo:</span>
+        <span className="font-medium">{nombrePreset}</span>
+      </DialogTrigger>
+    ) : (
+      <DialogTrigger
+        render={<Button variant="outline" className="h-auto whitespace-normal text-left" />}
+      >
+        <span>
+          <span className="font-medium">{nombrePreset}</span>
+          <span className="cifra block text-xs">{rangoTexto}</span>
+        </span>
+      </DialogTrigger>
+    );
+
   return (
-    <div className="space-y-1">
+    <div className={variante === "chip" ? "contents" : "space-y-1"}>
       <Dialog open={abierto} onOpenChange={setAbierto}>
-        <DialogTrigger
-          render={<Button variant="outline" className="h-auto whitespace-normal text-left" />}
-        >
-          <span>
-            <span className="font-medium">
-              {periodo.preset === "custom" ? "Personalizado" : atajosDePeriodo[periodo.preset]}
-            </span>
-            <span className="cifra block text-xs">
-              {soloA
-                ? legible(periodo.a)
-                : `A: ${legible(periodo.a)} · B: ${periodo.b ? legible(periodo.b) : "Sin comparación"}`}
-            </span>
-          </span>
-        </DialogTrigger>
+        {disparador}
         <DialogContent>
           <DialogTitle>{soloA ? "Periodo" : "Periodo A contra B"}</DialogTitle>
           <DialogDescription>
@@ -177,7 +196,7 @@ export function SelectorPeriodo({
           </form>
         </DialogContent>
       </Dialog>
-      {periodo.aviso && (
+      {variante !== "chip" && periodo.aviso && (
         <p role="status" className="text-xs text-muted-foreground">{periodo.aviso}</p>
       )}
     </div>

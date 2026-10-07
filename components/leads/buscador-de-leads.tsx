@@ -44,9 +44,9 @@ export function BuscadorDeLeads({ programaSlug, origen }: { programaSlug: string
   const empezado = texto.trim().length > 0;
 
   return (
-    <div className="space-y-2">
+    <div className="relative">
       <form
-        className="relative max-w-xl"
+        className="relative"
         onSubmit={(event) => {
           event.preventDefault();
           window.clearTimeout(temporizador.current);
@@ -65,30 +65,39 @@ export function BuscadorDeLeads({ programaSlug, origen }: { programaSlug: string
           placeholder="Buscar por nombre, correo o teléfono"
           aria-label="Buscar leads"
           autoComplete="off"
-          className="pl-9"
+          className="h-8 pl-9"
         />
       </form>
-      {corto && empezado ? <p className="text-xs text-muted-foreground">Escribe al menos 2 caracteres.</p> : null}
-      {!corto && buscando ? <p className="text-xs text-muted-foreground">Buscando…</p> : null}
-      {!corto && !buscando && error ? <p className="text-sm text-destructive">{error}</p> : null}
-      {!corto && !buscando && !error && resultados?.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Sin resultados.</p>
-      ) : null}
-      {!corto && resultados && resultados.length > 0 ? (
-        <ul className="max-w-xl divide-y rounded-lg border bg-card" aria-label="Leads encontrados">
-          {resultados.map((lead) => (
-            <li key={lead.id}>
-              <Link
-                href={enlaceConVuelta(`/p/${programaSlug}/leads/${lead.id}`, origen)}
-                className="block min-w-0 px-3 py-2 text-sm outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <span className="block truncate font-medium">{lead.nombre ?? lead.emailNormalizado}</span>
-                <span className="block truncate text-xs text-muted-foreground">{lead.emailNormalizado}</span>
-                {lead.telefono ? <span className="cifra block text-xs text-muted-foreground">{lead.telefono}</span> : null}
-              </Link>
-            </li>
-          ))}
-        </ul>
+      {/* Los resultados FLOTAN sobre la lista en vez de empujarla (ticket 202): un
+          panel absoluto con `shadow-flotante`, no un bloque que corre la zona con
+          scroll hacia abajo. Solo aparece cuando hay algo que decir. */}
+      {empezado ? (
+        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-w-xl rounded-lg border bg-card p-2 shadow-flotante">
+          {corto ? (
+            <p className="px-1 text-xs text-muted-foreground">Escribe al menos 2 caracteres.</p>
+          ) : buscando ? (
+            <p className="px-1 text-xs text-muted-foreground">Buscando…</p>
+          ) : error ? (
+            <p className="px-1 text-sm text-destructive">{error}</p>
+          ) : resultados?.length === 0 ? (
+            <p className="px-1 text-sm text-muted-foreground">Sin resultados.</p>
+          ) : resultados && resultados.length > 0 ? (
+            <ul className="max-h-80 divide-y overflow-auto" aria-label="Leads encontrados">
+              {resultados.map((lead) => (
+                <li key={lead.id}>
+                  <Link
+                    href={enlaceConVuelta(`/p/${programaSlug}/leads/${lead.id}`, origen)}
+                    className="block min-w-0 rounded-md px-3 py-2 text-sm outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    <span className="block truncate font-medium">{lead.nombre ?? lead.emailNormalizado}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{lead.emailNormalizado}</span>
+                    {lead.telefono ? <span className="cifra block text-xs text-muted-foreground">{lead.telefono}</span> : null}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

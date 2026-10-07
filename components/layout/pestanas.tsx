@@ -25,8 +25,6 @@ export function Pestanas({
   activa: string;
   etiqueta: string;
 }) {
-  const descripcion = grupos.flatMap((grupo) => grupo.pestanas).find((pestana) => pestana.id === activa)?.descripcion;
-
   return (
     <div className="shrink-0">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -43,6 +41,10 @@ export function Pestanas({
                   key={pestana.id}
                   href={pestana.href}
                   aria-current={activa === pestana.id ? "page" : undefined}
+                  // La descripción deja de ser una línea debajo y pasa a `title` (tooltip)
+                  // de la pestaña (ticket 202): navegación y herramientas son dos filas
+                  // distintas, y la fila de pestañas no gana una línea de texto extra.
+                  title={pestana.descripcion}
                   className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${activa === pestana.id ? "bg-background shadow-sm" : "text-muted-foreground"}`}
                 >
                   {pestana.etiqueta}
@@ -57,7 +59,6 @@ export function Pestanas({
           </div>
         ))}
       </div>
-      {descripcion ? <p className="text-sm text-muted-foreground">{descripcion}</p> : null}
     </div>
   );
 }
