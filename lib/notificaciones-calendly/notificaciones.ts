@@ -90,6 +90,7 @@ export async function novedadesCalendlyDeUsuario(
         and(
           eq(notificacionesCalendly.userId, entrada.userId),
           eq(notificacionesCalendly.programId, entrada.programId),
+          vigente(deals),
           leidas ? isNotNull(notificacionesCalendly.leidaEn) : isNull(notificacionesCalendly.leidaEn),
         ),
       )

@@ -50,6 +50,7 @@ afterEach(async () => {
 async function enviarCita(host: string, uuid: string): Promise<Response> {
   const cuerpo = JSON.stringify({
     event: "invitee.created",
+    created_at: "2026-10-04T14:00:00.000000Z",
     payload: {
       uri: `https://api.calendly.com/scheduled_events/H/invitees/${uuid}`,
       email: "lead@correo.co",

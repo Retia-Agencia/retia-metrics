@@ -6,9 +6,13 @@ const programaVisiblePorSlug = vi.fn();
 const fichaDeDeal = vi.fn();
 const opcionesDeFicha = vi.fn();
 const alertasDelDeal = vi.fn();
+const requireSesionReal = vi.fn();
+const marcarDealVisto = vi.fn();
 const notFound = vi.fn(() => { throw new Error("notFound"); });
 
 vi.mock("@/lib/auth/page-guards", () => ({ paginaConRol }));
+vi.mock("@/lib/auth/guards", () => ({ requireSesionReal }));
+vi.mock("@/lib/deals/cambiar-dueno", () => ({ marcarDealVisto }));
 vi.mock("@/lib/auth/vista", () => ({ rolDeVista }));
 vi.mock("@/lib/auth/alcance", () => ({ programaVisiblePorSlug }));
 vi.mock("@/lib/db", () => ({ db: {} }));
@@ -57,6 +61,8 @@ async function abrir() {
 
 beforeEach(() => {
   paginaConRol.mockReset().mockResolvedValue(SESSION);
+  requireSesionReal.mockReset().mockResolvedValue(SESSION);
+  marcarDealVisto.mockReset();
   rolDeVista.mockReset().mockResolvedValue("closer");
   programaVisiblePorSlug.mockReset().mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
   fichaDeDeal.mockReset().mockResolvedValue(FICHA);
