@@ -218,7 +218,7 @@ personales que se consumen al verlas, sin abrir otra pantalla.
 | A-102 | Mi espacio → Necesita atención | decisión + cambio | La cancelación de una llamada necesita una alerta propia. Va como novedad no leída arriba y conserva `Urgente` hasta que el closer la vea; después baja al historial gris. | 201 | en ticket |
 | A-103 | Deals (Kanban) | cambio | Un Deal nuevo para su dueño lleva resalte morado Tinta y badge `Nuevo` hasta que ese dueño abre la ficha. No se marcan los históricos; asignar o reasignar enciende la señal. | 201 | en ticket |
 | A-104 | Mi espacio → Necesita atención | cambio | Los cambios de Calendly (cita nueva, reagenda, cancelación, no-show y corrección) van en una cola personal arriba: no leídos primero, leídos grises debajo; abrir o marcar vista los consume. La cancelación conserva urgencia explícita. | 201 | en ticket |
-| A-105 | Leads, Deals, Calls, Students, Dashboard, Recursos | cambio | Los filtros y la búsqueda ocupan mucho más alto que la lista. Una sola pieza reutilizable para búsqueda, filtros y orden, en una fila compacta: lo más usado a la vista, el resto en "Filtros · n", conteo y filtros activos en una línea; las pestañas quedan aparte como navegación. | 202 | en ticket |
+| A-105 | Leads, Deals, Calls, Students, Dashboard, Recursos | cambio | Los filtros y la búsqueda ocupan mucho más alto que la lista. Una sola pieza reutilizable para búsqueda, filtros y orden, en una fila compacta: lo más usado a la vista, el resto en "Filtros · n", conteo y filtros activos en una línea; las pestañas quedan aparte como navegación. | 202 | resuelta · cierra con 202 |
 
 ### Respuestas
 

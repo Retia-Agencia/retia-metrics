@@ -129,7 +129,7 @@ export function BarraDeLista({
                   <FilaDeFiltro key={filtro.nombre} filtro={filtro} valor={valorDeFiltro(filtro, leer)} onElegir={poner} />
                 ))}
                 {compuestosPopover}
-                {clavesPopover.length > 0 ? (
+                {nPopover > 0 || (compuestosPopover && compuestoActivo) ? (
                   <Button
                     type="button"
                     variant="ghost"

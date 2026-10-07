@@ -12,6 +12,9 @@ export function BuscadorDeLeads({ programaSlug, origen }: { programaSlug: string
   const [texto, setTexto] = useState("");
   const [resultados, setResultados] = useState<LeadEncontrado[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // El panel flota encima de la lista: Escape o un clic afuera lo cierran sin borrar el texto,
+  // y volver al campo lo abre otra vez.
+  const [abierto, setAbierto] = useState(false);
   const [buscando, empezarBusqueda] = useTransition();
   const ultimaBusqueda = useRef(0);
   // Busca unos 400 ms despues de la ultima tecla, o ya con Enter.
@@ -44,7 +47,16 @@ export function BuscadorDeLeads({ programaSlug, origen }: { programaSlug: string
   const empezado = texto.trim().length > 0;
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onFocus={() => setAbierto(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setAbierto(false);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") setAbierto(false);
+      }}
+    >
       <form
         className="relative"
         onSubmit={(event) => {
@@ -59,6 +71,7 @@ export function BuscadorDeLeads({ programaSlug, origen }: { programaSlug: string
           onChange={(event) => {
             const valor = event.target.value;
             setTexto(valor);
+            setAbierto(true);
             window.clearTimeout(temporizador.current);
             temporizador.current = window.setTimeout(() => buscar(valor), 400);
           }}
@@ -71,7 +84,7 @@ export function BuscadorDeLeads({ programaSlug, origen }: { programaSlug: string
       {/* Los resultados FLOTAN sobre la lista en vez de empujarla (ticket 202): un
           panel absoluto con `shadow-flotante`, no un bloque que corre la zona con
           scroll hacia abajo. Solo aparece cuando hay algo que decir. */}
-      {empezado ? (
+      {empezado && abierto ? (
         <div className="absolute left-0 right-0 top-full z-20 mt-1 max-w-xl rounded-lg border bg-card p-2 shadow-flotante">
           {corto ? (
             <p className="px-1 text-xs text-muted-foreground">Escribe al menos 2 caracteres.</p>

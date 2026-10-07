@@ -3,7 +3,7 @@ id: 202
 etapa: O7
 serves: "docs/anotaciones.md A-105; A-61 (ticket 170); docs/structure.md §9"
 depends: [170, 193, 198]
-status: open
+status: done
 ---
 
 # 202 — La barra de lista: búsqueda, filtros y orden en una fila
@@ -158,3 +158,19 @@ ABRIR):
   estado se ven bien en los dos temas.
 - `npm run build` (no corre en este worktree con symlink de `node_modules`; hay que correrlo en el checkout
   principal tras commit — regla de AGENTS.md para cambios en componentes cliente).
+
+## Revisión de la sesión central (6-oct)
+
+- `npm run build`, typecheck, lint y `tests/filtros-url.test.ts` + `tests/paginas.test.ts` (109) en el checkout
+  principal.
+- Recorrido en `dev:local` a 1440×900, claro y oscuro: popover de Leads y Deals con sus selects adentro (el popover
+  no se cierra al elegir), × de una etiqueta, "Quitar todo" (limpia filtros y conserva el orden), diálogo del
+  periodo, orden de Deals y enlaces viejos (`?cohorte=todas&antiguedad=7&orden=creado&sentido=asc`) que siguen
+  filtrando. Consola sin errores de la app.
+- Medido (top de la zona con scroll, px; antes → después): Leads 409 → 247 (las herramientas pasan de 296 a 134,
+  menos de la mitad), Deals 281 → 181 (una sola fila), Calls 240 → 197 (y la primera llamada 16 px más arriba tras quitar el `pt-4`), Students 297 → 237, Dashboard 235 → 211,
+  Recursos 251 → 231.
+- Tres arreglos de la central: el panel del buscador de Leads se cierra con Escape o con un clic afuera (antes
+  tapaba la lista hasta borrar el texto); "Quitar filtros" del popover solo aparece si hay un filtro activo adentro;
+  se quitó el `pt-4` que Kiro sumó sobre el `py-4` de la tarjeta en Leads y Calls (32 px vacíos).
+- **Falta:** el checkpoint.

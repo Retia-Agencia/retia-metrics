@@ -319,7 +319,7 @@ paralelo; 194, 195 y 197 cuando el 193 esté en `main` (usan su pieza de pestañ
 | [x] | 198 | [La zona con scroll es una pieza de `pantalla-fija.tsx`](./198-la-zona-con-scroll-es-una-pieza.md) | 197 | done · `cp-20261005-1` · Alejo · 5-oct · `ZonaConScroll` / `clasesDeZonaConScroll`; 14 copias reemplazadas; las 14 pantallas miden 900 a 1440×900 |
 | [x] | 199 | [El manual de uso se abre desde la app, detrás del login](./199-el-manual-de-uso-en-la-app.md) | · | done · 4-oct · CI verde en `16e4b22` (sin tag de checkpoint aún) · `/manual` y el botón en Mi espacio |
 | [x] | 200 | [La venta que se revierte al anular su abono no cuenta](./200-la-venta-revertida-no-cuenta.md) | · | done · `cp-20261005-1` · Alejo · 5-oct · CI verde en `e0a0e73` · revisión del 4-oct: anular el único abono dejaba la venta contando (dashboard, meta del mes, Mi espacio, listas) y el embudo por etapas contaba cortesías |
-| [ ] | 202 | [La barra de lista: búsqueda, filtros y orden en una fila](./202-barra-de-lista.md) | 170, 193, 198 | open · 6-oct · Kiro `barra-de-lista` (A-105) |
+| [x] | 202 | [La barra de lista: búsqueda, filtros y orden en una fila](./202-barra-de-lista.md) | 170, 193, 198 | done · 6-oct · Kiro + central · `BarraDeLista` en 9 pantallas; Leads de 409 a 247 px · falta el checkpoint |
 
 # Pasos y tareas sin ticket
 

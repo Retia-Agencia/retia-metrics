@@ -216,7 +216,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
 
         {seccion === "leads" ? (
           <Card className="flex min-h-0 flex-1 flex-col">
-            <CardContent className="flex min-h-0 flex-1 flex-col pt-4">
+            <CardContent className="flex min-h-0 flex-1 flex-col">
               <div className={clasesDeZonaConScroll("overflow-x-auto")}>
                 {filas.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No hay leads con estos filtros.</p>

@@ -41,7 +41,7 @@ export function LlamadasPrograma({
     <Card className="flex min-h-0 flex-1 flex-col">
       {/* El conteo "Llamadas · N" lo da ahora la línea de estado de la barra de lista
           (ticket 202); aquí la tarjeta solo es la lista con su scroll. */}
-      <CardContent className={clasesDeZonaConScroll("p-0 pt-4")}>
+      <CardContent className={clasesDeZonaConScroll("p-0")}>
         {llamadas.length === 0 ? (
           <ul className="divide-y">
             <li className="px-4 py-6 text-center text-sm text-muted-foreground">
