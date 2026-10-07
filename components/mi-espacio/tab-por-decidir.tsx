@@ -1,51 +1,31 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
-import { duenosPosibles } from "@/lib/deals/duenos";
 import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
 import { llamadasSinCloserDelPrograma, llamadasSueltasDelPrograma } from "@/lib/queries/inbox";
-import { HORAS_SIN_CALIDAD, saludDeFuentes, type EstadoDeFuente } from "@/lib/queries/salud-fuentes";
-import { origenDeLaPagina } from "@/lib/navegacion/volver";
-import { haceCuanto, num } from "@/lib/format";
-import { InboxSinDueno } from "@/components/deals/inbox-sin-dueno";
-import { InboxLlamadasSueltas } from "@/components/deals/inbox-llamadas-sueltas";
-import { HostsSinCuenta } from "@/components/mi-espacio/hosts-sin-cuenta";
+import { saludDeFuentes } from "@/lib/queries/salud-fuentes";
+import { num } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 /**
- * Sección "Por decidir" de Mi espacio del gerente (ticket 179): la operación del CRM que
- * le toca decidir a quien administra sin trabajar leads, acotada al programa del selector.
+ * Sección "Por decidir" de Mi espacio del gerente (ticket 179, rediseño del 183/ADR 0077):
+ * la operación del CRM que le toca mirar a quien administra sin trabajar leads, acotada al
+ * programa del selector.
  *
- * Es VISIBILIDAD de la operación, NO métricas (eso vive en el Dashboard del programa). Y
- * **NUNCA los deals de los closers**: solo lo que no tiene dueño o nadie está mirando.
- * Cuatro bloques:
- *  1. **Deals sin dueño y Por settear** (`InboxSinDueno`): el gerente REASIGNA
- *     (`administra`), no reclama (`puedeReclamar=false`): no trabaja leads (ADR 0003).
- *  2. **Llamadas sueltas** del programa (`InboxLlamadasSueltas`): citas de Calendly sin deal.
- *  3. **Hosts sin cuenta** (`HostsSinCuenta`): citas cuya host no tiene cuenta en el CRM.
- *  4. **Webhook Health** con alarma: fuentes `marcada` del programa (ticket 107). Si no hay
- *     ninguna, una línea "Sin alarmas".
+ * **Agregado y urgente, NO un registro** (ADR 0077): "Mi espacio" no duplica una pestaña que
+ * ya tiene su pantalla dedicada. Cada frente que ya vive en el Inbox del programa (Agendados
+ * sin dueño, Por settear, Llamadas sueltas, Hosts sin cuenta) se muestra aquí como un
+ * CONTADOR con un enlace a esa pestaña —nunca la lista, ni reasignar, ni colgar inline—; y
+ * Webhook Health como UN semáforo que enlaza a Ajustes → Webhook Health, no el detalle por
+ * fuente (que vive entero en `/ajustes/salud`). Un conteo en cero se silencia (tono neutro,
+ * sin enlace de acción), igual que las secciones vacías de `tab-atencion.tsx`.
  *
- * El programa es FRONTERA (ADR 0043): todo entra por `programId`/`slug` y jamás cruza. Es
- * un componente de servidor y reusa los módulos del Inbox del programa (una respuesta por
- * pregunta), sin copiar SQL.
+ * El programa es FRONTERA (ADR 0043): todo entra por `programId`/`slug` y jamás cruza. Es un
+ * componente de servidor que reusa los módulos de consulta del Inbox (una respuesta por
+ * pregunta), tomando sus conteos; no copia SQL. Y **no monta ningún Base UI Select / Dialog /
+ * Menu**: al quitar la reasignación inline y la lista de sueltas desaparece el popup que
+ * reventaba la pantalla del gerente en tiempo de ejecución (composición estricta de Base UI).
  */
-
-const TONO_ESTADO: Record<EstadoDeFuente, "exito" | "info" | "alerta" | "peligro" | "neutro"> = {
-  al_dia: "exito",
-  volvio: "info",
-  sin_respuestas: "alerta",
-  muerta: "peligro",
-  sin_envios: "neutro",
-};
-
-const TEXTO_ESTADO: Record<EstadoDeFuente, string> = {
-  al_dia: "Al día",
-  volvio: "Volvió",
-  sin_respuestas: "Sin respuestas",
-  muerta: "Muerta",
-  sin_envios: "Sin envíos",
-};
-
 export async function TabPorDecidir({
   programId,
   slug,
@@ -53,71 +33,115 @@ export async function TabPorDecidir({
   programId: string;
   slug: string;
 }) {
-  const [secciones, duenos, llamadasSueltas, llamadasSinCloser, salud] = await Promise.all([
+  const [secciones, llamadasSueltas, llamadasSinCloser, salud] = await Promise.all([
     seccionesSinDueno(db, programId),
-    duenosPosibles(db, programId),
-    // El gerente no cuelga sueltas (no trabaja leads): sin `actor`, `puedeColgar` queda en
-    // false. La reja de verdad vive en la server action igual.
     llamadasSueltasDelPrograma(db, programId),
     llamadasSinCloserDelPrograma(db, programId),
     saludDeFuentes(),
   ]);
 
-  // Solo las fuentes del programa elegido y SOLO las marcadas (con alarma): el programa es
-  // frontera y aquí lo que importa es lo que requiere atención.
+  const inbox = `/p/${slug}/inbox`;
+  const contadores: Contador[] = [
+    {
+      n: secciones.unclaimed.length,
+      etiqueta: (n) => `${n} ${n === 1 ? "agendado sin dueño" : "agendados sin dueño"}`,
+      vacio: "Sin agendados sin dueño",
+      href: `${inbox}?seccion=agendados-sin-dueno`,
+      tono: "alerta",
+    },
+    {
+      n: secciones.pendienteSetteo.length,
+      etiqueta: (n) => `${n} ${n === 1 ? "deal por settear" : "deals por settear"}`,
+      vacio: "Sin deals por settear",
+      href: `${inbox}?seccion=por-settear`,
+      tono: "info",
+    },
+    {
+      n: llamadasSueltas.length,
+      etiqueta: (n) => `${n} ${n === 1 ? "llamada suelta" : "llamadas sueltas"}`,
+      vacio: "Sin llamadas sueltas",
+      href: `${inbox}?seccion=sin-deal`,
+      tono: "alerta",
+    },
+    {
+      n: llamadasSinCloser.length,
+      etiqueta: (n) => `${n} ${n === 1 ? "host sin cuenta" : "hosts sin cuenta"}`,
+      vacio: "Sin hosts sin cuenta",
+      href: inbox,
+      tono: "peligro",
+    },
+  ];
+
+  // Solo las fuentes del programa elegido (frontera) con alarma (ticket 107). Una fuente
+  // `muerta` sube el semáforo a peligro; cualquier otra alarma es alerta.
   const alarmas = salud.filter((s) => s.programId === programId && s.marcada);
-  // Mi espacio → Por decidir: la ficha vuelve a esta tab (ticket 174).
-  const origen = origenDeLaPagina("/mi-espacio", { programa: slug, tab: "por-decidir" });
+  const hayMuerta = alarmas.some((s) => s.estado === "muerta");
 
   return (
     <div className="space-y-4">
-      {/* 1 · Deals sin dueño: Agendados sin dueño y Por settear. El gerente reasigna. */}
-      <InboxSinDueno
-        pendienteSetteo={secciones.pendienteSetteo}
-        unclaimed={secciones.unclaimed}
-        puedeReclamar={false}
-        administra={true}
-        duenos={duenos}
-      />
-
-      {/* 2 · Llamadas sueltas del programa. */}
-      <InboxLlamadasSueltas llamadas={llamadasSueltas} programId={programId} origen={origen} />
-
-      {/* 3 · Hosts sin cuenta (no se muestra si no hay). */}
-      <HostsSinCuenta filas={llamadasSinCloser} />
-
-      {/* 4 · Webhook Health con alarma. */}
+      {/* 1 · Operación del programa: contadores con enlace al Inbox (ADR 0077). */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            Webhook Health
-            {alarmas.length > 0 ? <Badge variant="alerta">{alarmas.length}</Badge> : null}
-          </CardTitle>
+          <CardTitle className="text-base">Operación del programa</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2 text-sm">
+            {contadores.map((c) =>
+              c.n === 0 ? (
+                // Conteo en cero: silenciado a tono neutro y sin enlace (igual que una
+                // sección vacía de `tab-atencion.tsx`).
+                <li key={c.href + c.vacio} className="flex items-center gap-2 text-muted-foreground">
+                  <Badge variant="neutro">0</Badge>
+                  <span>{c.vacio}</span>
+                </li>
+              ) : (
+                // Con n > 0: enlace a la pestaña del Inbox, con su tono.
+                <li key={c.href + c.vacio}>
+                  <Link href={c.href} className="group flex items-center gap-2 underline-offset-2 hover:underline">
+                    <Badge variant={c.tono}>{num(c.n)}</Badge>
+                    <span className="font-medium">{c.etiqueta(c.n)}</span>
+                    <span aria-hidden className="text-muted-foreground">&rarr;</span>
+                  </Link>
+                </li>
+              ),
+            )}
+          </ul>
+        </CardContent>
+      </Card>
+
+      {/* 2 · Webhook Health: un semáforo, sin detalle por fuente (vive en /ajustes/salud). */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Webhook Health</CardTitle>
         </CardHeader>
         <CardContent>
           {alarmas.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sin alarmas.</p>
-          ) : (
-            <div className="space-y-1 text-sm">
-              {alarmas.map((s) => (
-                <div key={s.sourceId} className="flex flex-wrap items-center gap-2">
-                  <Badge variant={TONO_ESTADO[s.estado]}>{TEXTO_ESTADO[s.estado]}</Badge>
-                  <span className="font-medium">{s.nombre}</span>
-                  <span className="text-muted-foreground">último envío {haceCuanto(s.ultimo)}</span>
-                  {s.sobresPendientes > 0 ? (
-                    <span className="text-tono-alerta">· {num(s.sobresPendientes)} sobres sin procesar</span>
-                  ) : null}
-                  {s.sinCalidad > 0 ? (
-                    <span className="text-tono-alerta">
-                      · {num(s.sinCalidad)} {s.sinCalidad === 1 ? "envío" : "envíos"} completos sin calidad en {HORAS_SIN_CALIDAD} h
-                    </span>
-                  ) : null}
-                </div>
-              ))}
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="exito">Al día</Badge>
+              <span className="text-muted-foreground">Webhooks al día</span>
             </div>
+          ) : (
+            <Link
+              href={`/ajustes/salud?programa=${slug}`}
+              className="group flex items-center gap-2 text-sm underline-offset-2 hover:underline"
+            >
+              <Badge variant={hayMuerta ? "peligro" : "alerta"}>{num(alarmas.length)}</Badge>
+              <span className="font-medium">
+                {alarmas.length === 1 ? "1 fuente con alarma" : `${num(alarmas.length)} fuentes con alarma`}
+              </span>
+              <span aria-hidden className="text-muted-foreground">&rarr;</span>
+            </Link>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
+type Contador = {
+  n: number;
+  etiqueta: (n: number) => string;
+  vacio: string;
+  href: string;
+  tono: "info" | "alerta" | "peligro";
+};
