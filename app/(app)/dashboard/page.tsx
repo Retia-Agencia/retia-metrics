@@ -42,7 +42,7 @@ export default async function DashboardDeTodosPage({ searchParams }: Props) {
         <div className="shrink-0">
           <BarraDeLista
             filtros={[]}
-            compuestosAVista={
+            marco={
               <SelectorPeriodo
                 periodo={vista.periodo}
                 cohorteDisponible={false}
@@ -51,8 +51,6 @@ export default async function DashboardDeTodosPage({ searchParams }: Props) {
                 variante="chip"
               />
             }
-            clavesCompuestas={["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "rango", "desde", "hasta"]}
-            compuestoActivo={false}
             aviso={vista.periodo.aviso ? vista.periodo.aviso : undefined}
           />
         </div>

@@ -30,7 +30,7 @@ interface FiltroFechaListaProps {
  * El filtro de fecha de una lista (ticket 141), ahora como piezas compactas para la barra
  * de lista (ticket 202): un chip de 32 px con el campo ("Fecha: Creado") y, cuando hay
  * campo, el chip del periodo (`SelectorPeriodo variante="chip"`, modo "solo A"). Sin el
- * contenedor `BarraDeFiltros` de antes: la barra las ubica en `compuestosAVista` y limpia
+ * contenedor `BarraDeFiltros` de antes: la barra las ubica en `compuestosPopover` y limpia
  * sus claves con "Quitar todo".
  *
  * Vive en la URL como el resto de los filtros; el cliente nunca calcula el día, lo

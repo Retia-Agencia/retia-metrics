@@ -157,7 +157,6 @@ function Filtros({
       nombre: "programa",
       etiqueta: "Programa",
       todos: primero.nombre,
-      aVista: true,
       opciones: programas.map((p) => ({ value: p.slug, label: p.nombre })),
     },
     {
@@ -165,7 +164,6 @@ function Filtros({
       nombre: "tipo",
       etiqueta: "Tipo de rareza",
       todos: "Todos los tipos",
-      aVista: true,
       opciones: tipos.map((t) => ({ value: t.tipo, label: nombreDeRareza(t.tipo) })),
     },
   ];

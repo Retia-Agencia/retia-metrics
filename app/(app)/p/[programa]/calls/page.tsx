@@ -94,7 +94,6 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
             tipo: "select" as const,
             nombre: "closer",
             etiqueta: "Closer",
-            aVista: true,
             opciones: opciones.closers.map((closer) => ({ value: closer.id, label: closer.nombre })),
           },
         ]
@@ -103,7 +102,6 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
       tipo: "select",
       nombre: "resultado",
       etiqueta: "Resultado",
-      aVista: true,
       opciones: RESULTADOS.map(([value, label]) => ({ value, label })),
     },
   ];

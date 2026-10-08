@@ -2,8 +2,8 @@
  * El modelo declarativo de la barra de lista (ticket 202).
  *
  * Cada pantalla DECLARA sus filtros como datos —nombre en la URL, etiqueta, opciones,
- * el valor "todos" y si va a la vista o al popover— y la barra deriva de esa lista todo
- * lo demas: los chips a la vista, el contenido del popover, el conteo de activos, las
+ * el valor "todos"— y la barra deriva de esa lista todo lo demas: el contenido del
+ * popover, el conteo de activos, las
  * etiquetas activas y las claves que borra "Quitar todo". Un filtro nuevo es una
  * entrada, no un componente (A-105, Baymard: lo popular a la vista, el resto guardado).
  *
@@ -40,8 +40,10 @@ export interface FiltroDeclarado {
   opciones: OpcionDeFiltro[];
   /** El texto del valor "todos" (sin filtrar). Por defecto "Todos". */
   todos?: string;
-  /** `true` lo pinta como chip a la vista; `false` lo guarda en el popover. */
-  aVista: boolean;
+  /** Centinela explicito de la URL que significa "todos" (si no es la ausencia). */
+  valorTodos?: string;
+  /** Un valor aplicado por ausencia del parametro, cuando no equivale a "todos". */
+  porDefecto?: { valor: string; etiqueta: string; valorTodos: string };
   /**
    * Un filtro compuesto (el periodo, un rango de fechas) ocupa UNA entrada en la lista
    * pero limpia VARIAS claves de la URL. Si no se declara, se limpia solo `nombre`.
@@ -55,11 +57,14 @@ export type LectorDeUrl = (nombre: string) => string | null;
 /** El valor vigente de un filtro, o `null` si esta en "todos". */
 export function valorDeFiltro(filtro: FiltroDeclarado, leer: LectorDeUrl): string | null {
   const valor = leer(filtro.nombre);
-  return valor === null || valor === "" ? null : valor;
+  if (valor === null || valor === "") return filtro.porDefecto?.valor ?? null;
+  if (valor === (filtro.valorTodos ?? filtro.porDefecto?.valorTodos)) return null;
+  return valor;
 }
 
 /** La etiqueta legible del valor vigente de un filtro (lo que ve el usuario en el chip). */
 export function etiquetaDelValor(filtro: FiltroDeclarado, valor: string): string {
+  if (filtro.porDefecto?.valor === valor) return filtro.porDefecto.etiqueta;
   return filtro.opciones.find((o) => o.value === valor)?.label ?? valor;
 }
 
@@ -69,11 +74,11 @@ export function filtroActivo(filtro: FiltroDeclarado, leer: LectorDeUrl): boolea
 }
 
 /**
- * Cuantos filtros DEL POPOVER estan activos: es la `n` de "Filtros · n". Los chips a la
- * vista no cuentan, porque ya se ven; el popover guarda el resto (Baymard).
+ * Cuantos filtros estan activos: es la `n` de "Filtros · n". Todos los filtros
+ * declarados viven en el popover, incluidos los que aplican un valor por defecto.
  */
 export function activosEnPopover(filtros: FiltroDeclarado[], leer: LectorDeUrl): number {
-  return filtros.filter((f) => !f.aVista && filtroActivo(f, leer)).length;
+  return filtros.filter((f) => filtroActivo(f, leer)).length;
 }
 
 /**
@@ -90,9 +95,19 @@ export function clavesABorrar(filtros: FiltroDeclarado[]): string[] {
   return [...claves];
 }
 
+/** Cambios de URL que dejan todos los filtros sin aplicar, incluidos los defaults. */
+export function cambiosParaQuitar(filtros: FiltroDeclarado[]): Record<string, string | null> {
+  return Object.fromEntries(
+    filtros.flatMap((filtro) => [
+      [filtro.nombre, filtro.porDefecto?.valorTodos ?? null] as const,
+      ...(filtro.clavesExtra ?? []).map((clave) => [clave, null] as const),
+    ]),
+  );
+}
+
 /** Las claves del popover (sus `nombre` + `clavesExtra`): lo que borra "Quitar filtros". */
 export function clavesDelPopover(filtros: FiltroDeclarado[]): string[] {
-  return clavesABorrar(filtros.filter((f) => !f.aVista));
+  return clavesABorrar(filtros);
 }
 
 /** Una etiqueta activa, para la linea de estado: su filtro, el valor y el texto legible. */
@@ -103,6 +118,8 @@ export interface EtiquetaActiva {
   texto: string;
   /** Las claves de la URL a borrar al quitar ESTA etiqueta (nombre + extras). */
   claves: string[];
+  /** Cambios que quitan la etiqueta; un default se vence con su "todos" explicito. */
+  cambiosAlQuitar: Record<string, string | null>;
 }
 
 /**
@@ -120,6 +137,10 @@ export function etiquetasActivas(filtros: FiltroDeclarado[], leer: LectorDeUrl):
       valor,
       texto: etiquetaDelValor(filtro, valor),
       claves: [filtro.nombre, ...(filtro.clavesExtra ?? [])],
+      cambiosAlQuitar: Object.fromEntries([
+        [filtro.nombre, filtro.porDefecto?.valorTodos ?? null],
+        ...(filtro.clavesExtra ?? []).map((clave) => [clave, null] as const),
+      ]),
     });
   }
   return activas;

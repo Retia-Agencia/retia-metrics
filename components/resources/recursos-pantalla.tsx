@@ -175,7 +175,6 @@ export function RecursosPantalla({
     nombre: "programa",
     etiqueta: "Programa",
     todos: "Todos los programas",
-    aVista: true,
     opciones: programas.map((p) => ({ value: p.slug, label: p.nombre })),
   };
   const buscador =

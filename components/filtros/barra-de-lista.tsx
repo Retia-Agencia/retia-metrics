@@ -1,7 +1,7 @@
 "use client";
 
-import { type ReactNode } from "react";
-import { ArrowUpDown, SlidersHorizontal, X } from "lucide-react";
+import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import { ArrowUpDown, Loader2, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -15,18 +15,18 @@ import { num } from "@/lib/format";
 import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
 import {
   activosEnPopover,
-  clavesABorrar,
-  clavesDelPopover,
+  cambiosParaQuitar,
   etiquetasActivas,
   valorDeFiltro,
   type FiltroDeclarado,
 } from "@/components/filtros/declaracion";
 
 const TODOS = "todos";
+const InformarOrdenPendiente = createContext<(pendiente: boolean) => void>(() => {});
 
 /**
  * La barra de lista (ticket 202, A-105): una sola fila de herramientas de 32 px —búsqueda,
- * filtros a la vista, el resto en un popover "Filtros · n", orden aparte y un slot de
+ * el popover "Filtros · n", orden aparte y un slot de
  * acciones de vista— más una línea de estado con el conteo, los filtros activos con × y
  * "Quitar todo". Es UNA pieza reutilizable que escala por declaración: cada pantalla
  * declara sus filtros (`FiltroDeclarado[]`) y la barra deriva chips, popover, conteo,
@@ -35,7 +35,7 @@ const TODOS = "todos";
  *
  * Todo vive en la URL con `useFiltrosUrl` (ADR 0023); los nombres de los parámetros NO
  * cambian (regla 5). Las piezas compuestas (periodo, rango de fechas) no se reescriben:
- * llegan ya pintadas como nodos (`compuestosAVista` / `compuestosPopover`) y sus claves
+ * llegan ya pintadas como nodos (`compuestosPopover`) y sus claves
  * extra se declaran en `clavesCompuestas` para que "Quitar todo" también las limpie.
  *
  * Sigue Tinta (§9): sin color/sombra/radio a mano, el acento morado solo para un chip
@@ -54,8 +54,8 @@ export interface BarraDeListaProps {
   filtros: FiltroDeclarado[];
   /** El buscador, ya pintado (conserva su server action y debounce). Opcional. */
   buscador?: ReactNode;
-  /** Piezas compuestas que van A LA VISTA, ya pintadas como chips (p. ej. el periodo). */
-  compuestosAVista?: ReactNode;
+  /** El marco de la comparación, no un filtro. Solo lo usa el Dashboard para A vs B. */
+  marco?: ReactNode;
   /** Piezas compuestas que van DENTRO del popover (p. ej. un rango de fechas). */
   compuestosPopover?: ReactNode;
   /** Las claves de la URL de las piezas compuestas, para que "Quitar todo" las limpie. */
@@ -77,7 +77,7 @@ export function BarraDeLista({
   sustantivo = { singular: "resultado", plural: "resultados" },
   filtros,
   buscador,
-  compuestosAVista,
+  marco,
   compuestosPopover,
   clavesCompuestas = [],
   compuestoActivo = false,
@@ -86,35 +86,38 @@ export function BarraDeLista({
   resumen,
   aviso,
 }: BarraDeListaProps) {
-  const { busqueda, poner, quitar } = useFiltrosUrl();
+  const { busqueda, poner, pendiente } = useFiltrosUrl();
+  const [ordenPendiente, setOrdenPendiente] = useState(false);
   const leer = (nombre: string) => busqueda.get(nombre);
 
-  const aVista = filtros.filter((f) => f.aVista);
-  const enPopover = filtros.filter((f) => !f.aVista);
-  const nPopover = activosEnPopover(filtros, leer);
+  const nPopover = activosEnPopover(filtros, leer) + (compuestoActivo ? 1 : 0);
   const activas = etiquetasActivas(filtros, leer);
   const hayActivos = activas.length > 0 || compuestoActivo;
+  const hayNavegacionPendiente = pendiente || ordenPendiente;
 
-  const todasLasClaves = [...clavesABorrar(filtros), ...clavesCompuestas];
-  const clavesPopover = [...clavesDelPopover(enPopover), ...clavesCompuestas];
+  const quitarTodos = {
+    ...cambiosParaQuitar(filtros),
+    ...Object.fromEntries(clavesCompuestas.map((clave) => [clave, null])),
+  };
 
   return (
-    <div className="space-y-2">
+    <InformarOrdenPendiente value={setOrdenPendiente}>
+      <div
+        className="space-y-2 transition-opacity data-[pendiente=true]:opacity-60"
+        data-pendiente={hayNavegacionPendiente}
+      >
       <div className="flex flex-wrap items-center gap-2">
+        {marco}
+
         {buscador ? <div className="min-w-48 flex-1 basis-56">{buscador}</div> : null}
 
-        {compuestosAVista}
-
-        {aVista.map((filtro) => (
-          <ChipDeFiltro key={filtro.nombre} filtro={filtro} valor={valorDeFiltro(filtro, leer)} onElegir={poner} />
-        ))}
-
-        {enPopover.length > 0 || compuestosPopover ? (
+        {filtros.length > 0 || compuestosPopover ? (
           <Popover>
             <PopoverTrigger
               render={<Button type="button" variant="outline" size="sm" className="aria-expanded:border-ring" />}
+              aria-busy={pendiente}
             >
-              <SlidersHorizontal aria-hidden />
+              {pendiente ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <SlidersHorizontal aria-hidden />}
               Filtros
               {nPopover > 0 ? (
                 <>
@@ -125,17 +128,20 @@ export function BarraDeLista({
             </PopoverTrigger>
             <PopoverContent aria-label="Más filtros">
               <div className="space-y-3">
-                {enPopover.map((filtro) => (
+                {filtros.map((filtro) => (
                   <FilaDeFiltro key={filtro.nombre} filtro={filtro} valor={valorDeFiltro(filtro, leer)} onElegir={poner} />
                 ))}
                 {compuestosPopover}
-                {nPopover > 0 || (compuestosPopover && compuestoActivo) ? (
+                {nPopover > 0 ? (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className="w-full justify-start"
-                    onClick={() => quitar(clavesPopover)}
+                    onClick={() => poner({
+                      ...cambiosParaQuitar(filtros),
+                      ...Object.fromEntries(clavesCompuestas.map((clave) => [clave, null])),
+                    })}
                   >
                     <X aria-hidden />
                     Quitar filtros
@@ -163,7 +169,7 @@ export function BarraDeLista({
           <button
             key={activa.nombre}
             type="button"
-            onClick={() => quitar(activa.claves)}
+            onClick={() => poner(activa.cambiosAlQuitar)}
             className="inline-flex items-center gap-1 rounded-full border border-marca/40 bg-secondary px-2 py-0.5 text-marca-texto transition-colors duration-150 outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
             aria-label={`Quitar filtro ${activa.etiqueta}: ${activa.texto}`}
           >
@@ -174,7 +180,7 @@ export function BarraDeLista({
         ))}
 
         {hayActivos ? (
-          <Button type="button" variant="ghost" size="xs" onClick={() => quitar(todasLasClaves)}>
+          <Button type="button" variant="ghost" size="xs" onClick={() => poner(quitarTodos)}>
             Quitar todo
           </Button>
         ) : (
@@ -183,49 +189,8 @@ export function BarraDeLista({
 
         {aviso ? <span role="status">{aviso}</span> : null}
       </div>
-    </div>
-  );
-}
-
-/** Un chip de filtro a la vista: "Etiqueta: valor", con el acento cuando tiene valor. */
-function ChipDeFiltro({
-  filtro,
-  valor,
-  onElegir,
-}: {
-  filtro: FiltroDeclarado;
-  valor: string | null;
-  onElegir: (cambios: Record<string, string | null>) => void;
-}) {
-  const todos = filtro.todos ?? "Todos";
-  const activo = valor !== null;
-  const items = [{ value: TODOS, label: todos }, ...filtro.opciones];
-
-  return (
-    <Select
-      value={valor ?? TODOS}
-      items={items}
-      onValueChange={(elegido: string | null) =>
-        onElegir({ [filtro.nombre]: !elegido || elegido === TODOS ? null : elegido })
-      }
-    >
-      <SelectTrigger
-        size="sm"
-        aria-label={filtro.etiqueta}
-        className={activo ? "border-marca/50 text-marca-texto" : undefined}
-      >
-        <span className="text-muted-foreground">{filtro.etiqueta}:</span>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={TODOS}>{todos}</SelectItem>
-        {filtro.opciones.map((opcion) => (
-          <SelectItem key={opcion.value} value={opcion.value}>
-            {opcion.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      </div>
+    </InformarOrdenPendiente>
   );
 }
 
@@ -240,15 +205,25 @@ function FilaDeFiltro({
   onElegir: (cambios: Record<string, string | null>) => void;
 }) {
   const todos = filtro.todos ?? "Todos";
+  const opciones = filtro.opciones.map((opcion) =>
+    opcion.value === filtro.porDefecto?.valor ? { ...opcion, label: filtro.porDefecto.etiqueta } : opcion,
+  );
 
   return (
     <label className="grid gap-1 text-xs text-muted-foreground">
       {filtro.etiqueta}
       <Select
         value={valor ?? TODOS}
-        items={[{ value: TODOS, label: todos }, ...filtro.opciones]}
+        items={[{ value: TODOS, label: todos }, ...opciones]}
         onValueChange={(elegido: string | null) =>
-          onElegir({ [filtro.nombre]: !elegido || elegido === TODOS ? null : elegido })
+          onElegir({
+            [filtro.nombre]:
+              !elegido || elegido === filtro.porDefecto?.valor
+                ? null
+                : elegido === TODOS
+                  ? (filtro.valorTodos ?? filtro.porDefecto?.valorTodos ?? null)
+                  : elegido,
+          })
         }
       >
         <SelectTrigger className="w-full" aria-label={filtro.etiqueta}>
@@ -256,7 +231,7 @@ function FilaDeFiltro({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={TODOS}>{todos}</SelectItem>
-          {filtro.opciones.map((opcion) => (
+          {opciones.map((opcion) => (
             <SelectItem key={opcion.value} value={opcion.value}>
               {opcion.label}
             </SelectItem>
@@ -287,8 +262,14 @@ export function ControlDeOrden({
   opciones: { value: string; label: string }[];
   etiqueta?: string;
 }) {
-  const { poner } = useFiltrosUrl();
+  const { poner, pendiente } = useFiltrosUrl();
+  const informarPendiente = useContext(InformarOrdenPendiente);
   const actual = opciones.find((o) => o.value === valor);
+
+  useEffect(() => {
+    informarPendiente(pendiente);
+    return () => informarPendiente(false);
+  }, [informarPendiente, pendiente]);
 
   return (
     <Select
@@ -304,9 +285,14 @@ export function ControlDeOrden({
         }
       }}
     >
-      <SelectTrigger size="sm" aria-label={`${etiqueta}: ${actual?.label ?? valor}`} title={`${etiqueta}: ${actual?.label ?? valor}`}>
-        <ArrowUpDown aria-hidden />
-        <SelectValue />
+      <SelectTrigger
+        size="sm"
+        aria-label={`${etiqueta}: ${actual?.label ?? valor}`}
+        aria-busy={pendiente}
+        title={`${etiqueta}: ${actual?.label ?? valor}`}
+      >
+        {pendiente ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <ArrowUpDown aria-hidden />}
+        <span>Ordenar: {actual?.label ?? valor}</span>
       </SelectTrigger>
       <SelectContent>
         {opciones.map((opcion) => (

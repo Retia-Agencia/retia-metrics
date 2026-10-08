@@ -134,7 +134,6 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
       tipo: "select",
       nombre: "deal",
       etiqueta: "Deal",
-      aVista: true,
       opciones: [
         { value: "sin", label: "Sin deal" },
         { value: "con", label: "Con deal" },
@@ -145,7 +144,6 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
       nombre: "calidad",
       etiqueta: "Calidad",
       todos: "Todas",
-      aVista: false,
       opciones: CALIDADES.map((c) => ({ value: c.valor, label: c.etiqueta })),
     },
     {
@@ -153,7 +151,6 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
       nombre: "abandono",
       etiqueta: "Abandonó el formulario",
       todos: "No",
-      aVista: false,
       opciones: [{ value: "1", label: "Sí" }],
     },
     {
@@ -161,7 +158,6 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
       nombre: "duplicado",
       etiqueta: "Posible duplicado",
       todos: "No",
-      aVista: false,
       opciones: [{ value: "1", label: "Sí" }],
     },
   ];
@@ -192,7 +188,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
             sustantivo={{ singular: "lead", plural: "leads" }}
             filtros={filtrosLeads}
             buscador={<BuscadorDeLeads programaSlug={programa.slug} origen={origen} />}
-            compuestosAVista={<FiltroFechaLista campos={CAMPOS} filtro={filtroDeFecha} />}
+            compuestosPopover={<FiltroFechaLista campos={CAMPOS} filtro={filtroDeFecha} />}
             clavesCompuestas={CLAVES_DE_FECHA_LISTA}
             compuestoActivo={filtroDeFecha != null}
             orden={

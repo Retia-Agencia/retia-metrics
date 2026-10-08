@@ -8,15 +8,15 @@ import type { OpcionCanal, OpcionCatalogo, OrdenKanban } from "@/lib/queries/kan
 
 /**
  * Filtros del Kanban sobre la barra de lista (ticket 069, migrado por el ticket 202):
- * dueño y fecha a la vista; calidad, valor, cohorte, canal y antigüedad en el popover;
- * el orden aparte. Todo vive en la URL, no en estado del componente (ADR 0023): un
+ * todos los filtros viven en el popover y el orden queda aparte. Todo vive en la URL,
+ * no en estado del componente (ADR 0023): un
  * tablero filtrado se comparte y se recarga. Un closer sin filtros ve el programa
  * completo, igual que un gerente (ADR 0048). Los ids que van a la URL son opacos (owner,
  * cohorte) o texto de canal; ningún dato personal.
  *
  * La cohorte tiene un centinela propio ("todas") distinto de la ausencia: sin `cohorte`
- * en la URL se ve la cohorte ACTIVA (el valor "todos" del chip), no "todas". Por eso su
- * declaración incluye la opción "todas" como un valor real.
+ * en la URL se ve la cohorte ACTIVA, no "todas". La declaración modela ambos valores
+ * para contar el default y escribir el centinela al quitarlo.
  */
 
 const ANTIGUEDADES = [
@@ -29,7 +29,7 @@ const ANTIGUEDADES = [
 export interface FiltroKanbanProps {
   total: number;
   mostrarDueno: boolean;
-  cohorteId: string | null;
+  cohorteActivaId: string | null;
   antiguedadMinima: number | null;
   owners: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
@@ -46,7 +46,7 @@ export interface FiltroKanbanProps {
 export function FiltroKanban({
   total,
   mostrarDueno,
-  cohorteId,
+  cohorteActivaId,
   antiguedadMinima,
   owners,
   cohortes,
@@ -65,7 +65,6 @@ export function FiltroKanban({
             nombre: "owner",
             etiqueta: "Dueño",
             todos: "Todos los dueños",
-            aVista: true,
             opciones: owners.map((o) => ({ value: o.id, label: o.nombre })),
           },
         ]
@@ -75,7 +74,6 @@ export function FiltroKanban({
       nombre: "leadQuality",
       etiqueta: "Calidad",
       todos: "Todas las calidades",
-      aVista: false,
       opciones: leadQualities.map((v) => ({ value: v, label: v })),
     },
     {
@@ -83,27 +81,24 @@ export function FiltroKanban({
       nombre: "leadValue",
       etiqueta: "Valor",
       todos: "Todos los valores",
-      aVista: false,
       opciones: leadValues.map((v) => ({ value: v, label: v })),
     },
     {
       tipo: "select",
       nombre: "cohorte",
       etiqueta: "Cohorte",
-      // Sin `cohorte` en la URL se ve la cohorte activa; "todas" es un valor real.
-      todos: "Cohorte activa",
-      aVista: false,
-      opciones: [
-        { value: "todas", label: "Todas las cohortes" },
-        ...cohortes.map((c) => ({ value: c.id, label: c.nombre })),
-      ],
+      todos: "Todas las cohortes",
+      valorTodos: "todas",
+      porDefecto: cohorteActivaId
+        ? { valor: cohorteActivaId, etiqueta: "Cohorte activa", valorTodos: "todas" }
+        : undefined,
+      opciones: cohortes.map((c) => ({ value: c.id, label: c.nombre })),
     },
     {
       tipo: "select",
       nombre: "canal",
       etiqueta: "Canal",
       todos: "Todos los canales",
-      aVista: false,
       opciones: canales.map((c) => ({ value: c.clave, label: `${c.utmSource} / ${c.utmMedium}` })),
     },
     {
@@ -111,14 +106,10 @@ export function FiltroKanban({
       nombre: "antiguedad",
       etiqueta: "Antigüedad en la etapa",
       todos: "Cualquier antigüedad",
-      aVista: false,
       opciones: ANTIGUEDADES,
     },
   ];
 
-  // El chip de cohorte muestra "todos" (= activa) cuando no hay `cohorte` en la URL; si
-  // el servidor resolvió un id, se refleja. `cohorteId` null + sin "todas" = activa.
-  void cohorteId;
   void antiguedadMinima;
 
   return (
@@ -126,7 +117,7 @@ export function FiltroKanban({
       total={total}
       sustantivo={{ singular: "deal", plural: "deals" }}
       filtros={filtros}
-      compuestosAVista={<FiltroFechaLista campos={camposDeFecha} filtro={fecha} />}
+      compuestosPopover={<FiltroFechaLista campos={camposDeFecha} filtro={fecha} />}
       clavesCompuestas={CLAVES_DE_FECHA_LISTA}
       compuestoActivo={fecha != null}
       orden={

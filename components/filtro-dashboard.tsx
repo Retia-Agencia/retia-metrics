@@ -8,16 +8,14 @@ import type { OpcionDeCloser } from "@/lib/queries/dashboard";
 
 /**
  * Filtro del dashboard sobre la barra de lista (ticket 005, migrado por el ticket 202):
- * el periodo (chip compacto) y el closer, los dos a la vista; sin popover (no hace
- * falta). No lleva conteo de resultados: un dashboard no es una lista de un solo total.
+ * el periodo es el marco de comparación A vs B y el closer vive en el popover. No lleva
+ * conteo de resultados: un dashboard no es una lista de un solo total.
  *
  * Vive en la URL, no en estado del componente: así un dashboard filtrado se puede
  * compartir o recargar, y el servidor arma la vista sin un ida y vuelta de cliente. El
  * closer de la URL es su `users.id` (Decisión 5, ticket 167); ningún dato personal de un
- * lead pasa por acá. Las claves de periodo que se limpian son las mismas de siempre.
+ * lead pasa por acá. El periodo no se limpia junto con los filtros: no es un filtro.
  */
-
-const CLAVES_DE_PERIODO = ["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "rango", "desde", "hasta"];
 
 export interface FiltroProps {
   periodo: PeriodoResuelto;
@@ -47,7 +45,6 @@ export function FiltroDashboard({
           nombre: "closer",
           etiqueta: "Closer",
           todos: "Todos los closers",
-          aVista: true,
           opciones: closers.map((c) => ({ value: c.id, label: c.label })),
         },
       ]
@@ -56,7 +53,7 @@ export function FiltroDashboard({
   return (
     <BarraDeLista
       filtros={filtros}
-      compuestosAVista={
+      marco={
         <SelectorPeriodo
           periodo={periodo}
           cohorteDisponible={cohorteDisponible}
@@ -64,8 +61,6 @@ export function FiltroDashboard({
           variante="chip"
         />
       }
-      clavesCompuestas={CLAVES_DE_PERIODO}
-      compuestoActivo={false}
       aviso={periodo.aviso ? periodo.aviso : undefined}
     />
   );

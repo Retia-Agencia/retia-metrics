@@ -45,7 +45,6 @@ export default async function BitacoraPage({ searchParams }: Props) {
       tipo: "select",
       nombre: "usuario",
       etiqueta: "Usuario",
-      aVista: true,
       opciones: [
         { value: USUARIO_SISTEMA, label: "Sistema (sin usuario)" },
         ...opciones.usuarios.map((u) => ({ value: u.id, label: u.email })),
@@ -56,7 +55,6 @@ export default async function BitacoraPage({ searchParams }: Props) {
       nombre: "tabla",
       etiqueta: "Tabla",
       todos: "Todas",
-      aVista: true,
       opciones: [
         { value: TABLA_MOVIMIENTOS, label: "Movimientos de etapa" },
         ...opciones.tablas.map((t) => ({ value: t, label: t })),

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { hayFiltrosActivos, siguienteQuery } from "@/components/filtros/query";
 import {
   activosEnPopover,
+  cambiosParaQuitar,
   clavesABorrar,
   clavesDelPopover,
   etiquetaDelValor,
@@ -48,7 +49,6 @@ describe("la barra de lista deriva todo de las declaraciones (ticket 202)", () =
     tipo: "select",
     nombre: "deal",
     etiqueta: "Deal",
-    aVista: true,
     opciones: [
       { value: "con", label: "Con deal" },
       { value: "sin", label: "Sin deal" },
@@ -59,7 +59,6 @@ describe("la barra de lista deriva todo de las declaraciones (ticket 202)", () =
     nombre: "calidad",
     etiqueta: "Calidad",
     todos: "Todas",
-    aVista: false,
     opciones: [
       { value: "high", label: "High" },
       { value: "low", label: "Low" },
@@ -70,11 +69,19 @@ describe("la barra de lista deriva todo de las declaraciones (ticket 202)", () =
     tipo: "select",
     nombre: "fecha",
     etiqueta: "Fecha",
-    aVista: false,
     opciones: [{ value: "creado", label: "Creado" }],
     clavesExtra: ["periodo", "a_desde", "a_hasta"],
   };
   const filtros = [deal, calidad, fecha];
+  const cohorte: FiltroDeclarado = {
+    tipo: "select",
+    nombre: "cohorte",
+    etiqueta: "Cohorte",
+    todos: "Todas las cohortes",
+    valorTodos: "todas",
+    porDefecto: { valor: "c-activa", etiqueta: "Cohorte activa", valorTodos: "todas" },
+    opciones: [{ value: "c-activa", label: "Octubre" }],
+  };
   const leerDe = (query: string): LectorDeUrl => {
     const params = new URLSearchParams(query);
     return (nombre) => params.get(nombre);
@@ -96,18 +103,40 @@ describe("la barra de lista deriva todo de las declaraciones (ticket 202)", () =
     expect(filtroActivo(deal, leerDe("calidad=high"))).toBe(false);
   });
 
-  it("'Filtros · n' cuenta SOLO los activos del popover, no los chips a la vista", () => {
-    expect(activosEnPopover(filtros, leerDe("deal=con"))).toBe(0);
-    expect(activosEnPopover(filtros, leerDe("deal=con&calidad=high"))).toBe(1);
+  it("'Filtros · n' cuenta todos los filtros declarados activos", () => {
+    expect(activosEnPopover(filtros, leerDe("deal=con"))).toBe(1);
+    expect(activosEnPopover(filtros, leerDe("deal=con&calidad=high"))).toBe(2);
     expect(activosEnPopover(filtros, leerDe("calidad=high&fecha=creado"))).toBe(2);
+  });
+
+  it("cuenta y etiqueta un filtro aplicado por defecto", () => {
+    expect(valorDeFiltro(cohorte, leerDe(""))).toBe("c-activa");
+    expect(activosEnPopover([cohorte], leerDe(""))).toBe(1);
+    expect(etiquetasActivas([cohorte], leerDe(""))[0]).toMatchObject({
+      valor: "c-activa",
+      texto: "Cohorte activa",
+    });
+    expect(valorDeFiltro(cohorte, leerDe("cohorte=todas"))).toBeNull();
+  });
+
+  it("quitar el chip de un default escribe el valor explicito de todos", () => {
+    const [activa] = etiquetasActivas([cohorte], leerDe(""));
+    expect(siguienteQuery("", activa!.cambiosAlQuitar)).toBe("cohorte=todas");
+    expect(cambiosParaQuitar([cohorte])).toEqual({ cohorte: "todas" });
+  });
+
+  it("quitar un filtro sin default conserva el comportamiento de borrar el parametro", () => {
+    const [activa] = etiquetasActivas([deal], leerDe("deal=con"));
+    expect(activa!.cambiosAlQuitar).toEqual({ deal: null });
+    expect(cambiosParaQuitar([deal])).toEqual({ deal: null });
   });
 
   it("las claves a borrar salen de las declaraciones, con las extras y sin duplicar", () => {
     expect(clavesABorrar(filtros)).toEqual(["deal", "calidad", "fecha", "periodo", "a_desde", "a_hasta"]);
   });
 
-  it("'Quitar filtros' del popover borra solo las claves del popover", () => {
-    expect(clavesDelPopover(filtros)).toEqual(["calidad", "fecha", "periodo", "a_desde", "a_hasta"]);
+  it("'Quitar filtros' del popover abarca todas las claves declaradas", () => {
+    expect(clavesDelPopover(filtros)).toEqual(["deal", "calidad", "fecha", "periodo", "a_desde", "a_hasta"]);
   });
 
   it("las etiquetas activas conservan el orden de la declaración y traen sus claves", () => {

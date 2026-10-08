@@ -75,18 +75,17 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
       tipo: "select",
       nombre: "cohorte",
       etiqueta: "Cohorte",
-      todos: activa ? `${activa.codigo} (activa)` : "Todas las cohortes",
-      aVista: true,
-      opciones: [
-        { value: "todas", label: "Todas las cohortes" },
-        ...cohortes.map((c) => ({ value: c.id, label: `${c.codigo}${c.estado === "activo" ? " (activa)" : ""}` })),
-      ],
+      todos: "Todas las cohortes",
+      valorTodos: "todas",
+      porDefecto: activa
+        ? { valor: activa.id, etiqueta: `${activa.codigo} (activa)`, valorTodos: "todas" }
+        : undefined,
+      opciones: cohortes.map((c) => ({ value: c.id, label: `${c.codigo}${c.estado === "activo" ? " (activa)" : ""}` })),
     },
     {
       tipo: "select",
       nombre: "onboarding",
       etiqueta: "Onboarding",
-      aVista: false,
       opciones: [
         { value: "no", label: "Sin onboarding" },
         { value: "si", label: "Con onboarding" },

@@ -89,7 +89,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
           <FiltroKanban
             total={tablero.total}
             mostrarDueno={alcanceDeals.tipo === "todos"}
-            cohorteId={busqueda.cohorte === "todas" ? null : filtros.cohorteId ?? null}
+            cohorteActivaId={activa?.id ?? null}
             antiguedadMinima={filtros.antiguedadMinima ?? null}
             owners={opciones.owners}
             cohortes={opciones.cohortes}
