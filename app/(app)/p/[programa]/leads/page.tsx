@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LayoutList, Table2 } from "lucide-react";
+import { z } from "zod";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido } from "@/lib/auth/roles";
@@ -20,8 +21,8 @@ import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { filtroDeFechaDeLaUrl } from "@/lib/periodo";
 import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
 import { CLAVES_DE_FECHA_LISTA } from "@/components/filtro-fecha-lista";
-import { BarraDeLista } from "@/components/filtros/barra-de-lista";
-import type { FiltroDeclarado } from "@/components/filtros/declaracion";
+import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
+import { OPCIONES_DE_ORDEN, type FiltroDeclarado } from "@/components/filtros/declaracion";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas } from "@/components/layout/pestanas";
@@ -56,6 +57,10 @@ const CAMPOS = [
   { valor: "ultimo_envio", etiqueta: "Último envío" },
 ] as const satisfies readonly { valor: (typeof CAMPOS_DE_FECHA_DE_LEAD)[number]; etiqueta: string }[];
 
+const ordenSchema = z.object({
+  campo: z.enum(["actividad", "creado", "nombre"]),
+  sentido: z.enum(["asc", "desc"]),
+});
 
 /**
  * La tab Leads (ticket 072, ADR 0050): la base del programa, sobre todo lo que existe y todavía no
@@ -76,6 +81,8 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   const deal = uno(q.deal);
   const calidad = CALIDADES_DE_LEAD.find((c) => c === uno(q.calidad)) ?? null;
   const filtroDeFecha = filtroDeFechaDeLaUrl(q, CAMPOS_DE_FECHA_DE_LEAD, hoyEnBogota());
+  const ordenLeido = ordenSchema.safeParse({ campo: uno(q.orden), sentido: uno(q.sentido) });
+  const orden = ordenLeido.success ? ordenLeido.data : { campo: "actividad", sentido: "desc" } as const;
   const pagina = Math.max(0, Number.parseInt(uno(q.pagina) ?? "0", 10) || 0);
   const paginaDup = Math.max(0, Number.parseInt(uno(q.pdup) ?? "0", 10) || 0);
   const vista = uno(q.vista) === "tabla" ? "tabla" : "tarjetas";
@@ -86,6 +93,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
     abandono: uno(q.abandono) === "1",
     duplicado: uno(q.duplicado) === "1",
     fecha: filtroDeFecha ? { campo: filtroDeFecha.campo, rango: filtroDeFecha.periodo.a } : null,
+    orden,
     pagina,
   };
   // El closer ve solo los duplicados de SUS deals (186); quien administra, los del programa.
@@ -187,6 +195,14 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
             compuestosAVista={<FiltroFechaLista campos={CAMPOS} filtro={filtroDeFecha} />}
             clavesCompuestas={CLAVES_DE_FECHA_LISTA}
             compuestoActivo={filtroDeFecha != null}
+            orden={
+              <ControlDeOrden
+                nombre="orden"
+                sentido="sentido"
+                valor={`${orden.campo}:${orden.sentido}`}
+                opciones={OPCIONES_DE_ORDEN}
+              />
+            }
             acciones={seccion === "leads" ? vistaToggle : null}
           />
         </div>

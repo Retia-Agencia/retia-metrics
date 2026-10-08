@@ -298,9 +298,9 @@ export function ControlDeOrden({
         if (!elegido) return;
         if (sentido) {
           const [campo, sent] = elegido.split(":");
-          poner({ [nombre]: campo, [sentido]: sent });
+          poner({ [nombre]: campo, [sentido]: sent, pagina: null });
         } else {
-          poner({ [nombre]: elegido });
+          poner({ [nombre]: elegido, pagina: null });
         }
       }}
     >

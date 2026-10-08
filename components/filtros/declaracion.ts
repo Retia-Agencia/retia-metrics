@@ -18,6 +18,15 @@ export interface OpcionDeFiltro {
   label: string;
 }
 
+export const OPCIONES_DE_ORDEN = [
+  { value: "actividad:desc", label: "Actividad: más reciente" },
+  { value: "actividad:asc", label: "Actividad: más antigua" },
+  { value: "creado:desc", label: "Creación: más reciente" },
+  { value: "creado:asc", label: "Creación: más antigua" },
+  { value: "nombre:asc", label: "Nombre: A → Z" },
+  { value: "nombre:desc", label: "Nombre: Z → A" },
+];
+
 /**
  * Un filtro declarado por una pantalla. Hoy solo hay seleccion simple (`select`); la API
  * deja sitio para agregar seleccion multiple despues sin romperla (fuera de alcance).

@@ -1,7 +1,7 @@
 "use client";
 
 import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
-import type { FiltroDeclarado } from "@/components/filtros/declaracion";
+import { OPCIONES_DE_ORDEN, type FiltroDeclarado } from "@/components/filtros/declaracion";
 import { FiltroFechaLista, CLAVES_DE_FECHA_LISTA } from "@/components/filtro-fecha-lista";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import type { OpcionCanal, OpcionCatalogo, OrdenKanban } from "@/lib/queries/kanban";
@@ -24,13 +24,6 @@ const ANTIGUEDADES = [
   { value: "7", label: "7+ días" },
   { value: "14", label: "14+ días" },
   { value: "30", label: "30+ días" },
-];
-
-const ORDENES = [
-  { value: "actividad:desc", label: "Actividad: más reciente" },
-  { value: "actividad:asc", label: "Actividad: más antigua" },
-  { value: "creado:desc", label: "Creación: más reciente" },
-  { value: "creado:asc", label: "Creación: más antigua" },
 ];
 
 export interface FiltroKanbanProps {
@@ -141,7 +134,7 @@ export function FiltroKanban({
           nombre="orden"
           sentido="sentido"
           valor={`${orden.campo}:${orden.sentido}`}
-          opciones={ORDENES}
+          opciones={OPCIONES_DE_ORDEN}
         />
       }
     />

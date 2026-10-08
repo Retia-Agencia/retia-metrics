@@ -33,6 +33,7 @@ export interface FiltroLeads {
   duplicado?: boolean;
   /** Sobre qué fecha y en qué días `YYYY-MM-DD` de Bogotá, inclusive (ticket 141). */
   fecha?: { campo: CampoDeFechaDeLead; rango: Rango } | null;
+  orden?: { campo: "actividad" | "creado" | "nombre"; sentido: "asc" | "desc" };
   /** Desde 0. */
   pagina?: number;
 }
@@ -124,6 +125,8 @@ export async function leadsDelPrograma(
   filtro: FiltroLeads = {},
 ): Promise<{ total: number; filas: FilaLead[] }> {
   const calidadDelLead = sql<string>`lower(trim(${leads.leadQuality}))`;
+  const fechaDeActividad = leads.fechaUltimaAplicacion;
+  const fechaDeCreacion = sql<Date>`coalesce(${leads.fechaPrimeraAplicacion}, ${leads.createdAt})`;
   const condiciones: (SQL | undefined)[] = [eq(leads.programId, programId)];
   if (filtro.deal === "con") condiciones.push(inArray(leads.id, conDeal(db)));
   if (filtro.deal === "sin") condiciones.push(notInArray(leads.id, conDeal(db)));
@@ -136,14 +139,23 @@ export async function leadsDelPrograma(
   if (filtro.duplicado) condiciones.push(inArray(leads.id, conCorreoSinConfirmar(db)));
   if (filtro.fecha) {
     const dia = filtro.fecha.campo === "creado"
-      ? sql<string>`(coalesce(${leads.fechaPrimeraAplicacion}, ${leads.createdAt}) AT TIME ZONE 'America/Bogota')::date`
-      : sql<string>`(${leads.fechaUltimaAplicacion} AT TIME ZONE 'America/Bogota')::date`;
+      ? sql<string>`(${fechaDeCreacion} AT TIME ZONE 'America/Bogota')::date`
+      : sql<string>`(${fechaDeActividad} AT TIME ZONE 'America/Bogota')::date`;
     condiciones.push(between(dia, filtro.fecha.rango.desde, filtro.fecha.rango.hasta));
   }
   const donde = and(...condiciones);
 
   const [{ total }] = await db.select({ total: count() }).from(leads).where(donde);
   const pagina = Math.max(0, filtro.pagina ?? 0);
+  const orden = filtro.orden ?? { campo: "actividad", sentido: "desc" };
+  const columnaDeOrden = orden.campo === "actividad"
+    ? fechaDeActividad
+    : orden.campo === "creado"
+      ? fechaDeCreacion
+      : sql`nullif(lower(trim(${leads.nombre})), '')`;
+  const ordenPrimario = orden.sentido === "asc"
+    ? sql`${columnaDeOrden} asc nulls last`
+    : sql`${columnaDeOrden} desc nulls last`;
   const base = await db
     .select({
       id: leads.id,
@@ -158,7 +170,7 @@ export async function leadsDelPrograma(
     })
     .from(leads)
     .where(donde)
-    .orderBy(sql`${leads.fechaUltimaAplicacion} desc nulls last`, desc(leads.createdAt))
+    .orderBy(ordenPrimario, desc(leads.createdAt), asc(leads.id))
     .limit(LEADS_POR_PAGINA)
     .offset(pagina * LEADS_POR_PAGINA);
   if (base.length === 0) return { total, filas: [] };

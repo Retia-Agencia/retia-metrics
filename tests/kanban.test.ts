@@ -71,6 +71,7 @@ afterEach(async () => {
 
 interface OpcDeal {
   etapa: EtapaDeal;
+  nombre?: string | null;
   envios?: number;
   pendiente?: "reagenda" | "seguimiento" | "proxima_cohorte" | null;
   owner?: string;
@@ -95,7 +96,7 @@ async function deal(o: OpcDeal): Promise<string> {
     .values({
       programId,
       emailNormalizado: `l${++leadN}@correo.co`,
-      nombre: `Lead ${leadN}`,
+      nombre: o.nombre === undefined ? `Lead ${leadN}` : o.nombre,
       numAplicaciones: o.envios ?? 1,
     })
     .returning();
@@ -194,6 +195,20 @@ describe("tableroKanban", () => {
     );
     const ids = tablero.columnas.find((columna) => columna.etapa === "contactado")!.tarjetas.map((tarjeta) => tarjeta.dealId);
     expect(ids).toEqual([uno, dos].sort());
+  });
+
+  it("ordena nombres A-Z y Z-A sin distinguir acentos ni mayusculas, con los vacios al final", async () => {
+    const alvaro = await deal({ etapa: "contactado", nombre: "álvaro", creado: "2026-09-02T12:00:00-05:00" });
+    const alvaroSinAcento = await deal({ etapa: "contactado", nombre: "Alvaro", creado: "2026-09-01T12:00:00-05:00" });
+    const beatriz = await deal({ etapa: "contactado", nombre: "beatriz" });
+    const sinNombre = await deal({ etapa: "contactado", nombre: null });
+    const ids = async (sentido: "asc" | "desc") => {
+      const tablero = await tableroKanban(db, programId, { tipo: "todos" }, { orden: { campo: "nombre", sentido } }, HOY);
+      return tablero.columnas.find((columna) => columna.etapa === "contactado")!.tarjetas.map((tarjeta) => tarjeta.dealId);
+    };
+
+    expect(await ids("asc")).toEqual([alvaro, alvaroSinAcento, beatriz, sinNombre]);
+    expect(await ids("desc")).toEqual([beatriz, alvaro, alvaroSinAcento, sinNombre]);
   });
 
   it("suma potencial y confirmado visibles desde saldosDeDeals y el ticket de cohorte", async () => {
@@ -421,6 +436,11 @@ describe("parsearFiltros", () => {
     expect(parsearFiltros({ orden: "creado", sentido: "asc" }).orden).toEqual({ campo: "creado", sentido: "asc" });
     expect(parsearFiltros({ orden: "otro", sentido: "asc" }).orden).toEqual({ campo: "actividad", sentido: "desc" });
     expect(parsearFiltros({ orden: "creado", sentido: "otro" }).orden).toEqual({ campo: "actividad", sentido: "desc" });
+  });
+
+  it("acepta nombre y ante un orden invalido de la URL vuelve a actividad reciente", () => {
+    expect(parsearFiltros({ orden: "nombre", sentido: "asc" }).orden).toEqual({ campo: "nombre", sentido: "asc" });
+    expect(parsearFiltros({ orden: "nombre", sentido: "lateral" }).orden).toEqual({ campo: "actividad", sentido: "desc" });
   });
 
   it("usa la cohorte activa por ausencia, todas como null y conserva un id explicito", () => {

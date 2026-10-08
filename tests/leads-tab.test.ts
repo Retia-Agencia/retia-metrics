@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { deals, leadContactos, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { buscarLeads, leadsDelPrograma } from "@/lib/queries/leads";
+import { buscarLeads, LEADS_POR_PAGINA, leadsDelPrograma } from "@/lib/queries/leads";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -107,6 +107,76 @@ describe("leadsDelPrograma", () => {
     const ultimo = (desde: string, hasta: string) => ({ fecha: { campo: "ultimo_envio" as const, rango: { desde, hasta } } });
     expect(await correos(ultimo("2026-09-01", "2026-09-01"))).toEqual(["con-deal@c.co"]);
     expect(await correos(ultimo("2026-09-02", "2026-09-20"))).toEqual(["parcial@c.co", "sin-estado@c.co"]);
+  });
+
+  it("ordena por actividad, creacion y nombre en ambos sentidos, dejando nombres vacios al final", async () => {
+    const [programaOrden] = await db.insert(programs).values({
+      ...PROGRAMA_DE_PRUEBA,
+      slug: "orden",
+      nombre: "Orden",
+      ticketUsd: "1000",
+    }).returning();
+    await db.insert(leads).values([
+      {
+        programId: programaOrden.id,
+        emailNormalizado: "ana@c.co",
+        nombre: " Ana ",
+        fechaUltimaAplicacion: new Date("2026-10-01T12:00:00Z"),
+        fechaPrimeraAplicacion: new Date("2026-09-03T12:00:00Z"),
+        createdAt: new Date("2026-09-04T12:00:00Z"),
+      },
+      {
+        programId: programaOrden.id,
+        emailNormalizado: "beatriz@c.co",
+        nombre: "beatriz",
+        fechaUltimaAplicacion: new Date("2026-10-03T12:00:00Z"),
+        fechaPrimeraAplicacion: new Date("2026-09-01T12:00:00Z"),
+        createdAt: new Date("2026-09-02T12:00:00Z"),
+      },
+      {
+        programId: programaOrden.id,
+        emailNormalizado: "vacio@c.co",
+        nombre: "  ",
+        fechaUltimaAplicacion: new Date("2026-10-02T12:00:00Z"),
+        createdAt: new Date("2026-09-05T12:00:00Z"),
+      },
+      {
+        programId: programaOrden.id,
+        emailNormalizado: "nulo@c.co",
+        nombre: null,
+        fechaUltimaAplicacion: null,
+        createdAt: new Date("2026-09-06T12:00:00Z"),
+      },
+    ]);
+    const ordenados = async (campo: "actividad" | "creado" | "nombre", sentido: "asc" | "desc") =>
+      (await leadsDelPrograma(db, programaOrden.id, { orden: { campo, sentido } })).filas.map((fila) => fila.email);
+
+    expect(await ordenados("actividad", "asc")).toEqual(["ana@c.co", "vacio@c.co", "beatriz@c.co", "nulo@c.co"]);
+    expect(await ordenados("actividad", "desc")).toEqual(["beatriz@c.co", "vacio@c.co", "ana@c.co", "nulo@c.co"]);
+    expect(await ordenados("creado", "asc")).toEqual(["beatriz@c.co", "ana@c.co", "vacio@c.co", "nulo@c.co"]);
+    expect(await ordenados("creado", "desc")).toEqual(["nulo@c.co", "vacio@c.co", "ana@c.co", "beatriz@c.co"]);
+    expect(await ordenados("nombre", "asc")).toEqual(["ana@c.co", "beatriz@c.co", "nulo@c.co", "vacio@c.co"]);
+    expect(await ordenados("nombre", "desc")).toEqual(["beatriz@c.co", "ana@c.co", "nulo@c.co", "vacio@c.co"]);
+  });
+
+  it("mantiene el orden por nombre entre paginas consecutivas", async () => {
+    const [programaPaginado] = await db.insert(programs).values({
+      ...PROGRAMA_DE_PRUEBA,
+      slug: "paginado",
+      nombre: "Paginado",
+      ticketUsd: "1000",
+    }).returning();
+    await db.insert(leads).values(Array.from({ length: LEADS_POR_PAGINA + 2 }, (_, indice) => ({
+      programId: programaPaginado.id,
+      emailNormalizado: `orden-${String(indice).padStart(3, "0")}@c.co`,
+      nombre: `Lead ${String(indice).padStart(3, "0")}`,
+    })));
+    const orden = { campo: "nombre" as const, sentido: "asc" as const };
+    const pagina0 = await leadsDelPrograma(db, programaPaginado.id, { orden, pagina: 0 });
+    const pagina1 = await leadsDelPrograma(db, programaPaginado.id, { orden, pagina: 1 });
+
+    expect(pagina0.filas.at(-1)?.email).toBe("orden-099@c.co");
+    expect(pagina1.filas[0]?.email).toBe("orden-100@c.co");
   });
 
   it("devuelve la etapa del deal abierto preferida y el canal del envío más reciente", async () => {

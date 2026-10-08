@@ -122,7 +122,7 @@ export interface TableroKanban {
 }
 
 export interface OrdenKanban {
-  campo: "actividad" | "creado";
+  campo: "actividad" | "creado" | "nombre";
   sentido: "desc" | "asc";
 }
 
@@ -146,7 +146,7 @@ export interface FiltrosKanban {
 type FiltrosDeEntradaKanban = Omit<FiltrosKanban, "orden"> & { orden?: OrdenKanban };
 
 const ordenSchema = z.object({
-  campo: z.enum(["actividad", "creado"]),
+  campo: z.enum(["actividad", "creado", "nombre"]),
   sentido: z.enum(["desc", "asc"]),
 });
 const ORDEN_PREDETERMINADO = { campo: "actividad", sentido: "desc" } as const;
@@ -403,10 +403,21 @@ function compararTarjetas(
   b: TarjetaDeal,
   orden: OrdenKanban,
 ): number {
-  const fechaA = orden.campo === "actividad" ? a.ultimaActividadEn : a.creadoEn;
-  const fechaB = orden.campo === "actividad" ? b.ultimaActividadEn : b.creadoEn;
-  const porFecha = fechaA.getTime() - fechaB.getTime();
-  if (porFecha !== 0) return orden.sentido === "asc" ? porFecha : -porFecha;
+  if (orden.campo === "nombre") {
+    const nombreA = a.nombreLead?.trim() || null;
+    const nombreB = b.nombreLead?.trim() || null;
+    if (nombreA === null && nombreB !== null) return 1;
+    if (nombreA !== null && nombreB === null) return -1;
+    if (nombreA !== null && nombreB !== null) {
+      const porNombre = nombreA.localeCompare(nombreB, "es", { sensitivity: "base" });
+      if (porNombre !== 0) return orden.sentido === "asc" ? porNombre : -porNombre;
+    }
+  } else {
+    const fechaA = orden.campo === "actividad" ? a.ultimaActividadEn : a.creadoEn;
+    const fechaB = orden.campo === "actividad" ? b.ultimaActividadEn : b.creadoEn;
+    const porFecha = fechaA.getTime() - fechaB.getTime();
+    if (porFecha !== 0) return orden.sentido === "asc" ? porFecha : -porFecha;
+  }
   const porCreacion = b.creadoEn.getTime() - a.creadoEn.getTime();
   return porCreacion || a.dealId.localeCompare(b.dealId);
 }
