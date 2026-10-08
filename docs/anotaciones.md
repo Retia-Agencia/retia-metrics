@@ -220,6 +220,12 @@ personales que se consumen al verlas, sin abrir otra pantalla.
 | A-104 | Mi espacio → Necesita atención | cambio | Los cambios de Calendly (cita nueva, reagenda, cancelación, no-show y corrección) van en una cola personal arriba: no leídos primero, leídos grises debajo; abrir o marcar vista los consume. La cancelación conserva urgencia explícita. | 201 | en ticket |
 | A-105 | Leads, Deals, Calls, Students, Dashboard, Recursos | cambio | Los filtros y la búsqueda ocupan mucho más alto que la lista. Una sola pieza reutilizable para búsqueda, filtros y orden, en una fila compacta: lo más usado a la vista, el resto en "Filtros · n", conteo y filtros activos en una línea; las pestañas quedan aparte como navegación. | 202 | resuelta · cierra con 202 |
 
+## Recorrido 12 · 7-oct · Mani: el programa no cambia el lugar
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-106 | Selector de programa | bug | Cambiar de programa debe conservar la pestaña y la subpestaña en la que se está. Desde que las subpestañas viven en `?seccion=`, el selector conservaba el objeto pero volvía a su primera sección. | 204 | resuelta · 7-oct |
+
 ### Respuestas
 
 **A-01 · Producto de un Deal.** ⚠️ **Obsoleta desde el 1-oct: el ticket 134 retiró `productos`.** El precio sale

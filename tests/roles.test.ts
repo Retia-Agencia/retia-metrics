@@ -253,9 +253,43 @@ describe("el programa en la URL (ticket 097)", () => {
     );
   });
 
+  it("mantiene la subpestaña elegida y suelta los filtros del programa anterior", () => {
+    expect(
+      rutaAlCambiarDePrograma(
+        "/p/programa-a/dashboard",
+        "programa-b",
+        new URLSearchParams("seccion=dinero&closer=anterior&periodo=mes"),
+      ),
+    ).toBe("/p/programa-b/dashboard?seccion=dinero");
+    expect(
+      rutaAlCambiarDePrograma(
+        "/p/programa-a/inbox",
+        "programa-b",
+        new URLSearchParams("seccion=sin-deal"),
+      ),
+    ).toBe("/p/programa-b/inbox?seccion=sin-deal");
+    expect(
+      rutaAlCambiarDePrograma(
+        "/p/programa-a/programa",
+        "programa-b",
+        new URLSearchParams("seccion=equipo"),
+      ),
+    ).toBe("/p/programa-b/programa?seccion=equipo");
+  });
+
   it("la opción Todos navega a la ruta superior y desde ella un programa abre su dashboard", () => {
     expect(rutaAlCambiarDePrograma("/p/programa-a/dashboard", VALOR_PROGRAMA_TODOS)).toBe("/dashboard");
     expect(rutaAlCambiarDePrograma("/dashboard", "programa-b")).toBe("/p/programa-b/dashboard");
+  });
+
+  it("mantiene la subpestaña del dashboard al entrar y salir de Todos", () => {
+    const query = new URLSearchParams("seccion=pauta&source=meta");
+    expect(rutaAlCambiarDePrograma("/p/programa-a/dashboard", VALOR_PROGRAMA_TODOS, query)).toBe(
+      "/dashboard?seccion=pauta",
+    );
+    expect(rutaAlCambiarDePrograma("/dashboard", "programa-b", query)).toBe(
+      "/p/programa-b/dashboard?seccion=pauta",
+    );
   });
 
   it("suelta lo que venga detras de la tab: un id es del programa anterior", () => {

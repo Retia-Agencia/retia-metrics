@@ -578,6 +578,8 @@ La búsqueda, los filtros y el orden de una lista viven en UNA sola pieza, `Barr
 Las pestañas siempre usan `components/layout/pestanas.tsx`: la URL lleva `?seccion=` y conserva el resto de la query, el total opcional usa `cifra`, puede haber grupos con título y una sola pestaña activa entre todos, y `pestanaActiva` decide cuál es. Cada pestaña lleva una descripción de una línea que aparece como `title` (tooltip) de la pestaña, no como una línea de texto debajo de la barra (ticket 202): navegación y herramientas son dos filas distintas. Si cambia su id, se conserva una traducción desde el anterior para que los enlaces guardados y Volver sigan llegando.
 
 El selector de programa (ADR 0050) vive arriba de la barra, dentro del marco, y sigue la regla 7.
+Al cambiar de programa conserva la pestaña de objeto y su `?seccion=` (ticket 204); suelta filtros,
+paginación e ids porque pertenecen al programa anterior.
 
 **Las reglas:**
 

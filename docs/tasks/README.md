@@ -240,7 +240,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 11 · Plataforma
 
-18 tickets, 1 abiertos.
+19 tickets, 1 abierto.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -262,6 +262,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 114 | [Auditoría de cálculos y reglas fijas](./114-auditoria-de-calculos-fijos.md) | · | done · 30-sep · A1-A3 arreglados; B5 (0046, `sources.calificacion` fuera) y C6 (solo USD) hechos; B4 pasa al 117 |
 | [x] | 150 | [Tests rápidos: la base migrada una vez por corrida](./150-tests-rapidos-base-migrada-una-vez.md) | · | done · 1-oct · Mani · checkpoint `cp-20261002-1` · vitest en el CI 372 s → 274 s; migración rota revienta la corrida una vez; `npm run test:cambios` |
 | [ ] | 159 | [`closer_id` se retira: quién cobró y quién vendió son FK a `users`](./159-closer-id-se-retira.md) | 203, 167 | todo · 7-oct · el corte en cero reemplazó la migración; mientras tanto todo closer nuevo se da de alta con `closer_id` |
+| [x] | 204 | [Cambiar de programa conserva la pestaña visible](./204-cambiar-programa-conserva-la-pestana.md) | 097, 193, 194, 197 | done · 7-oct · conserva `seccion`, suelta filtros e ids del programa anterior |
 
 ## 12 · Migración y corte
 

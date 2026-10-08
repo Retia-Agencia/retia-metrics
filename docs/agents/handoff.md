@@ -4185,6 +4185,10 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
+- ✅ **7-oct, ticket 204:** el selector de programa conserva la pestaña de objeto y la subpestaña
+  (`?seccion=`), también al entrar o salir de Todos; filtros, paginación e ids del programa anterior
+  se siguen soltando. Tests de navegación y typecheck en verde; lint sin errores (una advertencia previa)
+  y build de producción completo con webpack (Turbopack no pudo enlazar un puerto en el sandbox).
 - 🧭 **2-oct (noche): la operación comercial para los closers nuevos.** El 156 en `main` esperando CI y recorrido; el
   157 (handoff del setter, migración) listo detrás; el 158 bloqueado por objeciones. Los programas de Nicolás y
   Francisco tienen que estar montados antes del lunes 5-oct (tarea en Notion).

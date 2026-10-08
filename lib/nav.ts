@@ -40,16 +40,34 @@ export function programaDeRuta(pathname: string): string | null {
 
 /**
  * A donde lleva el selector al elegir otro programa. Si se esta en una tab de programa,
- * se queda en ESA tab (ticket 097); lo que venga detras (un id, `/p/a/deals/<id>`) y la
- * query se sueltan, porque un id y un filtro (un closer, una cohorte) son del programa
- * anterior y en el nuevo apuntarian a nada. Desde una ruta sin programa (Ajustes,
- * catálogos) se entra por la pestaña por defecto.
+ * se queda en ESA tab (ticket 097); lo que venga detras (un id, `/p/a/deals/<id>`) y los
+ * filtros se sueltan, porque pertenecen al programa anterior y en el nuevo podrían apuntar
+ * a nada. `seccion` es la excepción: representa la subpestaña visible, no un filtro, y se
+ * conserva (ticket 204). Desde una ruta sin programa (Ajustes, catálogos) se entra por la
+ * pestaña por defecto.
  */
-export function rutaAlCambiarDePrograma(pathname: string, nuevoSlug: string): string {
-  if (nuevoSlug === VALOR_PROGRAMA_TODOS) return RUTA_DASHBOARD_TODOS;
+export function rutaAlCambiarDePrograma(
+  pathname: string,
+  nuevoSlug: string,
+  query?: Pick<URLSearchParams, "get">,
+): string {
   const [primero, slug, tab] = pathname.split("/").filter(Boolean);
+  const conSeccion = (ruta: string): string => {
+    const seccion = query?.get("seccion");
+    if (!seccion) return ruta;
+    return `${ruta}?${new URLSearchParams({ seccion }).toString()}`;
+  };
+
+  if (nuevoSlug === VALOR_PROGRAMA_TODOS) {
+    return primero === "p" && slug && tab === "dashboard"
+      ? conSeccion(RUTA_DASHBOARD_TODOS)
+      : RUTA_DASHBOARD_TODOS;
+  }
   if (primero === "p" && slug && (TABS_DE_PROGRAMA as readonly string[]).includes(tab ?? "")) {
-    return rutaDePrograma(nuevoSlug, tab as TabDePrograma);
+    return conSeccion(rutaDePrograma(nuevoSlug, tab as TabDePrograma));
+  }
+  if (pathname === RUTA_DASHBOARD_TODOS || pathname.startsWith(`${RUTA_DASHBOARD_TODOS}/`)) {
+    return conSeccion(rutaDePrograma(nuevoSlug));
   }
   return rutaDePrograma(nuevoSlug);
 }

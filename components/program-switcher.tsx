@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { crearProgramaInactivoAccion } from "@/app/(app)/p/[programa]/programa/acciones-programa";
@@ -53,6 +53,7 @@ export function ProgramSwitcher({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [abierto, setAbierto] = useState(false);
   const [pendiente, startTransition] = useTransition();
   const [nuevo, setNuevo] = useState({ nombre: "", slug: "", ticketUsd: "" });
@@ -78,10 +79,14 @@ export function ProgramSwitcher({
           items={items}
           onValueChange={(slug) => {
             if (typeof slug !== "string" || slug === seleccionado) return;
+            const destino = rutaAlCambiarDePrograma(pathname, slug, searchParams);
+            // Las otras pantallas exigen un programa activo. Si el destino está inactivo,
+            // solo su ficha existe; desde esa misma ficha sí se conserva la subpestaña.
+            const enFichaDePrograma = pathname.split("/").filter(Boolean)[2] === "programa";
             router.push(
-              slugsInactivos.has(slug)
+              slugsInactivos.has(slug) && !enFichaDePrograma
                 ? `/p/${slug}/programa`
-                : rutaAlCambiarDePrograma(pathname, slug),
+                : destino,
             );
           }}
         >
