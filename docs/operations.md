@@ -317,10 +317,16 @@ Bogotá. Por eso las dos cuentas no coinciden día a día.
 
 ## 12. El corte (hito B): guion, capacitación y reversa
 
-El día en que los closers dejan de escribir en las pestañas de gestión (`Setteo`, `Registro de llamadas`,
-`Estudiantes`) y empiezan a trabajar solo en el CRM. La migración que trae lo abierto de esas pestañas es la
-del 078 (ADR 0059), con los casos raros decididos en el 080. Escrito el 30-sep (Alejo); la **fecha** la
-deciden los closers y **S1** el equipo (`plan.md` §7).
+> **Decisión vigente · 7-oct-2026 (ticket 203):** ComunicArte y Tactical Investor **no migran** la historia de
+> Sheets. Producción se respaldó, su historia operativa se borró por `program_id` y ambos arrancaron en cero; desde
+> ahí solo entra lo nuevo por webhook. Comunícate con Confianza quedó fuera del alcance. Por tanto, para esos dos
+> programas **no se ejecutan** los pasos de `migracion:extraer`, `migracion:importar` ni la reversa del 078 descritos
+> abajo; se conservan como procedimiento histórico y para otro programa que decida migrar. Falta el 082: poner las
+> pestañas de gestión en solo lectura después de la semana acordada.
+
+El procedimiento histórico de abajo describía el día en que los closers dejaban las pestañas de gestión
+(`Setteo`, `Registro de llamadas`, `Estudiantes`) y el 078 traía lo abierto. Desde la decisión del 7-oct no se
+ejecuta para ComunicArte ni Tactical; queda como referencia para otro programa que sí decida migrar.
 
 ### 12.1 Antes del día (bloquea el corte si falta algo)
 

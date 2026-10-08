@@ -74,8 +74,8 @@ El estado de cada componente, en una línea:
 | 8 · Pauta | ❌ | 102, 119, 120, 122 a 125, 067; espera el token de Meta |
 | 9 · Métricas, dashboard y metas | ✅ base comercial | 148 listo · 065, 090 · ⛔ 146, 147, 158 |
 | 10 · Configuración | ✅ | 🔴 Memorable sin montar · fuentes principales · 149 manual por rol · 185 textos de Programa |
-| 11 · Plataforma | ✅ | 🔴 S1 respaldos antes del corte · 185 pantalla fija en toda la app · R2 después del corte |
-| 12 · Migración y corte | ❌ | 078 (CA y TI) · el corte · 082 |
+| 11 · Plataforma | ✅ | 🔴 S1 respaldo continuo · 185 pantalla fija en toda la app · R2 después del corte |
+| 12 · Migración y corte | 🟡 | ✅ 203 corte en cero (CA y TI) · 082 apagar las hojas |
 
 ---
 
@@ -155,7 +155,7 @@ Customer Success están decididos y **sin construir** (102, 145).
 | 9 · Métricas y metas | S: calcula | V como closer | V sus programas, completo | V todo y "todos los programas" | V sin comparativo ni comisión | · | A |
 | 10 · Configuración | · | O: su Calendly | O: su Calendly, recursos de sus programas | A: programas, cohortes, usuarios, catálogos, fuentes | · | · | A |
 | 11 · Plataforma | S: rastro, vigencia, salud | · | · | · | · | · | A: Nerd Stats, bitácora, ver como |
-| 12 · Migración y corte | · | V revisa lo suyo | V revisa lo suyo | V | · | · | O: corre el 078 |
+| 12 · Migración y corte | · | V revisa lo suyo | V revisa lo suyo | V | · | · | ✅ 203; O: 082 |
 
 **Los traspasos entre actores** (donde un rol le entrega algo a otro; cada uno vive en su componente):
 
@@ -318,13 +318,13 @@ cuenta (`AGENTS.md`, restricciones y contratos).
 
 ### 4.12 Migración y corte (temporal)
 
-**Contesta:** ¿cómo entra lo que vive en las hojas, y cuándo se dejan? Se borra de este plan cuando se
-cumpla el 082. **Actores:** Mani corre el 078; los closers revisan lo suyo después. **Pantallas:** Ajustes →
-Migración. **Garantías:** pasa por la misma ingesta, con huella y reversa por programa (ADR 0059; 127).
+**Contesta:** ¿cuándo se dejan las hojas? Se borra de este plan cuando se cumpla el 082. **Decisión del
+7-oct (203):** ComunicArte y Tactical Investor no migran la historia dispersa; se reiniciaron en cero y desde ese
+momento solo entra lo nuevo por webhook. Comunícate con Confianza no se tocó.
 
-- ✅ Barrido de las pestañas (077), casos raros (080), deshacer por huella (127).
-- Falta: **078** `--aplicar` en ComunicArte y después en Tactical (plan de cierre en su archivo) · **el corte**
-  con capacitación (`operations.md` §12) = hito B · **082** apagar las pestañas = hito C.
+- ✅ **203:** respaldo, borrado transaccional, conectores y asignación de Calendly verificados en producción.
+- **078 reemplazado:** `--aplicar` no se ejecuta para ComunicArte ni Tactical.
+- Falta: capacitación y **082** apagar las pestañas = hito C.
 
 ### 4.13 Los bordes: lo que toca al CRM sin vivir en él
 
@@ -366,7 +366,7 @@ El orden por sesiones vive en [`plan-reparto.md`](./plan-reparto.md) §4. En cor
 | Hito | Qué | Componentes | Termina cuando |
 |---|---|---|---|
 | ✅ A | los leads entran solos al CRM | 1 | hecho el 28-sep |
-| **O2** (prioridad: el frente A) | la operación comercial lista: frente 0 (checkpoint, recorridos, 160, 161, S1, manual), **frente A: programas que nacen en el CRM (Nicolás y Francisco, antes del 5-oct)** y frente B: CA y TI con hojas (078). La lista completa: `plan-reparto.md` §4 | 2, 3, 4, 5, 10, 12 | toda la operación de entrada a student se hace en el CRM |
+| **O2** (prioridad: el frente A) | la operación comercial lista: frente 0 (checkpoint, recorridos, 160, 161, S1, manual), **frente A: programas que nacen en el CRM (Nicolás y Francisco, antes del 5-oct)** y frente B: ✅ CA y TI reiniciados en cero (203; 078 reemplazado). La lista completa: `plan-reparto.md` §4 | 2, 3, 4, 5, 10, 12 | toda la operación de entrada a student se hace en el CRM |
 | ✅ O4 | la operación sin fricción: 181 a 184, 186 y el 167 (`cp-20261004-1`); el 185 pasa a la O5 | 1, 2, 3, 5, 9, 10, 11 | hecho el 4-oct |
 | ✅ O5 | las métricas comerciales y la pantalla fija: 148, 065 (✅), 146, 185 (el 158 se descartó); después 147 y 102 (`plan-reparto.md` §4) | 3, 9, 10, 11 | hecho el 4-oct: 065, 146, 148, 185 |
 | **O6** (vigente) | el dashboard confiable: 187, 190, 192, 147; después 188, 189, 191, 102 (`plan-reparto.md` §4) | 9 | cada cifra es real (ADR 0079) y abre su lista |
@@ -407,7 +407,7 @@ sigue en `git show 951b62a:docs/plan.md` §7.
 
 | # | Qué | Componente | Bloquea | Cuándo |
 |---|---|---|---|---|
-| S1 | 🚨 **Supabase Pro: pagar o no.** El plan gratis no trae respaldos y la única base es producción. Mientras siga abierta, un `pg_dump` el día de cada `--aplicar` | 11, 12 | el corte | antes del corte |
+| S1 | 🚨 **Supabase Pro: pagar o no.** El plan gratis no trae respaldos y la única base es producción. El 203 hizo un `pg_dump` manual antes del reinicio; falta decidir el respaldo continuo | 11, 12 | operación diaria | cuanto antes |
 | QM-3 · GC-17 | La próxima fecha de pago al lado de la fecha límite (recomendación: al lado), y cómo pactan los abonos los closers | 5 | 144 | NC3 |
 | QM-4 | La API de Grain: después de v1 o nunca | 4 | · | después del corte |
 | QM-5 | Los cuatro pasos del onboarding: fijos o filas por programa (recomendación: filas) | 6 | 145 | NC3 |

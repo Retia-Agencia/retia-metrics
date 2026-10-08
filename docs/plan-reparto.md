@@ -12,7 +12,8 @@
 > 🎯 **30-sep: el norte comercial de Gerencia es la prioridad** ([`comercial.md`](./comercial.md)). Cambia
 > las etapas del deal, el dinero y las metas, y pone la pauta después de la v1 comercial.
 > **1-oct (paso 6 de `comercial.md` §8): §4 está reordenado.** Después de E6 vienen **NC1** (lote 1: el
-> dinero), **NC2** (lote 2: las etapas de 30X, y con ellas el `--aplicar` del 078 y el corte) y **NC3** (el
+> dinero), **NC2** (lote 2: las etapas de 30X y el corte; desde el 7-oct el 203 reemplaza `--aplicar` del 078 con
+> un arranque en cero) y **NC3** (el
 > dashboard comercial, que es la v1 comercial). La pauta que espera a Meta (119, 120, 102) y lo de E7 y E8
 > va después.
 >
@@ -330,7 +331,8 @@ de En gestión en adelante, 0 abonos).
 
 - **Frente A · Programas que nacen en el CRM** (los que venden Nicolás y Francisco): sin hojas, sin migración. Es la
   **prioridad**: arrancan el lunes 5-oct.
-- **Frente B · Programas que ya tienen hojas** (ComunicArte y Tactical): migrar lo histórico (078), el corte y
+- **Frente B · Programas que ya tienen hojas** (ComunicArte y Tactical): ✅ reinicio en cero (203; el 078 no se
+  aplica), el corte y
   apagar las pestañas.
 
 Los dos se apoyan en una **base común (frente 0)**. Decidido el 2-oct y que ya no se reabre: **los parciales siguen
@@ -368,8 +370,8 @@ abriendo deal en Potencial** y las etapas se manejan como están (A-41 cerrada, 
 
 | # | Qué | Quién | Ticket | Hecho cuando |
 |---|---|---|---|---|
-| B.1 | ComunicArte: paso 0 (barrido de hoy y tabla de destinos aprobada por Mani), `pg_dump`, `--aplicar`, conciliación | Mani (la sesión principal aplica) | 078 | conciliación en 0 y los closers revisan lo suyo |
-| B.2 | Tactical: lo mismo | Mani | 078 | ídem |
+| B.1 | ✅ ComunicArte: `pg_dump`, reinicio operativo en cero y conectores verificados | Mani + Codex | 203 | 0 registros operativos; prueba firmada limpia |
+| B.2 | ✅ Tactical: lo mismo | Mani + Codex | 203 | ídem |
 | B.3 | El corte con capacitación (`operations.md` §12): los closers de CA y TI dejan las hojas | Mani | · | **hito B** |
 | B.4 | A la semana hábil, apagar las pestañas de gestión | Mani | 082 | **hito C** |
 

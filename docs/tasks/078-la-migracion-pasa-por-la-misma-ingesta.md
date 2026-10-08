@@ -3,10 +3,14 @@ id: 078
 etapa: E7
 serves: "plan v2 §6 etapa 7 · tarea E7-2 · ADR 0029, invariante 2 del plan v2"
 depends: [077]
-status: en curso
+status: reemplazado
 ---
 
 # 078 — La migracion pasa por la MISMA ingesta, nunca por inserts crudos
+
+> **Reemplazado el 7-oct-2026 por el [203](./203-reinicio-operativo-comunicarte-tactical.md).** Mani decidió no
+> migrar la historia dispersa de Sheets: ComunicArte y Tactical Investor arrancan desde cero en el CRM. El código
+> queda como herramienta histórica, pero `--aplicar` no se ejecuta para esos programas.
 
 ## Objetivo
 

@@ -21,7 +21,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 1 · Entrada y lead
 
-30 tickets, 2 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
+31 tickets, 2 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -55,6 +55,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 130 | [El adaptador de Dapta Forms](./130-el-adaptador-de-dapta.md) | 117 | done · 1-oct (Mani) · seis envíos reales en ComunicArte revisados en la base; 🩸 las UTM de Dapta se perdían (`utm.utm_source`), arregladas y verificadas en producción; contrato de proveedores con cuerpos reales |
 | [x] | 131 | [Varios formularios activos por programa](./131-varios-formularios-activos-por-programa.md) | — | done · 30-sep · 0050 aplicada · el link de captación sigue en `programs.form_url` (A11) |
 | [x] | 151 | [Un reenvío sube la etapa de entrada y el CRM avisa los envíos repetidos](./151-el-reenvio-sube-la-etapa-de-entrada.md) | 142, 117 | done · `cp-20261002-3` · 2-oct · carril Mani · ADR 0073: S1 a S3 (solo sistema, solo hacia arriba, con nota), badge "N envíos" en tarjeta y ficha del deal, el parcial absorbido por su completo en la ficha del lead. Typecheck, lint, build y tests del cambio en verde; recorrido hecho (2-oct). |
+| [x] | 203 | [Reinicio operativo de ComunicArte y Tactical Investor](./203-reinicio-operativo-comunicarte-tactical.md) | 096, 106, 110 | done · 7-oct · producción reiniciada en cero; webhooks y asignación por Calendly verificados; Comunícate con Confianza intacto |
 
 ## 2 · Deal y motor de etapas
 
@@ -235,7 +236,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 100 | [La tab Programs](./100-tab-programs-ficha-del-programa.md) | 097, 101 | done · `cp-20261002-2` · 2-oct (Alejo) · ficha del programa: destinos, Calendly, comisión, cohortes, fuentes y equipo; recorrido visual hecho |
 | [x] | 109 | [El programa lleva su formulario y su token de Calendly](./109-formulario-y-token-de-calendly-del-programa.md) | 105 | done · 28-sep: migración **0030**; Forms Link y Calendly Token obligatorios en `/ajustes/programas` (un programa no se activa sin los dos); la lectura de la cita (hoy `citaDeCalendly`) probada contra Calendly real; migración **0031**: nace inactivo y un CHECK exige los dos; Mani cargó los dos tokens y se borraron de `.env.local` |
 | [ ] | 149 | [El manual de uso del CRM, por rol](./149-manual-de-uso-por-rol.md) | 075 | todo · 1-oct (QD-7) · E9, sesión principal |
-| [ ] | 154 | [Manual de operación comercial (artifact para closers)](./154-manual-de-operacion-comercial.md) | 153, 078 | en curso · 2-oct (noche) · al día con ADR 0075, 0076 y el 143 (`e4e61c3`), con "Las 11 etapas en un minuto" · falta cerrar 153 y 078 y revisar "Lo que le falta al CRM" |
+| [ ] | 154 | [Manual de operación comercial (artifact para closers)](./154-manual-de-operacion-comercial.md) | 153, 203 | en curso · 7-oct · el corte en cero está hecho; falta cerrar 153 y revisar "Lo que le falta al CRM" |
 
 ## 11 · Plataforma
 
@@ -260,7 +261,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 113 | [Base local para desarrollar pantallas](./113-base-local-para-pantallas.md) | · | done · 28-sep: `npm run db:local` (Docker, 38 migraciones, seed por `lib/`) y `npm run dev:local`, probado de punta a punta. Falta un modo de login local (Auth.js solo tiene Google) · sembrar contra Postgres real destapó el `Date` en `moverEtapa` (arreglado) |
 | [x] | 114 | [Auditoría de cálculos y reglas fijas](./114-auditoria-de-calculos-fijos.md) | · | done · 30-sep · A1-A3 arreglados; B5 (0046, `sources.calificacion` fuera) y C6 (solo USD) hechos; B4 pasa al 117 |
 | [x] | 150 | [Tests rápidos: la base migrada una vez por corrida](./150-tests-rapidos-base-migrada-una-vez.md) | · | done · 1-oct · Mani · checkpoint `cp-20261002-1` · vitest en el CI 372 s → 274 s; migración rota revienta la corrida una vez; `npm run test:cambios` |
-| [ ] | 159 | [`closer_id` se retira: quién cobró y quién vendió son FK a `users`](./159-closer-id-se-retira.md) | 078, 167 | todo · 2-oct · después del corte; mientras tanto todo closer nuevo se da de alta con `closer_id` |
+| [ ] | 159 | [`closer_id` se retira: quién cobró y quién vendió son FK a `users`](./159-closer-id-se-retira.md) | 203, 167 | todo · 7-oct · el corte en cero reemplazó la migración; mientras tanto todo closer nuevo se da de alta con `closer_id` |
 
 ## 12 · Migración y corte
 
@@ -269,7 +270,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 077 | [Barrer las pestañas de gestión](./077-barrer-las-pestanas-de-gestion.md) (E7-1) | 111 | done · 29-sep · Alejo · las ocho pestañas leídas (encabezados reales) y su mapeo escrito en el ticket; el extractor del 078 lo implementa y ninguna fila se descarta en silencio (deal, llamada, sin deal por alcance o rareza) |
-| [ ] | 078 | [Pasa por la MISMA ingesta, nunca inserts crudos](./078-la-migracion-pasa-por-la-misma-ingesta.md) (E7-2) | 077 | en curso · ⏭️ **2-oct (Mani): va al final de la ola O2, después de 152, 153 y 143.** Plan de cierre, decisiones y orden por programa (CA y luego TI, con barrido de hoy y tabla aprobada por Mani antes del código) en su archivo, sección "Plan de cierre" · antes: en `main` el 29-sep, ensayo contra producción el 30-sep con las etapas viejas |
+| [x] | 078 | [Pasa por la MISMA ingesta, nunca inserts crudos](./078-la-migracion-pasa-por-la-misma-ingesta.md) (E7-2) | 077 | reemplazado · 7-oct · no se aplica: Mani decidió arrancar ComunicArte y Tactical desde cero; lo reemplaza el 203 |
 | [x] | 079 | [Recuperar las 55 de `Forms viejo`](./079-recuperar-las-55-de-forms-viejo.md) (E7-3) | 111 | done · 29-sep · cerrado por el traslado (111), que lo tenía en su alcance: `Forms viejo` entró en la misma corrida (ComunicArte 2.465 leads, conciliación 2.739/2.739) |
 | [x] | 080 | [Los casos raros de la migración](./080-los-casos-raros-de-la-migracion.md) (E7-4) | 078 | done · 30-sep · Alejo · decisiones escritas, `/ajustes/migracion` recorrida; en CA la Categoría vive en `Registro 2` (`d01c461`): **regenerar el template de CA antes de aplicar el 078** |
 | [x] | 081 | [COP → USD a la tasa del día](./081-cop-a-usd-en-la-migracion.md) (E7-5) | 078 | descartado · 28-sep (Mani): *"solo usamos USD aquí"*. No hay conversión ni tasa ni marca de abono convertido; un monto que aparezca en COP al barrer se lista como rareza (080) y no se convierte |

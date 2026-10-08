@@ -29,6 +29,19 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
 
 ## Memory
 
+- **2026-10-07 (Mani + Codex): 203, corte en cero de ComunicArte y Tactical Investor.**
+  - Mani decidió no migrar la historia dispersa de Sheets. Respaldo completo y validado fuera del repo:
+    `~/retia-backups/retia-production-antes-reinicio-comercial-20261007-204022.dump` (PostgreSQL 17).
+  - Transacción por los UUID exactos: 6.003 leads, 7.667 envíos, 1.064 sobres, 1.052 entregas, 666 deals,
+    241 llamadas, 683 movimientos, 442 actividades, 38 notificaciones y 12.113 contactos borrados. Conteo final
+    CA/TI = 0. Comunícate con Confianza quedó exactamente en 8 leads, 18 envíos, 40 sobres/entregas, 9 deals,
+    7 llamadas y 18 contactos; la configuración de los tres programas conservó la misma huella.
+  - Typeform: webhook activo con SSL hacia cada fuente. Calendly: suscripción activa con los cuatro eventos.
+    Prueba firmada de punta a punta en ambos: formulario → deal → cita → Agendado + dueño host; casos de QA
+    eliminados. Andrea y Maru están vinculadas. **Confirmado por Mani: Jero es solo setter**; usa la capacidad del rol
+    `closer`, pero no hospeda llamadas, así que es correcto que no tenga `calendly_email` ni pertenezca a las
+    organizaciones de Calendly. El 078 queda reemplazado; falta capacitación y 082 (hojas en solo lectura).
+
 - **2026-10-06 (noche, Mani + Claude): 202, la barra de lista, y checkpoint `cp-20261006-1` sobre `3b68a82`.**
   - **202** (A-105): `BarraDeLista` (`components/filtros/`) reemplaza `BarraDeFiltros`/`FiltroSelect` y los `Select`
     a mano en Leads, Deals, Calls, Students, los dos Dashboards, Recursos, Migración y Bitácora. Filtros declarados
