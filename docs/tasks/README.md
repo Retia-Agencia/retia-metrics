@@ -100,10 +100,12 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 071 | [El Inbox (antes Mis deals)](./071-mi-dia-del-closer.md) (E6-3) | 069, 061, 070, 096, 097 | done · 29-sep · código en `main`; recorrido visual funcional a 390 px realizado con consola y estados/interacciones revisados |
 | [x] | 118 | ["Se perdió en el Calendly": urgente arriba del Inbox](./118-se-perdio-en-el-calendly.md) | 117 | done · `cp-20261002-4` · 2-oct · Mani · "se perdió en el Calendly" arriba del Inbox (D-7 del ADR 0071) |
 | [x] | 201 | [Novedades de Deals y Calendly para el closer](./201-novedades-de-deals-y-calendly.md) | 183, 096, 157 | done · `cp-20261006-1` · 6-oct · 0072 aplicada en producción; CI verde (`76c921c`) |
+| [ ] | 205 | [Desde una suelta se crea el deal o se asocia a uno existente](./205-crear-o-asociar-deal-desde-la-suelta.md) | 096, 098, 157 | todo · 8-oct · A-108 |
+| [ ] | 206 | [Una suelta se adopta por correo cuando llega el formulario](./206-adoptar-sueltas-por-correo.md) | 096, 052 | todo · 8-oct · A-109 |
 
 ## 4 · Llamadas y Calendly
 
-13 tickets, 0 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
+15 tickets, 2 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -240,7 +242,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 11 · Plataforma
 
-19 tickets, 1 abierto.
+20 tickets, 2 abiertos.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -263,6 +265,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 150 | [Tests rápidos: la base migrada una vez por corrida](./150-tests-rapidos-base-migrada-una-vez.md) | · | done · 1-oct · Mani · checkpoint `cp-20261002-1` · vitest en el CI 372 s → 274 s; migración rota revienta la corrida una vez; `npm run test:cambios` |
 | [ ] | 159 | [`closer_id` se retira: quién cobró y quién vendió son FK a `users`](./159-closer-id-se-retira.md) | 203, 167 | todo · 7-oct · el corte en cero reemplazó la migración; mientras tanto todo closer nuevo se da de alta con `closer_id` |
 | [x] | 204 | [Cambiar de programa conserva la pestaña visible](./204-cambiar-programa-conserva-la-pestana.md) | 097, 193, 194, 197 | done · 7-oct · conserva `seccion`, suelta filtros e ids del programa anterior |
+| [ ] | 207 | [La barra de lista: buscar, Filtros y Ordenar](./207-barra-filtros-y-ordenar.md) | 202 | todo · 8-oct · A-107, A-110, A-111 |
 
 ## 12 · Migración y corte
 

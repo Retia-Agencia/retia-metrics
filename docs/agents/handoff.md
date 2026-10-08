@@ -29,6 +29,20 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
 
 ## Memory
 
+- **2026-10-08 (Mani + Claude): recuperación de citas vivas tras el 203, y tickets 205 a 207.**
+  - El corte en cero borró a quienes ya habían agendado: 43 personas con cita activa en Calendly (CA y TI) no
+    estaban en el CRM o tenían la llamada suelta. Con el ok de Mani se recuperaron 42 **por la misma puerta**:
+    los cuerpos crudos originales de `sobres_crudos` del respaldo del 7-oct (`pg_restore` 17) pasaron por
+    `procesarSobre` (34 quedaron en Agendado solos), 5 que reagendaron antes del corte por
+    `aplicarEventoDeCalendly` con su `invitee.created` original, y 3 sueltas por `asignarLlamadaSuelta`.
+    Las 42 quedaron en Agendado con la host de dueña. **Santiago Sierra** (CA) nunca envió el formulario: sigue
+    suelto, y es el caso del 205. Scripts desechables, borrados.
+  - Pendientes de las closers: Letty Salcedo (CA, llamada del 8-oct 5 pm) entró tarde y falta su resultado;
+    `jjreyesj` (TI) tiene una llamada del 2-oct sin resultado además de la del 9.
+  - Orden en Leads y Deals (`54e23b2`): actividad, creación, nombre. Recorrido en producción hecho.
+  - Abiertos: 205 (crear deal desde la suelta), 206 (adoptar sueltas por correo), 207 (barra: buscar,
+    Filtros y Ordenar).
+
 - **2026-10-07 (Mani + Codex): 203, corte en cero de ComunicArte y Tactical Investor.**
   - Mani decidió no migrar la historia dispersa de Sheets. Respaldo completo y validado fuera del repo:
     `~/retia-backups/retia-production-antes-reinicio-comercial-20261007-204022.dump` (PostgreSQL 17).
