@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   calls,
   dealActividades,
@@ -24,6 +24,7 @@ import { decidirAccionDeDeal, type ResultadoCita } from "@/lib/ingesta/regla-de-
 import { agendoElEnvio, esCalidadAlta, etapaDeEntrada } from "@/lib/ingesta/etapa-de-entrada";
 import { esViolacionCheck } from "@/lib/db/errores";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
+import { registrarLlamadaDeCalendly } from "@/lib/calendly/colgar-llamada";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { sinComentarios } from "./helpers/codigo-fuente";
@@ -306,6 +307,99 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     expect(await db.select().from(deals)).toHaveLength(0);
     // La calificación sí se guardó: la regla es lo único que no corrió.
     expect((await leadDeCorreo("ana@correo.co")).calificacion).toBe("setteo_no_calificado");
+  });
+
+  it("adopta por correo una suelta tras la ingesta, la deja Agendada con la host y nota del sistema", async () => {
+    const [host] = await db.insert(users).values({ email: "host-sueltas@retia.co", rol: "closer" }).returning();
+    await db.insert(miembrosPrograma).values({
+      userId: host.id,
+      programId,
+      calendlyEmail: "host-sueltas@calendly.co",
+    });
+    const [otro] = await db
+      .insert(programs)
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-sueltas", nombre: "Otro", ticketUsd: "797" })
+      .returning();
+    const correo = "adoptar@correo.co";
+    const propia = await registrarLlamadaDeCalendly(db, programId, {
+      uuidInvitado: "suelta-correo-propia",
+      inicio: new Date("2026-10-03T15:00:00Z"),
+      correoInvitado: correo,
+      correoHost: "host-sueltas@calendly.co",
+    });
+    const ajena = await registrarLlamadaDeCalendly(db, otro.id, {
+      uuidInvitado: "suelta-correo-ajena",
+      inicio: new Date("2026-10-03T14:00:00Z"),
+      correoInvitado: correo,
+      correoHost: "host-sueltas@calendly.co",
+    });
+
+    await ingerirEntradas(db, programId, [entrada({ token: "adopta-1", correo })], {
+      aplicarReglaDeDeals: true,
+    });
+
+    const [lead] = await db.select().from(leads).where(eq(leads.emailNormalizado, correo));
+    const [deal] = await db.select().from(deals).where(eq(deals.leadId, lead.id));
+    expect(deal).toMatchObject({ etapa: "agendado", ownerUserId: host.id });
+    expect((await db.select().from(calls).where(eq(calls.id, propia.callId)))[0]).toMatchObject({
+      dealId: deal.id,
+      closerUserId: host.id,
+    });
+    expect((await db.select().from(calls).where(eq(calls.id, ajena.callId)))[0].dealId).toBeNull();
+    const notas = await db.select().from(dealActividades).where(eq(dealActividades.dealId, deal.id));
+    expect(notas).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        tipo: "nota",
+        userId: null,
+        nota: expect.stringContaining("Se colgó la llamada suelta del"),
+      }),
+    ]));
+  });
+
+  it("con dos deals abiertos el emparejador conserva la llamada suelta", async () => {
+    const correo = "duda@correo.co";
+    const suelta = await registrarLlamadaDeCalendly(db, programId, {
+      uuidInvitado: "suelta-con-duda",
+      inicio: new Date("2026-10-03T15:00:00Z"),
+      correoInvitado: correo,
+      correoHost: null,
+    });
+    await ingerirEntradas(db, programId, [entrada({ token: "duda-1", correo })]);
+    const lead = await leadDeCorreo(correo);
+    await db.execute(sql`drop index deals_uno_abierto_por_lead_y_programa_idx`);
+    await db.insert(deals).values([
+      { leadId: lead.id, programId, etapa: "agendado" },
+      { leadId: lead.id, programId, etapa: "agendado" },
+    ]);
+
+    await ingerirEntradas(db, programId, [entrada({ token: "duda-2", correo })], {
+      aplicarReglaDeDeals: true,
+    });
+
+    expect((await db.select().from(calls).where(eq(calls.id, suelta.callId)))[0].dealId).toBeNull();
+  });
+
+  it("la adopción exacta por UUID corre primero y no duplica la llamada", async () => {
+    const correo = "uuid@correo.co";
+    const suelta = await registrarLlamadaDeCalendly(db, programId, {
+      uuidInvitado: "uuid-primero",
+      inicio: new Date("2026-10-03T15:00:00Z"),
+      correoInvitado: correo,
+      correoHost: null,
+    });
+    await ingerirEntradas(db, programId, [entrada({ token: "uuid-1", correo, estado: "con_calendly" })], {
+      aplicarReglaDeDeals: true,
+      citasPorCorreo: citas(correo, {
+        estado: "vigente",
+        uuidInvitado: "uuid-primero",
+        inicio: new Date("2026-10-03T15:00:00Z"),
+        correoHost: null,
+      }),
+    });
+
+    const [llamada] = await db.select().from(calls).where(eq(calls.id, suelta.callId));
+    expect(llamada.dealId).not.toBeNull();
+    expect(await db.select().from(calls)).toHaveLength(1);
   });
 
   it("un completo sin agenda ni calidad abre en Registrado, por el motor y con historial", async () => {

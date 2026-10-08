@@ -16,7 +16,12 @@ import { ErrorDeApp } from "@/lib/errors";
 import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
 import { abrirDeal, moverEtapa } from "@/lib/deals/mover-etapa";
 import { agregarLlamada } from "@/lib/deals/llamadas";
-import { asignarLlamadaSuelta, registrarLlamadaDeCalendly, type CitaDeCalendly } from "@/lib/calendly/colgar-llamada";
+import {
+  asignarLlamadaSuelta,
+  crearDealDesdeSuelta,
+  registrarLlamadaDeCalendly,
+  type CitaDeCalendly,
+} from "@/lib/calendly/colgar-llamada";
 import { aplicarReglaDeDeal } from "@/lib/ingesta/regla-de-deals";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -323,6 +328,80 @@ describe("asignarLlamadaSuelta", () => {
     await expect(
       asignarLlamadaSuelta(db, { userId: maru, rol: "closer" }, { callId, dealId: dealAjeno }),
     ).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe("crearDealDesdeSuelta", () => {
+  async function sueltaDe(correo: string, programa = programId): Promise<string> {
+    const r = await registrarLlamadaDeCalendly(
+      db,
+      programa,
+      cita({ correoInvitado: correo, correoHost: HOST_MARU }),
+    );
+    expect(r.tipo).toBe("suelta");
+    return r.callId;
+  }
+
+  it("crea lead y deal, cuelga la llamada y deja Agendado con la host como dueña", async () => {
+    const callId = await sueltaDe("nueva@correo.co");
+    const r = await crearDealDesdeSuelta(
+      db,
+      { userId: maru, rol: "closer" },
+      { callId, nombre: "Nueva Persona", telefono: "+57 300 111 2233" },
+    );
+
+    const [lead] = await db.select().from(leads).where(eq(leads.id, r.leadId));
+    const [d] = await db.select().from(deals).where(eq(deals.id, r.dealId));
+    const [llamada] = await db.select().from(calls).where(eq(calls.id, callId));
+    expect(lead).toMatchObject({ emailNormalizado: "nueva@correo.co", nombre: "Nueva Persona" });
+    expect(d).toMatchObject({ etapa: "agendado", ownerUserId: maru });
+    expect(llamada).toMatchObject({ dealId: r.dealId, closerUserId: maru });
+  });
+
+  it("si el correo ya tiene deal abierto devuelve 409 y revierte toda la transacción", async () => {
+    const correo = "conflicto@correo.co";
+    const callId = await sueltaDe(correo);
+    const [lead] = await db.insert(leads).values({ programId, emailNormalizado: correo }).returning();
+    await abrirDeal(db, { leadId: lead.id, programId, etapa: "registrado", actor: { tipo: "sistema" } });
+    const antes = {
+      leads: (await db.select().from(leads)).length,
+      deals: (await db.select().from(deals)).length,
+      calls: (await db.select().from(calls)).length,
+    };
+
+    await expect(
+      crearDealDesdeSuelta(db, { userId: maru, rol: "closer" }, { callId }),
+    ).rejects.toMatchObject({ status: 409 });
+
+    expect({
+      leads: (await db.select().from(leads)).length,
+      deals: (await db.select().from(deals)).length,
+      calls: (await db.select().from(calls)).length,
+    }).toEqual(antes);
+    expect((await db.select().from(calls).where(eq(calls.id, callId)))[0].dealId).toBeNull();
+  });
+
+  it("una llamada de un programa fuera del alcance responde 404", async () => {
+    const callId = await sueltaDe("ajena@correo.co", otroProgramId);
+    await expect(
+      crearDealDesdeSuelta(db, { userId: maru, rol: "closer" }, { callId }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("reutiliza un lead existente que todavía no tiene deal abierto", async () => {
+    const correo = "existente@correo.co";
+    const [existente] = await db
+      .insert(leads)
+      .values({ programId, emailNormalizado: correo, nombre: "Nombre anterior" })
+      .returning();
+    const callId = await sueltaDe(correo);
+    const r = await crearDealDesdeSuelta(
+      db,
+      { userId: maru, rol: "closer" },
+      { callId, nombre: "Nombre nuevo" },
+    );
+    expect(r.leadId).toBe(existente.id);
+    expect(await db.select().from(leads).where(eq(leads.emailNormalizado, correo))).toHaveLength(1);
   });
 });
 

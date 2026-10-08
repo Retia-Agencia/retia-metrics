@@ -16,7 +16,7 @@ import { instanteDeBogota } from "@/lib/format";
 import { reclamarDeal } from "@/lib/deals/reclamar";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { completarAgendada } from "@/lib/deals/llamadas";
-import { asignarLlamadaSuelta } from "@/lib/calendly/colgar-llamada";
+import { asignarLlamadaSuelta, crearDealDesdeSuelta } from "@/lib/calendly/colgar-llamada";
 import { buscarDealsAbiertos, type DealAbiertoBuscado } from "@/lib/queries/inbox";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 
@@ -37,7 +37,7 @@ import { incluyendoAnulados } from "@/lib/queries/vigente";
  *   actual la refresca el cliente con `router.refresh()` (AGENTS.md).
  */
 
-export type ResultadoInbox<T extends object = object> = ({ ok: true } & T) | { ok: false; error: string };
+export type ResultadoInbox<T extends object = object> = ({ ok: true } & T) | { ok: false; error: string; status?: number };
 
 interface Contexto {
   session: Session;
@@ -75,8 +75,12 @@ async function exigirLlamadaVisible(ctx: Contexto, callId: string): Promise<void
   await exigirProgramaVisible(ctx, c?.programId);
 }
 
-function aError(error: unknown): { ok: false; error: string } {
-  if (error instanceof ErrorDeApp) return { ok: false, error: error.message };
+function aError(error: unknown): { ok: false; error: string; status?: number } {
+  if (error instanceof ErrorDeApp) {
+    return error.status === 409
+      ? { ok: false, error: error.message, status: error.status }
+      : { ok: false, error: error.message };
+  }
   console.error("[inbox] error no controlado", error);
   return { ok: false, error: "Error interno." };
 }
@@ -192,6 +196,24 @@ export async function asignarLlamadaSueltaAccion(
     // deal; aquí solo se le pasa el actor (id + rol de vista) de la sesión, nunca del input.
     const r = await asignarLlamadaSuelta(db, ctx.actor, { callId, dealId });
     return { movioAAgendado: r.movioAAgendado };
+  });
+}
+
+const esquemaCrearDesdeSuelta = z.object({
+  callId: id("Llamada inválida."),
+  nombre: textoOpcional(z.string().max(200, "El nombre es demasiado largo.")),
+  telefono: textoOpcional(z.string().max(80, "El teléfono es demasiado largo.")),
+});
+export type EntradaCrearDealDesdeSuelta = z.input<typeof esquemaCrearDesdeSuelta>;
+
+/** Crea el lead/deal desde el correo servidor de la llamada y la cuelga atómicamente. */
+export async function crearDealDesdeSueltaAccion(
+  entrada: EntradaCrearDealDesdeSuelta,
+): Promise<ResultadoInbox<{ dealId: string; movioAAgendado: boolean }>> {
+  return correr(async (ctx) => {
+    const datos = esquemaCrearDesdeSuelta.parse(entrada);
+    const r = await crearDealDesdeSuelta(db, ctx.actor, datos);
+    return { dealId: r.dealId, movioAAgendado: r.movioAAgendado };
   });
 }
 

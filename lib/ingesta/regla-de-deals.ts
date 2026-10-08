@@ -10,6 +10,7 @@ import { dejarNotaDelSistema } from "@/lib/deals/nota-del-sistema";
 import { fechaHoraEnBogota } from "@/lib/format";
 import { closerHost } from "@/lib/calendly/emparejar-llamada";
 import {
+  adoptarSueltasPorCorreo,
   adoptarSueltaDeCita,
   closersConCalendly,
   darDealAlHost,
@@ -406,7 +407,7 @@ async function notificarCitaNueva(
  * que llega despues de una completa vieja decide con lo suyo, y un parcial reintentado
  * fuera de orden no manda un deal a buscar una cita que no trae.
  */
-export async function aplicarReglaDeDeal(
+async function aplicarReglaDeDealSinAdoptar(
   db: Db,
   lead: { id: string; programId: string; emailNormalizado: string; hechos: HechosDeEntrada },
   cita?: ResultadoCita,
@@ -507,4 +508,16 @@ export async function aplicarReglaDeDeal(
   const nota = accion.tipo === "nada" ? accion.nota : accion.tipo === "notificar_reenvio" ? accion.nota : undefined;
   if (nota && dealAbierto !== null) await dejarNotaDelSistema(db, dealAbierto.id, nota);
   return { leadId: lead.id, accion, nota };
+}
+
+/** Aplica la regla y, después de la adopción exacta por UUID, rescata las sueltas por correo. */
+export async function aplicarReglaDeDeal(
+  db: Db,
+  lead: { id: string; programId: string; emailNormalizado: string; hechos: HechosDeEntrada },
+  cita?: ResultadoCita,
+  envioDeOrigen: string | null = null,
+): Promise<ResultadoReglaDeDeal> {
+  const resultado = await aplicarReglaDeDealSinAdoptar(db, lead, cita, envioDeOrigen);
+  await adoptarSueltasPorCorreo(db, lead.programId, lead.id);
+  return resultado;
 }

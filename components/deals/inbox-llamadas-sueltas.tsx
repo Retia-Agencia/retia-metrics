@@ -11,6 +11,7 @@ import type { DealAbiertoBuscado, FilaLlamada } from "@/lib/queries/inbox";
 import {
   asignarLlamadaSueltaAccion,
   buscarDealsAbiertosAccion,
+  crearDealDesdeSueltaAccion,
 } from "@/app/(app)/p/[programa]/inbox/acciones";
 import { Campo, claseInput, DialogoForm, Vacio } from "@/components/deals/ficha/campos";
 
@@ -67,6 +68,7 @@ function FilaSuelta({
 }) {
   const { programa: programaSlug } = useParams<{ programa: string }>();
   const [abierto, setAbierto] = useState(false);
+  const [creando, setCreando] = useState(false);
   const [verDetalle, setVerDetalle] = useState(false);
   const [asignando, setAsignando] = useState<string | null>(null);
   const router = useRouter();
@@ -113,16 +115,98 @@ function FilaSuelta({
           <Button size="sm" variant="default" onClick={() => setAbierto(true)}>
             Asignar a un deal
           </Button>
+          <Button size="sm" variant="default" onClick={() => setCreando(true)} disabled={!fila.leadEmail}>
+            Crear deal
+          </Button>
           </>
         ) : null}
       </div>
       {abierto ? (
         <DialogoAsignar callId={fila.callId} programId={programId} onCerrar={() => setAbierto(false)} />
       ) : null}
+      {creando ? (
+        <DialogoCrear
+          callId={fila.callId}
+          email={fila.leadEmail}
+          onCerrar={() => setCreando(false)}
+          onAsignar={() => {
+            setCreando(false);
+            setAbierto(true);
+          }}
+        />
+      ) : null}
       {verDetalle ? (
         <DetalleDeLlamada programaSlug={programaSlug} callId={fila.callId} conIrAlDeal origen={origen} onCerrar={() => setVerDetalle(false)} />
       ) : null}
     </li>
+  );
+}
+
+function DialogoCrear({
+  callId,
+  email,
+  onCerrar,
+  onAsignar,
+}: {
+  callId: string;
+  email: string | null;
+  onCerrar: () => void;
+  onAsignar: () => void;
+}) {
+  const router = useRouter();
+  const [nombre, setNombre] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [pendiente, setPendiente] = useState(false);
+  const [conflicto, setConflicto] = useState<string | null>(null);
+
+  async function crear() {
+    setPendiente(true);
+    setConflicto(null);
+    try {
+      const r = await crearDealDesdeSueltaAccion({ callId, nombre, telefono });
+      if (r.ok) {
+        toast.success(r.movioAAgendado ? "Deal creado: quedó en Agendado." : "Deal creado y llamada asignada.");
+        onCerrar();
+        router.refresh();
+      } else if (r.status === 409) {
+        setConflicto(r.error);
+      } else {
+        toast.error(r.error, { duration: 6000 });
+      }
+    } finally {
+      setPendiente(false);
+    }
+  }
+
+  return (
+    <DialogoForm
+      titulo="Crear deal desde la llamada"
+      descripcion="El correo viene de Calendly y no se puede editar. Completa los datos que conozcas."
+      pendiente={pendiente}
+      onCerrar={onCerrar}
+      deshabilitarConfirmar={!email}
+      confirmar={{ texto: "Crear deal", enCurso: "Creando…", onClick: crear }}
+    >
+      <div className="min-w-0 space-y-3">
+        <Campo etiqueta="Correo">
+          <input className={claseInput} value={email ?? "Sin correo"} readOnly />
+        </Campo>
+        <Campo etiqueta="Nombre">
+          <input className={claseInput} value={nombre} onChange={(e) => setNombre(e.target.value)} />
+        </Campo>
+        <Campo etiqueta="Teléfono">
+          <input className={claseInput} value={telefono} onChange={(e) => setTelefono(e.target.value)} />
+        </Campo>
+        {conflicto ? (
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">{conflicto}</p>
+            <Button type="button" size="sm" variant="outline" onClick={onAsignar}>
+              Asignar a un deal
+            </Button>
+          </div>
+        ) : null}
+      </div>
+    </DialogoForm>
   );
 }
 

@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, notInArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, notInArray } from "drizzle-orm";
 import { z } from "zod";
 import { calls, dealActividades, deals, leadContactos, leads, miembrosPrograma, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -23,6 +23,7 @@ import { fechaHoraEnBogota } from "@/lib/format";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
 import { cambiarDuenoDeal } from "@/lib/deals/cambiar-dueno";
 import { registrarNovedadCalendly } from "@/lib/notificaciones-calendly/notificaciones";
+import { crearDealAMano } from "@/lib/deals/crear-a-mano";
 import {
   closerHost,
   emparejarLlamada,
@@ -336,6 +337,63 @@ export async function adoptarSueltaDeCita(
 }
 
 /**
+ * Adopta, de la más vieja a la más nueva, las llamadas sueltas cuyo correo confirmado
+ * pertenece al lead. La decisión final sigue siendo del emparejador puro: si el correo
+ * también identifica otro lead o hay más de un deal abierto, no escribe nada.
+ */
+export async function adoptarSueltasPorCorreo(tx: Db, programId: string, leadId: string): Promise<void> {
+  const contactos = await tx
+    .select({ valor: leadContactos.valor })
+    .from(leadContactos)
+    .where(
+      and(
+        eq(leadContactos.programId, programId),
+        eq(leadContactos.leadId, leadId),
+        eq(leadContactos.tipo, "correo"),
+        eq(leadContactos.confirmado, true),
+      ),
+    );
+  const correos = new Set(contactos.map((c) => normalizarEmail(c.valor)).filter((c): c is string => c !== null));
+  if (correos.size === 0) return;
+
+  const sueltas = await tx
+    .select({
+      id: calls.id,
+      programId: calls.programId,
+      emailLead: calls.emailLead,
+      host: calls.calendlyHostEmail,
+      closerUserId: calls.closerUserId,
+      fechaAgenda: calls.fechaAgenda,
+    })
+    .from(calls)
+    .where(and(eq(calls.programId, programId), sueltaPorAsignar(), vigente(calls)))
+    .orderBy(asc(calls.fechaAgenda));
+  const closers = await closersConCalendly(tx, programId);
+
+  for (const llamada of sueltas) {
+    const correo = normalizarEmail(llamada.emailLead);
+    if (!correo || !correos.has(correo)) continue;
+    const decision = emparejarLlamada(
+      { correoInvitado: llamada.emailLead, correoHost: llamada.host },
+      await candidatosPorCorreo(tx, programId, correo),
+      closers,
+    );
+    if (decision.tipo !== "colgada") continue;
+    const [deal] = await tx
+      .select({ id: deals.id, programId: deals.programId, etapa: deals.etapa, cohortId: deals.cohortId })
+      .from(deals)
+      .where(and(eq(deals.id, decision.dealId), eq(deals.programId, programId), vigente(deals)));
+    if (!deal || deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido") continue;
+    await colgarSueltaEnDeal(tx, llamada, deal, closerHost(llamada.host, closers), null);
+    await dejarNotaDelSistema(
+      tx,
+      deal.id,
+      `Se colgó la llamada suelta del ${llamada.fechaAgenda ? fechaHoraEnBogota(llamada.fechaAgenda) : "sin fecha"} por el correo.`,
+    );
+  }
+}
+
+/**
  * La host registrada se queda el deal (decision de Mani del 28-sep). Devuelve el dueño
  * anterior SOLO si habia uno distinto, y deja la nota que lo avisa. Sin host registrada, el
  * dueño no se toca.
@@ -383,9 +441,53 @@ export const esquemaAsignarSuelta = z.object({
 
 export type DatosAsignarSuelta = z.input<typeof esquemaAsignarSuelta>;
 
+export const esquemaCrearDealDesdeSuelta = z.object({
+  callId: z.string().uuid("La llamada no es válida."),
+  nombre: z.string().optional(),
+  telefono: z.string().optional(),
+});
+
+export type DatosCrearDealDesdeSuelta = z.input<typeof esquemaCrearDealDesdeSuelta>;
+
 export interface ActorDeAsignacion {
   userId: string;
   rol: Rol | null;
+}
+
+interface LlamadaSueltaLeida {
+  id: string;
+  programId: string;
+  emailLead: string | null;
+  host: string | null;
+  closerUserId: string | null;
+  fechaAgenda: Date | null;
+}
+
+interface DealParaSuelta {
+  id: string;
+  programId: string;
+  etapa: typeof deals.$inferSelect.etapa;
+  cohortId: string | null;
+}
+
+async function colgarSueltaEnDeal(
+  tx: Db,
+  llamada: LlamadaSueltaLeida,
+  deal: DealParaSuelta,
+  host: string | null,
+  actorId: string | null,
+): Promise<{ movioAAgendado: boolean; duenoAnterior: string | null; rechazo?: string }> {
+  const etiqueta = llamada.emailLead ?? llamada.id;
+  await editarConRastro(
+    { db: tx, tabla: calls, nombreTabla: "calls", actorId, etiqueta },
+    llamada.id,
+    {
+      dealId: deal.id,
+      cohortId: deal.cohortId,
+      ...(llamada.closerUserId === null && host !== null ? { closerUserId: host } : {}),
+    },
+  );
+  return efectoSobreElDeal(tx, deal.id, host, etiqueta, llamada.fechaAgenda);
 }
 
 /**
@@ -431,17 +533,55 @@ export async function asignarLlamadaSuelta(
         throw new ErrorDeApp("El deal está cerrado: no se le cuelgan llamadas.", 409);
       }
 
-      const etiqueta = llamada.emailLead ?? llamada.id;
-      await editarConRastro(
-        { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta },
-        llamada.id,
+      return colgarSueltaEnDeal(tx, llamada, deal, host, actor.userId);
+    });
+  });
+}
+
+/** Crea el lead/deal de una suelta y la cuelga, todo dentro de la misma transacción. */
+export async function crearDealDesdeSuelta(
+  db: Db,
+  actor: ActorDeAsignacion,
+  datos: DatosCrearDealDesdeSuelta,
+): Promise<{ dealId: string; leadId: string; movioAAgendado: boolean }> {
+  return normalizando(async () => {
+    const { callId, nombre, telefono } = esquemaCrearDealDesdeSuelta.parse(datos);
+    return enTransaccion(db, async (tx) => {
+      const [llamada] = await tx
+        .select({
+          id: calls.id,
+          programId: calls.programId,
+          emailLead: calls.emailLead,
+          host: calls.calendlyHostEmail,
+          closerUserId: calls.closerUserId,
+          fechaAgenda: calls.fechaAgenda,
+        })
+        .from(calls)
+        .where(and(eq(calls.id, callId), sueltaPorAsignar(), vigente(calls)));
+      if (!llamada || !(await programaEnAlcance(actor.userId, actor.rol, llamada.programId, tx))) {
+        throw new ErrorDeApp("No existe esa llamada suelta.", 404);
+      }
+      const host = closerHost(llamada.host, await closersConCalendly(tx, llamada.programId));
+      if (!puedeColgarSuelta({ actorUserId: actor.userId, rol: actor.rol, hostUserId: host })) {
+        throw new ErrorDeApp("Esta llamada la hospeda otra closer: la cuelga ella o quien administra.", 403);
+      }
+      if (!llamada.emailLead) throw new ErrorDeApp("La llamada no tiene correo: asóciala a un deal.", 422);
+      if (!actor.rol) throw new ErrorDeApp("No tienes permiso para crear deals.", 403);
+
+      const creado = await crearDealAMano(
+        tx,
+        { userId: actor.userId, rol: actor.rol },
         {
-          dealId: deal.id,
-          cohortId: deal.cohortId,
-          ...(llamada.closerUserId === null && host !== null ? { closerUserId: host } : {}),
+          programId: llamada.programId,
+          lead: { tipo: "nuevo", correo: llamada.emailLead, nombre, telefono },
         },
       );
-      return efectoSobreElDeal(tx, deal.id, host, etiqueta, llamada.fechaAgenda);
+      const [deal] = await tx
+        .select({ id: deals.id, programId: deals.programId, etapa: deals.etapa, cohortId: deals.cohortId })
+        .from(deals)
+        .where(and(eq(deals.id, creado.dealId), eq(deals.programId, llamada.programId), vigente(deals)));
+      const efecto = await colgarSueltaEnDeal(tx, llamada, deal, host, actor.userId);
+      return { dealId: creado.dealId, leadId: creado.leadId, movioAAgendado: efecto.movioAAgendado };
     });
   });
 }
