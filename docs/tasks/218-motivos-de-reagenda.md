@@ -3,7 +3,7 @@ id: 218
 etapa: O8
 serves: "A-121"
 depends: [217]
-status: review
+status: done
 ---
 
 # 218 — Más motivos de reagenda, y "Otro" con texto
