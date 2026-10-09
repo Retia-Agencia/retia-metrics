@@ -10,6 +10,7 @@ import {
   NOMBRE_DE_CHIP,
   POR_PAGINA,
   chipPedido,
+  conteoSinVer,
   conteosDeChips,
   notificacionesDeChip,
   type ChipNotificacion,
@@ -43,9 +44,10 @@ export async function TabNotificaciones({
   const paginaPedida = Number.parseInt(paginaCruda ?? "", 10);
   const pagina = Number.isFinite(paginaPedida) && paginaPedida > 0 ? paginaPedida : 0;
 
-  const [conteos, resultado] = await Promise.all([
+  const [conteos, resultado, sinVer] = await Promise.all([
     conteosDeChips(db, { programId, userId }),
     notificacionesDeChip(db, { programId, userId, chip, pagina }),
+    conteoSinVer(db, { programId, userId }),
   ]);
 
   const paginas = Math.max(1, Math.ceil(resultado.total / POR_PAGINA));
@@ -63,6 +65,11 @@ export async function TabNotificaciones({
 
   return (
     <div className="space-y-4">
+      {/* El total "sin ver" (223): el mismo número que el circulito del menú. */}
+      <p className="text-sm text-muted-foreground" aria-live="polite">
+        {sinVer > 0 ? `Tienes ${sinVer} sin ver.` : "Estás al día: no hay nada sin ver."}
+      </p>
+
       {/* Chips con su conteo, uno activo a la vez. */}
       <nav aria-label="Tipos de notificación" className="flex flex-wrap gap-2">
         {CHIPS_NOTIFICACIONES.map((c) => {

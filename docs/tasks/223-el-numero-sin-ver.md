@@ -3,7 +3,7 @@ id: 223
 etapa: O8
 serves: "A-127"
 depends: [222]
-status: todo
+status: review
 ---
 
 # 223 — El número sin ver

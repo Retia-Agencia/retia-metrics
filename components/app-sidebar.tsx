@@ -10,6 +10,7 @@ import type { Vista } from "@/lib/auth/vista";
 import type { CloserActivo } from "@/lib/catalogo/usuarios";
 import { cn } from "@/lib/utils";
 import { Marca } from "@/components/marca";
+import { NumeroSinVer } from "@/components/mi-espacio/numero-sin-ver";
 import { ProgramSwitcher } from "@/components/program-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
@@ -205,6 +206,11 @@ export function AppSidebar({
                     )}
                   />
                   <span className="truncate">{item.etiqueta}</span>
+                  {/* El circulito "sin ver" (223): solo en Mi espacio. El programa de
+                      respaldo es el que el menú ya eligió cuando la ruta no trae uno. */}
+                  {item.icono === "miespacio" ? (
+                    <NumeroSinVer programaDeRespaldo={programa} />
+                  ) : null}
                 </Link>
               );
             })}
