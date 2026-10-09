@@ -39,8 +39,11 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
     revisó y corrigió: Canal quedaba oculto por defecto (209), un `setState` dentro de un efecto (209), el CS no
     tenía dónde marcar (145: toggle en Students, celdas sin enlace a la ficha, foco de teclado en el nombre).
   - Typecheck, lint y build verdes sobre la ola integrada; la suite la corre el CI (la máquina tenía 13 GB de swap).
-  - Pendiente: recorrido visual de las cuatro, crear los usuarios CS de Dani Rincón (TI) y Juanjo (CA) con su
-    membresía, configurar el setter por defecto (Jero) en los dos programas, y el cadenero.
+  - CI de `011a284` rojo por dos causas (mocks de Leads del 209 y el guardián del alcance: el CS ahora pregunta
+    con `programaEnAlcance`; `setter-por-defecto.ts` entra a sus excepciones como identidad), arreglado en `4acc0d8`.
+  - Recorrido local de las cuatro hecho (anotaciones, recorrido 14): A-112 y A-113 arregladas; A-114 a A-117 abiertas.
+  - Pendiente: crear los usuarios CS de Dani Rincón (TI) y Juanjo (CA) con su
+    membresía, configurar el setter por defecto (Jero) en los dos programas, el checkpoint y el cadenero.
   - 🔑 La contraseña de la base quedó impresa en la sesión por un filtro mal escrito: rotarla en Supabase y
     actualizar `.env.local` y Vercel.
 

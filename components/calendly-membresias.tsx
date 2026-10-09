@@ -194,8 +194,12 @@ export function FilaMembresia({
         <span className="block truncate text-xs text-muted-foreground">{membresia.emailUsuario}</span>
       </span>
       <span className="flex flex-wrap items-center gap-2">
-        {guardada ? <Badge variant="outline">Conectada</Badge> : null}
-        <select
+        {/* La cuenta de Calendly es de quien hospeda citas (trabaja leads); un Customer Success
+            (145) es miembro solo para ver Students, sin cuenta que conectar. */}
+        {trabajaLeads(membresia.rol) ? (
+          <>
+            {guardada ? <Badge variant="outline">Conectada</Badge> : null}
+            <select
           value={valor}
           onChange={(e) => guardar(e.target.value)}
           disabled={pendiente || (cuentas === null && !guardada)}
@@ -209,8 +213,10 @@ export function FilaMembresia({
               {c.correo}
             </option>
           ))}
-        </select>
-        {error ? <span className="max-w-64 text-xs text-destructive">{error}</span> : null}
+            </select>
+            {error ? <span className="max-w-64 text-xs text-destructive">{error}</span> : null}
+          </>
+        ) : null}
         {extra}
       </span>
     </li>

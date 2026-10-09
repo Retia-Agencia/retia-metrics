@@ -335,3 +335,20 @@ Calendly" (185).
 administra, solo desde la tab Leads (ADR 0035 y 0060). Son dos cosas distintas: **"N envíos"** son reenvíos del mismo
 correo y no piden decisión; **"posible duplicado"** es un correo nuevo que llegó con un teléfono conocido, y esa sí.
 Confirmar deja una persona y un deal; separar crea un lead nuevo, y desde el 184 también su deal (hoy no lo crea: A-92).
+
+## Recorrido 14 · 9-oct · Claude (base local): la ola de la reunión del 8-oct
+
+Recorrido de 209, 210, 211 y 145 con `dev:local`, como gerente, closer y Customer Success (sesiones separadas por
+subdominio). Funcionan: columnas de respuestas en tarjetas y tabla, recordadas al recargar; setter por defecto con
+rastro; "Asignarme todos"; aviso de solape y cambio de cohorte con nota; el CS aterriza en Students, marca y quita
+onboarding, y Leads, Deals, Ajustes y un programa ajeno le quedan cerrados. Forjada la acción de onboarding sobre un
+deal de otro programa: rechazada y la base sin moverse.
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-112 | Programa → Equipo | bug | A un Customer Success le salía el selector de cuenta de Calendly. | 145 | arreglado el 9-oct |
+| A-113 | Ajustes → Usuarios | cambio | El selector de rol mostraba el valor crudo (`customer_success`, `paid_trafficker`) en vez de la etiqueta. | 145 | arreglado el 9-oct |
+| A-114 | Students (celular) | usabilidad | En 390 px la columna Onboarding queda fuera de la pantalla: el CS, cuya única acción es esa, tiene que desplazar la tabla. Proponer tarjetas en celular o la columna Onboarding junto al nombre. | — | abierta |
+| A-115 | Students (CS) | usabilidad | Para el CS los nombres siguen en morado aunque ya no son enlaces: parecen clicables. | — | abierta |
+| A-116 | Inbox → Por settear | usabilidad | "Asignarme todos" toma N deals de una, sin confirmar. Proponer "Vas a tomar N deals" antes. | 210 | abierta |
+| A-117 | Leads (tabla) | usabilidad | El botón "Mostrar respuestas del formulario" se desplaza con la tabla cuando hay columnas de más. | 209 | abierta |

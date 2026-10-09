@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ROLES, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { etiquetaDeRol, ROLES, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
 import { clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import {
@@ -298,7 +298,7 @@ function FormularioUsuario({
               {/* Las opciones salen de ROLES: sumar un rol no vuelve a tocar esta pantalla. */}
               {ROLES.map((r) => (
                 <option key={r} value={r}>
-                  {r}
+                  {etiquetaDeRol(r)}
                 </option>
               ))}
             </select>
