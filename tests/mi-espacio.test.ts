@@ -248,7 +248,7 @@ describe("/mi-espacio (ticket 172)", () => {
     auth.mockResolvedValue(sesionGerente);
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar();
-    expect(tieneComponente(arbol, "TabAtencion")).toBe(false);
+    expect(tieneComponente(arbol, "TabNotificaciones")).toBe(false);
     expect(tieneComponente(arbol, "TabMisDeals")).toBe(false);
     expect(tieneComponente(arbol, "TabCanales")).toBe(false);
   });
@@ -260,7 +260,7 @@ describe("/mi-espacio (ticket 172)", () => {
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar({ tab: "deals" });
     expect(tieneComponente(arbol, "TabCanales")).toBe(false);
-    expect(tieneComponente(arbol, "TabAtencion")).toBe(true);
+    expect(tieneComponente(arbol, "TabNotificaciones")).toBe(true);
   });
 
   it("un closer que forja ?tab=por-decidir tampoco la ve: cae en Necesita atención", async () => {
@@ -270,7 +270,7 @@ describe("/mi-espacio (ticket 172)", () => {
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar({ tab: "por-decidir" });
     expect(tieneComponente(arbol, "TabPorDecidir")).toBe(false);
-    expect(tieneComponente(arbol, "TabAtencion")).toBe(true);
+    expect(tieneComponente(arbol, "TabNotificaciones")).toBe(true);
   });
 
   it("Mis métricas usa el closer de la sesión efectiva, no uno de la URL", async () => {
@@ -304,7 +304,7 @@ describe("/mi-espacio (ticket 172)", () => {
     ]);
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar();
-    expect(tieneComponente(arbol, "TabAtencion")).toBe(true);
+    expect(tieneComponente(arbol, "TabNotificaciones")).toBe(true);
     expect(tieneComponente(arbol, "TabPorDecidir")).toBe(false);
   });
 
@@ -317,7 +317,7 @@ describe("/mi-espacio (ticket 172)", () => {
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar();
     expect(tieneComponente(arbol, "TabPorDecidir")).toBe(true);
-    expect(tieneComponente(arbol, "TabAtencion")).toBe(false);
+    expect(tieneComponente(arbol, "TabNotificaciones")).toBe(false);
   });
 
   it("el developer en vista todo ve el mensaje que lo explica (no hay sección propia)", async () => {
@@ -329,7 +329,7 @@ describe("/mi-espacio (ticket 172)", () => {
     const texto = textoDelArbol(arbol);
     expect(texto).toContain("Ver como closer");
     expect(texto).toContain("según su rol");
-    expect(tieneComponente(arbol, "TabAtencion")).toBe(false);
+    expect(tieneComponente(arbol, "TabNotificaciones")).toBe(false);
     expect(tieneComponente(arbol, "TabPorDecidir")).toBe(false);
   });
 });
