@@ -3,7 +3,7 @@ id: 214
 etapa: corte
 serves: "Mani, 9-oct (recorrido de Students tras el 208)"
 depends: []
-status: review
+status: done
 ---
 
 # 214 — Students: total recaudado fijo abajo, y un saldo que se entienda
@@ -34,7 +34,7 @@ status: review
 - [x] El texto nuevo del saldo en Students, ficha y Mi día (todos usan `saldoLegible`).
 - [x] Recorrido en claro y oscuro, a 390 px.
 
-## Resultado (9-oct, en revisión)
+## Resultado (9-oct, `cp-20261009-1`)
 
 - `totalesDeStudents` (`lib/queries/estudiantes-totales.ts`) suma sobre las mismas filas filtradas que salen de
   `saldosDeDeals`: Recaudado, Por cobrar (solo saldos positivos) por moneda, y cuántos no tienen valor vendido. El pie

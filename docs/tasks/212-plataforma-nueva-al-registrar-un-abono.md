@@ -3,7 +3,7 @@ id: 212
 etapa: corte
 serves: "Mani, 9-oct (recorrido de Students tras el 208)"
 depends: []
-status: review
+status: done
 ---
 
 # 212 — El closer crea la plataforma de pago al registrar el abono, y la corrige después
@@ -32,7 +32,7 @@ poder corregir.
 - [x] Tests de las dos escrituras y de la reja (un closer de otro programa recibe 403, forjando la acción).
 - [x] Recorrido: abrir el selector, crear, cambiar; consola limpia.
 
-## Resultado (9-oct, en revisión)
+## Resultado (9-oct, `cp-20261009-1`)
 
 - **Por qué ComunicArte "no tenía plataformas":** el importador (`lib/migracion/importar.ts`) buscaba la
   plataforma por nombre en TODO el catálogo y la escribía en el abono, pero nunca creaba el vínculo

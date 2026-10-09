@@ -3,7 +3,7 @@ id: 213
 etapa: corte
 serves: "Mani, 9-oct: encontrar un deal rápido"
 depends: [207]
-status: review
+status: done
 ---
 
 # 213 — Buscador en Deals: por nombre, correo o teléfono
@@ -31,7 +31,7 @@ Kanban o la tabla. Mani: una barra de búsqueda en Deals para filtrar por nombre
 - [x] Un deal de otro programa nunca aparece.
 - [x] Tests de la consulta; recorrido en Kanban y tabla, a 390 px.
 
-## Resultado (9-oct, en revisión)
+## Resultado (9-oct, `cp-20261009-1`)
 
 - El texto NO va en la URL: `buscarDealsAccion` (server action, igual que Leads) devuelve ids de deals del programa;
   el Kanban filtra sus tarjetas y recalcula conteo, Potencial y Confirmado por columna (`columnasVisibles`). Los
