@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { changeLog, cohorts, dealActividades, deals, leads, programs, users } from "@/lib/db/schema";
+import { changeLog, cohorts, dealActividades, deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals/estudiante";
@@ -266,5 +266,68 @@ describe("estudiantesDe: Students es una consulta sobre la etapa", () => {
     await marcarOnboarded(db, comoCloser(), { dealId });
     const [e] = await estudiantesDe(db, programId);
     expect(e.onboardedAt).not.toBeNull();
+  });
+});
+
+describe("customer success: solo marca y desmarca onboarding, con membresía (ticket 145)", () => {
+  /** Crea un customer success y, si se pide, su membresía activa en el programa del deal. */
+  async function nuevoCustomerSuccess({ conMembresia }: { conMembresia: boolean }): Promise<{ userId: string; rol: "customer_success" }> {
+    const [u] = await db
+      .insert(users)
+      .values({ email: `cs${Math.random().toString(36).slice(2)}@retiagrowth.com`, rol: "customer_success" })
+      .returning();
+    if (conMembresia) {
+      await db.insert(miembrosPrograma).values({ userId: u.id, programId, activo: true });
+    }
+    return { userId: u.id, rol: "customer_success" as const };
+  }
+
+  it("con membresía activa marca el onboarding de un estudiante, con timestamp y rastro de quién", async () => {
+    const cs = await nuevoCustomerSuccess({ conMembresia: true });
+    const dealId = await nuevoDeal("ganado_parcial");
+    const { onboardedAt } = await marcarOnboarded(db, cs, { dealId });
+    expect(onboardedAt).toBeInstanceOf(Date);
+    expect((await fila(dealId)).onboardedAt).not.toBeNull();
+    const rastro = await db
+      .select()
+      .from(changeLog)
+      .where(and(eq(changeLog.registroId, dealId), eq(changeLog.campo, "onboardedAt")));
+    expect(rastro).toHaveLength(1);
+    expect(rastro[0].userId).toBe(cs.userId);
+  });
+
+  it("con membresía activa desmarca el onboarding (y lo deja limpio)", async () => {
+    const cs = await nuevoCustomerSuccess({ conMembresia: true });
+    const dealId = await nuevoDeal("ganado_completo");
+    await marcarOnboarded(db, cs, { dealId });
+    await desmarcarOnboarded(db, cs, { dealId });
+    expect((await fila(dealId)).onboardedAt).toBeNull();
+  });
+
+  it("SIN membresía en el programa: 403 al marcar, y la fila no se toca", async () => {
+    const cs = await nuevoCustomerSuccess({ conMembresia: false });
+    const dealId = await nuevoDeal("ganado_parcial");
+    expect((await capturar(marcarOnboarded(db, cs, { dealId }))).status).toBe(403);
+    expect((await fila(dealId)).onboardedAt).toBeNull();
+  });
+
+  it("una membresía INACTIVA no alcanza: 403 al marcar", async () => {
+    const [u] = await db
+      .insert(users)
+      .values({ email: "cs-inactiva@retiagrowth.com", rol: "customer_success" })
+      .returning();
+    await db.insert(miembrosPrograma).values({ userId: u.id, programId, activo: false });
+    const dealId = await nuevoDeal("ganado_parcial");
+    expect((await capturar(marcarOnboarded(db, { userId: u.id, rol: "customer_success" }, { dealId }))).status).toBe(403);
+    expect((await fila(dealId)).onboardedAt).toBeNull();
+  });
+
+  it("aun con membresía, NO puede cambiar la cohorte: 403, y la cohorte no cambia", async () => {
+    const cs = await nuevoCustomerSuccess({ conMembresia: true });
+    const dealId = await nuevoDeal("ganado_parcial");
+    expect(
+      (await capturar(cambiarCohorte(db, cs, { dealId, cohortId: octubre, motivo: "x" }))).status,
+    ).toBe(403);
+    expect((await fila(dealId)).cohortId).toBe(septiembre);
   });
 });

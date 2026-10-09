@@ -243,3 +243,46 @@ describe("el paid trafficker no toca deals, forjando la petición (102)", () => 
     expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, dealId))).toHaveLength(actividades.length);
   });
 });
+
+describe("el customer success solo marca onboarding, por la server action (ticket 145)", () => {
+  async function cs({ conMembresia }: { conMembresia: boolean }): Promise<string> {
+    const [u] = await db.insert(users).values({ email: `cs${++leadN}@retiagrowth.com`, rol: "customer_success" }).returning();
+    if (conMembresia) await db.insert(miembrosPrograma).values({ userId: u.id, programId: programaA, activo: true });
+    return u.id;
+  }
+  async function dealGanado(programId: string): Promise<string> {
+    const [l] = await db.insert(leads).values({ programId, emailNormalizado: `lead${++leadN}@correo.co` }).returning();
+    const [d] = await db.insert(deals).values({ leadId: l.id, programId, etapa: "ganado_parcial", ownerUserId: closerA }).returning();
+    return d.id;
+  }
+
+  it("con membresía activa marca y desmarca el onboarding por la acción", async () => {
+    const dealId = await dealGanado(programaA);
+    auth.mockResolvedValue(sesion(await cs({ conMembresia: true }), "customer_success", null));
+    const a = await acciones();
+    expect(await a.marcarOnboardedAccion({ dealId })).toEqual({ ok: true });
+    expect((await deal(dealId)).onboardedAt).not.toBeNull();
+    expect(await a.desmarcarOnboardedAccion({ dealId })).toEqual({ ok: true });
+    expect((await deal(dealId)).onboardedAt).toBeNull();
+  });
+
+  it("SIN membresía: la acción de onboarding lo rechaza y la fila no se mueve", async () => {
+    const dealId = await dealGanado(programaA);
+    auth.mockResolvedValue(sesion(await cs({ conMembresia: false }), "customer_success", null));
+    // Sin membresía, el deal cae fuera de su alcance: la acción responde como si no existiera.
+    expect(await (await acciones()).marcarOnboardedAccion({ dealId })).toMatchObject({ ok: false });
+    expect((await deal(dealId)).onboardedAt).toBeNull();
+  });
+
+  it("ni con membresía toca lo demás: anular, cohorte y actividad lo rechaza el requireRole", async () => {
+    const dealId = await dealGanado(programaA);
+    auth.mockResolvedValue(sesion(await cs({ conMembresia: true }), "customer_success", null));
+    const a = await acciones();
+    expect(await a.anularDealAccion({ dealId, motivo: "forjado" })).toMatchObject({ ok: false });
+    expect((await deal(dealId)).anuladoEn).toBeNull();
+    expect(await a.cambiarCohorteAccion({ dealId, cohortId: "00000000-0000-0000-0000-000000000000", motivo: "x" })).toMatchObject({ ok: false });
+    const actividades = await db.select().from(dealActividades).where(eq(dealActividades.dealId, dealId));
+    expect(await a.registrarActividadAccion({ dealId, tipo: "nota", nota: "forjada" })).toMatchObject({ ok: false });
+    expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, dealId))).toHaveLength(actividades.length);
+  });
+});
