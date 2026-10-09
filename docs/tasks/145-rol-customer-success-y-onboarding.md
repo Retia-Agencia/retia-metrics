@@ -3,7 +3,7 @@ id: 145
 etapa: NC2
 serves: "comercial.md R-6, GC-42, GC-43"
 depends: []
-status: review
+status: done
 ---
 
 # 145 — El rol Customer Success y el onboarding en cuatro pasos

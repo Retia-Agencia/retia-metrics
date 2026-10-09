@@ -15,7 +15,7 @@ Mani (plan-reparto §4, O2 frente A; plan.md §2). Ola vigente: O6, el dashboard
 (5-oct, noche) y quedaron `done` en `cp-20261005-2`: la O6 está cerrada. El 6-oct cerraron además 117, 092
 (`programs.form_url` retirada, 0069; activar exige fuente principal; los tres programas activos ya la tienen) y 086
 (quién trajo al lead y "Tus enlaces de captación", 0070) y 126 (embudo por pregunta del Insights de Typeform, token en
-la fuente, 0071; tokens cargados en producción); CI verde en `260a74f`. Ya de noche, el 201 (novedades de Deals y Calendly) y el 202 (la barra de lista, A-105) cerraron en `cp-20261006-1` (`3b68a82`): la O7 está cerrada. El 8-oct se migró el corte 3 (208, done). El 9-oct la ola de la reunión del 8-oct (209, 210, 211 y 145) quedó en `review` con la 0073 aplicada; falta su recorrido, el checkpoint y crear los usuarios CS; 212, 213 y 214 (recorrido de Students) cerraron en `cp-20261009-1` (`1b3ee2d`); listos además 090 y 075. Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
+la fuente, 0071; tokens cargados en producción); CI verde en `260a74f`. Ya de noche, el 201 (novedades de Deals y Calendly) y el 202 (la barra de lista, A-105) cerraron en `cp-20261006-1` (`3b68a82`): la O7 está cerrada. El 8-oct se migró el corte 3 (208, done). El 9-oct la ola de la reunión del 8-oct (209, 210, 211 y 145) cerró en `cp-20261009-3` con la 0073 aplicada y Jero como setter de CA y TI; falta crear los usuarios CS; 212, 213 y 214 (recorrido de Students) cerraron en `cp-20261009-1` (`1b3ee2d`); listos además 090 y 075. Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
 Supabase Pro, ver el rojo del Kanban al arrastrar hacia atrás (182), y confirmar la regla del 086 (un lead de Meta
 que luego aplica con el enlace de un closer queda del closer). Del 117: ver un parcial real de Tactical y ComunicArte.
 
@@ -28,6 +28,16 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
 ```
 
 ## Memory
+
+- **2026-10-09 (mañana): checkpoint `cp-20261009-3` verde; 209, 210, 211 y 145 en `done`.**
+  - `cp-20261009-2` (`e6d3586`) marcó la ola con el CI verde; producción en ese commit (`retia-metrics-seven`,
+    01:14), 183 sobres en 24 h sin error.
+  - El cadenero (sesión aparte) dio PASS a 211 y PASS con notas a las demás. Dos medios: el setter no se revalidaba
+    por rol al asignar, y la cuenta de Calendly de un CS solo se escondía en pantalla. Corregidos por Codex en
+    `36b6a7f` con los bajos (Asignarme todos ordenado y tolerante a un reclamo en medio, la marca de setter se limpia
+    al quitar la membresía, botón de onboarding por permiso); 368 tests de los archivos tocados en verde en local.
+  - Abiertas: A-114 a A-117 (anotaciones, recorrido 14), los usuarios CS de Dani y Juanjo, y rotar la contraseña
+    de la base.
 
 - **2026-10-09 (Mani + Claude): la ola de la reunión del 8-oct (209, 210, 211 y 145) en `review`.**
   - Decisiones de Mani (todas las recomendaciones de los tickets): 209 recuerda columnas en el navegador; 210 la

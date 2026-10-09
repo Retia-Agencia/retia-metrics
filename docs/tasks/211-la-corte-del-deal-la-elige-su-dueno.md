@@ -3,7 +3,7 @@ id: 211
 etapa: corte
 serves: "reunión del 8-oct (Michael): dos cortes vendiendo a la vez la última semana"
 depends: []
-status: review
+status: done
 ---
 
 # 211 — La corte del deal la elige su dueño, y dos cortes pueden vender a la vez
