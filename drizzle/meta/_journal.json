@@ -519,6 +519,13 @@
       "when": 1791523013687,
       "tag": "0073_setter-por-defecto-y-customer-success",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1791559454152,
+      "tag": "0074_anotaciones-con-pendiente",
+      "breakpoints": true
     }
   ]
 }

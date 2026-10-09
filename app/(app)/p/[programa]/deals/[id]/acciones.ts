@@ -19,6 +19,7 @@ import { registrarAbono, anularAbono, pegarComprobante, cambiarPlataformaDeAbono
 import { puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { crearOVincularPlataforma } from "@/lib/catalogo/plataformas";
 import { registrarActividad } from "@/lib/deals/actividades";
+import { anotar, esquemaAnotar, type DatosAnotar, type AnotacionHecha } from "@/lib/deals/anotar";
 import { anularDeal } from "@/lib/deals/anular-deal";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { marcarLinkEnviado } from "@/lib/deals/handoff";
@@ -224,6 +225,14 @@ export async function editarAcuerdoAccion(entrada: EntradaAcuerdo): Promise<Resu
 }
 
 // ───────────────────────────────────────────── actividades
+
+export async function anotarAccion(entrada: DatosAnotar): Promise<ResultadoFicha<AnotacionHecha>> {
+  return correr(async (ctx) => {
+    const datos = esquemaAnotar.parse(entrada);
+    await exigirDealVisible(ctx, datos.dealId);
+    return anotar(db, ctx.actor, datos);
+  });
+}
 
 const esquemaActividad = z.object({
   dealId: id("Deal inválido."),

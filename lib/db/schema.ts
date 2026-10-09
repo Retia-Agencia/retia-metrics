@@ -1038,7 +1038,7 @@ export const dealEtapaHistorial = pgTable(
 
 /**
  * Contactos y notas sobre un deal (ADR 0037). Un `contacto` con fecha es lo que
- * habilita la entrada a En Contacto; una `nota` no mueve nada.
+ * habilita la entrada a En Contacto; una `nota` humana cuenta como gestión.
  *
  * ⚠️ `canal` es texto por ahora y **esa es una pregunta abierta**: si el equipo
  * tiene que elegirlo de una lista, pasa a ser catalogo del molde (ADR 0012). Se
@@ -1060,6 +1060,8 @@ export const dealActividades = pgTable(
     userId: uuid("user_id").references(() => users.id, { onDelete: "restrict" }),
     fecha: timestamp("fecha", { withTimezone: true }).notNull().defaultNow(),
     nota: text("nota"),
+    proximoContacto: date("proximo_contacto"),
+    pendientePuesto: pendienteDealEnum("pendiente_puesto"),
   },
   (t) => [
     index("deal_actividades_deal_idx").on(t.dealId, t.fecha),

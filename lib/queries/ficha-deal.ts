@@ -86,6 +86,8 @@ export interface FichaDeActividad {
   canal: string | null;
   fecha: Date;
   nota: string | null;
+  proximoContacto: string | null;
+  pendientePuesto: PendienteDeal | null;
   /** `null` = la escribio el sistema. */
   autorNombre: string | null;
 }
@@ -637,6 +639,8 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
       canal: a.canal,
       fecha: a.fecha,
       nota: a.nota,
+      proximoContacto: a.proximoContacto,
+      pendientePuesto: a.pendientePuesto,
       autorNombre: nombreDe(a.userId),
     })),
     historial: historialFilas.map((h) => ({

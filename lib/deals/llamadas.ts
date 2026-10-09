@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { calls, deals, leads } from "@/lib/db/schema";
+import { calls, deals, leads, motivos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
@@ -381,6 +381,7 @@ async function marcarComoShow(
 export const esquemaReagendar = z.object({
   callId: z.string().uuid("La llamada no es válida."),
   fechaAgenda: z.date({ message: "Falta la fecha de la cita." }),
+  motivoId: z.string().uuid("El motivo no es válido.").optional(),
   linkCalendly: z
     .string()
     .url("El link de la reunión no es una URL válida.")
@@ -408,7 +409,7 @@ export async function reagendarLlamada(
   datos: DatosReagendar,
 ): Promise<LlamadaAgregada> {
   return normalizando(async () => {
-    const { callId, fechaAgenda, linkCalendly, notas } = esquemaReagendar.parse(datos);
+    const { callId, fechaAgenda, motivoId, linkCalendly, notas } = esquemaReagendar.parse(datos);
 
     exigirQueTrabajeLeads(actor);
 
@@ -417,6 +418,14 @@ export async function reagendarLlamada(
       const { call: vieja, deal } = await llamadaVigenteDeDealAbierto(db, callId, actor);
       if (vieja.resultado !== "agendada") {
         throw new ErrorDeApp("Solo se reagenda una llamada agendada.", 409);
+      }
+
+      if (motivoId) {
+        const [motivo] = await db
+          .select({ id: motivos.id })
+          .from(motivos)
+          .where(and(eq(motivos.id, motivoId), eq(motivos.tipo, "reagenda"), eq(motivos.activo, true)));
+        if (!motivo) throw new ErrorDeApp("El motivo de re-agenda no existe o está inactivo.", 422);
       }
 
       // La vieja queda `reagendada`: deja de contar como "cita sin resultado" y sale del
@@ -430,7 +439,7 @@ export async function reagendarLlamada(
           etiqueta: vieja.emailLead ?? vieja.id,
         },
         vieja.id,
-        { resultado: "reagendada" as const },
+        { resultado: "reagendada" as const, ...(motivoId ? { motivoId } : {}) },
       );
 
       // La nueva cita nace exactamente como en `agregarLlamada`: heredando del deal,

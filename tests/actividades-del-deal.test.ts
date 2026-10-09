@@ -87,11 +87,11 @@ describe("registrarActividad", () => {
     })).rejects.toThrow("El tipo tiene que ser contacto o nota.");
   });
 
-  it("una nota asigna dueño si falta, pero no mueve etapa", async () => {
+  it("una nota humana asigna dueño y mueve Registrado a En gestión", async () => {
     const d = await nuevo("registrado");
     await registrarActividad(db, actor(), { dealId: d.id, tipo: "nota", nota: "Dato interno" });
-    expect((await db.select().from(deals).where(eq(deals.id, d.id)))[0]).toMatchObject({ ownerUserId: closer, etapa: "registrado" });
-    expect(await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, d.id))).toEqual([]);
+    expect((await db.select().from(deals).where(eq(deals.id, d.id)))[0]).toMatchObject({ ownerUserId: closer, etapa: "en_gestion" });
+    expect(await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, d.id))).toHaveLength(1);
   });
 
   it("registra el contacto pero no retoma antes del inicio de ventas de la destino", async () => {

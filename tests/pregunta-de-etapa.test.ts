@@ -295,8 +295,8 @@ describe("gruposDeTransicion: guardián de 'Mover a' (ticket 176, decisión 1)",
     const { moverA, actividades } = gruposDeTransicion("potencial", null, ETAPAS);
     const destinos = moverA.map((grupo) => grupo.destino);
     expect(destinos).toContain("contactado");
-    // Lo único que no mueve en Potencial es la Nota.
-    expect(actividades).toEqual(["nota"]);
+    // Contacto y nota humanos mueven, así que ninguno queda como actividad sin transición.
+    expect(actividades).toEqual([]);
   });
 
   it("en Calificado nada se mueve con una actividad: ambas entran por 'Registrar actividad'", () => {

@@ -15,7 +15,8 @@ import { cambiarDuenoDeal } from "./cambiar-dueno";
  * Registrar una actividad de un deal: contacto o nota.
  *
  * - La primera actividad comercial mueve Potencial/Registrado a En gestión; un contacto
- *   logrado continúa a Contactado. Una nota nunca mueve.
+ *   logrado continúa a Contactado. Una nota de una persona deja Potencial/Registrado
+ *   en En gestión.
  * - **`canal` es texto libre**, no catalogo: la UI sugiere WhatsApp, Llamada, Correo con un
  *   `datalist` y deja escribir otro. Si algun dia hay que reportar por canal, pasa a molde.
  * - Quien la registra sale de la sesion (`userId` = el actor), nunca del input. Un contacto
@@ -79,7 +80,7 @@ export async function registrarActividad(db: Db, actor: ActorDeDeal, datos: Dato
       let pendiente = deal.pendiente;
       const sistema = { tipo: "sistema", porUsuario: actor.userId } as const;
       // A dónde va lo decide `etapaTrasActividad`, la misma regla con la que la ficha lo explica.
-      const destino = tipo === "nota" ? etapa : etapaTrasActividad(etapa, tipo);
+      const destino = etapaTrasActividad(etapa, tipo);
       if (destino !== etapa && etapa !== "en_gestion") {
         const hecho = await moverEtapa(tx, { dealId: deal.id, a: "en_gestion", actor: sistema });
         etapa = hecho.a;

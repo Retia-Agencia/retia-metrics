@@ -4,7 +4,7 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { aceptaAbono, ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
+import { aceptaAbono, ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { correccionSerializable, mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { etapaDeCorreccion } from "@/lib/deals/mover-etapa";
 import { puedeDecidirDuplicado, puedeTrabajarDeal } from "@/lib/deals/permiso";
@@ -120,7 +120,6 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
             correccion={correccionSerializable(ficha.etapa, correccion)}
             ordenDeEtapas={ETAPAS_EN_ORDEN}
             nombreDeEtapa={NOMBRE_DE_ETAPA}
-            nombreDePendiente={NOMBRE_DE_PENDIENTE}
             tonoDeEtapa={TONO_DE_ETAPA}
             rutaDeLaFicha={`/p/${programa.slug}/deals/${ficha.dealId}`}
             puedeTrabajar={puedeTrabajar}
