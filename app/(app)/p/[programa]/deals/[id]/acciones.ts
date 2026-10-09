@@ -26,7 +26,7 @@ import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
 import { anularDeal } from "@/lib/deals/anular-deal";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { marcarLinkEnviado } from "@/lib/deals/handoff";
-import { completarAgendada, pegarGrain } from "@/lib/deals/llamadas";
+import { completarAgendada, marcarFallida, marcarShow, pegarGrain, reagendarLlamada, RESULTADOS_FALLIDOS } from "@/lib/deals/llamadas";
 import { editarAcuerdoDePago } from "@/lib/deals/pago";
 import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals/estudiante";
 import { marcarCortesia } from "@/lib/deals/cortesia";
@@ -505,5 +505,59 @@ export async function pegarGrainAccion(entrada: EntradaPegarGrain): Promise<Resu
     await exigirLlamadaVisible(ctx, callId);
     const r = await pegarGrain(db, actor, { callId, linkGrain });
     return { etapa: r.etapa, movioAAtendido: r.movioAAtendido };
+  });
+}
+
+// El botón "Resultado" de una cita (ticket 177; vuelve el 9-oct a pedido de los closers, A-137):
+// Show, No show, Cancelada o Reagendada desde la llamada misma, además de Anotar.
+
+const esquemaMarcarShow = z.object({ callId: id("Llamada inválida.") });
+export type EntradaMarcarShow = z.input<typeof esquemaMarcarShow>;
+
+/** Marcar una llamada como show en un clic, sin pegar el link de Grain. */
+export async function marcarShowAccion(entrada: EntradaMarcarShow): Promise<ResultadoFicha<{ etapa: string; movioAAtendido: boolean }>> {
+  return correr(async (ctx) => {
+    const { actor } = ctx;
+    const { callId } = esquemaMarcarShow.parse(entrada);
+    await exigirLlamadaVisible(ctx, callId);
+    const r = await marcarShow(db, actor, { callId });
+    return { etapa: r.etapa, movioAAtendido: r.movioAAtendido };
+  });
+}
+
+const esquemaReagendar = z.object({
+  callId: id("Llamada inválida."),
+  dia,
+  hora,
+  linkCalendly: textoOpcional(z.string().url("El link de la reunión no es una URL válida.")),
+  notas: textoOpcional(z.string().max(2000)),
+});
+export type EntradaReagendar = z.input<typeof esquemaReagendar>;
+
+/** Cierra la cita vieja (`reagendada`) y crea la nueva en la misma transacción (`reagendarLlamada`). */
+export async function reagendarLlamadaAccion(entrada: EntradaReagendar): Promise<ResultadoFicha<{ movioAAgendado: boolean }>> {
+  return correr(async (ctx) => {
+    const { actor } = ctx;
+    const { callId, dia: d, hora: h, linkCalendly, notas } = esquemaReagendar.parse(entrada);
+    await exigirLlamadaVisible(ctx, callId);
+    const r = await reagendarLlamada(db, actor, { callId, fechaAgenda: instante(d, h), linkCalendly, notas });
+    return { movioAAgendado: r.movioAAgendado };
+  });
+}
+
+const esquemaFallida = z.object({
+  callId: id("Llamada inválida."),
+  resultado: z.enum(RESULTADOS_FALLIDOS),
+  motivoId: textoOpcional(id("Motivo inválido.")),
+});
+export type EntradaMarcarFallida = z.input<typeof esquemaFallida>;
+
+export async function marcarFallidaAccion(entrada: EntradaMarcarFallida): Promise<ResultadoFicha<{ etapa: string }>> {
+  return correr(async (ctx) => {
+    const { actor } = ctx;
+    const { callId, resultado, motivoId } = esquemaFallida.parse(entrada);
+    await exigirLlamadaVisible(ctx, callId);
+    const r = await marcarFallida(db, actor, { callId, resultado, motivoId });
+    return { etapa: r.etapa };
   });
 }

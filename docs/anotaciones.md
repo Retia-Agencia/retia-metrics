@@ -377,3 +377,7 @@ reconectar el conector. Las decisiones salen del grill de esa tarde (ADR 0081 y 
 | A-132 | Diálogo de Seguimiento | cambio | Michael: el seguimiento lleva razón, no origen. Con próximo contacto, el comentario de la anotación es obligatorio. | 217 | en ticket |
 | A-133 | Mi espacio | cambio | Michael: el día del próximo contacto le tiene que salir al closer ("el 12, seguimiento a Gina Charris"). En Mi espacio, no en el Inbox, que es para lo crudo. | 222 | en ticket |
 | A-131 | Mi espacio → Métricas | cambio | Andre quiere métricas por día de la semana y por quincena (percibe que los miércoles cierran mejor). | — | abierta, fuera de esta ola |
+| A-134 | Ficha del deal | usabilidad | Mani: el cambio de cohorte tiene que ser evidente. El botón sale de Facturación y va arriba a la derecha, junto a Editar. | 227 | en ticket |
+| A-135 | Ajustes → Cohortes | cambio | Mani: se crea una cohorte futura aunque no se sepa cuándo abren ventas o empiezan clases; queda "por definir". Sin cohortes futuras, Próxima cohorte no se puede elegir. | 227 | en ticket |
+| A-136 | Ficha → Transición | cambio | Anotar movía Potencial y Registrado a En gestión aunque dice que no cambia la etapa. Anotar nunca mueve; En gestión entra por Mover a. | 228 | en ticket |
+| A-137 | Llamadas (ficha, Calls, detalle) | cambio | Los closers quieren el botón Resultado (Show, No show, Cancelada, Reagendada) en la llamada misma, además de Anotar: es lo más frecuente. Vuelve el de antes del 219. | — | hecho 9-oct |

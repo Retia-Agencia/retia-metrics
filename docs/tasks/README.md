@@ -308,6 +308,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 224 | [El menú del closer: solo lo que puede abrir](./224-menu-del-closer.md) | 221 | done (cp-20261009-6) |
 | [x] | 225 | [Deals filtra por fecha de llamada y de próximo contacto](./225-filtro-por-llamada-y-proximo-contacto.md) | · | done (cp-20261009-4) |
 | [x] | 226 | [Chip "Sin Grain" en Notificaciones](./226-chip-sin-grain.md) | 222 | done (cp-20261009-10) |
+| [ ] | 227 | [Cohorte por definir, y Cambiar cohorte arriba en la ficha](./227-cohorte-pendiente-y-cambiar-cohorte-arriba.md) | · | todo · migración de la sesión principal |
+| [ ] | 228 | [Anotar nunca mueve; En gestión entra por Mover a](./228-anotar-nunca-mueve.md) | · | todo |
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
 

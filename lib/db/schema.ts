@@ -328,7 +328,12 @@ export const cohorts = pgTable(
     /** Meta de leads por dia habil de la cohorte. Editable desde /ajustes (ticket 014). */
     metaLeadsDia: integer("meta_leads_dia"),
     precioUsd: numeric("precio_usd", { precision: 10, scale: 2 }).notNull(),
-    fechaInicioClases: date("fecha_inicio_clases").notNull(),
+    /**
+     * Nullable solo mientras la cohorte es futura y "por definir" (ticket 227): Gerencia la
+     * crea antes de saber las fechas. El CHECK `cohorts_definida_si_no_es_futura` impide
+     * activarla o cerrarla sin ellas.
+     */
+    fechaInicioClases: date("fecha_inicio_clases"),
     /**
      * Primer dia de la ventana de venta (ADR 0022). Lo declara el negocio por
      * cohorte: no se deduce del cierre de la cohorte anterior. Nullable solo para
@@ -341,7 +346,7 @@ export const cohorts = pgTable(
      * una regla: hay programas que venden hasta el mismo dia en que arrancan
      * clases y otros hasta la vispera (ADR 0022).
      */
-    fechaCierreVentas: date("fecha_cierre_ventas").notNull(),
+    fechaCierreVentas: date("fecha_cierre_ventas"),
     estado: estadoCohorteEnum("estado").notNull().default("futuro"),
     notas: text("notas"),
   },
@@ -360,6 +365,11 @@ export const cohorts = pgTable(
     check(
       "cohorts_activa_con_inicio_ventas",
       sql`${t.estado} <> 'activo' OR ${t.fechaInicioVentas} IS NOT NULL`,
+    ),
+    // Una cohorte "por definir" solo puede ser futura (ticket 227).
+    check(
+      "cohorts_definida_si_no_es_futura",
+      sql`${t.estado} = 'futuro' OR (${t.fechaInicioClases} IS NOT NULL AND ${t.fechaCierreVentas} IS NOT NULL)`,
     ),
   ],
 );
