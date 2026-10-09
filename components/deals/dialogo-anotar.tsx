@@ -9,6 +9,7 @@ import { pendientesParaAnotar, type EtapaDeal, type PendienteDeal } from "@/lib/
 import { hoyEnBogota, instanteDeBogota } from "@/lib/format";
 import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { Campo, DialogoForm, claseInput, claseTextarea } from "./ficha/campos";
+import { avisarCambioDeNotificaciones } from "@/lib/mi-espacio/aviso-notificaciones";
 
 type Eleccion = "ninguno" | PendienteDeal;
 
@@ -67,6 +68,7 @@ export function DialogoAnotar({
     }
     toast.success("Anotación guardada.");
     setAbierto(false);
+    avisarCambioDeNotificaciones();
     onGuardado();
   }
 

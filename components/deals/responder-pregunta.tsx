@@ -14,6 +14,7 @@ import { accionDeFicha, enlaceDeAccion } from "./ficha/accion-pedida";
 import { Campo, claseInput, claseTextarea, DialogoForm } from "./ficha/campos";
 import { PREGUNTA_DE_ETAPA, type ClaveDestino, type Respuesta, type TipoDeActividad } from "./pregunta-de-etapa";
 import type { CorreccionCliente, FlechaCliente, MapaTransiciones } from "./transiciones";
+import { avisarCambioDeNotificaciones } from "@/lib/mi-espacio/aviso-notificaciones";
 
 /**
  * Responder la pregunta de la etapa (ADR 0072 puntos 1 y 2). Lo usan la ficha, el Kanban
@@ -182,6 +183,7 @@ export function useResponder(
       toast.success(correccion ? "Corrección guardada." : destino === deal.etapa ? "Guardado." : `Movido a ${nombreDeEtapa[destino]}.`);
       setAbierta(null);
       setCorreccionAbierta(null);
+      avisarCambioDeNotificaciones();
       alTerminar();
     } else {
       // Se dice QUE falta, no un generico (ticket 044).
@@ -217,6 +219,7 @@ export function useResponder(
           if (r.ok) {
             toast.success(EXITO_DE_ACTIVIDAD[actividadAbierta.tipo]);
             setActividadAbierta(null);
+            avisarCambioDeNotificaciones();
             alTerminar();
           } else toast.error(r.error, { duration: 6000 });
         },
@@ -304,6 +307,7 @@ export function useResponder(
                 if (r.ok) {
                   toast.success("Link marcado como enviado.");
                   setAgendaAbierta(null);
+                  avisarCambioDeNotificaciones();
                   alTerminar();
                 } else toast.error(r.error, { duration: 6000 });
               }}
