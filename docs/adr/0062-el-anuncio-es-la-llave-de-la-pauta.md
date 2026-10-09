@@ -1,6 +1,7 @@
 # 0062 — El anuncio es la llave de la pauta: UTM de Meta con macros, gasto por su API y origen declarado aparte
 
 - **Estado:** aceptado · 29-sep-2026 (Mani), todos los puntos (el 6 aprobado esa noche).
+- **Enmendado por el ADR 0081 (9-oct):** el punto 5 (la burbuja "sin UTM · según el comercial") se retira con el origen declarado (ticket 216).
 - **Enmienda:** ADR 0045 punto 2 (conjunto y anuncio fuera), ADR 0051 puntos 1, 3, 4 y 5 (el CRM genera
   todos los links) y ADR 0052 puntos 2 y 4 (el trafficker carga el gasto y no ve caja).
 - **Relacionadas:** ADR 0004, 0012, 0043, 0044, 0045, 0057 (secreto en la base), 0060 (el origen es del

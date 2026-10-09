@@ -3,6 +3,7 @@
 - **Estado:** aceptado · 2-oct-2026 (Mani, preguntas M-1 a M-6 del manual de gestión comercial §0). Se construye
   con el 142 (preguntas y flechas), el 143 (lo que tiene que tener cada etapa), el 128 (alertas) y el hub del
   closer (orden de la cola).
+- **Enmendado por el ADR 0081 (9-oct):** Mover o Anotar; los pendientes salen de lo anotado, se retiran los intentos y la alerta de tres intentos, y el origen declarado.
 - **Enmienda del punto 6 (2-oct, Mani, ticket 143):** el área no se pide al ENTRAR a Atendido (a Atendido lo
   mueve el sistema al pegar el Grain y ahí no hay a quién preguntar) sino al contestar "¿Cómo terminó?": toda
   salida de Atendido la exige, menos E9, que es la cita nueva moviendo el deal sola. Las flechas a Compromiso Verbal

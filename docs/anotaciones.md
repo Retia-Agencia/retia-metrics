@@ -352,3 +352,28 @@ deal de otro programa: rechazada y la base sin moverse.
 | A-115 | Students (CS) | usabilidad | Para el CS los nombres siguen en morado aunque ya no son enlaces: parecen clicables. | — | abierta |
 | A-116 | Inbox → Por settear | usabilidad | "Asignarme todos" toma N deals de una, sin confirmar. Proponer "Vas a tomar N deals" antes. | 210 | abierta |
 | A-117 | Leads (tabla) | usabilidad | El botón "Mostrar respuestas del formulario" se desplaza con la tabla cuando hay columnas de más. | 209 | abierta |
+
+## Recorrido 15 · 9-oct · reunión con Michael, Andre y el equipo de Tactical (operación real en el CRM)
+
+Los closers registraron en el CRM las llamadas reales del 8-oct (Gina Charris, Juan Alcázar, Juan Yambes, Julián
+Mayorga, Leandro). Fuente: el resumen de Wispr Flow de la reunión y la lista de Mani; el transcript completo pide
+reconectar el conector. Las decisiones salen del grill de esa tarde (ADR 0081 y ADR 0082).
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-118 | Ficha → Transición | usabilidad | Tres bloques de botones (Mover a, Registrar actividad, Dejar en espera) y más acciones en Llamadas y Pago. Quedan dos gestos: Mover y Anotar. | 217, 219 | en ticket |
+| A-119 | Ficha → Transición | cambio | El closer quiere llevar sus anotaciones del deal: un comentario libre que se acumula en Actividades con el pendiente que puso. | 217 | en ticket |
+| A-120 | Ficha → Transición | cambio | La alerta de los tres intentos no se usa: se retira. Varios seguimientos son varias anotaciones con su fecha. | 215 | en ticket |
+| A-121 | Diálogo de mover | cambio | Faltan motivos de No show o reagenda: imprevisto sin nueva fecha, sin comunicación, decisor ausente. Y "Otro" con texto. | 218 | en ticket |
+| A-122 | Diálogo de mover | usabilidad | Pedir el origen (Paid, Orgánico, Referido) al salir de Atendido es tedioso y los closers no lo saben. Se quita del todo. | 216 | en ticket |
+| A-123 | Diálogo de mover | cambio | Lo que pide la etapa destino se registra adentro del diálogo (la llamada con Show y Grain para Atendido, el abono para ganado). | 219 | en ticket |
+| A-124 | Ficha, Kanban | usabilidad | Show → Atendido pasa sin que nadie lo note. Tras cada acción, un aviso con lo que cambió, que se cierra a mano. | 220 | en ticket |
+| A-125 | Mi espacio | cambio | Tres pestañas: Info, Notificaciones y Métricas. | 221 | en ticket |
+| A-126 | Mi espacio → Necesita atención | usabilidad | Es un scroll infinito. Debe filtrar por tipo y mostrar las tarjetas de los deals (sin Kanban), con "tienes N en reagenda, la próxima es hoy". | 222 | en ticket |
+| A-127 | Mi espacio, menú lateral | cambio | Un circulito con el número de lo nuevo sin ver y lo que vence hoy. | 223 | en ticket |
+| A-128 | Menú (closer) | cambio | Al closer le sobran Ajustes, Programa, Dashboard y Metas. Se cierran en el servidor. | 224 | en ticket |
+| A-129 | Deals | cambio | El filtro de fecha solo usa la creación; no deja ver las citas de ayer. Entran Llamada y Próximo contacto. | 225 | en ticket |
+| A-130 | Deals | cambio | Tactical lleva en Excel a los interesados en la próxima cohorte. Lo cubren el pendiente Próxima Cohorte (anotado) y su chip en Notificaciones. | 217, 222 | en ticket |
+| A-132 | Diálogo de Seguimiento | cambio | Michael: el seguimiento lleva razón, no origen. Con próximo contacto, el comentario de la anotación es obligatorio. | 217 | en ticket |
+| A-133 | Mi espacio | cambio | Michael: el día del próximo contacto le tiene que salir al closer ("el 12, seguimiento a Gina Charris"). En Mi espacio, no en el Inbox, que es para lo crudo. | 222 | en ticket |
+| A-131 | Mi espacio → Métricas | cambio | Andre quiere métricas por día de la semana y por quincena (percibe que los miércoles cierran mejor). | — | abierta, fuera de esta ola |

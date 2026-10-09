@@ -121,6 +121,21 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ## 4. La ola vigente y el mapa de etapas
 
+### 🌊 Ola O8 · Mover o anotar, y el hub del closer · abierta el 9-oct
+
+Sale de la reunión del 9-oct (A-118 a A-131) y de los ADR 0081 y 0082. Tres carriles; los archivos de la ficha del
+deal son de uno solo porque 215, 216, 217, 219 y 220 escriben los mismos componentes.
+
+| Sesión | Tickets, en orden | Archivos calientes | Migración |
+|---|---|---|---|
+| **S1 · Deal** | 215 → 216 → 217 → 218 → 219 → 220 | `components/deals/{ficha/*,dialogo-mover,responder-pregunta,pregunta-de-etapa,transiciones,tablero-kanban}`, `lib/deals/*`, `lib/queries/{ficha-deal,inbox,kanban}.ts` | sí: 217 (`deal_actividades`), 218 (`motivos.pide_texto`), 216 (`DROP COLUMN`, último y tras el deploy) |
+| **S2 · Mi espacio** | 221 → 222 → 223 | `lib/mi-espacio/*`, `components/mi-espacio/*`, `app/(app)/mi-espacio/*`, `components/app-sidebar.tsx` (solo el número) | no |
+| **S3 · Acceso y Deals** | 225, después 224 (cuando 221 esté en `done`) | `lib/nav.ts`, `lib/auth/roles.ts`, guardas de `app/(app)/p/[programa]/*` y `ajustes`, `app/(app)/p/[programa]/deals/page.tsx` | no |
+
+Choques a vigilar: 225 y S1 tocan `lib/queries/kanban.ts` (225 solo el filtro; se rebasa sobre lo que haya). 223 y
+224 tocan `components/app-sidebar.tsx`/`lib/nav.ts`: 224 dueño de `nav.ts`, 223 solo del badge. Cola de migraciones:
+217, 218, 216. Implementa Codex; la sesión principal genera y aplica las migraciones y corre el checkpoint.
+
 ### 🌊 Ola O7 · lo nuevo avisa · abierta el 6-oct
 
 > **Cerrada el 6-oct (noche) en `cp-20261006-1`** (`3b68a82`): 201 y 202 `done`. La ola siguiente está por rearmar.

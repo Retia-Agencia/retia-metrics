@@ -288,6 +288,26 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 127 | [Deshacer la migración de un programa por su huella](./127-deshacer-la-migracion-por-huella.md) | 078 | done · 30-sep · Alejo (`87625fe`) · `npm run migracion:deshacer -- --programa <slug> [--aplicar]`: la reversa nivel 3 del corte (`operations.md` §12.3), probada en PGlite y en la base local; se niega sin borrar si alguien trabajó encima |
 | [x] | 208 | [Migrar el corte 3: agendados con Calendly y Estudiantes Noviembre](./208-migrar-el-corte-3.md) | 203 | done · 8-oct (noche) · aplicado con el ok de Mani: CA 91 agendados + 17 estudiantes, TI 89 + 9; TI C3 desde el 28-sep. Recorrido de Mani hecho |
 
+## 15 · Ola O8 · Mover o anotar, y el hub del closer (9-oct)
+
+11 tickets, todos abiertos. Salen de la reunión del 9-oct con Michael, Andre y el equipo de Tactical
+(`docs/anotaciones.md` A-118 a A-131) y del grill de esa tarde (ADR 0081 y ADR 0082). Reparto en
+[`plan-reparto.md`](../plan-reparto.md) §4, ola O8.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 215 | [Retirar los intentos y la alerta de los tres intentos](./215-retirar-los-intentos.md) | · | todo |
+| [ ] | 216 | [Retirar el origen declarado](./216-retirar-el-origen-declarado.md) | · | todo · migración (DROP COLUMN, después del deploy) |
+| [ ] | 217 | [Anotar: el botón, su diálogo y la Transición con dos gestos](./217-anotar.md) | 215 | todo · migración (`deal_actividades`) |
+| [ ] | 218 | [Más motivos de reagenda, y "Otro" con texto](./218-motivos-de-reagenda.md) | 217 | todo · migración (`motivos.pide_texto`) y datos con el ok de Mani |
+| [ ] | 219 | [Mover pide adentro lo que la etapa destino necesita](./219-mover-pide-lo-de-la-etapa.md) | 215, 216, 217 | todo |
+| [ ] | 220 | [El aviso de lo que cambió](./220-aviso-de-lo-que-cambio.md) | 217, 219 | todo |
+| [ ] | 221 | [Mi espacio en tres pestañas: Info, Notificaciones y Métricas](./221-mi-espacio-en-tres-pestanas.md) | · | todo |
+| [ ] | 222 | [Notificaciones: lo que te toca, por tipo, con las tarjetas](./222-notificaciones.md) | 221 | todo |
+| [ ] | 223 | [El número sin ver](./223-el-numero-sin-ver.md) | 222 | todo |
+| [ ] | 224 | [El menú del closer: solo lo que puede abrir](./224-menu-del-closer.md) | 221 | todo |
+| [ ] | 225 | [Deals filtra por fecha de llamada y de próximo contacto](./225-filtro-por-llamada-y-proximo-contacto.md) | · | todo |
+
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
 
 7 tickets, 1 abierto (el 185, que arranca con la reorganización de Mani). Salen del recorrido 8 de Mani (`docs/anotaciones.md` A-82 a A-92). Reparto en

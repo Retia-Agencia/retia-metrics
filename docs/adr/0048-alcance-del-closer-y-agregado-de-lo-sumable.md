@@ -3,6 +3,8 @@
 **Fecha:** 2026-09-24 · **Reescrito:** 2026-09-27 (consolida el ADR retirado 0009, "todos ven todo")
 · **Estado:** aceptado · **Implementación:** tickets 094 y 095
 
+- **Enmendado por el ADR 0082 (9-oct):** el closer ya no ve el Dashboard ni las Metas del programa; "todos ven todo" queda para gerente y developer.
+
 ## De dónde viene
 
 El 15-sep se decidió "todos ven todo": cualquier closer ve cierres, caja, pauta y el comparativo

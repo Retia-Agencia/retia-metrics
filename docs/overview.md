@@ -397,7 +397,18 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   más Agendado si agendó en el formulario. La decide el CRM con agenda y calidad (ADR 0069).
 - **Pendiente:** lo que el closer tiene que hacer con un deal que no avanzó: re-agendar, hacer el
   seguimiento o esperar la próxima cohorte. El deal se queda en su etapa mientras lo tiene, y tiene a lo sumo
-  uno. *No es una etapa ni un Estado* (ADR 0070).
+  uno. *No es una etapa ni un Estado* (ADR 0070). Desde el 9-oct no se elige: sale de lo que se anota
+  (próximo contacto → Seguimiento, quiere la próxima cohorte → Próxima Cohorte, no-show o reagenda →
+  Re-agenda; ADR 0081). *En la operación le dicen "tag".*
+- **Mover y Anotar:** los dos únicos gestos sobre un deal. **Mover** cambia la etapa, por el diálogo de la
+  etapa destino (el mismo del arrastre). **Anotar** no la cambia: deja un comentario y, si aplica, el dato
+  que pone un pendiente. Cada anotación queda en las Actividades del deal (ADR 0081). *Evitar: "registrar
+  actividad", "dejar en espera", "intento".*
+- **Compromiso Verbal:** la persona confirmó que va a pagar y dijo en qué fecha. Sin fecha prometida no es
+  Compromiso Verbal: es Seguimiento (reunión del 9-oct).
+- **Notificaciones:** la pestaña de Mi espacio donde el closer ve lo que le toca, por tipo (Hoy, Re-agenda,
+  Seguimiento, Próxima Cohorte, Vencidos, Calendly, Nuevos), con las tarjetas de sus deals. El número sin
+  ver cuenta lo nuevo que no ha abierto y lo que vence hoy o ya venció.
 - **Dueño:** el closer responsable de un deal. Los deals nacen sin dueño y se reclaman; un deal con llamada
   es siempre de quien da la llamada (ADR 0076).
 - **Lead Quality y Lead Value:** las dos etiquetas que manda el formulario con su scoring. Quality decide la
