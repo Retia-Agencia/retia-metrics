@@ -512,6 +512,13 @@
       "when": 1791341739398,
       "tag": "0072_novedades-calendly",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1791523013687,
+      "tag": "0073_setter-por-defecto-y-customer-success",
+      "breakpoints": true
     }
   ]
 }

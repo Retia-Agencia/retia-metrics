@@ -26,7 +26,13 @@ import {
 
 // ─────────────────────────────────────────────────────────── enums
 
-export const rolEnum = pgEnum("rol", ["gerente", "closer", "developer", "paid_trafficker"]);
+export const rolEnum = pgEnum("rol", [
+  "gerente",
+  "closer",
+  "developer",
+  "paid_trafficker",
+  "customer_success",
+]);
 
 /**
  * Las once etapas del Deal: las de 30X desde el ticket 142 (ADR 0037, ADR 0070 a 0072).
@@ -215,10 +221,19 @@ export const miembrosPrograma = pgTable(
      * la host de una cita. Guardar en minusculas y sin espacios: el indice compara `lower()`.
      */
     calendlyEmail: text("calendly_email"),
+    /**
+     * El setter por defecto del programa (ticket 210): los deals que nacen sin agenda le
+     * llegan con el de dueño. A lo sumo UNO por programa entre las membresias activas, y lo
+     * garantiza el indice `miembros_programa_setter_idx`, no el codigo (ADR 0005).
+     */
+    setterPorDefecto: boolean("setter_por_defecto").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex("miembros_programa_par_idx").on(t.userId, t.programId),
+    uniqueIndex("miembros_programa_setter_idx")
+      .on(t.programId)
+      .where(sql`${t.setterPorDefecto} AND ${t.activo}`),
     // Dos closers no pueden reclamar la misma cuenta de Calendly en un programa: la garantia
     // vive en la base (ADR 0005), no solo en el emparejador, que ya lo trata como duda.
     uniqueIndex("miembros_programa_calendly_idx")

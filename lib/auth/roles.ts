@@ -5,7 +5,13 @@ import { ErrorDeApp } from "@/lib/errors";
  * Se testea aislada y la usan tanto el servidor como el proxy.
  */
 
-export const ROLES = ["gerente", "closer", "developer", "paid_trafficker"] as const;
+export const ROLES = [
+  "gerente",
+  "closer",
+  "developer",
+  "paid_trafficker",
+  "customer_success",
+] as const;
 export type Rol = (typeof ROLES)[number];
 
 /**
@@ -21,6 +27,7 @@ export const ETIQUETA_ROL: Record<Rol, string> = {
   closer: "Closer",
   developer: "Desarrollo",
   paid_trafficker: "Paid Trafficker",
+  customer_success: "Customer Success",
 };
 
 /** La etiqueta de un rol para la interfaz y los mensajes de permiso. */
