@@ -99,7 +99,11 @@ nunca llenó el formulario.
 - Tactical C3 inicia ventas el 28-sep (`editarCohorte`, con rastro).
 - La venta sin fecha (fila 5 de Tactical) quedó con fecha 8-oct (decisión de Mani), no con el cierre de
   ventas: un abono con fecha futura no cuadra en los periodos del Dashboard.
-- Rareza: un abono de ComunicArte con plataforma "hotmart / mercadopago" quedó sin plataforma.
+- **Corregido el 9-oct (ok de Mani):** el importador no copiaba el "Precio final" como valor vendido, así que
+  Students decía "sin precio de contrato registrado". Se congeló con `congelarValorVendido` (descuento = ticket
+  de C3 menos el precio de la hoja): CA USD 13.272 vendidos / 9.459 abonados, TI 13.350 / 8.975. Y el abono
+  "hotmart / mercadopago" quedó con la plataforma nueva "Hotmart / Mercadopago" (`crearOVincularPlataforma` +
+  `editarConRastro`).
 - Cinco abonos de ComunicArte tienen fecha anterior al 28-sep (16 a 24-sep): ventas de C3 hechas antes de
   abrir la ventana (bloque LANZAMIENTO y dos filas del bloque principal). Cuentan en la caja de septiembre.
 - Un evento de Calendly del respaldo era de una cita que el CRM no conoce: no cambia nada.

@@ -42,8 +42,9 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
   - 🩸 La pestaña de estudiantes de Tactical escribe "Whatssapp": `correoDeLaFila` no veía las columnas
     cruzadas y 8 de 9 estudiantes habrían salido como "sin correo". Lo cazó el ensayo, no el barrido.
   - Codex sin cuota hasta el 12-oct: la migración la escribió y corrió la sesión principal.
-  - Pendiente: recorrido de Deals, Students e Inbox en producción; Juanjo y Alejo no son usuarios (3 estudiantes
-    de CA sin dueño).
+  - 9-oct: recorrido de Mani hecho; corregidos el valor vendido de los 26 estudiantes (el importador no lo
+    copiaba: "sin precio de contrato registrado") y la plataforma "Hotmart / Mercadopago". Tickets 212 a 214 del
+    recorrido. Juanjo y Alejo no son usuarios (3 estudiantes de CA sin dueño).
 
 - **2026-10-08 (Mani + Claude): recuperación de citas vivas tras el 203, y tickets 205 a 207.**
   - El corte en cero borró a quienes ya habían agendado: 43 personas con cita activa en Calendly (CA y TI) no
