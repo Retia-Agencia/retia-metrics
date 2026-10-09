@@ -84,7 +84,7 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
   ]);
 
   const motivosDeReagenda = motivosFilas
-    .map((m) => ({ id: m.id, nombre: m.nombre, tipo: m.tipo }))
+    .map((m) => ({ id: m.id, nombre: m.nombre, tipo: m.tipo, pideTexto: m.pideTexto }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   const plataformasOpcion = plataformas.map((p) => ({ id: p.id, nombre: String(p.nombre) }));
   const base = `/p/${programa.slug}/inbox`;

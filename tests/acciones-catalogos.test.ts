@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { changeLog, enlacesPago, plataformasPago, programs, users } from "@/lib/db/schema";
+import { changeLog, enlacesPago, motivos, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -96,6 +96,22 @@ describe("operaciones de catalogos — el gerente administra", () => {
     expect(log[0].origen).toBe("app");
     expect(log[0].userId).toBe(userId);
     expect(log[0].tabla).toBe("plataformas_pago");
+  });
+
+  it("guarda pideTexto en un motivo mediante el molde y deja change_log", async () => {
+    const { crearItem } = await ops();
+    const creada = await crearItem(db, "motivos", {
+      nombre: "Otro",
+      tipo: "reagenda",
+      pideTexto: true,
+    });
+
+    expect((await db.select().from(motivos).where(eq(motivos.id, creada.id)))[0])
+      .toMatchObject({ nombre: "Otro", tipo: "reagenda", pideTexto: true });
+    expect(await db.select().from(changeLog).where(eq(changeLog.registroId, creada.id)))
+      .toEqual(expect.arrayContaining([
+        expect.objectContaining({ campo: "pideTexto", valorNuevo: "true", userId }),
+      ]));
   });
 
   it("renombrar registra el cambio en change_log", async () => {

@@ -17,6 +17,7 @@ import {
   borrarItemSiNoSeUso,
   crearItem,
   desactivarItem,
+  editarBooleanoItem,
   reactivarItem,
   renombrarItem,
 } from "@/lib/catalogo/operaciones";
@@ -44,9 +45,25 @@ function aResultado(error: unknown): { ok: false; error: string } {
 export async function agregarAccion(
   slug: string,
   nombre: string,
+  booleanos: Record<string, boolean> = {},
 ): Promise<ResultadoAccion> {
   try {
-    await crearItem(db, slug, { nombre });
+    await crearItem(db, slug, { nombre, ...booleanos });
+    revalidatePath("/ajustes/catalogos");
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+export async function editarBooleanoAccion(
+  slug: string,
+  id: string,
+  campo: string,
+  valor: boolean,
+): Promise<ResultadoAccion> {
+  try {
+    await editarBooleanoItem(db, slug, id, campo, valor);
     revalidatePath("/ajustes/catalogos");
     return { ok: true };
   } catch (error) {

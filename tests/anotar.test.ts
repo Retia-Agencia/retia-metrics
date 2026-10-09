@@ -14,6 +14,7 @@ import type { Db } from "@/lib/db/tipos";
 import { anotar } from "@/lib/deals/anotar";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
+import { ErrorDeApp } from "@/lib/errors";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -24,6 +25,7 @@ let cohortId: string;
 let cohorteDestinoId: string;
 let closerId: string;
 let motivoReagendaId: string;
+let motivoQuePideTextoId: string;
 let secuencia = 0;
 
 const actor = () => ({ userId: closerId, rol: "closer" as const });
@@ -62,7 +64,12 @@ beforeEach(async () => {
   cohortId = actual.id;
   cohorteDestinoId = destino.id;
   closerId = (await db.insert(users).values({ email: "closer-anotar@retia.co", rol: "closer" }).returning())[0].id;
-  motivoReagendaId = (await db.insert(motivos).values({ nombre: "No pudo asistir", tipo: "reagenda" }).returning())[0].id;
+  const motivosCreados = await db.insert(motivos).values([
+    { nombre: "No pudo asistir", tipo: "reagenda" },
+    { nombre: "Otro", tipo: "reagenda", pideTexto: true },
+  ]).returning();
+  motivoReagendaId = motivosCreados[0].id;
+  motivoQuePideTextoId = motivosCreados[1].id;
 });
 
 afterEach(async () => cerrar());
@@ -94,6 +101,36 @@ async function llamadaAgendada(dealId: string) {
 }
 
 describe("anotar", () => {
+  it("rechaza con 422 una re-agenda sin comentario cuando el motivo pide texto", async () => {
+    const deal = await nuevoDeal("atendido");
+    const error = await anotar(db, actor(), {
+      dealId: deal.id,
+      reagenda: { motivoId: motivoQuePideTextoId },
+    }).catch((causa: unknown) => causa);
+
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(422);
+    expect((error as Error).message).toBe("Este motivo pide que escribas el porqué.");
+  });
+
+  it("acepta y guarda el comentario cuando el motivo de re-agenda pide texto", async () => {
+    const deal = await nuevoDeal("atendido");
+    await anotar(db, actor(), {
+      dealId: deal.id,
+      comentario: "La razón no está en la lista",
+      reagenda: { motivoId: motivoQuePideTextoId },
+    });
+
+    expect((await db.select().from(dealActividades).where(eq(dealActividades.dealId, deal.id)))[0].nota)
+      .toBe("La razón no está en la lista");
+  });
+
+  it("acepta una re-agenda sin comentario cuando el motivo no pide texto", async () => {
+    const deal = await nuevoDeal("atendido");
+    await anotar(db, actor(), { dealId: deal.id, reagenda: { motivoId: motivoReagendaId } });
+    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].pendiente).toBe("reagenda");
+  });
+
   it("con fecha deja Seguimiento y conserva el pendiente en la actividad", async () => {
     const deal = await nuevoDeal("atendido");
     const resultado = await anotar(db, actor(), {

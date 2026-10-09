@@ -18,7 +18,7 @@ import { actorDelScript } from "./actor";
  *
  * Correrlo en cada base nueva despues de las migraciones: `npm run cargar-motivos`.
  */
-const LISTAS: readonly Required<EntradaMotivo>[] = [
+const LISTAS = [
   // perdida (P, a Cierre Perdido)
   { tipo: "perdida", nombre: "Sin dinero para invertir ahora" }, // FIN-1
   { tipo: "perdida", nombre: "El precio supera lo que esperaba pagar" }, // FIN-2
@@ -29,6 +29,12 @@ const LISTAS: readonly Required<EntradaMotivo>[] = [
   // reagenda (T29, la llamada ocurrio y hace falta otra) — la hoja solo tenia "PRA"
   { tipo: "reagenda", nombre: "Faltó tiempo para terminar la llamada" },
   { tipo: "reagenda", nombre: "Tiene que estar quien toma la decisión" },
+  // reagenda (ticket 218, reunión del 9-oct, de más a menos frecuente según Andre). "Falta
+  // quien decide" ya es la de arriba. "Otro" lo reconoce el código por `pideTexto`, no por el nombre.
+  { tipo: "reagenda", nombre: "Imprevisto, va a dar otra fecha" },
+  { tipo: "reagenda", nombre: "Sin comunicación" },
+  { tipo: "reagenda", nombre: "Se cayó la llamada (luz, señal)" },
+  { tipo: "reagenda", nombre: "Otro", pideTexto: true },
   // retroceso (T15, dijo que si y se echo para atras pero sigue interesado)
   { tipo: "retroceso", nombre: "Depende de otra persona para decidir" }, // FU-2
   { tipo: "retroceso", nombre: "Necesita más tiempo para pensarlo" }, // FU-3
@@ -39,7 +45,7 @@ const LISTAS: readonly Required<EntradaMotivo>[] = [
   // correccion (corregir el último movimiento, ticket 182, ADR 0078; Mani, 3-oct)
   { tipo: "correccion", nombre: "Me equivoqué de etapa" },
   { tipo: "correccion", nombre: "Lo movió otra persona por error" },
-];
+] as const satisfies readonly EntradaMotivo[];
 
 const SEMILLAS_VIEJAS = [
   "Dinero", "Horario", "Sin fit", "Viaje", "Otro programa",

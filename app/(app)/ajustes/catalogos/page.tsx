@@ -45,6 +45,7 @@ export default async function CatalogosPage() {
         // Quien llega aqui administra, asi que puede renombrar, desactivar y borrar en
         // todos los catalogos.
         puedeAdministrar: true,
+        camposBooleanos: def.camposBooleanos,
         programas: def.vinculadoAProgramas
           ? programas.map((p) => ({ id: p.id, nombre: p.nombre }))
           : undefined,
@@ -52,6 +53,9 @@ export default async function CatalogosPage() {
           id: i.id,
           nombre: String(i.nombre),
           activo: i.activo,
+          booleanos: Object.fromEntries(
+            def.camposBooleanos.map(({ campo }) => [campo, i[campo] === true]),
+          ),
           programas: def.vinculadoAProgramas ? (vinculos.get(i.id) ?? []) : undefined,
         })),
       };

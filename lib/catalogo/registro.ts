@@ -47,6 +47,8 @@ export interface DefinicionCatalogo {
   vinculadoAProgramas: boolean;
   /** Nombre visible de la pestaña, en español. */
   nombre: string;
+  /** Campos booleanos editables por el formulario genérico. */
+  camposBooleanos: readonly { campo: string; etiqueta: string }[];
   /** El unico esquema zod de la entidad (el mismo que usa el molde). */
   esquema: ZodType<EntradaCatalogo>;
   /** Fabrica del catalogo del molde; recibe la base (por defecto la de la app). */
@@ -59,6 +61,7 @@ export const REGISTRO_CATALOGOS: readonly DefinicionCatalogo[] = [
     vinculadoAProgramas: true,
     compartidoConClosers: true,
     nombre: "Plataformas de pago",
+    camposBooleanos: [],
     esquema: esquemaPlataformaPago,
     fabrica: plataformasDePago,
   },
@@ -67,6 +70,7 @@ export const REGISTRO_CATALOGOS: readonly DefinicionCatalogo[] = [
     vinculadoAProgramas: false,
     compartidoConClosers: false,
     nombre: "Motivos de pérdida",
+    camposBooleanos: [{ campo: "pideTexto", etiqueta: "Pide texto" }],
     esquema: esquemaMotivo,
     fabrica: motivos,
   },
@@ -75,6 +79,7 @@ export const REGISTRO_CATALOGOS: readonly DefinicionCatalogo[] = [
     vinculadoAProgramas: false,
     compartidoConClosers: false,
     nombre: "Áreas",
+    camposBooleanos: [],
     esquema: esquemaArea,
     fabrica: areas,
   },

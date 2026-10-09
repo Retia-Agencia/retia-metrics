@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { calls, deals, leads, motivos } from "@/lib/db/schema";
+import { exigirTextoDelMotivo } from "@/lib/deals/motivo-con-texto";
+import { calls, deals, leads } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
@@ -407,6 +408,7 @@ export async function reagendarLlamada(
   db: Db,
   actor: ActorDeLlamada,
   datos: DatosReagendar,
+  comentarioDelMotivo?: string,
 ): Promise<LlamadaAgregada> {
   return normalizando(async () => {
     const { callId, fechaAgenda, motivoId, linkCalendly, notas } = esquemaReagendar.parse(datos);
@@ -421,11 +423,7 @@ export async function reagendarLlamada(
       }
 
       if (motivoId) {
-        const [motivo] = await db
-          .select({ id: motivos.id })
-          .from(motivos)
-          .where(and(eq(motivos.id, motivoId), eq(motivos.tipo, "reagenda"), eq(motivos.activo, true)));
-        if (!motivo) throw new ErrorDeApp("El motivo de re-agenda no existe o está inactivo.", 422);
+        await exigirTextoDelMotivo(db, motivoId, comentarioDelMotivo ?? notas);
       }
 
       // La vieja queda `reagendada`: deja de contar como "cita sin resultado" y sale del

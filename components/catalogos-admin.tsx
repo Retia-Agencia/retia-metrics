@@ -16,6 +16,7 @@ import {
   crearPlataformaAccion,
   desactivarAccion,
   desasociarProgramaAccion,
+  editarBooleanoAccion,
   reactivarAccion,
   renombrarAccion,
   type ResultadoAccion,
@@ -45,6 +46,7 @@ export interface ItemCatalogo {
   id: string;
   nombre: string;
   activo: boolean;
+  booleanos: Record<string, boolean>;
   /** Los programas que sirve, solo en los catalogos vinculados (ADR 0034). */
   programas?: string[];
 }
@@ -55,6 +57,7 @@ export interface CatalogoVista {
   items: ItemCatalogo[];
   /** Si este actor puede renombrar, desactivar y borrar (no solo crear y vincular). */
   puedeAdministrar: boolean;
+  camposBooleanos: readonly { campo: string; etiqueta: string }[];
   /** Los programas vinculables. Ausente = este catalogo no se vincula a programas. */
   programas?: ProgramaOpcion[];
 }
@@ -93,6 +96,7 @@ function PanelCatalogo({ catalogo }: { catalogo: CatalogoVista }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [nuevo, setNuevo] = useState("");
+  const [booleanosNuevos, setBooleanosNuevos] = useState<Record<string, boolean>>({});
   const [programasNuevos, setProgramasNuevos] = useState<string[]>([]);
   const [editando, setEditando] = useState<string | null>(null);
   const [borrador, setBorrador] = useState("");
@@ -123,12 +127,13 @@ function PanelCatalogo({ catalogo }: { catalogo: CatalogoVista }) {
     if (!nombre) return;
     const limpiar = () => {
       setNuevo("");
+      setBooleanosNuevos({});
       setProgramasNuevos([]);
     };
     if (seVincula) {
       correr(() => crearPlataformaAccion(nombre, programasNuevos), "Agregado", limpiar);
     } else {
-      correr(() => agregarAccion(catalogo.slug, nombre), "Agregado", limpiar);
+      correr(() => agregarAccion(catalogo.slug, nombre, booleanosNuevos), "Agregado", limpiar);
     }
   }
 
@@ -241,6 +246,23 @@ function PanelCatalogo({ catalogo }: { catalogo: CatalogoVista }) {
                 );
               })}
             </fieldset>
+          ) : null}
+          {catalogo.camposBooleanos.length > 0 ? (
+            <div className="flex flex-wrap gap-3">
+              {catalogo.camposBooleanos.map(({ campo, etiqueta }) => (
+                <label key={campo} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={booleanosNuevos[campo] ?? false}
+                    onChange={(e) => setBooleanosNuevos((actuales) => ({
+                      ...actuales,
+                      [campo]: e.currentTarget.checked,
+                    }))}
+                  />
+                  {etiqueta}
+                </label>
+              ))}
+            </div>
           ) : null}
         </form>
 
@@ -383,6 +405,27 @@ function PanelCatalogo({ catalogo }: { catalogo: CatalogoVista }) {
                         </Button>
                       );
                     })}
+                  </div>
+                ) : null}
+                {catalogo.puedeAdministrar && catalogo.camposBooleanos.length > 0 && editando !== item.id ? (
+                  <div className="mt-2 flex flex-wrap gap-3">
+                    {catalogo.camposBooleanos.map(({ campo, etiqueta }) => (
+                      <label key={campo} className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={item.booleanos[campo] ?? false}
+                          disabled={pendiente}
+                          onChange={(e) => {
+                            const valor = e.currentTarget.checked;
+                            correr(
+                              () => editarBooleanoAccion(catalogo.slug, item.id, campo, valor),
+                              "Actualizado",
+                            );
+                          }}
+                        />
+                        {etiqueta}
+                      </label>
+                    ))}
                   </div>
                 ) : null}
               </li>

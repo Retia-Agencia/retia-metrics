@@ -672,7 +672,7 @@ export interface OpcionesDeFicha {
   /** Destinos validos para la etapa del deal: vendiendo hoy, o futuras/activas si es estudiante. */
   cohortes: { id: string; nombre: string }[];
   cohortesDestino: { id: string; nombre: string }[];
-  motivos: { id: string; nombre: string; tipo: string }[];
+  motivos: { id: string; nombre: string; tipo: string; pideTexto: boolean }[];
   plataformas: { id: string; nombre: string }[];
   /** Closers con membresia activa en el programa, mas el dueño actual: para reasignar. */
   owners: { id: string; nombre: string }[];
@@ -711,7 +711,7 @@ export async function opcionesDeFicha(
       .filter((c) => c.estado === "futuro" && c.id !== cohorteActualId)
       .map((c) => ({ id: c.id, nombre: c.codigo }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
-    motivos: motivosFilas.map((m) => ({ id: m.id, nombre: m.nombre, tipo: m.tipo })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    motivos: motivosFilas.map((m) => ({ id: m.id, nombre: m.nombre, tipo: m.tipo, pideTexto: m.pideTexto })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
     plataformas: plataformasFilas.map((p) => ({ id: p.id, nombre: String(p.nombre) })),
     owners: [...owners].map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
   };

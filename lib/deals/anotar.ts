@@ -2,9 +2,10 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { trabajaLeads } from "@/lib/auth/roles";
 import { crearConRastro } from "@/lib/crm/rastro";
-import { calls, dealActividades, motivos } from "@/lib/db/schema";
+import { calls, dealActividades } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
+import { exigirTextoDelMotivo } from "@/lib/deals/motivo-con-texto";
 import { normalizando } from "@/lib/errors-zod";
 import { fechaDeInstanteEnBogota } from "@/lib/format";
 import { vigente } from "@/lib/queries/vigente";
@@ -85,11 +86,7 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
         throw new ErrorDeApp("Ese próximo paso no está permitido desde la etapa actual.", 409);
       }
       if (datos.reagenda) {
-        const [motivo] = await tx
-          .select({ id: motivos.id })
-          .from(motivos)
-          .where(and(eq(motivos.id, datos.reagenda.motivoId), eq(motivos.tipo, "reagenda"), eq(motivos.activo, true)));
-        if (!motivo) throw new ErrorDeApp("El motivo de re-agenda no existe o está inactivo.", 422);
+        await exigirTextoDelMotivo(tx, datos.reagenda.motivoId, datos.comentario);
       }
 
       await crearConRastro(
@@ -149,7 +146,7 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
               callId: llamada.id,
               fechaAgenda: datos.reagenda.fechaLlamada,
               motivoId: datos.reagenda.motivoId,
-            });
+            }, datos.comentario);
             pendiente = null;
           } else {
             await marcarFallida(tx, actor, {

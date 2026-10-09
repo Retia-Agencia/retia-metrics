@@ -1515,6 +1515,7 @@ export const motivos = pgTable(
     nombre: text("nombre").notNull(),
     /** Todos los motivos que existian antes del 27-sep eran de perdida (ADR 0015). */
     tipo: tipoMotivoEnum("tipo").notNull().default("perdida"),
+    pideTexto: boolean("pide_texto").notNull().default(false),
     activo: boolean("activo").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
