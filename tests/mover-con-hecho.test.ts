@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { abonos, calls, cohorts, deals, leads, motivos, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { moverConHecho } from "@/lib/deals/mover-con-hecho";
+import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { ErrorDeApp } from "@/lib/errors";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -74,7 +75,7 @@ describe("moverConHecho", () => {
       origen: "crm",
     }).returning())[0].id;
 
-    await moverConHecho(db, actor(), {
+    const { cambio } = await moverConHecho(db, actor(), {
       dealId: deal.id,
       a: "atendido",
       hecho: { tipo: "atendido", callId, linkGrain: "https://grain.com/share/prueba" },
@@ -85,6 +86,9 @@ describe("moverConHecho", () => {
       resultado: "show",
       linkGrain: "https://grain.com/share/prueba",
     });
+    // El cambio se arma desde lo escrito, y de ahí sale el aviso (ticket 220).
+    expect(cambio.etapaDespues).toBe("atendido");
+    expect(resumenDelCambio(cambio)).toContain("El deal pasó a Atendido.");
   });
 
   it("Compromiso Verbal → Ganado registra el abono", async () => {

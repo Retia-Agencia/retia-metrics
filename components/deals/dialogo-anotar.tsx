@@ -71,7 +71,11 @@ export function DialogoAnotar({
       toast.error(resultado.error, { duration: 6000 });
       return;
     }
-    toast.success("Anotación guardada.");
+    toast.success(resultado.resumen[0], {
+      description: resultado.resumen.slice(1).join(" ") || undefined,
+      duration: Infinity,
+      closeButton: true,
+    });
     setAbierto(false);
     avisarCambioDeNotificaciones();
     onGuardado();

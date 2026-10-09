@@ -22,6 +22,7 @@ import { crearOVincularPlataforma } from "@/lib/catalogo/plataformas";
 import { registrarActividad } from "@/lib/deals/actividades";
 import { anotar, esquemaAnotar, type DatosAnotar, type AnotacionHecha } from "@/lib/deals/anotar";
 import { moverConHecho } from "@/lib/deals/mover-con-hecho";
+import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
 import { anularDeal } from "@/lib/deals/anular-deal";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { marcarLinkEnviado } from "@/lib/deals/handoff";
@@ -184,7 +185,7 @@ export type EntradaMoverConHecho = z.input<typeof esquemaMoverConHechoAccion>;
 /** Una sola puerta para el botón de la ficha y el arrastre del Kanban. */
 export async function moverConHechoAccion(
   entrada: EntradaMoverConHecho,
-): Promise<ResultadoFicha<{ etapa: EtapaDeal }>> {
+): Promise<ResultadoFicha<{ etapa: EtapaDeal; resumen: string[] }>> {
   return correr(async (ctx) => {
     const datos = esquemaMoverConHechoAccion.parse(entrada);
     await exigirDealVisible(ctx, datos.dealId);
@@ -200,7 +201,9 @@ export async function moverConHechoAccion(
         : datos.hecho?.tipo === "abono"
           ? { ...datos.hecho, moneda: "USD" as const }
           : undefined;
-    return moverConHecho(db, ctx.actor, { ...datos, hecho });
+    // El resumen se arma en el servidor; al cliente solo le llegan los textos, nunca el `cambio`.
+    const { etapa, cambio } = await moverConHecho(db, ctx.actor, { ...datos, hecho });
+    return { etapa, resumen: resumenDelCambio(cambio) };
   });
 }
 
@@ -296,11 +299,15 @@ export async function editarAcuerdoAccion(entrada: EntradaAcuerdo): Promise<Resu
 
 // ───────────────────────────────────────────── actividades
 
-export async function anotarAccion(entrada: DatosAnotar): Promise<ResultadoFicha<AnotacionHecha>> {
+export async function anotarAccion(
+  entrada: DatosAnotar,
+): Promise<ResultadoFicha<Omit<AnotacionHecha, "cambio"> & { resumen: string[] }>> {
   return correr(async (ctx) => {
     const datos = esquemaAnotar.parse(entrada);
     await exigirDealVisible(ctx, datos.dealId);
-    return anotar(db, ctx.actor, datos);
+    // El resumen se arma en el servidor; al cliente solo le llegan los textos, nunca el `cambio`.
+    const { cambio, ...resto } = await anotar(db, ctx.actor, datos);
+    return { ...resto, resumen: resumenDelCambio(cambio) };
   });
 }
 

@@ -194,7 +194,15 @@ export function useResponder(
     });
     setEnviando(false);
     if (r.ok) {
-      toast.success(correccion ? "Corrección guardada." : destino === deal.etapa ? "Guardado." : `Movido a ${nombreDeEtapa[destino]}.`);
+      if (correccion) {
+        toast.success("Corrección guardada.", { duration: Infinity, closeButton: true });
+      } else {
+        toast.success(r.resumen[0], {
+          description: r.resumen.slice(1).join(" ") || undefined,
+          duration: Infinity,
+          closeButton: true,
+        });
+      }
       setAbierta(null);
       setCorreccionAbierta(null);
       avisarCambioDeNotificaciones();

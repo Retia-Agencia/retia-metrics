@@ -15,6 +15,7 @@ import {
 } from "./mover-etapa";
 import type { ActorDeDeal } from "./permiso";
 import type { EtapaDeal, PendienteDeal } from "./etapas";
+import type { CambioHecho } from "./resumen-del-cambio";
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
 
@@ -43,10 +44,13 @@ export async function moverConHecho(
   db: Db,
   actor: ActorDeDeal,
   entrada: DatosMoverConHecho,
-): Promise<{ etapa: EtapaDeal }> {
+): Promise<{ etapa: EtapaDeal; cambio: CambioHecho }> {
   return (db as unknown as Transaccion).transaction(async (tx) => {
     const { deal: inicial, emailLead } = await dealBloqueadoConLead(tx, entrada.dealId);
     if (inicial.anuladoEn) throw new ErrorDeApp("El deal está anulado: no se mueve.", 409);
+    // Lo que había antes de tocar nada: de aquí sale el "antes" del aviso (ticket 220).
+    const etapaAntes = inicial.etapa;
+    const pendienteAntes = inicial.pendiente;
 
     const resuelta = resolverTransicion(
       inicial.etapa,
@@ -72,8 +76,12 @@ export async function moverConHecho(
       }
     }
 
+    // La fecha de agenda de la llamada que ESTA operación creó (hecho agendado, o atendido
+    // sin callId): de ahí sale `llamadaCreada` del aviso. Null si no se creó ninguna.
+    let fechaLlamadaCreada: Date | null = null;
     if (entrada.hecho?.tipo === "agendado") {
       await agregarLlamada(tx, actor, { dealId: inicial.id, fechaAgenda: entrada.hecho.fechaAgenda });
+      fechaLlamadaCreada = entrada.hecho.fechaAgenda;
     } else if (entrada.hecho?.tipo === "atendido") {
       let callId = entrada.hecho.callId;
       if (!callId) {
@@ -82,6 +90,7 @@ export async function moverConHecho(
           dealId: inicial.id,
           fechaAgenda: entrada.hecho.fechaAgenda,
         })).callId;
+        fechaLlamadaCreada = entrada.hecho.fechaAgenda;
       } else {
         const [llamada] = await tx
           .select({ id: calls.id })
@@ -105,7 +114,7 @@ export async function moverConHecho(
     }
 
     const [actual] = await tx
-      .select({ etapa: deals.etapa, pendiente: deals.pendiente })
+      .select({ etapa: deals.etapa, pendiente: deals.pendiente, fechaSeguimiento: deals.fechaSeguimiento })
       .from(deals)
       .where(and(eq(deals.id, inicial.id), incluyendoAnulados(deals)));
     if (!actual) throw new ErrorDeApp("No existe el deal.", 404);
@@ -123,6 +132,27 @@ export async function moverConHecho(
         datos: entrada.datos,
       });
     }
-    return { etapa: entrada.a };
+
+    // El aviso se arma desde lo que quedó ESCRITO: se vuelve a leer la fila por si el motor
+    // tocó la etapa o el pendiente después del hecho.
+    const [final] = await tx
+      .select({ etapa: deals.etapa, pendiente: deals.pendiente, fechaSeguimiento: deals.fechaSeguimiento })
+      .from(deals)
+      .where(and(eq(deals.id, inicial.id), incluyendoAnulados(deals)));
+    if (!final) throw new ErrorDeApp("No existe el deal.", 404);
+
+    const cambio: CambioHecho = {
+      etapaAntes,
+      etapaDespues: final.etapa,
+      pendienteAntes,
+      pendienteDespues: final.pendiente,
+      fechaPendiente: final.pendiente === "seguimiento" ? final.fechaSeguimiento : null,
+      llamadaCreada: fechaLlamadaCreada ? { fecha: fechaLlamadaCreada } : null,
+      abonoRegistrado:
+        entrada.hecho?.tipo === "abono"
+          ? { monto: Number(entrada.hecho.monto), moneda: entrada.hecho.moneda ?? "USD" }
+          : null,
+    };
+    return { etapa: entrada.a, cambio };
   });
 }

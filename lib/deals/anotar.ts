@@ -2,19 +2,20 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { trabajaLeads } from "@/lib/auth/roles";
 import { crearConRastro } from "@/lib/crm/rastro";
-import { calls, dealActividades } from "@/lib/db/schema";
+import { calls, dealActividades, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { exigirTextoDelMotivo } from "@/lib/deals/motivo-con-texto";
 import { normalizando } from "@/lib/errors-zod";
 import { fechaDeInstanteEnBogota } from "@/lib/format";
-import { vigente } from "@/lib/queries/vigente";
+import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { cambiarDuenoDeal } from "./cambiar-dueno";
 import { pendientesParaAnotar, type EtapaDeal, type PendienteDeal } from "./etapas";
 import { agregarLlamada, marcarFallida, reagendarLlamada } from "./llamadas";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { moverEtapa } from "./mover-etapa";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
+import type { CambioHecho } from "./resumen-del-cambio";
 
 const dia = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe ser YYYY-MM-DD.");
 const comentario = z.string().trim().max(4000, "El comentario es muy largo.").optional();
@@ -45,6 +46,7 @@ export interface AnotacionHecha {
   etapaDespues: EtapaDeal;
   pendientePuesto: PendienteDeal | null;
   fecha: string | null;
+  cambio: CambioHecho;
 }
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
@@ -105,6 +107,9 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
 
       let etapa = original.etapa;
       let pendiente: PendienteDeal | null = original.pendiente;
+      // La fecha de agenda de la llamada que la rama de re-agenda haya CREADO (no la que
+      // reagenda una existente): de ahí sale `llamadaCreada` del aviso (ticket 220).
+      let fechaLlamadaCreada: Date | null = null;
       if (etapa === "potencial" || etapa === "registrado") {
         const mov = await moverEtapa(tx, {
           dealId: original.id,
@@ -170,6 +175,7 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
               dealId: original.id,
               fechaAgenda: datos.reagenda.fechaLlamada,
             });
+            fechaLlamadaCreada = datos.reagenda.fechaLlamada;
             if (llamada.movioAAgendado) {
               etapa = "agendado";
               pendiente = null;
@@ -178,11 +184,29 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
         }
       }
 
+      // El aviso se arma desde lo que quedó ESCRITO en el deal al final de la transacción.
+      const [final] = await tx
+        .select({ etapa: deals.etapa, pendiente: deals.pendiente, fechaSeguimiento: deals.fechaSeguimiento })
+        .from(deals)
+        .where(and(eq(deals.id, original.id), incluyendoAnulados(deals)));
+      if (!final) throw new ErrorDeApp("No existe el deal.", 404);
+
+      const cambio: CambioHecho = {
+        etapaAntes: original.etapa,
+        etapaDespues: final.etapa,
+        pendienteAntes: original.pendiente,
+        pendienteDespues: final.pendiente,
+        fechaPendiente: final.pendiente === "seguimiento" ? final.fechaSeguimiento : null,
+        llamadaCreada: fechaLlamadaCreada ? { fecha: fechaLlamadaCreada } : null,
+        abonoRegistrado: null,
+      };
+
       return {
         etapaAntes: original.etapa,
         etapaDespues: etapa,
         pendientePuesto: pendiente,
         fecha: datos.proximoContacto ?? (datos.reagenda?.fechaLlamada ? fechaDeInstanteEnBogota(datos.reagenda.fechaLlamada) : null),
+        cambio,
       };
     });
   });

@@ -12,6 +12,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { anotar } from "@/lib/deals/anotar";
+import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
 import { ErrorDeApp } from "@/lib/errors";
@@ -139,7 +140,7 @@ describe("anotar", () => {
       proximoContacto: "2026-10-12",
     });
 
-    expect(resultado).toEqual({
+    expect(resultado).toMatchObject({
       etapaAntes: "atendido",
       etapaDespues: "atendido",
       pendientePuesto: "seguimiento",
@@ -156,6 +157,25 @@ describe("anotar", () => {
       proximoContacto: "2026-10-12",
       pendientePuesto: "seguimiento",
     });
+  });
+
+  it("un comentario solo deja el resumen en «Anotación guardada.»", async () => {
+    const deal = await nuevoDeal("atendido");
+    const resultado = await anotar(db, actor(), {
+      dealId: deal.id,
+      comentario: "Solo una nota, sin pendiente",
+    });
+    expect(resumenDelCambio(resultado.cambio)).toEqual(["Anotación guardada."]);
+  });
+
+  it("el próximo contacto deja una línea de Seguimiento con fecha", async () => {
+    const deal = await nuevoDeal("atendido");
+    const resultado = await anotar(db, actor(), {
+      dealId: deal.id,
+      comentario: "Volver cuando confirme presupuesto",
+      proximoContacto: "2026-10-12",
+    });
+    expect(resumenDelCambio(resultado.cambio).some((linea) => linea.startsWith("Quedó en Seguimiento hasta el"))).toBe(true);
   });
 
   it("con la opción de cohorte deja Próxima Cohorte y su destino", async () => {
