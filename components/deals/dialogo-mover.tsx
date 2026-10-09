@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -27,8 +28,10 @@ import { revisarMovimientoAccion } from "@/app/(app)/p/[programa]/deals/acciones
 import type { FlechaCliente } from "./transiciones";
 import { camposDeDialogo } from "./transiciones";
 import type { OpcionCatalogo } from "@/lib/queries/kanban";
-import { fechaDeInstanteEnBogota, hoyEnBogota } from "@/lib/format";
+import { fechaDeInstanteEnBogota, fechaHoraEnBogota, hoyEnBogota, monto } from "@/lib/format";
 import { proximoContactoSugerido } from "@/lib/deals/proximo-contacto";
+import { Campo, claseTextarea } from "./ficha/campos";
+import { FormularioAbono, datosInicialesDeAbono, type DatosFormularioAbono } from "./formulario-abono";
 
 /**
  * El dialogo de una respuesta de la pregunta de la etapa (ADR 0072): recoge lo que la
@@ -52,6 +55,9 @@ export interface DatosDialogo {
   cohorteDestinoId?: string | null;
   fechaSeguimiento?: string | null;
   motivoId?: string | null;
+  comentarioMotivo?: string;
+  llamada?: { dia: string; hora: string; linkGrain: string };
+  abono?: DatosFormularioAbono;
 }
 
 /** Lo que se ensaya y se confirma: el deal, a dónde va y con qué pendiente queda. */
@@ -63,6 +69,7 @@ export interface MovimientoDelDialogo {
   correccion?: boolean;
   /** Etapa que se deshace; solo se muestra en el modo corrección. */
   de?: EtapaDeal;
+  hecho?: "atendido" | "agendado" | "abono";
 }
 
 export interface DialogoMoverProps {
@@ -78,7 +85,11 @@ export interface DialogoMoverProps {
   rutaDeLaFicha: string;
   cohortes: OpcionCatalogo[];
   /** Motivos activos con su tipo; el dialogo filtra por el tipo de la flecha. */
-  motivos: { id: string; nombre: string; tipo: string }[];
+  motivos: { id: string; nombre: string; tipo: string; pideTexto?: boolean }[];
+  plataformas: { id: string; nombre: string }[];
+  saldo: number | null;
+  moneda: string | null;
+  llamada: { id: string; fecha: Date | string | null; closerNombre: string | null; notas: string | null } | null;
   /**
    * El inicio de clases de la cohorte del deal (`fechaLimiteMaxima`, ticket 061): con el
    * se PRELLENA la fecha limite de pago de Compromiso Verbal, que ademas no puede pasarlo.
@@ -141,6 +152,10 @@ export function DialogoMover({
   rutaDeLaFicha,
   cohortes,
   motivos,
+  plataformas,
+  saldo,
+  moneda,
+  llamada,
   fechaLimiteSugerida = null,
   enviando,
   onConfirmar,
@@ -154,6 +169,10 @@ export function DialogoMover({
     ...(campos.includes("valor_vendido") ? { descuentoUsd: 0 } : {}),
     ...(campos.includes("fecha_limite_pago") ? { fechaLimitePago: fechaLimiteSugerida } : {}),
     ...(campos.includes("fecha_seguimiento") ? { fechaSeguimiento: proximoContactoSugerido(hoy) } : {}),
+    ...(movimiento.hecho === "atendido" || movimiento.hecho === "agendado"
+      ? { llamada: { dia: hoy, hora: "", linkGrain: "" } }
+      : {}),
+    ...(movimiento.hecho === "abono" ? { abono: datosInicialesDeAbono() } : {}),
   });
   const [datos, setDatos] = useState<DatosDialogo>(inicial);
   const [revision, setRevision] = useState<(Revision & { con: string }) | null>(null);
@@ -162,13 +181,18 @@ export function DialogoMover({
   // El ensayo del motor se repite cuando cambian los datos, con una pausa corta para no
   // mandar uno por tecla. Una respuesta vieja que llega tarde se descarta.
   const { dealId, a, pendiente } = movimiento;
+  const montoAbono = Number(datos.abono?.monto);
+  const destinoDelAbono: EtapaDeal = saldo != null && Number.isFinite(montoAbono) && montoAbono === saldo
+    ? "ganado_completo"
+    : "ganado_parcial";
+  const destinoSolicitado = movimiento.hecho === "abono" ? destinoDelAbono : a;
   useEffect(() => {
     if (!abierto) return;
     let vigente = true;
     const espera = setTimeout(async () => {
       const r = await revisarMovimientoAccion({
         dealId,
-        a,
+        a: destinoSolicitado,
         pendiente,
         correccion: movimiento.correccion,
         motivoId: datos.motivoId ?? null,
@@ -191,14 +215,33 @@ export function DialogoMover({
       vigente = false;
       clearTimeout(espera);
     };
-  }, [abierto, dealId, a, pendiente, movimiento.correccion, datos]);
+  }, [abierto, dealId, destinoSolicitado, pendiente, movimiento.correccion, datos]);
 
-  const destino: EtapaDeal | null = a === "retroceso" ? (revision?.destinoRetro ?? null) : a;
+  const destino: EtapaDeal | null = destinoSolicitado === "retroceso" ? (revision?.destinoRetro ?? null) : destinoSolicitado;
   // Se confirma solo con la revision de los datos que hay AHORA: un campo recien cambiado
   // espera su ensayo. Un dato que el deal ya tiene (en verde) no se vuelve a pedir.
   const vigente = revision != null && revision.con === JSON.stringify(datos);
-  const listo =
-    vigente && revision.bloqueo == null && revision.requisitos.every((q) => q.cumple) && destino != null;
+  const requisitosQueEscribeElHecho = new Set<CodigoRequisito>(
+    movimiento.hecho === "atendido"
+      ? ["llamada_sucedio"]
+      : movimiento.hecho === "agendado"
+        ? ["llamada_con_fecha"]
+        : movimiento.hecho === "abono"
+          ? ["abono", "saldo_pendiente", "saldo_en_cero"]
+          : [],
+  );
+  const llamadaCompleta = movimiento.hecho === "atendido" && llamada
+    ? true
+    : movimiento.hecho === "atendido" || movimiento.hecho === "agendado"
+      ? Boolean(datos.llamada?.dia && datos.llamada.hora)
+      : true;
+  const abonoCompleto = movimiento.hecho !== "abono" || Boolean(datos.abono?.fecha && datos.abono.monto.trim());
+  const motivoElegido = motivos.find((m) => m.id === datos.motivoId);
+  const comentarioCompleto = flecha.tipoDeMotivo !== "reagenda" || !motivoElegido?.pideTexto || Boolean(datos.comentarioMotivo?.trim());
+  const bloqueoVigente = movimiento.hecho ? null : revision?.bloqueo;
+  const listo = vigente && bloqueoVigente == null
+    && revision.requisitos.every((q) => q.cumple || requisitosQueEscribeElHecho.has(q.codigo))
+    && destino != null && llamadaCompleta && abonoCompleto && comentarioCompleto;
 
   const motivosDeLaFlecha = flecha.tipoDeMotivo
     ? motivos.filter((m) => m.tipo === flecha.tipoDeMotivo)
@@ -222,6 +265,56 @@ export function DialogoMover({
         </DialogHeader>
 
         <div className="min-w-0 space-y-3">
+          {movimiento.hecho === "atendido" ? (
+            <section className="space-y-3">
+              {llamada ? (
+                <details className="rounded-lg bg-muted/50 p-3">
+                  <summary className="cursor-pointer text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <span className="font-medium">Llamada</span>{" "}
+                    <span className="cifra">{llamada.fecha ? fechaHoraEnBogota(new Date(llamada.fecha)) : "sin fecha"}</span>{" "}
+                    <span className="text-muted-foreground">· {llamada.closerNombre ?? "Sin closer"}</span>
+                  </summary>
+                  <div className="pt-2 text-sm text-muted-foreground">
+                    {llamada.notas ? <p className="whitespace-pre-wrap">{llamada.notas}</p> : <p>Sin notas.</p>}
+                  </div>
+                </details>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <Campo etiqueta="Día de la llamada" ayuda="Hora de Bogotá.">
+                    <input type="date" className={claseInput} value={datos.llamada?.dia ?? ""} onChange={(e) => setDatos((d) => ({ ...d, llamada: { ...d.llamada!, dia: e.target.value } }))} />
+                  </Campo>
+                  <Campo etiqueta="Hora">
+                    <input type="time" className={claseInput} value={datos.llamada?.hora ?? ""} onChange={(e) => setDatos((d) => ({ ...d, llamada: { ...d.llamada!, hora: e.target.value } }))} />
+                  </Campo>
+                </div>
+              )}
+              <div className="flex items-center gap-2 text-sm"><Badge variant="exito">Show</Badge><span>La llamada se marcará como atendida.</span></div>
+              <Campo etiqueta="Link de Grain (opcional)">
+                <input type="url" className={claseInput} value={datos.llamada?.linkGrain ?? ""} onChange={(e) => setDatos((d) => ({ ...d, llamada: { ...d.llamada!, linkGrain: e.target.value } }))} placeholder="https://grain.com/share/…" />
+              </Campo>
+            </section>
+          ) : null}
+
+          {movimiento.hecho === "agendado" ? (
+            <section className="grid grid-cols-2 gap-3">
+              <Campo etiqueta="Día de la cita" ayuda="Hora de Bogotá.">
+                <input type="date" className={claseInput} value={datos.llamada?.dia ?? ""} onChange={(e) => setDatos((d) => ({ ...d, llamada: { ...d.llamada!, dia: e.target.value } }))} />
+              </Campo>
+              <Campo etiqueta="Hora">
+                <input type="time" className={claseInput} value={datos.llamada?.hora ?? ""} onChange={(e) => setDatos((d) => ({ ...d, llamada: { ...d.llamada!, hora: e.target.value } }))} />
+              </Campo>
+            </section>
+          ) : null}
+
+          {movimiento.hecho === "abono" && datos.abono ? (
+            <section className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {saldo != null ? `Saldo actual: ${monto(saldo, moneda ?? "USD")}. ` : ""}La etapa la decide lo que quede por pagar.
+              </p>
+              <FormularioAbono dealId={dealId} moneda={moneda ?? "USD"} plataformas={plataformas} datos={datos.abono} onChange={(abono) => setDatos((d) => ({ ...d, abono }))} />
+            </section>
+          ) : null}
+
           {campos.map((campo) => (
             <div key={campo} className="space-y-1">
               <label className="block text-xs font-medium text-muted-foreground">{ETIQUETA[campo]}</label>
@@ -285,6 +378,12 @@ export function DialogoMover({
                 </Select>
               ) : null}
 
+              {campo === "motivo" && flecha.tipoDeMotivo === "reagenda" ? (
+                <Campo etiqueta="Comentario" ayuda={motivoElegido?.pideTexto ? "Obligatorio para este motivo." : "Opcional."}>
+                  <textarea className={claseTextarea} value={datos.comentarioMotivo ?? ""} onChange={(e) => setDatos((d) => ({ ...d, comentarioMotivo: e.target.value }))} rows={3} placeholder="¿Qué pasó?" />
+                </Campo>
+              ) : null}
+
               {campo === "fecha_limite_pago" && fechaLimiteSugerida ? (
                 <p className="text-xs text-muted-foreground">
                   Sugerida: el inicio de clases de la cohorte. No puede pasarlo.
@@ -313,7 +412,7 @@ export function DialogoMover({
             </div>
           ))}
 
-          {campos.length === 0 ? (
+          {campos.length === 0 && !movimiento.hecho ? (
             <p className="text-sm text-muted-foreground">
               Este paso no pide datos.
             </p>
@@ -331,8 +430,8 @@ export function DialogoMover({
               {" "}<strong>{nombreDeEtapa[movimiento.de]}</strong> a <strong>{nombreDeEtapa[a as EtapaDeal]}</strong>.
             </p>
           ) : null}
-          <ListaDeRequisitos revision={revision} error={errorDeRevision} />
-          {revision?.requisitos.some((q) => !q.cumple && DONDE[q.codigo]) ? (
+          {!movimiento.hecho ? <ListaDeRequisitos revision={revision} error={errorDeRevision} /> : null}
+          {!movimiento.hecho && revision?.requisitos.some((q) => !q.cumple && DONDE[q.codigo]) ? (
             <Link href={rutaDeLaFicha} className="inline-block text-sm text-marca-texto underline-offset-2 hover:underline">
               Abrir la ficha del deal
             </Link>

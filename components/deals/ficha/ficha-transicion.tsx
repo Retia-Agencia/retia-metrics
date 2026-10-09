@@ -47,6 +47,16 @@ export function FichaTransicion({
     fechaLimiteSugerida: ficha.fechaLimiteSugerida,
     linkAgenda: ficha.linkAgenda,
     tieneCitaVigente: ficha.tieneCitaVigente,
+    saldo: ficha.saldo.saldo,
+    moneda: ficha.saldo.moneda,
+    llamada: ficha.llamadas
+      .filter((llamada) => llamada.anuladoEn == null && llamada.resultado === "agendada")
+      .map((llamada) => ({
+        id: llamada.id,
+        fecha: llamada.fechaAgenda,
+        closerNombre: llamada.closerNombre,
+        notas: llamada.notas,
+      }))[0] ?? null,
   };
   const { moverA } = gruposDeTransicion(ficha.etapa, ficha.pendiente, ordenDeEtapas);
   const etiquetasDestino = moverA.map((grupo) => grupo.destino === "ganado" ? "Ganado · registrar pago" : nombreDeEtapa[grupo.destino]);
