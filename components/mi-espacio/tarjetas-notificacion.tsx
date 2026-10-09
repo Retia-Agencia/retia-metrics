@@ -9,7 +9,7 @@ import { TarjetaDealCard } from "@/components/deals/tarjeta-deal";
  * `TarjetaDealCard` de Deals, tal cual, pero fuera del Kanban: aquí no se arrastran ni se
  * mueven (eso vive en el tablero), así que `puedeMover` es false —oculta el asa y el menú— y
  * los manejadores son no-ops. Tocar una tarjeta abre la ficha por el enlace interno de la
- * tarjeta, que ya lleva el `?desde=` para que Volver regrese a este chip y página.
+ * tarjeta, que ya lleva la vuelta (`enlaceConVuelta`) para que Volver regrese a este chip y página.
  *
  * Una columna a 390 px y hasta tres en pantallas anchas (sistema "Tinta": sin colores,
  * sombras ni radios a mano).
