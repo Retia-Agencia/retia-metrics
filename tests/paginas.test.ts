@@ -204,13 +204,16 @@ vi.mock("@/lib/queries/bitacora", async (importOriginal) => ({
   opcionesDeBitacora,
 }));
 
-// La tab Leads (ticket 170) lee la base; se mockean sus dos lecturas y se conservan las constantes.
+// La tab Leads (ticket 170) lee la base; se mockean sus lecturas y se conservan las constantes.
+// Las dos del 209 (las preguntas del programa y las respuestas de la página) devuelven vacío.
 const leadsDelPrograma = vi.fn();
 const posiblesDuplicadosDelPrograma = vi.fn();
 vi.mock("@/lib/queries/leads", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/queries/leads")>()),
   leadsDelPrograma,
   posiblesDuplicadosDelPrograma,
+  preguntasDisponiblesDelPrograma: vi.fn(async () => []),
+  respuestasDelUltimoEnvio: vi.fn(async () => new Map()),
 }));
 
 /** El `redirect` real interrumpe el render lanzando. El mock imita eso. */

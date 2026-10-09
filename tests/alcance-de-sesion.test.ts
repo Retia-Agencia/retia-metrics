@@ -239,6 +239,13 @@ describe("guardián: el alcance se pregunta por la función, no con un join prop
     [path.join("lib", "calendly", "colgar-llamada.ts")]:
       "identidad de la host: qué closer es dueña de una cuenta de Calendly en el programa",
 
+    // El setter por defecto del programa (ticket 210): "¿qué miembro ACTIVO recibe los deals
+    // que nacen sin agenda?", y su configuración por quien administra. Es identidad, como la
+    // host de una cita: decide de quién es un deal, lo pregunta la ingesta sin sesión, y no
+    // acota ninguna lectura a una sesión.
+    [path.join("lib", "deals", "setter-por-defecto.ts")]:
+      "identidad del setter por defecto: qué miembro activo recibe los deals sin agenda",
+
     // De quién es un código de captación (ticket 086, ADR 0044): "¿qué miembro ACTIVO del
     // programa trajo este lead?", y los programas donde un usuario puede ser acreditado (sus
     // enlaces). Es la misma pregunta de identidad que colgar-llamada, en los dos sentidos: no

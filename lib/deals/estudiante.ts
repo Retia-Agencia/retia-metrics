@@ -1,10 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { cohorts, dealActividades, deals, leads, miembrosPrograma } from "@/lib/db/schema";
+import { cohorts, dealActividades, deals, leads } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import type { Rol } from "@/lib/auth/roles";
+import { programaEnAlcance } from "@/lib/auth/alcance";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { cohortesVendiendo } from "@/lib/cohortes/vendiendo";
 import { hoyEnBogota } from "@/lib/format";
@@ -31,22 +32,6 @@ export interface ActorDeEstudiante {
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
 type FilaDeal = typeof deals.$inferSelect;
-
-/** `true` si el actor tiene una membresía ACTIVA en el programa del deal. */
-async function tieneMembresiaActiva(tx: Db, userId: string, programId: string): Promise<boolean> {
-  const [m] = await tx
-    .select({ id: miembrosPrograma.id })
-    .from(miembrosPrograma)
-    .where(
-      and(
-        eq(miembrosPrograma.userId, userId),
-        eq(miembrosPrograma.programId, programId),
-        eq(miembrosPrograma.activo, true),
-      ),
-    )
-    .limit(1);
-  return Boolean(m);
-}
 
 /**
  * Lee el deal BLOQUEADO (`for update`) y exige que sea un estudiante vigente del que el actor
@@ -78,7 +63,7 @@ async function estudianteDelActor(
   }
   const autorizado =
     permiso === "onboarding"
-      ? puedeMarcarOnboarding(actor, deal, await tieneMembresiaActiva(tx, actor.userId, deal.programId))
+      ? puedeMarcarOnboarding(actor, deal, await programaEnAlcance(actor.userId, actor.rol, deal.programId, tx))
       : puedeTrabajarDeal(actor, deal);
   if (!autorizado) {
     throw new ErrorDeApp(
