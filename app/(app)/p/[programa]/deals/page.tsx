@@ -29,6 +29,8 @@ const CAMPOS_DE_FECHA = [
   { valor: "creado", etiqueta: "Creado" },
   { valor: "actividad", etiqueta: "Última actividad" },
   { valor: "cierre", etiqueta: "Cierre" },
+  { valor: "llamada", etiqueta: "Llamada" },
+  { valor: "seguimiento", etiqueta: "Próximo contacto" },
 ] as const satisfies readonly { valor: CampoDeFechaDeDeal; etiqueta: string }[];
 
 type Props = {

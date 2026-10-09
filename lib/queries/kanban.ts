@@ -198,7 +198,7 @@ const ordenSchema = z.object({
 const ORDEN_PREDETERMINADO = { campo: "actividad", sentido: "desc" } as const;
 
 /** Sobre que fecha filtra la lista de deals (ticket 141), como en HubSpot. */
-export const CAMPOS_DE_FECHA_DE_DEAL = ["creado", "actividad", "cierre"] as const;
+export const CAMPOS_DE_FECHA_DE_DEAL = ["creado", "actividad", "cierre", "llamada", "seguimiento"] as const;
 export type CampoDeFechaDeDeal = (typeof CAMPOS_DE_FECHA_DE_DEAL)[number];
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
@@ -256,8 +256,9 @@ export async function tableroKanban(
 ): Promise<TableroKanban> {
   // Un deal + su lead + su dueno, en una sola lectura de la tabla `deals`
   // con joins (sin subconsultas correlacionadas: son joins directos, no plantillas).
-  const { creado, actividad, cierre } = rangosDeFecha(filtros);
+  const { creado, actividad, cierre, llamada, seguimiento } = rangosDeFecha(filtros);
   const cerrados = cierre ? await cerradosEn(db, programId, cierre) : null;
+  const conLlamadaEnRango = llamada ? await llamadasEn(db, programId, llamada) : null;
   let filas = await db
     .select({
       dealId: deals.id,
@@ -300,6 +301,8 @@ export async function tableroKanban(
         creado ? between(fechaAnclaDealCreado(), creado.desde, creado.hasta) : undefined,
         // Un arreglo vacio en `inArray` no filtra nada: sin cerrados, la condicion es falsa.
         cerrados ? (cerrados.length > 0 ? inArray(deals.id, cerrados) : sql`false`) : undefined,
+        // Deals con al menos una llamada VIGENTE (cualquier resultado, no-show incluido) en el rango.
+        conLlamadaEnRango ? (conLlamadaEnRango.length > 0 ? inArray(deals.id, conLlamadaEnRango) : sql`false`) : undefined,
       ),
     );
 
@@ -316,6 +319,14 @@ export async function tableroKanban(
     filas = filas.filter((f) => {
       const dia = diaDeCalendario(ultimaActividad.get(f.dealId) ?? f.createdAt);
       return dia >= actividad.desde && dia <= actividad.hasta;
+    });
+  }
+  if (seguimiento) {
+    // Proximo contacto: deals.fecha_seguimiento (ya seleccionada) por su dia de Bogota.
+    filas = filas.filter((f) => {
+      if (!f.fechaSeguimiento) return false;
+      const dia = diaDeCalendario(f.fechaSeguimiento);
+      return dia >= seguimiento.desde && dia <= seguimiento.hasta;
     });
   }
   if (filas.length === 0) return { columnas: columnasVacias(), total: 0 };
@@ -616,7 +627,30 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   return { owners, cohortes, cohortesDestino, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, areas: listaAreas, motivos: listaMotivos };
 }
 
-/** El rango del filtro de fecha, bajo la llave del campo que filtra; los otros dos, ausentes. */
+/** El rango del filtro de fecha, bajo la llave del campo que filtra; los otros, ausentes. */
 function rangosDeFecha(f: FiltrosDeEntradaKanban): Partial<Record<CampoDeFechaDeDeal, { desde: string; hasta: string }>> {
   return f.fecha ? { [f.fecha.campo]: f.fecha.periodo.a } : {};
+}
+
+/**
+ * Los deals del programa con al menos una llamada VIGENTE cuya fecha de llamada cae en el
+ * rango (dias de Bogota). Cualquier resultado cuenta —no-show incluido—; una llamada anulada
+ * no, por `vigente(calls)` (ADR 0026, lo exige el guardian de vigencia).
+ *
+ * El programa es frontera: solo llamadas de ESTE programa. Se agrupa aparte y se filtra en
+ * memoria por `diaDeCalendario`, como `cerradosEn`: sin subconsultas correlacionadas y sin
+ * interpolar un `Date` en una plantilla `sql` (AGENTS.md).
+ */
+async function llamadasEn(db: Db, programId: string, rango: { desde: string; hasta: string }): Promise<string[]> {
+  const filas = await db
+    .select({ dealId: calls.dealId, fecha: calls.fechaLlamada })
+    .from(calls)
+    .where(and(eq(calls.programId, programId), vigente(calls)));
+  const dealIds = new Set<string>();
+  for (const f of filas) {
+    if (!f.dealId || !f.fecha) continue;
+    const dia = diaDeCalendario(f.fecha);
+    if (dia >= rango.desde && dia <= rango.hasta) dealIds.add(f.dealId);
+  }
+  return [...dealIds];
 }
