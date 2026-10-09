@@ -3,7 +3,7 @@ id: 222
 etapa: O8
 serves: "A-126, A-130"
 depends: [221]
-status: review
+status: done
 ---
 
 # 222 — Notificaciones: lo que te toca, por tipo, con las tarjetas de tus deals

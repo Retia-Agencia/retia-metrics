@@ -3,7 +3,7 @@ id: 217
 etapa: O8
 serves: "A-118, A-119, A-130; ADR 0081 puntos 1, 3 a 6"
 depends: [215]
-status: review
+status: done
 ---
 
 # 217 — Anotar: el botón, su diálogo y la Transición con dos gestos
