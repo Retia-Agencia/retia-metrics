@@ -56,7 +56,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 131 | [Varios formularios activos por programa](./131-varios-formularios-activos-por-programa.md) | — | done · 30-sep · 0050 aplicada · el link de captación sigue en `programs.form_url` (A11) |
 | [x] | 151 | [Un reenvío sube la etapa de entrada y el CRM avisa los envíos repetidos](./151-el-reenvio-sube-la-etapa-de-entrada.md) | 142, 117 | done · `cp-20261002-3` · 2-oct · carril Mani · ADR 0073: S1 a S3 (solo sistema, solo hacia arriba, con nota), badge "N envíos" en tarjeta y ficha del deal, el parcial absorbido por su completo en la ficha del lead. Typecheck, lint, build y tests del cambio en verde; recorrido hecho (2-oct). |
 | [x] | 203 | [Reinicio operativo de ComunicArte y Tactical Investor](./203-reinicio-operativo-comunicarte-tactical.md) | 096, 106, 110 | done · 7-oct · producción reiniciada en cero; webhooks y asignación por Calendly verificados; Comunícate con Confianza intacto |
-| [ ] | 209 | [Leads: "Mostrar respuestas del formulario" como columnas](./209-mostrar-respuestas-del-formulario-en-leads.md) | — | todo · 8-oct · pedido de Jero |
+| [ ] | 209 | [Leads: "Mostrar respuestas del formulario" como columnas](./209-mostrar-respuestas-del-formulario-en-leads.md) | — | review · 9-oct · implementó Kiro; la sesión principal corrigió (Canal visible por defecto, preferencia por `useSyncExternalStore`); preferencia en el navegador (decisión de Mani) · falta recorrido con un setter, checkpoint verde y cadenero |
 
 ## 2 · Deal y motor de etapas
 
@@ -88,7 +88,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 161 | [La alerta "agotó intentos"](./161-alerta-de-tres-intentos.md) | 128, 142 | done · `cp-20261003-1` · 3-oct (S3) · alerta roja al tercer intento en la etapa, en ficha e Inbox; un anulado no cuenta |
 | [x] | 162 | [Una sola tarjeta de Transición, con botones de etapa redondos](./162-transicion-unica-y-botones-de-etapa.md) | 156 | done · `cp-20261003-1` · 3-oct (S1) · Transición con "Mover a" y "Registrar" (Contacto, Intento, Nota en las once etapas); Actividades solo lista; botones redondos de igual ancho; el Kanban abre el mismo pop-up. Recorrido de la sesión central hecho |
 | [x] | 165 | [Crear la siguiente cohorte, y que Próxima cohorte respete la fecha](./165-la-siguiente-cohorte.md) | 142 | done · `cp-20261003-1` · 3-oct (S4) · "Crear C{n+1}" del administrador; selector solo futuras; retomar respeta el inicio de ventas (A-49, A-50); recorrido hecho |
-| [ ] | 211 | [La corte del deal la elige su dueño, y dos cortes venden a la vez](./211-la-corte-del-deal-la-elige-su-dueno.md) | — | todo · 8-oct · reunión con Michael; pide ADR |
+| [ ] | 211 | [La corte del deal la elige su dueño, y dos cortes venden a la vez](./211-la-corte-del-deal-la-elige-su-dueno.md) | — | review · 9-oct · ADR 0080; implementó Codex: antes de ganar solo cohortes vendiendo hoy, el estudiante conserva futura o activa, aviso de solape en la ficha · falta recorrido, checkpoint verde y cadenero |
 | [x] | 213 | [Buscador en Deals: por nombre, correo o teléfono](./213-buscador-en-deals.md) | 207 | done · `cp-20261009-1` · 9-oct · implementó Codex, revisión y recorrido de la sesión principal; el texto no va en la URL (server action, como Leads) |
 
 ## 3 · Inbox
@@ -105,7 +105,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 201 | [Novedades de Deals y Calendly para el closer](./201-novedades-de-deals-y-calendly.md) | 183, 096, 157 | done · `cp-20261006-1` · 6-oct · 0072 aplicada en producción; CI verde (`76c921c`) |
 | [ ] | 205 | [Desde una suelta se crea el deal o se asocia a uno existente](./205-crear-o-asociar-deal-desde-la-suelta.md) | 096, 098, 157 | todo · 8-oct · A-108 |
 | [ ] | 206 | [Una suelta se adopta por correo cuando llega el formulario](./206-adoptar-sueltas-por-correo.md) | 096, 052 | todo · 8-oct · A-109 |
-| [ ] | 210 | [El setter del programa recibe solo los deals sin agenda](./210-setter-del-programa-recibe-los-deals-sin-agenda.md) | 157 | todo · 8-oct · reunión con Jero |
+| [ ] | 210 | [El setter del programa recibe solo los deals sin agenda](./210-setter-del-programa-recibe-los-deals-sin-agenda.md) | 157 | review · 9-oct · implementó Codex; marca en `miembros_programa` (0073, aplicada con ok de Mani), también llena `setter_user_id`, botón "Asignarme todos" en Por setear · falta recorrido, checkpoint verde y cadenero |
 
 ## 4 · Llamadas y Calendly
 
@@ -158,7 +158,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 |---|---|---|---|---|
 | [x] | 063 | [`onboarded_at` y cambio de cohorte](./063-onboarded-at-y-cambio-de-cohorte.md) (E4-7) | 060 | done · 28-sep · `lib/deals/estudiante.ts` (`marcarOnboarded`, `cambiarCohorte`), `lib/queries/estudiantes.ts` (Students es una consulta) y la cohorte activa se asigna sola en el primer abono. Sin migración. Falta la pantalla (074) |
 | [x] | 099 | [La tab Students por cohorte](./099-tab-students-por-cohorte.md) | 060, 061, 097 | done · 30-sep · Alejo · recorrido visual hecho (claro/oscuro, 390 px, consola); un deal en Completo ya no muestra fecha límite |
-| [ ] | 145 | [Rol Customer Success y onboarding](./145-rol-customer-success-y-onboarding.md) | — | todo · 8-oct · desbloqueado con alcance chico: rol que solo marca onboarded (Dani Rincón TI, Juanjo CA); los cuatro pasos siguen en QM-5 |
+| [ ] | 145 | [Rol Customer Success y onboarding](./145-rol-customer-success-y-onboarding.md) | — | review · 9-oct · primera parte (rol que solo marca onboarded); implementó Kiro en dos rondas; rol en el enum (0073), toggle en Students, sin programa aterriza en Mi espacio vacío · falta crear los usuarios de Dani y Juanjo, recorrido, checkpoint verde y cadenero · los cuatro pasos siguen en QM-5 |
 | [x] | 214 | [Students: total recaudado fijo abajo, y un saldo que se entienda](./214-students-total-recaudado.md) | — | done · `cp-20261009-1` · 9-oct · implementó Codex, revisión y recorrido (claro, oscuro, 390 px) de la sesión principal |
 
 ## 7 · Origen y atribución

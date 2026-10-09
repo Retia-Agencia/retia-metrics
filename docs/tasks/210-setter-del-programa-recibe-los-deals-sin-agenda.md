@@ -3,7 +3,7 @@ id: 210
 etapa: corte
 serves: "reunión del 8-oct (Jero): reclamar uno por uno le alarga el trabajo"
 depends: [157]
-status: todo
+status: review
 ---
 
 # 210 — El setter del programa recibe solo los deals sin agenda

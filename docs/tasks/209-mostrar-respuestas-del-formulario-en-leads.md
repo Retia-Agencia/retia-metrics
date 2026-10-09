@@ -3,7 +3,7 @@ id: 209
 etapa: corte
 serves: "reunión del 8-oct (Jero, setter): ver en Leads lo mismo que en la hoja"
 depends: []
-status: todo
+status: review
 ---
 
 # 209 — Leads: "Mostrar respuestas del formulario" como columnas
