@@ -1,11 +1,12 @@
 import Link from "next/link";
 import type { ReactElement } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { requireSesionReal } from "@/lib/auth/guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAccesoTotal, esRolValido, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { esAccesoTotal, esAdministrador, esRolValido, manejaPauta, marcaOnboarding, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { programasVisibles, programaVisiblePorSlug } from "@/lib/auth/alcance";
+import { rutaDePrograma } from "@/lib/nav";
 import { db } from "@/lib/db";
 import { membresiasConCalendlyDe } from "@/lib/catalogo/usuarios";
 import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
@@ -57,17 +58,49 @@ function uno(value: string | string[] | undefined): string | undefined {
  *    closer". Se decide con `esAccesoTotal` del rol REAL (`requireSesionReal`), nunca con
  *    el literal del rol.
  *
- * La guarda admite los tres roles base (`paginaConRol("gerente", "closer",
- * "paid_trafficker")`); el developer pasa por `esAccesoTotal`. El filtro de la vista corre
- * en `rolDeVista`. `closer_id` NO se muestra (167, 159).
+ * La guarda admite los cuatro roles base (`paginaConRol("gerente", "closer",
+ * "paid_trafficker", "customer_success")`); el developer pasa por `esAccesoTotal`. El filtro
+ * de la vista corre en `rolDeVista`. `closer_id` NO se muestra (167, 159).
+ *
+ * El customer success (ticket 145) sólo entra aquí cuando NO tiene un programa visible: su
+ * pantalla es Students, así que con un programa se le redirige a él, y sin ninguno ve el
+ * estado vacío que le pide a gerencia una membresía (A-04 del customer success). No tiene
+ * secciones propias en el registro, así que nunca cae en el camino de las tabs.
  */
 export default async function MiEspacioPage({ searchParams }: Props) {
-  const session = await paginaConRol("gerente", "closer", "paid_trafficker");
+  const session = await paginaConRol("gerente", "closer", "paid_trafficker", "customer_success");
   const rol = await rolDeVista(session);
   if (!esRolValido(rol)) notFound();
 
   const userId = session.user.id;
   const query = await searchParams;
+
+  // El customer success: su pantalla es Students. Si ve algún programa, se le lleva al primero
+  // (nunca se queda en Mi espacio con contenido ajeno); si no ve ninguno, el estado vacío que
+  // le dice que gerencia debe asignarle un programa. Se decide por CAPACIDAD —`marcaOnboarding`
+  // sin administrar, trabajar leads ni manejar pauta—, nunca por el literal del rol (ADR 0025).
+  if (marcaOnboarding(rol) && !trabajaLeads(rol) && !esAdministrador(rol) && !manejaPauta(rol)) {
+    const visibles = await programasVisibles(userId, rol);
+    if (visibles.length > 0) {
+      const preferido = await programaPreferidoDeCookie();
+      const elegido = elegirPrograma(visibles, preferido) ?? visibles[0];
+      redirect(rutaDePrograma(elegido.slug, "students"));
+    }
+    return (
+      <PageShell titulo="Mi espacio" descripcion="Tu perfil y tu trabajo por programa.">
+        <div className="space-y-6">
+          <PerfilDeMiEspacio
+            nombre={session.user.name ?? session.user.email ?? "Usuario"}
+            imagen={session.user.image ?? null}
+            rol={rol}
+          />
+          <p className="max-w-prose text-sm text-muted-foreground">
+            Aún no tienes un programa asignado. Pídele a gerencia que te agregue a uno.
+          </p>
+        </div>
+      </PageShell>
+    );
+  }
 
   // El developer en vista `todo` (acceso total) no tiene secciones propias: Mi espacio es
   // de la persona, y en `todo` no se suplanta a nadie. Se muestra el mensaje del dueño con

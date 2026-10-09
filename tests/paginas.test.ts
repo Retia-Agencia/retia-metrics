@@ -1390,3 +1390,45 @@ describe("el customer success solo entra a Students (ticket 145)", () => {
     expect(destino).not.toBe("/ajustes");
   });
 });
+
+/**
+ * Mi espacio para el customer success (ticket 145): su pantalla es Students, así que sólo llega
+ * aquí sin un programa visible, y entonces ve SÓLO el estado vacío que le pide a gerencia un
+ * programa. Con un programa visible, Mi espacio lo redirige a sus Students.
+ */
+describe("Mi espacio y el customer success (ticket 145)", () => {
+  /** Busca recursivamente un trozo de texto en el árbol de elementos que devuelve la página. */
+  function contieneTexto(nodo: unknown, texto: string): boolean {
+    if (typeof nodo === "string") return nodo.includes(texto);
+    if (Array.isArray(nodo)) return nodo.some((hijo) => contieneTexto(hijo, texto));
+    if (typeof nodo === "object" && nodo !== null && "props" in nodo) {
+      const props = (nodo as { props: Record<string, unknown> }).props;
+      return Object.values(props).some((valor) => contieneTexto(valor, texto));
+    }
+    return false;
+  }
+
+  async function renderMiEspacio() {
+    const { default: pagina } = (await import("@/app/(app)/mi-espacio/page")) as {
+      default: (props: { searchParams: Promise<Record<string, string>> }) => Promise<unknown>;
+    };
+    return pagina({ searchParams: Promise.resolve({}) });
+  }
+
+  const MENSAJE = "Aún no tienes un programa asignado. Pídele a gerencia que te agregue a uno.";
+
+  it("sin programas, muestra sólo el estado vacío que pide una membresía a gerencia", async () => {
+    auth.mockResolvedValue(sesionCustomerSuccess);
+    programasVisibles.mockResolvedValue([]);
+    const arbol = await renderMiEspacio();
+    expect(contieneTexto(arbol, MENSAJE)).toBe(true);
+  });
+
+  it("con un programa visible, lo redirige a sus Students (no se queda en Mi espacio)", async () => {
+    auth.mockResolvedValue(sesionCustomerSuccess);
+    programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
+    await expect(renderMiEspacio()).rejects.toSatisfy(
+      (e: unknown) => e instanceof Redireccion && e.destino === "/p/programa-a/students",
+    );
+  });
+});

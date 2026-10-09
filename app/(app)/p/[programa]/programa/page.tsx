@@ -20,7 +20,7 @@ import { CohortesAdmin } from "@/components/cohortes-admin";
 import { FuentesAdmin } from "@/components/admin/fuentes-admin";
 import { listarUsuarios, membresiasConCalendly } from "@/lib/catalogo/usuarios";
 import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
-import { trabajaLeads } from "@/lib/auth/roles";
+import { puedeSerMiembro } from "@/lib/auth/roles";
 import { PlataformasDelPrograma } from "./plataformas-del-programa";
 import { UmbralesDelPrograma } from "./umbrales-del-programa";
 import {
@@ -106,8 +106,11 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       ])
     : [null, [], [], {}];
   const miembros = new Set(membresias.map((m) => m.userId));
+  // Quién se puede AGREGAR al equipo: quien puede ser miembro de un programa (closer,
+  // developer y customer success, ticket 145), no solo quien trabaja leads. Es la pregunta
+  // de configuración `puedeSerMiembro` (ADR 0025), nunca `rol === "..."`.
   const elegibles = usuarios
-    .filter((usuario) => usuario.activo && trabajaLeads(usuario.rol) && !miembros.has(usuario.id))
+    .filter((usuario) => usuario.activo && puedeSerMiembro(usuario.rol) && !miembros.has(usuario.id))
     .map(({ id, nombre, email }) => ({ id, nombre, email }));
   const base = `/p/${programa.slug}/programa`;
   const grupos: GrupoDePestanas[] = [

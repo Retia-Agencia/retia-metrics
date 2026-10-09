@@ -231,10 +231,10 @@ export function rutaInicial(rol: Rol | null, primerPrograma: string | null): str
   // El customer success (ticket 145) aterriza en los Students de su primer programa visible:
   // es la única pantalla que ve. Por capacidad —`marcaOnboarding` sin administrar, trabajar
   // leads ni manejar pauta—, nunca por el literal del rol (ADR 0025). Sin un programa visible
-  // no tiene ninguna pantalla propia (una membresía es el supuesto del rol); cae al login, que
-  // es el terminal de "no tienes dónde entrar".
+  // va a Mi espacio, que para ese rol muestra el mensaje de "pídele a gerencia que te agregue
+  // a un programa" (A-04 del customer success): un destino dentro de la app, no el login.
   if (marcaOnboarding(rol) && !esAdministrador(rol) && !trabajaLeads(rol) && !manejaPauta(rol)) {
-    return primerPrograma ? rutaDePrograma(primerPrograma, "students") : "/login";
+    return primerPrograma ? rutaDePrograma(primerPrograma, "students") : "/mi-espacio";
   }
   return primerPrograma ? rutaDePrograma(primerPrograma, "dashboard") : "/ajustes";
 }

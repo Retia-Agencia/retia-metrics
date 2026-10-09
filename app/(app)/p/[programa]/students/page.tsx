@@ -1,8 +1,9 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esRolValido } from "@/lib/auth/roles";
+import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { listarCohortes } from "@/lib/catalogo/cohortes";
@@ -16,6 +17,7 @@ import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
+import { OnboardingCelda } from "@/components/deals/onboarding-celda";
 import { BarraDeLista } from "@/components/filtros/barra-de-lista";
 import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 
@@ -41,8 +43,9 @@ function uno(value: string | string[] | undefined): string | undefined {
  *
  * El customer success (ticket 145) entra aquí —y SOLO aquí— con las mismas columnas que ve un
  * closer, en los programas donde tiene membresía activa. Su única acción es marcar/desmarcar el
- * onboarding (`puedeMarcarOnboarding`), que la reja del servidor concede; las demás acciones de
- * la ficha del deal le siguen cerradas (la ficha rechaza su rol).
+ * onboarding desde la celda (`OnboardingCelda`), que el servidor concede por `marcaOnboarding`;
+ * las demás acciones de la ficha del deal le siguen cerradas, y para él las celdas no enlazan a
+ * la ficha (que rechaza su rol): van como texto plano.
  */
 export default async function StudentsDelProgramaPage({ params, searchParams }: Props) {
   const session = await paginaConRol("gerente", "closer", "customer_success");
@@ -50,6 +53,12 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
   const rol = await rolDeVista(session);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa || !esRolValido(rol)) notFound();
+
+  // ¿La fila abre la ficha del deal? La ficha es de quien trabaja leads o administra; el
+  // customer success NO entra ahí (la ficha rechaza su rol), así que para él las celdas se
+  // pintan como texto plano, nunca como enlaces a una pantalla que lo rechazaría. Por
+  // capacidad (ADR 0025), nunca `rol === "..."`.
+  const abreFicha = trabajaLeads(rol) || esAdministrador(rol);
 
   const query = await searchParams;
   const cohortes = (await listarCohortes(db, programa.id)).sort((a, b) =>
@@ -152,49 +161,42 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                     f.saldo?.sinSaldoPorque,
                   );
                   const href = enlaceConVuelta(`/p/${programa.slug}/deals/${f.dealId}`, origen);
-                  const clase = "block px-2 py-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
                   return (
-                    <tr key={f.dealId} className="cursor-pointer border-b hover:bg-muted/50">
+                    <tr key={f.dealId} className={abreFicha ? "cursor-pointer border-b hover:bg-muted/50" : "border-b hover:bg-muted/50"}>
                       <td>
-                        <Link href={href} className={`${clase} font-medium text-marca-texto`} title={f.email}>
+                        <CeldaDeal abreFicha={abreFicha} href={href} extra="font-medium text-marca-texto" title={f.email} enfocable>
                           {f.nombre ?? f.email}
-                        </Link>
+                        </CeldaDeal>
                       </td>
                       <td>
-                        <Link href={href} tabIndex={-1} className={clase}>
+                        <CeldaDeal abreFicha={abreFicha} href={href}>
                           <Badge variant={TONO_DE_ETAPA[f.etapa]}>{NOMBRE_DE_ETAPA[f.etapa]}</Badge>
-                        </Link>
+                        </CeldaDeal>
                       </td>
                       {!cohorte ? (
                         <td>
-                          <Link href={href} tabIndex={-1} className={clase}>
-                            {f.codigoCohorte ?? "Sin cohorte"}
-                          </Link>
+                          <CeldaDeal abreFicha={abreFicha} href={href}>{f.codigoCohorte ?? "Sin cohorte"}</CeldaDeal>
                         </td>
                       ) : null}
-                      <td>
-                        <Link href={href} tabIndex={-1} className={clase}>
-                          {f.onboardedAt ? (
-                            <Badge variant="exito">
-                              <span className="cifra">{fecha(fechaDeInstanteEnBogota(f.onboardedAt))}</span>
-                            </Badge>
-                          ) : (
-                            <Badge variant="alerta">Sin onboarding</Badge>
-                          )}
-                        </Link>
+                      {/* Onboarding: el toggle es la ÚNICA acción del customer success (ticket
+                          145) y se le muestra a todo rol que pasa `marcaOnboarding`; el servidor
+                          decide por deal. No va dentro del Link: tiene sus propios botones. */}
+                      <td className="px-2 py-1.5">
+                        <OnboardingCelda
+                          dealId={f.dealId}
+                          fechaOnboarding={f.onboardedAt ? fecha(fechaDeInstanteEnBogota(f.onboardedAt)) : null}
+                        />
                       </td>
                       <td>
-                        <Link href={href} tabIndex={-1} className={clase}>
-                          {f.ownerNombre ?? (f.ownerUserId ? "Closer sin nombre" : "Sin dueño")}
-                        </Link>
+                        <CeldaDeal abreFicha={abreFicha} href={href}>{f.ownerNombre ?? (f.ownerUserId ? "Closer sin nombre" : "Sin dueño")}</CeldaDeal>
                       </td>
                       <td>
-                        <Link href={href} tabIndex={-1} className={`${clase} cifra`} title={saldo.etiqueta}>
+                        <CeldaDeal abreFicha={abreFicha} href={href} extra="cifra" title={saldo.etiqueta}>
                           {saldo.valor}
-                        </Link>
+                        </CeldaDeal>
                       </td>
                       <td title={f.acuerdoPago ?? undefined}>
-                        <Link href={href} tabIndex={-1} className={clase}>
+                        <CeldaDeal abreFicha={abreFicha} href={href}>
                           {f.vencido ? (
                             <Badge variant="peligro">
                               Vencida el <span className="cifra">{fecha(f.vencido.fechaLimite)}</span> · <span className="cifra">{num(f.vencido.diasDeAtraso)}</span> días
@@ -206,7 +208,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                           ) : (
                             "—"
                           )}
-                        </Link>
+                        </CeldaDeal>
                       </td>
                     </tr>
                   );
@@ -243,5 +245,42 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
         </Card>
       </PantallaFija>
     </PageShell>
+  );
+}
+
+/**
+ * Una celda de la fila de un estudiante: abre la ficha del deal con un `Link` cuando el rol la
+ * ve (`abreFicha`), o pinta el mismo contenido como texto plano cuando no (el customer success,
+ * a quien la ficha rechaza). Un enlace a una pantalla que redirige al usuario fuera sería una
+ * trampa; por eso la decisión del rol se toma una vez, en el servidor, y la celda sólo la aplica.
+ */
+function CeldaDeal({
+  abreFicha,
+  href,
+  children,
+  extra = "",
+  title,
+  enfocable = false,
+}: {
+  abreFicha: boolean;
+  /** La celda del nombre es el enlace que recibe el foco del teclado; las demás no (una parada por fila). */
+  enfocable?: boolean;
+  href: string;
+  children: ReactNode;
+  extra?: string;
+  title?: string;
+}) {
+  const clase = `block px-2 py-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${extra}`.trim();
+  if (abreFicha) {
+    return (
+      <Link href={href} tabIndex={enfocable ? undefined : -1} className={clase} title={title}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <div className={clase} title={title}>
+      {children}
+    </div>
   );
 }

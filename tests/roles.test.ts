@@ -291,8 +291,9 @@ describe("navegacion por rol", () => {
 
   it("el customer success aterriza en los Students de su primer programa (ticket 145)", () => {
     expect(rutaInicial("customer_success", "programa-a")).toBe("/p/programa-a/students");
-    // Sin programa visible (misconfiguración: el rol supone una membresía) cae al login.
-    expect(rutaInicial("customer_success", null)).toBe("/login");
+    // Sin programa visible va a Mi espacio, que para ese rol muestra el mensaje de "pídele a
+    // gerencia un programa" (ticket 145): un destino dentro de la app, no el login.
+    expect(rutaInicial("customer_success", null)).toBe("/mi-espacio");
   });
 
   it("el developer aterriza en el Dashboard del primer programa, como el gerente", () => {
