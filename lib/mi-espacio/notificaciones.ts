@@ -4,6 +4,8 @@ import type { Db } from "@/lib/db/tipos";
 import { tableroKanban, type TarjetaDeal } from "@/lib/queries/kanban";
 import type { AlcanceDeals } from "@/lib/auth/alcance-deals";
 import { vigente } from "@/lib/queries/vigente";
+import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
+import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import { posiblesDuplicadosDelPrograma } from "@/lib/queries/leads";
 import { novedadesCalendlyDeUsuario } from "@/lib/notificaciones-calendly/notificaciones";
 import { diaDeCalendario } from "@/lib/dias-habiles";
@@ -51,6 +53,23 @@ export const NOMBRE_DE_CHIP: Readonly<Record<ChipNotificacion, string>> = {
   calendly: "Calendly",
   nuevos: "Nuevos",
   duplicados: "Duplicados",
+};
+
+/**
+ * Qué significa cada chip, en una línea (ticket o8-busqueda). En móvil no hay tooltip, así
+ * que la descripción del chip activo se muestra como una línea tenue debajo de la barra, y
+ * cada pestaña la lleva en su `title`/`descripcion`.
+ */
+export const DESCRIPCION_DE_CHIP: Readonly<Record<ChipNotificacion, string>> = {
+  hoy: "Tus llamadas de hoy y los seguimientos o re-agendas que vencen hoy.",
+  reagenda: "Deals con una llamada que no se hizo y hay que volver a agendar.",
+  seguimiento: "Deals con un próximo contacto puesto, por fecha.",
+  proxima_cohorte: "Leads que quieren entrar en la próxima cohorte.",
+  vencidos: "Seguimientos, compromisos de pago o cartera con la fecha ya pasada.",
+  sin_grain: "Llamadas que ya se hicieron y todavía no tienen el link de Grain.",
+  calendly: "Citas nuevas, cambiadas o canceladas en Calendly.",
+  nuevos: "Deals que te asignaron y todavía no has abierto.",
+  duplicados: "Leads que hoy volvieron a llenar el formulario.",
 };
 
 /** El `?chip=` de la URL, caído a `hoy` si no es uno conocido. */
@@ -102,10 +121,18 @@ async function cargarUniverso(
   programId: string,
   userId: string,
   hoy: string,
+  q?: string,
 ): Promise<Universo> {
   const alcance: AlcanceDeals = { tipo: "dueno", userId };
   const tablero = await tableroKanban(db, programId, alcance, {}, hoy);
-  const tarjetas = tablero.columnas.flatMap((c) => c.tarjetas);
+  let tarjetas = tablero.columnas.flatMap((c) => c.tarjetas);
+
+  // Búsqueda (ticket o8-busqueda): el universo se ESTRECHA a las tarjetas cuyo lead casa
+  // (`leadsQueCasan`), así que conteos y listas reflejan la búsqueda por igual. `null` (o
+  // texto corto) = sin búsqueda, no estrecha. El programa es frontera: ya recibe su id.
+  const leadsCasan = await leadsQueCasan(db, programId, q ?? "");
+  if (leadsCasan != null) tarjetas = tarjetas.filter((t) => leadsCasan.has(t.leadId));
+
   const ids = tarjetas.map((t) => t.dealId);
 
   const fechas = new Map<string, FechasDeDeal>();
@@ -135,12 +162,14 @@ async function cargarUniverso(
         fechaLlamada: calls.fechaLlamada,
         resultado: calls.resultado,
         linkGrain: calls.linkGrain,
+        anuladoEn: calls.anuladoEn,
       })
       .from(calls)
       .where(and(inArray(calls.dealId, ids), vigente(calls)));
     for (const c of filasCall) {
-      // Sin Grain (226): una llamada Show sin link; nos quedamos con la más antigua.
-      if (c.dealId && c.fechaLlamada && c.resultado === "show" && !c.linkGrain?.trim()) {
+      // Sin Grain (226): la MISMA regla de la ficha y el dashboard (`esAtendidaSinGrain`,
+      // ADR 0066); nos quedamos con la llamada más antigua de cada deal.
+      if (c.dealId && c.fechaLlamada && esAtendidaSinGrain(c)) {
         const previa = showSinGrain.get(c.dealId);
         if (!previa || c.fechaLlamada < previa) showSinGrain.set(c.dealId, c.fechaLlamada);
       }
@@ -262,13 +291,13 @@ function desempate(a: TarjetaNotificacion, b: TarjetaNotificacion): number {
  */
 export async function notificacionesDeChip(
   db: Db,
-  args: { programId: string; userId: string; chip: ChipNotificacion; pagina?: number },
+  args: { programId: string; userId: string; chip: ChipNotificacion; pagina?: number; q?: string },
   hoy: string = hoyEnBogota(),
 ): Promise<ResultadoChip> {
   const { programId, userId, chip } = args;
   const pagina = Math.max(0, args.pagina ?? 0);
 
-  const universo = await cargarUniverso(db, programId, userId, hoy);
+  const universo = await cargarUniverso(db, programId, userId, hoy, args.q);
 
   // Los dos chips que preguntan a otras fuentes, acotados al universo (dueño + programa).
   const [novedadesCalendly, idsDuplicados] = await Promise.all([
@@ -295,11 +324,11 @@ export async function notificacionesDeChip(
 /** Los conteos de TODOS los chips, para pintarlos con su número. Una sola carga del universo. */
 export async function conteosDeChips(
   db: Db,
-  args: { programId: string; userId: string },
+  args: { programId: string; userId: string; q?: string },
   hoy: string = hoyEnBogota(),
 ): Promise<Record<ChipNotificacion, number>> {
   const { programId, userId } = args;
-  const universo = await cargarUniverso(db, programId, userId, hoy);
+  const universo = await cargarUniverso(db, programId, userId, hoy, args.q);
   const [novedadesCalendly, idsDuplicados] = await Promise.all([
     idsConNovedadCalendly(db, userId, programId),
     idsDuplicadosDeHoy(db, programId, userId, universo, hoy),

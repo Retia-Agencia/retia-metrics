@@ -8,7 +8,8 @@ import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { listarCohortes } from "@/lib/catalogo/cohortes";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
-import { studentsDelPrograma, type FiltroStudents } from "@/lib/queries/estudiantes";
+import { studentsDelPrograma, type FiltroStudents, ORDENES_STUDENTS, ORDEN_STUDENTS_POR_DEFECTO, type OrdenStudents } from "@/lib/queries/estudiantes";
+import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import { totalesDeStudents } from "@/lib/queries/estudiantes-totales";
 import { fecha, fechaDeInstanteEnBogota, monto, num, saldoLegible } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
@@ -19,7 +20,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { OnboardingCelda } from "@/components/deals/onboarding-celda";
 import { puedeMarcarOnboarding } from "@/lib/deals/permiso";
-import { BarraDeLista } from "@/components/filtros/barra-de-lista";
+import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
+import { BuscadorUrl } from "@/components/filtros/buscador-url";
 import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 
 export const dynamic = "force-dynamic";
@@ -71,9 +73,19 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
   const cohorte =
     cohortePedida === "todas" ? null : (cohortes.find((c) => c.id === cohortePedida) ?? activa);
   const onboardedPedido = uno(query.onboarding);
+  // El orden sale de la URL (`?orden=`); un valor desconocido cae al de por defecto.
+  const ordenPedido = uno(query.orden);
+  const orden: OrdenStudents = ORDENES_STUDENTS.some((o) => o.value === ordenPedido)
+    ? (ordenPedido as OrdenStudents)
+    : ORDEN_STUDENTS_POR_DEFECTO;
+  // La búsqueda: `leadsQueCasan` devuelve `null` con texto corto (no filtra) o el conjunto
+  // de leads del programa que casan. El programa es frontera: la consulta ya recibe su id.
+  const leadsCasan = await leadsQueCasan(db, programa.id, uno(query.q) ?? "");
   const filtro: FiltroStudents = {
     cohortId: cohorte?.id ?? null,
     onboarded: onboardedPedido === "si" || onboardedPedido === "no" ? onboardedPedido : null,
+    leadsCasan,
+    orden,
   };
   const filas = await studentsDelPrograma(db, programa.id, filtro);
   const totales = totalesDeStudents(filas);
@@ -124,6 +136,15 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
             total={filas.length}
             sustantivo={{ singular: "estudiante", plural: "estudiantes" }}
             filtros={filtrosStudents}
+            buscador={<BuscadorUrl />}
+            clavesCompuestas={["q"]}
+            orden={
+              <ControlDeOrden
+                nombre="orden"
+                valor={orden}
+                opciones={ORDENES_STUDENTS.map((o) => ({ value: o.value, label: o.label }))}
+              />
+            }
             resumen={<span className="flex flex-wrap items-center gap-x-4 gap-y-1">{resumen}</span>}
           />
         </div>

@@ -259,6 +259,7 @@ function Seccion({
           userId={userId}
           chip={uno(busqueda.chip)}
           pagina={uno(busqueda.pagina)}
+          q={uno(busqueda.q)}
         />
       ) : null;
     case "metricas": {

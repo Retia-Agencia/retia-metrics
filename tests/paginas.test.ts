@@ -155,7 +155,10 @@ vi.mock("@/lib/catalogo/cohortes", () => ({ listarCohortes }));
 // mockean para que la guarda de rol sea lo unico bajo prueba. `totalesDeStudents` es puro
 // (recibe filas), pero se mockea igual para no depender de su forma interna aca.
 const studentsDelPrograma = vi.fn(async () => []);
-vi.mock("@/lib/queries/estudiantes", () => ({ studentsDelPrograma }));
+vi.mock("@/lib/queries/estudiantes", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/queries/estudiantes")>()),
+  studentsDelPrograma,
+}));
 const totalesDeStudents = vi.fn(() => ({ porMoneda: [], sinValorVendido: 0 }));
 vi.mock("@/lib/queries/estudiantes-totales", () => ({ totalesDeStudents }));
 

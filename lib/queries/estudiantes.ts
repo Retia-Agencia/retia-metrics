@@ -80,7 +80,27 @@ export interface FiltroStudents {
    * closer dentro de su programa.
    */
   ownerUserId?: string | null;
+  /**
+   * Los leads que casan con la búsqueda (`leadsQueCasan`): si es un `Set`, solo pasan los
+   * estudiantes cuyo lead está ahí; `null` = sin búsqueda, no filtra.
+   */
+  leadsCasan?: Set<string> | null;
+  /** El orden de la lista; por defecto el de siempre (por correo). */
+  orden?: OrdenStudents;
 }
+
+/** Los órdenes de la tab Students (ticket o8-busqueda). El primero es el de por defecto. */
+export const ORDENES_STUDENTS = [
+  { value: "correo:asc", label: "Correo: A → Z" },
+  { value: "nombre:asc", label: "Nombre: A → Z" },
+  { value: "nombre:desc", label: "Nombre: Z → A" },
+  { value: "saldo:desc", label: "Saldo: mayor primero" },
+  { value: "saldo:asc", label: "Saldo: menor primero" },
+] as const;
+
+export type OrdenStudents = (typeof ORDENES_STUDENTS)[number]["value"];
+
+export const ORDEN_STUDENTS_POR_DEFECTO: OrdenStudents = "correo:asc";
 
 /**
  * La tab Students (ticket 099): los estudiantes con su saldo, su acuerdo de pago, si están en
@@ -96,8 +116,11 @@ export async function studentsDelPrograma(
 ): Promise<FilaStudents[]> {
   const todos = await estudiantesDe(db, programId, filtro.cohortId ? { cohortId: filtro.cohortId } : {});
   const porDueno = filtro.ownerUserId ? todos.filter((e) => e.ownerUserId === filtro.ownerUserId) : todos;
+  // Búsqueda: solo los estudiantes cuyo lead casa (`leadsQueCasan`). `null` = sin búsqueda.
+  const porBusqueda =
+    filtro.leadsCasan == null ? porDueno : porDueno.filter((e) => filtro.leadsCasan!.has(e.leadId));
   const filas =
-    filtro.onboarded == null ? porDueno : porDueno.filter((e) => (e.onboardedAt != null) === (filtro.onboarded === "si"));
+    filtro.onboarded == null ? porBusqueda : porBusqueda.filter((e) => (e.onboardedAt != null) === (filtro.onboarded === "si"));
   if (filas.length === 0) return [];
 
   const [saldos, cartera] = await Promise.all([
@@ -105,5 +128,33 @@ export async function studentsDelPrograma(
     carteraVencida(db, programId, hoy),
   ]);
   const vencidos = new Map(cartera.vencidos.map((v) => [v.dealId, { fechaLimite: v.fechaLimite, diasDeAtraso: v.diasDeAtraso }]));
-  return filas.map((f) => ({ ...f, saldo: saldos.get(f.dealId) ?? null, vencido: vencidos.get(f.dealId) ?? null }));
+  const conSaldo: FilaStudents[] = filas.map((f) => ({
+    ...f,
+    saldo: saldos.get(f.dealId) ?? null,
+    vencido: vencidos.get(f.dealId) ?? null,
+  }));
+  // El orden se aplica en memoria sobre las filas ya cargadas (la escala lo permite). El de
+  // por defecto (`correo:asc`) es el de siempre: `estudiantesDe` ya viene ordenado por correo.
+  return ordenarStudents(conSaldo, filtro.orden ?? ORDEN_STUDENTS_POR_DEFECTO);
+}
+
+/**
+ * El orden de la tab Students. `correo:asc` es el de siempre (y el que trae `estudiantesDe`),
+ * así que no reordena. El saldo compara la cifra numérica (un saldo nulo va al final).
+ */
+function ordenarStudents(filas: FilaStudents[], orden: OrdenStudents): FilaStudents[] {
+  if (orden === "correo:asc") return filas;
+  const nombre = (f: FilaStudents) => (f.nombre ?? f.email).toLocaleLowerCase("es");
+  const saldo = (f: FilaStudents) => f.saldo?.saldo ?? null;
+  const copia = [...filas];
+  switch (orden) {
+    case "nombre:asc":
+      return copia.sort((a, b) => nombre(a).localeCompare(nombre(b), "es"));
+    case "nombre:desc":
+      return copia.sort((a, b) => nombre(b).localeCompare(nombre(a), "es"));
+    case "saldo:desc":
+      return copia.sort((a, b) => (saldo(b) ?? -Infinity) - (saldo(a) ?? -Infinity));
+    case "saldo:asc":
+      return copia.sort((a, b) => (saldo(a) ?? Infinity) - (saldo(b) ?? Infinity));
+  }
 }

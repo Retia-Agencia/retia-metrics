@@ -325,6 +325,32 @@ describe("notificaciones de Mi espacio (222)", () => {
     }
   });
 
+  it("un ?q estrecha la lista de un chip y su conteo por igual (o8-busqueda)", async () => {
+    // Dos deals en el mismo chip; solo uno tiene un nombre que casa con la búsqueda.
+    const casa = await deal({ etapa: "atendido", pendiente: "proxima_cohorte" });
+    const noCasa = await deal({ etapa: "atendido", pendiente: "proxima_cohorte" });
+    await db.update(leads).set({ nombre: "Zoraida Buscable" }).where(eq(leads.id, casa.leadId));
+    await db.update(leads).set({ nombre: "Otra Persona" }).where(eq(leads.id, noCasa.leadId));
+
+    // Sin búsqueda: los dos están.
+    const sinQ = await notificacionesDeChip(db, { programId, userId: yo, chip: "proxima_cohorte" }, HOY);
+    expect(new Set(sinQ.tarjetas.map((t) => t.dealId))).toEqual(
+      new Set([casa.dealId, noCasa.dealId]),
+    );
+
+    // Con búsqueda: la lista y el conteo del chip se estrechan igual.
+    const conQ = await notificacionesDeChip(
+      db,
+      { programId, userId: yo, chip: "proxima_cohorte", q: "Zoraida" },
+      HOY,
+    );
+    expect(conQ.tarjetas.map((t) => t.dealId)).toEqual([casa.dealId]);
+    expect(conQ.total).toBe(1);
+
+    const conteos = await conteosDeChips(db, { programId, userId: yo, q: "Zoraida" }, HOY);
+    expect(conteos.proxima_cohorte).toBe(1);
+  });
+
   it("un deal de otro programa o de otro dueño nunca aparece (ids forjados)", async () => {
     // Deals que caerían en varios chips, pero de otro dueño o programa.
     const otroDuenoLlamada = await deal({ etapa: "atendido", owner: otro });

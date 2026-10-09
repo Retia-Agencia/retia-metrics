@@ -1,4 +1,4 @@
-import { and, between, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, between, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   cohorts,
@@ -17,6 +17,7 @@ import { ETAPAS_EN_ORDEN, ETAPAS_VENDIDAS, type EtapaDeal, type PendienteDeal } 
 import { carteraVencida } from "@/lib/queries/cartera";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
+import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import { vigente } from "@/lib/queries/vigente";
 import { hoyEnBogota } from "@/lib/format";
 import { diaDeCalendario } from "@/lib/dias-habiles";
@@ -32,45 +33,25 @@ import { proximoContactoVencido } from "@/lib/deals/proximo-contacto";
 import { redondearUsd } from "@/lib/dinero";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 
-const MINIMO_TEXTO_BUSQUEDA = 2;
-
-/** Busca deals vigentes por los datos de su lead, siempre dentro de UN programa. */
+/**
+ * Busca deals vigentes por los datos de su lead, siempre dentro de UN programa.
+ *
+ * Reutiliza `leadsQueCasan` (la única respuesta a "¿quién casa con este texto?", AGENTS.md):
+ * resuelve los leads del programa que casan y queda con sus deals vigentes. Un texto corto
+ * (bajo `MINIMO_TEXTO_BUSQUEDA`) devuelve `[]`, igual que antes.
+ */
 export async function buscarDealsDelPrograma(db: Db, programId: string, texto: string): Promise<string[]> {
-  const termino = texto.trim();
-  if (termino.length < MINIMO_TEXTO_BUSQUEDA) return [];
-
-  const patron = `%${termino.replace(/[\\%_]/g, (caracter) => `\\${caracter}`)}%`;
-  const digitos = termino.replace(/[^0-9]/g, "");
-  const patronTelefono = `%${digitos}%`;
-  const coincidenciaTelefono =
-    digitos.length >= 4
-      ? or(
-          sql`regexp_replace(${leads.telefono}, '[^0-9]', '', 'g') like ${patronTelefono}`,
-          and(
-            eq(leadContactos.tipo, "telefono"),
-            sql`regexp_replace(${leadContactos.valor}, '[^0-9]', '', 'g') like ${patronTelefono}`,
-          ),
-        )
-      : undefined;
+  const leadsCasan = await leadsQueCasan(db, programId, texto);
+  if (leadsCasan === null || leadsCasan.size === 0) return [];
 
   const filas = await db
     .selectDistinct({ dealId: deals.id })
     .from(deals)
-    .innerJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, programId)))
-    .leftJoin(
-      leadContactos,
-      and(eq(leadContactos.leadId, leads.id), eq(leadContactos.programId, programId)),
-    )
     .where(
       and(
         eq(deals.programId, programId),
         vigente(deals),
-        or(
-          ilike(leads.nombre, patron),
-          ilike(leads.emailNormalizado, patron),
-          and(eq(leadContactos.tipo, "correo"), ilike(leadContactos.valor, patron)),
-          coincidenciaTelefono,
-        ),
+        inArray(deals.leadId, [...leadsCasan]),
       ),
     );
 

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { z } from "zod";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { alcanceDeDeals } from "@/lib/auth/alcance-deals";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -10,13 +11,18 @@ import {
   LLAMADAS_POR_PAGINA,
   llamadasDelPrograma,
   opcionesDeLlamadas,
+  ORDENES_LLAMADAS,
+  ORDEN_LLAMADAS_POR_DEFECTO,
   type FiltroLlamadas,
+  type OrdenLlamadas,
 } from "@/lib/queries/llamadas";
+import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { LlamadasPrograma } from "@/components/deals/llamadas-programa";
-import { BarraDeLista } from "@/components/filtros/barra-de-lista";
+import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
+import { BuscadorUrl } from "@/components/filtros/buscador-url";
 import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 import { FiltroFecha } from "@/components/filtros/filtro-fecha";
 
@@ -53,6 +59,17 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
   const query = await searchParams;
   const pagina = Math.max(0, Number.parseInt(uno(query.pagina) ?? "0", 10) || 0);
   const resultado = uno(query.resultado);
+  // El orden sale de la URL (`?orden=`), validado con zod contra las opciones; cualquier
+  // valor desconocido cae al de por defecto (el de siempre, "Llamada: más reciente").
+  const ordenValues = ORDENES_LLAMADAS.map((o) => o.value) as [OrdenLlamadas, ...OrdenLlamadas[]];
+  const orden: OrdenLlamadas = z
+    .enum(ordenValues)
+    .catch(ORDEN_LLAMADAS_POR_DEFECTO)
+    .parse(uno(query.orden));
+  // La búsqueda: `leadsQueCasan` devuelve `null` con texto corto (no filtra) o el conjunto
+  // de leads del programa que casan. El programa es frontera: la consulta ya recibe su id.
+  const textoBusqueda = uno(query.q) ?? "";
+  const leadsCasan = await leadsQueCasan(db, programa.id, textoBusqueda);
   const filtro: FiltroLlamadas = {
     closerUserId: alcance.tipo === "todos" ? uno(query.closer) || null : null,
     resultado: RESULTADOS.some(([value]) => value === resultado)
@@ -60,6 +77,8 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
       : null,
     desde: uno(query.desde) || null,
     hasta: uno(query.hasta) || null,
+    leadsCasan,
+    orden,
   };
   const [llamadas, opciones, opcionesFicha] = await Promise.all([
     llamadasDelPrograma(db, programa.id, alcance, filtro),
@@ -114,14 +133,22 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
             total={llamadas.length}
             sustantivo={{ singular: "llamada", plural: "llamadas" }}
             filtros={filtrosCalls}
+            buscador={<BuscadorUrl />}
+            clavesCompuestas={["desde", "hasta", "q"]}
             compuestosPopover={
               <div className="grid grid-cols-2 gap-2">
                 <FiltroFecha nombre="desde" etiqueta="Desde" />
                 <FiltroFecha nombre="hasta" etiqueta="Hasta" />
               </div>
             }
-            clavesCompuestas={["desde", "hasta"]}
             compuestoActivo={Boolean(filtro.desde || filtro.hasta)}
+            orden={
+              <ControlDeOrden
+                nombre="orden"
+                valor={orden}
+                opciones={ORDENES_LLAMADAS.map((o) => ({ value: o.value, label: o.label }))}
+              />
+            }
           />
         </div>
 
