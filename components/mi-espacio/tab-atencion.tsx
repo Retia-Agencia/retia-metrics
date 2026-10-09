@@ -47,7 +47,7 @@ export async function TabAtencion({
     .map((m) => ({ id: m.id, nombre: m.nombre, tipo: m.tipo }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   const plataformasOpcion = plataformas.map((p) => ({ id: p.id, nombre: String(p.nombre) }));
-  const origen = origenDeLaPagina("/mi-espacio", { programa: slug, tab: "atencion" });
+  const origen = origenDeLaPagina("/mi-espacio", { programa: slug, tab: "notificaciones" });
 
   return (
     <div className="space-y-4">
