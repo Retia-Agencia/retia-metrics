@@ -3,7 +3,7 @@ id: 224
 etapa: O8
 serves: "A-128; ADR 0082"
 depends: [221]
-status: review
+status: done
 ---
 
 # 224 — El menú del closer: solo lo que puede abrir

@@ -304,8 +304,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 220 | [El aviso de lo que cambió](./220-aviso-de-lo-que-cambio.md) | 217, 219 | todo |
 | [x] | 221 | [Mi espacio en tres pestañas: Info, Notificaciones y Métricas](./221-mi-espacio-en-tres-pestanas.md) | · | done (cp-20261009-4) |
 | [x] | 222 | [Notificaciones: lo que te toca, por tipo, con las tarjetas](./222-notificaciones.md) | 221 | done (cp-20261009-5) |
-| [ ] | 223 | [El número sin ver](./223-el-numero-sin-ver.md) | 222 | review (en main) |
-| [ ] | 224 | [El menú del closer: solo lo que puede abrir](./224-menu-del-closer.md) | 221 | review (en main) |
+| [x] | 223 | [El número sin ver](./223-el-numero-sin-ver.md) | 222 | done (cp-20261009-6) |
+| [x] | 224 | [El menú del closer: solo lo que puede abrir](./224-menu-del-closer.md) | 221 | done (cp-20261009-6) |
 | [x] | 225 | [Deals filtra por fecha de llamada y de próximo contacto](./225-filtro-por-llamada-y-proximo-contacto.md) | · | done (cp-20261009-4) |
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
