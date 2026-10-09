@@ -7,7 +7,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
  *
  * Solo `import type`: el archivo es client-safe y no arrastra la base al navegador.
  */
-export function etapaTrasActividad(etapa: EtapaDeal, tipo: "contacto"): EtapaDeal {
+export function etapaTrasActividad(etapa: EtapaDeal, tipo: "contacto" | "nota"): EtapaDeal {
   const enGestion = etapa === "potencial" || etapa === "registrado" ? "en_gestion" : etapa;
   return tipo === "contacto" && enGestion === "en_gestion" ? "contactado" : enGestion;
 }

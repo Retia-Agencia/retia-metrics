@@ -140,6 +140,15 @@ export function transicion(de: EtapaDeal, a: EtapaDeal): Transicion | null {
 export function transicionPendiente(etapa: EtapaDeal, pone: PendienteDeal): TransicionPendiente | null {
   return INDICE_PENDIENTE.get(clavePendiente(etapa, pone)) ?? null;
 }
+/** Pendientes que el gesto Anotar puede ofrecer, derivados de las flechas PS*, PC y PR*. */
+export function pendientesParaAnotar(etapa: EtapaDeal, pendienteActual: PendienteDeal | null = null): PendienteDeal[] {
+  return TRANSICIONES_PENDIENTE
+    .filter((t) => t.etapa === etapa
+      && t.pone != null
+      && /^(PS|PC|PR)/.test(t.id)
+      && !(t.id === "PC" && etapa === "agendado" && pendienteActual == null))
+    .map((t) => t.pone as PendienteDeal);
+}
 export function transicionRetomar(etapa: EtapaDeal, pendiente: PendienteDeal | null): TransicionPendiente | null {
   if (pendiente !== "proxima_cohorte") return null;
   return { tipo: "pendiente", id: "RET", etapa, pone: null, quien: "sistema", exigeMotivo: false, tipoDeMotivo: null };

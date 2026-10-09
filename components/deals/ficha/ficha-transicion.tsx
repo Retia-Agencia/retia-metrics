@@ -3,12 +3,13 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
+import type { EtapaDeal } from "@/lib/deals/etapas";
 import { fecha } from "@/lib/format";
 import type { AlertasDelDeal, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { BotonDeEtapa } from "../boton-de-etapa";
-import { gruposDeTransicion, queHace } from "../pregunta-de-etapa";
+import { gruposDeTransicion } from "../pregunta-de-etapa";
 import { useResponder, type DealQueResponde } from "../responder-pregunta";
+import { DialogoAnotar } from "../dialogo-anotar";
 import type { CorreccionCliente, MapaTransiciones } from "../transiciones";
 import type { TonoEtapa } from "../etapa-tono";
 
@@ -19,7 +20,6 @@ export function FichaTransicion({
   correccion,
   ordenDeEtapas,
   nombreDeEtapa,
-  nombreDePendiente,
   tonoDeEtapa,
   rutaDeLaFicha,
   puedeTrabajar,
@@ -31,14 +31,13 @@ export function FichaTransicion({
   correccion: CorreccionCliente | null;
   ordenDeEtapas: readonly EtapaDeal[];
   nombreDeEtapa: Record<EtapaDeal, string>;
-  nombreDePendiente: Record<PendienteDeal, string>;
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
   rutaDeLaFicha: string;
   puedeTrabajar: boolean;
   alertas: AlertasDelDeal | null;
 }) {
   const router = useRouter();
-  const { elegir, registrarActividad, abrirDestino, corregir, dialogo } = useResponder(mapa, opciones, nombreDeEtapa, () => router.refresh());
+  const { abrirDestino, corregir, dialogo } = useResponder(mapa, opciones, nombreDeEtapa, () => router.refresh());
   const deal: DealQueResponde = {
     dealId: ficha.dealId,
     etapa: ficha.etapa,
@@ -49,7 +48,7 @@ export function FichaTransicion({
     linkAgenda: ficha.linkAgenda,
     tieneCitaVigente: ficha.tieneCitaVigente,
   };
-  const { moverA, enEspera, actividades } = gruposDeTransicion(ficha.etapa, ficha.pendiente, ordenDeEtapas);
+  const { moverA } = gruposDeTransicion(ficha.etapa, ficha.pendiente, ordenDeEtapas);
   const etiquetasDestino = moverA.map((grupo) => grupo.destino === "ganado" ? "Ganado · registrar pago" : nombreDeEtapa[grupo.destino]);
   if (ficha.anulado) return null;
 
@@ -86,39 +85,20 @@ export function FichaTransicion({
                 ) : null}
               </div>
             </section>
-            <div className="space-y-5">
-              {actividades.length > 0 ? (
-                <section className="space-y-3">
-                  <div>
-                    <h3 className="text-sm font-medium">Registrar actividad</h3>
-                    <p className="text-xs text-muted-foreground">Cuenta para el aviso de estancado.</p>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <Button type="button" className="w-full" variant="secondary" onClick={() => registrarActividad(deal, actividades)}>
-                      Registrar actividad
-                    </Button>
-                  </div>
-                </section>
-              ) : null}
-              {enEspera.length > 0 ? (
-                <section className="space-y-3">
-                  <div>
-                    <h3 className="text-sm font-medium">Dejar en espera</h3>
-                    <p className="text-xs text-muted-foreground">El deal no cambia de etapa.</p>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {enEspera.map((respuesta) => (
-                      <div key={respuesta.id} className="space-y-1">
-                        <Button type="button" className="w-full" variant="secondary" onClick={() => elegir(deal, respuesta)}>
-                          {respuesta.etiqueta}
-                        </Button>
-                        <p className="text-xs text-muted-foreground">{queHace(ficha.etapa, ficha.pendiente, respuesta, ordenDeEtapas, nombreDeEtapa, nombreDePendiente)}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-            </div>
+            <section className="space-y-3">
+              <div>
+                <h3 className="text-sm font-medium">Anotar</h3>
+                <p className="text-xs text-muted-foreground">Deja un comentario o el próximo paso sin cambiar la etapa.</p>
+              </div>
+              <DialogoAnotar
+                dealId={ficha.dealId}
+                etapa={ficha.etapa}
+                pendienteActual={ficha.pendiente}
+                nombreLead={deal.nombreLead}
+                opciones={opciones}
+                onGuardado={() => router.refresh()}
+              />
+            </section>
           </div>
         ) : null}
         {ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestino?.inicioVentas ? (

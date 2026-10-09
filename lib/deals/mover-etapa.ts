@@ -869,7 +869,7 @@ export async function leerHechos(
   tipoEsperado: TipoMotivo | null,
 ): Promise<HechosDelDeal> {
   const actividades = await tx
-    .select({ tipo: dealActividades.tipo, canal: dealActividades.canal, fecha: dealActividades.fecha })
+    .select({ tipo: dealActividades.tipo, canal: dealActividades.canal, fecha: dealActividades.fecha, userId: dealActividades.userId })
     .from(dealActividades)
     .where(eq(dealActividades.dealId, deal.id))
     .orderBy(desc(dealActividades.fecha));
@@ -906,7 +906,7 @@ export async function leerHechos(
   return {
     cortesia: deal.cortesia,
     tieneDueno: deal.ownerUserId != null,
-    tieneActividadComercial: actividades.some((a) => a.tipo === "contacto" || a.tipo === "intento"),
+    tieneActividadComercial: actividades.some((a) => a.tipo === "contacto" || a.tipo === "intento" || (a.tipo === "nota" && a.userId != null)),
     tieneContactoRegistrado: contacto != null,
     pendienteActual: deal.pendiente,
     // `llamadas` ya viene ordenada de la más reciente a la más vieja.

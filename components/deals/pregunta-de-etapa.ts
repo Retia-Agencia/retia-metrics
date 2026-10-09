@@ -292,13 +292,11 @@ export const TIPOS_DE_ACTIVIDAD: readonly TipoDeActividad[] = ["contacto", "nota
 /**
  * Los tipos de actividad que NO cambian la etapa en esta etapa (ticket 176, decisión 1):
  * son los que ofrece el único botón "Registrar actividad". Contacto cuando mueve
- * (Potencial, Registrado, En gestión) vive en "Mover a" y sale de aquí; una Nota nunca
- * mueve, así que siempre está. La regla la decide `etapaTrasActividad`, no una lista.
+ * (Potencial, Registrado, En gestión) vive en "Mover a" y sale de aquí. La regla la
+ * decide `etapaTrasActividad`, no una lista.
  */
 export function actividadesQueNoMueven(etapa: EtapaDeal): TipoDeActividad[] {
-  return TIPOS_DE_ACTIVIDAD.filter(
-    (tipo) => tipo === "nota" || etapaTrasActividad(etapa, tipo) === etapa,
-  );
+  return TIPOS_DE_ACTIVIDAD.filter((tipo) => etapaTrasActividad(etapa, tipo) === etapa);
 }
 
 export interface GruposDeTransicion {

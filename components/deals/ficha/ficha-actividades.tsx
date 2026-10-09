@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { fechaHoraEnBogota } from "@/lib/format";
+import { fecha, fechaHoraEnBogota } from "@/lib/format";
 import type { FichaDeActividad } from "@/lib/queries/ficha-deal";
 import { Vacio } from "./campos";
 
@@ -14,6 +14,11 @@ import { Vacio } from "./campos";
 type TipoDeActividad = "contacto" | "intento" | "nota";
 
 const ETIQUETA_DE_TIPO: Record<TipoDeActividad, string> = { contacto: "Contacto", intento: "Intento", nota: "Nota" };
+const ETIQUETA_DE_PENDIENTE = {
+  seguimiento: "Seguimiento",
+  proxima_cohorte: "Próxima Cohorte",
+  reagenda: "Re-agenda",
+} as const;
 
 export function FichaActividades({
   actividades,
@@ -45,6 +50,12 @@ export function FichaActividades({
                 </span>
               </div>
               {a.nota ? <p className="whitespace-pre-wrap">{a.nota}</p> : null}
+              {a.pendientePuesto ? (
+                <p className="text-xs text-muted-foreground">
+                  {ETIQUETA_DE_PENDIENTE[a.pendientePuesto]}
+                  {a.proximoContacto ? ` · ${fecha(a.proximoContacto)}` : ""}
+                </p>
+              ) : null}
             </li>
           ))}
         </ul>
