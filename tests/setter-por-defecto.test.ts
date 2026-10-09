@@ -12,6 +12,7 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { ingerirEntradas } from "@/lib/ingesta/ingerir";
 import type { EntradaEnvio } from "@/lib/ingesta/envio";
+import { editarUsuario } from "@/lib/catalogo/usuarios";
 import { marcarSetterPorDefecto } from "@/lib/deals/setter-por-defecto";
 import { reclamarDealsPorSettear } from "@/lib/deals/reclamar";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -48,7 +49,7 @@ function entrada(
   };
 }
 
-async function usuario(email: string, rol: "gerente" | "closer" | "developer" = "closer") {
+async function usuario(email: string, rol: "gerente" | "closer" | "developer" | "customer_success" = "closer") {
   return (await db.insert(users).values({ email, rol }).returning())[0];
 }
 
@@ -139,6 +140,28 @@ describe("setter por defecto al abrir deals del sistema", () => {
     });
     expect(await dealDe("setter-inactivo@lead.test")).toMatchObject({ ownerUserId: null, setterUserId: null });
   });
+
+  it("ignora al setter si su rol cambia a customer success", async () => {
+    const setter = await usuario("setter-cs@retia.test");
+    await db.insert(miembrosPrograma).values({ userId: setter.id, programId, setterPorDefecto: true });
+    await db.update(users).set({ rol: "customer_success" }).where(eq(users.id, setter.id));
+
+    await ingerirEntradas(db, programId, [entrada("setter-cs@lead.test", { calidad: "High" })], {
+      aplicarReglaDeDeals: true,
+    });
+    expect(await dealDe("setter-cs@lead.test")).toMatchObject({ ownerUserId: null, setterUserId: null });
+  });
+
+  it("ignora al setter si su usuario fue desactivado", async () => {
+    const setter = await usuario("setter-usuario-inactivo@retia.test");
+    await db.insert(miembrosPrograma).values({ userId: setter.id, programId, setterPorDefecto: true });
+    await db.update(users).set({ activo: false }).where(eq(users.id, setter.id));
+
+    await ingerirEntradas(db, programId, [entrada("setter-usuario-inactivo@lead.test", { calidad: "High" })], {
+      aplicarReglaDeDeals: true,
+    });
+    expect(await dealDe("setter-usuario-inactivo@lead.test")).toMatchObject({ ownerUserId: null, setterUserId: null });
+  });
 });
 
 describe("marcarSetterPorDefecto", () => {
@@ -194,7 +217,10 @@ describe("Asignarme todos", () => {
     const agendado = await crear(programId, "d@lead.test", "agendado");
     const ajeno = await crear(otroPrograma.id, "e@lead.test", "potencial");
 
-    expect(await reclamarDealsPorSettear(db, { userId: closer.id, rol: "closer" }, programId)).toBe(2);
+    expect(await reclamarDealsPorSettear(db, { userId: closer.id, rol: "closer" }, programId)).toEqual({
+      reclamados: 2,
+      saltados: 0,
+    });
 
     const filas = await db.select({ id: deals.id, ownerUserId: deals.ownerUserId }).from(deals);
     const porId = new Map(filas.map((fila) => [fila.id, fila.ownerUserId]));
@@ -205,5 +231,87 @@ describe("Asignarme todos", () => {
     expect(porId.get(ajeno.id)).toBeNull();
     const rastros = await db.select().from(changeLog).where(eq(changeLog.campo, "ownerUserId"));
     expect(rastros.filter((fila) => fila.userId === closer.id)).toHaveLength(2);
+  });
+
+  it("sin membresía activa responde 403", async () => {
+    const closer = await usuario("sin-membresia@retia.test");
+    await expect(
+      reclamarDealsPorSettear(db, { userId: closer.id, rol: "closer" }, programId),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("salta un deal que otra persona reclama entre la lista y su turno", async () => {
+    const closer = await usuario("reclama-carrera@retia.test");
+    const otro = await usuario("gana-carrera@retia.test");
+    await db.insert(miembrosPrograma).values({ userId: closer.id, programId });
+    const creados = [];
+    for (const correo of ["carrera-a@lead.test", "carrera-b@lead.test"]) {
+      const lead = (await db.insert(leads).values({ programId, emailNormalizado: correo }).returning())[0];
+      creados.push((await db.insert(deals).values({ programId, leadId: lead.id, etapa: "potencial" }).returning())[0]);
+    }
+    const segundo = [...creados].sort((a, b) => a.id.localeCompare(b.id))[1];
+    const dbConCarrera = Object.create(db) as Db;
+    const transaccionOriginal = (db as unknown as {
+      transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T>;
+    }).transaction.bind(db);
+    (dbConCarrera as unknown as {
+      transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T>;
+    }).transaction = <T>(fn: (tx: Db) => Promise<T>) =>
+      transaccionOriginal(async (tx) => {
+        let turno = 0;
+        const txConCarrera = Object.create(tx) as Db;
+        const transaccionAnidada = (tx as unknown as {
+          transaction: <U>(f: (anidada: Db) => Promise<U>) => Promise<U>;
+        }).transaction.bind(tx);
+        (txConCarrera as unknown as {
+          transaction: <U>(f: (anidada: Db) => Promise<U>) => Promise<U>;
+        }).transaction = async <U>(f: (anidada: Db) => Promise<U>) => {
+          turno += 1;
+          if (turno === 2) {
+            await tx.update(deals).set({ ownerUserId: otro.id }).where(eq(deals.id, segundo.id));
+          }
+          return transaccionAnidada(f);
+        };
+        return fn(txConCarrera);
+      });
+
+    await expect(
+      reclamarDealsPorSettear(dbConCarrera, { userId: closer.id, rol: "closer" }, programId),
+    ).resolves.toEqual({ reclamados: 1, saltados: 1 });
+    expect((await db.select().from(deals).where(eq(deals.id, segundo.id)))[0].ownerUserId).toBe(otro.id);
+  });
+});
+
+describe("desactivar la membresía del setter", () => {
+  it("limpia el flag y reactivarla no lo restaura", async () => {
+    const admin = await usuario("admin-membresia@retia.test", "gerente");
+    const setter = await usuario("setter-membresia@retia.test");
+    const [membresia] = await db
+      .insert(miembrosPrograma)
+      .values({ userId: setter.id, programId, setterPorDefecto: true })
+      .returning();
+    const datos = {
+      email: setter.email,
+      nombre: "Setter",
+      rol: "closer" as const,
+    };
+
+    await editarUsuario(db, admin.id, setter.id, { ...datos, programas: [] });
+    expect((await db.select().from(miembrosPrograma).where(eq(miembrosPrograma.id, membresia.id)))[0]).toMatchObject({
+      activo: false,
+      setterPorDefecto: false,
+    });
+    expect(
+      await db.select().from(changeLog).where(and(
+        eq(changeLog.registroId, membresia.id),
+        eq(changeLog.campo, "setterPorDefecto"),
+      )),
+    ).toHaveLength(1);
+
+    await editarUsuario(db, admin.id, setter.id, { ...datos, programas: [programId] });
+    expect((await db.select().from(miembrosPrograma).where(eq(miembrosPrograma.id, membresia.id)))[0]).toMatchObject({
+      activo: true,
+      setterPorDefecto: false,
+    });
   });
 });

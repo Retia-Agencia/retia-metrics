@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/lib/db/tipos";
 import { deals } from "@/lib/db/schema";
@@ -93,7 +93,7 @@ export async function reclamarDealsPorSettear(
   db: Db,
   actor: ActorDeDeal,
   programId: string,
-): Promise<number> {
+): Promise<{ reclamados: number; saltados: number }> {
   if (!trabajaLeads(actor.rol)) {
     throw new ErrorDeApp("Reclamar un deal es de quien trabaja leads, no de quien administra.", 403);
   }
@@ -112,8 +112,22 @@ export async function reclamarDealsPorSettear(
           isNull(deals.ownerUserId),
           vigente(deals),
         ),
-      );
-    for (const fila of filas) await reclamarDeal(tx, actor, { dealId: fila.id });
-    return filas.length;
+      )
+      .orderBy(asc(deals.id));
+    let reclamados = 0;
+    let saltados = 0;
+    for (const fila of filas) {
+      try {
+        await reclamarDeal(tx, actor, { dealId: fila.id });
+        reclamados += 1;
+      } catch (error) {
+        if (error instanceof ErrorDeApp && error.status === 409) {
+          saltados += 1;
+          continue;
+        }
+        throw error;
+      }
+    }
+    return { reclamados, saltados };
   });
 }

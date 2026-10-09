@@ -5,7 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { esViolacionUnica } from "@/lib/db/errores";
-import type { Rol } from "@/lib/auth/roles";
+import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { programaEnAlcance } from "@/lib/auth/alcance";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -104,7 +104,7 @@ export const huellaDeCita = (uuidInvitado: string) => `calendly:${uuidInvitado}`
  */
 export async function closersConCalendly(db: Db, programId: string): Promise<CloserDelPrograma[]> {
   const filas = await db
-    .select({ userId: miembrosPrograma.userId, correoCalendly: miembrosPrograma.calendlyEmail })
+    .select({ userId: miembrosPrograma.userId, correoCalendly: miembrosPrograma.calendlyEmail, rol: users.rol })
     .from(miembrosPrograma)
     .innerJoin(users, eq(users.id, miembrosPrograma.userId))
     .where(
@@ -115,7 +115,9 @@ export async function closersConCalendly(db: Db, programId: string): Promise<Clo
         isNotNull(miembrosPrograma.calendlyEmail),
       ),
     );
-  return filas.map((f) => ({ userId: f.userId, correoCalendly: f.correoCalendly! }));
+  return filas
+    .filter((f) => trabajaLeads(f.rol))
+    .map((f) => ({ userId: f.userId, correoCalendly: f.correoCalendly! }));
 }
 
 /**

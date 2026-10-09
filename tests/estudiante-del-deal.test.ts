@@ -126,6 +126,23 @@ describe("marcarOnboarded", () => {
     const anulado = await nuevoDeal("ganado_parcial", { anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
     expect((await capturar(marcarOnboarded(db, comoCloser(), { dealId: anulado }))).status).toBe(409);
   });
+
+  it("customer success de otro programa no puede marcar el onboarding", async () => {
+    const [customerSuccess] = await db
+      .insert(users)
+      .values({ email: "cs@retiagrowth.com", rol: "customer_success" })
+      .returning();
+    await db.insert(miembrosPrograma).values({ userId: customerSuccess.id, programId });
+    const [otroPrograma] = await db
+      .insert(programs)
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-programa", nombre: "Otro programa", ticketUsd: "1000" })
+      .returning();
+    const dealId = await nuevoDeal("ganado_parcial", {}, otroPrograma.id);
+
+    await expect(
+      marcarOnboarded(db, { userId: customerSuccess.id, rol: "customer_success" }, { dealId }),
+    ).rejects.toMatchObject({ status: 403 });
+  });
 });
 
 describe("desmarcarOnboarded", () => {

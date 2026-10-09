@@ -131,12 +131,11 @@ const esquemaReclamarTodos = z.object({ programId: id("Programa inválido.") });
 /** Reclama todos los deals que siguen sin dueño en Por settear dentro del programa. */
 export async function reclamarTodosPorSettearAccion(
   entrada: z.input<typeof esquemaReclamarTodos>,
-): Promise<ResultadoInbox<{ cantidad: number }>> {
+): Promise<ResultadoInbox<{ reclamados: number; saltados: number }>> {
   return correr(async (ctx) => {
     const { programId } = esquemaReclamarTodos.parse(entrada);
     await exigirProgramaVisible(ctx, programId);
-    const cantidad = await reclamarDealsPorSettear(db, ctx.actor, programId);
-    return { cantidad };
+    return reclamarDealsPorSettear(db, ctx.actor, programId);
   });
 }
 

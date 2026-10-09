@@ -3,6 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { canales, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
+import { trabajaLeads } from "@/lib/auth/roles";
 import type { Traza } from "./emparejar";
 import { destinoDeCaptacion, generarLink } from "./link-de-captacion";
 
@@ -73,13 +74,13 @@ export function traidoPorDeEnvios(
  */
 export async function miembrosActivos(db: Db, programId: string): Promise<string[]> {
   const filas = await db
-    .select({ userId: miembrosPrograma.userId })
+    .select({ userId: miembrosPrograma.userId, rol: users.rol })
     .from(miembrosPrograma)
     .innerJoin(users, eq(users.id, miembrosPrograma.userId))
     .where(
       and(eq(miembrosPrograma.programId, programId), eq(miembrosPrograma.activo, true), eq(users.activo, true)),
     );
-  return filas.map((f) => f.userId);
+  return filas.filter((f) => trabajaLeads(f.rol)).map((f) => f.userId);
 }
 
 const SIN_PRINCIPAL =

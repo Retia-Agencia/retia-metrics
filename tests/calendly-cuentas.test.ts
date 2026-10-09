@@ -119,6 +119,21 @@ describe("vincular la cuenta de una membresia", () => {
     expect(rastros).toHaveLength(0);
   });
 
+  it("rechaza con 422 una membresía de customer success", async () => {
+    await db.update(users).set({ rol: "customer_success" }).where(eq(users.id, maru));
+    await expect(
+      asignarCalendlyDeMembresia(
+        db,
+        admin,
+        { membresiaId: membresiaMaru, calendlyEmail: "maru@calendly.co" },
+        { fetch: calendly(ORGANIZACION) },
+      ),
+    ).rejects.toMatchObject({
+      status: 422,
+      message: "Solo quien trabaja leads puede tener cuenta de Calendly en un programa.",
+    });
+  });
+
   it("guarda una cuenta de la organizacion, con rastro de quien la vinculo", async () => {
     await asignarCalendlyDeMembresia(
       db,

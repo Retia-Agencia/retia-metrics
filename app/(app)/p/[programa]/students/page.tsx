@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { OnboardingCelda } from "@/components/deals/onboarding-celda";
+import { puedeMarcarOnboarding } from "@/lib/deals/permiso";
 import { BarraDeLista } from "@/components/filtros/barra-de-lista";
 import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 
@@ -179,12 +180,17 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                         </td>
                       ) : null}
                       {/* Onboarding: el toggle es la ÚNICA acción del customer success (ticket
-                          145) y se le muestra a todo rol que pasa `marcaOnboarding`; el servidor
-                          decide por deal. No va dentro del Link: tiene sus propios botones. */}
+                          145). La página proyecta por fila el mismo permiso del servidor. No va
+                          dentro del Link: tiene sus propios botones. */}
                       <td className="px-2 py-1.5">
                         <OnboardingCelda
                           dealId={f.dealId}
                           fechaOnboarding={f.onboardedAt ? fecha(fechaDeInstanteEnBogota(f.onboardedAt)) : null}
+                          puedeMarcar={puedeMarcarOnboarding(
+                            { userId: session.user.id, rol },
+                            { ownerUserId: f.ownerUserId },
+                            true,
+                          )}
                         />
                       </td>
                       <td>

@@ -38,12 +38,12 @@ function useAccionInbox() {
 
   function correr<T extends object>(
     accion: () => Promise<ResultadoInbox<T>>,
-    opciones: { exito: string; alExito?: (r: { ok: true } & T) => void },
+    opciones: { exito: string | ((r: { ok: true } & T) => string); alExito?: (r: { ok: true } & T) => void },
   ) {
     iniciar(async () => {
       const r = await accion();
       if (r.ok) {
-        toast.success(opciones.exito);
+        toast.success(typeof opciones.exito === "function" ? opciones.exito(r) : opciones.exito);
         opciones.alExito?.(r);
         router.refresh();
       } else {
@@ -320,7 +320,8 @@ export function InboxPorSettear({
             size="sm"
             disabled={pendiente}
             onClick={() => correr(() => reclamarTodosPorSettearAccion({ programId }), {
-              exito: "Todos los deals quedaron a tu nombre.",
+              exito: ({ reclamados, saltados }) =>
+                `Te asignaste ${reclamados} deals.${saltados > 0 ? ` ${saltados} ya tenían dueño.` : ""}`,
             })}
           >
             {pendiente ? "Asignando…" : "Asignarme todos"}

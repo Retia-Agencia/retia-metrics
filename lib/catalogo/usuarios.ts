@@ -10,7 +10,7 @@ import { ErrorDeCalendly, type FetchLike } from "@/lib/calendly/cita";
 import { asignarLlamadasDelHost } from "@/lib/calendly/rellenar-closer";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { AuthorizationError, esAdministrador, puedeSerMiembro, puedeTocarMembresia, ROLES, type Rol } from "@/lib/auth/roles";
+import { AuthorizationError, esAdministrador, puedeSerMiembro, puedeTocarMembresia, ROLES, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
 /**
@@ -234,7 +234,7 @@ async function sincronizarMembresias(
       escrituras.push((tx) =>
         tx
           .update(miembrosPrograma)
-          .set({ activo: false })
+          .set({ activo: false, setterPorDefecto: false })
           .where(eq(miembrosPrograma.id, actual.id)),
       );
       escrituras.push((tx) =>
@@ -249,6 +249,20 @@ async function sincronizarMembresias(
           userId: actorId,
         }),
       );
+      if (actual.setterPorDefecto) {
+        escrituras.push((tx) =>
+          tx.insert(changeLog).values({
+            tabla: "miembros_programa",
+            registroId: actual.id,
+            etiqueta,
+            campo: "setterPorDefecto",
+            valorAnterior: "true",
+            valorNuevo: "false",
+            origen: "app" as const,
+            userId: actorId,
+          }),
+        );
+      }
     }
   }
 
@@ -567,6 +581,7 @@ export async function asignarCalendlyDeMembresia(
         actual: miembrosPrograma.calendlyEmail,
         programId: miembrosPrograma.programId,
         email: users.email,
+        rol: users.rol,
         token: programs.calendlyToken,
       })
       .from(miembrosPrograma)
@@ -574,6 +589,9 @@ export async function asignarCalendlyDeMembresia(
       .innerJoin(programs, eq(programs.id, miembrosPrograma.programId))
       .where(eq(miembrosPrograma.id, membresiaId));
     if (!m || !m.activo) throw new ErrorDeApp("No existe esa membresía activa.", 404);
+    if (!trabajaLeads(m.rol)) {
+      throw new ErrorDeApp("Solo quien trabaja leads puede tener cuenta de Calendly en un programa.", 422);
+    }
     const [actor] = await db.select().from(users).where(eq(users.id, actorId));
     if (!actor || !actor.activo || !puedeTocarMembresia(actor.rol, actorId, m.userId)) {
       throw new AuthorizationError("Solo puedes cambiar tu propia cuenta de Calendly.");

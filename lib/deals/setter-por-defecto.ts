@@ -15,7 +15,7 @@ export interface ActorSetterPorDefecto {
 /** El setter activo y elegible del programa, o null cuando no hay uno configurado. */
 export async function setterPorDefectoDelPrograma(db: Db, programId: string): Promise<string | null> {
   const [fila] = await db
-    .select({ userId: miembrosPrograma.userId })
+    .select({ userId: miembrosPrograma.userId, rol: users.rol })
     .from(miembrosPrograma)
     .innerJoin(users, eq(users.id, miembrosPrograma.userId))
     .where(
@@ -26,7 +26,7 @@ export async function setterPorDefectoDelPrograma(db: Db, programId: string): Pr
         eq(users.activo, true),
       ),
     );
-  return fila?.userId ?? null;
+  return fila && trabajaLeads(fila.rol) ? fila.userId : null;
 }
 
 /** Configura el único setter por defecto del programa y deja rastro por cada cambio. */
