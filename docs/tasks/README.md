@@ -300,8 +300,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 216 | [Retirar el origen declarado](./216-retirar-el-origen-declarado.md) | · | done (cp-20261009-5) · migración 0074; se perdieron 7 de 389 áreas declaradas |
 | [x] | 217 | [Anotar: el botón, su diálogo y la Transición con dos gestos](./217-anotar.md) | 215 | done (cp-20261009-5) |
 | [x] | 218 | [Más motivos de reagenda, y "Otro" con texto](./218-motivos-de-reagenda.md) | 217 | done (cp-20261009-7) · migración 0075 y 4 motivos cargados |
-| [ ] | 219 | [Mover pide adentro lo que la etapa destino necesita](./219-mover-pide-lo-de-la-etapa.md) | 215, 216, 217 | en curso (Codex) |
-| [ ] | 220 | [El aviso de lo que cambió](./220-aviso-de-lo-que-cambio.md) | 217, 219 | todo |
+| [x] | 219 | [Mover pide adentro lo que la etapa destino necesita](./219-mover-pide-lo-de-la-etapa.md) | 215, 216, 217 | done (cp-20261009-8) |
+| [ ] | 220 | [El aviso de lo que cambió](./220-aviso-de-lo-que-cambio.md) | 217, 219 | en curso: código en main (8e6a236), falta checkpoint y recorrido |
 | [x] | 221 | [Mi espacio en tres pestañas: Info, Notificaciones y Métricas](./221-mi-espacio-en-tres-pestanas.md) | · | done (cp-20261009-4) |
 | [x] | 222 | [Notificaciones: lo que te toca, por tipo, con las tarjetas](./222-notificaciones.md) | 221 | done (cp-20261009-5) |
 | [x] | 223 | [El número sin ver](./223-el-numero-sin-ver.md) | 222 | done (cp-20261009-6) |

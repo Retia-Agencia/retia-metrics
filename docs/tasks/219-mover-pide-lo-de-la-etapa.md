@@ -3,7 +3,7 @@ id: 219
 etapa: O8
 serves: "A-118, A-123; ADR 0081 punto 2"
 depends: [215, 216, 217]
-status: review
+status: done
 ---
 
 # 219 — Mover pide adentro lo que la etapa destino necesita
