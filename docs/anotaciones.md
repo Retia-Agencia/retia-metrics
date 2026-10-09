@@ -381,3 +381,7 @@ reconectar el conector. Las decisiones salen del grill de esa tarde (ADR 0081 y 
 | A-135 | Ajustes → Cohortes | cambio | Mani: se crea una cohorte futura aunque no se sepa cuándo abren ventas o empiezan clases; queda "por definir". Sin cohortes futuras, Próxima cohorte no se puede elegir. | 227 | en ticket |
 | A-136 | Ficha → Transición | cambio | Anotar movía Potencial y Registrado a En gestión aunque dice que no cambia la etapa. Anotar nunca mueve; En gestión entra por Mover a. | 228 | en ticket |
 | A-137 | Llamadas (ficha, Calls, detalle) | cambio | Los closers quieren el botón Resultado (Show, No show, Cancelada, Reagendada) en la llamada misma, además de Anotar: es lo más frecuente. Vuelve el de antes del 219. | — | hecho 9-oct |
+| A-138 | Ficha del deal | usabilidad | Un closer ve la Transición vacía en un deal sin dueño; solo lo puede reclamar desde el Inbox. Debe poder tomarlo desde la ficha. | 229 | en ticket |
+| A-139 | Ficha → Cambiar cohorte | usabilidad | Si no hay otra cohorte vendiendo, el selector sale vacío sin explicar por qué. | 229 | en ticket |
+| A-140 | Diálogo de mover | usabilidad | "Lo estoy trabajando" dice "Este paso no pide datos" debajo del comentario obligatorio. | 229 | en ticket |
+| A-141 | Detalle de la llamada | usabilidad | Tras marcar Show, el detalle sigue mostrando la cita como agendada hasta cerrarlo y reabrirlo. | 229 | en ticket |

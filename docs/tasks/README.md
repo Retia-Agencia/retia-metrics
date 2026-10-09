@@ -310,6 +310,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 226 | [Chip "Sin Grain" en Notificaciones](./226-chip-sin-grain.md) | 222 | done (cp-20261009-10) |
 | [ ] | 227 | [Cohorte por definir, y Cambiar cohorte arriba en la ficha](./227-cohorte-pendiente-y-cambiar-cohorte-arriba.md) | · | todo · migración de la sesión principal |
 | [ ] | 228 | [Anotar nunca mueve; En gestión entra por Mover a](./228-anotar-nunca-mueve.md) | · | todo |
+| [ ] | 229 | [Pulido del recorrido del 227 y el 228](./229-pulido-del-recorrido-227-228.md) | 227, 228 | todo |
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
 
