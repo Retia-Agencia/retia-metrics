@@ -151,6 +151,14 @@ vi.mock("@/lib/queries/vista-deals-contra-agendas", () => ({ vistaDealsContraAge
 const listarCohortes = vi.fn();
 vi.mock("@/lib/catalogo/cohortes", () => ({ listarCohortes }));
 
+// La tab Students (ticket 099) lee la base por estos dos modulos; sin base en los tests se
+// mockean para que la guarda de rol sea lo unico bajo prueba. `totalesDeStudents` es puro
+// (recibe filas), pero se mockea igual para no depender de su forma interna aca.
+const studentsDelPrograma = vi.fn(async () => []);
+vi.mock("@/lib/queries/estudiantes", () => ({ studentsDelPrograma }));
+const totalesDeStudents = vi.fn(() => ({ porMoneda: [], sinValorVendido: 0 }));
+vi.mock("@/lib/queries/estudiantes-totales", () => ({ totalesDeStudents }));
+
 // `/mi-dia` (ticket 003) ofrece solo los catalogos ACTIVOS. Sin base en los tests se
 // mockea `.listar()` de cada catalogo para que la guarda de rol sea lo unico bajo
 // prueba, pero se preservan los demas exports (esquemas zod) que otras paginas
@@ -223,6 +231,7 @@ const sesionGerente = { user: { id: "u-1", email: "gerente@retia.co", rol: "gere
 const sesionCloser = { user: { id: "u-2", email: "closer@retia.co", rol: "closer", closerId: "andrea" } };
 const sesionDeveloper = { user: { id: "u-3", email: "dev@retia.co", rol: "developer", closerId: null } };
 const sesionPaidTrafficker = { user: { id: "u-4", email: "pauta@retia.co", rol: "paid_trafficker", closerId: null } };
+const sesionCustomerSuccess = { user: { id: "u-5", email: "cs@retia.co", rol: "customer_success", closerId: null } };
 
 beforeEach(() => {
   auth.mockReset();
@@ -238,6 +247,10 @@ beforeEach(() => {
   programasVisibles.mockResolvedValue([]);
   listarCohortes.mockReset();
   listarCohortes.mockResolvedValue([]);
+  studentsDelPrograma.mockReset();
+  studentsDelPrograma.mockResolvedValue([]);
+  totalesDeStudents.mockReset();
+  totalesDeStudents.mockReturnValue({ porMoneda: [], sinValorVendido: 0 });
   programasGestionablesPorUsuario.mockReset();
   programasGestionablesPorUsuario.mockResolvedValue([]);
   listarVacio.mockClear();
@@ -1308,5 +1321,72 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     await expect(
       modulo.default({ params: Promise.resolve({ programa: SLUG }), searchParams: Promise.resolve({}) }),
     ).rejects.toBeInstanceOf(Redireccion);
+  });
+});
+
+/**
+ * El customer success (ticket 145) ve SOLO los Students de los programas donde tiene
+ * membresía, y su única acción es el onboarding. Aquí se prueba por el componente real: entra
+ * a Students y las demás tabs/páginas lo rechazan aunque forje la URL. La reja de verdad del
+ * onboarding (quién marca) vive en `lib/deals/estudiante.ts` y se prueba en
+ * `tests/estudiante-del-deal.test.ts`.
+ */
+describe("el customer success solo entra a Students (ticket 145)", () => {
+  const SLUG = "programa-a";
+  const PROGRAMA = { id: "p-1", slug: SLUG, nombre: "Programa A" };
+
+  beforeEach(() => {
+    // Tiene un programa visible: así una página rechazada lo manda a SUS Students (no al login)
+    // y Students renderiza.
+    programaVisiblePorSlug.mockResolvedValue(PROGRAMA);
+    programasVisibles.mockResolvedValue([PROGRAMA]);
+  });
+
+  async function correrStudents(): Promise<"paso" | "notFound" | "login" | "midia"> {
+    const modulo = (await import("@/app/(app)/p/[programa]/students/page")) as {
+      default: (props: { params: Promise<{ programa: string }>; searchParams: Promise<Record<string, string>> }) => Promise<unknown>;
+    };
+    try {
+      await modulo.default({ params: Promise.resolve({ programa: SLUG }), searchParams: Promise.resolve({}) });
+      return "paso";
+    } catch (e) {
+      if (e instanceof NoEncontrado) return "notFound";
+      if (e instanceof Redireccion) return e.destino === "/login" ? "login" : "midia";
+      throw e;
+    }
+  }
+
+  it("entra a Students de un programa donde tiene membresía", async () => {
+    auth.mockResolvedValue(sesionCustomerSuccess);
+    expect(await correrStudents()).toBe("paso");
+    expect(studentsDelPrograma).toHaveBeenCalledWith(expect.anything(), "p-1", expect.anything());
+  });
+
+  it("un programa que no ve (sin membresía) es 404, no una pista de que existe", async () => {
+    auth.mockResolvedValue(sesionCustomerSuccess);
+    programaVisiblePorSlug.mockResolvedValueOnce(null);
+    expect(await correrStudents()).toBe("notFound");
+  });
+
+  it.each([
+    ["Deals", "@/app/(app)/p/[programa]/deals/page"],
+    ["Leads", "@/app/(app)/p/[programa]/leads/page"],
+    ["Inbox", "@/app/(app)/p/[programa]/inbox/page"],
+    ["Dashboard", "@/app/(app)/p/[programa]/dashboard/page"],
+  ])("una tab %s forjada lo redirige fuera (no la ve)", async (_nombre, ruta) => {
+    auth.mockResolvedValue(sesionCustomerSuccess);
+    const modulo = (await import(/* @vite-ignore */ ruta)) as {
+      default: (props: { params: Promise<{ programa: string }>; searchParams: Promise<Record<string, string>> }) => Promise<unknown>;
+    };
+    await expect(
+      modulo.default({ params: Promise.resolve({ programa: SLUG }), searchParams: Promise.resolve({}) }),
+    ).rejects.toBeInstanceOf(Redireccion);
+  });
+
+  it("Ajustes (administración) lo rechaza", async () => {
+    auth.mockResolvedValue(sesionCustomerSuccess);
+    const destino = await destinoDe("@/app/(app)/ajustes/page");
+    expect(destino).not.toBeNull();
+    expect(destino).not.toBe("/ajustes");
   });
 });

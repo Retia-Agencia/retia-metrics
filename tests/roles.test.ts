@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esAdministrador, etiquetaDeRol, manejaPauta, puedeAcceder, esRolValido, puedeTocarMembresia, trabajaLeads, veEquipoComercial } from "@/lib/auth/roles";
+import { esAdministrador, etiquetaDeRol, manejaPauta, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veEquipoComercial } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
@@ -57,12 +57,58 @@ describe("veEquipoComercial (ticket 102)", () => {
   });
 });
 
+describe("marcaOnboarding (ticket 145)", () => {
+  // La sexta pregunta de la familia: quién marca/desmarca el onboarding de un estudiante.
+  // La cumplen customer success, closer, gerente y developer; nadie más.
+  it("la cumplen customer_success, closer, gerente y developer", () => {
+    expect(marcaOnboarding("customer_success")).toBe(true);
+    expect(marcaOnboarding("closer")).toBe(true);
+    expect(marcaOnboarding("gerente")).toBe(true);
+    expect(marcaOnboarding("developer")).toBe(true);
+  });
+
+  it("el paid trafficker no la cumple", () => {
+    expect(marcaOnboarding("paid_trafficker")).toBe(false);
+  });
+
+  it("sin rol no marca onboarding", () => {
+    expect(marcaOnboarding(null)).toBe(false);
+    expect(marcaOnboarding(undefined)).toBe(false);
+  });
+
+  // El customer success marca onboarding pero NO administra ni trabaja leads ni maneja
+  // pauta: es la combinación que lo aísla en nav, en la ruta inicial y en el predicado de
+  // permiso sin escribir el literal del rol (ADR 0025).
+  it("el customer success marca onboarding pero no administra, no trabaja leads ni maneja pauta", () => {
+    expect(esAdministrador("customer_success")).toBe(false);
+    expect(trabajaLeads("customer_success")).toBe(false);
+    expect(manejaPauta("customer_success")).toBe(false);
+  });
+
+  it("el rol customer_success es válido (está en ROLES)", () => {
+    expect(esRolValido("customer_success")).toBe(true);
+  });
+});
+
+describe("puedeSerMiembro (ticket 145)", () => {
+  // Quién admite una membresía de programa: quien trabaja leads y el customer success.
+  it("la cumplen closer, developer y customer_success; el gerente no (administra, no pertenece)", () => {
+    expect(puedeSerMiembro("closer")).toBe(true);
+    expect(puedeSerMiembro("developer")).toBe(true);
+    expect(puedeSerMiembro("customer_success")).toBe(true);
+    expect(puedeSerMiembro("gerente")).toBe(false);
+    expect(puedeSerMiembro("paid_trafficker")).toBe(false);
+    expect(puedeSerMiembro(null)).toBe(false);
+  });
+});
+
 describe("etiquetaDeRol (ticket 177)", () => {
   it("nombra cada rol para la interfaz y los mensajes de permiso", () => {
     expect(etiquetaDeRol("gerente")).toBe("Gerencia comercial");
     expect(etiquetaDeRol("closer")).toBe("Closer");
     expect(etiquetaDeRol("developer")).toBe("Desarrollo");
     expect(etiquetaDeRol("paid_trafficker")).toBe("Paid Trafficker");
+    expect(etiquetaDeRol("customer_success")).toBe("Customer Success");
   });
 });
 
@@ -229,6 +275,24 @@ describe("navegacion por rol", () => {
   it("el paid trafficker aterriza en Mi espacio (ticket 179), ya no en Canales", () => {
     expect(rutaInicial("paid_trafficker", "programa-a")).toBe("/mi-espacio");
     expect(rutaInicial("paid_trafficker", null)).toBe("/mi-espacio");
+  });
+
+  it("el customer success ve SOLO Students del programa elegido (ticket 145): ni otras tabs, ni Mi espacio, ni Ajustes", () => {
+    const rutas = rutasDe("customer_success");
+    expect(rutas).toEqual([`/p/${PROGRAMA}/students`]);
+    expect(rutas).not.toContain("/mi-espacio");
+    expect(rutas).not.toContain("/ajustes");
+    expect(rutas).not.toContain("/recursos");
+    expect(rutas).not.toContain(`/p/${PROGRAMA}/dashboard`);
+    expect(rutas).not.toContain(`/p/${PROGRAMA}/deals`);
+    // Sin programa visible no tiene ninguna tab.
+    expect(rutasDe("customer_success", null)).toEqual([]);
+  });
+
+  it("el customer success aterriza en los Students de su primer programa (ticket 145)", () => {
+    expect(rutaInicial("customer_success", "programa-a")).toBe("/p/programa-a/students");
+    // Sin programa visible (misconfiguración: el rol supone una membresía) cae al login.
+    expect(rutaInicial("customer_success", null)).toBe("/login");
   });
 
   it("el developer aterriza en el Dashboard del primer programa, como el gerente", () => {

@@ -294,6 +294,17 @@ describe("membresias desde la ficha del programa", () => {
       status: 400,
     });
   });
+
+  it("acepta un customer success (puedeSerMiembro, ticket 145)", async () => {
+    const [cs] = await db
+      .insert(users)
+      .values({ email: "cs@retiagrowth.com", rol: "customer_success" })
+      .returning();
+    await expect(agregarMembresia(db, gerenteId, cs.id, programaAId)).resolves.toBeUndefined();
+    const membresias = await membresiasDe(cs.id);
+    expect(membresias).toHaveLength(1);
+    expect(membresias[0].activo).toBe(true);
+  });
 });
 
 describe("proteccion del ultimo administrador", () => {

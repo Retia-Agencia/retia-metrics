@@ -34,6 +34,7 @@ const ETIQUETA_VISTA: Record<Vista, string> = {
   gerente: "Como gerente",
   closer: "Como closer",
   paid_trafficker: "Como paid trafficker",
+  customer_success: "Como Customer Success",
 };
 
 type Props = {

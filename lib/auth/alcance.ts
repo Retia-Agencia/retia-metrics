@@ -46,7 +46,7 @@ export interface ProgramaDeLaFicha extends ProgramaVisible {
  * Los programas ACTIVOS que ve esta sesión, ordenados por nombre.
  *
  * - Administrador (gerente o developer) y paid trafficker (`manejaPauta`): todos los activos.
- * - Closer: solo aquellos donde tiene una membresía activa.
+ * - Closer y customer success: solo aquellos donde tiene una membresía activa.
  *
  * Es la fuente única del selector de programa (ticket 097), de la guarda de toda
  * ruta con programa y de las consultas de lectura que se limitan al alcance.

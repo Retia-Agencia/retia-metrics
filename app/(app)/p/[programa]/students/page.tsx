@@ -38,9 +38,14 @@ function uno(value: string | string[] | undefined): string | undefined {
  * Solo muestra y filtra: el onboarding se marca y la cohorte se cambia en la ficha del deal,
  * donde ya viven esas acciones con su reja (dueño o administrador). El alcance es el de Deals
  * (ADR 0048): un programa fuera del alcance de la sesión es 404.
+ *
+ * El customer success (ticket 145) entra aquí —y SOLO aquí— con las mismas columnas que ve un
+ * closer, en los programas donde tiene membresía activa. Su única acción es marcar/desmarcar el
+ * onboarding (`puedeMarcarOnboarding`), que la reja del servidor concede; las demás acciones de
+ * la ficha del deal le siguen cerradas (la ficha rechaza su rol).
  */
 export default async function StudentsDelProgramaPage({ params, searchParams }: Props) {
-  const session = await paginaConRol("gerente", "closer");
+  const session = await paginaConRol("gerente", "closer", "customer_success");
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);

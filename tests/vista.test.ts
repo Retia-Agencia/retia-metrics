@@ -16,6 +16,7 @@ describe("proyectarRol (ticket 028)", () => {
     expect(proyectarRol("developer", "gerente")).toBe("gerente");
     expect(proyectarRol("developer", "closer")).toBe("closer");
     expect(proyectarRol("developer", "paid_trafficker")).toBe("paid_trafficker");
+    expect(proyectarRol("developer", "customer_success")).toBe("customer_success");
   });
 
   it("un no-developer IGNORA la vista: devuelve su rol real (no ensancha)", () => {
@@ -40,10 +41,12 @@ describe("proyectarRol (ticket 028)", () => {
     expect(proyectarRol("developer", VISTA_POR_DEFECTO)).toBe("developer");
   });
 
-  it("solo 'todo', 'gerente' y 'closer' son vistas validas", () => {
+  it("las vistas del selector son validas; 'developer' no es un valor de la cookie", () => {
     expect(esVistaValida("todo")).toBe(true);
     expect(esVistaValida("gerente")).toBe(true);
     expect(esVistaValida("closer")).toBe(true);
+    expect(esVistaValida("paid_trafficker")).toBe(true);
+    expect(esVistaValida("customer_success")).toBe(true);
     expect(esVistaValida("developer")).toBe(false); // no es un valor de la cookie
     expect(esVistaValida("")).toBe(false);
     expect(esVistaValida(undefined)).toBe(false);

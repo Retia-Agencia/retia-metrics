@@ -10,7 +10,7 @@ import { ErrorDeCalendly, type FetchLike } from "@/lib/calendly/cita";
 import { asignarLlamadasDelHost } from "@/lib/calendly/rellenar-closer";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { AuthorizationError, esAdministrador, puedeTocarMembresia, ROLES, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { AuthorizationError, esAdministrador, puedeSerMiembro, puedeTocarMembresia, ROLES, type Rol } from "@/lib/auth/roles";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
 /**
@@ -416,8 +416,8 @@ export async function agregarMembresia(
     const [usuario] = await db.select().from(users).where(eq(users.id, objetivoId));
     if (!usuario) throw new ErrorDeApp("No existe el usuario.", 404);
     if (!usuario.activo) throw new ErrorDeApp("No se puede agregar un usuario inactivo.", 400);
-    if (!trabajaLeads(usuario.rol)) {
-      throw new ErrorDeApp("Este usuario no trabaja leads y no puede pertenecer al equipo.", 400);
+    if (!puedeSerMiembro(usuario.rol)) {
+      throw new ErrorDeApp("Este usuario no puede pertenecer a un programa.", 400);
     }
     const [programa] = await db.select({ id: programs.id }).from(programs).where(eq(programs.id, programaId));
     if (!programa) throw new ErrorDeApp("No existe el programa.", 404);

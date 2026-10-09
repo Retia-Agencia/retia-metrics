@@ -138,6 +138,36 @@ export function veEquipoComercial(rol: Rol | undefined | null): boolean {
   return esAdministrador(rol) || trabajaLeads(rol);
 }
 
+/**
+ * Quien marca y desmarca el onboarding de un estudiante (ticket 145). Es la SEXTA
+ * pregunta de esta familia, para el rol `customer_success`: ve los Students de sus
+ * programas y su UNICA acción es el onboarding. La cumplen el customer success, el
+ * closer, el gerente y el developer.
+ *
+ * No se confunde con `trabajaLeads`: un customer success no registra llamadas ni
+ * abonos ni es dueño de un deal, así que `trabajaLeads` responde `false` y `esAdministrador`
+ * también. El closer y el gerente la cumplen porque ya marcaban el onboarding desde la
+ * ficha del deal (`puedeTrabajarDeal`), y el developer por ser la excepción de acceso
+ * total (ADR 0025): su excepción sigue viviendo en UN solo lugar por pregunta y nunca
+ * escrita a mano. Nunca se compara `rol === "customer_success"` fuera de aquí.
+ */
+export function marcaOnboarding(rol: Rol | undefined | null): boolean {
+  return rol === "customer_success" || trabajaLeads(rol) || esAdministrador(rol);
+}
+
+/**
+ * Quién puede ser MIEMBRO de un programa (`miembros_programa`): quien trabaja leads (closer y
+ * developer) y el customer success (ticket 145), que ve los Students de los programas donde
+ * tiene membresía. Es una pregunta de CONFIGURACIÓN —quién admite una membresía en
+ * `/ajustes/usuarios`—, distinta de `trabajaLeads` (ser dueño de un deal, registrar, vincular
+ * Calendly), que el customer success NO cumple. Por eso es su propia función y no se mezcla con
+ * `trabajaLeads`. El developer la cumple por `trabajaLeads`; el gerente no (administra, no
+ * pertenece a un programa, ADR 0003). Nunca `rol === "..."` a mano fuera de aquí (ADR 0025).
+ */
+export function puedeSerMiembro(rol: Rol | undefined | null): boolean {
+  return trabajaLeads(rol) || rol === "customer_success";
+}
+
 export function esRolValido(valor: unknown): valor is Rol {
   return typeof valor === "string" && (ROLES as readonly string[]).includes(valor);
 }

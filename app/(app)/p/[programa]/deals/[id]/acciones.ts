@@ -54,8 +54,8 @@ interface Contexto {
   actor: { userId: string; rol: Rol };
 }
 
-async function contextoDe(): Promise<Contexto> {
-  const session = await requireRole("gerente", "closer");
+async function contextoDe(permitidos: readonly Rol[] = ["gerente", "closer"]): Promise<Contexto> {
+  const session = await requireRole(...permitidos);
   const rol = await rolDeVista(session);
   if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
   return { session, actor: { userId: session.user.id, rol } };
@@ -92,11 +92,14 @@ function aError(error: unknown): { ok: false; error: string; dealId?: string } {
 }
 
 /** Corre una accion: contexto de la sesion y traduccion del error. Cada cuerpo valida su entrada Y su alcance. */
-async function correr<T extends object>(cuerpo: (ctx: Contexto) => Promise<T>): Promise<ResultadoFicha<T>> {
+async function correr<T extends object>(
+  cuerpo: (ctx: Contexto) => Promise<T>,
+  permitidos: readonly Rol[] = ["gerente", "closer"],
+): Promise<ResultadoFicha<T>> {
   try {
     // La guarda va DENTRO del try: un 403 (rol, o la reja de solo lectura del "ver como",
     // ticket 172) vuelve como resultado y la pantalla lo muestra, no como excepción.
-    const ctx = await contextoDe();
+    const ctx = await contextoDe(permitidos);
     const extra = await normalizando(() => cuerpo(ctx));
     // El Kanban es otra ruta: su cache de ruta queda vieja (por PATRON, AGENTS.md).
     revalidatePath("/p/[programa]/deals", "page");
@@ -105,6 +108,15 @@ async function correr<T extends object>(cuerpo: (ctx: Contexto) => Promise<T>): 
     return aError(error);
   }
 }
+
+/**
+ * Los roles que entran a las acciones de ONBOARDING (ticket 145): además de gerente y closer,
+ * el customer success. Es acceso a la acción; QUIÉN puede marcar el onboarding de ESTE deal lo
+ * decide `puedeMarcarOnboarding` dentro de `lib/deals/estudiante.ts` (dueño, administrador, o
+ * customer success con membresía activa). El resto de las acciones de la ficha mantiene su
+ * `requireRole("gerente", "closer")` por defecto, así que el customer success no entra a ellas.
+ */
+const ROLES_ONBOARDING: readonly Rol[] = ["gerente", "closer", "customer_success"];
 
 // ───────────────────────────────────────────── esquemas del borde
 
@@ -343,7 +355,7 @@ export async function marcarOnboardedAccion(entrada: EntradaSoloDeal): Promise<R
     await exigirDealVisible(ctx, datos.dealId);
     await marcarOnboarded(db, actor, datos);
     return {};
-  });
+  }, ROLES_ONBOARDING);
 }
 
 export async function marcarCortesiaAccion(entrada: EntradaSoloDeal): Promise<ResultadoFicha> {
@@ -363,7 +375,7 @@ export async function desmarcarOnboardedAccion(entrada: EntradaSoloDeal): Promis
     await exigirDealVisible(ctx, datos.dealId);
     await desmarcarOnboarded(db, actor, datos);
     return {};
-  });
+  }, ROLES_ONBOARDING);
 }
 
 const esquemaCohorte = z.object({ dealId: id("Deal inválido."), cohortId: id("Cohorte inválida."), motivo: z.string() });

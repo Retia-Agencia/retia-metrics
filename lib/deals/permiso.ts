@@ -1,4 +1,4 @@
-import { esAdministrador, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { esAdministrador, marcaOnboarding, trabajaLeads, type Rol } from "@/lib/auth/roles";
 
 /**
  * "¿Este actor puede TRABAJAR este deal?": UNA sola respuesta (ADR 0024, AGENTS.md: si dos
@@ -19,6 +19,35 @@ export interface ActorDeDeal {
 export function puedeTrabajarDeal(actor: ActorDeDeal, deal: { ownerUserId: string | null }): boolean {
   if (esAdministrador(actor.rol)) return true;
   return trabajaLeads(actor.rol) && deal.ownerUserId != null && deal.ownerUserId === actor.userId;
+}
+
+/**
+ * "¿Este actor puede MARCAR o DESMARCAR el onboarding de este estudiante?" (ticket 145):
+ * UNA sola respuesta, separada de `puedeTrabajarDeal` porque el customer success SOLO
+ * puede esto, no trabajar el deal.
+ *
+ * Puede quien ya puede trabajar el deal (dueño o administrador, `puedeTrabajarDeal`), O
+ * quien `marcaOnboarding` sin administrar ni trabajar leads (hoy el `customer_success`)
+ * y tiene una membresía ACTIVA en el programa del deal. La membresía la resuelve el
+ * llamador contra la base (`tieneMembresiaActiva`) y aquí se decide por CAPACIDAD, nunca
+ * con `rol === "customer_success"` a mano (ADR 0025): el closer y el gerente ya pasan por
+ * `puedeTrabajarDeal` con su propia reja (dueño/administrador), y el developer responde
+ * `true` a `marcaOnboarding` por acceso total pero también a `esAdministrador`, así que
+ * entra por la primera rama. La segunda rama queda, por construcción, solo para el rol que
+ * `marcaOnboarding` y NO es ni administrador ni trabaja leads.
+ *
+ * Es solo el PREDICADO: la etapa, el anulado y los demás mensajes los conserva cada
+ * operación de onboarding. Se usa ÚNICAMENTE en las dos funciones de onboarding; el cambio
+ * de cohorte sigue con `puedeTrabajarDeal`.
+ */
+export function puedeMarcarOnboarding(
+  actor: ActorDeDeal,
+  deal: { ownerUserId: string | null },
+  tieneMembresiaActiva: boolean,
+): boolean {
+  if (puedeTrabajarDeal(actor, deal)) return true;
+  if (esAdministrador(actor.rol) || trabajaLeads(actor.rol)) return false;
+  return marcaOnboarding(actor.rol) && tieneMembresiaActiva;
 }
 
 /**
