@@ -79,7 +79,33 @@ export async function renombrarItem(
 ): Promise<FilaCatalogo> {
   const session = await requireRole("gerente");
   const def = catalogoODescartar(slug);
-  return normalizando(() => def.fabrica(db).editar(session.user.id, idValido(id), input));
+  const idComprobado = idValido(id);
+  const catalogo = def.fabrica(db);
+  const actual = (await catalogo.listar()).find((fila) => fila.id === idComprobado);
+  if (!actual) throw new ErrorDeApp("No existe ese elemento del catálogo.", 404);
+  return normalizando(() => catalogo.editar(session.user.id, idComprobado, { ...actual, ...input }));
+}
+
+/** Edita un booleano declarado por el registro y conserva los demás campos de la fila. */
+export async function editarBooleanoItem(
+  db: Db,
+  slug: string,
+  id: string,
+  campo: string,
+  valor: boolean,
+): Promise<FilaCatalogo> {
+  const session = await requireRole("gerente");
+  const def = catalogoODescartar(slug);
+  if (!def.camposBooleanos.some((definicion) => definicion.campo === campo)) {
+    throw new ErrorDeApp("Campo de catálogo desconocido.", 400);
+  }
+  const idComprobado = idValido(id);
+  const catalogo = def.fabrica(db);
+  const actual = (await catalogo.listar()).find((fila) => fila.id === idComprobado);
+  if (!actual) throw new ErrorDeApp("No existe ese elemento del catálogo.", 404);
+  if (typeof actual.nombre !== "string") throw new ErrorDeApp("El elemento del catálogo no tiene nombre.", 500);
+  const entrada: EntradaCatalogo = { ...actual, nombre: actual.nombre, [campo]: valor };
+  return normalizando(() => catalogo.editar(session.user.id, idComprobado, entrada));
 }
 
 /** Desactiva un item (no lo borra). Solo gerente. Valida id (uuid). */

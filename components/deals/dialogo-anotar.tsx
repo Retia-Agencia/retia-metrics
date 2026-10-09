@@ -38,11 +38,16 @@ export function DialogoAnotar({
   const [guardando, setGuardando] = useState(false);
   const ofrecidos = pendientesParaAnotar(etapa, pendienteActual);
   const motivosReagenda = opciones.motivos.filter((m) => m.tipo === "reagenda");
+  const motivoElegido = motivosReagenda.find((m) => m.id === motivoId);
 
   const invalido = ((eleccion === "ninguno" || eleccion === "seguimiento") && comentario.trim() === "")
     || (eleccion === "seguimiento" && !proximoContacto)
     || (eleccion === "proxima_cohorte" && !cohorteDestinoId)
-    || (eleccion === "reagenda" && (!motivoId || (fechaLlamada !== "" && horaLlamada === "")));
+    || (eleccion === "reagenda" && (
+      !motivoId
+      || (motivoElegido?.pideTexto === true && comentario.trim() === "")
+      || (fechaLlamada !== "" && horaLlamada === "")
+    ));
 
   async function guardar() {
     const nuevaLlamada = fechaLlamada ? instanteDeBogota(fechaLlamada, horaLlamada) : null;
@@ -84,11 +89,12 @@ export function DialogoAnotar({
           onCerrar={() => setAbierto(false)}
           confirmar={{ texto: "Guardar anotación", enCurso: "Guardando…", onClick: guardar }}
         >
-          <Campo etiqueta="Comentario">
+          <Campo etiqueta={motivoElegido?.pideTexto ? "Comentario (obligatorio)" : "Comentario"}>
             <textarea
               className={claseTextarea}
               value={comentario}
               maxLength={4000}
+              required={motivoElegido?.pideTexto === true}
               onChange={(e) => setComentario(e.currentTarget.value)}
             />
           </Campo>

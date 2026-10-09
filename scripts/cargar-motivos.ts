@@ -18,7 +18,7 @@ import { actorDelScript } from "./actor";
  *
  * Correrlo en cada base nueva despues de las migraciones: `npm run cargar-motivos`.
  */
-const LISTAS: readonly Required<EntradaMotivo>[] = [
+const LISTAS = [
   // perdida (P, a Cierre Perdido)
   { tipo: "perdida", nombre: "Sin dinero para invertir ahora" }, // FIN-1
   { tipo: "perdida", nombre: "El precio supera lo que esperaba pagar" }, // FIN-2
@@ -39,7 +39,7 @@ const LISTAS: readonly Required<EntradaMotivo>[] = [
   // correccion (corregir el último movimiento, ticket 182, ADR 0078; Mani, 3-oct)
   { tipo: "correccion", nombre: "Me equivoqué de etapa" },
   { tipo: "correccion", nombre: "Lo movió otra persona por error" },
-];
+] as const satisfies readonly EntradaMotivo[];
 
 const SEMILLAS_VIEJAS = [
   "Dinero", "Horario", "Sin fit", "Viaje", "Otro programa",

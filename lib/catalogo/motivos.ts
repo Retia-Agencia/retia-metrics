@@ -19,6 +19,7 @@ import { moldeDeCatalogo } from "./molde";
 export const esquemaMotivo = z.object({
   nombre: z.string().trim().min(1, "El nombre es obligatorio.").max(80, "Maximo 80 caracteres."),
   tipo: z.enum(tipoMotivoEnum.enumValues).default("perdida"),
+  pideTexto: z.boolean().default(false),
 });
 
 /** Entrada validada para crear o editar un motivo (con `tipo` opcional: default `perdida`). */
