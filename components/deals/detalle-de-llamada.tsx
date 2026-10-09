@@ -48,6 +48,11 @@ export function DetalleDeLlamada({
 }) {
   const [detalle, setDetalle] = useState<Detalle | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Un contador que sube con cada resultado exitoso (ticket 229, A-141): entra en las
+  // dependencias del efecto para que éste vuelva a pedir el detalle. `router.refresh()` no
+  // vuelve a correr el efecto, así que sin esto el diálogo seguía mostrando "Agendada" tras
+  // marcar Show hasta cerrarlo y reabrirlo. No hay setState síncrono dentro del efecto.
+  const [recarga, setRecarga] = useState(0);
 
   useEffect(() => {
     let vigente = true;
@@ -57,7 +62,7 @@ export function DetalleDeLlamada({
       else setError(resultado.error);
     });
     return () => { vigente = false; };
-  }, [callId, programaSlug]);
+  }, [callId, programaSlug, recarga]);
 
   // Solo una cita abierta (no anulada) acepta un resultado o un Grain nuevo.
   const puedeActuar = puedeRegistrar && detalle != null && detalle.anuladoEn == null && detalle.dealId != null;
@@ -82,6 +87,7 @@ export function DetalleDeLlamada({
               linkGrain={detalle!.linkGrain}
               resultado={detalle!.resultado}
               motivosReagenda={motivosReagenda}
+              onCambio={() => setRecarga((n) => n + 1)}
             />
           </div>
         ) : null}

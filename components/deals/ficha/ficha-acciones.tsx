@@ -139,6 +139,27 @@ function DialogoCohorte({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opc
   const [motivo, setMotivo] = useState("");
   const destinos = opciones.cohortes.filter((c) => c.id !== ficha.cohorte?.id);
   const esEstudiante = ficha.etapa === "ganado_parcial" || ficha.etapa === "ganado_completo";
+  // Sin otra cohorte a la que mover, no hay selector que mostrar (ticket 229, A-139): un
+  // mensaje dice por qué y no se ofrece Cambiar. El texto depende de qué cohortes cuentan:
+  // para un estudiante, futuras o activas; para un deal normal, las que venden hoy.
+  if (destinos.length === 0) {
+    return (
+      <Dialog open onOpenChange={(v) => !v && onCerrar()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cambiar de cohorte</DialogTitle>
+            <DialogDescription>La venta cuenta donde el estudiante asiste.</DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {esEstudiante ? "No hay otra cohorte activa o futura." : "No hay otra cohorte vendiendo hoy."}
+          </p>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onCerrar}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
   return (
     <DialogoForm
       titulo="Cambiar de cohorte"

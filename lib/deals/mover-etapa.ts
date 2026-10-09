@@ -46,7 +46,7 @@ import {
   type RequisitoFaltante,
 } from "./requisitos";
 import { congelarValorVendido } from "./valor-vendido";
-import { camposDeDueno } from "./cambiar-dueno";
+import { camposDeDueno, reclamarAlMoverPorE1 } from "./cambiar-dueno";
 
 /**
  * `moverEtapa()`: el UNICO camino para cambiar `deals.etapa` (ADR 0037 punto 4,
@@ -1076,7 +1076,7 @@ export async function revisarMovimiento(
   mov: Omit<Movimiento, "a"> & { a: EtapaDeal | "retroceso" },
 ): Promise<RevisionDeMovimiento> {
   const [deal] = await db
-    .select({ etapa: deals.etapa, pendiente: deals.pendiente })
+    .select({ etapa: deals.etapa, pendiente: deals.pendiente, ownerUserId: deals.ownerUserId })
     .from(deals)
     .where(and(eq(deals.id, mov.dealId), incluyendoAnulados(deals)));
   if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
@@ -1102,6 +1102,17 @@ export async function revisarMovimiento(
   let bloqueo: string | null = null;
   try {
     await (db as unknown as Transaccion).transaction(async (tx) => {
+      // Igual que `moverConHecho`: E1 reclama el deal sin dueño antes de mover (ticket 229).
+      // Va dentro del ensayo, que se deshace entero.
+      if (mov.actor.tipo === "usuario") {
+        await reclamarAlMoverPorE1(tx, {
+          idFlecha: t?.id,
+          dealId: mov.dealId,
+          ownerUserId: deal.ownerUserId,
+          actor: mov.actor,
+          etiqueta: mov.dealId,
+        });
+      }
       await moverEtapa(tx, { ...mov, a });
       throw new EnsayoDeshecho();
     });

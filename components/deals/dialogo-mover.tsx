@@ -242,6 +242,9 @@ export function DialogoMover({
     requisitosQueEscribeElHecho.add("dueno");
   }
   const comentarioCompleto = !pideComentario || Boolean(datos.comentario?.trim());
+  // Con el comentario escrito, la actividad que pide E1 ya está (ticket 229): se pinta en verde,
+  // no como "Regístrala en Actividades", porque la escribe este mismo diálogo al confirmar.
+  const cubiertos = new Set<CodigoRequisito>(pideComentario && datos.comentario?.trim() ? ["actividad"] : []);
   const llamadaCompleta = movimiento.hecho === "atendido" && llamada
     ? true
     : movimiento.hecho === "atendido" || movimiento.hecho === "agendado"
@@ -437,7 +440,7 @@ export function DialogoMover({
             </div>
           ))}
 
-          {campos.length === 0 && !movimiento.hecho ? (
+          {campos.length === 0 && !movimiento.hecho && !pideComentario ? (
             <p className="text-sm text-muted-foreground">
               Este paso no pide datos.
             </p>
@@ -455,8 +458,8 @@ export function DialogoMover({
               {" "}<strong>{nombreDeEtapa[movimiento.de]}</strong> a <strong>{nombreDeEtapa[a as EtapaDeal]}</strong>.
             </p>
           ) : null}
-          {!movimiento.hecho ? <ListaDeRequisitos revision={revision} error={errorDeRevision} /> : null}
-          {!movimiento.hecho && revision?.requisitos.some((q) => !q.cumple && DONDE[q.codigo]) ? (
+          {!movimiento.hecho ? <ListaDeRequisitos revision={revision} error={errorDeRevision} cubiertos={cubiertos} /> : null}
+          {!movimiento.hecho && revision?.requisitos.some((q) => !q.cumple && !cubiertos.has(q.codigo) && DONDE[q.codigo]) ? (
             <Link href={rutaDeLaFicha} className="inline-block text-sm text-marca-texto underline-offset-2 hover:underline">
               Abrir la ficha del deal
             </Link>
@@ -481,14 +484,23 @@ export function DialogoMover({
 }
 
 /** Lo que el deal tiene (verde) y le falta (rojo), segun el ensayo del motor. */
-function ListaDeRequisitos({ revision, error }: { revision: Revision | null; error: string | null }) {
+function ListaDeRequisitos({
+  revision,
+  error,
+  cubiertos,
+}: {
+  revision: Revision | null;
+  error: string | null;
+  /** Lo que este mismo diálogo escribe al confirmar (el comentario de "Lo estoy trabajando"): sale en verde. */
+  cubiertos: ReadonlySet<CodigoRequisito>;
+}) {
   if (error) return <p className="text-sm text-tono-peligro">{error}</p>;
   if (!revision) return <p className="text-sm text-muted-foreground">Revisando lo que tiene el deal…</p>;
   if (revision.bloqueo) return <p className="rounded-lg bg-tono-peligro-suave p-3 text-sm text-tono-peligro">{revision.bloqueo}</p>;
   if (revision.requisitos.length === 0) return null;
   return (
     <ul className="space-y-1 border-t pt-3 text-sm">
-      {revision.requisitos.map((q) => (
+      {revision.requisitos.map((q) => ({ ...q, cumple: q.cumple || cubiertos.has(q.codigo) })).map((q) => (
         <li key={q.codigo} className={q.cumple ? "flex gap-2 text-tono-exito" : "flex gap-2 text-tono-peligro"}>
           {q.cumple ? <Check className="mt-0.5 size-4 shrink-0" aria-hidden /> : <X className="mt-0.5 size-4 shrink-0" aria-hidden />}
           <span>

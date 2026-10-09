@@ -16,10 +16,12 @@ import {
   actividadesQueNoMueven,
   cambiaLaEtapa,
   gruposDeTransicion,
+  gruposSinDueno,
   queHace,
   respuestasDe,
   respuestasHacia,
   respuestasPorDestino,
+  RESPUESTAS_SIN_DUENO,
   type PreguntaDeEtapa,
   type Respuesta,
 } from "@/components/deals/pregunta-de-etapa";
@@ -303,5 +305,57 @@ describe("gruposDeTransicion: guardián de 'Mover a' (ticket 176, decisión 1)",
 
   it("en Calificado nada se mueve con una actividad: ambas entran por 'Registrar actividad'", () => {
     expect(actividadesQueNoMueven("calificado")).toEqual(["contacto", "nota"]);
+  });
+});
+
+describe("gruposSinDueno: lo que un closer ofrece sobre un deal sin dueño (ticket 229, A-138)", () => {
+  const idsDe = (grupos: ReturnType<typeof gruposSinDueno>) =>
+    grupos.moverA.flatMap((grupo) => grupo.respuestas.map((r) => r.id)).sort();
+
+  it("sin dueño: en Potencial y Registrado ofrece solo Registrar contacto y 'Lo estoy trabajando'", () => {
+    for (const etapa of ["potencial", "registrado"] as const) {
+      const completos = gruposDeTransicion(etapa, null, ETAPAS);
+      const sinDueno = gruposSinDueno(completos);
+      // Los dos gestos que reclaman el deal solos (más Anotar, que la pantalla pone aparte).
+      expect(idsDe(sinDueno)).toEqual(["contacto", "lo_estoy_trabajando"]);
+      // Nada que pida dueño sobrevive: Descartar y Próxima cohorte estaban en los grupos
+      // completos y aquí no están.
+      const completosIds = completos.moverA.flatMap((grupo) => grupo.respuestas.map((r) => r.id));
+      expect(completosIds).toContain("descartar");
+      expect(idsDe(sinDueno)).not.toContain("descartar");
+      // Sin dueño no hay "Dejar en espera" ni actividades sueltas.
+      expect(sinDueno.enEspera).toEqual([]);
+      expect(sinDueno.actividades).toEqual([]);
+    }
+  });
+
+  it("con dueño: la vista completa es la de siempre (no se filtra nada)", () => {
+    // El contrato de la pantalla: con dueño se usa `gruposDeTransicion` tal cual, y ahí sí
+    // aparecen Descartar y los pendientes. `gruposSinDueno` NO se aplica en ese caso.
+    const completos = gruposDeTransicion("registrado", null, ETAPAS);
+    const ids = completos.moverA.flatMap((grupo) => grupo.respuestas.map((r) => r.id));
+    expect(ids).toContain("contacto");
+    expect(ids).toContain("lo_estoy_trabajando");
+    expect(ids).toContain("descartar");
+  });
+
+  it("en etapas sin ninguno de los dos gestos, no ofrece nada que mover", () => {
+    // Un deal sin dueño en una etapa avanzada no debería ofrecer botones de Mover a: todos
+    // piden dueño. Compromiso Verbal no tiene contacto ni "Lo estoy trabajando".
+    const sinDueno = gruposSinDueno(gruposDeTransicion("compromiso_verbal", null, ETAPAS));
+    expect(sinDueno.moverA).toEqual([]);
+  });
+
+  it("solo whitelist: ningún id fuera de RESPUESTAS_SIN_DUENO pasa el filtro, en ninguna etapa", () => {
+    for (const etapa of ETAPAS) {
+      for (const pendiente of [null, "reagenda"] as const) {
+        const sinDueno = gruposSinDueno(gruposDeTransicion(etapa, pendiente, ETAPAS));
+        for (const grupo of sinDueno.moverA) {
+          for (const respuesta of grupo.respuestas) {
+            expect(RESPUESTAS_SIN_DUENO, `${etapa}/${respuesta.id}`).toContain(respuesta.id);
+          }
+        }
+      }
+    }
   });
 });

@@ -122,6 +122,27 @@ describe("mover y dejar historial", () => {
     expect(await historial(dealId)).toEqual([]);
   });
 
+  it("un closer sobre un deal SIN dueño sigue recibiendo 403 al mover a Cierre perdido (ticket 229)", async () => {
+    // La reja del ticket 229 (A-138) ofrece tres gestos sin dueño en la UI, pero NO afloja el
+    // servidor: cualquier otra flecha sobre un deal sin dueño sigue bloqueada. Cierre perdido
+    // no está entre los tres (contacto, "Lo estoy trabajando", Anotar), así que el motor la
+    // rechaza con 403 antes de tocar la base.
+    const dealId = await nuevoDeal("calificado"); // sin ownerUserId
+
+    const e = await rechazo(
+      moverEtapa(db, { dealId, a: "cierre_perdido", actor: comoCloser(), motivoId: motivoActivo }),
+    );
+
+    expect(e).toBeInstanceOf(MovimientoRechazado);
+    expect(e.status).toBe(403);
+    expect(e.message).toContain("no tiene dueño");
+    // La base no se movió: sigue en Calificado y sin dueño, sin fila de historial.
+    expect(await etapaDe(dealId)).toBe("calificado");
+    expect(await historial(dealId)).toEqual([]);
+    const [fila] = await db.select({ owner: deals.ownerUserId }).from(deals).where(eq(deals.id, dealId));
+    expect(fila.owner).toBeNull();
+  });
+
   it("una flecha que no existe se rechaza con las etapas por su nombre", async () => {
     const dealId = await nuevoDeal("registrado");
     const e = await rechazo(moverEtapa(db, { dealId, a: "ganado_completo", actor: sistema }));

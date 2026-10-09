@@ -310,6 +310,21 @@ export function actividadesQueNoMueven(etapa: EtapaDeal): TipoDeActividad[] {
   return TIPOS_DE_ACTIVIDAD.filter((tipo) => etapaTrasActividad(etapa, tipo) === etapa);
 }
 
+/**
+ * Las respuestas que un closer puede tomar sobre un deal SIN dueño (ticket 229, A-138): los
+ * tres gestos que reclaman el deal solos en el servidor —Registrar contacto
+ * (`registrarActividad`), "Lo estoy trabajando" (E1 por `moverConHecho`) y Anotar (`anotar`)—.
+ * Anotar es un gesto aparte (no una respuesta de la pregunta), así que de la lista de
+ * `moverA` solo sobreviven las respuestas `contacto` y `lo_estoy_trabajando`. Todo lo demás
+ * (Descartar, Corregir, Próxima cohorte, pago, llamadas…) sigue pidiendo dueño: la reja de
+ * verdad la aplica el motor (`quienNoPuede` en `mover-etapa.ts`), esto solo decide QUÉ se
+ * ofrece para no mostrar botones que van a dar 403.
+ *
+ * Vive aquí, junto a `gruposDeTransicion`, y no en la página: es la misma pregunta ("¿qué
+ * gestos se ofrecen sin dueño?") y una sola respuesta.
+ */
+export const RESPUESTAS_SIN_DUENO: readonly string[] = ["contacto", "lo_estoy_trabajando"];
+
 export interface GruposDeTransicion {
   /** Cambian la etapa: un grupo por destino, cada grupo con sus respuestas. */
   moverA: GrupoDeRespuestas[];
@@ -335,4 +350,24 @@ export function gruposDeTransicion(
   // actividades que no mueven; estas últimas se ofrecen por el botón de actividad, no sueltas.
   const enEspera = sinCambio.filter((respuesta) => respuesta.accion.tipo !== "actividad");
   return { moverA: destinos, enEspera, actividades: actividadesQueNoMueven(etapa) };
+}
+
+/**
+ * Los grupos de "Mover a" que se ofrecen sobre un deal SIN dueño (ticket 229, A-138): se
+ * recortan los de `gruposDeTransicion` a las respuestas de `RESPUESTAS_SIN_DUENO`, y un grupo
+ * se conserva solo si le queda alguna respuesta ofrecible. "Dejar en espera" desaparece (todo
+ * pendiente pide dueño) y las actividades también (el único contacto que se ofrece sin dueño
+ * es el que mueve, y ese ya vive en "Mover a"). Anotar lo pone la pantalla aparte.
+ *
+ * Es una función pura sobre los grupos: la reja real sigue en el motor (`quienNoPuede`), esto
+ * solo evita ofrecer un botón que daría 403.
+ */
+export function gruposSinDueno(grupos: GruposDeTransicion): GruposDeTransicion {
+  const moverA = grupos.moverA
+    .map((grupo) => ({
+      ...grupo,
+      respuestas: grupo.respuestas.filter((respuesta) => RESPUESTAS_SIN_DUENO.includes(respuesta.id)),
+    }))
+    .filter((grupo) => grupo.respuestas.length > 0);
+  return { moverA, enEspera: [], actividades: [] };
 }

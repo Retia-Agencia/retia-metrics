@@ -46,6 +46,7 @@ export function AccionesDeLlamada({
   resultado,
   motivosReagenda,
   abrirInicial = null,
+  onCambio,
 }: {
   callId: string;
   /** El deal de la cita: Reagendada agrega una nueva cita sobre él. `null` cuelga esa opción. */
@@ -54,6 +55,12 @@ export function AccionesDeLlamada({
   resultado: string;
   motivosReagenda: OpcionesDeFicha["motivos"];
   abrirInicial?: "resultado" | null;
+  /**
+   * Se llama tras CADA resultado exitoso (Show, fallida, reagendada, Grain), ticket 229 (A-141):
+   * el detalle de la llamada lo usa para volver a pedir sus datos, porque `router.refresh()` no
+   * vuelve a correr el `useEffect` que los cargó. La ficha no lo pasa: ya se refresca sola.
+   */
+  onCambio?: () => void;
 }) {
   const { pendiente, correr } = useAccion();
   const [dialogo, setDialogo] = useState<DialogoLlamada>(abrirInicial);
@@ -65,12 +72,13 @@ export function AccionesDeLlamada({
         r.movioAAtendido
           ? "Marcada como show: el deal pasó a Atendido."
           : "Marcada como show.",
+      alExito: onCambio,
     });
   }
 
   return (
     <div className="space-y-2">
-      {resultado === "show" || linkGrain ? <CampoGrain callId={callId} valor={linkGrain} yaEsShow /> : null}
+      {resultado === "show" || linkGrain ? <CampoGrain callId={callId} valor={linkGrain} yaEsShow onGuardado={onCambio} /> : null}
       {resultado === "agendada" ? (
         <div className="flex flex-wrap items-center gap-2">
           <Button size="xs" variant="outline" disabled={pendiente} onClick={() => setDialogo("resultado")}>Resultado</Button>
@@ -88,10 +96,10 @@ export function AccionesDeLlamada({
         />
       ) : null}
       {dialogo === "no_show" || dialogo === "cancelada" ? (
-        <DialogoFallida callId={callId} resultado={dialogo} motivos={motivosReagenda} onCerrar={() => setDialogo(null)} />
+        <DialogoFallida callId={callId} resultado={dialogo} motivos={motivosReagenda} onCerrar={() => setDialogo(null)} onCambio={onCambio} />
       ) : null}
       {dialogo === "reagendar" ? (
-        <DialogoReagendar callId={callId} onCerrar={() => setDialogo(null)} />
+        <DialogoReagendar callId={callId} onCerrar={() => setDialogo(null)} onCambio={onCambio} />
       ) : null}
     </div>
   );
@@ -145,11 +153,13 @@ function DialogoFallida({
   resultado: resultadoInicial,
   motivos,
   onCerrar,
+  onCambio,
 }: {
   callId: string;
   resultado: "no_show" | "cancelada";
   motivos: OpcionesDeFicha["motivos"];
   onCerrar: () => void;
+  onCambio?: () => void;
 }) {
   const { pendiente, correr } = useAccion();
   const [resultado, setResultado] = useState<"no_show" | "cancelada">(resultadoInicial);
@@ -171,7 +181,7 @@ function DialogoFallida({
         onClick: () =>
           correr(() => marcarFallidaAccion({ callId, resultado, motivoId: motivoId ?? undefined }), {
             exito: "Marcada: el deal quedó con Re-agenda pendiente.",
-            alExito: onCerrar,
+            alExito: () => { onCambio?.(); onCerrar(); },
           }),
       }}
     >
@@ -209,7 +219,7 @@ function DialogoFallida({
   );
 }
 
-function DialogoReagendar({ callId, onCerrar }: { callId: string; onCerrar: () => void }) {
+function DialogoReagendar({ callId, onCerrar, onCambio }: { callId: string; onCerrar: () => void; onCambio?: () => void }) {
   const { pendiente, correr } = useAccion();
   const [dia, setDia] = useState(hoyEnBogota());
   const [hora, setHora] = useState("");
@@ -228,7 +238,7 @@ function DialogoReagendar({ callId, onCerrar }: { callId: string; onCerrar: () =
         onClick: () =>
           correr(() => reagendarLlamadaAccion({ callId, dia, hora, linkCalendly: link, notas }), {
             exito: (r) => (r.movioAAgendado ? "Reagendada: el deal pasó a Agendado." : "Reagendada: la nueva cita quedó agendada."),
-            alExito: onCerrar,
+            alExito: () => { onCambio?.(); onCerrar(); },
           }),
       }}
     >

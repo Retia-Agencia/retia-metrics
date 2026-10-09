@@ -4,8 +4,7 @@ import { calls, dealActividades, deals } from "@/lib/db/schema";
 import { crearConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { ErrorDeApp } from "@/lib/errors";
-import { trabajaLeads } from "@/lib/auth/roles";
-import { cambiarDuenoDeal } from "./cambiar-dueno";
+import { reclamarAlMoverPorE1 } from "./cambiar-dueno";
 import { agregarLlamada, marcarShow, pegarGrain } from "./llamadas";
 import { registrarAbono, type DatosRegistrarAbono } from "./abonos";
 import { dealBloqueadoConLead } from "./leer-deal";
@@ -92,15 +91,13 @@ export async function moverConHecho(
       if (!entrada.comentario?.trim()) {
         throw new ErrorDeApp("Escribe qué hiciste con el lead.", 400);
       }
-      if (inicial.ownerUserId == null && trabajaLeads(actor.rol)) {
-        await cambiarDuenoDeal(tx, {
-          dealId: inicial.id,
-          ownerActual: null,
-          ownerNuevo: actor.userId,
-          actorId: actor.userId,
-          etiqueta: emailLead,
-        });
-      }
+      await reclamarAlMoverPorE1(tx, {
+        idFlecha: resuelta.transicion.id,
+        dealId: inicial.id,
+        ownerUserId: inicial.ownerUserId,
+        actor,
+        etiqueta: emailLead,
+      });
     }
 
     // Un comentario suelto (ticket 228, "Lo estoy trabajando") se guarda como nota ANTES de

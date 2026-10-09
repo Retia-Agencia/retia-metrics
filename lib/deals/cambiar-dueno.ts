@@ -3,6 +3,7 @@ import { deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { editarConRastro } from "@/lib/crm/rastro";
 import { vigente } from "@/lib/queries/vigente";
+import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 
 /**
  * El contrato único del dueño y su señal de novedad (ticket 201). Históricos no llaman
@@ -69,4 +70,31 @@ export async function marcarDealVisto(
     entrada.dealId,
     { ownerNovedadEn: null },
   );
+}
+
+/**
+ * "Lo estoy trabajando" (E1, tickets 228 y 229) es el gesto con el que un closer toma un lead
+ * que casi siempre llega sin dueño: como Anotar y registrar un contacto, el deal queda a su
+ * nombre antes de mover. Lo llaman `moverConHecho` (la acción real) y `revisarMovimiento`
+ * (el ensayo del diálogo), para que la vista previa no diga "no tiene dueño" cuando la
+ * acción sí lo va a tomar. No hace nada fuera de E1, con dueño, o si el actor no trabaja leads.
+ */
+export async function reclamarAlMoverPorE1(
+  db: Db,
+  entrada: {
+    idFlecha: string | null | undefined;
+    dealId: string;
+    ownerUserId: string | null;
+    actor: { userId: string; rol: Rol };
+    etiqueta: string;
+  },
+): Promise<void> {
+  if (entrada.idFlecha !== "E1" || entrada.ownerUserId != null || !trabajaLeads(entrada.actor.rol)) return;
+  await cambiarDuenoDeal(db, {
+    dealId: entrada.dealId,
+    ownerActual: null,
+    ownerNuevo: entrada.actor.userId,
+    actorId: entrada.actor.userId,
+    etiqueta: entrada.etiqueta,
+  });
 }

@@ -7,7 +7,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { fecha } from "@/lib/format";
 import type { AlertasDelDeal, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { BotonDeEtapa } from "../boton-de-etapa";
-import { gruposDeTransicion, type ClaveDestino } from "../pregunta-de-etapa";
+import { gruposDeTransicion, gruposSinDueno, type ClaveDestino } from "../pregunta-de-etapa";
 import {
   DESCRIPCION_DE_CORREGIR,
   DESCRIPCION_DE_DESTINO,
@@ -33,6 +33,7 @@ export function FichaTransicion({
   tonoDeEtapa,
   rutaDeLaFicha,
   puedeTrabajar,
+  sinDueno = false,
   alertas,
 }: {
   ficha: FichaDeDeal;
@@ -44,6 +45,14 @@ export function FichaTransicion({
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
   rutaDeLaFicha: string;
   puedeTrabajar: boolean;
+  /**
+   * El deal no tiene dueño y la sesión trabaja leads (ticket 229, A-138): la Transición
+   * ofrece solo los tres gestos que reclaman el deal solos en el servidor —Registrar
+   * contacto, "Lo estoy trabajando" y Anotar— con un aviso de que queda a su nombre. No
+   * se cruza con `puedeTrabajar`: cuando este es true (dueño o administra), manda la vista
+   * completa de siempre.
+   */
+  sinDueno?: boolean;
   alertas: AlertasDelDeal | null;
 }) {
   const router = useRouter();
@@ -68,9 +77,14 @@ export function FichaTransicion({
         notas: llamada.notas,
       }))[0] ?? null,
   };
-  const { moverA } = gruposDeTransicion(ficha.etapa, ficha.pendiente, ordenDeEtapas);
+  // Con dueño (o administrando) se ofrece todo; sin dueño, solo los tres gestos que reclaman
+  // el deal solos (ticket 229). `gruposSinDueno` recorta "Mover a" a esas respuestas.
+  const gruposCompletos = gruposDeTransicion(ficha.etapa, ficha.pendiente, ordenDeEtapas);
+  const { moverA } = puedeTrabajar ? gruposCompletos : gruposSinDueno(gruposCompletos);
   const etiquetasDestino = moverA.map((grupo) => grupo.destino === "ganado" ? "Ganado · registrar pago" : nombreDeEtapa[grupo.destino]);
   if (ficha.anulado) return null;
+  // Ni dueño/administrador, ni un closer que pueda tomarlo: la tarjeta no se muestra.
+  if (!puedeTrabajar && !sinDueno) return null;
 
   return (
     <Card className="border-l-4 border-tono-exito">
@@ -82,7 +96,12 @@ export function FichaTransicion({
           </p>
         ) : null}
         {alertas?.aviso ? <p className="text-sm text-muted-foreground">{alertas.aviso}</p> : null}
-        {puedeTrabajar ? (
+        {!puedeTrabajar && sinDueno ? (
+          <p className="rounded-lg bg-tono-info-suave p-3 text-sm text-tono-info">
+            Este deal no tiene dueño. Si lo trabajas, queda a tu nombre.
+          </p>
+        ) : null}
+        {puedeTrabajar || sinDueno ? (
           <div className="grid gap-6 md:grid-cols-2">
             <section className="space-y-3">
               <div>
@@ -102,7 +121,8 @@ export function FichaTransicion({
                     </div>
                   );
                 })}
-                {correccion ? (
+                {/* Corregir pide dueño (es administrar o del propio dueño): nunca sin dueño. */}
+                {puedeTrabajar && correccion ? (
                   <div className="space-y-1">
                     <Button type="button" className="w-full" variant="destructive" onClick={() => corregir(deal, correccion)}>
                       Corregir

@@ -16,9 +16,9 @@ import { useAccion } from "./uso-accion";
  */
 export const CampoGrain = forwardRef<
   HTMLInputElement,
-  { callId: string; valor: string | null; yaEsShow?: boolean }
+  { callId: string; valor: string | null; yaEsShow?: boolean; onGuardado?: () => void }
 >(
-  function CampoGrain({ callId, valor, yaEsShow = false }, ref) {
+  function CampoGrain({ callId, valor, yaEsShow = false, onGuardado }, ref) {
     const { pendiente, correr } = useAccion();
     const [link, setLink] = useState(valor ?? "");
     const guardado = useRef((valor ?? "").trim());
@@ -29,6 +29,8 @@ export const CampoGrain = forwardRef<
       guardado.current = limpio;
       correr(() => pegarGrainAccion({ callId, linkGrain: limpio }), {
         exito: (r) => (r.movioAAtendido ? "Grain guardado: el deal pasó a Atendido." : "Grain guardado."),
+        // Avisa al detalle de la llamada para que vuelva a pedir sus datos (ticket 229, A-141).
+        alExito: onGuardado,
       });
     }
 
