@@ -3,7 +3,7 @@ id: 225
 etapa: O8
 serves: "A-129"
 depends: []
-status: review
+status: done
 ---
 
 # 225 — Deals filtra por fecha de llamada y de próximo contacto
