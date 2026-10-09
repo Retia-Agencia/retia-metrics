@@ -3,7 +3,7 @@ id: 226
 etapa: O8
 serves: "A-126; decisión de Mani del 9-oct"
 depends: [222]
-status: review
+status: done
 ---
 
 # 226 — Chip "Sin Grain" en Notificaciones

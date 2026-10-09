@@ -1,6 +1,6 @@
-import { and, asc, eq, inArray, isNotNull, notInArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { calls, dealActividades, deals, leadContactos, leads, miembrosPrograma, users } from "@/lib/db/schema";
+import { calls, dealActividades, deals, leadContactos, leads, miembrosPrograma, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
@@ -28,6 +28,7 @@ import {
   closerHost,
   emparejarLlamada,
   type CloserDelPrograma,
+  type DealAbierto,
   type LeadCandidato,
   type MotivoSuelta,
 } from "./emparejar-llamada";
@@ -193,7 +194,12 @@ export async function registrarLlamadaDeCalendly(
             ),
           )
       : [];
-    const decision = emparejarLlamada(cita, candidatos, closers, dealPorCodigo ?? null);
+    const decision = emparejarLlamada(
+      cita,
+      candidatos,
+      closers,
+      dealPorCodigo ?? (await dealDelEnvioConLaCita(tx, programId, cita.uuidInvitado)),
+    );
 
     const valores = {
       programId,
@@ -231,6 +237,33 @@ export async function registrarLlamadaDeCalendly(
     });
     return { tipo: "colgada", callId, dealId: deal.id, ...efecto };
   });
+}
+
+/**
+ * El deal abierto del envío del formulario que trae ESTA cita en su link de agenda
+ * (`.../invitees/<uuid>`). Es prueba exacta, como el código del deal: el invitado pudo
+ * escribir en Calendly otro correo que en el formulario (9-oct, una cita quedó suelta así).
+ * Si el uuid aparece en envíos de más de un deal abierto, hay duda y no decide nada.
+ */
+async function dealDelEnvioConLaCita(
+  db: Db,
+  programId: string,
+  uuidInvitado: string,
+): Promise<(DealAbierto & { leadId: string }) | null> {
+  const patron = `%/invitees/${uuidInvitado.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  const filas = await db
+    .selectDistinct({ dealId: deals.id, leadId: deals.leadId, ownerUserId: deals.ownerUserId })
+    .from(submissions)
+    .innerJoin(sources, and(eq(sources.id, submissions.sourceId), eq(sources.programId, programId)))
+    .innerJoin(deals, and(eq(deals.leadId, submissions.leadId), eq(deals.programId, programId)))
+    .where(
+      and(
+        sql`${submissions.respuestas}::text like ${patron}`,
+        notInArray(deals.etapa, ["ganado_completo", "cierre_perdido"]),
+        vigente(deals),
+      ),
+    );
+  return filas.length === 1 ? filas[0] : null;
 }
 
 async function llamadaPorHuella(db: Db, programId: string, uuidInvitado: string): Promise<string | null> {
