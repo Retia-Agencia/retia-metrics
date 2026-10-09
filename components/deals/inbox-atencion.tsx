@@ -101,8 +101,6 @@ function porQue(fila: FilaAtencion): string {
     }
     case "reenvio_sin_atender":
       return "Volvió a llenar el formulario después de tu última actividad: contáctalo.";
-    case "intentos_agotados":
-      return `Agotó intentos: ${fila.intentos ?? 3} sin respuesta en esta etapa. Decide: Cierre perdido con motivo o sigue intentando.`;
     case "link_sin_cita":
       return "Mandaste el link de agenda y el lead no ha agendado.";
     case "proximo_contacto_vencido":

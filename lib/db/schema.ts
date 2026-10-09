@@ -83,10 +83,10 @@ export const tipoContactoEnum = pgEnum("tipo_contacto", ["correo", "telefono"]);
 
 /**
  * Que clase de actividad quedo registrada sobre un deal (ADR 0037, ADR 0071). Es tipo
- * porque el codigo decide con el: un `contacto` (logrado) con fecha mueve a Contactado;
- * un `intento` (fallido) se cuenta para la alerta de los tres intentos (128). Los dos
- * son actividad comercial y sacan a Potencial o Registrado hacia En gestion. Una `nota`
- * no mueve nada. `intento` va al final porque Postgres agrega los valores al final.
+ * porque el codigo decide con el: un `contacto` (logrado) con fecha mueve a Contactado
+ * y una `nota` no mueve nada. Las filas `intento` anteriores al ticket 215 son solo
+ * historia: nadie escribe ese valor desde entonces. El valor permanece porque Postgres
+ * no permite quitarlo del enum sin reescribirlo.
  */
 export const tipoActividadEnum = pgEnum("tipo_actividad", ["contacto", "nota", "intento"]);
 

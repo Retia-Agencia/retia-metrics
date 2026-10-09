@@ -20,7 +20,7 @@ export type AccionDeRespuesta =
   /** El retroceso de Compromiso Verbal: el destino lo calcula el motor del historial. */
   | { tipo: "retroceder"; destinos: readonly EtapaDeal[] }
   /** Registrar una actividad: `registrarActividad` mueve el deal (ADR 0071 puntos 1 y 2). */
-  | { tipo: "actividad"; actividad: "contacto" | "intento" }
+  | { tipo: "actividad"; actividad: "contacto" }
   /** A ganado solo se entra con plata (ADR 0037). */
   | { tipo: "abono" }
   /** Los formularios de llamada: una cita con fecha mueve, una fallida pone Re-agenda. */
@@ -57,30 +57,20 @@ const registrarContacto: Respuesta = {
   etiqueta: "Registrar contacto",
   accion: { tipo: "actividad", actividad: "contacto" },
 };
-const registrarIntento: Respuesta = {
-  id: "intento",
-  etiqueta: "Registrar intento",
-  accion: { tipo: "actividad", actividad: "intento" },
-};
 const pago = (etiqueta: string): Respuesta => ({ id: "abono", etiqueta, accion: { tipo: "abono" } });
 
 export const PREGUNTA_DE_ETAPA: Readonly<Record<EtapaDeal, PreguntaDeEtapa>> = {
   potencial: {
     pregunta: null,
-    respuestas: [registrarContacto, registrarIntento, proximaCohorte("potencial"), descartar()],
+    respuestas: [registrarContacto, proximaCohorte("potencial"), descartar()],
   },
   registrado: {
     pregunta: null,
-    respuestas: [registrarContacto, registrarIntento, proximaCohorte("registrado"), descartar()],
+    respuestas: [registrarContacto, proximaCohorte("registrado"), descartar()],
   },
   en_gestion: {
     pregunta: "¿Se logró el contacto?",
-    respuestas: [
-      { ...registrarContacto, etiqueta: "Sí" },
-      { ...registrarIntento, etiqueta: "No, fue un intento" },
-      proximaCohorte("en_gestion"),
-      descartar(),
-    ],
+    respuestas: [{ ...registrarContacto, etiqueta: "Sí" }, proximaCohorte("en_gestion"), descartar()],
   },
   contactado: {
     pregunta: "¿Califica?",
@@ -174,9 +164,7 @@ export function llevaA(accion: AccionDeRespuesta, etapa: EtapaDeal, columna: Eta
     case "abono":
       return columna === "ganado_parcial" || columna === "ganado_completo";
     case "actividad":
-      return accion.actividad === "contacto"
-        ? columna === "en_gestion" || columna === "contactado"
-        : columna === "en_gestion" && etapa !== "en_gestion";
+      return columna === "en_gestion" || columna === "contactado";
     case "llamada":
       return accion.uso === "agendar" && columna === "agendado";
   }
@@ -189,7 +177,7 @@ export interface GrupoDeRespuestas {
   respuestas: Respuesta[];
 }
 
-type AccionDescriptible = Respuesta | "contacto" | "intento" | "nota";
+type AccionDescriptible = Respuesta | "contacto" | "nota";
 
 /** Explica una accion con la misma regla de destino que agrupa los botones de Transicion. */
 export function queHace(
@@ -203,9 +191,7 @@ export function queHace(
   const respuesta = typeof accionOId === "string" ? null : accionOId;
   const accion = respuesta?.accion;
   const id = typeof accionOId === "string" ? accionOId : accionOId.id;
-  const actividad = id === "contacto" || id === "intento"
-    ? id
-    : accion?.tipo === "actividad" ? accion.actividad : null;
+  const actividad = id === "contacto" ? id : accion?.tipo === "actividad" ? accion.actividad : null;
   const registro = id === "nota"
     ? "Una nota en el historial."
     : id === "descartar"
@@ -222,9 +208,7 @@ export function queHace(
                 : "Queda para re-agendar."
             : actividad === "contacto"
               ? "Hablaste con el lead."
-              : actividad === "intento"
-                ? "Lo intentaste y no hubo respuesta."
-                : null;
+              : null;
   const con = (consecuencia: string) => (registro ? `${registro} ${consecuencia}` : consecuencia);
   const pasaA = (destino: EtapaDeal | undefined) =>
     destino && destino !== etapa ? con(`El deal pasa a ${nombreDeEtapa[destino]}.`) : con("No cambia la etapa.");
@@ -301,14 +285,14 @@ export function cambiaLaEtapa(etapa: EtapaDeal, accion: AccionDeRespuesta): bool
   }
 }
 
-export type TipoDeActividad = "contacto" | "intento" | "nota";
+export type TipoDeActividad = "contacto" | "nota";
 
-export const TIPOS_DE_ACTIVIDAD: readonly TipoDeActividad[] = ["contacto", "intento", "nota"];
+export const TIPOS_DE_ACTIVIDAD: readonly TipoDeActividad[] = ["contacto", "nota"];
 
 /**
  * Los tipos de actividad que NO cambian la etapa en esta etapa (ticket 176, decisión 1):
- * son los que ofrece el único botón "Registrar actividad". Contacto e Intento que mueven
- * (Potencial, Registrado, En gestión) viven en "Mover a" y salen de aquí; una Nota nunca
+ * son los que ofrece el único botón "Registrar actividad". Contacto cuando mueve
+ * (Potencial, Registrado, En gestión) vive en "Mover a" y sale de aquí; una Nota nunca
  * mueve, así que siempre está. La regla la decide `etapaTrasActividad`, no una lista.
  */
 export function actividadesQueNoMueven(etapa: EtapaDeal): TipoDeActividad[] {

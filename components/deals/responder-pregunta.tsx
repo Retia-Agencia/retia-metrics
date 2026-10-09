@@ -46,19 +46,16 @@ export interface OpcionesDeRespuesta {
 
 const TITULO_DE_ACTIVIDAD: Record<TipoDeActividad, string> = {
   contacto: "Registrar contacto",
-  intento: "Registrar intento",
   nota: "Nota",
 };
 
 const ETIQUETA_DE_ACTIVIDAD: Record<TipoDeActividad, string> = {
   contacto: "Contacto",
-  intento: "Intento",
   nota: "Nota",
 };
 
 const EXITO_DE_ACTIVIDAD: Record<TipoDeActividad, string> = {
   contacto: "Contacto registrado.",
-  intento: "Intento registrado.",
   nota: "Nota guardada.",
 };
 
@@ -119,7 +116,7 @@ export function useResponder(
     setActividadAbierta({ deal, tipos, tipo: tipos[0] });
   }
 
-  /** Un tipo fijo (cuando "Mover a" dispara un contacto o un intento que mueve la etapa). */
+  /** Un tipo fijo (cuando "Mover a" dispara un contacto que mueve la etapa). */
   function registrar(deal: DealQueResponde, tipo: TipoDeActividad) {
     abrirActividad(deal, [tipo]);
   }
@@ -197,9 +194,7 @@ export function useResponder(
   const ayudaActividad = actividadAbierta
     ? actividadAbierta.tipo === "contacto" && ["potencial", "registrado", "en_gestion"].includes(actividadAbierta.deal.etapa)
       ? `El deal pasa a ${nombreDeEtapa.contactado}.`
-      : actividadAbierta.tipo === "intento" && ["potencial", "registrado"].includes(actividadAbierta.deal.etapa)
-        ? `El deal pasa a ${nombreDeEtapa.en_gestion}.`
-        : "No cambia la etapa; cuenta para los tres intentos y para el aviso de estancado."
+      : "No cambia la etapa; cuenta para el aviso de estancado."
     : undefined;
 
   let dialogo: ReactNode = actividadAbierta ? (

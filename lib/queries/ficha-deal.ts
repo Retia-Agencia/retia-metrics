@@ -242,7 +242,6 @@ const MENSAJE_ALERTA: Record<MotivoAlertaDeal, string> = {
   compromiso_vencido: "El compromiso verbal se venció.",
   pago_vencido: "La fecha de pago se venció y queda saldo.",
   reenvio_sin_atender: "El lead volvió a llenar el formulario.",
-  intentos_agotados: "Agotó intentos: tres sin respuesta en esta etapa. Decide: Cierre perdido con motivo o sigue intentando.",
   link_sin_cita: "Mandaste el link de agenda y el lead no ha agendado.",
   estancado: "El deal lleva días sin actividad.",
   llamada_sin_resultado: "La llamada ya pasó y no tiene resultado.",
@@ -252,7 +251,6 @@ const MENSAJE_ALERTA: Record<MotivoAlertaDeal, string> = {
 
 const NIVEL_DE_ALERTA: Record<MotivoAlertaDeal, "urgente" | "alerta"> = {
   llamada_sin_resultado: "urgente",
-  intentos_agotados: "urgente",
   abono_sin_comprobante: "urgente",
   link_sin_cita: "urgente",
   compromiso_vencido: "urgente",
@@ -336,9 +334,7 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
       ? `La fecha de pago (${fecha(fila.fecha)}) se venció y queda saldo.`
       : fila.motivo === "estancado" && fila.diasSinActividad != null
         ? `El deal lleva ${fila.diasSinActividad} días hábiles sin actividad.`
-        : fila.motivo === "intentos_agotados" && fila.intentos != null
-          ? `Agotó intentos: ${fila.intentos} sin respuesta en esta etapa. Decide: Cierre perdido con motivo o sigue intentando.`
-          : MENSAJE_ALERTA[fila.motivo];
+        : MENSAJE_ALERTA[fila.motivo];
     encontradas.set(fila.motivo, mensaje);
   }
   if (inbox.llamadasDeHoy.some((fila) => fila.dealId === dealId)) {

@@ -177,8 +177,8 @@ describe("respuestasHacia: soltar en una columna del Kanban (ADR 0072 punto 2)",
     }
   });
 
-  it("desde Registrado, soltar en En gestión deja escoger entre contacto e intento", () => {
-    expect(ids(respuestasHacia("registrado", null, "en_gestion"))).toEqual(["contacto", "intento"]);
+  it("desde Registrado, soltar en En gestión ofrece solo el contacto (215 quitó el intento)", () => {
+    expect(ids(respuestasHacia("registrado", null, "en_gestion"))).toEqual(["contacto"]);
     expect(ids(respuestasHacia("en_gestion", null, "en_gestion"))).toEqual([]);
   });
 
@@ -204,25 +204,22 @@ describe("respuestasPorDestino: Transición (ADR 0075)", () => {
         }
       }
     }
-    for (const accion of ["contacto", "intento", "nota"] as const) {
+    for (const accion of ["contacto", "nota"] as const) {
       expect(queHace("atendido", null, accion, ETAPAS, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE)).not.toBe("");
     }
   });
 
-  it("Contacto e Intento dicen lo que hace el motor, en toda etapa (A-52)", () => {
+  it("Contacto dice lo que hace el motor, en toda etapa (A-52)", () => {
     for (const etapa of ETAPAS) {
-      for (const tipo of ["contacto", "intento"] as const) {
-        const texto = queHace(etapa, null, tipo, ETAPAS, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE);
-        const destino = etapaTrasActividad(etapa, tipo);
-        expect(texto, `${etapa}/${tipo}`).toContain(
-          destino === etapa ? "No cambia la etapa." : `El deal pasa a ${NOMBRE_DE_ETAPA[destino]}.`,
-        );
-      }
+      const texto = queHace(etapa, null, "contacto", ETAPAS, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE);
+      const destino = etapaTrasActividad(etapa, "contacto");
+      expect(texto, etapa).toContain(
+        destino === etapa ? "No cambia la etapa." : `El deal pasa a ${NOMBRE_DE_ETAPA[destino]}.`,
+      );
     }
-    const texto = (etapa: EtapaDeal, tipo: "contacto" | "intento" | "nota") =>
+    const texto = (etapa: EtapaDeal, tipo: "contacto" | "nota") =>
       queHace(etapa, null, tipo, ETAPAS, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE);
     expect(texto("potencial", "contacto")).toBe("Hablaste con el lead. El deal pasa a Contactado.");
-    expect(texto("registrado", "intento")).toBe("Lo intentaste y no hubo respuesta. El deal pasa a En gestión.");
     expect(texto("calificado", "contacto")).toBe("Hablaste con el lead. No cambia la etapa.");
     expect(texto("calificado", "nota")).toBe("Una nota en el historial. No cambia la etapa.");
   });
@@ -235,12 +232,11 @@ describe("respuestasPorDestino: Transición (ADR 0075)", () => {
 });
 
 describe("etapaTrasActividad: la regla de registrarActividad", () => {
-  it("contacto lleva a Contactado y el intento a En gestión, solo desde las etapas de entrada", () => {
+  it("contacto lleva a Contactado desde las etapas de entrada y En gestión", () => {
     for (const etapa of ETAPAS) {
       const entrada = etapa === "potencial" || etapa === "registrado";
       expect(etapaTrasActividad(etapa, "contacto"), etapa)
         .toBe(entrada || etapa === "en_gestion" ? "contactado" : etapa);
-      expect(etapaTrasActividad(etapa, "intento"), etapa).toBe(entrada ? "en_gestion" : etapa);
     }
   });
 
@@ -295,16 +291,15 @@ describe("gruposDeTransicion: guardián de 'Mover a' (ticket 176, decisión 1)",
     }
   });
 
-  it("en Potencial, Contacto e Intento son destinos de Mover a y no quedan como actividad", () => {
+  it("en Potencial, Contacto es destino de Mover a y no queda como actividad", () => {
     const { moverA, actividades } = gruposDeTransicion("potencial", null, ETAPAS);
     const destinos = moverA.map((grupo) => grupo.destino);
     expect(destinos).toContain("contactado");
-    expect(destinos).toContain("en_gestion");
     // Lo único que no mueve en Potencial es la Nota.
     expect(actividades).toEqual(["nota"]);
   });
 
-  it("en Calificado nada se mueve con una actividad: las tres entran por 'Registrar actividad'", () => {
-    expect(actividadesQueNoMueven("calificado")).toEqual(["contacto", "intento", "nota"]);
+  it("en Calificado nada se mueve con una actividad: ambas entran por 'Registrar actividad'", () => {
+    expect(actividadesQueNoMueven("calificado")).toEqual(["contacto", "nota"]);
   });
 });
