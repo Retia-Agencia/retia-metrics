@@ -14,6 +14,8 @@ import {
   LEADS_POR_PAGINA,
   leadsDelPrograma,
   posiblesDuplicadosDelPrograma,
+  preguntasDisponiblesDelPrograma,
+  respuestasDelUltimoEnvio,
   type FiltroLeads,
 } from "@/lib/queries/leads";
 import { fecha, fechaDeInstanteEnBogota, hoyEnBogota, num } from "@/lib/format";
@@ -27,10 +29,10 @@ import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas } from "@/components/layout/pestanas";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PosiblesDuplicados } from "@/components/leads/posibles-duplicados";
 import { BuscadorDeLeads } from "@/components/leads/buscador-de-leads";
+import { ListaLeads, type FilaLeadVista } from "@/components/leads/lista-leads";
 
 export const dynamic = "force-dynamic";
 
@@ -98,13 +100,18 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   };
   // El closer ve solo los duplicados de SUS deals (186); quien administra, los del programa.
   const administra = esAdministrador(rol);
-  const [{ total, filas }, duplicados] = await Promise.all([
+  const [{ total, filas }, duplicados, preguntasFormulario] = await Promise.all([
     leadsDelPrograma(db, programa.id, filtro),
     posiblesDuplicadosDelPrograma(db, programa.id, {
       duenoUserId: administra ? undefined : session.user.id,
       pagina: paginaDup,
     }),
+    preguntasDisponiblesDelPrograma(db, programa.id),
   ]);
+  // Las respuestas del último envío, SOLO para los leads de esta página (ticket 209).
+  const respuestasPorLead = Object.fromEntries(
+    await respuestasDelUltimoEnvio(db, programa.id, filas.map((f) => f.id)),
+  );
 
   const paginas = Math.max(1, Math.ceil(total / LEADS_POR_PAGINA));
   const paginasDup = Math.max(1, Math.ceil(duplicados.total / DUPLICADOS_POR_PAGINA));
@@ -125,6 +132,26 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   const conPagina = (p: number) => {
     return urlCon({ pagina: p > 0 ? String(p) : null });
   };
+  // Las filas, ya resueltas para la isla cliente (ticket 209): el nombre de etapa y las fechas se
+  // formatean aquí porque `NOMBRE_DE_ETAPA` vive en un módulo que carga `lib/db` y no puede entrar
+  // al bundle del cliente (AGENTS.md).
+  const filasVista: FilaLeadVista[] = filas.map((f) => ({
+    id: f.id,
+    href: enlaceConVuelta(`/p/${programa.slug}/leads/${f.id}`, origen),
+    nombre: f.nombre,
+    email: f.email,
+    telefono: f.telefono,
+    leadQuality: f.leadQuality,
+    leadValue: f.leadValue,
+    tieneDeal: f.tieneDeal,
+    soloParciales: f.soloParciales,
+    correosSinConfirmar: f.correosSinConfirmar,
+    etapaNombre: f.etapa ? NOMBRE_DE_ETAPA[f.etapa] : null,
+    canal: f.canal,
+    fechaTexto: f.fechaUltimaAplicacion ? fecha(fechaDeInstanteEnBogota(f.fechaUltimaAplicacion)) : null,
+    aplicacionesTexto: num(f.numAplicaciones),
+    numAplicaciones: f.numAplicaciones,
+  }));
   // Los filtros declarados de Leads (ticket 202): el Deal va a la vista; Calidad,
   // Abandonó y Posible duplicado al popover "Filtros · n". La fecha es un compuesto
   // (campo + periodo) que la barra ubica a la vista. Los nombres de los parámetros NO
@@ -230,79 +257,14 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
           <Card className="flex min-h-0 flex-1 flex-col">
             <CardContent className="flex min-h-0 flex-1 flex-col">
               <div className={clasesDeZonaConScroll("overflow-x-auto")}>
-                {filas.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No hay leads con estos filtros.</p>
-                ) : vista === "tarjetas" ? (
-                  <ul className="divide-y divide-border">
-                {filas.map((f) => (
-                  <li key={f.id} className="relative flex flex-wrap items-start justify-between gap-2 rounded-md px-2 py-3 text-sm hover:bg-muted/50">
-                    <div className="min-w-0 space-y-1">
-                      <Link
-                        href={enlaceConVuelta(`/p/${programa.slug}/leads/${f.id}`, origen)}
-                        className="block truncate font-medium text-marca-texto underline-offset-2 outline-none after:absolute after:inset-0 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
-                      >
-                        {f.nombre ?? f.email}
-                      </Link>
-                      {f.nombre ? <p className="truncate text-xs text-muted-foreground">{f.email}</p> : null}
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {f.leadQuality ? (
-                          <Badge variant="neutro">{f.leadQuality}</Badge>
-                        ) : (
-                          <Badge variant="alerta" className="relative z-10" title="El formulario no mandó lead_quality: su deal entró en Registrado o Potencial.">
-                            Sin calidad
-                          </Badge>
-                        )}
-                        {f.tieneDeal ? <Badge variant="info">Con deal</Badge> : null}
-                        {f.soloParciales ? <Badge variant="alerta">Abandonó el formulario</Badge> : null}
-                        {f.correosSinConfirmar > 0 ? <Badge variant="alerta">Posible duplicado</Badge> : null}
-                        {f.leadValue ? <Badge variant="secondary">{f.leadValue}</Badge> : null}
-                      </div>
-                    </div>
-                    <div className="text-right text-xs text-muted-foreground">
-                      {f.fechaUltimaAplicacion ? <p>{fecha(fechaDeInstanteEnBogota(f.fechaUltimaAplicacion))}</p> : null}
-                      <p>
-                        <span className="cifra">{num(f.numAplicaciones)}</span> {f.numAplicaciones === 1 ? "aplicación" : "aplicaciones"}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-                  </ul>
-                ) : (
-                  <table className="min-w-[56rem] w-full border-collapse whitespace-nowrap text-sm">
-                  <thead className="sticky top-0 bg-card text-left text-xs text-muted-foreground">
-                    <tr className="border-b">
-                      <th className="px-2 py-1.5 font-medium">Nombre</th>
-                      <th className="px-2 py-1.5 font-medium">Correo</th>
-                      <th className="px-2 py-1.5 font-medium">Teléfono</th>
-                      <th className="px-2 py-1.5 font-medium">Calidad</th>
-                      <th className="px-2 py-1.5 font-medium">Etapa del deal</th>
-                      <th className="px-2 py-1.5 font-medium">Canal</th>
-                      <th className="px-2 py-1.5 font-medium">Último envío</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filas.map((f) => {
-                      const href = enlaceConVuelta(`/p/${programa.slug}/leads/${f.id}`, origen);
-                      const clase = "block px-2 py-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
-                      return (
-                        <tr key={f.id} className="cursor-pointer border-b hover:bg-muted/50">
-                          <td><Link href={href} className={`${clase} font-medium text-marca-texto`}>{f.nombre ?? f.email}</Link></td>
-                          <td><Link href={href} tabIndex={-1} className={clase}>{f.email}</Link></td>
-                          <td><Link href={href} tabIndex={-1} className={`${clase} cifra`}>{f.telefono ?? "—"}</Link></td>
-                          <td><Link href={href} tabIndex={-1} className={clase}>{f.leadQuality ?? "Sin calidad"}</Link></td>
-                          <td><Link href={href} tabIndex={-1} className={clase}>{f.etapa ? NOMBRE_DE_ETAPA[f.etapa] : "Sin deal"}</Link></td>
-                          <td><Link href={href} tabIndex={-1} className={clase}>{f.canal ?? "Sin UTM"}</Link></td>
-                          <td>
-                            <Link href={href} tabIndex={-1} className={`${clase} cifra`}>
-                              {f.fechaUltimaAplicacion ? fecha(fechaDeInstanteEnBogota(f.fechaUltimaAplicacion)) : "—"}
-                            </Link>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  </table>
-                )}
+                <ListaLeads
+                  vista={vista}
+                  filas={filasVista}
+                  preguntas={preguntasFormulario}
+                  respuestasPorLead={respuestasPorLead}
+                  userId={session.user.id}
+                  programId={programa.id}
+                />
               </div>
               {paginas > 1 ? (
                 <nav className="flex shrink-0 items-center justify-between pt-3 text-sm" aria-label="Páginas">

@@ -231,6 +231,95 @@ export async function leadsDelPrograma(
   };
 }
 
+/**
+ * El techo de envíos que se miran para armar la lista de preguntas disponibles del programa
+ * (ticket 209). No es el universo de preguntas de siempre, sino las que aparecen en los envíos
+ * recientes: con N=500 basta para cubrir el formulario vigente sin recorrer el historial entero.
+ * ponytail: si un formulario cambia sus preguntas y las viejas dejan de verse, subir N o mirar
+ * por fuente, no quitar el techo (el historial de un programa activo crece sin fin).
+ */
+export const ENVIOS_PARA_PREGUNTAS = 500;
+
+/** Pasa un valor crudo de `respuestas` a texto, o `null` si no dice nada (misma regla que la ficha). */
+function textoDeRespuesta(valor: unknown): string | null {
+  if (valor === null || valor === "") return null;
+  if (typeof valor === "string") return valor;
+  if (typeof valor === "number" || typeof valor === "boolean") return String(valor);
+  if (Array.isArray(valor)) {
+    const partes = valor.map(textoDeRespuesta).filter((x): x is string => x !== null);
+    return partes.length > 0 ? partes.join(", ") : null;
+  }
+  if (typeof valor === "object") return JSON.stringify(valor);
+  return String(valor);
+}
+
+/** Las llaves de respuesta de un envío que son preguntas de verdad (sin las UTM promovidas). */
+function preguntasDeRespuestas(respuestas: unknown): [string, unknown][] {
+  if (respuestas === null || typeof respuestas !== "object" || Array.isArray(respuestas)) return [];
+  return Object.entries(respuestas as Record<string, unknown>).filter(
+    ([llave]) => !llave.trim().toLowerCase().startsWith("utm_"),
+  );
+}
+
+/**
+ * Las preguntas que el setter puede pedir como columnas extra en la lista de Leads (ticket 209):
+ * las llaves distintas de `respuestas` que aparecen en los últimos `ENVIOS_PARA_PREGUNTAS` envíos
+ * del programa. NUNCA se escribe un título de pregunta en el código (guardián de
+ * `tests/ingesta-estado.test.ts`): salen de los datos. El programa es frontera (ADR 0043): solo
+ * los envíos de leads de ESTE programa. Las UTM se omiten (ya tienen su propia columna, "Canal").
+ */
+export async function preguntasDisponiblesDelPrograma(db: Db, programId: string): Promise<string[]> {
+  const envios = await db
+    .select({ respuestas: submissions.respuestas })
+    .from(submissions)
+    .innerJoin(leads, eq(leads.id, submissions.leadId))
+    .where(eq(leads.programId, programId))
+    .orderBy(sql`${submissions.fechaEnvio} desc nulls last`, desc(submissions.createdAt))
+    .limit(ENVIOS_PARA_PREGUNTAS);
+  const llaves = new Set<string>();
+  for (const envio of envios) {
+    for (const [llave] of preguntasDeRespuestas(envio.respuestas)) llaves.add(llave);
+  }
+  return [...llaves].sort((a, b) => a.localeCompare(b, "es"));
+}
+
+/**
+ * Las respuestas del ÚLTIMO envío de cada lead pedido (ticket 209), para pintar las columnas extra
+ * de la lista. Solo para los leads de la página en curso (`leadIds`): una consulta agrupada por
+ * lote, sin subconsulta correlacionada dentro de una plantilla `sql` (se agrupa en memoria, que a
+ * esta escala es gratis). El "último" se decide igual que el Canal de la lista: `fechaEnvio` y, en
+ * empate, `createdAt`. El programa es frontera (ADR 0043): un envío cuyo lead es de otro programa
+ * NO entra, aunque alguien pase un id ajeno. Las UTM se omiten (ya salen como "Canal").
+ *
+ * Devuelve, por lead, el mapa `pregunta -> texto` del último envío. Una pregunta que el envío no
+ * trajo (o que vino vacía) simplemente no está en el mapa.
+ */
+export async function respuestasDelUltimoEnvio(
+  db: Db,
+  programId: string,
+  leadIds: string[],
+): Promise<Map<string, Record<string, string>>> {
+  const resultado = new Map<string, Record<string, string>>();
+  if (leadIds.length === 0) return resultado;
+  const envios = await db
+    .select({ leadId: submissions.leadId, respuestas: submissions.respuestas })
+    .from(submissions)
+    .innerJoin(leads, eq(leads.id, submissions.leadId))
+    .where(and(eq(leads.programId, programId), inArray(submissions.leadId, leadIds)))
+    .orderBy(sql`${submissions.fechaEnvio} desc nulls last`, desc(submissions.createdAt));
+  // Gana el primero de cada lead: la consulta ya los trae del más nuevo al más viejo.
+  for (const envio of envios) {
+    if (!envio.leadId || resultado.has(envio.leadId)) continue;
+    const porPregunta: Record<string, string> = {};
+    for (const [llave, valor] of preguntasDeRespuestas(envio.respuestas)) {
+      const texto = textoDeRespuesta(valor);
+      if (texto !== null) porPregunta[llave] = texto;
+    }
+    resultado.set(envio.leadId, porPregunta);
+  }
+  return resultado;
+}
+
 /** Un correo que entró por teléfono y nadie confirmó: la lista de "posibles duplicados" (072). */
 export interface PosibleDuplicado {
   contactoId: string;
