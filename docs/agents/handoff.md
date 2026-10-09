@@ -42,8 +42,11 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
   - CI de `011a284` rojo por dos causas (mocks de Leads del 209 y el guardián del alcance: el CS ahora pregunta
     con `programaEnAlcance`; `setter-por-defecto.ts` entra a sus excepciones como identidad), arreglado en `4acc0d8`.
   - Recorrido local de las cuatro hecho (anotaciones, recorrido 14): A-112 y A-113 arregladas; A-114 a A-117 abiertas.
-  - Pendiente: crear los usuarios CS de Dani Rincón (TI) y Juanjo (CA) con su
-    membresía, configurar el setter por defecto (Jero) en los dos programas, el checkpoint y el cadenero.
+  - **Con el ok de Mani, en producción:** Jero (Jerónimo) es setter por defecto de ComunicArte y Tactical, y los 79
+    deals abiertos sin dueño de esos dos programas pasaron a él (CA 48, TI 31; todos Registrado o Calificado), por
+    `marcarSetterPorDefecto` y `editarDeal` con Mani como actor: 79 filas `ownerUserId` y 2 `setterPorDefecto` en
+    `change_log`. Comunícate con Confianza quedó fuera a propósito (13 sin dueño). Script desechable, borrado.
+  - Pendiente: crear los usuarios CS de Dani Rincón (TI) y Juanjo (CA) cuando Mani lo pida, el checkpoint y el cadenero.
   - 🔑 La contraseña de la base quedó impresa en la sesión por un filtro mal escrito: rotarla en Supabase y
     actualizar `.env.local` y Vercel.
 
