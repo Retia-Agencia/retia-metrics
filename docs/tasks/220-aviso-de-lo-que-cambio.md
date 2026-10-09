@@ -3,7 +3,7 @@ id: 220
 etapa: O8
 serves: "A-124; ADR 0081 punto 8"
 depends: [217, 219]
-status: review
+status: done
 ---
 
 # 220 — El aviso de lo que cambió
