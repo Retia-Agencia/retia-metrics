@@ -7,11 +7,21 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { fecha } from "@/lib/format";
 import type { AlertasDelDeal, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { BotonDeEtapa } from "../boton-de-etapa";
-import { gruposDeTransicion } from "../pregunta-de-etapa";
+import { gruposDeTransicion, type ClaveDestino } from "../pregunta-de-etapa";
+import {
+  DESCRIPCION_DE_CORREGIR,
+  DESCRIPCION_DE_DESTINO,
+  type DestinoConDescripcion,
+} from "../descripcion-de-destino";
 import { useResponder, type DealQueResponde } from "../responder-pregunta";
 import { DialogoAnotar } from "../dialogo-anotar";
 import type { CorreccionCliente, MapaTransiciones } from "../transiciones";
 import type { TonoEtapa } from "../etapa-tono";
+
+/** El destino de un botón siempre tiene descripción (nunca es una etapa de pago cruda). */
+function tieneDescripcion(destino: ClaveDestino): destino is DestinoConDescripcion {
+  return destino in DESCRIPCION_DE_DESTINO;
+}
 
 export function FichaTransicion({
   ficha,
@@ -82,16 +92,23 @@ export function FichaTransicion({
               <div className="grid gap-2 sm:grid-cols-2">
                 {moverA.map((grupo, i) => {
                   const etapaVisual = grupo.destino === "ganado" ? "ganado_completo" : grupo.destino;
+                  const descripcion = tieneDescripcion(grupo.destino) ? DESCRIPCION_DE_DESTINO[grupo.destino] : null;
                   return (
-                    <BotonDeEtapa key={grupo.destino} tono={tonoDeEtapa[etapaVisual]} onClick={() => abrirDestino(deal, grupo.destino, grupo.respuestas)}>
-                      {etiquetasDestino[i]}
-                    </BotonDeEtapa>
+                    <div key={grupo.destino} className="space-y-1">
+                      <BotonDeEtapa tono={tonoDeEtapa[etapaVisual]} onClick={() => abrirDestino(deal, grupo.destino, grupo.respuestas)}>
+                        {etiquetasDestino[i]}
+                      </BotonDeEtapa>
+                      {descripcion ? <p className="text-xs text-muted-foreground">{descripcion}</p> : null}
+                    </div>
                   );
                 })}
                 {correccion ? (
-                  <Button type="button" className="w-full" variant="destructive" onClick={() => corregir(deal, correccion)}>
-                    Corregir
-                  </Button>
+                  <div className="space-y-1">
+                    <Button type="button" className="w-full" variant="destructive" onClick={() => corregir(deal, correccion)}>
+                      Corregir
+                    </Button>
+                    <p className="text-xs text-muted-foreground">{DESCRIPCION_DE_CORREGIR}</p>
+                  </div>
                 ) : null}
               </div>
             </section>
