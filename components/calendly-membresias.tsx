@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { CuentaDeCalendly, CuentasDelPrograma } from "@/lib/calendly/cuentas";
 import type { EntradaCalendlyDeMembresia, MembresiaConCalendly } from "@/lib/catalogo/usuarios";
+import { trabajaLeads } from "@/lib/auth/roles";
 
 /**
  * La cuenta de Calendly de cada closer, por programa. La usan `/ajustes/usuarios` y
@@ -19,6 +21,70 @@ import type { EntradaCalendlyDeMembresia, MembresiaConCalendly } from "@/lib/cat
  */
 
 const SIN_CUENTA = "";
+const SIN_SETTER = "ninguno";
+
+export function SetterPorDefecto({
+  programId,
+  membresias,
+  accion,
+}: {
+  programId: string;
+  membresias: MembresiaConCalendly[];
+  accion: (input: { programId: string; userId: string | null }) => Promise<{ ok: true } | { ok: false; error: string }>;
+}) {
+  const router = useRouter();
+  const [pendiente, startTransition] = useTransition();
+  const actual = membresias.find((m) => m.setterPorDefecto)?.userId ?? SIN_SETTER;
+  const [valor, setValor] = useState(actual);
+  const elegibles = membresias.filter((m) => trabajaLeads(m.rol));
+
+  function guardar(nuevo: string | null) {
+    if (!nuevo) return;
+    const anterior = valor;
+    setValor(nuevo);
+    startTransition(async () => {
+      const resultado = await accion({ programId, userId: nuevo === SIN_SETTER ? null : nuevo });
+      if (!resultado.ok) {
+        setValor(anterior);
+        toast.error("No se pudo guardar", { description: resultado.error });
+        return;
+      }
+      toast.success("Setter por defecto guardado");
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border border-border p-3">
+      <div>
+        <p className="text-sm font-medium">Setter por defecto</p>
+        <p className="text-xs text-muted-foreground">Recibe los deals nuevos que llegan sin agenda.</p>
+      </div>
+      <span className="flex items-center gap-2">
+        {valor === SIN_SETTER ? <Badge variant="neutro">Ninguno</Badge> : <Badge variant="info">Activo</Badge>}
+        <Select
+          value={valor}
+          items={[
+            { value: SIN_SETTER, label: "Ninguno" },
+            ...elegibles.map((m) => ({ value: m.userId, label: m.usuario })),
+          ]}
+          onValueChange={guardar}
+          disabled={pendiente}
+        >
+          <SelectTrigger className="w-56" aria-label="Setter por defecto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={SIN_SETTER}>Ninguno</SelectItem>
+            {elegibles.map((m) => (
+              <SelectItem key={m.userId} value={m.userId}>{m.usuario}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </span>
+    </div>
+  );
+}
 
 export function CalendlyMembresias({
   membresias,

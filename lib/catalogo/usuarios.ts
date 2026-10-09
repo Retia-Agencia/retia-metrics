@@ -10,7 +10,7 @@ import { ErrorDeCalendly, type FetchLike } from "@/lib/calendly/cita";
 import { asignarLlamadasDelHost } from "@/lib/calendly/rellenar-closer";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { AuthorizationError, esAdministrador, puedeTocarMembresia, ROLES, trabajaLeads } from "@/lib/auth/roles";
+import { AuthorizationError, esAdministrador, puedeTocarMembresia, ROLES, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
 /**
@@ -651,6 +651,8 @@ export interface MembresiaConCalendly {
   emailUsuario: string;
   programId: string;
   calendlyEmail: string | null;
+  rol: Rol;
+  setterPorDefecto: boolean;
 }
 
 /**
@@ -691,6 +693,8 @@ async function consultarMembresiasConCalendly(
       email: users.email,
       programId: miembrosPrograma.programId,
       calendlyEmail: miembrosPrograma.calendlyEmail,
+      rol: users.rol,
+      setterPorDefecto: miembrosPrograma.setterPorDefecto,
     })
     .from(miembrosPrograma)
     .innerJoin(users, eq(users.id, miembrosPrograma.userId))
@@ -703,6 +707,8 @@ async function consultarMembresiasConCalendly(
       emailUsuario: f.email,
       programId: f.programId,
       calendlyEmail: f.calendlyEmail,
+      rol: f.rol,
+      setterPorDefecto: f.setterPorDefecto,
     }))
     .sort((a, b) => a.usuario.localeCompare(b.usuario, "es"));
 }

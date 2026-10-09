@@ -1,5 +1,7 @@
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/lib/db/tipos";
+import { deals } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { trabajaLeads } from "@/lib/auth/roles";
@@ -7,6 +9,8 @@ import { dealBloqueadoConLead } from "./leer-deal";
 import { esDuenoPosible } from "./duenos";
 import type { ActorDeDeal } from "./permiso";
 import { cambiarDuenoDeal } from "./cambiar-dueno";
+import { ETAPAS_DE_SETTEO } from "./etapas";
+import { vigente } from "@/lib/queries/vigente";
 
 /**
  * Reclamar un deal SIN dueño (ticket 070): el closer que ve el lead primero lo toma. Es el
@@ -81,5 +85,35 @@ export async function reclamarDeal(db: Db, actor: ActorDeDeal, datos: DatosRecla
         etiqueta: emailLead,
       });
     });
+  });
+}
+
+/** Reclama, de forma atómica, todos los deals que hoy aparecen en Por settear. */
+export async function reclamarDealsPorSettear(
+  db: Db,
+  actor: ActorDeDeal,
+  programId: string,
+): Promise<number> {
+  if (!trabajaLeads(actor.rol)) {
+    throw new ErrorDeApp("Reclamar un deal es de quien trabaja leads, no de quien administra.", 403);
+  }
+  if (!(await esDuenoPosible(db, programId, actor.userId))) {
+    throw new ErrorDeApp("Para reclamar deals tienes que tener membresía activa en su programa.", 403);
+  }
+
+  return (db as unknown as Transaccion).transaction(async (tx) => {
+    const filas = await tx
+      .select({ id: deals.id })
+      .from(deals)
+      .where(
+        and(
+          eq(deals.programId, programId),
+          inArray(deals.etapa, [...ETAPAS_DE_SETTEO]),
+          isNull(deals.ownerUserId),
+          vigente(deals),
+        ),
+      );
+    for (const fila of filas) await reclamarDeal(tx, actor, { dealId: fila.id });
+    return filas.length;
   });
 }

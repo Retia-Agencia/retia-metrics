@@ -14,6 +14,7 @@ import {
   completarAgendadaAccion,
   reasignarDealAccion,
   reclamarDealAccion,
+  reclamarTodosPorSettearAccion,
   type ResultadoInbox,
 } from "@/app/(app)/p/[programa]/inbox/acciones";
 import { Campo, claseInput, DialogoForm, Vacio } from "@/components/deals/ficha/campos";
@@ -302,11 +303,29 @@ export function InboxAgendadosSinDueno({
   );
 }
 
-export function InboxPorSettear({ filas, puedeReclamar, administra, duenos }: PropsSeccionSinDueno) {
+export function InboxPorSettear({
+  filas,
+  puedeReclamar,
+  administra,
+  duenos,
+  programId,
+}: PropsSeccionSinDueno & { programId: string }) {
+  const { pendiente, correr } = useAccionInbox();
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
         <CardTitle>Por settear</CardTitle>
+        {puedeReclamar && filas.length > 0 ? (
+          <Button
+            size="sm"
+            disabled={pendiente}
+            onClick={() => correr(() => reclamarTodosPorSettearAccion({ programId }), {
+              exito: "Todos los deals quedaron a tu nombre.",
+            })}
+          >
+            {pendiente ? "Asignando…" : "Asignarme todos"}
+          </Button>
+        ) : null}
       </CardHeader>
       <CardContent className="p-0">
         {filas.length === 0 ? (
@@ -335,6 +354,7 @@ export function InboxSinDueno({
   puedeReclamar,
   administra,
   duenos,
+  programId,
 }: {
   pendienteSetteo: FilaSinDueno[];
   unclaimed: FilaSinDueno[];
@@ -344,11 +364,12 @@ export function InboxSinDueno({
   administra: boolean;
   /** Los dueños posibles del programa, para el select de reasignar. */
   duenos: DuenoPosible[];
+  programId: string;
 }) {
   return (
     <div className="space-y-4">
       <InboxAgendadosSinDueno filas={unclaimed} puedeReclamar={puedeReclamar} administra={administra} duenos={duenos} />
-      <InboxPorSettear filas={pendienteSetteo} puedeReclamar={puedeReclamar} administra={administra} duenos={duenos} />
+      <InboxPorSettear filas={pendienteSetteo} puedeReclamar={puedeReclamar} administra={administra} duenos={duenos} programId={programId} />
     </div>
   );
 }
