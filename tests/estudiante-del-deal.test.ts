@@ -43,7 +43,7 @@ beforeEach(async () => {
   septiembre = s.id;
   const [o] = await db
     .insert(cohorts)
-    .values({ ...base, codigo: "Octubre", fechaInicioClases: "2026-10-15", fechaCierreVentas: "2026-10-10", estado: "futuro" })
+    .values({ ...base, codigo: "Octubre", fechaInicioClases: "2026-10-15", fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2999-12-31", estado: "futuro" })
     .returning();
   octubre = o.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
@@ -208,7 +208,7 @@ describe("cambiarCohorte", () => {
     expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, dealId))).toHaveLength(0);
   });
 
-  it("cualquier deal vigente del actor cambia; otro closer no", async () => {
+  it("cualquier deal vigente del actor cambia a una cohorte vendiendo; otro closer no", async () => {
     const enContacto = await nuevoDeal("atendido");
     await cambiarCohorte(db, comoCloser(), { dealId: enContacto, cohortId: octubre, motivo: "x" });
     expect((await fila(enContacto)).cohortId).toBe(octubre);

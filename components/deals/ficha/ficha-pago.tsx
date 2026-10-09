@@ -79,6 +79,15 @@ export function FichaPago({
   const anulado = ficha.anulado != null;
   const cerrado = ficha.etapa === "ganado_completo" || ficha.etapa === "cierre_perdido";
   const esEstudiante = ficha.etapa === "ganado_parcial" || ficha.etapa === "ganado_completo";
+  const codigosVendiendo = ficha.cohortesVendiendoHoy.map((cohorte) => cohorte.codigo);
+  const listaCohortesVendiendo = codigosVendiendo.length === 2
+    ? codigosVendiendo.join(" y ")
+    : codigosVendiendo.length > 2
+      ? `${codigosVendiendo.slice(0, -1).join(", ")} y ${codigosVendiendo.at(-1)}`
+      : (codigosVendiendo[0] ?? "");
+  const avisoSolapamiento = !esEstudiante && !cerrado && !anulado && codigosVendiendo.length >= 2
+    ? `Hoy venden ${codigosVendiendo.length === 2 ? "dos" : codigosVendiendo.length} cohortes (${listaCohortesVendiendo}): confirma en cuál queda este deal.`
+    : null;
   const abonosActivos = puedeRegistrar && aceptaAbono && !anulado && !cerrado;
   // Fuera de las etapas de `aceptaAbono` el botón se ve deshabilitado con la razón (A-80):
   // se abona desde Contactado en adelante, no antes.
@@ -94,6 +103,7 @@ export function FichaPago({
               <Button size="sm" variant="ghost" onClick={() => setDialogo({ tipo: "cohorte" })}>
                 Cambiar cohorte
               </Button>
+              {avisoSolapamiento ? <Badge variant="alerta">{avisoSolapamiento}</Badge> : null}
               {abonosActivos ? (
                 <Button size="sm" variant="outline" onClick={() => setDialogo({ tipo: "abono" })}>
                   Registrar abono
@@ -688,6 +698,7 @@ function DialogoCohorte({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opc
   const [cohortId, setCohortId] = useState<string | null>(null);
   const [motivo, setMotivo] = useState("");
   const destinos = opciones.cohortes.filter((c) => c.id !== ficha.cohorte?.id);
+  const esEstudiante = ficha.etapa === "ganado_parcial" || ficha.etapa === "ganado_completo";
   return (
     <DialogoForm
       titulo="Cambiar de cohorte"
@@ -708,7 +719,7 @@ function DialogoCohorte({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opc
           }),
       }}
     >
-      <Campo etiqueta="Cohorte nueva" ayuda="Solo futuras o activas.">
+      <Campo etiqueta="Cohorte nueva" ayuda={esEstudiante ? "Solo futuras o activas." : "Solo cohortes que están vendiendo hoy."}>
         <Select value={cohortId} items={destinos.map((c) => ({ value: c.id, label: c.nombre }))} onValueChange={(v: string | null) => setCohortId(v)}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Elige la cohorte" />

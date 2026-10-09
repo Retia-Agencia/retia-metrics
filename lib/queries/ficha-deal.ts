@@ -21,11 +21,12 @@ import { ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA, siguientesDe, transicion, type EtapaD
 import { leerHechos } from "@/lib/deals/mover-etapa";
 import { propiedadesQueLeFaltan, queLeFalta, type RequisitoFaltante } from "@/lib/deals/requisitos";
 import { fechaLimiteMaxima } from "@/lib/deals/pago";
-import { fecha } from "@/lib/format";
+import { fecha, hoyEnBogota } from "@/lib/format";
 import { duenosPosibles } from "@/lib/deals/duenos";
 import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 import { areas as catalogoAreas } from "@/lib/catalogo/areas";
+import { cohortesVendiendo } from "@/lib/cohortes/vendiendo";
 import { descuentoDeDeal, saldosDeDeals, type DescuentoDeDeal, type SaldoDeDeal } from "@/lib/queries/saldo";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { ETAPAS_VENDIDAS } from "@/lib/queries/metricas-filtros";
@@ -186,6 +187,7 @@ export interface FichaDeDeal {
   vendido: boolean;
   areaDeclarada: { id: string; nombre: string } | null;
   cohorte: { id: string; codigo: string; inicioClases: string } | null;
+  cohortesVendiendoHoy: { id: string; codigo: string }[];
   /** `inicioVentas`: desde cuándo un contacto retoma un Próxima Cohorte (RET). */
   cohorteDestino: { id: string; codigo: string; inicioVentas: string | null } | null;
   acuerdoPago: string | null;
@@ -414,6 +416,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
 
   const saldo = (await saldosDeDeals(db, [deal.id])).get(deal.id)!;
   const fechaLimiteSugerida = await fechaLimiteMaxima(db, { programId: deal.programId, cohortId: deal.cohortId });
+  const cohortesVendiendoHoy = await cohortesVendiendo(db, deal.programId, hoyEnBogota());
 
   // Las tablas de apoyo, cada una aparte y unidas en memoria.
   const llamadasFilas = await db
@@ -592,6 +595,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
     vendido: saldo.abonosVigentes > 0 || (ETAPAS_VENDIDAS as readonly string[]).includes(deal.etapa),
     areaDeclarada: areaDeclarada ? { id: areaDeclarada.id, nombre: String(areaDeclarada.nombre) } : null,
     cohorte: cohorte ? { id: cohorte.id, codigo: cohorte.codigo, inicioClases: cohorte.fechaInicioClases } : null,
+    cohortesVendiendoHoy,
     cohorteDestino: cohorteDestino
       ? { id: cohorteDestino.id, codigo: cohorteDestino.codigo, inicioVentas: cohorteDestino.fechaInicioVentas }
       : null,
@@ -672,7 +676,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
 /** Lo que los formularios de la ficha ofrecen, todo acotado al programa del deal. */
 export interface OpcionesDeFicha {
   areas: { id: string; nombre: string }[];
-  /** Cohortes futuras o activas del programa: a donde puede ir un deal (`cambiarCohorte`). */
+  /** Destinos validos para la etapa del deal: vendiendo hoy, o futuras/activas si es estudiante. */
   cohortes: { id: string; nombre: string }[];
   cohortesDestino: { id: string; nombre: string }[];
   motivos: { id: string; nombre: string; tipo: string }[];
@@ -686,11 +690,17 @@ export async function opcionesDeFicha(
   programId: string,
   ownerActualId: string | null,
   cohorteActualId: string | null,
+  /** Sin etapa (p. ej. el listado de llamadas) conserva el catalogo general. */
+  etapa?: EtapaDeal,
 ): Promise<OpcionesDeFicha> {
+  const esEstudiante = etapa === "ganado_parcial" || etapa === "ganado_completo";
   const cohortesFilas = await db
     .select()
     .from(cohorts)
     .where(and(eq(cohorts.programId, programId), ne(cohorts.estado, "cerrado")));
+  const cohortesParaCambiar = etapa !== undefined && !esEstudiante
+    ? await cohortesVendiendo(db, programId, hoyEnBogota())
+    : cohortesFilas;
   const motivosFilas = await db.select().from(motivos).where(eq(motivos.activo, true));
   const plataformasFilas = await plataformasDelPrograma(db, programId);
   const areasFilas = await catalogoAreas(db).listar({ soloActivos: true });
@@ -705,7 +715,7 @@ export async function opcionesDeFicha(
 
   return {
     areas: areasFilas.map((a) => ({ id: a.id, nombre: String(a.nombre) })),
-    cohortes: cohortesFilas.map((c) => ({ id: c.id, nombre: c.codigo })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    cohortes: cohortesParaCambiar.map((c) => ({ id: c.id, nombre: c.codigo })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
     cohortesDestino: cohortesFilas
       .filter((c) => c.estado === "futuro" && c.id !== cohorteActualId)
       .map((c) => ({ id: c.id, nombre: c.codigo }))

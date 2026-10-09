@@ -70,7 +70,7 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
     });
   }
   const [opciones, alertas, correccion] = await Promise.all([
-    opcionesDeFicha(db, programa.id, ficha.owner?.id ?? null, ficha.cohorte?.id ?? null),
+    opcionesDeFicha(db, programa.id, ficha.owner?.id ?? null, ficha.cohorte?.id ?? null, ficha.etapa),
     alertasDelDeal(db, programa.id, ficha.dealId),
     etapaDeCorreccion(db, ficha.dealId),
   ]);
