@@ -586,10 +586,6 @@
           <b>Cuando pierdes un deal, eliges un motivo de la lista.</b>
         </li>
         <li>
-          <b>Tres intentos y decides.</b>
-          <small>Después de tres intentos, lo pierdes con motivo o sigues; el CRM no lo cierra solo.</small>
-        </li>
-        <li>
           <b>Perder no es anular.</b>
           <small>Perder significa que la persona dijo que no; anular significa que tú te equivocaste al registrar.</small>
         </li>
@@ -768,7 +764,6 @@
         <li>
           <b>Sin UTM:</b> llegó sin origen y no se recupera; corrige el enlace. <b>Sin clasificar:</b> trae origen; gerencia agrega el canal y corrige hacia atrás.</li>
       </ul>
-      <p>Al terminar una llamada o cerrar por chat, pregunta "¿cómo nos conoció?". Esa área declarada no reemplaza el origen.</p>
     </section>
 
     <section id="deal">
@@ -812,158 +807,196 @@
       <h2>
         <span class="n">3 · Las etapas</span>Las 11 etapas</h2>
       <h3>Cómo se mueve un deal</h3>
-      <p>En Transición eliges destino y completas requisitos. Mover a cambia etapa, Registrar actividad guarda lo que hiciste y Dejar en espera pone un pendiente. Arrastrar abre la misma ventana.</p>
-      <p class="nota"><b>Corregir</b> deshace el último movimiento humano. Si fue automático, anula el abono, Grain o cita. Una corrección no se corrige.</p>
+      <p>En la ficha, la tarjeta <b>Transición</b> tiene dos gestos y nada más:</p>
+      <ul>
+        <li><b>Mover a</b> cambia la etapa. Cada botón dice a dónde va y pide adentro lo que esa etapa necesita (la fecha de la cita, el Show y el Grain, el abono, el motivo). Arrastrar la tarjeta en el Kanban abre la misma ventana.</li>
+        <li><b>Anotar</b> nunca cambia la etapa. Deja un comentario y, si quieres, un próximo paso: Próximo contacto, Re-agenda o Próxima cohorte.</li>
+      </ul>
+      <p class="nota"><b>Corregir</b> deshace el último movimiento si lo hiciste por error. Pide el motivo.</p>
       <details>
         <summary>Potencial</summary>
         <p>
-          <b>Qué significa:</b> dejó el formulario incompleto, llegó Low y no tiene dueño.</p>
+          <b>Qué significa:</b> dejó el formulario incompleto y nadie lo ha trabajado.</p>
         <p>
-          <b>Desde aquí puedes...</b>
+          <b>Mover a</b> (cambia la etapa):
         </p>
         <ul>
-          <li><b>Mover a:</b> Registrar contacto lo lleva a Contactado; <b>Lo estoy trabajando</b> lo lleva a En gestión (pide un comentario, que queda como nota). También En gestión por una cita (Agendado) o Cierre perdido.</li>
-          <li><b>Anotar</b> deja un comentario o Próxima Cohorte <b>sin mover la etapa</b>.</li>
+          <li><b>Contactado:</b> Registrar contacto, cuando ya hablaste con la persona.</li>
+          <li><b>En gestión:</b> Lo estoy trabajando. Pide un comentario con lo que hiciste y, si el deal no tiene dueño, te lo asigna.</li>
+          <li><b>Cierre perdido:</b> Descartar. Pide el motivo.</li>
         </ul>
+        <p>
+          <b>Anotar</b> (la etapa no cambia): un comentario, o Próxima cohorte.</p>
       </details>
       <details>
         <summary>Registrado</summary>
         <p>
-          <b>Qué significa:</b> terminó el formulario Low, no agendó y no tiene dueño.</p>
+          <b>Qué significa:</b> terminó el formulario sin calificar y nadie lo ha trabajado. Si llega un envío High, sube solo a Calificado.</p>
         <p>
-          <b>Desde aquí puedes...</b>
+          <b>Mover a</b> (cambia la etapa):
         </p>
         <ul>
-          <li><b>Mover a:</b> Registrar contacto lo lleva a Contactado; <b>Lo estoy trabajando</b> lo lleva a En gestión (pide un comentario, que queda como nota). Un High lo sube a Calificado.</li>
-          <li><b>Anotar</b> deja un comentario o Próxima Cohorte <b>sin mover la etapa</b>.</li>
+          <li><b>Contactado:</b> Registrar contacto.</li>
+          <li><b>En gestión:</b> Lo estoy trabajando (comentario obligatorio; te asigna el deal si no tiene dueño).</li>
+          <li><b>Cierre perdido:</b> Descartar.</li>
         </ul>
+        <p>
+          <b>Anotar</b> (la etapa no cambia): un comentario, o Próxima cohorte.</p>
       </details>
       <details>
         <summary>En gestión</summary>
         <p>
-          <b>Qué significa:</b> ya intentaste contactar. Aquí nacen deals manuales y vuelven recuperados.</p>
+          <b>Qué significa:</b> ya lo estás trabajando, pero todavía no hablas con la persona. Aquí también vuelven los recuperados.</p>
         <p>
-          <b>Desde aquí puedes...</b>
+          <b>Mover a</b> (cambia la etapa):
         </p>
         <ul>
-          <li>Registra contacto para avanzar, o guarda otro intento.</li>
-          <li>Envíalo a Próxima Cohorte o descártalo. Al tercer intento decide; aquí no cobras ni comprometes.</li>
+          <li><b>Contactado:</b> "Sí, se logró el contacto".</li>
+          <li><b>Cierre perdido:</b> Descartar.</li>
         </ul>
+        <p>
+          <b>Anotar</b> (la etapa no cambia): un comentario, o Próxima cohorte.</p>
       </details>
       <details>
         <summary>Contactado</summary>
         <p>
-          <b>Qué significa:</b> ya hablaste y debes decidir si califica.</p>
+          <b>Qué significa:</b> ya hablaste y toca decidir si califica.</p>
         <p>
-          <b>Desde aquí puedes...</b>
+          <b>Mover a</b> (cambia la etapa):
         </p>
         <ul>
-          <li>Pásalo a Calificado, Compromiso, Próxima Cohorte o Cierre perdido.</li>
-          <li>Si pagó, registra el abono; si aceptó cita, agrega la llamada.</li>
+          <li><b>Calificado:</b> "Sí, califica".</li>
+          <li><b>Compromiso Verbal:</b> Negocia. Pide la fecha límite de pago.</li>
+          <li><b>Cierre perdido:</b> No califica.</li>
         </ul>
+        <p>
+          <b>Anotar</b> (la etapa no cambia): un comentario, o Próxima cohorte.</p>
       </details>
       <details>
         <summary>Calificado</summary>
         <p>
-          <b>Qué significa:</b> es un lead High al que debes ofrecer agenda.</p>
+          <b>Qué significa:</b> tiene el perfil; toca agendarle la llamada.</p>
         <p>
-          <b>Desde aquí puedes...</b>
+          <b>Mover a</b> (cambia la etapa):
         </p>
         <ul>
-          <li>Agrega llamada, compromiso con fecha y área, o abono.</li>
-          <li>Tras el contacto, deja Seguimiento, Próxima Cohorte o descártalo.</li>
+          <li><b>Agendado:</b> Agendó. Pide la fecha y hora de la cita.</li>
+          <li><b>Compromiso Verbal:</b> Negocia.</li>
+          <li><b>Ganado:</b> Pagó. Registra el abono.</li>
+          <li><b>Cierre perdido:</b> Descartar.</li>
         </ul>
+        <p>
+          <b>Anotar</b> (la etapa no cambia): un comentario, Próximo contacto (interesado, más adelante) o Próxima cohorte.</p>
       </details>
       <details>
         <summary>Agendado</summary>
         <p>
-          <b>Qué significa:</b> tiene una llamada de Calendly o agregada por ti.</p>
+          <b>Qué significa:</b> tiene una llamada con fecha, de Calendly o creada por ti.</p>
         <p>
-          <b>Desde aquí puedes...</b>
+          <b>Mover a</b> (cambia la etapa):
         </p>
         <ul>
-          <li>Pasa a Atendido y pega el Grain; sin él alerta. Registra el resultado ese día.</li>
-          <li>Cambia la fecha, deja Re-agenda o descarta. Otra cita quita pendientes.</li>
+          <li><b>Atendido:</b> Terminó. Marca la llamada como Show y pide el link de Grain.</li>
+          <li><b>Cierre perdido:</b> Descartar.</li>
         </ul>
+        <p>
+          <b>Anotar</b> (la etapa no cambia): un comentario; Re-agenda si la cita se movió (con fecha nueva) o no se dio (no show o cancelada, sin fecha); Próxima cohorte solo si el deal ya tiene un pendiente. <b>Lo más rápido:</b> el botón <b>Resultado</b> de la llamada (ver abajo).</p>
       </details>
       <details>
         <summary>Atendido</summary>
         <p>
-          <b>Qué significa:</b> la llamada ocurrió. Llegas con Grain o "Terminó"; sin Grain queda rojo.</p>
+          <b>Qué significa:</b> la llamada ocurrió (Show).</p>
         <p>
-          <b>Desde aquí puedes...</b>
+          <b>Mover a</b> (cambia la etapa):
         </p>
         <ul>
-          <li>Registra abono o Compromiso Verbal con fecha y área.</li>
-          <li>Deja un pendiente, agrega otra cita o cierra como perdido.</li>
+          <li><b>Ganado:</b> Pagó ahora. Registra el abono.</li>
+          <li><b>Compromiso Verbal:</b> quedó de pagar. Pide la fecha límite.</li>
+          <li><b>Agendado:</b> Agendó otra cita (solo si el deal tiene un pendiente).</li>
+          <li><b>Cierre perdido:</b> Perdido.</li>
         </ul>
+        <p>
+          <b>Anotar</b> (la etapa no cambia): un comentario, Próximo contacto, Re-agenda (otra llamada, con motivo) o Próxima cohorte.</p>
       </details>
       <details>
         <summary>Compromiso Verbal</summary>
         <p>
-          <b>Qué significa:</b> prometió pagar en una fecha. Si vence, verás Compromiso vencido.</p>
+          <b>Qué significa:</b> prometió pagar antes de una fecha. Si vence, sale en Notificaciones.</p>
         <p>
-          <b>Desde aquí puedes...</b>
+          <b>Mover a</b> (cambia la etapa):
         </p>
         <ul>
-          <li>Registra el abono, deja Seguimiento o envíalo a Próxima Cohorte.</li>
-          <li>Devuélvelo a la etapa anterior con fecha y motivo, o descártalo.</li>
+          <li><b>Ganado:</b> Pagó. Registra el abono.</li>
+          <li><b>Se echó para atrás:</b> vuelve a Atendido, Contactado o Calificado, según de dónde venía. Pide motivo y fecha del próximo contacto.</li>
+          <li><b>Cierre perdido:</b> Descartar.</li>
         </ul>
+        <p>
+          <b>Anotar</b> (la etapa no cambia): un comentario, Próximo contacto (revisando la propuesta) o Próxima cohorte.</p>
       </details>
       <details>
         <summary>Ganado Pago Parcial</summary>
         <p>
-          <b>Qué significa:</b> registraste un abono y queda saldo. Ya es venta y student.</p>
+          <b>Qué significa:</b> pagó una parte y queda saldo. Ya es venta y student.</p>
         <p>
-          <b>Desde aquí puedes...</b>
+          <b>Mover a</b> (cambia la etapa):
         </p>
         <ul>
-          <li>Registra otro abono; con saldo sigue Parcial y en cero pasa a Completo.</li>
-          <li>Marca que desistió, o anula el único abono para volver atrás.</li>
+          <li><b>Ganado:</b> Registrar abono. Si el saldo llega a cero, pasa solo a Pagado Completo.</li>
+          <li><b>Cierre perdido:</b> Desistió.</li>
         </ul>
+        <p>
+          <b>Anotar</b> (la etapa no cambia): un comentario.</p>
       </details>
       <details>
         <summary>Ganado Pagado Completo</summary>
         <p>
           <b>Qué significa:</b> los abonos cubren todo el valor vendido.</p>
         <p>
-          <b>Desde aquí puedes...</b>
+          <b>Mover a</b> (cambia la etapa):
         </p>
         <ul>
-          <li>Mantenlo como venta completa; no puedes pasarlo a Cierre perdido.</li>
-          <li>Vuelve a Parcial al anular un abono o cambiar el descuento.</li>
+          <li>No hay botones. Solo vuelve a Parcial si se anula un abono o cambia el descuento.</li>
         </ul>
+        <p>
+          <b>Anotar</b> (la etapa no cambia): un comentario.</p>
       </details>
       <details>
         <summary>Cierre perdido</summary>
         <p>
-          <b>Qué significa:</b> dijo que no, no respondió o desistió. Lleva motivo y cuenta.</p>
+          <b>Qué significa:</b> dijo que no, no respondió o desistió. Lleva motivo y cuenta en el embudo.</p>
         <p>
-          <b>Desde aquí puedes...</b>
+          <b>Mover a</b> (cambia la etapa):
         </p>
         <ul>
-          <li>Recupéralo a En gestión y registra el motivo.</li>
-          <li>Déjalo cerrado; no confundas perder con anular un error.</li>
+          <li><b>En gestión:</b> Recuperar. Pide el motivo.</li>
         </ul>
+        <p>
+          <b>Anotar</b> (la etapa no cambia): un comentario.</p>
       </details>
-      <p>El tiempo no mueve deals; lo vencido alerta en Inbox.</p>
+      <h3>Lo que pasa solo</h3>
+      <p>El CRM mueve el deal sin que hagas nada cuando llega el formulario, cuando se agenda una cita en Calendly (pasa a Agendado), cuando registras un abono (pasa a Ganado) y cuando un deal en Próxima cohorte recibe un contacto después de que abren las ventas de esa cohorte. El tiempo no mueve deals: lo vencido sale en Notificaciones.</p>
+      <h3>El botón Resultado de una llamada</h3>
+      <p>Una cita agendada tiene el botón <b>Resultado</b> en la tarjeta Llamadas de la ficha y en el detalle de la llamada (desde Calls o el Inbox). Es lo mismo que Mover y Anotar, en un clic:</p>
+      <ul>
+        <li><b>Show:</b> la llamada se hizo. El deal pasa a Atendido; pega el Grain después.</li>
+        <li><b>No show</b> o <b>Cancelada:</b> el deal queda con Re-agenda.</li>
+        <li><b>Reagendada:</b> cierra esta cita y crea la nueva con su fecha.</li>
+      </ul>
     </section>
     <section id="recorrido">
       <h2>
         <span class="n">3 · Las etapas</span>Recorrido</h2>
       <ol>
         <li>
-          <b>Reclama el deal</b> desde la sección Por settear del Inbox.</li>
+          <b>Toma el deal</b> con <b>Lo estoy trabajando</b> o registrando el primer contacto: el deal queda a tu nombre.</li>
         <li>
-          <b>Contacta.</b> Sin respuesta, registra un intento; con respuesta, guarda fecha y canal.</li>
+          <b>Contacta.</b> Si no responde, anótalo; cuando hables con la persona, Registrar contacto.</li>
         <li>
-          <b>Califica y envía la agenda.</b> Si acordaron una hora, crea la cita.</li>
+          <b>Califica y agenda.</b> Si acordaron una hora, Mover a Agendado con la fecha.</li>
         <li>
-          <b>Haz la llamada y pega el Grain</b> para que el deal pase a Atendido.</li>
+          <b>Haz la llamada y marca el Resultado</b> el mismo día. Con Show pasa a Atendido; pega el Grain.</li>
         <li>
-          <b>Registra cómo terminó</b> la llamada el mismo día.</li>
-        <li>
-          <b>Registra abono y comprobante.</b> Con el primer pago ya es student.</li>
+          <b>Cierra:</b> Ganado con el abono, Compromiso Verbal con fecha límite, o un próximo paso con Anotar.</li>
         <li>
           <b>Cobra el saldo</b> hasta que llegue a cero.</li>
       </ol>
@@ -973,13 +1006,13 @@
         <span class="n">3 · Las etapas</span>Pendientes</h2>
       <ul>
         <li>
-          <b>Usa Re-agenda</b> para no-show, cancelación u otra llamada. Registra el motivo; una cita lo quita.</li>
+          <b>Re-agenda</b>: no-show, cancelación u otra llamada. Pide motivo; una cita nueva lo quita.</li>
         <li>
-          <b>Usa Seguimiento</b> cuando está interesada, pero no ahora. Elige fecha y registra el siguiente paso.</li>
+          <b>Próximo contacto</b> (Seguimiento): está interesada, pero no ahora. Elige la fecha; el comentario es la razón.</li>
         <li>
-          <b>Usa Próxima Cohorte</b> cuando la persona quiere la siguiente. Elige la cohorte y el deal reaparecerá en tu Inbox cuando abra.</li>
+          <b>Próxima cohorte</b>: quiere entrar en una cohorte futura. Elige la cohorte; el deal vuelve cuando abran sus ventas y le registres un contacto. Si no hay cohortes futuras, la opción sale desactivada: pídele a Gerencia que la cree, aunque no tenga fechas.</li>
       </ul>
-      <p>Los pendientes no cambian etapa. Solo dejas uno; no caduca y, cuando vence, alerta.</p>
+      <p>Los pendientes se ponen con Anotar y no cambian la etapa. Un deal tiene un solo pendiente a la vez; cuando vence, sale en Notificaciones.</p>
     </section>
 
     <section id="cierre">
@@ -987,7 +1020,7 @@
         <span class="n">4 · El cierre</span>El cierre</h2>
       <ul>
         <li>
-          <b>Si la persona se compromete a pagar después, registra un Compromiso Verbal.</b> El CRM pide una fecha límite, prellenada con el inicio de clases, y el área declarada.</li>
+          <b>Si la persona se compromete a pagar después, registra un Compromiso Verbal.</b> El CRM pide una fecha límite, prellenada con el inicio de clases.</li>
         <li>
           <b>Si la persona ya pagó, registra descuento, plataforma, área y abono.</b> Puedes pegar el comprobante después, pero verás una alerta hasta hacerlo. Con saldo queda Parcial; sin saldo queda
           Completo.</li>
@@ -1079,7 +1112,7 @@
       <h3>Secciones del Inbox</h3>
       <ul>
         <li>
-          <b>En Por registrar, resuelve llamadas pasadas.</b> Pega el Grain o indica que no se dio.</li>
+          <b>En Por registrar, resuelve llamadas pasadas.</b> Abre la llamada y marca su Resultado.</li>
         <li>
           <b>En Sin deal, cuelga citas sueltas.</b> Lo hace quien dará la llamada, o gerencia.</li>
         <li>
@@ -1088,10 +1121,8 @@
           <b>En Por settear, reclama el mayor puntaje.</b> Son deals sin dueño ni cita.</li>
         <li>
           <b>En No agendaron, escribe de inmediato.</b> Son Calificados sin cita después de 5 minutos.</li>
-        <li>
-          <b>En Necesitan acción, resuelve vencidos o estancados.</b> Allí aparecen pagos, compromisos e intentos agotados.</li>
       </ul>
-      <p>El Inbox abre la primera pestaña con datos. Un Calendly desconocido muestra una franja roja para gerencia.</p>
+      <p>Lo vencido (pagos, compromisos, próximos contactos y llamadas sin Grain) está en Mi espacio › Notificaciones. El Inbox abre la primera pestaña con datos. Un Calendly desconocido muestra una franja roja para gerencia.</p>
     </section>
     <section id="alertas">
       <h2>
@@ -1227,7 +1258,7 @@
         <li>
           <span class="pill warn">Pendiente</span> <b>El corte</b> incluye capacitación y apaga las pestañas una semana después.</li>
         <li>
-          <b>Falta el enlace de captación por closer.</b> Mientras, registra el área declarada.</li>
+          <b>Falta el enlace de captación por closer.</b></li>
         <li>
           <b>Faltan alertas por métricas caídas.</b> Mientras, revisa el Pulso.</li>
         <li>
@@ -1248,8 +1279,6 @@
         <dd>El canal indica de dónde vino el clic: fuente y medio.</dd>
         <dt>Área</dt>
         <dd>El área agrupa los canales en Paid, Orgánico o Referidos.</dd>
-        <dt>Área declarada</dt>
-        <dd>El área declarada responde a la pregunta "¿cómo nos conoció?".</dd>
         <dt>Setteo</dt>
         <dd>El setteo consiste en contactar a quien no agendó y conseguir la cita.</dd>
         <dt>Setter</dt>
