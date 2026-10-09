@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   agregarAlProgramaAccion,
+  marcarSetterPorDefectoAccion,
   quitarDelProgramaAccion,
 } from "@/app/(app)/p/[programa]/programa/acciones-programa";
 import { asignarCalendlyDeMembresiaAccion } from "@/app/(app)/ajustes/usuarios/acciones";
-import { FilaMembresia } from "@/components/calendly-membresias";
+import { FilaMembresia, SetterPorDefecto } from "@/components/calendly-membresias";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -76,6 +77,11 @@ export function EquipoDelPrograma({
 
   return (
     <div className="space-y-5">
+      <SetterPorDefecto
+        programId={programa.id}
+        membresias={membresias}
+        accion={marcarSetterPorDefectoAccion}
+      />
       {membresias.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nadie tiene membresía activa en este programa.</p>
       ) : (

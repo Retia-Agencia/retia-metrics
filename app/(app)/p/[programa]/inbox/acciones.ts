@@ -13,7 +13,7 @@ import { calls, deals } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { instanteDeBogota } from "@/lib/format";
-import { reclamarDeal } from "@/lib/deals/reclamar";
+import { reclamarDeal, reclamarDealsPorSettear } from "@/lib/deals/reclamar";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { completarAgendada } from "@/lib/deals/llamadas";
 import { asignarLlamadaSuelta, crearDealDesdeSuelta } from "@/lib/calendly/colgar-llamada";
@@ -123,6 +123,20 @@ export async function reclamarDealAccion(entrada: EntradaReclamar): Promise<Resu
     await exigirDealVisible(ctx, dealId);
     await reclamarDeal(db, ctx.actor, { dealId });
     return {};
+  });
+}
+
+const esquemaReclamarTodos = z.object({ programId: id("Programa inválido.") });
+
+/** Reclama todos los deals que siguen sin dueño en Por settear dentro del programa. */
+export async function reclamarTodosPorSettearAccion(
+  entrada: z.input<typeof esquemaReclamarTodos>,
+): Promise<ResultadoInbox<{ cantidad: number }>> {
+  return correr(async (ctx) => {
+    const { programId } = esquemaReclamarTodos.parse(entrada);
+    await exigirProgramaVisible(ctx, programId);
+    const cantidad = await reclamarDealsPorSettear(db, ctx.actor, programId);
+    return { cantidad };
   });
 }
 

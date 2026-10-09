@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/guards";
+import { esRolValido } from "@/lib/auth/roles";
+import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import {
@@ -14,6 +16,7 @@ import {
 } from "@/lib/catalogo/programas";
 import { conectarCalendly } from "@/lib/calendly/suscripcion";
 import { agregarMembresia, quitarMembresia } from "@/lib/catalogo/usuarios";
+import { marcarSetterPorDefecto } from "@/lib/deals/setter-por-defecto";
 import { fichaDelPrograma, faltaParaActivar } from "@/lib/queries/ficha-programa";
 import {
   activarCohorte,
@@ -182,6 +185,22 @@ export async function quitarDelProgramaAccion(input: {
   try {
     const session = await requireRole("gerente");
     await quitarMembresia(db, session.user.id, input.userId, input.programId);
+    revalidarNav();
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+export async function marcarSetterPorDefectoAccion(input: {
+  programId: string;
+  userId: string | null;
+}): Promise<ResultadoAccion> {
+  try {
+    const session = await requireRole("gerente");
+    const rol = await rolDeVista(session);
+    if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
+    await marcarSetterPorDefecto(db, { userId: session.user.id, rol }, input);
     revalidarNav();
     return { ok: true };
   } catch (error) {

@@ -188,6 +188,7 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
           {seccion === "por-settear" ? (
             <InboxPorSettear
               filas={secciones.pendienteSetteo}
+              programId={programa.id}
               puedeReclamar={puedeTrabajar}
               administra={administra}
               duenos={duenos}

@@ -5,6 +5,7 @@ import { esViolacionUnica } from "@/lib/db/errores";
 import { vigente } from "@/lib/queries/vigente";
 import { crearConRastro } from "@/lib/crm/rastro";
 import { abrirDeal, moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
+import { setterPorDefectoDelPrograma } from "@/lib/deals/setter-por-defecto";
 import { NOMBRE_DE_ETAPA, transicion, unaCitaMueveAAgendado, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
 import { dejarNotaDelSistema } from "@/lib/deals/nota-del-sistema";
 import { fechaHoraEnBogota } from "@/lib/format";
@@ -423,12 +424,16 @@ async function aplicarReglaDeDealSinAdoptar(
     : null;
 
   if (accion.tipo === "abrir") {
+    const setter = host === null && !accion.llamada
+      ? await setterPorDefectoDelPrograma(db, lead.programId)
+      : null;
     const dealId = await abrirDeal(db, {
       leadId: lead.id,
       programId: lead.programId,
       etapa: accion.etapa,
       actor: { tipo: "sistema" },
-      ownerUserId: host,
+      ownerUserId: host ?? setter,
+      setterUserId: setter,
       submissionOrigenId: envioDeOrigen,
     });
     // Con cita vigente el deal nace en Agendado y necesita su llamada (quita la

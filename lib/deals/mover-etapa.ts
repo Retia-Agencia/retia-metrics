@@ -451,8 +451,10 @@ export interface AltaDeDeal {
   fechaLimitePago?: string | null;
   cohortId?: string | null;
   submissionOrigenId?: string | null;
-  /** Solo el sistema lo pasa (el host de Calendly, ADR 0049). A mano, el dueño es quien crea. */
+  /** Solo el sistema lo pasa (host de Calendly o setter por defecto). A mano, el dueño es quien crea. */
   ownerUserId?: string | null;
+  /** Solo el sistema: crédito del setter por defecto cuando el deal nace sin agenda. */
+  setterUserId?: string | null;
 }
 
 /**
@@ -513,6 +515,7 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
             // necesita avisar al dueño.
             esNovedad: alta.actor.tipo === "sistema" && alta.ownerUserId != null,
           }),
+          setterUserId: alta.setterUserId ?? null,
           areaDeclaradaId: alta.areaDeclaradaId ?? null,
           fechaLimitePago: alta.fechaLimitePago ?? null,
           cohortId,
