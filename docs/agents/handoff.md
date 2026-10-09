@@ -9,25 +9,33 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia. PRIORIDAD: Memorable (Nicolás y Francisco) arrancó el 5-oct y su configuración es de
-Mani (plan-reparto §4, O2 frente A; plan.md §2). Ola vigente: O6, el dashboard confiable (plan-reparto §4). Checkpoint
-`cp-20261005-1` verde: 147, 187, 188, 189, 190, 192, 198 y 200 en `done`. El 191 y el 102 ya pasaron por el cadenero
-(5-oct, noche) y quedaron `done` en `cp-20261005-2`: la O6 está cerrada. El 6-oct cerraron además 117, 092
-(`programs.form_url` retirada, 0069; activar exige fuente principal; los tres programas activos ya la tienen) y 086
-(quién trajo al lead y "Tus enlaces de captación", 0070) y 126 (embudo por pregunta del Insights de Typeform, token en
-la fuente, 0071; tokens cargados en producción); CI verde en `260a74f`. Ya de noche, el 201 (novedades de Deals y Calendly) y el 202 (la barra de lista, A-105) cerraron en `cp-20261006-1` (`3b68a82`): la O7 está cerrada. El 8-oct se migró el corte 3 (208, done). El 9-oct la ola de la reunión del 8-oct (209, 210, 211 y 145) cerró en `cp-20261009-3` con la 0073 aplicada y Jero como setter de CA y TI; falta crear los usuarios CS; 212, 213 y 214 (recorrido de Students) cerraron en `cp-20261009-1` (`1b3ee2d`); listos además 090 y 075. Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
-Supabase Pro, ver el rojo del Kanban al arrastrar hacia atrás (182), y confirmar la regla del 086 (un lead de Meta
-que luego aplica con el enlace de un closer queda del closer). Del 117: ver un parcial real de Tactical y ComunicArte.
+Seguimos con el CRM de Retia. Esta sesión es el THREAD PRINCIPAL de la ola O8 (Mover o Anotar, y el hub del
+closer): orquesta, no implementa. Lee AGENTS.md, docs/plan-reparto.md §4 (ola O8: tres carriles, archivos calientes y
+cola de migraciones), los ADR 0081 y 0082 y los tickets 215 a 225 (tracker en docs/tasks/README.md §15).
 
-Reglas: implementa un agente (Codex o Kiro; Codex sin cuota hasta el 12-oct) y la sesión principal revisa y recorre;
-la revisión del cadenero la hace otra sesión antes del commit; migraciones solo con el ok de Mani; nivel 1 antes de
-cada push (typecheck, lint, tests del ticket), la suite completa la corre el CI en los checkpoints (plan-reparto §6).
-Produccion es la unica base: leer es libre, escribir pide el ok de Mani. Al terminar un recorrido local, apagar
-dev:local (y Docker si nadie mas lo usa). En Windows, 375 px y 1440×900 se miden con Chrome headless por CDP (la
-ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un `dev:local` vivo.
+Arranque: lanza con /delegate (Codex, effort medium, en background, cada uno en su worktree DENTRO del repo) los
+tickets listos de carriles distintos: S1 → 215, S2 → 221, S3 → 225. Cuando uno cierre, revisa diff + tests contra su
+"Done cuando" (PASS/FAIL; un FAIL vuelve a Codex como brief de arreglo) y lanza el siguiente de ese carril:
+S1 215 → 216 → 217 → 218 → 219 → 220 · S2 221 → 222 → 223 · S3 225 → 224 (cuando 221 esté en done).
+Nunca dos tickets del mismo carril a la vez: comparten archivos.
+
+Reglas: Codex no corre db:generate ni db:migrate; las migraciones (217, 218 y al final el DROP de 216, tras el
+deploy del código) las genera, lee y aplica esta sesión con el ok de Mani. Nivel 1 antes de cada push (typecheck,
+lint, tests del ticket; `npm run build` si toca un componente cliente); la suite completa la corre el CI en el
+checkpoint (plan-reparto §6). El cadenero (otra sesión) revisa antes del checkpoint. Producción es la única base:
+leer es libre, escribir pide el ok de Mani. Recorrido visual en dev:local haciendo clic en todo lo que se abre.
 ```
 
 ## Memory
+
+- **2026-10-09 (tarde, Mani + Claude): grill de la reunión con Michael, Andre y Tactical → ola O8 (`0792ad5`).**
+  - Decisiones (ADR 0081): dos gestos, Mover y Anotar; Mover pide adentro lo de la etapa destino (mismo diálogo del
+    arrastre) y Llamadas/Pago quedan como historial (el Grain de una llamada vieja se corrige ahí); los pendientes
+    salen de lo anotado; fuera los intentos y la alerta de tres; fuera el origen declarado del todo (con la burbuja
+    "sin UTM · según el comercial"); aviso de lo que cambió, sin cierre automático.
+  - ADR 0082: al closer se le cierran Ajustes, Programa, Dashboard y Metas en el servidor (enmienda el 0048).
+  - Mi espacio: Info · Notificaciones (chips + tarjetas, paginado) · Métricas, con número sin ver.
+  - Tickets 215 a 225; anotaciones A-118 a A-133. Fuera de la ola: A-131 (métricas por día y quincena, Andre).
 
 - **2026-10-09 (mañana): checkpoint `cp-20261009-3` verde; 209, 210, 211 y 145 en `done`.**
   - `cp-20261009-2` (`e6d3586`) marcó la ola con el CI verde; producción en ese commit (`retia-metrics-seven`,
