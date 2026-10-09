@@ -17,7 +17,7 @@ import { PageShell } from "@/components/page-shell";
 import { PerfilDeMiEspacio } from "@/components/mi-espacio/perfil-de-mi-espacio";
 import { TabsDeMiEspacio } from "@/components/mi-espacio/tabs-de-mi-espacio";
 import { CalendlyMembresias } from "@/components/calendly-membresias";
-import { EnlacesDeCaptacion } from "@/components/mi-espacio/enlaces-de-captacion";
+import { EnlacesDeCaptacion, type EnlaceVista } from "@/components/mi-espacio/enlaces-de-captacion";
 import { enlacesDeCaptacion } from "@/lib/atribucion/captacion-del-closer";
 import { asignarMiCalendlyAccion } from "./acciones";
 import { TabAtencion } from "@/components/mi-espacio/tab-atencion";
@@ -74,6 +74,17 @@ export default async function MiEspacioPage({ searchParams }: Props) {
 
   const userId = session.user.id;
   const query = await searchParams;
+
+  // El `?tab=atencion` viejo ahora es `?tab=notificaciones` (ticket 221): redirect de
+  // servidor para que un enlace guardado no caiga en la sección por defecto por el rename.
+  if (uno(query.tab) === "atencion") {
+    const q = new URLSearchParams();
+    for (const [clave, valor] of Object.entries(query)) {
+      if (clave !== "tab" && typeof valor === "string") q.set(clave, valor);
+    }
+    q.set("tab", "notificaciones");
+    redirect(`/mi-espacio?${q}`);
+  }
 
   // El customer success: su pantalla es Students. Si ve algún programa, se le lleva al primero
   // (nunca se queda en Mi espacio con contenido ajeno); si no ve ninguno, el estado vacío que
@@ -189,17 +200,13 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   return (
     <PageShell titulo="Mi espacio" descripcion="Tu perfil y tu trabajo por programa.">
       <div className="space-y-6">
-        {perfil}
-        {calendly}
-        <EnlacesDeCaptacion enlaces={enlaces} />
-
         <div className="space-y-4">
           <TabsDeMiEspacio secciones={secciones} actual={seccion.id} slug={programa?.slug ?? null} />
           {seccion.usaSelectorDePrograma ? (
             <SelectorDePrograma programas={visibles} actual={programa?.slug ?? "todos"} tab={seccion.id} busqueda={query} />
           ) : null}
 
-          {Seccion({ seccion, programa, programas: visibles, userId, rol, busqueda: query })}
+          {Seccion({ seccion, programa, programas: visibles, userId, rol, busqueda: query, perfil, calendly, enlaces })}
         </div>
       </div>
     </PageShell>
@@ -209,7 +216,8 @@ export default async function MiEspacioPage({ searchParams }: Props) {
 /**
  * El elemento de la sección elegida (función, no componente, a propósito: así el árbol de
  * la página contiene el elemento real de la tab —`<TabAtencion/>`, `<TabCanales/>`…— y no
- * un envoltorio opaco). Las de programa reciben el programa ya resuelto.
+ * un envoltorio opaco). Las de programa reciben el programa ya resuelto. Info recibe el
+ * perfil, el Calendly por programa y los enlaces de captación ya armados por la página.
  */
 function Seccion({
   seccion,
@@ -218,6 +226,9 @@ function Seccion({
   userId,
   rol,
   busqueda,
+  perfil,
+  calendly,
+  enlaces,
 }: {
   seccion: SeccionMiEspacio;
   programa: { id: string; slug: string } | null;
@@ -225,9 +236,24 @@ function Seccion({
   userId: string;
   rol: Rol;
   busqueda: Record<string, string | string[] | undefined>;
+  perfil: ReactElement;
+  calendly: ReactElement | null;
+  enlaces: EnlaceVista[];
 }): ReactElement | null {
   switch (seccion.id) {
-    case "atencion":
+    case "info":
+      // El perfil, la cuenta de Calendly por programa (169) y los enlaces de captación (086).
+      // El Calendly y los enlaces sólo para quien trabaja leads (la página los deja en `null`
+      // / vacío para los demás).
+      return (
+        <div className="space-y-6">
+          {perfil}
+          {calendly}
+          <EnlacesDeCaptacion enlaces={enlaces} />
+        </div>
+      );
+    case "notificaciones":
+      // Hoy muestra lo de "Necesita atención" sin cambios (ticket 221); el 222 lo rehace.
       return programa ? <TabAtencion programId={programa.id} slug={programa.slug} userId={userId} rol={rol} /> : null;
     case "metricas": {
       // El closer se identifica por su `users.id` (ticket 167): asi un closer sin el
