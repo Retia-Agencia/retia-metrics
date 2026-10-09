@@ -15,7 +15,7 @@ Mani (plan-reparto §4, O2 frente A; plan.md §2). Ola vigente: O6, el dashboard
 (5-oct, noche) y quedaron `done` en `cp-20261005-2`: la O6 está cerrada. El 6-oct cerraron además 117, 092
 (`programs.form_url` retirada, 0069; activar exige fuente principal; los tres programas activos ya la tienen) y 086
 (quién trajo al lead y "Tus enlaces de captación", 0070) y 126 (embudo por pregunta del Insights de Typeform, token en
-la fuente, 0071; tokens cargados en producción); CI verde en `260a74f`. Ya de noche, el 201 (novedades de Deals y Calendly) y el 202 (la barra de lista, A-105) cerraron en `cp-20261006-1` (`3b68a82`): la O7 está cerrada. Lo siguiente: rearmar la ola (listos: 090, 075). Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
+la fuente, 0071; tokens cargados en producción); CI verde en `260a74f`. Ya de noche, el 201 (novedades de Deals y Calendly) y el 202 (la barra de lista, A-105) cerraron en `cp-20261006-1` (`3b68a82`): la O7 está cerrada. El 8-oct se migró el corte 3 (208, done). Lo siguiente: rearmar la ola con lo de la reunión del 8-oct (209 respuestas del formulario en Leads, 210 setter por defecto, 211 la corte la elige el dueño y pide ADR, 145 rol CS que solo marca onboarded) y el recorrido de Students (212 plataforma al registrar abono, 213 buscador en Deals, 214 total recaudado); listos además 090 y 075. Pendiente de negocio: Dani carga los umbrales reales de las alertas (147) en Programa › Ventas. De Mani además: S1
 Supabase Pro, ver el rojo del Kanban al arrastrar hacia atrás (182), y confirmar la regla del 086 (un lead de Meta
 que luego aplica con el enlace de un closer queda del closer). Del 117: ver un parcial real de Tactical y ComunicArte.
 
