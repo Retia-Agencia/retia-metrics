@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <Providers>{children}</Providers>
-        <Toaster />
+        <Toaster position="top-center" />
         {/* Traduce los globos de validacion nativos del navegador, que vienen en el
             idioma del navegador y no en el del `lang` de la pagina. */}
         <ValidacionEnEspanol />

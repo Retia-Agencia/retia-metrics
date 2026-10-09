@@ -64,11 +64,11 @@ export function FichaHistorial({
                         Ver campos
                       </summary>
                       <ul className="mt-1 space-y-1">
-                        {evento.campos.map((campo) => {
+                        {evento.campos.map((campo, indice) => {
                           const anterior = campo.valorAnterior ?? "—";
                           const nuevo = campo.valorNuevo ?? "—";
                           return (
-                            <li key={campo.campo} className="break-words">
+                            <li key={`${campo.campo}-${indice}`} className="break-words">
                               <span className="font-medium text-foreground">{campo.campo}:</span>{" "}
                               <span title={anterior}>{recortar(anterior)}</span> → <span title={nuevo}>{recortar(nuevo)}</span>
                             </li>
