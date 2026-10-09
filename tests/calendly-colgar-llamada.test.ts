@@ -9,6 +9,8 @@ import {
   leads,
   miembrosPrograma,
   programs,
+  sources,
+  submissions,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -26,6 +28,7 @@ import { aplicarReglaDeDeal } from "@/lib/ingesta/regla-de-deals";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { codigoDeDeal } from "@/lib/calendly/link-de-agenda";
+import { citaYaGuardada } from "@/lib/ingesta/procesar-sobre";
 
 /**
  * El escritor de las llamadas de Calendly (ticket 096, ADR 0049), contra PGlite: lee la
@@ -154,6 +157,28 @@ describe("registrarLlamadaDeCalendly: colgada", () => {
     expect(r).toMatchObject({ tipo: "colgada", dealId });
     const [llamada] = await db.select().from(calls).where(eq(calls.dealId, dealId));
     expect(llamada.raw).toEqual({ nombre: "Ana Pérez", telefono: "+57 300 123 4567", utmContent: codigoDeDeal(dealId) });
+  });
+
+  it("el envío con el link de ESTA cita cuelga el deal aunque el correo de Calendly sea otro", async () => {
+    const [fuente] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
+    await db.insert(submissions).values({
+      sourceId: fuente.id,
+      leadId,
+      token: "tok-envio",
+      respuestas: { "Agenda aquí tu entrevista": "https://calendly.com/d/abc/evento/invitees/uuid-del-envio" },
+    });
+    const r = await registrarLlamadaDeCalendly(db, programId, cita({ uuidInvitado: "uuid-del-envio", correoInvitado: "otra@correo.co" }));
+    expect(r).toMatchObject({ tipo: "colgada", dealId });
+    // Otro uuid, sin envío que lo traiga: con un correo desconocido sigue suelta.
+    expect(await registrarLlamadaDeCalendly(db, programId, cita({ correoInvitado: "otra@correo.co" }))).toMatchObject({ tipo: "suelta" });
+  });
+
+  it("la cita que el webhook ya guardó (suelta) la reconoce el envío por su uuid, sin Calendly", async () => {
+    await registrarLlamadaDeCalendly(db, programId, cita({ uuidInvitado: "uuid-guardada", correoInvitado: "otra@correo.co" }));
+    const link = "https://calendly.com/d/abc/evento/invitees/uuid-guardada";
+    expect(await citaYaGuardada(db, programId, link)).toMatchObject({ estado: "vigente", uuidInvitado: "uuid-guardada" });
+    expect(await citaYaGuardada(db, otroProgramId, link)).toBeNull();
+    expect(await citaYaGuardada(db, programId, "https://calendly.com/d/abc/evento/invitees/otra")).toBeNull();
   });
 
   it("un código ajeno o cerrado no casa y cae a la regla de correo", async () => {

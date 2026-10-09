@@ -1,9 +1,12 @@
-import { eq } from "drizzle-orm";
-import { programs, sobresCrudos, sources } from "@/lib/db/schema";
+import { and, eq } from "drizzle-orm";
+import { calls, programs, sobresCrudos, sources } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { normalizarEmail, type MapeoColumnas } from "@/lib/sheets/mapeo";
 import { ingerirEntradas } from "@/lib/ingesta/ingerir";
 import { resolverCitaDeEnvio } from "@/lib/calendly/resolver-cita";
+import { uuidInvitadoDelLink } from "@/lib/calendly/cita";
+import { huellaDeCita } from "@/lib/calendly/colgar-llamada";
+import { vigente } from "@/lib/queries/vigente";
 import type { ResultadoCita } from "@/lib/ingesta/regla-de-deals";
 import type { EntradaEnvio } from "@/lib/ingesta/envio";
 import { mapeoWebhookDesdeFuente, type MapeoWebhookResuelto } from "@/lib/ingesta/mapeo-webhook";
@@ -82,9 +85,29 @@ async function resolverCitas(
       citas.set(correo, { estado: "error", mensaje: "el programa no tiene token de Calendly configurado." });
       continue;
     }
-    citas.set(correo, await resolverCitaDeEnvio({ token, correo, linkAgenda: entrada.linkAgenda }));
+    // La cita pudo entrar antes por el webhook de Calendly con OTRO correo (el invitado
+    // escribe uno en el formulario y otro en la agenda): si ya está guardada con su uuid,
+    // esa es la cita, sin preguntarle a Calendly por un correo que no la encuentra (9-oct).
+    const guardada = await citaYaGuardada(db, programId, entrada.linkAgenda);
+    citas.set(correo, guardada ?? await resolverCitaDeEnvio({ token, correo, linkAgenda: entrada.linkAgenda }));
   }
   return citas;
+}
+
+/** La cita vigente que el webhook de Calendly ya guardó con el uuid del link, si existe. */
+export async function citaYaGuardada(
+  db: Db,
+  programId: string,
+  linkAgenda: string | null | undefined,
+): Promise<ResultadoCita | null> {
+  const uuidInvitado = linkAgenda ? uuidInvitadoDelLink(linkAgenda) : null;
+  if (!uuidInvitado) return null;
+  const [fila] = await db
+    .select({ inicio: calls.fechaAgenda, correoHost: calls.calendlyHostEmail })
+    .from(calls)
+    .where(and(eq(calls.programId, programId), eq(calls.huellaFila, huellaDeCita(uuidInvitado)), vigente(calls)));
+  if (!fila?.inicio) return null;
+  return { estado: "vigente", inicio: fila.inicio, uuidInvitado, correoHost: fila.correoHost };
 }
 
 /**
