@@ -23,10 +23,17 @@ import { esAdministrador, manejaPauta, trabajaLeads } from "@/lib/auth/roles";
 
 /** El id de una sección: también el valor de `?tab=` en la URL. */
 export type SeccionId =
-  | "atencion"
+  | "info"
+  | "notificaciones"
   | "metricas"
   | "canales"
   | "por-decidir";
+
+/**
+ * El `?tab=` viejo `atencion` ahora es `notificaciones` (ticket 221). La página hace el
+ * redirect de servidor; aquí sólo se documenta el alias para que nadie reintroduzca el id.
+ */
+export const TAB_ATENCION_LEGADO = "atencion";
 
 export interface SeccionMiEspacio {
   id: SeccionId;
@@ -38,8 +45,11 @@ export interface SeccionMiEspacio {
 }
 
 /**
- * El catálogo, en orden de aparición. Una sección por capacidad:
- *  - Las dos de quien trabaja leads: atención y métricas personales.
+ * El catálogo, en orden de aparición. Info va primera para todo rol que tiene Mi espacio
+ * (ticket 221): el perfil, la foto, el rol, los enlaces de captación y la cuenta de
+ * Calendly por programa. Después, una sección por capacidad:
+ *  - Las de quien trabaja leads: Notificaciones (el hub, reemplaza "Necesita atención") y
+ *    Métricas personales.
  *  - `canales` para quien maneja pauta sin administrar ni trabajar leads (paid trafficker).
  *  - `por-decidir` para quien administra sin trabajar leads (gerente): la operación del CRM
  *    que le toca decidir, NUNCA los deals de los closers.
@@ -51,14 +61,22 @@ export interface SeccionMiEspacio {
  */
 export const SECCIONES: readonly SeccionMiEspacio[] = [
   {
-    id: "atencion",
-    etiqueta: "Necesita atención",
+    id: "info",
+    etiqueta: "Info",
+    // Todo rol que tiene Mi espacio: trabaja leads, administra o maneja pauta. El developer
+    // cumple las tres, así que también la ve. Por capacidad, nunca por el literal del rol.
+    habilita: (rol) => trabajaLeads(rol) || esAdministrador(rol) || manejaPauta(rol),
+    usaSelectorDePrograma: false,
+  },
+  {
+    id: "notificaciones",
+    etiqueta: "Notificaciones",
     habilita: (rol) => trabajaLeads(rol),
     usaSelectorDePrograma: true,
   },
   {
     id: "metricas",
-    etiqueta: "Mis métricas",
+    etiqueta: "Métricas",
     habilita: (rol) => trabajaLeads(rol),
     usaSelectorDePrograma: true,
   },
@@ -88,17 +106,33 @@ export function seccionesDeRol(rol: Rol | null): SeccionMiEspacio[] {
 }
 
 /**
+ * La sección POR DEFECTO del rol: el trabajo de su rol, no Info. Para quien trabaja leads
+ * es Notificaciones; para el gerente, Por decidir; para el paid trafficker, Canales. Info
+ * va primera en la barra (ticket 221), pero no es la que se abre sin `?tab=`: lo primero
+ * que ve alguien es su trabajo. Se calcula como la primera sección distinta de Info, con
+ * Info de red por si un rol sólo tuviera esa.
+ */
+export function seccionPorDefecto(rol: Rol | null): SeccionMiEspacio | null {
+  const disponibles = seccionesDeRol(rol);
+  if (disponibles.length === 0) return null;
+  return disponibles.find((s) => s.id !== "info") ?? disponibles[0];
+}
+
+/**
  * La sección que se debe mostrar dado el rol y la `?tab=` pedida por la URL.
  *
  * - Si el rol no cumple NINGUNA sección, `null` (la página muestra el mensaje del dueño).
+ * - El `?tab=atencion` viejo se trata como `notificaciones` (ticket 221): el id cambió, el
+ *   enlace guardado de alguien no debe caer en la de por defecto por un rename.
  * - Si la pedida existe y el rol la cumple, esa.
  * - En cualquier otro caso (sin `?tab=`, o una `?tab=` de otra sección forjada a mano), la
- *   PRIMERA del rol. Forjar `?tab=canales` siendo closer NUNCA muestra Canales: cae en la
- *   primera del closer (ADR 0025: la capacidad decide, no la URL).
+ *   POR DEFECTO del rol —su trabajo, no Info—. Forjar `?tab=canales` siendo closer NUNCA
+ *   muestra Canales: cae en su sección por defecto (ADR 0025: la capacidad decide, no la URL).
  */
 export function seccionPedida(rol: Rol | null, tabPedida: string | undefined): SeccionMiEspacio | null {
   const disponibles = seccionesDeRol(rol);
   if (disponibles.length === 0) return null;
-  const pedida = disponibles.find((s) => s.id === tabPedida);
-  return pedida ?? disponibles[0];
+  const tab = tabPedida === TAB_ATENCION_LEGADO ? "notificaciones" : tabPedida;
+  const pedida = disponibles.find((s) => s.id === tab);
+  return pedida ?? seccionPorDefecto(rol);
 }

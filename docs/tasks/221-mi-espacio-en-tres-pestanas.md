@@ -3,7 +3,7 @@ id: 221
 etapa: O8
 serves: "A-125; ADR 0082 punto 3"
 depends: []
-status: todo
+status: review
 ---
 
 # 221 — Mi espacio en tres pestañas: Info, Notificaciones y Métricas
