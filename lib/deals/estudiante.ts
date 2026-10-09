@@ -6,6 +6,8 @@ import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import type { Rol } from "@/lib/auth/roles";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
+import { cohortesVendiendo } from "@/lib/cohortes/vendiendo";
+import { hoyEnBogota } from "@/lib/format";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { fechaLimiteMaxima } from "./pago";
 import { puedeTrabajarDeal } from "./permiso";
@@ -121,8 +123,9 @@ export interface CohorteCambiada {
  * representan los 12 estudiantes que compraron en agosto y pasaron a septiembre: **no hace
  * falta una relación N:N**.
  *
- * - La cohorte nueva es del MISMO programa (frontera, ADR 0043), distinta de la actual, y
- *   **futura o activa** (Mani, 28-sep). El motivo es texto libre y obligatorio.
+ * - La cohorte nueva es del MISMO programa (frontera, ADR 0043) y distinta de la actual.
+ *   Un estudiante conserva el traslado a una futura o activa; cualquier otro deal solo se
+ *   mueve a una cohorte que este vendiendo hoy. El motivo es texto libre y obligatorio.
  * - **La venta cuenta donde asiste**: `deals.cohort_id` es la cohorte nueva, así la meta y la
  *   lista de estudiantes de cada cohorte reflejan a quién le da clase.
  * - El quién y cuándo los guarda `change_log` (campo `cohortId`, valor anterior y nuevo), y el
@@ -141,8 +144,15 @@ export async function cambiarCohorte(db: Db, actor: ActorDeEstudiante, datos: Da
         throw new ErrorDeApp("La cohorte no existe o es de otro programa.", 422);
       }
       if (destino.id === deal.cohortId) throw new ErrorDeApp("El deal ya está en esa cohorte.", 422);
-      if (destino.estado === "cerrado") {
+      const esEstudiante = deal.etapa === "ganado_parcial" || deal.etapa === "ganado_completo";
+      if (esEstudiante && destino.estado === "cerrado") {
         throw new ErrorDeApp("Solo se puede mover a una cohorte futura o activa.", 422);
+      }
+      if (!esEstudiante) {
+        const vendiendoHoy = await cohortesVendiendo(tx, deal.programId, hoyEnBogota());
+        if (!vendiendoHoy.some((cohorte) => cohorte.id === destino.id)) {
+          throw new ErrorDeApp("Solo se puede elegir una cohorte que esté vendiendo hoy.", 422);
+        }
       }
 
       let origen = "sin cohorte";
