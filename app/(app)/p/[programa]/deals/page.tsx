@@ -19,6 +19,8 @@ import { ETAPA_DE_ENTRADA } from "@/lib/deals/crear-a-mano";
 import { alcanceDeDeals } from "@/lib/auth/alcance-deals";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
+import { BusquedaDeDeals } from "@/components/deals/busqueda-de-deals";
+import { BuscadorDeDeals } from "@/components/deals/buscador-de-deals";
 
 export const dynamic = "force-dynamic";
 
@@ -85,41 +87,44 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
       }
     >
       <PantallaFija>
-        <div className="shrink-0">
-          <FiltroKanban
+        <BusquedaDeDeals key={programa.id}>
+          <div className="shrink-0">
+            <FiltroKanban
+              total={tablero.total}
+              buscador={<BuscadorDeDeals programaSlug={programa.slug} idsDelTablero={tarjetas.map((t) => t.dealId)} />}
+              mostrarDueno={alcanceDeals.tipo === "todos"}
+              cohorteActivaId={activa?.id ?? null}
+              antiguedadMinima={filtros.antiguedadMinima ?? null}
+              owners={opciones.owners}
+              cohortes={opciones.cohortes}
+              canales={opciones.canales}
+              leadQualities={opciones.leadQualities}
+              leadValues={opciones.leadValues}
+              orden={filtros.orden}
+              fecha={filtros.fecha ?? null}
+              camposDeFecha={CAMPOS_DE_FECHA}
+            />
+          </div>
+          <TableroKanban
+            columnas={tablero.columnas}
             total={tablero.total}
-            mostrarDueno={alcanceDeals.tipo === "todos"}
-            cohorteActivaId={activa?.id ?? null}
-            antiguedadMinima={filtros.antiguedadMinima ?? null}
-            owners={opciones.owners}
+            mapa={mapaDeTransiciones()}
+            correcciones={correcciones}
+            nombreDeEtapa={NOMBRE_DE_ETAPA}
+            nombreDePendiente={NOMBRE_DE_PENDIENTE}
+            tonoDeEtapa={TONO_DE_ETAPA}
+            programaSlug={programa.slug}
+            areas={opciones.areas}
             cohortes={opciones.cohortes}
-            canales={opciones.canales}
-            leadQualities={opciones.leadQualities}
-            leadValues={opciones.leadValues}
-            orden={filtros.orden}
-            fecha={filtros.fecha ?? null}
-            camposDeFecha={CAMPOS_DE_FECHA}
+            cohortesDestino={opciones.cohortesDestino}
+            motivos={opciones.motivos}
+            inicioDeClases={opciones.inicioDeClases}
+            inicioDeLaCohorteActiva={opciones.inicioDeLaCohorteActiva}
+            userId={session.user.id}
+            administra={esAdministrador(rol)}
+            origen={origen}
           />
-        </div>
-        <TableroKanban
-          columnas={tablero.columnas}
-          total={tablero.total}
-          mapa={mapaDeTransiciones()}
-          correcciones={correcciones}
-          nombreDeEtapa={NOMBRE_DE_ETAPA}
-          nombreDePendiente={NOMBRE_DE_PENDIENTE}
-          tonoDeEtapa={TONO_DE_ETAPA}
-          programaSlug={programa.slug}
-          areas={opciones.areas}
-          cohortes={opciones.cohortes}
-          cohortesDestino={opciones.cohortesDestino}
-          motivos={opciones.motivos}
-          inicioDeClases={opciones.inicioDeClases}
-          inicioDeLaCohorteActiva={opciones.inicioDeLaCohorteActiva}
-          userId={session.user.id}
-          administra={esAdministrador(rol)}
-          origen={origen}
-        />
+        </BusquedaDeDeals>
       </PantallaFija>
     </PageShell>
   );

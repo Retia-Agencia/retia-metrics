@@ -3,7 +3,7 @@
 import { z } from "zod";
 import type { Session } from "next-auth";
 import { requireRole, requireRoleDeLectura } from "@/lib/auth/guards";
-import { programaEnAlcance } from "@/lib/auth/alcance";
+import { programaEnAlcance, programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
@@ -17,6 +17,36 @@ import type { RequisitoFaltante } from "@/lib/deals/requisitos";
 import { esquemaDescuentoUsdOpcional } from "@/lib/deals/valor-vendido";
 import { crearDealAMano, DealYaAbierto, type EntradaDealAMano } from "@/lib/deals/crear-a-mano";
 import { esquemaProximoContacto } from "@/lib/deals/proximo-contacto";
+import { buscarDealsDelPrograma } from "@/lib/queries/kanban";
+
+export type ResultadoBusquedaDeals =
+  | { ok: true; dealIds: string[] }
+  | { ok: false; error: string };
+
+const esquemaBusqueda = z.object({
+  programaSlug: z.string().min(1, "Programa inválido."),
+  texto: z.string(),
+});
+
+export async function buscarDealsAccion(entrada: {
+  programaSlug: string;
+  texto: string;
+}): Promise<ResultadoBusquedaDeals> {
+  try {
+    return await normalizando(async () => {
+      const datos = esquemaBusqueda.parse(entrada);
+      const session = await requireRole("gerente", "closer");
+      const rol = await rolDeVista(session);
+      const programa = await programaVisiblePorSlug(session.user.id, rol, datos.programaSlug);
+      if (!programa) return { ok: false, error: "Ese programa no existe." };
+      return { ok: true, dealIds: await buscarDealsDelPrograma(db, programa.id, datos.texto) };
+    });
+  } catch (error) {
+    if (error instanceof ErrorDeApp) return { ok: false, error: error.message };
+    console.error("[buscarDeals] error no controlado", error);
+    return { ok: false, error: "Error interno." };
+  }
+}
 
 /**
  * Server action del Kanban (ticket 069): mover un deal de etapa.

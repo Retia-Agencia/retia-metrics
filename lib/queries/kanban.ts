@@ -1,4 +1,4 @@
-import { and, between, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, between, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   cohorts,
@@ -30,6 +30,51 @@ import { linkEnviadoSinCita } from "@/lib/deals/handoff";
 import { esContactoRegistrado, hechosDeLlamadas } from "@/lib/deals/mover-etapa";
 import { propiedadesQueLeFaltan } from "@/lib/deals/requisitos";
 import { proximoContactoVencido } from "@/lib/deals/proximo-contacto";
+
+const MINIMO_TEXTO_BUSQUEDA = 2;
+
+/** Busca deals vigentes por los datos de su lead, siempre dentro de UN programa. */
+export async function buscarDealsDelPrograma(db: Db, programId: string, texto: string): Promise<string[]> {
+  const termino = texto.trim();
+  if (termino.length < MINIMO_TEXTO_BUSQUEDA) return [];
+
+  const patron = `%${termino.replace(/[\\%_]/g, (caracter) => `\\${caracter}`)}%`;
+  const digitos = termino.replace(/[^0-9]/g, "");
+  const patronTelefono = `%${digitos}%`;
+  const coincidenciaTelefono =
+    digitos.length >= 4
+      ? or(
+          sql`regexp_replace(${leads.telefono}, '[^0-9]', '', 'g') like ${patronTelefono}`,
+          and(
+            eq(leadContactos.tipo, "telefono"),
+            sql`regexp_replace(${leadContactos.valor}, '[^0-9]', '', 'g') like ${patronTelefono}`,
+          ),
+        )
+      : undefined;
+
+  const filas = await db
+    .selectDistinct({ dealId: deals.id })
+    .from(deals)
+    .innerJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, programId)))
+    .leftJoin(
+      leadContactos,
+      and(eq(leadContactos.leadId, leads.id), eq(leadContactos.programId, programId)),
+    )
+    .where(
+      and(
+        eq(deals.programId, programId),
+        vigente(deals),
+        or(
+          ilike(leads.nombre, patron),
+          ilike(leads.emailNormalizado, patron),
+          and(eq(leadContactos.tipo, "correo"), ilike(leadContactos.valor, patron)),
+          coincidenciaTelefono,
+        ),
+      ),
+    );
+
+  return filas.map((fila) => fila.dealId);
+}
 
 /**
  * Los deals de un programa agrupados por etapa, para el Kanban (ticket 069).
