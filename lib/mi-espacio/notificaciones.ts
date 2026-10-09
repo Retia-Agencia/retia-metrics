@@ -251,10 +251,11 @@ export async function notificacionesDeChip(
   const universo = await cargarUniverso(db, programId, userId, hoy);
 
   // Los dos chips que preguntan a otras fuentes, acotados al universo (dueño + programa).
-  const [idsCalendly, idsDuplicados] = await Promise.all([
-    chip === "calendly" ? idsConNovedadCalendly(db, userId, programId) : Promise.resolve(new Map<string, Date>()),
+  const [novedadesCalendly, idsDuplicados] = await Promise.all([
+    chip === "calendly" ? idsConNovedadCalendly(db, userId, programId) : Promise.resolve(mapaCalendlyVacio()),
     chip === "duplicados" ? idsDuplicadosDeHoy(db, programId, userId, universo, hoy) : Promise.resolve(new Set<string>()),
   ]);
+  const idsCalendly = novedadesCalendly.todas;
 
   const evaluadas: TarjetaNotificacion[] = [];
   for (const t of universo.tarjetas) {
@@ -279,10 +280,11 @@ export async function conteosDeChips(
 ): Promise<Record<ChipNotificacion, number>> {
   const { programId, userId } = args;
   const universo = await cargarUniverso(db, programId, userId, hoy);
-  const [idsCalendly, idsDuplicados] = await Promise.all([
+  const [novedadesCalendly, idsDuplicados] = await Promise.all([
     idsConNovedadCalendly(db, userId, programId),
     idsDuplicadosDeHoy(db, programId, userId, universo, hoy),
   ]);
+  const idsCalendly = novedadesCalendly.todas;
 
   const conteos = Object.fromEntries(
     CHIPS_NOTIFICACIONES.map((c) => [c, 0]),
@@ -295,24 +297,83 @@ export async function conteosDeChips(
   return conteos;
 }
 
+/**
+ * El "número sin ver" (ticket 223): cuántos DEALS del closer en el programa tienen algo
+ * nuevo que el dueño no ha visto todavía. Un deal cuenta si cumple AL MENOS UNO de:
+ *  - tiene una novedad de Calendly SIN leer (`leidaEn` null) para este usuario+programa;
+ *  - es nuevo y el dueño no lo ha abierto (`tarjeta.esNuevo`);
+ *  - tiene un pendiente de `reagenda`/`seguimiento` con fecha de hoy o ya vencida (Bogotá).
+ *
+ * Un deal que cumple dos razones cuenta UNA vez. Reutiliza el mismo universo y los mismos
+ * predicados que los chips (nunca una segunda consulta de los mismos hechos): sale de la
+ * misma carga del universo y de la misma lectura de novedades de Calendly.
+ */
+export async function conteoSinVer(
+  db: Db,
+  args: { programId: string; userId: string },
+  hoy: string = hoyEnBogota(),
+): Promise<number> {
+  const { programId, userId } = args;
+  const universo = await cargarUniverso(db, programId, userId, hoy);
+  const novedadesCalendly = await idsConNovedadCalendly(db, userId, programId);
+
+  let total = 0;
+  for (const t of universo.tarjetas) {
+    if (deberiaVerse(universo, t, novedadesCalendly.sinLeer, hoy)) total += 1;
+  }
+  return total;
+}
+
+/** ¿Este deal tiene algo sin ver? Las tres razones del circulito, una basta. */
+function deberiaVerse(
+  u: Universo,
+  t: TarjetaDeal,
+  calendlySinLeer: Set<string>,
+  hoy: string,
+): boolean {
+  if (calendlySinLeer.has(t.dealId)) return true;
+  if (t.esNuevo) return true;
+  const seguimiento = u.fechas.get(t.dealId)?.fechaSeguimiento ?? null;
+  const pendienteConFecha =
+    (t.pendiente === "reagenda" || t.pendiente === "seguimiento") &&
+    seguimiento != null &&
+    seguimiento <= hoy;
+  return pendienteConFecha;
+}
+
 /** ¿El chip ordena/muestra por una fecha? (Nuevos y Próxima Cohorte no tienen fecha propia). */
 function chipConFecha(chip: ChipNotificacion): boolean {
   return chip === "hoy" || chip === "reagenda" || chip === "seguimiento" || chip === "vencidos" || chip === "calendly";
 }
 
+/** Novedades de Calendly del universo: todas (leídas o no) y el subconjunto no leído. */
+interface NovedadesCalendly {
+  /** dealId -> fecha de su novedad más reciente (leída o no); el chip ordena por ella. */
+  todas: Map<string, Date>;
+  /** dealIds con al menos una novedad SIN leer (`leidaEn` null); lo usa `conteoSinVer`. */
+  sinLeer: Set<string>;
+}
+
+function mapaCalendlyVacio(): NovedadesCalendly {
+  return { todas: new Map<string, Date>(), sinLeer: new Set<string>() };
+}
+
 /**
- * Los dealId del usuario+programa con una novedad de Calendly (leída o no), del 201, con la
- * fecha de su novedad más reciente (el chip ordena por ella).
+ * Los dealId del usuario+programa con una novedad de Calendly, del 201. `todas` lleva la
+ * fecha de la novedad más reciente (el chip ordena por ella, leídas o no); `sinLeer` son los
+ * deals con al menos una novedad sin leer (`leidaEn` null), que es lo que cuenta el circulito
+ * del 223.
  * ponytail: lee hasta 500 por grupo; si un closer acumula más, pedir un lector sin tope.
  */
-async function idsConNovedadCalendly(db: Db, userId: string, programId: string): Promise<Map<string, Date>> {
+async function idsConNovedadCalendly(db: Db, userId: string, programId: string): Promise<NovedadesCalendly> {
   const { noLeidas, leidas } = await novedadesCalendlyDeUsuario(db, { userId, programId, porGrupo: 500 });
-  const ultima = new Map<string, Date>();
+  const todas = new Map<string, Date>();
   for (const n of [...noLeidas, ...leidas]) {
-    const previa = ultima.get(n.dealId);
-    if (!previa || n.createdAt > previa) ultima.set(n.dealId, n.createdAt);
+    const previa = todas.get(n.dealId);
+    if (!previa || n.createdAt > previa) todas.set(n.dealId, n.createdAt);
   }
-  return ultima;
+  const sinLeer = new Set(noLeidas.map((n) => n.dealId));
+  return { todas, sinLeer };
 }
 
 /**

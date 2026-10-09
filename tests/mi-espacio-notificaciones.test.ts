@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { eq } from "drizzle-orm";
 import {
   calls,
   cohorts,
@@ -6,6 +7,8 @@ import {
   deals,
   leadContactos,
   leads,
+  miembrosPrograma,
+  notificacionesCalendly,
   programs,
   sources,
   submissions,
@@ -17,12 +20,31 @@ import { registrarNovedadCalendly } from "@/lib/notificaciones-calendly/notifica
 import {
   CHIPS_NOTIFICACIONES,
   chipPedido,
+  conteoSinVer,
   conteosDeChips,
   notificacionesDeChip,
   type ChipNotificacion,
 } from "@/lib/mi-espacio/notificaciones";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+
+// La ruta `/api/mi-espacio/sin-ver` lee la base por el singleton `@/lib/db` y la sesion por
+// `@/lib/auth`: se controlan con holders (mismo molde que `tests/canales-accion.test.ts`).
+const dbHolder: { db: Db | null } = { db: null };
+vi.mock("@/lib/db", () => ({
+  get db() {
+    return dbHolder.db;
+  },
+}));
+const sesionHolder: { rol: string | null; id: string } = { rol: null, id: "" };
+vi.mock("@/lib/auth/index", () => ({
+  auth: async () =>
+    sesionHolder.rol ? { user: { id: sesionHolder.id, rol: sesionHolder.rol } } : null,
+}));
+vi.mock("@/lib/auth/vista", () => ({
+  rolDeVista: async (session: { user?: { rol?: string } }) => session?.user?.rol ?? null,
+  sesionEfectiva: async <T,>(session: T) => session,
+}));
 
 /**
  * Ticket 222: las Notificaciones de Mi espacio por tipo. Prueba que cada chip devuelve SÓLO
@@ -48,6 +70,9 @@ let leadN = 0;
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
+  dbHolder.db = db;
+  sesionHolder.rol = null;
+  sesionHolder.id = "";
   const [p] = await db
     .insert(programs)
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" })
@@ -83,6 +108,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  dbHolder.db = null;
   await cerrar();
 });
 
@@ -317,5 +343,130 @@ describe("notificaciones de Mi espacio (222)", () => {
     // Sin solapamiento y la unión es todo.
     const union = new Set([...p0.tarjetas, ...p1.tarjetas].map((t) => t.dealId));
     expect(union.size).toBe(30);
+  });
+});
+
+/** Marca como leida (vista) la novedad de Calendly de un deal. */
+async function marcarCalendlyLeida(dealId: string): Promise<void> {
+  await db
+    .update(notificacionesCalendly)
+    .set({ leidaEn: new Date() })
+    .where(eq(notificacionesCalendly.dealId, dealId));
+}
+
+/** Registra una novedad de Calendly sin leer sobre un deal (con una llamada de hoy). */
+async function novedadCalendly(dealId: string, clave: string): Promise<void> {
+  const callId = await llamada(dealId, HOY);
+  const ok = await registrarNovedadCalendly(db, {
+    programId,
+    dealId,
+    callId,
+    tipo: "cita_nueva",
+    claveEvento: clave,
+  });
+  expect(ok).toBe(true);
+}
+
+describe("conteoSinVer: el numero del circulito (223)", () => {
+  it("cuenta Calendly sin leer + nuevos + seguimientos/reagendas de hoy o vencidos", async () => {
+    const calendly = await deal({ etapa: "agendado" });
+    await novedadCalendly(calendly.dealId, "ev-sinleer");
+    const nuevo = await dealId({ etapa: "registrado", nuevo: true });
+    const segHoy = await dealId({ etapa: "atendido", pendiente: "seguimiento", fechaSeguimiento: HOY });
+    const reagendaVencida = await dealId({ etapa: "contactado", pendiente: "reagenda", fechaSeguimiento: AYER });
+    // No cuentan: seguimiento futuro, deal viejo ya abierto, proxima_cohorte.
+    await dealId({ etapa: "atendido", pendiente: "seguimiento", fechaSeguimiento: MANANA });
+    await dealId({ etapa: "registrado", nuevo: false });
+    await dealId({ etapa: "atendido", pendiente: "proxima_cohorte" });
+
+    const total = await conteoSinVer(db, { programId, userId: yo }, HOY);
+    expect(total).toBe(4);
+    expect(new Set([calendly.dealId, nuevo, segHoy, reagendaVencida]).size).toBe(4);
+  });
+
+  it("un deal con DOS razones cuenta una sola vez", async () => {
+    const d = await deal({ etapa: "registrado", nuevo: true, pendiente: "seguimiento", fechaSeguimiento: AYER });
+    await novedadCalendly(d.dealId, "ev-doble");
+
+    expect(await conteoSinVer(db, { programId, userId: yo }, HOY)).toBe(1);
+  });
+
+  it("una novedad de Calendly ya LEIDA no cuenta", async () => {
+    const d = await deal({ etapa: "agendado" });
+    await novedadCalendly(d.dealId, "ev-leida");
+    await marcarCalendlyLeida(d.dealId);
+
+    expect(await conteoSinVer(db, { programId, userId: yo }, HOY)).toBe(0);
+  });
+
+  it("otro programa u otro dueno nunca cuentan", async () => {
+    await dealId({ etapa: "registrado", nuevo: true, owner: otro });
+    await dealId({ etapa: "atendido", pendiente: "seguimiento", fechaSeguimiento: AYER, owner: otro });
+    await dealId({ etapa: "registrado", nuevo: true, programa: otroProgramId });
+
+    expect(await conteoSinVer(db, { programId, userId: yo }, HOY)).toBe(0);
+  });
+
+  it("coincide con la suma de las razones distintas (consistencia con los chips)", async () => {
+    const calendly = await deal({ etapa: "agendado" });
+    await novedadCalendly(calendly.dealId, "ev-c");
+    await dealId({ etapa: "registrado", nuevo: true });
+    await dealId({ etapa: "atendido", pendiente: "seguimiento", fechaSeguimiento: HOY });
+
+    expect(await conteoSinVer(db, { programId, userId: yo }, HOY)).toBe(3);
+  });
+});
+
+describe("GET /api/mi-espacio/sin-ver: el numero por la ruta (223)", () => {
+  async function pedir(slug: string | null) {
+    const { GET } = await import("@/app/api/mi-espacio/sin-ver/route");
+    const url =
+      slug == null
+        ? "http://x/api/mi-espacio/sin-ver"
+        : `http://x/api/mi-espacio/sin-ver?programa=${slug}`;
+    return GET(new Request(url));
+  }
+
+  it("un closer con membresia recibe su numero", async () => {
+    await db.insert(miembrosPrograma).values({ userId: yo, programId, activo: true });
+    await dealId({ etapa: "registrado", nuevo: true });
+    sesionHolder.rol = "closer";
+    sesionHolder.id = yo;
+
+    const res = await pedir("p");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ total: 1 });
+  });
+
+  it("un programa que la sesion no ve responde 404", async () => {
+    sesionHolder.rol = "closer";
+    sesionHolder.id = yo;
+
+    const res = await pedir("p");
+    expect(res.status).toBe(404);
+  });
+
+  it("un rol que no trabaja leads responde { total: 0 } (no un error)", async () => {
+    sesionHolder.rol = "gerente";
+    sesionHolder.id = yo;
+
+    const res = await pedir("p");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ total: 0 });
+  });
+
+  it("sin sesion responde 401", async () => {
+    sesionHolder.rol = null;
+
+    const res = await pedir("p");
+    expect(res.status).toBe(401);
+  });
+
+  it("sin ?programa responde 400", async () => {
+    sesionHolder.rol = "closer";
+    sesionHolder.id = yo;
+
+    const res = await pedir(null);
+    expect(res.status).toBe(400);
   });
 });
