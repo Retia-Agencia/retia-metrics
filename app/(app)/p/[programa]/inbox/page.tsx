@@ -138,7 +138,7 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
           id: "necesitan-accion",
           etiqueta: "Necesitan acción",
           total: inbox.atencion.length,
-          descripcion: "Deals con un pago o un compromiso vencido, sin actividad o con los intentos agotados.",
+          descripcion: "Deals con un pago o un compromiso vencido o sin actividad.",
           href: urlConSeccion(base, query, "necesitan-accion"),
         },
       ],

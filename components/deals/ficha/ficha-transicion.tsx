@@ -91,7 +91,7 @@ export function FichaTransicion({
                 <section className="space-y-3">
                   <div>
                     <h3 className="text-sm font-medium">Registrar actividad</h3>
-                    <p className="text-xs text-muted-foreground">Cuenta para los intentos y el aviso de estancado.</p>
+                    <p className="text-xs text-muted-foreground">Cuenta para el aviso de estancado.</p>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     <Button type="button" className="w-full" variant="secondary" onClick={() => registrarActividad(deal, actividades)}>

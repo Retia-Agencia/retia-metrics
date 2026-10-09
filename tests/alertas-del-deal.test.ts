@@ -126,26 +126,6 @@ describe("alertasDelDeal — requisitos del camino feliz", () => {
 });
 
 describe("alertasDelDeal — urgencia y fronteras", () => {
-  it("muestra la alerta roja al tercer intento, no al segundo", async () => {
-    const conTres = await crearDeal("contactado");
-    const conDos = await crearDeal("contactado");
-    await db.insert(dealActividades).values([
-      { dealId: conTres, tipo: "intento" },
-      { dealId: conTres, tipo: "intento" },
-      { dealId: conTres, tipo: "intento" },
-      { dealId: conDos, tipo: "intento" },
-      { dealId: conDos, tipo: "intento" },
-    ]);
-
-    expect((await alertasDelDeal(db, programId, conTres))!.urgentes).toContainEqual({
-      motivo: "intentos_agotados",
-      mensaje: "Agotó intentos: 3 sin respuesta en esta etapa. Decide: Cierre perdido con motivo o sigue intentando.",
-    });
-    expect((await alertasDelDeal(db, programId, conDos))!.urgentes).not.toContainEqual(
-      expect.objectContaining({ motivo: "intentos_agotados" }),
-    );
-  });
-
   it("Ganado Pago Parcial no ofrece rutas que mueve el sistema", async () => {
     const dealId = await crearDeal("ganado_parcial");
 

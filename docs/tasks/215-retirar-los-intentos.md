@@ -3,7 +3,7 @@ id: 215
 etapa: O8
 serves: "A-120; ADR 0081 punto 7"
 depends: []
-status: todo
+status: review
 ---
 
 # 215 — Retirar los intentos y la alerta de los tres intentos

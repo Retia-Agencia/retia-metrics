@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { dealActividades, deals } from "@/lib/db/schema";
+import { dealActividades } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
@@ -12,7 +12,7 @@ import { etapaTrasActividad } from "./actividad-mueve";
 import { cambiarDuenoDeal } from "./cambiar-dueno";
 
 /**
- * Registrar una actividad de un deal: contacto, intento fallido o nota.
+ * Registrar una actividad de un deal: contacto o nota.
  *
  * - La primera actividad comercial mueve Potencial/Registrado a En gestión; un contacto
  *   logrado continúa a Contactado. Una nota nunca mueve.
@@ -27,7 +27,7 @@ import { cambiarDuenoDeal } from "./cambiar-dueno";
  */
 export const esquemaRegistrarActividad = z.object({
   dealId: z.string().uuid("El deal no es válido."),
-  tipo: z.enum(["contacto", "nota", "intento"], { message: "El tipo tiene que ser contacto, intento o nota." }),
+  tipo: z.enum(["contacto", "nota"], { message: "El tipo tiene que ser contacto o nota." }),
   canal: z.string().trim().max(60, "El canal es muy largo.").optional(),
   fecha: z.date({ message: "La fecha no es válida." }).optional(),
   nota: z.string().trim().min(1, "Escribe qué pasó.").max(4000, "La nota es muy larga."),
