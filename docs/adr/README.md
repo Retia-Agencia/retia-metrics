@@ -58,6 +58,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0059](./0059-el-deal-historico-nace-en-su-etapa.md) | El deal histórico nace en su etapa, por un template y con su huella |
 | [0060](./0060-el-origen-es-del-envio-y-la-venta-hereda-el-del-envio-que-abrio-el-deal.md) | El origen es del envío; la venta hereda el del envío que abrió su deal (cierra D5) |
 | [0022](./0022-ventana-de-venta-de-la-cohorte-es-dato-por-cohorte.md) | La ventana de venta es dato de cada cohorte |
+| [0080](./0080-la-cohorte-del-deal-la-elige-su-dueno.md) | La cohorte del deal la elige su dueño entre las que venden hoy; en el solape se pueden elegir dos |
 | [0023](./0023-metricas-por-closer-sin-meta-individual.md) | Las métricas por closer salen de las mismas consultas, y la meta no se reparte |
 
 **El dinero y los catálogos**
