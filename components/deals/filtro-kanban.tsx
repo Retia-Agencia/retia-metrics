@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
 import { OPCIONES_DE_ORDEN, type FiltroDeclarado } from "@/components/filtros/declaracion";
 import { FiltroFechaLista, CLAVES_DE_FECHA_LISTA } from "@/components/filtro-fecha-lista";
@@ -28,6 +29,7 @@ const ANTIGUEDADES = [
 
 export interface FiltroKanbanProps {
   total: number;
+  buscador?: ReactNode;
   mostrarDueno: boolean;
   cohorteActivaId: string | null;
   antiguedadMinima: number | null;
@@ -45,6 +47,7 @@ export interface FiltroKanbanProps {
 
 export function FiltroKanban({
   total,
+  buscador,
   mostrarDueno,
   cohorteActivaId,
   antiguedadMinima,
@@ -116,6 +119,7 @@ export function FiltroKanban({
     <BarraDeLista
       total={total}
       sustantivo={{ singular: "deal", plural: "deals" }}
+      buscador={buscador}
       filtros={filtros}
       compuestosPopover={<FiltroFechaLista campos={camposDeFecha} filtro={fecha} />}
       clavesCompuestas={CLAVES_DE_FECHA_LISTA}
