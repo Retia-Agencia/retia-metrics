@@ -56,6 +56,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 131 | [Varios formularios activos por programa](./131-varios-formularios-activos-por-programa.md) | — | done · 30-sep · 0050 aplicada · el link de captación sigue en `programs.form_url` (A11) |
 | [x] | 151 | [Un reenvío sube la etapa de entrada y el CRM avisa los envíos repetidos](./151-el-reenvio-sube-la-etapa-de-entrada.md) | 142, 117 | done · `cp-20261002-3` · 2-oct · carril Mani · ADR 0073: S1 a S3 (solo sistema, solo hacia arriba, con nota), badge "N envíos" en tarjeta y ficha del deal, el parcial absorbido por su completo en la ficha del lead. Typecheck, lint, build y tests del cambio en verde; recorrido hecho (2-oct). |
 | [x] | 203 | [Reinicio operativo de ComunicArte y Tactical Investor](./203-reinicio-operativo-comunicarte-tactical.md) | 096, 106, 110 | done · 7-oct · producción reiniciada en cero; webhooks y asignación por Calendly verificados; Comunícate con Confianza intacto |
+| [ ] | 209 | [Leads: "Mostrar respuestas del formulario" como columnas](./209-mostrar-respuestas-del-formulario-en-leads.md) | — | todo · 8-oct · pedido de Jero |
 
 ## 2 · Deal y motor de etapas
 
@@ -87,6 +88,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 161 | [La alerta "agotó intentos"](./161-alerta-de-tres-intentos.md) | 128, 142 | done · `cp-20261003-1` · 3-oct (S3) · alerta roja al tercer intento en la etapa, en ficha e Inbox; un anulado no cuenta |
 | [x] | 162 | [Una sola tarjeta de Transición, con botones de etapa redondos](./162-transicion-unica-y-botones-de-etapa.md) | 156 | done · `cp-20261003-1` · 3-oct (S1) · Transición con "Mover a" y "Registrar" (Contacto, Intento, Nota en las once etapas); Actividades solo lista; botones redondos de igual ancho; el Kanban abre el mismo pop-up. Recorrido de la sesión central hecho |
 | [x] | 165 | [Crear la siguiente cohorte, y que Próxima cohorte respete la fecha](./165-la-siguiente-cohorte.md) | 142 | done · `cp-20261003-1` · 3-oct (S4) · "Crear C{n+1}" del administrador; selector solo futuras; retomar respeta el inicio de ventas (A-49, A-50); recorrido hecho |
+| [ ] | 211 | [La corte del deal la elige su dueño, y dos cortes venden a la vez](./211-la-corte-del-deal-la-elige-su-dueno.md) | — | todo · 8-oct · reunión con Michael; pide ADR |
+| [ ] | 213 | [Buscador en Deals: por nombre, correo o teléfono](./213-buscador-en-deals.md) | 207 | todo · 9-oct · Mani |
 
 ## 3 · Inbox
 
@@ -102,6 +105,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 201 | [Novedades de Deals y Calendly para el closer](./201-novedades-de-deals-y-calendly.md) | 183, 096, 157 | done · `cp-20261006-1` · 6-oct · 0072 aplicada en producción; CI verde (`76c921c`) |
 | [ ] | 205 | [Desde una suelta se crea el deal o se asocia a uno existente](./205-crear-o-asociar-deal-desde-la-suelta.md) | 096, 098, 157 | todo · 8-oct · A-108 |
 | [ ] | 206 | [Una suelta se adopta por correo cuando llega el formulario](./206-adoptar-sueltas-por-correo.md) | 096, 052 | todo · 8-oct · A-109 |
+| [ ] | 210 | [El setter del programa recibe solo los deals sin agenda](./210-setter-del-programa-recibe-los-deals-sin-agenda.md) | 157 | todo · 8-oct · reunión con Jero |
 
 ## 4 · Llamadas y Calendly
 
@@ -144,6 +148,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 144 | [Próxima fecha de pago y cartera](./144-proxima-fecha-de-pago-y-cartera.md) | 132, QM-3, GC-17 | bloqueado |
 | [x] | 166 | [Las plataformas de pago de un programa, a la vista](./166-plataformas-de-pago-visibles.md) | 100 | done · `cp-20261003-1` · 3-oct (S4) · bloque "Plataformas de pago" en la ficha del programa y aviso en el abono; recorrido hecho |
 | [x] | 167 | [Quién cobró es una FK a `users`, y un usuario nuevo no necesita `closer_id`](./167-quien-cobro-es-una-fk.md) | · | done · `cp-20261004-1` · ola O4 (ver §14) · el 159 queda con lo del corte |
+| [ ] | 212 | [El closer crea la plataforma de pago al registrar el abono, y la corrige después](./212-plataforma-nueva-al-registrar-un-abono.md) | — | todo · 9-oct · Mani, tras el 208 |
 
 ## 6 · Students y onboarding
 
@@ -153,7 +158,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 |---|---|---|---|---|
 | [x] | 063 | [`onboarded_at` y cambio de cohorte](./063-onboarded-at-y-cambio-de-cohorte.md) (E4-7) | 060 | done · 28-sep · `lib/deals/estudiante.ts` (`marcarOnboarded`, `cambiarCohorte`), `lib/queries/estudiantes.ts` (Students es una consulta) y la cohorte activa se asigna sola en el primer abono. Sin migración. Falta la pantalla (074) |
 | [x] | 099 | [La tab Students por cohorte](./099-tab-students-por-cohorte.md) | 060, 061, 097 | done · 30-sep · Alejo · recorrido visual hecho (claro/oscuro, 390 px, consola); un deal en Completo ya no muestra fecha límite |
-| [ ] | 145 | [Rol Customer Success y onboarding](./145-rol-customer-success-y-onboarding.md) | QM-5 | bloqueado |
+| [ ] | 145 | [Rol Customer Success y onboarding](./145-rol-customer-success-y-onboarding.md) | — | todo · 8-oct · desbloqueado con alcance chico: rol que solo marca onboarded (Dani Rincón TI, Juanjo CA); los cuatro pasos siguen en QM-5 |
+| [ ] | 214 | [Students: total recaudado fijo abajo, y un saldo que se entienda](./214-students-total-recaudado.md) | — | todo · 9-oct · Mani, tras el 208 |
 
 ## 7 · Origen y atribución
 
@@ -280,6 +286,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 081 | [COP → USD a la tasa del día](./081-cop-a-usd-en-la-migracion.md) (E7-5) | 078 | descartado · 28-sep (Mani): *"solo usamos USD aquí"*. No hay conversión ni tasa ni marca de abono convertido; un monto que aparezca en COP al barrer se lista como rareza (080) y no se convierte |
 | [ ] | 082 | [Apagar las pestañas de gestión](./082-apagar-las-pestanas-de-gestion.md) (E7-6) | 079, 080 | todo · lo hace Mani |
 | [x] | 127 | [Deshacer la migración de un programa por su huella](./127-deshacer-la-migracion-por-huella.md) | 078 | done · 30-sep · Alejo (`87625fe`) · `npm run migracion:deshacer -- --programa <slug> [--aplicar]`: la reversa nivel 3 del corte (`operations.md` §12.3), probada en PGlite y en la base local; se niega sin borrar si alguien trabajó encima |
+| [x] | 208 | [Migrar el corte 3: agendados con Calendly y Estudiantes Noviembre](./208-migrar-el-corte-3.md) | 203 | done · 8-oct (noche) · aplicado con el ok de Mani: CA 91 agendados + 17 estudiantes, TI 89 + 9; TI C3 desde el 28-sep. Recorrido de Mani hecho |
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
 

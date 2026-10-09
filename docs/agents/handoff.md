@@ -29,6 +29,22 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
 
 ## Memory
 
+- **2026-10-08 (noche, Mani + Claude): reunión con Michael y Jero, y migración del corte 3 (208).**
+  - Reunión (Wispr Flow, "Retia CRM Migración"): migrar C3 (desde el 28-sep) de los dos programas, solo
+    agendados con Calendly y Estudiantes Noviembre; lo anterior al 7-oct sin agenda lo lleva Jero en la hoja.
+    Salieron 209 (respuestas del formulario como columnas en Leads), 210 (setter por defecto del programa), 211
+    (el dueño elige la corte; dos cortes venden en la última semana, pide ADR) y el 145 se desbloqueó con un
+    alcance chico (rol CS que solo marca onboarded: Dani Rincón TI, Juanjo CA).
+  - **208 aplicado con el ok de Mani:** CA 91 agendados + 17 estudiantes (USD 9.459), TI 89 + 9 (USD 8.975),
+    TI C3 desde el 28-sep. Por las puertas de la app: sobres del respaldo del 7-oct (`procesarSobre`,
+    `aplicarEventoDeCalendly`), 14 cuerpos rearmados desde la API de Typeform (idénticos al sobre en 10 de 10),
+    `crearPersonaManual`, `extraerEstudiantes` + `importarGestion`. Script desechable, borrado. Detalle en el 208.
+  - 🩸 La pestaña de estudiantes de Tactical escribe "Whatssapp": `correoDeLaFila` no veía las columnas
+    cruzadas y 8 de 9 estudiantes habrían salido como "sin correo". Lo cazó el ensayo, no el barrido.
+  - Codex sin cuota hasta el 12-oct: la migración la escribió y corrió la sesión principal.
+  - Pendiente: recorrido de Deals, Students e Inbox en producción; Juanjo y Alejo no son usuarios (3 estudiantes
+    de CA sin dueño).
+
 - **2026-10-08 (Mani + Claude): recuperación de citas vivas tras el 203, y tickets 205 a 207.**
   - El corte en cero borró a quienes ya habían agendado: 43 personas con cita activa en Calendly (CA y TI) no
     estaban en el CRM o tenían la llamada suelta. Con el ok de Mani se recuperaron 42 **por la misma puerta**:
