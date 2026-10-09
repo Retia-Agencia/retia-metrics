@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import type { OpcionCatalogo } from "@/lib/queries/kanban";
-import { moverDeal } from "@/app/(app)/p/[programa]/deals/acciones";
 import { DialogoMover, type DatosDialogo, type MovimientoDelDialogo } from "./dialogo-mover";
-import { marcarLinkEnviadoAccion, registrarActividadAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
+import { moverConHechoAccion, registrarActividadAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { accionDeFicha, enlaceDeAccion } from "./ficha/accion-pedida";
 import { Campo, claseInput, claseTextarea, DialogoForm } from "./ficha/campos";
 import { PREGUNTA_DE_ETAPA, type ClaveDestino, type Respuesta, type TipoDeActividad } from "./pregunta-de-etapa";
@@ -36,12 +35,16 @@ export interface DealQueResponde {
   fechaLimiteSugerida?: string | null;
   linkAgenda?: string | null;
   tieneCitaVigente?: boolean;
+  saldo: number | null;
+  moneda: string | null;
+  llamada: { id: string; fecha: Date | string | null; closerNombre: string | null; notas: string | null } | null;
 }
 
 export interface OpcionesDeRespuesta {
   cohortes: OpcionCatalogo[];
   cohortesDestino: OpcionCatalogo[];
-  motivos: { id: string; nombre: string; tipo: string }[];
+  motivos: { id: string; nombre: string; tipo: string; pideTexto?: boolean }[];
+  plataformas: { id: string; nombre: string }[];
 }
 
 const TITULO_DE_ACTIVIDAD: Record<TipoDeActividad, string> = {
@@ -63,6 +66,12 @@ const EXITO_DE_ACTIVIDAD: Record<TipoDeActividad, string> = {
 function flechaDe(mapa: MapaTransiciones, deal: DealQueResponde, r: Respuesta): FlechaCliente | null {
   const a = r.accion;
   if (a.tipo === "retroceder") return mapa.find((f) => f.tipo === "etapa" && f.id === "RETRO" && f.de === deal.etapa) ?? null;
+  if (a.tipo === "abono") {
+    return mapa.find((f) => f.tipo === "etapa" && f.de === deal.etapa && f.a === "ganado_parcial")
+      ?? mapa.find((f) => f.tipo === "etapa" && f.de === deal.etapa && f.a === "ganado_completo")
+      ?? null;
+  }
+  if (a.tipo === "llamada" && a.uso === "agendar") return mapa.find((f) => f.tipo === "etapa" && f.de === deal.etapa && f.a === "agendado") ?? null;
   if (a.tipo !== "mover") return null;
   if (a.a !== deal.etapa) return mapa.find((f) => f.tipo === "etapa" && f.de === deal.etapa && f.a === a.a) ?? null;
   return mapa.find((f) => f.tipo === "pendiente" && f.de === deal.etapa && f.pendienteA === a.pendiente) ?? null;
@@ -95,8 +104,6 @@ export function useResponder(
   } | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [correccionAbierta, setCorreccionAbierta] = useState<{ deal: DealQueResponde; correccion: CorreccionCliente } | null>(null);
-  const [agendaAbierta, setAgendaAbierta] = useState<DealQueResponde | null>(null);
-  const [marcandoLink, setMarcandoLink] = useState(false);
   // El pop-up de actividad guarda los tipos que se pueden elegir y el que esta elegido: con
   // un solo tipo no hay selector; con varios ("Registrar actividad"), se escoge dentro.
   const [actividadAbierta, setActividadAbierta] = useState<{
@@ -131,11 +138,8 @@ export function useResponder(
       registrar(deal, r.accion.actividad);
       return;
     }
-    if (r.accion.tipo === "llamada" && r.accion.uso === "agendar" && !deal.tieneCitaVigente) {
-      setAgendaAbierta(deal);
-      return;
-    }
-    const formulario = accionDeFicha(r.accion);
+    const esHechoDelMovimiento = r.accion.tipo === "abono" || (r.accion.tipo === "llamada" && r.accion.uso === "agendar");
+    const formulario = esHechoDelMovimiento ? null : accionDeFicha(r.accion);
     if (formulario) {
       router.push(enlaceDeAccion(deal.rutaDeLaFicha, formulario));
       return;
@@ -163,14 +167,24 @@ export function useResponder(
     destino: EtapaDeal,
     pendiente: PendienteDeal | null,
     correccion = false,
+    tipoDeHecho?: MovimientoDelDialogo["hecho"],
   ) {
     setEnviando(true);
-    const r = await moverDeal({
+    const hecho = tipoDeHecho === "atendido" && datos.llamada
+      ? { tipo: "atendido" as const, callId: deal.llamada?.id, dia: datos.llamada.dia, hora: datos.llamada.hora, linkGrain: datos.llamada.linkGrain }
+      : tipoDeHecho === "agendado" && datos.llamada
+        ? { tipo: "agendado" as const, dia: datos.llamada.dia, hora: datos.llamada.hora }
+        : tipoDeHecho === "abono" && datos.abono
+          ? { tipo: "abono" as const, fecha: datos.abono.fecha, monto: datos.abono.monto.trim(), plataformaId: datos.abono.plataformaId ?? undefined, comprobanteUrl: datos.abono.comprobanteUrl }
+          : undefined;
+    const r = await moverConHechoAccion({
       dealId: deal.dealId,
       a: destino,
       pendiente,
       correccion,
       motivoId: datos.motivoId ?? null,
+      comentarioMotivo: datos.comentarioMotivo,
+      hecho,
       datos: {
         descuentoUsd: datos.descuentoUsd,
         fechaLimitePago: datos.fechaLimitePago,
@@ -187,7 +201,7 @@ export function useResponder(
       alTerminar();
     } else {
       // Se dice QUE falta, no un generico (ticket 044).
-      toast.error(r.faltantes.length > 0 ? r.faltantes.map((f) => f.mensaje).join(" ") : r.error, { duration: 6000 });
+      toast.error(r.error, { duration: 6000 });
     }
   }
 
@@ -272,58 +286,6 @@ export function useResponder(
         />
       </Campo>
     </DialogoForm>
-  ) : agendaAbierta ? (
-    <DialogoForm
-      titulo="Agendar llamada"
-      descripcion={agendaAbierta.nombreLead}
-      pendiente={marcandoLink}
-      onCerrar={() => setAgendaAbierta(null)}
-      confirmar={{
-        texto: "Agregar la cita a mano",
-        enCurso: "Abriendo…",
-        onClick: () => {
-          router.push(enlaceDeAccion(agendaAbierta.rutaDeLaFicha, "agendar"));
-          setAgendaAbierta(null);
-        },
-      }}
-    >
-      <div className="space-y-3">
-        {agendaAbierta.linkAgenda ? (
-          <section className="space-y-2">
-            <h3 className="text-sm font-medium">Link de agenda</h3>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input className={claseInput} readOnly value={agendaAbierta.linkAgenda} aria-label="Link de agenda" />
-              <Button type="button" variant="outline" onClick={() => void navigator.clipboard.writeText(agendaAbierta.linkAgenda!)}>
-                Copiar
-              </Button>
-            </div>
-            <Button
-              type="button"
-              disabled={marcandoLink}
-              onClick={async () => {
-                setMarcandoLink(true);
-                const r = await marcarLinkEnviadoAccion({ dealId: agendaAbierta.dealId });
-                setMarcandoLink(false);
-                if (r.ok) {
-                  toast.success("Link marcado como enviado.");
-                  setAgendaAbierta(null);
-                  avisarCambioDeNotificaciones();
-                  alTerminar();
-                } else toast.error(r.error, { duration: 6000 });
-              }}
-            >
-              {marcandoLink ? "Guardando…" : "Ya se lo mandé"}
-            </Button>
-          </section>
-        ) : (
-          <p className="text-sm text-muted-foreground">El programa no tiene link de Calendly.</p>
-        )}
-        <div className="border-t border-border pt-3">
-          <p className="text-sm font-medium">Agregar la cita a mano</p>
-          <p className="text-xs text-muted-foreground">Usa el formulario si la cita no llegó por Calendly.</p>
-        </div>
-      </div>
-    </DialogoForm>
   ) : destinoAbierto ? (
     <DialogoForm
       titulo={destinoAbierto.destino === "ganado" ? "Ganado · registrar pago" : nombreDeEtapa[destinoAbierto.destino]}
@@ -347,7 +309,11 @@ export function useResponder(
     const movimiento: MovimientoDelDialogo =
       accion.tipo === "retroceder"
         ? { dealId: deal.dealId, a: "retroceso", pendiente: null }
-        : { dealId: deal.dealId, a: accion.tipo === "mover" ? accion.a : deal.etapa, pendiente: accion.tipo === "mover" ? accion.pendiente : null };
+        : accion.tipo === "abono"
+          ? { dealId: deal.dealId, a: "ganado_parcial", pendiente: null, hecho: "abono" }
+          : accion.tipo === "llamada" && accion.uso === "agendar"
+            ? { dealId: deal.dealId, a: "agendado", pendiente: null, hecho: "agendado" }
+            : { dealId: deal.dealId, a: accion.tipo === "mover" ? accion.a : deal.etapa, pendiente: accion.tipo === "mover" ? accion.pendiente : null, hecho: abierta.flecha.requisitos.includes("llamada_sucedio") ? "atendido" : undefined };
     dialogo = (
       <DialogoMover
         abierto
@@ -361,9 +327,13 @@ export function useResponder(
         nombreDeEtapa={nombreDeEtapa}
         cohortes={opciones.cohortesDestino}
         motivos={opciones.motivos}
+        plataformas={opciones.plataformas}
+        saldo={deal.saldo}
+        moneda={deal.moneda}
+        llamada={deal.llamada}
         fechaLimiteSugerida={deal.fechaLimiteSugerida ?? null}
         enviando={enviando}
-        onConfirmar={(datos, destino) => void confirmar(deal, datos, destino, movimiento.pendiente)}
+        onConfirmar={(datos, destino) => void confirmar(deal, datos, destino, movimiento.pendiente, false, movimiento.hecho)}
       />
     );
   }
@@ -388,8 +358,12 @@ export function useResponder(
         nombreDeEtapa={nombreDeEtapa}
         cohortes={opciones.cohortesDestino}
         motivos={opciones.motivos}
+        plataformas={opciones.plataformas}
+        saldo={deal.saldo}
+        moneda={deal.moneda}
+        llamada={deal.llamada}
         enviando={enviando}
-        onConfirmar={(datos, destino) => void confirmar(deal, datos, destino, correccion.pendiente, true)}
+        onConfirmar={(datos, destino) => void confirmar(deal, datos, destino, correccion.pendiente, true, movimiento.hecho)}
       />
     );
   }

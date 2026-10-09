@@ -2,19 +2,16 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { ID_DE_SECCION, useAccionPedida } from "./accion-pedida";
+import { ID_DE_SECCION } from "./accion-pedida";
 import { DetalleDeLlamada } from "@/components/deals/detalle-de-llamada";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardAction } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { fechaHoraEnBogota, hoyEnBogota } from "@/lib/format";
 import { citaActiva, ETIQUETA_DE_RESULTADO, TONO_DE_RESULTADO } from "@/lib/deals/estado-de-llamada";
 import type { FichaDeLlamada, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
-import {
-  agregarLlamadaAccion,
-  completarAgendadaAccion,
-} from "@/app/(app)/p/[programa]/deals/[id]/acciones";
-import { Campo, claseInput, claseTextarea, DialogoForm, Vacio } from "./campos";
+import { completarAgendadaAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
+import { Campo, claseInput, Vacio } from "./campos";
 import { CampoGrain } from "./campo-grain";
 import { AccionesDeLlamada } from "./acciones-de-llamada";
 import { useAccion } from "./uso-accion";
@@ -43,12 +40,10 @@ export function FichaLlamadas({
   puedeRegistrar: boolean;
 }) {
   const { programa: programaSlug } = useParams<{ programa: string }>();
-  const [agregando, setAgregando] = useState(false);
   const [detalleId, setDetalleId] = useState<string | null>(null);
   // La pregunta de la etapa de Agendado abre "Resultado" sobre la cita activa (ADR 0072):
   // "Se movió" y "No asistió o canceló" se eligen ahí. "Agendar" agrega una cita nueva. Se
   // remonta el bloque de acciones con una llave para abrir el diálogo sin un efecto.
-  const [pedirResultado, setPedirResultado] = useState(0);
   const activaId = citaActiva(llamadas);
   const activa = llamadas.find((llamada) => llamada.id === activaId) ?? null;
   const sinActiva = llamadas.filter((llamada) => llamada.id !== activaId);
@@ -61,10 +56,6 @@ export function FichaLlamadas({
           .sort((a, b) => instanteDe(b) - instanteDe(a))[0] ?? null
       : null;
   const anteriores = sinActiva.filter((llamada) => llamada.id !== pendienteDeGrain?.id);
-  useAccionPedida(["agendar", "reprogramar", "fallida"], (accion) => {
-    if (accion === "agendar") return setAgregando(true);
-    if (activa) setPedirResultado((n) => n + 1);
-  });
 
   const filaDe = (c: FichaDeLlamada, esActiva: boolean) => {
     const anulada = c.anuladoEn != null;
@@ -93,17 +84,16 @@ export function FichaLlamadas({
           <div className="space-y-2 pt-1">
             {sinCompletar ? <CompletarFecha llamada={c} /> : null}
             <AccionesDeLlamada
-              key={pedirResultado}
               callId={c.id}
               dealId={dealId}
               linkGrain={c.linkGrain}
+              resultado={c.resultado}
               motivosReagenda={opciones.motivos}
-              abrirInicial={pedirResultado > 0 ? "resultado" : null}
             />
           </div>
         ) : null}
-        {puedeRegistrarEnEsta && !esActiva && !c.linkGrain ? (
-          <div className="pt-1"><CampoGrain callId={c.id} valor={c.linkGrain} yaEsShow={c.resultado === "show"} /></div>
+        {puedeRegistrarEnEsta && !esActiva && c.resultado === "show" && !c.linkGrain ? (
+          <div className="pt-1"><CampoGrain callId={c.id} valor={c.linkGrain} yaEsShow /></div>
         ) : null}
       </li>
     );
@@ -113,17 +103,10 @@ export function FichaLlamadas({
     <Card id={ID_DE_SECCION.llamadas} className="scroll-mt-24">
       <CardHeader>
         <CardTitle>Llamadas</CardTitle>
-        {puedeRegistrar ? (
-          <CardAction>
-            <Button size="sm" variant="outline" onClick={() => setAgregando(true)}>
-              Agregar llamada
-            </Button>
-          </CardAction>
-        ) : null}
       </CardHeader>
 
       {llamadas.length === 0 ? (
-        <Vacio>Este deal aún no tiene llamadas.{puedeRegistrar ? " Agrega la primera con su fecha." : ""}</Vacio>
+        <Vacio>Este deal aún no tiene llamadas.</Vacio>
       ) : (
         <>
           {activa ? <ul className="divide-y">{filaDe(activa, true)}</ul> : null}
@@ -144,7 +127,6 @@ export function FichaLlamadas({
         </>
       )}
 
-      {agregando ? <DialogoAgregar dealId={dealId} onCerrar={() => setAgregando(false)} /> : null}
       {detalleId ? (
         <DetalleDeLlamada
           programaSlug={programaSlug}
@@ -197,46 +179,5 @@ function CompletarFecha({ llamada }: { llamada: FichaDeLlamada }) {
         {pendiente ? "Guardando…" : "Poner fecha de la cita"}
       </Button>
     </div>
-  );
-}
-
-function DialogoAgregar({ dealId, onCerrar }: { dealId: string; onCerrar: () => void }) {
-  const { pendiente, correr } = useAccion();
-  const [dia, setDia] = useState(hoyEnBogota());
-  const [hora, setHora] = useState("");
-  const [link, setLink] = useState("");
-  const [notas, setNotas] = useState("");
-  return (
-    <DialogoForm
-      titulo="Agregar llamada"
-      descripcion="Una llamada con su fecha. Si el deal está en una etapa previa, pasa a Agendado."
-      pendiente={pendiente}
-      onCerrar={onCerrar}
-      deshabilitarConfirmar={!dia || !hora}
-      confirmar={{
-        texto: "Agregar",
-        enCurso: "Agregando…",
-        onClick: () =>
-          correr(() => agregarLlamadaAccion({ dealId, dia, hora, linkCalendly: link, notas }), {
-            exito: (r) => (r.movioAAgendado ? "Llamada agregada: el deal pasó a Agendado." : "Llamada agregada."),
-            alExito: onCerrar,
-          }),
-      }}
-    >
-      <div className="grid grid-cols-2 gap-3">
-        <Campo etiqueta="Día de la cita" ayuda="Hora de Bogotá.">
-          <input type="date" className={claseInput} value={dia} onChange={(e) => setDia(e.target.value)} />
-        </Campo>
-        <Campo etiqueta="Hora">
-          <input type="time" className={claseInput} value={hora} onChange={(e) => setHora(e.target.value)} />
-        </Campo>
-      </div>
-      <Campo etiqueta="Link de la reunión (opcional)" ayuda="Calendly, Meet, Zoom o el que acordaron">
-        <input type="url" className={claseInput} value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://calendly.com/…" />
-      </Campo>
-      <Campo etiqueta="Notas (opcional)">
-        <textarea className={claseTextarea} value={notas} onChange={(e) => setNotas(e.target.value)} />
-      </Campo>
-    </DialogoForm>
   );
 }

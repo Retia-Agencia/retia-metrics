@@ -30,6 +30,7 @@ import { esContactoRegistrado, hechosDeLlamadas } from "@/lib/deals/mover-etapa"
 import { propiedadesQueLeFaltan } from "@/lib/deals/requisitos";
 import { proximoContactoVencido } from "@/lib/deals/proximo-contacto";
 import { redondearUsd } from "@/lib/dinero";
+import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 
 const MINIMO_TEXTO_BUSQUEDA = 2;
 
@@ -142,6 +143,7 @@ export interface TarjetaDeal {
   ultimaActividadEn: Date;
   potencialUsd: number;
   confirmadoUsd: number;
+  llamada: { id: string; fecha: Date | null; closerNombre: string | null; notas: string | null } | null;
   avisos: AvisosDeTarjeta;
 }
 
@@ -346,8 +348,17 @@ export async function tableroKanban(
   const sinConfirmar = await leadsConContactoSinConfirmar(db, leadIds);
   const sinComprobante = await dealsConAbonoSinComprobante(db, dealIds);
   const llamadas = await db
-    .select({ dealId: calls.dealId, resultado: calls.resultado, fechaAgenda: calls.fechaAgenda, createdAt: calls.createdAt })
+    .select({
+      id: calls.id,
+      dealId: calls.dealId,
+      resultado: calls.resultado,
+      fechaAgenda: calls.fechaAgenda,
+      closerNombre: users.nombre,
+      notas: calls.notas,
+      createdAt: calls.createdAt,
+    })
     .from(calls)
+    .leftJoin(users, eq(users.id, calls.closerUserId))
     .where(and(inArray(calls.dealId, dealIds), vigente(calls)))
     .orderBy(desc(calls.createdAt));
   const actividades = await db
@@ -370,7 +381,11 @@ export async function tableroKanban(
     const compromisoVencido =
       f.etapa === "compromiso_verbal" && f.fechaLimitePago != null && f.fechaLimitePago < hoy;
     const seguimientoVencido = proximoContactoVencido(f, hoy);
-    const { tieneLlamadaConFecha, llamadaSucedio } = hechosDeLlamadas(llamadasPorDeal.get(f.dealId) ?? []);
+    const llamadasDelDeal = llamadasPorDeal.get(f.dealId) ?? [];
+    const { tieneLlamadaConFecha, llamadaSucedio } = hechosDeLlamadas(llamadasDelDeal);
+    const llamadaActiva = llamadasDelDeal
+      .filter((llamada) => llamada.resultado === "agendada")
+      .sort((a, b) => (b.fechaAgenda?.getTime() ?? Number.NEGATIVE_INFINITY) - (a.fechaAgenda?.getTime() ?? Number.NEGATIVE_INFINITY))[0] ?? null;
     const faltanALaEtapa = propiedadesQueLeFaltan(f.etapa, {
       cortesia: f.cortesia,
       tieneCohorte: f.cohortId != null,
@@ -410,6 +425,9 @@ export async function tableroKanban(
       ultimaActividadEn: ultimaActividad.get(f.dealId) ?? f.createdAt,
       potencialUsd: redondearUsd(saldo?.precio ?? (f.cohortePrecioUsd == null ? 0 : Number(f.cohortePrecioUsd))),
       confirmadoUsd: redondearUsd(saldo?.abonado ?? 0),
+      llamada: llamadaActiva
+        ? { id: llamadaActiva.id, fecha: llamadaActiva.fechaAgenda, closerNombre: llamadaActiva.closerNombre, notas: llamadaActiva.notas }
+        : null,
       avisos: {
         faltanALaEtapa,
         compromisoVencido,
@@ -546,7 +564,8 @@ export interface OpcionesDeTablero {
   inicioDeClases: Record<string, string>;
   inicioDeLaCohorteActiva: string | null;
   /** Motivos activos por tipo (para las flechas que exigen motivo). */
-  motivos: { id: string; nombre: string; tipo: string }[];
+  motivos: { id: string; nombre: string; tipo: string; pideTexto: boolean }[];
+  plataformas: OpcionCatalogo[];
 }
 
 /**
@@ -607,15 +626,16 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   // Los motivos son un catalogo GLOBAL (no por programa): la flecha decide la lista por
   // su tipo, y el dialogo la filtra en el cliente.
   const motivoFilas = await db
-    .select({ id: motivos.id, nombre: motivos.nombre, tipo: motivos.tipo })
+    .select({ id: motivos.id, nombre: motivos.nombre, tipo: motivos.tipo, pideTexto: motivos.pideTexto })
     .from(motivos)
     .where(eq(motivos.activo, true));
   const listaMotivos = motivoFilas.sort((a, b) => a.nombre.localeCompare(b.nombre));
   const inicioDeClases = Object.fromEntries(cohorteFilas.map((c) => [c.id, c.inicio] as const));
   if (activa) inicioDeClases[activa.id] = activa.fechaInicioClases;
   const inicioDeLaCohorteActiva = activa?.fechaInicioClases ?? null;
+  const plataformas = (await plataformasDelPrograma(db, programId)).map((p) => ({ id: p.id, nombre: String(p.nombre) }));
 
-  return { owners, cohortes, cohortesDestino, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, motivos: listaMotivos };
+  return { owners, cohortes, cohortesDestino, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, motivos: listaMotivos, plataformas };
 }
 
 /** El rango del filtro de fecha, bajo la llave del campo que filtra; los otros, ausentes. */

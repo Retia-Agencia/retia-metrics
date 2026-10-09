@@ -5,13 +5,14 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { esquemaDescuentoUsdOpcional } from "@/lib/deals/valor-vendido";
+import { esquemaProximoContacto } from "@/lib/deals/proximo-contacto";
 import type { Session } from "next-auth";
 import { requireRole } from "@/lib/auth/guards";
 import { esRolValido, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaEnAlcance } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { abonos, calls, deals, leadContactos } from "@/lib/db/schema";
+import { abonos, calls, deals, etapaDealEnum, leadContactos, pendienteDealEnum } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { instanteDeBogota } from "@/lib/format";
@@ -20,10 +21,11 @@ import { puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { crearOVincularPlataforma } from "@/lib/catalogo/plataformas";
 import { registrarActividad } from "@/lib/deals/actividades";
 import { anotar, esquemaAnotar, type DatosAnotar, type AnotacionHecha } from "@/lib/deals/anotar";
+import { moverConHecho } from "@/lib/deals/mover-con-hecho";
 import { anularDeal } from "@/lib/deals/anular-deal";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { marcarLinkEnviado } from "@/lib/deals/handoff";
-import { agregarLlamada, completarAgendada, marcarFallida, marcarShow, pegarGrain, reagendarLlamada, RESULTADOS_FALLIDOS } from "@/lib/deals/llamadas";
+import { completarAgendada, pegarGrain } from "@/lib/deals/llamadas";
 import { editarAcuerdoDePago } from "@/lib/deals/pago";
 import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals/estudiante";
 import { marcarCortesia } from "@/lib/deals/cortesia";
@@ -132,6 +134,74 @@ function instante(d: string, h: string): Date {
   const i = instanteDeBogota(d, h);
   if (!i) throw new ErrorDeApp("La fecha y la hora de la cita no son válidas.", 400);
   return i;
+}
+
+// ───────────────────────────────────────────── mover con el hecho de la etapa
+
+const esquemaDatosMovimiento = z.object({
+  descuentoUsd: esquemaDescuentoUsdOpcional,
+  fechaLimitePago: dia.nullable().optional(),
+  acuerdoPago: z.string().trim().max(500).nullable().optional(),
+  cohorteDestinoId: id("Cohorte inválida.").nullable().optional(),
+  fechaSeguimiento: esquemaProximoContacto,
+}).optional();
+
+const esquemaHecho = z.discriminatedUnion("tipo", [
+  z.object({
+    tipo: z.literal("atendido"),
+    callId: id("Llamada inválida.").optional(),
+    dia: dia.optional(),
+    hora: hora.optional(),
+    linkGrain: textoOpcional(z.string().url("El link de Grain debe ser una URL válida.")),
+  }).superRefine((hecho, ctx) => {
+    if (!hecho.callId && (!hecho.dia || !hecho.hora)) {
+      ctx.addIssue({ code: "custom", message: "Pon la fecha y la hora de la llamada." });
+    }
+  }),
+  z.object({ tipo: z.literal("agendado"), dia, hora }),
+  z.object({
+    tipo: z.literal("abono"),
+    fecha: dia,
+    monto: z.string(),
+    plataformaId: textoOpcional(id("Plataforma inválida.")),
+    comprobanteUrl: textoOpcional(z.string().url("El comprobante debe ser una URL válida.")),
+  }),
+]);
+
+const esquemaMoverConHechoAccion = z.object({
+  dealId: id("Deal inválido."),
+  a: z.enum(etapaDealEnum.enumValues),
+  pendiente: z.enum(pendienteDealEnum.enumValues).nullable().optional(),
+  motivoId: id("Motivo inválido.").nullable().optional(),
+  comentarioMotivo: z.string().trim().max(4000, "El comentario es muy largo.").optional(),
+  correccion: z.boolean().optional(),
+  datos: esquemaDatosMovimiento,
+  hecho: esquemaHecho.optional(),
+});
+
+export type EntradaMoverConHecho = z.input<typeof esquemaMoverConHechoAccion>;
+
+/** Una sola puerta para el botón de la ficha y el arrastre del Kanban. */
+export async function moverConHechoAccion(
+  entrada: EntradaMoverConHecho,
+): Promise<ResultadoFicha<{ etapa: EtapaDeal }>> {
+  return correr(async (ctx) => {
+    const datos = esquemaMoverConHechoAccion.parse(entrada);
+    await exigirDealVisible(ctx, datos.dealId);
+    const hecho = datos.hecho?.tipo === "atendido"
+      ? {
+          tipo: "atendido" as const,
+          callId: datos.hecho.callId,
+          fechaAgenda: datos.hecho.dia && datos.hecho.hora ? instante(datos.hecho.dia, datos.hecho.hora) : undefined,
+          linkGrain: datos.hecho.linkGrain,
+        }
+      : datos.hecho?.tipo === "agendado"
+        ? { tipo: "agendado" as const, fechaAgenda: instante(datos.hecho.dia, datos.hecho.hora) }
+        : datos.hecho?.tipo === "abono"
+          ? { ...datos.hecho, moneda: "USD" as const }
+          : undefined;
+    return moverConHecho(db, ctx.actor, { ...datos, hecho });
+  });
 }
 
 // ───────────────────────────────────────────── el deal
@@ -400,25 +470,6 @@ export async function cambiarCohorteAccion(entrada: EntradaCohorte): Promise<Res
 
 // ───────────────────────────────────────────── llamadas
 
-const esquemaAgregarLlamada = z.object({
-  dealId: id("Deal inválido."),
-  dia,
-  hora,
-  linkCalendly: textoOpcional(z.string().url("El link de la reunión no es una URL válida.")),
-  notas: textoOpcional(z.string().max(2000)),
-});
-export type EntradaAgregarLlamada = z.input<typeof esquemaAgregarLlamada>;
-
-export async function agregarLlamadaAccion(entrada: EntradaAgregarLlamada): Promise<ResultadoFicha<{ movioAAgendado: boolean }>> {
-  return correr(async (ctx) => {
-    const { actor } = ctx;
-    const { dealId, dia: d, hora: h, linkCalendly, notas } = esquemaAgregarLlamada.parse(entrada);
-    await exigirDealVisible(ctx, dealId);
-    const r = await agregarLlamada(db, actor, { dealId, fechaAgenda: instante(d, h), linkCalendly, notas });
-    return { movioAAgendado: r.movioAAgendado };
-  });
-}
-
 const esquemaCompletar = z.object({
   callId: id("Llamada inválida."),
   dia,
@@ -447,60 +498,5 @@ export async function pegarGrainAccion(entrada: EntradaPegarGrain): Promise<Resu
     await exigirLlamadaVisible(ctx, callId);
     const r = await pegarGrain(db, actor, { callId, linkGrain });
     return { etapa: r.etapa, movioAAtendido: r.movioAAtendido };
-  });
-}
-
-const esquemaMarcarShow = z.object({ callId: id("Llamada inválida.") });
-export type EntradaMarcarShow = z.input<typeof esquemaMarcarShow>;
-
-/** Marcar una llamada como show en un clic (ticket 177), sin pegar el link de Grain. */
-export async function marcarShowAccion(entrada: EntradaMarcarShow): Promise<ResultadoFicha<{ etapa: string; movioAAtendido: boolean }>> {
-  return correr(async (ctx) => {
-    const { actor } = ctx;
-    const { callId } = esquemaMarcarShow.parse(entrada);
-    await exigirLlamadaVisible(ctx, callId);
-    const r = await marcarShow(db, actor, { callId });
-    return { etapa: r.etapa, movioAAtendido: r.movioAAtendido };
-  });
-}
-
-const esquemaReagendar = z.object({
-  callId: id("Llamada inválida."),
-  dia,
-  hora,
-  linkCalendly: textoOpcional(z.string().url("El link de la reunión no es una URL válida.")),
-  notas: textoOpcional(z.string().max(2000)),
-});
-export type EntradaReagendar = z.input<typeof esquemaReagendar>;
-
-/**
- * Reagendar una cita (ticket 177): cierra la vieja (`reagendada`) y crea la nueva en la
- * misma transacción (`reagendarLlamada`). La cita vieja sale del Inbox de "ya pasaron sin
- * resultado". El actor sale de la sesión, el objetivo se comprueba contra el alcance.
- */
-export async function reagendarLlamadaAccion(entrada: EntradaReagendar): Promise<ResultadoFicha<{ movioAAgendado: boolean }>> {
-  return correr(async (ctx) => {
-    const { actor } = ctx;
-    const { callId, dia: d, hora: h, linkCalendly, notas } = esquemaReagendar.parse(entrada);
-    await exigirLlamadaVisible(ctx, callId);
-    const r = await reagendarLlamada(db, actor, { callId, fechaAgenda: instante(d, h), linkCalendly, notas });
-    return { movioAAgendado: r.movioAAgendado };
-  });
-}
-
-const esquemaFallida = z.object({
-  callId: id("Llamada inválida."),
-  resultado: z.enum(RESULTADOS_FALLIDOS),
-  motivoId: textoOpcional(id("Motivo inválido.")),
-});
-export type EntradaMarcarFallida = z.input<typeof esquemaFallida>;
-
-export async function marcarFallidaAccion(entrada: EntradaMarcarFallida): Promise<ResultadoFicha<{ etapa: string }>> {
-  return correr(async (ctx) => {
-    const { actor } = ctx;
-    const { callId, resultado, motivoId } = esquemaFallida.parse(entrada);
-    await exigirLlamadaVisible(ctx, callId);
-    const r = await marcarFallida(db, actor, { callId, resultado, motivoId });
-    return { etapa: r.etapa };
   });
 }

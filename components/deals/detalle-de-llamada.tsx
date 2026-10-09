@@ -80,6 +80,7 @@ export function DetalleDeLlamada({
               callId={callId}
               dealId={detalle!.dealId}
               linkGrain={detalle!.linkGrain}
+              resultado={detalle!.resultado}
               motivosReagenda={motivosReagenda}
             />
           </div>

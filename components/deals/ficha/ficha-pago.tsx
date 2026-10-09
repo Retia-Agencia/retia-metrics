@@ -1,32 +1,30 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { ID_DE_SECCION, useAccionPedida } from "./accion-pedida";
+import { useState } from "react";
+import { ID_DE_SECCION } from "./accion-pedida";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { fecha, fechaHoraEnBogota, hoyEnBogota, monto, pct, saldoLegible, usd } from "@/lib/format";
+import { fecha, fechaHoraEnBogota, monto, pct, saldoLegible, usd } from "@/lib/format";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import type { FichaDeAbono, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import {
   anularAbonoAccion,
   cambiarPlataformaDeAbonoAccion,
   cambiarCohorteAccion,
-  crearPlataformaParaAbonoAccion,
   desmarcarOnboardedAccion,
   editarAcuerdoAccion,
   marcarOnboardedAccion,
   pegarComprobanteAccion,
-  registrarAbonoAccion,
   editarDealAccion,
 } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Campo, claseInput, claseTextarea, DialogoForm, Vacio } from "./campos";
 import { useAccion } from "./uso-accion";
 import { cn } from "@/lib/utils";
+import { ControlPlataforma } from "../formulario-abono";
 
 /**
  * El dinero y el pago del deal (ticket 074): precio, abonado y saldo, el acuerdo de pago,
@@ -40,7 +38,6 @@ import { cn } from "@/lib/utils";
  */
 
 type Dialogo =
-  | { tipo: "abono" }
   | { tipo: "anular"; abono: FichaDeAbono }
   | { tipo: "plataforma"; abono: FichaDeAbono }
   | { tipo: "comprobante"; abono: FichaDeAbono }
@@ -53,7 +50,6 @@ export function FichaPago({
   opciones,
   puedeTrabajar,
   puedeRegistrar,
-  aceptaAbono,
   nombreDeEtapa,
 }: {
   ficha: FichaDeDeal;
@@ -70,8 +66,6 @@ export function FichaPago({
   const { pendiente, correr } = useAccion();
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
   const cerrar = () => setDialogo(null);
-  // "Pagó" en la pregunta de la etapa abre el abono: a ganado solo se entra con plata (ADR 0037).
-  useAccionPedida(["abono"], () => setDialogo({ tipo: "abono" }));
 
   const s = ficha.saldo;
   const moneda = s.moneda ?? "USD";
@@ -88,10 +82,6 @@ export function FichaPago({
   const avisoSolapamiento = !esEstudiante && !cerrado && !anulado && codigosVendiendo.length >= 2
     ? `Hoy venden ${codigosVendiendo.length === 2 ? "dos" : codigosVendiendo.length} cohortes (${listaCohortesVendiendo}): confirma en cuál queda este deal.`
     : null;
-  const abonosActivos = puedeRegistrar && aceptaAbono && !anulado && !cerrado;
-  // Fuera de las etapas de `aceptaAbono` el botón se ve deshabilitado con la razón (A-80):
-  // se abona desde Contactado en adelante, no antes.
-  const razonSinAbono = `Se abona desde Contactado; este deal está en ${nombreDeEtapa[ficha.etapa]}.`;
 
   return (
     <Card id={ID_DE_SECCION.pago} className="scroll-mt-24">
@@ -104,21 +94,7 @@ export function FichaPago({
                 Cambiar cohorte
               </Button>
               {avisoSolapamiento ? <Badge variant="alerta">{avisoSolapamiento}</Badge> : null}
-              {abonosActivos ? (
-                <Button size="sm" variant="outline" onClick={() => setDialogo({ tipo: "abono" })}>
-                  Registrar abono
-                </Button>
-              ) : puedeRegistrar && !cerrado ? (
-                <Button size="sm" variant="outline" disabled title={razonSinAbono}>
-                  Registrar abono
-                </Button>
-              ) : null}
             </div>
-            {abonosActivos ? (
-              <p className="text-xs text-muted-foreground">Registrar abono: el deal pasa a Ganado.</p>
-            ) : puedeRegistrar && !cerrado ? (
-              <p className="text-xs text-muted-foreground">{razonSinAbono}</p>
-            ) : null}
           </CardAction>
         ) : null}
       </CardHeader>
@@ -251,7 +227,7 @@ export function FichaPago({
 
       {/* Los abonos: los anulados se ven tachados, con quien y por que (ADR 0026 punto 4). */}
       {ficha.abonos.length === 0 ? (
-        <Vacio>Aún no hay abonos.{abonosActivos ? " Registra el primero arriba." : ""}</Vacio>
+        <Vacio>Aún no hay abonos.</Vacio>
       ) : (
         <ul className="divide-y border-t">
           {ficha.abonos.map((a) => {
@@ -293,7 +269,6 @@ export function FichaPago({
         </ul>
       )}
 
-      {dialogo?.tipo === "abono" ? <DialogoAbono ficha={ficha} opciones={opciones} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "anular" ? <DialogoAnularAbono abono={dialogo.abono} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "plataforma" ? <DialogoCambiarPlataforma ficha={ficha} abono={dialogo.abono} opciones={opciones} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "comprobante" ? <DialogoComprobante abono={dialogo.abono} onCerrar={cerrar} /> : null}
@@ -368,172 +343,6 @@ function AccionesEnlacePago({ url }: { url: string }) {
         Abrir
       </a>
     </span>
-  );
-}
-
-function DialogoAbono({
-  ficha,
-  opciones,
-  nombreDeEtapa,
-  onCerrar,
-}: {
-  ficha: FichaDeDeal;
-  opciones: OpcionesDeFicha;
-  nombreDeEtapa: Record<EtapaDeal, string>;
-  onCerrar: () => void;
-}) {
-  const { pendiente, correr } = useAccion();
-  const [dia, setDia] = useState(hoyEnBogota());
-  const [valor, setValor] = useState("");
-  const [plataformaId, setPlataformaId] = useState<string | null>(null);
-  const [comprobante, setComprobante] = useState("");
-  const moneda = ficha.saldo.moneda ?? "USD";
-
-  return (
-    <DialogoForm
-      titulo="Registrar abono"
-      descripcion={
-        ficha.saldo.saldo != null
-          ? `Lo que pagó el cliente, en ${moneda}. Saldo actual: ${monto(ficha.saldo.saldo, moneda)}. La etapa se mueve sola.`
-          : "Lo que pagó el cliente. La etapa se mueve sola."
-      }
-      pendiente={pendiente}
-      onCerrar={onCerrar}
-      deshabilitarConfirmar={!dia || valor.trim() === ""}
-      confirmar={{
-        texto: "Registrar",
-        enCurso: "Registrando…",
-        onClick: () =>
-          correr(
-            () => registrarAbonoAccion({ dealId: ficha.dealId, fecha: dia, monto: valor.trim(), plataformaId: plataformaId ?? undefined, comprobanteUrl: comprobante }),
-            {
-              exito: (r) => {
-                const sinCohorte =
-                  !ficha.cohorte && r.cohorteAsignada == null
-                    ? " El programa no tiene cohorte activa: el deal queda sin cohorte."
-                    : "";
-                return `Abono registrado. ${r.movioElDeal ? `El deal pasó a ${nombreDeEtapa[r.etapa as EtapaDeal]}.` : ""}${sinCohorte}`.trim();
-              },
-              alExito: onCerrar,
-            },
-          ),
-      }}
-    >
-      <div className="grid grid-cols-2 gap-3">
-        <Campo etiqueta="Fecha del pago">
-          <input type="date" className={claseInput} value={dia} onChange={(e) => setDia(e.target.value)} />
-        </Campo>
-        <Campo etiqueta={`Monto (${moneda})`}>
-          <input className={`${claseInput} cifra`} inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="750.00" />
-        </Campo>
-      </div>
-      <Campo etiqueta="Plataforma de pago (opcional)">
-        <ControlPlataforma
-          dealId={ficha.dealId}
-          plataformasIniciales={opciones.plataformas}
-          value={plataformaId}
-          onValueChange={setPlataformaId}
-        />
-      </Campo>
-      <Campo etiqueta="Comprobante (link)" ayuda="Si no lo tienes ahora, lo pegas después.">
-        <input type="url" className={claseInput} value={comprobante} onChange={(e) => setComprobante(e.target.value)} placeholder="https://drive.google.com/…" />
-      </Campo>
-    </DialogoForm>
-  );
-}
-
-function ControlPlataforma({
-  dealId,
-  plataformasIniciales,
-  value,
-  onValueChange,
-}: {
-  dealId: string;
-  plataformasIniciales: OpcionesDeFicha["plataformas"];
-  value: string | null;
-  onValueChange: (value: string | null) => void;
-}) {
-  const [abierto, setAbierto] = useState(false);
-  const [texto, setTexto] = useState("");
-  const [plataformas, setPlataformas] = useState(plataformasIniciales);
-  const [error, setError] = useState<string | null>(null);
-  const [creando, iniciarCreacion] = useTransition();
-  const buscado = texto.trim();
-  const clave = buscado.toLocaleLowerCase("es");
-  const filtradas = plataformas.filter((p) => p.nombre.toLocaleLowerCase("es").includes(clave));
-  const coincidenciaExacta = plataformas.some(
-    (p) => p.nombre.trim().toLocaleLowerCase("es") === clave,
-  );
-  const seleccionada = plataformas.find((p) => p.id === value);
-
-  function elegir(id: string | null) {
-    onValueChange(id);
-    setError(null);
-    setTexto("");
-    setAbierto(false);
-  }
-
-  function crear() {
-    if (buscado.length < 2 || coincidenciaExacta) return;
-    setError(null);
-    iniciarCreacion(async () => {
-      const resultado = await crearPlataformaParaAbonoAccion({ dealId, nombre: buscado });
-      if (!resultado.ok) {
-        setError(resultado.error);
-        return;
-      }
-      setPlataformas((actuales) =>
-        actuales.some((p) => p.id === resultado.plataforma.id)
-          ? actuales
-          : [...actuales, resultado.plataforma].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
-      );
-      onValueChange(resultado.plataforma.id);
-      setTexto("");
-      setAbierto(false);
-    });
-  }
-
-  return (
-    <Popover open={abierto} onOpenChange={setAbierto}>
-      <PopoverTrigger
-        render={<Button type="button" variant="outline" className="w-full justify-between font-normal" />}
-      >
-        <span className={seleccionada ? "truncate" : "truncate text-muted-foreground"}>
-          {seleccionada?.nombre ?? "Sin plataforma"}
-        </span>
-        <span aria-hidden>⌄</span>
-      </PopoverTrigger>
-      <PopoverContent className="w-(--anchor-width) p-2" aria-label="Elegir plataforma de pago">
-        <div className="space-y-2">
-          <Input
-            autoFocus
-            value={texto}
-            onChange={(e) => {
-              setTexto(e.target.value);
-              setError(null);
-            }}
-            placeholder="Buscar o crear plataforma"
-            aria-label="Nombre de la plataforma"
-          />
-          <div className="max-h-48 space-y-1 overflow-y-auto">
-            <Button type="button" size="sm" variant={value == null ? "secondary" : "ghost"} className="w-full justify-start" onClick={() => elegir(null)}>
-              Sin plataforma
-            </Button>
-            {filtradas.map((p) => (
-              <Button key={p.id} type="button" size="sm" variant={value === p.id ? "secondary" : "ghost"} className="w-full justify-start" onClick={() => elegir(p.id)}>
-                {p.nombre}
-              </Button>
-            ))}
-            {buscado.length >= 2 && !coincidenciaExacta ? (
-              <Button type="button" size="sm" variant="ghost" className="w-full justify-start" disabled={creando} onClick={crear}>
-                {creando ? "Creando…" : `Crear «${buscado}»`}
-              </Button>
-            ) : null}
-          </div>
-          {error ? <p className="text-xs text-tono-peligro">{error}</p> : null}
-        </div>
-      </PopoverContent>
-    </Popover>
   );
 }
 
