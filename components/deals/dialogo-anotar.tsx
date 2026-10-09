@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { anotarAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Button } from "@/components/ui/button";
@@ -112,7 +112,16 @@ export function DialogoAnotar({
               <Opcion valor="seguimiento" eleccion={eleccion} onElegir={setEleccion}>Próximo contacto</Opcion>
             ) : null}
             {ofrecidos.includes("proxima_cohorte") ? (
-              <Opcion valor="proxima_cohorte" eleccion={eleccion} onElegir={setEleccion}>Quiere la próxima cohorte</Opcion>
+              opciones.cohortesDestino.length === 0 ? (
+                <OpcionDesactivada>
+                  Quiere la próxima cohorte
+                  <span className="block text-xs text-muted-foreground">
+                    No hay cohortes futuras. Gerencia la crea en Programa, aunque no tenga fechas.
+                  </span>
+                </OpcionDesactivada>
+              ) : (
+                <Opcion valor="proxima_cohorte" eleccion={eleccion} onElegir={setEleccion}>Quiere la próxima cohorte</Opcion>
+              )
             ) : null}
             {ofrecidos.includes("reagenda") ? (
               <Opcion valor="reagenda" eleccion={eleccion} onElegir={setEleccion}>La llamada no se hizo / se reagenda</Opcion>
@@ -178,6 +187,20 @@ function Opcion({
   return (
     <label className="flex items-center gap-2 text-sm">
       <input type="radio" name="pendiente-anotacion" checked={eleccion === valor} onChange={() => onElegir(valor)} />
+      <span>{children}</span>
+    </label>
+  );
+}
+
+/**
+ * Una opción que se ofrece pero no se puede elegir, con el porqué (ticket 227): "Quiere la
+ * próxima cohorte" sin ninguna cohorte futura creada. El radio va deshabilitado para que se
+ * vea el motivo en vez de desaparecer la opción.
+ */
+function OpcionDesactivada({ children }: { children: ReactNode }) {
+  return (
+    <label className="flex items-start gap-2 text-sm text-muted-foreground">
+      <input type="radio" name="pendiente-anotacion" disabled className="mt-1" />
       <span>{children}</span>
     </label>
   );

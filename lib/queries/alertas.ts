@@ -71,7 +71,7 @@ export function cumplimientoAlCierre(metrica: MetricaConUmbral, datos: DatosDeAl
     return armarMetasDelMes({ cohortes: datos.cohortes, ventas: ventasHasta, mes: dia.slice(0, 7), hoy: dia }).cumplimiento;
   }
   const cohorte = datos.cohortes.find((c) => c.id === datos.cohorteActivaId);
-  if (!cohorte?.fechaInicioVentas) return null;
+  if (!cohorte?.fechaInicioVentas || !cohorte.fechaCierreVentas) return null;
   const { dia: diaHabil, total } = diaHabilDe(dia, cohorte.fechaInicioVentas, cohorte.fechaCierreVentas);
   const esperado = metaLineal({ meta: cohorte.metaCupos, diasHabilesTotales: total }) * diaHabil;
   if (esperado === 0) return null;

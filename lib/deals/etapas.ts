@@ -76,7 +76,7 @@ const FILAS_ETAPA: readonly FilaEtapa[] = [
   ["S1", "potencial", "registrado", "sistema"],
   ["S2", "potencial", "calificado", "sistema"],
   ["S3", "registrado", "calificado", "sistema"],
-  ["E1", ["potencial", "registrado"], "en_gestion", "sistema"],
+  ["E1", ["potencial", "registrado"], "en_gestion", "ambos"],
   ["E2", "en_gestion", "contactado", "sistema"],
   ["E3", ["en_gestion", "contactado"], "calificado", "closer"],
   ["E4", ETAPAS_DE_SETTEO, "agendado", "ambos"],

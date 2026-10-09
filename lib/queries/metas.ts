@@ -14,7 +14,8 @@ export interface CohorteParaMetas {
   metaCupos: number;
   precioUsd: number;
   fechaInicioVentas: string | null;
-  fechaCierreVentas: string;
+  /** Nula cuando la cohorte futura esta "por definir" (ticket 227): no vende, no tiene ventana. */
+  fechaCierreVentas: string | null;
 }
 
 export interface VentaParaMetas {
@@ -154,23 +155,35 @@ export function armarMetasDelMes(args: {
     if (venta.cohortId) vendidosPorCohorte.set(venta.cohortId, (vendidosPorCohorte.get(venta.cohortId) ?? 0) + 1);
   }
 
+  // Una cohorte "por definir" (sin inicio o sin cierre de ventas, ticket 227) NO tiene
+  // ventana: no se le cuentan dias habiles ni meta dinamica, nunca se inventa una fecha.
+  // El tipo de retorno narra el inicio y el cierre a `string` para el resto del calculo.
+  const ventana = (
+    c: CohorteParaMetas,
+  ): { inicio: string; cierre: string } | null =>
+    c.fechaInicioVentas !== null && c.fechaCierreVentas !== null
+      ? { inicio: c.fechaInicioVentas, cierre: c.fechaCierreVentas }
+      : null;
+
   const filas = args.cohortes.filter((cohorte) => {
-    const ventanaTocaElMes = cohorte.fechaInicioVentas !== null
-      && cohorte.fechaInicioVentas <= periodoMes.hasta
-      && cohorte.fechaCierreVentas >= periodoMes.desde;
+    const v = ventana(cohorte);
+    const ventanaTocaElMes = v !== null
+      && v.inicio <= periodoMes.hasta
+      && v.cierre >= periodoMes.desde;
     return ventanaTocaElMes || (vendidosPorCohorte.get(cohorte.id) ?? 0) > 0;
   }).map<FilaMetaDelMes>((cohorte) => {
     const vendidos = vendidosPorCohorte.get(cohorte.id) ?? 0;
-    if (!cohorte.fechaInicioVentas) {
+    const v = ventana(cohorte);
+    if (!v) {
       return { cohorteId: cohorte.id, codigo: cohorte.codigo, metaCupos: 0, metaUsd: 0, vendidos, esperado: 0, deuda: 0, deudaPct: null, cumplimiento: null };
     }
-    const habilesTotales = diasHabilesEntre(cohorte.fechaInicioVentas, cohorte.fechaCierreVentas);
+    const habilesTotales = diasHabilesEntre(v.inicio, v.cierre);
     const ritmo = metaLineal({ meta: cohorte.metaCupos, diasHabilesTotales: habilesTotales });
-    const metaCupos = ritmo * habilesDeInterseccion(cohorte.fechaInicioVentas, cohorte.fechaCierreVentas, periodoMes);
+    const metaCupos = ritmo * habilesDeInterseccion(v.inicio, v.cierre, periodoMes);
     const hastaHoy = minFecha(periodoMes.hasta, hoy);
     const esperado = ritmo * habilesDeInterseccion(
-      cohorte.fechaInicioVentas,
-      cohorte.fechaCierreVentas,
+      v.inicio,
+      v.cierre,
       { desde: periodoMes.desde, hasta: hastaHoy },
     );
     const deuda = Math.max(esperado - vendidos, 0);
@@ -212,12 +225,13 @@ export function armarMetasDelMes(args: {
 
   if (args.mes === hoy.slice(0, 7)) {
     const metaSemana = args.cohortes.reduce((total, cohorte) => {
-      if (!cohorte.fechaInicioVentas) return total;
+      const v = ventana(cohorte);
+      if (!v) return total;
       const ritmo = metaLineal({
         meta: cohorte.metaCupos,
-        diasHabilesTotales: diasHabilesEntre(cohorte.fechaInicioVentas, cohorte.fechaCierreVentas),
+        diasHabilesTotales: diasHabilesEntre(v.inicio, v.cierre),
       });
-      return total + ritmo * habilesDeInterseccion(cohorte.fechaInicioVentas, cohorte.fechaCierreVentas, semana);
+      return total + ritmo * habilesDeInterseccion(v.inicio, v.cierre, semana);
     }, 0);
     const ventasSemana = args.ventas.filter((venta) => venta.dia >= semana.desde && venta.dia <= semana.hasta).length;
     const diasHabilesRestantes = diasHabilesEntre(hoy, semana.hasta);
@@ -236,12 +250,12 @@ export function armarMetasDelMes(args: {
     periodoMes,
     filas,
     cohortesSinVentana: args.cohortes
-      .filter((cohorte) => cohorte.fechaInicioVentas === null)
+      .filter((cohorte) => ventana(cohorte) === null)
       .map(({ id, codigo }) => ({ id, codigo })),
-    mesSinVentana: !args.cohortes.some((cohorte) =>
-      cohorte.fechaInicioVentas !== null
-      && cohorte.fechaInicioVentas <= periodoMes.hasta
-      && cohorte.fechaCierreVentas >= periodoMes.desde),
+    mesSinVentana: !args.cohortes.some((cohorte) => {
+      const v = ventana(cohorte);
+      return v !== null && v.inicio <= periodoMes.hasta && v.cierre >= periodoMes.desde;
+    }),
     metaCupos,
     metaUsd,
     vendidos,

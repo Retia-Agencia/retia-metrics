@@ -56,6 +56,8 @@ export interface DatosDialogo {
   fechaSeguimiento?: string | null;
   motivoId?: string | null;
   comentarioMotivo?: string;
+  /** Comentario de "Lo estoy trabajando" (ticket 228): se guarda como nota al mover por E1. */
+  comentario?: string;
   llamada?: { dia: string; hora: string; linkGrain: string };
   abono?: DatosFormularioAbono;
 }
@@ -221,6 +223,9 @@ export function DialogoMover({
   // Se confirma solo con la revision de los datos que hay AHORA: un campo recien cambiado
   // espera su ensayo. Un dato que el deal ya tiene (en verde) no se vuelve a pedir.
   const vigente = revision != null && revision.con === JSON.stringify(datos);
+  // "Lo estoy trabajando" (E1, ticket 228): la flecha exige una actividad, y la escribe la nota
+  // que el closer teclea aquí. Un comentario obligatorio, y "actividad" la cuenta este diálogo.
+  const pideComentario = flecha.requisitos.includes("actividad");
   const requisitosQueEscribeElHecho = new Set<CodigoRequisito>(
     movimiento.hecho === "atendido"
       ? ["llamada_sucedio"]
@@ -230,6 +235,13 @@ export function DialogoMover({
           ? ["abono", "saldo_pendiente", "saldo_en_cero"]
           : [],
   );
+  // El servidor reclama el deal sin dueño al mover por E1 (como Anotar y registrar contacto),
+  // así que "dueno" tampoco bloquea el botón aquí.
+  if (pideComentario) {
+    requisitosQueEscribeElHecho.add("actividad");
+    requisitosQueEscribeElHecho.add("dueno");
+  }
+  const comentarioCompleto = !pideComentario || Boolean(datos.comentario?.trim());
   const llamadaCompleta = movimiento.hecho === "atendido" && llamada
     ? true
     : movimiento.hecho === "atendido" || movimiento.hecho === "agendado"
@@ -237,11 +249,11 @@ export function DialogoMover({
       : true;
   const abonoCompleto = movimiento.hecho !== "abono" || Boolean(datos.abono?.fecha && datos.abono.monto.trim());
   const motivoElegido = motivos.find((m) => m.id === datos.motivoId);
-  const comentarioCompleto = flecha.tipoDeMotivo !== "reagenda" || !motivoElegido?.pideTexto || Boolean(datos.comentarioMotivo?.trim());
+  const comentarioMotivoCompleto = flecha.tipoDeMotivo !== "reagenda" || !motivoElegido?.pideTexto || Boolean(datos.comentarioMotivo?.trim());
   const bloqueoVigente = movimiento.hecho ? null : revision?.bloqueo;
   const listo = vigente && bloqueoVigente == null
     && revision.requisitos.every((q) => q.cumple || requisitosQueEscribeElHecho.has(q.codigo))
-    && destino != null && llamadaCompleta && abonoCompleto && comentarioCompleto;
+    && destino != null && llamadaCompleta && abonoCompleto && comentarioMotivoCompleto && comentarioCompleto;
 
   const motivosDeLaFlecha = flecha.tipoDeMotivo
     ? motivos.filter((m) => m.tipo === flecha.tipoDeMotivo)
@@ -313,6 +325,19 @@ export function DialogoMover({
               </p>
               <FormularioAbono dealId={dealId} moneda={moneda ?? "USD"} plataformas={plataformas} datos={datos.abono} onChange={(abono) => setDatos((d) => ({ ...d, abono }))} />
             </section>
+          ) : null}
+
+          {pideComentario ? (
+            <Campo etiqueta="¿Qué hiciste?" ayuda="Obligatorio. Queda como nota del deal y cuenta como su primera actividad.">
+              <textarea
+                className={claseTextarea}
+                value={datos.comentario ?? ""}
+                maxLength={4000}
+                rows={3}
+                onChange={(e) => setDatos((d) => ({ ...d, comentario: e.target.value }))}
+                placeholder="Le escribí por WhatsApp, quedó de responder…"
+              />
+            </Campo>
           ) : null}
 
           {campos.map((campo) => (

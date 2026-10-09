@@ -177,8 +177,10 @@ describe("respuestasHacia: soltar en una columna del Kanban (ADR 0072 punto 2)",
     }
   });
 
-  it("desde Registrado, soltar en En gestión ofrece solo el contacto (215 quitó el intento)", () => {
-    expect(ids(respuestasHacia("registrado", null, "en_gestion"))).toEqual(["contacto"]);
+  it("desde Registrado, soltar en En gestión ofrece el contacto y 'Lo estoy trabajando' (ticket 228)", () => {
+    // Contacto mueve a En gestión por la regla de actividad; "Lo estoy trabajando" lo hace por
+    // la flecha E1 (ahora `ambos`). Las dos llevan a esa columna, así que las dos se ofrecen.
+    expect(ids(respuestasHacia("registrado", null, "en_gestion"))).toEqual(["contacto", "lo_estoy_trabajando"]);
     expect(ids(respuestasHacia("en_gestion", null, "en_gestion"))).toEqual([]);
   });
 

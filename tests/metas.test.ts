@@ -48,6 +48,16 @@ describe("146: cálculo puro de metas mensuales", () => {
     expect(resultado.cohortesSinVentana).toEqual([{ id: "sin-ventana", codigo: "Sin ventana" }]);
   });
 
+  it("una cohorte 'por definir' sin cierre de ventas no tiene ventana ni rompe la meta (ticket 227)", () => {
+    // Inicio de ventas puesto pero sin cierre (futura por definir): antes `diasHabilesEntre`
+    // recibía un cierre nulo. Ahora cuenta como sin ventana: meta 0, y aparece en cohortesSinVentana.
+    const sinCierre = { ...cohorteBase, id: "sin-cierre", codigo: "Sin cierre", fechaInicioVentas: "2026-09-01", fechaCierreVentas: null };
+    const resultado = armarMetasDelMes({ cohortes: [sinCierre], ventas: [], mes: "2026-09", hoy: "2026-09-30" });
+    expect(resultado.metaCupos).toBe(0);
+    expect(resultado.mesSinVentana).toBe(true);
+    expect(resultado.cohortesSinVentana).toEqual([{ id: "sin-cierre", codigo: "Sin cierre" }]);
+  });
+
   it("calcula avance, cumplimiento y faltante semanal en septiembre", () => {
     const ventas = Array.from({ length: 11 }, (_, indice) => ({
       dealId: `venta-${indice}`,

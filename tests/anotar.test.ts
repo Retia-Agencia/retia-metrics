@@ -232,11 +232,28 @@ describe("anotar", () => {
     expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0]).toMatchObject({ etapa: "agendado", pendiente: null });
   });
 
-  it("una anotación humana mueve Registrado a En gestión", async () => {
-    const deal = await nuevoDeal("registrado");
-    const resultado = await anotar(db, actor(), { dealId: deal.id, comentario: "Revisar el perfil" });
-    expect(resultado.etapaDespues).toBe("en_gestion");
-    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].etapa).toBe("en_gestion");
+  it("anotar NUNCA mueve: un deal en Registrado o Potencial se queda donde está (ticket 228)", async () => {
+    const registrado = await nuevoDeal("registrado");
+    const r1 = await anotar(db, actor(), { dealId: registrado.id, comentario: "Revisar el perfil" });
+    expect(r1.etapaDespues).toBe("registrado");
+    expect((await db.select().from(deals).where(eq(deals.id, registrado.id)))[0].etapa).toBe("registrado");
+
+    const potencial = await nuevoDeal("potencial");
+    const r2 = await anotar(db, actor(), { dealId: potencial.id, comentario: "Lo llamo mañana" });
+    expect(r2.etapaDespues).toBe("potencial");
+    expect((await db.select().from(deals).where(eq(deals.id, potencial.id)))[0].etapa).toBe("potencial");
+
+    // Tampoco mueve cuando deja el pendiente Próxima Cohorte: sigue en su etapa.
+    const conPendiente = await nuevoDeal("potencial");
+    const r3 = await anotar(db, actor(), {
+      dealId: conPendiente.id,
+      comentario: "Quiere la próxima",
+      proximaCohorte: { cohorteDestinoId },
+    });
+    expect(r3.etapaDespues).toBe("potencial");
+    const filaPendiente = (await db.select().from(deals).where(eq(deals.id, conPendiente.id)))[0];
+    expect(filaPendiente.etapa).toBe("potencial");
+    expect(filaPendiente.pendiente).toBe("proxima_cohorte");
   });
 
   it("una nota del sistema no cuenta como actividad comercial", async () => {

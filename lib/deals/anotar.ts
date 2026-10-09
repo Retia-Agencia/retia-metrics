@@ -110,15 +110,10 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
       // La fecha de agenda de la llamada que la rama de re-agenda haya CREADO (no la que
       // reagenda una existente): de ahí sale `llamadaCreada` del aviso (ticket 220).
       let fechaLlamadaCreada: Date | null = null;
-      if (etapa === "potencial" || etapa === "registrado") {
-        const mov = await moverEtapa(tx, {
-          dealId: original.id,
-          a: "en_gestion",
-          actor: { tipo: "sistema", porUsuario: actor.userId },
-        });
-        etapa = mov.a;
-        pendiente = mov.pendienteA;
-      }
+      // Anotar NUNCA mueve de etapa (ticket 228, Mani 9-oct): la tarjeta Transición ya decía
+      // que Anotar "deja un comentario o el próximo paso sin cambiar la etapa". Pasar de
+      // Potencial/Registrado a En gestión es ahora una respuesta de "Mover a" (E1, pasó de
+      // sistema a ambos), con comentario obligatorio dentro del diálogo de mover.
 
       if (datos.proximoContacto) {
         const mov = await moverEtapa(tx, {

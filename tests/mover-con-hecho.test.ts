@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { abonos, calls, cohorts, deals, leads, motivos, programs, users } from "@/lib/db/schema";
+import { abonos, calls, cohorts, dealActividades, deals, leads, motivos, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { moverConHecho } from "@/lib/deals/mover-con-hecho";
 import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
@@ -43,7 +43,7 @@ beforeEach(async () => {
 
 afterEach(async () => cerrar());
 
-async function nuevoDeal(etapa: EtapaDeal) {
+async function nuevoDeal(etapa: EtapaDeal, ownerUserId: string | null = closerId) {
   const leadId = (await db.insert(leads).values({
     programId,
     emailNormalizado: `mover-hecho-${secuencia++}@retia.co`,
@@ -52,7 +52,7 @@ async function nuevoDeal(etapa: EtapaDeal) {
     leadId,
     programId,
     cohortId,
-    ownerUserId: closerId,
+    ownerUserId,
     etapa,
     valorVendidoUsd: "1000",
   }).returning())[0];
@@ -152,5 +152,50 @@ describe("moverConHecho", () => {
     await moverConHecho(db, actor(), { dealId: deal.id, a: "atendido", pendiente: "reagenda", motivoId });
     const [fila] = await db.select({ etapa: deals.etapa, pendiente: deals.pendiente }).from(deals).where(eq(deals.id, deal.id));
     expect(fila).toEqual({ etapa: "atendido", pendiente: "reagenda" });
+  });
+
+  // Ticket 228: "Lo estoy trabajando" mueve Potencial/Registrado a En gestión por E1 (ahora
+  // `ambos`), con un comentario obligatorio que se escribe como nota antes de mover. Esa nota
+  // cuenta como la actividad que E1 exige.
+  it.each(["potencial", "registrado"] as const)(
+    "'Lo estoy trabajando' lleva %s a En gestión con la nota escrita (ticket 228)",
+    async (etapa) => {
+      const deal = await nuevoDeal(etapa);
+      await moverConHecho(db, actor(), {
+        dealId: deal.id,
+        a: "en_gestion",
+        comentario: "Le escribí por WhatsApp, quedó de responder.",
+      });
+      expect(await etapaDe(deal.id)).toBe("en_gestion");
+      const notas = await db
+        .select()
+        .from(dealActividades)
+        .where(eq(dealActividades.dealId, deal.id));
+      expect(notas).toHaveLength(1);
+      expect(notas[0]).toMatchObject({
+        tipo: "nota",
+        nota: "Le escribí por WhatsApp, quedó de responder.",
+        userId: closerId,
+      });
+    },
+  );
+
+  it("sin comentario, 'Lo estoy trabajando' se rechaza: E1 exige la actividad (ticket 228)", async () => {
+    const deal = await nuevoDeal("potencial");
+    const error = await moverConHecho(db, actor(), {
+      dealId: deal.id,
+      a: "en_gestion",
+    }).catch((causa: unknown) => causa);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).message).toContain("Escribe qué hiciste");
+    expect(await etapaDe(deal.id)).toBe("potencial");
+    expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, deal.id))).toHaveLength(0);
+  });
+
+  it("'Lo estoy trabajando' sobre un deal sin dueño lo reclama y lo mueve (ticket 228)", async () => {
+    const deal = await nuevoDeal("registrado", null);
+    await moverConHecho(db, actor(), { dealId: deal.id, a: "en_gestion", comentario: "Lo llamé, no contestó." });
+    const [fila] = await db.select({ etapa: deals.etapa, owner: deals.ownerUserId }).from(deals).where(eq(deals.id, deal.id));
+    expect(fila).toEqual({ etapa: "en_gestion", owner: closerId });
   });
 });

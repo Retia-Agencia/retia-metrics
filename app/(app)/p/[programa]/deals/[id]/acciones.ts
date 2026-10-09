@@ -175,6 +175,8 @@ const esquemaMoverConHechoAccion = z.object({
   pendiente: z.enum(pendienteDealEnum.enumValues).nullable().optional(),
   motivoId: id("Motivo inválido.").nullable().optional(),
   comentarioMotivo: z.string().trim().max(4000, "El comentario es muy largo.").optional(),
+  // El comentario de "Lo estoy trabajando" (ticket 228): se guarda como nota antes de mover.
+  comentario: z.string().trim().max(4000, "El comentario es muy largo.").optional(),
   correccion: z.boolean().optional(),
   datos: esquemaDatosMovimiento,
   hecho: esquemaHecho.optional(),

@@ -184,6 +184,7 @@ export function useResponder(
       correccion,
       motivoId: datos.motivoId ?? null,
       comentarioMotivo: datos.comentarioMotivo,
+      comentario: datos.comentario,
       hecho,
       datos: {
         descuentoUsd: datos.descuentoUsd,

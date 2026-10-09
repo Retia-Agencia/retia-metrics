@@ -6,15 +6,13 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, fechaHoraEnBogota, monto, pct, saldoLegible, usd } from "@/lib/format";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import type { FichaDeAbono, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import {
   anularAbonoAccion,
   cambiarPlataformaDeAbonoAccion,
-  cambiarCohorteAccion,
   desmarcarOnboardedAccion,
   editarAcuerdoAccion,
   marcarOnboardedAccion,
@@ -42,7 +40,6 @@ type Dialogo =
   | { tipo: "plataforma"; abono: FichaDeAbono }
   | { tipo: "comprobante"; abono: FichaDeAbono }
   | { tipo: "acuerdo" }
-  | { tipo: "cohorte" }
   | { tipo: "descuento" };
 
 export function FichaPago({
@@ -73,30 +70,11 @@ export function FichaPago({
   const anulado = ficha.anulado != null;
   const cerrado = ficha.etapa === "ganado_completo" || ficha.etapa === "cierre_perdido";
   const esEstudiante = ficha.etapa === "ganado_parcial" || ficha.etapa === "ganado_completo";
-  const codigosVendiendo = ficha.cohortesVendiendoHoy.map((cohorte) => cohorte.codigo);
-  const listaCohortesVendiendo = codigosVendiendo.length === 2
-    ? codigosVendiendo.join(" y ")
-    : codigosVendiendo.length > 2
-      ? `${codigosVendiendo.slice(0, -1).join(", ")} y ${codigosVendiendo.at(-1)}`
-      : (codigosVendiendo[0] ?? "");
-  const avisoSolapamiento = !esEstudiante && !cerrado && !anulado && codigosVendiendo.length >= 2
-    ? `Hoy venden ${codigosVendiendo.length === 2 ? "dos" : codigosVendiendo.length} cohortes (${listaCohortesVendiendo}): confirma en cuál queda este deal.`
-    : null;
 
   return (
     <Card id={ID_DE_SECCION.pago} className="scroll-mt-24">
-      <CardHeader className="grid-cols-1 gap-3 has-data-[slot=card-action]:grid-cols-1 sm:has-data-[slot=card-action]:grid-cols-[1fr_auto]">
+      <CardHeader>
         <CardTitle>Facturación</CardTitle>
-        {puedeTrabajar && !anulado ? (
-          <CardAction className="col-start-1 row-start-2 flex w-full flex-col items-start gap-2 justify-self-stretch sm:col-start-2 sm:row-start-1 sm:w-auto sm:items-end sm:justify-self-end">
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="ghost" onClick={() => setDialogo({ tipo: "cohorte" })}>
-                Cambiar cohorte
-              </Button>
-              {avisoSolapamiento ? <Badge variant="alerta">{avisoSolapamiento}</Badge> : null}
-            </div>
-          </CardAction>
-        ) : null}
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -218,7 +196,8 @@ export function FichaPago({
             </div>
             {!ficha.cohorte ? (
               <p className="text-xs text-muted-foreground">
-                El programa no tenía una cohorte activa al pagar, así que el deal quedó sin cohorte. Asígnala desde la acción de arriba.
+                El programa no tenía una cohorte activa al pagar, así que el deal quedó sin cohorte. Asígnala con
+                “Cambiar cohorte”, arriba a la derecha.
               </p>
             ) : null}
           </div>
@@ -273,7 +252,6 @@ export function FichaPago({
       {dialogo?.tipo === "plataforma" ? <DialogoCambiarPlataforma ficha={ficha} abono={dialogo.abono} opciones={opciones} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "comprobante" ? <DialogoComprobante abono={dialogo.abono} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "acuerdo" ? <DialogoAcuerdo ficha={ficha} onCerrar={cerrar} /> : null}
-      {dialogo?.tipo === "cohorte" ? <DialogoCohorte ficha={ficha} opciones={opciones} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "descuento" ? <DialogoDescuento ficha={ficha} onCerrar={cerrar} /> : null}
     </Card>
   );
@@ -487,49 +465,3 @@ function DialogoAcuerdo({ ficha, onCerrar }: { ficha: FichaDeDeal; onCerrar: () 
   );
 }
 
-function DialogoCohorte({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opciones: OpcionesDeFicha; onCerrar: () => void }) {
-  const { pendiente, correr } = useAccion();
-  const [cohortId, setCohortId] = useState<string | null>(null);
-  const [motivo, setMotivo] = useState("");
-  const destinos = opciones.cohortes.filter((c) => c.id !== ficha.cohorte?.id);
-  const esEstudiante = ficha.etapa === "ganado_parcial" || ficha.etapa === "ganado_completo";
-  return (
-    <DialogoForm
-      titulo="Cambiar de cohorte"
-      descripcion="La venta cuenta donde el estudiante asiste. Queda escrito quién lo cambió y por qué."
-      pendiente={pendiente}
-      onCerrar={onCerrar}
-      deshabilitarConfirmar={!cohortId || motivo.trim() === ""}
-      confirmar={{
-        texto: "Cambiar",
-        enCurso: "Guardando…",
-        onClick: () =>
-          correr(() => cambiarCohorteAccion({ dealId: ficha.dealId, cohortId: cohortId!, motivo }), {
-            exito: (r) =>
-              r.fechaLimiteAjustada
-                ? `Cohorte cambiada. La fecha límite de pago bajó al inicio de clases (${fecha(r.fechaLimiteAjustada)}).`
-                : "Cohorte cambiada.",
-            alExito: onCerrar,
-          }),
-      }}
-    >
-      <Campo etiqueta="Cohorte nueva" ayuda={esEstudiante ? "Solo futuras o activas." : "Solo cohortes que están vendiendo hoy."}>
-        <Select value={cohortId} items={destinos.map((c) => ({ value: c.id, label: c.nombre }))} onValueChange={(v: string | null) => setCohortId(v)}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Elige la cohorte" />
-          </SelectTrigger>
-          <SelectContent>
-            {destinos.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.nombre}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Campo>
-      <Campo etiqueta="Motivo" ayuda="Obligatorio.">
-        <textarea className={claseTextarea} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
-      </Campo>
-    </DialogoForm>
-  );
-}

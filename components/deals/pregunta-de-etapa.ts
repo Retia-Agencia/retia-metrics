@@ -57,16 +57,27 @@ const registrarContacto: Respuesta = {
   etiqueta: "Registrar contacto",
   accion: { tipo: "actividad", actividad: "contacto" },
 };
+/**
+ * "Lo estoy trabajando" (ticket 228): la respuesta de Potencial y Registrado que mueve el
+ * deal a En gestión por la flecha E1 (que pasó de `sistema` a `ambos`). Pide un comentario
+ * obligatorio en el diálogo de mover; esa nota del closer cuenta como la actividad que E1
+ * exige. Antes esto lo hacía Anotar en silencio, y ahora Anotar nunca mueve.
+ */
+const loEstoyTrabajando: Respuesta = {
+  id: "lo_estoy_trabajando",
+  etiqueta: "Lo estoy trabajando",
+  accion: { tipo: "mover", a: "en_gestion", pendiente: null },
+};
 const pago = (etiqueta: string): Respuesta => ({ id: "abono", etiqueta, accion: { tipo: "abono" } });
 
 export const PREGUNTA_DE_ETAPA: Readonly<Record<EtapaDeal, PreguntaDeEtapa>> = {
   potencial: {
     pregunta: null,
-    respuestas: [registrarContacto, proximaCohorte("potencial"), descartar()],
+    respuestas: [registrarContacto, loEstoyTrabajando, proximaCohorte("potencial"), descartar()],
   },
   registrado: {
     pregunta: null,
-    respuestas: [registrarContacto, proximaCohorte("registrado"), descartar()],
+    respuestas: [registrarContacto, loEstoyTrabajando, proximaCohorte("registrado"), descartar()],
   },
   en_gestion: {
     pregunta: "¿Se logró el contacto?",

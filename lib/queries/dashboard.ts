@@ -767,7 +767,7 @@ export async function vistaDeCohorteActiva(
     ventana: null,
   };
 
-  if (!cohorte.fechaInicioVentas) return base;
+  if (!cohorte.fechaInicioVentas || !cohorte.fechaCierreVentas) return base;
 
   const inicio = cohorte.fechaInicioVentas;
   const cierre = cohorte.fechaCierreVentas;

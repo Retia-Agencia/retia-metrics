@@ -89,9 +89,11 @@ export interface CohorteVista {
   metaCupos: number;
   metaLeadsDia: number | null;
   precioUsd: string;
-  fechaInicioClases: string;
+  /** Nula cuando la cohorte futura esta "por definir" (ticket 227). */
+  fechaInicioClases: string | null;
   fechaInicioVentas: string | null;
-  fechaCierreVentas: string;
+  /** Nula cuando la cohorte futura esta "por definir" (ticket 227). */
+  fechaCierreVentas: string | null;
   estado: Cohorte["estado"];
 }
 
@@ -117,9 +119,9 @@ export function aCohorteVista(c: Cohorte): CohorteVista {
     metaCupos: c.metaCupos,
     metaLeadsDia: c.metaLeadsDia ?? null,
     precioUsd: String(c.precioUsd),
-    fechaInicioClases: c.fechaInicioClases,
+    fechaInicioClases: c.fechaInicioClases ?? null,
     fechaInicioVentas: c.fechaInicioVentas ?? null,
-    fechaCierreVentas: c.fechaCierreVentas,
+    fechaCierreVentas: c.fechaCierreVentas ?? null,
     estado: c.estado,
   };
 }
@@ -165,7 +167,9 @@ export async function fichaDelPrograma(
       .sort(
         (a, b) =>
           ORDEN_DE_ESTADO[a.estado] - ORDEN_DE_ESTADO[b.estado] ||
-          b.fechaInicioClases.localeCompare(a.fechaInicioClases),
+          // Una cohorte "por definir" (sin inicio de clases) va al final de su grupo: no
+          // tiene fecha con que ordenarse. Entre dos definidas, la mas nueva arriba.
+          (b.fechaInicioClases ?? "").localeCompare(a.fechaInicioClases ?? ""),
       ),
     checkouts: enlaces.map((e) => ({
       id: e.id,

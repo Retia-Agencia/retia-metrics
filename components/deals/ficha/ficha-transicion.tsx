@@ -133,6 +133,11 @@ export function FichaTransicion({
             Se retoma solo cuando se registre un contacto desde el {fecha(ficha.cohorteDestino.inicioVentas)}.
           </p>
         ) : null}
+        {ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestino && !ficha.cohorteDestino.inicioVentas ? (
+          <p className="text-xs text-muted-foreground">
+            Se retoma cuando se defina el inicio de ventas de {ficha.cohorteDestino.codigo}.
+          </p>
+        ) : null}
       </CardContent>
       {dialogo}
     </Card>

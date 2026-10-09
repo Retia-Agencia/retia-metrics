@@ -21,24 +21,27 @@ export async function ventanasAnterioresDeCohorte(
     .from(cohorts)
     .where(and(eq(cohorts.programId, programId), eq(cohorts.id, cohorteId)));
 
-  if (!actual) {
+  // Sin cohorte, o una cohorte "por definir" sin inicio de clases (ticket 227): no hay
+  // ancla con que ordenar las previas, asi que no se compara contra ninguna ventana.
+  if (!actual || actual.inicio == null) {
     return {
       anterior: null,
       anteAnterior: null,
     };
   }
 
+  const inicioActual = actual.inicio;
   const filas = await db
     .select({
       inicio: cohorts.fechaInicioVentas,
       cierre: cohorts.fechaCierreVentas,
     })
     .from(cohorts)
-    .where(and(eq(cohorts.programId, programId), lt(cohorts.fechaInicioClases, actual.inicio)))
+    .where(and(eq(cohorts.programId, programId), lt(cohorts.fechaInicioClases, inicioActual)))
     .orderBy(desc(cohorts.fechaInicioClases), desc(cohorts.id))
     .limit(2);
 
-  const ventana = (fila: typeof filas[number] | undefined) => fila?.inicio
+  const ventana = (fila: typeof filas[number] | undefined) => fila?.inicio && fila.cierre
     ? {
         inicio: fila.inicio,
         cierre: fila.cierre,

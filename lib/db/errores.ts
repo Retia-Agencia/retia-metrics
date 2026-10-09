@@ -38,6 +38,26 @@ export function esViolacionCheck(error: unknown): boolean {
 }
 
 /**
+ * El nombre del CONSTRAINT que un error del driver reporta, o `null`. Camina la misma
+ * cadena de `cause` que `esCodigoPostgres`. postgres-js lo expone en `constraint_name`;
+ * PGlite —la base de los tests— en `constraint`. Sirve para distinguir DOS CHECK sobre la
+ * misma tabla (p. ej. las cohortes tienen `cohorts_activa_con_inicio_ventas` y
+ * `cohorts_definida_si_no_es_futura`) y dar a cada uno su mensaje.
+ */
+export function nombreDeConstraint(error: unknown): string | null {
+  let actual: unknown = error;
+  for (let i = 0; i < NIVELES_DE_CAUSA && actual != null; i++) {
+    if (typeof actual === "object") {
+      const o = actual as { constraint_name?: unknown; constraint?: unknown };
+      if (typeof o.constraint_name === "string") return o.constraint_name;
+      if (typeof o.constraint === "string") return o.constraint;
+    }
+    actual = (actual as { cause?: unknown }).cause;
+  }
+  return null;
+}
+
+/**
  * Violacion de una llave foranea al borrar: quedan filas que apuntan a esta
  * (SQLSTATE `23503` foreign_key_violation, o `23001` restrict_violation).
  *

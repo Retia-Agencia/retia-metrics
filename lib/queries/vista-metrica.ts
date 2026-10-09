@@ -385,7 +385,9 @@ export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) 
   const ventanas = cohorte ? await ventanasAnterioresDeCohorte(db, programId, cohorte.id) : {};
   const resuelto = resolverPeriodo(seleccion, {
     hoy,
-    actual: cohorte?.fechaInicioVentas ? { inicio: cohorte.fechaInicioVentas, cierre: cohorte.fechaCierreVentas } : null,
+    actual: cohorte?.fechaInicioVentas && cohorte.fechaCierreVentas
+      ? { inicio: cohorte.fechaInicioVentas, cierre: cohorte.fechaCierreVentas }
+      : null,
     ...ventanas,
   });
   // `sin_b=1`: el origen no comparaba. Se calla también el aviso de "elige B", que aquí no aplica.

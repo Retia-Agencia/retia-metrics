@@ -186,7 +186,8 @@ export interface FichaDeDeal {
   ticket: { cohorteId: string; codigo: string; precioUsd: number; esActivaSugerida: boolean } | null;
   descuento: DescuentoDeDeal | null;
   vendido: boolean;
-  cohorte: { id: string; codigo: string; inicioClases: string } | null;
+  /** `inicioClases`: nulo si la cohorte futura esta "por definir" (ticket 227). */
+  cohorte: { id: string; codigo: string; inicioClases: string | null } | null;
   cohortesVendiendoHoy: { id: string; codigo: string }[];
   /** `inicioVentas`: desde cuándo un contacto retoma un Próxima Cohorte (RET). */
   cohorteDestino: { id: string; codigo: string; inicioVentas: string | null } | null;

@@ -4,6 +4,8 @@ import { calls, dealActividades, deals } from "@/lib/db/schema";
 import { crearConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { ErrorDeApp } from "@/lib/errors";
+import { trabajaLeads } from "@/lib/auth/roles";
+import { cambiarDuenoDeal } from "./cambiar-dueno";
 import { agregarLlamada, marcarShow, pegarGrain } from "./llamadas";
 import { registrarAbono, type DatosRegistrarAbono } from "./abonos";
 import { dealBloqueadoConLead } from "./leer-deal";
@@ -30,6 +32,12 @@ export interface DatosMoverConHecho {
   pendiente?: PendienteDeal | null;
   motivoId?: string | null;
   comentarioMotivo?: string;
+  /**
+   * Un comentario del closer que se guarda como NOTA antes de mover (ticket 228). Lo usa
+   * "Lo estoy trabajando" (E1 → En gestión): la nota cuenta como la actividad que E1 exige.
+   * A diferencia de `comentarioMotivo`, no está atado a un motivo de re-agenda.
+   */
+  comentario?: string;
   correccion?: boolean;
   datos?: DatosMovimiento;
   hecho?: HechoDelMovimiento;
@@ -74,6 +82,43 @@ export async function moverConHecho(
           },
         );
       }
+    }
+
+    // "Lo estoy trabajando" (E1, ticket 228) es el gesto con el que un closer toma un lead que
+    // casi siempre llega sin dueño: pide comentario y, como Anotar y registrar un contacto,
+    // reclama el deal si no tiene dueño. Sin esto, E1 fallaría por "falta dueño" justo en el
+    // caso común.
+    if (resuelta.transicion?.id === "E1") {
+      if (!entrada.comentario?.trim()) {
+        throw new ErrorDeApp("Escribe qué hiciste con el lead.", 400);
+      }
+      if (inicial.ownerUserId == null && trabajaLeads(actor.rol)) {
+        await cambiarDuenoDeal(tx, {
+          dealId: inicial.id,
+          ownerActual: null,
+          ownerNuevo: actor.userId,
+          actorId: actor.userId,
+          etiqueta: emailLead,
+        });
+      }
+    }
+
+    // Un comentario suelto (ticket 228, "Lo estoy trabajando") se guarda como nota ANTES de
+    // mover: así cuenta como la actividad que E1 exige cuando el motor lee los hechos. Va en la
+    // misma transacción, por `crearConRastro`, así que si el movimiento se rechaza también se
+    // deshace. No se duplica con el de re-agenda: ese cuelga de un motivo, este no.
+    if (entrada.comentario?.trim()) {
+      await crearConRastro(
+        { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: actor.userId, etiqueta: emailLead },
+        {
+          dealId: inicial.id,
+          tipo: "nota",
+          canal: null,
+          userId: actor.userId,
+          fecha: new Date(),
+          nota: entrada.comentario.trim(),
+        },
+      );
     }
 
     // La fecha de agenda de la llamada que ESTA operación creó (hecho agendado, o atendido

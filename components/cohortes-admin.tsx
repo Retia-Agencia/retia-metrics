@@ -26,6 +26,11 @@ import {
  * si se intenta activar una segunda, la server action devuelve un 400 con mensaje
  * claro y aca se muestra como toast de error. Cerrar una cohorte la pasa a
  * `cerrado` (nunca se borra) y libera el cupo de activa.
+ *
+ * Una cohorte FUTURA puede quedar "por definir" (ticket 227): el inicio de clases, el
+ * de ventas y el cierre son opcionales mientras es futura. Donde falta una fecha, la
+ * lista muestra "Por definir". El esquema (y el CHECK de la base) exigen las tres en
+ * cuanto deja de ser futura.
  */
 
 const ESTADOS = ["futuro", "activo", "cerrado"] as const;
@@ -37,9 +42,11 @@ export interface CohorteVista {
   metaCupos: number;
   metaLeadsDia: number | null;
   precioUsd: string;
-  fechaInicioClases: string;
+  /** Nula cuando la cohorte futura esta "por definir" (ticket 227). */
+  fechaInicioClases: string | null;
   fechaInicioVentas: string | null;
-  fechaCierreVentas: string;
+  /** Nula cuando la cohorte futura esta "por definir" (ticket 227). */
+  fechaCierreVentas: string | null;
   estado: Estado;
 }
 
@@ -71,9 +78,9 @@ function aBorrador(c: CohorteVista): Borrador {
     metaCupos: String(c.metaCupos),
     metaLeadsDia: c.metaLeadsDia === null ? "" : String(c.metaLeadsDia),
     precioUsd: c.precioUsd,
-    fechaInicioClases: c.fechaInicioClases,
+    fechaInicioClases: c.fechaInicioClases ?? "",
     fechaInicioVentas: c.fechaInicioVentas ?? "",
-    fechaCierreVentas: c.fechaCierreVentas,
+    fechaCierreVentas: c.fechaCierreVentas ?? "",
     estado: c.estado,
   };
 }
@@ -168,8 +175,8 @@ export function CohortesAdmin({
                       </Badge>
                     </span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      meta {c.metaCupos} · precio {usd(Number(c.precioUsd))} · ventas {c.fechaInicioVentas ?? "—"} →{" "}
-                      {c.fechaCierreVentas} · clases {c.fechaInicioClases}
+                      meta {c.metaCupos} · precio {usd(Number(c.precioUsd))} · ventas {c.fechaInicioVentas ?? "Por definir"} →{" "}
+                      {c.fechaCierreVentas ?? "Por definir"} · clases {c.fechaInicioClases ?? "Por definir"}
                     </span>
                   </div>
                   <span className="flex items-center gap-1">
@@ -224,9 +231,11 @@ function aEntrada(b: Borrador, programId: string) {
     metaCupos: b.metaCupos,
     metaLeadsDia: b.metaLeadsDia === "" ? null : b.metaLeadsDia,
     precioUsd: b.precioUsd,
-    fechaInicioClases: b.fechaInicioClases,
+    // Vacio ("") es "por definir": lo normaliza el esquema a null. Solo una cohorte futura
+    // puede quedar sin estas fechas (ticket 227); el esquema rechaza el resto con un 400.
+    fechaInicioClases: b.fechaInicioClases === "" ? null : b.fechaInicioClases,
     fechaInicioVentas: b.fechaInicioVentas === "" ? null : b.fechaInicioVentas,
-    fechaCierreVentas: b.fechaCierreVentas,
+    fechaCierreVentas: b.fechaCierreVentas === "" ? null : b.fechaCierreVentas,
     estado: b.estado,
   };
 }
@@ -334,7 +343,7 @@ function FormularioCohorte({
               type="date"
               value={borrador.fechaInicioClases}
               onChange={(e) => setBorrador({ ...borrador, fechaInicioClases: e.target.value })}
-              required
+              required={borrador.estado !== "futuro"}
               className={claseInput}
               aria-label="Fecha de inicio de clases"
             />
@@ -358,7 +367,7 @@ function FormularioCohorte({
               type="date"
               value={borrador.fechaCierreVentas}
               onChange={(e) => setBorrador({ ...borrador, fechaCierreVentas: e.target.value })}
-              required
+              required={borrador.estado !== "futuro"}
               className={claseInput}
               aria-label="Fecha de cierre de ventas"
             />

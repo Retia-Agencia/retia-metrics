@@ -92,6 +92,35 @@ describe("cohortesVendiendo", () => {
     expect((await cohortesVendiendo(db, programId, "2026-06-01")).map((c) => c.codigo)).toEqual(["C3"]);
     expect((await cohortesVendiendo(db, programId, "2026-06-30")).map((c) => c.codigo)).toEqual(["C3"]);
   });
+
+  it("una cohorte 'por definir' (sin cierre, ni inicio de ventas) nunca vende (ticket 227)", async () => {
+    // Futura sin inicio de ventas ni cierre: no se le puede casar ninguna fecha. El cierre nulo
+    // no debe casar (gte sobre null da null, no true), igual que el inicio nulo.
+    await db.insert(cohorts).values({
+      programId,
+      codigo: "PorDefinir",
+      metaCupos: 20,
+      precioUsd: "1000",
+      fechaInicioClases: null,
+      fechaInicioVentas: null,
+      fechaCierreVentas: null,
+      estado: "futuro",
+    });
+    expect(await cohortesVendiendo(db, programId, "2026-06-15")).toEqual([]);
+
+    // Con inicio de ventas pero sin cierre tampoco vende: el cierre nulo no casa.
+    await db.insert(cohorts).values({
+      programId,
+      codigo: "SinCierre",
+      metaCupos: 20,
+      precioUsd: "1000",
+      fechaInicioClases: null,
+      fechaInicioVentas: "2026-06-01",
+      fechaCierreVentas: null,
+      estado: "futuro",
+    });
+    expect(await cohortesVendiendo(db, programId, "2026-06-15")).toEqual([]);
+  });
 });
 
 describe("cambiarCohorte segun la etapa", () => {

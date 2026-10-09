@@ -487,8 +487,9 @@ function ListaDeCohortes({ cohortes }: { cohortes: CohorteVista[] }) {
               <Badge variant={TONO_DE_COHORTE[c.estado]}>{NOMBRE_DE_ESTADO_COHORTE[c.estado]}</Badge>
             </p>
             <p className="text-xs text-muted-foreground">
-              Ventas {c.fechaInicioVentas ? `del ${fecha(c.fechaInicioVentas)} ` : ""}al {fecha(c.fechaCierreVentas)} · clases
-              desde el {fecha(c.fechaInicioClases)}
+              Ventas {c.fechaInicioVentas ? `del ${fecha(c.fechaInicioVentas)} ` : ""}al{" "}
+              {c.fechaCierreVentas ? fecha(c.fechaCierreVentas) : "Por definir"} · clases
+              desde el {c.fechaInicioClases ? fecha(c.fechaInicioClases) : "Por definir"}
             </p>
           </div>
           <p className="text-xs text-muted-foreground">

@@ -5,7 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando as normalizandoZod } from "@/lib/errors-zod";
-import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
+import { esViolacionCheck, esViolacionUnica, nombreDeConstraint } from "@/lib/db/errores";
 
 /**
  * Cohortes (ticket 014, ADR 0012 + ADR 0005), sobre las mismas piezas del molde.
@@ -61,7 +61,18 @@ export const esquemaCohorte = z.object({
     .optional()
     .transform((v) => (v === undefined ? null : v)),
   precioUsd: monto("El precio"),
-  fechaInicioClases: fechaIso("La fecha de inicio de clases"),
+  /**
+   * Inicio de clases. Nullable solo mientras la cohorte es FUTURA y queda "por definir"
+   * (ticket 227): Gerencia la crea antes de saber la fecha. OBLIGATORIO para una cohorte
+   * que no es futura (activa o cerrada), que es lo que exige el CHECK
+   * `cohorts_definida_si_no_es_futura` en la base; el `superRefine` de abajo da el 400
+   * amable antes de tocarla. Vacio ("") o ausente se normaliza a null.
+   */
+  fechaInicioClases: fechaIso("La fecha de inicio de clases")
+    .or(z.literal(""))
+    .nullable()
+    .optional()
+    .transform((v) => (v === undefined || v === "" ? null : v)),
   /**
    * Primer dia de la ventana de venta (ADR 0022). Opcional en base y aca, pero
    * OBLIGATORIO cuando la cohorte esta activa (regla dura en la base como CHECK; el
@@ -73,9 +84,38 @@ export const esquemaCohorte = z.object({
     .nullable()
     .optional()
     .transform((v) => (v === undefined || v === "" ? null : v)),
-  fechaCierreVentas: fechaIso("La fecha de cierre de ventas"),
+  /**
+   * Ultimo dia de la ventana de venta. Nullable igual que el inicio de clases: solo una
+   * cohorte futura puede quedar "por definir" sin ella (ticket 227). Obligatoria para una
+   * cohorte que no es futura, por el mismo CHECK.
+   */
+  fechaCierreVentas: fechaIso("La fecha de cierre de ventas")
+    .or(z.literal(""))
+    .nullable()
+    .optional()
+    .transform((v) => (v === undefined || v === "" ? null : v)),
   estado: z.enum(estadoCohorteEnum.enumValues),
 }).superRefine((datos, ctx) => {
+  // Una cohorte "por definir" solo puede ser futura (ticket 227, CHECK
+  // `cohorts_definida_si_no_es_futura`): si no es futura, exige las tres fechas. Da el 400
+  // amable aqui, antes de que la base lo rechace con el 23514. El inicio de ventas se exige
+  // ademas para la activa (ADR 0022), asi que una activa termina con las tres igual.
+  if (datos.estado !== "futuro") {
+    if (datos.fechaInicioClases === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["fechaInicioClases"],
+        message: "Una cohorte que no es futura necesita fecha de inicio de clases.",
+      });
+    }
+    if (datos.fechaCierreVentas === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["fechaCierreVentas"],
+        message: "Una cohorte que no es futura necesita fecha de cierre de ventas.",
+      });
+    }
+  }
   // Una cohorte activa no puede quedar sin inicio de ventas (ADR 0022).
   if (datos.estado === "activo" && datos.fechaInicioVentas === null) {
     ctx.addIssue({
@@ -84,9 +124,10 @@ export const esquemaCohorte = z.object({
       message: "Una cohorte activa necesita fecha de inicio de ventas.",
     });
   }
-  // El cierre no puede ser anterior al inicio de ventas.
+  // El cierre no puede ser anterior al inicio de ventas (solo cuando ambas existen).
   if (
     datos.fechaInicioVentas !== null &&
+    datos.fechaCierreVentas !== null &&
     datos.fechaCierreVentas < datos.fechaInicioVentas
   ) {
     ctx.addIssue({
@@ -113,9 +154,10 @@ function idValido(id: string): string {
 
 /**
  * Detecta la violacion de indice unico (23505) y la de un CHECK (23514). Las dos
- * viven en `lib/db/errores.ts` y se importan aca. El unico CHECK de esta tabla es
- * `cohorts_activa_con_inicio_ventas` (ADR 0022): una cohorte no puede quedar activa
- * sin inicio de ventas.
+ * viven en `lib/db/errores.ts` y se importan aca. Los CHECK de esta tabla son
+ * `cohorts_activa_con_inicio_ventas` (ADR 0022) y `cohorts_definida_si_no_es_futura`
+ * (ticket 227): una cohorte activa no queda sin inicio de ventas, y solo una futura
+ * puede quedar sin fechas de clases o cierre.
  */
 
 /** Convierte un valor de columna a texto para `change_log`. */
@@ -159,9 +201,19 @@ async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
         );
       }
       if (esViolacionCheck(error)) {
-        // El CHECK cohorts_activa_con_inicio_ventas (ADR 0022): una cohorte no puede
-        // quedar activa sin inicio de ventas. La garantia vive en la base; aca se
-        // traduce a un 400 claro, igual que se hace con el indice unico (23505).
+        // Dos CHECK pueden chocar aca (ADR 0022, ticket 227), y el pre-chequeo del
+        // `superRefine` ya los ataja con mensajes por campo; esto es la ultima red. Se mira el
+        // nombre del constraint para dar a cada uno su mensaje:
+        //  - `cohorts_definida_si_no_es_futura`: una cohorte que no es futura sin inicio de
+        //    clases o sin cierre de ventas. Una cohorte "por definir" solo puede ser futura.
+        //  - `cohorts_activa_con_inicio_ventas` (o cualquier otro): una activa sin inicio de ventas.
+        // La garantia vive en la base; aca se traduce a un 400 claro, igual que el 23505.
+        if (nombreDeConstraint(error) === "cohorts_definida_si_no_es_futura") {
+          throw new ErrorDeApp(
+            "A esta cohorte le faltan fechas: solo una cohorte futura puede quedar sin inicio de clases o cierre de ventas.",
+            400,
+          );
+        }
         throw new ErrorDeApp(
           "Una cohorte activa necesita fecha de inicio de ventas.",
           400,

@@ -611,8 +611,12 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
     .from(motivos)
     .where(eq(motivos.activo, true));
   const listaMotivos = motivoFilas.sort((a, b) => a.nombre.localeCompare(b.nombre));
-  const inicioDeClases = Object.fromEntries(cohorteFilas.map((c) => [c.id, c.inicio] as const));
-  if (activa) inicioDeClases[activa.id] = activa.fechaInicioClases;
+  const inicioDeClases = Object.fromEntries(
+    cohorteFilas
+      .filter((c): c is typeof c & { inicio: string } => c.inicio != null)
+      .map((c) => [c.id, c.inicio] as const),
+  );
+  if (activa?.fechaInicioClases) inicioDeClases[activa.id] = activa.fechaInicioClases;
   const inicioDeLaCohorteActiva = activa?.fechaInicioClases ?? null;
   const plataformas = (await plataformasDelPrograma(db, programId)).map((p) => ({ id: p.id, nombre: String(p.nombre) }));
 

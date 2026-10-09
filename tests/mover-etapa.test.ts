@@ -645,6 +645,54 @@ describe("los hechos salen de la base", () => {
     });
   });
 
+  it("RET: una cohorte destino SIN inicio de ventas (por definir) no se retoma; al definirla, sí (ticket 227)", async () => {
+    const base = { programId, metaCupos: 30, precioUsd: "1000" };
+    const [origen, destino] = await db.insert(cohorts).values([
+      { ...base, codigo: "RET-O2", estado: "activo", fechaInicioClases: "2026-11-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-10-25" },
+      // Futura "por definir": sin inicio de ventas, ni clases, ni cierre.
+      { ...base, codigo: "RET-D2", estado: "futuro", fechaInicioClases: null, fechaInicioVentas: null, fechaCierreVentas: null },
+    ]).returning();
+    const dealId = await nuevoDeal("calificado", {
+      ownerUserId: closer,
+      pendiente: "proxima_cohorte",
+      cohortId: origen.id,
+      cohorteDestinoId: destino.id,
+    });
+    // Un contacto reciente: aun así no se retoma, porque la cohorte destino no tiene fecha desde
+    // la cual medir (fechaInicioVentasCohorteDestino null → RET lo trata como faltante).
+    await db.insert(dealActividades).values({
+      dealId,
+      tipo: "contacto",
+      canal: "whatsapp",
+      userId: closer,
+      fecha: new Date("2026-10-05T12:00:00-05:00"),
+    });
+    const e = await rechazo(moverEtapa(db, { dealId, a: "calificado", pendiente: null, actor: sistema }));
+    expect(e.faltantes.map((f) => f.codigo)).toEqual(["contacto"]);
+
+    // Se define el inicio de ventas de la cohorte destino.
+    await db.update(cohorts).set({
+      fechaInicioClases: "2026-12-01",
+      fechaInicioVentas: "2026-11-01",
+      fechaCierreVentas: "2026-11-25",
+    }).where(eq(cohorts.id, destino.id));
+
+    // Un contacto posterior a esa fecha ahora sí retoma el deal a su cohorte destino.
+    await db.insert(dealActividades).values({
+      dealId,
+      tipo: "contacto",
+      canal: "llamada",
+      userId: closer,
+      fecha: new Date("2026-11-02T00:00:00-05:00"),
+    });
+    await moverEtapa(db, { dealId, a: "calificado", pendiente: null, actor: sistema });
+    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0]).toMatchObject({
+      etapa: "calificado",
+      pendiente: null,
+      cohortId: destino.id,
+    });
+  });
+
   it("el dinero mueve el deal: Abonado con saldo, Completo sin saldo, y A1 vuelve a la etapa de donde vino", async () => {
     const dealId = await nuevoDeal("atendido");
     await db.insert(dealEtapaHistorial).values({ dealId, de: "agendado", a: "atendido" });
