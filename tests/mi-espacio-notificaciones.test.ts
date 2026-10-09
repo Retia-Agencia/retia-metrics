@@ -262,6 +262,24 @@ describe("notificaciones de Mi espacio (222)", () => {
     expect(new Set(ids)).toEqual(new Set([segVencido, compromisoVencido]));
   });
 
+  it("sin_grain: un Show sin link entra; con link, anulado o de otro dueño no (226)", async () => {
+    const sinGrain = await deal({ etapa: "atendido" });
+    await llamada(sinGrain.dealId, AYER);
+    const conGrain = await deal({ etapa: "atendido" });
+    const idConGrain = await llamada(conGrain.dealId, AYER);
+    await db.update(calls).set({ linkGrain: "https://grain.com/share/x" }).where(eq(calls.id, idConGrain));
+    const anulada = await deal({ etapa: "atendido" });
+    await llamada(anulada.dealId, AYER, programId, true);
+    const ajeno = await deal({ etapa: "atendido", owner: otro });
+    await llamada(ajeno.dealId, AYER);
+
+    const lista = await todas("sin_grain");
+    expect(lista).toContain(sinGrain.dealId);
+    expect(lista).not.toContain(conGrain.dealId);
+    expect(lista).not.toContain(anulada.dealId);
+    expect(lista).not.toContain(ajeno.dealId);
+  });
+
   it("nuevos: solo los que el dueño no ha abierto", async () => {
     const nuevo = await dealId({ etapa: "registrado", nuevo: true });
     await dealId({ etapa: "registrado", nuevo: false });

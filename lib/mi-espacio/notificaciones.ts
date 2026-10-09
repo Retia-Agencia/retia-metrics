@@ -30,6 +30,7 @@ export const CHIPS_NOTIFICACIONES = [
   "seguimiento",
   "proxima_cohorte",
   "vencidos",
+  "sin_grain",
   "calendly",
   "nuevos",
   "duplicados",
@@ -46,6 +47,7 @@ export const NOMBRE_DE_CHIP: Readonly<Record<ChipNotificacion, string>> = {
   seguimiento: "Seguimiento",
   proxima_cohorte: "Próxima Cohorte",
   vencidos: "Vencidos",
+  sin_grain: "Sin Grain",
   calendly: "Calendly",
   nuevos: "Nuevos",
   duplicados: "Duplicados",
@@ -90,6 +92,8 @@ interface Universo {
   fechas: Map<string, FechasDeDeal>;
   /** La primera llamada vigente de HOY (día de Bogotá) de cada deal, por dealId. */
   llamadaDeHoy: Map<string, Date>;
+  /** La llamada Show sin Grain más antigua de cada deal (ticket 226), por dealId. */
+  showSinGrain: Map<string, Date>;
   hoy: string;
 }
 
@@ -106,6 +110,7 @@ async function cargarUniverso(
 
   const fechas = new Map<string, FechasDeDeal>();
   const llamadaDeHoy = new Map<string, Date>();
+  const showSinGrain = new Map<string, Date>();
   if (ids.length > 0) {
     const filasDeal = await db
       .select({
@@ -125,10 +130,20 @@ async function cargarUniverso(
     // Llamadas VIGENTES de los deals del universo (vigente(calls) obligatorio). Nos quedamos
     // con la más reciente por deal; la fecha de la llamada es un timestamp (instante).
     const filasCall = await db
-      .select({ dealId: calls.dealId, fechaLlamada: calls.fechaLlamada })
+      .select({
+        dealId: calls.dealId,
+        fechaLlamada: calls.fechaLlamada,
+        resultado: calls.resultado,
+        linkGrain: calls.linkGrain,
+      })
       .from(calls)
       .where(and(inArray(calls.dealId, ids), vigente(calls)));
     for (const c of filasCall) {
+      // Sin Grain (226): una llamada Show sin link; nos quedamos con la más antigua.
+      if (c.dealId && c.fechaLlamada && c.resultado === "show" && !c.linkGrain?.trim()) {
+        const previa = showSinGrain.get(c.dealId);
+        if (!previa || c.fechaLlamada < previa) showSinGrain.set(c.dealId, c.fechaLlamada);
+      }
       // CUALQUIER llamada vigente de hoy cuenta, no solo la última: un deal con cita hoy y
       // otra más adelante sigue siendo de hoy.
       if (!c.dealId || !c.fechaLlamada || diaDeCalendario(c.fechaLlamada) !== hoy) continue;
@@ -137,7 +152,7 @@ async function cargarUniverso(
     }
   }
 
-  return { tarjetas, fechas, llamadaDeHoy, hoy };
+  return { tarjetas, fechas, llamadaDeHoy, showSinGrain, hoy };
 }
 
 /** ¿La tarjeta pasa el chip? Y, de pasar, ¿cuál es su fecha clave para ordenar y mostrar? */
@@ -169,7 +184,7 @@ function evaluar(
     case "proxima_cohorte":
       return { pasa: t.pendiente === "proxima_cohorte", fechaClave: t.creadoEn };
     case "vencidos": {
-      // Los avisos propios de la tarjeta, no reescritos (sin Grain: ver nota del módulo).
+      // Los avisos propios de la tarjeta, no reescritos (sin Grain tiene su chip, 226).
       const vencido =
         t.avisos.seguimientoVencido || t.avisos.compromisoVencido || t.avisos.carteraVencida;
       // La fecha vencida más antigua: el seguimiento o el límite de pago, el menor de los dos.
@@ -179,6 +194,10 @@ function evaluar(
       ].filter((x): x is string => x != null);
       const masAntigua = candidatas.length > 0 ? candidatas.sort()[0] : null;
       return { pasa: vencido, fechaClave: masAntigua };
+    }
+    case "sin_grain": {
+      const llamada = u.showSinGrain.get(t.dealId) ?? null;
+      return { pasa: llamada != null, fechaClave: llamada };
     }
     case "calendly":
       return { pasa: idsCalendly.has(t.dealId), fechaClave: idsCalendly.get(t.dealId) ?? null };
@@ -209,7 +228,8 @@ function compararPorChip(
       // Por creación ascendente.
       return (fa - fb) || desempate(a, b);
     case "vencidos":
-      // El vencido más antiguo primero (fecha ascendente).
+    case "sin_grain":
+      // El vencido (o el Show sin Grain) más antiguo primero (fecha ascendente).
       return (fa - fb) || desempate(a, b);
     case "calendly":
       // La novedad más reciente primero (descendente).
@@ -343,7 +363,7 @@ function deberiaVerse(
 
 /** ¿El chip ordena/muestra por una fecha? (Nuevos y Próxima Cohorte no tienen fecha propia). */
 function chipConFecha(chip: ChipNotificacion): boolean {
-  return chip === "hoy" || chip === "reagenda" || chip === "seguimiento" || chip === "vencidos" || chip === "calendly";
+  return chip === "hoy" || chip === "reagenda" || chip === "seguimiento" || chip === "vencidos" || chip === "sin_grain" || chip === "calendly";
 }
 
 /** Novedades de Calendly del universo: todas (leídas o no) y el subconjunto no leído. */
