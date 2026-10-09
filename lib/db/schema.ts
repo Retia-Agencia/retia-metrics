@@ -905,15 +905,6 @@ export const deals = pgTable(
       onDelete: "restrict",
     }),
     /**
-     * El area que dice el closer ("¿como nos conociste?", ticket 121, ADR 0062 punto 5).
-     * La exige el motor al entrar a Compromiso Verbal, Ganado Pago Parcial o Ganado Pagado Completo; un deal
-     * historico (con `huellaMigracion`) queda exento. **No es atribucion y nunca se
-     * mezcla con el UTM**: solo alimenta la burbuja "sin UTM · segun el comercial".
-     */
-    areaDeclaradaId: uuid("area_declarada_id").references((): AnyPgColumn => areas.id, {
-      onDelete: "restrict",
-    }),
-    /**
      * Lo que de verdad se vendió, en USD: ticket de la cohorte menos el descuento
      * escrito por el closer. Se congela al vender; de aquí salen saldo y Completo.
      */
@@ -1530,10 +1521,8 @@ export const motivos = pgTable(
 );
 
 /**
- * Areas de Retia (ticket 083, ADR 0043): agrupan leads y deals por origen. Area NO
- * es rol. El area de un lead se deriva de su Canal (ticket 101), nunca se guarda en
- * leads ni deals. La unica excepcion es `deals.area_declarada_id` (ticket 121): lo que
- * DICE el closer, que no es atribucion.
+ * Areas de Retia (ticket 083, ADR 0043): agrupan leads por origen. Area NO es rol.
+ * El area de un lead se deriva de su Canal (ticket 101), nunca se guarda en leads ni deals.
  */
 export const areas = pgTable(
   "areas",

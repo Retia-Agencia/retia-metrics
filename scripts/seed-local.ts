@@ -1013,15 +1013,11 @@ export async function sembrarLocal(): Promise<void> {
   }
 
   console.log("[seed:local] Creando deals y distribuyéndolos en varias etapas con llamadas y abonos...");
-  // Desde el 121 el motor pide el área declarada para comprometer, abonar y completar.
-  const areaDeclaradaSeed = areasPorNombre.get("paid")!;
-
   // Deal 1 -> Etapa: registrado
   const lead1 = mapaLeads.get("andrea.morales@ejemplo.local")!;
   await abrirDeal(db, {
     leadId: lead1.id,
     programId: prog1.id,
-    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "registrado",
     actor: { tipo: "sistema" },
     ownerUserId: closer1.id,
@@ -1033,7 +1029,6 @@ export async function sembrarLocal(): Promise<void> {
   const deal2Id = await abrirDeal(db, {
     leadId: lead2.id,
     programId: prog1.id,
-    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "en_gestion",
     actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
     ownerUserId: closer2.id,
@@ -1055,7 +1050,6 @@ export async function sembrarLocal(): Promise<void> {
   const deal3Id = await abrirDeal(db, {
     leadId: lead3.id,
     programId: prog1.id,
-    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "registrado",
     actor: { tipo: "sistema" },
     ownerUserId: closer1.id,
@@ -1077,7 +1071,6 @@ export async function sembrarLocal(): Promise<void> {
   const deal4Id = await abrirDeal(db, {
     leadId: lead4.id,
     programId: prog1.id,
-    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "registrado",
     actor: { tipo: "sistema" },
     ownerUserId: closer1.id,
@@ -1105,7 +1098,6 @@ export async function sembrarLocal(): Promise<void> {
   const deal5Id = await abrirDeal(db, {
     leadId: lead5.id,
     programId: prog1.id,
-    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "en_gestion",
     actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
     ownerUserId: closer2.id,
@@ -1133,7 +1125,6 @@ export async function sembrarLocal(): Promise<void> {
   const deal6Id = await abrirDeal(db, {
     leadId: lead6.id,
     programId: prog1.id,
-    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "en_gestion",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
@@ -1168,7 +1159,6 @@ export async function sembrarLocal(): Promise<void> {
   const deal7Id = await abrirDeal(db, {
     leadId: lead7.id,
     programId: prog1.id,
-    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "en_gestion",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
@@ -1203,7 +1193,6 @@ export async function sembrarLocal(): Promise<void> {
   const deal8Id = await abrirDeal(db, {
     leadId: lead8.id,
     programId: prog1.id,
-    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "registrado",
     actor: { tipo: "sistema" },
     ownerUserId: closer1.id,
@@ -1231,7 +1220,6 @@ export async function sembrarLocal(): Promise<void> {
   const deal9Id = await abrirDeal(db, {
     leadId: lead9.id,
     programId: prog1.id,
-    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "en_gestion",
     actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
     ownerUserId: closer2.id,
@@ -1260,7 +1248,6 @@ export async function sembrarLocal(): Promise<void> {
   const deal10Id = await abrirDeal(db, {
     leadId: lead10.id,
     programId: prog2.id,
-    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "en_gestion",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,
@@ -1295,7 +1282,6 @@ export async function sembrarLocal(): Promise<void> {
   await abrirDeal(db, {
     leadId: lead11.id,
     programId: prog2.id,
-    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "registrado",
     actor: { tipo: "sistema" },
     ownerUserId: closer1.id,
@@ -1307,7 +1293,6 @@ export async function sembrarLocal(): Promise<void> {
   const deal12Id = await abrirDeal(db, {
     leadId: lead12.id,
     programId: prog2.id,
-    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "registrado",
     actor: { tipo: "sistema" },
     ownerUserId: closer1.id,
@@ -1329,7 +1314,6 @@ export async function sembrarLocal(): Promise<void> {
   const deal13Id = await abrirDeal(db, {
     leadId: lead13.id,
     programId: prog2.id,
-    areaDeclaradaId: areaDeclaradaSeed,
     etapa: "en_gestion",
     actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
     ownerUserId: closer1.id,

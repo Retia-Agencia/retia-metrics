@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { and, eq, inArray } from "drizzle-orm";
-import { areas, cohorts, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
+import { cohorts, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { anularAbono, registrarAbono } from "@/lib/deals/abonos";
@@ -21,7 +21,6 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
-let areaId: string;
 let closer: string;
 let leadN = 0;
 
@@ -55,8 +54,6 @@ beforeEach(async () => {
     })
     .returning();
   cohortId = c.id;
-  const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
-  areaId = area.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
 });
@@ -72,7 +69,7 @@ async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferIns
     .returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer, valorVendidoUsd: "1000", areaDeclaradaId: areaId, ...extra })
+    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer, valorVendidoUsd: "1000", ...extra })
     .returning();
   return d.id;
 }

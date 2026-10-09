@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { areas as tablaAreas, canales as tablaCanales, deals } from "@/lib/db/schema";
+import { areas as tablaAreas, canales as tablaCanales } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { moldeDeCatalogo } from "./molde";
@@ -26,13 +26,7 @@ export function areas(db?: Db) {
       esquema: esquemaArea,
       etiqueta: (fila) => String(fila.nombre),
       nombreEntidad: "un área",
-      // El area declarada del deal (ticket 121) tambien la referencia: sin contarla, un area
-      // que solo usan deals contaria cero y el borrado chocaria con la FK en vez de decir
-      // cuantas referencias tiene y ofrecer desactivarla (ADR 0026 punto 5).
-      dependientes: [
-        { tabla: tablaCanales, columna: tablaCanales.areaId },
-        { tabla: deals, columna: deals.areaDeclaradaId },
-      ],
+      dependientes: [{ tabla: tablaCanales, columna: tablaCanales.areaId }],
     },
     db,
   );

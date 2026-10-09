@@ -4,7 +4,6 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   abonos,
-  areas,
   changeLog,
   cohorts,
   dealActividades,
@@ -26,7 +25,6 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
-let areaId: string;
 let closerId: string;
 let secuencia = 0;
 
@@ -53,7 +51,6 @@ async function dealDirecto(
       programId,
       cohortId,
       ownerUserId: closerId,
-      areaDeclaradaId: areaId,
       etapa,
       ...extra,
     })
@@ -92,8 +89,6 @@ beforeEach(async () => {
     })
     .returning();
   cohortId = cohorte.id;
-  const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
-  areaId = area.id;
   const [closer] = await db
     .insert(users)
     .values({ email: "closer-134@retia.co", rol: "closer", closerId: "Closer 134" })

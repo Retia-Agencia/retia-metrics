@@ -8,7 +8,7 @@ const TODO: HechosDelDeal = {
   tieneDueno: true, tieneActividadComercial: true, tieneContactoRegistrado: true,
   pendienteActual: null,
   tieneLlamadaConFecha: true, llamadaSucedio: true, llamadaFallida: true,
-  valorVendidoUsd: 1000, areaDeclaradaId: "area", esHistorico: false,
+  valorVendidoUsd: 1000, esHistorico: false,
   fechaLimitePago: "2026-10-20", cohorteDestinoId: "destino",
   fechaInicioVentasCohorteDestino: "2026-10-01", fechaUltimoContacto: new Date("2026-10-02T12:00:00-05:00"),
   fechaSeguimiento: "2026-10-20", abonosVigentes: 1,
@@ -17,7 +17,7 @@ const TODO: HechosDelDeal = {
 const ROMPER: Record<Codigo, Partial<HechosDelDeal>> = {
   dueno: { tieneDueno: false }, actividad: { tieneActividadComercial: false }, contacto: { tieneContactoRegistrado: false, fechaUltimoContacto: null },
   llamada_con_fecha: { tieneLlamadaConFecha: false }, llamada_sucedio: { llamadaSucedio: false }, llamada_fallida: { llamadaFallida: false },
-  valor_vendido: { valorVendidoUsd: null }, area_declarada: { areaDeclaradaId: null }, fecha_limite_pago: { fechaLimitePago: null },
+  valor_vendido: { valorVendidoUsd: null }, fecha_limite_pago: { fechaLimitePago: null },
   cohorte_destino: { cohorteDestinoId: null }, fecha_seguimiento: { fechaSeguimiento: null }, abono: { abonosVigentes: 0 },
   saldo_pendiente: { saldo: 0 }, saldo_en_cero: { saldo: 100 },
   sin_abonos: { abonosVigentes: 1 }, motivo: { motivoId: null },
@@ -28,16 +28,16 @@ const clave = (t: Transicion | TransicionPendiente) =>
 const ESPERADOS: Record<string, Codigo[]> = {
   S1: [], S2: [], S3: [],
   E1: ["dueno", "actividad"], E2: ["contacto"], E3: ["contacto"], E4: ["llamada_con_fecha"],
-  E5: ["fecha_limite_pago", "area_declarada"],
-  "E6>ganado_parcial": ["valor_vendido", "abono", "saldo_pendiente", "area_declarada"],
-  "E6>ganado_completo": ["valor_vendido", "abono", "saldo_en_cero", "area_declarada"],
+  E5: ["fecha_limite_pago"],
+  "E6>ganado_parcial": ["valor_vendido", "abono", "saldo_pendiente"],
+  "E6>ganado_completo": ["valor_vendido", "abono", "saldo_en_cero"],
   E7: ["llamada_con_fecha"], E8: ["llamada_sucedio"], E9: ["llamada_con_fecha"],
-  E10: ["fecha_limite_pago", "area_declarada"],
-  "E11>ganado_parcial": ["valor_vendido", "abono", "saldo_pendiente", "area_declarada"],
-  "E11>ganado_completo": ["valor_vendido", "abono", "saldo_en_cero", "area_declarada"],
-  "E12>ganado_parcial": ["valor_vendido", "abono", "saldo_pendiente", "area_declarada"],
-  "E12>ganado_completo": ["valor_vendido", "abono", "saldo_en_cero", "area_declarada"],
-  E13: ["valor_vendido", "saldo_en_cero", "area_declarada"],
+  E10: ["fecha_limite_pago"],
+  "E11>ganado_parcial": ["valor_vendido", "abono", "saldo_pendiente"],
+  "E11>ganado_completo": ["valor_vendido", "abono", "saldo_en_cero"],
+  "E12>ganado_parcial": ["valor_vendido", "abono", "saldo_pendiente"],
+  "E12>ganado_completo": ["valor_vendido", "abono", "saldo_en_cero"],
+  E13: ["valor_vendido", "saldo_en_cero"],
   RETRO: ["fecha_seguimiento", "motivo"], P: ["motivo"], R: ["motivo"], A1: ["sin_abonos"], A2: ["saldo_pendiente"],
   PR1: ["llamada_fallida"], PR2: ["motivo"], PS1: ["fecha_seguimiento"],
   PS2: ["contacto"], PS3: ["fecha_seguimiento"], PC: ["cohorte_destino"], RET: ["contacto"],
@@ -48,11 +48,7 @@ describe("requisitos de cada flecha", () => {
   const flechas = [...TRANSICIONES, ...TRANSICIONES_PENDIENTE, ret];
   for (const t of flechas) {
     const base = ESPERADOS[clave(t)];
-    // E9 es la cita nueva que mueve el deal sola: no pide área (143).
-    const saleDeAtendido = t.tipo === "etapa" ? t.de === "atendido" && t.id !== "E9" : t.etapa === "atendido";
-    const esperados = saleDeAtendido && !base.includes("area_declarada")
-      ? [...base.filter((codigo) => codigo !== "motivo"), "area_declarada" as const, ...base.filter((codigo) => codigo === "motivo")]
-      : base;
+    const esperados = base;
     it(`${t.id} tiene el contrato de requisitos esperado`, () => {
       expect(requisitosDeTransicion(t)).toEqual(esperados);
     });

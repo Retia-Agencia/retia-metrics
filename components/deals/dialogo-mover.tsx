@@ -48,7 +48,6 @@ import { proximoContactoSugerido } from "@/lib/deals/proximo-contacto";
 
 export interface DatosDialogo {
   descuentoUsd?: number;
-  areaDeclaradaId?: string | null;
   fechaLimitePago?: string | null;
   cohorteDestinoId?: string | null;
   fechaSeguimiento?: string | null;
@@ -77,7 +76,6 @@ export interface DialogoMoverProps {
   nombreDeEtapa: Record<EtapaDeal, string>;
   /** Para lo que falta y se arregla en la ficha (un contacto, una llamada, un abono). */
   rutaDeLaFicha: string;
-  areas: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
   /** Motivos activos con su tipo; el dialogo filtra por el tipo de la flecha. */
   motivos: { id: string; nombre: string; tipo: string }[];
@@ -112,7 +110,6 @@ interface Revision {
 const ETIQUETA: Record<CodigoRequisito, string> = {
   cohorte: "Cohorte",
   valor_vendido: "Descuento (USD)",
-  area_declarada: "Área de origen (según el closer)",
   fecha_limite_pago: "Fecha límite de pago",
   cohorte_destino: "Cohorte a la que quiere entrar",
   fecha_seguimiento: "Próximo contacto",
@@ -142,7 +139,6 @@ export function DialogoMover({
   movimiento,
   nombreDeEtapa,
   rutaDeLaFicha,
-  areas,
   cohortes,
   motivos,
   fechaLimiteSugerida = null,
@@ -178,7 +174,6 @@ export function DialogoMover({
         motivoId: datos.motivoId ?? null,
         datos: {
           descuentoUsd: datos.descuentoUsd,
-          areaDeclaradaId: datos.areaDeclaradaId,
           fechaLimitePago: datos.fechaLimitePago,
           cohorteDestinoId: datos.cohorteDestinoId,
           fechaSeguimiento: datos.fechaSeguimiento,
@@ -244,23 +239,6 @@ export function DialogoMover({
                     setDatos((d) => ({ ...d, descuentoUsd: Number.isFinite(valor) && valor >= 0 ? valor : undefined }));
                   }}
                 />
-              ) : null}
-
-              {campo === "area_declarada" ? (
-                <Select
-                  value={datos.areaDeclaradaId ?? null}
-                  items={areas.map((a) => ({ value: a.id, label: a.nombre }))}
-                  onValueChange={(v: string | null) => setDatos((d) => ({ ...d, areaDeclaradaId: v }))}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Elige un área" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {areas.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>{a.nombre}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               ) : null}
 
               {campo === "cohorte_destino" ? (
@@ -410,7 +388,6 @@ const NOMBRE_DE_REQUISITO: Record<CodigoRequisito, string> = {
   llamada_sucedio: "La llamada sucedió",
   llamada_fallida: "La llamada quedó en no-show o cancelada",
   valor_vendido: "Tiene valor vendido",
-  area_declarada: "Tiene el área de origen",
   fecha_limite_pago: "Tiene fecha límite de pago",
   cohorte_destino: "Tiene la cohorte a la que quiere entrar",
   fecha_seguimiento: "Tiene próximo contacto",

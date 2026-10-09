@@ -3,7 +3,7 @@ id: 216
 etapa: O8
 serves: "A-122; ADR 0081 (enmienda ADR 0072 punto 6 y ADR 0062 punto 5)"
 depends: []
-status: todo
+status: review
 ---
 
 # 216 — Retirar el origen declarado ("¿cómo nos conoció?")

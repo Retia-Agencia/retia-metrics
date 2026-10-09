@@ -38,7 +38,6 @@ export interface DealQueResponde {
 }
 
 export interface OpcionesDeRespuesta {
-  areas: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
   cohortesDestino: OpcionCatalogo[];
   motivos: { id: string; nombre: string; tipo: string }[];
@@ -173,7 +172,6 @@ export function useResponder(
       motivoId: datos.motivoId ?? null,
       datos: {
         descuentoUsd: datos.descuentoUsd,
-        areaDeclaradaId: datos.areaDeclaradaId,
         fechaLimitePago: datos.fechaLimitePago,
         cohorteDestinoId: datos.cohorteDestinoId,
         fechaSeguimiento: datos.fechaSeguimiento,
@@ -357,7 +355,6 @@ export function useResponder(
         nombreLead={deal.nombreLead}
         movimiento={movimiento}
         nombreDeEtapa={nombreDeEtapa}
-        areas={opciones.areas}
         cohortes={opciones.cohortesDestino}
         motivos={opciones.motivos}
         fechaLimiteSugerida={deal.fechaLimiteSugerida ?? null}
@@ -385,7 +382,6 @@ export function useResponder(
         nombreLead={deal.nombreLead}
         movimiento={movimiento}
         nombreDeEtapa={nombreDeEtapa}
-        areas={opciones.areas}
         cohortes={opciones.cohortesDestino}
         motivos={opciones.motivos}
         enviando={enviando}

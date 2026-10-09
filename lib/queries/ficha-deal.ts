@@ -25,7 +25,6 @@ import { fecha, hoyEnBogota } from "@/lib/format";
 import { duenosPosibles } from "@/lib/deals/duenos";
 import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
-import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { cohortesVendiendo } from "@/lib/cohortes/vendiendo";
 import { descuentoDeDeal, saldosDeDeals, type DescuentoDeDeal, type SaldoDeDeal } from "@/lib/queries/saldo";
 import { cohorteActiva } from "@/lib/queries/cohortes";
@@ -185,7 +184,6 @@ export interface FichaDeDeal {
   ticket: { cohorteId: string; codigo: string; precioUsd: number; esActivaSugerida: boolean } | null;
   descuento: DescuentoDeDeal | null;
   vendido: boolean;
-  areaDeclarada: { id: string; nombre: string } | null;
   cohorte: { id: string; codigo: string; inicioClases: string } | null;
   cohortesVendiendoHoy: { id: string; codigo: string }[];
   /** `inicioVentas`: desde cuándo un contacto retoma un Próxima Cohorte (RET). */
@@ -515,9 +513,6 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
     });
   }
 
-  const areaDeclarada = deal.areaDeclaradaId
-    ? (await catalogoAreas(db).listar()).find((a) => a.id === deal.areaDeclaradaId) ?? null
-    : null;
   const idsDeCohortes = [deal.cohortId, deal.cohorteDestinoId].filter((x): x is string => x != null);
   const cohortesFilas = idsDeCohortes.length > 0 ? await db.select().from(cohorts).where(inArray(cohorts.id, idsDeCohortes)) : [];
   const cohorteDeId = (id: string | null) => cohortesFilas.find((c) => c.id === id) ?? null;
@@ -589,7 +584,6 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
       : null,
     descuento: descuentoDeDeal(cohorte?.precioUsd, valorVendidoUsd),
     vendido: saldo.abonosVigentes > 0 || (ETAPAS_VENDIDAS as readonly string[]).includes(deal.etapa),
-    areaDeclarada: areaDeclarada ? { id: areaDeclarada.id, nombre: String(areaDeclarada.nombre) } : null,
     cohorte: cohorte ? { id: cohorte.id, codigo: cohorte.codigo, inicioClases: cohorte.fechaInicioClases } : null,
     cohortesVendiendoHoy,
     cohorteDestino: cohorteDestino
@@ -671,7 +665,6 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
 
 /** Lo que los formularios de la ficha ofrecen, todo acotado al programa del deal. */
 export interface OpcionesDeFicha {
-  areas: { id: string; nombre: string }[];
   /** Destinos validos para la etapa del deal: vendiendo hoy, o futuras/activas si es estudiante. */
   cohortes: { id: string; nombre: string }[];
   cohortesDestino: { id: string; nombre: string }[];
@@ -699,7 +692,6 @@ export async function opcionesDeFicha(
     : cohortesFilas;
   const motivosFilas = await db.select().from(motivos).where(eq(motivos.activo, true));
   const plataformasFilas = await plataformasDelPrograma(db, programId);
-  const areasFilas = await catalogoAreas(db).listar({ soloActivos: true });
 
   const owners = new Map((await duenosPosibles(db, programId)).map((d) => [d.id, d.nombre] as const));
   // El dueño actual se muestra aunque ya no sea dueño posible (se fue del programa): la
@@ -710,7 +702,6 @@ export async function opcionesDeFicha(
   }
 
   return {
-    areas: areasFilas.map((a) => ({ id: a.id, nombre: String(a.nombre) })),
     cohortes: cohortesParaCambiar.map((c) => ({ id: c.id, nombre: c.codigo })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
     cohortesDestino: cohortesFilas
       .filter((c) => c.estado === "futuro" && c.id !== cohorteActualId)

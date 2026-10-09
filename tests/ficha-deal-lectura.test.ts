@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
   abonos,
-  areas,
   calls,
   changeLog,
   cohorts,
@@ -62,7 +61,6 @@ beforeEach(async () => {
     })
     .returning();
   cohortId = c.id;
-  const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru", nombre: "Maru" }).returning();
   closer = u.id;
   const [l] = await db
@@ -76,7 +74,7 @@ beforeEach(async () => {
     .returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, submissionOrigenId: env.id, programId, cohortId, etapa: "atendido", ownerUserId: closer,valorVendidoUsd: "1000.00", areaDeclaradaId: area.id, acuerdoPago: "30% en octubre" })
+    .values({ leadId: l.id, submissionOrigenId: env.id, programId, cohortId, etapa: "atendido", ownerUserId: closer,valorVendidoUsd: "1000.00", acuerdoPago: "30% en octubre" })
     .returning();
   dealId = d.id;
 }, 60_000);

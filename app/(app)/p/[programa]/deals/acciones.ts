@@ -70,7 +70,6 @@ export async function buscarDealsAccion(entrada: {
 const esquemaDatos = z
   .object({
     descuentoUsd: esquemaDescuentoUsdOpcional,
-    areaDeclaradaId: z.string().uuid().nullable().optional(),
     fechaLimitePago: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida.").nullable().optional(),
     acuerdoPago: z.string().trim().max(500).nullable().optional(),
     cohorteDestinoId: z.string().uuid().nullable().optional(),

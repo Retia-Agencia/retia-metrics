@@ -44,13 +44,16 @@ export function FichaAcciones({ ficha, opciones, puedeTrabajar, administra }: Fi
 
   // Un deal anulado no se edita, ni se vuelve a anular.
   if (!puedeTrabajar || ficha.anulado) return null;
+  const puedeEditarDatos = administra || ficha.etapa === "cierre_perdido";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       {ficha.cortesia ? <Badge variant="info">Cortesía</Badge> : null}
-      <Button variant="outline" onClick={() => setEditando(true)}>
-        Editar
-      </Button>
+      {puedeEditarDatos ? (
+        <Button variant="outline" onClick={() => setEditando(true)}>
+          Editar
+        </Button>
+      ) : null}
       {administra && !ficha.cortesia && (["contactado", "calificado", "atendido", "compromiso_verbal"] as readonly string[]).includes(ficha.etapa) ? (
         <Button variant="outline" onClick={() => setMarcandoCortesia(true)}>
           Marcar como cortesía
@@ -60,7 +63,7 @@ export function FichaAcciones({ ficha, opciones, puedeTrabajar, administra }: Fi
         Anular deal
       </Button>
 
-      {editando ? (
+      {editando && puedeEditarDatos ? (
         <DialogoEditar ficha={ficha} opciones={opciones} administra={administra} onCerrar={() => setEditando(false)} />
       ) : null}
       {anulando ? <DialogoAnular ficha={ficha} onCerrar={() => setAnulando(false)} /> : null}
@@ -110,7 +113,6 @@ function DialogoEditar({
   onCerrar: () => void;
 }) {
   const { pendiente, correr } = useAccion();
-  const [areaDeclaradaId, setAreaDeclaradaId] = useState<string | null>(ficha.areaDeclarada?.id ?? null);
   const [ownerId, setOwnerId] = useState<string | null>(ficha.owner?.id ?? null);
   const [motivoId, setMotivoId] = useState<string | null>(ficha.motivo?.id ?? null);
 
@@ -119,7 +121,6 @@ function DialogoEditar({
 
   // Solo viaja lo que cambio: el servidor escribe un renglon de bitacora por campo tocado.
   const entrada: EntradaEditarDeal = { dealId: ficha.dealId };
-  if (areaDeclaradaId && areaDeclaradaId !== ficha.areaDeclarada?.id) entrada.areaDeclaradaId = areaDeclaradaId;
   if (administra && ownerId && ownerId !== ficha.owner?.id) entrada.ownerUserId = ownerId;
   if (muestraMotivo && motivoId && motivoId !== ficha.motivo?.id) entrada.motivoId = motivoId;
   const hayCambios = Object.keys(entrada).length > 1;
@@ -130,26 +131,11 @@ function DialogoEditar({
         <DialogHeader>
           <DialogTitle>Editar deal</DialogTitle>
           <DialogDescription>
-            Corrige el área de origen, el dueño o el motivo de pérdida; cada cambio queda en el historial.
+            Corrige el dueño o el motivo de pérdida; cada cambio queda en el historial.
           </DialogDescription>
         </DialogHeader>
 
         <div className="min-w-0 space-y-3">
-          <Campo etiqueta="Área de origen (según el closer)">
-            <Select
-              value={areaDeclaradaId}
-              items={opciones.areas.map((a) => ({ value: a.id, label: a.nombre }))}
-              onValueChange={(v: string | null) => setAreaDeclaradaId(v)}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Elige un área" />
-              </SelectTrigger>
-              <SelectContent>
-                {opciones.areas.map((a) => <SelectItem key={a.id} value={a.id}>{a.nombre}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </Campo>
-
           {administra ? (
             <Campo etiqueta="Dueño del deal" ayuda="Reasignar el trabajo de otro es de quien administra.">
               <Select

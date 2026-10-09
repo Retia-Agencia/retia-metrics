@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { marcarCortesia } from "@/lib/deals/cortesia";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
 import { propiedadesQueLeFaltan } from "@/lib/deals/requisitos";
-import { abonos, areas, calls, changeLog, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
+import { abonos, calls, changeLog, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { hoyEnBogota } from "@/lib/format";
 import { comisionesPorCloser } from "@/lib/queries/comision";
@@ -19,7 +19,6 @@ let cerrar: () => Promise<void>;
 let programId: string;
 let gerente: string;
 let closer: string;
-let areaId: string;
 let cohortId: string;
 let secuencia = 0;
 const HOY = hoyEnBogota();
@@ -37,7 +36,6 @@ beforeEach(async () => {
   programId = programa.id;
   gerente = (await db.insert(users).values({ email: "gerente@retia.test", rol: "gerente" }).returning())[0].id;
   closer = (await db.insert(users).values({ email: "closer@retia.test", rol: "closer", closerId: "Ana" }).returning())[0].id;
-  areaId = (await db.insert(areas).values({ nombre: "Referidos" }).returning())[0].id;
   cohortId = (await db.insert(cohorts).values({
     programId,
     codigo: "C1",
@@ -52,7 +50,7 @@ beforeEach(async () => {
 
 afterEach(async () => cerrar());
 
-async function crearDeal(opciones: { etapa?: "atendido" | "en_gestion"; area?: boolean; valor?: string | null } = {}) {
+async function crearDeal(opciones: { etapa?: "atendido" | "en_gestion"; valor?: string | null } = {}) {
   const [lead] = await db.insert(leads).values({
     programId,
     emailNormalizado: `cortesia-${++secuencia}@retia.test`,
@@ -63,7 +61,6 @@ async function crearDeal(opciones: { etapa?: "atendido" | "en_gestion"; area?: b
     cohortId,
     ownerUserId: closer,
     etapa: opciones.etapa ?? "atendido",
-    areaDeclaradaId: opciones.area === false ? null : areaId,
     valorVendidoUsd: opciones.valor === undefined ? "500" : opciones.valor,
   }).returning())[0];
 }
@@ -89,7 +86,6 @@ describe("marcar una cortesía", () => {
       tieneContactoRegistrado: false,
       tieneLlamadaConFecha: false,
       llamadaSucedio: false,
-      areaDeclaradaId: deal.areaDeclaradaId,
       fechaLimitePago: deal.fechaLimitePago,
       valorVendidoUsd: Number(deal.valorVendidoUsd),
       abonosVigentes: saldo.abonosVigentes,
@@ -119,12 +115,6 @@ describe("marcar una cortesía", () => {
     await expect(marcarCortesia(db, comoGerente(), { dealId: deal.id })).rejects.toMatchObject({ status: 409 });
   });
 
-  it("revierte marca y valor cuando el motor rechaza por falta de área", async () => {
-    const antes = await crearDeal({ area: false });
-    await expect(marcarCortesia(db, comoGerente(), { dealId: antes.id })).rejects.toThrow(/área/);
-    const [despues] = await db.select().from(deals).where(eq(deals.id, antes.id));
-    expect(despues).toMatchObject({ etapa: antes.etapa, cortesia: false, valorVendidoUsd: antes.valorVendidoUsd });
-  });
 });
 
 describe("cortesías en estudiantes y métricas", () => {

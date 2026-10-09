@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq, inArray } from "drizzle-orm";
 import {
   abonos,
-  areas,
   changeLog,
   cohorts,
   dealEtapaHistorial,
@@ -36,7 +35,6 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
-let areaId: string;
 let leadN = 0;
 let closer: string;
 let otroCloser: string;
@@ -64,8 +62,6 @@ beforeEach(async () => {
     })
     .returning();
   cohortId = c.id;
-  const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
-  areaId = area.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
   const [u2] = await db.insert(users).values({ email: "jero@retiagrowth.com", rol: "closer", closerId: "Jero" }).returning();
@@ -90,7 +86,7 @@ async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferIns
     .returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer,valorVendidoUsd: "1000", areaDeclaradaId: areaId, ...extra })
+    .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer,valorVendidoUsd: "1000", ...extra })
     .returning();
   return d.id;
 }
@@ -126,16 +122,12 @@ async function capturar(p: Promise<unknown>): Promise<ErrorDeApp> {
 }
 
 describe("registrarAbono: el dinero mueve el deal", () => {
-  it("el primer abono sin área se deshace; con el área la escribe y pasa a Abonado", async () => {
-    const dealId = await nuevoDeal("atendido", { areaDeclaradaId: null });
-    const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "300")));
-    expect(e.status).toBe(422);
-    expect(await abonosDe(dealId)).toEqual([]);
-
-    const r = await registrarAbono(db, comoCloser(), abono(dealId, "300", { areaDeclaradaId: areaId }));
+  it("el primer abono pasa a Abonado sin pedir un origen declarado", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const r = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
     expect(r.etapa).toBe("ganado_parcial");
     const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
-    expect(deal).toMatchObject({ etapa: "ganado_parcial", areaDeclaradaId: areaId });
+    expect(deal).toMatchObject({ etapa: "ganado_parcial" });
   });
 
   it("el primer abono con saldo lleva a Abonado, por el sistema, con su historial y su rastro", async () => {

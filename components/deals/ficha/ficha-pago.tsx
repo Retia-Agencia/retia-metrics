@@ -386,7 +386,6 @@ function DialogoAbono({
   const [dia, setDia] = useState(hoyEnBogota());
   const [valor, setValor] = useState("");
   const [plataformaId, setPlataformaId] = useState<string | null>(null);
-  const [areaDeclaradaId, setAreaDeclaradaId] = useState<string | null>(null);
   const [comprobante, setComprobante] = useState("");
   const moneda = ficha.saldo.moneda ?? "USD";
 
@@ -400,13 +399,13 @@ function DialogoAbono({
       }
       pendiente={pendiente}
       onCerrar={onCerrar}
-      deshabilitarConfirmar={!dia || valor.trim() === "" || (!ficha.areaDeclarada && !areaDeclaradaId)}
+      deshabilitarConfirmar={!dia || valor.trim() === ""}
       confirmar={{
         texto: "Registrar",
         enCurso: "Registrando…",
         onClick: () =>
           correr(
-            () => registrarAbonoAccion({ dealId: ficha.dealId, fecha: dia, monto: valor.trim(), plataformaId: plataformaId ?? undefined, comprobanteUrl: comprobante, areaDeclaradaId: areaDeclaradaId ?? undefined }),
+            () => registrarAbonoAccion({ dealId: ficha.dealId, fecha: dia, monto: valor.trim(), plataformaId: plataformaId ?? undefined, comprobanteUrl: comprobante }),
             {
               exito: (r) => {
                 const sinCohorte =
@@ -428,20 +427,6 @@ function DialogoAbono({
           <input className={`${claseInput} cifra`} inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="750.00" />
         </Campo>
       </div>
-      {!ficha.areaDeclarada ? (
-        <Campo etiqueta="Área de origen (según el closer)">
-          <Select
-            value={areaDeclaradaId}
-            items={opciones.areas.map((a) => ({ value: a.id, label: a.nombre }))}
-            onValueChange={(v: string | null) => setAreaDeclaradaId(v)}
-          >
-            <SelectTrigger className="w-full"><SelectValue placeholder="Elige un área" /></SelectTrigger>
-            <SelectContent>
-              {opciones.areas.map((a) => <SelectItem key={a.id} value={a.id}>{a.nombre}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </Campo>
-      ) : null}
       <Campo etiqueta="Plataforma de pago (opcional)">
         <ControlPlataforma
           dealId={ficha.dealId}

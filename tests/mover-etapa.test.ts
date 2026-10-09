@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import {
   abonos,
-  areas,
   calls,
   changeLog,
   cohorts,
@@ -39,7 +38,6 @@ let leadId: string;
 let closer: string;
 let otroCloser: string;
 let gerente: string;
-let areaId: string;
 let motivoActivo: string;
 let motivoInactivo: string;
 let motivoReagenda: string;
@@ -67,8 +65,6 @@ beforeEach(async () => {
   otroCloser = u2.id;
   const [g] = await db.insert(users).values({ email: "gerente@retiagrowth.com", rol: "gerente" }).returning();
   gerente = g.id;
-  const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
-  areaId = area.id;
   const [m1] = await db.insert(motivos).values({ nombre: "No contesta", tipo: "perdida" }).returning();
   const [m2] = await db.insert(motivos).values({ nombre: "Viejo", tipo: "perdida", activo: false }).returning();
   const [m3] = await db.insert(motivos).values({ nombre: "Cita fallida", tipo: "reagenda" }).returning();
@@ -88,7 +84,7 @@ afterEach(async () => {
 });
 
 async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferInsert> = {}) {
-  const [d] = await db.insert(deals).values({ leadId, programId, etapa, valorVendidoUsd: "1000", areaDeclaradaId: areaId, ...extra }).returning();
+  const [d] = await db.insert(deals).values({ leadId, programId, etapa, valorVendidoUsd: "1000", ...extra }).returning();
   return d.id;
 }
 
@@ -338,80 +334,49 @@ describe("la llamada 'sucedio' mira la MAS RECIENTE, no cualquiera (punto 4, Man
 });
 
 describe("los datos van en el mismo movimiento, o no van (punto 6, Mani 27-sep)", () => {
-  it("Compromiso Verbal rechaza un deal sin área declarada", async () => {
-    const compromiso = await nuevoDeal("contactado", { ownerUserId: closer, areaDeclaradaId: null });
-    const e = await rechazo(moverEtapa(db, {
-      dealId: compromiso,
+  it("un deal sale de Atendido sin área y entra a Compromiso Verbal", async () => {
+    const dealId = await nuevoDeal("atendido", { ownerUserId: closer });
+    await moverEtapa(db, {
+      dealId,
       a: "compromiso_verbal",
       actor: comoCloser(),
       datos: {fechaLimitePago: "2026-10-30" },
-    }));
-    expect(e.status).toBe(422);
-    expect(e.faltantes.map((f) => f.codigo)).toEqual(["area_declarada"]);
-    expect(await etapaDe(compromiso)).toBe("contactado");
-
-  });
-
-  it("Abonado rechaza un deal sin área declarada", async () => {
-    const abonado = await nuevoDeal("atendido", {areaDeclaradaId: null });
-    await db.insert(abonos).values({
-      dealId: abonado,
-      programId,
-      fecha: "2026-09-28",
-      monto: "300",
-      comprobanteUrl: "https://x/abono.png",
     });
-    const e = await rechazo(moverEtapa(db, { dealId: abonado, a: "ganado_parcial", actor: sistema }));
-    expect(e.status).toBe(422);
-    expect(e.faltantes.map((f) => f.codigo)).toEqual(["area_declarada"]);
-    expect(await etapaDe(abonado)).toBe("atendido");
+    expect(await etapaDe(dealId)).toBe("compromiso_verbal");
   });
 
   it("un movimiento rechazado deja el deal intacto y sin change_log (rollback atomico)", async () => {
-    // Se escribe el área pero falta la fecha; el rechazo debe deshacer ambos cambios.
-    const dealId = await nuevoDeal("contactado", { ownerUserId: closer, areaDeclaradaId: null });
+    // Se escribe el acuerdo pero falta la fecha; el rechazo debe deshacer ambos cambios.
+    const dealId = await nuevoDeal("contactado", { ownerUserId: closer });
     await db.delete(changeLog);
 
     const e = await rechazo(
-      moverEtapa(db, { dealId, a: "compromiso_verbal", actor: comoCloser(), datos: { areaDeclaradaId: areaId } }),
+      moverEtapa(db, { dealId, a: "compromiso_verbal", actor: comoCloser(), datos: { acuerdoPago: "50% ahora" } }),
     );
     expect(e.faltantes.map((f) => f.codigo)).toEqual(["fecha_limite_pago"]);
 
     const [d] = await db.select().from(deals).where(eq(deals.id, dealId));
     expect(d.etapa).toBe("contactado");
-    expect(d.areaDeclaradaId).toBeNull();
+    expect(d.acuerdoPago).toBeNull();
     expect(await db.select().from(changeLog)).toEqual([]);
     expect(await historial(dealId)).toEqual([]);
   });
 
   it("un movimiento aceptado escribe los datos por change_log y mueve, todo junto", async () => {
-    const dealId = await nuevoDeal("contactado", { ownerUserId: closer, areaDeclaradaId: null });
+    const dealId = await nuevoDeal("contactado", { ownerUserId: closer });
     await db.delete(changeLog);
 
     await moverEtapa(db, {
       dealId,
       a: "compromiso_verbal",
       actor: comoCloser(),
-      datos: {areaDeclaradaId: areaId, fechaLimitePago: "2026-10-30", acuerdoPago: "50% ahora, 50% en octubre" },
+      datos: { fechaLimitePago: "2026-10-30", acuerdoPago: "50% ahora, 50% en octubre" },
     });
 
     expect(await etapaDe(dealId)).toBe("compromiso_verbal");
     const log = await db.select().from(changeLog).where(eq(changeLog.registroId, dealId));
-    expect(log.map((l) => l.campo).sort()).toEqual(["acuerdoPago", "areaDeclaradaId", "fechaLimitePago"]);
+    expect(log.map((l) => l.campo).sort()).toEqual(["acuerdoPago", "fechaLimitePago"]);
     expect(log.every((l) => l.userId === closer)).toBe(true);
-  });
-
-  it("un área inactiva se rechaza y no mueve el deal", async () => {
-    const [inactiva] = await db.insert(areas).values({ nombre: "Vieja", activo: false }).returning();
-    const dealId = await nuevoDeal("contactado", { ownerUserId: closer, areaDeclaradaId: null });
-    const e = await rechazo(moverEtapa(db, {
-      dealId,
-      a: "compromiso_verbal",
-      actor: comoCloser(),
-      datos: {fechaLimitePago: "2026-10-30", areaDeclaradaId: inactiva.id },
-    }));
-    expect(e.status).toBe(422);
-    expect(await etapaDe(dealId)).toBe("contactado");
   });
 
   it("una prueba de hecho (abono) NUNCA entra por datos: no hay campo para colarla", async () => {
@@ -550,7 +515,7 @@ describe("el motivo", () => {
     const dealEnLeadNuevo = async (etapa: EtapaDeal, correo: string) => {
       const [l] = await db.insert(leads).values({ programId, emailNormalizado: correo }).returning();
       // Con área: desde Atendido toda salida la pide (143), y aquí se prueba solo el motivo.
-      const [d] = await db.insert(deals).values({ leadId: l.id, programId, etapa, ownerUserId: closer, areaDeclaradaId: areaId }).returning();
+      const [d] = await db.insert(deals).values({ leadId: l.id, programId, etapa, ownerUserId: closer }).returning();
       return d.id;
     };
 
@@ -712,8 +677,8 @@ describe("los hechos salen de la base", () => {
     expect((await historial(dealId)).map((h) => h.a)).toEqual(["atendido", "ganado_parcial", "atendido", "ganado_completo"]);
   });
 
-  it("un deal histórico pasa de Abonado a Completo sin área declarada", async () => {
-    const dealId = await nuevoDeal("ganado_parcial", {areaDeclaradaId: null, huellaMigracion: "sheets:p:ventas:1" });
+  it("un deal histórico pasa de Abonado a Completo", async () => {
+    const dealId = await nuevoDeal("ganado_parcial", { huellaMigracion: "sheets:p:ventas:1" });
     await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-28", monto: "1000", comprobanteUrl: "https://x/1.png" });
     await moverEtapa(db, { dealId, a: "ganado_completo", actor: sistema });
     expect(await etapaDe(dealId)).toBe("ganado_completo");
@@ -829,7 +794,6 @@ describe("revisarMovimiento: la vista previa es un ensayo del motor (ADR 0072 pu
     const r = await revisarMovimiento(db, { dealId, a: "compromiso_verbal", actor: comoCloser() });
     expect(r.bloqueo).toBeNull();
     expect(r.requisitos.filter((q) => !q.cumple).map((q) => q.codigo)).toEqual(["fecha_limite_pago"]);
-    expect(r.requisitos.filter((q) => q.cumple).map((q) => q.codigo)).toContain("area_declarada");
     const e = await rechazo(moverEtapa(db, { dealId, a: "compromiso_verbal", actor: comoCloser() }));
     expect(e.faltantes.map((f) => f.codigo)).toEqual(["fecha_limite_pago"]);
     expect(await etapaDe(dealId)).toBe("contactado");

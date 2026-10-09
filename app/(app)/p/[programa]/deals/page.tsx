@@ -116,7 +116,6 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
             nombreDePendiente={NOMBRE_DE_PENDIENTE}
             tonoDeEtapa={TONO_DE_ETAPA}
             programaSlug={programa.slug}
-            areas={opciones.areas}
             cohortes={opciones.cohortes}
             cohortesDestino={opciones.cohortesDestino}
             motivos={opciones.motivos}

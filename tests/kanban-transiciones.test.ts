@@ -36,7 +36,7 @@ describe("mapaDeTransiciones", () => {
 
 describe("camposDeDialogo", () => {
   it("E10 (Atendido -> Compromiso Verbal) pide fecha límite y área", () => {
-    expect(camposDeDialogo(etapa("atendido", "compromiso_verbal"))).toEqual(["fecha_limite_pago", "area_declarada"]);
+    expect(camposDeDialogo(etapa("atendido", "compromiso_verbal"))).toEqual(["fecha_limite_pago"]);
   });
 
   it("P (-> Cierre Perdido) pide solo el motivo", () => {

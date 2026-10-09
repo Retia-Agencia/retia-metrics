@@ -1,6 +1,5 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { exigirAreaActiva } from "@/lib/catalogo/areas";
 import { dealActividades, deals, motivos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
@@ -22,7 +21,7 @@ import { cambiarDuenoDeal } from "./cambiar-dueno";
  * Si editar fuera imposible, anular seria el unico remedio para un dato mal puesto y se
  * usaria para todo, que es justo lo que el ADR 0038 evita.
  *
- * Aqui van: descuento, dueño, area declarada y motivo del Cierre Perdido. **Lo demas
+ * Aqui van: descuento, dueño y motivo del Cierre Perdido. **Lo demas
  * ya tiene su puerta y no se duplica**: el acuerdo de pago y su fecha limite son
  * `editarAcuerdoDePago` (`pago.ts`), la cohorte es `cambiarCohorte` (`estudiante.ts`), y
  * **la etapa NUNCA se edita aqui**: solo `moverEtapa()` la escribe (ADR 0037). El esquema
@@ -41,7 +40,6 @@ export const esquemaEditarDeal = z.object({
   motivoCambioVenta: z.string().trim().min(1, "El motivo es obligatorio para cambiar una venta.").optional(),
   ownerUserId: z.string().uuid("El dueño no es válido.").optional(),
   motivoId: z.string().uuid("El motivo no es válido.").nullable().optional(),
-  areaDeclaradaId: z.string().uuid("El área no es válida.").nullable().optional(),
 });
 export type DatosEditarDeal = z.input<typeof esquemaEditarDeal>;
 
@@ -50,7 +48,7 @@ type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> 
 /** Devuelve `true` si algo cambio (si no, no se escribe ni rastro). */
 export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarDeal): Promise<boolean> {
   return normalizando(async () => {
-    const { dealId, descuentoUsd, motivoCambioVenta, ownerUserId, motivoId, areaDeclaradaId } = esquemaEditarDeal.parse(datos);
+    const { dealId, descuentoUsd, motivoCambioVenta, ownerUserId, motivoId } = esquemaEditarDeal.parse(datos);
 
     return (db as unknown as Transaccion).transaction(async (tx) => {
       const { deal, emailLead } = await dealBloqueadoConLead(tx, dealId);
@@ -105,11 +103,6 @@ export async function editarDeal(db: Db, actor: ActorDeDeal, datos: DatosEditarD
             },
           );
         }
-      }
-
-      if (areaDeclaradaId !== undefined) {
-        if (areaDeclaradaId !== null) await exigirAreaActiva(tx, areaDeclaradaId);
-        cambios.areaDeclaradaId = areaDeclaradaId;
       }
 
       if (motivoId !== undefined) {

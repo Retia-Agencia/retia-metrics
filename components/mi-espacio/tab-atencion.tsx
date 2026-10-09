@@ -5,7 +5,6 @@ import type { Rol } from "@/lib/auth/roles";
 import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
-import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { inboxDelPrograma, type AlcanceInbox } from "@/lib/queries/inbox";
 import { posiblesDuplicadosDelPrograma } from "@/lib/queries/leads";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
@@ -32,12 +31,11 @@ export async function TabAtencion({
   const administra = esAdministrador(rol);
   const alcance: AlcanceInbox = { ownerUserId: userId };
 
-  const [novedades, inbox, plataformas, motivosFilas, areasFilas, duplicados] = await Promise.all([
+  const [novedades, inbox, plataformas, motivosFilas, duplicados] = await Promise.all([
     novedadesCalendlyDeUsuario(db, { userId, programId }),
     inboxDelPrograma(db, programId, alcance, undefined, undefined, { userId, rol }),
     plataformasDelPrograma(db, programId),
     db.select().from(motivos).where(eq(motivos.activo, true)),
-    catalogoAreas(db).listar({ soloActivos: true }),
     // El closer ve solo los duplicados de SUS deals (186); administra, los del programa. Las 5 más
     // recientes, con "Ver todos" a la lista completa de Leads.
     posiblesDuplicadosDelPrograma(db, programId, { duenoUserId: administra ? undefined : userId, porPagina: 5 }),
@@ -59,7 +57,6 @@ export async function TabAtencion({
         nombreDeEtapa={NOMBRE_DE_ETAPA}
         tonoDeEtapa={TONO_DE_ETAPA}
         plataformas={plataformasOpcion}
-        areas={areasFilas.map((a) => ({ id: a.id, nombre: String(a.nombre) }))}
         puedeRegistrar={puedeRegistrar}
         origen={origen}
       />

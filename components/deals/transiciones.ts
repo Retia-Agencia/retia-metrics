@@ -47,7 +47,6 @@ export interface CorreccionCliente {
  */
 const REQUISITOS_QUE_SE_TECLEAN: ReadonlySet<CodigoRequisito> = new Set([
   "valor_vendido",
-  "area_declarada",
   "fecha_limite_pago",
   "cohorte_destino",
   "fecha_seguimiento",

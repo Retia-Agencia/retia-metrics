@@ -18,7 +18,6 @@ import { carteraVencida } from "@/lib/queries/cartera";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
-import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { hoyEnBogota } from "@/lib/format";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { filtroDeFechaDeLaUrl, type FiltroDeFecha } from "@/lib/periodo";
@@ -272,7 +271,6 @@ export async function tableroKanban(
       fechaSeguimiento: deals.fechaSeguimiento,
       cohortId: deals.cohortId,
       cohortePrecioUsd: cohorts.precioUsd,
-      areaDeclaradaId: deals.areaDeclaradaId,
       valorVendidoUsd: deals.valorVendidoUsd,
       motivoId: deals.motivoId,
       createdAt: deals.createdAt,
@@ -380,7 +378,6 @@ export async function tableroKanban(
       tieneContactoRegistrado: contactos.has(f.dealId),
       tieneLlamadaConFecha,
       llamadaSucedio,
-      areaDeclaradaId: f.areaDeclaradaId,
       fechaLimitePago: f.fechaLimitePago,
       valorVendidoUsd: f.valorVendidoUsd == null ? null : Number(f.valorVendidoUsd),
       abonosVigentes: saldo?.abonosVigentes ?? 0,
@@ -548,7 +545,6 @@ export interface OpcionesDeTablero {
    */
   inicioDeClases: Record<string, string>;
   inicioDeLaCohorteActiva: string | null;
-  areas: OpcionCatalogo[];
   /** Motivos activos por tipo (para las flechas que exigen motivo). */
   motivos: { id: string; nombre: string; tipo: string }[];
 }
@@ -556,7 +552,7 @@ export interface OpcionesDeTablero {
 /**
  * Las opciones del programa para poblar los selectores del Kanban: los duenos que
  * tienen algun deal, las cohortes con deals, los canales presentes, y los catalogos
- * (motivos y áreas activos) que los diálogos de arrastre necesitan.
+ * (motivos activos) que los diálogos de arrastre necesitan.
  *
  * El programa es frontera (ADR 0043): todo se acota a `programId`. Los owners y las
  * cohortes salen de los deals del programa (no de la tabla entera) para no ofrecer
@@ -615,16 +611,11 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
     .from(motivos)
     .where(eq(motivos.activo, true));
   const listaMotivos = motivoFilas.sort((a, b) => a.nombre.localeCompare(b.nombre));
-  const listaAreas = (await catalogoAreas(db).listar({ soloActivos: true })).map((a) => ({
-    id: a.id,
-    nombre: String(a.nombre),
-  }));
-
   const inicioDeClases = Object.fromEntries(cohorteFilas.map((c) => [c.id, c.inicio] as const));
   if (activa) inicioDeClases[activa.id] = activa.fechaInicioClases;
   const inicioDeLaCohorteActiva = activa?.fechaInicioClases ?? null;
 
-  return { owners, cohortes, cohortesDestino, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, areas: listaAreas, motivos: listaMotivos };
+  return { owners, cohortes, cohortesDestino, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, motivos: listaMotivos };
 }
 
 /** El rango del filtro de fecha, bajo la llave del campo que filtra; los otros, ausentes. */

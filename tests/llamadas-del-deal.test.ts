@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
-  areas,
   calls,
   changeLog,
   cohorts,
@@ -404,12 +403,11 @@ describe("marcarShow: show en un clic, sin Grain (ticket 177)", () => {
     await marcarShow(db, comoCloser(), { callId });
 
     // El área se pide al salir de Atendido; se declara para no toparse con ese requisito.
-    const [area] = await db.insert(areas).values({ nombre: "Referido", activo: true }).returning();
     await moverEtapa(db, {
       dealId,
       a: "compromiso_verbal",
       actor: { tipo: "usuario", userId: closer, rol: rolCloser },
-      datos: { fechaLimitePago: "2026-09-15", areaDeclaradaId: area.id },
+      datos: { fechaLimitePago: "2026-09-15" },
     });
     const [d] = await db.select({ etapa: deals.etapa }).from(deals).where(eq(deals.id, dealId));
     expect(d.etapa).toBe("compromiso_verbal");

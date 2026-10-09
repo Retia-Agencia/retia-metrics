@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { areas, calls, changeLog, cohorts, dealActividades, dealEtapaHistorial, deals, leads, motivos, programs, users } from "@/lib/db/schema";
+import { calls, changeLog, cohorts, dealActividades, dealEtapaHistorial, deals, leads, motivos, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { abrirDeal, moverEtapa, MovimientoRechazado, type Actor } from "@/lib/deals/mover-etapa";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
@@ -12,7 +12,6 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let programId: string;
 let closer: string;
-let areaId: string;
 let perdida: string;
 let retroceso: string;
 let recuperacion: string;
@@ -26,8 +25,6 @@ beforeEach(async () => {
   programId = p.id;
   const [u] = await db.insert(users).values({ email: "closer@retia.co", rol: "closer" }).returning();
   closer = u.id;
-  const [a] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
-  areaId = a.id;
   [perdida, retroceso, recuperacion] = (await db.insert(motivos).values([
     { nombre: "Perdió", tipo: "perdida" }, { nombre: "Retrocedió", tipo: "retroceso" }, { nombre: "Volvió", tipo: "recuperacion" },
   ]).returning()).map((m) => m.id);
@@ -38,7 +35,7 @@ async function nuevo(etapa: EtapaDeal, pendiente: PendienteDeal | null = null, e
   const [lead] = await db.insert(leads).values({ programId, emailNormalizado: `persona-${secuencia++}@retia.co` }).returning();
   const [deal] = await db.insert(deals).values({
     leadId: lead.id, programId, etapa, pendiente, ownerUserId: closer,
-    valorVendidoUsd: "1000", areaDeclaradaId: areaId, ...extra,
+    valorVendidoUsd: "1000", ...extra,
   }).returning();
   return deal;
 }

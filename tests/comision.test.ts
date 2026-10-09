@@ -7,7 +7,6 @@ import { esViolacionCheck } from "@/lib/db/errores";
 import { hoyEnBogota } from "@/lib/format";
 import {
   abonos,
-  areas,
   changeLog,
   deals,
   leads,
@@ -25,7 +24,6 @@ let cerrar: () => Promise<void>;
 let programId: string;
 let gerente: string;
 let closer: string;
-let areaId: string;
 let secuencia = 0;
 
 // El dia real de Bogota y no una fecha fija: `moverEtapa` fecha la venta con `now()` en el historial, asi que
@@ -47,8 +45,6 @@ beforeEach(async () => {
     .values({ email: "ana@retiagrowth.com", rol: "closer", closerId: "Ana" })
     .returning();
   closer = u.id;
-  const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
-  areaId = area.id;
 }, 60_000);
 
 afterEach(async () => {
@@ -67,7 +63,6 @@ async function dealAtendido(valorVendidoUsd: string | null = "1000") {
       programId,
       etapa: "atendido",
       ownerUserId: closer,
-      areaDeclaradaId: areaId,
       valorVendidoUsd,
     })
     .returning();

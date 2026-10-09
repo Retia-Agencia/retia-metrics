@@ -30,10 +30,6 @@ export function FichaOrigen({ ficha }: { ficha: FichaDeDeal }) {
         ) : (
           <p className="text-sm text-muted-foreground">Este deal no tiene envío de origen.</p>
         )}
-        {/* Fuera del condicional: el origen declarado (121) importa sobre todo cuando no hay UTM. */}
-        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
-          <Dato etiqueta="Origen declarado">{ficha.areaDeclarada?.nombre ?? null}</Dato>
-        </dl>
       </CardContent>
     </Card>
   );

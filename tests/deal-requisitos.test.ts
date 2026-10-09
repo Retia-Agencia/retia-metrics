@@ -9,9 +9,7 @@ import { propiedadesQueLeFaltan, queLeFalta, type CodigoRequisito, type HechosDe
  */
 type Codigo = Exclude<CodigoRequisito, "transicion_no_permitida" | "cohorte">;
 
-const REQUISITOS_A1: Codigo[] = ["sin_abonos"];
-const REQUISITOS_A2: Codigo[] = ["saldo_pendiente"];
-const REQUISITOS_E13: Codigo[] = ["valor_vendido", "saldo_en_cero", "area_declarada"];
+const REQUISITOS_E13: Codigo[] = ["valor_vendido", "saldo_en_cero"];
 
 /** Un deal que no cumple nada. */
 const NADA: HechosDelDeal = {
@@ -24,7 +22,6 @@ const NADA: HechosDelDeal = {
   llamadaSucedio: false,
   llamadaFallida: false,
   valorVendidoUsd: null,
-  areaDeclaradaId: null,
   esHistorico: false,
   fechaLimitePago: null,
   cohorteDestinoId: null,
@@ -45,7 +42,6 @@ const CUMPLIR: Record<Codigo, Partial<HechosDelDeal>> = {
   llamada_sucedio: { llamadaSucedio: true },
   llamada_fallida: { llamadaFallida: true },
   valor_vendido: { valorVendidoUsd: 797 },
-  area_declarada: { areaDeclaradaId: "area-1" },
   fecha_limite_pago: { fechaLimitePago: "2026-10-15" },
   cohorte_destino: { cohorteDestinoId: "coh-2" },
   fecha_seguimiento: { fechaSeguimiento: "2026-10-01" },
@@ -72,23 +68,12 @@ describe("lo que no es un requisito", () => {
       "valor_vendido",
       "abono",
       "saldo_pendiente",
-      "area_declarada",
     ]);
   });
 
   it("un deal sin valor vendido no tiene saldo contra el cual ir a Completo", () => {
-    const hechos = { ...cumpliendo(["abono", "area_declarada"]), saldo: null };
+    const hechos = { ...cumpliendo(["abono"]), saldo: null };
     expect(queLeFalta("ganado_parcial", "ganado_completo", hechos).map((f) => f.codigo)).toEqual(["valor_vendido", "saldo_en_cero"]);
-  });
-
-  it("A1 y A2 no piden área declarada", () => {
-    expect(REQUISITOS_A1).not.toContain("area_declarada");
-    expect(REQUISITOS_A2).not.toContain("area_declarada");
-  });
-
-  it("un deal histórico está exento del área declarada", () => {
-    const hechos = { ...cumpliendo(REQUISITOS_E13), areaDeclaradaId: null, esHistorico: true };
-    expect(queLeFalta("ganado_parcial", "ganado_completo", hechos)).toEqual([]);
   });
 
   it("un deal histórico está exento del valor vendido", () => {
@@ -97,7 +82,7 @@ describe("lo que no es un requisito", () => {
   });
 
   it("un sobrepago que se colo cuenta como pagado: el deal no queda trabado en Abonado", () => {
-    const hechos = { ...cumpliendo(["valor_vendido", "abono", "area_declarada"]), saldo: -50 };
+    const hechos = { ...cumpliendo(["valor_vendido", "abono"]), saldo: -50 };
     expect(queLeFalta("ganado_parcial", "ganado_completo", hechos)).toEqual([]);
   });
 });
@@ -105,7 +90,7 @@ describe("lo que no es un requisito", () => {
 const PROPIEDADES_COMPLETAS: PropiedadesDelDeal = {
   cortesia: false,
   tieneCohorte: true, tieneDueno: true, tieneContactoRegistrado: true,
-  tieneLlamadaConFecha: true, llamadaSucedio: true, areaDeclaradaId: "area",
+  tieneLlamadaConFecha: true, llamadaSucedio: true,
   fechaLimitePago: "2026-10-15", valorVendidoUsd: 1000,
   abonosVigentes: 1, saldo: 0, motivoId: "motivo",
 };
@@ -113,10 +98,10 @@ const FALTANTES_POR_ETAPA = {
   potencial: ["cohorte"], registrado: ["cohorte"], calificado: ["cohorte"],
   en_gestion: ["cohorte", "dueno"], contactado: ["cohorte", "dueno", "contacto"],
   agendado: ["cohorte", "dueno", "llamada_con_fecha"],
-  atendido: ["cohorte", "dueno", "llamada_sucedio", "area_declarada"],
-  compromiso_verbal: ["cohorte", "dueno", "area_declarada", "fecha_limite_pago"],
-  ganado_parcial: ["cohorte", "dueno", "area_declarada", "valor_vendido", "abono", "fecha_limite_pago"],
-  ganado_completo: ["cohorte", "dueno", "area_declarada", "valor_vendido", "abono", "saldo_en_cero"],
+  atendido: ["cohorte", "dueno", "llamada_sucedio"],
+  compromiso_verbal: ["cohorte", "dueno", "fecha_limite_pago"],
+  ganado_parcial: ["cohorte", "dueno", "valor_vendido", "abono", "fecha_limite_pago"],
+  ganado_completo: ["cohorte", "dueno", "valor_vendido", "abono", "saldo_en_cero"],
   cierre_perdido: ["motivo"],
 } as const;
 
@@ -126,7 +111,7 @@ describe("propiedades acumuladas de la etapa", () => {
       const vacias: PropiedadesDelDeal = {
         cortesia: false,
         tieneCohorte: false, tieneDueno: false, tieneContactoRegistrado: false,
-        tieneLlamadaConFecha: false, llamadaSucedio: false, areaDeclaradaId: null,
+        tieneLlamadaConFecha: false, llamadaSucedio: false,
         fechaLimitePago: null, valorVendidoUsd: null, abonosVigentes: 0, saldo: null, motivoId: null,
       };
       expect(propiedadesQueLeFaltan(etapa as keyof typeof FALTANTES_POR_ETAPA, vacias).map((f) => f.codigo)).toEqual(esperados);
@@ -135,8 +120,8 @@ describe("propiedades acumuladas de la etapa", () => {
   }
 
   it("no exime al histórico ni agrega comprobante", () => {
-    const faltan = propiedadesQueLeFaltan("ganado_parcial", { ...PROPIEDADES_COMPLETAS, areaDeclaradaId: null, valorVendidoUsd: null });
-    expect(faltan.map((f) => f.codigo)).toEqual(["area_declarada", "valor_vendido"]);
+    const faltan = propiedadesQueLeFaltan("ganado_parcial", { ...PROPIEDADES_COMPLETAS, valorVendidoUsd: null });
+    expect(faltan.map((f) => f.codigo)).toEqual(["valor_vendido"]);
     expect(faltan.some((f) => (f.codigo as string) === "comprobante")).toBe(false);
   });
 

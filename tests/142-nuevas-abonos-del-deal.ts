@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { abonos, areas, cohorts, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
+import { abonos, cohorts, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { anularAbono, registrarAbono } from "@/lib/deals/abonos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
@@ -13,7 +13,6 @@ let cerrar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
 let closer: string;
-let areaId: string;
 let n = 0;
 const actor = () => ({ userId: closer, rol: "closer" as const });
 beforeEach(async () => {
@@ -22,13 +21,12 @@ beforeEach(async () => {
   programId = p.id;
   cohortId = (await db.insert(cohorts).values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30", estado: "activo", fechaInicioVentas: "2026-09-01" }).returning())[0].id;
   closer = (await db.insert(users).values({ email: "closer@retia.co", rol: "closer", closerId: "Closer" }).returning())[0].id;
-  areaId = (await db.insert(areas).values({ nombre: "Referidos" }).returning())[0].id;
 });
 afterEach(async () => cerrar());
 
 async function nuevo(etapa: EtapaDeal) {
   const lead = (await db.insert(leads).values({ programId, emailNormalizado: `p${n++}@retia.co` }).returning())[0];
-  return (await db.insert(deals).values({ leadId: lead.id, programId, cohortId, etapa, ownerUserId: closer, valorVendidoUsd: "1000", areaDeclaradaId: areaId }).returning())[0];
+  return (await db.insert(deals).values({ leadId: lead.id, programId, cohortId, etapa, ownerUserId: closer, valorVendidoUsd: "1000" }).returning())[0];
 }
 const datos = (dealId: string, monto: string) => ({ dealId, fecha: "2026-10-02", monto, moneda: "USD" as const, comprobanteUrl: "https://retia.co/comprobante.png" });
 const etapa = async (id: string) => (await db.select({ etapa: deals.etapa }).from(deals).where(eq(deals.id, id)))[0].etapa;

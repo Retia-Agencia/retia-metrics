@@ -43,7 +43,6 @@ export interface TableroKanbanProps {
   nombreDePendiente: Record<PendienteDeal, string>;
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
   programaSlug: string;
-  areas: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
   cohortesDestino: OpcionCatalogo[];
   motivos: { id: string; nombre: string; tipo: string }[];
@@ -77,7 +76,6 @@ export function TableroKanban({
   nombreDePendiente,
   tonoDeEtapa,
   programaSlug,
-  areas,
   cohortes,
   cohortesDestino,
   motivos,
@@ -99,7 +97,7 @@ export function TableroKanban({
   const animacionRef = useRef<number | null>(null);
   // El servidor ya escribió: se refresca la pantalla actual (router.refresh), NO
   // revalidatePath, que no refresca la ruta que acaba de escribir (AGENTS.md).
-  const { elegir, abrirDestino, corregir, dialogo } = useResponder(mapa, { areas, cohortes, cohortesDestino, motivos }, nombreDeEtapa, () => router.refresh());
+  const { elegir, abrirDestino, corregir, dialogo } = useResponder(mapa, { cohortes, cohortesDestino, motivos }, nombreDeEtapa, () => router.refresh());
 
   const detenerAutoScroll = useCallback(() => {
     velocidadRef.current = 0;

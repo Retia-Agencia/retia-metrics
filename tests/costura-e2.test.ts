@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
   abonos,
-  areas,
   calls,
   changeLog,
   cohorts,
@@ -64,7 +63,6 @@ vi.mock("@/lib/ingesta/regla-de-deals", async (importOriginal) => {
 let db: Db;
 let cerrar: () => Promise<void>;
 let programId: string;
-let areaId: string;
 let webhookSourceId: string;
 let closer: string;
 let gerente: string;
@@ -139,8 +137,6 @@ beforeEach(async () => {
       fechaCierreVentas: "2026-10-10",
       estado: "activo",
     });
-  const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
-  areaId = area.id;
 
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
@@ -181,7 +177,7 @@ describe("E2 — la cita cae en su deal, el Grain lo atiende, el dinero lo mueve
     expect(llamada.fechaAgenda?.toISOString()).toBe("2026-10-05T16:00:00.000Z");
 
     // El closer reclama el deal (070, fuera de E2) y registra el descuento (074, la pantalla).
-    await db.update(deals).set({ ownerUserId: closer, valorVendidoUsd: "1500.00", areaDeclaradaId: areaId }).where(eq(deals.id, dealId));
+    await db.update(deals).set({ ownerUserId: closer, valorVendidoUsd: "1500.00" }).where(eq(deals.id, dealId));
 
     // 2. El Grain de ESA llamada la marca como sucedida y pasa el deal a Atendido (T10).
     const grain = await pegarGrain(db, comoCloser(), { callId: llamada.id, linkGrain: "https://grain.com/share/recording/e2" });

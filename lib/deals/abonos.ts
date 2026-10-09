@@ -52,9 +52,7 @@ export interface ActorDeAbono {
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
 
-export const esquemaRegistrarAbono = esquemaAbono
-  .omit({ programId: true })
-  .extend({ areaDeclaradaId: z.string().uuid("El área no es válida.").nullable().optional() });
+export const esquemaRegistrarAbono = esquemaAbono.omit({ programId: true });
 export type DatosRegistrarAbono = z.input<typeof esquemaRegistrarAbono>;
 
 export interface AbonoRegistrado {
@@ -217,7 +215,6 @@ export async function registrarAbono(
         dealId: deal.id,
         a: destino,
         actor: { tipo: "sistema" },
-        datos: { areaDeclaradaId: entrada.areaDeclaradaId },
       });
       return { abonoId, etapa: destino, movioElDeal: true, saldo, cohorteAsignada };
     });
