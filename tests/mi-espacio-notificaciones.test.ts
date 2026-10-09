@@ -203,6 +203,13 @@ describe("notificaciones de Mi espacio (222)", () => {
     expect(ids).not.toContain(seguimientoManana);
   });
 
+  it("hoy: un deal con cita hoy y otra más adelante sigue siendo de hoy", async () => {
+    const d = await deal({ etapa: "agendado" });
+    await llamada(d.dealId, HOY);
+    await llamada(d.dealId, MANANA);
+    expect(await todas("hoy")).toContain(d.dealId);
+  });
+
   it("una llamada ANULADA no cuenta para hoy", async () => {
     const d = await deal({ etapa: "atendido" });
     await llamada(d.dealId, HOY, programId, true);

@@ -88,10 +88,8 @@ interface Universo {
   tarjetas: TarjetaDeal[];
   /** Fechas `date` del deal, por dealId. */
   fechas: Map<string, FechasDeDeal>;
-  /** El día de Bogotá de la llamada vigente más reciente de cada deal, por dealId. */
-  diaUltimaLlamada: Map<string, string>;
-  /** Instante de la llamada vigente más reciente de cada deal, para ordenar "hoy". */
-  instanteUltimaLlamada: Map<string, Date>;
+  /** La primera llamada vigente de HOY (día de Bogotá) de cada deal, por dealId. */
+  llamadaDeHoy: Map<string, Date>;
   hoy: string;
 }
 
@@ -107,8 +105,7 @@ async function cargarUniverso(
   const ids = tarjetas.map((t) => t.dealId);
 
   const fechas = new Map<string, FechasDeDeal>();
-  const diaUltimaLlamada = new Map<string, string>();
-  const instanteUltimaLlamada = new Map<string, Date>();
+  const llamadaDeHoy = new Map<string, Date>();
   if (ids.length > 0) {
     const filasDeal = await db
       .select({
@@ -132,16 +129,15 @@ async function cargarUniverso(
       .from(calls)
       .where(and(inArray(calls.dealId, ids), vigente(calls)));
     for (const c of filasCall) {
-      if (!c.dealId || !c.fechaLlamada) continue;
-      const previo = instanteUltimaLlamada.get(c.dealId);
-      if (!previo || c.fechaLlamada > previo) {
-        instanteUltimaLlamada.set(c.dealId, c.fechaLlamada);
-        diaUltimaLlamada.set(c.dealId, diaDeCalendario(c.fechaLlamada));
-      }
+      // CUALQUIER llamada vigente de hoy cuenta, no solo la última: un deal con cita hoy y
+      // otra más adelante sigue siendo de hoy.
+      if (!c.dealId || !c.fechaLlamada || diaDeCalendario(c.fechaLlamada) !== hoy) continue;
+      const previo = llamadaDeHoy.get(c.dealId);
+      if (!previo || c.fechaLlamada < previo) llamadaDeHoy.set(c.dealId, c.fechaLlamada);
     }
   }
 
-  return { tarjetas, fechas, diaUltimaLlamada, instanteUltimaLlamada, hoy };
+  return { tarjetas, fechas, llamadaDeHoy, hoy };
 }
 
 /** ¿La tarjeta pasa el chip? Y, de pasar, ¿cuál es su fecha clave para ordenar y mostrar? */
@@ -149,24 +145,22 @@ function evaluar(
   u: Universo,
   t: TarjetaDeal,
   chip: ChipNotificacion,
-  idsCalendly: Set<string>,
+  idsCalendly: Map<string, Date>,
   idsDuplicados: Set<string>,
 ): { pasa: boolean; fechaClave: Date | string | null } {
   const fechas = u.fechas.get(t.dealId);
   const seguimiento = fechas?.fechaSeguimiento ?? null;
   const limitePago = fechas?.fechaLimitePago ?? null;
-  const diaLlamada = u.diaUltimaLlamada.get(t.dealId) ?? null;
-  const instanteLlamada = u.instanteUltimaLlamada.get(t.dealId) ?? null;
+  const llamadaHoy = u.llamadaDeHoy.get(t.dealId) ?? null;
 
   switch (chip) {
     case "hoy": {
-      const llamadaHoy = diaLlamada === u.hoy;
       const pendienteHoy =
         (t.pendiente === "reagenda" || t.pendiente === "seguimiento") &&
         seguimiento != null &&
         seguimiento === u.hoy;
       // Orden "hoy": por la hora de la llamada y luego por la fecha de seguimiento.
-      return { pasa: llamadaHoy || pendienteHoy, fechaClave: instanteLlamada ?? seguimiento };
+      return { pasa: llamadaHoy != null || pendienteHoy, fechaClave: llamadaHoy ?? seguimiento };
     }
     case "reagenda":
       return { pasa: t.pendiente === "reagenda", fechaClave: seguimiento };
@@ -187,7 +181,7 @@ function evaluar(
       return { pasa: vencido, fechaClave: masAntigua };
     }
     case "calendly":
-      return { pasa: idsCalendly.has(t.dealId), fechaClave: t.ultimaActividadEn };
+      return { pasa: idsCalendly.has(t.dealId), fechaClave: idsCalendly.get(t.dealId) ?? null };
     case "nuevos":
       return { pasa: t.esNuevo, fechaClave: t.creadoEn };
     case "duplicados":
@@ -258,7 +252,7 @@ export async function notificacionesDeChip(
 
   // Los dos chips que preguntan a otras fuentes, acotados al universo (dueño + programa).
   const [idsCalendly, idsDuplicados] = await Promise.all([
-    chip === "calendly" ? idsConNovedadCalendly(db, userId, programId) : Promise.resolve(new Set<string>()),
+    chip === "calendly" ? idsConNovedadCalendly(db, userId, programId) : Promise.resolve(new Map<string, Date>()),
     chip === "duplicados" ? idsDuplicadosDeHoy(db, programId, userId, universo, hoy) : Promise.resolve(new Set<string>()),
   ]);
 
@@ -306,10 +300,19 @@ function chipConFecha(chip: ChipNotificacion): boolean {
   return chip === "hoy" || chip === "reagenda" || chip === "seguimiento" || chip === "vencidos" || chip === "calendly";
 }
 
-/** Los dealId del usuario+programa con una novedad de Calendly (leída o no), del 201. */
-async function idsConNovedadCalendly(db: Db, userId: string, programId: string): Promise<Set<string>> {
-  const { noLeidas, leidas } = await novedadesCalendlyDeUsuario(db, { userId, programId, porGrupo: 50 });
-  return new Set([...noLeidas, ...leidas].map((n) => n.dealId));
+/**
+ * Los dealId del usuario+programa con una novedad de Calendly (leída o no), del 201, con la
+ * fecha de su novedad más reciente (el chip ordena por ella).
+ * ponytail: lee hasta 500 por grupo; si un closer acumula más, pedir un lector sin tope.
+ */
+async function idsConNovedadCalendly(db: Db, userId: string, programId: string): Promise<Map<string, Date>> {
+  const { noLeidas, leidas } = await novedadesCalendlyDeUsuario(db, { userId, programId, porGrupo: 500 });
+  const ultima = new Map<string, Date>();
+  for (const n of [...noLeidas, ...leidas]) {
+    const previa = ultima.get(n.dealId);
+    if (!previa || n.createdAt > previa) ultima.set(n.dealId, n.createdAt);
+  }
+  return ultima;
 }
 
 /**
