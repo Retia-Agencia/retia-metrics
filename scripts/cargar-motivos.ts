@@ -29,6 +29,12 @@ const LISTAS = [
   // reagenda (T29, la llamada ocurrio y hace falta otra) — la hoja solo tenia "PRA"
   { tipo: "reagenda", nombre: "Faltó tiempo para terminar la llamada" },
   { tipo: "reagenda", nombre: "Tiene que estar quien toma la decisión" },
+  // reagenda (ticket 218, reunión del 9-oct, de más a menos frecuente según Andre). "Falta
+  // quien decide" ya es la de arriba. "Otro" lo reconoce el código por `pideTexto`, no por el nombre.
+  { tipo: "reagenda", nombre: "Imprevisto, va a dar otra fecha" },
+  { tipo: "reagenda", nombre: "Sin comunicación" },
+  { tipo: "reagenda", nombre: "Se cayó la llamada (luz, señal)" },
+  { tipo: "reagenda", nombre: "Otro", pideTexto: true },
   // retroceso (T15, dijo que si y se echo para atras pero sigue interesado)
   { tipo: "retroceso", nombre: "Depende de otra persona para decidir" }, // FU-2
   { tipo: "retroceso", nombre: "Necesita más tiempo para pensarlo" }, // FU-3
