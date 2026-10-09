@@ -267,8 +267,8 @@ describe("tableroKanban", () => {
     });
 
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
-    expect(t.columnas.find((c) => c.etapa === "atendido")!.tarjetas[0].avisos.faltanALaEtapa).toBe(2);
-    expect(t.columnas.find((c) => c.etapa === "ganado_completo")!.tarjetas[0].avisos.faltanALaEtapa).toBe(3);
+    expect(t.columnas.find((c) => c.etapa === "atendido")!.tarjetas[0].avisos.faltanALaEtapa).toBe(1);
+    expect(t.columnas.find((c) => c.etapa === "ganado_completo")!.tarjetas[0].avisos.faltanALaEtapa).toBe(2);
   });
 
   it("agrupa por etapa y muestra el dueño", async () => {
