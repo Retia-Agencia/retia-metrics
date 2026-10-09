@@ -36,8 +36,8 @@ ventana de Chrome no se deja achicar); `next build` en la misma carpeta tumba un
     corrió typecheck, lint, build y los tests de cada ticket, y recorrió en `dev:local` (incluye forjar las dos
     acciones del 212 como closer no dueña).
   - **Causa de "ComunicArte no tiene plataformas":** el importador escribía `plataforma_id` en el abono sin crear el
-    vínculo `plataformas_programa`. Arreglado en el importador; en producción faltan los vínculos MercadoPago y
-    Hotmart → CA, MercadoPago y Bancolombia → TI (con `asociarPrograma`, pide el ok de Mani).
+    vínculo `plataformas_programa`. Arreglado en el importador; en producción se cargaron los vínculos que faltaban
+    (MercadoPago y Hotmart → CA, MercadoPago y Bancolombia → TI) con `asociarPrograma` y el ok de Mani.
   - Ojo con Codex: "--resume" retoma el ÚLTIMO hilo del repo, no el del worktree; para relanzar un ticket, tarea nueva.
     Y Codex tocó docs sin que se le pidiera (se descartaron).
 

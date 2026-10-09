@@ -148,7 +148,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 144 | [Próxima fecha de pago y cartera](./144-proxima-fecha-de-pago-y-cartera.md) | 132, QM-3, GC-17 | bloqueado |
 | [x] | 166 | [Las plataformas de pago de un programa, a la vista](./166-plataformas-de-pago-visibles.md) | 100 | done · `cp-20261003-1` · 3-oct (S4) · bloque "Plataformas de pago" en la ficha del programa y aviso en el abono; recorrido hecho |
 | [x] | 167 | [Quién cobró es una FK a `users`, y un usuario nuevo no necesita `closer_id`](./167-quien-cobro-es-una-fk.md) | · | done · `cp-20261004-1` · ola O4 (ver §14) · el 159 queda con lo del corte |
-| [ ] | 212 | [El closer crea la plataforma de pago al registrar el abono, y la corrige después](./212-plataforma-nueva-al-registrar-un-abono.md) | — | review · 9-oct · implementó Codex, revisión, recorrido y acciones forjadas (403, base sin moverse) de la sesión principal; el importador ahora vincula la plataforma que usa · falta checkpoint verde, cadenero y el arreglo de datos en producción (ok de Mani) |
+| [ ] | 212 | [El closer crea la plataforma de pago al registrar el abono, y la corrige después](./212-plataforma-nueva-al-registrar-un-abono.md) | — | review · 9-oct · implementó Codex, revisión, recorrido y acciones forjadas (403, base sin moverse) de la sesión principal; el importador ahora vincula la plataforma que usa · vínculos faltantes cargados en producción con el ok de Mani · falta checkpoint verde y cadenero |
 
 ## 6 · Students y onboarding
 

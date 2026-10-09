@@ -39,8 +39,9 @@ poder corregir.
   `plataformas_programa`; el selector solo muestra las vinculadas (ADR 0034). Al 9-oct en producción: CA tiene abonos
   con MercadoPago (9), Hotmart (3) y Hotmart / Mercadopago (1) y solo la última vinculada; TI tiene MercadoPago (8) y
   Bancolombia (1) y ninguna vinculada. Arreglado hacia adelante: `OpcionesImportacion` recibe `actor` (con rol) y
-  el importador llama `asociarPrograma` por cada plataforma que usa. Los vínculos que faltan en producción se cargan
-  con `asociarPrograma`, con el ok de Mani.
+  el importador llama `asociarPrograma` por cada plataforma que usa. **Aplicado en producción el 9-oct con el ok de Mani**
+  (`asociarPrograma` desde un script desechable, 4 filas en `change_log`): MercadoPago y Hotmart → ComunicArte,
+  MercadoPago y Bancolombia → Tactical.
 - Diálogo de abono: buscar o crear (`crearPlataformaParaAbonoAccion` → `crearOVincularPlataforma`). "Cambiar
   plataforma" por abono vigente (`cambiarPlataformaDeAbono`, `editarConRastro`, solo `plataformaId`); si la actual
   no está vinculada, el control la muestra igual.
