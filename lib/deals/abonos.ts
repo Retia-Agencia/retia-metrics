@@ -78,6 +78,12 @@ export const esquemaPegarComprobante = z.object({
 });
 export type DatosPegarComprobante = z.input<typeof esquemaPegarComprobante>;
 
+export const esquemaCambiarPlataformaDeAbono = z.object({
+  abonoId: z.string().uuid("El abono no es válido."),
+  plataformaId: z.string().uuid("La plataforma no es válida.").nullable(),
+});
+export type DatosCambiarPlataformaDeAbono = z.input<typeof esquemaCambiarPlataformaDeAbono>;
+
 type FilaDeal = typeof deals.$inferSelect;
 
 /**
@@ -242,6 +248,42 @@ export async function pegarComprobante(
         { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead },
         entrada.abonoId,
         { comprobanteUrl: entrada.comprobanteUrl },
+      );
+    });
+  });
+}
+
+/** Corrige solo la plataforma; monto y fecha se corrigen anulando el abono (ADR 0026). */
+export async function cambiarPlataformaDeAbono(
+  db: Db,
+  actor: ActorDeAbono,
+  datos: DatosCambiarPlataformaDeAbono,
+): Promise<void> {
+  return normalizando(async () => {
+    const entrada = esquemaCambiarPlataformaDeAbono.parse(datos);
+    if (!trabajaLeads(actor.rol)) {
+      throw new ErrorDeApp("Solo un closer cambia la plataforma de un abono.", 403);
+    }
+
+    await (db as unknown as Transaccion).transaction(async (tx) => {
+      const [abono] = await tx
+        .select({ dealId: abonos.dealId, anuladoEn: abonos.anuladoEn })
+        .from(abonos)
+        .where(and(eq(abonos.id, entrada.abonoId), incluyendoAnulados(abonos)));
+      if (!abono) throw new ErrorDeApp("No existe el abono.", 404);
+      if (abono.anuladoEn) throw new ErrorDeApp("El abono está anulado.", 409);
+
+      const { deal, emailLead } = await dealBloqueado(tx, abono.dealId);
+      if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado.", 409);
+      if (!puedeTrabajarDeal(actor, deal)) {
+        throw new ErrorDeApp("Solo el dueño del deal puede cambiar la plataforma del abono.", 403);
+      }
+
+      await exigirPlataformaActiva(entrada.plataformaId ?? undefined, tx);
+      await editarConRastro(
+        { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead },
+        entrada.abonoId,
+        { plataformaId: entrada.plataformaId },
       );
     });
   });

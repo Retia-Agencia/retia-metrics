@@ -282,6 +282,9 @@ describe("crearOVincularPlataforma (ticket 171)", () => {
     const creada = await crearOVincularPlataforma(db, gerente, "Wise", programaA);
     expect(await porNombreNormalizado("Wise")).toHaveLength(1);
     expect((await plataformasDelPrograma(db, programaA)).map((p) => p.id)).toContain(creada.id);
+    const rastro = await db.select().from(changeLog).where(eq(changeLog.registroId, creada.id));
+    expect(rastro.some((fila) => fila.tabla === "plataformas_pago")).toBe(true);
+    expect(rastro.some((fila) => fila.tabla === "plataformas_programa" && fila.valorNuevo === "Comunicarte")).toBe(true);
   });
 
   it("un nombre que ya existe con OTRAS mayusculas vincula, no crea una segunda fila", async () => {
@@ -297,6 +300,7 @@ describe("crearOVincularPlataforma (ticket 171)", () => {
     expect((await plataformasDelPrograma(db, programaA)).map((p) => p.id)).toContain(plataforma);
     // No se creo ninguna fila nueva con el nombre tecleado.
     expect(await porNombreNormalizado("paypal")).toHaveLength(0);
+    expect((await logDeLaPlataforma())).toHaveLength(1);
   });
 
   it("vincular una que ya esta vinculada es idempotente", async () => {

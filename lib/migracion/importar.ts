@@ -15,6 +15,8 @@ import { normalizarTexto } from "@/lib/sheets/mapeo";
 import { usd } from "@/lib/format";
 import { consolidar } from "./consolidar";
 import type { Extraccion, RarezaTemplate, TipoRareza } from "./template";
+import { asociarPrograma } from "@/lib/catalogo/plataformas";
+import type { ActorConAcceso } from "@/lib/catalogo/acceso-programa";
 
 /**
  * El IMPORTADOR de la migracion de las pestañas de gestion (ADR 0059 punto 4, ticket 078
@@ -38,8 +40,8 @@ import type { Extraccion, RarezaTemplate, TipoRareza } from "./template";
 
 export interface OpcionesImportacion {
   programId: string;
-  /** `actorDelScript()`: quien corre la migracion. Va solo a `change_log`. */
-  actorId: string;
+  /** `actorConRolDelScript()`: identidad para el rastro y acceso al programa. */
+  actor: ActorConAcceso;
   /**
    * `Mail onboarding = Si` → `onboarded_at` con la fecha de la venta. Apagado por defecto: es
    * la pregunta abierta 5 del 077 y la decide Mani.
@@ -106,7 +108,7 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
       etapa: d.etapa,
       pendiente: d.pendiente ?? null,
       huella: d.huella,
-      actorId: op.actorId,
+      actorId: op.actor.id,
       fechaEtapa: d.fechaEtapa ? new Date(d.fechaEtapa) : null,
       ownerUserId: duenos.get(closer) ?? null,
       submissionOrigenId: ctx.envioDeOrigen.get(leadId) ?? null,
@@ -149,9 +151,10 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
       continue;
     }
     const plataformaId = a.plataforma ? (ctx.plataformas.get(clavePlataforma(a.plataforma)) ?? null) : null;
+    if (plataformaId) await asociarPrograma(db, op.actor, plataformaId, op.programId);
     porAbonar.push({
       a,
-      abono: { dealId: deal.id, huella: a.huella, actorId: op.actorId, fecha, monto: a.monto, plataformaId, closer: a.closer },
+      abono: { dealId: deal.id, huella: a.huella, actorId: op.actor.id, fecha, monto: a.monto, plataformaId, closer: a.closer },
     });
   }
   const resultadosAbonos = await registrarAbonosHistoricos(db, porAbonar.map((x) => x.abono));
@@ -173,7 +176,7 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
       programId: op.programId,
       dealId: dealId ?? null,
       huella: l.huella,
-      actorId: op.actorId,
+      actorId: op.actor.id,
       resultado: l.resultado,
       fechaLlamada: l.fecha ? new Date(l.fecha) : null,
       closer: l.closer,

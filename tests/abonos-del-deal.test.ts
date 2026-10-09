@@ -14,7 +14,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
-import { anularAbono, pegarComprobante, registrarAbono } from "@/lib/deals/abonos";
+import { anularAbono, cambiarPlataformaDeAbono, pegarComprobante, registrarAbono } from "@/lib/deals/abonos";
 import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
 import { ErrorDeApp } from "@/lib/errors";
 import { saldosDeDeals } from "@/lib/queries/saldo";
@@ -321,6 +321,64 @@ describe("registrarAbono: las rejas", () => {
     ]);
     expect(resultados.filter((r) => r.status === "fulfilled")).toHaveLength(1);
     expect(await abonosDe(dealId)).toHaveLength(1);
+  });
+});
+
+describe("cambiarPlataformaDeAbono (ticket 212)", () => {
+  async function plataforma(nombre: string) {
+    const [fila] = await db.insert(plataformasPago).values({ nombre }).returning();
+    return fila.id;
+  }
+
+  it("cambia solo la plataforma y deja exactamente una fila de rastro", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const registrada = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
+    const plataformaId = await plataforma("Wompi");
+
+    await cambiarPlataformaDeAbono(db, comoCloser(), { abonoId: registrada.abonoId, plataformaId });
+
+    const [fila] = await abonosDe(dealId);
+    expect(fila).toMatchObject({ plataformaId, monto: "300.00", fecha: "2026-09-28" });
+    const cambios = (await db.select().from(changeLog).where(eq(changeLog.registroId, registrada.abonoId)))
+      .filter((c) => c.campo === "plataformaId");
+    expect(cambios).toHaveLength(1);
+    expect(cambios[0]).toMatchObject({ valorAnterior: null, valorNuevo: plataformaId, userId: closer });
+  });
+
+  it("un abono anulado responde 409 y no se modifica", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const registrada = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
+    await anularAbono(db, comoCloser(), { abonoId: registrada.abonoId, motivo: "Duplicado" });
+    const plataformaId = await plataforma("Bold");
+
+    const error = await capturar(
+      cambiarPlataformaDeAbono(db, comoCloser(), { abonoId: registrada.abonoId, plataformaId }),
+    );
+
+    expect(error.status).toBe(409);
+    expect((await abonosDe(dealId))[0].plataformaId).toBeNull();
+  });
+
+  it("un closer que no es dueño recibe 403; el developer sí puede cambiarla", async () => {
+    const dealId = await nuevoDeal("atendido");
+    const registrada = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
+    const plataformaId = await plataforma("PayU");
+
+    const error = await capturar(
+      cambiarPlataformaDeAbono(
+        db,
+        { userId: otroCloser, rol: "closer" },
+        { abonoId: registrada.abonoId, plataformaId },
+      ),
+    );
+    expect(error.status).toBe(403);
+
+    await cambiarPlataformaDeAbono(
+      db,
+      { userId: developer, rol: "developer" },
+      { abonoId: registrada.abonoId, plataformaId },
+    );
+    expect((await abonosDe(dealId))[0].plataformaId).toBe(plataformaId);
   });
 });
 
