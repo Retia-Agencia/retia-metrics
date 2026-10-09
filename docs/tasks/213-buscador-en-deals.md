@@ -3,7 +3,7 @@ id: 213
 etapa: corte
 serves: "Mani, 9-oct: encontrar un deal rápido"
 depends: [207]
-status: todo
+status: review
 ---
 
 # 213 — Buscador en Deals: por nombre, correo o teléfono
@@ -27,6 +27,15 @@ Kanban o la tabla. Mani: una barra de búsqueda en Deals para filtrar por nombre
 
 ## Done cuando
 
-- [ ] Buscar por parte del nombre, por correo y por teléfono (con y sin indicativo) encuentra el deal.
-- [ ] Un deal de otro programa nunca aparece.
-- [ ] Tests de la consulta; recorrido en Kanban y tabla, a 390 px.
+- [x] Buscar por parte del nombre, por correo y por teléfono (con y sin indicativo) encuentra el deal.
+- [x] Un deal de otro programa nunca aparece.
+- [x] Tests de la consulta; recorrido en Kanban y tabla, a 390 px.
+
+## Resultado (9-oct, en revisión)
+
+- El texto NO va en la URL: `buscarDealsAccion` (server action, igual que Leads) devuelve ids de deals del programa;
+  el Kanban filtra sus tarjetas y recalcula conteo, Potencial y Confirmado por columna (`columnasVisibles`). Los
+  filtros de la URL y el orden no cambian.
+- Teléfono por dígitos (`regexp_replace`): "+57 300 111 0004" y "3001110004" encuentran el mismo deal. No encuentra
+  un número guardado SIN indicativo si se busca CON él.
+- Deals no tiene vista de tabla: solo Kanban.

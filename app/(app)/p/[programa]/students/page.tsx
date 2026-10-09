@@ -211,7 +211,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
             )}
           </CardContent>
           {filas.length > 0 ? (
-            <CardFooter className="shrink-0 flex-col items-stretch gap-1 text-xs text-muted-foreground">
+            <CardFooter className="sticky bottom-0 z-10 shrink-0 flex-col items-stretch gap-1 bg-card text-xs text-muted-foreground">
               {totales.porMoneda.map((total) => (
                 <div key={total.moneda} className="flex flex-wrap items-center justify-end gap-x-6 gap-y-1">
                   <span>

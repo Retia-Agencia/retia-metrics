@@ -89,7 +89,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 162 | [Una sola tarjeta de Transición, con botones de etapa redondos](./162-transicion-unica-y-botones-de-etapa.md) | 156 | done · `cp-20261003-1` · 3-oct (S1) · Transición con "Mover a" y "Registrar" (Contacto, Intento, Nota en las once etapas); Actividades solo lista; botones redondos de igual ancho; el Kanban abre el mismo pop-up. Recorrido de la sesión central hecho |
 | [x] | 165 | [Crear la siguiente cohorte, y que Próxima cohorte respete la fecha](./165-la-siguiente-cohorte.md) | 142 | done · `cp-20261003-1` · 3-oct (S4) · "Crear C{n+1}" del administrador; selector solo futuras; retomar respeta el inicio de ventas (A-49, A-50); recorrido hecho |
 | [ ] | 211 | [La corte del deal la elige su dueño, y dos cortes venden a la vez](./211-la-corte-del-deal-la-elige-su-dueno.md) | — | todo · 8-oct · reunión con Michael; pide ADR |
-| [ ] | 213 | [Buscador en Deals: por nombre, correo o teléfono](./213-buscador-en-deals.md) | 207 | todo · 9-oct · Mani |
+| [ ] | 213 | [Buscador en Deals: por nombre, correo o teléfono](./213-buscador-en-deals.md) | 207 | review · 9-oct · implementó Codex, revisión y recorrido de la sesión principal; el texto no va en la URL (server action, como Leads) · falta checkpoint verde y cadenero |
 
 ## 3 · Inbox
 
@@ -148,7 +148,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 144 | [Próxima fecha de pago y cartera](./144-proxima-fecha-de-pago-y-cartera.md) | 132, QM-3, GC-17 | bloqueado |
 | [x] | 166 | [Las plataformas de pago de un programa, a la vista](./166-plataformas-de-pago-visibles.md) | 100 | done · `cp-20261003-1` · 3-oct (S4) · bloque "Plataformas de pago" en la ficha del programa y aviso en el abono; recorrido hecho |
 | [x] | 167 | [Quién cobró es una FK a `users`, y un usuario nuevo no necesita `closer_id`](./167-quien-cobro-es-una-fk.md) | · | done · `cp-20261004-1` · ola O4 (ver §14) · el 159 queda con lo del corte |
-| [ ] | 212 | [El closer crea la plataforma de pago al registrar el abono, y la corrige después](./212-plataforma-nueva-al-registrar-un-abono.md) | — | todo · 9-oct · Mani, tras el 208 |
+| [ ] | 212 | [El closer crea la plataforma de pago al registrar el abono, y la corrige después](./212-plataforma-nueva-al-registrar-un-abono.md) | — | review · 9-oct · implementó Codex, revisión, recorrido y acciones forjadas (403, base sin moverse) de la sesión principal; el importador ahora vincula la plataforma que usa · falta checkpoint verde, cadenero y el arreglo de datos en producción (ok de Mani) |
 
 ## 6 · Students y onboarding
 
@@ -159,7 +159,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 063 | [`onboarded_at` y cambio de cohorte](./063-onboarded-at-y-cambio-de-cohorte.md) (E4-7) | 060 | done · 28-sep · `lib/deals/estudiante.ts` (`marcarOnboarded`, `cambiarCohorte`), `lib/queries/estudiantes.ts` (Students es una consulta) y la cohorte activa se asigna sola en el primer abono. Sin migración. Falta la pantalla (074) |
 | [x] | 099 | [La tab Students por cohorte](./099-tab-students-por-cohorte.md) | 060, 061, 097 | done · 30-sep · Alejo · recorrido visual hecho (claro/oscuro, 390 px, consola); un deal en Completo ya no muestra fecha límite |
 | [ ] | 145 | [Rol Customer Success y onboarding](./145-rol-customer-success-y-onboarding.md) | — | todo · 8-oct · desbloqueado con alcance chico: rol que solo marca onboarded (Dani Rincón TI, Juanjo CA); los cuatro pasos siguen en QM-5 |
-| [ ] | 214 | [Students: total recaudado fijo abajo, y un saldo que se entienda](./214-students-total-recaudado.md) | — | todo · 9-oct · Mani, tras el 208 |
+| [ ] | 214 | [Students: total recaudado fijo abajo, y un saldo que se entienda](./214-students-total-recaudado.md) | — | review · 9-oct · implementó Codex, revisión y recorrido (claro, oscuro, 390 px) de la sesión principal · falta checkpoint verde y cadenero |
 
 ## 7 · Origen y atribución
 

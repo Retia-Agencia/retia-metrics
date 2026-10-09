@@ -1,8 +1,5 @@
+import { redondearUsd } from "@/lib/dinero";
 import type { ColumnaKanban } from "@/lib/queries/kanban";
-
-function redondearUsd(valor: number): number {
-  return Math.round(valor * 100) / 100;
-}
 
 /** Recalcula los totales de cada columna sobre las tarjetas visibles por la búsqueda. */
 export function columnasVisibles(

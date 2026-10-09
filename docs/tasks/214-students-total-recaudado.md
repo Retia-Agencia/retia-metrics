@@ -3,7 +3,7 @@ id: 214
 etapa: corte
 serves: "Mani, 9-oct (recorrido de Students tras el 208)"
 depends: []
-status: todo
+status: review
 ---
 
 # 214 — Students: total recaudado fijo abajo, y un saldo que se entienda
@@ -29,7 +29,15 @@ status: todo
 
 ## Done cuando
 
-- [ ] El pie muestra Recaudado y Por cobrar y cuadra con la suma de las filas (test).
-- [ ] Cambiar un filtro cambia el total.
-- [ ] El texto nuevo del saldo en Students, ficha y Mi día (todos usan `saldoLegible`).
-- [ ] Recorrido en claro y oscuro, a 390 px.
+- [x] El pie muestra Recaudado y Por cobrar y cuadra con la suma de las filas (test).
+- [x] Cambiar un filtro cambia el total.
+- [x] El texto nuevo del saldo en Students, ficha y Mi día (todos usan `saldoLegible`).
+- [x] Recorrido en claro y oscuro, a 390 px.
+
+## Resultado (9-oct, en revisión)
+
+- `totalesDeStudents` (`lib/queries/estudiantes-totales.ts`) suma sobre las mismas filas filtradas que salen de
+  `saldosDeDeals`: Recaudado, Por cobrar (solo saldos positivos) por moneda, y cuántos no tienen valor vendido. El pie
+  es `sticky` (en celular también).
+- `saldoLegible` recibe `sinSaldoPorque`: "Falta el valor vendido" o "abonos en otra moneda". Mi día no lo usa.
+- El total no abre lista (pediría una pantalla nueva).

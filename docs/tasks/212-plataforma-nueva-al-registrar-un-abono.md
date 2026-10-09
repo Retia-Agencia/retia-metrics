@@ -3,7 +3,7 @@ id: 212
 etapa: corte
 serves: "Mani, 9-oct (recorrido de Students tras el 208)"
 depends: []
-status: todo
+status: review
 ---
 
 # 212 — El closer crea la plataforma de pago al registrar el abono, y la corrige después
@@ -27,7 +27,22 @@ poder corregir.
 
 ## Done cuando
 
-- [ ] Registrar un abono con una plataforma nueva la crea, la vincula al programa y deja rastro.
-- [ ] Cambiar la plataforma de un abono deja una fila en `change_log`.
-- [ ] Tests de las dos escrituras y de la reja (un closer de otro programa recibe 403, forjando la acción).
-- [ ] Recorrido: abrir el selector, crear, cambiar; consola limpia.
+- [x] Registrar un abono con una plataforma nueva la crea, la vincula al programa y deja rastro.
+- [x] Cambiar la plataforma de un abono deja una fila en `change_log`.
+- [x] Tests de las dos escrituras y de la reja (un closer de otro programa recibe 403, forjando la acción).
+- [x] Recorrido: abrir el selector, crear, cambiar; consola limpia.
+
+## Resultado (9-oct, en revisión)
+
+- **Por qué ComunicArte "no tenía plataformas":** el importador (`lib/migracion/importar.ts`) buscaba la
+  plataforma por nombre en TODO el catálogo y la escribía en el abono, pero nunca creaba el vínculo
+  `plataformas_programa`; el selector solo muestra las vinculadas (ADR 0034). Al 9-oct en producción: CA tiene abonos
+  con MercadoPago (9), Hotmart (3) y Hotmart / Mercadopago (1) y solo la última vinculada; TI tiene MercadoPago (8) y
+  Bancolombia (1) y ninguna vinculada. Arreglado hacia adelante: `OpcionesImportacion` recibe `actor` (con rol) y
+  el importador llama `asociarPrograma` por cada plataforma que usa. Los vínculos que faltan en producción se cargan
+  con `asociarPrograma`, con el ok de Mani.
+- Diálogo de abono: buscar o crear (`crearPlataformaParaAbonoAccion` → `crearOVincularPlataforma`). "Cambiar
+  plataforma" por abono vigente (`cambiarPlataformaDeAbono`, `editarConRastro`, solo `plataformaId`); si la actual
+  no está vinculada, el control la muestra igual.
+- Recorrido local: crear, vincular y cambiar dejan tres filas en `change_log`; consola limpia. Las dos acciones
+  forjadas como una closer del programa que no es dueña: error de permiso y la base sin moverse.
