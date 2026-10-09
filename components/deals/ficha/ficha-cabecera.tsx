@@ -30,7 +30,7 @@ export function FichaCabecera({
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
 }) {
   const anulado = ficha.anulado != null;
-  const saldo = saldoLegible(ficha.saldo.saldo, ficha.saldo.moneda ?? "USD");
+  const saldo = saldoLegible(ficha.saldo.saldo, ficha.saldo.moneda ?? "USD", ficha.saldo.sinSaldoPorque);
 
   return (
     <Card id="campos" className="scroll-mt-24">

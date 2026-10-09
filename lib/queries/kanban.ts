@@ -30,6 +30,7 @@ import { linkEnviadoSinCita } from "@/lib/deals/handoff";
 import { esContactoRegistrado, hechosDeLlamadas } from "@/lib/deals/mover-etapa";
 import { propiedadesQueLeFaltan } from "@/lib/deals/requisitos";
 import { proximoContactoVencido } from "@/lib/deals/proximo-contacto";
+import { redondearUsd } from "@/lib/dinero";
 
 /**
  * Los deals de un programa agrupados por etapa, para el Kanban (ticket 069).
@@ -392,10 +393,6 @@ export async function tableroKanban(
     }),
     total: filtradas.length,
   };
-}
-
-function redondearUsd(valor: number): number {
-  return Math.round(valor * 100) / 100;
 }
 
 function compararTarjetas(

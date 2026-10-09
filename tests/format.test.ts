@@ -43,10 +43,21 @@ describe("saldo legible", () => {
     });
   });
 
-  it("sin precio de contrato no se inventa un numero", () => {
+  it("sin valor vendido no se inventa un numero y dice qué falta", () => {
+    expect(saldoLegible(null, "USD", "sin_valor_vendido")).toEqual({
+      etiqueta: "Saldo pendiente",
+      valor: "Falta el valor vendido",
+    });
     expect(saldoLegible(null, "USD")).toEqual({
       etiqueta: "Saldo pendiente",
-      valor: "sin precio de contrato registrado",
+      valor: "Falta el valor vendido",
+    });
+  });
+
+  it("distingue los abonos en otra moneda de un valor vendido faltante", () => {
+    expect(saldoLegible(null, "USD", "moneda_distinta")).toEqual({
+      etiqueta: "Saldo pendiente",
+      valor: "abonos en otra moneda",
     });
   });
 

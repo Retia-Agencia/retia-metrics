@@ -71,7 +71,7 @@ export function FichaPago({
 
   const s = ficha.saldo;
   const moneda = s.moneda ?? "USD";
-  const legible = saldoLegible(s.saldo, moneda);
+  const legible = saldoLegible(s.saldo, moneda, s.sinSaldoPorque);
   const anulado = ficha.anulado != null;
   const cerrado = ficha.etapa === "ganado_completo" || ficha.etapa === "cierre_perdido";
   const esEstudiante = ficha.etapa === "ganado_parcial" || ficha.etapa === "ganado_completo";

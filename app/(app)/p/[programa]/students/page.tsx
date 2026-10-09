@@ -8,12 +8,13 @@ import { db } from "@/lib/db";
 import { listarCohortes } from "@/lib/catalogo/cohortes";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { studentsDelPrograma, type FiltroStudents } from "@/lib/queries/estudiantes";
-import { fecha, fechaDeInstanteEnBogota, num, saldoLegible } from "@/lib/format";
+import { totalesDeStudents } from "@/lib/queries/estudiantes-totales";
+import { fecha, fechaDeInstanteEnBogota, monto, num, saldoLegible } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
 import { BarraDeLista } from "@/components/filtros/barra-de-lista";
 import type { FiltroDeclarado } from "@/components/filtros/declaracion";
@@ -60,6 +61,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
     onboarded: onboardedPedido === "si" || onboardedPedido === "no" ? onboardedPedido : null,
   };
   const filas = await studentsDelPrograma(db, programa.id, filtro);
+  const totales = totalesDeStudents(filas);
 
   // El origen de ESTA lista para los enlaces al detalle (ticket 174).
   const origen = origenDeLaPagina(`/p/${programa.slug}/students`, query);
@@ -117,7 +119,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
               {cohorte ? `Cohorte ${cohorte.codigo}` : "Todas las cohortes"}
             </CardTitle>
           </CardHeader>
-          <CardContent className="overflow-x-auto md:min-h-0 md:flex-1 md:overflow-auto">
+          <CardContent className="min-h-0 flex-1 overflow-auto">
             {filas.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {cohortes.length === 0
@@ -139,7 +141,11 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                 </thead>
                 <tbody>
                 {filas.map((f) => {
-                  const saldo = f.saldo ? saldoLegible(f.saldo.saldo, f.saldo.moneda ?? "USD") : null;
+                  const saldo = saldoLegible(
+                    f.saldo?.saldo ?? null,
+                    f.saldo?.moneda ?? "USD",
+                    f.saldo?.sinSaldoPorque,
+                  );
                   const href = enlaceConVuelta(`/p/${programa.slug}/deals/${f.dealId}`, origen);
                   const clase = "block px-2 py-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
                   return (
@@ -178,8 +184,8 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                         </Link>
                       </td>
                       <td>
-                        <Link href={href} tabIndex={-1} className={`${clase} cifra`} title={saldo?.etiqueta}>
-                          {saldo?.valor ?? "sin precio de contrato registrado"}
+                        <Link href={href} tabIndex={-1} className={`${clase} cifra`} title={saldo.etiqueta}>
+                          {saldo.valor}
                         </Link>
                       </td>
                       <td title={f.acuerdoPago ?? undefined}>
@@ -204,6 +210,31 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
               </table>
             )}
           </CardContent>
+          {filas.length > 0 ? (
+            <CardFooter className="shrink-0 flex-col items-stretch gap-1 text-xs text-muted-foreground">
+              {totales.porMoneda.map((total) => (
+                <div key={total.moneda} className="flex flex-wrap items-center justify-end gap-x-6 gap-y-1">
+                  <span>
+                    Recaudado{" "}
+                    <span className="cifra font-semibold text-foreground">
+                      {monto(total.recaudado, total.moneda)}
+                    </span>
+                  </span>
+                  <span>
+                    Por cobrar{" "}
+                    <span className="cifra font-semibold text-foreground">
+                      {monto(total.porCobrar, total.moneda)}
+                    </span>
+                  </span>
+                </div>
+              ))}
+              {totales.sinValorVendido > 0 ? (
+                <p className="text-right text-muted-foreground">
+                  <span className="cifra">{num(totales.sinValorVendido)}</span> sin valor vendido
+                </p>
+              ) : null}
+            </CardFooter>
+          ) : null}
         </Card>
       </PantallaFija>
     </PageShell>

@@ -56,11 +56,10 @@ export function monto(valor: number, moneda: string): string {
 }
 
 /**
- * Como se escribe lo que falta por pagar de una venta. Tres estados, tres frases
- * distintas, porque son tres cosas distintas:
+ * Como se escribe lo que falta por pagar de una venta. Cada estado tiene su frase:
  *
- * - `null` → no hay total vendido contra el cual restar. No hay
- *   saldo que calcular y no se inventa un numero.
+ * - `null` sin valor vendido → no hay total contra el cual restar y no se inventa un numero.
+ * - `null` con moneda distinta → hay abonos que no se pueden mezclar con el valor vendido.
  * - negativo → NO es "un saldo pendiente de -103". Es un SOBREPAGO de 103, que
  *   alguien confirmo a proposito (el registro de abonos, que vuelve con el ticket 060). Un menos delante le
  *   dice al closer que debe plata quien en realidad pago de mas.
@@ -71,14 +70,18 @@ export function monto(valor: number, moneda: string): string {
  * devolviera el numero, cada pantalla tendria que decidir la etiqueta por su cuenta
  * y volveriamos a tener la misma pregunta contestada en dos sitios (ADR 0024).
  *
- * Lo preguntan `/mi-dia` y la ficha del lead.
+ * Lo preguntan Students y la ficha del deal.
  */
 export function saldoLegible(
   saldo: string | number | null,
   moneda: string,
+  porque?: "sin_valor_vendido" | "moneda_distinta" | null,
 ): { etiqueta: string; valor: string } {
   if (saldo === null) {
-    return { etiqueta: "Saldo pendiente", valor: "sin precio de contrato registrado" };
+    return {
+      etiqueta: "Saldo pendiente",
+      valor: porque === "moneda_distinta" ? "abonos en otra moneda" : "Falta el valor vendido",
+    };
   }
   const valor = Number(saldo);
   if (valor < 0) return { etiqueta: "Sobrepago", valor: monto(Math.abs(valor), moneda) };

@@ -3,6 +3,7 @@ import { abonos, cohorts, deals, leads, programs, users } from "@/lib/db/schema"
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { studentsDelPrograma } from "@/lib/queries/estudiantes";
+import { totalesDeStudents } from "@/lib/queries/estudiantes-totales";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -97,6 +98,19 @@ describe("studentsDelPrograma", () => {
 
     expect((await studentsDelPrograma(db, programId, { onboarded: "si" }, HOY)).map((f) => f.dealId)).toEqual([hecho.id]);
     expect((await studentsDelPrograma(db, programId, { onboarded: "no" }, HOY)).map((f) => f.dealId)).toEqual([falta.id]);
+  });
+
+  it("los totales del pie cuadran con las filas de la cohorte filtrada", async () => {
+    await deal("ganado_parcial", "400");
+    await deal("ganado_completo", "1000");
+    await deal("ganado_completo", "750", { cohortId: c1 });
+
+    const filas = await studentsDelPrograma(db, programId, { cohortId: c2 }, HOY);
+
+    expect(totalesDeStudents(filas)).toEqual({
+      porMoneda: [{ moneda: "USD", recaudado: 1400, porCobrar: 600 }],
+      sinValorVendido: 0,
+    });
   });
 
   it("el programa es frontera: los estudiantes de otro programa no aparecen", async () => {
