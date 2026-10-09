@@ -13,7 +13,7 @@ import { extraerSetteo, type AlcanceSetteo } from "../lib/migracion/extraer-sett
 import { importarGestion, type ReporteImportacion } from "../lib/migracion/importar";
 import { juntar, type Extraccion } from "../lib/migracion/template";
 import { DESCRIPCION_DE_MOTIVO, deshacerMigracion, type ResultadoReversa } from "../lib/migracion/deshacer";
-import { actorDelScript } from "./actor";
+import { actorConRolDelScript, actorDelScript } from "./actor";
 import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
 
 /**
@@ -172,13 +172,13 @@ async function importar() {
   }
   const slug = otro ?? t.programa;
 
-  const actorId = await actorDelScript(db);
+  const actor = await actorConRolDelScript(db);
   const [programa] = await db.select({ id: programs.id }).from(programs).where(eq(programs.slug, slug));
   if (!programa) {
     console.error(`No existe el programa ${slug} en esta base. Con --local, pasa --programa <slug local>.`);
     process.exit(1);
   }
-  const op = { programId: programa.id, actorId, onboardedDesdeMail: process.argv.includes("--onboarded-desde-mail") };
+  const op = { programId: programa.id, actor, onboardedDesdeMail: process.argv.includes("--onboarded-desde-mail") };
 
   let reporte: ReporteImportacion | undefined;
   type ConTx = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };

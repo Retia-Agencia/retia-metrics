@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { ID_DE_SECCION, useAccionPedida } from "./accion-pedida";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -8,12 +8,15 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { fecha, fechaHoraEnBogota, hoyEnBogota, monto, pct, saldoLegible, usd } from "@/lib/format";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import type { FichaDeAbono, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import {
   anularAbonoAccion,
+  cambiarPlataformaDeAbonoAccion,
   cambiarCohorteAccion,
+  crearPlataformaParaAbonoAccion,
   desmarcarOnboardedAccion,
   editarAcuerdoAccion,
   marcarOnboardedAccion,
@@ -39,6 +42,7 @@ import { cn } from "@/lib/utils";
 type Dialogo =
   | { tipo: "abono" }
   | { tipo: "anular"; abono: FichaDeAbono }
+  | { tipo: "plataforma"; abono: FichaDeAbono }
   | { tipo: "comprobante"; abono: FichaDeAbono }
   | { tipo: "acuerdo" }
   | { tipo: "cohorte" }
@@ -258,6 +262,11 @@ export function FichaPago({
                     </Button>
                   ) : null}
                   {!anulada && puedeRegistrar && !anulado ? (
+                    <Button size="xs" variant="secondary" onClick={() => setDialogo({ tipo: "plataforma", abono: a })}>
+                      Cambiar plataforma
+                    </Button>
+                  ) : null}
+                  {!anulada && puedeRegistrar && !anulado ? (
                     <Button size="xs" variant="ghost" className="ml-auto" onClick={() => setDialogo({ tipo: "anular", abono: a })}>
                       Anular abono
                     </Button>
@@ -276,6 +285,7 @@ export function FichaPago({
 
       {dialogo?.tipo === "abono" ? <DialogoAbono ficha={ficha} opciones={opciones} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "anular" ? <DialogoAnularAbono abono={dialogo.abono} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} /> : null}
+      {dialogo?.tipo === "plataforma" ? <DialogoCambiarPlataforma ficha={ficha} abono={dialogo.abono} opciones={opciones} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "comprobante" ? <DialogoComprobante abono={dialogo.abono} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "acuerdo" ? <DialogoAcuerdo ficha={ficha} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "cohorte" ? <DialogoCohorte ficha={ficha} opciones={opciones} onCerrar={cerrar} /> : null}
@@ -423,31 +433,156 @@ function DialogoAbono({
         </Campo>
       ) : null}
       <Campo etiqueta="Plataforma de pago (opcional)">
-        {opciones.plataformas.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Este programa no tiene plataformas de pago; agrégalas en la pestaña Programa.
-          </p>
-        ) : (
-          <Select
-            value={plataformaId}
-            items={opciones.plataformas.map((p) => ({ value: p.id, label: p.nombre }))}
-            onValueChange={(v: string | null) => setPlataformaId(v)}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Sin plataforma" />
-            </SelectTrigger>
-            <SelectContent>
-              {opciones.plataformas.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+        <ControlPlataforma
+          dealId={ficha.dealId}
+          plataformasIniciales={opciones.plataformas}
+          value={plataformaId}
+          onValueChange={setPlataformaId}
+        />
       </Campo>
       <Campo etiqueta="Comprobante (link)" ayuda="Si no lo tienes ahora, lo pegas después.">
         <input type="url" className={claseInput} value={comprobante} onChange={(e) => setComprobante(e.target.value)} placeholder="https://drive.google.com/…" />
+      </Campo>
+    </DialogoForm>
+  );
+}
+
+function ControlPlataforma({
+  dealId,
+  plataformasIniciales,
+  value,
+  onValueChange,
+}: {
+  dealId: string;
+  plataformasIniciales: OpcionesDeFicha["plataformas"];
+  value: string | null;
+  onValueChange: (value: string | null) => void;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [texto, setTexto] = useState("");
+  const [plataformas, setPlataformas] = useState(plataformasIniciales);
+  const [error, setError] = useState<string | null>(null);
+  const [creando, iniciarCreacion] = useTransition();
+  const buscado = texto.trim();
+  const clave = buscado.toLocaleLowerCase("es");
+  const filtradas = plataformas.filter((p) => p.nombre.toLocaleLowerCase("es").includes(clave));
+  const coincidenciaExacta = plataformas.some(
+    (p) => p.nombre.trim().toLocaleLowerCase("es") === clave,
+  );
+  const seleccionada = plataformas.find((p) => p.id === value);
+
+  function elegir(id: string | null) {
+    onValueChange(id);
+    setError(null);
+    setTexto("");
+    setAbierto(false);
+  }
+
+  function crear() {
+    if (buscado.length < 2 || coincidenciaExacta) return;
+    setError(null);
+    iniciarCreacion(async () => {
+      const resultado = await crearPlataformaParaAbonoAccion({ dealId, nombre: buscado });
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+      setPlataformas((actuales) =>
+        actuales.some((p) => p.id === resultado.plataforma.id)
+          ? actuales
+          : [...actuales, resultado.plataforma].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+      );
+      onValueChange(resultado.plataforma.id);
+      setTexto("");
+      setAbierto(false);
+    });
+  }
+
+  return (
+    <Popover open={abierto} onOpenChange={setAbierto}>
+      <PopoverTrigger
+        render={<Button type="button" variant="outline" className="w-full justify-between font-normal" />}
+      >
+        <span className={seleccionada ? "truncate" : "truncate text-muted-foreground"}>
+          {seleccionada?.nombre ?? "Sin plataforma"}
+        </span>
+        <span aria-hidden>⌄</span>
+      </PopoverTrigger>
+      <PopoverContent className="w-(--anchor-width) p-2" aria-label="Elegir plataforma de pago">
+        <div className="space-y-2">
+          <Input
+            autoFocus
+            value={texto}
+            onChange={(e) => {
+              setTexto(e.target.value);
+              setError(null);
+            }}
+            placeholder="Buscar o crear plataforma"
+            aria-label="Nombre de la plataforma"
+          />
+          <div className="max-h-48 space-y-1 overflow-y-auto">
+            <Button type="button" size="sm" variant={value == null ? "secondary" : "ghost"} className="w-full justify-start" onClick={() => elegir(null)}>
+              Sin plataforma
+            </Button>
+            {filtradas.map((p) => (
+              <Button key={p.id} type="button" size="sm" variant={value === p.id ? "secondary" : "ghost"} className="w-full justify-start" onClick={() => elegir(p.id)}>
+                {p.nombre}
+              </Button>
+            ))}
+            {buscado.length >= 2 && !coincidenciaExacta ? (
+              <Button type="button" size="sm" variant="ghost" className="w-full justify-start" disabled={creando} onClick={crear}>
+                {creando ? "Creando…" : `Crear «${buscado}»`}
+              </Button>
+            ) : null}
+          </div>
+          {error ? <p className="text-xs text-tono-peligro">{error}</p> : null}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function DialogoCambiarPlataforma({
+  ficha,
+  abono,
+  opciones,
+  onCerrar,
+}: {
+  ficha: FichaDeDeal;
+  abono: FichaDeAbono;
+  opciones: OpcionesDeFicha;
+  onCerrar: () => void;
+}) {
+  const { pendiente, correr } = useAccion();
+  const [plataformaId, setPlataformaId] = useState<string | null>(abono.plataformaId);
+  // La plataforma actual puede no estar vinculada al programa (un abono migrado): se ofrece
+  // igual, para que el control diga cuál tiene y no "Sin plataforma".
+  const actual =
+    abono.plataformaId && abono.plataformaNombre && !opciones.plataformas.some((p) => p.id === abono.plataformaId)
+      ? [{ id: abono.plataformaId, nombre: abono.plataformaNombre }]
+      : [];
+  return (
+    <DialogoForm
+      titulo="Cambiar plataforma"
+      descripcion={`${monto(Number(abono.monto), abono.moneda)} del ${fecha(abono.fecha)}. El monto y la fecha no cambian.`}
+      pendiente={pendiente}
+      onCerrar={onCerrar}
+      confirmar={{
+        texto: "Guardar plataforma",
+        enCurso: "Guardando…",
+        onClick: () => correr(
+          () => cambiarPlataformaDeAbonoAccion({ abonoId: abono.id, plataformaId }),
+          { exito: "Plataforma actualizada.", alExito: onCerrar },
+        ),
+      }}
+    >
+      <Campo etiqueta="Plataforma de pago (opcional)">
+        <ControlPlataforma
+          dealId={ficha.dealId}
+          plataformasIniciales={[...actual, ...opciones.plataformas]}
+          value={plataformaId}
+          onValueChange={setPlataformaId}
+        />
       </Campo>
     </DialogoForm>
   );

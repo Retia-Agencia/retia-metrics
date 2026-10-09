@@ -9,6 +9,7 @@ import {
   leads,
   miembrosPrograma,
   plataformasPago,
+  plataformasPrograma,
   programs,
   rarezasMigracion,
   sources,
@@ -112,7 +113,7 @@ function template(): Extraccion {
   return t;
 }
 
-const op = () => ({ programId: programa, actorId: script });
+const op = () => ({ programId: programa, actor: { id: script, rol: "developer" as const } });
 
 describe("consolidar", () => {
   it("el estudiante absorbe su fila de Setteo: un deal, con las notas del contacto", () => {
@@ -227,6 +228,12 @@ describe("importarGestion (ADR 0059)", () => {
     const [abono] = await db.select().from(abonos);
     expect(abono).toMatchObject({ dealId: deBeto.id, fecha: "2026-08-18", monto: "1500.00" });
     expect(abono.plataformaId).not.toBeNull();
+    expect(
+      await db
+        .select()
+        .from(plataformasPrograma)
+        .where(eq(plataformasPrograma.plataformaId, abono.plataformaId!)),
+    ).toEqual([expect.objectContaining({ programId: programa })]);
 
     // La llamada de beto cuelga de su deal de estudiante; la de caro (sin deal migrado) entra suelta.
     const llamadas = await db.select().from(calls);

@@ -7,7 +7,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { esquemaDescuentoUsdOpcional } from "@/lib/deals/valor-vendido";
 import type { Session } from "next-auth";
 import { requireRole } from "@/lib/auth/guards";
-import { esRolValido, type Rol } from "@/lib/auth/roles";
+import { esRolValido, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaEnAlcance } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
@@ -15,7 +15,9 @@ import { abonos, calls, deals, leadContactos } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { instanteDeBogota } from "@/lib/format";
-import { registrarAbono, anularAbono, pegarComprobante } from "@/lib/deals/abonos";
+import { registrarAbono, anularAbono, pegarComprobante, cambiarPlataformaDeAbono } from "@/lib/deals/abonos";
+import { puedeTrabajarDeal } from "@/lib/deals/permiso";
+import { crearOVincularPlataforma } from "@/lib/catalogo/plataformas";
 import { registrarActividad } from "@/lib/deals/actividades";
 import { anularDeal } from "@/lib/deals/anular-deal";
 import { editarDeal } from "@/lib/deals/editar-deal";
@@ -252,6 +254,52 @@ export async function registrarAbonoAccion(
     await exigirDealVisible(ctx, datos.dealId);
     const r = await registrarAbono(db, actor, datos);
     return { etapa: r.etapa, movioElDeal: r.movioElDeal, saldo: r.saldo, cohorteAsignada: r.cohorteAsignada };
+  });
+}
+
+const esquemaCrearPlataformaParaAbono = z.object({
+  dealId: id("Deal inválido."),
+  nombre: z.string().trim().min(2, "Escribe al menos 2 caracteres."),
+});
+export type EntradaCrearPlataformaParaAbono = z.input<typeof esquemaCrearPlataformaParaAbono>;
+
+export async function crearPlataformaParaAbonoAccion(
+  entrada: EntradaCrearPlataformaParaAbono,
+): Promise<ResultadoFicha<{ plataforma: { id: string; nombre: string } }>> {
+  return correr(async (ctx) => {
+    const datos = esquemaCrearPlataformaParaAbono.parse(entrada);
+    const [deal] = await db
+      .select({ programId: deals.programId, ownerUserId: deals.ownerUserId })
+      .from(deals)
+      .where(and(eq(deals.id, datos.dealId), incluyendoAnulados(deals)));
+    if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
+    if (!trabajaLeads(ctx.actor.rol) || !puedeTrabajarDeal(ctx.actor, deal)) {
+      throw new ErrorDeApp("Solo el dueño del deal puede crear una plataforma para sus abonos.", 403);
+    }
+    const plataforma = await crearOVincularPlataforma(
+      db,
+      { id: ctx.actor.userId, rol: ctx.actor.rol },
+      datos.nombre,
+      deal.programId,
+    );
+    return { plataforma: { id: plataforma.id, nombre: String(plataforma.nombre) } };
+  });
+}
+
+const esquemaCambiarPlataformaDeAbonoAccion = z.object({
+  abonoId: id("Abono inválido."),
+  plataformaId: id("Plataforma inválida.").nullable(),
+});
+export type EntradaCambiarPlataformaDeAbono = z.input<typeof esquemaCambiarPlataformaDeAbonoAccion>;
+
+export async function cambiarPlataformaDeAbonoAccion(
+  entrada: EntradaCambiarPlataformaDeAbono,
+): Promise<ResultadoFicha> {
+  return correr(async (ctx) => {
+    const datos = esquemaCambiarPlataformaDeAbonoAccion.parse(entrada);
+    await exigirAbonoVisible(ctx, datos.abonoId);
+    await cambiarPlataformaDeAbono(db, ctx.actor, datos);
+    return {};
   });
 }
 

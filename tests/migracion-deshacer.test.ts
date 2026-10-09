@@ -103,7 +103,10 @@ function template(slug: string): Extraccion {
 }
 
 async function migrar(p: Programa) {
-  await importarGestion(db, template(p.slug), { programId: p.id, actorId: script });
+  await importarGestion(db, template(p.slug), {
+    programId: p.id,
+    actor: { id: script, rol: "developer" },
+  });
 }
 
 /** Lo que hay de un programa, contando anulados: la reversa no mira metricas, mira filas. */
