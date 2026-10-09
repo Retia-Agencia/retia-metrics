@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { requireSesionReal } from "@/lib/auth/guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAccesoTotal, esAdministrador, esRolValido, manejaPauta, marcaOnboarding, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { esAccesoTotal, esAdministrador, esRolValido, manejaPauta, marcaOnboarding, trabajaLeads } from "@/lib/auth/roles";
 import { programasVisibles, programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { rutaDePrograma } from "@/lib/nav";
 import { db } from "@/lib/db";
@@ -20,7 +20,7 @@ import { CalendlyMembresias } from "@/components/calendly-membresias";
 import { EnlacesDeCaptacion, type EnlaceVista } from "@/components/mi-espacio/enlaces-de-captacion";
 import { enlacesDeCaptacion } from "@/lib/atribucion/captacion-del-closer";
 import { asignarMiCalendlyAccion } from "./acciones";
-import { TabAtencion } from "@/components/mi-espacio/tab-atencion";
+import { TabNotificaciones } from "@/components/mi-espacio/tab-notificaciones";
 import { TabMetricas } from "@/components/mi-espacio/tab-metricas";
 import { TabCanales } from "@/components/mi-espacio/tab-canales";
 import { TabPorDecidir } from "@/components/mi-espacio/tab-por-decidir";
@@ -206,7 +206,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
             <SelectorDePrograma programas={visibles} actual={programa?.slug ?? "todos"} tab={seccion.id} busqueda={query} />
           ) : null}
 
-          {Seccion({ seccion, programa, programas: visibles, userId, rol, busqueda: query, perfil, calendly, enlaces })}
+          {Seccion({ seccion, programa, programas: visibles, userId, busqueda: query, perfil, calendly, enlaces })}
         </div>
       </div>
     </PageShell>
@@ -224,7 +224,6 @@ function Seccion({
   programa,
   programas,
   userId,
-  rol,
   busqueda,
   perfil,
   calendly,
@@ -234,7 +233,6 @@ function Seccion({
   programa: { id: string; slug: string } | null;
   programas: { id: string; slug: string; nombre: string }[];
   userId: string;
-  rol: Rol;
   busqueda: Record<string, string | string[] | undefined>;
   perfil: ReactElement;
   calendly: ReactElement | null;
@@ -253,8 +251,16 @@ function Seccion({
         </div>
       );
     case "notificaciones":
-      // Hoy muestra lo de "Necesita atención" sin cambios (ticket 221); el 222 lo rehace.
-      return programa ? <TabAtencion programId={programa.id} slug={programa.slug} userId={userId} rol={rol} /> : null;
+      // Lo que te toca HOY, por tipo, con las tarjetas de tus deals (ticket 222).
+      return programa ? (
+        <TabNotificaciones
+          programId={programa.id}
+          slug={programa.slug}
+          userId={userId}
+          chip={uno(busqueda.chip)}
+          pagina={uno(busqueda.pagina)}
+        />
+      ) : null;
     case "metricas": {
       // El closer se identifica por su `users.id` (ticket 167): asi un closer sin el
       // texto `closer_id` ve igual sus metricas. Ya no hay que exigir el texto.
