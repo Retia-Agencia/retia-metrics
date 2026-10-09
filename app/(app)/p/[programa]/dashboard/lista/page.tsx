@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
+import { esAdministrador } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { nombreDeEtapa, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
 import { METRICAS_FOTO_DE_HOY, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
@@ -114,7 +115,14 @@ function tonoDeAntiguedad(bucket: string) {
 }
 
 export default async function ListaDeCifraPage({ params, searchParams }: Props) {
-  const session = await paginaConRol("gerente", "closer");
+  // La lista detras de cada cifra cae con el Dashboard para el closer (ticket 224, ADR 0082),
+  // y el paid trafficker ya estaba fuera de ella (ticket 102, `veEquipoComercial`): no ve el
+  // trabajo del equipo comercial ni un deal suelto. La interseccion de ambos cierres es
+  // "quien administra" (gerente y developer, `esAdministrador`), que es exactamente quien
+  // VE las listas en el Dashboard (`veEquipoComercial` menos el closer). Por capacidad, nunca
+  // `rol === "..."`. (El Dashboard y las Metas usan `veTableroDelPrograma`, que SÍ incluye al
+  // paid trafficker; la lista no, para no concederle lo que el 102 le quitó.)
+  const session = await paginaConCapacidad(esAdministrador);
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);

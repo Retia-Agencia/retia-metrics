@@ -273,20 +273,14 @@ describe("fichaDelPrograma", () => {
 });
 
 describe("la página de la ficha", () => {
-  it("un closer sin membresía en el programa recibe 404", async () => {
+  it("un closer recibe 404 aunque tenga membresía (ticket 224, ADR 0082): la ficha es de quien configura", async () => {
+    // Antes el closer la LEÍA en sus programas; ahora la ficha es de quien administra, así que
+    // es 404 por ROL, no por alcance: ni su propio programa abre.
     auth.mockResolvedValue(sesion(ids.closerB, "closer"));
     await expect(abrirFicha("a")).rejects.toBeInstanceOf(NoEncontrado);
-    // Su propio programa sí abre: el 404 es por alcance, no por rol.
-    await expect(abrirFicha("b")).resolves.toBeTruthy();
-  });
-
-  it("un closer con membresía la lee, sin el editor de cohortes ni los enlaces a Ajustes", async () => {
+    await expect(abrirFicha("b")).rejects.toBeInstanceOf(NoEncontrado);
     auth.mockResolvedValue(sesion(ids.closerA, "closer"));
-    const { CohortesAdmin } = await import("@/components/cohortes-admin");
-    const arbol = elementos(await abrirFicha("a", "ventas"));
-    expect(arbol.some((e) => e.type === CohortesAdmin)).toBe(false);
-    const hrefs = arbol.map((e) => (e.props as { href?: string }).href).filter(Boolean);
-    expect(hrefs.some((h) => h!.startsWith("/ajustes"))).toBe(false);
+    await expect(abrirFicha("a")).rejects.toBeInstanceOf(NoEncontrado);
   });
 
   it("quien administra (gerente y developer) la ve con el editor de cohortes", async () => {
@@ -346,10 +340,12 @@ describe("forjar la escritura desde un closer con membresía", () => {
 });
 
 describe("la tab en la navegación", () => {
-  it("la ven closer, gerente y developer en el programa elegido", () => {
-    for (const rol of ["closer", "gerente", "developer"] as const) {
+  it("la ven gerente y developer en el programa elegido; el closer ya no (ticket 224, ADR 0082)", () => {
+    for (const rol of ["gerente", "developer"] as const) {
       expect(navParaRol(rol, "a").map((i) => i.href)).toContain("/p/a/programa");
     }
+    // El closer, que antes la LEÍA, dejó de verla: la ficha es ahora de quien configura.
+    expect(navParaRol("closer", "a").map((i) => i.href)).not.toContain("/p/a/programa");
     expect(navParaRol("closer", null).map((i) => i.href)).not.toContain("/p/a/programa");
   });
 

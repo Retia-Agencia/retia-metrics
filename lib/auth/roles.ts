@@ -139,6 +139,33 @@ export function veEquipoComercial(rol: Rol | undefined | null): boolean {
 }
 
 /**
+ * Quien ve el TABLERO de un programa: el Dashboard, su lista detras de cada cifra y las
+ * Metas (ticket 224, ADR 0082, enmienda del ADR 0048). La cumplen el gerente, el developer
+ * y el paid trafficker —que ya entra al Dashboard por `manejaPauta` (ADR 0052, ticket 102)—;
+ * el closer y el customer success no.
+ *
+ * Es su propia pregunta, distinta de `veEquipoComercial` (que es QUE ve dentro del tablero:
+ * el trabajo de los closers): un closer `veEquipoComercial` pero ya NO ve el tablero, y un
+ * paid trafficker ve el tablero pero no el equipo comercial. El developer la cumple por ser
+ * la excepcion de acceso total (`esAccesoTotal`, ADR 0025): su excepcion sigue viviendo en UN
+ * solo lugar y nunca escrita a mano. Nunca se compara `rol === "..."` fuera de aqui.
+ */
+export function veTableroDelPrograma(rol: Rol | undefined | null): boolean {
+  return esAdministrador(rol) || manejaPauta(rol);
+}
+
+/**
+ * Quien CONFIGURA un programa: la ficha del programa (`/p/<programa>/programa`), con cohortes,
+ * destinos, Calendly, fuentes, comision y equipo (ticket 224, ADR 0082). Es exactamente quien
+ * administra la app (`esAdministrador`: gerente y developer); el closer, que antes la LEIA,
+ * ya no entra. Es su propia funcion y no `esAdministrador` a secas en los llamadores para que
+ * la pregunta tenga nombre y un solo lugar donde cambiarla (ADR 0025).
+ */
+export function configuraPrograma(rol: Rol | undefined | null): boolean {
+  return esAdministrador(rol);
+}
+
+/**
  * Quien marca y desmarca el onboarding de un estudiante (ticket 145). Es la SEXTA
  * pregunta de esta familia, para el rol `customer_success`: ve los Students de sus
  * programas y su UNICA acción es el onboarding. La cumplen el customer success, el

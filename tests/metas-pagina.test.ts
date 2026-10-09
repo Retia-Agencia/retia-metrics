@@ -78,12 +78,21 @@ describe("146: guarda de la página de metas", () => {
     expect(mocks.leerMetasDelMes).not.toHaveBeenCalled();
   });
 
-  it("un closer fuera del alcance recibe 404", async () => {
+  it("un closer recibe 404 por rol, aunque el programa esté en su alcance (ticket 224, ADR 0082)", async () => {
     mocks.auth.mockResolvedValue({ user: { id: "u-1", email: "closer@example.test", rol: "closer" } });
     mocks.rolDeVista.mockResolvedValue("closer");
-    mocks.programaVisiblePorSlug.mockResolvedValue(null);
+    // El programa SÍ está en su alcance: aun así, Metas cae con el Dashboard para el closer.
+    mocks.programaVisiblePorSlug.mockResolvedValue({ id: "programa-1", slug: "comunicarte", nombre: "ComunicArte" });
     expect(await correr()).toBe("404");
     expect(mocks.leerMetasDelMes).not.toHaveBeenCalled();
+  });
+
+  it("un paid trafficker ve las Metas (ve el tablero, ADR 0052/ticket 102)", async () => {
+    mocks.auth.mockResolvedValue({ user: { id: "u-3", email: "pauta@example.test", rol: "paid_trafficker" } });
+    mocks.rolDeVista.mockResolvedValue("paid_trafficker");
+    mocks.programaVisiblePorSlug.mockResolvedValue({ id: "programa-1", slug: "comunicarte", nombre: "ComunicArte" });
+    expect(await correr()).toBe("paso");
+    expect(mocks.leerMetasDelMes).toHaveBeenCalledWith("programa-1", "2026-10", "2026-10-04");
   });
 
   it("el gerente llega al lector con el id del programa", async () => {

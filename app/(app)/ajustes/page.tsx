@@ -69,9 +69,12 @@ function puedeVer(requisito: (typeof ENLACES)[number]["requisito"], rol: Rol | n
 }
 
 export default async function AjustesPage() {
-  // Los tres roles base entran al índice (paid_trafficker incluido): la proyección y
-  // la guarda de cada subpágina deciden qué puede tocar cada uno.
-  const session = await paginaConRol("gerente", "closer", "paid_trafficker");
+  // Ajustes es de quien administra la app (gerente, developer por `esAccesoTotal`) y del paid
+  // trafficker, que entra a Canales (ADR 0052). El closer dejo de verlo (ticket 224, ADR 0082):
+  // ya no administra plataformas de pago desde aqui. Se conserva la mecanica de hoy
+  // (`paginaConRol`, que rebota a su vista); la proyeccion y la guarda de cada subpagina deciden
+  // que puede tocar cada rol que si entra.
+  const session = await paginaConRol("gerente", "paid_trafficker");
   const rol = await rolDeVista(session);
   const visibles = ENLACES.filter((e) => puedeVer(e.requisito, rol));
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esAdministrador, etiquetaDeRol, manejaPauta, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veEquipoComercial } from "@/lib/auth/roles";
+import { esAdministrador, etiquetaDeRol, manejaPauta, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veEquipoComercial, veTableroDelPrograma, configuraPrograma } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
@@ -54,6 +54,47 @@ describe("veEquipoComercial (ticket 102)", () => {
     expect(veEquipoComercial("developer")).toBe(true);
     expect(veEquipoComercial("paid_trafficker")).toBe(false);
     expect(veEquipoComercial(null)).toBe(false);
+  });
+});
+
+describe("veTableroDelPrograma (ticket 224)", () => {
+  // El tablero del programa (Dashboard, su lista y Metas) lo ven gerente, developer y paid
+  // trafficker; el closer y el customer success, no (ADR 0082, enmienda del ADR 0048).
+  it("gerente, developer y paid trafficker ven el tablero; el closer y el customer success no", () => {
+    expect(veTableroDelPrograma("gerente")).toBe(true);
+    expect(veTableroDelPrograma("developer")).toBe(true);
+    expect(veTableroDelPrograma("paid_trafficker")).toBe(true);
+    expect(veTableroDelPrograma("closer")).toBe(false);
+    expect(veTableroDelPrograma("customer_success")).toBe(false);
+    expect(veTableroDelPrograma(null)).toBe(false);
+  });
+
+  // Es su propia pregunta, distinta de `veEquipoComercial`: un closer ve el equipo pero NO el
+  // tablero, y un paid trafficker ve el tablero pero NO el equipo.
+  it("se distingue de veEquipoComercial en el closer y el paid trafficker", () => {
+    expect(veEquipoComercial("closer")).toBe(true);
+    expect(veTableroDelPrograma("closer")).toBe(false);
+    expect(veEquipoComercial("paid_trafficker")).toBe(false);
+    expect(veTableroDelPrograma("paid_trafficker")).toBe(true);
+  });
+});
+
+describe("configuraPrograma (ticket 224)", () => {
+  // La ficha del programa la configura quien administra la app; el closer, que antes la leia,
+  // ya no (ADR 0082).
+  it("la cumplen gerente y developer; no el closer ni el paid trafficker", () => {
+    expect(configuraPrograma("gerente")).toBe(true);
+    expect(configuraPrograma("developer")).toBe(true);
+    expect(configuraPrograma("closer")).toBe(false);
+    expect(configuraPrograma("paid_trafficker")).toBe(false);
+    expect(configuraPrograma(null)).toBe(false);
+  });
+
+  // Es exactamente la pregunta de administrar la app, con nombre propio para los llamadores.
+  it("coincide con esAdministrador en todos los roles", () => {
+    for (const rol of ["gerente", "closer", "developer", "paid_trafficker", "customer_success"] as const) {
+      expect(configuraPrograma(rol)).toBe(esAdministrador(rol));
+    }
   });
 });
 
@@ -173,16 +214,38 @@ describe("navegacion por rol", () => {
     expect(rutasDe("closer")).toContain("/mi-espacio");
   });
 
-  it("los tres roles ven /ajustes desde el 20-sep (enmienda del ticket 013)", () => {
-    for (const rol of ["gerente", "closer", "developer"] as const) {
-      expect(rutasDe(rol)).toContain("/ajustes");
-    }
+  it("el closer ya no ve Ajustes, Dashboard, Metas ni Programa (ticket 224, ADR 0082)", () => {
+    const rutas = rutasDe("closer");
+    expect(rutas).not.toContain("/ajustes");
+    expect(rutas).not.toContain("/p/programa-a/dashboard");
+    expect(rutas).not.toContain("/p/programa-a/metas");
+    expect(rutas).not.toContain("/p/programa-a/programa");
+    // Lo que SÍ conserva: su trabajo diario y los recursos.
+    expect(rutas).toContain("/mi-espacio");
+    expect(rutas).toContain("/p/programa-a/leads");
+    expect(rutas).toContain("/p/programa-a/deals");
+    expect(rutas).toContain("/recursos");
   });
 
-  it("los tres roles ven la tab Dashboard del programa elegido (ADR 0050)", () => {
-    for (const rol of ["gerente", "closer", "developer"] as const) {
+  it("gerente y developer ven Ajustes; el closer no (ticket 224, ADR 0082)", () => {
+    for (const rol of ["gerente", "developer"] as const) {
+      expect(rutasDe(rol)).toContain("/ajustes");
+    }
+    expect(rutasDe("closer")).not.toContain("/ajustes");
+  });
+
+  it("gerente y developer ven la tab Dashboard; el closer no (ticket 224, ADR 0082)", () => {
+    for (const rol of ["gerente", "developer"] as const) {
       expect(rutasDe(rol)).toContain("/p/programa-a/dashboard");
     }
+    expect(rutasDe("closer")).not.toContain("/p/programa-a/dashboard");
+  });
+
+  it("gerente y developer ven la tab Programa; el closer no (ticket 224, ADR 0082)", () => {
+    for (const rol of ["gerente", "developer"] as const) {
+      expect(rutasDe(rol)).toContain("/p/programa-a/programa");
+    }
+    expect(rutasDe("closer")).not.toContain("/p/programa-a/programa");
   });
 
   it("la tab Dashboard apunta al programa que se le pasa, no a uno fijo", () => {
@@ -210,7 +273,9 @@ describe("navegacion por rol", () => {
 
   it("sin programa visible no hay tabs de programa", () => {
     expect(rutasDe("closer", null).some((r) => r.startsWith("/p/"))).toBe(false);
-    expect(rutasDe("closer", null)).toContain("/ajustes");
+    // El closer ya no ve Ajustes (ticket 224); su respaldo sin programa es Mi espacio.
+    expect(rutasDe("closer", null)).toContain("/mi-espacio");
+    expect(rutasDe("closer", null)).not.toContain("/ajustes");
   });
 
   it("la barra ya no lleva un item por programa (ADR 0050)", () => {

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador } from "@/lib/auth/roles";
+import { esAdministrador, configuraPrograma } from "@/lib/auth/roles";
 import { programaDeLaFichaPorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import {
@@ -68,7 +68,10 @@ const NOMBRE_DE_ESTADO_COHORTE = { activo: "Activa", futuro: "Futura", cerrado: 
  * cuál (ADR 0057); lo garantiza `programaPorId`, que pasa por el mismo `sinToken` del catálogo.
  */
 export default async function FichaDelProgramaPage({ params, searchParams }: Props) {
-  const session = await paginaConRol("gerente", "closer");
+  // La ficha del programa la CONFIGURA quien administra (gerente y developer); el closer, que
+  // antes la leia, ya no entra (ticket 224, ADR 0082) y recibe 404. Por capacidad
+  // (`configuraPrograma`), nunca `rol === "..."`.
+  const session = await paginaConCapacidad(configuraPrograma);
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
   const visible = await programaDeLaFichaPorSlug(session.user.id, rol, slug);
