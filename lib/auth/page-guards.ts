@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import type { Session } from "next-auth";
 import { auth } from "./index";
 import { puedeAcceder, type Rol } from "./roles";
@@ -60,7 +60,29 @@ export async function paginaConRol(...permitidos: Rol[]): Promise<Session> {
 }
 
 /**
- * Una pagina que solo pasa quien tiene ACCESO TOTAL (`esAccesoTotal`, ADR 0025): hoy
+ * Una pagina que se CIERRA con 404 a quien no cumple una capacidad (ticket 224, ADR 0082).
+ *
+ * A diferencia de `paginaConRol`, que redirige a donde el usuario SI puede estar, esta
+ * responde `notFound()`: la ruta no existe para quien no cumple el predicado. Es lo que
+ * pidio Mani para el Dashboard, su lista, Metas y la ficha del Programa, cerradas al closer
+ * en el servidor y no solo escondidas del menu.
+ *
+ * El predicado se evalua contra el ROL DE VISTA (`rolDeVista`), no el de la sesion: un
+ * developer en vista `closer` ve lo del closer (404 en estas rutas), y en vista `todo` pasa
+ * —`esAccesoTotal`, dentro de las preguntas por capacidad, siempre responde `true`—. Asi el
+ * literal "developer" nunca se escribe en la guarda (ADR 0025). Recibe la pregunta por
+ * CAPACIDAD (`veTableroDelPrograma`, `configuraPrograma`), nunca un `rol === "..."`.
+ */
+export async function paginaConCapacidad(
+  puede: (rol: Rol | null) => boolean,
+): Promise<Session> {
+  const session = await paginaConSesion();
+  const rol = await rolDeVista(session);
+  if (!puede(rol)) notFound();
+  return session;
+}
+
+/**
  * `/nerd-stats` y su bitacora. Es `paginaConRol` sin ningun rol permitido: gerente y
  * closer, disjuntos entre si, quedan los dos afuera, y el unico que entra lo decide
  * `puedeAcceder`. Asi el rol nunca se escribe a mano en la guarda (ticket 068).

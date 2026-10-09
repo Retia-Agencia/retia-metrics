@@ -5,8 +5,9 @@ import { PageShell } from "@/components/page-shell";
 import { MetasDelMes } from "@/components/metas/metas-del-mes";
 import { buttonVariants } from "@/components/ui/button";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
+import { veTableroDelPrograma } from "@/lib/auth/roles";
 import { hoyEnBogota } from "@/lib/format";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import { leerMetasDelMes, moverMes, nombreDelMes } from "@/lib/queries/metas";
@@ -27,7 +28,10 @@ function periodo(rango: { desde: string; hasta: string }): PeriodoResuelto {
 }
 
 export default async function MetasDelProgramaPage({ params, searchParams }: Props) {
-  const session = await paginaConRol("gerente", "closer");
+  // Las Metas caen con el Dashboard (ticket 224, ADR 0082): las ve quien ve el tablero
+  // (gerente, developer, paid trafficker), nunca el closer, que recibe 404. Por capacidad
+  // (`veTableroDelPrograma`), nunca `rol === "..."`.
+  const session = await paginaConCapacidad(veTableroDelPrograma);
 
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);

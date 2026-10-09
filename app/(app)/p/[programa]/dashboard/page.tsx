@@ -1,9 +1,9 @@
 import { alertasDelPrograma } from "@/lib/queries/alertas";
 import { detallesDeOperacion, detallesDelDashboard, sinListas, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
-import { veEquipoComercial } from "@/lib/auth/roles";
+import { veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { parsearPeriodoUrl } from "@/lib/periodo";
@@ -62,11 +62,11 @@ function texto(valor: string | string[] | undefined): string | undefined {
 
 export default async function DashboardDelProgramaPage({ params, searchParams }: Props) {
   // La guarda corre PRIMERO, antes de mirar el slug: sin sesion redirige a login
-  // aunque el programa no exista, y nunca filtra que slugs existen. El dashboard lo
-  // ven gerente y closer por igual, pero el CLOSER solo en SUS programas (ADR 0048):
-  // el alcance decide cuales. El paid trafficker entra también (ADR 0052, ticket 102), sin
-  // el trabajo del equipo comercial (`veEquipoComercial`).
-  const session = await paginaConRol("gerente", "closer", "paid_trafficker");
+  // aunque el programa no exista. El tablero lo ven gerente, developer y el paid trafficker
+  // (ADR 0052, ticket 102); el closer ya NO (ticket 224, ADR 0082) y la ruta le responde 404
+  // —`paginaConCapacidad` con `veTableroDelPrograma`, por capacidad, nunca `rol === "..."`—.
+  // Cada rol solo en SUS programas (ADR 0048): el alcance decide cuales.
+  const session = await paginaConCapacidad(veTableroDelPrograma);
 
   const { programa: slug } = await params;
   // El rol de vista, no `session.user.rol` crudo (ADR 0028). El programa se resuelve

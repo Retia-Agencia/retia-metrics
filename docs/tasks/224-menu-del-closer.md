@@ -3,7 +3,7 @@ id: 224
 etapa: O8
 serves: "A-128; ADR 0082"
 depends: [221]
-status: todo
+status: review
 ---
 
 # 224 — El menú del closer: solo lo que puede abrir
@@ -26,8 +26,17 @@ esconderlos (ADR 0082, enmienda del ADR 0048).
 
 ## Done cuando
 
-- [ ] Closer: el menú no tiene Ajustes, Programa, Dashboard ni Metas.
-- [ ] Forjadas desde la sesión de un closer, las cuatro rutas y la lista del dashboard responden 404 (test en
+- [x] Closer: el menú no tiene Ajustes, Programa, Dashboard ni Metas.
+- [x] Forjadas desde la sesión de un closer, las cuatro rutas y la lista del dashboard responden 404 (test en
       `tests/paginas.test.ts` y recorrido).
-- [ ] Gerente, paid trafficker y developer no pierden nada (tests por rol).
-- [ ] Ningún link visible al closer apunta a una ruta cerrada.
+- [x] Gerente, paid trafficker y developer no pierden nada (tests por rol).
+- [x] Ningún link visible al closer apunta a una ruta cerrada.
+
+## Nota de implementación (abierta para revisión)
+
+La decisión pedía gatear `/dashboard/lista` con `veTableroDelPrograma`. Eso habría CONCEDIDO la lista al
+paid trafficker, que el ticket 102 (`veEquipoComercial`) le quitó: el paid trafficker ve el Dashboard pero
+`sinListas`, y una prueba del 102 forja la URL de la lista esperando rechazo. Para cerrar al closer sin
+regresar el 102, la lista se gateó con `esAdministrador` (gerente y developer): la intersección de "cae con
+el Dashboard" (cierra closer) y "nunca fue del paid trafficker" (cierra pauta). Dashboard y Metas sí usan
+`veTableroDelPrograma` como se decidió. Revisar si se prefiere otra forma.

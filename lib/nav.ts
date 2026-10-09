@@ -1,5 +1,5 @@
 import type { Rol } from "@/lib/auth/roles";
-import { esAccesoTotal, esAdministrador, manejaPauta, marcaOnboarding, trabajaLeads } from "@/lib/auth/roles";
+import { esAccesoTotal, esAdministrador, manejaPauta, marcaOnboarding, trabajaLeads, veTableroDelPrograma, configuraPrograma } from "@/lib/auth/roles";
 
 export type ItemNav = {
   href: string;
@@ -120,21 +120,26 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
     items.push({ href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles });
   }
 
-  // Dashboard del programa elegido. Lo ven todos los roles, cada uno en SUS programas
-  // (ADR 0048): el selector solo ofrece los visibles y la ruta devuelve 404 a los demas.
+  // Dashboard del programa elegido. Lo ve quien ve el tablero (gerente, developer y el paid
+  // trafficker por su rama de arriba); el closer ya NO (ticket 224, ADR 0082): la ruta le
+  // responde 404. El selector solo ofrece los programas visibles y cada ruta valida su rol en
+  // el servidor. Se pregunta por capacidad (`veTableroDelPrograma`), nunca por el literal del rol.
   if (programa) {
-    items.push({
-      href: rutaDePrograma(programa, "dashboard"),
-      etiqueta: "Dashboard",
-      icono: "dashboard",
-      roles: ["gerente", "closer"],
-    });
-    items.push({
-      href: rutaDePrograma(programa, "metas"),
-      etiqueta: "Metas",
-      icono: "metas",
-      roles: ["gerente", "closer"],
-    });
+    if (veTableroDelPrograma(rol)) {
+      items.push({
+        href: rutaDePrograma(programa, "dashboard"),
+        etiqueta: "Dashboard",
+        icono: "dashboard",
+        roles: ["gerente"],
+      });
+      // Metas: cae con el Dashboard (misma capacidad, ticket 224).
+      items.push({
+        href: rutaDePrograma(programa, "metas"),
+        etiqueta: "Metas",
+        icono: "metas",
+        roles: ["gerente"],
+      });
+    }
     // Leads: la base del programa, lo que todavia no es oportunidad (ticket 072). Mismo
     // alcance que Deals; Personas se queda como buscador entre programas.
     items.push({
@@ -176,14 +181,18 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
       roles: ["gerente", "closer"],
     });
     // Programa: la ficha del programa elegido (ticket 100, la tab Programs del ADR 0050):
-    // cohortes, destinos, Calendly, fuentes, comision y equipo. Un closer la LEE en sus
-    // programas; quien administra edita ahi las cohortes y entra a Ajustes por lo demas.
-    items.push({
-      href: rutaDePrograma(programa, "programa"),
-      etiqueta: "Programa",
-      icono: "programa",
-      roles: ["gerente", "closer"],
-    });
+    // cohortes, destinos, Calendly, fuentes, comision y equipo. Solo quien CONFIGURA el
+    // programa (gerente y developer, `configuraPrograma`); el closer, que antes la LEIA, ya
+    // no entra (ticket 224, ADR 0082): la ruta le responde 404. Por capacidad, nunca por el
+    // literal del rol.
+    if (configuraPrograma(rol)) {
+      items.push({
+        href: rutaDePrograma(programa, "programa"),
+        etiqueta: "Programa",
+        icono: "programa",
+        roles: ["gerente"],
+      });
+    }
   }
 
   // Personas: la puerta al historial de un lead. Busca en todos los programas visibles;
@@ -194,12 +203,14 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
   // eso se decide en el servidor (ticket 023).
   items.push({ href: "/recursos", etiqueta: "Recursos", icono: "recursos", roles: ["gerente", "closer"] });
 
-  // Ajustes: los tres roles desde el 20-sep (enmienda del ticket 013). Dejo de ser
-  // exclusivo del gerente cuando un closer paso a administrar las plataformas de
-  // pago: sin la puerta tendria el permiso y ninguna forma de llegar. El INDICE
-  // proyecta por rol (un closer solo ve la tarjeta de catalogos) y cada subpagina
+  // Ajustes: solo quien ADMINISTRA la app (gerente y developer, `esAdministrador`). El closer
+  // dejo de verlo (ticket 224, ADR 0082): ya no administra plataformas de pago desde aqui y la
+  // ficha del Programa, donde lo hacia, es ahora de administradores. El paid trafficker lo ve
+  // por su rama de arriba (entra a Canales). El INDICE proyecta por rol y cada subpagina
   // conserva su propia guarda, que es donde vive la seguridad.
-  items.push({ href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["gerente", "closer"] });
+  if (esAdministrador(rol)) {
+    items.push({ href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["gerente"] });
+  }
 
   // Nerd Stats: SOLO el developer. Es la unica ruta exclusiva suya (ticket 025), y
   // por eso es la unica que pregunta por `esAccesoTotal` sin un rol al lado.

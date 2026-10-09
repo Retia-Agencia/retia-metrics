@@ -367,14 +367,13 @@ const PAGINAS_DE_GERENTE = [
 ] as const;
 
 /**
- * `/ajustes` dejo de ser exclusiva de gerente el 20-sep (enmienda del ticket 013): un
- * closer administra las plataformas de pago desde la tab Programa, pero la pagina
- * raiz le muestra la proyeccion que le toca. La guarda baja a cada SUBPAGINA — las de
- * arriba siguen rebotandolo— y lo que el closer ve adentro es una PROYECCION, no un
- * permiso: las server actions vuelven a exigir el rol. `/ajustes/catalogos` (Motivos)
- * volvio a ser exclusiva de gerente el 3-oct (ticket 178, ADR 0077).
+ * `/ajustes` dejo de dejar entrar al closer (ticket 224, ADR 0082): el closer ya no
+ * administra plataformas de pago desde aqui —la ficha del Programa, donde lo hacia, es
+ * ahora de administradores—, asi que la raiz lo rebota como las subpaginas. Entran quien
+ * administra (gerente, developer) y el paid trafficker (Canales, ADR 0052); el closer
+ * aterriza en su vista (`/mi-espacio`).
  */
-const PAGINAS_COMPARTIDAS_CON_CLOSER = [
+const PAGINAS_DE_AJUSTES = [
   ["/ajustes", "@/app/(app)/ajustes/page"],
 ] as const;
 
@@ -461,16 +460,27 @@ describe("dashboard de todos los programas (ticket 095)", () => {
   });
 });
 
-describe("paginas de ajustes compartidas con el closer (enmienda 013, 20-sep)", () => {
-  for (const [nombre, ruta] of PAGINAS_COMPARTIDAS_CON_CLOSER) {
-    it(`${nombre} DEJA entrar a un closer (ya no lo rebota)`, async () => {
+describe("índice de Ajustes por rol en el servidor (ticket 224, ADR 0082)", () => {
+  for (const [nombre, ruta] of PAGINAS_DE_AJUSTES) {
+    it(`${nombre} REBOTA a un closer a su vista (ya no entra)`, async () => {
       auth.mockResolvedValue(sesionCloser);
-      programasGestionablesPorUsuario.mockResolvedValue([]);
+      expect(await destinoDe(ruta)).toBe("/mi-espacio");
+    });
+
+    it(`${nombre} deja entrar al gerente, que administra`, async () => {
+      auth.mockResolvedValue(sesionGerente);
+      programasActivos.mockResolvedValue([]);
       expect(await destinoDe(ruta)).toBeNull();
     });
 
     it(`${nombre} deja entrar al developer, que administra (ADR 0025)`, async () => {
       auth.mockResolvedValue(sesionDeveloper);
+      programasActivos.mockResolvedValue([]);
+      expect(await destinoDe(ruta)).toBeNull();
+    });
+
+    it(`${nombre} deja entrar al paid trafficker (Canales, ADR 0052)`, async () => {
+      auth.mockResolvedValue(sesionPaidTrafficker);
       programasActivos.mockResolvedValue([]);
       expect(await destinoDe(ruta)).toBeNull();
     });
@@ -550,10 +560,10 @@ describe("índice de Ajustes por rol (ticket 173)", () => {
     expect(hrefs).toEqual(["/ajustes/canales"]);
   });
 
-  it("un closer no ve ninguna tarjeta: ni administra ni maneja pauta", async () => {
+  it("un closer ni siquiera entra al índice (ticket 224, ADR 0082): la raíz lo rebota", async () => {
     auth.mockResolvedValue(sesionCloser);
-    const hrefs = await hrefsDeAjustes();
-    expect(hrefs).toEqual([]);
+    const modulo = (await import("@/app/(app)/ajustes/page")) as { default: () => Promise<unknown> };
+    await expect(modulo.default()).rejects.toBeInstanceOf(Redireccion);
   });
 });
 
@@ -613,6 +623,107 @@ describe("developer pasa toda guarda de pagina (ADR 0025)", () => {
   });
 });
 
+/**
+ * El menú del closer: solo lo que puede abrir (ticket 224, ADR 0082). El Dashboard, su lista,
+ * Metas y la ficha del Programa se CIERRAN al closer en el SERVIDOR con 404, no solo se
+ * esconden del menú. Se forja la sesión de un closer contra cada ruta real y se exige
+ * `notFound()`. El developer en vista `closer` ve lo del closer, así que recibe los mismos
+ * 404. Gerente y developer (vista `todo`) conservan todo; el paid trafficker ve el tablero
+ * (Dashboard, lista, Metas) pero NO la ficha del Programa (`configuraPrograma`).
+ *
+ * Para las rutas que SÍ debe ver cada rol se afirma que la guarda no lanza `NoEncontrado`:
+ * leer la base falla en los tests (no hay base), y ese fallo —cualquiera menos `NoEncontrado`—
+ * prueba que la guarda dejó pasar antes de consultar.
+ */
+describe("el menú del closer: 4 rutas cerradas en el servidor (ticket 224, ADR 0082)", () => {
+  const SLUG = "programa-a";
+
+  async function correr(ruta: string): Promise<"paso-la-guarda" | "notFound" | "login"> {
+    const modulo = (await import(/* @vite-ignore */ ruta)) as {
+      default: (props: {
+        params: Promise<{ programa: string }>;
+        searchParams: Promise<Record<string, string | string[] | undefined>>;
+      }) => Promise<unknown>;
+    };
+    try {
+      await modulo.default({
+        params: Promise.resolve({ programa: SLUG }),
+        searchParams: Promise.resolve({ metrica: "agendas" }),
+      });
+      return "paso-la-guarda";
+    } catch (e) {
+      if (e instanceof NoEncontrado) return "notFound";
+      if (e instanceof Redireccion) return e.destino === "/login" ? "login" : "notFound";
+      // Cualquier otro error (p. ej. leer la base sin base) ocurre DESPUÉS de la guarda:
+      // la guarda ya dejó pasar.
+      return "paso-la-guarda";
+    }
+  }
+
+  const RUTAS = [
+    ["dashboard", "@/app/(app)/p/[programa]/dashboard/page"],
+    ["dashboard/lista", "@/app/(app)/p/[programa]/dashboard/lista/page"],
+    ["metas", "@/app/(app)/p/[programa]/metas/page"],
+    ["programa", "@/app/(app)/p/[programa]/programa/page"],
+  ] as const;
+
+  beforeEach(() => {
+    // Dentro del alcance: si la guarda deja pasar, la ruta llega a resolver el programa.
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A" });
+    programaDeLaFichaPorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A" });
+    // La lista llega a `vistaDeLista` solo si la guarda dejó pasar: con un valor la página
+    // renderiza en vez de caer en el `notFound()` de "sin datos", que confundiría con la guarda.
+    vistaDeLista.mockResolvedValue({
+      lista: { filas: [], disponible: true, subtotal: { cantidad: 0, caja: [] } },
+      periodo: VISTA_VACIA.periodo,
+      claveCloser: null,
+    });
+  });
+
+  for (const [nombre, ruta] of RUTAS) {
+    it(`${nombre} responde 404 a un closer, aunque el programa esté en su alcance`, async () => {
+      auth.mockResolvedValue(sesionCloser);
+      expect(await correr(ruta)).toBe("notFound");
+    });
+
+    it(`${nombre} responde 404 a un developer en vista closer (la vista estrecha, ADR 0028)`, async () => {
+      auth.mockResolvedValue(sesionDeveloper);
+      ponerVista("closer");
+      expect(await correr(ruta)).toBe("notFound");
+    });
+
+    it(`${nombre} manda al login a quien no tiene sesión`, async () => {
+      auth.mockResolvedValue(null);
+      expect(await correr(ruta)).toBe("login");
+    });
+  }
+
+  it("el gerente pasa la guarda de las cuatro rutas", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    for (const [, ruta] of RUTAS) {
+      expect(await correr(ruta)).toBe("paso-la-guarda");
+    }
+  });
+
+  it("el developer (vista todo) pasa la guarda de las cuatro rutas (ADR 0025)", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
+    for (const [, ruta] of RUTAS) {
+      expect(await correr(ruta)).toBe("paso-la-guarda");
+    }
+  });
+
+  it("el paid trafficker ve el Dashboard y las Metas, pero NO la lista ni la ficha del Programa", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    // Dashboard y Metas: ve el tablero (`veTableroDelPrograma`).
+    expect(await correr("@/app/(app)/p/[programa]/dashboard/page")).toBe("paso-la-guarda");
+    expect(await correr("@/app/(app)/p/[programa]/metas/page")).toBe("paso-la-guarda");
+    // Lista: nunca fue suya (ticket 102); la guarda es `esAdministrador`.
+    expect(await correr("@/app/(app)/p/[programa]/dashboard/lista/page")).toBe("notFound");
+    // Ficha del Programa: solo quien configura (`configuraPrograma`).
+    expect(await correr("@/app/(app)/p/[programa]/programa/page")).toBe("notFound");
+  });
+});
+
 describe("dashboard de programa /p/[programa]/dashboard (ADR 0048 + 0012)", () => {
   const SLUG_EXISTE = "programa-a";
   const SLUG_NO_EXISTE = "no-existe";
@@ -623,8 +734,14 @@ describe("dashboard de programa /p/[programa]/dashboard (ADR 0048 + 0012)", () =
     expect(await correrPrograma(SLUG_EXISTE)).toBe("paso");
   });
 
-  it("deja pasar a un closer con un slug dentro de su alcance", async () => {
+  it("CIERRA con 404 a un closer, aun con un slug dentro de su alcance (ticket 224, ADR 0082)", async () => {
     auth.mockResolvedValue(sesionCloser);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
+    expect(await correrPrograma(SLUG_EXISTE)).toBe("notFound");
+  });
+
+  it("deja pasar a un paid trafficker con un slug existente (ADR 0052, ticket 102)", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
     programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
     expect(await correrPrograma(SLUG_EXISTE)).toBe("paso");
   });
@@ -672,28 +789,28 @@ describe("el dashboard no depende del rol dentro del alcance (ADR 0048, ticket 0
     programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG, nombre: "Programa A" });
   });
 
-  it("un closer y un gerente piden exactamente la misma vista", async () => {
+  it("un developer y un gerente piden exactamente la misma vista", async () => {
     auth.mockResolvedValue(sesionGerente);
     expect(await correrPrograma(SLUG, BUSQUEDA)).toBe("paso");
     const comoGerente = armarVistaDelDashboard.mock.calls.at(-1);
 
-    auth.mockResolvedValue(sesionCloser);
+    auth.mockResolvedValue(sesionDeveloper);
     expect(await correrPrograma(SLUG, BUSQUEDA)).toBe("paso");
-    const comoCloser = armarVistaDelDashboard.mock.calls.at(-1);
+    const comoDeveloper = armarVistaDelDashboard.mock.calls.at(-1);
 
     // Sin esto, una pagina que no arme ninguna vista pasaria el test con dos
     // `undefined` iguales.
     expect(comoGerente).toBeDefined();
-    expect(comoCloser).toBeDefined();
+    expect(comoDeveloper).toBeDefined();
 
     // Mismos argumentos = mismos numeros. La vista no recibe rol ni sesion, asi que
     // no hay donde esconder una diferencia.
-    expect(comoCloser).toEqual(comoGerente);
+    expect(comoDeveloper).toEqual(comoGerente);
   });
 
-  it("el closer logueado no se cuela como filtro: se filtra por lo que diga la URL", async () => {
-    // Un closer que abre el dashboard sin filtro ve el programa entero, no lo suyo.
-    auth.mockResolvedValue(sesionCloser);
+  it("el filtro de closer sale de la URL, no de la sesión: sin filtro, el programa entero", async () => {
+    // Un gerente que abre el dashboard sin filtro ve el programa entero (ADR 0023).
+    auth.mockResolvedValue(sesionGerente);
     expect(await correrPrograma(SLUG)).toBe("paso");
     expect(armarVistaDelDashboard.mock.calls.at(-1)![0]).toMatchObject({
       programId: "p-1",
@@ -1156,13 +1273,27 @@ describe("la lista de una cifra respeta la frontera del dashboard (137)", () => 
   });
 
   it("un programa ajeno devuelve 404 antes de consultar filas", async () => {
-    auth.mockResolvedValue(sesionCloser);
+    auth.mockResolvedValue(sesionGerente);
     programaVisiblePorSlug.mockResolvedValue(null);
     await expect(abrir()).rejects.toBeInstanceOf(NoEncontrado);
     expect(vistaDeLista).not.toHaveBeenCalled();
   });
 
-  it.each([sesionGerente, sesionCloser, sesionDeveloper])("permite a cada rol dentro de su alcance", async (sesion) => {
+  it("CIERRA la lista con 404 a un closer (cae con el Dashboard, ticket 224, ADR 0082)", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", nombre: "Programa A" });
+    await expect(abrir()).rejects.toBeInstanceOf(NoEncontrado);
+    expect(vistaDeLista).not.toHaveBeenCalled();
+  });
+
+  it("CIERRA la lista con 404 a un paid trafficker (nunca fue suya, ticket 102)", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", nombre: "Programa A" });
+    await expect(abrir()).rejects.toBeInstanceOf(NoEncontrado);
+    expect(vistaDeLista).not.toHaveBeenCalled();
+  });
+
+  it.each([sesionGerente, sesionDeveloper])("permite a quien administra dentro de su alcance", async (sesion) => {
     auth.mockResolvedValue(sesion);
     programaVisiblePorSlug.mockResolvedValue({ id: "p-1", nombre: "Programa A" });
     await expect(abrir({ metrica: "shows", periodo: "ayer", pagina: "2" })).resolves.toBeTruthy();
@@ -1299,9 +1430,11 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     vistaDeLista.mockReset();
     const { default: pagina } = await import("@/app/(app)/p/[programa]/dashboard/lista/page");
+    // Desde el ticket 224 la lista se cierra con 404 (antes redirigía): sigue sin ser suya,
+    // ahora porque la guarda es `esAdministrador` (ni closer ni paid trafficker la ven).
     await expect(
       pagina({ params: Promise.resolve({ programa: SLUG }), searchParams: Promise.resolve({ metrica: "agendas" }) }),
-    ).rejects.toBeInstanceOf(Redireccion);
+    ).rejects.toBeInstanceOf(NoEncontrado);
     expect(vistaDeLista).not.toHaveBeenCalled();
   });
 
@@ -1375,7 +1508,6 @@ describe("el customer success solo entra a Students (ticket 145)", () => {
     ["Deals", "@/app/(app)/p/[programa]/deals/page"],
     ["Leads", "@/app/(app)/p/[programa]/leads/page"],
     ["Inbox", "@/app/(app)/p/[programa]/inbox/page"],
-    ["Dashboard", "@/app/(app)/p/[programa]/dashboard/page"],
   ])("una tab %s forjada lo redirige fuera (no la ve)", async (_nombre, ruta) => {
     auth.mockResolvedValue(sesionCustomerSuccess);
     const modulo = (await import(/* @vite-ignore */ ruta)) as {
@@ -1384,6 +1516,16 @@ describe("el customer success solo entra a Students (ticket 145)", () => {
     await expect(
       modulo.default({ params: Promise.resolve({ programa: SLUG }), searchParams: Promise.resolve({}) }),
     ).rejects.toBeInstanceOf(Redireccion);
+  });
+
+  it("la tab Dashboard forjada le responde 404 (ticket 224, ADR 0082): no ve el tablero", async () => {
+    auth.mockResolvedValue(sesionCustomerSuccess);
+    const modulo = (await import("@/app/(app)/p/[programa]/dashboard/page")) as {
+      default: (props: { params: Promise<{ programa: string }>; searchParams: Promise<Record<string, string>> }) => Promise<unknown>;
+    };
+    await expect(
+      modulo.default({ params: Promise.resolve({ programa: SLUG }), searchParams: Promise.resolve({}) }),
+    ).rejects.toBeInstanceOf(NoEncontrado);
   });
 
   it("Ajustes (administración) lo rechaza", async () => {
