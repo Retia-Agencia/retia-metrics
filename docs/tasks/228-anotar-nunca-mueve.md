@@ -3,7 +3,7 @@ id: 228
 etapa: O8
 serves: "A-136; decisión de Mani del 9-oct"
 depends: []
-status: todo
+status: done
 ---
 
 # 228 — Anotar nunca mueve; En gestión entra por Mover a

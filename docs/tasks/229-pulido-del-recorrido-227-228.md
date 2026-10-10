@@ -3,7 +3,7 @@ id: 229
 etapa: O8
 serves: "A-138 a A-141; recorrido local del 9-oct tras el 227 y el 228"
 depends: [227, 228]
-status: todo
+status: done
 ---
 
 # 229 — Pulido del recorrido del 227 y el 228

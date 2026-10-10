@@ -3,7 +3,7 @@ id: 227
 etapa: O8
 serves: "A-134, A-135; decisión de Mani del 9-oct"
 depends: []
-status: todo
+status: done
 ---
 
 # 227 — Cohorte por definir, y Cambiar cohorte arriba en la ficha
