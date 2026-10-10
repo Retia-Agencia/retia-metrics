@@ -222,7 +222,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                         <CeldaDeal
                           abreFicha={abreFicha}
                           href={href}
-                          extra={f.saldo?.saldo != null ? "cifra" : "text-muted-foreground"}
+                          extra={saldo.esCifra ? "cifra" : "text-muted-foreground"}
                           title={saldo.etiqueta}
                         >
                           {saldo.valor}

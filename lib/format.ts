@@ -70,22 +70,27 @@ export function monto(valor: number, moneda: string): string {
  * devolviera el numero, cada pantalla tendria que decidir la etiqueta por su cuenta
  * y volveriamos a tener la misma pregunta contestada en dos sitios (ADR 0024).
  *
+ * Dice también si el valor es una CIFRA (`esCifra`): sin valor vendido es texto, y pintarlo con la
+ * fuente de cifras lo hace leer como un número roto (A-17). La pantalla usa esa marca y no
+ * vuelve a preguntar si el saldo es `null`.
+ *
  * Lo preguntan Students y la ficha del deal.
  */
 export function saldoLegible(
   saldo: string | number | null,
   moneda: string,
   porque?: "sin_valor_vendido" | "moneda_distinta" | null,
-): { etiqueta: string; valor: string } {
+): { etiqueta: string; valor: string; esCifra: boolean } {
   if (saldo === null) {
     return {
       etiqueta: "Saldo pendiente",
       valor: porque === "moneda_distinta" ? "abonos en otra moneda" : "Falta el valor vendido",
+      esCifra: false,
     };
   }
   const valor = Number(saldo);
-  if (valor < 0) return { etiqueta: "Sobrepago", valor: monto(Math.abs(valor), moneda) };
-  return { etiqueta: "Saldo pendiente", valor: monto(valor, moneda) };
+  if (valor < 0) return { etiqueta: "Sobrepago", valor: monto(Math.abs(valor), moneda), esCifra: true };
+  return { etiqueta: "Saldo pendiente", valor: monto(valor, moneda), esCifra: true };
 }
 
 /** Los meses como los escribe el negocio: tres letras, sin punto. */

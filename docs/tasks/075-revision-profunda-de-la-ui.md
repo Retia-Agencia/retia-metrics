@@ -108,8 +108,9 @@ corre solo contra `dev:local`.
   al paid trafficker, y un rol que falta hace fallar el humo en vez de saltarse.
 - **Revisión del cadenero (9-oct, otra sesión):** aprobó el código de la app; pidió arreglar el humo (regex de
   nombres sin `\s`, verdes falsos por sesión perdida o rol faltante, filtro del corte demasiado ancho) y que el ADR
-  dijera lo que el spec hace. Aplicado. Quedan como sugerencia: aprovechar en la ficha las `sugerencias` por teléfono
-  que ya calcula `llamadasSueltasDelPrograma`, y que `saldoLegible` diga si el valor es cifra.
+  dijera lo que el spec hace. Aplicado. De sus sugerencias entró una, en un segundo commit: `saldoLegible`
+  devuelve `esCifra`, que usan Students, la cabecera y el pago de la ficha. La otra (señalar sueltas por nombre o
+  teléfono en la ficha) se cayó con A-03 al rebasar sobre el 219.
 - El humo no ve: un botón que no hace lo que debe, los permisos (eso se muerde forjando la petición) ni la
   usabilidad. El recorrido a mano sigue para eso.
 

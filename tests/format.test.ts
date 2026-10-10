@@ -36,21 +36,25 @@ describe("saldo legible", () => {
     expect(saldoLegible("-103", "USD")).toEqual({
       etiqueta: "Sobrepago",
       valor: "USD 103,00",
+      esCifra: true,
     });
     expect(saldoLegible(-103, "USD")).toEqual({
       etiqueta: "Sobrepago",
       valor: "USD 103,00",
+      esCifra: true,
     });
   });
 
-  it("sin valor vendido no se inventa un numero y dice qué falta", () => {
+  it("sin valor vendido no se inventa un numero y dice qué falta, y ese texto no es una cifra (A-17)", () => {
     expect(saldoLegible(null, "USD", "sin_valor_vendido")).toEqual({
       etiqueta: "Saldo pendiente",
       valor: "Falta el valor vendido",
+      esCifra: false,
     });
     expect(saldoLegible(null, "USD")).toEqual({
       etiqueta: "Saldo pendiente",
       valor: "Falta el valor vendido",
+      esCifra: false,
     });
   });
 
@@ -58,6 +62,7 @@ describe("saldo legible", () => {
     expect(saldoLegible(null, "USD", "moneda_distinta")).toEqual({
       etiqueta: "Saldo pendiente",
       valor: "abonos en otra moneda",
+      esCifra: false,
     });
   });
 
@@ -65,10 +70,12 @@ describe("saldo legible", () => {
     expect(saldoLegible("397.00", "USD")).toEqual({
       etiqueta: "Saldo pendiente",
       valor: "USD 397,00",
+      esCifra: true,
     });
     expect(saldoLegible("0", "USD")).toEqual({
       etiqueta: "Saldo pendiente",
       valor: "USD 0,00",
+      esCifra: true,
     });
   });
 });

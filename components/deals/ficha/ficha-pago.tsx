@@ -109,7 +109,7 @@ export function FichaPago({
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">{legible.etiqueta}</dt>
-            <dd className={s.saldo === null ? "text-sm" : "cifra text-sm"}>{legible.valor}</dd>
+            <dd className={legible.esCifra ? "cifra text-sm" : "text-sm"}>{legible.valor}</dd>
           </div>
         </dl>
         {s.sinSaldoPorque === "moneda_distinta" ? (
