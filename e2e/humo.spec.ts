@@ -227,8 +227,15 @@ for (const { rol, correo } of ROLES) {
     for (const ruta of rutas) {
       sumidero.actual = ruta;
       sumidero.accion = "cargar";
+      const antes = hallazgos.length;
       const respuesta = await page.goto(ruta);
       const estado = respuesta?.status() ?? 0;
+      // Un 4xx es una pantalla que este rol no tiene (ADR 0082: el closer no abre Dashboard, Metas ni
+      // Programa): no se prueba, y lo que la página de 404 deja en la consola no es un hallazgo.
+      if (estado >= 400 && estado < 500) {
+        await page.waitForTimeout(500);
+        hallazgos.length = antes;
+      }
       if (estado >= 500) hallazgos.push({ ruta, accion: "cargar", error: `HTTP ${estado}` });
       const final = new URL(page.url()).pathname;
       // Volver al login después de haber entrado es una sesión perdida: lo que sigue no se probaría.

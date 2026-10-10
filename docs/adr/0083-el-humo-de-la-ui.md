@@ -25,6 +25,8 @@ pasando. Y el recorrido a mano no se repite: la regresión de mañana no la ve n
    desde un `onClick` y no lo anuncian con `aria-haspopup`, así que filtrar por ese atributo los dejaba fuera.
 2. **Falla** si la consola registra un error, si la página lanza, si una pantalla responde 5xx, si la sesión vuelve
    a `/login` a mitad del recorrido o si un rol prueba menos de 3 pantallas (al paid trafficker casi todo lo redirige).
+   Una pantalla que responde 4xx es una que el rol no tiene (ADR 0082): no se prueba, y lo que la página de 404
+   deja en la consola no cuenta.
 3. **Las escrituras se cortan en la red.** Toda petición que no sea GET se aborta antes de salir del navegador, así
    que ninguna server action ni formulario llega al servidor aunque el humo pulse "Guardar". El rastro que deja ese
    corte se perdona solo si el recurso que falló es uno que el humo abortó. Lo que una página escribe **al
