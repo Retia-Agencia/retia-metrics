@@ -91,7 +91,7 @@ describe("posiblesDuplicadosDelPrograma", () => {
     const { total, filas } = await posiblesDuplicadosDelPrograma(db, programId);
     expect(total).toBe(1);
     expect(filas).toHaveLength(1);
-    expect(filas[0]).toMatchObject({ contactoId: marca, leadId: ana, correoSinConfirmar: "beto@c.co" });
+    expect(filas[0]).toMatchObject({ contactoId: marca, leadId: ana, correoSinConfirmar: "beto@c.co", telefonoEnComun: "+573000000000" });
   });
 
   it("trae el dueño del deal abierto del lead", async () => {

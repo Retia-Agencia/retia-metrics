@@ -431,6 +431,13 @@ The agent should run these to get fast signal on whether code works. Keep them c
   Ojo: el CI cancela la corrida anterior al empujar otro commit (`cancel-in-progress`): entre checkpoints es
   alarma, no reja, y durante un checkpoint no se empuja. Pendiente: CI también en ramas.
 - **Typecheck:** `npm run typecheck` (`tsc --noEmit`) · **Lint:** `npm run lint`
+- **Humo de la UI (ADR 0083, 9-oct):** `npm run test:humo` (Playwright, `e2e/humo.spec.ts`). Con `npm run dev:local`
+  ya arriba, entra con cada rol de la base local, visita cada pantalla y cada tab de programa, hace clic en todo lo
+  que se abre (botones, selects, menús, plegables, y un nivel dentro de cada diálogo) y falla con cualquier error de
+  consola o de página, un 5xx, una sesión perdida o un rol que la base no tiene. **Corta las escrituras en la red**
+  (aborta todo lo que no sea GET); lo que una página escribe al renderizar sí ocurre, por eso solo contra `dev:local`. Escritorio y
+  celular (`--project=escritorio` / `--project=celular`); unos 6 a 12 min por proyecto. Corre antes de empujar un
+  cambio de pantalla; todavía no está en el CI. La primera vez: `npx playwright install chromium`.
 - **Worktree restringido en Windows:** si PowerShell bloquea `npm.ps1`, usar `npm.cmd`. Si Vite no
   puede escribir en `node_modules/.vite-temp` porque las dependencias son compartidas, usar
   `npm.cmd test -- --configLoader runner tests/<archivo>.test.ts`; conserva el candado de `npm test`.

@@ -34,6 +34,7 @@ import { inboxDelPrograma, type MotivoAtencion } from "@/lib/queries/inbox";
 import { columnasUtmDelEnvio, utmsDelEnvio, type UtmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { enlacesDePagoVigentes, type EnlaceDeLaPantalla } from "@/lib/queries/recursos";
 import { linkDeAgenda } from "@/lib/calendly/link-de-agenda";
+import { telefonosEnComun } from "@/lib/queries/leads";
 
 /**
  * Todo lo de UN deal para su ficha (ticket 074): cabecera, llamadas, abonos, actividades e
@@ -277,7 +278,6 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
       contactoId: leadContactos.id,
       correoPrincipal: leads.emailNormalizado,
       correoSinConfirmar: leadContactos.valor,
-      telefonoEnComun: leads.telefono,
       envioId: submissions.id,
       envioFechaEnvio: submissions.fechaEnvio,
       envioCreadoEn: submissions.createdAt,
@@ -293,23 +293,12 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
       eq(leadContactos.tipo, "correo"),
       eq(leadContactos.confirmado, false),
     ));
-  const [telefonoCompartido] = duplicadosFilas.length > 0
-    ? await db
-        .select({ valor: leadContactos.valor })
-        .from(leadContactos)
-        .where(and(
-          eq(leadContactos.leadId, deal.leadId),
-          eq(leadContactos.programId, programId),
-          eq(leadContactos.tipo, "telefono"),
-        ))
-        .orderBy(desc(leadContactos.esPrincipal), asc(leadContactos.createdAt))
-        .limit(1)
-    : [];
+  const telefonos = duplicadosFilas.length > 0 ? await telefonosEnComun(db, programId, [deal.leadId]) : new Map<string, string>();
   const posiblesDuplicados = duplicadosFilas.map((fila) => ({
     contactoId: fila.contactoId,
     correoPrincipal: fila.correoPrincipal,
     correoSinConfirmar: fila.correoSinConfirmar,
-    telefonoEnComun: fila.telefonoEnComun ?? telefonoCompartido?.valor ?? null,
+    telefonoEnComun: telefonos.get(deal.leadId) ?? null,
     envio: fila.envioId && fila.envioCreadoEn
       ? { id: fila.envioId, fecha: fila.envioFechaEnvio ?? fila.envioCreadoEn, fuente: fila.fuente }
       : null,

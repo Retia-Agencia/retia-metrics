@@ -48,6 +48,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0077](./0077-cada-dato-vive-en-la-pantalla-de-su-objeto.md) | Cada dato vive en la pantalla de su objeto (Programa, Perfil, Deal, Lead) y lo que no se usa se quita; la llamada siempre tiene closer; los canales los crea quien `manejaPauta`; tres franjas en la ficha |
 | [0078](./0078-corregir-el-ultimo-movimiento.md) | Corregir deshace el último movimiento humano, restaura su pendiente y exige motivo de corrección |
 | [0079](./0079-las-tasas-se-cuentan-sobre-el-mismo-grupo.md) | Las tasas del embudo (show, cierre, agenda → venta) se cuentan por deal sobre la cohorte de citas del rango; por closer, sobre sus shows |
+| [0083](./0083-el-humo-de-la-ui.md) | Las pantallas se prueban con un humo de Playwright que abre todo con cada rol, no con tests de componente |
 | [0072](./0072-una-pregunta-por-etapa-mueve-el-deal.md) | Una pregunta por etapa mueve el deal, también al arrastrar el Kanban (muestra lo que tiene y le falta); solo alertas, nada automatizado en v1; Lead Value ordena la cola |
 | [0066](./0066-atendido-sin-grain-es-una-alarma.md) | Atendido sin Grain se acepta, cuenta como show y prende una alarma derivada |
 | [0015](./0015-resultado-de-llamada-ampliado.md) | La llamada dice qué pasó (ocho resultados); el motor decide qué significa |

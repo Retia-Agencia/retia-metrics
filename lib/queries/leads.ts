@@ -320,6 +320,36 @@ export async function respuestasDelUltimoEnvio(
   return resultado;
 }
 
+/**
+ * El teléfono por el que se sospecha un duplicado, por lead: el del resumen del lead y, si no lo
+ * tiene, su teléfono de `lead_contactos` (el principal primero, luego el más antiguo). UNA respuesta
+ * para la lista de Leads, Mi espacio y la ficha del deal (A-12): si dos lugares muestran la razón de
+ * la misma sospecha, la sacan de aquí. Agrupa en memoria, sin subconsultas correlacionadas.
+ */
+export async function telefonosEnComun(db: Db, programId: string, leadIds: string[]): Promise<Map<string, string>> {
+  const unicos = [...new Set(leadIds)];
+  const telefonos = new Map<string, string>();
+  if (unicos.length === 0) return telefonos;
+  const resumen = await db
+    .select({ leadId: leads.id, telefono: leads.telefono })
+    .from(leads)
+    .where(and(eq(leads.programId, programId), inArray(leads.id, unicos)));
+  for (const r of resumen) if (r.telefono) telefonos.set(r.leadId, r.telefono);
+  const faltan = unicos.filter((id) => !telefonos.has(id));
+  if (faltan.length === 0) return telefonos;
+  const contactos = await db
+    .select({ leadId: leadContactos.leadId, valor: leadContactos.valor })
+    .from(leadContactos)
+    .where(and(
+      eq(leadContactos.programId, programId),
+      eq(leadContactos.tipo, "telefono"),
+      inArray(leadContactos.leadId, faltan),
+    ))
+    .orderBy(desc(leadContactos.esPrincipal), asc(leadContactos.createdAt));
+  for (const c of contactos) if (!telefonos.has(c.leadId)) telefonos.set(c.leadId, c.valor);
+  return telefonos;
+}
+
 /** Un correo que entró por teléfono y nadie confirmó: la lista de "posibles duplicados" (072). */
 export interface PosibleDuplicado {
   contactoId: string;
@@ -327,6 +357,8 @@ export interface PosibleDuplicado {
   nombreLead: string | null;
   correoPrincipal: string;
   correoSinConfirmar: string;
+  /** La razón de la sospecha: el teléfono del lead por el que entró el correo (A-12, P-1). */
+  telefonoEnComun: string | null;
   creadoEn: Date;
   /** El dueño del deal abierto del lead, o `null` si no hay deal abierto o no tiene dueño (186). */
   duenoUserId?: string | null;
@@ -406,5 +438,6 @@ export async function posiblesDuplicadosDelPrograma(
     .limit(porPagina)
     .offset(pagina * porPagina);
 
-  return { total, filas };
+  const telefonos = await telefonosEnComun(db, programId, filas.map((f) => f.leadId));
+  return { total, filas: filas.map((f) => ({ ...f, telefonoEnComun: telefonos.get(f.leadId) ?? null })) };
 }

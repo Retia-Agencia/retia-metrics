@@ -218,7 +218,13 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                         <CeldaDeal abreFicha={abreFicha} href={href}>{f.ownerNombre ?? (f.ownerUserId ? "Closer sin nombre" : "Sin dueño")}</CeldaDeal>
                       </td>
                       <td>
-                        <CeldaDeal abreFicha={abreFicha} href={href} extra="cifra" title={saldo.etiqueta}>
+                        {/* Sin valor vendido el saldo es texto, no una cifra: con `cifra` se lee como un número roto (A-17). */}
+                        <CeldaDeal
+                          abreFicha={abreFicha}
+                          href={href}
+                          extra={f.saldo?.saldo != null ? "cifra" : "text-muted-foreground"}
+                          title={saldo.etiqueta}
+                        >
                           {saldo.valor}
                         </CeldaDeal>
                       </td>

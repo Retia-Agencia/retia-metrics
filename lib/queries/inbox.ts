@@ -390,6 +390,9 @@ export async function llamadasSueltasDelPrograma(
     })
     .from(calls)
     .where(and(eq(calls.programId, programId), sueltaPorAsignar(), vigente(calls)));
+  // Sin sueltas no hay nada que sugerir: se ahorran los deals abiertos y los teléfonos del
+  // programa, que el Inbox pide en cada carga.
+  if (filas.length === 0) return [];
 
   const [closers, abiertos, telefonos] = await Promise.all([
     closersConCalendly(db, programId),

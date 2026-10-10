@@ -713,6 +713,14 @@ export async function sembrarLocal(): Promise<void> {
     programas: [prog1.id],
   });
 
+  // El paid trafficker (ADR 0052): el humo de la UI (ADR 0083) entra con él.
+  const paidTrafficker = await crearUsuario(db, actorId, {
+    email: "pauta@retia.local",
+    nombre: "Pauta Local",
+    rol: "paid_trafficker",
+    programas: [prog1.id, prog2.id],
+  });
+
   // 10. Leads vía ingerirEntradas
   console.log("[seed:local] Ingiriendo leads por la puerta oficial (ingerirEntradas)...");
   const entradasProg1: EntradaEnvio[] = [
@@ -1437,6 +1445,7 @@ export async function sembrarLocal(): Promise<void> {
     { rol: closer1.rol, email: closer1.email },
     { rol: closer2.rol, email: closer2.email },
     { rol: closerMani.rol, email: closerMani.email },
+    { rol: paidTrafficker.rol, email: paidTrafficker.email },
   ]);
 
   console.log("\n[seed:local] Siembra local finalizada exitosamente.");

@@ -56,3 +56,7 @@ next-env.d.ts
 
 # migracion de las pestañas de gestion (078): templates con datos personales
 /.migracion/
+
+# humo de la UI (playwright)
+/test-results
+/playwright-report

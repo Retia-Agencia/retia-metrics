@@ -298,6 +298,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
             nombreLead: d.nombreLead,
             correoPrincipal: d.correoPrincipal,
             correoSinConfirmar: d.correoSinConfirmar,
+            telefonoEnComun: d.telefonoEnComun,
             puedeGestionar: administra || d.duenoUserId === session.user.id,
           }))}
           total={duplicados.total}

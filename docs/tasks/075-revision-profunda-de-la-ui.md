@@ -3,7 +3,7 @@ id: 075
 etapa: E6
 serves: "plan v2 §6 etapa 6 · tarea E6-8 · plan v2 §11 (pendiente transversal)"
 depends: [069, 070, 071, 072, 073, 074]
-status: todo
+status: en curso
 ---
 
 # 075 — Revision profunda de TODA la UI, no solo de lo nuevo
@@ -88,3 +88,45 @@ Anotadas para atacarlas aquí, no antes: la UI se pule en esta etapa.
 ## Anotaciones de UI (30-sep, Mani)
 
 Este ticket recoge de [`docs/anotaciones.md`](../anotaciones.md): A-02, A-03, A-04 (closer sin membresía), A-05 (el hub del closer), A-06 (sin scroll infinito ni subsecciones apiladas), A-07 y A-08 (Kanban), A-12, A-13 (su construcción vive en el 128), A-15, A-16 y A-17 (Facturación de la ficha del deal, recorrido del 139, 1-oct), y los principios P-1 (el CRM trae el contexto, no se busca a mano) y P-2 como criterio de revisión de toda pantalla. El texto vive allá.
+
+---
+
+## Avance 9-oct (Alejo + Claude)
+
+**Decisión de tests tomada: ADR 0083.** No entran tests de componente: entra un humo de Playwright
+(`e2e/humo.spec.ts`, `npm run test:humo`) que entra con cada rol de la base local, recorre cada pantalla global,
+cada tab de cada programa y la primera ficha de deal y de lead, hace clic en todo (botones, selects, menús,
+plegables y un nivel dentro de cada diálogo) y falla con cualquier error de consola o de página, un 5xx, una sesión
+perdida o menos de 3 pantallas probadas. Aborta en la red toda petición que no sea GET: ninguna server action llega
+al servidor. Lo que una página escribe al renderizar un GET sí ocurre (abrir un deal propio lo marca visto), por eso
+corre solo contra `dev:local`.
+
+- **Mordido:** con el `DropdownMenuLabel` del 18-sep reintroducido fuera de su grupo, falla con
+  `MenuGroupContext is missing`. Restaurado, pasa.
+- **Primera corrida:** developer, closer y paid trafficker, en escritorio (1440×900) y celular (Pixel 7), **sin
+  hallazgos**. Corrió contra una base local vieja (sin gerente, con un `pauta@` creado a mano); el seed ahora crea
+  al paid trafficker, y un rol que falta hace fallar el humo en vez de saltarse.
+- **Revisión del cadenero (9-oct, otra sesión):** aprobó el código de la app; pidió arreglar el humo (regex de
+  nombres sin `\s`, verdes falsos por sesión perdida o rol faltante, filtro del corte demasiado ancho) y que el ADR
+  dijera lo que el spec hace. Aplicado. Quedan como sugerencia: aprovechar en la ficha las `sugerencias` por teléfono
+  que ya calcula `llamadasSueltasDelPrograma`, y que `saldoLegible` diga si el valor es cifra.
+- El humo no ve: un botón que no hace lo que debe, los permisos (eso se muerde forjando la petición) ni la
+  usabilidad. El recorrido a mano sigue para eso.
+
+**Anotaciones de este ticket, verificadas en el código:**
+
+| Id | Estado al 9-oct |
+|---|---|
+| A-02 | Parcial: las llamadas de la ficha abren su detalle (163); abonos y actividades no tienen vista propia |
+| A-03 | **Reemplazada:** se arregló en la ficha, pero al rebasar sobre `main` el 219 (ADR 0081) ya había quitado "Agregar llamada": la cita se registra dentro de Mover. No se reintrodujo. Pendiente: ofrecer las sueltas del programa en el paso de la cita de Mover (`dialogo-mover.tsx`, archivo del carril de Mani) |
+| A-06 | Criterio transversal: va al criterio de UI escrito (pendiente) |
+| A-07 | Resuelta: columnas con scroll propio y totales en USD al pie (potencial y confirmado) |
+| A-08 | Resuelta: el tablero se desplaza solo al arrastrar cerca del borde |
+| A-12 | **Arreglada 9-oct:** la lista de Leads y Mi espacio muestran el teléfono en común lado a lado; ficha y lista lo sacan de `telefonosEnComun` |
+| A-15 | Resuelta: "Cambiar cohorte" sale una sola vez |
+| A-16 | Por revisar a 375 px en el recorrido a mano |
+| A-17 | **Arreglada 9-oct:** Students ya no pinta el texto con `cifra` |
+
+**Falta para cerrar:** el recorrido a mano (usabilidad, estados vacíos, el día de un closer, 375 px), el criterio
+de UI escrito y lo que salga del recorrido. A-12 y A-17 quedaron arregladas el mismo 9-oct; A-03 pasa al paso de la cita de Mover. Meter el humo al CI queda como
+paso siguiente del ADR 0083.

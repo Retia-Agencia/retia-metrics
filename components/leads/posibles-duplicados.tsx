@@ -27,6 +27,7 @@ export interface DuplicadoVista {
   nombreLead: string | null;
   correoPrincipal: string;
   correoSinConfirmar: string;
+  telefonoEnComun: string | null;
   /** Solo el dueño del deal abierto o quien administra decide (186). La reja real está en la acción. */
   puedeGestionar: boolean;
 }
@@ -94,18 +95,30 @@ export function PosiblesDuplicados({
           <ul className="divide-y divide-border">
             {filas.map((f) => (
               <li key={f.contactoId} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
-                <div className="min-w-0 space-y-1">
+                <div className="min-w-0 flex-1 basis-80 space-y-1">
                   <Link
                     href={enlaceConVuelta(`/p/${slug}/leads/${f.leadId}`, origen ?? "")}
                     className="block truncate font-medium text-marca-texto underline-offset-2 outline-none hover:underline focus-visible:underline"
                   >
                     {f.nombreLead ?? f.correoPrincipal}
                   </Link>
-                  <p className="truncate text-xs text-muted-foreground">{f.correoPrincipal}</p>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge variant="alerta">Sin confirmar</Badge>
-                    <span className="truncate text-xs">{f.correoSinConfirmar}</span>
-                  </div>
+                  {/* Lado a lado y con la razón, para decidir aquí sin buscar a nadie (A-12, P-1). */}
+                  <dl className="grid gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+                    <div className="min-w-0">
+                      <dt className="text-muted-foreground">Correo principal</dt>
+                      <dd className="break-all">{f.correoPrincipal}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="flex items-center gap-1.5 text-muted-foreground">
+                        Correo nuevo <Badge variant="alerta">Sin confirmar</Badge>
+                      </dt>
+                      <dd className="break-all">{f.correoSinConfirmar}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-muted-foreground">Teléfono en común</dt>
+                      <dd className="cifra">{f.telefonoEnComun ?? "—"}</dd>
+                    </div>
+                  </dl>
                 </div>
                 {f.puedeGestionar ? (
                   porSeparar === f.contactoId ? (
