@@ -1,9 +1,8 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, is, SQL } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
 import { changeLog } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
-import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { textoDeBitacora } from "@/lib/db/texto-de-bitacora";
 
@@ -115,13 +114,16 @@ export async function crearConRastro(
     ([campo, valor]) => campo !== "id" && valor !== null && valor !== undefined,
   );
 
-  // La bitacora va en UN insert de varias filas: una consulta por campo eran diez viajes a
-  // la base por alta.
-  const bitacora = aRegistrar.map(([campo, valor]) => filaDeBitacora(nombreTabla, actorId, id, etiqueta, campo, valor));
-  await ejecutarJuntas(db, (tx) => [
-    (tx as Db).insert(tabla as never).values({ id, ...valores } as never),
-    ...(bitacora.length > 0 ? [(tx as Db).insert(changeLog).values(bitacora)] : []),
-  ]);
+  await (db as { transaction: (fn: (tx: Db) => Promise<void>) => Promise<void> }).transaction(async (tx) => {
+    const insertadas = await tx.insert(tabla as never).values({ id, ...valores } as never).returning() as unknown as Record<string, unknown>[];
+    const fila = insertadas[0];
+    // Una expresión SQL describe cómo escribir, no qué quedó escrito. La bitácora guarda
+    // siempre el valor materializado que devolvió la misma escritura.
+    const bitacora = aRegistrar.map(([campo, valor]) =>
+      filaDeBitacora(nombreTabla, actorId, id, etiqueta, campo, is(valor, SQL) ? fila[campo] : valor),
+    );
+    if (bitacora.length > 0) await tx.insert(changeLog).values(bitacora);
+  });
 
   return id;
 }
@@ -243,28 +245,30 @@ export async function editarConRastro(
   if (!actual) throw new ErrorDeApp("No existe el registro que se quiere editar.", 404);
 
   const cambiados = Object.entries(valores).filter(
-    ([campo, valor]) => aTexto(actual[campo]) !== aTexto(valor),
+    ([campo, valor]) => is(valor, SQL) || aTexto(actual[campo]) !== aTexto(valor),
   );
   if (cambiados.length === 0) return false;
 
-  await ejecutarJuntas(db, (tx) => [
-    (tx as Db)
+  await (db as { transaction: (fn: (tx: Db) => Promise<void>) => Promise<void> }).transaction(async (tx) => {
+    const actualizadas = await (tx as Db)
       .update(tabla as never)
       .set(valores as never)
-      .where(eq(idCol, id)),
-    ...cambiados.map(([campo, valor]) =>
-      (tx as Db).insert(changeLog).values({
+      .where(eq(idCol, id))
+      .returning() as unknown as Record<string, unknown>[];
+    const fila = actualizadas[0];
+    await tx.insert(changeLog).values(
+      cambiados.map(([campo, valor]) => ({
         tabla: nombreTabla,
         registroId: id,
         etiqueta,
         campo,
         valorAnterior: aTexto(actual[campo]),
-        valorNuevo: aTexto(valor),
+        valorNuevo: aTexto(is(valor, SQL) ? fila[campo] : valor),
         origen: "app" as const,
         userId: actorId,
-      }),
-    ),
-  ]);
+      })),
+    );
+  });
 
   return true;
 }

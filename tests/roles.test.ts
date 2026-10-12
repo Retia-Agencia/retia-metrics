@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esAdministrador, etiquetaDeRol, manejaPauta, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veEquipoComercial, veTableroDelPrograma, configuraPrograma } from "@/lib/auth/roles";
+import { esAdministrador, etiquetaDeRol, manejaPauta, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veDetalleTecnico, veEquipoComercial, veTableroDelPrograma, configuraPrograma } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
@@ -16,6 +16,17 @@ describe("trabajaLeads", () => {
   it("sin rol no trabaja leads", () => {
     expect(trabajaLeads(null)).toBe(false);
     expect(trabajaLeads(undefined)).toBe(false);
+  });
+});
+
+describe("veDetalleTecnico", () => {
+  it("solo el developer ve columnas y valores internos", () => {
+    expect(veDetalleTecnico("developer")).toBe(true);
+    expect(veDetalleTecnico("gerente")).toBe(false);
+    expect(veDetalleTecnico("closer")).toBe(false);
+    expect(veDetalleTecnico("paid_trafficker")).toBe(false);
+    expect(veDetalleTecnico("customer_success")).toBe(false);
+    expect(veDetalleTecnico(null)).toBe(false);
   });
 });
 

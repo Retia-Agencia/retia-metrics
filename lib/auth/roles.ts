@@ -60,6 +60,11 @@ export function esAccesoTotal(rol: Rol | undefined | null): boolean {
   return rol === "developer";
 }
 
+/** Quien ve nombres de columnas y valores internos en la bitácora del CRM. */
+export function veDetalleTecnico(rol: Rol | undefined | null): boolean {
+  return esAccesoTotal(rol);
+}
+
 /**
  * Quien administra la app. Es OTRA pregunta que `esAccesoTotal`, aunque hoy el
  * developer responda que si a las dos: "pasa toda guarda" lo cumple solo el

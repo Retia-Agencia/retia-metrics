@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
+import { esAdministrador, esRolValido, trabajaLeads, veDetalleTecnico } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { aceptaAbono, ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
@@ -54,7 +54,7 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa || !ES_UUID.test(id) || !esRolValido(rol)) notFound();
 
-  const ficha = await fichaDeDeal(db, programa.id, id);
+  const ficha = await fichaDeDeal(db, programa.id, id, veDetalleTecnico(rol));
   if (!ficha) notFound();
   const alcanceDeals = await alcanceDeDeals(session);
   if (!dealVisiblePara(alcanceDeals, ficha.owner?.id ?? null)) notFound();

@@ -17,11 +17,11 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA, siguientesDe, transicion, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
+import { ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE, siguientesDe, transicion, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
 import { leerHechos } from "@/lib/deals/mover-etapa";
 import { propiedadesQueLeFaltan, queLeFalta, type RequisitoFaltante } from "@/lib/deals/requisitos";
 import { fechaLimiteMaxima } from "@/lib/deals/pago";
-import { fecha, hoyEnBogota } from "@/lib/format";
+import { fecha, fechaHoraEnBogota, hoyEnBogota } from "@/lib/format";
 import { disponibilidadParaMarcarAtendida } from "@/lib/queries/disponibilidad-de-llamada";
 import { duenosPosibles } from "@/lib/deals/duenos";
 import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
@@ -123,8 +123,35 @@ export type FichaDeEvento =
       tipo: "cambio";
       tabla: string;
       accion: "creado" | "editado";
-      campos: { campo: string; valorAnterior: string | null; valorNuevo: string | null }[];
+      titulo?: string;
+      campos: { campo: string; etiqueta?: string; valorAnterior: string | null; valorNuevo: string | null }[];
     });
+
+const ETIQUETA_CAMPO: Readonly<Record<string, string>> = {
+  etapa: "Etapa", pendiente: "Pendiente", ownerUserId: "Dueño", owner_user_id: "Dueño",
+  setterUserId: "Setter", setter_user_id: "Setter", cohortId: "Cohorte", cohort_id: "Cohorte",
+  monto: "Monto", moneda: "Moneda", fecha: "Fecha", origen: "Origen",
+  fechaAgenda: "Fecha de la cita", fecha_agenda: "Fecha de la cita",
+  fechaLlamada: "Fecha de la llamada", fecha_llamada: "Fecha de la llamada", resultado: "Resultado",
+  linkGrain: "Link de Grain", link_grain: "Link de Grain", linkCalendly: "Link de Calendly",
+  link_calendly: "Link de Calendly", comprobanteUrl: "Comprobante", comprobante_url: "Comprobante",
+  descuentoUsd: "Descuento (USD)", descuento_usd: "Descuento (USD)", fechaLimitePago: "Fecha límite de pago",
+  fecha_limite_pago: "Fecha límite de pago", fechaSeguimiento: "Fecha de seguimiento",
+  fecha_seguimiento: "Fecha de seguimiento", motivoId: "Motivo", motivo_id: "Motivo", nota: "Nota",
+  notas: "Notas", acuerdoPago: "Acuerdo de pago", acuerdo_pago: "Acuerdo de pago", tipo: "Tipo",
+  canal: "Canal", proximoContacto: "Próximo contacto", proximo_contacto: "Próximo contacto",
+  pendientePuesto: "Pendiente", pendiente_puesto: "Pendiente", valorVendidoUsd: "Valor vendido (USD)",
+  valor_vendido_usd: "Valor vendido (USD)", cortesia: "Cortesía",
+};
+
+const CAMPOS_USUARIO = new Set(["ownerUserId", "owner_user_id", "setterUserId", "setter_user_id"]);
+const CAMPOS_COHORTE = new Set(["cohortId", "cohort_id"]);
+const CAMPOS_MOTIVO = new Set(["motivoId", "motivo_id"]);
+const CAMPOS_FECHA = new Set([
+  "fecha", "fechaAgenda", "fecha_agenda", "fechaLlamada", "fecha_llamada", "fechaLimitePago", "fecha_limite_pago",
+  "fechaSeguimiento", "fecha_seguimiento", "proximoContacto", "proximo_contacto",
+]);
+const UUID_DE_BITACORA = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function respuestaLegible(valor: unknown): string | null {
   if (valor === null || valor === "") return null;
@@ -379,7 +406,7 @@ function fechaDeLlamada(c: { fechaAgenda: Date | null; fechaLlamada: Date | null
 }
 
 /** La ficha de un deal de ESTE programa, o `null` si no existe o es de otro. */
-export async function fichaDeDeal(db: Db, programId: string, dealId: string): Promise<FichaDeDeal | null> {
+export async function fichaDeDeal(db: Db, programId: string, dealId: string, detalleTecnico = true): Promise<FichaDeDeal | null> {
   // El deal + su lead: joins directos. `incluyendoAnulados`: la ficha de un deal anulado se
   // abre (dice que esta anulado); es una fila por su id, no una metrica.
   const [fila] = await db
@@ -457,6 +484,11 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
   actividadesFilas.forEach((a) => sumar(a.userId));
   historialFilas.forEach((h) => sumar(h.userId));
   cambiosFilas.forEach((c) => sumar(c.userId));
+  cambiosFilas.forEach((c) => {
+    if (!CAMPOS_USUARIO.has(c.campo)) return;
+    if (c.valorAnterior && UUID_DE_BITACORA.test(c.valorAnterior)) sumar(c.valorAnterior);
+    if (c.valorNuevo && UUID_DE_BITACORA.test(c.valorNuevo)) sumar(c.valorNuevo);
+  });
   const nombres = new Map<string, string | null>();
   if (idsDeUsuarios.size > 0) {
     const us = await db
@@ -508,13 +540,48 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
     });
   }
 
-  const idsDeCohortes = [deal.cohortId, deal.cohorteDestinoId].filter((x): x is string => x != null);
+  const idsDeCohortes = [
+    deal.cohortId,
+    deal.cohorteDestinoId,
+    ...cambiosFilas.flatMap((c) => CAMPOS_COHORTE.has(c.campo) ? [c.valorAnterior, c.valorNuevo] : []),
+  ].filter((x): x is string => x != null && UUID_DE_BITACORA.test(x));
   const cohortesFilas = idsDeCohortes.length > 0 ? await db.select().from(cohorts).where(inArray(cohorts.id, idsDeCohortes)) : [];
   const cohorteDeId = (id: string | null) => cohortesFilas.find((c) => c.id === id) ?? null;
 
-  const idsDeMotivos = [deal.motivoId, ...historialFilas.map((h) => h.motivoId)].filter((x): x is string => x != null);
+  const idsDeMotivos = [
+    deal.motivoId,
+    ...historialFilas.map((h) => h.motivoId),
+    ...cambiosFilas.flatMap((c) => CAMPOS_MOTIVO.has(c.campo) ? [c.valorAnterior, c.valorNuevo] : []),
+  ].filter((x): x is string => x != null && UUID_DE_BITACORA.test(x));
   const motivosFilas = idsDeMotivos.length > 0 ? await db.select().from(motivos).where(inArray(motivos.id, idsDeMotivos)) : [];
   const nombreDeMotivo = (id: string | null) => motivosFilas.find((m) => m.id === id)?.nombre ?? null;
+
+  const valorLegible = (campo: string, valor: string | null): string | null => {
+    if (valor === null) return null;
+    if (CAMPOS_USUARIO.has(campo)) return nombreDe(valor) ?? "—";
+    if (CAMPOS_COHORTE.has(campo)) return cohorteDeId(valor)?.codigo ?? "—";
+    if (CAMPOS_MOTIVO.has(campo)) return nombreDeMotivo(valor) ?? "—";
+    if (campo === "etapa" && valor in NOMBRE_DE_ETAPA) return NOMBRE_DE_ETAPA[valor as EtapaDeal];
+    if ((campo === "pendiente" || campo === "pendientePuesto" || campo === "pendiente_puesto") && valor in NOMBRE_DE_PENDIENTE) {
+      return NOMBRE_DE_PENDIENTE[valor as PendienteDeal];
+    }
+    if (CAMPOS_FECHA.has(campo) && !Number.isNaN(new Date(valor).getTime())) return fechaHoraEnBogota(valor);
+    return valor;
+  };
+
+  const cambiosParaVista = detalleTecnico
+    ? [...cambiosAgrupados.values()]
+    : [...cambiosAgrupados.values()].flatMap((evento) => {
+        const campos = evento.campos.flatMap((campo) => {
+          const etiqueta = ETIQUETA_CAMPO[campo.campo];
+          return etiqueta
+            ? [{ ...campo, etiqueta, valorAnterior: valorLegible(campo.campo, campo.valorAnterior), valorNuevo: valorLegible(campo.campo, campo.valorNuevo) }]
+            : [];
+        });
+        if (campos.length === 0) return [];
+        const cambioDeDueno = evento.accion === "editado" && campos.some((campo) => campo.campo === "ownerUserId" || campo.campo === "owner_user_id");
+        return [{ ...evento, campos, titulo: cambioDeDueno ? "Cambio de dueño" : undefined }];
+      });
 
   const idsDePlataformas = abonosFilas.map((a) => a.plataformaId).filter((x): x is string => x != null);
   const plataformasFilas =
@@ -655,7 +722,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
         porNombre: nombreDe(h.userId),
         motivoNombre: nombreDeMotivo(h.motivoId),
       })),
-      ...cambiosAgrupados.values(),
+      ...cambiosParaVista,
     ].sort((a, b) => b.fecha.getTime() - a.fecha.getTime()),
     enlacesDePago,
   };
