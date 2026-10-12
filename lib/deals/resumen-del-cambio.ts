@@ -17,6 +17,7 @@ export interface CambioHecho {
   fechaPendiente?: string | null;
   llamadaCreada?: { fecha: Date } | null;
   abonoRegistrado?: { monto: number; moneda: string } | null;
+  cohorteCambiada?: { de: string; a: string } | null;
 }
 
 /**
@@ -30,6 +31,10 @@ export function resumenDelCambio(c: CambioHecho): string[] {
 
   if (c.etapaDespues !== c.etapaAntes) {
     lineas.push(`El deal pasó a ${NOMBRE_DE_ETAPA[c.etapaDespues]}.`);
+  }
+
+  if (c.cohorteCambiada) {
+    lineas.push(`Cohorte cambiada: ${c.cohorteCambiada.de} → ${c.cohorteCambiada.a}.`);
   }
 
   if (c.pendienteDespues !== null && c.pendienteDespues !== c.pendienteAntes) {

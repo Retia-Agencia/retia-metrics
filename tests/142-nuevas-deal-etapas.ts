@@ -9,7 +9,6 @@ import {
   TRANSICIONES_PENDIENTE,
   transicion,
   transicionPendiente,
-  transicionRetomar,
   unaCitaMueveAAgendado,
   type PendienteDeal,
 } from "@/lib/deals/etapas";
@@ -37,13 +36,11 @@ describe("etapas 30X", () => {
     expect(transicion("potencial", "ganado_completo")).toBeNull();
   });
 
-  it("contiene todas las flechas que ponen pendiente y RET solo quita Próxima Cohorte", () => {
+  it("contiene todas las flechas que ponen pendiente; RET ya no existe", () => {
     expect(new Set(TRANSICIONES_PENDIENTE.map((t) => t.id))).toEqual(new Set(["PR1", "PR2", "PS1", "PS2", "PS3", "PC"]));
     for (const t of TRANSICIONES_PENDIENTE) expect(transicionPendiente(t.etapa, t.pone!)).toEqual(t);
     expect(new Set(TRANSICIONES_PENDIENTE.map((t) => `${t.etapa}>${t.pone}`)).size).toBe(TRANSICIONES_PENDIENTE.length);
     expect(transicionPendiente("potencial", "reagenda")).toBeNull();
-    expect(transicionRetomar("calificado", "proxima_cohorte")).toMatchObject({ id: "RET", pone: null });
-    expect(transicionRetomar("calificado", "seguimiento")).toBeNull();
   });
 });
 

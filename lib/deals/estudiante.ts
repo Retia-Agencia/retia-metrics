@@ -1,16 +1,16 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { cohorts, dealActividades, deals, leads } from "@/lib/db/schema";
+import { cohorts, deals, leads } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import type { Rol } from "@/lib/auth/roles";
 import { programaEnAlcance } from "@/lib/auth/alcance";
-import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
+import { editarConRastro } from "@/lib/crm/rastro";
 import { cohortesVendiendo } from "@/lib/cohortes/vendiendo";
 import { hoyEnBogota } from "@/lib/format";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
-import { fechaLimiteMaxima } from "./pago";
+import { cambiarCohorteDelDeal } from "./cambiar-cohorte";
 import { puedeMarcarOnboarding, puedeTrabajarDeal } from "./permiso";
 
 /**
@@ -134,6 +134,8 @@ export type DatosCambiarCohorte = z.input<typeof esquemaCambiarCohorte>;
 export interface CohorteCambiada {
   /** La fecha límite de pago se corrigió porque pasaba del inicio de clases de la cohorte nueva. */
   fechaLimiteAjustada: string | null;
+  origenCodigo: string;
+  destinoCodigo: string;
 }
 
 /**
@@ -173,37 +175,13 @@ export async function cambiarCohorte(db: Db, actor: ActorDeEstudiante, datos: Da
         }
       }
 
-      let origen = "sin cohorte";
-      if (deal.cohortId) {
-        const [o] = await tx.select({ codigo: cohorts.codigo }).from(cohorts).where(eq(cohorts.id, deal.cohortId));
-        origen = o?.codigo ?? origen;
-      }
-
-      const cambios: Record<string, unknown> = { cohortId: destino.id };
-      let fechaLimiteAjustada: string | null = null;
-      const maxima = await fechaLimiteMaxima(tx, { programId: deal.programId, cohortId: destino.id });
-      if (deal.fechaLimitePago != null && maxima != null && deal.fechaLimitePago > maxima) {
-        cambios.fechaLimitePago = maxima;
-        fechaLimiteAjustada = maxima;
-      }
-
-      await editarConRastro(
-        { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: emailLead },
-        deal.id,
-        cambios,
-      );
-      await crearConRastro(
-        { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: actor.userId, etiqueta: emailLead },
-        {
-          dealId: deal.id,
-          tipo: "nota",
-          userId: actor.userId,
-          nota:
-            `Cambio de cohorte: ${origen} → ${destino.codigo}. ${motivo}` +
-            (fechaLimiteAjustada ? ` (La fecha límite de pago pasó de ${deal.fechaLimitePago} a ${fechaLimiteAjustada}, el inicio de clases.)` : ""),
-        },
-      );
-      return { fechaLimiteAjustada };
+      return cambiarCohorteDelDeal(tx, {
+        deal,
+        destino,
+        actorId: actor.userId,
+        etiqueta: emailLead,
+        nota: (origen, codigoDestino) => `Cambio de cohorte: ${origen} → ${codigoDestino}. ${motivo}`,
+      });
     });
   });
 }

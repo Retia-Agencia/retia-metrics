@@ -26,7 +26,7 @@ describe("mapaDeTransiciones", () => {
     expect(() => JSON.stringify(MAPA)).not.toThrow();
   });
 
-  it("incluye flechas de etapa y de pendiente; RET no, porque es automática", () => {
+  it("incluye flechas de etapa y de pendiente; RET fue retirada", () => {
     expect(new Set(MAPA.map((f) => f.tipo))).toEqual(new Set(["etapa", "pendiente"]));
     expect(new Set(MAPA.filter((f) => f.tipo === "pendiente").map((f) => f.id))).toEqual(
       new Set(["PR1", "PR2", "PS1", "PS2", "PS3", "PC"]),

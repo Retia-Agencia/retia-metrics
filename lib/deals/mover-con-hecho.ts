@@ -162,7 +162,7 @@ export async function moverConHecho(
     if (!actual) throw new ErrorDeApp("No existe el deal.", 404);
     // El hecho puede haber dejado el deal donde se pedía (Show → Atendido, abono → Ganado).
     // Si no, el motor toma la flecha; también cuando solo cambia el PENDIENTE en la misma
-    // etapa (PR2 pone Re-agenda, RET quita Próxima Cohorte): comparar solo la etapa la saltaría.
+    // etapa (PR2 pone Re-agenda): comparar solo la etapa la saltaría.
     if (actual.etapa !== entrada.a || actual.pendiente !== (entrada.pendiente ?? null)) {
       await moverEtapa(tx, {
         dealId: inicial.id,

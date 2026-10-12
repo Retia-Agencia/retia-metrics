@@ -313,6 +313,26 @@ export async function anotarAccion(
   });
 }
 
+const esquemaProximaCohorte = z.object({
+  dealId: id("Deal inválido."),
+  cohortId: id("Cohorte inválida."),
+});
+
+/** La respuesta "Próxima cohorte" cambia la cohorte ya; no pasa por el motor de etapas. */
+export async function proximaCohorteAccion(
+  entrada: z.input<typeof esquemaProximaCohorte>,
+): Promise<ResultadoFicha<{ resumen: string[] }>> {
+  return correr(async (ctx) => {
+    const { dealId, cohortId } = esquemaProximaCohorte.parse(entrada);
+    await exigirDealVisible(ctx, dealId);
+    const { cambio } = await anotar(db, ctx.actor, {
+      dealId,
+      proximaCohorte: { cohorteDestinoId: cohortId },
+    });
+    return { resumen: resumenDelCambio(cambio) };
+  });
+}
+
 const esquemaActividad = z.object({
   dealId: id("Deal inválido."),
   tipo: z.enum(["contacto", "nota"]),

@@ -190,7 +190,7 @@ export interface FichaDeDeal {
   /** `inicioClases`: nulo si la cohorte futura esta "por definir" (ticket 227). */
   cohorte: { id: string; codigo: string; inicioClases: string | null } | null;
   cohortesVendiendoHoy: { id: string; codigo: string }[];
-  /** `inicioVentas`: desde cuándo un contacto retoma un Próxima Cohorte (RET). */
+  /** Destino legado de un pendiente Próxima Cohorte anterior al ticket 231. */
   cohorteDestino: { id: string; codigo: string; inicioVentas: string | null } | null;
   acuerdoPago: string | null;
   fechaLimitePago: string | null;

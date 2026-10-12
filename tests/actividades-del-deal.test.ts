@@ -106,14 +106,14 @@ describe("registrarActividad", () => {
     expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, deal.id))).toHaveLength(1);
   });
 
-  it("retoma con un contacto cuando ya inicio la venta de la destino", async () => {
-    const { deal, destino } = await enProximaCohorte("2000-01-01");
+  it("un contacto ya no ejecuta la mudanza diferida RET", async () => {
+    const { deal, actual } = await enProximaCohorte("2000-01-01");
 
     await registrarActividad(db, actor(), { dealId: deal.id, tipo: "contacto", canal: "WhatsApp", nota: "Respondió" });
 
     expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0]).toMatchObject({
-      cohortId: destino.id,
-      pendiente: null,
+      cohortId: actual.id,
+      pendiente: "proxima_cohorte",
     });
   });
 

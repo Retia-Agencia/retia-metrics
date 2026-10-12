@@ -193,9 +193,9 @@ Los pendientes son tres (ADR 0070, ampliado por ADR 0072):
 |---|---|---|---|---|
 | Re-agenda | la cita falló o hace falta otra llamada | Calendly en Agendado; el dueño en Atendido con motivo | una cita nueva lleva el deal a Agendado | `alerta` |
 | Seguimiento | hay que volver a contactar en una fecha | el dueño en Calificado, Atendido o Compromiso Verbal; también el retroceso | un cambio de etapa o un hecho que retoma el deal | `info` |
-| Próxima Cohorte | espera una cohorte destino | el dueño en setteo, Agendado, Atendido o Compromiso Verbal | un contacto desde el inicio de ventas de la cohorte destino (RET), o cualquier cambio de etapa salvo Cierre perdido: muda la cohorte, con su `change_log` | `neutro` |
+| Próxima Cohorte | valor legado: los deals que ya lo tenían lo siguen mostrando hasta sanearlos | nadie lo pone desde la app | el saneamiento muda el deal a `cohorte_destino_id` y lo limpia con `change_log` | `neutro` |
 
-Poner un pendiente no cambia la etapa. Todo cambio de etapa lo limpia por defecto. Re-agenda guarda el resultado de la llamada; Seguimiento exige fecha; Próxima Cohorte exige una cohorte destino del mismo programa. No hay reloj que los quite: lo vencido aparece como alerta al leer (ADR 0070).
+Poner un pendiente no cambia la etapa. Todo cambio de etapa lo limpia por defecto. Re-agenda guarda el resultado de la llamada y Seguimiento exige fecha. Desde el ticket 231, elegir **Próxima cohorte** ya no pone un pendiente: cambia `cohort_id` en el acto a una cohorte futura del mismo programa, conserva la etapa y deja `change_log` y nota del sistema. El enum y `cohorte_destino_id` se conservan solo para leer y sanear filas anteriores. No hay reloj que quite los otros pendientes: lo vencido aparece como alerta al leer (ADR 0070).
 
 ### 3.1 La tabla de transiciones
 
@@ -233,8 +233,9 @@ Poner un pendiente no cambia la etapa. Todo cambio de etapa lo limpia por defect
 | PS1 | Atendido | Seguimiento | closer | fecha de seguimiento |
 | PS2 | Calificado | Seguimiento | closer | contacto previo y fecha |
 | PS3 | Compromiso Verbal | Seguimiento | closer | fecha de seguimiento |
-| PC | setteo, Agendado, Atendido o Compromiso Verbal | Próxima Cohorte | closer | cohorte destino |
-| RET | cualquier etapa con Próxima Cohorte | ninguno | sistema | un contacto registrado desde el inicio de ventas de la cohorte destino |
+| PC | setteo, Agendado, Atendido o Compromiso Verbal | ninguno | closer | cambia la cohorte inmediatamente a una futura del mismo programa; no cambia la etapa |
+
+PC ya no es una flecha del motor aunque conserva su id de negocio en la pregunta de la etapa. RET se retiró: no existe una mudanza diferida por contacto.
 
 CORR es una flecha sintética y no una fila de `TRANSICIONES`: su destino es dinámico y sale de la última fila del historial. Solo aparece si esa fila la hizo una persona, tiene origen, coincide con la etapa actual y no fue otra corrección (ADR 0078).
 

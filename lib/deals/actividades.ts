@@ -7,7 +7,7 @@ import { crearConRastro } from "@/lib/crm/rastro";
 import { trabajaLeads } from "@/lib/auth/roles";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
-import { moverEtapa, MovimientoRechazado } from "./mover-etapa";
+import { moverEtapa } from "./mover-etapa";
 import { etapaTrasActividad } from "./actividad-mueve";
 import { cambiarDuenoDeal } from "./cambiar-dueno";
 
@@ -77,31 +77,16 @@ export async function registrarActividad(db: Db, actor: ActorDeDeal, datos: Dato
       );
 
       let etapa = deal.etapa;
-      let pendiente = deal.pendiente;
       const sistema = { tipo: "sistema", porUsuario: actor.userId } as const;
       // A dónde va lo decide `etapaTrasActividad`, la misma regla con la que la ficha lo explica.
       const destino = etapaTrasActividad(etapa, tipo);
       if (destino !== etapa && etapa !== "en_gestion") {
         const hecho = await moverEtapa(tx, { dealId: deal.id, a: "en_gestion", actor: sistema });
         etapa = hecho.a;
-        pendiente = hecho.pendienteA;
       }
       if (destino === "contactado" && etapa === "en_gestion") {
         const hecho = await moverEtapa(tx, { dealId: deal.id, a: "contactado", actor: sistema });
         etapa = hecho.a;
-        pendiente = hecho.pendienteA;
-      }
-      if (tipo === "contacto" && pendiente === "proxima_cohorte") {
-        try {
-          await (tx as unknown as Transaccion).transaction(async (sp) =>
-            moverEtapa(sp, { dealId: deal.id, a: etapa, pendiente: null, actor: sistema }),
-          );
-        } catch (error) {
-          // ADR 0070 / A-49: el contacto queda, aunque aún no habilite retomar la cohorte.
-          if (!(error instanceof MovimientoRechazado && error.faltantes.every((f) => f.codigo === "contacto"))) {
-            throw error;
-          }
-        }
       }
       return actividadId;
     });

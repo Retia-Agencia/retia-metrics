@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
   calls,
+  changeLog,
   cohorts,
   dealActividades,
+  dealEtapaHistorial,
   deals,
   leads,
   motivos,
@@ -16,6 +18,7 @@ import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
 import { ErrorDeApp } from "@/lib/errors";
+import { ventasPorCohorte } from "@/lib/queries/dashboard";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -178,17 +181,83 @@ describe("anotar", () => {
     expect(resumenDelCambio(resultado.cambio).some((linea) => linea.startsWith("Quedó en Seguimiento hasta el"))).toBe(true);
   });
 
-  it("con la opción de cohorte deja Próxima Cohorte y su destino", async () => {
+  it("Próxima cohorte cambia cohort_id ya, conserva etapa y deja rastro, nota y aviso", async () => {
     const deal = await nuevoDeal("contactado");
-    await anotar(db, actor(), {
+    const resultado = await anotar(db, actor(), {
       dealId: deal.id,
       proximaCohorte: { cohorteDestinoId },
     });
     expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0]).toMatchObject({
       etapa: "contactado",
-      pendiente: "proxima_cohorte",
-      cohorteDestinoId,
+      cohortId: cohorteDestinoId,
+      pendiente: null,
+      cohorteDestinoId: null,
     });
+    expect(resumenDelCambio(resultado.cambio)).toEqual(["Cohorte cambiada: C1 → C2."]);
+    expect(await db.select().from(changeLog).where(eq(changeLog.registroId, deal.id))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ campo: "cohortId", valorAnterior: cohortId, valorNuevo: cohorteDestinoId })]),
+    );
+    expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, deal.id))).toEqual([
+      expect.objectContaining({
+        userId: null,
+        nota: "Cohorte cambiada por Próxima cohorte: C1 → C2. El deal ya cuenta en C2.",
+      }),
+    ]);
+  });
+
+  it("Próxima cohorte rechaza una cohorte no futura o de otro programa", async () => {
+    const deal = await nuevoDeal("contactado");
+    await expect(anotar(db, actor(), {
+      dealId: deal.id,
+      proximaCohorte: { cohorteDestinoId: cohortId },
+    })).rejects.toThrow("distinta a la actual");
+
+    const [programaAjeno] = await db.insert(programs).values({
+      ...PROGRAMA_DE_PRUEBA,
+      slug: "anotar-ajeno",
+      nombre: "Anotar ajeno",
+      ticketUsd: "1500",
+    }).returning();
+    const [ajena] = await db.insert(cohorts).values({
+      programId: programaAjeno.id,
+      codigo: "A1",
+      metaCupos: 10,
+      precioUsd: "1500",
+      estado: "futuro",
+    }).returning();
+    await expect(anotar(db, actor(), {
+      dealId: deal.id,
+      proximaCohorte: { cohorteDestinoId: ajena.id },
+    })).rejects.toThrow("otro programa");
+
+    const [activaDistinta] = await db.insert(cohorts).values({
+      programId,
+      codigo: "C0",
+      metaCupos: 10,
+      precioUsd: "1000",
+      fechaInicioClases: "2026-08-01",
+      fechaInicioVentas: "2026-07-01",
+      fechaCierreVentas: "2026-07-31",
+      estado: "cerrado",
+    }).returning();
+    await expect(anotar(db, actor(), {
+      dealId: deal.id,
+      proximaCohorte: { cohorteDestinoId: activaDistinta.id },
+    })).rejects.toThrow("solo admite una cohorte futura");
+  });
+
+  it("las métricas de cohorte cuentan la venta solo en la cohorte nueva", async () => {
+    const deal = await nuevoDeal("contactado");
+    await anotar(db, actor(), { dealId: deal.id, proximaCohorte: { cohorteDestinoId } });
+    await db.update(deals).set({ etapa: "ganado_parcial" }).where(eq(deals.id, deal.id));
+    await db.insert(dealEtapaHistorial).values({ dealId: deal.id, de: "contactado", a: "ganado_parcial" });
+
+    const metricas = await ventasPorCohorte({
+      programId,
+      rango: { desde: "2020-01-01", hasta: "2099-12-31" },
+    }, db);
+    expect(metricas.find((fila) => fila.cohorteId === cohortId)?.ventas ?? 0).toBe(0);
+    expect(metricas.find((fila) => fila.cohorteId === cohorteDestinoId)?.ventas).toBe(1);
   });
 
   it("en Agendado sin fecha marca no-show y deja Re-agenda", async () => {
@@ -243,7 +312,7 @@ describe("anotar", () => {
     expect(r2.etapaDespues).toBe("potencial");
     expect((await db.select().from(deals).where(eq(deals.id, potencial.id)))[0].etapa).toBe("potencial");
 
-    // Tampoco mueve cuando deja el pendiente Próxima Cohorte: sigue en su etapa.
+    // Tampoco mueve de etapa cuando cambia a Próxima Cohorte.
     const conPendiente = await nuevoDeal("potencial");
     const r3 = await anotar(db, actor(), {
       dealId: conPendiente.id,
@@ -251,9 +320,9 @@ describe("anotar", () => {
       proximaCohorte: { cohorteDestinoId },
     });
     expect(r3.etapaDespues).toBe("potencial");
-    const filaPendiente = (await db.select().from(deals).where(eq(deals.id, conPendiente.id)))[0];
-    expect(filaPendiente.etapa).toBe("potencial");
-    expect(filaPendiente.pendiente).toBe("proxima_cohorte");
+    const filaCambiada = (await db.select().from(deals).where(eq(deals.id, conPendiente.id)))[0];
+    expect(filaCambiada.etapa).toBe("potencial");
+    expect(filaCambiada).toMatchObject({ cohortId: cohorteDestinoId, pendiente: null, cohorteDestinoId: null });
   });
 
   it("una nota del sistema no cuenta como actividad comercial", async () => {

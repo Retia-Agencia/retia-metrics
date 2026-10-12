@@ -104,7 +104,6 @@ function requisitosDe(t: FlechaConRequisitos): CodigoReal[] {
     case "PR1": requisitos = ["llamada_fallida"]; break;
     case "PS1": case "PS3": requisitos = ["fecha_seguimiento"]; break;
     case "PC": requisitos = ["cohorte_destino"]; break;
-    case "RET": requisitos = ["contacto"]; break;
     default: requisitos = [];
   }
   return requisitos;
@@ -118,11 +117,6 @@ export function queLeFaltaTransicion(t: FlechaConRequisitos, hechos: HechosDelDe
   const codigos: CodigoReal[] = requisitosDe(t);
   if (t.exigeMotivo) codigos.push("motivo");
   return codigos.filter((c) => {
-    if (t.id === "RET" && c === "contacto") {
-      if (!hechos.fechaUltimoContacto || !hechos.fechaInicioVentasCohorteDestino) return true;
-      const inicio = new Date(`${hechos.fechaInicioVentasCohorteDestino}T00:00:00-05:00`);
-      return hechos.fechaUltimoContacto < inicio;
-    }
     return !CUMPLE[c](hechos as HechosEvaluables, true);
   }).map((codigo) => ({ codigo, mensaje: MENSAJES[codigo] }));
 }

@@ -27,7 +27,6 @@ import {
   FLECHA_CORRECCION,
   transicion,
   transicionPendiente,
-  transicionRetomar,
   type EtapaDeal,
   type FlechaBase,
   type FlechaCorreccion,
@@ -148,9 +147,8 @@ type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> 
  * Qué flecha toma un movimiento y con qué pendiente queda el deal. Pura: la usan
  * `moverEtapa` y `revisarMovimiento`, así que la vista previa y el motor no pueden
  * resolver distinto. Si `a` es otra etapa, es una flecha de etapa (el pendiente queda
- * nulo, salvo RETRO, que deja Seguimiento, y R a En gestión con Próxima Cohorte). Si es
- * la misma etapa con un pendiente, es una flecha de pendiente. Si es la misma sin
- * pendiente, solo E7 (Agendado) o RET.
+ * nulo, salvo RETRO, que deja Seguimiento). Si es la misma etapa con un pendiente,
+ * es una flecha de pendiente. Si es la misma sin pendiente, solo E7 (Agendado).
  */
 export function resolverTransicion(
   de: EtapaDeal,
@@ -161,13 +159,54 @@ export function resolverTransicion(
   if (a !== de) {
     const t = transicion(de, a);
     if (t?.id === "RETRO") return { transicion: t, pendienteA: "seguimiento" };
-    if (t?.id === "R" && a === "en_gestion" && pendiente === "proxima_cohorte") {
-      return { transicion: t, pendienteA: "proxima_cohorte" };
-    }
     return { transicion: t, pendienteA: null };
   }
   if (pendiente != null) return { transicion: transicionPendiente(de, pendiente), pendienteA: pendiente };
-  return { transicion: de === "agendado" ? transicion(de, de) : transicionRetomar(de, pendienteDe), pendienteA: null };
+  return { transicion: de === "agendado" ? transicion(de, de) : null, pendienteA: null };
+}
+
+/**
+ * Limpia el pendiente que deja de existir al cambiar de cohorte en el acto (ticket 231).
+ * Vive en el motor porque `pendiente` es estado del deal; deja el diff en `change_log`
+ * sin fabricar una transición RET ni cambiar la etapa.
+ */
+export async function limpiarPendientePorCambioDeCohorte(
+  tx: Db,
+  deal: FilaDeal,
+  actorId: string,
+  etiqueta: string,
+): Promise<void> {
+  if (deal.pendiente == null && deal.cohorteDestinoId == null) return;
+  await tx
+    .update(deals)
+    .set({ pendiente: null, cohorteDestinoId: null, updatedAt: new Date() })
+    .where(eq(deals.id, deal.id));
+  await tx.insert(changeLog).values([
+    ...(deal.pendiente != null
+      ? [{
+          tabla: "deals",
+          registroId: deal.id,
+          etiqueta,
+          campo: "pendiente",
+          valorAnterior: deal.pendiente,
+          valorNuevo: null,
+          origen: "app" as const,
+          userId: actorId,
+        }]
+      : []),
+    ...(deal.cohorteDestinoId != null
+      ? [{
+          tabla: "deals",
+          registroId: deal.id,
+          etiqueta,
+          campo: "cohorteDestinoId",
+          valorAnterior: deal.cohorteDestinoId,
+          valorNuevo: null,
+          origen: "app" as const,
+          userId: actorId,
+        }]
+      : []),
+  ]);
 }
 
 export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHecho> {
@@ -231,9 +270,6 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
 
     const hechos = await leerHechos(tx, dealActualizado, mov.motivoId ?? null, t.tipoDeMotivo);
     const faltantes = queLeFaltaTransicion(t, hechos);
-    if (t.id === "R" && pendienteA === "proxima_cohorte" && hechos.cohorteDestinoId == null) {
-      faltantes.push({ codigo: "cohorte_destino", mensaje: "Falta la cohorte a la que quiere entrar." });
-    }
     if (faltantes.length > 0) {
       throw new MovimientoRechazado(faltantes.map((f) => f.mensaje).join(" "), faltantes);
     }
@@ -262,18 +298,6 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
           409,
         );
       }
-    }
-
-    const mudaDeCohorte = !mov.correccion
-      && pendienteDe === "proxima_cohorte"
-      && pendienteA !== "proxima_cohorte"
-      && t.id !== "P";
-    if (mudaDeCohorte && deal.cohorteDestinoId != null) {
-      await editarConRastro(
-        { db: tx, tabla: deals, nombreTabla: "deals", actorId: mov.actor.tipo === "usuario" ? mov.actor.userId : null, etiqueta: deal.id },
-        deal.id,
-        { cohortId: deal.cohorteDestinoId },
-      );
     }
 
     // La condicion `etapa = de` es la reja contra dos movimientos simultaneos: si otro

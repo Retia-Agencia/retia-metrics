@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { calls, changeLog, cohorts, dealActividades, dealEtapaHistorial, deals, leads, motivos, programs, users } from "@/lib/db/schema";
+import { calls, cohorts, dealActividades, dealEtapaHistorial, deals, leads, motivos, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { abrirDeal, moverEtapa, MovimientoRechazado, type Actor } from "@/lib/deals/mover-etapa";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
@@ -97,19 +97,13 @@ describe("pendientes y Próxima Cohorte", () => {
     return { origen, destino };
   }
 
-  it("PC pone el pendiente sin cambiar etapa; RET exige contacto desde apertura y muda con rastro", async () => {
+  it("PC conserva su contrato legado, pero ya no tiene una RET que lo quite", async () => {
     const { origen, destino } = await cohortes();
     const d = await nuevo("calificado", null, { cohortId: origen.id });
     await moverEtapa(db, { dealId: d.id, a: "calificado", pendiente: "proxima_cohorte", actor: actor(), datos: { cohorteDestinoId: destino.id } });
     expect(await fila(d.id)).toMatchObject({ etapa: "calificado", pendiente: "proxima_cohorte", cohortId: origen.id });
 
-    await db.insert(dealActividades).values({ dealId: d.id, tipo: "contacto", canal: "correo", userId: closer, fecha: new Date("2026-09-30T12:00:00-05:00") });
-    expect((await rechaza(moverEtapa(db, { dealId: d.id, a: "calificado", pendiente: null, actor: sistema }))).faltantes.map((f) => f.codigo)).toEqual(["contacto"]);
-    await db.insert(dealActividades).values({ dealId: d.id, tipo: "contacto", canal: "correo", userId: closer, fecha: new Date("2026-10-01T00:00:00-05:00") });
-    await db.delete(changeLog);
-    await moverEtapa(db, { dealId: d.id, a: "calificado", pendiente: null, actor: sistema });
-    expect(await fila(d.id)).toMatchObject({ pendiente: null, cohortId: destino.id });
-    expect(await db.select().from(changeLog).where(eq(changeLog.registroId, d.id))).toEqual(expect.arrayContaining([expect.objectContaining({ campo: "cohortId" })]));
+    expect((await rechaza(moverEtapa(db, { dealId: d.id, a: "calificado", pendiente: null, actor: sistema }))).faltantes.map((f) => f.codigo)).toEqual(["transicion_no_permitida"]);
   });
 
   it("Cierre perdido limpia Próxima Cohorte sin mudar la cohorte", async () => {
@@ -119,12 +113,11 @@ describe("pendientes y Próxima Cohorte", () => {
     expect(await fila(d.id)).toMatchObject({ etapa: "cierre_perdido", pendiente: null, cohortId: origen.id });
   });
 
-  it("R a En gestión admite Próxima Cohorte y exige su destino", async () => {
-    const { origen, destino } = await cohortes();
+  it("R a En gestión ya no conserva Próxima Cohorte", async () => {
+    const { origen } = await cohortes();
     const sin = await nuevo("cierre_perdido", null, { cohortId: origen.id });
-    expect((await rechaza(moverEtapa(db, { dealId: sin.id, a: "en_gestion", pendiente: "proxima_cohorte", actor: actor(), motivoId: recuperacion }))).faltantes.map((f) => f.codigo)).toContain("cohorte_destino");
-    await moverEtapa(db, { dealId: sin.id, a: "en_gestion", pendiente: "proxima_cohorte", actor: actor(), motivoId: recuperacion, datos: { cohorteDestinoId: destino.id } });
-    expect(await fila(sin.id)).toMatchObject({ etapa: "en_gestion", pendiente: "proxima_cohorte" });
+    await moverEtapa(db, { dealId: sin.id, a: "en_gestion", pendiente: "proxima_cohorte", actor: actor(), motivoId: recuperacion });
+    expect(await fila(sin.id)).toMatchObject({ etapa: "en_gestion", pendiente: null });
   });
 });
 

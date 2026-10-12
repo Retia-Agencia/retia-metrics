@@ -149,10 +149,6 @@ export function pendientesParaAnotar(etapa: EtapaDeal, pendienteActual: Pendient
       && !(t.id === "PC" && etapa === "agendado" && pendienteActual == null))
     .map((t) => t.pone as PendienteDeal);
 }
-export function transicionRetomar(etapa: EtapaDeal, pendiente: PendienteDeal | null): TransicionPendiente | null {
-  if (pendiente !== "proxima_cohorte") return null;
-  return { tipo: "pendiente", id: "RET", etapa, pone: null, quien: "sistema", exigeMotivo: false, tipoDeMotivo: null };
-}
 export function unaCitaMueveAAgendado(etapa: EtapaDeal, pendiente: PendienteDeal | null): boolean {
   return ETAPAS_DE_SETTEO.includes(etapa) || ((etapa === "agendado" || etapa === "atendido") && pendiente != null);
 }

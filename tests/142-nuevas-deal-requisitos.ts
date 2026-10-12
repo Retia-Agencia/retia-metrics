@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TRANSICIONES, TRANSICIONES_PENDIENTE, transicionRetomar, type Transicion, type TransicionPendiente } from "@/lib/deals/etapas";
+import { TRANSICIONES, TRANSICIONES_PENDIENTE, type Transicion, type TransicionPendiente } from "@/lib/deals/etapas";
 import { queLeFaltaTransicion, requisitosDeTransicion, type CodigoRequisito, type HechosDelDeal } from "@/lib/deals/requisitos";
 
 type Codigo = Exclude<CodigoRequisito, "transicion_no_permitida" | "cohorte">;
@@ -40,12 +40,11 @@ const ESPERADOS: Record<string, Codigo[]> = {
   E13: ["valor_vendido", "saldo_en_cero"],
   RETRO: ["fecha_seguimiento", "motivo"], P: ["motivo"], R: ["motivo"], A1: ["sin_abonos"], A2: ["saldo_pendiente"],
   PR1: ["llamada_fallida"], PR2: ["motivo"], PS1: ["fecha_seguimiento"],
-  PS2: ["contacto"], PS3: ["fecha_seguimiento"], PC: ["cohorte_destino"], RET: ["contacto"],
+  PS2: ["contacto"], PS3: ["fecha_seguimiento"], PC: ["cohorte_destino"],
 };
 
 describe("requisitos de cada flecha", () => {
-  const ret = transicionRetomar("calificado", "proxima_cohorte")!;
-  const flechas = [...TRANSICIONES, ...TRANSICIONES_PENDIENTE, ret];
+  const flechas = [...TRANSICIONES, ...TRANSICIONES_PENDIENTE];
   for (const t of flechas) {
     const base = ESPERADOS[clave(t)];
     const esperados = base;
@@ -63,9 +62,4 @@ describe("requisitos de cada flecha", () => {
       });
     }
   }
-
-  it("RET rechaza un contacto anterior a la apertura de ventas", () => {
-    const ret = transicionRetomar("atendido", "proxima_cohorte")!;
-    expect(queLeFaltaTransicion(ret, { ...TODO, fechaUltimoContacto: new Date("2026-09-30T23:59:59-05:00") }).map((f) => f.codigo)).toEqual(["contacto"]);
-  });
 });

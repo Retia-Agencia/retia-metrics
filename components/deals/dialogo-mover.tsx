@@ -38,7 +38,8 @@ import { FormularioAbono, datosInicialesDeAbono, type DatosFormularioAbono } fro
  * flecha PIDE (descuento, fecha limite de pago, cohorte destino, fecha de seguimiento y/o
  * motivo) y muestra, en verde y en rojo, lo que el deal tiene y le falta para entrar. Lo
  * recogido se manda en `datos`/`motivoId` en la MISMA server action, asi que el motor lo
- * escribe en una sola transaccion (`moverEtapa`).
+ * escribe en una sola transaccion (`moverEtapa`); Próxima cohorte usa su cambio inmediato
+ * de cohorte y conserva la etapa.
  *
  * La lista verde y roja NO la calcula esta pantalla: es un ensayo del motor
  * (`revisarMovimientoAccion`), que se repite cada vez que cambian los datos. Lo que falta

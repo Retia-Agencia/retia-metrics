@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import type { OpcionCatalogo } from "@/lib/queries/kanban";
 import { DialogoMover, type DatosDialogo, type MovimientoDelDialogo } from "./dialogo-mover";
-import { moverConHechoAccion, registrarActividadAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
+import { moverConHechoAccion, proximaCohorteAccion, registrarActividadAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { accionDeFicha, enlaceDeAccion } from "./ficha/accion-pedida";
 import { Campo, claseInput, claseTextarea, DialogoForm } from "./ficha/campos";
 import { PREGUNTA_DE_ETAPA, type ClaveDestino, type Respuesta, type TipoDeActividad } from "./pregunta-de-etapa";
@@ -177,22 +177,27 @@ export function useResponder(
         : tipoDeHecho === "abono" && datos.abono
           ? { tipo: "abono" as const, fecha: datos.abono.fecha, monto: datos.abono.monto.trim(), plataformaId: datos.abono.plataformaId ?? undefined, comprobanteUrl: datos.abono.comprobanteUrl }
           : undefined;
-    const r = await moverConHechoAccion({
-      dealId: deal.dealId,
-      a: destino,
-      pendiente,
-      correccion,
-      motivoId: datos.motivoId ?? null,
-      comentarioMotivo: datos.comentarioMotivo,
-      comentario: datos.comentario,
-      hecho,
-      datos: {
-        descuentoUsd: datos.descuentoUsd,
-        fechaLimitePago: datos.fechaLimitePago,
-        cohorteDestinoId: datos.cohorteDestinoId,
-        fechaSeguimiento: datos.fechaSeguimiento,
-      },
-    });
+    const r = pendiente === "proxima_cohorte" && !correccion
+      ? await proximaCohorteAccion({
+          dealId: deal.dealId,
+          cohortId: datos.cohorteDestinoId ?? "",
+        })
+      : await moverConHechoAccion({
+          dealId: deal.dealId,
+          a: destino,
+          pendiente,
+          correccion,
+          motivoId: datos.motivoId ?? null,
+          comentarioMotivo: datos.comentarioMotivo,
+          comentario: datos.comentario,
+          hecho,
+          datos: {
+            descuentoUsd: datos.descuentoUsd,
+            fechaLimitePago: datos.fechaLimitePago,
+            cohorteDestinoId: datos.cohorteDestinoId,
+            fechaSeguimiento: datos.fechaSeguimiento,
+          },
+        });
     setEnviando(false);
     if (r.ok) {
       if (correccion) {

@@ -2,7 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { trabajaLeads } from "@/lib/auth/roles";
 import { crearConRastro } from "@/lib/crm/rastro";
-import { calls, dealActividades, deals } from "@/lib/db/schema";
+import { calls, cohorts, dealActividades, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { exigirTextoDelMotivo } from "@/lib/deals/motivo-con-texto";
@@ -16,6 +16,7 @@ import { dealBloqueadoConLead } from "./leer-deal";
 import { moverEtapa } from "./mover-etapa";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
 import type { CambioHecho } from "./resumen-del-cambio";
+import { cambiarCohorteDelDeal, type CambioDeCohorteEscrito } from "./cambiar-cohorte";
 
 const dia = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe ser YYYY-MM-DD.");
 const comentario = z.string().trim().max(4000, "El comentario es muy largo.").optional();
@@ -77,36 +78,39 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
         });
       }
 
-      const pendienteSolicitado: PendienteDeal | null = datos.proximoContacto !== undefined
+      const opcionSolicitada: PendienteDeal | null = datos.proximoContacto !== undefined
         ? "seguimiento"
         : datos.proximaCohorte !== undefined
           ? "proxima_cohorte"
           : datos.reagenda !== undefined
             ? "reagenda"
             : null;
-      if (pendienteSolicitado && !pendientesParaAnotar(original.etapa, original.pendiente).includes(pendienteSolicitado)) {
+      if (opcionSolicitada && !pendientesParaAnotar(original.etapa, original.pendiente).includes(opcionSolicitada)) {
         throw new ErrorDeApp("Ese próximo paso no está permitido desde la etapa actual.", 409);
       }
       if (datos.reagenda) {
         await exigirTextoDelMotivo(tx, datos.reagenda.motivoId, datos.comentario);
       }
 
-      await crearConRastro(
-        { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: actor.userId, etiqueta: emailLead },
-        {
-          dealId: original.id,
-          tipo: "nota",
-          canal: null,
-          userId: actor.userId,
-          fecha: new Date(),
-          nota: datos.comentario ?? null,
-          proximoContacto: datos.proximoContacto ?? (datos.reagenda?.fechaLlamada ? fechaDeInstanteEnBogota(datos.reagenda.fechaLlamada) : null),
-          pendientePuesto: pendienteSolicitado,
-        },
-      );
+      if (!datos.proximaCohorte || datos.comentario) {
+        await crearConRastro(
+          { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: actor.userId, etiqueta: emailLead },
+          {
+            dealId: original.id,
+            tipo: "nota",
+            canal: null,
+            userId: actor.userId,
+            fecha: new Date(),
+            nota: datos.comentario ?? null,
+            proximoContacto: datos.proximoContacto ?? (datos.reagenda?.fechaLlamada ? fechaDeInstanteEnBogota(datos.reagenda.fechaLlamada) : null),
+            pendientePuesto: datos.proximaCohorte ? null : opcionSolicitada,
+          },
+        );
+      }
 
       let etapa = original.etapa;
       let pendiente: PendienteDeal | null = original.pendiente;
+      let cohorteCambiada: CambioDeCohorteEscrito | null = null;
       // La fecha de agenda de la llamada que la rama de re-agenda haya CREADO (no la que
       // reagenda una existente): de ahí sale `llamadaCreada` del aviso (ticket 220).
       let fechaLlamadaCreada: Date | null = null;
@@ -125,14 +129,30 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
         });
         pendiente = mov.pendienteA;
       } else if (datos.proximaCohorte) {
-        const mov = await moverEtapa(tx, {
-          dealId: original.id,
-          a: etapa,
-          pendiente: "proxima_cohorte",
-          actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol },
-          datos: { cohorteDestinoId: datos.proximaCohorte.cohorteDestinoId },
+        const [destino] = await tx
+          .select()
+          .from(cohorts)
+          .where(eq(cohorts.id, datos.proximaCohorte.cohorteDestinoId));
+        if (!destino || destino.programId !== original.programId) {
+          throw new ErrorDeApp("La cohorte destino no existe o es de otro programa.", 422);
+        }
+        if (destino.id === original.cohortId) {
+          throw new ErrorDeApp("La cohorte destino tiene que ser distinta a la actual.", 422);
+        }
+        if (destino.estado !== "futuro") {
+          throw new ErrorDeApp("Próxima cohorte solo admite una cohorte futura.", 409);
+        }
+        cohorteCambiada = await cambiarCohorteDelDeal(tx, {
+          deal: original,
+          destino,
+          actorId: actor.userId,
+          etiqueta: emailLead,
+          limpiarProximaCohorte: true,
+          userIdDeNota: null,
+          nota: (origen, codigoDestino) =>
+            `Cohorte cambiada por Próxima cohorte: ${origen} → ${codigoDestino}. El deal ya cuenta en ${codigoDestino}.`,
         });
-        pendiente = mov.pendienteA;
+        pendiente = null;
       } else if (datos.reagenda) {
         if (original.etapa === "agendado") {
           const [llamada] = await tx
@@ -194,6 +214,9 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
         fechaPendiente: final.pendiente === "seguimiento" ? final.fechaSeguimiento : null,
         llamadaCreada: fechaLlamadaCreada ? { fecha: fechaLlamadaCreada } : null,
         abonoRegistrado: null,
+        cohorteCambiada: cohorteCambiada
+          ? { de: cohorteCambiada.origenCodigo, a: cohorteCambiada.destinoCodigo }
+          : null,
       };
 
       return {
