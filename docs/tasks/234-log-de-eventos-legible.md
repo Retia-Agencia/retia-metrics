@@ -41,6 +41,10 @@ sql\`clock_timestamp()\``) si esa escritura va por el rastro.
       el developer trae los campos crudos.
 - [ ] `npm run build` limpio (toca un componente cliente).
 
+## Cierre
+
+Filas con `queryChunks` en producción: 574, corregidas el 12-oct con el ok de Mani (ver handoff). Quedan 0.
+
 ## Anotaciones
 
 A-145.
