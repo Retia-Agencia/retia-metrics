@@ -317,6 +317,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 233 | ["Pagó ahora" con el pago completo deja el deal en Ganado Completo](./233-pago-completo-desde-pago-ahora.md) | · | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
 | [ ] | 234 | [Log de eventos en texto para quien no es developer, y sin SQL guardado como valor](./234-log-de-eventos-legible.md) | · | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
 | [ ] | 235 | [El comprobante de un abono se puede subir como archivo](./235-comprobante-como-archivo.md) | 233 | todo · 12-oct · se decide en su propia sesión |
+| [ ] | 236 | [Un gerente puede operar como closer sin dejar de ser gerente](./236-gerente-opera-como-closer.md) | · | en curso · 12-oct · Codex en `codex/t236` (ADR 0084) |
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
 
