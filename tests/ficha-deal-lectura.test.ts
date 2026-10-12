@@ -217,6 +217,42 @@ describe("fichaDeDeal", () => {
     expect(cambios.map((evento) => evento.accion)).toEqual(["editado", "creado"]);
   });
 
+  it("proyecta el cambio de dueño legible para closer y conserva campos crudos para developer", async () => {
+    const [nuevoDueno] = await db.insert(users).values({
+      email: "andrea@retiagrowth.com", rol: "closer", closerId: "Andrea", nombre: "Andrea Machado",
+    }).returning();
+    const instante = new Date("2026-09-12T15:30:00Z");
+    await db.insert(changeLog).values([
+      { tabla: "deals", registroId: dealId, campo: "ownerUserId", valorAnterior: closer, valorNuevo: nuevoDueno.id, detectadoEn: instante, origen: "app" },
+      { tabla: "deals", registroId: dealId, campo: "ownerNovedadEn", valorAnterior: null, valorNuevo: instante.toISOString(), detectadoEn: instante, origen: "app" },
+      { tabla: "deals", registroId: dealId, campo: "leadId", valorAnterior: null, valorNuevo: crypto.randomUUID(), detectadoEn: instante, origen: "app" },
+    ]);
+
+    const visible = (await fichaDeDeal(db, programId, dealId, false))!.log.find(
+      (evento) => evento.tipo === "cambio" && evento.fecha.getTime() === instante.getTime(),
+    );
+    expect(visible).toMatchObject({
+      tipo: "cambio",
+      titulo: "Cambio de dueño",
+      campos: [{ etiqueta: "Dueño", valorAnterior: "Maru", valorNuevo: "Andrea Machado" }],
+    });
+    expect(JSON.stringify(visible)).not.toContain(nuevoDueno.id);
+    expect(JSON.stringify(visible)).not.toContain("ownerNovedadEn");
+    expect(JSON.stringify(visible)).not.toContain("leadId");
+
+    const tecnico = (await fichaDeDeal(db, programId, dealId, true))!.log.find(
+      (evento) => evento.tipo === "cambio" && evento.fecha.getTime() === instante.getTime(),
+    );
+    expect(tecnico).toMatchObject({
+      tipo: "cambio",
+      campos: expect.arrayContaining([
+        { campo: "ownerUserId", valorAnterior: closer, valorNuevo: nuevoDueno.id },
+        { campo: "ownerNovedadEn", valorAnterior: null, valorNuevo: instante.toISOString() },
+      ]),
+    });
+    expect(tecnico).not.toHaveProperty("titulo");
+  });
+
   it("incluye solo enlaces de pago vigentes del programa", async () => {
     const [plataforma] = await db.insert(plataformasPago).values({ nombre: "Pasarela vigente" }).returning();
     const [otraPlataforma] = await db.insert(plataformasPago).values({ nombre: "Pasarela de otro programa" }).returning();

@@ -56,8 +56,12 @@ export function FichaHistorial({
                 ) : (
                   <div className="min-w-0">
                     <p className="break-words font-medium">
-                      {ACCION_DE_OBJETO[evento.tabla]?.[evento.accion] ?? `${evento.tabla} ${evento.accion}`}
-                      {evento.accion === "editado" ? ` · ${evento.campos.map((campo) => campo.campo).join(", ")}` : null}
+                      {evento.titulo ?? (
+                        <>
+                          {ACCION_DE_OBJETO[evento.tabla]?.[evento.accion] ?? `${evento.tabla} ${evento.accion}`}
+                          {evento.accion === "editado" ? ` · ${evento.campos.map((campo) => campo.etiqueta ?? campo.campo).join(", ")}` : null}
+                        </>
+                      )}
                     </p>
                     <details className="mt-1 text-xs text-muted-foreground">
                       <summary className="w-fit cursor-pointer rounded-sm transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
@@ -69,7 +73,7 @@ export function FichaHistorial({
                           const nuevo = campo.valorNuevo ?? "—";
                           return (
                             <li key={`${campo.campo}-${indice}`} className="break-words">
-                              <span className="font-medium text-foreground">{campo.campo}:</span>{" "}
+                              <span className="font-medium text-foreground">{campo.etiqueta ?? campo.campo}:</span>{" "}
                               <span title={anterior}>{recortar(anterior)}</span> → <span title={nuevo}>{recortar(nuevo)}</span>
                             </li>
                           );

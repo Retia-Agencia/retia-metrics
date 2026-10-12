@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sql } from "drizzle-orm";
 import { textoDeBitacora } from "@/lib/db/texto-de-bitacora";
 
 /**
@@ -17,6 +18,10 @@ describe("textoDeBitacora", () => {
   it("una fecha sale como ISO 8601, no como la representacion local", () => {
     const fecha = new Date("2026-09-28T05:26:22.000Z");
     expect(textoDeBitacora(fecha)).toBe("2026-09-28T05:26:22.000Z");
+  });
+
+  it("rechaza una expresion SQL en vez de serializar queryChunks", () => {
+    expect(() => textoDeBitacora(sql`clock_timestamp()`)).toThrow(/expresion SQL/i);
   });
 
   it("los primitivos salen con String: number, boolean, string", () => {

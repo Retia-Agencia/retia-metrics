@@ -1,3 +1,5 @@
+import { is, SQL } from "drizzle-orm";
+
 /**
  * Como se escribe un valor de columna en `change_log`, que guarda todo como texto
  * (`valor_anterior` / `valor_nuevo` son `text`).
@@ -31,6 +33,9 @@
  */
 export function textoDeBitacora(valor: unknown): string | null {
   if (valor === null || valor === undefined) return null;
+  if (is(valor, SQL)) {
+    throw new Error("Una expresion SQL no es un valor de bitacora: registra el valor devuelto por la escritura.");
+  }
   if (valor instanceof Date) return valor.toISOString();
   if (typeof valor === "object") return JSON.stringify(ordenarEstable(valor));
   return String(valor);

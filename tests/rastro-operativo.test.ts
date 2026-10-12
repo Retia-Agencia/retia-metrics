@@ -8,6 +8,7 @@ import { changeLog, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
+import { cambiarDuenoDeal } from "@/lib/deals/cambiar-dueno";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -281,6 +282,24 @@ describe("crearConRastro y editarConRastro", () => {
       valorAnterior: null,
       valorNuevo: gerente,
     });
+  });
+
+  it("el cambio de dueño registra ownerNovedadEn como fecha materializada, no como SQL", async () => {
+    const id = await crearConRastro(ctx(), { leadId: leadA, programId: programaA });
+    await db.delete(changeLog);
+
+    await cambiarDuenoDeal(db, {
+      dealId: id,
+      ownerActual: null,
+      ownerNuevo: gerente,
+      actorId: gerente,
+      etiqueta: "Ana · Programa A",
+    });
+
+    const log = await db.select().from(changeLog).where(eq(changeLog.registroId, id));
+    const novedad = log.find((fila) => fila.campo === "ownerNovedadEn");
+    expect(novedad?.valorNuevo).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(novedad?.valorNuevo).not.toContain("queryChunks");
   });
 
   it("la etapa de un deal no entra por la puerta generica: se rechaza sin tocar nada (ticket 046)", async () => {
