@@ -28,6 +28,22 @@ leer es libre, escribir pide el ok de Mani. Recorrido visual en dev:local hacien
 
 ## Memory
 
+- **2026-10-12 (noche, Mani + Claude): reporte de Michael y Andrea en producción → tickets 232 a 235.**
+  - **232** "La hora debe ser HH:MM" al marcar Show sobre una cita de Calendly: el diálogo manda `hora: ""` con el
+    `callId`. **233** "Pagó ahora" por el ticket completo: el abono deja Ganado Completo y el paso siguiente pide A2
+    (sistema) como usuario; se deshace todo, abono incluido. **234** log de eventos legible (texto y nombres; el
+    detalle crudo solo para el developer) y bug de `sql\`clock_timestamp()\`` guardado como JSON en `change_log`.
+    232+233 y 234 a Codex en `.claude/worktrees/t232` y `t234` (ramas `codex/t232`, `codex/t234`); falta revisar.
+    **235** comprobante como archivo (Storage privado, la base solo guarda la referencia): se decide en su sesión.
+  - **Alejandra Gil (CA) no pasó sola a Andrea: no es bug del flujo vivo.** Su segunda cita (con info@, que en
+    `miembros_programa` SÍ es de Andrea) se creó el 7-oct 15:13, antes del corte en cero; la recuperación del 8-oct
+    pasó su formulario por `procesarSobre`, que adoptó la cita que traía (Maru, 7-oct) y no la nueva, y el webhook de
+    CA recibe desde el 8-oct 02:12. Auditoría: 89 citas futuras activas en CA y TI, **0 fuera del CRM**.
+    **Dato corregido con el ok de Mani (12-oct, por el rastro, actor `SCRIPT_ACTOR_EMAIL`):** la llamada de Maru del
+    7-oct pasó de `show` a `no_show` (sin fecha de llamada); se creó la cita real con Andrea del 12-oct 9:30
+    (`calendly:b4032a67…`, host info@) como `show`, y una nota del sistema que lo explica. El deal sigue en Atendido +
+    Seguimiento con Andrea de dueña. Script desechable, borrado.
+
 - **2026-10-09 (tarde, Mani + Claude): grill de la reunión con Michael, Andre y Tactical → ola O8 (`0792ad5`).**
   - Decisiones (ADR 0081): dos gestos, Mover y Anotar; Mover pide adentro lo de la etapa destino (mismo diálogo del
     arrastre) y Llamadas/Pago quedan como historial (el Grain de una llamada vieja se corrige ahí); los pendientes

@@ -385,3 +385,8 @@ reconectar el conector. Las decisiones salen del grill de esa tarde (ADR 0081 y 
 | A-139 | Ficha → Cambiar cohorte | usabilidad | Si no hay otra cohorte vendiendo, el selector sale vacío sin explicar por qué. | 229 | en ticket |
 | A-140 | Diálogo de mover | usabilidad | "Lo estoy trabajando" dice "Este paso no pide datos" debajo del comentario obligatorio. | 229 | en ticket |
 | A-141 | Detalle de la llamada | usabilidad | Tras marcar Show, el detalle sigue mostrando la cita como agendada hasta cerrarlo y reabrirlo. | 229 | en ticket |
+| A-142 | Diálogo de mover → Terminó (Show) | bug | Sobre una cita de Calendly ya registrada sale "La hora debe ser HH:MM.": el diálogo no muestra la hora pero manda una vacía (Andrea, 12-oct). | 232 | en ticket |
+| A-143 | Diálogo de mover → Pagó ahora | bug | Un abono por el ticket completo da "A Ganado Pago Parcial no se mueve a mano (A2)" y se deshace todo: el deal queda en Atendido sin abono (Andrea, 12-oct). | 233 | en ticket |
+| A-144 | Abono → comprobante | cambio | El placeholder dice drive.google.com; es un link de cualquier lado. | 233 | en ticket |
+| A-145 | Ficha → Log de eventos | cambio | Muestra columnas e ids (ownerUserId, ownerNovedadEn, queryChunks): para quien no es developer, texto con nombres y sin campos internos (Michael, 12-oct). | 234 | en ticket |
+| A-146 | Abono → comprobante | cambio | Poder subir la foto del comprobante en vez de un link de Drive (Michael, 12-oct). | 235 | en ticket |

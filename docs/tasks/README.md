@@ -313,6 +313,10 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 229 | [Pulido del recorrido del 227 y el 228](./229-pulido-del-recorrido-227-228.md) | 227, 228 | done (cp-20261010-1; recorrido en base local ok) |
 | [ ] | 230 | [Una llamada solo es show cuando su hora ya pasó](./230-show-solo-despues-de-la-hora.md) | · | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
 | [ ] | 231 | [Próxima cohorte cambia la cohorte del deal en el acto](./231-proxima-cohorte-cambia-la-cohorte-ya.md) | 227 | hecho · 12-oct · implementó Codex, revisado; 0 deals con el pendiente viejo en producción (script retirado); falta checkpoint |
+| [ ] | 232 | [Marcar Show sobre una cita existente no pide ni valida hora](./232-show-sobre-cita-sin-pedir-hora.md) | 230 | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
+| [ ] | 233 | ["Pagó ahora" con el pago completo deja el deal en Ganado Completo](./233-pago-completo-desde-pago-ahora.md) | · | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
+| [ ] | 234 | [Log de eventos en texto para quien no es developer, y sin SQL guardado como valor](./234-log-de-eventos-legible.md) | · | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
+| [ ] | 235 | [El comprobante de un abono se puede subir como archivo](./235-comprobante-como-archivo.md) | 233 | todo · 12-oct · se decide en su propia sesión |
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
 
