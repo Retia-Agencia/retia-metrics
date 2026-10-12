@@ -178,7 +178,9 @@ export function useResponder(
   ) {
     setEnviando(true);
     const hecho = tipoDeHecho === "atendido" && datos.llamada
-      ? { tipo: "atendido" as const, callId: deal.llamada?.id, dia: datos.llamada.dia, hora: datos.llamada.hora, linkGrain: datos.llamada.linkGrain }
+      ? deal.llamada?.id
+        ? { tipo: "atendido" as const, callId: deal.llamada.id, linkGrain: datos.llamada.linkGrain }
+        : { tipo: "atendido" as const, dia: datos.llamada.dia, hora: datos.llamada.hora, linkGrain: datos.llamada.linkGrain }
       : tipoDeHecho === "agendado" && datos.llamada
         ? { tipo: "agendado" as const, dia: datos.llamada.dia, hora: datos.llamada.hora }
         : tipoDeHecho === "abono" && datos.abono
