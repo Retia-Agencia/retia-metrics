@@ -22,6 +22,7 @@ import { leerHechos } from "@/lib/deals/mover-etapa";
 import { propiedadesQueLeFaltan, queLeFalta, type RequisitoFaltante } from "@/lib/deals/requisitos";
 import { fechaLimiteMaxima } from "@/lib/deals/pago";
 import { fecha, hoyEnBogota } from "@/lib/format";
+import { disponibilidadParaMarcarAtendida } from "@/lib/queries/disponibilidad-de-llamada";
 import { duenosPosibles } from "@/lib/deals/duenos";
 import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
@@ -65,6 +66,8 @@ export interface FichaDeLlamada {
   anuladoPorNombre: string | null;
   /** Atendida sin Grain (ADR 0066): derivada al leer con `esAtendidaSinGrain`, nunca guardada. */
   sinGrain: boolean;
+  puedeMarcarAtendida: boolean;
+  mensajeNoPuedeMarcarAtendida: string | null;
 }
 
 export interface FichaDeAbono {
@@ -607,6 +610,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string): Pr
         motivoAnulacion: c.motivoAnulacion,
         anuladoPorNombre: nombreDe(c.anuladoPor),
         sinGrain: esAtendidaSinGrain(c),
+        ...disponibilidadParaMarcarAtendida(c.fechaAgenda, new Date()),
       }))
       // Lo mas reciente primero, por la fecha de la cita (o de la llamada); sin fecha, al final.
       .sort((a, b) => (fechaDeLlamada(b)?.getTime() ?? 0) - (fechaDeLlamada(a)?.getTime() ?? 0)),

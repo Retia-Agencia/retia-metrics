@@ -253,10 +253,30 @@ describe("quien puede tomar cada flecha", () => {
       motivoAnulacion: "duplicada",
     }).returning();
     const e = await rechazo(moverEtapa(db, { dealId, a: "atendido", actor: comoCloser() }));
-    expect(e.status).toBe(422);
-    expect(e.message).toBe("No hay una llamada con fecha que dar por atendida. Crea o agenda la llamada primero.");
+    expect(e.status).toBe(409);
+    expect(e.message).toBe("La llamada no tiene fecha de agenda: todavía no se puede marcar como atendida.");
     expect(await etapaDe(dealId)).toBe("agendado");
     expect((await db.select().from(calls).where(eq(calls.id, call.id)))[0].resultado).toBe("agendada");
+  });
+
+  it.each(["futura", "sin fecha"] as const)("E8 manual rechaza una cita %s sin escribir nada", async (caso) => {
+    const dealId = await nuevoDeal("agendado", { ownerUserId: closer });
+    const [call] = await db.insert(calls).values({
+      dealId,
+      programId,
+      fechaAgenda: caso === "futura" ? new Date(Date.now() + 60 * 60 * 1000) : null,
+      resultado: "agendada",
+      origen: "app",
+    }).returning();
+
+    const e = await rechazo(moverEtapa(db, { dealId, a: "atendido", actor: comoCloser() }));
+    expect(e.status).toBe(409);
+    expect(e.message).toContain("todavía no se puede marcar como atendida");
+    expect(await etapaDe(dealId)).toBe("agendado");
+    expect((await db.select().from(calls).where(eq(calls.id, call.id)))[0])
+      .toMatchObject({ resultado: "agendada", fechaLlamada: null });
+    expect(await historial(dealId)).toHaveLength(0);
+    expect(await db.select().from(changeLog).where(eq(changeLog.registroId, call.id))).toHaveLength(0);
   });
 
   it("un closer que no es dueño no mueve Agendado a Atendido", async () => {

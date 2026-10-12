@@ -107,7 +107,7 @@ async function agendadaDe(dealId: string, extra: Partial<typeof calls.$inferInse
       cohortId,
       emailLead: "ana@correo.co",
       closerUserId: closer,
-      fechaAgenda: new Date(Date.now() + 60 * 60 * 1000),
+      fechaAgenda: new Date(Date.now() - 60 * 60 * 1000),
       resultado: "agendada",
       origen: "crm",
       ...extra,
@@ -258,6 +258,21 @@ describe("pegarGrain: pegar el link es decir que la llamada sucedió", () => {
 });
 
 describe("pegarGrain: rechazos", () => {
+  it.each(["futura", "sin fecha"] as const)("rechaza una cita %s sin escribir nada", async (caso) => {
+    const dealId = await nuevoDeal("agendado");
+    const call = await agendadaDe(dealId, { fechaAgenda: caso === "futura" ? enUnaHora() : null });
+    const err = await capturar(pegarGrain(db, comoCloser(), {
+      callId: call.id,
+      linkGrain: "https://grain.com/share/futuro",
+    }));
+
+    expect(err.status).toBe(409);
+    expect(err.message).toContain("todavía no se puede marcar como atendida");
+    expect(await callPorId(call.id)).toMatchObject({ resultado: "agendada", linkGrain: null, fechaLlamada: null });
+    expect(await etapaDe(dealId)).toBe("agendado");
+    expect(await bitacoraDeCall(call.id)).toHaveLength(0);
+  });
+
   it("un no-dueño se rechaza con 403 y no escribe nada", async () => {
     const dealId = await nuevoDeal("agendado", { ownerUserId: closer });
     const call = await agendadaDe(dealId);

@@ -20,6 +20,7 @@ import { saldosDeDeals } from "@/lib/queries/saldo";
 import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import { vigente } from "@/lib/queries/vigente";
 import { hoyEnBogota } from "@/lib/format";
+import { disponibilidadParaMarcarAtendida } from "@/lib/queries/disponibilidad-de-llamada";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { filtroDeFechaDeLaUrl, type FiltroDeFecha } from "@/lib/periodo";
 import { cerradosEn, fechaAnclaDealCreado } from "@/lib/queries/metricas-filtros";
@@ -124,7 +125,14 @@ export interface TarjetaDeal {
   ultimaActividadEn: Date;
   potencialUsd: number;
   confirmadoUsd: number;
-  llamada: { id: string; fecha: Date | null; closerNombre: string | null; notas: string | null } | null;
+  llamada: {
+    id: string;
+    fecha: Date | null;
+    closerNombre: string | null;
+    notas: string | null;
+    puedeMarcarAtendida: boolean;
+    mensajeNoPuedeMarcarAtendida: string | null;
+  } | null;
   avisos: AvisosDeTarjeta;
 }
 
@@ -407,7 +415,13 @@ export async function tableroKanban(
       potencialUsd: redondearUsd(saldo?.precio ?? (f.cohortePrecioUsd == null ? 0 : Number(f.cohortePrecioUsd))),
       confirmadoUsd: redondearUsd(saldo?.abonado ?? 0),
       llamada: llamadaActiva
-        ? { id: llamadaActiva.id, fecha: llamadaActiva.fechaAgenda, closerNombre: llamadaActiva.closerNombre, notas: llamadaActiva.notas }
+        ? {
+            id: llamadaActiva.id,
+            fecha: llamadaActiva.fechaAgenda,
+            closerNombre: llamadaActiva.closerNombre,
+            notas: llamadaActiva.notas,
+            ...disponibilidadParaMarcarAtendida(llamadaActiva.fechaAgenda, new Date()),
+          }
         : null,
       avisos: {
         faltanALaEtapa,

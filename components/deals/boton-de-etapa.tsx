@@ -11,10 +11,12 @@ import type { TonoEtapa } from "./etapa-tono";
 
 export function BotonDeEtapa({
   tono,
+  disabled = false,
   onClick,
   children,
 }: {
   tono: TonoEtapa;
+  disabled?: boolean;
   onClick: () => void;
   children: ReactNode;
 }) {
@@ -23,6 +25,7 @@ export function BotonDeEtapa({
       type="button"
       className="w-full"
       variant={tono === "peligro" ? "destructive" : "secondary"}
+      disabled={disabled}
       onClick={onClick}
     >
       {children}

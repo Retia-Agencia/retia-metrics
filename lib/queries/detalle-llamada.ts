@@ -2,6 +2,7 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { calls, changeLog, deals, leads, motivos, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
+import { disponibilidadParaMarcarAtendida } from "@/lib/queries/disponibilidad-de-llamada";
 
 export interface DetalleDeLlamada {
   id: string;
@@ -32,6 +33,8 @@ export interface DetalleDeLlamada {
     userNombre: string | null;
   }[];
   nombresDelHistorial: Record<string, string>;
+  puedeMarcarAtendida: boolean;
+  mensajeNoPuedeMarcarAtendida: string | null;
 }
 
 export async function detalleDeLlamada(
@@ -101,6 +104,7 @@ export async function detalleDeLlamada(
   ]);
 
   return {
+    ...disponibilidadParaMarcarAtendida(fila.llamada.fechaAgenda, new Date()),
     id: fila.llamada.id,
     resultado: fila.llamada.resultado,
     fechaAgenda: fila.llamada.fechaAgenda,

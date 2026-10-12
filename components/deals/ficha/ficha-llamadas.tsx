@@ -89,11 +89,21 @@ export function FichaLlamadas({
               linkGrain={c.linkGrain}
               resultado={c.resultado}
               motivosReagenda={opciones.motivos}
+              puedeMarcarAtendida={c.puedeMarcarAtendida}
+              mensajeNoPuedeMarcarAtendida={c.mensajeNoPuedeMarcarAtendida}
             />
           </div>
         ) : null}
         {puedeRegistrarEnEsta && !esActiva && c.resultado === "show" && !c.linkGrain ? (
-          <div className="pt-1"><CampoGrain callId={c.id} valor={c.linkGrain} yaEsShow /></div>
+          <div className="pt-1">
+            <CampoGrain
+              callId={c.id}
+              valor={c.linkGrain}
+              yaEsShow
+              deshabilitado={!c.puedeMarcarAtendida}
+              mensajeDeshabilitado={c.mensajeNoPuedeMarcarAtendida}
+            />
+          </div>
         ) : null}
       </li>
     );

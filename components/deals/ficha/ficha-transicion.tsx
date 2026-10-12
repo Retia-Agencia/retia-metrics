@@ -75,6 +75,8 @@ export function FichaTransicion({
         fecha: llamada.fechaAgenda,
         closerNombre: llamada.closerNombre,
         notas: llamada.notas,
+        puedeMarcarAtendida: llamada.puedeMarcarAtendida,
+        mensajeNoPuedeMarcarAtendida: llamada.mensajeNoPuedeMarcarAtendida,
       }))[0] ?? null,
   };
   // Con dueño (o administrando) se ofrece todo; sin dueño, solo los tres gestos que reclaman
@@ -112,12 +114,20 @@ export function FichaTransicion({
                 {moverA.map((grupo, i) => {
                   const etapaVisual = grupo.destino === "ganado" ? "ganado_completo" : grupo.destino;
                   const descripcion = tieneDescripcion(grupo.destino) ? DESCRIPCION_DE_DESTINO[grupo.destino] : null;
+                  const bloqueadaPorHora = grupo.respuestas.some((respuesta) => respuesta.id === "termino")
+                    && deal.llamada?.puedeMarcarAtendida === false;
                   return (
                     <div key={grupo.destino} className="space-y-1">
-                      <BotonDeEtapa tono={tonoDeEtapa[etapaVisual]} onClick={() => abrirDestino(deal, grupo.destino, grupo.respuestas)}>
+                      <BotonDeEtapa
+                        tono={tonoDeEtapa[etapaVisual]}
+                        disabled={bloqueadaPorHora}
+                        onClick={() => abrirDestino(deal, grupo.destino, grupo.respuestas)}
+                      >
                         {etiquetasDestino[i]}
                       </BotonDeEtapa>
-                      {descripcion ? <p className="text-xs text-muted-foreground">{descripcion}</p> : null}
+                      {bloqueadaPorHora ? (
+                        <p className="text-xs text-muted-foreground">{deal.llamada?.mensajeNoPuedeMarcarAtendida}</p>
+                      ) : descripcion ? <p className="text-xs text-muted-foreground">{descripcion}</p> : null}
                     </div>
                   );
                 })}

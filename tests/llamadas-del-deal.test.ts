@@ -13,7 +13,7 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { ErrorDeApp } from "@/lib/errors";
-import { agregarLlamada, completarAgendada, marcarShow, reagendarLlamada } from "@/lib/deals/llamadas";
+import { agregarLlamada, completarAgendada, llamadaYaPudoOcurrir, marcarShow, reagendarLlamada } from "@/lib/deals/llamadas";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -96,6 +96,15 @@ function comoCloser() {
 }
 
 const enUnaHora = () => new Date(Date.now() + 60 * 60 * 1000);
+const haceUnaHora = () => new Date(Date.now() - 60 * 60 * 1000);
+
+it("llamadaYaPudoOcurrir compara el instante e incluye la hora exacta", () => {
+  const ahora = new Date("2026-10-12T15:00:00-05:00");
+  expect(llamadaYaPudoOcurrir(null, ahora)).toBe(false);
+  expect(llamadaYaPudoOcurrir(new Date(ahora.getTime() + 1), ahora)).toBe(false);
+  expect(llamadaYaPudoOcurrir(ahora, ahora)).toBe(true);
+  expect(llamadaYaPudoOcurrir(new Date(ahora.getTime() - 1), ahora)).toBe(true);
+});
 
 async function llamadasDe(dealId: string) {
   return db.select().from(calls).where(eq(calls.dealId, dealId));
@@ -377,7 +386,7 @@ describe("completarAgendada: el dueño completa la agendada del sistema", () => 
 describe("marcarShow: show en un clic, sin Grain (ticket 177)", () => {
   it("marca show sin Grain, mueve a Atendido y deja rastro en change_log", async () => {
     const dealId = await nuevoDeal("agendado");
-    const fecha = enUnaHora();
+    const fecha = haceUnaHora();
     const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: fecha });
 
     const r = await marcarShow(db, comoCloser(), { callId });
@@ -399,7 +408,7 @@ describe("marcarShow: show en un clic, sin Grain (ticket 177)", () => {
 
   it("el deal sigue a Compromiso Verbal aunque la llamada show no tenga Grain", async () => {
     const dealId = await nuevoDeal("agendado");
-    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: enUnaHora() });
+    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: haceUnaHora() });
     await marcarShow(db, comoCloser(), { callId });
 
     // El área se pide al salir de Atendido; se declara para no toparse con ese requisito.
@@ -415,7 +424,7 @@ describe("marcarShow: show en un clic, sin Grain (ticket 177)", () => {
 
   it("una llamada que ya tiene resultado no se vuelve a marcar show (409)", async () => {
     const dealId = await nuevoDeal("agendado");
-    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: enUnaHora() });
+    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: haceUnaHora() });
     await marcarShow(db, comoCloser(), { callId });
     const err = await capturar(marcarShow(db, comoCloser(), { callId }));
     expect(err.status).toBe(409);
@@ -425,7 +434,7 @@ describe("marcarShow: show en un clic, sin Grain (ticket 177)", () => {
     const { alertasDelDeal } = await import("@/lib/queries/ficha-deal");
     const { pegarGrain } = await import("@/lib/deals/llamadas");
     const dealId = await nuevoDeal("agendado");
-    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: enUnaHora() });
+    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: haceUnaHora() });
     await marcarShow(db, comoCloser(), { callId });
 
     const conAlerta = await alertasDelDeal(db, programId, dealId);
@@ -439,6 +448,33 @@ describe("marcarShow: show en un clic, sin Grain (ticket 177)", () => {
     await pegarGrain(db, comoCloser(), { callId, linkGrain: "https://grain.com/abc" });
     const sinAlerta = await alertasDelDeal(db, programId, dealId);
     expect(sinAlerta?.alertas.some((a) => a.motivo === "atendida_sin_grain")).toBe(false);
+  });
+
+  it("rechaza una cita futura sin escribir la llamada ni mover el deal", async () => {
+    const dealId = await nuevoDeal("agendado");
+    const fechaAgenda = enUnaHora();
+    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda });
+    const rastroAntes = await bitacoraDeCall(callId);
+
+    const err = await capturar(marcarShow(db, comoCloser(), { callId }));
+    expect(err).toMatchObject({ status: 409 });
+    expect(err.message).toMatch(/^La llamada es el .+: todavía no se puede marcar como atendida\.$/);
+    expect((await llamadasDe(dealId))[0]).toMatchObject({ resultado: "agendada", fechaLlamada: null });
+    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].etapa).toBe("agendado");
+    expect(await bitacoraDeCall(callId)).toEqual(rastroAntes);
+  });
+
+  it("rechaza una llamada sin fecha de agenda sin escribir nada", async () => {
+    const dealId = await nuevoDeal("agendado");
+    const [call] = await db.insert(calls).values({ dealId, programId, resultado: "agendada", origen: "app" }).returning();
+
+    const err = await capturar(marcarShow(db, comoCloser(), { callId: call.id }));
+    expect(err).toMatchObject({
+      status: 409,
+      message: "La llamada no tiene fecha de agenda: todavía no se puede marcar como atendida.",
+    });
+    expect((await llamadasDe(dealId))[0]).toMatchObject({ resultado: "agendada", fechaLlamada: null });
+    expect((await db.select().from(changeLog).where(eq(changeLog.registroId, call.id)))).toHaveLength(0);
   });
 });
 
@@ -485,7 +521,7 @@ describe("reagendarLlamada: cierra la cita vieja y crea la nueva (ticket 177)", 
 
   it("reagendar una llamada que no está agendada es 409 (ya tiene resultado)", async () => {
     const dealId = await nuevoDeal("agendado");
-    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: enUnaHora() });
+    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: haceUnaHora() });
     await marcarShow(db, comoCloser(), { callId });
     const err = await capturar(reagendarLlamada(db, comoCloser(), { callId, fechaAgenda: enUnaHora() }));
     expect(err.status).toBe(409);

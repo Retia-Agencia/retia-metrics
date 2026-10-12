@@ -816,6 +816,8 @@ const HECHOS_VACIOS: HechosDelDeal = {
 };
 
 async function darPorAtendida(tx: Db, deal: FilaDeal, actorUserId: string): Promise<void> {
+  // Import diferido: llamadas.ts usa moverEtapa; cargarlo aquí evita un ciclo de módulos.
+  const { porQueAunNoOcurrio } = await import("./llamadas");
   const [call] = await tx
     .select()
     .from(calls)
@@ -823,9 +825,12 @@ async function darPorAtendida(tx: Db, deal: FilaDeal, actorUserId: string): Prom
     .orderBy(desc(calls.createdAt))
     .limit(1);
 
-  if (!call || call.fechaAgenda == null) {
-    const mensaje = "No hay una llamada con fecha que dar por atendida. Crea o agenda la llamada primero.";
-    throw new MovimientoRechazado(mensaje, [{ codigo: "llamada_con_fecha", mensaje }], 422);
+  const fechaAgenda = call?.fechaAgenda ?? null;
+  const mensaje = porQueAunNoOcurrio(fechaAgenda, new Date());
+  if (!call || mensaje != null) {
+    // Sin llamada, la fecha es nula y el mensaje nunca es null; el `??` es solo para el tipo.
+    const texto = mensaje ?? "La llamada no tiene fecha de agenda: todavía no se puede marcar como atendida.";
+    throw new MovimientoRechazado(texto, [{ codigo: "llamada_con_fecha", mensaje: texto }], 409);
   }
 
   if ((RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(call.resultado)) return;
@@ -841,7 +846,7 @@ async function darPorAtendida(tx: Db, deal: FilaDeal, actorUserId: string): Prom
     call.id,
     {
       resultado: "show" as const,
-      ...(call.fechaLlamada == null ? { fechaLlamada: call.fechaAgenda } : {}),
+      ...(call.fechaLlamada == null ? { fechaLlamada: fechaAgenda } : {}),
     },
   );
 }

@@ -87,6 +87,8 @@ export function DetalleDeLlamada({
               linkGrain={detalle!.linkGrain}
               resultado={detalle!.resultado}
               motivosReagenda={motivosReagenda}
+              puedeMarcarAtendida={detalle!.puedeMarcarAtendida}
+              mensajeNoPuedeMarcarAtendida={detalle!.mensajeNoPuedeMarcarAtendida}
               onCambio={() => setRecarga((n) => n + 1)}
             />
           </div>

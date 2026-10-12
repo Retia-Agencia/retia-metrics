@@ -5,6 +5,7 @@ import { calls, deals, leads } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
+import { fechaHoraEnBogota } from "@/lib/format";
 import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -55,6 +56,25 @@ export interface ActorDeLlamada {
 type Transaccion = {
   transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T>;
 };
+
+/** Una llamada solo puede contarse como ocurrida cuando llegó su instante de agenda. */
+export function llamadaYaPudoOcurrir(fechaAgenda: Date | null, ahora: Date): boolean {
+  return fechaAgenda != null && fechaAgenda <= ahora;
+}
+
+/** Por qué la llamada todavía no se puede dar por atendida, o `null` si ya se puede. Un solo texto
+ * para el servidor y la pantalla. */
+export function porQueAunNoOcurrio(fechaAgenda: Date | null, ahora: Date): string | null {
+  if (llamadaYaPudoOcurrir(fechaAgenda, ahora)) return null;
+  return fechaAgenda == null
+    ? "La llamada no tiene fecha de agenda: todavía no se puede marcar como atendida."
+    : `La llamada es el ${fechaHoraEnBogota(fechaAgenda)}: todavía no se puede marcar como atendida.`;
+}
+
+function exigirQueLaLlamadaYaPudoOcurrir(fechaAgenda: Date | null, ahora: Date): void {
+  const mensaje = porQueAunNoOcurrio(fechaAgenda, ahora);
+  if (mensaje != null) throw new ErrorDeApp(mensaje, 409);
+}
 
 /**
  * Datos de una llamada nativa que se agrega a un deal. La fecha de agenda es un
@@ -339,9 +359,8 @@ async function marcarComoShow(
   extra: { linkGrain?: string },
 ): Promise<GrainPegado> {
   const ahora = new Date();
-  const fechaLlamada = call.fechaAgenda != null && call.fechaAgenda <= ahora
-    ? call.fechaAgenda
-    : ahora;
+  exigirQueLaLlamadaYaPudoOcurrir(call.fechaAgenda, ahora);
+  const fechaLlamada = call.fechaAgenda!;
 
   await editarConRastro(
     {

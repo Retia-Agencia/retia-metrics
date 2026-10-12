@@ -16,14 +16,22 @@ import { useAccion } from "./uso-accion";
  */
 export const CampoGrain = forwardRef<
   HTMLInputElement,
-  { callId: string; valor: string | null; yaEsShow?: boolean; onGuardado?: () => void }
+  {
+    callId: string;
+    valor: string | null;
+    yaEsShow?: boolean;
+    deshabilitado?: boolean;
+    mensajeDeshabilitado?: string | null;
+    onGuardado?: () => void;
+  }
 >(
-  function CampoGrain({ callId, valor, yaEsShow = false, onGuardado }, ref) {
+  function CampoGrain({ callId, valor, yaEsShow = false, deshabilitado = false, mensajeDeshabilitado, onGuardado }, ref) {
     const { pendiente, correr } = useAccion();
     const [link, setLink] = useState(valor ?? "");
     const guardado = useRef((valor ?? "").trim());
 
     function guardar(texto: string) {
+      if (deshabilitado) return;
       const limpio = texto.trim();
       if (limpio === "" || limpio === guardado.current) return;
       guardado.current = limpio;
@@ -38,7 +46,9 @@ export const CampoGrain = forwardRef<
       <Campo
         etiqueta="Link de Grain"
         ayuda={
-          yaEsShow
+          deshabilitado && mensajeDeshabilitado
+            ? mensajeDeshabilitado
+            : yaEsShow
             ? "Pégalo o escríbelo y presiona Enter."
             : "Al pegarlo, la llamada queda como show y el deal pasa a Atendido."
         }
@@ -48,7 +58,7 @@ export const CampoGrain = forwardRef<
           type="url"
           className={claseInput}
           value={link}
-          disabled={pendiente}
+          disabled={pendiente || deshabilitado}
           placeholder="https://grain.com/…"
           onChange={(e) => setLink(e.target.value)}
           onBlur={(e) => guardar(e.target.value)}

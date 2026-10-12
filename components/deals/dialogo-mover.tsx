@@ -92,7 +92,14 @@ export interface DialogoMoverProps {
   plataformas: { id: string; nombre: string }[];
   saldo: number | null;
   moneda: string | null;
-  llamada: { id: string; fecha: Date | string | null; closerNombre: string | null; notas: string | null } | null;
+  llamada: {
+    id: string;
+    fecha: Date | string | null;
+    closerNombre: string | null;
+    notas: string | null;
+    puedeMarcarAtendida: boolean;
+    mensajeNoPuedeMarcarAtendida: string | null;
+  } | null;
   /**
    * El inicio de clases de la cohorte del deal (`fechaLimiteMaxima`, ticket 061): con el
    * se PRELLENA la fecha limite de pago de Compromiso Verbal, que ademas no puede pasarlo.
@@ -255,9 +262,11 @@ export function DialogoMover({
   const motivoElegido = motivos.find((m) => m.id === datos.motivoId);
   const comentarioMotivoCompleto = flecha.tipoDeMotivo !== "reagenda" || !motivoElegido?.pideTexto || Boolean(datos.comentarioMotivo?.trim());
   const bloqueoVigente = movimiento.hecho ? null : revision?.bloqueo;
+  const llamadaAunNoPuedeAtenderse = movimiento.hecho === "atendido" && llamada && !llamada.puedeMarcarAtendida;
   const listo = vigente && bloqueoVigente == null
     && revision.requisitos.every((q) => q.cumple || requisitosQueEscribeElHecho.has(q.codigo))
-    && destino != null && llamadaCompleta && abonoCompleto && comentarioMotivoCompleto && comentarioCompleto;
+    && destino != null && llamadaCompleta && !llamadaAunNoPuedeAtenderse
+    && abonoCompleto && comentarioMotivoCompleto && comentarioCompleto;
 
   const motivosDeLaFlecha = flecha.tipoDeMotivo
     ? motivos.filter((m) => m.tipo === flecha.tipoDeMotivo)
@@ -305,8 +314,18 @@ export function DialogoMover({
                 </div>
               )}
               <div className="flex items-center gap-2 text-sm"><Badge variant="exito">Show</Badge><span>La llamada se marcará como atendida.</span></div>
+              {llamadaAunNoPuedeAtenderse ? (
+                <p className="text-sm text-muted-foreground">{llamada.mensajeNoPuedeMarcarAtendida}</p>
+              ) : null}
               <Campo etiqueta="Link de Grain (opcional)">
-                <input type="url" className={claseInput} value={datos.llamada?.linkGrain ?? ""} onChange={(e) => setDatos((d) => ({ ...d, llamada: { ...d.llamada!, linkGrain: e.target.value } }))} placeholder="https://grain.com/share/…" />
+                <input
+                  type="url"
+                  className={claseInput}
+                  value={datos.llamada?.linkGrain ?? ""}
+                  disabled={Boolean(llamadaAunNoPuedeAtenderse)}
+                  onChange={(e) => setDatos((d) => ({ ...d, llamada: { ...d.llamada!, linkGrain: e.target.value } }))}
+                  placeholder="https://grain.com/share/…"
+                />
               </Campo>
             </section>
           ) : null}

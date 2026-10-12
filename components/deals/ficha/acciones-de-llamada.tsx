@@ -45,6 +45,8 @@ export function AccionesDeLlamada({
   linkGrain,
   resultado,
   motivosReagenda,
+  puedeMarcarAtendida,
+  mensajeNoPuedeMarcarAtendida,
   abrirInicial = null,
   onCambio,
 }: {
@@ -54,6 +56,8 @@ export function AccionesDeLlamada({
   linkGrain: string | null;
   resultado: string;
   motivosReagenda: OpcionesDeFicha["motivos"];
+  puedeMarcarAtendida: boolean;
+  mensajeNoPuedeMarcarAtendida: string | null;
   abrirInicial?: "resultado" | null;
   /**
    * Se llama tras CADA resultado exitoso (Show, fallida, reagendada, Grain), ticket 229 (A-141):
@@ -78,7 +82,16 @@ export function AccionesDeLlamada({
 
   return (
     <div className="space-y-2">
-      {resultado === "show" || linkGrain ? <CampoGrain callId={callId} valor={linkGrain} yaEsShow onGuardado={onCambio} /> : null}
+      {resultado === "show" || linkGrain ? (
+        <CampoGrain
+          callId={callId}
+          valor={linkGrain}
+          yaEsShow
+          deshabilitado={!puedeMarcarAtendida}
+          mensajeDeshabilitado={mensajeNoPuedeMarcarAtendida}
+          onGuardado={onCambio}
+        />
+      ) : null}
       {resultado === "agendada" ? (
         <div className="flex flex-wrap items-center gap-2">
           <Button size="xs" variant="outline" disabled={pendiente} onClick={() => setDialogo("resultado")}>Resultado</Button>
@@ -91,6 +104,8 @@ export function AccionesDeLlamada({
           conReagenda={dealId != null}
           onCerrar={() => setDialogo(null)}
           onShow={marcarShow}
+          puedeMarcarAtendida={puedeMarcarAtendida}
+          mensajeNoPuedeMarcarAtendida={mensajeNoPuedeMarcarAtendida}
           onFallida={(resultado) => setDialogo(resultado)}
           onReagendada={() => setDialogo("reagendar")}
         />
@@ -110,17 +125,26 @@ function DialogoResultado({
   conReagenda,
   onCerrar,
   onShow,
+  puedeMarcarAtendida,
+  mensajeNoPuedeMarcarAtendida,
   onFallida,
   onReagendada,
 }: {
   conReagenda: boolean;
   onCerrar: () => void;
   onShow: () => void;
+  puedeMarcarAtendida: boolean;
+  mensajeNoPuedeMarcarAtendida: string | null;
   onFallida: (resultado: "no_show" | "cancelada") => void;
   onReagendada: () => void;
 }) {
-  const opciones: { etiqueta: string; linea: string; onClick: () => void }[] = [
-    { etiqueta: "Show", linea: "Se marca en un clic; el deal pasa a Atendido. El link de Grain es opcional.", onClick: onShow },
+  const opciones: { etiqueta: string; linea: string; onClick: () => void; disabled?: boolean }[] = [
+    {
+      etiqueta: "Show",
+      linea: mensajeNoPuedeMarcarAtendida ?? "Se marca en un clic; el deal pasa a Atendido. El link de Grain es opcional.",
+      onClick: onShow,
+      disabled: !puedeMarcarAtendida,
+    },
     { etiqueta: "No show", linea: "No apareció; el deal queda en Re-agenda.", onClick: () => onFallida("no_show") },
     { etiqueta: "Cancelada", linea: "Avisó y canceló; el deal queda en Re-agenda.", onClick: () => onFallida("cancelada") },
     ...(conReagenda
@@ -137,7 +161,7 @@ function DialogoResultado({
       <div className="space-y-3">
         {opciones.map((opcion) => (
           <div key={opcion.etiqueta} className="space-y-1">
-            <Button type="button" size="sm" variant="secondary" onClick={opcion.onClick}>
+            <Button type="button" size="sm" variant="secondary" disabled={opcion.disabled} onClick={opcion.onClick}>
               {opcion.etiqueta}
             </Button>
             <p className="text-xs text-muted-foreground">{opcion.linea}</p>

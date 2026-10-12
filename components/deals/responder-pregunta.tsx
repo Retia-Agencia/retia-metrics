@@ -37,7 +37,14 @@ export interface DealQueResponde {
   tieneCitaVigente?: boolean;
   saldo: number | null;
   moneda: string | null;
-  llamada: { id: string; fecha: Date | string | null; closerNombre: string | null; notas: string | null } | null;
+  llamada: {
+    id: string;
+    fecha: Date | string | null;
+    closerNombre: string | null;
+    notas: string | null;
+    puedeMarcarAtendida: boolean;
+    mensajeNoPuedeMarcarAtendida: string | null;
+  } | null;
 }
 
 export interface OpcionesDeRespuesta {

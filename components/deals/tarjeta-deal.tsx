@@ -111,10 +111,19 @@ export function TarjetaDealCard({
               <DropdownMenuGroup>
                 <DropdownMenuLabel>{PREGUNTA_DE_ETAPA[tarjeta.etapa].pregunta ?? "Siguiente paso"}</DropdownMenuLabel>
                 {respuestas.map((r) => (
-                  <DropdownMenuItem key={r.id} onClick={() => onElegirRespuesta(r)}>
+                  <DropdownMenuItem
+                    key={r.id}
+                    disabled={r.id === "termino" && tarjeta.llamada?.puedeMarcarAtendida === false}
+                    onClick={() => onElegirRespuesta(r)}
+                  >
                     {r.etiqueta}
                   </DropdownMenuItem>
                 ))}
+                {respuestas.some((r) => r.id === "termino") && tarjeta.llamada?.mensajeNoPuedeMarcarAtendida ? (
+                  <p className="max-w-64 px-1.5 py-1 text-xs text-muted-foreground">
+                    {tarjeta.llamada.mensajeNoPuedeMarcarAtendida}
+                  </p>
+                ) : null}
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
