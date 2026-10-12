@@ -311,6 +311,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 227 | [Cohorte por definir, y Cambiar cohorte arriba en la ficha](./227-cohorte-pendiente-y-cambiar-cohorte-arriba.md) | · | done (cp-20261010-1) · migración 0076 en producción |
 | [x] | 228 | [Anotar nunca mueve; En gestión entra por Mover a](./228-anotar-nunca-mueve.md) | · | done (cp-20261010-1) |
 | [x] | 229 | [Pulido del recorrido del 227 y el 228](./229-pulido-del-recorrido-227-228.md) | 227, 228 | done (cp-20261010-1; recorrido en base local ok) |
+| [ ] | 230 | [Una llamada solo es show cuando su hora ya pasó](./230-show-solo-despues-de-la-hora.md) | · | todo · 12-oct · Mani |
+| [ ] | 231 | [Próxima cohorte cambia la cohorte del deal en el acto](./231-proxima-cohorte-cambia-la-cohorte-ya.md) | 227 | todo · 12-oct · Mani; enmienda el 227 |
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
 
