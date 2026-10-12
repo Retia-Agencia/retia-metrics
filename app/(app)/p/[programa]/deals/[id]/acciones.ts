@@ -151,8 +151,8 @@ const esquemaHecho = z.discriminatedUnion("tipo", [
   z.object({
     tipo: z.literal("atendido"),
     callId: id("Llamada inválida.").optional(),
-    dia: dia.optional(),
-    hora: hora.optional(),
+    dia: textoOpcional(dia),
+    hora: textoOpcional(hora),
     linkGrain: textoOpcional(z.string().url("El link de Grain debe ser una URL válida.")),
   }).superRefine((hecho, ctx) => {
     if (!hecho.callId && (!hecho.dia || !hecho.hora)) {

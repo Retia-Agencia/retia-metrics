@@ -15,7 +15,7 @@ import {
   type DatosMovimiento,
 } from "./mover-etapa";
 import type { ActorDeDeal } from "./permiso";
-import type { EtapaDeal, PendienteDeal } from "./etapas";
+import { NOMBRE_DE_ETAPA, type EtapaDeal, type PendienteDeal } from "./etapas";
 import type { CambioHecho } from "./resumen-del-cambio";
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
@@ -163,7 +163,14 @@ export async function moverConHecho(
     // El hecho puede haber dejado el deal donde se pedía (Show → Atendido, abono → Ganado).
     // Si no, el motor toma la flecha; también cuando solo cambia el PENDIENTE en la misma
     // etapa (PR2 pone Re-agenda): comparar solo la etapa la saltaría.
-    if (actual.etapa !== entrada.a || actual.pendiente !== (entrada.pendiente ?? null)) {
+    if (entrada.hecho?.tipo === "abono") {
+      if (actual.etapa !== "ganado_parcial" && actual.etapa !== "ganado_completo") {
+        throw new ErrorDeApp(
+          `El pago no pudo mover el deal desde ${NOMBRE_DE_ETAPA[inicial.etapa]}; se deshace el abono.`,
+          409,
+        );
+      }
+    } else if (actual.etapa !== entrada.a || actual.pendiente !== (entrada.pendiente ?? null)) {
       await moverEtapa(tx, {
         dealId: inicial.id,
         a: entrada.a,
@@ -195,6 +202,6 @@ export async function moverConHecho(
           ? { monto: Number(entrada.hecho.monto), moneda: entrada.hecho.moneda ?? "USD" }
           : null,
     };
-    return { etapa: entrada.a, cambio };
+    return { etapa: final.etapa, cambio };
   });
 }

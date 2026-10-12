@@ -389,8 +389,8 @@ function DialogoComprobante({ abono, onCerrar }: { abono: FichaDeAbono; onCerrar
         }),
       }}
     >
-      <Campo etiqueta="Comprobante (link)">
-        <input type="url" className={claseInput} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://drive.google.com/…" />
+      <Campo etiqueta="Link del comprobante">
+        <input type="url" className={claseInput} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" />
       </Campo>
     </DialogoForm>
   );
@@ -464,4 +464,3 @@ function DialogoAcuerdo({ ficha, onCerrar }: { ficha: FichaDeDeal; onCerrar: () 
     </DialogoForm>
   );
 }
-

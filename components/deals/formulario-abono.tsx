@@ -51,8 +51,8 @@ export function FormularioAbono({
           onValueChange={(plataformaId) => cambiar({ plataformaId })}
         />
       </Campo>
-      <Campo etiqueta="Comprobante (link)" ayuda="Si no lo tienes ahora, lo pegas después.">
-        <input type="url" className={claseInput} value={datos.comprobanteUrl} onChange={(e) => cambiar({ comprobanteUrl: e.target.value })} placeholder="https://drive.google.com/…" />
+      <Campo etiqueta="Link del comprobante" ayuda="Si no lo tienes ahora, lo pegas después.">
+        <input type="url" className={claseInput} value={datos.comprobanteUrl} onChange={(e) => cambiar({ comprobanteUrl: e.target.value })} placeholder="https://…" />
       </Campo>
     </>
   );

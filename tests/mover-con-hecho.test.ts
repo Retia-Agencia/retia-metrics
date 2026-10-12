@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
-import { abonos, calls, cohorts, dealActividades, deals, leads, motivos, programs, users } from "@/lib/db/schema";
+import { and, eq } from "drizzle-orm";
+import { abonos, calls, cohorts, dealActividades, dealEtapaHistorial, deals, leads, motivos, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { moverConHecho } from "@/lib/deals/mover-con-hecho";
 import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { ErrorDeApp } from "@/lib/errors";
+import { vigente } from "@/lib/queries/vigente";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -91,15 +92,34 @@ describe("moverConHecho", () => {
     expect(resumenDelCambio(cambio)).toContain("El deal pasó a Atendido.");
   });
 
-  it("Compromiso Verbal → Ganado registra el abono", async () => {
-    const deal = await nuevoDeal("compromiso_verbal");
-    await moverConHecho(db, actor(), {
+  it.each(["atendido", "compromiso_verbal"] as const)(
+    "%s → Ganado Completo deja un abono vigente y un solo movimiento (ticket 233)",
+    async (etapaInicial) => {
+      const deal = await nuevoDeal(etapaInicial);
+      const resultado = await moverConHecho(db, actor(), {
+        dealId: deal.id,
+        a: "ganado_parcial",
+        hecho: { tipo: "abono", fecha: "2026-10-09", monto: "1000", moneda: "USD" },
+      });
+
+      expect(resultado.etapa).toBe("ganado_completo");
+      expect(await etapaDe(deal.id)).toBe("ganado_completo");
+      expect(await db.select().from(abonos).where(and(eq(abonos.dealId, deal.id), vigente(abonos)))).toHaveLength(1);
+      expect(await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, deal.id))).toHaveLength(1);
+    },
+  );
+
+  it("Atendido → Ganado Parcial devuelve la etapa que decidió el abono", async () => {
+    const deal = await nuevoDeal("atendido");
+    const resultado = await moverConHecho(db, actor(), {
       dealId: deal.id,
       a: "ganado_parcial",
       hecho: { tipo: "abono", fecha: "2026-10-09", monto: "250", moneda: "USD" },
     });
+
+    expect(resultado.etapa).toBe("ganado_parcial");
     expect(await etapaDe(deal.id)).toBe("ganado_parcial");
-    expect(await db.select().from(abonos).where(eq(abonos.dealId, deal.id))).toHaveLength(1);
+    expect(await db.select().from(abonos).where(and(eq(abonos.dealId, deal.id), vigente(abonos)))).toHaveLength(1);
   });
 
   it("Calificado → Agendado crea la cita", async () => {
@@ -124,14 +144,14 @@ describe("moverConHecho", () => {
     expect(await db.select().from(calls).where(eq(calls.dealId, deal.id))).toHaveLength(0);
   });
 
-  it("un destino incompatible deshace el abono", async () => {
-    const deal = await nuevoDeal("compromiso_verbal");
+  it("una etapa que no admite pago deshace el abono", async () => {
+    const deal = await nuevoDeal("registrado");
     await expect(moverConHecho(db, actor(), {
       dealId: deal.id,
-      a: "atendido",
+      a: "ganado_parcial",
       hecho: { tipo: "abono", fecha: "2026-10-09", monto: "250", moneda: "USD" },
     })).rejects.toThrow();
-    expect(await etapaDe(deal.id)).toBe("compromiso_verbal");
+    expect(await etapaDe(deal.id)).toBe("registrado");
     expect(await db.select().from(abonos).where(eq(abonos.dealId, deal.id))).toHaveLength(0);
   });
 

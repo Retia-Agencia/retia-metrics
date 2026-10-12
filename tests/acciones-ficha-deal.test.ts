@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { dealActividades, dealEtapaHistorial, deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
+import { calls, dealActividades, dealEtapaHistorial, deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -208,6 +208,43 @@ describe("registrar una actividad, forjando la peticion", () => {
     auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
     const r = await (await acciones()).registrarActividadAccion({ dealId, tipo: "contacto", canal: "WhatsApp", nota: "Le escribí" });
     expect(r).toEqual({ ok: true });
+  });
+});
+
+describe("marcar Show sobre una cita existente (ticket 232)", () => {
+  it("acepta hora vacía cuando el callId identifica la cita", async () => {
+    const dealId = await nuevoDeal(programaA, closerA);
+    await db.update(deals).set({ etapa: "agendado" }).where(eq(deals.id, dealId));
+    const [llamada] = await db.insert(calls).values({
+      dealId,
+      programId: programaA,
+      closerUserId: closerA,
+      fechaAgenda: new Date("2026-10-10T15:00:00Z"),
+      resultado: "agendada",
+      origen: "calendly",
+    }).returning();
+    auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
+
+    const r = await (await acciones()).moverConHechoAccion({
+      dealId,
+      a: "atendido",
+      hecho: { tipo: "atendido", callId: llamada.id, dia: "", hora: "", linkGrain: "" },
+    });
+
+    expect(r).toMatchObject({ ok: true, etapa: "atendido" });
+  });
+
+  it("sin callId sigue exigiendo fecha y hora", async () => {
+    const dealId = await nuevoDeal(programaA, closerA);
+    auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
+
+    const r = await (await acciones()).moverConHechoAccion({
+      dealId,
+      a: "atendido",
+      hecho: { tipo: "atendido", dia: "2026-10-12", hora: "" },
+    });
+
+    expect(r).toEqual({ ok: false, error: "Pon la fecha y la hora de la llamada." });
   });
 });
 
