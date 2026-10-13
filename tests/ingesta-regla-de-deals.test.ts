@@ -472,7 +472,7 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     const [gerente] = await db.insert(users).values({ email: "gerente@correo.co", rol: "gerente" }).returning();
     const [perdida] = await db.insert(motivos).values({ nombre: "No era el momento", tipo: "perdida" }).returning();
     const [recuperacion] = await db.insert(motivos).values({ nombre: "Volvió", tipo: "recuperacion" }).returning();
-    const actor = { tipo: "usuario" as const, userId: gerente.id, rol: "gerente" as const };
+    const actor = { tipo: "usuario" as const, userId: gerente.id, rol: "gerente" as const, operaComoCloser: false };
     await moverEtapa(db, { dealId: deal.id, a: "cierre_perdido", actor, motivoId: perdida.id });
     await moverEtapa(db, { dealId: deal.id, a: "en_gestion", actor, motivoId: recuperacion.id });
 

@@ -45,10 +45,10 @@ describe("shows sin Grain", () => {
     const [deal] = await db.insert(deals).values({ programId, leadId, ownerUserId: closer, etapa: "agendado" }).returning();
     const call = await crearCall({ dealId: deal.id, resultado: "agendada", emailLead: "ana@example.test" });
 
-    await moverEtapa(db, { dealId: deal.id, a: "atendido", actor: { tipo: "usuario", userId: closer, rol: "closer" } });
+    await moverEtapa(db, { dealId: deal.id, a: "atendido", actor: { tipo: "usuario", userId: closer, rol: "closer", operaComoCloser: false } });
     expect(await showsSinGrain({ programId, rango }, db)).toEqual({ sinGrain: 1, shows: 1, pct: 1 });
 
-    await pegarGrain(db, { userId: closer, rol: "closer" }, { callId: call.id, linkGrain: "https://grain.com/share/uno" });
+    await pegarGrain(db, { userId: closer, rol: "closer", operaComoCloser: false }, { callId: call.id, linkGrain: "https://grain.com/share/uno" });
     expect(await showsSinGrain({ programId, rango }, db)).toEqual({ sinGrain: 0, shows: 1, pct: 0 });
   });
 

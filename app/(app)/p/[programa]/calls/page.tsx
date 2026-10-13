@@ -156,7 +156,7 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
           llamadas={llamadasDeLaPagina}
           programaSlug={programa.slug}
           motivosReagenda={opcionesFicha.motivos}
-          puedeTrabajar={trabajaLeads(rol) || esAdministrador(rol)}
+          puedeTrabajar={trabajaLeads({ rol, operaComoCloser: session.user.operaComoCloser }) || esAdministrador(rol)}
           origen={origenDeLaPagina(`/p/${programa.slug}/calls`, query)}
           paginacion={{
             pagina,

@@ -217,7 +217,7 @@ describe("Asignarme todos", () => {
     const agendado = await crear(programId, "d@lead.test", "agendado");
     const ajeno = await crear(otroPrograma.id, "e@lead.test", "potencial");
 
-    expect(await reclamarDealsPorSettear(db, { userId: closer.id, rol: "closer" }, programId)).toEqual({
+    expect(await reclamarDealsPorSettear(db, { userId: closer.id, rol: "closer", operaComoCloser: false }, programId)).toEqual({
       reclamados: 2,
       saltados: 0,
     });
@@ -236,7 +236,7 @@ describe("Asignarme todos", () => {
   it("sin membresía activa responde 403", async () => {
     const closer = await usuario("sin-membresia@retia.test");
     await expect(
-      reclamarDealsPorSettear(db, { userId: closer.id, rol: "closer" }, programId),
+      reclamarDealsPorSettear(db, { userId: closer.id, rol: "closer", operaComoCloser: false }, programId),
     ).rejects.toMatchObject({ status: 403 });
   });
 
@@ -276,7 +276,7 @@ describe("Asignarme todos", () => {
       });
 
     await expect(
-      reclamarDealsPorSettear(dbConCarrera, { userId: closer.id, rol: "closer" }, programId),
+      reclamarDealsPorSettear(dbConCarrera, { userId: closer.id, rol: "closer", operaComoCloser: false }, programId),
     ).resolves.toEqual({ reclamados: 1, saltados: 1 });
     expect((await db.select().from(deals).where(eq(deals.id, segundo.id)))[0].ownerUserId).toBe(otro.id);
   });

@@ -15,7 +15,7 @@ export interface ActorSetterPorDefecto {
 /** El setter activo y elegible del programa, o null cuando no hay uno configurado. */
 export async function setterPorDefectoDelPrograma(db: Db, programId: string): Promise<string | null> {
   const [fila] = await db
-    .select({ userId: miembrosPrograma.userId, rol: users.rol })
+    .select({ userId: miembrosPrograma.userId, rol: users.rol, operaComoCloser: users.operaComoCloser })
     .from(miembrosPrograma)
     .innerJoin(users, eq(users.id, miembrosPrograma.userId))
     .where(
@@ -26,7 +26,7 @@ export async function setterPorDefectoDelPrograma(db: Db, programId: string): Pr
         eq(users.activo, true),
       ),
     );
-  return fila && trabajaLeads(fila.rol) ? fila.userId : null;
+  return fila && trabajaLeads(fila) ? fila.userId : null;
 }
 
 /** Configura el único setter por defecto del programa y deja rastro por cada cambio. */
@@ -48,6 +48,7 @@ export async function marcarSetterPorDefecto(
             id: miembrosPrograma.id,
             email: users.email,
             rol: users.rol,
+            operaComoCloser: users.operaComoCloser,
             activoUsuario: users.activo,
             activoMembresia: miembrosPrograma.activo,
             setterPorDefecto: miembrosPrograma.setterPorDefecto,
@@ -60,7 +61,7 @@ export async function marcarSetterPorDefecto(
               eq(miembrosPrograma.userId, input.userId),
             ),
           );
-        if (!fila || !fila.activoUsuario || !fila.activoMembresia || !trabajaLeads(fila.rol)) {
+        if (!fila || !fila.activoUsuario || !fila.activoMembresia || !trabajaLeads(fila)) {
           throw new ErrorDeApp("El setter debe trabajar leads y tener membresía activa en el programa.", 422);
         }
         objetivo = fila;

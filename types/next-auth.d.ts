@@ -12,6 +12,7 @@ declare module "next-auth" {
     user: {
       id: string;
       rol: Rol | null;
+      operaComoCloser: boolean;
       closerId: string | null;
       /**
        * Presente SOLO cuando un developer está suplantando a un closer ("ver como",
@@ -32,6 +33,7 @@ declare module "@auth/core/jwt" {
   interface JWT {
     usuarioId?: string;
     rol?: Rol;
+    operaComoCloser?: boolean;
     closerId?: string | null;
   }
 }

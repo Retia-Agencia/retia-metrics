@@ -242,12 +242,12 @@ describe("inboxDelPrograma — llamadas sueltas", () => {
       raw: { nombre: " ana perez ", telefono: "+57 (300) 123-4567" },
     });
 
-    const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY, AHORA, { userId: closer, rol: "closer" });
+    const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY, AHORA, { userId: closer, rol: "closer", operaComoCloser: false });
     const fila = inbox.llamadasSueltas.find((f) => f.callId === callId)!;
     expect(fila.puedeColgar).toBe(true);
     expect(new Set(fila.sugerencias?.map((d) => d.dealId))).toEqual(new Set([porNombre.dealId, porTelefono.dealId]));
 
-    const ajeno = await inboxDelPrograma(db, programId, { ownerUserId: otroCloser }, HOY, AHORA, { userId: otroCloser, rol: "closer" });
+    const ajeno = await inboxDelPrograma(db, programId, { ownerUserId: otroCloser }, HOY, AHORA, { userId: otroCloser, rol: "closer", operaComoCloser: false });
     expect(ajeno.llamadasSueltas.find((f) => f.callId === callId)?.puedeColgar).toBe(false);
   });
 });

@@ -174,6 +174,12 @@ export const users = pgTable(
     closerId: text("closer_id"),
     /** Correo de la cuenta de Calendly del closer, para cruzar sus agendamientos. */
     calendlyEmail: text("calendly_email"),
+    /**
+     * Capacidad de trabajar leads como closer sin dejar de ser lo que es (ticket 236, ADR 0084): un
+     * gerente que también cierra. No es un rol: las rutas se siguen decidiendo por `rol`; solo amplía
+     * `trabajaLeads`.
+     */
+    operaComoCloser: boolean("opera_como_closer").notNull().default(false),
     activo: boolean("activo").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

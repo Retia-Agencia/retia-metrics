@@ -65,8 +65,8 @@ async function crearDeal(opciones: { etapa?: "atendido" | "en_gestion"; valor?: 
   }).returning())[0];
 }
 
-const comoGerente = () => ({ userId: gerente, rol: "gerente" as const });
-const comoCloser = () => ({ userId: closer, rol: "closer" as const });
+const comoGerente = () => ({ userId: gerente, rol: "gerente" as const, operaComoCloser: false });
+const comoCloser = () => ({ userId: closer, rol: "closer" as const, operaComoCloser: false });
 
 describe("marcar una cortesía", () => {
   it("la lleva a Completo con valor cero, rastro y requisitos satisfechos", async () => {

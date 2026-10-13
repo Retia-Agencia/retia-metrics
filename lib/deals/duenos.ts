@@ -34,11 +34,11 @@ export async function duenosPosibles(db: Db, programId: string): Promise<DuenoPo
       .from(miembrosPrograma)
       .innerJoin(users, eq(users.id, miembrosPrograma.userId))
       .where(and(eq(miembrosPrograma.programId, programId), eq(miembrosPrograma.activo, true))),
-    db.select({ id: users.id, nombre: users.nombre, email: users.email, rol: users.rol }).from(users).where(eq(users.activo, true)),
+    db.select({ id: users.id, nombre: users.nombre, email: users.email, rol: users.rol, operaComoCloser: users.operaComoCloser }).from(users).where(eq(users.activo, true)),
   ]);
   const conMembresia = new Set(miembros.map((m) => m.id));
   return activos
-    .filter((u) => trabajaLeads(u.rol) && (conMembresia.has(u.id) || esAccesoTotal(u.rol)))
+    .filter((u) => trabajaLeads(u) && (conMembresia.has(u.id) || esAccesoTotal(u.rol)))
     .map((u) => ({ id: u.id, nombre: u.nombre ?? u.email }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }

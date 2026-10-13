@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 
     const session = await requireSession();
     const rol = await rolDeVista(session);
-    if (!trabajaLeads(rol)) return Response.json({ total: 0 });
+    if (!trabajaLeads({ rol, operaComoCloser: session.user.operaComoCloser })) return Response.json({ total: 0 });
 
     const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
     if (!programa) throw new ErrorDeApp("No encontrado.", 404);

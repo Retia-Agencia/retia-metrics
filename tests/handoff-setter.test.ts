@@ -79,7 +79,7 @@ async function enviarCita(host: string, uuid: string): Promise<Response> {
 
 describe("marcarLinkEnviado", () => {
   it("escribe handoff_en y su change_log con el actor", async () => {
-    await marcarLinkEnviado(db, { userId: ownerId, rol: "closer" }, dealId);
+    await marcarLinkEnviado(db, { userId: ownerId, rol: "closer", operaComoCloser: false }, dealId);
     const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
     expect(deal.handoffEn).toBeInstanceOf(Date);
     const rastro = await db.select().from(changeLog).where(and(eq(changeLog.registroId, dealId), eq(changeLog.campo, "handoffEn")));
@@ -88,13 +88,13 @@ describe("marcarLinkEnviado", () => {
   });
 
   it("rechaza a un closer que no es dueño y deja el deal quieto", async () => {
-    await expect(marcarLinkEnviado(db, { userId: otroId, rol: "closer" }, dealId)).rejects.toMatchObject({ status: 403 });
+    await expect(marcarLinkEnviado(db, { userId: otroId, rol: "closer", operaComoCloser: false }, dealId)).rejects.toMatchObject({ status: 403 });
     expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].handoffEn).toBeNull();
   });
 
   it("rechaza cuando ya hay una llamada vigente agendada", async () => {
     await db.insert(calls).values({ programId, dealId, origen: "crm", resultado: "agendada" });
-    await expect(marcarLinkEnviado(db, { userId: ownerId, rol: "closer" }, dealId)).rejects.toMatchObject({ status: 409 });
+    await expect(marcarLinkEnviado(db, { userId: ownerId, rol: "closer", operaComoCloser: false }, dealId)).rejects.toMatchObject({ status: 409 });
     expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].handoffEn).toBeNull();
   });
 });
@@ -114,7 +114,7 @@ describe("linkEnviadoSinCita", () => {
 
 describe("handoff por la ruta real de Calendly", () => {
   it("con host vinculada pasa el deal, conserva el setter y asigna la llamada", async () => {
-    await marcarLinkEnviado(db, { userId: ownerId, rol: "closer" }, dealId);
+    await marcarLinkEnviado(db, { userId: ownerId, rol: "closer", operaComoCloser: false }, dealId);
     expect((await enviarCita("host@calendly.co", "HANDOFF-1")).status).toBe(200);
 
     const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
@@ -124,7 +124,7 @@ describe("handoff por la ruta real de Calendly", () => {
   });
 
   it("sin cuenta guarda la llamada sin closer y la muestra en el Inbox del programa", async () => {
-    await marcarLinkEnviado(db, { userId: ownerId, rol: "closer" }, dealId);
+    await marcarLinkEnviado(db, { userId: ownerId, rol: "closer", operaComoCloser: false }, dealId);
     expect((await enviarCita("externa@calendly.co", "HANDOFF-2")).status).toBe(200);
 
     const [llamada] = await db.select().from(calls).where(eq(calls.dealId, dealId));

@@ -82,7 +82,7 @@ export type Actor =
    * movimiento se puede corregir (ADR 0078).
    */
   | { tipo: "sistema"; porUsuario?: string }
-  | { tipo: "usuario"; userId: string; rol: Rol };
+  | { tipo: "usuario"; userId: string; rol: Rol; operaComoCloser: boolean };
 
 /**
  * Datos que la flecha PIDE y que se escriben en el mismo movimiento (Mani, 27-sep,

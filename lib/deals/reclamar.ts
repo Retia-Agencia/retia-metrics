@@ -58,7 +58,7 @@ export async function reclamarDeal(db: Db, actor: ActorDeDeal, datos: DatosRecla
 
     // Quien no trabaja leads no puede ser dueño de un deal (el gerente administra, no
     // registra, ADR 0003). Se corta antes de tocar la base. El developer pasa (trabajaLeads).
-    if (!trabajaLeads(actor.rol)) {
+    if (!trabajaLeads(actor)) {
       throw new ErrorDeApp("Reclamar un deal es de quien trabaja leads, no de quien administra.", 403);
     }
 
@@ -94,7 +94,7 @@ export async function reclamarDealsPorSettear(
   actor: ActorDeDeal,
   programId: string,
 ): Promise<{ reclamados: number; saltados: number }> {
-  if (!trabajaLeads(actor.rol)) {
+  if (!trabajaLeads(actor)) {
     throw new ErrorDeApp("Reclamar un deal es de quien trabaja leads, no de quien administra.", 403);
   }
   if (!(await esDuenoPosible(db, programId, actor.userId))) {

@@ -46,9 +46,9 @@ let motivoRecuperacion: string;
 let motivoCorreccion: string;
 
 const sistema: Actor = { tipo: "sistema" };
-const comoCloser = (): Actor => ({ tipo: "usuario", userId: closer, rol: "closer" });
-const comoOtroCloser = (): Actor => ({ tipo: "usuario", userId: otroCloser, rol: "closer" });
-const comoGerente = (): Actor => ({ tipo: "usuario", userId: gerente, rol: "gerente" });
+const comoCloser = (): Actor => ({ tipo: "usuario", userId: closer, rol: "closer", operaComoCloser: false });
+const comoOtroCloser = (): Actor => ({ tipo: "usuario", userId: otroCloser, rol: "closer", operaComoCloser: false });
+const comoGerente = (): Actor => ({ tipo: "usuario", userId: gerente, rol: "gerente", operaComoCloser: false });
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
@@ -160,7 +160,7 @@ describe("mover y dejar historial", () => {
       moverEtapa(db, {
         dealId,
         a: "calificado",
-        actor: { tipo: "usuario", userId: "00000000-0000-0000-0000-000000000000", rol: "gerente" },
+        actor: { tipo: "usuario", userId: "00000000-0000-0000-0000-000000000000", rol: "gerente", operaComoCloser: false },
       }),
     ).rejects.toThrow();
 

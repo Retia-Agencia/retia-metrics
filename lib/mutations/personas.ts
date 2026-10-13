@@ -29,6 +29,7 @@ import type { Lead } from "@/lib/db/schema";
 export interface Actor {
   id: string;
   rol: Rol;
+  operaComoCloser: boolean;
   closerId: string | null;
 }
 
@@ -91,7 +92,7 @@ async function esCloserValidoEnPrograma(
   programId: string,
 ): Promise<boolean> {
   const [fila] = await db
-    .select({ rol: users.rol })
+    .select({ rol: users.rol, operaComoCloser: users.operaComoCloser })
     .from(users)
     .innerJoin(miembrosPrograma, eq(miembrosPrograma.userId, users.id))
     .where(
@@ -103,7 +104,7 @@ async function esCloserValidoEnPrograma(
       ),
     )
     .limit(1);
-  return Boolean(fila) && trabajaLeads(fila.rol as Rol);
+  return Boolean(fila) && trabajaLeads({ rol: fila.rol as Rol, operaComoCloser: fila.operaComoCloser });
 }
 
 /**
@@ -133,7 +134,7 @@ export async function crearPersonaManual(
     // si: la comparacion literal excluia al developer, que es justo el bug que el
     // ADR 0025 punto 5 prohibe. La excepcion del developer vive en `roles.ts`, no
     // aca (ticket 032).
-    if (!trabajaLeads(actor.rol)) {
+    if (!trabajaLeads(actor)) {
       throw new ErrorDeApp("Registrar trabajo de venta es del closer.", 403);
     }
     const datos = esquemaPersonaManual.parse(input);

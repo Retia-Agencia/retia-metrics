@@ -48,6 +48,7 @@ import { congelarValorVendido } from "./valor-vendido";
 export interface ActorDeAbono {
   userId: string;
   rol: Rol;
+  operaComoCloser: boolean;
 }
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
@@ -116,7 +117,7 @@ export async function registrarAbono(
     const entrada = esquemaRegistrarAbono.parse(datos);
 
     // Registrar plata es trabajar el lead, igual que una llamada (ADR 0003, ADR 0025).
-    if (!trabajaLeads(actor.rol)) {
+    if (!trabajaLeads(actor)) {
       throw new ErrorDeApp("Solo un closer registra abonos de un deal.", 403);
     }
 
@@ -258,7 +259,7 @@ export async function cambiarPlataformaDeAbono(
 ): Promise<void> {
   return normalizando(async () => {
     const entrada = esquemaCambiarPlataformaDeAbono.parse(datos);
-    if (!trabajaLeads(actor.rol)) {
+    if (!trabajaLeads(actor)) {
       throw new ErrorDeApp("Solo un closer cambia la plataforma de un abono.", 403);
     }
 
@@ -339,7 +340,7 @@ export async function anularAbono(
       if (abono.anuladoEn) throw new ErrorDeApp("El abono ya está anulado.", 409);
 
       if (!esAdministrador(actor.rol)) {
-        if (!trabajaLeads(actor.rol)) throw new ErrorDeApp("No puedes anular este abono.", 403);
+        if (!trabajaLeads(actor)) throw new ErrorDeApp("No puedes anular este abono.", 403);
         // Quién cobró es la FK (167). El texto solo decide en un abono histórico sin FK, y nunca
         // con los dos lados vacíos: dos closers sin `closer_id` no son el mismo closer.
         const miCloser = abono.registradoPorUserId == null ? await closerDeLaCuenta(tx, actor.userId) : null;

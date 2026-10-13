@@ -6,8 +6,9 @@ import { Plus, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { etiquetaDeRol, ROLES, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { etiquetaDeRol, puedeConfigurarOperaComoCloser, ROLES, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
 import { clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import {
@@ -32,6 +33,7 @@ export interface UsuarioVista {
   email: string;
   nombre: string | null;
   rol: Rol;
+  operaComoCloser: boolean;
   closerId: string | null;
   calendlyEmail: string | null;
   activo: boolean;
@@ -41,6 +43,7 @@ interface Borrador {
   email: string;
   nombre: string;
   rol: Rol;
+  operaComoCloser: boolean;
   closerId: string;
   calendlyEmail: string;
 }
@@ -49,6 +52,7 @@ const BORRADOR_VACIO: Borrador = {
   email: "",
   nombre: "",
   rol: "closer",
+  operaComoCloser: false,
   closerId: "",
   calendlyEmail: "",
 };
@@ -58,6 +62,7 @@ function aBorrador(u: UsuarioVista): Borrador {
     email: u.email,
     nombre: u.nombre ?? "",
     rol: u.rol,
+    operaComoCloser: u.operaComoCloser,
     closerId: u.closerId ?? "",
     calendlyEmail: u.calendlyEmail ?? "",
   };
@@ -216,6 +221,7 @@ function aEntrada(b: Borrador) {
     email: b.email,
     nombre: b.nombre,
     rol: b.rol,
+    operaComoCloser: b.operaComoCloser,
     closerId: b.closerId,
     calendlyEmail: b.calendlyEmail,
   };
@@ -240,7 +246,7 @@ function FormularioUsuario({
   // NO se pregunta `rol === "closer"` a mano: la respuesta vive en `lib/auth/roles`
   // para que el developer no quede fuera por olvido (ADR 0025). Un gerente sigue sin
   // closer_id ni membresias, porque administra pero no registra (ADR 0003).
-  const trabajaConLeads = trabajaLeads(borrador.rol);
+  const trabajaConLeads = trabajaLeads(borrador);
 
   const claseInput =
     "h-8 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -303,6 +309,24 @@ function FormularioUsuario({
               ))}
             </select>
           </label>
+
+          {puedeConfigurarOperaComoCloser(borrador.rol) ? (
+            <label className="flex items-center justify-between gap-3 text-sm">
+              <span>
+                <span className="block text-muted-foreground">Opera como closer</span>
+                <span className="block text-xs text-muted-foreground">
+                  Puede trabajar leads sin cambiar de rol.
+                </span>
+              </span>
+              <Switch
+                checked={borrador.operaComoCloser}
+                onCheckedChange={(operaComoCloser) =>
+                  setBorrador({ ...borrador, operaComoCloser })
+                }
+                aria-label="Opera como closer"
+              />
+            </label>
+          ) : null}
 
           {trabajaConLeads ? (
             <label className="block space-y-1 text-sm">

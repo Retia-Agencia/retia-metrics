@@ -57,11 +57,12 @@ export async function revalidarToken(token: JWT, emailDelLogin?: string | null):
     // Desactivado despues de haber iniciado sesion: se vacia el token. No se borra el
     // token entero porque Auth.js necesita la envoltura; lo que se va es TODO lo que
     // una guarda podria leer para dejar pasar a alguien.
-    return { ...token, usuarioId: undefined, rol: undefined, closerId: undefined };
+    return { ...token, usuarioId: undefined, rol: undefined, operaComoCloser: undefined, closerId: undefined };
   }
 
   token.usuarioId = registro.id;
   token.rol = esRolValido(registro.rol) ? registro.rol : "closer";
+  token.operaComoCloser = registro.operaComoCloser;
   token.closerId = registro.closerId;
   return token;
 }

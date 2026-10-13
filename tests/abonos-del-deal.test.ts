@@ -77,7 +77,7 @@ afterEach(async () => {
   await cerrar();
 });
 
-const comoCloser = () => ({ userId: closer, rol: "closer" as const });
+const comoCloser = () => ({ userId: closer, rol: "closer" as const, operaComoCloser: false });
 
 async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferInsert> = {}) {
   const [l] = await db
@@ -287,14 +287,15 @@ describe("registrarAbono: las rejas", () => {
     expect((await capturar(registrarAbono(db, comoCloser(), abono(anulado, "10")))).status).toBe(409);
   });
 
-  it("solo el dueño registra; el gerente no; el developer si", async () => {
+  it("solo quien trabaja leads registra; el gerente necesita la capacidad y el developer pasa", async () => {
     const dealId = await nuevoDeal("atendido");
-    expect((await capturar(registrarAbono(db, { userId: otroCloser, rol: "closer" }, abono(dealId, "10")))).status).toBe(403);
-    expect((await capturar(registrarAbono(db, { userId: gerente, rol: "gerente" }, abono(dealId, "10")))).status).toBe(403);
+    expect((await capturar(registrarAbono(db, { userId: otroCloser, rol: "closer", operaComoCloser: false }, abono(dealId, "10")))).status).toBe(403);
+    expect((await capturar(registrarAbono(db, { userId: gerente, rol: "gerente", operaComoCloser: false }, abono(dealId, "10")))).status).toBe(403);
+    await registrarAbono(db, { userId: gerente, rol: "gerente", operaComoCloser: true }, abono(dealId, "10"));
     const sinDueno = await nuevoDeal("atendido", { ownerUserId: null });
     expect((await capturar(registrarAbono(db, comoCloser(), abono(sinDueno, "10")))).status).toBe(409);
-    await registrarAbono(db, { userId: developer, rol: "developer" }, abono(dealId, "10"));
-    expect(await abonosDe(dealId)).toHaveLength(1);
+    await registrarAbono(db, { userId: developer, rol: "developer", operaComoCloser: false }, abono(dealId, "10"));
+    expect(await abonosDe(dealId)).toHaveLength(2);
   });
 
   it("una plataforma inactiva se rechaza antes de escribir", async () => {
@@ -359,7 +360,7 @@ describe("cambiarPlataformaDeAbono (ticket 212)", () => {
     const error = await capturar(
       cambiarPlataformaDeAbono(
         db,
-        { userId: otroCloser, rol: "closer" },
+        { userId: otroCloser, rol: "closer", operaComoCloser: false },
         { abonoId: registrada.abonoId, plataformaId },
       ),
     );
@@ -367,7 +368,7 @@ describe("cambiarPlataformaDeAbono (ticket 212)", () => {
 
     await cambiarPlataformaDeAbono(
       db,
-      { userId: developer, rol: "developer" },
+      { userId: developer, rol: "developer", operaComoCloser: false },
       { abonoId: registrada.abonoId, plataformaId },
     );
     expect((await abonosDe(dealId))[0].plataformaId).toBe(plataformaId);
@@ -419,7 +420,7 @@ describe("anularAbono: la etapa se recalcula", () => {
       }),
     } as unknown as Db;
 
-    const e = await capturar(anularAbono(conLecturaObsoleta, { userId: gerente, rol: "gerente" }, { abonoId: a.abonoId, motivo: "Segunda anulacion" }));
+    const e = await capturar(anularAbono(conLecturaObsoleta, { userId: gerente, rol: "gerente", operaComoCloser: false }, { abonoId: a.abonoId, motivo: "Segunda anulacion" }));
     expect(e).toMatchObject({ status: 409, message: "El abono ya está anulado." });
     expect(orden.slice(0, 3)).toEqual(["lectura obsoleta", "bloqueo", "lectura fresca"]);
     expect((await abonosDe(dealId))[0]).toMatchObject({
@@ -499,12 +500,12 @@ describe("anularAbono: la etapa se recalcula", () => {
     const dealId = await nuevoDeal("atendido");
     const a = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
 
-    expect((await capturar(anularAbono(db, { userId: otroCloser, rol: "closer" }, { abonoId: a.abonoId, motivo: "x" }))).status).toBe(403);
+    expect((await capturar(anularAbono(db, { userId: otroCloser, rol: "closer", operaComoCloser: false }, { abonoId: a.abonoId, motivo: "x" }))).status).toBe(403);
 
     await db.update(cohorts).set({ estado: "cerrado" }).where(eq(cohorts.id, cohortId));
     expect((await capturar(anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "x" }))).status).toBe(403);
 
-    const r = await anularAbono(db, { userId: gerente, rol: "gerente" }, { abonoId: a.abonoId, motivo: "Corrección del gerente" });
+    const r = await anularAbono(db, { userId: gerente, rol: "gerente", operaComoCloser: false }, { abonoId: a.abonoId, motivo: "Corrección del gerente" });
     expect(r.etapa).toBe("atendido");
   });
 
@@ -513,7 +514,7 @@ describe("anularAbono: la etapa se recalcula", () => {
     const dealId = await nuevoDeal("atendido");
     const a = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
 
-    expect((await capturar(anularAbono(db, { userId: otroCloser, rol: "closer" }, { abonoId: a.abonoId, motivo: "x" }))).status).toBe(403);
+    expect((await capturar(anularAbono(db, { userId: otroCloser, rol: "closer", operaComoCloser: false }, { abonoId: a.abonoId, motivo: "x" }))).status).toBe(403);
     expect(await anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "Error de tecleo" })).toMatchObject({ etapa: "atendido" });
   });
 
@@ -548,7 +549,7 @@ describe("anularAbono: la etapa se recalcula", () => {
   it("anular en un deal perdido escribe la anulación y no mueve la etapa", async () => {
     const dealId = await nuevoDeal("cierre_perdido");
     const [a] = await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-01", monto: "100", closerId: "Maru" }).returning();
-    const r = await anularAbono(db, { userId: gerente, rol: "gerente" }, { abonoId: a.id, motivo: "Devuelto" });
+    const r = await anularAbono(db, { userId: gerente, rol: "gerente", operaComoCloser: false }, { abonoId: a.id, motivo: "Devuelto" });
     expect(r).toMatchObject({ etapa: "cierre_perdido", movioElDeal: false });
   });
 });
@@ -573,7 +574,7 @@ describe("comprobante posterior", () => {
   it("rechaza al closer que no es dueño", async () => {
     const dealId = await nuevoDeal("atendido");
     const registrado = await registrarAbono(db, comoCloser(), abono(dealId, "300", { comprobanteUrl: undefined }));
-    const error = await capturar(pegarComprobante(db, { userId: otroCloser, rol: "closer" }, {
+    const error = await capturar(pegarComprobante(db, { userId: otroCloser, rol: "closer", operaComoCloser: false }, {
       abonoId: registrado.abonoId,
       comprobanteUrl: "https://drive.google.com/ajeno",
     }));

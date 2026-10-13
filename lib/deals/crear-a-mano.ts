@@ -47,6 +47,7 @@ export const ETAPA_DE_ENTRADA: EtapaDeal = "en_gestion";
 export interface ActorDeAlta {
   userId: string;
   rol: Rol;
+  operaComoCloser: boolean;
 }
 
 export const esquemaDealAMano = z.object({
@@ -128,7 +129,7 @@ export async function crearDealAMano(
     } else {
       const { persona, creada } = await crearPersonaManual(
         db,
-        { id: actor.userId, rol: actor.rol, closerId: null },
+        { id: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser, closerId: null },
         {
           programId: datos.programId,
           correo: datos.lead.correo,
@@ -148,7 +149,7 @@ export async function crearDealAMano(
         leadId,
         programId: datos.programId,
         etapa: ETAPA_DE_ENTRADA,
-        actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol },
+        actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
       });
       return { dealId, leadId, leadCreado };
     } catch (e) {

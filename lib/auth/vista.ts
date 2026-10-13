@@ -155,6 +155,7 @@ export async function sesionEfectiva(
     .select({
       id: users.id,
       rol: users.rol,
+      operaComoCloser: users.operaComoCloser,
       closerId: users.closerId,
       nombre: users.nombre,
       email: users.email,
@@ -183,6 +184,7 @@ export async function sesionEfectiva(
       email: suplantado.email,
       image: null,
       rol: "closer",
+      operaComoCloser: session.user.operaComoCloser,
       closerId: suplantado.closerId,
       suplantadoPor: {
         id: session.user.id,

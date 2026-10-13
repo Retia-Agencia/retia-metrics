@@ -249,7 +249,7 @@ export async function inboxDelPrograma(
   alcance: AlcanceInbox,
   hoy: string = hoyEnBogota(),
   ahora: Date = new Date(),
-  actor?: { userId: string; rol: Rol },
+  actor?: { userId: string; rol: Rol; operaComoCloser: boolean },
 ): Promise<Inbox> {
   // Cuántos días hábiles sin actividad marcan "estancado" (por programa, ADR 0012).
   const [programa] = await db
@@ -377,7 +377,7 @@ export async function llamadasSinCloserDelPrograma(
 export async function llamadasSueltasDelPrograma(
   db: Db,
   programId: string,
-  actor?: { userId: string; rol: Rol },
+  actor?: { userId: string; rol: Rol; operaComoCloser: boolean },
 ): Promise<FilaLlamada[]> {
   const filas = await db
     .select({
@@ -428,7 +428,7 @@ export async function llamadasSueltasDelPrograma(
     linkCalendly: f.linkCalendly,
     ownerNombre: null,
     puedeColgar: actor
-      ? puedeColgarSuelta({ actorUserId: actor.userId, rol: actor.rol, hostUserId: closerHost(f.host, closers as CloserDelPrograma[]) })
+      ? puedeColgarSuelta({ actorUserId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser, hostUserId: closerHost(f.host, closers as CloserDelPrograma[]) })
       : false,
     sugerencias: sugerenciasDeSuelta(f.raw, abiertos, telefonosPorLead),
   }));

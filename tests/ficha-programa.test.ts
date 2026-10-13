@@ -342,11 +342,11 @@ describe("forjar la escritura desde un closer con membresía", () => {
 describe("la tab en la navegación", () => {
   it("la ven gerente y developer en el programa elegido; el closer ya no (ticket 224, ADR 0082)", () => {
     for (const rol of ["gerente", "developer"] as const) {
-      expect(navParaRol(rol, "a").map((i) => i.href)).toContain("/p/a/programa");
+      expect(navParaRol({ rol, operaComoCloser: false }, "a").map((i) => i.href)).toContain("/p/a/programa");
     }
     // El closer, que antes la LEÍA, dejó de verla: la ficha es ahora de quien configura.
-    expect(navParaRol("closer", "a").map((i) => i.href)).not.toContain("/p/a/programa");
-    expect(navParaRol("closer", null).map((i) => i.href)).not.toContain("/p/a/programa");
+    expect(navParaRol({ rol: "closer", operaComoCloser: false }, "a").map((i) => i.href)).not.toContain("/p/a/programa");
+    expect(navParaRol({ rol: "closer", operaComoCloser: false }, null).map((i) => i.href)).not.toContain("/p/a/programa");
   });
 
   it("cambiar de programa desde la ficha se queda en la ficha", () => {

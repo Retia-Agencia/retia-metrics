@@ -59,7 +59,7 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
       const { deal: original, emailLead } = await dealBloqueadoConLead(tx, datos.dealId);
       if (original.anuladoEn) throw new ErrorDeApp("El deal está anulado: no recibe anotaciones.", 409);
 
-      const seAduena = original.ownerUserId == null && trabajaLeads(actor.rol);
+      const seAduena = original.ownerUserId == null && trabajaLeads(actor);
       if (!seAduena && !puedeTrabajarDeal(actor, original)) {
         throw new ErrorDeApp(
           original.ownerUserId == null
@@ -124,7 +124,7 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
           dealId: original.id,
           a: etapa,
           pendiente: "seguimiento",
-          actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol },
+          actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
           datos: { fechaSeguimiento: datos.proximoContacto },
         });
         pendiente = mov.pendienteA;
@@ -182,7 +182,7 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
             a: etapa,
             pendiente: "reagenda",
             motivoId: datos.reagenda.motivoId,
-            actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol },
+            actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
           });
           pendiente = mov.pendienteA;
           if (datos.reagenda.fechaLlamada) {

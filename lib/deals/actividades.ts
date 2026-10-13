@@ -44,7 +44,7 @@ export async function registrarActividad(db: Db, actor: ActorDeDeal, datos: Dato
     return (db as unknown as Transaccion).transaction(async (tx) => {
       const { deal, emailLead } = await dealBloqueadoConLead(tx, dealId);
       if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado: no recibe actividades.", 409);
-      const seAdueña = deal.ownerUserId == null && trabajaLeads(actor.rol);
+      const seAdueña = deal.ownerUserId == null && trabajaLeads(actor);
       if (!seAdueña && !puedeTrabajarDeal(actor, deal)) {
         throw new ErrorDeApp(
           deal.ownerUserId == null

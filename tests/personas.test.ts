@@ -26,8 +26,8 @@ let betoUserId: string;
 let programaA: string;
 let programaB: string;
 
-const actorGerente = () => ({ id: gerenteId, rol: "gerente" as const, closerId: null });
-const actorAna = () => ({ id: anaUserId, rol: "closer" as const, closerId: "Ana" });
+const actorGerente = () => ({ id: gerenteId, rol: "gerente" as const, operaComoCloser: false, closerId: null });
+const actorAna = () => ({ id: anaUserId, rol: "closer" as const, operaComoCloser: false, closerId: "Ana" });
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
@@ -157,7 +157,7 @@ describe("crearPersonaManual", () => {
   it("un closer con membresia crea aunque su closerId este vacio", async () => {
     const resultado = await crearPersonaManual(
       db,
-      { id: anaUserId, rol: "closer", closerId: null },
+      { id: anaUserId, rol: "closer", operaComoCloser: false, closerId: null },
       { programId: programaA, correo: "x@correo.co" },
     );
     expect(resultado).toMatchObject({ creada: true, persona: { emailNormalizado: "x@correo.co" } });
@@ -185,8 +185,8 @@ describe("crearPersonaManual", () => {
  */
 describe("vista `todo` es un superconjunto de vista `closer` (ticket 032)", () => {
   let devUserId: string;
-  const actorDev = () => ({ id: devUserId, rol: "developer" as const, closerId: "Dev" });
-  const actorDevComoCloser = () => ({ id: devUserId, rol: "closer" as const, closerId: "Dev" });
+  const actorDev = () => ({ id: devUserId, rol: "developer" as const, operaComoCloser: false, closerId: "Dev" });
+  const actorDevComoCloser = () => ({ id: devUserId, rol: "closer" as const, operaComoCloser: false, closerId: "Dev" });
 
   beforeEach(async () => {
     const [dev] = await db

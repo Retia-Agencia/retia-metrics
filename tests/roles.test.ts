@@ -1,21 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { esAdministrador, etiquetaDeRol, manejaPauta, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veDetalleTecnico, veEquipoComercial, veTableroDelPrograma, configuraPrograma } from "@/lib/auth/roles";
+import { esAdministrador, etiquetaDeRol, manejaPauta, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veDetalleTecnico, veEquipoComercial, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
+
+const sujeto = (rol: Rol | null | undefined, operaComoCloser = false) => ({ rol, operaComoCloser });
 
 describe("trabajaLeads", () => {
   // Las tres preguntas de la familia son distintas y hay que poder contestarlas
   // distinto. Si alguien "simplifica" esta a `esAdministrador`, un gerente pasaria a
   // tener closer_id y membresias, y eso contradice el ADR 0003.
-  it("el closer y el developer trabajan leads; el gerente no", () => {
-    expect(trabajaLeads("closer")).toBe(true);
-    expect(trabajaLeads("developer")).toBe(true);
-    expect(trabajaLeads("gerente")).toBe(false);
-  });
-
-  it("sin rol no trabaja leads", () => {
-    expect(trabajaLeads(null)).toBe(false);
-    expect(trabajaLeads(undefined)).toBe(false);
+  it("responde la tabla de verdad para cada rol y valor de la capacidad", () => {
+    for (const operaComoCloser of [false, true]) {
+      expect(trabajaLeads(sujeto("closer", operaComoCloser))).toBe(true);
+      expect(trabajaLeads(sujeto("developer", operaComoCloser))).toBe(true);
+      expect(trabajaLeads(sujeto("gerente", operaComoCloser))).toBe(operaComoCloser);
+      expect(trabajaLeads(sujeto("paid_trafficker", operaComoCloser))).toBe(operaComoCloser);
+      expect(trabajaLeads(sujeto("customer_success", operaComoCloser))).toBe(operaComoCloser);
+      expect(trabajaLeads(sujeto(null, operaComoCloser))).toBe(false);
+      expect(trabajaLeads(sujeto(undefined, operaComoCloser))).toBe(false);
+    }
   });
 });
 
@@ -48,7 +51,7 @@ describe("manejaPauta (ADR 0052, ticket 173)", () => {
   // registra, no es dueño de un deal y no toca usuarios ni motivos (ADR 0052).
   it("el paid trafficker no administra ni trabaja leads", () => {
     expect(esAdministrador("paid_trafficker")).toBe(false);
-    expect(trabajaLeads("paid_trafficker")).toBe(false);
+    expect(trabajaLeads(sujeto("paid_trafficker"))).toBe(false);
   });
 
   it("el rol paid_trafficker es válido (está en ROLES)", () => {
@@ -133,7 +136,7 @@ describe("marcaOnboarding (ticket 145)", () => {
   // permiso sin escribir el literal del rol (ADR 0025).
   it("el customer success marca onboarding pero no administra, no trabaja leads ni maneja pauta", () => {
     expect(esAdministrador("customer_success")).toBe(false);
-    expect(trabajaLeads("customer_success")).toBe(false);
+    expect(trabajaLeads(sujeto("customer_success"))).toBe(false);
     expect(manejaPauta("customer_success")).toBe(false);
   });
 
@@ -144,13 +147,19 @@ describe("marcaOnboarding (ticket 145)", () => {
 
 describe("puedeSerMiembro (ticket 145)", () => {
   // Quién admite una membresía de programa: quien trabaja leads y el customer success.
+  const sin = (rol: Rol | null) => ({ rol, operaComoCloser: false });
   it("la cumplen closer, developer y customer_success; el gerente no (administra, no pertenece)", () => {
-    expect(puedeSerMiembro("closer")).toBe(true);
-    expect(puedeSerMiembro("developer")).toBe(true);
-    expect(puedeSerMiembro("customer_success")).toBe(true);
-    expect(puedeSerMiembro("gerente")).toBe(false);
-    expect(puedeSerMiembro("paid_trafficker")).toBe(false);
-    expect(puedeSerMiembro(null)).toBe(false);
+    expect(puedeSerMiembro(sin("closer"))).toBe(true);
+    expect(puedeSerMiembro(sin("developer"))).toBe(true);
+    expect(puedeSerMiembro(sin("customer_success"))).toBe(true);
+    expect(puedeSerMiembro(sin("gerente"))).toBe(false);
+    expect(puedeSerMiembro(sin("paid_trafficker"))).toBe(false);
+    expect(puedeSerMiembro(sin(null))).toBe(false);
+  });
+
+  it("el gerente que opera como closer sí puede ser miembro (ticket 236): sin membresía no sería dueño", () => {
+    expect(puedeSerMiembro({ rol: "gerente", operaComoCloser: true })).toBe(true);
+    expect(puedeSerMiembro({ rol: null, operaComoCloser: true })).toBe(false);
   });
 });
 
@@ -216,8 +225,8 @@ describe("navegacion por rol", () => {
   // La nav recibe el programa ELEGIDO como dato (sale de la URL o del primero visible),
   // no los conoce de antemano: slugs inventados, nunca los reales.
   const PROGRAMA = "programa-a";
-  const rutasDe = (rol: Parameters<typeof navParaRol>[0], programa: string | null = PROGRAMA) =>
-    navParaRol(rol, programa).map((i) => i.href);
+  const rutasDe = (rol: Rol, programa: string | null = PROGRAMA, operaComoCloser = false) =>
+    navParaRol(sujeto(rol, operaComoCloser), programa).map((i) => i.href);
 
   it("el closer no ve las rutas de administracion exclusivas de gerente", () => {
     // `/nerd-stats` es la unica ruta exclusiva que queda en la nav (ticket 025).
@@ -307,16 +316,16 @@ describe("navegacion por rol", () => {
   });
 
   it("el gerente aterriza en el Dashboard del primer programa; el closer en Mi espacio (ticket 172)", () => {
-    expect(rutaInicial("gerente", "programa-a")).toBe("/p/programa-a/dashboard");
-    expect(rutaInicial("closer", "programa-a")).toBe("/mi-espacio");
+    expect(rutaInicial(sujeto("gerente"), "programa-a")).toBe("/p/programa-a/dashboard");
+    expect(rutaInicial(sujeto("closer"), "programa-a")).toBe("/mi-espacio");
   });
 
   it("un gerente sin programas activos aterriza en ajustes", () => {
-    expect(rutaInicial("gerente", null)).toBe("/ajustes");
+    expect(rutaInicial(sujeto("gerente"), null)).toBe("/ajustes");
   });
 
   it("un closer siempre aterriza en Mi espacio, con o sin programas (ticket 172)", () => {
-    expect(rutaInicial("closer", null)).toBe("/mi-espacio");
+    expect(rutaInicial(sujeto("closer"), null)).toBe("/mi-espacio");
   });
 
   it("el developer ve la union de items: mi-espacio, dashboard, recursos y ajustes (ADR 0025)", () => {
@@ -330,6 +339,15 @@ describe("navegacion por rol", () => {
 
   it("el gerente ve Mi espacio (ticket 179): su sección Por decidir, no las del closer", () => {
     expect(rutasDe("gerente")).toContain("/mi-espacio");
+  });
+
+  it("el gerente con capacidad conserva su navegación administrativa y Mi espacio de closer", () => {
+    const rutas = rutasDe("gerente", PROGRAMA, true);
+    expect(rutas).toContain("/mi-espacio");
+    expect(rutas).toContain("/ajustes");
+    expect(rutas).toContain(`/p/${PROGRAMA}/dashboard`);
+    expect(navParaRol(sujeto("gerente", true), PROGRAMA).find((i) => i.href === "/mi-espacio")?.roles).toEqual(["closer"]);
+    expect(rutaInicial(sujeto("gerente", true), PROGRAMA)).toBe(`/p/${PROGRAMA}/dashboard`);
   });
 
   it("Nerd Stats es SOLO del developer: ni gerente ni closer lo ven (ticket 025)", () => {
@@ -349,8 +367,8 @@ describe("navegacion por rol", () => {
   });
 
   it("el paid trafficker aterriza en Mi espacio (ticket 179), ya no en Canales", () => {
-    expect(rutaInicial("paid_trafficker", "programa-a")).toBe("/mi-espacio");
-    expect(rutaInicial("paid_trafficker", null)).toBe("/mi-espacio");
+    expect(rutaInicial(sujeto("paid_trafficker"), "programa-a")).toBe("/mi-espacio");
+    expect(rutaInicial(sujeto("paid_trafficker"), null)).toBe("/mi-espacio");
   });
 
   it("el customer success ve SOLO Students del programa elegido (ticket 145): ni otras tabs, ni Mi espacio, ni Ajustes", () => {
@@ -366,16 +384,16 @@ describe("navegacion por rol", () => {
   });
 
   it("el customer success aterriza en los Students de su primer programa (ticket 145)", () => {
-    expect(rutaInicial("customer_success", "programa-a")).toBe("/p/programa-a/students");
+    expect(rutaInicial(sujeto("customer_success"), "programa-a")).toBe("/p/programa-a/students");
     // Sin programa visible va a Mi espacio, que para ese rol muestra el mensaje de "pídele a
     // gerencia un programa" (ticket 145): un destino dentro de la app, no el login.
-    expect(rutaInicial("customer_success", null)).toBe("/mi-espacio");
+    expect(rutaInicial(sujeto("customer_success"), null)).toBe("/mi-espacio");
   });
 
   it("el developer aterriza en el Dashboard del primer programa, como el gerente", () => {
-    expect(rutaInicial("developer", "programa-a")).toBe("/p/programa-a/dashboard");
+    expect(rutaInicial(sujeto("developer"), "programa-a")).toBe("/p/programa-a/dashboard");
     // Sin programas activos, cae en ajustes: tiene acceso total de administracion.
-    expect(rutaInicial("developer", null)).toBe("/ajustes");
+    expect(rutaInicial(sujeto("developer"), null)).toBe("/ajustes");
   });
 });
 
@@ -455,7 +473,7 @@ describe("el programa en la URL (ticket 097)", () => {
  */
 describe("callback session", () => {
   const sesion = () =>
-    ({ user: { id: "x", rol: "closer", closerId: null }, expires: "" }) as never;
+    ({ user: { id: "x", rol: "closer", operaComoCloser: false, closerId: null }, expires: "" }) as never;
 
   const llamar = (token: Record<string, unknown>) =>
     // El callback es sincrono y puro; el cast evita armar el union de parametros
@@ -484,10 +502,10 @@ describe("callback session", () => {
 
 describe("fallar cerrado sin rol", () => {
   it("no se muestra ningun item de navegacion", () => {
-    expect(navParaRol(null, null)).toEqual([]);
+    expect(navParaRol(sujeto(null), null)).toEqual([]);
   });
 
   it("no hay destino dentro de la app: va al login", () => {
-    expect(rutaInicial(null, null)).toBe("/login");
+    expect(rutaInicial(sujeto(null), null)).toBe("/login");
   });
 });

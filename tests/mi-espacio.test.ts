@@ -58,15 +58,15 @@ const PROG_A = { id: "p-a", slug: "programa-a", nombre: "Programa A" };
 const PROG_B = { id: "p-b", slug: "programa-b", nombre: "Programa B" };
 
 const sesionCloser = {
-  user: { id: "u-closer", rol: "closer", closerId: "Nico", name: "Nicolás", email: "nico@x.co", image: null },
+  user: { id: "u-closer", rol: "closer", operaComoCloser: false, closerId: "Nico", name: "Nicolás", email: "nico@x.co", image: null },
 };
 
 const sesionGerente = {
-  user: { id: "u-gerente", rol: "gerente", closerId: null, name: "Geraldine", email: "gere@x.co", image: null },
+  user: { id: "u-gerente", rol: "gerente", operaComoCloser: false, closerId: null, name: "Geraldine", email: "gere@x.co", image: null },
 };
 
 const sesionPaidTrafficker = {
-  user: { id: "u-pauta", rol: "paid_trafficker", closerId: null, name: "Pablo", email: "pauta@x.co", image: null },
+  user: { id: "u-pauta", rol: "paid_trafficker", operaComoCloser: false, closerId: null, name: "Pablo", email: "pauta@x.co", image: null },
 };
 
 async function correr(busqueda: Record<string, string> = {}): Promise<"render" | "notFound" | "login"> {
@@ -183,7 +183,7 @@ describe("/mi-espacio (ticket 172)", () => {
 
   it("el developer sin membresías ve el mensaje del dueño con 'Ver como closer' (ticket 177)", async () => {
     auth.mockResolvedValue({
-      user: { id: "u-dev", rol: "developer", closerId: null, name: "Dev", email: "dev@x.co", image: null },
+      user: { id: "u-dev", rol: "developer", operaComoCloser: false, closerId: null, name: "Dev", email: "dev@x.co", image: null },
     });
     membresiasConCalendlyDe.mockResolvedValue([]);
     const arbol = await renderizar();
@@ -199,7 +199,7 @@ describe("/mi-espacio (ticket 172)", () => {
     // es el dueño y no está suplantando a nadie. Antes del arreglo le pedía hablar con su gerente.
     cookieVista = "closer";
     auth.mockResolvedValue({
-      user: { id: "u-dev", rol: "developer", closerId: null, name: "Dev", email: "dev@x.co", image: null },
+      user: { id: "u-dev", rol: "developer", operaComoCloser: false, closerId: null, name: "Dev", email: "dev@x.co", image: null },
     });
     membresiasConCalendlyDe.mockResolvedValue([]);
     const texto = textoDelArbol(await renderizar());
@@ -297,7 +297,7 @@ describe("/mi-espacio (ticket 172)", () => {
     // Suplantación: la sesión efectiva ya llega como un closer de verdad (rol closer, su
     // id y membresías). La página la trata igual que a un closer real.
     auth.mockResolvedValue({
-      user: { id: "u-closer", rol: "closer", closerId: "Nico", name: "Nicolás", email: "nico@x.co", image: null, suplantadoPor: { id: "u-dev", nombre: "Dev" } },
+      user: { id: "u-closer", rol: "closer", operaComoCloser: false, closerId: "Nico", name: "Nicolás", email: "nico@x.co", image: null, suplantadoPor: { id: "u-dev", nombre: "Dev" } },
     });
     membresiasConCalendlyDe.mockResolvedValue([
       { id: "m-a", userId: "u-closer", usuario: "Nicolás", emailUsuario: "nico@x.co", programId: "p-a", calendlyEmail: null },
@@ -312,7 +312,7 @@ describe("/mi-espacio (ticket 172)", () => {
     // Vista `gerente`: `rolDeVista` proyecta a gerente, así que la página pinta Por decidir.
     cookieVista = "gerente";
     auth.mockResolvedValue({
-      user: { id: "u-dev", rol: "developer", closerId: null, name: "Dev", email: "dev@x.co", image: null },
+      user: { id: "u-dev", rol: "developer", operaComoCloser: false, closerId: null, name: "Dev", email: "dev@x.co", image: null },
     });
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar();
@@ -323,7 +323,7 @@ describe("/mi-espacio (ticket 172)", () => {
   it("el developer en vista todo ve el mensaje que lo explica (no hay sección propia)", async () => {
     cookieVista = "todo";
     auth.mockResolvedValue({
-      user: { id: "u-dev", rol: "developer", closerId: null, name: "Dev", email: "dev@x.co", image: null },
+      user: { id: "u-dev", rol: "developer", operaComoCloser: false, closerId: null, name: "Dev", email: "dev@x.co", image: null },
     });
     const arbol = await renderizar();
     const texto = textoDelArbol(arbol);

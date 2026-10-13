@@ -1,4 +1,4 @@
-import type { Rol } from "@/lib/auth/roles";
+import type { Rol, SujetoDeCapacidad } from "@/lib/auth/roles";
 import { esAccesoTotal, esAdministrador, manejaPauta, marcaOnboarding, trabajaLeads, veTableroDelPrograma, configuraPrograma } from "@/lib/auth/roles";
 
 export type ItemNav = {
@@ -79,7 +79,8 @@ export function rutaAlCambiarDePrograma(
  * de programa no aparecen.
  * Ojo: esconder un item NO es seguridad — cada ruta valida su rol en el servidor.
  */
-export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] {
+export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null): ItemNav[] {
+  const { rol } = sujeto;
   if (!rol) return [];
 
   // El paid trafficker (ADR 0052) entra a Ajustes —adentro solo ve Canales (lo proyecta
@@ -88,7 +89,7 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
   // sin el trabajo del equipo comercial. No administra la app ni trabaja leads, así que no
   // tiene las demás tabs de programa ni Recursos. Se pregunta por capacidad —`manejaPauta` sin
   // administrar ni trabajar leads—, nunca por el literal del rol (ADR 0025).
-  if (manejaPauta(rol) && !esAdministrador(rol) && !trabajaLeads(rol)) {
+  if (manejaPauta(rol) && !esAdministrador(rol) && !trabajaLeads(sujeto)) {
     return [
       { href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles: ["paid_trafficker"] },
       ...(programa
@@ -103,7 +104,7 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
   // Recursos ni Ajustes. Se pregunta por capacidad —`marcaOnboarding` sin administrar ni
   // trabajar leads ni manejar pauta—, nunca por el literal del rol (ADR 0025). Sin programa
   // visible no tiene ninguna tab.
-  if (marcaOnboarding(rol) && !esAdministrador(rol) && !trabajaLeads(rol) && !manejaPauta(rol)) {
+  if (marcaOnboarding(rol) && !esAdministrador(rol) && !trabajaLeads(sujeto) && !manejaPauta(rol)) {
     return programa
       ? [{ href: rutaDePrograma(programa, "students"), etiqueta: "Students", icono: "students", roles: ["customer_success"] }]
       : [];
@@ -115,8 +116,8 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
   // 179). Lo ven quien trabaja leads (closer y developer), quien administra (gerente) y el
   // developer por `esAccesoTotal`. El paid trafficker lo tiene por su rama de arriba. Es por
   // CAPACIDAD, nunca por el literal del rol (ADR 0025).
-  if (trabajaLeads(rol) || esAdministrador(rol)) {
-    const roles: Rol[] = trabajaLeads(rol) ? ["closer"] : ["gerente"];
+  if (trabajaLeads(sujeto) || esAdministrador(rol)) {
+    const roles: Rol[] = trabajaLeads(sujeto) ? ["closer"] : ["gerente"];
     items.push({ href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles });
   }
 
@@ -232,19 +233,20 @@ export function navParaRol(rol: Rol | null, programa: string | null): ItemNav[] 
  * dato; para el closer y el paid trafficker ya no hace falta, pero se conserva la firma
  * porque el gerente y el developer sí lo usan.
  */
-export function rutaInicial(rol: Rol | null, primerPrograma: string | null): string {
+export function rutaInicial(sujeto: SujetoDeCapacidad, primerPrograma: string | null): string {
+  const { rol } = sujeto;
   if (!rol) return "/login";
-  if (rol === "closer") return "/mi-espacio";
+  if (trabajaLeads(sujeto) && !esAdministrador(rol)) return "/mi-espacio";
   // El paid trafficker aterriza en Mi espacio (ticket 179): su sección Canales (pares sin
   // clasificar y conteo por canal) es ahora su punto de entrada, no `/ajustes/canales`.
   // Por capacidad, nunca por el literal del rol (ADR 0025).
-  if (manejaPauta(rol) && !esAdministrador(rol) && !trabajaLeads(rol)) return "/mi-espacio";
+  if (manejaPauta(rol) && !esAdministrador(rol) && !trabajaLeads(sujeto)) return "/mi-espacio";
   // El customer success (ticket 145) aterriza en los Students de su primer programa visible:
   // es la única pantalla que ve. Por capacidad —`marcaOnboarding` sin administrar, trabajar
   // leads ni manejar pauta—, nunca por el literal del rol (ADR 0025). Sin un programa visible
   // va a Mi espacio, que para ese rol muestra el mensaje de "pídele a gerencia que te agregue
   // a un programa" (A-04 del customer success): un destino dentro de la app, no el login.
-  if (marcaOnboarding(rol) && !esAdministrador(rol) && !trabajaLeads(rol) && !manejaPauta(rol)) {
+  if (marcaOnboarding(rol) && !esAdministrador(rol) && !trabajaLeads(sujeto) && !manejaPauta(rol)) {
     return primerPrograma ? rutaDePrograma(primerPrograma, "students") : "/mi-espacio";
   }
   return primerPrograma ? rutaDePrograma(primerPrograma, "dashboard") : "/ajustes";

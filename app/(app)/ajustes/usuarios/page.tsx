@@ -31,7 +31,7 @@ export default async function UsuariosPage() {
 
   // La cuenta de Calendly es de quien trabaja leads (ticket 096). Las cuentas de cada
   // programa se leen de Calendly con su token, que nunca sale del servidor.
-  const trabajan = new Set(usuarios.filter((u) => trabajaLeads(u.rol)).map((u) => u.id));
+  const trabajan = new Set(usuarios.filter((u) => trabajaLeads(u)).map((u) => u.id));
   const membresias = todasLasMembresias.filter((m) => trabajan.has(m.userId));
   const cuentas = await cuentasPorPrograma(db, [...new Set(membresias.map((m) => m.programId))]);
 
@@ -40,6 +40,7 @@ export default async function UsuariosPage() {
     email: u.email,
     nombre: u.nombre,
     rol: u.rol,
+    operaComoCloser: u.operaComoCloser,
     closerId: u.closerId,
     calendlyEmail: u.calendlyEmail,
     activo: u.activo,

@@ -25,6 +25,7 @@ export const authConfig = {
         // traducia un token vaciado a "closer" y la app quedaba segura solo por
         // el `id` vacio, no por el rol.
         session.user.rol = esRolValido(token.rol) ? token.rol : null;
+        session.user.operaComoCloser = token.operaComoCloser ?? false;
         session.user.closerId = token.closerId ?? null;
       }
       return session;

@@ -60,6 +60,7 @@ export const esquemaUsuario = z.object({
       .optional()
       .transform((v) => (v && v.length > 0 ? v : null)),
     rol: z.enum(ROLES),
+    operaComoCloser: z.boolean().default(false),
     /** closer_id de la BBDD (ADR 0011). Vacio se guarda como null. */
     closerId: z
       .string()
@@ -130,6 +131,7 @@ type CamposUsuario = {
   email: string;
   nombre: string | null;
   rol: (typeof ROLES)[number];
+  operaComoCloser: boolean;
   closerId: string | null;
   calendlyEmail: string | null;
 };
@@ -147,6 +149,7 @@ function moldeUsuarios(db: Db) {
         email: z.string(),
         nombre: z.string().nullable(),
         rol: z.enum(ROLES),
+        operaComoCloser: z.boolean(),
         closerId: z.string().nullable(),
         calendlyEmail: z.string().nullable(),
       }) as unknown as z.ZodType<CamposUsuario>,
@@ -313,6 +316,7 @@ export interface UsuarioConProgramas extends FilaCatalogo {
   email: string;
   nombre: string | null;
   rol: (typeof ROLES)[number];
+  operaComoCloser: boolean;
   closerId: string | null;
   calendlyEmail: string | null;
   programas: string[];
@@ -335,6 +339,7 @@ export async function listarUsuarios(db: Db = dbDeLaApp): Promise<UsuarioConProg
     email: u.email,
     nombre: u.nombre,
     rol: u.rol,
+    operaComoCloser: u.operaComoCloser,
     closerId: u.closerId,
     calendlyEmail: u.calendlyEmail,
     programas: activasPorUsuario.get(u.id) ?? [],
@@ -430,7 +435,7 @@ export async function agregarMembresia(
     const [usuario] = await db.select().from(users).where(eq(users.id, objetivoId));
     if (!usuario) throw new ErrorDeApp("No existe el usuario.", 404);
     if (!usuario.activo) throw new ErrorDeApp("No se puede agregar un usuario inactivo.", 400);
-    if (!puedeSerMiembro(usuario.rol)) {
+    if (!puedeSerMiembro(usuario)) {
       throw new ErrorDeApp("Este usuario no puede pertenecer a un programa.", 400);
     }
     const [programa] = await db.select({ id: programs.id }).from(programs).where(eq(programs.id, programaId));
@@ -497,6 +502,7 @@ export async function editarCloserIdPropio(
       email: actual.email,
       nombre: actual.nombre,
       rol: actual.rol,
+      operaComoCloser: actual.operaComoCloser,
       closerId,
       calendlyEmail: actual.calendlyEmail,
     });
@@ -582,6 +588,7 @@ export async function asignarCalendlyDeMembresia(
         programId: miembrosPrograma.programId,
         email: users.email,
         rol: users.rol,
+        operaComoCloser: users.operaComoCloser,
         token: programs.calendlyToken,
       })
       .from(miembrosPrograma)
@@ -589,7 +596,7 @@ export async function asignarCalendlyDeMembresia(
       .innerJoin(programs, eq(programs.id, miembrosPrograma.programId))
       .where(eq(miembrosPrograma.id, membresiaId));
     if (!m || !m.activo) throw new ErrorDeApp("No existe esa membresía activa.", 404);
-    if (!trabajaLeads(m.rol)) {
+    if (!trabajaLeads(m)) {
       throw new ErrorDeApp("Solo quien trabaja leads puede tener cuenta de Calendly en un programa.", 422);
     }
     const [actor] = await db.select().from(users).where(eq(users.id, actorId));
@@ -670,6 +677,7 @@ export interface MembresiaConCalendly {
   programId: string;
   calendlyEmail: string | null;
   rol: Rol;
+  operaComoCloser: boolean;
   setterPorDefecto: boolean;
 }
 
@@ -712,6 +720,7 @@ async function consultarMembresiasConCalendly(
       programId: miembrosPrograma.programId,
       calendlyEmail: miembrosPrograma.calendlyEmail,
       rol: users.rol,
+      operaComoCloser: users.operaComoCloser,
       setterPorDefecto: miembrosPrograma.setterPorDefecto,
     })
     .from(miembrosPrograma)
@@ -726,6 +735,7 @@ async function consultarMembresiasConCalendly(
       programId: f.programId,
       calendlyEmail: f.calendlyEmail,
       rol: f.rol,
+      operaComoCloser: f.operaComoCloser,
       setterPorDefecto: f.setterPorDefecto,
     }))
     .sort((a, b) => a.usuario.localeCompare(b.usuario, "es"));

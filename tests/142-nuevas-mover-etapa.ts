@@ -17,7 +17,7 @@ let retroceso: string;
 let recuperacion: string;
 let secuencia = 0;
 const sistema: Actor = { tipo: "sistema" };
-const actor = (): Actor => ({ tipo: "usuario", userId: closer, rol: "closer" });
+const actor = (): Actor => ({ tipo: "usuario", userId: closer, rol: "closer", operaComoCloser: false });
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());

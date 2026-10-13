@@ -32,7 +32,7 @@ let motivoReagendaId: string;
 let motivoQuePideTextoId: string;
 let secuencia = 0;
 
-const actor = () => ({ userId: closerId, rol: "closer" as const });
+const actor = () => ({ userId: closerId, rol: "closer" as const, operaComoCloser: false });
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());

@@ -117,7 +117,7 @@ async function agendadaDe(dealId: string, extra: Partial<typeof calls.$inferInse
 }
 
 function comoCloser() {
-  return { userId: closer, rol: rolCloser };
+  return { userId: closer, rol: rolCloser , operaComoCloser: false};
 }
 
 const enUnaHora = () => new Date(Date.now() + 60 * 60 * 1000);
@@ -248,7 +248,7 @@ describe("pegarGrain: pegar el link es decir que la llamada sucedió", () => {
 
     const { movioAAtendido } = await pegarGrain(
       db,
-      { userId: developer, rol: "developer" },
+      { userId: developer, rol: "developer", operaComoCloser: false },
       { callId: call.id, linkGrain: "https://grain.com/share/dev" },
     );
 
@@ -277,7 +277,7 @@ describe("pegarGrain: rechazos", () => {
     const dealId = await nuevoDeal("agendado", { ownerUserId: closer });
     const call = await agendadaDe(dealId);
     const err = await capturar(
-      pegarGrain(db, { userId: otroCloser, rol: "closer" }, { callId: call.id, linkGrain: "https://grain.com/x" }),
+      pegarGrain(db, { userId: otroCloser, rol: "closer", operaComoCloser: false }, { callId: call.id, linkGrain: "https://grain.com/x" }),
     );
     expect(err.status).toBe(403);
     const guardada = await callPorId(call.id);
@@ -290,7 +290,7 @@ describe("pegarGrain: rechazos", () => {
     const dealId = await nuevoDeal("agendado");
     const call = await agendadaDe(dealId);
     const err = await capturar(
-      pegarGrain(db, { userId: gerente, rol: "gerente" }, { callId: call.id, linkGrain: "https://grain.com/x" }),
+      pegarGrain(db, { userId: gerente, rol: "gerente", operaComoCloser: false }, { callId: call.id, linkGrain: "https://grain.com/x" }),
     );
     expect(err.status).toBe(403);
   });
@@ -456,7 +456,7 @@ describe("marcarFallida: no_show y cancelada mandan a Pendiente Re-agenda", () =
     const call = await agendadaDe(dealId);
     const { etapa } = await marcarFallida(
       db,
-      { userId: developer, rol: "developer" },
+      { userId: developer, rol: "developer", operaComoCloser: false },
       { callId: call.id, resultado: "cancelada" },
     );
     expect(etapa).toBe("agendado");
@@ -468,7 +468,7 @@ describe("marcarFallida: rechazos", () => {
     const dealId = await nuevoDeal("agendado", { ownerUserId: closer });
     const call = await agendadaDe(dealId);
     const err = await capturar(
-      marcarFallida(db, { userId: otroCloser, rol: "closer" }, { callId: call.id, resultado: "no_show" }),
+      marcarFallida(db, { userId: otroCloser, rol: "closer", operaComoCloser: false }, { callId: call.id, resultado: "no_show" }),
     );
     expect(err.status).toBe(403);
     expect(await callPorId(call.id).then((c) => c.resultado)).toBe("agendada");

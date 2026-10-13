@@ -64,7 +64,7 @@ async function crearDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferIns
 }
 
 const actorPara = (etapa: EtapaDeal, destino: EtapaDeal) => transicion(etapa, destino)?.quien === "closer"
-  ? { tipo: "usuario" as const, userId: closer, rol: "closer" as const }
+  ? { tipo: "usuario" as const, userId: closer, rol: "closer" as const, operaComoCloser: false }
   : { tipo: "sistema" as const };
 
 async function rechazoDe(dealId: string, etapa: EtapaDeal, destino: EtapaDeal) {

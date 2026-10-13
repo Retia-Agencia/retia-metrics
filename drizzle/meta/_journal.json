@@ -540,6 +540,13 @@
       "when": 1791568709407,
       "tag": "0076_cohorte-por-definir",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1791849253752,
+      "tag": "0077_opera-como-closer",
+      "breakpoints": true
     }
   ]
 }

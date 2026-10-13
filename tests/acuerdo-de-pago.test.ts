@@ -71,7 +71,7 @@ async function capturar(p: Promise<unknown>): Promise<ErrorDeApp> {
   throw new Error("se esperaba un error");
 }
 
-const comoCloser = () => ({ userId: closer, rol: "closer" as const });
+const comoCloser = () => ({ userId: closer, rol: "closer" as const, operaComoCloser: false });
 
 describe("fechaEfectivaDePago: una sola prioridad de fechas", () => {
   it.each([
@@ -159,8 +159,8 @@ describe("editarAcuerdoDePago", () => {
 
   it("solo el dueño o un administrador; un deal anulado o cerrado no se edita", async () => {
     const d = await nuevoDeal("compromiso_verbal");
-    expect((await capturar(editarAcuerdoDePago(db, { userId: otroCloser, rol: "closer" }, { dealId: d.id, acuerdoPago: "x" }))).status).toBe(403);
-    await editarAcuerdoDePago(db, { userId: gerente, rol: "gerente" }, { dealId: d.id, acuerdoPago: "lo pone el gerente" });
+    expect((await capturar(editarAcuerdoDePago(db, { userId: otroCloser, rol: "closer", operaComoCloser: false }, { dealId: d.id, acuerdoPago: "x" }))).status).toBe(403);
+    await editarAcuerdoDePago(db, { userId: gerente, rol: "gerente", operaComoCloser: false }, { dealId: d.id, acuerdoPago: "lo pone el gerente" });
 
     for (const etapa of ["ganado_completo", "cierre_perdido"] as const) {
       const c = await nuevoDeal(etapa);
@@ -175,7 +175,7 @@ describe("el tope también rige donde nace la fecha: el motor y el alta del deal
   it("moverEtapa con una fecha pasada del inicio de clases se rechaza y no escribe nada", async () => {
     const d = await nuevoDeal("contactado");
     const e = await capturar(
-      moverEtapa(db, { dealId: d.id, a: "compromiso_verbal", actor: { tipo: "usuario", userId: closer, rol: "closer" }, datos: {fechaLimitePago: "2026-10-16" } }),
+      moverEtapa(db, { dealId: d.id, a: "compromiso_verbal", actor: { tipo: "usuario", userId: closer, rol: "closer", operaComoCloser: false }, datos: {fechaLimitePago: "2026-10-16" } }),
     );
     expect(e.status).toBe(422);
     const [f] = await db.select().from(deals).where(eq(deals.id, d.id));
@@ -184,7 +184,7 @@ describe("el tope también rige donde nace la fecha: el motor y el alta del deal
 
   it("con la fecha justo en el inicio de clases el movimiento pasa", async () => {
     const d = await nuevoDeal("contactado");
-    await moverEtapa(db, { dealId: d.id, a: "compromiso_verbal", actor: { tipo: "usuario", userId: closer, rol: "closer" }, datos: {fechaLimitePago: "2026-10-15" } });
+    await moverEtapa(db, { dealId: d.id, a: "compromiso_verbal", actor: { tipo: "usuario", userId: closer, rol: "closer", operaComoCloser: false }, datos: {fechaLimitePago: "2026-10-15" } });
     const [f] = await db.select().from(deals).where(eq(deals.id, d.id));
     expect(f.etapa).toBe("compromiso_verbal");
   });
@@ -192,7 +192,7 @@ describe("el tope también rige donde nace la fecha: el motor y el alta del deal
   it("abrirDeal en Compromiso Verbal con la fecha pasada del inicio de clases se rechaza", async () => {
     const [l] = await db.insert(leads).values({ programId, emailNormalizado: "nuevo@correo.co" }).returning();
     const e = await capturar(
-      abrirDeal(db, { leadId: l.id, programId, etapa: "compromiso_verbal", actor: { tipo: "usuario", userId: closer, rol: "closer" }, cohortId, fechaLimitePago: "2026-10-20" }),
+      abrirDeal(db, { leadId: l.id, programId, etapa: "compromiso_verbal", actor: { tipo: "usuario", userId: closer, rol: "closer", operaComoCloser: false }, cohortId, fechaLimitePago: "2026-10-20" }),
     );
     expect(e.status).toBe(422);
     expect(await db.select().from(deals).where(eq(deals.leadId, l.id))).toHaveLength(0);

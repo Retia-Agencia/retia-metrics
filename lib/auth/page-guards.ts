@@ -26,12 +26,16 @@ import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
  * 071); si no ve ninguno, `rutaInicial` lo lleva a `/mi-dia` de respaldo. El developer
  * nunca es redirigido en la practica (pasa toda guarda), pero se resuelve igual.
  */
-export async function destinoInicial(userId: string, rol: Rol | null): Promise<string> {
+export async function destinoInicial(
+  userId: string,
+  rol: Rol | null,
+  operaComoCloser = false,
+): Promise<string> {
   const [visibles, preferido] = await Promise.all([
     programasVisibles(userId, rol),
     programaPreferidoDeCookie(),
   ]);
-  return rutaInicial(rol, elegirPrograma(visibles, preferido)?.slug ?? null);
+  return rutaInicial({ rol, operaComoCloser }, elegirPrograma(visibles, preferido)?.slug ?? null);
 }
 
 export async function paginaConSesion(): Promise<Session> {
@@ -54,7 +58,7 @@ export async function paginaConRol(...permitidos: Rol[]): Promise<Session> {
   // usuario, que no depende de la vista.
   const rol = await rolDeVista(session);
   if (!puedeAcceder(rol, permitidos)) {
-    redirect(await destinoInicial(session.user.id, rol));
+    redirect(await destinoInicial(session.user.id, rol, session.user.operaComoCloser));
   }
   return session;
 }

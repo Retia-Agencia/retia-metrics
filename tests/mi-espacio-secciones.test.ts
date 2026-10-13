@@ -12,7 +12,8 @@ import type { Rol } from "@/lib/auth/roles";
  * una tabla y por las preguntas de capacidad de `roles.ts` (nunca `rol === "..."`).
  */
 
-const ids = (rol: Rol | null): SeccionId[] => seccionesDeRol(rol).map((s) => s.id);
+const ids = (rol: Rol | null, operaComoCloser = false): SeccionId[] =>
+  seccionesDeRol({ rol, operaComoCloser }).map((s) => s.id);
 
 describe("seccionesDeRol: qué ve cada rol", () => {
   it("el closer ve Info, Notificaciones y Métricas, en orden", () => {
@@ -25,6 +26,10 @@ describe("seccionesDeRol: qué ve cada rol", () => {
 
   it("el gerente ve Info y Por decidir: administra pero no trabaja leads (ADR 0003)", () => {
     expect(ids("gerente")).toEqual(["info", "por-decidir"]);
+  });
+
+  it("el gerente que opera como closer conserva Por decidir y suma las secciones de closer", () => {
+    expect(ids("gerente", true)).toEqual(["info", "notificaciones", "metricas", "por-decidir"]);
   });
 
   it("el developer (acceso total) cae en la unión: Info, Notificaciones y Métricas", () => {
@@ -57,49 +62,49 @@ describe("seccionesDeRol: qué ve cada rol", () => {
 
 describe("seccionPedida: la pedida si el rol la cumple, si no la por defecto", () => {
   it("el closer sin ?tab cae en su sección por defecto (Notificaciones, no Info)", () => {
-    expect(seccionPedida("closer", undefined)?.id).toBe("notificaciones");
+    expect(seccionPedida({ rol: "closer", operaComoCloser: false }, undefined)?.id).toBe("notificaciones");
   });
 
   it("el closer puede pedir Info", () => {
-    expect(seccionPedida("closer", "info")?.id).toBe("info");
+    expect(seccionPedida({ rol: "closer", operaComoCloser: false }, "info")?.id).toBe("info");
   });
 
   it("el closer puede pedir Métricas", () => {
-    expect(seccionPedida("closer", "metricas")?.id).toBe("metricas");
+    expect(seccionPedida({ rol: "closer", operaComoCloser: false }, "metricas")?.id).toBe("metricas");
   });
 
   it("el `?tab=atencion` viejo lleva a Notificaciones (ticket 221)", () => {
-    expect(seccionPedida("closer", "atencion")?.id).toBe("notificaciones");
+    expect(seccionPedida({ rol: "closer", operaComoCloser: false }, "atencion")?.id).toBe("notificaciones");
   });
 
   it("un closer que forja ?tab=canales NO la ve: cae en la por defecto", () => {
-    expect(seccionPedida("closer", "canales")?.id).toBe("notificaciones");
+    expect(seccionPedida({ rol: "closer", operaComoCloser: false }, "canales")?.id).toBe("notificaciones");
   });
 
   it("un closer que forja ?tab=por-decidir tampoco: cae en la por defecto", () => {
-    expect(seccionPedida("closer", "por-decidir")?.id).toBe("notificaciones");
+    expect(seccionPedida({ rol: "closer", operaComoCloser: false }, "por-decidir")?.id).toBe("notificaciones");
   });
 
   it("el paid trafficker sin ?tab cae en Canales (su por defecto, no Info)", () => {
-    expect(seccionPedida("paid_trafficker", undefined)?.id).toBe("canales");
-    expect(seccionPedida("paid_trafficker", "notificaciones")?.id).toBe("canales");
+    expect(seccionPedida({ rol: "paid_trafficker", operaComoCloser: false }, undefined)?.id).toBe("canales");
+    expect(seccionPedida({ rol: "paid_trafficker", operaComoCloser: false }, "notificaciones")?.id).toBe("canales");
   });
 
   it("el paid trafficker puede pedir Info", () => {
-    expect(seccionPedida("paid_trafficker", "info")?.id).toBe("info");
+    expect(seccionPedida({ rol: "paid_trafficker", operaComoCloser: false }, "info")?.id).toBe("info");
   });
 
   it("el gerente sin ?tab cae en Por decidir (su por defecto, no Info)", () => {
-    expect(seccionPedida("gerente", undefined)?.id).toBe("por-decidir");
-    expect(seccionPedida("gerente", "deals")?.id).toBe("por-decidir");
+    expect(seccionPedida({ rol: "gerente", operaComoCloser: false }, undefined)?.id).toBe("por-decidir");
+    expect(seccionPedida({ rol: "gerente", operaComoCloser: false }, "deals")?.id).toBe("por-decidir");
   });
 
   it("el gerente puede pedir Info", () => {
-    expect(seccionPedida("gerente", "info")?.id).toBe("info");
+    expect(seccionPedida({ rol: "gerente", operaComoCloser: false }, "info")?.id).toBe("info");
   });
 
   it("sin rol no hay sección que mostrar", () => {
-    expect(seccionPedida(null, "notificaciones")).toBeNull();
+    expect(seccionPedida({ rol: null, operaComoCloser: false }, "notificaciones")).toBeNull();
   });
 });
 

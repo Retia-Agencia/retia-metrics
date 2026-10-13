@@ -226,7 +226,7 @@ describe("caso 1 — el envío abre el deal, se agenda, se pega el Grain y queda
     const fechaCita = new Date("2026-10-05T16:00:00.000Z");
     const { callId, movioAAgendado } = await agregarLlamada(
       db,
-      { userId: closer, rol: rolCloser },
+      { userId: closer, rol: rolCloser , operaComoCloser: false},
       { dealId, fechaAgenda: fechaCita, linkCalendly: "https://calendly.com/maru/30min/abc" },
     );
     expect(movioAAgendado).toBe(true);
@@ -245,7 +245,7 @@ describe("caso 1 — el envío abre el deal, se agenda, se pega el Grain y queda
     //    Atendido (T10 Agendado → Atendido, del sistema).
     const { movioAAtendido, etapa } = await pegarGrain(
       db,
-      { userId: closer, rol: rolCloser },
+      { userId: closer, rol: rolCloser , operaComoCloser: false},
       { callId, linkGrain: "https://grain.com/share/recording/xyz-123" },
     );
     expect(movioAAtendido).toBe(true);

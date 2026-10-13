@@ -92,7 +92,7 @@ async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferIns
 }
 
 function comoCloser() {
-  return { userId: closer, rol: rolCloser };
+  return { userId: closer, rol: rolCloser , operaComoCloser: false};
 }
 
 const enUnaHora = () => new Date(Date.now() + 60 * 60 * 1000);
@@ -173,7 +173,7 @@ describe("agregarLlamada: la llamada nace del deal", () => {
 
   it("el developer puede registrar (trabajaLeads incluye developer)", async () => {
     const dealId = await nuevoDeal("contactado", { ownerUserId: developer });
-    const { callId } = await agregarLlamada(db, { userId: developer, rol: "developer" }, {
+    const { callId } = await agregarLlamada(db, { userId: developer, rol: "developer", operaComoCloser: false }, {
       dealId,
       fechaAgenda: enUnaHora(),
     });
@@ -270,7 +270,7 @@ describe("agregarLlamada: rechazos", () => {
   it("un no-dueño se rechaza con 403 y no escribe nada", async () => {
     const dealId = await nuevoDeal("contactado", { ownerUserId: closer });
     const err = await capturar(
-      agregarLlamada(db, { userId: otroCloser, rol: "closer" }, { dealId, fechaAgenda: enUnaHora() }),
+      agregarLlamada(db, { userId: otroCloser, rol: "closer", operaComoCloser: false }, { dealId, fechaAgenda: enUnaHora() }),
     );
     expect(err.status).toBe(403);
     expect(await llamadasDe(dealId)).toHaveLength(0);
@@ -286,10 +286,23 @@ describe("agregarLlamada: rechazos", () => {
   it("un gerente no registra llamadas (administra pero no trabaja leads)", async () => {
     const dealId = await nuevoDeal("contactado");
     const err = await capturar(
-      agregarLlamada(db, { userId: gerente, rol: "gerente" }, { dealId, fechaAgenda: enUnaHora() }),
+      agregarLlamada(db, { userId: gerente, rol: "gerente", operaComoCloser: false }, { dealId, fechaAgenda: enUnaHora() }),
     );
     expect(err.status).toBe(403);
     expect(await llamadasDe(dealId)).toHaveLength(0);
+  });
+
+  it("un gerente con la capacidad agrega la llamada y puede marcar show", async () => {
+    const dealId = await nuevoDeal("contactado");
+    const actor = { userId: gerente, rol: "gerente" as const, operaComoCloser: true };
+    const { callId } = await agregarLlamada(db, actor, {
+      dealId,
+      fechaAgenda: haceUnaHora(),
+    });
+
+    await marcarShow(db, actor, { callId });
+
+    expect((await llamadasDe(dealId))[0]).toMatchObject({ closerUserId: gerente, resultado: "show" });
   });
 
   it("sin fecha de agenda es entrada inválida (400)", async () => {
@@ -367,7 +380,7 @@ describe("completarAgendada: el dueño completa la agendada del sistema", () => 
     const dealId = await nuevoDeal("agendado", { ownerUserId: closer });
     const callId = await agendadaDelSistema(dealId);
     const err = await capturar(
-      completarAgendada(db, { userId: otroCloser, rol: "closer" }, { callId, fechaAgenda: enUnaHora() }),
+      completarAgendada(db, { userId: otroCloser, rol: "closer", operaComoCloser: false }, { callId, fechaAgenda: enUnaHora() }),
     );
     expect(err.status).toBe(403);
   });
@@ -415,7 +428,7 @@ describe("marcarShow: show en un clic, sin Grain (ticket 177)", () => {
     await moverEtapa(db, {
       dealId,
       a: "compromiso_verbal",
-      actor: { tipo: "usuario", userId: closer, rol: rolCloser },
+      actor: { tipo: "usuario", userId: closer, rol: rolCloser , operaComoCloser: false},
       datos: { fechaLimitePago: "2026-09-15" },
     });
     const [d] = await db.select({ etapa: deals.etapa }).from(deals).where(eq(deals.id, dealId));

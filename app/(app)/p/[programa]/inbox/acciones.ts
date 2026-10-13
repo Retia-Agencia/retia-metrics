@@ -41,7 +41,7 @@ export type ResultadoInbox<T extends object = object> = ({ ok: true } & T) | { o
 
 interface Contexto {
   session: Session;
-  actor: { userId: string; rol: Rol };
+  actor: { userId: string; rol: Rol; operaComoCloser: boolean };
 }
 
 async function contextoDe(soloLectura = false): Promise<Contexto> {
@@ -50,7 +50,7 @@ async function contextoDe(soloLectura = false): Promise<Contexto> {
     : await requireRole("gerente", "closer");
   const rol = await rolDeVista(session);
   if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
-  return { session, actor: { userId: session.user.id, rol } };
+  return { session, actor: { userId: session.user.id, rol, operaComoCloser: session.user.operaComoCloser } };
 }
 
 async function exigirProgramaVisible(ctx: Contexto, programId: string | undefined): Promise<void> {

@@ -19,6 +19,7 @@ import { registrarActividad } from "@/lib/deals/actividades";
 import { anularDeal } from "@/lib/deals/anular-deal";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { puedeTrabajarDeal } from "@/lib/deals/permiso";
+import { duenosPosibles } from "@/lib/deals/duenos";
 import { ErrorDeApp } from "@/lib/errors";
 import { embudoDelRango, vistaDeCohorteActiva } from "@/lib/queries/dashboard";
 import { tableroKanban } from "@/lib/queries/kanban";
@@ -81,10 +82,19 @@ afterEach(async () => {
   await cerrar();
 });
 
-const comoCloser = () => ({ userId: closer, rol: "closer" as const });
-const comoOtroCloser = () => ({ userId: otroCloser, rol: "closer" as const });
-const comoGerente = () => ({ userId: gerente, rol: "gerente" as const });
-const comoDeveloper = () => ({ userId: developer, rol: "developer" as const });
+const comoCloser = () => ({ userId: closer, rol: "closer" as const, operaComoCloser: false });
+const comoOtroCloser = () => ({ userId: otroCloser, rol: "closer" as const, operaComoCloser: false });
+const comoGerente = () => ({ userId: gerente, rol: "gerente" as const, operaComoCloser: false });
+const comoDeveloper = () => ({ userId: developer, rol: "developer" as const, operaComoCloser: false });
+
+it("dueños posibles incluye al gerente con capacidad y membresía, y excluye al que no la tiene", async () => {
+  await db.insert(miembrosPrograma).values({ userId: gerente, programId });
+  expect((await duenosPosibles(db, programId)).map((d) => d.id)).not.toContain(gerente);
+
+  await db.update(users).set({ operaComoCloser: true }).where(eq(users.id, gerente));
+
+  expect((await duenosPosibles(db, programId)).map((d) => d.id)).toContain(gerente);
+});
 
 async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferInsert> = {}) {
   const [l] = await db

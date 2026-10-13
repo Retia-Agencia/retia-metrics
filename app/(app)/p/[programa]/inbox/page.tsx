@@ -64,13 +64,14 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
   if (!programa || !esRolValido(rol)) notFound();
 
   const administra = esAdministrador(rol);
-  const puedeTrabajar = trabajaLeads(rol);
+  const actor = { userId: session.user.id, rol, operaComoCloser: session.user.operaComoCloser };
+  const puedeTrabajar = trabajaLeads(actor);
   const query = await searchParams;
   // Un administrador ve el equipo entero; el closer (y el developer en vista closer) ve lo suyo.
   const alcance: AlcanceInbox = administra ? "equipo" : { ownerUserId: session.user.id };
 
   const [inbox, perdidos, secciones, duenos, motivosFilas] = await Promise.all([
-    inboxDelPrograma(db, programa.id, alcance, undefined, undefined, { userId: session.user.id, rol }),
+    inboxDelPrograma(db, programa.id, alcance, undefined, undefined, actor),
     perdidosEnCalendly(db, programa.id),
     seccionesSinDueno(db, programa.id),
     duenosPosibles(db, programa.id),

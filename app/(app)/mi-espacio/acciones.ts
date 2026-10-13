@@ -41,7 +41,7 @@ export async function asignarMiCalendlyAccion(
   try {
     const session = await requireSession();
     const rol = await rolDeVista(session);
-    if (!trabajaLeads(rol)) {
+    if (!trabajaLeads({ rol, operaComoCloser: session.user.operaComoCloser })) {
       throw new AuthorizationError("Solo quien trabaja leads tiene cuenta de Calendly.");
     }
     await asignarCalendlyDeMembresia(db, session.user.id, input);
