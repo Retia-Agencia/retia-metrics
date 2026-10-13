@@ -75,16 +75,16 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
     etapaDeCorreccion(db, ficha.dealId),
   ]);
 
-  const actor = { userId: session.user.id, rol };
+  const actor = { userId: session.user.id, rol, operaComoCloser: session.user.operaComoCloser };
   // Sobre un deal anulado nadie escribe: se ve, marcado, y ya.
   const puedeTrabajar = !ficha.anulado && puedeTrabajarDeal(actor, { ownerUserId: ficha.owner?.id ?? null });
   // Un deal SIN dueño lo puede tomar un closer desde la ficha (ticket 229, A-138): el servidor
   // ya reclama solo en los tres gestos que lo toman (contacto, "Lo estoy trabajando" y Anotar),
   // así que la Transición los ofrece con un aviso. No ensancha `puedeTrabajar`: Acciones,
   // Llamadas y Facturación siguen pidiendo dueño (ocultas para el closer hasta que lo reclame).
-  const sinDueno = !ficha.anulado && ficha.owner == null && trabajaLeads(rol);
+  const sinDueno = !ficha.anulado && ficha.owner == null && trabajaLeads(actor);
   // Registrar llamadas y plata es trabajar el lead: el gerente administra pero no registra (ADR 0003).
-  const puedeRegistrar = puedeTrabajar && trabajaLeads(rol);
+  const puedeRegistrar = puedeTrabajar && trabajaLeads(actor);
   const cerrado = ficha.etapa === "ganado_completo" || ficha.etapa === "cierre_perdido";
   const nombre = nombreDelDeal({
     leadNombre: ficha.lead.nombre,

@@ -113,7 +113,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
   // developer y customer success, ticket 145), no solo quien trabaja leads. Es la pregunta
   // de configuración `puedeSerMiembro` (ADR 0025), nunca `rol === "..."`.
   const elegibles = usuarios
-    .filter((usuario) => usuario.activo && puedeSerMiembro(usuario.rol) && !miembros.has(usuario.id))
+    .filter((usuario) => usuario.activo && puedeSerMiembro(usuario) && !miembros.has(usuario.id))
     .map(({ id, nombre, email }) => ({ id, nombre, email }));
   const base = `/p/${programa.slug}/programa`;
   const grupos: GrupoDePestanas[] = [

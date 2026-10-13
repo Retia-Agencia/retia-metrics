@@ -1,5 +1,5 @@
-import type { Rol } from "@/lib/auth/roles";
-import { esAdministrador, manejaPauta, trabajaLeads } from "@/lib/auth/roles";
+import type { SujetoDeCapacidad } from "@/lib/auth/roles";
+import { esAccesoTotal, esAdministrador, manejaPauta, trabajaLeads } from "@/lib/auth/roles";
 
 /**
  * El REGISTRO de las secciones de Mi espacio (ticket 179, ADR 0077 punto 1): qué ve cada
@@ -39,7 +39,7 @@ export interface SeccionMiEspacio {
   id: SeccionId;
   etiqueta: string;
   /** `true` si el rol cumple la capacidad que habilita la sección. */
-  habilita: (rol: Rol | null) => boolean;
+  habilita: (sujeto: SujetoDeCapacidad) => boolean;
   /** `true` si la sección se mira por programa (selector obligatorio, frontera ADR 0043). */
   usaSelectorDePrograma: boolean;
 }
@@ -51,8 +51,8 @@ export interface SeccionMiEspacio {
  *  - Las de quien trabaja leads: Notificaciones (el hub, reemplaza "Necesita atención") y
  *    Métricas personales.
  *  - `canales` para quien maneja pauta sin administrar ni trabajar leads (paid trafficker).
- *  - `por-decidir` para quien administra sin trabajar leads (gerente): la operación del CRM
- *    que le toca decidir, NUNCA los deals de los closers.
+ *  - `por-decidir` para el gerente: la operación del CRM que le toca decidir, también
+ *    cuando suma la capacidad de closer (ticket 236 / ADR 0084).
  *
  * Las capacidades se componen SOLO con las preguntas de `roles.ts`. Un developer responde
  * `true` a `trabajaLeads`, `manejaPauta` y `esAdministrador`, así que en vista `todo` ve
@@ -65,19 +65,19 @@ export const SECCIONES: readonly SeccionMiEspacio[] = [
     etiqueta: "Info",
     // Todo rol que tiene Mi espacio: trabaja leads, administra o maneja pauta. El developer
     // cumple las tres, así que también la ve. Por capacidad, nunca por el literal del rol.
-    habilita: (rol) => trabajaLeads(rol) || esAdministrador(rol) || manejaPauta(rol),
+    habilita: (sujeto) => trabajaLeads(sujeto) || esAdministrador(sujeto.rol) || manejaPauta(sujeto.rol),
     usaSelectorDePrograma: false,
   },
   {
     id: "notificaciones",
     etiqueta: "Notificaciones",
-    habilita: (rol) => trabajaLeads(rol),
+    habilita: (sujeto) => trabajaLeads(sujeto),
     usaSelectorDePrograma: true,
   },
   {
     id: "metricas",
     etiqueta: "Métricas",
-    habilita: (rol) => trabajaLeads(rol),
+    habilita: (sujeto) => trabajaLeads(sujeto),
     usaSelectorDePrograma: true,
   },
   {
@@ -85,7 +85,7 @@ export const SECCIONES: readonly SeccionMiEspacio[] = [
     etiqueta: "Canales",
     // El paid trafficker: maneja pauta pero no administra la app ni trabaja leads. Por
     // capacidad, nunca por el literal del rol (ADR 0025).
-    habilita: (rol) => manejaPauta(rol) && !esAdministrador(rol) && !trabajaLeads(rol),
+    habilita: (sujeto) => manejaPauta(sujeto.rol) && !esAdministrador(sujeto.rol) && !trabajaLeads(sujeto),
     // Los Canales son globales y el paid trafficker no tiene membresías: la sección no se
     // acota por programa (ve todo, como hoy en /ajustes/canales).
     usaSelectorDePrograma: false,
@@ -93,16 +93,16 @@ export const SECCIONES: readonly SeccionMiEspacio[] = [
   {
     id: "por-decidir",
     etiqueta: "Por decidir",
-    // El gerente: administra pero no trabaja leads. El developer entra por `todo` (la
-    // página decide con el rol de vista), no por aquí: en vista `gerente` sí ve esto.
-    habilita: (rol) => esAdministrador(rol) && !trabajaLeads(rol),
+    // El gerente conserva esta sección aunque opere como closer (ticket 236). El
+    // developer entra por `todo`, no por aquí: en vista `gerente` sí ve esto.
+    habilita: (sujeto) => esAdministrador(sujeto.rol) && !esAccesoTotal(sujeto.rol),
     usaSelectorDePrograma: true,
   },
 ] as const;
 
 /** Las secciones que el rol de vista cumple, en orden. Vacío si ninguna aplica. */
-export function seccionesDeRol(rol: Rol | null): SeccionMiEspacio[] {
-  return SECCIONES.filter((s) => s.habilita(rol));
+export function seccionesDeRol(sujeto: SujetoDeCapacidad): SeccionMiEspacio[] {
+  return SECCIONES.filter((s) => s.habilita(sujeto));
 }
 
 /**
@@ -112,8 +112,8 @@ export function seccionesDeRol(rol: Rol | null): SeccionMiEspacio[] {
  * que ve alguien es su trabajo. Se calcula como la primera sección distinta de Info, con
  * Info de red por si un rol sólo tuviera esa.
  */
-export function seccionPorDefecto(rol: Rol | null): SeccionMiEspacio | null {
-  const disponibles = seccionesDeRol(rol);
+export function seccionPorDefecto(sujeto: SujetoDeCapacidad): SeccionMiEspacio | null {
+  const disponibles = seccionesDeRol(sujeto);
   if (disponibles.length === 0) return null;
   return disponibles.find((s) => s.id !== "info") ?? disponibles[0];
 }
@@ -129,10 +129,10 @@ export function seccionPorDefecto(rol: Rol | null): SeccionMiEspacio | null {
  *   POR DEFECTO del rol —su trabajo, no Info—. Forjar `?tab=canales` siendo closer NUNCA
  *   muestra Canales: cae en su sección por defecto (ADR 0025: la capacidad decide, no la URL).
  */
-export function seccionPedida(rol: Rol | null, tabPedida: string | undefined): SeccionMiEspacio | null {
-  const disponibles = seccionesDeRol(rol);
+export function seccionPedida(sujeto: SujetoDeCapacidad, tabPedida: string | undefined): SeccionMiEspacio | null {
+  const disponibles = seccionesDeRol(sujeto);
   if (disponibles.length === 0) return null;
   const tab = tabPedida === TAB_ATENCION_LEGADO ? "notificaciones" : tabPedida;
   const pedida = disponibles.find((s) => s.id === tab);
-  return pedida ?? seccionPorDefecto(rol);
+  return pedida ?? seccionPorDefecto(sujeto);
 }

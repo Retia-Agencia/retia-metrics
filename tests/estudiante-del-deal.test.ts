@@ -83,7 +83,7 @@ async function capturar(p: Promise<unknown>): Promise<ErrorDeApp> {
   throw new Error("se esperaba un error");
 }
 
-const comoCloser = () => ({ userId: closer, rol: "closer" as const });
+const comoCloser = () => ({ userId: closer, rol: "closer" as const, operaComoCloser: false });
 
 describe("marcarOnboarded", () => {
   it("el closer dueño lo marca en un Abonado y en un Completo, con timestamp y rastro", async () => {
@@ -102,15 +102,15 @@ describe("marcarOnboarded", () => {
   it("el gerente y el developer también pueden, sin ser dueños", async () => {
     const a = await nuevoDeal("ganado_parcial");
     const b = await nuevoDeal("ganado_completo");
-    await marcarOnboarded(db, { userId: gerente, rol: "gerente" }, { dealId: a });
-    await marcarOnboarded(db, { userId: developer, rol: "developer" }, { dealId: b });
+    await marcarOnboarded(db, { userId: gerente, rol: "gerente", operaComoCloser: false }, { dealId: a });
+    await marcarOnboarded(db, { userId: developer, rol: "developer", operaComoCloser: false }, { dealId: b });
     expect((await fila(a)).onboardedAt).not.toBeNull();
     expect((await fila(b)).onboardedAt).not.toBeNull();
   });
 
   it("otro closer no; marcar dos veces no pisa la fecha original", async () => {
     const dealId = await nuevoDeal("ganado_parcial");
-    expect((await capturar(marcarOnboarded(db, { userId: otroCloser, rol: "closer" }, { dealId }))).status).toBe(403);
+    expect((await capturar(marcarOnboarded(db, { userId: otroCloser, rol: "closer", operaComoCloser: false }, { dealId }))).status).toBe(403);
     expect((await fila(dealId)).onboardedAt).toBeNull();
 
     await marcarOnboarded(db, comoCloser(), { dealId });
@@ -140,7 +140,7 @@ describe("marcarOnboarded", () => {
     const dealId = await nuevoDeal("ganado_parcial", {}, otroPrograma.id);
 
     await expect(
-      marcarOnboarded(db, { userId: customerSuccess.id, rol: "customer_success" }, { dealId }),
+      marcarOnboarded(db, { userId: customerSuccess.id, rol: "customer_success", operaComoCloser: false }, { dealId }),
     ).rejects.toMatchObject({ status: 403 });
   });
 });
@@ -167,11 +167,11 @@ describe("desmarcarOnboarded", () => {
     const dealId = await nuevoDeal("ganado_completo");
     expect((await capturar(desmarcarOnboarded(db, comoCloser(), { dealId }))).status).toBe(409);
     await marcarOnboarded(db, comoCloser(), { dealId });
-    expect((await capturar(desmarcarOnboarded(db, { userId: otroCloser, rol: "closer" }, { dealId }))).status).toBe(403);
-    await desmarcarOnboarded(db, { userId: gerente, rol: "gerente" }, { dealId });
+    expect((await capturar(desmarcarOnboarded(db, { userId: otroCloser, rol: "closer", operaComoCloser: false }, { dealId }))).status).toBe(403);
+    await desmarcarOnboarded(db, { userId: gerente, rol: "gerente", operaComoCloser: false }, { dealId });
     expect((await fila(dealId)).onboardedAt).toBeNull();
     await marcarOnboarded(db, comoCloser(), { dealId });
-    await desmarcarOnboarded(db, { userId: developer, rol: "developer" }, { dealId });
+    await desmarcarOnboarded(db, { userId: developer, rol: "developer", operaComoCloser: false }, { dealId });
     expect((await fila(dealId)).onboardedAt).toBeNull();
   });
 
@@ -230,8 +230,8 @@ describe("cambiarCohorte", () => {
     await cambiarCohorte(db, comoCloser(), { dealId: enContacto, cohortId: octubre, motivo: "x" });
     expect((await fila(enContacto)).cohortId).toBe(octubre);
     const dealId = await nuevoDeal("ganado_parcial");
-    expect((await capturar(cambiarCohorte(db, { userId: otroCloser, rol: "closer" }, { dealId, cohortId: octubre, motivo: "x" }))).status).toBe(403);
-    await cambiarCohorte(db, { userId: gerente, rol: "gerente" }, { dealId, cohortId: octubre, motivo: "Lo pidió el estudiante" });
+    expect((await capturar(cambiarCohorte(db, { userId: otroCloser, rol: "closer", operaComoCloser: false }, { dealId, cohortId: octubre, motivo: "x" }))).status).toBe(403);
+    await cambiarCohorte(db, { userId: gerente, rol: "gerente", operaComoCloser: false }, { dealId, cohortId: octubre, motivo: "Lo pidió el estudiante" });
     expect((await fila(dealId)).cohortId).toBe(octubre);
   });
 
@@ -288,7 +288,7 @@ describe("estudiantesDe: Students es una consulta sobre la etapa", () => {
 
 describe("customer success: solo marca y desmarca onboarding, con membresía (ticket 145)", () => {
   /** Crea un customer success y, si se pide, su membresía activa en el programa del deal. */
-  async function nuevoCustomerSuccess({ conMembresia }: { conMembresia: boolean }): Promise<{ userId: string; rol: "customer_success" }> {
+  async function nuevoCustomerSuccess({ conMembresia }: { conMembresia: boolean }): Promise<{ userId: string; rol: "customer_success"; operaComoCloser: boolean }> {
     const [u] = await db
       .insert(users)
       .values({ email: `cs${Math.random().toString(36).slice(2)}@retiagrowth.com`, rol: "customer_success" })
@@ -296,7 +296,7 @@ describe("customer success: solo marca y desmarca onboarding, con membresía (ti
     if (conMembresia) {
       await db.insert(miembrosPrograma).values({ userId: u.id, programId, activo: true });
     }
-    return { userId: u.id, rol: "customer_success" as const };
+    return { userId: u.id, rol: "customer_success" as const, operaComoCloser: false };
   }
 
   it("con membresía activa marca el onboarding de un estudiante, con timestamp y rastro de quién", async () => {
@@ -335,7 +335,7 @@ describe("customer success: solo marca y desmarca onboarding, con membresía (ti
       .returning();
     await db.insert(miembrosPrograma).values({ userId: u.id, programId, activo: false });
     const dealId = await nuevoDeal("ganado_parcial");
-    expect((await capturar(marcarOnboarded(db, { userId: u.id, rol: "customer_success" }, { dealId }))).status).toBe(403);
+    expect((await capturar(marcarOnboarded(db, { userId: u.id, rol: "customer_success", operaComoCloser: false }, { dealId }))).status).toBe(403);
     expect((await fila(dealId)).onboardedAt).toBeNull();
   });
 

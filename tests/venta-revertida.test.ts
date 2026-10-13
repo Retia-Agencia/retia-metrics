@@ -25,7 +25,7 @@ let closer: string;
 let leadN = 0;
 
 const SIEMPRE = { desde: "2000-01-01", hasta: "2100-12-31" };
-const comoCloser = () => ({ userId: closer, rol: "closer" as const });
+const comoCloser = () => ({ userId: closer, rol: "closer" as const, operaComoCloser: false });
 const abono = (dealId: string, monto: string) => ({
   dealId,
   fecha: hoyEnBogota(),

@@ -83,7 +83,7 @@ afterEach(async () => {
   await cerrar();
 });
 
-const comoCloser = () => ({ userId: closer, rol: "closer" as const });
+const comoCloser = () => ({ userId: closer, rol: "closer" as const, operaComoCloser: false });
 
 describe("fichaDeDeal", () => {
   it("arma la cabecera con los nombres y la fecha limite sugerida (inicio de clases)", async () => {

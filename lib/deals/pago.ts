@@ -90,6 +90,7 @@ export type DatosAcuerdoDePago = z.input<typeof esquemaAcuerdoDePago>;
 export interface ActorDeAcuerdo {
   userId: string;
   rol: Rol;
+  operaComoCloser: boolean;
 }
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };

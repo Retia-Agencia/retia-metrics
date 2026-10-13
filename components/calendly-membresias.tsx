@@ -36,7 +36,7 @@ export function SetterPorDefecto({
   const [pendiente, startTransition] = useTransition();
   const actual = membresias.find((m) => m.setterPorDefecto)?.userId ?? SIN_SETTER;
   const [valor, setValor] = useState(actual);
-  const elegibles = membresias.filter((m) => trabajaLeads(m.rol));
+  const elegibles = membresias.filter((m) => trabajaLeads(m));
 
   function guardar(nuevo: string | null) {
     if (!nuevo) return;
@@ -196,7 +196,7 @@ export function FilaMembresia({
       <span className="flex flex-wrap items-center gap-2">
         {/* La cuenta de Calendly es de quien hospeda citas (trabaja leads); un Customer Success
             (145) es miembro solo para ver Students, sin cuenta que conectar. */}
-        {trabajaLeads(membresia.rol) ? (
+        {trabajaLeads(membresia) ? (
           <>
             {guardada ? <Badge variant="outline">Conectada</Badge> : null}
             <select

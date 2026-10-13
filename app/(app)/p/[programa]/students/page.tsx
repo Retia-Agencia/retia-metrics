@@ -61,7 +61,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
   // customer success NO entra ahí (la ficha rechaza su rol), así que para él las celdas se
   // pintan como texto plano, nunca como enlaces a una pantalla que lo rechazaría. Por
   // capacidad (ADR 0025), nunca `rol === "..."`.
-  const abreFicha = trabajaLeads(rol) || esAdministrador(rol);
+  const abreFicha = trabajaLeads({ rol, operaComoCloser: session.user.operaComoCloser }) || esAdministrador(rol);
 
   const query = await searchParams;
   const cohortes = (await listarCohortes(db, programa.id)).sort((a, b) =>
@@ -208,7 +208,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                           dealId={f.dealId}
                           fechaOnboarding={f.onboardedAt ? fecha(fechaDeInstanteEnBogota(f.onboardedAt)) : null}
                           puedeMarcar={puedeMarcarOnboarding(
-                            { userId: session.user.id, rol },
+                            { userId: session.user.id, rol, operaComoCloser: session.user.operaComoCloser },
                             { ownerUserId: f.ownerUserId },
                             true,
                           )}

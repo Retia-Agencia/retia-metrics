@@ -254,14 +254,14 @@ describe("la ingesta escribe quien trajo al lead", () => {
 
 describe("el alta manual", () => {
   it("queda con entrada crm, sin envio y SIN traido por: solo la ingesta lo escribe (ADR 0044 punto 2)", async () => {
-    const { persona } = await crearPersonaManual(db, { id: maru, rol: "closer", closerId: null }, { programId: programA, correo: "beto@x.co" });
+    const { persona } = await crearPersonaManual(db, { id: maru, rol: "closer", operaComoCloser: false, closerId: null }, { programId: programA, correo: "beto@x.co" });
     expect(persona.entrada).toBe("crm");
     expect(await traidoPor("beto@x.co")).toBeNull();
     expect(await db.select().from(submissions).where(eq(submissions.leadId, persona.id))).toHaveLength(0);
   });
 
   it("si despues aplica por el enlace de un closer, la ingesta lo acredita", async () => {
-    await crearPersonaManual(db, { id: maru, rol: "closer", closerId: null }, { programId: programA, correo: "beto@x.co" });
+    await crearPersonaManual(db, { id: maru, rol: "closer", operaComoCloser: false, closerId: null }, { programId: programA, correo: "beto@x.co" });
     await ingerirEntradas(db, programA, [envio({ token: "t1", correo: "beto@x.co", fecha: "2026-10-01T15:00:00Z", utm: delCloser(jero) })]);
     expect(await traidoPor("beto@x.co")).toBe(jero);
   });

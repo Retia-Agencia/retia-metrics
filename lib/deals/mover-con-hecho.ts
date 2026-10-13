@@ -175,7 +175,7 @@ export async function moverConHecho(
         dealId: inicial.id,
         a: entrada.a,
         pendiente: entrada.pendiente,
-        actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol },
+        actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
         motivoId: entrada.motivoId ?? null,
         correccion: entrada.correccion,
         datos: entrada.datos,

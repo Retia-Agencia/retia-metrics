@@ -85,11 +85,11 @@ export async function reclamarAlMoverPorE1(
     idFlecha: string | null | undefined;
     dealId: string;
     ownerUserId: string | null;
-    actor: { userId: string; rol: Rol };
+    actor: { userId: string; rol: Rol; operaComoCloser: boolean };
     etiqueta: string;
   },
 ): Promise<void> {
-  if (entrada.idFlecha !== "E1" || entrada.ownerUserId != null || !trabajaLeads(entrada.actor.rol)) return;
+  if (entrada.idFlecha !== "E1" || entrada.ownerUserId != null || !trabajaLeads(entrada.actor)) return;
   await cambiarDuenoDeal(db, {
     dealId: entrada.dealId,
     ownerActual: null,

@@ -14,7 +14,7 @@ let cerrar: () => Promise<void>;
 let programId: string;
 let closer: string;
 let n = 0;
-const actor = () => ({ userId: closer, rol: "closer" as const });
+const actor = () => ({ userId: closer, rol: "closer" as const, operaComoCloser: false });
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
   programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning())[0].id;

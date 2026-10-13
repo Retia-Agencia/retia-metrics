@@ -105,7 +105,7 @@ export const huellaDeCita = (uuidInvitado: string) => `calendly:${uuidInvitado}`
  */
 export async function closersConCalendly(db: Db, programId: string): Promise<CloserDelPrograma[]> {
   const filas = await db
-    .select({ userId: miembrosPrograma.userId, correoCalendly: miembrosPrograma.calendlyEmail, rol: users.rol })
+    .select({ userId: miembrosPrograma.userId, correoCalendly: miembrosPrograma.calendlyEmail, rol: users.rol, operaComoCloser: users.operaComoCloser })
     .from(miembrosPrograma)
     .innerJoin(users, eq(users.id, miembrosPrograma.userId))
     .where(
@@ -117,7 +117,7 @@ export async function closersConCalendly(db: Db, programId: string): Promise<Clo
       ),
     );
   return filas
-    .filter((f) => trabajaLeads(f.rol))
+    .filter((f) => trabajaLeads(f))
     .map((f) => ({ userId: f.userId, correoCalendly: f.correoCalendly! }));
 }
 
@@ -487,6 +487,7 @@ export type DatosCrearDealDesdeSuelta = z.input<typeof esquemaCrearDealDesdeSuel
 export interface ActorDeAsignacion {
   userId: string;
   rol: Rol | null;
+  operaComoCloser: boolean;
 }
 
 interface LlamadaSueltaLeida {
@@ -555,7 +556,7 @@ export async function asignarLlamadaSuelta(
         throw new ErrorDeApp("No existe esa llamada suelta.", 404);
       }
       const host = closerHost(llamada.host, await closersConCalendly(tx, llamada.programId));
-      if (!puedeColgarSuelta({ actorUserId: actor.userId, rol: actor.rol, hostUserId: host })) {
+      if (!puedeColgarSuelta({ actorUserId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser, hostUserId: host })) {
         throw new ErrorDeApp("Esta llamada la hospeda otra closer: la cuelga ella o quien administra.", 403);
       }
 
@@ -597,7 +598,7 @@ export async function crearDealDesdeSuelta(
         throw new ErrorDeApp("No existe esa llamada suelta.", 404);
       }
       const host = closerHost(llamada.host, await closersConCalendly(tx, llamada.programId));
-      if (!puedeColgarSuelta({ actorUserId: actor.userId, rol: actor.rol, hostUserId: host })) {
+      if (!puedeColgarSuelta({ actorUserId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser, hostUserId: host })) {
         throw new ErrorDeApp("Esta llamada la hospeda otra closer: la cuelga ella o quien administra.", 403);
       }
       if (!llamada.emailLead) throw new ErrorDeApp("La llamada no tiene correo: asóciala a un deal.", 422);
@@ -605,7 +606,7 @@ export async function crearDealDesdeSuelta(
 
       const creado = await crearDealAMano(
         tx,
-        { userId: actor.userId, rol: actor.rol },
+        { userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
         {
           programId: llamada.programId,
           lead: { tipo: "nuevo", correo: llamada.emailLead, nombre, telefono },

@@ -74,13 +74,13 @@ export function traidoPorDeEnvios(
  */
 export async function miembrosActivos(db: Db, programId: string): Promise<string[]> {
   const filas = await db
-    .select({ userId: miembrosPrograma.userId, rol: users.rol })
+    .select({ userId: miembrosPrograma.userId, rol: users.rol, operaComoCloser: users.operaComoCloser })
     .from(miembrosPrograma)
     .innerJoin(users, eq(users.id, miembrosPrograma.userId))
     .where(
       and(eq(miembrosPrograma.programId, programId), eq(miembrosPrograma.activo, true), eq(users.activo, true)),
     );
-  return filas.filter((f) => trabajaLeads(f.rol)).map((f) => f.userId);
+  return filas.filter((f) => trabajaLeads(f)).map((f) => f.userId);
 }
 
 const SIN_PRINCIPAL =

@@ -252,6 +252,35 @@ describe("editar usuario", () => {
     expect(cambioRol.some((l) => l.valorAnterior === "gerente" && l.valorNuevo === "closer")).toBe(true);
   });
 
+  it("activar Opera como closer queda en change_log", async () => {
+    const creado = await crearUsuario(db, gerenteId, {
+      email: "opera@retiagrowth.com",
+      nombre: "Opera",
+      rol: "gerente",
+      operaComoCloser: false,
+      closerId: "",
+      programas: [],
+    });
+
+    await editarUsuario(db, gerenteId, creado.id, {
+      email: creado.email,
+      nombre: creado.nombre ?? "",
+      rol: creado.rol,
+      operaComoCloser: true,
+      closerId: "",
+      programas: [],
+    });
+
+    expect(await logDe(creado.id)).toContainEqual(
+      expect.objectContaining({
+        campo: "operaComoCloser",
+        valorAnterior: "false",
+        valorNuevo: "true",
+        userId: gerenteId,
+      }),
+    );
+  });
+
   it("un id que no es uuid es un 400", async () => {
     const error = await editarUsuario(db, gerenteId, "no-es-uuid", {
       ...closerValido,

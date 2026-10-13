@@ -58,7 +58,12 @@ function aResultado(error: unknown): { ok: false; error: string } {
 async function actorDe(session: Session): Promise<Actor> {
   const rol = await rolDeVista(session);
   if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
-  return { id: session.user.id, rol, closerId: session.user.closerId };
+  return {
+    id: session.user.id,
+    rol,
+    operaComoCloser: session.user.operaComoCloser,
+    closerId: session.user.closerId,
+  };
 }
 
 /**

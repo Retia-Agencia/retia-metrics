@@ -69,7 +69,7 @@ let gerente: string;
 
 const SECRETO = "secreto-de-prueba-hmac-32-bytes-aqui";
 const AGENDA = "Agenda aquí tu entrevista";
-const comoCloser = () => ({ userId: closer, rol: "closer" as const });
+const comoCloser = () => ({ userId: closer, rol: "closer" as const, operaComoCloser: false });
 const HOY = "2026-10-20";
 
 function firmar(cuerpo: string): string {
@@ -225,7 +225,7 @@ describe("E2 — la cita cae en su deal, el Grain lo atiende, el dinero lo mueve
     // 6. El onboarding lo marca el closer; el gerente puede borrar la marca; se puede volver a poner.
     await marcarOnboarded(db, comoCloser(), { dealId });
     expect((await estudiantesDe(db, programId))[0].onboardedAt).not.toBeNull();
-    await desmarcarOnboarded(db, { userId: gerente, rol: "gerente" }, { dealId });
+    await desmarcarOnboarded(db, { userId: gerente, rol: "gerente", operaComoCloser: false }, { dealId });
     expect((await estudiantesDe(db, programId))[0].onboardedAt).toBeNull();
 
     // 7. Anular el abono que cerró el deal lo saca de Completo: vuelve a Abonado y a la cartera.

@@ -89,11 +89,10 @@ export function puedeTocarMembresia(
  * Quien trabaja leads: tiene `closerId` propio, membresias de programa, puede ser
  * responsable de una persona y registrar llamadas y abonos.
  *
- * Es la TERCERA pregunta de esta familia, distinta de las otras dos: un gerente
- * administra pero no registra (ADR 0003), asi que responde `false` aunque responda
- * `true` a `esAdministrador`. El developer responde `true` a las tres, y por eso su
- * excepcion sigue viviendo en UN solo lugar por pregunta y nunca escrita a mano
- * (ADR 0025).
+ * Es la TERCERA pregunta de esta familia, distinta de las otras dos. Desde el ticket
+ * 236 / ADR 0084, un usuario puede sumar esta capacidad con `operaComoCloser` sin
+ * perder ni cambiar los permisos de su rol. El developer responde `true` por acceso
+ * total, y su excepcion sigue viviendo en UN solo lugar por pregunta (ADR 0025).
  *
  * Nacio de un hallazgo del recorrido del 18-sep: `/ajustes/usuarios` preguntaba
  * `rol === "closer"` a mano para mostrar el campo `closer_id` y las membresias, asi
@@ -101,8 +100,20 @@ export function puedeTocarMembresia(
  * sin salida dentro del producto. Es el criterio del ticket 028, que da por hecho que
  * esta pantalla ya lo permite.
  */
-export function trabajaLeads(rol: Rol | undefined | null): boolean {
-  return rol === "closer" || rol === "developer";
+export interface SujetoDeCapacidad {
+  rol: Rol | null | undefined;
+  operaComoCloser: boolean;
+}
+
+/** Ticket 236 / ADR 0084: la capacidad puede ampliarse por usuario sin cambiar su rol. */
+export function trabajaLeads(sujeto: SujetoDeCapacidad): boolean {
+  const { rol, operaComoCloser } = sujeto;
+  return rol === "closer" || esAccesoTotal(rol) || (rol != null && operaComoCloser);
+}
+
+/** La capacidad solo se configura donde agrega algo: fuera de closer y developer (ADR 0084). */
+export function puedeConfigurarOperaComoCloser(rol: Rol | null | undefined): boolean {
+  return rol != null && !trabajaLeads({ rol, operaComoCloser: false });
 }
 
 /**
@@ -140,7 +151,7 @@ export function manejaPauta(rol: Rol | undefined | null): boolean {
  * 29-sep, ticket 102) y ve las cifras, pero no el trabajo de cada closer ni un deal suelto.
  */
 export function veEquipoComercial(rol: Rol | undefined | null): boolean {
-  return esAdministrador(rol) || trabajaLeads(rol);
+  return esAdministrador(rol) || trabajaLeads({ rol, operaComoCloser: false });
 }
 
 /**
@@ -184,7 +195,7 @@ export function configuraPrograma(rol: Rol | undefined | null): boolean {
  * escrita a mano. Nunca se compara `rol === "customer_success"` fuera de aquí.
  */
 export function marcaOnboarding(rol: Rol | undefined | null): boolean {
-  return rol === "customer_success" || trabajaLeads(rol) || esAdministrador(rol);
+  return rol === "customer_success" || trabajaLeads({ rol, operaComoCloser: false }) || esAdministrador(rol);
 }
 
 /**
@@ -194,10 +205,11 @@ export function marcaOnboarding(rol: Rol | undefined | null): boolean {
  * `/ajustes/usuarios`—, distinta de `trabajaLeads` (ser dueño de un deal, registrar, vincular
  * Calendly), que el customer success NO cumple. Por eso es su propia función y no se mezcla con
  * `trabajaLeads`. El developer la cumple por `trabajaLeads`; el gerente no (administra, no
- * pertenece a un programa, ADR 0003). Nunca `rol === "..."` a mano fuera de aquí (ADR 0025).
+ * pertenece a un programa, ADR 0003), salvo que opere como closer (ticket 236, ADR 0084): sin
+ * membresía no podría ser dueño de un deal. Nunca `rol === "..."` a mano fuera de aquí (ADR 0025).
  */
-export function puedeSerMiembro(rol: Rol | undefined | null): boolean {
-  return trabajaLeads(rol) || rol === "customer_success";
+export function puedeSerMiembro(sujeto: SujetoDeCapacidad): boolean {
+  return trabajaLeads(sujeto) || sujeto.rol === "customer_success";
 }
 
 export function esRolValido(valor: unknown): valor is Rol {

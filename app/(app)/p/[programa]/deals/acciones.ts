@@ -93,10 +93,10 @@ export type ResultadoMover =
   | { ok: false; error: string; faltantes: { codigo: string; mensaje: string }[]; status: number };
 
 /** El actor del movimiento, armado desde la sesion. El rol es el DE VISTA (ticket 028). */
-async function actorDe(session: Session): Promise<{ tipo: "usuario"; userId: string; rol: import("@/lib/auth/roles").Rol }> {
+async function actorDe(session: Session): Promise<{ tipo: "usuario"; userId: string; rol: import("@/lib/auth/roles").Rol; operaComoCloser: boolean }> {
   const rol = await rolDeVista(session);
   if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
-  return { tipo: "usuario", userId: session.user.id, rol };
+  return { tipo: "usuario", userId: session.user.id, rol, operaComoCloser: session.user.operaComoCloser };
 }
 
 export async function moverDeal(entrada: EntradaMover): Promise<ResultadoMover> {
@@ -203,8 +203,8 @@ export type ResultadoCrearDeal =
 export async function crearDeal(entrada: EntradaDealAMano): Promise<ResultadoCrearDeal> {
   try {
     const session = await requireRole("gerente", "closer");
-    const { userId, rol } = await actorDe(session);
-    const r = await crearDealAMano(db, { userId, rol }, entrada);
+    const { userId, rol, operaComoCloser } = await actorDe(session);
+    const r = await crearDealAMano(db, { userId, rol, operaComoCloser }, entrada);
     return { ok: true, dealId: r.dealId, leadCreado: r.leadCreado };
   } catch (error) {
     if (error instanceof DealYaAbierto) {

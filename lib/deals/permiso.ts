@@ -1,4 +1,4 @@
-import { esAdministrador, marcaOnboarding, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { esAdministrador, marcaOnboarding, trabajaLeads, type Rol, type SujetoDeCapacidad } from "@/lib/auth/roles";
 
 /**
  * "¿Este actor puede TRABAJAR este deal?": UNA sola respuesta (ADR 0024, AGENTS.md: si dos
@@ -11,14 +11,14 @@ import { esAdministrador, marcaOnboarding, trabajaLeads, type Rol } from "@/lib/
  * Es solo el PREDICADO. Cada operacion conserva su mensaje ("sin dueño" y "ajeno" dicen
  * cosas distintas a quien las lee) y sus otras rejas (etapa, anulado).
  */
-export interface ActorDeDeal {
+export interface ActorDeDeal extends SujetoDeCapacidad {
   userId: string;
   rol: Rol;
 }
 
 export function puedeTrabajarDeal(actor: ActorDeDeal, deal: { ownerUserId: string | null }): boolean {
   if (esAdministrador(actor.rol)) return true;
-  return trabajaLeads(actor.rol) && deal.ownerUserId != null && deal.ownerUserId === actor.userId;
+  return trabajaLeads(actor) && deal.ownerUserId != null && deal.ownerUserId === actor.userId;
 }
 
 /**
@@ -46,7 +46,7 @@ export function puedeMarcarOnboarding(
   tieneMembresiaActiva: boolean,
 ): boolean {
   if (puedeTrabajarDeal(actor, deal)) return true;
-  if (esAdministrador(actor.rol) || trabajaLeads(actor.rol)) return false;
+  if (esAdministrador(actor.rol) || trabajaLeads(actor)) return false;
   return marcaOnboarding(actor.rol) && tieneMembresiaActiva;
 }
 

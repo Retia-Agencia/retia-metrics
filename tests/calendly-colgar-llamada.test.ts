@@ -277,7 +277,7 @@ describe("asignarLlamadaSuelta", () => {
 
   it("un closer del programa la cuelga del deal: Agendado, dueño la host y rastro con su nombre", async () => {
     const callId = await suelta();
-    const r = await asignarLlamadaSuelta(db, { userId: maru, rol: "closer" }, { callId, dealId });
+    const r = await asignarLlamadaSuelta(db, { userId: maru, rol: "closer", operaComoCloser: false }, { callId, dealId });
     expect(r).toMatchObject({ movioAAgendado: true });
 
     const d = await deal();
@@ -293,15 +293,15 @@ describe("asignarLlamadaSuelta", () => {
 
   it("una llamada ya asignada no se reasigna: 404", async () => {
     const callId = await suelta();
-    await asignarLlamadaSuelta(db, { userId: maru, rol: "closer" }, { callId, dealId });
-    await expect(asignarLlamadaSuelta(db, { userId: maru, rol: "closer" }, { callId, dealId })).rejects.toMatchObject({
+    await asignarLlamadaSuelta(db, { userId: maru, rol: "closer", operaComoCloser: false }, { callId, dealId });
+    await expect(asignarLlamadaSuelta(db, { userId: maru, rol: "closer", operaComoCloser: false }, { callId, dealId })).rejects.toMatchObject({
       status: 404,
     });
   });
 
   it("un closer que no es host recibe 403 y la base no se mueve", async () => {
     const callId = await suelta();
-    await expect(asignarLlamadaSuelta(db, { userId: andrea, rol: "closer" }, { callId, dealId })).rejects.toMatchObject({
+    await expect(asignarLlamadaSuelta(db, { userId: andrea, rol: "closer", operaComoCloser: false }, { callId, dealId })).rejects.toMatchObject({
       status: 403,
     });
     const [llamada] = await db.select().from(calls).where(eq(calls.id, callId));
@@ -311,19 +311,19 @@ describe("asignarLlamadaSuelta", () => {
 
   it("quien administra puede colgarla aunque no sea el host", async () => {
     const callId = await suelta();
-    await expect(asignarLlamadaSuelta(db, { userId: gerente, rol: "gerente" }, { callId, dealId })).resolves.toMatchObject({ movioAAgendado: true });
+    await expect(asignarLlamadaSuelta(db, { userId: gerente, rol: "gerente", operaComoCloser: false }, { callId, dealId })).resolves.toMatchObject({ movioAAgendado: true });
   });
 
   it("sin host registrado solo quien administra puede colgarla", async () => {
     const callId = await suelta("externa@calendly.co");
-    await expect(asignarLlamadaSuelta(db, { userId: maru, rol: "closer" }, { callId, dealId })).rejects.toMatchObject({ status: 403 });
-    await expect(asignarLlamadaSuelta(db, { userId: gerente, rol: "gerente" }, { callId, dealId })).resolves.toMatchObject({ movioAAgendado: true });
+    await expect(asignarLlamadaSuelta(db, { userId: maru, rol: "closer", operaComoCloser: false }, { callId, dealId })).rejects.toMatchObject({ status: 403 });
+    await expect(asignarLlamadaSuelta(db, { userId: gerente, rol: "gerente", operaComoCloser: false }, { callId, dealId })).resolves.toMatchObject({ movioAAgendado: true });
   });
 
   it("al colgar una suelta completa el closer si la cuenta se vinculó después", async () => {
     const callId = await suelta("nueva@calendly.co");
     await db.update(miembrosPrograma).set({ calendlyEmail: "nueva@calendly.co" }).where(eq(miembrosPrograma.userId, maru));
-    await asignarLlamadaSuelta(db, { userId: maru, rol: "closer" }, { callId, dealId });
+    await asignarLlamadaSuelta(db, { userId: maru, rol: "closer", operaComoCloser: false }, { callId, dealId });
     const [llamada] = await db.select().from(calls).where(eq(calls.id, callId));
     expect(llamada.closerUserId).toBe(maru);
   });
@@ -331,7 +331,7 @@ describe("asignarLlamadaSuelta", () => {
   it("un closer sin membresia en el programa recibe 404", async () => {
     const callId = await suelta();
     const [ajena] = await db.insert(users).values({ email: "ajena@retiagrowth.com", rol: "closer" }).returning();
-    await expect(asignarLlamadaSuelta(db, { userId: ajena.id, rol: "closer" }, { callId, dealId })).rejects.toBeInstanceOf(
+    await expect(asignarLlamadaSuelta(db, { userId: ajena.id, rol: "closer", operaComoCloser: false }, { callId, dealId })).rejects.toBeInstanceOf(
       ErrorDeApp,
     );
     const [llamada] = await db.select().from(calls).where(eq(calls.id, callId));
@@ -351,7 +351,7 @@ describe("asignarLlamadaSuelta", () => {
       actor: { tipo: "sistema" },
     });
     await expect(
-      asignarLlamadaSuelta(db, { userId: maru, rol: "closer" }, { callId, dealId: dealAjeno }),
+      asignarLlamadaSuelta(db, { userId: maru, rol: "closer", operaComoCloser: false }, { callId, dealId: dealAjeno }),
     ).rejects.toMatchObject({ status: 404 });
   });
 });
@@ -371,7 +371,7 @@ describe("crearDealDesdeSuelta", () => {
     const callId = await sueltaDe("nueva@correo.co");
     const r = await crearDealDesdeSuelta(
       db,
-      { userId: maru, rol: "closer" },
+      { userId: maru, rol: "closer", operaComoCloser: false },
       { callId, nombre: "Nueva Persona", telefono: "+57 300 111 2233" },
     );
 
@@ -395,7 +395,7 @@ describe("crearDealDesdeSuelta", () => {
     };
 
     await expect(
-      crearDealDesdeSuelta(db, { userId: maru, rol: "closer" }, { callId }),
+      crearDealDesdeSuelta(db, { userId: maru, rol: "closer", operaComoCloser: false }, { callId }),
     ).rejects.toMatchObject({ status: 409 });
 
     expect({
@@ -409,7 +409,7 @@ describe("crearDealDesdeSuelta", () => {
   it("una llamada de un programa fuera del alcance responde 404", async () => {
     const callId = await sueltaDe("ajena@correo.co", otroProgramId);
     await expect(
-      crearDealDesdeSuelta(db, { userId: maru, rol: "closer" }, { callId }),
+      crearDealDesdeSuelta(db, { userId: maru, rol: "closer", operaComoCloser: false }, { callId }),
     ).rejects.toMatchObject({ status: 404 });
   });
 
@@ -422,7 +422,7 @@ describe("crearDealDesdeSuelta", () => {
     const callId = await sueltaDe(correo);
     const r = await crearDealDesdeSuelta(
       db,
-      { userId: maru, rol: "closer" },
+      { userId: maru, rol: "closer", operaComoCloser: false },
       { callId, nombre: "Nombre nuevo" },
     );
     expect(r.leadId).toBe(existente.id);
@@ -489,7 +489,7 @@ describe("el 052 con la host de la cita", () => {
 describe("camino D: la closer agrega la cita a mano", () => {
   it("la llamada queda en su deal, conserva la dueña y no inventa setter", async () => {
     await db.update(deals).set({ ownerUserId: maru }).where(eq(deals.id, dealId));
-    const r = await agregarLlamada(db, { userId: maru, rol: "closer" }, {
+    const r = await agregarLlamada(db, { userId: maru, rol: "closer", operaComoCloser: false }, {
       dealId,
       fechaAgenda: new Date("2026-10-03T15:00:00Z"),
     });

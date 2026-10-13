@@ -385,7 +385,7 @@ async function sembrarVolumen(
     await moverEtapa(db, {
       dealId: deal.id,
       a: "cierre_perdido",
-      actor: { tipo: "usuario", userId: deal.ownerUserId, rol: "closer" },
+      actor: { tipo: "usuario", userId: deal.ownerUserId, rol: "closer", operaComoCloser: false },
       motivoId: motivosPerdidaIds[indice % motivosPerdidaIds.length],
     });
   }
@@ -461,14 +461,14 @@ async function sembrarVolumen(
   }
   const abonosCreados = await registrarAbonosHistoricos(db, abonosHistoricos);
   for (const posicion of candidatosParaAnular.slice(0, 2)) {
-    await anularAbono(db, { userId: actorId, rol: "developer" }, {
+    await anularAbono(db, { userId: actorId, rol: "developer", operaComoCloser: false }, {
       abonoId: abonosCreados[posicion].id,
       motivo: "Abono ficticio anulado para probar metricas vigentes.",
     });
   }
 
   const dealParaAnular = dealsCreados.find((deal) => deal.etapa === "registrado")!;
-  await anularDeal(db, { userId: actorId, rol: "developer" }, {
+  await anularDeal(db, { userId: actorId, rol: "developer", operaComoCloser: false }, {
     dealId: dealParaAnular.id,
     motivo: "Deal ficticio anulado para probar metricas vigentes.",
   });
@@ -478,7 +478,7 @@ async function sembrarVolumen(
       (deal) => deal.etapa === "ganado_completo" && leadPorCorreo.get(deal.correo)?.programId === programa.id,
     );
     if (!estudiante) throw new Error(`Falta un estudiante completo para ${programa.nombre}.`);
-    await marcarOnboarded(db, { userId: actorId, rol: "developer" }, { dealId: estudiante.id });
+    await marcarOnboarded(db, { userId: actorId, rol: "developer", operaComoCloser: false }, { dealId: estudiante.id });
   }
 
   for (const programa of programasDeVolumen) {
@@ -955,7 +955,7 @@ export async function sembrarLocal(): Promise<void> {
     if (requisito.etapa === "contactado" || requisito.etapa === "calificado") {
       await registrarActividad(
         db,
-        { userId: closerMani.id, rol: "closer" },
+        { userId: closerMani.id, rol: "closer", operaComoCloser: false },
         {
           dealId,
           tipo: "contacto",
@@ -969,14 +969,14 @@ export async function sembrarLocal(): Promise<void> {
       await moverEtapa(db, {
         dealId,
         a: "calificado",
-        actor: { tipo: "usuario", userId: closerMani.id, rol: "closer" },
+        actor: { tipo: "usuario", userId: closerMani.id, rol: "closer", operaComoCloser: false },
       });
     }
 
     if (requisito.etapa === "atendido") {
       const llamada = await agregarLlamada(
         db,
-        { userId: closerMani.id, rol: "closer" },
+        { userId: closerMani.id, rol: "closer", operaComoCloser: false },
         {
           dealId,
           fechaAgenda: new Date(
@@ -988,7 +988,7 @@ export async function sembrarLocal(): Promise<void> {
       );
       await pegarGrain(
         db,
-        { userId: closerMani.id, rol: "closer" },
+        { userId: closerMani.id, rol: "closer", operaComoCloser: false },
         {
           callId: llamada.callId,
           linkGrain: `https://grain.com/share/req-atendido-${requisito.numero}`,
@@ -1038,13 +1038,13 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead2.id,
     programId: prog1.id,
     etapa: "en_gestion",
-    actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
+    actor: { tipo: "usuario", userId: closer2.id, rol: "closer", operaComoCloser: false },
     ownerUserId: closer2.id,
     cohortId: coh1.id,
   });
   await registrarActividad(
     db,
-    { userId: closer2.id, rol: "closer" },
+    { userId: closer2.id, rol: "closer", operaComoCloser: false },
     {
       dealId: deal2Id,
       tipo: "contacto",
@@ -1065,7 +1065,7 @@ export async function sembrarLocal(): Promise<void> {
   });
   await agregarLlamada(
     db,
-    { userId: closer1.id, rol: "closer" },
+    { userId: closer1.id, rol: "closer", operaComoCloser: false },
     {
       dealId: deal3Id,
       fechaAgenda: new Date("2026-10-02T15:00:00-05:00"),
@@ -1086,7 +1086,7 @@ export async function sembrarLocal(): Promise<void> {
   });
   const resLlamada4 = await agregarLlamada(
     db,
-    { userId: closer1.id, rol: "closer" },
+    { userId: closer1.id, rol: "closer", operaComoCloser: false },
     {
       dealId: deal4Id,
       fechaAgenda: new Date("2026-09-25T11:00:00-05:00"),
@@ -1094,7 +1094,7 @@ export async function sembrarLocal(): Promise<void> {
   );
   await pegarGrain(
     db,
-    { userId: closer1.id, rol: "closer" },
+    { userId: closer1.id, rol: "closer", operaComoCloser: false },
     {
       callId: resLlamada4.callId,
       linkGrain: "https://grain.com/share/recording-diana-demo",
@@ -1107,14 +1107,14 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead5.id,
     programId: prog1.id,
     etapa: "en_gestion",
-    actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
+    actor: { tipo: "usuario", userId: closer2.id, rol: "closer", operaComoCloser: false },
     ownerUserId: closer2.id,
     cohortId: coh1.id,
     fechaLimitePago: "2026-10-10",
   });
   await registrarActividad(
     db,
-    { userId: closer2.id, rol: "closer" },
+    { userId: closer2.id, rol: "closer", operaComoCloser: false },
     {
       dealId: deal5Id,
       tipo: "contacto",
@@ -1125,7 +1125,7 @@ export async function sembrarLocal(): Promise<void> {
   await moverEtapa(db, {
     dealId: deal5Id,
     a: "compromiso_verbal",
-    actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
+    actor: { tipo: "usuario", userId: closer2.id, rol: "closer", operaComoCloser: false },
   });
 
   // Deal 6 -> Etapa: abonado (abono parcial con comprobante + moverEtapa sistema)
@@ -1134,14 +1134,14 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead6.id,
     programId: prog1.id,
     etapa: "en_gestion",
-    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer", operaComoCloser: false },
     ownerUserId: closer1.id,
     cohortId: coh1.id,
     fechaLimitePago: "2026-10-05",
   });
   await registrarActividad(
     db,
-    { userId: closer1.id, rol: "closer" },
+    { userId: closer1.id, rol: "closer", operaComoCloser: false },
     {
       dealId: deal6Id,
       tipo: "contacto",
@@ -1152,10 +1152,10 @@ export async function sembrarLocal(): Promise<void> {
   await moverEtapa(db, {
     dealId: deal6Id,
     a: "compromiso_verbal",
-    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer", operaComoCloser: false },
   });
   // El abono por la puerta de la app: congela el valor vendido y mueve el deal a ganado.
-  await registrarAbono(db, { userId: closer1.id, rol: "closer" }, {
+  await registrarAbono(db, { userId: closer1.id, rol: "closer", operaComoCloser: false }, {
     dealId: deal6Id,
     fecha: "2026-09-26",
     monto: "300.00",
@@ -1168,14 +1168,14 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead7.id,
     programId: prog1.id,
     etapa: "en_gestion",
-    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer", operaComoCloser: false },
     ownerUserId: closer1.id,
     cohortId: coh1.id,
     fechaLimitePago: "2026-10-01",
   });
   await registrarActividad(
     db,
-    { userId: closer1.id, rol: "closer" },
+    { userId: closer1.id, rol: "closer", operaComoCloser: false },
     {
       dealId: deal7Id,
       tipo: "contacto",
@@ -1186,10 +1186,10 @@ export async function sembrarLocal(): Promise<void> {
   await moverEtapa(db, {
     dealId: deal7Id,
     a: "compromiso_verbal",
-    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer", operaComoCloser: false },
   });
   // El abono por la puerta de la app: congela el valor vendido y mueve el deal a ganado.
-  await registrarAbono(db, { userId: closer1.id, rol: "closer" }, {
+  await registrarAbono(db, { userId: closer1.id, rol: "closer", operaComoCloser: false }, {
     dealId: deal7Id,
     fecha: "2026-09-27",
     monto: "797.00",
@@ -1208,7 +1208,7 @@ export async function sembrarLocal(): Promise<void> {
   });
   const resLlamada8 = await agregarLlamada(
     db,
-    { userId: closer1.id, rol: "closer" },
+    { userId: closer1.id, rol: "closer", operaComoCloser: false },
     {
       dealId: deal8Id,
       fechaAgenda: new Date("2026-09-26T16:00:00-05:00"),
@@ -1216,7 +1216,7 @@ export async function sembrarLocal(): Promise<void> {
   );
   await marcarFallida(
     db,
-    { userId: closer1.id, rol: "closer" },
+    { userId: closer1.id, rol: "closer", operaComoCloser: false },
     {
       callId: resLlamada8.callId,
       resultado: "no_show",
@@ -1229,13 +1229,13 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead9.id,
     programId: prog1.id,
     etapa: "en_gestion",
-    actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
+    actor: { tipo: "usuario", userId: closer2.id, rol: "closer", operaComoCloser: false },
     ownerUserId: closer2.id,
     cohortId: coh1.id,
   });
   await registrarActividad(
     db,
-    { userId: closer2.id, rol: "closer" },
+    { userId: closer2.id, rol: "closer", operaComoCloser: false },
     {
       dealId: deal9Id,
       tipo: "contacto",
@@ -1247,7 +1247,7 @@ export async function sembrarLocal(): Promise<void> {
   await moverEtapa(db, {
     dealId: deal9Id,
     a: "cierre_perdido",
-    actor: { tipo: "usuario", userId: closer2.id, rol: "closer" },
+    actor: { tipo: "usuario", userId: closer2.id, rol: "closer", operaComoCloser: false },
     motivoId: motivoPerdidaId,
   });
 
@@ -1257,14 +1257,14 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead10.id,
     programId: prog2.id,
     etapa: "en_gestion",
-    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer", operaComoCloser: false },
     ownerUserId: closer1.id,
     cohortId: coh2.id,
     fechaLimitePago: "2026-10-15",
   });
   await registrarActividad(
     db,
-    { userId: closer1.id, rol: "closer" },
+    { userId: closer1.id, rol: "closer", operaComoCloser: false },
     {
       dealId: deal10Id,
       tipo: "contacto",
@@ -1275,10 +1275,10 @@ export async function sembrarLocal(): Promise<void> {
   await moverEtapa(db, {
     dealId: deal10Id,
     a: "compromiso_verbal",
-    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer", operaComoCloser: false },
   });
   // El abono por la puerta de la app: congela el valor vendido y mueve el deal a ganado.
-  await registrarAbono(db, { userId: closer1.id, rol: "closer" }, {
+  await registrarAbono(db, { userId: closer1.id, rol: "closer", operaComoCloser: false }, {
     dealId: deal10Id,
     fecha: "2026-09-28",
     monto: "500.00",
@@ -1308,7 +1308,7 @@ export async function sembrarLocal(): Promise<void> {
   });
   await agregarLlamada(
     db,
-    { userId: closer1.id, rol: "closer" },
+    { userId: closer1.id, rol: "closer", operaComoCloser: false },
     {
       dealId: deal12Id,
       fechaAgenda: new Date("2026-10-06T15:00:00-05:00"),
@@ -1323,14 +1323,14 @@ export async function sembrarLocal(): Promise<void> {
     leadId: lead13.id,
     programId: prog2.id,
     etapa: "en_gestion",
-    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer", operaComoCloser: false },
     ownerUserId: closer1.id,
     cohortId: coh2.id,
     fechaLimitePago: "2026-09-20",
   });
   await registrarActividad(
     db,
-    { userId: closer1.id, rol: "closer" },
+    { userId: closer1.id, rol: "closer", operaComoCloser: false },
     {
       dealId: deal13Id,
       tipo: "contacto",
@@ -1341,7 +1341,7 @@ export async function sembrarLocal(): Promise<void> {
   await moverEtapa(db, {
     dealId: deal13Id,
     a: "compromiso_verbal",
-    actor: { tipo: "usuario", userId: closer1.id, rol: "closer" },
+    actor: { tipo: "usuario", userId: closer1.id, rol: "closer", operaComoCloser: false },
   });
 
   // 12. Volumen adicional para recorrer todas las métricas y filtros del dashboard.

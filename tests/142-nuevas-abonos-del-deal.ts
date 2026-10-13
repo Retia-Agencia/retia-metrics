@@ -14,7 +14,7 @@ let programId: string;
 let cohortId: string;
 let closer: string;
 let n = 0;
-const actor = () => ({ userId: closer, rol: "closer" as const });
+const actor = () => ({ userId: closer, rol: "closer" as const, operaComoCloser: false });
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
   const p = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning())[0];

@@ -49,6 +49,7 @@ import { transicion, transicionPendiente, unaCitaMueveAAgendado, type EtapaDeal 
 export interface ActorDeLlamada {
   userId: string;
   rol: Rol;
+  operaComoCloser: boolean;
 }
 
 /** `unaCitaMueveAAgendado` es la única regla para el efecto de una cita nueva. */
@@ -155,7 +156,7 @@ export async function agregarLlamada(
         await moverEtapa(db, {
           dealId: deal.id,
           a: "agendado",
-          actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol },
+          actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
         });
         return { callId, movioAAgendado: true };
       }
@@ -222,7 +223,7 @@ export async function completarAgendada(
         await moverEtapa(tx, {
           dealId: deal.id,
           a: "agendado",
-          actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol },
+          actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
         });
       }
     });
@@ -487,7 +488,7 @@ export async function reagendarLlamada(
         await moverEtapa(db, {
           dealId: deal.id,
           a: "agendado",
-          actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol },
+          actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
         });
         return { callId: callId2, movioAAgendado: true };
       }
@@ -577,7 +578,7 @@ export async function marcarFallida(
         pendiente: "reagenda",
         actor: t?.quien === "sistema"
           ? { tipo: "sistema" }
-          : { tipo: "usuario", userId: actor.userId, rol: actor.rol },
+          : { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
         ...(motivoId !== undefined ? { motivoId } : {}),
       });
 
@@ -621,7 +622,7 @@ async function llamadaVigenteDeDealAbierto(
  * pregunta `rol === "closer"` a mano, o el developer quedaría afuera.
  */
 function exigirQueTrabajeLeads(actor: ActorDeLlamada): void {
-  if (!trabajaLeads(actor.rol)) {
+  if (!trabajaLeads(actor)) {
     throw new ErrorDeApp("Solo un closer registra llamadas de un deal.", 403);
   }
 }

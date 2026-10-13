@@ -70,7 +70,7 @@ describe("reja de solo lectura al suplantar (ticket 172)", () => {
       .returning();
     closerId = c.id;
     auth.mockResolvedValue({
-      user: { id: developerId, rol: "developer", closerId: null, name: "Dev Real", email: "dev@retiagrowth.com" },
+      user: { id: developerId, rol: "developer", operaComoCloser: false, closerId: null, name: "Dev Real", email: "dev@retiagrowth.com" },
     });
   });
   afterEach(() => {

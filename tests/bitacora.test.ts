@@ -56,7 +56,7 @@ afterEach(async () => {
   await cerrar();
 });
 
-const actor = () => ({ tipo: "usuario" as const, userId: closerId, rol: "closer" as const });
+const actor = () => ({ tipo: "usuario" as const, userId: closerId, rol: "closer" as const, operaComoCloser: false });
 
 async function todas(filtro: Record<string, string> = {}): Promise<EntradaBitacora[]> {
   return (await paginaDeBitacora(filtroDeLaUrl(filtro), db)).entradas;

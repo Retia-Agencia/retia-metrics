@@ -38,6 +38,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-full flex-1 flex-col md:flex-row">
       <AppSidebar
         rol={rolVista}
+        operaComoCloser={session.user.operaComoCloser}
         nombre={session.user.name ?? session.user.email ?? "Usuario"}
         email={session.user.email ?? ""}
         imagen={session.user.image}

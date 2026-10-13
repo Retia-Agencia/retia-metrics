@@ -55,7 +55,7 @@ conPostgres("registrarAbono: concurrencia contra Postgres real", () => {
       const [deal] = await db.insert(schema.deals).values({ programId: programa.id, leadId: lead.id, ownerUserId: closer.id, etapa: "ganado_parcial", valorVendidoUsd: "1000" }).returning();
       await db.insert(schema.abonos).values({ programId: programa.id, dealId: deal.id, monto: "400", moneda: "USD", fecha: "2026-09-28", comprobanteUrl: "https://prueba.local/400" });
 
-      const actor = { userId: closer.id, rol: "closer" } as const;
+      const actor = { userId: closer.id, rol: "closer", operaComoCloser: false } as const;
       const datos = { dealId: deal.id, monto: "600", fecha: "2026-09-28", comprobanteUrl: "https://prueba.local/600" };
       const bloqueo = await control.reserve();
       let pagos: Promise<PromiseSettledResult<AbonoRegistrado>[]> | undefined;

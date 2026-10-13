@@ -221,7 +221,7 @@ describe("deshacerMigracion se niega si alguien trabajo encima", () => {
 
   it("un closer reclamó un deal migrado", async () => {
     const d = await dealMigrado("ana@c.co");
-    await reclamarDeal(db, { userId: maru, rol: "closer" }, { dealId: d.id });
+    await reclamarDeal(db, { userId: maru, rol: "closer", operaComoCloser: false }, { dealId: d.id });
     await esperarNegativa("editado_despues");
   });
 

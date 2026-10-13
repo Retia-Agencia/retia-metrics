@@ -28,7 +28,7 @@ let cohortId: string;
 let closerId: string;
 let secuencia = 0;
 
-const actor = () => ({ userId: closerId, rol: "closer" as const });
+const actor = () => ({ userId: closerId, rol: "closer" as const, operaComoCloser: false });
 
 async function lead() {
   secuencia += 1;

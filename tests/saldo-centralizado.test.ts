@@ -46,13 +46,13 @@ const abono = (monto: string) => ({ dealId, fecha: "2026-09-28", monto, comproba
 
 describe("la reja del sobrepago y el saldo que ve el closer son la misma cifra", () => {
   it("lo máximo que la reja acepta es exactamente el saldo del módulo; un centavo más se rechaza", async () => {
-    await registrarAbono(db, { userId: closer, rol: "closer" }, abono("500"));
+    await registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, abono("500"));
 
     const visto = (await saldosDeDeals(db, [dealId])).get(dealId)!.saldo!;
     expect(visto).toBe(297);
 
-    await expect(registrarAbono(db, { userId: closer, rol: "closer" }, abono((visto + 0.01).toFixed(2)))).rejects.toMatchObject({ status: 422 });
-    const r = await registrarAbono(db, { userId: closer, rol: "closer" }, abono(visto.toFixed(2)));
+    await expect(registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, abono((visto + 0.01).toFixed(2)))).rejects.toMatchObject({ status: 422 });
+    const r = await registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, abono(visto.toFixed(2)));
     expect(r.saldo).toBe(0);
     expect((await saldosDeDeals(db, [dealId])).get(dealId)!.saldo).toBe(0);
   });
@@ -64,7 +64,7 @@ describe("la reja del sobrepago y el saldo que ve el closer son la misma cifra",
       .returning();
     expect(a.anuladoEn).not.toBeNull();
     expect((await saldosDeDeals(db, [dealId])).get(dealId)!.saldo).toBe(797);
-    expect((await registrarAbono(db, { userId: closer, rol: "closer" }, abono("797"))).etapa).toBe("ganado_completo");
+    expect((await registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, abono("797"))).etapa).toBe("ganado_completo");
   });
 });
 

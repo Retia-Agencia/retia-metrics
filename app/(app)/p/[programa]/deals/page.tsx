@@ -83,7 +83,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
           programId={programa.id}
           programaSlug={programa.slug}
           nombreEtapaDeEntrada={NOMBRE_DE_ETAPA[ETAPA_DE_ENTRADA]}
-          puedeCrearLead={trabajaLeads(rol)}
+          puedeCrearLead={trabajaLeads({ rol, operaComoCloser: session.user.operaComoCloser })}
           origen={origen}
         />
       }

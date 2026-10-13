@@ -143,7 +143,7 @@ describe("cambiarCohorte segun la etapa", () => {
         { leadId: leadRechazado.id, programId, cohortId: origen.id, etapa: "atendido", ownerUserId: dueno.id },
       ])
       .returning();
-    const actor = { userId: dueno.id, rol: "closer" as const };
+    const actor = { userId: dueno.id, rol: "closer" as const, operaComoCloser: false };
 
     await cambiarCohorte(db, actor, { dealId: aceptado.id, cohortId: vendiendo.id, motivo: "Corresponde a esta venta." });
     expect((await db.select().from(deals).where(and(eq(deals.id, aceptado.id), incluyendoAnulados(deals))))[0].cohortId).toBe(vendiendo.id);
@@ -164,7 +164,7 @@ describe("cambiarCohorte segun la etapa", () => {
       .values({ leadId: lead.id, programId, cohortId: origen.id, etapa: "ganado_parcial", ownerUserId: dueno.id })
       .returning();
 
-    await cambiarCohorte(db, { userId: dueno.id, rol: "closer" }, { dealId: deal.id, cohortId: futura.id, motivo: "Transferencia acordada." });
+    await cambiarCohorte(db, { userId: dueno.id, rol: "closer", operaComoCloser: false }, { dealId: deal.id, cohortId: futura.id, motivo: "Transferencia acordada." });
 
     expect((await db.select().from(deals).where(and(eq(deals.id, deal.id), incluyendoAnulados(deals))))[0].cohortId).toBe(futura.id);
   });

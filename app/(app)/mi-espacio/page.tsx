@@ -73,6 +73,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   if (!esRolValido(rol)) notFound();
 
   const userId = session.user.id;
+  const sujeto = { rol, operaComoCloser: session.user.operaComoCloser };
   const query = await searchParams;
 
   // El `?tab=atencion` viejo ahora es `?tab=notificaciones` (ticket 221): redirect de
@@ -90,7 +91,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   // (nunca se queda en Mi espacio con contenido ajeno); si no ve ninguno, el estado vacío que
   // le dice que gerencia debe asignarle un programa. Se decide por CAPACIDAD —`marcaOnboarding`
   // sin administrar, trabajar leads ni manejar pauta—, nunca por el literal del rol (ADR 0025).
-  if (marcaOnboarding(rol) && !trabajaLeads(rol) && !esAdministrador(rol) && !manejaPauta(rol)) {
+  if (marcaOnboarding(rol) && !trabajaLeads(sujeto) && !esAdministrador(rol) && !manejaPauta(rol)) {
     const visibles = await programasVisibles(userId, rol);
     if (visibles.length > 0) {
       const preferido = await programaPreferidoDeCookie();
@@ -138,7 +139,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   // Perfil: nombre, foto y rol vienen de Google / la sesión. Para quien trabaja leads el
   // nombre sale de la membresía (local login no mete `users.nombre` en la sesión); el
   // gerente y el paid trafficker no cargan membresías, así que usan el de la sesión.
-  const puedeTrabajar = trabajaLeads(rol);
+  const puedeTrabajar = trabajaLeads(sujeto);
   const membresias = puedeTrabajar ? await membresiasConCalendlyDe(db, userId) : [];
   const nombrePerfil = membresias[0]?.usuario ?? session.user.name ?? session.user.email ?? "Usuario";
   const perfil = (
@@ -171,8 +172,8 @@ export default async function MiEspacioPage({ searchParams }: Props) {
 
   // Las secciones del rol de vista (dirigidas por el registro). La pedida, si el rol la
   // cumple; si no (sin `?tab=` o una `?tab=` de otra sección forjada a mano), la primera.
-  const secciones = seccionesDeRol(rol);
-  const seccion = seccionPedida(rol, uno(query.tab));
+  const secciones = seccionesDeRol(sujeto);
+  const seccion = seccionPedida(sujeto, uno(query.tab));
   if (!seccion) notFound();
 
   // El Calendly solo para quien trabaja leads, y solo de los programas con membresía (169).

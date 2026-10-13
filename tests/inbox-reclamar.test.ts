@@ -62,10 +62,10 @@ afterEach(async () => {
   await cerrar();
 });
 
-const comoCloser = () => ({ userId: closer, rol: "closer" as const });
-const comoOtroCloser = () => ({ userId: otroCloser, rol: "closer" as const });
-const comoGerente = () => ({ userId: gerente, rol: "gerente" as const });
-const comoDeveloper = () => ({ userId: developer, rol: "developer" as const });
+const comoCloser = () => ({ userId: closer, rol: "closer" as const, operaComoCloser: false });
+const comoOtroCloser = () => ({ userId: otroCloser, rol: "closer" as const, operaComoCloser: false });
+const comoGerente = () => ({ userId: gerente, rol: "gerente" as const, operaComoCloser: false });
+const comoDeveloper = () => ({ userId: developer, rol: "developer" as const, operaComoCloser: false });
 
 async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferInsert> = {}) {
   const [l] = await db
@@ -133,7 +133,7 @@ describe("reclamarDeal", () => {
 
     // Un closer de OTRO programa (sin ninguna membresía en éste) tampoco.
     const [ajeno] = await db.insert(users).values({ email: "otro@retiagrowth.com", rol: "closer", closerId: "Otro" }).returning();
-    const e2 = await capturar(reclamarDeal(db, { userId: ajeno.id, rol: "closer" }, { dealId }));
+    const e2 = await capturar(reclamarDeal(db, { userId: ajeno.id, rol: "closer", operaComoCloser: false }, { dealId }));
     expect(e2.status).toBe(403);
     expect((await deal(dealId)).ownerUserId).toBeNull();
   });

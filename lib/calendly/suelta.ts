@@ -30,7 +30,8 @@ export function esSueltaPorAsignar(llamada: { dealId: string | null; origen: str
 export function puedeColgarSuelta(args: {
   actorUserId: string;
   rol: Rol | null;
+  operaComoCloser: boolean;
   hostUserId: string | null;
 }): boolean {
-  return esAdministrador(args.rol) || (trabajaLeads(args.rol) && args.hostUserId === args.actorUserId);
+  return esAdministrador(args.rol) || (trabajaLeads(args) && args.hostUserId === args.actorUserId);
 }

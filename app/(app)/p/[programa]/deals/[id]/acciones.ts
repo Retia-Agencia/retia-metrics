@@ -55,14 +55,14 @@ export type ResultadoFicha<T extends object = object> = ({ ok: true } & T) | { o
 
 interface Contexto {
   session: Session;
-  actor: { userId: string; rol: Rol };
+  actor: { userId: string; rol: Rol; operaComoCloser: boolean };
 }
 
 async function contextoDe(permitidos: readonly Rol[] = ["gerente", "closer"]): Promise<Contexto> {
   const session = await requireRole(...permitidos);
   const rol = await rolDeVista(session);
   if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
-  return { session, actor: { userId: session.user.id, rol } };
+  return { session, actor: { userId: session.user.id, rol, operaComoCloser: session.user.operaComoCloser } };
 }
 
 /** El deal tiene que ser de un programa que la sesion ve; si no, 404 como si no existiera. */
@@ -391,7 +391,7 @@ export async function crearPlataformaParaAbonoAccion(
       .from(deals)
       .where(and(eq(deals.id, datos.dealId), incluyendoAnulados(deals)));
     if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
-    if (!trabajaLeads(ctx.actor.rol) || !puedeTrabajarDeal(ctx.actor, deal)) {
+    if (!trabajaLeads(ctx.actor) || !puedeTrabajarDeal(ctx.actor, deal)) {
       throw new ErrorDeApp("Solo el dueño del deal puede crear una plataforma para sus abonos.", 403);
     }
     const plataforma = await crearOVincularPlataforma(
