@@ -34,3 +34,16 @@ calculado, sin ver nunca un dato de una persona.
 - [ ] Sin secreto, 401 y la base no se mueve; con secreto, el semáforo, con test que invoca el handler real.
 - [ ] El test de la lista blanca muerde en los dos sentidos (un campo de más lo rompe).
 - [ ] Dos llamadas seguidas hacen una sola lectura de Meta, con test.
+
+---
+
+## Enmienda 14-oct (Mani, tras la primera sincronización real del 120)
+
+- **El Hub también dispara la sincronización al abrirse**, además de este endpoint: si la última corrida de
+  `pauta_sincronizaciones` tiene más de 1 hora, la página muestra lo último y sincroniza de fondo con `after()` de
+  Next (no espera ni carga al navegador). El candado del 120 evita dos corridas a la vez.
+- **Corrida liviana durante el día:** solo los insights de hoy, y el árbol solo si tiene más de 24 h. La completa
+  (7 días y el árbol) sigue siendo la del cron diario. Medido el 14-oct: la completa tarda 107 s con los tres
+  programas; la liviana debería quedar en segundos (nota de cierre con lo medido).
+- Done cuando, además: abrir el Hub con la última corrida vieja dispara una sola corrida liviana y la página no la
+  espera, con test; con una corrida de hace menos de 1 hora, no dispara nada.
