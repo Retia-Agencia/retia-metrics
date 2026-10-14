@@ -245,7 +245,7 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   pantalla lo devuelve (`tests/fuentes-webhook.test.ts`). **Segunda excepcion (ADR 0057, 28-sep):** el token de
   Calendly de cada programa vive en `programs`, con las mismas reglas (ticket 109); su clave de firma del
   webhook (`calendly_signing_key`, 096) sigue las mismas reglas. **Otra excepcion (ADR 0062, 29-sep):** el
-  token de la API de Meta de cada portafolio vive en `meta_conexiones`, con las mismas reglas (ticket 119).
+  token de la API de Meta (uno solo: el usuario del sistema de Retia lee las cuentas de todos los programas) vive en `meta_conexiones`, con las mismas reglas (ticket 119).
   **Y otra (Mani, 29-sep; construida el 6-oct con el 126 B):** el token de la API de Typeform de cada fuente vive
   en `sources.typeform_token`; lo escribe solo `guardarTokenTypeform` y lo lee solo `embudoPorPregunta`
   (`tests/typeform-insights.test.ts`).

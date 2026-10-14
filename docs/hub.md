@@ -260,10 +260,13 @@ devuelve el semáforo ya calculado. **Nadie más le pregunta a Meta**: una sola 
 
 ### 4.2 Lo que se agrega a la base
 
+`meta_conexiones` guarda **un solo** token activo (índice único parcial): el usuario del sistema de Retia es socio
+de los portafolios de los clientes y lee todas sus cuentas, así que una cuenta no apunta a ninguna conexión (119,
+enmienda del 14-oct).
+
 ```mermaid
 erDiagram
   programs ||--o{ cuentas_publicitarias : "tiene N"
-  meta_conexiones ||--o{ cuentas_publicitarias : "lee"
   cuentas_publicitarias ||--o{ pauta_objetos : "árbol"
   pauta_objetos ||--o{ pauta_objetos : "padre"
   pauta_objetos ||--o{ gasto_pauta : "por día"

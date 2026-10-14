@@ -35,7 +35,7 @@ envíos traen la macro sin expandir.
    (`gasto_pauta`) por una sola función, que también usa la captura manual de otras plataformas. El árbol
    campaña → conjunto → anuncio se refleja desde Meta; el CRM lee Meta, no la administra. Se re-leen los
    últimos días porque Meta ajusta el gasto hacia atrás, idempotente por (anuncio, día).
-4. **El token es por portafolio y vive en la base**, con las reglas del ADR 0057: lo escribe una función,
+4. **El token vive en la base** (era uno por portafolio; desde el ADR 0087 y el 119 es uno solo, el del usuario del sistema de Retia), con las reglas del ADR 0057: lo escribe una función,
    se muestra una vez, nunca vuelve en una lectura ni pasa por `change_log`. Es la **cuarta excepción
    nombrada** a "secretos solo en `.env.local` y Vercel". Cada programa apunta a sus cuentas publicitarias,
    con la moneda y la zona horaria que dice Meta.
