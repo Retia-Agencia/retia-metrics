@@ -122,6 +122,12 @@ vi.mock("@/lib/queries/pauta-interina", () => ({ pautaInterina }));
 // Las alertas por persistencia del Pulso (147), igual: sin base, ningún umbral.
 const alertasDelPrograma = vi.fn(async () => []);
 vi.mock("@/lib/queries/alertas", () => ({ alertasDelPrograma }));
+// La caja de Hoy por origen (252), igual: sin base, sin abonos. Lo demás de `vista-hoy` es puro.
+const cajaDelDiaPorOrigen = vi.fn(async () => []);
+vi.mock("@/lib/queries/vista-hoy", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/queries/vista-hoy")>(),
+  cajaDelDiaPorOrigen,
+}));
 // La serie del embudo (089), igual: sin base, una serie vacia.
 const hechosDelEmbudo = vi.fn(async () => []);
 vi.mock("@/lib/queries/hechos-embudo", () => ({ hechosDelEmbudo }));
@@ -901,7 +907,7 @@ describe("el dashboard no depende del rol dentro del alcance (ADR 0048, ticket 0
 
   it("el periodo nuevo se valida en el borde de la página", async () => {
     auth.mockResolvedValue(sesionGerente);
-    expect(await correrPrograma(SLUG, { periodo: "este_mes", b_desde: "2026-08-01", b_hasta: "2026-08-07" })).toBe("paso");
+    expect(await correrPrograma(SLUG, { seccion: "comercial", periodo: "este_mes", b_desde: "2026-08-01", b_hasta: "2026-08-07" })).toBe("paso");
     expect(armarVistaDelDashboard.mock.calls.at(-1)![0]).toMatchObject({
       periodo: { preset: "este_mes", b: { desde: "2026-08-01", hasta: "2026-08-07" } },
     });
@@ -910,7 +916,7 @@ describe("el dashboard no depende del rol dentro del alcance (ADR 0048, ticket 0
   it("el filtro de la URL llega a la vista", async () => {
     auth.mockResolvedValue(sesionGerente);
     const beto = "6f1c2a9e-3b4d-4c5e-8f70-1a2b3c4d5e6f";
-    expect(await correrPrograma(SLUG, { rango: "custom", desde: "2026-09-01", hasta: "2026-09-10", closer: beto })).toBe("paso");
+    expect(await correrPrograma(SLUG, { seccion: "comercial", rango: "custom", desde: "2026-09-01", hasta: "2026-09-10", closer: beto })).toBe("paso");
     expect(armarVistaDelDashboard.mock.calls.at(-1)![0]).toMatchObject({
       preset: "custom",
       desde: "2026-09-01",
@@ -918,8 +924,18 @@ describe("el dashboard no depende del rol dentro del alcance (ADR 0048, ticket 0
       claveCloser: beto,
     });
     // El closer va por su users.id (167): un texto como "Beto" no es una clave y se ignora.
-    expect(await correrPrograma(SLUG, { closer: "Beto" })).toBe("paso");
+    expect(await correrPrograma(SLUG, { seccion: "comercial", closer: "Beto" })).toBe("paso");
     expect(armarVistaDelDashboard.mock.calls.at(-1)![0]).toMatchObject({ claveCloser: null });
+  });
+
+  it("Hoy (252) es siempre de hoy y del programa entero: el periodo y el closer de la URL no lo mueven", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const beto = "6f1c2a9e-3b4d-4c5e-8f70-1a2b3c4d5e6f";
+    const busquedas: Record<string, string>[] = [{}, { seccion: "hoy", rango: "custom", desde: "2026-09-01", hasta: "2026-09-10", closer: beto }];
+    for (const busqueda of busquedas) {
+      expect(await correrPrograma(SLUG, busqueda)).toBe("paso");
+      expect(armarVistaDelDashboard.mock.calls.at(-1)![0]).toMatchObject({ periodo: { preset: "hoy" }, claveCloser: null });
+    }
   });
 });
 
@@ -1452,12 +1468,16 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     } as never);
     auth.mockResolvedValue(sesionPaidTrafficker);
     const arbol = await renderizar({ seccion: "hoy" });
-    const seccion = buscar(arbol, "DashboardPrograma");
+    const seccion = buscar(arbol, "Hoy");
     expect(seccion?.props.veEquipo).toBe(false);
+    // Sin equipo, Hoy no arma el comparativo por closer (ni sus listas).
+    expect(seccion?.props.detallesOperacion).toBeUndefined();
     const agendas = (seccion?.props.detalles as Record<string, { href: string; resumen: { disponible: boolean; grupos: unknown[] } }>).agendas;
     expect(agendas.href).toBe("");
     expect(agendas.resumen).toMatchObject({ disponible: false, grupos: [] });
-    expect(buscar(arbol, "FiltroDashboard")?.props).toMatchObject({ filtraCloser: false, closers: [] });
+    // Hoy no lleva selector (252); en las demás pestañas, el filtro de closer no es suyo.
+    expect(buscar(arbol, "FiltroDashboard")).toBeNull();
+    expect(buscar(await renderizar({ seccion: "comercial" }), "FiltroDashboard")?.props).toMatchObject({ filtraCloser: false, closers: [] });
   });
 
   /** Un detalle de cifra con lista, desglose por closer y enlace: lo que `sinListas` tiene que vaciar. */
@@ -1503,8 +1523,9 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
   it("al gerente nada de eso le cambia (mordido en el otro sentido)", async () => {
     auth.mockResolvedValue(sesionGerente);
     const arbol = await renderizar({ seccion: "hoy" });
-    expect(buscar(arbol, "DashboardPrograma")?.props.veEquipo).toBe(true);
-    expect(buscar(arbol, "FiltroDashboard")?.props.filtraCloser).toBe(true);
+    expect(buscar(arbol, "Hoy")?.props.veEquipo).toBe(true);
+    expect(buscar(arbol, "Hoy")?.props.detallesOperacion).toBeDefined();
+    expect(buscar(await renderizar({ seccion: "comercial" }), "FiltroDashboard")?.props.filtraCloser).toBe(true);
   });
 
   it("la lista detrás de una cifra lo rechaza aunque forje la URL, sin consultar filas", async () => {

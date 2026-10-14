@@ -26,11 +26,16 @@ function Celda({ titulo, detalle, children }: { titulo: string; detalle?: Detall
   return <CifraConLista titulo={titulo} detalle={detalle}>{children}</CifraConLista>;
 }
 
-function Comparativo({ vista, detalles }: { vista: VistaDelDashboard; detalles?: DetallesDeOperacion["comparativo"] }) {
+/** El comparativo entre closers (ADR 0023). Lo usan Comercial y, con el rango de hoy, la pestaña Hoy (252). */
+export function Comparativo({ vista, detalles, titulo = "Closers" }: {
+  vista: VistaDelDashboard;
+  detalles?: DetallesDeOperacion["comparativo"];
+  titulo?: string;
+}) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Closers</CardTitle>
+        <CardTitle className="text-base">{titulo}</CardTitle>
       </CardHeader>
       <CardContent>
         {vista.comparativo.length === 0 ? (

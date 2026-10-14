@@ -3,6 +3,8 @@ import { alertasDelPrograma } from "@/lib/queries/alertas";
 import { leerMetasDelMes, moverMes, nombreDelMes } from "@/lib/queries/metas";
 import { MetasDelMes } from "@/components/metas/metas-del-mes";
 import { OrigenPendiente } from "@/components/dashboard/origen-pendiente";
+import { Hoy } from "@/components/dashboard/hoy";
+import { cajaDelDiaPorOrigen, contextoDelDia, horizontesDeCupos } from "@/lib/queries/vista-hoy";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { rutaDePrograma, type SeccionDelHub } from "@/lib/nav";
@@ -137,15 +139,22 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   // el programa completo, igual que un gerente (ADR 0048: dentro de su programa, ve
   // todo). Si la sesion decidiera el filtro, "todos ven todo" duraria hasta el primer
   // descuido.
-  const vista = await armarVistaDelDashboard({
-    programId: programa.id,
-    hoy,
-    periodo: parsearPeriodoUrl(busqueda),
-    preset: texto(busqueda.rango) ?? "hoy",
-    desde: texto(busqueda.desde),
-    hasta: texto(busqueda.hasta),
-    claveCloser: veEquipo ? esquemaFiltroCloser.parse(texto(busqueda.closer)) ?? null : null,
-  });
+  //
+  // Hoy (252) es el reporte del día: se arma SIEMPRE con el día de hoy y el programa entero, sin
+  // importar el periodo ni el closer de la URL, y por eso no muestra el selector. Es la misma
+  // consulta que las demás pestañas con el periodo "hoy": no se recalcula nada.
+  const esHoy = seccion === "hoy";
+  const vista = await armarVistaDelDashboard(esHoy
+    ? { programId: programa.id, hoy, periodo: { preset: "hoy" }, preset: "hoy", claveCloser: null }
+    : {
+        programId: programa.id,
+        hoy,
+        periodo: parsearPeriodoUrl(busqueda),
+        preset: texto(busqueda.rango) ?? "hoy",
+        desde: texto(busqueda.desde),
+        hasta: texto(busqueda.hasta),
+        claveCloser: veEquipo ? esquemaFiltroCloser.parse(texto(busqueda.closer)) ?? null : null,
+      });
 
   // Cada cifra abre su lista y su "Volver" regresa a ESTA pestaña con ESTE filtro: el
   // origen (path + query, con `seccion`) viaja como parámetro `desde` en el href de cada lista
@@ -185,16 +194,18 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
       fija
     >
       <PantallaFija>
-        <div className="shrink-0">
-          <FiltroDashboard
-            periodo={vista.periodo}
-            anteriorDisponible={vista.anteriorDisponible}
-            claveCloser={vista.claveCloser}
-            closers={veEquipo ? vista.closers : []}
-            filtraCloser={veEquipo}
-            cohorteDisponible={vista.cohorte?.ventana != null}
-          />
-        </div>
+        {esHoy ? null : (
+          <div className="shrink-0">
+            <FiltroDashboard
+              periodo={vista.periodo}
+              anteriorDisponible={vista.anteriorDisponible}
+              claveCloser={vista.claveCloser}
+              closers={veEquipo ? vista.closers : []}
+              filtraCloser={veEquipo}
+              cohorteDisponible={vista.cohorte?.ventana != null}
+            />
+          </div>
+        )}
         <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del Hub" />
 
         <div className={clasesDeZonaConScroll()}>
@@ -249,21 +260,23 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               })}
             />
           ) : (
-            <div className="space-y-8">
-              <DashboardPrograma
-                seccion="pulso"
-                vista={vista}
-                detalles={detalles}
-                slug={slug}
-                dealsContraAgendas={null}
-                origen={origen}
-                veEquipo={veEquipo}
-                alertas={await alertasDelPrograma(programa.id, hoy)}
-              />
-              {/* Lo que era la página Metas (ADR 0086 punto 1). Sus listas son del equipo comercial:
-                  sin él (paid trafficker) las cifras salen como texto. */}
-              <SeccionMetas programId={programa.id} slug={slug} hoy={hoy} busqueda={busqueda} conListas={veEquipo} />
-            </div>
+            <Hoy
+              vista={vista}
+              contexto={contextoDelDia(hoy, vista.cohorte)}
+              horizontes={horizontesDeCupos(vista)}
+              caja={await cajaDelDiaPorOrigen({ programId: programa.id, hoy })}
+              detalles={detalles}
+              detallesOperacion={veEquipo ? await detallesDeOperacion(
+                { programId: programa.id, slug, hoy, periodo: vista.periodo, origen },
+                vista.comparativo.map((fila) => fila.clave),
+              ) : undefined}
+              alertas={await alertasDelPrograma(programa.id, hoy)}
+              slug={slug}
+              veEquipo={veEquipo}
+              // Lo que era la página Metas (ADR 0086 punto 1). Sus listas son del equipo comercial:
+              // sin él (paid trafficker) las cifras salen como texto.
+              metas={<SeccionMetas programId={programa.id} slug={slug} hoy={hoy} busqueda={busqueda} conListas={veEquipo} />}
+            />
           )}
         </div>
       </PantallaFija>

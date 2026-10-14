@@ -1,11 +1,9 @@
 import type { ReactNode } from "react";
 import { Dinero } from "@/components/dashboard/dinero";
 import { Operacion } from "@/components/dashboard/operacion";
-import { Pulso } from "@/components/dashboard/pulso";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import type { DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import type { SeriesDeDinero } from "@/lib/queries/series-dinero";
-import type { Alerta } from "@/lib/queries/alertas";
 
 export { OrigenPorCanal } from "@/components/dashboard/origen-por-canal";
 export { textoComisionPrograma } from "@/components/dashboard/operacion";
@@ -15,8 +13,8 @@ export { textoComisionPrograma } from "@/components/dashboard/operacion";
  * con cada sección en su pestaña (`?seccion=`), así que `seccion` decide cuál se arma. No
  * calcula cifras.
  *
- * La pestaña `pauta` vive en la página (no es un componente de sección del 148), así que acá
- * solo caben `pulso`, `operacion` y `dinero`.
+ * Hoy (252) y Pauta viven en sus propios componentes, así que acá solo caben Comercial
+ * (`operacion`) y `dinero`.
  *
  * Dos reglas de dominio se ven en cada sección:
  *  - La moneda va al lado del monto y nunca se convierte ni se suma con otra.
@@ -31,10 +29,9 @@ export function DashboardPrograma({
   dealsContraAgendas,
   seriesDinero,
   origen,
-  alertas,
   veEquipo = true,
 }: {
-  seccion: "pulso" | "operacion" | "dinero";
+  seccion: "operacion" | "dinero";
   vista: VistaDelDashboard;
   detalles?: DetallesDelDashboard;
   detallesOperacion?: DetallesDeOperacion;
@@ -42,7 +39,6 @@ export function DashboardPrograma({
   dealsContraAgendas: ReactNode;
   seriesDinero?: SeriesDeDinero;
   origen?: string;
-  alertas?: Alerta[];
   /**
    * Si la sesión ve el trabajo del equipo comercial (`veEquipoComercial`, ticket 102). Sin él
    * (paid trafficker) no se pintan el comparativo, la comisión, los abiertos por owner ni los
@@ -50,9 +46,6 @@ export function DashboardPrograma({
    */
   veEquipo?: boolean;
 }) {
-  if (seccion === "pulso") {
-    return <Pulso vista={vista} detalles={detalles} slug={slug} alertas={alertas} veEquipo={veEquipo} />;
-  }
   if (seccion === "operacion") {
     return (
       <Operacion

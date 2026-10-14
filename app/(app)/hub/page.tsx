@@ -29,20 +29,22 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
   if (programas.length === 0) notFound();
   const busqueda = await searchParams;
   const hoy = hoyEnBogota();
-  const vista = await armarVistaDeTodos({ programas, hoy, periodo: parsearPeriodoUrl(busqueda) });
   const pestanas = [
-    { id: "hoy", etiqueta: "Hoy", descripcion: "Contratado, caja y alertas; metas de cada programa." },
+    { id: "hoy", etiqueta: "Hoy", descripcion: "El día de cada programa: cupos, operación, caja y lo que pide atención." },
     { id: "comercial", etiqueta: "Comercial", descripcion: "Actividad total y embudo de cada programa." },
     { id: "dinero", etiqueta: "Dinero", descripcion: "Lo contratado, lo cobrado por moneda y la cartera de hoy." },
     { id: "pauta", etiqueta: "Pauta", descripcion: "Origen y rendimiento de los canales dentro de cada programa." },
     { id: "origen", etiqueta: "Origen", descripcion: "De dónde vino cada lead y cómo cuenta cada UTM." },
   ].map((pestana) => ({ ...pestana, href: urlConSeccion(RUTA_HUB_TODOS, busqueda, pestana.id) }));
   const seccion = pestanaActiva(typeof busqueda.seccion === "string" ? busqueda.seccion : undefined, pestanas, "hoy");
+  // Hoy (252) es siempre de hoy, sin importar el periodo de la URL; por eso no lleva selector.
+  const esHoy = seccion === "hoy";
+  const vista = await armarVistaDeTodos({ programas, hoy, periodo: esHoy ? { preset: "hoy" } : parsearPeriodoUrl(busqueda) });
 
   return (
     <PageShell titulo="Todos los programas" descripcion="Sumas en la misma unidad; tasas y metas por programa" fija>
       <PantallaFija>
-        <div className="shrink-0">
+        {esHoy ? null : <div className="shrink-0">
           <BarraDeLista
             filtros={[]}
             marco={
@@ -56,7 +58,7 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
             }
             aviso={vista.periodo.aviso ? vista.periodo.aviso : undefined}
           />
-        </div>
+        </div>}
         <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del Hub" />
         <div className={clasesDeZonaConScroll()}>
           {seccion === "origen"

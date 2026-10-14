@@ -12,6 +12,7 @@ import { desglosesDelResumen } from "@/lib/queries/metricas-con-filas";
 import { detallesDeOperacion, detallesDelDashboard, nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { urlDeListaTodos, type FilaDePrograma, type VistaDeTodos } from "@/lib/queries/vista-todos";
+import { contextoDelDia, horizontesDeCupos } from "@/lib/queries/vista-hoy";
 
 type Seccion = "hoy" | "comercial" | "dinero";
 const GRILLA = "grid gap-4 sm:grid-cols-2 xl:grid-cols-4";
@@ -109,6 +110,28 @@ function Banderas({ vista }: { vista: VistaDeTodos }) {
   ));
 }
 
+/**
+ * Hoy de cada programa lado a lado (252): en qué día de la cohorte va, sus ventas contra su meta de
+ * hoy y el embudo del día. Nada de esto se suma entre programas (ADR 0048): es una fila por programa.
+ */
+function HoyPorPrograma({ vista, hoy }: { vista: VistaDeTodos; hoy: string }) {
+  return <TablaPorPrograma titulo="Hoy por programa" vista={vista} seccion="hoy"
+    cabeceras={["Día de la cohorte", "Ventas / meta de hoy", "Agendas", "Shows", "% show", "% cierre"]}
+    celdas={(fila) => {
+      const { cohorte } = contextoDelDia(hoy, fila.dashboard.cohorte);
+      const [delDia] = horizontesDeCupos(fila.dashboard);
+      const { embudo } = fila.dashboard;
+      return <>
+        <td className="text-right">{cohorte ? `${cohorte.codigo}: ${num(cohorte.dia)} de ${num(cohorte.total)}` : "—"}</td>
+        <td className="text-right">{num(delDia.real)} / {delDia.meta === null ? "—" : num(delDia.meta, 1)}</td>
+        <td className="text-right">{num(embudo.agendas)}</td>
+        <td className="text-right">{num(embudo.llamadasConShow)}</td>
+        <td className="text-right">{tasa(embudo.pctShow)}</td>
+        <td className="text-right">{tasa(embudo.pctCierre)}</td>
+      </>;
+    }} />;
+}
+
 function MetasPorPrograma({ vista }: { vista: VistaDeTodos }) {
   return <>
     <TablaPorPrograma titulo="Cohorte activa por programa" vista={vista} seccion="hoy"
@@ -170,6 +193,7 @@ function VentasPorCohorte({ vista }: { vista: VistaDeTodos }) {
 export async function SeccionDeTodos({ vista, seccion, hoy }: { vista: VistaDeTodos; seccion: Seccion; hoy: string }) {
   if (seccion === "hoy") return <section id="hoy" className="space-y-4">
     <h2 className="text-xl font-semibold">Hoy</h2>
+    <HoyPorPrograma vista={vista} hoy={hoy} />
     <div className={GRILLA}><ContratadoYCaja vista={vista} /><Conteos vista={vista} pulso /><Banderas vista={vista} /></div>
     <MetasPorPrograma vista={vista} />
   </section>;

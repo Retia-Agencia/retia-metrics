@@ -41,7 +41,7 @@ export function UmbralesDelPrograma({
         <FilaDeUmbral key={u.metrica} programId={programId} umbral={u} diasPorDefecto={diasPorDefecto} editable={editable} />
       ))}
       <p className="text-xs text-muted-foreground">
-        La alerta sale en el Pulso del dashboard cuando el cumplimiento de la meta queda bajo el aceptable esos días
+        La alerta sale en la pestaña Hoy del Hub cuando el cumplimiento de la meta queda bajo el aceptable esos días
         hábiles seguidos (ya terminados). Solo llevan umbral las métricas del semáforo de la meta.
       </p>
     </div>
