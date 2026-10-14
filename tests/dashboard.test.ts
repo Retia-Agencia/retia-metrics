@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
   abonos,
@@ -14,7 +14,7 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { cajaRecaudada, dealsPerdidosPorMotivo, embudoDelRango, embudoPorCanal, embudoPorCloser, leadsDelRango, vistaDeCohorteActiva } from "@/lib/queries/dashboard";
 import { claveHistorica } from "@/lib/closers/identidad";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -27,6 +27,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programaA: string;
 
 async function crearPrograma(slug: string, nombre: string): Promise<string> {
@@ -39,12 +40,16 @@ async function crearPrograma(slug: string, nombre: string): Promise<string> {
 
 // Aplicar todas las migraciones sobre PGlite puede pasar los 10s por defecto
 // cuando la maquina esta cargada; se sube el timeout del hook, no la logica.
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+}, 60_000);
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   programaA = await crearPrograma("programa-a", "Programa A");
 }, 60_000);
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { changeLog, cohorts, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -28,7 +28,7 @@ import {
 } from "@/lib/catalogo/fuentes";
 import { programasActivos } from "@/lib/queries/programas";
 import { esViolacionCheck } from "@/lib/db/errores";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 
 /**
  * Ticket 014 — administrar programas y cohortes desde /ajustes.
@@ -45,10 +45,15 @@ import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let gerenteId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   // change_log.userId es FK a users: insertamos un gerente de prueba, como en los
   // demas tests de base.
   const [g] = await db
@@ -58,7 +63,7 @@ beforeEach(async () => {
   gerenteId = g.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

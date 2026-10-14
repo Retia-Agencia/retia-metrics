@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
@@ -25,7 +25,7 @@ import { agendoElEnvio, esCalidadAlta, etapaDeEntrada } from "@/lib/ingesta/etap
 import { esViolacionCheck } from "@/lib/db/errores";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
 import { registrarLlamadaDeCalendly } from "@/lib/calendly/colgar-llamada";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { sinComentarios } from "./helpers/codigo-fuente";
 
@@ -226,6 +226,7 @@ describe("decidirAccionDeDeal: la tabla del insumo §3.1, fila por fila", () => 
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let sourceId: string;
 
@@ -278,8 +279,12 @@ function citas(correo: string, cita: ResultadoCita): Map<string, ResultadoCita> 
   return new Map([[correo, cita]]);
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" }).returning();
   programId = p.id;
   const [f] = await db.insert(sources).values({ programId, nombre: "Typeform", tipo: "google_sheet" }).returning();
@@ -287,7 +292,7 @@ beforeEach(async () => {
   // Sin filas en `estados_llegada`: la regla ya no las lee (ADR 0069).
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { calls, deals, entregasWebhook, leads, miembrosPrograma, notificacionesCalendly, programs, sobresCrudos, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -7,7 +7,7 @@ import { abrirDeal } from "@/lib/deals/mover-etapa";
 import { reagendarLlamada } from "@/lib/deals/llamadas";
 import { aplicarReglaDeDeal } from "@/lib/ingesta/regla-de-deals";
 import { entregasDePrograma, entregasHuerfanas } from "@/lib/queries/entregas-webhook";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -29,6 +29,7 @@ vi.mock("@/lib/db", () => ({
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let otroProgramId: string;
 let leadId: string;
@@ -92,9 +93,13 @@ async function etapa() {
   return d;
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
+  await vaciar();
   secuenciaEvento = 0;
-  ({ db, cerrar } = await crearBaseDePrueba());
   holder.db = db;
   const [p] = await db
     .insert(programs)
@@ -116,6 +121,9 @@ beforeEach(async () => {
 
 afterEach(async () => {
   holder.db = null;
+});
+
+afterAll(async () => {
   await cerrar();
 });
 

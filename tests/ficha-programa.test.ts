@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { eq } from "drizzle-orm";
 import {
@@ -14,7 +14,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { navParaRol, rutaAlCambiarDePrograma } from "@/lib/nav";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -52,6 +52,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programaA: string;
 let programaB: string;
 const ids = { closerA: "", closerB: "", gerente: "" };
@@ -64,10 +65,14 @@ function sesion(id: string, rol: "closer" | "gerente" | "developer") {
   return { user: { id, email: `${rol}@retiagrowth.com`, rol, closerId: null } };
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
+  await vaciar();
   auth.mockReset();
   notFound.mockClear();
-  ({ db, cerrar } = await crearBaseDePrueba());
 
   const [pa] = await db
     .insert(programs)
@@ -132,7 +137,7 @@ beforeEach(async () => {
   ]);
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

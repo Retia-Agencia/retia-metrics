@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ZodError } from "zod";
 import { changeLog, miembrosPrograma, programs, users } from "@/lib/db/schema";
@@ -15,7 +15,7 @@ import {
   quitarMembresia,
   reactivarUsuario,
 } from "@/lib/catalogo/usuarios";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -34,12 +34,17 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let gerenteId: string;
 let programaAId: string;
 let programaBId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [g] = await db
     .insert(users)
     .values({ email: "gerente@retiagrowth.com", rol: "gerente", nombre: "Gerencia" })
@@ -56,7 +61,7 @@ beforeEach(async () => {
   programaBId = insertados.find((p) => p.slug === "programa-b")!.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

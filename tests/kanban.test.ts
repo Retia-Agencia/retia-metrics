@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   abonos,
   calls,
@@ -15,7 +15,7 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { ETAPAS, type EtapaDeal } from "@/lib/deals/etapas";
 import { opcionesDeTablero, parsearFiltros, tableroKanban } from "@/lib/queries/kanban";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -29,6 +29,7 @@ const HOY = "2026-10-20";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
 let owner1: string;
@@ -36,8 +37,12 @@ let owner2: string;
 let sourceId: string;
 let leadN = 0;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db
     .insert(programs)
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" })
@@ -65,7 +70,7 @@ beforeEach(async () => {
   owner2 = u2.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

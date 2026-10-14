@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
   calls,
@@ -25,7 +25,7 @@ import {
   type CitaDeCalendly,
 } from "@/lib/calendly/colgar-llamada";
 import { aplicarReglaDeDeal } from "@/lib/ingesta/regla-de-deals";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { codigoDeDeal } from "@/lib/calendly/link-de-agenda";
 import { citaYaGuardada } from "@/lib/ingesta/procesar-sobre";
@@ -39,6 +39,7 @@ import { citaYaGuardada } from "@/lib/ingesta/procesar-sobre";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let otroProgramId: string;
 let leadId: string;
@@ -66,8 +67,12 @@ async function deal() {
   return d;
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db
     .insert(programs)
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
@@ -98,7 +103,7 @@ beforeEach(async () => {
   ]);
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

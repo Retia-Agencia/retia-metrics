@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
   changeLog,
@@ -18,7 +18,7 @@ import {
   plataformasDelPrograma,
   vinculosDePlataformas,
 } from "@/lib/catalogo/plataformas";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -34,6 +34,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let gerente: { id: string; rol: "gerente" };
 let closer: { id: string; rol: "closer" };
 let developer: { id: string; rol: "developer" };
@@ -41,8 +42,12 @@ let programaA: string;
 let programaB: string;
 let plataforma: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
 
   const [g] = await db
     .insert(users)
@@ -81,7 +86,7 @@ beforeEach(async () => {
   await db.insert(miembrosPrograma).values({ userId: closer.id, programId: programaA, activo: true });
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

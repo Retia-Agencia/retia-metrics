@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import {
   abonos,
@@ -19,7 +19,7 @@ import { destinosDeCorreccion, etapaDeCorreccion, MovimientoRechazado, abrirDeal
 import { crearConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { embudoDelRango } from "@/lib/queries/dashboard";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -33,6 +33,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let leadId: string;
 let closer: string;
@@ -50,8 +51,12 @@ const comoCloser = (): Actor => ({ tipo: "usuario", userId: closer, rol: "closer
 const comoOtroCloser = (): Actor => ({ tipo: "usuario", userId: otroCloser, rol: "closer", operaComoCloser: false });
 const comoGerente = (): Actor => ({ tipo: "usuario", userId: gerente, rol: "gerente", operaComoCloser: false });
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   // El ticket entrega solo schema.ts; la sesión central genera la migración. La base de
   // prueba necesita temporalmente el valor para ejercer el motor nuevo.
   await db.execute(sql`ALTER TYPE tipo_motivo ADD VALUE IF NOT EXISTS 'correccion'`);
@@ -79,7 +84,7 @@ beforeEach(async () => {
   motivoCorreccion = m6.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

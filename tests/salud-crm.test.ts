@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq, isNull } from "drizzle-orm";
 import {
   entregasWebhook,
@@ -9,7 +9,7 @@ import {
   sources,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import {
   cifrarCursor,
@@ -67,6 +67,7 @@ vi.mock("@/lib/auth/vista", () => ({
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let sourceId: string;
 const SECRETO = "secreto-de-prueba-hmac-32-bytes-aqui";
@@ -119,9 +120,13 @@ function fetchQueLanza() {
   });
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
+  await vaciar();
   vi.stubGlobal("fetch", fetchQueLanza());
-  ({ db, cerrar } = await crearBaseDePrueba());
   holder.db = db;
   sesionHolder.rol = null;
   const [p] = await db
@@ -147,6 +152,9 @@ beforeEach(async () => {
 afterEach(async () => {
   holder.db = null;
   vi.unstubAllGlobals();
+});
+
+afterAll(async () => {
   await cerrar();
 });
 

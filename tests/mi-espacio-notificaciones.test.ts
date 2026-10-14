@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import {
   calls,
@@ -25,7 +25,7 @@ import {
   notificacionesDeChip,
   type ChipNotificacion,
 } from "@/lib/mi-espacio/notificaciones";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 // La ruta `/api/mi-espacio/sin-ver` lee la base por el singleton `@/lib/db` y la sesion por
@@ -59,6 +59,7 @@ const MANANA = "2026-10-21";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let otroProgramId: string;
 let cohortId: string;
@@ -68,8 +69,12 @@ let sourceId: string;
 let otroSourceId: string;
 let leadN = 0;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   dbHolder.db = db;
   sesionHolder.rol = null;
   sesionHolder.id = "";
@@ -109,6 +114,9 @@ beforeEach(async () => {
 
 afterEach(async () => {
   dbHolder.db = null;
+});
+
+afterAll(async () => {
   await cerrar();
 });
 
