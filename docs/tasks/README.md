@@ -323,6 +323,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 239 | [Subir y ver el comprobante de un abono desde la ficha](./239-comprobante-en-la-ficha.md) | 238 | hecho · 13-oct · implementó Codex, revisado; recorrido local y humo (4 roles) ok; falta checkpoint |
 | [ ] | 240 | [El comprobante se sube al registrar el abono](./240-comprobante-al-registrar-el-abono.md) | 239 | hecho · 13-oct · implementó Codex, revisado; recorrido local ok (abono + archivo en una transacción); falta checkpoint |
 | [ ] | 241 | [Respaldo de los comprobantes en Drive, y barrido de pendientes](./241-respaldo-de-comprobantes-en-drive.md) | 238 | hecho · 13-oct · implementó Codex, revisado; probado contra la unidad real; cron diario 09:00 UTC; falta checkpoint |
+| [ ] | 242 | [Una devolución se registra como devolución, no como abono anulado](./242-devoluciones.md) | 240 | todo · 14-oct · **prioridad**: hoy no hay forma correcta de devolver; decisiones D-1 a D-8 con Michael y Gerencia antes de construir |
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
 

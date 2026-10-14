@@ -417,6 +417,7 @@ sigue en `git show 951b62a:docs/plan.md` §7.
 | R2 | El rastro por triggers en la base (recomendación: sí) | 11 | · | después del corte |
 | P3 | El costo del proceso: `AGENTS.md` y el handoff pesan mucho en cada sesión (recomendación: solo reglas y estado actual) | 11 | · | cuando se quiera |
 | A2 | Las alertas también por correo, con un solo mecanismo | 11 | · | no bloquea |
+| D-1 a D-8 | Devoluciones: cómo se registran, en qué fecha restan de la caja, qué pasa con el deal, la comisión y la venta, quién puede y el tope. Recomendaciones en el ticket | 5 | 242 | antes del primer caso |
 
 **B. Closers** (por chat, cuando llegue el ticket que la necesita): cómo mandan el comprobante (foto, link o
 PDF; 235, C-6) · uso desde el celular y cómo se paga la comisión · revisar los 13 motivos cargados (104) ·

@@ -392,3 +392,4 @@ reconectar el conector. Las decisiones salen del grill de esa tarde (ADR 0081 y 
 | A-146 | Abono → comprobante | cambio | Poder subir la foto del comprobante en vez de un link de Drive (Michael, 12-oct). | 235 (238 a 241) | hecho |
 | A-147 | Ficha de un deal ganado → llamadas | cambio | En Ganado completo no deja pegar el Grain ni completar lo que levanta alertas; debe dejarlo, con nota en actividades (Michael, 13-oct). | 237 | hecho |
 | A-148 | Reagenda en CRM y en Calendly | bug | Reagendar en el CRM y luego en Calendly deja dos llamadas para la misma cita (Andrey Siabato, Nicolás, 13-oct). | 237 | hecho |
+| A-149 | Abono → devolución | cambio | Debe haber manera de registrar una devolución; hoy solo existe anular, que borra la venta de la historia como si fuera un error (Mani, 14-oct). | 242 | en ticket |

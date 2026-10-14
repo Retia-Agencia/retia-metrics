@@ -59,6 +59,9 @@ leer es libre, escribir pide el ok de Mani. Recorrido visual en dev:local hacien
     una transacción). 240: no existe formulario de abono en la ficha; la foto va solo en "Pagó ahora" del diálogo de
     mover (decisión del thread). Pendiente: checkpoint de la O9, el primer comprobante real (mirar que el cron lo
     respalde al día siguiente) y C-6 con Michael. Codex no puede commitear en worktrees (sandbox): commitea el thread.
+  - **14-oct, Mani:** *"debe haber manera de hacer devoluciones"*. Hoy solo existe anular, que es otra cosa (error de
+    tecleo, sale de todas las métricas). Ticket **242** y A-149, con las decisiones D-1 a D-8 y recomendación (movimiento
+    de devolución que resta en su fecha; total → Cierre perdido). No construir hasta cerrarlas con Michael y Gerencia.
 - **2026-10-13 (Mani + Claude): ticket 237, deals ganados completables y reagenda duplicada.**
   - **A-147** (Michael): en Ganado completo ahora se pega el Grain, se marca el resultado de una llamada pasada y el
     comprobante, sin mover etapa y con nota del actor en actividades. Crear/reagendar llamadas sigue bloqueado en un
