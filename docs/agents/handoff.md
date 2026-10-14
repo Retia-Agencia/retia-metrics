@@ -64,6 +64,11 @@ leer es libre, escribir pide el ok de Mani. Recorrido visual en dev:local hacien
     de devolución que resta en su fecha; total → Cierre perdido). No construir hasta cerrarlas con Michael y Gerencia.
   - **Checkpoint `cp-20261014-1`** sobre `ef7685e` (CI verde; después solo docs): 230 a 241 en `done`. C-6 cerrada: los
     closers mandan foto, captura y PDF. Worktrees t238 a t241 y sus ramas, quitados.
+  - **Prueba real en producción (14-oct, Mani):** subió una foto al abono de Alejandra Gil (ComunicArte, C3) desde la
+    ficha y la vio bien; el cron manual la copió a `Comunicarte / C3 / 2026-10-12 Alejandra gil USD 797,00 (c7b43b).jpg`
+    (mismo peso). Revertida con su ok: FK quitada por `editarConRastro` (queda en `change_log`, a propósito), nota
+    visible de la ficha y fila de `archivos` borradas, objeto de Storage borrado, copia y carpetas de Drive a la
+    papelera. El abono quedó como estaba (sin comprobante, USD 797). Las filas de bitácora de la prueba se conservan.
 - **2026-10-13 (Mani + Claude): ticket 237, deals ganados completables y reagenda duplicada.**
   - **A-147** (Michael): en Ganado completo ahora se pega el Grain, se marca el resultado de una llamada pasada y el
     comprobante, sin mover etapa y con nota del actor en actividades. Crear/reagendar llamadas sigue bloqueado en un
