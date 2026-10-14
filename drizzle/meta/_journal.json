@@ -582,6 +582,13 @@
       "when": 1792020157325,
       "tag": "0082_trm-del-dia",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1792021066066,
+      "tag": "0083_objetivos-de-la-cohorte",
+      "breakpoints": true
     }
   ]
 }

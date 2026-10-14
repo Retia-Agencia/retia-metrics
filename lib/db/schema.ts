@@ -12,6 +12,7 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  unique,
   check,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
@@ -1925,6 +1926,60 @@ export const tasasCambio = pgTable(
   ],
 );
 
+// ─────────────────────────────────────────────────────────── objetivos de la cohorte (ticket 122, ADR 0063)
+
+/**
+ * Las métricas con objetivo (ticket 122, DP-23). Es un tipo y no una fila porque el código decide con
+ * cada una: su sentido (en un costo menor es mejor), su unidad y quién la lee (ADR 0012). Una métrica
+ * nueva es código; sus valores, filas de `objetivos`.
+ */
+export const metricaObjetivoEnum = pgEnum("metrica_objetivo", [
+  "cupos",
+  "agendas_por_dia",
+  "costo_por_agenda",
+  "costo_por_lead",
+  "costo_por_venta",
+  "roas",
+  "conversion_agenda_venta",
+]);
+
+/**
+ * El objetivo de una métrica en una cohorte, total (`area` nula) o de un área (ticket 122, DP-23). `meta`
+ * es verde; `aceptable`, el borde del amarillo (en un costo, encima de la meta; en lo demás, debajo).
+ * El objetivo `costo_por_agenda` es el umbral del semáforo (258). Un programa nuevo arranca sin filas y
+ * el Hub dice "sin umbral": el CRM nunca trae un valor escrito. Las filas se escriben por el molde
+ * (`lib/catalogo/`), con `change_log`. Cuelga de la cohorte y se va con ella: es un atributo suyo.
+ */
+export const objetivos = pgTable(
+  "objetivos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cohortId: uuid("cohort_id").notNull().references(() => cohorts.id, { onDelete: "cascade" }),
+    area: text("area"),
+    metrica: metricaObjetivoEnum("metrica").notNull(),
+    meta: numeric("meta", { precision: 14, scale: 2 }).notNull(),
+    aceptable: numeric("aceptable", { precision: 14, scale: 2 }),
+    moneda: text("moneda"),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("objetivos_cohorte_area_metrica_uq").on(t.cohortId, t.area, t.metrica).nullsNotDistinct(),
+    check(
+      "objetivos_area_chk",
+      sql`${t.area} is null or ${t.area} in ('paid', 'organico', 'referidos')`,
+    ),
+    check("objetivos_meta_chk", sql`${t.meta} >= 0`),
+    check("objetivos_aceptable_chk", sql`${t.aceptable} is null or ${t.aceptable} >= 0`),
+    check("objetivos_moneda_chk", sql`${t.moneda} is null or ${t.moneda} in ('COP', 'USD')`),
+    // Un costo sin moneda no se puede comparar contra nada, y una tasa con moneda es un error de tecleo.
+    check(
+      "objetivos_moneda_de_costo_chk",
+      sql`(${t.metrica} in ('costo_por_agenda', 'costo_por_lead', 'costo_por_venta')) = (${t.moneda} is not null)`,
+    ),
+  ],
+);
+
 // ─────────────────────────────────────────────────────────── tipos
 
 export type Usuario = typeof users.$inferSelect;
@@ -1969,3 +2024,6 @@ export type NuevaPautaSincronizacion = typeof pautaSincronizaciones.$inferInsert
 
 export type TasaCambio = typeof tasasCambio.$inferSelect;
 export type NuevaTasaCambio = typeof tasasCambio.$inferInsert;
+
+export type Objetivo = typeof objetivos.$inferSelect;
+export type NuevoObjetivo = typeof objetivos.$inferInsert;
