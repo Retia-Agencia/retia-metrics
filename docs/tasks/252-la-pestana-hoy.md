@@ -3,7 +3,8 @@ id: 252
 etapa: hub
 serves: "ADR 0086 punto 3 · docs/hub.md O1, §2.3 (el reporte diario contra el CRM)"
 depends: [250]
-status: todo
+status: en curso
+quien: Alejandro (14-oct)
 ---
 
 # 252 — Hub › Hoy: el reporte diario sale del CRM
