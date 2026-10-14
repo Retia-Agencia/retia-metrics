@@ -48,10 +48,11 @@ El tiempo de render no separó a nadie: las tres marcaron entre 117 y 164 ms en 
      gráfica concreta lo pide por volumen.
    - **Carga solo en el cliente y solo donde hay gráfica** (`next/dynamic`), para que el peso no llegue a pantallas
      sin gráficas.
-3. **La accesibilidad la cubre la pieza, no cada pantalla:** el módulo `aria` de ECharts encendido, la tabla
-   alternativa con los mismos números (como hoy en `SeriesLineales`) y el enlace a la lista de la cifra fuera del
-   lienzo, alcanzable por teclado. Es la mitad que ECharts no da por punto y que Recharts sí daba: se paga con esta
-   pieza.
+3. **Lo que importa es el tooltip al pasar el mouse** (Mani, 14-oct): en cada punto dice el día, el valor, contra
+   qué se compara y el cambio en número y %. Recorrer los puntos con el teclado **no es requisito**. El clic en un
+   punto para abrir el dato **queda para después** (se decide aparte); mientras tanto la cifra abre su lista desde
+   fuera de la gráfica, como hoy (ADR 0067). La pieza enciende el módulo `aria` y deja la tabla alternativa, que no
+   cuestan nada.
 4. **El vocabulario de la comparación es el del 251:** ninguna gráfica dice "A" ni "B"; el tooltip dice contra qué se
    compara ("mismo punto de septiembre: 12 → 15, +3, +25 %").
 
@@ -62,8 +63,8 @@ El tiempo de render no separó a nadie: las tres marcaron entre 117 y 164 ms en 
 - Cada gráfica nueva es un objeto de opciones dentro de la pieza: más corto que JSX y fácil de revisar en un diff.
 - El primer render de una pantalla con gráfica pesa unos 190 KB gzip más; a la escala del CRM (cinco usuarios, red de
   oficina) no se nota, y el `next/dynamic` lo saca de las pantallas sin gráficas.
-- Quien quiera un punto enfocable por teclado dentro de la gráfica no lo tiene: la lista de la cifra y la tabla lo
-  sustituyen.
+- No hay puntos enfocables por teclado dentro de la gráfica, y está bien así (Mani, 14-oct). El clic por punto, si se
+  pide, ECharts lo da con un evento `click` en la pieza.
 
 ## Alternativas descartadas
 

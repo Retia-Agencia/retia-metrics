@@ -37,8 +37,11 @@ las gráficas hechas a mano se reemplacen.
 - Se instala `echarts` en versión exacta con este ticket (ADR 0006); **no** `echarts-for-react`.
 - La pieza de `components/graficas/` es un envoltorio propio sobre `echarts/core` (`init`, `setOption`, `resize`,
   `dispose`), con registro explícito de las series que se usan, el tema de Tinta resuelto con `getComputedStyle` y
-  reaplicado al cambiar el modo, renderizador SVG por defecto, módulo `aria`, tabla alternativa y el enlace a la
-  lista fuera del lienzo. Se carga con `next/dynamic` solo donde hay gráfica.
+  reaplicado al cambiar el modo, renderizador SVG por defecto, módulo `aria` y tabla alternativa. Se carga con
+  `next/dynamic` solo donde hay gráfica.
+- **El requisito de interacción es el tooltip al pasar el mouse** (Mani, 14-oct): día, valor, contra qué se compara y
+  el cambio en número y %. El teclado por punto no es requisito, y el clic en un punto para abrir el dato queda para
+  después (ticket aparte si se pide); la cifra sigue abriendo su lista desde fuera de la gráfica.
 - **Sin "A" ni "B" en ninguna gráfica**: el tooltip usa el vocabulario de "Comparar con" del 251. Si el 251 no ha
   llegado cuando se migre, la pieza recibe el texto de la comparación como prop y no lo arma con letras.
 - Referencia: el prototipo de ECharts del 255 (commit `f28ba57`, rama borrada) resolvía tokens, tooltip con número y
