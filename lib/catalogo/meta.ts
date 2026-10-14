@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
   changeLog,
@@ -107,10 +107,33 @@ export type EstadoConexionMeta =
 /** Estado seguro para la pantalla: selecciona sólo columnas no secretas. */
 export async function estadoConexionMeta(db: Db): Promise<EstadoConexionMeta> {
   const [conexion] = await db
-    .select({ nombre: metaConexiones.nombre, desde: metaConexiones.createdAt })
+    .select({
+      id: metaConexiones.id,
+      nombre: metaConexiones.nombre,
+      creadaEn: metaConexiones.createdAt,
+    })
     .from(metaConexiones)
     .where(eq(metaConexiones.activo, true));
-  return conexion ? { conectada: true, ...conexion } : { conectada: false };
+  if (!conexion) return { conectada: false };
+
+  const [cambioDelToken] = await db
+    .select({ desde: changeLog.detectadoEn })
+    .from(changeLog)
+    .where(
+      and(
+        eq(changeLog.tabla, "meta_conexiones"),
+        eq(changeLog.registroId, conexion.id),
+        eq(changeLog.campo, "token_secreto"),
+      ),
+    )
+    .orderBy(desc(changeLog.detectadoEn))
+    .limit(1);
+
+  return {
+    conectada: true,
+    nombre: conexion.nombre,
+    desde: cambioDelToken?.desde ?? conexion.creadaEn,
+  };
 }
 
 /** Cuentas que Meta muestra y que todavía no pertenecen a ningún programa. */
@@ -165,11 +188,36 @@ export async function vincularCuenta(
   });
 }
 
-export async function activarCuenta(db: Db, actorId: string, id: string): Promise<void> {
+async function exigirCuentaDelPrograma(db: Db, id: string, programaId: string): Promise<void> {
+  const [cuenta] = await db
+    .select({ id: cuentasPublicitarias.id })
+    .from(cuentasPublicitarias)
+    .where(
+      and(
+        eq(cuentasPublicitarias.id, id),
+        eq(cuentasPublicitarias.programId, programaId),
+      ),
+    );
+  if (!cuenta) throw new ErrorDeApp("No existe una cuenta de Meta con ese id en el programa.", 404);
+}
+
+export async function activarCuenta(
+  db: Db,
+  actorId: string,
+  programaId: string,
+  id: string,
+): Promise<void> {
+  await exigirCuentaDelPrograma(db, id, programaId);
   await catalogoCuentas(db).reactivar(actorId, id);
 }
 
-export async function desactivarCuenta(db: Db, actorId: string, id: string): Promise<void> {
+export async function desactivarCuenta(
+  db: Db,
+  actorId: string,
+  programaId: string,
+  id: string,
+): Promise<void> {
+  await exigirCuentaDelPrograma(db, id, programaId);
   await catalogoCuentas(db).desactivar(actorId, id);
 }
 
@@ -196,6 +244,34 @@ export async function cuentasDelPrograma(db: Db, programaId: string): Promise<Cu
     .from(cuentasPublicitarias)
     .where(and(eq(cuentasPublicitarias.programId, programaId)))
     .orderBy(asc(cuentasPublicitarias.nombre));
+  return filas.map((fila) => ({
+    ...fila,
+    zonaDistintaDeBogota: fila.zonaHoraria !== "America/Bogota",
+  }));
+}
+
+export interface CuentaVinculada extends CuentaDelPrograma {
+  programId: string;
+  programa: string;
+}
+
+/** Inventario seguro para Ajustes: agrupa por programa sin leer la conexión ni su token. */
+export async function cuentasVinculadas(db: Db): Promise<CuentaVinculada[]> {
+  const filas = await db
+    .select({
+      id: cuentasPublicitarias.id,
+      idMeta: cuentasPublicitarias.idMeta,
+      nombre: cuentasPublicitarias.nombre,
+      moneda: cuentasPublicitarias.moneda,
+      zonaHoraria: cuentasPublicitarias.zonaHoraria,
+      activo: cuentasPublicitarias.activo,
+      programId: programs.id,
+      programa: programs.nombre,
+    })
+    .from(cuentasPublicitarias)
+    .innerJoin(programs, eq(programs.id, cuentasPublicitarias.programId))
+    .orderBy(asc(programs.nombre), asc(cuentasPublicitarias.nombre));
+
   return filas.map((fila) => ({
     ...fila,
     zonaDistintaDeBogota: fila.zonaHoraria !== "America/Bogota",

@@ -12,6 +12,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import {
   cuentasDelPrograma,
   cuentasDisponibles,
+  cuentasVinculadas,
   estadoConexionMeta,
   guardarTokenMeta,
   TOKEN_OCULTO,
@@ -37,6 +38,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 let cerrar: () => Promise<void>;
 let actorId: string;
+let gerenteId: string;
 let programaA: string;
 let programaB: string;
 
@@ -45,6 +47,9 @@ const sesionCloser = {
 };
 const sesionPauta = {
   user: { id: "", email: "pauta@retiagrowth.com", rol: "paid_trafficker", closerId: null },
+};
+const sesionGerente = {
+  user: { id: "", email: "gerente@retiagrowth.com", rol: "gerente", closerId: null },
 };
 
 const CUENTAS = [
@@ -86,6 +91,13 @@ beforeEach(async () => {
     .returning();
   actorId = actor.id;
   sesionPauta.user.id = actor.id;
+
+  const [gerente] = await db
+    .insert(users)
+    .values({ email: "gerente@retiagrowth.com", rol: "gerente", nombre: "Gerente" })
+    .returning();
+  gerenteId = gerente.id;
+  sesionGerente.user.id = gerente.id;
 
   const [closer] = await db
     .insert(users)
@@ -160,8 +172,29 @@ describe("conexión única con Meta", () => {
       await estadoConexionMeta(db),
       await cuentasDelPrograma(db, programaA),
       await cuentasDisponibles(db, f),
+      await cuentasVinculadas(db),
     ];
     expect(JSON.stringify(salidas)).not.toContain(token);
+  });
+
+  it("mueve la fecha de conexión cuando reemplaza el token", async () => {
+    await guardarTokenMeta(db, actorId, "token-uno", fetchDeMeta("token-uno"));
+    const [primerCambio] = await db
+      .select({ id: changeLog.id })
+      .from(changeLog)
+      .where(eq(changeLog.campo, "token_secreto"));
+    const fechaAnterior = new Date("2020-01-01T12:00:00.000Z");
+    await db
+      .update(changeLog)
+      .set({ detectadoEn: fechaAnterior })
+      .where(eq(changeLog.id, primerCambio.id));
+
+    expect(await estadoConexionMeta(db)).toMatchObject({ desde: fechaAnterior });
+
+    await guardarTokenMeta(db, actorId, "token-dos", fetchDeMeta("token-dos"));
+    const estado = await estadoConexionMeta(db);
+    expect(estado.conectada).toBe(true);
+    if (estado.conectada) expect(estado.desde.getTime()).toBeGreaterThan(fechaAnterior.getTime());
   });
 });
 
@@ -186,6 +219,22 @@ describe("cuentas publicitarias por programa", () => {
     expect(log.length).toBeGreaterThan(0);
   });
 
+  it("lista todas las cuentas con su programa sin exponer el token", async () => {
+    const token = "token-inventario";
+    await guardarTokenMeta(db, actorId, token, fetchDeMeta(token));
+    await vincularCuenta(db, actorId, programaA, "101", fetchDeMeta(token));
+
+    const cuentas = await cuentasVinculadas(db);
+    expect(cuentas).toEqual([
+      expect.objectContaining({
+        idMeta: "101",
+        programId: programaA,
+        programa: "ComunícArte",
+      }),
+    ]);
+    expect(JSON.stringify(cuentas)).not.toContain(token);
+  });
+
   it("rechaza una cuenta que el token no ve", async () => {
     await expect(
       vincularCuenta(db, actorId, programaA, "999", fetchDeMeta("token-bueno")),
@@ -207,11 +256,15 @@ describe("cuentas publicitarias por programa", () => {
 });
 
 describe("rejas de las server actions", () => {
-  it("un closer forjado recibe 403 y no mueve la base; paid trafficker sí puede", async () => {
+  it("pauta conecta Meta pero recibe 403 al vincular, activar y desactivar; gerente sí puede", async () => {
     const token = "token-accion";
     vi.stubGlobal("fetch", fetchDeMeta(token));
     const { guardarTokenMetaAccion } = await import("@/app/(app)/ajustes/meta/acciones");
-    const { vincularCuentaMetaAccion } = await import(
+    const {
+      activarCuentaMetaAccion,
+      desactivarCuentaMetaAccion,
+      vincularCuentaMetaAccion,
+    } = await import(
       "@/app/(app)/p/[programa]/programa/acciones-meta"
     );
 
@@ -223,14 +276,62 @@ describe("rejas de las server actions", () => {
     auth.mockResolvedValue(sesionPauta);
     expect(await guardarTokenMetaAccion(token)).toMatchObject({ ok: true });
 
-    auth.mockResolvedValue(sesionCloser);
+    auth.mockResolvedValue(sesionPauta);
     const vincularProhibido = await vincularCuentaMetaAccion(programaA, "101");
     expect(vincularProhibido).toMatchObject({ ok: false, status: 403 });
     expect(await db.select().from(cuentasPublicitarias)).toHaveLength(0);
 
-    auth.mockResolvedValue(sesionPauta);
+    auth.mockResolvedValue(sesionGerente);
     expect(await vincularCuentaMetaAccion(programaA, "101")).toEqual({ ok: true });
-    expect(await db.select().from(cuentasPublicitarias)).toHaveLength(1);
+    const [cuenta] = await db.select().from(cuentasPublicitarias);
+    expect(cuenta.activo).toBe(true);
+
+    auth.mockResolvedValue(sesionPauta);
+    expect(await desactivarCuentaMetaAccion(programaA, cuenta.id)).toMatchObject({
+      ok: false,
+      status: 403,
+    });
+    expect((await db.select().from(cuentasPublicitarias))[0]?.activo).toBe(true);
+
+    auth.mockResolvedValue(sesionGerente);
+    expect(await desactivarCuentaMetaAccion(programaA, cuenta.id)).toEqual({ ok: true });
+    expect((await db.select().from(cuentasPublicitarias))[0]?.activo).toBe(false);
+
+    auth.mockResolvedValue(sesionPauta);
+    expect(await activarCuentaMetaAccion(programaA, cuenta.id)).toMatchObject({
+      ok: false,
+      status: 403,
+    });
+    expect((await db.select().from(cuentasPublicitarias))[0]?.activo).toBe(false);
+
+    auth.mockResolvedValue(sesionGerente);
+    expect(await activarCuentaMetaAccion(programaA, cuenta.id)).toEqual({ ok: true });
+    expect((await db.select().from(cuentasPublicitarias))[0]?.activo).toBe(true);
+  });
+
+  it("activar y desactivar devuelven 404 si la cuenta pertenece a otro programa", async () => {
+    const token = "token-frontera";
+    vi.stubGlobal("fetch", fetchDeMeta(token));
+    await guardarTokenMeta(db, gerenteId, token, fetchDeMeta(token));
+    await vincularCuenta(db, gerenteId, programaA, "101", fetchDeMeta(token));
+    const [cuenta] = await db.select().from(cuentasPublicitarias);
+    const { activarCuentaMetaAccion, desactivarCuentaMetaAccion } = await import(
+      "@/app/(app)/p/[programa]/programa/acciones-meta"
+    );
+    auth.mockResolvedValue(sesionGerente);
+
+    expect(await desactivarCuentaMetaAccion(programaB, cuenta.id)).toMatchObject({
+      ok: false,
+      status: 404,
+    });
+    expect((await db.select().from(cuentasPublicitarias))[0]?.activo).toBe(true);
+
+    expect(await desactivarCuentaMetaAccion(programaA, cuenta.id)).toEqual({ ok: true });
+    expect(await activarCuentaMetaAccion(programaB, cuenta.id)).toMatchObject({
+      ok: false,
+      status: 404,
+    });
+    expect((await db.select().from(cuentasPublicitarias))[0]?.activo).toBe(false);
   });
 });
 

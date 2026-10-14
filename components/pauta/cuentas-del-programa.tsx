@@ -26,11 +26,13 @@ export function CuentasDelPrograma({
   conectada,
   cuentas,
   disponibles,
+  errorDeConsulta,
 }: {
   programId: string;
   conectada: boolean;
   cuentas: CuentaDelPrograma[];
   disponibles: CuentaVisibleMeta[];
+  errorDeConsulta: string | null;
 }) {
   const router = useRouter();
   const [idMeta, setIdMeta] = useState<string | null>(null);
@@ -119,7 +121,11 @@ export function CuentasDelPrograma({
         </div>
       )}
 
-      {conectada ? (
+      {conectada && errorDeConsulta ? (
+        <p className="text-sm text-muted-foreground">
+          No se pudo consultar Meta: {errorDeConsulta}. Revisa la conexión en Ajustes &gt; Meta.
+        </p>
+      ) : conectada ? (
         disponibles.length > 0 ? (
           <div className="flex flex-col gap-2 sm:flex-row">
             <Select

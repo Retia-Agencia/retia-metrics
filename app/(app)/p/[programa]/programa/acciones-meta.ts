@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/guards";
 import { programaEnAlcance } from "@/lib/auth/alcance";
-import { manejaPauta } from "@/lib/auth/roles";
+import { esAdministrador } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { activarCuenta, desactivarCuenta, vincularCuenta } from "@/lib/catalogo/meta";
 import { db } from "@/lib/db";
@@ -13,10 +13,10 @@ export type ResultadoCuentaMeta =
   | { ok: true }
   | { ok: false; error: string; status: number };
 
-async function actorDePauta(programaId: string): Promise<string> {
-  const session = await requireRole("gerente", "paid_trafficker");
+async function actorAdministrador(programaId: string): Promise<string> {
+  const session = await requireRole("gerente");
   const rol = await rolDeVista(session);
-  if (!manejaPauta(rol)) throw new ErrorDeApp("No autorizado.", 403);
+  if (!esAdministrador(rol)) throw new ErrorDeApp("No autorizado.", 403);
   if (!(await programaEnAlcance(session.user.id, rol, programaId, db))) {
     throw new ErrorDeApp("No autorizado para este programa.", 403);
   }
@@ -28,7 +28,7 @@ async function ejecutar(
   operacion: (actorId: string) => Promise<void>,
 ): Promise<ResultadoCuentaMeta> {
   try {
-    await operacion(await actorDePauta(programaId));
+    await operacion(await actorAdministrador(programaId));
     revalidatePath("/p/[programa]/programa", "page");
     return { ok: true };
   } catch (error) {
@@ -51,12 +51,12 @@ export async function activarCuentaMetaAccion(
   programaId: string,
   id: string,
 ): Promise<ResultadoCuentaMeta> {
-  return ejecutar(programaId, (actorId) => activarCuenta(db, actorId, id));
+  return ejecutar(programaId, (actorId) => activarCuenta(db, actorId, programaId, id));
 }
 
 export async function desactivarCuentaMetaAccion(
   programaId: string,
   id: string,
 ): Promise<ResultadoCuentaMeta> {
-  return ejecutar(programaId, (actorId) => desactivarCuenta(db, actorId, id));
+  return ejecutar(programaId, (actorId) => desactivarCuenta(db, actorId, programaId, id));
 }

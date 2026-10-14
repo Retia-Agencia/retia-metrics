@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador, configuraPrograma, manejaPauta } from "@/lib/auth/roles";
+import { esAdministrador, configuraPrograma } from "@/lib/auth/roles";
 import { programaDeLaFichaPorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import {
@@ -67,20 +67,16 @@ const NOMBRE_DE_ESTADO_COHORTE = { activo: "Activa", futuro: "Futura", cerrado: 
  * programa ajeno es 404, igual que uno que no existe. La ficha se LEE; quien administra
  * (`esAdministrador`: gerente o developer) edita las cohortes AQUÍ con el mismo
  * `CohortesAdmin` y las mismas acciones de Ajustes (A-10: las cohortes se encuentran desde el
- * programa). Quien maneja pauta también entra para vincular las cuentas de Meta; el resto de los
- * controles editables sigue proyectado por capacidad. La reja de verdad son las acciones
+ * programa). Las cuentas de Meta también las vincula quien administra. La reja de verdad son las acciones
  * (`requireRole` y alcance del programa), no que el control aparezca.
  *
  * Ningún secreto llega aquí: la ficha dice SI hay token de Calendly y webhook conectado, nunca
  * cuál (ADR 0057); lo garantiza `programaPorId`, que pasa por el mismo `sinToken` del catálogo.
  */
 export default async function FichaDelProgramaPage({ params, searchParams }: Props) {
-  // La ficha admite a quien configura el programa y a quien maneja pauta para vincular las
-  // cuentas de Meta. El closer no entra (ticket 224, ADR 0082) y recibe 404. Se decide por
-  // capacidades, nunca con `rol === "..."`.
-  const session = await paginaConCapacidad((rolActual) =>
-    configuraPrograma(rolActual) || manejaPauta(rolActual),
-  );
+  // La ficha del programa la CONFIGURA quien administra (gerente y developer); el closer y
+  // paid trafficker no entran (ticket 224, ADR 0082) y reciben 404. Se decide por capacidad.
+  const session = await paginaConCapacidad(configuraPrograma);
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
   const visible = await programaDeLaFichaPorSlug(session.user.id, rol, slug);
@@ -90,7 +86,6 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
   if (!ficha) notFound();
 
   const administra = esAdministrador(rol);
-  const pauta = manejaPauta(rol);
   const query = await searchParams;
   const { programa, cohortes, checkouts, fuentes, equipo, plataformas, plataformasDisponibles } =
     ficha;
@@ -170,13 +165,22 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       activo: fila?.activo ?? false,
     };
   });
-  const estadoMeta = pauta && seccion === "general" ? await estadoConexionMeta(db) : { conectada: false as const };
-  const [cuentasMeta, cuentasMetaDisponibles] = pauta && seccion === "general"
+  const estadoMeta = administra && seccion === "general"
+    ? await estadoConexionMeta(db)
+    : { conectada: false as const };
+  const [cuentasMeta, consultaMeta] = administra && seccion === "general"
     ? await Promise.all([
         cuentasDelPrograma(db, programa.id),
-        estadoMeta.conectada ? cuentasDisponibles(db) : Promise.resolve([]),
+        estadoMeta.conectada
+          ? cuentasDisponibles(db)
+              .then((disponibles) => ({ disponibles, error: null as string | null }))
+              .catch((error: unknown) => ({
+                disponibles: [],
+                error: error instanceof Error ? error.message : "Error desconocido",
+              }))
+          : Promise.resolve({ disponibles: [], error: null as string | null }),
       ])
-    : [[], []];
+    : [[], { disponibles: [], error: null }];
 
   return (
     <PageShell
@@ -290,7 +294,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                 </CardContent>
               </Card>
 
-              {pauta ? (
+              {administra ? (
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">Cuentas de Meta</CardTitle>
@@ -300,7 +304,8 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                       programId={programa.id}
                       conectada={estadoMeta.conectada}
                       cuentas={cuentasMeta}
-                      disponibles={cuentasMetaDisponibles}
+                      disponibles={consultaMeta.disponibles}
+                      errorDeConsulta={consultaMeta.error}
                     />
                   </CardContent>
                 </Card>

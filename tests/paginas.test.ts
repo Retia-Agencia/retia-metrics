@@ -145,6 +145,15 @@ vi.mock("@/lib/queries/vista-deals-contra-agendas", () => ({ vistaDealsContraAge
 const listarCohortes = vi.fn();
 vi.mock("@/lib/catalogo/cohortes", () => ({ listarCohortes }));
 
+// Ajustes > Meta es de pauta y lee la conexión y el inventario; se vacían para probar
+// la guarda real sin una base. La ficha de Programa usa las mismas lecturas tras su guarda.
+vi.mock("@/lib/catalogo/meta", () => ({
+  estadoConexionMeta: vi.fn(async () => ({ conectada: false })),
+  cuentasVinculadas: vi.fn(async () => []),
+  cuentasDelPrograma: vi.fn(async () => []),
+  cuentasDisponibles: vi.fn(async () => []),
+}));
+
 // La tab Students (ticket 099) lee la base por estos dos modulos; sin base en los tests se
 // mockean para que la guarda de rol sea lo unico bajo prueba. `totalesDeStudents` es puro
 // (recibe filas), pero se mockea igual para no depender de su forma interna aca.
@@ -372,6 +381,7 @@ const PAGINAS_DE_GERENTE = [
  */
 const PAGINAS_DE_AJUSTES = [
   ["/ajustes", "@/app/(app)/ajustes/page"],
+  ["/ajustes/meta", "@/app/(app)/ajustes/meta/page"],
 ] as const;
 
 /**
@@ -625,8 +635,8 @@ describe("developer pasa toda guarda de pagina (ADR 0025)", () => {
  * Metas y la ficha del Programa se CIERRAN al closer en el SERVIDOR con 404, no solo se
  * esconden del menú. Se forja la sesión de un closer contra cada ruta real y se exige
  * `notFound()`. El developer en vista `closer` ve lo del closer, así que recibe los mismos
- * 404. Gerente y developer (vista `todo`) conservan todo; el paid trafficker ve el tablero
- * (Dashboard y ficha del Programa para gestionar Meta), pero NO la lista comercial.
+ * 404. Gerente y developer (vista `todo`) conservan todo; el paid trafficker ve el tablero,
+ * pero NO la lista comercial ni la ficha del Programa. Gestiona la conexión en Ajustes > Meta.
  *
  * Para las rutas que SÍ debe ver cada rol se afirma que la guarda no lanza `NoEncontrado`:
  * leer la base falla en los tests (no hay base), y ese fallo —cualquiera menos `NoEncontrado`—
@@ -708,14 +718,14 @@ describe("el menú del closer: 4 rutas cerradas en el servidor (ticket 224, ADR 
     }
   });
 
-  it("el paid trafficker ve el Hub y la ficha del Programa, pero NO la lista", async () => {
+  it("el paid trafficker ve el Hub, pero NO la lista ni la ficha del Programa", async () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     // Hub: ve el tablero (`veTableroDelPrograma`).
     expect(await correr("@/app/(app)/p/[programa]/hub/page")).toBe("paso-la-guarda");
     // Lista: nunca fue suya (ticket 102); la guarda es `esAdministrador`.
     expect(await correr("@/app/(app)/p/[programa]/hub/lista/page")).toBe("notFound");
-    // Ficha del Programa: entra para gestionar las cuentas de Meta.
-    expect(await correr("@/app/(app)/p/[programa]/programa/page")).toBe("paso-la-guarda");
+    // Ficha del Programa: vincular cuentas es una operación administrativa.
+    expect(await correr("@/app/(app)/p/[programa]/programa/page")).toBe("notFound");
   });
 });
 
