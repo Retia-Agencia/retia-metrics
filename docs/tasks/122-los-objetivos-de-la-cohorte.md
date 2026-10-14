@@ -45,3 +45,15 @@ Sí. La migración, la sesión principal.
 ## Respuestas de Mani, 29-sep
 
 - Métricas adicionales: **`conversion_agenda_venta`** (declarada por cohorte y área; la usa el 124) y **`costo_por_venta`** (cierres).
+
+---
+
+## Enmienda 14-oct (audit del Hub, `docs/hub.md` §5.2 y §6)
+
+- **El objetivo `costo_por_agenda` es el umbral del semáforo** (258): meta = verde, aceptable = amarillo. Los valores
+  son datos de cada cohorte (HQ-1, con la línea base de `docs/hub.md` §2.4); el CRM nunca trae uno escrito.
+- **`conversion_agenda_venta`** la usa el 253 (agendas requeridas) además del 124.
+- **Dónde va la pantalla** (ADR 0077): en la tab Programa, junto a la cohorte (Programa › Ventas), no en
+  `/ajustes/programas`.
+- Un programa nuevo arranca sin objetivos y el Hub lo dice ("sin umbral"); "copiar los de la cohorte anterior" sirve
+  solo dentro del mismo programa (frontera).

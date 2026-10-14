@@ -28,6 +28,26 @@ leer es libre, escribir pide el ok de Mani. Recorrido visual en dev:local hacien
 
 ## Memory
 
+- **2026-10-14 (Mani + Claude): audit del Hub de métricas, plan y tickets.** Solo docs y una configuración (Typeform).
+  Fuentes revisadas: los cinco reportes diarios de septiembre, el handoff de Meta del 13-oct, las notas de Mani
+  (ROAS, CPI, CAC, semáforo), el código del dashboard, producción, la API de Meta y la de Typeform (solo lecturas).
+  - **Medido:** el gasto en la base es 0; una conexión de Meta ve 7 cuentas (CA tiene 4 que importan, 2 en USD); el id
+    del anuncio no llegaba (TI y CA usan la plantilla vieja con `ad_id`, que el Typeform botaba; el `utm_id` de CA es
+    el de una campaña); 22 de los 26 canales son combinaciones de orgánico; del 9 al 13-oct, agendas Meta contra CRM:
+    TI 47/46, CA 51/35 (preliminar).
+  - **Decidido (Mani):** ADR 0086 a 0090 (Hub, regla del área y árbol de Meta, agendas del CRM y TRM del día, el CRM
+    calcula el semáforo y Juanito lo manda, acciones en el CRM). A12 y QM-8 cerradas. Contratos C-1 (nada escrito para
+    el estado de hoy) y C-2 (métricas como consultas reutilizables, builders tipados) en `AGENTS.md`. Sin plantilla de
+    UTM por programa.
+  - **Hecho:** `docs/hub.md` (plan y diccionario de métricas), tickets 244 a 262, enmiendas a 119, 120 y 122 a 125, 067
+    y 090 reemplazados. Campos ocultos `ad_id`, `adset_id` y `campaign_id` en los tres Typeform (con respaldo; se
+    revirtió un minuto porque correría las columnas de las hojas, y se reaplicó cuando Mani dijo que las hojas ya no se
+    usan: incidente en `operations.md`). `META_SYSTEM_TOKEN` en el `.env.local` del equipo (solo `ads_read`).
+  - **Reparto:** ola O10 en `plan-reparto.md` §4, dos personas. Cola de migraciones 119 → 120 → 244 → 122 → 245 →
+    257 → 261.
+  - **Pendiente:** HQ-1 a HQ-8 (`plan.md` §7 E; los urgentes: umbrales del costo por agenda y quién recibe el
+    semáforo); verificar el primer envío real de TI y CA con `ad_id`.
+
 - **2026-10-13 (Mani + Claude): audit del 235, comprobante como archivo.** Solo docs, sin código. El 235 absorbe
   el 035 y trae los dos análisis que este pedía. Medido en producción (lectura): 30 abonos, 0 con comprobante, base
   39 MB, Storage vacío. Supuesto ~200 a 300 comprobantes/mes: comprimidos en el navegador ~0,9 GB/año (cabe en el
@@ -4342,6 +4362,15 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 > [`docs/operations.md`](../operations.md). El texto anterior: `git show da68cdf:docs/agents/handoff.md`.
 
 ### Now
+
+- 🧭 **14-oct, el Hub de métricas: audit, plan y tickets** (`docs/hub.md`). Decisiones de Mani en ADR 0086 a 0090: el
+  Hub reemplaza Dashboard y Metas (Hoy · Comercial · Dinero · Pauta · Origen), "Comparar con" en vez de A/B, área por
+  regla + árbol de Meta (los canales se definen solos), costo por agenda con agendas del CRM y TRM de cada día (A12
+  cerrada), el CRM calcula el semáforo y Juanito lo manda, acciones en el CRM. Contratos C-1 y C-2 en `AGENTS.md`.
+  Tickets nuevos 244 a 262; enmendados 119, 120, 122 a 125; 067 y 090 reemplazados. Decisiones abiertas: `plan.md` §7
+  E (HQ-1 a HQ-8). Hecho en Ops: `ad_id`, `adset_id` y `campaign_id` como campos ocultos en los tres Typeform (con
+  respaldo; se revirtió un minuto por el riesgo de las hojas y se reaplicó cuando Mani confirmó que ya no se usan).
+  Para arrancar: ola **O10** (`plan-reparto.md` §4): P1 (Mani) 250 → 252 y 246 → 262; P2 (el compañero) 119 y 255.
 
 - ✅ **7-oct, ticket 204:** el selector de programa conserva la pestaña de objeto y la subpestaña
   (`?seccion=`), también al entrar o salir de Todos; filtros, paginación e ids del programa anterior

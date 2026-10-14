@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0073)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0091)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -88,7 +88,9 @@ comentarios; esta tabla es la que los resuelve.
 | [0045](./0045-la-campana-y-el-patron-utm.md) | La campaña es una entidad y el emparejamiento es determinista |
 | [0044](./0044-el-origen-humano-de-un-lead.md) | El origen humano de un lead: el link del closer y `traido_por` |
 | [0062](./0062-el-anuncio-es-la-llave-de-la-pauta.md) | El anuncio es la llave de la pauta: UTM de Meta con macros, gasto por su API y origen declarado aparte (enmienda 0045, 0051 y 0052) |
-| [0063](./0063-las-metricas-y-los-objetivos-de-pauta.md) | Las métricas y los objetivos de Pauta: registro por token, calificada por `lead_value`, ROAS sobre contratado, metas por área |
+| [0063](./0063-las-metricas-y-los-objetivos-de-pauta.md) | Las métricas y los objetivos de Pauta: registro por token, calificada por `lead_value`, ROAS sobre contratado, metas por área (**el punto 3 lo enmienda el 0088**) |
+| [0087](./0087-el-area-sale-de-una-regla-y-el-detalle-del-arbol-de-meta.md) | El área sale de una regla, el detalle de pauta del árbol de Meta y los canales se definen solos; cualquier id de Meta resuelve; una conexión y N cuentas por programa (enmienda 0045, 0051, 0062 y 0077) |
+| [0088](./0088-el-costo-por-agenda-usa-las-agendas-del-crm-y-la-trm-del-dia.md) | El costo por agenda usa las agendas del CRM; las de Meta van al lado como control; el dinero se cruza con la TRM de cada día, siempre a la vista (cierra A12) |
 
 **Roles y acceso**
 
@@ -107,7 +109,10 @@ comentarios; esta tabla es la que los resuelve.
 | # | Decisión |
 |---|---|
 | [0050](./0050-la-navegacion-es-por-objetos.md) | La navegación es por objetos, con selector de programa, Inbox y Dashboard |
-| [0067](./0067-numero-y-porcentaje-periodo-a-contra-b-y-toda-cifra-abre-su-lista.md) | Número y porcentaje siempre, periodo A contra B al mismo día hábil, y toda cifra abre su lista (resumen primero) |
+| [0067](./0067-numero-y-porcentaje-periodo-a-contra-b-y-toda-cifra-abre-su-lista.md) | Número y porcentaje siempre, periodo A contra B al mismo día hábil, y toda cifra abre su lista (resumen primero) (**cómo se presenta el selector lo enmienda el 0086**) |
+| [0086](./0086-el-hub-reemplaza-al-dashboard-y-a-metas.md) | El Hub reemplaza al Dashboard y a Metas (Hoy · Comercial · Dinero · Pauta · Origen) y el periodo se compara "con" algo, sin A ni B |
+| [0089](./0089-el-crm-calcula-el-semaforo-y-juanito-lo-manda.md) | El CRM calcula el semáforo de pauta y Juanito lo manda; endpoint de máquina con secreto y sin datos personales (segunda excepción a "nada es público") |
+| [0090](./0090-los-planes-de-accion-viven-en-el-crm.md) | Los planes de acción viven en el CRM, y un rojo del semáforo se cierra con una acción |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
 
 **Plataforma**

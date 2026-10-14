@@ -33,3 +33,13 @@ ventas, gasto, costos y ROAS, para saber qué creativo vende.
 ## Kiro
 
 Sí, con revisión visual.
+
+---
+
+## Enmienda 14-oct (audit del Hub, ADR 0086 y 0087)
+
+- **Ya no es una tab propia:** el árbol vive en **Hub › Pauta**, debajo de los costos (123) y el semáforo (258).
+- **La fila "sin anuncio"** cuenta lo que llegó a nivel campaña o canal (sin id de Meta o con el de una campaña, como
+  el `utm_id` de CA), con el nivel de la traza del 247.
+- **El builder no va aquí:** el link de captación ya vive en la fuente principal y en Mi espacio (092, 086).
+- Ordenar y filtrar el árbol por cualquier columna (gasto, agendas, costo, ROAS) sale de la capa de hechos (262).

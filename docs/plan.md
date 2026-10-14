@@ -71,8 +71,8 @@ El estado de cada componente, en una línea:
 | 5 · Dinero | ✅ valor vendido, abonos, comisión | 167 quién cobró es FK (O4) · ⛔ 144 · ❌ 235 comprobante como archivo (absorbe el 035) |
 | 6 · Students y onboarding | ✅ una marca | ⛔ 145 (rol Customer Success y cuatro pasos) |
 | 7 · Origen y atribución | ✅ canales, áreas, emparejador | 092 en curso · ❌ 086 (Mi link) |
-| 8 · Pauta | ❌ | 102, 119, 120, 122 a 125, 067; espera el token de Meta |
-| 9 · Métricas, dashboard y metas | ✅ base comercial | 148 listo · 065, 090 · ⛔ 146, 147, 158 |
+| 8 · Pauta | ❌ | el plan vive en `hub.md` (14-oct): 119, 120, 244, 245, 247, 122, 123, 249, 125, 124, semáforo 258 a 261; el token de Meta ya existe |
+| 9 · Métricas: el Hub | ✅ base comercial | el plan vive en `hub.md` (14-oct): 250 a 257, 262; gráficas 255 y 256 |
 | 10 · Configuración | ✅ | 🔴 Memorable sin montar · fuentes principales · 149 manual por rol · 185 textos de Programa |
 | 11 · Plataforma | ✅ | 🔴 S1 respaldo continuo · 185 pantalla fija en toda la app · R2 después del corte |
 | 12 · Migración y corte | 🟡 | ✅ 203 corte en cero (CA y TI) · 082 apagar las hojas |
@@ -267,6 +267,9 @@ abrió el deal; dos cubetas de huérfanos (ADR 0043 a 0045, 0051, 0060, 0062, 00
 
 ### 4.8 Pauta (Meta)
 
+> **14-oct: el plan de este componente vive en [`hub.md`](./hub.md)** (audit medido, ADR 0086 a 0090, diccionario de
+> métricas y frentes A, B, C y F). Lo de abajo es el estado anterior.
+
 **Contesta:** ¿cuánto cuesta cada etapa y qué anuncio vende? **Actores:** el paid trafficker opera; el
 sistema trae el gasto; gerencia mira. **Pantallas:** tab Campañas y secciones del Dashboard (sin construir).
 **Garantías:** el anuncio es la llave entre pauta y venta; un solo escritor del gasto (ADR 0062, 0063).
@@ -276,7 +279,10 @@ sistema trae el gasto; gerencia mira. **Pantallas:** tab Campañas y secciones d
   por etapa · **124** cumplimiento por área · **125** tab Campañas · **067** ROAS por cohorte.
 - Frena: el **token de Meta** (Anderson) · 🔴 **A12** el ROAS sin la TRM de la cohorte · Pauta (PQ2 a PQ4).
 
-### 4.9 Métricas, dashboard y metas
+### 4.9 Métricas, dashboard y metas (desde el 14-oct: el Hub)
+
+> **14-oct: el plan de este componente vive en [`hub.md`](./hub.md)** (frentes D y E). El Dashboard y Metas pasan a
+> ser el Hub (ADR 0086). Lo de abajo es el estado anterior.
 
 **Contesta:** ¿cómo vamos? **Actores:** todos leen, cada uno con su alcance. **Pantallas:** Dashboard (un
 programa o "todos"), lista de cada cifra, Urgencias, Nerd Stats. **Garantías:** "todos los programas" solo
@@ -369,7 +375,8 @@ El orden por sesiones vive en [`plan-reparto.md`](./plan-reparto.md) §4. En cor
 | **O2** (prioridad: el frente A) | la operación comercial lista: frente 0 (checkpoint, recorridos, 160, 161, S1, manual), **frente A: programas que nacen en el CRM (Nicolás y Francisco, antes del 5-oct)** y frente B: ✅ CA y TI reiniciados en cero (203; 078 reemplazado). La lista completa: `plan-reparto.md` §4 | 2, 3, 4, 5, 10, 12 | toda la operación de entrada a student se hace en el CRM |
 | ✅ O4 | la operación sin fricción: 181 a 184, 186 y el 167 (`cp-20261004-1`); el 185 pasa a la O5 | 1, 2, 3, 5, 9, 10, 11 | hecho el 4-oct |
 | ✅ O5 | las métricas comerciales y la pantalla fija: 148, 065 (✅), 146, 185 (el 158 se descartó); después 147 y 102 (`plan-reparto.md` §4) | 3, 9, 10, 11 | hecho el 4-oct: 065, 146, 148, 185 |
-| **O6** (vigente) | el dashboard confiable: 187, 190, 192, 147; después 188, 189, 191, 102 (`plan-reparto.md` §4) | 9 | cada cifra es real (ADR 0079) y abre su lista |
+| **O10** (vigente, 14-oct) | **el Hub** (`hub.md`): dos personas, P1 el Hub y las consultas, P2 Meta, moneda, gráficas, acciones y semáforo (`plan-reparto.md` §4) | 7, 8, 9 | el Hub reemplaza Dashboard y Metas, el gasto de Meta entra solo y el semáforo llega por Juanito |
+| **O6** | el dashboard confiable: 187, 190, 192, 147; después 188, 189, 191, 102 (`plan-reparto.md` §4) | 9 | cada cifra es real (ADR 0079) y abre su lista |
 | **B** | el corte: los closers dejan las hojas, con capacitación. Antes: 🔴 S1 | 12 | los closers operan en el CRM |
 | **NC3** | la v1 comercial: 148, 065, 146, 147, 158, 144, 145 cuando se desbloqueen; 075 y 149 | 3, 5, 6, 9 | Gerencia ve su dashboard comercial |
 | **C** | 082: apagar las pestañas de gestión, a la semana hábil del corte | 12 | se deja de escribir en las hojas |
@@ -411,9 +418,7 @@ sigue en `git show 951b62a:docs/plan.md` §7.
 | QM-3 · GC-17 | La próxima fecha de pago al lado de la fecha límite (recomendación: al lado), y cómo pactan los abonos los closers | 5 | 144 | NC3 |
 | QM-4 | La API de Grain: después de v1 o nunca | 4 | · | después del corte |
 | QM-5 | Los cuatro pasos del onboarding: fijos o filas por programa (recomendación: filas) | 6 | 145 | NC3 |
-| QM-8 | Qué hace el carril de pauta mientras la v1 comercial no cierra | 8 | 119, 120, 125, 126 | ya |
 | QM-9 | Deal Insights con IA en la ficha (recomendación: después de v1) | 2 | · | después de v1 |
-| A12 | El ROAS sin la TRM de la cohorte (la 0057 la quitó): de dónde sale la tasa | 8 | 123, 067 | antes de E7 |
 | R2 | El rastro por triggers en la base (recomendación: sí) | 11 | · | después del corte |
 | P3 | El costo del proceso: `AGENTS.md` y el handoff pesan mucho en cada sesión (recomendación: solo reglas y estado actual) | 11 | · | cuando se quiera |
 | A2 | Las alertas también por correo, con un solo mecanismo | 11 | · | no bloquea |
@@ -435,6 +440,19 @@ agenda→venta, la ventana del ritmo y cuándo dejan de contar agendas (PQ3) · 
 · la convención del orgánico y de nombres de anuncio, con Media (PQ6) · cómo agrupan los UTM, por escrito
 (PQ9) · qué checkouts usan y si mandan webhooks · por qué Tactical tiene tantos leads sin UTM.
 
+**E. Hub** (14-oct, `hub.md` §7; A12 y QM-8 se cerraron ese día con los ADR 0088 y el orden de `hub.md` §6):
+
+| # | Qué | A quién |
+|---|---|---|
+| HQ-1 | Los umbrales de costo por agenda por programa (meta y aceptable), con la línea base de `hub.md` §2.4 | Pauta y Gerencia |
+| HQ-2 | A quién le llega el semáforo, quién es el dueño de los rojos de cada programa y a quién escala a las 48 h | Mani y Gerencia |
+| HQ-3 | Los horarios del semáforo (30X: 7, 9, 11, 13 y 15 h + 18 h) | Mani y Pauta |
+| HQ-4 | El costo por agenda del programa: con el gasto de todas las campañas o solo el de las que buscan agendas | Pauta |
+| HQ-5 | PQ3: la ventana del ritmo y la conversión agenda → venta de los requeridos (253) | Pauta y Gerencia |
+| HQ-6 | Qué cuentas entran (las USD de CA; Rosario \| Retia solo corre registros) | Pauta |
+| HQ-7 | CAC en las dos monedas y los tres grupos del origen del cierre (propuestas de `hub.md` §5.2) | Mani |
+| HQ-8 | ¿Pauta adopta la plantilla del 29-sep en las campañas nuevas? ¿Editar los `url_tags` de un anuncio activo lo manda a revisión? | Pauta |
+
 **F. Media:** si el orgánico usa el mismo formulario que la pauta; qué cuentas o creadoras van en
 `utm_content`.
 
@@ -451,7 +469,8 @@ agenda→venta, la ventana del ritmo y cuándo dejan de contar agendas (PQ3) · 
 | `docs/structure.md` | diagramas y componentes técnicos: flujos, motor de etapas, arquitectura, **código por componente (§4.1)**, modelo de datos, ingesta, atribución, **pantallas por rol (§8)**, sistema de diseño, hojas, migración | al construir cualquier pieza; §9 antes de tocar una pantalla |
 | `docs/comercial.md` | la reunión con Gerencia (30-sep) punto por punto: el pipeline de 30X, el dinero, las metas | antes de tocar etapas, dinero, metas o el dashboard |
 | `docs/manual-gestion-comercial.md` | cómo se mueve un deal por las etapas de 30X, etapa por etapa | antes de tocar el motor, la ficha o el Kanban |
-| `docs/analytics.md` | la reunión con Pauta (29-sep): requisitos, decisiones DP, fórmulas | antes de tocar atribución, pauta o métricas |
+| `docs/hub.md` | el plan del Hub (14-oct): audit medido, decisiones H, **el diccionario de métricas (§5, la única tabla de definiciones)**, frentes y contratos C-1 y C-2 | antes de tocar métricas, pauta, atribución o el Hub |
+| `docs/analytics.md` | la reunión con Pauta (29-sep): requisitos y decisiones DP; sus fórmulas (§6) quedaron como historia | para el porqué de una decisión de Pauta |
 | `docs/plan-reparto.md` | el orden por olas, la cola de migraciones, los archivos calientes y los checkpoints | antes de tomar un ticket |
 | `docs/operations.md` | entornos, URLs, configurar un programa, variables, base, scripts, despliegue, secretos, incidentes, deuda, el corte | al operar, migrar, desplegar o validar cifras |
 | `docs/anotaciones.md` | la bandeja de lo que sale de recorrer la app a mano (A-NN) | antes de tocar una pantalla |

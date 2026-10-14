@@ -305,6 +305,9 @@ ritmo, la proyección, el estado "se perdió en el Calendly" y los comparativos.
 
 ## 6. Las fórmulas (una definición por métrica)
 
+> ⚠️ **14-oct: esta tabla queda como historia.** La única tabla de definiciones es `docs/hub.md` §5 (el diccionario de
+> métricas). A12 se cerró con el ADR 0088 (TRM de cada día) y el costo por agenda usa las agendas del CRM.
+
 > ⚠️ 1-oct: la TRM de la cohorte se quitó del esquema (migración 0057). De dónde sale la tasa del ROAS y del ad
 > profit es la decisión A12 de `plan.md` §7, antes de E7.
 

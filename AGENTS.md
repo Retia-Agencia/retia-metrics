@@ -40,6 +40,9 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    pipeline pasa a las etapas, etiquetas y propiedades de 30X, el valor vendido lo escribe el closer y la
    comisión es un porcentaje, hay meta del mes y de la cohorte, y la v1 es comercial. Léelo antes de tocar
    etapas, dinero, metas o el dashboard.
+   **`docs/hub.md`** (14-oct) es el plan del **Hub**, que reemplaza al Dashboard y a Metas (ADR 0086 a 0090): el
+   audit medido, **el diccionario de métricas (§5, la única tabla de definiciones)**, los frentes con sus tickets
+   (244 a 262) y los contratos C-1 y C-2 (§8). Léelo antes de tocar métricas, pauta, atribución o el Hub.
 3. **`docs/overview.md`** — qué es la herramienta de principio a fin: el problema, los programas, los
    roles y sus historias de usuario, el recorrido de un lead, las métricas, el alcance, los criterios de
    aceptación, de dónde salió y **el vocabulario del dominio** (§11). Es el contrato de producto (lo que
@@ -364,6 +367,8 @@ Estandares transversales que todo output debe cumplir, sin importar la fase.
 | Validacion en el borde | `zod` en todo route handler y cron que reciba input | Patron fijado en B-03; `ZodError` sale como 400 |
 | Periodo A contra B, número y porcentaje (ADR 0067) | `lib/periodo.ts`, `lib/variacion.ts`; `SelectorPeriodo` y `Variacion`. Bogotá, URL validada, B al mismo hábil, base cero `—`; contrato en `docs/structure.md` §9 | `tests/periodo.test.ts`, `tests/variacion.test.ts`, `tests/vista-dashboard.test.ts`, `tests/paginas.test.ts`; series alineadas por programa en `tests/series-alineadas.test.ts` |
 | Que toda cifra abra su lista (ADR 0067) | El universo de cada métrica vive en `lib/queries/metricas-filtros.ts` y lo usan la cifra, el resumen y la lista (`lib/queries/metricas-con-filas.ts`); vista en `/p/[programa]/dashboard/lista`, paginada en el servidor, closer como código opaco; contrato en `docs/structure.md` §9 | `tests/metricas-con-filas.test.ts`: por métrica, la cifra contra todas las páginas (con anuladas y otro programa), paginación, secciones por programa y desgloses que suman el subtotal; la guarda en `tests/paginas.test.ts` |
+| Nada escrito para el estado de hoy, en métricas (C-1, `docs/hub.md` §8) | Programas, cohortes, cuentas de Meta, campañas, closers, umbrales y objetivos son datos (ADR 0012); las métricas, las dimensiones y los medios pagos son tipos. Toda vista de métricas filtra y ordena por sus dimensiones y pagina en el servidor; un programa nuevo aparece en el Hub sin código y, si le falta algo, el Hub lo dice en vez de mostrar cero | Revisión manual hasta el 262: un nombre de campaña, una cuenta o un umbral escrito en `lib/`, `app/` o `components/` es el olor; `tests/contrato-extension.test.ts` ya caza los programas |
+| Las métricas son consultas reutilizables (C-2, `docs/hub.md` §8) | Toda métrica nueva es una agregación sobre un **hecho** de `lib/queries/` (envío, agenda, cita, venta, abono, gasto): builder tipado de drizzle que agrupa, filtra, ordena y pagina en SQL por una lista blanca de dimensiones; la lista detrás de la cifra es la misma consulta sin agregar. Índices justificados con `EXPLAIN` a 10× el volumen de hoy; vistas o agregados solo si una medición lo pide | Lo construye el 262 con sus tests (agrupado = contar la lista; la regla del área igual en SQL y en TypeScript). Revisión manual: una consulta suelta para una métrica nueva, o filtrar en memoria lo que puede filtrar la base, es el olor |
 | Formato de numero | `lib/format.ts` (punto de miles, coma decimal; el USD SIEMPRE con dos decimales) | `tests/format.test.ts` |
 | Como se escribe un saldo | `saldoLegible` en `lib/format.ts`: decide la ETIQUETA y el valor juntos, porque un saldo negativo es un **sobrepago** y no una deuda | `tests/format.test.ts` |
 | Mensajes de validacion del navegador | `components/validacion-en-espanol.tsx`, montado una vez en el layout raiz: traduce los globos nativos, que salen en el idioma del navegador y no en el del `lang` de la pagina | Revision manual |
@@ -628,6 +633,9 @@ The agent should run these to get fast signal on whether code works. Keep them c
     ComunicArte `nkMLdeh8`), sus campos, variables, webhooks y respuestas (~3.100 y ~2.700), y ademas otros
     forms ajenos a Retia. **No es frontera de programa:** el script pasa siempre el form id explicito. Sus
     scopes no se ven por API: si una escritura da 403, falta `forms:write`.
+  - `META_SYSTEM_TOKEN` (14-oct): el usuario del sistema `retia-insights` del portafolio Agencia Retia Growth, **solo
+    `ads_read`** (lee gasto, árbol y agendas del pixel; no puede tocar campañas). Ve las 7 cuentas publicitarias. Usa
+    `https://graph.facebook.com/v26.0` (sin versión falla). La app no lo lee: en producción vive en la base (119).
   - `CALENDLY_ACCESS_TOKEN_COMUNICARTE`, `CALENDLY_ACCESS_TOKEN_TACTICAL` y `CALENDLY_ACCESS_TOKEN_COMUNICATE_CONFIANZA` (5-oct): uno por programa, de una cuenta
     OWNER de su organizacion. Ven miembros, tipos de evento, citas y webhooks de esa organizacion. Cada
     programa usa SU token: nunca uno para consultar el otro. `CALENDLY_PAT_LOCAL_*` no se usa.

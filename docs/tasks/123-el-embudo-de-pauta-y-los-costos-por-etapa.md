@@ -2,7 +2,7 @@
 id: 123
 etapa: E7
 serves: "ADR 0063 · docs/analytics.md PT-09, PT-22, PT-25, PT-27 a PT-32, PT-51"
-depends: [085, 089, 115, 120]
+depends: [085, 089, 115, 120, 244, 247, 262]
 status: todo
 ---
 
@@ -55,3 +55,17 @@ denominador del costo de Pauta. El área sale de `emparejar` (085), el conteo es
 > ⚠️ **1-oct: abierto.** La migración 0057 quita `cohorts.trm_cohorte` (Mani). De dónde sale la TRM del ROAS es
 > la decisión A12 de `docs/plan.md` §7, y se toma antes de E7. Hasta entonces, lo que este documento dice de la
 > "TRM de la cohorte" describe la intención, no una columna que exista.
+
+---
+
+## Enmienda 14-oct (audit del Hub, ADR 0087 y 0088, `docs/hub.md` §5.2)
+
+- **Las definiciones son las de `docs/hub.md` §5.2**: el costo por agenda divide entre las **agendas del CRM** (ADR
+  0088); las de Meta van al lado y su diferencia es del 249.
+- **La TRM es la de cada día del gasto** (244), y la pantalla dice la que usó; la "TRM de la cohorte" ya no existe (A12
+  cerrada).
+- **Fuera:** la burbuja "sin UTM · según el comercial" (el origen declarado se retiró, ADR 0081) y la cubeta "sin
+  clasificar" (ADR 0087).
+- **Se construye sobre la capa de hechos** (262); el área sale de la regla del 246 y el detalle de pauta del 247.
+- **Vive en Hub › Pauta** (ADR 0086).
+- **Absorbe el 067** (ROAS por cohorte: es el atajo de cohorte del periodo) y la parte de costos del 090.

@@ -109,3 +109,10 @@ bien siempre que se decida a proposito.
 ## Enmienda 2026-09-29 (reunión con Pauta, [`docs/analytics.md`](../analytics.md))
 
 - Michael sale en octubre y el Dashboard reemplaza su reporte (reunión con Alfredo y Dani, 29-sep). El PDF toma también las secciones de Pauta (123) y el cumplimiento (124), con el mismo objeto que pinta la pantalla.
+
+---
+
+## 14-oct: sigue congelado (audit del Hub)
+
+El reporte de Michael lo cubren Hub › Hoy (**252**) y el resumen de las 18 h de Juanito (**260**). El PDF se decide
+después de verlos funcionando (`docs/hub.md` §6).

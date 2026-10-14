@@ -43,3 +43,23 @@ Que el gasto de cada anuncio entre solo al CRM, colgado del mismo id que traen l
 ## Kiro
 
 Sí, con revisión. La migración y la primera corrida en producción, la sesión principal con el ok de Mani.
+
+---
+
+## Enmienda 14-oct (audit del Hub, ADR 0087 y 0088, `docs/hub.md` §2.4 y §4)
+
+- **Además del gasto, las agendas según Meta**, por anuncio y día: el campo `conversions`, action_type
+  `offsite_conversion.fb_pixel_custom.invitee_meeting_scheduled` (el mismo en todos los programas, verificado el
+  13-oct). `actions` no sirve: trae la suma de todos los eventos personalizados. Se guardan al lado del gasto y nunca
+  entran al costo oficial (ADR 0088).
+- **De cada anuncio se guardan sus `url_tags`**, para que el 248 muestre qué plantilla de UTM usa cada cuenta, y de
+  cada campaña su **objetivo** (`OUTCOME_LEADS`, `OUTCOME_ENGAGEMENT`...), para HQ-4.
+- **Un registro de cada corrida** (`pauta_sincronizaciones`: inicio, fin, estado, filas, error), para que "no corrió"
+  no se vea igual que "no pasó nada"; el semáforo (258) lo lee para su nota de calidad.
+- **El árbol completo, paginado:** Tactical tiene 818 anuncios y Milena 815 (la mayoría inactivos y sin `url_tags`). Se
+  traen todos los niveles con su estado; el gasto solo existe para lo que entregó.
+- **La moneda:** cada fila en la de su cuenta; dos cuentas USD de CA hacen que un programa sume gasto en dos monedas.
+  Convertir es de la consulta, con la TRM del 244.
+- **Durante el día** la sincronización la dispara el endpoint del 259 (Juanito, ADR 0089); el cron diario de Vercel
+  cierra el día y re-lee los últimos siete.
+- **Lo que no se borra:** `ad_spend` sigue retirándose aquí (vacía, 0 filas el 14-oct).

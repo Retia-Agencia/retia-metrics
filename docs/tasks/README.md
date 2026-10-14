@@ -182,22 +182,30 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 8 · Pauta (Meta)
 
-8 tickets, 8 abiertos.
+16 tickets, 14 abiertos. **Desde el 14-oct el plan de este componente y del 9 vive en [`docs/hub.md`](../hub.md)** (frentes, orden y decisiones abiertas HQ).
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 067 | [ROAS por cohorte y captura de pauta](./067-roas-por-cohorte-y-captura-de-pauta.md) (E5-4) | 064, 120 | todo |
+| [x] | 067 | [ROAS por cohorte y captura de pauta](./067-roas-por-cohorte-y-captura-de-pauta.md) (E5-4) | 064, 120 | reemplazado · 14-oct (ok de Mani): ROAS en el 123, gasto en el 120 (`docs/hub.md` §6) |
 | [x] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | done · `cp-20261005-2` · Alejo · 5-oct · su Dashboard: ve todos los programas (ADR 0052 enmendado), sin comparativo, comisión ni listas (`veEquipoComercial`, `sinListas`); cadenero (5-oct): aprobado, con los tests de petición forjada y de Operación y Dinero |
-| [ ] | 119 | [La conexión con Meta: token por portafolio y cuentas por programa](./119-la-conexion-con-meta.md) | — | todo · carril Alejo · migración · espera el token de Anderson |
-| [ ] | 120 | [La pauta de Meta: árbol y gasto por anuncio y día](./120-la-pauta-de-meta-por-anuncio-y-dia.md) | 119 | todo · carril Alejo · migración (retira `ad_spend`) |
+| [ ] | 119 | [La conexión con Meta: token por portafolio y cuentas por programa](./119-la-conexion-con-meta.md) | — | todo · migración · enmendado 14-oct: una conexión, N cuentas por programa con su moneda; el token ya existe |
+| [ ] | 120 | [La pauta de Meta: árbol y gasto por anuncio y día](./120-la-pauta-de-meta-por-anuncio-y-dia.md) | 119 | todo · migración (retira `ad_spend`) · enmendado 14-oct: agendas según Meta, `url_tags`, registro de corridas |
 | [ ] | 122 | [Los objetivos de la cohorte y el reparto de cupos por área](./122-los-objetivos-de-la-cohorte.md) | 083 | todo · carril Mani · migración |
-| [ ] | 123 | [El embudo de Pauta y los costos por etapa](./123-el-embudo-de-pauta-y-los-costos-por-etapa.md) | 085, 089, 115, 120 | todo · carril Mani |
-| [ ] | 124 | [El cumplimiento de la cohorte por área](./124-el-cumplimiento-de-la-cohorte-por-area.md) | 122, 123 | todo · carril Mani · espera PQ3 de Pauta |
-| [ ] | 125 | [La tab Campañas: el árbol de Meta con su embudo](./125-la-tab-campanas-con-el-arbol-de-meta.md) | 120, 123 | todo · carril Mani |
+| [ ] | 123 | [El embudo de Pauta y los costos por etapa](./123-el-embudo-de-pauta-y-los-costos-por-etapa.md) | 085, 089, 115, 120, 244, 247, 262 | todo · enmendado 14-oct: agendas del CRM, TRM del día (ADR 0088) |
+| [ ] | 124 | [El cumplimiento de la cohorte por área](./124-el-cumplimiento-de-la-cohorte-por-area.md) | 122, 123, 253 | todo · PQ3 = HQ-5, con valor por defecto del 253 |
+| [ ] | 125 | [La tab Campañas: el árbol de Meta con su embudo](./125-la-tab-campanas-con-el-arbol-de-meta.md) | 120, 123 | todo · enmendado 14-oct: vive en Hub › Pauta |
+| [ ] | 244 | [La TRM oficial de cada día, guardada](./244-la-trm-del-dia.md) | — | todo · migración · cierra A12 (ADR 0088) |
+| [ ] | 245 | [Las fotos del gasto durante el día](./245-las-fotos-del-gasto-durante-el-dia.md) | 120 | todo · migración |
+| [ ] | 247 | [Cualquier id de Meta se resuelve por el árbol](./247-cualquier-id-de-meta-resuelve-por-el-arbol.md) | 120, 246 | todo · los campos ocultos ya están en los tres Typeform (14-oct) |
+| [ ] | 249 | [Agendas según Meta contra el CRM: el control](./249-agendas-segun-meta-contra-el-crm.md) | 120, 123 | todo |
+| [ ] | 258 | [El semáforo de costo por agenda](./258-el-semaforo-de-costo-por-agenda.md) | 122, 123, 245, 262 | todo |
+| [ ] | 259 | [El endpoint de máquina del semáforo](./259-el-endpoint-de-maquina-del-semaforo.md) | 258 | todo · segunda excepción a "nada es público" (ADR 0089) |
+| [ ] | 260 | [Juanito manda el semáforo](./260-juanito-manda-el-semaforo.md) | 259 | todo · **se implementa en el repo de Juanito** |
+| [ ] | 261 | [Un rojo del semáforo se cierra con una acción](./261-un-rojo-se-cierra-con-una-accion.md) | 257, 258 | todo · migración |
 
-## 9 · Métricas, dashboard y metas
+## 9 · Métricas: el Hub (antes dashboard y metas)
 
-20 tickets, 8 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
+31 tickets, 13 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -210,7 +218,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 064 | [Dashboard sobre deals](./064-dashboard-sobre-deals.md) (E5-1) | 060 | done · sesión 47 · cierres desde deal_etapa_historial, dueño por ownerUserId, show centralizado |
 | [x] | 065 | [Conversión etapa a etapa y tiempo en etapa](./065-funnel-por-etapa.md) (E5-2) | 064 | done · `cp-20261004-2` · O5 · M2 · solo consultas (`lib/queries/embudo-etapas.ts`); tiempo en etapa = suma de todos los tramos, días calendario como el Kanban; el 148 lo monta |
 | [x] | 089 | [Series con dimensiones, no escalares](./089-series-con-dimensiones.md) | 064, 085 | done · 30-sep · Mani · `lib/queries/serie.ts` (tipo con `programId` obligatorio, `periodoAnterior`) y `hechosDelEmbudo` en `lib/queries/hechos-embudo.ts` (día × área × canal × dueño × cohorte; primer llamador real de `emparejar`); filtro `?area=` en el dashboard; `dashboard.ts` no se reescribió |
-| [ ] | 090 | [Rendimiento por área](./090-rendimiento-por-area.md) | 085, 088, 089 | todo · la vista de **Gerencia**. Estados con acción, no una tabla |
+| [x] | 090 | [Rendimiento por área](./090-rendimiento-por-area.md) | 085, 088, 089 | reemplazado · 14-oct (ok de Mani): 248, 123 y el frente F de `docs/hub.md` (estados con acción) |
 | [x] | 095 | [La tab Dashboard: un programa o "todos" solo con lo sumable](./095-dashboard-con-selector-y-todos-los-programas.md) | 064, 089, 094, 136, 137 | done · 1-oct · Mani · checkpoint `cp-20261001-1` · `sumarConteos` y `sumarDinero`: "todos" solo suma conteos y caja por moneda; tasas, metas y comisión por programa. Lo del paid trafficker queda para el 102 |
 | [x] | 129 | [Motivos de pérdida y Origen del lead salen vacíos en el Dashboard](./129-dashboard-motivos-y-origen-vacios.md) | — | done · `cp-20261002-4` · 2-oct · Mani · motivos por `deals.motivo_id`; Origen del lead por canal desde `hechosDelEmbudo` (envíos, agendas, shows, ventas; sin UTM y sin clasificar aparte) |
 | [x] | 136 | [Selector de periodo A contra B, número y %](./136-selector-de-periodo-y-numero-y-porcentaje.md) | · | done · 1-oct · Alejo · selector en el dashboard; 137, 138 y 141 quedan listos |
@@ -221,6 +229,17 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 147 | [Alertas por persistencia](./147-alertas-por-persistencia.md) | 136 | done · `cp-20261005-1` · Alejo · 5-oct · meta del mes y de la cohorte; 0067 aplicada en producción con el ok de Mani; umbrales en Programa › Ventas, alerta en el Pulso; faltan los umbrales reales de Dani (dato, no código) |
 | [x] | 148 | [Las secciones del dashboard](./148-las-secciones-del-dashboard.md) | 142, 095, 137 | done · `cp-20261004-4` · O5 · M1 · Pulso, Operación comercial, Dinero y Pauta interina; monta 146 y 065; el comparativo cuenta las llamadas de Calendly por `closer_user_id`. Lo que sigue: O6 (187 a 192) |
 | [-] | 158 | [El reporte del día del closer sale del CRM](./158-el-reporte-del-dia-del-closer.md) | 156, 157 | descartado · 4-oct (Mani): el reporte del día ya está en Mi espacio › Métricas con el periodo en "hoy"; medir objeciones era sobrediseño |
+| [ ] | 246 | [La regla del área y el canal que se define solo](./246-la-regla-del-area-y-el-canal-que-se-define-solo.md) | — | todo · sin migración (ADR 0087) |
+| [ ] | 248 | [Hub › Origen: cómo cuenta cada UTM](./248-la-vista-origen-como-cuenta-cada-utm.md) | 246, 250, 262 | todo · retira `/ajustes/canales` |
+| [ ] | 250 | [El Dashboard y Metas pasan a ser el Hub](./250-el-dashboard-y-metas-pasan-a-ser-el-hub.md) | — | todo · ADR 0086 |
+| [ ] | 251 | [Periodo y "Comparar con", sin A ni B](./251-periodo-y-comparar-con.md) | 250 | todo |
+| [ ] | 252 | [Hub › Hoy: el reporte diario sale del CRM](./252-la-pestana-hoy.md) | 250 | todo |
+| [ ] | 253 | [La proyección y lo que hace falta por día](./253-proyeccion-y-requeridos.md) | 252, 262 | todo |
+| [ ] | 254 | [El origen del cierre](./254-el-origen-del-cierre.md) | 252, 262 | todo |
+| [ ] | 255 | [Elegir la librería de gráficas](./255-elegir-la-libreria-de-graficas.md) | — | todo · exploración + ADR |
+| [ ] | 256 | [El contrato de gráficas y la migración](./256-el-contrato-de-graficas-y-la-migracion.md) | 255, 250 | todo |
+| [ ] | 257 | [Las acciones](./257-las-acciones.md) | 252 | todo · migración (ADR 0090) |
+| [ ] | 262 | [La capa de hechos](./262-la-capa-de-hechos.md) | 246 | todo · contrato C-2 de `docs/hub.md` |
 
 ## 10 · Configuración
 

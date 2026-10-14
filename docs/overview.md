@@ -270,7 +270,7 @@ Qué mueve cada una y con qué requisito: [`manual-gestion-comercial.md`](./manu
 | Conversión etapa a etapa y tiempo en etapa | cuenta deals distintos, no entradas |
 | Registros vs agendas por canal | la métrica de Media: TikTok puede traer muchos registros y pocas agendas |
 | CPL, costo por agenda, por llamada, por llamada calificada, por show y por venta (CAC) | gasto del área Pauta ÷ el conteo de Pauta, por área, campaña, conjunto y anuncio; sin gasto, "sin pauta" en vez de $0. Umbrales de Pauta (29-sep, en COP): costo por agenda meta 60.000, aceptable 80.000 (antes: estándar de Daniel Tovar, USD 20 y alerta en USD 100) |
-| ROAS y ad profit | sobre ventas **contratadas** (valor vendido de los deals vendidos) frente al gasto de Meta (ADR 0063). 🔴 De dónde sale la tasa COP/USD está abierto (`plan.md` §7, A12): la 0057 quitó la TRM de la cohorte |
+| ROAS y ad profit | sobre ventas **contratadas** (valor vendido de los deals vendidos) frente al gasto de Meta (ADR 0063), con la TRM oficial de cada día del gasto, siempre a la vista (ADR 0088) |
 | Llamada calificada | llamada que ocurrió de un lead cuyo `lead_value` del formulario está en el conjunto calificado del programa (por defecto MUY ALTO y ALTO VALOR) |
 | Calidad de la traza | % de ventas por nivel de origen: anuncio, campaña, canal o sin UTM |
 | Cumplimiento por área | la meta de la cohorte repartida en cupos por área (paid, orgánico, referidos): vendidas, faltan, requeridas por día, ritmo y proyección, con semáforo |
@@ -460,14 +460,15 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 **El origen**
 
 - **Área:** Gerencial, Comercial, Pauta o Media. Agrupa leads por su origen. No es un rol.
-- **Canal:** un par `utm_source` + `utm_medium` con su área (`facebook / cpc` es Pauta; `closer /
-  referido` es Comercial). *Evitar: "origen" a secas, que es otro catálogo.*
+- **Canal:** la plataforma de donde vino un envío: la primera palabra de su `utm_source` (`instagram rosario` =
+  Instagram, cuenta Rosario). Se define solo; el área sale de una regla sobre el `utm_medium` y los ids de Meta (ADR
+  0087, se construye en el 246). *Evitar: "origen" a secas.*
 - **Campaña:** una campaña de pauta de un programa, dueña de su `utm_campaign` y de su gasto.
 - **Destino:** una URL base de un programa (el formulario o un checkout).
 - **Builder:** la pantalla que arma un link con sus UTM. El link se calcula, no se guarda.
 - **Link de captación del closer ("Mi link"):** el link del programa con el canal Closer y el código
   opaco del closer. **Origen humano (`traido_por`):** quién trajo a un lead.
-- **Sin UTM / sin clasificar:** las dos cubetas de origen huérfano (§7).
+- **Sin UTM:** el envío llegó sin origen. Desde el ADR 0087 todo envío con UTM tiene un área y "sin clasificar" desaparece (se construye en el 246).
 - **Anuncio (creativo):** la pieza de Meta que trajo el clic; su id viaja en `utm_id` y es la llave hacia su
   conjunto, su campaña y su gasto. **Placement:** dónde se mostró (historias, feed, reels), en `utm_term`.
 - **Macro sin expandir:** un UTM que llegó como `{{campaign.name}}`: un centinela, no un dato.
@@ -478,13 +479,30 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Se perdió en el Calendly:** llegó a la pantalla del Calendly (envío parcial) y a los minutos de su
   estado no agendó: urgente en el Inbox.
 
+**El Hub y las métricas**
+
+- **Hub:** la tab de métricas del CRM, por programa o "todos": Hoy (el reporte diario), Comercial, Dinero, Pauta y
+  Origen. Reemplazó al Dashboard y a Metas (ADR 0086). *Evitar: "dashboard".*
+- **Acción:** lo que se decidió hacer, con dueño, estado y la cifra que lo justifica; vive en el programa (ADR 0090).
+- **Hecho:** una cosa que se cuenta (envío, agenda, cita, venta, abono, gasto), con sus dimensiones; toda métrica es una
+  agregación sobre un hecho (`docs/hub.md` §8, C-2).
+
 **Las métricas de Pauta**
 
 - **Registro:** un envío (un token), contado una vez aunque llegue parcial y completo.
 - **Agenda:** una llamada agendada, contada el día en que se agendó.
 - **Llamada calificada:** ocurrió y el `lead_value` del lead está en el conjunto calificado del programa.
 - **Contratado:** la suma del valor vendido de las ventas. *No confundir con la caja (lo abonado).*
-- **ROAS y ad profit:** contratado frente al gasto. La tasa COP/USD está por decidir (A12).
+- **ROAS y ad profit:** contratado frente al gasto, con la TRM de cada día (ADR 0088).
+- **Costo por agenda (CPI):** el gasto de Paid entre las agendas **del CRM** de Paid. **CPL** es lo mismo por registro y
+  **costo por venta (CAC)** por venta. Definiciones en `docs/hub.md` §5.
+- **Agendas según Meta:** las que cuenta el pixel de Meta (`invitee_meeting_scheduled`). Van al lado como control,
+  nunca en el costo oficial (ADR 0088).
+- **TRM del día:** la tasa oficial COP/USD de una fecha, guardada; toda cifra convertida dice la que usó.
+- **Origen del cierre:** de qué trabajo salió una venta: agenda del día, seguimiento o sin llamada (254).
+- **Semáforo:** el color del costo por agenda de un programa o campaña contra su umbral, de día contra ayer a la misma
+  hora y al cierre contra el umbral (ADR 0089). **Rojo sin atender:** un rojo de cierre que no tiene una acción.
+- **Árbol de Meta:** campaña → conjunto → anuncio, con sus ids, que el CRM baja de la API (ADR 0087).
 - **Objetivo:** la meta y el nivel aceptable de una métrica en una cohorte, total o por área; dice si va en
   ruta o atrasado. **Reparto por área:** la meta de cupos de la cohorte dividida entre paid, orgánico y
   referidos (no entre closers, ADR 0023).

@@ -3,7 +3,7 @@ id: 090
 etapa: E5
 serves: "plan v2 §12.7 · el dolor declarado de Gerencia"
 depends: [085, 088, 089]
-status: todo
+status: reemplazado
 ---
 
 # 090 — Rendimiento por area: la vista de Gerencia
@@ -81,3 +81,12 @@ Si, con revision visual obligatoria.
 - **Conjunto y anuncio vuelven** (ADR 0062): Pauta se rebana por campaña, conjunto, anuncio, placement y fecha. El árbol vive en la tab Campañas (125).
 - **El hueco del umbral se llena** con la tabla `objetivos` (122) y el semáforo de DP-24 (🟡). Primeros valores reales de Pauta: agendas de paid por día meta 15, aceptable 10; costo por agenda meta 60.000 COP, aceptable 80.000 (PQ4).
 - Los costos por etapa y el embudo son del 123; este ticket queda como la vista de Gerencia por área, con estados y acción.
+
+---
+
+## Reemplazado 14-oct (audit del Hub, ok de Mani)
+
+Su idea ("estados con acción, no una tabla") es exactamente el frente F de `docs/hub.md`: lo por área lo muestra el
+**248** (Hub › Origen), los costos por área y por campaña el **123**, y los estados con dueño y acción el semáforo
+(**258**) con las acciones (**257**, **261**). La cubeta "sin clasificar" desaparece (ADR 0087); la regla del cero
+sigue en el 123.

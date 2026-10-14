@@ -121,6 +121,41 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ## 4. La ola vigente y el mapa de etapas
 
+### 🌊 Ola O10 · el Hub · abierta el 14-oct
+
+Sale del audit del Hub (`docs/hub.md`, ADR 0086 a 0090). **Dos personas**, cada una con las sesiones que quiera
+(Codex implementa, la sesión de cada persona orquesta). Se reparte por **archivos**, no por frentes: P1 es dueña de
+las pantallas del Hub y de las consultas; P2, de todo lo que entra de afuera o sale hacia afuera.
+
+| Persona | Tickets, en orden (los de una misma línea, en paralelo) | Archivos de los que es dueña | Migración |
+|---|---|---|---|
+| **P1 · Mani: el Hub y las consultas** | 250 → 252 → 251 · 246 → 262 → 247 → 248 · 253 → 254 · 122 → 123 → 125 → 124 | `app/(app)/p/[programa]/{hub,dashboard,metas}/*`, `app/(app)/{hub,dashboard}/*`, `components/dashboard/*`, `lib/nav.ts`, `components/selector-periodo.tsx`, `lib/periodo.ts`, `lib/atribucion/*`, `lib/queries/` (la capa de hechos y las métricas) | 122 |
+| **P2 · el compañero: Meta, moneda, gráficas, acciones y semáforo** | 119 → 120 → 244 → 245 · 255 → 256 · 257 · 249 · 258 → 259 → 260 → 261 | `lib/pauta/*` y `lib/tasas/*` (nuevos), `app/api/*` del sync y del semáforo, `vercel.json`, `components/graficas/*` (nuevo), `lib/acciones/*` y `components/acciones/*` (nuevos), **el repo de Juanito** (260) | 119, 120, 244, 245, 257, 261 |
+
+**Cola de migraciones** (una sola, la genera y aplica la sesión principal de Mani con su ok y leyendo el SQL):
+119 → 120 → 244 → 122 → 245 → 257 → 261. Quien llegue a su migración y no le toque, espera o sigue con su siguiente
+ticket sin migración.
+
+**Choques a vigilar:**
+- **`lib/db/schema.ts`:** solo con la migración de turno; nadie más lo toca en ese momento.
+- **La capa de hechos (262) es de P1.** El hecho del gasto lo agrega P2 con el 120 como **archivo nuevo** dentro de la
+  capa, sin editar los de P1; si necesita cambiar uno, lo pide.
+- **`lib/atribucion/*` es de P1:** el 247 queda en P1 porque edita `emparejar`. P2 solo lee el árbol que su 120 escribe.
+- **Las pestañas del Hub son de P1.** El 257 (acciones en Hoy), el 249 y el 258 (en Pauta) entregan su componente en
+  su carpeta y lo montan con **una línea** en la página, rebasando sobre lo que haya del 250 y el 252.
+- **El 256 migra gráficas dentro de `components/dashboard/*`** (de P1): va al final, cuando el 250 y el 252 estén en
+  `main`, y avisa antes de empezar.
+- **`AGENTS.md`, `docs/tasks/README.md`, `docs/agents/handoff.md` y `docs/hub.md`:** solo la sesión principal de
+  Mani. Cada persona escribe su estado en el **archivo de su ticket** (§5).
+
+**Cómo arranca P2:** clonar `Retia-Agencia/retia-metrics`, el mismo `.env.local` del equipo (ya trae
+`META_SYSTEM_TOKEN`, `AGENTS.md` → Conventions), Docker para `npm run db:local` y `npm run dev:local`, y leer en
+este orden: `AGENTS.md`, `docs/hub.md`, el ticket. Lo primero que puede tomar sin esperar a nadie: **119** (con su
+migración en la cola) y **255** (exploración, sin migración).
+
+**Prueba de costura de la ola:** el costo por agenda de un programa en Hub › Pauta (123, P1) es el mismo número que
+el semáforo devuelve por el endpoint (258 y 259, P2), con test.
+
 ### 🌊 Ola O9 · el comprobante como archivo · abierta el 13-oct · **cerrada en `cp-20261014-1`** (`ef7685e`): 238 a 241 `done`, y con ellos 230 a 237
 
 Sale del 235 (A-146) y del ADR 0085. Dos carriles; 239 y 240 comparten `app/(app)/p/[programa]/deals/[id]/acciones.ts`

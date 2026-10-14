@@ -82,6 +82,15 @@ conectar Calendly en el formulario y escoger el evento → cambiar los placehold
 camino** (descalificado, sin agenda, con agenda, con las seis UTM) revisado en la base antes de compartir el link.
 Antes de compartir un link de agenda, `npm run simular:cita -- --programa <slug> --host <correo> --lead <correo>` prueba el webhook firmado contra `dev:local`.
 **Un Typeform nuevo copiado de otro se compara contra el de referencia vivo** (lógica, variables y ocultos por la API, 5-oct): la copia de Comunícate con Confianza salió de una versión vieja sin `lead_value` ni `utm_id`. Y su "Send test request" se guarda sin ingerir desde `67114fd`; antes creaba un lead falso.
+**Los campos ocultos van completos desde el primer día** (ADR 0087, 14-oct): `utm_source`, `utm_medium`,
+`utm_campaign`, `utm_term`, `utm_content`, `utm_id`, `ad_id`, `adset_id` y `campaign_id`. El formulario bota todo
+parámetro que no declara, y los anuncios de Retia mandan el id del anuncio en `ad_id` o en `utm_id` según su
+plantilla: sin el campo, ese anuncio no se puede recuperar después. **Hecho el 14-oct en los tres Typeform** (TI,
+CA y Confianza, por API, con respaldo; el resto del form y los webhooks quedaron idénticos). ⚠️ Agregar un campo oculto
+a un formulario con hoja conectada corre las columnas de la hoja (27-sep y 30-sep,
+`work/retia/apps-script-sheets/README.md`). Desde el 14-oct las hojas de TI y CA **ya no se usan** (Mani): si alguien
+reporta algo, Mani las arregla. Juanito solo lee las columnas A a C (nombre, correo, WhatsApp), que no se mueven. En un
+programa nuevo los campos van al crear el formulario. En Dapta, verificar con un envío real que esos parámetros llegan.
 El puntaje del formulario sigue el estándar único (`docs/dapta/README.md`, "Estándar de puntaje"). Desde el ADR 0069
 el formulario no decide la etapa: manda agenda, calidad y valor, y el CRM enruta (se construye con las etapas de 30X).
 
@@ -106,6 +115,7 @@ editor) y en Vercel.
 | `SEED_GERENTE_EMAIL`, `SEED_GERENTE_NOMBRE` | el gerente que siembra `seed:users` | local |
 | `ENLACES_PAGO_JSON` | los enlaces de pago que carga `cargar-enlaces-pago` (el JSON lo tiene Mani) | local |
 | `TYPEFORM_TOKEN` | token personal de Typeform, **por cuenta**: ve los forms de los tres programas (Comunícate con Confianza: `E5F4chVT`, en la cuenta de Francisco) (lectura de forms, variables, webhooks y respuestas). Solo para scripts y revisiones de devs; la app no lo lee | local |
+| `META_SYSTEM_TOKEN` | token del usuario del sistema `retia-insights` del portafolio Agencia Retia Growth (14-oct): **solo `ads_read`**, caducidad Nunca, ve las 7 cuentas publicitarias (`docs/hub.md` §2.4). Solo para scripts y devs; **la app no lo lee**: en producción el token vive en la base (`meta_conexiones`, 119, ADR 0062). Copia de respaldo fuera del repo en `~/.config/retia/meta.env` de Mani. La API exige `v26.0` | local |
 | `CALENDLY_ACCESS_TOKEN_COMUNICARTE`, `CALENDLY_ACCESS_TOKEN_TACTICAL`, `CALENDLY_ACCESS_TOKEN_COMUNICATE_CONFIANZA` | un access token por programa, de una cuenta OWNER (ve miembros, tipos de evento, citas y webhooks de su organizacion). Solo para scripts y revisiones de devs; en produccion el token vive en la base (ADR 0057) | local |
 | `CALENDLY_PAT_LOCAL_COMUNICARTE`, `CALENDLY_PAT_LOCAL_TACTICAL` | **no se usan** (Mani, 29-sep). Solo los lee `seed-local`; vacios va un token de mentira |
 
@@ -260,6 +270,7 @@ el traslado y la migración de la etapa 7. `sync_runs` sigue en la base como his
 | 22-sep | al cambiar de driver se cayó el build: un componente de cliente importaba un módulo que arrastra la base | un componente `"use client"` no importa nada de `lib/db` |
 | 23-sep | `next dev` murió con "Jest worker encountered 2 child process exceptions" tras levantar un segundo servidor sobre la misma `.next` | antes de arrancar un servidor, mirar si ya hay uno en el 3000 |
 | 27-sep | agregar un cálculo en los Typeform activó `score` e insertó la columna "Score" en la O de las dos hojas; los Apps Script leen por posición y dejaron de clasificar leads nuevos, sin error, durante ~40 min (1 lead real afectado, rescatado) | un cambio en Typeform se verifica mirando la fila 1 de la hoja después del primer envío; nunca reconectar la integración con Sheets. Detalle en `work/retia/apps-script-sheets/README.md` |
+| 14-oct | la sesión del Hub agregó `ad_id`, `adset_id` y `campaign_id` a los tres Typeform afirmando que "no rompía nada" sin leer la fila de arriba; el 30-sep el mismo tipo de cambio (`utm_id`) había corrido las columnas de las hojas. Se revirtió al minuto, sin envíos en medio, y se volvió a aplicar cuando Mani confirmó que las hojas ya no se usan | antes de afirmar que un cambio en un borde no rompe nada, leer esta tabla y el README de los Apps Script |
 | 27-sep | `npm ci` falla porque el lock no está sincronizado (faltan `@emnapi/runtime` y `@emnapi/core`); un `node_modules` viejo tira 46 tests por falta del driver `postgres` | reparar el lock con `npm install` y un commit; mientras tanto, `npm install --no-package-lock` |
 
 ## 10. Deuda que queda

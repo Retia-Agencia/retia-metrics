@@ -3,7 +3,7 @@ id: 067
 etapa: E5
 serves: "plan v2 §6 etapa 5 · tarea E5-4 · ADR 0039 punto 4, insumo §8 · ENMENDADO por ADR 0045"
 depends: [064, 120]
-status: todo
+status: reemplazado
 ---
 
 # 067 — ROAS por cohorte, y la pauta se captura en el CRM
@@ -86,3 +86,11 @@ ella dependia poder cruzar costo con leads:
 > ⚠️ **1-oct: abierto.** La migración 0057 quita `cohorts.trm_cohorte` (Mani). De dónde sale la TRM del ROAS es
 > la decisión A12 de `docs/plan.md` §7, y se toma antes de E7. Hasta entonces, lo que este documento dice de la
 > "TRM de la cohorte" describe la intención, no una columna que exista.
+
+---
+
+## Reemplazado 14-oct (audit del Hub, ok de Mani)
+
+El ROAS por cohorte lo calcula el **123** (es el atajo de cohorte del periodo, con la TRM de cada día, ADR 0088) y el
+gasto entra por la API (**120**). La captura manual era para cuando no había API; no se midió pauta fuera de Meta. Si
+aparece una plataforma sin API, se reabre como ticket nuevo sobre `registrarGasto` (120).

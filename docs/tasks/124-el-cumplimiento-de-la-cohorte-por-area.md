@@ -2,7 +2,7 @@
 id: 124
 etapa: E8
 serves: "ADR 0063 · docs/analytics.md PT-41 a PT-47"
-depends: [122, 123]
+depends: [122, 123, 253]
 status: todo
 ---
 
@@ -45,3 +45,11 @@ Sí, con revisión visual.
 ## Respuesta de Mani, 29-sep
 
 - La conversión agenda→venta **se declara en los objetivos** (122). Cada agenda cuenta para la cohorte de su deal; si el deal aún no tiene cohorte (se asigna en el primer abono), cuenta para la cohorte activa el día en que se agendó. Siguen abiertas la ventana del ritmo y el desfase.
+
+---
+
+## Enmienda 14-oct (audit del Hub)
+
+Ritmo, proyección y requeridos ya los calcula el 253 para el total; este ticket los parte por área con los mismos
+módulos (no una segunda fórmula) y los muestra en Hub › Hoy y Pauta. Los dos supuestos de PQ3 son los del 253
+(HQ-5). Depende además del 253.

@@ -48,3 +48,21 @@ Sí para el código y los tests, con revisión de permisos. La migración, la se
 ## Respuesta de Mani, 29-sep
 
 - Una cuenta publicitaria por programa, en COP y zona Bogotá; un token por portafolio (varias conexiones). La relación cuenta → programa es 1 a 1 por ahora; no hace falta asignar campañas a mano.
+
+---
+
+## Enmienda 14-oct (audit del Hub, ADR 0087 punto 7, `docs/hub.md` §2.4)
+
+La respuesta del 29-sep (una cuenta por programa, en COP, un token por portafolio) **ya no es cierta**:
+
+- **Una sola conexión:** el portafolio **Agencia Retia Growth** (`1671066217989493`) con el usuario del sistema
+  `retia-insights` (solo `ads_read`, caducidad Nunca). El token existe y vive hoy fuera del repo
+  (`~/.config/retia/meta.env`); entra a la base solo por `guardarTokenMeta`, desde la pantalla, a mano.
+- **N cuentas por programa, cada una con su moneda:** TI 1 (COP), Power Talk = Comunícate con Confianza 1 (COP),
+  ComunicArte 4 que importan (2 COP, 2 USD; las confirmó Anderson el 13-oct), más `[CP] Milena Nas & Be` (USD), que se
+  vincula inactiva (HQ-6), y una restringida por Meta que no se puede asignar. Moneda y zona horaria se leen de Meta; hoy las cuatro activas están en `America/Bogota`.
+- **La API exige la versión:** `https://graph.facebook.com/v26.0/...` (sin versión, error #2635).
+- **Dónde va la pantalla** (ADR 0077): la conexión, en Ajustes (no es de ningún objeto); las cuentas de un programa,
+  en la tab Programa.
+- **Un programa nuevo** con pauta (Memorable, los que vengan) se configura vinculando su cuenta: es una fila, sin
+  código (contrato C-1 de `docs/hub.md`).
