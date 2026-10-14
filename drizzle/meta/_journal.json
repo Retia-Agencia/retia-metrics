@@ -575,6 +575,13 @@
       "when": 1791992280811,
       "tag": "0081_pauta-de-meta",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1792020157325,
+      "tag": "0082_trm-del-dia",
+      "breakpoints": true
     }
   ]
 }

@@ -1901,6 +1901,30 @@ export const pautaSincronizaciones = pgTable(
   ],
 );
 
+// ─────────────────────────────────────────────────────────── TRM del día (ticket 244, ADR 0088)
+
+/**
+ * La TRM oficial COP/USD, una fila por publicación de la Superintendencia Financiera (datos.gov.co).
+ * Una publicación cubre un rango (`vigente_desde` a `vigente_hasta`: el viernes cubre el fin de semana
+ * y el festivo), así que un día sin publicación se resuelve por el rango, sin inventar filas.
+ * La escribe solo `registrarTasa` (`lib/trm/`).
+ */
+export const tasasCambio = pgTable(
+  "tasas_cambio",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vigenteDesde: date("vigente_desde").notNull().unique(),
+    vigenteHasta: date("vigente_hasta").notNull(),
+    pesosPorDolar: numeric("pesos_por_dolar", { precision: 12, scale: 2 }).notNull(),
+    fuente: text("fuente").notNull(),
+    leidaEn: timestamp("leida_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check("tasas_cambio_rango_chk", sql`${t.vigenteHasta} >= ${t.vigenteDesde}`),
+    check("tasas_cambio_positiva_chk", sql`${t.pesosPorDolar} > 0`),
+  ],
+);
+
 // ─────────────────────────────────────────────────────────── tipos
 
 export type Usuario = typeof users.$inferSelect;
@@ -1942,3 +1966,6 @@ export type GastoPauta = typeof gastoPauta.$inferSelect;
 export type NuevoGastoPauta = typeof gastoPauta.$inferInsert;
 export type PautaSincronizacion = typeof pautaSincronizaciones.$inferSelect;
 export type NuevaPautaSincronizacion = typeof pautaSincronizaciones.$inferInsert;
+
+export type TasaCambio = typeof tasasCambio.$inferSelect;
+export type NuevaTasaCambio = typeof tasasCambio.$inferInsert;
