@@ -1,0 +1,5 @@
+{
+  "campaigns": [{ "id": "camp-1", "name": "Campaña Octubre", "effective_status": "ACTIVE", "objective": "OUTCOME_LEADS" }],
+  "adsets": [{ "id": "set-1", "name": "Prospección", "effective_status": "ACTIVE", "campaign_id": "camp-1" }],
+  "ads": [{ "id": "ad-1", "name": "Video uno", "effective_status": "ACTIVE", "adset_id": "set-1", "campaign_id": "camp-1", "creative": { "object_type": "VIDEO", "video_id": "vid-1", "url_tags": "utm_id={{ad.id}}" } }]
+}

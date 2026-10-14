@@ -568,6 +568,13 @@
       "when": 1791985537986,
       "tag": "0080_meta-conexion-y-cuentas",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1791992280811,
+      "tag": "0081_pauta-de-meta",
+      "breakpoints": true
     }
   ]
 }

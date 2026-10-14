@@ -8,11 +8,13 @@ import {
 } from "@/lib/catalogo/meta";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
-import { fechaHoraEnBogota } from "@/lib/format";
+import { fechaHoraEnBogota, haceCuanto } from "@/lib/format";
+import { ultimaSincronizacionPauta } from "@/lib/pauta/sincronizar";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConexionMeta } from "./conexion-meta";
+import { SincronizacionMeta } from "./sincronizacion-meta";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +31,11 @@ function agruparPorPrograma(cuentas: CuentaVinculada[]) {
 export default async function MetaPage() {
   const session = await paginaConRol("gerente", "paid_trafficker");
   if (!manejaPauta(await rolDeVista(session))) throw new ErrorDeApp("No autorizado.", 403);
-  const [estado, cuentas] = await Promise.all([estadoConexionMeta(db), cuentasVinculadas(db)]);
+  const [estado, cuentas, ultima] = await Promise.all([
+    estadoConexionMeta(db),
+    cuentasVinculadas(db),
+    ultimaSincronizacionPauta(db),
+  ]);
   const cuentasPorPrograma = agruparPorPrograma(cuentas);
 
   return (
@@ -55,6 +61,20 @@ export default async function MetaPage() {
                 : "Meta todavía no está conectada."}
             </p>
             <ConexionMeta />
+            <div className="flex flex-wrap items-center gap-3">
+              <SincronizacionMeta deshabilitada={!estado.conectada} />
+              <p className="text-sm text-muted-foreground">
+                Última sincronización {haceCuanto(ultima?.fin ?? ultima?.inicio)}.
+              </p>
+              {ultima ? (
+                <Badge variant={ultima.estado === "ok" ? "exito" : ultima.estado === "error" ? "peligro" : "info"}>
+                  {ultima.estado === "ok" ? "Completa" : ultima.estado === "error" ? "Falló" : "En curso"}
+                </Badge>
+              ) : null}
+            </div>
+            {ultima?.estado === "error" && ultima.error ? (
+              <p className="text-sm text-tono-peligro">{ultima.error}</p>
+            ) : null}
             <p className="text-xs text-muted-foreground">
               El token nunca vuelve a mostrarse. Pegar uno nuevo reemplaza la conexión actual.
             </p>

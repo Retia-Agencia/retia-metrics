@@ -52,6 +52,11 @@ async function tokenActivo(db: Db): Promise<string> {
   return conexion.token;
 }
 
+/** Lector deliberadamente estrecho para los dos disparadores de la sincronización. */
+export async function tokenActivoMeta(db: Db): Promise<string> {
+  return tokenActivo(db);
+}
+
 /** Prueba el token antes de tocar la base y conserva una única conexión activa. */
 export async function guardarTokenMeta(
   db: Db,

@@ -153,6 +153,13 @@ export const motivoEntregaEnum = pgEnum("motivo_entrega", [
  */
 export const proveedorFormularioEnum = pgEnum("proveedor_formulario", ["typeform", "dapta"]);
 export const estadoSyncEnum = pgEnum("estado_sync", ["corriendo", "ok", "error"]);
+export const nivelPautaEnum = pgEnum("nivel_pauta", ["campana", "conjunto", "anuncio"]);
+export const origenGastoEnum = pgEnum("origen_gasto", ["meta_api", "manual"]);
+export const estadoSincronizacionPautaEnum = pgEnum("estado_sincronizacion_pauta", [
+  "corriendo",
+  "ok",
+  "error",
+]);
 /**
  * Salud de una fuente (ADR 0039, lo usa el ticket 055). **No es lo mismo que
  * `activo`**: una fuente ROTA sigue activa. Es la diferencia entre "esta hoja
@@ -1400,28 +1407,6 @@ export const rarezasMigracion = pgTable(
   ],
 );
 
-// ─────────────────────────────────────────────────────────── pauta
-
-export const adSpend = pgTable(
-  "ad_spend",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
-    cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "set null" }),
-    campana: text("campana"),
-    creativo: text("creativo"),
-    fecha: date("fecha"),
-    inversionCop: numeric("inversion_cop", { precision: 14, scale: 2 }),
-    impresiones: integer("impresiones"),
-    clics: integer("clics"),
-    registros: integer("registros"),
-    huellaFila: text("huella_fila"),
-    raw: jsonb("raw"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex("ad_spend_huella_idx").on(t.programId, t.huellaFila)],
-);
-
 // ─────────────────────────────────────────────────────────── sincronizacion
 
 /**
@@ -1810,6 +1795,112 @@ export const cuentasPublicitarias = pgTable(
   ],
 );
 
+// ─────────────────────────────────────────────────────────── pauta (ticket 120)
+
+export const pautaObjetos = pgTable(
+  "pauta_objetos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cuentaId: uuid("cuenta_id")
+      .notNull()
+      .references(() => cuentasPublicitarias.id, { onDelete: "restrict" }),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => programs.id, { onDelete: "restrict" }),
+    idMeta: text("id_meta").notNull().unique(),
+    nivel: nivelPautaEnum("nivel").notNull(),
+    padreIdMeta: text("padre_id_meta"),
+    nombre: text("nombre").notNull(),
+    estado: text("estado").notNull(),
+    objetivo: text("objetivo"),
+    formato: text("formato"),
+    urlTags: text("url_tags"),
+    actualizadoEn: timestamp("actualizado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      "pauta_objetos_padre_por_nivel_chk",
+      sql`(${t.nivel} = 'campana' and ${t.padreIdMeta} is null) or (${t.nivel} <> 'campana' and ${t.padreIdMeta} is not null)`,
+    ),
+    check(
+      "pauta_objetos_objetivo_campana_chk",
+      sql`${t.objetivo} is null or ${t.nivel} = 'campana'`,
+    ),
+    check(
+      "pauta_objetos_formato_anuncio_chk",
+      sql`${t.formato} is null or (${t.nivel} = 'anuncio' and ${t.formato} in ('video', 'imagen', 'carrusel'))`,
+    ),
+    check(
+      "pauta_objetos_url_tags_anuncio_chk",
+      sql`${t.urlTags} is null or ${t.nivel} = 'anuncio'`,
+    ),
+    index("pauta_objetos_programa_nivel_idx").on(t.programId, t.nivel),
+  ],
+);
+
+export const gastoPauta = pgTable(
+  "gasto_pauta",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => programs.id, { onDelete: "restrict" }),
+    fecha: date("fecha").notNull(),
+    monto: numeric("monto", { precision: 14, scale: 2 }).notNull(),
+    moneda: text("moneda").notNull(),
+    agendasMeta: integer("agendas_meta"),
+    origen: origenGastoEnum("origen").notNull(),
+    pautaObjetoId: uuid("pauta_objeto_id").references(() => pautaObjetos.id, {
+      onDelete: "restrict",
+    }),
+    area: text("area"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    actualizadoEn: timestamp("actualizado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      "gasto_pauta_un_destino_chk",
+      sql`(${t.pautaObjetoId} is not null) <> (${t.area} is not null)`,
+    ),
+    check(
+      "gasto_pauta_area_chk",
+      sql`${t.area} is null or ${t.area} in ('paid', 'organico', 'referidos')`,
+    ),
+    check(
+      "gasto_pauta_meta_con_objeto_chk",
+      sql`${t.origen} = 'manual' or ${t.pautaObjetoId} is not null`,
+    ),
+    uniqueIndex("gasto_pauta_objeto_fecha_meta_idx")
+      .on(t.pautaObjetoId, t.fecha)
+      .where(sql`${t.origen} = 'meta_api'`),
+    index("gasto_pauta_programa_fecha_idx").on(t.programId, t.fecha),
+  ],
+);
+
+export const pautaSincronizaciones = pgTable(
+  "pauta_sincronizaciones",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    inicio: timestamp("inicio", { withTimezone: true }).notNull().defaultNow(),
+    fin: timestamp("fin", { withTimezone: true }),
+    estado: estadoSincronizacionPautaEnum("estado").notNull().default("corriendo"),
+    disparadaPor: text("disparada_por").notNull(),
+    desde: date("desde").notNull(),
+    hasta: date("hasta").notNull(),
+    filas: integer("filas"),
+    error: text("error"),
+  },
+  (t) => [
+    check(
+      "pauta_sincronizaciones_disparada_por_chk",
+      sql`${t.disparadaPor} in ('cron', 'manual')`,
+    ),
+    uniqueIndex("pauta_sincronizaciones_una_corriendo_idx")
+      .on(sql`(true)`)
+      .where(sql`${t.estado} = 'corriendo'`),
+  ],
+);
+
 // ─────────────────────────────────────────────────────────── tipos
 
 export type Usuario = typeof users.$inferSelect;
@@ -1834,7 +1925,6 @@ export type CuotaPactada = typeof cuotasPactadas.$inferSelect;
 export type Llamada = typeof calls.$inferSelect;
 export type Abono = typeof abonos.$inferSelect;
 export type NuevoAbono = typeof abonos.$inferInsert;
-export type Pauta = typeof adSpend.$inferSelect;
 export type CorridaSync = typeof syncRuns.$inferSelect;
 export type Cambio = typeof changeLog.$inferSelect;
 export type PlataformaPago = typeof plataformasPago.$inferSelect;
@@ -1846,3 +1936,9 @@ export type SobreCrudo = typeof sobresCrudos.$inferSelect;
 export type EntregaWebhook = typeof entregasWebhook.$inferSelect;
 export type MetaConexion = typeof metaConexiones.$inferSelect;
 export type CuentaPublicitaria = typeof cuentasPublicitarias.$inferSelect;
+export type PautaObjeto = typeof pautaObjetos.$inferSelect;
+export type NuevoPautaObjeto = typeof pautaObjetos.$inferInsert;
+export type GastoPauta = typeof gastoPauta.$inferSelect;
+export type NuevoGastoPauta = typeof gastoPauta.$inferInsert;
+export type PautaSincronizacion = typeof pautaSincronizaciones.$inferSelect;
+export type NuevaPautaSincronizacion = typeof pautaSincronizaciones.$inferInsert;

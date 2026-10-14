@@ -8,6 +8,11 @@ type RespuestaMeta<T> = T & {
   error?: { message?: unknown };
 };
 
+interface PaginaMeta<T> {
+  data?: T[];
+  paging?: { next?: unknown };
+}
+
 function mensajeSeguro(mensaje: unknown, token: string): string {
   const texto = typeof mensaje === "string" && mensaje.trim() ? mensaje : "respuesta inválida";
   return texto.replaceAll(token, "(oculto)");
@@ -30,6 +35,20 @@ async function consultar<T>(url: URL, token: string, f: FetchMeta): Promise<Resp
   }
   if (!cuerpo) throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
   return cuerpo;
+}
+
+async function consultarPaginas<T>(url: URL, token: string, f: FetchMeta): Promise<T[]> {
+  const filas: T[] = [];
+  let siguiente: URL | null = url;
+  while (siguiente) {
+    const cuerpo: RespuestaMeta<PaginaMeta<T>> = await consultar(siguiente, token, f);
+    if (!Array.isArray(cuerpo.data)) {
+      throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
+    }
+    filas.push(...cuerpo.data);
+    siguiente = typeof cuerpo.paging?.next === "string" ? new URL(cuerpo.paging.next) : null;
+  }
+  return filas;
 }
 
 /** Nombre del usuario del sistema al que pertenece el token. */
@@ -96,4 +115,145 @@ export async function cuentasVisibles(
   }
 
   return cuentas;
+}
+
+export interface ObjetoDePautaMeta {
+  idMeta: string;
+  nivel: "campana" | "conjunto" | "anuncio";
+  padreIdMeta: string | null;
+  nombre: string;
+  estado: string;
+  objetivo: string | null;
+  formato: "video" | "imagen" | "carrusel" | null;
+  urlTags: string | null;
+}
+
+function texto(valor: unknown): string | null {
+  return typeof valor === "string" && valor.trim() ? valor : null;
+}
+
+function formatoCreativo(creativo: unknown): ObjetoDePautaMeta["formato"] {
+  if (!creativo || typeof creativo !== "object") return null;
+  const c = creativo as {
+    object_type?: unknown;
+    video_id?: unknown;
+    asset_feed_spec?: { images?: unknown; videos?: unknown };
+  };
+  const tipo = texto(c.object_type)?.toUpperCase();
+  if (tipo === "VIDEO" || texto(c.video_id) || Array.isArray(c.asset_feed_spec?.videos)) return "video";
+  if (tipo === "CAROUSEL" || tipo === "MULTI_SHARE") return "carrusel";
+  if (
+    tipo === "PHOTO" ||
+    tipo === "IMAGE" ||
+    (tipo === "SHARE" && Array.isArray(c.asset_feed_spec?.images))
+  ) return "imagen";
+  return null;
+}
+
+function exigirBase(fila: Record<string, unknown>): { id: string; nombre: string; estado: string } {
+  const id = texto(fila.id);
+  const nombre = texto(fila.name);
+  const estado = texto(fila.effective_status);
+  if (!id || !nombre || !estado) {
+    throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
+  }
+  return { id, nombre, estado };
+}
+
+/** Árbol completo de campañas, conjuntos y anuncios visibles en una cuenta. */
+export async function arbolDeCuenta(
+  idMeta: string,
+  token: string,
+  f: FetchMeta = globalThis.fetch,
+): Promise<ObjetoDePautaMeta[]> {
+  const base = `${META_BASE}/act_${idMeta}`;
+  const url = (borde: string, fields: string) => {
+    const u = new URL(`${base}/${borde}`);
+    u.searchParams.set("fields", fields);
+    u.searchParams.set("limit", "500");
+    return u;
+  };
+  const [campanas, conjuntos, anuncios] = await Promise.all([
+    consultarPaginas<Record<string, unknown>>(
+      url("campaigns", "id,name,effective_status,objective"), token, f,
+    ),
+    consultarPaginas<Record<string, unknown>>(
+      url("adsets", "id,name,effective_status,campaign_id"), token, f,
+    ),
+    consultarPaginas<Record<string, unknown>>(
+      url(
+        "ads",
+        "id,name,effective_status,adset_id,campaign_id,url_tags,creative{object_type,video_id,asset_feed_spec,url_tags}",
+      ),
+      token,
+      f,
+    ),
+  ]);
+
+  return [
+    ...campanas.map((fila): ObjetoDePautaMeta => {
+      const b = exigirBase(fila);
+      return { idMeta: b.id, nivel: "campana", padreIdMeta: null, nombre: b.nombre,
+        estado: b.estado, objetivo: texto(fila.objective), formato: null, urlTags: null };
+    }),
+    ...conjuntos.map((fila): ObjetoDePautaMeta => {
+      const b = exigirBase(fila);
+      const padre = texto(fila.campaign_id);
+      if (!padre) throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
+      return { idMeta: b.id, nivel: "conjunto", padreIdMeta: padre, nombre: b.nombre,
+        estado: b.estado, objetivo: null, formato: null, urlTags: null };
+    }),
+    ...anuncios.map((fila): ObjetoDePautaMeta => {
+      const b = exigirBase(fila);
+      const padre = texto(fila.adset_id);
+      if (!padre) throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
+      const creativo = fila.creative && typeof fila.creative === "object"
+        ? fila.creative as Record<string, unknown>
+        : {};
+      return { idMeta: b.id, nivel: "anuncio", padreIdMeta: padre, nombre: b.nombre,
+        estado: b.estado, objetivo: null, formato: formatoCreativo(creativo),
+        urlTags: texto(fila.url_tags) ?? texto(creativo.url_tags) };
+    }),
+  ];
+}
+
+export interface InsightDeAnuncioMeta {
+  adId: string;
+  monto: string;
+  fecha: string;
+  agendas: number | null;
+}
+
+/** Gasto y agendas reportados por Meta, con grano anuncio × día. */
+export async function insightsPorAnuncioYDia(
+  idMeta: string,
+  desde: string,
+  hasta: string,
+  token: string,
+  f: FetchMeta = globalThis.fetch,
+): Promise<InsightDeAnuncioMeta[]> {
+  const url = new URL(`${META_BASE}/act_${idMeta}/insights`);
+  url.searchParams.set("level", "ad");
+  url.searchParams.set("time_increment", "1");
+  url.searchParams.set("time_range", JSON.stringify({ since: desde, until: hasta }));
+  url.searchParams.set("fields", "ad_id,spend,date_start,conversions");
+  url.searchParams.set("limit", "500");
+  const filas = await consultarPaginas<Record<string, unknown>>(url, token, f);
+  return filas.map((fila) => {
+    const adId = texto(fila.ad_id);
+    const monto = texto(fila.spend);
+    const fecha = texto(fila.date_start);
+    if (!adId || !monto || !fecha) {
+      throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
+    }
+    const conversion = Array.isArray(fila.conversions)
+      ? fila.conversions.find((c) => c && typeof c === "object" &&
+        (c as { action_type?: unknown }).action_type ===
+          "offsite_conversion.fb_pixel_custom.invitee_meeting_scheduled")
+      : undefined;
+    const valor = conversion && typeof conversion === "object"
+      ? Number((conversion as { value?: unknown }).value)
+      : Number.NaN;
+    return { adId, monto, fecha, agendas: Number.isFinite(valor) ? valor : null };
+  });
 }
