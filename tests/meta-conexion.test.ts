@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import {
   changeLog,
@@ -18,7 +18,7 @@ import {
   TOKEN_OCULTO,
   vincularCuenta,
 } from "@/lib/catalogo/meta";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 const auth = vi.fn();
@@ -37,6 +37,8 @@ vi.mock("@/lib/db", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 let cerrar: () => Promise<void>;
+
+let vaciar: () => Promise<void>;
 let actorId: string;
 let gerenteId: string;
 let programaA: string;
@@ -82,9 +84,13 @@ function fetchDeMeta(tokenEsperado: string, cuentas = CUENTAS) {
   }) as typeof globalThis.fetch;
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
+  await vaciar();
   auth.mockReset();
-  ({ db, cerrar } = await crearBaseDePrueba());
   const [actor] = await db
     .insert(users)
     .values({ email: "pauta@retiagrowth.com", rol: "paid_trafficker", nombre: "Pauta" })
@@ -119,6 +125,9 @@ beforeEach(async () => {
 
 afterEach(async () => {
   vi.unstubAllGlobals();
+});
+
+afterAll(async () => {
   await cerrar();
 });
 

@@ -1,20 +1,25 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { calls, changeLog, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { rellenarCloserDeLlamadas } from "@/lib/calendly/rellenar-closer";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 describe("rellenar closer de llamadas de Calendly", () => {
   let db: Db;
   let cerrar: () => Promise<void>;
+  let vaciar: () => Promise<void>;
   let programId: string;
   let closerId: string;
   let actorId: string;
 
+  beforeAll(async () => {
+    ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  });
+
   beforeEach(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    await vaciar();
     const [programa] = await db
       .insert(programs)
       .values({ ...PROGRAMA_DE_PRUEBA, slug: "relleno", nombre: "Relleno", ticketUsd: "1000" })
@@ -31,7 +36,7 @@ describe("rellenar closer de llamadas de Calendly", () => {
     });
   });
 
-  afterEach(async () => cerrar());
+  afterAll(async () => cerrar());
 
   async function sembrar() {
     const filas = await db

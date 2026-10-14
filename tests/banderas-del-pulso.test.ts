@@ -4,7 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { banderasDelPulso, ETAPAS_QUE_EXIGEN_VALOR } from "@/lib/queries/banderas-del-pulso";
 import { listaDeMetrica, resumenDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -56,7 +56,7 @@ const anulado = () => ({ anuladoEn: ahora, anuladoPor: ana, motivoAnulacion: "Er
 const esperado = { sinValor: new Set<string>(), sinGrain: new Set<string>(), atendidos: new Set<string>() };
 
 beforeAll(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  ({ db, cerrar } = await crearBaseReutilizable());
   const programas = await db.insert(programs).values([
     { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" },
     { ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1000" },

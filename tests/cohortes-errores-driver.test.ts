@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { changeLog, cohorts, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -9,7 +9,7 @@ import {
   editarCohorte,
   type EntradaCohorte,
 } from "@/lib/catalogo/cohortes";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -35,12 +35,17 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let actorId: string;
 let programaA: string;
 let programaB: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
 
   const [u] = await db
     .insert(users)
@@ -61,7 +66,7 @@ beforeEach(async () => {
   programaB = b.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

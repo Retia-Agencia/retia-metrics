@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { calls, deals, leads, programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { agruparPorCanal, registrosYAgendasPorCanal } from "@/lib/queries/registros-agendas-canal";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -15,14 +15,19 @@ const HOY = "2026-09-29";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let otroProgramId: string;
 let fuente: string;
 let fuenteOtro: string;
 let n = 0;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p, q] = await db
     .insert(programs)
     .values([
@@ -36,7 +41,7 @@ beforeEach(async () => {
   fuenteOtro = (await db.insert(sources).values({ programId: otroProgramId, nombre: "Typeform" }).returning())[0].id;
 }, 60_000);
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

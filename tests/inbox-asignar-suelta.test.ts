@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
   calls,
@@ -11,7 +11,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -42,6 +42,8 @@ vi.mock("@/lib/db", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 let cerrar: () => Promise<void>;
+
+let vaciar: () => Promise<void>;
 let programaA: string;
 let programaB: string;
 let closerDeA: string;
@@ -56,9 +58,13 @@ async function acciones() {
   return import("@/app/(app)/p/[programa]/inbox/acciones");
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
+  await vaciar();
   auth.mockReset();
-  ({ db, cerrar } = await crearBaseDePrueba());
 
   const [pa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "a", nombre: "A", ticketUsd: "1000" }).returning();
   programaA = pa.id;
@@ -109,7 +115,7 @@ beforeEach(async () => {
   callSuelta = call.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

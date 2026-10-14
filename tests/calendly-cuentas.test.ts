@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { changeLog, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -6,7 +6,7 @@ import { cuentasDeCalendly, cuentasPorPrograma } from "@/lib/calendly/cuentas";
 import { ErrorDeCalendly } from "@/lib/calendly/cita";
 import { asignarCalendlyDeMembresia } from "@/lib/catalogo/usuarios";
 import { AuthorizationError } from "@/lib/auth/roles";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -54,6 +54,7 @@ describe("cuentasDeCalendly", () => {
 describe("vincular la cuenta de una membresia", () => {
   let db: Db;
   let cerrar: () => Promise<void>;
+  let vaciar: () => Promise<void>;
   let programId: string;
   let admin: string;
   let maru: string;
@@ -61,8 +62,12 @@ describe("vincular la cuenta de una membresia", () => {
   let membresiaMaru: string;
   let membresiaAndrea: string;
 
+  beforeAll(async () => {
+    ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  });
+
   beforeEach(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    await vaciar();
     const [p] = await db
       .insert(programs)
       .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500", calendlyToken: "pat" })
@@ -83,7 +88,7 @@ describe("vincular la cuenta de una membresia", () => {
       .returning();
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await cerrar();
   });
 

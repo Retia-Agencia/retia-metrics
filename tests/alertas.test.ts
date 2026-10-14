@@ -5,7 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { guardarUmbral, umbralesDelPrograma } from "@/lib/catalogo/umbrales";
 import { alertasDelPrograma, cumplimientoAlCierre, evaluarAlerta, habilesCerradosAntesDe, type DatosDeAlertas } from "@/lib/queries/alertas";
 import { vistaDeCohorteActiva } from "@/lib/queries/dashboard";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -73,7 +73,7 @@ describe("los umbrales y las alertas del programa", () => {
   let closer: string;
 
   beforeAll(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    ({ db, cerrar } = await crearBaseReutilizable());
     [programaA, programaB] = (await db.insert(programs).values([
       { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "a147", nombre: "A" },
       { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "b147", nombre: "B" },

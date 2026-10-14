@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { calls, leads, miembrosPrograma, programs, users, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -15,13 +15,18 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let otroProgramId: string;
 let maru: string;
 let jero: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
   programId = p.id;
   const [q] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
@@ -32,7 +37,7 @@ beforeEach(async () => {
   jero = b.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
   calls,
@@ -19,7 +19,7 @@ import { agregarLlamada, pegarGrain } from "@/lib/deals/llamadas";
 import { entradasDesdeMatriz } from "@/lib/ingesta/adaptador-sheets";
 import { ingerirEntradas } from "@/lib/ingesta/ingerir";
 import { apartarLasQueYaEntraron } from "@/lib/sheets/traslado";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import real from "./fixtures/typeform-real-tactical.json";
 
@@ -64,6 +64,7 @@ vi.mock("@/lib/ingesta/regla-de-deals", async (importOriginal) => {
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let webhookSourceId: string;
 let hojaSourceId: string;
@@ -144,9 +145,13 @@ function fetchQueLanza() {
 // El correo normalizado del fixture (minúsculas, recortado): la persona única.
 const CORREO = "mariajose.gomez@correo.co";
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
+  await vaciar();
   vi.stubGlobal("fetch", fetchQueLanza());
-  ({ db, cerrar } = await crearBaseDePrueba());
   holder.db = db;
 
   const [p] = await db
@@ -194,6 +199,9 @@ beforeEach(async () => {
 afterEach(async () => {
   holder.db = null;
   vi.unstubAllGlobals();
+});
+
+afterAll(async () => {
   await cerrar();
 });
 

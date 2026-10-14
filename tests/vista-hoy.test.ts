@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { abonos, calls, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { cajaRecaudada, type VistaDeCohorte } from "@/lib/queries/dashboard";
 import { armarVistaDelDashboard, type VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { cajaDelDiaPorOrigen, contextoDelDia, horizontesDeCupos } from "@/lib/queries/vista-hoy";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -91,12 +91,17 @@ describe("la caja de hoy por origen (252)", () => {
   const HOY = "2026-10-14";
   let db: Db;
   let cerrar: () => Promise<void>;
+  let vaciar: () => Promise<void>;
+
+  beforeAll(async () => {
+    ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  });
 
   beforeEach(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    await vaciar();
   }, 60_000);
 
-  afterEach(async () => cerrar());
+  afterAll(async () => cerrar());
 
   async function sembrar() {
     const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797" }).returning();

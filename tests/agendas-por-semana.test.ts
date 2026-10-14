@@ -5,7 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { semanasDelRango } from "@/lib/rangos";
 import type { Metrica } from "@/lib/queries/metricas-con-filas";
 import { detallesPorSemana, proximasPorSemana, vistaDeLista, type DetalleDeCifra } from "@/lib/queries/vista-metrica";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -36,7 +36,7 @@ describe("ticket 189: agendas por semana", () => {
   const t = (iso: string) => new Date(`${iso}-05:00`);
 
   beforeAll(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    ({ db, cerrar } = await crearBaseReutilizable());
     const [a, b] = await db.insert(programs).values([
       { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "s189-a", nombre: "A" },
       { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "s189-b", nombre: "B" },

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { changeLog, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -9,7 +9,7 @@ import { rellenarOrigenDeDeals } from "@/lib/deals/rellenar-origen";
 import { tableroKanban } from "@/lib/queries/kanban";
 import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
 import { fichaDeDeal } from "@/lib/queries/ficha-deal";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -19,6 +19,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let sourceId: string;
 
@@ -59,15 +60,19 @@ function entrada(o: {
 
 const conRegla = { aplicarReglaDeDeals: true } as const;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "t", nombre: "T", ticketUsd: "1500" }).returning();
   programId = p.id;
   const [f] = await db.insert(sources).values({ programId, nombre: "Typeform", tipo: "google_sheet" }).returning();
   sourceId = f.id;
 }, 60_000);
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

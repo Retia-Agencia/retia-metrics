@@ -6,7 +6,7 @@ import type { Db } from "@/lib/db/tipos";
 import { filtroDeFechaDeLaUrl } from "@/lib/periodo";
 import { CAMPOS_DE_FECHA_DE_DEAL, parsearFiltros, tableroKanban } from "@/lib/queries/kanban";
 import { CAMPOS_DE_FECHA_DE_LEAD, leadsDelPrograma } from "@/lib/queries/leads";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -59,7 +59,7 @@ describe("141: la lista de deals y la base de leads, contra la base", () => {
   const id: Record<string, string> = {};
 
   beforeAll(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    ({ db, cerrar } = await crearBaseReutilizable());
     const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
     programId = p.id;
     const [fuente] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();

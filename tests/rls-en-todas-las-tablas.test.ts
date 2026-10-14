@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import type { Db } from "@/lib/db/tipos";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 
 /**
  * ADR 0047 punto 5, migracion 0021: ninguna tabla de `public` queda sin RLS.
@@ -19,7 +19,7 @@ let db: Db;
 let cerrar: () => Promise<void>;
 
 beforeAll(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  ({ db, cerrar } = await crearBaseReutilizable());
 });
 
 afterAll(async () => {

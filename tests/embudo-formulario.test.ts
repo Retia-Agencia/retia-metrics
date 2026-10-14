@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { leads, programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -15,14 +15,19 @@ const RANGO = { desde: "2026-09-01", hasta: "2026-09-30" };
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let sourceId: string;
 let otraFuenteId: string;
 let leadId: string;
 let otroLeadId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p, q] = await db
     .insert(programs)
     .values([
@@ -41,7 +46,7 @@ beforeEach(async () => {
   ]);
 }, 60_000);
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

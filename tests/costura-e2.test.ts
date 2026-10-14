@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
   abonos,
@@ -22,7 +22,7 @@ import { carteraVencida } from "@/lib/queries/cartera";
 import { estudiantesDe } from "@/lib/queries/estudiantes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import real from "./fixtures/typeform-real-tactical.json";
 
@@ -62,6 +62,7 @@ vi.mock("@/lib/ingesta/regla-de-deals", async (importOriginal) => {
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let webhookSourceId: string;
 let closer: string;
@@ -117,8 +118,12 @@ function stubCalendly(uuid: string, inicio: string) {
   });
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   holder.db = db;
 
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" }).returning();
@@ -154,6 +159,9 @@ beforeEach(async () => {
 afterEach(async () => {
   holder.db = null;
   vi.unstubAllGlobals();
+});
+
+afterAll(async () => {
   await cerrar();
 });
 

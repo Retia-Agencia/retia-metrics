@@ -11,7 +11,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { crearBaseDePrueba, type BaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable, type BaseDePrueba } from "./helpers/base-de-prueba";
 import {
   idsDeProgramasVisibles,
   programaDeLaFichaPorSlug,
@@ -58,7 +58,7 @@ describe("la función de alcance (ADR 0048, ticket 094)", () => {
   let slugB: string;
 
   beforeAll(async () => {
-    base = await crearBaseDePrueba();
+    base = await crearBaseReutilizable();
     db = base.db;
 
     const [ana] = await db

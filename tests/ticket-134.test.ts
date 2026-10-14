@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -18,11 +18,12 @@ import { editarDeal } from "@/lib/deals/editar-deal";
 import { registrarAbono } from "@/lib/deals/abonos";
 import { cambiarCohorte } from "@/lib/deals/estudiante";
 import { descuentoDeDeal } from "@/lib/queries/saldo";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
 let closerId: string;
@@ -67,8 +68,12 @@ async function capturar(p: Promise<unknown>) {
   }
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   secuencia = 0;
   const [programa] = await db
     .insert(programs)
@@ -96,7 +101,7 @@ beforeEach(async () => {
   closerId = closer.id;
 });
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 describe("ticket 134 — cohorte y descuento", () => {
   it("un deal nuevo nace en la cohorte activa, o sin cohorte cuando no existe una activa", async () => {

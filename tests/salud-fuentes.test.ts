@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { saludDeFuente, saludDeFuentes } from "@/lib/queries/salud-fuentes";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -77,17 +77,22 @@ describe("saludDeFuente (pura)", () => {
 describe("saludDeFuentes (contra la base)", () => {
   let db: Db;
   let cerrar: () => Promise<void>;
+  let vaciar: () => Promise<void>;
   let programId: string;
 
+  beforeAll(async () => {
+    ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  });
+
   beforeEach(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    await vaciar();
     const [p] = await db
       .insert(programs)
       .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
       .returning();
     programId = p.id;
   });
-  afterEach(async () => cerrar());
+  afterAll(async () => cerrar());
 
   async function fuente(nombre: string, activo = true, extra: Partial<typeof sources.$inferInsert> = {}) {
     // Una sola fuente ACTIVA por programa (ADR 0039): las demas nacen inactivas.

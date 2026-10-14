@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   abonos,
   calls,
@@ -16,17 +16,22 @@ import { programasVisibles, type ProgramaVisible } from "@/lib/auth/alcance";
 import { cajaRecaudada } from "@/lib/queries/dashboard";
 import { armarVistaDeTodos } from "@/lib/queries/vista-todos";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 const HOY = "2026-09-15";
 const RANGO = { desde: HOY, hasta: HOY };
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programas: ProgramaVisible[];
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   programas = await db.insert(programs).values([
     { ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797", comisionPorcentaje: "10" },
     { ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1500", comisionPorcentaje: "5" },
@@ -92,7 +97,7 @@ beforeEach(async () => {
   ]);
 }, 60_000);
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 describe("vista de todos los programas", () => {
   it("suma conteos y caja por moneda con el mismo universo de cada programa", async () => {

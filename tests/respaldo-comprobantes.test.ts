@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 
 import { AlmacenEnMemoria } from "@/lib/archivos/memoria";
@@ -6,7 +6,7 @@ import { EspejoEnMemoria } from "@/lib/archivos/espejo-memoria";
 import { respaldarComprobantes } from "@/lib/archivos/respaldo";
 import { abonos, archivos, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 const AHORA = new Date("2026-10-13T14:00:00Z");
@@ -14,6 +14,7 @@ const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47]);
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let almacen: AlmacenEnMemoria;
 let espejo: EspejoEnMemoria;
 let programId: string;
@@ -22,8 +23,12 @@ let leadId: string;
 let dealId: string;
 let cohortId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   almacen = new AlmacenEnMemoria();
   espejo = new EspejoEnMemoria();
   const [programa] = await db.insert(programs).values({
@@ -52,7 +57,7 @@ beforeEach(async () => {
   dealId = deal.id;
 });
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 async function archivoListo(id: string, ruta = `${id}.png`, createdAt = AHORA) {
   await db.insert(archivos).values({

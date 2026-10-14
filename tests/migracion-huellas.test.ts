@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { abonos, deals, leads, programs, rarezasMigracion } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -16,13 +16,18 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programa: string;
 let lead: string;
 
 const HUELLA = "sheets:programa-a:Estudiantes Julio:ana@correo.co";
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db
     .insert(programs)
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" })
@@ -35,7 +40,7 @@ beforeEach(async () => {
   lead = l.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

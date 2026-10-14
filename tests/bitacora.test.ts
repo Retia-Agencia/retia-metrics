@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { calls, changeLog, dealActividades, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearConRastro } from "@/lib/crm/rastro";
@@ -11,7 +11,7 @@ import {
   USUARIO_SISTEMA,
   type EntradaBitacora,
 } from "@/lib/queries/bitacora";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -21,6 +21,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let closerId: string;
 let otroId: string;
@@ -29,8 +30,12 @@ let leadId: string;
 const NOMBRE_LEAD = "Lead Secreto";
 const CORREO_LEAD = "secreto@correo.co";
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db
     .insert(programs)
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "A", ticketUsd: "1000" })
@@ -52,7 +57,7 @@ beforeEach(async () => {
   leadId = l.id;
 }, 60_000);
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

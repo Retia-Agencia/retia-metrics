@@ -1,16 +1,17 @@
 import { createHmac } from "node:crypto";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { calls, changeLog, deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { linkEnviadoSinCita, marcarLinkEnviado } from "@/lib/deals/handoff";
 import { codigoDeDeal } from "@/lib/calendly/link-de-agenda";
 import { inboxDelPrograma } from "@/lib/queries/inbox";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let dealId: string;
 let ownerId: string;
 let otroId: string;
@@ -25,8 +26,12 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   holder.db = db;
   const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "handoff", nombre: "Handoff", ticketUsd: "1000", calendlySigningKey: CLAVE }).returning();
   programId = programa.id;
@@ -44,6 +49,9 @@ beforeEach(async () => {
 
 afterEach(async () => {
   holder.db = null;
+});
+
+afterAll(async () => {
   await cerrar();
 });
 

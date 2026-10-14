@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { changeLog, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -6,7 +6,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { abrirDeal, moverEtapa } from "@/lib/deals/mover-etapa";
 import { editarAcuerdoDePago, fechaLimiteMaxima, fechaEfectivaDePago } from "@/lib/deals/pago";
 import { ErrorDeApp } from "@/lib/errors";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -16,6 +16,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
 let closer: string;
@@ -23,8 +24,12 @@ let otroCloser: string;
 let gerente: string;
 let leadN = 0;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
   programId = p.id;
   const [c] = await db
@@ -49,7 +54,7 @@ beforeEach(async () => {
   gerente = g.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

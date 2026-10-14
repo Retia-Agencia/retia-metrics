@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
   changeLog,
@@ -15,11 +15,12 @@ import type { EntradaEnvio } from "@/lib/ingesta/envio";
 import { editarUsuario } from "@/lib/catalogo/usuarios";
 import { marcarSetterPorDefecto } from "@/lib/deals/setter-por-defecto";
 import { reclamarDealsPorSettear } from "@/lib/deals/reclamar";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let sourceId: string;
 let secuencia = 0;
@@ -62,8 +63,12 @@ async function dealDe(correo: string) {
   return fila.deal;
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [programa] = await db
     .insert(programs)
     .values({ ...PROGRAMA_DE_PRUEBA, slug: `setter-${++secuencia}`, nombre: "Programa Setter", ticketUsd: "797" })
@@ -72,7 +77,7 @@ beforeEach(async () => {
   sourceId = (await db.insert(sources).values({ programId, nombre: "Formulario", tipo: "google_sheet" }).returning())[0].id;
 });
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 describe("setter por defecto al abrir deals del sistema", () => {
   it("un envío sin agenda nace con owner y setter_user_id del setter por defecto", async () => {

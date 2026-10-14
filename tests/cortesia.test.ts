@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { marcarCortesia } from "@/lib/deals/cortesia";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
@@ -11,11 +11,12 @@ import { contarCortesias, embudoDelRango } from "@/lib/queries/dashboard";
 import { estudiantesDe } from "@/lib/queries/estudiantes";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { saldosDeDeals } from "@/lib/queries/saldo";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let gerente: string;
 let closer: string;
@@ -24,8 +25,12 @@ let secuencia = 0;
 const HOY = hoyEnBogota();
 const rango = { desde: HOY, hasta: HOY };
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [programa] = await db.insert(programs).values({
     ...PROGRAMA_DE_PRUEBA,
     slug: "cortesias",
@@ -48,7 +53,7 @@ beforeEach(async () => {
   }).returning())[0].id;
 }, 60_000);
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 async function crearDeal(opciones: { etapa?: "atendido" | "en_gestion"; valor?: string | null } = {}) {
   const [lead] = await db.insert(leads).values({

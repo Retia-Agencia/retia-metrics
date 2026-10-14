@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import arbol from "./fixtures/meta/arbol.json";
 import insights from "./fixtures/meta/insights.json";
@@ -14,12 +14,13 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { MINUTOS_PARA_CORRIDA_CORTADA, sincronizarPauta } from "@/lib/pauta/sincronizar";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 const TOKEN = "token-super-secreto";
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 
 function fetchMeta(datosInsights: unknown = insights) {
@@ -36,8 +37,12 @@ function fetchMeta(datosInsights: unknown = insights) {
   }) as typeof globalThis.fetch;
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [programa] = await db.insert(programs).values({
     ...PROGRAMA_DE_PRUEBA, slug: "programa-pauta", nombre: "Programa pauta", ticketUsd: "1000",
   }).returning();
@@ -48,7 +53,7 @@ beforeEach(async () => {
   });
 });
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 describe("sincronización de pauta", () => {
   it("es idempotente y una corrección de Meta actualiza el día", async () => {

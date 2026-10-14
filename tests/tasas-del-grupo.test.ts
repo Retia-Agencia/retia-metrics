@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { calls, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
@@ -7,7 +7,7 @@ import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { armarVistaDeMisMetricas } from "@/lib/queries/mi-espacio-metricas";
 import { calcularTasasDelGrupo, rangoMadurando, type CitaParaTasas } from "@/lib/queries/tasas-del-grupo";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -27,6 +27,7 @@ const HOY = "2026-10-02";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programaA: string;
 let programaB: string;
 let ana: string;
@@ -56,8 +57,12 @@ async function cita(programId: string, dealId: string, closerUserId: string, dia
   });
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [a] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "a", nombre: "A", ticketUsd: "1000" }).returning();
   const [b] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "b", nombre: "B", ticketUsd: "1000" }).returning();
   programaA = a.id;
@@ -98,7 +103,7 @@ beforeEach(async () => {
   await db.insert(calls).values({ programId: programaA, dealId: futura, closerUserId: ana, fechaAgenda: enBogota("2026-10-02", "23:30") });
 }, 60_000);
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 describe("ticket 187: el grupo de citas", () => {
   it("cuenta personas del grupo, con la cadena completa y sin pasar de 100%", async () => {

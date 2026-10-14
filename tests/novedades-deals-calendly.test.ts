@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
   calls,
@@ -16,11 +16,12 @@ import {
   novedadesCalendlyDeUsuario,
   registrarNovedadCalendly,
 } from "@/lib/notificaciones-calendly/notificaciones";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let otroProgramId: string;
 let owner: string;
@@ -28,8 +29,12 @@ let otro: string;
 let dealId: string;
 let callId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
   const [p2] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1000" }).returning();
   programId = p.id;
@@ -45,7 +50,7 @@ beforeEach(async () => {
   callId = call.id;
 });
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 describe("novedad del dueño", () => {
   it("el legado nace visto; una reasignación enciende Nuevo y solo el dueño lo apaga", async () => {

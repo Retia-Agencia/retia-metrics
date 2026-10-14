@@ -1,26 +1,31 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { changeLog, cohorts, dealActividades, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { registrarActividad } from "@/lib/deals/actividades";
 import { etapaDeCorreccion } from "@/lib/deals/mover-etapa";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let closer: string;
 let n = 0;
 const actor = () => ({ userId: closer, rol: "closer" as const, operaComoCloser: false });
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning())[0].id;
   closer = (await db.insert(users).values({ email: "closer@retia.co", rol: "closer" }).returning())[0].id;
 });
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 async function nuevo(etapa: "potencial" | "registrado" | "en_gestion" | "contactado") {
   const lead = (await db.insert(leads).values({ programId, emailNormalizado: `a${n++}@retia.co` }).returning())[0];
   return (await db.insert(deals).values({ leadId: lead.id, programId, etapa }).returning())[0];

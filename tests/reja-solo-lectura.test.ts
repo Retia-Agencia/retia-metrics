@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { crearBaseDePrueba, type BaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable, type BaseDePrueba } from "./helpers/base-de-prueba";
 
 /**
  * Ticket 172 — la reja de SOLO LECTURA de la suplantación ("ver como"), en UN solo lugar:
@@ -47,7 +47,7 @@ describe("reja de solo lectura al suplantar (ticket 172)", () => {
   let closerId: string;
 
   beforeAll(async () => {
-    base = await crearBaseDePrueba();
+    base = await crearBaseReutilizable();
     db = base.db;
   }, 60_000);
   afterAll(async () => {

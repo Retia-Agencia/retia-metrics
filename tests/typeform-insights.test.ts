@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { changeLog, programs, sources, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -6,7 +6,7 @@ import { crearFuente, editarFuente, guardarTokenTypeform, listarFuentes } from "
 import { fuentesParaAdmin } from "@/lib/queries/fuentes";
 import { embudoPorPregunta, vaciarCacheDeInsights, CACHE_INSIGHTS_MS } from "@/lib/queries/embudo-por-pregunta";
 import { formIdDeTypeform, interpretarInsights, leerInsights, type FetchLike } from "@/lib/typeform/insights";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -80,14 +80,19 @@ describe("leer el Insights", () => {
 describe("con base", () => {
   let db: Db;
   let cerrar: () => Promise<void>;
+  let vaciar: () => Promise<void>;
   let programId: string;
   let gerenteId: string;
   let closerId: string;
   const gerente = () => ({ id: gerenteId, rol: "gerente" as const });
 
+  beforeAll(async () => {
+    ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  });
+
   beforeEach(async () => {
+    await vaciar();
     vaciarCacheDeInsights();
-    ({ db, cerrar } = await crearBaseDePrueba());
     const [g] = await db.insert(users).values({ email: "g@retiagrowth.com", rol: "gerente", nombre: "G" }).returning();
     gerenteId = g.id;
     const [c] = await db
@@ -102,7 +107,7 @@ describe("con base", () => {
     programId = p.id;
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await cerrar();
   });
 

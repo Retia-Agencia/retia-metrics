@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { changeLog, miembrosPrograma, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { crearPersonaManual } from "@/lib/mutations/personas";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -20,6 +20,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let gerenteId: string;
 let anaUserId: string;
 let betoUserId: string;
@@ -29,8 +30,12 @@ let programaB: string;
 const actorGerente = () => ({ id: gerenteId, rol: "gerente" as const, operaComoCloser: false, closerId: null });
 const actorAna = () => ({ id: anaUserId, rol: "closer" as const, operaComoCloser: false, closerId: "Ana" });
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
 
   const [g] = await db
     .insert(users)
@@ -69,7 +74,7 @@ beforeEach(async () => {
   ]);
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { leadContactos, leads, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -15,11 +15,16 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 describe("leadsQueCasan (búsqueda centralizada de leads)", () => {
   let db: Db;
   let cerrar: () => Promise<void>;
+  let vaciar: () => Promise<void>;
   let programId: string;
   let otroProgramId: string;
 
+  beforeAll(async () => {
+    ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  });
+
   beforeEach(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    await vaciar();
     const [p] = await db
       .insert(programs)
       .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" })
@@ -32,7 +37,7 @@ describe("leadsQueCasan (búsqueda centralizada de leads)", () => {
     otroProgramId = p2.id;
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await cerrar();
   });
 

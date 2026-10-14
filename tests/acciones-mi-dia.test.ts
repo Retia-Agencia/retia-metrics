@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
   cohorts,
@@ -12,7 +12,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -60,6 +60,8 @@ vi.mock("@/lib/db", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 let cerrar: () => Promise<void>;
+
+let vaciar: () => Promise<void>;
 let gerenteId: string;
 let closerId: string;
 let developerId: string;
@@ -76,10 +78,14 @@ const sesionDeveloper = {
   user: { id: "", email: "dev@retiagrowth.com", rol: "developer", closerId: "Dev" },
 };
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
+  await vaciar();
   auth.mockReset();
   cookieDeVista = undefined;
-  ({ db, cerrar } = await crearBaseDePrueba());
 
   const [g] = await db
     .insert(users)
@@ -131,7 +137,7 @@ beforeEach(async () => {
   });
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

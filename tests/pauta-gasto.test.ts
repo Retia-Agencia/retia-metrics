@@ -1,18 +1,23 @@
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { cuentasPublicitarias, gastoPauta, pautaObjetos, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { registrarGasto } from "@/lib/pauta/gasto";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let objetoId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [programa] = await db.insert(programs).values({
     ...PROGRAMA_DE_PRUEBA, slug: "gasto", nombre: "Gasto", ticketUsd: "1000",
   }).returning();
@@ -27,7 +32,7 @@ beforeEach(async () => {
   objetoId = objeto.id;
 });
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 it("los CHECK rechazan dos destinos y ningún destino", async () => {
   const base = { programId, fecha: "2026-10-14", monto: "1", moneda: "COP", origen: "manual" as const };

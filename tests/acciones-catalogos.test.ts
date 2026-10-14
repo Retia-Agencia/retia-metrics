@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { changeLog, enlacesPago, motivos, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -29,11 +29,16 @@ const sesionCloser = {
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let userId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
+  await vaciar();
   auth.mockReset();
-  ({ db, cerrar } = await crearBaseDePrueba());
   const [u] = await db
     .insert(users)
     .values({ email: "gerente@retiagrowth.com", rol: "gerente" })
@@ -43,7 +48,7 @@ beforeEach(async () => {
   sesionGerente.user.id = userId;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

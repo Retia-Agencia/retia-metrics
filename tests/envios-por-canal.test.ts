@@ -1,14 +1,20 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { enviosPorCanal } from "@/lib/atribucion/envios-por-canal";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 
-beforeEach(async () => ({ db, cerrar } = await crearBaseDePrueba()));
-afterEach(async () => cerrar());
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+beforeEach(async () => {
+  await vaciar();
+});
+afterAll(async () => cerrar());
 
 describe("envíos por canal (ticket 246)", () => {
   it("cuenta completos por la regla, agrupa entre programas y separa Sin UTM", async () => {

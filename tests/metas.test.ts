@@ -3,7 +3,7 @@ import { cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/li
 import type { Db } from "@/lib/db/tipos";
 import { armarMetasDelMes, leerMetasDelMes, moverMes, nombreDelMes, type CohorteParaMetas } from "@/lib/queries/metas";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 const cohorteBase: CohorteParaMetas = {
@@ -108,7 +108,7 @@ describe("146: lectura de metas con ventas reales", () => {
   let ownerId: string;
 
   beforeAll(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    ({ db, cerrar } = await crearBaseReutilizable());
     const programas = await db.insert(programs).values([
       { ...PROGRAMA_DE_PRUEBA, ticketUsd: "2000", slug: "metas-a", nombre: "Metas A" },
       { ...PROGRAMA_DE_PRUEBA, ticketUsd: "2000", slug: "metas-b", nombre: "Metas B" },

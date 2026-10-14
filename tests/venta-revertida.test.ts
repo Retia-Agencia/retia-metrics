@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq, inArray } from "drizzle-orm";
 import { cohorts, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -8,7 +8,7 @@ import { hoyEnBogota } from "@/lib/format";
 import { embudoPorEtapas } from "@/lib/queries/embudo-etapas";
 import { leerMetasDelMes } from "@/lib/queries/metas";
 import { primerosMovimientosDeVenta, vendidosEn, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -19,6 +19,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
 let closer: string;
@@ -33,8 +34,12 @@ const abono = (dealId: string, monto: string) => ({
   comprobanteUrl: "https://drive.google.com/comprobante",
 });
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db
     .insert(programs)
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" })
@@ -58,7 +63,7 @@ beforeEach(async () => {
   closer = u.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

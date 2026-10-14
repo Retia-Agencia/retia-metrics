@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { areas as tablaAreas, canales as tablaCanales, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { areas } from "@/lib/catalogo/areas";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 
 /**
  * Ticket 173 — los Canales los administra quien `manejaPauta` (ADR 0052, ADR 0077
@@ -33,10 +33,15 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let areaId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   holder.db = db;
   sesionHolder.rol = null;
   // El actor que crea el área (admin) existe; el paid trafficker se siembra para ser el
@@ -52,6 +57,9 @@ beforeEach(async () => {
 
 afterEach(async () => {
   holder.db = null;
+});
+
+afterAll(async () => {
   await cerrar();
 });
 

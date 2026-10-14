@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { changeLog, programs, sources, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { moldeDeCatalogo } from "@/lib/catalogo/molde";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -25,6 +25,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let userId: string;
 let programId: string;
 
@@ -65,8 +66,12 @@ async function logDe(registroId: string) {
   return db.select().from(changeLog).where(eq(changeLog.registroId, registroId));
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [u] = await db
     .insert(users)
     .values({ email: "tester@retiagrowth.com", rol: "gerente" })
@@ -79,7 +84,7 @@ beforeEach(async () => {
   programId = p.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

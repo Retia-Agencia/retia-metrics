@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { leads, programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -12,7 +12,7 @@ import { construirEnvio } from "@/lib/ingesta/envio";
 import { entradasDesdeMatriz } from "@/lib/ingesta/adaptador-sheets";
 import { ingerirEntradas } from "@/lib/ingesta/ingerir";
 import completo from "./fixtures/typeform-completo.json";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -95,18 +95,23 @@ describe("adaptador de score (parte A, puro)", () => {
 describe("el score aterriza en submission y en el resumen del lead", () => {
   let db: Db;
   let cerrar: () => Promise<void>;
+  let vaciar: () => Promise<void>;
   let programId: string;
   let sourceId: string;
 
+  beforeAll(async () => {
+    ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  });
+
   beforeEach(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    await vaciar();
     const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" }).returning();
     programId = p.id;
     const [f] = await db.insert(sources).values({ programId, nombre: "Typeform", tipo: "google_sheet" }).returning();
     sourceId = f.id;
   }, 60_000);
 
-  afterEach(async () => {
+  afterAll(async () => {
     await cerrar();
   });
 

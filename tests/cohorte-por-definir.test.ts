@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { cohorts, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -9,7 +9,7 @@ import {
   editarCohorte,
   type EntradaCohorte,
 } from "@/lib/catalogo/cohortes";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -24,11 +24,16 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let actorId: string;
 let programId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [u] = await db.insert(users).values({ email: "gerente@retia.co", rol: "gerente" }).returning();
   actorId = u.id;
   const [p] = await db
@@ -38,7 +43,7 @@ beforeEach(async () => {
   programId = p.id;
 });
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 /** Una cohorte futura "por definir": precio y meta de cupos (obligatorios) y nada de fechas. */
 function porDefinir(sobre: Partial<EntradaCohorte> = {}): EntradaCohorte {

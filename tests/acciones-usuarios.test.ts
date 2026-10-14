@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -30,6 +30,8 @@ vi.mock("@/lib/db", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 let cerrar: () => Promise<void>;
+
+let vaciar: () => Promise<void>;
 let gerenteId: string;
 let programaAId: string;
 
@@ -40,9 +42,13 @@ const sesionCloser = {
   user: { id: "u-2", email: "closer@retiagrowth.com", rol: "closer", closerId: "andrea" },
 };
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
+  await vaciar();
   auth.mockReset();
-  ({ db, cerrar } = await crearBaseDePrueba());
   const [g] = await db
     .insert(users)
     .values({ email: "gerente@retiagrowth.com", rol: "gerente", nombre: "Gerencia" })
@@ -56,7 +62,7 @@ beforeEach(async () => {
   programaAId = p.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

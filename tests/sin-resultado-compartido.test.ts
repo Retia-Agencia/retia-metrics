@@ -1,22 +1,27 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { calls, deals, leads, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { inboxDelPrograma } from "@/lib/queries/inbox";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 describe("ticket 148: Inbox y dashboard comparten las llamadas pasadas sin resultado", () => {
   let db: Db;
   let cerrar: () => Promise<void>;
+  let vaciar: () => Promise<void>;
   let programId: string;
 
+  beforeAll(async () => {
+    ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  });
+
   beforeEach(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    await vaciar();
     const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "sin-resultado", nombre: "Sin resultado", ticketUsd: "100" }).returning();
     programId = programa.id;
   }, 60_000);
-  afterEach(async () => cerrar());
+  afterAll(async () => cerrar());
 
   it("devuelve los mismos call ids para el mismo programa y momento", async () => {
     const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "sin-resultado@retia.co" }).returning();

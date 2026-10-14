@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
   abonos,
@@ -21,7 +21,7 @@ import { abrirDeal } from "@/lib/deals/mover-etapa";
 import { consolidar } from "@/lib/migracion/consolidar";
 import { importarGestion } from "@/lib/migracion/importar";
 import { extraccionVacia, type DealTemplate, type Extraccion, type LlamadaTemplate } from "@/lib/migracion/template";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -57,13 +57,18 @@ const estudiante = (correo: string, extra: Partial<DealTemplate> = {}): DealTemp
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programa: string;
 let script: string;
 let maru: string;
 let ana: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: P, nombre: "Programa A", ticketUsd: "1500" }).returning();
   programa = p.id;
   await db.insert(cohorts).values({
@@ -89,7 +94,7 @@ beforeEach(async () => {
   ana = filas[0].id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

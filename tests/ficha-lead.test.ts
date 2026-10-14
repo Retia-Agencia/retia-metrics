@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { cohorts, deals, leadContactos, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
@@ -10,7 +10,7 @@ import {
   type EnvioParaComparar,
   unirParcialesConSuCompleto,
 } from "@/lib/queries/ficha-lead";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -95,14 +95,19 @@ describe("camposDelEnvio y diferenciasEntreEnvios (puras)", () => {
 describe("fichaDeLead (PGlite)", () => {
   let db: Db;
   let cerrar: () => Promise<void>;
+  let vaciar: () => Promise<void>;
   let programId: string;
   let otroPrograma: string;
   let leadId: string;
   let envios: string[];
   let closer: string;
 
+  beforeAll(async () => {
+    ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  });
+
   beforeEach(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    await vaciar();
     const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
     programId = p.id;
     const [q] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "500" }).returning();
@@ -156,7 +161,7 @@ describe("fichaDeLead (PGlite)", () => {
     ]);
   }, 60_000);
 
-  afterEach(async () => {
+  afterAll(async () => {
     await cerrar();
   });
 

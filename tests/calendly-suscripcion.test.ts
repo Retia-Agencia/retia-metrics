@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { changeLog, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -9,7 +9,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { conectarCalendly, type FetchConCuerpo } from "@/lib/calendly/suscripcion";
 import { listarProgramas } from "@/lib/catalogo/programas";
 import { archivos, sinComentarios } from "./helpers/codigo-fuente";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -20,6 +20,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let gerente: string;
 const BASE_URL = "https://crm.retia.co";
@@ -51,8 +52,12 @@ function calendlySimulado(opciones: { existentes?: { uri: string; callback_url: 
 const clave = async () =>
   (await db.select({ k: programs.calendlySigningKey }).from(programs).where(eq(programs.id, programId)))[0].k;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db
     .insert(programs)
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
@@ -62,7 +67,7 @@ beforeEach(async () => {
   gerente = g.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

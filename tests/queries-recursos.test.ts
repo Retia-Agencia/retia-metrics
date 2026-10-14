@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
   plataformasPago,
@@ -6,7 +6,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { crearRecurso, reemplazarRecurso } from "@/lib/catalogo/recursos";
 import { crearEnlacePago } from "@/lib/catalogo/enlaces-pago";
 import {
@@ -26,13 +26,18 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let actor: { id: string; rol: "gerente" };
 let programaA: string;
 let programaB: string;
 let plataforma: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
 
   const [u] = await db
     .insert(users)
@@ -59,7 +64,7 @@ beforeEach(async () => {
   plataforma = pl.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

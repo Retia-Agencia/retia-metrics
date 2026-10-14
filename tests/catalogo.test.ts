@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import fs from "node:fs";
 import path from "node:path";
@@ -10,7 +10,7 @@ import type { Catalogo } from "@/lib/catalogo/molde";
 import { ErrorDeApp } from "@/lib/errors";
 import { plataformasDePago } from "@/lib/catalogo/plataformas";
 import { motivos } from "@/lib/catalogo/motivos";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -28,10 +28,15 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let userId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   // userId es FK de change_log.userId: insertamos un usuario de prueba directo.
   const [u] = await db
     .insert(users)
@@ -40,7 +45,7 @@ beforeEach(async () => {
   userId = u.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

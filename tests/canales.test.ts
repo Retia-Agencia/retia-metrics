@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { areas as tablaAreas } from "@/lib/db/schema";
 import { canales as tablaCanales, changeLog, users } from "@/lib/db/schema";
@@ -6,21 +6,26 @@ import type { Db } from "@/lib/db/tipos";
 import { areas } from "@/lib/catalogo/areas";
 import { canales } from "@/lib/catalogo/canales";
 import { ErrorDeApp } from "@/lib/errors";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let userId: string;
 let areaId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [usuario] = await db.insert(users).values({ email: "canales@retia.local", rol: "gerente" }).returning();
   userId = usuario.id;
   areaId = (await areas(db).crear(userId, { nombre: "Paid" })).id;
 });
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 const entrada = (utmSource: string | null = "facebook", utmMedium = "cpc") => ({
   nombre: "Meta histórico",

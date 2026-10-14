@@ -1,20 +1,25 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { deals, leadContactos, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { ColumnaKanban, TarjetaDeal } from "@/lib/queries/kanban";
 import { buscarDealsDelPrograma } from "@/lib/queries/kanban";
 import { columnasVisibles } from "@/components/deals/columnas-visibles";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let otroProgramId: string;
 let actorId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [programa, otroPrograma] = await db
     .insert(programs)
     .values([
@@ -31,7 +36,7 @@ beforeEach(async () => {
   actorId = actor.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

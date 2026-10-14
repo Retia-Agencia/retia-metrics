@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { eq } from "drizzle-orm";
@@ -24,7 +24,7 @@ import {
   enlacesDeCaptacion,
 } from "@/lib/atribucion/captacion-del-closer";
 import { generarLink, sanearUtm } from "@/lib/atribucion/link-de-captacion";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -81,6 +81,7 @@ describe("el codigo y el enlace (puro)", () => {
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programA: string;
 let programB: string;
 let fuenteA: string;
@@ -132,8 +133,12 @@ async function traidoPor(correo: string, programId = programA) {
   return l.traidoPorUserId;
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [a] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "a", nombre: "A", ticketUsd: "797" }).returning();
   const [b] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "b", nombre: "B", ticketUsd: "1500" }).returning();
   programA = a.id;
@@ -163,7 +168,7 @@ beforeEach(async () => {
   ]);
 }, 60_000);
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

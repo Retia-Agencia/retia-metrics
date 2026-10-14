@@ -1,23 +1,28 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { calls, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
 import { pegarGrain } from "@/lib/deals/llamadas";
 import { embudoDelRango } from "@/lib/queries/dashboard";
 import { esAtendidaSinGrain, showsSinGrain } from "@/lib/queries/sin-grain";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let otroProgramId: string;
 let closer: string;
 let leadId: string;
 const rango = { desde: "2026-09-01", hasta: "2026-09-30" };
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const programas = await db.insert(programs).values([
     { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" },
     { ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1000" },
@@ -27,7 +32,7 @@ beforeEach(async () => {
   [leadId] = (await db.insert(leads).values({ programId, emailNormalizado: "ana@example.test" }).returning()).map((l) => l.id);
 });
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 async function crearCall(datos: Partial<typeof calls.$inferInsert> = {}) {
   const [call] = await db.insert(calls).values({

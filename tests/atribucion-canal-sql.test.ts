@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import { areaSql, canalSql, cuentaSql } from "@/lib/atribucion/canal-sql";
 import { resolverCanal } from "@/lib/atribucion/canal";
-import { crearBaseDePrueba, type BaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable, type BaseDePrueba } from "./helpers/base-de-prueba";
 
 const CASOS: ReadonlyArray<readonly [string | null, string | null]> = [
   ["whatsapp rosario", "chat"],
@@ -33,7 +33,7 @@ const CASOS: ReadonlyArray<readonly [string | null, string | null]> = [
 describe("la atribucion SQL es gemela de resolverCanal", () => {
   let base: BaseDePrueba;
   beforeAll(async () => {
-    base = await crearBaseDePrueba();
+    base = await crearBaseReutilizable();
   });
   afterAll(async () => {
     await base.cerrar();

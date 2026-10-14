@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   abonos,
   calls,
@@ -16,19 +16,24 @@ import * as abono from "@/lib/queries/hechos/abono";
 import * as cita from "@/lib/queries/hechos/cita";
 import * as envio from "@/lib/queries/hechos/envio";
 import * as venta from "@/lib/queries/hechos/venta";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 const RANGO = { desde: "2026-09-01", hasta: "2026-09-30" };
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let otroProgramId: string;
 let ownerId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const programas = await db.insert(programs).values([
     { ...PROGRAMA_DE_PRUEBA, slug: "hechos", nombre: "Hechos", ticketUsd: "1000" },
     { ...PROGRAMA_DE_PRUEBA, slug: "hechos-otro", nombre: "Otro", ticketUsd: "1000" },
@@ -122,7 +127,7 @@ beforeEach(async () => {
   ]);
 }, 60_000);
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 describe("capa de hechos", () => {
   it("envio: agrupar y listar comparten universo, filtros, orden y pagina", async () => {

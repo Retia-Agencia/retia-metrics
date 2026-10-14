@@ -1,16 +1,22 @@
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, expect, it } from "vitest";
 import { emparejar } from "@/lib/atribucion/emparejar";
 import { cuentasPublicitarias, pautaObjetos, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { arbolDePauta } from "@/lib/pauta/arbol";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 
-beforeEach(async () => ({ db, cerrar } = await crearBaseDePrueba()));
-afterEach(async () => cerrar());
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+beforeEach(async () => {
+  await vaciar();
+});
+afterAll(async () => cerrar());
 
 it("utm_id resuelve el anuncio, conjunto y campaña sincronizados", async () => {
   const [programa] = await db.insert(programs).values({

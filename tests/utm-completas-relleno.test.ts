@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import { asc, sql } from "drizzle-orm";
 import { programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -23,16 +23,21 @@ const RELLENO = fs
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let sourceId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "prog-a", nombre: "A", ticketUsd: "1500" }).returning();
   const [f] = await db.insert(sources).values({ programId: p.id, nombre: "Typeform" }).returning();
   sourceId = f.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

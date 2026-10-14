@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { textoComisionPrograma } from "@/components/dashboard-programa";
 import { editarPrograma } from "@/lib/catalogo/programas";
@@ -16,11 +16,12 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { comisionDeDeal } from "@/lib/queries/comision";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let gerente: string;
 let closer: string;
@@ -31,8 +32,12 @@ let secuencia = 0;
 const HOY = hoyEnBogota();
 const sistema = { tipo: "sistema" } as const;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db
     .insert(programs)
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000.00" })
@@ -47,7 +52,7 @@ beforeEach(async () => {
   closer = u.id;
 }, 60_000);
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

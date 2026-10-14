@@ -1,11 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 import { deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { otrosProgramasDelCorreo } from "@/lib/queries/otros-programas-del-correo";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -17,20 +17,25 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 describe("otrosProgramasDelCorreo (PGlite)", () => {
   let db: Db;
   let cerrar: () => Promise<void>;
+  let vaciar: () => Promise<void>;
   let a: string;
   let b: string;
   let c: string;
   let closer: string;
 
+  beforeAll(async () => {
+    ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  });
+
   beforeEach(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    await vaciar();
     const programa = (slug: string) => ({ ...PROGRAMA_DE_PRUEBA, slug, nombre: slug.toUpperCase(), ticketUsd: "1000" });
     [{ id: a }, { id: b }, { id: c }] = await db.insert(programs).values([programa("a"), programa("b"), programa("c")]).returning();
     const [u] = await db.insert(users).values({ email: "maru@retia.co", rol: "closer", closerId: "Maru" }).returning();
     closer = u.id;
   }, 60_000);
 
-  afterEach(async () => {
+  afterAll(async () => {
     await cerrar();
   });
 

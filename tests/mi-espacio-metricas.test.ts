@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { abonos, calls, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
@@ -9,18 +9,23 @@ import {
 } from "@/lib/queries/mi-espacio-metricas";
 import { cajaRecaudada, embudoDelRango } from "@/lib/queries/dashboard";
 import { conteo, dinero, tasa } from "@/lib/queries/agregado-programas";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 const HOY = "2026-10-02";
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
+
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
 
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
 }, 60_000);
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 describe("read model de Mis métricas", () => {
   it("cuadra con el dashboard filtrado por el mismo closer, incluida comisión", async () => {

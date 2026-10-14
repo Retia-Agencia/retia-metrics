@@ -1,11 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { changeLog, deals, leadContactos, leads, miembrosPrograma, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { confirmarCorreo, separarCorreo } from "@/lib/ingesta/separar";
 import { alertasDelDeal } from "@/lib/queries/ficha-deal";
 import { posiblesDuplicadosDelPrograma } from "@/lib/queries/leads";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -16,6 +16,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let ana: string;
 let marca: string;
@@ -37,8 +38,12 @@ async function abrirDealDe(dueno: string | null, submissionOrigenId: string | nu
   return deal;
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
   programId = p.id;
   const [f] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
@@ -82,7 +87,7 @@ beforeEach(async () => {
   marca = m.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

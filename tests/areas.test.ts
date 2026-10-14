@@ -1,17 +1,22 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq, getTableColumns } from "drizzle-orm";
 import { areas as tablaAreas, changeLog, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { areas } from "@/lib/catalogo/areas";
 import { ErrorDeApp } from "@/lib/errors";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let userId: string;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [usuario] = await db
     .insert(users)
     .values({ email: "areas@retiagrowth.com", rol: "gerente" })
@@ -19,7 +24,7 @@ beforeEach(async () => {
   userId = usuario.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

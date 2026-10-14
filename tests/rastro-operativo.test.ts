@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import os from "node:os";
@@ -6,7 +6,7 @@ import path from "node:path";
 import { eq } from "drizzle-orm";
 import { changeLog, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { cambiarDuenoDeal } from "@/lib/deals/cambiar-dueno";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -208,12 +208,17 @@ describe("el rastro de las tablas operativas (ADR 0042)", () => {
 describe("crearConRastro y editarConRastro", () => {
   let db: Db;
   let cerrar: () => Promise<void>;
+  let vaciar: () => Promise<void>;
   let programaA: string;
   let leadA: string;
   let gerente: string;
 
+  beforeAll(async () => {
+    ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  });
+
   beforeEach(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    await vaciar();
     const [p] = await db
       .insert(programs)
       .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
@@ -231,7 +236,7 @@ describe("crearConRastro y editarConRastro", () => {
     gerente = u.id;
   }, 60_000);
 
-  afterEach(async () => {
+  afterAll(async () => {
     await cerrar();
   });
 

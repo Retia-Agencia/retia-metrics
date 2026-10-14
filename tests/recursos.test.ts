@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq, isNull } from "drizzle-orm";
 import { changeLog, programs, recursos, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -10,7 +10,7 @@ import {
   reactivarRecurso,
   reemplazarRecurso,
 } from "@/lib/catalogo/recursos";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -26,14 +26,19 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let gerenteId: string;
 let programaA: string;
 
 /** El actor gerente (id + rol). Los recursos ahora reciben `{ id, rol }` (ADR 0016). */
 let actorGerente: { id: string; rol: "gerente" };
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
 
   gerenteId = crypto.randomUUID();
 
@@ -51,7 +56,7 @@ beforeEach(async () => {
   programaA = a.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

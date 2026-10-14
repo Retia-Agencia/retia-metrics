@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
@@ -23,7 +23,7 @@ import { reclamarDeal } from "@/lib/deals/reclamar";
 import { deshacerMigracion } from "@/lib/migracion/deshacer";
 import { importarGestion } from "@/lib/migracion/importar";
 import { extraccionVacia, type DealTemplate, type Extraccion } from "@/lib/migracion/template";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { archivos, sinComentarios } from "./helpers/codigo-fuente";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -36,6 +36,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let script: string;
 let maru: string;
 
@@ -128,8 +129,12 @@ async function conteos(programId: string) {
   };
 }
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [s] = await db.insert(users).values({ email: "script@retiagrowth.com", rol: "developer" }).returning();
   script = s.id;
   const [m] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
@@ -138,7 +143,7 @@ beforeEach(async () => {
   b = await crearPrograma("prog-b");
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

@@ -1,14 +1,15 @@
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, expect, it } from "vitest";
 import { abonos, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { leerSeriesDeDinero } from "@/lib/queries/series-dinero";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { leerMetasDelMes } from "@/lib/queries/metas";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let otroPrograma: string;
 let cohortId: string;
@@ -18,8 +19,12 @@ let contador: number;
 const hoy = "2026-10-05";
 const rango = { desde: "2026-10-01", hasta: hoy };
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const programas = await db.insert(programs).values([
     { ...PROGRAMA_DE_PRUEBA, slug: "serie-a", nombre: "Serie A", ticketUsd: "100" },
     { ...PROGRAMA_DE_PRUEBA, slug: "serie-b", nombre: "Serie B", ticketUsd: "100" },
@@ -38,7 +43,7 @@ beforeEach(async () => {
   cohortId = cohorte.id;
   contador = 0;
 });
-afterEach(async () => { await cerrar(); });
+afterAll(async () => cerrar());
 
 async function venta(args: {
   dia: string;

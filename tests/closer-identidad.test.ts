@@ -5,7 +5,7 @@ import path from "node:path";
 import { sql } from "drizzle-orm";
 import { claveDeCloser, claveDeCloserSql, igualCloser, mismoCloser, normalizarCloserId } from "@/lib/closers/identidad";
 import { users } from "@/lib/db/schema";
-import { crearBaseDePrueba, type BaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable, type BaseDePrueba } from "./helpers/base-de-prueba";
 
 /**
  * ADR 0030 — `Mani` y `mani` son el MISMO closer.
@@ -71,7 +71,7 @@ describe("mismoCloser", () => {
 describe("la normalizacion de SQL y la de memoria no pueden divergir", () => {
   let base: BaseDePrueba;
   beforeAll(async () => {
-    base = await crearBaseDePrueba();
+    base = await crearBaseReutilizable();
   });
   afterAll(async () => {
     await base?.cerrar();

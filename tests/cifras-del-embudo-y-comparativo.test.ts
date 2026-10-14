@@ -12,7 +12,7 @@ import {
   vistaDeLista,
   type DetalleDeCifra,
 } from "@/lib/queries/vista-metrica";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -38,7 +38,7 @@ const delOtroPrograma = new Set<string>();
 const instante = (dia: string, hora = "10:00") => new Date(`${dia}T${hora}:00-05:00`);
 
 beforeAll(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  ({ db, cerrar } = await crearBaseReutilizable());
   [programaA, programaB] = (await db.insert(programs).values([
     { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "e188-a", nombre: "A" },
     { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "e188-b", nombre: "B" },

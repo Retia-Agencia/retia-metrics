@@ -3,7 +3,7 @@ import { proyectarRol, esVistaValida, VISTA_POR_DEFECTO } from "@/lib/auth/vista
 import type { Session } from "next-auth";
 import { users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { crearBaseDePrueba, type BaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable, type BaseDePrueba } from "./helpers/base-de-prueba";
 
 /**
  * `proyectarRol` es la parte PURA de `rolDeVista` (sin cookie): dado el rol real y la
@@ -76,7 +76,7 @@ describe("sesionEfectiva: ver como un closer de verdad (ticket 172)", () => {
   let otroGerenteId: string;
 
   beforeAll(async () => {
-    base = await crearBaseDePrueba();
+    base = await crearBaseReutilizable();
     db = base.db;
   }, 60_000);
   afterAll(async () => {

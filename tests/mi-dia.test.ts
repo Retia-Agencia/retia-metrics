@@ -9,7 +9,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { crearBaseDePrueba, type BaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable, type BaseDePrueba } from "./helpers/base-de-prueba";
 import { buscarLeads } from "@/lib/queries/leads";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -45,7 +45,7 @@ async function limpiar(): Promise<void> {
 }
 
 beforeAll(async () => {
-  base = await crearBaseDePrueba();
+  base = await crearBaseReutilizable();
   db = base.db;
 }, 60_000);
 afterAll(async () => {

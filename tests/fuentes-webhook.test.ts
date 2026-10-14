@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { changeLog, programs, proveedorFormularioEnum, sources, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -12,7 +12,7 @@ import {
 } from "@/lib/catalogo/fuentes";
 import { PROVEEDORES_FORMULARIO } from "@/lib/catalogo/fuentes-webhook";
 import { fuentesParaAdmin } from "@/lib/queries/fuentes";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -28,6 +28,7 @@ vi.mock("@/lib/sheets/leer", () => ({ leerPestana: vi.fn(async () => []) }));
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let gerenteId: string;
 let closerId: string;
@@ -42,8 +43,12 @@ const entradaWebhook = () => ({
   proveedor: "typeform" as const,
 });
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [g] = await db
     .insert(users)
     .values({ email: "gerente@retiagrowth.com", rol: "gerente", nombre: "Gerencia" })
@@ -61,7 +66,7 @@ beforeEach(async () => {
   programId = p.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

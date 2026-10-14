@@ -4,7 +4,7 @@ import { areaSql } from "@/lib/atribucion/canal-sql";
 import { programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { agrupar } from "@/lib/queries/hechos/envio";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 const medir = process.env.MEDIR_VOLUMEN === "1";
@@ -15,7 +15,7 @@ describe.skipIf(!medir)("capa de hechos a 10x del volumen actual", () => {
   let programId: string;
 
   beforeAll(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    ({ db, cerrar } = await crearBaseReutilizable());
     const programas = await db.insert(programs).values([
       { ...PROGRAMA_DE_PRUEBA, slug: "volumen-a", nombre: "Volumen A", ticketUsd: "1000" },
       { ...PROGRAMA_DE_PRUEBA, slug: "volumen-b", nombre: "Volumen B", ticketUsd: "1000" },

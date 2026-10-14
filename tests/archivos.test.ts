@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 
 import { confirmarArchivo, pedirSubida, urlParaVer } from "@/lib/archivos";
@@ -9,18 +9,23 @@ import { AlmacenEnMemoria } from "@/lib/archivos/memoria";
 import { MAX_BYTES } from "@/lib/archivos/reglas";
 import { archivos, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let actorId: string;
 let otroActorId: string;
 let almacen: AlmacenEnMemoria;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [programa] = await db.insert(programs).values({
     ...PROGRAMA_DE_PRUEBA,
     slug: "archivos",
@@ -37,7 +42,7 @@ beforeEach(async () => {
   almacen = new AlmacenEnMemoria();
 });
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 async function nuevaSubida(tipoMime: "image/png" | "application/pdf" = "image/png", bytes = 8) {
   return pedirSubida(db, almacen, { programId, tipoMime, bytes, actorId });

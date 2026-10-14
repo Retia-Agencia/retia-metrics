@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   calls,
   dealEtapaHistorial,
@@ -13,13 +13,14 @@ import type { Db } from "@/lib/db/tipos";
 import { embudoDelRango } from "@/lib/queries/dashboard";
 import { hechosDelEmbudo, type FilaHechosDelEmbudo } from "@/lib/queries/hechos-embudo";
 import { periodoAnterior } from "@/lib/queries/serie";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 const RANGO = { desde: "2026-09-01", hasta: "2026-09-30" };
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let otroProgramId: string;
 let sourceId: string;
@@ -27,8 +28,12 @@ let sourceOtroId: string;
 let ownerUserId: string;
 let secuencia = 0;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   [programId, otroProgramId] = await Promise.all([
     db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "serie", nombre: "Serie", ticketUsd: "1000" }).returning().then(([p]) => p.id),
     db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1000" }).returning().then(([p]) => p.id),
@@ -44,7 +49,7 @@ beforeEach(async () => {
     .then(([u]) => u.id);
 }, 60_000);
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

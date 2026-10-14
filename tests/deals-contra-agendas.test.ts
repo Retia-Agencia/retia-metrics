@@ -7,7 +7,7 @@ import { acumularPorHabil, serieDealsContraAgendas } from "@/lib/queries/deals-c
 import { listaDeMetrica, resumenDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { periodoDeLaGrafica, vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { claveHistorica } from "@/lib/closers/identidad";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 // Octubre de 2026 empieza en jueves: el viernes 9 es su hábil 7. Septiembre empieza en martes,
@@ -71,7 +71,7 @@ describe("138: deals creados contra agendas, contra la base", () => {
   const ids: Record<string, string> = {};
 
   beforeAll(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    ({ db, cerrar } = await crearBaseReutilizable());
     [programaA, programaB] = (await db.insert(programs).values([
       { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "prueba-a", nombre: "A" },
       { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "prueba-b", nombre: "B" },

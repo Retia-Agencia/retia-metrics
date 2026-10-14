@@ -1,22 +1,27 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { abonos, calls, dealActividades, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { transicion, type EtapaDeal } from "@/lib/deals/etapas";
 import { MovimientoRechazado, moverEtapa } from "@/lib/deals/mover-etapa";
 import { alertasDelDeal } from "@/lib/queries/ficha-deal";
 import { inboxDelPrograma } from "@/lib/queries/inbox";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let otroProgramId: string;
 let closer: string;
 let secuencia = 0;
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   const [programa] = await db.insert(programs).values({
     ...PROGRAMA_DE_PRUEBA,
     slug: "p",
@@ -41,7 +46,7 @@ beforeEach(async () => {
   closer = usuario.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 

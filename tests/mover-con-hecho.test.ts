@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { abonos, calls, cohorts, dealActividades, dealEtapaHistorial, deals, leads, motivos, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -7,11 +7,12 @@ import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { ErrorDeApp } from "@/lib/errors";
 import { vigente } from "@/lib/queries/vigente";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
 let closerId: string;
@@ -20,8 +21,12 @@ let secuencia = 0;
 
 const actor = () => ({ userId: closerId, rol: "closer" as const, operaComoCloser: false });
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
   programId = (await db.insert(programs).values({
     ...PROGRAMA_DE_PRUEBA,
     slug: "mover-con-hecho",
@@ -42,7 +47,7 @@ beforeEach(async () => {
   motivoOtroId = (await db.insert(motivos).values({ nombre: "Otro", tipo: "reagenda", pideTexto: true }).returning())[0].id;
 });
 
-afterEach(async () => cerrar());
+afterAll(async () => cerrar());
 
 async function nuevoDeal(etapa: EtapaDeal, ownerUserId: string | null = closerId) {
   const leadId = (await db.insert(leads).values({

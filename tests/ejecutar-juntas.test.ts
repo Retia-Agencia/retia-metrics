@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { motivos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 
 /**
  * `ejecutarJuntas` es una transaccion de verdad (ADR 0047). Con `neon-http` habia dos
@@ -14,12 +14,17 @@ import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 
-beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
 });
 
-afterEach(async () => {
+beforeEach(async () => {
+  await vaciar();
+});
+
+afterAll(async () => {
   await cerrar();
 });
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   abonos,
@@ -21,7 +21,7 @@ import {
   ultimosCambiosDesdeLaApp,
   usuariosActivosPorRol,
 } from "@/lib/queries/nerd-stats";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -36,6 +36,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
 let programaA: string;
 let programaB: string;
 let gerenteId: string;
@@ -44,8 +45,12 @@ let personaId: string;
 const CORREO_LEAD = "lead.privado@ejemplo.com";
 const NOMBRE_LEAD = "Lead Privado";
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
 beforeEach(async () => {
-  ({ db, cerrar } = await crearBaseDePrueba());
+  await vaciar();
 
   const [g] = await db
     .insert(users)
@@ -81,7 +86,7 @@ beforeEach(async () => {
   personaId = persona.id;
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await cerrar();
 });
 
