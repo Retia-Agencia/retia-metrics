@@ -3,7 +3,8 @@ id: 250
 etapa: hub
 serves: "ADR 0086 puntos 1, 2 y 5 · docs/hub.md H-1, H-12"
 depends: []
-status: todo
+status: en curso
+quien: Alejandro (14-oct)
 ---
 
 # 250 — El Dashboard y Metas pasan a ser el Hub
