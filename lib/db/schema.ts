@@ -1782,7 +1782,7 @@ export const metaConexiones = pgTable(
 
 /**
  * Una cuenta publicitaria de Meta y el programa al que sirve (ticket 119). Un programa
- * puede tener varias (ComunicArte tiene cuatro, dos en USD); una cuenta es de UN programa
+ * puede tener varias, en monedas distintas; una cuenta es de UN programa
  * (frontera, ADR 0043), y lo garantiza el indice unico sobre `id_meta`.
  *
  * Moneda y zona horaria se leen de Meta al vincular, nunca se teclean: el gasto se guarda
