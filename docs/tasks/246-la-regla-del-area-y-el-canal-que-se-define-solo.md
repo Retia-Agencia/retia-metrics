@@ -3,7 +3,8 @@ id: 246
 etapa: hub
 serves: "ADR 0087 puntos 1, 2, 5 y 8 · docs/hub.md H-3, §5.2 (área, canal)"
 depends: []
-status: todo
+status: en curso
+quien: Mani (14-oct)
 ---
 
 # 246 — La regla del área y el canal que se define solo

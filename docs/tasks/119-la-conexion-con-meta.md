@@ -3,10 +3,11 @@ id: 119
 etapa: E6
 serves: "ADR 0062 puntos 3 y 4 · docs/analytics.md PT-38"
 depends: []
-status: todo
+status: en curso
+quien: Mani (14-oct)
 ---
 
-# 119 — La conexión con Meta: un token por portafolio y las cuentas de cada programa
+# 119 — La conexión con Meta: un solo token y las cuentas de cada programa
 
 ## Objetivo
 
@@ -66,3 +67,23 @@ La respuesta del 29-sep (una cuenta por programa, en COP, un token por portafoli
   en la tab Programa.
 - **Un programa nuevo** con pauta (Memorable, los que vengan) se configura vinculando su cuenta: es una fila, sin
   código (contrato C-1 de `docs/hub.md`).
+
+---
+
+## Enmienda 14-oct (Mani): no hay token por portafolio
+
+El usuario del sistema `retia-insights` vive en el portafolio de Retia, que es **socio** de los portafolios de los
+clientes: con **un** token se leen todas sus cuentas. Verificado el 14-oct por API (solo lectura): el token ve las 7
+cuentas de la tabla de `docs/hub.md` §2.4, todas en `America/Bogota`. Con `ads_read` la API no deja leer el dueño de
+cada cuenta (`owner` y `business` piden `business_management`), y no hace falta.
+
+Lo que cambia en el alcance:
+
+- **Una sola conexión, no N.** `meta_conexiones` sigue siendo el lugar del token (reglas del ADR 0057), pero la base
+  admite **una sola fila activa** (índice único parcial, ADR 0005), y `cuentas_publicitarias` **no** lleva FK a la
+  conexión: la cuenta es de un programa y punto. `ponytail:` si algún día un cliente no comparte sus cuentas con el
+  portafolio de Retia, se agrega la FK y una segunda conexión; hoy ese caso no existe.
+- **Vincular una cuenta** es escogerla de la lista que devuelve el token (`/me/adaccounts`), no teclear un id: así no
+  se puede vincular una cuenta que el token no ve.
+- El resto del ticket (token que no vuelve en ninguna lectura, moneda y zona leídas de Meta, aviso si la zona no es
+  Bogotá, 403 forjado) queda igual.
