@@ -3,7 +3,7 @@ id: 238
 etapa: dinero
 serves: "235 (A-146) · ADR 0085 puntos 1, 2, 3, 4 y 7"
 depends: [235]
-status: hecho
+status: done
 ---
 
 # 238 — El almacén de archivos: `lib/archivos/`, la tabla y el bucket

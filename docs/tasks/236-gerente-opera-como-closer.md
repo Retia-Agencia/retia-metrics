@@ -3,7 +3,7 @@ id: 236
 etapa: roles
 serves: "Michael, 12-oct: un gerente con facultades de closer full, sin perder las de gerente (ADR 0084)"
 depends: []
-status: todo
+status: done
 ---
 
 # 236 — Un gerente puede operar como closer

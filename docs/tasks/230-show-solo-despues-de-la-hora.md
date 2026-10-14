@@ -3,7 +3,7 @@ id: 230
 etapa: llamadas
 serves: "Mani, 12-oct: no se puede marcar show una llamada que aún no ha pasado"
 depends: []
-status: todo
+status: done
 ---
 
 # 230 — Una llamada solo es show cuando su hora ya pasó

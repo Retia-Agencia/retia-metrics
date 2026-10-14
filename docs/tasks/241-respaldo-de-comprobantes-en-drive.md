@@ -3,7 +3,7 @@ id: 241
 etapa: dinero
 serves: "235 · ADR 0085 puntos 7 y 8 (C-4: Supabase no respalda los archivos)"
 depends: [238]
-status: hecho
+status: done
 ---
 
 # 241 — Respaldo de los comprobantes en Drive, y barrido de pendientes

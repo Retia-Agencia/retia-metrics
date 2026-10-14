@@ -3,7 +3,7 @@ id: 231
 etapa: corte
 serves: "Mani, 12-oct: Próxima cohorte mueve el deal ya, para no dejar deals muertos"
 depends: [227]
-status: todo
+status: done
 ---
 
 # 231 — Próxima cohorte cambia la cohorte del deal en el acto

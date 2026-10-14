@@ -62,6 +62,8 @@ leer es libre, escribir pide el ok de Mani. Recorrido visual en dev:local hacien
   - **14-oct, Mani:** *"debe haber manera de hacer devoluciones"*. Hoy solo existe anular, que es otra cosa (error de
     tecleo, sale de todas las métricas). Ticket **242** y A-149, con las decisiones D-1 a D-8 y recomendación (movimiento
     de devolución que resta en su fecha; total → Cierre perdido). No construir hasta cerrarlas con Michael y Gerencia.
+  - **Checkpoint `cp-20261014-1`** sobre `ef7685e` (CI verde; después solo docs): 230 a 241 en `done`. C-6 cerrada: los
+    closers mandan foto, captura y PDF. Worktrees t238 a t241 y sus ramas, quitados.
 - **2026-10-13 (Mani + Claude): ticket 237, deals ganados completables y reagenda duplicada.**
   - **A-147** (Michael): en Ganado completo ahora se pega el Grain, se marca el resultado de una llamada pasada y el
     comprobante, sin mover etapa y con nota del actor en actividades. Crear/reagendar llamadas sigue bloqueado en un

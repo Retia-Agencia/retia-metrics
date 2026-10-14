@@ -3,7 +3,7 @@ id: 235
 etapa: dinero
 serves: "Michael, 12-oct: subir la foto del comprobante en vez de generar un link de Drive (A-146) · absorbe el 035"
 depends: [233]
-status: hecho
+status: done
 ---
 
 # 235 — El comprobante de un abono se puede subir como archivo
@@ -130,7 +130,7 @@ fuera de `lib/archivos/` llama a Storage; `tieneComprobante` en los tres lugares
 | C-3 | Retención | Para siempre, como el lead (a ~1 GB/año no hay presión) |
 | C-4 | Respaldo de los archivos (Supabase no los respalda) | Script semanal que copia el bucket a una carpeta de Drive de Retia (`googleapis` ya está instalado); se cruza con S1 |
 | C-5 | ¿Supabase Pro antes de prender esto? | No bloquea: comprimido cabe en el gratis ~1 año. Pero S1 sigue pendiente por la base |
-| C-6 | Cómo mandan hoy el comprobante (foto, captura, PDF): pregunta B de `plan.md` §7 a los closers | Confirmar con Michael; el diseño soporta los tres |
+| C-6 | Cómo mandan hoy el comprobante (foto, captura, PDF) | **Cerrada (Mani, 14-oct): los tres.** El sistema ya los acepta |
 
 El ADR 0085 recoge el modelo y enmienda el 0017 punto 3. **Se construye en cuatro tickets:** 238 (almacén, tabla,
 bucket y la única migración) → 239 (subir y ver desde la ficha) y 241 (respaldo en Drive y barrido) en paralelo →

@@ -311,18 +311,18 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 227 | [Cohorte por definir, y Cambiar cohorte arriba en la ficha](./227-cohorte-pendiente-y-cambiar-cohorte-arriba.md) | · | done (cp-20261010-1) · migración 0076 en producción |
 | [x] | 228 | [Anotar nunca mueve; En gestión entra por Mover a](./228-anotar-nunca-mueve.md) | · | done (cp-20261010-1) |
 | [x] | 229 | [Pulido del recorrido del 227 y el 228](./229-pulido-del-recorrido-227-228.md) | 227, 228 | done (cp-20261010-1; recorrido en base local ok) |
-| [ ] | 230 | [Una llamada solo es show cuando su hora ya pasó](./230-show-solo-despues-de-la-hora.md) | · | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
-| [ ] | 231 | [Próxima cohorte cambia la cohorte del deal en el acto](./231-proxima-cohorte-cambia-la-cohorte-ya.md) | 227 | hecho · 12-oct · implementó Codex, revisado; 0 deals con el pendiente viejo en producción (script retirado); falta checkpoint |
-| [ ] | 232 | [Marcar Show sobre una cita existente no pide ni valida hora](./232-show-sobre-cita-sin-pedir-hora.md) | 230 | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
-| [ ] | 233 | ["Pagó ahora" con el pago completo deja el deal en Ganado Completo](./233-pago-completo-desde-pago-ahora.md) | · | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
-| [ ] | 234 | [Log de eventos en texto para quien no es developer, y sin SQL guardado como valor](./234-log-de-eventos-legible.md) | · | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
-| [ ] | 235 | [El comprobante de un abono se puede subir como archivo](./235-comprobante-como-archivo.md) | 233 | hecho · 13-oct · se construyó en 238 a 241 (ADR 0085); falta checkpoint y C-6 con Michael |
-| [ ] | 236 | [Un gerente puede operar como closer sin dejar de ser gerente](./236-gerente-opera-como-closer.md) | · | hecho · 12-oct · implementó Codex, revisado; 0077 aplicada en producción; falta checkpoint |
-| [ ] | 237 | [Completar requisitos en Ganado completo, y una cita = una llamada](./237-completar-requisitos-en-ganado-completo.md) | · | hecho · 13-oct · implementó Codex, revisado; falta checkpoint |
-| [ ] | 238 | [El almacén de archivos: `lib/archivos/`, la tabla y el bucket](./238-almacen-de-archivos.md) | 235 | hecho · 13-oct · 0078 y 0079 (RLS) en producción; bucket `comprobantes` creado (privado, 5 MB, lista blanca); falta checkpoint |
-| [ ] | 239 | [Subir y ver el comprobante de un abono desde la ficha](./239-comprobante-en-la-ficha.md) | 238 | hecho · 13-oct · implementó Codex, revisado; recorrido local y humo (4 roles) ok; falta checkpoint |
-| [ ] | 240 | [El comprobante se sube al registrar el abono](./240-comprobante-al-registrar-el-abono.md) | 239 | hecho · 13-oct · implementó Codex, revisado; recorrido local ok (abono + archivo en una transacción); falta checkpoint |
-| [ ] | 241 | [Respaldo de los comprobantes en Drive, y barrido de pendientes](./241-respaldo-de-comprobantes-en-drive.md) | 238 | hecho · 13-oct · implementó Codex, revisado; probado contra la unidad real; cron diario 09:00 UTC; falta checkpoint |
+| [x] | 230 | [Una llamada solo es show cuando su hora ya pasó](./230-show-solo-despues-de-la-hora.md) | · | done (cp-20261014-1) · 12-oct · implementó Codex, revisado  |
+| [x] | 231 | [Próxima cohorte cambia la cohorte del deal en el acto](./231-proxima-cohorte-cambia-la-cohorte-ya.md) | 227 | done (cp-20261014-1) · 12-oct · implementó Codex, revisado; 0 deals con el pendiente viejo en producción (script retirado)  |
+| [x] | 232 | [Marcar Show sobre una cita existente no pide ni valida hora](./232-show-sobre-cita-sin-pedir-hora.md) | 230 | done (cp-20261014-1) · 12-oct · implementó Codex, revisado  |
+| [x] | 233 | ["Pagó ahora" con el pago completo deja el deal en Ganado Completo](./233-pago-completo-desde-pago-ahora.md) | · | done (cp-20261014-1) · 12-oct · implementó Codex, revisado  |
+| [x] | 234 | [Log de eventos en texto para quien no es developer, y sin SQL guardado como valor](./234-log-de-eventos-legible.md) | · | done (cp-20261014-1) · 12-oct · implementó Codex, revisado  |
+| [x] | 235 | [El comprobante de un abono se puede subir como archivo](./235-comprobante-como-archivo.md) | 233 | done (cp-20261014-1) · 13-oct · se construyó en 238 a 241 (ADR 0085); C-6 cerrada (los tres formatos)  |
+| [x] | 236 | [Un gerente puede operar como closer sin dejar de ser gerente](./236-gerente-opera-como-closer.md) | · | done (cp-20261014-1) · 12-oct · implementó Codex, revisado; 0077 aplicada en producción  |
+| [x] | 237 | [Completar requisitos en Ganado completo, y una cita = una llamada](./237-completar-requisitos-en-ganado-completo.md) | · | done (cp-20261014-1) · 13-oct · implementó Codex, revisado  |
+| [x] | 238 | [El almacén de archivos: `lib/archivos/`, la tabla y el bucket](./238-almacen-de-archivos.md) | 235 | done (cp-20261014-1) · 13-oct · 0078 y 0079 (RLS) en producción; bucket `comprobantes` creado (privado, 5 MB, lista blanca)  |
+| [x] | 239 | [Subir y ver el comprobante de un abono desde la ficha](./239-comprobante-en-la-ficha.md) | 238 | done (cp-20261014-1) · 13-oct · implementó Codex, revisado; recorrido local y humo (4 roles) ok  |
+| [x] | 240 | [El comprobante se sube al registrar el abono](./240-comprobante-al-registrar-el-abono.md) | 239 | done (cp-20261014-1) · 13-oct · implementó Codex, revisado; recorrido local ok (abono + archivo en una transacción)  |
+| [x] | 241 | [Respaldo de los comprobantes en Drive, y barrido de pendientes](./241-respaldo-de-comprobantes-en-drive.md) | 238 | done (cp-20261014-1) · 13-oct · implementó Codex, revisado; probado contra la unidad real; cron diario 09:00 UTC  |
 | [ ] | 242 | [Una devolución se registra como devolución, no como abono anulado](./242-devoluciones.md) | 240 | todo · 14-oct · **prioridad**: hoy no hay forma correcta de devolver; decisiones D-1 a D-8 con Michael y Gerencia antes de construir |
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
