@@ -135,6 +135,7 @@ describe("fichaDeDeal", () => {
       content: "Anuncio 1",
       term: null,
       id: "42",
+      idsMeta: { adId: null, adsetId: null, campaignId: null },
     });
   });
 
