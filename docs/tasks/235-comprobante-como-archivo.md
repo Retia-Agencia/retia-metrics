@@ -3,7 +3,7 @@ id: 235
 etapa: dinero
 serves: "Michael, 12-oct: subir la foto del comprobante en vez de generar un link de Drive (A-146) · absorbe el 035"
 depends: [233]
-status: todo
+status: hecho
 ---
 
 # 235 — El comprobante de un abono se puede subir como archivo

@@ -3,7 +3,7 @@ id: 240
 etapa: dinero
 serves: "235 (A-146) · ADR 0085 punto 3"
 depends: [239]
-status: todo
+status: hecho
 ---
 
 # 240 — El comprobante se sube al registrar el abono

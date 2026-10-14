@@ -51,6 +51,14 @@ leer es libre, escribir pide el ok de Mani. Recorrido visual en dev:local hacien
     376 llamadas). Codex no pudo commitear en el worktree (el sandbox no escribe `.git/worktrees/*/index.lock`): el
     commit lo hace el thread principal. Falta: bucket `comprobantes` y los secretos `SUPABASE_URL`/`SUPABASE_SECRET_KEY`
     (con el 239), y subir la cuenta de servicio a Administrador de contenido en la unidad (241).
+  - **Cierre de la O9 (madrugada del 14-oct):** 238 a 241 en `main`, CI verde en cada push (238 cayó una vez por
+    RLS faltante en `archivos` → **0079**, aplicada). Bucket `comprobantes` creado (privado, 5 MB, JPEG/PNG/WebP/PDF;
+    un SVG y una URL con token alterado se rechazan, probado contra Storage real). Variables en Vercel: las de Supabase
+    y `DRIVE_COMPROBANTES_ID` las puso Mani; `CRON_SECRET` la generó la sesión sin mostrarla. Recorridos locales: 239
+    (subir, ver, otro programa 404, sin sesión al login, humo 4 roles) y 240 (Pagó ahora con foto → abono + archivo en
+    una transacción). 240: no existe formulario de abono en la ficha; la foto va solo en "Pagó ahora" del diálogo de
+    mover (decisión del thread). Pendiente: checkpoint de la O9, el primer comprobante real (mirar que el cron lo
+    respalde al día siguiente) y C-6 con Michael. Codex no puede commitear en worktrees (sandbox): commitea el thread.
 - **2026-10-13 (Mani + Claude): ticket 237, deals ganados completables y reagenda duplicada.**
   - **A-147** (Michael): en Ganado completo ahora se pega el Grain, se marca el resultado de una llamada pasada y el
     comprobante, sin mover etapa y con nota del actor en actividades. Crear/reagendar llamadas sigue bloqueado en un

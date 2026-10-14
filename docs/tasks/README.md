@@ -316,13 +316,13 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 232 | [Marcar Show sobre una cita existente no pide ni valida hora](./232-show-sobre-cita-sin-pedir-hora.md) | 230 | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
 | [ ] | 233 | ["Pagó ahora" con el pago completo deja el deal en Ganado Completo](./233-pago-completo-desde-pago-ahora.md) | · | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
 | [ ] | 234 | [Log de eventos en texto para quien no es developer, y sin SQL guardado como valor](./234-log-de-eventos-legible.md) | · | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
-| [ ] | 235 | [El comprobante de un abono se puede subir como archivo](./235-comprobante-como-archivo.md) | 233 | 13-oct · audit hecho; C-1 a C-5 aceptadas (ADR 0085); se construye en 238 a 241. Falta C-6 con Michael |
+| [ ] | 235 | [El comprobante de un abono se puede subir como archivo](./235-comprobante-como-archivo.md) | 233 | hecho · 13-oct · se construyó en 238 a 241 (ADR 0085); falta checkpoint y C-6 con Michael |
 | [ ] | 236 | [Un gerente puede operar como closer sin dejar de ser gerente](./236-gerente-opera-como-closer.md) | · | hecho · 12-oct · implementó Codex, revisado; 0077 aplicada en producción; falta checkpoint |
 | [ ] | 237 | [Completar requisitos en Ganado completo, y una cita = una llamada](./237-completar-requisitos-en-ganado-completo.md) | · | hecho · 13-oct · implementó Codex, revisado; falta checkpoint |
-| [ ] | 238 | [El almacén de archivos: `lib/archivos/`, la tabla y el bucket](./238-almacen-de-archivos.md) | 235 | hecho · 13-oct · implementó Codex, revisado; **0078 aplicada en producción** (conteos intactos); falta checkpoint |
-| [ ] | 239 | [Subir y ver el comprobante de un abono desde la ficha](./239-comprobante-en-la-ficha.md) | 238 | todo · 13-oct |
-| [ ] | 240 | [El comprobante se sube al registrar el abono](./240-comprobante-al-registrar-el-abono.md) | 239 | todo · 13-oct |
-| [ ] | 241 | [Respaldo de los comprobantes en Drive, y barrido de pendientes](./241-respaldo-de-comprobantes-en-drive.md) | 238 | todo · 13-oct · unidad compartida creada y visible para la cuenta de servicio; falta subirla a Administrador de contenido |
+| [ ] | 238 | [El almacén de archivos: `lib/archivos/`, la tabla y el bucket](./238-almacen-de-archivos.md) | 235 | hecho · 13-oct · 0078 y 0079 (RLS) en producción; bucket `comprobantes` creado (privado, 5 MB, lista blanca); falta checkpoint |
+| [ ] | 239 | [Subir y ver el comprobante de un abono desde la ficha](./239-comprobante-en-la-ficha.md) | 238 | hecho · 13-oct · implementó Codex, revisado; recorrido local y humo (4 roles) ok; falta checkpoint |
+| [ ] | 240 | [El comprobante se sube al registrar el abono](./240-comprobante-al-registrar-el-abono.md) | 239 | hecho · 13-oct · implementó Codex, revisado; recorrido local ok (abono + archivo en una transacción); falta checkpoint |
+| [ ] | 241 | [Respaldo de los comprobantes en Drive, y barrido de pendientes](./241-respaldo-de-comprobantes-en-drive.md) | 238 | hecho · 13-oct · implementó Codex, revisado; probado contra la unidad real; cron diario 09:00 UTC; falta checkpoint |
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
 

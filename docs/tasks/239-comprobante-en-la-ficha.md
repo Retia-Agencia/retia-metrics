@@ -3,7 +3,7 @@ id: 239
 etapa: dinero
 serves: "235 (A-146) · ADR 0085 puntos 3, 4, 5 y 10"
 depends: [238]
-status: todo
+status: hecho
 ---
 
 # 239 — Subir y ver el comprobante de un abono desde la ficha

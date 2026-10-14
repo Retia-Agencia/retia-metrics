@@ -98,6 +98,9 @@ editor) y en Vercel.
 | `DB_PROD` | sin uso desde el 28-sep: hay una sola base y `DATABASE_URL` ya es producción | local |
 | `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_URL` | login con Google (Auth.js) | local, Vercel |
 | `GOOGLE_SERVICE_ACCOUNT_JSON_B64` | la cuenta de servicio que lee las hojas: "probar" y activar una fuente de hoja en la tab Programa (Formularios), los scripts y el traslado | local, Vercel |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | el almacén de comprobantes (Supabase Storage, bucket privado `comprobantes`; ADR 0085). La llave secreta solo vive en el servidor; con una `DATABASE_URL` local se usa el adaptador de disco y no hacen falta | local, Vercel |
+| `CRON_SECRET` | protege `/api/cron/comprobantes` (respaldo diario en Drive y barrido de subidas a medias); Vercel lo manda en cada llamada del cron. Lo generó la sesión del 13-oct sin mostrarlo | local, Vercel |
+| `DRIVE_COMPROBANTES_ID` | la unidad compartida "Comprobantes CRM Retia" (`0ADSvd0QdWDh-Uk9PVA`, Workspace de Retia); la cuenta de servicio es Administrador de contenido. Sin ella el cron solo barre | local, Vercel |
 | `SHEET_ID_COMUNICARTE`, `SHEET_ID_TACTICAL` | los IDs de las hojas, para los scripts | local |
 | `SCRIPT_ACTOR_EMAIL` | quién firma el rastro de un script que escribe en una base viva (ADR 0029) | local |
 | `SEED_GERENTE_EMAIL`, `SEED_GERENTE_NOMBRE` | el gerente que siembra `seed:users` | local |

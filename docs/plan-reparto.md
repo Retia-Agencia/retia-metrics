@@ -121,7 +121,7 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ## 4. La ola vigente y el mapa de etapas
 
-### 🌊 Ola O9 · el comprobante como archivo · abierta el 13-oct
+### 🌊 Ola O9 · el comprobante como archivo · abierta el 13-oct · construida la madrugada del 14-oct (falta checkpoint)
 
 Sale del 235 (A-146) y del ADR 0085. Dos carriles; 239 y 240 comparten `app/(app)/p/[programa]/deals/[id]/acciones.ts`
 y los componentes del abono, así que van en el mismo carril y en orden.

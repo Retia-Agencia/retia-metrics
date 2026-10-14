@@ -389,6 +389,6 @@ reconectar el conector. Las decisiones salen del grill de esa tarde (ADR 0081 y 
 | A-143 | Diálogo de mover → Pagó ahora | bug | Un abono por el ticket completo da "A Ganado Pago Parcial no se mueve a mano (A2)" y se deshace todo: el deal queda en Atendido sin abono (Andrea, 12-oct). | 233 | en ticket |
 | A-144 | Abono → comprobante | cambio | El placeholder dice drive.google.com; es un link de cualquier lado. | 233 | en ticket |
 | A-145 | Ficha → Log de eventos | cambio | Muestra columnas e ids (ownerUserId, ownerNovedadEn, queryChunks): para quien no es developer, texto con nombres y sin campos internos (Michael, 12-oct). | 234 | en ticket |
-| A-146 | Abono → comprobante | cambio | Poder subir la foto del comprobante en vez de un link de Drive (Michael, 12-oct). | 235 | en ticket |
+| A-146 | Abono → comprobante | cambio | Poder subir la foto del comprobante en vez de un link de Drive (Michael, 12-oct). | 235 (238 a 241) | hecho |
 | A-147 | Ficha de un deal ganado → llamadas | cambio | En Ganado completo no deja pegar el Grain ni completar lo que levanta alertas; debe dejarlo, con nota en actividades (Michael, 13-oct). | 237 | hecho |
 | A-148 | Reagenda en CRM y en Calendly | bug | Reagendar en el CRM y luego en Calendly deja dos llamadas para la misma cita (Andrey Siabato, Nicolás, 13-oct). | 237 | hecho |
