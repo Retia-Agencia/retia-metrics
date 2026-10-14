@@ -67,6 +67,11 @@ agregar a `retia-metrics-sync@retia-growth.iam.gserviceaccount.com` como **Admin
 Mani y a gerencia como lectores (o administradores, para quien la gestione); nadie más. El id de la unidad va a una
 variable de entorno (`DRIVE_COMPROBANTES_ID`), no al código.
 
+**Estado (13-oct):** la unidad existe (id `0ADSvd0QdWDh-Uk9PVA`) y la cuenta de servicio la ve, pero como
+**Colaborador**: puede crear y editar, no mover ni enviar a la papelera. Mover un archivo cuando el deal cambia de
+cohorte exige **Administrador de contenido**; subirle el rol antes de construir. Verificado leyendo las capacidades
+de la unidad por API.
+
 ## Done cuando
 
 - [ ] Una corrida respalda los comprobantes nuevos con la estructura acordada y es idempotente (dos corridas = mismo

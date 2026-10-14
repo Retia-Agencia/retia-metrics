@@ -45,6 +45,12 @@ leer es libre, escribir pide el ok de Mani. Recorrido visual en dev:local hacien
     adentro y la cuenta de servicio tendría escritura sobre toda la empresa. Mani la crea y agrega a la cuenta de
     servicio como Administrador de contenido (pasos en el 241). Ola **O9** abierta en `plan-reparto.md` §4: S1
     238 → 239 → 240, S2 241. Esta sesión queda como thread principal de la O9.
+  - **238 integrado (`dd4cff8`):** Codex implementó, revisado PASS (24 tests, typecheck, lint, build). La **0078
+    aplicada en producción** con el ok de Mani, antes del push (la columna nueva de `abonos` rompería las lecturas si el
+    código llegaba primero); 0 transacciones largas antes, conteos iguales después (30 abonos, 740 deals, 739 leads,
+    376 llamadas). Codex no pudo commitear en el worktree (el sandbox no escribe `.git/worktrees/*/index.lock`): el
+    commit lo hace el thread principal. Falta: bucket `comprobantes` y los secretos `SUPABASE_URL`/`SUPABASE_SECRET_KEY`
+    (con el 239), y subir la cuenta de servicio a Administrador de contenido en la unidad (241).
 - **2026-10-13 (Mani + Claude): ticket 237, deals ganados completables y reagenda duplicada.**
   - **A-147** (Michael): en Ganado completo ahora se pega el Grain, se marca el resultado de una llamada pasada y el
     comprobante, sin mover etapa y con nota del actor en actividades. Crear/reagendar llamadas sigue bloqueado en un

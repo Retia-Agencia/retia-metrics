@@ -319,10 +319,10 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 235 | [El comprobante de un abono se puede subir como archivo](./235-comprobante-como-archivo.md) | 233 | 13-oct · audit hecho; C-1 a C-5 aceptadas (ADR 0085); se construye en 238 a 241. Falta C-6 con Michael |
 | [ ] | 236 | [Un gerente puede operar como closer sin dejar de ser gerente](./236-gerente-opera-como-closer.md) | · | hecho · 12-oct · implementó Codex, revisado; 0077 aplicada en producción; falta checkpoint |
 | [ ] | 237 | [Completar requisitos en Ganado completo, y una cita = una llamada](./237-completar-requisitos-en-ganado-completo.md) | · | hecho · 13-oct · implementó Codex, revisado; falta checkpoint |
-| [ ] | 238 | [El almacén de archivos: `lib/archivos/`, la tabla y el bucket](./238-almacen-de-archivos.md) | 235 | todo · 13-oct · ADR 0085 · lleva la migración de todo el 235 |
+| [ ] | 238 | [El almacén de archivos: `lib/archivos/`, la tabla y el bucket](./238-almacen-de-archivos.md) | 235 | hecho · 13-oct · implementó Codex, revisado; **0078 aplicada en producción** (conteos intactos); falta checkpoint |
 | [ ] | 239 | [Subir y ver el comprobante de un abono desde la ficha](./239-comprobante-en-la-ficha.md) | 238 | todo · 13-oct |
 | [ ] | 240 | [El comprobante se sube al registrar el abono](./240-comprobante-al-registrar-el-abono.md) | 239 | todo · 13-oct |
-| [ ] | 241 | [Respaldo de los comprobantes en Drive, y barrido de pendientes](./241-respaldo-de-comprobantes-en-drive.md) | 238 | todo · 13-oct · estructura decidida; antes de construir, Mani crea la unidad compartida "Comprobantes CRM Retia" |
+| [ ] | 241 | [Respaldo de los comprobantes en Drive, y barrido de pendientes](./241-respaldo-de-comprobantes-en-drive.md) | 238 | todo · 13-oct · unidad compartida creada y visible para la cuenta de servicio; falta subirla a Administrador de contenido |
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
 
