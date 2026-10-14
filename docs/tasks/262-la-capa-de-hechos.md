@@ -3,7 +3,7 @@ id: 262
 etapa: hub
 serves: "docs/hub.md §8, contratos C-1 y C-2 (Mani, 14-oct: métricas como consultas bien construidas, reutilizables y escalables; nada escrito a mano para el estado de hoy)"
 depends: [246]
-status: en curso (Mani, sesión O10 + Codex, 14-oct)
+status: done
 ---
 
 # 262 — La capa de hechos: cada métrica es una consulta reutilizable, con dimensiones, filtros y orden
@@ -39,15 +39,26 @@ cifra sea la misma consulta sin agregar.
 
 ## Done cuando
 
-- [ ] Un hecho agrupado por cualquier combinación permitida de dimensiones da lo mismo que contar su lista, con test.
-- [ ] Una dimensión que no está en la lista blanca no compila; un filtro sin programa tampoco.
-- [ ] La regla del área da lo mismo en SQL y en TypeScript para todos los casos del 246, ejecutando las dos.
-- [ ] El guardián de vigencia no marca ninguna lectura de la capa.
-- [ ] Ninguna consulta de la capa hace subconsultas correlacionadas con la plantilla `sql` (`AGENTS.md`).
-- [ ] Con 10 veces el volumen de hoy, agrupar un mes por día y área en un programa tarda menos de 1 s en PGlite
+- [x] Un hecho agrupado por cualquier combinación permitida de dimensiones da lo mismo que contar su lista, con test.
+- [x] Una dimensión que no está en la lista blanca no compila; un filtro sin programa tampoco.
+- [x] La regla del área da lo mismo en SQL y en TypeScript para todos los casos del 246, ejecutando las dos.
+- [x] El guardián de vigencia no marca ninguna lectura de la capa.
+- [x] Ninguna consulta de la capa hace subconsultas correlacionadas con la plantilla `sql` (`AGENTS.md`).
+- [x] Con 10 veces el volumen de hoy, agrupar un mes por día y área en un programa tarda menos de 1 s en PGlite
   (nota de cierre con el `EXPLAIN`).
 
 ## Notas
 
 Lo construyen encima: 123, 248, 253, 254, 258. Si un ticket necesita una métrica que la capa no da, se agrega el
 hecho o la dimensión aquí, nunca una consulta suelta.
+
+## Nota de cierre (14-oct)
+
+- Implementó Codex y terminó Kiro (Codex se quedó sin cuota). `lib/queries/hechos/` (envío, agenda, cita, venta,
+  abono), la gemela SQL en `lib/atribucion/canal-sql.ts` y `hechosDelEmbudo` reescrito encima con la misma salida.
+- Decidido en la revisión: agenda y cita unen el deal con `incluyendoAnulados(deals)`, como antes; `incluyendoAnulados`
+  acepta una subconsulta (nunca filtra) para marcar `ventasConDiaEn`.
+- Medido a 10x (25.000 envíos por programa): un mes por día y área en 82,8 ms; Bitmap Index Scan sobre
+  `submissions_fuente_token_idx`, sin índice nuevo. `tests/capa-hechos-volumen.test.ts` corre con `MEDIR_VOLUMEN=1`.
+- Pendiente menor: `Pagina` acepta dos formas (offset y número); sobra una. El hecho del gasto lo agrega quien lo
+  necesite primero (123 o 258) sobre `gasto_pauta`.

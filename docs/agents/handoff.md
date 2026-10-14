@@ -9,24 +9,34 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia. Esta sesión es el THREAD PRINCIPAL de la ola O8 (Mover o Anotar, y el hub del
-closer): orquesta, no implementa. Lee AGENTS.md, docs/plan-reparto.md §4 (ola O8: tres carriles, archivos calientes y
-cola de migraciones), los ADR 0081 y 0082 y los tickets 215 a 225 (tracker en docs/tasks/README.md §15).
+Seguimos con el CRM de Retia, ola O10 (docs/plan-reparto.md §4). Esta sesión orquesta: Codex implementa en
+worktrees dentro del repo (.claude/worktrees/<nombre>), la sesión revisa, integra, corre la build y mira el CI.
+Lee AGENTS.md, docs/hub.md y la entrada del 14-oct (tarde) en Memory.
 
-Arranque: lanza con /delegate (Codex, effort medium, en background, cada uno en su worktree DENTRO del repo) los
-tickets listos de carriles distintos: S1 → 215, S2 → 221, S3 → 225. Cuando uno cierre, revisa diff + tests contra su
-"Done cuando" (PASS/FAIL; un FAIL vuelve a Codex como brief de arreglo) y lanza el siguiente de ese carril:
-S1 215 → 216 → 217 → 218 → 219 → 220 · S2 221 → 222 → 223 · S3 225 → 224 (cuando 221 esté en done).
-Nunca dos tickets del mismo carril a la vez: comparten archivos.
+Listos ahora: carril B → 244 (la TRM; trae la siguiente migración de la cola, la genera, lee y aplica esta sesión
+con el ok de Mani) y luego 245; carril A → 247 (conectar arbolDePauta al emparejador) y 248, si Alejandro no los
+tomó (mira el status de cada ticket antes). Reclama el ticket (status en curso) y empuja antes de lanzar.
 
-Reglas: Codex no corre db:generate ni db:migrate; las migraciones (217, 218 y al final el DROP de 216, tras el
-deploy del código) las genera, lee y aplica esta sesión con el ok de Mani. Nivel 1 antes de cada push (typecheck,
-lint, tests del ticket; `npm run build` si toca un componente cliente); la suite completa la corre el CI en el
-checkpoint (plan-reparto §6). El cadenero (otra sesión) revisa antes del checkpoint. Producción es la única base:
-leer es libre, escribir pide el ok de Mani. Recorrido visual en dev:local haciendo clic en todo lo que se abre.
+Reglas de esta ola: antes de empujar, typecheck, lint, los tests del ticket Y los guardianes
+(tests/contrato-extension.test.ts, tests/vigencia-centralizada.test.ts) más tests/paginas.test.ts si toca una
+página; npm run build si toca un componente cliente. Codex: sin red, sin commit (lo hace la sesión), --resume toma
+el trabajo más reciente (relanzar como tarea nueva) y su cuota se acaba: si pasa, Kiro termina el ticket.
 ```
 
 ## Memory
+
+- **2026-10-14 (tarde; Mani + Claude, sesión principal de la O10): 120 y 262 cerrados, CI verde en `803e6fc`.**
+  - **120:** Codex implementó; Kiro hizo el arreglo (corrida cortada que bloqueaba para siempre, gasto corregido a
+    cero, monto como texto) porque Codex se quedó sin cuota a media mañana. Migración 0081 aplicada con el ok de
+    Mani. Mani conectó el token en Ajustes › Meta y vinculó las cuentas; la primera corrida (107 s, 435 filas)
+    cuadra con el audit: agendas 9-13 oct iguales en los tres programas, gasto a menos de 0,1%. Bug de producción:
+    Meta rechaza 500 anuncios por página con el creativo anidado; quedó en 100.
+  - **262:** capa de hechos en `lib/queries/hechos/`; 82,8 ms a 10x. Decisiones en la nota de cierre del ticket.
+  - **CI:** se puso rojo dos veces por cosas que el nivel 1 del ticket no mira (un comentario con nombre de programa,
+    `tests/paginas.test.ts` sin el mock de la página nueva), y una corrida se cortó por los 480 s. Otra sesión partió
+    `npm test` en 3 shards y dio una PGlite por archivo (`1b19ab3` a `cc549b2`).
+  - **Abierto para Mani:** sincronizar al abrir el Hub (opción A, con `after()` y modo liviano) como enmienda del 259.
+    Los dos crons de Vercel (comprobantes 9:00 UTC, pauta 11:00 UTC) no se chocan.
 
 - **2026-10-14 (Mani + Claude, sesión principal de la O10, carril B y la línea 246 del A): 246, 119 y 255 cerrados.**
   Codex implementó los tres en worktrees dentro del repo; la sesión revisó, integró y miró el CI.

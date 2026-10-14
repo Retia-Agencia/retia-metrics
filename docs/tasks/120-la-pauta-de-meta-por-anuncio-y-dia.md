@@ -3,7 +3,7 @@ id: 120
 etapa: E6
 serves: "ADR 0062 puntos 2 y 3 · docs/analytics.md PT-14, PT-24, PT-39, PT-58"
 depends: [119]
-status: en curso (Mani, sesión O10 + Codex, 14-oct)
+status: done
 ---
 
 # 120 — La pauta de Meta: el árbol de campañas y el gasto por anuncio y día
@@ -35,10 +35,10 @@ Que el gasto de cada anuncio entre solo al CRM, colgado del mismo id que traen l
 
 ## Done cuando
 
-- [ ] Correr la sincronización dos veces no duplica gasto, con test.
-- [ ] Un ajuste de Meta sobre un día pasado actualiza ese día, con test.
-- [ ] Un envío con `utm_id` resuelve a su anuncio, conjunto y campaña.
-- [ ] El gasto cuadra con el Administrador de anuncios en un día elegido a mano (nota de cierre).
+- [x] Correr la sincronización dos veces no duplica gasto, con test.
+- [x] Un ajuste de Meta sobre un día pasado actualiza ese día, con test.
+- [x] Un envío con `utm_id` resuelve a su anuncio, conjunto y campaña.
+- [x] El gasto cuadra con el Administrador de anuncios en un día elegido a mano (nota de cierre).
 
 ## Kiro
 
@@ -63,3 +63,17 @@ Sí, con revisión. La migración y la primera corrida en producción, la sesió
 - **Durante el día** la sincronización la dispara el endpoint del 259 (Juanito, ADR 0089); el cron diario de Vercel
   cierra el día y re-lee los últimos siete.
 - **Lo que no se borra:** `ad_spend` sigue retirándose aquí (vacía, 0 filas el 14-oct).
+
+## Nota de cierre (14-oct)
+
+- Implementó Codex; el arreglo (corrida cortada, gasto corregido a cero, monto como texto) lo hizo Kiro porque Codex
+  se quedó sin cuota. La sesión cambió la puesta en cero a "cero la ventana de la cuenta y reescribir" en una
+  transacción, y bajó la página de anuncios a 100 (Meta rechaza 500 con el creativo anidado en las cuentas grandes).
+- Migración 0081 aplicada en producción con el ok de Mani (`lock_timeout`, RLS en las tres tablas, `ad_spend` sin
+  `CASCADE`: tenía 0 filas y ninguna FK).
+- Primera corrida real: 107 s, 435 filas, 1.883 anuncios en el árbol. Del 9 al 13-oct contra el audit (`docs/hub.md`
+  §2.4): TI 4.238.878 COP contra 4.235.327 y 47/47 agendas; CA 4.375.799 contra 4.372.647 y 51/51; CcC 510.281
+  contra 510.266 y 5/5. La diferencia (< 0,1%) es el ajuste hacia atrás de Meta.
+- Queda para otros tickets: el hecho del gasto en la capa del 262 y conectar `arbolDePauta` al emparejador (247).
+  Propuesta para el 259 (sin decidir): sincronizar al abrir el Hub con `after()` si la última corrida tiene más de
+  1 h, en modo liviano (solo hoy, el árbol si tiene más de 24 h).

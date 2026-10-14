@@ -189,7 +189,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 067 | [ROAS por cohorte y captura de pauta](./067-roas-por-cohorte-y-captura-de-pauta.md) (E5-4) | 064, 120 | reemplazado · 14-oct (ok de Mani): ROAS en el 123, gasto en el 120 (`docs/hub.md` §6) |
 | [x] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | done · `cp-20261005-2` · Alejo · 5-oct · su Dashboard: ve todos los programas (ADR 0052 enmendado), sin comparativo, comisión ni listas (`veEquipoComercial`, `sinListas`); cadenero (5-oct): aprobado, con los tests de petición forjada y de Operación y Dinero |
 | [x] | 119 | [La conexión con Meta: un solo token y las cuentas de cada programa](./119-la-conexion-con-meta.md) | — | done · 14-oct · Mani · CI verde `e020948` · 0080 aplicada en producción; un solo token (enmienda del 14-oct), cuentas por programa solo de quien administra; recorrido local con el token real (7 cuentas) |
-| [ ] | 120 | [La pauta de Meta: árbol y gasto por anuncio y día](./120-la-pauta-de-meta-por-anuncio-y-dia.md) | 119 | todo · migración (retira `ad_spend`) · enmendado 14-oct: agendas según Meta, `url_tags`, registro de corridas |
+| [x] | 120 | [La pauta de Meta: árbol y gasto por anuncio y día](./120-la-pauta-de-meta-por-anuncio-y-dia.md) | 119 | done · 14-oct · Mani · CI verde `803e6fc` · migración 0081 aplicada; primera corrida en producción: agendas 9-13 oct iguales al audit, gasto a menos de 0,1% |
 | [ ] | 122 | [Los objetivos de la cohorte y el reparto de cupos por área](./122-los-objetivos-de-la-cohorte.md) | 083 | todo · carril Mani · migración |
 | [ ] | 123 | [El embudo de Pauta y los costos por etapa](./123-el-embudo-de-pauta-y-los-costos-por-etapa.md) | 085, 089, 115, 120, 244, 247, 262 | todo · enmendado 14-oct: agendas del CRM, TRM del día (ADR 0088) |
 | [ ] | 124 | [El cumplimiento de la cohorte por área](./124-el-cumplimiento-de-la-cohorte-por-area.md) | 122, 123, 253 | todo · PQ3 = HQ-5, con valor por defecto del 253 |
@@ -239,7 +239,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 255 | [Elegir la librería de gráficas](./255-elegir-la-libreria-de-graficas.md) | — | done · 14-oct · Mani · ECharts con una pieza propia (ADR 0091); rama del prototipo borrada |
 | [ ] | 256 | [El contrato de gráficas y la migración](./256-el-contrato-de-graficas-y-la-migracion.md) | 255, 250 | todo |
 | [ ] | 257 | [Las acciones](./257-las-acciones.md) | 252 | todo · migración (ADR 0090) |
-| [ ] | 262 | [La capa de hechos](./262-la-capa-de-hechos.md) | 246 | todo · contrato C-2 de `docs/hub.md` |
+| [x] | 262 | [La capa de hechos](./262-la-capa-de-hechos.md) | 246 | done · 14-oct · Mani · CI verde `803e6fc` · cinco hechos en `lib/queries/hechos/`; a 10x el volumen, un mes por día y área en 82,8 ms |
 
 ## 10 · Configuración
 
