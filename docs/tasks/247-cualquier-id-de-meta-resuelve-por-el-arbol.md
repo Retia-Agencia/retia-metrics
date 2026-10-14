@@ -3,7 +3,7 @@ id: 247
 etapa: hub
 serves: "ADR 0087 puntos 1 (paso 1), 3 y 4 · docs/hub.md §2.4 (el id del anuncio no llega), §5.2 (nivel de la traza)"
 depends: [120, 246]
-status: todo
+status: en curso
 ---
 
 # 247 — Cualquier id de Meta que llegue se resuelve por el árbol, y el `ad_id` deja de perderse
