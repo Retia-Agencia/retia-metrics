@@ -74,7 +74,9 @@ export function emparejar(utms: UtmsDelEnvio, arbol: ArbolDePauta): Traza {
     : hallado && "conjunto" in hallado
       ? { conjuntoId: hallado.conjunto.id, campanaId: hallado.conjunto.campanaId }
       : null;
-  if (ids.length > 0 && hallado === undefined) avisos.push("anuncio_desconocido");
+  // Los ids de Meta son numéricos: un texto como `organic` (lo mandan los links orgánicos en
+  // `ad_id`) es un centinela, no un anuncio que falte en el árbol.
+  if (ids.some((id) => /^\d+$/.test(id)) && hallado === undefined) avisos.push("anuncio_desconocido");
 
   const origen: ResultadoCanal = hallado === undefined
     ? origenPorMedio

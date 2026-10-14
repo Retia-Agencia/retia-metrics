@@ -163,8 +163,8 @@ describe("emparejador de atribucion", () => {
       ...VACIOS,
       source: "ig",
       medium: "social",
-      id: "utm-ausente",
-      idsMeta: { adId: "ad-ausente", adsetId: "set-ausente", campaignId: "camp-ausente" },
+      id: "9001",
+      idsMeta: { adId: "9002", adsetId: "9003", campaignId: "9004" },
     }, ARBOL)).toMatchObject({
       nivel: "N1",
       origen: { area: "organico", regla: "con_utm" },
@@ -172,8 +172,21 @@ describe("emparejador de atribucion", () => {
     });
   });
 
+  it("un id que no es numérico (`ad_id=organic`) es un centinela y no avisa", () => {
+    expect(emparejar({
+      ...VACIOS,
+      source: "instagram rosario",
+      medium: "linktree",
+      idsMeta: { adId: "organic", adsetId: null, campaignId: null },
+    }, ARBOL)).toMatchObject({
+      nivel: "N1",
+      origen: { area: "organico", regla: "con_utm" },
+      avisos: [],
+    });
+  });
+
   it("avisa un anuncio desconocido y cae a N2 o N1", () => {
-    const base = { ...VACIOS, source: "ig", medium: "paid_social", id: "ausente" };
+    const base = { ...VACIOS, source: "ig", medium: "paid_social", id: "9000" };
     expect(emparejar({ ...base, campaign: " lanzamiento " }, ARBOL)).toMatchObject({
       nivel: "N2",
       campana: { tipo: "meta", campanaId: "camp-1" },
