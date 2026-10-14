@@ -31,6 +31,9 @@ export const SCOPES_ESCRITURA = [
   "https://www.googleapis.com/auth/drive.readonly",
 ];
 
+/** Escritura limitada a los archivos que crea el respaldo de comprobantes. */
+export const SCOPES_RESPALDO = ["https://www.googleapis.com/auth/drive.file"];
+
 export function clienteGoogle(scopes: string[] = SCOPES_LECTURA) {
   const cred = credencialesCuentaServicio();
   return new google.auth.JWT({
