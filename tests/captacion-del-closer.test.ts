@@ -67,7 +67,15 @@ describe("el codigo y el enlace (puro)", () => {
     );
     const q = (k: string) => url.searchParams.get(k);
     const traza = emparejar(
-      { source: q("utm_source"), medium: q("utm_medium"), campaign: q("utm_campaign"), content: q("utm_content"), term: q("utm_term"), id: q("utm_id") },
+      {
+        source: q("utm_source"),
+        medium: q("utm_medium"),
+        campaign: q("utm_campaign"),
+        content: q("utm_content"),
+        term: q("utm_term"),
+        id: q("utm_id"),
+        idsMeta: { adId: null, adsetId: null, campaignId: null },
+      },
       ARBOL_VACIO,
     );
     expect(traza.origen).toMatchObject({ area: "referidos", regla: "referido", canal: { clave: "closer" } });

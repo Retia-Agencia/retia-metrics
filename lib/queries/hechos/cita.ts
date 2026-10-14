@@ -22,7 +22,12 @@ const resultadosQueOcurrieron = sql.raw(RESULTADOS_QUE_OCURRIERON.map((resultado
 const ocurrio = sql<string>`case when ${calls.resultado} in (${resultadosQueOcurrieron}) then 'si' else 'no' end`;
 const dimensiones = {
   ...dimensionesDeDate(fechaAnclaCall()),
-  ...dimensionesDeOrigen(submissions.id, submissions.utmSource, submissions.utmMedium),
+  ...dimensionesDeOrigen(
+    submissions.id,
+    submissions.utmSource,
+    submissions.utmMedium,
+    calls.programId,
+  ),
   dueno: deals.ownerUserId,
   cohorte: deals.cohortId,
   etapa: deals.etapa,

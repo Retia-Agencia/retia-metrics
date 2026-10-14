@@ -1,6 +1,7 @@
 import { sql, type SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { MEDIOS_PAGOS } from "@/lib/atribucion/canal";
+import { submissions } from "@/lib/db/schema";
 
 type ColumnaTexto = PgColumn | SQL;
 
@@ -8,6 +9,12 @@ export interface ColumnasCanalSql {
   source: ColumnaTexto;
   medium: ColumnaTexto;
 }
+
+/** Columnas de ids cuyo significado solo interpreta este módulo de atribución. */
+export const columnasIdMetaDelEnvio = {
+  utmId: submissions.utmId,
+  respuestas: submissions.respuestas,
+};
 
 /** Gemela SQL de `normalizarUtm`: blancos y macros sin expandir son ausencia. */
 function normalizarSql(columna: ColumnaTexto) {
@@ -35,16 +42,44 @@ function plataformaSql(source: SQL<string | null>) {
 }
 
 /** Área calculada solo con source/medium, con las mismas prioridades que `resolverCanal`. */
-export function areaSql(columnas: ColumnasCanalSql) {
+export function areaSql(columnas: ColumnasCanalSql, idEnArbol?: SQL<boolean>) {
   const source = normalizarSql(columnas.source);
   const medium = normalizarSql(columnas.medium);
   const mediosPagos = sql.raw(MEDIOS_PAGOS.map((medio) => `'${medio}'`).join(", "));
   return sql<string>`case
+    ${idEnArbol ? sql`when ${idEnArbol} then 'paid'` : sql``}
     when ${medium} in (${mediosPagos}) then 'paid'
     when ${medium} = 'referido' then 'referidos'
     when ${source} is not null or ${medium} is not null then 'organico'
     else 'sin_utm'
   end`;
+}
+
+/**
+ * Un id presente en el árbol del mismo programa es el primer paso de la regla de área.
+ * Gemela de `utmsDelEnvio` + `emparejar`: `utm_id` cae a `respuestas` como allá (envíos
+ * anteriores a la 0048). Las llaves de `respuestas` van exactas en minúscula, que es como
+ * las declaran los Typeform; la versión de TypeScript además tolera mayúsculas.
+ */
+export function idEnArbolSql(columnas: {
+  programId: ColumnaTexto;
+  utmId: ColumnaTexto;
+  respuestas: ColumnaTexto;
+}) {
+  const id = (columna: ColumnaTexto) => sql<string | null>`case
+    when ${columna} is null or btrim(${columna}) = '' or btrim(${columna}) like '%{{%' then null
+    else btrim(${columna})
+  end`;
+  return sql<boolean>`exists (
+    select 1 from pauta_objetos po
+    where po.program_id = ${columnas.programId}
+      and po.id_meta in (
+        ${id(sql<string>`coalesce(${columnas.utmId}, ${columnas.respuestas}->>'utm_id')`)},
+        ${id(sql<string>`${columnas.respuestas}->>'ad_id'`)},
+        ${id(sql<string>`${columnas.respuestas}->>'adset_id'`)},
+        ${id(sql<string>`${columnas.respuestas}->>'campaign_id'`)}
+      )
+  )`;
 }
 
 /** Clave del canal: primera palabra (con alias) más la cuenta restante. */

@@ -18,7 +18,12 @@ export type MedidaAgenda = "agendas";
 
 const dimensiones = {
   ...dimensionesDeFecha(calls.createdAt),
-  ...dimensionesDeOrigen(submissions.id, submissions.utmSource, submissions.utmMedium),
+  ...dimensionesDeOrigen(
+    submissions.id,
+    submissions.utmSource,
+    submissions.utmMedium,
+    calls.programId,
+  ),
   dueno: deals.ownerUserId,
   cohorte: deals.cohortId,
   etapa: deals.etapa,

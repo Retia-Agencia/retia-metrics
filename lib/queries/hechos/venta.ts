@@ -28,7 +28,12 @@ function fuente(db: Db, rango: { desde: string; hasta: string }) {
   const dias = ventasConDiaEn(db, rango).as("ventas_con_dia");
   const dimensiones = {
     ...dimensionesDeDate(dias.dia),
-    ...dimensionesDeOrigen(submissions.id, submissions.utmSource, submissions.utmMedium),
+    ...dimensionesDeOrigen(
+      submissions.id,
+      submissions.utmSource,
+      submissions.utmMedium,
+      deals.programId,
+    ),
     dueno: deals.ownerUserId,
     cohorte: deals.cohortId,
   } as const;

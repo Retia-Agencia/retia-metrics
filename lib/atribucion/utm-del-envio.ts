@@ -14,6 +14,11 @@ export interface UtmsDelEnvio {
   content: string | null;
   term: string | null;
   id: string | null;
+  idsMeta: {
+    adId: string | null;
+    adsetId: string | null;
+    campaignId: string | null;
+  };
 }
 
 export const columnasUtmDelEnvio = {
@@ -57,5 +62,10 @@ export function utmsDelEnvio(fila: {
     term: fila.utmTerm ?? leer("utm_term"),
     // Desde el 116 las tres viven en su columna; `respuestas` queda para lo anterior a la 0048.
     id: fila.utmId ?? leer("utm_id"),
+    idsMeta: {
+      adId: leer("ad_id"),
+      adsetId: leer("adset_id"),
+      campaignId: leer("campaign_id"),
+    },
   };
 }

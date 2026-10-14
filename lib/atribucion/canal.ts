@@ -24,7 +24,7 @@ export interface Canal {
 export type ResultadoCanal = {
   area: Area;
   canal: Canal | null;
-  regla: "medio_pago" | "referido" | "con_utm" | "sin_utm";
+  regla: "id_en_arbol" | "medio_pago" | "referido" | "con_utm" | "sin_utm";
 };
 
 /** Los vacíos y las macros sin expandir no son datos atribuibles. */
@@ -77,7 +77,10 @@ export function nombreDeCanal(clave: string): string {
     : `${capitalizarPalabras(plataforma)} · ${capitalizarPalabras(cuenta)}`;
 }
 
-/** Resuelve el área y el canal de un envío solo con reglas de código. */
+/**
+ * Resuelve el área y el canal de un envío solo con reglas de código.
+ * El paso 1, `id_en_arbol`, lo aplica el emparejador porque necesita el árbol de pauta.
+ */
 export function resolverCanal(
   envio: { source: string | null; medium: string | null },
 ): ResultadoCanal {

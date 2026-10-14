@@ -28,5 +28,6 @@ export async function arbolDePauta(db: Db, programId: string): Promise<ArbolDePa
           ? [{ id: fila.idMeta, conjuntoId: fila.padreIdMeta!, campanaId }]
           : [];
       }),
+    conjuntos: [...conjuntos].map(([id, campanaId]) => ({ id, campanaId })),
   };
 }

@@ -22,6 +22,7 @@ function utmsQueLlegan(link: string): UtmsDelEnvio {
     content: p.get("utm_content"),
     term: p.get("utm_term"),
     id: p.get("utm_id"),
+    idsMeta: { adId: null, adsetId: null, campaignId: null },
   };
 }
 
@@ -63,6 +64,7 @@ describe("generarLink", () => {
     expect(p.get("ref")).toBe("y");
     expect(emparejar(utmsQueLlegan(link), {
       anuncios: [{ id: "123", conjuntoId: "c", campanaId: "meta" }],
+      conjuntos: [],
       campanas: [],
     }).anuncio).toBeNull();
   });

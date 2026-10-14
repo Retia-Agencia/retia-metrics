@@ -1,5 +1,5 @@
 import { and, between, eq, sql } from "drizzle-orm";
-import { areaSql, canalSql, cuentaSql } from "@/lib/atribucion/canal-sql";
+import { areaSql, canalSql, columnasIdMetaDelEnvio, cuentaSql, idEnArbolSql } from "@/lib/atribucion/canal-sql";
 import { sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
@@ -19,11 +19,16 @@ import { dimensionesDeFecha } from "@/lib/queries/hechos/fechas";
 export type DimensionEnvio = "dia" | "semana" | "mes" | "area" | "canal" | "cuenta" | "campana" | "fuente";
 export type MedidaEnvio = "envios";
 
+const columnas = { source: submissions.utmSource, medium: submissions.utmMedium };
+const idEnArbol = idEnArbolSql({
+  programId: sources.programId,
+  ...columnasIdMetaDelEnvio,
+});
 const dimensiones = {
   ...dimensionesDeFecha(submissions.fechaEnvio),
-  area: areaSql({ source: submissions.utmSource, medium: submissions.utmMedium }),
-  canal: canalSql({ source: submissions.utmSource, medium: submissions.utmMedium }),
-  cuenta: cuentaSql({ source: submissions.utmSource, medium: submissions.utmMedium }),
+  area: areaSql(columnas, idEnArbol),
+  canal: canalSql(columnas),
+  cuenta: cuentaSql(columnas),
   campana: submissions.utmCampaign,
   fuente: submissions.sourceId,
 } as const;

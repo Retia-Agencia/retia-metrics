@@ -5,11 +5,23 @@ import { describe, expect, it } from "vitest";
 import { ARBOL_VACIO, emparejar, type ArbolDePauta } from "@/lib/atribucion/emparejar";
 import { utmsDelEnvio, type UtmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 
-const VACIOS: UtmsDelEnvio = { source: null, medium: null, campaign: null, content: null, term: null, id: null };
+const VACIOS: UtmsDelEnvio = {
+  source: null,
+  medium: null,
+  campaign: null,
+  content: null,
+  term: null,
+  id: null,
+  idsMeta: { adId: null, adsetId: null, campaignId: null },
+};
 const ARBOL: ArbolDePauta = {
   anuncios: [
     { id: "ad-2", conjuntoId: "set-2", campanaId: "camp-2" },
     { id: "ad-1", conjuntoId: "set-1", campanaId: "camp-1" },
+  ],
+  conjuntos: [
+    { id: "set-2", campanaId: "camp-2" },
+    { id: "set-1", campanaId: "camp-1" },
   ],
   campanas: [
     { id: "camp-2", nombre: "Siempre verde" },
@@ -27,9 +39,24 @@ describe("UTM crudos del envio", () => {
         utmContent: "columna",
         utmTerm: null,
         utmId: null,
-        respuestas: { utm_content: "ignorado", " UTM_Term ": "ad-1", " utm_ID ": " 42 " },
+        respuestas: {
+          utm_content: "ignorado",
+          " UTM_Term ": "ad-1",
+          " utm_ID ": " 42 ",
+          ad_id: "ad-1",
+          adset_id: "set-1",
+          campaign_id: "camp-1",
+        },
       }),
-    ).toEqual({ source: "facebook", medium: "cpc", campaign: "cruda", content: "columna", term: "ad-1", id: " 42 " });
+    ).toEqual({
+      source: "facebook",
+      medium: "cpc",
+      campaign: "cruda",
+      content: "columna",
+      term: "ad-1",
+      id: " 42 ",
+      idsMeta: { adId: "ad-1", adsetId: "set-1", campaignId: "camp-1" },
+    });
 
     expect(
       utmsDelEnvio({
@@ -56,7 +83,7 @@ describe("emparejador de atribucion", () => {
     expect(emparejar(VACIOS, ARBOL_VACIO)).toMatchObject({ nivel: "N0", origen: { regla: "sin_utm" }, macros: [] });
     const macro = "{{sin.expandir}}";
     expect(
-      emparejar({ source: macro, medium: macro, campaign: macro, content: macro, term: macro, id: macro }, ARBOL),
+      emparejar({ ...VACIOS, source: macro, medium: macro, campaign: macro, content: macro, term: macro, id: macro }, ARBOL),
     ).toMatchObject({
       nivel: "N0",
       origen: { regla: "sin_utm" },
@@ -76,15 +103,72 @@ describe("emparejador de atribucion", () => {
   it("resuelve el anuncio de pauta hasta N3", () => {
     expect(
       emparejar(
-        { source: "instagram", medium: "paid_social", campaign: "Lanzamiento", content: " Anuncio A ", term: " Feed ", id: " ad-1 " },
+        { ...VACIOS, source: "instagram", medium: "paid_social", campaign: "Lanzamiento", content: " Anuncio A ", term: " Feed ", id: " ad-1 " },
         ARBOL,
       ),
     ).toMatchObject({
       nivel: "N3",
       anuncio: { anuncioId: "ad-1", conjuntoId: "set-1", campanaId: "camp-1" },
       campana: { tipo: "meta", campanaId: "camp-1" },
+      conjunto: { conjuntoId: "set-1", campanaId: "camp-1" },
       contenido: { formato: "plantilla_pauta", anuncioNombre: "Anuncio A", placement: "Feed" },
       avisos: [],
+    });
+  });
+
+  it("resuelve cualquier id al nivel más profundo y fuerza el área paid", () => {
+    expect(emparejar({ ...VACIOS, source: "facebook", medium: "cpc", id: "52532647547375" }, {
+      ...ARBOL,
+      campanas: [...ARBOL.campanas, { id: "52532647547375", nombre: "Campaña CA" }],
+    })).toMatchObject({
+      nivel: "N2",
+      campana: { tipo: "meta", campanaId: "52532647547375" },
+      conjunto: null,
+      avisos: [],
+    });
+
+    expect(emparejar({
+      ...VACIOS,
+      source: "ig",
+      medium: "social",
+      idsMeta: { adId: "ad-1", adsetId: null, campaignId: null },
+    }, ARBOL)).toMatchObject({
+      nivel: "N3",
+      origen: { area: "paid", regla: "id_en_arbol", canal: { clave: "instagram" } },
+      anuncio: { anuncioId: "ad-1", conjuntoId: "set-1", campanaId: "camp-1" },
+      conjunto: { conjuntoId: "set-1", campanaId: "camp-1" },
+      campana: { tipo: "meta", campanaId: "camp-1" },
+      avisos: [],
+    });
+  });
+
+  it("prefiere el nivel más profundo y a igual nivel el orden fijo, sin depender del árbol", () => {
+    const utms = {
+      ...VACIOS,
+      idsMeta: { adId: "ad-1", adsetId: null, campaignId: null },
+      id: "camp-2",
+    };
+    const directo = emparejar(utms, ARBOL);
+    const invertido = emparejar(utms, {
+      anuncios: [...ARBOL.anuncios].reverse(),
+      conjuntos: [...ARBOL.conjuntos].reverse(),
+      campanas: [...ARBOL.campanas].reverse(),
+    });
+    expect(directo.anuncio?.anuncioId).toBe("ad-1");
+    expect(invertido).toEqual(directo);
+  });
+
+  it("avisa una sola vez si hay ids pero ninguno resolvió y conserva el área del medio", () => {
+    expect(emparejar({
+      ...VACIOS,
+      source: "ig",
+      medium: "social",
+      id: "utm-ausente",
+      idsMeta: { adId: "ad-ausente", adsetId: "set-ausente", campaignId: "camp-ausente" },
+    }, ARBOL)).toMatchObject({
+      nivel: "N1",
+      origen: { area: "organico", regla: "con_utm" },
+      avisos: ["anuncio_desconocido"],
     });
   });
 
@@ -145,6 +229,7 @@ describe("emparejador de atribucion", () => {
     const directo = emparejar(utms, ARBOL);
     const invertido = emparejar(utms, {
       anuncios: [...ARBOL.anuncios].reverse(),
+      conjuntos: [...ARBOL.conjuntos].reverse(),
       campanas: [...ARBOL.campanas].reverse(),
     });
     expect(invertido).toEqual(directo);
@@ -154,6 +239,7 @@ describe("emparejador de atribucion", () => {
 const PROHIBIDO = [
   { nombre: "identificador de columna UTM", re: /\butm(?:Content|Term|Id)\b/ },
   { nombre: "llave cruda UTM", re: /(["'`])utm_(?:content|term|id)\1/ },
+  { nombre: "llave cruda de Meta", re: /(["'`])(?:ad_id|adset_id|campaign_id)\1/ },
 ];
 
 /** Detecta lectores de UTM detallados que esquivan el modulo de atribucion. */

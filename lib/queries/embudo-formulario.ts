@@ -1,10 +1,11 @@
 import { and, eq, gte, sql } from "drizzle-orm";
-import { emparejar, ARBOL_VACIO } from "@/lib/atribucion/emparejar";
+import { emparejar } from "@/lib/atribucion/emparejar";
 import type { Area } from "@/lib/atribucion/canal";
 import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { agendoElEnvio } from "@/lib/ingesta/etapa-de-entrada";
+import { arbolDePauta } from "@/lib/pauta/arbol";
 import type { AlcanceDeSerie } from "@/lib/queries/serie";
 
 /**
@@ -82,7 +83,10 @@ type Envio = Awaited<ReturnType<typeof leerEnvios>>[number] & { fechaEnvio: Date
 const vacio = (): PasosDelFormulario => ({ dejoDatos: 0, completo: 0, llegoCalendly: 0, agendo: 0 });
 
 export async function embudoDelFormulario(db: Db, { programId, rango }: AlcanceDeSerie): Promise<EmbudoDelFormulario> {
-  const envios = await leerEnvios(db, programId, rango.desde);
+  const [envios, arbol] = await Promise.all([
+    leerEnvios(db, programId, rango.desde),
+    arbolDePauta(db, programId),
+  ]);
 
   const porRegistro = new Map<string, Envio[]>();
   for (const e of envios) {
@@ -104,7 +108,7 @@ export async function embudoDelFormulario(db: Db, { programId, rango }: AlcanceD
 
     const completas = lista.filter((e) => !e.esParcial);
     const conUtm = completas.at(-1) ?? lista[0];
-    const traza = emparejar(utmsDelEnvio(conUtm), ARBOL_VACIO);
+    const traza = emparejar(utmsDelEnvio(conUtm), arbol);
     const origen = traza.origen;
     const tipo = origen.regla === "sin_utm" ? "sin_utm" : "canal";
     const clave = tipo === "canal" ? `canal:${origen.area}:${origen.canal?.clave ?? ""}` : tipo;
